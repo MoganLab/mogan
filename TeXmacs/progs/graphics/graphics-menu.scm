@@ -535,7 +535,7 @@
 ) ;menu-bind
 
 (menu-bind graphics-control-point-pos-menu
-  ("Set position" (interactive graphics-set-control-point-position))
+ ("Set position" (interactive graphics-set-control-point-position))
 ) ;menu-bind
 
 (menu-bind graphics-line-width-menu
@@ -992,209 +992,212 @@
     /
     (mini #t
       (group "Position:")
-      (with pos-val (if (graphics-selection-active?)
-                        (let* ((radical (stree-radical (car (sketch-get1))))
-                               (x (get-control-point-x radical selected-point-no))
-                               (y (get-control-point-y radical selected-point-no)))
-                          (string-append x ", " y)
-                        ) ;let*
-                        "")
+      (with pos-val
+        (if (graphics-selection-active?)
+          (let* ((radical (stree-radical (car (sketch-get1))))
+                 (x (get-control-point-x radical selected-point-no))
+                 (y (get-control-point-y radical selected-point-no))
+                ) ;
+            (string-append x ", " y)
+          ) ;let*
+          ""
+        ) ;if
         (=> (eval pos-val) (link graphics-control-point-pos-menu))
       ) ;with
     ) ;mini
   ) ;assuming
   (assuming (not selected-point-no)
     (assuming (graphics-mode-attribute? (graphics-mode) "color")
-    /
-    (mini #t
-      (group "Color:")
-      (with col
-        (graphics-get-property "gr-color")
-        (assuming (== col "default")
-          (=> (color "black" #f #f 25 17) (link graphics-color-menu))
-        ) ;assuming
-        (assuming (in? col (list "none" "mixed"))
-          (=> (eval col) (link graphics-color-menu))
-        ) ;assuming
-        (assuming (nin? col (list "default" "none" "mixed"))
-          (=> (color col #f #f 25 17) (link graphics-color-menu))
-        ) ;assuming
-      ) ;with
-    ) ;mini
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "fill-color")
-    /
-    (mini #t
-      (group "Fill color:")
-      (with col
-        (graphics-get-property "gr-fill-color")
-        (assuming (== col "default") (=> "none" (link graphics-fill-color-menu)))
-        (assuming (in? col (list "none" "mixed"))
-          (=> (eval col) (link graphics-fill-color-menu))
-        ) ;assuming
-        (assuming (nin? col (list "default" "none" "mixed"))
-          (=> (color col #f #f 25 17) (link graphics-fill-color-menu))
-        ) ;assuming
-      ) ;with
-    ) ;mini
-  ) ;assuming
-  (assuming (== (get-preference "experimental alpha") "on")
-    (assuming (graphics-mode-attribute? (graphics-mode) "opacity")
       /
       (mini #t
-        (group "Opacity:")
-        (let* ((o (graphics-get-property "gr-opacity")) (s (if (== o "default") "100%" o)))
-          (=> (eval s) (link graphics-opacity-menu))
+        (group "Color:")
+        (with col
+          (graphics-get-property "gr-color")
+          (assuming (== col "default")
+            (=> (color "black" #f #f 25 17) (link graphics-color-menu))
+          ) ;assuming
+          (assuming (in? col (list "none" "mixed"))
+            (=> (eval col) (link graphics-color-menu))
+          ) ;assuming
+          (assuming (nin? col (list "default" "none" "mixed"))
+            (=> (color col #f #f 25 17) (link graphics-color-menu))
+          ) ;assuming
+        ) ;with
+      ) ;mini
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "fill-color")
+      /
+      (mini #t
+        (group "Fill color:")
+        (with col
+          (graphics-get-property "gr-fill-color")
+          (assuming (== col "default") (=> "none" (link graphics-fill-color-menu)))
+          (assuming (in? col (list "none" "mixed"))
+            (=> (eval col) (link graphics-fill-color-menu))
+          ) ;assuming
+          (assuming (nin? col (list "default" "none" "mixed"))
+            (=> (color col #f #f 25 17) (link graphics-fill-color-menu))
+          ) ;assuming
+        ) ;with
+      ) ;mini
+    ) ;assuming
+    (assuming (== (get-preference "experimental alpha") "on")
+      (assuming (graphics-mode-attribute? (graphics-mode) "opacity")
+        /
+        (mini #t
+          (group "Opacity:")
+          (let* ((o (graphics-get-property "gr-opacity")) (s (if (== o "default") "100%" o)))
+            (=> (eval s) (link graphics-opacity-menu))
+          ) ;let*
+        ) ;mini
+      ) ;assuming
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "pen-enhance")
+      /
+      (mini #t
+        (group "Enhance:")
+        (with s
+          (graphics-get-pen-enhance-method)
+          (=> (eval s) (link graphics-pen-enhance-menu))
+        ) ;with
+      ) ;mini
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "pen-style")
+      /
+      (mini #t (group "Pen:") (=> "oval" (link graphics-pen-style-menu)))
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "point-style")
+      /
+      (mini #t
+        (group "Point style:")
+        (let* ((ps (graphics-get-property "gr-point-style"))
+               (s (if (== ps "default") "disk" ps))
+              ) ;
+          (=> (eval s) (link graphics-point-style-menu))
+        ) ;let*
+      ) ;mini
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "point-size")
+      /
+      (mini #t
+        (group "Size:")
+        (let* ((ps (graphics-get-property "gr-point-size"))
+               (s (if (== ps "default") "2.5ln" ps))
+              ) ;
+          (=> (eval s) (link graphics-point-size-menu))
+        ) ;let*
+      ) ;mini
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "point-border")
+      /
+      (mini #t
+        (group "Border:")
+        (let* ((ps (graphics-get-property "gr-point-border"))
+               (s (if (== ps "default") "1ln" ps))
+              ) ;
+          (=> (eval s) (link graphics-point-border-menu))
+        ) ;let*
+      ) ;mini
+    ) ;assuming
+    (assuming (or (graphics-mode-attribute? (graphics-mode) "line-width")
+                (graphics-mode-attribute? (graphics-mode) "dash-style")
+              ) ;or
+      /
+      (mini #t
+        (group "Line style:")
+        (assuming (graphics-mode-attribute? (graphics-mode) "line-width")
+          (let* ((lw (graphics-get-property "gr-line-width"))
+                 (s (if (== lw "default") "1ln" lw))
+                ) ;
+            (=> (eval s) (link graphics-line-width-menu))
+          ) ;let*
+        ) ;assuming
+        (assuming (graphics-mode-attribute? (graphics-mode) "dash-style")
+          (let* ((dash (graphics-get-property "gr-dash-style")) (s (decode-dash dash)))
+            (=> (eval s) (link graphics-dash-menu))
+          ) ;let*
+        ) ;assuming
+      ) ;mini
+    ) ;assuming
+    (assuming (or (graphics-mode-attribute? (graphics-mode) "arrow-begin")
+                (graphics-mode-attribute? (graphics-mode) "arrow-end")
+              ) ;or
+      /
+      (mini #t
+        (group "Arrows:")
+        (let* ((arrow-begin (graphics-get-property "gr-arrow-begin"))
+               (arrow-end (graphics-get-property "gr-arrow-end"))
+               (s (string-append (decode-arrow arrow-begin) "---" (decode-arrow arrow-end)))
+              ) ;
+          (=> (eval s) (link graphics-line-arrows-menu))
+        ) ;let*
+      ) ;mini
+    ) ;assuming
+    (assuming #f
+      ;; (graphics-mode-attribute? (graphics-mode) "line-portion")
+      /
+      (mini #t
+        (group "Portion:")
+        (let* ((portion (graphics-get-property "gr-line-portion"))
+               (s (if (== portion "default") "1" portion))
+              ) ;
+          (=> (eval s) (link graphics-line-portion-menu))
+        ) ;let*
+      ) ;mini
+    ) ;assuming
+    (assuming (or (graphics-mode-attribute? (graphics-mode) "text-at-halign")
+                (graphics-mode-attribute? (graphics-mode) "text-at-valign")
+                (graphics-mode-attribute? (graphics-mode) "doc-at-valign")
+              ) ;or
+      /
+      (mini #t
+        (group "Alignment:")
+        (let* ((al (graphics-get-property "gr-text-at-halign"))
+               (s (if (== al "default") "left" al))
+              ) ;
+          (=> (eval s) (link graphics-text-halign-menu))
+        ) ;let*
+        (assuming (graphics-mode-attribute? (graphics-mode) "text-at-valign")
+          (let* ((al (graphics-get-property "gr-text-at-valign"))
+                 (s (if (== al "default") "base" al))
+                ) ;
+            (=> (eval s) (link graphics-text-valign-menu))
+          ) ;let*
+        ) ;assuming
+        (assuming (not (graphics-mode-attribute? (graphics-mode) "text-at-valign"))
+          (assuming (graphics-mode-attribute? (graphics-mode) "doc-at-valign")
+            (let* ((al (graphics-get-property "gr-doc-at-valign"))
+                   (s (if (== al "default") "top" al))
+                  ) ;
+              (=> (eval s) (link graphics-doc-valign-menu))
+            ) ;let*
+          ) ;assuming
+        ) ;assuming
+      ) ;mini
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "doc-at-width")
+      /
+      (mini #t
+        (group "Style:")
+        (let* ((w (graphics-get-property "gr-doc-at-width"))
+               (m (graphics-get-property "gr-doc-at-hmode"))
+              ) ;
+          (=> (eval (doc-at-mode w m)) (link graphics-doc-mode-menu))
+        ) ;let*
+      ) ;mini
+    ) ;assuming
+    (assuming (graphics-mode-attribute? (graphics-mode) "text-at-repulse")
+      /
+      (mini #t
+        (group "Repulse:")
+        (let* ((rep (graphics-get-property "gr-text-at-repulse"))
+               (val (if (== rep "default") "off" rep))
+              ) ;
+          (=> (eval val) (link graphics-text-repulse-menu))
         ) ;let*
       ) ;mini
     ) ;assuming
   ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "pen-enhance")
-    /
-    (mini #t
-      (group "Enhance:")
-      (with s
-        (graphics-get-pen-enhance-method)
-        (=> (eval s) (link graphics-pen-enhance-menu))
-      ) ;with
-    ) ;mini
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "pen-style")
-    /
-    (mini #t (group "Pen:") (=> "oval" (link graphics-pen-style-menu)))
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "point-style")
-    /
-    (mini #t
-      (group "Point style:")
-      (let* ((ps (graphics-get-property "gr-point-style"))
-             (s (if (== ps "default") "disk" ps))
-            ) ;
-        (=> (eval s) (link graphics-point-style-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "point-size")
-    /
-    (mini #t
-      (group "Size:")
-      (let* ((ps (graphics-get-property "gr-point-size"))
-             (s (if (== ps "default") "2.5ln" ps))
-            ) ;
-        (=> (eval s) (link graphics-point-size-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "point-border")
-    /
-    (mini #t
-      (group "Border:")
-      (let* ((ps (graphics-get-property "gr-point-border"))
-             (s (if (== ps "default") "1ln" ps))
-            ) ;
-        (=> (eval s) (link graphics-point-border-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
-  (assuming (or (graphics-mode-attribute? (graphics-mode) "line-width")
-              (graphics-mode-attribute? (graphics-mode) "dash-style")
-            ) ;or
-    /
-    (mini #t
-      (group "Line style:")
-      (assuming (graphics-mode-attribute? (graphics-mode) "line-width")
-        (let* ((lw (graphics-get-property "gr-line-width"))
-               (s (if (== lw "default") "1ln" lw))
-              ) ;
-          (=> (eval s) (link graphics-line-width-menu))
-        ) ;let*
-      ) ;assuming
-      (assuming (graphics-mode-attribute? (graphics-mode) "dash-style")
-        (let* ((dash (graphics-get-property "gr-dash-style")) (s (decode-dash dash)))
-          (=> (eval s) (link graphics-dash-menu))
-        ) ;let*
-      ) ;assuming
-    ) ;mini
-  ) ;assuming
-  (assuming (or (graphics-mode-attribute? (graphics-mode) "arrow-begin")
-              (graphics-mode-attribute? (graphics-mode) "arrow-end")
-            ) ;or
-    /
-    (mini #t
-      (group "Arrows:")
-      (let* ((arrow-begin (graphics-get-property "gr-arrow-begin"))
-             (arrow-end (graphics-get-property "gr-arrow-end"))
-             (s (string-append (decode-arrow arrow-begin) "---" (decode-arrow arrow-end)))
-            ) ;
-        (=> (eval s) (link graphics-line-arrows-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
-  (assuming #f
-    ;; (graphics-mode-attribute? (graphics-mode) "line-portion")
-    /
-    (mini #t
-      (group "Portion:")
-      (let* ((portion (graphics-get-property "gr-line-portion"))
-             (s (if (== portion "default") "1" portion))
-            ) ;
-        (=> (eval s) (link graphics-line-portion-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
-  (assuming (or (graphics-mode-attribute? (graphics-mode) "text-at-halign")
-              (graphics-mode-attribute? (graphics-mode) "text-at-valign")
-              (graphics-mode-attribute? (graphics-mode) "doc-at-valign")
-            ) ;or
-    /
-    (mini #t
-      (group "Alignment:")
-      (let* ((al (graphics-get-property "gr-text-at-halign"))
-             (s (if (== al "default") "left" al))
-            ) ;
-        (=> (eval s) (link graphics-text-halign-menu))
-      ) ;let*
-      (assuming (graphics-mode-attribute? (graphics-mode) "text-at-valign")
-        (let* ((al (graphics-get-property "gr-text-at-valign"))
-               (s (if (== al "default") "base" al))
-              ) ;
-          (=> (eval s) (link graphics-text-valign-menu))
-        ) ;let*
-      ) ;assuming
-      (assuming (not (graphics-mode-attribute? (graphics-mode) "text-at-valign"))
-        (assuming (graphics-mode-attribute? (graphics-mode) "doc-at-valign")
-          (let* ((al (graphics-get-property "gr-doc-at-valign"))
-                 (s (if (== al "default") "top" al))
-                ) ;
-            (=> (eval s) (link graphics-doc-valign-menu))
-          ) ;let*
-        ) ;assuming
-      ) ;assuming
-    ) ;mini
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "doc-at-width")
-    /
-    (mini #t
-      (group "Style:")
-      (let* ((w (graphics-get-property "gr-doc-at-width"))
-             (m (graphics-get-property "gr-doc-at-hmode"))
-            ) ;
-        (=> (eval (doc-at-mode w m)) (link graphics-doc-mode-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
-  (assuming (graphics-mode-attribute? (graphics-mode) "text-at-repulse")
-    /
-    (mini #t
-      (group "Repulse:")
-      (let* ((rep (graphics-get-property "gr-text-at-repulse"))
-             (val (if (== rep "default") "off" rep))
-            ) ;
-        (=> (eval val) (link graphics-text-repulse-menu))
-      ) ;let*
-    ) ;mini
-  ) ;assuming
- ) ;assuming
 ) ;tm-menu
 
 (tm-menu (graphics-snap-icons)

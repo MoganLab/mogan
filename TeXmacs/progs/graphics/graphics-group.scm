@@ -339,15 +339,11 @@
 ) ;tm-define
 
 (tm-define (get-control-point-x obj no)
-  (with pt (get-control-point obj no)
-    (if pt (cadr pt) "0")
-  ) ;with
+  (with pt (get-control-point obj no) (if pt (cadr pt) "0"))
 ) ;tm-define
 
 (tm-define (get-control-point-y obj no)
-  (with pt (get-control-point obj no)
-    (if pt (caddr pt) "0")
-  ) ;with
+  (with pt (get-control-point obj no) (if pt (caddr pt) "0"))
 ) ;tm-define
 
 (tm-define (graphics-set-control-point-position x y)
@@ -564,10 +560,9 @@
           (set! y (s2f y))
           (with mode
             (graphics-mode)
-            (cond (selected-point-no
-                   (object_set-point selected-point-no (f2s x) (f2s y))
-                   (graphics-decorations-update)
-                  ) ;
+            (cond (selected-point-no (object_set-point selected-point-no (f2s x) (f2s y))
+                    (graphics-decorations-update)
+                  ) ;selected-point-no
                   ((== (cadr mode) 'edit-props)
                    (sketch-transform (group-translate (- x group-old-x) (- y group-old-y)))
                   ) ;
@@ -647,16 +642,18 @@
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
   (cond (current-path
-         ;; 计算并直接选中最近的控制点
-         (set! selected-point-no (object-closest-point-pos (tree->stree (path->tree current-path)) x y))
-         ;; 选中该对象
-         (sketch-reset)
-         (any_toggle-select x y current-path current-obj)
-        ) ;case
+          ;; 计算并直接选中最近的控制点
+          (set! selected-point-no
+            (object-closest-point-pos (tree->stree (path->tree current-path)) x y)
+          ) ;set!
+          ;; 选中该对象
+          (sketch-reset)
+          (any_toggle-select x y current-path current-obj)
+        ) ;current-path
         (else
-         ;; 点击空白：清除控制点选择，并取消全选
-         (set! selected-point-no #f)
-         (unselect-all current-path current-obj)
+          ;; 点击空白：清除控制点选择，并取消全选
+          (set! selected-point-no #f)
+          (unselect-all current-path current-obj)
         ) ;else
   ) ;cond
 ) ;tm-define
