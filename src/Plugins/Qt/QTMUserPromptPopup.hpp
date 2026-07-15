@@ -12,9 +12,9 @@
 #define QT_USER_PROMPT_POPUP_HPP
 
 #include "qt_simple_widget.hpp"
-#include <QWidget>
-#include <QPushButton>
 #include <QHBoxLayout>
+#include <QPushButton>
+#include <QWidget>
 
 // =============================================================================
 // QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
@@ -47,10 +47,10 @@ protected:
   void installTopLevelWindowFilter ();
 
   // 由子类实现的具体点击动作
-  virtual void onAcceptClicked () = 0;
-  virtual void onRejectClicked () = 0;
-  virtual void onGoodClicked () = 0;
-  virtual void onBadClicked () = 0;
+  virtual void onAcceptClicked ()= 0;
+  virtual void onRejectClicked ()= 0;
+  virtual void onGoodClicked ()  = 0;
+  virtual void onBadClicked ()   = 0;
 
 protected slots:
   void handleAccept ();
