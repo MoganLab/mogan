@@ -250,10 +250,8 @@
 
 (define (graphics-grid-aspect-autoupdate)
   (let* ((magn (graphics-get-zoom))
-         (subdiv (cond ((<= magn 0.5) 1)
-                       ((<= magn 1.25) 2)
-                       ((<= magn 2.5) 5)
-                       (else 10))))
+         (subdiv (cond ((<= magn 0.5) 1) ((<= magn 1.25) 2) ((<= magn 2.5) 5) (else 10)))
+        ) ;
     (graphics-set-grid-aspect 'detailed subdiv #f)
     (graphics-set-grid-aspect 'detailed subdiv #t)
   ) ;let*
