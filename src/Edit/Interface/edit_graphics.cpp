@@ -540,6 +540,9 @@ edit_graphics_rep::mouse_graphics (string type, SI x, SI y, int mods, time_t t,
     else if (type == "drop-object") call ("graphics-drop-object", sx, sy);
     invalidate_graphical_object ();
     notify_change (THE_CURSOR);
+    // 及时 call set_right_footer()，使坐标显示实时更新
+    edit_interface_rep* edit_if= dynamic_cast<edit_interface_rep*> (this);
+    if (edit_if != nullptr) edit_if->set_right_footer ();
     return true;
   }
   // cout << "No frame " << tp << ", " << subtree (et, path_up (tp)) << "\n";

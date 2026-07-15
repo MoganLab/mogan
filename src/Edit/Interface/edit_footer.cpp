@@ -548,6 +548,14 @@ edit_interface_rep::compute_compound_footer (tree t, path p) {
 
 void
 edit_interface_rep::set_right_footer () {
+  if (inside_graphics (false)) {
+    // 绘图区拦截，显示坐标
+    double rx    = round (get_x () * 1e4) / 1e4;
+    double ry    = round (get_y () * 1e4) / 1e4;
+    string coords= string ("(") * as_string (rx) * ", " * as_string (ry) * ")";
+    set_right_footer (tree (coords));
+    return;
+  }
   tree cf= compute_compound_footer (et, path_up (tp));
   tree st= subtree (et, path_up (tp));
   tree lf;
@@ -677,7 +685,7 @@ edit_interface_rep::set_footer () {
     if (message_l == "") set_left_footer ();
     else set_left_footer (message_l);
     set_middle_footer ();
-    if (message_r == "") set_right_footer ();
+    if (message_r == "" || inside_graphics (false)) set_right_footer ();
     else set_right_footer (message_r);
     message_l= message_r= "";
   }
