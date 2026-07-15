@@ -257,6 +257,7 @@ im_tm_widget_rep::render_editor () {
     return;
   }
   ed->handle_repaint (ren, x1, y2, x2, y1);
+  ed->clear_invalid ();   // 重绘整块画布后，消费掉失效区，避免每帧重渲染
 
   tm_delete (ren);
 

@@ -57,3 +57,6 @@ goldfish.dSYM/
 TeXmacs/fonts/opentype/noto
 
 record
+
+# ImGui
+imgui.ini

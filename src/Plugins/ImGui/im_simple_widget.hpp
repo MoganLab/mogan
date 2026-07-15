@@ -58,6 +58,7 @@ public:
   // Notify the canvas of the OS window that contains it (set by
   // im_tm_widget_rep) so that SLOT_WINDOW / SLOT_IDENTIFIER can be answered.
   void set_window (widget win, int id); // TODO: implement id via SLOTs
+  void clear_invalid ();
 
 protected:
   rectangles invalid_regions;

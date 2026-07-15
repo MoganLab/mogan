@@ -132,6 +132,12 @@ im_simple_widget_rep::is_invalid () {
 }
 
 void
+im_simple_widget_rep::clear_invalid () {
+  is_dirty      = false;
+  invalid_regions= rectangles ();
+}
+
+void
 im_simple_widget_rep::recenter () {
   // 水平：文档窄于画布则水平居中（负偏移把文档右移），否则贴左（ImGui
   // 无水平滚动）。
