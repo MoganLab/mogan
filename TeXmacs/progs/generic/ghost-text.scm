@@ -35,6 +35,10 @@
 
 (tm-define (is-ghost-active?) ghost-active?)
 
+(tm-define (ghost-enable?)
+  (not (community-stem?))
+) ;tm-define
+
 ;; =============================================================================
 ;; Model evaluation & Feedback functions
 ;; =============================================================================
@@ -48,7 +52,7 @@
   (let* ((candidates '(" because of this"
                        " to implement a demo"
                        " as specified in the task"
-                       " with elegant Scheme code")
+                       " with wonderful LiiiSTEM")
          ) ;candidates
          (text (list-ref candidates (random (length candidates))))
          (confidence 1.0)
@@ -61,17 +65,19 @@
 ;; Ghost Text core control flow
 ;; =============================================================================
 (tm-define (trigger-ghost-text)
-  (when ghost-active?
-    (ignore-ghost)
+  (when (ghost-enable?)
+    (when ghost-active?
+      (ignore-ghost)
+    ) ;when
+    (set! ghost-serial (+ ghost-serial 1))
+    (let ((current ghost-serial))
+      (delayed (:idle 500)
+        (when (and (== ghost-serial current) (not-in-tab-cycling?))
+          (generate-ghost-text)
+        ) ;when
+      ) ;delayed
+    ) ;let
   ) ;when
-  (set! ghost-serial (+ ghost-serial 1))
-  (let ((current ghost-serial))
-    (delayed (:idle 500)
-      (when (and (== ghost-serial current) (not-in-tab-cycling?))
-        (generate-ghost-text)
-      ) ;when
-    ) ;delayed
-  ) ;let
 ) ;tm-define
 
 (tm-define (generate-ghost-text)
