@@ -125,7 +125,9 @@ target("stem") do
         add_frameworks("QtQml", "QtQuick", "QtBodymovin")
     end
 
-    add_packages("goldfish")
+    if has_config("goldfish") then
+        add_packages("goldfish")
+    end
     add_packages("mupdf")
     if not has_config("qt_frontend") and not is_plat("wasm") then -- WASM GLFW is in EMCC
         add_packages("glfw") 
