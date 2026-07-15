@@ -1,0 +1,13 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <marked|应力张量<math|\<tau\><rsub|i j>>><marked|>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
