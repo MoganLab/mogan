@@ -28,65 +28,56 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind full-text-format-menu
-  (if (qt-gui?)
-    ;; ImGui 前端精简：移除 Format 的 Font / Color
-    (group "Font")
-    (link text-font-menu)
-    (if (simple-menus?) (-> "Color" (link color-menu)))
-  ) ;if
+  (group "Font")
+  (link text-font-menu)
+  (if (simple-menus?) (-> "Color" (link color-menu)))
   (if (detailed-menus?) --- (group "Text") (link text-properties-menu))
-  (if (qt-gui?)
-    ;; ImGui 前端精简：移除 Format 的 Paragraph / Page
-    ---
-    (group "Paragraph")
-    (link paragraph-menu)
-    ---
-    (when (in-main-flow?)
-      (group "Page")
-      (link page-menu)
-    ) ;when
-  ) ;if
+  ---
+  (group "Paragraph")
+  (link paragraph-menu)
+  ---
+  (when (in-main-flow?)
+    (group "Page")
+    (link page-menu)
+  ) ;when
 ) ;menu-bind
 
 (menu-bind compressed-text-format-menu
-  (if (qt-gui?)
-    ;; ImGui 前端精简：移除 Format 的 Font / Paragraph / Page / Cell / Table
-    ("Font" (interactive open-font-selector))
-    ("Paragraph" (open-paragraph-format))
-    (when (in-main-flow?)
-      ("Page" (open-page-format))
-    ) ;when
-    (when (inside? 'table)
-      ("Cell" (open-cell-properties))
-      ("Table" (open-table-properties))
-    ) ;when
-    ---
-  ) ;if
-  ;; (-> "Whitespace" (link space-menu))
-  (-> "Indentation" (link indentation-menu))
-  (-> "Break" (link break-menu))
-  (when (and (selection-active-small?) (tm-atomic? (selection-tree)))
-    ("Hyphenate as" (interactive hyphenate-selection-as))
-  ) ;when
-  ---
-  (if (qt-gui?)
-    ;; ImGui 前端精简：移除 Format 的 Color
-    (-> "Color"
-      (if (== (get-preference "experimental alpha") "on")
-        (-> "Opacity" (link opacity-menu))
-        ---
-      ) ;if
-      (link color-menu)
-    ) ;->
-  ) ;if
-  (-> "Adjust" (link adjust-menu))
-  (-> "Transform" (link linear-transform-menu))
-  (-> "Specific" (link specific-menu))
-  (-> "Special" (link format-special-menu))
-  (-> "Font effects" (link text-font-effects-menu))
-  (assuming (== (get-preference "bitmap effects") "on")
-    (-> "Graphical effects" (link text-effects-menu))
-  ) ;assuming
+ ("Font" (interactive open-font-selector))
+ ("Paragraph" (open-paragraph-format))
+ (when (in-main-flow?)
+   ("Page" (open-page-format))
+ ) ;when
+ (when (inside? 'table)
+   ("Cell" (open-cell-properties))
+   ("Table" (open-table-properties))
+ ) ;when
+ ---
+ ;; (-> "Whitespace" (link space-menu))
+ (-> "Indentation" (link indentation-menu))
+ (-> "Break" (link break-menu))
+ (when (and (selection-active-small?) (tm-atomic? (selection-tree)))
+   ("Hyphenate as" (interactive hyphenate-selection-as))
+ ) ;when
+ ---
+ (if (qt-gui?)
+   ;; ImGui 前端精简：移除 Format 的 Color
+   (-> "Color"
+     (if (== (get-preference "experimental alpha") "on")
+       (-> "Opacity" (link opacity-menu))
+       ---
+     ) ;if
+     (link color-menu)
+   ) ;->
+ ) ;if
+ (-> "Adjust" (link adjust-menu))
+ (-> "Transform" (link linear-transform-menu))
+ (-> "Specific" (link specific-menu))
+ (-> "Special" (link format-special-menu))
+ (-> "Font effects" (link text-font-effects-menu))
+ (assuming (== (get-preference "bitmap effects") "on")
+   (-> "Graphical effects" (link text-effects-menu))
+ ) ;assuming
 ) ;menu-bind
 
 (menu-bind text-format-menu

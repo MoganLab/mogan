@@ -273,6 +273,10 @@
 (ahash-set! define-option-table :secure (define-property* :secure))
 (ahash-set! define-option-table :check-mark (define-property* :check-mark))
 (ahash-set! define-option-table :interactive (define-property* :interactive))
+(ahash-set! define-option-table
+  :imgui-supported
+  (define-property* :imgui-supported)
+) ;ahash-set!
 (ahash-set! define-option-table :balloon (define-property* :balloon))
 
 (define-public (procedure-sources about)

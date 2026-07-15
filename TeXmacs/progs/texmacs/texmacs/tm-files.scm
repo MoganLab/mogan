@@ -201,7 +201,10 @@
   ) ;with
 ) ;tm-define
 
-(tm-property (choose-file fun text type) (:interactive #t))
+(tm-property (choose-file fun text type)
+  (:interactive #t)
+  (:imgui-supported #t)
+) ;tm-property
 
 (tm-define (open-auxiliary aux body . opt-master)
   (let* ((name (aux-name aux))

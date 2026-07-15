@@ -67,8 +67,21 @@ render_node (widget w) {
   case im_menu_rep::k_container: {
     // horizontal_menu / vertical_menu / …：逐项渲染子节点
     array<widget>& kids= m->menu_children ();
-    for (int i= 0; i < N (kids); ++i)
+    // 规整分隔符：去除首/末/连续的孤立分隔符。interactive 菜单项在
+    // scheme 层（menu-widget.scm）被过滤后会残留孤立 '---'，此处统一清理。
+    int last= -1;
+    for (int i= 0; i < N (kids); ++i) {
+      im_menu_rep* km= dynamic_cast<im_menu_rep*> (kids[i].rep);
+      if (km == nullptr || km->kind != im_menu_rep::k_separator) last= i;
+    }
+    bool prev_sep= true; // 跳过开头的分隔符
+    for (int i= 0; i <= last; ++i) {
+      im_menu_rep* km= dynamic_cast<im_menu_rep*> (kids[i].rep);
+      bool is_sep    = (km != nullptr && km->kind == im_menu_rep::k_separator);
+      if (is_sep && prev_sep) continue; // 连续或首分隔符：跳过
       render_node (kids[i]);
+      prev_sep= is_sep;
+    }
   } break;
   case im_menu_rep::k_submenu: {
     // pulldown / pullright：BeginMenu 展开惰性 promise 子菜单。
