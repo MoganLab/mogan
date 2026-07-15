@@ -1194,8 +1194,11 @@
   ---
   (dynamic (focus-document-menu t))
   (dynamic (focus-document-extra-menu t))
-  ---
-  ("Help" (focus-help))
+  (if (qt-gui?)
+    ;; ImGui 前端精简：移除 Focus 菜单末尾的 Help
+    ---
+    ("Help" (focus-help))
+  ) ;if
 ) ;tm-menu
 
 (tm-menu (focus-document-extra-icons t))

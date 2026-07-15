@@ -98,9 +98,12 @@
       ("Other" (interactive clipboard-cut))
     ) ;->
   ) ;if
-  ---
-  ("Search recent documents" (interactive docgrep-in-recent))
-  ---
-  (if (use-menus?) (-> "Preferences" (link preferences-menu)))
-  (if (use-popups?) ("Preferences" (open-preferences)))
+  (if (qt-gui?)
+    ;; ImGui 前端精简：移除 Search recent documents / Preferences
+    ---
+    ("Search recent documents" (interactive docgrep-in-recent))
+    ---
+    (if (use-menus?) (-> "Preferences" (link preferences-menu)))
+    (if (use-popups?) ("Preferences" (open-preferences)))
+  ) ;if
 ) ;menu-bind

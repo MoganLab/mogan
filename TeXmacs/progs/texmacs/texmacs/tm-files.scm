@@ -612,6 +612,16 @@
   ) ;with-default-view
 ) ;tm-define
 
+(tm-define (wasm-save-for-download)
+  (:synopsis "WASM: 把当前 buffer 保存到它自己的文件并返回该文件路径，供浏览器下载"
+  ) ;:synopsis
+  ;; WASM 的"另存为" = 保存 buffer 到当前文件（普通 Save，不重命名）+ 下载该文件。
+  ;; 不弹文件名对话框、不改 buffer 名。save-buffer-save 同步执行（无
+  ;; with-default-view 的 exec-delayed），把 buffer 内容写入它自己的路径。
+  (save-buffer-save (current-buffer) '() "save")
+  (url->system (current-buffer))
+) ;tm-define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Exporting buffers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

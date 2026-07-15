@@ -1,0 +1,438 @@
+
+/******************************************************************************
+ * MODULE     : im_chooser_widget.cpp
+ * DESCRIPTION: ImGui 文件选择器 widget 的跨平台实现（非 macOS 部分）。
+ * AUTHOR     : JimZhouZZY
+ *******************************************************************************
+ * This software falls under the GNU general public license version 3 or later.
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+ ******************************************************************************/
+
+#include "im_chooser_widget.hpp"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+#include "analyze.hpp"    // starts, ends
+#include "convert.hpp"    // strip
+#include "converter.hpp"  // utf8_to_cork, cork_to_utf8
+#include "dictionary.hpp" // translate
+#include "file.hpp"       // url_system, as_system_string
+#include "moebius/data/scheme.hpp"
+#include "new_buffer.hpp" // get_current_buffer_safe (默认保存名回退)
+#include "scheme.hpp"     // call, exec_delayed
+#include "string.hpp"
+#include "sys_utils.hpp" // get_env
+
+using moebius::data::scm_quote;
+
+/******************************************************************************
+ * 构造函数
+ ******************************************************************************/
+
+im_chooser_widget_rep::im_chooser_widget_rep (command _cmd, string _type,
+                                              string _prompt)
+    : im_widget_rep (im_widget_rep::none), cmd (_cmd), prompt (_prompt),
+      directory (""), file ("#f") {
+  if (!set_type (_type)) set_type ("generic");
+}
+
+/******************************************************************************
+ * WASM 文件对话框实现
+ ******************************************************************************/
+
+#ifdef __EMSCRIPTEN__
+
+static im_chooser_widget_rep* g_active_chooser= nullptr;
+
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_wasm_file_cancelled () {
+  if (g_active_chooser == nullptr) return;
+  g_active_chooser->on_cancel ();
+}
+
+static void
+im_wasm_start_open_dialog (array<string>& exts) {
+  string accept;
+  for (int i= 0; i < N (exts); ++i) {
+    if (i > 0) accept= accept * ",";
+    accept= accept * "." * exts[i];
+  }
+  c_string accept_exts (accept);
+  EM_ASM (
+      {
+        var acceptExts     = UTF8ToString ($0);
+        var input          = document.createElement ('input');
+        input.type         = 'file';
+        input.accept       = acceptExts;
+        input.style.display= 'none';
+        document.body.appendChild (input);
+        input.onchange= function (e) {
+          document.body.removeChild (input);
+          var file= e.target.files[0];
+          if (!file) {
+            ccall ('mogan_wasm_file_cancelled', null, [], []);
+            return;
+          }
+          var reader   = new FileReader ();
+          reader.onload= function (ev) {
+            var data= new Uint8Array (ev.target.result);
+            try {
+              FS.mkdir ('/tmp');
+            } catch (err) {
+            }
+            // 用原文件名上传到 /tmp；若重名则按 base-i.ext 加数字后缀，
+            // 使 FS 中的文件名与上传文件一致（便于 buffer 命名与后续保存）。
+            var name= file.name;
+            var path= '/tmp/' + name;
+            if (FS.analyzePath (path).exists) {
+              var dot= name.lastIndexOf ('.');
+              var base;
+              var ext;
+              if (dot > 0) {
+                base= name.substring (0, dot);
+                ext = name.substring (dot);
+              }
+              else {
+                base= name;
+                ext = '';
+              }
+              var i= 1;
+              do {
+                path= '/tmp/' + base + '-' + i + ext;
+                i++;
+              } while (FS.analyzePath (path).exists);
+            }
+            FS.writeFile (path, data);
+            ccall ('mogan_wasm_file_selected', null, [ 'string', 'number' ],
+                   [ path, 0 ]);
+          };
+          reader.readAsArrayBuffer (file);
+        };
+        input.click ();
+      },
+      (char*) accept_exts);
+}
+
+static void
+im_wasm_download_file (const string& path, const string& filename) {
+  c_string p (path);
+  c_string n (filename);
+  EM_ASM (
+      {
+        var path    = UTF8ToString ($0);
+        var filename= UTF8ToString ($1);
+        setTimeout (
+            function () {
+              try {
+                var data= FS.readFile (path);
+                var blob= new Blob ([data], {
+                  type:
+                    'application/octet-stream'
+                });
+                var url   = URL.createObjectURL (blob);
+                var a     = document.createElement ('a');
+                a.href    = url;
+                a.download= filename;
+                a.click ();
+                URL.revokeObjectURL (url);
+              } catch (e) {
+                console.warn ('WASM download failed:', e);
+              }
+            },
+            500);
+      },
+      (char*) p, (char*) n);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_wasm_file_selected (const char* path, int save_mode) {
+  if (g_active_chooser == nullptr || path == nullptr) return;
+  g_active_chooser->on_select (string (path), save_mode != 0);
+}
+#endif // __EMSCRIPTEN__
+
+/******************************************************************************
+ * 类型与过滤器设置
+ ******************************************************************************/
+
+bool
+im_chooser_widget_rep::set_type (const string& _type) {
+  // 从 Qt 移植过来
+  extensions= array<string> ();
+  def_ext   = "";
+
+  if (_type == "directory") {
+    type= _type;
+    return true;
+  }
+
+  if (_type == "image") {
+    type= _type;
+    extensions << string ("jpg") << string ("jpeg") << string ("jpe")
+               << string ("png") << string ("tif") << string ("tiff")
+               << string ("svg") << string ("pdf") << string ("webp");
+    return true;
+  }
+
+  if (_type == "text") {
+    type= _type;
+    extensions << string ("txt");
+    return true;
+  }
+
+  if (_type == "action_open") {
+    type= _type;
+    extensions << string ("tmu") << string ("tm") << string ("ts")
+               << string ("tp") << string ("stem"); //<< string ("pdf")
+    //<< string ("json") << string ("csv") << string ("md")
+    //<< string ("txt"); // 目前只打开 stem 相关文件格式
+    return true;
+  }
+
+  if (_type == "action_save_as") {
+    type= _type;
+    extensions << string ("tmu");
+    def_ext= "tmu";
+    return true;
+  }
+
+  if (_type == "action_include") {
+    type= _type;
+    extensions << string ("tmu") << string ("tm");
+    return true;
+  }
+
+  if (_type == "generic") {
+    type= _type;
+    return true;
+  }
+
+  // 尝试从 format 注册表读取后缀（参考 Qt 的 format-get-suffixes*）
+  object        ret     = call ("format-get-suffixes*", _type);
+  array<object> suffixes= as_array_object (ret);
+  if (N (suffixes) > 1) {
+    type= _type;
+    for (int i= 1; i < N (suffixes); ++i)
+      extensions << as_string (suffixes[i]);
+    if (N (suffixes) > 1) def_ext= as_string (suffixes[1]);
+    return true;
+  }
+
+  return false;
+}
+
+/******************************************************************************
+ * Widget 协议
+ ******************************************************************************/
+
+void
+im_chooser_widget_rep::send (slot s, blackbox val) {
+  switch (s) {
+  case SLOT_VISIBILITY:
+    // 文件选择器为一次性的模态对话框，忽略可见性变化。
+    break;
+  case SLOT_SIZE:
+  case SLOT_POSITION:
+    // 原生对话框忽略尺寸/位置。
+    break;
+  case SLOT_KEYBOARD_FOCUS:
+    // 获得焦点时触发弹窗。
+    perform_dialog ();
+    break;
+  case SLOT_STRING_INPUT:
+    // 不处理。
+    break;
+  case SLOT_INPUT_TYPE:
+    set_type (open_box<string> (val));
+    break;
+  case SLOT_FILE:
+    file= open_box<string> (val);
+    break;
+  case SLOT_DIRECTORY: {
+    string d = open_box<string> (val);
+    directory= as_string (url_pwd () * url_system (d));
+  } break;
+  default:
+    im_widget_rep::send (s, val);
+  }
+}
+
+blackbox
+im_chooser_widget_rep::query (slot s, int type_id) {
+  (void) type_id;
+  switch (s) {
+  case SLOT_POSITION:
+    return close_box<coord2> (coord2 (0, 0));
+  case SLOT_SIZE:
+    return close_box<coord2> (coord2 (800 * PIXEL, 600 * PIXEL));
+  case SLOT_STRING_INPUT:
+    return close_box<string> (file);
+  default:
+    return im_widget_rep::query (s, type_id);
+  }
+}
+
+widget
+im_chooser_widget_rep::read (slot s, blackbox index) {
+  (void) index;
+  switch (s) {
+  case SLOT_WINDOW:
+  case SLOT_FORM_FIELD:
+  case SLOT_FILE:
+  case SLOT_DIRECTORY:
+    return this;
+  default:
+    return im_widget_rep::read (s, index);
+  }
+}
+
+widget
+im_chooser_widget_rep::plain_window_widget (string s, command q, int b) {
+  (void) b;
+  win_title= s;
+  quit     = q;
+  return this;
+}
+
+/******************************************************************************
+ * 对话框执行
+ ******************************************************************************/
+
+static bool
+im_is_save_mode (const string& type, const string& prompt) {
+  if (N (prompt) > 0) return true;
+  return type == "action_save_as" || type == "action_include";
+}
+
+static string
+im_format_result (const string& type, const string& path) {
+  if (type == "directory") {
+    return "(system->url " * scm_quote (path) * ")";
+  }
+  // 普通文件直接返回 (system->url "path")
+  return "(system->url " * scm_quote (path) * ")";
+}
+
+void
+im_chooser_widget_rep::perform_dialog () {
+  file= "#f";
+
+  bool   save_mode= im_is_save_mode (type, prompt);
+  string title    = (N (win_title) > 0) ? win_title : prompt;
+  if (N (title) == 0)
+    title= save_mode
+               ? translate ((string) "Save", "english", get_output_language ())
+               : translate ((string) "Open", "english", get_output_language ());
+
+  string filename= "";
+  if (type != "directory") {
+    url u= url_system (file);
+    if (is_scratch (u)) filename= "";
+    else filename= as_system_string (u);
+  }
+  // 若上层未通过 set_file 给出建议名（file 仍是构造默认值 "#f"——例如当前 buffer
+  // 的 master 被判为 scratch 时 tm_frame_rep::choose_file 不会
+  // set_file），则用当前 buffer 的文件名作为默认保存名，避免对话框默认名是 "#f"
+  // 导致保存路径非法。
+  if (is_empty (filename) || filename == "#f") {
+    url cur= get_current_buffer_safe ();
+    if (!is_none (cur) && !is_scratch (cur)) filename= as_string (tail (cur));
+  }
+
+#ifdef __EMSCRIPTEN__
+  if (g_active_chooser != nullptr) {
+    // 已有未完成的异步文件选择器（仅 open 是异步的），先取消旧的。
+    im_chooser_widget_rep* old= g_active_chooser;
+    g_active_chooser          = nullptr;
+    old->on_cancel ();
+  }
+  if (save_mode) {
+    // WASM 另存为 = 保存当前 buffer 到它自己的文件 + 浏览器下载该文件。
+    // 同步完成，不注册为 g_active_chooser（那是给异步 open 文件选择器用的），
+    // 否则下次 open 会误对本（已 quit 的）选择器 on_cancel → 重跑
+    // cmd（重复下载） 并二次 quit 导致 use-after-free 崩溃。
+    object path_obj= call ("wasm-save-for-download");
+    string path    = as_string (path_obj);
+    string dl      = "";
+    int    len     = N (path);
+    for (int i= len - 1; i >= 0; --i)
+      if (path[i] == '/') {
+        dl= path (i + 1, len);
+        break;
+      }
+    if (is_empty (dl)) dl= "document.tmu";
+    im_wasm_download_file (path, dl);
+    if (!is_nil (quit)) quit ();
+  }
+  else {
+    g_active_chooser= this; // open：异步文件选择器，注册为活动
+    im_wasm_start_open_dialog (extensions);
+  }
+#else
+  // 非 WASM，当前 im_show_file_dialog 为 stub，
+  string out_path;
+  bool   ok= im_show_file_dialog (title, save_mode, directory, filename,
+                                  extensions, out_path);
+
+  if (ok && !is_empty (out_path)) {
+    // 保存模式下若无后缀且指定了默认后缀，则追加后缀。
+    if (save_mode && !is_empty (def_ext)) {
+      int dot_pos= -1;
+      for (int i= N (out_path) - 1; i >= 0; --i) {
+        if (out_path[i] == '/') break;
+        if (out_path[i] == '.') {
+          dot_pos= i;
+          break;
+        }
+      }
+      if (dot_pos < 0) out_path= out_path * "." * def_ext;
+    }
+    file= im_format_result (type, out_path);
+  }
+
+  cmd ();
+  if (!is_nil (quit)) quit ();
+#endif
+}
+
+void
+im_chooser_widget_rep::on_cancel () {
+#ifdef __EMSCRIPTEN__
+  g_active_chooser= nullptr;
+  file            = "#f";
+  if (!is_nil (cmd)) cmd ();
+  if (!is_nil (quit)) quit ();
+#endif
+}
+
+void
+im_chooser_widget_rep::on_select (string path, bool save_mode) {
+#ifdef __EMSCRIPTEN__
+  (void) save_mode; // 另存为由 perform_dialog
+                    // 直接处理（同步保存+下载），不经过此处
+  g_active_chooser= nullptr;
+  file            = "(system->url " * scm_quote (path) * ")";
+  if (!is_nil (cmd)) cmd ();
+  if (!is_nil (quit)) quit ();
+#endif
+}
+
+/******************************************************************************
+ * 桌面端平台文件对话框入口（目前为 stub，真实实现仅在 WASM 的异步回调中）
+ ******************************************************************************/
+
+bool
+im_show_file_dialog (string title, bool save_mode, string directory,
+                     string filename, array<string> exts, string& out_path) {
+  out_path= "";
+  (void) title;
+  (void) save_mode;
+  (void) directory;
+  (void) filename;
+  (void) exts;
+  // 桌面端当前为 stub，不实现模态文件对话框。
+  return false;
+}

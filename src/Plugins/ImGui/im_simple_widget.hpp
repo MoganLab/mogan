@@ -75,8 +75,13 @@ protected:
   void invalidate_all ();
   bool is_invalid ();
 
-  void recenter_x ();
-  void clamp_scroll_y ();
+  // 视图原点（仿 Qt QTMScrollView）：根据文档尺寸与画布尺寸把 scroll_x/scroll_y
+  // 调整到正确值——水平方向窄于画布则居中；垂直方向始终上对齐（短文档贴顶，不
+  // 居中，与编辑时一致），仅长文档钳位到可滚动范围。每次 extents / size /
+  // scroll-position 变化都调用，故加载/缩放/resize 后自动定位，无需在 load 处
+  // 手动重置。editor（make-cursor-visible / 滚轮）通过 SLOT_SCROLL_POSITION
+  // 下达 scroll_y，本函数负责钳位/上对齐。
+  void recenter ();
 };
 
 typedef im_simple_widget_rep simple_widget_rep;

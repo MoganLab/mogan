@@ -11,9 +11,11 @@
  ******************************************************************************/
 
 #include "font.hpp"
-#include "gui.hpp"              // gui_start_loop
-#include "im_simple_widget.hpp" // im_simple_widget_rep (glue placeholder)
-#include "im_tm_widget.hpp"     // im_primary_glfw_window (clipboard)
+#include "gui.hpp"               // gui_start_loop
+#include "im_chooser_widget.hpp" // im_chooser_widget_rep (file chooser)
+#include "im_menu.hpp"           // im_menu_rep / im_popup_rep (menus & popups)
+#include "im_simple_widget.hpp"  // im_simple_widget_rep (glue placeholder)
+#include "im_tm_widget.hpp"      // im_primary_glfw_window (clipboard)
 #include "im_widget.hpp"
 #include "object.hpp"
 #include "promise.hpp"
@@ -97,6 +99,9 @@ plain_window_widget (widget w, string name, command q) {
 
 widget
 popup_window_widget (widget w, string s) {
+  // 菜单弹出容器：返回自身，使 set_visibility / send_mouse_grab 命中同一 rep。
+  im_popup_rep* p= dynamic_cast<im_popup_rep*> (w.rep);
+  if (p != nullptr) return widget ((widget_rep*) p);
   return static_cast<im_widget_rep*> (w.rep)->popup_window_widget (s);
 }
 
@@ -123,10 +128,8 @@ gui_start_loop () {
 
 widget
 file_chooser_widget (command cmd, string type, string prompt) {
-  (void) cmd;
-  (void) type;
-  (void) prompt;
-  return im_stub_widget ();
+  return widget (
+      (widget_rep*) tm_new<im_chooser_widget_rep> (cmd, type, prompt));
 }
 
 widget
@@ -153,72 +156,94 @@ inputs_list_widget (command call_back, array<string> prompts) {
 
 widget
 popup_widget (widget w) {
-  (void) w;
-  return im_stub_widget ();
+  // 包一层弹出容器：持有 vertical_menu 根，处理弹出协议并在帧循环里渲染。
+  return widget ((widget_rep*) tm_new<im_popup_rep> (w));
 }
 
 /******************************************************************************
- * Menu factories (stubs)
+ * Menu factories
+ *
+ * 参考 qt_widget.cpp 的 qt_ui_element_rep::create + add_children：每个工厂构造
+ * 一个 im_menu_rep 节点（按 kind），把参数存入字段，容器类用 add_children 挂
+ * 子节点。渲染由 im_menu.cpp 的 render_node 每帧递归完成。
  ******************************************************************************/
+
+// 从标签 widget 取 cork 原文。balloon_widget 已在工厂层解包，故这里直接读
+// im_menu_rep::label（text_widget 节点）。
+static string
+im_extract_label (widget w) {
+  im_menu_rep* m= dynamic_cast<im_menu_rep*> (w.rep);
+  return (m == nullptr) ? string ("") : m->label;
+}
 
 widget
 horizontal_menu (array<widget> a) {
-  (void) a;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_container);
+  m->add_children (a);
+  return widget ((widget_rep*) m);
 }
 widget
 vertical_menu (array<widget> a) {
-  (void) a;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_container);
+  m->add_children (a);
+  return widget ((widget_rep*) m);
 }
 widget
 tile_menu (array<widget> a, int cols) {
-  (void) a;
-  (void) cols;
-  return im_stub_widget ();
+  (void) cols; // ImGui 暂以普通容器渲染（不分行）
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_container);
+  m->add_children (a);
+  return widget ((widget_rep*) m);
 }
 widget
 minibar_menu (array<widget> a) {
-  (void) a;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_container);
+  m->add_children (a);
+  return widget ((widget_rep*) m);
 }
 widget
 menu_separator (bool vertical) {
-  (void) vertical;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_separator);
+  m->vertical   = vertical;
+  return widget ((widget_rep*) m);
 }
 widget
 menu_group (string name, int style) {
-  (void) name;
-  (void) style;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_group);
+  m->label      = name;
+  m->style      = style;
+  return widget ((widget_rep*) m);
 }
 widget
 pulldown_button (widget w, promise<widget> pw) {
-  (void) w;
-  (void) pw;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_submenu);
+  m->label      = im_extract_label (w);
+  m->sub        = pw;
+  return widget ((widget_rep*) m);
 }
 widget
 pullright_button (widget w, promise<widget> pw) {
-  (void) w;
-  (void) pw;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_submenu);
+  m->label      = im_extract_label (w);
+  m->sub        = pw;
+  return widget ((widget_rep*) m);
 }
 widget
 menu_button (widget w, command cmd, string pre, string ks, int style) {
-  (void) w;
-  (void) cmd;
-  (void) pre;
-  (void) ks;
-  (void) style;
-  return im_stub_widget ();
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_button);
+  m->label      = im_extract_label (w);
+  m->cmd        = cmd;
+  m->pre        = pre;
+  m->ks         = ks;
+  m->style      = style;
+  return widget ((widget_rep*) m);
 }
 widget
 balloon_widget (widget w, widget help) {
-  (void) w;
+  // ImGui 端暂不显示悬浮帮助；解包返回内层 widget（通常为 text_widget），
+  // 使父级 menu_button / pulldown_button 能取到标签。
   (void) help;
-  return im_stub_widget ();
+  return w;
 }
 
 /******************************************************************************
@@ -227,11 +252,13 @@ balloon_widget (widget w, widget help) {
 
 widget
 text_widget (string s, int style, color col, bool tsp) {
-  (void) s;
-  (void) style;
   (void) col;
   (void) tsp;
-  return im_stub_widget ();
+  // 作为菜单标签来源：存 cork 原文，渲染时由 display_label 翻译为 utf8。
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_text);
+  m->label      = s;
+  m->style      = style;
+  return widget ((widget_rep*) m);
 }
 widget
 xpm_widget (url file_name) {

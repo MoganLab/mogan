@@ -121,12 +121,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind view-menu
-  (if (not (window-per-buffer?))
-   ("New window" (new-document*))
-   ("Open in new window" (open-document*))
-   ;; ("Clone window" (clone-window))
-   ("Close window" (close-document*))
-   ---
+  (if (qt-gui?)
+    ;; ImGui 前端精简：移除 New window / Open in new window / Close window
+    (if (not (window-per-buffer?))
+     ("New window" (new-document*))
+     ("Open in new window" (open-document*))
+     ;; ("Clone window" (clone-window))
+     ("Close window" (close-document*))
+     ---
+    ) ;if
   ) ;if
   ("Full screen mode" (toggle-full-screen-edit-mode))
   ("Focus mode" (toggle-focus-mode))
@@ -155,11 +158,14 @@
 
   ("Snap to pages" (toggle-snap-to-pages))
   ---
-  (when (visible-header?)
-    ("Main icon bar" (toggle-visible-icon-bar 0))
-    ("Mode dependent icons" (toggle-visible-icon-bar 1))
-    ("Focus dependent icons" (toggle-visible-icon-bar 2))
-  ) ;when
+  (if (qt-gui?)
+    ;; ImGui 前端精简：移除 Main/Mode/Focus 图标栏开关（ImGui 暂未实现这些栏的开关）
+    (when (visible-header?)
+      ("Main icon bar" (toggle-visible-icon-bar 0))
+      ("Mode dependent icons" (toggle-visible-icon-bar 1))
+      ("Focus dependent icons" (toggle-visible-icon-bar 2))
+    ) ;when
+  ) ;if
   ;; ("User provided icons" (toggle-visible-icon-bar 3))
   ("Status bar" (toggle-visible-footer))
   (if (with-developer-tool?)

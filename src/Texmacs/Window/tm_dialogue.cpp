@@ -163,6 +163,14 @@ tm_frame_rep::choose_file (object fun, string title, string type, string prompt,
     // The env HOME is set for Windows in research.cpp
     set_directory (wid, as_system_string (url_system ("$HOME")));
   }
+#ifdef __EMSCRIPTEN__
+  // WASM: 自身处理保存（同步保存+下载）/打开（JS 文件选择器），不需要
+  // dialogue 窗口。但仍需设置 dialogue_wid，供 dialogue_command::apply 经
+  // dialogue_inquire 读取选择结果。直接触发 perform_dialog，跳过窗口创建。
+  dialogue_wid= wid;
+  send_keyboard_focus (wid);
+  return;
+#endif
   dialogue_start (title, wid);
   if (type == "directory") send_keyboard_focus (get_directory (dialogue_wid));
   else send_keyboard_focus (get_file (dialogue_wid));

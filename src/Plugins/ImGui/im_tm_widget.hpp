@@ -44,6 +44,25 @@ protected:
   int     pic_rf; // retina factor
 
   widget main_widget;
+  // 主菜单条（由 SLOT_MAIN_MENU 写入）与菜单条占用的顶部高度（SI），后者供
+  // screen_to_si 把鼠标坐标对齐到菜单条下方的画布原点。
+  widget menu_widget;
+  SI     menu_offset_y;
+
+  // 底部状态栏（由 SLOT_*_FOOTER 写入）及其高度（SI），供画布尺寸计算。
+  string footer_left;
+  string footer_middle;
+  string footer_right;
+  SI     footer_height;
+  bool   footer_interactive;
+  // 缓冲区加载（SLOT_SCROLLABLE，即新画布挂载）后，连续若干帧把滚动重置到顶部
+  // 居中，以覆盖随后 make-cursor-visible 写入的、在 ImGui 坐标映射下不落在顶部
+  // 的滚动位置。
+  int scroll_reset_frames;
+  // 上一次发送 SLOT_SIZE 的画布。换画布（新 buffer）时即便窗口尺寸未变也要重发
+  // 一次尺寸，否则新画布的 canvas_w/canvas_h 停在构造默认值 0，recenter 会因
+  // canvas_w==0 而跳过居中。
+  widget_rep* last_size_canvas;
 
   ImGuiIO* io;
 
@@ -71,12 +90,13 @@ protected:
   void screen_to_si (double xpos, double ypos, SI& sx, SI& sy);
   // ImGui's main loop
   void im_main_loop ();
-  // The attached editor canvas. nullptr when no real editor is wired
-  im_simple_widget_rep* canvas ();
 
 public:
   im_tm_widget_rep (int mask, command quit);
   ~im_tm_widget_rep ();
+
+  // The attached editor canvas. nullptr when no real editor is wired
+  im_simple_widget_rep* canvas ();
 
   static void em_main_loop_wrapper (void* arg);
 

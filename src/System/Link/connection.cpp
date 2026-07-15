@@ -221,6 +221,10 @@ connection_handlers (string name) {
 string
 connection_start (string name, string session, bool again) {
   // cout << "Start " << name << ", " << session << "\n";
+#ifdef OS_WASM
+  // WASM 暂时不提供多进程支持
+  return "Error: socket connections not supported on WASM yet.";
+#endif
   if (!connection_declared (name))
     return "Error: connection " * name * " has not been declared";
 

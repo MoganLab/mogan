@@ -68,13 +68,13 @@
   (if (project-attached?) (=> "Project" (link project-menu)))
   (if (with-versioning-tool?) (=> "Version" (link version-menu)))
   (=> "View::menu" (link view-menu))
-  (=> "Go" (link go-menu))
-  (if (detailed-menus?) (=> "Tools" (link tools-menu)))
+  (if (qt-gui?) (=> "Go" (link go-menu)))
+  (if (qt-gui?) (if (detailed-menus?) (=> "Tools" (link tools-menu))))
   (if (with-database-tool?) (=> "Data" (link db-menu)))
   (if (with-debugging-tool?) (=> "Debug" (link debug-menu)))
   (if (with-developer-tool?) (=> "Developer" (link developer-menu)))
   (if (nnull? (test-menu)) (=> "Test" (link test-menu)))
-  (=> "Help" (link help-menu))
+  (if (qt-gui?) (=> "Help" (link help-menu)))
 ) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

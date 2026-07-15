@@ -24,6 +24,7 @@
 
 #include "im_gui.hpp" // im_interpose (drives apply_changes each frame)
 #include "im_input.hpp"
+#include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
 #include "im_simple_widget.hpp" // editor canvas (main_widget)
 
 #include "backends/imgui_impl_glfw.h"
@@ -219,10 +220,22 @@ im_tm_widget_rep::render_editor () {
   if (rf < 1) rf= 1;
   if (rf != get_retina_factor ()) set_retina_factor (rf);
 
-  if (is_nil (the_picture) || fb_w != pic_w || fb_h != pic_h || rf != pic_rf) {
-    the_picture= native_picture (fb_w, fb_h, 0, 0);
-    pic_w      = fb_w;
-    pic_h      = fb_h;
+  // 画布的可视区域（SI，来自 SLOT_SIZE）≠ 整个 framebuffer。必须按画布尺寸创建
+  // picture，否则会把整窗 framebuffer（含菜单条/状态栏区域）压缩进画布显示区，
+  // 导致垂直方向比例失真（鼠标越靠下偏差越大）。
+  SI canvas_w_si= fb_w * PIXEL;
+  SI canvas_h_si= fb_h * PIXEL;
+  if (!is_nil (main_widget)) get_size (main_widget, canvas_w_si, canvas_h_si);
+  int pic_w_px= (int) ((double) canvas_w_si / PIXEL * rf);
+  int pic_h_px= (int) ((double) canvas_h_si / PIXEL * rf);
+  if (pic_w_px <= 0) pic_w_px= fb_w;
+  if (pic_h_px <= 0) pic_h_px= fb_h;
+
+  if (is_nil (the_picture) || pic_w_px != pic_w || pic_h_px != pic_h ||
+      rf != pic_rf) {
+    the_picture= native_picture (pic_w_px, pic_h_px, 0, 0);
+    pic_w      = pic_w_px;
+    pic_h      = pic_h_px;
     pic_rf     = rf;
   }
   picture& pic= the_picture;
@@ -231,7 +244,7 @@ im_tm_widget_rep::render_editor () {
   SI sx= 0, sy= 0;
   if (!is_nil (main_widget)) get_scroll_position (main_widget, sx, sy);
   ren->set_origin (-sx, -sy);
-  SI x1= 0, y1= 0, x2= fb_w, y2= fb_h;
+  SI x1= 0, y1= 0, x2= pic_w_px, y2= pic_h_px;
   ren->encode (x1, y1);
   ren->encode (x2, y2);
   ren->set_clipping (x1, y2, x2, y1);
@@ -254,8 +267,8 @@ im_tm_widget_rep::render_editor () {
   // Note: tex_w/tex_h are the texture's device-pixel size; the host ImGui
   // window displays it at the (smaller) screen-coordinate size, so OpenGL
   // downsamples a retina-resolution texture -> crisp on screen.
-  tex_w        = fb_w;
-  tex_h        = fb_h;
+  tex_w        = pic_w_px;
+  tex_h        = pic_h_px;
   texture_dirty= false;
 }
 
@@ -312,7 +325,9 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
       orig_name ("popup"), quit (_quit), zoomf (1.0), window (nullptr),
       document_texture (0), tex_w (0), tex_h (0), texture_dirty (true),
       initialized (false), needs_refocus (false), pic_w (0), pic_h (0),
-      pic_rf (0) {
+      pic_rf (0), menu_offset_y (0), footer_height (0),
+      footer_interactive (false), scroll_reset_frames (0),
+      last_size_canvas (nullptr) {
   visibility[0] = (mask & 1) == 1;       // header
   visibility[1] = (mask & 2) == 2;       // main icons
   visibility[2] = (mask & 4) == 4;       // mode icons
@@ -569,18 +584,89 @@ im_tm_widget_rep::im_main_loop () {
   ImGui_ImplOpenGL3_NewFrame ();
   ImGui_ImplGlfw_NewFrame ();
   ImGui::NewFrame ();
+
+  // 窗口逻辑尺寸，用于菜单条、状态栏和画布布局。后续不再重复读取。
+  int win_w= 0, win_h= 0;
+  if (window) glfwGetWindowSize (window, &win_w, &win_h);
+
+  // 主菜单条 + 右键弹出菜单（即时模式，每帧渲染）。菜单项命令延迟到
+  // im_flush_menu_commands 统一执行，避免在遍历菜单树时重入。
+  float menu_h= 0.0f;
+  if (visibility[0] && !is_nil (menu_widget)) {
+    im_render_main_menu (menu_widget);
+    menu_h= ImGui::GetFrameHeight ();
+  }
+  // header_h = 菜单条 + 工具栏总高（当前无工具栏，=
+  // menu_h）。画布在此高度之下。
+  float header_h= menu_h;
+  im_render_active_popup ();
+  im_flush_menu_commands ();
+
+  // 底部状态栏（即时模式）。显示/隐藏由 SLOT_FOOTER_VISIBILITY 控制。
+  float footer_h= 0.0f;
+  if (visibility[5] && win_h > 0) {
+    footer_h= ImGui::GetFrameHeight ();
+    ImGui::SetNextWindowPos (ImVec2 (0.0f, (float) win_h - footer_h));
+    ImGui::SetNextWindowSize (ImVec2 ((float) win_w, footer_h));
+    ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (4.0f, 0.0f));
+    if (ImGui::Begin ("##mogan_statusbar", nullptr,
+                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                          ImGuiWindowFlags_NoMove |
+                          ImGuiWindowFlags_NoCollapse |
+                          ImGuiWindowFlags_NoScrollbar |
+                          ImGuiWindowFlags_NoScrollWithMouse)) {
+      ImGui::PopStyleVar (3);
+      if (!footer_interactive) {
+        // 三栏布局：左、中、右。使用绝对 X 定位避免表格单元格宽度歧义。
+        float pad_x= 4.0f;
+        // 左侧
+        ImGui::TextUnformatted (c_string (footer_left));
+        // 中间
+        ImVec2 ts= ImGui::CalcTextSize (c_string (footer_middle));
+        ImGui::SameLine ();
+        ImGui::SetCursorPosX ((win_w - ts.x) * 0.5f);
+        ImGui::TextUnformatted (c_string (footer_middle));
+        // 右侧
+        ts= ImGui::CalcTextSize (c_string (footer_right));
+        ImGui::SameLine ();
+        ImGui::SetCursorPosX (win_w - ts.x - pad_x);
+        ImGui::TextUnformatted (c_string (footer_right));
+      }
+      // 交互式 minibuffer 模式：当前仅保存状态，不渲染普通三栏；后续可在此
+      // 替换为输入控件。
+    }
+    else {
+      ImGui::PopStyleVar (3);
+    }
+    ImGui::End ();
+  }
+
+  // 顶部 header（菜单条 + 工具栏）占用 header_h 像素：记为 SI 偏移，供
+  // screen_to_si 把鼠标坐标对齐到 header 下方的画布原点。
+  menu_offset_y= (SI) (header_h * PIXEL);
+  footer_height= (SI) (footer_h * PIXEL);
   // Keep the editor canvas informed of the visible size (Qt does this via
   // resize events); otherwise update_visible()/SLOT_VISIBLE_PART report a
   // zero-sized region and the editor has nothing to render.
   static int last_cw= 0, last_ch= 0;
   if (!is_nil (main_widget)) {
-    int cw= 0, ch= 0;
-    glfwGetWindowSize (window, &cw, &ch);
-    if (cw > 0 && ch > 0 && (cw != last_cw || ch != last_ch)) {
-      last_cw= cw;
-      last_ch= ch;
-      main_widget->send (SLOT_SIZE, close_box<coord2> (coord2 (
-                                        (SI) (cw * PIXEL), (SI) (ch * PIXEL))));
+    int cw= win_w, ch= win_h;
+    int eff_h=
+        ch - (int) header_h - (int) footer_h; // header 与状态栏之间才是画布
+    // 换画布（新 buffer）时即便窗口尺寸未变也要重发 SLOT_SIZE：新画布的
+    // canvas_w/canvas_h 是构造默认值 0，否则 recenter 会因 canvas_w==0
+    // 跳过居中。
+    if (cw > 0 && eff_h > 0 &&
+        (main_widget.rep != last_size_canvas || cw != last_cw ||
+         eff_h != last_ch)) {
+      last_cw         = cw;
+      last_ch         = eff_h;
+      last_size_canvas= main_widget.rep;
+      main_widget->send (
+          SLOT_SIZE,
+          close_box<coord2> (coord2 ((SI) (cw * PIXEL), (SI) (eff_h * PIXEL))));
       texture_dirty= true; // force a re-rasterization at the new canvas size
     }
   }
@@ -614,22 +700,26 @@ im_tm_widget_rep::im_main_loop () {
 #endif
 
   // Display the canvas
-  int win_w= 0, win_h= 0;
-  glfwGetWindowSize (window, &win_w, &win_h);
   int fb_w= 0, fb_h= 0;
   glfwGetFramebufferSize (window, &fb_w, &fb_h);
-  ImGui::SetNextWindowPos (ImVec2 (0, 0));
-  ImGui::SetNextWindowSize (ImVec2 ((float) win_w, (float) win_h));
+  ImGui::SetNextWindowPos (ImVec2 (0, header_h));
+  ImGui::SetNextWindowSize (
+      ImVec2 ((float) win_w, (float) win_h - header_h - footer_h));
   ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
   ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
   ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (0, 0));
   {
-    ImGui::Begin ("Mogan Canvas", nullptr,
-                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-                      ImGuiWindowFlags_NoBringToFrontOnFocus |
-                      ImGuiWindowFlags_NoScrollbar |
-                      ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::Begin (
+        "Mogan Canvas", nullptr,
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+            // 画布只显示图像、自身不消费鼠标：这样悬停画布时
+            // io.WantCaptureMouse 为
+            // false，仅当光标在菜单条/下拉/弹出菜单/状态栏上时才为 true，供
+            // GLFW 回调据此抑制向编辑器分发（避免点菜单时画布也响应）。
+            ImGuiWindowFlags_NoMouseInputs);
     ImGui::PopStyleVar (3);
     if (document_texture != 0) {
       ImVec2 avail= ImGui::GetContentRegionAvail ();
@@ -708,7 +798,8 @@ void
 im_tm_widget_rep::screen_to_si (double xpos, double ypos, SI& sx, SI& sy) {
   (void) window;
   sx= (SI) (xpos * PIXEL);
-  sy= (SI) (-ypos * PIXEL);
+  // 画布原点位于菜单条下方（menu_offset_y），把 GLFW 窗口坐标折算到画布坐标。
+  sy= (SI) (-ypos * PIXEL) + menu_offset_y;
 }
 
 /******************************************************************************
@@ -766,6 +857,10 @@ im_tm_widget_rep::glfw_mouse_button_callback (GLFWwindow* w, int button,
                                               int action, int mods) {
   im_tm_widget_rep* self= im_self (w);
   if (self == nullptr || self->canvas () == nullptr) return;
+  // 光标在菜单条/下拉/弹出菜单上时（io.WantCaptureMouse），或弹出菜单打开期间，
+  // 鼠标事件交给 ImGui、不分发到编辑器——否则点菜单时画布也会响应，且
+  // edit_mouse.cpp 的清场逻辑会立即销毁刚建的 popup。
+  if (im_has_active_popup () || ImGui::GetIO ().WantCaptureMouse) return;
   // im_mouse_state mirrors Qt's mouse_state(), including the macOS
   // Ctrl→right-click and Option→middle-click emulation.
   int    mstate= im_mouse_state (button, mods, action == GLFW_PRESS);
@@ -786,6 +881,8 @@ im_tm_widget_rep::glfw_cursor_pos_callback (GLFWwindow* w, double xpos,
                                             double ypos) {
   im_tm_widget_rep* self= im_self (w);
   if (self == nullptr || self->canvas () == nullptr) return;
+  // 同 glfw_mouse_button_callback：菜单 UI 上或弹出菜单打开期间不分发。
+  if (im_has_active_popup () || ImGui::GetIO ().WantCaptureMouse) return;
   // Only report drags while a button is held (matches Qt, which only acts on
   // mouseMoveEvent with buttons pressed).
   if (glfwGetMouseButton (w, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS &&
@@ -810,6 +907,8 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
                                         double yoffset) {
   im_tm_widget_rep* self= im_self (w);
   if (self == nullptr || self->canvas () == nullptr) return;
+  // 同 glfw_mouse_button_callback：菜单 UI 上或弹出菜单打开期间不分发。
+  if (im_has_active_popup () || ImGui::GetIO ().WantCaptureMouse) return;
   // Mirror Qt's wheelEvent: Ctrl/Meta ⇒ zoom.
   bool zoom_mod= glfwGetKey (w, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
                  glfwGetKey (w, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
@@ -825,18 +924,10 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
   widget mw= self->main_widget;
   SI     sx= 0, sy= 0;
   get_scroll_position (mw, sx, sy);
-  coord4 ce= open_box<coord4> (mw->query (SLOT_EXTENTS, 0));
-  int    ww= 0, wh= 0;
-  glfwGetWindowSize (w, &ww, &wh);
-  SI canvas_h= (SI) wh * PIXEL;
-  SI doc_h   = ce.x4 - ce.x2;
-  SI delta   = (SI) (yoffset * 10.0 * PIXEL);
-  SI new_sy  = sy + delta;
-  if (doc_h > canvas_h) {
-    if (new_sy > 0) new_sy= 0;
-    if (-new_sy > doc_h - canvas_h) new_sy= -(doc_h - canvas_h);
-  }
-  else new_sy= 0; // whole document fits in the canvas → no vertical scroll
+  // 只把增量交给画布；钳位 / 居中统一由 im_simple_widget::recenter 完成
+  // （内容小于视口时滚轮无效，自动回到居中位置）。
+  SI delta = (SI) (yoffset * 10.0 * PIXEL);
+  SI new_sy= sy + delta;
   mw->send (SLOT_SCROLL_POSITION, close_box<coord2> (coord2 (sx, new_sy)));
 }
 
@@ -909,6 +1000,18 @@ im_tm_widget_rep::send (slot s, blackbox val) {
   case SLOT_SCROLL_POSITION:
     if (!is_nil (main_widget)) main_widget->send (s, val);
     break;
+  case SLOT_LEFT_FOOTER: {
+    footer_left= open_box<string> (val);
+  } break;
+  case SLOT_MIDDLE_FOOTER: {
+    footer_middle= open_box<string> (val);
+  } break;
+  case SLOT_RIGHT_FOOTER: {
+    footer_right= open_box<string> (val);
+  } break;
+  case SLOT_INTERACTIVE_MODE: {
+    footer_interactive= open_box<bool> (val);
+  } break;
   default: {
     int vi;
     if (visibility_index (s, vi)) visibility[vi]= open_box<bool> (val);
@@ -977,6 +1080,11 @@ im_tm_widget_rep::write (slot s, blackbox index, widget w) {
           static_cast<im_simple_widget_rep*> (main_widget.rep);
       ed->set_window (widget (this), win_id);
     }
+    break;
+  case SLOT_MAIN_MENU:
+    // 主菜单条由 Scheme 层经 menu_main → set_main_menu 写入。tm_data 会按需重发
+    // （焦点/语言变化等），这里只保留最新一棵，每帧即时渲染。
+    menu_widget= w;
     break;
   default:
     im_widget_rep::write (s, index, w);
