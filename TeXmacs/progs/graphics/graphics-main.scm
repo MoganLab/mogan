@@ -248,6 +248,17 @@
   (graphics-set-property "gr-crop-padding" val)
 ) ;tm-define
 
+(define (graphics-grid-aspect-autoupdate)
+  (let* ((magn (graphics-get-zoom))
+         (subdiv (cond ((<= magn 0.5) 1)
+                       ((<= magn 1.25) 2)
+                       ((<= magn 2.5) 5)
+                       (else 10))))
+    (graphics-set-grid-aspect 'detailed subdiv #f)
+    (graphics-set-grid-aspect 'detailed subdiv #t)
+  ) ;let*
+) ;define
+
 (tm-define (graphics-zoom e)
   (let* ((fr (graphics-cartesian-frame))
          (u (caddr fr))
@@ -275,6 +286,8 @@
         (graphics-decorations-reset)
         (graphics-set-property "gr-frame" newfr)
         (graphics-set-property "magnify" magn)
+        ;; 根据缩放自动调整子格线数量
+        (graphics-grid-aspect-autoupdate)
         (graphics-decorations-update)
       ) ;with
     ) ;if

@@ -353,6 +353,8 @@
   ) ;when
   (graphics-reset-context 'begin)
   (insert-raw-go-to `(with ,@init (graphics "")) `(,(length init) ,1))
+  ;; 默认缩放 200%
+  (graphics-zoom 2.0)
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
