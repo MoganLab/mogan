@@ -90,7 +90,9 @@ im_widget_rep::plain_window_widget (string name, command quit, int b) {
   (void) name;
   (void) quit;
   (void) b;
-  return widget ();
+  // 在 WASM/ImGui 后端中只有 im_tm_widget_rep 是真实顶层窗口；
+  // 其它 widget 作为 stub 窗口返回自身，避免 nil widget 进入 window_table。
+  return widget (this);
 }
 
 widget
