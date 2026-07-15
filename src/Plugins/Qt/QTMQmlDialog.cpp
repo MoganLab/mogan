@@ -445,10 +445,9 @@ cpp_font_selector_dialog (int specs_key) {
 }
 
 /**
- * @brief 段落格式 QML 对话框 glue 入口。非阻塞模态（setModal+show）：每次
- * setPara 经 make-multi-line-with live
- * 写回，主窗口实时重排段落；Cancel/重置走打开时快照 写回撤销，OK 落定。测试钩子
- * MOGAN_TEST_PARAGRAPH_FORMAT=ok|cancel 命中时不弹窗。
+ * @brief 段落格式 QML 对话框 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ * @details 同字体选择器：run_modal_qml_dialog 非阻塞模态 + destroyed 自清
+ * bridges；测试钩子 MOGAN_TEST_PARAGRAPH_FORMAT=ok|cancel 命中时不弹窗。
  */
 tree
 cpp_paragraph_format_dialog (int specs_key) {

@@ -1,11 +1,8 @@
 /******************************************************************************
  * MODULE      : ParagraphFormatBridge.hpp
- * DESCRIPTION : 段落格式 QML 对话框的 C++↔QML 桥。透传、不持段落状态：
- *               scheme 侧 paragraph-format-*
- *facade（paragraph-format-widgets.scm） 经 specsKey 句柄持有 specs，bridge 每次
- *Q_INVOKABLE 调用都带上 specsKey，拼 scheme 串经 eval_scheme 调
- *facade，把结果转 QML 可消费的类型。参考 FontSelectorBridge。 COPYRIGHT   : (C)
- *2026 Mogan STEM
+ * DESCRIPTION : 段落格式 QML 对话框的 C++↔QML 桥。透传、不持段落状态，经
+ *               specsKey 句柄转发到 scheme facade。参考 FontSelectorBridge。
+ * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.
@@ -16,11 +13,11 @@
  *
  * @par 设计
  * - @b 透传无状态：段落参数真相源在文档（get-env 读、make-multi-line-with
- * 写）， bridge 除 specsKey 外不持有任何数据。
+ *   写），bridge 除 specsKey 外不持有任何数据。
  * - @b live 写回：setPara 每次 make-multi-line-with 实时写回文档，主窗口 live
  *   重排段落（run_modal_qml_dialog 非阻塞模态保证主窗口 paint）。
  * - @b 快照撤销：Cancel/重置经打开时快照（paragraph-snapshot）写回撤销，OK
- * 落定。
+ *   落定。
  *
  * @note 生命期：host 堆分配（run_modal_qml_dialog 内 new + WA_DeleteOnClose），
  *   bridge 不挂 parent；submit/cancel 调 close() → WA_DeleteOnClose 触发 host
@@ -84,8 +81,6 @@ public:
   }
 
 private:
-  /// 拼 `(paragraph-format-meta key which)` 求 list of assoc → QVariantList of
-  /// map。
   QVariantList evalMeta (const string& which);
 
   QDialog* m_host;

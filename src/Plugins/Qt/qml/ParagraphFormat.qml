@@ -13,8 +13,8 @@
 //   basicMeta()           -> [{label, options, var, value, editable}]（打开时读一次）
 //   advancedMeta()        -> 同上（高级 tab）
 //   setPara(var, val)     -> live 写回文档
-//   reset()               -> 快照撤销（重置按钮；Cancel 由 cancel() 另走关窗）
-//   submit()/cancel()
+//   reset()               -> 快照撤销（重置按钮；不关窗）
+//   submit()/cancel()     -> OK 落定 / Cancel 快照撤销，均关窗
 
 import QtQuick
 import "." // DialogShell / EnumCombo / EnumComboList / MiniButton / DialogButtons / TabBar / Theme

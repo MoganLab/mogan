@@ -181,14 +181,7 @@
           ) ;with
         ) ;for
         (when (nnull? changes)
-          (display* "[PF-SCM] revert changes=" changes "\n")
           (make-multi-line-with changes)
-          (display* "[PF-SCM] revert after: par-mode="
-            (get-env "par-mode")
-            " par-sep="
-            (get-env "par-sep")
-            "\n"
-          ) ;display*
         ) ;when
       ) ;with
     ) ;when

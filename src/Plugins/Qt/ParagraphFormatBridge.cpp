@@ -1,7 +1,7 @@
 /******************************************************************************
  * MODULE      : ParagraphFormatBridge.cpp
- * DESCRIPTION : 段落格式 QML bridge 实现（见配套 .hpp）。参考
- *FontSelectorBridge。 COPYRIGHT   : (C) 2026 Mogan STEM
+ * DESCRIPTION : 段落格式 QML bridge 实现（见配套 .hpp）。
+ * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.
