@@ -427,6 +427,13 @@
       (concat ,@op)))
 ) ;define
 
+(define (list-remove l index)
+  (cond ((null? l) '())
+        ((== index 0) (cdr l))
+        (else (cons (car l) (list-remove (cdr l) (- index 1))))
+  ) ;cond
+) ;define
+
 (define (create-graphical-contours l ptr pts)
   ;; Group mode
   ;; This routine draws the contours of each one
@@ -525,15 +532,21 @@
                  ) ;with
                ) ;set!
               ) ;
-              (else (set! t
-                      (if (== pts 'object-and-points)
-                        (cons o (asc curscol default-color-selected-points (compress* (cdr o))))
-                        (if (== pts 'object)
-                          `(,o)
-                          (asc curscol default-color-selected-points (compress* (cdr o)))
+              (else (with contour (if selected-point-no
+                                    (append
+                                      (asc curscol #f (compress* (list-remove (cdr o) selected-point-no)))
+                                      `((with ,"fill-color" ,default-color-selected-points ,"point-style" ,"square"
+                                          (concat ,(list-ref (cdr o) selected-point-no))))
+                                    ) ;append
+                                    (asc curscol default-color-selected-points (compress* (cdr o)))
+                                  ) ;if
+                      (set! t
+                        (if (== pts 'object-and-points)
+                          (cons o contour)
+                          (if (== pts 'object) `(,o) contour)
                         ) ;if
-                      ) ;if
-                    ) ;set!
+                      ) ;set!
+                    ) ;with
               ) ;else
         ) ;cond
         (set! res (append res (if props `(,(append props `(,(cons* 'concat t)))) t)))

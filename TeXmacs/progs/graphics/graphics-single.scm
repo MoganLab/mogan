@@ -64,12 +64,12 @@
 
 ;; Basic operations (create)
 
-(define (sketch-get1)
+(tm-define (sketch-get1)
   (if (not (and (pair? (sketch-get)) (eq? 1 (length (sketch-get)))))
     (graphics-error "(sketch-get1)")
   ) ;if
   (sketch-get)
-) ;define
+) ;tm-define
 
 (tm-define (object_create tag x y)
   (texmacs-error "object-create" "invalid tag")
@@ -166,11 +166,11 @@
 
 ;; Basic operations (set & add point)
 
-(define (object_set-point no xcur ycur)
+(tm-define (object_set-point no xcur ycur)
   (define obj (stree-radical (car (sketch-get1))))
   (set-point-sub obj no xcur ycur)
   (object-set! (car (sketch-get)))
-) ;define
+) ;tm-define
 
 (define (object_add-point no xcur ycur x y dirn)
   (define obj (stree-radical (car (sketch-get1))))

@@ -327,6 +327,43 @@
   ) ;cond
 ) ;tm-define
 
+(tm-define (get-control-point obj no)
+  (if (tree? obj) (set! obj (tree->stree obj)))
+  (cond ((== (car obj) 'with) (get-control-point (cAr obj) no))
+        ((== (car obj) 'point) obj)
+        ((and (not (not no)) (list? obj) (> (length obj) (+ no 1)))
+         (get-control-point (list-ref obj (+ no 1)) #f)
+        ) ;
+        (else #f)
+  ) ;cond
+) ;tm-define
+
+(tm-define (get-control-point-x obj no)
+  (with pt (get-control-point obj no)
+    (if pt (cadr pt) "0")
+  ) ;with
+) ;tm-define
+
+(tm-define (get-control-point-y obj no)
+  (with pt (get-control-point obj no)
+    (if pt (caddr pt) "0")
+  ) ;with
+) ;tm-define
+
+(tm-define (graphics-set-control-point-position x y)
+  (:interactive #t)
+  (:synopsis "Set position of selected control point")
+  (:argument x "X coordinate")
+  (:argument y "Y coordinate")
+  (when (and (graphics-selection-active?) selected-point-no)
+    (sketch-checkout)
+    (sketch-transform tree->stree)
+    (object_set-point selected-point-no x y)
+    (sketch-commit)
+    (graphics-decorations-update)
+  ) ;when
+) ;tm-define
+
 (tm-define (graphics-get-property var)
   (:require (and (== (graphics-mode) '(group-edit edit-props)) (graphics-selection-active?))
   ) ;:require
@@ -527,7 +564,11 @@
           (set! y (s2f y))
           (with mode
             (graphics-mode)
-            (cond ((== (cadr mode) 'edit-props)
+            (cond (selected-point-no
+                   (object_set-point selected-point-no (f2s x) (f2s y))
+                   (graphics-decorations-update)
+                  ) ;
+                  ((== (cadr mode) 'edit-props)
                    (sketch-transform (group-translate (- x group-old-x) (- y group-old-y)))
                   ) ;
                   ((== (cadr mode) 'zoom)
@@ -584,6 +625,7 @@
 (tm-define (edit_left-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
+  (set! selected-point-no #f)
   (cond (sticky-point
           ;; 已在拖动/修改态，单击提交
           (start-operation 'move current-path current-obj)
@@ -604,10 +646,19 @@
 (tm-define (edit_right-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
-  (if (and (not current-path) (graphics-selection-active?))
-    (unselect-all current-path current-obj)
-    (toggle-select x y current-path current-obj)
-  ) ;if
+  (cond (current-path
+         ;; 计算并直接选中最近的控制点
+         (set! selected-point-no (object-closest-point-pos (tree->stree (path->tree current-path)) x y))
+         ;; 选中该对象
+         (sketch-reset)
+         (any_toggle-select x y current-path current-obj)
+        ) ;case
+        (else
+         ;; 点击空白：清除控制点选择，并取消全选
+         (set! selected-point-no #f)
+         (unselect-all current-path current-obj)
+        ) ;else
+  ) ;cond
 ) ;tm-define
 
 (tm-define (edit_start-drag mode x y t p)

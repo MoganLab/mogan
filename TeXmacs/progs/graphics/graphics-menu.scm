@@ -534,6 +534,10 @@
  ("Other" (interactive graphics-set-point-border))
 ) ;menu-bind
 
+(menu-bind graphics-control-point-pos-menu
+  ("Set position" (interactive graphics-set-control-point-position))
+) ;menu-bind
+
 (menu-bind graphics-line-width-menu
   ;; ("Default" (graphics-set-line-width "default"))
   ;; ---
@@ -984,7 +988,23 @@
 ) ;tm-menu
 
 (tm-menu (graphics-property-icons)
-  (assuming (graphics-mode-attribute? (graphics-mode) "color")
+  (assuming selected-point-no
+    /
+    (mini #t
+      (group "Position:")
+      (with pos-val (if (graphics-selection-active?)
+                        (let* ((radical (stree-radical (car (sketch-get1))))
+                               (x (get-control-point-x radical selected-point-no))
+                               (y (get-control-point-y radical selected-point-no)))
+                          (string-append x ", " y)
+                        ) ;let*
+                        "")
+        (=> (eval pos-val) (link graphics-control-point-pos-menu))
+      ) ;with
+    ) ;mini
+  ) ;assuming
+  (assuming (not selected-point-no)
+    (assuming (graphics-mode-attribute? (graphics-mode) "color")
     /
     (mini #t
       (group "Color:")
@@ -1174,6 +1194,7 @@
       ) ;let*
     ) ;mini
   ) ;assuming
+ ) ;assuming
 ) ;tm-menu
 
 (tm-menu (graphics-snap-icons)
