@@ -6,8 +6,9 @@
 //
 // 显示真相源是 QML 本地的 values（参考 FormDialog）：打开时从 meta 读一次初始化，
 // 之后改动直接改 values 并 setPara 写文档，不重读 get-env——后者相对编辑命令有延迟，
-// 重读会显示滞后。id 用 dialog（非 root），避免被 EnumCombo/MiniButton 等原子内部
-// id: root 遮蔽。
+// 重读会显示滞后。唯一例外是「重置」：scheme 侧按 scope 撤销后 values 必须重读 meta
+// 重建（文档级 init-default 后真相源已变，缓存值会与文档背离）。id 用 dialog（非
+// root），避免被 EnumCombo/MiniButton 等原子内部 id: root 遮蔽。
 //
 // paraBridge 契约（ParagraphFormatBridge，无状态透传 specsKey）：
 //   uiLabels()            -> {basic, advanced, reset, ok, cancel, sepPresetLabel, sepPresets}
@@ -169,9 +170,12 @@ DialogShell {
         }
     }
 
-    // 重置：scheme 快照撤销文档后，本地 values 回到打开时的 meta 值。
+    // 重置：scheme 侧已按 scope 撤销（段落级快照写回 / 文档级 init-default），
+    // 本地 values 必须重读 meta 重建——不能用打开时缓存的 basicFields，否则文档级
+    // reset 后显示仍是打开时值，而真相源（init）已是全局默认，造成显示与文档背离。
+    // 重读 meta 此时拿到的是撤销后的值，两级语义都正确。
     function resetValues() {
-        dialog.basicValues = dialog.initValues(dialog.basicFields)
-        dialog.advancedValues = dialog.initValues(dialog.advancedFields)
+        dialog.basicValues = dialog.initValues(paraBridge.basicMeta())
+        dialog.advancedValues = dialog.initValues(paraBridge.advancedMeta())
     }
 }

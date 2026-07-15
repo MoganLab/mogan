@@ -100,7 +100,12 @@
 
 (define paragraph-specs-registry (make-ahash-table))
 
+;; specsKey 分配：优先复用 cleanup 回收的 key（自由链表），不够再自增。
+;; 避免单调递增导致句柄无限增长（长期反复开关对话框 / 测试反复 register）。
+
 (define paragraph-specs-next 1)
+
+(define paragraph-specs-free (list))
 
 ;; key -> ahash(var -> val)：对话框打开瞬间的参数快照，供 Cancel 回放。
 ;; 必须在 live 改动前快照——live 写回会改文档树/init，事后读到的是改后值。
@@ -108,6 +113,14 @@
 ;; 注：文档级「重置」走 init-default（恢复默认），不用快照；快照仅 Cancel 用。
 
 (define paragraph-snapshot (make-ahash-table))
+
+;; key -> ahash(var -> bool)：文档级打开瞬间各字段是否有显式 init（init-has?）。
+;; 仅 'document scope 填充。Cancel 写回时用——打开时无显式 init 的字段走
+;; init-default（移除 init，回到继承全局默认），而非把快照里的默认值字符串
+;; 固化成显式 init（否则文档树多出冗余 init，且后续改全局默认不再跟随）。
+;; 'paragraph scope 不填（段落 with 无「有无」之分，快照值即真相）。
+
+(define paragraph-snapshot-has (make-ahash-table))
 
 ;; key -> scope：标记该 specs 是段落级还是文档级，读写/revert 按 scope 分流。
 
@@ -117,27 +130,54 @@
   (ahash-ref paragraph-specs-registry key)
 ) ;tm-define
 
+;; 分配一个 specsKey：优先复用 paragraph-specs-free 里回收的，否则自增
+;; paragraph-specs-next。用 helper 返回值承载分配结果（更新自由链表/计数器的
+;; 副作用），避免在 with 的初始化表达式里 set! 绑定变量——初始化时该变量绑定
+;; 尚未建立，会 unbound。
+
+(define (paragraph-format-alloc-key)
+  (if (nnull? paragraph-specs-free)
+    (with key
+      (car paragraph-specs-free)
+      (set! paragraph-specs-free (cdr paragraph-specs-free))
+      key
+    ) ;with
+    (with key
+      paragraph-specs-next
+      (set! paragraph-specs-next (+ paragraph-specs-next 1))
+      key
+    ) ;with
+  ) ;if
+) ;define
+
 ;; specs 形如 (scope getter setter)：scope ∈ {'paragraph,'document}，getter/setter
 ;; 分别为 get-env/make-multi-line-with 或 get-init/init-multi。段落级默认。
 (tm-define (paragraph-format-register-specs specs)
-  (with key
-    paragraph-specs-next
-    (with (scope getter setter)
-      specs
+  (with (scope getter setter)
+    specs
+    (with key
+      (paragraph-format-alloc-key)
       (ahash-set! paragraph-specs-registry key specs)
       (ahash-set! paragraph-scope key scope)
       ;; 快照打开瞬间的参数（live 改动前）。getter 按 scope 读 env 或 init。
       (with snap
         (make-ahash-table)
-        (for (f (paragraph-fields-for scope "basic"))
-          (ahash-set! snap (car f) (getter (car f)))
-        ) ;for
-        (for (f (paragraph-fields-for scope "advanced"))
+        (for (f (paragraph-all-fields-for scope))
           (ahash-set! snap (car f) (getter (car f)))
         ) ;for
         (ahash-set! paragraph-snapshot key snap)
       ) ;with
-      (set! paragraph-specs-next (+ paragraph-specs-next 1))
+      ;; 文档级另记打开瞬间各字段是否有显式 init——Cancel 写回按此决定
+      ;; init-default（移除）还是写回快照值，避免把默认值固化成显式 init。
+      (when (== scope 'document)
+        (with has
+          (make-ahash-table)
+          (for (f (paragraph-all-fields-for scope))
+            (ahash-set! has (car f) (init-has? (car f)))
+          ) ;for
+          (ahash-set! paragraph-snapshot-has key has)
+        ) ;with
+      ) ;when
       key
     ) ;with
   ) ;with
@@ -146,7 +186,10 @@
 (tm-define (paragraph-format-cleanup key)
   (ahash-remove! paragraph-specs-registry key)
   (ahash-remove! paragraph-snapshot key)
+  (ahash-remove! paragraph-snapshot-has key)
   (ahash-remove! paragraph-scope key)
+  ;; 回收 key 供下次 register 复用。
+  (set! paragraph-specs-free (cons key paragraph-specs-free))
 ) ;tm-define
 
 ;; 按 scope 返回某分组字段表。文档级基础 tab 去掉 par-left/par-right（边距对
@@ -163,6 +206,14 @@
       fields
     ) ;if
   ) ;with
+) ;define
+
+;; 某 scope 的 basic+advanced 全字段（register 快照 / restore 遍历共用）。
+
+(define (paragraph-all-fields-for scope)
+  (append (paragraph-fields-for scope "basic")
+    (paragraph-fields-for scope "advanced")
+  ) ;append
 ) ;define
 
 ;; 全部字段名（basic+advanced 的 var），供文档级 init-default 恢复默认。
@@ -210,9 +261,18 @@
   val
 ) ;tm-define
 
-;; 快照写回（Cancel 用）：把所有与快照不同的参数写回打开时的值。setter 按 scope
+;; 快照写回（Cancel 用）：把所有与当前不同的参数写回打开时的值。setter 按 scope
 ;; 选 make-multi-line-with（段落 with）或 init-multi（文档 initial），扁平
 ;; (var val ...) 一次写入，避免段落级多次嵌套 with 吞选区。
+;; 文档级修正：打开时无显式 init 的字段写回 :default——init-multi 命中
+;; (== (cadr l) :default) 走 init-default 移除 init，回到继承全局默认；否则会把
+;; 快照里的默认值字符串固化成冗余显式 init。段落级无此问题（with 无「有无」之分）。
+
+;; 判断某字段写回时是否该走 :default（仅文档级 + 打开时无显式 init 时为真）。
+
+(define (paragraph-format-restore-default? scope has var)
+  (and (== scope 'document) has (not (ahash-ref has var)))
+) ;define
 
 (define (paragraph-format-restore-snapshot key)
   (with specs
@@ -223,26 +283,31 @@
         (with snap
           (ahash-ref paragraph-snapshot key)
           (when snap
-            (with changes
-              (list)
-              ;; 按 scope 取字段（与 register-specs 快照同源），文档级不含 par-left/par-right。
-              (for (f (append (paragraph-fields-for scope "basic")
-                        (paragraph-fields-for scope "advanced")
-                      ) ;append
-                   ) ;f
-                (with var
-                  (car f)
-                  (with old
-                    (ahash-ref snap var)
-                    (when (and old (!= old (getter var)))
-                      (set! changes (cons* var old changes))
-                    ) ;when
+            (with has
+              (ahash-ref paragraph-snapshot-has key)
+              (with changes
+                (list)
+                ;; 按 scope 取字段（与 register-specs 快照同源），文档级不含 par-left/par-right。
+                (for (f (paragraph-all-fields-for scope))
+                  (with var
+                    (car f)
+                    (with old
+                      (ahash-ref snap var)
+                      (when (and old (!= old (getter var)))
+                        ;; :default 让 init-multi 移除 init（文档级打开时无显式 init），
+                        ;; 其余写快照值。段落级 restore-default? 恒为 #f，写 old。
+                        (with restore-val
+                          (if (paragraph-format-restore-default? scope has var) :default old)
+                          (set! changes (cons* var restore-val changes))
+                        ) ;with
+                      ) ;when
+                    ) ;with
                   ) ;with
-                ) ;with
-              ) ;for
-              (when (nnull? changes)
-                (setter changes)
-              ) ;when
+                ) ;for
+                (when (nnull? changes)
+                  (setter changes)
+                ) ;when
+              ) ;with
             ) ;with
           ) ;when
         ) ;with

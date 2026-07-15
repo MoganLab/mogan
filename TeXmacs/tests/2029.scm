@@ -17,6 +17,9 @@
 ;;     - 文档级 live 写回：set 经 init-multi 写文档 initial（get-init 读到新值）
 ;;     - 文档级重置：reset 走 init-default 恢复默认（不是快照回滚）
 ;;     - 文档级取消：cancel 快照写回 init（回到 set 之前）
+;;     - 文档级取消不固化冗余 init：打开时无显式 init 的字段，cancel 后仍无显式 init
+;;       （走 init-default 移除，而非把默认值固化为显式 init）
+;;     - specsKey 复用：cleanup 回收的 key 被 register 复用（自由链表，非单调递增）
 ;;     - cpp-paragraph-format-dialog：Cancel 钩子返回空 tree，OK 钩子走 commit
 ;;
 ;;   通过环境变量绕过模态 QML 弹窗：
@@ -343,6 +346,58 @@
                              (check-true (equal? (get-init "par-mode") "center"))
                              (paragraph-format-cancel key)
                              (check-true (equal? (get-init "par-mode") snap-before))
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2g) 文档级 cancel 不固化冗余 init：打开时该字段无显式 init，
+               ;;     set 后 cancel 应回到「无显式 init」（init-has? 为 #f），而非把
+               ;;     默认值字符串固化为显式 init。验证缺陷3修复。
+               (list (cons "document cancel: no spurious init"
+                       (lambda ()
+                         (clear-hook!)
+                         (new-document)
+                         (with specs
+                           (document-specs)
+                           ;; 确保打开时 par-mode 无显式 init（继承全局默认）。
+                           (init-default "par-mode")
+                           (check-true (not (init-has? "par-mode")))
+                           (let* ((key (paragraph-format-register-specs specs))
+                                  (default-val (get-init "par-mode"))
+                                 ) ;
+                             (paragraph-format-set key "par-mode" "center")
+                             (check-true (equal? (get-init "par-mode") "center"))
+                             (paragraph-format-cancel key)
+                             ;; cancel 后应仍无显式 init（值回到默认，但非固化）。
+                             (check-true (not (init-has? "par-mode")))
+                             (check-true (equal? (get-init "par-mode") default-val))
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2h) specsKey 复用：cleanup 回收的 key 应被下次 register 复用，
+               ;;     而非单调递增。验证缺陷2修复。
+               (list (cons "specsKey reuse after cleanup"
+                       (lambda ()
+                         (clear-hook!)
+                         (new-document)
+                         (with specs
+                           (paragraph-specs)
+                           (let* ((k1 (paragraph-format-register-specs specs))
+                                  (_ (paragraph-format-cleanup k1))
+                                  (k2 (paragraph-format-register-specs specs))
+                                  (k3 (paragraph-format-register-specs specs))
+                                 ) ;
+                             ;; k2 复用回收的 k1。
+                             (check-true (== k2 k1))
+                             ;; k3 自增分配新 key。
+                             (check-true (!= k3 k1))
+                             (paragraph-format-cleanup k2)
+                             (paragraph-format-cleanup k3)
                            ) ;let*
                          ) ;with
                        ) ;lambda
