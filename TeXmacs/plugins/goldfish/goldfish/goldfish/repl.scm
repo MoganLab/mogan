@@ -1,6 +1,12 @@
 
 (define-library (goldfish repl)
-  (import (texmacs protocol) (liii list) (liii string) (liii sys) (liii base) (scheme char))
+  (import (texmacs protocol)
+    (liii list)
+    (liii string)
+    (liii sys)
+    (liii base)
+    (scheme char)
+  ) ;import
   (export goldfish-welcome goldfish-repl is-sicp-mode?)
   (begin
 
