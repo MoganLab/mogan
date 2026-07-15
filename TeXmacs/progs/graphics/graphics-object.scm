@@ -532,7 +532,7 @@
                  ) ;with
                ) ;set!
               ) ;
-              (else (with contour (if selected-point-no
+              (else (with contour (if (and selected-point-no path0 (sketch-in? (path->tree path0)))
                                     (append
                                       (asc curscol #f (compress* (list-remove (cdr o) selected-point-no)))
                                       `((with ,"fill-color" ,default-color-selected-points ,"point-style" ,"square"
