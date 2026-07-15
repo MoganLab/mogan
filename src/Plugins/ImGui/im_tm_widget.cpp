@@ -167,7 +167,7 @@ EM_JS (void, im_install_ime_listeners, (), {
       'keydown', function (e) {
         var paste=
             ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) ||
-            (e.shiftKey && e.key === 'Insert');
+            (e.shiftKey&& e.key === 'Insert');
         if (paste) e.stopPropagation ();
       });
   window.addEventListener (

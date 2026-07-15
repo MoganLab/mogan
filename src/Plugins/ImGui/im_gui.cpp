@@ -674,7 +674,7 @@ set_selection (string cb, tree t, string s, string sv, string sh,
     im_last_clip_text= plain;
 #ifdef __EMSCRIPTEN__
     g_clipboard_foreign= ""; // we own the clipboard again
-    if (N (plain) > 0) im_clipboard_write (as_charp(plain));
+    if (N (plain) > 0) im_clipboard_write (as_charp (plain));
 #else
     GLFWwindow* w= im_primary_glfw_window ();
     if (w != nullptr && N (plain) > 0) {
