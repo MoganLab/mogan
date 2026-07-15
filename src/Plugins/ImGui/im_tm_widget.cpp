@@ -123,6 +123,18 @@ EM_JS (void, im_install_ime_listeners, (), {
   // 处理完 mousedown 的默认聚焦动作）。
   canvas.addEventListener (
       'mousedown', function () { setTimeout (engageIme, 0); });
+  // 真实 DOM 焦点始终在 textarea 上、不在 canvas 上，而 DOM 的 blur 不冒泡，
+  // 因此 canvas 永远收不到自然的 blur——contrib GLFW 的 onFocusChange(false)
+  // （→ resetAllKeys()）从不执行。页面失焦时（按住 cmd 点击其他系统窗口、切
+  // 换标签页等）按下的修饰键其 keyup 浏览器不会补发，会永久卡在按下状态：
+  // computeModifierBits() 恒带 GLFW_MOD_SUPER，使 glfw_char_callback 因
+  // glfwGetKey(SUPER)==PRESS 持续提前返回、文字输入彻底失效。
+  // 把 window 级失焦/获焦镜像成 canvas 的合成 blur/focus，复用上面的桥接：
+  // 失焦触发 resetAllKeys 释放卡住的按键，获焦恢复焦点（含 cmd+Tab 切回等
+  // 未点击 canvas 的情形）。
+  window.addEventListener (
+      'blur', function () { canvas.dispatchEvent (new FocusEvent ('blur')); });
+  window.addEventListener ('focus', engageIme);
   // textarea 的文本内容不使用（只用 composition），非 composition 时清空。
   imeInput.addEventListener (
       'input', function (e) {
