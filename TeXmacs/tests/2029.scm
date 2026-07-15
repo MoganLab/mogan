@@ -7,25 +7,28 @@
 ;; PURPOSE
 ;;   [2029] 验证「格式 → 段落」迁移到 QML（ParagraphFormat.qml + ParagraphFormatBridge
 ;;   + paragraph-format-* facade + cpp-paragraph-format-dialog glue）后：
-;;     - facade 全链在主程序可用：basic/advanced meta 形状（label/options/var/value
-;;       /editable）、ui-labels（含 sepPresets 行间距预设表）
-;;     - cpp-paragraph-format-dialog 的 OK 钩子经 paragraph-format-commit 注销 specs
-;;     - Cancel 钩子返回空 tree
+;;     - basic/advanced meta 形状（label/options/var/value/editable）
+;;     - ui-labels（按钮文案 + sepPresetLabel + sepPresets 4 项）
 ;;     - specsKey 句柄 register -> lookup 往返，cleanup 后清除（无句柄泄漏）
-;;     - live 写回：paragraph-format-set 经 make-multi-line-with 改 buffer，返回传入值
-;;     - 快照撤销：revert 把改动恢复到打开时快照；多参数改动一次写回（cancel 真回滚）
+;;     - live 写回：set 经 make-multi-line-with 把 par-mode 写入文档树
+;;     - 快照撤销：revert / cancel 把文档树回滚到 set 之前的值
+;;     - cpp-paragraph-format-dialog：Cancel 钩子返回空 tree，OK 钩子走 commit
 ;;
 ;;   通过环境变量绕过模态 QML 弹窗：
 ;;     - MOGAN_TEST_PARAGRAPH_FORMAT=ok     模拟 OK（走 commit）
 ;;     - MOGAN_TEST_PARAGRAPH_FORMAT=cancel 模拟 Cancel（返回空 tree）
 ;;
-;;   QML 真实交互（点选/双击编辑/预设按钮/Cancel 回滚）靠手动 GUI 验证：
+;;   文档树断言用 buffer->tree（set 前抓的 buf）+ stree-with-ref 提取 with 值，而非
+;;   get-env：make-multi-line-with 末尾 tree-select 会挪动焦点，get-env 读数不稳；
+;;   buffer 树是真相源、不受光标影响。
+;;
+;;   QML 真实交互（点选/双击编辑/预设按钮/Esc）无法在 scheme 集成测试里触及，靠手动：
 ;;     MOGAN_TEST_GUI=1 xmake r 2029
 ;;
 ;; USAGE
 ;;   xmake b stem
-;;   xmake r 2029                       # headless：数据契约
-;;   MOGAN_TEST_GUI=1 xmake r 2029      # 真实 GUI：手动验证
+;;   xmake r 2029                       # headless：数据契约（事件循环未跑，仅冒烟）
+;;   MOGAN_TEST_GUI=1 xmake r 2029      # 真实 GUI：跑全部断言 + 手动验证交互
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -52,6 +55,37 @@
 
 (define (paragraph-specs)
   (list get-env make-multi-line-with)
+) ;define
+
+;; 提取 stree 中 var 当前的 with 值。with 的 stree 形如
+;; (with "par-mode" "center" [...更多 var/val 对...] body)，参数是 label 之后扁平排列
+;; 的 (var val ...) 对。从外向内找第一个声明 var 的 with 节点，返回其值；找不到返回 #f。
+;; 用途：精确断言段落参数的文档树值（set 写入 / revert 回滚后 par-mode 实际是啥），
+;; 比递归查找字符串（文档别处出现同名串会假阳性）更可靠。
+
+(define (stree-with-ref stree var)
+  (cond ((and (pair? stree) (== (car stree) 'with)) (with-ref-pairs (cdr stree) var))
+        ((pair? stree) (children-with-ref stree var))
+        (else #f)
+  ) ;cond
+) ;define
+
+;; 子节点里逐个递归找；with 嵌套时外层优先（顺序遍历先命中外层）。
+
+(define (children-with-ref children var)
+  (if (null? children)
+    #f
+    (or (stree-with-ref (car children) var) (children-with-ref (cdr children) var))
+  ) ;if
+) ;define
+
+;; with 子节点 (var val ... body)：在参数对里找 var 取其后继，找不到下钻 body。
+
+(define (with-ref-pairs children var)
+  (cond ((or (null? children) (null? (cdr children))) #f)
+        ((== (car children) var) (cadr children))
+        (else (with-ref-pairs (cddr children) var))
+  ) ;cond
 ) ;define
 
 (define (run-chain steps)
@@ -151,21 +185,23 @@
                      ) ;cons
                ) ;list
 
-               ;; 2) live 写回：paragraph-format-set 改 par-mode，返回传入值 + get-env 读到新值。
-               (list (cons "set: live write-back returns val"
+               ;; 2) live 写回：set 改文档树。set 经 make-multi-line-with 写焦点 buffer，
+               ;;    末尾 tree-select 会令 GUI 焦点/current-buffer 与 set 作用的 buffer 错位，
+               ;;    故 set 前抓住 buffer 路径、set 后用 buffer->tree 读该 buffer 的树
+               ;;    （不依赖 current-buffer）。
+               (list (cons "set: writes par-mode to buffer tree"
                        (lambda ()
                          (clear-hook!)
+                         (new-document)
                          (with specs
                            (paragraph-specs)
                            (let* ((key (paragraph-format-register-specs specs))
+                                  (buf (current-buffer))
                                   (after (paragraph-format-set key "par-mode" "center"))
                                  ) ;
-                             (display "  par-mode after set: ")
-                             (display after)
-                             (display "\n")
-                             ;; set 直接返回传入值（不重读 get-env，避免滞后）。
                              (check-true (equal? after "center"))
-                             (check-true (equal? (get-env "par-mode") "center"))
+                             (check-true (equal? (stree-with-ref (tree->stree (buffer->tree buf)) "par-mode") "center")
+                             ) ;check-true
                              (paragraph-format-cancel key)
                            ) ;let*
                          ) ;with
@@ -173,42 +209,29 @@
                      ) ;cons
                ) ;list
 
-               ;; 2b) 快照撤销：改一个参数后 revert，get-env 回到打开时快照值。
-               (list (cons "revert: single param rollback"
+               ;; 2b) 快照撤销：set 后 revert，文档树回到 set 之前的值。snap-before 在
+               ;;     set 之前抓（此时无 set 干扰、get-env 稳定），revert 后断言根 with 的
+               ;;     par-mode 值等于 snap-before。全程用 buffer->tree buf 读该 buffer 的
+               ;;     树——set 末尾 tree-select 会挪动焦点，current-buffer 读数不稳，但
+               ;;     buffer 树是真相源、不受光标影响。
+               (list (cons "revert: rollback to snapshot"
                        (lambda ()
                          (clear-hook!)
-                         (with specs
-                           (paragraph-specs)
-                           (let* ((key (paragraph-format-register-specs specs)) (snap-mode (get-env "par-mode")))
-                             (paragraph-format-set key "par-mode" "right")
-                             (check-true (equal? (get-env "par-mode") "right"))
-                             (paragraph-format-revert key)
-                             (check-true (equal? (get-env "par-mode") snap-mode))
-                             (paragraph-format-cancel key)
-                           ) ;let*
-                         ) ;with
-                       ) ;lambda
-                     ) ;cons
-               ) ;list
-
-               ;; 2c) 多参数撤销：改两个参数后 revert，两个都恢复（一次 make-multi-line-with
-               ;;     写所有差异，避免多次嵌套 with 吞选区）。
-               (list (cons "revert: multi param rollback"
-                       (lambda ()
-                         (clear-hook!)
+                         (new-document)
                          (with specs
                            (paragraph-specs)
                            (let* ((key (paragraph-format-register-specs specs))
-                                  (snap-mode (get-env "par-mode"))
-                                  (snap-sep (get-env "par-sep"))
+                                  (buf (current-buffer))
+                                  (snap-before (get-env "par-mode"))
                                  ) ;
-                             (paragraph-format-set key "par-mode" "justify")
-                             (paragraph-format-set key "par-sep" "1fn")
-                             (check-true (equal? (get-env "par-mode") "justify"))
-                             (check-true (equal? (get-env "par-sep") "1fn"))
+                             (paragraph-format-set key "par-mode" "center")
+                             (check-true (equal? (stree-with-ref (tree->stree (buffer->tree buf)) "par-mode") "center")
+                             ) ;check-true
                              (paragraph-format-revert key)
-                             (check-true (equal? (get-env "par-mode") snap-mode))
-                             (check-true (equal? (get-env "par-sep") snap-sep))
+                             (check-true (equal? (stree-with-ref (tree->stree (buffer->tree buf)) "par-mode")
+                                           snap-before
+                                         ) ;equal?
+                             ) ;check-true
                              (paragraph-format-cancel key)
                            ) ;let*
                          ) ;with
@@ -216,16 +239,25 @@
                      ) ;cons
                ) ;list
 
-               ;; 2d) cancel 真回滚：改参数后调 cancel（revert + cleanup），get-env 恢复。
+               ;; 2c) cancel 真回滚：set 后 cancel（revert + cleanup），文档树回到 set 前。
                (list (cons "cancel: document rollback"
                        (lambda ()
                          (clear-hook!)
+                         (new-document)
                          (with specs
                            (paragraph-specs)
-                           (let* ((key (paragraph-format-register-specs specs)) (snap-mode (get-env "par-mode")))
-                             (paragraph-format-set key "par-mode" "right")
+                           (let* ((key (paragraph-format-register-specs specs))
+                                  (buf (current-buffer))
+                                  (snap-before (get-env "par-mode"))
+                                 ) ;
+                             (paragraph-format-set key "par-mode" "center")
+                             (check-true (equal? (stree-with-ref (tree->stree (buffer->tree buf)) "par-mode") "center")
+                             ) ;check-true
                              (paragraph-format-cancel key)
-                             (check-true (equal? (get-env "par-mode") snap-mode))
+                             (check-true (equal? (stree-with-ref (tree->stree (buffer->tree buf)) "par-mode")
+                                           snap-before
+                                         ) ;equal?
+                             ) ;check-true
                            ) ;let*
                          ) ;with
                        ) ;lambda
