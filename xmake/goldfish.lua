@@ -13,7 +13,6 @@
 -- binary target 内联编译的那一份完全相同。不使用 set_sourcedir() 直接指向
 -- 工作树（否则 package.tools.xmake 会把 port 出来的 xmake.lua 写进工作树，
 -- 污染源码目录），而是在 on_install 里把源码拷贝到包缓存目录后构建。
-local goldfish_src = "$(projectdir)/TeXmacs/plugins/goldfish/src"
 
 target("libgoldfish") do
     set_kind("$(kind)")
