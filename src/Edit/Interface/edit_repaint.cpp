@@ -327,7 +327,8 @@ void
 edit_interface_rep::draw_graphics (renderer ren) {
   if (got_focus || full_screen) {
     cursor cu= get_cursor ();
-    if (over_graphics (cu->ox, cu->oy) && inside_active_graphics () && !selection_active_any ()) {
+    if (over_graphics (cu->ox, cu->oy) && inside_active_graphics () &&
+        !selection_active_any ()) {
       eval ("(graphics-reset-context 'graphics-cursor)");
       draw_graphical_object (ren);
       string tm_curs= as_string (eval ("graphics-texmacs-pointer"));
