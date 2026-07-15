@@ -133,7 +133,7 @@ im_simple_widget_rep::is_invalid () {
 
 void
 im_simple_widget_rep::clear_invalid () {
-  is_dirty      = false;
+  is_dirty       = false;
   invalid_regions= rectangles ();
 }
 
