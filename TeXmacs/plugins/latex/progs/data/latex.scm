@@ -302,6 +302,14 @@
              ) ;and
            ) ;let
           ) ;
+          ((or (string-starts? rest "x*y*z") (string-starts? rest "xyz"))
+           (let ((len (if (string-starts? rest "x*y*z") 5 3)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("x" " " "y" " " "z"))
+             ) ;and
+           ) ;let
+          ) ;
           ((or (string-starts? rest "i*j") (string-starts? rest "ij"))
            (let ((len (if (string-starts? rest "i*j") 3 2)))
              (and (is-word-boundary-before? s i)

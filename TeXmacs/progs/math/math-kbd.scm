@@ -1846,6 +1846,8 @@
  ("u v var" "uv")
  ("i j k" (insert '(concat "i" " " "j" " " "k")))
  ("i j k var" "ijk")
+ ("x y z" (insert '(concat "x" " " "y" " " "z")))
+ ("x y z var" "xyz")
 ) ;kbd-map
 
 (kbd-map (:mode in-math?)

@@ -57,6 +57,7 @@
     (check (member "ab" rsub-nodes) => #f)
     (check (member "cd" rsub-nodes) => #f)
     (check (member "uv" rsub-nodes) => #f)
+    (check (member "xyz" rsub-nodes) => #f)
   ) ;let*
 ) ;define
 
