@@ -29,6 +29,11 @@ option("pdfhummus")
     set_description("Enable PDFHummus plugin")
 option_end()
 
+option("goldfish")
+    set_default(true)
+    set_description("Enable Goldfish plugin")
+option_end()
+
 option("mupdf")
     set_default(true)
     set_description("Enable MuPDF library")

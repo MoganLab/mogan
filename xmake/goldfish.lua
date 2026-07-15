@@ -26,70 +26,6 @@ package("goldfish")
         package:add("deps", "argh v1.3.2")
     end)
 
-    on_install("bsd", "cross", "cygwin", "linux", "macosx", "mingw", "msys", "wasm", "windows", function (package)
-        -- 在包缓存目录中构建，保持工作树干净。先把内置的 s7 源码和我们的
-        -- port/xmake.lua（定义了 libgoldfish 静态库 target）拷进缓存目录，
-        -- 再交给 package.tools.xmake 构建。这里必须由我们自己放置 xmake.lua，
-        -- 否则 xmake 会自动生成默认工程（把 s7.c 误当成二进制 target 链接，
-        -- 报缺少 _main）。
-        -- {curdir = curdir} 告诉 package.tools.xmake 在该缓存目录下执行
-        -- xmake f/build/install。
-        local curdir = package:cachedir()
-        os.cp(path.join(goldfish_src, "*.c"), curdir)
-        os.cp(path.join(goldfish_src, "*.h"), curdir)
-        io.writefile(path.join(curdir, "xmake.lua"), [[
-add_rules("mode.release", "mode.debug")
-
-target("libgoldfish") do
-    set_kind("$(kind)")
-    set_languages("c11")
-    add_defines("WITH_SYSTEM_EXTRAS=0")
-    if not is_plat("wasm") then
-        add_defines("HAVE_OVERFLOW_CHECKS=0")
-    end
-    add_defines("WITH_WARNINGS")
-    add_defines("WITH_R7RS=1")
-    set_basename("goldfish")
-    add_files(
-        "s7.c",
-        "s7_continuation.c",
-        "s7_ctables.c",
-        "s7_dtoa.c",
-        "s7_module.c",
-        "s7_op_names.c",
-        "s7_scheme_base.c",
-        "s7_scheme_char.c",
-        "s7_scheme_complex.c",
-        "s7_scheme_format.c",
-        "s7_scheme_inexact.c",
-        "s7_scheme_predicate.c",
-        "s7_scheme_symbol.c",
-        "s7_scheme_write.c",
-        "s7_liii_bitwise.c",
-        "s7_liii_hash_table.c",
-        "s7_liii_list.c",
-        "s7_liii_string.c",
-        "s7_liii_vector.c"
-    )
-    add_headerfiles("$(curdir)/s7.h")
-    add_includedirs(".", {public = true})
-    if is_plat("windows") then
-        set_optimize("faster")
-        add_cxxflags("/fp:precise")
-    end
-    if is_mode("debug") then
-        add_defines("S7_DEBUGGING")
-    end
-    add_packages("liii-tbox")
-end
-]])
-        local configs = {}
-        if package:config("shared") then
-            configs.kind = "shared"
-        end
-        import("package.tools.xmake").install(package, configs, {curdir = curdir})
-    end)
-
     on_test(function (package)
         assert(package:check_csnippets([[
             static s7_pointer old_add;           /* the original "+" function for non-string cases */
@@ -109,8 +45,52 @@ end
     end)
 package_end()
 
+target("libgoldfish") do
+    set_kind("$(kind)")
+    set_languages("c11")
+    add_packages("liii-tbox")
+    add_defines("WITH_SYSTEM_EXTRAS=0")
+    if not is_plat("wasm") then
+        add_defines("HAVE_OVERFLOW_CHECKS=0")
+    end
+    add_defines("WITH_WARNINGS")
+    add_defines("WITH_R7RS=1")
+    set_basename("goldfish")
+    add_files(
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_continuation.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_ctables.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_dtoa.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_module.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_op_names.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_base.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_char.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_complex.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_format.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_inexact.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_predicate.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_symbol.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_write.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_bitwise.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_hash_table.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_list.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_string.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_vector.c"
+    )
+    add_headerfiles("$(curdir)/s7.h")
+    add_includedirs(".", {public = true})
+    if is_plat("windows") then
+        set_optimize("faster")
+        add_cxxflags("/fp:precise")
+    end
+    if is_mode("debug") then
+        add_defines("S7_DEBUGGING")
+    end
+end
+
 target ("goldfish") do
     set_languages("c++17")
+    add_deps("libgoldfish")
     set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
     add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
     add_files({

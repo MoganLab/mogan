@@ -29,7 +29,9 @@ function add_target_cpp_test(filepath, dep1, dep2)
         if not is_plat("windows") then
             add_syslinks("pthread")
         end
-        add_packages("goldfish")
+        if has_config("goldfish") then
+            add_packages("goldfish")
+        end
         add_packages("liii-pdfhummus")
 
         add_includedirs({"$(builddir)", "tests/Base"})
@@ -78,7 +80,9 @@ function add_target_cpp_bench(filepath, dep)
         if not is_plat("windows") then
             add_syslinks("pthread")
         end
-        add_packages("goldfish")
+        if has_config("goldfish") then
+            add_packages("goldfish")
+        end
         add_packages("liii-pdfhummus")
 
         add_includedirs({"$(builddir)", "tests/Base"})

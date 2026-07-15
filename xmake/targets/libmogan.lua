@@ -85,7 +85,9 @@ target("libmogan") do
         add_packages("liii-pdfhummus")
     end
     add_packages("freetype")
-    add_packages("goldfish")
+    if has_config("goldfish") then
+        add_packages("goldfish")
+    end
     add_packages("liii-tbox")
     if not is_plat("wasm") then
         add_packages("cpr")

@@ -26,7 +26,11 @@ local stem_files = {
 }
 
 target("stem") do 
-    add_deps("goldfish")
+    if has_config("goldfish") then
+        add_deps("goldfish")
+    else
+        add_deps("libgoldfish")
+    end
     if is_plat("windows") and is_mode("release") then
         add_deps("liii_windows_icon")
     end
