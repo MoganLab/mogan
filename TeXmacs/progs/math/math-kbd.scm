@@ -1612,7 +1612,6 @@
  ("math:misc | | /" "<nparallel>")
  ("math:misc | | var" "<shortparallel>")
  ("math:misc | | var /" "<nshortparallel>")
- ("math:misc | | var var" "<varparallel>")
  ("math:misc | | var var /" "<nvarparallel>")
 
  ("math:greek a" "<alpha>")
@@ -3080,3 +3079,8 @@
 (kbd-map (:require (inside? 'eqnarray*))
  ("C-&" (eqnarray->equation (tree-innermost 'eqnarray*)))
 ) ;kbd-map
+
+(kbd-map (:mode in-math?)
+ ("/ /" "<varparallel>")
+ ("/ / var" "<parallel>")
+ ("/ / var var" "//"))
