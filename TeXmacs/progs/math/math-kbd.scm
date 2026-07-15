@@ -1394,7 +1394,6 @@
  ("% -" "<veebar>")
  ("% - . ." "<veebar><cdots><veebar>")
 
- ("/ /" "<varparallel>")
  ("/ / var" "<parallel>")
  ("/ / var var" "//")
  ("| /" "<nmid>")
@@ -1416,6 +1415,7 @@
  ("| | var var var var" "<varparallel>")
  ("| | var var var var /" "<nvarparallel>")
  ("| | | var" "<interleave>")
+ ("/ /" "<varparallel>")
 
  ("| - var" "<vdash>")
  ("| - var -" "<longvdash>")
@@ -3079,8 +3079,3 @@
 (kbd-map (:require (inside? 'eqnarray*))
  ("C-&" (eqnarray->equation (tree-innermost 'eqnarray*)))
 ) ;kbd-map
-
-(kbd-map (:mode in-math?)
- ("/ /" "<varparallel>")
- ("/ / var" "<parallel>")
- ("/ / var var" "//"))
