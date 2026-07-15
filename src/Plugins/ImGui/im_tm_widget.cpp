@@ -22,6 +22,7 @@
 #include "scheme.hpp"        // exec_pending_commands, call
 #include "tm_timer.hpp"      // texmacs_time
 
+#include "editor.hpp" // editor_rep::selection_active_any
 #include "im_gui.hpp" // im_interpose (drives apply_changes each frame)
 #include "im_input.hpp"
 #include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
@@ -533,10 +534,13 @@ im_tm_widget_rep::im_main_loop () {
     im_simple_widget_rep* ed= canvas ();
     if (ed) ed->handle_keyboard_focus (true, texmacs_time ());
   }
-  // Auto-scroll while dragging (left button held) near the top/bottom edge.
-  // ImGui 实现的拖动滚动逻辑
-  if (!is_nil (main_widget) && window != nullptr &&
-      glfwGetMouseButton (window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+  // 仅在「正在拖动选中（左键按下且已产生选区）」且接近顶/底边缘时才自动滚动；
+  // 纯点击（无选区）在边缘长按不应触发滚动。
+  im_simple_widget_rep* ed= canvas ();
+  editor_rep*           er= ed ? dynamic_cast<editor_rep*> (ed) : nullptr;
+  if (window != nullptr && er != nullptr &&
+      glfwGetMouseButton (window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS &&
+      er->selection_active_any ()) {
     double xpos= 0, ypos= 0;
     glfwGetCursorPos (window, &xpos, &ypos);
     int ww= 0, wh= 0;
