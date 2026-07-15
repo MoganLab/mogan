@@ -1,0 +1,66 @@
+<TMU|<tuple|1.1.0|2026.2.9>>
+
+<style|<tuple|generic|number-europe|preview-ref|framed-session|tikz>>
+
+<\body>
+  <\session|tikz|default>
+    <\output>
+      Liii STEM interface to TikZ
+    </output>
+
+    <\unfolded-io>
+      tikz]\ 
+    <|unfolded-io>
+      \\usetikzlibrary{calc, angles, quotes}
+
+      \;
+
+      % 1. 定义三角形的三个物理顶点坐标
+
+      \\coordinate (A) at (0,0);
+
+      \\coordinate (B) at (3.2,0);
+
+      \\coordinate (C) at (1.0,2.2);
+
+      \;
+
+      % 2. 绘制闭合多边形三角形主体
+
+      \\draw[thick] (A) -- (B) -- (C) -- cycle;
+
+      \;
+
+      % 3. 标注顶点的文本标签
+
+      \\node[below left] at (A) {$A$};
+
+      \\node[below right] at (B) {$B$};
+
+      \\node[above] at (C) {$C$};
+
+      \;
+
+      % 4. 使用 pic 自动计算并标记内角（由三点确定角，逆时针方向）
+
+      \\pic [draw, -\<gtr\>, "$\\alpha$", angle radius=15pt, angle eccentricity=1.2] {angle = B--A--C};
+
+      \\pic [draw, -{Latex}, "$\\beta$", angle radius=18pt, angle eccentricity=1.2] {angle = C--B--A};
+    <|unfolded-io>
+      pdflatex error
+    </unfolded-io>
+
+    <\input>
+      tikz]\ 
+    <|input>
+      \;
+    </input>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|DED45977-2271-4C10-88B8-68108A834040>
+  </collection>
+</initial>
