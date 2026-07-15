@@ -31,8 +31,6 @@ TestTMFile::test_url_numbered_make_dir () {
   // 先清理，确保父目录不存在
   if (is_directory (base)) rmdir (base);
   QVERIFY (!is_directory (dir));
-  cout << base << LF;
-  cout << dir << LF;
 
   url name= url_numbered (dir, "test_", ".tmu", 1);
   QVERIFY (is_directory (dir));
