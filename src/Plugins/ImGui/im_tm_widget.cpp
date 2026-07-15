@@ -926,7 +926,12 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
   get_scroll_position (mw, sx, sy);
   // 只把增量交给画布；钳位 / 居中统一由 im_simple_widget::recenter 完成
   // （内容小于视口时滚轮无效，自动回到居中位置）。
-  SI delta = (SI) (yoffset * 10.0 * PIXEL);
+#ifdef OS_MACOS
+  SI scroll_speed= 10;
+#else
+  SI scroll_speed= 100;
+#endif
+  SI delta = (SI) (yoffset * scroll_speed * PIXEL);
   SI new_sy= sy + delta;
   mw->send (SLOT_SCROLL_POSITION, close_box<coord2> (coord2 (sx, new_sy)));
 }
