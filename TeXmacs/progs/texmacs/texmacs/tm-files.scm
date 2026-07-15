@@ -486,10 +486,13 @@
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
     (cond ((url-scratch? name)
-           (choose-file (lambda (x) (apply save-buffer-as-main (cons x opts)))
-             "Save TeXmacs file"
-             "tmu"
-           ) ;choose-file
+           (if (os-wasm?)
+             (save-buffer-check-faithful name opts)
+             (choose-file (lambda (x) (apply save-buffer-as-main (cons x opts)))
+               "Save TeXmacs file"
+               "tmu"
+             ) ;choose-file
+           ) ;if
           ) ;
           ((not (buffer-exists? name))
            (with msg

@@ -334,6 +334,11 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "os-wasm?",
+                cpp_name = "os_wasm",
+                ret_type = "bool"
+            },
+            {
                 scm_name = "evaluate-system",
                 cpp_name = "evaluate_system",
                 ret_type = "array_string",
