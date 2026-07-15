@@ -340,7 +340,7 @@
 ("basic communication using pipes" "基本管道通信")
 ("basic data types" "基本数据类型")
 ("basic types" "基本型态")
-("basic" "基本的")
+("basic" "基本")
 ("be useful" "有用")
 ("beamer theme" "幻灯片主题")
 ("become a TeXmacs developer" "成为 TeXmacs 的开发者")
