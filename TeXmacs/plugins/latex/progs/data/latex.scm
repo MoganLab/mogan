@@ -292,6 +292,109 @@
   ) ;and
 ) ;define
 
+(define (match-math-index-combination s i)
+  (let ((rest (substring s i (string-length s))))
+    (cond ((or (string-starts? rest "i*j*k") (string-starts? rest "ijk"))
+           (let ((len (if (string-starts? rest "i*j*k") 5 3)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("i" "j" "k"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "i*j") (string-starts? rest "ij"))
+           (let ((len (if (string-starts? rest "i*j") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("i" "j"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "j*k") (string-starts? rest "jk"))
+           (let ((len (if (string-starts? rest "j*k") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("j" "k"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "k*l") (string-starts? rest "kl"))
+           (let ((len (if (string-starts? rest "k*l") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("k" "l"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "l*m") (string-starts? rest "lm"))
+           (let ((len (if (string-starts? rest "l*m") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("l" "m"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "m*n") (string-starts? rest "mn"))
+           (let ((len (if (string-starts? rest "m*n") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("m" "n"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "p*q") (string-starts? rest "pq"))
+           (let ((len (if (string-starts? rest "p*q") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("p" "q"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "r*s") (string-starts? rest "rs"))
+           (let ((len (if (string-starts? rest "r*s") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("r" "s"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "x*y") (string-starts? rest "xy"))
+           (let ((len (if (string-starts? rest "x*y") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("x" "y"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "a*b") (string-starts? rest "ab"))
+           (let ((len (if (string-starts? rest "a*b") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("a" "b"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "c*d") (string-starts? rest "cd"))
+           (let ((len (if (string-starts? rest "c*d") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("c" "d"))
+             ) ;and
+           ) ;let
+          ) ;
+          ((or (string-starts? rest "u*v") (string-starts? rest "uv"))
+           (let ((len (if (string-starts? rest "u*v") 3 2)))
+             (and (is-word-boundary-before? s i)
+               (is-word-boundary-after? s (+ i (- len 1)))
+               (cons len '("u" "v"))
+             ) ;and
+           ) ;let
+          ) ;
+          (else #f)
+    ) ;cond
+  ) ;let
+) ;define
+
 (define (transform-math-string s)
   (let* ((n (string-length s)) (res '()))
     (let loop
@@ -305,17 +408,26 @@
                ) ;begin
              ) ;if
             ) ;
-            (else (let ((match (match-differential s i)))
-                    (if (and match
-                          (is-word-boundary-before? s i)
-                          (is-word-boundary-after? s (+ i 1 (car match)))
-                        ) ;and
-                      (let* ((match-len (car match)) (var (cdr match)))
+            (else (let ((idx-match (match-math-index-combination s i)))
+                    (if idx-match
+                      (let* ((match-len (car idx-match)) (chars (cdr idx-match)))
                         (if (> i last-idx) (set! res (append res (list (substring s last-idx i)))))
-                        (set! res (append res (list "d" " " var)))
-                        (loop (+ i 2 match-len) (+ i 2 match-len))
+                        (set! res (append res chars))
+                        (loop (+ i match-len) (+ i match-len))
                       ) ;let*
-                      (loop (+ i 1) last-idx)
+                      (let ((diff-match (match-differential s i)))
+                        (if (and diff-match
+                              (is-word-boundary-before? s i)
+                              (is-word-boundary-after? s (+ i 1 (car diff-match)))
+                            ) ;and
+                          (let* ((match-len (car diff-match)) (var (cdr diff-match)))
+                            (if (> i last-idx) (set! res (append res (list (substring s last-idx i)))))
+                            (set! res (append res (list "d" " " var)))
+                            (loop (+ i 2 match-len) (+ i 2 match-len))
+                          ) ;let*
+                          (loop (+ i 1) last-idx)
+                        ) ;if
+                      ) ;let
                     ) ;if
                   ) ;let
             ) ;else
