@@ -95,7 +95,7 @@ system (string which, url u1, const char* sep, url u2) {
  ******************************************************************************/
 url
 url_numbered (url dir, string prefix, string postfix, int i) {
-  if (!exists (dir)) mkdir (dir);
+  if (!exists (dir)) make_dir (dir);
   for (; true; i++) {
     url name= dir * (prefix * as_string (i) * postfix);
     if (!exists (name)) return name;
