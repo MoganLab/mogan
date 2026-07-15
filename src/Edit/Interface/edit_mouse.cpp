@@ -173,7 +173,7 @@ edit_interface_rep::mouse_adjust_selection (SI x, SI y, int mods) {
 
 void
 edit_interface_rep::mouse_drag (SI x, SI y) {
-  if (inside_graphics ()) return;
+  if (inside_graphics () && is_in_graphics_mode) return;
   if (mouse_message ("drag", x, y)) return;
   go_to (x, y);
   end_x= x;
@@ -994,7 +994,8 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
 
   // if (inside_graphics (false)) {
   // if (inside_graphics ()) {
-  if (inside_graphics (type != "release-left")) {
+  bool is_graphics_drag = (type == "dragging-left" || type == "end-drag-left");
+  if (inside_graphics (type != "release-left") && !(is_graphics_drag && !is_in_graphics_mode)) {
     if (mouse_graphics (type, x, y, mods, t, data)) {
       if (is_in_graphics_mode) return;
       else {
