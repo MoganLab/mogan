@@ -174,7 +174,6 @@ private slots:
   void test_middle_bracket_tracks_tall_item_height ();
   void test_middle_bracket_with_rsub_tracks_tall_item_height ();
   void test_big_op_box_bg_bridge ();
-  void test_mixed_script_selection_height_uniform ();
 };
 
 void
@@ -580,34 +579,6 @@ TestRoundedTextBg::test_big_op_box_bg_bridge () {
   QVERIFY (min_x < txt_x1_in_cb);
 
   cb->post_display (ren);
-}
-
-void
-TestRoundedTextBg::test_mixed_script_selection_height_uniform () {
-  tree which= tree (TUPLE, "roman", "rm", "medium", "right", "$s", "$d");
-  tree by   = tree (TUPLE, "ec", "ecrm", "$s", "$d");
-  font_rule (which, by);
-
-  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
-  QVERIFY (!is_nil (fn));
-
-  pencil pen (black);
-
-  box latin= text_box (path (), 0, "g", fn, pen);
-  box cjk  = text_box (path (), 0, "中", fn, pen);
-
-  selection sel_latin= latin->find_selection (path (0, 0), path (0, 1));
-  selection sel_cjk  = cjk->find_selection (path (0, 0), path (0, 1));
-
-  QVERIFY (!is_nil (sel_latin->rs));
-  QVERIFY (!is_nil (sel_cjk->rs));
-
-  rectangle r_latin= sel_latin->rs->item;
-  rectangle r_cjk  = sel_cjk->rs->item;
-
-  QCOMPARE (r_latin->y1, r_cjk->y1);
-  QVERIFY (r_latin->y1 <= fn->y1);
-  QVERIFY (r_cjk->y1 <= fn->y1);
 }
 
 QTEST_MAIN (TestRoundedTextBg)

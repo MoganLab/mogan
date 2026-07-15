@@ -211,12 +211,10 @@ text_box_rep::display (renderer ren) {
     ren->set_background (bg_brush);
     SI     bg_x1= x1;
     SI     bg_x2= x2;
-    metric ex, ex_m;
-    if (N (str) > 0) fn->get_extents (str, ex);
-    else fn->get_extents ("M", ex);
+    metric ex_m;
     fn->get_extents ("M", ex_m);
-    SI bg_y1= ex->y1 - 10 * ren->pixel; // 向下延伸10个像素
-    SI bg_y2= ex->y2 + 10 * ren->pixel; // 向上延伸10个像素
+    SI bg_y1= ex_m->y1 - 10 * ren->pixel; // 向下延伸10个像素
+    SI bg_y2= ex_m->y2 + 10 * ren->pixel; // 向上延伸10个像素
 
     // 检查背景宽度是否足够
     SI bg_width= bg_x2 - bg_x1;
@@ -439,9 +437,8 @@ text_box_rep::find_selection (path lbp, path rbp) {
     STACK_DELETE_ARRAY (xpos);
   }
   fn->get_extents (str (lbp->item, rbp->item), ex);
-  // 与字体级度量取并集，避免 glyph bounding box 差异导致高亮不均匀
-  y1= min (ex->y1, fn->y1);
-  y2= max (ex->y2, fn->y2);
+  y1= ex->y1;
+  y2= ex->y2;
   return selection (rectangle (x1, y1, x2, y2), find_tree_path (lbp),
                     find_tree_path (rbp));
 }

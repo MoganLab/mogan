@@ -193,13 +193,10 @@ concat_box_rep::pre_display (renderer& ren) {
     if (bs[k]->get_type () == TEXT_BOX) {
       font f= bs[k]->get_leaf_font ();
       if (!is_nil (f)) {
-        metric ex_m, ex_c;
+        metric ex_m;
         f->get_extents ("M", ex_m);
-        string s= bs[k]->get_leaf_string ();
-        if (N (s) > 0) f->get_extents (s, ex_c);
-        else f->get_extents ("M", ex_c);
-        line_y1= min (line_y1, sy (k) + min (ex_c->y1, ex_m->y1) - 10 * pixel);
-        line_y2= max (line_y2, sy (k) + max (ex_c->y2, ex_m->y2) + 10 * pixel);
+        line_y1= min (line_y1, sy (k) + ex_m->y1 - 10 * pixel);
+        line_y2= max (line_y2, sy (k) + ex_m->y2 + 10 * pixel);
       }
     }
     else {
