@@ -28,9 +28,7 @@
     ) ;if
   ) ;define
   (cond ((not (pair? t)) '())
-        ((eq? (car t) 'rsub)
-         (list (cadr t))
-        ) ;
+        ((eq? (car t) 'rsub) (list (cadr t)))
         (else (collect-children (cdr t)))
   ) ;cond
 ) ;define
@@ -44,7 +42,7 @@
         ) ;
     (display* "Converted tree TMU: " (serialize-tmu texmacs-tree) "\n")
     (display* "Collected rsub nodes: " rsub-nodes "\n")
-    
+
     ;; Each should be split into individual character concat list or components
     ;; instead of single strings like "ij", "jk" etc.
     (check (member "ij" rsub-nodes) => #f)

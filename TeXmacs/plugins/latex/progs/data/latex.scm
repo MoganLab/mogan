@@ -298,7 +298,7 @@
            (let ((len (if (string-starts? rest "i*j*k") 5 3)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("i" "j" "k"))
+               (cons len '("i" " " "j" " " "k"))
              ) ;and
            ) ;let
           ) ;
@@ -306,7 +306,7 @@
            (let ((len (if (string-starts? rest "i*j") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("i" "j"))
+               (cons len '("i" " " "j"))
              ) ;and
            ) ;let
           ) ;
@@ -314,7 +314,7 @@
            (let ((len (if (string-starts? rest "j*k") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("j" "k"))
+               (cons len '("j" " " "k"))
              ) ;and
            ) ;let
           ) ;
@@ -322,7 +322,7 @@
            (let ((len (if (string-starts? rest "k*l") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("k" "l"))
+               (cons len '("k" " " "l"))
              ) ;and
            ) ;let
           ) ;
@@ -330,7 +330,7 @@
            (let ((len (if (string-starts? rest "l*m") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("l" "m"))
+               (cons len '("l" " " "m"))
              ) ;and
            ) ;let
           ) ;
@@ -338,7 +338,7 @@
            (let ((len (if (string-starts? rest "m*n") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("m" "n"))
+               (cons len '("m" " " "n"))
              ) ;and
            ) ;let
           ) ;
@@ -346,7 +346,7 @@
            (let ((len (if (string-starts? rest "p*q") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("p" "q"))
+               (cons len '("p" " " "q"))
              ) ;and
            ) ;let
           ) ;
@@ -354,7 +354,7 @@
            (let ((len (if (string-starts? rest "r*s") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("r" "s"))
+               (cons len '("r" " " "s"))
              ) ;and
            ) ;let
           ) ;
@@ -362,7 +362,7 @@
            (let ((len (if (string-starts? rest "x*y") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("x" "y"))
+               (cons len '("x" " " "y"))
              ) ;and
            ) ;let
           ) ;
@@ -370,7 +370,7 @@
            (let ((len (if (string-starts? rest "a*b") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("a" "b"))
+               (cons len '("a" " " "b"))
              ) ;and
            ) ;let
           ) ;
@@ -378,7 +378,7 @@
            (let ((len (if (string-starts? rest "c*d") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("c" "d"))
+               (cons len '("c" " " "d"))
              ) ;and
            ) ;let
           ) ;
@@ -386,7 +386,7 @@
            (let ((len (if (string-starts? rest "u*v") 3 2)))
              (and (is-word-boundary-before? s i)
                (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("u" "v"))
+               (cons len '("u" " " "v"))
              ) ;and
            ) ;let
           ) ;
