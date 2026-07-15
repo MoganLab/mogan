@@ -535,7 +535,13 @@
 ) ;menu-bind
 
 (menu-bind graphics-control-point-pos-menu
- ("Set position" (interactive graphics-set-control-point-position))
+  ("Set position"
+   (interactive
+     (lambda (x y) (graphics-set-control-point-position x y))
+     (list "X coordinate" "string" (get-control-point-x (stree-radical (car (sketch-get1))) selected-point-no))
+     (list "Y coordinate" "string" (get-control-point-y (stree-radical (car (sketch-get1))) selected-point-no))
+   ) ;interactive
+  ) ;"Set position"
 ) ;menu-bind
 
 (menu-bind graphics-line-width-menu
