@@ -35,9 +35,7 @@
 
 (tm-define (is-ghost-active?) ghost-active?)
 
-(tm-define (ghost-enable?)
-  (not (community-stem?))
-) ;tm-define
+(tm-define (ghost-enable?) (not (community-stem?)))
 
 ;; =============================================================================
 ;; Model evaluation & Feedback functions
