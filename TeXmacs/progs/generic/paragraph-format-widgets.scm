@@ -1,10 +1,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : paragraph-format-widgets.scm
-;; DESCRIPTION : QML 段落格式对话框的 scheme facade。int 句柄注册表 + live 写回
-;;               （make-multi-line-with）+ 打开时快照（Cancel/重置撤销）。显示真相源
-;;               在 QML values（参考 FormDialog），scheme 不维护运行期当前值——避开
-;;               make-multi-line-with 相对 get-env 的延迟导致的显示滞后。
+;; DESCRIPTION : QML 段落格式对话框的 scheme facade（「格式→段落」与「文档→段落」共用）。
+;;               int 句柄注册表 + 按 scope 分流的双读写通路（段落 with / 文档 initial）
+;;               + 打开时快照（Cancel 撤销）。显示真相源在 QML values（参考 FormDialog），
+;;               scheme 不维护运行期当前值——避开写回相对读取的延迟导致的显示滞后。
 ;; COPYRIGHT   : (C) 2026  Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -15,7 +15,7 @@
 
 (texmacs-module (generic paragraph-format-widgets) (:use (generic format-edit)))
 
-;; 段落参数清单与取值（与 format-widgets.scm 的 enum 取值一一对应）。
+;; 段落参数清单与取值（迁移自原 format-widgets.scm 的 tm-widget enum 取值）。
 ;; editable=#t 的字段允许 QML 端双击键入预设外的自定义值（对应原 enum 末尾空串槽位）。
 
 (define paragraph-basic-fields
@@ -91,8 +91,8 @@
   ) ;list
 ) ;define
 
-;; int 句柄注册表：C++ bridge 持 int key，scheme 侧用它找回 specs。specs 是
-;; (scope . getter/setter) 对——scope 决定读写通路：
+;; int 句柄注册表：C++ bridge 持 int key，scheme 侧用它找回 specs。specs 是三元组
+;; (scope getter setter)——scope 决定读写通路：
 ;;   'paragraph：get-env 读段落环境，make-multi-line-with 写段落 with。
 ;;   'document：get-init 读文档初始环境，init-multi 写文档 initial。
 ;; 两条通路对同一批 par-* 参数名，写回位置不同（段落 with vs 文档 initial），故按
@@ -218,14 +218,18 @@
   (with specs
     (ahash-ref paragraph-specs-registry key)
     (when specs
-      (with (_ getter setter)
+      (with (scope getter setter)
         specs
         (with snap
           (ahash-ref paragraph-snapshot key)
           (when snap
             (with changes
               (list)
-              (for (f (append paragraph-basic-fields paragraph-advanced-fields))
+              ;; 按 scope 取字段（与 register-specs 快照同源），文档级不含 par-left/par-right。
+              (for (f (append (paragraph-fields-for scope "basic")
+                        (paragraph-fields-for scope "advanced")
+                      ) ;append
+                   ) ;f
                 (with var
                   (car f)
                   (with old

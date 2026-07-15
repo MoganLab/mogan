@@ -1,7 +1,8 @@
-// ParagraphFormat.qml — 段落格式对话框正文。
-// 非阻塞模态（run_modal_qml_dialog）：每次改动经 paraBridge.setPara live 写回文档
-// （make-multi-line-with），主窗口实时重排段落；OK 落定，Cancel/重置走打开时快照
-// 写回撤销。
+// ParagraphFormat.qml — 段落格式对话框正文（「格式→段落」与「文档→段落」共用）。
+// 非阻塞模态（run_modal_qml_dialog）：每次改动经 paraBridge.setPara live 写回
+// （段落级写段落 with、文档级写文档 initial），主窗口实时重排；OK 落定，Cancel 走
+// 打开时快照写回，重置按 scope（段落级快照写回 / 文档级恢复默认）。scope 分流在
+// scheme facade，QML 不感知。
 //
 // 显示真相源是 QML 本地的 values（参考 FormDialog）：打开时从 meta 读一次初始化，
 // 之后改动直接改 values 并 setPara 写文档，不重读 get-env——后者相对编辑命令有延迟，
@@ -10,11 +11,12 @@
 //
 // paraBridge 契约（ParagraphFormatBridge，无状态透传 specsKey）：
 //   uiLabels()            -> {basic, advanced, reset, ok, cancel, sepPresetLabel, sepPresets}
-//   basicMeta()           -> [{label, options, var, value, editable}]（打开时读一次）
+//   basicMeta()           -> [{label, options, var, value, editable}]（打开时读一次；
+//                            文档级基础 tab 不含 par-left/par-right）
 //   advancedMeta()        -> 同上（高级 tab）
-//   setPara(var, val)     -> live 写回文档
-//   reset()               -> 快照撤销（重置按钮；不关窗）
-//   submit()/cancel()     -> OK 落定 / Cancel 快照撤销，均关窗
+//   setPara(var, val)     -> live 写回（段落 with 或文档 initial）
+//   reset()               -> 段落级快照写回 / 文档级恢复默认（不关窗）
+//   submit()/cancel()     -> OK 落定 / Cancel 快照写回，均关窗
 
 import QtQuick
 import "." // DialogShell / EnumCombo / EnumComboList / MiniButton / DialogButtons / TabBar / Theme

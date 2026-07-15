@@ -12,12 +12,13 @@
  *  @brief QML 段落格式 bridge：把 QML 的请求转发到 scheme facade。
  *
  * @par 设计
- * - @b 透传无状态：段落参数真相源在文档（get-env 读、make-multi-line-with
- *   写），bridge 除 specsKey 外不持有任何数据。
- * - @b live 写回：setPara 每次 make-multi-line-with 实时写回文档，主窗口 live
- *   重排段落（run_modal_qml_dialog 非阻塞模态保证主窗口 paint）。
- * - @b 快照撤销：Cancel/重置经打开时快照（paragraph-snapshot）写回撤销，OK
- *   落定。
+ * - @b 透传无状态：段落参数真相源在文档，bridge 除 specsKey 外不持有数据。
+ *   scope 分流在 scheme facade：段落级走 get-env/make-multi-line-with（段落
+ *   with），文档级走 get-init/init-multi（文档 initial）。
+ * - @b live 写回：setPara 每次实时写回（段落 with 或文档 initial），主窗口 live
+ *   重排（run_modal_qml_dialog 非阻塞模态保证主窗口 paint）。
+ * - @b 撤销：Cancel 经打开时快照写回；重置按 scope——段落级快照写回、文档级
+ *   init-default 恢复默认。OK 落定。
  *
  * @note 生命期：host 堆分配（run_modal_qml_dialog 内 new + WA_DeleteOnClose），
  *   bridge 不挂 parent；submit/cancel 调 close() → WA_DeleteOnClose 触发 host
@@ -58,7 +59,7 @@ public:
   Q_INVOKABLE QVariantList advancedMeta ();
 
   // ---- live 写回 ----
-  /// 设单参数（make-multi-line-with 实时写回），返回写回后的新值。
+  /// 设单参数（按 scope 实时写回：段落 with 或文档 initial）。
   Q_INVOKABLE QString setPara (const QString& var, const QString& val);
 
   // ---- 动作 ----
@@ -66,7 +67,8 @@ public:
   Q_INVOKABLE void submit ();
   /// Cancel：paragraph-format-cancel 经快照写回撤销，close() 关闭。
   Q_INVOKABLE void cancel ();
-  /// 重置：paragraph-format-revert 快照撤销（不关窗，留在对话框继续调）。
+  /// 重置：paragraph-format-revert（段落级快照写回 / 文档级 init-default
+  /// 恢复默认，不关窗，留在对话框继续调）。
   Q_INVOKABLE void reset ();
 
   /// 固定 UI 文案的翻译 + 行间距预设按钮表，QML 一次性拉取。
