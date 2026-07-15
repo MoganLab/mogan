@@ -30,7 +30,7 @@ function add_target_cpp_test(filepath, dep1, dep2)
             add_syslinks("pthread")
         end
         if has_config("goldfish") then
-            add_packages("goldfish")
+            add_deps("goldfish")
         end
         add_packages("liii-pdfhummus")
 
@@ -81,7 +81,7 @@ function add_target_cpp_bench(filepath, dep)
             add_syslinks("pthread")
         end
         if has_config("goldfish") then
-            add_packages("goldfish")
+            add_deps("goldfish")
         end
         add_packages("liii-pdfhummus")
 

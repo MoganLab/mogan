@@ -86,7 +86,7 @@ target("libmogan") do
     end
     add_packages("freetype")
     if has_config("goldfish") then
-        add_packages("goldfish")
+        add_deps("goldfish")
     end
     add_packages("liii-tbox")
     if not is_plat("wasm") then
