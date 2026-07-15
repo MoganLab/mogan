@@ -5,22 +5,28 @@
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; PURPOSE
-;;   [2029] 验证「格式 → 段落」迁移到 QML（ParagraphFormat.qml + ParagraphFormatBridge
-;;   + paragraph-format-* facade + cpp-paragraph-format-dialog glue）后：
-;;     - basic/advanced meta 形状（label/options/var/value/editable）
+;;   [2029] 验证「格式 → 段落」「文档 → 段落」迁移到 QML（共用 ParagraphFormat.qml
+;;   + ParagraphFormatBridge + paragraph-format-* facade + cpp-paragraph-format-dialog
+;;   glue）后：
+;;     - basic/advanced meta 形状（label/options/var/value/editable）；文档级基础 tab
+;;       去掉 par-left/par-right（6 项 vs 段落级 8 项）
 ;;     - ui-labels（按钮文案 + sepPresetLabel + sepPresets 4 项）
 ;;     - specsKey 句柄 register -> lookup 往返，cleanup 后清除（无句柄泄漏）
-;;     - live 写回：set 经 make-multi-line-with 把 par-mode 写入文档树
-;;     - 快照撤销：revert / cancel 把文档树回滚到 set 之前的值
+;;     - 段落级 live 写回：set 经 make-multi-line-with 把 par-mode 写入文档树 with
+;;     - 段落级快照撤销：revert / cancel 把文档树回滚到 set 之前
+;;     - 文档级 live 写回：set 经 init-multi 写文档 initial（get-init 读到新值）
+;;     - 文档级重置：reset 走 init-default 恢复默认（不是快照回滚）
+;;     - 文档级取消：cancel 快照写回 init（回到 set 之前）
 ;;     - cpp-paragraph-format-dialog：Cancel 钩子返回空 tree，OK 钩子走 commit
 ;;
 ;;   通过环境变量绕过模态 QML 弹窗：
 ;;     - MOGAN_TEST_PARAGRAPH_FORMAT=ok     模拟 OK（走 commit）
 ;;     - MOGAN_TEST_PARAGRAPH_FORMAT=cancel 模拟 Cancel（返回空 tree）
 ;;
-;;   文档树断言用 buffer->tree（set 前抓的 buf）+ stree-with-ref 提取 with 值，而非
-;;   get-env：make-multi-line-with 末尾 tree-select 会挪动焦点，get-env 读数不稳；
-;;   buffer 树是真相源、不受光标影响。
+;;   断言方式按 scope 分：
+;;     - 段落级用 buffer->tree（set 前抓的 buf）+ stree-with-ref 提取 with 值，而非
+;;       get-env：make-multi-line-with 末尾 tree-select 挪动焦点，get-env 读数不稳。
+;;     - 文档级用 get-init：init 不依赖光标位置，读数稳定。
 ;;
 ;;   QML 真实交互（点选/双击编辑/预设按钮/Esc）无法在 scheme 集成测试里触及，靠手动：
 ;;     MOGAN_TEST_GUI=1 xmake r 2029
@@ -53,8 +59,18 @@
 
 ;; 段落 specs（get-env / make-multi-line-with），与 open-paragraph-format-window 同源。
 
+;; 段落 specs=(scope getter setter)，与 open-paragraph-format-window 同源。
+;; 'paragraph 走 get-env/make-multi-line-with（段落 with 通路）。
+
 (define (paragraph-specs)
-  (list get-env make-multi-line-with)
+  (list 'paragraph get-env make-multi-line-with)
+) ;define
+
+;; 文档 specs，与 open-document-paragraph-format-window 同源。
+;; 'document 走 get-init/init-multi（文档 initial 通路）。
+
+(define (document-specs)
+  (list 'document get-init init-multi)
 ) ;define
 
 ;; 提取 stree 中 var 当前的 with 值。with 的 stree 形如
@@ -258,6 +274,75 @@
                                            snap-before
                                          ) ;equal?
                              ) ;check-true
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2d) 文档级 set 写 init：'document scope 走 get-init/init-multi。
+               ;;     get-init 不依赖光标位置，读数稳定，直接断言（无需 buffer->tree）。
+               ;;     基础 tab 应隐藏 par-left/par-right（meta 不含这两项）。
+               (list (cons "document set: writes par-mode to init"
+                       (lambda ()
+                         (clear-hook!)
+                         (new-document)
+                         (with specs
+                           (document-specs)
+                           (let* ((key (paragraph-format-register-specs specs))
+                                  (basic (paragraph-format-meta key "basic"))
+                                  (after (paragraph-format-set key "par-mode" "center"))
+                                 ) ;
+                             ;; 文档级基础 tab 去掉 par-left/par-right，剩 6 项。
+                             (check-true (= (length basic) 6))
+                             (check-true (not (in? "par-left" (map (lambda (f) (cdr (assoc 'var f))) basic)))
+                             ) ;check-true
+                             (check-true (equal? after "center"))
+                             (check-true (equal? (get-init "par-mode") "center"))
+                             (paragraph-format-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2e) 文档级重置：init-default 恢复默认（不是快照回滚）。set 改 par-mode
+               ;;     后 reset，get-init 回到默认值（新文档无 init，即全局默认）。
+               (list (cons "document reset: init-default"
+                       (lambda ()
+                         (clear-hook!)
+                         (new-document)
+                         (with specs
+                           (document-specs)
+                           (let* ((key (paragraph-format-register-specs specs)))
+                             (paragraph-format-set key "par-mode" "center")
+                             (check-true (equal? (get-init "par-mode") "center"))
+                             (paragraph-format-revert key)
+                             ;; reset 后 init 被移除（恢复默认），get-init 回全局默认。
+                             (check-true (not (init-has? "par-mode")))
+                             (paragraph-format-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2f) 文档级 cancel：快照回滚到打开时的 init 值（与段落级 cancel 同语义）。
+               (list (cons "document cancel: rollback to snapshot"
+                       (lambda ()
+                         (clear-hook!)
+                         (new-document)
+                         (with specs
+                           (document-specs)
+                           ;; 先设一个 init 值作为「打开时快照」。
+                           (init-env "par-mode" "right")
+                           (let* ((key (paragraph-format-register-specs specs))
+                                  (snap-before (get-init "par-mode"))
+                                 ) ;
+                             (paragraph-format-set key "par-mode" "center")
+                             (check-true (equal? (get-init "par-mode") "center"))
+                             (paragraph-format-cancel key)
+                             (check-true (equal? (get-init "par-mode") snap-before))
                            ) ;let*
                          ) ;with
                        ) ;lambda

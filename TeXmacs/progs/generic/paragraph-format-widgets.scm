@@ -91,109 +91,182 @@
   ) ;list
 ) ;define
 
-;; int 句柄注册表：C++ bridge 持 int key，scheme 侧用它找回 specs（仅为句柄映射，
-;; getter/setter 未使用——段落直接用 get-env/make-multi-line-with）。
+;; int 句柄注册表：C++ bridge 持 int key，scheme 侧用它找回 specs。specs 是
+;; (scope . getter/setter) 对——scope 决定读写通路：
+;;   'paragraph：get-env 读段落环境，make-multi-line-with 写段落 with。
+;;   'document：get-init 读文档初始环境，init-multi 写文档 initial。
+;; 两条通路对同一批 par-* 参数名，写回位置不同（段落 with vs 文档 initial），故按
+;; scope 分流，不可混用。
 
 (define paragraph-specs-registry (make-ahash-table))
 
 (define paragraph-specs-next 1)
 
-;; key -> ahash(var -> val)：对话框打开瞬间的段落参数快照，供 Cancel/重置回放。
-;; 必须在 live 改动前快照——live 写回会改文档树，事后 get-env 读到的是改后值。
+;; key -> ahash(var -> val)：对话框打开瞬间的参数快照，供 Cancel 回放。
+;; 必须在 live 改动前快照——live 写回会改文档树/init，事后读到的是改后值。
 ;; 运行期当前值不在此维护——显示真相源在 QML values（参考 FormDialog）。
+;; 注：文档级「重置」走 init-default（恢复默认），不用快照；快照仅 Cancel 用。
 
 (define paragraph-snapshot (make-ahash-table))
+
+;; key -> scope：标记该 specs 是段落级还是文档级，读写/revert 按 scope 分流。
+
+(define paragraph-scope (make-ahash-table))
 
 (tm-define (paragraph-format-lookup-specs key)
   (ahash-ref paragraph-specs-registry key)
 ) ;tm-define
 
+;; specs 形如 (scope getter setter)：scope ∈ {'paragraph,'document}，getter/setter
+;; 分别为 get-env/make-multi-line-with 或 get-init/init-multi。段落级默认。
 (tm-define (paragraph-format-register-specs specs)
   (with key
     paragraph-specs-next
-    (ahash-set! paragraph-specs-registry key specs)
-    ;; 快照打开瞬间的段落参数（live 改动前）。
-    (with snap
-      (make-ahash-table)
-      (for (f (append paragraph-basic-fields paragraph-advanced-fields))
-        (ahash-set! snap (car f) (get-env (car f)))
-      ) ;for
-      (ahash-set! paragraph-snapshot key snap)
+    (with (scope getter setter)
+      specs
+      (ahash-set! paragraph-specs-registry key specs)
+      (ahash-set! paragraph-scope key scope)
+      ;; 快照打开瞬间的参数（live 改动前）。getter 按 scope 读 env 或 init。
+      (with snap
+        (make-ahash-table)
+        (for (f (paragraph-fields-for scope "basic"))
+          (ahash-set! snap (car f) (getter (car f)))
+        ) ;for
+        (for (f (paragraph-fields-for scope "advanced"))
+          (ahash-set! snap (car f) (getter (car f)))
+        ) ;for
+        (ahash-set! paragraph-snapshot key snap)
+      ) ;with
+      (set! paragraph-specs-next (+ paragraph-specs-next 1))
+      key
     ) ;with
-    (set! paragraph-specs-next (+ paragraph-specs-next 1))
-    key
   ) ;with
 ) ;tm-define
 
 (tm-define (paragraph-format-cleanup key)
   (ahash-remove! paragraph-specs-registry key)
   (ahash-remove! paragraph-snapshot key)
+  (ahash-remove! paragraph-scope key)
 ) ;tm-define
 
-;; 返回某分组字段的 meta 列表（供 QML 打开时读一次初始化 values）。value 用 get-env
-;; （仅打开时读，运行期不重读——显示真相源是 QML values）。label 走 translate（与
-;; FormDialog 一致，scheme 侧翻译好再传 QML）。
-(tm-define (paragraph-format-meta key which)
+;; 按 scope 返回某分组字段表。文档级基础 tab 去掉 par-left/par-right（边距对
+;; 文档初始环境无意义，与原 tm-widget flag?=#t 的 assuming (not flag?) 一致）；
+;; 高级 tab 两级相同。
+
+(define (paragraph-fields-for scope which)
   (with fields
     (if (== which "basic") paragraph-basic-fields paragraph-advanced-fields)
-    (map (lambda (f)
-           (with (var label options editable)
-             f
-             (list (cons 'label (translate label))
-               (cons 'options options)
-               (cons 'var var)
-               (cons 'value (get-env var))
-               (cons 'editable editable)
-             ) ;list
-           ) ;with
-         ) ;lambda
+    (if (and (== scope 'document) (== which "basic"))
+      (list-filter fields
+        (lambda (f) (not (in? (car f) (list "par-left" "par-right"))))
+      ) ;list-filter
       fields
-    ) ;map
+    ) ;if
+  ) ;with
+) ;define
+
+;; 全部字段名（basic+advanced 的 var），供文档级 init-default 恢复默认。
+
+(define (paragraph-all-var-names)
+  (map car (append paragraph-basic-fields paragraph-advanced-fields))
+) ;define
+
+;; 返回某分组字段的 meta 列表（供 QML 打开时读一次初始化 values）。value 用 getter
+;; 按 scope 读（仅打开时读，运行期不重读——显示真相源是 QML values）。label 走
+;; translate（与 FormDialog 一致，scheme 侧翻译好再传 QML）。
+(tm-define (paragraph-format-meta key which)
+  (with specs
+    (ahash-ref paragraph-specs-registry key)
+    (with (scope getter setter)
+      specs
+      (with fields
+        (paragraph-fields-for scope which)
+        (map (lambda (f)
+               (with (var label options editable)
+                 f
+                 (list (cons 'label (translate label))
+                   (cons 'options options)
+                   (cons 'var var)
+                   (cons 'value (getter var))
+                   (cons 'editable editable)
+                 ) ;list
+               ) ;with
+             ) ;lambda
+          fields
+        ) ;map
+      ) ;with
+    ) ;with
   ) ;with
 ) ;tm-define
 
-;; live 写回单参数：make-multi-line-with 写文档。make-multi-with 期望扁平
-;; (var val var val ...)（与原 widget differences-list = assoc->list 一致）。显示真相源
-;; 在 QML values，不重读 get-env（延迟会显示滞后）。
+;; live 写回单参数：setter 按 scope 写段落 with 或文档 initial。段落级
+;; make-multi-with 期望扁平 (var val ...)（与原 widget differences-list 一致）；
+;; 文档级 init-multi 同样期望扁平 (var val ...)。显示真相源在 QML values，不重读。
 (tm-define (paragraph-format-set key var val)
-  (make-multi-line-with (list var val))
+  (with specs
+    (ahash-ref paragraph-specs-registry key)
+    (with (_ getter setter) specs (setter (list var val)))
+  ) ;with
   val
 ) ;tm-define
 
-;; 快照撤销（Cancel/重置共用）：一次 make-multi-line-with 写所有差异，避免多次嵌套
-;; with 吞选区。revert 不关窗（重置用）；cancel 在 bridge 层再关窗。
-(tm-define (paragraph-format-revert key)
-  (with snap
-    (ahash-ref paragraph-snapshot key)
-    (when snap
-      (with changes
-        (list)
-        (for (f (append paragraph-basic-fields paragraph-advanced-fields))
-          (with var
-            (car f)
-            (with old
-              (ahash-ref snap var)
-              (when (and old (!= old (get-env var)))
-                ;; make-multi-line-with 期望扁平 (var val var val ...)。
-                (set! changes (cons* var old changes))
+;; 快照写回（Cancel 用）：把所有与快照不同的参数写回打开时的值。setter 按 scope
+;; 选 make-multi-line-with（段落 with）或 init-multi（文档 initial），扁平
+;; (var val ...) 一次写入，避免段落级多次嵌套 with 吞选区。
+
+(define (paragraph-format-restore-snapshot key)
+  (with specs
+    (ahash-ref paragraph-specs-registry key)
+    (when specs
+      (with (_ getter setter)
+        specs
+        (with snap
+          (ahash-ref paragraph-snapshot key)
+          (when snap
+            (with changes
+              (list)
+              (for (f (append paragraph-basic-fields paragraph-advanced-fields))
+                (with var
+                  (car f)
+                  (with old
+                    (ahash-ref snap var)
+                    (when (and old (!= old (getter var)))
+                      (set! changes (cons* var old changes))
+                    ) ;when
+                  ) ;with
+                ) ;with
+              ) ;for
+              (when (nnull? changes)
+                (setter changes)
               ) ;when
             ) ;with
-          ) ;with
-        ) ;for
-        (when (nnull? changes)
-          (make-multi-line-with changes)
-        ) ;when
+          ) ;when
+        ) ;with
       ) ;with
     ) ;when
+  ) ;with
+) ;define
+
+;; 重置（重置按钮）：文档级 init-default 恢复默认（与原 tm-widget flag?=#t 的 Reset
+;; 一致——文档级 Reset 是「恢复默认」）；段落级快照写回（回到打开时）。不关窗。
+;; 文档级用本 facade 已知的全部字段名做 init-default，不依赖 format-widgets 的
+;; paragraph-parameters（跨模块变量在此 unbound）。
+(tm-define (paragraph-format-revert key)
+  (with scope
+    (ahash-ref paragraph-scope key)
+    (if (== scope 'document)
+      (apply init-default (paragraph-all-var-names))
+      (paragraph-format-restore-snapshot key)
+    ) ;if
   ) ;with
 ) ;tm-define
 
 ;; 落定：改动已随每次 set live 写回，commit 只需注销 specs。
 (tm-define (paragraph-format-commit key) (paragraph-format-cleanup key))
 
-;; 取消：快照撤销 + 注销。
+;; 取消：快照写回（回到打开时，两级共用）+ 注销。
 (tm-define (paragraph-format-cancel key)
-  (paragraph-format-revert key)
+  (paragraph-format-restore-snapshot key)
   (paragraph-format-cleanup key)
 ) ;tm-define
 

@@ -148,15 +148,14 @@
 
 (tm-define (open-document-paragraph-format-window)
   (:interactive #t)
-  (let* ((old (get-init-table paragraph-parameters))
-         (new (get-init-table paragraph-parameters))
-         (u (current-buffer))
-        ) ;
-    (dialogue-window (paragraph-formatter old new init-multi u #t)
-      noop
-      "Document paragraph format"
-    ) ;dialogue-window
-  ) ;let*
+  ;; 走 QML 对话框（与「格式→段落」同骨架，区别在数据通路）：register-specs 存
+  ;; 'document scope specs，cpp-paragraph-format-dialog 开同一个 QML 对话框。
+  ;; 'document 走 init 通路：get-init 读、init-multi 写文档 initial；基础 tab
+  ;; 隐藏 par-left/par-right；重置走 init-default 恢复默认，Cancel 经快照写回。
+  (with specs
+    (list 'document get-init init-multi)
+    (cpp-paragraph-format-dialog (paragraph-format-register-specs specs))
+  ) ;with
 ) ;tm-define
 
 (tm-define (open-document-paragraph-format)
