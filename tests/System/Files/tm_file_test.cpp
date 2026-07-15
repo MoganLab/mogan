@@ -29,15 +29,17 @@ TestTMFile::test_url_numbered_make_dir () {
   url base= url_temp_dir () * url ("tm_file_test_0741");
   url dir = base * url ("a") * url ("b");
   // 先清理，确保父目录不存在
-  if (is_directory (base)) remove (base);
+  if (is_directory (base)) rmdir (base);
   QVERIFY (!is_directory (dir));
+  cout << base << LF;
+  cout << dir << LF;
 
   url name= url_numbered (dir, "test_", ".tmu", 1);
   QVERIFY (is_directory (dir));
   QVERIFY (as_string (tail (name)) == "test_1.tmu");
 
   // 清理
-  remove (base);
+  rmdir (base);
   QVERIFY (!is_directory (base));
 }
 
