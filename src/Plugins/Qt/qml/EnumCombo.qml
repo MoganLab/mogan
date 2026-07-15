@@ -86,7 +86,12 @@ Row {
     // 进入/退出可编辑态。editingInput.text 在进入时同步当前 value，撤销时丢弃。
     function startEdit() {
         if (!root.editable) return
-        if (root.dialogShell) root.dialogShell.activeCombo = null
+        if (root.dialogShell) {
+            root.dialogShell.activeCombo = null
+            // 注册为 editingCombo：DialogShell 据此铺点外遮罩——否则点空白处不丢
+            // activeFocus（正文 Flickable/Item 不抢焦点），点外退不出编辑。
+            root.dialogShell.editingCombo = root
+        }
         editingInput.text = root.value
         root.editing = true
         editingInput.forceActiveFocus()
@@ -96,10 +101,18 @@ Row {
         if (!root.editing) return
         var v = editingInput.text
         root.editing = false
+        if (root.dialogShell && root.dialogShell.editingCombo === root)
+            root.dialogShell.editingCombo = null
         if (v !== root.value) root.changed(v)
+        // 焦点还根：根 Item 非 FocusScope，隐藏 editingInput 不会自动恢复 activeFocus，
+        // 不显式归还则后续 Esc 收不到，编辑后 Esc 关不掉窗。
+        if (root.dialogShell) root.dialogShell.forceActiveFocus()
     }
     function cancelEdit() {
         root.editing = false
+        if (root.dialogShell && root.dialogShell.editingCombo === root)
+            root.dialogShell.editingCombo = null
+        if (root.dialogShell) root.dialogShell.forceActiveFocus()
     }
 
     readonly property bool hasTr: optionsTr && optionsTr.length === options.length

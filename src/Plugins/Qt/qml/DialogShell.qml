@@ -57,6 +57,9 @@ Item {
     // 故不被正文遮挡；限高翻转算法与旧 FormDialog.qml 逐行一致（弹窗逻辑坐标系，
     // 不依赖 window/物理坐标），优先向下、不够向上、仍不够限高滚动。
     property var activeCombo: null
+    // 当前处于编辑态的 EnumCombo（与 activeCombo 对称）。非 null 时铺点外遮罩提交编辑
+    // （否则 editingInput activeFocus 不丢，点外退不出编辑，见 EnumCombo.startEdit）。
+    property var editingCombo: null
 
     Rectangle {
         anchors.fill: parent
@@ -88,6 +91,19 @@ Item {
             var inCombo = mouse.x >= c.comboX && mouse.x <= c.comboX + c.comboW
                        && mouse.y >= c.comboY && mouse.y <= c.comboY + c.comboH
             if (!inCombo) root.activeCombo = null
+            mouse.accepted = false
+        }
+        propagateComposedEvents: true
+    }
+
+    // 编辑态点外遮罩：点空白处提交编辑，透传 press 让被点元素（如下一个 combo）正常响应，
+    // 与下拉遮罩透传模式一致，避免「点两次才切换」回归。提交与焦点归还都在 commitEdit 内。
+    MouseArea {
+        anchors.fill: parent
+        visible: root.editingCombo !== null
+        z: 500
+        onPressed: function(mouse) {
+            if (root.editingCombo) root.editingCombo.commitEdit()
             mouse.accepted = false
         }
         propagateComposedEvents: true
