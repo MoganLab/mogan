@@ -27,7 +27,7 @@ hash (tree_rep* p) {
  ******************************************************************************/
 
 loro_shadow_rep::loro_shadow_rep ()
-    : doc (mogan_loro_doc_new ()), id_map (mogan_tree_id{0, 0}) {}
+    : doc (mogan_loro_doc_new ()), id_map (mogan_tree_id{0, 0}), _update_cb (nullptr), _update_user_data (nullptr) {}
 
 loro_shadow_rep::~loro_shadow_rep () {
   if (doc) mogan_loro_doc_free (doc);
@@ -112,6 +112,9 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod) {
   if (!mirrored) {
     if (doc) mogan_loro_doc_free (doc);
     doc   = mogan_loro_doc_new ();
+    if (_update_cb) {
+      mogan_loro_doc_on_local_update(doc, _update_cb, _update_user_data);
+    }
     id_map= hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
     seed (doc_root);
   }
@@ -144,6 +147,8 @@ loro_shadow_rep::import_data (string bytes) {
 
 void
 loro_shadow_rep::on_local_update (mogan_local_update_cb cb, void* user_data) {
+  _update_cb = cb;
+  _update_user_data = user_data;
   mogan_loro_doc_on_local_update (doc, cb, user_data);
 }
 

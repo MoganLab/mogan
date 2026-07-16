@@ -23,6 +23,9 @@ class loro_shadow_rep : public concrete_struct {
 public:
   void*                             doc;  // mogan_loro_doc 句柄（不透明）
   hashmap<tree_rep*, mogan_tree_id> id_map; //!< 节点身份：rep* -> Loro TreeID
+  
+  mogan_local_update_cb _update_cb = nullptr;
+  void*                 _update_user_data = nullptr;
 
   loro_shadow_rep ();
   ~loro_shadow_rep ();
