@@ -987,7 +987,7 @@ TeXmacs_main (int argc, char** argv) {
     // 因此这里暂时在启动之后手动加载插件
     eval ("(plugin-initialize 'latex)");
     eval ("(plugin-initialize 'data)");
-    eval ("(plugin-initialize 'goldfish)");
+    // eval ("(plugin-initialize 'goldfish)");
     eval ("(plugin-initialize 'image)");
     eval ("(plugin-initialize 'image_xmgrace)");
     // eval ("(plugin-initialize 'json)");
