@@ -137,45 +137,53 @@ Item {
         height: Math.min(optH, (openBelow ? spaceBelow : spaceAbove) - Theme.padS)
         y: openBelow ? comboY + comboH + Theme.padS : comboY - height - Theme.padS
 
+        // 双层 Rectangle：外层只画 border（不 clip），内层 clip 选项内容。Qt 的 border
+        // 以边缘为中心绘制（半内半外），同一 Rectangle 既 border 又 clip 会把外侧半像素
+        // border 自身裁掉、几乎不可见；拆层后 border 完整。直角无 radius，避免抗锯齿偏移。
         Rectangle {
             anchors.fill: parent
             color: Theme.fieldBg
-            radius: Theme.radius
             border.width: Theme.borderW
-            border.color: Theme.borderClr
-            clip: true
+            border.color: Theme.dropdownBorder
 
-            ListView {
-                id: optList
+            Rectangle {
                 anchors.fill: parent
+                anchors.margins: parent.border.width
+                color: Theme.fieldBg
                 clip: true
-                interactive: true
-                boundsBehavior: Flickable.StopAtBounds
-                // 显示用 displayOptions（EnumCombo 按是否传 optionsTr 决定翻译显示），
-                // 但 pick 回传 options[index]（英文 key），保证存储层收到原值。
-                model: shell.activeCombo ? shell.activeCombo.displayOptions : []
-                delegate: Rectangle {
-                    width: optList.width
-                    height: Theme.itemH
-                    color: optMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
-                    Text {
-                        anchors.fill: parent
-                        anchors.leftMargin: Theme.comboPad
-                        verticalAlignment: Text.AlignVCenter
-                        text: modelData
-                        color: Theme.fg
-                        font.pixelSize: Theme.fontBody
-                        elide: Text.ElideRight
-                    }
-                    MouseArea {
-                        id: optMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (shell.activeCombo)
-                                shell.activeCombo.pick(shell.activeCombo.options[index]);
-                            shell.activeCombo = null;
+
+                ListView {
+                    id: optList
+                    anchors.fill: parent
+                    clip: true
+                    interactive: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    // 显示用 displayOptions（EnumCombo 按是否传 optionsTr 决定翻译显示），
+                    // 但 pick 回传 options[index]（英文 key），保证存储层收到原值。
+                    model: shell.activeCombo ? shell.activeCombo.displayOptions : []
+                    delegate: Rectangle {
+                        width: optList.width
+                        height: Theme.itemH
+                        color: optMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
+                        Text {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.comboPad
+                            verticalAlignment: Text.AlignVCenter
+                            text: modelData
+                            color: Theme.fg
+                            font.pixelSize: Theme.fontBody
+                            elide: Text.ElideRight
+                        }
+                        MouseArea {
+                            id: optMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (shell.activeCombo)
+                                    shell.activeCombo.pick(shell.activeCombo.options[index]);
+                                shell.activeCombo = null;
+                            }
                         }
                     }
                 }

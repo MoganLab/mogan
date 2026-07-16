@@ -83,6 +83,14 @@ make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi
 - **绑定到无参 bridge 函数的属性不会自动重算**：bridge 内部状态变化 QML 感知不到，需靠
   外部计数器注入依赖。`SelectableList.refreshTick` 已封装此模式——调用方 currentValue 绑定
   读 `<listId>.refreshTick`，refresh 时 `<listId>.refreshTick++` 即可，勿手写假读样板。
+- **`Rectangle` 的 `border` 与 `clip:true` 互斥**：Qt 的 border 以边缘为中心绘制（半内半外），
+  同一 Rectangle 既 `border` 又 `clip:true` 会把外侧半像素 border 自身裁掉、几乎不可见
+  （叠加 `radius` 的抗锯齿偏移更甚）。要带边框的裁剪容器，拆**双层 Rectangle**：外层只画
+  border（不 clip），内层 `clip:true` 容纳子项。下拉浮层（DialogShell overlay）即此结构。
+- **跨 parent 链查找的 property 不能喂给 binding**：如 EnumCombo 的 `dialogShell`（沿
+  parent 链按 objectName 查找）是命令式 property，parent 变化不触发其重算，binding 会在
+  创建瞬间读到 null 永久卡住。依赖它的几何（comboX/Y/W）须在展开时用 `updateGeometry()`
+  拍快照，不能改成 binding 实时算。
 
 ## 模态引擎（QTMQmlDialog.cpp）
 

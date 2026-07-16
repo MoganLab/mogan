@@ -56,9 +56,10 @@ Row {
     property real comboWidth: (parent ? parent.width : 0) - labelWidth - spacing
     height: rowHeight
 
-    // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。展开时由
-    // updateGeometry() 算一次，不用 binding 实时算——布局未完成时 mapToItem 给出
-    // stale 值会导致浮层定位偏。
+    // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。toggleOpen 展开时由
+    // updateGeometry() 拍一次快照。不能用 binding 实时算：dialogShell 是沿 parent 链
+    // 查找的命令式 property，parent 变化不触发其重算，binding 会在创建瞬间读到
+    // dialogShell=null 而永久卡 0。
     property real comboX: 0
     property real comboY: 0
     property real comboW: 0
