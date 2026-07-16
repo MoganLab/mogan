@@ -51,14 +51,21 @@ edit_modify_rep::~edit_modify_rep () {}
 #ifdef LORO_ENABLED
 // Phase 2：把一个 modification 镜像到 shadow LoroDoc。
 // mod->p 是 the_et 根路径，用 mod/rp 转成 buffer 相对；首次镜像时 lazy seed。
+
+void
+edit_modify_rep::ensure_loro_seeded () {
+  if (loro_applying_remote) return;
+  if (!loro_seeded) {
+    loro_doc->seed (the_buffer ());
+    loro_seeded = true;
+  }
+}
+
 void
 edit_modify_rep::mirror_loro (const modification& mod) {
   if (loro_applying_remote) return; // 远端应用期间不回灌镜像，避免循环
   if (const_cast<modification&>(mod)->k == MOD_SET_CURSOR) return;
-  if (!loro_seeded) {
-    loro_doc->seed (the_buffer ());
-    loro_seeded= true;
-  }
+  ensure_loro_seeded(); // Fallback in case not called from edit_announce
   loro_doc->mirror_mod (the_buffer (), mod / rp);
 #ifdef LORO_DEBUG
   // debug_loro 验证：镜像后 buffer 应与 Loro 状态一致。不一致则告警（说明镜像链路有 bug）。
@@ -314,6 +321,8 @@ edit_announce (editor_rep* ed, modification mod) {
 #ifdef LIII_DEBUG
   if (mod->k != MOD_SET_CURSOR) cout << "[loro-mod] " << mod << "\n";
 #endif
+  if (mod->k != MOD_SET_CURSOR) ed->ensure_loro_seeded();
+
   switch (mod->k) {
   case MOD_ASSIGN:
     edit_assign (ed, mod->p, mod->t);

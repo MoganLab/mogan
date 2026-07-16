@@ -627,6 +627,7 @@ public:
   // LORO_ENABLED 下 override）。在 edit_done 里调用。
   virtual void       mirror_loro (const modification& mod) { (void) mod; }
   virtual void       apply_remote (string bytes) {}
+  virtual void       ensure_loro_seeded () {}
   // debug_loro：把 mod 经 Loro round-trip 后再应用（返回 true 表示已处理，跳过直接应用）。
   virtual bool       route_through_loro (const modification& mod) {
     (void) mod;
