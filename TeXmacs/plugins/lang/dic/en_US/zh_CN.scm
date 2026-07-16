@@ -1002,6 +1002,7 @@
 ("Graphics mode" "绘图模式")
 ("graphical effects" "图形效果")
 ("graphical interface" "图形界面")
+("ghost line" "智能标尺")
 ("graphics geometry" "画布设置")
 ("graphics grids" "网格设置")
 ("graphics overlay" "图形图层")

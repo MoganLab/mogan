@@ -1459,6 +1459,7 @@
     "curve-grid intersection"
     "curve point"
     "curve-curve intersection"
+    "ghost line"
     "text border point"
     "text border"
   ) ;list

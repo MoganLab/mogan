@@ -721,6 +721,7 @@
  ) ;if
  ("Curve points" (graphics-toggle-snap "curve point"))
  ("Curve intersections" (graphics-toggle-snap "curve-curve intersection"))
+ ("Ghost lines" (graphics-toggle-snap "ghost line"))
  ("Text corners" (graphics-toggle-snap "text border point"))
  ("Text borders" (graphics-toggle-snap "text border"))
  ---

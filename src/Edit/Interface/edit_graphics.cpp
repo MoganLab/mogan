@@ -18,6 +18,7 @@
 #include "server.hpp"
 #include "tree_observer.hpp"
 #include <moebius/drd/drd_std.hpp>
+#include <cmath>
 
 using namespace moebius;
 extern tree the_et;
@@ -88,6 +89,18 @@ can_snap (gr_selection sel) {
   if (type == "grid-curve-point&text-border")
     return check_snap_mode ("text border") &&
            check_snap_mode ("curve-curve intersection");
+  if (type == "ghost-curve-point")
+    return check_snap_mode ("ghost line");
+  if (type == "ghost-curve-point&ghost-curve-point")
+    return check_snap_mode ("ghost line");
+  if (type == "ghost-curve-point&grid-curve-point" ||
+      type == "grid-curve-point&ghost-curve-point")
+    return check_snap_mode ("ghost line") &&
+           check_snap_mode ("grid curve point");
+  if (type == "ghost-curve-point&curve-point" ||
+      type == "curve-point&ghost-curve-point")
+    return check_snap_mode ("ghost line") &&
+           check_snap_mode ("curve point");
   cout << "Uncaptured snap type " << type << "\n";
   return true;
 }
@@ -279,6 +292,101 @@ edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
   return true;
 }
 
+static bool
+snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selections& sels, frame f2) {
+  if (!check_snap_mode ("ghost line")) {
+    call ("graphics-clear-ghost-lines");
+    return false;
+  }
+
+  bool has_ghost = false;
+
+  tree t_prev = as_tree (call ("graphics-get-all-previous-points"));
+  if (is_tuple (t_prev) && N (t_prev) > 0) {
+    int n_points = N (t_prev);
+    call ("graphics-clear-ghost-lines");
+
+    for (int j = 0; j < n_points; ++j) {
+      point p1 = as_point (t_prev[j]);
+      if (N (p1) != 2) continue;
+
+      double base_angle = 0.0;
+      if (j > 0) {
+        point p0 = as_point (t_prev[j - 1]);
+        if (N (p0) == 2) {
+          point p1_layout = f2 (p1);
+          point p0_layout = f2 (p0);
+          base_angle = atan2 (p1_layout[1] - p0_layout[1], p1_layout[0] - p0_layout[0]);
+        }
+      }
+
+      point fp_local = f2 [fp]; // 转换鼠标点到局部厘米坐标系
+      point v = fp_local - p1;
+      double dist_to_p1 = norm (v);
+      if (dist_to_p1 > 1e-5) {
+        double phi = atan2 (v[1], v[0]);
+        double min_d = -1.0;
+        double best_theta = 0.0;
+
+        // 遍历 30 度的倍数寻找最近方向（相对于上一条线 base_angle 作为基线）
+        for (int k = -5; k <= 6; ++k) {
+          double rel_theta = k * M_PI / 6.0;
+          double theta = base_angle + rel_theta;
+          double diff = phi - theta;
+          double d = dist_to_p1 * fabs (sin (diff));
+          if (min_d < 0.0 || d < min_d) {
+            min_d = d;
+            best_theta = theta;
+          }
+        }
+
+        // 遍历 45 度的倍数寻找最近方向（相对于上一条线 base_angle 作为基线）
+        for (int k = -3; k <= 4; ++k) {
+          if (k % 2 != 0) {
+            double rel_theta = k * M_PI / 4.0;
+            double theta = base_angle + rel_theta;
+            double diff = phi - theta;
+            double d = dist_to_p1 * fabs (sin (diff));
+            if (d < min_d) {
+              min_d = d;
+              best_theta = theta;
+            }
+          }
+        }
+
+        double snap_dist_local = f2->inverse_scalar (snap_distance);
+
+        // 仅在鼠标靠近标尺且在吸附距离内时激活
+        if (min_d < snap_dist_local) {
+          has_ghost = true;
+          point dir (cos (best_theta), sin (best_theta));
+          point p1_start_local = p1 - 50.0 * dir;
+          point p1_end_local = p1 + 50.0 * dir;
+          curve ghost_curve_local = segment (p1_start_local, p1_end_local);
+
+          double proj_dist = norm (fp_local - p1) * cos (atan2 (fp_local[1] - p1[1], fp_local[0] - p1[0]) - best_theta);
+          point snapped_p_local = p1 + proj_dist * dir;
+
+          gr_selection sel;
+          sel->type= "ghost-curve-point";
+          sel->p   = f2 (snapped_p_local);
+          sel->dist= (SI) f2->direct_scalar (min_d);
+          sel->c   = f2 (ghost_curve_local);
+          sels << sel;
+
+          call ("graphics-add-ghost-line", as_string (p1[0]), as_string (p1[1]), as_string (best_theta));
+        }
+      }
+    }
+  }
+
+  if (!has_ghost) {
+    call ("graphics-clear-ghost-lines");
+  }
+
+  return has_ghost;
+}
+
 point
 edit_graphics_rep::adjust (point p) {
   frame f= find_frame ();
@@ -296,6 +404,9 @@ edit_graphics_rep::adjust (point p) {
   frame         f2  = find_frame (true);
   if (is_nil (f2)) return p;
   point fp= f2 (p);
+
+  snap_ghost_line (this, fp, snap_distance, sels, f2);
+
   if ((tree) g != "empty_grid") {
     point q = g->find_point_around (p, snap_distance, f);
     point fq= f2 (q);
