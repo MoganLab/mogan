@@ -72,20 +72,67 @@ im_websocket_client::disconnect () {
 void
 im_websocket_client::send (string data, bool is_binary) {
   if (!is_connected || !easy_handle) return;
+  im_ws_msg msg;
+  msg.data = data;
+  msg.is_binary = is_binary;
+  msg.offset = 0;
+  tx_queue = tx_queue * list<im_ws_msg> (msg);
+  process_tx_queue ();
+}
+
+void
+im_websocket_client::process_tx_queue () {
+  if (!is_connected || !easy_handle) return;
 
 #ifdef MOGAN_HAS_CURL_WS
-  size_t sent = 0;
-  unsigned int flags = is_binary ? CURLWS_BINARY : CURLWS_TEXT;
-  
-  c_string payload (data);
-  CURLcode res = curl_ws_send (easy_handle, (const void*) payload, (size_t) N (data), &sent, 0, flags);
-  
-  if (res != CURLE_OK) {
-    on_error ("Failed to send WebSocket message");
-    disconnect ();
+  while (!is_nil (tx_queue)) {
+    im_ws_msg& msg = tx_queue->item;
+    size_t total_len = (size_t) N (msg.data);
+    size_t remaining = total_len - msg.offset;
+    size_t chunk_size = remaining > 65536 ? 65536 : remaining; // Send in 64KB chunks to avoid large buffer issues
+    
+    unsigned int flags = msg.is_binary ? CURLWS_BINARY : CURLWS_TEXT;
+    curl_off_t fragsize = 0;
+    
+    if (remaining > chunk_size) {
+      flags |= CURLWS_OFFSET;
+    }
+    
+    if (msg.offset == 0 && total_len > chunk_size) {
+      fragsize = total_len;
+    } else {
+      fragsize = 0;
+    }
+
+    size_t sent = 0;
+    const char* ptr = &msg.data[(int)msg.offset];
+    CURLcode res = curl_ws_send (easy_handle, (const void*) ptr, chunk_size, &sent, fragsize, flags);
+
+    if (res == CURLE_AGAIN) {
+      // Socket full, try again later
+      break;
+    } else if (res != CURLE_OK) {
+      string err_msg = "Failed to send WebSocket message: ";
+      err_msg << curl_easy_strerror(res);
+      on_error (err_msg);
+      disconnect ();
+      break;
+    }
+    
+    msg.offset += sent;
+    if (msg.offset >= total_len) {
+      // Finished this message
+      tx_queue = tx_queue->next;
+    } else {
+      // Partial send, wait for next poll
+      break;
+    }
   }
 #else
-  on_error ("libcurl version too old, websocket not supported");
+  if (!is_nil(tx_queue)) {
+    on_error ("libcurl version too old, websocket not supported");
+    tx_queue = list<im_ws_msg>();
+  }
 #endif
 }
 
@@ -124,6 +171,8 @@ im_websocket_client::poll () {
 
   // If connected, try to receive data
   if (is_connected) {
+    process_tx_queue ();
+
 #ifdef MOGAN_HAS_CURL_WS
     size_t recv_len = 0;
     const struct curl_ws_frame *meta = NULL;

@@ -7,7 +7,14 @@
 #define IM_WEBSOCKET_HPP
 
 #include "string.hpp"
+#include "list.hpp"
 #include <curl/curl.h>
+
+struct im_ws_msg {
+  string data;
+  bool is_binary;
+  size_t offset;
+};
 
 class im_websocket_client {
 private:
@@ -17,8 +24,11 @@ private:
   string current_url;
   string rx_buffer; // Buffer for partial frames
 
+  list<im_ws_msg> tx_queue;
+
   // Internal helpers
   void cleanup ();
+  void process_tx_queue ();
 
 public:
   im_websocket_client ();
