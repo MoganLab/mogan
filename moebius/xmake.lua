@@ -42,9 +42,6 @@ target("libmoebius") do
 
     add_deps("liblolly")
     add_deps("libgoldfish")
-    if has_config("goldfish") then
-        add_deps("goldfish")
-    end
 
     add_headerfiles("Data/Convert/(*.hpp)")
     add_headerfiles("Data/History/(*.hpp)")
