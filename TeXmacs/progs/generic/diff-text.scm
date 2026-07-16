@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic diff-text)
-  (:use (kernel texmacs tm-define) (utils library cursor))
+  (:use (kernel texmacs tm-define) (utils library cursor) (version version-compare))
 ) ;texmacs-module
 
 ;; =============================================================================
@@ -22,30 +22,27 @@
   (list->string (reverse (string->list s)))
 ) ;define
 
-(define (find-version-both-in-tree t)
-  (cond ((not t) #f)
-        ((tree-is? t 'version-both) t)
-        ((tree-atomic? t) #f)
-        ((== (tree-arity t) 0) #f)
-        (else
-          (let loop ((i 0))
-            (if (>= i (tree-arity t))
-                #f
-                (or (find-version-both-in-tree (tree-ref t i))
-                    (loop (+ i 1)))
-            ) ;if
-          ) ;let
-        ) ;else
-  ) ;cond
+(define (diff-check-popup)
+  (if (tree-innermost 'version-both)
+      (begin
+        (set! diff-active? #t)
+        (show-diff-popup)
+      ) ;begin
+      (begin
+        (set! diff-active? #f)
+        (hide-diff-popup)
+      ) ;begin
+  ) ;if
 ) ;define
 
-(define (get-diff-tree)
-  (let ((t (tree-innermost 'version-both)))
-    (if t
-        t
-        (find-version-both-in-tree (root-tree))
-    ) ;if
-  ) ;let
+(define (diff-scan-next)
+  (if (not (tree-innermost 'version-both))
+      (if (tree-is? (cursor-tree) 'version-both)
+          (tree-go-to (tree-ref (cursor-tree) 0) :start) ; 单差异特判：直接送入第一个子段落内部
+          (go-to-next-tag 'version-both) ; 多差异常规流程：向后搜寻
+      ) ;if
+  ) ;if
+  (delayed (:idle 1) (diff-check-popup))
 ) ;define
 
 ;; =============================================================================
@@ -67,7 +64,6 @@
 ;; =============================================================================
 
 (tm-define (diff-feedback action)
-  ;; Action can be 'accept, 'reject, 'ignore
   (noop)
 ) ;tm-define
 
@@ -77,52 +73,53 @@
 
 (tm-define (trigger-diff-text)
   (let* ((sel (selection-tree))
+         (origin_stree (tree->stree sel))
          (origin_str (tm->string sel))
          (suggested_str (string-reverse origin_str))
-         (origin_text `(framed ,sel))
-         (suggested_text `(framed ,suggested_str)))
+         ;; 精度选项："detailed" (字符级)、"block" (块级)、"rough" (粗粒度)
+         (diff-stree (compare-versions origin_stree suggested_str))
+         (diff-tree (stree->tree diff-stree))
+         (p (cursor-path)))
     (clipboard-cut "primary")
-    (insert `(version-both ,origin_text ,suggested_text))
+    (insert diff-tree)
     (insert-return)
-    (set! diff-active? #t)
-    (show-diff-popup)
+    (go-to p)
+    (diff-scan-next)
   ) ;let*
 ) ;tm-define
 
 (tm-define (accept-diff)
-  (let ((t (get-diff-tree)))
+  (let ((t (tree-innermost 'version-both)))
     (when t
-      (let* ((framed-node (tree-ref t 1))
-             (new-val (tree-ref framed-node 0)))
-        (tree-assign! t new-val)
+      (let* ((new-val (tree-ref t 1))
+             (p (tree-up t))
+             (i (tree-index t)))
+        (tree-remove! p i 1)
+        (insert new-val)
       ) ;let*
     ) ;when
   ) ;let
-  (set! diff-active? #f)
-  (hide-diff-popup)
   (diff-feedback 'accept)
+  (diff-scan-next)
 ) ;tm-define
 
 (tm-define (reject-diff)
-  (let ((t (get-diff-tree)))
+  (let ((t (tree-innermost 'version-both)))
     (when t
-      (let* ((framed-node (tree-ref t 0))
-             (old-val (tree-ref framed-node 0)))
-        (tree-assign! t old-val)
+      (let* ((old-val (tree-ref t 0))
+             (p (tree-up t))
+             (i (tree-index t)))
+        (tree-remove! p i 1)
+        (insert old-val)
       ) ;let*
     ) ;when
   ) ;let
-  (set! diff-active? #f)
-  (hide-diff-popup)
   (diff-feedback 'reject)
-) ;tm-define
-
-(tm-define (ignore-diff)
-  (reject-diff)
+  (diff-scan-next)
 ) ;tm-define
 
 ;; =============================================================================
-;; Keyboard Hook
+;; Keyboard and Mouse Hooks
 ;; =============================================================================
 
 (tm-define (kbd-tab)
@@ -134,14 +131,18 @@
   (:require (is-diff-active?))
   (cond ((== key "return") (accept-diff))
         ((== key "backspace") (reject-diff))
-        (else (ignore-diff) (delayed (:idle 0) (keyboard-press key time)))
+        (else (former key time))
   ) ;cond
 ) ;tm-define
 
+(tm-define (keyboard-press key time)
+  (:require (diff-enable?))
+  (former key time)
+  (delayed (:idle 1) (diff-check-popup))
+) ;tm-define
+
 (tm-define (mouse-event key x y mods time data)
-  (:require (is-diff-active?))
+  (:require (diff-enable?))
   (former key x y mods time data)
-  (when (not (== key "move"))
-    (ignore-diff)
-  ) ;when
+  (delayed (:idle 1) (diff-check-popup))
 ) ;tm-define
