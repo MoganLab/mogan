@@ -27,7 +27,7 @@ target("libmogan") do
 
     add_deps("libmoebius")
     add_deps("liblolly")
-    add_deps("libgoldfish")
+    add_deps("goldfish")
     if has_config("qt_frontend") then
         add_deps("QWKCore", "QWKWidgets")
         add_rules("qt.static")
@@ -247,7 +247,7 @@ target("libmogan") do
             "$(projectdir)/src/Mogan/TemplateCenter",
             "$(projectdir)/src/Mogan/Telemetry",
             "$(projectdir)/TeXmacs/include",
-            "$(builddir)/glue",
+            "$(builddir)/glue"
         }, {public = true})
 
     add_files({
@@ -275,8 +275,7 @@ target("libmogan") do
             "$(projectdir)/src/Plugins/Tex/**.cpp",
             "$(projectdir)/src/Plugins/Xml/**.cpp",
             "$(projectdir)/src/Plugins/Html/**.cpp",
-            "$(projectdir)/src/Plugins/Updater/**.cpp"
-        })
+            "$(projectdir)/src/Plugins/Updater/**.cpp",})
 
     if has_config("pdfhummus") then
         add_includedirs("$(projectdir)/src/Plugins/Pdf/**.hpp", {public=true})
@@ -294,7 +293,6 @@ target("libmogan") do
         add_files("$(projectdir)/src/Plugins/Qt/moganqml.qrc")
     else
         add_files("$(projectdir)/src/Plugins/ImGui/**.cpp")
-        remove_files("$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp")
     end
 
     if is_plat("macosx") then

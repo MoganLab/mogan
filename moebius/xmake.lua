@@ -41,7 +41,7 @@ target("libmoebius") do
     add_files(moe_files)
 
     add_deps("liblolly")
-    add_deps("libgoldfish")
+    add_deps("goldfish")
 
     add_headerfiles("Data/Convert/(*.hpp)")
     add_headerfiles("Data/History/(*.hpp)")

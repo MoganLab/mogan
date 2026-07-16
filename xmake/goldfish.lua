@@ -15,7 +15,7 @@
 -- 污染源码目录），而是在 on_install 里把源码拷贝到包缓存目录后构建。
 
 target("libgoldfish") do
-    set_kind("$(kind)")
+    set_kind("static")
     set_languages("c11")
     add_packages("liii-tbox")
     add_defines("WITH_SYSTEM_EXTRAS=0")
@@ -24,7 +24,7 @@ target("libgoldfish") do
     end
     add_defines("WITH_WARNINGS")
     add_defines("WITH_R7RS=1")
-    set_basename("goldfish")
+    set_basename("libgoldfish")
     add_files(
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_continuation.c",
@@ -47,7 +47,6 @@ target("libgoldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_vector.c"
     )
     add_headerfiles("$(projectdir)/TeXmacs/plugins/goldfish/src/s7.h")
-    add_includedirs("$(projectdir)/TeXmacs/plugins/goldfish/src", {public = true})
     if is_plat("windows") then
         set_optimize("faster")
         add_cxxflags("/fp:precise")
@@ -58,9 +57,9 @@ target("libgoldfish") do
 end
 
 target ("goldfish") do
+    set_kind("static")
     set_languages("c++17")
     add_deps("libgoldfish")
-    set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
     add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
     add_files({
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_base64.cpp",
@@ -87,7 +86,7 @@ target ("goldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src",
         "$(projectdir)/3rdparty/nlohmann_json/include",
         "$(projectdir)/3rdparty/json-schema-validator/src",
-    })
+    }, {public = true})
 
     add_defines("WITH_SYSTEM_EXTRAS=0")
     if not is_plat("wasm") then
@@ -109,4 +108,11 @@ target ("goldfish") do
     add_packages("argh")
     on_install(function (target)
     end)
+end
+
+target ("goldfish-bin") do
+    set_kind("binary")
+    add_deps("goldfish")
+    set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
+    add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
 end

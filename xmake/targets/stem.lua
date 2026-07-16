@@ -125,10 +125,9 @@ target("stem") do
         add_packages("glfw") 
     end
     if has_config("goldfish") then
-        add_deps("goldfish")
-    else
-        add_deps("libgoldfish")
+        add_deps("goldfish-bin")
     end
+    add_deps("goldfish")
     add_deps("liblolly")
     add_deps("libmogan")
     add_deps("libmoebius")

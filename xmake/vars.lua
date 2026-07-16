@@ -117,6 +117,8 @@ libstem_headers = {
     "$(builddir)/glue",
     "$(projectdir)/TeXmacs/include",
     "$(projectdir)/TeXmacs/plugins/goldfish/src",
+    "$(projectdir)/3rdparty/nlohmann_json/include",
+    "$(projectdir)/3rdparty/json-schema-validator/src"
 }
 
 libstem_srcs = {
