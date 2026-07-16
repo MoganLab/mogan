@@ -79,12 +79,17 @@ edit_modify_rep::apply_remote (string bytes) {
   cout << "[Loro] Diff produced " << N(mods) << " modifications.\n";
   for (list<modification> l= mods; !is_nil (l); l= l->next) {
     cout << "[Loro] Applying remote mod: " << l->item << "\n";
-    edit_announce (this, rp * l->item);
+    apply (et, rp * l->item);
   }
   loro_applying_remote= false;
   
   if (!is_nil(mods)) {
-    apply_changes(); // force UI update after receiving remote changes
+    // Notify the environment that the tree has changed, so the next
+    // im_interpose() tick will call apply_changes() and repaint the UI.
+    cout << "[Loro] Forcing typeset invalidation and repaint...\n";
+    notify_change (THE_TREE);
+    typeset_invalidate_all();
+    send_invalidate_all(this);
   }
 }
 
