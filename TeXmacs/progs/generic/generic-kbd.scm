@@ -20,6 +20,7 @@
     (generic document-edit)
     (generic generic-edit)
     (generic ghost-text)
+    (generic diff-text)
     (generic format-edit)
     (generic format-geometry-edit)
     (source source-edit)

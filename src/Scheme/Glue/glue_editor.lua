@@ -1115,6 +1115,16 @@ function main()
                 ret_type = "void"
             },
             {
+                scm_name = "show-diff-popup",
+                cpp_name = "show_diff_popup",
+                ret_type = "void"
+            },
+            {
+                scm_name = "hide-diff-popup",
+                cpp_name = "hide_diff_popup",
+                ret_type = "void"
+            },
+            {
                 scm_name = "get-input-mode",
                 cpp_name = "get_input_mode",
                 ret_type = "int"

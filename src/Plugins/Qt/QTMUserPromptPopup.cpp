@@ -18,7 +18,9 @@
 // QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
 // =============================================================================
 QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
-                                        qt_simple_widget_rep* owner)
+                                        qt_simple_widget_rep* owner,
+                                        const QString&        acceptText,
+                                        const QString&        rejectText)
     : QWidget (parent), owner (owner), layout (nullptr) {
   setObjectName ("user_prompt_popup");
 
@@ -70,7 +72,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   container->setLayout (innerLayout);
 
   // 1. 接受按钮 (现代祖母绿配色)
-  acceptBtn= new QPushButton ("接受  →", container);
+  acceptBtn= new QPushButton (acceptText, container);
   acceptBtn->setObjectName ("accept_btn");
   acceptBtn->setStyleSheet ("QPushButton#accept_btn { "
                             "background-color: #10b981; "
@@ -92,7 +94,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   innerLayout->addWidget (acceptBtn);
 
   // 2. 拒绝按钮 (轻柔番茄红配色)
-  rejectBtn= new QPushButton ("拒绝  Esc", container);
+  rejectBtn= new QPushButton (rejectText, container);
   rejectBtn->setObjectName ("reject_btn");
   rejectBtn->setStyleSheet ("QPushButton#reject_btn { "
                             "background-color: #ef4444; "
@@ -255,7 +257,7 @@ QTMUserPromptPopup::eventFilter (QObject* obj, QEvent* event) {
 // =============================================================================
 QTMGhostTextPopup::QTMGhostTextPopup (QWidget*              parent,
                                       qt_simple_widget_rep* owner)
-    : QTMUserPromptPopup (parent, owner) {
+    : QTMUserPromptPopup (parent, owner, "接受  →", "拒绝  Esc") {
   setObjectName ("ghost_text_popup");
 }
 
@@ -281,4 +283,37 @@ QTMGhostTextPopup::onGoodClicked () {
 void
 QTMGhostTextPopup::onBadClicked () {
   call ("ghost-feedback", "bad");
+}
+
+// =============================================================================
+// QTMDiffTextPopup: Diff Text AI建议的悬浮操作框，父类是 QTMUserPromptPopup
+// =============================================================================
+QTMDiffTextPopup::QTMDiffTextPopup (QWidget*              parent,
+                                    qt_simple_widget_rep* owner)
+    : QTMUserPromptPopup (parent, owner, "接受  Enter", "拒绝  Backspace") {
+  setObjectName ("diff_text_popup");
+}
+
+QTMDiffTextPopup::~QTMDiffTextPopup () {}
+
+void
+QTMDiffTextPopup::onAcceptClicked () {
+  hide ();
+  call ("accept-diff");
+}
+
+void
+QTMDiffTextPopup::onRejectClicked () {
+  hide ();
+  call ("reject-diff");
+}
+
+void
+QTMDiffTextPopup::onGoodClicked () {
+  call ("diff-feedback", "good");
+}
+
+void
+QTMDiffTextPopup::onBadClicked () {
+  call ("diff-feedback", "bad");
 }

@@ -163,6 +163,7 @@ QTMWidget::scrollContentsBy (int dx, int dy) {
   tm_widget ()->scroll_image_popup_by (dx, dy);
   tm_widget ()->scroll_text_popup_by (dx, dy);
   tm_widget ()->scroll_ghost_popup_by (dx, dy);
+  tm_widget ()->scroll_diff_popup_by (dx, dy);
   if (edit_interface_rep* ed=
           dynamic_cast<edit_interface_rep*> (tm_widget ())) {
     ed->update_text_popup ();
