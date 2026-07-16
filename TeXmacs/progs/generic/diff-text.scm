@@ -11,7 +11,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic diff-text)
-  (:use (kernel texmacs tm-define) (utils library cursor) (version version-compare))
+  (:use (kernel texmacs tm-define)
+    (utils library cursor)
+    (version version-compare)
+  ) ;:use
 ) ;texmacs-module
 
 ;; =============================================================================
@@ -22,8 +25,7 @@
   (cond ((null? words) '())
         ((<= count 0) words)
         ((== (car words) "the")
-         (cond ((<= (random 3) 1)
-                (remove-random-thes (cdr words) (- count 1)))
+         (cond ((<= (random 3) 1) (remove-random-thes (cdr words) (- count 1)))
                (else (cons (car words) (remove-random-thes (cdr words) count)))
          ) ;cond
         ) ;
@@ -33,18 +35,14 @@
 
 (define (insert-random-as words count)
   (cond ((null? words)
-         (if (> count 0)
-             (cons "a" (insert-random-as '() (- count 1)))
-             '()
-         ) ;if
+         (if (> count 0) (cons "a" (insert-random-as '() (- count 1))) '())
         ) ;
         ((<= count 0) words)
-        (else
-          (if (== (random 5) 0)
-              (cons "a" (insert-random-as words (- count 1)))
-              (cons (car words) (insert-random-as (cdr words) count))
-          ) ;if
-        ) ;
+        (else (if (== (random 5) 0)
+                (cons "a" (insert-random-as words (- count 1)))
+                (cons (car words) (insert-random-as (cdr words) count))
+              ) ;if
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -52,8 +50,8 @@
   (cond ((or (null? words) (<= count 0)) words)
         ((> (string-length (car words)) 1)
          (if (== (random 4) 0)
-             (cons (upcase-all (car words)) (upcase-random-words (cdr words) (- count 1)))
-             (cons (car words) (upcase-random-words (cdr words) count))
+           (cons (upcase-all (car words)) (upcase-random-words (cdr words) (- count 1)))
+           (cons (car words) (upcase-random-words (cdr words) count))
          ) ;if
         ) ;
         (else (cons (car words) (upcase-random-words (cdr words) count)))
@@ -66,7 +64,8 @@
          (let* ((words (string-split t #\space))
                 (words-no-the (remove-random-thes words 2))
                 (words-with-a (insert-random-as words-no-the 2))
-                (final-words (upcase-random-words words-with-a 3)))
+                (final-words (upcase-random-words words-with-a 3))
+               ) ;
            (string-recompose final-words " ")
          ) ;let*
         ) ;
@@ -87,12 +86,12 @@
 
 (define (diff-scan-next)
   (if (not (tree-innermost 'version-both))
-      (if (tree-is? (cursor-tree) 'version-both)
-          ;; 单差异特判：直接送入第一个子段落内部
-          (tree-go-to (tree-ref (cursor-tree) 0) :start)
-          ;; 多差异常规流程：向后搜寻
-          (go-to-next-tag 'version-both)
-      ) ;if
+    (if (tree-is? (cursor-tree) 'version-both)
+      ;; 单差异特判：直接送入第一个子段落内部
+      (tree-go-to (tree-ref (cursor-tree) 0) :start)
+      ;; 多差异常规流程：向后搜寻
+      (go-to-next-tag 'version-both)
+    ) ;if
   ) ;if
   (delayed (:idle 0) (diff-check-popup))
 ) ;define
@@ -103,21 +102,15 @@
 
 (define diff-active? #f)
 
-(tm-define (is-diff-active?)
-  diff-active?
-) ;tm-define
+(tm-define (is-diff-active?) diff-active?)
 
-(tm-define (diff-enable?)
-  (not (community-stem?))
-) ;tm-define
+(tm-define (diff-enable?) (not (community-stem?)))
 
 ;; =============================================================================
 ;; Model evaluation & Feedback functions
 ;; =============================================================================
 
-(tm-define (diff-feedback action)
-  (noop)
-) ;tm-define
+(tm-define (diff-feedback action) (noop))
 
 ;; =============================================================================
 ;; Diff Text core control flow
@@ -128,11 +121,13 @@
          (origin_stree (tree->stree sel))
          (suggested_stree (demo-suggest origin_stree))
          (pre-cur (cursor-path))
-         (pre-grain (get-preference "versioning grain")))
+         (pre-grain (get-preference "versioning grain"))
+        ) ;
     ;; 设为字符级精度 "detailed"；其余选项："block" (块级)、"rough" (粗粒度)
     (set-preference "versioning grain" "detailed")
     (let* ((diff-stree (compare-versions origin_stree suggested_stree))
-           (diff-tree (stree->tree diff-stree)))
+           (diff-tree (stree->tree diff-stree))
+          ) ;
       (clipboard-cut "primary")
       (insert diff-tree)
       (go-to pre-cur)
@@ -146,9 +141,7 @@
 (tm-define (accept-diff)
   (let ((t (tree-innermost 'version-both)))
     (when t
-      (let* ((new-val (tree-ref t 1))
-             (p (tree-up t))
-             (i (tree-index t)))
+      (let* ((new-val (tree-ref t 1)) (p (tree-up t)) (i (tree-index t)))
         (tree-remove! p i 1)
         (when (not (tree-is? new-val 'version-suppressed))
           (insert new-val)
@@ -163,9 +156,7 @@
 (tm-define (reject-diff)
   (let ((t (tree-innermost 'version-both)))
     (when t
-      (let* ((old-val (tree-ref t 0))
-             (p (tree-up t))
-             (i (tree-index t)))
+      (let* ((old-val (tree-ref t 0)) (p (tree-up t)) (i (tree-index t)))
         (tree-remove! p i 1)
         (when (not (tree-is? old-val 'version-suppressed))
           (insert old-val)
