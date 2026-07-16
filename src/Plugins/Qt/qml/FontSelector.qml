@@ -6,7 +6,7 @@
 // 结果，QML 在同一 handler 更新 model + 预览，省二次往返。
 
 import QtQuick
-import "." // DialogShell / SelectableList / EnumCombo / PreviewPane / DialogButtons / Theme
+import "atoms"
 
 DialogShell {
     id: root

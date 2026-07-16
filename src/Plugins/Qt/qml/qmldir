@@ -1,10 +1,4 @@
-singleton Theme 1.0 Theme.qml
-DialogShell 1.0 DialogShell.qml
-DialogButtons 1.0 DialogButtons.qml
-EnumCombo 1.0 EnumCombo.qml
-EnumComboList 1.0 EnumComboList.qml
-SelectableList 1.0 SelectableList.qml
-PreviewPane 1.0 PreviewPane.qml
-TabBar 1.0 TabBar.qml
-TabPanel 1.0 TabPanel.qml
-MiniButton 1.0 MiniButton.qml
+ConfirmClose 1.0 ConfirmClose.qml
+FormDialog 1.0 FormDialog.qml
+FontSelector 1.0 FontSelector.qml
+ParagraphFormat 1.0 ParagraphFormat.qml

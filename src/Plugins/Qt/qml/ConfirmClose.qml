@@ -7,7 +7,7 @@
 // choose(index + 1)。
 
 import QtQuick
-import "."
+import "atoms"
 
 DialogShell {
     id: root

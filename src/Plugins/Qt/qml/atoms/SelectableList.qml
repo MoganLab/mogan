@@ -7,18 +7,22 @@
 //   items        : list<string>  —— 可选项。
 //   currentValue : string        —— 当前选中值（高亮 + 滚到可见）。
 //   title        : string        —— 容器内顶部标题（空串不占标题行）。
+//   refreshTick  : int           —— 外部重算计数器（见下）。
 //   selected(string value)       —— 点击新项时发出。
 //
 // 用法（宽度/高度由父布局给定）：
 //   SelectableList {
-//       width: 300; height: 350; title: "字体"
-//       items: fontBridge.requestFamilies(); currentValue: fontBridge.currentFamily()
+//       id: familyList; width: 300; height: 350; title: "字体"
+//       items: familyModel.value
+//       // currentValue 绑定到无参 bridge 函数，读 refreshTick 注入重算依赖。
+//       currentValue: { familyList.refreshTick; return fontBridge.currentFamily() }
 //       onSelected: function(v) { /* 写回 + 联动 */ }
 //   }
 //
-// 选中态用内部 activeValue 维护：currentValue 绑定到无参 bridge 函数，QML 不会因
-// bridge 内部状态变化重算，故点击即时更新 activeValue 驱动高亮。reset 后调用方需
-// 显式 syncActiveValue()（详见下）。
+// currentValue 绑定到无参 bridge 函数时，bridge 内部状态变化 QML 感知不到、绑定不重算。
+// refreshTick 是外部注入的重算依赖：调用方 reset/refresh 时 `listId.refreshTick++`，
+// 绑定即重算。选中态（activeValue）随 currentValue 变化同步；值未变时改发信号，调用方
+// 需显式 syncActiveValue()（见下）。
 
 import QtQuick
 
@@ -28,26 +32,20 @@ Item {
     property var items: []
     property string currentValue: ""
     property string title: ""
-    signal selected(string value)
-
-    // refreshTick：调用方 reset/refresh 后递增，驱动 currentValue 绑定（里头读本属性）
-    // 重算——绑定到无参 bridge 函数的 currentValue 不会因 bridge 内部状态变化自动重算，
-    // 靠这个外部计数器注入依赖。每个 list 各持一份（取代对话框级的单一 refreshTick），
-    // 调用方 currentValue 绑定读 `<listId>.refreshTick` 即可，不必手写假读样板。
     property int refreshTick: 0
+    signal selected(string value)
 
     // 点击即时更新 activeValue 驱动高亮；currentValue 变化时同步回内部态。
     property string activeValue: currentValue
     onCurrentValueChanged: activeValue = currentValue
 
     // reset 后 currentValue 可能「值未变」（回到打开时默认），changed 信号不发、
-    // activeValue 不更新——调用方在 refreshAll 后显式调用。若 currentValue 绑定读了
-    // 本 list 的 refreshTick 且 refresh 时递增了它，则此处可省（currentValue 已重算）。
+    // activeValue 不更新——调用方在 refreshAll 后显式同步。
     function syncActiveValue() {
         activeValue = currentValue;
     }
 
-    readonly property real headerH: selList.title.length > 0 ? 24 * Theme.scaleFactor : 0
+    readonly property real headerH: selList.title.length > 0 ? Theme.headerH : 0
 
     readonly property int currentIndex: {
         for (var i = 0; i < items.length; i++)
@@ -59,8 +57,8 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: Theme.listBg
-        radius: 8 * Theme.scaleFactor
-        border.width: 1 * Theme.scaleFactor
+        radius: Theme.radius
+        border.width: Theme.borderW
         border.color: Theme.borderClr
         clip: true
 
@@ -72,11 +70,11 @@ Item {
             anchors.right: parent.right
             height: selList.headerH
             verticalAlignment: Text.AlignVCenter
-            leftPadding: 8 * Theme.scaleFactor
+            leftPadding: Theme.pad
             text: selList.title
             color: Theme.fg
             font.bold: true
-            font.pixelSize: 14 * Theme.scaleFactor
+            font.pixelSize: Theme.fontBody
         }
 
         ListView {
@@ -96,30 +94,30 @@ Item {
 
             delegate: Item {
                 width: list.width
-                height: 36 * Theme.scaleFactor
+                height: Theme.itemH
                 readonly property bool isCurrent: selList.activeValue === modelData
 
                 Rectangle {
                     id: hilite
                     anchors.fill: parent
-                    anchors.leftMargin: 8 * Theme.scaleFactor
-                    anchors.rightMargin: 8 * Theme.scaleFactor
-                    anchors.topMargin: 4 * Theme.scaleFactor
-                    anchors.bottomMargin: 4 * Theme.scaleFactor
-                    radius: 8 * Theme.scaleFactor
+                    anchors.leftMargin: Theme.pad
+                    anchors.rightMargin: Theme.pad
+                    anchors.topMargin: Theme.padS
+                    anchors.bottomMargin: Theme.padS
+                    radius: Theme.radius
                     color: isCurrent ? Theme.selectBg : (ma.containsMouse ? Theme.fieldBgHover : "transparent")
-                    border.width: isCurrent ? 1 * Theme.scaleFactor : 0
+                    border.width: isCurrent ? Theme.borderW : 0
                     border.color: Theme.selectBorder
                 }
 
                 Text {
                     anchors.fill: parent
-                    anchors.leftMargin: 20 * Theme.scaleFactor
-                    anchors.rightMargin: 18 * Theme.scaleFactor
+                    anchors.leftMargin: Theme.listTextPadL
+                    anchors.rightMargin: Theme.listTextPadR
                     verticalAlignment: Text.AlignVCenter
                     text: modelData
                     color: isCurrent ? Theme.selectFg : Theme.fg
-                    font.pixelSize: 14 * Theme.scaleFactor
+                    font.pixelSize: Theme.fontBody
                     elide: Text.ElideRight
                 }
                 MouseArea {

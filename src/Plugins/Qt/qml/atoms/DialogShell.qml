@@ -40,7 +40,7 @@ Item {
 
     implicitWidth: 400
     implicitHeight: 200
-    property int implicitMargins: 24 * Theme.scaleFactor
+    property int implicitMargins: Theme.margin
 
     // ESC：浮层展开时先收起，否则取消整个弹窗。Enter/Return 默认无操作。
     property var onCancel: () => closeBridge.choose(-1)
@@ -69,8 +69,8 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: Theme.bg
-        radius: 16 * Theme.scaleFactor
-        border.width: 1 * Theme.scaleFactor
+        radius: Theme.radiusLg
+        border.width: Theme.borderW
         border.color: Theme.borderClr
 
         DragHandler {
@@ -126,24 +126,22 @@ Item {
         width: shell.activeCombo ? shell.activeCombo.comboW : 0
         z: 1000
 
-        readonly property real optH: shell.activeCombo ? shell.activeCombo.options.length * 36 * Theme.scaleFactor : 0
-        readonly property real gap: 4 * Theme.scaleFactor
-        readonly property real margin: 8 * Theme.scaleFactor
+        readonly property real optH: shell.activeCombo ? shell.activeCombo.options.length * Theme.itemH : 0
         readonly property real comboY: shell.activeCombo ? shell.activeCombo.comboY : 0
         readonly property real comboH: shell.activeCombo ? shell.activeCombo.comboH : 0
-        readonly property real spaceBelow: shell.height - comboY - comboH - margin
-        readonly property real spaceAbove: comboY - margin
-        readonly property bool fitBelow: optH <= spaceBelow - gap
-        readonly property bool fitAbove: optH <= spaceAbove - gap
+        readonly property real spaceBelow: shell.height - comboY - comboH - Theme.pad
+        readonly property real spaceAbove: comboY - Theme.pad
+        readonly property bool fitBelow: optH <= spaceBelow - Theme.padS
+        readonly property bool fitAbove: optH <= spaceAbove - Theme.padS
         readonly property bool openBelow: fitBelow || (!fitAbove && spaceBelow >= spaceAbove)
-        height: Math.min(optH, (openBelow ? spaceBelow : spaceAbove) - gap)
-        y: openBelow ? comboY + comboH + gap : comboY - height - gap
+        height: Math.min(optH, (openBelow ? spaceBelow : spaceAbove) - Theme.padS)
+        y: openBelow ? comboY + comboH + Theme.padS : comboY - height - Theme.padS
 
         Rectangle {
             anchors.fill: parent
             color: Theme.fieldBg
-            radius: 8 * Theme.scaleFactor
-            border.width: 1 * Theme.scaleFactor
+            radius: Theme.radius
+            border.width: Theme.borderW
             border.color: Theme.borderClr
             clip: true
 
@@ -158,15 +156,15 @@ Item {
                 model: shell.activeCombo ? shell.activeCombo.displayOptions : []
                 delegate: Rectangle {
                     width: optList.width
-                    height: 36 * Theme.scaleFactor
+                    height: Theme.itemH
                     color: optMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
                     Text {
                         anchors.fill: parent
-                        anchors.leftMargin: 14 * Theme.scaleFactor
+                        anchors.leftMargin: Theme.comboPad
                         verticalAlignment: Text.AlignVCenter
                         text: modelData
                         color: Theme.fg
-                        font.pixelSize: 14 * Theme.scaleFactor
+                        font.pixelSize: Theme.fontBody
                         elide: Text.ElideRight
                     }
                     MouseArea {

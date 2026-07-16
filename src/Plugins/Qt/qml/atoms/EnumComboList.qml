@@ -52,7 +52,7 @@ Flickable {
     Column {
         id: column
         width: comboList.width
-        spacing: 6 * Theme.scaleFactor
+        spacing: Theme.gapS
 
         Repeater {
             model: comboList.model

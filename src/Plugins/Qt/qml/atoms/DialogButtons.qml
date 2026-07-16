@@ -20,11 +20,11 @@ import QtQuick
 
 Row {
     id: row
-    spacing: 16 * Theme.scaleFactor
+    spacing: Theme.gapM
 
     property var buttonLabels: []
     property int primaryIndex: 0
-    property real buttonWidth: 100 * Theme.scaleFactor
+    property real buttonWidth: Theme.btnW
     property real letterSpacing: 0
     signal clicked(int index)
 
@@ -35,7 +35,7 @@ Row {
             height: Theme.btnH
             radius: height / 2
             color: ma.containsMouse ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover) : (primary ? Theme.accent : Theme.fieldBg)
-            border.width: primary ? 1 * Theme.scaleFactor : 0
+            border.width: primary ? Theme.borderW : 0
             border.color: primary ? Theme.accent : "transparent"
 
             property bool primary: index === row.primaryIndex
@@ -44,7 +44,7 @@ Row {
                 anchors.centerIn: parent
                 text: modelData
                 color: primary ? "#ffffff" : Theme.fg
-                font.pixelSize: 15 * Theme.scaleFactor
+                font.pixelSize: Theme.fontBtn
                 font.weight: primary ? Font.Bold : Font.DemiBold
                 font.letterSpacing: row.letterSpacing * Theme.scaleFactor
             }

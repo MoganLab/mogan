@@ -7,7 +7,7 @@
 // OK：closeBridge.submit({key: value, ...})；Cancel：closeBridge.cancel()。
 
 import QtQuick
-import "."
+import "atoms"
 
 DialogShell {
     id: root

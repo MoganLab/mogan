@@ -22,8 +22,8 @@ import "."
 Rectangle {
     id: panel
     color: Theme.listBg
-    radius: 8 * Theme.scaleFactor
-    border.width: 1 * Theme.scaleFactor
+    radius: Theme.radius
+    border.width: Theme.borderW
     border.color: Theme.borderClr
     clip: true
 
@@ -41,9 +41,9 @@ Rectangle {
     TabBar {
         id: tabBar
         anchors.top: parent.top
-        anchors.topMargin: 8 * Theme.scaleFactor
+        anchors.topMargin: Theme.pad
         anchors.left: parent.left
-        anchors.leftMargin: 8 * Theme.scaleFactor
+        anchors.leftMargin: Theme.pad
         model: panel.tabs
         activeKey: panel.activeKey
         onSelected: function (key) {
@@ -55,12 +55,12 @@ Rectangle {
     Item {
         id: contentArea
         anchors.top: tabBar.bottom
-        anchors.topMargin: 8 * Theme.scaleFactor
+        anchors.topMargin: Theme.pad
         anchors.left: parent.left
-        anchors.leftMargin: 8 * Theme.scaleFactor
+        anchors.leftMargin: Theme.pad
         anchors.right: parent.right
-        anchors.rightMargin: 8 * Theme.scaleFactor
+        anchors.rightMargin: Theme.pad
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 8 * Theme.scaleFactor
+        anchors.bottomMargin: Theme.pad
     }
 }

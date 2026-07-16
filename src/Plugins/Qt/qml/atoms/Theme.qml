@@ -28,6 +28,40 @@ QtObject {
     readonly property color listBg: dark ? "#2a3a39" : "#fbfdfd"
 
     // 结构尺寸常量（跨弹窗/原子共用，收敛魔法数字）。
-    readonly property real rowH: 44 * scaleFactor   // 字段行高（EnumCombo / SelectableList delegate / ParagraphFormat）
+    readonly property real rowH: 44 * scaleFactor   // 字段行高（EnumCombo 行 / ParagraphFormat 行间距预设行）
     readonly property real btnH: 40 * scaleFactor    // 主按钮高度（DialogButtons）
+    readonly property real btnW: 100 * scaleFactor   // 主按钮默认宽度（DialogButtons buttonWidth 默认）
+    readonly property real itemH: 36 * scaleFactor   // 列表项行高（下拉浮层选项 / SelectableList delegate）
+
+    // 圆角（胶囊类用 height/2，不在此列）。
+    readonly property real radius: 8 * scaleFactor    // 容器/卡片/下拉浮层标准圆角
+    readonly property real radiusLg: 16 * scaleFactor // 弹窗外壳大圆角（DialogShell 背景）
+
+    // 字号阶梯（各原子内统一）。
+    readonly property real fontBody: 14 * scaleFactor // 正文/标签/列表项字号
+    readonly property real fontBtn: 15 * scaleFactor  // 主按钮（DialogButtons）字号
+    readonly property real fontTab: 13 * scaleFactor  // 选项卡（TabBar）字号
+    readonly property real fontMini: 11 * scaleFactor // 紧凑按钮（MiniButton）字号
+    readonly property real fontTiny: 10 * scaleFactor // 箭头/角标等微型字号
+
+    // 间距/边距阶梯（跨原子共用）。
+    readonly property real borderW: 1 * scaleFactor   // 边框宽度
+    readonly property real padS: 4 * scaleFactor      // 小内边距/间隙（高亮块上下留白、浮层间隙）
+    readonly property real pad: 8 * scaleFactor       // 标准内边距/缩进（容器内缩、列表 padding）
+    readonly property real gapS: 6 * scaleFactor      // 小行间距（EnumComboList 行间）
+    readonly property real gapM: 16 * scaleFactor     // 中间距（按钮间、combo 行 label↔控件）
+    readonly property real margin: 24 * scaleFactor   // 弹窗正文四周大边距（DialogShell implicitMargins）
+
+    // 原子级布局常量（某原子专用，提名为常量避免散落字面量）。
+    readonly property real headerH: 24 * scaleFactor  // SelectableList 标题行高
+    readonly property real comboPad: 14 * scaleFactor // EnumCombo 文本左内边距
+    readonly property real comboArrowGap: 30 * scaleFactor // EnumCombo 右侧箭头预留宽度
+    readonly property real arrowMargin: 12 * scaleFactor   // EnumCombo 箭头自身右边距
+    readonly property real tabH: 30 * scaleFactor     // TabBar 选项卡高度
+    readonly property real tabPad: 28 * scaleFactor   // TabBar 选项卡左右 padding（text 外加宽）
+    readonly property real listTextPadL: 20 * scaleFactor // SelectableList 列表项文本左内边距
+    readonly property real listTextPadR: 18 * scaleFactor // SelectableList 列表项文本右内边距
+    readonly property real miniBtnW: 48 * scaleFactor // MiniButton 默认宽
+    readonly property real miniBtnH: 28 * scaleFactor // MiniButton 默认高
+    readonly property real miniBtnR: 7 * scaleFactor  // MiniButton 圆角
 }

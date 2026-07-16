@@ -23,7 +23,7 @@ Item {
         Flickable {
             id: flick
             anchors.fill: parent
-            anchors.margins: 1 * Theme.scaleFactor
+            anchors.margins: Theme.borderW
             contentWidth: img.width
             contentHeight: img.height
             clip: true
@@ -32,7 +32,7 @@ Item {
 
             Image {
                 id: img
-                width: pane.width - 2 * Theme.scaleFactor
+                width: pane.width - 2 * Theme.borderW
                 height: (img.sourceSize.width > 0) ? width * img.sourceSize.height / img.sourceSize.width : pane.height
                 fillMode: Image.PreserveAspectFit
                 horizontalAlignment: Image.AlignLeft

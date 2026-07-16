@@ -21,7 +21,7 @@
 //   submit()/cancel()     -> OK 落定 / Cancel 快照写回，均关窗
 
 import QtQuick
-import "." // DialogShell / EnumCombo / EnumComboList / MiniButton / DialogButtons / TabBar / Theme
+import "atoms"
 
 DialogShell {
     id: root
@@ -143,7 +143,7 @@ DialogShell {
                                     root.setField("basic", modelData.var, v);
                                 }
                             }
-                            // 仅 par-sep 行下面插预设按钮行（行高 44，与 EnumCombo 行一致）。
+                            // 仅 par-sep 行下面插预设按钮行（行高 Theme.rowH，与 EnumCombo 行一致）。
                             Item {
                                 id: presetRow
                                 width: parent.width

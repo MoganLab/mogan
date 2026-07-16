@@ -26,7 +26,7 @@ import QtQuick
 
 Row {
     id: comboRow
-    spacing: 16 * Theme.scaleFactor
+    spacing: Theme.gapM
 
     property string label: ""
     property var options: []
@@ -112,7 +112,7 @@ Row {
             comboRow.dialogShell.editingCombo = null;
         if (v !== comboRow.value)
             comboRow.changed(v);
-        // 焦点还根：根 Item 非 FocusScope，隐藏 editingInput 不会自动恢复 activeFocus，
+        // 焦点还 DialogShell：它非 FocusScope，隐藏 editingInput 不会自动恢复 activeFocus，
         // 不显式归还则后续 Esc 收不到，编辑后 Esc 关不掉窗。
         if (comboRow.dialogShell)
             comboRow.dialogShell.forceActiveFocus();
@@ -137,7 +137,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         text: comboRow.label
         color: Theme.fg
-        font.pixelSize: 14 * Theme.scaleFactor
+        font.pixelSize: Theme.fontBody
         elide: Text.ElideRight
     }
 
@@ -146,19 +146,19 @@ Row {
         width: comboRow.comboWidth
         height: comboRow.rowHeight
         anchors.verticalCenter: parent.verticalCenter
-        radius: 8 * Theme.scaleFactor
+        radius: Theme.radius
         color: comboRow.editing ? Theme.fieldBgHover : (comboMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg)
-        border.width: 1 * Theme.scaleFactor
+        border.width: Theme.borderW
         border.color: comboRow.editing ? Theme.accent : Theme.borderClr
 
         Text {
             anchors.fill: parent
-            anchors.leftMargin: 14 * Theme.scaleFactor
-            anchors.rightMargin: 30 * Theme.scaleFactor
+            anchors.leftMargin: Theme.comboPad
+            anchors.rightMargin: Theme.comboArrowGap
             verticalAlignment: Text.AlignVCenter
             text: comboRow.displayValue
             color: Theme.fg
-            font.pixelSize: 14 * Theme.scaleFactor
+            font.pixelSize: Theme.fontBody
             elide: Text.ElideRight
             visible: !comboRow.editing
         }
@@ -166,11 +166,11 @@ Row {
         TextInput {
             id: editingInput
             anchors.fill: parent
-            anchors.leftMargin: 14 * Theme.scaleFactor
-            anchors.rightMargin: 30 * Theme.scaleFactor
+            anchors.leftMargin: Theme.comboPad
+            anchors.rightMargin: Theme.comboArrowGap
             verticalAlignment: Text.AlignVCenter
             color: Theme.fg
-            font.pixelSize: 14 * Theme.scaleFactor
+            font.pixelSize: Theme.fontBody
             selectByMouse: true
             visible: comboRow.editing
             onActiveFocusChanged: if (!activeFocus)
@@ -181,11 +181,11 @@ Row {
         }
         Text {
             anchors.right: parent.right
-            anchors.rightMargin: 12 * Theme.scaleFactor
+            anchors.rightMargin: Theme.arrowMargin
             anchors.verticalCenter: parent.verticalCenter
             text: comboRow.open ? "▲" : "▼"
             color: Theme.fg
-            font.pixelSize: 10 * Theme.scaleFactor
+            font.pixelSize: Theme.fontTiny
             visible: !comboRow.editing
         }
 
