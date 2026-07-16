@@ -19,6 +19,17 @@
  * Constructors and destructors
  ******************************************************************************/
 
+#ifdef LORO_ENABLED
+extern void (*g_loro_broadcast_update) (string bytes);
+
+static void local_update_cb(void* user_data, const uint8_t* bytes, size_t len) {
+  if (g_loro_broadcast_update) {
+    string data((const char*)bytes, len);
+    g_loro_broadcast_update(data);
+  }
+}
+#endif
+
 edit_modify_rep::edit_modify_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
       author (new_author ()), arch (author, rp)
@@ -28,6 +39,9 @@ edit_modify_rep::edit_modify_rep ()
       loro_routing (false)
 #endif
 {
+#ifdef LORO_ENABLED
+  loro_doc->on_local_update(local_update_cb, this);
+#endif
 }
 edit_modify_rep::~edit_modify_rep () {}
 

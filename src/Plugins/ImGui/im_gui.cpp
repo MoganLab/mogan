@@ -501,22 +501,31 @@ gui_open (int& argc, char** argv) {
 static void (*g_interpose_fn) (void)= nullptr;
 
 #ifdef LORO_ENABLED
+#include "editor.hpp"
 #include "im_websocket.hpp"
+#include "new_view.hpp" // get_current_editor
+
+void (*g_loro_broadcast_update) (string bytes)= nullptr;
+
 class test_websocket_client : public im_websocket_client {
 public:
   void on_connect () override {
     cout << "Connected to Loro relay server!\n";
-    send("JOIN test-room", false);
+    send ("JOIN test-room", false);
   }
   void on_message (string data, bool is_binary) override {
-    cout << "Received msg: " << (is_binary ? "binary" : "text") << " size: " << N(data) << "\n";
+    if (is_binary) {
+      editor ed= get_current_editor ();
+      if (!is_nil (ed)) {
+        ed->apply_remote (data);
+      }
+    }
+    else {
+      cout << "Received msg: text size: " << N (data) << "\n";
+    }
   }
-  void on_error (string msg) override {
-    cout << "WS Error: " << msg << "\n";
-  }
-  void on_disconnect () override {
-    cout << "WS Disconnected\n";
-  }
+  void on_error (string msg) override { cout << "WS Error: " << msg << "\n"; }
+  void on_disconnect () override { cout << "WS Disconnected\n"; }
 };
 #endif
 
@@ -530,12 +539,18 @@ im_interpose () {
   if (g_interpose_fn != nullptr) g_interpose_fn ();
 
 #ifdef LORO_ENABLED
-  static test_websocket_client* g_ws_client = nullptr;
+  static test_websocket_client* g_ws_client= nullptr;
   if (!g_ws_client) {
-    g_ws_client = new test_websocket_client();
-    g_ws_client->connect("ws://127.0.0.1:8765");
+    g_ws_client= new test_websocket_client ();
+    g_ws_client->connect ("ws://127.0.0.1:8765");
+
+    g_loro_broadcast_update= [] (string bytes) {
+      if (g_ws_client && g_ws_client->connected ()) {
+        g_ws_client->send (bytes, true); // send binary
+      }
+    };
   }
-  g_ws_client->poll();
+  g_ws_client->poll ();
 #endif
 }
 

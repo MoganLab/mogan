@@ -50,7 +50,7 @@ public:
   void mirror_loro (const modification& mod) override;
   // Phase 3：导入远端 update，diff 出把 buffer 变到新状态所需的 mods，经 edit_announce
   // 应用到 buffer（versioning：loro_applying_remote 守卫使 mirror_loro 跳过，避免回灌）。
-  void apply_remote (string bytes);
+  void apply_remote (string bytes) override;
   // debug_loro：把 mod 经 Loro round-trip（mirror→diff_from_current）后再应用。
   bool route_through_loro (const modification& mod) override;
 #endif
