@@ -363,8 +363,8 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
     : im_widget_rep (im_widget_rep::texmacs_widget), win_id (++s_next_win_id),
       orig_name ("popup"), quit (_quit), zoomf (1.0), window (nullptr),
       document_texture (0), tex_w (0), tex_h (0), texture_dirty (true),
-      initialized (false), needs_refocus (false), pic_w (0), pic_h (0),
-      pic_rf (0), menu_offset_y (0), footer_height (0),
+      initialized (false), needs_refocus (false), last_key_mods (0), pic_w (0),
+      pic_h (0), pic_rf (0), menu_offset_y (0), footer_height (0),
       footer_interactive (false), scroll_reset_frames (0),
       last_size_canvas (nullptr) {
   visibility[0] = (mask & 1) == 1;       // header
@@ -950,6 +950,9 @@ im_tm_widget_rep::dispatch_keypress (const string& key) {
 void
 im_tm_widget_rep::dispatch_mouse (const string& kind, SI x, SI y, int mstate,
                                   array<double> data) {
+  // 清空键盘修饰键，这是为了解决按住修饰键失焦之后修饰键被卡住的问题
+  // TODO：找到更好的解决方案
+  if (last_key_mods) last_key_mods= 0b0;
   im_simple_widget_rep* ed= canvas ();
   if (ed == nullptr) return;
   ed->handle_mouse (kind, x, y, mstate, texmacs_time (), data);
@@ -960,7 +963,11 @@ im_tm_widget_rep::glfw_key_callback (GLFWwindow* w, int key, int scancode,
                                      int action, int mods) {
   im_tm_widget_rep* self= im_self (w);
   if (self == nullptr) return;
-  string r= im_from_key_event (key, scancode, action, mods);
+  // 记下本次按键的事件级 mods（GLFW 的 mods 形参：macOS 来自 NSEvent
+  // modifierFlags、WASM 来自 e.metaKey，都是事件即时真实状态，不受 glfwGetKey
+  // 在系统快捷键截屏后卡住的影响），供紧随其后的 glfw_char_callback 复用。
+  self->last_key_mods= mods;
+  string r           = im_from_key_event (key, scancode, action, mods);
   self->dispatch_keypress (r);
 }
 
@@ -975,13 +982,9 @@ im_tm_widget_rep::glfw_char_callback (GLFWwindow* w, unsigned int codepoint) {
   // Ctrl/Cmd + 按键已由 glfw_key_callback 作为快捷键分发（"C-x"/"M-x"）。
   // 浏览器/Emscripten 对同一次按键还会补发本 char 回调里的基础字母，
   // 若不抑制会导致快捷键与字面字符同时生效（如 C-a 回到行首后又插入了 a）。
-  // 在修饰键按下时直接跳过分发，写法与 glfw_scroll_callback 一致，
-  // 且不依赖回调顺序，对无修饰键的 IME 预编辑等纯文本输入无影响。
-  if (glfwGetKey (w, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
-      glfwGetKey (w, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
-      glfwGetKey (w, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
-      glfwGetKey (w, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS)
-    return;
+  // 用 last_key_mods（本次按键的事件级 mods，见 glfw_key_callback）判断，而非
+  // glfwGetKey——后者在系统快捷键（截屏等）后修饰键 keyup 丢失会卡住、误判。
+  if (self->last_key_mods & (GLFW_MOD_CONTROL | GLFW_MOD_SUPER)) return;
   self->dispatch_keypress (im_from_char (codepoint));
 }
 
@@ -1042,11 +1045,11 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
   if (self == nullptr || self->canvas () == nullptr) return;
   // 同 glfw_mouse_button_callback：菜单 UI 上或弹出菜单打开期间不分发。
   if (im_has_active_popup () || ImGui::GetIO ().WantCaptureMouse) return;
-  // Mirror Qt's wheelEvent: Ctrl/Meta ⇒ zoom.
-  bool zoom_mod= glfwGetKey (w, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
-                 glfwGetKey (w, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
-                 glfwGetKey (w, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
-                 glfwGetKey (w, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS;
+  // Mirror Qt's wheelEvent: Ctrl/Meta ⇒ zoom. 用 last_key_mods（事件级 mods，见
+  // glfw_key_callback），避免 glfwGetKey
+  // 在系统快捷键卡住时把普通滚轮误判为缩放。
+  bool zoom_mod=
+      (self->last_key_mods & (GLFW_MOD_CONTROL | GLFW_MOD_SUPER)) != 0;
   if (zoom_mod) {
     double factor= (sqrt (sqrt (sqrt (2.0))));
     if (yoffset < 0) call ("zoom-out", object (factor));
