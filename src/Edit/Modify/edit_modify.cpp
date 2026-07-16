@@ -73,11 +73,19 @@ edit_modify_rep::mirror_loro (const modification& mod) {
 // loro_applying_remote 守卫使这些应用的 edit_done→mirror_loro 被跳过（versioning）。
 void
 edit_modify_rep::apply_remote (string bytes) {
+  cout << "[Loro] Applying remote update of size " << N(bytes) << "\n";
   loro_applying_remote   = true;
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
-  for (list<modification> l= mods; !is_nil (l); l= l->next)
+  cout << "[Loro] Diff produced " << N(mods) << " modifications.\n";
+  for (list<modification> l= mods; !is_nil (l); l= l->next) {
+    cout << "[Loro] Applying remote mod: " << l->item << "\n";
     edit_announce (this, rp * l->item);
+  }
   loro_applying_remote= false;
+  
+  if (!is_nil(mods)) {
+    apply_changes(); // force UI update after receiving remote changes
+  }
 }
 
 // debug_loro：把 mod 经 Loro round-trip 后再应用（不直接应用原 mod）。
