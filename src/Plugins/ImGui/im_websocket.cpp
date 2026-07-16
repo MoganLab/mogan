@@ -187,7 +187,7 @@ im_websocket_client::poll () {
         string chunk(buffer, (int) recv_len);
         rx_buffer << chunk;
         
-        if (meta && meta->bytesleft == 0) {
+        if (meta && meta->bytesleft == 0 && !(meta->flags & CURLWS_CONT)) {
           // Full message received
           bool is_binary = true;
           if (meta->flags & CURLWS_TEXT) {
