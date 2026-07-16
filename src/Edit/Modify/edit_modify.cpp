@@ -21,8 +21,76 @@
 
 edit_modify_rep::edit_modify_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
-      author (new_author ()), arch (author, rp) {}
+      author (new_author ()), arch (author, rp)
+#ifdef LORO_ENABLED
+      ,
+      loro_doc (), loro_seeded (false), loro_applying_remote (false),
+      loro_routing (false)
+#endif
+{
+}
 edit_modify_rep::~edit_modify_rep () {}
+
+#ifdef LORO_ENABLED
+// Phase 2：把一个 modification 镜像到 shadow LoroDoc。
+// mod->p 是 the_et 根路径，用 mod/rp 转成 buffer 相对；首次镜像时 lazy seed。
+void
+edit_modify_rep::mirror_loro (const modification& mod) {
+  if (loro_applying_remote) return; // 远端应用期间不回灌镜像，避免循环
+  if (mod->k == MOD_SET_CURSOR) return;
+  if (!loro_seeded) {
+    loro_doc->seed (the_buffer ());
+    loro_seeded= true;
+  }
+  loro_doc->mirror_mod (the_buffer (), mod / rp);
+#ifdef LORO_DEBUG
+  // debug_loro 验证：镜像后 buffer 应与 Loro 状态一致。不一致则告警（说明镜像链路有 bug）。
+  // 这是安全模式——mirror_loro 在 edit_done(post-apply) 里，不调 edit_announce，无递归风险。
+  tree lt= loro_doc->to_tree ();
+  if (!(lt == the_buffer ()))
+    cout << "[loro-verify] MISMATCH: buffer != Loro after mirror\n";
+#endif
+}
+
+// Phase 3：导入远端 update，把 diff 出的 mods 经 edit_announce 应用到 buffer。
+// loro_applying_remote 守卫使这些应用的 edit_done→mirror_loro 被跳过（versioning）。
+void
+edit_modify_rep::apply_remote (string bytes) {
+  loro_applying_remote   = true;
+  list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    edit_announce (this, rp * l->item);
+  loro_applying_remote= false;
+}
+
+// debug_loro：把 mod 经 Loro round-trip 后再应用（不直接应用原 mod）。
+// - 文本精确路径：mirror 后 Loro 已含 op → diff 回译出 mod → 应用时跳过 mirror_loro（防重复）。
+// - 结构兜底：mirror 未改变 Loro（重 seed 自 before）→ diff 为空 → 正常应用原 mod
+//   （mirror_loro 会从 post-edit buffer 重 seed，使 Loro 与 buffer 一致）。
+bool
+edit_modify_rep::route_through_loro (const modification& mod) {
+  if (loro_routing) return false; // 重入（应用回译/原 mod）→ 正常路径
+  loro_routing= true;
+  if (!loro_seeded) {
+    loro_doc->seed (the_buffer ());
+    loro_seeded= true;
+  }
+  tree               before= the_buffer ();
+  loro_doc->mirror_mod (before, mod / rp);
+  list<modification> mods= loro_doc->diff_from_current (before);
+  if (is_nil (mods)) {
+    edit_announce (this, mod); // 结构兜底：正常应用（mirror_loro 重 seed 自 post-edit）
+  }
+  else {
+    loro_applying_remote= true; // 文本精确：Loro 已有 op，应用回译 mod 时跳过 mirror_loro
+    for (list<modification> l= mods; !is_nil (l); l= l->next)
+      edit_announce (this, rp * l->item);
+    loro_applying_remote= false;
+  }
+  loro_routing= false;
+  return true;
+}
+#endif
 
 /******************************************************************************
  * Notification of changes in document
@@ -210,6 +278,12 @@ edit_set_cursor (editor_rep* ed, path pp, tree data) {
 
 void
 edit_announce (editor_rep* ed, modification mod) {
+  // NOTE: 曾尝试在此拦截做 debug_loro round-trip，但 edit_observer 对每个 mod 配对调用
+  // edit_announce(应用)+edit_done(mirror)，在 announce 里 mirror 后外层 done 会重复 mirror
+  // （文本路径插两次）。盲写难以安全区分内/外层 done，故暂不激活。debug_loro 改用验证模式。
+#ifdef LIII_DEBUG
+  if (mod->k != MOD_SET_CURSOR) cout << "[loro-mod] " << mod << "\n";
+#endif
   switch (mod->k) {
   case MOD_ASSIGN:
     edit_assign (ed, mod->p, mod->t);
@@ -247,7 +321,10 @@ void
 edit_done (editor_rep* ed, modification mod) {
   path p= copy (mod->p);
   ASSERT (ed->the_buffer_path () <= p, "invalid modification");
-  if (mod->k != MOD_SET_CURSOR) ed->post_notify (p);
+  if (mod->k != MOD_SET_CURSOR) {
+    ed->post_notify (p);
+    ed->mirror_loro (mod); // Phase 2：镜像到 shadow LoroDoc
+  }
 }
 
 void

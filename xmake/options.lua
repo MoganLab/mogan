@@ -62,3 +62,17 @@ option("debug_with_timestamp")
     set_default(true)
     set_description("Enable timestamps in debug messages")
 option_end()
+
+-- Loro CRDT FFI：用 cargo 构建 3rdparty/mogan-loro-ffi，并定义 LORO_ENABLED 启用
+-- tree <-> Loro snapshot 转换（loro.cpp）。默认关闭，避免拖累主构建。
+option("libloro")
+    set_default(false)
+    set_description("Enable Loro CRDT FFI (builds 3rdparty/mogan-loro-ffi via cargo)")
+option_end()
+
+-- debug_loro：编辑器的每次操作不直接应用，而是经 Loro round-trip（mirror→回译）后再应用，
+-- 用于在真实编辑器里验证 Loro 全链路。需配合 libloro。默认关闭。
+option("debug_loro")
+    set_default(false)
+    set_description("Route every editor op through Loro (mirror->round-trip) to verify the full chain; needs libloro")
+option_end()

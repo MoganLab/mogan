@@ -42,6 +42,35 @@ target("libmoebius") do
 
     add_deps("liblolly")
     add_deps("goldfish")
+    if has_config("libloro") then
+        add_defines("LORO_ENABLED")
+    end
+
+    -- Loro CRDT FFI（opt-in：xmake f --libloro=y）：cargo 构建 3rdparty/mogan-loro-ffi，
+    -- 定义 LORO_ENABLED 启用 loro.cpp 的真实 FFI，并把 Rust 静态库 + 其所需系统库
+    -- 公开给依赖方（如 moebius_tests 的各测试二进制）。
+    -- 注：libmogan_loro_ffi.a 由 cargo 产出，含全部 Rust 依赖；链接顺序若报 undefined
+    -- symbol，可在最终目标上加 -Wl,--start-group ... -Wl,--end-group。
+    on_config(function (target)
+        if not has_config("libloro") then return end
+        local ffi_dir = path.join(os.projectdir(), "3rdparty", "mogan-loro-ffi")
+        local profile = (is_mode("release") or is_mode("releasedbg")) and "release" or "dev"
+        local subdir  = (profile == "release") and "release" or "debug"
+        target:add("linkdirs", path.join(ffi_dir, "target", subdir), {public = true})
+        target:add("links", "mogan_loro_ffi", {public = true})
+        if is_plat("linux") then
+            target:add("syslinks", "pthread", "dl", "m", "util", {public = true})
+        elseif is_plat("macosx") then
+            target:add("syslinks", "iconv", "resolv", "System", {public = true})
+            target:add("frameworks", "Security", "Foundation", {public = true})
+        end
+    end)
+    before_build(function (target)
+        if not has_config("libloro") then return end
+        local ffi_dir = path.join(os.projectdir(), "3rdparty", "mogan-loro-ffi")
+        local profile = (is_mode("release") or is_mode("releasedbg")) and "release" or "dev"
+        os.vrunv("cargo", {"build", "--profile", profile}, {curdir = ffi_dir})
+    end)
 
     add_headerfiles("Data/Convert/(*.hpp)")
     add_headerfiles("Data/History/(*.hpp)")
@@ -65,6 +94,9 @@ target("moebius_tests") do
     set_default (false)
 
     add_deps("libmoebius")
+    if has_config("libloro") then
+        add_defines("LORO_ENABLED")
+    end
 
     add_includedirs(moe_includedirs)
     add_includedirs("tests")
