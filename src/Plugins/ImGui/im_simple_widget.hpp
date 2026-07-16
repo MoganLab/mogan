@@ -60,6 +60,11 @@ public:
   void set_window (widget win, int id); // TODO: implement id via SLOTs
   void clear_invalid ();
 
+  // 增量滚动（滚轮 / 拖选边缘自动滚动）：直接把 delta 累加到视口上沿 scroll_y，
+  // 再由 recenter 钳位。刻意不经过 SLOT_SCROLL_POSITION——后者会把传入点当作
+  // 视口中心（见下），增量滚动若走它会每帧多偏半个画布。
+  void scroll_by (SI dx, SI dy);
+
 protected:
   rectangles invalid_regions;
   bool       is_dirty; // whole-canvas invalidation flag
@@ -80,8 +85,9 @@ protected:
   // 调整到正确值——水平方向窄于画布则居中；垂直方向始终上对齐（短文档贴顶，不
   // 居中，与编辑时一致），仅长文档钳位到可滚动范围。每次 extents / size /
   // scroll-position 变化都调用，故加载/缩放/resize 后自动定位，无需在 load 处
-  // 手动重置。editor（make-cursor-visible / 滚轮）通过 SLOT_SCROLL_POSITION
-  // 下达 scroll_y，本函数负责钳位/上对齐。
+  // 手动重置。editor 的 make-cursor-visible / scroll_to 经 SLOT_SCROLL_POSITION
+  // 下达「希望居于视口中央」的点（已在上沿基础上 +canvas_h/2 换算）；滚轮 /
+  // 拖选 的增量滚动经 scroll_by 直接累加上沿。本函数只负责钳位 / 上对齐。
   void recenter ();
 };
 

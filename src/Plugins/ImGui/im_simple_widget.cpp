@@ -156,6 +156,15 @@ im_simple_widget_rep::recenter () {
   else scroll_y= 0;
 }
 
+void
+im_simple_widget_rep::scroll_by (SI dx, SI dy) {
+  // 增量滚动：直接累加到视口上沿，交 recenter 钳位。不经过 SLOT_SCROLL_POSITION
+  // 的居中换算（那是 editor 绝对定位专用）。
+  scroll_x+= dx;
+  scroll_y+= dy;
+  recenter ();
+}
+
 /******************************************************************************
  * Handling of TeXmacs' messages (canvas slots).
  ******************************************************************************/
@@ -185,11 +194,15 @@ im_simple_widget_rep::send (slot s, blackbox val) {
     recenter ();
   } break;
   case SLOT_SCROLL_POSITION: {
-    // editor（make-cursor-visible / scroll_to）与滚轮都经此下达垂直滚动；
-    // 无条件采纳 editor 给的 y（editor 是权威），再由 recenter 钳位/居中。
-    // 水平始终由 recenter 居中，p.x1 忽略。
+    // editor 的 make-cursor-visible / scroll_to 下达的 (x, y) 是「希望居于视口
+    // 中央」的点，与 Qt 一致——Qt 在 setOrigin 前减去半个 surface 尺寸
+    // （"adjust because child is centered"），使光标落到视口正中而非贴到上沿。
+    // 这里把中心点换算成视口上沿 scroll_y（= y + canvas_h/2）存储；查询
+    // SLOT_SCROLL_POSITION 仍返回上沿，与 Qt 返回 origin 同构，弹出框定位等
+    // 依赖「上沿」语义的调用方不受影响。增量滚动（滚轮/拖选）走 scroll_by，
+    // 不经此分支，避免每帧叠加半个画布的偏移。水平始终由 recenter 居中。
     coord2 p= open_box<coord2> (val);
-    scroll_y= p.x2;
+    scroll_y= p.x2 + (canvas_h >> 1);
     recenter ();
   } break;
   case SLOT_ZOOM_FACTOR: {

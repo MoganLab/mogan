@@ -676,22 +676,20 @@ im_tm_widget_rep::im_main_loop () {
     glfwGetWindowSize (window, &ww, &wh);
     const double EDGE= 48.0;            // px proximity band
     const SI MAXD= (SI) (80.0 * PIXEL); // cap per-frame scroll to avoid jitter
-    SI       sx= 0, sy= 0;
-    get_scroll_position (main_widget, sx, sy);
-    SI new_sy= sy;
+    SI       delta_sy= 0;
     if (wh > 0 && ypos < EDGE) {
       SI d= (SI) ((EDGE - ypos) * PIXEL);
       if (d > MAXD) d= MAXD;
-      new_sy= sy + d; // near/over top → up
+      delta_sy= d; // near/over top → up
     }
     else if (wh > 0 && ypos > (double) wh - EDGE) {
       SI d= (SI) ((ypos - ((double) wh - EDGE)) * PIXEL);
       if (d > MAXD) d= MAXD;
-      new_sy= sy - d; // near/over bottom → down
+      delta_sy= -d; // near/over bottom → down
     }
-    if (new_sy != sy) {
-      main_widget->send (SLOT_SCROLL_POSITION,
-                         close_box<coord2> (coord2 (sx, new_sy)));
+    if (delta_sy != 0) {
+      // 增量滚动走 scroll_by（同滚轮），不经 SLOT_SCROLL_POSITION 的居中换算。
+      ed->scroll_by (0, delta_sy);
       // Re-dispatch a move so the editor's drag selection tracks the
       // viewport. Clamp ypos to [0, wh].
       double cy= ypos;
@@ -1054,19 +1052,16 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
     return;
   }
   if (yoffset == 0.0) return;
-  widget mw= self->main_widget;
-  SI     sx= 0, sy= 0;
-  get_scroll_position (mw, sx, sy);
   // 只把增量交给画布；钳位 / 居中统一由 im_simple_widget::recenter 完成
-  // （内容小于视口时滚轮无效，自动回到居中位置）。
+  // （内容小于视口时滚轮无效，自动回到居中位置）。走 scroll_by 而非
+  // SLOT_SCROLL_POSITION——后者会把目标点居中，增量滚动每帧会叠加半个画布。
 #ifdef OS_MACOS
   SI scroll_speed= 10;
 #else
   SI scroll_speed= 100;
 #endif
-  SI delta = (SI) (yoffset * scroll_speed * PIXEL);
-  SI new_sy= sy + delta;
-  mw->send (SLOT_SCROLL_POSITION, close_box<coord2> (coord2 (sx, new_sy)));
+  SI delta= (SI) (yoffset * scroll_speed * PIXEL);
+  self->canvas ()->scroll_by (0, delta);
 }
 
 void
