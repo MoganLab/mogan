@@ -24,8 +24,11 @@ extern void (*g_loro_broadcast_update) (string bytes);
 
 static void local_update_cb(void* user_data, const uint8_t* bytes, size_t len) {
   if (g_loro_broadcast_update) {
+    cout << "[Loro] Local update generated, size: " << len << " bytes. Broadcasting...\n";
     string data((const char*)bytes, len);
     g_loro_broadcast_update(data);
+  } else {
+    cout << "[Loro] Local update generated, but no broadcast handler registered.\n";
   }
 }
 #endif

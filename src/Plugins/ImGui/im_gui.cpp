@@ -546,7 +546,10 @@ im_interpose () {
 
     g_loro_broadcast_update= [] (string bytes) {
       if (g_ws_client && g_ws_client->connected ()) {
+        cout << "[WS] Sending " << N (bytes) << " bytes of Loro update to server.\n";
         g_ws_client->send (bytes, true); // send binary
+      } else {
+        cout << "[WS] Cannot send Loro update, WebSocket is not connected.\n";
       }
     };
   }
