@@ -26,4 +26,8 @@ QtObject {
 
     // 列表/选项卡容器底色
     readonly property color listBg: dark ? "#2a3a39" : "#fbfdfd"
+
+    // 结构尺寸常量（跨弹窗/原子共用，收敛魔法数字）。
+    readonly property real rowH: 44 * scaleFactor   // 字段行高（EnumCombo / SelectableList delegate / ParagraphFormat）
+    readonly property real btnH: 40 * scaleFactor    // 主按钮高度（DialogButtons）
 }

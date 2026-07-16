@@ -22,7 +22,7 @@
 import QtQuick
 
 Item {
-    id: root
+    id: shell
     objectName: "DialogShell"
     anchors.fill: parent
 
@@ -32,9 +32,10 @@ Item {
     // 无视 implicitMargins 边距。
     property Item content
     onContentChanged: {
-        if (!content) return
-        content.parent = contentCol
-        content.anchors.fill = contentCol
+        if (!content)
+            return;
+        content.parent = contentCol;
+        content.anchors.fill = contentCol;
     }
 
     implicitWidth: 400
@@ -46,14 +47,18 @@ Item {
     property var onActivate: null
     focus: true
     Keys.onEscapePressed: {
-        if (root.activeCombo) root.activeCombo = null
-        else if (root.onCancel) root.onCancel()
+        if (shell.activeCombo)
+            shell.activeCombo = null;
+        else if (shell.onCancel)
+            shell.onCancel();
     }
-    Keys.onReturnPressed: if (root.onActivate) root.onActivate()
-    Keys.onEnterPressed: if (root.onActivate) root.onActivate()
+    Keys.onReturnPressed: if (shell.onActivate)
+        shell.onActivate()
+    Keys.onEnterPressed: if (shell.onActivate)
+        shell.onActivate()
 
     // 共享下拉浮层。EnumCombo 不自带浮层，点开后把自己设为 activeCombo（暴露
-    // comboX/Y/W/options），本组件据此在 root 顶层渲染唯一一个 overlay。z 最高
+    // comboX/Y/W/options），本组件据此在顶层渲染唯一一个 overlay。z 最高
     // 故不被正文遮挡；限高翻转算法与旧 FormDialog.qml 逐行一致（弹窗逻辑坐标系，
     // 不依赖 window/物理坐标），优先向下、不够向上、仍不够限高滚动。
     property var activeCombo: null
@@ -68,12 +73,16 @@ Item {
         border.width: 1 * Theme.scaleFactor
         border.color: Theme.borderClr
 
-        DragHandler { target: null; onActiveChanged: if (active) closeBridge.startMove() }
+        DragHandler {
+            target: null
+            onActiveChanged: if (active)
+                closeBridge.startMove()
+        }
 
         Item {
             id: contentCol
             anchors.fill: parent
-            anchors.margins: root.implicitMargins
+            anchors.margins: shell.implicitMargins
         }
     }
 
@@ -84,14 +93,14 @@ Item {
     // 否则 press 被遮罩吞掉，combo 收不到点击，切换需点两次（回归）。
     MouseArea {
         anchors.fill: parent
-        visible: root.activeCombo !== null
+        visible: shell.activeCombo !== null
         z: 500
-        onPressed: function(mouse) {
-            var c = root.activeCombo
-            var inCombo = mouse.x >= c.comboX && mouse.x <= c.comboX + c.comboW
-                       && mouse.y >= c.comboY && mouse.y <= c.comboY + c.comboH
-            if (!inCombo) root.activeCombo = null
-            mouse.accepted = false
+        onPressed: function (mouse) {
+            var c = shell.activeCombo;
+            var inCombo = mouse.x >= c.comboX && mouse.x <= c.comboX + c.comboW && mouse.y >= c.comboY && mouse.y <= c.comboY + c.comboH;
+            if (!inCombo)
+                shell.activeCombo = null;
+            mouse.accepted = false;
         }
         propagateComposedEvents: true
     }
@@ -100,30 +109,29 @@ Item {
     // 与下拉遮罩透传模式一致，避免「点两次才切换」回归。提交与焦点归还都在 commitEdit 内。
     MouseArea {
         anchors.fill: parent
-        visible: root.editingCombo !== null
+        visible: shell.editingCombo !== null
         z: 500
-        onPressed: function(mouse) {
-            if (root.editingCombo) root.editingCombo.commitEdit()
-            mouse.accepted = false
+        onPressed: function (mouse) {
+            if (shell.editingCombo)
+                shell.editingCombo.commitEdit();
+            mouse.accepted = false;
         }
         propagateComposedEvents: true
     }
 
     Item {
         id: overlay
-        visible: root.activeCombo !== null
-        x: root.activeCombo ? root.activeCombo.comboX : 0
-        width: root.activeCombo ? root.activeCombo.comboW : 0
+        visible: shell.activeCombo !== null
+        x: shell.activeCombo ? shell.activeCombo.comboX : 0
+        width: shell.activeCombo ? shell.activeCombo.comboW : 0
         z: 1000
 
-        readonly property real optH: root.activeCombo
-                                     ? root.activeCombo.options.length * 36 * Theme.scaleFactor
-                                     : 0
+        readonly property real optH: shell.activeCombo ? shell.activeCombo.options.length * 36 * Theme.scaleFactor : 0
         readonly property real gap: 4 * Theme.scaleFactor
         readonly property real margin: 8 * Theme.scaleFactor
-        readonly property real comboY: root.activeCombo ? root.activeCombo.comboY : 0
-        readonly property real comboH: root.activeCombo ? root.activeCombo.comboH : 0
-        readonly property real spaceBelow: root.height - comboY - comboH - margin
+        readonly property real comboY: shell.activeCombo ? shell.activeCombo.comboY : 0
+        readonly property real comboH: shell.activeCombo ? shell.activeCombo.comboH : 0
+        readonly property real spaceBelow: shell.height - comboY - comboH - margin
         readonly property real spaceAbove: comboY - margin
         readonly property bool fitBelow: optH <= spaceBelow - gap
         readonly property bool fitAbove: optH <= spaceAbove - gap
@@ -147,7 +155,7 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 // 显示用 displayOptions（EnumCombo 按是否传 optionsTr 决定翻译显示），
                 // 但 pick 回传 options[index]（英文 key），保证存储层收到原值。
-                model: root.activeCombo ? root.activeCombo.displayOptions : []
+                model: shell.activeCombo ? shell.activeCombo.displayOptions : []
                 delegate: Rectangle {
                     width: optList.width
                     height: 36 * Theme.scaleFactor
@@ -167,9 +175,9 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (root.activeCombo)
-                                root.activeCombo.pick(root.activeCombo.options[index])
-                            root.activeCombo = null
+                            if (shell.activeCombo)
+                                shell.activeCombo.pick(shell.activeCombo.options[index]);
+                            shell.activeCombo = null;
                         }
                     }
                 }

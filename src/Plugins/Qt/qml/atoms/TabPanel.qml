@@ -20,7 +20,7 @@ import QtQuick
 import "."
 
 Rectangle {
-    id: root
+    id: panel
     color: Theme.listBg
     radius: 8 * Theme.scaleFactor
     border.width: 1 * Theme.scaleFactor
@@ -32,9 +32,10 @@ Rectangle {
     property string activeKey: tabs.length > 0 ? tabs[0].key : ""
 
     onContentChanged: {
-        if (!content) return
-        content.parent = contentArea
-        content.anchors.fill = contentArea
+        if (!content)
+            return;
+        content.parent = contentArea;
+        content.anchors.fill = contentArea;
     }
 
     TabBar {
@@ -43,9 +44,11 @@ Rectangle {
         anchors.topMargin: 8 * Theme.scaleFactor
         anchors.left: parent.left
         anchors.leftMargin: 8 * Theme.scaleFactor
-        model: root.tabs
-        activeKey: root.activeKey
-        onSelected: function (key) { root.activeKey = key }
+        model: panel.tabs
+        activeKey: panel.activeKey
+        onSelected: function (key) {
+            panel.activeKey = key;
+        }
     }
 
     // 调用方的 content 被挂到此处。

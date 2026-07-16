@@ -17,22 +17,21 @@ import QtQuick
 import "."
 
 Row {
-    id: root
+    id: bar
     spacing: 8 * Theme.scaleFactor
 
     property var model: []
     property string activeKey: ""
-    signal selected (string key)
+    signal selected(string key)
 
     Repeater {
-        model: root.model
+        model: bar.model
         delegate: Rectangle {
-            readonly property bool isActive: root.activeKey === modelData.key
+            readonly property bool isActive: bar.activeKey === modelData.key
             width: tabText.width + 28 * Theme.scaleFactor
             height: 30 * Theme.scaleFactor
             radius: height / 2
-            color: isActive ? Theme.selectBg
-                            : (tabMa.containsMouse ? Theme.fieldBgHover : "transparent")
+            color: isActive ? Theme.selectBg : (tabMa.containsMouse ? Theme.fieldBgHover : "transparent")
             border.width: isActive ? 1 * Theme.scaleFactor : 0
             border.color: Theme.selectBorder
             Text {
@@ -48,7 +47,7 @@ Row {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.selected (modelData.key)
+                onClicked: bar.selected(modelData.key)
             }
         }
     }

@@ -7,8 +7,9 @@
 // 显示真相源是 QML 本地的 values（参考 FormDialog）：打开时从 meta 读一次初始化，
 // 之后改动直接改 values 并 setPara 写文档，不重读 get-env——后者相对编辑命令有延迟，
 // 重读会显示滞后。唯一例外是「重置」：scheme 侧按 scope 撤销后 values 必须重读 meta
-// 重建（文档级 init-default 后真相源已变，缓存值会与文档背离）。id 用 dialog（非
-// root），避免被 EnumCombo/MiniButton 等原子内部 id: root 遮蔽。
+// 重建（文档级 init-default 后真相源已变，缓存值会与文档背离）。根 id 用 root，
+// 与其它成品一致——原子内部 id 不用 root（见 atoms/ 各文件），调用方 delegate
+// 的 root.xxx 不再被遮蔽。
 //
 // paraBridge 契约（ParagraphFormatBridge，无状态透传 specsKey）：
 //   uiLabels()            -> {basic, advanced, reset, ok, cancel, sepPresetLabel, sepPresets}
@@ -23,7 +24,7 @@ import QtQuick
 import "." // DialogShell / EnumCombo / EnumComboList / MiniButton / DialogButtons / TabBar / Theme
 
 DialogShell {
-    id: dialog
+    id: root
     implicitWidth: 520
     implicitHeight: 590
     onCancel: () => paraBridge.cancel()
@@ -42,22 +43,26 @@ DialogShell {
     readonly property real rowSpacing: 16 * Theme.scaleFactor
     readonly property real presetGap: 8 * Theme.scaleFactor
     function presetBtnWidth(rowWidth) {
-        var comboArea = rowWidth - rowWidth * dialog.labelRatio - dialog.rowSpacing
-        return (comboArea - 3 * dialog.presetGap) / 4
+        var comboArea = rowWidth - rowWidth * root.labelRatio - root.rowSpacing;
+        return (comboArea - 3 * root.presetGap) / 4;
     }
 
     // 从 meta 列表建 {var: value} 映射。
     function initValues(fields) {
-        var v = {}
-        for (var i = 0; i < fields.length; i++) v[fields[i].var] = fields[i].value
-        return v
+        var v = {};
+        for (var i = 0; i < fields.length; i++)
+            v[fields[i].var] = fields[i].value;
+        return v;
     }
     // 改某分组某字段：更新本地 values（触发显示刷新）+ live 写回文档。
     function setField(group, varName, val) {
-        var cur = group === "basic" ? dialog.basicValues : dialog.advancedValues
-        cur[varName] = val
-        if (group === "basic") dialog.basicValues = cur; else dialog.advancedValues = cur
-        paraBridge.setPara(varName, val)
+        var cur = group === "basic" ? root.basicValues : root.advancedValues;
+        cur[varName] = val;
+        if (group === "basic")
+            root.basicValues = cur;
+        else
+            root.advancedValues = cur;
+        paraBridge.setPara(varName, val);
     }
 
     content: Item {
@@ -67,23 +72,37 @@ DialogShell {
             id: tabBar
             anchors.top: parent.top
             anchors.left: parent.left
-            model: [ { key: "basic", label: dialog.labels.basic },
-                     { key: "advanced", label: dialog.labels.advanced } ]
-            activeKey: dialog.activeTab
-            onSelected: function(key) { dialog.activeTab = key }
+            model: [
+                {
+                    key: "basic",
+                    label: root.labels.basic
+                },
+                {
+                    key: "advanced",
+                    label: root.labels.advanced
+                }
+            ]
+            activeKey: root.activeTab
+            onSelected: function (key) {
+                root.activeTab = key;
+            }
         }
 
         DialogButtons {
             id: bottomButtons
             anchors.bottom: parent.bottom
             anchors.right: parent.right
-            buttonLabels: [dialog.labels.reset, dialog.labels.ok, dialog.labels.cancel]
+            buttonLabels: [root.labels.reset, root.labels.ok, root.labels.cancel]
             primaryIndex: 1
             buttonWidth: 90 * Theme.scaleFactor
-            onClicked: function(i) {
-                if (i === 0) { paraBridge.reset(); dialog.resetValues() }
-                else if (i === 1) paraBridge.submit()
-                else paraBridge.cancel()
+            onClicked: function (i) {
+                if (i === 0) {
+                    paraBridge.reset();
+                    root.resetValues();
+                } else if (i === 1)
+                    paraBridge.submit();
+                else
+                    paraBridge.cancel();
             }
         }
 
@@ -100,7 +119,7 @@ DialogShell {
             // 基础 tab：par-sep 行后插行间距预设按钮行，故自定义 Column。
             Flickable {
                 anchors.fill: parent
-                visible: dialog.activeTab === "basic"
+                visible: root.activeTab === "basic"
                 contentWidth: width
                 contentHeight: basicCol.height
                 clip: true
@@ -110,7 +129,7 @@ DialogShell {
                     width: parent.width
                     spacing: 6 * Theme.scaleFactor
                     Repeater {
-                        model: dialog.basicFields
+                        model: root.basicFields
                         delegate: Column {
                             width: basicCol.width
                             spacing: 6 * Theme.scaleFactor
@@ -118,38 +137,38 @@ DialogShell {
                                 width: parent.width
                                 label: modelData.label
                                 options: modelData.options
-                                value: dialog.basicValues[modelData.var] !== undefined
-                                       ? dialog.basicValues[modelData.var] : ""
+                                value: root.basicValues[modelData.var] !== undefined ? root.basicValues[modelData.var] : ""
                                 editable: modelData.editable !== undefined ? modelData.editable : false
-                                onChanged: function(v) { dialog.setField("basic", modelData.var, v) }
+                                onChanged: function (v) {
+                                    root.setField("basic", modelData.var, v);
+                                }
                             }
                             // 仅 par-sep 行下面插预设按钮行（行高 44，与 EnumCombo 行一致）。
                             Item {
                                 id: presetRow
                                 width: parent.width
-                                height: modelData.var === "par-sep" ? 44 * Theme.scaleFactor : 0
+                                height: modelData.var === "par-sep" ? Theme.rowH : 0
                                 visible: modelData.var === "par-sep"
                                 Text {
                                     id: presetLabel
-                                    width: presetRow.width * dialog.labelRatio
+                                    width: presetRow.width * root.labelRatio
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: dialog.labels.sepPresetLabel !== undefined
-                                          ? dialog.labels.sepPresetLabel : ""
+                                    text: root.labels.sepPresetLabel !== undefined ? root.labels.sepPresetLabel : ""
                                     color: Theme.fg
                                     font.pixelSize: 14 * Theme.scaleFactor
                                     elide: Text.ElideRight
                                 }
                                 Row {
                                     anchors.left: presetLabel.right
-                                    anchors.leftMargin: dialog.rowSpacing
+                                    anchors.leftMargin: root.rowSpacing
                                     anchors.verticalCenter: parent.verticalCenter
-                                    spacing: dialog.presetGap
+                                    spacing: root.presetGap
                                     Repeater {
-                                        model: dialog.labels.sepPresets !== undefined ? dialog.labels.sepPresets : []
+                                        model: root.labels.sepPresets !== undefined ? root.labels.sepPresets : []
                                         delegate: MiniButton {
-                                            width: dialog.presetBtnWidth(presetRow.width)
+                                            width: root.presetBtnWidth(presetRow.width)
                                             text: modelData.label
-                                            onClicked: dialog.setField("basic", "par-sep", modelData.val)
+                                            onClicked: root.setField("basic", "par-sep", modelData.val)
                                         }
                                     }
                                 }
@@ -162,10 +181,12 @@ DialogShell {
             // 高级 tab：纯 EnumCombo 竖列，用 EnumComboList 原子（valueSource 模式）。
             EnumComboList {
                 anchors.fill: parent
-                visible: dialog.activeTab === "advanced"
-                model: dialog.advancedFields
-                valueSource: dialog.advancedValues
-                onItemChanged: function(item, v) { dialog.setField("advanced", item.var, v) }
+                visible: root.activeTab === "advanced"
+                model: root.advancedFields
+                valueSource: root.advancedValues
+                onItemChanged: function (item, v) {
+                    root.setField("advanced", item.var, v);
+                }
             }
         }
     }
@@ -175,7 +196,7 @@ DialogShell {
     // reset 后显示仍是打开时值，而真相源（init）已是全局默认，造成显示与文档背离。
     // 重读 meta 此时拿到的是撤销后的值，两级语义都正确。
     function resetValues() {
-        dialog.basicValues = dialog.initValues(paraBridge.basicMeta())
-        dialog.advancedValues = dialog.initValues(paraBridge.advancedMeta())
+        root.basicValues = root.initValues(paraBridge.basicMeta());
+        root.advancedValues = root.initValues(paraBridge.advancedMeta());
     }
 }

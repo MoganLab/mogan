@@ -18,10 +18,6 @@ DialogShell {
     property string previewUrl: fontBridge.requestPreview()
     property var labels: fontBridge.uiLabels()
     property string activeTab: "filter"
-    // reset 后自增，驱动「绑定到无参 bridge 函数」的 currentValue 重算——这类
-    // binding 不会因 scheme 状态变化自动重算。重算后值可能未变，refreshAll 还需
-    // 显式 syncActiveValue 强制选中框同步。
-    property int refreshTick: 0
 
     readonly property real leftColumnWidth: 540 * Theme.scaleFactor
     readonly property real columnGap: 16 * Theme.scaleFactor
@@ -47,11 +43,15 @@ DialogShell {
                     height: parent.height
                     title: root.labels.family
                     items: familyModel.value
-                    currentValue: { var _ = root.refreshTick; return fontBridge.currentFamily() }
-                    onSelected: function(v) {
-                        var d = fontBridge.setFamily(v)
-                        styleModel.value = d.styles
-                        root.previewUrl = d.preview
+                    // currentValue 绑定读本 list 的 refreshTick（建立重算依赖）。
+                    currentValue: {
+                        familyList.refreshTick;
+                        return fontBridge.currentFamily();
+                    }
+                    onSelected: function (v) {
+                        var d = fontBridge.setFamily(v);
+                        styleModel.value = d.styles;
+                        root.previewUrl = d.preview;
                     }
                 }
                 SelectableList {
@@ -60,17 +60,30 @@ DialogShell {
                     height: parent.height
                     title: root.labels.style
                     items: styleModel.value
-                    currentValue: { var _ = root.refreshTick; return fontBridge.currentStyle() }
-                    onSelected: function(v) { root.previewUrl = fontBridge.setStyle(v).preview }
+                    currentValue: {
+                        styleList.refreshTick;
+                        return fontBridge.currentStyle();
+                    }
+                    onSelected: function (v) {
+                        root.previewUrl = fontBridge.setStyle(v).preview;
+                    }
                 }
                 SelectableList {
                     id: sizeList
                     width: 115 * Theme.scaleFactor
                     height: parent.height
                     title: root.labels.size
-                    items: { var _ = root.refreshTick; return fontBridge.requestSizes() }
-                    currentValue: { var _ = root.refreshTick; return fontBridge.currentSize() }
-                    onSelected: function(v) { root.previewUrl = fontBridge.setSize(v).preview }
+                    items: {
+                        sizeList.refreshTick;
+                        return fontBridge.requestSizes();
+                    }
+                    currentValue: {
+                        sizeList.refreshTick;
+                        return fontBridge.currentSize();
+                    }
+                    onSelected: function (v) {
+                        root.previewUrl = fontBridge.setSize(v).preview;
+                    }
                 }
             }
 
@@ -84,12 +97,14 @@ DialogShell {
                     label: root.labels.sample
                     options: fontBridge.sampleKinds()
                     value: fontBridge.currentSampleKind()
-                    onChanged: function(v) { root.previewUrl = fontBridge.setSampleKind(v).preview }
+                    onChanged: function (v) {
+                        root.previewUrl = fontBridge.setSampleKind(v).preview;
+                    }
                 }
                 PreviewPane {
                     width: parent.width
                     imageSource: root.previewUrl
-                    height: parent.height - 44 * Theme.scaleFactor - 8 * Theme.scaleFactor
+                    height: parent.height - Theme.rowH - 8 * Theme.scaleFactor
                 }
             }
         }
@@ -109,7 +124,16 @@ DialogShell {
                 anchors.right: parent.right
                 anchors.bottom: bottomButtons.top
                 anchors.bottomMargin: 12 * Theme.scaleFactor
-                tabs: [ { key: "filter", label: root.labels.filter }, { key: "advanced", label: root.labels.advanced } ]
+                tabs: [
+                    {
+                        key: "filter",
+                        label: root.labels.filter
+                    },
+                    {
+                        key: "advanced",
+                        label: root.labels.advanced
+                    }
+                ]
                 activeKey: root.activeTab
                 onActiveKeyChanged: root.activeTab = activeKey
                 content: Item {
@@ -117,20 +141,20 @@ DialogShell {
                         anchors.fill: parent
                         visible: root.activeTab === "filter"
                         model: filterModel.value
-                        onItemChanged: function(item, v) {
-                            var d = fontBridge.setFilter(item.var, v)
-                            familyModel.value = d.families
-                            filterModel.value = fontBridge.filterMeta()
-                            root.previewUrl = d.preview
+                        onItemChanged: function (item, v) {
+                            var d = fontBridge.setFilter(item.var, v);
+                            familyModel.value = d.families;
+                            filterModel.value = fontBridge.filterMeta();
+                            root.previewUrl = d.preview;
                         }
                     }
                     EnumComboList {
                         anchors.fill: parent
                         visible: root.activeTab === "advanced"
                         model: customizeModel.value
-                        onItemChanged: function(item, v) {
-                            root.previewUrl = fontBridge.setCustomize(item.which, v).preview
-                            customizeModel.value = fontBridge.customizeMeta()
+                        onItemChanged: function (item, v) {
+                            root.previewUrl = fontBridge.setCustomize(item.which, v).preview;
+                            customizeModel.value = fontBridge.customizeMeta();
                         }
                     }
                 }
@@ -144,13 +168,19 @@ DialogShell {
                 buttonLabels: [root.labels["import"], root.labels.reset, root.labels.ok, root.labels.cancel]
                 primaryIndex: 2
                 buttonWidth: 82 * Theme.scaleFactor
-                onClicked: function(i) {
+                onClicked: function (i) {
                     // font-import 的 refresh-now 只对老 tm-widget 标签生效，Import 后
                     // 须手动重拉 family 列表让新字体出现。
-                    if (i === 0) { fontBridge.importFont(); familyModel.value = fontBridge.requestFamilies() }
-                    else if (i === 1) { fontBridge.reset(); root.refreshAll() }
-                    else if (i === 2) fontBridge.submit()
-                    else fontBridge.cancel()
+                    if (i === 0) {
+                        fontBridge.importFont();
+                        familyModel.value = fontBridge.requestFamilies();
+                    } else if (i === 1) {
+                        fontBridge.reset();
+                        root.refreshAll();
+                    } else if (i === 2)
+                        fontBridge.submit();
+                    else
+                        fontBridge.cancel();
                 }
             }
         }
@@ -176,16 +206,19 @@ DialogShell {
     }
 
     function refreshAll() {
-        root.refreshTick++
-        familyModel.value = fontBridge.requestFamilies()
-        styleModel.value = fontBridge.requestStyles(fontBridge.currentFamily())
-        filterModel.value = fontBridge.filterMeta()
-        customizeModel.value = fontBridge.customizeMeta()
-        previewUrl = fontBridge.requestPreview()
-        // currentValue 重算后值可能未变（reset 回到打开时默认），changed 信号不发，
-        // activeValue 不会更新——此处显式同步选中框。
-        familyList.syncActiveValue()
-        styleList.syncActiveValue()
-        sizeList.syncActiveValue()
+        // 递增各 list 自身的 refreshTick，驱动其 currentValue/items 绑定重算
+        //（取代对话框级单一 refreshTick）。重算后值可能未变（reset 回到打开时默认），
+        // onCurrentValueChanged 不发、activeValue 不更新——显式 syncActiveValue 同步选中框。
+        familyList.refreshTick++;
+        styleList.refreshTick++;
+        sizeList.refreshTick++;
+        familyModel.value = fontBridge.requestFamilies();
+        styleModel.value = fontBridge.requestStyles(fontBridge.currentFamily());
+        filterModel.value = fontBridge.filterMeta();
+        customizeModel.value = fontBridge.customizeMeta();
+        previewUrl = fontBridge.requestPreview();
+        familyList.syncActiveValue();
+        styleList.syncActiveValue();
+        sizeList.syncActiveValue();
     }
 }

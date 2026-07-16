@@ -19,7 +19,7 @@
 import QtQuick
 
 Row {
-    id: root
+    id: row
     spacing: 16 * Theme.scaleFactor
 
     property var buttonLabels: []
@@ -29,18 +29,16 @@ Row {
     signal clicked(int index)
 
     Repeater {
-        model: root.buttonLabels
+        model: row.buttonLabels
         delegate: Rectangle {
-            width: root.buttonWidth
-            height: 40 * Theme.scaleFactor
-            radius: 20 * Theme.scaleFactor
-            color: ma.containsMouse
-                   ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover)
-                   : (primary ? Theme.accent : Theme.fieldBg)
+            width: row.buttonWidth
+            height: Theme.btnH
+            radius: height / 2
+            color: ma.containsMouse ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover) : (primary ? Theme.accent : Theme.fieldBg)
             border.width: primary ? 1 * Theme.scaleFactor : 0
             border.color: primary ? Theme.accent : "transparent"
 
-            property bool primary: index === root.primaryIndex
+            property bool primary: index === row.primaryIndex
 
             Text {
                 anchors.centerIn: parent
@@ -48,7 +46,7 @@ Row {
                 color: primary ? "#ffffff" : Theme.fg
                 font.pixelSize: 15 * Theme.scaleFactor
                 font.weight: primary ? Font.Bold : Font.DemiBold
-                font.letterSpacing: root.letterSpacing * Theme.scaleFactor
+                font.letterSpacing: row.letterSpacing * Theme.scaleFactor
             }
             MouseArea {
                 id: ma
@@ -58,10 +56,19 @@ Row {
                 onPressed: parent.scale = 0.96
                 onReleased: parent.scale = 1.0
                 onCanceled: parent.scale = 1.0
-                onClicked: root.clicked(index)
+                onClicked: row.clicked(index)
             }
-            Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
-            Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 80
+                    easing.type: Easing.OutQuad
+                }
+            }
+            Behavior on color {
+                ColorAnimation {
+                    duration: 150
+                }
+            }
         }
     }
 }

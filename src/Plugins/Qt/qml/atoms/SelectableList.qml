@@ -23,27 +23,37 @@
 import QtQuick
 
 Item {
-    id: root
+    id: selList
 
     property var items: []
     property string currentValue: ""
     property string title: ""
     signal selected(string value)
 
+    // refreshTick：调用方 reset/refresh 后递增，驱动 currentValue 绑定（里头读本属性）
+    // 重算——绑定到无参 bridge 函数的 currentValue 不会因 bridge 内部状态变化自动重算，
+    // 靠这个外部计数器注入依赖。每个 list 各持一份（取代对话框级的单一 refreshTick），
+    // 调用方 currentValue 绑定读 `<listId>.refreshTick` 即可，不必手写假读样板。
+    property int refreshTick: 0
+
     // 点击即时更新 activeValue 驱动高亮；currentValue 变化时同步回内部态。
     property string activeValue: currentValue
     onCurrentValueChanged: activeValue = currentValue
 
     // reset 后 currentValue 可能「值未变」（回到打开时默认），changed 信号不发、
-    // activeValue 不更新——调用方在 refreshAll 后显式调用。
-    function syncActiveValue() { activeValue = currentValue }
+    // activeValue 不更新——调用方在 refreshAll 后显式调用。若 currentValue 绑定读了
+    // 本 list 的 refreshTick 且 refresh 时递增了它，则此处可省（currentValue 已重算）。
+    function syncActiveValue() {
+        activeValue = currentValue;
+    }
 
-    readonly property real headerH: root.title.length > 0 ? 24 * Theme.scaleFactor : 0
+    readonly property real headerH: selList.title.length > 0 ? 24 * Theme.scaleFactor : 0
 
     readonly property int currentIndex: {
         for (var i = 0; i < items.length; i++)
-            if (items[i] === activeValue) return i
-        return -1
+            if (items[i] === activeValue)
+                return i;
+        return -1;
     }
 
     Rectangle {
@@ -56,14 +66,14 @@ Item {
 
         Text {
             id: header
-            visible: root.title.length > 0
+            visible: selList.title.length > 0
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: root.headerH
+            height: selList.headerH
             verticalAlignment: Text.AlignVCenter
             leftPadding: 8 * Theme.scaleFactor
-            text: root.title
+            text: selList.title
             color: Theme.fg
             font.bold: true
             font.pixelSize: 14 * Theme.scaleFactor
@@ -78,15 +88,16 @@ Item {
             clip: true
             interactive: true
             boundsBehavior: Flickable.StopAtBounds
-            model: root.items
-            currentIndex: root.currentIndex
+            model: selList.items
+            currentIndex: selList.currentIndex
 
-            onCurrentIndexChanged: if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
+            onCurrentIndexChanged: if (currentIndex >= 0)
+                positionViewAtIndex(currentIndex, ListView.Contain)
 
             delegate: Item {
                 width: list.width
                 height: 36 * Theme.scaleFactor
-                readonly property bool isCurrent: root.activeValue === modelData
+                readonly property bool isCurrent: selList.activeValue === modelData
 
                 Rectangle {
                     id: hilite
@@ -96,8 +107,7 @@ Item {
                     anchors.topMargin: 4 * Theme.scaleFactor
                     anchors.bottomMargin: 4 * Theme.scaleFactor
                     radius: 8 * Theme.scaleFactor
-                    color: isCurrent ? Theme.selectBg
-                                     : (ma.containsMouse ? Theme.fieldBgHover : "transparent")
+                    color: isCurrent ? Theme.selectBg : (ma.containsMouse ? Theme.fieldBgHover : "transparent")
                     border.width: isCurrent ? 1 * Theme.scaleFactor : 0
                     border.color: Theme.selectBorder
                 }
@@ -119,8 +129,8 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         if (!isCurrent) {
-                            root.activeValue = modelData
-                            root.selected(modelData)
+                            selList.activeValue = modelData;
+                            selList.selected(modelData);
                         }
                     }
                 }

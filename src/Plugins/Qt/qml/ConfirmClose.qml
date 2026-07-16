@@ -20,8 +20,10 @@ DialogShell {
 
     onActivate: () => closeBridge.choose(1)
 
-    // content 填满正文区，消息+按钮用内层 Column 垂直居中。用 root.id 引用根属性，
-    // 不走 parent 链（content 被 reparent 到 contentCol，中间隔两层）。
+    // content 填满正文区（DialogShell 强制设 anchors.fill），消息+按钮用内层
+    // Column 垂直居中。外层 Item 不可省：它承接 anchors.fill，让 Column 自由用
+    // verticalCenter 居中（同一 Item 不能既 fill 又 verticalCenter）。用 root.id
+    // 引用根属性（content 被 reparent 到 contentCol，parent 链不可靠）。
     content: Item {
         Column {
             id: body
@@ -47,7 +49,9 @@ DialogShell {
                 buttonLabels: root.buttonLabels
                 buttonWidth: 108 * Theme.scaleFactor
                 letterSpacing: 0.3
-                onClicked: function(index) { closeBridge.choose(index + 1) }
+                onClicked: function (index) {
+                    closeBridge.choose(index + 1);
+                }
             }
         }
     }

@@ -27,7 +27,7 @@ Rectangle {
     border.color: Theme.borderClr
 
     property string text: ""
-    signal clicked()
+    signal clicked
 
     Text {
         anchors.centerIn: parent
@@ -46,6 +46,15 @@ Rectangle {
         onCanceled: parent.scale = 1.0
         onClicked: btn.clicked()
     }
-    Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
-    Behavior on color { ColorAnimation { duration: 150 } }
+    Behavior on scale {
+        NumberAnimation {
+            duration: 80
+            easing.type: Easing.OutQuad
+        }
+    }
+    Behavior on color {
+        ColorAnimation {
+            duration: 150
+        }
+    }
 }

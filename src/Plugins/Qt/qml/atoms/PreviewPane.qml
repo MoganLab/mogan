@@ -11,7 +11,7 @@
 import QtQuick
 
 Item {
-    id: root
+    id: pane
 
     property string imageSource: ""
 
@@ -32,14 +32,12 @@ Item {
 
             Image {
                 id: img
-                width: root.width - 2 * Theme.scaleFactor
-                height: (img.sourceSize.width > 0)
-                        ? width * img.sourceSize.height / img.sourceSize.width
-                        : root.height
+                width: pane.width - 2 * Theme.scaleFactor
+                height: (img.sourceSize.width > 0) ? width * img.sourceSize.height / img.sourceSize.width : pane.height
                 fillMode: Image.PreserveAspectFit
                 horizontalAlignment: Image.AlignLeft
                 verticalAlignment: Image.AlignTop
-                source: root.imageSource
+                source: pane.imageSource
                 asynchronous: false
                 cache: false
                 smooth: true
