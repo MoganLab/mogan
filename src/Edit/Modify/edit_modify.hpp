@@ -34,12 +34,12 @@ protected:
 public:
   edit_modify_rep ();
   ~edit_modify_rep ();
-  double this_author ();
+  double this_author () override;
 
-  void notify_assign (path p, tree u);
-  void notify_insert (path p, tree u);
-  void notify_remove (path p, int nr);
-  void notify_split (path p);
+  void notify_assign (path p, tree u) override;
+  void notify_insert (path p, tree u) override;
+  void notify_remove (path p, int nr) override;
+  void notify_split (path p) override;
   void notify_join (path p);
   void notify_assign_node (path p, tree_label op);
   void notify_insert_node (path p, tree t);

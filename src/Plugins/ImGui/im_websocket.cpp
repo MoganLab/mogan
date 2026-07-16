@@ -113,7 +113,9 @@ im_websocket_client::poll () {
           on_connect ();
         }
       } else {
-        on_error ("WebSocket connection failed or closed");
+        string err_msg = "WebSocket connection failed: ";
+        err_msg << curl_easy_strerror(msg->data.result);
+        on_error (err_msg);
         disconnect ();
         return; // handle is cleaned up
       }

@@ -37,7 +37,7 @@ edit_modify_rep::~edit_modify_rep () {}
 void
 edit_modify_rep::mirror_loro (const modification& mod) {
   if (loro_applying_remote) return; // 远端应用期间不回灌镜像，避免循环
-  if (mod->k == MOD_SET_CURSOR) return;
+  if (const_cast<modification&>(mod)->k == MOD_SET_CURSOR) return;
   if (!loro_seeded) {
     loro_doc->seed (the_buffer ());
     loro_seeded= true;

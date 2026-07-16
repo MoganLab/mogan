@@ -500,6 +500,26 @@ gui_open (int& argc, char** argv) {
 // "Invalid situation" 而提前返回。将其保存在这里，让 ImGui 驱动这一回调。
 static void (*g_interpose_fn) (void)= nullptr;
 
+#ifdef LORO_ENABLED
+#include "im_websocket.hpp"
+class test_websocket_client : public im_websocket_client {
+public:
+  void on_connect () override {
+    cout << "Connected to Loro relay server!\n";
+    send("JOIN test-room", false);
+  }
+  void on_message (string data, bool is_binary) override {
+    cout << "Received msg: " << (is_binary ? "binary" : "text") << " size: " << N(data) << "\n";
+  }
+  void on_error (string msg) override {
+    cout << "WS Error: " << msg << "\n";
+  }
+  void on_disconnect () override {
+    cout << "WS Disconnected\n";
+  }
+};
+#endif
+
 void
 gui_interpose (void (*fn) (void)) {
   g_interpose_fn= fn;
@@ -508,6 +528,15 @@ gui_interpose (void (*fn) (void)) {
 void
 im_interpose () {
   if (g_interpose_fn != nullptr) g_interpose_fn ();
+
+#ifdef LORO_ENABLED
+  static test_websocket_client* g_ws_client = nullptr;
+  if (!g_ws_client) {
+    g_ws_client = new test_websocket_client();
+    g_ws_client->connect("ws://127.0.0.1:8765");
+  }
+  g_ws_client->poll();
+#endif
 }
 
 void
