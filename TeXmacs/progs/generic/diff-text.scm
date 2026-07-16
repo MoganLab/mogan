@@ -42,7 +42,7 @@
           (go-to-next-tag 'version-both) ; 多差异常规流程：向后搜寻
       ) ;if
   ) ;if
-  (delayed (:idle 1) (diff-check-popup))
+  (delayed (:idle 0) (diff-check-popup))
 ) ;define
 
 ;; =============================================================================
@@ -100,6 +100,8 @@
     ) ;when
   ) ;let
   (diff-feedback 'accept)
+  (set! diff-active? #f)
+  (hide-diff-popup)
   (diff-scan-next)
 ) ;tm-define
 
@@ -115,6 +117,8 @@
     ) ;when
   ) ;let
   (diff-feedback 'reject)
+  (set! diff-active? #f)
+  (hide-diff-popup)
   (diff-scan-next)
 ) ;tm-define
 
@@ -138,11 +142,11 @@
 (tm-define (keyboard-press key time)
   (:require (diff-enable?))
   (former key time)
-  (delayed (:idle 1) (diff-check-popup))
+  (delayed (:idle 0) (diff-check-popup))
 ) ;tm-define
 
 (tm-define (mouse-event key x y mods time data)
   (:require (diff-enable?))
   (former key x y mods time data)
-  (delayed (:idle 1) (diff-check-popup))
+  (delayed (:idle 0) (diff-check-popup))
 ) ;tm-define
