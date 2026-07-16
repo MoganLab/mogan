@@ -59,7 +59,10 @@ DialogShell {
             anchors.horizontalCenter: parent.horizontalCenter
             buttonLabels: root.buttonLabels
             onClicked: function (index) {
-                index === 0 ? closeBridge.submit(root.values) : closeBridge.cancel();
+                if (index === 0)
+                    closeBridge.submit(root.values);
+                else
+                    closeBridge.cancel();
             }
         }
     }

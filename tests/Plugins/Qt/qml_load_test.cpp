@@ -2,11 +2,12 @@
  * MODULE     : qml_load_test.cpp
  * DESCRIPTION: 加载真实 QML 弹窗文档，断言 setSource 后 status()==Ready。
  *              安全网：改造四个成品弹窗（ConfirmClose / FormDialog /
- *FontSelector / ParagraphFormat）与 atoms/ 原子板块后，确保 QML
- *仍能解析、实例化。 不验证交互（需可见窗口 +
- *人工），只验证「文档加载不失败」——import 缺失、语法错、id 悬空、context
- *property 误用的第一道关。 新增弹窗在此加一个 test_xxx_loads 用例即可（注入对应
- *bridge 桩）。 COPYRIGHT   : (C) 2026 Mogan STEM
+ *              FontSelector / ParagraphFormat）与 atoms/ 原子板块后，确保 QML
+ *              仍能解析、实例化。不验证交互（需可见窗口 + 人工），只验证
+ *              「文档加载不失败」——import 缺失、语法错、id 悬空、context
+ *              property 误用的第一道关。新增弹窗在此加一个 test_xxx_loads
+ *              用例即可（注入对应 bridge 桩）。
+ * COPYRIGHT   : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.

@@ -3,7 +3,7 @@
 // scaleFactor/dark 取自 C++ 注入的 context property dpScale/isDark（QQmlContext 对
 // engine 级 singleton 可见）；缺省回退（独立预览/单测不注入时不崩）。
 //
-// 用法：弹窗 qml 顶部 `import "."` 后直接 `Theme.bg` / `Theme.scaleFactor` 等。
+// 用法：成品弹窗 qml 顶部 `import "atoms"` 后直接 `Theme.bg` / `Theme.scaleFactor` 等。
 
 pragma Singleton
 import QtQuick

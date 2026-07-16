@@ -6,7 +6,7 @@
 //   content          : Item   —— 正文（不要写 anchors.fill，挂载时由本组件设）。
 //   implicitMargins  : int    —— 正文四周边距，默认 24×scaleFactor。
 //   onActivate       : var    —— Enter/Return 回调（默认 no-op）。
-//   onCancel         : var    —— ESC 且无下拉展开时的回调（默认 choose(-1)）。
+//   onCancel         : var    —— ESC 且无下拉展开时的回调（默认 closeBridge.cancel()）。
 //   activeCombo      : var    —— 当前展开的 EnumCombo（共享浮层用，通常不直接设）。
 //
 // 用法：
@@ -42,8 +42,9 @@ Item {
     implicitHeight: 200
     property int implicitMargins: Theme.margin
 
-    // ESC：浮层展开时先收起，否则取消整个弹窗。Enter/Return 默认无操作。
-    property var onCancel: () => closeBridge.choose(-1)
+    // ESC：浮层展开时先收起，否则取消整个弹窗。默认语义化取消（Rejected），
+    // 与 choose(-1) 等价；成品弹窗可覆盖（如 FontSelector 转调 fontBridge.cancel()）。
+    property var onCancel: () => closeBridge.cancel()
     property var onActivate: null
     focus: true
     Keys.onEscapePressed: {
