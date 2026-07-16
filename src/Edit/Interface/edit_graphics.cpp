@@ -17,8 +17,8 @@
 #include "scheme.hpp"
 #include "server.hpp"
 #include "tree_observer.hpp"
-#include <moebius/drd/drd_std.hpp>
 #include <cmath>
+#include <moebius/drd/drd_std.hpp>
 
 using namespace moebius;
 extern tree the_et;
@@ -89,8 +89,7 @@ can_snap (gr_selection sel) {
   if (type == "grid-curve-point&text-border")
     return check_snap_mode ("text border") &&
            check_snap_mode ("curve-curve intersection");
-  if (type == "ghost-curve-point")
-    return check_snap_mode ("ghost line");
+  if (type == "ghost-curve-point") return check_snap_mode ("ghost line");
   if (type == "ghost-curve-point&ghost-curve-point")
     return check_snap_mode ("ghost line");
   if (type == "ghost-curve-point&grid-curve-point" ||
@@ -99,8 +98,7 @@ can_snap (gr_selection sel) {
            check_snap_mode ("grid curve point");
   if (type == "ghost-curve-point&curve-point" ||
       type == "curve-point&ghost-curve-point")
-    return check_snap_mode ("ghost line") &&
-           check_snap_mode ("curve point");
+    return check_snap_mode ("ghost line") && check_snap_mode ("curve point");
   cout << "Uncaptured snap type " << type << "\n";
   return true;
 }
@@ -142,14 +140,15 @@ snap_to_guide (point p, gr_selections sels, double eps) {
           (!ends (sels[i]->type, "-border") ||
            !ends (sels[j]->type, "-point")) &&
           !ends (sels[i]->type, "handle") && !ends (sels[j]->type, "handle")) {
-        // 过滤共线或平行的直线，防止由于重合导致 Newton 求解器产生跟随鼠标的“伪零距离交点”
-        bool err1, err2;
-        point v1 = sels[i]->c->grad (0.5, err1);
-        point v2 = sels[j]->c->grad (0.5, err2);
+        // 过滤共线或平行的直线，防止由于重合导致 Newton
+        // 求解器产生跟随鼠标的“伪零距离交点”
+        bool  err1, err2;
+        point v1= sels[i]->c->grad (0.5, err1);
+        point v2= sels[j]->c->grad (0.5, err2);
         if (!err1 && !err2 && N (v1) == 2 && N (v2) == 2) {
           double det = v1[0] * v2[1] - v1[1] * v2[0];
-          double len1 = norm (v1);
-          double len2 = norm (v2);
+          double len1= norm (v1);
+          double len2= norm (v2);
           if (fabs (det) < 1e-4 * len1 * len2) continue;
         }
 
@@ -304,81 +303,84 @@ edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
 }
 
 static bool
-snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selections& sels, frame f2) {
+snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
+                 gr_selections& sels, frame f2) {
   if (!check_snap_mode ("ghost line")) {
     call ("graphics-clear-ghost-lines");
     return false;
   }
 
-  bool has_ghost = false;
+  bool has_ghost= false;
 
-  tree t_prev = as_tree (call ("graphics-get-all-previous-points"));
+  tree t_prev= as_tree (call ("graphics-get-all-previous-points"));
   if (is_tuple (t_prev) && N (t_prev) > 0) {
-    int n_points = N (t_prev);
+    int n_points= N (t_prev);
     call ("graphics-clear-ghost-lines");
 
-    // 计算全局基线角：上一个绘制的点 (pk_1) 和上上一个绘制的点 (pk_2) 的连线倾角
-    double base_angle = 0.0;
+    // 计算全局基线角：上一个绘制的点 (pk_1) 和上上一个绘制的点 (pk_2)
+    // 的连线倾角
+    double base_angle= 0.0;
     if (n_points >= 2) {
-      point pk_1 = as_point (t_prev[n_points - 1]);
-      point pk_2 = as_point (t_prev[n_points - 2]);
+      point pk_1= as_point (t_prev[n_points - 1]);
+      point pk_2= as_point (t_prev[n_points - 2]);
       if (N (pk_1) == 2 && N (pk_2) == 2) {
-        point pk_1_layout = f2 (pk_1);
-        point pk_2_layout = f2 (pk_2);
-        base_angle = atan2 (pk_1_layout[1] - pk_2_layout[1], pk_1_layout[0] - pk_2_layout[0]);
+        point pk_1_layout= f2 (pk_1);
+        point pk_2_layout= f2 (pk_2);
+        base_angle       = atan2 (pk_1_layout[1] - pk_2_layout[1],
+                                  pk_1_layout[0] - pk_2_layout[0]);
       }
     }
 
-    for (int j = 0; j < n_points; ++j) {
-      point p1 = as_point (t_prev[j]);
+    for (int j= 0; j < n_points; ++j) {
+      point p1= as_point (t_prev[j]);
       if (N (p1) != 2) continue;
 
-      point fp_local = f2 [fp]; // 转换鼠标点到局部厘米坐标系
-      point v = fp_local - p1;
-      double dist_to_p1 = norm (v);
+      point  fp_local  = f2[fp]; // 转换鼠标点到局部厘米坐标系
+      point  v         = fp_local - p1;
+      double dist_to_p1= norm (v);
       if (dist_to_p1 > 1e-5) {
-        double phi = atan2 (v[1], v[0]);
-        double min_d = -1.0;
-        double best_theta = 0.0;
+        double phi       = atan2 (v[1], v[0]);
+        double min_d     = -1.0;
+        double best_theta= 0.0;
 
         // 遍历 30 度的倍数寻找最近方向（相对于 base_angle）
-        for (int k = -5; k <= 6; ++k) {
-          double rel_theta = k * M_PI / 6.0;
-          double theta = base_angle + rel_theta;
-          double diff = phi - theta;
-          double d = dist_to_p1 * fabs (sin (diff));
+        for (int k= -5; k <= 6; ++k) {
+          double rel_theta= k * M_PI / 6.0;
+          double theta    = base_angle + rel_theta;
+          double diff     = phi - theta;
+          double d        = dist_to_p1 * fabs (sin (diff));
           if (min_d < 0.0 || d < min_d) {
-            min_d = d;
-            best_theta = theta;
+            min_d     = d;
+            best_theta= theta;
           }
         }
 
         // 遍历 45 度的倍数寻找最近方向（相对于 base_angle）
-        for (int k = -3; k <= 4; ++k) {
+        for (int k= -3; k <= 4; ++k) {
           if (k % 2 != 0) {
-            double rel_theta = k * M_PI / 4.0;
-            double theta = base_angle + rel_theta;
-            double diff = phi - theta;
-            double d = dist_to_p1 * fabs (sin (diff));
+            double rel_theta= k * M_PI / 4.0;
+            double theta    = base_angle + rel_theta;
+            double diff     = phi - theta;
+            double d        = dist_to_p1 * fabs (sin (diff));
             if (d < min_d) {
-              min_d = d;
-              best_theta = theta;
+              min_d     = d;
+              best_theta= theta;
             }
           }
         }
 
-        double snap_dist_local = f2->inverse_scalar (snap_distance);
+        double snap_dist_local= f2->inverse_scalar (snap_distance);
 
         // 仅在鼠标靠近标尺且在吸附距离内时激活
         if (min_d < snap_dist_local) {
-          has_ghost = true;
+          has_ghost= true;
           point dir (cos (best_theta), sin (best_theta));
-          point p1_start_local = p1 - 12.0 * dir;
-          point p1_end_local = p1 + 12.0 * dir;
-          curve ghost_curve_local = segment (p1_start_local, p1_end_local);
+          point p1_start_local   = p1 - 12.0 * dir;
+          point p1_end_local     = p1 + 12.0 * dir;
+          curve ghost_curve_local= segment (p1_start_local, p1_end_local);
 
-          double proj_dist = dist_to_p1 * cos (phi - best_theta);
-          point snapped_p_local = p1 + proj_dist * dir;
+          double proj_dist      = dist_to_p1 * cos (phi - best_theta);
+          point  snapped_p_local= p1 + proj_dist * dir;
 
           gr_selection sel;
           sel->type= "ghost-curve-point";
@@ -387,7 +389,8 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selec
           sel->c   = f2 (ghost_curve_local);
           sels << sel;
 
-          call ("graphics-add-ghost-line", as_string (p1[0]), as_string (p1[1]), as_string (best_theta));
+          call ("graphics-add-ghost-line", as_string (p1[0]), as_string (p1[1]),
+                as_string (best_theta));
         }
       }
     }

@@ -13,9 +13,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (graphics graphics-object)
-  (:use (graphics graphics-utils)
-        (graphics graphics-ghost)
-  ) ;:use
+  (:use (graphics graphics-utils) (graphics graphics-ghost))
 ) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -615,14 +613,14 @@
                                                                      the-sketch)
                                           current-path
                                           pts)))
-                             (append props
-                               `((concat unquote
-                                   (append (cond ((== pts 'points) op)
-                                                 ((== pts 'object) `(,mag-o))
-                                                 ((== pts 'object-and-points)
-                                                  (cons mag-o op)))
-                                           (graphics-extra-decorations))))
-                            ) ;append
+                           (append props
+                             `((concat unquote
+                                 (append (cond ((== pts 'points) op)
+                                               ((== pts 'object) `(,mag-o))
+                                               ((== pts 'object-and-points)
+                                                (cons mag-o op)))
+                                   (graphics-extra-decorations))))
+                           ) ;append
                          ) ;if
       ) ;graphical-object!
     ) ;let*
@@ -685,7 +683,7 @@
 (tm-define (graphics-decorations-reset)
   (graphics-set-ghost-line "false" "false" "false")
   (create-graphical-object #f #f #f #f)
-)
+) ;tm-define
 
 ;; Operating on the graphical object
 (tm-define (transform-graphical-object opn)
@@ -788,6 +786,4 @@
 
 (tm-define (sketch-cancel) #t)
 
-(tm-define (graphics-extra-decorations)
-  (graphics-get-decorations-ghost-line)
-)
+(tm-define (graphics-extra-decorations) (graphics-get-decorations-ghost-line))
