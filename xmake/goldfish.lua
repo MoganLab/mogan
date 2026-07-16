@@ -18,6 +18,7 @@ target("libgoldfish") do
     set_kind("static")
     set_languages("c11")
     add_packages("liii-tbox")
+    add_packages("argh", {public = true})
     add_defines("WITH_SYSTEM_EXTRAS=0")
     if not is_plat("wasm") then
         add_defines("HAVE_OVERFLOW_CHECKS=0")
@@ -60,7 +61,6 @@ target ("goldfish") do
     set_kind("static")
     set_languages("c++17")
     add_deps("libgoldfish")
-    add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
     add_files({
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_base64.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_hashlib.cpp",
@@ -105,14 +105,15 @@ target ("goldfish") do
     if not is_plat("wasm") then
         add_packages("cpr")
     end
-    add_packages("argh")
-    on_install(function (target)
-    end)
+    add_packages("argh", {public = true})
 end
 
 target ("goldfish-bin") do
     set_kind("binary")
     add_deps("goldfish")
+    set_basename("goldfish")
+    add_packages("liii-tbox")
+    add_packages("argh", {public = true})
     set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
     add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
 end
