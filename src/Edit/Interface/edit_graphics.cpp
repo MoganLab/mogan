@@ -142,6 +142,17 @@ snap_to_guide (point p, gr_selections sels, double eps) {
           (!ends (sels[i]->type, "-border") ||
            !ends (sels[j]->type, "-point")) &&
           !ends (sels[i]->type, "handle") && !ends (sels[j]->type, "handle")) {
+        // 过滤共线或平行的直线，防止由于重合导致 Newton 求解器产生跟随鼠标的“伪零距离交点”
+        bool err1, err2;
+        point v1 = sels[i]->c->grad (0.5, err1);
+        point v2 = sels[j]->c->grad (0.5, err2);
+        if (!err1 && !err2 && N (v1) == 2 && N (v2) == 2) {
+          double det = v1[0] * v2[1] - v1[1] * v2[0];
+          double len1 = norm (v1);
+          double len2 = norm (v2);
+          if (fabs (det) < 1e-4 * len1 * len2) continue;
+        }
+
         array<point> ins= intersection (sels[i]->c, sels[j]->c, p, eps);
         for (int k= 0; k < N (ins); k++)
           if (best->type == "none" || norm (ins[k] - p) < best->dist) {
@@ -306,19 +317,21 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selec
     int n_points = N (t_prev);
     call ("graphics-clear-ghost-lines");
 
+    // 计算全局基线角：上一个绘制的点 (pk_1) 和上上一个绘制的点 (pk_2) 的连线倾角
+    double base_angle = 0.0;
+    if (n_points >= 2) {
+      point pk_1 = as_point (t_prev[n_points - 1]);
+      point pk_2 = as_point (t_prev[n_points - 2]);
+      if (N (pk_1) == 2 && N (pk_2) == 2) {
+        point pk_1_layout = f2 (pk_1);
+        point pk_2_layout = f2 (pk_2);
+        base_angle = atan2 (pk_1_layout[1] - pk_2_layout[1], pk_1_layout[0] - pk_2_layout[0]);
+      }
+    }
+
     for (int j = 0; j < n_points; ++j) {
       point p1 = as_point (t_prev[j]);
       if (N (p1) != 2) continue;
-
-      double base_angle = 0.0;
-      if (j > 0) {
-        point p0 = as_point (t_prev[j - 1]);
-        if (N (p0) == 2) {
-          point p1_layout = f2 (p1);
-          point p0_layout = f2 (p0);
-          base_angle = atan2 (p1_layout[1] - p0_layout[1], p1_layout[0] - p0_layout[0]);
-        }
-      }
 
       point fp_local = f2 [fp]; // 转换鼠标点到局部厘米坐标系
       point v = fp_local - p1;
@@ -328,7 +341,7 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selec
         double min_d = -1.0;
         double best_theta = 0.0;
 
-        // 遍历 30 度的倍数寻找最近方向（相对于上一条线 base_angle 作为基线）
+        // 遍历 30 度的倍数寻找最近方向（相对于 base_angle）
         for (int k = -5; k <= 6; ++k) {
           double rel_theta = k * M_PI / 6.0;
           double theta = base_angle + rel_theta;
@@ -340,7 +353,7 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selec
           }
         }
 
-        // 遍历 45 度的倍数寻找最近方向（相对于上一条线 base_angle 作为基线）
+        // 遍历 45 度的倍数寻找最近方向（相对于 base_angle）
         for (int k = -3; k <= 4; ++k) {
           if (k % 2 != 0) {
             double rel_theta = k * M_PI / 4.0;
@@ -360,11 +373,11 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance, gr_selec
         if (min_d < snap_dist_local) {
           has_ghost = true;
           point dir (cos (best_theta), sin (best_theta));
-          point p1_start_local = p1 - 50.0 * dir;
-          point p1_end_local = p1 + 50.0 * dir;
+          point p1_start_local = p1 - 12.0 * dir;
+          point p1_end_local = p1 + 12.0 * dir;
           curve ghost_curve_local = segment (p1_start_local, p1_end_local);
 
-          double proj_dist = norm (fp_local - p1) * cos (atan2 (fp_local[1] - p1[1], fp_local[0] - p1[0]) - best_theta);
+          double proj_dist = dist_to_p1 * cos (phi - best_theta);
           point snapped_p_local = p1 + proj_dist * dir;
 
           gr_selection sel;
