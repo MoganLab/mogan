@@ -325,9 +325,9 @@
 (tm-define current-save-source (url-none))
 (tm-define current-save-target (url-none))
 
-(define (buffer-notify-recent name)
+(tm-define (buffer-notify-recent name)
   (learn-interactive 'recent-buffer (list (cons "0" (url->system name))))
-) ;define
+) ;tm-define
 
 (define (has-faithful-format? name)
   (in? (url-suffix name) '("tm" "ts" "tp" "stm" "scm" "tmu" "stem"))
