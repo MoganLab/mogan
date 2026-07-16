@@ -27,7 +27,7 @@ hash (tree_rep* p) {
  ******************************************************************************/
 
 loro_shadow_rep::loro_shadow_rep ()
-    : doc (mogan_loro_doc_new ()), id_map (mogan_tree_id{0, 0}), _update_cb (nullptr), _update_user_data (nullptr) {}
+    : doc (mogan_loro_doc_new ()), id_map (mogan_tree_id{0, 0}), root_id(mogan_tree_id{0,0}), _update_cb (nullptr), _update_user_data (nullptr) {}
 
 loro_shadow_rep::~loro_shadow_rep () {
   if (doc) mogan_loro_doc_free (doc);
@@ -77,7 +77,7 @@ loro_shadow_rep::seed_node (tree t, mogan_tree_id parent, uint32_t index) {
 void
 loro_shadow_rep::seed (tree root) {
   mogan_tree_id root_parent= {UINT64_MAX, 0}; // Root 哨兵
-  seed_node (root, root_parent, 0);
+  root_id = seed_node (root, root_parent, 0);
 }
 
 /******************************************************************************
@@ -110,10 +110,8 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod) {
   // 兜底：其余 mod（结构、SPLIT/JOIN、ASSIGN_NODE、INSERT_NODE/REMOVE_NODE 等）
   //       暂整树重 seed，保证 shadow 与 buffer 一致；后续逐步精确化
   if (!mirrored) {
-    if (doc) mogan_loro_doc_free (doc);
-    doc   = mogan_loro_doc_new ();
-    if (_update_cb) {
-      mogan_loro_doc_on_local_update(doc, _update_cb, _update_user_data);
+    if (root_id.peer != 0 || root_id.counter != 0) {
+      mogan_loro_node_delete (doc, root_id);
     }
     id_map= hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
     seed (doc_root);
