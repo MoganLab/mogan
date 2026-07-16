@@ -1,0 +1,9 @@
+{
+  "name": "mogan-loro-relay",
+  "version": "0.1.0",
+  "description": "Mogan Loro CRDT collaborative editing WebSocket relay server",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

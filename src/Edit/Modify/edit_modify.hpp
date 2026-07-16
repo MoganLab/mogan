@@ -25,18 +25,27 @@ protected:
 public:
   edit_modify_rep ();
   ~edit_modify_rep ();
-  double this_author ();
+  double this_author () override;
 
-  void notify_assign (path p, tree u);
-  void notify_insert (path p, tree u);
-  void notify_remove (path p, int nr);
-  void notify_split (path p);
+  void notify_assign (path p, tree u) override;
+  void notify_insert (path p, tree u) override;
+  void notify_remove (path p, int nr) override;
+  void notify_split (path p) override;
   void notify_join (path p);
   void notify_assign_node (path p, tree_label op);
   void notify_insert_node (path p, tree t);
   void notify_remove_node (path p);
   void notify_set_cursor (path p, tree data);
   void post_notify (path p);
+#ifdef LORO_ENABLED
+  void ensure_loro_seeded () override;
+  void mirror_loro (const modification& mod) override;
+  // Phase 3：导入远端 update，diff 出把 buffer 变到新状态所需的 mods，经 edit_announce
+  // 应用到 buffer（versioning：loro_applying_remote 守卫使 mirror_loro 跳过，避免回灌）。
+  void apply_remote (string bytes) override;
+  // debug_loro：把 mod 经 Loro round-trip（mirror→diff_from_current）后再应用。
+  bool route_through_loro (const modification& mod) override;
+#endif
 
   void clear_undo_history ();
   void archive_state ();
