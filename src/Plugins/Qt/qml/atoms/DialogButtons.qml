@@ -13,7 +13,7 @@
 // 用法：
 //   DialogButtons {
 //       buttonLabels: ["OK", "Cancel"]
-//       onClicked: function(i) { i === 0 ? submit() : cancel() }
+//       onClicked: function(i) { if (i === 0) submit(); else cancel() }
 //   }
 
 import QtQuick
