@@ -59953,6 +59953,10 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 #endif
 	    for (int32_t i = start; i < end; i++)
 	      {
+		/* main_names has only 430 entries but main_names_index is sized
+		   for 443, so the length-20..23 buckets run into trailing NULL
+		   slots; skip NULLs to avoid dereferencing them in levenshtein. */
+		if (main_names[i] == NULL) continue;
 		int32_t diff = levenshtein(sc, sym_name, sym_len, main_names[i], sym_len) + 1; /* perhaps same but i+/-1 as well */
 		if (sym_name[0] != main_names[i][0]) diff++;
 		if (diff < min_diff)
