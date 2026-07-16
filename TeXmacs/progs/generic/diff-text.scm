@@ -18,28 +18,80 @@
 ;; Helper functions
 ;; =============================================================================
 
-(define (string-reverse s)
-  (list->string (reverse (string->list s)))
+(define (remove-random-thes words count)
+  (cond ((null? words) '())
+        ((<= count 0) words)
+        ((== (car words) "the")
+         (cond ((<= (random 3) 1)
+                (remove-random-thes (cdr words) (- count 1)))
+               (else (cons (car words) (remove-random-thes (cdr words) count)))
+         ) ;cond
+        ) ;
+        (else (cons (car words) (remove-random-thes (cdr words) count)))
+  ) ;cond
+) ;define
+
+(define (insert-random-as words count)
+  (cond ((null? words)
+         (if (> count 0)
+             (cons "a" (insert-random-as '() (- count 1)))
+             '()
+         ) ;if
+        ) ;
+        ((<= count 0) words)
+        (else
+          (if (== (random 5) 0)
+              (cons "a" (insert-random-as words (- count 1)))
+              (cons (car words) (insert-random-as (cdr words) count))
+          ) ;if
+        ) ;
+  ) ;cond
+) ;define
+
+(define (upcase-random-words words count)
+  (cond ((or (null? words) (<= count 0)) words)
+        ((> (string-length (car words)) 1)
+         (if (== (random 4) 0)
+             (cons (upcase-all (car words)) (upcase-random-words (cdr words) (- count 1)))
+             (cons (car words) (upcase-random-words (cdr words) count))
+         ) ;if
+        ) ;
+        (else (cons (car words) (upcase-random-words (cdr words) count)))
+  ) ;cond
+) ;define
+
+(define (demo-suggest t)
+  (cond ((not t) #f)
+        ((string? t)
+         (let* ((words (string-split t #\space))
+                (words-no-the (remove-random-thes words 2))
+                (words-with-a (insert-random-as words-no-the 2))
+                (final-words (upcase-random-words words-with-a 3)))
+           (string-recompose final-words " ")
+         ) ;let*
+        ) ;
+        ((pair? t) (cons (car t) (map demo-suggest (cdr t))))
+        (else t)
+  ) ;cond
 ) ;define
 
 (define (diff-check-popup)
-  (if (tree-innermost 'version-both)
-      (begin
-        (set! diff-active? #t)
-        (show-diff-popup)
-      ) ;begin
-      (begin
-        (set! diff-active? #f)
-        (hide-diff-popup)
-      ) ;begin
-  ) ;if
+  ;; 先隐藏弹窗，避免位置错乱
+  (set! diff-active? #f)
+  (hide-diff-popup)
+  (when (tree-innermost 'version-both)
+    (set! diff-active? #t)
+    (show-diff-popup)
+  ) ;when
 ) ;define
 
 (define (diff-scan-next)
   (if (not (tree-innermost 'version-both))
       (if (tree-is? (cursor-tree) 'version-both)
-          (tree-go-to (tree-ref (cursor-tree) 0) :start) ; 单差异特判：直接送入第一个子段落内部
-          (go-to-next-tag 'version-both) ; 多差异常规流程：向后搜寻
+          ;; 单差异特判：直接送入第一个子段落内部
+          (tree-go-to (tree-ref (cursor-tree) 0) :start)
+          ;; 多差异常规流程：向后搜寻
+          (go-to-next-tag 'version-both)
       ) ;if
   ) ;if
   (delayed (:idle 0) (diff-check-popup))
@@ -74,17 +126,20 @@
 (tm-define (trigger-diff-text)
   (let* ((sel (selection-tree))
          (origin_stree (tree->stree sel))
-         (origin_str (tm->string sel))
-         (suggested_str (string-reverse origin_str))
-         ;; 精度选项："detailed" (字符级)、"block" (块级)、"rough" (粗粒度)
-         (diff-stree (compare-versions origin_stree suggested_str))
-         (diff-tree (stree->tree diff-stree))
-         (p (cursor-path)))
-    (clipboard-cut "primary")
-    (insert diff-tree)
-    (insert-return)
-    (go-to p)
-    (diff-scan-next)
+         (suggested_stree (demo-suggest origin_stree))
+         (pre-cur (cursor-path))
+         (pre-grain (get-preference "versioning grain")))
+    ;; 设为字符级精度 "detailed"；其余选项："block" (块级)、"rough" (粗粒度)
+    (set-preference "versioning grain" "detailed")
+    (let* ((diff-stree (compare-versions origin_stree suggested_stree))
+           (diff-tree (stree->tree diff-stree)))
+      (clipboard-cut "primary")
+      (insert diff-tree)
+      (go-to pre-cur)
+      (diff-scan-next)
+    ) ;let*
+    ;; 还原精度
+    (set-preference "versioning grain" pre-grain)
   ) ;let*
 ) ;tm-define
 
@@ -95,13 +150,13 @@
              (p (tree-up t))
              (i (tree-index t)))
         (tree-remove! p i 1)
-        (insert new-val)
+        (when (not (tree-is? new-val 'version-suppressed))
+          (insert new-val)
+        ) ;when
       ) ;let*
     ) ;when
   ) ;let
   (diff-feedback 'accept)
-  (set! diff-active? #f)
-  (hide-diff-popup)
   (diff-scan-next)
 ) ;tm-define
 
@@ -112,13 +167,13 @@
              (p (tree-up t))
              (i (tree-index t)))
         (tree-remove! p i 1)
-        (insert old-val)
+        (when (not (tree-is? old-val 'version-suppressed))
+          (insert old-val)
+        ) ;when
       ) ;let*
     ) ;when
   ) ;let
   (diff-feedback 'reject)
-  (set! diff-active? #f)
-  (hide-diff-popup)
   (diff-scan-next)
 ) ;tm-define
 
@@ -148,5 +203,7 @@
 (tm-define (mouse-event key x y mods time data)
   (:require (diff-enable?))
   (former key x y mods time data)
-  (delayed (:idle 0) (diff-check-popup))
+  (when (not (== key "move"))
+    (delayed (:idle 0) (diff-check-popup))
+  ) ;when
 ) ;tm-define
