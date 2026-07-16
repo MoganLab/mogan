@@ -566,8 +566,9 @@
 
 (tm-define (toggle-italic)
   (if (in-math?)
-      (make 'math-it)
-      (toggle-with-like '(with "font-shape" "italic" "") #f))
+    (make 'math-it)
+    (toggle-with-like '(with "font-shape" "italic" "") #f)
+  ) ;if
 ) ;tm-define
 
 (tm-define (toggle-small-caps)
