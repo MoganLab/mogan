@@ -259,10 +259,7 @@
 
 (define (graphics-zoom-unit u magn)
   (let ((base-u (string-append "1" (length-extract-unit u))))
-    (if (== magn "default")
-      base-u
-      (length-mult (magnify->number magn) base-u)
-    ) ;if
+    (if (== magn "default") base-u (length-mult (magnify->number magn) base-u))
   ) ;let
 ) ;define
 
