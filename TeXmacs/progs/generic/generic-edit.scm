@@ -2330,8 +2330,8 @@
          (tuple (tuple "axes" "none") (tuple "1" "none") (tuple "10" "none"))
          "gr-edit-grid"
          (tuple "cartesian" (point "0" "0") "1")
-         (graphics))
-      (insert-go-to `(draw-over ,"" ,g ,"2cm") '(1 2 1))
+         (graphics ""))
+      (insert-go-to `(draw-over ,"" ,g ,"2cm") `(,1 ,(length (cdr g)) ,1))
       ;; 默认缩放 200%
       (graphics-zoom 2.0)
     ) ;with
