@@ -81,21 +81,44 @@ loro_shadow_rep::seed (tree root) {
 }
 
 /******************************************************************************
- * mirror_mod：把 modification 镜像到 live doc
+ * mirror_mod：把 modification 镜像到 live doc（增量 op，消除整树重 seed）
  ******************************************************************************/
+
+array<mogan_tree_id>
+loro_shadow_rep::node_children (mogan_tree_id parent) {
+  array<mogan_tree_id> kids;
+  uint8_t* out   = nullptr;
+  size_t   out_len= 0;
+  if (mogan_loro_node_children (doc, parent, &out, &out_len) == 0 && out != nullptr) {
+    size_t n= out_len / 12;
+    for (size_t i= 0; i < n; i++) {
+      uint64_t peer= 0;
+      for (int b= 0; b < 8; b++)
+        peer |= ((uint64_t) out[i * 12 + b]) << (8 * b);
+      int32_t counter= (int32_t) ((uint32_t) out[i * 12 + 8]
+                              | ((uint32_t) out[i * 12 + 9] << 8)
+                              | ((uint32_t) out[i * 12 + 10] << 16)
+                              | ((uint32_t) out[i * 12 + 11] << 24));
+      kids << mogan_tree_id{ peer, counter };
+    }
+    mogan_loro_free (out, out_len);
+  }
+  return kids;
+}
 
 void
 loro_shadow_rep::mirror_mod (tree doc_root, modification mod) {
   bool mirrored= false;
-  // 精确：文本原子的 INSERT/REMOVE（原子 rep 在敲字时稳定，身份表直接命中）
+  path rp_mod = root (mod);
+
   if (mod->k == MOD_INSERT || mod->k == MOD_REMOVE) {
-    path parent_path= root (mod);
-    if (has_subtree (doc_root, parent_path)) {
-      tree& parent= subtree (doc_root, parent_path);
+    if (has_subtree (doc_root, rp_mod)) {
+      tree& parent= subtree (doc_root, rp_mod);
       if (is_atomic (parent) && id_map->contains (inside (parent))) {
+        // 文本原子 INSERT/REMOVE → LoroText（敲字/退格，rep 稳定）
         mogan_tree_id id= id_map (inside (parent));
         if (mod->k == MOD_INSERT) {
-          string s= mod->t->label; // 插入的文本（通常单字）
+          string s= mod->t->label;
           mogan_loro_node_text_insert (doc, id, (uint32_t) index (mod),
               reinterpret_cast<const uint8_t*> (s.begin ()), (size_t) N (s));
         }
@@ -105,18 +128,52 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod) {
         }
         mirrored= true;
       }
+      else if (is_compound (parent) && id_map->contains (inside (parent))) {
+        // 复合子节点 INSERT/REMOVE → node_create / node_delete（块增删）
+        mogan_tree_id pid= id_map (inside (parent));
+        if (mod->k == MOD_INSERT) {
+          int  pos      = index (mod);
+          path child_path= rp_mod * pos; // 新子节点在 buffer 的位置（post-apply）
+          if (has_subtree (doc_root, child_path)) {
+            tree& child= subtree (doc_root, child_path);
+            seed_node (child, pid, (uint32_t) pos); // 建子树 + 映射身份
+            mirrored= true;
+          }
+        }
+        else {
+          int                   pos= index (mod);
+          int                   nr = argument (mod);
+          array<mogan_tree_id>  kids= node_children (pid); // LoroDoc 当前子节点（镜像前状态）
+          for (int j= pos + nr - 1; j >= pos; j--)
+            if (j < N (kids)) mogan_loro_node_delete (doc, kids[j]);
+          mirrored= true;
+        }
+      }
     }
   }
-  // 兜底：其余 mod（结构、SPLIT/JOIN、ASSIGN_NODE、INSERT_NODE/REMOVE_NODE 等）
-  //       暂整树重 seed，保证 shadow 与 buffer 一致；后续逐步精确化
-  if (!mirrored) {
-    if (root_id.peer != 0 || root_id.counter != 0) {
-      mogan_loro_node_delete (doc, root_id);
+  else if (mod->k == MOD_ASSIGN_NODE) {
+    // 改标签（格式/样式变更）→ node_set_label（rep 稳定）
+    if (has_subtree (doc_root, rp_mod)) {
+      tree& node= subtree (doc_root, rp_mod);
+      if (id_map->contains (inside (node))) {
+        mogan_tree_id id = id_map (inside (node));
+        string        lab= as_string (L (mod)); // 新 op 名
+        mogan_loro_node_set_label (doc, id,
+            reinterpret_cast<const uint8_t*> (lab.begin ()), (size_t) N (lab));
+        mirrored= true;
+      }
     }
+  }
+
+  if (!mirrored) {
+    // 兜底（INSERT_NODE/REMOVE_NODE/ASSIGN/SPLIT/JOIN 等，回车等复杂结构改动）：
+    //   整树重 seed（保 peer 血统，但 delta 仍为整篇，待子树级精确化）。
+    if (root_id.peer != 0 || root_id.counter != 0)
+      mogan_loro_node_delete (doc, root_id);
     id_map= hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
     seed (doc_root);
   }
-  // 显式提交：auto_commit 是延迟的，这里同步提交以触发 local-update 事件（增量同步）。
+  // 显式提交：同步触发 local-update 事件（增量同步）。
   mogan_loro_doc_commit (doc);
 }
 

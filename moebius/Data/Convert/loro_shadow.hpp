@@ -10,6 +10,7 @@
 #ifndef LORO_SHADOW_H
 #define LORO_SHADOW_H
 
+#include "array.hpp"
 #include "hashmap.hpp"
 #include "list.hpp"
 #include "modification.hpp"
@@ -64,6 +65,8 @@ public:
 
 private:
   mogan_tree_id seed_node (tree t, mogan_tree_id parent, uint32_t index);
+  /** @brief 取某 LoroTree 节点的子 TreeID 列表（REMOVE 按位置删用）。 */
+  array<mogan_tree_id> node_children (mogan_tree_id parent);
 };
 
 class loro_shadow {

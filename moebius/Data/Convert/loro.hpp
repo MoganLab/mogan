@@ -59,6 +59,8 @@ int32_t       mogan_loro_doc_on_local_update (void* doc, mogan_local_update_cb c
 mogan_tree_id mogan_loro_node_create (void* doc, mogan_tree_id parent, uint32_t index,
                                       uint8_t kind, const uint8_t* label, size_t label_len);
 int32_t       mogan_loro_node_delete (void* doc, mogan_tree_id id);
+int32_t       mogan_loro_node_children (void* doc, mogan_tree_id parent, uint8_t** out,
+                                        size_t* out_len);
 int32_t       mogan_loro_node_mov (void* doc, mogan_tree_id target, mogan_tree_id parent,
                                    uint32_t index);
 int32_t       mogan_loro_node_set_label (void* doc, mogan_tree_id id, const uint8_t* label,
