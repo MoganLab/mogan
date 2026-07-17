@@ -56,6 +56,14 @@ function main()
                 }
             },
             {
+                scm_name = "silent-html-progress",
+                cpp_name = "silent_html_progress",
+                ret_type = "void",
+                arg_list = {
+                    "bool"
+                }
+            },
+            {
                 scm_name = "html-progress-start",
                 cpp_name = "html_progress_start",
                 ret_type = "void",

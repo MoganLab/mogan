@@ -40,7 +40,9 @@
          (html-dir (url-head (url->string html-temp-url))) ;; get dir of html-temp-url
          (html-dir-str (url->string html-dir)))
     ;; First, export the document to HTML
+    (silent-html-progress #t) ;; TODO: implement docx-progress UI
     (export-buffer-main (current-buffer) html-temp-url "html" ())
+    (silent-html-progress #f)
     ;; Then, use Pandoc to convert the HTML to DOCX
     (if (has-binary-pandoc?)
         (begin
