@@ -257,10 +257,20 @@
   ) ;let*
 ) ;define
 
+(define (graphics-zoom-unit u magn)
+  (let ((base-u (string-append "1" (length-extract-unit u))))
+    (if (== magn "default")
+      base-u
+      (length-mult (magnify->number magn) base-u)
+    ) ;if
+  ) ;let
+) ;define
+
 (tm-define (graphics-zoom e)
   (let* ((fr (graphics-cartesian-frame))
          (u (caddr fr))
-         (newu (length-mult e u))
+         (magn (multiply-magnify (graphics-get-property "magnify") e))
+         (newu (graphics-zoom-unit u magn))
          (newud (length-decode newu))
          (x1 (cadr (cadddr fr)))
          (y1 (caddr (cadddr fr)))
@@ -279,15 +289,14 @@
     ;; (display* "old u = " u "\n")
     ;; (display* "new u = " newu "\n")
     (if (and (> newud 100) (< newud 10000000))
-      (with magn
-        (multiply-magnify (graphics-get-property "magnify") e)
+      (begin
         (graphics-decorations-reset)
         (graphics-set-property "gr-frame" newfr)
         (graphics-set-property "magnify" magn)
         ;; 根据缩放自动调整子格线数量
         (graphics-grid-aspect-autoupdate)
         (graphics-decorations-update)
-      ) ;with
+      ) ;begin
     ) ;if
   ) ;let*
 ) ;tm-define

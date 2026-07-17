@@ -47,8 +47,9 @@
 ;; Extra abbreviations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (graphics-zoom-in) (graphics-zoom 1.189207115))
-(tm-define (graphics-zoom-out) (graphics-zoom 0.840896415))
+(define graphics-zoom-factor 1.189207115002721)
+(tm-define (graphics-zoom-in) (graphics-zoom graphics-zoom-factor))
+(tm-define (graphics-zoom-out) (graphics-zoom (/ 1.0 graphics-zoom-factor)))
 
 (tm-define (graphics-move-origin-left) (graphics-move-origin "+0.01gw" "0gh"))
 (tm-define (graphics-move-origin-right) (graphics-move-origin "-0.01gw" "0gh"))
