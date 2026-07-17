@@ -49,6 +49,15 @@
   ) ;if
 ) ;define-public
 
+(define-public (important-event? event-type)
+  (or (string=? event-type "HEART_BEAT")
+    (string=? event-type "LOGIN")
+    (string=? event-type "TUTORIAL")
+    (string=? event-type "INVITE_CLICK")
+    (string=? event-type "VIP_CLICK")
+  ) ;or
+) ;define-public
+
 (define-public (track-event event-type properties)
   (if (not (telemetry-enabled?))
     #f
@@ -79,15 +88,13 @@
               ) ;display
             ) ;begin
           ) ;if
-          (if (>= len (telemetry-get-buffer-size)) (telemetry-flush))
-          (if (or (string=? event-type "HEART_BEAT")
-                (string=? event-type "LOGIN")
-                (string=? event-type "TUTORIAL")
-                (string=? event-type "INVITE_CLICK")
-                (string=? event-type "VIP_CLICK")
-              ) ;or
-            (upload-events event-type)
+          (if (important-event? event-type)
+            (begin
+              (telemetry-flush)
+              (upload-events event-type)
+            ) ;begin
           ) ;if
+          (if (>= len (telemetry-get-buffer-size)) (telemetry-flush))
         ) ;let
         #t
       ) ;begin
