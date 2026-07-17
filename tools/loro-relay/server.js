@@ -67,25 +67,31 @@ function joinRoom(ws, roomId) {
   }
 }
 
+const LATENCY_MS = 0;
+
 function broadcast(ws, data) {
   if (!ws.roomId) return;
   const room = rooms.get(ws.roomId);
   if (!room) return;
 
-  // 把最新收到的二进制 Loro update 当作房间当前状态。
-  // 这里只做“最后一条消息”的持久化；生产环境应做 Loro merge。
   room.state = data;
 
   let sentCount = 0;
+
   for (const client of room.clients) {
     if (client === ws) continue;
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
-      sentCount++;
-    }
+    if (client.readyState !== WebSocket.OPEN) continue;
+
+    setTimeout(() => {
+      if (client.readyState === WebSocket.OPEN)
+        client.send(data);
+    }, LATENCY_MS);
+
+    sentCount++;
   }
+
   console.log(
-    `${ts()} [client:${ws.clientId}] 广播消息到房间 [room:${ws.roomId}]，消息大小 ${data.length} 字节，已发送给 ${sentCount} 个客户端`
+    `${ts()} 延迟 ${LATENCY_MS}ms 后广播给 ${sentCount} 个客户端`
   );
 }
 
