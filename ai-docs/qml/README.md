@@ -33,9 +33,13 @@ live 写回的对话框（FontSelector / ParagraphFormat）需要 Cancel/重置�
 - 对 init 块改动无效（文档字体走 init-multi 改 init，不进 undo 历史，mark-cancel 回滚不了）
 - 对 buffer 改动丢选区（mark-cancel 的 apply 触发 post_notify→selection_cancel）
 
-正解是**快照写回**：对话框打开瞬间（register-specs，live 改动前）快照；Cancel/重置共用
-一个 revert，再 `selector-get-changes` + **一次** setter 写回。一次 setter 避免多次
-make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi-with）都适用。
+正解是**快照写回**：对话框打开瞬间（register-specs，live 改动前）快照；Cancel 走快照 revert
+（`revert-to-snapshot` / `restore-snapshot`），再 `selector-get-changes` + **一次** setter 写回。
+一次 setter 避免多次 make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi-with）
+都适用。**注意 Reset 与 Cancel 语义不同**：Cancel=撤销本对话框改动（回快照）；Reset=恢复系统默认
+（FontSelector 走 `selector-restore specs #t` 的 `:default` 移除 init、ParagraphFormat 文档级走
+`init-default`），不要把两者合并成「回快照」——否则文档已设非默认值时 Reset 会回到「上次选的字体」
+而非系统默认。
 
 ### 本地真相表 reader（凡带 reset 的对话框必用）
 
@@ -60,8 +64,8 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 当前两个使用者：
 
 - **FontSelector**（`fonts/font-new-widgets.scm`）：entry-key = `(specs var buffer)`，fallback
-  为字体专用 `initial-font-data`/`initial-customize-get`；reset/Cancel 经
-  `font-selector-revert-to-snapshot` 把快照填表。
+  为字体专用 `initial-font-data`/`initial-customize-get`；Cancel 经 `font-selector-revert-to-snapshot`
+  把快照填表，Reset 经 `selector-restore specs #t` 走 `:default`（移除 init、清表，回系统默认）。
 - **ParagraphFormat**（`generic/paragraph-format-widgets.scm`）：entry-key = `(key var)`（key 为 register 返回的实例句柄），
   fallback 为 scope 路由的 `get-env`/`get-init`；register 填表、set 同步写、reset 段落级写快照值/
   文档级 init-default 后写 `get-init` 默认值、Cancel restore-snapshot 写快照值、cleanup 清表。
@@ -92,7 +96,7 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 |--------|---------|------|
 | `ConfirmClose` | `run_qml_dialog`（exec） | 点按钮返回结果 |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit |
-| `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel+重置快照撤销 |
+| `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 恢复系统默认 |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |
 
 ## 编码规矩

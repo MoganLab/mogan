@@ -207,7 +207,7 @@ DialogShell {
 
     function refreshAll() {
         // 递增各 list 自身的 refreshTick，驱动其 currentValue/items 绑定重算
-        //（取代对话框级单一 refreshTick）。重算后值可能未变（reset 回到打开时默认），
+        //（取代对话框级单一 refreshTick）。重算后值可能未变（reset 恢复系统默认、可能==改前值），
         // onCurrentValueChanged 不发、activeValue 不更新——显式 syncActiveValue 同步选中框。
         familyList.refreshTick++;
         styleList.refreshTick++;

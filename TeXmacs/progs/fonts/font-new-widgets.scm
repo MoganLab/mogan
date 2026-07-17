@@ -1450,8 +1450,13 @@
   (font-selector-cleanup key)
 ) ;tm-define
 
-;; 重置：字体回到打开对话框时（initial-snapshot，首次打开=文档默认）。机制同 Cancel。
-(tm-define (font-selector-restore key) (font-selector-revert-to-snapshot key))
+;; 重置：恢复系统默认字体（pref 默认），非回到打开时。走 selector-restore 的 :default
+;; 路径——init-multi 对 font/var 走 init-default 移除 init（回到继承的全局默认），并清本地
+;; 真相表，之后 selector-get* fallback 到 initial-font-data（get-init 读 init 树、即时、
+;; 无滞后）得到系统默认值。与老 tm-tool 字体对话框的「Restore defaults」按钮语义一致。
+(tm-define (font-selector-restore key)
+  (with specs (font-selector-lookup-specs key) (selector-restore specs #t))
+) ;tm-define
 
 ;; Import 由按钮显式触发，走 choose-file（QML 对话框在其下保持打开）。
 (tm-define (font-selector-import key)

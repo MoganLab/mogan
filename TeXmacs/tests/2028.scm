@@ -186,6 +186,40 @@
                      ) ;cons
                ) ;list
 
+               ;; 4) Reset 恢复系统默认字体（非回到打开时快照）：
+               ;;    「系统默认」= 无显式 init 时 initial-font-data 的解析值。先在干净文档上
+               ;;    采到 sys-default；再 init-env 预设非默认字体，使「打开时快照」≠ 系统默认；
+               ;;    对话框内 live 改 family，font-selector-restore（Reset 按钮）后期望 family
+               ;;    回系统默认、init 被移除。
+               ;;    回归点：改前 restore = font-selector-revert-to-snapshot，会回到打开时快照
+               ;;    （预设的非默认字体），而非系统默认。
+               (list (cons "reset restores system default font"
+                       (lambda ()
+                         (new-document)
+                         (with specs
+                           (document-font-specs)
+                           ;; 干净文档上取系统默认（无显式 init）。
+                           (let* ((sys-default (car (initial-font-data specs)))
+                                  ;; 预设非默认字体，使快照 ≠ 系统默认。
+                                  (_ (init-env "font" "msand"))
+                                  (key (font-selector-register-specs specs))
+                                  (snapshot-fam (font-selector-get key :family))
+                                 ) ;
+                             (check-true (!= snapshot-fam sys-default))
+                             ;; 对话框内 live 改 family。
+                             (font-selector-set key :family "Fira Sans")
+                             ;; Reset 按钮：恢复系统默认。
+                             (font-selector-restore key)
+                             (check-true (equal? (font-selector-get key :family) sys-default))
+                             ;; init 被移除（回到继承的全局默认）。
+                             (check-true (not (init-has? "font")))
+                             (font-selector-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
                ;; 收尾
                (list (cons "check-report + quit"
                        (lambda () (clear-hook!) (check-report) (quit-TeXmacs))
