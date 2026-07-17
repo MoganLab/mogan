@@ -133,9 +133,7 @@
                                                                 ,group-bary-y))
       ) ;point-norm
     ) ;/
-    (lambda (o)
-      (traverse-transform o (zoom-point group-bary-x group-bary-y h))
-    ) ;lambda
+    (lambda (o) (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
   ) ;with
 ) ;define
 
