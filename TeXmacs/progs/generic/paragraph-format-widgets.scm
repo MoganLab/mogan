@@ -13,7 +13,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic paragraph-format-widgets) (:use (generic format-edit)))
+(texmacs-module (generic paragraph-format-widgets)
+  (:use (generic format-edit) (utils library dialog-value-table))
+) ;texmacs-module
 
 ;; 段落参数清单与取值（迁移自原 format-widgets.scm 的 tm-widget enum 取值）。
 ;; editable=#t 的字段允许 QML 端双击键入预设外的自定义值（对应原 enum 末尾空串槽位）。
@@ -126,6 +128,15 @@
 
 (define paragraph-scope (make-ahash-table))
 
+;; 本地真相表的 entry-key：(key var)。value-table（utils library dialog-value-table）
+;; 作运行期当前值的即时读取源——meta 读它而非实时读 get-env/get-init，避开「写树 → 跨
+;; eval 读树」的延迟（reset 点一次即生效的关键）。register 时填入打开时值，set 同步写，
+;; reset/Cancel 把目标值写回，cleanup 清空。
+
+(define (paragraph-entry-key key var)
+  (list key var)
+) ;define
+
 (tm-define (paragraph-format-lookup-specs key)
   (ahash-ref paragraph-specs-registry key)
 ) ;tm-define
@@ -163,7 +174,15 @@
       (with snap
         (make-ahash-table)
         (for (f (paragraph-all-fields-for scope))
-          (ahash-set! snap (car f) (getter (car f)))
+          (with var
+            (car f)
+            (with val
+              (getter var)
+              (ahash-set! snap var val)
+              ;; 同步填本地真相表：运行期 meta 读它（即时），不实时读 get-env/get-init。
+              (value-table-set! (paragraph-entry-key key var) val)
+            ) ;with
+          ) ;with
         ) ;for
         (ahash-set! paragraph-snapshot key snap)
       ) ;with
@@ -188,6 +207,10 @@
   (ahash-remove! paragraph-snapshot key)
   (ahash-remove! paragraph-snapshot-has key)
   (ahash-remove! paragraph-scope key)
+  ;; 清本地真相表该 key 下所有字段（用全字段名并集；文档级未入表的 par-left/par-right
+  ;; remove 为 no-op，无碍）。
+  (value-table-clean (map (lambda (var) (paragraph-entry-key key var)) (paragraph-all-var-names))
+  ) ;value-table-clean
   ;; 回收 key 供下次 register 复用。
   (set! paragraph-specs-free (cons key paragraph-specs-free))
 ) ;tm-define
@@ -222,9 +245,10 @@
   (map car (append paragraph-basic-fields paragraph-advanced-fields))
 ) ;define
 
-;; 返回某分组字段的 meta 列表（供 QML 打开时读一次初始化 values）。value 用 getter
-;; 按 scope 读（仅打开时读，运行期不重读——显示真相源是 QML values）。label 走
-;; translate（与 FormDialog 一致，scheme 侧翻译好再传 QML）。
+;; 返回某分组字段的 meta 列表（供 QML 打开时读一次，以及 reset 后重读重建 values）。
+;; value 取本地真相表（register 填入、set/reset/Cancel 同步更新），即时、不实时读
+;; get-env/get-init——避开跨 eval 读树延迟（reset 一次生效的关键）。fallback 走 getter
+;; 仅作兜底（正常路径表必命中）。label 走 translate（与 FormDialog 一致，scheme 侧译好）。
 (tm-define (paragraph-format-meta key which)
   (with specs
     (ahash-ref paragraph-specs-registry key)
@@ -238,7 +262,9 @@
                  (list (cons 'label (translate label))
                    (cons 'options options)
                    (cons 'var var)
-                   (cons 'value (getter var))
+                   (cons 'value
+                     (value-table-ref (paragraph-entry-key key var) (lambda () (getter var)))
+                   ) ;cons
                    (cons 'editable editable)
                  ) ;list
                ) ;with
@@ -250,14 +276,15 @@
   ) ;with
 ) ;tm-define
 
-;; live 写回单参数：setter 按 scope 写段落 with 或文档 initial。段落级
-;; make-multi-with 期望扁平 (var val ...)（与原 widget differences-list 一致）；
-;; 文档级 init-multi 同样期望扁平 (var val ...)。显示真相源在 QML values，不重读。
+;; live 写回单参数：setter 按 scope 写段落 with 或文档 initial，并同步更新本地真相表
+;; （下次 meta 读命中表、不读树）。段落级 make-multi-with 期望扁平 (var val ...)（与原
+;; widget differences-list 一致）；文档级 init-multi 同样期望扁平 (var val ...)。
 (tm-define (paragraph-format-set key var val)
   (with specs
     (ahash-ref paragraph-specs-registry key)
     (with (_ getter setter) specs (setter (list var val)))
   ) ;with
+  (value-table-set! (paragraph-entry-key key var) val)
   val
 ) ;tm-define
 
@@ -307,6 +334,20 @@
                 (when (nnull? changes)
                   (setter changes)
                 ) ;when
+                ;; 同步把全部快照值写回本地真相表——reset/Cancel 后 meta 读命中表、即时生效，
+                ;; 不再跨 eval 读 get-env/get-init（消除重置滞后）。写全部字段（非仅 changes），
+                ;; 保证表与撤销后真相完全一致。
+                (for (f (paragraph-all-fields-for scope))
+                  (with var
+                    (car f)
+                    (with old
+                      (ahash-ref snap var)
+                      (when old
+                        (value-table-set! (paragraph-entry-key key var) old)
+                      ) ;when
+                    ) ;with
+                  ) ;with
+                ) ;for
               ) ;with
             ) ;with
           ) ;when
@@ -320,11 +361,24 @@
 ;; 一致——文档级 Reset 是「恢复默认」）；段落级快照写回（回到打开时）。不关窗。
 ;; 文档级用本 facade 已知的全部字段名做 init-default，不依赖 format-widgets 的
 ;; paragraph-parameters（跨模块变量在此 unbound）。
+;; 重置后同步更新本地真相表：段落级经 restore-snapshot 内部写回快照值；文档级在此
+;; init-default 后用 getter（get-init，同 eval 直读 init/pre hashmap、不滞后）算出全局
+;; 默认值写表。随后 QML resetValues → basicMeta 读表即时生效，不再跨 eval 读树。
 (tm-define (paragraph-format-revert key)
   (with scope
     (ahash-ref paragraph-scope key)
     (if (== scope 'document)
-      (apply init-default (paragraph-all-var-names))
+      (with specs
+        (ahash-ref paragraph-specs-registry key)
+        (with (_ getter setter)
+          specs
+          (apply init-default (paragraph-all-var-names))
+          ;; init-default 后 getter 读 init/pre hashmap 得全局默认（继承的 pre 值），写表。
+          (for (f (paragraph-all-fields-for scope))
+            (with var (car f) (value-table-set! (paragraph-entry-key key var) (getter var)))
+          ) ;for
+        ) ;with
+      ) ;with
       (paragraph-format-restore-snapshot key)
     ) ;if
   ) ;with

@@ -20,6 +20,7 @@
     (generic format-edit)
     (generic document-edit)
     (utils library cursor)
+    (utils library dialog-value-table)
   ) ;:use
 ) ;texmacs-module
 
@@ -27,7 +28,16 @@
 ;; Settings management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define selector-table (make-ahash-table))
+;; 运行期当前值的本地真相表已抽到 (utils library dialog-value-table)：读写经
+;; value-table-*，key 用 (selkey specs var)。避开通用模块不关心的字体专用 fallback
+;; （initial-font-data / initial-customize-get）与 refresh-now 刷新，仍留在此处。
+
+(define (selkey specs var)
+  (list specs
+    var
+    (window->buffer (if (list-4? specs) (cadddr specs) (current-window)))
+  ) ;list
+) ;define
 
 ;; key -> (family style size)：对话框打开瞬间的文档字体快照，供 Cancel/重置回放。
 ;; 必须在 register-specs（live 改动前）快照——文档字体的 live（init-multi）会改 init
@@ -35,16 +45,9 @@
 
 (define initial-snapshot (make-ahash-table))
 
-(define (selkey specs var)
-  (with win
-    (if (list-4? specs) (cadddr specs) (current-window))
-    (list specs var (window->buffer win))
-  ) ;with
-) ;define
-
 (tm-define (selector-set* specs var val)
   ;; (display* "Set " specs ", " var " <- " val "\n")
-  (ahash-set! selector-table (selkey specs var) val)
+  (value-table-set! (selkey specs var) val)
   (refresh-now "font-style-selector")
   (refresh-now "font-selector-demo")
 ) ;tm-define
@@ -66,7 +69,7 @@
 (tm-define (selector-set specs var val)
   ;; (display* "Set " specs ", " var " <- " val "\n")
   (when (!= val (selector-get specs var))
-    (ahash-set! selector-table (selkey specs var) val)
+    (value-table-set! (selkey specs var) val)
     (selector-notify specs)
     (refresh-now "font-style-selector")
     (refresh-now "font-selector-demo")
@@ -75,14 +78,14 @@
 
 (tm-define (selector-reset* specs var)
   ;; (display* "Reset " specs ", " var "\n")
-  (ahash-remove! selector-table (selkey specs var))
+  (value-table-remove! (selkey specs var))
   (refresh-now "font-style-selector")
   (refresh-now "font-selector-demo")
 ) ;tm-define
 
 (tm-define (selector-reset specs var)
   ;; (display* "Reset " specs ", " var "\n")
-  (ahash-remove! selector-table (selkey specs var))
+  (value-table-remove! (selkey specs var))
   (selector-notify specs)
   (refresh-now "font-style-selector")
   (refresh-now "font-selector-demo")
@@ -117,17 +120,22 @@
 
 (define all-vars (append font-vars filter-vars customize-vars))
 
+;; selector-get* 的 fallback：本地表缺项时回退的字体专用实时源（family/style/size
+;; 取文档字体、filter 取 "Any"、customize 取 initial-customize-get）。
+
+(define (selector-fallback specs var)
+  (cond ((== var :family) (car (initial-font-data specs)))
+        ((== var :style) (cadr (initial-font-data specs)))
+        ((== var :size) (caddr (initial-font-data specs)))
+        ((in? var filter-vars) "Any")
+        ((in? var customize-vars) (initial-customize-get specs var))
+        (else #f)
+  ) ;cond
+) ;define
+
 (tm-define (selector-get* specs var)
   ;; (display* "Get " specs ", " var "\n")
-  (or (ahash-ref selector-table (selkey specs var))
-    (cond ((== var :family) (car (initial-font-data specs)))
-          ((== var :style) (cadr (initial-font-data specs)))
-          ((== var :size) (caddr (initial-font-data specs)))
-          ((in? var filter-vars) "Any")
-          ((in? var customize-vars) (initial-customize-get specs var))
-          (else #f)
-    ) ;cond
-  ) ;or
+  (value-table-ref (selkey specs var) (lambda () (selector-fallback specs var)))
 ) ;tm-define
 
 (tm-define (selector-get specs var)
@@ -139,10 +147,7 @@
 ) ;tm-define
 
 (tm-define (selector-clean specs)
-  (with (getter setter . other)
-    specs
-    (for (var all-vars) (ahash-remove! selector-table (selkey specs var)))
-  ) ;with
+  (value-table-clean (map (lambda (var) (selkey specs var)) all-vars))
 ) ;tm-define
 
 (tm-define (selector-restore specs global?)
@@ -160,7 +165,7 @@
       ) ;list
       (with (getter setter . other)
         specs
-        (for (var all-vars) (ahash-remove! selector-table (selkey specs var)))
+        (value-table-clean (map (lambda (var) (selkey specs var)) all-vars))
         (for (var vars) (setter (list var :default)))
       ) ;with
       (keyboard-focus-on "canvas")
@@ -1385,10 +1390,10 @@
   ) ;with
 ) ;tm-define
 
-;; 把字体写回 initial-snapshot（打开对话框时），Cancel/重置共用。快照填 selector-table，
-;; 再 selector-get-changes + 一次 setter 写回。不依赖 mark-cancel——它对 init 块无效、对
-;; buffer 丢选区；显式写回两条 setter 路径都适用，单次 setter 避免多次 make-multi-with
-;; 嵌套吞选区。
+;; 把字体写回 initial-snapshot（打开对话框时），Cancel/重置共用。快照填本地真相表
+;; （value-table-set!），再 selector-get-changes + 一次 setter 写回。不依赖 mark-cancel——
+;; 它对 init 块无效、对 buffer 丢选区；显式写回两条 setter 路径都适用，单次 setter 避免
+;; 多次 make-multi-with 嵌套吞选区。
 
 (define (font-selector-revert-to-snapshot key)
   (with specs
@@ -1399,9 +1404,9 @@
         (selector-clean specs)
         (with snap
           (ahash-ref initial-snapshot key)
-          (ahash-set! selector-table (selkey specs :family) (car snap))
-          (ahash-set! selector-table (selkey specs :style) (cadr snap))
-          (ahash-set! selector-table (selkey specs :size) (caddr snap))
+          (value-table-set! (selkey specs :family) (car snap))
+          (value-table-set! (selkey specs :style) (cadr snap))
+          (value-table-set! (selkey specs :size) (caddr snap))
         ) ;with
         (with changes
           (selector-get-changes specs getter)
@@ -1427,7 +1432,7 @@
   (font-selector-cleanup key)
 ) ;tm-define
 
-;; OK：补齐 selector-table 与当前文档的差异（live 路径大部分已实时写入），写回落定。
+;; OK：补齐本地真相表与当前文档的差异（live 路径大部分已实时写入），写回落定。
 (tm-define (font-selector-commit key)
   (with specs
     (font-selector-lookup-specs key)
