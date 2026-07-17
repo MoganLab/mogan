@@ -92,10 +92,15 @@ edit_modify_rep::apply_remote (string bytes) {
     apply (et, rp * l->item);
   }
   loro_applying_remote= false;
-  
+
+  // 关键：apply_remote 通过 edit_announce 改了 buffer（新 tree_rep*），
+  // 但这些新 rep 不在 id_map 里，因此下一次本地编辑 mirror_mod 会 id_map miss -> 块级重 seed
+  // -> TreeID 被重洗 -> 远端 update 引用旧 TreeID -> 永久 Diff 0。
+  // 因此，这里重建 id_map，把 buffer 当前状态关联到 shadow 的 TreeID。
+  if (!is_nil (mods))
+    loro_doc->sync_id_map_from_shadow (the_buffer ());
+
   if (!is_nil(mods)) {
-    // Notify the environment that the tree has changed, so the next
-    // im_interpose() tick will call apply_changes() and repaint the UI.
     cout << "[Loro] Forcing typeset invalidation and repaint...\n";
     notify_change (THE_TREE);
     typeset_invalidate_all();
