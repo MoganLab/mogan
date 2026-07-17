@@ -183,10 +183,10 @@ sqrt_box_rep::sqrt_box_rep (path ip, box b1, box b2, box sqrtb, font fn2,
 
   SI sep  = fn->sep;
   SI wline= fn->wline;
-  SI dx   = -fn->wfn / 36,
+  SI dx   = -fn->wfn / 20,
      dy   = sqrt_variant < 7 ? -fn->wfn / 36 : +fn->wfn / 52; // correction
   SI by   = sqrtb->y2 + dy;
-  if (sqrtb->x2 - sqrtb->x4 > wline) dx-= (sqrtb->x2 - sqrtb->x4);
+  dx-= (sqrtb->x2 - sqrtb->x4);
 
   bool use_open_type= (fn->math_type == MATH_TYPE_OPENTYPE) &&
                       (fn->sqrt_degree_rise_percent > 0);
