@@ -150,6 +150,7 @@
     ) ;when
   ) ;let
   (diff-feedback 'accept)
+  (refresh-window)
   (diff-scan-next)
 ) ;tm-define
 
@@ -165,6 +166,7 @@
     ) ;when
   ) ;let
   (diff-feedback 'reject)
+  (refresh-window)
   (diff-scan-next)
 ) ;tm-define
 
