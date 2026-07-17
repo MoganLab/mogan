@@ -62,7 +62,7 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 - **FontSelector**（`fonts/font-new-widgets.scm`）：entry-key = `(specs var buffer)`，fallback
   为字体专用 `initial-font-data`/`initial-customize-get`；reset/Cancel 经
   `font-selector-revert-to-snapshot` 把快照填表。
-- **ParagraphFormat**（`generic/paragraph-format-widgets.scm`）：entry-key = `(int-key var)`，
+- **ParagraphFormat**（`generic/paragraph-format-widgets.scm`）：entry-key = `(key var)`（key 为 register 返回的实例句柄），
   fallback 为 scope 路由的 `get-env`/`get-init`；register 填表、set 同步写、reset 段落级写快照值/
   文档级 init-default 后写 `get-init` 默认值、Cancel restore-snapshot 写快照值、cleanup 清表。
 

@@ -15,7 +15,7 @@
 (texmacs-module (utils library dialog-value-table))
 
 ;; entry-key 由调用方自定义，唯一标识「某对话框实例的某字段」：FontSelector 用
-;; (specs var buffer)，ParagraphFormat 用 (int-key var)。模块对 key 形状不做假设。
+;; (specs var buffer)，ParagraphFormat 用 (key var)。模块对 key 形状不做假设。
 ;;
 ;; 不变量：凡写文档树的路径（set/reset/cancel）都必须同步更新本表，否则 meta 读到的
 ;; 表值会与文档背离。适用前提：对话框打开期间文档不被其它入口改动（read-through 缓存
