@@ -25,10 +25,13 @@
 
 (import (texmacs protocol))
 
-(define telemetry-log-path
-  (path->string (path-join (path-temp-dir) "telemetry.log"))
+(define (telemetry-home)
+  (path-from-env "TEXMACS_HOME_PATH")
 ) ;define
 
+(define telemetry-log-path
+  (path->string (path-join (telemetry-home) "telemetry.log"))
+) ;define
 
 ;; 插件进程与主进程的握手：启动时必须 flush 插件名 "telemetry"，
 ;; 否则主进程不会进入 DATA_COMMAND 状态、无法投递后续负载。
