@@ -175,13 +175,16 @@
 ;; Subroutines for accessing trees & managing listprops
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; FIXME: Should use (tm-adjust-path), otherwise, crashes in some cases
+;; Guard against invalid paths (e.g. #f returned by graphics-graphics-path)
 (tm-define (tm-upwards-path p tags nottags)
-  (if (in? (tree-label (path->tree p)) tags)
-    p
-    (if (in? (tree-label (path->tree p)) nottags)
-      #f
-      (if (> (length p) 2) (tm-upwards-path (cDr p) tags nottags) #f)
+  (if (not (list? p))
+    #f
+    (if (in? (tree-label (path->tree p)) tags)
+      p
+      (if (in? (tree-label (path->tree p)) nottags)
+        #f
+        (if (> (length p) 2) (tm-upwards-path (cDr p) tags nottags) #f)
+      ) ;if
     ) ;if
   ) ;if
 ) ;tm-define
@@ -397,7 +400,10 @@
 
 ;; Magnification
 (tm-define (graphics-eval-magnify)
-  (graphical-get-attribute (path->tree (graphics-graphics-path)) "magnify")
+  (with p
+    (graphics-graphics-path)
+    (if p (graphical-get-attribute (path->tree p) "magnify") "default")
+  ) ;with
 ) ;tm-define
 
 (tm-define (graphics-eval-magnify-at path)

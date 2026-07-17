@@ -19,11 +19,9 @@
 (check-set-mode! 'report-failed)
 
 (define (path-exists?-raises-error? arg)
-  "Call editor path-exists? with ARG and return #t if it raises an error
-   instead of returning normally or crashing."
-  (catch #t
-    (lambda () (path-exists? arg) #f)
-    (lambda args #t)))
+  "Call editor path-exists? with ARG and return #t if it raises an error\n   instead of returning normally or crashing."
+  (catch #t (lambda () (path-exists? arg) #f) (lambda args #t))
+) ;define
 
 (define (test-path-exists?-boolean)
   (display "Testing path-exists? with boolean arguments...\n")
@@ -31,7 +29,8 @@
   ;; 修复后：应抛出 Scheme 类型错误
   (check (path-exists?-raises-error? #t) => #t)
   (check (path-exists?-raises-error? #f) => #t)
-  (display "boolean arguments tests passed!\n"))
+  (display "boolean arguments tests passed!\n")
+) ;define
 
 (define (test-path-exists?-other-invalid)
   (display "Testing path-exists? with other invalid arguments...\n")
@@ -40,7 +39,8 @@
   (check (path-exists?-raises-error? 'sym) => #t)
   ;; 列表中只要有一个元素不是整数，就不是合法 path
   (check (path-exists?-raises-error? '(1 #t)) => #t)
-  (display "other invalid arguments tests passed!\n"))
+  (display "other invalid arguments tests passed!\n")
+) ;define
 
 (define (test-path-exists?-valid)
   (display "Testing path-exists? with valid arguments...\n")
@@ -48,11 +48,13 @@
   (check (boolean? (path-exists? (list))) => #t)
   ;; 单元素整数路径也是合法 path
   (check (boolean? (path-exists? '(0))) => #t)
-  (display "valid arguments tests passed!\n"))
+  (display "valid arguments tests passed!\n")
+) ;define
 
 (tm-define (test_1139)
   (display "Running test_1139...\n")
   (test-path-exists?-boolean)
   (test-path-exists?-other-invalid)
   (test-path-exists?-valid)
-  (check-report))
+  (check-report)
+) ;tm-define
