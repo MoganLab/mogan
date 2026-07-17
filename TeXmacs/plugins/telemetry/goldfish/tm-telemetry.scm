@@ -19,10 +19,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (import (liii base) (liii path))
-(set! *load-path*
-  (cons (path->string (path-parent (port-filename))) *load-path*)
-) ;set!
-
 (import (texmacs protocol))
 
 (define (telemetry-home)
@@ -51,48 +47,31 @@
 ) ;define
 
 (define (telemetry-log message)
-  (catch #t
-    (lambda () (path-append-text telemetry-log-path (string-append message "\n")))
-    (lambda args
-      (flush-verbatim (string-append "telemetry error: " (object->string args)))
-    ) ;lambda
-  ) ;catch
+  (path-append-text telemetry-log-path (string-append message "\n"))
 ) ;define
 
 (define (handle-telemetry payload)
-  (catch #t
-    (lambda ()
-      (let ((s (document->string payload)))
-        (if (string=? s "")
-          (flush-verbatim "telemetry skipped: empty payload")
-          (begin
-            (telemetry-log s)
-            (flush-verbatim "telemetry logged")
-          ) ;begin
-        ) ;if
-      ) ;let
-    ) ;lambda
-    (lambda args
-      (flush-verbatim (string-append "telemetry exception: " (object->string args)))
-    ) ;lambda
-  ) ;catch
+  (let ((s (document->string payload)))
+    (if (string=? s "")
+      (flush-verbatim "telemetry skipped: empty payload")
+      (begin
+        (telemetry-log s)
+        (flush-verbatim "telemetry logged")
+      ) ;begin
+    ) ;if
+  ) ;let
 ) ;define
 
 (define (read-eval-print)
-  (catch #t
-    (lambda ()
-      (let ((code (read-paragraph-by-visible-eof)))
-        (if (or (eof-object? code) (string=? code ""))
-          #t
-          (begin
-            (handle-telemetry code)
-            (read-eval-print)
-          ) ;begin
-        ) ;if
-      ) ;let
-    ) ;lambda
-    (lambda args #t)
-  ) ;catch
+  (let ((code (read-paragraph-by-visible-eof)))
+    (if (or (eof-object? code) (string=? code ""))
+      #t
+      (begin
+        (handle-telemetry code)
+        (read-eval-print)
+      ) ;begin
+    ) ;if
+  ) ;let
 ) ;define
 
 (welcome)
