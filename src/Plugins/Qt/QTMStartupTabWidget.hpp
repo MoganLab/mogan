@@ -17,6 +17,7 @@
 
 class QKeyEvent;
 class QLabel;
+class QShowEvent;
 class QVBoxLayout;
 class QPushButton;
 class QStackedWidget;

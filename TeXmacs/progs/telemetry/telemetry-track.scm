@@ -51,6 +51,7 @@
 
 (define-public (important-event? event-type)
   (or (string=? event-type "HEART_BEAT")
+    (string=? event-type "STARTUP")
     (string=? event-type "TUTORIAL")
     (string=? event-type "INVITE_CLICK")
     (string=? event-type "VIP_CLICK")
