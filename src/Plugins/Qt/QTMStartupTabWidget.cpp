@@ -14,6 +14,7 @@
 #include "QTMTemplatePage.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
+#include "telemetry.hpp"
 #include "template_manager.hpp"
 
 #include <QButtonGroup>
@@ -93,6 +94,15 @@ QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
   stackedWidget->setObjectName ("startup-tab-content"); // 样式在主题CSS中定义
   setup_right_content (stackedWidget);
   mainLayout->addWidget (stackedWidget, 1);
+}
+
+void
+QTMStartupTabWidget::showEvent (QShowEvent* event) {
+  QWidget::showEvent (event);
+  if (!startupTracked_) {
+    startupTracked_= true;
+    telemetry_track ("STARTUP");
+  }
 }
 
 QTMStartupTabWidget::Entry

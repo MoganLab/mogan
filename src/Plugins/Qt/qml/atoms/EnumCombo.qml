@@ -25,8 +25,8 @@
 import QtQuick
 
 Row {
-    id: root
-    spacing: 16 * Theme.scaleFactor
+    id: comboRow
+    spacing: Theme.gapM
 
     property string label: ""
     property var options: []
@@ -34,19 +34,20 @@ Row {
     property string value: ""
     property bool editable: false
     property real labelRatio: 0.42
-    property real rowHeight: 44 * Theme.scaleFactor
+    property real rowHeight: Theme.rowH
     signal changed(string value)
 
     // 按 objectName 沿 parent 链找 DialogShell（QML property 不能用 hasOwnProperty）。
     property var dialogShell: {
-        var p = parent
+        var p = parent;
         while (p) {
-            if (p.objectName === "DialogShell") return p
-            p = p.parent
+            if (p.objectName === "DialogShell")
+                return p;
+            p = p.parent;
         }
-        return null
+        return null;
     }
-    readonly property bool open: dialogShell && dialogShell.activeCombo === root
+    readonly property bool open: dialogShell && dialogShell.activeCombo === comboRow
 
     // 可编辑输入态：双击(editable=true)进入，Enter/失焦落定，Esc 撤销。
     property bool editing: false
@@ -55,128 +56,138 @@ Row {
     property real comboWidth: (parent ? parent.width : 0) - labelWidth - spacing
     height: rowHeight
 
-    // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。展开时由
-    // updateGeometry() 算一次，不用 binding 实时算——布局未完成时 mapToItem 给出
-    // stale 值会导致浮层定位偏。
+    // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。toggleOpen 展开时由
+    // updateGeometry() 拍一次快照。不能用 binding 实时算：dialogShell 是沿 parent 链
+    // 查找的命令式 property，parent 变化不触发其重算，binding 会在创建瞬间读到
+    // dialogShell=null 而永久卡 0。
     property real comboX: 0
     property real comboY: 0
     property real comboW: 0
     property real comboH: rowHeight
     function updateGeometry() {
-        if (!dialogShell || !combo) return
-        var p = combo.mapToItem(dialogShell, 0, 0)
-        comboX = p.x
-        comboY = p.y
-        comboW = combo.width
+        if (!dialogShell || !combo)
+            return;
+        var p = combo.mapToItem(dialogShell, 0, 0);
+        comboX = p.x;
+        comboY = p.y;
+        comboW = combo.width;
     }
 
-    function pick(v) { root.changed(v) }
+    function pick(v) {
+        comboRow.changed(v);
+    }
 
     // 单击 toggle 浮层：已展开则收起，否则注册为 activeCombo 弹出（共享浮层）。
     function toggleOpen() {
-        if (!root.dialogShell) return
-        if (root.dialogShell.activeCombo === root) {
-            root.dialogShell.activeCombo = null
+        if (!comboRow.dialogShell)
+            return;
+        if (comboRow.dialogShell.activeCombo === comboRow) {
+            comboRow.dialogShell.activeCombo = null;
         } else {
-            root.updateGeometry()
-            root.dialogShell.activeCombo = root
+            comboRow.updateGeometry();
+            comboRow.dialogShell.activeCombo = comboRow;
         }
     }
 
     // 进入/退出可编辑态。editingInput.text 在进入时同步当前 value，撤销时丢弃。
     function startEdit() {
-        if (!root.editable) return
-        if (root.dialogShell) {
-            root.dialogShell.activeCombo = null
+        if (!comboRow.editable)
+            return;
+        if (comboRow.dialogShell) {
+            comboRow.dialogShell.activeCombo = null;
             // 注册为 editingCombo：DialogShell 据此铺点外遮罩——否则点空白处不丢
             // activeFocus（正文 Flickable/Item 不抢焦点），点外退不出编辑。
-            root.dialogShell.editingCombo = root
+            comboRow.dialogShell.editingCombo = comboRow;
         }
-        editingInput.text = root.value
-        root.editing = true
-        editingInput.forceActiveFocus()
-        editingInput.selectAll()
+        editingInput.text = comboRow.value;
+        comboRow.editing = true;
+        editingInput.forceActiveFocus();
+        editingInput.selectAll();
     }
     function commitEdit() {
-        if (!root.editing) return
-        var v = editingInput.text
-        root.editing = false
-        if (root.dialogShell && root.dialogShell.editingCombo === root)
-            root.dialogShell.editingCombo = null
-        if (v !== root.value) root.changed(v)
-        // 焦点还根：根 Item 非 FocusScope，隐藏 editingInput 不会自动恢复 activeFocus，
+        if (!comboRow.editing)
+            return;
+        var v = editingInput.text;
+        comboRow.editing = false;
+        if (comboRow.dialogShell && comboRow.dialogShell.editingCombo === comboRow)
+            comboRow.dialogShell.editingCombo = null;
+        if (v !== comboRow.value)
+            comboRow.changed(v);
+        // 焦点还 DialogShell：它非 FocusScope，隐藏 editingInput 不会自动恢复 activeFocus，
         // 不显式归还则后续 Esc 收不到，编辑后 Esc 关不掉窗。
-        if (root.dialogShell) root.dialogShell.forceActiveFocus()
+        if (comboRow.dialogShell)
+            comboRow.dialogShell.forceActiveFocus();
     }
     function cancelEdit() {
-        root.editing = false
-        if (root.dialogShell && root.dialogShell.editingCombo === root)
-            root.dialogShell.editingCombo = null
-        if (root.dialogShell) root.dialogShell.forceActiveFocus()
+        comboRow.editing = false;
+        if (comboRow.dialogShell && comboRow.dialogShell.editingCombo === comboRow)
+            comboRow.dialogShell.editingCombo = null;
+        if (comboRow.dialogShell)
+            comboRow.dialogShell.forceActiveFocus();
     }
 
     readonly property bool hasTr: optionsTr && optionsTr.length === options.length
     readonly property var displayOptions: hasTr ? optionsTr : options
     readonly property string displayValue: {
-        var i = options.indexOf(value)
-        return (i >= 0 && hasTr) ? optionsTr[i] : value
+        var i = options.indexOf(value);
+        return (i >= 0 && hasTr) ? optionsTr[i] : value;
     }
 
     Text {
-        width: root.labelWidth
+        width: comboRow.labelWidth
         anchors.verticalCenter: parent.verticalCenter
-        text: root.label
+        text: comboRow.label
         color: Theme.fg
-        font.pixelSize: 14 * Theme.scaleFactor
+        font.pixelSize: Theme.fontBody
         elide: Text.ElideRight
     }
 
     Rectangle {
         id: combo
-        width: root.comboWidth
-        height: root.rowHeight
+        width: comboRow.comboWidth
+        height: comboRow.rowHeight
         anchors.verticalCenter: parent.verticalCenter
-        radius: 8 * Theme.scaleFactor
-        color: root.editing ? Theme.fieldBgHover
-             : (comboMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg)
-        border.width: 1 * Theme.scaleFactor
-        border.color: root.editing ? Theme.accent : Theme.borderClr
+        radius: Theme.radius
+        color: comboRow.editing ? Theme.fieldBgHover : (comboMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg)
+        border.width: Theme.borderW
+        border.color: comboRow.editing ? Theme.accent : Theme.borderClr
 
         Text {
             anchors.fill: parent
-            anchors.leftMargin: 14 * Theme.scaleFactor
-            anchors.rightMargin: 30 * Theme.scaleFactor
+            anchors.leftMargin: Theme.comboPad
+            anchors.rightMargin: Theme.comboArrowGap
             verticalAlignment: Text.AlignVCenter
-            text: root.displayValue
+            text: comboRow.displayValue
             color: Theme.fg
-            font.pixelSize: 14 * Theme.scaleFactor
+            font.pixelSize: Theme.fontBody
             elide: Text.ElideRight
-            visible: !root.editing
+            visible: !comboRow.editing
         }
         // 可编辑态覆盖的输入框；非编辑态隐藏，点一下仍走下面的 MouseArea 弹浮层。
         TextInput {
             id: editingInput
             anchors.fill: parent
-            anchors.leftMargin: 14 * Theme.scaleFactor
-            anchors.rightMargin: 30 * Theme.scaleFactor
+            anchors.leftMargin: Theme.comboPad
+            anchors.rightMargin: Theme.comboArrowGap
             verticalAlignment: Text.AlignVCenter
             color: Theme.fg
-            font.pixelSize: 14 * Theme.scaleFactor
+            font.pixelSize: Theme.fontBody
             selectByMouse: true
-            visible: root.editing
-            onActiveFocusChanged: if (!activeFocus) root.commitEdit()
-            Keys.onReturnPressed: root.commitEdit()
-            Keys.onEnterPressed: root.commitEdit()
-            Keys.onEscapePressed: root.cancelEdit()
+            visible: comboRow.editing
+            onActiveFocusChanged: if (!activeFocus)
+                comboRow.commitEdit()
+            Keys.onReturnPressed: comboRow.commitEdit()
+            Keys.onEnterPressed: comboRow.commitEdit()
+            Keys.onEscapePressed: comboRow.cancelEdit()
         }
         Text {
             anchors.right: parent.right
-            anchors.rightMargin: 12 * Theme.scaleFactor
+            anchors.rightMargin: Theme.arrowMargin
             anchors.verticalCenter: parent.verticalCenter
-            text: root.open ? "▲" : "▼"
+            text: comboRow.open ? "▲" : "▼"
             color: Theme.fg
-            font.pixelSize: 10 * Theme.scaleFactor
-            visible: !root.editing
+            font.pixelSize: Theme.fontTiny
+            visible: !comboRow.editing
         }
 
         MouseArea {
@@ -188,16 +199,24 @@ Row {
             // 处理，期间双击到达即取消（避免浮层先弹后收的闪烁 + 状态错乱）。
             // 不可编辑时无歧义，立即 toggle。
             onClicked: {
-                if (root.editing) return
-                if (!root.dialogShell) return
-                if (!root.editable) { root.toggleOpen(); return }
-                if (clickTimer.running) { clickTimer.stop(); return }
-                clickTimer.restart()
+                if (comboRow.editing)
+                    return;
+                if (!comboRow.dialogShell)
+                    return;
+                if (!comboRow.editable) {
+                    comboRow.toggleOpen();
+                    return;
+                }
+                if (clickTimer.running) {
+                    clickTimer.stop();
+                    return;
+                }
+                clickTimer.restart();
             }
             onDoubleClicked: {
-                if (root.editable) {
-                    clickTimer.stop()
-                    root.startEdit()
+                if (comboRow.editable) {
+                    clickTimer.stop();
+                    comboRow.startEdit();
                 }
             }
         }
@@ -207,7 +226,7 @@ Row {
             id: clickTimer
             interval: 220
             repeat: false
-            onTriggered: root.toggleOpen()
+            onTriggered: comboRow.toggleOpen()
         }
     }
 }

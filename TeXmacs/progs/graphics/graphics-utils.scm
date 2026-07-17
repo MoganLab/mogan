@@ -542,6 +542,7 @@
 (tm-define (graphics-enrich-bis t id tab)
   (set! tab (list->ahash-table (ahash-table->list tab)))
   (ahash-remove! tab "gid")
+  (ahash-remove! tab "magnify")
   (let* ((attrs (graphical-relevant-attributes t))
          (sel (ahash-table-select tab attrs))
          (l1 (cons (cons "gid" id) (ahash-table->list sel)))

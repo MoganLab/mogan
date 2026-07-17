@@ -26,6 +26,12 @@ target("libgoldfish") do
     add_defines("WITH_WARNINGS")
     add_defines("WITH_R7RS=1")
     set_basename("libgoldfish")
+    -- s7 内部有与 GLib 同名的全局函数（g_log 等），静态链入 stem 后会被
+    -- --export-dynamic 导出，运行时被 GLib 抢占导致崩溃。隐藏这些符号，
+    -- 使其不进 binary 的 .dynsym（参考 qwkcore.lua / qwkwidgets.lua 同款做法）。
+    if not is_plat("windows") then
+        add_cflags("-fPIC", "-fvisibility=hidden")
+    end
     add_files(
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_continuation.c",
@@ -87,6 +93,12 @@ target ("goldfish") do
         "$(projectdir)/3rdparty/nlohmann_json/include",
         "$(projectdir)/3rdparty/json-schema-validator/src",
     }, {public = true})
+
+    -- 同 libgoldfish：隐藏 goldfish 内部符号，避免与 GLib 的 g_log 等同名符号
+    -- 冲突（见 libgoldfish target 注释）。
+    if not is_plat("windows") then
+        add_cxxflags("-fPIC", "-fvisibility=hidden", "-fvisibility-inlines-hidden")
+    end
 
     add_defines("WITH_SYSTEM_EXTRAS=0")
     if not is_plat("wasm") then

@@ -106,7 +106,26 @@ target("stem") do
         add_ldflags("-sINITIAL_MEMORY=512MB")
         add_ldflags("-sALLOW_MEMORY_GROWTH=1")
         add_ldflags("-sSTACK_SIZE=32MB", {force = true})
-        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs") .. "@/TeXmacs")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/doc/about/mogan/stem.en.tmu") .. "@/TeXmacs/doc/about/mogan/stem.en.tmu")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/progs") .. "@/TeXmacs/progs")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/langs") .. "@/TeXmacs/langs")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/packages") .. "@/TeXmacs/packages")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/styles") .. "@/TeXmacs/styles")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/texts") .. "@/TeXmacs/texts")
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/templates") .. "@/TeXmacs/templates")
+        add_ldflags(
+            "--preload-file=" .. path.join(os.projectdir(), "TeXmacs/fonts") .. "@/TeXmacs/fonts",
+            "--exclude-file=*/fonts/truetype/Mogan-NotoColorEmoji.ttf",
+            "--exclude-file=*/fonts/opentype/cm-unicode/*"
+        )
+        local plugins_dir = path.join(os.projectdir(), "TeXmacs/plugins")
+        for _, dir in ipairs(os.dirs(path.join(plugins_dir, "*"))) do
+            local name = path.filename(dir)
+            if name ~= "goldfish" then
+                add_ldflags("--preload-file=" .. dir .. "@/TeXmacs/plugins/" .. name)
+            end
+        end
+        add_ldflags("--preload-file=" .. path.join(plugins_dir, "goldfish/goldfish") .. "@/TeXmacs/plugins/goldfish/goldfish")
     end
 
     if has_config("qt_frontend") then

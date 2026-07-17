@@ -12,7 +12,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (graphics graphics-object) (:use (graphics graphics-utils)))
+(texmacs-module (graphics graphics-object)
+  (:use (graphics graphics-utils) (graphics graphics-ghost))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutines for calculating with the graphical object
@@ -613,10 +615,11 @@
                                           pts)))
                            (append props
                              `((concat unquote
-                                 (cond ((== pts 'points) op)
-                                       ((== pts 'object) `(,mag-o))
-                                       ((== pts 'object-and-points)
-                                        (cons mag-o op)))))
+                                 (append (cond ((== pts 'points) op)
+                                               ((== pts 'object) `(,mag-o))
+                                               ((== pts 'object-and-points)
+                                                (cons mag-o op)))
+                                   (graphics-extra-decorations))))
                            ) ;append
                          ) ;if
       ) ;graphical-object!
@@ -677,7 +680,10 @@
   (invalidate-graphical-object)
 ) ;tm-define
 
-(tm-define (graphics-decorations-reset) (create-graphical-object #f #f #f #f))
+(tm-define (graphics-decorations-reset)
+  (graphics-set-ghost-line "false" "false" "false")
+  (create-graphical-object #f #f #f #f)
+) ;tm-define
 
 ;; Operating on the graphical object
 (tm-define (transform-graphical-object opn)
@@ -779,3 +785,5 @@
 ) ;tm-define
 
 (tm-define (sketch-cancel) #t)
+
+(tm-define (graphics-extra-decorations) (graphics-get-decorations-ghost-line))

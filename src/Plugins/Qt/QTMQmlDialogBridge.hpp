@@ -41,6 +41,15 @@ public:
   Q_INVOKABLE void choose (int index) { m_host->done (index); }
 
   /**
+   * @brief 语义化取消：以 Rejected 结束宿主模态 QDialog。
+   *
+   * 与 choose(-1) 对调用方等价（form 型忽略退出码、靠 results() 判定；Cancel 时
+   * results() 为空），但语义比魔法值 choose(-1) 清晰。choose(n>=0) 仍用于「选第
+   * n 个按钮」（如 ConfirmClose 的 Save/Don't save/Cancel）。
+   */
+  Q_INVOKABLE void cancel () { m_host->done (QDialog::Rejected); }
+
+  /**
    * @brief 拖动无边框窗口，委托给底层 QWindow 的系统级移动（startSystemMove）。
    *
    * 由 QML 背景区域的 DragHandler 在拖拽开始时调用。

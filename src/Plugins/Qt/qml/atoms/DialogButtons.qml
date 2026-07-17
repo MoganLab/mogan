@@ -13,42 +13,40 @@
 // 用法：
 //   DialogButtons {
 //       buttonLabels: ["OK", "Cancel"]
-//       onClicked: function(i) { i === 0 ? submit() : cancel() }
+//       onClicked: function(i) { if (i === 0) submit(); else cancel() }
 //   }
 
 import QtQuick
 
 Row {
-    id: root
-    spacing: 16 * Theme.scaleFactor
+    id: row
+    spacing: Theme.gapM
 
     property var buttonLabels: []
     property int primaryIndex: 0
-    property real buttonWidth: 100 * Theme.scaleFactor
+    property real buttonWidth: Theme.btnW
     property real letterSpacing: 0
     signal clicked(int index)
 
     Repeater {
-        model: root.buttonLabels
+        model: row.buttonLabels
         delegate: Rectangle {
-            width: root.buttonWidth
-            height: 40 * Theme.scaleFactor
-            radius: 20 * Theme.scaleFactor
-            color: ma.containsMouse
-                   ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover)
-                   : (primary ? Theme.accent : Theme.fieldBg)
-            border.width: primary ? 1 * Theme.scaleFactor : 0
+            width: row.buttonWidth
+            height: Theme.btnH
+            radius: height / 2
+            color: ma.containsMouse ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover) : (primary ? Theme.accent : Theme.fieldBg)
+            border.width: primary ? Theme.borderW : 0
             border.color: primary ? Theme.accent : "transparent"
 
-            property bool primary: index === root.primaryIndex
+            property bool primary: index === row.primaryIndex
 
             Text {
                 anchors.centerIn: parent
                 text: modelData
                 color: primary ? "#ffffff" : Theme.fg
-                font.pixelSize: 15 * Theme.scaleFactor
+                font.pixelSize: Theme.fontBtn
                 font.weight: primary ? Font.Bold : Font.DemiBold
-                font.letterSpacing: root.letterSpacing * Theme.scaleFactor
+                font.letterSpacing: row.letterSpacing * Theme.scaleFactor
             }
             MouseArea {
                 id: ma
@@ -58,10 +56,19 @@ Row {
                 onPressed: parent.scale = 0.96
                 onReleased: parent.scale = 1.0
                 onCanceled: parent.scale = 1.0
-                onClicked: root.clicked(index)
+                onClicked: row.clicked(index)
             }
-            Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
-            Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 80
+                    easing.type: Easing.OutQuad
+                }
+            }
+            Behavior on color {
+                ColorAnimation {
+                    duration: 150
+                }
+            }
         }
     }
 }

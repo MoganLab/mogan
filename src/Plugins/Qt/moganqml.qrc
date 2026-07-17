@@ -1,16 +1,17 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/qmldir</file>
-        <file>qml/Theme.qml</file>
-        <file>qml/DialogShell.qml</file>
-        <file>qml/DialogButtons.qml</file>
-        <file>qml/EnumCombo.qml</file>
-        <file>qml/EnumComboList.qml</file>
-        <file>qml/SelectableList.qml</file>
-        <file>qml/PreviewPane.qml</file>
-        <file>qml/TabBar.qml</file>
-        <file>qml/TabPanel.qml</file>
-        <file>qml/MiniButton.qml</file>
+        <file>qml/atoms/qmldir</file>
+        <file>qml/atoms/Theme.qml</file>
+        <file>qml/atoms/DialogShell.qml</file>
+        <file>qml/atoms/DialogButtons.qml</file>
+        <file>qml/atoms/EnumCombo.qml</file>
+        <file>qml/atoms/EnumComboList.qml</file>
+        <file>qml/atoms/SelectableList.qml</file>
+        <file>qml/atoms/PreviewPane.qml</file>
+        <file>qml/atoms/TabBar.qml</file>
+        <file>qml/atoms/TabPanel.qml</file>
+        <file>qml/atoms/MiniButton.qml</file>
         <file>qml/FontSelector.qml</file>
         <file>qml/ConfirmClose.qml</file>
         <file>qml/FormDialog.qml</file>

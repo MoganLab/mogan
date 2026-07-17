@@ -133,19 +133,7 @@
                                                                 ,group-bary-y))
       ) ;point-norm
     ) ;/
-    (lambda (o)
-      (let* ((res (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
-             (curmag #f)
-            ) ;
-        (if (eq? (car res) 'with)
-          (with curmag
-            (s2f (find-prop res "magnify" "1.0"))
-            (list-find&set-prop res "magnify" (f2s (* curmag h)))
-          ) ;with
-          `(with ,"magnify" ,(f2s h) ,res)
-        ) ;if
-      ) ;let*
-    ) ;lambda
+    (lambda (o) (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
   ) ;with
 ) ;define
 
@@ -365,7 +353,7 @@
   ) ;:require
   (with v
     (if (string-starts? var "gr-") (string-drop var 3) var)
-    (if (graphics-mode-attribute? (graphics-mode) v)
+    (if (and (!= v "magnify") (graphics-mode-attribute? (graphics-mode) v))
       (with l (map (cut property-get <> v 0) (sketch-get)) (properties-and l))
       (former var)
     ) ;if
@@ -412,7 +400,7 @@
   ) ;:require
   (with v
     (if (string-starts? var "gr-") (string-drop var 3) var)
-    (if (graphics-mode-attribute? (graphics-mode) v)
+    (if (and (!= v "magnify") (graphics-mode-attribute? (graphics-mode) v))
       (with r (map (cut property-set <> v val) (sketch-get)) (sketch-set! r))
       (former var val)
     ) ;if

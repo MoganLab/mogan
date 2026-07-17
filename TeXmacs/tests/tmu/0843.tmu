@@ -1,0 +1,18 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <math|<sqrt|123456>,<frac|<frac|<frac|<frac|<frac|<frac|<sqrt|123>|<sqrt|456>>|<sqrt|123456>>|<sqrt|aaa>>|<sqrt|%>>|<sqrt|++>>|<sqrt|789>>,<sqrt|<frac|<frac|<frac|<frac|<frac|<frac|123|456>|789>|aaa>|%>|+\<cdots\>+>|\<aleph\>>>>
+
+  <\equation*>
+    <sqrt|123456>,<frac|<frac|<frac|<frac|<frac|<frac|<sqrt|123>|<sqrt|456>>|<sqrt|123456>>|<sqrt|aaa>>|<sqrt|%>>|<sqrt|++>>|<sqrt|789>>,<sqrt|<frac|<frac|<frac|<frac|<frac|<frac|123|456>|789>|aaa>|%>|+\<cdots\>+>|\<aleph\>>>
+  </equation*>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|DA5FDF26-D627-4F70-8CC2-2F8440C544D0>
+  </collection>
+</initial>

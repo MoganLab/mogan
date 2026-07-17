@@ -207,13 +207,16 @@
   (string-append (os-temp-dir) "/tikz")
 ) ;define
 
+(define (gen-pdflatex-command tex-path pdflatex-bin)
+  (string-append (goldfish-quote pdflatex-bin)
+    " --interaction=errorstopmode -halt-on-error "
+    (goldfish-quote tex-path)
+    " > /dev/null 2>&1 < /dev/null"
+  ) ;string-append
+) ;define
+
 (define (run-pdflatex tex-path pdflatex-bin)
-  (let* ((inner-cmd (string-append (goldfish-quote pdflatex-bin)
-                      " --interaction=errorstopmode -halt-on-error "
-                      (goldfish-quote tex-path)
-                      " > /dev/null 2>&1"
-                    ) ;string-append
-         ) ;inner-cmd
+  (let* ((inner-cmd (gen-pdflatex-command tex-path pdflatex-bin))
          (cmd (string-append "sh -c " (goldfish-quote inner-cmd)))
          (orig-dir (getcwd))
         ) ;

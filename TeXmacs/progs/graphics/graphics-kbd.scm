@@ -115,6 +115,7 @@
 
 (kbd-map (:mode in-active-graphics?)
  ("+" (graphics-zoom-in))
+ ("=" (graphics-zoom-in))
  ("-" (graphics-zoom-out))
  ("A-1" (graphics-set-zoom 1))
  ("A-2" (graphics-set-zoom 0.5))
@@ -190,6 +191,7 @@
 
 (define graphics-keys
   '("+"
+    "="
     "-"
     "1"
     "2"

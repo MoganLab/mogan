@@ -20,10 +20,10 @@ import QtQuick
 import "."
 
 Rectangle {
-    id: root
+    id: panel
     color: Theme.listBg
-    radius: 8 * Theme.scaleFactor
-    border.width: 1 * Theme.scaleFactor
+    radius: Theme.radius
+    border.width: Theme.borderW
     border.color: Theme.borderClr
     clip: true
 
@@ -32,32 +32,35 @@ Rectangle {
     property string activeKey: tabs.length > 0 ? tabs[0].key : ""
 
     onContentChanged: {
-        if (!content) return
-        content.parent = contentArea
-        content.anchors.fill = contentArea
+        if (!content)
+            return;
+        content.parent = contentArea;
+        content.anchors.fill = contentArea;
     }
 
     TabBar {
         id: tabBar
         anchors.top: parent.top
-        anchors.topMargin: 8 * Theme.scaleFactor
+        anchors.topMargin: Theme.pad
         anchors.left: parent.left
-        anchors.leftMargin: 8 * Theme.scaleFactor
-        model: root.tabs
-        activeKey: root.activeKey
-        onSelected: function (key) { root.activeKey = key }
+        anchors.leftMargin: Theme.pad
+        model: panel.tabs
+        activeKey: panel.activeKey
+        onSelected: function (key) {
+            panel.activeKey = key;
+        }
     }
 
     // 调用方的 content 被挂到此处。
     Item {
         id: contentArea
         anchors.top: tabBar.bottom
-        anchors.topMargin: 8 * Theme.scaleFactor
+        anchors.topMargin: Theme.pad
         anchors.left: parent.left
-        anchors.leftMargin: 8 * Theme.scaleFactor
+        anchors.leftMargin: Theme.pad
         anchors.right: parent.right
-        anchors.rightMargin: 8 * Theme.scaleFactor
+        anchors.rightMargin: Theme.pad
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 8 * Theme.scaleFactor
+        anchors.bottomMargin: Theme.pad
     }
 }

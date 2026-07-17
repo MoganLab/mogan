@@ -16,6 +16,7 @@
 #include "qt_gui.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
+#include "telemetry.hpp"
 #include "tm_file.hpp"
 
 #include <QApplication>
@@ -1358,6 +1359,10 @@ FirstLaunchTutorialController::FirstLaunchTutorialController (QObject* parent)
       m_startedThisSession (false) {
   connect (m_engine, &TutorialEngine::finished, this,
            [this] (TutorialFinishReason reason) {
+             if (reason == TutorialFinishReason::Completed) {
+               telemetry_track ("TUTORIAL");
+             }
+
              if (reason != TutorialFinishReason::Completed &&
                  reason != TutorialFinishReason::Skipped) {
                return;

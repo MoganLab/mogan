@@ -29,7 +29,7 @@ import QtQuick
 import "."
 
 Flickable {
-    id: root
+    id: comboList
     contentWidth: width
     contentHeight: column.height
     clip: true
@@ -38,32 +38,34 @@ Flickable {
     property var model: []
     property var valueSource: null
     property string keyField: "var"
-    signal itemChanged (var item, string value)
+    signal itemChanged(var item, string value)
 
     // 取某项当前显示值：优先 valueSource，回退 modelData.value。
     function valueOf(item) {
-        if (root.valueSource) {
-            var k = item[root.keyField]
-            return root.valueSource[k] !== undefined ? root.valueSource[k] : ""
+        if (comboList.valueSource) {
+            var k = item[comboList.keyField];
+            return comboList.valueSource[k] !== undefined ? comboList.valueSource[k] : "";
         }
-        return item.value
+        return item.value;
     }
 
     Column {
         id: column
-        width: root.width
-        spacing: 6 * Theme.scaleFactor
+        width: comboList.width
+        spacing: Theme.gapS
 
         Repeater {
-            model: root.model
+            model: comboList.model
             delegate: EnumCombo {
                 width: column.width
                 label: modelData.label
                 options: modelData.options
                 optionsTr: modelData.optionsTr !== undefined ? modelData.optionsTr : []
-                value: root.valueOf(modelData)
+                value: comboList.valueOf(modelData)
                 editable: modelData.editable !== undefined ? modelData.editable : false
-                onChanged: function (v) { root.itemChanged (modelData, v) }
+                onChanged: function (v) {
+                    comboList.itemChanged(modelData, v);
+                }
             }
         }
     }

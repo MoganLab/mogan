@@ -11,7 +11,7 @@
 import QtQuick
 
 Item {
-    id: root
+    id: pane
 
     property string imageSource: ""
 
@@ -23,7 +23,7 @@ Item {
         Flickable {
             id: flick
             anchors.fill: parent
-            anchors.margins: 1 * Theme.scaleFactor
+            anchors.margins: Theme.borderW
             contentWidth: img.width
             contentHeight: img.height
             clip: true
@@ -32,14 +32,12 @@ Item {
 
             Image {
                 id: img
-                width: root.width - 2 * Theme.scaleFactor
-                height: (img.sourceSize.width > 0)
-                        ? width * img.sourceSize.height / img.sourceSize.width
-                        : root.height
+                width: pane.width - 2 * Theme.borderW
+                height: (img.sourceSize.width > 0) ? width * img.sourceSize.height / img.sourceSize.width : pane.height
                 fillMode: Image.PreserveAspectFit
                 horizontalAlignment: Image.AlignLeft
                 verticalAlignment: Image.AlignTop
-                source: root.imageSource
+                source: pane.imageSource
                 asynchronous: false
                 cache: false
                 smooth: true

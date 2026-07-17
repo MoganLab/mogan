@@ -217,7 +217,8 @@ tmscm_to_list_tree (tmscm p) {
 bool
 tmscm_is_path (tmscm p) {
   if (tmscm_is_null (p)) return true;
-  else return tmscm_is_int (tmscm_car (p)) && tmscm_is_path (tmscm_cdr (p));
+  if (!tmscm_is_pair (p)) return false;
+  return tmscm_is_int (tmscm_car (p)) && tmscm_is_path (tmscm_cdr (p));
 }
 
 tmscm
