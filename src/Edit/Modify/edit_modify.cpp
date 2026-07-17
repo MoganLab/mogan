@@ -56,7 +56,10 @@ void
 edit_modify_rep::ensure_loro_seeded () {
   if (loro_applying_remote) return;
   if (!loro_seeded) {
-    loro_doc->seed (the_buffer ());
+    // 如果 shadow 已有内容（从远端 import 而来），复用其 TreeID 血统（不创建新根），
+    // 避免 A/B 各自 seed 产生两个根 → to_tree 只读 roots[0] → 对端编辑不可见。
+    if (!loro_doc->sync_id_map_from_shadow (the_buffer ()))
+      loro_doc->seed (the_buffer ()); // shadow 为空 → 本端是创建者 → seed
     loro_seeded = true;
   }
 }

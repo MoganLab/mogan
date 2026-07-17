@@ -34,6 +34,9 @@ public:
 
   /** @brief 用树构建 live doc + 填充身份表。 */
   void   seed (tree root);
+  /** @brief 如果 shadow 已有内容（从远端 import），把 buffer 的 rep 关联到现有 TreeID
+   *         （不创建新根，复用共享血统）。返回 true=成功同步，false=shadow 为空。 */
+  bool   sync_id_map_from_shadow (tree buffer);
   /** @brief 把一个 modification 镜像到 live doc。doc_root 是 mod->p 所相对的树根。
    *
    *  文本原子的 INSERT/REMOVE 精确镜像到 LoroText（原子身份在敲字时稳定，Step 1 确认）；

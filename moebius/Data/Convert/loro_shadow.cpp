@@ -80,6 +80,68 @@ loro_shadow_rep::seed (tree root) {
   root_id = seed_node (root, root_parent, 0);
 }
 
+// 并行遍历 buffer 和增强 IR（shadow 的当前状态），把 buffer 的 rep 关联到 shadow 的 TreeID。
+// 如果结构匹配 → 填充 id_map + root_id，返回 true。否则返回 false（调用方 fallback 到 seed）。
+namespace {
+bool
+sync_walk (tree t, string& ir, int& pos, mogan_tree_id& root_id,
+           hashmap<tree_rep*, mogan_tree_id>& id_map) {
+  if (pos + 12 > N (ir)) return false;
+  auto get_u32= [&] () -> uint32_t {
+    uint32_t v= (uint32_t) (unsigned char) ir[pos]
+              | ((uint32_t) (unsigned char) ir[pos + 1] << 8)
+              | ((uint32_t) (unsigned char) ir[pos + 2] << 16)
+              | ((uint32_t) (unsigned char) ir[pos + 3] << 24);
+    pos += 4;
+    return v;
+  };
+  auto get_str= [&] () -> string {
+    uint32_t n= get_u32 ();
+    string   r;
+    for (uint32_t i= 0; i < n; i++)
+      r << ir[pos + i];
+    pos += n;
+    return r;
+  };
+  // TreeID
+  uint64_t peer= 0;
+  for (int b= 0; b < 8; b++)
+    peer |= ((uint64_t) (unsigned char) ir[pos + b]) << (8 * b);
+  pos += 8;
+  mogan_tree_id tid { peer, (int32_t) get_u32 () };
+  if (root_id.peer == 0) root_id= tid;
+  // kind/label/text/n_children
+  pos++;                     // kind
+  get_str ();                // label
+  get_str ();                // text
+  uint32_t n= get_u32 ();    // n_children
+  id_map (inside (t))= tid;
+  int nc= is_atomic (t) ? 0 : N (t);
+  if (nc != (int) n) return false; // 结构不匹配
+  for (int i= 0; i < nc; i++)
+    if (!sync_walk (t[i], ir, pos, root_id, id_map)) return false;
+  return true;
+}
+} // namespace
+
+bool
+loro_shadow_rep::sync_id_map_from_shadow (tree buffer) {
+  uint8_t* out   = nullptr;
+  size_t   out_len= 0;
+  if (mogan_loro_doc_to_ir_with_ids (doc, &out, &out_len) != 0 || out == nullptr ||
+      out_len == 0) {
+    if (out) mogan_loro_free (out, out_len);
+    return false; // shadow 为空
+  }
+  string ir ((const char*) out, (int) out_len);
+  mogan_loro_free (out, out_len);
+  id_map = hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
+  root_id= mogan_tree_id{0, 0};
+  int pos= 0;
+  if (!sync_walk (buffer, ir, pos, root_id, id_map)) return false;
+  return root_id.peer != 0;
+}
+
 /******************************************************************************
  * mirror_mod：把 modification 镜像到 live doc（增量 op，消除整树重 seed）
  ******************************************************************************/
