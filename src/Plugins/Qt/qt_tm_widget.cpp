@@ -79,6 +79,20 @@ bool in_presentation_mode ();
 
 using moebius::data::scm_quote;
 
+namespace {
+/** @brief 仅用于消 warning 的占位 widget，本身无任何视觉/行为作用。
+ *
+ *  QDockWidget::setTitleBarWidget(new QWidget) 可禁用标题栏，但空 QWidget
+ *  的 minimumSizeHint() 默认返回 (-1,-1)，会被 QMainWindowLayout 当成 dock
+ *  最小尺寸约束，从而触发 setMinimumSize 负尺寸警告。这里仅 override 两个
+ *  hint 返回 (0,0) 提供有效约束，渲染效果与空 QWidget 完全一致。 */
+class EmptyTitleBar : public QWidget {
+public:
+  QSize sizeHint () const override { return QSize (0, 0); }
+  QSize minimumSizeHint () const override { return QSize (0, 0); }
+};
+} // namespace
+
 int menu_count= 0; // zero if no menu is currently being displayed
 list<qt_tm_widget_rep*> waiting_widgets;
 extern bool             texmacs_started;
@@ -844,15 +858,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     chatSideDock->setAllowedAreas (Qt::RightDockWidgetArea);
     chatSideDock->setFeatures (QDockWidget::DockWidgetClosable);
     chatSideDock->setFloating (false);
-    // 禁用标题栏：空 QWidget 的 minimumSizeHint() 默认 (-1,-1)，会让
-    // QMainWindowLayout 对 dock 调 setMinimumSize(w,-1) 触发警告，故显式返回
-    // (0,0)。
-    class EmptyTitleBar : public QWidget {
-    public:
-      QSize sizeHint () const override { return QSize (0, 0); }
-      QSize minimumSizeHint () const override { return QSize (0, 0); }
-    };
-    chatSideDock->setTitleBarWidget (new EmptyTitleBar ());
+    chatSideDock->setTitleBarWidget (new EmptyTitleBar ()); // 禁用标题栏
     chatSideDock->setMinimumSize (DpiUtils::scaled (320), 0);
     chatSideDock->setVisible (false);
     mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
