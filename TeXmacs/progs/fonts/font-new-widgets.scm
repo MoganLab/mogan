@@ -1450,12 +1450,23 @@
   (font-selector-cleanup key)
 ) ;tm-define
 
-;; 重置：恢复系统默认字体（pref 默认），非回到打开时。走 selector-restore 的 :default
-;; 路径——init-multi 对 font/var 走 init-default 移除 init（回到继承的全局默认），并清本地
-;; 真相表，之后 selector-get* fallback 到 initial-font-data（get-init 读 init 树、即时、
-;; 无滞后）得到系统默认值。与老 tm-tool 字体对话框的「Restore defaults」按钮语义一致。
+;; 重置：按 specs 的 global? 分流——
+;;   文档级（global?=#t）：恢复系统默认字体（pref 默认），走 selector-restore 的 :default
+;;     路径——init-multi 对 font/var 走 init-default 移除 init（回到继承的全局默认），并清
+;;     本地真相表，之后 selector-get* fallback 到 initial-font-data（get-init 读 init 树、
+;;     即时、无滞后）得系统默认。与老 tm-tool「Restore defaults」语义一致。
+;;   段落级（global?=#f）：selector-restore 的 :default 未实现（注释见其顶部），走
+;;     revert-to-snapshot 回到打开时（机制同 Cancel，selector-get-changes + 单次 setter，
+;;     不吞选区）。不能给段落级 setter（make-multi-with）喂 :default——会生成非法
+;;     (with "font" :default <tree>) 并吞掉选中内容。
 (tm-define (font-selector-restore key)
-  (with specs (font-selector-lookup-specs key) (selector-restore specs #t))
+  (with specs
+    (font-selector-lookup-specs key)
+    (with (getter setter global? . other)
+      specs
+      (if global? (selector-restore specs #t) (font-selector-revert-to-snapshot key))
+    ) ;with
+  ) ;with
 ) ;tm-define
 
 ;; Import 由按钮显式触发，走 choose-file（QML 对话框在其下保持打开）。
