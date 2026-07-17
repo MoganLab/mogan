@@ -128,6 +128,9 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   connect (m_tokenCheckTimer, &QTimer::timeout, this,
            &QTMOAuth::checkTokenStatus);
   m_tokenCheckTimer->start (90000); // 每一分半检查一次
+
+  // 加载现有的token信息
+  loadExistingToken ();
 }
 
 void

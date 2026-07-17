@@ -2932,16 +2932,6 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
   // 根据当前更新状态同步更新区显隐和弹窗几何
   setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
 
-  // 点击个人信息页时，让 QTMOAuth 重新加载本地 token
-  if (is_server_started ()) {
-    tm_server_rep* server=
-        dynamic_cast<tm_server_rep*> (get_server ().operator->());
-    if (server && server->getAccount ()) {
-      QTMOAuth* account= server->getAccount ();
-      account->loadExistingToken ();
-    }
-  }
-
   // 使用scheme代码获取本地token缓存
   eval ("(use-modules (liii account))");
   string  token  = as_string (call ("account-load-token"));
