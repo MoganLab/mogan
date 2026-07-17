@@ -28,6 +28,11 @@ target("libmogan") do
     add_deps("libmoebius")
     add_deps("liblolly")
     add_deps("goldfish")
+    -- Loro 编辑器挂载：libloro 开启时编译 mirror_loro/apply_remote/route_through_loro
+    -- （libmoebius 已 public 链接 mogan_loro_ffi，这里继承）。debug_loro 再开 round-trip 路由。
+    if has_config("loro") then
+        add_defines("LORO_ENABLED")
+    end
     if has_config("qt_frontend") then
         add_deps("QWKCore", "QWKWidgets")
         add_rules("qt.static")

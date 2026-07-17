@@ -1,0 +1,20 @@
+[package]
+name = "mogan_loro_ffi"
+version = "0.1.0"
+edition = "2021"
+description = "Mogan 专用的最小 C FFI shim：把 moebius 文档树 IR 与 Loro CRDT snapshot 互转"
+license = "GPL-3.0-or-later"
+
+[lib]
+# staticlib：产出单个 .a 静态库（含所有 Rust 依赖），供 C++ 直接链接
+crate-type = ["staticlib"]
+
+[dependencies]
+# 依赖本地 loro 源码（与本仓库 3rdparty/loro 工作区成员）
+loro = { path = "../loro/crates/loro" }
+
+# 复制 3rdparty/loro 工作区的 patch：loro 的 generic-btree 依赖重定向到其 in-tree fork，
+# 否则 crates.io 的版本可能落后导致 loro 编译失败。本 crate 作为独立工作区根，patch
+# 在此声明即可对其整个依赖图（含 loro）生效。
+[patch.crates-io]
+generic-btree = { path = "../loro/crates/generic-btree" }

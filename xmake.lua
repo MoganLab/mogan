@@ -102,6 +102,10 @@ else
     includes("xmake/targets/imgui.lua")
 end
 
+if has_config("loro") then
+    includes("xmake/targets/loro.lua")
+end
+
 if is_plat("windows") then
     includes("xmake/targets/liii_windows_icon.lua")
 end
