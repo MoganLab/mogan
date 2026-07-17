@@ -13,8 +13,7 @@
 
 (output-copyright "build-glue-editor.scm")
 
-(build
-  "get_current_editor()->"
+(build "get_current_editor()->"
   "initialize_glue_editor"
 
   ;; important paths and trees
@@ -27,7 +26,7 @@
   (selection-tree selection_get (tree))
 
   ;; low-level modification routines
-  (path-exists? test_subtree (bool path))
+  (stem-path-exists? test_subtree (bool path))
   (cpp-path->tree the_subtree (tree path))
   (path-correct-old correct (void path))
   (path-insert-with insert_with (void path string content))
@@ -113,8 +112,7 @@
   (make-hspace make_hspace (void string))
   (make-var-hspace make_hspace (void string string string))
   (make-vspace-before make_vspace_before (void string))
-  (make-var-vspace-before make_vspace_before
-    (void string string string))
+  (make-var-vspace-before make_vspace_before (void string string string))
   (make-vspace-after make_vspace_after (void string))
   (make-var-vspace-after make_vspace_after (void string string string))
   (make-image make_image (void string bool string string string string))
@@ -158,7 +156,7 @@
   (table-which-row table_which_row (int))
   (table-which-column table_which_column (int))
   (table-which-cells table_which_cells (array_int))
-  
+
   (table-cell-path table_search_cell (path int int))
   (table-go-to table_go_to (void int int))
   (table-set-format table_set_format (void string content))
@@ -191,7 +189,7 @@
   (get-mouse-position get_mouse_position (array_int))
   (set-mouse-pointer set_pointer (void string string))
   (set-predef-mouse-pointer set_pointer (void string))
-  
+
   ;; moving the cursor
   (go-to-path go_to (void path))
   (go-left go_left (void))
@@ -365,4 +363,5 @@
   (show-selection show_selection (void))
   (show-meminfo show_meminfo (void))
   (edit-special edit_special (void))
-  (edit-test edit_test (void)))
+  (edit-test edit_test (void))
+) ;build

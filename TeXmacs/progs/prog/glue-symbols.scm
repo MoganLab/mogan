@@ -821,7 +821,7 @@
     "cursor-path"
     "cursor-path*"
     "selection-tree"
-    "path-exists?"
+    "stem-path-exists?"
     "cpp-path->tree"
     "path-correct-old"
     "path-insert-with"

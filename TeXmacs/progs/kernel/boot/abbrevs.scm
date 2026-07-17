@@ -183,7 +183,7 @@
 ;; Small rewritings on top of C++ interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (path->tree p) (and (path-exists? p) (cpp-path->tree p)))
+(define-public (path->tree p) (and (stem-path-exists? p) (cpp-path->tree p)))
 
 (define-public selection-active? selection-active-any?)
 

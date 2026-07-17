@@ -63,7 +63,7 @@ function main()
             
             -- low-level modification routines
             {
-                scm_name = "path-exists?",
+                scm_name = "stem-path-exists?",
                 cpp_name = "test_subtree",
                 ret_type = "bool",
                 arg_list = {
