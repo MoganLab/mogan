@@ -206,6 +206,9 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
         // 设置登录状态
         m_isLoggedIn= true;
 
+        // 记录 LOGIN 事件
+        telemetry_track ("LOGIN");
+
         // 记录 OAUTH 事件
         telemetry_track ("OAUTH");
 
@@ -303,6 +306,7 @@ QTMOAuth::refreshToken () {
         // 确保登录状态为true
         if (!m_isLoggedIn) {
           m_isLoggedIn= true;
+          telemetry_track ("LOGIN");
           emit loginStateChanged (true);
         }
         else {
@@ -350,6 +354,7 @@ QTMOAuth::checkTokenStatus () {
   // Token有效且未过期
   if (!m_isLoggedIn) {
     m_isLoggedIn= true;
+    telemetry_track ("LOGIN");
     emit loginStateChanged (true);
   }
 

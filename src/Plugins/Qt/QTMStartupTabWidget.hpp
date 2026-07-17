@@ -47,6 +47,7 @@ private slots:
   void onCategoriesLoaded ();
 
 protected:
+  void showEvent (QShowEvent* event) override;
   void keyPressEvent (QKeyEvent* event) override;
   void keyReleaseEvent (QKeyEvent* event) override;
 
@@ -69,6 +70,7 @@ private:
 private:
   Entry   currentEntry_;
   QString currentCategory_;
+  bool    startupTracked_= false;
 
   // Navigation buttons
   QPushButton*        navHomeBtn_;

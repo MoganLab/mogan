@@ -933,7 +933,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
         QObject::connect (account, &QTMOAuth::loginStateChanged,
                           [this] (bool loggedIn) {
                             if (loggedIn) {
-                              telemetry_track ("LOGIN");
                               syncScmGuestNotification (false);
                               refreshMembershipInfoInBackground ();
                             }
