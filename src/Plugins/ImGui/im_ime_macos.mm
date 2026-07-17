@@ -14,7 +14,7 @@
 
 #include "im_ime_macos.hpp"
 
-#if defined(OS_MACOS)
+#ifdef OS_MACOS
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -147,4 +147,4 @@ im_macos_ime_composing () {
   return g_ime_composing;
 }
 
-#endif // defined(OS_MACOS)
+#endif // ifdef OS_MACOS

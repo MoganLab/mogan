@@ -18,7 +18,7 @@
 
 struct GLFWwindow;
 
-#if defined(OS_MACOS)
+#ifdef OS_MACOS
 
 // Swizzle GLFWContentView's NSTextInputClient to capture IME pre-edit. Call
 // once after the GLFW window is created. Idempotent.
@@ -49,4 +49,4 @@ im_macos_ime_composing () {
 }
 #endif
 
-#endif // defined IM_IME_MACOS_HPP
+#endif // ifdef OS_MACOS

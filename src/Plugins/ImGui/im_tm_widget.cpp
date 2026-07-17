@@ -484,8 +484,9 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
                               &im_tm_widget_rep::glfw_window_focus_callback);
 
   // 交换 GLFWContentView 的 NSTextInputClient 以捕获 IME 预编辑/提交。幂等；
-  // 非 macOS 为空桩。
+#ifdef OS_MACOS
   im_macos_install_ime (window);
+#endif
 
   IMGUI_CHECKVERSION ();
   ImGui::CreateContext ();
