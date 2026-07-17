@@ -844,7 +844,15 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     chatSideDock->setAllowedAreas (Qt::RightDockWidgetArea);
     chatSideDock->setFeatures (QDockWidget::DockWidgetClosable);
     chatSideDock->setFloating (false);
-    chatSideDock->setTitleBarWidget (new QWidget ()); // 禁用标题栏
+    // 禁用标题栏：空 QWidget 的 minimumSizeHint() 默认 (-1,-1)，会让
+    // QMainWindowLayout 对 dock 调 setMinimumSize(w,-1) 触发警告，故显式返回
+    // (0,0)。
+    class EmptyTitleBar : public QWidget {
+    public:
+      QSize sizeHint () const override { return QSize (0, 0); }
+      QSize minimumSizeHint () const override { return QSize (0, 0); }
+    };
+    chatSideDock->setTitleBarWidget (new EmptyTitleBar ());
     chatSideDock->setMinimumSize (DpiUtils::scaled (320), 0);
     chatSideDock->setVisible (false);
     mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
