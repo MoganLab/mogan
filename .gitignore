@@ -10,6 +10,8 @@ build
 *.py[cod]
 *$py.class
 __pycache__/
+3rdparty/loro/target
+3rdparty/mogan-loro-ffi/target
 
 # editor files
 *.sln
