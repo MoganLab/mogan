@@ -71,6 +71,7 @@ int32_t       mogan_loro_node_text_insert (void* doc, mogan_tree_id id, uint32_t
                                            const uint8_t* bytes, size_t len);
 int32_t       mogan_loro_node_text_delete (void* doc, mogan_tree_id id, uint32_t pos,
                                            uint32_t len);
+int32_t       mogan_loro_node_join_text (void* doc, mogan_tree_id x_id, mogan_tree_id y_id);
 void          mogan_loro_free (uint8_t* ptr, size_t len);
 }
 #endif // LORO_ENABLED

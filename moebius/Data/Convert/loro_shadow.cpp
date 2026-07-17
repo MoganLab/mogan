@@ -164,14 +164,186 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod) {
       }
     }
   }
+  else if (mod->k == MOD_SPLIT) {
+    // 拆分：P=pos 的子节点 X 拆成 t1(P[pos]) + t2(P[pos+1])
+    int pos= index (mod);
+    int at = argument (mod);
+    if (has_subtree (doc_root, rp_mod) && id_map->contains (inside (subtree (doc_root, rp_mod)))) {
+      mogan_tree_id           pid = id_map (inside (subtree (doc_root, rp_mod)));
+      array<mogan_tree_id>    kids= node_children (pid);
+      if (pos < N (kids)) {
+        mogan_tree_id x_id= kids[pos];
+        // raw_split 把 ref[pos] 替换成新树 t1（左半）+ t2（右半）。Loro 里 X 截断/留前半
+        // 即为 t1，故把 buffer 的 t1（在 rp_mod*pos）映射到 X 的 TreeID，供后续 mod 解析。
+        if (has_subtree (doc_root, rp_mod * pos))
+          id_map (inside (subtree (doc_root, rp_mod * pos)))= x_id;
+        path t2p= rp_mod * (pos + 1);
+        if (has_subtree (doc_root, t2p)) {
+          tree& t2= subtree (doc_root, t2p);
+          if (is_atomic (t2)) {
+            // 原子拆分：截断 X 的文本到 at，建 t2（原子）放 t2 的文本
+            mogan_loro_node_text_delete (doc, x_id, (uint32_t) at, (uint32_t) N (t2->label));
+            mogan_tree_id y_id=
+                mogan_loro_node_create (doc, pid, (uint32_t) (pos + 1), LORO_ATOMIC, nullptr, 0);
+            const uint8_t* tp= reinterpret_cast<const uint8_t*> (t2->label.begin ());
+            mogan_loro_node_text_insert (doc, y_id, 0, tp, (size_t) N (t2->label));
+            id_map (inside (t2))= y_id;
+            mirrored= true;
+          }
+          else {
+            // 复合拆分：建 t2（复合），把 X 的 [at..] 子节点 mov 到 t2
+            string         lab= as_string (L (t2));
+            mogan_tree_id  y_id= mogan_loro_node_create (doc, pid, (uint32_t) (pos + 1),
+                LORO_COMPOUND, reinterpret_cast<const uint8_t*> (lab.begin ()), (size_t) N (lab));
+            int m= N (t2);
+            for (int i= 0; i < m; i++) {
+              tree& c= subtree (doc_root, t2p * i);
+              if (id_map->contains (inside (c)))
+                mogan_loro_node_mov (doc, id_map (inside (c)), y_id, (uint32_t) i);
+            }
+            id_map (inside (t2))= y_id;
+            mirrored= true;
+          }
+        }
+      }
+    }
+  }
+  else if (mod->k == MOD_INSERT_NODE) {
+    // 包一层：rp_mod=包装 W 的路径，argument(mod)=被包节点在 W 内的位置
+    int  pos= argument (mod);
+    if (has_subtree (doc_root, rp_mod)) {
+      tree& W = subtree (doc_root, rp_mod);
+      path  pp= path_up (rp_mod);
+      int   wi= last_item (rp_mod);
+      // W 的父 TreeID：顶层（path_up 为空）→ root_id；否则 id_map[父]
+      mogan_tree_id pid;
+      bool          pid_ok= false;
+      if (is_nil (pp)) {
+        pid= root_id;
+        pid_ok= (root_id.peer != 0);
+      }
+      else if (has_subtree (doc_root, pp) && id_map->contains (inside (subtree (doc_root, pp)))) {
+        pid    = id_map (inside (subtree (doc_root, pp)));
+        pid_ok = true;
+      }
+      path rfp= rp_mod * pos;
+      if (pid_ok && has_subtree (doc_root, rfp) &&
+          id_map->contains (inside (subtree (doc_root, rfp)))) {
+        mogan_tree_id rf_id= id_map (inside (subtree (doc_root, rfp)));
+        string        lab  = as_string (L (W));
+        mogan_tree_id w_id = mogan_loro_node_create (doc, pid, (uint32_t) wi, LORO_COMPOUND,
+            reinterpret_cast<const uint8_t*> (lab.begin ()), (size_t) N (lab));
+        mogan_loro_node_mov (doc, rf_id, w_id, (uint32_t) pos);
+        id_map (inside (W))= w_id;
+        mirrored= true;
+      }
+    }
+  }
+  else if (mod->k == MOD_REMOVE_NODE) {
+    // 拆一层：rp_mod=包装 W 的路径，index(mod)=被提升的子节点在 W 内的位置
+    int  pos= index (mod);
+    path pp = path_up (rp_mod);
+    int  wi = last_item (rp_mod);
+    mogan_tree_id pid;
+    bool          pid_ok= false;
+    if (is_nil (pp)) {
+      pid= root_id;
+      pid_ok= (root_id.peer != 0);
+    }
+    else if (has_subtree (doc_root, pp) && id_map->contains (inside (subtree (doc_root, pp)))) {
+      pid    = id_map (inside (subtree (doc_root, pp)));
+      pid_ok = true;
+    }
+    if (pid_ok && has_subtree (doc_root, rp_mod)) {
+      array<mogan_tree_id> kids= node_children (pid);
+      if (wi < N (kids)) {
+        mogan_tree_id w_id= kids[wi];
+        mogan_tree_id c_id= id_map->contains (inside (subtree (doc_root, rp_mod)))
+                               ? id_map (inside (subtree (doc_root, rp_mod)))
+                               : mogan_tree_id{0, 0};
+        if (c_id.peer != 0) {
+          mogan_loro_node_mov (doc, c_id, pid, (uint32_t) wi); // 子提到 W 的位置
+          mogan_loro_node_delete (doc, w_id);                  // 删空包装
+          mirrored= true;
+        }
+      }
+    }
+  }
 
+  else if (mod->k == MOD_ASSIGN) {
+    // 替换子树：rp_mod=节点路径。删旧节点（Loro 在父/wi 的子）+ 从 buffer 当前（=mod->t）重建。
+    if (!is_nil (rp_mod) && has_subtree (doc_root, rp_mod)) {
+      tree& node= subtree (doc_root, rp_mod); // post-assign = mod->t
+      path  pp  = path_up (rp_mod);
+      int   wi  = last_item (rp_mod);
+      mogan_tree_id pid;
+      bool          pid_ok= false;
+      if (is_nil (pp)) {
+        pid= root_id;
+        pid_ok= (root_id.peer != 0);
+      }
+      else if (has_subtree (doc_root, pp) && id_map->contains (inside (subtree (doc_root, pp)))) {
+        pid    = id_map (inside (subtree (doc_root, pp)));
+        pid_ok = true;
+      }
+      if (pid_ok) {
+        array<mogan_tree_id> kids= node_children (pid);
+        if (wi < N (kids)) mogan_loro_node_delete (doc, kids[wi]); // 删旧
+        seed_node (node, pid, (uint32_t) wi);                       // 建新（映射身份）
+        mirrored= true;
+      }
+    }
+  }
+  else if (mod->k == MOD_JOIN) {
+    // 合并 P[pos]+P[pos+1] → P[pos]（X 保留合并内容，Y 删除）
+    int pos= index (mod);
+    if (has_subtree (doc_root, rp_mod) && id_map->contains (inside (subtree (doc_root, rp_mod)))) {
+      mogan_tree_id        pid= id_map (inside (subtree (doc_root, rp_mod)));
+      array<mogan_tree_id> kids= node_children (pid);
+      if (pos + 1 < N (kids)) {
+        mogan_tree_id x_id= kids[pos];
+        mogan_tree_id y_id= kids[pos + 1];
+        if (mogan_loro_node_join_text (doc, x_id, y_id) != 0) {
+          // 复合 join：mov Y 的子节点到 X 末尾 + delete Y
+          array<mogan_tree_id> x_kids= node_children (x_id);
+          array<mogan_tree_id> y_kids= node_children (y_id);
+          int base= N (x_kids);
+          int m   = N (y_kids);
+          for (int i= 0; i < m; i++)
+            mogan_loro_node_mov (doc, y_kids[i], x_id, (uint32_t) (base + i));
+          mogan_loro_node_delete (doc, y_id);
+        }
+        // 合并后 buffer 的 P*pos（merged）对应 X（X 保留了合并内容）
+        if (has_subtree (doc_root, rp_mod * pos))
+          id_map (inside (subtree (doc_root, rp_mod * pos)))= x_id;
+        mirrored= true;
+      }
+    }
+  }
   if (!mirrored) {
     // 兜底（INSERT_NODE/REMOVE_NODE/ASSIGN/SPLIT/JOIN 等，回车等复杂结构改动）：
-    //   整树重 seed（保 peer 血统，但 delta 仍为整篇，待子树级精确化）。
-    if (root_id.peer != 0 || root_id.counter != 0)
-      mogan_loro_node_delete (doc, root_id);
-    id_map= hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
-    seed (doc_root);
+    //   块级重 seed——只删+重建包含改动的 buffer 根直接子节点（段落/块），而非整篇。
+    //   回车的 5 个 mod 序列各重 seed 一次所在块（块级，远小于整篇），保 peer 血统。
+    path p       = mod->p;
+    bool reseeded= false;
+    if (!is_nil (p) && root_id.peer != 0) {
+      int  block_idx = p->item;
+      path block_path= path (block_idx);
+      if (has_subtree (doc_root, block_path) &&
+          id_map->contains (inside (subtree (doc_root, block_path)))) {
+        mogan_tree_id block_id= id_map (inside (subtree (doc_root, block_path)));
+        mogan_loro_node_delete (doc, block_id);
+        seed_node (subtree (doc_root, block_path), root_id, (uint32_t) block_idx);
+        reseeded= true;
+      }
+    }
+    if (!reseeded) {
+      // 连块级都定位不了（如改动在 buffer 根本身，或身份缺失）→ 整树重 seed（保血统）。
+      if (root_id.peer != 0 || root_id.counter != 0)
+        mogan_loro_node_delete (doc, root_id);
+      id_map= hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
+      seed (doc_root);
+    }
   }
   // 显式提交：同步触发 local-update 事件（增量同步）。
   mogan_loro_doc_commit (doc);
