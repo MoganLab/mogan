@@ -11,7 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (telemetry telemetry-track) (:use (telemetry telemetry-utils)))
+(texmacs-module (telemetry telemetry-track)
+  (:use (telemetry telemetry-utils) (utils plugins plugin-eval))
+) ;texmacs-module
 
 (import (scheme base)
   (liii base)
@@ -22,6 +24,30 @@
 ) ;import
 
 (define-public *telemetry-event-queue* '())
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Upload trigger: notify the telemetry plugin that an upload should start
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (upload-events event)
+  (if (not (telemetry-enabled?))
+    #f
+    (let* ((ts (telemetry-now))
+           (payload (list (cons "time" ts) (cons "event" event)))
+           (json (telemetry->json payload))
+          ) ;
+      (silent-feed* "telemetry" "" `(document ,json) (lambda (r) (noop)) '())
+      (display (string-append "[telemetry] upload triggered by "
+                 event
+                 " (ts="
+                 (number->string ts)
+                 ")\n"
+               ) ;string-append
+      ) ;display
+      #t
+    ) ;let*
+  ) ;if
+) ;define-public
 
 (define-public (track-event event-type properties)
   (if (not (telemetry-enabled?))
@@ -54,6 +80,7 @@
             ) ;begin
           ) ;if
           (if (>= len (telemetry-get-buffer-size)) (telemetry-flush))
+          (if (string=? event-type "CLOSE") (upload-events event-type))
         ) ;let
         #t
       ) ;begin

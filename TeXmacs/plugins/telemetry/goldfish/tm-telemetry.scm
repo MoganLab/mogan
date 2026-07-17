@@ -18,7 +18,7 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (liii base) (liii path))
+(import (scheme base) (liii base) (liii path) (liii json) (srfi srfi-19))
 
 (import (texmacs protocol))
 
@@ -51,12 +51,34 @@
   (path-append-text telemetry-log-path (string-append message "\n"))
 ) ;define
 
+;; 把 payload 中的 Unix 时间戳转换成本地可读时间，方便日志排查。
+;; 如果解析失败或没有时间戳，则按原样记录。
+
+(define (format-payload s)
+  (catch #t
+    (lambda ()
+      (let* ((json (string->json s)) (ts (json-ref json "time")))
+        (if (number? ts)
+          (let* ((sec (inexact->exact (truncate ts)))
+                 (date (time-utc->date (make-time TIME-UTC 0 sec)))
+                 (date-str (date->string date "~Y-~m-~d ~H:~M:~S"))
+                ) ;
+            (json->string (json-push (json-drop json "time") "time" date-str))
+          ) ;let*
+          (json->string json)
+        ) ;if
+      ) ;let*
+    ) ;lambda
+    (lambda args s)
+  ) ;catch
+) ;define
+
 (define (handle-telemetry payload)
   (let ((s (document->string payload)))
     (if (string=? s "")
       (flush-verbatim "telemetry skipped: empty payload")
       (begin
-        (telemetry-log s)
+        (telemetry-log (format-payload s))
         (flush-verbatim "telemetry logged")
       ) ;begin
     ) ;if
