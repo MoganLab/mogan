@@ -38,6 +38,11 @@ protected:
   bool         initialized;
   bool needs_refocus; // when a stub window was created -> re-grab focus next
                       // frame
+  // 最近一次 glfw_key_callback 收到的事件级修饰键（GLFW 的 mods 形参）。
+  // macOS 上来自 NSEvent modifierFlags、WASM 上来自 e.metaKey，都是事件即时
+  // 真实状态，不受 glfwGetKey 在系统快捷键（截屏等）后修饰键 keyup 丢失而卡住
+  // 的影响。供 glfw_char_callback / glfw_scroll_callback 复用。
+  int last_key_mods;
 
   picture the_picture;
   int     pic_w, pic_h;
