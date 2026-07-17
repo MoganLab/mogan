@@ -313,22 +313,20 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
   bool has_ghost= false;
 
   tree t_prev= as_tree (call ("graphics-get-all-previous-points"));
-  if (is_tuple (t_prev) && N (t_prev) > 0) {
+  if (is_tuple (t_prev) && N (t_prev) >= 2) {
     int n_points= N (t_prev);
     call ("graphics-clear-ghost-lines");
 
     // 计算全局基线角：上一个绘制的点 (pk_1) 和上上一个绘制的点 (pk_2)
     // 的连线倾角
     double base_angle= 0.0;
-    if (n_points >= 2) {
-      point pk_1= as_point (t_prev[n_points - 1]);
-      point pk_2= as_point (t_prev[n_points - 2]);
-      if (N (pk_1) == 2 && N (pk_2) == 2) {
-        point pk_1_layout= f2 (pk_1);
-        point pk_2_layout= f2 (pk_2);
-        base_angle       = atan2 (pk_1_layout[1] - pk_2_layout[1],
-                                  pk_1_layout[0] - pk_2_layout[0]);
-      }
+    point  pk_1      = as_point (t_prev[n_points - 1]);
+    point  pk_2      = as_point (t_prev[n_points - 2]);
+    if (N (pk_1) == 2 && N (pk_2) == 2) {
+      point pk_1_layout= f2 (pk_1);
+      point pk_2_layout= f2 (pk_2);
+      base_angle       = atan2 (pk_1_layout[1] - pk_2_layout[1],
+                                pk_1_layout[0] - pk_2_layout[0]);
     }
 
     for (int j= 0; j < n_points; ++j) {
