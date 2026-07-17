@@ -32,6 +32,7 @@
 ;; telemetry-api-url
 ;; 上报接口地址。
 ;; worker 端 telemetry-build-request 构造 {"events":[...]} 请求体发往此 url。
+
 (define (telemetry-api-url)
   "https://telemetry.liiistem.cn/api/v1/telemetry/events"
 ) ;define
@@ -39,6 +40,7 @@
 ;; telemetry-current-token
 ;; 读取当前登录用户的 OAuth2 token；未登录或 account 未加载时返回空串。
 ;; 空串时 worker 走 auth 分支，不会发送无认证请求。
+
 (define (telemetry-current-token)
   (catch #t (lambda () (account-load-token)) (lambda args ""))
 ) ;define
@@ -47,12 +49,13 @@
 ;; 构造投递给 worker 的 payload JSON 字符串。
 ;; worker 端 parse-telemetry-payload 读取 main-dir/api-url/api-key 等字段。
 ;; event 仅供日志，worker 不消费。
+
 (define (build-upload-payload event)
   (let ((payload `((,"event" unquote event)
                    (,"main-dir" unquote (telemetry-main-dir))
                    (,"api-url" unquote (telemetry-api-url))
                    (,"api-key" unquote (telemetry-current-token)))
-            ) ;payload
+        ) ;payload
        ) ;
     (telemetry->json payload)
   ) ;let
@@ -61,9 +64,7 @@
 (define-public (upload-events event)
   (if (not (telemetry-enabled?))
     #f
-    (let* ((ts (telemetry-now))
-           (json (build-upload-payload event))
-          ) ;
+    (let* ((ts (telemetry-now)) (json (build-upload-payload event)))
       (silent-feed* "telemetry" "" `(document ,json) (lambda (r) (noop)) '())
       (display (string-append "[telemetry] upload triggered by "
                  event
