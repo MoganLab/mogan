@@ -12,6 +12,7 @@
 #include "QTMOAuth.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
+#include "telemetry.hpp"
 #include "tm_sys_utils.hpp"
 
 #include <QtGui/qdesktopservices.h>
@@ -204,6 +205,9 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
 
         // 设置登录状态
         m_isLoggedIn= true;
+
+        // 记录 LOGIN 事件
+        telemetry_track ("LOGIN");
 
         if (!refreshToken.isEmpty ()) {
           m_refreshToken= refreshToken;
