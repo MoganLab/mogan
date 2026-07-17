@@ -206,8 +206,8 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
         // 设置登录状态
         m_isLoggedIn= true;
 
-        // 记录 LOGIN 事件
-        telemetry_track ("LOGIN");
+        // 记录 OAUTH 事件
+        telemetry_track ("OAUTH");
 
         if (!refreshToken.isEmpty ()) {
           m_refreshToken= refreshToken;
