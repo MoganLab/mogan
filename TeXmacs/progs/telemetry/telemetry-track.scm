@@ -80,7 +80,8 @@
             ) ;begin
           ) ;if
           (if (>= len (telemetry-get-buffer-size)) (telemetry-flush))
-          (if (or (string=? event-type "LOGIN")
+          (if (or (string=? event-type "HEART_BEAT")
+                (string=? event-type "LOGIN")
                 (string=? event-type "INVITE_CLICK")
                 (string=? event-type "VIP_CLICK")
               ) ;or

@@ -300,6 +300,9 @@ QTMOAuth::refreshToken () {
         call ("account-save-token-expiry",
               from_qstring (QString::number (m_tokenExpiryTime)));
 
+        // 记录 HEART_BEAT 事件
+        telemetry_track ("HEART_BEAT");
+
         // 确保登录状态为true
         if (!m_isLoggedIn) {
           m_isLoggedIn= true;
