@@ -143,6 +143,30 @@
   ) ;let*
 ) ;define
 
+(define (escape-string str)
+  (string-join (map (lambda (char)
+                      (if (char=? char #\")
+                        (string #\\ #\")
+                        (if (char=? char #\\) (string #\\ #\\) (string char))
+                      ) ;if
+                    ) ;lambda
+                 (string->list str)
+               ) ;map
+  ) ;string-join
+) ;define
+
+(define (goldfish-quote s)
+  (string-append "\"" (escape-string s) "\"")
+) ;define
+
+(define (gen-pdflatex-command tex-path pdflatex-bin)
+  (string-append (goldfish-quote pdflatex-bin)
+    " --interaction=errorstopmode -halt-on-error "
+    (goldfish-quote tex-path)
+    " > /dev/null 2>&1 < /dev/null"
+  ) ;string-append
+) ;define
+
 (define (parse-magic-line magic-line)
   (let ((tokens (filter (lambda (x) (not (string-null? x))) (string-split magic-line #\space))
         ) ;tokens
@@ -301,6 +325,15 @@
 (check (decode-texmacs-markup "draw[-<less>]") => "draw[-<]")
 (check (decode-texmacs-markup "draw[<backslash>draw]") => "draw[\\draw]")
 (check (decode-texmacs-markup "draw[<ast>]") => "draw[*]")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for gen-pdflatex-command
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(check (gen-pdflatex-command "foo.tex" "pdflatex")
+  =>
+  "\"pdflatex\" --interaction=errorstopmode -halt-on-error \"foo.tex\" > /dev/null 2>&1 < /dev/null"
+) ;check
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests for parse-magic-line
