@@ -185,7 +185,8 @@
                              (check-true (assoc-ref (list-ref basic 1) 'editable))
                              ;; par-sep 选项含 0.25fn（1.25x 预设对应值）。
                              (check-true (in? "0.25fn" (assoc-ref (list-ref basic 4) 'options)))
-                             ;; meta 的 value 来自 get-env（打开时读一次）。
+                             ;; meta 的 value 来自本地真相表（register 时填入 get-env 值，
+                             ;; 此处 register 后无 set，表值 == get-env）。
                              (check-true (equal? (assoc-ref (car basic) 'value) (get-env "par-mode")))
                              ;; ui-labels：按钮文案 + sepPresetLabel + sepPresets 4 项（1.0x→2.0x）。
                              (check-true (string? (assoc-ref labels 'basic)))

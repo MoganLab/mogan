@@ -361,9 +361,9 @@
 ;; 一致——文档级 Reset 是「恢复默认」）；段落级快照写回（回到打开时）。不关窗。
 ;; 文档级用本 facade 已知的全部字段名做 init-default，不依赖 format-widgets 的
 ;; paragraph-parameters（跨模块变量在此 unbound）。
-;; 重置后同步更新本地真相表：段落级经 restore-snapshot 内部写回快照值；文档级在此
-;; init-default 后用 getter（get-init，同 eval 直读 init/pre hashmap、不滞后）算出全局
-;; 默认值写表。随后 QML resetValues → basicMeta 读表即时生效，不再跨 eval 读树。
+;;
+;; 重置后同步更新本地真相表：reset/Cancel 把目标值（段落级=快照值、文档级=init-default
+;; 后的默认值）写入表，随后 QML resetValues → basicMeta 读表即时命中、绕开读树滞后。
 (tm-define (paragraph-format-revert key)
   (with scope
     (ahash-ref paragraph-scope key)
@@ -373,7 +373,13 @@
         (with (_ getter setter)
           specs
           (apply init-default (paragraph-all-var-names))
-          ;; init-default 后 getter 读 init/pre hashmap 得全局默认（继承的 pre 值），写表。
+          ;; 先按 paragraph-all-var-names（含 par-left/par-right，与 init-default 写入集、
+          ;; cleanup 集同源）清掉该 key 全部缓存项——保证失效集 ⊇ 写入集，三集一致。
+          ;; 文档级本就不缓存 par-left/par-right，清它们是 no-op，但消除「集不一致」的隐患。
+          (value-table-clean (map (lambda (var) (paragraph-entry-key key var)) (paragraph-all-var-names))
+          ) ;value-table-clean
+          ;; init-default 后 getter（get-init）直读 init/pre hashmap 得全局默认，写表保持
+          ;; 表与撤销后文档真相一致（动机见上）。仅重填本 scope 暴露字段。
           (for (f (paragraph-all-fields-for scope))
             (with var (car f) (value-table-set! (paragraph-entry-key key var) (getter var)))
           ) ;for
