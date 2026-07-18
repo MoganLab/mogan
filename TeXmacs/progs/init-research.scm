@@ -60,16 +60,21 @@
 
 
 (let ()
-  (display "Benchmark 1\n")
-  (define start (texmacs-time))
   (define (fib n)
     (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))
   ) ;define
-  (display (fib 30))
-  (newline)
-  (display "Time: ")
-  (display (- (texmacs-time) start))
-  (newline)
+  (define start (texmacs-time))
+  (define result (fib 30))
+  (define elapsed (- (texmacs-time) start))
+  (debug-message "debug-std"
+    (string-append "Benchmark 1\n"
+      (number->string result)
+      "\n"
+      "Time: "
+      (number->string elapsed)
+      "\n"
+    ) ;string-append
+  ) ;debug-message
 ) ;let
 
 (define developer-mode? #f)
@@ -78,7 +83,7 @@
 
 (define remote-client-list (list))
 
-(display "Booting TeXmacs kernel functionality\n")
+(debug-message "debug-std" "Booting TeXmacs kernel functionality\n")
 (load (url-concretize "$TEXMACS_PATH/progs/kernel/boot/boot-s7.scm"))
 
 (inherit-modules (kernel boot compat-s7)
@@ -534,7 +539,12 @@
   export-selection-as-graphics
   clipboard-copy-image
 ) ;lazy-define
-(lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim texmacs->utf8raw utf8raw->texmacs)
+(lazy-define (convert rewrite init-rewrite)
+  texmacs->code
+  texmacs->verbatim
+  texmacs->utf8raw
+  utf8raw->texmacs
+) ;lazy-define
 (lazy-define (convert html tmhtml) ext-tmhtml-eqnarray*)
 (define-secure-symbols ext-tmhtml-eqnarray*)
 (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
@@ -668,10 +678,16 @@
   (use-modules (utils misc updater))
   (delayed (:idle 2000) (updater-initialize))
 ) ;when
-(display* "time: " (- (texmacs-time) boot-start) "\n")
-(display* "memory: " (texmacs-memory) " bytes\n")
-
-(display "------------------------------------------------------\n")
+(debug-message "debug-std"
+  (string-append "time: "
+    (number->string (- (texmacs-time) boot-start))
+    "\n"
+    "memory: "
+    (number->string (texmacs-memory))
+    " bytes\n"
+    "------------------------------------------------------\n"
+  ) ;string-append
+) ;debug-message
 (delayed (:pause 120000) (autosave-delayed))
 (catch #t
   (lambda ()
@@ -691,42 +707,61 @@
   ) ;lambda
 ) ;catch
 (texmacs-banner)
-(display "Initialization done\n")
+(debug-message "debug-std" "Initialization done\n")
 
 (let ()
-  (display "------------------------------------------------------\n")
-  (display "Benchmark 2\n")
   (define start (texmacs-time))
   (tm-define (tm-fib n) (if (< n 2) n (+ (tm-fib (- n 1)) (tm-fib (- n 2)))))
-  (display (tm-fib 30))
-  (newline)
-  (display "Time: ")
-  (display (- (texmacs-time) start))
-  (newline)
-  (display "------------------------------------------------------\n")
+  (define result (tm-fib 30))
+  (define elapsed (- (texmacs-time) start))
+  (debug-message "debug-std"
+    (string-append "------------------------------------------------------\n"
+      "Benchmark 2\n"
+      (number->string result)
+      "\n"
+      "Time: "
+      (number->string elapsed)
+      "\n"
+      "------------------------------------------------------\n"
+    ) ;string-append
+  ) ;debug-message
 ) ;let
 
-(display "------------------------------------------------------\n")
-(display "Forcing delayed loads\n")
-
+(debug-message "debug-std"
+  "------------------------------------------------------\n"
+) ;debug-message
+(debug-message "debug-std" "Forcing delayed loads\n")
 (lazy-keyboard-force #t)
-(display* "time: " (- (texmacs-time) boot-start) "\n")
-(display* "memory: " (texmacs-memory) " bytes\n")
-(display "------------------------------------------------------\n")
+(debug-message "debug-std"
+  (string-append "time: "
+    (number->string (- (texmacs-time) boot-start))
+    "\n"
+    "memory: "
+    (number->string (texmacs-memory))
+    " bytes\n"
+    "------------------------------------------------------\n"
+  ) ;string-append
+) ;debug-message
 
 
 
 (tm-define (benchmark-menu-expand)
-  (display "------------------------------------------------------\n")
-  (display "Benchmark menu-expand\n")
-  (let ((start (texmacs-time)))
-    (display (menu-expand '(horizontal (link texmacs-main-icons))))
-    (newline)
-    (display "Time: ")
-    (display (- (texmacs-time) start))
-    (newline)
-  ) ;let
-  (display "------------------------------------------------------\n")
+  (let* ((start (texmacs-time))
+         (result (menu-expand '(horizontal (link texmacs-main-icons))))
+         (elapsed (- (texmacs-time) start))
+        ) ;
+    (debug-message "debug-std"
+      (string-append "------------------------------------------------------\n"
+        "Benchmark menu-expand\n"
+        (object->string result)
+        "\n"
+        "Time: "
+        (number->string elapsed)
+        "\n"
+        "------------------------------------------------------\n"
+      ) ;string-append
+    ) ;debug-message
+  ) ;let*
 ) ;tm-define
 
 ;; (delayed (:idle 1000) (benchmark-menu-expand))
@@ -748,9 +783,9 @@
                                               (update (lambda ()
                                                         (update (lambda ()
                                                                   (buffer-pretend-saved (current-buffer))
-                                                                  (display "Timing:")
-                                                                  (display (- (texmacs-time) start-time))
-                                                                  (newline)
+                                                                  (debug-message "debug-std"
+                                                                    (string-append "Timing:" (number->string (- (texmacs-time) start-time)) "\n")
+                                                                  ) ;debug-message
                                                                 ) ;lambda
                                                         ) ;update
                                                       ) ;lambda

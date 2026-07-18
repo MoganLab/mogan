@@ -249,11 +249,12 @@
         (catch #t
           (lambda () (try-write))
           (lambda args2
-            (display (string-append "[telemetry] error: meta write failed after retry: "
-                       (object->string args2)
-                       "\n"
-                     ) ;string-append
-            ) ;display
+            (debug-message "debug-events"
+              (string-append "[telemetry] error: meta write failed after retry: "
+                (object->string args2)
+                "\n"
+              ) ;string-append
+            ) ;debug-message
             (when (path-exists? tmp-path)
               (path-unlink tmp-path)
             ) ;when

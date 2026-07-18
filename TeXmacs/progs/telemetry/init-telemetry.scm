@@ -54,32 +54,34 @@
 
 (define-public (init-telemetry)
   (if telemetry-scheduled?
-    (display "[telemetry] init: already initialized\n")
+    (debug-message "debug-events" "[telemetry] init: already initialized\n")
     (if (telemetry-enabled?)
       (begin
         (telemetry-clean-orphans)
         (set! telemetry-scheduled? #t)
-        (display (string-append "[telemetry] init: enabled, buffer="
-                   (number->string (telemetry-get-buffer-size))
-                   ", interval="
-                   (number->string (telemetry-get-flush-interval))
-                   "ms\n"
-                 ) ;string-append
-        ) ;display
+        (debug-message "debug-events"
+          (string-append "[telemetry] init: enabled, buffer="
+            (number->string (telemetry-get-buffer-size))
+            ", interval="
+            (number->string (telemetry-get-flush-interval))
+            "ms\n"
+          ) ;string-append
+        ) ;debug-message
         (on-exit (catch #t
                    (lambda () (track-event "CLOSE" '()) (telemetry-flush-if-needed))
                    (lambda args
-                     (display (string-append "[telemetry] error: exit flush failed: "
-                                (object->string args)
-                                "\n"
-                              ) ;string-append
-                     ) ;display
+                     (debug-message "debug-events"
+                       (string-append "[telemetry] error: exit flush failed: "
+                         (object->string args)
+                         "\n"
+                       ) ;string-append
+                     ) ;debug-message
                    ) ;lambda
                  ) ;catch
         ) ;on-exit
         (telemetry-delayed)
       ) ;begin
-      (display "[telemetry] init: disabled\n")
+      (debug-message "debug-events" "[telemetry] init: disabled\n")
     ) ;if
   ) ;if
 ) ;define-public

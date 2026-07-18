@@ -66,13 +66,14 @@
     #f
     (let* ((ts (telemetry-now)) (json (build-upload-payload event)))
       (silent-feed* "telemetry" "" `(document ,json) (lambda (r) (noop)) '())
-      (display (string-append "[telemetry] upload triggered by "
-                 event
-                 " (ts="
-                 (number->string ts)
-                 ")\n"
-               ) ;string-append
-      ) ;display
+      (debug-message "debug-events"
+        (string-append "[telemetry] upload triggered by "
+          event
+          " (ts="
+          (number->string ts)
+          ")\n"
+        ) ;string-append
+      ) ;debug-message
       #t
     ) ;let*
   ) ;if
@@ -96,25 +97,27 @@
           (cons (telemetry-make-event event-type properties) *telemetry-event-queue*)
         ) ;set!
         (let ((len (length *telemetry-event-queue*)))
-          (display (string-append "[telemetry] track: "
-                     event-type
-                     " (queue: "
-                     (number->string len)
-                     "/"
-                     (number->string (telemetry-get-buffer-size))
-                     ")\n"
-                   ) ;string-append
-          ) ;display
+          (debug-message "debug-events"
+            (string-append "[telemetry] track: "
+              event-type
+              " (queue: "
+              (number->string len)
+              "/"
+              (number->string (telemetry-get-buffer-size))
+              ")\n"
+            ) ;string-append
+          ) ;debug-message
           (if (> len telemetry-max-queue-size)
             (begin
               (set! *telemetry-event-queue*
                 (list-head *telemetry-event-queue* telemetry-max-queue-size)
               ) ;set!
-              (display (string-append "[telemetry] warn: queue truncated to "
-                         (number->string telemetry-max-queue-size)
-                         "\n"
-                       ) ;string-append
-              ) ;display
+              (debug-message "debug-events"
+                (string-append "[telemetry] warn: queue truncated to "
+                  (number->string telemetry-max-queue-size)
+                  "\n"
+                ) ;string-append
+              ) ;debug-message
             ) ;begin
           ) ;if
           (if (important-event? event-type)
@@ -158,26 +161,29 @@
             (string-save text (system->url filepath))
             (if (telemetry-meta-add-entry filename)
               (begin
-                (display (string-append "[telemetry] flush: "
-                           (number->string (length events))
-                           " events -> "
-                           filename
-                           "\n"
-                         ) ;string-append
-                ) ;display
+                (debug-message "debug-events"
+                  (string-append "[telemetry] flush: "
+                    (number->string (length events))
+                    " events -> "
+                    filename
+                    "\n"
+                  ) ;string-append
+                ) ;debug-message
                 #t
               ) ;begin
               (begin
-                (display (string-append "[telemetry] error: meta update failed for " filename "\n")
-                ) ;display
+                (debug-message "debug-events"
+                  (string-append "[telemetry] error: meta update failed for " filename "\n")
+                ) ;debug-message
                 #f
               ) ;begin
             ) ;if
           ) ;let
         ) ;lambda
         (lambda args
-          (display (string-append "[telemetry] error: write failed: " (object->string args) "\n")
-          ) ;display
+          (debug-message "debug-events"
+            (string-append "[telemetry] error: write failed: " (object->string args) "\n")
+          ) ;debug-message
           #f
         ) ;lambda
       ) ;catch
@@ -195,11 +201,12 @@
           #t
         ) ;begin
         (begin
-          (display (string-append "[telemetry] error: flush failed, keeping "
-                     (number->string (length *telemetry-event-queue*))
-                     " events in memory queue\n"
-                   ) ;string-append
-          ) ;display
+          (debug-message "debug-events"
+            (string-append "[telemetry] error: flush failed, keeping "
+              (number->string (length *telemetry-event-queue*))
+              " events in memory queue\n"
+            ) ;string-append
+          ) ;debug-message
           #f
         ) ;begin
       ) ;if
