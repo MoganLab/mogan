@@ -96,9 +96,8 @@ server_start () {
     the_server= tm_new<socket_server_rep> (6561);
   }
   if (!the_server->alive) {
-    bool started= the_server->start ();
-    if (DEBUG_STD)
-      debug_std << "Starting server... " << as_string_bool (started) << "\n";
+    string started= the_server->start ();
+    if (DEBUG_STD) debug_std << "Starting server... " << started << "\n";
   }
 }
 
