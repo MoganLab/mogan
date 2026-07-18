@@ -94,11 +94,11 @@
 ) ;define
 
 (define (get-default-native-menubar)
-  (if (qt4-gui?) "on" "off")
+  "off"
 ) ;define
 
 (define (get-default-unified-toolbar)
-  (if (qt4-gui?) "on" "off")
+  "off"
 ) ;define
 
 (define-preferences ("profile" "beginner" (lambda args (noop)))
