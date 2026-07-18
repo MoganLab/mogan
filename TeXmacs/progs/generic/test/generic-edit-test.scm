@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic generic-edit-test) (:use (generic generic-edit)))
+(texmacs-module (generic test generic-edit-test) (:use (generic generic-edit)))
 
 (import (liii check))
 

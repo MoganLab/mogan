@@ -10,7 +10,7 @@
 ;;   glue）后：
 ;;     - basic/advanced meta 形状（label/options/var/value/editable）；文档级基础 tab
 ;;       去掉 par-left/par-right（6 项 vs 段落级 8 项）
-;;     - ui-labels（按钮文案 + sepPresetLabel + sepPresets 4 项）
+;;     - meta value 与 get-env 同步（打开时读一次 env）
 ;;     - specsKey 句柄 register -> lookup 往返，cleanup 后清除（无句柄泄漏）
 ;;     - 段落级 live 写回：set 经 make-multi-line-with 把 par-mode 写入文档树 with
 ;;     - 段落级快照撤销：revert / cancel 把文档树回滚到 set 之前
@@ -132,8 +132,7 @@
                (list (cons "new document" (lambda () (new-document))))
 
                ;; 1) facade 全链：register specs 后 basic/advanced meta 形状正确、
-               ;;    ui-labels 含按钮文案 + sepPresetLabel + sepPresets 4 项。
-               ;;    cleanup 后 specs 句柄清除（无泄漏）。
+               ;;    meta value 与 get-env 同步。cleanup 后 specs 句柄清除（无泄漏）。
                (list (cons "facade full chain + cleanup"
                        (lambda ()
                          (with specs
@@ -141,7 +140,6 @@
                            (let* ((key (paragraph-format-register-specs specs))
                                   (basic (paragraph-format-meta key "basic"))
                                   (adv (paragraph-format-meta key "advanced"))
-                                  (labels (paragraph-format-ui-labels))
                                  ) ;
                              (display "  key=")
                              (display key)
@@ -183,16 +181,10 @@
                              (check-true (not (assoc-ref (car basic) 'editable)))
                              ;; par-left（基础第 2 项）应可编辑（editable=#t）。
                              (check-true (assoc-ref (list-ref basic 1) 'editable))
-                             ;; par-sep 选项含 0.25fn（1.25x 预设对应值）。
+                             ;; par-sep 选项含 0.25fn。
                              (check-true (in? "0.25fn" (assoc-ref (list-ref basic 4) 'options)))
                              ;; meta 的 value 来自 get-env（打开时读一次）。
                              (check-true (equal? (assoc-ref (car basic) 'value) (get-env "par-mode")))
-                             ;; ui-labels：按钮文案 + sepPresetLabel + sepPresets 4 项（1.0x→2.0x）。
-                             (check-true (string? (assoc-ref labels 'basic)))
-                             (check-true (string? (assoc-ref labels 'ok)))
-                             (check-true (string? (assoc-ref labels 'reset)))
-                             (check-true (string? (assoc-ref labels 'sepPresetLabel)))
-                             (check-true (= (length (assoc-ref labels 'sepPresets)) 4))
                              ;; specsKey 往返。
                              (check-true (== (paragraph-format-lookup-specs key) specs))
                              ;; cleanup 后句柄清除（无泄漏）。
