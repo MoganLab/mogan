@@ -73,6 +73,8 @@
 ) ;tm-define
 
 (tm-define (tutorial-trigger-ocr)
+  (go-end)
+  (kbd-return)
   (ocr-paste)
   (when (defined? 'tutorial-notify-action)
     (tutorial-notify-action "ocr-paste")
