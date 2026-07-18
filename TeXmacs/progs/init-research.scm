@@ -59,6 +59,24 @@
 ) ;let
 
 
+(let ()
+  (define (fib n)
+    (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))
+  ) ;define
+  (define start (texmacs-time))
+  (define result (fib 30))
+  (define elapsed (- (texmacs-time) start))
+  (debug-message "debug-std"
+    (string-append "Benchmark 1\n"
+      (number->string result)
+      "\n"
+      "Time: "
+      (number->string elapsed)
+      "\n"
+    ) ;string-append
+  ) ;debug-message
+) ;let
+
 (define developer-mode? #f)
 
 (define boot-start (texmacs-time))
