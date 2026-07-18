@@ -678,7 +678,12 @@ private slots:
 
   void test_not_send_on_plain_enter_with_completion_popup () {
     QVERIFY (!ChatConversationPanel::should_send_on_keypress (
-        Qt::Key_Return, Qt::NoModifier, true));
+        Qt::Key_Return, Qt::NoModifier, true, false));
+  }
+
+  void test_not_send_on_plain_enter_when_in_hybrid () {
+    QVERIFY (!ChatConversationPanel::should_send_on_keypress (
+        Qt::Key_Return, Qt::NoModifier, false, true));
   }
 
   void test_not_send_on_non_enter_key () {

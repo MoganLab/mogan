@@ -115,10 +115,12 @@ public:
    * @param key 按键值
    * @param mods 修饰键状态
    * @param hasActiveCompletionPopup 是否存在待确认的补全/Tab cycle 弹窗
+   * @param isInHybrid 光标是否位于 hybrid 节点内（如 \alpha 未完成输入）
    * @return 应触发发送时返回 true
    */
   static bool should_send_on_keypress (int key, Qt::KeyboardModifiers mods,
-                                       bool hasActiveCompletionPopup);
+                                       bool hasActiveCompletionPopup,
+                                       bool isInHybrid= false);
 
 signals:
   void sendRequested (const string& sessionId);

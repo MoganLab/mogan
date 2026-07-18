@@ -527,11 +527,13 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
 bool
 ChatConversationPanel::should_send_on_keypress (int                   key,
                                                 Qt::KeyboardModifiers mods,
-                                                bool hasActiveCompletionPopup) {
+                                                bool hasActiveCompletionPopup,
+                                                bool isInHybrid) {
   bool isEnterKey= (key == Qt::Key_Return || key == Qt::Key_Enter);
   if (!isEnterKey) return false;
   if (mods & Qt::ShiftModifier) return false;
   if (hasActiveCompletionPopup) return false;
+  if (isInHybrid) return false;
   return true;
 }
 
@@ -548,9 +550,11 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       emit closeSidebarInDockModeRequested ();
       return true;
     }
-    bool hasActiveCompletionPopup= has_active_math_completion_popup (watched);
+    bool   hasActiveCompletionPopup= has_active_math_completion_popup (watched);
+    editor ed                      = get_current_editor ();
+    bool   isInHybrid              = (!is_nil (ed)) && ed->inside (HYBRID);
     if (should_send_on_keypress (keyEvent->key (), keyEvent->modifiers (),
-                                 hasActiveCompletionPopup)) {
+                                 hasActiveCompletionPopup, isInHybrid)) {
       void* ptr= watched->property ("chat_panel").value<void*> ();
       if (ptr == this) {
         emit sendRequested (sessionId_);
