@@ -168,7 +168,11 @@ DialogShell {
                                         delegate: MiniButton {
                                             width: root.presetBtnWidth(presetRow.width)
                                             text: modelData.label
-                                            onClicked: root.setField("basic", "par-sep", modelData.val)
+                                            onClicked: {
+                                                // 预设联动两字段：par-sep 按倍数，par-par-sep 归零。
+                                                root.setField("basic", "par-sep", modelData.sep)
+                                                root.setField("basic", "par-par-sep", modelData.parSep)
+                                            }
                                         }
                                     }
                                 }

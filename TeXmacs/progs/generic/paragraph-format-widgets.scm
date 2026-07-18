@@ -81,13 +81,14 @@
   ) ;list
 ) ;define
 
-;; 行间距预设按钮（label, val），val 为 par-sep 值，从小到大排列。
+;; 行间距预设按钮（label, sep, parSep）：sep 写 par-sep（按倍数×1fn），
+;; parSep 写 par-par-sep（恒 0fn，段间距归零由 par-sep 承担行距）。倍数从小到大。
 
 (define paragraph-sep-presets
-  (list (list "1.0x" "0fn")
-    (list "1.25x" "0.25fn")
-    (list "1.5x" "0.5fn")
-    (list "2.0x" "1fn")
+  (list (list "0.2x" "0.2fn" "0fn")
+    (list "0.5x" "0.5fn" "0fn")
+    (list "1.0x" "1fn" "0fn")
+    (list "1.5x" "1.5fn" "0fn")
   ) ;list
 ) ;define
 
@@ -348,7 +349,9 @@
     (cons 'cancel (translate "Cancel"))
     (cons 'sepPresetLabel (translate "Line spacing presets"))
     (cons 'sepPresets
-      (map (lambda (p) (list (cons 'label (car p)) (cons 'val (cadr p))))
+      (map (lambda (p)
+             (list (cons 'label (car p)) (cons 'sep (cadr p)) (cons 'parSep (caddr p)))
+           ) ;lambda
         paragraph-sep-presets
       ) ;map
     ) ;cons
