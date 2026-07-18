@@ -312,7 +312,7 @@ ensure_window (tree geom) {
     url win = new_buffer_in_new_window (name, tree (DOCUMENT), geom);
 #endif
 
-#if defined(QTTEXMACS) && defined(IS_COMMUNITY)
+#if defined(QTTEXMACS) && !defined(IS_COMMUNITY)
     // 商业版默认创建 AI 聊天标签页，固定在第二个位置
     url chat_name= "tmfs://chat-tab";
     if (is_nil (concrete_buffer (chat_name))) {
