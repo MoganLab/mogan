@@ -73,7 +73,7 @@
     (set! ghost-serial (+ ghost-serial 1))
     (let ((current ghost-serial))
       (delayed (:idle 500)
-        (when (and (== ghost-serial current) (not-in-tab-cycling?) (not-in-hybrid?))
+        (when (and (== ghost-serial current) (not-in-tab-cycling?) (not (in-hybrid?)))
           (generate-ghost-text)
         ) ;when
       ) ;delayed
@@ -127,10 +127,6 @@
 
 (define (not-in-tab-cycling?)
   (not (== last-key-press "tab"))
-) ;define
-
-(define (not-in-hybrid?)
-  (not (in-hybrid?))
 ) ;define
 
 (tm-define (kbd-insert s)
