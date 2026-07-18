@@ -689,7 +689,6 @@ QLabel#login-membership-title {
   font-weight: bold;
   color: #1D1D1F;
   background: transparent;
-  display: block;
   margin-bottom: 2px;
 }
 
@@ -698,7 +697,6 @@ QLabel#login-membership-period {
   font-size: 12px;
   color: #6e6e73;
   background: transparent;
-  display: block;
   margin-bottom: 6px;
 }
 
