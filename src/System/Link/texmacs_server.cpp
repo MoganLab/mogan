@@ -12,6 +12,7 @@
 #include "client_server.hpp"
 #include "scheme.hpp"
 #include "socket_server.hpp"
+#include "tm_debug.hpp"
 #include "tm_link.hpp"
 
 #ifdef QTTEXMACS
@@ -94,8 +95,10 @@ server_start () {
     (void) eval ("(use-modules (server server-live))");
     the_server= tm_new<socket_server_rep> (6561);
   }
-  if (!the_server->alive)
-    cout << "TeXmacs] Starting server... " << the_server->start () << "\n";
+  if (!the_server->alive) {
+    bool started= the_server->start ();
+    if (DEBUG_STD) debug_std << "Starting server... " << started << "\n";
+  }
 }
 
 void

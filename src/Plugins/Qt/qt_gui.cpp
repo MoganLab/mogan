@@ -169,10 +169,10 @@ qt_gui_rep::qt_gui_rep (int& argc, char** argv)
 #ifdef MACOSX_EXTENSIONS
     double mac_hidpi= mac_screen_scale_factor ();
     if (DEBUG_STD)
-      debug_boot << "Mac Screen scaleFfactor: " << mac_hidpi << "\n";
+      debug_std << "Mac Screen scaleFfactor: " << mac_hidpi << "\n";
 
     if (mac_hidpi == 2) {
-      if (DEBUG_STD) debug_boot << "Setting up HiDPI mode\n";
+      if (DEBUG_STD) debug_std << "Setting up HiDPI mode\n";
 #if (QT_VERSION < 0x050000)
       retina_factor= 2;
       if (tm_style_sheet == "") retina_scale= 1.4;
@@ -191,8 +191,8 @@ qt_gui_rep::qt_gui_rep (int& argc, char** argv)
     SI w, h;
     get_extents (w, h);
     if (DEBUG_STD)
-      debug_boot << "Screen extents: " << w / PIXEL << " x " << h / PIXEL
-                 << "\n";
+      debug_std << "Screen extents: " << w / PIXEL << " x " << h / PIXEL
+                << "\n";
     if (min (w, h) >= 1440 * PIXEL) {
       retina_zoom = 2;
       retina_scale= (tm_style_sheet == "" ? 1.0 : 1.6666);

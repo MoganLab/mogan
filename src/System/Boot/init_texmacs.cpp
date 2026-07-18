@@ -888,14 +888,14 @@ TeXmacs_main (int argc, char** argv) {
   if (!use_native_menubar) use_unified_toolbar= false;
   // End user preferences
 
-  if (DEBUG_STD) debug_boot << "Installing internal plug-ins...\n";
+  if (DEBUG_STD) debug_std << "Installing internal plug-ins...\n";
   bench_start ("initialize plugins");
   bench_cumul ("initialize plugins");
-  if (DEBUG_STD) debug_boot << "Opening display...\n";
+  if (DEBUG_STD) debug_std << "Opening display...\n";
 
   gui_open (argc, argv);
   set_default_font (the_default_font);
-  if (DEBUG_STD) debug_boot << "Starting server...\n";
+  if (DEBUG_STD) debug_std << "Starting server...\n";
   { // opening scope for server sv
 #ifdef QTTEXMACS
     server sv (app_type::RESEARCH);
@@ -915,7 +915,7 @@ TeXmacs_main (int argc, char** argv) {
       string s= argv[i];
       if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
       if ((s[0] != '-') && (s[0] != '+')) {
-        if (DEBUG_STD) debug_boot << "Loading " << s << "...\n";
+        if (DEBUG_STD) debug_std << "Loading " << s << "...\n";
         url u= url_system (s);
         if (!is_rooted (u)) u= resolve (url_pwd (), "") * u;
         string b= scm_quote (as_string (u));
@@ -948,7 +948,7 @@ TeXmacs_main (int argc, char** argv) {
     bench_reset ("initialize plugins");
     bench_reset ("initialize scheme");
 
-    if (DEBUG_STD) debug_boot << "Starting event loop...\n";
+    if (DEBUG_STD) debug_std << "Starting event loop...\n";
     texmacs_started= true;
     if (!disable_error_recovery) {
       // 注册信号处理器，确保子进程被正确清理
@@ -1000,13 +1000,13 @@ TeXmacs_main (int argc, char** argv) {
 #endif
     gui_start_loop ();
 
-    if (DEBUG_STD) debug_boot << "Stopping server...\n";
+    if (DEBUG_STD) debug_std << "Stopping server...\n";
   } // ending scope for server sv
 
-  if (DEBUG_STD) debug_boot << "Closing display...\n";
+  if (DEBUG_STD) debug_std << "Closing display...\n";
   gui_close ();
 
-  if (DEBUG_STD) debug_boot << "Good bye...\n";
+  if (DEBUG_STD) debug_std << "Good bye...\n";
 }
 
 #ifdef QTTEXMACS

@@ -13,9 +13,9 @@
 #include "template_api.hpp"
 #include "template_cache.hpp"
 
+#include "image_cache_base.hpp"
+#include "qt_utilities.hpp"
 #include <QCryptographicHash>
-#include <QDebug>
-#include <QDir>
 #include <QEventLoop>
 #include <QFile>
 #include <QJsonArray>
@@ -101,7 +101,8 @@ TemplateManager::initialize () {
 
   // Initialize cache
   if (!cache_->initialize ()) {
-    qWarning () << "[Template] Failed to initialize template cache";
+    if (DEBUG_STD)
+      debug_std << "[Template] Failed to initialize template cache\n";
     // Continue without cache - will work in degraded mode
   }
 
@@ -210,29 +211,32 @@ TemplateManager::loadCategoriesFromScheme (const string& filePath) {
 
   // Check if Scheme interpreter is available
   if (!tm_s7) {
-    qWarning () << "[Template] Scheme interpreter not available";
+    if (DEBUG_STD) debug_std << "[Template] Scheme interpreter not available\n";
     return categories;
   }
 
   // Load and evaluate the Scheme file
   tmscm result= eval_scheme_file (filePath);
   if (tmscm_is_null (result)) {
-    qWarning () << "[Template] Failed to load categories from Scheme file:"
-                << QString::fromUtf8 (as_charp (filePath));
+    if (DEBUG_STD)
+      debug_std << "[Template] Failed to load categories from Scheme file: "
+                << as_charp (filePath) << "\n";
     return categories;
   }
 
   // Call (template-get-categories) to get the category list
   tmscm categoriesFunc= s7_name_to_value (tm_s7, "template-get-categories");
   if (categoriesFunc == s7_undefined (tm_s7)) {
-    qWarning () << "[Template] template-get-categories function not found";
+    if (DEBUG_STD)
+      debug_std << "[Template] template-get-categories function not found\n";
     return categories;
   }
 
   // Use eval_scheme with string expression to call the function
   tmscm categoriesList= eval_scheme ("(template-get-categories)");
   if (tmscm_is_null (categoriesList) || !tmscm_is_list (categoriesList)) {
-    qWarning () << "[Template] Invalid categories list from Scheme";
+    if (DEBUG_STD)
+      debug_std << "[Template] Invalid categories list from Scheme\n";
     return categories;
   }
 
@@ -371,12 +375,16 @@ TemplateManager::verifyLocalTemplate (const QString& templateId) {
     if (!tmpl->fileMd5.isEmpty ()) {
       QString actualMd5= computeFileMd5 (tmpl->localPath);
       if (actualMd5 == tmpl->fileMd5) {
-        qDebug () << "[Template]" << templateId << "MD5 verified:" << actualMd5;
+        if (DEBUG_STD)
+          debug_std << "[Template] " << qPrintable (templateId)
+                    << " MD5 verified: " << qPrintable (actualMd5) << "\n";
         return true;
       }
-      qWarning () << "[Template]" << templateId
-                  << "MD5 mismatch (expected:" << tmpl->fileMd5
-                  << "actual:" << actualMd5 << "), clearing cache";
+      if (DEBUG_STD)
+        debug_std << "[Template] " << qPrintable (templateId)
+                  << " MD5 mismatch (expected: " << qPrintable (tmpl->fileMd5)
+                  << " actual: " << qPrintable (actualMd5)
+                  << "), clearing cache\n";
       cache_->removeCachedTemplate (templateId);
       tmpl->localPath.clear ();
       tmpl->isLocal= false;
@@ -553,7 +561,9 @@ TemplateManager::onRemoteCategoriesLoaded (
 void
 TemplateManager::onRemoteCategoriesFailed (const QString& error) {
   isRefreshingCategories_= false;
-  qWarning () << "[Template] Failed to load remote categories:" << error;
+  if (DEBUG_IO)
+    debug_io << "[Template] Failed to load remote categories: "
+             << qPrintable (error) << "\n";
 }
 
 void
@@ -564,7 +574,9 @@ TemplateManager::onRemoteTemplatesLoaded (
   // 空数据保护：本地已有数据时，空响应视为异常
   if (remoteMetadata.isEmpty () && !templates_.isEmpty ()) {
     QString error= qt_translate ("Remote templates list is empty");
-    qWarning () << "[Template] Skip templates merge:" << error;
+    if (DEBUG_IO)
+      debug_io << "[Template] Skip templates merge: " << qPrintable (error)
+               << "\n";
     pendingIncrementalCategoryId_.clear ();
     emit templatesLoaded ();
     emit templatesLoadFailed (error);
@@ -613,7 +625,9 @@ void
 TemplateManager::onRemoteTemplatesFailed (const QString& error) {
   isRefreshingTemplates_= false;
   pendingIncrementalCategoryId_.clear ();
-  qWarning () << "[Template] Failed to load remote templates:" << error;
+  if (DEBUG_IO)
+    debug_io << "[Template] Failed to load remote templates: "
+             << qPrintable (error) << "\n";
   emit templatesLoaded ();
   emit templatesLoadFailed (error);
 }
@@ -625,7 +639,8 @@ TemplateManager::onRemoteRecommendTemplatesLoaded (
   recommendTemplatesFetched_     = true;
 
   if (metadata.isEmpty () && !templates_.isEmpty ()) {
-    qWarning () << "[Template] Skip recommend templates merge: empty list";
+    if (DEBUG_IO)
+      debug_io << "[Template] Skip recommend templates merge: empty list\n";
     emit recommendTemplatesLoaded ();
     return;
   }
@@ -644,7 +659,9 @@ TemplateManager::onRemoteRecommendTemplatesLoaded (
 void
 TemplateManager::onRemoteRecommendTemplatesFailed (const QString& error) {
   isRefreshingRecommendTemplates_= false;
-  qWarning () << "[Template] Failed to load recommend templates:" << error;
+  if (DEBUG_IO)
+    debug_io << "[Template] Failed to load recommend templates: "
+             << qPrintable (error) << "\n";
   emit recommendTemplatesLoadFailed (error);
 }
 
@@ -723,7 +740,9 @@ TemplateManager::mergeMetadata (
       if (isUpdated && existing->isLocal) {
         // Remote template has been updated, clear local cache to force
         // re-download
-        qDebug () << "[Template]" << id << "updated, clearing cache";
+        if (DEBUG_STD)
+          debug_std << "[Template] " << qPrintable (id)
+                    << " updated, clearing cache\n";
         cache_->removeCachedTemplate (id);
         existing->localPath.clear ();
         existing->isLocal= false;
@@ -764,7 +783,9 @@ TemplateManager::mergeMetadata (
     if (!tmpl->isLocal && cache_->isTemplateCached (tmpl->id)) {
       tmpl->isLocal  = true;
       tmpl->localPath= cache_->cachedTemplatePath (tmpl->id);
-      qDebug () << "[Template]" << tmpl->id << "found in cache";
+      if (DEBUG_STD)
+        debug_std << "[Template] " << qPrintable (tmpl->id)
+                  << " found in cache\n";
     }
   }
 }
@@ -786,9 +807,10 @@ TemplateManager::templateFilePath (const QString& templateId) const {
   // Only allow alphanumeric characters, hyphens, underscores, and dots
   static const QRegularExpression validIdRegex ("^[a-zA-Z0-9._-]+$");
   if (!validIdRegex.match (templateId).hasMatch ()) {
-    qWarning ()
-        << "[Template] Invalid templateId (potential path traversal attempt):"
-        << templateId;
+    if (DEBUG_STD)
+      debug_std << "[Template] Invalid templateId (potential path traversal "
+                   "attempt): "
+                << qPrintable (templateId) << "\n";
     return QString ();
   }
 

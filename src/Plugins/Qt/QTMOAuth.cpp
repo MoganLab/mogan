@@ -25,7 +25,6 @@
 
 #include <QtCore/qcryptographichash.h>
 #include <QtCore/qdatetime.h>
-#include <QtCore/qdebug.h>
 #include <QtCore/qjsonarray.h>
 #include <QtCore/qjsondocument.h>
 #include <QtCore/qrandom.h>
@@ -81,10 +80,10 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   // 如果所有端口都被占用，使用第一个端口
   if (m_port == -1) {
     m_port= portList.first ();
-    debug_boot << "All ports occupied, using:" << m_port << "\n";
+    if (DEBUG_IO) debug_io << "All ports occupied, using:" << m_port << "\n";
   }
   else {
-    debug_boot << "Using available port:" << m_port << "\n";
+    if (DEBUG_IO) debug_io << "Using available port:" << m_port << "\n";
   }
 
   m_reply= new QOAuthHttpServerReplyHandler (

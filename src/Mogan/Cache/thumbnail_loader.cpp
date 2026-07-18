@@ -7,7 +7,9 @@
 
 #include "thumbnail_loader.hpp"
 
-#include <QDebug>
+#include "qt_utilities.hpp"
+#include "thumbnail_cache.hpp"
+
 #include <QImage>
 #include <QLabel>
 #include <QLocale>
@@ -15,9 +17,6 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QTimeZone>
-
-#include "qt_utilities.hpp"
-#include "thumbnail_cache.hpp"
 
 ThumbnailLoader::ThumbnailLoader (QObject* parent) : QObject (parent) {
   networkManager_= new QNetworkAccessManager (this);
@@ -46,19 +45,23 @@ ThumbnailLoader::load (QLabel* label, const QString& url,
 
     // 如果该 URL 已在本次会话中验证过 freshness，直接复用缓存
     if (validatedUrls_.contains (url)) {
-      qDebug () << "[ThumbnailLoader] Cache hit:" << url;
+      if (DEBUG_IO)
+        debug_io << "[ThumbnailLoader] Cache hit: " << qPrintable (url) << "\n";
       return;
     }
 
     // 缓存存在但尚未验证 freshness，发送条件请求（If-None-Match）校验 ETag
-    qDebug () << "[ThumbnailLoader] Cache validate:" << url;
+    if (DEBUG_IO)
+      debug_io << "[ThumbnailLoader] Cache validate: " << qPrintable (url)
+               << "\n";
     queue_.enqueue ({label, url, cached.etag, targetSize});
     processQueue ();
     return;
   }
 
   // 缓存未命中，走网络下载
-  qDebug () << "[ThumbnailLoader] Download:" << url;
+  if (DEBUG_IO)
+    debug_io << "[ThumbnailLoader] Download: " << qPrintable (url) << "\n";
   queue_.enqueue ({label, url, QString (), targetSize});
   processQueue ();
 }
@@ -94,7 +97,9 @@ ThumbnailLoader::processQueue () {
           reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
       if (httpStatus == 304) {
         // 服务器返回 304 Not Modified，缓存仍然新鲜，标记该 URL 已验证
-        qDebug () << "[ThumbnailLoader] Cache fresh:" << req.url;
+        if (DEBUG_IO)
+          debug_io << "[ThumbnailLoader] Cache fresh: " << qPrintable (req.url)
+                   << "\n";
         validatedUrls_.insert (req.url);
         reply->deleteLater ();
         processQueue ();

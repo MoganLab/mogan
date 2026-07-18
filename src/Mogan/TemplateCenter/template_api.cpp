@@ -11,7 +11,8 @@
 
 #include "template_api.hpp"
 
-#include <QDebug>
+#include "qt_utilities.hpp"
+
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -206,14 +207,17 @@ TemplateAPI::incrementDownloadCount (const QString& templateId) {
   QNetworkReply* reply= networkManager_->post (request, bodyData);
   connect (reply, &QNetworkReply::finished, [reply, templateId] () {
     if (reply->error () != QNetworkReply::NoError) {
-      qWarning ()
-          << "[TemplateAPI] Failed to increment download count for template:"
-          << templateId << "Error:" << reply->errorString ();
+      if (DEBUG_IO)
+        debug_io
+            << "[TemplateAPI] Failed to increment download count for template: "
+            << qPrintable (templateId)
+            << " Error: " << qPrintable (reply->errorString ()) << "\n";
     }
     else {
-      qDebug () << "[TemplateAPI] Successfully incremented download count for "
-                   "template:"
-                << templateId;
+      if (DEBUG_IO)
+        debug_io << "[TemplateAPI] Successfully incremented download count for "
+                    "template: "
+                 << qPrintable (templateId) << "\n";
     }
     reply->deleteLater ();
   });
@@ -446,7 +450,7 @@ TemplateAPI::parseCategoriesResponse (const QJsonValue& data) {
     array= data.toArray ();
   }
   else {
-    qWarning () << "[Template] Categories data is not an array";
+    if (DEBUG_IO) debug_io << "[Template] Categories data is not an array\n";
     return categories;
   }
 
@@ -484,7 +488,8 @@ TemplateAPI::parseTemplatesResponse (const QJsonValue& data) {
     array= data.toObject ().value ("items").toArray ();
   }
   else {
-    qWarning () << "[Template] Templates data is not an object or array";
+    if (DEBUG_IO)
+      debug_io << "[Template] Templates data is not an object or array\n";
     return metadata;
   }
 

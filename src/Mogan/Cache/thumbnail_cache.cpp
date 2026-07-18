@@ -7,8 +7,9 @@
 
 #include "thumbnail_cache.hpp"
 
+#include "tm_debug.hpp"
+
 #include <QCoreApplication>
-#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -219,7 +220,8 @@ ThumbnailCache::clear () {
   for (const QString& file : cacheDir.entryList (QDir::Files)) {
     cacheDir.remove (file);
   }
-  qDebug () << "[ThumbnailCache] Cleared all cached thumbnails";
+  if (DEBUG_STD)
+    debug_std << "[ThumbnailCache] Cleared all cached thumbnails\n";
 }
 
 void
@@ -273,7 +275,9 @@ ThumbnailCache::loadIndex () {
 
   QFile file (path);
   if (!file.open (QIODevice::ReadOnly)) {
-    qWarning () << "[ThumbnailCache] Failed to read index:" << path;
+    if (DEBUG_STD)
+      debug_std << "[ThumbnailCache] Failed to read index: "
+                << qPrintable (path) << "\n";
     return;
   }
 
@@ -286,8 +290,9 @@ ThumbnailCache::loadIndex () {
   for (auto it= obj.begin (); it != obj.end (); ++it) {
     diskIndex_[it.key ()]= it.value ().toObject ();
   }
-  qDebug () << "[ThumbnailCache] Loaded index with" << diskIndex_.size ()
-            << "entries";
+  if (DEBUG_STD)
+    debug_std << "[ThumbnailCache] Loaded index with " << diskIndex_.size ()
+              << " entries\n";
 }
 
 void
@@ -307,7 +312,9 @@ ThumbnailCache::saveIndex () {
     file.close ();
   }
   else {
-    qWarning () << "[ThumbnailCache] Failed to write index:" << path;
+    if (DEBUG_STD)
+      debug_std << "[ThumbnailCache] Failed to write index: "
+                << qPrintable (path) << "\n";
   }
 }
 
@@ -322,6 +329,8 @@ void
 ThumbnailCache::saveToDisk (const QString& key, const QPixmap& pixmap) {
   QString path= diskPath (key);
   if (!pixmap.save (path, "JPEG", 85)) {
-    qWarning () << "[ThumbnailCache] Failed to write image:" << path;
+    if (DEBUG_STD)
+      debug_std << "[ThumbnailCache] Failed to write image: "
+                << qPrintable (path) << "\n";
   }
 }

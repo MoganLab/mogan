@@ -3329,11 +3329,14 @@ qt_tm_widget_rep::checkVersionUpdate () {
       QString    localVersion = XMACS_VERSION;
 
       if (!remoteVersion.isEmpty ()) {
-        qDebug () << "[VersionUpdate] Parsed remote version:" << remoteVersion;
+        if (DEBUG_IO)
+          debug_io << "[VersionUpdate] Parsed remote version: "
+                   << qPrintable (remoteVersion) << "\n";
       }
 
       if (remoteVersion.isEmpty ()) {
-        qDebug () << "[VersionUpdate] Failed to parse version from response";
+        if (DEBUG_IO)
+          debug_io << "[VersionUpdate] Failed to parse version from response\n";
         syncScmUpdateNotification (false);
       }
       else if (isVersionNewer (remoteVersion, localVersion)) {
@@ -3344,8 +3347,9 @@ qt_tm_widget_rep::checkVersionUpdate () {
       }
     }
     else {
-      qDebug () << "[VersionUpdate] Failed to fetch remote version:"
-                << reply->errorString ();
+      if (DEBUG_IO)
+        debug_io << "[VersionUpdate] Failed to fetch remote version: "
+                 << qPrintable (reply->errorString ()) << "\n";
       syncScmUpdateNotification (false);
     }
     reply->deleteLater ();
