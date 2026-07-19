@@ -207,6 +207,7 @@ private:
   QWidget*
        chatContentWidget; ///\< 聊天标签页模式下显示的控件（QTChatTabWidget）。
   bool startupTabMode;    ///\< 启动标签页视图是否激活。
+  bool startupChromePending_; ///\< 启动页期间是否有被推迟的 chrome 待补装。
   PDFReaderWidget* pdfViewerWidget;   ///\< PDF 标签页模式下的阅读器控件。
   bool             pdfTabMode;        ///\< PDF 阅读器标签页是否激活。
   QString          currentPdfPath;    ///\< 当前显示的 PDF 路径。
@@ -247,6 +248,8 @@ public:
   void        set_full_screen (bool flag);
   void        update_visibility ();
   void        install_main_menu ();
+  void        apply_notification_bar_content ();
+  void        flush_startup_deferred_chrome ();
   static void tweak_iconbar_size (QSize& sz);
   void        openRenewalPage ();
 

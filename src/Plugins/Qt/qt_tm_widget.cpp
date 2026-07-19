@@ -227,11 +227,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
       loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
       m_currentScmNotificationItem (""), startupContentWidget (nullptr),
-      startupTabMode (false), pdfViewerWidget (nullptr), pdfTabMode (false),
-      currentPdfPath (""), lastLoadedPdfPath (""), chatContentWidget (nullptr),
-      chatTabMode (false), chatSideDock (nullptr),
-      chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
-      chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false) {
+      startupTabMode (false), startupChromePending_ (false),
+      pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
+      lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false),
+      chatSideDock (nullptr), chatSidebarToggleBtn (nullptr),
+      chatSidebarMode (false), chatSidebarModeMemory_ (false),
+      centralWidgetUpdatesFrozen_ (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -1139,6 +1140,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
       show_widget_in_layout (editorWidget, layout);
 
       update_visibility ();
+      flush_startup_deferred_chrome ();
 
       if (scrollarea ())
         scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
@@ -1964,6 +1966,42 @@ qt_tm_widget_rep::install_main_menu () {
 }
 
 void
+qt_tm_widget_rep::apply_notification_bar_content () {
+  if (is_nil (notification_bar_widget)) return;
+  QList<QAction*>* action_list= notification_bar_widget->get_qactionlist ();
+  if (!action_list || action_list->isEmpty ()) {
+    m_currentScmNotificationItem.clear ();
+    if (scmNotificationBar) scmNotificationBar->clearContent ();
+  }
+  else {
+    QWidget* new_qwidget= notification_bar_widget->as_qwidget ();
+    if (new_qwidget && scmNotificationBar) {
+      scmNotificationBar->setContentWidget (new_qwidget);
+    }
+    eval ("(use-modules (texmacs menus notificationbar))");
+    m_currentScmNotificationItem=
+        to_qstring (as_string (call ("notification-bar-rendered-item")));
+    if (scmNotificationBar) {
+      scmNotificationBar->setSnoozeText (to_qstring (
+          as_string (call ("notification-bar-snooze-action-label"))));
+    }
+  }
+}
+
+void
+qt_tm_widget_rep::flush_startup_deferred_chrome () {
+  if (!startupChromePending_) return;
+  startupChromePending_= false;
+  install_main_menu ();
+  if (!is_nil (main_icons_widget)) {
+    QList<QAction*>* list= main_icons_widget->get_qactionlist ();
+    if (list) replaceButtons (mainToolBar, list);
+  }
+  apply_notification_bar_content ();
+  update_visibility ();
+}
+
+void
 qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
   if (DEBUG_QT_WIDGETS)
     debug_widgets << "qt_tm_widget_rep::write " << slot_name (s) << LF;
@@ -2005,9 +2043,14 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_MAIN_MENU:
     check_type_void (index, s);
-    if (startupTabMode || chatTabMode) break;
+    if (chatTabMode) break;
     {
       waiting_main_menu_widget= concrete (w);
+      // 启动页期间先存后装，退出启动页时由 flush_startup_deferred_chrome 补装
+      if (startupTabMode) {
+        startupChromePending_= true;
+        break;
+      }
       if (menu_count <= 0) install_main_menu ();
       else if (!contains (waiting_widgets, this))
         // menu interaction ongoing, postpone new menu installation until done
@@ -2017,9 +2060,14 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_MAIN_ICONS:
     check_type_void (index, s);
-    if (startupTabMode || chatTabMode) break;
+    if (chatTabMode) break;
     {
-      main_icons_widget    = concrete (w);
+      main_icons_widget= concrete (w);
+      // 启动页期间先存后装，退出启动页时由 flush_startup_deferred_chrome 补装
+      if (startupTabMode) {
+        startupChromePending_= true;
+        break;
+      }
       QList<QAction*>* list= main_icons_widget->get_qactionlist ();
       if (list) {
         replaceButtons (mainToolBar, list);
@@ -2050,27 +2098,15 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_NOTIFICATION_BAR:
     check_type_void (index, s);
-    if (startupTabMode || chatTabMode) break;
+    if (chatTabMode) break;
     {
-      notification_bar_widget     = concrete (w);
-      QList<QAction*>* action_list= notification_bar_widget->get_qactionlist ();
-      if (!action_list || action_list->isEmpty ()) {
-        m_currentScmNotificationItem.clear ();
-        if (scmNotificationBar) scmNotificationBar->clearContent ();
+      notification_bar_widget= concrete (w);
+      // 启动页期间先存后装，退出启动页时由 flush_startup_deferred_chrome 补装
+      if (startupTabMode) {
+        startupChromePending_= true;
+        break;
       }
-      else {
-        QWidget* new_qwidget= notification_bar_widget->as_qwidget ();
-        if (new_qwidget && scmNotificationBar) {
-          scmNotificationBar->setContentWidget (new_qwidget);
-        }
-        eval ("(use-modules (texmacs menus notificationbar))");
-        m_currentScmNotificationItem=
-            to_qstring (as_string (call ("notification-bar-rendered-item")));
-        if (scmNotificationBar) {
-          scmNotificationBar->setSnoozeText (to_qstring (
-              as_string (call ("notification-bar-snooze-action-label"))));
-        }
-      }
+      apply_notification_bar_content ();
     }
     break;
 
