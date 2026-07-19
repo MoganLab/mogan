@@ -251,12 +251,12 @@
   ) ;let*
 ) ;tm-define
 
-(define (exit-fullscreen)
+(tm-define (exit-fullscreen)
   (if (full-screen-edit?)
     (toggle-full-screen-edit-mode)
     (toggle-full-screen-mode)
   ) ;if
-) ;define
+) ;tm-define
 
 (define panorama-revert (make-ahash-table))
 
