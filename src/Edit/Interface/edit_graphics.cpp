@@ -54,17 +54,6 @@ set_snap_distance (SI d) {
   snap_distance= d;
 }
 
-static string
-dbg_sels_summary (gr_selections sels) {
-  string r;
-  for (int i= 0; i < N (sels); i++) {
-    if (i > 0) r= r * ",";
-    r= r * sels[i]->type * ":" * as_string (sels[i]->dist);
-    if (!is_nil (sels[i]->c)) r= r * "(c)";
-  }
-  return r;
-}
-
 bool
 check_snap_mode (string type) {
   if (!is_tuple (snap_mode)) return true;
