@@ -53,6 +53,14 @@
 ) ;define
 
 (tm-define (lazy-keyboard-force . opt)
+  (debug-message "debug-std"
+    (string-append "lazy-keyboard-force called, opt="
+      (object->string opt)
+      ", waiting="
+      (number->string (length lazy-keyboard-waiting))
+      "\n"
+    ) ;string-append
+  ) ;debug-message
   (set! lazy-force-all? (or lazy-force-all? (nnull? opt)))
   (when (not lazy-force-busy?)
     (set! lazy-force-busy? #t)
