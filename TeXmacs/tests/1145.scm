@@ -26,55 +26,82 @@
 (define (log-step label)
   (display "[1145-step] ")
   (display label)
-  (newline))
+  (newline)
+) ;define
 
 ;; 每步间隔 step-delay-ms：lambda 返回剩余毫秒表示继续等待，返回 #t 表示完成。
 
 (define (run-chain steps on-done)
   (if (null? steps)
-      (on-done)
-      (exec-delayed-pause
-        (let ((start (texmacs-time)))
-          (lambda ()
-            (let ((left (- (+ start step-delay-ms) (texmacs-time))))
-              (if (> left 0)
-                  left
-                  (begin
-                    (log-step (caar steps))
-                    ((cdar steps))
-                    ;; 同步触发 C++ update_menus，不依赖 idle/焦点
-                    (update-menus)
-                    (run-chain (cdr steps) on-done)
-                    #t))))))))
+    (on-done)
+    (exec-delayed-pause (let ((start (texmacs-time)))
+                          (lambda ()
+                            (let ((left (- (+ start step-delay-ms) (texmacs-time))))
+                              (if (> left 0)
+                                left
+                                (begin
+                                  (log-step (caar steps))
+                                  ((cdar steps))
+                                  ;; 同步触发 C++ update_menus，不依赖 idle/焦点
+                                  (update-menus)
+                                  (run-chain (cdr steps) on-done)
+                                  #t
+                                ) ;begin
+                              ) ;if
+                            ) ;let
+                          ) ;lambda
+                        ) ;let
+    ) ;exec-delayed-pause
+  ) ;if
+) ;define
 
 (tm-define (test_1145)
   (new-document)
   (let* ((phase-a
            ;; A: 纯文本输入 5 步，每步插 6 个字符
-           (let loop ((i 0) (acc '()))
-             (if (>= i 5) (reverse acc)
-                 (loop (+ i 1)
-                       (cons (cons (string-append "A: type text " (number->string i))
-                                   (lambda () (insert "abcdef")))
-                             acc)))))
+           (let loop
+             ((i 0) (acc '()))
+             (if (>= i 5)
+               (reverse acc)
+               (loop (+ i 1)
+                 (cons (cons (string-append "A: type text " (number->string i))
+                         (lambda () (insert "abcdef"))
+                       ) ;cons
+                   acc
+                 ) ;cons
+               ) ;loop
+             ) ;if
+           ) ;let
+         ) ;phase-a
          (phase-b
            ;; B: 5 轮 进出数学模式
-           (let loop ((i 0) (acc '()))
-             (if (>= i 5) acc
-                 (loop (+ i 1)
-                       (append
-                         acc
-                         (list
-                           (cons (string-append "B" (number->string i) ": insert math")
-                                 (lambda () (insert '(math "x"))))
-                           (cons (string-append "B" (number->string i) ": enter math")
-                                 (lambda () (go-left)))
-                           (cons (string-append "B" (number->string i) ": type in math")
-                                 (lambda () (insert "y")))
-                           (cons (string-append "B" (number->string i) ": exit math")
-                                 (lambda () (go-right))))))))))
+           (let loop
+             ((i 0) (acc '()))
+             (if (>= i 5)
+               acc
+               (loop (+ i 1)
+                 (append acc
+                   (list (cons (string-append "B" (number->string i) ": insert math")
+                           (lambda () (insert '(math "x")))
+                         ) ;cons
+                     (cons (string-append "B" (number->string i) ": enter math")
+                       (lambda () (go-left))
+                     ) ;cons
+                     (cons (string-append "B" (number->string i) ": type in math")
+                       (lambda () (insert "y"))
+                     ) ;cons
+                     (cons (string-append "B" (number->string i) ": exit math")
+                       (lambda () (go-right))
+                     ) ;cons
+                   ) ;list
+                 ) ;append
+               ) ;loop
+             ) ;if
+           ) ;let
+         ) ;phase-b
+        ) ;
     (run-chain (append phase-a phase-b)
-               (lambda ()
-                 (display "[1145-step] done, quit")
-                 (newline)
-                 (quit-TeXmacs)))))
+      (lambda () (display "[1145-step] done, quit") (newline) (quit-TeXmacs))
+    ) ;run-chain
+  ) ;let*
+) ;tm-define

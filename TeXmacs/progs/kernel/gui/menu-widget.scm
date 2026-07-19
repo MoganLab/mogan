@@ -1502,6 +1502,17 @@
   ) ;cond
 ) ;tm-define
 
+(tm-define (menu-cache-normalize r)
+  (:type (-> object object))
+  (:synopsis "Normalize expanded menu @r for use as menu cache key")
+  ;; invisible 项的载荷（如 push-focus 注入的文档路径）不影响 widget 构建，
+  ;; 但会让展开结果随光标位置变化，毒化缓存判等，故归一化剔除。
+  (cond ((and (pair? r) (== (car r) 'invisible)) (list 'invisible))
+        ((pair? r) (cons (menu-cache-normalize (car r)) (menu-cache-normalize (cdr r))))
+        (else r)
+  ) ;cond
+) ;tm-define
+
 (define-table menu-expand-table
   (--- ,(lambda (p) `(--- ,@(menu-expand-list (cdr p)))))
   (| ,(lambda (p) `(| ,@(menu-expand-list (cdr p)))))
