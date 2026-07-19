@@ -691,12 +691,9 @@
       (if (url-exists? u)
         (with fname
           (url-materialize u "r")
-          ;; (display* "loading plugin " name* "\n")
-          ;; (display* "loading plugin " fname "\n")
-          ;; (with start (texmacs-time)
-          ;;  (load fname)
-          ;;  (display* name " -> " (- (texmacs-time) start) " ms\n"))
+          (debug-message "debug-std" (string-append "Loading plugin " name "\n"))
           (load fname)
+          (debug-message "debug-std" (string-append "Loaded plugin " name "\n"))
         ) ;with
       ) ;if
       (if (plugin-all-initialized?) (plugin-save-setup))
