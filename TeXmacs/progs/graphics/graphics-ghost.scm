@@ -42,12 +42,6 @@
   (set! ghost-lines '())
 ) ;tm-define
 
-(tm-define (graphics-add-ghost-line x y theta)
-  (:state graphics-state)
-  (set! ghost-lines (cons `((,x ,y) ,theta) ghost-lines))
-  (graphics-decorations-update)
-) ;tm-define
-
 ;; 批量设置标尺集合：替代逐条 clear/add，一次 C++->Scheme 往返完成，
 ;; 且仅在集合非空时触发一次 decorations 重建（空集合等价于清除，
 ;; 由随后的 move-point 重建兜底）。入参为树 (tuple (x y theta) ...)，
@@ -61,11 +55,6 @@
           (cdr l)))
       (set! ghost-lines '()))
     (if (nnull? ghost-lines) (graphics-decorations-update)))
-) ;tm-define
-
-(tm-define (graphics-set-ghost-line x y theta)
-  (:state graphics-state)
-  (graphics-clear-ghost-lines)
 ) ;tm-define
 
 (tm-define (graphics-get-decorations-ghost-line)

@@ -54,21 +54,6 @@ set_snap_distance (SI d) {
   snap_distance= d;
 }
 
-// 临时诊断：智能标尺在基准线场景下的性能埋点，定位后移除
-static long dbg_ghost_prev_ms= 0; // graphics-get-all-previous-points 耗时
-static long dbg_ghost_loop_ms= 0; // 控制点角度扫描循环耗时(不含 Scheme 调用)
-static long dbg_ghost_add_ms= 0;  // graphics-add-ghost-line 累计耗时(含 decorations 重建)
-static long dbg_ghost_ms= 0;      // snap_ghost_line 总耗时
-static int  dbg_ghost_n= 0;       // 本次注入的标尺数
-static int  dbg_ghost_base= 0;    // 其中基准线标尺数
-static bool dbg_on_base= false;   // 本次 adjust 是否注入了基准线标尺
-static bool dbg_base_latch= false; // 基准线状态锁存(用于进入时打印一次详情)
-static long dbg_grid_ms= 0;       // adjust 中格线吸附块耗时
-static long dbg_guide_ms= 0;      // snap_to_guide 耗时
-static int  dbg_guide_sels= 0;    // snap_to_guide 输入 sels 数
-static int  dbg_guide_pairs= 0;   // 实际执行求交的曲线对数
-static string dbg_guide_sels_str; // sels 组成摘要
-
 static string
 dbg_sels_summary (gr_selections sels) {
   string r;
@@ -129,8 +114,8 @@ can_snap (gr_selection sel) {
   return true;
 }
 
-static gr_selection
-snap_to_guide_impl (point p, gr_selections sels, double eps) {
+gr_selection
+snap_to_guide (point p, gr_selections sels, double eps) {
   if (N (sels) == 0) {
     gr_selection snap;
     snap->type= "free";
@@ -178,7 +163,6 @@ snap_to_guide_impl (point p, gr_selections sels, double eps) {
           if (fabs (det) < 1e-4 * len1 * len2) continue;
         }
 
-        dbg_guide_pairs++;
         array<point> ins= intersection (sels[i]->c, sels[j]->c, p, eps);
         for (int k= 0; k < N (ins); k++)
           if (best->type == "none" || norm (ins[k] - p) < best->dist) {
@@ -202,17 +186,6 @@ snap_to_guide_impl (point p, gr_selections sels, double eps) {
     snap->dist= 0;
     return snap;
   }
-}
-
-gr_selection
-snap_to_guide (point p, gr_selections sels, double eps) {
-  time_t t0       = texmacs_time ();
-  dbg_guide_sels  = N (sels);
-  dbg_guide_pairs = 0;
-  gr_selection r  = snap_to_guide_impl (p, sels, eps);
-  dbg_guide_ms    = (long) (texmacs_time () - t0);
-  if (dbg_on_base) dbg_guide_sels_str= dbg_sels_summary (sels);
-  return r;
 }
 
 /******************************************************************************
@@ -252,8 +225,6 @@ edit_graphics_rep::over_graphics (SI x, SI y) {
   if (!is_nil (f)) {
     point lim1, lim2;
     find_limits (lim1, lim2);
-    // 边界判定不需要吸附：吸附位移不超过 snap_distance，不影响判定；
-    // 且避免为每个(可能被节流丢弃的) motion 事件白付一次完整 adjust
     point p= f[point (x, y)];
     // cout << type << " at " << p << " [" << lim1 << ", " << lim2 << "]\n";
     if (N (lim1) == 2)
@@ -346,31 +317,18 @@ edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
 // 初始化为不可能出现的哨兵值，确保首次必然注册
 static string ghost_last_set= "\1";
 
-static bool
+static void
 snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
                  gr_selections& sels, frame f2) {
-  dbg_on_base     = false;
-  dbg_ghost_n     = 0;
-  dbg_ghost_base  = 0;
-  dbg_ghost_ms    = 0;
-  dbg_ghost_prev_ms= 0;
-  dbg_ghost_loop_ms= 0;
-  dbg_ghost_add_ms = 0;
   if (!check_snap_mode ("ghost line")) {
     call ("graphics-clear-ghost-lines");
     ghost_last_set= "";
-    return false;
+    return;
   }
-
-  time_t dbg_t0   = texmacs_time ();
-  bool   has_ghost= false;
   tree   lines (TUPLE); // 本次待注册的标尺集合
   string set_str;       // lines 的序列化形式(变更检测用)
 
-  time_t dbg_t1   = texmacs_time ();
   tree t_prev= as_tree (call ("graphics-get-all-previous-points"));
-  dbg_ghost_prev_ms= (long) (texmacs_time () - dbg_t1);
-  time_t dbg_t2    = texmacs_time ();
   if (is_tuple (t_prev) && N (t_prev) >= 2) {
     int n_points= N (t_prev);
 
@@ -428,19 +386,6 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
 
         // 仅在鼠标靠近标尺且在吸附距离内时激活
         if (min_d < snap_dist_local) {
-          has_ghost= true;
-          dbg_ghost_n++;
-          // 特判：注入的标尺与基准线(base_angle)同向即视为基准线标尺
-          if (fabs (sin (best_theta - base_angle)) < 1e-6) {
-            dbg_ghost_base++;
-            dbg_on_base= true;
-            if (!dbg_base_latch) {
-              dbg_base_latch= true;
-              cout << "[GHOST-BASE] enter: anchor j=" << j << "/"
-                   << (n_points - 1) << ", min_d=" << min_d
-                   << ", dist_to_p1=" << dist_to_p1 << "\n";
-            }
-          }
           point dir (cos (best_theta), sin (best_theta));
           point p1_start_local   = p1 - 12.0 * dir;
           point p1_end_local     = p1 + 12.0 * dir;
@@ -469,7 +414,6 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
       }
     }
   }
-  dbg_ghost_loop_ms= (long) (texmacs_time () - dbg_t2);
 
   // 标尺集合与上次一致则跳过注册：避免每个 motion 事件都支付
   // Scheme 往返和 decorations 全量重建。注意 Scheme 侧若被外部
@@ -477,14 +421,8 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
   // 待集合变化时自愈
   if (set_str != ghost_last_set) {
     ghost_last_set= set_str;
-    time_t dbg_ta= texmacs_time ();
     call ("graphics-set-ghost-lines", lines);
-    dbg_ghost_add_ms= (long) (texmacs_time () - dbg_ta);
   }
-
-  dbg_ghost_ms= (long) (texmacs_time () - dbg_t0);
-  if (!dbg_on_base) dbg_base_latch= false;
-  return has_ghost;
 }
 
 point
@@ -507,7 +445,6 @@ edit_graphics_rep::adjust (point p) {
 
   snap_ghost_line (this, fp, snap_distance, sels, f2);
 
-  time_t dbg_gt0= texmacs_time ();
   if ((tree) g != "empty_grid") {
     point q = g->find_point_around (p, snap_distance, f);
     point fq= f2 (q);
@@ -531,7 +468,6 @@ edit_graphics_rep::adjust (point p) {
       }
     }
   }
-  dbg_grid_ms   = (long) (texmacs_time () - dbg_gt0);
   double       eps = get_pixel_size () / 10.0;
   gr_selection snap= snap_to_guide (fp, sels, eps);
   // cout << "Snap " << fp << " to " << snap << ", " << snap->p << "\n";
@@ -717,23 +653,13 @@ edit_graphics_rep::mouse_graphics (string type, SI x, SI y, int mods, time_t t,
       return true;
     }
 
-    time_t dbg_t0= texmacs_time ();
     if (!over_graphics (x, y)) return false;
-    time_t dbg_t1= texmacs_time ();
     if (type == "move" || type == "dragging-left")
-      if (check_event (MOTION_EVENT)) {
-        if (dbg_on_base)
-          cout << "[GHOST-BASE] (throttled) over_graphics="
-               << (long) (dbg_t1 - dbg_t0) << "ms"
-               << " ghost=" << dbg_ghost_ms << "(add=" << dbg_ghost_add_ms
-               << ",n=" << dbg_ghost_n << ",base=" << dbg_ghost_base << ")\n";
-        return true;
-      }
+      if (check_event (MOTION_EVENT)) return true;
 
     point p= f[point (x, y)];
     graphical_select (p[0], p[1]); // init the caching for adjust().
     p        = adjust (p);
-    time_t dbg_t2= texmacs_time ();
     gr_x     = p[0];
     gr_y     = p[1];
     string sx= as_string (p[0]);
@@ -761,25 +687,11 @@ edit_graphics_rep::mouse_graphics (string type, SI x, SI y, int mods, time_t t,
     else if (type == "dragging-right") call ("graphics-dragging-right", sx, sy);
     else if (type == "end-drag-right") call ("graphics-end-drag-right", sx, sy);
     else if (type == "drop-object") call ("graphics-drop-object", sx, sy);
-    time_t dbg_t3= texmacs_time ();
     invalidate_graphical_object ();
     notify_change (THE_CURSOR);
     // 及时 call set_right_footer()，使坐标显示实时更新
     edit_interface_rep* edit_if= dynamic_cast<edit_interface_rep*> (this);
     if (edit_if != nullptr) edit_if->set_right_footer ();
-    if (dbg_on_base) {
-      cout << "[GHOST-BASE] ev total=" << (long) (texmacs_time () - dbg_t0)
-           << "ms | over(adj#1)=" << (long) (dbg_t1 - dbg_t0)
-           << " gsel+adj#2=" << (long) (dbg_t2 - dbg_t1)
-           << " scheme=" << (long) (dbg_t3 - dbg_t2)
-           << " rest=" << (long) (texmacs_time () - dbg_t3)
-           << " || ghost=" << dbg_ghost_ms << "(prev=" << dbg_ghost_prev_ms
-           << ",loop=" << dbg_ghost_loop_ms << ",add=" << dbg_ghost_add_ms
-           << ",n=" << dbg_ghost_n << ",base=" << dbg_ghost_base << ")"
-           << " grid=" << dbg_grid_ms << " guide=" << dbg_guide_ms
-           << "(sels=" << dbg_guide_sels << ",pairs=" << dbg_guide_pairs
-           << ") | " << dbg_guide_sels_str << "\n";
-    }
     return true;
   }
   // cout << "No frame " << tp << ", " << subtree (et, path_up (tp)) << "\n";

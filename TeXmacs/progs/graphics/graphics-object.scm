@@ -681,7 +681,7 @@
 ) ;tm-define
 
 (tm-define (graphics-decorations-reset)
-  (graphics-set-ghost-line "false" "false" "false")
+  (graphics-clear-ghost-lines)
   (create-graphical-object #f #f #f #f)
 ) ;tm-define
 
