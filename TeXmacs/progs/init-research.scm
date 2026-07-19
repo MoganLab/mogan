@@ -550,10 +550,6 @@
 (boot-bench "18" "database")
 
 
-;; (display "Booting remote facilities\n")
-(lazy-menu (server server-menu) start-server-menu server-menu)
-(boot-bench "19" "remote")
-
 ;; (display "Booting linking facilities\n")
 (lazy-menu (link link-menu) link-menu)
 (lazy-define (link link-edit) create-unique-id)
