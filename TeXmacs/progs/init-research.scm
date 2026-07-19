@@ -563,7 +563,6 @@
 (lazy-define (database bib-local) open-biblio)
 (lazy-menu (database db-menu) db-menu db-toolbar)
 (lazy-tmfs-handler (database db-tmfs) db)
-(lazy-keyboard (database bib-kbd) in-bib?)
 (tm-property (open-biblio) (:interactive #t))
 ;; (display* "time: " (- (texmacs-time) boot-start) "\n")
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
