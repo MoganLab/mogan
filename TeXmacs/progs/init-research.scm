@@ -130,7 +130,6 @@
 (lazy-tmfs-handler (utils automate auto-tmfs) automate)
 (lazy-define (utils automate auto-tmfs) auto-load-help)
 (lazy-define (utils misc gui-keyboard) get-keyboard)
-(lazy-keyboard (utils automate auto-kbd) in-auto?)
 ;; (display* "time: " (- (texmacs-time) boot-start) "\n")
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
@@ -148,7 +147,6 @@
   (texmacs texmacs tm-print)
 ) ;use-modules
 (use-modules (texmacs keyboard config-kbd))
-(lazy-keyboard (texmacs keyboard prefix-kbd) always?)
 (lazy-menu (texmacs menus file-menu)
   file-menu
   go-menu
@@ -176,7 +174,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting generic mode\n")
-(lazy-keyboard (generic generic-kbd) always?)
 (lazy-menu (generic generic-menu) focus-menu texmacs-focus-icons)
 (lazy-menu (generic format-menu)
   format-menu
@@ -231,7 +228,6 @@
   interactive-replace
   search-next-match
 ) ;lazy-define
-(lazy-keyboard (generic search-kbd))
 (lazy-define (generic spell-widgets)
   spell-toolbar
   open-spell
@@ -274,8 +270,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting text mode\n")
-(lazy-keyboard (text text-kbd) in-text?)
-(lazy-keyboard (text text-kbd-utf8) in-text?)
 (lazy-menu (text text-menu)
   text-format-menu
   text-format-icons
@@ -290,8 +284,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting math mode\n")
-(lazy-keyboard (math math-kbd) in-math?)
-(lazy-keyboard (math math-sem-edit) in-sem-math?)
 (lazy-menu (math math-menu)
   math-format-menu
   math-format-icons
@@ -310,7 +302,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting programming modes\n")
-(lazy-keyboard (prog prog-kbd) in-prog?)
 (lazy-menu (prog prog-menu)
   prog-format-menu
   prog-format-icons
@@ -321,7 +312,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting source mode\n")
-(lazy-keyboard (source source-kbd) always?)
 (lazy-menu (source source-menu)
   source-macros-menu
   source-menu
@@ -357,7 +347,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting table mode\n")
-(lazy-keyboard (table table-kbd) in-table?)
 (lazy-menu (table table-menu) insert-table-menu)
 (lazy-define (table table-edit) table-resize-notify)
 (lazy-define (table table-widgets) open-cell-properties open-table-properties)
@@ -367,7 +356,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting graphics mode\n")
-(lazy-keyboard (graphics graphics-kbd) in-active-graphics?)
 (lazy-menu (graphics graphics-menu) graphics-menu graphics-icons)
 (lazy-define (graphics graphics-object)
   graphics-init-state
@@ -422,15 +410,11 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting educational features\n")
-(lazy-keyboard (education edu-kbd) in-edu-text?)
 (lazy-menu (education edu-menu) edu-insert-menu)
 ;; (display* "time: " (- (texmacs-time) boot-start) "\n")
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting dynamic features\n")
-(lazy-keyboard (dynamic fold-kbd) always?)
-(lazy-keyboard (dynamic scripts-kbd) always?)
-(lazy-keyboard (dynamic calc-kbd) always?)
 (lazy-menu (dynamic fold-menu)
   insert-fold-menu
   dynamic-menu
@@ -467,8 +451,6 @@
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting documentation\n")
-(lazy-keyboard (doc tmdoc-kbd) in-manual?)
-(lazy-keyboard (doc apidoc-kbd) developer-mode?)
 (lazy-menu (doc tmdoc-menu) tmdoc-menu tmdoc-icons)
 (lazy-menu (doc help-menu) help-menu)
 (lazy-define (doc tmdoc)
@@ -577,7 +559,6 @@
 
 ;; (display "Booting linking facilities\n")
 (lazy-menu (link link-menu) link-menu)
-(lazy-keyboard (link link-kbd) with-linking-tool?)
 (lazy-define (link link-edit) create-unique-id)
 (lazy-define (link link-navigate)
   link-active-upwards
@@ -597,7 +578,6 @@
 
 ;; (display "Booting versioning facilities\n")
 (lazy-menu (version version-menu) version-menu)
-(lazy-keyboard (version version-kbd) with-versioning-tool?)
 (lazy-define (version version-tmfs) update-buffer commit-buffer)
 ;; (display* "time: " (- (texmacs-time) boot-start) "\n")
 ;; (display* "memory: " (texmacs-memory) " bytes\n")

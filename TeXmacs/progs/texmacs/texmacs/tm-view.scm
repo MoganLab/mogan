@@ -259,7 +259,6 @@
 ) ;define
 
 (delayed (:idle 0)
-  (lazy-keyboard-force #t)
   (kbd-map (:require (or (full-screen?) (full-screen-edit?)))
    ("escape" (exit-fullscreen) "Exit full screen")
    ("M-" (exit-fullscreen) "Exit full screen")
