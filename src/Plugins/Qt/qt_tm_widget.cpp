@@ -71,6 +71,7 @@ bool in_presentation_mode ();
 #include "qt_menu.hpp"
 #include "qt_simple_widget.hpp"
 #include "qt_window_widget.hpp"
+#include "tm_debug.hpp"
 #include "tm_server.hpp"
 #include "tm_sys_utils.hpp"
 #include "tm_url.hpp"
@@ -179,11 +180,25 @@ same_actions (QWidget* dest, QList<QAction*>* src) {
   return true;
 }
 
+// [1145] 临时诊断：统计 replaceButtons 的 same（早退）与
+// replace（全量重建）次数
+static int rb_diag_same= 0, rb_diag_replace= 0;
+
 static void
 replaceButtons (QToolBar* dest, QList<QAction*>* src) {
   if (src == NULL || dest == NULL)
     TM_FAILED ("replaceButtons expects valid objects");
-  if (same_actions (dest, src)) return;
+  if (same_actions (dest, src)) {
+    rb_diag_same++;
+    std_bench << "[1145] replaceButtons SAME (same=" << rb_diag_same
+              << " replace=" << rb_diag_replace << ")\n";
+    return;
+  }
+  rb_diag_replace++;
+  std_bench << "[1145] replaceButtons REPLACE n=" << src->count ()
+            << " (same=" << rb_diag_same << " replace=" << rb_diag_replace
+            << ")\n";
+  bench_start ("replaceButtons");
   dest->setUpdatesEnabled (false);
   bool visible= dest->isVisible ();
   if (visible) dest->hide (); // TRICK: to avoid flicker of the dest widget
@@ -198,6 +213,7 @@ replaceButtons (QToolBar* dest, QList<QAction*>* src) {
   }
   if (visible) dest->show (); // TRICK: see above
   dest->setUpdatesEnabled (true);
+  bench_end ("replaceButtons");
 }
 
 void

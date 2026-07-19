@@ -24,6 +24,7 @@
 #include "message.hpp"
 #include "promise.hpp"
 #include "scheme.hpp"
+#include "tm_debug.hpp"
 #include "widget.hpp"
 
 #include "QTMGuiHelper.hpp"
@@ -265,6 +266,8 @@ QList<QAction*>*
 qt_ui_element_rep::get_qactionlist () {
   if (cachedActionList) return cachedActionList;
 
+  // [1145] 临时诊断：QAction 全量创建耗时
+  bench_start ("get_qactionlist");
   QList<QAction*>* list= new QList<QAction*> ();
 
   switch (type) {
@@ -285,6 +288,7 @@ qt_ui_element_rep::get_qactionlist () {
     break;
   }
   cachedActionList= list;
+  bench_end ("get_qactionlist");
   return list;
 }
 
