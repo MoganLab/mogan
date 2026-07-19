@@ -7,6 +7,7 @@
 ;; MIT License
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(use-modules (llm chat-loader))
 (use-modules (dynamic session-edit) (binary goldfish))
 
 (import (liii path))
