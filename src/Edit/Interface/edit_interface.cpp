@@ -114,22 +114,28 @@ edit_interface_rep::resume () {
   // cout << "Resume " << buf->buf->name << LF;
   bench_start ("resume");
   got_focus= true;
-  SERVER (menu_main ("(horizontal (link texmacs-menu))"));
-  SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-  SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-  SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-  SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
+  // 启动页 buffer 的菜单/工具栏不可见，chrome 重建推迟到首个真实文档的 resume
+  bool is_startup= is_startup_tab_buffer (buf->buf->name);
+  if (!is_startup) {
+    SERVER (menu_main ("(horizontal (link texmacs-menu))"));
+    SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
+    SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
+    SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
+    SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
+    SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
+  }
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
-  array<url> a= buffer_to_windows (buf->buf->name);
-  if (N (a) > 0) {
-    string win = "(string->url \"" * as_string (a[0]) * "\")";
-    string ldyn= "(dynamic (texmacs-left-tools " * win * "))";
-    string rdyn= "(dynamic (texmacs-side-tools " * win * "))";
-    string bdyn= "(dynamic (texmacs-bottom-tools " * win * "))";
-    SERVER (side_tools (1, "(vertical " * ldyn * ")"));
-    SERVER (side_tools (0, "(vertical " * rdyn * ")"));
-    SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
+  if (!is_startup) {
+    array<url> a= buffer_to_windows (buf->buf->name);
+    if (N (a) > 0) {
+      string win = "(string->url \"" * as_string (a[0]) * "\")";
+      string ldyn= "(dynamic (texmacs-left-tools " * win * "))";
+      string rdyn= "(dynamic (texmacs-side-tools " * win * "))";
+      string bdyn= "(dynamic (texmacs-bottom-tools " * win * "))";
+      SERVER (side_tools (1, "(vertical " * ldyn * ")"));
+      SERVER (side_tools (0, "(vertical " * rdyn * ")"));
+      SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
+    }
   }
   cur_sb    = 2;
   env_change= env_change & (~THE_FREEZE);
