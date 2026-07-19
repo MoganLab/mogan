@@ -75,6 +75,7 @@ target ("goldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_subprocess.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_base.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_char.cpp",
     })
     add_files({
         "$(projectdir)/3rdparty/json-schema-validator/src/smtp-address-validator.cpp",
