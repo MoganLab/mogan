@@ -34,3 +34,11 @@
 (lazy-keyboard (version version-kbd) with-versioning-tool?)
 
 (lazy-keyboard-force #t)
+
+(delayed (:idle 0)
+  (kbd-map (:require (or (full-screen?) (full-screen-edit?)))
+   ("escape" (exit-fullscreen) "Exit full screen")
+   ("M-" (exit-fullscreen) "Exit full screen")
+   ("A-" (exit-fullscreen) "Exit full screen")
+  ) ;kbd-map
+) ;delayed
