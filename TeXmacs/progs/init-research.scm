@@ -59,24 +59,6 @@
 ) ;let
 
 
-(let ()
-  (define (fib n)
-    (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))
-  ) ;define
-  (define start (texmacs-time))
-  (define result (fib 30))
-  (define elapsed (- (texmacs-time) start))
-  (debug-message "debug-std"
-    (string-append "Benchmark 1\n"
-      (number->string result)
-      "\n"
-      "Time: "
-      (number->string elapsed)
-      "\n"
-    ) ;string-append
-  ) ;debug-message
-) ;let
-
 (define developer-mode? #f)
 
 (define boot-start (texmacs-time))
@@ -709,27 +691,6 @@
 (texmacs-banner)
 (debug-message "debug-std" "Initialization done\n")
 
-(let ()
-  (define start (texmacs-time))
-  (tm-define (tm-fib n) (if (< n 2) n (+ (tm-fib (- n 1)) (tm-fib (- n 2)))))
-  (define result (tm-fib 30))
-  (define elapsed (- (texmacs-time) start))
-  (debug-message "debug-std"
-    (string-append "------------------------------------------------------\n"
-      "Benchmark 2\n"
-      (number->string result)
-      "\n"
-      "Time: "
-      (number->string elapsed)
-      "\n"
-      "------------------------------------------------------\n"
-    ) ;string-append
-  ) ;debug-message
-) ;let
-
-(debug-message "debug-std"
-  "------------------------------------------------------\n"
-) ;debug-message
 (debug-message "debug-std" "Forcing delayed loads\n")
 (lazy-keyboard-force #t)
 (debug-message "debug-std"
