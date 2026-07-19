@@ -123,7 +123,13 @@
           (if (important-event? event-type)
             (begin
               (telemetry-flush)
-              (upload-events event-type)
+              ;; STARTUP 的 track 已由 C++ 侧推迟到事件循环起跑后触发；
+              ;; upload 再额外延后 500ms，让首帧先绘制，避免 plugin-feed
+              ;; 拉起 telemetry 插件进程与首页展示抢时间
+              (if (string=? event-type "STARTUP")
+                (delayed (:pause 500) (upload-events event-type))
+                (upload-events event-type)
+              ) ;if
             ) ;begin
           ) ;if
           (if (>= len (telemetry-get-buffer-size)) (telemetry-flush))

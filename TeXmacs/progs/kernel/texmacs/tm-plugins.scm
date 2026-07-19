@@ -63,7 +63,7 @@
 ) ;define-public
 
 (define-public (local-connection-variants name)
-  (lazy-plugin-force)
+  (lazy-plugin-force-one name)
   (or (ahash-ref connection-varlist name) (list))
 ) ;define-public
 
@@ -72,7 +72,7 @@
 ) ;define-public
 
 (define-public (connection-defined? name)
-  (lazy-plugin-force)
+  (lazy-plugin-force-one name)
   (or (ahash-ref connection-defined name) (remote-connection-defined? name))
 ) ;define-public
 
@@ -87,7 +87,7 @@
 ) ;define-public
 
 (define-public (connection-info name session)
-  (lazy-plugin-force)
+  (lazy-plugin-force-one name)
   (with pos
     (string-index session #\:)
     (if pos
@@ -108,7 +108,7 @@
 ) ;define
 
 (define-public (connection-get-handlers name)
-  (lazy-plugin-force)
+  (lazy-plugin-force-one name)
   (with r (ahash-ref connection-handler name) (if r (cons 'tuple r) '(tuple)))
 ) ;define-public
 
@@ -704,10 +704,23 @@
 (define-public (lazy-plugin-initialize name)
   "Initialize the plug-in @name in a lazy way"
   (ahash-set! plugin-initialize-todo name #t)
-  (if (eval (ahash-ref plugin-data-table (list name :prioritary)))
-    (plugin-initialize name)
-    (delayed (:idle 1000) (plugin-initialize name))
-  ) ;if
+  (delayed (:pause 3000) (plugin-initialize name))
+) ;define-public
+
+(define-public (lazy-plugin-force-one name)
+  "Force the lazy initialization of the single plugin @name"
+  ;; plugin-feed 链路（connection-defined?/connection-info 等）只需目标插件
+  ;; 就绪，不应像 lazy-plugin-force 那样强载全部待初始化插件
+  (with name*
+    (if (symbol? name) name (string->symbol name))
+    (when (ahash-ref plugin-initialize-todo name*)
+      (debug-message "debug-std"
+        (string-append "lazy-plugin-force-one: forcing " (symbol->string name*) "\n")
+      ) ;debug-message
+      (plugin-initialize name*)
+    ) ;when
+  ) ;with
+  #t
 ) ;define-public
 
 (define-public (lazy-plugin-force)
@@ -716,6 +729,12 @@
     #f
     (with l
       (ahash-table->list plugin-initialize-todo)
+      (debug-message "debug-std"
+        (string-append "lazy-plugin-force: forcing "
+          (number->string (length l))
+          " pending plugins\n"
+        ) ;string-append
+      ) ;debug-message
       (for-each plugin-initialize (map car l))
       (set! plugin-initialize-done? #t)
       #t
