@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (keyboard))
+(texmacs-module (keyboard) (:use (texmacs texmacs tm-view)))
 
 (lazy-keyboard (utils automate auto-kbd) in-auto?)
 (lazy-keyboard (texmacs keyboard prefix-kbd) always?)
