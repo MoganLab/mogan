@@ -16,6 +16,7 @@
 #include "message.hpp"
 #include "preferences.hpp"
 #include "tm_data.hpp"
+#include "tm_debug.hpp"
 #include "tm_url.hpp"
 
 #include <moebius/drd/drd_std.hpp>
@@ -399,6 +400,10 @@ tm_window_rep::refresh () {
 
 bool menu_caching= true;
 
+// [1145] 临时诊断：统计 get_menu_widget 的 EQUAL/CACHE_HIT/MISS 次数
+static int menu_diag_equal[12]= {0}, menu_diag_cache[12]= {0},
+           menu_diag_miss[12]= {0};
+
 bool
 tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
   drd_info old_drd= the_drd;
@@ -406,8 +411,13 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     tm_view vw= concrete_view (window_to_view (id));
     if (vw != NULL) the_drd= vw->ed->drd;
   }
+  bench_start ("menu-expand");
   object xmenu= call ("menu-expand", eval ("'" * menu));
-  the_drd     = old_drd;
+  bench_end ("menu-expand");
+  the_drd= old_drd;
+  // 缓存判等用归一化 key：剔除 invisible 载荷（如 push-focus 注入的光标
+  // 路径），避免缓存 key 随光标位置变化而永远 MISS。
+  object xkey= call ("menu-cache-normalize", xmenu);
   // tab 栏（which==4）：xmenu 含每次新建的 lambda，无法用 equal 比较，故用
   // 稳定签名判等。签名不变（如切 tab）=> 跳过重建，保持上次 widget。
   if (which == 4) {
@@ -415,21 +425,46 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     if (sig == tab_menu_signature) return false;
     tab_menu_signature= sig;
   }
-  if (menu_cache->contains (xmenu)) {
-    if (menu_current[which] == xmenu) return false;
+  if (menu_cache->contains (xkey)) {
+    if (menu_current[which] == xkey) {
+      if (which >= 0 && which < 12) {
+        menu_diag_equal[which]++;
+        std_bench << "[1145] menu which=" << which
+                  << " EQUAL (equal=" << menu_diag_equal[which]
+                  << " cache=" << menu_diag_cache[which]
+                  << " miss=" << menu_diag_miss[which] << ")\n";
+      }
+      return false;
+    }
     if (which < 10) {
-      menu_current (which)= xmenu;
-      w                   = menu_cache[xmenu];
+      if (which >= 0) {
+        menu_diag_cache[which]++;
+        std_bench << "[1145] menu which=" << which
+                  << " CACHE_HIT (equal=" << menu_diag_equal[which]
+                  << " cache=" << menu_diag_cache[which]
+                  << " miss=" << menu_diag_miss[which] << ")\n";
+      }
+      menu_current (which)= xkey;
+      w                   = menu_cache[xkey];
       return true;
     }
   }
-  menu_current (which)= xmenu;
+  if (which >= 0 && which < 12) {
+    menu_diag_miss[which]++;
+    std_bench << "[1145] menu which=" << which
+              << " MISS (equal=" << menu_diag_equal[which]
+              << " cache=" << menu_diag_cache[which]
+              << " miss=" << menu_diag_miss[which] << ")\n";
+  }
+  menu_current (which)= xkey;
   object umenu        = eval ("'" * menu);
+  bench_start ("make_menu_widget");
   if (which == 10 || which == 11) w= make_menu_widget (umenu, 400, 1000);
   else w= make_menu_widget (umenu);
+  bench_end ("make_menu_widget");
   if (menu_caching)
     if (which >= 10 || as_bool (call ("cache-menu?", xmenu))) {
-      menu_cache (xmenu)= w;
+      menu_cache (xkey)= w;
     }
   return true;
 }
