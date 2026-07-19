@@ -127,18 +127,19 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QString m_currentScmNotificationItem;
 
 private:
-  void onAddTabRequested ();
-  void setupLoginDialog (QWK::LoginDialog* loginDialog);
-  void checkLocalTokenAndLogin ();
-  void fetchUserInfo (const QString& token, bool showDialog= true);
-  void refreshLoginDialogPlacement ();
-  bool shouldShowLoginDialogUpdateSection ();
-  void setLoginDialogUpdateSectionVisible (bool visible);
-  void refreshMembershipInfoInBackground ();
-  void refreshScmNotificationBar ();
-  void syncScmUpdateNotification (bool           updateAvailable,
-                                  const QString& remoteVersion= QString ());
-  void syncScmGuestNotification (bool visible);
+  void              onAddTabRequested ();
+  void              setupLoginDialog (QWK::LoginDialog* loginDialog);
+  QWK::LoginDialog* ensureLoginDialog ();
+  void              checkLocalTokenAndLogin ();
+  void              fetchUserInfo (const QString& token, bool showDialog= true);
+  void              refreshLoginDialogPlacement ();
+  bool              shouldShowLoginDialogUpdateSection ();
+  void              setLoginDialogUpdateSectionVisible (bool visible);
+  void              refreshMembershipInfoInBackground ();
+  void              refreshScmNotificationBar ();
+  void              syncScmUpdateNotification (bool           updateAvailable,
+                                               const QString& remoteVersion= QString ());
+  void              syncScmGuestNotification (bool visible);
   void
        syncScmMembershipNotification (bool           hasData,
                                       const QString& memberType = QString (),

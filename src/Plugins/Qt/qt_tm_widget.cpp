@@ -444,9 +444,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     });
   }
   else {
-    // 商业版：完整登录功能
-    m_loginDialog= new QWK::LoginDialog (mainwindow ());
-    setupLoginDialog (m_loginDialog);
+    // 商业版：完整登录功能。LoginDialog 创建耗时 ~100ms，首屏不需要，
+    // 惰性到首次使用（ensureLoginDialog）时再创建
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
                       [this] () { checkLocalTokenAndLogin (); });
   }
@@ -543,7 +542,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                         call ("notification-bar-snooze-membership-expired");
                       }
                     });
-  if (!is_community_stem ()) checkNetworkAvailable ();
+  // 网络检查首屏不需要，挪到事件循环里执行，避免构造期创建
+  // QNetworkAccessManager 的同步开销
+  if (!is_community_stem ())
+    QTimer::singleShot (0, [this] () { checkNetworkAvailable (); });
 
   // 延迟检查版本更新（启动后10秒）
   QTimer::singleShot (10000, [this] () { checkVersionUpdate (); });
@@ -957,7 +959,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                             }
                           });
         if (account->isLoggedIn ()) {
-          refreshMembershipInfoInBackground ();
+          // 首次创建 QNetworkAccessManager 的同步开销挪出构造关键路径
+          QTimer::singleShot (
+              0, [this] () { refreshMembershipInfoInBackground (); });
         }
       }
     }
@@ -2627,6 +2631,15 @@ qt_tm_widget_rep::onAddTabRequested () {
 }
 
 // 登录相关代码
+QWK::LoginDialog*
+qt_tm_widget_rep::ensureLoginDialog () {
+  if (!m_loginDialog) {
+    m_loginDialog= new QWK::LoginDialog (mainwindow ());
+    setupLoginDialog (m_loginDialog);
+  }
+  return m_loginDialog;
+}
+
 void
 qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   // 创建登录对话框内容
@@ -2993,7 +3006,7 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
   }
   else {
     // 没有token，显示登录对话框（用户需要手动点击登录按钮）
-    show_login_dialog_at_button (m_loginDialog, loginButton);
+    show_login_dialog_at_button (ensureLoginDialog (), loginButton);
   }
 }
 
@@ -3035,7 +3048,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
         // 定义统一的错误处理逻辑
         auto handleError= [this] (const QString& errorMessage) {
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
-          show_login_dialog_at_button (m_loginDialog, loginButton);
+          show_login_dialog_at_button (ensureLoginDialog (), loginButton);
         };
 
         if (reply->error () == QNetworkReply::NoError) {
@@ -3071,7 +3084,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
                                            periodLabelColor, productType);
 
             if (showDialog) {
-              show_login_dialog_at_button (m_loginDialog, loginButton);
+              show_login_dialog_at_button (ensureLoginDialog (), loginButton);
             }
           }
           else {
@@ -3098,7 +3111,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
 void
 qt_tm_widget_rep::triggerOAuth2 () {
   // 隐藏对话框，因为需要用户进行OAuth2认证
-  if (m_loginDialog->isVisible ()) {
+  if (m_loginDialog && m_loginDialog->isVisible ()) {
     m_loginDialog->hide ();
   }
   // 直接调用scheme代码触发OAuth2登录流程
