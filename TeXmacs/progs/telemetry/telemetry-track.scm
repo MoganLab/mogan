@@ -81,7 +81,7 @@
 
 (define-public (important-event? event-type)
   (or (string=? event-type "HEART_BEAT")
-    (string=? event-type "STARTUP")
+    (string=? event-type "OPEN")
     (string=? event-type "TUTORIAL")
     (string=? event-type "INVITE_CLICK")
     (string=? event-type "VIP_CLICK")
@@ -123,10 +123,10 @@
           (if (important-event? event-type)
             (begin
               (telemetry-flush)
-              ;; STARTUP 的 track 已由 C++ 侧推迟到事件循环起跑后触发；
+              ;; OPEN 的 track 已由 C++ 侧推迟到事件循环起跑后触发；
               ;; upload 再额外延后 500ms，让首帧先绘制，避免 plugin-feed
               ;; 拉起 telemetry 插件进程与首页展示抢时间
-              (if (string=? event-type "STARTUP")
+              (if (string=? event-type "OPEN")
                 (delayed (:pause 500) (upload-events event-type))
                 (upload-events event-type)
               ) ;if

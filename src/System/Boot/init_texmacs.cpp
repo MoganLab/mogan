@@ -26,6 +26,7 @@
 #include "telemetry.hpp"
 #include "tm_file.hpp"
 #include "tm_link.hpp"
+#include "tm_timer.hpp"
 
 #include <functional>
 #include <signal.h>
@@ -949,11 +950,12 @@ TeXmacs_main (int argc, char** argv) {
     bench_reset ("initialize plugins");
     bench_reset ("initialize scheme");
 
-    if (DEBUG_STD) debug_std << "Starting event loop...\n";
+    if (DEBUG_STD)
+      debug_std << "Starting event loop... (" << texmacs_time () << " ms)\n";
     texmacs_started= true;
-    // 事件循环起跑后再上报 STARTUP，避免 track 同步写 jsonl 及
+    // 事件循环起跑后再上报 OPEN，避免 track 同步写 jsonl 及
     // plugin-feed 拉起 telemetry 插件阻塞首帧（原先在启动页 showEvent 触发）
-    telemetry_track ("STARTUP");
+    telemetry_track ("OPEN");
     if (!disable_error_recovery) {
       // 注册信号处理器，确保子进程被正确清理
       // 包括崩溃类信号和用户中断信号
