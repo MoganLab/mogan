@@ -22,7 +22,6 @@
 ) ;texmacs-module
 
 (import (only (liii string) string-contains))
-(import (only (liii hashlib) md5))
 (import (only (liii uuid) uuid4))
 (import (only (liii path)
           path->string
@@ -40,19 +39,9 @@
           path-unlink
         ) ;only
 ) ;import
-(import (only (liii os) mkdir))
-(import (liii njson))
 (import (liii json))
 (import (only (srfi srfi-1) find))
 (import (only (srfi srfi-1) remove))
-(import (only (srfi srfi-19)
-          TIME-UTC
-          current-date
-          current-time
-          date->string
-          time-second
-        ) ;only
-) ;import
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Remember last save/open directory

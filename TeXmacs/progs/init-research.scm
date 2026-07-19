@@ -135,11 +135,17 @@
 (lazy-menu (bibtex bib-widgets) open-bibliography-inserter)
 
 ;; (display "Booting main TeXmacs functionality\n")
-(use-modules (texmacs texmacs tm-server)
-  (texmacs texmacs tm-view)
-  (texmacs texmacs tm-files)
-  (texmacs texmacs tm-print)
-) ;use-modules
+(use-modules (texmacs texmacs tm-server) (texmacs texmacs tm-view))
+
+(define tm-files-boot-start (texmacs-time))
+(use-modules (texmacs texmacs tm-files))
+(debug-message "debug-std"
+  (string-append "bench tm-files: "
+    (number->string (- (texmacs-time) tm-files-boot-start))
+    " ms\n"
+  ) ;string-append
+) ;debug-message
+(use-modules (texmacs texmacs tm-print))
 (use-modules (texmacs keyboard config-kbd))
 (lazy-menu (texmacs menus file-menu)
   file-menu
