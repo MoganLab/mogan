@@ -358,6 +358,7 @@ target("libmogan") do
     if is_plat("wasm") then
         add_cxxflags("--use-port=contrib.glfw3")
         add_ldflags("--use-port=contrib.glfw3")
+        add_ldflags("-lwebsocket.js")
     end
     on_load(function (target)
         target:add("forceincludes", path.absolute("$(builddir)/config.h"))
