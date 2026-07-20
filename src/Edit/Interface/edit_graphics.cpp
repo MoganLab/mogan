@@ -376,8 +376,8 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
         // 仅在鼠标靠近标尺且在吸附距离内时激活
         if (min_d < snap_dist_local) {
           point dir (cos (best_theta), sin (best_theta));
-          point p1_start_local   = p1 - 12.0 * dir;
-          point p1_end_local     = p1 + 12.0 * dir;
+          point p1_start_local   = p1 - 50.0 * dir;
+          point p1_end_local     = p1 + 50.0 * dir;
           curve ghost_curve_local= segment (p1_start_local, p1_end_local);
 
           double proj_dist      = dist_to_p1 * cos (phi - best_theta);

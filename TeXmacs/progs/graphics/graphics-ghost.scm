@@ -70,10 +70,10 @@
                (t (string->number theta))
                (dx (cos t))
                (dy (sin t))
-               (x_start (number->string (- x1 (* 12.0 dx))))
-               (y_start (number->string (- y1 (* 12.0 dy))))
-               (x_end (number->string (+ x1 (* 12.0 dx))))
-               (y_end (number->string (+ y1 (* 12.0 dy))))
+               (x_start (number->string (- x1 (* 50.0 dx))))
+               (y_start (number->string (- y1 (* 50.0 dy))))
+               (x_end (number->string (+ x1 (* 50.0 dx))))
+               (y_end (number->string (+ y1 (* 50.0 dy))))
               ) ;
           (loop (cdr lines)
             (cons `(with ,"color"
