@@ -57,6 +57,12 @@
   (list get-init init-multi #t)
 ) ;define
 
+;; 段落字体 specs（get-env / make-multi-with / global?=#f），与 open-font-selector 同源。
+
+(define (paragraph-font-specs)
+  (list get-env make-multi-with #f)
+) ;define
+
 ;; 串异步链：每步在 exec-delayed-at 触发，步间隔 step-delay-ms。
 
 (define (run-chain steps)
@@ -180,6 +186,67 @@
                              ;; ok 钩子返回 (tuple "ok")——func? 匹配 tuple 且首子为 "ok"。
                              (check-true (func? s 'tuple))
                              (check-true (>= (length (cdr s)) 1))
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 4) Reset 恢复系统默认字体（非回到打开时快照）：
+               ;;    「系统默认」= 无显式 init 时 initial-font-data 的解析值。先在干净文档上
+               ;;    采到 sys-default；再 init-env 预设非默认字体，使「打开时快照」≠ 系统默认；
+               ;;    对话框内 live 改 family，font-selector-restore（Reset 按钮）后期望 family
+               ;;    回系统默认、init 被移除。
+               ;;    回归点：改前 restore = font-selector-revert-to-snapshot，会回到打开时快照
+               ;;    （预设的非默认字体），而非系统默认。
+               (list (cons "reset restores system default font"
+                       (lambda ()
+                         (new-document)
+                         (with specs
+                           (document-font-specs)
+                           ;; 干净文档上取系统默认（无显式 init）。
+                           (let* ((sys-default (car (initial-font-data specs)))
+                                  ;; 预设非默认字体，使快照 ≠ 系统默认。
+                                  (_ (init-env "font" "msand"))
+                                  (key (font-selector-register-specs specs))
+                                  (snapshot-fam (font-selector-get key :family))
+                                 ) ;
+                             (check-true (!= snapshot-fam sys-default))
+                             ;; 对话框内 live 改 family。
+                             (font-selector-set key :family "Fira Sans")
+                             ;; Reset 按钮：恢复系统默认。
+                             (font-selector-restore key)
+                             (check-true (equal? (font-selector-get key :family) sys-default))
+                             ;; init 被移除（回到继承的全局默认）。
+                             (check-true (not (init-has? "font")))
+                             (font-selector-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 5) 段落级 Reset（格式→字体）不清空选中内容、不抛错：
+               ;;    段落级 specs 的 global?=#f，selector-restore 的 :default 未实现。
+               ;;    回归点：改前 font-selector-restore 一律传 #t 给 selector-restore，
+               ;;    对段落级 setter（make-multi-with）喂 :default 生成非法
+               ;;    (with "font" :default <tree>)，抛 cpp-insert-go-to 错并把选中内容吞掉。
+               ;;    现期望：段落级走 revert-to-snapshot（回到打开时），buffer 文本保留、不抛。
+               (list (cons "paragraph reset preserves selection, no error"
+                       (lambda ()
+                         (new-document)
+                         (insert "RESETGUARD")
+                         (select-all)
+                         (with specs
+                           (paragraph-font-specs)
+                           (let* ((key (font-selector-register-specs specs)))
+                             ;; 对话框内 live 改 family（写入选区的 with 块）。
+                             (font-selector-set key :family "Fira Sans")
+                             ;; Reset 按钮：段落级走 revert-to-snapshot，不抛、不吞选区内容。
+                             (font-selector-restore key)
+                             ;; buffer 文本仍在（未被 :default 吞掉）。
+                             (check-true (string-contains? (texmacs->verbatim (cursor-tree)) "RESETGUARD"))
+                             (font-selector-cancel key)
                            ) ;let*
                          ) ;with
                        ) ;lambda

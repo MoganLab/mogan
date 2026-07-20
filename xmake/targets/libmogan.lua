@@ -303,6 +303,9 @@ target("libmogan") do
         add_files("$(projectdir)/src/Plugins/Qt/moganqml.qrc")
     else
         add_files("$(projectdir)/src/Plugins/ImGui/**.cpp")
+        if is_plat("macosx") then
+            add_files("$(projectdir)/src/Plugins/ImGui/**.mm")
+        end
     end
 
     if has_config("loro") then

@@ -909,3 +909,40 @@ qt_simple_widget_rep::scroll_ghost_popup_by (SI x, SI y) {
     ghostTextPopup->updatePosition ();
   }
 }
+
+void
+qt_simple_widget_rep::ensure_diff_popup () {
+  if (diffTextPopup) {
+    if (diffTextPopup->parent () != canvas ()) {
+      diffTextPopup->setParent (canvas ());
+    }
+    return;
+  }
+  diffTextPopup= new QTMDiffTextPopup (canvas (), this);
+  if (is_empty (tm_style_sheet)) {
+    diffTextPopup->setStyle (qtmstyle ());
+  }
+}
+
+void
+qt_simple_widget_rep::show_diff_popup () {
+  ensure_diff_popup ();
+  diffTextPopup->showPopup ();
+}
+
+void
+qt_simple_widget_rep::hide_diff_popup () {
+  if (diffTextPopup) {
+    diffTextPopup->hide ();
+  }
+}
+
+void
+qt_simple_widget_rep::scroll_diff_popup_by (SI x, SI y) {
+  if (diffTextPopup) {
+    QPoint qp (x, y);
+    coord2 p= from_qpoint (qp);
+    diffTextPopup->scrollBy (p.x1, p.x2);
+    diffTextPopup->updatePosition ();
+  }
+}

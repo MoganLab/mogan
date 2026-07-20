@@ -22,8 +22,9 @@
 #include "scheme.hpp"        // exec_pending_commands, call
 #include "tm_timer.hpp"      // texmacs_time
 
-#include "editor.hpp" // editor_rep::selection_active_any
-#include "im_gui.hpp" // im_interpose (drives apply_changes each frame)
+#include "editor.hpp"       // editor_rep::selection_active_any
+#include "im_gui.hpp"       // im_interpose (drives apply_changes each frame)
+#include "im_ime_macos.hpp" // macOS IME bridge (no-op stubs elsewhere)
 #include "im_input.hpp"
 #include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
 #include "im_simple_widget.hpp" // editor canvas (main_widget)
@@ -54,25 +55,25 @@ static int s_next_win_id= 0; // unique non-zero identifiers for SLOT_IDENTIFIER
 static im_tm_widget_rep* im_primary_window= nullptr;
 
 /******************************************************************************
- * IME (Input Method Editor) support — Emscripten only.
+ * IME (Input Method Editor) support.
  *
- * The community GLFW port (pongasoft/emscripten-glfw) has no IME handling: its
- * char callback is driven by keydown, which during IME composition reports the
- * raw letter (not "Process"), so GLFW inserts letters alongside the IME and
- * committed text never reaches the editor via the IME. We bypass GLFW: a hidden
- * real <textarea> is the IME editing host; its composition events feed the
- * editor, mirroring Qt's QTMWidget::inputMethodEvent. A synthetic focus event
- * on the canvas keeps GLFW's fFocused and the editor's got_focus true so the
- * normal key/mouse paths keep working.
+ * 两个平台桥接都向同一个待处理事件队列投递，由 im_main_loop 顶部（与 GLFW 按键
+ * 事件同一安全点）排空：
+ *   - Emscripten：社区 GLFW 端口的 char 回调在 IME 合成期会直报原始字母，故用
+ *     一个隐藏 <textarea> 接住浏览器 composition 事件、绕过 GLFW，行为对齐 Qt
+ *的 QTMWidget::inputMethodEvent（见下方 im_install_ime_listeners）。
+ *   - macOS：GLFW 3.4 无 marked-text 回调，且 NSTextInputClient 无 marked text
+ *的 getter，故 im_ime_macos.mm 交换 GLFWContentView 的
+ *     setMarkedText/insertText/unmarkText 来捕获预编辑；提交文本也走本队列。
  ******************************************************************************/
-#ifdef __EMSCRIPTEN__
-// Pending IME events enqueued by the JS composition listeners. Drained at the
-// top of im_main_loop (same safe point as GLFW key events) because the DOM
-// fires composition events asynchronously. Each entry is the final key string
-// (a plain UTF-8 commit, or "pre-edit:<utf8>" rebuilt by the drain into the
-// "pre-edit:<pos>:<cork>" form that key_press expects).
+#if defined(__EMSCRIPTEN__) || defined(OS_MACOS)
+// 待处理的 IME 事件（平台桥接投递）。每项即最终按键串：纯 UTF-8 提交文本，或
+// "pre-edit:<utf8>"（由排空逻辑重建为 key_press 所需的
+// "pre-edit:<pos>:<cork>"）。
 static array<string> g_ime_pending;
+#endif
 
+#ifdef __EMSCRIPTEN__
 // Pull ccall() into scope for the EM_JS block below (no
 // EXPORTED_RUNTIME_METHODS change needed).
 EM_JS_DEPS (mogan_ime, "$ccall");
@@ -214,6 +215,26 @@ mogan_ime_preedit (const char* utf8) {
   g_ime_pending << ("pre-edit:" * string (utf8));
 }
 #endif // __EMSCRIPTEN__
+
+#if defined(OS_MACOS)
+// macOS 桥接（im_ime_macos.mm）→ 这里。把 "pre-edit:<utf8>"（或 "pre-edit:"
+// 清除） 入队，由 im_main_loop 排空。数学模式下禁用预编辑（对齐 Qt，规避
+// QQPinyin 类崩溃）。
+void
+im_macos_enqueue_preedit (const char* utf8) {
+  if (utf8 == nullptr) return;
+  if (as_bool (call ("in-math?"))) return;
+  g_ime_pending << ("pre-edit:" * string (utf8));
+}
+
+// 把纯 UTF-8 提交文本入队（IME 提交经队列而非 char
+// 回调，保证与预编辑清除同批按序 排空）。无数学模式限制：提交文本始终生效。
+void
+im_macos_enqueue_commit (const char* utf8) {
+  if (utf8 == nullptr) return;
+  g_ime_pending << string (utf8);
+}
+#endif
 
 /******************************************************************************
  * Local helpers
@@ -462,6 +483,11 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
   glfwSetWindowFocusCallback (window,
                               &im_tm_widget_rep::glfw_window_focus_callback);
 
+  // 交换 GLFWContentView 的 NSTextInputClient 以捕获 IME 预编辑/提交。幂等；
+#ifdef OS_MACOS
+  im_macos_install_ime (window);
+#endif
+
   IMGUI_CHECKVERSION ();
   ImGui::CreateContext ();
   io= &ImGui::GetIO ();
@@ -615,11 +641,12 @@ im_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
 void
 im_tm_widget_rep::im_main_loop () {
   glfwPollEvents ();
-#ifdef __EMSCRIPTEN__
-  // Drain IME composition events queued by the JS listeners (see
-  // mogan_ime_commit/preedit). Swap out the snapshot first so any events the
-  // browser fires while we dispatch are processed next frame (single-threaded,
-  // so no race).
+#if defined(__EMSCRIPTEN__) || defined(OS_MACOS)
+  // Drain IME events queued by the platform bridge (WASM JS listeners →
+  // mogan_ime_commit/preedit; macOS NSTextInputClient swizzle →
+  // im_macos_enqueue_preedit/commit). Swap out the snapshot first so any events
+  // fired while we dispatch are processed next frame (single-threaded, no
+  // race).
   if (N (g_ime_pending) > 0) {
     array<string> pending= g_ime_pending;
     g_ime_pending        = array<string> (0);
@@ -643,6 +670,8 @@ im_tm_widget_rep::im_main_loop () {
       else dispatch_keypress (pending[i]);
     }
   }
+#endif
+#ifdef __EMSCRIPTEN__
   // Drain a deferred system-clipboard paste. The browser "paste" event
   // captured foreign text and armed this (mogan_clipboard_deliver_paste);
   // GLFW's Ctrl-V was blocked in im_install_ime_listeners, so the editor has
@@ -961,6 +990,11 @@ im_tm_widget_rep::glfw_key_callback (GLFWwindow* w, int key, int scancode,
                                      int action, int mods) {
   im_tm_widget_rep* self= im_self (w);
   if (self == nullptr) return;
+  // IME 合成期间的按键交给输入法（不插字面键）：否则提交用的空格等会被先于
+  // 提交文本插入
+#ifdef OS_MACOS
+  if (im_macos_ime_composing ()) return;
+#endif
   // 记下本次按键的事件级 mods（GLFW 的 mods 形参：macOS 来自 NSEvent
   // modifierFlags、WASM 来自 e.metaKey，都是事件即时真实状态，不受 glfwGetKey
   // 在系统快捷键截屏后卡住的影响），供紧随其后的 glfw_char_callback 复用。
@@ -974,9 +1008,10 @@ im_tm_widget_rep::glfw_char_callback (GLFWwindow* w, unsigned int codepoint) {
   im_tm_widget_rep* self= im_self (w);
   if (self == nullptr) return;
   // Printable Unicode text input (the GLFW counterpart of Qt's inputMethodEvent
-  // commit string). Skip control characters — they arrive via
-  // glfw_key_callback.
-  if (codepoint < 32) return;
+  // commit string). Skip control characters and space — they arrive via
+  // glfw_key_callback (space maps to the "space" key name). 否则 GLFW 会同时
+  // 触发 key 与 char 两个回调，空格被分发两次而插入两个空格。
+  if (codepoint <= 32) return;
   // Ctrl/Cmd + 按键已由 glfw_key_callback 作为快捷键分发（"C-x"/"M-x"）。
   // 浏览器/Emscripten 对同一次按键还会补发本 char 回调里的基础字母，
   // 若不抑制会导致快捷键与字面字符同时生效（如 C-a 回到行首后又插入了 a）。

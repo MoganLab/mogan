@@ -5,11 +5,11 @@
 // scheme facade，QML 不感知。
 //
 // 显示真相源是 QML 本地的 values（参考 FormDialog）：打开时从 meta 读一次初始化，
-// 之后改动直接改 values 并 setPara 写文档，不重读 get-env——后者相对编辑命令有延迟，
-// 重读会显示滞后。唯一例外是「重置」：scheme 侧按 scope 撤销后 values 必须重读 meta
-// 重建（文档级 init-default 后真相源已变，缓存值会与文档背离）。根 id 用 root，
-// 与其它成品一致——原子内部 id 不用 root（见 atoms/ 各文件），调用方 delegate
-// 的 root.xxx 不再被遮蔽。
+// 之后改动直接改 values 并 setPara 写文档。meta 自身读 scheme 侧的本地真相表
+//（utils/library/dialog-value-table）——不实时读 get-env/get-init（后者相对编辑命令
+// 有延迟，重读会显示滞后）；set/reset/Cancel 都同步更新该表，故 reset 后 resetValues
+// 重读 meta 仍即时生效（不再「点两次才生效」）。根 id 用 root，与其它成品一致——原子
+// 内部 id 不用 root（见 atoms/ 各文件），调用方 delegate 的 root.xxx 不再被遮蔽。
 //
 // paraBridge 契约（ParagraphFormatBridge，无状态透传 specsKey）：
 //   uiLabels()            -> {basic, advanced, reset, ok, cancel, sepPresetLabel, sepPresets}
@@ -168,7 +168,11 @@ DialogShell {
                                         delegate: MiniButton {
                                             width: root.presetBtnWidth(presetRow.width)
                                             text: modelData.label
-                                            onClicked: root.setField("basic", "par-sep", modelData.val)
+                                            onClicked: {
+                                                // 预设联动两字段：par-sep 按倍数，par-par-sep 归零。
+                                                root.setField("basic", "par-sep", modelData.sep)
+                                                root.setField("basic", "par-par-sep", modelData.parSep)
+                                            }
                                         }
                                     }
                                 }
@@ -191,10 +195,8 @@ DialogShell {
         }
     }
 
-    // 重置：scheme 侧已按 scope 撤销（段落级快照写回 / 文档级 init-default），
-    // 本地 values 必须重读 meta 重建——不能用打开时缓存的 basicFields，否则文档级
-    // reset 后显示仍是打开时值，而真相源（init）已是全局默认，造成显示与文档背离。
-    // 重读 meta 此时拿到的是撤销后的值，两级语义都正确。
+    // 重置：scheme 侧已按 scope 撤销（段落级快照写回 / 文档级 init-default）并同步更新
+    // 本地真相表，故重读 meta（读表、即时）拿到的是撤销后的值——两级语义都正确，一次生效。
     function resetValues() {
         root.basicValues = root.initValues(paraBridge.basicMeta());
         root.advancedValues = root.initValues(paraBridge.advancedMeta());

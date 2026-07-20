@@ -1332,6 +1332,24 @@ edit_interface_rep::hide_ghost_popup () {
 #endif
 }
 
+void
+edit_interface_rep::show_diff_popup () {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->show_diff_popup ();
+  }
+#endif
+}
+
+void
+edit_interface_rep::hide_diff_popup () {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->hide_diff_popup ();
+  }
+#endif
+}
+
 bool
 edit_interface_rep::is_point_in_text_popup (SI x, SI y) {
 #ifdef QTTEXMACS

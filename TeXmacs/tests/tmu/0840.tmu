@@ -1,0 +1,42 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <section*|GENERAL INFORMATION>
+
+  Southern University of Science and Technology (SUSTech) is an innovation-oriented public university founded by Shenzhen government in the background of China's higher education reform. It aspires to be a model and pioneer for promoting higher education reform. It is committed to serving the mission of promoting Shenzhen as a modern, international, and innovative city and China as a creative country.
+
+  First, SUSTech is widely regarded as a trailblazer and innovator in advancing China's higher education. It was officially approved by the Ministry of Education in April 2012. SUSTech bears the responsibility for exploring and developing a modern university system with Chinese characteristics to serve as a model for cultivating innovative talents. SUSTech aims at a globally renowned university that contributes to the advancement of science and technology. It nurtures promising and creative leaders who excel in interdisciplinary research and creating knowledge for the world.
+
+  Second, SUSTech draws on the experience of world-class science and engineering universities for its disciplinary establishment and governance. It focuses on science, engineering, and medicine in conjunction with distinctive disciplines, including business, humanities, and social sciences. SUSTech offers undergraduate and postgraduate education while conducting research in a series of innovative disciplines. All of those practices shape SUSTech into a think tank for social progress and a generator of new knowledge and new technology.
+
+  Third, SUSTech is building interdisciplinary research centers to generate new scientific and technological wisdom in cross-disciplinary fields such as artificial intelligence, life sciences, Internet of things, robotics, new energy, and intelligent manufacturing.
+
+  In the spirit of "For Truth, Innovation, Reform and Excellence with Diligence and Courage," SUSTech highlights "research, innovation, and entrepreneurship" and dedicates to facilitating innovative projects across China and turning Shenzhen into an innovative, modern, and international metropolis.
+
+  SUSTech also seeks to become an international high-level research university that gathers first-class faculty and nurtures top-notch innovative talents. It aims to produce internationally recognized academic achievements and advance scientific and technological applications.
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|preamble|false>
+    <associate|stem-doc-id|6B1D137D-DCA3-4310-855D-B108EA9D3860>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|?|1>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|GENERAL INFORMATION><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>

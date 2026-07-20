@@ -189,6 +189,8 @@ public:
   virtual void   source_complete_try ()                                    = 0;
   virtual void   show_ghost_popup ()                                       = 0;
   virtual void   hide_ghost_popup ()                                       = 0;
+  virtual void   show_diff_popup ()                                        = 0;
+  virtual void   hide_diff_popup ()                                        = 0;
   virtual void   complete_start (string prefix, array<string> compls)      = 0;
   virtual bool   complete_keypress (string key)                            = 0;
   virtual bool   source_complete_keypress (string key)                     = 0;

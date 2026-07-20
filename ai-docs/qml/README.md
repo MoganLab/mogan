@@ -25,18 +25,51 @@
 WA_DeleteOnClose → delete，注意 `done()` 不走 closeEvent、不触发 delete）。样板见
 `cpp_font_selector_dialog`。
 
-## Cancel/重置撤销（live 写回对话框）
+## Cancel/重置撤销 + 即时显示（live 写回对话框）
 
-live 写回的对话框（FontSelector）需要 Cancel/重置撤销已应用的改动。**不要用 mark-cancel**
-（mogan 的 undo mark 事务）——它有两个缺陷：
+live 写回的对话框（FontSelector / ParagraphFormat）需要 Cancel/重置撤销已应用的改动。
+**不要用 mark-cancel**（mogan 的 undo mark 事务）——它有两个缺陷：
 
 - 对 init 块改动无效（文档字体走 init-multi 改 init，不进 undo 历史，mark-cancel 回滚不了）
 - 对 buffer 改动丢选区（mark-cancel 的 apply 触发 post_notify→selection_cancel）
 
-正解是**快照写回**：对话框打开瞬间（register-specs，live 改动前）快照文档字体
-（`initial-snapshot`）；Cancel/重置共用 `font-selector-revert-to-snapshot`——快照填
-selector-table，再 `selector-get-changes` + **一次** setter 写回。一次 setter 避免多次
-make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi-with）都适用。
+正解是**快照写回**：对话框打开瞬间（register-specs，live 改动前）快照；Cancel 走快照 revert
+（`revert-to-snapshot` / `restore-snapshot`），再 `selector-get-changes` + **一次** setter 写回。
+一次 setter 避免多次 make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi-with）
+都适用。**注意 Reset 与 Cancel 语义不同**：Cancel=撤销本对话框改动（回快照）；文档级 Reset=恢复系统默认
+（FontSelector 文档级走 `selector-restore specs #t` 的 `:default` 移除 init、ParagraphFormat 文档级走
+`init-default`），段落级 Reset 因 `:default` 未实现仍走回快照。**切忌给段落级 setter（make-multi-with）
+喂 `:default`**——会生成非法 `(with "font" :default <tree>)`、抛 cpp-insert 错并吞掉选中内容。
+
+### 本地真相表 reader（凡带 reset 的对话框必用）
+
+写回文档树后立刻跨 eval 读 `get-env`/`get-init` 会**滞后一拍**（读取相对编辑命令有延迟）——
+表现为「重置点一次没用，点第二次才生效」。正解是给 facade 配一个本地真相表
+（`utils/library/dialog-value-table`）：读取经 `value-table-ref` **表优先命中、缺项才 fallback
+实时树**；set/reset/Cancel 把目标值写入表，后续读即时生效、不碰树。
+
+**凡是带 reset/Cancel 的 live 写回对话框，必须用此机制**：reset/Cancel 撤销时把目标值（快照值
+或 init-default 后的默认值）写入本地表，QML 重读 meta 走表，避开延迟。
+
+API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定义、模块不关心其形状）：
+
+| API | 何时调 | 作用 |
+|-----|--------|------|
+| `value-table-set! entry-key val` | register / set / reset / cancel | 记当前值，下次 ref 命中表 |
+| `value-table-ref entry-key fallback-proc` | meta（读显示值） | 表优先，缺项才 fallback 实时源 |
+| `value-table-remove! entry-key` | reset 单字段 | 删项，回退 fallback |
+| `value-table-clean entry-keys` | cleanup（关窗） | 清整组防泄漏 |
+
+**不变量**：凡写文档树的路径（set/reset/cancel）都必须同步 `set!` 本表，否则表值与文档真相背离。
+当前两个使用者：
+
+- **FontSelector**（`fonts/font-new-widgets.scm`）：entry-key = `(specs var buffer)`，fallback
+  为字体专用 `initial-font-data`/`initial-customize-get`；Cancel 经 `font-selector-revert-to-snapshot`
+  把快照填表；Reset 按 specs 的 `global?` 分流——文档级走 `selector-restore specs #t` 的 `:default`
+  （移除 init、清表，回系统默认），段落级（`:default` 未实现）走 revert-to-snapshot 回快照。
+- **ParagraphFormat**（`generic/paragraph-format-widgets.scm`）：entry-key = `(key var)`（key 为 register 返回的实例句柄），
+  fallback 为 scope 路由的 `get-env`/`get-init`；register 填表、set 同步写、reset 段落级写快照值/
+  文档级 init-default 后写 `get-init` 默认值、Cancel restore-snapshot 写快照值、cleanup 清表。
 
 ## 板块
 
@@ -64,7 +97,7 @@ make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi
 |--------|---------|------|
 | `ConfirmClose` | `run_qml_dialog`（exec） | 点按钮返回结果 |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit |
-| `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel+重置快照撤销 |
+| `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |
 
 ## 编码规矩
@@ -110,7 +143,9 @@ setModal+show（见上表）。新增模态对话框写 context 注入回调 + �
    （无 glob，漏登则运行期找不到）。新增原子同理放 `atoms/` 并登 `atoms/qmldir`。
 4. **bridge + glue**：若需 live 写回，仿 `FontSelectorBridge` 写 C++ bridge（注入 context
    property）；在 `QTMQmlDialog.cpp` 加 glue 入口（选 `run_qml_dialog` exec 或
-   `run_modal_qml_dialog` setModal+show，按是否需 live 重绘文档决定）。
+   `run_modal_qml_dialog` setModal+show，按是否需 live 重绘文档决定）。**若带 reset/Cancel**，
+   scheme facade 接入 `utils/library/dialog-value-table` 做本地真相表（见「Cancel/重置撤销」节），
+   否则 reset 会滞后一拍。
 5. **加载测试**：在 `tests/Plugins/Qt/qml_load_test.cpp` 加 `test_foo_loads()`，注入对应
    bridge 桩（确认型用 `StubBridge`，live 型用 `StubLiveBridge`），断言 `status()==Ready`。
 6. **契约测试**：用环境变量钩子绕弹窗、直接走 facade 验数据契约（见下）。

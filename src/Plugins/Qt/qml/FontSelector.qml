@@ -1,6 +1,7 @@
 // FontSelector.qml — 字体选择器正文。
-// 非阻塞模态对话框：左侧 selector-set 实时写回文档（live），Cancel/重置经打开时
-// 快照写回撤销，OK 补齐差异落定。由 DialogShell + SelectableList + EnumCombo +
+// 非阻塞模态对话框：左侧 selector-set 实时写回文档（live），Cancel 经打开时
+// 快照写回撤销，Reset 按 global? 分流（文档级恢复系统默认、段落级回快照），OK 补齐差异落定。
+// 由 DialogShell + SelectableList + EnumCombo +
 // PreviewPane + DialogButtons 拼装，交互经 fontBridge 转发到 scheme facade
 //（specsKey 句柄）。fontBridge setter 返回 {preview, styles/families} 等联动
 // 结果，QML 在同一 handler 更新 model + 预览，省二次往返。
@@ -207,7 +208,7 @@ DialogShell {
 
     function refreshAll() {
         // 递增各 list 自身的 refreshTick，驱动其 currentValue/items 绑定重算
-        //（取代对话框级单一 refreshTick）。重算后值可能未变（reset 回到打开时默认），
+        //（取代对话框级单一 refreshTick）。重算后值可能未变（reset 后回系统默认或打开时快照、可能==改前值），
         // onCurrentValueChanged 不发、activeValue 不更新——显式 syncActiveValue 同步选中框。
         familyList.refreshTick++;
         styleList.refreshTick++;

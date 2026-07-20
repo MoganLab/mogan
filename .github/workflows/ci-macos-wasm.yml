@@ -83,7 +83,7 @@ jobs:
           key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
 
       - name: config
-        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg -p wasm --qt_frontend=no --yes
+        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg -p wasm --qt_frontend=no --pdfhummus=no --goldfish=no --yes
 
       - name: build
         run: xmake build --yes -vD stem

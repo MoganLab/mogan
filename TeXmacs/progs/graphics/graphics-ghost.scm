@@ -42,15 +42,18 @@
   (set! ghost-lines '())
 ) ;tm-define
 
-(tm-define (graphics-add-ghost-line x y theta)
+;; 参数 lines: (tuple (x y theta) ...)
+(tm-define (graphics-set-ghost-lines lines)
   (:state graphics-state)
-  (set! ghost-lines (cons `((,x ,y) ,theta) ghost-lines))
-  (graphics-decorations-update)
-) ;tm-define
-
-(tm-define (graphics-set-ghost-line x y theta)
-  (:state graphics-state)
-  (graphics-clear-ghost-lines)
+  (let ((l (if (tree? lines) (tree->stree lines) lines)))
+    (if (and (pair? l) (== (car l) 'tuple))
+      (set! ghost-lines
+        (map (lambda (e) (list (list (cadr e) (caddr e)) (cadddr e))) (cdr l))
+      ) ;set!
+      (set! ghost-lines '())
+    ) ;if
+    (if (nnull? ghost-lines) (graphics-decorations-update))
+  ) ;let
 ) ;tm-define
 
 (tm-define (graphics-get-decorations-ghost-line)
@@ -67,10 +70,10 @@
                (t (string->number theta))
                (dx (cos t))
                (dy (sin t))
-               (x_start (number->string (- x1 (* 12.0 dx))))
-               (y_start (number->string (- y1 (* 12.0 dy))))
-               (x_end (number->string (+ x1 (* 12.0 dx))))
-               (y_end (number->string (+ y1 (* 12.0 dy))))
+               (x_start (number->string (- x1 (* 50.0 dx))))
+               (y_start (number->string (- y1 (* 50.0 dy))))
+               (x_end (number->string (+ x1 (* 50.0 dx))))
+               (y_end (number->string (+ y1 (* 50.0 dy))))
               ) ;
           (loop (cdr lines)
             (cons `(with ,"color"

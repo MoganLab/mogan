@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic generic-test)
+(texmacs-module (generic test generic-test)
   (:use (generic generic-menu) (table table-menu))
 ) ;texmacs-module
 

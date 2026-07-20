@@ -661,13 +661,17 @@
     </src-comment>
   </active*>
 
-  <assign|old-version-color|dark red>
+  <assign|old-version-color|#ef4444>
 
-  <assign|new-version-color|dark green>
+  <assign|old-version-bg-color|#fef2f2>
 
-  <assign|render-old|<macro|old|<with|color|<value|old-version-color>|<arg|old>>>>
+  <assign|new-version-color|#10b981>
 
-  <assign|render-new|<macro|new|<with|color|<value|new-version-color>|<arg|new>>>>
+  <assign|new-version-bg-color|#ecfdf5>
+
+  <assign|render-old|<macro|old|<with|color|<value|old-version-color>|text-bg-color|<value|old-version-bg-color>|<arg|old>>>>
+
+  <assign|render-new|<macro|new|<with|color|<value|new-version-color>|text-bg-color|<value|new-version-bg-color>|<arg|new>>>>
 
   <assign|version-old|<macro|old|new|<render-old|<arg|old>>>>
 
@@ -683,7 +687,7 @@
 
   <assign|version-both|<macro|old|new|<compound|<if|<equal|<get-label|<arg|old>>|document>|version-both-big|version-both-small>|<arg|old>|<arg|new>>>>
 
-  <assign|version-suppressed|<macro|<math|<op|\<times\>>>>>
+  <assign|version-suppressed|<macro|>>
 </body>
 
 <\initial>

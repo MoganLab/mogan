@@ -275,6 +275,8 @@ public:
 
   void show_ghost_popup ();
   void hide_ghost_popup ();
+  void show_diff_popup ();
+  void hide_diff_popup ();
 
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);

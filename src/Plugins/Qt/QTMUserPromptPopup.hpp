@@ -31,7 +31,8 @@ protected:
   QPushButton*          badBtn;
 
 public:
-  QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* owner);
+  QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* owner,
+                      const QString& acceptText, const QString& rejectText);
   virtual ~QTMUserPromptPopup ();
 
   // 显示悬浮框并定位
@@ -69,6 +70,23 @@ class QTMGhostTextPopup : public QTMUserPromptPopup {
 public:
   QTMGhostTextPopup (QWidget* parent, qt_simple_widget_rep* owner);
   ~QTMGhostTextPopup () override;
+
+protected:
+  void onAcceptClicked () override;
+  void onRejectClicked () override;
+  void onGoodClicked () override;
+  void onBadClicked () override;
+};
+
+// =============================================================================
+// QTMDiffTextPopup: Diff Text AI建议的悬浮操作框，父类是 QTMUserPromptPopup
+// =============================================================================
+class QTMDiffTextPopup : public QTMUserPromptPopup {
+  Q_OBJECT
+
+public:
+  QTMDiffTextPopup (QWidget* parent, qt_simple_widget_rep* owner);
+  ~QTMDiffTextPopup () override;
 
 protected:
   void onAcceptClicked () override;
