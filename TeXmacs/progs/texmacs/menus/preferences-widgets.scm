@@ -22,19 +22,6 @@
 ;; Wrapper
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;; 需重启字段的三按钮确认标题映射（内部值 -> 翻译标题）。
-
-(define (restart-preference-title which)
-  (cond ((== which "look and feel") (translate "Switch look and feel"))
-        ((== which "gui theme") (translate "Switch interface theme"))
-        ((== which "keyboard shortcut style")
-         (translate "Switch keyboard shortcut style")
-        ) ;
-        (else (translate "Switch preference"))
-  ) ;cond
-) ;define
-
 (tm-define (set-pretty-preference* which pretty-val)
   (let* ((old (get-pretty-preference which)))
     (when (!= old pretty-val)

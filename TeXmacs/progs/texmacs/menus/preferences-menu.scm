@@ -26,15 +26,20 @@
 ;; Preferred scripting language
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 三按钮重启确认的正文（陈述句，无问句——问句由按钮表达）。title 由调用方
-;; 按字段给出（如「切换界面主题」），本函数只产出通用的「需重启才生效」说明。
-(tm-define (restart-required-message)
-  (if (community-stem?)
-    (translate "Requires restarting Mogan STEM to take full effect. Restart now?")
-    (translate "Requires restarting Liii STEM to take full effect. Restart now?")
-  ) ;if
+;; 需重启字段的三按钮确认标题映射（内部值 -> 翻译标题）。
+(tm-define (restart-preference-title which)
+  (cond ((== which "look and feel") (translate "Switch look and feel"))
+        ((== which "gui theme") (translate "Switch interface theme"))
+        ((== which "language") (translate "Switch language"))
+        ((== which "keyboard shortcut style")
+         (translate "Switch keyboard shortcut style")
+        ) ;
+        (else (translate "Switch preference"))
+  ) ;cond
 ) ;tm-define
 
+;; 三按钮重启确认的正文（陈述句，无问句——问句由按钮表达）。title 由调用方
+;; 按字段给出（如「切换界面主题」），本函数只产出通用的「需重启才生效」说明。
 (tm-define (restart-effect-message)
   (if (community-stem?)
     (translate "This change requires restarting Mogan STEM to take full effect.")
@@ -119,28 +124,16 @@
 ;; Language settings and restart notifications
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; 切换语言需重启生效，走 ConfirmRestart 三按钮（重启/稍后/取消），与 look and feel、
+;; gui theme 等需重启字段统一。值未变时直接落定，不弹窗。
 (tm-define (set-language-and-notify lan)
   (let ((old (get-preference "language")))
     (if (== lan old)
       (set-preference "language" lan)
-      (let ((msg (restart-required-message)))
-        (user-confirm msg
-          #f
-          (lambda (answ)
-            (if answ
-              (begin
-                (set-preference "language" lan)
-                (when (not (defined? 'save-all-buffers))
-                  (use-modules (plugin autosave))
-                ) ;when
-                (save-all-buffers)
-                (restart-TeXmacs)
-              ) ;begin
-              (set-preference "language" old)
-            ) ;if
-          ) ;lambda
-        ) ;user-confirm
-      ) ;let
+      (confirm-restart-and-act (restart-preference-title "language")
+        (lambda () (set-preference "language" lan))
+        (lambda () (set-preference "language" old))
+      ) ;confirm-restart-and-act
     ) ;if
   ) ;let
 ) ;tm-define
