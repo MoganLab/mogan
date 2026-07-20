@@ -85,31 +85,9 @@
 ;; Language settings and restart notifications
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (set-language-and-notify lan)
-  (let ((old (get-preference "language")))
-    (if (== lan old)
-      (set-preference "language" lan)
-      (let ((msg (restart-required-message)))
-        (user-confirm msg
-          #f
-          (lambda (answ)
-            (if answ
-              (begin
-                (set-preference "language" lan)
-                (when (not (defined? 'save-all-buffers))
-                  (use-modules (plugin autosave))
-                ) ;when
-                (save-all-buffers)
-                (restart-TeXmacs)
-              ) ;begin
-              (set-preference "language" old)
-            ) ;if
-          ) ;lambda
-        ) ;user-confirm
-      ) ;let
-    ) ;if
-  ) ;let
-) ;tm-define
+;; language 切换实时生效（notify-language 直调 set-output-language），无需重启，
+;; 故直接 set-preference 即可，不再弹确认重启。
+(tm-define (set-language-and-notify lan) (set-preference "language" lan))
 
 (tm-define preferences-tree
   `((enum ("Look and feel" "look and feel")
