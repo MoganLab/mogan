@@ -302,20 +302,25 @@ edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
   return true;
 }
 
-static bool
+static string ghost_last_set= "\1"; // 上次序列化的标尺集合，用于变更检测
+
+static void
 snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
                  gr_selections& sels, frame f2) {
   if (!check_snap_mode ("ghost line")) {
-    call ("graphics-clear-ghost-lines");
-    return false;
+    // PERF: 仅在注册过标尺时才需要清除
+    if (N (ghost_last_set) != 0) {
+      call ("graphics-clear-ghost-lines");
+      ghost_last_set= "";
+    }
+    return;
   }
-
-  bool has_ghost= false;
+  tree   lines (TUPLE);
+  string ghost_cur_set; // 当前序列化的标尺集合，用于变更检测
 
   tree t_prev= as_tree (call ("graphics-get-all-previous-points"));
   if (is_tuple (t_prev) && N (t_prev) >= 2) {
     int n_points= N (t_prev);
-    call ("graphics-clear-ghost-lines");
 
     // 计算全局基线角：上一个绘制的点 (pk_1) 和上上一个绘制的点 (pk_2)
     // 的连线倾角
@@ -329,11 +334,12 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
                                 pk_1_layout[0] - pk_2_layout[0]);
     }
 
+    point  fp_local       = f2[fp]; // 转换鼠标点到局部厘米坐标系
+    double snap_dist_local= f2->inverse_scalar (snap_distance);
     for (int j= 0; j < n_points; ++j) {
       point p1= as_point (t_prev[j]);
       if (N (p1) != 2) continue;
 
-      point  fp_local  = f2[fp]; // 转换鼠标点到局部厘米坐标系
       point  v         = fp_local - p1;
       double dist_to_p1= norm (v);
       if (dist_to_p1 > 1e-5) {
@@ -367,14 +373,11 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
           }
         }
 
-        double snap_dist_local= f2->inverse_scalar (snap_distance);
-
         // 仅在鼠标靠近标尺且在吸附距离内时激活
         if (min_d < snap_dist_local) {
-          has_ghost= true;
           point dir (cos (best_theta), sin (best_theta));
-          point p1_start_local   = p1 - 12.0 * dir;
-          point p1_end_local     = p1 + 12.0 * dir;
+          point p1_start_local   = p1 - 50.0 * dir;
+          point p1_end_local     = p1 + 50.0 * dir;
           curve ghost_curve_local= segment (p1_start_local, p1_end_local);
 
           double proj_dist      = dist_to_p1 * cos (phi - best_theta);
@@ -387,18 +390,25 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
           sel->c   = f2 (ghost_curve_local);
           sels << sel;
 
-          call ("graphics-add-ghost-line", as_string (p1[0]), as_string (p1[1]),
-                as_string (best_theta));
+          string sx= as_string (p1[0]);
+          string sy= as_string (p1[1]);
+          string st= as_string (best_theta);
+          tree   en (TUPLE);
+          en << sx;
+          en << sy;
+          en << st;
+          lines << en;
+          ghost_cur_set= ghost_cur_set * sx * "," * sy * "," * st * ";";
         }
       }
     }
   }
 
-  if (!has_ghost) {
-    call ("graphics-clear-ghost-lines");
+  // PERF: 标尺集合与上次一致则跳过注册
+  if (ghost_cur_set != ghost_last_set) {
+    ghost_last_set= ghost_cur_set;
+    call ("graphics-set-ghost-lines", lines);
   }
-
-  return has_ghost;
 }
 
 point
