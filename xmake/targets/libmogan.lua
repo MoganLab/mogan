@@ -28,10 +28,13 @@ target("libmogan") do
     add_deps("libmoebius")
     add_deps("liblolly")
     add_deps("goldfish")
-    -- Loro 编辑器挂载：libloro 开启时编译 mirror_loro/apply_remote/route_through_loro
-    -- （libmoebius 已 public 链接 mogan_loro_ffi，这里继承）。debug_loro 再开 round-trip 路由。
     if has_config("loro") then
         add_defines("LORO_ENABLED")
+    end
+    -- Loro 同步的 WS 传输层（src/Plugins/WebSocket）：native 用 libcurl 实现，
+    -- WASM 用 emscripten WebSocket API 实现（emcc 内置库，无需包依赖）
+    if has_config("loro") and not is_plat("wasm") then
+        add_packages("libcurl", {public = true})
     end
     if has_config("qt_frontend") then
         add_deps("QWKCore", "QWKWidgets")
@@ -280,7 +283,9 @@ target("libmogan") do
             "$(projectdir)/src/Plugins/Tex/**.cpp",
             "$(projectdir)/src/Plugins/Xml/**.cpp",
             "$(projectdir)/src/Plugins/Html/**.cpp",
-            "$(projectdir)/src/Plugins/Updater/**.cpp",})
+            "$(projectdir)/src/Plugins/Updater/**.cpp",
+        })
+
 
     if has_config("pdfhummus") then
         add_includedirs("$(projectdir)/src/Plugins/Pdf/**.hpp", {public=true})
@@ -298,6 +303,17 @@ target("libmogan") do
         add_files("$(projectdir)/src/Plugins/Qt/moganqml.qrc")
     else
         add_files("$(projectdir)/src/Plugins/ImGui/**.cpp")
+    end
+
+    if has_config("loro") then
+        add_includedirs("$(projectdir)/src/Plugins/WebSocket", {public=true})
+        if is_plat("wasm") then
+            add_includedirs("$(projectdir)/src/Plugins/WebSocket/emscripten", {public=true})
+            add_files("$(projectdir)/src/Plugins/WebSocket/emscripten/*.cpp")
+        else
+            add_headerfiles("$(projectdir)/src/Plugins/WebSocket/libcurl", {public=true})
+            add_files("$(projectdir)/src/Plugins/WebSocket/libcurl/*.cpp")
+        end
     end
 
     if is_plat("macosx") then
@@ -332,6 +348,10 @@ target("libmogan") do
     end
 
     add_mxflags("-fno-objc-arc")
+    if is_plat("wasm") then
+        add_cxxflags("--use-port=contrib.glfw3")
+        add_ldflags("--use-port=contrib.glfw3")
+    end
     on_load(function (target)
         target:add("forceincludes", path.absolute("$(builddir)/config.h"))
         target:add("forceincludes", path.absolute("$(builddir)/tm_configure.hpp"))

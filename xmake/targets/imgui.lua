@@ -15,13 +15,6 @@ target("imgui") do
     set_encodings("utf-8")
 
     add_includedirs({"$(projectdir)/3rdparty/imgui", "$(projectdir)/3rdparty/imgui/backends"}, {public = true})
-    if has_config("loro") then
-        if is_plat("wasm") then
-            -- no WASM support for now
-        else
-            add_packages("libcurl", {public = true})
-        end
-    end
     -- The GLFW backend needs glfw; propagate it so libmogan/stem link it too.
     add_packages("glfw", {public = true})
 

@@ -49,9 +49,16 @@ target("libmoebius") do
     if has_config("loro") then
         add_deps("loro")
         add_defines("LORO_ENABLED")
+        add_headerfiles("Data/Convert/loro.hpp")
+        add_headerfiles("Data/Convert/loro_ir.hpp")
+        add_headerfiles("Data/Convert/loro_shadow.hpp")
+    else
+        remove_files("Data/Convert/loro.cpp")
+        remove_files("Data/Convert/loro_ir.cpp")
+        remove_files("Data/Convert/loro_shadow.cpp")
     end
 
-    add_headerfiles("Data/Convert/(*.hpp)")
+    add_headerfiles("Data/Convert/tmu.hpp")
     add_headerfiles("Data/History/(*.hpp)")
     add_headerfiles("Data/Tree/(*.hpp)")
     add_headerfiles("Kernel/Types/(*.hpp)")

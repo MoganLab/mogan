@@ -118,6 +118,9 @@ target("stem") do
             "--exclude-file=*/fonts/truetype/Mogan-NotoColorEmoji.ttf",
             "--exclude-file=*/fonts/opentype/cm-unicode/*"
         )
+        if has_config("loro") then
+            add_ldflags("-lwebsocket.js")
+        end
         local plugins_dir = path.join(os.projectdir(), "TeXmacs/plugins")
         for _, dir in ipairs(os.dirs(path.join(plugins_dir, "*"))) do
             local name = path.filename(dir)
