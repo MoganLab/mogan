@@ -14,6 +14,9 @@ using namespace moebius;
 
 // Declared in src/Edit/Modify/edit_table.cpp
 extern tree empty_table (int nr_rows, int nr_cols);
+extern tree empty_table (int nr_rows, int nr_cols, bool wrap);
+extern tree empty_row (int nr_cols);
+extern tree empty_row (int nr_cols, bool wrap);
 extern tree default_table_tree (int nr_rows, int nr_cols,
                                 bool enable_table_hyphen);
 extern bool table_default_hyphen_enabled (string mode);
@@ -36,6 +39,11 @@ private slots:
   void test_default_hyphen_disabled_in_math_mode ();
   void test_default_table_tree_skips_table_hyphen_in_math_mode ();
   void test_no_document_wrap_in_math_mode ();
+  // [1150] wrap-aware 重载：构造时空 cell 是否预包装 DOCUMENT
+  void test_empty_row_no_wrap_matches_default ();
+  void test_empty_row_with_wrap_wraps_cells ();
+  void test_empty_table_with_wrap_wraps_all_cells ();
+  void test_empty_table_no_wrap_matches_default ();
 };
 
 void
@@ -191,6 +199,71 @@ TestEditTable::test_default_table_tree_skips_table_hyphen_in_math_mode () {
 void
 TestEditTable::test_no_document_wrap_in_math_mode () {
   QVERIFY (!table_needs_document_wrap ("y", "no", "math"));
+}
+
+// [1150] wrap=false 时 empty_row(nr_cols, false) 应与原 empty_row(nr_cols)
+// 完全一致——保证 wrap-aware 重载是无破坏性的扩展。
+
+void
+TestEditTable::test_empty_row_no_wrap_matches_default () {
+  tree a= empty_row (3, false);
+  tree b= empty_row (3);
+  QCOMPARE (N (a), 3);
+  QVERIFY (is_func (a, ROW));
+  // 结构逐 cell 相同：每个都是 (cell "")
+  for (int i= 0; i < 3; i++) {
+    QVERIFY (is_func (a[i], CELL));
+    QVERIFY (b[i] == a[i]);
+    QVERIFY (a[i][0] == "");
+  }
+}
+
+// [1150] wrap=true 时每个 cell 内容应是 (document "")，这是预包装的核心
+// 契约——cell 已是 DOCUMENT，table_correct_block_content 后续无需 insert_node。
+
+void
+TestEditTable::test_empty_row_with_wrap_wraps_cells () {
+  tree r= empty_row (4, true);
+  QCOMPARE (N (r), 4);
+  QVERIFY (is_func (r, ROW));
+  for (int i= 0; i < 4; i++) {
+    QVERIFY (is_func (r[i], CELL));
+    // cell 唯一子节点应是 (document "")
+    tree cell_content= r[i][0];
+    QVERIFY (is_func (cell_content, DOCUMENT));
+    QCOMPARE (N (cell_content), 1);
+    QVERIFY (cell_content[0] == "");
+  }
+}
+
+// [1150] empty_table(nr_rows, nr_cols, true) 的每个 cell 都应预包装——
+// 跨多行多列规模下保证一致（避免单行 cell 测试漏掉多行不统一的 bug）。
+
+void
+TestEditTable::test_empty_table_with_wrap_wraps_all_cells () {
+  tree t= empty_table (3, 2, true);
+  QCOMPARE (N (t), 3);
+  QVERIFY (is_func (t, TABLE));
+  for (int r= 0; r < 3; r++) {
+    QVERIFY (is_func (t[r], ROW));
+    QCOMPARE (N (t[r]), 2);
+    for (int c= 0; c < 2; c++) {
+      QVERIFY (is_func (t[r][c], CELL));
+      QVERIFY (is_func (t[r][c][0], DOCUMENT));
+    }
+  }
+}
+
+// [1150] wrap=false 时 empty_table(nr_rows, nr_cols, false) 应与原
+// empty_table(nr_rows, nr_cols) 一致——保证 wrap-aware 重载是无破坏性扩展。
+
+void
+TestEditTable::test_empty_table_no_wrap_matches_default () {
+  tree a= empty_table (2, 2, false);
+  tree b= empty_table (2, 2);
+  QVERIFY (b == a);
+  // 抽查一个 cell：内容应为 ""（无 DOCUMENT 包装）
+  QVERIFY (a[0][0][0] == "");
 }
 
 QTEST_MAIN (TestEditTable)
