@@ -118,9 +118,10 @@ target("stem") do
             "--exclude-file=*/fonts/truetype/Mogan-NotoColorEmoji.ttf",
             "--exclude-file=*/fonts/opentype/cm-unicode/*"
         )
-        if has_config("loro") then
-            add_ldflags("-lwebsocket.js")
-        end
+        -- loro 的 WS 传输层（tm_emscripten_websocket_client）用 emscripten WS
+        -- API：emcc 链接器遇到未定义的 emscripten_websocket_* 会自动补链
+        -- src/library_websocket.js，无需任何显式链接标志（显式 -lwebsocket 会
+        -- 拉入 POSIX socket 仿真层 websocket_to_posix_socket.c，与浏览器 WS 冲突）。
         local plugins_dir = path.join(os.projectdir(), "TeXmacs/plugins")
         for _, dir in ipairs(os.dirs(path.join(plugins_dir, "*"))) do
             local name = path.filename(dir)
