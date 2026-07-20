@@ -26,7 +26,7 @@
 ;; Preferred scripting language
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 需重启字段的三按钮确认标题映射（内部值 -> 翻译标题）。
+;; 需重启字段的内部值 -> ConfirmRestart 标题翻译。
 (tm-define (restart-preference-title which)
   (cond ((== which "look and feel") (translate "Switch look and feel"))
         ((== which "gui theme") (translate "Switch interface theme"))
@@ -124,8 +124,7 @@
 ;; Language settings and restart notifications
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 切换语言需重启生效，走 ConfirmRestart 三按钮（重启/稍后/取消），与 look and feel、
-;; gui theme 等需重启字段统一。值未变时直接落定，不弹窗。
+;; language 切换需重启生效，走三按钮确认（与 look and feel / gui theme 统一）。
 (tm-define (set-language-and-notify lan)
   (let ((old (get-preference "language")))
     (if (== lan old)
