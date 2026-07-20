@@ -32,9 +32,13 @@ target("libmogan") do
         add_defines("LORO_ENABLED")
     end
     -- Loro 同步的 WS 传输层（src/Plugins/WebSocket）：native 用 libcurl 实现，
-    -- WASM 用 emscripten WebSocket API 实现（emcc 内置库，无需包依赖）
-    if has_config("loro") and not is_plat("wasm") then
-        add_packages("libcurl", {public = true})
+    -- WASM 用 emscripten WebSocket API 实现（emcc 内置库，无需包依赖）。
+    -- ImGui/Qt 两个前端各自定义并注册 g_loro_broadcast_update，只能链接其一，
+    -- 故 loro 与 qt_frontend 互斥（loro=yes 时需关掉 qt_frontend）。
+    if has_config("loro") then
+        if not is_plat("wasm") then
+            add_packages("libcurl", {public = true})
+        end
     end
     if has_config("qt_frontend") then
         add_deps("QWKCore", "QWKWidgets")
@@ -314,7 +318,7 @@ target("libmogan") do
             add_includedirs("$(projectdir)/src/Plugins/WebSocket/emscripten", {public=true})
             add_files("$(projectdir)/src/Plugins/WebSocket/emscripten/*.cpp")
         else
-            add_headerfiles("$(projectdir)/src/Plugins/WebSocket/libcurl", {public=true})
+            add_includedirs("$(projectdir)/src/Plugins/WebSocket/libcurl", {public=true})
             add_files("$(projectdir)/src/Plugins/WebSocket/libcurl/*.cpp")
         end
     end
