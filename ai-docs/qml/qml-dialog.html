@@ -718,6 +718,248 @@
       }
     }
 
+    /* Preferences: 顶部 icon-tab 行（5 主 tab）+ 子 tab 行（Convert 下 6 子 tab） */
+    .pref-shell {
+      width: min(560px, 100%);
+      height: 550px;
+      background: #ffffff;
+      border: 1px solid #d6dfdf;
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* 内容区占满剩余高度，pref-pane 超出滚动；底部按钮固定不滚 */
+    .pref-pane {
+      display: none;
+      overflow: auto;
+      min-height: 0;
+      flex: 1;
+      padding-right: 2px;
+    }
+
+    .pref-pane.active {
+      display: block;
+      animation: fadeUp 0.26s ease;
+    }
+
+    .pref-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e3eaea;
+      padding-bottom: 10px;
+    }
+
+    .pref-tab {
+      border: 1px solid #c7d3d4;
+      border-radius: 9px;
+      background: #ffffff;
+      color: #2e4a51;
+      font-size: 13px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pref-tab:hover {
+      color: #244d53;
+      border-color: #a9c8cb;
+      background: #f6fbfb;
+    }
+
+    .pref-tab.active {
+      background: #0b7a75;
+      border-color: #0b7a75;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(11, 122, 117, 0.28);
+    }
+
+    /* 子 tab 行：Convert 下 Html/LaTeX/BibTeX/Verbatim/Pdf/Image */
+    .sub-tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      padding: 6px 8px;
+      background: #f1f6f5;
+      border: 1px solid #dde7e6;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .sub-tab {
+      border: none;
+      background: transparent;
+      color: #4a666c;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: 0.16s ease;
+    }
+
+    .sub-tab:hover {
+      background: rgba(11, 122, 117, 0.08);
+      color: #0b7a75;
+    }
+
+    .sub-tab.active {
+      background: #ffffff;
+      color: #0b7a75;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(36, 49, 54, 0.1);
+    }
+
+    .sub-pane {
+      display: none;
+    }
+
+    .sub-pane.active {
+      display: block;
+    }
+
+    /* 分组小标题：Mathematics 的 Keyboard/Hints/Semantics/Correction，Other 的 Misc/Experimental */
+    .group-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1d2629;
+      margin: 10px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #eef3f3;
+      letter-spacing: 0.3px;
+    }
+
+    .group-title:first-child {
+      margin-top: 0;
+    }
+
+    /* Preferences 沿用 ParagraphFormat 的 combo / option-row / mini-btn，但需要在 pref-shell
+       作用域内同样有效——它们是全局类，这里不重复定义，直接复用。 */
+
+    /* toggle 行：左标签 + 右开关，用于 Mathematics / Experimental 等布尔项 */
+    .toggle-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 5px 4px;
+      border-radius: 8px;
+      transition: background 0.16s ease;
+    }
+
+    .toggle-row:hover {
+      background: #f4f9f8;
+    }
+
+    .toggle-row .toggle-label {
+      font-size: 12px;
+      color: #38565f;
+    }
+
+    .toggle-row .toggle-label .toggle-hint {
+      display: block;
+      font-size: 11px;
+      color: #8aa0a6;
+      margin-top: 2px;
+    }
+
+    .toggle {
+      width: 34px;
+      height: 20px;
+      border-radius: 10px;
+      background: #c8d6d7;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(36, 49, 54, 0.25);
+      transition: transform 0.18s ease;
+    }
+
+    .toggle.on {
+      background: #0b7a75;
+    }
+
+    .toggle.on::after {
+      transform: translateX(14px);
+    }
+
+    /* 双列容器：Mathematics / Experimental 用 hlist 左右两列 */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 24px;
+    }
+
+    /* 只读信息行：updater 的 Last check */
+    .info-row {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-row .info-value {
+      font-size: 12px;
+      color: #60727e;
+      font-style: italic;
+    }
+
+    /* 小型确认对话框：换主题 / 换语言后的重启确认（ConfirmDialog） */
+    .confirm-shell {
+      width: min(420px, 100%);
+      background: #ffffff;
+      border: 1px solid #d6dfdf;
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .confirm-shell h3 {
+      text-align: center;
+      font-size: 17px;
+      margin-bottom: 8px;
+      letter-spacing: 0.2px;
+    }
+
+    .confirm-shell p {
+      text-align: left;
+      font-size: 13px;
+      color: #60727e;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .confirm-shell p strong {
+      color: #1d2629;
+      font-weight: 700;
+    }
+
     @media (max-width: 760px) {
       .workspace {
         padding: 16px;
@@ -749,6 +991,8 @@
       <button class="nav-btn" data-target="font">FontSelector.qml</button>
       <button class="nav-btn" data-target="paragraph">ParagraphFormat.qml</button>
       <button class="nav-btn" data-target="statistics">Statistics.qml</button>
+      <button class="nav-btn" data-target="preferences">Preferences.qml</button>
+      <button class="nav-btn" data-target="confirmRestart">ConfirmRestart.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
 
@@ -1077,6 +1321,263 @@
           <code>onClicked -> closeBridge.choose(0)</code>
         </p>
       </section>
+      <section class="panel" id="panel-preferences">
+        <article class="pref-shell">
+          <div class="pref-tabs">
+            <button class="pref-tab active" data-ptab="general">General</button>
+            <button class="pref-tab" data-ptab="keyboard">Keyboard</button>
+            <button class="pref-tab" data-ptab="math">Mathematics</button>
+            <button class="pref-tab" data-ptab="convert">Convert</button>
+            <button class="pref-tab" data-ptab="other">Other</button>
+          </div>
+
+          <div class="pref-pane active" id="ppane-general">
+            <div class="option-list">
+                              <div class="option-row"><span>Look and feel</span><div class="combo" data-pref="look and feel"><div class="combo-field"><input class="combo-input" data-pref="look and feel" data-editable="off" data-options='["default","emacs","macos"]' value="default" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>User interface language</span><div class="combo" data-pref="language"><div class="combo-field"><input class="combo-input" data-pref="language" data-editable="off" data-options='["中文","English","日本語","Français","Deutsch"]' value="中文" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Complex actions</span><div class="combo" data-pref="complex actions"><div class="combo-field"><input class="combo-input" data-pref="complex actions" data-editable="off" data-options='["Through the menus","Through popup windows"]' value="Through popup windows" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Interactive questions</span><div class="combo" data-pref="interactive questions"><div class="combo-field"><input class="combo-input" data-pref="interactive questions" data-editable="off" data-options='["On the footer","In popup windows"]' value="In popup windows" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Details in menus</span><div class="combo" data-pref="detailed menus"><div class="combo-field"><input class="combo-input" data-pref="detailed menus" data-editable="off" data-options='["Simplified menus","Detailed menus"]' value="Detailed menus" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Buffer management</span><div class="combo" data-pref="buffer management"><div class="combo-field"><input class="combo-input" data-pref="buffer management" data-editable="off" data-options='["Documents in separate windows","Multiple documents share window"]' value="Multiple documents share window" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>User interface theme</span><div class="combo" data-pref="gui theme"><div class="combo-field"><input class="combo-input" data-pref="gui theme" data-editable="off" data-options='["Liii","Liii Dark"]' value="Liii" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Completion style</span><div class="combo" data-pref="completion style"><div class="combo-field"><input class="combo-input" data-pref="completion style" data-editable="off" data-options='["Popup","Inline"]' value="Popup" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Magic paste shortcut</span><div class="combo" data-pref="magic-paste-shortcut"><div class="combo-field"><input class="combo-input" data-pref="magic-paste-shortcut" data-editable="off" data-options='["Ctrl+Shift+V","Ctrl+V"]' value="Ctrl+Shift+V" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Keyboard shortcut style</span><div class="combo" data-pref="keyboard shortcut style"><div class="combo-field"><input class="combo-input" data-pref="keyboard shortcut style" data-editable="off" data-options='["Text","Symbol"]' value="Text" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+            </div>
+          </div>
+
+          <div class="pref-pane" id="ppane-keyboard">
+            <div class="group-title">Keyboard behavior</div>
+            <div class="option-list">
+                              <div class="option-row"><span>Space bar in text mode</span><div class="combo" data-pref="text spacebar"><div class="combo-field"><input class="combo-input" data-pref="text spacebar" data-editable="off" data-options='["Default","allow multiple spaces","glue multiple spaces","no multiple spaces"]' value="allow multiple spaces" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Space bar in math mode</span><div class="combo" data-pref="math spacebar"><div class="combo-field"><input class="combo-input" data-pref="math spacebar" data-editable="off" data-options='["Default","allow spurious spaces","avoid spurious spaces","no spurious spaces"]' value="Default" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Automatic quotes</span><div class="combo" data-pref="automatic quotes"><div class="combo-field"><input class="combo-input" data-pref="automatic quotes" data-editable="off" data-options='["Default","Disabled","dutch","english","french","german","spanish","swiss"]' value="Default" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Automatic brackets</span><div class="combo" data-pref="automatic brackets"><div class="combo-field"><input class="combo-input" data-pref="automatic brackets" data-editable="off" data-options='["Disabled","Inside mathematics","Enabled"]' value="Inside mathematics" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Cyrillic input method</span><div class="combo" data-pref="cyrillic input method"><div class="combo-field"><input class="combo-input" data-pref="cyrillic input method" data-editable="off" data-options='["None","Translit","Jcuken","Yawerty"]' value="None" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+            </div>
+            <div class="group-title">Remote controllers with keyboard simulation</div>
+            <div class="option-list">
+                              <div class="option-row"><span>Left</span><div class="combo" data-pref="ir-left"><div class="combo-field"><input class="combo-input" data-pref="ir-left" data-editable="on" data-options='["pageup","home","up"]' value="pageup" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Right</span><div class="combo" data-pref="ir-right"><div class="combo-field"><input class="combo-input" data-pref="ir-right" data-editable="on" data-options='["pagedown","end","down"]' value="pagedown" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Up</span><div class="combo" data-pref="ir-up"><div class="combo-field"><input class="combo-input" data-pref="ir-up" data-editable="on" data-options='["home","pageup","up"]' value="home" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Down</span><div class="combo" data-pref="ir-down"><div class="combo-field"><input class="combo-input" data-pref="ir-down" data-editable="on" data-options='["end","pagedown","down"]' value="end" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Center</span><div class="combo" data-pref="ir-center"><div class="combo-field"><input class="combo-input" data-pref="ir-center" data-editable="on" data-options='["S-return","return","space"]' value="S-return" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Play</span><div class="combo" data-pref="ir-play"><div class="combo-field"><input class="combo-input" data-pref="ir-play" data-editable="on" data-options='["F5","F6","F7"]' value="F5" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Pause</span><div class="combo" data-pref="ir-pause"><div class="combo-field"><input class="combo-input" data-pref="ir-pause" data-editable="on" data-options='["escape","space","F5"]' value="escape" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Menu</span><div class="combo" data-pref="ir-menu"><div class="combo-field"><input class="combo-input" data-pref="ir-menu" data-editable="on" data-options='[".",",","menu"]' value="." readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+            </div>
+          </div>
+
+          <div class="pref-pane" id="ppane-math">
+            <div class="two-col">
+              <div>
+                <div class="group-title">Keyboard</div>
+                <div class="toggle-list">
+                                  <div class="toggle-row" data-toggle="use large brackets"><span class="toggle-label">Use extensible brackets</span><span class="toggle on"></span></div>
+                </div>
+                <div class="group-title">Correction</div>
+                <div class="toggle-list">
+                                  <div class="toggle-row" data-toggle="manual remove superfluous invisible"><span class="toggle-label">Remove superfluous invisible</span><span class="toggle on"></span></div>
+                                  <div class="toggle-row" data-toggle="manual insert missing invisible"><span class="toggle-label">Insert missing invisible</span><span class="toggle on"></span></div>
+                                  <div class="toggle-row" data-toggle="manual homoglyph correct"><span class="toggle-label">Homoglyph correct</span><span class="toggle on"></span></div>
+                </div>
+              </div>
+              <div>
+                <div class="group-title">Contextual hints</div>
+                <div class="toggle-list">
+                                  <div class="toggle-row" data-toggle="show full context"><span class="toggle-label">Show full context</span><span class="toggle on"></span></div>
+                                  <div class="toggle-row" data-toggle="show table cells"><span class="toggle-label">Show table cells</span><span class="toggle on"></span></div>
+                                  <div class="toggle-row" data-toggle="show focus"><span class="toggle-label">Show focus</span><span class="toggle on"></span></div>
+                                  <div class="toggle-row" data-toggle="show only semantic focus"><span class="toggle-label">Show only semantic focus<span class="toggle-hint">仅 semantic editing 开时可见</span></span><span class="toggle on"></span></div>
+                </div>
+                <div class="group-title">Semantics</div>
+                <div class="toggle-list">
+                                  <div class="toggle-row" data-toggle="semantic editing"><span class="toggle-label">Semantic editing<span class="toggle-hint">切换会刷新相关字段可见性</span></span><span class="toggle "></span></div>
+                                  <div class="toggle-row" data-toggle="semantic selections"><span class="toggle-label">Semantic selections<span class="toggle-hint">仅 semantic editing 开时可见</span></span><span class="toggle on"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pref-pane" id="ppane-convert">
+            <div class="sub-tabs">
+              <button class="sub-tab active" data-stab="html">Html</button>
+              <button class="sub-tab" data-stab="latex">LaTeX</button>
+              <button class="sub-tab" data-stab="bibtex">BibTeX</button>
+              <button class="sub-tab" data-stab="verbatim">Verbatim</button>
+              <button class="sub-tab" data-stab="pdf">Pdf</button>
+              <button class="sub-tab" data-stab="image">Image</button>
+            </div>
+
+            <div class="sub-pane active" id="stab-html">
+              <div class="group-title">TeXmacs → Html</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="texmacs->html:css"><span class="toggle-label">Use CSS for more advanced formatting</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->html:mathjax"><span class="toggle-label">Export formulas as MathJax<span class="toggle-hint">与 MathML / images 互斥</span></span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->html:mathml"><span class="toggle-label">Export formulas as MathML<span class="toggle-hint">与 MathJax / images 互斥</span></span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->html:images"><span class="toggle-label">Export formulas as images<span class="toggle-hint">与 MathJax / MathML 互斥</span></span><span class="toggle "></span></div>
+              </div>
+              <div class="option-list" style="margin-top:8px">
+                                <div class="option-row"><span>CSS stylesheet</span><div class="combo" data-pref="texmacs->html:css-stylesheet"><div class="combo-field"><input class="combo-input" data-pref="texmacs->html:css-stylesheet" data-editable="on" data-options='["---","web-article.css","web-article-dark.css","web-article-colored.css","web-article-dark-colored.css"]' value="---" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+              <div class="group-title">Html → TeXmacs</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="mathml->texmacs:latex-annotations"><span class="toggle-label">Try to import formulas using LaTeX annotations</span><span class="toggle "></span></div>
+              </div>
+            </div>
+
+            <div class="sub-pane" id="stab-latex">
+              <div class="group-title">LaTeX → TeXmacs</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="latex->texmacs:fallback-on-pictures"><span class="toggle-label">Import sophisticated objects as pictures</span><span class="toggle "></span></div>
+              </div>
+              <div class="group-title">TeXmacs → LaTeX</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="texmacs->latex:replace-style"><span class="toggle-label">Replace TeXmacs styles with no LaTeX equivalents</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->latex:expand-macros"><span class="toggle-label">Expand TeXmacs macros with no LaTeX equivalents</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->latex:expand-user-macros"><span class="toggle-label">Expand user-defined macros</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->latex:indirect-bib"><span class="toggle-label">Export bibliographies as links</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->latex:use-macros"><span class="toggle-label">Allow for macro definitions in preamble</span><span class="toggle on"></span></div>
+              </div>
+              <div class="option-list" style="margin-top:8px">
+                                <div class="option-row"><span>Character encoding</span><div class="combo" data-pref="texmacs->latex:encoding"><div class="combo-field"><input class="combo-input" data-pref="texmacs->latex:encoding" data-editable="off" data-options='["Utf-8 with inputenc","Cork with catcodes"]' value="Utf-8 with inputenc" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+              <div class="group-title">Conservative conversion options</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="latex:source-tracking"><span class="toggle-label">Keep track of source code<span class="toggle-hint">两方向联动</span></span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="latex:conservative"><span class="toggle-label">Only convert changes w.r.t. tracked version<span class="toggle-hint">两方向联动</span></span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="latex:transparent-source-tracking"><span class="toggle-label">Guarantee transparent source tracking<span class="toggle-hint">仅 source-tracking 开时可见</span></span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="texmacs->latex:attach-tracking-info"><span class="toggle-label">Store tracking information in LaTeX files<span class="toggle-hint">仅 source-tracking 开时可见</span></span><span class="toggle "></span></div>
+              </div>
+            </div>
+
+            <div class="sub-pane" id="stab-bibtex">
+              <div class="group-title">BibTeX → TeXmacs</div>
+              <div class="option-list">
+                                <div class="option-row"><span>BibTeX command</span><div class="combo" data-pref="bibtex command"><div class="combo-field"><input class="combo-input" data-pref="bibtex command" data-editable="on" data-options='["bibtex","biber","biblatex","rubibtex"]' value="bibtex" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+              <div class="toggle-list" style="margin-top:8px">
+                                <div class="toggle-row" data-toggle="bibtex->texmacs:conservative"><span class="toggle-label">Only convert changes when re-importing</span><span class="toggle "></span></div>
+              </div>
+              <div class="group-title">TeXmacs → BibTeX</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="texmacs->bibtex:conservative"><span class="toggle-label">Only convert changes w.r.t. imported version</span><span class="toggle "></span></div>
+              </div>
+            </div>
+
+            <div class="sub-pane" id="stab-verbatim">
+              <div class="group-title">TeXmacs → Verbatim</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="texmacs->verbatim:wrap"><span class="toggle-label">Line wrap for lines longer than 80 characters</span><span class="toggle on"></span></div>
+              </div>
+              <div class="option-list" style="margin-top:8px">
+                                <div class="option-row"><span>Character encoding</span><div class="combo" data-pref="texmacs->verbatim:encoding"><div class="combo-field"><input class="combo-input" data-pref="texmacs->verbatim:encoding" data-editable="off" data-options='["Automatic","Cork","iso-8859-1","iso-8859-2","UTF-8"]' value="UTF-8" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+              <div class="group-title">Verbatim → TeXmacs</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="verbatim->texmacs:wrap"><span class="toggle-label">Merge lines into paragraphs unless blank-line separated</span><span class="toggle on"></span></div>
+              </div>
+              <div class="option-list" style="margin-top:8px">
+                                <div class="option-row"><span>Character encoding</span><div class="combo" data-pref="verbatim->texmacs:encoding"><div class="combo-field"><input class="combo-input" data-pref="verbatim->texmacs:encoding" data-editable="off" data-options='["UTF-8","Automatic","Cork","iso-8859-1","iso-8859-2"]' value="UTF-8" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+            </div>
+
+            <div class="sub-pane" id="stab-pdf">
+              <div class="group-title">TeXmacs → Pdf / Postscript</div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="texmacs->pdf:expand slides"><span class="toggle-label">Expand beamer slides</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="use external pdf viewer"><span class="toggle-label">Use external pdf viewer</span><span class="toggle "></span></div>
+              </div>
+              <div class="option-list" style="margin-top:8px">
+                                <div class="option-row"><span>Pdf version number</span><div class="combo" data-pref="texmacs->pdf:version"><div class="combo-field"><input class="combo-input" data-pref="texmacs->pdf:version" data-editable="off" data-options='["default","1.4","1.5","1.6","1.7"]' value="default" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+            </div>
+
+            <div class="sub-pane" id="stab-image">
+              <div class="group-title">TeXmacs → Image</div>
+              <div class="option-list">
+                                <div class="option-row"><span>Bitmap export resolution (dpi)</span><div class="combo" data-pref="texmacs->image:raster-resolution"><div class="combo-field"><input class="combo-input" data-pref="texmacs->image:raster-resolution" data-editable="on" data-options='["1200","600","300","150"]' value="300" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                                <div class="option-row"><span>Clipboard image format</span><div class="combo" data-pref="texmacs->image:format"><div class="combo-field"><input class="combo-input" data-pref="texmacs->image:format" data-editable="off" data-options='["png","svg","eps","tif","jpg","pdf"]' value="png" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pref-pane" id="ppane-other">
+            <div class="group-title">Miscellaneous preferences</div>
+            <div class="option-list">
+                              <div class="option-row"><span>Automatically save</span><div class="combo" data-pref="autosave"><div class="combo-field"><input class="combo-input" data-pref="autosave" data-editable="off" data-options='["On","Off"]' value="On" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Auto backup</span><div class="combo" data-pref="autobackup"><div class="combo-field"><input class="combo-input" data-pref="autobackup" data-editable="off" data-options='["On","Off"]' value="On" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Security</span><div class="combo" data-pref="security"><div class="combo-field"><input class="combo-input" data-pref="security" data-editable="off" data-options='["accept no scripts","prompt on scripts","accept all scripts"]' value="prompt on scripts" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Scripting language</span><div class="combo" data-pref="scripting language"><div class="combo-field"><input class="combo-input" data-pref="scripting language" data-editable="off" data-options='["None","python","octave","maxima"]' value="None" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Document updates run</span><div class="combo" data-pref="document update times"><div class="combo-field"><input class="combo-input" data-pref="document update times" data-editable="off" data-options='["Once","Twice","Three times"]' value="Three times" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+                              <div class="option-row"><span>Check for automatic updates</span><div class="combo" data-pref="updater:interval"><div class="combo-field"><input class="combo-input" data-pref="updater:interval" data-editable="off" data-options='["Never","Once a day","Once a week","Once a month"]' value="Once a week" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
+              <div class="option-row"><span>Last check</span><div class="info-row"><span class="info-value">2 天前</span></div></div>
+            </div>
+            <div class="group-title">Experimental features (to be used with care)</div>
+            <div class="two-col">
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="fast environments"><span class="toggle-label">Fast environments</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="experimental alpha"><span class="toggle-label">Alpha transparency</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="new style page breaking"><span class="toggle-label">New style page breaking</span><span class="toggle on"></span></div>
+                                <div class="toggle-row" data-toggle="experimental encryption"><span class="toggle-label">Encryption</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="use native menubar"><span class="toggle-label">Use native menubar<span class="toggle-hint">macOS only</span></span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="use unified toolbar"><span class="toggle-label">Use unified toolbars<span class="toggle-hint">macOS only</span></span><span class="toggle "></span></div>
+              </div>
+              <div class="toggle-list">
+                                <div class="toggle-row" data-toggle="prog:highlight brackets"><span class="toggle-label">Program bracket matching</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="prog:automatic brackets"><span class="toggle-label">Automatic program brackets</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="prog:select brackets"><span class="toggle-label">Program bracket selections</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="case-insensitive-match"><span class="toggle-label">Case-insensitive search</span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="gui:print dialogue"><span class="toggle-label">Use print dialogue<span class="toggle-hint">qt only</span></span><span class="toggle "></span></div>
+                                <div class="toggle-row" data-toggle="texlive:fonts"><span class="toggle-label">Use fonts in texlive</span><span class="toggle "></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row" style="justify-content: flex-end; margin-top: 8px;">
+            <button class="btn primary" data-pref-submit>确定</button>
+            <button class="btn" data-log="Preferences: cancel() 不保存关闭">取消</button>
+          </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>prefTabs: General/Keyboard/Mathematics/Convert/Other</code>
+          <code>subTabs: Html·LaTeX·BibTeX·Verbatim·Pdf·Image</code>
+          <code>EnumCombo x N + Toggle x N</code>　纯 OK 提交（FormDialog 模式，本地暂存 values）；
+          language / look and feel / gui theme 等改完后由 scm 侧弹重启确认（见下方 ConfirmRestart）
+        </p>
+      </section>
+      
+      <!-- 换主题 / 换语言：提交需重启字段后的确认对话框（ConfirmDialog.qml） -->
+      <section class="panel" id="panel-confirm-restart">
+        <div class="cards">
+          <article class="confirm-shell">
+            <h3>切换用户界面主题</h3>
+            <p>已选择 <strong>Liii Dark</strong>，需要重启 MoganSTEM 才能生效。<br>是否立即重启？</p>
+            <div class="btn-row">
+              <button class="btn primary" data-log="ConfirmRestart(theme): 立即重启">立即重启</button>
+              <button class="btn" data-log="ConfirmRestart(theme): 稍后重启，主题已保存">稍后</button>
+              <button class="btn" data-log="ConfirmRestart(theme): 取消，回退主题">取消</button>
+            </div>
+          </article>
+
+          <article class="confirm-shell">
+            <h3>切换界面语言</h3>
+            <p>已选择 <strong>English</strong>，需要重启 MoganSTEM 才能生效。<br>是否立即重启？</p>
+            <div class="btn-row">
+              <button class="btn primary" data-log="ConfirmRestart(language): 立即重启">立即重启</button>
+              <button class="btn" data-log="ConfirmRestart(language): 稍后重启，语言已保存">稍后</button>
+              <button class="btn" data-log="ConfirmRestart(language): 取消，回退语言">取消</button>
+            </div>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>message + buttonLabels</code>
+          <code>onClicked -> closeBridge.choose(index)</code>
+          <code>0=立即重启 / 1=稍后(保存) / 2=取消(回退)</code>　属 ConfirmClose 同型小型确认弹窗。
+        </p>
+      </section>
+
+
     </main>
   </div>
 
@@ -1088,7 +1589,9 @@
         form: document.getElementById('panel-form'),
         font: document.getElementById('panel-font'),
         paragraph: document.getElementById('panel-paragraph'),
-        statistics: document.getElementById('panel-statistics')
+        statistics: document.getElementById('panel-statistics'),
+        preferences: document.getElementById('panel-preferences'),
+        confirmRestart: document.getElementById('panel-confirm-restart')
       };
 
       const titleMap = {
@@ -1096,7 +1599,9 @@
         form: 'FormDialog.qml 模拟',
         font: 'FontSelector.qml 模拟',
         paragraph: 'ParagraphFormat.qml 模拟',
-        statistics: 'Statistics.qml 模拟'
+        statistics: 'Statistics.qml 模拟',
+        preferences: 'Preferences.qml 模拟',
+        confirmRestart: 'ConfirmRestart.qml 模拟'
       };
 
       const codeMap = {
@@ -1104,7 +1609,9 @@
         form: 'formFields + values 收集 + closeBridge.submit(values)',
         font: 'fontBridge 联动: family/style/filter/customize/preview',
         paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回',
-        statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭'
+        statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
+        preferences: 'prefTabs(5) + subTabs(6) + EnumCombo + Toggle + 纯 OK 提交',
+        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)'
       };
 
       const viewTitle = document.getElementById('view-title');
@@ -1180,7 +1687,7 @@
       // ParagraphFormat: 自建下拉 combo
       //   点一下输入框/箭头 = 弹下拉浮层选；双击(data-editable=on) = 进入可编辑输入态
       function closeAllCombos(except) {
-        document.querySelectorAll('#panel-paragraph .combo.open').forEach((c) => {
+        document.querySelectorAll('#panel-paragraph .combo.open, #panel-preferences .combo.open').forEach((c) => {
           if (c !== except) c.classList.remove('open');
         });
       }
@@ -1200,18 +1707,22 @@
             e.stopPropagation();
             input.value = v;
             combo.classList.remove('open');
-            log('ParagraphFormat: selector-set(' + input.getAttribute('data-par') + ', "' + v + '") live 写回');
+            const isPref = combo.hasAttribute('data-pref');
+            const k = input.getAttribute(isPref ? 'data-pref' : 'data-par');
+            log((isPref ? 'Preferences' : 'ParagraphFormat') + ': set(' + k + ', "' + v + '") ' + (isPref ? '本地暂存' : 'live 写回'));
           });
           list.appendChild(o);
         });
       }
 
-      document.querySelectorAll('#panel-paragraph .combo').forEach((combo) => {
+      document.querySelectorAll('#panel-paragraph .combo, #panel-preferences .combo').forEach((combo) => {
         const input = combo.querySelector('.combo-input');
         const arrow = combo.querySelector('.combo-arrow');
-        const key = input.getAttribute('data-par');
+        const isPref = combo.hasAttribute('data-pref');
+        const key = input.getAttribute(isPref ? 'data-pref' : 'data-par');
         const editable = input.getAttribute('data-editable') === 'on';
-        const fire = (v) => log('ParagraphFormat: selector-set(' + key + ', "' + v + '") live 写回');
+        const scope = isPref ? 'Preferences' : 'ParagraphFormat';
+        const fire = (v) => log(scope + ': set(' + key + ', "' + v + '") ' + (isPref ? '本地暂存（提交时写回）' : 'live 写回'));
 
         const open = () => { fillComboList(combo); closeAllCombos(combo); combo.classList.add('open'); };
         const toggle = () => {
@@ -1240,7 +1751,7 @@
             input.classList.add('editing');
             input.focus();
             input.select();
-            log('ParagraphFormat: 双击 ' + key + ' 进入可编辑');
+            log((combo.hasAttribute('data-pref') ? 'Preferences' : 'ParagraphFormat') + ': 双击 ' + key + ' 进入可编辑');
           });
           const lock = () => {
             input.classList.remove('editing');
@@ -1258,7 +1769,7 @@
 
       // 点浮层外部关闭所有 combo
       document.addEventListener('click', (e) => {
-        if (!e.target.closest('#panel-paragraph .combo')) closeAllCombos();
+        if (!e.target.closest('#panel-paragraph .combo, #panel-preferences .combo')) closeAllCombos();
       });
 
       // 行间距预设按钮：把固定 par-sep 值写回 combo 并 live 写回
@@ -1274,6 +1785,82 @@
       // ParagraphFormat: live 模式下改动随 selector-set 实时写回，确定仅落定/关闭
       document.getElementById('paragraph-submit').addEventListener('click', () => {
         log('ParagraphFormat: submit() live 改动已写回，落定并关闭');
+      });
+
+      // Preferences: 5 主 tab 切换
+      const prefTabs = document.querySelectorAll('#panel-preferences .pref-tab');
+      const prefPanes = ['general', 'keyboard', 'math', 'convert', 'other'].map((t) => document.getElementById('ppane-' + t));
+      prefTabs.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          prefTabs.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const t = btn.getAttribute('data-ptab');
+          prefPanes.forEach((p, i) => p.classList.toggle('active', ['general','keyboard','math','convert','other'][i] === t));
+          log('Preferences: 切换主 tab -> ' + t);
+        });
+      });
+
+      // Preferences: Convert 下 6 子 tab 切换
+      const subTabs = document.querySelectorAll('#ppane-convert .sub-tab');
+      const subPanes = ['html', 'latex', 'bibtex', 'verbatim', 'pdf', 'image'].map((t) => document.getElementById('stab-' + t));
+      subTabs.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          subTabs.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const t = btn.getAttribute('data-stab');
+          subPanes.forEach((p, i) => p.classList.toggle('active', ['html','latex','bibtex','verbatim','pdf','image'][i] === t));
+          log('Preferences(Convert): 切换子 tab -> ' + t);
+        });
+      });
+
+      // Preferences: toggle 开关（含联动演示：semantic editing / source-tracking）
+      document.querySelectorAll('#panel-preferences .toggle-row').forEach((tr) => {
+        const t = tr.querySelector('.toggle');
+        const key = tr.getAttribute('data-toggle');
+        tr.addEventListener('click', () => {
+          t.classList.toggle('on');
+          const on = t.classList.contains('on');
+          log('Preferences: toggle ' + key + ' -> ' + (on ? 'on' : 'off') + '（本地暂存）');
+
+          // 演示联动：Mathematics semantic editing 开 -> show only semantic focus / semantic selections 显隐
+          if (key === 'semantic editing') {
+            document.querySelectorAll('[data-toggle="show only semantic focus"], [data-toggle="semantic selections"]').forEach((r) => {
+              r.style.opacity = on ? '1' : '0.4';
+            });
+          }
+          // 演示联动：Convert LaTeX source-tracking 开 -> 后两项可见
+          if (key === 'latex:source-tracking') {
+            document.querySelectorAll('[data-toggle="latex:transparent-source-tracking"], [data-toggle="texmacs->latex:attach-tracking-info"]').forEach((r) => {
+              r.style.display = on ? '' : 'none';
+            });
+          }
+          // 演示联动：Html 公式导出三选一互斥（mathjax/mathml/images）
+          if (['texmacs->html:mathjax', 'texmacs->html:mathml', 'texmacs->html:images'].includes(key) && on) {
+            ['texmacs->html:mathjax', 'texmacs->html:mathml', 'texmacs->html:images'].forEach((k) => {
+              if (k !== key) {
+                const r = document.querySelector('[data-toggle="' + k + '"]');
+                if (r) { r.querySelector('.toggle').classList.remove('on'); log('Preferences: 互斥联动 ' + k + ' -> off'); }
+              }
+            });
+          }
+        });
+      });
+      // 初始：source-tracking 关 -> 隐藏其后两项
+      document.querySelectorAll('[data-toggle="latex:transparent-source-tracking"], [data-toggle="texmacs->latex:attach-tracking-info"]').forEach((r) => { r.style.display = 'none'; });
+
+      // Preferences: 提交（收集本地暂存值；需重启字段弹确认）
+      document.querySelector('[data-pref-submit]').addEventListener('click', () => {
+        const values = {};
+        document.querySelectorAll('#panel-preferences .combo-input').forEach((inp) => {
+          const k = inp.getAttribute('data-pref');
+          if (k) values[k] = inp.value;
+        });
+        const toggles = {};
+        document.querySelectorAll('#panel-preferences .toggle-row').forEach((tr) => {
+          toggles[tr.getAttribute('data-toggle')] = tr.querySelector('.toggle').classList.contains('on') ? 'on' : 'off';
+        });
+        log('Preferences: submit(values) -> combos=' + JSON.stringify(values) + ' toggles=' + JSON.stringify(toggles));
+        log('Preferences: 若 language / gui theme 等改动 -> 由 scm 侧弹 ConfirmRestart 确认');
       });
 
       document.addEventListener('keydown', (e) => {
