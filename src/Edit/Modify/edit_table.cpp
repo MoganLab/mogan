@@ -648,12 +648,9 @@ edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
   bool   wrap  = mode != "math" &&
              (block == "yes" ||
               (block == "auto" && is_atomic (hyphen) && hyphen != "n"));
-  bench_start ("table_insert:row");
   if (insr > 0)
     if (row <= N (T)) insert (p * row, empty_table (insr, nr_cols, wrap));
-  bench_cumul ("table_insert:row");
 
-  bench_start ("table_insert:col");
   T= subtree (et, p);
   if (insc > 0)
     for (row= 0; row < N (T); row++) {
@@ -661,12 +658,9 @@ edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
       tree R= subtree (et, q);
       if (col <= N (R)) insert (q * col, empty_row (insc, wrap));
     }
-  bench_cumul ("table_insert:col");
 
-  bench_start ("table_insert:cwith");
   tree st= subtree (et, fp);
   if (!is_func (st, TFORMAT)) {
-    bench_cumul ("table_insert:cwith");
     return;
   }
   int k, n= N (st);
@@ -697,7 +691,6 @@ edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
           assign (fp * path (k, 3), as_string (J2 - insc));
       }
     }
-  bench_cumul ("table_insert:cwith");
 }
 
 /******************************************************************************
@@ -1312,15 +1305,12 @@ edit_table_rep::table_extract_format () {
 void
 edit_table_rep::table_insert_row (bool forward) {
   bench_start ("table_insert_row");
-  bench_start ("table_insert_row:search");
   int  row, col;
   path fp= search_format (row, col);
   if (is_nil (fp)) {
-    bench_cumul ("table_insert_row:search");
     bench_cumul ("table_insert_row");
     return;
   }
-  bench_cumul ("table_insert_row:search");
   int nr_rows, nr_cols, i1, j1, i2, j2;
   table_get_extents (fp, nr_rows, nr_cols);
   table_get_limits (fp, i1, j1, i2, j2);
@@ -1329,18 +1319,14 @@ edit_table_rep::table_insert_row (bool forward) {
     return;
   }
   int new_row= row + (forward ? 1 : 0);
-  bench_start ("table_insert_row:insert");
   table_insert (fp, new_row, col, 1, 0);
-  bench_cumul ("table_insert_row:insert");
   bench_start ("table_insert_row:go_to");
   table_go_to (fp, new_row, col);
   bench_cumul ("table_insert_row:go_to");
-  bench_start ("table_insert_row:correct_block");
   // Only the new row's cells need wrap correction — other rows already had
   // their DOCUMENT nodes fixed by previous calls and their formats didn't
   // change.
   table_correct_block_content (fp, new_row, new_row + 1, 0, nr_cols);
-  bench_cumul ("table_insert_row:correct_block");
   bench_start ("table_insert_row:resize_notify");
   table_resize_notify ();
   bench_cumul ("table_insert_row:resize_notify");
@@ -1620,16 +1606,11 @@ edit_table_rep::table_column_decoration (bool forward) {
  */
 void
 edit_table_rep::table_correct_block_content () {
-  bench_start ("table_correct_block_content");
   int  nr_rows, nr_cols;
   path fp= search_format ();
-  if (is_nil (fp)) {
-    bench_cumul ("table_correct_block_content");
-    return;
-  }
+  if (is_nil (fp)) return;
   table_get_extents (fp, nr_rows, nr_cols);
   table_correct_block_content (fp, 0, nr_rows, 0, nr_cols);
-  bench_cumul ("table_correct_block_content");
 }
 
 /**
