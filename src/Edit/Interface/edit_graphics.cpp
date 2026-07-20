@@ -214,7 +214,7 @@ edit_graphics_rep::over_graphics (SI x, SI y) {
   if (!is_nil (f)) {
     point lim1, lim2;
     find_limits (lim1, lim2);
-    point p= adjust (f[point (x, y)]);
+    point p= f[point (x, y)];
     // cout << type << " at " << p << " [" << lim1 << ", " << lim2 << "]\n";
     if (N (lim1) == 2)
       if ((p[0] < lim1[0]) || (p[0] > lim2[0]) || (p[1] < lim1[1]) ||
