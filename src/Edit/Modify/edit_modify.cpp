@@ -66,6 +66,10 @@ edit_modify_rep::ensure_loro_seeded () {
     if (!loro_doc->sync_id_map_from_shadow (the_buffer ()))
       loro_doc->seed (the_buffer ()); // shadow 为空 → 本端是创建者 → seed
     loro_seeded= true;
+    // seed 创建了整篇文档的 op（新加入端则继承了远端血统）。把当前完整状态
+    // 广播出去：否则对端只收到第一条增量编辑，其 shadow 里本端那棵树上一次
+    // 提交的内容仍为旧态，diff 结果错误（首编辑表现为 Diff 0）。
+    loro_doc->broadcast_update ();
   }
 }
 

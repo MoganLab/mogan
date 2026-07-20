@@ -48,6 +48,15 @@ fn local_subs() -> &'static Mutex<HashMap<usize, Subscription>> {
     LOCAL_SUBS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+// doc 句柄 -> 手动广播的 vv 水位（mogan_loro_doc_export_local_update 专用）。
+// subscribe_local_update 只发送每个 commit 事务内的 op：seed 的 create ops 在
+// 首个 commit 里被发成"仅创建"骨架，文本丢失。故 seed 后需用本函数导出
+// "自上次广播以来"的完整增量（含 create+文本），经 C++ 侧保存的回调送出。
+static EXPORT_VVS: OnceLock<Mutex<HashMap<usize, loro::VersionVector>>> = OnceLock::new();
+fn export_vvs() -> &'static Mutex<HashMap<usize, loro::VersionVector>> {
+    EXPORT_VVS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
 const KIND_ATOMIC: u8 = 0;
 const KIND_COMPOUND: u8 = 1;
 const KIND_GENERIC: u8 = 2;
@@ -450,6 +459,9 @@ pub unsafe extern "C" fn mogan_loro_doc_free(doc: *mut LoroDoc) {
         if let Ok(mut subs) = local_subs().lock() {
             subs.remove(&(doc as usize));
         }
+        if let Ok(mut vvs) = export_vvs().lock() {
+            vvs.remove(&(doc as usize));
+        }
         drop(Box::from_raw(doc));
     }
 }
@@ -568,6 +580,32 @@ pub unsafe extern "C" fn mogan_loro_doc_import(
     match (*doc).import(buf) {
         Ok(_) => {
             (*doc).commit();
+            0
+        }
+        Err(_) => -2,
+    }
+}
+
+/// 导出"自上次本函数调用以来"的本地增量 update 到 *out/*out_len，并把内部 vv
+/// 水位推进到当前（下次只导出新增部分）。seed 后主动广播初始状态用：
+/// subscribe_local_update 的首个 commit 只含 create ops（无文本），接收端须靠
+/// 这次导出拿到完整初始内容。返回 0 成功。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_doc_export_local_update(
+    doc: *mut LoroDoc,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    (*doc).commit();
+    let mut vvs = export_vvs().lock().unwrap();
+    let vv = vvs.entry(doc as usize).or_default();
+    match (*doc).export(ExportMode::updates(&*vv)) {
+        Ok(b) => {
+            *vv = (*doc).oplog_vv();
+            emit_out(b, out, out_len);
             0
         }
         Err(_) => -2,
