@@ -125,9 +125,8 @@
 ;; Language settings and restart notifications
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; language 切换需重启才生效：restart 落定并重启；later 只写值不实时切（下次启动生效，
-;; 实时切可能 crash）；cancel 回滚。故 later-proc 用 cpp-set-preference-silent（写值
-;; 不触发 notify_preference）+ save-preferences，避免 notify-language 实时切换。
+;; later 用 silent 写值：实时切 language 不重启可能 crash，故当前会话不切，下次启动生效。
+;; restart 仍走 set-preference（实时切）：紧接重启、进程即将退出，实时副作用无意义。
 (tm-define (set-language-and-notify lan)
   (let ((old (get-preference "language")))
     (if (== lan old)
@@ -135,6 +134,7 @@
       (confirm-restart-and-act (restart-preference-title "language")
         (lambda () (set-preference "language" lan))
         (lambda () (set-preference "language" old))
+        ;; language 无 pretty 映射，不复用带 decode 的 set-pretty-preference-silent。
         (lambda () (cpp-set-preference-silent "language" lan) (save-preferences))
       ) ;confirm-restart-and-act
     ) ;if

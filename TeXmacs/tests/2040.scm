@@ -9,6 +9,9 @@
 ;;   cancel -> 回滚旧值（get-preference 回到 old）
 ;; （restart 会触发重启，不在自动化测试覆盖范围）
 ;;
+;; 覆盖缺口：later 的落盘未断言（scheme 侧无 preference 文件路径入口），仅验内存值。
+;; 误删 later-proc 的 save-preferences 此测试不会失败；后续可补 glue 读文件验证。
+;;
 ;; 运行：MOGAN_TEST_CONFIRM_RESTART=later xmake r 2040
 ;;      （钩子在 run_qml_dialog 之前 return，headless 可跑，无需 MOGAN_TEST_GUI）
 ;;

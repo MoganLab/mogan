@@ -21,10 +21,12 @@ void   get_old_settings (string s);
 bool   has_user_preference (string var);
 string get_user_preference (string var, string def= "");
 void   set_user_preference (string var, string val);
-void   set_user_preference_silent (string var, string val);
-void   reset_user_preference (string var);
-void   load_user_preferences ();
-void   save_user_preferences ();
+/*! @note 只写值不 notify，仅供需重启字段 deferred 写值；勿用于普通字段，
+ *   不 notify 会使依赖该回调的 UI/内存状态不同步。 */
+void set_user_preference_silent (string var, string val);
+void reset_user_preference (string var);
+void load_user_preferences ();
+void save_user_preferences ();
 
 void   notify_preferences_booted ();
 void   set_preference (string var, string val);
