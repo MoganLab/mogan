@@ -117,12 +117,7 @@
 ;; Extraction of sublists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (list-head lis k)
-  (let recur
-    ((lis lis) (k k))
-    (if (zero? k) '() (cons (car lis) (recur (cdr lis) (- k 1))))
-  ) ;let
-) ;define-public
+(define-public (list-head lis k) (g_take lis k))
 
 (define-public list-take list-head)
 ;; SRFI-1
@@ -131,12 +126,12 @@
 
 (define-public (list-take-right l i)
   "Return the last @i elements of @l."
-  (list-tail l (- (length l) i))
+  (g_take_right l i)
 ) ;define-public
 
 (define-public (list-drop-right l i)
   "Return all but the last @i elements of @l."
-  (list-head l (- (length l) i))
+  (g_drop_right l i)
 ) ;define-public
 
 (define-public (sublist l i j)
@@ -254,7 +249,7 @@
 
 (define-public (list-filter l pred?)
   "Return the list of elements from @l which match @pred?."
-  (apply append (map (lambda (x) (if (pred? x) (list x) (list))) l))
+  (g_filter pred? l)
 ) ;define-public
 
 (provide-public (filter-map fun . args)
