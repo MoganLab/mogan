@@ -48,10 +48,12 @@
   (let ((l (if (tree? lines) (tree->stree lines) lines)))
     (if (and (pair? l) (== (car l) 'tuple))
       (set! ghost-lines
-        (map (lambda (e) (list (list (cadr e) (caddr e)) (cadddr e)))
-          (cdr l)))
-      (set! ghost-lines '()))
-    (if (nnull? ghost-lines) (graphics-decorations-update)))
+        (map (lambda (e) (list (list (cadr e) (caddr e)) (cadddr e))) (cdr l))
+      ) ;set!
+      (set! ghost-lines '())
+    ) ;if
+    (if (nnull? ghost-lines) (graphics-decorations-update))
+  ) ;let
 ) ;tm-define
 
 (tm-define (graphics-get-decorations-ghost-line)
