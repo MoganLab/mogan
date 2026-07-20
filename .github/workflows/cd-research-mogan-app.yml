@@ -83,15 +83,17 @@ jobs:
           key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
 
       - name: config
-        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m release -p wasm --qt_frontend=no --yes
+        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m release -p wasm --qt_frontend=no --pdfhummus=no --goldfish=no --yes
 
       - name: build
         run: xmake build --yes -vD stem
 
       - name: Prepare GitHub Pages files
         run: |
-          cp site/research.mogan.app/CNAME build/wasm/wasm32/release/
-          mv build/wasm/wasm32/release/stem.html build/wasm/wasm32/release/index.html
+          echo "research.mogan.app" > ${{ runner.workspace }}/build/wasm/wasm32/release/CNAME
+          mv ${{ runner.workspace }}/build/wasm/wasm32/release/stem.html \
+            ${{ runner.workspace }}/build/wasm/wasm32/release/index.html
+          rm ${{ runner.workspace }}/build/wasm/wasm32/release/*.a
 
       - name: Push
         uses: s0/git-publish-subdir-action@develop
@@ -99,7 +101,7 @@ jobs:
         env:
           REPO: git@github.com:XmacsLabs/research.mogan.app.git
           BRANCH: main # The branch name where you want to push the assets
-          FOLDER: build/wasm/wasm32/release # The directory where your assets are generated
+          FOLDER: ${{ runner.workspace }}/build/wasm/wasm32/release
           MESSAGE: "Build: ({sha}) {msg}" # The commit message
           SQUASH_HISTORY: true
           SSH_PRIVATE_KEY: ${{ secrets.RESEARCH_PRIVATE }}
