@@ -141,6 +141,12 @@ save/编辑污染检入副本。配合 `#ifdef LIII_DEBUG` 的临时日志定位
      -headless -d -x "(load \"/tmp/diag.scm\")"
    ```
 
+### Moebius 测试
+使用类似如下的命令，测试代码在 moebius/moebius_tests 中
+```
+xmake test -vD moebius_tests/loro_shadow_test
+```
+
 ## 构建命令
 
 主项目构建：`xmake b stem`

@@ -201,14 +201,19 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod) {
         // 复合子节点 INSERT/REMOVE → node_create / node_delete（块增删）
         mogan_tree_id pid= id_map (inside (parent));
         if (mod->k == MOD_INSERT) {
-          int  pos= index (mod);
-          path child_path=
-              rp_mod * pos; // 新子节点在 buffer 的位置（post-apply）
-          if (has_subtree (doc_root, child_path)) {
-            tree& child= subtree (doc_root, child_path);
-            seed_node (child, pid, (uint32_t) pos); // 建子树 + 映射身份
-            mirrored= true;
+          int pos= index (mod);
+          // mod->t 可能含多个子节点（如粘贴多行=多个 para），逐个 seed 到
+          // 父节点 pos 起的连续位置（post-apply 后它们在 buffer 的
+          // rp_mod*(pos+i)）。
+          int nr= is_compound (mod->t) ? N (mod->t) : 1;
+          for (int i= 0; i < nr; i++) {
+            path child_path= rp_mod * (pos + i);
+            if (has_subtree (doc_root, child_path)) {
+              tree& child= subtree (doc_root, child_path);
+              seed_node (child, pid, (uint32_t) (pos + i)); // 建子树+映射身份
+            }
           }
+          mirrored= true;
         }
         else {
           int                  pos= index (mod);
