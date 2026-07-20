@@ -527,6 +527,8 @@ public:
   void on_error (string msg) override { cout << "WS Error: " << msg << "\n"; }
   void on_disconnect () override { cout << "WS Disconnected\n"; }
 };
+
+static test_websocket_client* g_ws_client= nullptr;
 #endif
 
 void
@@ -539,7 +541,6 @@ im_interpose () {
   if (g_interpose_fn != nullptr) g_interpose_fn ();
 
 #ifdef LORO_ENABLED
-  static test_websocket_client* g_ws_client= nullptr;
   if (!g_ws_client) {
     g_ws_client= new test_websocket_client ();
     g_ws_client->connect ("ws://127.0.0.1:8765");
@@ -561,6 +562,13 @@ im_interpose () {
 
 void
 gui_close () {
+#ifdef LORO_ENABLED
+  // join the websocket worker before tearing down, so curl is not cleaned up
+  // mid-operation during process exit
+  if (g_ws_client) {
+    g_ws_client->disconnect ();
+  }
+#endif
   if (s_glfw_initialized) {
     glfwTerminate ();
     s_glfw_initialized= false;
