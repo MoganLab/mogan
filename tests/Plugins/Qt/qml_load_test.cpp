@@ -91,6 +91,7 @@ private slots:
   void test_form_dialog_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
+  void test_statistics_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -164,6 +165,32 @@ TestQmlLoad::test_paragraph_format_loads () {
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/ParagraphFormat.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_statistics_loads () {
+  QVariantList model;
+  QVariantMap  row;
+  row["label"]= QString ("Page count");
+  row["value"]= QString ("1");
+  model << row;
+
+  QStringList buttons;
+  buttons << "Close";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("statsTitle",
+                                          QString ("Document statistics"));
+  qw->rootContext ()->setContextProperty ("statsItems", model);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/Statistics.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 

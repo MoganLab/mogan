@@ -139,25 +139,9 @@
   (if (selection-active-any?) (selection-tree) (buffer-tree))
 ) ;define
 
-(tm-widget ((show-counts-widget lines) done)
-  (resize "600guipx"
-    "300guipx"
-    (vlist (hlist (glue #t #f 0 0)
-             (vlist (glue #f #t 120 6)
-               (bold (text "Stats information"))
-               (glue #f #t 120 6)
-               (for (l lines) === (text l))
-             ) ;vlist
-             (glue #t #f 0 0)
-           ) ;hlist
-      (glue #f #t 120 6)
-      (hlist (glue #t #f 120 3) (bottom-buttons ("Close" (done))))
-    ) ;vlist
-  ) ;resize
-) ;tm-widget
-
-(tm-define (show-counts)
-  (:interactive #t)
+(tm-define (get-statistics-data)
+  (:synopsis "Return structured statistics data for current document/selection.\nEach element is (label value) where value is already stringified."
+  ) ;:synopsis
   (let* ((doc (selection-or-document))
          (chars (count-characters doc))
          (chars-ns (count-chars-no-space doc))
@@ -166,17 +150,51 @@
          (chinese (car p))
          (words (count-words doc))
          (pages (get-page-count))
-         (lst (list (string-append "Page count: " (number->string pages))
-                (string-append "Word count: " (number->string (+ words chinese)))
-                (string-append "Character count (with spaces): " (number->string chars))
-                (string-append "Character count (without spaces): " (number->string chars-ns))
-                (string-append "Paragraph count: " (number->string lines))
-                (string-append "Non-Chinese word: " (number->string words))
-                (string-append "Chinese character: " (number->string chinese))
-              ) ;list
-         ) ;lst
         ) ;
-    (dialogue-window (show-counts-widget lst) noop "Document statistics")
+    (list (list (translate "Page count") (number->string pages))
+      (list (translate "Word count") (number->string (+ words chinese)))
+      (list (translate "Character count (with spaces)") (number->string chars))
+      (list (translate "Character count (without spaces)") (number->string chars-ns))
+      (list (translate "Paragraph count") (number->string lines))
+      (list (translate "Non-Chinese word") (number->string words))
+      (list (translate "Chinese character") (number->string chinese))
+    ) ;list
+  ) ;let*
+) ;tm-define
+
+(tm-define (get-statistics-data-from-doc doc)
+  (:synopsis "Like get-statistics-data but takes explicit doc tree.\nPage count is not available without an editor and defaults to \"0\"."
+  ) ;:synopsis
+  (let* ((chars (count-characters doc))
+         (chars-ns (count-chars-no-space doc))
+         (lines (count-lines doc))
+         (p (count-chinese-and-words doc))
+         (chinese (car p))
+         (words (count-words doc))
+        ) ;
+    (list (list (translate "Page count") "0")
+      (list (translate "Word count") (number->string (+ words chinese)))
+      (list (translate "Character count (with spaces)") (number->string chars))
+      (list (translate "Character count (without spaces)") (number->string chars-ns))
+      (list (translate "Paragraph count") (number->string lines))
+      (list (translate "Non-Chinese word") (number->string words))
+      (list (translate "Chinese character") (number->string chinese))
+    ) ;list
+  ) ;let*
+) ;tm-define
+
+(define (statistics-data->stree data)
+  ;; (stats (item <label> <value>) ...)，label/value 为子节点而非 compound 名，避免
+  ;; get_label 对中文加引号。
+  (cons 'stats
+    (map (lambda (pair) (cons 'item (list (car pair) (cadr pair)))) data)
+  ) ;cons
+) ;define
+
+(tm-define (show-counts)
+  (:interactive #t)
+  (let* ((data (get-statistics-data)) (stree (statistics-data->stree data)))
+    (cpp-statistics-dialog (translate "Document statistics") (stree->tree stree))
   ) ;let*
 ) ;tm-define
 

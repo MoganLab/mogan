@@ -160,4 +160,15 @@ tree cpp_font_selector_dialog (int specs_key);
  */
 tree cpp_paragraph_format_dialog (int specs_key);
 
+/**
+ * @brief 文档统计信息 QML 对话框的 glue 入口（纯展示，一次性提交）。
+ * @param title 已翻译的对话框标题（如 "Document statistics"）。
+ * @param items 统计项列表树，形如 (stats ("Page count" "1") ("Word count" "42")
+ * ...)， 每项为 (label value) 二元组，label/value 均 string。
+ * @details 走 run_qml_dialog（exec 阻塞模态），无 live 写回。用户点 Close 或
+ * Esc / X 关闭窗口即结束。统计项由 scm 侧计算好打包传入，cpp / QML
+ * 纯展示不碰业务。
+ */
+void cpp_statistics_dialog (string title, tree items);
+
 #endif // defined QTM_QML_DIALOG_H

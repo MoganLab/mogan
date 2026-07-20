@@ -258,6 +258,38 @@
       margin: 0 4px;
     }
 
+    .stats-table {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid #eef3f3;
+    }
+
+    .stats-row:last-child {
+      border-bottom: 0;
+    }
+
+    .stats-label {
+      font-size: 14px;
+      color: #355059;
+    }
+
+    .stats-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1d2629;
+      font-family: var(--mono);
+      min-width: 40px;
+      text-align: right;
+    }
+
     .form-shell {
       width: min(540px, 100%);
       background: #ffffff;
@@ -716,6 +748,7 @@
       <button class="nav-btn" data-target="form">FormDialog.qml</button>
       <button class="nav-btn" data-target="font">FontSelector.qml</button>
       <button class="nav-btn" data-target="paragraph">ParagraphFormat.qml</button>
+      <button class="nav-btn" data-target="statistics">Statistics.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
 
@@ -999,6 +1032,51 @@
           Cancel/重置走快照撤销（initial-snapshot + revert-to-snapshot）
         </p>
       </section>
+
+      <section class="panel" id="panel-statistics">
+        <article class="dialog" style="max-width: 380px;">
+          <h3>Document statistics</h3>
+          <div class="stats-table">
+            <div class="stats-row">
+              <span class="stats-label">Page count</span>
+              <span class="stats-value">1</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">Word count</span>
+              <span class="stats-value">42</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">Character count (with spaces)</span>
+              <span class="stats-value">256</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">Character count (without spaces)</span>
+              <span class="stats-value">230</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">Paragraph count</span>
+              <span class="stats-value">5</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">Non-Chinese word</span>
+              <span class="stats-value">30</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">Chinese character</span>
+              <span class="stats-value">120</span>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top: 20px;">
+            <button class="btn primary" data-log="Statistics: closeBridge.choose(0) 关闭">关闭</button>
+          </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>statsModel: [{label, value}, ...]</code>
+          <code>statsTitle: dialogTitle</code>
+          <code>buttonLabels: dialogButtons</code>
+          <code>onClicked -> closeBridge.choose(0)</code>
+        </p>
+      </section>
     </main>
   </div>
 
@@ -1009,21 +1087,24 @@
         confirm: document.getElementById('panel-confirm'),
         form: document.getElementById('panel-form'),
         font: document.getElementById('panel-font'),
-        paragraph: document.getElementById('panel-paragraph')
+        paragraph: document.getElementById('panel-paragraph'),
+        statistics: document.getElementById('panel-statistics')
       };
 
       const titleMap = {
         confirm: 'ConfirmClose.qml 模拟',
         form: 'FormDialog.qml 模拟',
         font: 'FontSelector.qml 模拟',
-        paragraph: 'ParagraphFormat.qml 模拟'
+        paragraph: 'ParagraphFormat.qml 模拟',
+        statistics: 'Statistics.qml 模拟'
       };
 
       const codeMap = {
         confirm: 'dialogMessage + dialogButtons + closeBridge.choose()',
         form: 'formFields + values 收集 + closeBridge.submit(values)',
         font: 'fontBridge 联动: family/style/filter/customize/preview',
-        paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回'
+        paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回',
+        statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭'
       };
 
       const viewTitle = document.getElementById('view-title');

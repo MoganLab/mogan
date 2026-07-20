@@ -120,6 +120,14 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
   同一 Rectangle 既 `border` 又 `clip:true` 会把外侧半像素 border 自身裁掉、几乎不可见
   （叠加 `radius` 的抗锯齿偏移更甚）。要带边框的裁剪容器，拆**双层 Rectangle**：外层只画
   border（不 clip），内层 `clip:true` 容纳子项。下拉浮层（DialogShell overlay）即此结构。
+- **scm 侧传给 QML 的用户可见文本一律走 `(translate "key")`**：标签、标题、按钮文案等
+   在 scm 构造数据时即用 `translate` 包裹，不要硬编码英文。值（数字、内部 key）不翻译。
+  字典条目按最小粒度登记（如 `"character count"` / `"with spaces"`），系统自动拼接
+  （`"Character count (with spaces)"` → `"字符数（计空格）"`），不要为每种组合加整条字典。
+- **跨弹窗复用的布局常量收进 `Theme.qml`**：行高、间距等可能被多个弹窗共用的数字，统一加在
+  `atoms/Theme.qml` 的结构尺寸/间距阶梯段。优先用已有常量组合（如 `Theme.btnH + Theme.padS * 2`
+  表示按钮区高度），避免为单一用途加新常量。成品弹窗只保留本弹窗专属的布局参数（如列宽比
+  `labelW`），引用 Theme 常量（`Theme.pad`/`Theme.gapS`/`Theme.inlineGap`/`Theme.textRowH` 等）。
 - **跨 parent 链查找的 property 不能喂给 binding**：如 EnumCombo 的 `dialogShell`（沿
   parent 链按 objectName 查找）是命令式 property，parent 变化不触发其重算，binding 会在
   创建瞬间读到 null 永久卡住。依赖它的几何（comboX/Y/W）须在展开时用 `updateGeometry()`

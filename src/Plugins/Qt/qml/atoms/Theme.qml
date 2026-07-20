@@ -35,6 +35,8 @@ QtObject {
     readonly property real btnH: 40 * scaleFactor    // 主按钮高度（DialogButtons）
     readonly property real btnW: 100 * scaleFactor   // 主按钮默认宽度（DialogButtons buttonWidth 默认）
     readonly property real itemH: 36 * scaleFactor   // 列表项行高（下拉浮层选项 / SelectableList delegate）
+    readonly property real textRowH: 24 * scaleFactor // 纯文本行高（Statistics 统计行等简单 label:value 行）
+    readonly property real titleH: 28 * scaleFactor  // 弹窗标题区高度
 
     // 圆角（胶囊类用 height/2，不在此列）。
     readonly property real radius: 8 * scaleFactor    // 容器/卡片/下拉浮层标准圆角
@@ -53,6 +55,7 @@ QtObject {
     readonly property real pad: 8 * scaleFactor       // 标准内边距/缩进（容器内缩、列表 padding）
     readonly property real gapS: 6 * scaleFactor      // 小行间距（EnumComboList 行间）
     readonly property real gapM: 16 * scaleFactor     // 中间距（按钮间、combo 行 label↔控件）
+    readonly property real inlineGap: 12 * scaleFactor // 行内间隙（Statistics label↔value）
     readonly property real margin: 24 * scaleFactor   // 弹窗正文四周大边距（DialogShell implicitMargins）
 
     // 原子级布局常量（某原子专用，提名为常量避免散落字面量）。

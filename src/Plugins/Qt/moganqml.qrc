@@ -16,5 +16,6 @@
         <file>qml/ConfirmClose.qml</file>
         <file>qml/FormDialog.qml</file>
         <file>qml/ParagraphFormat.qml</file>
+        <file>qml/Statistics.qml</file>
     </qresource>
 </RCC>

@@ -476,3 +476,47 @@ cpp_paragraph_format_dialog (int specs_key) {
       520, 590);
   return tree (TUPLE);
 }
+
+// ---- 文档统计信息 ----------------------------------------------------------
+
+/**
+ * @brief 文档统计信息 QML 对话框的 glue 入口（声明见 QTMQmlDialog.hpp）。
+ *
+ * @details 纯展示对话框，走 run_qml_dialog（exec 阻塞模态）。statsModel 每项为
+ * {label, value} 的 QVariantMap；QML 侧 Statistics.qml 用 Repeater 渲染为
+ * label: value 行。用户点 Close / Esc / X 关闭窗口即结束，无返回值。
+ */
+void
+cpp_statistics_dialog (string title, tree items) {
+  QVariantList model;
+  if (is_compound (items)) {
+    for (int i= 0; i < N (items); i++) {
+      // (stats (item <label> <value>) ...)
+      // label/value 为子节点，避免 get_label(compound) 对中文加引号。
+      if (is_compound (items[i]) && N (items[i]) >= 2 &&
+          is_atomic (items[i][0]) && is_atomic (items[i][1])) {
+        QVariantMap row;
+        row["label"]= to_qstring (get_label (items[i][0]));
+        row["value"]= to_qstring (get_label (items[i][1]));
+        model << row;
+      }
+    }
+  }
+
+  array<string> buttons;
+  buttons << string ("Close");
+  run_qml_dialog (
+      "qrc:/qml/Statistics.qml", "Statistics.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        QmlDialogBridge* bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("statsTitle",
+                                                to_qstring (title));
+        qw->rootContext ()->setContextProperty ("statsItems", model);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        // bridge 无 parent，靠 host destroyed 信号 deleteLater 自清。
+        QObject::connect (&host, &QDialog::destroyed, bridge,
+                          &QObject::deleteLater);
+      },
+      380, 300);
+}

@@ -2,3 +2,4 @@ ConfirmClose 1.0 ConfirmClose.qml
 FormDialog 1.0 FormDialog.qml
 FontSelector 1.0 FontSelector.qml
 ParagraphFormat 1.0 ParagraphFormat.qml
+Statistics 1.0 Statistics.qml
