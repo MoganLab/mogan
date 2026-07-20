@@ -33,7 +33,11 @@ if not is_plat("wasm") then
 end
 
 if has_config("loro") then
-    add_requires("rust")
+    if is_plat("wasm") then
+        add_requires("rustup")
+    else
+        add_requires("rust")
+    end
 end
 
 if has_config("pdfhummus") then

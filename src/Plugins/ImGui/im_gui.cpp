@@ -502,12 +502,16 @@ static void (*g_interpose_fn) (void)= nullptr;
 
 #ifdef LORO_ENABLED
 #include "editor.hpp"
-#include "im_websocket.hpp"
 #include "new_view.hpp" // get_current_editor
+#ifdef __EMSCRIPTEN__
+#include "tm_emscripten_websocket_client.hpp"
+#else
+#include "tm_curl_websocket_client.hpp"
+#endif
 
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
 
-class test_websocket_client : public im_websocket_client {
+class test_websocket_client : public tm_websocket_client_impl {
 public:
   void on_connect () override {
     cout << "Connected to Loro relay server!\n";

@@ -75,7 +75,7 @@ end
 
 if is_plat("wasm") then
     set_configvar("OS_WASM", true)
-    add_requires("emscripten 3.1.56")
+    add_requires("emscripten 3.1.74")
     set_toolchains("emcc@emscripten")
 else
     set_configvar("OS_WASM", false)

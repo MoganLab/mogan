@@ -1,12 +1,13 @@
 /******************************************************************************
- * MODULE     : im_websocket.cpp
- * DESCRIPTION: A non-blocking WebSocket client using libcurl.
- *              Native platforms run libcurl on a background worker thread;
- *              Emscripten keeps the single-threaded poll() driver.
- *              See im_websocket.hpp for the threading invariants.
+ * MODULE     : tm_curl_websocket_client.cpp
+ * DESCRIPTION: libcurl implementation of tm_websocket_client
+ *              (tm_curl_websocket_client). Native platforms run libcurl on a
+ *              background worker thread; Emscripten keeps the single-threaded
+ *              poll() driver. See tm_websocket.hpp for the interface and the
+ *              threading invariants.
  ******************************************************************************/
 
-#include "im_websocket.hpp"
+#include "tm_curl_websocket_client.hpp"
 #include "basic.hpp" // for cout, debug_std
 
 #if defined(CURL_VERSION_MAJOR)
@@ -20,7 +21,7 @@
 #define MOGAN_HAS_CURL_WS 1
 #endif
 
-#ifdef IM_WS_THREADED
+#ifdef TM_WS_THREADED
 
 /******************************************************************************
  * Threaded implementation (native platforms)
@@ -31,21 +32,21 @@
  * process-global (not thread-safe) fast_alloc allocator single-threaded.
  ******************************************************************************/
 
-im_websocket_client::im_websocket_client ()
+tm_curl_websocket_client::tm_curl_websocket_client ()
     : multi_handle (NULL), easy_handle (NULL) {
   // curl handles are created/used/destroyed on the worker thread only
 }
 
-im_websocket_client::~im_websocket_client () { disconnect (); }
+tm_curl_websocket_client::~tm_curl_websocket_client () { disconnect (); }
 
 void
-im_websocket_client::push_error (std::string msg) {
+tm_curl_websocket_client::push_error (std::string msg) {
   std::lock_guard<std::mutex> lk (q_mutex);
   err_pending.push_back (std::move (msg));
 }
 
 void
-im_websocket_client::connect (string url) {
+tm_curl_websocket_client::connect (string url) {
   disconnect (); // join any previous worker first
 
   current_url= url;
@@ -57,7 +58,7 @@ im_websocket_client::connect (string url) {
 }
 
 void
-im_websocket_client::disconnect () {
+tm_curl_websocket_client::disconnect () {
   if (!worker.joinable ()) return;
   stop_requested.store (true);
   cv.notify_one ();
@@ -68,7 +69,7 @@ im_websocket_client::disconnect () {
 }
 
 void
-im_websocket_client::send (string data, bool is_binary) {
+tm_curl_websocket_client::send (string data, bool is_binary) {
   if (!is_connected.load ()) return;
   {
     std::lock_guard<std::mutex> lk (q_mutex);
@@ -82,7 +83,7 @@ im_websocket_client::send (string data, bool is_binary) {
 }
 
 void
-im_websocket_client::poll () {
+tm_curl_websocket_client::poll () {
   std::deque<ws_std_msg>  msgs;
   std::deque<std::string> errs;
   int                     ev;
@@ -105,7 +106,7 @@ im_websocket_client::poll () {
 }
 
 void
-im_websocket_client::cleanup () {
+tm_curl_websocket_client::cleanup () {
   // worker-side only: handles live and die on the worker thread
   if (easy_handle) {
     if (multi_handle) {
@@ -122,7 +123,7 @@ im_websocket_client::cleanup () {
 }
 
 void
-im_websocket_client::process_tx_queue () {
+tm_curl_websocket_client::process_tx_queue () {
   // worker-side only; on failure reports via push_error and drops the
   // connection state so worker_main's loop exits
   if (!is_connected.load () || !easy_handle) return;
@@ -187,7 +188,7 @@ im_websocket_client::process_tx_queue () {
 }
 
 void
-im_websocket_client::worker_main (std::string url) {
+tm_curl_websocket_client::worker_main (std::string url) {
   multi_handle= curl_multi_init ();
   easy_handle = curl_easy_init ();
   if (!multi_handle || !easy_handle) {
@@ -319,18 +320,18 @@ im_websocket_client::worker_main (std::string url) {
   cleanup ();
 }
 
-#else // !IM_WS_THREADED (Emscripten: single-threaded)
+#else // !TM_WS_THREADED (Emscripten: single-threaded)
 
 /******************************************************************************
  * Single-threaded implementation
  ******************************************************************************/
 
-im_websocket_client::im_websocket_client ()
+tm_curl_websocket_client::tm_curl_websocket_client ()
     : multi_handle (NULL), easy_handle (NULL), is_connected (false) {
   multi_handle= curl_multi_init ();
 }
 
-im_websocket_client::~im_websocket_client () {
+tm_curl_websocket_client::~tm_curl_websocket_client () {
   cleanup ();
   if (multi_handle) {
     curl_multi_cleanup (multi_handle);
@@ -339,7 +340,7 @@ im_websocket_client::~im_websocket_client () {
 }
 
 void
-im_websocket_client::cleanup () {
+tm_curl_websocket_client::cleanup () {
   if (easy_handle) {
     if (multi_handle) {
       curl_multi_remove_handle (multi_handle, easy_handle);
@@ -352,7 +353,7 @@ im_websocket_client::cleanup () {
 }
 
 void
-im_websocket_client::connect (string url) {
+tm_curl_websocket_client::connect (string url) {
   disconnect (); // cleanup any existing connection
 
   current_url= url;
@@ -370,7 +371,7 @@ im_websocket_client::connect (string url) {
 }
 
 void
-im_websocket_client::disconnect () {
+tm_curl_websocket_client::disconnect () {
   if (is_connected || easy_handle) {
     cleanup ();
     on_disconnect ();
@@ -378,23 +379,23 @@ im_websocket_client::disconnect () {
 }
 
 void
-im_websocket_client::send (string data, bool is_binary) {
+tm_curl_websocket_client::send (string data, bool is_binary) {
   if (!is_connected || !easy_handle) return;
-  im_ws_msg msg;
+  tm_ws_msg msg;
   msg.data     = data;
   msg.is_binary= is_binary;
   msg.offset   = 0;
-  tx_queue     = tx_queue * list<im_ws_msg> (msg);
+  tx_queue     = tx_queue * list<tm_ws_msg> (msg);
   process_tx_queue ();
 }
 
 void
-im_websocket_client::process_tx_queue () {
+tm_curl_websocket_client::process_tx_queue () {
   if (!is_connected || !easy_handle) return;
 
 #ifdef MOGAN_HAS_CURL_WS
   while (!is_nil (tx_queue)) {
-    im_ws_msg& msg      = tx_queue->item;
+    tm_ws_msg& msg      = tx_queue->item;
     size_t     total_len= (size_t) N (msg.data);
     size_t     remaining= total_len - msg.offset;
     size_t     chunk_size=
@@ -446,13 +447,13 @@ im_websocket_client::process_tx_queue () {
 #else
   if (!is_nil (tx_queue)) {
     on_error ("libcurl version too old, websocket not supported");
-    tx_queue= list<im_ws_msg> ();
+    tx_queue= list<tm_ws_msg> ();
   }
 #endif
 }
 
 void
-im_websocket_client::poll () {
+tm_curl_websocket_client::poll () {
   if (!multi_handle || !easy_handle) return;
 
   int       still_running= 0;
@@ -539,4 +540,4 @@ im_websocket_client::poll () {
   }
 }
 
-#endif // IM_WS_THREADED
+#endif // TM_WS_THREADED

@@ -6,7 +6,7 @@
 // 从而让多个编辑器在同一文件上协作编辑。
 //
 // 运行：npm install   然后   node server.js
-// 默认监听 ws://127.0.0.1:8765
+// 默认监听 ws://0.0.0.0:8765
 // 环境变量：MOGAN_LORO_RELAY_HOST, MOGAN_LORO_RELAY_PORT
 
 const WebSocket = require('ws');

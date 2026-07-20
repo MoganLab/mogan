@@ -1,7 +1,8 @@
 /******************************************************************************
- * MODULE     : im_websocket.hpp
- * DESCRIPTION: A non-blocking WebSocket client using libcurl.
- *              Native platforms (IM_WS_THREADED): all libcurl activity runs on
+ * MODULE     : tm_curl_websocket_client.hpp
+ * DESCRIPTION: libcurl implementation of tm_websocket_client.
+ *
+ *              Native platforms (TM_WS_THREADED): all libcurl activity runs on
  *              a background worker thread; the GUI thread only exchanges
  *              complete messages through a mutex-protected std::deque in
  *              send/poll. Emscripten: single-threaded, poll() drives libcurl
@@ -20,15 +21,15 @@
  *              - All on_* callbacks fire from poll() on the GUI thread.
  ******************************************************************************/
 
-#ifndef IM_WEBSOCKET_HPP
-#define IM_WEBSOCKET_HPP
+#ifndef TM_CURL_WEBSOCKET_CLIENT_HPP
+#define TM_CURL_WEBSOCKET_CLIENT_HPP
 
 #include "list.hpp"
-#include "string.hpp"
+#include "tm_websocket.hpp"
 #include <curl/curl.h>
 
 #if !defined(__EMSCRIPTEN__)
-#define IM_WS_THREADED 1
+#define TM_WS_THREADED 1
 // std threading primitives and containers are an intentional exception to the
 // no-std rule: the worker thread must stay entirely off lolly types (see
 // invariants above), so the exchange queues are pure std.
@@ -40,19 +41,26 @@
 #include <thread>
 #endif
 
-struct im_ws_msg {
+struct tm_ws_msg {
   string data;
   bool   is_binary;
   size_t offset;
 };
 
-class im_websocket_client {
+/**
+ * @brief WebSocket client backed by libcurl.
+ *
+ * Native platforms run libcurl on a background worker thread; Emscripten
+ * keeps the single-threaded poll() driver. See the threading invariants in
+ * the module header.
+ */
+class tm_curl_websocket_client : public tm_websocket_client {
 private:
   CURLM* multi_handle;
   CURL*  easy_handle;
   string current_url;
 
-#ifdef IM_WS_THREADED
+#ifdef TM_WS_THREADED
   struct ws_std_msg {
     std::string data;
     bool        is_binary;
@@ -80,7 +88,7 @@ private:
 #else
   bool            is_connected;
   string          rx_buffer; // Buffer for partial frames
-  list<im_ws_msg> tx_queue;
+  list<tm_ws_msg> tx_queue;
 
   void process_tx_queue ();
 #endif
@@ -89,29 +97,23 @@ private:
   void cleanup ();
 
 public:
-  im_websocket_client ();
-  virtual ~im_websocket_client ();
+  tm_curl_websocket_client ();
+  ~tm_curl_websocket_client () override;
 
-  void connect (string url);
-  void disconnect ();
-  void send (string data, bool is_binary= true);
+  void connect (string url) override;
+  void disconnect () override;
+  void send (string data, bool is_binary= true) override;
+  void poll () override;
 
-  // Must be called in the event loop (e.g. im_interpose or im_main_loop).
-  // Threaded path: drains the inbound queues and fires callbacks (GUI thread).
-  // Single-threaded path: drives libcurl directly.
-  void poll ();
-
-#ifdef IM_WS_THREADED
-  bool connected () const { return is_connected.load (); }
+#ifdef TM_WS_THREADED
+  bool connected () const override { return is_connected.load (); }
 #else
-  bool connected () const { return is_connected; }
+  bool connected () const override { return is_connected; }
 #endif
-
-  // Virtual callbacks (override to handle); always fire on the GUI thread
-  virtual void on_message (string data, bool is_binary) {}
-  virtual void on_connect () {}
-  virtual void on_disconnect () {}
-  virtual void on_error (string msg) {}
 };
 
-#endif // IM_WEBSOCKET_HPP
+// Platform default transport. Emscripten will switch this to the emscripten
+// WebSocket API client once that subclass exists.
+typedef tm_curl_websocket_client tm_websocket_client_impl;
+
+#endif // TM_CURL_WEBSOCKET_CLIENT_HPP

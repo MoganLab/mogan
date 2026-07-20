@@ -11,7 +11,11 @@
 
 target("loro")
     set_kind("phony")
-    add_packages("rust")
+    if is_plat("wasm") then
+        add_packages("rustup")
+    else
+        add_packages("rust")
+    end
     local ffi_dir = path.join(os.projectdir(), "3rdparty", "mogan-loro-ffi")
     local profile = (is_mode("release") or is_mode("releasedbg"))
                         and "release"
@@ -19,6 +23,12 @@ target("loro")
     local subdir = (profile == "release")
                         and "release"
                         or "debug"
+    -- WASM 需交叉编译到 wasm32-unknown-emscripten，产物在独立的 target 子目录；
+    -- native 走默认 target/<profile>
+    local rust_target = is_plat("wasm") and "wasm32-unknown-emscripten" or nil
+    if rust_target then
+        subdir = path.join(rust_target, subdir)
+    end
 
     -- 导出库搜索路径与库名
     add_linkdirs(path.join(ffi_dir, "target", subdir), {public = true})
@@ -35,23 +45,36 @@ target("loro")
         add_syslinks("userenv", "ws2_32", "bcrypt", {public = true})
     end
 
-    before_build(function (target)
+    before_build(function(target)
+        cprint("${yellow}setting up rust toolchain")
+        if is_plat("wasm") then
+            local rust_version = "1.87.0" 
+            os.vrunv("rustup", {"toolchain", "install", rust_version})
+            os.vrunv("rustup", {"default", rust_version})
+            os.vrunv("rustup", {"target", "add", rust_target})
+        end
+    end)
+
+    on_build(function (target)
         import("core.base.option")
-        
+        cprint("${yellow}building loro in rust")
+
         local args = {"build", "--manifest-path", path.join(ffi_dir, "Cargo.toml")}
         table.join2(args, {"--profile", profile})
-        
+        if rust_target then
+            table.join2(args, {"--target", rust_target})
+        end
+
         if option.get("verbose") then
             table.insert(args, "-v")
         end
-        
         os.vrunv("cargo", args)
     end)
 
-on_clean(function (target)
-    local ffi_dir = path.join(os.projectdir(), "3rdparty", "mogan-loro-ffi")
-    local target_dir = path.join(ffi_dir, "target")
-    cprint("${yellow}clean cargo target: %s", target_dir)
-    os.rm(target_dir)
-end)
+    on_clean(function (target)
+        local ffi_dir = path.join(os.projectdir(), "3rdparty", "mogan-loro-ffi")
+        local target_dir = path.join(ffi_dir, "target")
+        cprint("${yellow}clean cargo target: %s", target_dir)
+        os.rm(target_dir)
+    end)
 target_end()
