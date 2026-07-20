@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "edit_table.hpp"
+#include "tm_debug.hpp"
 #include "tree_observer.hpp"
 
 using namespace moebius;
@@ -48,11 +49,33 @@ empty_row (int nr_cols) {
 }
 
 tree
+empty_row (int nr_cols, bool wrap) {
+  // Like empty_row(nr_cols) but pre-wrap cells in DOCUMENT when the table's
+  // CELL_BLOCK/CELL_HYHEN formats require it. Pre-wrapping at construction
+  // avoids one insert_node per cell later in table_correct_block_content,
+  // each of which triggers a typesetter invalidation.
+  int  i;
+  tree R (ROW, nr_cols);
+  for (i= 0; i < nr_cols; i++)
+    R[i]= tree (CELL, wrap ? tree (DOCUMENT, empty_cell ()) : empty_cell ());
+  return R;
+}
+
+tree
 empty_table (int nr_rows, int nr_cols) {
   int  i;
   tree T (TABLE, nr_rows);
   for (i= 0; i < nr_rows; i++)
     T[i]= empty_row (nr_cols);
+  return T;
+}
+
+tree
+empty_table (int nr_rows, int nr_cols, bool wrap) {
+  int  i;
+  tree T (TABLE, nr_rows);
+  for (i= 0; i < nr_rows; i++)
+    T[i]= empty_row (nr_cols, wrap);
   return T;
 }
 
@@ -550,19 +573,35 @@ edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
   int  nr_rows, nr_cols;
   table_get_extents (p, nr_rows, nr_cols);
   tree T= subtree (et, p);
+  // Query wrap state once for the new cells. The format applies to all cells
+  // in the inserted row/column, so one query is enough — and using it to
+  // pre-wrap at construction saves one insert_node per cell later (each
+  // insert_node triggers a typesetter invalidation).
+  tree block = table_get_format (fp, 1, 1, 1, 1, CELL_BLOCK);
+  tree hyphen= table_get_format (fp, 1, 1, 1, 1, CELL_HYPHEN);
+  bool wrap  = (block == "yes") ||
+             (block == "auto" && is_atomic (hyphen) && hyphen != "n");
+  bench_start ("table_insert:row");
   if (insr > 0)
-    if (row <= N (T)) insert (p * row, empty_table (insr, nr_cols));
+    if (row <= N (T)) insert (p * row, empty_table (insr, nr_cols, wrap));
+  bench_cumul ("table_insert:row");
 
+  bench_start ("table_insert:col");
   T= subtree (et, p);
   if (insc > 0)
     for (row= 0; row < N (T); row++) {
       path q= search_row (p, row);
       tree R= subtree (et, q);
-      if (col <= N (R)) insert (q * col, empty_row (insc));
+      if (col <= N (R)) insert (q * col, empty_row (insc, wrap));
     }
+  bench_cumul ("table_insert:col");
 
+  bench_start ("table_insert:cwith");
   tree st= subtree (et, fp);
-  if (!is_func (st, TFORMAT)) return;
+  if (!is_func (st, TFORMAT)) {
+    bench_cumul ("table_insert:cwith");
+    return;
+  }
   int k, n= N (st);
   for (k= n - 2; k >= 0; k--)
     if (is_func (st[k], CWITH, 6)) {
@@ -591,6 +630,7 @@ edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
           assign (fp * path (k, 3), as_string (J2 - insc));
       }
     }
+  bench_cumul ("table_insert:cwith");
 }
 
 /******************************************************************************
@@ -650,10 +690,9 @@ edit_table_rep::table_go_to (path fp, int row, int col, bool at_start) {
   if (col < 0) col= 0;
   if (row >= nr_rows) row= nr_rows - 1;
   if (col >= nr_cols) col= nr_cols - 1;
-  if (is_func (subtree (et, fp), TFORMAT)) {
-    int row2= row, col2= col;
-    table_bound (fp, row, col, row2, col2);
-  }
+  // NOTE: 之前这里调过 table_bound(fp,row,col,row2,col2) 计算合并区，
+  // 但 row2/col2 是局部变量、结果立即丢弃（search_cell 用的是原始 row/col）。
+  // table_bound 是 O(N×M)，每次 table_go_to 都白白跑——删掉是稳赚不赔。
   path q= search_cell (fp, row, col);
   go_to_border (q, at_start);
 }
@@ -1180,17 +1219,40 @@ edit_table_rep::table_extract_format () {
 
 void
 edit_table_rep::table_insert_row (bool forward) {
+  bench_start ("table_insert_row");
+  bench_start ("table_insert_row:search");
   int  row, col;
   path fp= search_format (row, col);
-  if (is_nil (fp)) return;
+  if (is_nil (fp)) {
+    bench_cumul ("table_insert_row:search");
+    bench_cumul ("table_insert_row");
+    return;
+  }
+  bench_cumul ("table_insert_row:search");
   int nr_rows, nr_cols, i1, j1, i2, j2;
   table_get_extents (fp, nr_rows, nr_cols);
   table_get_limits (fp, i1, j1, i2, j2);
-  if (nr_rows + 1 > i2) return;
-  table_insert (fp, row + (forward ? 1 : 0), col, 1, 0);
-  table_go_to (fp, row + (forward ? 1 : 0), col);
-  table_correct_block_content ();
+  if (nr_rows + 1 > i2) {
+    bench_cumul ("table_insert_row");
+    return;
+  }
+  int new_row= row + (forward ? 1 : 0);
+  bench_start ("table_insert_row:insert");
+  table_insert (fp, new_row, col, 1, 0);
+  bench_cumul ("table_insert_row:insert");
+  bench_start ("table_insert_row:go_to");
+  table_go_to (fp, new_row, col);
+  bench_cumul ("table_insert_row:go_to");
+  bench_start ("table_insert_row:correct_block");
+  // Only the new row's cells need wrap correction — other rows already had
+  // their DOCUMENT nodes fixed by previous calls and their formats didn't
+  // change.
+  table_correct_block_content (fp, new_row, new_row + 1, 0, nr_cols);
+  bench_cumul ("table_insert_row:correct_block");
+  bench_start ("table_insert_row:resize_notify");
   table_resize_notify ();
+  bench_cumul ("table_insert_row:resize_notify");
+  bench_cumul ("table_insert_row");
 }
 
 void
@@ -1202,9 +1264,11 @@ edit_table_rep::table_insert_column (bool forward) {
   table_get_extents (fp, nr_rows, nr_cols);
   table_get_limits (fp, i1, j1, i2, j2);
   if (nr_cols + 1 > j2) return;
-  table_insert (fp, row, col + (forward ? 1 : 0), 0, 1);
-  table_go_to (fp, row, col + (forward ? 1 : 0));
-  table_correct_block_content ();
+  int new_col= col + (forward ? 1 : 0);
+  table_insert (fp, row, new_col, 0, 1);
+  table_go_to (fp, row, new_col);
+  // Only the new column's cells need wrap correction.
+  table_correct_block_content (fp, 0, nr_rows, new_col, new_col + 1);
   table_resize_notify ();
 }
 
@@ -1446,13 +1510,28 @@ edit_table_rep::table_column_decoration (bool forward) {
 
 void
 edit_table_rep::table_correct_block_content () {
+  bench_start ("table_correct_block_content");
   int  nr_rows, nr_cols;
   path fp= search_format ();
-  if (is_nil (fp)) return;
+  if (is_nil (fp)) {
+    bench_cumul ("table_correct_block_content");
+    return;
+  }
   table_get_extents (fp, nr_rows, nr_cols);
+  table_correct_block_content (fp, 0, nr_rows, 0, nr_cols);
+  bench_cumul ("table_correct_block_content");
+}
+
+void
+edit_table_rep::table_correct_block_content (path fp, int row1, int row2,
+                                             int col1, int col2) {
+  // Correct DOCUMENT wrap only on cells in [row1,row2) × [col1,col2).
+  // Insert paths only mutate one row/column, so re-scanning the whole table
+  // would be O(N×M) waste. CELL_BLOCK/CELL_HYPHEN formats of untouched cells
+  // don't change, so their wrap state is already correct.
   int row, col;
-  for (row= 0; row < nr_rows; row++)
-    for (col= 0; col < nr_cols; col++) {
+  for (row= row1; row < row2; row++)
+    for (col= col1; col < col2; col++) {
       path cp= search_cell (fp, row, col);
       tree st= subtree (et, cp);
       tree t1=
@@ -1468,8 +1547,10 @@ edit_table_rep::table_correct_block_content () {
 
 void
 edit_table_rep::table_resize_notify () {
+  bench_start ("table_resize_notify");
   path p= search_table ();
   if (!is_nil (p)) call ("table-resize-notify", object (subtree (et, p)));
+  bench_cumul ("table_resize_notify");
 }
 
 void
