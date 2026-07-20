@@ -605,7 +605,6 @@
     "------------------------------------------------------\n"
   ) ;string-append
 ) ;debug-message
-(delayed (:pause 120000) (autosave-delayed))
 (catch #t
   (lambda ()
     (use-modules (telemetry telemetry-utils))

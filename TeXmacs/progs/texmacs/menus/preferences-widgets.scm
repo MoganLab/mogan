@@ -33,6 +33,9 @@
             (set-pretty-preference which pretty-val)
             (when answ
               (begin
+                (when (not (defined? 'save-all-buffers))
+                  (use-modules (plugin autosave))
+                ) ;when
                 (save-all-buffers)
                 (restart-TeXmacs)
               ) ;begin
@@ -1022,7 +1025,15 @@
                "12em"
              ) ;enum
         //
-        (explicit-buttons ((eval (auto-backup-button-label)) (open-auto-backup-location))
+        (explicit-buttons ((eval (begin
+                                   (when (not (defined? 'auto-backup-button-label))
+                                     (use-modules (plugin autosave))
+                                   ) ;when
+                                   (auto-backup-button-label)
+                                 ) ;begin
+                           ) ;eval
+                           (open-auto-backup-location)
+                          ) ;
         ) ;explicit-buttons
       ) ;hlist
     ) ;item

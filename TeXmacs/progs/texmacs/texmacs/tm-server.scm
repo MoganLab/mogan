@@ -331,7 +331,13 @@
           (switch-to-buffer (car l))
         ) ;when
         (confirm-close-dialog "There are unsaved documents. Really quit?"
-          (lambda () (save-all-buffers) (quit-TeXmacs))
+          (lambda ()
+            (when (not (defined? 'save-all-buffers))
+              (use-modules (plugin autosave))
+            ) ;when
+            (save-all-buffers)
+            (quit-TeXmacs)
+          ) ;lambda
           (lambda () (quit-TeXmacs))
         ) ;confirm-close-dialog
       ) ;begin
@@ -365,7 +371,9 @@
 ;; 菜单/工具栏重新解析；doc id 会在用户保存时随文档持久化。
 (tm-define (new-document)
   (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-    (auto-backup-ensure-buffer-doc-id! (current-buffer))
+    (when (defined? 'auto-backup-ensure-buffer-doc-id!)
+      (auto-backup-ensure-buffer-doc-id! (current-buffer))
+    ) ;when
   ) ;with-default-view
 ) ;tm-define
 
@@ -384,7 +392,9 @@
 ;; 指向新文档，doc id 绑定只作用于当前会话的 init-env。
 (tm-define (new-document*)
   (with-default-view (if (window-per-buffer?) (new-buffer) (open-window))
-    (auto-backup-ensure-buffer-doc-id! (current-buffer))
+    (when (defined? 'auto-backup-ensure-buffer-doc-id!)
+      (auto-backup-ensure-buffer-doc-id! (current-buffer))
+    ) ;when
   ) ;with-default-view
 ) ;tm-define
 

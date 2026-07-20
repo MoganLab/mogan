@@ -96,6 +96,9 @@
             (if answ
               (begin
                 (set-preference "language" lan)
+                (when (not (defined? 'save-all-buffers))
+                  (use-modules (plugin autosave))
+                ) ;when
                 (save-all-buffers)
                 (restart-TeXmacs)
               ) ;begin

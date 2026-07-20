@@ -61,8 +61,10 @@
             (when (ensure-parent-dir doc-id)
               (autosave-prune-dir (autosave-dir doc-id))
               (if (path-copy source target)
-                (autosave-log (string-append "autosave copied " source " -> " target))
-                (autosave-log (string-append "autosave copy failed " source " -> " target))
+                (autosave-log (string-append "autosave copied " source " -> " (path->string target))
+                ) ;autosave-log
+                (autosave-log (string-append "autosave copy failed " source " -> " (path->string target))
+                ) ;autosave-log
               ) ;if
             ) ;when
           ) ;if

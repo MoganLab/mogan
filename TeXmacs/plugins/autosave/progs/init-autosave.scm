@@ -13,15 +13,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-modules (binary goldfish))
+(use-modules (plugin autosave))
 (import (liii path))
 
 (define (autosave-serialize lan t)
   (with u
     (pre-serialize lan t)
-    (with s
-      (texmacs->utf8raw (stree->tree u))
-      (string-append s "\n<EOF>\n")
-    ) ;with
+    (with s (texmacs->utf8raw (stree->tree u)) (string-append s "\n<EOF>\n"))
   ) ;with
 ) ;define
 
@@ -42,3 +40,7 @@
   (:launch ,(launcher))
   (:serializer ,autosave-serialize)
 ) ;plugin-configure
+
+;; 定时自动保存由插件初始化时启动（插件在事件循环启动 ~3s 后懒加载，
+;; 因此首次触发约在启动后 123s，与原先 120s 基本一致）
+(delayed (:pause 120000) (autosave-delayed))
