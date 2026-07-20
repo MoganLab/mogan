@@ -302,20 +302,21 @@ edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
   return true;
 }
 
-// 上次注册到 Scheme 侧的标尺集合(序列化)，用于变更检测；
-// 初始化为不可能出现的哨兵值，确保首次必然注册
-static string ghost_last_set= "\1";
+static string ghost_last_set= "\1"; // 上次序列化的标尺集合，用于变更检测
 
 static void
 snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
                  gr_selections& sels, frame f2) {
   if (!check_snap_mode ("ghost line")) {
-    call ("graphics-clear-ghost-lines");
-    ghost_last_set= "";
+    // PERF: 仅在注册过标尺时才需要清除
+    if (N (ghost_last_set) != 0) {
+      call ("graphics-clear-ghost-lines");
+      ghost_last_set= "";
+    }
     return;
   }
-  tree   lines (TUPLE); // 本次待注册的标尺集合
-  string set_str;       // lines 的序列化形式(变更检测用)
+  tree   lines (TUPLE);
+  string ghost_cur_set; // 当前序列化的标尺集合，用于变更检测
 
   tree t_prev= as_tree (call ("graphics-get-all-previous-points"));
   if (is_tuple (t_prev) && N (t_prev) >= 2) {
@@ -333,7 +334,8 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
                                 pk_1_layout[0] - pk_2_layout[0]);
     }
 
-    point fp_local= f2[fp]; // 转换鼠标点到局部厘米坐标系
+    point  fp_local       = f2[fp]; // 转换鼠标点到局部厘米坐标系
+    double snap_dist_local= f2->inverse_scalar (snap_distance);
     for (int j= 0; j < n_points; ++j) {
       point p1= as_point (t_prev[j]);
       if (N (p1) != 2) continue;
@@ -371,8 +373,6 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
           }
         }
 
-        double snap_dist_local= f2->inverse_scalar (snap_distance);
-
         // 仅在鼠标靠近标尺且在吸附距离内时激活
         if (min_d < snap_dist_local) {
           point dir (cos (best_theta), sin (best_theta));
@@ -398,18 +398,15 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
           en << sy;
           en << st;
           lines << en;
-          set_str= set_str * sx * "," * sy * "," * st * ";";
+          ghost_cur_set= ghost_cur_set * sx * "," * sy * "," * st * ";";
         }
       }
     }
   }
 
-  // 标尺集合与上次一致则跳过注册：避免每个 motion 事件都支付
-  // Scheme 往返和 decorations 全量重建。注意 Scheme 侧若被外部
-  // 清空(如 decorations-reset)而此处集合恰好不变, 会少注册一次,
-  // 待集合变化时自愈
-  if (set_str != ghost_last_set) {
-    ghost_last_set= set_str;
+  // PERF: 标尺集合与上次一致则跳过注册
+  if (ghost_cur_set != ghost_last_set) {
+    ghost_last_set= ghost_cur_set;
     call ("graphics-set-ghost-lines", lines);
   }
 }

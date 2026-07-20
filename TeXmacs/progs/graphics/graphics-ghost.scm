@@ -42,10 +42,7 @@
   (set! ghost-lines '())
 ) ;tm-define
 
-;; 批量设置标尺集合：替代逐条 clear/add，一次 C++->Scheme 往返完成，
-;; 且仅在集合非空时触发一次 decorations 重建（空集合等价于清除，
-;; 由随后的 move-point 重建兜底）。入参为树 (tuple (x y theta) ...)，
-;; 转换为既有格式 ((x y) theta) 列表
+;; 参数 lines: (tuple (x y theta) ...)
 (tm-define (graphics-set-ghost-lines lines)
   (:state graphics-state)
   (let ((l (if (tree? lines) (tree->stree lines) lines)))
