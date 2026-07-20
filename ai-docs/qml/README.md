@@ -128,8 +128,8 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 - **`translate` 的三条自动归一化**（实现在 `src/System/Language/dictionary.cpp` 的
   `dictionary_rep::translate`，`qt_translate` 同源）：
   1. **首字母大写折叠**：查表前把首字符转小写再查，命中后把结果首字母大写回。故字典
-     一律**小写首字母登记**（`("switch interface language" "切换界面语言")`），代码里
-     `(translate "Switch interface language")` / `qt_translate("Switch ...")` 均能命中。
+     一律**小写首字母登记**（`("switch interface theme" "切换界面主题")`），代码里
+     `(translate "Switch interface theme")` / `qt_translate("Switch ...")` 均能命中。
      仅首字符 ASCII 折叠，非全串大小写不敏感。
   2. **递归切分拼接**：整串查不到时，按「非字母字符」剥离前后缀、在最后一个非字母非空格
      字符处二分，各段递归 `translate` 再拼接。故带标点/括号的复合短语（统计项、含 `()`

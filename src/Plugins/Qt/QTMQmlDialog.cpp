@@ -266,8 +266,7 @@ cpp_confirm_close (string message, bool scratch) {
 }
 
 /**
- * @brief 「需重启才生效」三按钮确认弹窗的 glue 入口（声明/语义见
- * QTMQmlDialog.hpp）。
+ * @brief 需重启字段的三按钮确认弹窗的 glue 入口。
  */
 string
 cpp_confirm_restart (string title, string message) {

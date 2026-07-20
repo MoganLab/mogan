@@ -1,7 +1,7 @@
 // ConfirmRestart.qml — 需重启字段的三按钮确认弹窗（重启 / 稍后 / 取消）。
-// 用于首选项里改 language / look and feel / gui theme / magic-paste-shortcut /
+// 用于首选项里改 look and feel / gui theme / magic-paste-shortcut /
 // keyboard shortcut style 后的确认，替换旧 user-confirm（两按钮）。
-// 与 ConfirmClose 同构，差异：多了标题行，标题 + 正文均居中。
+// 与 ConfirmClose 同构，差异：多了标题行；标题居中、正文左对齐（英文换行时更整齐）。
 //
 // context property（C++ 注入）：dialogTitle / dialogMessage / dialogButtons
 // （均已翻译）、dpScale、isDark、closeBridge。按钮下标从 1 起（0 = Esc = 取消），
@@ -49,7 +49,7 @@ DialogShell {
                 width: body.width
                 text: root.message
                 color: Theme.muted
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignLeft
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontBody
                 lineHeight: 1.5

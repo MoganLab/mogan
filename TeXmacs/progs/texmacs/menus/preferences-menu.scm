@@ -27,7 +27,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; 三按钮重启确认的正文（陈述句，无问句——问句由按钮表达）。title 由调用方
-;; 按字段给出（如「切换界面语言」），本函数只产出通用的「需重启才生效」说明。
+;; 按字段给出（如「切换界面主题」），本函数只产出通用的「需重启才生效」说明。
 (tm-define (restart-effect-message)
   (if (community-stem?)
     (translate "This change requires restarting Mogan STEM to take full effect.")
@@ -112,17 +112,9 @@
 ;; Language settings and restart notifications
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (set-language-and-notify lan)
-  (let ((old (get-preference "language")))
-    (if (== lan old)
-      (set-preference "language" lan)
-      (confirm-restart-and-act (translate "Switch interface language")
-        (lambda () (set-preference "language" lan))
-        (lambda () (set-preference "language" old))
-      ) ;confirm-restart-and-act
-    ) ;if
-  ) ;let
-) ;tm-define
+;; language 切换实时生效（notify-language 直调 set-output-language），无需重启，
+;; 故不走 ConfirmRestart，直接 set-preference。
+(tm-define (set-language-and-notify lan) (set-preference "language" lan))
 
 (tm-define preferences-tree
   `((enum ("Look and feel" "look and feel")
