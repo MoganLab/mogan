@@ -265,6 +265,41 @@ cpp_confirm_close (string message, bool scratch) {
   }
 }
 
+/**
+ * @brief 「需重启才生效」三按钮确认弹窗的 glue 入口（声明/语义见
+ * QTMQmlDialog.hpp）。
+ */
+string
+cpp_confirm_restart (string title, string message) {
+  string preset= get_env ("MOGAN_TEST_CONFIRM_RESTART");
+  if (preset == "restart" || preset == "later" || preset == "cancel")
+    return preset;
+  array<string>    buttons   = {string ("Restart"), string ("Later"),
+                                string ("Cancel")};
+  QStringList      qmlButtons= translate_buttons (buttons);
+  QmlDialogBridge* bridge    = nullptr;
+  int              choice    = run_qml_dialog (
+      "qrc:/qml/ConfirmRestart.qml", "restart confirm dialog",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("dialogTitle",
+                                                                 to_qstring (title));
+        qw->rootContext ()->setContextProperty ("dialogMessage",
+                                                                 to_qstring (message));
+        qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
+      },
+      420, 170);
+  delete bridge;
+  switch (choice) {
+  case 1:
+    return "restart";
+  case 2:
+    return "later";
+  default:
+    return "cancel";
+  }
+}
+
 // ---- form 引擎 --------------------------------------------------------------
 
 // 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：

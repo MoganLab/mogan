@@ -120,6 +120,21 @@ int qt_show_qml_dialog (string qml_url, string message, array<string> buttons);
 string cpp_confirm_close (string message, bool scratch);
 
 /**
+ * @brief 需重启字段的三按钮确认弹窗的 glue 入口。
+ * @param title 已翻译的标题（如「切换界面主题」）。
+ * @param message 已翻译的正文（如「此更改需要重新启动 Mogan STEM
+ * 才能完全生效。」）。
+ * @return "restart" / "later" / "cancel" 之一。
+ * @details 用于首选项里改 language / look and feel / gui theme /
+ * magic-paste-shortcut / keyboard shortcut style 等需重启字段后的确认，替换旧
+ * user-confirm（两按钮）。 按钮顺序为 重启（primary）、稍后、取消，对应
+ * run_qml_dialog 返回的按钮下标 1/2/3（0 / -1 = Esc / X / 加载失败 =
+ * cancel）。测试钩子 MOGAN_TEST_CONFIRM_RESTART=restart|later|cancel
+ * 命中时直接返回不弹窗。
+ */
+string cpp_confirm_restart (string title, string message);
+
+/**
  * @brief 通用 form 弹窗引擎的 glue 入口。
  * @param fields scm 构造的字段表，@b 须经 stree->tree 转换（glue 不自动转
  * pair）。 结构见顶部 @par 数据协议：(form (enum <label> <key> (<opt>...)

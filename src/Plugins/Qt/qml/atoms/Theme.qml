@@ -14,6 +14,7 @@ QtObject {
 
     readonly property color bg: dark ? "#2b2b2b" : "#ffffff"          // 弹窗背景
     readonly property color fg: dark ? "#eaeaea" : "#1e1e1e"          // 正文/标签文字
+    readonly property color muted: dark ? "#a0a0a0" : "#60727e"       // 次级/说明文字（如确认弹窗正文）
     readonly property color accent: dark ? "#7a7a7a" : "#1e1e1e"      // 主按钮底色
     readonly property color fieldBg: dark ? "#3d3d3d" : "#f1f3f4"     // 输入框/下拉/combo 底
     readonly property color fieldBgHover: dark ? "#4e4e4e" : "#e5e7eb"// 同上 hover

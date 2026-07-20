@@ -96,6 +96,7 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 | 对话框 | 模态引擎 | 模型 |
 |--------|---------|------|
 | `ConfirmClose` | `run_qml_dialog`（exec） | 点按钮返回结果 |
+| `ConfirmRestart` | `run_qml_dialog`（exec） | 三按钮（立即重启/稍后/取消），返回 `"restart"/"later"/"cancel"` |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit |
 | `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |
@@ -124,6 +125,18 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
    在 scm 构造数据时即用 `translate` 包裹，不要硬编码英文。值（数字、内部 key）不翻译。
   字典条目按最小粒度登记（如 `"character count"` / `"with spaces"`），系统自动拼接
   （`"Character count (with spaces)"` → `"字符数（计空格）"`），不要为每种组合加整条字典。
+- **`translate` 的三条自动归一化**（实现在 `src/System/Language/dictionary.cpp` 的
+  `dictionary_rep::translate`，`qt_translate` 同源）：
+  1. **首字母大写折叠**：查表前把首字符转小写再查，命中后把结果首字母大写回。故字典
+     一律**小写首字母登记**（`("switch interface language" "切换界面语言")`），代码里
+     `(translate "Switch interface language")` / `qt_translate("Switch ...")` 均能命中。
+     仅首字符 ASCII 折叠，非全串大小写不敏感。
+  2. **递归切分拼接**：整串查不到时，按「非字母字符」剥离前后缀、在最后一个非字母非空格
+     字符处二分，各段递归 `translate` 再拼接。故带标点/括号的复合短语（统计项、含 `()`
+     的标题）拆最小词登记即可，**空格不触发切分**——纯空格短语须整条登记。
+  3. **`::` 后缀剥离**：`"File::menu"` 形式递归查 `"File"`，丢弃 `::` 及之后。
+- **字典条目按字母序排列**：`TeXmacs/plugins/lang/dic/en_US/zh_CN.scm` 等字典文件，
+  新增条目按首字母段插入（大小写混排时以小写为准），保持可检索。
 - **跨弹窗复用的布局常量收进 `Theme.qml`**：行高、间距等可能被多个弹窗共用的数字，统一加在
   `atoms/Theme.qml` 的结构尺寸/间距阶梯段。优先用已有常量组合（如 `Theme.btnH + Theme.padS * 2`
   表示按钮区高度），避免为单一用途加新常量。成品弹窗只保留本弹窗专属的布局参数（如列宽比

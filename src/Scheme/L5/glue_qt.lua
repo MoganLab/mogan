@@ -42,6 +42,15 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-confirm-restart",
+                cpp_name = "cpp_confirm_restart",
+                ret_type = "string",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
                 scm_name = "cpp-form-dialog",
                 cpp_name = "cpp_form_dialog",
                 ret_type = "tree",

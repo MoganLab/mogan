@@ -14,6 +14,7 @@
         <file>qml/atoms/MiniButton.qml</file>
         <file>qml/FontSelector.qml</file>
         <file>qml/ConfirmClose.qml</file>
+        <file>qml/ConfirmRestart.qml</file>
         <file>qml/FormDialog.qml</file>
         <file>qml/ParagraphFormat.qml</file>
         <file>qml/Statistics.qml</file>

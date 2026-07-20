@@ -88,6 +88,7 @@ private slots:
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
   void test_confirm_close_loads ();
+  void test_confirm_restart_loads ();
   void test_form_dialog_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
@@ -112,6 +113,33 @@ load_qml (const QString& qrcUrl) {
 void
 TestQmlLoad::test_confirm_close_loads () {
   QCOMPARE (load_qml ("qrc:/qml/ConfirmClose.qml"), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_confirm_restart_loads () {
+  // ConfirmRestart 复用 ConfirmClose 的 dialogMessage/dialogButtons，多一个
+  // dialogTitle。 dialogTitle 仅作为标题 Text 显示，dialogMessage
+  // 作正文。三按钮文案注入。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("dialogTitle",
+                                          QString ("Switch interface theme"));
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage",
+      QString (
+          "This change requires restarting Mogan STEM to take full effect."));
+  QStringList buttons;
+  buttons << "Restart"
+          << "Later"
+          << "Cancel";
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/ConfirmRestart.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 void

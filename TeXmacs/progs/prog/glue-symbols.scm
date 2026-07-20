@@ -727,6 +727,7 @@
     "clone-window"
     "cpp-buffer-close"
     "cpp-confirm-close"
+    "cpp-confirm-restart"
     "cpp-form-dialog"
     "cpp-font-selector-dialog"
     "cpp-rasterize-widget"
