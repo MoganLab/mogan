@@ -823,9 +823,15 @@
   ("search std F" (search-next-match #f))
 ) ;kbd-map
 
-;; std v / std V 按偏好绑死，避免 dispatch 中间层导致菜单快捷键反查失败（参见 devel/0394.md）
-(if (== (get-preference "magic-paste-shortcut") "ctrl+v")
-  (kbd-map ("std v" (kbd-magic-paste)) ("std V" (kbd-paste)))
-  (kbd-map ("std v" (kbd-paste)) ("std V" (kbd-magic-paste)))
-) ;if
+;; std v / std V 按偏好绑死，避免 dispatch 中间层导致菜单快捷键反查失败（参见 devel/0394.md）。
+;; 抽成函数：改 magic-paste-shortcut 偏好时由 notify 重绑（kbd-map 对同一 key 覆盖，见
+;; kbd-insert-key-binding / kbd-delete-key-binding2）。
+(tm-define (kbd-apply-magic-paste-shortcut)
+  (if (== (get-preference "magic-paste-shortcut") "ctrl+v")
+    (kbd-map ("std v" (kbd-magic-paste)) ("std V" (kbd-paste)))
+    (kbd-map ("std v" (kbd-paste)) ("std V" (kbd-magic-paste)))
+  ) ;if
+) ;tm-define
+
+(kbd-apply-magic-paste-shortcut)
 ;; added for convenience
