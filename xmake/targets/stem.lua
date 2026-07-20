@@ -181,6 +181,16 @@ target("stem") do
         set_values("qt.deploy.flags", {"-printsupport", "--no-opengl-sw", "--no-translations", "--release"})
     end
 
+    after_build(function (target)
+        if is_plat("wasm") then
+            cprint("${yellow}creating stem.html${clear}")
+            os.cp(
+                path.join(os.projectdir(), "tools", "wasm", "stem.html"),
+                target:targetdir()
+            )
+        end
+    end)
+
     on_run(function (target)
         import("core.base.option")
 
