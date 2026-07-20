@@ -118,6 +118,8 @@
 ("Reasoning" "推理中")
 ("Rename" "重命名")
 ("Replace TeXmacs styles with no LaTeX equivalents" "替换没有 LaTeX 等价项的 TeXmacs 样式")
+("Requires restarting Mogan STEM to take full effect. Restart now?" "需要重新启动 Mogan STEM 才能完全生效。现在重启吗？")
+("Requires restarting Liii STEM to take full effect. Restart now?" "需要重新启动 Liii STEM 才能完全生效。现在重启吗？")
 ("Restart TeXmacs in order to let changes take effect" "重启TeXmacs以使您的更改生效")
 ("Restore" "恢复")
 ("Return::keyboard" "Return")

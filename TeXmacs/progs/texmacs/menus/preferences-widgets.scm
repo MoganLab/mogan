@@ -175,7 +175,7 @@
       ) ;enum
     ) ;item
     (item (text "Magic paste shortcut:")
-      (enum (set-pretty-preference "magic-paste-shortcut" answer)
+      (enum (set-pretty-preference* "magic-paste-shortcut" answer)
         (if (os-macos?) '("Cmd+Shift+V" "Cmd+V") '("Ctrl+Shift+V" "Ctrl+V"))
         (get-pretty-preference "magic-paste-shortcut")
         "18em"
