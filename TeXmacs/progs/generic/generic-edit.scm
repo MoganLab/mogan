@@ -1216,7 +1216,7 @@
 (tm-define (kbd-cut) (clipboard-cut "primary"))
 (tm-define (kbd-paste)
   (clipboard-paste "primary")
-  (when (chat-input-buffer? (current-buffer-url))
+  (when (and (defined? 'chat-input-buffer?) (chat-input-buffer? (current-buffer-url)))
     (qt-chat-notify-input-height)
   ) ;when
   (when (defined? 'tutorial-notify-action)
@@ -1467,7 +1467,7 @@
                             ) ;lambda
     ) ;with-magic-paste-check
   ) ;if
-  (when (chat-input-buffer? (current-buffer-url))
+  (when (and (defined? 'chat-input-buffer?) (chat-input-buffer? (current-buffer-url)))
     (qt-chat-notify-input-height)
   ) ;when
   (when (defined? 'tutorial-notify-action)

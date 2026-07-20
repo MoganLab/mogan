@@ -162,7 +162,9 @@
 ) ;tm-define
 
 (tm-define (table-resize-notify t)
-  (when (chat-input-buffer? (current-buffer-url))
+  ;; chat-input-buffer? 由 llm 插件懒加载定义；插件未加载时（如 headless 测试
+  ;; 或未启用 chat 的发行）符号 unbound，用 defined? 兜底，避免抛错。
+  (when (and (defined? 'chat-input-buffer?) (chat-input-buffer? (current-buffer-url)))
     (qt-chat-notify-input-height)
   ) ;when
 ) ;tm-define
