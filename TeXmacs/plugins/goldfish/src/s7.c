@@ -480,8 +480,9 @@ using namespace std; /* the code has to work in C as well as C++, so we can't
 #if (defined(__GNUC__))
 #define s7_complex_i 1.0i
 #else
-#define s7_complex_i (s7_complex) _Complex_I /* a float, but we want a double  \
-                                              */
+#define s7_complex_i                                                           \
+  (s7_complex) _Complex_I /* a float, but we want a double                     \
+                           */
 #endif
 #endif
 
@@ -2552,8 +2553,9 @@ check_ref_two (s7_pointer p, uint8_t expected_type, int32_t other_type,
 #define T_Met(P)                                                               \
   check_ref_met (P, __func__,                                                  \
                  __LINE__) /* anything that might contain a method */
-#define T_Muti(P) check_ref_muti (P, __func__, __LINE__) /* a mutable integer  \
-                                                          */
+#define T_Muti(P)                                                              \
+  check_ref_muti (P, __func__, __LINE__) /* a mutable integer                  \
+                                          */
 #define T_Nmv(P)                                                               \
   check_ref_nmv (                                                              \
       P, __func__,                                                             \
@@ -3703,8 +3705,9 @@ make_boolean (s7_scheme* sc, bool val) {
 #define set_opt1(p, x, Role)                                                   \
   set_opt1_1 (T_Pair (p), x, Role, __func__, __LINE__)
 
-#define OPT2_KEY (1 << 13)    /* case key */
-#define OPT2_SLOW (1 << 14)   /* slow list in member/assoc circular list check \
+#define OPT2_KEY (1 << 13) /* case key */
+#define OPT2_SLOW                                                              \
+  (1 << 14)                   /* slow list in member/assoc circular list check \
                                */
 #define OPT2_SYM (1 << 15)    /* symbol */
 #define OPT2_PAIR (1 << 16)   /* pair */
@@ -4619,8 +4622,9 @@ slot_expression (s7_pointer p) {
 #define c_function_is_aritable(f, N)                                           \
   ((c_function_min_args (f) <= N) && (c_function_max_args (f) >= N))
 #define c_function_name(f) c_function_data (f)->name /* const char* */
-#define c_function_name_length(f) c_function_data (f)->name_length /* int32_t  \
-                                                                    */
+#define c_function_name_length(f)                                              \
+  c_function_data (f)->name_length                           /* int32_t        \
+                                                              */
 #define c_function_documentation(f) c_function_data (f)->doc /* const char* */
 #define c_function_signature(f)                                                \
   T_Prf (c_function_data (f)->signature) /* pair or #f */
@@ -8910,7 +8914,7 @@ methods_or_bust_pp (s7_scheme* sc, s7_pointer obj, s7_pointer method1,
                     s7_pointer method2, s7_pointer x1, s7_pointer x2,
                     s7_pointer typ,
                     int32_t    num) { /* this is for the memq/memv and assq/assv
-                                      equivalence in r7rs */
+                                   equivalence in r7rs */
   s7_pointer func;
   if (!has_active_methods (sc, obj))
     wrong_type_error_nr (sc, method1, num, obj, typ);
@@ -16660,7 +16664,7 @@ number_to_string_with_radix (s7_scheme* sc, s7_pointer obj, int32_t radix,
           sc,
           wrap_real (sc, x / pow ((double) radix,
                                     (double) ep)), /* divide it down to one digit,
-                                                    then the fractional part */
+                                                  then the fractional part */
           radix, width, precision, float_choice, &len);
       b1     = inline_mallocate (sc, len + 8);
       p      = (char*) block_data (b1);
@@ -21868,7 +21872,7 @@ next_random (s7_pointer r) {
 
   s7_uint x= random_seed (r), c= random_carry (r);
   s7_uint u_result= x;
-      /* Or, result = x ^ (x << 32) (see above) */ /* s7_uint == uint64_t */
+  /* Or, result = x ^ (x << 32) (see above) */ /* s7_uint == uint64_t */
   const __uint128_t t= MWC_A1 * (__uint128_t) x + c;
   random_seed (r)    = t;
   random_carry (r)   = t >> 64;
@@ -24410,7 +24414,7 @@ string_read_line (s7_scheme* sc, s7_pointer port, bool with_eol) {
   const char*  start     = port_str + port_start;
   const char*  cur       = (const char*) strchr (
       start, (int) '\n'); /* this can run off the end making valgrind unhappy,
-                                     but I think it's innocuous */
+                                             but I think it's innocuous */
   if (cur) {
     s7_int len;
     port_line_number (port)++;
@@ -44868,8 +44872,8 @@ symbol_equivalent (s7_scheme* sc, s7_pointer x, s7_pointer y,
   return (
       (is_slot (global_slot (x))) && /* the optimizer can replace the original
                                         symbol with its value */
-      (is_syntax (global_value (x))) &&
-      (is_slot (global_slot (y))) && (is_syntax (global_value (y))) &&
+      (is_syntax (global_value (x))) && (is_slot (global_slot (y))) &&
+      (is_syntax (global_value (y))) &&
       (syntax_symbol (global_value (x)) == syntax_symbol (global_value (y))));
 }
 
@@ -54824,8 +54828,8 @@ fx_sub_mul_mul (s7_scheme* sc, s7_pointer arg) /* (- (* x1 x2) (* x3 x4)) */
   s7_pointer x1= lookup (sc, car (p1));
   s7_pointer x2= lookup (sc, cadr (p1));
   s7_pointer p2= opt1_pair (cdr (arg));
-      /* cdadr(arg) */ /* here and elsewhere this should be GC safe -- opssq->*
-                          (no methods?) etc */
+  /* cdadr(arg) */ /* here and elsewhere this should be GC safe -- opssq->*
+                      (no methods?) etc */
   s7_pointer x3= lookup (sc, car (p2));
   s7_pointer x4= lookup (sc, cadr (p2));
   if ((is_t_real (x1)) && (is_t_real (x2)) && (is_t_real (x3)) &&
@@ -55628,7 +55632,7 @@ fx_and_s_2 (s7_scheme* sc, s7_pointer arg) {
 static s7_pointer
 fx_len2_t (s7_scheme* sc, s7_pointer arg) {
   s7_pointer val= t_lookup (sc, opt1_sym (cdr (arg)), arg);
-      /* isn't this unprotected from mock pair? */ /* opt1_sym == cadadr(arg) */
+  /* isn't this unprotected from mock pair? */ /* opt1_sym == cadadr(arg) */
   return (make_boolean (sc, is_pair (val) && (is_pair (cdr (val))) &&
                                 (is_null (cddr (val)))));
 }
@@ -60299,7 +60303,7 @@ d_7pi_ok (s7_scheme* sc, opt_info* opc, s7_pointer s_func,
   const int32_t start= sc->pc;
   s7_d_7pi_t    ifunc= s7_d_7pi_function (
       s_func); /* ifunc: float_vector_ref_d_7pi, s_func:
-                     global_value(sc->float_vector_ref_symbol) */
+                        global_value(sc->float_vector_ref_symbol) */
   if (!ifunc) {
     if ((is_eq_initial_c_function_data (sc->vector_ref_symbol, s_func)) &&
         (is_normal_symbol (
@@ -61153,8 +61157,8 @@ opt_d_dd_ff_mul_sss_unchecked (opt_info* o) {
   s7_double  x1 = float_vector (vec, (i1 * vector_offset (vec, 0)) + i2);
   o1            = q_func2_arg (o).o1;
   vec           = slot_value (q_arg1 (o1).p);
-  i1            = integer (
-      slot_value (q_arg2 (o1).p)); /* in (* (A i j) (B j k)) we could reuse
+  i1            = integer (slot_value (
+      q_arg2 (o1).p)); /* in (* (A i j) (B j k)) we could reuse
                                                   i2->i1 (flipping args below) */
   i2= integer (slot_value (q_arg3 (o1).p));
   return (x1 * float_vector (vec, (i1 * vector_offset (vec, 0)) + i2));
@@ -66198,7 +66202,7 @@ p_implicit_ok (s7_scheme* sc, s7_pointer s_slot, s7_pointer expr, int32_t len) {
         return_true (sc, expr);
       }
     }
-  }      /* len==2 */
+  } /* len==2 */
   else { /* len > 2 */
     if ((is_t_vector (obj)) && (len == 3) && (vector_rank (obj) == 2)) {
       const s7_pointer arg2_slot= opt_integer_symbol (sc, caddr (expr));
@@ -69991,8 +69995,8 @@ g_for_each_closure (s7_scheme* sc, s7_pointer clo,
         if (iterator_is_at_end (seq)) return (clear_for_each (sc));
         func (sc);
       }
-    }    /* we never get here -- the while loops above exit via return
-            #<unspecified> */
+    } /* we never get here -- the while loops above exit via return
+         #<unspecified> */
     else /* not func -- unneeded "else" but otherwise confusing code */
     {
       set_no_cell_opt (body);
@@ -73158,12 +73162,13 @@ unbound_variable_error_nr (s7_scheme* sc, s7_pointer sym) {
             "call-with-output-string",
             "set-current-output-port"};
 
-        static const int32_t main_names_index[LEVEN_MAX_LEN]= {
-            0,   7,   27,  62,  103, 156, 184, 206, 243, 265, 296, 321,
-            344, 361, 378, 397, 407, 417, 425, 432, 435, 440, 442}; /* 443==NULL,
-                                                                       7858 -
-                                                                       3576
-                                                                       bytes */
+        static const int32_t main_names_index
+            [LEVEN_MAX_LEN]= {0,   7,   27,  62,  103, 156, 184, 206,
+                              243, 265, 296, 321, 344, 361, 378, 397,
+                              407, 417, 425, 432, 435, 440, 442}; /* 443==NULL,
+                                                                     7858 -
+                                                                     3576
+                                                                     bytes */
         const int32_t start= main_names_index[sym_len - 2],
                       end  = main_names_index[sym_len - 1];
 #if 0
@@ -77780,9 +77785,10 @@ check_recur (s7_scheme* sc, s7_pointer name, int32_t pars, s7_pointer args,
                          (is_fxable (sc, cadr (la2))) &&
                          (is_fxable (sc, caddr (la2)))) {
                   set_safe_optimize_op (
-                      body, OP_RECUR_COND_A_A_A_A_opA_L2Aq); /* see
-                                                                if_a_a_if_a_l2a_opa_l2a,
-                                                                first l2a->a */
+                      body,
+                      OP_RECUR_COND_A_A_A_A_opA_L2Aq); /* see
+                                                          if_a_a_if_a_l2a_opa_l2a,
+                                                          first l2a->a */
                   fx_annotate_arg (sc, cdr (la_clause), args);
                   happy= true;
                 }
@@ -84503,7 +84509,7 @@ op_implicit_vector_ref_aa (
                         ? make_real (sc, float_vector (vec, index))
                         : vector_getter (vec) (
                            sc, vec, index); /* check for normal vector saves in
-                                                  some cases, costs in others */
+                                                     some cases, costs in others */
       unstack_gc_protect (sc);
       return (true);
     }
@@ -106370,6 +106376,38 @@ is #t, the string is also sent to the current-output-port."
   sc->list_tail_symbol= defun ("list-tail", list_tail, 2, 0, false);
   sc->make_list_symbol= defun ("make-list", make_list, 1, 1, false);
   set_is_saver (sc->make_list_symbol);
+
+#define H_filter                                                               \
+  "(g_filter pred lst) returns a list of the elements of lst for which (pred " \
+  "element) is not #f"
+#define Q_filter                                                               \
+  s7_make_signature (sc, 3, sc->is_list_symbol, sc->is_procedure_symbol,       \
+                     sc->is_list_symbol)
+  s7_define_semisafe_typed_function (sc, "g_filter", g_filter, 2, 0, false,
+                                     H_filter, Q_filter);
+
+#define H_take "(g_take lst k) returns a list of the first k elements of lst"
+#define Q_take                                                                 \
+  s7_make_signature (sc, 3, sc->is_list_symbol, sc->is_list_symbol,            \
+                     sc->is_integer_symbol)
+  s7_define_semisafe_typed_function (sc, "g_take", g_take, 2, 0, false, H_take,
+                                     Q_take);
+
+/* take-right can return the non-pair tail of a dotted list, hence the #t return
+ * signature */
+#define H_take_right "(g_take_right lst k) returns the last k elements of lst"
+#define Q_take_right                                                           \
+  s7_make_signature (sc, 3, sc->T, sc->is_list_symbol, sc->is_integer_symbol)
+  s7_define_semisafe_typed_function (sc, "g_take_right", g_take_right, 2, 0,
+                                     false, H_take_right, Q_take_right);
+
+#define H_drop_right                                                           \
+  "(g_drop_right lst k) returns a list of all but the last k elements of lst"
+#define Q_drop_right                                                           \
+  s7_make_signature (sc, 3, sc->is_list_symbol, sc->is_list_symbol,            \
+                     sc->is_integer_symbol)
+  s7_define_semisafe_typed_function (sc, "g_drop_right", g_drop_right, 2, 0,
+                                     false, H_drop_right, Q_drop_right);
 
   sc->length_symbol= defun ("length", length, 1, 0, false);
   sc->copy_symbol  = defun ("copy", copy, 1, 3, false);
