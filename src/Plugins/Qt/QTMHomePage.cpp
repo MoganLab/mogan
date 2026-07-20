@@ -239,7 +239,8 @@ QTMHomePage::QTMHomePage (QWidget* parent) : QWidget (parent) {
       refreshTemplateCards ();
     }
     else if (!mgr->isInitialized ()) {
-      QTimer::singleShot (0, [mgr] () { mgr->initialize (); });
+      // mgr 作 receiver：QObject 析构时 Qt 自动断开定时器，避免悬挂
+      QTimer::singleShot (0, mgr, [mgr] () { mgr->initialize (); });
     }
   }
 }
