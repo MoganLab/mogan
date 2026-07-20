@@ -30,6 +30,8 @@ on:
       - 'moebius/xmake.lua'
       - '.github/workflows/ci-macos-arm64.yml'
       - 'TeXmacs/tests/*.scm'
+      - 'TeXmacs/progs/**'
+      - 'TeXmacs/plugins/**'
       - '3rdparty/**'
   pull_request:
     branches: [ main ]
@@ -60,6 +62,8 @@ on:
       - 'moebius/xmake.lua'
       - '.github/workflows/ci-macos-arm64.yml'
       - 'TeXmacs/tests/*.scm'
+      - 'TeXmacs/progs/**'
+      - 'TeXmacs/plugins/**'
       - '3rdparty/**'
 
 jobs:
@@ -118,6 +122,8 @@ jobs:
               - 'xmake/packages/**'
               - 'xmake-requires.lock'
               - 'TeXmacs/tests/*.scm'
+              - 'TeXmacs/progs/**'
+              - 'TeXmacs/plugins/**'
               - '3rdparty/**'
 
       - name: cache xmake

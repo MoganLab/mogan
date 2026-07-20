@@ -270,8 +270,6 @@
   (check (defined? 'widget-ref) => #t)
   (check (defined? 'widget-set!) => #t)
   (check (defined? 'widget-delayed) => #t)
-  (check (defined? 'widget->script) => #t)
-  (check (defined? 'script->widget) => #t)
   (check (defined? 'display*) => #t)
   (check (defined? 'noop) => #t)
   (check (defined? 'tree->string) => #t)

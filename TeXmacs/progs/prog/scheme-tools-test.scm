@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (prog scheme-tools-test) (:use (prog scheme-tools-test)))
+(texmacs-module (prog scheme-tools-test) (:use (prog scheme-tools)))
 
 (import (liii check))
 

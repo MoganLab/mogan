@@ -29,8 +29,9 @@
 
 (tm-define alias-car car)
 
+(tm-define s2f string->float)
+
 (define (test-procedure-name)
-  ;; (tm-define s2f string->float)
   (check (procedure-name string->float) => 's2f)
   (check (procedure-name car) => 'alias-car)
   (check (procedure-name utf8->cork) => 'utf8->cork)

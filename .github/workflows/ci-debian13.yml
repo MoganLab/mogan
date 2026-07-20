@@ -17,6 +17,8 @@ on:
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
+      - "TeXmacs/progs/**"
+      - "TeXmacs/plugins/**"
       - "3rdparty/**"
   pull_request:
     branches: [main]
@@ -35,6 +37,8 @@ on:
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
+      - "TeXmacs/progs/**"
+      - "TeXmacs/plugins/**"
       - "3rdparty/**"
   workflow_dispatch:
 
@@ -125,6 +129,8 @@ jobs:
               - 'xmake/packages.lua'
               - 'xmake/packages/**'
               - 'TeXmacs/tests/*.scm'
+              - 'TeXmacs/progs/**'
+              - 'TeXmacs/plugins/**'
               - '3rdparty/**'
 
       - name: config
