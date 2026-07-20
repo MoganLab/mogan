@@ -238,6 +238,14 @@ loro_test_capture_update (void* ud, const uint8_t* bytes, size_t len) {
   *s     = string ((const char*) bytes, (int) len);
 }
 
+// 逐条捕获每次 commit 的 delta（模拟真实编辑器：每个 local-update 立即发
+// WS，B 逐条 import）。
+extern "C" void
+loro_test_collect_update (void* ud, const uint8_t* bytes, size_t len) {
+  auto* v= static_cast<list<string>*> (ud);
+  *v     = *v * list<string> (string ((const char*) bytes, (int) len));
+}
+
 TEST_CASE ("loro event: incremental sync via local-update events") {
   ensure_labels ();
   tree init (DOCUMENT, 1);
@@ -319,6 +327,103 @@ TEST_CASE ("loro reverse: remote edit -> modification (apply to buffer)") {
   expected[0][0]   = tree (CONCAT, 1);
   expected[0][0][0]= tree ("xy");
   CHECK_EQ (buf == expected, true);
+}
+
+// 粘贴多行回归：A 粘贴含多个 para 的片段并逐行填充，B 经 delta 同步后必须
+// 收到全部行（此前 B 只收到第一行）。忠实模拟 edit_announce(clean_apply) →
+// edit_done(mirror) 时序——mirror_mod 读的是 post-apply buffer。
+TEST_CASE (
+    "loro paste: multi-child block insert at document root propagates fully") {
+  ensure_labels ();
+  // 初始文档 (document (para "line1") ... (para "line4"))。
+  tree tA (DOCUMENT, 4);
+  for (int i= 0; i < 4; i++) {
+    tA[i]   = tree (PARA, 1);
+    string s= string ("line") * as_string (i + 1);
+    tA[i][0]= tree (s);
+  }
+  loro_shadow a;
+  a->seed (tA);
+  string s0= a->export_snapshot ();
+
+  // B 用 import_and_build 建共享身份的 buffer（与真实新加入者一致）
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  CHECK_EQ (tB == tA, true);
+
+  // A 逐条捕获 delta（真实编辑器：每个 local-update 立即发 WS）
+  list<string> deltas;
+  a->on_local_update (loro_test_collect_update, &deltas);
+
+  // 忠实模拟 edit_announce(应用) → edit_done(mirror) 时序：先 clean_apply
+  // 推进 buffer 到 post-apply，再 mirror（mirror_mod 读 post-apply buffer）。
+  auto apply_mirror= [] (loro_shadow& sh, tree& buf, modification m) {
+    buf= clean_apply (buf, m);
+    sh->mirror_mod (buf, m);
+  };
+
+  // A：末尾粘贴 4 个 para（单个根插入 mod，片段含 4 个 para）
+  tree clip (DOCUMENT, 4);
+  for (int i= 0; i < 4; i++)
+    clip[i]= tree (PARA, 1);
+  apply_mirror (a, tA, mod_insert (path (), 4, clip));
+
+  // A：逐行把新 para（索引 4..7）填成 line1..line4（每行一个原子插入 mod）
+  for (int i= 0; i < 4; i++) {
+    string s= string ("line") * as_string (i + 1);
+    apply_mirror (a, tA, mod_insert (path (4 + i) * 0, 0, tree (s)));
+  }
+
+  // A 端自洽：shadow == buffer（8 行）
+  CHECK_EQ (N (tA) == 8, true);
+  CHECK_EQ (a->to_tree () == tA, true);
+
+  // B：逐条导入 delta（与真实时序一致）→ shadow 必须收敛到 8 行
+  CHECK_EQ (N (deltas) > 0, true);
+  for (list<string> l= deltas; !is_nil (l); l= l->next)
+    CHECK_EQ (b->import_data (l->item), true);
+  CHECK_EQ (b->to_tree () == tA, true); // B 端必须收到全部 4 个新行
+}
+
+// 单根插入 mod 携带多子节点片段（mod->t 是复合、N>1）时，mirror_mod 必须把
+// 每个子节点都 seed 进 shadow——否则只有第一个子节点进 shadow，远端丢后续节点。
+// 这是粘贴多行/多块的核心缺陷（不依赖具体编辑器的粘贴 mod
+// 序列，直接命中分支）。
+TEST_CASE ("loro mirror: multi-child insert mod seeds all children") {
+  ensure_labels ();
+  // 初始 (document (para "a") (para "b"))，B 经 import_and_build 共享身份
+  tree tA (DOCUMENT, 2);
+  tA[0]   = tree (PARA, 1);
+  tA[0][0]= tree ("a");
+  tA[1]   = tree (PARA, 1);
+  tA[1][0]= tree ("b");
+  loro_shadow a;
+  a->seed (tA);
+  string      s0= a->export_snapshot ();
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+
+  list<string> deltas;
+  a->on_local_update (loro_test_collect_update, &deltas);
+
+  // 在根插入一个含 3 个 para 的片段（mod->t 是多子节点复合）
+  tree frag (DOCUMENT, 3);
+  for (int i= 0; i < 3; i++) {
+    frag[i]   = tree (PARA, 1);
+    frag[i][0]= tree (string ("x") * as_string (i));
+  }
+  modification m= mod_insert (path (), 2, frag);
+  tA            = clean_apply (tA, m); // post-apply: 5 个 para
+  a->mirror_mod (tA, m);
+
+  CHECK_EQ (N (tA) == 5, true);
+  CHECK_EQ (a->to_tree () == tA, true); // A 端 shadow 应有全部 5 个 para
+
+  for (list<string> l= deltas; !is_nil (l); l= l->next)
+    CHECK_EQ (b->import_data (l->item), true);
+  CHECK_EQ (b->to_tree () == tA, true); // B 端必须收到全部 3 个新 para
 }
 
 #endif // LORO_ENABLED
