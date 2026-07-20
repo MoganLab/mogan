@@ -124,14 +124,6 @@
   ) ;let
 ) ;define-public
 
-(define-public (list-tail lis k)
-  (let iter
-    ((lis lis) (k k))
-    (if (zero? k) lis (iter (cdr lis) (- k 1)))
-  ) ;let
-) ;define-public
-
-
 (define-public list-take list-head)
 ;; SRFI-1
 (define-public list-drop list-tail)
