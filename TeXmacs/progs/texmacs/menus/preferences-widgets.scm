@@ -28,7 +28,6 @@
 (define (restart-preference-title which)
   (cond ((== which "look and feel") (translate "Switch look and feel"))
         ((== which "gui theme") (translate "Switch interface theme"))
-        ((== which "magic-paste-shortcut") (translate "Switch magic paste shortcut"))
         ((== which "keyboard shortcut style")
          (translate "Switch keyboard shortcut style")
         ) ;
@@ -176,7 +175,7 @@
       ) ;enum
     ) ;item
     (item (text "Magic paste shortcut:")
-      (enum (set-pretty-preference* "magic-paste-shortcut" answer)
+      (enum (set-pretty-preference "magic-paste-shortcut" answer)
         (if (os-macos?) '("Cmd+Shift+V" "Cmd+V") '("Ctrl+Shift+V" "Ctrl+V"))
         (get-pretty-preference "magic-paste-shortcut")
         "18em"

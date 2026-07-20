@@ -125,8 +125,8 @@ string cpp_confirm_close (string message, bool scratch);
  * @param message 已翻译的正文（如「此更改需要重新启动 Mogan STEM
  * 才能完全生效。」）。
  * @return "restart" / "later" / "cancel" 之一。
- * @details 用于首选项里改 look and feel / gui theme /
- * magic-paste-shortcut / keyboard shortcut style 等需重启字段后的确认，替换旧
+ * @details 用于首选项里改 look and feel / gui theme / keyboard shortcut style
+ * 等需重启字段后的确认，替换旧
  * user-confirm（两按钮）。 按钮顺序为 重启（primary）、稍后、取消，对应
  * run_qml_dialog 返回的按钮下标 1/2/3（0 / -1 = Esc / X / 加载失败 =
  * cancel）。测试钩子 MOGAN_TEST_CONFIRM_RESTART=restart|later|cancel

@@ -26,8 +26,16 @@
 (define (notify-auto-close-brackets var val)
   (set! auto-close-brackets? (== val "on")))
 
+;; 改 magic-paste-shortcut 偏好时重绑 std v/V（kbd-apply-magic-paste-shortcut 在
+;; generic-kbd.scm 定义）。启动早期 define-preferences 注册默认值即触发一次 notify，
+;; 此时该函数可能尚未定义，用 defined? 守卫。
+(define (notify-magic-paste-shortcut var val)
+  (when (defined? 'kbd-apply-magic-paste-shortcut)
+    (kbd-apply-magic-paste-shortcut)))
+
 (define-preferences
   ("keyboard shortcut style" "text" ignore)
+  ("magic-paste-shortcut" "ctrl+shift+v" notify-magic-paste-shortcut)
   ("text spacebar" "allow multiple spaces" ignore)
   ("math spacebar" "default" ignore)
   ("automatic quotes" "default" notify-quoting-style)

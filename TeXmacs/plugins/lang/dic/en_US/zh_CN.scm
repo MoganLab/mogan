@@ -2399,7 +2399,6 @@
 ("switch interface theme" "切换界面主题")
 ("switch keyboard shortcut style" "切换快捷键显示风格")
 ("switch look and feel" "切换外观风格")
-("switch magic paste shortcut" "切换魔法的粘贴快捷键")
 ("switch preference" "切换首选项")
 ("switch to first" "跳到第前面")
 ("switch to formula style" "")
