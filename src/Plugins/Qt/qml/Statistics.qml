@@ -68,7 +68,6 @@ DialogShell {
                             text: modelData.value
                             color: Theme.fg
                             font.pixelSize: Theme.fontBody
-                            font.weight: Font.Bold
                             font.family: "monospace"
                             horizontalAlignment: Text.AlignRight
                         }

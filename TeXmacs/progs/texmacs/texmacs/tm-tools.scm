@@ -139,32 +139,7 @@
   (if (selection-active-any?) (selection-tree) (buffer-tree))
 ) ;define
 
-(tm-define (get-statistics-data)
-  (:synopsis "Return structured statistics data for current document/selection.\nEach element is (label value) where value is already stringified."
-  ) ;:synopsis
-  (let* ((doc (selection-or-document))
-         (chars (count-characters doc))
-         (chars-ns (count-chars-no-space doc))
-         (lines (count-lines doc))
-         (p (count-chinese-and-words doc))
-         (chinese (car p))
-         (words (count-words doc))
-         (pages (get-page-count))
-        ) ;
-    (list (list (translate "Page count") (number->string pages))
-      (list (translate "Word count") (number->string (+ words chinese)))
-      (list (translate "Character count (with spaces)") (number->string chars))
-      (list (translate "Character count (without spaces)") (number->string chars-ns))
-      (list (translate "Paragraph count") (number->string lines))
-      (list (translate "Non-Chinese word") (number->string words))
-      (list (translate "Chinese character") (number->string chinese))
-    ) ;list
-  ) ;let*
-) ;tm-define
-
-(tm-define (get-statistics-data-from-doc doc)
-  (:synopsis "Like get-statistics-data but takes explicit doc tree.\nPage count is not available without an editor and defaults to \"0\"."
-  ) ;:synopsis
+(define (compute-stats-data doc page-str)
   (let* ((chars (count-characters doc))
          (chars-ns (count-chars-no-space doc))
          (lines (count-lines doc))
@@ -172,7 +147,7 @@
          (chinese (car p))
          (words (count-words doc))
         ) ;
-    (list (list (translate "Page count") "0")
+    (list (list (translate "Page count") page-str)
       (list (translate "Word count") (number->string (+ words chinese)))
       (list (translate "Character count (with spaces)") (number->string chars))
       (list (translate "Character count (without spaces)") (number->string chars-ns))
@@ -181,11 +156,22 @@
       (list (translate "Chinese character") (number->string chinese))
     ) ;list
   ) ;let*
+) ;define
+
+(tm-define (get-statistics-data)
+  (:synopsis "Return ((label value) ...) for current document or selection.")
+  (let* ((doc (selection-or-document)) (pages (number->string (get-page-count))))
+    (compute-stats-data doc pages)
+  ) ;let*
+) ;tm-define
+
+(tm-define (get-statistics-data-from-doc doc)
+  (:synopsis "Return ((label value) ...) for given doc tree. Page count is 0.")
+  (compute-stats-data doc "0")
 ) ;tm-define
 
 (define (statistics-data->stree data)
-  ;; (stats (item <label> <value>) ...)，label/value 为子节点而非 compound 名，避免
-  ;; get_label 对中文加引号。
+  ;; (stats (item <label> <value>) ...)
   (cons 'stats
     (map (lambda (pair) (cons 'item (list (car pair) (cadr pair)))) data)
   ) ;cons

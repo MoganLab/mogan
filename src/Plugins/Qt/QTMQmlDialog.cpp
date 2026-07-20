@@ -492,7 +492,6 @@ cpp_statistics_dialog (string title, tree items) {
   if (is_compound (items)) {
     for (int i= 0; i < N (items); i++) {
       // (stats (item <label> <value>) ...)
-      // label/value 为子节点，避免 get_label(compound) 对中文加引号。
       if (is_compound (items[i]) && N (items[i]) >= 2 &&
           is_atomic (items[i][0]) && is_atomic (items[i][1])) {
         QVariantMap row;

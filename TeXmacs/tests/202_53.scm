@@ -52,12 +52,13 @@
     (check data-labels
       =>
       (list (translate "Page count")
-            (translate "Word count")
-            (translate "Character count (with spaces)")
-            (translate "Character count (without spaces)")
-            (translate "Paragraph count")
-            (translate "Non-Chinese word")
-            (translate "Chinese character"))
+        (translate "Word count")
+        (translate "Character count (with spaces)")
+        (translate "Character count (without spaces)")
+        (translate "Paragraph count")
+        (translate "Non-Chinese word")
+        (translate "Chinese character")
+      ) ;list
     ) ;check
 
     ;; 验证 7 个统计项
