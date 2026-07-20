@@ -104,6 +104,13 @@ set_user_preference (string var, string val) {
 }
 
 void
+set_user_preference_silent (string var, string val) {
+  if (val == "default") user_prefs->reset (var);
+  else user_prefs (var)= val;
+  user_prefs_modified= true;
+}
+
+void
 reset_user_preference (string var) {
   user_prefs->reset (var);
   user_prefs_modified= true;

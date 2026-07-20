@@ -95,6 +95,7 @@
     "cpp-has-preference?"
     "cpp-get-preference"
     "cpp-set-preference"
+    "cpp-set-preference-silent"
     "cpp-reset-preference"
     "save-preferences"
     "get-default-printing-command"

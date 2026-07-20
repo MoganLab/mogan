@@ -21,6 +21,7 @@ void   get_old_settings (string s);
 bool   has_user_preference (string var);
 string get_user_preference (string var, string def= "");
 void   set_user_preference (string var, string val);
+void   set_user_preference_silent (string var, string val);
 void   reset_user_preference (string var);
 void   load_user_preferences ();
 void   save_user_preferences ();

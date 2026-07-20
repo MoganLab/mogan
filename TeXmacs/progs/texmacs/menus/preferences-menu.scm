@@ -49,31 +49,28 @@
 
 ;; 三按钮重启确认：弹 ConfirmRestart（重启/稍后/取消），按返回值分别
 ;;   restart -> apply-proc + 存盘 + 重启
-;;   later   -> later-proc（缺省 = apply-proc）
+;;   later   -> later-proc（写新值但不触发实时副作用，下次启动生效）
 ;;   cancel  -> rollback-proc（回滚旧值）
-;; 多数字段 later 与 restart 一样落定新值（实时生效或下次启动均可）；
-;; language 例外——实时切换可能 crash，later 只写值不触发实时切（下次启动生效），
-;; 故传入专门的 later-proc（写值不 notify）。
-(tm-define (confirm-restart-and-act title apply-proc rollback-proc . opt)
-  (let ((later-proc (if (null? opt) apply-proc (car opt))))
-    (with msg
-      (restart-effect-message)
-      (with choice
-        (cpp-confirm-restart title msg)
-        (cond ((== choice "restart")
-               (apply-proc)
-               (when (not (defined? 'save-all-buffers))
-                 (use-modules (plugin autosave))
-               ) ;when
-               (save-all-buffers)
-               (restart-TeXmacs)
-              ) ;
-              ((== choice "later") (later-proc))
-              (else (rollback-proc))
-        ) ;cond
-      ) ;with
+;; later-proc 由调用方给出 silent 写值过程（如 set-pretty-preference-silent /
+;; cpp-set-preference-silent）：需重启字段当前会话不实时切，避免 crash 或状态不一致。
+(tm-define (confirm-restart-and-act title apply-proc rollback-proc later-proc)
+  (with msg
+    (restart-effect-message)
+    (with choice
+      (cpp-confirm-restart title msg)
+      (cond ((== choice "restart")
+             (apply-proc)
+             (when (not (defined? 'save-all-buffers))
+               (use-modules (plugin autosave))
+             ) ;when
+             (save-all-buffers)
+             (restart-TeXmacs)
+            ) ;
+            ((== choice "later") (later-proc))
+            (else (rollback-proc))
+      ) ;cond
     ) ;with
-  ) ;let
+  ) ;with
 ) ;tm-define
 
 (tm-menu (scripts-preferences-menu)
@@ -129,8 +126,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; language 切换需重启才生效：restart 落定并重启；later 只写值不实时切（下次启动生效，
-;; 实时切可能 crash）；cancel 回滚。故 later-proc 用 cpp-set-preference + save-preferences
-;; 跳过 notify-language 的实时切换。
+;; 实时切可能 crash）；cancel 回滚。故 later-proc 用 cpp-set-preference-silent（写值
+;; 不触发 notify_preference）+ save-preferences，避免 notify-language 实时切换。
 (tm-define (set-language-and-notify lan)
   (let ((old (get-preference "language")))
     (if (== lan old)
@@ -138,7 +135,7 @@
       (confirm-restart-and-act (restart-preference-title "language")
         (lambda () (set-preference "language" lan))
         (lambda () (set-preference "language" old))
-        (lambda () (cpp-set-preference "language" lan) (save-preferences))
+        (lambda () (cpp-set-preference-silent "language" lan) (save-preferences))
       ) ;confirm-restart-and-act
     ) ;if
   ) ;let
