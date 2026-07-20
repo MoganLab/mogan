@@ -1,0 +1,87 @@
+name: WASM CD for research.mogan.app
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
+      - "xmake.lua"
+      - 'xmake/options.lua'
+      - 'xmake/requires.lua'
+      - 'xmake/targets/**'
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/cd-research-mogan-app.yml"
+      - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
+  workflow_dispatch:
+
+env:
+  XMAKE_ROOT: y
+  INSTALL_DIR: tmp/build/packages/app.mogan/
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-14]
+        arch: [arm64]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+  
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{github.workspace}}/build/.build_cache
+            /Users/runner/.xmake
+          key: xmake-${{ runner.os }}-wasm-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.4
+          actions-cache-folder: '.xmake-cache'
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
+
+      - name: config
+        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m release -p wasm --qt_frontend=no --yes
+
+      - name: build
+        run: xmake build --yes -vD stem
+
+      - name: Prepare GitHub Pages files
+        run: |
+          cp site/research.mogan.app/CNAME build/wasm/wasm32/release/
+          mv build/wasm/wasm32/release/stem.html build/wasm/wasm32/release/index.html
+
+      - name: Push
+        uses: s0/git-publish-subdir-action@develop
+        if: github.event_name != 'pull_request'
+        env:
+          REPO: git@github.com:XmacsLabs/research.mogan.app.git
+          BRANCH: main # The branch name where you want to push the assets
+          FOLDER: build/wasm/wasm32/release # The directory where your assets are generated
+          MESSAGE: "Build: ({sha}) {msg}" # The commit message
+          SQUASH_HISTORY: true
+          SSH_PRIVATE_KEY: ${{ secrets.RESEARCH_PRIVATE }}
