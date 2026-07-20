@@ -51,7 +51,7 @@ empty_row (int nr_cols) {
 tree
 empty_row (int nr_cols, bool wrap) {
   // Like empty_row(nr_cols) but pre-wrap cells in DOCUMENT when the table's
-  // CELL_BLOCK/CELL_HYHEN formats require it. Pre-wrapping at construction
+  // CELL_BLOCK/CELL_HYPHEN formats require it. Pre-wrapping at construction
   // avoids one insert_node per cell later in table_correct_block_content,
   // each of which triggers a typesetter invalidation.
   int  i;
@@ -573,14 +573,23 @@ edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
   int  nr_rows, nr_cols;
   table_get_extents (p, nr_rows, nr_cols);
   tree T= subtree (et, p);
-  // Query wrap state once for the new cells. The format applies to all cells
-  // in the inserted row/column, so one query is enough — and using it to
-  // pre-wrap at construction saves one insert_node per cell later (each
-  // insert_node triggers a typesetter invalidation).
-  tree block = table_get_format (fp, 1, 1, 1, 1, CELL_BLOCK);
-  tree hyphen= table_get_format (fp, 1, 1, 1, 1, CELL_HYPHEN);
-  bool wrap  = (block == "yes") ||
-             (block == "auto" && is_atomic (hyphen) && hyphen != "n");
+  // Query wrap state once for the new cells, using cell (1,1) as a table-wide
+  // fallback for CELL_BLOCK / CELL_HYPHEN. This is only an optimization: if
+  // any inserted cell has a per-cell CWITH override, the pre-wrap guess here
+  // will be wrong for that cell, but table_correct_block_content (called by
+  // table_insert_row/column) re-checks each new cell's actual format and
+  // corrects the wrap. So correctness holds; the perf benefit shrinks in
+  // tables with per-cell overrides.
+  //
+  // Diverges from table_needs_document_wrap() in two ways: (a) treats any
+  // hyphen value other than "n" as needing wrap (covers "t" etc.), (b) skips
+  // wrap in math mode — math cells are never wrapped in DOCUMENT.
+  string mode  = get_env_string (MODE);
+  tree   block = table_get_format (fp, 1, 1, 1, 1, CELL_BLOCK);
+  tree   hyphen= table_get_format (fp, 1, 1, 1, 1, CELL_HYPHEN);
+  bool   wrap  = mode != "math" &&
+             (block == "yes" ||
+              (block == "auto" && is_atomic (hyphen) && hyphen != "n"));
   bench_start ("table_insert:row");
   if (insr > 0)
     if (row <= N (T)) insert (p * row, empty_table (insr, nr_cols, wrap));
