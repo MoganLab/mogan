@@ -12,6 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-modules (binary goldfish))
+(use-modules (plugin telemetry))
 (import (liii path))
 
 (define (telemetry-serialize lan t)
@@ -44,3 +45,18 @@
   (:launch ,(launcher))
   (:serializer ,telemetry-serialize)
 ) ;plugin-configure
+
+;; 启动初始化与周期 flush 调度由插件懒加载触发（插件在事件循环启动
+;; ~3s 后由 lazy-plugin-initialize 加载，因此 telemetry-clean-orphans、
+;; on-exit CLOSE 上报、周期 flush 均不在启动关键路径上）
+(catch #t
+  (lambda () (init-telemetry))
+  (lambda args
+    (let ((msg (string-append "[telemetry] error: init failed: " (object->string args) "\n")
+          ) ;msg
+         ) ;
+      (display msg (current-error-port))
+      (force-output (current-error-port))
+    ) ;let
+  ) ;lambda
+) ;catch

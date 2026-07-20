@@ -18,7 +18,6 @@
     (utils misc tooltip)
     (bibtex bib-complete)
     (source macro-search)
-    (telemetry telemetry-track)
   ) ;:use
 ) ;texmacs-module
 
@@ -1436,23 +1435,33 @@
   (if (string-starts? (qt-clipboard-format) "image")
     (begin
       (ocr-paste)
-      (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
+      (when (defined? 'track-event)
+        (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
+      ) ;when
     ) ;begin
     (with-magic-paste-check (lambda ()
                               (with mode
                                 (get-env "mode")
                                 (cond ((== mode "prog")
                                        (clipboard-paste-import "code" "primary")
-                                       (track-event "MAGIC_PASTE" '(("mode"
-                                                                     . "prog")))
+                                       (when (defined? 'track-event)
+                                         (track-event "MAGIC_PASTE" '(("mode"
+                                                                       . "prog")))
+                                       ) ;when
                                       ) ;
                                       ((== mode "math")
                                        (clipboard-paste-import "latex" "primary")
-                                       (track-event "MAGIC_PASTE" '(("mode"
-                                                                     . "math")))
+                                       (when (defined? 'track-event)
+                                         (track-event "MAGIC_PASTE" '(("mode"
+                                                                       . "math")))
+                                       ) ;when
                                       ) ;
-                                      (else (smart-format-paste) (track-event "MAGIC_PASTE" '(("mode"
-                                                                                               . "text"))))
+                                      (else (smart-format-paste)
+                                        (when (defined? 'track-event)
+                                          (track-event "MAGIC_PASTE" '(("mode"
+                                                                        . "text")))
+                                        ) ;when
+                                      ) ;else
                                 ) ;cond
                               ) ;with
                             ) ;lambda

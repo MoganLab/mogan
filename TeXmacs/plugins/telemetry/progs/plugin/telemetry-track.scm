@@ -11,8 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (telemetry telemetry-track)
-  (:use (telemetry telemetry-utils) (utils plugins plugin-eval))
+(texmacs-module (plugin telemetry-track)
+  (:use (plugin telemetry-utils) (utils plugins plugin-eval))
 ) ;texmacs-module
 
 (import (scheme base)
@@ -88,7 +88,7 @@
   ) ;or
 ) ;define-public
 
-(define-public (track-event event-type properties)
+(tm-define (track-event event-type properties)
   (if (not (telemetry-enabled?))
     #f
     (if (and (string? event-type) (not (string-null? event-type)))

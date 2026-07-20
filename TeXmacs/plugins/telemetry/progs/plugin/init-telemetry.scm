@@ -11,8 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (telemetry init-telemetry)
-  (:use (telemetry telemetry-track) (telemetry telemetry-utils))
+(texmacs-module (plugin init-telemetry)
+  (:use (plugin telemetry-track) (plugin telemetry-utils))
 ) ;texmacs-module
 
 (import (scheme base))
@@ -52,7 +52,12 @@
   ) ;let*
 ) ;define
 
-(define-public (init-telemetry)
+(tm-define (init-telemetry)
+  ;; 先消费 *telemetry-pending*：插件加载前 C++ 上报入队的事件在此一次性
+  ;; 补 track（若 telemetry-disabled?，track-event 内部会直接返回 #f，
+  ;; 符合预期）。drain 完成后清空 pending，后续上报走 track-event 直接路径。
+  ;; telemetry-drain-pending! 注入在 rootlet，这里直接调用。
+  (telemetry-drain-pending!)
   (if telemetry-scheduled?
     (debug-message "debug-events" "[telemetry] init: already initialized\n")
     (if (telemetry-enabled?)
