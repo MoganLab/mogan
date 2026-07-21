@@ -124,6 +124,14 @@
 
   <assign|version-notice-fg-color|#fff4cc>
 
+  <assign|old-version-color|#f87171>
+
+  <assign|old-version-bg-color|#450a0a>
+
+  <assign|new-version-color|#34d399>
+
+  <assign|new-version-bg-color|#022c22>
+
   <assign|script-status-color|#2b2f4d>
 
   <assign|script-status-background-color|#2b2f4d>
