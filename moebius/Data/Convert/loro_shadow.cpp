@@ -82,6 +82,9 @@ void
 loro_shadow_rep::seed (tree root) {
   mogan_tree_id root_parent= {UINT64_MAX, 0}; // Root 哨兵
   root_id                  = seed_node (root, root_parent, 0);
+  // 立即提交 seed：让文本容器在首次编辑前完整落地。否则 seed 与首次编辑会同
+  // 处一个 commit，接收端合并双根时某棵根的原子文本可能缺这次编辑（竞态）。
+  mogan_loro_doc_commit (doc);
 }
 
 // 并行遍历 buffer 和增强 IR（shadow 的当前状态），把 buffer 的 rep 关联到
@@ -678,6 +681,11 @@ mogan_tree_id
 loro_shadow_rep::get_id (tree t) {
   return id_map->contains (inside (t)) ? id_map (inside (t))
                                        : mogan_tree_id{0, 0};
+}
+
+int
+loro_shadow_rep::root_count () {
+  return mogan_loro_doc_root_count (doc);
 }
 
 #endif // LORO_ENABLED

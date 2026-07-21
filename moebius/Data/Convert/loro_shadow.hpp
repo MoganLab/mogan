@@ -79,6 +79,8 @@ public:
   bool has_id (tree t);
   /** @brief 取节点的 TreeID（不在表中返回 {0,0}）。 */
   mogan_tree_id get_id (tree t);
+  /** @brief live doc 的 root 数量（双根合并后应为 1，诊断/测试用）。 */
+  int root_count ();
 
 private:
   mogan_tree_id seed_node (tree t, mogan_tree_id parent, uint32_t index);

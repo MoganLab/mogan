@@ -426,49 +426,47 @@ TEST_CASE ("loro mirror: multi-child insert mod seeds all children") {
   CHECK_EQ (b->to_tree () == tA, true); // B 端必须收到全部 3 个新 para
 }
 
-// 晚加入者场景回归：B 带着 buffer 但没有 A 的历史，收到 A 的首条编辑 delta 时
-// 其 shadow 里 A 那棵树的"上一次提交"态是空骨架 → diff 产出 0 个 mod。
-// 修复：seed/sync 后调用 broadcast_update 补发完整初始状态（含 create+文本）。
-// 本测试只模拟事件流（A 首条 delta 先到），验证 broadcast_update 能把 B 的
-// shadow 补齐，使 diff 产出正确 mods。
-TEST_CASE (
-    "loro join: broadcast_update repairs receiver after first edit delta") {
+// 双根合并：两端各自 seed 同一文档 → LoroTree 出现两个 root（to_tree 只读
+// roots[0]，对端编辑不可见 → Diff 0 竞态）。import 后 merge_roots 应把多根
+// 合并为单一规范树，两端 to_tree 一致且等于编辑后状态。多跑几轮捕捉竞态。
+TEST_CASE ("loro merge: independent seeds merge into single root on import") {
   ensure_labels ();
-  tree init (DOCUMENT, 1);
-  init[0]      = tree (PARA, 1);
-  init[0][0]   = tree (CONCAT, 1);
-  init[0][0][0]= tree ("hello");
-  tree tA= init, tB= init; // 两端打开同一文件
+  for (int round= 0; round < 8; round++) {
+    tree init (DOCUMENT, 1);
+    init[0]      = tree (PARA, 1);
+    init[0][0]   = tree (CONCAT, 1);
+    init[0][0][0]= tree ("hello");
+    tree tA= copy (init), tB= copy (init);
 
-  // A seed 后编辑 "hello" -> "hello!"，只捕获编辑 delta（不捕获 seed）
-  loro_shadow a;
-  a->seed (tA);
-  list<string> deltas;
-  a->on_local_update (loro_test_collect_update, &deltas);
-  a->mirror_mod (tA, mod_insert (path (0) * 0 * 0, 5, tree ("!")));
-  tA[0][0][0]->label= string ("hello!");
-  CHECK_EQ (N (deltas) > 0, true);
+    // 两端各自 seed（同一文件 → 两个独立根）
+    loro_shadow a, b;
+    a->seed (tA);
+    b->seed (tB);
+    CHECK_EQ (a->root_count (), 1);
+    CHECK_EQ (b->root_count (), 1);
 
-  // B 空 shadow 直接收首条编辑 delta（真实场景：B 尚未 seed）
-  loro_shadow b;
-  for (list<string> l= deltas; !is_nil (l); l= l->next)
-    CHECK_EQ (b->import_data (l->item), true);
-  // 此时 B 的 shadow 与 buffer 不同步：diff 结果不可信（真实表现为 0 mods）
-  b->sync_id_map_from_shadow (tB); // 尽力关联（结构可能匹配）
+    // A 编辑 "hello" -> "hello!"，导出完整状态（export 含 commit，可靠；
+    // subscribe_local_update 的 delta 受 auto-commit 批处理影响，本测试不用）
+    a->mirror_mod (tA, mod_insert (path (0) * 0 * 0, 5, tree ("!")));
+    tA[0][0][0]->label= string ("hello!");
+    string full= a->export_snapshot ();
 
-  // 修复路径：A 在 ensure_loro_seeded 末尾 broadcast_update 补发完整状态
-  string captured;
-  a->on_local_update (loro_test_capture_update, &captured);
-  a->broadcast_update ();
-  CHECK_EQ (N (captured) > 0, true);
-  CHECK_EQ (b->import_data (captured), true);
+    // B 导入 A 的完整状态 → 应合并双根为单根，且 to_tree == 编辑后状态
+    CHECK_EQ (b->import_data (full), true);
+    CHECK_EQ (b->root_count (), 1); // 合并后单根
+    tree expected= copy (init);
+    expected[0][0][0]->label= string ("hello!");
+    cout << "[merge] round " << round << " B tree: " << b->to_tree ()
+         << " roots=" << b->root_count () << "\n";
+    CHECK_EQ (b->to_tree () == expected, true);
 
-  // B 的 shadow 现已完整，diff 出正确的 mods 并应用后收敛
-  list<modification> mods= b->diff_from_current (tB);
-  CHECK_EQ (is_nil (mods), false);
-  for (list<modification> l= mods; !is_nil (l); l= l->next)
-    tB= clean_apply (tB, l->item);
-  CHECK_EQ (tB == tA, true);
+    // B 端 diff 出正确 mods 并收敛
+    list<modification> mods= b->diff_from_current (tB);
+    CHECK_EQ (is_nil (mods), false);
+    for (list<modification> l= mods; !is_nil (l); l= l->next)
+      tB= clean_apply (tB, l->item);
+    CHECK_EQ (tB == expected, true);
+  }
 }
 
 #endif // LORO_ENABLED

@@ -289,6 +289,128 @@ fn read_node(tree: &LoroTree, id: TreeID) -> Result<IrNode, ()> {
     })
 }
 
+// =============================================================================
+// 双根合并：两端各自 seed 同一文档 → LoroTree 出现两个 root，
+// to_tree/to_ir/sync 只读 roots[0]（竞态）。因内容相同（同一文件），把多个
+// root 在 meta 层合并成一棵规范树：文本取并集（LoroText 已按 CRDT 合并，
+// 直接去重），子节点按 kind+label 对齐递归合并。合并后任意 roots[0] 都是完整
+// 文档，消除 roots[0] 竞态。
+// =============================================================================
+
+/// 原子节点 text 去重：LoroText 合并两个相同 seed 的文本后可能得到 "hellohello"
+/// （两段字符级交错）。若 text 由同一字符串重复 k 次构成，折叠为单份。
+fn dedup_repeated(s: &str) -> String {
+    let n = s.len();
+    if n == 0 {
+        return s.to_string();
+    }
+    for k in 2..=8 {
+        if n % k == 0 {
+            let unit = &s[..n / k];
+            if unit.repeat(k) == s {
+                return unit.to_string();
+            }
+        }
+    }
+    s.to_string()
+}
+
+/// 把 src 节点的内容合并进 dst 节点（meta 层）。返回是否合并了任何东西。
+fn merge_node_into(tree: &LoroTree, dst: TreeID, src: TreeID) -> Result<(), ()> {
+    let dst_meta = tree.get_meta(dst).map_err(|_| ())?;
+    let src_meta = tree.get_meta(src).map_err(|_| ())?;
+    let kind = get_meta_str(&dst_meta, "kind").unwrap_or_default();
+
+    if kind == "atomic" {
+        // 文本原子：LoroText 已 CRDT 合并（两个 seed 的文本会交错/重复），去重
+        if let Some(ValueOrContainer::Container(Container::Text(t))) = dst_meta.get("text") {
+            let mut s = String::new();
+            t.iter(|chunk| {
+                s.push_str(chunk);
+                true
+            });
+            let mut src_s = String::new();
+            if let Some(ValueOrContainer::Container(Container::Text(st))) = src_meta.get("text") {
+                st.iter(|chunk| {
+                    src_s.push_str(chunk);
+                    true
+                });
+            }
+            let deduped = dedup_repeated(&s);
+            eprintln!("[merge_node] dst_raw={:?} src_raw={:?} deduped={:?}", s, src_s, deduped);
+            if deduped != s {
+                let len = t.len_unicode();
+                t.delete(0, len).map_err(|_| ())?;
+                if !deduped.is_empty() {
+                    t.insert(0, &deduped).map_err(|_| ())?;
+                }
+            }
+        }
+        return Ok(());
+    }
+
+    // 复合节点：按 kind+label 对齐子节点，递归合并
+    let dst_children = tree.children(TreeParentId::Node(dst)).unwrap_or_default();
+    let src_children = tree.children(TreeParentId::Node(src)).unwrap_or_default();
+    // src 的每个子节点：在 dst 找 kind+label 相同的未配对子节点，递归合并；
+    // 找不到则整棵 mov 过来（新内容）
+    let mut used = vec![false; dst_children.len()];
+    for sc in src_children {
+        let sc_meta = tree.get_meta(sc).map_err(|_| ())?;
+        let sc_kind = get_meta_str(&sc_meta, "kind").unwrap_or_default();
+        let sc_label = get_meta_bytes(&sc_meta, "label").unwrap_or_default();
+        let mut matched = None;
+        for (i, dc) in dst_children.iter().enumerate() {
+            if used[i] {
+                continue;
+            }
+            let dc_meta = tree.get_meta(*dc).map_err(|_| ())?;
+            let dc_kind = get_meta_str(&dc_meta, "kind").unwrap_or_default();
+            let dc_label = get_meta_bytes(&dc_meta, "label").unwrap_or_default();
+            if dc_kind == sc_kind && dc_label == sc_label {
+                matched = Some(*dc);
+                used[i] = true;
+                break;
+            }
+        }
+        match matched {
+            Some(dc) => merge_node_into(tree, dc, sc)?,
+            None => {
+                // dst 没有对应子节点 → 整棵 mov 到 dst 末尾
+                let pos = tree.children_num(TreeParentId::Node(dst)).unwrap_or(0);
+                tree.mov_to(sc, TreeParentId::Node(dst), pos).map_err(|_| ())?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// 若 roots > 1，把所有 root 合并到规范根（确定性：TreeID 最小者），其余 root
+/// 的内容并入后从 Root 移除。幂等；单 root 时为空操作。import 后调用以消除
+/// 双根竞态。
+fn merge_roots(doc: &LoroDoc) {
+    let tree = doc.get_tree(TREE_NAME);
+    eprintln!("[merge_roots] roots={}", tree.roots().len());
+    loop {
+        let mut roots = tree.roots();
+        if roots.len() <= 1 {
+            break;
+        }
+        // 确定性选规范根：TreeID（peer, counter）最小者，两端一致
+        roots.sort_by(|x, y| (x.peer, x.counter).cmp(&(y.peer, y.counter)));
+        let canonical = roots[0];
+        let before = roots.len();
+        for &other in &roots[1..] {
+            if merge_node_into(&tree, canonical, other).is_ok() {
+                let _ = tree.delete(other);
+            }
+        }
+        if tree.roots().len() >= before {
+            break; // 防御：本轮没删掉任何 root，退出避免死循环
+        }
+    }
+}
+
 fn doc_to_ir(doc: &LoroDoc) -> Result<IrNode, ()> {
     let tree = doc.get_tree(TREE_NAME);
     let roots = tree.roots();
@@ -579,6 +701,9 @@ pub unsafe extern "C" fn mogan_loro_doc_import(
     let buf = std::slice::from_raw_parts(bytes, len);
     match (*doc).import(buf) {
         Ok(_) => {
+            // 两端各自 seed 同一文档会产生多个 root（to_tree 只读 roots[0] →
+            // 对端编辑不可见）。import 后合并 roots 为单一规范树，消除竞态。
+            merge_roots(&*doc);
             (*doc).commit();
             0
         }
@@ -634,6 +759,15 @@ fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) {
     for cid in child_ids {
         write_node_with_id(tree, cid, w);
     }
+}
+
+/// live doc 的 root 数量（诊断/测试用：双根合并后应为 1）。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_doc_root_count(doc: *mut LoroDoc) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    (*doc).get_tree(TREE_NAME).roots().len() as i32
 }
 
 /// live doc -> 带 TreeID 的增强 IR 字节。
