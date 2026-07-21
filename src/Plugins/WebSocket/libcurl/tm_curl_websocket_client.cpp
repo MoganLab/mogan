@@ -200,6 +200,11 @@ tm_curl_websocket_client::worker_main (std::string url) {
 
   curl_easy_setopt (easy_handle, CURLOPT_URL, url.c_str ());
   curl_easy_setopt (easy_handle, CURLOPT_CONNECT_ONLY, 2L); // 2 = WebSocket
+  // dev/测试：接受自签证书（mkcert 等）。协作服务端常配自签 TLS，libcurl 默认
+  // VERIFYPEER 会拒绝（自签 CA 不在信任链），导致 wss:// 握手失败。浏览器
+  // （WASM）因 mkcert -install 信任了系统 CA 故能过。
+  curl_easy_setopt (easy_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt (easy_handle, CURLOPT_SSL_VERIFYHOST, 0L);
   curl_multi_add_handle (multi_handle, easy_handle);
 
   // Phase 1: handshake, driven by curl_multi_poll (no fixed sleep)
