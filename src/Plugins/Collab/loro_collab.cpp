@@ -26,6 +26,9 @@
 #include "analyze.hpp"  // starts
 #include "tm_timer.hpp" // texmacs_time
 
+#include <cstdlib> // getenv (native), free (WASM)
+#include <cstring> // strlen (WASM)
+
 #ifndef __EMSCRIPTEN__
 #include <atomic>
 #include <curl/curl.h>
@@ -80,6 +83,26 @@ mogan_collab_docs_received (const char* text, int ok) {
 
 // 把 ccall 拉入 EM_JS 作用域（无需改 EXPORTED_RUNTIME_METHODS）。
 EM_JS_DEPS (mogan_collab, "$ccall");
+
+// 读协作服务端地址：window.MOGAN_LORO_SERVER（HTML
+// 包装里设，浏览器里的"环境变量"） → ?loro_server= 查询参数 → 空。返回 _malloc
+// 的 C 串，调用方 free()。
+EM_JS (char*, collab_read_server_url_js, (), {
+  try {
+    var s= window.MOGAN_LORO_SERVER;
+    if (!s) {
+      var p= new URLSearchParams (window.location.search);
+      s    = p.get ('loro_server');
+    }
+    s      = s || '';
+    var len= lengthBytesUTF8 (s) + 1;
+    var buf= _malloc (len);
+    stringToUTF8 (s, buf, len);
+    return buf;
+  } catch (e) {
+    return 0;
+  }
+});
 
 // 异步 GET url：成功时把响应文本（\n 分隔 UUID）malloc 成 C 串，ccall
 // 回调后释放； 失败/异常时 ccall(0,3)。全程 try/catch，杜绝 EM_JS
@@ -226,6 +249,24 @@ public:
 };
 
 } // namespace
+
+string
+loro_collab_server_url () {
+  string url;
+#ifdef __EMSCRIPTEN__
+  char* buf= collab_read_server_url_js ();
+  if (buf != nullptr) {
+    int len= (int) strlen (buf);
+    url    = string (buf, len);
+    free (buf);
+  }
+#else
+  const char* e= getenv ("MOGAN_LORO_SERVER");
+  if (e != nullptr) url= string (e);
+#endif
+  if (N (url) == 0) url= "ws://127.0.0.1:8765";
+  return url;
+}
 
 string
 loro_collab_create (string server_url) {

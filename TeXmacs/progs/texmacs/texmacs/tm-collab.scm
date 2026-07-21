@@ -17,13 +17,10 @@
   (:use (texmacs texmacs tm-server) (texmacs texmacs tm-files))
 ) ;texmacs-module
 
-;; 协作服务端地址：优先 OS 环境变量 MOGAN_LORO_SERVER，否则本地默认。
-;; 注意用 system-getenv（OS 环境），而非 get-env（编辑器/buffer 环境）。
-(tm-define (collab-server-url)
-  (let ((u (system-getenv "MOGAN_LORO_SERVER")))
-    (if (or (not u) (== (string-length u) 0)) "ws://127.0.0.1:8765" u)
-  ) ;let
-) ;tm-define
+;; 协作服务端地址：经 C++ loro-collab-server-url 取（native 读 OS env
+;; MOGAN_LORO_SERVER；WASM 读 window.MOGAN_LORO_SERVER / ?loro_server= 查询参数），
+;; 未设置回落 ws://127.0.0.1:8765。运行期可配，无需重编译。
+(tm-define (collab-server-url) (loro-collab-server-url))
 
 ;; 新建协作文档：先建空 buffer 并切到它（成为当前编辑器），再让会话层
 ;; 连服务端 CREATE。服务端分配 UUID 后回 DOC，会话层据此置位协作开关；
