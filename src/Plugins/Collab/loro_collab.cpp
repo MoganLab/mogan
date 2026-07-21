@@ -27,6 +27,7 @@
 
 #include "analyze.hpp"  // starts
 #include "tm_timer.hpp" // texmacs_time
+#include "tm_buffer.hpp"
 
 #include <cstdlib> // getenv (native), free (WASM)
 #include <cstring> // strlen (WASM)
@@ -162,8 +163,10 @@ public:
   collab_mode               mode = collab_mode::create;
   string                    doc_id; // JOIN 请求的 / 服务端分配的 UUID
   string                    server_url;
-  url    buffer_url; // 会话绑定的 buffer（become_ready 记下），poll 检测其被关闭即断连
-  time_t await_frame_since= 0; // JOIN 进入 await_frame 的时刻(ms)
+  url buffer_url; // 会话绑定的 buffer（become_ready 记下），poll
+                  // 检测其被关闭即断连
+  bool   buffer_known     = false; // buffer_url 是否已记下（避免对 url 判空）
+  time_t await_frame_since= 0;     // JOIN 进入 await_frame 的时刻(ms)
   // 自动重连（仅意外断开触发；loro_collab_disconnect 手动退出时置 false）：
   //   want_reconnect=true 时 on_disconnect 调度重连，poll 到点尝试。
   //   首次断开立即重连（backoff(0)=0），失败后间隔指数增长，封顶 30s。
@@ -191,11 +194,11 @@ broadcast_to_server (string bytes) {
   g_session.ws->send (bytes, true);
 }
 
-// 状态栏提示（重连过程给用户反馈）。
+// 状态栏提示（重连过程给用户反馈）。get_server() 在编辑期必非空（与
+// edit_interface 用法一致），collab 仅在编辑期运行，故不判空。
 static void
 collab_set_message (string left) {
-  server s= get_server ();
-  if (!is_nil (s)) s->set_message (tree (left), tree ("Collaborative"));
+  get_server ()->set_message (tree (left), tree ("Collaborative"));
 }
 
 // 重连退避：attempt=0 立即(0ms)，之后 1s/2s/4s/8s/16s，封顶 30s。
@@ -216,8 +219,8 @@ schedule_reconnect () {
   g_session.reconnect_attempt++;
   cout << "[collab] 调度重连：第 " << g_session.reconnect_attempt << " 次，"
        << wait << "ms 后\n";
-  collab_set_message ("Connection lost; reconnecting… (attempt "
-                      * as_string (g_session.reconnect_attempt) * ")");
+  collab_set_message ("Connection lost; reconnecting… (attempt " *
+                      as_string (g_session.reconnect_attempt) * ")");
 }
 
 // WS 客户端：协议状态机驱动
@@ -286,8 +289,10 @@ public:
     bool was_reconnect         = g_session.reconnect_attempt > 0;
     g_session.state            = collab_state::ready;
     g_session.reconnect_attempt= 0;
-    g_session.buffer_url       = get_current_buffer (); // 记下，poll 检测其被关闭即断连
-    g_loro_broadcast_update    = broadcast_to_server;
+    g_session.buffer_url=
+        get_current_buffer (); // 记下，poll 检测其被关闭即断连
+    g_session.buffer_known = true;
+    g_loro_broadcast_update= broadcast_to_server;
     // 对当前编辑器置位协作开关：之后该 editor 的本地编辑才会镜像 + 上行
     editor ed= get_current_editor ();
     if (is_nil (ed)) cout << "[collab] become_ready: 当前编辑器为空！\n";
@@ -385,7 +390,7 @@ loro_collab_disconnect () {
   g_session.state            = collab_state::idle;
   g_session.doc_id           = "";
   g_session.reconnect_attempt= 0;
-  g_session.buffer_url       = url ();
+  g_session.buffer_known     = false;
   if (g_session.ws) {
     g_session.ws->disconnect ();
     delete g_session.ws;
@@ -406,9 +411,10 @@ loro_collab_doc_id () {
 void
 loro_collab_poll () {
   if (g_session.ws) g_session.ws->poll ();
-  // collab buffer 被关闭（关标签页/窗口/退出）→ 视为手动结束会话，断开且不重连。
-  // 用 concrete_buffer 检测：buffer 删除后返回 nil。
-  if (g_session.state != collab_state::idle && !is_nil (g_session.buffer_url) &&
+  // collab buffer 被关闭（关标签页/窗口/退出）→
+  // 视为手动结束会话，断开且不重连。 用 concrete_buffer 检测：buffer 删除后返回
+  // nil。
+  if (g_session.state != collab_state::idle && g_session.buffer_known &&
       is_nil (concrete_buffer (g_session.buffer_url))) {
     cout << "[collab] 协作 buffer 已关闭，断开会话\n";
     loro_collab_disconnect ();
