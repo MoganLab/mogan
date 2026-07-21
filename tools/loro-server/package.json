@@ -1,0 +1,18 @@
+{
+  "name": "mogan-loro-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mogan × Loro 云文档协作服务端：文档生命周期管理 + snapshot/commit 持久化 + 同步下发",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "loro-crdt": "^1.5.0",
+    "ws": "^8.18.0"
+  }
+}
