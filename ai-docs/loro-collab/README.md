@@ -74,8 +74,19 @@ HTTP，GUI 线程阻塞 → freeze（无输出无报错，最难调）。
 + 处理 OPTIONS 预检（见 `server.js` 的 `setCors`）。WS 连接不强制 CORS，能直连。
 
 部署注意：WASM 页面若 `https://`，连 `ws://`/`http://` 会被 Mixed Content 拦截，服务端需
-上 `wss://`/`https://`。WASM 无 OS 环境变量，`collab-server-url` 的 `system-getenv` 在
-浏览器返回空 → 用默认 `ws://127.0.0.1:8765`，部署需改由页面 location/查询参数配置。
+上 `wss://`/`https://`。
+
+## 服务端地址：运行期可配，不重编译
+
+`loro_collab_server_url()`（经 glue `loro-collab-server-url`、scheme `collab-server-url`）
+统一取地址，scheme 不再直接 `system-getenv`（WASM 上返回空）：
+- **native**：OS 环境变量 `MOGAN_LORO_SERVER`（`MOGAN_LORO_SERVER=ws://host:8765 ./MoganSTEM`）
+- **WASM**：`window.MOGAN_LORO_SERVER`（HTML 包装里设，浏览器里的"环境变量"）或
+  `?loro_server=ws://host:8765` 查询参数（改 URL 即可，零文件改动）
+- 未设置回落 `ws://127.0.0.1:8765`
+
+WASM 读地址走 EM_JS（`window` 全局 + `URLSearchParams`，try/catch），与读 `/docs` 同款
+稳健模式（见下）。
 
 ## 协作开关门控：会话建立前不 seed/不镜像
 

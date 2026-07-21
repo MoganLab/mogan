@@ -22,6 +22,14 @@
 #ifdef LORO_ENABLED
 
 /**
+ * @brief 取协作服务端地址（运行期可配，无需重编译）：
+ *        - native：OS 环境变量 MOGAN_LORO_SERVER
+ *        - WASM：window.MOGAN_LORO_SERVER 或 ?loro_server= 查询参数（浏览器无
+ * OS env） 未设置时回落 ws://127.0.0.1:8765。
+ */
+string loro_collab_server_url ();
+
+/**
  * @brief 以当前编辑器为_target，连服务端创建新云文档。
  *        连接后发 CREATE；服务端回 DOC <uuid> 后置位协作开关，
  *        之后本地首编辑会 seed shadow 并广播初始全量。
@@ -65,6 +73,10 @@ void loro_collab_poll ();
 
 #else // !LORO_ENABLED：桩实现，保证 glue 在未启用 Loro 时仍可链接
 
+inline string
+loro_collab_server_url () {
+  return "";
+}
 inline string
 loro_collab_create (string) {
   return "";

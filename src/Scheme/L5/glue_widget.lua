@@ -42,6 +42,13 @@ function main()
                 ret_type = "string"
             },
             {
+                -- 协作服务端地址（native 读 OS env MOGAN_LORO_SERVER；WASM 读
+                -- window.MOGAN_LORO_SERVER / ?loro_server= 查询参数）。运行期可配。
+                scm_name = "loro-collab-server-url",
+                cpp_name = "loro_collab_server_url",
+                ret_type = "string"
+            },
+            {
                 -- 协作：以当前编辑器为 target 创建新云文档（连服务端、CREATE）
                 scm_name = "loro-collab-create",
                 cpp_name = "loro_collab_create",
