@@ -22,7 +22,9 @@
 //   MOGAN_LORO_PORT      监听端口（默认 8765）
 //   MOGAN_LORO_DATA_DIR  持久化目录（默认 ./data）
 const http = require('http');
+const https = require('https');
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 const { DocStore } = require('./store');
@@ -30,6 +32,12 @@ const { DocRegistry } = require('./registry');
 
 const HOST = process.env.MOGAN_LORO_HOST || '0.0.0.0';
 const PORT = parseInt(process.env.MOGAN_LORO_PORT || '8765', 10);
+// TLS：HTTPS 页面（如 GitHub Pages）只能连 wss://+https://（浏览器拦 Mixed
+// Content）。提供 cert/key 即启用 TLS。LAN IP 可用 mkcert 生成自签证书（浏览器
+// 需信任一次）。
+const TLS_CERT = process.env.MOGAN_LORO_TLS_CERT; // 证书文件路径
+const TLS_KEY = process.env.MOGAN_LORO_TLS_KEY; // 私钥文件路径
+const USE_TLS = Boolean(TLS_CERT && TLS_KEY);
 // 默认相对 server.js 所在目录（tools/loro-server/data），不随 cwd 漂移到仓库根
 const DATA_DIR =
   process.env.MOGAN_LORO_DATA_DIR || path.join(__dirname, 'data');
@@ -48,14 +56,16 @@ async function main () {
   const restored = await registry.restore();
   console.log(
     `${ts()} [server] 持久化目录 ${DATA_DIR}，恢复 ${restored} 个文档` +
-      (LATENCY_MS > 0 ? `，延迟模拟 ${LATENCY_MS}ms` : '')
+      (LATENCY_MS > 0 ? `，延迟模拟 ${LATENCY_MS}ms` : '') +
+      (USE_TLS ? '，TLS 已启用（wss+https）' : '（明文 ws+http）')
   );
 
-  // 内嵌 HTTP 服务：/healthz 供部署探活，/docs 列出可用文档 UUID（供客户端
+  // 内嵌 HTTP(S) 服务：/healthz 供部署探活，/docs 列出可用文档 UUID（供客户端
   // 在 JOIN 前发现文档，纯文本每行一个 UUID，便于 C++ 端按行解析），同时
   // 承载 WebSocket upgrade。所有响应带 CORS 头：WASM 客户端从浏览器 fetch /docs
-  // 是跨源请求，无 CORS 头会被浏览器拦截。
-  const httpServer = http.createServer(async (req, res) => {
+  // 是跨源请求，无 CORS 头会被浏览器拦截。提供 TLS cert/key 时用 https（HTTPS
+  // 页面如 GitHub Pages 必须走 https/wss，否则浏览器拦 Mixed Content）。
+  const requestHandler = async (req, res) => {
     // 统一 CORS 头 + 处理预检（OPTIONS）
     const setCors = (r) =>
       r.setHeader('access-control-allow-origin', '*');
@@ -85,7 +95,13 @@ async function main () {
       res.writeHead(404);
       res.end();
     }
-  });
+  };
+  const httpServer = USE_TLS
+    ? https.createServer(
+        { key: fs.readFileSync(TLS_KEY), cert: fs.readFileSync(TLS_CERT) },
+        requestHandler
+      )
+    : http.createServer(requestHandler);
 
   const wss = new WebSocket.Server({ server: httpServer });
   let nextClientId = 1;
@@ -249,7 +265,9 @@ async function main () {
   });
 
   httpServer.listen(PORT, HOST, () => {
-    console.log(`${ts()} [server] Mogan Loro 协作服务 listening on ws://${HOST}:${PORT}`);
+    console.log(
+      `${ts()} [server] Mogan Loro 协作服务 listening on ${USE_TLS ? 'wss' : 'ws'}://${HOST}:${PORT}`
+    );
   });
 
   // 优雅退出：先把在途写入与快照落盘，再退出
