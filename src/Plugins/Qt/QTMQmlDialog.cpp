@@ -579,6 +579,7 @@ cpp_preferences_dialog () {
     r << tree ("ok");
     return r;
   }
+  array<string> buttons= {string ("OK"), string ("Cancel")};
   QmlDialogBridge* bridge= nullptr;
   run_qml_dialog (
       "qrc:/qml/Preferences.qml", "Preferences.qml",
@@ -586,6 +587,9 @@ cpp_preferences_dialog () {
         bridge                       = inject_common_context (qw, host);
         PreferencesBridge* prefBridge= new PreferencesBridge (&host);
         qw->rootContext ()->setContextProperty ("prefBridge", prefBridge);
+        // 已翻译的 OK/Cancel 注入（同 FormDialog / 确认弹窗），QML 据此显示。
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
         // bridge 无 parent，靠 host destroyed 信号 deleteLater
         // 自清（form-pattern）。
         QObject::connect (&host, &QDialog::destroyed, prefBridge,

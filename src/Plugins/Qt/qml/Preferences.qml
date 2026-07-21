@@ -36,7 +36,8 @@ DialogShell {
     property var meta: typeof prefBridge !== "undefined" ? prefBridge.meta() : ({
             tabs: []
         })
-    property var buttonLabels: [qsTr("OK"), qsTr("Cancel")]  // 由 bridge 注入（translate 包装好的）或回退 qsTr
+    // OK/Cancel 文案：bridge 注入已翻译的 dialogButtons（同 FormDialog），回退 qsTr。
+    property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : [qsTr("OK"), qsTr("Cancel")]
 
     // 打开快照：从 meta 一次性建 {key: value}（只含 combo/toggle——info 不入 editable map）。
     // initialValues 打开瞬间固定、values 是可变副本——changedFields 比 initialValues 算 diff。
