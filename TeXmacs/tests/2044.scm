@@ -199,7 +199,30 @@
                      ) ;cons
                ) ;list
 
-               ;; 4 submit: 非重启 toggle（use large brackets）——钉死 bridge 的 dotted-pair
+               ;; 4 submit（bridge quote 路径）：模拟 bridge 拼的带 quote 字符串表达式，
+               ;;   eval 求值——钉死 quote 修复。用重启键 gui theme + later preset，确认
+               ;;   走到弹窗分支返回 later、值 silent 落库。回归点：bridge 没 quote 时，
+               ;;   assoc 字面量出现在实参位置被当函数应用（car "k" 当函数），报
+               ;;   attempt to evaluate ("k" . "v") 并 SIGSEGV，submit 函数体根本没进。
+               (list (cons "submit: bridge quoted assoc literal evaluates"
+                       (lambda ()
+                         (system-setenv "MOGAN_TEST_CONFIRM_RESTART" "later")
+                         (let* ((key "gui theme")
+                                (want "liii-night")
+                                ;; 与 PreferencesBridge::eval_submit 拼的串同构：quote + dotted pair。
+                                (expr (string-append "(preferences-qml-submit '((\"" key "\" . \"" want "\")))")
+                                ) ;expr
+                                (rc (eval (read (open-input-string expr))))
+                               ) ;
+                           (check-true (equal? rc "later"))
+                           (check-true (== (get-preference key) want))
+                           (system-setenv "MOGAN_TEST_CONFIRM_RESTART" "")
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 5 submit: 非重启 toggle（use large brackets）——钉死 bridge 的 dotted-pair
                ;;   assoc wire 与 facade (cdr (assoc ...)) 取值一致：toggle 值正确落库。
                ;;   回归点：旧 build_assoc_literal 产出二元组 ("k" "v")，cdr 得 ("v") 列表，
                ;;   (== val "on") 恒假，toggle 永不切——本步专挡该 bug。

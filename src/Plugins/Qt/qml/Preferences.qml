@@ -214,74 +214,113 @@ DialogShell {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
 
+                // 字段 delegate（单栏 / 双栏左右列共用）：按 field.kind 分流 combo/toggle/info。
+                // 三种实例并存、只显示对应 kind（避免 Loader/Component 的复杂度）。
+                // 条件可见性在外层 Item 的 visible binding 统一处理——不可见整行 hide、不占位。
+                Component {
+                    id: fieldDelegate
+                    Item {
+                        width: parent ? parent.width : 0
+                        // 高度按当前 kind 的可见实例取（EnumCombo/Toggle 固定行高 Theme.rowH；
+                        // info 行 textRowH；不可见时归零、不占位）。
+                        height: visible
+                            ? (modelData.kind === "info" ? Theme.textRowH : Theme.rowH)
+                            : 0
+                        visible: !modelData.visibleWhenKey
+                            || root.values[modelData.visibleWhenKey] === modelData.visibleWhenVal
+
+                        EnumCombo {
+                            width: parent.width
+                            visible: modelData.kind === "combo"
+                            label: modelData.label
+                            options: modelData.options || []
+                            optionsTr: modelData.optionsTr || []
+                            value: root.values[modelData.key] !== undefined ? root.values[modelData.key] : ""
+                            editable: modelData.editable !== undefined ? modelData.editable : false
+                            onChanged: function (v) {
+                                root.setField(modelData.key, v)
+                            }
+                        }
+
+                        Toggle {
+                            width: parent.width
+                            visible: modelData.kind === "toggle"
+                            label: modelData.label
+                            hint: modelData.hint || ""
+                            value: root.values[modelData.key] === "on"
+                            onToggled: function (v) {
+                                root.setField(modelData.key, v ? "on" : "off")
+                            }
+                        }
+
+                        Row {
+                            width: parent.width
+                            spacing: Theme.gapM
+                            visible: modelData.kind === "info"
+                            Text {
+                                width: parent.width * 0.42
+                                text: modelData.label
+                                color: Theme.fg
+                                font.pixelSize: Theme.fontBody
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                text: modelData.value
+                                color: Theme.muted
+                                font.pixelSize: Theme.fontBody
+                            }
+                        }
+                    }
+                }
+
                 Column {
                     id: fieldCol
                     width: parent.width
                     spacing: Theme.gapS
 
-                    // 字段 Repeater：model 由当前 active tab / sub-tab 的 fields 决定。
-                    // delegate 按 field.kind 分流：combo -> EnumCombo、toggle -> Toggle、info -> Row。
-                    // 三种实例并存、只显示对应 kind 的那个（避免 Loader/Component 的复杂度）。
-                    // 条件可见性在 delegate 外层 Item 的 visible binding 里统一处理——
-                    // 不可见的字段整行 hide、不占位（条件可见性是纯 QML 本地 binding，见顶部注释）。
+                    // 当前 fields 缓存：activeFields() 每次 find/filter 较重，binding 里复用一份。
+                    // hasColumns 决定走双栏（Math / Other experimental，字段定义里标了 column 0/1）
+                    // 还是单栏（General / Keyboard / Convert）。
+                    property var currentFields: root.activeFields()
+                    property bool hasColumns: {
+                        var fs = currentFields
+                        for (var i = 0; i < fs.length; i++)
+                            if (fs[i].column === 0 || fs[i].column === 1) return true
+                        return false
+                    }
+
+                    // 单栏：满宽 Repeater。
                     Repeater {
-                        model: root.activeFields()
-                        delegate: Item {
-                            width: fieldCol.width
-                            // 高度按当前 kind 的可见实例取（EnumCombo/Toggle 都有固定行高 Theme.rowH；
-                            // info 行用 textRowH；不可见时高度归零、不占位）。
-                            height: visible
-                                ? (modelData.kind === "info" ? Theme.textRowH : Theme.rowH)
-                                : 0
-                            // 条件可见性：field.visibleWhenKey 取此值时本字段可见（纯 QML 本地 binding）。
-                            visible: !modelData.visibleWhenKey
-                                || root.values[modelData.visibleWhenKey] === modelData.visibleWhenVal
+                        model: fieldCol.hasColumns ? [] : fieldCol.currentFields
+                        delegate: fieldDelegate
+                    }
 
-                            // combo -> EnumCombo。value/options/optionsTr/editable 从 field 描述符透传；
-                            // onChanged 回传英文 key、root.setField 写本地 values（触发显示刷新）。
-                            EnumCombo {
-                                width: fieldCol.width
-                                visible: modelData.kind === "combo"
-                                label: modelData.label
-                                options: modelData.options || []
-                                optionsTr: modelData.optionsTr || []
-                                value: root.values[modelData.key] !== undefined ? root.values[modelData.key] : ""
-                                editable: modelData.editable !== undefined ? modelData.editable : false
-                                onChanged: function (v) {
-                                    root.setField(modelData.key, v)
-                                }
+                    // 双栏：Math / Other experimental 的字段定义是「整块 column 0 后整块
+                    // column 1」（非交替），单 Repeater 平铺会上下错位，故按 column 拆左右两列
+                    // 并排。Toggle/EnumCombo 内部 labelWidth 按 parent.width*labelRatio 缩放，
+                    // 半宽容器下自动等比缩小，无需改原子。
+                    Row {
+                        width: fieldCol.width
+                        spacing: Theme.gapS
+                        visible: fieldCol.hasColumns
+                        Column {
+                            width: (fieldCol.width - Theme.gapS) / 2
+                            spacing: Theme.gapS
+                            Repeater {
+                                model: fieldCol.hasColumns
+                                       ? fieldCol.currentFields.filter(function (f) { return f.column === 0 })
+                                       : []
+                                delegate: fieldDelegate
                             }
-
-                            // toggle -> Toggle（新原子）。value 用 bool（values[key] === "on"）。
-                            // onToggled 回传新 bool、setField 转 "on"/"off" 串写本地。
-                            Toggle {
-                                width: fieldCol.width
-                                visible: modelData.kind === "toggle"
-                                label: modelData.label
-                                hint: modelData.hint || ""
-                                value: root.values[modelData.key] === "on"
-                                onToggled: function (v) {
-                                    root.setField(modelData.key, v ? "on" : "off")
-                                }
-                            }
-
-                            // info -> label + 只读 Text（只读展示行，如 updater 最后检查时间）。
-                            Row {
-                                width: fieldCol.width
-                                spacing: Theme.gapM
-                                visible: modelData.kind === "info"
-                                Text {
-                                    width: fieldCol.width * 0.42
-                                    text: modelData.label
-                                    color: Theme.fg
-                                    font.pixelSize: Theme.fontBody
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    text: modelData.value
-                                    color: Theme.muted
-                                    font.pixelSize: Theme.fontBody
-                                }
+                        }
+                        Column {
+                            width: (fieldCol.width - Theme.gapS) / 2
+                            spacing: Theme.gapS
+                            Repeater {
+                                model: fieldCol.hasColumns
+                                       ? fieldCol.currentFields.filter(function (f) { return f.column === 1 })
+                                       : []
+                                delegate: fieldDelegate
                             }
                         }
                     }

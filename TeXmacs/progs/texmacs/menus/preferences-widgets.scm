@@ -2255,7 +2255,9 @@
 ;;
 ;; 返回 "applied" / "restart" / "later" / "cancel"：
 ;;   applied —— 无需重启字段改动，全部直接 apply。
-;;   restart —— 有需重启字段改动，用户确认重启，已 apply 全部 + 存盘 + restart-TeXmacs。
+;;   restart —— 有需重启字段改动，用户确认重启：非重启键实时 apply、重启键 silent 写值
+;;              （实时切 language 等会触发 Qt 输入法重建 SIGSEGV，故重启键一律 silent，
+;;              重启后加载新值）+ 存盘 + restart-TeXmacs。
 ;;   later   —— 有需重启字段改动，用户选「稍后」，重启字段走 silent 写值（下次启动生效）。
 ;;   cancel  —— 有需重启字段改动，用户选「取消」，什么都不 apply（先确认再 apply，无需回滚）。
 
@@ -2281,8 +2283,14 @@
             (with choice
               (cpp-confirm-restart title (restart-effect-message))
               (cond ((== choice "restart")
-                     (for (key changed-keys)
+                     ;; 非重启键实时 apply；重启键走 silent（不实时切）——实时切 language
+                     ;; 等会立即触发 Qt 输入法/菜单重建，在 restart-TeXmacs 真正执行前
+                     ;; SIGSEGV。既然紧接着重启，silent 写值后重启加载新值，效果等价。
+                     (for (key non-restart-changed)
                        (preferences-qml-set-field key (cdr (assoc key changed-assoc)))
+                     ) ;for
+                     (for (key restart-changed)
+                       (preferences-qml-set-field-silent key (cdr (assoc key changed-assoc)))
                      ) ;for
                      (when (not (defined? 'save-all-buffers))
                        (use-modules (plugin autosave))

@@ -246,7 +246,10 @@ PreferencesBridge::eval_meta () {
 
 QString
 PreferencesBridge::eval_submit (const QVariantMap& changed) {
-  string expr= string ("(preferences-qml-submit ") *
+  // 整个 assoc 字面量须 quote：dotted-pair 形 (("k" . "v"))
+  // 出现在函数实参位置， 不 quote 会被当函数应用（car "k" 当函数 -> attempt to
+  // evaluate ("k" . "v")）。
+  string expr= string ("(preferences-qml-submit '") *
                build_assoc_literal (changed) * string (")");
   tmscm result= eval_scheme (expr);
   return tmscm_to_qstring (result);
