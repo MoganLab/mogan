@@ -58,7 +58,7 @@
 (tm-define (collab-refresh-docs) (loro-collab-fetch-docs (collab-server-url)))
 
 ;; Join 子菜单：展开时触发后台拉取（不阻塞 GUI），按状态显示
-;;   loading → "(loading…)"，error → "(unreachable)"，
+;;   loading → "(loading...)"，error → "(unreachable)"，
 ;;   ready+空 → "(no documents)"，ready+非空 → 各 UUID 项（点击即加入）。
 ;; Refresh 强制重新拉取。状态经 loro-collab-docs-status 轮询，ImGui 每帧重建
 ;; 菜单时自动刷新到最新结果，无需缓存。
@@ -72,7 +72,7 @@
       ) ;when
       (loro-collab-docs-status)
     ) ;begin
-    (cond ((== status "loading") ("(loading…)" (collab-refresh-docs)))
+    (cond ((== status "loading") ("(loading...)" (collab-refresh-docs)))
           ((== status "error") ("(server unreachable)" (collab-refresh-docs)))
           ((and (== status "ready") (null? (loro-collab-docs)))
            ("(no documents)" (collab-refresh-docs))
