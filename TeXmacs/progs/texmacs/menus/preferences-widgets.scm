@@ -1312,6 +1312,45 @@
   ) ;list
 ) ;define
 
+;; ---- hint 文案（英文 key，供 translate 查翻译表） ----
+;; 集中管理避免散落重复；facade preferences-qml-flags->assoc 对 hint 过 translate。
+
+(define (hint-semantic-editing-only)
+  "Visible only when semantic editing is on"
+) ;define
+
+(define (hint-source-tracking-only)
+  "Visible only when source tracking is on"
+) ;define
+
+(define (hint-toggling-refreshes)
+  "Toggling refreshes related fields' visibility"
+) ;define
+
+(define (hint-mutex-mathml-images)
+  "Mutually exclusive with MathML / images"
+) ;define
+
+(define (hint-mutex-mathjax-images)
+  "Mutually exclusive with MathJax / images"
+) ;define
+
+(define (hint-mutex-mathjax-mathml)
+  "Mutually exclusive with MathJax / MathML"
+) ;define
+
+(define (hint-linked-both-directions)
+  "Linked in both directions"
+) ;define
+
+(define (hint-macos-only)
+  "macOS only"
+) ;define
+
+(define (hint-qt-only)
+  "qt only"
+) ;define
+
 ;; ---- General fields ----
 
 (define preferences-qml-general-fields
@@ -1550,7 +1589,7 @@
       '()
       #f
       'hint
-      "仅 semantic editing 开时可见"
+      (hint-semantic-editing-only)
       'visible-when-key
       (pref-math-semantic-editing)
       'visible-when-val
@@ -1567,7 +1606,7 @@
       'group
       "Semantics"
       'hint
-      "切换会刷新相关字段可见性"
+      (hint-toggling-refreshes)
       'column
       1
     ) ;list
@@ -1577,7 +1616,7 @@
       '()
       #f
       'hint
-      "仅 semantic editing 开时可见"
+      (hint-semantic-editing-only)
       'visible-when-key
       (pref-math-semantic-editing)
       'visible-when-val
@@ -1608,7 +1647,7 @@
       '()
       #f
       'hint
-      "与 MathML / images 互斥"
+      (hint-mutex-mathml-images)
       'radio-group
       "html-formula-export"
     ) ;list
@@ -1618,7 +1657,7 @@
       '()
       #f
       'hint
-      "与 MathJax / images 互斥"
+      (hint-mutex-mathjax-images)
       'radio-group
       "html-formula-export"
     ) ;list
@@ -1628,7 +1667,7 @@
       '()
       #f
       'hint
-      "与 MathJax / MathML 互斥"
+      (hint-mutex-mathjax-mathml)
       'radio-group
       "html-formula-export"
     ) ;list
@@ -1726,7 +1765,7 @@
       '()
       #f
       'hint
-      "两方向联动"
+      (hint-linked-both-directions)
     ) ;list
     (list "latex:transparent-source-tracking"
       "Guarantee transparent source tracking"
@@ -1734,7 +1773,7 @@
       '()
       #f
       'hint
-      "仅 source-tracking 开时可见"
+      (hint-source-tracking-only)
       'visible-when-key
       "latex:source-tracking"
       'visible-when-val
@@ -1746,7 +1785,7 @@
       '()
       #f
       'hint
-      "仅 source-tracking 开时可见"
+      (hint-source-tracking-only)
       'visible-when-key
       "latex:source-tracking"
       'visible-when-val
@@ -1938,7 +1977,7 @@
       '()
       #f
       'hint
-      "macOS only"
+      (hint-macos-only)
       'column
       0
       'platform-filter
@@ -1983,7 +2022,7 @@
       '()
       #f
       'hint
-      "qt only"
+      (hint-qt-only)
       'column
       1
       'platform-filter
@@ -1996,7 +2035,7 @@
       '()
       #f
       'hint
-      "macOS only"
+      (hint-macos-only)
       'column
       1
       'platform-filter
@@ -2039,11 +2078,10 @@
                    ((== kw 'radio-group) (list (cons 'radioGroup val)))
                    ((== kw 'visible-when-key) (list (cons 'visibleWhenKey val)))
                    ((== kw 'visible-when-val) (list (cons 'visibleWhenVal val)))
-                   ;; hint 是显示文案，.scm 源码里是 UTF-8 字面中文（reader 未转 Cork），
-                   ;; 而 bridge 按 Cork 解（cork_to_utf8）。故这里 utf8->cork 归一化成真 Cork，
-                   ;; bridge 再 cork_to_utf8 转回 UTF-8 才不乱码。label 字面为英文无此问题。
+                   ;; hint 是英文 key，过 translate 查翻译表（中文环境返回 Cork 编码的中文，
+                   ;; 英文环境原样返回 ASCII，bridge cork_to_utf8 都能正确处理）。
                    ((== kw 'group) (list (cons 'group val)))
-                   ((== kw 'hint) (list (cons 'hint (utf8->cork val))))
+                   ((== kw 'hint) (list (cons 'hint (translate val))))
                    ((== kw 'column) (list (cons 'column val)))
                    (else '())
              ) ;cond
