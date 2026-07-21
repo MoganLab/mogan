@@ -125,24 +125,26 @@ parse_field_list (tmscm fields) {
 }
 
 /**
- * @brief 取 tab 节点 `(key label fields ...)` 的前三项填入 out，返回 fields
- * 之后的剩余 list（可能含 sub-tabs）。
+ * @brief 取 tab 节点 `(key label fields ...)` 的前三项填入 out，成功时把
+ * fields 之后的剩余 list（可能含 sub-tabs）写到 tail 并返回 true。
  *
  * @details 主 tab 与 sub-tab 同形（都是 key/label/fields 三元组），共用本
- * helper 解析——parse_meta_tree 的外层 tab 与 sub-tabs 各调一次。前 3 项任一
- * 缺失时返回 null（调用方据此 skip 该节点）。
+ * helper——parse_meta_tree 的外层 tab 与 sub-tabs 各调一次。返回 bool 而非
+ * tail 本身：普通 tab 恰好 3 项（tail 为 '()），与「前 3 项不足」必须区分，
+ * 否则合法的 3 项 tab 会被误 skip（返回值无法区分两者）。
  */
-tmscm
-parse_tab_node (tmscm node, QVariantMap& out) {
-  if (tmscm_is_null (node)) return tmscm_null ();
+bool
+parse_tab_node (tmscm node, QVariantMap& out, tmscm& tail) {
+  if (tmscm_is_null (node)) return false;
   out["key"]= tmscm_to_qstring (tmscm_car (node));
   tmscm rest= tmscm_cdr (node);
-  if (tmscm_is_null (rest)) return tmscm_null ();
+  if (tmscm_is_null (rest)) return false;
   out["label"]= tmscm_to_qstring (tmscm_car (rest));
   rest        = tmscm_cdr (rest);
-  if (tmscm_is_null (rest)) return tmscm_null ();
+  if (tmscm_is_null (rest)) return false;
   out["fields"]= parse_field_list (tmscm_car (rest));
-  return tmscm_cdr (rest);
+  tail         = tmscm_cdr (rest);
+  return true;
 }
 
 /**
@@ -165,8 +167,8 @@ parse_meta_tree (tmscm tabs) {
     tmscm tab= tmscm_car (cur);
     if (!tmscm_is_list (tab) || tmscm_is_null (tab)) continue;
     QVariantMap tab_map;
-    tmscm       tail= parse_tab_node (tab, tab_map);
-    if (tmscm_is_null (tail)) continue; // 前 3 项不足、已 skip
+    tmscm       tail;
+    if (!parse_tab_node (tab, tab_map, tail)) continue; // 前 3 项不足、已 skip
     // 第 4 项起若为 list，则为 sub-tabs（Convert tab 专属）。
     if (!tmscm_is_null (tail) && tmscm_is_list (tmscm_car (tail))) {
       QVariantList sub_list;
@@ -175,7 +177,8 @@ parse_meta_tree (tmscm tabs) {
         tmscm st= tmscm_car (sc);
         if (!tmscm_is_list (st) || tmscm_is_null (st)) continue;
         QVariantMap m;
-        parse_tab_node (st, m);
+        tmscm       sub_tail;
+        if (!parse_tab_node (st, m, sub_tail)) continue;
         sub_list << m;
       }
       tab_map["subTabs"]= sub_list;

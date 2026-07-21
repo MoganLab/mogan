@@ -36,14 +36,23 @@
   ) ;let*
 ) ;tm-define
 
-(define (on-buffer-management-changed pretty-val)
-  (let ((can-use-tabbar? (== pretty-val "Multiple documents share window")))
+(define (on-buffer-management-changed val)
+  ;; val 既可能是 internal key（"shared"/"separate"，新 QML facade 传入），
+  ;; 也可能是 pretty 显示串（"Multiple documents share window"，旧 tm-widget enum 传入）。
+  ;; 统一按 internal key 判断 shared；pretty 串经 decode 表反查成 internal。
+  (let* ((internal (if (== val "shared")
+                     val
+                     (or (ahash-ref preference-decode-table (cons "buffer management" val)) val)
+                   ) ;if
+         ) ;internal
+         (can-use-tabbar? (== internal "shared"))
+        ) ;
     (begin
       (set-boolean-preference "tab bar" can-use-tabbar?)
       (show-icon-bar 4 can-use-tabbar?)
-      (set-pretty-preference "buffer management" pretty-val)
+      (set-preference "buffer management" internal)
     ) ;begin
-  ) ;let
+  ) ;let*
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -825,7 +834,10 @@
 
 ;; Images ----------
 
-(define (pretty-format-list)
+;; 返回 (internal-list pretty-list)，并顺带登记 texmacs->image:format 的 decode 表。
+;; internal/pretty 等长同序，供 QML facade 的 options/optionsTr 对齐 combo 契约。
+
+(define (image-format-list-pair)
   (let* ((desired-image-format-list '(("svg" "Svg")
                                       ("eps" "Eps")
                                       ("png" "Png")
@@ -841,8 +853,14 @@
     (eval `(define-preference-names ,"texmacs->image:format"
              ,@valid-image-format-list)
     ) ;eval
-    (cadr (apply map list valid-image-format-list))
+    (apply map list valid-image-format-list)
   ) ;let*
+) ;define
+
+;; 旧 tm-widget enum 仍只用 pretty 列表做显示（pretty 流）。
+
+(define (pretty-format-list)
+  (cadr (image-format-list-pair))
 ) ;define
 
 (tm-widget (image-preferences-widget)
@@ -2093,12 +2111,13 @@
      ) ;let*
     ) ;
     ;; language：动态按 supported-languages 拉取 options（顶层 define 里用空 '() 避开
-    ;; module 加载时批量求值崩溃）。options = optionsTr = supported-languages（语言内部
-    ;; 键即显示名——首字母大写化由 line 62 的 set-preference-name 在 module 加载时
-    ;; 已登记进 encode 表，故 optionsTr 直接复用 supported-languages 即可）。
+    ;; module 加载时批量求值崩溃）。options = 小写内部键；optionsTr = pretty 显示名
+    ;; （首字母大写形，由 line 62 的 set-preference-name 登记进 encode 表——
+    ;; get-pretty-preference "language" 返回此形，须与 optionsTr 同序等长才能在
+    ;; current_value 里反查到 index）。
     ((== key (pref-general-language))
      ;; supported-languages 是变量（绑定到语言列表）、不是函数——不带括号引用。
-     (list supported-languages supported-languages)
+     (list supported-languages (map upcase-first supported-languages))
     ) ;
     ;; scripting language：动态按 scripts-list（lazy-plugin-force 副作用）拉取 options。
     ((== key (pref-scripting-language))
@@ -2106,10 +2125,12 @@
        (list sl (cons (translate "None") (map scripts-name (scripts-list))))
      ) ;let*
     ) ;
-    ;; image format：动态按 pretty-format-list（file-converter-exists? 副作用）拉取 options。
+    ;; image format：动态按 image-format-list-pair（file-converter-exists? 副作用）
+    ;; 拉取 internal/pretty 双列——options 用 internal 键、optionsTr 用 pretty 显示名，
+    ;; 与其它 combo 字段对齐（get-pretty-preference 返回 pretty、经 current_value 反查 index）。
     ((== key (pref-convert-image-format))
-     (let* ((fl (pretty-format-list)))
-       (list fl fl)
+     (let* ((pair (image-format-list-pair)))
+       (list (car pair) (cadr pair))
      ) ;let*
     ) ;
     ;; 其余字段：直接透传字段定义里的静态 options / options-pretty。
