@@ -193,19 +193,19 @@ parse_meta_tree (tmscm tabs) {
 /**
  * @brief 把 QVariantMap（diff，只含改动项）序列化为 scheme assoc 字面量字符串。
  *
- * @details 输出形如 `(("k1" "v1") ("k2" "v2"))`——scheme facade 的
- * preferences-qml-submit 接受这种 assoc-list 字面（每项是 (key value)
- * 二元组而非 dotted pair (key . value)，因 stree->tree 会对 dotted pair
- * 产生不稳定行为）。 每项 key / val 经 qt_scheme_quote 转 Cork 并
- * quote（处理用户输入的任意文本—— 如 IR combo 自定义键名、CSS 样式表 URL
- * 含特殊字符：引号 / 反斜杠 / 换行等均安全 转义）。val 均为 string（toggle 已在
- * QML 侧序列化为 "on"/"off" 串）。
+ * @details 输出 dotted-pair 形 `(("k1" . "v1") ("k2" . "v2"))`——与
+ * ParagraphFormat / FontSelector 等 sibling bridge 一致：scheme facade
+ * preferences-qml-submit 经 `(cdr (assoc key ...))` 取值，dotted pair 的 cdr
+ * 直接是 val 字符串（若用二元组 `(key val)`，cdr 会得到单元素 list `(val)`
+ * 而非字符串，下游 setter 全部误判）。val 均为 string（toggle 已在 QML 侧
+ * 序列化为 "on"/"off" 串）。key / val 经 qt_scheme_quote 转 Cork 并 quote，
+ * 用户输入的任意文本（引号 / 反斜杠 / 换行等）均安全转义。
  */
 string
 build_assoc_literal (const QVariantMap& changed) {
   string out= "(";
   for (auto it= changed.begin (); it != changed.end (); ++it) {
-    out << "(" << qt_scheme_quote (it.key ()) << " "
+    out << "(" << qt_scheme_quote (it.key ()) << " . "
         << qt_scheme_quote (it.value ().toString ()) << ")";
   }
   out << ")";

@@ -61,6 +61,49 @@
 
 (define step-delay-ms 500)
 
+;; ---- submit 路径用到的偏好存取 helper ----
+;; 改偏好会污染全局配置，故链首统一抓快照、链尾统一还原。本测试改动的键固定，
+;; 在快照表里枚举；test_2044 开头建快照、收尾步按快照还原。
+
+;; 单键读当前值（每步据此推导 want = 反转当前值）。
+
+(define (snapshot-pref key)
+  (get-preference key)
+) ;define
+
+(define (snapshot-bool key)
+  (get-boolean-preference key)
+) ;define
+
+(define pref-snapshot '())
+
+;; 抓取本测试会改动的全部键的当前值（boolean 键与 string 键混合）。
+
+(define (capture-pref-snapshot)
+  (set! pref-snapshot
+    (list (list "use large brackets" (get-boolean-preference "use large brackets"))
+      (list "complex actions" (get-preference "complex actions"))
+      (list "buffer management" (get-preference "buffer management"))
+      (list "tab bar" (get-boolean-preference "tab bar"))
+      (list "gui theme" (get-preference "gui theme"))
+    ) ;list
+  ) ;set!
+) ;define
+
+;; 按快照逐键还原：boolean 键还原成 #t/#f，string 键还原成原串。
+
+(define (restore-pref-snapshot)
+  (for (item pref-snapshot)
+    (let* ((key (car item)) (val (cadr item)))
+      (cond ((== key "use large brackets") (set-boolean-preference key val))
+            ((== key "tab bar") (set-boolean-preference key val))
+            (else (set-preference key val))
+      ) ;cond
+    ) ;let*
+  ) ;for
+  (save-preferences)
+) ;define
+
 (define (run-chain steps)
   (let loop
     ((rest steps) (t (+ (texmacs-time) step-delay-ms)))
@@ -81,7 +124,14 @@
 ) ;define
 
 (tm-define (test_2044)
-  (run-chain (append (list (cons "new document" (lambda () (new-document))))
+  (run-chain (append (list (cons "new document + snapshot"
+                             (lambda ()
+                               (new-document)
+                               ;; 链尾会按此快照还原，避免污染全局配置。
+                               (capture-pref-snapshot)
+                             ) ;lambda
+                           ) ;cons
+                     ) ;list
 
                ;; 1 meta 返回 5 主 tab + 各 tab 字段数 + Convert 子 tab 数。
                (list (cons "meta: 5 tabs + field counts + convert sub-tabs"
@@ -149,8 +199,106 @@
                      ) ;cons
                ) ;list
 
-               ;; 收尾
-               (list (cons "check-report + quit" (lambda () (check-report) (quit-TeXmacs))))
+               ;; 4 submit: 非重启 toggle（use large brackets）——钉死 bridge 的 dotted-pair
+               ;;   assoc wire 与 facade (cdr (assoc ...)) 取值一致：toggle 值正确落库。
+               ;;   回归点：旧 build_assoc_literal 产出二元组 ("k" "v")，cdr 得 ("v") 列表，
+               ;;   (== val "on") 恒假，toggle 永不切——本步专挡该 bug。
+               (list (cons "submit: non-restart toggle applies"
+                       (lambda ()
+                         (let* ((key "use large brackets")
+                                (old (snapshot-bool key))
+                                (want (if old "off" "on"))
+                                (rc (preferences-qml-submit (list (cons key want))))
+                               ) ;
+                           (check-true (equal? rc "applied"))
+                           (check-true (== (get-boolean-preference key) (== want "on")))
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 5 submit: 非重启 combo（complex actions）——combo 内部键正确落库、
+               ;;   返回 "applied"。
+               (list (cons "submit: non-restart combo applies"
+                       (lambda ()
+                         (let* ((key "complex actions")
+                                (old (snapshot-pref key))
+                                (want (if (== old "menus") "popups" "menus"))
+                                (rc (preferences-qml-submit (list (cons key want))))
+                               ) ;
+                           (check-true (equal? rc "applied"))
+                           (check-true (== (get-preference key) want))
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 6 submit: 副作用 key（buffer management）——联动 tab bar boolean 偏好。
+               ;;   shared -> tab bar on；separate -> tab bar off。
+               (list (cons "submit: buffer management links tab bar"
+                       (lambda ()
+                         (let* ((bm-key "buffer management")
+                                (old-bm (snapshot-pref bm-key))
+                                (old-tb (snapshot-bool "tab bar"))
+                                (want-bm (if (== old-bm "shared") "separate" "shared"))
+                                (rc (preferences-qml-submit (list (cons bm-key want-bm))))
+                               ) ;
+                           (check-true (equal? rc "applied"))
+                           (check-true (== (get-preference bm-key) want-bm))
+                           (check-true (== (get-boolean-preference "tab bar") (== want-bm "shared")))
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 7 submit: 含重启键 + MOGAN_TEST_CONFIRM_RESTART=cancel——返回 "cancel"，
+               ;;   diff 内任一字段都不应落库（先确认再 apply：未 apply 故无需回滚）。
+               (list (cons "submit: restart key + cancel applies nothing"
+                       (lambda ()
+                         (system-setenv "MOGAN_TEST_CONFIRM_RESTART" "cancel")
+                         (let* ((rk "gui theme")
+                                (nrk "complex actions")
+                                (old-rk (snapshot-pref rk))
+                                (old-nrk (snapshot-pref nrk))
+                                (rc (preferences-qml-submit (list (cons rk "liii-night") (cons nrk "menus"))))
+                               ) ;
+                           (check-true (equal? rc "cancel"))
+                           (check-true (== (get-preference rk) old-rk))
+                           (check-true (== (get-preference nrk) old-nrk))
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 8 submit: 含重启键 + MOGAN_TEST_CONFIRM_RESTART=later——返回 "later"：
+               ;;   重启键走 silent 写值（已落库，下次启动生效）、非重启键实时 apply。
+               ;;   不测 restart 分支——其会调 restart-TeXmacs 终止进程，与异步链收尾
+               ;;   冲突；该分支代码简单（apply + save-all-buffers + restart-TeXmacs）。
+               (list (cons "submit: restart key + later (silent + non-restart live)"
+                       (lambda ()
+                         (system-setenv "MOGAN_TEST_CONFIRM_RESTART" "later")
+                         (let* ((rk "gui theme")
+                                (nrk "complex actions")
+                                (old-rk (snapshot-pref rk))
+                                (old-nrk (snapshot-pref nrk))
+                                (want-nrk (if (== old-nrk "menus") "popups" "menus"))
+                                (rc (preferences-qml-submit (list (cons rk "liii") (cons nrk want-nrk))))
+                               ) ;
+                           (check-true (equal? rc "later"))
+                           (check-true (== (get-preference rk) "liii"))
+                           (check-true (== (get-preference nrk) want-nrk))
+                           ;; 清掉 confirm-restart preset，避免影响后续进程。
+                           (system-setenv "MOGAN_TEST_CONFIRM_RESTART" "")
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 收尾：还原本轮被改的偏好（避免污染后续测试与检入配置）+ 报告 + 退出。
+               (list (cons "restore prefs + check-report + quit"
+                       (lambda () (restore-pref-snapshot) (check-report) (quit-TeXmacs))
+                     ) ;cons
+               ) ;list
              ) ;append
   ) ;run-chain
 ) ;tm-define

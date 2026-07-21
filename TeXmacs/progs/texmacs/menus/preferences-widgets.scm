@@ -47,11 +47,9 @@
          ) ;internal
          (can-use-tabbar? (== internal "shared"))
         ) ;
-    (begin
-      (set-boolean-preference "tab bar" can-use-tabbar?)
-      (show-icon-bar 4 can-use-tabbar?)
-      (set-preference "buffer management" internal)
-    ) ;begin
+    (set-boolean-preference "tab bar" can-use-tabbar?)
+    (show-icon-bar 4 can-use-tabbar?)
+    (set-preference "buffer management" internal)
   ) ;let*
 ) ;define
 
