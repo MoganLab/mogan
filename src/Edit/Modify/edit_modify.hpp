@@ -30,6 +30,8 @@ protected:
   bool        loro_applying_remote= false; // 远端应用期间，跳过镜像回灌
   bool        loro_routing        = false; // debug_loro round-trip 中，防递归
   bool        loro_collab_on= false; // 协作会话开启前，本地编辑不 seed/不上行
+  bool        loro_vv_initialized=
+      false; // 首次 import 远端数据后推进 export vv，避免回传
 #endif
 
 public:

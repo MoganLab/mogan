@@ -492,6 +492,11 @@ loro_shadow_rep::broadcast_update () {
   if (out) mogan_loro_free (out, out_len);
 }
 
+void
+loro_shadow_rep::advance_export_vv () {
+  mogan_loro_doc_advance_export_vv (doc);
+}
+
 // 字符级 diff：把 before 文本变到 after 文本所需的 INSERT/REMOVE
 // mod（前缀/后缀对齐）。 p 是该原子在 buffer 中的路径；mod 用
 // mod_insert/remove(p, pos, ...)。

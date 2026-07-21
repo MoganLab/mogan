@@ -70,10 +70,16 @@ class DocEntry {
     }, 5000); // 合并窗口：阈值触发后等一波再统一落盘
   }
 
-  async flushSnapshot () {
-    if (!this.shadow || this.bytesSinceSnapshot === 0) return;
-    const snap = this.shadow.export({ mode: 'snapshot' });
-    await this.store.writeSnapshot(this.docId, Buffer.from(snap));
+  // force=true 时无论 bytesSinceSnapshot 都重写 snapshot（关停用，确保落盘最新态）。
+  async flushSnapshot (force = false) {
+    if (!this.shadow) return;
+    if (!force && this.bytesSinceSnapshot === 0) return;
+    this.shadow.commit (); // 确保待提交 op 进 oplog，export snapshot 才完整
+    const snap = this.shadow.export ({ mode: 'snapshot' });
+    console.log (
+      `[store] ${this.docId}: 落盘 snapshot ${snap.length} 字节（seq=${this.seq}）`
+    );
+    await this.store.writeSnapshot (this.docId, Buffer.from (snap));
     this.snapshottedSeq = this.seq;
     this.bytesSinceSnapshot = 0;
   }
@@ -82,7 +88,7 @@ class DocEntry {
   async stateForSync () {
     // 先落盘在途的写入，保证读到完整状态
     await this.persistQueue;
-    return this.store.readState(this.docId);
+    return this.store.readState (this.docId);
   }
 }
 
@@ -116,12 +122,17 @@ class DocRegistry {
     if (entry.clients.size === 0) entry.unload();
   }
 
+  // 关停落盘：逐文档串行（避免并发），每个先 await persistQueue + load() 确保
+  // shadow 是完整磁盘态（即便刚因 client 离开被 unload 也能重载），再 force flush。
+  // 旧实现 Promise.all 并发 + 依赖内存 shadow，client 断开触发的 unload 会让
+  // flushSnapshot 因 shadow=null 跳过 → snapshot 不写或写残缺。
   async flushAll () {
-    await Promise.all(
-      [...this.docs.values()].map((e) =>
-        e.persistQueue.then(() => e.flushSnapshot())
-      )
-    );
+    for (const e of [...this.docs.values ()]) {
+      await e.persistQueue;
+      if (e.seq === 0 && !e.shadow) continue; // 无任何数据可落盘
+      await e.load ();
+      await e.flushSnapshot (true);
+    }
   }
 }
 

@@ -64,6 +64,11 @@ public:
    * 在首个 commit 里被发成"仅创建"骨架（无文本），接收端须靠这次补发拿到
    * 完整初始内容。 */
   void broadcast_update ();
+  /** @brief 把 export vv 水位推进到当前（不导出/不广播）。JOIN 同步 import 远端
+   *         snapshot/updates 后调用，标记这些 op "已知"，避免下次
+   * broadcast_update 把刚收到的内容当本地增量回传。仅在无 pending 本地 op
+   * 时安全（首次同步）。 */
+  void advance_export_vv ();
   /** @brief 把远端 update 导入后，diff buffer（旧）vs shadow（新），生成把
    * buffer 变到 新状态所需的 modification 序列（文本字符级 diff →
    * INSERT/REMOVE；结构差异 → 整树 ASSIGN 兜底）。供编辑器在 versioning

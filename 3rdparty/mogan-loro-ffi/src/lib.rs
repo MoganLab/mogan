@@ -612,6 +612,22 @@ pub unsafe extern "C" fn mogan_loro_doc_export_local_update(
     }
 }
 
+/// 把内部 export vv 水位推进到当前 oplog_vv，但不导出任何字节。用于 import 远端
+/// 数据（JOIN 同步）后标记"当前所有 op 已知、不要再上行"——否则 export_local_update
+/// 会把刚收到的 snapshot/update 当本地增量全量回传服务端（连接即有一次空上行）。
+/// 注意：这会把当前所有 op（含本地未上行的）都标记为已知，故只能在"无 pending
+/// 本地 op"时调用（即首次 import 同步；重连场景有 pending 本地 op，不可调用）。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_doc_advance_export_vv(doc: *mut LoroDoc) {
+    if doc.is_null() {
+        return;
+    }
+    (*doc).commit();
+    let mut vvs = export_vvs().lock().unwrap();
+    let vv = vvs.entry(doc as usize).or_default();
+    *vv = (*doc).oplog_vv();
+}
+
 /// 递归写出"带 TreeID 的增强 IR"：每节点前缀 peer:u64 counter:i32，再跟普通 IR 节点。
 /// 用于 Phase 3：B 导入后据此把 buffer rep 关联到导入的 TreeID，使 B 的后续编辑能合并。
 fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) {
