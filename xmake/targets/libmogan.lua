@@ -33,8 +33,9 @@ target("libmogan") do
     end
     -- Loro 同步的 WS 传输层（src/Plugins/WebSocket）：native 用 libcurl 实现，
     -- WASM 用 emscripten WebSocket API 实现（emcc 内置库，无需包依赖）。
-    -- ImGui/Qt 两个前端各自定义并注册 g_loro_broadcast_update，只能链接其一，
-    -- 故 loro 与 qt_frontend 互斥（loro=yes 时需关掉 qt_frontend）。
+    -- g_loro_broadcast_update 与 WS 客户端均由 src/Plugins/Collab/loro_collab
+    -- 持有（前端无关），ImGui/Qt/WASM 三前端只各自在事件循环里调
+    -- loro_collab_poll()、退出时 loro_collab_disconnect()。故 loro 可与任意前端共存。
     if has_config("loro") then
         if not is_plat("wasm") then
             add_packages("libcurl", {public = true})
