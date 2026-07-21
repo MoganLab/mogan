@@ -478,6 +478,9 @@ loro_collab_fetch_docs (string server_url) {
     curl_easy_setopt (h, CURLOPT_WRITEDATA, &body);
     curl_easy_setopt (h, CURLOPT_CONNECTTIMEOUT, 2L);
     curl_easy_setopt (h, CURLOPT_TIMEOUT, 3L);
+    // dev/测试：接受自签证书（mkcert），与服务端 wss 同款（见 WS 客户端）
+    curl_easy_setopt (h, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt (h, CURLOPT_SSL_VERIFYHOST, 0L);
     CURLcode rc= curl_easy_perform (h);
     curl_easy_cleanup (h);
     std::vector<std::string> lines;
