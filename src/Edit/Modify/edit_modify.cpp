@@ -132,6 +132,19 @@ edit_modify_rep::mirror_loro (const modification& mod) {
 void
 edit_modify_rep::apply_remote (string bytes) {
   cout << "[Loro] Applying remote update of size " << N (bytes) << "\n";
+  // 远端 mod 经 apply()（tree_observer::raw_apply）改树，游标 tp 与选中路径会
+  // 系统性错位（选中区域失效）。先把它们转成 observer 追踪位置（raw_apply 的
+  // observer 回调会随树编辑更新 position），应用 mods 后取回错位后的路径恢复。
+  observer cur_save      = position_new (tp);
+  bool     had_sel       = selection_active_any ();
+  observer sel_start_save= nil_observer, sel_end_save= nil_observer;
+  if (had_sel) {
+    path sp, ep;
+    selection_get (sp, ep);
+    sel_start_save= position_new (sp);
+    sel_end_save  = position_new (ep);
+  }
+
   loro_applying_remote   = true;
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
   cout << "[Loro] Diff produced " << N (mods) << " modifications.\n";
@@ -140,6 +153,21 @@ edit_modify_rep::apply_remote (string bytes) {
     apply (et, rp * l->item);
   }
   loro_applying_remote= false;
+
+  // 恢复游标与选中（observer 已按树编辑更新位置；塌缩成一点则只恢复游标）
+  path nc= position_get (cur_save);
+  position_delete (cur_save);
+  if (!is_nil (nc)) {
+    tp= nc;
+    go_to_correct (tp);
+  }
+  if (had_sel) {
+    path ns= position_get (sel_start_save);
+    path ne= position_get (sel_end_save);
+    position_delete (sel_start_save);
+    position_delete (sel_end_save);
+    if (!is_nil (ns) && !is_nil (ne) && ns != ne) select (ns, ne);
+  }
 
   // 关键：apply_remote 通过 edit_announce 改了 buffer（新 tree_rep*），
   // 但这些新 rep 不在 id_map 里，因此下一次本地编辑 mirror_mod 会 id_map miss
