@@ -14,6 +14,15 @@
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 
+static constexpr int kContainerBorderWidth = 2;
+static constexpr int kContainerBorderRadius= 14;
+static constexpr int kShadowBlurRadius     = 12;
+static constexpr int kShadowOffsetY        = 4;
+static constexpr int kLayoutMargin         = 12; // 外层呼吸边距，防阴影截断
+static constexpr int kInnerMarginX         = 10;
+static constexpr int kInnerMarginY         = 5;
+static constexpr int kInnerSpacing         = 8;
+
 // =============================================================================
 // QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
 // =============================================================================
@@ -39,10 +48,11 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
 
   installTopLevelWindowFilter ();
 
-  // 生成主水平布局，并外留 12px 的呼吸边距以防边缘阴影被截断
+  // 生成主水平布局
   layout= new QHBoxLayout (this);
-  layout->setContentsMargins (DpiUtils::scaled (12), DpiUtils::scaled (12),
-                              DpiUtils::scaled (12), DpiUtils::scaled (12));
+  layout->setContentsMargins (
+      DpiUtils::scaled (kLayoutMargin), DpiUtils::scaled (kLayoutMargin),
+      DpiUtils::scaled (kLayoutMargin), DpiUtils::scaled (kLayoutMargin));
   layout->setSizeConstraint (QLayout::SetMinimumSize);
   setLayout (layout);
 
@@ -50,27 +60,31 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   container->setObjectName ("prompt_container");
 
   // 气泡卡片圆角样式（配色由 liii.css / liii-night.css 按主题提供）
-  container->setStyleSheet ("QFrame#prompt_container { "
-                            "border: 2px solid; "
-                            "border-radius: 14px; "
-                            "}");
+  container->setStyleSheet (
+      QString ("QFrame#prompt_container { "
+               "border: %1px solid; "
+               "border-radius: %2px; "
+               "}")
+          .arg (DpiUtils::scaled (kContainerBorderWidth))
+          .arg (DpiUtils::scaled (kContainerBorderRadius)));
 
   // 卡片外部淡出的现代软投影
   QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (container);
-  shadow->setBlurRadius (12);
+  shadow->setBlurRadius (DpiUtils::scaled (kShadowBlurRadius));
   shadow->setColor (QColor (0, 0, 0, 30));
-  shadow->setOffset (0, 4);
+  shadow->setOffset (0, DpiUtils::scaled (kShadowOffsetY));
   container->setGraphicsEffect (shadow);
 
   layout->addWidget (container);
 
   QHBoxLayout* innerLayout= new QHBoxLayout (container);
-  innerLayout->setContentsMargins (DpiUtils::scaled (10), DpiUtils::scaled (5),
-                                   DpiUtils::scaled (10), DpiUtils::scaled (5));
-  innerLayout->setSpacing (DpiUtils::scaled (8));
+  innerLayout->setContentsMargins (
+      DpiUtils::scaled (kInnerMarginX), DpiUtils::scaled (kInnerMarginY),
+      DpiUtils::scaled (kInnerMarginX), DpiUtils::scaled (kInnerMarginY));
+  innerLayout->setSpacing (DpiUtils::scaled (kInnerSpacing));
   container->setLayout (innerLayout);
 
-  // 1. 接受按钮 (现代祖母绿配色)
+  // 1. 接受按钮
   // 按钮样式全部由 liii.css / liii-night.css 提供：QPushButton 基态下
   // 控件级样式表与应用样式表合并不可靠，会落回通用 QPushButton 规则
   acceptBtn= new QPushButton (acceptText, container);
@@ -79,7 +93,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
            &QTMUserPromptPopup::handleAccept);
   innerLayout->addWidget (acceptBtn);
 
-  // 2. 拒绝按钮 (轻柔番茄红配色)
+  // 2. 拒绝按钮
   rejectBtn= new QPushButton (rejectText, container);
   rejectBtn->setObjectName ("reject_btn");
   connect (rejectBtn, &QPushButton::clicked, this,
