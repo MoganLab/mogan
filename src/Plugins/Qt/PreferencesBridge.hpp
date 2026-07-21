@@ -1,9 +1,7 @@
 /******************************************************************************
- ** MODULE      : PreferencesBridge.hpp DESCRIPTION : 首选项 QML 对话框的
- *C++↔QML 桥（无状态透传）。 scheme 侧 preferences-qml-*
- *facade（preferences-widgets.scm）持有 全局 preference 状态，bridge 只经
- *eval_scheme 调 facade、把结果转 QML 可消费的类型。详见 devel/2044.md 与
- *ai-docs/qml/README.md。 COPYRIGHT   : (C) 2026 Mogan STEM
+ * MODULE      : PreferencesBridge.hpp
+ * DESCRIPTION : 首选项 QML 对话框的 C++↔QML 桥（无状态透传）。
+ * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY whatsoever. Details see LICENSE.
