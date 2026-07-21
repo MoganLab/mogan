@@ -32,6 +32,27 @@ node server.js
 | `MOGAN_LORO_PORT` | `8765` | 监听端口 |
 | `MOGAN_LORO_DATA_DIR` | `tools/loro-server/data`（相对 server.js） | 持久化目录 |
 | `MOGAN_LORO_LATENCY_MS` | `0` | 网络延迟模拟（ms）：>0 时每条收到的消息延迟该毫秒后再处理，用于测试弱网下的同步/收敛 |
+| `MOGAN_LORO_TLS_CERT` | _（空）_ | TLS 证书文件路径；与 `MOGAN_LORO_TLS_KEY` 同时设置时启用 TLS（`wss://`+`https://`）。HTTPS 页面（如 GitHub Pages）必须走 TLS，否则浏览器拦 Mixed Content |
+| `MOGAN_LORO_TLS_KEY` | _（空）_ | TLS 私钥文件路径 |
+
+## TLS（HTTPS 页面必需）
+
+浏览器从 **HTTPS** 页面（GitHub Pages、`https://` 部署）禁止发起不安全的 `http://`/`ws://`
+（Mixed Content）。故 HTTPS 前端必须连 `wss://`+`https://`，服务端需上 TLS：
+
+```bash
+# LAN IP 自签证书（mkcert，浏览器需信任一次）：
+mkcert -install 10.0.178.250            # 生成根 CA 并信任
+mkcert 10.0.178.250                     # 生成 10.0.178.250.pem / -key.pem
+MOGAN_LORO_TLS_CERT=./10.0.178.250.pem \
+MOGAN_LORO_TLS_KEY=./10.0.178.250-key.pem \
+node server.js
+# 启动后是 wss+https；前端用 ?loro_server=wss://10.0.178.250:8765
+```
+
+无公网域名时自签证书浏览器会警告（接受一次即可测试）；生产用真实域名 + Let's Encrypt，
+或前置 Caddy/nginx 做 TLS 终结反向代理。WASM 客户端把 `ws://` 自动映射 `http://`（/docs），
+`wss://` 自动映射 `https://`。
 
 部署探活：`GET /healthz` → `{"ok":true,"docs":<内存中文档数>}`。
 文档发现：`GET /docs` → 纯文本，每行一个已落盘文档的 UUID（供客户端在 JOIN 前列出可加入的文档，不建立 WebSocket）。
