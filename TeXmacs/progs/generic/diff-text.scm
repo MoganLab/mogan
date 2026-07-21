@@ -13,7 +13,6 @@
 (texmacs-module (generic diff-text)
   (:use (kernel texmacs tm-define)
     (utils library cursor)
-    (version version-compare)
   ) ;:use
 ) ;texmacs-module
 
@@ -107,12 +106,6 @@
 (tm-define (diff-enable?) (not (community-stem?)))
 
 ;; =============================================================================
-;; Model evaluation & Feedback functions
-;; =============================================================================
-
-(tm-define (diff-feedback action) (noop))
-
-;; =============================================================================
 ;; Diff Text core control flow
 ;; =============================================================================
 
@@ -199,4 +192,13 @@
   (when (not (== key "move"))
     (delayed (:idle 0) (diff-check-popup))
   ) ;when
+) ;tm-define
+
+;; =============================================================================
+;; Feedback functions
+;; =============================================================================
+
+(tm-define (diff-feedback action)
+  ;; Action can be 'accept, 'reject, or 'ignore
+  (noop)
 ) ;tm-define
