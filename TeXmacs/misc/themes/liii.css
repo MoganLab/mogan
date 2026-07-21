@@ -800,15 +800,11 @@ QFrame#prompt_container {
   border-color: #94a3b8;
 }
 
-/*接受按钮（现代祖母绿配色）*/
+/*接受按钮（现代祖母绿配色）。尺寸由 QTMUserPromptPopup 经 DpiUtils 提供*/
 QPushButton#accept_btn {
   background-color: #10b981;
   color: #ffffff;
   border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 18px;
-  padding: 6px 16px;
 }
 
 QPushButton#accept_btn:hover {
@@ -824,10 +820,6 @@ QPushButton#reject_btn {
   background-color: #ef4444;
   color: #ffffff;
   border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 18px;
-  padding: 6px 16px;
 }
 
 QPushButton#reject_btn:hover {
@@ -843,9 +835,6 @@ QPushButton#good_btn, QPushButton#bad_btn {
   background-color: transparent;
   color: #4b5563;
   border: none;
-  border-radius: 8px;
-  font-size: 18px;
-  padding: 6px;
 }
 
 QPushButton#good_btn:hover, QPushButton#bad_btn:hover {

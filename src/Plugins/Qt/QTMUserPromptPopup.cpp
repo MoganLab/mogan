@@ -22,6 +22,39 @@ static constexpr int kLayoutMargin         = 12; // 外层呼吸边距，防阴�
 static constexpr int kInnerMarginX         = 10;
 static constexpr int kInnerMarginY         = 5;
 static constexpr int kInnerSpacing         = 8;
+static constexpr int kButtonBorderRadius   = 8;  // 按钮/图标按钮圆角
+static constexpr int kButtonFontPx         = 18; // 按钮字号
+static constexpr int kActionButtonPadY     = 6;  // 接受/拒绝按钮纵向内边距
+static constexpr int kActionButtonPadX     = 16; // 接受/拒绝按钮横向内边距
+static constexpr int kIconButtonPad        = 6;  // 点赞/踩按钮内边距
+
+// 按钮配色（含 hover/pressed）由主题 CSS 提供，这里只注入随 DPI 缩放的尺寸，
+// 避免与主题 CSS 的颜色规则产生控件级/应用级合并冲突。
+static void
+applyActionButtonGeometry (QPushButton* btn) {
+  btn->setStyleSheet (QString ("QPushButton { "
+                               "border-radius: %1px; "
+                               "font-weight: bold; "
+                               "font-size: %2px; "
+                               "padding: %3px %4px; "
+                               "}")
+                          .arg (DpiUtils::scaled (kButtonBorderRadius))
+                          .arg (DpiUtils::scaled (kButtonFontPx))
+                          .arg (DpiUtils::scaled (kActionButtonPadY))
+                          .arg (DpiUtils::scaled (kActionButtonPadX)));
+}
+
+static void
+applyIconButtonGeometry (QPushButton* btn) {
+  btn->setStyleSheet (QString ("QPushButton { "
+                               "border-radius: %1px; "
+                               "font-size: %2px; "
+                               "padding: %3px; "
+                               "}")
+                          .arg (DpiUtils::scaled (kButtonBorderRadius))
+                          .arg (DpiUtils::scaled (kButtonFontPx))
+                          .arg (DpiUtils::scaled (kIconButtonPad)));
+}
 
 // =============================================================================
 // QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
@@ -85,10 +118,12 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   container->setLayout (innerLayout);
 
   // 1. 接受按钮
-  // 按钮样式全部由 liii.css / liii-night.css 提供：QPushButton 基态下
-  // 控件级样式表与应用样式表合并不可靠，会落回通用 QPushButton 规则
+  // 按钮配色（含 hover/pressed）由 liii.css / liii-night.css 提供；
+  // 尺寸这里以 DpiUtils 注入。QPushButton 基态下控件级样式表与应用样式表
+  // 合并对颜色不可靠，故颜色不放进控件级样式表，仅注入尺寸属性
   acceptBtn= new QPushButton (acceptText, container);
   acceptBtn->setObjectName ("accept_btn");
+  applyActionButtonGeometry (acceptBtn);
   connect (acceptBtn, &QPushButton::clicked, this,
            &QTMUserPromptPopup::handleAccept);
   innerLayout->addWidget (acceptBtn);
@@ -96,6 +131,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   // 2. 拒绝按钮
   rejectBtn= new QPushButton (rejectText, container);
   rejectBtn->setObjectName ("reject_btn");
+  applyActionButtonGeometry (rejectBtn);
   connect (rejectBtn, &QPushButton::clicked, this,
            &QTMUserPromptPopup::handleReject);
   innerLayout->addWidget (rejectBtn);
@@ -103,6 +139,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   // 3. 点赞按钮
   goodBtn= new QPushButton ("👍", container);
   goodBtn->setObjectName ("good_btn");
+  applyIconButtonGeometry (goodBtn);
   connect (goodBtn, &QPushButton::clicked, this,
            &QTMUserPromptPopup::handleGood);
   innerLayout->addWidget (goodBtn);
@@ -110,6 +147,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   // 4. 踩按钮
   badBtn= new QPushButton ("👎", container);
   badBtn->setObjectName ("bad_btn");
+  applyIconButtonGeometry (badBtn);
   connect (badBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleBad);
   innerLayout->addWidget (badBtn);
 
