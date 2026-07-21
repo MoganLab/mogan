@@ -39,10 +39,12 @@
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
 
 // 文档发现状态机。native: libcurl + worker 线程（std 容器，不触 lolly
-// 分配器）； WASM: 浏览器 fetch + JS 全局状态，C++ 经 EM_JS getter
-// 轮询（单线程，无锁）。
-#ifndef __EMSCRIPTEN__
+// 分配器）； WASM: 浏览器 fetch，结果经 ccall 回调写入 C++
+// 普通全局（单线程，菜单每帧只读 C++ 变量，无 EM_JS 往返）。docs_status
+// 枚举两端共用。
 enum class docs_status { idle, loading, ready, error };
+
+#ifndef __EMSCRIPTEN__
 static std::mutex               g_docs_mutex;
 static std::atomic<docs_status> g_docs_status{docs_status::idle};
 static std::vector<std::string>
@@ -56,33 +58,53 @@ http_write_cb (char* ptr, size_t size, size_t nmemb, void* userdata) {
   return size * nmemb;
 }
 #else
-#include <cstdlib> // free
-#include <cstring> // strlen
 #include <emscripten.h>
+#include <string>
 
-// 异步 GET url：结果存 JS 全局，状态机 0 idle→1 loading→2 ready / 3 error。
-// 非阻塞（浏览器事件循环驱动），无需 asyncify 或线程。
+static docs_status g_docs_status= docs_status::idle; // 单线程，无需原子
+static std::string g_docs_data;                      // \n 连接的 UUID 文本
+
+// JS fetch 完成/失败时经 ccall 回调入此（EMSCRIPTEN_KEEPALIVE + ccall，与
+// mogan_ime_commit 同款）。ok=2 成功（text 为 \n 分隔结果），ok=3 失败。
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_collab_docs_received (const char* text, int ok) {
+  if (ok == 2) {
+    g_docs_status= docs_status::ready;
+    g_docs_data  = (text != nullptr) ? std::string (text) : std::string ();
+  }
+  else {
+    g_docs_status= docs_status::error;
+    g_docs_data.clear ();
+  }
+}
+
+// 把 ccall 拉入 EM_JS 作用域（无需改 EXPORTED_RUNTIME_METHODS）。
+EM_JS_DEPS (mogan_collab, "$ccall");
+
+// 异步 GET url：成功时把响应文本（\n 分隔 UUID）malloc 成 C 串，ccall
+// 回调后释放； 失败/异常时 ccall(0,3)。全程 try/catch，杜绝 EM_JS
+// 内未捕获异常。
 EM_JS (void, collab_fetch_docs_js, (const char* url_cstr), {
-  Module.__collabDocsStatus= 1;
-  var url                  = UTF8ToString (url_cstr);
-  fetch (url)
-      .then (function (r) { return r.text (); })
-      .then (function (text) {
-        Module.__collabDocsResult= text;
-        Module.__collabDocsStatus= 2;
-      })
-      .catch (function (e) { Module.__collabDocsStatus= 3; });
-});
-// 0 idle / 1 loading / 2 ready / 3 error
-EM_JS (int, collab_docs_status_js, (),
-       { return Module.__collabDocsStatus || 0; });
-// 返回 _malloc 的 C 字符串（\n 分隔 UUID），调用方 free()。空结果返回空串。
-EM_JS (char*, collab_docs_result_js, (), {
-  var text= Module.__collabDocsResult || '';
-  var len = lengthBytesUTF8 (text) + 1;
-  var buf = _malloc (len);
-  stringToUTF8 (text, buf, len);
-  return buf;
+  try {
+    var url= UTF8ToString (url_cstr);
+    fetch (url)
+        .then (function (r) { return r.text (); })
+        .then (function (text) {
+          var len= lengthBytesUTF8 (text);
+          var buf= _malloc (len + 1);
+          stringToUTF8 (text, buf, len + 1);
+          ccall ('mogan_collab_docs_received', null, [ 'number', 'number' ],
+                 [ buf, 2 ]);
+          _free (buf);
+        })
+        .catch (function (e) {
+          ccall ('mogan_collab_docs_received', null, [ 'number', 'number' ],
+                 [ 0, 3 ]);
+        });
+  } catch (e) {
+    ccall ('mogan_collab_docs_received', null, [ 'number', 'number' ],
+           [ 0, 3 ]);
+  }
 });
 #endif
 
@@ -322,7 +344,9 @@ loro_collab_fetch_docs (string server_url) {
     g_docs_status.store (docs_status::ready);
   }).detach ();
 #else
-  // WASM：浏览器 fetch 异步，结果存 JS 全局，poll 时轮询
+  // WASM：幂等（loading 中跳过），浏览器 fetch 异步，回调写入 C++ 全局
+  if (g_docs_status == docs_status::loading) return;
+  g_docs_status= docs_status::loading;
   c_string u (http_url);
   collab_fetch_docs_js ((const char*) u);
 #endif
@@ -343,16 +367,18 @@ loro_collab_docs_status () {
   }
   return "idle";
 #else
-  switch (collab_docs_status_js ()) {
-  case 1:
-    return "loading";
-  case 2:
-    return "ready";
-  case 3:
-    return "error";
-  default:
+  // 读 C++ 全局（ccall 回调在主线程写入），无 EM_JS 往返
+  switch (g_docs_status) {
+  case docs_status::idle:
     return "idle";
+  case docs_status::loading:
+    return "loading";
+  case docs_status::ready:
+    return "ready";
+  case docs_status::error:
+    return "error";
   }
+  return "idle";
 #endif
 }
 
@@ -360,24 +386,17 @@ array<string>
 loro_collab_docs () {
   array<string> result;
 #ifdef __EMSCRIPTEN__
-  // 从 JS 全局取结果（\n 分隔），按行切分为 lolly array<string>。
-  // 单线程：fetch 回调与此处同在主运行时线程，操作 lolly 安全。
-  char* buf= collab_docs_result_js ();
-  if (buf != nullptr) {
-    int    len= (int) strlen (buf);
-    string body (buf, len);
-    free (buf);
-    int start= 0;
-    while (start <= N (body)) {
-      int next= start;
-      while (next < N (body) && body[next] != '\n' && body[next] != '\r')
-        next++;
-      if (next > start) result << body (start, next);
-      start= next;
-      while (start < N (body) && (body[start] == '\n' || body[start] == '\r'))
-        start++;
-      if (next == start && start < N (body)) start++;
-    }
+  // 解析 C++ g_docs_data（\n 连接），按行切分为 lolly array<string>。
+  // 单线程：ccall 回调与此处同在主运行时线程，操作 lolly 安全。
+  const std::string& body = g_docs_data;
+  size_t             start= 0;
+  while (start <= body.size ()) {
+    size_t next= body.find ('\n', start);
+    if (next == std::string::npos) next= body.size ();
+    std::string line= body.substr (start, next - start);
+    if (!line.empty () && line.back () == '\r') line.pop_back ();
+    if (!line.empty ()) result << string (line.data (), (int) line.size ());
+    start= next + 1;
   }
 #else
   std::lock_guard<std::mutex> lk (g_docs_mutex);
