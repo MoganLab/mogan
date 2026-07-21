@@ -12,12 +12,9 @@
 #include "qt_dpi_utils.hpp"
 #include "server.hpp"
 #include <QFrame>
-#include <QGraphicsDropShadowEffect>
 
 static constexpr int kContainerBorderWidth = 2;
 static constexpr int kContainerBorderRadius= 14;
-static constexpr int kShadowBlurRadius     = 12;
-static constexpr int kShadowOffsetY        = 4;
 static constexpr int kLayoutMargin         = 12; // 外层呼吸边距，防阴影截断
 static constexpr int kInnerMarginX         = 10;
 static constexpr int kInnerMarginY         = 5;
@@ -100,13 +97,6 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
                "}")
           .arg (DpiUtils::scaled (kContainerBorderWidth))
           .arg (DpiUtils::scaled (kContainerBorderRadius)));
-
-  // 卡片外部淡出的现代软投影
-  QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (container);
-  shadow->setBlurRadius (DpiUtils::scaled (kShadowBlurRadius));
-  shadow->setColor (QColor (0, 0, 0, 30));
-  shadow->setOffset (0, DpiUtils::scaled (kShadowOffsetY));
-  container->setGraphicsEffect (shadow);
 
   layout->addWidget (container);
 
