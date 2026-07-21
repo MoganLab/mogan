@@ -173,6 +173,10 @@ public:
   bool   want_reconnect   = false;
   time_t next_reconnect_at= 0; // 下次重连尝试时刻(ms)
   int    reconnect_attempt= 0; // 已失败的重连次数（退避基准）
+  // 断线期间缓冲的本地增量（subscribe_local_update 事件级，只含本端 op）。
+  // 重连后 flush——只发真实本地编辑，绝不回显服务端数据（替代 vv-based
+  // resync）。
+  array<string> pending_updates;
   // 不持有固定 editor 句柄：一个文档对应一个 ws 连接，会话操作（enable/
   // apply_remote）一律对「当前编辑器」动态取用——避免捕获的 editor 失效或与
   // 用户正在编辑的 editor 不一致（曾是导致不广播的根因）。
@@ -185,13 +189,21 @@ collab_session g_session;
 // 上行：把本地 shadow 产生的增量 update 经会话的 WS 发出。会话单例，故无需
 // 区分文档路径——local-update 回调仅对 collab 开启的 editor 触发（其余 editor
 // collab 关闭，不镜像，不产生本地增量）。
+// 就绪→立即发；断线/重连中（want_reconnect）→缓冲，待 become_ready flush；
+// 手动退出后→丢弃。
 void
 broadcast_to_server (string bytes) {
-  if (g_session.state != collab_state::ready || !g_session.ws ||
-      !g_session.ws->connected ())
+  if (g_session.state == collab_state::ready && g_session.ws &&
+      g_session.ws->connected ()) {
+    cout << "[collab] 上行 " << N (bytes) << " 字节 update\n";
+    g_session.ws->send (bytes, true);
     return;
-  cout << "[collab] 上行 " << N (bytes) << " 字节 update\n";
-  g_session.ws->send (bytes, true);
+  }
+  if (g_session.want_reconnect) {
+    g_session.pending_updates << bytes;
+    cout << "[collab] 缓冲本地 update（" << N (bytes)
+         << " 字节），待重连后上行\n";
+  }
 }
 
 // 状态栏提示（重连过程给用户反馈）。get_server() 在编辑期必非空（与
@@ -296,9 +308,15 @@ public:
     // 对当前编辑器置位协作开关：之后该 editor 的本地编辑才会镜像 + 上行
     editor ed= get_current_editor ();
     if (is_nil (ed)) cout << "[collab] become_ready: 当前编辑器为空！\n";
-    else {
-      ed->collab_enable ();
-      ed->collab_resync (); // 重连后把断线期间累积的本地增量重新上行
+    else ed->collab_enable ();
+    // flush 断线期间缓冲的本地增量（subscribe 事件级，只含本端
+    // op，不回显服务端数据）
+    if (N (g_session.pending_updates) > 0) {
+      cout << "[collab] 重连后 flush " << N (g_session.pending_updates)
+           << " 条缓冲 update\n";
+      for (int i= 0; i < N (g_session.pending_updates); i++)
+        g_session.ws->send (g_session.pending_updates[i], true);
+      g_session.pending_updates= array<string> ();
     }
     // 把当前 buffer 标题设为文档 UUID（替代默认 "No Name [n]"），便于识别与分享
     set_title_buffer (g_session.buffer_url, g_session.doc_id);
@@ -391,6 +409,7 @@ loro_collab_disconnect () {
   g_session.doc_id           = "";
   g_session.reconnect_attempt= 0;
   g_session.buffer_known     = false;
+  g_session.pending_updates= array<string> (); // 手动退出：丢弃未上行的本地增量
   if (g_session.ws) {
     g_session.ws->disconnect ();
     delete g_session.ws;
