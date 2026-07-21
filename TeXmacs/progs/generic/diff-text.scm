@@ -102,21 +102,21 @@
 
 (define diff-active? #f)
 
-(define-public (is-diff-active?) diff-active?)
+(tm-define (is-diff-active?) diff-active?)
 
-(define-public (diff-enable?) (not (community-stem?)))
+(tm-define (diff-enable?) (not (community-stem?)))
 
 ;; =============================================================================
 ;; Model evaluation & Feedback functions
 ;; =============================================================================
 
-(define-public (diff-feedback action) (noop))
+(tm-define (diff-feedback action) (noop))
 
 ;; =============================================================================
 ;; Diff Text core control flow
 ;; =============================================================================
 
-(define-public (trigger-diff-text)
+(tm-define (trigger-diff-text)
   (let* ((sel (selection-tree))
          (origin_stree (tree->stree sel))
          (suggested_stree (demo-suggest origin_stree))
@@ -136,9 +136,9 @@
     ;; 还原精度
     (set-preference "versioning grain" pre-grain)
   ) ;let*
-) ;define-public
+) ;tm-define
 
-(define-public (accept-diff)
+(tm-define (accept-diff)
   (let ((t (tree-innermost 'version-both)))
     (when t
       (let* ((new-val (tree-ref t 1)) (p (tree-up t)) (i (tree-index t)))
@@ -152,9 +152,9 @@
   (diff-feedback 'accept)
   (refresh-window)
   (diff-scan-next)
-) ;define-public
+) ;tm-define
 
-(define-public (reject-diff)
+(tm-define (reject-diff)
   (let ((t (tree-innermost 'version-both)))
     (when t
       (let* ((old-val (tree-ref t 0)) (p (tree-up t)) (i (tree-index t)))
@@ -168,7 +168,7 @@
   (diff-feedback 'reject)
   (refresh-window)
   (diff-scan-next)
-) ;define-public
+) ;tm-define
 
 ;; =============================================================================
 ;; Keyboard and Mouse Hooks
