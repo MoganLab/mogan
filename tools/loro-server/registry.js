@@ -96,6 +96,7 @@ class DocRegistry {
   constructor (store) {
     this.store = store;
     this.docs = new Map(); // docId -> DocEntry
+    this.shuttingDown = false; // 关停期间禁止 unload（见 maybeUnload）
   }
 
   async restore () {
@@ -119,6 +120,9 @@ class DocRegistry {
   }
 
   maybeUnload (entry) {
+    // 关停期间不卸载：flushAll 正在 load/flush，卸载会把 shadow 置 null 导致
+    // load 的 import 崩溃（await readState 让出期间被 unload 打断）。
+    if (this.shuttingDown) return;
     if (entry.clients.size === 0) entry.unload();
   }
 
