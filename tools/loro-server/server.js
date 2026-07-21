@@ -23,13 +23,19 @@
 //   MOGAN_LORO_DATA_DIR  持久化目录（默认 ./data）
 const http = require('http');
 const crypto = require('crypto');
+const path = require('path');
 const WebSocket = require('ws');
 const { DocStore } = require('./store');
 const { DocRegistry } = require('./registry');
 
 const HOST = process.env.MOGAN_LORO_HOST || '0.0.0.0';
 const PORT = parseInt(process.env.MOGAN_LORO_PORT || '8765', 10);
-const DATA_DIR = process.env.MOGAN_LORO_DATA_DIR || './data';
+// 默认相对 server.js 所在目录（tools/loro-server/data），不随 cwd 漂移到仓库根
+const DATA_DIR =
+  process.env.MOGAN_LORO_DATA_DIR || path.join(__dirname, 'data');
+// 网络延迟模拟（ms）：>0 时每条收到的消息延迟该毫秒后再处理，便于测试弱网下
+// 的同步/收敛行为。默认 0（关闭）。
+const LATENCY_MS = parseInt(process.env.MOGAN_LORO_LATENCY_MS || '0', 10);
 
 function ts () {
   return new Date().toISOString();
@@ -40,7 +46,10 @@ async function main () {
   await store.init();
   const registry = new DocRegistry(store);
   const restored = await registry.restore();
-  console.log(`${ts()} [server] 持久化目录 ${DATA_DIR}，恢复 ${restored} 个文档`);
+  console.log(
+    `${ts()} [server] 持久化目录 ${DATA_DIR}，恢复 ${restored} 个文档` +
+      (LATENCY_MS > 0 ? `，延迟模拟 ${LATENCY_MS}ms` : '')
+  );
 
   // 内嵌 HTTP 服务：/healthz 供部署探活，/docs 列出可用文档 UUID（供客户端
   // 在 JOIN 前发现文档，纯文本每行一个 UUID，便于 C++ 端按行解析），同时
@@ -174,33 +183,44 @@ async function main () {
     );
 
     ws.on('message', (data, isBinary) => {
-      if (!isBinary) {
-        const text = data.toString('utf8').trim();
-        console.log(`${ts()} [client:${ws.clientId}] 文本消息: ${text.slice(0, 100)}`);
-        try {
-          onTextMessage(ws, text);
-        } catch (err) {
-          console.error(`${ts()} [client:${ws.clientId}] 消息处理异常:`, err);
-          sendErr(ws, 'INTERNAL', 'message_handler_error');
+      // 延迟模拟：>0 时拦截所有消息，延迟后再处理（弱网行为测试）
+      const handle = () => {
+        if (!isBinary) {
+          const text = data.toString('utf8').trim();
+          console.log(`${ts()} [client:${ws.clientId}] 文本消息: ${text.slice(0, 100)}`);
+          try {
+            onTextMessage(ws, text);
+          } catch (err) {
+            console.error(`${ts()} [client:${ws.clientId}] 消息处理异常:`, err);
+            sendErr(ws, 'INTERNAL', 'message_handler_error');
+          }
+          return;
         }
-        return;
-      }
-      // 二进制帧：Loro update（或创建者的初始 snapshot；服务端不区分，
-      // import 均幂等）。记账 → 广播 → 异步落盘。
-      const entry = ws.docEntry;
-      if (!entry) {
-        console.log(`${ts()} [client:${ws.clientId}] 未加入文档，忽略 ${data.length} 字节二进制帧`);
-        return;
-      }
-      entry.applyUpdate(Buffer.from(data), (payload) => {
-        const n = broadcast(entry, ws, payload);
+        // 二进制帧：Loro update（或创建者的初始 snapshot；服务端不区分，
+        // import 均幂等）。记账 → 广播 → 异步落盘。
+        const entry = ws.docEntry;
+        if (!entry) {
+          console.log(`${ts()} [client:${ws.clientId}] 未加入文档，忽略 ${data.length} 字节二进制帧`);
+          return;
+        }
+        entry.applyUpdate(Buffer.from(data), (payload) => {
+          const n = broadcast(entry, ws, payload);
+          console.log(
+            `${ts()} [client:${ws.clientId}] update seq=${entry.seq}，${payload.length} 字节，广播给 ${n} 人 [doc:${entry.docId}]`
+          );
+        }).catch((err) => {
+          console.error(`${ts()} [client:${ws.clientId}] update 处理失败:`, err);
+          sendErr(ws, 'INTERNAL', 'update_failed');
+        });
+      };
+      if (LATENCY_MS > 0) {
         console.log(
-          `${ts()} [client:${ws.clientId}] update seq=${entry.seq}，${payload.length} 字节，广播给 ${n} 人 [doc:${entry.docId}]`
+          `${ts()} [client:${ws.clientId}] 收到消息（${isBinary ? 'binary' : 'text'} ${data.length}B），延迟 ${LATENCY_MS}ms 后处理`
         );
-      }).catch((err) => {
-        console.error(`${ts()} [client:${ws.clientId}] update 处理失败:`, err);
-        sendErr(ws, 'INTERNAL', 'update_failed');
-      });
+        setTimeout(handle, LATENCY_MS);
+      } else {
+        handle();
+      }
     });
 
     ws.on('close', (code, reason) => {

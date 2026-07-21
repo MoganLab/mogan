@@ -30,7 +30,8 @@ node server.js
 |---|---|---|
 | `MOGAN_LORO_HOST` | `0.0.0.0` | 绑定地址 |
 | `MOGAN_LORO_PORT` | `8765` | 监听端口 |
-| `MOGAN_LORO_DATA_DIR` | `./data` | 持久化目录 |
+| `MOGAN_LORO_DATA_DIR` | `tools/loro-server/data`（相对 server.js） | 持久化目录 |
+| `MOGAN_LORO_LATENCY_MS` | `0` | 网络延迟模拟（ms）：>0 时每条收到的消息延迟该毫秒后再处理，用于测试弱网下的同步/收敛 |
 
 部署探活：`GET /healthz` → `{"ok":true,"docs":<内存中文档数>}`。
 文档发现：`GET /docs` → 纯文本，每行一个已落盘文档的 UUID（供客户端在 JOIN 前列出可加入的文档，不建立 WebSocket）。
