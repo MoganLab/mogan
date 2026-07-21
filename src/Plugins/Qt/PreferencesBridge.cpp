@@ -96,8 +96,7 @@ assoc_to_variantmap (tmscm alist) {
       out[k]= QVariant::fromValue (tmscm_to_stringlist (v));
     else if (k == QLatin1String ("editable")) out[k]= preferences_bool (v);
     else if (k == QLatin1String ("restart?")) out[k]= preferences_bool (v);
-    else if (k == QLatin1String ("column"))
-      out[k]= tmscm_to_qstring (v).toInt ();
+    else if (k == QLatin1String ("column")) out[k]= tmscm_to_int (v);
     else out[k]= tmscm_to_qstring (v);
   }
   return out;

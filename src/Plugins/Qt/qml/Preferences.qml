@@ -33,16 +33,19 @@ DialogShell {
     // Enter/Return 默认 OK（本地暂存提交）。
     onActivate: () => root.submit()
 
-    property var meta: typeof prefBridge !== "undefined" ? prefBridge.meta() : ({tabs: []})
+    property var meta: typeof prefBridge !== "undefined" ? prefBridge.meta() : ({
+            tabs: []
+        })
     property var buttonLabels: [qsTr("OK"), qsTr("Cancel")]  // 由 bridge 注入（translate 包装好的）或回退 qsTr
 
     // 打开快照：从 meta 一次性建 {key: value}（只含 combo/toggle——info 不入 editable map）。
     // initialValues 打开瞬间固定、values 是可变副本——changedFields 比 initialValues 算 diff。
     property var initialValues: root.buildValues(root.meta)
     property var values: {
-        var v = {}
-        for (var k in root.initialValues) v[k] = root.initialValues[k]
-        return v
+        var v = {};
+        for (var k in root.initialValues)
+            v[k] = root.initialValues[k];
+        return v;
     }
 
     property string activeTab: "general"
@@ -50,93 +53,103 @@ DialogShell {
 
     // 从 meta 树建 {key: value}（combo/toggle 的 key/value；info 无 setter、不入 editable map）。
     function buildValues(metaObj) {
-        var v = {}
-        var tabs = metaObj && metaObj.tabs ? metaObj.tabs : []
+        var v = {};
+        var tabs = metaObj && metaObj.tabs ? metaObj.tabs : [];
         for (var i = 0; i < tabs.length; i++) {
-            var tab = tabs[i]
-            collectValues(tab.fields || [], v)
-            var subs = tab.subTabs || []
+            var tab = tabs[i];
+            collectValues(tab.fields || [], v);
+            var subs = tab.subTabs || [];
             for (var j = 0; j < subs.length; j++)
-                collectValues(subs[j].fields || [], v)
+                collectValues(subs[j].fields || [], v);
         }
-        return v
+        return v;
     }
     function collectValues(fields, target) {
         for (var i = 0; i < fields.length; i++) {
-            var f = fields[i]
-            if (f.kind === "info") continue  // info 无 setter、不入 editable map
-            if (!f.key) continue
-            target[f.key] = f.value !== undefined ? f.value : ""
+            var f = fields[i];
+            if (f.kind === "info")
+                // info 无 setter、不入 editable map
+                continue;
+            if (!f.key)
+                continue;
+            target[f.key] = f.value !== undefined ? f.value : "";
         }
     }
 
     // 改某字段：更新本地 values（触发显示刷新）。radio 互斥：若该字段有 radioGroup 且新值
     // 是 "on"（开一个），则把同组其它 peer 在本地 values 里置 "off"。
     function setField(key, val) {
-        var cur = root.values
-        cur[key] = val
+        var cur = root.values;
+        cur[key] = val;
         // radio 互斥：查当前 field 的 radioGroup，若开了则关同组其它 peer。
-        var field = root.findField(key)
+        var field = root.findField(key);
         if (field && field.radioGroup && val === "on") {
-            var peers = root.fieldsInRadioGroup(field.radioGroup)
+            var peers = root.fieldsInRadioGroup(field.radioGroup);
             for (var i = 0; i < peers.length; i++)
-                if (peers[i].key !== key) cur[peers[i].key] = "off"
+                if (peers[i].key !== key)
+                    cur[peers[i].key] = "off";
         }
-        root.values = cur
+        root.values = cur;
     }
 
     // 算 diff：仅与打开快照不同的键。toggle 的值已是 "on"/"off" 串（wire 格式统一字符串）。
     function changedFields() {
-        var d = {}
+        var d = {};
         for (var k in root.values)
-            if (root.values[k] !== root.initialValues[k]) d[k] = root.values[k]
-        return d
+            if (root.values[k] !== root.initialValues[k])
+                d[k] = root.values[k];
+        return d;
     }
 
     // 按字段 key 查 meta 树里的 field 描述符（用于 radio peer 查找）。
     function findField(key) {
-        var tabs = root.meta && root.meta.tabs ? root.meta.tabs : []
+        var tabs = root.meta && root.meta.tabs ? root.meta.tabs : [];
         for (var i = 0; i < tabs.length; i++) {
-            var found = findFieldInList(tabs[i].fields || [], key)
-            if (found) return found
-            var subs = tabs[i].subTabs || []
+            var found = findFieldInList(tabs[i].fields || [], key);
+            if (found)
+                return found;
+            var subs = tabs[i].subTabs || [];
             for (var j = 0; j < subs.length; j++) {
-                var f2 = findFieldInList(subs[j].fields || [], key)
-                if (f2) return f2
+                var f2 = findFieldInList(subs[j].fields || [], key);
+                if (f2)
+                    return f2;
             }
         }
-        return null
+        return null;
     }
     function findFieldInList(fields, key) {
         for (var i = 0; i < fields.length; i++)
-            if (fields[i].key === key) return fields[i]
-        return null
+            if (fields[i].key === key)
+                return fields[i];
+        return null;
     }
     // 返回某 radioGroup 下所有 field 描述符（用于互斥关 peer）。
     function fieldsInRadioGroup(groupName) {
-        var out = []
+        var out = [];
         function scan(fields) {
             for (var i = 0; i < fields.length; i++)
-                if (fields[i].radioGroup === groupName) out.push(fields[i])
+                if (fields[i].radioGroup === groupName)
+                    out.push(fields[i]);
         }
-        var tabs = root.meta && root.meta.tabs ? root.meta.tabs : []
+        var tabs = root.meta && root.meta.tabs ? root.meta.tabs : [];
         for (var i = 0; i < tabs.length; i++) {
-            scan(tabs[i].fields || [])
-            var subs = tabs[i].subTabs || []
-            for (var j = 0; j < subs.length; j++) scan(subs[j].fields || [])
+            scan(tabs[i].fields || []);
+            var subs = tabs[i].subTabs || [];
+            for (var j = 0; j < subs.length; j++)
+                scan(subs[j].fields || []);
         }
-        return out
+        return out;
     }
 
     function submit() {
-        var diff = root.changedFields()
+        var diff = root.changedFields();
         if (Object.keys(diff).length === 0) {
             // 无改动：直接关窗。
-            closeBridge.cancel()
-            return
+            closeBridge.cancel();
+            return;
         }
-        prefBridge.submit(diff)  // facade 按「先确认再 apply」三分支处理
-        closeBridge.cancel()  // 关窗（submit 始终关闭）
+        prefBridge.submit(diff);  // facade 按「先确认再 apply」三分支处理
+        closeBridge.cancel();  // 关窗（submit 始终关闭）
     }
 
     content: Item {
@@ -148,10 +161,15 @@ DialogShell {
             anchors.top: parent.top
             anchors.left: parent.left
             model: root.meta && root.meta.tabs ? root.meta.tabs.map(function (t) {
-                return {key: t.key, label: t.label}
+                return {
+                    key: t.key,
+                    label: t.label
+                };
             }) : []
             activeKey: root.activeTab
-            onSelected: function (key) { root.activeTab = key }
+            onSelected: function (key) {
+                root.activeTab = key;
+            }
         }
 
         // 底部按钮区（OK / Cancel）。
@@ -163,8 +181,10 @@ DialogShell {
             primaryIndex: 0  // OK 默认主按钮
             buttonWidth: 90 * Theme.scaleFactor
             onClicked: function (i) {
-                if (i === 0) root.submit()
-                else closeBridge.cancel()
+                if (i === 0)
+                    root.submit();
+                else
+                    closeBridge.cancel();
             }
         }
 
@@ -182,7 +202,7 @@ DialogShell {
             // 当前 active tab 对象（从 meta.tabs 按 root.activeTab 查找；property 声明
             // 让 binding 在 activeTab 变化时自动重算）。
             property var activeTabObj: root.meta && root.meta.tabs ? root.meta.tabs.find(function (t) {
-                return t.key === root.activeTab
+                return t.key === root.activeTab;
             }) : null
 
             // Convert 子 TabBar（仅 activeTab === "convert" 且该 tab 有 subTabs 时显示）。
@@ -192,10 +212,15 @@ DialogShell {
                 anchors.left: parent.left
                 visible: root.activeTab === "convert" && !!body.activeTabObj && !!body.activeTabObj.subTabs
                 model: visible && body.activeTabObj && body.activeTabObj.subTabs ? body.activeTabObj.subTabs.map(function (s) {
-                    return {key: s.key, label: s.label}
+                    return {
+                        key: s.key,
+                        label: s.label
+                    };
                 }) : []
                 activeKey: root.activeSubTab
-                onSelected: function (key) { root.activeSubTab = key }
+                onSelected: function (key) {
+                    root.activeSubTab = key;
+                }
             }
 
             // 字段 Flickable：通用渲染。按 activeTab 决定渲染哪个 fields 列表：
@@ -206,9 +231,7 @@ DialogShell {
             Flickable {
                 id: fieldScroll
                 anchors.fill: parent
-                anchors.topMargin: (root.activeTab === "convert" && body.activeTabObj && body.activeTabObj.subTabs)
-                                  ? subTabs.height + Theme.padS
-                                  : 0
+                anchors.topMargin: (root.activeTab === "convert" && body.activeTabObj && body.activeTabObj.subTabs) ? subTabs.height + Theme.padS : 0
                 contentWidth: width
                 contentHeight: fieldCol.height
                 clip: true
@@ -223,11 +246,8 @@ DialogShell {
                         width: parent ? parent.width : 0
                         // 高度按当前 kind 的可见实例取（EnumCombo/Toggle 固定行高 Theme.rowH；
                         // info 行 textRowH；不可见时归零、不占位）。
-                        height: visible
-                            ? (modelData.kind === "info" ? Theme.textRowH : Theme.rowH)
-                            : 0
-                        visible: !modelData.visibleWhenKey
-                            || root.values[modelData.visibleWhenKey] === modelData.visibleWhenVal
+                        height: visible ? (modelData.kind === "info" ? Theme.textRowH : Theme.rowH) : 0
+                        visible: !modelData.visibleWhenKey || root.values[modelData.visibleWhenKey] === modelData.visibleWhenVal
 
                         EnumCombo {
                             width: parent.width
@@ -238,7 +258,7 @@ DialogShell {
                             value: root.values[modelData.key] !== undefined ? root.values[modelData.key] : ""
                             editable: modelData.editable !== undefined ? modelData.editable : false
                             onChanged: function (v) {
-                                root.setField(modelData.key, v)
+                                root.setField(modelData.key, v);
                             }
                         }
 
@@ -248,8 +268,11 @@ DialogShell {
                             label: modelData.label
                             hint: modelData.hint || ""
                             value: root.values[modelData.key] === "on"
+                            // 双栏半宽列下缩小字体，避免窄列 label 挤换行；单栏满宽时 1.0 不变。
+                            fontScale: parent && parent.width < Theme.twoColHalfWidth
+                                       ? Theme.twoColFontScale : 1.0
                             onToggled: function (v) {
-                                root.setField(modelData.key, v ? "on" : "off")
+                                root.setField(modelData.key, v ? "on" : "off");
                             }
                         }
 
@@ -283,10 +306,11 @@ DialogShell {
                     // 还是单栏（General / Keyboard / Convert）。
                     property var currentFields: root.activeFields()
                     property bool hasColumns: {
-                        var fs = currentFields
+                        var fs = currentFields;
                         for (var i = 0; i < fs.length; i++)
-                            if (fs[i].column === 0 || fs[i].column === 1) return true
-                        return false
+                            if (fs[i].column === 0 || fs[i].column === 1)
+                                return true;
+                        return false;
                     }
 
                     // 单栏：满宽 Repeater。
@@ -295,31 +319,30 @@ DialogShell {
                         delegate: fieldDelegate
                     }
 
-                    // 双栏：Math / Other experimental 的字段定义是「整块 column 0 后整块
-                    // column 1」（非交替），单 Repeater 平铺会上下错位，故按 column 拆左右两列
-                    // 并排。Toggle/EnumCombo 内部 labelWidth 按 parent.width*labelRatio 缩放，
-                    // 半宽容器下自动等比缩小，无需改原子。
+                    // 双栏（Math / Other experimental）：字段定义是「整块 column 0 后整块
+                    // column 1」（非交替），单 Repeater 平铺会上下错位，故按 column 拆左右两列并排。
+                    // Toggle 内部 labelWidth/字体按 parent.width 缩放，半宽列下自动等比缩小。
                     Row {
                         width: fieldCol.width
-                        spacing: Theme.gapS
+                        spacing: Theme.twoColGap
                         visible: fieldCol.hasColumns
                         Column {
-                            width: (fieldCol.width - Theme.gapS) / 2
+                            width: (fieldCol.width - Theme.twoColGap) / 2
                             spacing: Theme.gapS
                             Repeater {
-                                model: fieldCol.hasColumns
-                                       ? fieldCol.currentFields.filter(function (f) { return f.column === 0 })
-                                       : []
+                                model: fieldCol.hasColumns ? fieldCol.currentFields.filter(function (f) {
+                                    return f.column === 0;
+                                }) : []
                                 delegate: fieldDelegate
                             }
                         }
                         Column {
-                            width: (fieldCol.width - Theme.gapS) / 2
+                            width: (fieldCol.width - Theme.twoColGap) / 2
                             spacing: Theme.gapS
                             Repeater {
-                                model: fieldCol.hasColumns
-                                       ? fieldCol.currentFields.filter(function (f) { return f.column === 1 })
-                                       : []
+                                model: fieldCol.hasColumns ? fieldCol.currentFields.filter(function (f) {
+                                    return f.column === 1;
+                                }) : []
                                 delegate: fieldDelegate
                             }
                         }
@@ -334,15 +357,16 @@ DialogShell {
     //   Convert tab -> activeSubTabObj.fields（子 tab 的 fields）
     function activeFields() {
         var tabObj = root.meta && root.meta.tabs ? root.meta.tabs.find(function (t) {
-            return t.key === root.activeTab
-        }) : null
-        if (!tabObj) return []
+            return t.key === root.activeTab;
+        }) : null;
+        if (!tabObj)
+            return [];
         if (root.activeTab === "convert" && tabObj.subTabs) {
             var subObj = tabObj.subTabs.find(function (s) {
-                return s.key === root.activeSubTab
-            })
-            return subObj ? (subObj.fields || []) : []
+                return s.key === root.activeSubTab;
+            });
+            return subObj ? (subObj.fields || []) : [];
         }
-        return tabObj.fields || []
+        return tabObj.fields || [];
     }
 }

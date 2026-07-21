@@ -71,4 +71,15 @@ QtObject {
     readonly property real miniBtnW: 48 * scaleFactor // MiniButton 默认宽
     readonly property real miniBtnH: 28 * scaleFactor // MiniButton 默认高
     readonly property real miniBtnR: 7 * scaleFactor  // MiniButton 圆角
+
+    // Toggle 原子常量（胶囊开关 + 滑块）。
+    readonly property real toggleW: 64 * scaleFactor   // Toggle 胶囊宽（track 宽）
+    readonly property real toggleH: 28 * scaleFactor   // Toggle 胶囊高（track 高，radius=height/2 全圆角）
+    readonly property real toggleKnob: 0.78            // Toggle 滑块占 track 内高的比例
+    readonly property real toggleTextGap: 2 * scaleFactor // Toggle label↔hint 行间距
+
+    // 首选项双栏（Math / Other experimental，column flag 字段）布局常量。
+    readonly property real twoColGap: 24 * scaleFactor // 双栏左右列间距（设计稿 two-col gap）
+    readonly property real twoColFontScale: 0.86       // 双栏窄列字体缩放（设计稿 toggle-label 12px / fontBody 14px）
+    readonly property real twoColHalfWidth: 320 * scaleFactor // 双栏单列宽度阈值：parent 宽 < 此值视为半宽列，启用缩放
 }
