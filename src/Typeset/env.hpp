@@ -505,6 +505,8 @@ public:
   void read_env (hashmap<string, tree>& ret);
   void local_start (hashmap<string, tree>& prev_back);
   void local_update (hashmap<string, tree>& oldpat, hashmap<string, tree>& chg);
+  void local_update_delta (hashmap<string, tree>& oldpat,
+                           hashmap<string, tree>& chg);
   void local_end (hashmap<string, tree>& prev_back);
 
   /* updating environment variables */

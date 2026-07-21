@@ -159,9 +159,21 @@ typesetter_rep::typeset () {
     env->redefined= array<tree> ();
     env->touched  = hashmap<string, bool> (false);
   }
+#ifdef LIII_DEBUG
+  time_t dbg_t1= texmacs_time ();
+#endif
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
+#ifdef LIII_DEBUG
+  time_t dbg_t2= texmacs_time ();
+#endif
   pager ppp= tm_new<pager_rep> (br->ip, env, l);
   box   rb = ppp->make_pages ();
+#ifdef LIII_DEBUG
+  time_t dbg_t3= texmacs_time ();
+  if (dbg_t3 - dbg_t1 > 30)
+    cout << "TTT: bridge=" << (dbg_t2 - dbg_t1)
+         << "ms, pages=" << (dbg_t3 - dbg_t2) << "ms\n";
+#endif
   if (env->complete && paper) determine_page_references (rb);
   tm_delete (ppp);
   // env->complete= false;  // moved to edit_typeset_rep::typeset

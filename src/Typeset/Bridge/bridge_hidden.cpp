@@ -43,6 +43,9 @@ bridge_hidden (typesetter ttt, tree st, path ip) {
 void
 bridge_hidden_rep::notify_assign (path p, tree u) {
   // cout << "Assign " << p << ", " << u << " in " << st << "\n";
+#ifdef LIII_DEBUG
+  cout << "HIDDEN corrupt by assign, ip=" << ip << "\n";
+#endif
   status= CORRUPTED;
   st    = substitute (st, p, u);
 }
@@ -55,12 +58,18 @@ bridge_hidden_rep::notify_macro (int tp, string var, int l, path p, tree u) {
   (void) u;
   bool flag= env->depends (st, var, l);
   if (flag) status= CORRUPTED;
+#ifdef LIII_DEBUG
+  if (flag) cout << "HIDDEN corrupt by macro " << var << ", ip=" << ip << "\n";
+#endif
   return flag;
 }
 
 void
 bridge_hidden_rep::notify_change () {
   // cout << "Notify change in " << st << "\n";
+#ifdef LIII_DEBUG
+  cout << "HIDDEN corrupt by change, ip=" << ip << "\n";
+#endif
   status= CORRUPTED;
 }
 

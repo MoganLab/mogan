@@ -21,6 +21,10 @@ class bridge_eval_rep : public bridge_rep {
 protected:
   tree   bt;
   bridge body;
+  // body 已通过 notify_macro 的局部路由与最新展开保持同步，
+  // my_typeset 可跳过重展开（rewrite + replace_bridge 全树 diff + 深拷贝），
+  // 仅做 body 的局部增量排版。仅对 MAP_ARGS 有效（展开骨架是纯位置性的）。
+  bool fresh;
 
 public:
   bridge_eval_rep (typesetter ttt, tree st, path ip);
@@ -34,7 +38,7 @@ public:
 };
 
 bridge_eval_rep::bridge_eval_rep (typesetter ttt, tree st, path ip)
-    : bridge_rep (ttt, st, ip) {}
+    : bridge_rep (ttt, st, ip), fresh (false) {}
 
 void
 bridge_eval_rep::initialize (tree body_t) {
@@ -58,6 +62,7 @@ bridge_eval_rep::notify_assign (path p, tree u) {
   cout << "Assign " << p << ", " << u << " in " << st << "\n";
 #endif
   status= CORRUPTED;
+  fresh = false;
   st    = substitute (st, p, u);
 }
 
@@ -67,16 +72,21 @@ bridge_eval_rep::notify_macro (int tp, string v, int l, path p, tree u) {
   cout << "Macro argument " << v << " [action=" << tp << ", level=" << l << "] "
        << p << ", " << u << " in " << st << "\n";
 #endif
-  (void) tp;
-  (void) p;
-  (void) u;
   bool flag= env->depends (st, v, l);
 #ifdef LIII_DEBUG
   cout << "  Flag= " << flag << "\n";
 #endif
   if (flag) {
-    status= CORRUPTED;
-    body->notify_macro (tp, v, l, p, u);
+    status    = CORRUPTED;
+    bool routed= body->notify_macro (tp, v, l, p, u);
+    // MAP_ARGS（screens/switch 等）的展开骨架只依赖参数个数与位置：子内容变更
+    // 经局部路由后 body 即与最新展开一致，重展开是冗余的 O(全文档) 开销。
+    // EVAL/QUASI 的展开结构可能依赖参数取值，不做此优化；
+    // 路由失败（fresh=false）同样回退全量重展开。
+    fresh= routed && is_func (st, MAP_ARGS);
+#ifdef LIII_DEBUG
+    cout << "  routed= " << routed << ", fresh= " << fresh << "\n";
+#endif
   }
   return flag;
 }
@@ -84,6 +94,7 @@ bridge_eval_rep::notify_macro (int tp, string v, int l, path p, tree u) {
 void
 bridge_eval_rep::notify_change () {
   status= CORRUPTED;
+  fresh = false;
 }
 
 /******************************************************************************
@@ -92,13 +103,19 @@ bridge_eval_rep::notify_change () {
 
 void
 bridge_eval_rep::my_typeset (int desired_status) {
-  if (is_func (st, EVAL, 1)) initialize (env->exec (st[0]));
-  else if (is_func (st, QUASI, 1))
-    initialize (env->exec (tree (QUASIQUOTE, st[0])));
-  else if (is_func (st, ANIM_STATIC) || is_func (st, ANIM_DYNAMIC))
-    initialize (env->exec (st));
-  else if (is_func (st, MAP_ARGS)) initialize (env->rewrite (st));
-  else initialize (tree (ERROR, "bad eval bridge"));
+#ifdef LIII_DEBUG
+  cout << "bridge_eval my_typeset, fresh= " << fresh << "\n";
+#endif
+  if (!fresh) {
+    if (is_func (st, EVAL, 1)) initialize (env->exec (st[0]));
+    else if (is_func (st, QUASI, 1))
+      initialize (env->exec (tree (QUASIQUOTE, st[0])));
+    else if (is_func (st, ANIM_STATIC) || is_func (st, ANIM_DYNAMIC))
+      initialize (env->exec (st));
+    else if (is_func (st, MAP_ARGS)) initialize (env->rewrite (st));
+    else initialize (tree (ERROR, "bad eval bridge"));
+  }
+  fresh= false;
   ttt->insert_marker (st, ip);
   body->typeset (desired_status);
 }

@@ -191,6 +191,29 @@ edit_env_rep::local_update (hashmap<string, tree>& old_patch,
 }
 
 void
+edit_env_rep::local_update_delta (hashmap<string, tree>& old_patch,
+                                  hashmap<string, tree>& change) {
+  // 仅当本轮环境效应与上一轮（change 记录值）实质不同时才污染 old_patch。
+  // 单调计数器（如 auto-nr）在稳定文档中每轮产生相同的效应差分，若一律投毒，
+  // old_patch 非空会迫使下游所有桥绕过缓存全量重排（O(全文档)）。
+  // 注意：一旦 old_patch 非空，本 pass 内会持续传播，与原始语义一致；
+  // 这里只决定是否为它注入“新的”变化。
+  hashmap<string, tree> new_change= invert (back, env);
+#ifdef LIII_DEBUG
+  if (new_change != change && N (old_patch) == 0 &&
+      new_change->contains ("auto-nr")) {
+    cout << "DELTA-DIFF new=" << new_change << "\n";
+    cout << "DELTA-DIFF old=" << change << "\n";
+  }
+#endif
+  if (new_change != change) {
+    old_patch->pre_patch (back, env);
+    old_patch->post_patch (change, env);
+    change= new_change;
+  }
+}
+
+void
 edit_env_rep::local_end (hashmap<string, tree>& prev_back) {
   int i= 0, n= back->n;
   for (; i < n; i++) {

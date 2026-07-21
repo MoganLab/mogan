@@ -311,6 +311,13 @@ bridge_rep::typeset (int desired_status) {
     // cout << "changes       = " << changes << LF;
   }
   else {
+#ifdef LIII_DEBUG
+    if (is_compound (st) && status != desired_status && L (st) == ARG) {
+      static int dbg_argn= 0;
+      if (++dbg_argn <= 40 || dbg_argn % 100 == 0)
+        cout << "CORRUPT arg #" << dbg_argn << " ip=" << ip << "\n";
+    }
+#endif
     // cout << "Typesetting " << st << ", " << desired_status << LF << INDENT;
     // cout << "recomputing" << LF;
     hashmap<string, tree> prev_back (UNINIT);
@@ -321,7 +328,15 @@ bridge_rep::typeset (int desired_status) {
     env->local_start (prev_back);
     if (env->hl_lan != 0) env->lan->highlight (st);
     my_typeset (desired_status);
-    env->local_update (ttt->old_patch, changes);
+#ifdef LIII_DEBUG
+    int dbg_patch_before= N (ttt->old_patch);
+#endif
+    env->local_update_delta (ttt->old_patch, changes);
+#ifdef LIII_DEBUG
+    if (dbg_patch_before == 0 && N (ttt->old_patch) > 0)
+      cout << "PATCH-src: " << L (st) << " ip=" << ip
+           << " patch=" << ttt->old_patch << "\n";
+#endif
     env->local_end (prev_back);
     ttt->local_end (l, sb);
     env->link_env= old_link_env;

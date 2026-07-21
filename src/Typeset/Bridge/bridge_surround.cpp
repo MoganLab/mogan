@@ -171,7 +171,7 @@ bridge_surround_rep::my_typeset (int desired_status) {
     */
     a= typeset_concat (env, st[0], descend (ip, 0));
     b= typeset_concat (env, st[1], descend (ip, 1));
-    env->local_update (ttt->old_patch, changes_before);
+    env->local_update_delta (ttt->old_patch, changes_before);
     env->local_end (prev_back);
     corrupted= false;
   }
