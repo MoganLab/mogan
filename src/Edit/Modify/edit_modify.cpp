@@ -154,13 +154,11 @@ edit_modify_rep::apply_remote (string bytes) {
   }
   loro_applying_remote= false;
 
-  // 恢复游标与选中（observer 已按树编辑更新位置；塌缩成一点则只恢复游标）
+  // 恢复游标与选中（observer 已随 apply 的树编辑更新位置）
   path nc= position_get (cur_save);
   position_delete (cur_save);
-  if (!is_nil (nc)) {
-    tp= nc;
-    go_to_correct (tp);
-  }
+  if (!is_nil (nc)) go_to_correct (nc); // 游标按错位后路径恢复
+  else go_to_start (rp); // 游标所在节点被远端删除：回落 buffer 起始
   if (had_sel) {
     path ns= position_get (sel_start_save);
     path ne= position_get (sel_end_save);
