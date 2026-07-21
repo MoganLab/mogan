@@ -633,6 +633,9 @@ public:
   // 协作会话：开启前本地编辑不做任何 Loro 镜像/上行（loro_collab 驱动）。
   virtual void collab_enable () {}
   virtual bool collab_enabled () { return false; }
+  // 重连后重新广播 shadow 当前全量（把断线期间累积的本地增量上行，CRDT
+  // resync）。
+  virtual void collab_resync () {}
   // debug_loro：把 mod 经 Loro round-trip 后再应用（返回 true
   // 表示已处理，跳过直接应用）。
   virtual bool route_through_loro (const modification& mod) {

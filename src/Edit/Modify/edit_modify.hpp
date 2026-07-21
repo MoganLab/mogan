@@ -58,6 +58,7 @@ public:
   // 在加入成功后置位）。
   void collab_enable () override;
   bool collab_enabled () override;
+  void collab_resync () override;
   // debug_loro：把 mod 经 Loro round-trip（mirror→diff_from_current）后再应用。
   bool route_through_loro (const modification& mod) override;
 #endif

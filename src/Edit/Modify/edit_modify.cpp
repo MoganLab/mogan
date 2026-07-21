@@ -65,6 +65,14 @@ bool
 edit_modify_rep::collab_enabled () {
   return loro_collab_on;
 }
+
+// 重连后调用：把自上次广播以来累积的本地增量重新上行（断线期间的编辑此时
+// 才送达服务端）。shadow 已 seed，broadcast_update 导出 vv 水位之后的本地 op。
+void
+edit_modify_rep::collab_resync () {
+  if (!loro_collab_on) return;
+  loro_doc->broadcast_update ();
+}
 #endif
 
 #ifdef LORO_ENABLED
