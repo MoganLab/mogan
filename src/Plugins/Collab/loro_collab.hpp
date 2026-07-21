@@ -65,15 +65,34 @@ void loro_collab_poll ();
 
 #else // !LORO_ENABLED：桩实现，保证 glue 在未启用 Loro 时仍可链接
 
-inline string         loro_collab_create (string) { return ""; }
-inline void           loro_collab_join (string, string) {}
-inline void           loro_collab_disconnect () {}
-inline bool           loro_collab_is_active () { return false; }
-inline string         loro_collab_doc_id () { return ""; }
-inline void           loro_collab_fetch_docs (string) {}
-inline string         loro_collab_docs_status () { return "idle"; }
-inline array<string>  loro_collab_docs () { return array<string> (); }
-inline void           loro_collab_poll () {}
+inline string
+loro_collab_create (string) {
+  return "";
+}
+inline void
+loro_collab_join (string, string) {}
+inline void
+loro_collab_disconnect () {}
+inline bool
+loro_collab_is_active () {
+  return false;
+}
+inline string
+loro_collab_doc_id () {
+  return "";
+}
+inline void
+loro_collab_fetch_docs (string) {}
+inline string
+loro_collab_docs_status () {
+  return "idle";
+}
+inline array<string>
+loro_collab_docs () {
+  return array<string> ();
+}
+inline void
+loro_collab_poll () {}
 
 #endif // LORO_ENABLED
 #endif // LORO_COLLAB_HPP

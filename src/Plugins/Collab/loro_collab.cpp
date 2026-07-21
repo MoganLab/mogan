@@ -27,8 +27,8 @@
 #include "tm_timer.hpp" // texmacs_time
 
 #ifndef __EMSCRIPTEN__
-#include <curl/curl.h>
 #include <atomic>
+#include <curl/curl.h>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -38,14 +38,15 @@
 // 本层拥有其存储：会话就绪时指向 broadcast_to_server，断开时清空。
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
 
+// 文档发现状态机。native: libcurl + worker 线程（std 容器，不触 lolly
+// 分配器）； WASM: 浏览器 fetch + JS 全局状态，C++ 经 EM_JS getter
+// 轮询（单线程，无锁）。
 #ifndef __EMSCRIPTEN__
-// 文档发现的异步查询状态机（仅 native：libcurl + std::thread）。
-// worker 线程只碰 std 类型（curl→std::string→std::vector），绝不触 lolly 分配器
-// （lolly fast_alloc 进程全局非线程安全）；GUI 线程读 docs() 时才转 array<string>。
 enum class docs_status { idle, loading, ready, error };
-static std::mutex             g_docs_mutex;
+static std::mutex               g_docs_mutex;
 static std::atomic<docs_status> g_docs_status{docs_status::idle};
-static std::vector<std::string> g_docs_data; // worker 写、GUI 读，均持 g_docs_mutex
+static std::vector<std::string>
+    g_docs_data; // worker 写、GUI 读，均持 g_docs_mutex
 
 // libcurl 写回调：把 HTTP 响应体累积到 std::string。
 static size_t
@@ -54,6 +55,35 @@ http_write_cb (char* ptr, size_t size, size_t nmemb, void* userdata) {
   buf->append (ptr, size * nmemb);
   return size * nmemb;
 }
+#else
+#include <cstdlib> // free
+#include <cstring> // strlen
+#include <emscripten.h>
+
+// 异步 GET url：结果存 JS 全局，状态机 0 idle→1 loading→2 ready / 3 error。
+// 非阻塞（浏览器事件循环驱动），无需 asyncify 或线程。
+EM_JS (void, collab_fetch_docs_js, (const char* url_cstr), {
+  Module.__collabDocsStatus= 1;
+  var url                  = UTF8ToString (url_cstr);
+  fetch (url)
+      .then (function (r) { return r.text (); })
+      .then (function (text) {
+        Module.__collabDocsResult= text;
+        Module.__collabDocsStatus= 2;
+      })
+      .catch (function (e) { Module.__collabDocsStatus= 3; });
+});
+// 0 idle / 1 loading / 2 ready / 3 error
+EM_JS (int, collab_docs_status_js, (),
+       { return Module.__collabDocsStatus || 0; });
+// 返回 _malloc 的 C 字符串（\n 分隔 UUID），调用方 free()。空结果返回空串。
+EM_JS (char*, collab_docs_result_js, (), {
+  var text= Module.__collabDocsResult || '';
+  var len = lengthBytesUTF8 (text) + 1;
+  var buf = _malloc (len);
+  stringToUTF8 (text, buf, len);
+  return buf;
+});
 #endif
 
 // ws://host:port → http://host:port；wss:// → https://。用于把协作服务端地址
@@ -68,23 +98,23 @@ ws_to_http (string url) {
 namespace {
 
 enum class collab_state {
-  idle,         // 无会话
-  connecting,   // WS 连接中
-  await_doc,    // 已发 CREATE/JOIN，等服务端 DOC 回复
-  await_frame,  // JOIN：DOC 已回，等首帧历史（snapshot）构建 buffer
-  ready,        // 协作中
+  idle,        // 无会话
+  connecting,  // WS 连接中
+  await_doc,   // 已发 CREATE/JOIN，等服务端 DOC 回复
+  await_frame, // JOIN：DOC 已回，等首帧历史（snapshot）构建 buffer
+  ready,       // 协作中
 };
 
 enum class collab_mode { create, join };
 
 class collab_session {
 public:
-  tm_websocket_client_impl* ws        = nullptr;
-  collab_state              state     = collab_state::idle;
-  collab_mode               mode      = collab_mode::create;
-  string                    doc_id;   // JOIN 请求的 / 服务端分配的 UUID
+  tm_websocket_client_impl* ws   = nullptr;
+  collab_state              state= collab_state::idle;
+  collab_mode               mode = collab_mode::create;
+  string                    doc_id; // JOIN 请求的 / 服务端分配的 UUID
   string                    server_url;
-  time_t                    await_frame_since= 0; // JOIN 进入 await_frame 的时刻(ms)
+  time_t await_frame_since= 0; // JOIN 进入 await_frame 的时刻(ms)
   // 不持有固定 editor 句柄：一个文档对应一个 ws 连接，会话操作（enable/
   // apply_remote）一律对「当前编辑器」动态取用——避免捕获的 editor 失效或与
   // 用户正在编辑的 editor 不一致（曾是导致不广播的根因）。
@@ -127,7 +157,7 @@ public:
         else {
           // JOIN：等服务端补发 snapshot/updates；记录时刻，poll 里超时兜底
           // （空文档无历史可发，避免永久卡在 await_frame）
-          g_session.state           = collab_state::await_frame;
+          g_session.state            = collab_state::await_frame;
           g_session.await_frame_since= texmacs_time ();
         }
       }
@@ -151,7 +181,9 @@ public:
     }
   }
 
-  void on_error (string msg) override { cout << "[collab] WS Error: " << msg << "\n"; }
+  void on_error (string msg) override {
+    cout << "[collab] WS Error: " << msg << "\n";
+  }
   void on_disconnect () override {
     cout << "[collab] WS 断开\n";
     g_session.state= collab_state::idle;
@@ -159,7 +191,7 @@ public:
 
   void become_ready () {
     cout << "[collab] become_ready 入口\n";
-    g_session.state       = collab_state::ready;
+    g_session.state        = collab_state::ready;
     g_loro_broadcast_update= broadcast_to_server;
     // 对当前编辑器置位协作开关：之后该 editor 的本地编辑才会镜像 + 上行
     editor ed= get_current_editor ();
@@ -180,11 +212,11 @@ loro_collab_create (string server_url) {
     cout << "[collab] 无当前编辑器，无法创建协作文档\n";
     return "";
   }
-  g_session.mode        = collab_mode::create;
-  g_session.doc_id      = "";
-  g_session.server_url  = server_url;
-  g_session.state       = collab_state::connecting;
-  g_session.ws          = new collab_ws_client ();
+  g_session.mode      = collab_mode::create;
+  g_session.doc_id    = "";
+  g_session.server_url= server_url;
+  g_session.state     = collab_state::connecting;
+  g_session.ws        = new collab_ws_client ();
   g_session.ws->connect (server_url);
   return "";
 }
@@ -196,19 +228,19 @@ loro_collab_join (string server_url, string doc_id) {
     cout << "[collab] 无当前编辑器，无法加入协作文档\n";
     return;
   }
-  g_session.mode        = collab_mode::join;
-  g_session.doc_id      = doc_id;
-  g_session.server_url  = server_url;
-  g_session.state       = collab_state::connecting;
-  g_session.ws          = new collab_ws_client ();
+  g_session.mode      = collab_mode::join;
+  g_session.doc_id    = doc_id;
+  g_session.server_url= server_url;
+  g_session.state     = collab_state::connecting;
+  g_session.ws        = new collab_ws_client ();
   g_session.ws->connect (server_url);
 }
 
 void
 loro_collab_disconnect () {
   g_loro_broadcast_update= nullptr;
-  g_session.state = collab_state::idle;
-  g_session.doc_id = "";
+  g_session.state        = collab_state::idle;
+  g_session.doc_id       = "";
   if (g_session.ws) {
     g_session.ws->disconnect ();
     delete g_session.ws;
@@ -242,14 +274,16 @@ loro_collab_poll () {
 
 void
 loro_collab_fetch_docs (string server_url) {
+  string http_url= ws_to_http (server_url);
+  if (!ends (http_url, "/")) http_url= http_url * "/";
+  http_url= http_url * "docs";
 #ifndef __EMSCRIPTEN__
   // 已在加载中：跳过（ImGui 每帧重建菜单会反复触发，故必须幂等）
   if (g_docs_status.load () == docs_status::loading) return;
   g_docs_status.store (docs_status::loading);
-  // worker 线程：std::string URL（从 lolly string 转出，跨线程边界后不再触 lolly）
-  std::string url_std ((const char*) c_string (ws_to_http (server_url)));
-  if (url_std.empty () || url_std.back () != '/') url_std+= '/';
-  url_std+= "docs";
+  // worker 线程：std::string URL（从 lolly string 转出，跨线程边界后不再触
+  // lolly）
+  std::string url_std ((const char*) c_string (http_url));
   std::thread ([url_std] () {
     std::string body;
     CURL*       h= curl_easy_init ();
@@ -288,7 +322,9 @@ loro_collab_fetch_docs (string server_url) {
     g_docs_status.store (docs_status::ready);
   }).detach ();
 #else
-  (void) server_url;
+  // WASM：浏览器 fetch 异步，结果存 JS 全局，poll 时轮询
+  c_string u (http_url);
+  collab_fetch_docs_js ((const char*) u);
 #endif
 }
 
@@ -296,19 +332,54 @@ string
 loro_collab_docs_status () {
 #ifndef __EMSCRIPTEN__
   switch (g_docs_status.load ()) {
-  case docs_status::idle: return "idle";
-  case docs_status::loading: return "loading";
-  case docs_status::ready: return "ready";
-  case docs_status::error: return "error";
+  case docs_status::idle:
+    return "idle";
+  case docs_status::loading:
+    return "loading";
+  case docs_status::ready:
+    return "ready";
+  case docs_status::error:
+    return "error";
+  }
+  return "idle";
+#else
+  switch (collab_docs_status_js ()) {
+  case 1:
+    return "loading";
+  case 2:
+    return "ready";
+  case 3:
+    return "error";
+  default:
+    return "idle";
   }
 #endif
-  return "idle";
 }
 
 array<string>
 loro_collab_docs () {
   array<string> result;
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+  // 从 JS 全局取结果（\n 分隔），按行切分为 lolly array<string>。
+  // 单线程：fetch 回调与此处同在主运行时线程，操作 lolly 安全。
+  char* buf= collab_docs_result_js ();
+  if (buf != nullptr) {
+    int    len= (int) strlen (buf);
+    string body (buf, len);
+    free (buf);
+    int start= 0;
+    while (start <= N (body)) {
+      int next= start;
+      while (next < N (body) && body[next] != '\n' && body[next] != '\r')
+        next++;
+      if (next > start) result << body (start, next);
+      start= next;
+      while (start < N (body) && (body[start] == '\n' || body[start] == '\r'))
+        start++;
+      if (next == start && start < N (body)) start++;
+    }
+  }
+#else
   std::lock_guard<std::mutex> lk (g_docs_mutex);
   for (const auto& s : g_docs_data) {
     string line ((const char*) s.data (), (int) s.size ());

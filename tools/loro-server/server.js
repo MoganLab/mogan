@@ -53,8 +53,21 @@ async function main () {
 
   // 内嵌 HTTP 服务：/healthz 供部署探活，/docs 列出可用文档 UUID（供客户端
   // 在 JOIN 前发现文档，纯文本每行一个 UUID，便于 C++ 端按行解析），同时
-  // 承载 WebSocket upgrade
+  // 承载 WebSocket upgrade。所有响应带 CORS 头：WASM 客户端从浏览器 fetch /docs
+  // 是跨源请求，无 CORS 头会被浏览器拦截。
   const httpServer = http.createServer(async (req, res) => {
+    // 统一 CORS 头 + 处理预检（OPTIONS）
+    const setCors = (r) =>
+      r.setHeader('access-control-allow-origin', '*');
+    if (req.method === 'OPTIONS') {
+      setCors(res);
+      res.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      res.setHeader('access-control-allow-headers', '*');
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    setCors(res);
     if (req.url === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, docs: registry.docs.size }));
