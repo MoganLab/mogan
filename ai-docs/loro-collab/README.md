@@ -1,7 +1,8 @@
 # Loro 协作编辑集成（0760）
 
-`tools/loro-server`（服务端）+ `src/Plugins/Collab`（会话层）+ ImGui File→Collaborative
-菜单。动这块前先读，避免重踩下面的坑。完整设计见 `devel/0760.md`。
+`tools/loro-server`（服务端）+ `src/Plugins/Collab`（会话层）+ File→Collaborative
+菜单（ImGui/Qt/WASM 三前端共用）。动这块前先读，避免重踩下面的坑。完整设计见
+`devel/0760.md`。
 
 ## 架构一句话
 
@@ -144,6 +145,19 @@ load()` 后再 `seq++`，并发交错会让所有调用读到同一 seq 起点�
 | `src/Plugins/Collab/loro_collab.{hpp,cpp}` | 协作会话层（WS 状态机 + 文档发现） |
 | `src/Edit/Modify/edit_modify.{hpp,cpp}` | `loro_collab_on` 门控 + `collab_enable` |
 | `src/Plugins/WebSocket/{libcurl,emscripten}/` | WS 客户端（native 线程化 / WASM 浏览器原生） |
+| `src/Plugins/ImGui/im_gui.cpp` / `src/Plugins/Qt/qt_gui.cpp` | 前端驱动：事件循环 `loro_collab_poll()`、退出 `loro_collab_disconnect()` |
 | `TeXmacs/progs/texmacs/texmacs/tm-collab.scm` | scheme 编排（菜单驱动 CREATE/JOIN） |
 | `TeXmacs/progs/texmacs/menus/file-menu.scm` | File→Collaborative 菜单 |
 | `tools/loro-server/` | 协作服务端（协议/持久化/同步/`/docs`/CORS） |
+
+## 三前端接入（前端无关会话层）
+
+`loro_collab` 不持有任何前端类型；前端只在事件循环里 `loro_collab_poll()`、退出时
+`loro_collab_disconnect()`。Qt/ImGui/WASM 三者接入方式一致（`qt_gui.cpp`/`im_gui.cpp`
+同款）。
+
+**坑（Qt 接入时踩过）**：Qt 曾自带 `test_websocket_client` + 自定义 `g_loro_broadcast_update`
++ 启动即连 `JOIN test-room`，与会话层的 `g_loro_broadcast_update`（loro_collab 持有）重复
+定义 → 链接冲突。接入新会话层时**必须删掉前端自带的 WS 客户端与 broadcast 定义**，
+只留 `loro_collab_poll/disconnect` 两个调用点。否则两者互斥（这也是旧注释"loro 与
+qt_frontend 互斥"的由来——删掉前端自带定义后即可共存）。
