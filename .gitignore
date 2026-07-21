@@ -65,3 +65,7 @@ imgui.ini
 
 # node
 tools/loro-relay/node_modules/
+tools/loro-server/node_modules/
+tools/loro-server/data/
+# 协作服务端从仓库根运行时产生的测试数据
+/data/
