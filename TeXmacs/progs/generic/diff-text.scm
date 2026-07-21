@@ -11,9 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic diff-text)
-  (:use (kernel texmacs tm-define)
-    (utils library cursor)
-  ) ;:use
+  (:use (kernel texmacs tm-define) (utils library cursor))
 ) ;texmacs-module
 
 ;; =============================================================================
