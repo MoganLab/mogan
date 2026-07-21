@@ -25,9 +25,9 @@
 #include "server.hpp"     // get_server()->set_message（重连状态提示）
 #include "url.hpp"        // url（collab buffer 标识）
 
-#include "analyze.hpp"  // starts
-#include "tm_timer.hpp" // texmacs_time
+#include "analyze.hpp" // starts
 #include "tm_buffer.hpp"
+#include "tm_timer.hpp" // texmacs_time
 
 #include <cstdlib> // getenv (native), free (WASM)
 #include <cstring> // strlen (WASM)

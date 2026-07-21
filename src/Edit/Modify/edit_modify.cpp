@@ -70,7 +70,8 @@ edit_modify_rep::collab_enabled () {
 // 才送达服务端）。shadow 已 seed，broadcast_update 导出 vv 水位之后的本地 op。
 void
 edit_modify_rep::collab_resync () {
-  if (!loro_collab_on) return;
+  if (!loro_collab_on || !loro_seeded)
+    return; // 未 seed（如 fresh JOIN）无本地态可上行
   loro_doc->broadcast_update ();
 }
 #endif
@@ -146,6 +147,15 @@ edit_modify_rep::apply_remote (string bytes) {
   // -> TreeID 被重洗 -> 远端 update 引用旧 TreeID -> 永久 Diff 0。
   // 因此，这里重建 id_map，把 buffer 当前状态关联到 shadow 的 TreeID。
   if (!is_nil (mods)) loro_doc->sync_id_map_from_shadow (the_buffer ());
+
+  // 首次 import 远端数据（JOIN 同步）后，把 export vv 推进到当前，标记这些 op
+  // "已知"——否则后续 broadcast_update 会把刚收到的 snapshot 当本地增量回传
+  // （连接即有一次空上行）。仅首次：重连时若有 pending 本地
+  // op，推进会吞掉它们。
+  if (!loro_vv_initialized) {
+    loro_doc->advance_export_vv ();
+    loro_vv_initialized= true;
+  }
 
   if (!is_nil (mods)) {
     cout << "[Loro] Forcing typeset invalidation and repaint...\n";

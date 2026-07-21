@@ -64,6 +64,8 @@ void    mogan_loro_doc_commit (void* doc);
 // 用于 seed 后主动广播初始状态。
 int32_t mogan_loro_doc_export_local_update (void* doc, uint8_t** out,
                                             size_t* out_len);
+// 把 export vv 水位推进到当前（不导出字节），用于 import 远端数据后避免回传。
+void    mogan_loro_doc_advance_export_vv (void* doc);
 int32_t mogan_loro_doc_on_local_update (void* doc, mogan_local_update_cb cb,
                                         void* user_data);
 mogan_tree_id mogan_loro_node_create (void* doc, mogan_tree_id parent,
