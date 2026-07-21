@@ -5,6 +5,11 @@
         <file>ocr-button/right-align.svg</file>
         <file>ocr-button/ocr.svg</file>
 
+        <file>feedback/good-ico.svg</file>
+        <file>feedback/bad-ico.svg</file>
+        <file>feedback/good-ico-white.svg</file>
+        <file>feedback/bad-ico-white.svg</file>
+
         <file>tabpage/add.svg</file>
         <file>tabpage/close.svg</file>
 

@@ -837,6 +837,14 @@ QPushButton#good_btn, QPushButton#bad_btn {
   border: none;
 }
 
+QPushButton#good_btn {
+  qproperty-icon: url(":/feedback/good-ico.svg");
+}
+
+QPushButton#bad_btn {
+  qproperty-icon: url(":/feedback/bad-ico.svg");
+}
+
 QPushButton#good_btn:hover, QPushButton#bad_btn:hover {
   background-color: #f3f4f6;
 }

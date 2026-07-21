@@ -12,6 +12,7 @@
 #include "qt_dpi_utils.hpp"
 #include "server.hpp"
 #include <QFrame>
+#include <QSize>
 
 static constexpr int kContainerBorderWidth = 2;
 static constexpr int kContainerBorderRadius= 14;
@@ -24,6 +25,7 @@ static constexpr int kButtonFontPx         = 18; // 按钮字号
 static constexpr int kActionButtonPadY     = 6;  // 接受/拒绝按钮纵向内边距
 static constexpr int kActionButtonPadX     = 16; // 接受/拒绝按钮横向内边距
 static constexpr int kIconButtonPad        = 6;  // 点赞/踩按钮内边距
+static constexpr int kIconButtonSize       = 18; // 点赞/踩图标边长
 
 // 按钮配色（含 hover/pressed）由主题 CSS 提供，这里只注入随 DPI 缩放的尺寸，
 // 避免与主题 CSS 的颜色规则产生控件级/应用级合并冲突。
@@ -43,13 +45,13 @@ applyActionButtonGeometry (QPushButton* btn) {
 
 static void
 applyIconButtonGeometry (QPushButton* btn) {
+  const int size= DpiUtils::scaled (kIconButtonSize);
+  btn->setIconSize (QSize (size, size));
   btn->setStyleSheet (QString ("QPushButton { "
                                "border-radius: %1px; "
-                               "font-size: %2px; "
-                               "padding: %3px; "
+                               "padding: %2px; "
                                "}")
                           .arg (DpiUtils::scaled (kButtonBorderRadius))
-                          .arg (DpiUtils::scaled (kButtonFontPx))
                           .arg (DpiUtils::scaled (kIconButtonPad)));
 }
 
@@ -127,7 +129,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   innerLayout->addWidget (rejectBtn);
 
   // 3. 点赞按钮
-  goodBtn= new QPushButton ("👍", container);
+  goodBtn= new QPushButton ("", container);
   goodBtn->setObjectName ("good_btn");
   applyIconButtonGeometry (goodBtn);
   connect (goodBtn, &QPushButton::clicked, this,
@@ -135,7 +137,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
   innerLayout->addWidget (goodBtn);
 
   // 4. 踩按钮
-  badBtn= new QPushButton ("👎", container);
+  badBtn= new QPushButton ("", container);
   badBtn->setObjectName ("bad_btn");
   applyIconButtonGeometry (badBtn);
   connect (badBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleBad);
