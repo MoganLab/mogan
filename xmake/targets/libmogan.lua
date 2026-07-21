@@ -321,6 +321,9 @@ target("libmogan") do
             add_includedirs("$(projectdir)/src/Plugins/WebSocket/libcurl", {public=true})
             add_files("$(projectdir)/src/Plugins/WebSocket/libcurl/*.cpp")
         end
+        -- 云文档协作会话层（菜单驱动 CREATE/JOIN + 同步下发）
+        add_includedirs("$(projectdir)/src/Plugins/Collab", {public=true})
+        add_files("$(projectdir)/src/Plugins/Collab/*.cpp")
     end
 
     if is_plat("macosx") then

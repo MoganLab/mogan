@@ -86,9 +86,9 @@ tm_emscripten_websocket_client::connect (string url) {
   EmscriptenWebSocketCreateAttributes attrs;
   emscripten_websocket_init_create_attributes (&attrs);
   c_string url_c (url);
-  attrs.url                = (const char*) url_c;
-  attrs.protocols          = NULL;
-  attrs.createOnMainThread = EM_TRUE;
+  attrs.url               = (const char*) url_c;
+  attrs.protocols         = NULL;
+  attrs.createOnMainThread= EM_TRUE;
 
   handle= emscripten_websocket_new (&attrs);
   if (handle <= 0) {
@@ -100,19 +100,23 @@ tm_emscripten_websocket_client::connect (string url) {
   }
 
   emscripten_websocket_set_onopen_callback_on_thread (
-      handle, this, handle_open_cb, EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
+      handle, this, handle_open_cb,
+      EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
   emscripten_websocket_set_onmessage_callback_on_thread (
-      handle, this, handle_message_cb, EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
+      handle, this, handle_message_cb,
+      EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
   emscripten_websocket_set_onerror_callback_on_thread (
-      handle, this, handle_error_cb, EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
+      handle, this, handle_error_cb,
+      EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
   emscripten_websocket_set_onclose_callback_on_thread (
-      handle, this, handle_close_cb, EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
+      handle, this, handle_close_cb,
+      EM_CALLBACK_THREAD_CONTEXT_MAIN_RUNTIME_THREAD);
 }
 
 void
 tm_emscripten_websocket_client::disconnect () {
   if (handle <= 0) return;
-  int h= handle;
+  int h = handle;
   handle= 0; // 摘钩，避免浏览器回调触达半析构对象
   if (is_connected) {
     // 主动关闭会触发 onclose，由其排队 on_disconnect
@@ -152,18 +156,23 @@ tm_emscripten_websocket_client::poll () {
   std::deque<ws_evt> evts;
   evts.swap (events);
 
-  for (std::deque<ws_evt>::iterator it= evts.begin (); it != evts.end (); ++it) {
+  for (std::deque<ws_evt>::iterator it= evts.begin (); it != evts.end ();
+       ++it) {
     switch (it->kind) {
     case 0:
       on_message (string (it->data.data (), (int) it->data.size ()),
                   it->is_binary);
       break;
-    case 1: on_connect (); break;
-    case 2: on_disconnect (); break;
+    case 1:
+      on_connect ();
+      break;
+    case 2:
+      on_disconnect ();
+      break;
     case 3:
-      on_error (it->data.empty () ? string ("WebSocket error")
-                                  : string (it->data.data (),
-                                            (int) it->data.size ()));
+      on_error (it->data.empty ()
+                    ? string ("WebSocket error")
+                    : string (it->data.data (), (int) it->data.size ()));
       break;
     }
   }

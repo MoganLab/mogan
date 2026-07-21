@@ -501,38 +501,7 @@ gui_open (int& argc, char** argv) {
 static void (*g_interpose_fn) (void)= nullptr;
 
 #ifdef LORO_ENABLED
-#include "editor.hpp"
-#include "new_view.hpp" // get_current_editor
-#ifdef __EMSCRIPTEN__
-#include "tm_emscripten_websocket_client.hpp"
-#else
-#include "tm_curl_websocket_client.hpp"
-#endif
-
-void (*g_loro_broadcast_update) (string bytes)= nullptr;
-
-class test_websocket_client : public tm_websocket_client_impl {
-public:
-  void on_connect () override {
-    cout << "Connected to Loro relay server!\n";
-    send ("JOIN test-room", false);
-  }
-  void on_message (string data, bool is_binary) override {
-    if (is_binary) {
-      editor ed= get_current_editor ();
-      if (!is_nil (ed)) {
-        ed->apply_remote (data);
-      }
-    }
-    else {
-      cout << "Received msg: text size: " << N (data) << "\n";
-    }
-  }
-  void on_error (string msg) override { cout << "WS Error: " << msg << "\n"; }
-  void on_disconnect () override { cout << "WS Disconnected\n"; }
-};
-
-static test_websocket_client* g_ws_client= nullptr;
+#include "loro_collab.hpp" // 协作会话层（菜单驱动，不再启动即连接）
 #endif
 
 void
@@ -545,33 +514,16 @@ im_interpose () {
   if (g_interpose_fn != nullptr) g_interpose_fn ();
 
 #ifdef LORO_ENABLED
-  if (!g_ws_client) {
-    g_ws_client= new test_websocket_client ();
-    g_ws_client->connect ("ws://127.0.0.1:8765");
-
-    g_loro_broadcast_update= [] (string bytes) {
-      if (g_ws_client && g_ws_client->connected ()) {
-        cout << "[WS] Sending " << N (bytes)
-             << " bytes of Loro update to server.\n";
-        g_ws_client->send (bytes, true); // send binary
-      }
-      else {
-        cout << "[WS] Cannot send Loro update, WebSocket is not connected.\n";
-      }
-    };
-  }
-  g_ws_client->poll ();
+  // 驱动协作会话的 WS 回调（仅在用户从 File 菜单发起协作后存在）
+  loro_collab_poll ();
 #endif
 }
 
 void
 gui_close () {
 #ifdef LORO_ENABLED
-  // join the websocket worker before tearing down, so curl is not cleaned up
-  // mid-operation during process exit
-  if (g_ws_client) {
-    g_ws_client->disconnect ();
-  }
+  // 关闭协作会话的 WS worker，避免进程退出时 curl 在半操作中 teardown
+  loro_collab_disconnect ();
 #endif
   if (s_glfw_initialized) {
     glfwTerminate ();

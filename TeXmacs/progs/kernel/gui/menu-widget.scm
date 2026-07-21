@@ -593,7 +593,7 @@
   ;; action 是否为「ImGui 后端尚未支持的交互式命令」（点击会弹出 ImGui 未
   ;; 实现的对话框/新窗口）。判定基准与 make-menu-entry-dots 一致（带
   ;; :interactive 属性者，即标签会被加省略号 '...' 的菜单项），但排除已用
-  ;; :imgui-supported 显式标记为 ImGui 已实现的命令（如 choose-file → Save as）。
+  ;; :imgui-supported 显式标记为 ImGui 已实现的命令(白名单)（如 choose-file → Save as）。
   (with source
     (promise-source action)
     (and source (property (car source) :imgui-supported))

@@ -29,6 +29,7 @@ protected:
   bool        loro_seeded         = false; // 是否已 seed 当前 buffer
   bool        loro_applying_remote= false; // 远端应用期间，跳过镜像回灌
   bool        loro_routing        = false; // debug_loro round-trip 中，防递归
+  bool        loro_collab_on= false; // 协作会话开启前，本地编辑不 seed/不上行
 #endif
 
 public:
@@ -53,6 +54,10 @@ public:
   // edit_announce 应用到 buffer（versioning：loro_applying_remote 守卫使
   // mirror_loro 跳过，避免回灌）。
   void apply_remote (string bytes) override;
+  // 协作会话开关：打开前本地编辑不 seed/不上行（loro_collab
+  // 在加入成功后置位）。
+  void collab_enable () override;
+  bool collab_enabled () override;
   // debug_loro：把 mod 经 Loro round-trip（mirror→diff_from_current）后再应用。
   bool route_through_loro (const modification& mod) override;
 #endif
