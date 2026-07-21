@@ -14,9 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs texmacs tm-collab)
-  (:use (texmacs texmacs tm-server)
-    (texmacs texmacs tm-files)
-  ) ;:use
+  (:use (texmacs texmacs tm-server) (texmacs texmacs tm-files))
 ) ;texmacs-module
 
 ;; 协作服务端地址：优先 OS 环境变量 MOGAN_LORO_SERVER，否则本地默认。
@@ -33,8 +31,12 @@
 (tm-define (collab-new-document)
   (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
     (loro-collab-create (collab-server-url))
-    (set-message (string-append "Creating collaborative document (Server " (collab-server-url) ")")
-                 "Collaborative")
+    (set-message (string-append "Creating collaborative document (Server "
+                   (collab-server-url)
+                   ")"
+                 ) ;string-append
+      "Collaborative"
+    ) ;set-message
   ) ;with-default-view
 ) ;tm-define
 
@@ -45,15 +47,15 @@
   (when (and (string? doc-id) (> (string-length doc-id) 0))
     (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
       (loro-collab-join (collab-server-url) doc-id)
-      (set-message (string-append "Joining collaborative document " doc-id) "Collaborative")
+      (set-message (string-append "Joining collaborative document " doc-id)
+        "Collaborative"
+      ) ;set-message
     ) ;with-default-view
   ) ;when
 ) ;tm-define
 
 ;; 触发后台拉取服务端可用文档 UUID（异步、幂等：loading 中为 no-op）。
-(tm-define (collab-refresh-docs)
-  (loro-collab-fetch-docs (collab-server-url))
-) ;tm-define
+(tm-define (collab-refresh-docs) (loro-collab-fetch-docs (collab-server-url)))
 
 ;; Join 子菜单：展开时触发后台拉取（不阻塞 GUI），按状态显示
 ;;   loading → "(loading…)"，error → "(unreachable)"，
@@ -65,17 +67,19 @@
     (begin
       ;; 首次展开（idle）触发后台拉取；fetch 立即把状态置 loading，故只触发一次，
       ;; 之后每帧轮询到 loading/ready/error 都不再自动重拉（重拉仅靠 Refresh）
-      (when (== (loro-collab-docs-status) "idle") (collab-refresh-docs))
-      (loro-collab-docs-status))
-    (cond ((== status "loading")
-            ("(loading…)" (collab-refresh-docs)))
-          ((== status "error")
-            ("(server unreachable)" (collab-refresh-docs)))
+      (when (== (loro-collab-docs-status) "idle")
+        (collab-refresh-docs)
+      ) ;when
+      (loro-collab-docs-status)
+    ) ;begin
+    (cond ((== status "loading") ("(loading…)" (collab-refresh-docs)))
+          ((== status "error") ("(server unreachable)" (collab-refresh-docs)))
           ((and (== status "ready") (null? (loro-collab-docs)))
-            ("(no documents)" (collab-refresh-docs)))
-          (else
-            (for (id (loro-collab-docs))
-              ((eval `(verbatim ,id)) (collab-join-document id)))))
+           ("(no documents)" (collab-refresh-docs))
+          ) ;
+          (else (for (id (loro-collab-docs)) ((eval `(verbatim ,id)) (collab-join-document id)))
+          ) ;else
+    ) ;cond
     ---
     ("Refresh" (collab-refresh-docs))
   ) ;with
