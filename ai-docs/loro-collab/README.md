@@ -77,6 +77,34 @@ HTTP，GUI 线程阻塞 → freeze（无输出无报错，最难调）。
 部署注意：WASM 页面若 `https://`，连 `ws://`/`http://` 会被 Mixed Content 拦截，服务端需
 上 `wss://`/`https://`。
 
+## 覆盖 glue 函数：用「捕获原始绑定」，别用 former
+
+要给 collab 缓冲特殊语义（永不"已修改"→ 无星号/关闭不提示/不进备份；Save 无效），
+需覆盖 `buffer-modified?`（glue）和 `save-buffer`（tm-define）。
+
+**坑**：`tm-define` 覆盖一个**未注册到 `tm-defined-table` 的函数**（纯 glue 函数都是）
+时走 else 分支，`former` 退化为 `(lambda args (noop))`——body 里调 `(former ...)` 会
+拿到 noop，**全局破坏**该函数（如 `buffer-modified?` 恒返回 noop 结果）。
+
+**正解**：模块加载时先把原始绑定捕获到独立变量，覆盖体里调捕获值，不碰 former：
+```scheme
+(define %original-buffer-modified? buffer-modified?)   ; 加载时捕获 glue
+(tm-define (buffer-modified? name)
+  (if (collab-buffer? name) #f (%original-buffer-modified? name)))
+```
+（对已 tm-define 的函数如 `save-buffer`，`former` 可用，但统一用捕获更稳。）
+
+## collab 缓冲 = 云端文档（特殊 tabpage）
+
+`collab-buffer-url`（单会话，new/join 建 buffer 后记 `(current-buffer)`）+ `collab-buffer?`
+判定。覆盖点（都经 `buffer-modified?` 或 `save-buffer`，无需改 C++ buffer 系统）：
+- 标题=UUID：`buffer-set-title`（join 的 UUID 已知立即设；create 待 C++ `become_ready`
+  的 `set_title_buffer`）。tabpage 经 `tabpage-display-title` → `buffer-get-title` 读。
+- 无星号：`tabpage-display-title` 用 `buffer-modified?` 拼 " *" → 覆盖为 #f 即消星号。
+- 关闭不提示：`safely-kill-tabpage` 查 `buffer-modified?` 决定 `confirm-close-dialog`。
+- Save 无效：覆盖 `save-buffer`（collab → 提示用 Save as）；`save-buffer-as` 不拦截。
+- 不进自动备份：`buffer-modified?`=#f 使其被 modified 过滤排除。
+
 ## 服务端地址：运行期可配，不重编译
 
 `loro_collab_server_url()`（经 glue `loro-collab-server-url`、scheme `collab-server-url`）
