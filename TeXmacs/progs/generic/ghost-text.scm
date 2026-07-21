@@ -69,7 +69,7 @@
     (set! ghost-serial (+ ghost-serial 1))
     (let ((current ghost-serial))
       (delayed (:idle 500)
-        (when (and (== ghost-serial current) (not-in-tab-cycling?) (not (in-hybrid?)))
+        (when (and (== ghost-serial current) (not-in-tab-cycling?) (or (in-text?) (in-math?)) (not (in-llm-chat-buffer?)))
           (generate-ghost-text)
         ) ;when
       ) ;delayed
@@ -124,6 +124,12 @@
 (define (not-in-tab-cycling?)
   (not (== last-key-press "tab"))
 ) ;define
+
+(define (in-llm-chat-buffer?)
+  (and (defined? 'chat-input-buffer?)
+       (defined? 'chat-message-buffer?)
+       (or (chat-input-buffer? (current-buffer-url))
+           (chat-message-buffer? (current-buffer-url))))) ;define
 
 (tm-define (kbd-insert s)
   (former s)
