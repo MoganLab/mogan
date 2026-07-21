@@ -276,6 +276,7 @@ async function main () {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`${ts()} [server] 收到 ${signal}，正在落盘并关闭...`);
+    registry.shuttingDown = true; // 禁止 client 断开触发的 unload，保住 shadow 供 flushAll
     wss.close();
     for (const ws of wss.clients) ws.terminate();
     try {
