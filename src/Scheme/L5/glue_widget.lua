@@ -23,6 +23,7 @@ function main()
             "object_l5.hpp",
             "scheme.hpp",
             "glue_l5_extra.hpp",
+            "loro_collab.hpp",
         },
         glues = {
             {
@@ -39,6 +40,59 @@ function main()
                 scm_name = "gui-version",
                 cpp_name = "gui_version",
                 ret_type = "string"
+            },
+            {
+                -- 协作：以当前编辑器为 target 创建新云文档（连服务端、CREATE）
+                scm_name = "loro-collab-create",
+                cpp_name = "loro_collab_create",
+                ret_type = "string",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                -- 协作：以当前编辑器为 target 加入已有云文档（JOIN <uuid>）
+                scm_name = "loro-collab-join",
+                cpp_name = "loro_collab_join",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
+                scm_name = "loro-collab-disconnect",
+                cpp_name = "loro_collab_disconnect",
+                ret_type = "void"
+            },
+            {
+                scm_name = "loro-collab-active?",
+                cpp_name = "loro_collab_is_active",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "loro-collab-doc-id",
+                cpp_name = "loro_collab_doc_id",
+                ret_type = "string"
+            },
+            {
+                -- 异步触发 HTTP 拉取服务端可用文档 UUID 列表（不建 WS、不阻塞 GUI）
+                scm_name = "loro-collab-fetch-docs",
+                cpp_name = "loro_collab_fetch_docs",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                scm_name = "loro-collab-docs-status",
+                cpp_name = "loro_collab_docs_status",
+                ret_type = "string"
+            },
+            {
+                scm_name = "loro-collab-docs",
+                cpp_name = "loro_collab_docs",
+                ret_type = "array_string"
             },
             {
                 scm_name = "widget-printer",

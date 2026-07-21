@@ -43,18 +43,18 @@ private:
 
   void queue_event (int kind, const char* data, int num_bytes, bool is_binary);
 
-  static EM_BOOL handle_open_cb (int eventType,
-                          const EmscriptenWebSocketOpenEvent* e,
-                          void* userData);
+  static EM_BOOL handle_open_cb (int                                 eventType,
+                                 const EmscriptenWebSocketOpenEvent* e,
+                                 void*                               userData);
   static EM_BOOL handle_message_cb (int eventType,
-                             const EmscriptenWebSocketMessageEvent* e,
-                             void* userData);
+                                    const EmscriptenWebSocketMessageEvent* e,
+                                    void* userData);
   static EM_BOOL handle_error_cb (int eventType,
-                           const EmscriptenWebSocketErrorEvent* e,
-                           void* userData);
+                                  const EmscriptenWebSocketErrorEvent* e,
+                                  void* userData);
   static EM_BOOL handle_close_cb (int eventType,
-                           const EmscriptenWebSocketCloseEvent* e,
-                           void* userData);
+                                  const EmscriptenWebSocketCloseEvent* e,
+                                  void* userData);
 
 public:
   tm_emscripten_websocket_client ();

@@ -452,8 +452,7 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
   window= glfwCreateWindow ((int) win_w * main_scale, (int) win_h * main_scale,
                             "Mogan (ImGui)", nullptr, nullptr);
 #ifdef __EMSCRIPTEN__
-  emscripten_glfw_make_canvas_resizable (window, "window",
-                                         nullptr);
+  emscripten_glfw_make_canvas_resizable (window, "window", nullptr);
 #endif
   if (window == nullptr) {
     return;

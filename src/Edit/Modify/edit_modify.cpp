@@ -43,7 +43,7 @@ edit_modify_rep::edit_modify_rep ()
 #ifdef LORO_ENABLED
       ,
       loro_doc (), loro_seeded (false), loro_applying_remote (false),
-      loro_routing (false)
+      loro_routing (false), loro_collab_on (false)
 #endif
 {
 #ifdef LORO_ENABLED
@@ -53,12 +53,28 @@ edit_modify_rep::edit_modify_rep ()
 edit_modify_rep::~edit_modify_rep () {}
 
 #ifdef LORO_ENABLED
+// 协作会话开关：loro_collab 在 CREATE/JOIN 成功建立会话后置位；
+// 置位前本地编辑不 seed/不上行（见 ensure_loro_seeded）。
+void
+edit_modify_rep::collab_enable () {
+  loro_collab_on= true;
+  cout << "[collab] 编辑器协作开关已置位（后续本地编辑将镜像+上行）\n";
+}
+
+bool
+edit_modify_rep::collab_enabled () {
+  return loro_collab_on;
+}
+#endif
+
+#ifdef LORO_ENABLED
 // Phase 2：把一个 modification 镜像到 shadow LoroDoc。
 // mod->p 是 the_et 根路径，用 mod/rp 转成 buffer 相对；首次镜像时 lazy seed。
 
 void
 edit_modify_rep::ensure_loro_seeded () {
   if (loro_applying_remote) return;
+  if (!loro_collab_on) return; // 协作未开启：纯本地编辑，不做 Loro 镜像/上行
   if (!loro_seeded) {
     // 如果 shadow 已有内容（从远端 import 而来），复用其 TreeID
     // 血统（不创建新根）， 避免 A/B 各自 seed 产生两个根 → to_tree 只读
@@ -66,6 +82,12 @@ edit_modify_rep::ensure_loro_seeded () {
     if (!loro_doc->sync_id_map_from_shadow (the_buffer ()))
       loro_doc->seed (the_buffer ()); // shadow 为空 → 本端是创建者 → seed
     loro_seeded= true;
+    cout << "[collab] ensure_loro_seeded：已 seed，准备广播初始全量\n";
+    // seed 创建了整篇文档的 op（新加入端则继承了远端血统）。把当前完整状态
+    // 广播出去：否则对端只收到第一条增量编辑，其 shadow 里本端那棵树上一次
+    // 提交的内容仍为旧态，diff 结果错误（首编辑表现为 Diff 0）。
+    loro_doc->broadcast_update ();
+    cout << "[collab] ensure_loro_seeded：broadcast_update 已调用\n";
   }
 }
 
@@ -73,7 +95,17 @@ void
 edit_modify_rep::mirror_loro (const modification& mod) {
   if (loro_applying_remote) return; // 远端应用期间不回灌镜像，避免循环
   if (const_cast<modification&> (mod)->k == MOD_SET_CURSOR) return;
+  if (!loro_collab_on) {
+    static bool warned= false; // 诊断：协作未开启时（首次）提示，定位不广播问题
+    if (!warned) {
+      warned= true;
+      cout << "[collab] mirror_loro 跳过：协作未开启（collab_enable "
+              "未在本编辑器置位）\n";
+    }
+    return;
+  }
   ensure_loro_seeded (); // Fallback in case not called from edit_announce
+  cout << "[collab] mirror_loro 镜像 mod 到 shadow\n";
   loro_doc->mirror_mod (the_buffer (), mod / rp);
 #ifdef LORO_DEBUG
   // debug_loro 验证：镜像后 buffer 应与 Loro
@@ -123,7 +155,8 @@ edit_modify_rep::apply_remote (string bytes) {
 //   （mirror_loro 会从 post-edit buffer 重 seed，使 Loro 与 buffer 一致）。
 bool
 edit_modify_rep::route_through_loro (const modification& mod) {
-  if (loro_routing) return false; // 重入（应用回译/原 mod）→ 正常路径
+  if (loro_routing) return false;    // 重入（应用回译/原 mod）→ 正常路径
+  if (!loro_collab_on) return false; // 协作未开启：不路由
   loro_routing= true;
   if (!loro_seeded) {
     loro_doc->seed (the_buffer ());
