@@ -841,13 +841,13 @@ QToolButton#base_popup_button:checked:hover {
 }
 
 /*用户确认弹窗（AI 接受/拒绝）容器*/
-QFrame#prompt_container {
+QWidget#centralWidget QFrame#prompt_container {
   background-color: #2c2c2c;
   border-color: #555555;
 }
 
 /*接受按钮（现代祖母绿配色）*/
-QPushButton#accept_btn {
+QWidget#centralWidget QPushButton#accept_btn {
   background-color: #10b981;
   color: #ffffff;
   border: none;
@@ -857,16 +857,16 @@ QPushButton#accept_btn {
   padding: 6px 16px;
 }
 
-QPushButton#accept_btn:hover {
+QWidget#centralWidget QPushButton#accept_btn:hover {
   background-color: #34d399;
 }
 
-QPushButton#accept_btn:pressed {
+QWidget#centralWidget QPushButton#accept_btn:pressed {
   background-color: #059669;
 }
 
 /*拒绝按钮（轻柔番茄红配色）*/
-QPushButton#reject_btn {
+QWidget#centralWidget QPushButton#reject_btn {
   background-color: #ef4444;
   color: #ffffff;
   border: none;
@@ -876,16 +876,17 @@ QPushButton#reject_btn {
   padding: 6px 16px;
 }
 
-QPushButton#reject_btn:hover {
+QWidget#centralWidget QPushButton#reject_btn:hover {
   background-color: #f87171;
 }
 
-QPushButton#reject_btn:pressed {
+QWidget#centralWidget QPushButton#reject_btn:pressed {
   background-color: #dc2626;
 }
 
 /*点赞/踩按钮*/
-QPushButton#good_btn, QPushButton#bad_btn {
+QWidget#centralWidget QPushButton#good_btn,
+QWidget#centralWidget QPushButton#bad_btn {
   background-color: transparent;
   color: #d1d5db;
   border: none;
@@ -894,11 +895,13 @@ QPushButton#good_btn, QPushButton#bad_btn {
   padding: 6px;
 }
 
-QPushButton#good_btn:hover, QPushButton#bad_btn:hover {
+QWidget#centralWidget QPushButton#good_btn:hover,
+QWidget#centralWidget QPushButton#bad_btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-QPushButton#good_btn:pressed, QPushButton#bad_btn:pressed {
+QWidget#centralWidget QPushButton#good_btn:pressed,
+QWidget#centralWidget QPushButton#bad_btn:pressed {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
