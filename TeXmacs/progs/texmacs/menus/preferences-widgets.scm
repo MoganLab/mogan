@@ -2039,8 +2039,11 @@
                    ((== kw 'radio-group) (list (cons 'radioGroup val)))
                    ((== kw 'visible-when-key) (list (cons 'visibleWhenKey val)))
                    ((== kw 'visible-when-val) (list (cons 'visibleWhenVal val)))
+                   ;; hint 是显示文案，.scm 源码里是 UTF-8 字面中文（reader 未转 Cork），
+                   ;; 而 bridge 按 Cork 解（cork_to_utf8）。故这里 utf8->cork 归一化成真 Cork，
+                   ;; bridge 再 cork_to_utf8 转回 UTF-8 才不乱码。label 字面为英文无此问题。
                    ((== kw 'group) (list (cons 'group val)))
-                   ((== kw 'hint) (list (cons 'hint val)))
+                   ((== kw 'hint) (list (cons 'hint (utf8->cork val))))
                    ((== kw 'column) (list (cons 'column val)))
                    (else '())
              ) ;cond

@@ -269,9 +269,12 @@ DialogShell {
                             label: modelData.label
                             hint: modelData.hint || ""
                             value: root.values[modelData.key] === "on"
-                            // 双栏半宽列下缩小字体，避免窄列 label 挤换行；单栏满宽时 1.0 不变。
+                            // 双栏半宽列：字体缩小 + label 占更大比例（长 label 如
+                            // "Show only semantic focus" 不挤换行）；单栏满宽用默认比例。
                             fontScale: parent && parent.width < Theme.twoColHalfWidth
                                        ? Theme.twoColFontScale : 1.0
+                            labelRatio: parent && parent.width < Theme.twoColHalfWidth
+                                        ? Theme.toggleLabelRatioNarrow : Theme.toggleLabelRatio
                             onToggled: function (v) {
                                 root.setField(modelData.key, v ? "on" : "off");
                             }

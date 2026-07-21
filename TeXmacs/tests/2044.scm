@@ -199,6 +199,28 @@
                      ) ;cons
                ) ;list
 
+               ;; 3.5 hint 编码：带中文 hint 的字段（show only semantic focus），其 hint
+               ;;     经 utf8->cork 归一化成 Cork，bridge cork_to_utf8 能还原成原 UTF-8。
+               ;;     回归点：.scm 源码字面中文是 UTF-8 字节，reader 未转 Cork；若 facade
+               ;;     不做 utf8->cork，bridge 把 UTF-8 字节当 Cork 二次解码 -> QML 显示乱码。
+               ;;     断言 cork->utf8 后等于 UTF-8 原文（含中文），即编码往返无损。
+               (list (cons "descriptor: hint utf8->cork round-trip"
+                       (lambda ()
+                         (let* ((meta (preferences-qml-meta))
+                                (math (caddr (tab-ref meta "mathematics")))
+                                ;; 找带 hint 的字段（show only semantic focus）。
+                                (f (list-find math (lambda (x) (== (field-ref x 'key) "show only semantic focus")))
+                                ) ;f
+                                (hint-cork (and f (field-ref f 'hint)))
+                               ) ;
+                           (check-true (and f (string? hint-cork)))
+                           ;; descriptor 里 hint 是 Cork；cork->utf8 还原须等于 UTF-8 原文。
+                           (check-true (equal? (cork->utf8 hint-cork) "仅 semantic editing 开时可见"))
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
                ;; 4 submit（bridge quote 路径）：模拟 bridge 拼的带 quote 字符串表达式，
                ;;   eval 求值——钉死 quote 修复。用重启键 gui theme + later preset，确认
                ;;   走到弹窗分支返回 later、值 silent 落库。回归点：bridge 没 quote 时，

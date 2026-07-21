@@ -579,8 +579,8 @@ cpp_preferences_dialog () {
     r << tree ("ok");
     return r;
   }
-  array<string> buttons= {string ("OK"), string ("Cancel")};
-  QmlDialogBridge* bridge= nullptr;
+  array<string>    buttons= {string ("OK"), string ("Cancel")};
+  QmlDialogBridge* bridge = nullptr;
   run_qml_dialog (
       "qrc:/qml/Preferences.qml", "Preferences.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
