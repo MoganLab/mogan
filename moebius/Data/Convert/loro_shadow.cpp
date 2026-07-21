@@ -478,6 +478,20 @@ loro_shadow_rep::on_local_update (mogan_local_update_cb cb, void* user_data) {
   mogan_loro_doc_on_local_update (doc, cb, user_data);
 }
 
+void
+loro_shadow_rep::broadcast_update () {
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  // commit 后导出"自上次广播以来"的本地增量（Rust 侧推进 vv 水位），
+  // 经保存的回调送出——与 subscribe_local_update 走同一通道。
+  mogan_loro_doc_commit (doc);
+  if (mogan_loro_doc_export_local_update (doc, &out, &out_len) == 0 &&
+      out != nullptr && _update_cb != nullptr) {
+    _update_cb (_update_user_data, out, out_len);
+  }
+  if (out) mogan_loro_free (out, out_len);
+}
+
 // 字符级 diff：把 before 文本变到 after 文本所需的 INSERT/REMOVE
 // mod（前缀/后缀对齐）。 p 是该原子在 buffer 中的路径；mod 用
 // mod_insert/remove(p, pos, ...)。
