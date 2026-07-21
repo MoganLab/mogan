@@ -22,6 +22,7 @@
 #include "editor.hpp"
 #include "new_buffer.hpp" // get_current_buffer, set_title_buffer
 #include "new_view.hpp"   // get_current_editor
+#include "server.hpp"     // get_server()->set_message（重连状态提示）
 
 #include "analyze.hpp"  // starts
 #include "tm_timer.hpp" // texmacs_time
@@ -143,11 +144,12 @@ ws_to_http (string url) {
 namespace {
 
 enum class collab_state {
-  idle,        // 无会话
-  connecting,  // WS 连接中
-  await_doc,   // 已发 CREATE/JOIN，等服务端 DOC 回复
-  await_frame, // JOIN：DOC 已回，等首帧历史（snapshot）构建 buffer
-  ready,       // 协作中
+  idle,         // 无会话
+  connecting,   // WS 连接中（初次或重连尝试）
+  await_doc,    // 已发 CREATE/JOIN，等服务端 DOC 回复
+  await_frame,  // JOIN：DOC 已回，等首帧历史（snapshot）构建 buffer
+  ready,        // 协作中
+  reconnecting, // 意外断开，按退避等待下次重连尝试
 };
 
 enum class collab_mode { create, join };
@@ -160,6 +162,12 @@ public:
   string                    doc_id; // JOIN 请求的 / 服务端分配的 UUID
   string                    server_url;
   time_t await_frame_since= 0; // JOIN 进入 await_frame 的时刻(ms)
+  // 自动重连（仅意外断开触发；loro_collab_disconnect 手动退出时置 false）：
+  //   want_reconnect=true 时 on_disconnect 调度重连，poll 到点尝试。
+  //   首次断开立即重连（backoff(0)=0），失败后间隔指数增长，封顶 30s。
+  bool   want_reconnect   = false;
+  time_t next_reconnect_at= 0; // 下次重连尝试时刻(ms)
+  int    reconnect_attempt= 0; // 已失败的重连次数（退避基准）
   // 不持有固定 editor 句柄：一个文档对应一个 ws 连接，会话操作（enable/
   // apply_remote）一律对「当前编辑器」动态取用——避免捕获的 editor 失效或与
   // 用户正在编辑的 editor 不一致（曾是导致不广播的根因）。
@@ -181,14 +189,45 @@ broadcast_to_server (string bytes) {
   g_session.ws->send (bytes, true);
 }
 
+// 状态栏提示（重连过程给用户反馈）。
+static void
+collab_set_message (string left) {
+  server s= get_server ();
+  if (!is_nil (s)) s->set_message (tree (left), tree ("Collaborative"));
+}
+
+// 重连退避：attempt=0 立即(0ms)，之后 1s/2s/4s/8s/16s，封顶 30s。
+static time_t
+reconnect_backoff (int attempt) {
+  if (attempt <= 0) return 0;
+  time_t ms= 1000L << (attempt - 1);
+  if (ms <= 0 || ms > 30000L) ms= 30000L; // 封顶 + 防位移溢出
+  return ms;
+}
+
+// 意外断开时调度下次重连（首次立即，之后按已失败次数退避）。
+static void
+schedule_reconnect () {
+  time_t wait                = reconnect_backoff (g_session.reconnect_attempt);
+  g_session.state            = collab_state::reconnecting;
+  g_session.next_reconnect_at= texmacs_time () + wait;
+  g_session.reconnect_attempt++;
+  string msg= "Connection lost; reconnecting… (attempt " *
+              as_string (g_session.reconnect_attempt) * ")";
+  collab_set_message (msg);
+  cout << "[collab] 调度重连：第 " << g_session.reconnect_attempt << " 次，"
+       << wait << "ms 后\n";
+}
+
 // WS 客户端：协议状态机驱动
 class collab_ws_client : public tm_websocket_client_impl {
 public:
   void on_connect () override {
     cout << "[collab] 已连接服务端 " << g_session.server_url << "\n";
     g_session.state= collab_state::await_doc;
-    if (g_session.want_create ()) send ("CREATE", false);
-    else send ("JOIN " * g_session.doc_id, false);
+    // doc_id 已知（含 CREATE 成功后的重连）→ JOIN 回原 doc；否则首次 CREATE
+    if (N (g_session.doc_id) > 0) send ("JOIN " * g_session.doc_id, false);
+    else send ("CREATE", false);
   }
 
   void on_message (string data, bool is_binary) override {
@@ -208,7 +247,10 @@ public:
       }
       else if (starts (data, "ERR ")) {
         cout << "[collab] 服务端错误: " << data << "\n";
-        g_session.state= collab_state::idle;
+        // 服务端拒绝（如文档已删）：停止重连，留在 idle 供用户处置
+        g_session.want_reconnect= false;
+        g_session.state         = collab_state::idle;
+        collab_set_message (data * " — stopped reconnecting");
       }
       return;
     }
@@ -231,22 +273,51 @@ public:
   }
   void on_disconnect () override {
     cout << "[collab] WS 断开\n";
-    g_session.state= collab_state::idle;
+    // 仅意外断开才重连；loro_collab_disconnect 手动退出前已置
+    // want_reconnect=false
+    if (g_session.want_reconnect) schedule_reconnect ();
+    else g_session.state= collab_state::idle;
   }
 
   void become_ready () {
     cout << "[collab] become_ready 入口\n";
-    g_session.state        = collab_state::ready;
-    g_loro_broadcast_update= broadcast_to_server;
+    bool was_reconnect         = g_session.reconnect_attempt > 0;
+    g_session.state            = collab_state::ready;
+    g_session.reconnect_attempt= 0;
+    g_loro_broadcast_update    = broadcast_to_server;
     // 对当前编辑器置位协作开关：之后该 editor 的本地编辑才会镜像 + 上行
     editor ed= get_current_editor ();
     if (is_nil (ed)) cout << "[collab] become_ready: 当前编辑器为空！\n";
-    else ed->collab_enable ();
+    else {
+      ed->collab_enable ();
+      ed->collab_resync (); // 重连后把断线期间累积的本地增量重新上行
+    }
     // 把当前 buffer 标题设为文档 UUID（替代默认 "No Name [n]"），便于识别与分享
     set_title_buffer (get_current_buffer (), g_session.doc_id);
+    collab_set_message (was_reconnect ? "Reconnected to " * g_session.doc_id
+                                      : "Session ready: " * g_session.doc_id);
     cout << "[collab] 会话就绪 doc=" << g_session.doc_id << "\n";
   }
 };
+
+// poll 驱动的重连尝试：到点则销毁旧 ws、新建并连接；on_connect 据 doc_id 重发
+// JOIN/CREATE。失败会再次触发 on_disconnect→schedule_reconnect（退避增长）。
+static void
+collab_maybe_reconnect () {
+  if (g_session.state != collab_state::reconnecting) return;
+  if (texmacs_time () < g_session.next_reconnect_at) return;
+  if (g_session.ws) {
+    g_session.ws->disconnect ();
+    delete g_session.ws;
+    g_session.ws= nullptr;
+  }
+  cout << "[collab] 尝试重连 " << g_session.server_url << "\n";
+  collab_set_message ("Reconnecting… (attempt " *
+                      as_string (g_session.reconnect_attempt) * ")");
+  g_session.ws   = new collab_ws_client ();
+  g_session.state= collab_state::connecting;
+  g_session.ws->connect (g_session.server_url);
+}
 
 } // namespace
 
@@ -275,11 +346,13 @@ loro_collab_create (string server_url) {
     cout << "[collab] 无当前编辑器，无法创建协作文档\n";
     return "";
   }
-  g_session.mode      = collab_mode::create;
-  g_session.doc_id    = "";
-  g_session.server_url= server_url;
-  g_session.state     = collab_state::connecting;
-  g_session.ws        = new collab_ws_client ();
+  g_session.mode             = collab_mode::create;
+  g_session.doc_id           = "";
+  g_session.server_url       = server_url;
+  g_session.state            = collab_state::connecting;
+  g_session.reconnect_attempt= 0;
+  g_session.want_reconnect   = true; // 启用意外断开自动重连
+  g_session.ws               = new collab_ws_client ();
   g_session.ws->connect (server_url);
   return "";
 }
@@ -291,19 +364,24 @@ loro_collab_join (string server_url, string doc_id) {
     cout << "[collab] 无当前编辑器，无法加入协作文档\n";
     return;
   }
-  g_session.mode      = collab_mode::join;
-  g_session.doc_id    = doc_id;
-  g_session.server_url= server_url;
-  g_session.state     = collab_state::connecting;
-  g_session.ws        = new collab_ws_client ();
+  g_session.mode             = collab_mode::join;
+  g_session.doc_id           = doc_id;
+  g_session.server_url       = server_url;
+  g_session.state            = collab_state::connecting;
+  g_session.reconnect_attempt= 0;
+  g_session.want_reconnect   = true; // 启用意外断开自动重连
+  g_session.ws               = new collab_ws_client ();
   g_session.ws->connect (server_url);
 }
 
 void
 loro_collab_disconnect () {
-  g_loro_broadcast_update= nullptr;
-  g_session.state        = collab_state::idle;
-  g_session.doc_id       = "";
+  // 手动退出：先关重连意愿，再断 ws，使 on_disconnect 不再触发重连
+  g_session.want_reconnect   = false;
+  g_loro_broadcast_update    = nullptr;
+  g_session.state            = collab_state::idle;
+  g_session.doc_id           = "";
+  g_session.reconnect_attempt= 0;
   if (g_session.ws) {
     g_session.ws->disconnect ();
     delete g_session.ws;
@@ -333,6 +411,8 @@ loro_collab_poll () {
     g_session.await_frame_since= 0;
     static_cast<collab_ws_client*> (g_session.ws)->become_ready ();
   }
+  // 意外断开后按退避尝试重连（want_reconnect=false 时不触发，见 on_disconnect）
+  collab_maybe_reconnect ();
 }
 
 void

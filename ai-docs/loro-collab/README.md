@@ -166,6 +166,21 @@ load()` 后再 `seq++`，并发交错会让所有调用读到同一 seq 起点�
 - WASM 上 `cout` 可能不进浏览器 Console——排查网络用浏览器 DevTools 的 Network/Console。
 - 服务端日志：每条 update 的 `seq`、广播人数；snapshot 截断时 `snapshot.bin` 落盘。
 
+## 自动重连（意外断开）：退避 + 区分手动退出
+
+意外断开要自动重连（首次立即，失败后间隔指数增长封顶 30s），手动 Leave 不重连。
+关键：**用 `want_reconnect` 标志区分**——`loro_collab_disconnect`（手动）先置 false 再
+关 ws；`on_disconnect` 据此决定 `schedule_reconnect` 还是 idle。
+
+- 退避在 `poll` 里驱动（单线程，WASM 友好）：`collab_maybe_reconnect` 到点销毁旧 ws、
+  建 new ws 重连；`on_connect` 据 `doc_id` 发 JOIN（CREATE 成功后重连也 JOIN 回原 doc）。
+- `schedule_reconnect`：`backoff(0)=0`（首次立即），之后 `1000<<(n-1)` 封顶 30s；
+  每次 `collab_set_message`（`get_server()->set_message`）给状态栏反馈。
+- **重连成功必须 `collab_resync`**：断线期间本地编辑被 mirror 到 shadow 但上行被丢
+  （`broadcast_to_server` 在非 ready 态 return）；`become_ready` 调 `collab_resync`→
+  `broadcast_update` 把累积增量重新导出（vv 未推进，故含全部 pending）。
+- ERR（文档被删等）置 `want_reconnect=false` 停止重连。
+
 ## 关键文件
 
 | 文件 | 职责 |
