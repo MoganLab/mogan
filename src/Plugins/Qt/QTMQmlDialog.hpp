@@ -186,4 +186,22 @@ tree cpp_paragraph_format_dialog (int specs_key);
  */
 void cpp_statistics_dialog (string title, tree items);
 
+/**
+ * @brief 首选项 QML 对话框的 glue 入口（本地暂存 + OK 一次性提交）。
+ * @return 非阻塞 show 路径立即返回空 tree；测试钩子命中时返回 `(tuple "ok")` 供
+ * 自动化区分。本地暂存模型：打开时拉一次 meta 建 QML 本地 values 快照、改动只改
+ * 本地、OK 时算 diff 调 prefBridge.submit 一次性应用、Cancel 丢弃。
+ * @details 走 run_qml_dialog（exec 阻塞模态，同
+ * FormDialog——首选项是一次性提交， 无需 live
+ * 重绘文档）。prefBridge（PreferencesBridge）注入为 context property 承载
+ * QML↔scheme 交互；scheme facade 的 preferences-qml-meta / -submit / -set-field
+ * 持有全局 preference 状态，bridge 只透传。需重启字段（look and feel / gui
+ * theme / language / keyboard shortcut style / magic-paste-shortcut）改动时
+ * submit 内部先弹 cpp-confirm-restart 再按用户选择 apply / silent 写值 / 不
+ * apply。
+ * @note 测试钩子 MOGAN_TEST_PREFERENCES=ok|cancel 命中时不弹窗。详见
+ * devel/2044.md 与 ai-docs/qml/README.md。
+ */
+tree cpp_preferences_dialog ();
+
 #endif // defined QTM_QML_DIALOG_H

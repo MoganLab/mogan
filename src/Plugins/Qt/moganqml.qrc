@@ -12,11 +12,13 @@
         <file>qml/atoms/TabBar.qml</file>
         <file>qml/atoms/TabPanel.qml</file>
         <file>qml/atoms/MiniButton.qml</file>
+        <file>qml/atoms/Toggle.qml</file>
         <file>qml/FontSelector.qml</file>
         <file>qml/ConfirmClose.qml</file>
         <file>qml/ConfirmRestart.qml</file>
         <file>qml/FormDialog.qml</file>
         <file>qml/ParagraphFormat.qml</file>
         <file>qml/Statistics.qml</file>
+        <file>qml/Preferences.qml</file>
     </qresource>
 </RCC>

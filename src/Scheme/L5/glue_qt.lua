@@ -84,6 +84,12 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-preferences-dialog",
+                cpp_name = "cpp_preferences_dialog",
+                ret_type = "tree",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-rasterize-widget",
                 cpp_name = "cpp_rasterize_widget",
                 ret_type = "string",

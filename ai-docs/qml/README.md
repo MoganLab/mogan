@@ -114,6 +114,12 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
   可保留字面量。
 - **cancel 走语义化入口**：`QmlDialogBridge.cancel()`（= `done(Rejected)`），勿散落
   `choose(-1)` 魔法值。`choose(n>=0)` 仍用于「选第 n 个按钮」（ConfirmClose）。
+- **偏好键统一走 `pref-keys.scm`**：弹窗读写 preference 的 key 字符串一律在
+  `TeXmacs/progs/kernel/texmacs/pref-keys.scm`（单一可信源）声明 `(define-public (pref-...) "...")`，
+  调用方在 quasiquote 里用 `,(pref-...)` 引用而非裸字符串（key 改名会断 notify 回调链路）。
+  新增弹窗的字段键须补 pref-keys 声明——Page setup / Font selector 已覆盖，
+  ParagraphFormat 的 19 个 `par-*`（见 #2045）与 Preferences 的 ~85 个 key（见 #2044）
+  是近期补齐的两组。
 - **绑定到无参 bridge 函数的属性不会自动重算**：bridge 内部状态变化 QML 感知不到，需靠
   外部计数器注入依赖。`SelectableList.refreshTick` 已封装此模式——调用方 currentValue 绑定
   读 `<listId>.refreshTick`，refresh 时 `<listId>.refreshTick++` 即可，勿手写假读样板。

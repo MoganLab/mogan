@@ -10,6 +10,7 @@
 #include "QTMQmlDialog.hpp"
 #include "FontSelectorBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
+#include "PreferencesBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 
@@ -552,4 +553,45 @@ cpp_statistics_dialog (string title, tree items) {
                           &QObject::deleteLater);
       },
       380, 300);
+}
+
+/**
+ * @brief 首选项 QML 对话框的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，同
+ * FormDialog——首选项是一次性提交， 无需 live
+ * 重绘文档）。prefBridge（PreferencesBridge）注入为 context property 承载
+ * QML↔scheme 交互——打开时 meta() 一次性拉全部 tab/字段描述符树、OK 时
+ * submit(diff) 一次性应用 diff（需重启字段先弹 cpp-confirm-restart 再 apply）。
+ * Cancel 丢弃本地改动。bridge 不持有任何偏好数据（无状态透传——preferences
+ * 是全局的）。
+ *
+ * 测试钩子 MOGAN_TEST_PREFERENCES=ok|cancel 命中时不弹窗（供自动化测试）：ok
+ * 返回
+ * `(tuple "ok")` 作标记、cancel 返回空 tree（与其它对话框的非阻塞 show 一致）。
+ */
+tree
+cpp_preferences_dialog () {
+  string preset= get_env ("MOGAN_TEST_PREFERENCES");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    tree r (TUPLE);
+    r << tree ("ok");
+    return r;
+  }
+  QmlDialogBridge* bridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/Preferences.qml", "Preferences.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge                       = inject_common_context (qw, host);
+        PreferencesBridge* prefBridge= new PreferencesBridge (&host);
+        qw->rootContext ()->setContextProperty ("prefBridge", prefBridge);
+        // bridge 无 parent，靠 host destroyed 信号 deleteLater
+        // 自清（form-pattern）。
+        QObject::connect (&host, &QDialog::destroyed, prefBridge,
+                          &QObject::deleteLater);
+      },
+      560, 600);
+  delete bridge;
+  return tree (TUPLE);
 }

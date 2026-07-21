@@ -4,3 +4,4 @@ FormDialog 1.0 FormDialog.qml
 FontSelector 1.0 FontSelector.qml
 ParagraphFormat 1.0 ParagraphFormat.qml
 Statistics 1.0 Statistics.qml
+Preferences 1.0 Preferences.qml
