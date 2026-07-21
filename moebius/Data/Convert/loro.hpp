@@ -60,6 +60,10 @@ int32_t mogan_loro_doc_to_ir_with_ids (void* doc, uint8_t** out,
                                        size_t* out_len);
 int32_t mogan_loro_doc_import (void* doc, const uint8_t* bytes, size_t len);
 void    mogan_loro_doc_commit (void* doc);
+// 导出"自上次本函数调用以来"的本地增量 update（内部推进 vv 水位），
+// 用于 seed 后主动广播初始状态。
+int32_t mogan_loro_doc_export_local_update (void* doc, uint8_t** out,
+                                            size_t* out_len);
 int32_t mogan_loro_doc_on_local_update (void* doc, mogan_local_update_cb cb,
                                         void* user_data);
 mogan_tree_id mogan_loro_node_create (void* doc, mogan_tree_id parent,

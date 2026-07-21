@@ -58,6 +58,12 @@ public:
   /** @brief 订阅本地编辑产生的增量 update：每次本地 op
    * 提交时回调。事件级增量同步。 */
   void on_local_update (mogan_local_update_cb cb, void* user_data);
+  /** @brief commit 后把自上次广播以来的全部本地 op 作为增量 update
+   * 推给已订阅的 local-update 回调。用于 seed 之后主动广播初始状态：Loro 的
+   * subscribe_local_update 只发送每个 commit 事务内的 op，seed 的 create ops
+   * 在首个 commit 里被发成"仅创建"骨架（无文本），接收端须靠这次补发拿到
+   * 完整初始内容。 */
+  void broadcast_update ();
   /** @brief 把远端 update 导入后，diff buffer（旧）vs shadow（新），生成把
    * buffer 变到 新状态所需的 modification 序列（文本字符级 diff →
    * INSERT/REMOVE；结构差异 → 整树 ASSIGN 兜底）。供编辑器在 versioning
