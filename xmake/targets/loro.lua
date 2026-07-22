@@ -59,15 +59,34 @@ target("loro")
         cprint("${yellow}building loro in rust")
 
         local args = {"build", "--manifest-path", path.join(ffi_dir, "Cargo.toml")}
+        local cargo_envs
         table.join2(args, {"--profile", profile})
         if rust_target then
             table.join2(args, {"--target", rust_target})
         end
 
+        if is_plat("windows") then
+            -- Cargo otherwise resolves link.exe from PATH, which can select the
+            -- incompatible Scoop shim instead of the configured MSVC linker.
+            local msvc = assert(target:toolchain("msvc"), "MSVC toolchain not found")
+            local linker = assert(msvc:tool("ld"), "MSVC linker not found")
+            local rustc = assert(target:tool("rc"), "Rust compiler not found")
+            cargo_envs = msvc:runenvs() or {}
+            local host_path = os.getenv("PATH")
+            if host_path then
+                cargo_envs.PATH = cargo_envs.PATH
+                    and path.joinenv({cargo_envs.PATH, host_path})
+                    or host_path
+            end
+            cargo_envs.CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = linker
+            cargo_envs.RUSTC = rustc
+            cprint("${yellow}using MSVC linker: %s", linker)
+        end
+
         if option.get("verbose") then
             table.insert(args, "-v")
         end
-        os.vrunv("cargo", args)
+        os.vrunv("cargo", args, {envs = cargo_envs})
     end)
 
     on_clean(function (target)
