@@ -876,6 +876,10 @@ edit_interface_rep::update_menus (int mask) {
     last_update= last_change;
     save_user_preferences ();
   }
+  // 缓存记录（该类别上次重建时的状态）
+  if ((mask & (ICONS_MODE | ICONS_FOCUS)) == (ICONS_MODE | ICONS_FOCUS))
+    menu_focus_path= focus_get ();
+  if (mask & TAB_PAGES) menu_need_save= need_save ();
   bench_end ("update_menus");
 }
 
@@ -1243,7 +1247,6 @@ edit_interface_rep::apply_changes () {
   // cout << "Handling menus\n";
   if (env_change & THE_MENUS) {
     update_menus (MENU_ALL);
-    menu_focus_path= focus_get ();
   }
   else if (env_change & THE_CURSOR) {
     // 光标移动仅当焦点树身份变化时，轻量刷新 mode/focus 栏
