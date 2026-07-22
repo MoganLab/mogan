@@ -36,7 +36,7 @@ if has_config("loro") then
     if is_plat("wasm") then
         add_requires("rustup")
     else
-        add_requires("rust")
+        add_requires("rust 1.96.1")
     end
 end
 
