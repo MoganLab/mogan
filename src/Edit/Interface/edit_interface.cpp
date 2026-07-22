@@ -63,6 +63,7 @@ edit_interface_rep::edit_interface_rep ()
       anim_next (1.0e12), full_screen (false), got_focus (false), sh_s (""),
       sh_mark (0), pre_edit_skip (false), pre_edit_s (""), pre_edit_mark (0),
       popup_win (), message_l (""), message_r (""), last_l (""), last_r (""),
+      menu_focus_path (), menu_need_save (false),
       zoomf (get_zoom (this, buf)), magf (zoomf / std_shrinkf),
       pixel ((SI) tm_round ((std_shrinkf * PIXEL) / zoomf)),
       zpixel (max ((SI) tm_round (std_shrinkf * PIXEL), pixel)), copy_always (),
@@ -114,29 +115,8 @@ edit_interface_rep::resume () {
   // cout << "Resume " << buf->buf->name << LF;
   bench_start ("resume");
   got_focus= true;
-  // 启动页 buffer 的菜单/工具栏不可见，chrome 重建推迟到首个真实文档的 resume
-  bool is_startup= is_startup_tab_buffer (buf->buf->name);
-  if (!is_startup) {
-    SERVER (menu_main ("(horizontal (link texmacs-menu))"));
-    SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-    SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-    SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-    SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
-    SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
-  }
-  SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  if (!is_startup) {
-    array<url> a= buffer_to_windows (buf->buf->name);
-    if (N (a) > 0) {
-      string win = "(string->url \"" * as_string (a[0]) * "\")";
-      string ldyn= "(dynamic (texmacs-left-tools " * win * "))";
-      string rdyn= "(dynamic (texmacs-side-tools " * win * "))";
-      string bdyn= "(dynamic (texmacs-bottom-tools " * win * "))";
-      SERVER (side_tools (1, "(vertical " * ldyn * ")"));
-      SERVER (side_tools (0, "(vertical " * rdyn * ")"));
-      SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
-    }
-  }
+  // 切 tab / 新建 / 关闭标签均经 resume 触发全量重建
+  update_menus (MENU_ALL);
   cur_sb    = 2;
   env_change= env_change & (~THE_FREEZE);
   notify_change (THE_FOCUS + THE_EXTENTS);
@@ -823,56 +803,79 @@ edit_interface_rep::change_time () {
 
 void
 edit_interface_rep::update_menus () {
+  update_menus (MENU_ALL);
+}
+
+void
+edit_interface_rep::update_menus (int mask) {
   bool is_startup= is_startup_tab_buffer (buf->buf->name);
   bool is_chat   = is_chat_tab_buffer (buf->buf->name);
   bench_start ("update_menus");
+
+#ifdef LIII_DEBUG
+  cout << "update_menus [";
+  if (mask & MENU_MAIN) cout << " main";
+  if (mask & ICONS_MAIN) cout << " icons0-main";
+  if (mask & ICONS_MODE) cout << " icons1-mode";
+  if (mask & ICONS_FOCUS) cout << " icons2-focus";
+  if (mask & ICONS_EXTRA) cout << " icons3-extra";
+  if (mask & TAB_PAGES) cout << " icons4-tabs";
+  if (mask & NOTIFICATION) cout << " notification";
+  if (mask & SIDE_TOOLS) cout << " side-tools";
+  cout << " ]\n";
+#endif
 
   if (get_server ()->in_full_screen_mode ()) {
     bench_end ("update_menus");
     return;
   }
 
-  if (!is_startup && !is_chat)
+  if ((mask & MENU_MAIN) && !is_startup && !is_chat)
     SERVER (menu_main ("(horizontal (link texmacs-menu))"));
-  if (!is_startup && !is_chat)
+  if ((mask & ICONS_MAIN) && !is_startup && !is_chat)
     SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-  if (!is_startup)
+  if ((mask & ICONS_MODE) && !is_startup)
     SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-  if (!is_startup && !is_chat)
+  if ((mask & ICONS_FOCUS) && !is_startup && !is_chat)
     SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-  if (!is_startup && !is_chat)
+  if ((mask & ICONS_EXTRA) && !is_startup && !is_chat)
     SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
-  SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  if (!is_startup && !is_chat)
+  if (mask & TAB_PAGES)
+    SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+  if ((mask & NOTIFICATION) && !is_startup && !is_chat)
     SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
   if (is_startup || is_chat) {
     last_update= last_change;
     bench_end ("update_menus");
     return;
   }
-  array<url> a= buffer_to_windows (buf->buf->name);
-  if (N (a) > 0) {
-    string win = "(string->url \"" * as_string (a[0]) * "\")";
-    string ldyn= "(dynamic (texmacs-left-tools " * win * "))";
-    string rdyn= "(dynamic (texmacs-side-tools " * win * "))";
-    string bdyn= "(dynamic (texmacs-bottom-tools " * win * "))";
-    SERVER (side_tools (1, "(vertical " * ldyn * ")"));
-    SERVER (side_tools (0, "(vertical " * rdyn * ")"));
-    SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
+  if (mask & SIDE_TOOLS) {
+    array<url> a= buffer_to_windows (buf->buf->name);
+    if (N (a) > 0) {
+      string win = "(string->url \"" * as_string (a[0]) * "\")";
+      string ldyn= "(dynamic (texmacs-left-tools " * win * "))";
+      string rdyn= "(dynamic (texmacs-side-tools " * win * "))";
+      string bdyn= "(dynamic (texmacs-bottom-tools " * win * "))";
+      SERVER (side_tools (1, "(vertical " * ldyn * ")"));
+      SERVER (side_tools (0, "(vertical " * rdyn * ")"));
+      SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
+    }
   }
   set_footer ();
-  if (has_current_window ()) {
-    array<url> ws= buffer_to_windows (
-        window_to_buffer (abstract_window (concrete_window ())));
-    int  n = N (ws);
-    bool ns= need_save ();
-    for (int i= 0; i < n; i++)
-      concrete_window (ws[i])->set_modified (ns);
+  if (mask == MENU_ALL) {
+    if (has_current_window ()) {
+      array<url> ws= buffer_to_windows (
+          window_to_buffer (abstract_window (concrete_window ())));
+      int  n = N (ws);
+      bool ns= need_save ();
+      for (int i= 0; i < n; i++)
+        concrete_window (ws[i])->set_modified (ns);
+    }
+    if (!gui_interrupted ()) drd_update ();
+    cache_memorize ();
+    last_update= last_change;
+    save_user_preferences ();
   }
-  if (!gui_interrupted ()) drd_update ();
-  cache_memorize ();
-  last_update= last_change;
-  save_user_preferences ();
   bench_end ("update_menus");
 }
 
@@ -922,9 +925,7 @@ edit_interface_rep::apply_changes () {
   }
 
   if (env_change == 0) {
-    if (last_change - last_update > 0 &&
-        idle_time (INTERRUPTED_EVENT) >= 1000 / 6)
-      update_menus ();
+    // 原 idle 轮询（166ms）全量 update_menus 已删除
     if (new_visible == last_visible) return;
   }
 
@@ -1240,7 +1241,25 @@ edit_interface_rep::apply_changes () {
   if (env_change & THE_ENVIRONMENT) send_invalidate_all (this);
 
   // cout << "Handling menus\n";
-  if (env_change & THE_MENUS) update_menus ();
+  if (env_change & THE_MENUS) {
+    update_menus (MENU_ALL);
+    menu_focus_path= focus_get ();
+  }
+  else if (env_change & THE_CURSOR) {
+    // 光标移动仅当焦点树身份变化时，轻量刷新 mode/focus 栏
+    path fp= focus_get ();
+    if (fp != menu_focus_path) {
+      menu_focus_path= fp;
+      update_menus (ICONS_MODE | ICONS_FOCUS);
+    }
+  }
+
+  // 编辑使修改标记翻转为脏时，刷新 tab 栏
+  bool menu_ns= need_save ();
+  if (menu_ns != menu_need_save) {
+    menu_need_save= menu_ns;
+    update_menus (TAB_PAGES);
+  }
 
   // cout << "Handling tooltip\n";
   if ((env_change & (THE_ENVIRONMENT + THE_EXTENTS + THE_FOCUS)) ||
@@ -1312,6 +1331,8 @@ void
 edit_interface_rep::after_menu_action () {
   notify_change (THE_DECORATIONS);
   end_editing ();
+  // 按钮 action 已执行完毕，立即全量重建
+  update_menus (MENU_ALL);
   windows_delayed_refresh (1);
 }
 

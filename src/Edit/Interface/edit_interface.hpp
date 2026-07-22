@@ -52,6 +52,8 @@ protected:
   tree       message_r;     // a right message to display
   tree       last_l;        // last displayed left message
   tree       last_r;        // last displayed right message
+  path       menu_focus_path; // focus path at last menu/icons refresh
+  bool       menu_need_save;  // need_save state at last tab-pages refresh
   double     zoomf;         // the current zoom factor
   double     magf;          // the current magnification factor
   SI         pixel;         // current size of a pixel on the screen
@@ -198,6 +200,7 @@ public:
   int  idle_time (int event_type= ANY_EVENT);
   int  change_time ();
   void update_menus ();
+  void update_menus (int mask);
   int  find_alt_selection_index (range_set alt_sel, SI y, int b, int e);
   void apply_changes ();
   void animate ();
