@@ -47,7 +47,7 @@ target("loro")
     before_build(function(target)
         cprint("${yellow}setting up rust toolchain")
         if is_plat("wasm") then
-            local rust_version = "1.87.0" 
+            local rust_version = "1.96.1" 
             os.vrunv("rustup", {"toolchain", "install", rust_version})
             os.vrunv("rustup", {"default", rust_version})
             os.vrunv("rustup", {"target", "add", rust_target})
