@@ -72,7 +72,7 @@
         (when (and (== ghost-serial current)
                 (not-in-tab-cycling?)
                 (or (in-text?) (in-math?))
-                (not (in-llm-chat-buffer?))
+                (in-editor-buffer?)
               ) ;and
           (generate-ghost-text)
         ) ;when
@@ -129,13 +129,10 @@
   (not (== last-key-press "tab"))
 ) ;define
 
-(define (in-llm-chat-buffer?)
-  (and (defined? 'chat-input-buffer?)
-    (defined? 'chat-message-buffer?)
-    (or (chat-input-buffer? (current-buffer-url))
-      (chat-message-buffer? (current-buffer-url))
-    ) ;or
-  ) ;and
+(define (in-editor-buffer?)
+  (let* ((u (current-buffer-url)) (s (url->unix u)))
+    (or (not (url-rooted-tmfs? u)) (string-starts? s "tmfs://part/"))
+  ) ;let*
 ) ;define
 
 (tm-define (kbd-insert s)
