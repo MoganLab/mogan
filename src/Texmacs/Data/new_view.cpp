@@ -559,10 +559,10 @@ notify_rename_after (url new_name) {
   array<url> vs= buffer_to_views (new_name);
   for (int i= 0; i < N (vs); i++) {
     notify_set_view (vs[i]);
-    // buffer 重命名后刷新 tab 栏
+    // buffer 重命名后刷新 tab 栏与侧栏文档列表
     tm_view vw= concrete_view (vs[i]);
     if (vw != NULL && vw->win != NULL && has_current_window ())
-      vw->ed->update_menus (TAB_PAGES);
+      vw->ed->update_menus (TAB_PAGES | SIDE_TOOLS);
   }
 }
 

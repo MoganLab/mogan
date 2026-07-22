@@ -1254,11 +1254,11 @@ edit_interface_rep::apply_changes () {
     }
   }
 
-  // 编辑使修改标记翻转为脏时，刷新 tab 栏
+  // 编辑使修改标记翻转为脏时，刷新 tab 栏与侧栏文档列表
   bool menu_ns= need_save ();
   if (menu_ns != menu_need_save) {
     menu_need_save= menu_ns;
-    update_menus (TAB_PAGES);
+    update_menus (TAB_PAGES | SIDE_TOOLS);
   }
 
   // cout << "Handling tooltip\n";

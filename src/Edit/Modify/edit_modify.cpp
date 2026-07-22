@@ -411,8 +411,8 @@ edit_modify_rep::notify_save (bool real_save) {
   arch->notify_autosave ();
   if (real_save) {
     arch->notify_save ();
-    // 保存清脏后刷新 tab 栏
-    if (has_current_window ()) update_menus (TAB_PAGES);
+    // 保存清脏后刷新 tab 栏与侧栏文档列表
+    if (has_current_window ()) update_menus (TAB_PAGES | SIDE_TOOLS);
   }
 }
 
