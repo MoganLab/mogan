@@ -28,6 +28,16 @@ target("libmogan") do
     add_deps("libmoebius")
     add_deps("liblolly")
     add_deps("goldfish")
+    if has_config("loro") then
+        add_defines("LORO_ENABLED")
+    end
+    -- Loro 同步的 WS 传输层（src/Plugins/WebSocket）：native 用 libcurl 实现，
+    -- WASM 用 emscripten WebSocket API 实现（emcc 内置库，无需包依赖）。
+    if has_config("loro") then
+        if not is_plat("wasm") then
+            add_packages("libcurl", {public = true})
+        end
+    end
     if has_config("qt_frontend") then
         add_deps("QWKCore", "QWKWidgets")
         add_rules("qt.static")
@@ -296,6 +306,19 @@ target("libmogan") do
         if is_plat("macosx") then
             add_files("$(projectdir)/src/Plugins/ImGui/**.mm")
         end
+    end
+
+    if has_config("loro") then
+        add_includedirs("$(projectdir)/src/Plugins/WebSocket", {public=true})
+        if is_plat("wasm") then
+            add_includedirs("$(projectdir)/src/Plugins/WebSocket/emscripten", {public=true})
+            add_files("$(projectdir)/src/Plugins/WebSocket/emscripten/*.cpp")
+        else
+            add_includedirs("$(projectdir)/src/Plugins/WebSocket/libcurl", {public=true})
+            add_files("$(projectdir)/src/Plugins/WebSocket/libcurl/*.cpp")
+        end
+        add_includedirs("$(projectdir)/src/Plugins/Collab", {public=true})
+        add_files("$(projectdir)/src/Plugins/Collab/*.cpp")
     end
 
     if is_plat("macosx") then
