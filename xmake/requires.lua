@@ -9,9 +9,6 @@
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
 add_requires("liii-tbox", {system=false})
-if not is_plat("wasm") then
-    add_requires("cpr", {system=false})
-end
 -- QWK is built locally from 3rdparty/qwindowkitty, no external package needed
 if is_plat ("windows") then
     add_requires("libiconv "..LIBICONV_VERSION, {system=false})
@@ -29,6 +26,17 @@ else
     add_requires("libpng", {system=false})
     if not is_plat("wasm") then
         add_requires("libcurl", {system=false})
+    end
+end
+if not is_plat("wasm") then
+    add_requires("cpr", {system=false})
+end
+
+if has_config("loro") then
+    if is_plat("wasm") then
+        add_requires("rustup")
+    else
+        add_requires("rust")
     end
 end
 

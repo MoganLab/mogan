@@ -1,0 +1,27 @@
+[package]
+name = "loro_fractional_index"
+version = "1.13.0"
+edition = "2021"
+license = "MIT"
+description = "Fraction index for Loro. Fork and modified from jamsocket/fractional_index"
+repository = "https://github.com/loro-dev/loro/"
+authors = ["Liang Zhao", "Zixuan Chen"]
+categories = []
+keywords = ["crdt", "local-first"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { workspace = true, features = ["derive", "rc"], optional = true }
+rand = { version = "^0.8" }
+once_cell = { workspace = true }
+
+[dev-dependencies]
+fraction_index = { version = "^2.0", package = "fractional_index" }
+criterion = "^0.5.0"
+serde_json = { workspace = true }
+
+
+[[bench]]
+name = "fractional_index"
+harness = false

@@ -10,6 +10,8 @@ build
 *.py[cod]
 *$py.class
 __pycache__/
+3rdparty/loro/target
+3rdparty/mogan-loro-ffi/target
 
 # editor files
 *.sln
@@ -60,3 +62,10 @@ record
 
 # ImGui
 imgui.ini
+
+# node
+tools/loro-relay/node_modules/
+tools/loro-server/node_modules/
+tools/loro-server/data/
+# 协作服务端从仓库根运行时产生的测试数据
+/data/

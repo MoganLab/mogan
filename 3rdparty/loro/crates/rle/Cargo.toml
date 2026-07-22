@@ -1,0 +1,30 @@
+[package]
+name = "loro-rle"
+version = "1.6.0"
+edition = "2021"
+license = "MIT"
+description = "A internal library of loro for storing and manipulating run-length encoded data. Do not use it directly."
+documentation = "https://docs.rs/loro/"
+homepage = "https://loro.dev"
+repository = "https://github.com/loro-dev/loro/"
+authors = ["Zixuan Chen", "Liang Zhao"]
+categories = ["data-structures"]
+keywords = ["crdt", "local-first"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+smallvec = {workspace=true}
+num = "0.4.0"
+append-only-bytes = { version = "0.1.11", features = ["u32_range"] }
+
+[dev-dependencies]
+ctor = "0.1.23"
+proptest = "1.0.0"
+smartstring = "1.0.1"
+rand = "0.8.5"
+static_assertions = "1.1.0"
+
+[features]
+test_utils = []
+wasm = []
