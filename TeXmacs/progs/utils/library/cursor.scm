@@ -354,7 +354,7 @@
 
 (tm-define (refresh-now* win what)
   (refresh-now what)
-  (with-window win (update-menus))
+  (with-window win (update-menus 'all))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
