@@ -115,7 +115,7 @@ string::operator!= (string a) {
 }
 
 string
-string::operator() (int begin, int end) {
+string::operator() (int begin, int end) const {
   if (end <= begin) return string ();
 
   int i;
@@ -125,6 +125,11 @@ string::operator() (int begin, int end) {
   for (i= begin; i < end; i++)
     r[i - begin]= rep->a[i];
   return r;
+}
+
+string
+string::operator() (int begin, int end) {
+  return static_cast<const string&> (*this) (begin, end);
 }
 
 string

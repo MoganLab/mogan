@@ -158,7 +158,8 @@ template <class T> class array {
    * @param  i The index of the element.
    * @return   A reference to the element at the specified index.
    */
-  inline T& operator[] (int i) { return rep->a[i]; }
+  inline const T& operator[] (int i) const { return rep->a[i]; }
+  inline T&       operator[] (int i) { return rep->a[i]; }
 
   T* begin () { return rep->a; }
   T* end () { return rep->a + rep->n; }
