@@ -18,24 +18,6 @@ on:
       - ".github/workflows/cd-research-mogan-app.yml"
       - "TeXmacs/tests/*.scm"
       - "3rdparty/**"
-  pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "!src/Plugins/Macos/**"
-      - "!src/Plugins/Windows/**"
-      - "tests/**"
-      - "lolly/**"
-      - "moebius/**"
-      - "xmake.lua"
-      - 'xmake/options.lua'
-      - 'xmake/requires.lua'
-      - 'xmake/targets/**'
-      - "xmake/packages.lua"
-      - "xmake/packages/**"
-      - ".github/workflows/cd-research-mogan-app.yml"
-      - "TeXmacs/tests/*.scm"
-      - "3rdparty/**"
   workflow_dispatch:
 
 env:
