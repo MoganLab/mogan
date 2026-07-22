@@ -1885,18 +1885,19 @@
 ) ;tm-define
 
 ;; 菜单重建类别掩码
+
 (define (menu-category-mask category)
   (case category
-    ((main) 1)
-    ((icons-main) 2)
-    ((icons-mode) 4)
-    ((icons-focus) 8)
-    ((icons-extra) 16)
-    ((tab-pages) 32)
-    ((notification) 64)
-    ((side-tools) 128)
-    ((all) 255)
-    (else 0)
+   ((main) 1)
+   ((icons-main) 2)
+   ((icons-mode) 4)
+   ((icons-focus) 8)
+   ((icons-extra) 16)
+   ((tab-pages) 32)
+   ((notification) 64)
+   ((side-tools) 128)
+   ((all) 255)
+   (else 0)
   ) ;case
 ) ;define
 
@@ -1908,11 +1909,7 @@
 (tm-define (update-bottom-tools . opt-win)
   (show-bottom-tools 0 (apply has-bottom-tools? opt-win))
   ;; 底部工具栏内容随 toolbar-*-active? 变化，需重建
-  (delayed (:idle 1)
-    (when (current-view)
-      (update-menus 'side-tools)
-    ) ;when
-  ) ;delayed
+  (delayed (:idle 1) (when (current-view) (update-menus 'side-tools)))
   (when (not (extra-bottom-tools?))
     (keyboard-focus-on "canvas")
   ) ;when
