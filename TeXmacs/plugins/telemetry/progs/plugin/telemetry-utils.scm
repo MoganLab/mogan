@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (telemetry telemetry-utils))
+(texmacs-module (plugin telemetry-utils))
 
 (import (scheme base)
   (liii base)
@@ -54,7 +54,7 @@
   ) ;if
 ) ;define-public
 
-(define (telemetry-home-path)
+(define-public (telemetry-home-path)
   (url->system (get-texmacs-home-path))
 ) ;define
 

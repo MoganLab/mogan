@@ -10,23 +10,25 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules
-  (data tmu)
-  (texmacs texmacs tm-tools))
+(use-modules (data tmu) (texmacs texmacs tm-tools))
 
-(import (liii check)
-        (liii path))
+(import (liii check) (liii path))
 
 (tm-define (test_202_53)
-  (let* ((test-doc (tmu->texmacs ((path (url->system (get-texmacs-path))) :/ "tests" :/ "tmu" :/ "202_53.tmu" :read-text)))
+  (let* ((tmu-path "TeXmacs/tests/tmu/202_53.tmu")
+         (test-doc (tmu->texmacs (path-read-text tmu-path)))
          (non-chinese (count-words test-doc))
          (chars-no-space (count-chars-no-space test-doc))
          (chinese (count-chinese-and-words test-doc))
          (line-count (count-lines test-doc))
-         (char-count (count-characters test-doc)))
+         (char-count (count-characters test-doc))
+         ;; 测试 get-statistics-data-from-doc 数据组装
+         (data (get-statistics-data-from-doc test-doc))
+         (data-labels (map car data))
+         (data-values (map cadr data))
+        ) ;
 
-    ;; 测试页数 - 预期: 2
-
+    ;; --- 计数函数 ---
     ;; 测试字数 - 预期: 16 (10个中文字符 + 6个非中文单词)
     (check (+ (car chinese) non-chinese) => 16)
 
@@ -40,8 +42,29 @@
     (check line-count => 3)
 
     ;; 测试非中文单词数 - 预期: 6
-    (check non-chinese => 6)  ; 非中文单词
+    (check non-chinese => 6)
 
-    ;; 测试中文单词数 - 预期: 10
-    (check (car chinese) => 10)  ; 中文字符
-    ))
+    ;; 测试中文字符数 - 预期: 10
+    (check (car chinese) => 10)
+
+    ;; --- get-statistics-data-from-doc 数据格式 ---
+    ;; 验证标签顺序与内容（需与 get-statistics-data-from-doc 使用相同的 translate）
+    (check data-labels
+      =>
+      (list (translate "Page count")
+        (translate "Word count")
+        (translate "Character count (with spaces)")
+        (translate "Character count (without spaces)")
+        (translate "Paragraph count")
+        (translate "Non-Chinese word")
+        (translate "Chinese character")
+      ) ;list
+    ) ;check
+
+    ;; 验证 7 个统计项
+    (check (length data) => 7)
+
+    ;; 验证各项值
+    (check data-values => '("0" "16" "28" "23" "3" "6" "10"))
+  ) ;let*
+) ;tm-define

@@ -12,7 +12,48 @@
 #include "qt_dpi_utils.hpp"
 #include "server.hpp"
 #include <QFrame>
-#include <QGraphicsDropShadowEffect>
+#include <QSize>
+
+static constexpr int kContainerBorderWidth = 2;
+static constexpr int kContainerBorderRadius= 14;
+static constexpr int kLayoutMargin         = 12; // 外层呼吸边距，防阴影截断
+static constexpr int kInnerMarginX         = 10;
+static constexpr int kInnerMarginY         = 5;
+static constexpr int kInnerSpacing         = 8;
+static constexpr int kButtonBorderRadius   = 8;  // 按钮/图标按钮圆角
+static constexpr int kButtonFontPx         = 18; // 按钮字号
+static constexpr int kActionButtonPadY     = 6;  // 接受/拒绝按钮纵向内边距
+static constexpr int kActionButtonPadX     = 16; // 接受/拒绝按钮横向内边距
+static constexpr int kIconButtonPad        = 6;  // 点赞/踩按钮内边距
+static constexpr int kIconButtonSize       = 18; // 点赞/踩图标边长
+
+// 按钮配色（含 hover/pressed）由主题 CSS 提供，这里只注入随 DPI 缩放的尺寸，
+// 避免与主题 CSS 的颜色规则产生控件级/应用级合并冲突。
+static void
+applyActionButtonGeometry (QPushButton* btn) {
+  btn->setStyleSheet (QString ("QPushButton { "
+                               "border-radius: %1px; "
+                               "font-weight: bold; "
+                               "font-size: %2px; "
+                               "padding: %3px %4px; "
+                               "}")
+                          .arg (DpiUtils::scaled (kButtonBorderRadius))
+                          .arg (DpiUtils::scaled (kButtonFontPx))
+                          .arg (DpiUtils::scaled (kActionButtonPadY))
+                          .arg (DpiUtils::scaled (kActionButtonPadX)));
+}
+
+static void
+applyIconButtonGeometry (QPushButton* btn) {
+  const int size= DpiUtils::scaled (kIconButtonSize);
+  btn->setIconSize (QSize (size, size));
+  btn->setStyleSheet (QString ("QPushButton { "
+                               "border-radius: %1px; "
+                               "padding: %2px; "
+                               "}")
+                          .arg (DpiUtils::scaled (kButtonBorderRadius))
+                          .arg (DpiUtils::scaled (kIconButtonPad)));
+}
 
 // =============================================================================
 // QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
@@ -39,120 +80,66 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
 
   installTopLevelWindowFilter ();
 
-  // 生成主水平布局，并外留 12px 的呼吸边距以防边缘阴影被截断
+  // 生成主水平布局
   layout= new QHBoxLayout (this);
-  layout->setContentsMargins (DpiUtils::scaled (12), DpiUtils::scaled (12),
-                              DpiUtils::scaled (12), DpiUtils::scaled (12));
+  layout->setContentsMargins (
+      DpiUtils::scaled (kLayoutMargin), DpiUtils::scaled (kLayoutMargin),
+      DpiUtils::scaled (kLayoutMargin), DpiUtils::scaled (kLayoutMargin));
   layout->setSizeConstraint (QLayout::SetMinimumSize);
   setLayout (layout);
 
   QFrame* container= new QFrame (this);
   container->setObjectName ("prompt_container");
 
-  // 气泡卡片白底圆角样式
-  container->setStyleSheet ("QFrame#prompt_container { "
-                            "background-color: #ffffff; "
-                            "border: 2px solid #94a3b8; "
-                            "border-radius: 14px; "
-                            "}");
-
-  // 卡片外部淡出的现代软投影
-  QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (container);
-  shadow->setBlurRadius (12);
-  shadow->setColor (QColor (0, 0, 0, 30));
-  shadow->setOffset (0, 4);
-  container->setGraphicsEffect (shadow);
+  // 气泡卡片圆角样式（配色由 liii.css / liii-night.css 按主题提供）
+  container->setStyleSheet (
+      QString ("QFrame#prompt_container { "
+               "border: %1px solid; "
+               "border-radius: %2px; "
+               "}")
+          .arg (DpiUtils::scaled (kContainerBorderWidth))
+          .arg (DpiUtils::scaled (kContainerBorderRadius)));
 
   layout->addWidget (container);
 
   QHBoxLayout* innerLayout= new QHBoxLayout (container);
-  innerLayout->setContentsMargins (DpiUtils::scaled (10), DpiUtils::scaled (5),
-                                   DpiUtils::scaled (10), DpiUtils::scaled (5));
-  innerLayout->setSpacing (DpiUtils::scaled (8));
+  innerLayout->setContentsMargins (
+      DpiUtils::scaled (kInnerMarginX), DpiUtils::scaled (kInnerMarginY),
+      DpiUtils::scaled (kInnerMarginX), DpiUtils::scaled (kInnerMarginY));
+  innerLayout->setSpacing (DpiUtils::scaled (kInnerSpacing));
   container->setLayout (innerLayout);
 
-  // 1. 接受按钮 (现代祖母绿配色)
+  // 1. 接受按钮
+  // 按钮配色（含 hover/pressed）由 liii.css / liii-night.css 提供；
+  // 尺寸这里以 DpiUtils 注入。QPushButton 基态下控件级样式表与应用样式表
+  // 合并对颜色不可靠，故颜色不放进控件级样式表，仅注入尺寸属性
   acceptBtn= new QPushButton (acceptText, container);
   acceptBtn->setObjectName ("accept_btn");
-  acceptBtn->setStyleSheet ("QPushButton#accept_btn { "
-                            "background-color: #10b981; "
-                            "color: #ffffff; "
-                            "border: none; "
-                            "border-radius: 8px; "
-                            "font-weight: bold; "
-                            "font-size: 18px; "
-                            "padding: 6px 16px; "
-                            "} "
-                            "QPushButton#accept_btn:hover { "
-                            "background-color: #059669; "
-                            "} "
-                            "QPushButton#accept_btn:pressed { "
-                            "background-color: #047857; "
-                            "}");
+  applyActionButtonGeometry (acceptBtn);
   connect (acceptBtn, &QPushButton::clicked, this,
            &QTMUserPromptPopup::handleAccept);
   innerLayout->addWidget (acceptBtn);
 
-  // 2. 拒绝按钮 (轻柔番茄红配色)
+  // 2. 拒绝按钮
   rejectBtn= new QPushButton (rejectText, container);
   rejectBtn->setObjectName ("reject_btn");
-  rejectBtn->setStyleSheet ("QPushButton#reject_btn { "
-                            "background-color: #ef4444; "
-                            "color: #ffffff; "
-                            "border: none; "
-                            "border-radius: 8px; "
-                            "font-weight: bold; "
-                            "font-size: 18px; "
-                            "padding: 6px 16px; "
-                            "} "
-                            "QPushButton#reject_btn:hover { "
-                            "background-color: #dc2626; "
-                            "} "
-                            "QPushButton#reject_btn:pressed { "
-                            "background-color: #b91c1c; "
-                            "}");
+  applyActionButtonGeometry (rejectBtn);
   connect (rejectBtn, &QPushButton::clicked, this,
            &QTMUserPromptPopup::handleReject);
   innerLayout->addWidget (rejectBtn);
 
   // 3. 点赞按钮
-  goodBtn= new QPushButton ("👍", container);
+  goodBtn= new QPushButton ("", container);
   goodBtn->setObjectName ("good_btn");
-  goodBtn->setStyleSheet ("QPushButton#good_btn { "
-                          "background-color: transparent; "
-                          "color: #4b5563; "
-                          "border: none; "
-                          "border-radius: 8px; "
-                          "font-size: 18px; "
-                          "padding: 6px; "
-                          "} "
-                          "QPushButton#good_btn:hover { "
-                          "background-color: #f3f4f6; "
-                          "} "
-                          "QPushButton#good_btn:pressed { "
-                          "background-color: #e5e7eb; "
-                          "}");
+  applyIconButtonGeometry (goodBtn);
   connect (goodBtn, &QPushButton::clicked, this,
            &QTMUserPromptPopup::handleGood);
   innerLayout->addWidget (goodBtn);
 
   // 4. 踩按钮
-  badBtn= new QPushButton ("👎", container);
+  badBtn= new QPushButton ("", container);
   badBtn->setObjectName ("bad_btn");
-  badBtn->setStyleSheet ("QPushButton#bad_btn { "
-                         "background-color: transparent; "
-                         "color: #4b5563; "
-                         "border: none; "
-                         "border-radius: 8px; "
-                         "font-size: 18px; "
-                         "padding: 6px; "
-                         "} "
-                         "QPushButton#bad_btn:hover { "
-                         "background-color: #f3f4f6; "
-                         "} "
-                         "QPushButton#bad_btn:pressed { "
-                         "background-color: #e5e7eb; "
-                         "}");
+  applyIconButtonGeometry (badBtn);
   connect (badBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleBad);
   innerLayout->addWidget (badBtn);
 

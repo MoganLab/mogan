@@ -22,27 +22,15 @@
 ;; Wrapper
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 (tm-define (set-pretty-preference* which pretty-val)
   (let* ((old (get-pretty-preference which)))
     (when (!= old pretty-val)
-      (let ((msg (restart-required-message)))
-        (user-confirm msg
-          #f
-          (lambda (answ)
-            (set-pretty-preference which pretty-val)
-            (when answ
-              (begin
-                (when (not (defined? 'save-all-buffers))
-                  (use-modules (plugin autosave))
-                ) ;when
-                (save-all-buffers)
-                (restart-TeXmacs)
-              ) ;begin
-            ) ;when
-          ) ;lambda
-        ) ;user-confirm
-      ) ;let
+      ;; 三按钮确认：重启 / 稍后（silent 写值，下次启动生效）/ 取消（回滚旧值）。
+      (confirm-restart-and-act (restart-preference-title which)
+        (lambda () (set-pretty-preference which pretty-val))
+        (lambda () (set-pretty-preference which old))
+        (lambda () (set-pretty-preference-silent which pretty-val))
+      ) ;confirm-restart-and-act
     ) ;when
   ) ;let*
 ) ;tm-define

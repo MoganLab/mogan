@@ -265,6 +265,40 @@ cpp_confirm_close (string message, bool scratch) {
   }
 }
 
+/**
+ * @brief 需重启字段的三按钮确认弹窗的 glue 入口。
+ */
+string
+cpp_confirm_restart (string title, string message) {
+  string preset= get_env ("MOGAN_TEST_CONFIRM_RESTART");
+  if (preset == "restart" || preset == "later" || preset == "cancel")
+    return preset;
+  array<string>    buttons   = {string ("Restart"), string ("Later"),
+                                string ("Cancel")};
+  QStringList      qmlButtons= translate_buttons (buttons);
+  QmlDialogBridge* bridge    = nullptr;
+  int              choice    = run_qml_dialog (
+      "qrc:/qml/ConfirmRestart.qml", "restart confirm dialog",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("dialogTitle",
+                                                                 to_qstring (title));
+        qw->rootContext ()->setContextProperty ("dialogMessage",
+                                                                 to_qstring (message));
+        qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
+      },
+      420, 170);
+  delete bridge;
+  switch (choice) {
+  case 1:
+    return "restart";
+  case 2:
+    return "later";
+  default:
+    return "cancel";
+  }
+}
+
 // ---- form 引擎 --------------------------------------------------------------
 
 // 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：
@@ -475,4 +509,47 @@ cpp_paragraph_format_dialog (int specs_key) {
       },
       520, 590);
   return tree (TUPLE);
+}
+
+// ---- 文档统计信息 ----------------------------------------------------------
+
+/**
+ * @brief 文档统计信息 QML 对话框的 glue 入口（声明见 QTMQmlDialog.hpp）。
+ *
+ * @details 纯展示对话框，走 run_qml_dialog（exec 阻塞模态）。statsModel 每项为
+ * {label, value} 的 QVariantMap；QML 侧 Statistics.qml 用 Repeater 渲染为
+ * label: value 行。用户点 Close / Esc / X 关闭窗口即结束，无返回值。
+ */
+void
+cpp_statistics_dialog (string title, tree items) {
+  QVariantList model;
+  if (is_compound (items)) {
+    for (int i= 0; i < N (items); i++) {
+      // (stats (item <label> <value>) ...)
+      if (is_compound (items[i]) && N (items[i]) >= 2 &&
+          is_atomic (items[i][0]) && is_atomic (items[i][1])) {
+        QVariantMap row;
+        row["label"]= to_qstring (get_label (items[i][0]));
+        row["value"]= to_qstring (get_label (items[i][1]));
+        model << row;
+      }
+    }
+  }
+
+  array<string> buttons;
+  buttons << string ("Close");
+  run_qml_dialog (
+      "qrc:/qml/Statistics.qml", "Statistics.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        QmlDialogBridge* bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("statsTitle",
+                                                to_qstring (title));
+        qw->rootContext ()->setContextProperty ("statsItems", model);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        // bridge 无 parent，靠 host destroyed 信号 deleteLater 自清。
+        QObject::connect (&host, &QDialog::destroyed, bridge,
+                          &QObject::deleteLater);
+      },
+      380, 300);
 }

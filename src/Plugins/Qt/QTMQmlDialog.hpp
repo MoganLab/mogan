@@ -120,6 +120,21 @@ int qt_show_qml_dialog (string qml_url, string message, array<string> buttons);
 string cpp_confirm_close (string message, bool scratch);
 
 /**
+ * @brief 需重启字段的三按钮确认弹窗的 glue 入口。
+ * @param title 已翻译的标题（如「切换界面主题」）。
+ * @param message 已翻译的正文（如「此更改需要重新启动 Mogan STEM
+ * 才能完全生效。」）。
+ * @return "restart" / "later" / "cancel" 之一。
+ * @details 用于首选项里改 look and feel / gui theme / keyboard shortcut style
+ * 等需重启字段后的确认，替换旧
+ * user-confirm（两按钮）。 按钮顺序为 重启（primary）、稍后、取消，对应
+ * run_qml_dialog 返回的按钮下标 1/2/3（0 / -1 = Esc / X / 加载失败 =
+ * cancel）。测试钩子 MOGAN_TEST_CONFIRM_RESTART=restart|later|cancel
+ * 命中时直接返回不弹窗。
+ */
+string cpp_confirm_restart (string title, string message);
+
+/**
  * @brief 通用 form 弹窗引擎的 glue 入口。
  * @param fields scm 构造的字段表，@b 须经 stree->tree 转换（glue 不自动转
  * pair）。 结构见顶部 @par 数据协议：(form (enum <label> <key> (<opt>...)
@@ -159,5 +174,16 @@ tree cpp_font_selector_dialog (int specs_key);
  * devel/2029.md 与 ai-docs/qml/README.md。
  */
 tree cpp_paragraph_format_dialog (int specs_key);
+
+/**
+ * @brief 文档统计信息 QML 对话框的 glue 入口（纯展示，一次性提交）。
+ * @param title 已翻译的对话框标题（如 "Document statistics"）。
+ * @param items 统计项列表树，形如 (stats ("Page count" "1") ("Word count" "42")
+ * ...)， 每项为 (label value) 二元组，label/value 均 string。
+ * @details 走 run_qml_dialog（exec 阻塞模态），无 live 写回。用户点 Close 或
+ * Esc / X 关闭窗口即结束。统计项由 scm 侧计算好打包传入，cpp / QML
+ * 纯展示不碰业务。
+ */
+void cpp_statistics_dialog (string title, tree items);
 
 #endif // defined QTM_QML_DIALOG_H

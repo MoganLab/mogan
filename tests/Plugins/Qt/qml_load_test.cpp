@@ -88,9 +88,11 @@ private slots:
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
   void test_confirm_close_loads ();
+  void test_confirm_restart_loads ();
   void test_form_dialog_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
+  void test_statistics_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -111,6 +113,33 @@ load_qml (const QString& qrcUrl) {
 void
 TestQmlLoad::test_confirm_close_loads () {
   QCOMPARE (load_qml ("qrc:/qml/ConfirmClose.qml"), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_confirm_restart_loads () {
+  // ConfirmRestart 复用 ConfirmClose 的 dialogMessage/dialogButtons，多一个
+  // dialogTitle。 dialogTitle 仅作为标题 Text 显示，dialogMessage
+  // 作正文。三按钮文案注入。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("dialogTitle",
+                                          QString ("Switch interface theme"));
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage",
+      QString (
+          "This change requires restarting Mogan STEM to take full effect."));
+  QStringList buttons;
+  buttons << "Restart"
+          << "Later"
+          << "Cancel";
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/ConfirmRestart.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 void
@@ -164,6 +193,32 @@ TestQmlLoad::test_paragraph_format_loads () {
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/ParagraphFormat.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_statistics_loads () {
+  QVariantList model;
+  QVariantMap  row;
+  row["label"]= QString ("Page count");
+  row["value"]= QString ("1");
+  model << row;
+
+  QStringList buttons;
+  buttons << "Close";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("statsTitle",
+                                          QString ("Document statistics"));
+  qw->rootContext ()->setContextProperty ("statsItems", model);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/Statistics.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 

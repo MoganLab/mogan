@@ -41,12 +41,8 @@
 (tm-define (ghost-enable?) (not (community-stem?)))
 
 ;; =============================================================================
-;; Model evaluation & Feedback functions
+;; Model evaluation
 ;; =============================================================================
-(tm-define (ghost-feedback action)
-  ;; Action can be 'accept, 'reject, or 'ignore
-  (noop)
-) ;tm-define
 
 (define (mock-cloud-api)
   ;; Simulate cloud API response with confidence level (100%)
@@ -155,4 +151,13 @@
   (when (not (== key "move"))
     (ignore-ghost)
   ) ;when
+) ;tm-define
+
+;; =============================================================================
+;; Feedback functions
+;; =============================================================================
+
+(tm-define (ghost-feedback action)
+  ;; Action can be 'accept, 'reject, or 'ignore
+  (noop)
 ) ;tm-define

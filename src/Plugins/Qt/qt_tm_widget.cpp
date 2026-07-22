@@ -29,6 +29,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QPointer>
 #include <QPushButton>
 #include <QResource>
 #include <QStatusBar>
@@ -542,13 +543,22 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                         call ("notification-bar-snooze-membership-expired");
                       }
                     });
-  // 网络检查首屏不需要，挪到事件循环里执行，避免构造期创建
-  // QNetworkAccessManager 的同步开销
+  // guard 守卫：deleteLater() 异步销毁 QWidget，存在「this 已析构、回调仍
+  // 触发」的窗口；捕获按值的 QPointer 跟踪 QWidget 生命周期（不依赖 this），
+  // 失效即跳过。本文件定时器/网络/信号回调统一此模式，下文不再赘述。
+  QPointer<QWidget> guard (qwid);
+  // 网络检查挪到事件循环，避免构造期创建 QNetworkAccessManager 的同步开销
   if (!is_community_stem ())
-    QTimer::singleShot (0, [this] () { checkNetworkAvailable (); });
+    QTimer::singleShot (0, [guard, this] () {
+      if (!guard) return;
+      checkNetworkAvailable ();
+    });
 
   // 延迟检查版本更新（启动后10秒）
-  QTimer::singleShot (10000, [this] () { checkVersionUpdate (); });
+  QTimer::singleShot (10000, [guard, this] () {
+    if (!guard) return;
+    checkVersionUpdate ();
+  });
 
   // there is a bug in the early implementation of toolbars in Qt 4.6
   // which has been fixed in 4.6.2 (at least)
@@ -947,8 +957,11 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       QTMOAuth* account= server->getAccount ();
       // 商业版：连接登录状态变化信号
       if (!is_community_stem ()) {
+        // account 由 server 单例管理，信号不随 widget 析构断开，故仍需 guard
+        QPointer<QWidget> guard (qwid);
         QObject::connect (account, &QTMOAuth::loginStateChanged,
-                          [this] (bool loggedIn) {
+                          [guard, this] (bool loggedIn) {
+                            if (!guard) return;
                             if (loggedIn) {
                               syncScmGuestNotification (false);
                               refreshMembershipInfoInBackground ();
@@ -960,8 +973,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                           });
         if (account->isLoggedIn ()) {
           // 首次创建 QNetworkAccessManager 的同步开销挪出构造关键路径
-          QTimer::singleShot (
-              0, [this] () { refreshMembershipInfoInBackground (); });
+          QTimer::singleShot (0, [guard, this] () {
+            if (!guard) return;
+            refreshMembershipInfoInBackground ();
+          });
         }
       }
     }
@@ -3012,8 +3027,8 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
 
 void
 qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
-  // 创建网络访问管理器
-  QNetworkAccessManager* manager= new QNetworkAccessManager ();
+  // 挂到 mainwindow 下，widget 析构时连带回收，避免网络资源泄漏
+  QNetworkAccessManager* manager= new QNetworkAccessManager (mainwindow ());
 
   // 去掉token末尾的'˙'字符
   QString clean_token= token;
@@ -3042,9 +3057,17 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
   // 发送请求
   QNetworkReply* reply= manager->get (request);
 
-  // 连接信号处理响应
+  // finished 回调守卫（见构造期）。失效分支用 deleteLater 回收网络资源，
+  // 绝不触碰 this；reply 尚存活才能进回调，deleteLater 对重复清理是安全的
+  QPointer<QWidget> guard (qwid);
   QObject::connect (
-      reply, &QNetworkReply::finished, [this, reply, manager, showDialog] () {
+      reply, &QNetworkReply::finished,
+      [guard, this, reply, manager, showDialog] () {
+        if (!guard) {
+          reply->deleteLater ();
+          manager->deleteLater ();
+          return;
+        }
         // 定义统一的错误处理逻辑
         auto handleError= [this] (const QString& errorMessage) {
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
@@ -3315,12 +3338,22 @@ qt_tm_widget_rep::checkNetworkAvailable () {
   QNetworkRequest        request (testUrl);
   QNetworkReply*         reply= manager->head (request);
 
-  QObject::connect (reply, &QNetworkReply::finished, [this, reply] () {
-    bool success= (reply->error () == QNetworkReply::NoError);
-    reply->deleteLater ();
-    bool isLoggedIn= as_bool (call ("logged-in?"));
-    syncScmGuestNotification (!is_community_stem () && !isLoggedIn && success);
-  });
+  // finished 回调守卫（同 fetchUserInfo / checkVersionUpdate 模式）
+  QPointer<QWidget> guard (qwid);
+  QObject::connect (reply, &QNetworkReply::finished,
+                    [guard, this, reply, manager] () {
+                      if (!guard) {
+                        reply->deleteLater ();
+                        manager->deleteLater ();
+                        return;
+                      }
+                      bool success= (reply->error () == QNetworkReply::NoError);
+                      bool isLoggedIn= as_bool (call ("logged-in?"));
+                      syncScmGuestNotification (!is_community_stem () &&
+                                                !isLoggedIn && success);
+                      reply->deleteLater ();
+                      manager->deleteLater ();
+                    });
 }
 
 // 检查版本更新，根据条件显示提示条
@@ -3371,39 +3404,48 @@ qt_tm_widget_rep::checkVersionUpdate () {
                         to_qstring (stem_user_agent ()).toUtf8 ());
 
   QNetworkReply* reply= manager->get (request);
-  QObject::connect (reply, &QNetworkReply::finished, [this, reply, manager] () {
-    if (reply->error () == QNetworkReply::NoError) {
-      QByteArray data         = reply->readAll ();
-      QString    remoteVersion= parseVersionFromTM (data);
-      QString    localVersion = XMACS_VERSION;
+  // finished 回调守卫（见构造期说明）
+  QPointer<QWidget> guard (qwid);
+  QObject::connect (
+      reply, &QNetworkReply::finished, [guard, this, reply, manager] () {
+        if (!guard) {
+          reply->deleteLater ();
+          manager->deleteLater ();
+          return;
+        }
+        if (reply->error () == QNetworkReply::NoError) {
+          QByteArray data         = reply->readAll ();
+          QString    remoteVersion= parseVersionFromTM (data);
+          QString    localVersion = XMACS_VERSION;
 
-      if (!remoteVersion.isEmpty ()) {
-        if (DEBUG_IO)
-          debug_io << "[VersionUpdate] Parsed remote version: "
-                   << qPrintable (remoteVersion) << "\n";
-      }
+          if (!remoteVersion.isEmpty ()) {
+            if (DEBUG_IO)
+              debug_io << "[VersionUpdate] Parsed remote version: "
+                       << qPrintable (remoteVersion) << "\n";
+          }
 
-      if (remoteVersion.isEmpty ()) {
-        if (DEBUG_IO)
-          debug_io << "[VersionUpdate] Failed to parse version from response\n";
-        syncScmUpdateNotification (false);
-      }
-      else if (isVersionNewer (remoteVersion, localVersion)) {
-        syncScmUpdateNotification (true, remoteVersion);
-      }
-      else {
-        syncScmUpdateNotification (false);
-      }
-    }
-    else {
-      if (DEBUG_IO)
-        debug_io << "[VersionUpdate] Failed to fetch remote version: "
-                 << qPrintable (reply->errorString ()) << "\n";
-      syncScmUpdateNotification (false);
-    }
-    reply->deleteLater ();
-    manager->deleteLater ();
-  });
+          if (remoteVersion.isEmpty ()) {
+            if (DEBUG_IO)
+              debug_io
+                  << "[VersionUpdate] Failed to parse version from response\n";
+            syncScmUpdateNotification (false);
+          }
+          else if (isVersionNewer (remoteVersion, localVersion)) {
+            syncScmUpdateNotification (true, remoteVersion);
+          }
+          else {
+            syncScmUpdateNotification (false);
+          }
+        }
+        else {
+          if (DEBUG_IO)
+            debug_io << "[VersionUpdate] Failed to fetch remote version: "
+                     << qPrintable (reply->errorString ()) << "\n";
+          syncScmUpdateNotification (false);
+        }
+        reply->deleteLater ();
+        manager->deleteLater ();
+      });
 }
 
 QString

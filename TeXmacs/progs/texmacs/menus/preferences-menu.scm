@@ -26,11 +26,51 @@
 ;; Preferred scripting language
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (restart-required-message)
+;; 需重启字段的内部值 -> ConfirmRestart 标题翻译。
+(tm-define (restart-preference-title which)
+  (cond ((== which "look and feel") (translate "Switch look and feel"))
+        ((== which "gui theme") (translate "Switch interface theme"))
+        ((== which "language") (translate "Switch language"))
+        ((== which "keyboard shortcut style")
+         (translate "Switch keyboard shortcut style")
+        ) ;
+        (else (translate "Switch preference"))
+  ) ;cond
+) ;tm-define
+
+;; 三按钮重启确认的正文（陈述句，无问句——问句由按钮表达）。title 由调用方
+;; 按字段给出（如「切换界面主题」），本函数只产出通用的「需重启才生效」说明。
+(tm-define (restart-effect-message)
   (if (community-stem?)
-    (translate "Requires restarting Mogan STEM to take full effect. Restart now?")
-    (translate "Requires restarting Liii STEM to take full effect. Restart now?")
+    (translate "This change requires restarting Mogan STEM to take full effect.")
+    (translate "This change requires restarting Liii STEM to take full effect.")
   ) ;if
+) ;tm-define
+
+;; 三按钮重启确认：弹 ConfirmRestart（重启/稍后/取消），按返回值分别
+;;   restart -> apply-proc + 存盘 + 重启
+;;   later   -> later-proc（写新值但不触发实时副作用，下次启动生效）
+;;   cancel  -> rollback-proc（回滚旧值）
+;; later-proc 由调用方给出 silent 写值过程（如 set-pretty-preference-silent /
+;; cpp-set-preference-silent）：需重启字段当前会话不实时切，避免 crash 或状态不一致。
+(tm-define (confirm-restart-and-act title apply-proc rollback-proc later-proc)
+  (with msg
+    (restart-effect-message)
+    (with choice
+      (cpp-confirm-restart title msg)
+      (cond ((== choice "restart")
+             (apply-proc)
+             (when (not (defined? 'save-all-buffers))
+               (use-modules (plugin autosave))
+             ) ;when
+             (save-all-buffers)
+             (restart-TeXmacs)
+            ) ;
+            ((== choice "later") (later-proc))
+            (else (rollback-proc))
+      ) ;cond
+    ) ;with
+  ) ;with
 ) ;tm-define
 
 (tm-menu (scripts-preferences-menu)
@@ -85,28 +125,18 @@
 ;; Language settings and restart notifications
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; later 用 silent 写值：实时切 language 不重启可能 crash，故当前会话不切，下次启动生效。
+;; restart 仍走 set-preference（实时切）：紧接重启、进程即将退出，实时副作用无意义。
 (tm-define (set-language-and-notify lan)
   (let ((old (get-preference "language")))
     (if (== lan old)
       (set-preference "language" lan)
-      (let ((msg (restart-required-message)))
-        (user-confirm msg
-          #f
-          (lambda (answ)
-            (if answ
-              (begin
-                (set-preference "language" lan)
-                (when (not (defined? 'save-all-buffers))
-                  (use-modules (plugin autosave))
-                ) ;when
-                (save-all-buffers)
-                (restart-TeXmacs)
-              ) ;begin
-              (set-preference "language" old)
-            ) ;if
-          ) ;lambda
-        ) ;user-confirm
-      ) ;let
+      (confirm-restart-and-act (restart-preference-title "language")
+        (lambda () (set-preference "language" lan))
+        (lambda () (set-preference "language" old))
+        ;; language 无 pretty 映射，不复用带 decode 的 set-pretty-preference-silent。
+        (lambda () (cpp-set-preference-silent "language" lan) (save-preferences))
+      ) ;confirm-restart-and-act
     ) ;if
   ) ;let
 ) ;tm-define

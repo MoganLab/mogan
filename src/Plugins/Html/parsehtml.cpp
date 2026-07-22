@@ -186,13 +186,24 @@ parse_html (string s) {
 }
 
 #ifdef QTTEXMACS
-static QDialog* html_progress_dialog= nullptr;
-static int      html_progress_total = 0;
+static QDialog* html_progress_dialog = nullptr;
+static int      html_progress_total  = 0;
+static bool     html_progress_silence= false;
 #endif
+
+void
+silent_html_progress (bool silent) {
+#ifdef QTTEXMACS
+  html_progress_silence= silent;
+#else
+  (void) silent;
+#endif
+}
 
 void
 html_progress_start (int total) {
 #ifdef QTTEXMACS
+  if (html_progress_silence) return;
   if (QApplication::instance () &&
       qobject_cast<QApplication*> (QApplication::instance ())) {
     QWidget* main_window= QApplication::activeWindow ();

@@ -26,6 +26,36 @@
 ;; in a different environment. In Guile *current-module* is set/reset.
 
 (varlet (rootlet) '*current-module* (curlet))
+
+;; 启动期 telemetry pending 队列：telemetry 实现已迁至 (plugin telemetry-*)
+;; 插件，由事件循环 ~3s 后懒加载。插件加载前的 C++ 上报（OPEN/LOGIN 等）
+;; 由 telemetry-track-or-enqueue 入队，(plugin init-telemetry) 加载时
+;; 通过 telemetry-drain-pending! 一次性补 track。这组符号注入 rootlet，
+;; 不依赖任何模块，C++ 可直接 call。
+(let ((rl (rootlet)))
+  (varlet rl 'telemetry-pending-events '())
+  (varlet rl
+    'telemetry-track-or-enqueue
+    (lambda (event-type properties)
+      (if (defined? 'track-event)
+        (track-event event-type properties)
+        (varlet rl
+          'telemetry-pending-events
+          (cons (cons event-type properties) telemetry-pending-events)
+        ) ;varlet
+      ) ;if
+    ) ;lambda
+  ) ;varlet
+  (varlet rl
+    'telemetry-drain-pending!
+    (lambda ()
+      (let ((pending telemetry-pending-events))
+        (varlet rl 'telemetry-pending-events '())
+        (for-each (lambda (e) (track-event (car e) (cdr e))) (reverse pending))
+      ) ;let
+    ) ;lambda
+  ) ;varlet
+) ;let
 (let ()
   (define primitive-load load)
   (define primitive-eval eval)
@@ -605,21 +635,5 @@
     "------------------------------------------------------\n"
   ) ;string-append
 ) ;debug-message
-(catch #t
-  (lambda ()
-    (use-modules (telemetry telemetry-utils))
-    (use-modules (telemetry telemetry-track))
-    (use-modules (telemetry init-telemetry))
-    (init-telemetry)
-  ) ;lambda
-  (lambda args
-    (let ((msg (string-append "[telemetry] error: init failed: " (object->string args) "\n")
-          ) ;msg
-         ) ;
-      (display msg (current-error-port))
-      (force-output (current-error-port))
-    ) ;let
-  ) ;lambda
-) ;catch
 (texmacs-banner)
 (debug-message "debug-std" "Initialization done\n")

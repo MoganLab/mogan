@@ -267,6 +267,15 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-set-preference-silent",
+                cpp_name = "set_user_preference_silent",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
                 scm_name = "cpp-reset-preference",
                 cpp_name = "reset_user_preference",
                 ret_type = "void",

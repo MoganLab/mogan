@@ -1029,7 +1029,9 @@ perform_startup_login_request () {
   tm_server_rep* server=
       dynamic_cast<tm_server_rep*> (get_server ().operator->());
   if (server && server->getAccount ()) {
-    QTimer::singleShot (0, [server] () { server->getAccount ()->login (); });
+    // account 作 receiver：QObject 析构时 Qt 自动断开定时器，避免悬挂
+    QTMOAuth* account= server->getAccount ();
+    QTimer::singleShot (0, account, [account] () { account->login (); });
     g_startup_login_requested= false;
     return;
   }

@@ -155,6 +155,16 @@
   ) ;with
 ) ;tm-define
 
+;; 同 set-pretty-preference 但用 cpp-set-preference-silent 写值（不触发 notify），
+;; 供需重启字段的「稍后」分支使用：写新值下次启动生效，当前会话不实时切。
+(tm-define (set-pretty-preference-silent which pretty-val)
+  (with val
+    (ahash-ref preference-decode-table (cons which pretty-val))
+    (cpp-set-preference-silent which (or val pretty-val))
+    (save-preferences)
+  ) ;with
+) ;tm-define
+
 (tm-define (get-pretty-preference which)
   (with val
     (get-preference which)

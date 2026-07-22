@@ -18,6 +18,7 @@ tree parse_html (string s);
 tree clean_html (tree t);
 tree parse_plain_html (string s);
 
+void silent_html_progress (bool silent);
 void html_progress_start (int total);
 void html_progress_update (int current);
 void html_progress_end ();

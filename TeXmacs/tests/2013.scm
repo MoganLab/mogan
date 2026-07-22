@@ -18,7 +18,7 @@
   (only (liii path) path-exists? path-with-suffix path->string)
 ) ;import
 
-(load "./TeXmacs/progs/telemetry/telemetry-utils.scm")
+(use-modules (plugin telemetry-utils))
 
 (check-set-mode! 'report-failed)
 

@@ -225,7 +225,7 @@
           (do-paste fm)
           (with-magic-paste-check (lambda () (do-paste fm)))
         ) ;if
-        (when (chat-input-buffer? (current-buffer-url))
+        (when (and (defined? 'chat-input-buffer?) (chat-input-buffer? (current-buffer-url)))
           (qt-chat-notify-input-height)
         ) ;when
       ) ;when
