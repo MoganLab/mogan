@@ -1,0 +1,567 @@
+/** \file loro_shadow_test.cpp
+ *  \copyright GPLv3
+ *  \details Phase 2 Step 3 gate：seed 一棵树到 shadow live doc，验证
+ *            to_tree / export_snapshot(→loro_to_tree)
+ * 都与原树深度相等，且身份表覆盖各节点。 仅 LORO_ENABLED 下编译用例。
+ *  \author Jim Zhou
+ *  \date   2026
+ */
+
+#include "loro.hpp"
+#include "loro_shadow.hpp"
+#include "moe_doctests.hpp"
+#include "tree.hpp"
+#include "tree_helper.hpp"
+#include <moebius/drd/drd_std.hpp>
+#include <moebius/vars.hpp>
+
+using namespace moebius;
+
+#ifdef LORO_ENABLED
+
+static void
+ensure_labels () {
+  moebius::drd::init_std_drd ();
+}
+
+TEST_CASE ("loro_shadow: seed round-trips a document") {
+  ensure_labels ();
+  // (document (para (concat "hello")) (para "world"))
+  tree t (DOCUMENT, 2);
+  t[0]      = tree (PARA, 1);
+  t[0][0]   = tree (CONCAT, 1);
+  t[0][0][0]= tree ("hello");
+  t[1]      = tree (PARA, 1);
+  t[1][0]   = tree ("world");
+
+  loro_shadow sh;
+  sh->seed (t);
+
+  // live doc -> tree（经 to_ir + loro_ir_to_tree）
+  tree back= sh->to_tree ();
+  CHECK_EQ (back == t, true);
+
+  // live doc -> snapshot -> loro_to_tree（Phase 1 路径）
+  string snap = sh->export_snapshot ();
+  tree   back2= loro_to_tree (snap);
+  CHECK_EQ (back2 == t, true);
+
+  // 身份表覆盖根与各层节点
+  CHECK_EQ (sh->has_id (t), true);
+  CHECK_EQ (sh->has_id (t[0]), true);
+  CHECK_EQ (sh->has_id (t[0][0][0]), true);
+}
+
+TEST_CASE ("loro_shadow: atomic text (UTF-8) seeded via LoroText") {
+  ensure_labels ();
+  tree t (PARA, 1);
+  t[0]= tree ("hello 世界");
+  loro_shadow sh;
+  sh->seed (t);
+  CHECK_EQ (sh->to_tree () == t, true);
+  CHECK_EQ (sh->has_id (t[0]), true);
+}
+
+TEST_CASE ("loro_shadow: mirror text typing and backspace") {
+  ensure_labels ();
+  // (document (paragraph (concat "")))
+  tree t (DOCUMENT, 1);
+  t[0]      = tree (PARA, 1);
+  t[0][0]   = tree (CONCAT, 1);
+  t[0][0][0]= tree (""); // 空原子
+  loro_shadow sh;
+  sh->seed (t);
+
+  path          atom= path (0) * 0 * 0;        // [0,0,0]
+  mogan_tree_id id0 = sh->get_id (t[0][0][0]); // 原子身份（seed 后）
+  // 敲 "abc"：只喂 mod 给 mirror_mod（它读 mod
+  // 不读树状态），再手工把期望结果赋给 t
+  sh->mirror_mod (t, mod_insert (atom, 0, tree ("a")));
+  sh->mirror_mod (t, mod_insert (atom, 1, tree ("b")));
+  sh->mirror_mod (t, mod_insert (atom, 2, tree ("c")));
+  t[0][0][0]->label= string ("abc");
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  // 退格删 "c"
+  sh->mirror_mod (t, mod_remove (atom, 2, 1));
+  t[0][0][0]->label= string ("ab");
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  // 原子身份逐字不变 → 走的是精确 LoroText 路径（非兜底重 seed）
+  mogan_tree_id id1= sh->get_id (t[0][0][0]);
+  CHECK_EQ (id1.peer == id0.peer && id1.counter == id0.counter, true);
+}
+
+TEST_CASE ("loro_shadow: structural edit falls back to re-seed") {
+  ensure_labels ();
+  // (document (paragraph "hi"))
+  tree t (DOCUMENT, 1);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("hi");
+  loro_shadow sh;
+  sh->seed (t);
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  // 结构改动：document 末尾插入新段落（root=doc 复合 → 兜底整树重 seed）。
+  // 手工把 t 改成 post-edit 状态（不用 raw_apply，避免拉入 libmogan 符号），
+  // mirror_mod 兜底从 t 重新 seed。
+  tree extra (PARA, 1);
+  extra[0]= tree ("new");
+  tree mutated (DOCUMENT, 2);
+  mutated[0]= t[0];
+  mutated[1]= extra;
+  t         = mutated;
+  sh->mirror_mod (t, mod_insert (path (), 1, extra));
+  CHECK_EQ (sh->to_tree () == t, true);
+  CHECK_EQ (N (t) == 2, true);
+}
+
+// 模拟一段真实编辑会话：打字 → 退格 → 结构改动（兜底重 seed）→ 再打字。
+// 每步都用期望的真值 buffer 比对 shadow.to_tree()，证明 shadow 始终与 buffer
+// 一致。
+TEST_CASE ("loro_shadow: consistent across a mixed edit session") {
+  ensure_labels ();
+  // (document (paragraph (concat "")))
+  tree t (DOCUMENT, 1);
+  t[0]      = tree (PARA, 1);
+  t[0][0]   = tree (CONCAT, 1);
+  t[0][0][0]= tree ("");
+  loro_shadow sh;
+  sh->seed (t);
+  path atom= path (0) * 0 * 0; // [0,0,0]
+
+  // 1. 打 "hello"（精确 LoroText）
+  const char* word= "hello";
+  for (int i= 0; word[i] != 0; i++) {
+    char s[2]= {word[i], 0};
+    sh->mirror_mod (t, mod_insert (atom, i, tree (s)));
+  }
+  t[0][0][0]->label= string ("hello");
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  // 2. 退格两次 → "hel"
+  sh->mirror_mod (t, mod_remove (atom, 4, 1));
+  sh->mirror_mod (t, mod_remove (atom, 3, 1));
+  t[0][0][0]->label= string ("hel");
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  // 3. 结构改动：插入第二段（root=doc 复合 → 兜底整树重 seed）
+  tree p2 (PARA, 1);
+  p2[0]= tree ("world");
+  tree mutated (DOCUMENT, 2);
+  mutated[0]= t[0];
+  mutated[1]= p2;
+  t         = mutated;
+  sh->mirror_mod (t, mod_insert (path (), 1, p2));
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  // snapshot 可导出且非空
+  CHECK_EQ (N (sh->export_snapshot ()) > 0, true);
+}
+
+// 正向 e2e：A 本地编辑（mirror）→ snapshot → B 导入 → B 的树 == A 的 buffer。
+TEST_CASE ("loro e2e: local edit on A propagates to B via snapshot") {
+  ensure_labels ();
+  // A 的 buffer: (document (paragraph (concat "x")))
+  tree tA (DOCUMENT, 1);
+  tA[0]      = tree (PARA, 1);
+  tA[0][0]   = tree (CONCAT, 1);
+  tA[0][0][0]= tree ("x");
+  loro_shadow a;
+  a->seed (tA);
+
+  // A 敲 "y" → "xy"（精确 LoroText 镜像）
+  a->mirror_mod (tA, mod_insert (path (0) * 0 * 0, 1, tree ("y")));
+  tA[0][0][0]->label= string ("xy");
+  CHECK_EQ (a->to_tree () == tA, true);
+
+  // 导出 snapshot
+  string snap= a->export_snapshot ();
+  CHECK_EQ (N (snap) > 0, true);
+
+  // B 导入 snapshot（被动），to_tree 应等于 A 的编辑后 buffer
+  loro_shadow b;
+  CHECK_EQ (b->import_data (snap), true);
+  CHECK_EQ (b->to_tree () == tA, true);
+}
+
+// 双向合并 e2e：A/B 从公共初始 snapshot
+// 各自并发编辑不同节点，互导后收敛到同一棵树。 关键：B 用 import_and_build 把
+// buffer rep 关联到 A 的 TreeID，二者身份对齐才能合并。
+TEST_CASE ("loro e2e: bidirectional merge (concurrent edits converge)") {
+  ensure_labels ();
+  // 公共初始文档 (document (para "a") (para "b"))
+  tree init (DOCUMENT, 2);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("a");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("b");
+
+  loro_shadow a;
+  a->seed (init);
+  string sa0= a->export_snapshot (); // 公共初始 snapshot（A 编辑前导出）
+
+  // A 编辑 para0："a" -> "aA"（tA 共享 init 的 rep）
+  tree tA= init;
+  a->mirror_mod (tA, mod_insert (path (0) * 0, 1, tree ("A")));
+  tA[0][0]->label= string ("aA");
+  string sa      = a->export_snapshot ();
+
+  // B 从 sa0 导入并构建 buffer（id_map 关联到 A 的 TreeID）
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (sa0, tB), true);
+  // B 编辑 para1："b" -> "bB"
+  b->mirror_mod (tB, mod_insert (path (1) * 0, 1, tree ("B")));
+  tB[1][0]->label= string ("bB");
+  string sb      = b->export_snapshot ();
+
+  // 互导 snapshot → CRDT 合并
+  CHECK_EQ (a->import_data (sb), true);
+  CHECK_EQ (b->import_data (sa), true);
+
+  // 收敛：两端都 == (para "aA") (para "bB")
+  tree expected (DOCUMENT, 2);
+  expected[0]   = tree (PARA, 1);
+  expected[0][0]= tree ("aA");
+  expected[1]   = tree (PARA, 1);
+  expected[1][0]= tree ("bB");
+  CHECK_EQ (a->to_tree () == expected, true);
+  CHECK_EQ (b->to_tree () == expected, true);
+}
+
+// 事件级增量同步：A 订阅 local-update，编辑产生 delta（仅新增 op）→ B 导入
+// delta 收敛。
+extern "C" void
+loro_test_capture_update (void* ud, const uint8_t* bytes, size_t len) {
+  auto* s= static_cast<string*> (ud);
+  *s     = string ((const char*) bytes, (int) len);
+}
+
+// 逐条捕获每次 commit 的 delta（模拟真实编辑器：每个 local-update 立即发
+// WS，B 逐条 import）。
+extern "C" void
+loro_test_collect_update (void* ud, const uint8_t* bytes, size_t len) {
+  auto* v= static_cast<list<string>*> (ud);
+  *v     = *v * list<string> (string ((const char*) bytes, (int) len));
+}
+
+TEST_CASE ("loro event: incremental sync via local-update events") {
+  ensure_labels ();
+  tree init (DOCUMENT, 1);
+  init[0]       = tree (PARA, 1);
+  init[0][0]    = tree (CONCAT, 1);
+  init[0][0][0] = tree ("x");
+  tree        tA= init; // 持久 buffer（共享 init 的 rep）
+  loro_shadow a;
+  a->seed (tA);
+  string      s0= a->export_snapshot ();
+  loro_shadow b;
+  CHECK_EQ (b->import_data (s0), true); // B 起点 == init，共享 TreeID
+
+  // A 订阅 local-update（捕获 seed 之后的增量 delta）
+  string captured;
+  a->on_local_update (loro_test_capture_update, &captured);
+
+  // A 编辑："x" -> "xy"
+  a->mirror_mod (tA, mod_insert (path (0) * 0 * 0, 1, tree ("y")));
+  tA[0][0][0]->label= string ("xy");
+
+  CHECK_EQ (N (captured) > 0, true); // 事件触发，捕获到 delta（非整 snapshot）
+
+  // B 导入 delta（仅新增 op）→ 收敛到 A 的编辑后状态
+  CHECK_EQ (b->import_data (captured), true);
+  CHECK_EQ (b->to_tree () == tA, true);
+}
+
+// 远端 delta → modification：B 收到 A 的编辑后，生成把 buffer 变到新状态所需的
+// mod， 手工应用到 buf（模拟 edit_modify），验证 buf 与 A 的编辑结果一致。
+TEST_CASE ("loro reverse: remote edit -> modification (apply to buffer)") {
+  ensure_labels ();
+  tree init (DOCUMENT, 1);
+  init[0]      = tree (PARA, 1);
+  init[0][0]   = tree (CONCAT, 1);
+  init[0][0][0]= tree ("x");
+
+  // A: seed、编辑 "x"->"xy"、导出
+  loro_shadow a;
+  tree        tA= init;
+  a->seed (tA);
+  string s0= a->export_snapshot ();
+  a->mirror_mod (tA, mod_insert (path (0) * 0 * 0, 1, tree ("y")));
+  tA[0][0][0]->label= string ("xy");
+  string sa         = a->export_snapshot ();
+
+  // B: 从 s0 建共享身份的 buffer
+  loro_shadow b;
+  tree        buf;
+  CHECK_EQ (b->import_and_build (s0, buf), true);
+  // 生成把 buf(init) 变到 A 编辑后状态的 mods
+  list<modification> mods= b->remote_diff_mods (sa, buf);
+  CHECK_EQ (N (mods) >= 1, true);
+
+  // 手工把 mods 应用到 buf（模拟编辑器 edit_modify，不依赖 libmogan）
+  for (list<modification> l= mods; !is_nil (l); l= l->next) {
+    modification m= l->item;
+    if (m->k == MOD_INSERT) {
+      tree&  atom= subtree (buf, root (m));
+      string s   = m->t->label;
+      int    pos = index (m);
+      atom->label=
+          atom->label (0, pos) * s * atom->label (pos, N (atom->label));
+    }
+    else if (m->k == MOD_REMOVE) {
+      tree& atom= subtree (buf, root (m));
+      int   pos = index (m);
+      int   nr  = argument (m);
+      atom->label=
+          atom->label (0, pos) * atom->label (pos + nr, N (atom->label));
+    }
+    else if (m->k == MOD_ASSIGN) {
+      buf= m->t;
+    }
+  }
+
+  tree expected (DOCUMENT, 1);
+  expected[0]      = tree (PARA, 1);
+  expected[0][0]   = tree (CONCAT, 1);
+  expected[0][0][0]= tree ("xy");
+  CHECK_EQ (buf == expected, true);
+}
+
+// 粘贴多行回归：A 粘贴含多个 para 的片段并逐行填充，B 经 delta 同步后必须
+// 收到全部行（此前 B 只收到第一行）。忠实模拟 edit_announce(clean_apply) →
+// edit_done(mirror) 时序——mirror_mod 读的是 post-apply buffer。
+TEST_CASE (
+    "loro paste: multi-child block insert at document root propagates fully") {
+  ensure_labels ();
+  // 初始文档 (document (para "line1") ... (para "line4"))。
+  tree tA (DOCUMENT, 4);
+  for (int i= 0; i < 4; i++) {
+    tA[i]   = tree (PARA, 1);
+    string s= string ("line") * as_string (i + 1);
+    tA[i][0]= tree (s);
+  }
+  loro_shadow a;
+  a->seed (tA);
+  string s0= a->export_snapshot ();
+
+  // B 用 import_and_build 建共享身份的 buffer（与真实新加入者一致）
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  CHECK_EQ (tB == tA, true);
+
+  // A 逐条捕获 delta（真实编辑器：每个 local-update 立即发 WS）
+  list<string> deltas;
+  a->on_local_update (loro_test_collect_update, &deltas);
+
+  // 忠实模拟 edit_announce(应用) → edit_done(mirror) 时序：先 clean_apply
+  // 推进 buffer 到 post-apply，再 mirror（mirror_mod 读 post-apply buffer）。
+  auto apply_mirror= [] (loro_shadow& sh, tree& buf, modification m) {
+    buf= clean_apply (buf, m);
+    sh->mirror_mod (buf, m);
+  };
+
+  // A：末尾粘贴 4 个 para（单个根插入 mod，片段含 4 个 para）
+  tree clip (DOCUMENT, 4);
+  for (int i= 0; i < 4; i++)
+    clip[i]= tree (PARA, 1);
+  apply_mirror (a, tA, mod_insert (path (), 4, clip));
+
+  // A：逐行把新 para（索引 4..7）填成 line1..line4（每行一个原子插入 mod）
+  for (int i= 0; i < 4; i++) {
+    string s= string ("line") * as_string (i + 1);
+    apply_mirror (a, tA, mod_insert (path (4 + i) * 0, 0, tree (s)));
+  }
+
+  // A 端自洽：shadow == buffer（8 行）
+  CHECK_EQ (N (tA) == 8, true);
+  CHECK_EQ (a->to_tree () == tA, true);
+
+  // B：逐条导入 delta（与真实时序一致）→ shadow 必须收敛到 8 行
+  CHECK_EQ (N (deltas) > 0, true);
+  for (list<string> l= deltas; !is_nil (l); l= l->next)
+    CHECK_EQ (b->import_data (l->item), true);
+  CHECK_EQ (b->to_tree () == tA, true); // B 端必须收到全部 4 个新行
+}
+
+// 单根插入 mod 携带多子节点片段（mod->t 是复合、N>1）时，mirror_mod 必须把
+// 每个子节点都 seed 进 shadow——否则只有第一个子节点进 shadow，远端丢后续节点。
+// 这是粘贴多行/多块的核心缺陷（不依赖具体编辑器的粘贴 mod
+// 序列，直接命中分支）。
+TEST_CASE ("loro mirror: multi-child insert mod seeds all children") {
+  ensure_labels ();
+  // 初始 (document (para "a") (para "b"))，B 经 import_and_build 共享身份
+  tree tA (DOCUMENT, 2);
+  tA[0]   = tree (PARA, 1);
+  tA[0][0]= tree ("a");
+  tA[1]   = tree (PARA, 1);
+  tA[1][0]= tree ("b");
+  loro_shadow a;
+  a->seed (tA);
+  string      s0= a->export_snapshot ();
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+
+  list<string> deltas;
+  a->on_local_update (loro_test_collect_update, &deltas);
+
+  // 在根插入一个含 3 个 para 的片段（mod->t 是多子节点复合）
+  tree frag (DOCUMENT, 3);
+  for (int i= 0; i < 3; i++) {
+    frag[i]   = tree (PARA, 1);
+    frag[i][0]= tree (string ("x") * as_string (i));
+  }
+  modification m= mod_insert (path (), 2, frag);
+  tA            = clean_apply (tA, m); // post-apply: 5 个 para
+  a->mirror_mod (tA, m);
+
+  CHECK_EQ (N (tA) == 5, true);
+  CHECK_EQ (a->to_tree () == tA, true); // A 端 shadow 应有全部 5 个 para
+
+  for (list<string> l= deltas; !is_nil (l); l= l->next)
+    CHECK_EQ (b->import_data (l->item), true);
+  CHECK_EQ (b->to_tree () == tA, true); // B 端必须收到全部 3 个新 para
+}
+
+TEST_CASE (
+    "loro_shadow: sync_id_map_from_shadow binds buffer to imported shadow") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("sync_test");
+
+  loro_shadow a;
+  a->seed (t);
+  string snap= a->export_snapshot ();
+
+  loro_shadow b;
+  CHECK_EQ (b->import_data (snap), true);
+
+  // 创建一个结构和内容相同的树，但具有新的 rep（没有绑定 id）
+  tree tb (DOCUMENT, 1);
+  tb[0]   = tree (PARA, 1);
+  tb[0][0]= tree ("sync_test");
+
+  CHECK_EQ (b->has_id (tb), false);
+  CHECK_EQ (b->sync_id_map_from_shadow (tb), true);
+  CHECK_EQ (b->has_id (tb), true);
+  CHECK_EQ (b->has_id (tb[0]), true);
+  CHECK_EQ (b->has_id (tb[0][0]), true);
+}
+
+TEST_CASE (
+    "loro_shadow: diff_from_current generates mods to update older buffer") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("updated");
+
+  loro_shadow sh;
+  sh->seed (t);
+
+  // 提供一个旧状态的 buffer
+  tree buf (DOCUMENT, 1);
+  buf[0]   = tree (PARA, 1);
+  buf[0][0]= tree ("old");
+
+  list<modification> mods= sh->diff_from_current (buf);
+  CHECK_EQ (N (mods) > 0, true);
+
+  for (list<modification> l= mods; !is_nil (l); l= l->next) {
+    buf= clean_apply (buf, l->item);
+  }
+  CHECK_EQ (buf == t, true);
+}
+
+TEST_CASE ("loro_shadow: broadcast_update sends full state and "
+           "advance_export_vv prevents echo") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("init");
+
+  loro_shadow a;
+  a->seed (t);
+
+  list<string> updates;
+  a->on_local_update (loro_test_collect_update, &updates);
+
+  // 主动广播初始状态
+  a->broadcast_update ();
+  CHECK_EQ (N (updates) > 0, true);
+
+  // 验证广播的数据能够重建文档
+  loro_shadow b;
+  for (list<string> l= updates; !is_nil (l); l= l->next) {
+    b->import_data (l->item);
+  }
+  CHECK_EQ (b->to_tree () == t, true);
+
+  // 验证 advance_export_vv
+  updates= list<string> (); // 清空
+  tree t_new (DOCUMENT, 1);
+  t_new[0]   = tree (PARA, 1);
+  t_new[0][0]= tree ("remote");
+  loro_shadow c;
+  c->seed (t_new);
+  string remote_update= c->export_snapshot ();
+
+  a->import_data (remote_update);
+  // 调用 advance_export_vv 标记已导入的内容为“已知”
+  a->advance_export_vv ();
+
+  a->broadcast_update ();
+  // 应当不产生新的实质性更新，返回的内容为空或者只有极少的 metadata 字节
+  // 为了稳定测试，不严格要求完全为空，但我们可以确定如果是纯净环境，不会发送刚导入的数据作为本地修改。
+  // 在 loro-c 的表现中，可能返回空的 array (即 len == 0) 或不触发回调。
+  if (!is_nil (updates)) {
+    // 如果有输出，其长度应当很小（不包含整个文档的创建逻辑）
+    CHECK_EQ (N (updates->item) < 50, true);
+  }
+}
+
+TEST_CASE ("loro_shadow: mirror_mod with structural MOD_ASSIGN") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("old");
+
+  loro_shadow sh;
+  sh->seed (t);
+
+  tree new_para (PARA, 1);
+  new_para[0]= tree ("new");
+
+  // 使用 assign 替换整个段落
+  t[0]= new_para; // 先在树上应用改动
+  sh->mirror_mod (t, mod_assign (path (0), new_para));
+
+  CHECK_EQ (sh->to_tree () == t, true);
+}
+
+TEST_CASE ("loro_shadow: mirror_mod with structural MOD_REMOVE") {
+  ensure_labels ();
+  tree t (DOCUMENT, 3);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("1");
+  t[1]   = tree (PARA, 1);
+  t[1][0]= tree ("2");
+  t[2]   = tree (PARA, 1);
+  t[2][0]= tree ("3");
+
+  loro_shadow sh;
+  sh->seed (t);
+
+  // 移除中间和末尾的段落
+  tree mutated (DOCUMENT, 1);
+  mutated[0]= t[0];
+  t         = mutated; // 先在树上应用改动
+  sh->mirror_mod (t, mod_remove (path (), 1, 2));
+
+  CHECK_EQ (sh->to_tree () == t, true);
+}
+
+#endif // LORO_ENABLED

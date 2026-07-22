@@ -15,6 +15,7 @@ local moe_files = {
 }
 local moe_includedirs = {
     path.join(moe_root, "Data/Convert"),
+    path.join(moe_root, "Data/Convert/loro"),
     path.join(moe_root, "Data/History"),
     path.join(moe_root, "Data/Tree"),
     path.join(moe_root, "Kernel/Types"),
@@ -49,15 +50,15 @@ target("libmoebius") do
     if has_config("loro") then
         add_deps("loro")
         add_defines("LORO_ENABLED")
-        add_headerfiles("Data/Convert/loro.hpp")
-        add_headerfiles("Data/Convert/loro_ir.hpp")
-        add_headerfiles("Data/Convert/loro_ir_codec.hpp")
-        add_headerfiles("Data/Convert/loro_shadow.hpp")
+        add_headerfiles("Data/Convert/loro/loro.hpp")
+        add_headerfiles("Data/Convert/loro/loro_ir.hpp")
+        add_headerfiles("Data/Convert/loro/loro_ir_codec.hpp")
+        add_headerfiles("Data/Convert/loro/loro_shadow.hpp")
     else
-        remove_files("Data/Convert/loro.cpp")
-        remove_files("Data/Convert/loro_ir.cpp")
-        remove_files("Data/Convert/loro_ir_codec.cpp")
-        remove_files("Data/Convert/loro_shadow.cpp")
+        remove_files("Data/Convert/loro/loro.cpp")
+        remove_files("Data/Convert/loro/loro_ir.cpp")
+        remove_files("Data/Convert/loro/loro_ir_codec.cpp")
+        remove_files("Data/Convert/loro/loro_shadow*.cpp")
     end
 
     add_headerfiles("Data/Convert/tmu.hpp")
