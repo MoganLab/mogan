@@ -31,6 +31,10 @@ local moe_includedirs = {
 add_requires("liii-doctest", {system=false})
 add_requires("nanobench", {system=false})
 
+if has_config("loro") then
+    includes("../xmake/targets/loro.lua")
+end
+
 target("libmoebius") do
     set_kind ("static")
     set_languages("c++17")
@@ -42,8 +46,21 @@ target("libmoebius") do
 
     add_deps("liblolly")
     add_deps("goldfish")
+    if has_config("loro") then
+        add_deps("loro")
+        add_defines("LORO_ENABLED")
+        add_headerfiles("Data/Convert/loro.hpp")
+        add_headerfiles("Data/Convert/loro_ir.hpp")
+        add_headerfiles("Data/Convert/loro_ir_codec.hpp")
+        add_headerfiles("Data/Convert/loro_shadow.hpp")
+    else
+        remove_files("Data/Convert/loro.cpp")
+        remove_files("Data/Convert/loro_ir.cpp")
+        remove_files("Data/Convert/loro_ir_codec.cpp")
+        remove_files("Data/Convert/loro_shadow.cpp")
+    end
 
-    add_headerfiles("Data/Convert/(*.hpp)")
+    add_headerfiles("Data/Convert/tmu.hpp")
     add_headerfiles("Data/History/(*.hpp)")
     add_headerfiles("Data/Tree/(*.hpp)")
     add_headerfiles("Kernel/Types/(*.hpp)")
@@ -65,6 +82,9 @@ target("moebius_tests") do
     set_default (false)
 
     add_deps("libmoebius")
+    if has_config("loro") then
+        add_defines("LORO_ENABLED")
+    end
 
     add_includedirs(moe_includedirs)
     add_includedirs("tests")
