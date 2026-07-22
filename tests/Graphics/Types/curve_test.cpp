@@ -86,6 +86,11 @@ private slots:
   void test_orthogonal_basis_after_fallback ();
   // 不同方向共线时，轴向都应正确对齐到焦点连线
   void test_orthogonal_basis_multiple_directions ();
+
+  // 直线判定：吸附的平行过滤只对真正的直线生效（0854）
+  void test_is_straight_line_lines ();
+  void test_is_straight_line_circles ();
+  void test_is_straight_line_conics ();
 };
 
 /*
@@ -483,6 +488,90 @@ TestCurveConic::test_orthogonal_basis_multiple_directions () {
     QVERIFY (is_unit_vector (h.j));
     QVERIFY (is_orthogonal (h.i, h.j));
   }
+}
+
+// 两点线段与多点共线折线都是直线。
+void
+TestCurveConic::test_is_straight_line_lines () {
+  array<path> cip;
+
+  array<point> line (2);
+  line[0]= mkp (0, 0);
+  line[1]= mkp (2, 0);
+  QVERIFY (is_straight_line (poly_segment (line, cip)));
+
+  array<point> zig (3);
+  zig[0]= mkp (0, 0);
+  zig[1]= mkp (1, 0);
+  zig[2]= mkp (3, 0);
+  QVERIFY (is_straight_line (poly_segment (zig, cip)));
+
+  // 有拐点的折线不是直线
+  zig[1]= mkp (1, 1);
+  QVERIFY (!is_straight_line (poly_segment (zig, cip)));
+}
+
+/*
+ * 绘图工具的 circle 宏生成 carc(p, q1, q2)：p 为圆上起始点，q1 为其对径点，
+ * q2 为 p 绕圆心旋转 90 度的点。按同一方向拖出的两个圆在 t=0.5 处的切向
+ * 必然平行（都垂直于半径起始方向），0841 的平行过滤据此把圆-圆求交整体
+ * 跳过，导致交点无法吸附。
+ */
+static curve
+tool_circle (point c, point p) {
+  array<point> a (3);
+  a[0]   = p;
+  a[1]   = 2 * c - p;
+  point d= p - c;
+  a[2]   = c + mkp (-d[1], d[0]);
+  return arc (a, array<path> (), true);
+}
+
+void
+TestCurveConic::test_is_straight_line_circles () {
+  curve c1= tool_circle (mkp (0, 0), mkp (1, 0));
+  curve c2= tool_circle (mkp (1.5, 0), mkp (2.5, 0));
+  QVERIFY (!is_straight_line (c1));
+  QVERIFY (!is_straight_line (c2));
+
+  // 复现根因：同方向绘制的两个圆在 t=0.5 处切向平行
+  bool  err;
+  point v1= c1->grad (0.5, err);
+  point v2= c2->grad (0.5, err);
+  QVERIFY (!err);
+  double det= v1[0] * v2[1] - v1[1] * v2[0];
+  QVERIFY (fabs (det) < 1e-4 * norm (v1) * norm (v2));
+
+  // 矩形（闭合 cline）各边方向不同，也不是直线
+  array<point> rect (5);
+  rect[0]= mkp (0, 0);
+  rect[1]= mkp (2, 0);
+  rect[2]= mkp (2, 1);
+  rect[3]= mkp (0, 1);
+  rect[4]= mkp (0, 0);
+  QVERIFY (!is_straight_line (poly_segment (rect, array<path> ())));
+}
+
+// 圆弧、椭圆、抛物线等圆锥曲线都不是直线。
+void
+TestCurveConic::test_is_straight_line_conics () {
+  array<point> arc_pts (3);
+  arc_pts[0]= mkp (1, 0);
+  arc_pts[1]= mkp (0, 1);
+  arc_pts[2]= mkp (-1, 0);
+  QVERIFY (!is_straight_line (arc (arc_pts, array<path> (), false)));
+
+  array<point> ell (3);
+  ell[0]= mkp (-1, 0);
+  ell[1]= mkp (1, 0);
+  ell[2]= mkp (0, 2);
+  QVERIFY (!is_straight_line (ellipse (ell, array<path> (), true)));
+
+  array<point> par (3);
+  par[0]= mkp (-1, -1);
+  par[1]= mkp (1, -1);
+  par[2]= mkp (0, 0);
+  QVERIFY (!is_straight_line (parabola (par, array<path> (), false)));
 }
 
 QTEST_MAIN (TestCurveConic)

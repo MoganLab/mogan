@@ -141,15 +141,15 @@ snap_to_guide (point p, gr_selections sels, double eps) {
            !ends (sels[j]->type, "-point")) &&
           !ends (sels[i]->type, "handle") && !ends (sels[j]->type, "handle")) {
         // 过滤共线或平行的直线，防止由于重合导致 Newton
-        // 求解器产生跟随鼠标的“伪零距离交点”
-        bool  err1, err2;
-        point v1= sels[i]->c->grad (0.5, err1);
-        point v2= sels[j]->c->grad (0.5, err2);
-        if (!err1 && !err2 && N (v1) == 2 && N (v2) == 2) {
-          double det = v1[0] * v2[1] - v1[1] * v2[0];
-          double len1= norm (v1);
-          double len2= norm (v2);
-          if (fabs (det) < 1e-4 * len1 * len2) continue;
+        // 求解器产生跟随鼠标的“伪零距离交点”；仅对直线对生效，
+        // 圆在 t=0.5 处的切向只是单点方向，按同一方向绘制的两个圆
+        // 在此处切向必然平行，会被误过滤
+        if (is_straight_line (sels[i]->c) && is_straight_line (sels[j]->c)) {
+          bool   err;
+          point  v1 = sels[i]->c->grad (0.5, err);
+          point  v2 = sels[j]->c->grad (0.5, err);
+          double det= v1[0] * v2[1] - v1[1] * v2[0];
+          if (fabs (det) < 1e-4 * norm (v1) * norm (v2)) continue;
         }
 
         array<point> ins= intersection (sels[i]->c, sels[j]->c, p, eps);
