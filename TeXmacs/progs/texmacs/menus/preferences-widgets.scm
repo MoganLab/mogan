@@ -358,10 +358,7 @@
   ) ;with
 ) ;tm-define
 
-(tm-define (open-preferences)
-  (:interactive #t)
-  (cpp-preferences-dialog)
-) ;tm-define
+(tm-define (open-preferences) (:interactive #t) (cpp-preferences-dialog))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; QML facade：preferences-qml-meta / -submit / -set-field
@@ -572,7 +569,20 @@
       '("None" "Translit" "Jcuken" "Yawerty")
       #f
     ) ;list
-    ;; IR combos（editable：用户可键入预设外的自定义键名）。
+    ;; keyboard shortcut style 仅 macOS（field->descriptor 按平台谓词过滤）。
+    (list (pref-general-keyboard-shortcut-style)
+      "Keyboard shortcut style"
+      '("text" "symbol")
+      '("Text" "Symbol")
+      #f
+      'restart?
+      #t
+      'platform-filter
+      'macos-only
+    ) ;list
+    ;; IR combos（editable：用户可双击进入编辑态键入预设外的自定义键名，或清空）。
+    ;; 左右两列双栏（layout 'two-col）：Left/Right/Up/Down 左列（column 0），
+    ;; Center/Play/Pause/Menu 右列（column 1）。
     (list (pref-ir-left)
       "Left"
       '("pageup" "home" "up")
@@ -580,34 +590,81 @@
       #t
       'group
       "Remote controllers with keyboard simulation"
+      'layout
+      'two-col
+      'column
+      0
     ) ;list
     (list (pref-ir-right)
       "Right"
       '("pagedown" "end" "down")
       '("PageDown" "End" "Down")
       #t
+      'layout
+      'two-col
+      'column
+      0
     ) ;list
-    (list (pref-ir-up) "Up" '("home" "pageup" "up") '("Home" "PageUp" "Up") #t)
+    (list (pref-ir-up)
+      "Up"
+      '("home" "pageup" "up")
+      '("Home" "PageUp" "Up")
+      #t
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
     (list (pref-ir-down)
       "Down"
       '("end" "pagedown" "down")
       '("End" "PageDown" "Down")
       #t
+      'layout
+      'two-col
+      'column
+      0
     ) ;list
     (list (pref-ir-center)
       "Center"
       '("S-return" "return" "space")
       '("S-Return" "Return" "Space")
       #t
+      'layout
+      'two-col
+      'column
+      1
     ) ;list
-    (list (pref-ir-play) "Play" '("F5" "F6" "F7") '("F5" "F6" "F7") #t)
+    (list (pref-ir-play)
+      "Play"
+      '("F5" "F6" "F7")
+      '("F5" "F6" "F7")
+      #t
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
     (list (pref-ir-pause)
       "Pause"
       '("escape" "space" "F5")
       '("Escape" "Space" "F5")
       #t
+      'layout
+      'two-col
+      'column
+      1
     ) ;list
-    (list (pref-ir-menu) "Menu" '("." "," "menu") '("." "," "Menu") #t)
+    (list (pref-ir-menu)
+      "Menu"
+      '("." "," "menu")
+      '("." "," "Menu")
+      #t
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
   ) ;list
 ) ;define
 
@@ -615,7 +672,9 @@
 
 (define preferences-qml-math-fields
   (list
-    ;; 左栏（column 0）
+    ;; 双栏布局（layout 'two-col）。列号对齐原 tm-widget：
+    ;;   左列（column 0）= Keyboard 组 + Contextual hints 组
+    ;;   右列（column 1）= Correction 组 + Semantics 组
     (list (pref-math-use-large-brackets)
       "Use extensible brackets"
       '()
@@ -623,6 +682,8 @@
       #f
       'group
       "Keyboard"
+      'layout
+      'two-col
       'column
       0
     ) ;list
@@ -633,26 +694,32 @@
       #f
       'group
       "Correction"
+      'layout
+      'two-col
       'column
-      0
+      1
     ) ;list
     (list (pref-math-manual-insert-missing-invisible)
       "Insert missing invisible"
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
-      0
+      1
     ) ;list
     (list (pref-math-manual-homoglyph-correct)
       "Homoglyph correct"
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
-      0
+      1
     ) ;list
-    ;; 右栏（column 1）—— Contextual hints
+    ;; 左栏 —— Contextual hints
     (list (pref-math-show-full-context)
       "Show full context"
       '()
@@ -660,11 +727,22 @@
       #f
       'group
       "Contextual hints"
+      'layout
+      'two-col
       'column
-      1
+      0
     ) ;list
-    (list (pref-math-show-table-cells) "Show table cells" '() '() #f 'column 1)
-    (list (pref-math-show-focus) "Show focus" '() '() #f 'column 1)
+    (list (pref-math-show-table-cells)
+      "Show table cells"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
+    (list (pref-math-show-focus) "Show focus" '() '() #f 'layout 'two-col 'column 0)
     (list (pref-math-show-only-semantic-focus)
       "Show only semantic focus"
       '()
@@ -676,10 +754,12 @@
       (pref-math-semantic-editing)
       'visible-when-val
       "on"
+      'layout
+      'two-col
       'column
-      1
+      0
     ) ;list
-    ;; 右栏 —— Semantics
+    ;; 左栏 —— Semantics
     (list (pref-math-semantic-editing)
       "Semantic editing"
       '()
@@ -689,8 +769,10 @@
       "Semantics"
       'hint
       (hint-toggling-refreshes)
+      'layout
+      'two-col
       'column
-      1
+      0
     ) ;list
     (list (pref-math-semantic-selections)
       "Semantic selections"
@@ -703,8 +785,10 @@
       (pref-math-semantic-editing)
       'visible-when-val
       "on"
+      'layout
+      'two-col
       'column
-      1
+      0
     ) ;list
   ) ;list
 ) ;define
@@ -1032,7 +1116,7 @@
 
 (define preferences-qml-other-experimental-fields
   (list
-    ;; 左栏（column 0）
+    ;; 双栏布局（layout 'two-col）：左栏 column 0、右栏 column 1。
     (list (pref-experimental-fast-environments)
       "Fast environments"
       '()
@@ -1040,19 +1124,41 @@
       #f
       'group
       "Experimental features (to be used with care)"
+      'layout
+      'two-col
       'column
       0
     ) ;list
-    (list (pref-experimental-alpha) "Alpha transparency" '() '() #f 'column 0)
+    (list (pref-experimental-alpha)
+      "Alpha transparency"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
     (list (pref-experimental-new-style-page-breaking)
       "New style page breaking"
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
       0
     ) ;list
-    (list (pref-experimental-encryption) "Encryption" '() '() #f 'column 0)
+    (list (pref-experimental-encryption)
+      "Encryption"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
     (list (pref-experimental-use-native-menubar)
       "Use native menubar"
       '()
@@ -1060,6 +1166,8 @@
       #f
       'hint
       (hint-macos-only)
+      'layout
+      'two-col
       'column
       0
       'platform-filter
@@ -1071,6 +1179,8 @@
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
       1
     ) ;list
@@ -1079,6 +1189,8 @@
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
       1
     ) ;list
@@ -1087,6 +1199,8 @@
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
       1
     ) ;list
@@ -1095,6 +1209,8 @@
       '()
       '()
       #f
+      'layout
+      'two-col
       'column
       1
     ) ;list
@@ -1105,12 +1221,23 @@
       #f
       'hint
       (hint-qt-only)
+      'layout
+      'two-col
       'column
       1
       'platform-filter
       'qt-only
     ) ;list
-    (list (pref-texlive-fonts) "Use fonts in texlive" '() '() #f 'column 1)
+    (list (pref-texlive-fonts)
+      "Use fonts in texlive"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
     (list (pref-experimental-use-unified-toolbar)
       "Use unified toolbars"
       '()
@@ -1118,6 +1245,8 @@
       #f
       'hint
       (hint-macos-only)
+      'layout
+      'two-col
       'column
       1
       'platform-filter
@@ -1165,6 +1294,7 @@
                    ((== kw 'group) (list (cons 'group val)))
                    ((== kw 'hint) (list (cons 'hint (translate val))))
                    ((== kw 'column) (list (cons 'column val)))
+                   ((== kw 'layout) (list (cons 'layout val)))
                    (else '())
              ) ;cond
            ) ;let

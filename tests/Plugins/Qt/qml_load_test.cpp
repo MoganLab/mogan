@@ -80,6 +80,90 @@ public:
   Q_INVOKABLE void         setPara (const QString&, const QString&) {}
 };
 
+// Preferences bridge 占位：加载阶段 QML 顶层调 prefBridge.meta()
+// 一次性拉字段树。 meta 返回一棵覆盖 group / layout(two-col) / column /
+// combo+toggle+info 的最小树， 确保 activeSections / fieldDelegate
+// 的所有分支都能实例化（不验证交互语义）。
+class PrefStubBridge : public QObject {
+  Q_OBJECT
+public:
+  explicit PrefStubBridge (QObject* p= nullptr) : QObject (p) {}
+  static QVariantMap field (const QString& kind, const QString& key,
+                            const QString& label) {
+    QVariantMap f;
+    f["kind"]     = kind;
+    f["key"]      = key;
+    f["label"]    = label;
+    f["value"]    = QString ("default");
+    f["options"]  = QStringList ();
+    f["optionsTr"]= QStringList ();
+    f["editable"] = false;
+    return f;
+  }
+  Q_INVOKABLE QVariantMap meta () {
+    QVariantList tabs;
+    // general：单列 combo + info（测 group 标题 / info row / single 区段）。
+    QVariantList gf;
+    QVariantMap  g0= field ("combo", "g1", "Look and feel");
+    g0["group"]    = QString ("General");
+    QVariantMap gi = field ("info", "ginfo", "Last check");
+    gi["value"]    = QString ("Never");
+    gf << g0 << field ("combo", "g2", "Language") << gi;
+    QVariantMap gtab;
+    gtab["key"]   = QString ("general");
+    gtab["label"] = QString ("General");
+    gtab["fields"]= gf;
+    tabs << gtab;
+    // keyboard：单列 combo 段 + two-col IR 段（测 layout 区段切分 / 双栏）。
+    QVariantList kf;
+    QVariantMap  k0= field ("combo", "k1", "Space bar");
+    k0["group"]    = QString ("Keyboard behavior");
+    kf << k0;
+    QVariantList irL, irR;
+    QVariantMap  irL0= field ("combo", "ir-left", "Left");
+    irL0["group"]    = QString ("Remote controllers");
+    irL0["layout"]   = QString ("two-col");
+    irL0["column"]   = 0;
+    irL0["editable"] = true;
+    QVariantMap irR0 = irL0;
+    irR0["key"]      = QString ("ir-center");
+    irR0["label"]    = QString ("Center");
+    irR0["group"]    = QString ();
+    irR0["column"]   = 1;
+    kf << irL0 << irR0;
+    QVariantMap ktab;
+    ktab["key"]   = QString ("keyboard");
+    ktab["label"] = QString ("Keyboard");
+    ktab["fields"]= kf;
+    tabs << ktab;
+    // convert：带子 tab（测 sub-tab 渲染分支）。
+    QVariantList cf;
+    QVariantMap  c0= field ("toggle", "html-css", "Use CSS");
+    c0["group"]    = QString ("TeXmacs to Html");
+    cf << c0;
+    QVariantMap sub;
+    sub["key"]   = QString ("html");
+    sub["label"] = QString ("Html");
+    sub["fields"]= cf;
+    QVariantList subs;
+    subs << sub;
+    QVariantMap ctab;
+    ctab["key"]    = QString ("convert");
+    ctab["label"]  = QString ("Convert");
+    ctab["fields"] = QVariantList ();
+    ctab["subTabs"]= subs;
+    tabs << ctab;
+    QVariantMap root;
+    root["tabs"]= tabs;
+    return root;
+  }
+  Q_INVOKABLE QString submit (const QVariantMap&) {
+    return QString ("applied");
+  }
+  Q_INVOKABLE void cancel () {}
+  Q_INVOKABLE void startMove () {}
+};
+
 class TestQmlLoad : public QObject {
   Q_OBJECT
 
@@ -92,6 +176,7 @@ private slots:
   void test_form_dialog_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
+  void test_preferences_loads ();
   void test_statistics_loads ();
 };
 
@@ -193,6 +278,26 @@ TestQmlLoad::test_paragraph_format_loads () {
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/ParagraphFormat.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_preferences_loads () {
+  // Preferences 顶层即调 prefBridge.meta() 拉字段树，注入 PrefStubBridge
+  // （覆盖 group / two-col layout / column / combo+toggle+info / sub-tab）。
+  QDialog         host;
+  QQuickWidget*   qw  = new QQuickWidget (&host);
+  PrefStubBridge* pref= new PrefStubBridge (qw);
+  StubBridge*     base= new StubBridge (qw);
+  QStringList     buttons;
+  buttons << "OK" << "Cancel";
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  qw->rootContext ()->setContextProperty ("prefBridge", pref);
+  qw->rootContext ()->setContextProperty ("closeBridge", base);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/Preferences.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 

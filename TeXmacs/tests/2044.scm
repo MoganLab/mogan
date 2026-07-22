@@ -145,7 +145,9 @@
                            ) ;check-true
                            ;; 各 tab 字段数（Convert 为 0、字段在子 tab 内）。
                            (check-true (== (length (caddr (tab-ref meta "general"))) 9))
-                           (check-true (== (length (caddr (tab-ref meta "keyboard"))) 13))
+                           ;; keyboard：5 combo + 8 IR = 13；macOS 多 keyboard shortcut style = 14。
+                           (check-true (== (length (caddr (tab-ref meta "keyboard"))) (if (os-macos?) 14 13))
+                           ) ;check-true
                            (check-true (== (length (caddr (tab-ref meta "mathematics"))) 10))
                            (check-true (== (length (caddr (tab-ref meta "convert"))) 0))
                            (check-true (== (length (caddr (tab-ref meta "other"))) 15))
@@ -194,6 +196,33 @@
                            ) ;check-true
                            ;; column flag（双栏布局列号）。
                            (check-true (== (field-ref brackets 'column) 0))
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 3.1 IR 控件双列布局：keyboard tab 的 ir-left / ir-center 等字段带
+               ;;     layout=two-col 与 column 0/1（QML activeSections 据此左右分列）。
+               ;;     keyboard shortcut style 仅 macOS 出现在 keyboard tab（非 macOS 过滤）。
+               (list (cons "descriptor: keyboard IR layout/column + shortcut style tab"
+                       (lambda ()
+                         (let* ((meta (preferences-qml-meta))
+                                (kb (caddr (tab-ref meta "keyboard")))
+                                (ir-left (list-find kb (lambda (x) (== (field-ref x 'key) "ir-left"))))
+                                (ir-center (list-find kb (lambda (x) (== (field-ref x 'key) "ir-center"))))
+                                (kss (list-find kb (lambda (x) (== (field-ref x 'key) "keyboard shortcut style")))
+                                ) ;kss
+                               ) ;
+                           ;; IR 字段双列布局：左列 column 0、右列 column 1。
+                           (check-true (eq? (field-ref ir-left 'layout) 'two-col))
+                           (check-true (== (field-ref ir-left 'column) 0))
+                           (check-true (eq? (field-ref ir-center 'layout) 'two-col))
+                           (check-true (== (field-ref ir-center 'column) 1))
+                           ;; keyboard shortcut style 归到 keyboard tab，仅 macOS 显示。
+                           (check-true (== (not (not kss)) (os-macos?)))
+                           (when (os-macos?)
+                             (check-true (== (field-ref kss 'restart?) #t))
+                           ) ;when
                          ) ;let*
                        ) ;lambda
                      ) ;cons
