@@ -20,7 +20,7 @@ function main()
             "object_l5.hpp",
             "scheme.hpp",
             "glue_l5_extra.hpp",
-            "../../../Plugins/Collab/loro_collab.hpp"
+            "Collab/loro_collab.hpp"
         },
         glues = {
             {
