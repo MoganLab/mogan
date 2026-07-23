@@ -2261,15 +2261,6 @@ function main()
                 cpp_name = "collab_enabled",
                 ret_type = "bool"
             },
-            {
-                -- 远端 update/snapshot 落到当前编辑器 buffer（协作同步用）
-                scm_name = "apply-remote",
-                cpp_name = "apply_remote",
-                ret_type = "void",
-                arg_list = {
-                    "string"
-                }
-            },
         }
     }
 end
