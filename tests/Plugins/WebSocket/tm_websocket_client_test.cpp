@@ -3,9 +3,9 @@
 #include <QTimer>
 
 #ifdef LORO_ENABLED
-#include "../../../src/Plugins/WebSocket/libcurl/tm_curl_websocket_client.hpp"
 #include "base.hpp"
 #include "mock_ws_server.hpp"
+#include "tm_curl_websocket_client.hpp"
 
 // Forward declaration
 void init_lolly ();
@@ -104,7 +104,7 @@ private slots:
 QTEST_MAIN (tm_websocket_client_test)
 #else
 class DummyTest : public QObject {
-    Q_OBJECT
+  Q_OBJECT
 };
 QTEST_MAIN (DummyTest)
 #endif // LORO_ENABLED
