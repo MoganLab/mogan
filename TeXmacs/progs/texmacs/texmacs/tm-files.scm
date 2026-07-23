@@ -363,6 +363,16 @@
           (when (defined? 'auto-backup-trig)
             (auto-backup-trig name kind)
           ) ;when
+          ;; 埋点只关心保存成功的结果，失败分支不上报
+          (when (and (defined? 'track-event) (defined? 'auto-backup-buffer-doc-id))
+            (let ((doc-id (auto-backup-buffer-doc-id name)))
+              (when (and (string? doc-id) (!= doc-id ""))
+                (track-event (if (string=? kind "save-as") "DOC_SAVE_AS" "DOC_SAVE")
+                  (list (cons "doc_id" doc-id))
+                ) ;track-event
+              ) ;when
+            ) ;let
+          ) ;when
           (save-buffer-post name opts)
         ) ;begin
       ) ;if
