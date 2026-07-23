@@ -1,3 +1,4 @@
+#ifdef LORO_ENABLED
 #ifndef MOCK_WS_SERVER_HPP
 #define MOCK_WS_SERVER_HPP
 
@@ -96,3 +97,4 @@ public:
 };
 
 #endif
+#endif // LORO_ENABLED

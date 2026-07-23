@@ -84,6 +84,7 @@ libstem_headers = {
     "$(projectdir)/src/Kernel/Types",
     "$(projectdir)/src/Mogan",
     "$(projectdir)/src/Plugins",
+    "$(projectdir)/src/Plugins/WebSocket",
     "$(projectdir)/src/Scheme",
     "$(projectdir)/src/Scheme/S7",
     "$(projectdir)/src/Scheme/L2",

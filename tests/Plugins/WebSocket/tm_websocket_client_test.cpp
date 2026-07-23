@@ -1,9 +1,11 @@
-#include "../../../src/Plugins/WebSocket/libcurl/tm_curl_websocket_client.hpp"
-#include "base.hpp"
-#include "mock_ws_server.hpp"
 #include <QSignalSpy>
 #include <QTest>
 #include <QTimer>
+
+#ifdef LORO_ENABLED
+#include "../../../src/Plugins/WebSocket/libcurl/tm_curl_websocket_client.hpp"
+#include "base.hpp"
+#include "mock_ws_server.hpp"
 
 // Forward declaration
 void init_lolly ();
@@ -99,6 +101,12 @@ private slots:
     QVERIFY (client.disconnected_flag);
   }
 };
-
 QTEST_MAIN (tm_websocket_client_test)
+#else
+class DummyTest : public QObject {
+    Q_OBJECT
+};
+QTEST_MAIN (DummyTest)
+#endif // LORO_ENABLED
+
 #include "tm_websocket_client_test.moc"
