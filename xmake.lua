@@ -75,7 +75,7 @@ end
 
 if is_plat("wasm") then
     set_configvar("OS_WASM", true)
-    add_requires("emscripten 3.1.56")
+    add_requires("emscripten 3.1.74")
     set_toolchains("emcc@emscripten")
 else
     set_configvar("OS_WASM", false)
@@ -100,6 +100,10 @@ if has_config("qt_frontend") then
     includes("xmake/targets/qwkwidgets.lua")
 else
     includes("xmake/targets/imgui.lua")
+end
+
+if has_config("loro") then
+    includes("xmake/targets/loro.lua")
 end
 
 if is_plat("windows") then

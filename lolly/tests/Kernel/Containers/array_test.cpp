@@ -27,6 +27,15 @@ TEST_CASE ("test access") {
   CHECK_EQ (one_elem[0], 1);
 }
 
+TEST_CASE ("test const access") {
+  const array<int> const_five= array<int> (1, 2, 3, 4, 5);
+  CHECK_EQ (const_five[0], 1);
+  CHECK_EQ (const_five[1], 2);
+  CHECK_EQ (const_five[2], 3);
+  CHECK_EQ (const_five[3], 4);
+  CHECK_EQ (const_five[4], 5);
+}
+
 TEST_CASE ("test multiply") {
   auto mulu4= array<int> ();
   for (auto i= 1; i < 6; i++) {

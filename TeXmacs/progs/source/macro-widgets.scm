@@ -530,7 +530,7 @@
 
 (tm-define (macros-editor-select* win u macro filter)
   (macros-editor-select u macro filter)
-  (with-window win (update-menus))
+  (with-window win (update-menus 'all))
 ) ;tm-define
 
 (tm-define (macros-editor-has-help?)

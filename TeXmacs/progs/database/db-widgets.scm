@@ -259,7 +259,7 @@
     (revert-buffer-revert)
   ) ;when
   (when win
-    (with-window win (update-menus))
+    (with-window win (update-menus 'all))
   ) ;when
 ) ;define
 

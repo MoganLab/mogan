@@ -35,29 +35,31 @@ string MODE_LANGUAGE (string mode);
 
 class edit_interface_rep : virtual public editor_rep {
 protected:
-  int        env_change;    // which things have been changed ?
-  time_t     last_change;   // time of last processed change
-  time_t     last_update;   // time of last update of menu, icons and footer
-  time_t     last_event;    // time of last event
-  double     anim_next;     // time for next animation
-  bool       full_screen;   // full screen mode ?
-  bool       got_focus;     // do we have keyboard focus ?
-  string     sh_s;          // current string for shortcuts
-  double     sh_mark;       // 0 or mark for undoing shortcut
-  bool       pre_edit_skip; // temporarily disabled pre-edit mechanism
-  string     pre_edit_s;    // pre-edit string
-  double     pre_edit_mark; // 0 or mark for undoing pre-edit
-  widget     popup_win;     // the current popup window
-  tree       message_l;     // a left message to display
-  tree       message_r;     // a right message to display
-  tree       last_l;        // last displayed left message
-  tree       last_r;        // last displayed right message
-  double     zoomf;         // the current zoom factor
-  double     magf;          // the current magnification factor
-  SI         pixel;         // current size of a pixel on the screen
-  SI         zpixel;        // pixel multiplied by zoom factor
-  rectangles copy_always;   // for wiping out cursor
-  int        input_mode;    // INPUT_NORMAL, INPUT_SEARCH, INPUT_REPLACE
+  int        env_change;      // which things have been changed ?
+  time_t     last_change;     // time of last processed change
+  time_t     last_update;     // time of last update of menu, icons and footer
+  time_t     last_event;      // time of last event
+  double     anim_next;       // time for next animation
+  bool       full_screen;     // full screen mode ?
+  bool       got_focus;       // do we have keyboard focus ?
+  string     sh_s;            // current string for shortcuts
+  double     sh_mark;         // 0 or mark for undoing shortcut
+  bool       pre_edit_skip;   // temporarily disabled pre-edit mechanism
+  string     pre_edit_s;      // pre-edit string
+  double     pre_edit_mark;   // 0 or mark for undoing pre-edit
+  widget     popup_win;       // the current popup window
+  tree       message_l;       // a left message to display
+  tree       message_r;       // a right message to display
+  tree       last_l;          // last displayed left message
+  tree       last_r;          // last displayed right message
+  path       menu_focus_path; // focus path at last menu/icons refresh
+  bool       menu_need_save;  // need_save state at last tab-pages refresh
+  double     zoomf;           // the current zoom factor
+  double     magf;            // the current magnification factor
+  SI         pixel;           // current size of a pixel on the screen
+  SI         zpixel;          // pixel multiplied by zoom factor
+  rectangles copy_always;     // for wiping out cursor
+  int        input_mode;      // INPUT_NORMAL, INPUT_SEARCH, INPUT_REPLACE
 
 protected:
   SI         last_x, last_y;
@@ -198,6 +200,7 @@ public:
   int  idle_time (int event_type= ANY_EVENT);
   int  change_time ();
   void update_menus ();
+  void update_menus (int mask);
   int  find_alt_selection_index (range_set alt_sel, SI y, int b, int e);
   void apply_changes ();
   void animate ();

@@ -45,14 +45,16 @@ class string {
   string (char c, int n);
   string (const char* s);
   string (const char* s, int n);
-  inline char& operator[] (int i) { return rep->a[i]; }
-  bool         operator== (const char* s);
-  bool         operator!= (const char* s);
-  bool         operator== (string s);
-  bool         operator!= (string s);
-  string       operator() (int start, int end);
-  char*        begin () { return rep->a; }
-  char*        end () { return rep->a + rep->n; }
+  inline const char& operator[] (int i) const { return rep->a[i]; }
+  inline char&       operator[] (int i) { return rep->a[i]; }
+  bool               operator== (const char* s);
+  bool               operator!= (const char* s);
+  bool               operator== (string s);
+  bool               operator!= (string s);
+  string             operator() (int start, int end) const;
+  string             operator() (int start, int end);
+  char*              begin () { return rep->a; }
+  char*              end () { return rep->a + rep->n; }
 
   inline operator string_view<char> () {
     return string_view<char> (rep->a, rep->n);

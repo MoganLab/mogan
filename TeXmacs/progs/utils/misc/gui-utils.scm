@@ -59,7 +59,7 @@
           ) ;when
           (close-tooltip)
         ) ;delayed
-        (update-menus)
+        (update-menus 'all)
         "done"
       ) ;begin
     ) ;and
@@ -343,7 +343,7 @@
             ;; (display* "gui-on-choice: " cmd "\n")
             (secure-eval (string->object cmd))
           ) ;delayed
-          (update-menus)
+          (update-menus 'all)
         ) ;let*
       ) ;when
     ) ;and-with
@@ -414,7 +414,7 @@
                       (delayed (:idle 1)
                         ;; (display* "keyboard-press: " cmd* "\n")
                         (secure-eval (string->object cmd*))
-                        (delayed (:pause 25) (close-tooltip) (update-menus))
+                        (delayed (:pause 25) (close-tooltip) (update-menus 'all))
                       ) ;delayed
                     ) ;lambda
                ) ;fun

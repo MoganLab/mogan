@@ -2207,9 +2207,12 @@ function main()
                 ret_type = "void"
             },
             {
-                scm_name = "update-menus",
+                scm_name = "menu-update-mask",
                 cpp_name = "update_menus",
-                ret_type = "void"
+                ret_type = "void",
+                arg_list = {
+                    "int"
+                }
             },
             
             {

@@ -998,6 +998,10 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
   if (inside_graphics (type != "release-left") &&
       !(is_graphics_drag && !is_in_graphics_mode)) {
     if (mouse_graphics (type, x, y, mods, t, data)) {
+      // 绘图手势结束时，选中对象会变，轻量刷新 mode/focus 栏
+      if (type == "release-left" || type == "end-drag-left" ||
+          type == "release-right" || type == "end-drag-right")
+        update_menus (ICONS_MODE | ICONS_FOCUS);
       if (is_in_graphics_mode) return;
       else {
         if (type == "press-left") {

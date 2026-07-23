@@ -179,7 +179,7 @@
       (set! spell-suggestions l)
       (refresh-now "spell-suggestions")
       (when (side-tools?)
-        (with-buffer (spell-master-buffer) (update-menus))
+        (with-buffer (spell-master-buffer) (update-menus 'side-tools))
         (buffer-focus* (spell-buffer) #f)
       ) ;when
       (when toolbar-spell-active?
@@ -187,7 +187,7 @@
         (when (qt-gui?)
           (update-bottom-tools)
         ) ;when
-        (update-menus)
+        (update-menus 'side-tools)
         (delayed (:idle 1)
           (when toolbar-spell-active?
             (keyboard-focus-on "spell")

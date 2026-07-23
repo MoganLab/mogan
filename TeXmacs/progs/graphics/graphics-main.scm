@@ -1142,7 +1142,7 @@
       (graphics-enter-mode (graphics-mode) val)
     ) ;begin
   ) ;if
-  (delayed (:idle 1) (update-menus))
+  (delayed (:idle 1) (update-menus 'icons-mode 'icons-focus))
 ) ;tm-define
 
 

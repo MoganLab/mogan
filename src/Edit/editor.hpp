@@ -43,6 +43,17 @@
 #define THE_MENUS 256
 #define THE_FREEZE 512
 
+// Menu rebuild categories (bit mask for update_menus)
+#define MENU_MAIN 1
+#define ICONS_MAIN 2
+#define ICONS_MODE 4
+#define ICONS_FOCUS 8
+#define ICONS_EXTRA 16
+#define TAB_PAGES 32
+#define NOTIFICATION 64
+#define SIDE_TOOLS 128
+#define MENU_ALL 255
+
 class tm_buffer_rep;
 class tm_view_rep;
 class server_rep;
@@ -148,6 +159,7 @@ public:
   virtual void      resume ()                                              = 0;
   virtual void      keyboard_focus_on (string field)                       = 0;
   virtual void      update_menus ()                                        = 0;
+  virtual void      update_menus (int mask)                                = 0;
   virtual int       get_pixel_size ()                                      = 0;
   virtual SI        get_visible_width ()                                   = 0;
   virtual SI        get_visible_height ()                                  = 0;

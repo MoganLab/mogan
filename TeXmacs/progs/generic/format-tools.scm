@@ -37,7 +37,7 @@
   (with-window win
     (cond ((== mode :here) (make-with (list var val)))
           ((== mode :paragraph) (make-multi-line-with (list var val)))
-          ((== mode :global) (with-window win (init-env var val)) (update-menus))
+          ((== mode :global) (with-window win (init-env var val)) (update-menus 'all))
     ) ;cond
   ) ;with-window
 ) ;tm-define
@@ -49,7 +49,7 @@
 (tm-define (window-defined-init? win var) (with-window win (style-has? var)))
 
 (tm-define (window-reset-init win . vars)
-  (with-window win (apply init-default vars) (update-menus))
+  (with-window win (apply init-default vars) (update-menus 'all))
 ) ;tm-define
 
 (tm-define (window-id win) (url->string (url-tail win)))
@@ -261,7 +261,7 @@
            (begin
              (global-set win mode :advanced #t)
              (refresh-now "paragraph tool")
-             (update-menus)
+             (update-menus 'all)
            ) ;begin
          ) ;
         ) ;assuming
@@ -270,7 +270,7 @@
            (begin
              (global-set win mode :advanced #f)
              (refresh-now "paragraph tool")
-             (update-menus)
+             (update-menus 'all)
            ) ;begin
          ) ;
         ) ;assuming
@@ -978,7 +978,7 @@
      ("Restore" (apply window-reset-init (cons win header-parameters)))
      ("Apply"
        (apply-headers-settings win (window->buffer win))
-       (with-window win (update-menus))
+       (with-window win (update-menus 'all))
      ) ;
     ) ;hlist
   ) ;division

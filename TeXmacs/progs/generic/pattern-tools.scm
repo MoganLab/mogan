@@ -68,7 +68,7 @@
   (ahash-set! global-pattern-color key col)
   (refresh-now "pattern-sample")
   (refresh-now "pattern-options")
-  (update-menus)
+  (update-menus 'all)
 ) ;define
 
 (define (get-color key)

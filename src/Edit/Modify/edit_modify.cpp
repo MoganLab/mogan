@@ -11,6 +11,7 @@
 
 #include "edit_modify.hpp"
 #include "modification.hpp"
+#include "new_window.hpp"
 #include "observers.hpp"
 #include "tm_window.hpp"
 #include "tree_observer.hpp"
@@ -408,7 +409,11 @@ void
 edit_modify_rep::notify_save (bool real_save) {
   arch->confirm ();
   arch->notify_autosave ();
-  if (real_save) arch->notify_save ();
+  if (real_save) {
+    arch->notify_save ();
+    // 保存清脏后刷新 tab 栏与侧栏文档列表
+    if (has_current_window ()) update_menus (TAB_PAGES | SIDE_TOOLS);
+  }
 }
 
 bool

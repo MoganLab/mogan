@@ -2906,7 +2906,7 @@ qt_tm_widget_rep::setLoginDialogUpdateSectionVisible (bool visible) {
 void
 qt_tm_widget_rep::refreshScmNotificationBar () {
   if (!has_current_window ()) return;
-  call ("update-menus");
+  get_current_editor ()->update_menus (NOTIFICATION);
 }
 
 bool

@@ -62,3 +62,8 @@ option("debug_with_timestamp")
     set_default(true)
     set_description("Enable timestamps in debug messages")
 option_end()
+
+option("loro")
+    set_default(false)
+    set_description("Enable Loro CRDT FFI (builds 3rdparty/mogan-loro-ffi via cargo)")
+option_end()

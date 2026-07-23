@@ -438,7 +438,7 @@
   (notification-bar-snooze-renew-soon-notice)
   (open-pricing-url)
   (when (current-view)
-    (update-menus)
+    (update-menus 'notification)
   ) ;when
 ) ;tm-define
 
@@ -446,21 +446,21 @@
   (notification-bar-snooze-membership-notice)
   (open-pricing-url)
   (when (current-view)
-    (update-menus)
+    (update-menus 'notification)
   ) ;when
 ) ;tm-define
 
 (tm-define (notification-bar-snooze-membership-renew-soon)
   (notification-bar-snooze-renew-soon-notice)
   (when (current-view)
-    (update-menus)
+    (update-menus 'notification)
   ) ;when
 ) ;tm-define
 
 (tm-define (notification-bar-snooze-membership-expired)
   (notification-bar-snooze-membership-notice)
   (when (current-view)
-    (update-menus)
+    (update-menus 'notification)
   ) ;when
 ) ;tm-define
 
@@ -471,14 +471,14 @@
     (cond ((== item "membership-renew-soon")
            (notification-bar-dismiss-renew-soon-notice)
            (when (current-view)
-             (update-menus)
+             (update-menus 'notification)
            ) ;when
            #t
           ) ;
           ((== item "membership")
            (notification-bar-dismiss-membership-notice)
            (when (current-view)
-             (update-menus)
+             (update-menus 'notification)
            ) ;when
            #t
           ) ;
@@ -489,7 +489,7 @@
 
 (tm-define (notification-bar-rotate)
   (when (and (current-view) (> (notification-bar-count) 1))
-    (update-menus)
+    (update-menus 'notification)
   ) ;when
   (delayed (:idle notification-bar-rotation-interval) (notification-bar-rotate))
 ) ;tm-define

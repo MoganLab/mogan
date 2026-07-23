@@ -36,6 +36,13 @@ TEST_CASE ("test slice") {
   CHECK_EQ (string ("abcde") (-3, -2) == string (), true);
 }
 
+TEST_CASE ("test const string access") {
+  const string str= "abcde";
+  CHECK_EQ (str[0], 'a');
+  CHECK_EQ (str[4], 'e');
+  CHECK_EQ (str (0, 3) == string ("abc"), true);
+}
+
 TEST_CASE ("test concat") {
   CHECK_EQ (string ("abc") * "de" == string ("abcde"), true);
   CHECK_EQ (string ("abc") * string ("de") == string ("abcde"), true);
