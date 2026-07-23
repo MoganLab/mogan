@@ -593,10 +593,14 @@
   ;; 2. 光标停在标签右边界（路径在内容末尾后一位）-> 判外
   ;; 3. 光标停在标签左边界（路径在内容起点，首字符之前）-> 判内
   ;; 4. 空标签首尾同点 -> 判内
-  (with t (tree-innermost tag #t)
+  (with t
+    (tree-innermost tag #t)
     (and t
-         (not (== (cDr (cursor-path)) (tree->path t)))
-         (or (tree-at-start? t) (not (tree-at-end? t))))))
+      (not (== (cDr (cursor-path)) (tree->path t)))
+      (or (tree-at-start? t) (not (tree-at-end? t)))
+    ) ;and
+  ) ;with
+) ;tm-define
 
 (tm-define (inside-underline?) (inside-markup-tag? 'underline))
 
