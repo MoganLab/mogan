@@ -104,7 +104,7 @@ private slots:
 QTEST_MAIN (tm_websocket_client_test)
 #else
 class DummyTest : public QObject {
-    Q_OBJECT
+  Q_OBJECT
 };
 QTEST_MAIN (DummyTest)
 #endif // LORO_ENABLED
