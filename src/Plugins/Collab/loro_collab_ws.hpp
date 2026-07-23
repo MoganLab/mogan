@@ -60,10 +60,11 @@ public:
   void enter_reconnecting ();
 
   // Getters
-  bool   is_active () const { return state == collab_state::ready; }
-  string get_doc_id () const { return doc_id; }
-  url    get_buffer_url () const { return buffer_url; }
-  bool   is_buffer_known () const { return buffer_known; }
+  bool         is_active () const { return state == collab_state::ready; }
+  string       get_doc_id () const { return doc_id; }
+  url          get_buffer_url () const { return buffer_url; }
+  bool         is_buffer_known () const { return buffer_known; }
+  class editor get_editor () const;
 
   // WS Callbacks
   void on_connect ();

@@ -7,7 +7,7 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "loro_collab_internal.hpp"
+#include "loro_collab_ws.hpp"
 
 #ifdef OS_WASM
 #include "tm_emscripten_websocket_client.hpp"

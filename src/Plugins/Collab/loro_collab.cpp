@@ -8,7 +8,8 @@
  ******************************************************************************/
 
 #include "editor.hpp"
-#include "loro_collab_internal.hpp"
+#include "loro_collab_ws.hpp"
+#include "new_view.hpp"
 #include "server.hpp"
 #include "tm_buffer.hpp"
 #include "tm_timer.hpp"
@@ -92,6 +93,13 @@ collab_session::schedule_reconnect () {
                as_string (reconnect_attempt) * ")");
 }
 
+editor
+collab_session::get_editor () const {
+  array<url> views= buffer_to_views (buffer_url);
+  if (N (views) == 0) return nullptr;
+  return view_to_editor (views[0]);
+}
+
 void
 collab_session::become_ready () {
   bool was_reconnect= (reconnect_attempt > 0);
@@ -99,7 +107,7 @@ collab_session::become_ready () {
   buffer_known           = true;
   g_loro_broadcast_update= broadcast_to_server;
 
-  editor ed= get_current_editor ();
+  editor ed= get_editor ();
   if (is_nil (ed)) {
     std_error << "become_ready: 当前编辑器为空！\n";
   }
@@ -245,7 +253,7 @@ collab_session::on_message (string data, bool is_binary) {
     }
     return;
   }
-  editor ed= get_current_editor ();
+  editor ed= get_editor ();
   if (is_nil (ed)) return;
   if (state == collab_state::await_frame) {
     ed->apply_remote (data);
