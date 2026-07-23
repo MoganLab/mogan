@@ -51,11 +51,11 @@
 
 (tm-define (test_1151)
   (let ((steps (list (cons "new-document" (lambda () (new-document)))
-                     (cons "insert text" (lambda () (insert "hello")))
-                     (cons "idle (observe focus toolbar)" (lambda () (noop)))
-                     (cons "done; quitting" (lambda () (quit-TeXmacs)))
+                 (cons "insert text" (lambda () (insert "hello")))
+                 (cons "idle (observe focus toolbar)" (lambda () (noop)))
+                 (cons "done; quitting" (lambda () (quit-TeXmacs)))
                ) ;list
-         ) ;steps
+        ) ;steps
        ) ;
     (display "[1151-step] starting delayed chain\n")
     (run-chain steps)
