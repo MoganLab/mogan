@@ -7,39 +7,72 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "loro_collab_internal.hpp"
 #include "editor.hpp"
+#include "loro_collab_internal.hpp"
 #include "server.hpp"
 #include "tm_buffer.hpp"
 #include "tm_timer.hpp"
 #include "url.hpp"
 
-void (*g_loro_broadcast_update) (string bytes) = nullptr;
-collab_session g_session;
+void (*g_loro_broadcast_update) (string bytes)= nullptr;
+collab_session_manager g_session_manager;
 
 void
 broadcast_to_server (string bytes) {
-  if (g_session.state == collab_state::ready && g_session.ws &&
-      g_session.ws->connected ()) {
-    if (DEBUG_LORO) debug_loro << "上行 " << N (bytes) << " 字节 update\n";
-    g_session.ws->send (bytes, true);
-    return;
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  if (session) {
+    session->broadcast (bytes);
   }
-  if (g_session.want_reconnect) {
-    g_session.pending_updates << bytes;
-    if (DEBUG_LORO)
-      debug_loro << "缓冲本地 update（" << N (bytes)
-                 << " 字节），待重连后上行\n";
-  }
+}
+
+// -----------------------------------------------------------------------------
+// collab_session
+// -----------------------------------------------------------------------------
+
+collab_session::collab_session (url buf_url) : buffer_url (buf_url) {}
+
+collab_session::~collab_session () { disconnect (); }
+
+void
+collab_session::enter_idle () {
+  state= collab_state::idle;
 }
 
 void
-collab_set_message (string left) {
+collab_session::enter_connecting () {
+  state= collab_state::connecting;
+}
+
+void
+collab_session::enter_await_doc () {
+  state= collab_state::await_doc;
+}
+
+void
+collab_session::enter_await_frame () {
+  state            = collab_state::await_frame;
+  await_frame_since= texmacs_time ();
+}
+
+void
+collab_session::enter_ready () {
+  state            = collab_state::ready;
+  reconnect_attempt= 0;
+}
+
+void
+collab_session::enter_reconnecting () {
+  state= collab_state::reconnecting;
+}
+
+void
+collab_session::set_message (string left) {
   get_server ()->set_message (tree (left), tree ("Collaborative"));
 }
 
-static time_t
-reconnect_backoff (int attempt) {
+time_t
+collab_session::reconnect_backoff (int attempt) {
   if (attempt <= 0) return 0;
   time_t ms= 1000L << (attempt - 1);
   if (ms <= 0 || ms > 30000L) ms= 30000L;
@@ -47,136 +80,311 @@ reconnect_backoff (int attempt) {
 }
 
 void
-schedule_reconnect () {
-  time_t wait                = reconnect_backoff (g_session.reconnect_attempt);
-  g_session.state            = collab_state::reconnecting;
-  g_session.next_reconnect_at= texmacs_time () + wait;
-  g_session.reconnect_attempt++;
+collab_session::schedule_reconnect () {
+  time_t wait= reconnect_backoff (reconnect_attempt);
+  enter_reconnecting ();
+  next_reconnect_at= texmacs_time () + wait;
+  reconnect_attempt++;
   if (DEBUG_LORO)
-    debug_loro << "调度重连：第 " << g_session.reconnect_attempt << " 次，"
-               << wait << "ms 后\n";
-  collab_set_message ("Connection lost; reconnecting… (attempt " *
-                      as_string (g_session.reconnect_attempt) * ")");
+    debug_loro << "调度重连：第 " << reconnect_attempt << " 次，" << wait
+               << "ms 后\n";
+  set_message ("Connection lost; reconnecting… (attempt " *
+               as_string (reconnect_attempt) * ")");
 }
 
 void
-collab_become_ready () {
-  bool was_reconnect         = g_session.reconnect_attempt > 0;
-  g_session.state            = collab_state::ready;
-  g_session.reconnect_attempt= 0;
-  g_session.buffer_url       = get_current_buffer ();
-  g_session.buffer_known     = true;
-  g_loro_broadcast_update    = broadcast_to_server;
-  editor ed                  = get_current_editor ();
-  if (is_nil (ed)) std_error << "become_ready: 当前编辑器为空！\n";
-  else ed->collab_enable ();
-  if (N (g_session.pending_updates) > 0) {
-    if (DEBUG_LORO)
-      debug_loro << "重连后 flush " << N (g_session.pending_updates)
-                 << " 条缓冲 update\n";
-    for (int i= 0; i < N (g_session.pending_updates); i++)
-      g_session.ws->send (g_session.pending_updates[i], true);
-    g_session.pending_updates= array<string> ();
+collab_session::become_ready () {
+  bool was_reconnect= (reconnect_attempt > 0);
+  enter_ready ();
+  buffer_known           = true;
+  g_loro_broadcast_update= broadcast_to_server;
+
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) {
+    std_error << "become_ready: 当前编辑器为空！\n";
   }
-  set_title_buffer (g_session.buffer_url, g_session.doc_id);
-  collab_set_message (was_reconnect ? "Reconnected to " * g_session.doc_id
-                                    : "Session ready: " * g_session.doc_id);
-  if (DEBUG_LORO) debug_loro << "会话就绪 doc=" << g_session.doc_id << "\n";
+  else {
+    ed->collab_enable ();
+  }
+
+  if (N (pending_updates) > 0) {
+    if (DEBUG_LORO)
+      debug_loro << "重连后 flush " << N (pending_updates)
+                 << " 条缓冲 update\n";
+    for (int i= 0; i < N (pending_updates); i++)
+      ws->send (pending_updates[i], true);
+    pending_updates= array<string> ();
+  }
+
+  set_title_buffer (buffer_url, doc_id);
+  set_message (was_reconnect ? "Reconnected to " * doc_id
+                             : "Session ready: " * doc_id);
+  if (DEBUG_LORO) debug_loro << "会话就绪 doc=" << doc_id << "\n";
 }
 
-static void
-collab_maybe_reconnect () {
-  if (g_session.state != collab_state::reconnecting) return;
-  if (texmacs_time () < g_session.next_reconnect_at) return;
-  if (g_session.ws) {
-    g_session.ws->disconnect ();
-    delete g_session.ws;
-    g_session.ws = nullptr;
+void
+collab_session::maybe_reconnect () {
+  if (state != collab_state::reconnecting) return;
+  if (texmacs_time () < next_reconnect_at) return;
+  if (ws) {
+    ws->disconnect ();
+    ws.reset ();
   }
-  if (DEBUG_LORO) debug_loro << "尝试重连 " << g_session.server_url << "\n";
-  collab_set_message ("Reconnecting… (attempt " *
-                      as_string (g_session.reconnect_attempt) * ")");
-  g_session.ws    = create_collab_ws_client ();
-  g_session.state = collab_state::connecting;
-  g_session.ws->connect (g_session.server_url);
+  if (DEBUG_LORO) debug_loro << "尝试重连 " << server_url << "\n";
+  set_message ("Reconnecting… (attempt " * as_string (reconnect_attempt) * ")");
+
+  ws= std::unique_ptr<tm_websocket_client> (create_collab_ws_client (this));
+  enter_connecting ();
+  ws->connect (server_url);
 }
+
+void
+collab_session::create (string url_str) {
+  disconnect ();
+  mode             = collab_mode::create;
+  doc_id           = "";
+  server_url       = url_str;
+  reconnect_attempt= 0;
+  want_reconnect   = true;
+
+  ws= std::unique_ptr<tm_websocket_client> (create_collab_ws_client (this));
+  enter_connecting ();
+  ws->connect (server_url);
+}
+
+void
+collab_session::join (string url_str, string id) {
+  disconnect ();
+  mode             = collab_mode::join;
+  doc_id           = id;
+  server_url       = url_str;
+  reconnect_attempt= 0;
+  want_reconnect   = true;
+
+  ws= std::unique_ptr<tm_websocket_client> (create_collab_ws_client (this));
+  enter_connecting ();
+  ws->connect (server_url);
+}
+
+void
+collab_session::disconnect () {
+  want_reconnect= false;
+  enter_idle ();
+  doc_id           = "";
+  reconnect_attempt= 0;
+  buffer_known     = false;
+  pending_updates  = array<string> ();
+  if (ws) {
+    ws->disconnect ();
+    ws.reset ();
+  }
+}
+
+void
+collab_session::poll () {
+  if (ws) ws->poll ();
+  if (state != collab_state::idle && buffer_known &&
+      is_nil (concrete_buffer (buffer_url))) {
+    if (DEBUG_LORO) debug_loro << "协作 buffer 已关闭，断开会话\n";
+    disconnect ();
+    // We do not remove it from manager here, let the manager handle it or just
+    // keep it idle
+    return;
+  }
+  if (state == collab_state::await_frame && await_frame_since > 0 &&
+      texmacs_time () - await_frame_since >= 1000) {
+    std_error << "JOIN 超时未收到历史帧，按空文档就绪\n";
+    await_frame_since= 0;
+    become_ready ();
+  }
+  maybe_reconnect ();
+}
+
+void
+collab_session::broadcast (string bytes) {
+  if (state == collab_state::ready && ws && ws->connected ()) {
+    if (DEBUG_LORO) debug_loro << "上行 " << N (bytes) << " 字节 update\n";
+    ws->send (bytes, true);
+    return;
+  }
+  if (want_reconnect) {
+    pending_updates << bytes;
+    if (DEBUG_LORO)
+      debug_loro << "缓冲本地 update（" << N (bytes)
+                 << " 字节），待重连后上行\n";
+  }
+}
+
+void
+collab_session::on_connect () {
+  if (DEBUG_LORO) debug_loro << "已连接服务端 " << server_url << "\n";
+  enter_await_doc ();
+  if (N (doc_id) > 0) ws->send ("JOIN " * doc_id, false);
+  else ws->send ("CREATE", false);
+}
+
+void
+collab_session::on_message (string data, bool is_binary) {
+  if (!is_binary) {
+    if (starts (data, "DOC ")) {
+      doc_id= data (4, N (data));
+      if (DEBUG_LORO)
+        debug_loro << "服务端确认文档 " << doc_id
+                   << "（mode=" << (want_create () ? "create" : "join")
+                   << "）\n";
+      if (want_create ()) become_ready ();
+      else {
+        enter_await_frame ();
+      }
+    }
+    else if (starts (data, "ERR ")) {
+      std_error << "服务端错误: " << data << "\n";
+      want_reconnect= false;
+      enter_idle ();
+      set_message (data * " — stopped reconnecting");
+    }
+    return;
+  }
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) return;
+  if (state == collab_state::await_frame) {
+    ed->apply_remote (data);
+    become_ready ();
+  }
+  else if (state == collab_state::ready) {
+    ed->apply_remote (data);
+  }
+}
+
+void
+collab_session::on_error (string msg) {
+  std_error << "WS Error: " << msg << "\n";
+}
+
+void
+collab_session::on_disconnect () {
+  if (DEBUG_LORO)
+    debug_loro << "WS 断开（want_reconnect=" << want_reconnect
+               << ", state=" << (int) state << "）\n";
+  if (want_reconnect) schedule_reconnect ();
+  else enter_idle ();
+}
+
+// -----------------------------------------------------------------------------
+// collab_session_manager
+// -----------------------------------------------------------------------------
+
+collab_session_manager::~collab_session_manager () {
+  for (int i= 0; i < N (sessions); i++) {
+    delete sessions[i];
+  }
+}
+
+collab_session*
+collab_session_manager::find_by_buffer (url buf_url) {
+  for (int i= 0; i < N (sessions); i++) {
+    if (sessions[i]->get_buffer_url () == buf_url) {
+      return sessions[i];
+    }
+  }
+  return nullptr;
+}
+
+collab_session*
+collab_session_manager::get_or_create (url buf_url) {
+  collab_session* session= find_by_buffer (buf_url);
+  if (!session) {
+    session= new collab_session (buf_url);
+    sessions << session;
+  }
+  return session;
+}
+
+void
+collab_session_manager::remove_session (collab_session* session) {
+  array<collab_session*> new_sessions;
+  for (int i= 0; i < N (sessions); i++) {
+    if (sessions[i] != session) {
+      new_sessions << sessions[i];
+    }
+  }
+  sessions= new_sessions;
+  delete session;
+}
+
+void
+collab_session_manager::poll_all () {
+  // Use a copy to allow deletion during poll
+  array<collab_session*> copy= sessions;
+  for (int i= 0; i < N (copy); i++) {
+    copy[i]->poll ();
+    if (!copy[i]->is_active () && copy[i]->is_buffer_known () &&
+        is_nil (concrete_buffer (copy[i]->get_buffer_url ()))) {
+      remove_session (copy[i]);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Public C API (loro_collab.hpp)
+// -----------------------------------------------------------------------------
 
 string
 loro_collab_create (string server_url) {
-  if (g_session.ws) loro_collab_disconnect ();
-  if (is_nil (get_current_editor ())) {
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) {
     std_error << "无当前编辑器，无法创建协作文档\n";
     return "";
   }
-  g_session.mode              = collab_mode::create;
-  g_session.doc_id            = "";
-  g_session.server_url        = server_url;
-  g_session.state             = collab_state::connecting;
-  g_session.reconnect_attempt = 0;
-  g_session.want_reconnect    = true;
-  g_session.ws                = create_collab_ws_client ();
-  g_session.ws->connect (server_url);
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.get_or_create (buf);
+  session->create (server_url);
   return "";
 }
 
 void
 loro_collab_join (string server_url, string doc_id) {
-  if (g_session.ws) loro_collab_disconnect ();
-  if (is_nil (get_current_editor ())) {
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) {
     std_error << "无当前编辑器，无法加入协作文档\n";
     return;
   }
-  g_session.mode              = collab_mode::join;
-  g_session.doc_id            = doc_id;
-  g_session.server_url        = server_url;
-  g_session.state             = collab_state::connecting;
-  g_session.reconnect_attempt = 0;
-  g_session.want_reconnect    = true;
-  g_session.ws                = create_collab_ws_client ();
-  g_session.ws->connect (server_url);
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.get_or_create (buf);
+  session->join (server_url, doc_id);
 }
 
 void
 loro_collab_disconnect () {
-  g_session.want_reconnect    = false;
-  g_loro_broadcast_update     = nullptr;
-  g_session.state             = collab_state::idle;
-  g_session.doc_id            = "";
-  g_session.reconnect_attempt = 0;
-  g_session.buffer_known      = false;
-  g_session.pending_updates   = array<string> ();
-  if (g_session.ws) {
-    g_session.ws->disconnect ();
-    delete g_session.ws;
-    g_session.ws = nullptr;
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) return;
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  if (session) {
+    session->disconnect ();
+    g_session_manager.remove_session (session);
   }
 }
 
 bool
 loro_collab_is_active () {
-  return g_session.state == collab_state::ready;
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) return false;
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  return session ? session->is_active () : false;
 }
 
 string
 loro_collab_doc_id () {
-  return g_session.doc_id;
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) return "";
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  return session ? session->get_doc_id () : "";
 }
 
 void
 loro_collab_poll () {
-  if (g_session.ws) g_session.ws->poll ();
-  if (g_session.state != collab_state::idle && g_session.buffer_known &&
-      is_nil (concrete_buffer (g_session.buffer_url))) {
-    if (DEBUG_LORO) debug_loro << "协作 buffer 已关闭，断开会话\n";
-    loro_collab_disconnect ();
-    return;
-  }
-  if (g_session.state == collab_state::await_frame &&
-      g_session.await_frame_since > 0 &&
-      texmacs_time () - g_session.await_frame_since >= 1000) {
-    std_error << "JOIN 超时未收到历史帧，按空文档就绪\n";
-    g_session.await_frame_since = 0;
-    collab_become_ready ();
-  }
-  collab_maybe_reconnect ();
+  g_session_manager.poll_all ();
 }

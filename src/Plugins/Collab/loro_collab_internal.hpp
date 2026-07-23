@@ -4,6 +4,7 @@
 #include "loro_collab.hpp"
 #include "tm_websocket.hpp"
 #include "url.hpp"
+#include <memory>
 
 enum class collab_state {
   idle,
@@ -17,30 +18,77 @@ enum class collab_state {
 enum class collab_mode { create, join };
 
 class collab_session {
+private:
+  std::unique_ptr<tm_websocket_client> ws;
+  collab_state                         state= collab_state::idle;
+  collab_mode                          mode = collab_mode::create;
+  string                               doc_id;
+  string                               server_url;
+  url                                  buffer_url;
+  bool                                 buffer_known     = false;
+  time_t                               await_frame_since= 0;
+  bool                                 want_reconnect   = false;
+  time_t                               next_reconnect_at= 0;
+  int                                  reconnect_attempt= 0;
+  array<string>                        pending_updates;
+
+  void   set_message (string left);
+  time_t reconnect_backoff (int attempt);
+  void   become_ready ();
+
 public:
-  tm_websocket_client* ws   = nullptr;
-  collab_state         state= collab_state::idle;
-  collab_mode          mode = collab_mode::create;
-  string               doc_id;
-  string               server_url;
-  url                  buffer_url;
-  bool                 buffer_known     = false;
-  time_t               await_frame_since= 0;
-  bool                 want_reconnect   = false;
-  time_t               next_reconnect_at= 0;
-  int                  reconnect_attempt= 0;
-  array<string>        pending_updates;
+  collab_session (url buf_url);
+  ~collab_session ();
 
   bool want_create () const { return mode == collab_mode::create; }
+
+  // Business logic API
+  void create (string server_url);
+  void join (string server_url, string doc_id);
+  void disconnect ();
+  void poll ();
+  void broadcast (string bytes);
+  void schedule_reconnect ();
+  void maybe_reconnect ();
+
+  // State transitions
+  void enter_idle ();
+  void enter_connecting ();
+  void enter_await_doc ();
+  void enter_await_frame ();
+  void enter_ready ();
+  void enter_reconnecting ();
+
+  // Getters
+  bool   is_active () const { return state == collab_state::ready; }
+  string get_doc_id () const { return doc_id; }
+  url    get_buffer_url () const { return buffer_url; }
+  bool   is_buffer_known () const { return buffer_known; }
+
+  // WS Callbacks
+  void on_connect ();
+  void on_message (string data, bool is_binary);
+  void on_error (string msg);
+  void on_disconnect ();
 };
 
-extern collab_session g_session;
+class collab_session_manager {
+private:
+  array<collab_session*> sessions;
+
+public:
+  ~collab_session_manager ();
+
+  collab_session* find_by_buffer (url buffer_url);
+  collab_session* get_or_create (url buffer_url);
+  void            remove_session (collab_session* session);
+  void            poll_all ();
+};
+
+extern collab_session_manager g_session_manager;
 extern void (*g_loro_broadcast_update) (string bytes);
 extern void broadcast_to_server (string bytes);
-extern void collab_set_message (string left);
-extern void schedule_reconnect ();
-extern void collab_become_ready ();
 
-tm_websocket_client* create_collab_ws_client();
+tm_websocket_client* create_collab_ws_client (collab_session* session);
 
 #endif // LORO_COLLAB_INTERNAL_HPP
