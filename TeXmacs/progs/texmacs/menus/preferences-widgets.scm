@@ -37,9 +37,9 @@
 ) ;tm-define
 
 (define (on-buffer-management-changed val)
-  ;; val 既可能是 internal key（"shared"/"separate"，新 QML facade 传入），
-  ;; 也可能是 pretty 显示串（"Multiple documents share window"，旧 tm-widget enum 传入）。
-  ;; 统一按 internal key 判断 shared；pretty 串经 decode 表反查成 internal。
+  ;; val 由 preferences-qml-set-field 传入，是 internal key（"shared"/"separate"）。
+  ;; 保留 pretty 显示串（"Multiple documents share window"）经 decode 表反查的兜底，
+  ;; 防御未来接入 pretty 串的调用方。统一按 internal key 判断 shared。
   (let* ((internal (if (== val "shared")
                      val
                      (or (ahash-ref preference-decode-table (cons "buffer management" val)) val)
@@ -86,7 +86,7 @@
 ) ;define-preference-names
 
 (define-preference-names "detailed menus"
- ("simple " "Simplified menus")
+ ("simple" "Simplified menus")
  ("detailed" "Detailed menus")
 ) ;define-preference-names
 

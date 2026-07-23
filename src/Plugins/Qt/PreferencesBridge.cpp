@@ -52,9 +52,8 @@ tmscm_to_stringlist (tmscm lst) {
  * @brief scheme 值 → bool（toggle 字段的 value 统一为 "on"/"off" 字符串，但若
  * scheme 直接给 #t/#f 也兼容解析）。
  *
- * @note s7_tm.hpp 已有 tmscm_to_bool（重载——故本函数改名 preferences_bool，避免
- * 歧义：其只接受 #t/#f scheme 字面，而我们还要兼容 "on"/"off" 字符串 wire
- * 格式）。
+ * @note tmscm_to_bool 只认 #t/#f scheme 字面、不处理字符串，故 facade 的 "on"/"off"
+ * wire 格式需在此分流：字符串比 "on"、其余交还 tmscm_to_bool。
  */
 bool
 preferences_bool (tmscm v) {

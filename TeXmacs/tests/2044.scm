@@ -259,6 +259,41 @@
                      ) ;cons
                ) ;list
 
+               ;; 3.6 detailed menus 编解码表根因修复：options 的 internal key 用无空格
+               ;;     "simple"（与 tm-modes.scm 的 simple-menus% 判定、tm-server.scm 默认值、
+               ;;     preferences-menu.scm 的 enum 写入一致）。回归点：texmacs 遗留把
+               ;;     define-preference-names 登记处写成 "simple "（带尾空格），使 encode/
+               ;;     decode 表与消费侧脱节——get-pretty-preference 读无空格磁盘值时 encode
+               ;;     表查不到、回退返回原始串，QML combo 翻译往返跟着退化。本步断言：
+               ;;     (a) descriptor options 含无空格 "simple"；(b) set→get-pretty-preference
+               ;;     往返正确（存 "simple" 能翻译成 "Simplified menus"）；(c) 收尾还原磁盘值。
+               (list (cons "descriptor: detailed menus 'simple' no trailing space"
+                       (lambda ()
+                         (let* ((meta (preferences-qml-meta))
+                                (general (caddr (tab-ref meta "general")))
+                                (dm (list-find general (lambda (x) (== (field-ref x 'key) "detailed menus"))))
+                                (key "detailed menus")
+                                (old (get-preference key))
+                               ) ;
+                           ;; (a) options 用无空格 "simple"（带空格即根因复发）。
+                           (check-true (and dm (member "simple" (field-ref dm 'options))))
+                           (check-true (and dm (not (member "simple " (field-ref dm 'options)))))
+                           ;; (b) 往返：存无空格 "simple" -> get-pretty-preference 须翻译成
+                           ;;     显示串 "Simplified menus"（encode 表登记处与磁盘值一致才能命中）。
+                           (set-preference key "simple")
+                           (check-true (== (get-pretty-preference key) "Simplified menus"))
+                           ;; current_value 经 optionsTr 反查后回吐无空格 internal key。
+                           (check-true (== (preferences-qml-current-value "detailed menus" "combo"
+                                                      (list "simple" "detailed")
+                                                      (list "Simplified menus" "Detailed menus"))
+                                          "simple"))
+                           ;; (c) 还原磁盘值，不污染配置。
+                           (set-preference key old)
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
                ;; 4 submit（bridge quote 路径）：模拟 bridge 拼的带 quote 字符串表达式，
                ;;   eval 求值——钉死 quote 修复。用重启键 gui theme + later preset，确认
                ;;   走到弹窗分支返回 later、值 silent 落库。回归点：bridge 没 quote 时，
