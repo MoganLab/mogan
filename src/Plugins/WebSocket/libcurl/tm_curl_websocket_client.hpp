@@ -30,9 +30,7 @@ struct tm_ws_msg {
 /**
  * @brief 基于 libcurl 的 WebSocket 客户端实现。
  *
- * 在原生平台上，libcurl 运行于后台工作线程；在 Emscripten 平台上，
- * 则继续采用单线程的 poll() 驱动模型。线程相关约束请参见本模块头部
- * 的线程不变量说明。
+ * 在原生平台上，libcurl 运行于后台工作线程；
  */
 class tm_curl_websocket_client : public tm_websocket_client {
 private:
