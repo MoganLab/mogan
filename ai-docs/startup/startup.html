@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liii STEM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: #f0f0f0;
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .title-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 44px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 1000;
+            -webkit-app-region: drag;
+        }
+
+        .title-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-btn {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .window-btn.red { background: #ff5f57; }
+        .window-btn.yellow { background: #febc2e; }
+        .window-btn.green { background: #28c840; }
+
+        .app-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .title-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* 左侧边栏 */
+        .sidebar {
+            width: 140px;
+            background: #006064;
+            padding-top: 60px;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .nav-section {
+            padding: 0 12px;
+        }
+
+        .nav-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            margin-bottom: 8px;
+            padding-left: 8px;
+        }
+
+        .nav-item {
+            padding: 10px 16px;
+            color: rgba(255,255,255,0.85);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: block;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-item.active {
+            background: #00acc1;
+            color: #fff;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 12px;
+        }
+
+        .exit-btn {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.8);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .exit-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            padding: 60px 40px 40px;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #006064;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        /* 模板卡片 */
+        .templates-grid {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .template-card {
+            width: 150px;
+            height: 210px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .template-card:hover {
+            border-color: #00838f;
+        }
+
+        .template-preview {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            position: relative;
+        }
+
+        .template-card.blank .template-preview {
+            background: #fff;
+        }
+
+        .plus-icon {
+            font-size: 48px;
+            color: #006064;
+            font-weight: 300;
+            margin-bottom: 12px;
+        }
+
+        .template-card.notes .template-preview {
+            background: #fff;
+            padding: 0;
+        }
+
+        .notes-image {
+            width: 100%;
+            height: 110px;
+            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notes-image::before {
+            content: "";
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: #fff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .notes-image::after {
+            content: "";
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #8B4513;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.6;
+        }
+
+        .notes-content {
+            padding: 6px;
+            width: 100%;
+        }
+
+        .notes-line {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-bottom: 6px;
+        }
+
+        .notes-line.short { width: 40%; }
+        .notes-line.medium { width: 70%; }
+
+        .notes-logo {
+            position: absolute;
+            bottom: 50px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            background: #00838f;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notes-logo svg {
+            width: 18px;
+            height: 18px;
+            fill: #fff;
+        }
+
+        .template-card.document .template-preview {
+            background: #fff;
+            padding: 16px 20px;
+            align-items: flex-start;
+        }
+
+        .doc-header {
+            font-size: 8px;
+            color: #666;
+            margin-bottom: 8px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .doc-line {
+            height: 3px;
+            background: #e0e0e0;
+            border-radius: 1.5px;
+            margin-bottom: 4px;
+            width: 100%;
+        }
+
+        .doc-line.short { width: 60%; }
+        .doc-line.title { 
+            background: #006064; 
+            height: 4px; 
+            width: 50%;
+            margin: 8px 0;
+        }
+
+        .template-name {
+            padding: 12px;
+            text-align: center;
+            font-size: 9px;
+            color: #333;
+            border-top: 1px solid #f0f0f0;
+            background: #fff;
+        }
+
+        /* 分隔线 */
+        .divider {
+            height: 1px;
+            background: #ddd;
+            margin: 0 0 32px 0;
+        }
+
+        /* 最近文档 */
+        .recent-docs {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            height: 270px;
+        }
+
+        .doc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .doc-item:hover {
+            background: #f8f9fa;
+        }
+
+        .doc-item:not(:last-child) {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .doc-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .doc-time {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            border-color: #00838f;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .card-preview {
+            height: 280px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .card-preview svg {
+            width: 48px;
+            height: 48px;
+            stroke: #006064;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .card-name {
+            padding: 10px;
+            text-align: center;
+            font-size: 13px;
+            color: #333;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部标题栏 -->
+        <div class="title-bar">
+            <div class="title-bar-left">
+                <div class="window-controls">
+                    <div class="window-btn red"></div>
+                    <div class="window-btn yellow"></div>
+                    <div class="window-btn green"></div>
+                </div>
+                <div class="app-title">Liii STEM</div>
+                <div class="icon-btn" style="font-size: 18px; color: #666;">+</div>
+            </div>
+            <div class="title-bar-right">
+                <div class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="nav-section">
+                <div class="nav-item active" data-page="home">首页</div>
+                <div class="nav-item" data-page="notes">精美笔记</div>
+                <div class="nav-item" data-page="math">高数考试</div>
+                <div class="nav-item" data-page="kaoyan">考研真题</div>
+                <div class="nav-item" data-page="gaokao">高考真题</div>
+                <div class="nav-item" data-page="thesis">论文模板</div>
+                <div class="nav-item" data-page="nsfc">国自然模版</div>
+                <div class="nav-item" data-page="courseware">课件讲义</div>
+                <div class="nav-item" data-page="help">使用说明</div>
+            </div>
+            <div class="sidebar-footer">
+                <button class="exit-btn">退出</button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="page active" id="page-home">
+                <h2 class="section-title">文档样式</h2>
+
+                <div class="templates-grid">
+                    <!-- 新建空白文档 -->
+                    <div class="template-card blank">
+                        <div class="template-preview">
+                            <div class="plus-icon">+</div>
+                            <div style="font-size: 14px; color: #333;">新建空白文档</div>
+                        </div>
+                    </div>
+
+                    <!-- 打开文档 -->
+                    <div class="template-card blank">
+                        <div class="template-preview">
+                            <div class="plus-icon">=</div>
+                            <div style="font-size: 14px; color: #333;">打开文档</div>
+                        </div>
+                    </div>
+
+                    <!-- 优美的笔记模板 -->
+                    <div class="template-card notes">
+                        <div class="template-preview">
+                            <div class="notes-image"></div>
+                            <div class="notes-content">
+                                <div class="notes-line short"></div>
+                                <div class="notes-line"></div>
+                                <div class="notes-line medium"></div>
+                                <div class="notes-line"></div>
+                            </div>
+                            <div class="notes-logo">
+                                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                            </div>
+                        </div>
+                        <div class="template-name">优美的笔记模板</div>
+                    </div>
+
+                    <!-- 国自然基金青年基金申请模板 -->
+                    <div class="template-card document">
+                        <div class="template-preview">
+                            <div class="doc-header">报告正文（2026版）</div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line short"></div>
+                            <div class="doc-line title"></div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line short"></div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line short"></div>
+                            <div class="doc-line"></div>
+                            <div class="doc-line short"></div>
+                        </div>
+                        <div class="template-name">国自然基金青年基金申请模板</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h2 class="section-title">最近文档</h2>
+                        <div class="recent-docs">
+                            <div class="doc-item">
+                                <span class="doc-name">国自然基金模板.tmu</span>
+                                <span class="doc-time">最后打开时间: 2026-05-08 10:39</span>
+                            </div>
+                            <div class="doc-item">
+                                <span class="doc-name">考研数学笔记.tmu</span>
+                                <span class="doc-time">最后打开时间: 2026-05-07 09:45</span>
+                            </div>
+                            <div class="doc-item">
+                                <span class="doc-name">论文参考文献格式.tmu</span>
+                                <span class="doc-time">最后打开时间: 2026-05-07 09:45</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 class="section-title">我的收藏</h2>
+                        <div class="recent-docs">
+                            <div class="doc-item">
+                                <span class="doc-name">国自然基金模板.tmu</span>
+                                <span class="doc-time">收藏于: 2026-05-06 14:22</span>
+                            </div>
+                            <div class="doc-item">
+                                <span class="doc-name">考研数学笔记.tmu</span>
+                                <span class="doc-time">收藏于: 2026-05-05 09:18</span>
+                            </div>
+                            <div class="doc-item">
+                                <span class="doc-name">论文参考文献格式.tmu</span>
+                                <span class="doc-time">收藏于: 2026-05-04 16:30</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="page-thesis">
+                <h2 class="section-title">论文模板</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">IEEE 会议</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">ACM 期刊</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">Springer</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">Elsevier</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">arXiv</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">学位论文</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">中文核心</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">综述格式</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">Nature</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">Science</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">Cell</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-preview">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <div class="card-name">PNAS</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+            <script>
+                // 点击卡片时切换选中状态（单选）
+                document.querySelectorAll('.template-card').forEach(function(card) {
+                    card.addEventListener('click', function() {
+                        document.querySelectorAll('.template-card').forEach(function(c) { c.classList.remove('active'); });
+                        card.classList.add('active');
+                    });
+                });
+
+                // 导航切换页面
+                document.querySelectorAll('.nav-item[data-page]').forEach(function(item) {
+                    item.addEventListener('click', function() {
+                        var page = item.getAttribute('data-page');
+                        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+                        item.classList.add('active');
+                        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+                        var target = document.getElementById('page-' + page);
+                        if (target) target.classList.add('active');
+                    });
+                });
+            </script>
+</body>
+</html>
