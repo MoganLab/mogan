@@ -2167,7 +2167,9 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_FOCUS_ICONS:
     check_type_void (index, s);
-    if (startupTabMode || chatTabMode) break;
+    // 不能按 startupTabMode/chatTabMode 早退：切 tab 时本消息可能先于
+    // SLOT_FILE 到达（startupTabMode 尚未翻转），丢弃后焦点栏再无重发机会。
+    // 可见性由 update_visibility 按这两个标志强制隐藏，照常替换按钮即可。
     {
       bool can_update= true;
 #if (QT_VERSION >= 0x050000)
