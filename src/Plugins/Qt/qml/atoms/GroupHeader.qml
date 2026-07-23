@@ -8,6 +8,7 @@
 // API：
 //   text     : string —— 分组标题文案（已 translate，bridge cork_to_utf8 还原）。
 //   isNarrow : bool   —— 保留供调用方传入（与 Toggle/EnumCombo 同接口）；当前不影响布局。
+//   isFirst  : bool   —— 当是当前列/列表第一个字段时，不加上间距（顶部对齐父容器）。
 //
 // 宽度由父行给定（满宽或双栏半宽列）。
 
@@ -19,17 +20,18 @@ Item {
 
     property var text: ""
     property bool isNarrow: false
+    property bool isFirst: false
 
-    // 高度 = 上间距 + 标题行 + 底部间距（所有 group 统一加上间距）。
-    // implicitHeight 供调用方按 visible 折叠（visible=false 时 height 归零不占位）。
-    implicitHeight: Theme.groupHeaderTopGap
-            + Theme.fontGroupHeader + Theme.groupHeaderTopGap
+    readonly property real topGap: isFirst ? 0 : Theme.groupHeaderTopGap
+
+    // 高度 = 上间距 + 标题行 + 底部间距（首字段不加上间距）。
+    implicitHeight: topGap + Theme.fontGroupHeader + Theme.groupHeaderTopGap
     height: implicitHeight
     width: parent ? parent.width : 0
 
     Text {
         anchors.top: parent.top
-        anchors.topMargin: Theme.groupHeaderTopGap
+        anchors.topMargin: topGap
         width: parent.width
         text: header.text || ""
         color: Theme.fg

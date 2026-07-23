@@ -276,6 +276,9 @@ DialogShell {
                             height: visible ? implicitHeight : 0
                             text: modelData.group
                             isNarrow: fieldDelegateRoot.isNarrow
+                            // Repeater index===0 且子 TabBar 不可见时，当前字段是内容区
+                            // 首个元素——不加顶部间距；子 TabBar 可见时它不再是首元素，保留间距。
+                            isFirst: model.index === 0 && !subTabsWrap.visible
                         }
 
                         Item {
@@ -384,11 +387,13 @@ DialogShell {
                             spacing: Theme.gapS
 
                             // 横跨整行的 group 标题（仅该段含 groupSpan 字段时显示，否则高度归零不占位）。
+                            // 两列区段的首个子元素，不加上间距。
                             GroupHeader {
                                 width: parent.width
                                 visible: spanField !== null
                                 height: visible ? implicitHeight : 0
                                 text: spanField ? spanField.group : ""
+                                isFirst: true
                                 property var spanField: modelData.fields.find(function (f) {
                                     return f.groupSpan;
                                 })

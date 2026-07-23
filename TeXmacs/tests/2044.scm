@@ -265,8 +265,9 @@
                ;;     define-preference-names 登记处写成 "simple "（带尾空格），使 encode/
                ;;     decode 表与消费侧脱节——get-pretty-preference 读无空格磁盘值时 encode
                ;;     表查不到、回退返回原始串，QML combo 翻译往返跟着退化。本步断言：
-               ;;     (a) descriptor options 含无空格 "simple"；(b) set→get-pretty-preference
-               ;;     往返正确（存 "simple" 能翻译成 "Simplified menus"）；(c) 收尾还原磁盘值。
+               ;;     (a) descriptor options 含无空格 "simple"；(b) 存 "simple" 后重拉 meta，
+               ;;     facade 端到端往返（current-value 经 optionsTr 反查回吐无空格 internal
+               ;;     key）+ get-pretty-preference 须翻译成显示串；(c) 收尾还原磁盘值。
                (list (cons "descriptor: detailed menus 'simple' no trailing space"
                        (lambda ()
                          (let* ((meta (preferences-qml-meta))
@@ -276,17 +277,21 @@
                                 (old (get-preference key))
                                ) ;
                            ;; (a) options 用无空格 "simple"（带空格即根因复发）。
-                           (check-true (and dm (member "simple" (field-ref dm 'options))))
+                           ;; member 找到返回子列表（真值但非 #t），用 pair? 规整成严格布尔。
+                           (check-true (and dm (pair? (member "simple" (field-ref dm 'options)))))
                            (check-true (and dm (not (member "simple " (field-ref dm 'options)))))
-                           ;; (b) 往返：存无空格 "simple" -> get-pretty-preference 须翻译成
-                           ;;     显示串 "Simplified menus"（encode 表登记处与磁盘值一致才能命中）。
+                           ;; (b) 往返：存无空格 "simple" -> 重拉 meta，detailed menus 字段的
+                           ;;     value（current-value 经 optionsTr 反查）须回吐无空格 internal
+                           ;;     key（带空格则 encode 表查不到、回退返回原始串、反查失配）；
+                           ;;     同时 get-pretty-preference 须翻译成 "Simplified menus"。
                            (set-preference key "simple")
                            (check-true (== (get-pretty-preference key) "Simplified menus"))
-                           ;; current_value 经 optionsTr 反查后回吐无空格 internal key。
-                           (check-true (== (preferences-qml-current-value "detailed menus" "combo"
-                                                      (list "simple" "detailed")
-                                                      (list "Simplified menus" "Detailed menus"))
-                                          "simple"))
+                           (let* ((meta2 (preferences-qml-meta))
+                                  (general2 (caddr (tab-ref meta2 "general")))
+                                  (dm2 (list-find general2 (lambda (x) (== (field-ref x 'key) "detailed menus"))))
+                                 ) ;
+                             (check-true (and dm2 (== (field-ref dm2 'value) "simple")))
+                           ) ;let*
                            ;; (c) 还原磁盘值，不污染配置。
                            (set-preference key old)
                          ) ;let*
