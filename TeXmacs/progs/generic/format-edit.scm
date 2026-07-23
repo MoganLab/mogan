@@ -587,11 +587,20 @@
 
 (tm-define (inside-italic?) (== (get-env "font-shape") "italic"))
 
-(tm-define (inside-underline?) (not (not (tree-innermost 'underline #t))))
+(tm-define (inside-markup-tag? tag)
+  ;; 边界判定：
+  ;; 1. 光标在父级紧贴标签外侧（cDr 后即标签本身）-> 判外
+  ;; 2. 光标停在标签右边界（路径在内容末尾后一位）-> 判外
+  ;; 3. 光标停在标签左边界（路径在内容起点，首字符之前）-> 判内
+  ;; 4. 空标签首尾同点 -> 判内
+  (with t (tree-innermost tag #t)
+    (and t
+         (not (== (cDr (cursor-path)) (tree->path t)))
+         (or (tree-at-start? t) (not (tree-at-end? t))))))
 
-(tm-define (inside-strike-through?)
-  (not (not (tree-innermost 'strike-through #t)))
-) ;tm-define
+(tm-define (inside-underline?) (inside-markup-tag? 'underline))
+
+(tm-define (inside-strike-through?) (inside-markup-tag? 'strike-through))
 
 (tm-define (make-alternate prompt default-val tag)
   (:interactive #t)

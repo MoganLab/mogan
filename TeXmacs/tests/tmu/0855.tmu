@@ -1,0 +1,21 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  abcabc<with|font-series|bold|12<strike-through|312>3>abcabc
+
+  <underline|12<strike-through|3ccc1>23>
+
+  <with|font-shape|italic|iii><with|font-series|bold|BBB>
+
+  c<with|font-shape|italic|cc<strike-through|asdfsdfasdf>cc>c
+
+  <strike-through|AB<underline|CAB>C>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
