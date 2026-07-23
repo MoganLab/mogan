@@ -243,10 +243,12 @@ edit_set_cursor (editor_rep* ed, path pp, tree data) {
 
 void
 edit_announce (editor_rep* ed, modification mod) {
+#ifdef LORO_ENABLED
   if (DEBUG_LORO) {
     if (mod->k != MOD_SET_CURSOR) debug_loro << "mod: " << mod << "\n";
   }
   if (mod->k != MOD_SET_CURSOR) ed->ensure_loro_seeded ();
+#endif
 
   switch (mod->k) {
   case MOD_ASSIGN:
