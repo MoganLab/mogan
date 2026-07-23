@@ -152,8 +152,8 @@
 (define-preference-names "texmacs->verbatim:encoding"
  ("auto" "Automatic")
  ("cork" "Cork")
- ("iso-8859-1" "Iso-8859-1")
- ("iso-8859-2" "Iso-8859-2")
+ ("iso-8859-1" "ISO-8859-1")
+ ("iso-8859-2" "ISO-8859-2")
  ("utf-8" "UTF-8")
 ) ;define-preference-names
 
@@ -168,7 +168,7 @@
 ;; Pdf ----------
 
 (define-preference-names "texmacs->pdf:version"
- ("Default" "default")
+ ("default" "default")
  ("1.4" "1.4")
  ("1.5" "1.5")
  ("1.6" "1.6")
@@ -569,6 +569,12 @@
       (pref-math-semantic-editing)
       'enabled-when-val
       "on"
+    ) ;list
+    (list (pref-math-semantic-correctness)
+      "Semantic correctness"
+      '()
+      '()
+      #f
     ) ;list
     ;; Correction
     (list (pref-math-manual-remove-superfluous-invisible)

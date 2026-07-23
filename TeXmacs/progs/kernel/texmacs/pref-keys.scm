@@ -90,6 +90,7 @@
 (define-public (pref-math-show-only-semantic-focus) "show only semantic focus")
 (define-public (pref-math-semantic-editing) "semantic editing")
 (define-public (pref-math-semantic-selections) "semantic selections")
+(define-public (pref-math-semantic-correctness) "semantic correctness")
 (define-public (pref-math-manual-remove-superfluous-invisible)
   "manual remove superfluous invisible"
 ) ;define-public

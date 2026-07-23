@@ -9,7 +9,7 @@
 ;;   preferences-qml-meta 返回 tab 树供 C++ bridge 消费。本测试钉死 facade 的
 ;;   数据契约（任一条回退都会红）：
 ;;     1. meta 返回 5 主 tab（general / keyboard / mathematics / convert / other）。
-;;     2. 各 tab 字段数符合设计稿（general 9 / keyboard 13 / mathematics 10 /
+;;     2. 各 tab 字段数符合设计稿（general 9 / keyboard 13 / mathematics 11 /
 ;;        convert 0 / other 15）。
 ;;     3. Convert tab 无直接 fields、字段在 6 个子 tab 内（html/latex/bibtex/
 ;;        verbatim/pdf/image）——这是 bridge parse_meta_tree 区分 fields vs
@@ -148,7 +148,7 @@
                            ;; keyboard：5 combo + 8 IR = 13；macOS 多 keyboard shortcut style = 14。
                            (check-true (== (length (caddr (tab-ref meta "keyboard"))) (if (os-macos?) 14 13))
                            ) ;check-true
-                           (check-true (== (length (caddr (tab-ref meta "mathematics"))) 10))
+                           (check-true (== (length (caddr (tab-ref meta "mathematics"))) 11))
                            (check-true (== (length (caddr (tab-ref meta "convert"))) 0))
                            (check-true (== (length (caddr (tab-ref meta "other"))) 15))
                            ;; Convert 7 子 tab + sub-tab key 顺序。
