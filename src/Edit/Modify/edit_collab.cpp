@@ -41,6 +41,7 @@ edit_modify_rep::collab_enabled () {
  * Collaboration related routines
  ******************************************************************************/
 
+#ifdef LORO_ENABLED
 void
 edit_modify_rep::ensure_loro_seeded () {
   if (loro_applying_remote) return;
@@ -158,3 +159,4 @@ edit_modify_rep::apply_remote (string bytes) {
     send_invalidate_all (this);
   }
 }
+#endif
