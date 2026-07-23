@@ -57,8 +57,7 @@ QtObject {
     readonly property real pad: 8 * scaleFactor       // 标准内边距/缩进（容器内缩、列表 padding）
     readonly property real gapS: 6 * scaleFactor      // 小行间距（EnumComboList 行间）
     readonly property real gapM: 16 * scaleFactor     // 中间距（按钮间、combo 行 label↔控件）
-    readonly property real groupHeaderTopGap: 14 * scaleFactor // GroupHeader 标题上方间距（非首组）
-    readonly property real groupHeaderBottomPad: 4 * scaleFactor // GroupHeader 标题↔分隔线间距
+    readonly property real groupHeaderTopGap: 14 * scaleFactor // GroupHeader 标题上下间距（非首组，上下对称）
     readonly property real inlineGap: 12 * scaleFactor // 行内间隙（Statistics label↔value）
     readonly property real margin: 24 * scaleFactor   // 弹窗正文四周大边距（DialogShell implicitMargins）
 

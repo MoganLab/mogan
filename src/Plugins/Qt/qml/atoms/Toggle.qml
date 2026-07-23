@@ -16,6 +16,8 @@
 //   hint         : string        —— 标签下副说明（如「仅 semantic editing 开时可见」），空则不占位。
 //   value        : bool          —— 当前是否开。
 //   isNarrow     : bool          —— 是否落在双栏半宽列；true 时原子自动缩小字体 + label 占更大比例。
+//   enabled      : bool          —— 是否可交互（内置）；false 时锁定：label 灰显、胶囊不可点
+//                                    （用于 latex transparent/Store tracking：source-tracking 关时锁定）。
 //   rowHeight    : real          —— 行高，默认 Theme.rowH。
 //   toggled(bool)                —— 切换时发出，参数为新值。
 //
@@ -49,7 +51,7 @@ Item {
         spacing: Theme.toggleTextGap
         Text {
             text: toggleRow.label
-            color: Theme.fg
+            color: toggleRow.enabled ? Theme.fg : Theme.muted
             font.pixelSize: Theme.fontBody * toggleRow.fontScale
             wrapMode: Text.WordWrap
             width: parent.width

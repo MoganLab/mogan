@@ -102,13 +102,17 @@ public:
   }
   Q_INVOKABLE QVariantMap meta () {
     QVariantList tabs;
-    // general：单列 combo + info（测 group 标题 / info row / single 区段）。
+    // general：单列 combo + info（测 group 标题 / info row / single 区段 +
+    // action 按钮）。
     QVariantList gf;
-    QVariantMap  g0= field ("combo", "g1", "Look and feel");
-    g0["group"]    = QString ("General");
-    QVariantMap gi = field ("info", "ginfo", "Last check");
-    gi["value"]    = QString ("Never");
-    gf << g0 << field ("combo", "g2", "Language") << gi;
+    QVariantMap  g0   = field ("combo", "g1", "Look and feel");
+    g0["group"]       = QString ("General");
+    QVariantMap gb    = field ("combo", "autobackup", "Auto backup");
+    gb["buttonLabel"] = QString ("Open backup");
+    gb["buttonAction"]= QString ("open-auto-backup-location");
+    QVariantMap gi    = field ("info", "ginfo", "Last check");
+    gi["value"]       = QString ("Never");
+    gf << g0 << field ("combo", "g2", "Language") << gb << gi;
     QVariantMap gtab;
     gtab["key"]   = QString ("general");
     gtab["label"] = QString ("General");
@@ -164,6 +168,7 @@ public:
   }
   Q_INVOKABLE void cancel () {}
   Q_INVOKABLE void startMove () {}
+  Q_INVOKABLE void callAction (const QString&) {}
 };
 
 class TestQmlLoad : public QObject {

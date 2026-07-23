@@ -268,34 +268,9 @@
   ) ;let*
 ) ;define
 
-;; 旧 tm-widget enum 仍只用 pretty 列表做显示（pretty 流）。
-
-(define (pretty-format-list)
-  (cadr (image-format-list-pair))
-) ;define
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other tab 的 helper + 编解码表（autosave / security / updater / scripting）
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define autosave-enabled-label "On")
-
-(define autosave-disabled-label "Off")
-
-(tm-define (autosave-preferences-list)
-  (list autosave-enabled-label autosave-disabled-label)
-) ;tm-define
-
-(tm-define (get-autosave-preference-label)
-  (if (== (get-preference "autosave") "0")
-    autosave-disabled-label
-    autosave-enabled-label
-  ) ;if
-) ;tm-define
-
-(tm-define (set-autosave-preference-label label)
-  (set-preference "autosave" (if (== label autosave-disabled-label) "0" "120"))
-) ;tm-define
 
 (define-preference-names "autosave" ("120" "On") ("0" "Off"))
 
@@ -342,22 +317,6 @@
   (if (use-plugin-updater?) (updater-last-check-formatted) "Never (unsupported)")
 ) ;define
 
-(define (automatic-checks-choices)
-  (if (use-plugin-updater?)
-    '("Never" "Once a day" "Once a week" "Once a month")
-    '("Unsupported")
-  ) ;if
-) ;define
-
-(tm-define (scripts-preferences-list)
-  (lazy-plugin-force)
-  (with l
-    (scripts-list)
-    (for (x l) (set-preference-name "scripting language" x (scripts-name x)))
-    (cons "None" (map scripts-name l))
-  ) ;with
-) ;tm-define
-
 (tm-define (open-preferences) (:interactive #t) (cpp-preferences-dialog))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -374,7 +333,7 @@
 ;; options      —— 内部键列表（combo 专用）
 ;; options-pretty—— 翻译显示列表，与 options 等长同序（combo；空则回退显示 options 原文）
 ;; editable?    —— 是否允许双击进入可编辑输入态（combo 专用；toggle/info 忽略）
-;; flags        —— 可选 plist：restart? / radio-group / visible-when-key + visible-when-val /
+;; flags        —— 可选 plist：restart? / radio-group / enabled-when-key + enabled-when-val /
 ;;                 group / hint / column（见顶部契约文档）
 ;;
 ;; kind 分流（combo / toggle / info）由 options 是否非空决定：
@@ -385,36 +344,32 @@
 ;; flag plist 约定（参考 ParagraphFormat 的 meta 输出）：
 ;;   restart?      布尔——需重启字段（提交时先确认再 apply）
 ;;   radio-group   字符串——组内互斥（toggle；如 mathjax/mathml/images -> "html-formula-export"）
-;;   visible-when-key + visible-when-val   条件可见性（依赖键取此值时本字段可见）
+;;   enabled-when-key + enabled-when-val   条件锁定（依赖键取此值时本字段可勾，否则锁定灰显）
 ;;   group         字符串——分组标题（组首字段上发）
 ;;   hint          字符串——副说明
 ;;   column        整数——双栏布局列号 0/1（Math / experimental Other）
 
 ;; 需重启字段的内部键集合（固定）：look and feel / gui theme / language /
-;; keyboard shortcut style / magic-paste-shortcut。与 set-pretty-preference* 调用点一致。
+;; keyboard shortcut style。与 set-pretty-preference* 调用点一致。
+;; 注：magic-paste-shortcut 自 [0853] 起改为 set-pretty-preference（无需重启），故不在此列。
 
 (define preferences-qml-restart-keys
-  (list "look and feel"
-    "gui theme"
-    "language"
-    "keyboard shortcut style"
-    "magic-paste-shortcut"
-  ) ;list
+  (list "look and feel" "gui theme" "language" "keyboard shortcut style")
 ) ;define
 
 ;; ---- hint 文案（英文 key，供 translate 查翻译表） ----
 ;; 集中管理避免散落重复；facade preferences-qml-flags->assoc 对 hint 过 translate。
 
 (define (hint-semantic-editing-only)
-  "Visible only when semantic editing is on"
+  "Enabled only when semantic editing is on"
 ) ;define
 
 (define (hint-source-tracking-only)
-  "Visible only when source tracking is on"
+  "Enabled only when source tracking is on"
 ) ;define
 
 (define (hint-toggling-refreshes)
-  "Toggling refreshes related fields' visibility"
+  "Toggling enables related fields"
 ) ;define
 
 (define (hint-mutex-mathml-images)
@@ -509,8 +464,6 @@
       ;; magic-paste 的 options-pretty 随平台变（macOS Cmd+ / 其它 Ctrl+）。
       (if (os-macos?) '("Cmd+Shift+V" "Cmd+V") '("Ctrl+Shift+V" "Ctrl+V"))
       #f
-      'restart?
-      #t
     ) ;list
   ) ;list
 ) ;define
@@ -670,13 +623,12 @@
   ) ;list
 ) ;define
 
-;; ---- Math fields（纯 toggles，双栏） ----
+;; ---- Math fields（纯 toggles，单栏；分组顺序对齐原 tm-widget：
+;;      Keyboard -> Contextual hints -> Semantics -> Correction） ----
 
 (define preferences-qml-math-fields
   (list
-    ;; 双栏布局（layout 'two-col）。列号对齐原 tm-widget：
-    ;;   左列（column 0）= Keyboard 组 + Contextual hints 组
-    ;;   右列（column 1）= Correction 组 + Semantics 组
+    ;; Keyboard
     (list (pref-math-use-large-brackets)
       "Use extensible brackets"
       '()
@@ -684,44 +636,8 @@
       #f
       'group
       "Keyboard"
-      'layout
-      'two-col
-      'column
-      0
     ) ;list
-    (list (pref-math-manual-remove-superfluous-invisible)
-      "Remove superfluous invisible"
-      '()
-      '()
-      #f
-      'group
-      "Correction"
-      'layout
-      'two-col
-      'column
-      1
-    ) ;list
-    (list (pref-math-manual-insert-missing-invisible)
-      "Insert missing invisible"
-      '()
-      '()
-      #f
-      'layout
-      'two-col
-      'column
-      1
-    ) ;list
-    (list (pref-math-manual-homoglyph-correct)
-      "Homoglyph correct"
-      '()
-      '()
-      #f
-      'layout
-      'two-col
-      'column
-      1
-    ) ;list
-    ;; 左栏 —— Contextual hints
+    ;; Contextual hints
     (list (pref-math-show-full-context)
       "Show full context"
       '()
@@ -729,22 +645,9 @@
       #f
       'group
       "Contextual hints"
-      'layout
-      'two-col
-      'column
-      0
     ) ;list
-    (list (pref-math-show-table-cells)
-      "Show table cells"
-      '()
-      '()
-      #f
-      'layout
-      'two-col
-      'column
-      0
-    ) ;list
-    (list (pref-math-show-focus) "Show focus" '() '() #f 'layout 'two-col 'column 0)
+    (list (pref-math-show-table-cells) "Show table cells" '() '() #f)
+    (list (pref-math-show-focus) "Show focus" '() '() #f)
     (list (pref-math-show-only-semantic-focus)
       "Show only semantic focus"
       '()
@@ -752,16 +655,12 @@
       #f
       'hint
       (hint-semantic-editing-only)
-      'visible-when-key
+      'enabled-when-key
       (pref-math-semantic-editing)
-      'visible-when-val
+      'enabled-when-val
       "on"
-      'layout
-      'two-col
-      'column
-      0
     ) ;list
-    ;; 左栏 —— Semantics
+    ;; Semantics
     (list (pref-math-semantic-editing)
       "Semantic editing"
       '()
@@ -771,10 +670,6 @@
       "Semantics"
       'hint
       (hint-toggling-refreshes)
-      'layout
-      'two-col
-      'column
-      0
     ) ;list
     (list (pref-math-semantic-selections)
       "Semantic selections"
@@ -783,15 +678,27 @@
       #f
       'hint
       (hint-semantic-editing-only)
-      'visible-when-key
+      'enabled-when-key
       (pref-math-semantic-editing)
-      'visible-when-val
+      'enabled-when-val
       "on"
-      'layout
-      'two-col
-      'column
-      0
     ) ;list
+    ;; Correction
+    (list (pref-math-manual-remove-superfluous-invisible)
+      "Remove superfluous invisible"
+      '()
+      '()
+      #f
+      'group
+      "Correction"
+    ) ;list
+    (list (pref-math-manual-insert-missing-invisible)
+      "Insert missing invisible"
+      '()
+      '()
+      #f
+    ) ;list
+    (list (pref-math-manual-homoglyph-correct) "Homoglyph correct" '() '() #f)
   ) ;list
 ) ;define
 
@@ -928,7 +835,7 @@
       "Conservative conversion options"
     ) ;list
     (list "latex:conservative"
-      "Only convert changes w.r.t. tracked version"
+      "Only convert changes with respect to tracked version"
       '()
       '()
       #f
@@ -942,9 +849,9 @@
       #f
       'hint
       (hint-source-tracking-only)
-      'visible-when-key
+      'enabled-when-key
       "latex:source-tracking"
-      'visible-when-val
+      'enabled-when-val
       "on"
     ) ;list
     (list (pref-convert-latex-attach-tracking-info)
@@ -954,9 +861,9 @@
       #f
       'hint
       (hint-source-tracking-only)
-      'visible-when-key
+      'enabled-when-key
       "latex:source-tracking"
-      'visible-when-val
+      'enabled-when-val
       "on"
     ) ;list
   ) ;list
@@ -983,7 +890,7 @@
     ) ;list
     ;; TeXmacs → BibTeX
     (list (pref-convert-bibtex-export-conservative)
-      "Only convert changes w.r.t. imported version"
+      "Only convert changes with respect to imported version"
       '()
       '()
       #f
@@ -1075,6 +982,20 @@
   ) ;list
 ) ;define
 
+;; ---- Convert / Mogan Scheme fields ----
+
+(define preferences-qml-convert-mogan-scheme-fields
+  (list (list (pref-convert-mogan-scheme-formatted)
+          "Use the Formatted Mogan Scheme"
+          '()
+          '()
+          #f
+          'group
+          "TeXmacs → Mogan Scheme"
+        ) ;list
+  ) ;list
+) ;define
+
 ;; ---- Other / Misc fields ----
 
 (define preferences-qml-other-misc-fields
@@ -1086,7 +1007,14 @@
           'group
           "Miscellaneous preferences"
         ) ;list
-    (list (pref-autobackup) "Auto backup" '("on" "off") '("On" "Off") #f)
+    (list (pref-autobackup)
+      "Auto backup"
+      '("on" "off")
+      '("On" "Off")
+      #f
+      'action-button
+      'open-auto-backup-location
+    ) ;list
     (list (pref-security)
       "Security"
       '("accept no scripts" "prompt on scripts" "accept all scripts")
@@ -1126,6 +1054,8 @@
       #f
       'group
       "Experimental features (to be used with care)"
+      'group-span
+      #t
       'layout
       'two-col
       'column
@@ -1289,8 +1219,10 @@
            (let ((kw (car pair)) (val (cdr pair)))
              (cond ((== kw 'restart?) (list (cons 'restart? val)))
                    ((== kw 'radio-group) (list (cons 'radioGroup val)))
-                   ((== kw 'visible-when-key) (list (cons 'visibleWhenKey val)))
-                   ((== kw 'visible-when-val) (list (cons 'visibleWhenVal val)))
+                   ;; enabled-when：字段始终显示，但仅当某 key 等于 val 时可勾（否则锁定灰显）。
+                   ;; 用于 latex transparent / Store tracking、Math semantic：依赖键开才解锁。
+                   ((== kw 'enabled-when-key) (list (cons 'enabledWhenKey val)))
+                   ((== kw 'enabled-when-val) (list (cons 'enabledWhenVal val)))
                    ;; group / hint 文案：.scm 源码字面量是 UTF-8 字节（reader 不转 Cork），
                    ;; 先 utf8->cork 归一化，再 translate 查翻译表。否则含非 ASCII 的文案
                    ;; （如 "TeXmacs → Html" 的 → 箭头）被当 Cork 字节二次解码 → 乱码。
@@ -1302,6 +1234,17 @@
                    ((== kw 'hint) (list (cons 'hint (translate (utf8->cork val)))))
                    ((== kw 'column) (list (cons 'column val)))
                    ((== kw 'layout) (list (cons 'layout val)))
+                   ;; action-button：combo 旁的行内按钮。val = action-name（symbol）。
+                   ;; buttonLabel 由 preferences-qml-action-button-label 按 action 取（仿原
+                   ;; tm-widget：先 use-modules 兜底加载插件，再调其 label 函数；未注入则空串）。
+                   ;; buttonAction 透传 action 名，QML 点击经 bridge callAction -> facade 路由。
+                   ((== kw 'action-button)
+                    (list (cons 'buttonAction val)
+                      (cons 'buttonLabel
+                        (translate (utf8->cork (preferences-qml-action-button-label val)))
+                      ) ;cons
+                    ) ;list
+                   ) ;
                    (else '())
              ) ;cond
            ) ;let
@@ -1341,6 +1284,13 @@
                ) ;
            (if idx (list-ref options idx) pretty)
          ) ;let*
+        ) ;
+        ;; latex 双向偏好用统一展示键（latex:source-tracking / conservative /
+        ;; transparent-source-tracking），非真实 preference key，读用 OR/AND helper。
+        ((== key "latex:source-tracking") (if (get-latex-source-tracking) "on" "off"))
+        ((== key "latex:conservative") (if (get-latex-conservative) "on" "off"))
+        ((== key "latex:transparent-source-tracking")
+         (if (get-latex-transparent-source-tracking) "on" "off")
         ) ;
         ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
         (else "")
@@ -1495,6 +1445,10 @@
                        (translate "Image")
                        (preferences-qml-build-tab preferences-qml-convert-image-fields)
                      ) ;list
+                     (list "mogan-scheme"
+                       (translate "Mogan Scheme")
+                       (preferences-qml-build-tab preferences-qml-convert-mogan-scheme-fields)
+                     ) ;list
                    ) ;list
         identity
       ) ;list-filter
@@ -1639,6 +1593,38 @@
         (else (set-pretty-preference-silent key val))
   ) ;cond
 ) ;define
+
+;; ---- action 按钮：combo 旁的行内按钮（如 Auto backup 打开备份目录） ----
+;; action 函数由插件注入（(plugin autosave) 模块），仿原 tm-widget：先 use-modules 兜底
+;; 加载，再调字面函数名。bridge callAction(name) 透传到 preferences-qml-call-action。
+
+;; 取 action 按钮的显示文案。按 action 名路由（目前仅 open-auto-backup-location）。
+
+(define (preferences-qml-action-button-label action)
+  (cond ((== action 'open-auto-backup-location)
+         (when (not (defined? 'auto-backup-button-label))
+           (use-modules (plugin autosave))
+         ) ;when
+         (if (defined? 'auto-backup-button-label) (auto-backup-button-label) "")
+        ) ;
+        (else "")
+  ) ;cond
+) ;define
+
+
+;; 执行 action（按钮点击）。按 name 路由，仿原 tm-widget 兜底加载模块。
+
+(tm-define (preferences-qml-call-action name)
+  (cond ((== name "open-auto-backup-location")
+         (when (not (defined? 'open-auto-backup-location))
+           (use-modules (plugin autosave))
+         ) ;when
+         (when (defined? 'open-auto-backup-location)
+           (open-auto-backup-location)
+         ) ;when
+        ) ;
+  ) ;cond
+) ;tm-define
 
 ;; look and feel 平台允许的内部键列表（用于过滤 options）。
 

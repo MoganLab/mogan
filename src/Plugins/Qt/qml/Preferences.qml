@@ -11,23 +11,23 @@
 //
 // field-descriptor 协议（assoc-list of pairs，见 ai-docs/qml/README.md 的 Preferences 契约）：
 //   每个 field 为 {kind, key, label, value, options?, optionsTr?, editable?, restart?,
-//     radioGroup?, visibleWhenKey?, visibleWhenVal?, group?, hint?, column?}
+//     radioGroup?, enabledWhenKey?, enabledWhenVal?, group?, hint?, column?, buttonLabel?, buttonAction?}
 //   kind 分流：combo -> EnumCombo、toggle -> Toggle、info -> label + 只读 Text
 //
 // prefBridge 契约（PreferencesBridge，无状态透传）：
 //   meta() -> QVariantMap{tabs: [{key, label, fields, subTabs?}]}
 //   submit(QVariantMap changed) -> QString（"applied" / "restart" / "later" / "cancel"）
-//   cancel() / startMove()
+//   cancel() / startMove() / callAction(name)
 //
-// 条件可见性 / radio 互斥：纯 QML 本地（values[field.visibleWhenKey] === visibleWhenVal 才可见；
-// radio peer 开一个则同组其它置 false）。详见 ai-docs/qml/README.md 的「条件可见性 / radio 互斥」节。
+// 条件锁定 / radio 互斥：纯 QML 本地（values[field.enabledWhenKey] === enabledWhenVal 才可勾，
+// 否则 Toggle 锁定灰显；radio peer 开一个则同组其它置 false）。
 
 import QtQuick
 import "atoms"
 
 DialogShell {
     id: root
-    implicitWidth: 560
+    implicitWidth: 620
     implicitHeight: 600
     implicitMargins: 24 * Theme.scaleFactor
     // Enter/Return 默认 OK（本地暂存提交）。
@@ -207,20 +207,33 @@ DialogShell {
             }) : null
 
             // Convert 子 TabBar（仅 activeTab === "convert" 且该 tab 有 subTabs 时显示）。
-            TabBar {
-                id: subTabs
+            // 外包一层圆角浅背景框 + 内边距，与下方字段区视觉分离。
+            Rectangle {
+                id: subTabsWrap
                 anchors.top: parent.top
                 anchors.left: parent.left
+                anchors.right: parent.right
                 visible: root.activeTab === "convert" && !!body.activeTabObj && !!body.activeTabObj.subTabs
-                model: visible && body.activeTabObj && body.activeTabObj.subTabs ? body.activeTabObj.subTabs.map(function (s) {
-                    return {
-                        key: s.key,
-                        label: s.label
-                    };
-                }) : []
-                activeKey: root.activeSubTab
-                onSelected: function (key) {
-                    root.activeSubTab = key;
+                color: Theme.fieldBg
+                radius: height / 2
+                height: subTabs.height + 2 * Theme.padS
+
+                TabBar {
+                    id: subTabs
+                    anchors.top: parent.top
+                    anchors.topMargin: Theme.padS
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.padS
+                    model: subTabsWrap.visible && body.activeTabObj && body.activeTabObj.subTabs ? body.activeTabObj.subTabs.map(function (s) {
+                        return {
+                            key: s.key,
+                            label: s.label
+                        };
+                    }) : []
+                    activeKey: root.activeSubTab
+                    onSelected: function (key) {
+                        root.activeSubTab = key;
+                    }
                 }
             }
 
@@ -232,7 +245,7 @@ DialogShell {
             Flickable {
                 id: fieldScroll
                 anchors.fill: parent
-                anchors.topMargin: (root.activeTab === "convert" && body.activeTabObj && body.activeTabObj.subTabs) ? subTabs.height + Theme.padS : 0
+                anchors.topMargin: (root.activeTab === "convert" && body.activeTabObj && body.activeTabObj.subTabs) ? subTabsWrap.height + Theme.padS : 0
                 contentWidth: width
                 contentHeight: fieldCol.height
                 clip: true
@@ -253,16 +266,15 @@ DialogShell {
                         width: parent ? parent.width : 0
                         property bool hasGroup: typeof modelData.group === "string" && modelData.group.length > 0
                         readonly property bool isNarrow: width > 0 && width < Theme.twoColHalfWidth
-                        visible: !modelData.visibleWhenKey || root.values[modelData.visibleWhenKey] === modelData.visibleWhenVal
-                        height: visible ? implicitHeight : 0
+                        height: implicitHeight
                         spacing: 0
 
                         GroupHeader {
                             width: parent.width
                             // groupSpan 字段的标题由 two-col section 横跨渲染，列内不重复。
                             visible: fieldDelegateRoot.hasGroup && !modelData.groupSpan
+                            height: visible ? implicitHeight : 0
                             text: modelData.group
-                            isFirst: index === 0
                             isNarrow: fieldDelegateRoot.isNarrow
                         }
 
@@ -274,6 +286,8 @@ DialogShell {
                             // isNarrow 自行调整 labelRatio/fontScale，delegate 不感知比例细节。
                             readonly property bool isNarrow: width > 0 && width < Theme.twoColHalfWidth
 
+                            // combo：可选行内 action 按钮（如 Auto backup 打开备份目录）经
+                            // actionLabel 传给 EnumCombo，按钮渲染在 label 与 combo 控件之间。
                             EnumCombo {
                                 width: parent.width
                                 visible: modelData.kind === "combo"
@@ -283,6 +297,11 @@ DialogShell {
                                 value: root.values[modelData.key] !== undefined ? root.values[modelData.key] : ""
                                 editable: modelData.editable !== undefined ? modelData.editable : false
                                 isNarrow: fieldItem.isNarrow
+                                actionLabel: typeof modelData.buttonLabel === "string" ? modelData.buttonLabel : ""
+                                onActionClicked: {
+                                    if (modelData.buttonAction)
+                                        prefBridge.callAction(modelData.buttonAction);
+                                }
                                 onChanged: function (v) {
                                     root.setField(modelData.key, v);
                                 }
@@ -295,6 +314,10 @@ DialogShell {
                                 hint: modelData.hint || ""
                                 value: root.values[modelData.key] === "on"
                                 isNarrow: fieldItem.isNarrow
+                                // enabled-when：有 enabledWhenKey 时，仅当该 key 值 ===
+                                // enabledWhenVal 才可勾（否则锁定灰显）。
+                                enabled: !modelData.enabledWhenKey
+                                         || root.values[modelData.enabledWhenKey] === modelData.enabledWhenVal
                                 onToggled: function (v) {
                                     root.setField(modelData.key, v ? "on" : "off");
                                 }
@@ -360,13 +383,12 @@ DialogShell {
                             width: fieldCol.width
                             spacing: Theme.gapS
 
-                            // 横跨整行的 group 标题（仅该段含 groupSpan 字段时）。横跨 header
-                            // 总显示分隔线（two-col 段前一般已有内容，或本身需分隔）。
+                            // 横跨整行的 group 标题（仅该段含 groupSpan 字段时显示，否则高度归零不占位）。
                             GroupHeader {
                                 width: parent.width
                                 visible: spanField !== null
+                                height: visible ? implicitHeight : 0
                                 text: spanField ? spanField.group : ""
-                                isFirst: false
                                 property var spanField: modelData.fields.find(function (f) {
                                     return f.groupSpan;
                                 })

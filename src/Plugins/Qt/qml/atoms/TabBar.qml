@@ -40,7 +40,6 @@ Row {
                 text: modelData.label
                 color: isActive ? Theme.selectFg : Theme.fg
                 font.pixelSize: Theme.fontTab
-                font.bold: isActive
             }
             MouseArea {
                 id: tabMa

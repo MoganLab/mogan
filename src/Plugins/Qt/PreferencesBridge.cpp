@@ -75,8 +75,8 @@ preferences_bool (tmscm v) {
  * 字段描述符的 symbol 名取自 scheme facade 的 assoc-list 输出（见
  * preferences-widgets.scm 的
  * preferences-qml-field->descriptor——kind/key/label/value/
- * options/optionsTr/editable?/restart?/radioGroup/visibleWhenKey/visibleWhenVal/
- * group/hint/column）。
+ * options/optionsTr/editable/restart?/radioGroup/enabledWhenKey/enabledWhenVal/
+ * group/groupSpan/hint/column/layout/buttonLabel/buttonAction）。
  *
  * @note symbol 名在 scheme 侧是 'kind / 'key / 'label 等（Cork 编码的
  * symbol）—— tmscm_to_qstring 已做 cork_to_utf8，这里 QLatin1String 比较用
@@ -96,6 +96,7 @@ assoc_to_variantmap (tmscm alist) {
       out[k]= QVariant::fromValue (tmscm_to_stringlist (v));
     else if (k == QLatin1String ("editable")) out[k]= preferences_bool (v);
     else if (k == QLatin1String ("restart?")) out[k]= preferences_bool (v);
+    else if (k == QLatin1String ("groupSpan")) out[k]= preferences_bool (v);
     else if (k == QLatin1String ("column")) out[k]= tmscm_to_int (v);
     else out[k]= tmscm_to_qstring (v);
   }
@@ -231,6 +232,16 @@ PreferencesBridge::cancel () {
   // 本地暂存模型：Cancel 仅丢弃 QML 本地改动，scheme 侧 no-op（无 setter
   // 调用）。
   if (m_host) m_host->close ();
+}
+
+void
+PreferencesBridge::callAction (const QString& name) {
+  // 行内 action 按钮：透传 action 名给 scheme facade 路由调用。
+  // name 是 ASCII 标识符（如 open-auto-backup-location），直接包成 scheme
+  // string literal。
+  string expr= string ("(preferences-qml-call-action \"") *
+               from_qstring (name) * string ("\")");
+  eval_scheme (expr);
 }
 
 //*****************************************************************************

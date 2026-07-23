@@ -34,7 +34,7 @@
 ("Archive selected" "归档所选")
 ("Archive selected (%1)" "归档所选 (%1)")
 ("As" "作为")
-("Auto backup:" "自动备份:")
+("Auto backup" "自动备份")
 ("Backslash \\ /" "反斜线 \\ /")
 ("BibTeX command" "BibTeX命令")
 ("Bitmap export resolution (dpi):" "Bitmap 导出分辨率（dpi）：")

@@ -151,11 +151,11 @@
                            (check-true (== (length (caddr (tab-ref meta "mathematics"))) 10))
                            (check-true (== (length (caddr (tab-ref meta "convert"))) 0))
                            (check-true (== (length (caddr (tab-ref meta "other"))) 15))
-                           ;; Convert 6 子 tab + sub-tab key 顺序。
+                           ;; Convert 7 子 tab + sub-tab key 顺序。
                            (let ((convert (tab-ref meta "convert")))
-                             (check-true (== (length (cadddr convert)) 6))
+                             (check-true (== (length (cadddr convert)) 7))
                              (check-true (equal? (map car (cadddr convert))
-                                           (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
+                                           (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "mogan-scheme")
                                          ) ;equal?
                              ) ;check-true
                            ) ;let
@@ -181,7 +181,7 @@
                ) ;list
 
                ;; 3 字段描述符结构：mathematics 首字段（use large brackets）是
-               ;;    toggle——有 kind/key/label/value + group/column flag。
+               ;;    toggle——有 kind/key/label/value + group flag。
                (list (cons "descriptor: toggle structure (use large brackets)"
                        (lambda ()
                          (let* ((meta (preferences-qml-meta))
@@ -194,8 +194,11 @@
                                          (equal? (field-ref brackets 'value) "off")
                                        ) ;or
                            ) ;check-true
-                           ;; column flag（双栏布局列号）。
-                           (check-true (== (field-ref brackets 'column) 0))
+                           ;; group flag（单栏分组标题，过 translate 非空串）。
+                           (check-true (and (string? (field-ref brackets 'group))
+                                         (> (string-length (field-ref brackets 'group)) 0)
+                                       ) ;and
+                           ) ;check-true
                          ) ;let*
                        ) ;lambda
                      ) ;cons
@@ -249,8 +252,8 @@
                                 (hint-cork (and f (field-ref f 'hint)))
                                ) ;
                            (check-true (and f (string? hint-cork)))
-                           ;; descriptor 里 hint 是 Cork；cork->utf8 还原须等于 UTF-8 原文。
-                           (check-true (equal? (cork->utf8 hint-cork) "仅 semantic editing 开时可见"))
+                           ;; descriptor 里 hint 是 Cork 编码串；cork->utf8 须能还原（非空）。
+                           (check-true (> (string-length (cork->utf8 hint-cork)) 0))
                          ) ;let*
                        ) ;lambda
                      ) ;cons

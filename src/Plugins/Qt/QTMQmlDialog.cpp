@@ -595,7 +595,7 @@ cpp_preferences_dialog () {
         QObject::connect (&host, &QDialog::destroyed, prefBridge,
                           &QObject::deleteLater);
       },
-      560, 600);
+      620, 600);
   delete bridge;
   return tree (TUPLE);
 }

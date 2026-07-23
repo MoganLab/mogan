@@ -76,6 +76,9 @@ public:
     if (m_host && m_host->windowHandle ())
       m_host->windowHandle ()->startSystemMove ();
   }
+  /// 行内 action 按钮（如 Auto backup 打开备份目录）：按 name 调 scheme facade
+  /// preferences-qml-call-action 路由（action 函数可能由插件注入）。
+  Q_INVOKABLE void callAction (const QString& name);
 
 private:
   /// 拼 `(preferences-qml-meta)` 求 tab 描述符树 → QVariantMap（含 tabs

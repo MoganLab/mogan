@@ -16,13 +16,17 @@
 //   value        : string        —— 当前英文 key。
 //   editable     : bool          —— 是否允许双击进入可编辑输入态，默认 false。
 //   isNarrow     : bool          —— 是否落在双栏半宽列；true 时原子自动调 label 占比（给下拉控件更多空间）。
+//   actionLabel  : string        —— 行内按钮文案（如 "打开备份目录"）；非空则在 label 与 combo
+//                                    控件之间渲染按钮，发 actionClicked。空则无按钮。
 //   rowHeight    : real          —— 行高，默认 44×scaleFactor。
 //   changed(string)              —— 选中新值时发出（英文 key，经 DialogShell 浮层 pick 触发，
-//                                   或可编辑态落定时发出键入值）。
+//                                    或可编辑态落定时发出键入值）。
+//   actionClicked                —— 行内按钮点击时发出（由调用方决定行为，如调 bridge）。
 //
 // 须在 DialogShell 内，宽度由父行给定。
 
 import QtQuick
+import "."
 
 Row {
     id: comboRow
@@ -34,11 +38,16 @@ Row {
     property string value: ""
     property bool editable: false
     property bool isNarrow: false
+    // 可选行内 action 按钮（如 Auto backup 打开备份目录）：actionLabel 非空则在 label 与
+    // combo 控件之间渲染按钮，发 actionClicked 信号。按钮宽度从 combo 可用宽里扣除。
+    property string actionLabel: ""
+    readonly property bool hasAction: actionLabel.length > 0
+    signal changed(string value)
+    signal actionClicked
     // 双栏半宽列：label 占比切 narrow（给下拉控件更多空间）。由 isNarrow 内部决定，
     // 调用方不感知布局。
     readonly property real labelRatio: isNarrow ? Theme.comboLabelRatioNarrow : Theme.comboLabelRatio
     property real rowHeight: Theme.rowH
-    signal changed(string value)
 
     // 按 objectName 沿 parent 链找 DialogShell（QML property 不能用 hasOwnProperty）。
     property var dialogShell: {
@@ -55,8 +64,12 @@ Row {
     // 可编辑输入态：双击(editable=true)进入，Enter/失焦落定，Esc 撤销。
     property bool editing: false
 
+    // 按钮宽度（hasAction 时）：固定 miniBtnW；否则 0（不占宽）。
+    readonly property real actionWidth: hasAction ? actionBtn.width : 0
+    // combo 可用宽 = 行宽 - label - 按钮 - label↔按钮、按钮↔combo 各一个 spacing。
     property real labelWidth: (parent ? parent.width : 0) * labelRatio
-    property real comboWidth: (parent ? parent.width : 0) - labelWidth - spacing
+    property real comboWidth: (parent ? parent.width : 0) - labelWidth - actionWidth
+                              - (hasAction ? 2 * spacing : spacing)
     height: rowHeight
 
     // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。toggleOpen 展开时由
@@ -143,6 +156,16 @@ Row {
         color: Theme.fg
         font.pixelSize: Theme.fontBody
         elide: Text.ElideRight
+    }
+
+    // 行内 action 按钮（label 与 combo 之间）：actionLabel 非空才显示。
+    // size normal：和 combo 行等高（rowH），宽度按文案自适应。
+    MiniButton {
+        id: actionBtn
+        size: "normal"
+        visible: comboRow.hasAction
+        text: comboRow.actionLabel
+        onClicked: comboRow.actionClicked()
     }
 
     Rectangle {

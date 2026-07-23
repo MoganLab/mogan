@@ -177,6 +177,9 @@
 ) ;define-public
 (define-public (pref-convert-image-format) "texmacs->image:format")
 
+;; ---- Convert / Mogan Scheme tab ----
+(define-public (pref-convert-mogan-scheme-formatted) "texmacs->mgs:formatted")
+
 ;; ---- Other / Misc tab ----
 (define-public (pref-autosave) "autosave")
 (define-public (pref-autobackup) "autobackup")
