@@ -13,7 +13,7 @@
  * @par 设计
  * - @b 无状态透传：首选项是全局的，无 specs-registry 句柄（区别于字体选择器 /
  *   段落格式的 specsKey 模式）。bridge 不持有任何偏好数据，每次 Q_INVOKABLE
- * 调用 都拼 scheme 串经 eval_scheme 调 facade。
+ * 调用都拼 scheme 串经 eval_scheme 调 facade。
  * - @b 本地暂存 + OK 一次性提交（FormDialog 模式）：QML 打开时拉一次 meta
  * 建本地 values 快照、改动只改 QML 本地、OK 时算 diff 调 submit
  * 一次性应用、Cancel 丢弃。 故 bridge 无 setter——QML 不 live 写偏好。

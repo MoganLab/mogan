@@ -65,7 +65,7 @@ preferences_bool (tmscm v) {
  * @brief 把 scheme assoc list（((symbol . value) ...)）→ QVariantMap。
  *
  * @details bridge 的通用 assoc-list 遍历（参考 ParagraphFormatBridge::evalMeta
- * 的 解析模式）：遍历每个 (symbol . value) 对，按 symbol 名分流——
+ * 的解析模式）：遍历每个 (symbol . value) 对，按 symbol 名分流——
  *   options/optionsTr -> QStringList（combo 的选项列表）
  *   editable?/restart? -> bool（布尔 flag）
  *   column            -> int（双栏列号）
@@ -79,7 +79,7 @@ preferences_bool (tmscm v) {
  *
  * @note symbol 名在 scheme 侧是 'kind / 'key / 'label 等（Cork 编码的
  * symbol）—— tmscm_to_qstring 已做 cork_to_utf8，这里 QLatin1String 比较用
- * ASCII 即可（symbol 名 均为 ASCII）。
+ * ASCII 即可（symbol 名均为 ASCII）。
  */
 QVariantMap
 assoc_to_variantmap (tmscm alist) {
