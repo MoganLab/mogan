@@ -570,12 +570,7 @@
       'enabled-when-val
       "on"
     ) ;list
-    (list (pref-math-semantic-correctness)
-      "Semantic correctness"
-      '()
-      '()
-      #f
-    ) ;list
+    (list (pref-math-semantic-correctness) "Semantic correctness" '() '() #f)
     ;; Correction
     (list (pref-math-manual-remove-superfluous-invisible)
       "Remove superfluous invisible"
