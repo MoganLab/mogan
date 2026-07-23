@@ -180,6 +180,16 @@ im_from_key_event (int key, int scancode, int action, int mods) {
   if (im_is_printable_key (key) && (mods_text == "" || mods_text == "S-"))
     return "";
 
+  // Ctrl/Cmd + 可打印非字母键：发出快捷键串，对齐 Qt 的 from_key_press_event
+  // （字母键已在上面单独处理）。GLFW 的 key 码即未 shift 的 ASCII，shift 后的字
+  // 形（如 +）由 char 回调负责，故对 "X-S-" 丢弃 S-、按未 shift 码点拼接。
+  // 修复 Cmd+= / Cmd+- (zoom) 等修饰键 + 非字母键被静默丢弃的问题。仅限
+  // Ctrl/Cmd：Alt 走 char 回调做 Option 合字输入，不在此处理。
+  if (shortcut && im_is_printable_key (key))
+    return ((mods & GLFW_MOD_SHIFT) ? im_from_modifiers (mods & ~GLFW_MOD_SHIFT)
+                                    : mods_text) *
+           string (locase ((char) key));
+
   if (DEBUG_KEYBOARD)
     debug_keyboard << "im_from_key_event: unmapped key " << key << LF;
   return "";
