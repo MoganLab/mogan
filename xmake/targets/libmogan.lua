@@ -318,7 +318,8 @@ target("libmogan") do
             add_files("$(projectdir)/src/Plugins/WebSocket/libcurl/*.cpp")
         end
         add_includedirs("$(projectdir)/src/Plugins/Collab", {public=true})
-        add_files("$(projectdir)/src/Plugins/Collab/loro_collab_session.cpp")
+        add_files("$(projectdir)/src/Plugins/Collab/loro_collab.cpp")
+        add_files("$(projectdir)/src/Plugins/Collab/loro_collab_ws.cpp")
         if is_plat("wasm") then
             add_files("$(projectdir)/src/Plugins/Collab/loro_collab_docs_wasm.cpp")
         else
