@@ -27,6 +27,10 @@
 #include "tm_file.hpp"
 #include "tm_window.hpp"
 
+#ifdef LORO_ENABLED
+#include "loro_collab.hpp"
+#endif
+
 #include "qt_gui.hpp"
 #include "qt_renderer.hpp" // for the_qt_renderer
 #include "qt_simple_widget.hpp"
@@ -652,6 +656,10 @@ void
 gui_close () {
   // cleanly close the gui
   ASSERT (the_gui != NULL, "gui not yet open");
+#ifdef LORO_ENABLED
+  // 关闭协作会话的 WS，避免进程退出时 curl 在半操作中 teardown
+  loro_collab_disconnect ();
+#endif
   tm_delete (the_gui);
   the_gui= NULL;
 
@@ -956,6 +964,9 @@ qt_gui_rep::update () {
 
   if (!postpone_treatment) {
     if (the_interpose_handler) the_interpose_handler ();
+#ifdef LORO_ENABLED
+    loro_collab_poll ();
+#endif
     qt_simple_widget_rep::repaint_all ();
   }
 

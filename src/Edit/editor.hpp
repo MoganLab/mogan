@@ -636,6 +636,13 @@ public:
   virtual void       show_selection ()                                    = 0;
   virtual void       show_meminfo ()                                      = 0;
   virtual void       edit_special ()                                      = 0;
+#ifdef LORO_ENABLED
+  virtual void mirror_loro (const modification& mod)= 0;
+  virtual void apply_remote (string bytes)          = 0;
+  virtual void ensure_loro_seeded ()                = 0;
+#endif
+  virtual void collab_enable () = 0;
+  virtual bool collab_enabled ()= 0;
 
   friend class tm_window_rep;
   friend class tm_server_rep;

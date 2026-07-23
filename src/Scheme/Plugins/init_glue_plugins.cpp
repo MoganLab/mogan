@@ -57,6 +57,10 @@ initialize_glue_plugins () {
   initialize_glue_tex ();
 #endif
 
+#ifdef LORO_ENABLED
+  initialize_glue_collab ();
+#endif
+
 #ifdef USE_PLUGIN_GS
   initialize_glue_ghostscript ();
 #endif

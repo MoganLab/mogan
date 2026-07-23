@@ -13,6 +13,9 @@
 #define EDIT_MODIFY_H
 #include "archiver.hpp"
 #include "editor.hpp"
+#ifdef LORO_ENABLED
+#include "loro_shadow.hpp"
+#endif
 
 path inner_paragraph (tree t, path p);
 
@@ -21,6 +24,15 @@ protected:
   observer cur_pos; // tree_position corresponding to tp
   double   author;  // the author identifier associated to this view
   archiver arch;    // archiver attached to the editor
+#ifdef LORO_ENABLED
+  loro_shadow loro_doc;
+  bool        loro_seeded         = false; // 是否已 seed 当前 buffer
+  bool        loro_applying_remote= false; // 远端应用期间，跳过镜像回灌
+  bool        loro_routing        = false; // debug_loro round-trip 中，防递归
+  bool        loro_collab_on= false; // 协作会话开启前，本地编辑不 seed/不上行
+  bool        loro_vv_initialized=
+      false; // 首次 import 远端数据后推进 export vv，避免回传
+#endif
 
 public:
   edit_modify_rep ();
@@ -37,6 +49,13 @@ public:
   void notify_remove_node (path p);
   void notify_set_cursor (path p, tree data);
   void post_notify (path p);
+#ifdef LORO_ENABLED
+  void ensure_loro_seeded () override;
+  void mirror_loro (const modification& mod) override;
+  void apply_remote (string bytes) override;
+#endif
+  void collab_enable () override;
+  bool collab_enabled () override;
 
   void clear_undo_history ();
   void archive_state ();

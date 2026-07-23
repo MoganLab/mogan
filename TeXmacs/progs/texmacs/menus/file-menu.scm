@@ -16,6 +16,7 @@
     (network url)
     (texmacs texmacs tm-server)
     (texmacs texmacs tm-files)
+    (texmacs texmacs tm-collab)
     (texmacs menus print-widgets)
   ) ;:use
 ) ;texmacs-module
@@ -402,6 +403,17 @@
  ) ;if
  ("Save" (save-buffer))
  ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
+ (when (loro-enabled?)
+   (-> "Collaborative"
+    ("New shared document" (collab-new-document))
+    (-> "Join shared document" (link collab-docs-menu))
+    (when (loro-collab-active?)
+      ---
+      ("Leave session" (collab-leave))
+      ("Show document UUID" (set-message (loro-collab-doc-id) "Collaborative"))
+    ) ;when
+   ) ;->
+ ) ;when
  (if (qt-gui?)
    ---
    (link print-menu)

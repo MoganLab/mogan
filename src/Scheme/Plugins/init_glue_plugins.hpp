@@ -18,6 +18,9 @@ void initialize_glue_ghostscript ();
 void initialize_glue_html ();
 void initialize_glue_pdf ();
 void initialize_glue_plugin ();
+#ifdef LORO_ENABLED
+void initialize_glue_collab ();
+#endif
 void initialize_glue_tex ();
 void initialize_glue_updater ();
 void initialize_glue_xml ();

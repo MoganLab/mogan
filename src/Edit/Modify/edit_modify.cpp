@@ -17,12 +17,44 @@
 #include "tree_observer.hpp"
 
 /******************************************************************************
+ * Loro related externs and statics
+ ******************************************************************************/
+
+extern void (*g_loro_broadcast_update) (string bytes);
+
+static void
+local_update_cb (void* user_data, const uint8_t* bytes, size_t len) {
+  if (g_loro_broadcast_update) {
+    if (DEBUG_LORO)
+      debug_loro << "Local update generated, size: " << len
+                 << " bytes. Broadcasting...\n";
+    string data ((const char*) bytes, len);
+    g_loro_broadcast_update (data);
+  }
+  else {
+    if (DEBUG_LORO)
+      debug_loro << "Local update generated, but no broadcast handler "
+                 << "registered.\n";
+  }
+}
+
+/******************************************************************************
  * Constructors and destructors
  ******************************************************************************/
 
+#ifndef LORO_ENABLED
 edit_modify_rep::edit_modify_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
       author (new_author ()), arch (author, rp) {}
+#else
+edit_modify_rep::edit_modify_rep ()
+    : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
+      author (new_author ()), arch (author, rp), loro_doc (),
+      loro_seeded (false), loro_applying_remote (false), loro_routing (false),
+      loro_collab_on (false) {
+  loro_doc->on_local_update (local_update_cb, this);
+}
+#endif // LORO_ENABLED
 edit_modify_rep::~edit_modify_rep () {}
 
 /******************************************************************************
@@ -211,6 +243,11 @@ edit_set_cursor (editor_rep* ed, path pp, tree data) {
 
 void
 edit_announce (editor_rep* ed, modification mod) {
+  if (DEBUG_LORO) {
+    if (mod->k != MOD_SET_CURSOR) debug_loro << "mod: " << mod << "\n";
+  }
+  if (mod->k != MOD_SET_CURSOR) ed->ensure_loro_seeded ();
+
   switch (mod->k) {
   case MOD_ASSIGN:
     edit_assign (ed, mod->p, mod->t);
@@ -248,7 +285,12 @@ void
 edit_done (editor_rep* ed, modification mod) {
   path p= copy (mod->p);
   ASSERT (ed->the_buffer_path () <= p, "invalid modification");
-  if (mod->k != MOD_SET_CURSOR) ed->post_notify (p);
+  if (mod->k != MOD_SET_CURSOR) {
+    ed->post_notify (p);
+#ifdef LORO_ENABLED
+    ed->mirror_loro (mod);
+#endif
+  }
 }
 
 void

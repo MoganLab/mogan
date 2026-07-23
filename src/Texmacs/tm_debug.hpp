@@ -25,7 +25,8 @@ enum {
   DEBUG_FLAG_CORRECT,
   DEBUG_FLAG_CONVERT,
   DEBUG_FLAG_REMOTE,
-  DEBUG_FLAG_LIVE
+  DEBUG_FLAG_LIVE,
+  DEBUG_FLAG_LORO
 };
 
 /**
@@ -174,6 +175,12 @@ bool debug_get (string s);
  */
 #define DEBUG_LIVE (debug (DEBUG_FLAG_LIVE))
 
+/**
+ * @brief Macro used to enable or disable debugging output for the "loro"
+ * debugging flag.
+ */
+#define DEBUG_LORO (debug (DEBUG_FLAG_LORO))
+
 #define DEBUG_AQUA (debug (DEBUG_FLAG_QT))
 #define DEBUG_AQUA_WIDGETS (debug (DEBUG_FLAG_QT_WIDGETS))
 
@@ -201,6 +208,7 @@ extern tm_ostream debug_shell;
 extern tm_ostream debug_io;
 extern tm_ostream debug_spell;
 extern tm_ostream debug_updater;
+extern tm_ostream debug_loro;
 
 extern tm_ostream std_error;
 extern tm_ostream failed_error;
