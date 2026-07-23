@@ -320,8 +320,7 @@ DialogShell {
                                 isNarrow: fieldItem.isNarrow
                                 // enabled-when：有 enabledWhenKey 时，仅当该 key 值 ===
                                 // enabledWhenVal 才可勾（否则锁定灰显）。
-                                enabled: !modelData.enabledWhenKey
-                                         || root.values[modelData.enabledWhenKey] === modelData.enabledWhenVal
+                                enabled: !modelData.enabledWhenKey || root.values[modelData.enabledWhenKey] === modelData.enabledWhenVal
                                 onToggled: function (v) {
                                     root.setField(modelData.key, v ? "on" : "off");
                                 }

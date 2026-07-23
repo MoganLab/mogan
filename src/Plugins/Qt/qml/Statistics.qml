@@ -12,8 +12,7 @@ DialogShell {
     implicitWidth: 380
     implicitMargins: Theme.margin
     // 动态高度：上下边距 + 标题 + 统计行 + 按钮区 + Column 内间距。
-    implicitHeight: Theme.margin * 2 + Theme.titleH
-                    + statsModel.length * Theme.textRowH + Theme.btnH + Theme.padS * 2
+    implicitHeight: Theme.margin * 2 + Theme.titleH + statsModel.length * Theme.textRowH + Theme.btnH + Theme.padS * 2
 
     property real labelW: 0.62
 

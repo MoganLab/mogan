@@ -170,8 +170,8 @@ DialogShell {
                                             text: modelData.label
                                             onClicked: {
                                                 // 预设联动两字段：par-sep 按倍数，par-par-sep 归零。
-                                                root.setField("basic", "par-sep", modelData.sep)
-                                                root.setField("basic", "par-par-sep", modelData.parSep)
+                                                root.setField("basic", "par-sep", modelData.sep);
+                                                root.setField("basic", "par-par-sep", modelData.parSep);
                                             }
                                         }
                                     }
