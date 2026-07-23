@@ -749,15 +749,15 @@
     (list (pref-convert-html-css-stylesheet)
       "CSS stylesheet"
       '("---"
-        "web-article.css"
-        "web-article-dark.css"
-        "web-article-colored.css"
-        "web-article-dark-colored.css")
+        "https://www.texmacs.org/css/web-article.css"
+        "https://www.texmacs.org/css/web-article-dark.css"
+        "https://www.texmacs.org/css/web-article-colored.css"
+        "https://www.texmacs.org/css/web-article-dark-colored.css")
       '("---"
-        "web-article.css"
-        "web-article-dark.css"
-        "web-article-colored.css"
-        "web-article-dark-colored.css")
+        "https://www.texmacs.org/css/web-article.css"
+        "https://www.texmacs.org/css/web-article-dark.css"
+        "https://www.texmacs.org/css/web-article-colored.css"
+        "https://www.texmacs.org/css/web-article-dark-colored.css")
       #t
     ) ;list
     ;; Html → TeXmacs
@@ -1039,6 +1039,18 @@
       'platform-filter
       'updater-only
     ) ;list
+    ;; Last check：info 只读行，显示上次检查更新时间（updater 插件启用时）。
+    ;; 'info flag 显式标 info kind（key 非空但无 setter、不入 diff）。
+    (list "updater:last-check"
+      "Last check"
+      '()
+      '()
+      #f
+      'info
+      #t
+      'platform-filter
+      'updater-only
+    ) ;list
   ) ;list
 ) ;define
 
@@ -1292,6 +1304,8 @@
         ((== key "latex:transparent-source-tracking")
          (if (get-latex-transparent-source-tracking) "on" "off")
         ) ;
+        ;; Last check info：非真实 preference，显示上次检查更新时间（updater 插件注入）。
+        ((== key "updater:last-check") (last-check-string))
         ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
         (else "")
   ) ;cond
@@ -1363,7 +1377,8 @@
          (opt-pairs (preferences-qml-resolve-options key options options-pretty))
          (final-options (car opt-pairs))
          (final-options-pretty (cadr opt-pairs))
-         (kind (cond ((or (nlist? final-options) (null? final-options))
+         (kind (cond ((list-find flags (lambda (x) (== x 'info))) "info")
+                     ((or (nlist? final-options) (null? final-options))
                       (if (== key "") "info" "toggle")
                      ) ;
                      (else "combo")
