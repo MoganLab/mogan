@@ -11,6 +11,7 @@
 ;;               避免循环）。
 ;; COPYRIGHT   : (C) 2013  Joris van der Hoeven
 ;;               (C) 2026  Yuki
+;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 ;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
@@ -193,6 +194,31 @@
   ) ;cond
 ) ;define
 
+;; 通用文案翻译：.scm 源码字面量为 UTF-8，先 utf8->cork 归一化后再查 translate。
+;; 与 group/hint/action-button 保持一致，避免含非 ASCII 字符的 label 被 bridge 二次解码为乱码。
+
+(define (preferences-qml-translate-label text)
+  (translate (utf8->cork text))
+) ;define
+
+;; HTML formula-export 互斥组（mathjax / mathml / images 三选一）。
+;; 用于非 QML 路径设置这些偏好时也能保持互斥。
+
+(tm-define (preferences-qml-html-formula-export-keys)
+  '("texmacs->html:mathjax" "texmacs->html:mathml" "texmacs->html:images")
+) ;tm-define
+
+(tm-define (preferences-qml-set-html-formula-export key val)
+  (let ((on? (== val "on")))
+    (set-boolean-preference key on?)
+    (when on?
+      (for-each (lambda (peer) (when (!= peer key) (set-boolean-preference peer #f)))
+        (preferences-qml-html-formula-export-keys)
+      ) ;for-each
+    ) ;when
+  ) ;let
+) ;tm-define
+
 ;; flag plist -> assoc pairs：遍历 alist、按 symbol 名映射成 bridge 可消费的
 ;; assoc pairs（platform-filter 是 scheme-side 过滤用的、此处跳过）。
 
@@ -210,11 +236,11 @@
                    ;; 先 utf8->cork 归一化，再 translate 查翻译表。否则含非 ASCII 的文案
                    ;; （如 "TeXmacs → Html" 的 → 箭头）被当 Cork 字节二次解码 → 乱码。
                    ;; bridge cork_to_utf8 再把 Cork 还原成 UTF-8 给 QML。
-                   ((== kw 'group) (list (cons 'group (translate (utf8->cork val)))))
+                   ((== kw 'group) (list (cons 'group (preferences-qml-translate-label val))))
                    ;; group-span：该 group 标题横跨整行（统领下方左右两列），如 IR 的
                    ;; "Remote controllers with keyboard simulation"。未标的 group 在列内各自渲染。
                    ((== kw 'group-span) (list (cons 'groupSpan val)))
-                   ((== kw 'hint) (list (cons 'hint (translate (utf8->cork val)))))
+                   ((== kw 'hint) (list (cons 'hint (preferences-qml-translate-label val))))
                    ((== kw 'column) (list (cons 'column val)))
                    ((== kw 'layout) (list (cons 'layout val)))
                    ;; action-button：combo 旁的行内按钮。val = action-name（symbol）。
@@ -222,7 +248,7 @@
                    ((== kw 'action-button)
                     (list (cons 'buttonAction val)
                       (cons 'buttonLabel
-                        (translate (utf8->cork (preferences-qml-action-button-label val)))
+                        (preferences-qml-translate-label (preferences-qml-action-button-label val))
                       ) ;cons
                     ) ;list
                    ) ;
@@ -261,9 +287,14 @@
 (define (preferences-qml-current-value key kind options options-pretty)
   (cond ((== kind "combo")
          (let* ((pretty (get-pretty-preference key))
+                (internal (get-preference key))
                 (idx (list-find-index options-pretty (lambda (p) (== p pretty))))
                ) ;
-           (if idx (list-ref options idx) pretty)
+           (cond (idx (list-ref options idx))
+                 ((list-find-index options (lambda (ik) (== ik internal))) internal)
+                 ((string? pretty) pretty)
+                 (else "")
+           ) ;cond
          ) ;let*
         ) ;
         ;; latex 双向偏好用统一展示键（latex:source-tracking / conservative /
@@ -293,12 +324,12 @@
 ;; 硬编码是为了 meta 构建时按平台过滤后仍能给出等长同序的 options/options-pretty）。
 
 (define (preferences-qml-general-look-and-feel-pretty ik)
-  (cond ((== ik "default") (translate "Default"))
-        ((== ik "emacs") (translate "Emacs"))
-        ((== ik "gnome") (translate "Gnome"))
-        ((== ik "kde") (translate "KDE"))
-        ((== ik "macos") (translate "macOS"))
-        ((== ik "windows") (translate "Windows"))
+  (cond ((== ik "default") "Default")
+        ((== ik "emacs") "Emacs")
+        ((== ik "gnome") "Gnome")
+        ((== ik "kde") "KDE")
+        ((== ik "macos") "macOS")
+        ((== ik "windows") "Windows")
         (else ik)
   ) ;cond
 ) ;define
@@ -332,10 +363,14 @@
     ((== key (pref-general-language))
      (list supported-languages (map upcase-first supported-languages))
     ) ;
-    ;; scripting language：动态按 scripts-list（lazy-plugin-force 副作用）拉取 options。
+    ;; scripting language：动态按 scripts-list 拉取内部键，pretty 用 scripts-name 显示名。
+    ;; options 用插件 key（如 "python"），optionsTr 用显示名（如 "Python"），
+    ;; 保证 set-pretty-preference 存的是内部键而不是显示名。
     ((== key (pref-scripting-language))
-     (let* ((sl (cons "none" (map scripts-name (scripts-list)))))
-       (list sl (cons (translate "None") (map scripts-name (scripts-list))))
+     (let* ((keys (cons "none" (scripts-list)))
+            (pretty (cons "None" (map scripts-name (scripts-list))))
+           ) ;
+       (list keys pretty)
      ) ;let*
     ) ;
     ;; image format：动态按 image-format-list-pair（file-converter-exists? 副作用）
@@ -375,10 +410,14 @@
                      (else "combo")
                ) ;cond
          ) ;kind
-         (base (list (cons 'kind kind) (cons 'key key) (cons 'label (translate label))))
+         (base (list (cons 'kind kind)
+                 (cons 'key key)
+                 (cons 'label (preferences-qml-translate-label label))
+               ) ;list
+         ) ;base
          (value-pairs (if (== kind "combo")
                         (list (cons 'options final-options)
-                          (cons 'optionsTr (map translate final-options-pretty))
+                          (cons 'optionsTr (map preferences-qml-translate-label final-options-pretty))
                           (cons 'editable editable?)
                           (cons 'value
                             (preferences-qml-current-value key kind final-options final-options-pretty)
@@ -399,4 +438,39 @@
   (map preferences-qml-field->descriptor
     (list-filter fields preferences-qml-platform-shows?)
   ) ;map
+) ;tm-define
+
+;; 从已构建的 meta 树收集 key -> kind 映射，用于 setter 按 combo/toggle 分流。
+;; tab 结构为 (key label fields [sub-tabs])，sub-tab 结构为 (key label fields)。
+
+(tm-define (preferences-qml-collect-field-kinds meta)
+  (let ((table (make-ahash-table)))
+    (let ((register (lambda (fields)
+                      (for-each (lambda (field)
+                                  (let* ((vp (assoc 'key field)) (kp (assoc 'kind field)))
+                                    (when (and vp kp)
+                                      (ahash-set! table (cdr vp) (cdr kp))
+                                    ) ;when
+                                  ) ;let*
+                                ) ;lambda
+                        fields
+                      ) ;for-each
+                    ) ;lambda
+          ) ;register
+         ) ;
+      (for-each (lambda (tab)
+                  (let ((fields (if (>= (length tab) 3) (caddr tab) '()))
+                        (sub-tabs (if (>= (length tab) 4) (cadddr tab) '()))
+                       ) ;
+                    (register fields)
+                    (for-each (lambda (sub) (register (if (>= (length sub) 3) (caddr sub) '())))
+                      sub-tabs
+                    ) ;for-each
+                  ) ;let
+                ) ;lambda
+        meta
+      ) ;for-each
+    ) ;let
+    table
+  ) ;let
 ) ;tm-define

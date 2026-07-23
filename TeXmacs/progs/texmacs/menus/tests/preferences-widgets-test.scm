@@ -57,7 +57,7 @@
     (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 14 13))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
-    (check (length (caddr (tab-ref meta "other"))) => 15)
+    (check (length (caddr (tab-ref meta "other"))) => (if (os-macos?) 17 15))
   ) ;let
 ) ;define
 
@@ -399,7 +399,73 @@
   ) ;let*
 ) ;define
 
-;; ---- 14. 重启键集合钉死 ----
+;; ---- 14. combo 字段的 "on"/"off" 值：保证走字符串 setter 而非 boolean ----
+;; autobackup 和 automatic brackets 的选项含 "on"/"off"，若误判为 toggle 则存成
+;; boolean 而非字符串，导致下次 meta 读取时 value 不在 options 内、combo 显示空白。
+
+(define (test-set-field-combo-on-off-values)
+  ;; autobackup：options = ("on" "off")
+  (let* ((key "autobackup") (old (get-preference key)))
+    (preferences-qml-set-field key "on")
+    (check (get-preference key) => "on")
+    (preferences-qml-set-field key "off")
+    (check (get-preference key) => "off")
+    (set-preference key old)
+  ) ;let*
+  ;; automatic brackets：options = ("off" "mathematics" "on")
+  (let* ((key "automatic brackets") (old (get-preference key)))
+    (preferences-qml-set-field key "on")
+    (check (get-preference key) => "on")
+    (preferences-qml-set-field key "mathematics")
+    (check (get-preference key) => "mathematics")
+    (set-preference key old)
+  ) ;let*
+) ;define
+
+;; ---- 15. HTML formula-export 互斥：任意一个开则关另外两个 ----
+
+(define (test-set-field-html-formula-export-mutex)
+  (let* ((keys '("texmacs->html:mathjax"
+                 "texmacs->html:mathml"
+                 "texmacs->html:images"))
+         (old (map (lambda (k) (get-boolean-preference k)) keys))
+        ) ;
+    ;; 开 mathjax → 另两个关
+    (preferences-qml-set-field "texmacs->html:mathjax" "on")
+    (check (get-boolean-preference "texmacs->html:mathjax") => #t)
+    (check (get-boolean-preference "texmacs->html:mathml") => #f)
+    (check (get-boolean-preference "texmacs->html:images") => #f)
+    ;; 开 mathml → mathjax 关
+    (preferences-qml-set-field "texmacs->html:mathml" "on")
+    (check (get-boolean-preference "texmacs->html:mathjax") => #f)
+    (check (get-boolean-preference "texmacs->html:mathml") => #t)
+    (check (get-boolean-preference "texmacs->html:images") => #f)
+    ;; 恢复
+    (set-boolean-preference "texmacs->html:mathjax" (car old))
+    (set-boolean-preference "texmacs->html:mathml" (cadr old))
+    (set-boolean-preference "texmacs->html:images" (caddr old))
+  ) ;let*
+) ;define
+
+;; ---- 16. scripting language：options 是插件 key 而非显示名 ----
+
+(define (test-scripting-language-options)
+  (let* ((meta (preferences-qml-meta))
+         (other (tab-ref meta "other"))
+         (fields (caddr other))
+         (sl (list-find fields (lambda (f) (== (field-ref f 'key) "scripting language")))
+         ) ;sl
+        ) ;
+    (check-true (pair? sl))
+    (let ((opts (field-ref sl 'options)) (trs (field-ref sl 'optionsTr)))
+      (check (car opts) => "none")
+      (check (== (length opts) (length trs)) => #t)
+      ;; options/optionsTr 等长同序
+    ) ;let
+  ) ;let*
+) ;define
+
+;; ---- 17. 重启键集合钉死 ----
 
 (define (test-restart-keys-set)
   (let* ((meta (preferences-qml-meta))
@@ -439,9 +505,11 @@
   (test-encoding-consistency)
   (test-set-field-toggle)
   (test-set-field-combo)
+  (test-set-field-combo-on-off-values)
   (test-set-field-buffer-management)
   (test-set-field-latex-bidirectional)
   (test-set-field-latex-conservative-both-sides)
+  (test-set-field-html-formula-export-mutex)
   (test-submit-non-restart-only)
   (test-submit-restart-cancel-applies-nothing)
   (test-submit-restart-later-silent-write)
@@ -450,6 +518,7 @@
   (test-call-action-unknown-noop)
   (test-key-consistency)
   (test-latex-unified-keys-in-meta)
+  (test-scripting-language-options)
   (test-restart-keys-set)
   (check-report)
 ) ;tm-define

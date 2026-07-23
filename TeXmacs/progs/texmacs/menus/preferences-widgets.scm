@@ -20,6 +20,18 @@
 ) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 模块状态：key -> kind 表（由 preferences-qml-meta 构建时填充）。
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define preferences-qml-field-kind-table (make-ahash-table))
+
+(define preferences-qml-field-kind-table-initialized? #f)
+
+(define (preferences-qml-field-kind key)
+  (or (ahash-ref preferences-qml-field-kind-table key) "toggle")
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 通用包装：需重启字段的三态确认 + buffer management 副作用
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1098,63 +1110,73 @@
 ;; Convert tab 额外携带子 tab（sub-tabs）：sub-tabs 为 list of (sub-key sub-label sub-fields)。
 
 (tm-define (preferences-qml-meta)
-  (list (list "general"
-          (translate "General")
-          (preferences-qml-build-tab preferences-qml-general-fields)
-        ) ;list
-    (list "keyboard"
-      (translate "Keyboard")
-      (preferences-qml-build-tab preferences-qml-keyboard-fields)
-    ) ;list
-    (list "mathematics"
-      (translate "Mathematics")
-      (preferences-qml-build-tab preferences-qml-math-fields)
-    ) ;list
-    (list "convert"
-      (translate "Convert")
-      '()
-      (list-filter (list (list "html"
-                           (translate "Html")
-                           (preferences-qml-build-tab preferences-qml-convert-html-fields)
-                         ) ;list
-                     (list "latex"
-                       (translate "LaTeX")
-                       (preferences-qml-build-tab preferences-qml-convert-latex-fields)
-                     ) ;list
-                     (list "bibtex"
-                       (translate "BibTeX")
-                       (preferences-qml-build-tab preferences-qml-convert-bibtex-fields)
-                     ) ;list
-                     (list "verbatim"
-                       (translate "Verbatim")
-                       (preferences-qml-build-tab preferences-qml-convert-verbatim-fields)
-                     ) ;list
-                     (if (or (supports-native-pdf?) (supports-ghostscript?))
-                       (list "pdf"
-                         (translate "Pdf")
-                         (preferences-qml-build-tab preferences-qml-convert-pdf-fields)
-                       ) ;list
-                       #f
-                     ) ;if
-                     (list "image"
-                       (translate "Image")
-                       (preferences-qml-build-tab preferences-qml-convert-image-fields)
-                     ) ;list
-                     (list "mogan-scheme"
-                       (translate "Mogan Scheme")
-                       (preferences-qml-build-tab preferences-qml-convert-mogan-scheme-fields)
-                     ) ;list
-                   ) ;list
-        identity
-      ) ;list-filter
-    ) ;list
-    (list "other"
-      (translate "Other")
-      (append (preferences-qml-build-tab preferences-qml-other-misc-fields)
-        (preferences-qml-build-tab preferences-qml-other-experimental-fields)
-      ) ;append
-    ) ;list
-  ) ;list
+  (let ((meta (list (list "general"
+                      (translate "General")
+                      (preferences-qml-build-tab preferences-qml-general-fields)
+                    ) ;list
+                (list "keyboard"
+                  (translate "Keyboard")
+                  (preferences-qml-build-tab preferences-qml-keyboard-fields)
+                ) ;list
+                (list "mathematics"
+                  (translate "Mathematics")
+                  (preferences-qml-build-tab preferences-qml-math-fields)
+                ) ;list
+                (list "convert"
+                  (translate "Convert")
+                  '()
+                  (list-filter (list (list "html"
+                                       (translate "Html")
+                                       (preferences-qml-build-tab preferences-qml-convert-html-fields)
+                                     ) ;list
+                                 (list "latex"
+                                   (translate "LaTeX")
+                                   (preferences-qml-build-tab preferences-qml-convert-latex-fields)
+                                 ) ;list
+                                 (list "bibtex"
+                                   (translate "BibTeX")
+                                   (preferences-qml-build-tab preferences-qml-convert-bibtex-fields)
+                                 ) ;list
+                                 (list "verbatim"
+                                   (translate "Verbatim")
+                                   (preferences-qml-build-tab preferences-qml-convert-verbatim-fields)
+                                 ) ;list
+                                 (if (or (supports-native-pdf?) (supports-ghostscript?))
+                                   (list "pdf"
+                                     (translate "Pdf")
+                                     (preferences-qml-build-tab preferences-qml-convert-pdf-fields)
+                                   ) ;list
+                                   #f
+                                 ) ;if
+                                 (list "image"
+                                   (translate "Image")
+                                   (preferences-qml-build-tab preferences-qml-convert-image-fields)
+                                 ) ;list
+                                 (list "mogan-scheme"
+                                   (translate "Mogan Scheme")
+                                   (preferences-qml-build-tab preferences-qml-convert-mogan-scheme-fields)
+                                 ) ;list
+                               ) ;list
+                    identity
+                  ) ;list-filter
+                ) ;list
+                (list "other"
+                  (translate "Other")
+                  (append (preferences-qml-build-tab preferences-qml-other-misc-fields)
+                    (preferences-qml-build-tab preferences-qml-other-experimental-fields)
+                  ) ;append
+                ) ;list
+              ) ;list
+        ) ;meta
+       ) ;
+    (when (not preferences-qml-field-kind-table-initialized?)
+      (set! preferences-qml-field-kind-table
+        (preferences-qml-collect-field-kinds meta)
+      ) ;set!
+      (set! preferences-qml-field-kind-table-initialized? #t)
+    ) ;when
+    meta
+  ) ;let
 ) ;tm-define
 
 ;; ---- submit：应用 diff（先确认再 apply） ----
@@ -1235,58 +1257,73 @@
 ;; ---- set-field：统一 setter，按 key 路由副作用 ----
 ;; 普通 key：走 set-pretty-preference（combo）或 set-boolean-preference（toggle）。
 ;; 副作用 key：路由到专用 setter——buffer management 联动 tab bar、formula radio 互斥、
-;; latex source-tracking / conservative / transparent 双向写、autosave label↔120/0 映射等。
-;; val 统一为字符串（toggle 为 "on"/"off"，combo 为内部键或 pretty 显示形——按 key 的 decode 表决定）。
+;; latex source-tracking / conservative / transparent 双向写等。
+;; val 统一为字符串（toggle 为 "on"/"off"，combo 为内部键）。
 
 (define (preferences-qml-set-field key val)
-  (cond
-    ;; buffer management：联动 tab bar boolean 偏好 + show-icon-bar 4 副作用。
-    ((== key (pref-general-buffer-management)) (on-buffer-management-changed val))
-    ;; latex 统一展示键：双向写（import + export 各一偏好）。
-    ((== key "latex:source-tracking") (set-latex-source-tracking (== val "on")))
-    ((== key "latex:conservative") (set-latex-conservative (== val "on")))
-    ((== key "latex:transparent-source-tracking")
-     (set-latex-transparent-source-tracking (== val "on"))
-    ) ;
-    ;; 其余 key：按 toggle / combo 分流。toggle 的 val 为 "on"/"off" 字符串。
-    ((== val "on") (set-boolean-preference key #t))
-    ((== val "off") (set-boolean-preference key #f))
-    (else (set-pretty-preference key val))
-  ) ;cond
+  (let ((kind (preferences-qml-field-kind key)))
+    (cond
+      ;; buffer management：联动 tab bar boolean 偏好 + show-icon-bar 4 副作用。
+      ((== key (pref-general-buffer-management)) (on-buffer-management-changed val))
+      ;; latex 统一展示键：双向写（import + export 各一偏好）。
+      ((== key "latex:source-tracking") (set-latex-source-tracking (== val "on")))
+      ((== key "latex:conservative") (set-latex-conservative (== val "on")))
+      ((== key "latex:transparent-source-tracking")
+       (set-latex-transparent-source-tracking (== val "on"))
+      ) ;
+      ;; HTML formula-export 互斥组：任意一个开则关另外两个。
+      ((member key (preferences-qml-html-formula-export-keys))
+       (preferences-qml-set-html-formula-export key val)
+      ) ;
+      ;; 普通 key：按 kind 分流。combo 走 pretty 偏好；toggle 走 boolean 偏好。
+      ((== kind "combo") (set-pretty-preference key val))
+      ((== val "on") (set-boolean-preference key #t))
+      ((== val "off") (set-boolean-preference key #f))
+      (else (set-pretty-preference key val))
+    ) ;cond
+  ) ;let
 ) ;define
 
 ;; silent 写值版（later 分支用）：走 set-pretty-preference-silent / silent 写 boolean 偏好，
 ;; 当前会话不实时切，下次启动生效。需重启字段才用 silent——非重启字段走普通 set-field。
 
 (define (preferences-qml-set-field-silent key val)
-  (cond ((== key "latex:source-tracking")
-         (set-boolean-preference (pref-latex-import-source-tracking) (== val "on"))
-         (set-boolean-preference (pref-latex-export-source-tracking) (== val "on"))
-         (save-preferences)
-        ) ;
-        ((== key "latex:conservative")
-         (set-boolean-preference (pref-latex-import-conservative) (== val "on"))
-         (set-boolean-preference (pref-latex-export-conservative) (== val "on"))
-         (save-preferences)
-        ) ;
-        ((== key "latex:transparent-source-tracking")
-         (set-boolean-preference (pref-latex-import-transparent-source-tracking)
-           (== val "on")
-         ) ;set-boolean-preference
-         (set-boolean-preference (pref-latex-export-transparent-source-tracking)
-           (== val "on")
-         ) ;set-boolean-preference
-         (save-preferences)
-        ) ;
-        ;; buffer management 走 silent：仅写偏好，不做 show-icon-bar 副作用（下次启动自然生效）。
-        ((== key (pref-general-buffer-management))
-         (set-pretty-preference-silent (pref-general-buffer-management) val)
-        ) ;
-        ;; 普通 key：用 set-pretty-preference-silent（带 decode 表路由）。
-        ((== val "on") (set-boolean-preference key #t) (save-preferences))
-        ((== val "off") (set-boolean-preference key #f) (save-preferences))
-        (else (set-pretty-preference-silent key val))
-  ) ;cond
+  (let ((kind (preferences-qml-field-kind key)))
+    (cond ((== key "latex:source-tracking")
+           (set-boolean-preference (pref-latex-import-source-tracking) (== val "on"))
+           (set-boolean-preference (pref-latex-export-source-tracking) (== val "on"))
+           (save-preferences)
+          ) ;
+          ((== key "latex:conservative")
+           (set-boolean-preference (pref-latex-import-conservative) (== val "on"))
+           (set-boolean-preference (pref-latex-export-conservative) (== val "on"))
+           (save-preferences)
+          ) ;
+          ((== key "latex:transparent-source-tracking")
+           (set-boolean-preference (pref-latex-import-transparent-source-tracking)
+             (== val "on")
+           ) ;set-boolean-preference
+           (set-boolean-preference (pref-latex-export-transparent-source-tracking)
+             (== val "on")
+           ) ;set-boolean-preference
+           (save-preferences)
+          ) ;
+          ;; HTML formula-export 互斥组：任意一个开则关另外两个。
+          ((member key (preferences-qml-html-formula-export-keys))
+           (preferences-qml-set-html-formula-export key val)
+           (save-preferences)
+          ) ;
+          ;; buffer management 走 silent：仅写偏好，不做 show-icon-bar 副作用（下次启动自然生效）。
+          ((== key (pref-general-buffer-management))
+           (set-pretty-preference-silent (pref-general-buffer-management) val)
+          ) ;
+          ;; 普通 key：按 kind 分流。
+          ((== kind "combo") (set-pretty-preference-silent key val))
+          ((== val "on") (set-boolean-preference key #t) (save-preferences))
+          ((== val "off") (set-boolean-preference key #f) (save-preferences))
+          (else (set-pretty-preference-silent key val))
+    ) ;cond
+  ) ;let
 ) ;define
 
 ;; ---- action 按钮：combo 旁的行内按钮（如 Auto backup 打开备份目录） ----

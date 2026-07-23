@@ -108,6 +108,7 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            enabled: toggleRow.enabled
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: toggleRow.toggled(!toggleRow.value)

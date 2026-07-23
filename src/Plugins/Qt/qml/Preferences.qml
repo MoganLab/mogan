@@ -149,8 +149,9 @@ DialogShell {
             closeBridge.cancel();
             return;
         }
-        prefBridge.submit(diff);  // facade 按「先确认再 apply」三分支处理
-        closeBridge.cancel();  // 关窗（submit 始终关闭）
+        var rc = prefBridge.submit(diff);  // facade 按「先确认再 apply」三分支处理
+        if (rc !== "cancel")
+            closeBridge.cancel();  // 非取消才关窗
     }
 
     content: Item {
