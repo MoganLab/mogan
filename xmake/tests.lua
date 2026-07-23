@@ -38,6 +38,9 @@ function add_target_cpp_test(filepath, dep1, dep2)
         add_includedirs(libstem_headers)
         add_rules("mogan.glue")
         add_files("src/Scheme/**/glue_*.lua", {rule = "mogan.glue"})
+        if not has_config("loro") then
+            remove_files("$(projectdir)/src/Scheme/Plugins/glue_collab.lua")
+        end
         add_files("tests/Base/base.cpp")
         add_files(filepath)
         add_files(filepath, {rules = "qt.moc"})
@@ -89,6 +92,9 @@ function add_target_cpp_bench(filepath, dep)
         add_includedirs(libstem_headers)
         add_rules("mogan.glue")
         add_files("src/Scheme/**/glue_*.lua", {rule = "mogan.glue"})
+        if not has_config("loro") then
+            remove_files("$(projectdir)/src/Scheme/Plugins/glue_collab.lua")
+        end
         add_files("tests/Base/base.cpp")
         add_files(filepath)
         add_files(filepath, {rules = "qt.moc"})
