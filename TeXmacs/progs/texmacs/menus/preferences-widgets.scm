@@ -590,6 +590,8 @@
       #t
       'group
       "Remote controllers with keyboard simulation"
+      'group-span
+      #t
       'layout
       'two-col
       'column
@@ -1289,10 +1291,15 @@
                    ((== kw 'radio-group) (list (cons 'radioGroup val)))
                    ((== kw 'visible-when-key) (list (cons 'visibleWhenKey val)))
                    ((== kw 'visible-when-val) (list (cons 'visibleWhenVal val)))
-                   ;; hint 是英文 key，过 translate 查翻译表（中文环境返回 Cork 编码的中文，
-                   ;; 英文环境原样返回 ASCII，bridge cork_to_utf8 都能正确处理）。
-                   ((== kw 'group) (list (cons 'group val)))
-                   ((== kw 'hint) (list (cons 'hint (translate val))))
+                   ;; group / hint 文案：.scm 源码字面量是 UTF-8 字节（reader 不转 Cork），
+                   ;; 先 utf8->cork 归一化，再 translate 查翻译表。否则含非 ASCII 的文案
+                   ;; （如 "TeXmacs → Html" 的 → 箭头）被当 Cork 字节二次解码 → 乱码。
+                   ;; bridge cork_to_utf8 再把 Cork 还原成 UTF-8 给 QML。
+                   ((== kw 'group) (list (cons 'group (translate (utf8->cork val)))))
+                   ;; group-span：该 group 标题横跨整行（统领下方左右两列），如 IR 的
+                   ;; "Remote controllers with keyboard simulation"。未标的 group 在列内各自渲染。
+                   ((== kw 'group-span) (list (cons 'groupSpan val)))
+                   ((== kw 'hint) (list (cons 'hint (translate (utf8->cork val)))))
                    ((== kw 'column) (list (cons 'column val)))
                    ((== kw 'layout) (list (cons 'layout val)))
                    (else '())

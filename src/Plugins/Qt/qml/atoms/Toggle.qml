@@ -15,9 +15,8 @@
 //   label        : string        —— 左侧标签文案。
 //   hint         : string        —— 标签下副说明（如「仅 semantic editing 开时可见」），空则不占位。
 //   value        : bool          —— 当前是否开。
-//   labelRatio   : real          —— 标签占行宽比例，默认 Theme.toggleLabelRatio。
+//   isNarrow     : bool          —— 是否落在双栏半宽列；true 时原子自动缩小字体 + label 占更大比例。
 //   rowHeight    : real          —— 行高，默认 Theme.rowH。
-//   fontScale    : real          —— 字体缩放，默认 1.0；双栏窄列传 < 1.0 缩小避免 label 挤换行。
 //   toggled(bool)                —— 切换时发出，参数为新值。
 //
 // 须在 DialogShell 内（宽度由父行给定）。
@@ -31,11 +30,14 @@ Item {
     property string label: ""
     property string hint: ""
     property bool value: false
-    property real labelRatio: Theme.toggleLabelRatio
+    property bool isNarrow: false
     property real rowHeight: Theme.rowH
-    property real fontScale: 1.0
     signal toggled(bool value)
 
+    // 双栏半宽列：label 占更大比例（长 label 如 "Show only semantic focus" 不挤换行），
+    // 字体缩小（twoColFontScale）。比例/缩放由 isNarrow 内部决定，调用方不感知布局。
+    property real labelRatio: isNarrow ? Theme.toggleLabelRatioNarrow : Theme.toggleLabelRatio
+    property real fontScale: isNarrow ? Theme.twoColFontScale : 1.0
     property real labelWidth: toggleRow.width * labelRatio
     height: rowHeight
 
@@ -78,7 +80,9 @@ Item {
             border.width: Theme.borderW
             border.color: toggleRow.value ? Theme.selectBorder : Theme.borderClr
             Behavior on color {
-                ColorAnimation { duration: 150 }
+                ColorAnimation {
+                    duration: 150
+                }
             }
         }
 
@@ -90,12 +94,13 @@ Item {
             height: width
             radius: height / 2
             color: Theme.selectFg
-            x: toggleRow.value
-               ? track.width - track.height / 2 - width / 2
-               : track.height / 2 - width / 2
+            x: toggleRow.value ? track.width - track.height / 2 - width / 2 : track.height / 2 - width / 2
             anchors.verticalCenter: parent.verticalCenter
             Behavior on x {
-                NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                NumberAnimation {
+                    duration: 120
+                    easing.type: Easing.OutQuad
+                }
             }
         }
 

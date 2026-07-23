@@ -15,7 +15,7 @@
 //   optionsTr    : list<string>  —— 翻译显示列表，与 options 等长同序；空则显示原文。
 //   value        : string        —— 当前英文 key。
 //   editable     : bool          —— 是否允许双击进入可编辑输入态，默认 false。
-//   labelRatio   : real          —— 标签占行宽比例，默认 Theme.comboLabelRatio。
+//   isNarrow     : bool          —— 是否落在双栏半宽列；true 时原子自动调 label 占比（给下拉控件更多空间）。
 //   rowHeight    : real          —— 行高，默认 44×scaleFactor。
 //   changed(string)              —— 选中新值时发出（英文 key，经 DialogShell 浮层 pick 触发，
 //                                   或可编辑态落定时发出键入值）。
@@ -33,7 +33,10 @@ Row {
     property var optionsTr: []
     property string value: ""
     property bool editable: false
-    property real labelRatio: Theme.comboLabelRatio
+    property bool isNarrow: false
+    // 双栏半宽列：label 占比切 narrow（给下拉控件更多空间）。由 isNarrow 内部决定，
+    // 调用方不感知布局。
+    readonly property real labelRatio: isNarrow ? Theme.comboLabelRatioNarrow : Theme.comboLabelRatio
     property real rowHeight: Theme.rowH
     signal changed(string value)
 

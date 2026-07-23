@@ -218,6 +218,12 @@
                            (check-true (== (field-ref ir-left 'column) 0))
                            (check-true (eq? (field-ref ir-center 'layout) 'two-col))
                            (check-true (== (field-ref ir-center 'column) 1))
+                           ;; ir-left 的 group 横跨整行（groupSpan）+ group 过了 translate（非空串）。
+                           (check-true (== (field-ref ir-left 'groupSpan) #t))
+                           (check-true (and (string? (field-ref ir-left 'group))
+                                         (> (string-length (field-ref ir-left 'group)) 0)
+                                       ) ;and
+                           ) ;check-true
                            ;; keyboard shortcut style 归到 keyboard tab，仅 macOS 显示。
                            (check-true (== (not (not kss)) (os-macos?)))
                            (when (os-macos?)

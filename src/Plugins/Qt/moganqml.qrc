@@ -13,6 +13,7 @@
         <file>qml/atoms/TabPanel.qml</file>
         <file>qml/atoms/MiniButton.qml</file>
         <file>qml/atoms/Toggle.qml</file>
+        <file>qml/atoms/GroupHeader.qml</file>
         <file>qml/FontSelector.qml</file>
         <file>qml/ConfirmClose.qml</file>
         <file>qml/ConfirmRestart.qml</file>

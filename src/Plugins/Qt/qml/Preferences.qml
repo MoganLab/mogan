@@ -241,60 +241,81 @@ DialogShell {
                 // 字段 delegate（单栏 / 双栏左右列共用）：按 field.kind 分流 combo/toggle/info。
                 // 三种实例并存、只显示对应 kind（避免 Loader/Component 的复杂度）。
                 // 条件可见性在外层 Item 的 visible binding 统一处理——不可见整行 hide、不占位。
+                // 分组标题（field.group）：组首字段带 group 字符串，在字段上方渲染加粗标题，
+                // 上方加一条全宽分隔线（非整段首字段时）——仿原 tm-widget 的 ====== 分隔。
+                // 字段 delegate：按 field.kind 分流 combo/toggle/info。组首字段（带 group
+                // 文案）在字段上方渲染 GroupHeader（isNarrow 随所在列宽度——半宽列内紧凑）。
+                // 三种实例并存、只显示对应 kind。条件可见性在外层 visible binding 统一处理。
                 Component {
                     id: fieldDelegate
-                    Item {
+                    Column {
+                        id: fieldDelegateRoot
                         width: parent ? parent.width : 0
-                        // 高度按当前 kind 的可见实例取（EnumCombo/Toggle 固定行高 Theme.rowH；
-                        // info 行 textRowH；不可见时归零、不占位）。
-                        height: visible ? (modelData.kind === "info" ? Theme.textRowH : Theme.rowH) : 0
+                        property bool hasGroup: typeof modelData.group === "string" && modelData.group.length > 0
+                        readonly property bool isNarrow: width > 0 && width < Theme.twoColHalfWidth
                         visible: !modelData.visibleWhenKey || root.values[modelData.visibleWhenKey] === modelData.visibleWhenVal
+                        height: visible ? implicitHeight : 0
+                        spacing: 0
 
-                        EnumCombo {
+                        GroupHeader {
                             width: parent.width
-                            visible: modelData.kind === "combo"
-                            label: modelData.label
-                            options: modelData.options || []
-                            optionsTr: modelData.optionsTr || []
-                            value: root.values[modelData.key] !== undefined ? root.values[modelData.key] : ""
-                            editable: modelData.editable !== undefined ? modelData.editable : false
-                            onChanged: function (v) {
-                                root.setField(modelData.key, v);
-                            }
+                            // groupSpan 字段的标题由 two-col section 横跨渲染，列内不重复。
+                            visible: fieldDelegateRoot.hasGroup && !modelData.groupSpan
+                            text: modelData.group
+                            isFirst: index === 0
+                            isNarrow: fieldDelegateRoot.isNarrow
                         }
 
-                        Toggle {
+                        Item {
+                            id: fieldItem
                             width: parent.width
-                            visible: modelData.kind === "toggle"
-                            label: modelData.label
-                            hint: modelData.hint || ""
-                            value: root.values[modelData.key] === "on"
-                            // 双栏半宽列：字体缩小 + label 占更大比例（长 label 如
-                            // "Show only semantic focus" 不挤换行）；单栏满宽用默认比例。
-                            fontScale: parent && parent.width < Theme.twoColHalfWidth
-                                       ? Theme.twoColFontScale : 1.0
-                            labelRatio: parent && parent.width < Theme.twoColHalfWidth
-                                        ? Theme.toggleLabelRatioNarrow : Theme.toggleLabelRatio
-                            onToggled: function (v) {
-                                root.setField(modelData.key, v ? "on" : "off");
-                            }
-                        }
+                            height: modelData.kind === "info" ? Theme.textRowH : Theme.rowH
+                            // 是否落在双栏半宽列：宽度 < twoColHalfWidth 即是。交给原子按
+                            // isNarrow 自行调整 labelRatio/fontScale，delegate 不感知比例细节。
+                            readonly property bool isNarrow: width > 0 && width < Theme.twoColHalfWidth
 
-                        Row {
-                            width: parent.width
-                            spacing: Theme.gapM
-                            visible: modelData.kind === "info"
-                            Text {
-                                width: parent.width * 0.42
-                                text: modelData.label
-                                color: Theme.fg
-                                font.pixelSize: Theme.fontBody
-                                elide: Text.ElideRight
+                            EnumCombo {
+                                width: parent.width
+                                visible: modelData.kind === "combo"
+                                label: modelData.label
+                                options: modelData.options || []
+                                optionsTr: modelData.optionsTr || []
+                                value: root.values[modelData.key] !== undefined ? root.values[modelData.key] : ""
+                                editable: modelData.editable !== undefined ? modelData.editable : false
+                                isNarrow: fieldItem.isNarrow
+                                onChanged: function (v) {
+                                    root.setField(modelData.key, v);
+                                }
                             }
-                            Text {
-                                text: modelData.value
-                                color: Theme.muted
-                                font.pixelSize: Theme.fontBody
+
+                            Toggle {
+                                width: parent.width
+                                visible: modelData.kind === "toggle"
+                                label: modelData.label
+                                hint: modelData.hint || ""
+                                value: root.values[modelData.key] === "on"
+                                isNarrow: fieldItem.isNarrow
+                                onToggled: function (v) {
+                                    root.setField(modelData.key, v ? "on" : "off");
+                                }
+                            }
+
+                            Row {
+                                width: parent.width
+                                spacing: Theme.gapM
+                                visible: modelData.kind === "info"
+                                Text {
+                                    width: parent.width * 0.42
+                                    text: modelData.label
+                                    color: Theme.fg
+                                    font.pixelSize: Theme.fontBody
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: modelData.value
+                                    color: Theme.muted
+                                    font.pixelSize: Theme.fontBody
+                                }
                             }
                         }
                     }
@@ -306,48 +327,74 @@ DialogShell {
                     spacing: Theme.gapS
 
                     // 当前 fields 缓存：activeFields() 每次 find/filter 较重，binding 里复用一份。
-                    // hasColumns 决定走双栏（Math / Other experimental，字段定义里标了 column 0/1）
-                    // 还是单栏（General / Keyboard / Convert）。
                     property var currentFields: root.activeFields()
-                    property bool hasColumns: {
-                        var fs = currentFields;
-                        for (var i = 0; i < fs.length; i++)
-                            if (fs[i].column === 0 || fs[i].column === 1)
-                                return true;
-                        return false;
-                    }
 
-                    // 单栏：满宽 Repeater。
+                    // 按 layout 切连续区段：连续相同 layout（"two-col" / undefined=single）的字段
+                    // 归为一段。single 段单列满宽；two-col 段拆左右两列并排（filter column 0/1）。
+                    // Keyboard tab 上半段 5 个 combo（single）+ 下半段 8 个 IR（two-col）即两段。
+                    property var sections: root.activeSections(currentFields)
+
                     Repeater {
-                        model: fieldCol.hasColumns ? [] : fieldCol.currentFields
-                        delegate: fieldDelegate
-                    }
-
-                    // 双栏（Math / Other experimental）：字段定义是「整块 column 0 后整块
-                    // column 1」（非交替），单 Repeater 平铺会上下错位，故按 column 拆左右两列并排。
-                    // Toggle 内部 labelWidth/字体按 parent.width 缩放，半宽列下自动等比缩小。
-                    Row {
-                        width: fieldCol.width
-                        spacing: Theme.twoColGap
-                        visible: fieldCol.hasColumns
-                        Column {
-                            width: (fieldCol.width - Theme.twoColGap) / 2
+                        // 单列区段：满宽 Repeater。
+                        model: fieldCol.sections.filter(function (s) {
+                            return s.layout !== "two-col";
+                        })
+                        delegate: Column {
+                            width: fieldCol.width
                             spacing: Theme.gapS
                             Repeater {
-                                model: fieldCol.hasColumns ? fieldCol.currentFields.filter(function (f) {
-                                    return f.column === 0;
-                                }) : []
+                                model: modelData.fields
                                 delegate: fieldDelegate
                             }
                         }
-                        Column {
-                            width: (fieldCol.width - Theme.twoColGap) / 2
+                    }
+
+                    // 双列区段：左右两列并排（column 0 / column 1）。若该段有 group-span 字段
+                    // （如 IR 的 Remote controllers），在两列上方渲染横跨整行的 GroupHeader，
+                    // 该字段的列内标题已由 fieldDelegate 跳过（见 groupSpan 判断）。
+                    Repeater {
+                        model: fieldCol.sections.filter(function (s) {
+                            return s.layout === "two-col";
+                        })
+                        delegate: Column {
+                            width: fieldCol.width
                             spacing: Theme.gapS
-                            Repeater {
-                                model: fieldCol.hasColumns ? fieldCol.currentFields.filter(function (f) {
-                                    return f.column === 1;
-                                }) : []
-                                delegate: fieldDelegate
+
+                            // 横跨整行的 group 标题（仅该段含 groupSpan 字段时）。横跨 header
+                            // 总显示分隔线（two-col 段前一般已有内容，或本身需分隔）。
+                            GroupHeader {
+                                width: parent.width
+                                visible: spanField !== null
+                                text: spanField ? spanField.group : ""
+                                isFirst: false
+                                property var spanField: modelData.fields.find(function (f) {
+                                    return f.groupSpan;
+                                })
+                            }
+
+                            Row {
+                                width: fieldCol.width
+                                spacing: Theme.twoColGap
+                                Column {
+                                    width: (fieldCol.width - Theme.twoColGap) / 2
+                                    spacing: Theme.gapS
+                                    Repeater {
+                                        model: modelData.fields.filter(function (f) {
+                                            return f.column === 0;
+                                        })
+                                        delegate: fieldDelegate
+                                    }
+                                }
+                                Column {
+                                    width: (fieldCol.width - Theme.twoColGap) / 2
+                                    spacing: Theme.gapS
+                                    Repeater {
+                                        model: modelData.fields.filter(function (f) {
+                                            return f.column === 1;
+                                        })
+                                        delegate: fieldDelegate
+                                    }
+                                }
                             }
                         }
                     }
@@ -372,5 +419,26 @@ DialogShell {
             return subObj ? (subObj.fields || []) : [];
         }
         return tabObj.fields || [];
+    }
+
+    // 按 layout 切连续区段：连续相同 layout 值的字段归为一段。
+    // layout 为 "two-col" 的段渲染双栏；其它（undefined / "single"）渲染单栏。
+    // 例：Keyboard tab -> [{single, [5 combo]}, {two-col, [8 IR]}]。
+    function activeSections(fields) {
+        var sections = [];
+        var cur = null;
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            var lay = f.layout === "two-col" ? "two-col" : "single";
+            if (!cur || cur.layout !== lay) {
+                cur = {
+                    layout: lay,
+                    fields: []
+                };
+                sections.push(cur);
+            }
+            cur.fields.push(f);
+        }
+        return sections;
     }
 }

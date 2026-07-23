@@ -45,6 +45,7 @@ QtObject {
 
     // 字号阶梯（各原子内统一）。
     readonly property real fontBody: 14 * scaleFactor // 正文/标签/列表项字号
+    readonly property real fontGroupHeader: 14 * scaleFactor // 分组标题（GroupHeader）字号
     readonly property real fontBtn: 15 * scaleFactor  // 主按钮（DialogButtons）字号
     readonly property real fontTab: 13 * scaleFactor  // 选项卡（TabBar）字号
     readonly property real fontMini: 11 * scaleFactor // 紧凑按钮（MiniButton）字号
@@ -56,6 +57,8 @@ QtObject {
     readonly property real pad: 8 * scaleFactor       // 标准内边距/缩进（容器内缩、列表 padding）
     readonly property real gapS: 6 * scaleFactor      // 小行间距（EnumComboList 行间）
     readonly property real gapM: 16 * scaleFactor     // 中间距（按钮间、combo 行 label↔控件）
+    readonly property real groupHeaderTopGap: 14 * scaleFactor // GroupHeader 标题上方间距（非首组）
+    readonly property real groupHeaderBottomPad: 4 * scaleFactor // GroupHeader 标题↔分隔线间距
     readonly property real inlineGap: 12 * scaleFactor // 行内间隙（Statistics label↔value）
     readonly property real margin: 24 * scaleFactor   // 弹窗正文四周大边距（DialogShell implicitMargins）
 
@@ -82,6 +85,7 @@ QtObject {
     readonly property real toggleLabelRatio: 0.85       // Toggle 单栏满宽：label 占比
     readonly property real toggleLabelRatioNarrow: 0.7  // Toggle 双栏半宽列：label 占更多，长文案不换行
     readonly property real comboLabelRatio: 0.6         // EnumCombo 单栏满宽：label 占比（combo 控件需更宽）
+    readonly property real comboLabelRatioNarrow: 0.5   // EnumCombo 双栏半宽列：label 占更多，长文案不换行
 
     // 首选项双栏（Math / Other experimental，column flag 字段）布局常量。
     readonly property real twoColGap: 24 * scaleFactor // 双栏左右列间距（设计稿 two-col gap）

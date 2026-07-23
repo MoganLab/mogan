@@ -122,6 +122,7 @@ public:
     QVariantList irL, irR;
     QVariantMap  irL0= field ("combo", "ir-left", "Left");
     irL0["group"]    = QString ("Remote controllers");
+    irL0["groupSpan"]= true;
     irL0["layout"]   = QString ("two-col");
     irL0["column"]   = 0;
     irL0["editable"] = true;
@@ -129,6 +130,7 @@ public:
     irR0["key"]      = QString ("ir-center");
     irR0["label"]    = QString ("Center");
     irR0["group"]    = QString ();
+    irR0["groupSpan"]= false;
     irR0["column"]   = 1;
     kf << irL0 << irR0;
     QVariantMap ktab;

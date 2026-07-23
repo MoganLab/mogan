@@ -9,3 +9,4 @@ TabBar 1.0 TabBar.qml
 TabPanel 1.0 TabPanel.qml
 MiniButton 1.0 MiniButton.qml
 Toggle 1.0 Toggle.qml
+GroupHeader 1.0 GroupHeader.qml
