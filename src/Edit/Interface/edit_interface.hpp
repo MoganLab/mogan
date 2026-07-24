@@ -184,8 +184,10 @@ public:
   void draw_surround (renderer ren, rectangle r);
   void draw_context (renderer ren, rectangle r);
   void draw_env (renderer ren);
+  void draw_caret (renderer ren, cursor cu, color col, SI dw, SI zpixel);
   void draw_cursor (renderer ren);
   void draw_selection (renderer ren, rectangle r);
+  void draw_remote_cursors (renderer ren, rectangle r);
   void draw_image_resize_handles (renderer ren);
   void draw_table_resize_handles (renderer ren);
   void draw_graphics (renderer ren);

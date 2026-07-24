@@ -209,6 +209,28 @@ test('JOIN 不存在的文档返回 NO_SUCH_DOC', async () => {
   c.close();
 });
 
+test('CURSOR 帧原样转发给同文档其他客户端（排除发送者）', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docId = lastDocId(a);
+  const b = new TestClient();
+  await b.connect();
+  b.send(`JOIN ${docId}`);
+  await b.waitFor(() => b.control.some((m) => m.startsWith('DOC ')));
+
+  // 多光标帧：瞬态、不落盘，服务端应原样转发
+  const frame = 'CURSOR p1 a1b2c3d4e5f60718:3:4 a1b2c3d4e5f60718:3:4 a1b2c3d4e5f60718:3:9';
+  a.send(frame);
+  await b.waitFor(() => b.control.includes(frame));
+  // 发送者自己不应收到（broadcast 排除 from）
+  await new Promise((r) => setTimeout(r, 300));
+  assert.ok(!a.control.includes(frame), '发送者不应收到自己的 CURSOR 帧');
+  a.close();
+  b.close();
+});
+
 test('snapshot 截断：累积超过阈值后生成 snapshot.bin 并清空 updates.log', async () => {
   const a = new TestClient();
   await a.connect();

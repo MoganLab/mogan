@@ -85,8 +85,17 @@ public:
   tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
+  /** 反查：在 buffer 树中找到 TreeID 对应的节点，返回其 buffer-相对路径并追加
+   * 偏移 offset（原子节点内即 LoroText 字符偏移；复合节点即子索引）。用于把远端
+   * peer 的光标 TreeID 解析回本端 path。节点未找到（尚未同步到/已被删除）返回
+   * nil，调用方据此跳过渲染。id_map 每次 apply_remote 后由
+   * sync_id_map_from_shadow 刷新，故按需遍历结果反映当前 buffer。 */
+  path cursor_path_of (tree buffer, mogan_tree_id id, int offset);
 
 private:
+  // cursor_path_of 的递归内核：在子树 t 中找 TreeID==id 的节点，命中写 out=acc
+  // 并 返回 true。acc 为自根下钻累积的 buffer-相对 path。
+  bool find_id_path (tree t, mogan_tree_id id, path acc, path& out);
   // 取某 LoroTree 节点的子 TreeID 列表（用于 REMOVE 按位置删）
   array<mogan_tree_id> node_children (mogan_tree_id parent);
   mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index);

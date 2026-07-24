@@ -11,11 +11,14 @@
 #include "loro_collab_ws.hpp"
 #include "new_view.hpp"
 #include "server.hpp"
+#include "sys_utils.hpp"
 #include "tm_buffer.hpp"
 #include "tm_timer.hpp"
 #include "url.hpp"
+#include <cstdint>
 
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
+void (*g_loro_cursor_dirty) ()                = nullptr;
 collab_session_manager g_session_manager;
 
 void
@@ -27,11 +30,30 @@ broadcast_to_server (string bytes) {
   }
 }
 
+// 多光标：编辑器侧 collab_cursor_moved_hook 经此把「当前 buffer 的会话」标脏，
+// 待 poll() 节流上行。
+void
+mark_current_cursor_dirty () {
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  if (session) session->mark_cursor_dirty ();
+}
+
 // -----------------------------------------------------------------------------
 // collab_session
 // -----------------------------------------------------------------------------
 
-collab_session::collab_session (url buf_url) : buffer_url (buf_url) {}
+collab_session::collab_session (url buf_url) : buffer_url (buf_url) {
+  // 会话级 peer id：可由 MOGAN_LORO_PEER
+  // 强制（便于调试/指定颜色），否则随机生成。
+  string env= get_env ("MOGAN_LORO_PEER");
+  if (env != "") peer_id= env;
+  else {
+    static int counter= 0;
+    int seed= (int) texmacs_time () ^ (++counter) ^ (int) (intptr_t) this;
+    peer_id = "p" * as_string (seed);
+  }
+}
 
 collab_session::~collab_session () { disconnect (); }
 
@@ -106,6 +128,7 @@ collab_session::become_ready () {
   enter_ready ();
   buffer_known           = true;
   g_loro_broadcast_update= broadcast_to_server;
+  g_loro_cursor_dirty    = mark_current_cursor_dirty;
 
   editor ed= get_editor ();
   if (is_nil (ed)) {
@@ -182,6 +205,7 @@ collab_session::disconnect () {
   reconnect_attempt= 0;
   buffer_known     = false;
   pending_updates  = array<string> ();
+  cursor_dirty     = false;
   if (ws) {
     ws->disconnect ();
     ws.reset ();
@@ -205,6 +229,17 @@ collab_session::poll () {
     await_frame_since= 0;
     become_ready ();
   }
+  // 多光标：脏标记 + ≥50ms 节流上行本地光标
+  if (cursor_dirty && state == collab_state::ready &&
+      texmacs_time () - last_cursor_send >= 50) {
+    editor ed= get_editor ();
+    if (!is_nil (ed)) {
+      string payload= ed->collab_cursor_payload ();
+      if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
+    }
+    cursor_dirty    = false;
+    last_cursor_send= texmacs_time ();
+  }
   maybe_reconnect ();
 }
 
@@ -221,6 +256,14 @@ collab_session::broadcast (string bytes) {
       debug_loro << "缓冲本地 update（" << N (bytes)
                  << " 字节），待重连后上行\n";
   }
+}
+
+// 多光标：发文本帧 "CURSOR <peer> <payload>"。光标瞬态，仅在 ready 且已连接时
+// 发送，断线不缓冲（丢失即丢弃，下个节流周期自然补发）。
+void
+collab_session::send_cursor (string payload) {
+  if (state == collab_state::ready && ws && ws->connected ())
+    ws->send (payload, false);
 }
 
 void
@@ -250,6 +293,17 @@ collab_session::on_message (string data, bool is_binary) {
       want_reconnect= false;
       enter_idle ();
       set_message (data * " — stopped reconnecting");
+    }
+    else if (starts (data, "CURSOR ")) {
+      // "CURSOR <peer>
+      // <payload>"：peer=首空格前，payload=其后（含空格，不透明）
+      string rest= data (7, N (data));
+      int    sp  = search_forwards (" ", rest);
+      if (sp >= 0) {
+        editor ed= get_editor ();
+        if (!is_nil (ed))
+          ed->set_remote_cursor (rest (0, sp), rest (sp + 1, N (rest)));
+      }
     }
     return;
   }

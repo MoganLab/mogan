@@ -85,6 +85,42 @@ edit_interface_rep::draw_env (renderer ren) {
   }
 }
 
+// 插入符形状：竖条 + 上下衬线（按模式倾斜、bold 双线、sans 无衬线）。
+// 本地 draw_cursor 与远程 draw_remote_cursors 共用此绘制，保证形状一致；
+// 仅颜色由调用方传入。
+void
+edit_interface_rep::draw_caret (renderer ren, cursor cu, color col, SI dw,
+                                SI zpixel) {
+  cu->y1-= 2 * zpixel + dw;
+  cu->y2+= 2 * zpixel + dw;
+  SI     x1= cu->ox + ((SI) (cu->y1 * cu->slope)), y1= cu->oy + cu->y1;
+  SI     x2= cu->ox + ((SI) (cu->y2 * cu->slope)), y2= cu->oy + cu->y2;
+  string mode= get_env_string (MODE);
+  string family, series;
+  if ((mode == "text") || (mode == "src")) {
+    family= get_env_string (FONT_FAMILY);
+    series= get_env_string (FONT_SERIES);
+  }
+  else if (mode == "math") {
+    family= get_env_string (MATH_FONT_FAMILY);
+    series= get_env_string (MATH_FONT_SERIES);
+  }
+  else if (mode == "prog") {
+    family= get_env_string (PROG_FONT_FAMILY);
+    series= get_env_string (PROG_FONT_SERIES);
+  }
+  ren->set_pencil (pencil (col, zpixel + dw));
+  SI lserif= (series == "bold" ? 2 * zpixel : zpixel) + dw;
+  SI rserif= zpixel + dw;
+  if (family == "ss") lserif= rserif= 0;
+  ren->line (x1 - lserif, y1, x1 + rserif, y1);
+  if (y1 <= y2 - zpixel) {
+    ren->line (x1, y1, x2, y2 - zpixel);
+    if (series == "bold") ren->line (x1 - zpixel, y1, x2 - zpixel, y2 - zpixel);
+    ren->line (x2 - lserif, y2 - zpixel, x2 + rserif, y2 - zpixel);
+  }
+}
+
 void
 edit_interface_rep::draw_cursor (renderer ren) {
   if (get_preference ("draw cursor") == "on" && !temp_invalid_cursor &&
@@ -94,38 +130,11 @@ edit_interface_rep::draw_cursor (renderer ren) {
     if (!inside_active_graphics ()) {
       SI dw= 0;
       if (tremble_count > 3) dw= min (tremble_count - 3, 25) * pixel;
-      cu->y1-= 2 * zpixel + dw;
-      cu->y2+= 2 * zpixel + dw;
-      SI     x1= cu->ox + ((SI) (cu->y1 * cu->slope)), y1= cu->oy + cu->y1;
-      SI     x2= cu->ox + ((SI) (cu->y2 * cu->slope)), y2= cu->oy + cu->y2;
       string mode= get_env_string (MODE);
-      string family, series;
-      color  cuc= get_env_color (CURSOR_COLOR);
+      color  cuc = get_env_color (CURSOR_COLOR);
       if (!cu->valid) cuc= green;
       else if (mode == "math") cuc= get_env_color (MATH_CURSOR_COLOR);
-      ren->set_pencil (pencil (cuc, zpixel + dw));
-      if ((mode == "text") || (mode == "src")) {
-        family= get_env_string (FONT_FAMILY);
-        series= get_env_string (FONT_SERIES);
-      }
-      else if (mode == "math") {
-        family= get_env_string (MATH_FONT_FAMILY);
-        series= get_env_string (MATH_FONT_SERIES);
-      }
-      else if (mode == "prog") {
-        family= get_env_string (PROG_FONT_FAMILY);
-        series= get_env_string (PROG_FONT_SERIES);
-      }
-      SI lserif= (series == "bold" ? 2 * zpixel : zpixel) + dw;
-      SI rserif= zpixel + dw;
-      if (family == "ss") lserif= rserif= 0;
-      ren->line (x1 - lserif, y1, x1 + rserif, y1);
-      if (y1 <= y2 - zpixel) {
-        ren->line (x1, y1, x2, y2 - zpixel);
-        if (series == "bold")
-          ren->line (x1 - zpixel, y1, x2 - zpixel, y2 - zpixel);
-        ren->line (x2 - lserif, y2 - zpixel, x2 + rserif, y2 - zpixel);
-      }
+      draw_caret (ren, cu, cuc, dw, zpixel);
     }
   }
 }
@@ -177,6 +186,46 @@ edit_interface_rep::draw_selection (renderer ren, rectangle r) {
 
   draw_image_resize_handles (ren);
   draw_table_resize_handles (ren);
+}
+
+static color
+peer_color (string peer) {
+  static const color palette[]= {red, blue, green, orange, magenta, brown};
+
+  int h= 0;
+  for (int i= 0; i < N (peer); i++)
+    h= h * 31 + (unsigned char) peer[i];
+
+  return palette[((h % 6) + 6) % 6];
+}
+
+static color
+peer_selection_color (string peer) {
+  int r, g, b, a;
+  get_rgb_color (peer_color (peer), r, g, b, a);
+
+  return rgb_color (r, g, b, 80); // alpha=80/255≈31%
+}
+
+void
+edit_interface_rep::draw_remote_cursors (renderer ren, rectangle r) {
+  auto       rc= get_remote_cursors ();
+  rectangles visible (thicken (r, 2 * ren->pixel, 2 * ren->pixel));
+  for (int i= 0; i < N (rc); i++) {
+    color col= peer_selection_color (rc[i].peer);
+    // 选区高亮（起止不同才有）
+    if (!is_nil (rc[i].sel_start) && !is_nil (rc[i].sel_end) &&
+        rc[i].sel_start != rc[i].sel_end) {
+      selection sel= eb->find_check_selection (rc[i].sel_start, rc[i].sel_end);
+      ren->set_pencil (pencil (col, ren->pixel));
+      ren->draw_selection (sel->rs & visible);
+    }
+    // 插入符：与本地光标同形状（竖条+衬线，按模式倾斜），颜色为 peer 实色
+    if (!is_nil (rc[i].caret)) {
+      cursor cu= eb->find_check_cursor (rc[i].caret);
+      if (cu->valid) draw_caret (ren, cu, peer_color (rc[i].peer), 0, zpixel);
+    }
+  }
 }
 
 void
@@ -381,6 +430,7 @@ edit_interface_rep::draw_post (renderer win, renderer ren, rectangle r) {
   draw_context (ren, r);
   draw_env (ren);
   draw_selection (ren, r);
+  draw_remote_cursors (ren, r);
   draw_graphics (ren);
   draw_cursor (ren); // the text cursor must be drawn over the graphical object
   ren->reset_zoom_factor ();

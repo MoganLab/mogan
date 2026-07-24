@@ -159,4 +159,135 @@ edit_modify_rep::apply_remote (string bytes) {
     send_invalidate_all (this);
   }
 }
+
+/******************************************************************************
+ * 多光标：本地光标序列化（path -> TreeID+偏移）与远程光标接收/解析。
+ * 位置组格式 "peerhex:counter:offset"（peer 为 u64 的 16 位 hex——lolly 无 64 位
+ * 整数字符串转换）；payload = "caret sel_start sel_end" 三组空格分隔，传输层
+ * 不解析，原样收发。
+ ******************************************************************************/
+
+static string
+u64_to_hex (uint64_t v) {
+  string r;
+  for (int i= 15; i >= 0; i--) {
+    int nib= (int) ((v >> (4 * i)) & 0xf);
+    r << (char) (nib < 10 ? '0' + nib : 'a' + nib - 10);
+  }
+  return r;
+}
+
+static uint64_t
+hex_to_u64 (string s) {
+  uint64_t v= 0;
+  for (int i= 0; i < N (s); i++) {
+    char c  = s[i];
+    int  nib= (c >= '0' && c <= '9')   ? c - '0'
+              : (c >= 'a' && c <= 'f') ? c - 'a' + 10
+              : (c >= 'A' && c <= 'F') ? c - 'A' + 10
+                                       : 0;
+    v       = (v << 4) | (uint64_t) nib;
+  }
+  return v;
+}
+
+static string
+format_group (mogan_tree_id tid, int off) {
+  return u64_to_hex (tid.peer) * ":" * as_string (tid.counter) * ":" *
+         as_string (off);
+}
+
+static bool
+parse_group (string g, mogan_tree_id& tid, int& off) {
+  int c1= search_forwards (":", g);
+  if (c1 < 0) return false;
+  string rest= g (c1 + 1, N (g));
+  int    c2  = search_forwards (":", rest);
+  if (c2 < 0) return false;
+  tid.peer   = hex_to_u64 (g (0, c1));
+  tid.counter= as_int (rest (0, c2));
+  off        = as_int (rest (c2 + 1, N (rest)));
+  return true;
+}
+
+static array<string>
+split_spaces (string s) {
+  array<string> out;
+  int           start= 0;
+  for (int i= 0; i <= N (s); i++)
+    if (i == N (s) || s[i] == ' ') {
+      if (i > start) out << s (start, i);
+      start= i + 1;
+    }
+  return out;
+}
+
+// 绝对 path -> 其包含节点（path_up(p)）的 TreeID + 末位偏移 last_item(p)。
+// 原子节点内偏移即 LoroText 字符索引（稳定）；不可定位（nil/path 越界）回退
+// 0:0:0。
+static string
+encode_path (tree& et, loro_shadow loro_doc, path p) {
+  if (is_nil (p) || is_nil (path_up (p)) || !has_subtree (et, path_up (p)))
+    return format_group (mogan_tree_id{0, 0}, 0);
+  tree          node= subtree (et, path_up (p));
+  mogan_tree_id tid = loro_doc->get_id (node);
+  return format_group (tid, last_item (p));
+}
+
+string
+edit_modify_rep::collab_cursor_payload () {
+  if (!loro_collab_on) return "";
+  path cp= tp;
+  path sp= cp, ep= cp;
+  if (selection_active_any ()) selection_get (sp, ep);
+  return encode_path (et, loro_doc, cp) * " " * encode_path (et, loro_doc, sp) *
+         " " * encode_path (et, loro_doc, ep);
+}
+
+extern void (*g_loro_cursor_dirty) ();
+
+void
+edit_modify_rep::collab_cursor_moved_hook () {
+  if (loro_applying_remote) return; // 远端应用期间恢复本地光标，不回灌
+  if (!loro_collab_on) return;
+  if (g_loro_cursor_dirty) g_loro_cursor_dirty ();
+}
+
+void
+edit_modify_rep::set_remote_cursor (string peer, string payload) {
+  array<string> g= split_spaces (payload);
+  if (N (g) < 3) return;
+  remote_cursor_entry e;
+  e.peer= peer;
+  if (!parse_group (g[0], e.c_tid, e.c_off)) return;
+  if (!parse_group (g[1], e.s_tid, e.s_off)) return;
+  if (!parse_group (g[2], e.e_tid, e.e_off)) return;
+  for (int i= 0; i < N (remote_cursors); i++)
+    if (remote_cursors[i].peer == peer) {
+      remote_cursors[i]= e;
+      send_invalidate_all (this); // 远程光标变化：触发重绘
+      return;
+    }
+  remote_cursors << e;
+  send_invalidate_all (this);
+}
+
+array<editor_rep::remote_cursor_view>
+edit_modify_rep::get_remote_cursors () {
+  array<remote_cursor_view> out;
+  tree                      buf= the_buffer ();
+  for (int i= 0; i < N (remote_cursors); i++) {
+    remote_cursor_entry& e= remote_cursors[i];
+    remote_cursor_view   v;
+    v.peer     = e.peer;
+    path crel  = loro_doc->cursor_path_of (buf, e.c_tid, e.c_off);
+    path srel  = loro_doc->cursor_path_of (buf, e.s_tid, e.s_off);
+    path erel  = loro_doc->cursor_path_of (buf, e.e_tid, e.e_off);
+    v.caret    = is_nil (crel) ? path () : rp * crel;
+    v.sel_start= is_nil (srel) ? path () : rp * srel;
+    v.sel_end  = is_nil (erel) ? path () : rp * erel;
+    out << v;
+  }
+  return out;
+}
 #endif

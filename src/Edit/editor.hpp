@@ -644,6 +644,25 @@ public:
   virtual void collab_enable () = 0; // 留在 LORO_ENABLED 条件外，由编译宏控制。
   virtual bool collab_enabled ()= 0; // 这是为了保证 glue 生成过程中能找到实现
 
+  /** 远程 peer 光标（多光标协作）。位置以 TreeID+偏移编码进不透明 payload 串
+   *（由 collab_cursor_payload 产生），传输层不解析；本端在 set_remote_cursor
+   * 解码、在 get_remote_cursors（重绘时）解析回当前 buffer 的 path 供渲染。 */
+  struct remote_cursor_view {
+    string peer;      // 远端 peer id
+    path   caret;     // 已解析到当前 buffer 的插入符绝对 path（nil=不可定位）
+    path   sel_start; // 选区起绝对 path
+    path   sel_end;   // 选区止绝对 path（== sel_start 表示无选区）
+  };
+  virtual void set_remote_cursor (string peer, string payload) {}
+  virtual array<remote_cursor_view> get_remote_cursors () {
+    return array<remote_cursor_view> ();
+  }
+  virtual string collab_cursor_payload () { return ""; }
+  /** 本地光标/选区变化时由 edit_cursor/edit_select 调用，通知协作层「光标脏」
+   * 待节流上行。默认空；edit_modify 在 LORO_ENABLED 下覆写并加 applying 守卫。
+   */
+  virtual void collab_cursor_moved_hook () {}
+
   friend class tm_window_rep;
   friend class tm_server_rep;
   friend class server_command_rep;

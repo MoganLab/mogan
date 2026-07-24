@@ -240,6 +240,7 @@ edit_cursor_rep::notify_cursor_moved (int status) {
   cu       = eb->find_check_cursor (tp);
   notify_change (THE_CURSOR);
   if (cu->valid) call ("notify-cursor-moved", object (status));
+  collab_cursor_moved_hook (); // 多光标：本地光标移动 → 标记待节流上行
 }
 
 void
