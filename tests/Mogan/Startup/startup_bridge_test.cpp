@@ -139,10 +139,11 @@ private slots:
 
     QSignalSpy spy (&bridge, &StartupBridge::activeCategoryChanged);
 
-    // 首次选择（未初始化 templateManager_，走安全路径：仅更新内部状态）
+    // 首次选择（未初始化 templateManager_，走安全路径：仅更新内部状态，
+    // 同步刷新后 loading 回到 false）
     bridge.selectCategory ("cat-a");
     QCOMPARE (bridge.activeCategoryId (), QString ("cat-a"));
-    QCOMPARE (bridge.categoryLoading (), true);
+    QCOMPARE (bridge.categoryLoading (), false);
     QCOMPARE (spy.count (), 1);
 
     // 重复选择同一分类不应 emit 信号

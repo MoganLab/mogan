@@ -99,8 +99,8 @@ QtObject {
 
     // ---- 字号 ----
     readonly property real fontSectionTitle: 16 * scaleFactor
-    readonly property real fontNavTitle: 11 * scaleFactor
-    readonly property real fontNavBtn: 13 * scaleFactor
+    readonly property real fontNavTitle: 13 * scaleFactor
+    readonly property real fontNavBtn: 15 * scaleFactor
     readonly property real fontCardName: 14 * scaleFactor
     readonly property real fontCardTitle: 10 * scaleFactor
     readonly property real fontRecentName: 15 * scaleFactor

@@ -53,7 +53,7 @@ Rectangle {
                            (homeMouse.containsMouse ? StartupTheme.navBtnHoverBg : "transparent")
 
                     Text {
-                        anchors { left: parent.left; leftMargin: StartupTheme.navBtnPadH; verticalCenter: parent.verticalCenter }
+                        anchors.centerIn: parent
                         text: StartupTheme.tr("Home")
                         color: StartupTheme.navBtnFg
                         font.pixelSize: StartupTheme.fontNavBtn
@@ -86,11 +86,13 @@ Rectangle {
                         }
 
                         Text {
-                            anchors { left: parent.left; leftMargin: StartupTheme.navBtnPadH; verticalCenter: parent.verticalCenter }
+                            anchors.centerIn: parent
+                            width: parent.width - 2 * StartupTheme.navBtnPadH
                             text: modelData.name
                             color: StartupTheme.navBtnFg
                             font.pixelSize: StartupTheme.fontNavBtn
-                            elide: Text.ElideRight
+                            elide: Text.ElideMiddle
+                            horizontalAlignment: Text.AlignHCenter
                         }
                         MouseArea {
                             id: catMouse

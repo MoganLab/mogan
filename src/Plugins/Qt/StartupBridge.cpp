@@ -330,7 +330,6 @@ StartupBridge::onTemplatesLoaded () {
   categoryLoading_= false;
   emit categoryLoadingChanged ();
   refreshCategoryTemplates ();
-  rebuildStyleCards ();
 }
 
 // =========================================================================
@@ -426,6 +425,9 @@ StartupBridge::selectCategory (const QString& categoryId) {
   emit categoryLoadingChanged ();
   if (templateManager_ && templateManager_->isInitialized ())
     templateManager_->refreshTemplatesByCategory (categoryId);
+  refreshCategoryTemplates ();
+  categoryLoading_= false;
+  emit categoryLoadingChanged ();
 }
 
 void
