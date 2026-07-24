@@ -3,675 +3,475 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liii STEM</title>
+    <title>Liii STEM — Startup Tab Prototype</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
             background: #f0f0f0;
             height: 100vh;
             overflow: hidden;
             color: #333;
         }
 
-        .app-container {
-            display: flex;
-            height: 100vh;
-        }
+        .app-container { display: flex; height: 100vh; }
 
-        /* 顶部标题栏 */
+        /* ================================================================
+           标题栏 (对应 QTMWindow, 不属于 startup tab 但原型展示完整窗口)
+           ================================================================ */
         .title-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 44px;
-            background: #f5f5f5;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            z-index: 1000;
-            -webkit-app-region: drag;
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 44px; background: #f5f5f5;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; z-index: 1000;
         }
-
-        .title-bar-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .window-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .window-btn {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-        }
-
-        .window-btn.red { background: #ff5f57; }
+        .title-bar-left  { display: flex; align-items: center; gap: 12px; }
+        .title-bar-right { display: flex; align-items: center; gap: 12px; }
+        .window-controls { display: flex; gap: 8px; }
+        .window-btn { width: 16px; height: 16px; border-radius: 50%; }
+        .window-btn.red    { background: #ff5f57; }
         .window-btn.yellow { background: #febc2e; }
-        .window-btn.green { background: #28c840; }
-
+        .window-btn.green  { background: #28c840; }
         .app-title {
-            font-size: 16px;
-            font-weight: 500;
-            color: #333;
-            background: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
+            font-size: 16px; font-weight: 500; color: #333;
+            background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid #ddd;
         }
-
-        .title-bar-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
         .icon-btn {
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border-radius: 4px;
+            width: 28px; height: 28px; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; border-radius: 4px;
         }
+        .icon-btn:hover { background: rgba(0,0,0,0.05); }
 
-        .icon-btn:hover {
-            background: rgba(0,0,0,0.05);
-        }
-
-        /* 左侧边栏 */
+        /* ================================================================
+           左侧导航栏 (对应 QWidget#startup-tab-sidebar, lii.css: bg #215a6a)
+           ================================================================ */
         .sidebar {
-            width: 140px;
-            background: #006064;
+            width: 160px;
+            background: #215a6a;
             padding-top: 60px;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
         }
-
-        .nav-section {
-            padding: 0 12px;
-        }
-
-        .nav-label {
+        /* Navigation 分组标题 (对应 QLabel#startup-tab-nav-title) */
+        .nav-title {
             color: rgba(255,255,255,0.6);
-            font-size: 12px;
-            margin-bottom: 8px;
-            padding-left: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 20px 8px;
         }
-
-        .nav-item {
-            padding: 10px 16px;
-            color: rgba(255,255,255,0.85);
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 6px;
-            margin-bottom: 4px;
-            transition: all 0.2s;
-            text-decoration: none;
+        /* 导航按钮 (对应 QPushButton#startup-tab-nav-btn) */
+        .nav-btn {
             display: block;
-        }
-
-        .nav-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .nav-item.active {
-            background: #00acc1;
+            width: calc(100% - 16px);
+            margin: 0 8px 2px;
+            padding: 8px 12px;
             color: #fff;
-        }
-
-        .sidebar-footer {
-            margin-top: auto;
-            padding: 16px 12px;
-        }
-
-        .exit-btn {
-            width: 100%;
-            padding: 10px;
+            font-size: 13px;
             background: transparent;
-            border: 1px solid rgba(255,255,255,0.3);
-            color: rgba(255,255,255,0.8);
-            border-radius: 6px;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .exit-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* 主内容区 */
-        .main-content {
-            flex: 1;
-            padding: 60px 40px 40px;
-            overflow-y: auto;
-        }
-
-        .section-title {
-            font-size: 20px;
-            color: #006064;
-            font-weight: 500;
-            margin-bottom: 24px;
-        }
-
-        /* 模板卡片 */
-        .templates-grid {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .template-card {
-            width: 150px;
-            height: 210px;
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #e0e0e0;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .template-card:hover {
-            border-color: #00838f;
-        }
-
-        .template-preview {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            position: relative;
-        }
-
-        .template-card.blank .template-preview {
-            background: #fff;
-        }
-
-        .plus-icon {
-            font-size: 48px;
-            color: #006064;
-            font-weight: 300;
-            margin-bottom: 12px;
-        }
-
-        .template-card.notes .template-preview {
-            background: #fff;
-            padding: 0;
-        }
-
-        .notes-image {
-            width: 100%;
-            height: 110px;
-            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .notes-image::before {
-            content: "";
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            background: #fff;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .notes-image::after {
-            content: "";
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: #8B4513;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.6;
-        }
-
-        .notes-content {
-            padding: 6px;
-            width: 100%;
-        }
-
-        .notes-line {
-            height: 6px;
-            background: #e0e0e0;
-            border-radius: 3px;
-            margin-bottom: 6px;
-        }
-
-        .notes-line.short { width: 40%; }
-        .notes-line.medium { width: 70%; }
-
-        .notes-logo {
-            position: absolute;
-            bottom: 50px;
-            right: 20px;
-            width: 32px;
-            height: 32px;
-            background: #00838f;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .notes-logo svg {
-            width: 18px;
-            height: 18px;
-            fill: #fff;
-        }
-
-        .template-card.document .template-preview {
-            background: #fff;
-            padding: 16px 20px;
-            align-items: flex-start;
-        }
-
-        .doc-header {
-            font-size: 8px;
-            color: #666;
-            margin-bottom: 8px;
-            text-align: center;
-            width: 100%;
-        }
-
-        .doc-line {
-            height: 3px;
-            background: #e0e0e0;
-            border-radius: 1.5px;
-            margin-bottom: 4px;
-            width: 100%;
-        }
-
-        .doc-line.short { width: 60%; }
-        .doc-line.title { 
-            background: #006064; 
-            height: 4px; 
-            width: 50%;
-            margin: 8px 0;
-        }
-
-        .template-name {
-            padding: 12px;
-            text-align: center;
-            font-size: 9px;
-            color: #333;
-            border-top: 1px solid #f0f0f0;
-            background: #fff;
-        }
-
-        /* 分隔线 */
-        .divider {
-            height: 1px;
-            background: #ddd;
-            margin: 0 0 32px 0;
-        }
-
-        /* 最近文档 */
-        .recent-docs {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #e0e0e0;
-            overflow: hidden;
-            height: 270px;
-        }
-
-        .doc-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 24px;
-            cursor: pointer;
+            text-align: left;
             transition: background 0.15s;
         }
+        .nav-btn:hover   { background: rgba(255,255,255,0.15); }
+        .nav-btn.active  { background: #2791ad; }
 
-        .doc-item:hover {
-            background: #f8f9fa;
+        .sidebar-footer { margin-top: auto; padding: 0 8px 16px; }
+        /* Quit 按钮 (对应 QPushButton#startup-tab-quit-btn) */
+        .quit-btn {
+            display: block; width: 100%;
+            padding: 8px 12px;
+            color: #fff; font-size: 13px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+            cursor: pointer; text-align: center;
+            transition: all 0.15s;
+        }
+        .quit-btn:hover { background: rgba(255,255,255,0.2); border-color: #fff; }
+
+        /* ================================================================
+           右侧内容区 (对应 QWidget#startup-tab-content, lii.css: bg #f3f3f3)
+           ================================================================ */
+        .main-content {
+            flex: 1;
+            padding: 76px 48px 40px;
+            overflow-y: auto;
+            background: #f3f3f3;
         }
 
-        .doc-item:not(:last-child) {
-            border-bottom: 1px solid #f0f0f0;
+        /* 分区标题 (对应 QLabel#startup-tab-section-title) */
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #215a6a;
+            margin-bottom: 16px;
         }
 
-        .doc-name {
-            font-size: 15px;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .doc-time {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
+        /* ================================================================
+           StyleCard — 图标模式 (new / open)
+           对应 StyleCard::setupIconMode + QWidget#style-card
+           160×256, border #cfcfcf, radius 8, hover #2791ad
+           ================================================================ */
+        .style-cards {
+            display: flex;
+            flex-wrap: wrap;
             gap: 16px;
+            margin-bottom: 20px;
         }
-
-        .card {
+        .style-card {
+            width: 160px;
+            height: 256px;
             background: #fff;
+            border: 1px solid #cfcfcf;
             border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            overflow: hidden;
             cursor: pointer;
-            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: border-color 0.15s;
         }
+        .style-card:hover { border-color: #2791ad; }
 
-        .card:hover {
-            border-color: #00838f;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        .card-preview {
-            height: 280px;
-            background: #f8f9fa;
+        /* 图标区域 (对应 QLabel#style-card-icon, color #215a6a, weight 700) */
+        .style-card .card-icon {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 12px;
+            padding-top: 24px;
         }
-
-        .card-preview svg {
-            width: 48px;
-            height: 48px;
-            stroke: #006064;
-            stroke-width: 1.5;
-            fill: none;
+        .style-card .card-icon svg {
+            width: 50px; height: 50px;
+            color: #215a6a;
         }
-
-        .card-name {
-            padding: 10px;
+        /* 名称 (对应 QLabel#style-card-name, color #2b3b45, 14px) */
+        .style-card .card-name {
+            padding: 0 12px 24px;
+            font-size: 14px;
+            color: #2b3b45;
             text-align: center;
-            font-size: 13px;
-            color: #333;
+        }
+
+        /* ================================================================
+           StyleCard — 缩略图模式 (推荐模板)
+           对应 StyleCard::setupThumbnailMode + QFrame#style-card-frame
+           ================================================================ */
+        .style-card.thumbnail .card-frame {
+            width: 152px;
+            height: 219px;
+            margin: 4px 4px 0;
+            border: 1px solid #cfcfcf;
+            border-radius: 6px;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .style-card.thumbnail:hover .card-frame { border-color: #2791ad; }
+        .style-card.thumbnail .thumb-img {
+            flex: 1;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 12px;
+        }
+        /* 标题栏 (对应 QLabel#style-card-title, bg #fff, color #2b3b45, 10px) */
+        .style-card.thumbnail .thumb-title {
+            height: 29px; line-height: 29px;
+            background: #fff;
+            color: #2b3b45;
+            font-size: 10px;
+            text-align: center;
             border-top: 1px solid #f0f0f0;
         }
 
-        .page {
-            display: none;
+        /* ================================================================
+           分隔线 (对应 QFrame#startup-tab-separator, color #d8dde2)
+           ================================================================ */
+        .separator {
+            height: 1px;
+            background: #d8dde2;
+            margin: 0 0 20px;
         }
 
-        .page.active {
-            display: block;
+        /* ================================================================
+           最近文档列表 (对应 QListWidget#recent-docs-list)
+           每项: min-height 40px, radius 4px, margin 2px 4px
+           名称: QLabel#startup-tab-recent-name, 15px bold, color #1f2933
+           时间: QLabel#startup-tab-recent-time, 11px
+           ================================================================ */
+        .recent-list {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
         }
+        .recent-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 40px;
+            padding: 6px 14px;
+            margin: 2px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .recent-item:hover { background: #f0f0f0; }
+        .recent-item .file-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2933;
+        }
+        .recent-item .file-time {
+            font-size: 11px;
+            color: #888;
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+        .recent-empty {
+            padding: 16px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        /* ================================================================
+           模板页面 — 卡片网格 (对应 QTMTemplatePage)
+           卡片: QFrame#startup-tab-template-card, 176×243
+           缩略图: QLabel#startup-tab-template-thumbnail, 160×227, bg #f5f5f5
+           名称: QLabel#startup-tab-template-name, 11px
+           信息: QLabel#startup-tab-template-info, 10px, color #888
+           ================================================================ */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+            gap: 16px;
+        }
+        .template-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        .template-card .tpl-thumb {
+            width: 176px;
+            height: 243px;
+            background: #fff;
+            border: 1px solid #cfcfcf;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            transition: border-color 0.15s;
+        }
+        .template-card:hover .tpl-thumb { border-color: #2791ad; }
+        .template-card .tpl-thumb-inner {
+            width: 160px;
+            height: 227px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 12px;
+            border-radius: 2px;
+        }
+        .template-card .tpl-name {
+            width: 176px;
+            max-height: 40px;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #333;
+            text-align: center;
+            line-height: 1.4;
+            overflow: hidden;
+        }
+        .template-card .tpl-info {
+            margin-top: 1px;
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* ================================================================
+           页面切换
+           ================================================================ */
+        .page { display: none; }
+        .page.active { display: block; }
     </style>
-<base target="_blank">
 </head>
 <body>
-    <div class="app-container">
-        <!-- 顶部标题栏 -->
-        <div class="title-bar">
-            <div class="title-bar-left">
-                <div class="window-controls">
-                    <div class="window-btn red"></div>
-                    <div class="window-btn yellow"></div>
-                    <div class="window-btn green"></div>
-                </div>
-                <div class="app-title">Liii STEM</div>
-                <div class="icon-btn" style="font-size: 18px; color: #666;">+</div>
+<div class="app-container">
+
+    <!-- ===== 标题栏 ===== -->
+    <div class="title-bar">
+        <div class="title-bar-left">
+            <div class="window-controls">
+                <div class="window-btn red"></div>
+                <div class="window-btn yellow"></div>
+                <div class="window-btn green"></div>
             </div>
-            <div class="title-bar-right">
-                <div class="icon-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
+            <div class="app-title">Liii STEM</div>
+            <div class="icon-btn" title="New tab" style="font-size:18px;color:#666;">+</div>
+        </div>
+        <div class="title-bar-right">
+            <div class="icon-btn" title="User">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 左侧导航栏 ===== -->
+    <aside class="sidebar">
+        <div class="nav-title">Navigation</div>
+        <button class="nav-btn active" data-page="home">Home</button>
+
+        <!-- 分类按钮 (动态加载, 原型硬编码) -->
+        <button class="nav-btn" data-page="notes">精美笔记</button>
+        <button class="nav-btn" data-page="thesis">论文模板</button>
+        <button class="nav-btn" data-page="nsfc">国自然模版</button>
+        <button class="nav-btn" data-page="kaoyan">考研真题</button>
+        <button class="nav-btn" data-page="courseware">课件讲义</button>
+
+        <div class="sidebar-footer">
+            <button class="quit-btn">Quit</button>
+        </div>
+    </aside>
+
+    <!-- ===== 右侧内容区 ===== -->
+    <main class="main-content">
+
+        <!-- ===== Home 页 ===== -->
+        <div class="page active" id="page-home">
+            <h2 class="section-title">Document Style</h2>
+
+            <div class="style-cards">
+                <!-- 新建文档 — 图标模式 -->
+                <div class="style-card" data-action="new">
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </div>
+                    <div class="card-name">New document</div>
+                </div>
+
+                <!-- 打开文档 — 图标模式 -->
+                <div class="style-card" data-action="open">
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <div class="card-name">Open document</div>
+                </div>
+
+                <!-- 推荐模板 — 缩略图模式 -->
+                <div class="style-card thumbnail" data-nav="notes">
+                    <div class="card-frame">
+                        <div class="thumb-img">Thumbnail</div>
+                        <div class="thumb-title">优美的笔记模板</div>
+                    </div>
+                </div>
+                <div class="style-card thumbnail" data-nav="nsfc">
+                    <div class="card-frame">
+                        <div class="thumb-img">Thumbnail</div>
+                        <div class="thumb-title">国自然基金模板</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <h2 class="section-title">Recent Documents</h2>
+            <div class="recent-list">
+                <div class="recent-item">
+                    <span class="file-name">国自然基金模板.tmu</span>
+                    <span class="file-time">Last opened: 2026-05-08 10:39</span>
+                </div>
+                <div class="recent-item">
+                    <span class="file-name">考研数学笔记.tmu</span>
+                    <span class="file-time">Last opened: 2026-05-07 09:45</span>
+                </div>
+                <div class="recent-item">
+                    <span class="file-name">论文参考文献格式.tmu</span>
+                    <span class="file-time">Last opened: 2026-05-07 09:45</span>
+                </div>
+                <div class="recent-item">
+                    <span class="file-name">高等数学期末复习.tmu</span>
+                    <span class="file-time">Last opened: 2026-05-06 15:20</span>
                 </div>
             </div>
         </div>
 
-        <!-- 左侧边栏 -->
-        <aside class="sidebar">
-            <div class="nav-section">
-                <div class="nav-item active" data-page="home">首页</div>
-                <div class="nav-item" data-page="notes">精美笔记</div>
-                <div class="nav-item" data-page="math">高数考试</div>
-                <div class="nav-item" data-page="kaoyan">考研真题</div>
-                <div class="nav-item" data-page="gaokao">高考真题</div>
-                <div class="nav-item" data-page="thesis">论文模板</div>
-                <div class="nav-item" data-page="nsfc">国自然模版</div>
-                <div class="nav-item" data-page="courseware">课件讲义</div>
-                <div class="nav-item" data-page="help">使用说明</div>
+        <!-- ===== 论文模板页 ===== -->
+        <div class="page" id="page-thesis">
+            <h2 class="section-title">论文模板</h2>
+            <div class="template-grid">
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">IEEE</div></div><div class="tpl-name">IEEE 会议</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">ACM</div></div><div class="tpl-name">ACM 期刊</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">Springer</div></div><div class="tpl-name">Springer</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">Elsevier</div></div><div class="tpl-name">Elsevier</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">arXiv</div></div><div class="tpl-name">arXiv</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">Thesis</div></div><div class="tpl-name">学位论文</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">中文核心</div></div><div class="tpl-name">中文核心</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">Nature</div></div><div class="tpl-name">Nature</div><div class="tpl-info">Mogan · v1.0</div></div>
+                <div class="template-card"><div class="tpl-thumb"><div class="tpl-thumb-inner">Science</div></div><div class="tpl-name">Science</div><div class="tpl-info">Mogan · v1.0</div></div>
             </div>
-            <div class="sidebar-footer">
-                <button class="exit-btn">退出</button>
-            </div>
-        </aside>
+        </div>
 
-        <!-- 主内容区 -->
-        <main class="main-content">
-            <div class="page active" id="page-home">
-                <h2 class="section-title">文档样式</h2>
+        <!-- ===== 占位页面 ===== -->
+        <div class="page" id="page-notes"><h2 class="section-title">精美笔记</h2><p style="color:#888;margin-top:24px;">Loading templates...</p></div>
+        <div class="page" id="page-nsfc"><h2 class="section-title">国自然模版</h2><p style="color:#888;margin-top:24px;">Loading templates...</p></div>
+        <div class="page" id="page-kaoyan"><h2 class="section-title">考研真题</h2><p style="color:#888;margin-top:24px;">Loading templates...</p></div>
+        <div class="page" id="page-courseware"><h2 class="section-title">课件讲义</h2><p style="color:#888;margin-top:24px;">Loading templates...</p></div>
+    </main>
+</div>
 
-                <div class="templates-grid">
-                    <!-- 新建空白文档 -->
-                    <div class="template-card blank">
-                        <div class="template-preview">
-                            <div class="plus-icon">+</div>
-                            <div style="font-size: 14px; color: #333;">新建空白文档</div>
-                        </div>
-                    </div>
+<script>
+    // 导航切换页面
+    document.querySelectorAll('.nav-btn[data-page]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var page = btn.getAttribute('data-page');
+            document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+            var target = document.getElementById('page-' + page);
+            if (target) target.classList.add('active');
+        });
+    });
 
-                    <!-- 打开文档 -->
-                    <div class="template-card blank">
-                        <div class="template-preview">
-                            <div class="plus-icon">=</div>
-                            <div style="font-size: 14px; color: #333;">打开文档</div>
-                        </div>
-                    </div>
+    // 缩略图卡片点击 → 跳转对应分类页
+    document.querySelectorAll('[data-nav]').forEach(function(el) {
+        el.addEventListener('click', function() {
+            var page = el.getAttribute('data-nav');
+            document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+            var navBtn = document.querySelector('.nav-btn[data-page="' + page + '"]');
+            if (navBtn) navBtn.classList.add('active');
+            document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+            var target = document.getElementById('page-' + page);
+            if (target) target.classList.add('active');
+            document.querySelector('.main-content').scrollTop = 0;
+        });
+    });
 
-                    <!-- 优美的笔记模板 -->
-                    <div class="template-card notes">
-                        <div class="template-preview">
-                            <div class="notes-image"></div>
-                            <div class="notes-content">
-                                <div class="notes-line short"></div>
-                                <div class="notes-line"></div>
-                                <div class="notes-line medium"></div>
-                                <div class="notes-line"></div>
-                            </div>
-                            <div class="notes-logo">
-                                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                            </div>
-                        </div>
-                        <div class="template-name">优美的笔记模板</div>
-                    </div>
-
-                    <!-- 国自然基金青年基金申请模板 -->
-                    <div class="template-card document">
-                        <div class="template-preview">
-                            <div class="doc-header">报告正文（2026版）</div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line short"></div>
-                            <div class="doc-line title"></div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line short"></div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line short"></div>
-                            <div class="doc-line"></div>
-                            <div class="doc-line short"></div>
-                        </div>
-                        <div class="template-name">国自然基金青年基金申请模板</div>
-                    </div>
-                </div>
-
-                <div class="divider"></div>
-
-                <div style="display: flex; gap: 20px;">
-                    <div style="flex: 1;">
-                        <h2 class="section-title">最近文档</h2>
-                        <div class="recent-docs">
-                            <div class="doc-item">
-                                <span class="doc-name">国自然基金模板.tmu</span>
-                                <span class="doc-time">最后打开时间: 2026-05-08 10:39</span>
-                            </div>
-                            <div class="doc-item">
-                                <span class="doc-name">考研数学笔记.tmu</span>
-                                <span class="doc-time">最后打开时间: 2026-05-07 09:45</span>
-                            </div>
-                            <div class="doc-item">
-                                <span class="doc-name">论文参考文献格式.tmu</span>
-                                <span class="doc-time">最后打开时间: 2026-05-07 09:45</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="flex: 1;">
-                        <h2 class="section-title">我的收藏</h2>
-                        <div class="recent-docs">
-                            <div class="doc-item">
-                                <span class="doc-name">国自然基金模板.tmu</span>
-                                <span class="doc-time">收藏于: 2026-05-06 14:22</span>
-                            </div>
-                            <div class="doc-item">
-                                <span class="doc-name">考研数学笔记.tmu</span>
-                                <span class="doc-time">收藏于: 2026-05-05 09:18</span>
-                            </div>
-                            <div class="doc-item">
-                                <span class="doc-name">论文参考文献格式.tmu</span>
-                                <span class="doc-time">收藏于: 2026-05-04 16:30</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="page" id="page-thesis">
-                <h2 class="section-title">论文模板</h2>
-                <div class="card-grid">
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">IEEE 会议</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">ACM 期刊</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">Springer</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">Elsevier</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">arXiv</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">学位论文</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">中文核心</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">综述格式</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">Nature</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">Science</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">Cell</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-preview">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        </div>
-                        <div class="card-name">PNAS</div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-            <script>
-                // 点击卡片时切换选中状态（单选）
-                document.querySelectorAll('.template-card').forEach(function(card) {
-                    card.addEventListener('click', function() {
-                        document.querySelectorAll('.template-card').forEach(function(c) { c.classList.remove('active'); });
-                        card.classList.add('active');
-                    });
-                });
-
-                // 导航切换页面
-                document.querySelectorAll('.nav-item[data-page]').forEach(function(item) {
-                    item.addEventListener('click', function() {
-                        var page = item.getAttribute('data-page');
-                        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-                        item.classList.add('active');
-                        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-                        var target = document.getElementById('page-' + page);
-                        if (target) target.classList.add('active');
-                    });
-                });
-            </script>
+    // 图标模式卡片 — 点击高亮
+    document.querySelectorAll('.style-card[data-action]').forEach(function(card) {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.style-card').forEach(function(c) { c.style.outline = 'none'; });
+            card.style.outline = '2px solid #2791ad';
+            card.style.outlineOffset = '-2px';
+        });
+    });
+</script>
 </body>
 </html>
