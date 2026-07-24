@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : QTMStartupTabWidget.cpp
- * DESCRIPTION: Startup tab widget — hosts QQuickWidget + StartupBridge
+ * DESCRIPTION: Startup tab container implementation
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -12,20 +12,16 @@
 #include "QTMStartupTabWidget.hpp"
 #include "StartupBridge.hpp"
 
-#include "analyze.hpp" // occurs
-#include "gui.hpp"     // tm_style_sheet
+#include "analyze.hpp"
+#include "gui.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
-#include "sys_utils.hpp"
 
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QQmlContext>
 #include <QQuickWidget>
-#include <QVBoxLayout>
-
-#include <moebius/data/scheme.hpp>
 
 namespace {
 constexpr int kMinWidth = 600;
@@ -38,40 +34,28 @@ QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
   setFocusPolicy (Qt::StrongFocus);
 
-  // 全区域由 QQuickWidget 填充：StartupTab.qml 内部已含侧边栏 + 内容区
-  QHBoxLayout* layout= new QHBoxLayout (this);
+  auto* layout= new QHBoxLayout (this);
   layout->setContentsMargins (0, 0, 0, 0);
-  layout->setSpacing (0);
 
-  setupQml ();
-}
-
-QTMStartupTabWidget::~QTMStartupTabWidget ()= default;
-
-void
-QTMStartupTabWidget::setupQml () {
-  // 确保 .qrc 资源已初始化（参照 QTMQmlDialog）
+  // ---- QQuickWidget ----
   Q_INIT_RESOURCE (moganqml);
 
   quickWidget_= new QQuickWidget (this);
   quickWidget_->setResizeMode (QQuickWidget::SizeRootObjectToView);
   quickWidget_->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
-  quickWidget_->setClearColor (Qt::transparent);
 
-  // 创建 bridge 并注入 context property
-  bridge_= new StartupBridge (this);
+  // ---- Context properties（与 QTMQmlDialog 共用 dpScale / isDark） ----
+  auto* ctx= quickWidget_->rootContext ();
 
-  // 注入通用的 dpScale / isDark（与 QTMQmlDialog 一致）
   bool isDark=
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  quickWidget_->rootContext ()->setContextProperty ("dpScale",
-                                                    DpiUtils::scaleFactor ());
-  quickWidget_->rootContext ()->setContextProperty ("isDark", isDark);
+  ctx->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
+  ctx->setContextProperty ("isDark", isDark);
 
-  // 注入 startup bridge
-  quickWidget_->rootContext ()->setContextProperty ("startupBridge", bridge_);
+  bridge_= new StartupBridge (this);
+  ctx->setContextProperty ("startupBridge", bridge_);
 
-  // 加载 QML
+  // ---- 加载 QML ----
   quickWidget_->setSource (QUrl ("qrc:/qml/startup/StartupTab.qml"));
 
 #ifdef LIII_DEBUG
@@ -83,11 +67,11 @@ QTMStartupTabWidget::setupQml () {
   }
 #endif
 
-  layout ()->addWidget (quickWidget_);
-
-  // 初始化 bridge（连接 TemplateManager、加载最近文档等）
+  layout->addWidget (quickWidget_);
   bridge_->initialize ();
 }
+
+QTMStartupTabWidget::~QTMStartupTabWidget ()= default;
 
 QTMStartupTabWidget::Entry
 QTMStartupTabWidget::current_entry () const {
@@ -116,7 +100,6 @@ void
 QTMStartupTabWidget::keyPressEvent (QKeyEvent* event) {
   string key= from_key_press_event (event);
   if (is_empty (key)) return QWidget::keyPressEvent (event);
-
   eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
   event->accept ();
 }
@@ -125,7 +108,6 @@ void
 QTMStartupTabWidget::keyReleaseEvent (QKeyEvent* event) {
   string key= from_key_release_event (event);
   if (is_empty (key)) return QWidget::keyReleaseEvent (event);
-
   eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
   event->accept ();
 }
