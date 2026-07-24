@@ -39,31 +39,11 @@ loro_shadow_rep::get_id (tree t) {
                                        : mogan_tree_id{0, 0};
 }
 
-// path 末尾追加一个 int（list<int> 无现成 append，递归重建）
-static path
-append_int (path p, int i) {
-  if (is_nil (p)) return path (i);
-  return path (p->item, append_int (p->next, i));
-}
-
-bool
-loro_shadow_rep::find_id_path (tree t, mogan_tree_id id, path acc, path& out) {
-  mogan_tree_id tid= get_id (t);
-  if (tid.peer == id.peer && tid.counter == id.counter) {
-    out= acc;
-    return true;
-  }
-  if (is_atomic (t)) return false; // 叶子串内不可能再含目标节点
-  for (int i= 0; i < N (t); i++)
-    if (find_id_path (t[i], id, path (i, acc), out)) return true;
-  return false;
-}
-
 path
-loro_shadow_rep::cursor_path_of (tree buffer, mogan_tree_id id, int offset) {
-  path node_path;
-  if (!find_id_path (buffer, id, path (), node_path)) return path ();
-  return append_int (node_path, offset);
+loro_shadow_rep::cursor_path_of (mogan_tree_id id, int offset) {
+  // O(1) 反查：rev_id_map 与 id_map 同处维护，始终反映当前 buffer。
+  if (!rev_id_map->contains (id)) return path (); // 节点未同步到/已被删除
+  return rev_id_map[id] * path (offset);          // 节点 path + 偏移
 }
 
 string

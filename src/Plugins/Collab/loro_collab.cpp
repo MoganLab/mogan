@@ -27,6 +27,9 @@ broadcast_to_server (string bytes) {
   collab_session* session= g_session_manager.find_by_buffer (buf);
   if (session) {
     session->broadcast (bytes);
+    // 编辑已即时上行；光标须紧跟其后补发，避免对端先收到编辑、后收到（节流的）
+    // 光标，导致远程光标短暂落在新插入文本之前（如 "Line 1|test"）。
+    session->flush_cursor ();
   }
 }
 
@@ -264,6 +267,21 @@ void
 collab_session::send_cursor (string payload) {
   if (state == collab_state::ready && ws && ws->connected ())
     ws->send (payload, false);
+}
+
+// 编辑上行后由 broadcast_to_server 调用：若光标脏则立即补发（绕过 poll 的 50ms
+// 节流），让光标更新紧随编辑、同 WS 有序到达对端。tp 已在 post_notify 中更新到
+// 编辑后位置（post_notify 先于 mirror_loro），故此处读到的是最新光标。
+void
+collab_session::flush_cursor () {
+  if (!cursor_dirty || state != collab_state::ready) return;
+  editor ed     = get_editor ();
+  if (!is_nil (ed)) {
+    string payload= ed->collab_cursor_payload ();
+    if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
+  }
+  cursor_dirty    = false;
+  last_cursor_send= texmacs_time ();
 }
 
 void

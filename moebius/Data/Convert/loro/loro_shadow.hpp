@@ -16,11 +16,23 @@
 
 #include "loro.hpp"
 
+// mogan_tree_id 作为 hashmap key 所需的 hash 与相等（id_map 的反向 rev_id_map 用）
+inline int
+hash (mogan_tree_id id) {
+  return (int) ((id.peer ^ (id.peer >> 32)) ^ (uint64_t) id.counter);
+}
+inline bool
+operator== (mogan_tree_id a, mogan_tree_id b) {
+  return a.peer == b.peer && a.counter == b.counter;
+}
+
 class loro_shadow_rep : public concrete_struct {
 public:
   void* doc; // mogan_loro_doc 句柄，所有操作都通过 FFI。
   hashmap<tree_rep*, mogan_tree_id>
                 id_map;  // 节点身份：mogan tree_rep* -> Loro TreeID
+  hashmap<mogan_tree_id, path>
+                    rev_id_map; // 反向：TreeID -> 节点 buffer-相对 path（与 id_map 同处维护）
   mogan_tree_id root_id; // shadow 中根节点对应的 TreeID
 
   mogan_local_update_cb _update_cb       = nullptr;
@@ -85,20 +97,18 @@ public:
   tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
-  /** 反查：在 buffer 树中找到 TreeID 对应的节点，返回其 buffer-相对路径并追加
-   * 偏移 offset（原子节点内即 LoroText 字符偏移；复合节点即子索引）。用于把远端
-   * peer 的光标 TreeID 解析回本端 path。节点未找到（尚未同步到/已被删除）返回
-   * nil，调用方据此跳过渲染。id_map 每次 apply_remote 后由
-   * sync_id_map_from_shadow 刷新，故按需遍历结果反映当前 buffer。 */
-  path cursor_path_of (tree buffer, mogan_tree_id id, int offset);
+  /** 反查：用 rev_id_map 把 TreeID 解析为节点 buffer-相对 path 并追加偏移
+   * offset（原子节点内即 LoroText 字符偏移；复合节点即子索引）。用于把远端
+   * peer 的光标/选区 TreeID 解析回本端 path，达成 CRDT 级稳定。节点未找到
+   * （尚未同步到/已被删除）返回 nil，调用方据此跳过渲染。rev_id_map 与 id_map
+   * 同处维护（seed_node / sync_walk / decode_id_node），故始终与当前 buffer 一致。 */
+  path cursor_path_of (mogan_tree_id id, int offset);
 
 private:
-  // cursor_path_of 的递归内核：在子树 t 中找 TreeID==id 的节点，命中写 out=acc
-  // 并 返回 true。acc 为自根下钻累积的 buffer-相对 path。
-  bool find_id_path (tree t, mogan_tree_id id, path acc, path& out);
   // 取某 LoroTree 节点的子 TreeID 列表（用于 REMOVE 按位置删）
   array<mogan_tree_id> node_children (mogan_tree_id parent);
-  mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index);
+  mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index,
+                                  path p);
 
   // loro_shadow_mod
   bool mirror_insert (tree doc_root, modification mod);

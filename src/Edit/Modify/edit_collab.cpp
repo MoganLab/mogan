@@ -222,16 +222,22 @@ split_spaces (string s) {
   return out;
 }
 
-// 绝对 path -> 其包含节点（path_up(p)）的 TreeID + 末位偏移 last_item(p)。
-// 原子节点内偏移即 LoroText 字符索引（稳定）；不可定位（nil/path 越界）回退
-// 0:0:0。
+// 绝对 path -> 纯 id 上传（保证 CRDT 级稳定）：解析到光标所在节点，上传其
+// TreeID + 节点内稳定偏移。原子节点内偏移即 LoroText 字符索引（CRDT 稳定）；
+// 复合节点上的子位置则下钻到该子节点、上传子节点 TreeID（偏移 0=子节点起始），
+// 从而只传 id、不传 mogan 树子索引。不可定位（nil/path 越界）回退 0:0:0。
 static string
 encode_path (tree& et, loro_shadow loro_doc, path p) {
   if (is_nil (p) || is_nil (path_up (p)) || !has_subtree (et, path_up (p)))
     return format_group (mogan_tree_id{0, 0}, 0);
-  tree          node= subtree (et, path_up (p));
-  mogan_tree_id tid = loro_doc->get_id (node);
-  return format_group (tid, last_item (p));
+  tree node= subtree (et, path_up (p));
+  int  off = last_item (p);
+  if (is_atomic (node))
+    return format_group (loro_doc->get_id (node), off);
+  // 复合节点：光标在子位置 off——下钻到该子节点，上传子节点 id（不传子索引）
+  if (has_subtree (et, p))
+    return format_group (loro_doc->get_id (subtree (et, p)), 0);
+  return format_group (loro_doc->get_id (node), off); // off 越界回落
 }
 
 string
@@ -275,14 +281,13 @@ edit_modify_rep::set_remote_cursor (string peer, string payload) {
 array<editor_rep::remote_cursor_view>
 edit_modify_rep::get_remote_cursors () {
   array<remote_cursor_view> out;
-  tree                      buf= the_buffer ();
   for (int i= 0; i < N (remote_cursors); i++) {
     remote_cursor_entry& e= remote_cursors[i];
     remote_cursor_view   v;
     v.peer     = e.peer;
-    path crel  = loro_doc->cursor_path_of (buf, e.c_tid, e.c_off);
-    path srel  = loro_doc->cursor_path_of (buf, e.s_tid, e.s_off);
-    path erel  = loro_doc->cursor_path_of (buf, e.e_tid, e.e_off);
+    path crel  = loro_doc->cursor_path_of (e.c_tid, e.c_off);
+    path srel  = loro_doc->cursor_path_of (e.s_tid, e.s_off);
+    path erel  = loro_doc->cursor_path_of (e.e_tid, e.e_off);
     v.caret    = is_nil (crel) ? path () : rp * crel;
     v.sel_start= is_nil (srel) ? path () : rp * srel;
     v.sel_end  = is_nil (erel) ? path () : rp * erel;
