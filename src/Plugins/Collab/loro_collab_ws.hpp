@@ -55,7 +55,8 @@ public:
   void broadcast (string bytes);
   void
   send_cursor (string payload); // 多光标：发文本帧 "CURSOR <peer> <payload>"
-  void flush_cursor (); // 编辑上行后立即补发光标（绕过节流），使之与编辑同帧到达
+  void
+  flush_cursor (); // 编辑上行后立即补发光标（绕过节流），使之与编辑同帧到达
   void schedule_reconnect ();
   void maybe_reconnect ();
 

@@ -232,8 +232,7 @@ encode_path (tree& et, loro_shadow loro_doc, path p) {
     return format_group (mogan_tree_id{0, 0}, 0);
   tree node= subtree (et, path_up (p));
   int  off = last_item (p);
-  if (is_atomic (node))
-    return format_group (loro_doc->get_id (node), off);
+  if (is_atomic (node)) return format_group (loro_doc->get_id (node), off);
   // 复合节点：光标在子位置 off——下钻到该子节点，上传子节点 id（不传子索引）
   if (has_subtree (et, p))
     return format_group (loro_doc->get_id (subtree (et, p)), 0);

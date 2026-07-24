@@ -12,8 +12,7 @@
 
 namespace {
 tree
-decode_id_node (string& b, int& pos,
-                hashmap<tree_rep*, mogan_tree_id>& id_map,
+decode_id_node (string& b, int& pos, hashmap<tree_rep*, mogan_tree_id>& id_map,
                 hashmap<mogan_tree_id, path>& rev_id_map, path acc) {
   auto get_u32= [&] () -> uint32_t {
     uint32_t v= (uint32_t) (unsigned char) b[pos] |

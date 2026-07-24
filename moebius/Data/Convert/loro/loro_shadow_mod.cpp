@@ -114,7 +114,7 @@ loro_shadow_rep::mirror_split (tree doc_root, modification mod) {
       mogan_tree_id x_id= kids[pos];
       if (has_subtree (doc_root, rp_mod * pos)) {
         id_map (inside (subtree (doc_root, rp_mod * pos)))= x_id;
-        rev_id_map (x_id)= rp_mod * pos;
+        rev_id_map (x_id)                                 = rp_mod * pos;
       }
       path t2p= rp_mod * (pos + 1);
       if (has_subtree (doc_root, t2p)) {
@@ -129,7 +129,7 @@ loro_shadow_rep::mirror_split (tree doc_root, modification mod) {
           mogan_loro_node_text_insert (doc, y_id, 0, tp,
                                        (size_t) N (t2->label));
           id_map (inside (t2))= y_id;
-          rev_id_map (y_id)= t2p;
+          rev_id_map (y_id)   = t2p;
           return true;
         }
         else {
@@ -146,7 +146,7 @@ loro_shadow_rep::mirror_split (tree doc_root, modification mod) {
                                    (uint32_t) i);
           }
           id_map (inside (t2))= y_id;
-          rev_id_map (y_id)= t2p;
+          rev_id_map (y_id)   = t2p;
           return true;
         }
       }
@@ -184,7 +184,7 @@ loro_shadow_rep::mirror_insert_node (tree doc_root, modification mod) {
           reinterpret_cast<const uint8_t*> (lab.begin ()), (size_t) N (lab));
       mogan_loro_node_mov (doc, rf_id, w_id, (uint32_t) pos);
       id_map (inside (W))= w_id;
-      rev_id_map (w_id)= rp_mod;
+      rev_id_map (w_id)  = rp_mod;
       return true;
     }
   }
@@ -275,7 +275,7 @@ loro_shadow_rep::mirror_join (tree doc_root, modification mod) {
       }
       if (has_subtree (doc_root, rp_mod * pos)) {
         id_map (inside (subtree (doc_root, rp_mod * pos)))= x_id;
-        rev_id_map (x_id)= rp_mod * pos;
+        rev_id_map (x_id)                                 = rp_mod * pos;
       }
       return true;
     }

@@ -73,8 +73,8 @@ loro_shadow_rep::seed_node (tree t, mogan_tree_id parent, uint32_t index,
                          : nullptr;
   mogan_tree_id  id=
       mogan_loro_node_create (doc, parent, index, kind, lp, (size_t) N (label));
-  id_map (inside (t))= id;     // 记录身份
-  rev_id_map (id)    = p;      // 与 id_map 同处维护：TreeID -> buffer-相对 path
+  id_map (inside (t))= id; // 记录身份
+  rev_id_map (id)    = p;  // 与 id_map 同处维护：TreeID -> buffer-相对 path
 
   if (is_atomic (t)) {
     const uint8_t* tp= reinterpret_cast<const uint8_t*> (t->label.begin ());

@@ -275,7 +275,7 @@ collab_session::send_cursor (string payload) {
 void
 collab_session::flush_cursor () {
   if (!cursor_dirty || state != collab_state::ready) return;
-  editor ed     = get_editor ();
+  editor ed= get_editor ();
   if (!is_nil (ed)) {
     string payload= ed->collab_cursor_payload ();
     if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);

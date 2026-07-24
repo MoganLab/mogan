@@ -16,7 +16,8 @@
 
 #include "loro.hpp"
 
-// mogan_tree_id 作为 hashmap key 所需的 hash 与相等（id_map 的反向 rev_id_map 用）
+// mogan_tree_id 作为 hashmap key 所需的 hash 与相等（id_map 的反向 rev_id_map
+// 用）
 inline int
 hash (mogan_tree_id id) {
   return (int) ((id.peer ^ (id.peer >> 32)) ^ (uint64_t) id.counter);
@@ -30,9 +31,9 @@ class loro_shadow_rep : public concrete_struct {
 public:
   void* doc; // mogan_loro_doc 句柄，所有操作都通过 FFI。
   hashmap<tree_rep*, mogan_tree_id>
-                id_map;  // 节点身份：mogan tree_rep* -> Loro TreeID
+      id_map; // 节点身份：mogan tree_rep* -> Loro TreeID
   hashmap<mogan_tree_id, path>
-                    rev_id_map; // 反向：TreeID -> 节点 buffer-相对 path（与 id_map 同处维护）
+      rev_id_map; // 反向：TreeID -> 节点 buffer-相对 path（与 id_map 同处维护）
   mogan_tree_id root_id; // shadow 中根节点对应的 TreeID
 
   mogan_local_update_cb _update_cb       = nullptr;
@@ -101,7 +102,8 @@ public:
    * offset（原子节点内即 LoroText 字符偏移；复合节点即子索引）。用于把远端
    * peer 的光标/选区 TreeID 解析回本端 path，达成 CRDT 级稳定。节点未找到
    * （尚未同步到/已被删除）返回 nil，调用方据此跳过渲染。rev_id_map 与 id_map
-   * 同处维护（seed_node / sync_walk / decode_id_node），故始终与当前 buffer 一致。 */
+   * 同处维护（seed_node / sync_walk / decode_id_node），故始终与当前 buffer
+   * 一致。 */
   path cursor_path_of (mogan_tree_id id, int offset);
 
 private:
