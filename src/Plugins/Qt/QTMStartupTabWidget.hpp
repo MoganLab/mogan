@@ -12,77 +12,52 @@
 #ifndef QTMSTARTUPTABWIDGET_HPP
 #define QTMSTARTUPTABWIDGET_HPP
 
-#include <QList>
 #include <QWidget>
 
 class QKeyEvent;
-class QLabel;
-class QShowEvent;
-class QVBoxLayout;
-class QPushButton;
-class QStackedWidget;
-class QButtonGroup;
-class QTMHomePage;
-class QTMTemplatePage;
-class TemplateManager;
+class QQuickWidget;
+class StartupBridge;
 
+/**
+ * @brief 启动页容器，使用 QQuickWidget 加载 StartupTab.qml。
+ *
+ * 原实现使用 QTMHomePage + QTMTemplatePage 两个 Qt Widget 页面 + 左侧
+ * QPushButton 导航栏，现已替换为 QML：侧边栏、首页、模板页全部在
+ * StartupTab.qml 内渲染，C++ 只提供 StartupBridge 数据/动作桥接。
+ *
+ * 和原接口兼容：保留 Entry 枚举和 entry_changed 信号（外部调用
+ * set_current_entry 仍有效，内部告知 QML 页切换）。
+ */
 class QTMStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
   enum class Entry { Home, Template };
 
-public:
   explicit QTMStartupTabWidget (QWidget* parent= nullptr);
+  ~QTMStartupTabWidget ();
 
   Entry current_entry () const;
   void  set_current_entry (Entry entry);
 
+  /** 供外部刷新最近文档（打开文件后调用）。 */
+  void refreshRecentDocs ();
+  /** 供外部添加最近文档条目。 */
+  void addRecentDoc (const QString& path);
+
 signals:
   void entry_changed (Entry entry);
-
-private slots:
-  // Application operation
-  void on_app_quit ();
-  void onCategoryClicked ();
-  void onCategoriesLoaded ();
 
 protected:
   void keyPressEvent (QKeyEvent* event) override;
   void keyReleaseEvent (QKeyEvent* event) override;
 
 private:
-  // 界面构建辅助函数
-  void         setup_left_sidebar (QVBoxLayout* sidebarLayout);
-  void         setup_right_content (QStackedWidget* stackedWidget);
-  void         setupCategoryNavButtons ();
-  void         clearCategoryNavButtons ();
-  QPushButton* create_nav_button (const QString& text);
+  void setupQml ();
 
-  // 页面创建函数
-  QWidget* create_home_page ();
-  QWidget* create_template_page ();
-
-  // 导航按钮状态管理
-  void set_active_nav_button (Entry entry);
-  void refresh_recent_docs_on_file_entry (Entry entry);
-
-private:
-  Entry   currentEntry_;
-  QString currentCategory_;
-
-  // Navigation buttons
-  QPushButton*        navHomeBtn_;
-  QPushButton*        navQuitBtn_;
-  QList<QPushButton*> navCategoryBtns_;
-  QVBoxLayout*        categoryLayout_;
-
-  // 互斥按钮组
-  QButtonGroup* navButtonGroup_;
-
-  QTMHomePage*     homePage_;
-  QTMTemplatePage* templatePage_;
-  TemplateManager* templateManager_;
+  Entry          currentEntry_;
+  QQuickWidget*  quickWidget_= nullptr;
+  StartupBridge* bridge_     = nullptr;
 };
 
 #endif
