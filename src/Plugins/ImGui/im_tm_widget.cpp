@@ -49,10 +49,21 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 
 static int s_next_win_id= 0; // unique non-zero identifiers for SLOT_IDENTIFIER
 
 static im_tm_widget_rep* im_primary_window= nullptr;
+
+// exit(0)（quit-TeXmacs）跳过 run() 的 shutdown_context 与 gui_close()，
+// GLFW/ImGui 只能在静态析构清理，而静态析构顺序未定义会触发 double free。
+// atexit handler 在静态析构之前运行，此刻 GLFW/ImGui/mogan 静态状态仍有效，
+// 兜底确定性地销毁主窗口上下文。shutdown_context 的 initialized 守卫保证幂等。
+static bool s_atexit_registered= false;
+static void
+im_atexit_shutdown () {
+  if (im_primary_window != nullptr) im_primary_window->shutdown_context ();
+}
 
 /******************************************************************************
  * IME (Input Method Editor) support.
@@ -589,6 +600,10 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
 
   initialized= true;
   if (im_primary_window == nullptr) im_primary_window= this;
+  if (!s_atexit_registered) {
+    s_atexit_registered= true;
+    std::atexit (im_atexit_shutdown);
+  }
 }
 
 im_tm_widget_rep::~im_tm_widget_rep () {

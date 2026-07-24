@@ -77,7 +77,6 @@ protected:
   ImGuiIO* io;
 
   void render_editor ();
-  void shutdown_context ();
   bool visibility_index (slot s, int& i);
 
   // GLFW input callbacks. GLFW event -> Mogan event
@@ -104,6 +103,10 @@ protected:
 public:
   im_tm_widget_rep (int mask, command quit);
   ~im_tm_widget_rep ();
+
+  // Public so the atexit handler (im_atexit_shutdown in im_tm_widget.cpp) can
+  // drive GLFW/ImGui teardown before static destruction on the exit(0) path.
+  void shutdown_context ();
 
   // The attached editor canvas. nullptr when no real editor is wired
   im_simple_widget_rep* canvas ();
