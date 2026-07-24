@@ -244,17 +244,27 @@ im_from_key_event (int key, int scancode, int action, int mods) {
                                     : mods_text) *
            string (locase ((char) key));
 
-  // Alt(Option) + Shift + 可打印键：发出 "A-" + shift 字形，对齐 Qt 的 "A-S-"
-  // 分支。macos look-and-feel 下 "text &"->"A-&"、"text $"->"A-$"，但 macOS
-  // 浏览 器会把 Alt+Shift+7 合字为 ‡（char 回调拿不到 '&'），而 GLFW key
-  // 码又是未 shift 的 '7'，故按 US 布局 shift 表还原字形（im_shift_glyph）。仅
-  // Alt+Shift： plain Alt（无 Shift）仍走 char 回调做 Option 合字（Alt+e
-  // 死键、Alt+符号合 字），不在此处理，避免破坏重音/合字输入。
+  // Alt+Shift + 可打印键 -> "A-" + US 布局 shift 字形（im_shift_glyph），对齐
+  // Qt 的 "A-S-" 分支。浏览器把 Alt+Shift+7 合字为 ‡、char 回调拿不到 '&'
+  // 字形，故据物理键码还原。修 "text &"->"A-&"。
   if ((mods & GLFW_MOD_ALT) && (mods & GLFW_MOD_SHIFT) &&
       im_is_printable_key (key)) {
     char c= (char) key;
     char g= im_shift_glyph (c);
     return "A-" * string (g != 0 ? g : c);
+  }
+
+  // Alt + 字母/数字（无 Shift）-> "A-" + 键，命中 "text 1"->"A-1"（章节）、
+  // "text a"->"A-a" 等；Alt+符号仍返回 "" 走 char 回调做 Option 合字。代价：
+  // Alt+字母不再 Option 合字（如 Alt+p 不再出 π），与 Qt/macOS "text"
+  // 方案一致。
+  if ((mods & GLFW_MOD_ALT) && !(mods & GLFW_MOD_SHIFT) &&
+      im_is_printable_key (key)) {
+    char c    = (char) key;
+    bool alpha= (c >= 'A' && c <= 'Z');
+    bool digit= (c >= '0' && c <= '9');
+    if (alpha || digit) return "A-" * string (locase (c));
+    return "";
   }
 
   if (DEBUG_KEYBOARD)

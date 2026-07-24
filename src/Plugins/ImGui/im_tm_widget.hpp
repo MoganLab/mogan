@@ -43,6 +43,11 @@ protected:
   // 真实状态，不受 glfwGetKey 在系统快捷键（截屏等）后修饰键 keyup 丢失而卡住
   // 的影响。供 glfw_char_callback / glfw_scroll_callback 复用。
   int last_key_mods;
+  // im_from_key_event 对本次按键是否产出了非空 key 串（快捷键/命名键）。供
+  // glfw_char_callback 判断要不要抑制随后的字符合字输入：Alt+字母/数字已作
+  // "A-" 快捷键分发（要抑制），而 Alt+符号仍需走 char 回调做 Option 合字
+  // （不抑制），故用标志位而非 mods 判断。
+  bool last_key_handled;
 
   picture the_picture;
   int     pic_w, pic_h;
