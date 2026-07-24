@@ -137,6 +137,60 @@ im_is_printable_key (int key) {
   return (key >= 32 && key <= 93) || key == GLFW_KEY_GRAVE_ACCENT;
 }
 
+// US 布局下可打印键 shift 后的字形（数字行与常见符号）；字母键由调用方处理
+// （GLFW 已给出大写 ASCII）。返回 0 表示无标准 shift 字形。仅用于 Alt+Shift
+// 快捷键还原字形：macOS 浏览器会把 Alt+Shift+7 合字为 ‡，char 回调拿不到
+// shift 后字形，只能据物理键码 + US 布局还原。
+static char
+im_shift_glyph (int key) {
+  switch (key) {
+  case '1':
+    return '!';
+  case '2':
+    return '@';
+  case '3':
+    return '#';
+  case '4':
+    return '$';
+  case '5':
+    return '%';
+  case '6':
+    return '^';
+  case '7':
+    return '&';
+  case '8':
+    return '*';
+  case '9':
+    return '(';
+  case '0':
+    return ')';
+  case '-':
+    return '_';
+  case '=':
+    return '+';
+  case '[':
+    return '{';
+  case ']':
+    return '}';
+  case ';':
+    return ':';
+  case '\'':
+    return '"';
+  case '`':
+    return '~';
+  case '\\':
+    return '|';
+  case ',':
+    return '<';
+  case '.':
+    return '>';
+  case '/':
+    return '?';
+  default:
+    return 0;
+  }
+}
+
 string
 im_from_key_event (int key, int scancode, int action, int mods) {
   (void) scancode;
@@ -189,6 +243,19 @@ im_from_key_event (int key, int scancode, int action, int mods) {
     return ((mods & GLFW_MOD_SHIFT) ? im_from_modifiers (mods & ~GLFW_MOD_SHIFT)
                                     : mods_text) *
            string (locase ((char) key));
+
+  // Alt(Option) + Shift + 可打印键：发出 "A-" + shift 字形，对齐 Qt 的 "A-S-"
+  // 分支。macos look-and-feel 下 "text &"->"A-&"、"text $"->"A-$"，但 macOS
+  // 浏览 器会把 Alt+Shift+7 合字为 ‡（char 回调拿不到 '&'），而 GLFW key
+  // 码又是未 shift 的 '7'，故按 US 布局 shift 表还原字形（im_shift_glyph）。仅
+  // Alt+Shift： plain Alt（无 Shift）仍走 char 回调做 Option 合字（Alt+e
+  // 死键、Alt+符号合 字），不在此处理，避免破坏重音/合字输入。
+  if ((mods & GLFW_MOD_ALT) && (mods & GLFW_MOD_SHIFT) &&
+      im_is_printable_key (key)) {
+    char c= (char) key;
+    char g= im_shift_glyph (c);
+    return "A-" * string (g != 0 ? g : c);
+  }
 
   if (DEBUG_KEYBOARD)
     debug_keyboard << "im_from_key_event: unmapped key " << key << LF;

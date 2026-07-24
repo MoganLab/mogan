@@ -1018,6 +1018,12 @@ im_tm_widget_rep::glfw_char_callback (GLFWwindow* w, unsigned int codepoint) {
   // 用 last_key_mods（本次按键的事件级 mods，见 glfw_key_callback）判断，而非
   // glfwGetKey——后者在系统快捷键（截屏等）后修饰键 keyup 丢失会卡住、误判。
   if (self->last_key_mods & (GLFW_MOD_CONTROL | GLFW_MOD_SUPER)) return;
+  // Alt+Shift + 可打印键已由 glfw_key_callback 作为 "A-" 快捷键分发（见
+  // im_from_key_event 的 Alt+Shift 分支），抑制浏览器合字出的字符（如
+  // Alt+Shift+7 的 ‡），与 Qt 的 "A-S-" 分支一致。
+  if ((self->last_key_mods & (GLFW_MOD_ALT | GLFW_MOD_SHIFT)) ==
+      (GLFW_MOD_ALT | GLFW_MOD_SHIFT))
+    return;
   self->dispatch_keypress (im_from_char (codepoint));
 }
 
