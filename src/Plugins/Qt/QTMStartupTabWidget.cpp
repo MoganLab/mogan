@@ -29,8 +29,7 @@ constexpr int kMinWidth = 600;
 constexpr int kMinHeight= 400;
 } // namespace
 
-QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
-    : QWidget (parent), currentEntry_ (Entry::Home) {
+QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent) : QWidget (parent) {
 
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
   setFocusPolicy (Qt::StrongFocus);
@@ -71,19 +70,6 @@ QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
 }
 
 QTMStartupTabWidget::~QTMStartupTabWidget ()= default;
-
-QTMStartupTabWidget::Entry
-QTMStartupTabWidget::current_entry () const {
-  return currentEntry_;
-}
-
-void
-QTMStartupTabWidget::set_current_entry (Entry entry) {
-  if (currentEntry_ != entry) {
-    currentEntry_= entry;
-    emit entry_changed (entry);
-  }
-}
 
 void
 QTMStartupTabWidget::refreshRecentDocs () {

@@ -29,20 +29,12 @@ class QTMStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  enum class Entry { Home, Template };
-
   explicit QTMStartupTabWidget (QWidget* parent= nullptr);
   ~QTMStartupTabWidget ();
-
-  Entry current_entry () const;
-  void  set_current_entry (Entry entry);
 
   void refreshRecentDocs ();
   void addRecentDoc (const QString& path);
   void refreshTheme ();
-
-signals:
-  void entry_changed (Entry entry);
 
 protected:
   void keyPressEvent (QKeyEvent* event) override;
@@ -50,7 +42,6 @@ protected:
   void showEvent (QShowEvent* event) override;
 
 private:
-  Entry          currentEntry_;
   QQuickWidget*  quickWidget_= nullptr;
   StartupBridge* bridge_     = nullptr;
 };

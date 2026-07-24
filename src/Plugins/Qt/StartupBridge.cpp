@@ -88,8 +88,15 @@ readRecentMeta () {
 QVariantMap
 makeRecentEntry (const QString& fileName, const QString& filePath,
                  const QString& openedAt) {
-  return {
-      {"fileName", fileName}, {"filePath", filePath}, {"openedAt", openedAt}};
+  QDateTime dt= QDateTime::fromString (openedAt, "yyyy-MM-dd hh:mm");
+  double    ts= dt.isValid ()
+                    ? static_cast<double> (dt.toSecsSinceEpoch ())
+                    : static_cast<double> (
+                       QDateTime::currentDateTime ().toSecsSinceEpoch ());
+  return {{"fileName", fileName},
+          {"filePath", filePath},
+          {"openedAt", openedAt},
+          {"timestamp", ts}};
 }
 
 QVariantMap
@@ -125,17 +132,11 @@ StartupBridge::initialize () {
            &StartupBridge::onRecommendTemplatesLoaded, Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::templatesLoaded, this,
            &StartupBridge::onTemplatesLoaded, Qt::UniqueConnection);
-  connect (templateManager_, &TemplateManager::recommendTemplatesLoadFailed, this,
-           [](const QString& error) {
-             qWarning () << "[StartupBridge] Failed to load recommend templates:"
-                         << error;
-           },
+  connect (templateManager_, &TemplateManager::recommendTemplatesLoadFailed,
+           this, &StartupBridge::onRecommendTemplatesLoadFailed,
            Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::templatesLoadFailed, this,
-           [](const QString& error) {
-             qWarning () << "[StartupBridge] Failed to load templates:" << error;
-           },
-           Qt::UniqueConnection);
+           &StartupBridge::onTemplatesLoadFailed, Qt::UniqueConnection);
 
   if (templateManager_->isInitialized ()) {
     if (!templateManager_->categories ().isEmpty ()) onCategoriesLoaded ();
@@ -171,6 +172,16 @@ StartupBridge::rebuildStyleCards () {
 void
 StartupBridge::onRecommendTemplatesLoaded () {
   rebuildStyleCards ();
+}
+
+void
+StartupBridge::onRecommendTemplatesLoadFailed (const QString& error) {
+  qWarning () << "[StartupBridge] Failed to load recommend templates:" << error;
+}
+
+void
+StartupBridge::onTemplatesLoadFailed (const QString& error) {
+  qWarning () << "[StartupBridge] Failed to load templates:" << error;
 }
 
 // =========================================================================
@@ -225,10 +236,11 @@ StartupBridge::saveRecentDocs () {
       static_cast<double> (QDateTime::currentDateTime ().toSecsSinceEpoch ());
   QJsonArray arr;
   for (const auto& v : recentDocs_) {
-    auto m= v.toMap ();
+    auto   m = v.toMap ();
+    double ts= m.contains ("timestamp") ? m["timestamp"].toDouble () : now;
     arr << QJsonObject{{"path", m["filePath"].toString ()},
                        {"name", m["fileName"].toString ()},
-                       {"last_open", now},
+                       {"last_open", ts},
                        {"show", true}};
   }
   root["files"]= arr;
@@ -414,7 +426,6 @@ StartupBridge::selectCategory (const QString& categoryId) {
   emit categoryLoadingChanged ();
   if (templateManager_ && templateManager_->isInitialized ())
     templateManager_->refreshTemplatesByCategory (categoryId);
-  refreshCategoryTemplates ();
 }
 
 void

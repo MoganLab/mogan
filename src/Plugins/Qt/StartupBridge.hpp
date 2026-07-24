@@ -91,6 +91,8 @@ private slots:
   void onCategoriesLoaded ();
   void onRecommendTemplatesLoaded ();
   void onTemplatesLoaded ();
+  void onRecommendTemplatesLoadFailed (const QString& error);
+  void onTemplatesLoadFailed (const QString& error);
 
 private:
   void loadRecentDocs ();
