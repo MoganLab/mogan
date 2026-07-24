@@ -199,9 +199,11 @@ collab_session::poll () {
     // keep it idle
     return;
   }
+  // 兜底：仅在服务端不发 SYNC-END（旧版本）或连接静默失效时触发。
+  // 正常路径下 SYNC-END / 首条历史帧会在毫秒级到达，此分支不应命中。
   if (state == collab_state::await_frame && await_frame_since > 0 &&
-      texmacs_time () - await_frame_since >= 1000) {
-    std_error << "JOIN 超时未收到历史帧，按空文档就绪\n";
+      texmacs_time () - await_frame_since >= 10000) {
+    std_error << "JOIN 长时间未收到 SYNC-END/历史帧，按空文档就绪（兜底）\n";
     await_frame_since= 0;
     become_ready ();
   }
@@ -250,6 +252,14 @@ collab_session::on_message (string data, bool is_binary) {
       want_reconnect= false;
       enter_idle ();
       set_message (data * " — stopped reconnecting");
+    }
+    else if (data == "SYNC-END") {
+      // 服务端补发完 snapshot/updates 后的下发结束标记：空文档无帧，靠它从
+      // await_frame 就绪；非空文档首帧已先行就绪，此处忽略。
+      if (state == collab_state::await_frame) {
+        if (DEBUG_LORO) debug_loro << "收到 SYNC-END，空文档就绪\n";
+        become_ready ();
+      }
     }
     return;
   }

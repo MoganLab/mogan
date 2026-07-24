@@ -70,6 +70,7 @@ node server.js
 | S→C | `DOC <docId>` | `CREATE`/`JOIN` 成功确认，携带文档 UUID |
 | S→C | `ERR <code> <msg>` | 错误：`NO_SUCH_DOC` / `BAD_REQUEST` / `INTERNAL` |
 | S→C | `PONG` | 心跳响应 |
+| S→C | `SYNC-END` | snapshot/updates 补发结束标记（空文档也发）；客户端据此从 JOIN 等帧态确定性地就绪 |
 | S→C | 二进制帧 | 历史补发（snapshot → 按序 updates）或其他客户端的实时 update |
 
 ### 典型时序
@@ -82,6 +83,7 @@ node server.js
   │                        │←── JOIN <uuid> ──────────│
   │                        │── DOC <uuid> ───────────→│
   │                        │── snapshot + updates ───→│ import 后即为最新状态
+  │                        │── SYNC-END ─────────────→│ （空文档则仅此帧即就绪）
   │←── 新 update ──────────│←── 二进制 update ────────│
 ```
 
