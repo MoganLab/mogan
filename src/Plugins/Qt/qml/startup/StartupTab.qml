@@ -1,11 +1,5 @@
 // StartupTab.qml — 启动页主容器。
 // 对应 C++ QTMStartupTabWidget：左侧导航栏 + 右侧内容区（QStackedWidget）。
-//
-// 布局：Row { Sidebar (固定宽) + Content (flex 1) }
-// 右侧内容用 StackLayout 切换 Home / Template 两页。
-//
-// 数据：startupBridge context property 提供 categories、recentDocs 等。
-// 动作：startupBridge.selectCategory(id) / quit() 等。
 
 import QtQuick
 import QtQuick.Controls 2.15
@@ -32,26 +26,28 @@ Rectangle {
             Layout.fillHeight: true
             color: StartupTheme.sidebarBg
 
-            Column {
+            ColumnLayout {
                 anchors.fill: parent
-                anchors.topMargin: 60 * StartupTheme.scaleFactor
+                anchors.margins: 0
+                spacing: 0
 
                 // Navigation 标题
                 Text {
+                    Layout.topMargin: 16 * StartupTheme.scaleFactor
+                    Layout.leftMargin: 20 * StartupTheme.scaleFactor
                     text: qsTr("Navigation")
                     color: StartupTheme.navTitleFg
                     font.pixelSize: StartupTheme.fontNavTitle
                     font.weight: Font.Bold
-                    leftPadding: 20 * StartupTheme.scaleFactor
-                    bottomPadding: 8 * StartupTheme.scaleFactor
                 }
+
+                Item { Layout.preferredHeight: 8 * StartupTheme.scaleFactor }
 
                 // Home 按钮
                 Rectangle {
-                    id: homeBtn
-                    width: parent.width - 16 * StartupTheme.scaleFactor
-                    height: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    Layout.preferredWidth: parent.width - 16 * StartupTheme.scaleFactor
+                    Layout.preferredHeight: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
+                    Layout.alignment: Qt.AlignHCenter
                     radius: StartupTheme.navBtnRadius
                     color: root.activePage === 0 ? StartupTheme.navBtnActiveBg :
                            (homeMouse.containsMouse ? StartupTheme.navBtnHoverBg : "transparent")
@@ -75,16 +71,18 @@ Rectangle {
                 Repeater {
                     model: root.categories
                     delegate: Rectangle {
-                        width: parent.width - 16 * StartupTheme.scaleFactor
-                        height: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        Layout.preferredWidth: parent.width - 16 * StartupTheme.scaleFactor
+                        Layout.preferredHeight: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
+                        Layout.alignment: Qt.AlignHCenter
                         radius: StartupTheme.navBtnRadius
-                        color: root.activePage === 1 && catMouse.containsMouse === false ?
-                               (typeof startupBridge !== "undefined" && startupBridge.activeCategoryId === modelData.id ?
-                                StartupTheme.navBtnActiveBg : "transparent") :
-                               (catMouse.containsMouse ? StartupTheme.navBtnHoverBg :
-                               (root.activePage === 1 && typeof startupBridge !== "undefined" && startupBridge.activeCategoryId === modelData.id ?
-                                StartupTheme.navBtnActiveBg : "transparent"))
+                        color: {
+                            var isActive = root.activePage === 1 &&
+                                typeof startupBridge !== "undefined" &&
+                                startupBridge.activeCategoryId === modelData.id
+                            if (isActive) return StartupTheme.navBtnActiveBg
+                            if (catMouse.containsMouse) return StartupTheme.navBtnHoverBg
+                            return "transparent"
+                        }
 
                         Text {
                             anchors { left: parent.left; leftMargin: StartupTheme.navBtnPadH; verticalCenter: parent.verticalCenter }
@@ -107,13 +105,14 @@ Rectangle {
                 }
 
                 // 弹性空间
-                Item { Layout.fillHeight: true; height: 1 }
+                Item { Layout.fillHeight: true }
 
                 // Quit 按钮
                 Rectangle {
-                    width: parent.width - 16 * StartupTheme.scaleFactor
-                    height: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    Layout.preferredWidth: parent.width - 16 * StartupTheme.scaleFactor
+                    Layout.preferredHeight: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.bottomMargin: 16 * StartupTheme.scaleFactor
                     radius: StartupTheme.quitBtnRadius
                     color: quitMouse.containsMouse ? StartupTheme.quitBtnHoverBg : "transparent"
                     border.width: 1
@@ -135,8 +134,6 @@ Rectangle {
                         }
                     }
                 }
-
-                Item { height: 16 * StartupTheme.scaleFactor }
             }
         }
 
@@ -150,7 +147,6 @@ Rectangle {
             currentIndex: root.activePage
 
             StartupHomePage { }
-
             StartupTemplatePage { }
         }
     }
