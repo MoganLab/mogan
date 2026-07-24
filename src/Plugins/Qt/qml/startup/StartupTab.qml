@@ -36,7 +36,7 @@ Rectangle {
                     Layout.topMargin: 16 * StartupTheme.scaleFactor
                     Layout.leftMargin: 20 * StartupTheme.scaleFactor
                     Layout.bottomMargin: 8 * StartupTheme.scaleFactor
-                    text: qsTr("Navigation")
+                    text: StartupTheme.tr("Navigation")
                     color: StartupTheme.navTitleFg
                     font.pixelSize: StartupTheme.fontNavTitle
                     font.weight: Font.Bold
@@ -54,7 +54,7 @@ Rectangle {
 
                     Text {
                         anchors { left: parent.left; leftMargin: StartupTheme.navBtnPadH; verticalCenter: parent.verticalCenter }
-                        text: qsTr("Home")
+                        text: StartupTheme.tr("Home")
                         color: StartupTheme.navBtnFg
                         font.pixelSize: StartupTheme.fontNavBtn
                     }
@@ -121,7 +121,7 @@ Rectangle {
 
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Quit")
+                        text: StartupTheme.tr("Quit")
                         color: StartupTheme.quitBtnFg
                         font.pixelSize: StartupTheme.fontNavBtn
                     }

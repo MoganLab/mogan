@@ -102,7 +102,7 @@ Rectangle {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: "Thumbnail"
+                        text: StartupTheme.tr("Thumbnail")
                         color: "#aaa"
                         font.pixelSize: 12 * StartupTheme.scaleFactor
                         visible: card.thumbSrc === ""

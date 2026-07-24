@@ -11,6 +11,9 @@ QtObject {
     property real scaleFactor: typeof dpScale !== "undefined" ? dpScale : 1.0
     property bool dark: typeof isDark !== "undefined" ? isDark : false
 
+    // 翻译函数，走 C++ qt_translate
+    function tr(s) { return typeof startupBridge !== "undefined" ? startupBridge.tr(s) : s }
+
     // ---- 侧边栏 (liii.css #startup-tab-sidebar: #215a6a) ----
     readonly property color sidebarBg: "#215a6a"
     readonly property color navTitleFg: Qt.rgba(1, 1, 1, 0.6)

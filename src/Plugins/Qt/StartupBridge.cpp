@@ -12,18 +12,28 @@
 #include "StartupBridge.hpp"
 
 #include "QTMTemplateOpener.hpp"
+#include "qt_dpi_utils.hpp"
+#include "qt_floating_toast.hpp"
+#include "qt_pdf_preview_widget.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
 #include "template_manager.hpp"
 
+#include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLabel>
+#include <QPushButton>
+#include <QScreen>
 #include <QTimer>
+#include <QVBoxLayout>
 
 namespace {
 
@@ -229,6 +239,11 @@ StartupBridge::refreshRecentDocs () {
 }
 
 void
+StartupBridge::scheduleRecentDocsRefresh () {
+  QTimer::singleShot (1500, this, [this] { loadRecentDocs (); });
+}
+
+void
 StartupBridge::addRecentDoc (const QString& path) {
   QString normPath= QDir::fromNativeSeparators (path);
 
@@ -296,12 +311,22 @@ StartupBridge::onTemplatesLoaded () {
 }
 
 // =========================================================================
+// QML 工具方法
+// =========================================================================
+
+QString
+StartupBridge::tr (const QString& text) const {
+  return qt_translate (from_qstring (text));
+}
+
+// =========================================================================
 // QML actions
 // =========================================================================
 
 void
 StartupBridge::newDocument () {
   eval_scheme ("(new-document-with-style \"generic\")");
+  scheduleRecentDocsRefresh ();
 }
 
 void
@@ -317,6 +342,7 @@ StartupBridge::openDocument () {
   else {
     eval_scheme ("(open-document)");
   }
+  scheduleRecentDocsRefresh ();
 }
 
 void
@@ -324,6 +350,10 @@ StartupBridge::openRecentDoc (const QString& path) {
   if (path.isEmpty ()) return;
   if (!QFile::exists (path)) {
     removeRecentDoc (path);
+    QWidget* pw= qobject_cast<QWidget*> (parent ());
+    QtFloatingToast::showToast (
+        pw, qt_translate ("File not found, removed from recent list"), 3000,
+        QtFloatingToast::Error);
     return;
   }
   addRecentDoc (path);
@@ -380,11 +410,107 @@ void
 StartupBridge::openTemplate (const QString& id) {
   QTMTemplateOpener opener;
   opener.openTemplate (id);
+  scheduleRecentDocsRefresh ();
 }
 
 void
 StartupBridge::previewTemplate (const QString& id) {
-  openTemplate (id); // TODO: 预览弹窗
+  if (!templateManager_) return;
+
+  TemplateMetadataPtr tmpl= templateManager_->templateById (id);
+  if (!tmpl) return;
+
+  QWidget* parentWidget= qobject_cast<QWidget*> (parent ());
+
+  // ---- 预览对话框 ----
+  // TODO: PDF 预览框后续改为 QML 实现
+  QDialog* dialog= new QDialog (parentWidget);
+  dialog->setWindowTitle (
+      qt_translate ("Template Preview - %1").arg (tmpl->name));
+  dialog->setAttribute (Qt::WA_DeleteOnClose);
+
+  // 根据屏幕可用区域限制尺寸
+  QScreen* screen= dialog->screen ();
+  if (!screen) screen= QGuiApplication::primaryScreen ();
+  QRect availGeo= screen ? screen->availableGeometry () : QRect ();
+
+  constexpr int kPreviewImageSize= 600;
+  constexpr int kLayoutMargin    = 24;
+  constexpr int kLayoutSpacing   = 16;
+  constexpr int kTitleFontPx     = 18;
+  constexpr int kDescFontPx      = 14;
+  constexpr int kBtnFontPx       = 13;
+
+  int previewSize= DpiUtils::scaled (kPreviewImageSize);
+  int maxDlgH    = availGeo.height () > 0 ? qRound (availGeo.height () * 0.9)
+                                          : DpiUtils::scaled (800);
+  previewSize    = qMin (previewSize, qRound (maxDlgH * 0.7));
+
+  QVBoxLayout* layout= new QVBoxLayout (dialog);
+  layout->setSpacing (DpiUtils::scaled (kLayoutSpacing));
+  layout->setContentsMargins (
+      DpiUtils::scaled (kLayoutMargin), DpiUtils::scaled (kLayoutMargin),
+      DpiUtils::scaled (kLayoutMargin), DpiUtils::scaled (kLayoutMargin));
+
+  // 标题
+  QLabel* titleLabel= new QLabel (tmpl->name, dialog);
+  QFont   titleFont = DpiUtils::scaledFont (titleLabel->font (), kTitleFontPx);
+  titleFont.setBold (true);
+  titleLabel->setFont (titleFont);
+  layout->addWidget (titleLabel);
+
+  // 描述
+  if (!tmpl->description.isEmpty ()) {
+    QLabel* descLabel= new QLabel (tmpl->description, dialog);
+    descLabel->setWordWrap (true);
+    DpiUtils::applyScaledFont (descLabel, kDescFontPx);
+    layout->addWidget (descLabel);
+  }
+
+  // 信息行
+  QHBoxLayout* infoLayout= new QHBoxLayout ();
+  if (!tmpl->author.isEmpty ())
+    infoLayout->addWidget (
+        new QLabel (qt_translate ("Author: %1").arg (tmpl->author)));
+  if (!tmpl->version.isEmpty ())
+    infoLayout->addWidget (
+        new QLabel (qt_translate ("Version: %1").arg (tmpl->version)));
+  infoLayout->addStretch ();
+  layout->addLayout (infoLayout);
+
+  // PDF 预览
+  QTPdfPreviewWidget* previewWidget= new QTPdfPreviewWidget (dialog);
+  previewWidget->setFixedSize (previewSize, previewSize);
+  if (!tmpl->previewUrl.isEmpty ())
+    previewWidget->loadFromUrl (tmpl->previewUrl);
+  else previewWidget->clearPreview (qt_translate ("No Preview"));
+  layout->addWidget (previewWidget, 0, Qt::AlignCenter);
+
+  // 按钮
+  QHBoxLayout* btnLayout= new QHBoxLayout ();
+  btnLayout->addStretch ();
+
+  QPushButton* cancelBtn= new QPushButton (qt_translate ("Cancel"), dialog);
+  cancelBtn->setObjectName ("template-cancel-btn");
+  DpiUtils::applyScaledFont (cancelBtn, kBtnFontPx);
+  cancelBtn->setCursor (Qt::PointingHandCursor);
+  connect (cancelBtn, &QPushButton::clicked, dialog, &QDialog::reject);
+  btnLayout->addWidget (cancelBtn);
+
+  QPushButton* useBtn= new QPushButton (qt_translate ("Use Template"), dialog);
+  useBtn->setObjectName ("template-use-btn");
+  DpiUtils::applyScaledFont (useBtn, kBtnFontPx);
+  useBtn->setCursor (Qt::PointingHandCursor);
+  useBtn->setDefault (true);
+  connect (useBtn, &QPushButton::clicked, [dialog, id] () {
+    dialog->accept ();
+    QTMTemplateOpener opener;
+    opener.openTemplate (id);
+  });
+  btnLayout->addWidget (useBtn);
+  layout->addLayout (btnLayout);
+
+  dialog->show ();
 }
 
 void

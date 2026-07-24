@@ -62,6 +62,9 @@ public:
   QVariantList categoryTemplates () const { return categoryTemplates_; }
   bool         categoryLoading () const { return categoryLoading_; }
 
+  // ---- QML 工具方法 ----
+  Q_INVOKABLE QString tr (const QString& text) const;
+
   // ---- QML 可调用动作 ----
   Q_INVOKABLE void newDocument ();
   Q_INVOKABLE void openDocument ();
@@ -94,6 +97,7 @@ private:
   void saveRecentDocs ();
   void rebuildStyleCards ();
   void refreshCategoryTemplates ();
+  void scheduleRecentDocsRefresh ();
 
   TemplateManager* templateManager_= nullptr;
 

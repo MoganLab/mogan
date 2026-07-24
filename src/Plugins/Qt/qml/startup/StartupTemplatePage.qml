@@ -33,23 +33,29 @@ Flickable {
         spacing: 0
 
         // 顶部间距（对齐 HTML content padding-top）
-        Item { width: 1; height: StartupTheme.contentPadTop }
+        Item {
+            width: 1
+            height: StartupTheme.contentPadTop
+        }
 
-        // 分类标题 (HTML: .section-title)
+        // 分类标题
         Text {
             id: titleLabel
-            text: page.categoryName || qsTr("Template Center")
+            text: page.categoryName || StartupTheme.tr("Template Center")
             color: StartupTheme.sectionTitleFg
             font.pixelSize: StartupTheme.fontSectionTitle
             font.weight: Font.DemiBold
         }
 
-        Item { width: 1; height: 16 * StartupTheme.scaleFactor }
+        Item {
+            width: 1
+            height: 16 * StartupTheme.scaleFactor
+        }
 
         // Loading 状态
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr("Loading templates...")
+            text: StartupTheme.tr("Loading templates...")
             color: "#888"
             font.pixelSize: StartupTheme.fontTemplateLoading
             visible: page.loading && page.templates.length === 0
@@ -58,13 +64,13 @@ Flickable {
         // Empty 状态（加载完成但无模板）
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr("No templates in this category")
+            text: StartupTheme.tr("No templates in this category")
             color: "#888"
             font.pixelSize: StartupTheme.fontTemplateLoading
             visible: !page.loading && page.templates.length === 0
         }
 
-        // 响应式模板网格 (HTML: .template-grid, auto-fill minmax(176px, 1fr))
+        // 响应式模板网格
         Grid {
             id: templateGrid
             width: parent.width
@@ -79,14 +85,18 @@ Flickable {
                     author: modelData.author
                     version: modelData.version
                     thumbnailUrl: modelData.thumbnailUrl || ""
-                    onClicked: function(tid) {
-                        if (typeof startupBridge !== "undefined") startupBridge.previewTemplate(tid)
+                    onClicked: function (tid) {
+                        if (typeof startupBridge !== "undefined")
+                            startupBridge.previewTemplate(tid);
                     }
                 }
             }
         }
 
         // 底部间距
-        Item { width: 1; height: StartupTheme.contentPadBottom }
+        Item {
+            width: 1
+            height: StartupTheme.contentPadBottom
+        }
     }
 }

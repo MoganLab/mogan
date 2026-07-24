@@ -22,6 +22,7 @@
 #include <QKeyEvent>
 #include <QQmlContext>
 #include <QQuickWidget>
+#include <QShowEvent>
 
 namespace {
 constexpr int kMinWidth = 600;
@@ -100,6 +101,12 @@ QTMStartupTabWidget::refreshTheme () {
   bool  isDark=
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   ctx->setContextProperty ("isDark", isDark);
+}
+
+void
+QTMStartupTabWidget::showEvent (QShowEvent* event) {
+  QWidget::showEvent (event);
+  refreshRecentDocs ();
 }
 
 void
