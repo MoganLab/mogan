@@ -125,6 +125,17 @@ StartupBridge::initialize () {
            &StartupBridge::onRecommendTemplatesLoaded, Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::templatesLoaded, this,
            &StartupBridge::onTemplatesLoaded, Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::recommendTemplatesLoadFailed, this,
+           [](const QString& error) {
+             qWarning () << "[StartupBridge] Failed to load recommend templates:"
+                         << error;
+           },
+           Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::templatesLoadFailed, this,
+           [](const QString& error) {
+             qWarning () << "[StartupBridge] Failed to load templates:" << error;
+           },
+           Qt::UniqueConnection);
 
   if (templateManager_->isInitialized ()) {
     if (!templateManager_->categories ().isEmpty ()) onCategoriesLoaded ();

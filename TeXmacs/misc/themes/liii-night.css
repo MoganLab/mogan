@@ -1055,6 +1055,35 @@ QWidget#auxiliary_container {
   background-color: rgba(100, 181, 246, 0.1);
 }
 
+/* 模板预览对话框按钮 */
+QPushButton#template-use-btn {
+  color: white;
+  font-weight: bold;
+  border: none;
+}
+
+QWidget#centralWidget QPushButton#template-use-btn {
+  background-color: #215a6a;
+}
+
+QWidget#centralWidget QPushButton#template-use-btn:hover {
+  background-color: #2791ad;
+}
+
+QWidget#centralWidget QPushButton#template-cancel-btn {
+  background-color: #4e4e4e;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+QWidget#centralWidget QPushButton#template-cancel-btn:hover {
+  background-color: #6f6f6f;
+}
+
+QLabel#template-preview-desc {
+  color: #aaaaaa;
+}
+
 /****************************************************************************
 * PDF Preview Widget 样式
 ****************************************************************************/

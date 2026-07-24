@@ -1065,6 +1065,32 @@ QLabel#login-update-title {
   background: rgba(255, 255, 255, 0.92);
 }
 
+/* 模板预览对话框按钮 */
+QPushButton#template-use-btn {
+  background-color: #2791ad;
+  color: white;
+  font-weight: bold;
+  border: none;
+}
+
+QPushButton#template-use-btn:hover {
+  background-color: #215a6a;
+}
+
+QPushButton#template-cancel-btn {
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: bold;
+}
+
+QPushButton#template-cancel-btn:hover {
+  background-color: #f5f5f5;
+}
+
+QLabel#template-preview-desc {
+  color: #666666;
+}
+
 /****************************************************************************
 * PDF Preview Widget 样式
 ****************************************************************************/
