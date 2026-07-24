@@ -47,10 +47,8 @@ QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
   // ---- Context properties（与 QTMQmlDialog 共用 dpScale / isDark） ----
   auto* ctx= quickWidget_->rootContext ();
 
-  bool isDark=
-      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   ctx->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
-  ctx->setContextProperty ("isDark", isDark);
+  refreshTheme ();
 
   bridge_= new StartupBridge (this);
   ctx->setContextProperty ("startupBridge", bridge_);
@@ -94,6 +92,14 @@ QTMStartupTabWidget::refreshRecentDocs () {
 void
 QTMStartupTabWidget::addRecentDoc (const QString& path) {
   if (bridge_) bridge_->addRecentDoc (path);
+}
+
+void
+QTMStartupTabWidget::refreshTheme () {
+  auto* ctx= quickWidget_->rootContext ();
+  bool  isDark=
+      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
+  ctx->setContextProperty ("isDark", isDark);
 }
 
 void

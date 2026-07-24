@@ -39,6 +39,7 @@ public:
 
   void refreshRecentDocs ();
   void addRecentDoc (const QString& path);
+  void refreshTheme ();
 
 signals:
   void entry_changed (Entry entry);

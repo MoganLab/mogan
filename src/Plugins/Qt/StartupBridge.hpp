@@ -31,6 +31,7 @@ class TemplateManager;
  */
 class StartupBridge : public QObject {
   Q_OBJECT
+  Q_DISABLE_COPY (StartupBridge)
 
   Q_PROPERTY (
       QVariantList styleCards READ styleCards NOTIFY styleCardsChanged FINAL)
@@ -44,6 +45,8 @@ class StartupBridge : public QObject {
                   activeCategoryChanged FINAL)
   Q_PROPERTY (QVariantList categoryTemplates READ categoryTemplates NOTIFY
                   categoryTemplatesChanged FINAL)
+  Q_PROPERTY (bool categoryLoading READ categoryLoading NOTIFY
+                  categoryLoadingChanged FINAL)
 
 public:
   explicit StartupBridge (QObject* parent= nullptr);
@@ -57,6 +60,7 @@ public:
   QString      activeCategoryId () const { return activeCategoryId_; }
   QString      activeCategoryName () const { return activeCategoryName_; }
   QVariantList categoryTemplates () const { return categoryTemplates_; }
+  bool         categoryLoading () const { return categoryLoading_; }
 
   // ---- QML 可调用动作 ----
   Q_INVOKABLE void newDocument ();
@@ -78,6 +82,7 @@ signals:
   void categoriesChanged ();
   void activeCategoryChanged ();
   void categoryTemplatesChanged ();
+  void categoryLoadingChanged ();
 
 private slots:
   void onCategoriesLoaded ();
@@ -98,6 +103,7 @@ private:
   QString      activeCategoryId_;
   QString      activeCategoryName_;
   QVariantList categoryTemplates_;
+  bool         categoryLoading_= false;
 
   static const int kMaxRecentDocs= 50;
 };

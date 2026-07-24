@@ -33,32 +33,43 @@ QtObject {
     readonly property color cardNameFg: dark ? "#e0e0e0" : "#2b3b45"
     readonly property color cardTitleBg: dark ? "#3d3d3d" : "#ffffff"
     readonly property color cardTitleFg: dark ? "#e0e0e0" : "#2b3b45"
+    readonly property color cardTitleBorderTop: dark ? "#4e4e4e" : "#f0f0f0"
     readonly property color thumbnailBg: dark ? "#333333" : "#f5f5f5"
 
     // ---- 分隔线 (liii.css QFrame#startup-tab-separator: #d8dde2) ----
     readonly property color separatorColor: dark ? "#3e3e3e" : "#d8dde2"
 
-    // ---- 最近文档 (liii.css QLabel#startup-tab-recent-name: #1f2933) ----
+    // ---- 最近文档 (liii.css QListWidget#recent-docs-list) ----
     readonly property color recentBg: dark ? "#3d3d3d" : "#ffffff"
     readonly property color recentBorder: dark ? "#4e4e4e" : "#e0e0e0"
     readonly property color recentNameFg: dark ? "#eaeaea" : "#1f2933"
     readonly property color recentTimeFg: "#888888"
     readonly property color recentHoverBg: dark ? "#4e4e4e" : "#f0f0f0"
+    readonly property color recentEmptyFg: "#999999"
 
     // ---- 模板卡片 (liii.css QFrame#startup-tab-template-card) ----
     readonly property color templateCardBg: dark ? "#3d3d3d" : "#ffffff"
     readonly property color templateCardBorder: dark ? "#4e4e4e" : "#cfcfcf"
+    readonly property color templateNameFg: dark ? "#e0e0e0" : "#333333"
     readonly property color templateInfoFg: "#888888"
 
     // ---- 尺寸 (96 DPI 逻辑值, 乘 scaleFactor) ----
+    // 侧边栏
     readonly property real sidebarWidth: 160 * scaleFactor
     readonly property real navBtnPadV: 8 * scaleFactor
     readonly property real navBtnPadH: 12 * scaleFactor
     readonly property real navBtnRadius: 4 * scaleFactor
     readonly property real quitBtnRadius: 4 * scaleFactor
 
+    // 内容区内边距 (HTML: padding 76px 48px 40px, 其中 76px 含标题栏 44px,
+    // startup tab 不含标题栏故上边距用 32px)
+    readonly property real contentPadTop: 32 * scaleFactor
+    readonly property real contentPadH: 48 * scaleFactor
+    readonly property real contentPadBottom: 40 * scaleFactor
+
+    // StyleCard
     readonly property real cardW: 160 * scaleFactor
-    readonly property real cardH: 256 * scaleFactor
+    readonly property real cardH: 228 * scaleFactor
     readonly property real cardRadius: 8 * scaleFactor
     readonly property real cardIconSize: 50 * scaleFactor
     readonly property real cardFrameW: 152 * scaleFactor
@@ -67,13 +78,19 @@ QtObject {
     readonly property real cardTitleH: 29 * scaleFactor
     readonly property real cardFrameRadius: 6 * scaleFactor
 
+    // TemplateCard (HTML: 176×243 缩略图区 + 名称 + 信息)
     readonly property real tplCardW: 176 * scaleFactor
     readonly property real tplCardH: 243 * scaleFactor
     readonly property real tplThumbW: 160 * scaleFactor
     readonly property real tplThumbH: 227 * scaleFactor
-    readonly property real tplCardPad: 8 * scaleFactor
+    readonly property real tplThumbRadius: 2 * scaleFactor
 
+    // 最近文档 (HTML: item min-height 40px, radius 4px, margin 2px 4px, padding 6px 14px)
     readonly property real recentItemH: 40 * scaleFactor
+    readonly property real recentItemPadV: 6 * scaleFactor
+    readonly property real recentItemPadH: 14 * scaleFactor
+    readonly property real recentItemMarginV: 2 * scaleFactor
+    readonly property real recentItemMarginH: 4 * scaleFactor
     readonly property real recentRadius: 8 * scaleFactor
     readonly property real recentItemRadius: 4 * scaleFactor
 
@@ -85,13 +102,12 @@ QtObject {
     readonly property real fontCardTitle: 10 * scaleFactor
     readonly property real fontRecentName: 15 * scaleFactor
     readonly property real fontRecentTime: 11 * scaleFactor
+    readonly property real fontRecentEmpty: 13 * scaleFactor
     readonly property real fontTemplateName: 11 * scaleFactor
     readonly property real fontTemplateInfo: 10 * scaleFactor
+    readonly property real fontTemplateLoading: 14 * scaleFactor
 
     // ---- 间距 ----
     readonly property real gapCards: 16 * scaleFactor
     readonly property real sectionGap: 20 * scaleFactor
-    readonly property real contentPadH: 48 * scaleFactor
-    readonly property real contentPadTop: 76 * scaleFactor
-    readonly property real contentPadBottom: 40 * scaleFactor
 }

@@ -1,5 +1,5 @@
 // StartupTab.qml — 启动页主容器。
-// 对应 C++ QTMStartupTabWidget：左侧导航栏 + 右侧内容区（QStackedWidget）。
+// 左侧导航栏 + 右侧内容区。
 
 import QtQuick
 import QtQuick.Controls 2.15
@@ -35,19 +35,19 @@ Rectangle {
                 Text {
                     Layout.topMargin: 16 * StartupTheme.scaleFactor
                     Layout.leftMargin: 20 * StartupTheme.scaleFactor
+                    Layout.bottomMargin: 8 * StartupTheme.scaleFactor
                     text: qsTr("Navigation")
                     color: StartupTheme.navTitleFg
                     font.pixelSize: StartupTheme.fontNavTitle
                     font.weight: Font.Bold
                 }
 
-                Item { Layout.preferredHeight: 8 * StartupTheme.scaleFactor }
-
                 // Home 按钮
                 Rectangle {
                     Layout.preferredWidth: parent.width - 16 * StartupTheme.scaleFactor
                     Layout.preferredHeight: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
                     Layout.alignment: Qt.AlignHCenter
+                    Layout.bottomMargin: 2 * StartupTheme.scaleFactor
                     radius: StartupTheme.navBtnRadius
                     color: root.activePage === 0 ? StartupTheme.navBtnActiveBg :
                            (homeMouse.containsMouse ? StartupTheme.navBtnHoverBg : "transparent")
@@ -74,6 +74,7 @@ Rectangle {
                         Layout.preferredWidth: parent.width - 16 * StartupTheme.scaleFactor
                         Layout.preferredHeight: StartupTheme.fontNavBtn + 2 * StartupTheme.navBtnPadV
                         Layout.alignment: Qt.AlignHCenter
+                        Layout.bottomMargin: 2 * StartupTheme.scaleFactor
                         radius: StartupTheme.navBtnRadius
                         color: {
                             var isActive = root.activePage === 1 &&

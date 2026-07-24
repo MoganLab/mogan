@@ -12,10 +12,11 @@
 
 import QtQuick
 
-Item {
+Rectangle {
     id: root
     width: cardFrame.width
-    height: cardFrame.height + nameLabel.height + infoLabel.height + 6 * StartupTheme.scaleFactor
+    height: cardFrame.height + nameLabel.height + infoLabel.height + 8 * StartupTheme.scaleFactor
+    color: "transparent"
 
     property string templateId: ""
     property string name: ""
@@ -33,15 +34,17 @@ Item {
         radius: StartupTheme.cardRadius
         color: StartupTheme.templateCardBg
         border.width: 1
-        border.color: cardMouse.containsMouse ? StartupTheme.cardHoverBorder : StartupTheme.templateCardBorder
+        border.color: rootMouse.containsMouse ? StartupTheme.cardHoverBorder : StartupTheme.templateCardBorder
 
         Behavior on border.color { ColorAnimation { duration: 150 } }
 
+        // 缩略图内框 (HTML: .tpl-thumb-inner, 160×227, bg #f5f5f5, radius 2px)
         Rectangle {
             id: thumbInner
             anchors.centerIn: parent
             width: StartupTheme.tplThumbW
             height: StartupTheme.tplThumbH
+            radius: StartupTheme.tplThumbRadius
             color: StartupTheme.thumbnailBg
 
             Image {
@@ -61,23 +64,15 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
             }
         }
-
-        MouseArea {
-            id: cardMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.clicked(root.templateId)
-        }
     }
 
-    // 模板名称 QLabel#startup-tab-template-name: 11px
+    // 模板名称 (HTML: .tpl-name, width 176px, margin-top 5px, font 11px, color #333)
     Text {
         id: nameLabel
         anchors { top: cardFrame.bottom; topMargin: 5 * StartupTheme.scaleFactor; horizontalCenter: parent.horizontalCenter }
         width: StartupTheme.tplCardW
         text: root.name
-        color: StartupTheme.cardNameFg
+        color: StartupTheme.templateNameFg
         font.pixelSize: StartupTheme.fontTemplateName
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
@@ -85,12 +80,27 @@ Item {
         maximumLineCount: 2
     }
 
-    // 作者·版本 QLabel#startup-tab-template-info: 10px, color #888
+    // 作者·版本 (HTML: .tpl-info, margin-top 1px, font 10px, color #888)
     Text {
         id: infoLabel
         anchors { top: nameLabel.bottom; topMargin: 1 * StartupTheme.scaleFactor; horizontalCenter: parent.horizontalCenter }
-        text: root.author + " · v" + root.version
+        text: {
+            var parts = []
+            if (root.author) parts.push(root.author)
+            if (root.version) parts.push("v" + root.version)
+            return parts.length > 0 ? parts.join(" · ") : ""
+        }
         color: StartupTheme.templateInfoFg
         font.pixelSize: StartupTheme.fontTemplateInfo
+        visible: text !== ""
+    }
+
+    // 点击区域覆盖整个组件（包括名称和版本信息）
+    MouseArea {
+        id: rootMouse
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked(root.templateId)
     }
 }

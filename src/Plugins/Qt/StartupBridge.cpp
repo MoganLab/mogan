@@ -60,8 +60,7 @@ readRecentMeta () {
   if (!doc.isObject ()) return meta;
 
   QJsonObject obj  = doc.object ();
-  QJsonArray  files= obj.contains ("files") ? obj["files"].toArray ()
-                                            : obj["recent_documents"].toArray ();
+  QJsonArray  files= obj["files"].toArray ();
   for (const auto& val : files) {
     QJsonObject o= val.toObject ();
     QString     p= QDir::fromNativeSeparators (o["path"].toString ());
@@ -177,10 +176,10 @@ StartupBridge::loadRecentDocs () {
     if (recentDocs_.size () >= kMaxRecentDocs) break;
     QString name= QFileInfo (path).fileName ();
     QString time;
-    if (meta.contains (path)) {
-      auto& m= meta[path];
-      if (!m.first.isEmpty ()) name= m.first;
-      time= m.second;
+    auto    it= meta.constFind (path);
+    if (it != meta.constEnd ()) {
+      if (!it->first.isEmpty ()) name= it->first;
+      time= it->second;
     }
     else {
       time= QDateTime::currentDateTime ().toString ("yyyy-MM-dd hh:mm");
@@ -213,9 +212,14 @@ StartupBridge::saveRecentDocs () {
   }
   root["files"]= arr;
 
-  if (file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
-    file.write (QJsonDocument (root).toJson ());
-    file.close ();
+  // Write to temp file then rename for atomicity
+  QString tmpPath= recentDocsFilePath () + ".tmp";
+  QFile   tmpFile (tmpPath);
+  if (tmpFile.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+    tmpFile.write (QJsonDocument (root).toJson ());
+    tmpFile.close ();
+    QFile::remove (recentDocsFilePath ());
+    tmpFile.rename (recentDocsFilePath ());
   }
 }
 
@@ -242,8 +246,10 @@ StartupBridge::addRecentDoc (const QString& path) {
     recentDocs_.removeLast ();
 
   saveRecentDocs ();
-  eval_scheme ("(startup-tab-add-recent-doc " *
-               qt_scheme_quote_utf8 (normPath) * ")");
+  QTimer::singleShot (0, this, [normPath] {
+    eval_scheme ("(startup-tab-add-recent-doc " *
+                 qt_scheme_quote_utf8 (normPath) * ")");
+  });
   emit recentDocsChanged ();
 }
 
@@ -283,6 +289,8 @@ StartupBridge::refreshCategoryTemplates () {
 
 void
 StartupBridge::onTemplatesLoaded () {
+  categoryLoading_= false;
+  emit categoryLoadingChanged ();
   refreshCategoryTemplates ();
   rebuildStyleCards ();
 }
@@ -332,14 +340,17 @@ StartupBridge::removeRecentDoc (const QString& path) {
     }
   }
   saveRecentDocs ();
-  eval_scheme ("(startup-tab-clear-recent-doc " *
-               qt_scheme_quote_utf8 (normPath) * ")");
+  QTimer::singleShot (0, this, [normPath] {
+    eval_scheme ("(startup-tab-clear-recent-doc " *
+                 qt_scheme_quote_utf8 (normPath) * ")");
+  });
   emit recentDocsChanged ();
 }
 
 void
 StartupBridge::clearAllRecentDocs () {
-  eval_scheme ("(startup-tab-clear-all-recent)");
+  QTimer::singleShot (0, this,
+                      [] { eval_scheme ("(startup-tab-clear-all-recent)"); });
   recentDocs_.clear ();
   saveRecentDocs ();
   emit recentDocsChanged ();
@@ -358,6 +369,8 @@ StartupBridge::selectCategory (const QString& categoryId) {
     }
   }
   emit activeCategoryChanged ();
+  categoryLoading_= true;
+  emit categoryLoadingChanged ();
   if (templateManager_ && templateManager_->isInitialized ())
     templateManager_->refreshTemplatesByCategory (categoryId);
   refreshCategoryTemplates ();

@@ -4,7 +4,7 @@
 // API:
 //   kind      : string — "icon"（新建/打开）或 "thumbnail"（推荐模板）。
 //   iconSrc   : string — 图标模式下 SVG 路径（qrc 或内联 data URI），仅 kind=="icon"。
-//   cardName  : string — 底部名称文案（图标模式）或缩略图外名称（缩略图模式）。
+//   cardName  : string — 底部名称文案（仅图标模式）。
 //   titleText : string — 缩略图内标题栏文案，仅 kind=="thumbnail"。
 //   thumbSrc  : string — 缩略图图片 URL，仅 kind=="thumbnail"。
 //   clicked()          — 点击信号。
@@ -21,10 +21,10 @@ Rectangle {
     border.color: mouseArea.containsMouse ? StartupTheme.cardHoverBorder : StartupTheme.cardBorder
 
     property string kind: "icon"       // "icon" | "thumbnail"
-    property string iconSrc: ""        // SVG source for icon mode
-    property string cardName: ""       // bottom name
-    property string titleText: ""      // thumbnail title bar (thumbnail mode)
-    property string thumbSrc: ""       // thumbnail image URL (thumbnail mode)
+    property string iconSrc: ""        // 图标模式 SVG 路径
+    property string cardName: ""       // 图标模式底部名称
+    property string titleText: ""      // 缩略图模式标题栏文案
+    property string thumbSrc: ""       // 缩略图模式图片 URL
 
     signal clicked()
 
@@ -38,13 +38,14 @@ Rectangle {
         onClicked: card.clicked()
     }
 
-    // ---- 图标模式 ----
+    // ---- 图标模式 (HTML: .style-card .card-icon + .card-name) ----
     Loader {
         anchors.fill: parent
         active: card.kind === "icon"
         sourceComponent: Item {
             anchors.fill: parent
 
+            // 图标区域 (HTML: flex 1, centered, padding-top 24px)
             Image {
                 id: iconImg
                 source: card.iconSrc
@@ -55,6 +56,7 @@ Rectangle {
                 fillMode: Image.PreserveAspectFit
             }
 
+            // 底部名称 (HTML: padding 0 12px 24px, font 14px, color #2b3b45)
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
@@ -66,14 +68,14 @@ Rectangle {
         }
     }
 
-    // ---- 缩略图模式 ----
+    // ---- 缩略图模式 (HTML: .style-card.thumbnail .card-frame) ----
     Loader {
         anchors.fill: parent
         active: card.kind === "thumbnail"
         sourceComponent: Item {
             anchors.fill: parent
 
-            // 内框 QFrame#style-card-frame: 152×219, margin 4
+            // 内框 QFrame#style-card-frame: 152×219, margin 4, radius 6
             Rectangle {
                 id: frame
                 x: StartupTheme.cardFramePad
@@ -85,7 +87,7 @@ Rectangle {
                 border.width: 1
                 border.color: mouseArea.containsMouse ? StartupTheme.cardHoverBorder : StartupTheme.cardBorder
 
-                // 缩略图区域 QLabel#style-card-thumbnail: bg #f5f5f5
+                // 缩略图区域 (HTML: .thumb-img, bg #f5f5f5)
                 Rectangle {
                     id: thumbArea
                     anchors { top: parent.top; left: parent.left; right: parent.right }
@@ -107,11 +109,18 @@ Rectangle {
                     }
                 }
 
-                // 标题栏 QLabel#style-card-title: 29px, bg #fff, color #2b3b45
+                // 标题栏 (HTML: .thumb-title, height 29px, border-top 1px #f0f0f0)
                 Rectangle {
                     anchors { top: thumbArea.bottom; left: parent.left; right: parent.right }
                     height: StartupTheme.cardTitleH
                     color: StartupTheme.cardTitleBg
+
+                    // HTML: border-top: 1px solid #f0f0f0
+                    Rectangle {
+                        anchors { top: parent.top; left: parent.left; right: parent.right }
+                        height: 1
+                        color: StartupTheme.cardTitleBorderTop
+                    }
 
                     Text {
                         anchors.centerIn: parent
@@ -120,16 +129,6 @@ Rectangle {
                         font.pixelSize: StartupTheme.fontCardTitle
                     }
                 }
-            }
-
-            // 卡片外名称（缩略图模式在框架下方显示名称）
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 4 * StartupTheme.scaleFactor
-                text: card.cardName
-                color: StartupTheme.cardNameFg
-                font.pixelSize: StartupTheme.fontCardName
             }
         }
     }
