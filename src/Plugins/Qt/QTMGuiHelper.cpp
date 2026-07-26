@@ -12,6 +12,7 @@
 
 #include "QTMGuiHelper.hpp"
 #include "iterator.hpp"
+#include "new_window.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
@@ -35,16 +36,16 @@ QTMGuiHelper::doRefresh () {
 bool
 QTMGuiHelper::eventFilter (QObject* obj, QEvent* event) {
   if (event->type () == QEvent::FileOpen) {
-    static bool     new_window_flag= false;
-    QFileOpenEvent* openEvent      = static_cast<QFileOpenEvent*> (event);
-    string          s= from_qstring_utf8 (openEvent->file ().toUtf8 ());
+    QFileOpenEvent* openEvent= static_cast<QFileOpenEvent*> (event);
+    string          s        = from_qstring_utf8 (openEvent->file ().toUtf8 ());
     if (!is_empty (s)) {
       // qDebug ("File Open Event %s", s);
-      const char* win= new_window_flag ? ":new-window" : ":current-window";
+      // 双击打开的文档在已有窗口里以新标签页打开；仅当没有任何窗口时才新建窗口。
+      const char* win=
+          has_current_window () ? ":current-window" : ":new-window";
       exec_delayed (scheme_cmd (list_object (
           symbol_object ("load-buffer"), object (url_system (s)), eval (win))));
     }
-    new_window_flag= true;
     return true;
   }
   else {
