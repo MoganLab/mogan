@@ -939,7 +939,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
       }
     }
   }
-  
+
   // 绘图区光标由绘图模式管理，单独走分支仅复位残留悬停样式；其余走正常光标链
   bool over_gr= over_graphics (x, y);
   if (over_gr) {
