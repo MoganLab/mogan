@@ -39,7 +39,8 @@ struct ThumbnailMeta {
  *
  * 缓存策略：
  *   - 缩略图文件持久化到 system/cache/thumbnails/，以 URL MD5 命名
- *   - ETag + Last-Modified 持久化到 system/cache/thumbnails/thumbnails_meta.json
+ *   - ETag + Last-Modified 持久化到
+ * system/cache/thumbnails/thumbnails_meta.json
  *   - 每会话每个 URL 最多发一次条件请求（304 响应后本会话不再请求）
  */
 class ThumbnailLoader : public QObject {
@@ -82,7 +83,8 @@ private:
   /// 本会话已校验通过的 URL（304 或新下载后加入，避免同会话重复发条件请求）。
   QSet<QString> validatedUrls_;
 
-  /// remote URL → ETag + Last-Modified（从 JSON 加载，下载/校验成功后更新并持久化）。
+  /// remote URL → ETag + Last-Modified（从 JSON
+  /// 加载，下载/校验成功后更新并持久化）。
   QHash<QString, ThumbnailMeta> meta_;
 };
 

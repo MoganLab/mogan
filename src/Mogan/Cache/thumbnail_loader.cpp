@@ -74,12 +74,17 @@ ThumbnailLoader::loadMeta () {
   file.close ();
   if (!doc.isObject ()) return;
 
-  for (auto it= doc.object ().begin (); it != doc.object ().end (); ++it) {
-    QJsonObject o = it.value ().toObject ();
+  // 必须先把 QJsonObject 存到局部变量再遍历：doc.object() 返回临时对象，
+  // 若直接在 for 里取 begin()/end()，临时对象在该完整表达式结束时析构，
+  // 迭代器随即悬空 → it.value().toObject() 触发 use-after-free 崩溃。
+  QJsonObject root= doc.object ();
+  for (auto it= root.begin (); it != root.end (); ++it) {
+    QJsonObject   o= it.value ().toObject ();
     ThumbnailMeta m;
-    m.etag         = o["etag"].toString ();
-    m.lastModified = o["lastModified"].toString ();
-    if (!m.etag.isEmpty () || !m.lastModified.isEmpty ()) meta_.insert (it.key (), m);
+    m.etag        = o["etag"].toString ();
+    m.lastModified= o["lastModified"].toString ();
+    if (!m.etag.isEmpty () || !m.lastModified.isEmpty ())
+      meta_.insert (it.key (), m);
   }
 }
 
@@ -129,7 +134,7 @@ ThumbnailLoader::queryUrl (const QString& remoteUrl) {
 
 QString
 ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload,
-                              bool validateCached) {
+                             bool validateCached) {
   if (remoteUrl.isEmpty ()) return remoteUrl;
 
   // 已是本地资源 / qrc 资源，不处理
@@ -147,8 +152,7 @@ ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload,
   auto it= urlCache_.constFind (remoteUrl);
   if (it != urlCache_.constEnd ()) {
     // file:// URL 提取本地路径校验文件存在（用户可能手动删了缓存）
-    if (it->startsWith ("file://") && QFile::exists (it->mid (7)))
-      return *it;
+    if (it->startsWith ("file://") && QFile::exists (it->mid (7))) return *it;
     if (!it->startsWith ("file://")) return *it; // qrc:/ 等非 file:// 直接返回
     // file:// 但文件已不存在：清除缓存，继续走下载/查询逻辑
     urlCache_.erase (it);
@@ -235,13 +239,11 @@ ThumbnailLoader::onDownloadFinished (QNetworkReply* reply) {
 
   // 提取 ETag / Last-Modified
   ThumbnailMeta meta;
-  meta.etag= QString::fromUtf8 (reply->rawHeader ("ETag"));
-  meta.lastModified=
-      QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
+  meta.etag        = QString::fromUtf8 (reply->rawHeader ("ETag"));
+  meta.lastModified= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
   if (!meta.etag.isEmpty () || !meta.lastModified.isEmpty ())
     meta_.insert (remoteUrl, meta);
-  else
-    meta_.remove (remoteUrl);
+  else meta_.remove (remoteUrl);
 
   validatedUrls_.insert (remoteUrl);
   saveMeta ();

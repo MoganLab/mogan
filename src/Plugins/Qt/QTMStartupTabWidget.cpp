@@ -34,13 +34,23 @@ QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent) : QWidget (parent) {
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
   setFocusPolicy (Qt::StrongFocus);
 
+  // 本容器嵌入在 QWK::WidgetWindowAgent 代理的主窗口下。QQuickWidget 会创建
+  // 原生渲染窗口（QWindow），若在 QWK 代理窗口下发生 winId 变动，QWindowKit
+  // 的 Cocoa winIdChanged 会用已释放的 NSWindowProxy 做消息派发而崩溃
+  // （EXC_BAD_ACCESS @ objc_msgSend，见 ~NSWindowProxy）。先让本容器成为稳定的
+  // 原生窗口并禁止为祖先创建原生窗口，QQuickWidget 重设父级时就不会触发代理的
+  // releaseWindowProxy 路径。
+  setAttribute (Qt::WA_DontCreateNativeAncestors);
+  setAttribute (Qt::WA_NativeWindow);
+
   auto* layout= new QHBoxLayout (this);
   layout->setContentsMargins (0, 0, 0, 0);
 
   // ---- QQuickWidget ----
   Q_INIT_RESOURCE (moganqml);
 
-  quickWidget_= new QQuickWidget (this);
+  quickWidget_= new QQuickWidget ();
+  quickWidget_->setAttribute (Qt::WA_DontCreateNativeAncestors);
   quickWidget_->setResizeMode (QQuickWidget::SizeRootObjectToView);
   quickWidget_->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
 

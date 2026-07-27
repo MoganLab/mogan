@@ -4,8 +4,6 @@
 // 页面整体不滚动，仅 Recent Documents 内部滚动。
 
 import QtQuick
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
 import "atoms"
 
 Item {
@@ -15,30 +13,43 @@ Item {
     property var styleCards: typeof startupBridge !== "undefined" && startupBridge.styleCards ? startupBridge.styleCards : []
     property var recentDocs: typeof startupBridge !== "undefined" && startupBridge.recentDocs ? startupBridge.recentDocs : []
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.leftMargin: StartupTheme.contentPadH
-        anchors.rightMargin: StartupTheme.contentPadH
-        spacing: 0
+    // 内容区水平内边距统一应用到一个覆盖层，竖直方向分区用锚点堆叠。
+    property real padH: StartupTheme.contentPadH
 
-        // 顶部间距（对齐 HTML content padding-top）
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: StartupTheme.contentPadTop }
+    // ---- Document Style 区块（顶部固定） ----
+    Item {
+        id: topSection
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+            leftMargin: page.padH
+            rightMargin: page.padH
+            topMargin: StartupTheme.contentPadTop
+        }
+        height: childrenRect.height
 
-        // ---- Document Style 分区 ----
         Text {
-            Layout.fillWidth: true
+            id: sectionTitle
+            anchors {
+                left: parent.left
+                top: parent.top
+            }
             text: StartupTheme.tr("Document Style")
             color: StartupTheme.sectionTitleFg
             font.pixelSize: StartupTheme.fontSectionTitle
             font.weight: Font.DemiBold
         }
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 * StartupTheme.scaleFactor }
-
         // 样式卡片行（Flow 布局，自动换行）
         Flow {
             id: cardsFlow
-            Layout.fillWidth: true
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: sectionTitle.bottom
+                topMargin: 16 * StartupTheme.scaleFactor
+            }
             spacing: StartupTheme.gapCards
 
             // 新建文档（图标模式，固定）
@@ -74,130 +85,128 @@ Item {
                 }
             }
         }
+    }
 
-        // 分区间距
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: StartupTheme.sectionGap }
-
-        // ---- 分隔线 ----
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: StartupTheme.separatorColor
+    // ---- 分隔线 ----
+    Rectangle {
+        id: separator
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: topSection.bottom
+            topMargin: StartupTheme.sectionGap
+            leftMargin: page.padH
+            rightMargin: page.padH
         }
+        height: 1
+        color: StartupTheme.separatorColor
+    }
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: StartupTheme.sectionGap }
-
-        // ---- Recent Documents 分区 ----
-        Text {
-            Layout.fillWidth: true
-            text: StartupTheme.tr("Recent Documents")
-            color: StartupTheme.sectionTitleFg
-            font.pixelSize: StartupTheme.fontSectionTitle
-            font.weight: Font.DemiBold
+    // ---- Recent Documents 标题 ----
+    Text {
+        id: recentTitle
+        anchors {
+            left: parent.left
+            top: separator.bottom
+            topMargin: StartupTheme.sectionGap
+            leftMargin: page.padH
         }
+        text: StartupTheme.tr("Recent Documents")
+        color: StartupTheme.sectionTitleFg
+        font.pixelSize: StartupTheme.fontSectionTitle
+        font.weight: Font.DemiBold
+    }
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 * StartupTheme.scaleFactor }
+    // ---- 最近文档列表（占满剩余高度，内部滚动） ----
+    Rectangle {
+        id: recentContainer
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: recentTitle.bottom
+            topMargin: 16 * StartupTheme.scaleFactor
+            bottom: parent.bottom
+            bottomMargin: StartupTheme.contentPadBottom
+            leftMargin: page.padH
+            rightMargin: page.padH
+        }
+        radius: StartupTheme.recentRadius
+        color: StartupTheme.recentBg
+        border.width: 1
+        border.color: StartupTheme.recentBorder
 
-        // 最近文档列表 — 占满剩余高度，内部滚动
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: StartupTheme.recentRadius
-            color: StartupTheme.recentBg
-            border.width: 1
-            border.color: StartupTheme.recentBorder
+        ListView {
+            id: recentList
+            anchors.fill: parent
+            anchors.leftMargin: StartupTheme.recentItemMarginH
+            anchors.rightMargin: StartupTheme.recentItemMarginH
+            anchors.topMargin: StartupTheme.recentItemMarginV
+            anchors.bottomMargin: StartupTheme.recentItemMarginV
+            spacing: 0
+            clip: true
+            model: page.recentDocs
+            interactive: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            ListView {
-                id: recentList
-                anchors.fill: parent
-                anchors.leftMargin: StartupTheme.recentItemMarginH
-                anchors.rightMargin: StartupTheme.recentItemMarginH
-                anchors.topMargin: StartupTheme.recentItemMarginV
-                anchors.bottomMargin: StartupTheme.recentItemMarginV
-                spacing: 0
-                clip: true
-                model: page.recentDocs
-                interactive: true
-                boundsBehavior: Flickable.StopAtBounds
+            delegate: Rectangle {
+                width: recentList.width - 2 * StartupTheme.recentItemMarginH
+                height: StartupTheme.recentItemH
+                anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+                radius: StartupTheme.recentItemRadius
+                color: itemMouse.containsMouse ? StartupTheme.recentHoverBg : "transparent"
 
-                delegate: Rectangle {
-                    width: recentList.width - 2 * StartupTheme.recentItemMarginH
-                    height: StartupTheme.recentItemH
-                    anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
-                    radius: StartupTheme.recentItemRadius
-                    color: itemMouse.containsMouse ? StartupTheme.recentHoverBg : "transparent"
-
-                    // 文件名（左对齐，超出省略）
-                    Text {
-                        id: fileNameText
-                        anchors {
-                            left: parent.left
-                            leftMargin: StartupTheme.recentItemPadH
-                            verticalCenter: parent.verticalCenter
-                        }
-                        text: modelData.fileName
-                        color: StartupTheme.recentNameFg
-                        font.pixelSize: StartupTheme.fontRecentName
-                        font.weight: Font.Bold
-                        elide: Text.ElideRight
+                Text {
+                    id: fileNameText
+                    anchors {
+                        left: parent.left
+                        leftMargin: StartupTheme.recentItemPadH
+                        verticalCenter: parent.verticalCenter
                     }
-                    Text {
-                        id: timeText
-                        anchors {
-                            right: parent.right
-                            rightMargin: StartupTheme.recentItemPadH
-                            verticalCenter: parent.verticalCenter
-                        }
-                        text: StartupTheme.tr("Last opened") + ": " + (modelData.openedAt || "")
-                        color: StartupTheme.recentTimeFg
-                        font.pixelSize: StartupTheme.fontRecentTime
+                    width: parent.width - timeText.width - 2 * StartupTheme.recentItemPadH
+                    text: modelData.fileName
+                    color: StartupTheme.recentNameFg
+                    font.pixelSize: StartupTheme.fontRecentName
+                    font.weight: Font.Bold
+                    elide: Text.ElideRight
+                }
+                Text {
+                    id: timeText
+                    anchors {
+                        right: parent.right
+                        rightMargin: StartupTheme.recentItemPadH
+                        verticalCenter: parent.verticalCenter
                     }
-
-                    MouseArea {
-                        id: itemMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: function(mouse) {
-                            if (mouse.button === Qt.RightButton) {
-                                contextMenu.popup()
-                            } else {
-                                if (typeof startupBridge !== "undefined") startupBridge.openRecentDoc(modelData.filePath)
-                            }
-                        }
-                    }
-
-                    Menu {
-                        id: contextMenu
-                        MenuItem {
-                            text: StartupTheme.tr("Remove from list")
-                            onTriggered: {
-                                if (typeof startupBridge !== "undefined") startupBridge.removeRecentDoc(modelData.filePath)
-                            }
-                        }
-                        MenuSeparator { }
-                        MenuItem {
-                            text: StartupTheme.tr("Clear list")
-                            onTriggered: {
-                                if (typeof startupBridge !== "undefined") startupBridge.clearAllRecentDocs()
-                            }
-                        }
-                    }
+                    text: StartupTheme.tr("Last opened") + ": " + (modelData.openedAt || "")
+                    color: StartupTheme.recentTimeFg
+                    font.pixelSize: StartupTheme.fontRecentTime
                 }
 
-                // 无文档占位提示
-                Text {
-                    anchors.centerIn: parent
-                    text: StartupTheme.tr("No recent documents")
-                    color: StartupTheme.recentEmptyFg
-                    font.pixelSize: StartupTheme.fontRecentEmpty
-                    visible: page.recentDocs.length === 0
+                MouseArea {
+                    id: itemMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: function(mouse) {
+                        if (mouse.button === Qt.RightButton) {
+                            // 右键：从列表移除该项（原 Controls 菜单已移除，避免引入 QtQuick.Controls）
+                            if (typeof startupBridge !== "undefined")
+                                startupBridge.removeRecentDoc(modelData.filePath)
+                        } else {
+                            if (typeof startupBridge !== "undefined") startupBridge.openRecentDoc(modelData.filePath)
+                        }
+                    }
                 }
             }
-        }
 
-        // 底部间距
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: StartupTheme.contentPadBottom }
+            // 无文档占位提示
+            Text {
+                anchors.centerIn: parent
+                text: StartupTheme.tr("No recent documents")
+                color: StartupTheme.recentEmptyFg
+                font.pixelSize: StartupTheme.fontRecentEmpty
+                visible: page.recentDocs.length === 0
+            }
+        }
     }
 }
