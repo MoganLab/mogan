@@ -1526,7 +1526,7 @@
   ;; 如果剪贴板中的内容是图像，调用 ocr-paste
   ;; 否则调用原来的 kbd-paste
   (if (string-starts? (qt-clipboard-format) "image")
-    (ocr-paste)
+    (ocr-paste "image")
     (clipboard-paste "primary")
   ) ;if
 ) ;tm-define

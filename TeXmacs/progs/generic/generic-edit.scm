@@ -1234,10 +1234,14 @@
 ;; (ocr-paste source-format)
 
 (define (clipboard-tree-image? data)
-  (or (tree-is? (tree-ref data 0) 'image)
+  (or (tree-is? data 'image)
+    (and (tree? data) (tree-compound? data) (tree-is? (tree-ref data 0) 'image))
     (and (tree-is? data 'with) (tree-is? (tree-ref data 2) 'image))
   ) ;or
 ) ;define
+
+;; 0-arg wrapper: keep backward compatibility with callers that call (ocr-paste)
+(tm-define (ocr-paste) (ocr-paste "image"))
 
 (tm-define (ocr-paste source-format)
   (when (not (defined? 'ocr-to-latex-by-cursor))
@@ -1245,8 +1249,8 @@
   ) ;when
   (with data
     (if (string=? source-format "texmacs-snippet")
-      (tree-ref (clipboard-get "primary") 1)
-      (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
+      (tree-ref (clipboard-get "primary") 0)
+      (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
     ) ;if
     (when (clipboard-tree-image? data)
       (ocr-to-latex-by-cursor data)
@@ -1262,7 +1266,7 @@
 ;; (image-and-ocr-paste)
 (tm-define (image-and-ocr-paste)
   (with data
-    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
+    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
     (when (tree-is? (tree-ref data 0) 'image)
       (kbd-paste)
       (kbd-return)
@@ -1317,7 +1321,7 @@
     (use-modules (liii ocr))
   ) ;when
   (with img-tree
-    (tree-ref (clipboard-get "primary") 1)
+    (tree-ref (clipboard-get "primary") 0)
     (cond ((tree-is? img-tree 'image) (ocr-to-latex-by-cursor img-tree))
           ((and (tree-is? img-tree 'with) (tree-is? (tree-ref img-tree 2) 'image))
            (ocr-to-latex-by-cursor img-tree)
@@ -1446,7 +1450,7 @@
           ) ;
           ((string=? source-format "texmacs-snippet")
            (with data
-             (tree-ref (clipboard-get "primary") 1)
+             (tree-ref (clipboard-get "primary") 0)
              (if (clipboard-tree-image? data)
                (begin
                  (ocr-paste "texmacs-snippet")

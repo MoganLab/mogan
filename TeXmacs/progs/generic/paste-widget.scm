@@ -112,7 +112,7 @@
 
 (tm-define (is-clipboard-image?)
   (with data
-    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
+    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
     (if (tree-is? (tree-ref data 0) 'image) #t #f)
   ) ;with
 ) ;tm-define
@@ -205,13 +205,13 @@
 
   (define (do-paste fm)
     (cond ((== fm "md") (paste-as-markdown))
-          ((== fm "ocr") (ocr-paste))
+          ((== fm "ocr") (ocr-paste "image"))
           ((== fm "image_and_ocr") (image-and-ocr-paste))
           ((== fm "image") (kbd-paste))
           ((== fm "mathml") (clipboard-paste-import "html" "primary"))
           ((== fm "html") (paste-as-html))
           ((and (string=? fm "latex") (string=? (get-clipboard-format) "image"))
-           (ocr-paste)
+           (ocr-paste "image")
           ) ;
           ((== fm "internal") (paste-as-texmacs))
           (else (clipboard-paste-import fm "primary"))
