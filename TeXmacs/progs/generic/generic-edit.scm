@@ -1285,7 +1285,7 @@
     (begin
       (clipboard-paste-import "verbatim" "primary")
       (kbd-return)
-      (let* ((latex-code (string-load (unix->url "$TEXMACS_PATH/plugins/account/data/md.tex"))
+      (let* ((latex-code (string-load (unix->url "$TEXMACS_PATH/plugins/ocr/data/md.tex"))
              ) ;latex-code
              (parsed-latex (parse-latex latex-code))
              (texmacs-latex (latex->texmacs parsed-latex))
