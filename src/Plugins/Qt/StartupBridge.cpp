@@ -19,6 +19,7 @@
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
 #include "template_manager.hpp"
+#include "thumbnail_loader.hpp"
 
 #include <QDialog>
 #include <QDir>
@@ -160,6 +161,7 @@ StartupBridge::rebuildStyleCards () {
   QVariantList newCards;
   auto*        mgr= TemplateManager::instance ();
   if (!mgr || !mgr->isInitialized ()) return;
+  auto* loader= mgr->thumbnailLoader ();
   for (const auto& t : mgr->recommendTemplates ()) {
     if (!t) continue;
     QVariantMap m;
@@ -167,7 +169,8 @@ StartupBridge::rebuildStyleCards () {
     m["id"]       = t->id;
     m["name"]     = t->name;
     m["titleText"]= t->name;
-    if (!t->thumbnailUrl.isEmpty ()) m["thumbSrc"]= t->thumbnailUrl;
+    QString url= loader ? loader->queryUrl (t->thumbnailUrl) : t->thumbnailUrl;
+    if (!url.isEmpty ()) m["thumbSrc"]= url;
     newCards << m;
   }
   if (newCards != styleCards_) {
@@ -344,10 +347,12 @@ StartupBridge::refreshCategoryTemplates () {
       activeCategoryId_.isEmpty ()
           ? templateManager_->templates ()
           : templateManager_->templatesByCategory (activeCategoryId_);
+  auto* loader= templateManager_->thumbnailLoader ();
   for (const auto& t : templates) {
     if (!t) continue;
+    QString url= loader ? loader->queryUrl (t->thumbnailUrl) : t->thumbnailUrl;
     categoryTemplates_ << makeTemplateEntry (t->id, t->name, t->author,
-                                             t->version, t->thumbnailUrl);
+                                             t->version, url);
   }
   categoryTemplatesCache_.insert (activeCategoryId_, categoryTemplates_);
   emit categoryTemplatesChanged ();

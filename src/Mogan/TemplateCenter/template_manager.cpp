@@ -74,14 +74,10 @@ TemplateManager::TemplateManager (QObject* parent)
   // 缩略图下载器
   thumbnailLoader_= new ThumbnailLoader (this);
   connect (thumbnailLoader_, &ThumbnailLoader::ready, this,
-           [this] (const QString& remoteUrl) {
-             for (auto it= templates_.begin (); it != templates_.end (); ++it) {
-               TemplateMetadataPtr tmpl= it.value ();
-               if (tmpl && tmpl->thumbnailUrl == remoteUrl) {
-                 tmpl->thumbnailUrl= thumbnailLoader_->getUrl (remoteUrl);
-                 emit thumbnailCached (tmpl->id);
-               }
-             }
+           [this] (const QString&) {
+             // 不修改 templates_ 中的 thumbnailUrl（保持原始远程 URL），
+             // 仅通知消费者刷新，由 bridge 层通过 getUrl() 取本地路径。
+             emit thumbnailCached (QString ());
            });
 }
 
@@ -802,10 +798,10 @@ TemplateManager::mergeMetadata (
     }
   }
 
-  // 将模板缩略图 URL 转为本地 file:// 路径
+  // 触发缩略图异步下载（不修改 thumbnailUrl，URL 转换在 bridge 层进行）
   for (auto it= templates_.begin (); it != templates_.end (); ++it) {
     TemplateMetadataPtr tmpl= it.value ();
-    if (tmpl) tmpl->thumbnailUrl= thumbnailLoader_->getUrl (tmpl->thumbnailUrl);
+    if (tmpl) thumbnailLoader_->getUrl (tmpl->thumbnailUrl);
   }
 }
 

@@ -38,6 +38,8 @@ public:
 
   /// @return 已缓存返回 "file://..."，否则触发异步下载并返回原 URL。
   QString getUrl (const QString& remoteUrl);
+  /// 只查缓存不触发下载：已缓存返回 file://，否则直接返回原 URL。
+  QString queryUrl (const QString& remoteUrl);
 
 signals:
   /// remoteUrl 对应的本地 file:// 已就绪。
@@ -48,6 +50,7 @@ private slots:
 
 private:
   QString cacheDir () const;
+  QString getUrlImpl (const QString& remoteUrl, bool triggerDownload);
 
   QNetworkAccessManager* nam_;
   /// remote URL → 本地下载路径 / file:// 已缓存路径。

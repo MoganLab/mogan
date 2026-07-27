@@ -52,6 +52,7 @@ Rectangle {
                 source: root.thumbnailUrl
                 fillMode: Image.PreserveAspectFit
                 visible: root.thumbnailUrl !== ""
+                cache: true
             }
             Text {
                 anchors.centerIn: parent

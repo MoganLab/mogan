@@ -99,6 +99,7 @@ Rectangle {
                         source: card.thumbSrc
                         fillMode: Image.PreserveAspectFit
                         visible: card.thumbSrc !== ""
+                        cache: true
                     }
                     Text {
                         anchors.centerIn: parent

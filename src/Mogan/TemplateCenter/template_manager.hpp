@@ -100,6 +100,8 @@ public:
   QString downloadTemplateSync (const QString& templateId, int timeoutMs= 30000,
                                 QString* errorMessage= nullptr);
 
+  ThumbnailLoader* thumbnailLoader () const { return thumbnailLoader_; }
+
   // Signals for UI updates
   void onNetworkStateChanged (bool isOnline);
 
