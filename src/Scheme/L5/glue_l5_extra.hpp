@@ -116,7 +116,8 @@ cpp_error () {
 
 inline array<int>
 get_bounding_rectangle (tree t) {
-  editor     ed  = get_current_editor ();
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) return array<int> ();
   rectangle  wr  = ed->get_window_extents ();
   path       p   = reverse (obtain_ip (t));
   selection  sel = ed->search_selection (p * start (t), p * end (t));

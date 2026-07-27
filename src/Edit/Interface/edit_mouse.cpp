@@ -1225,14 +1225,20 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
       SI     dist= (SI) (5 * PIXEL / magf);
       rew        = detect_left_drag ((void*) this, rew, x, y, t, m, dist);
       if (rew == "start-drag-left") {
-        call_mouse_event (rew, left_x, left_y, m, t, data);
+        delayed_call_mouse_event (rew, left_x, left_y, m, t, data);
         delayed_call_mouse_event ("dragging-left", x, y, m, t, data);
+      }
+      else if (rew == "dragging-left" || rew == "end-drag-left") {
+        delayed_call_mouse_event (rew, x, y, m, t, data);
       }
       else {
         rew= detect_right_drag ((void*) this, rew, x, y, t, m, dist);
         if (rew == "start-drag-right") {
-          call_mouse_event (rew, right_x, right_y, m, t, data);
+          delayed_call_mouse_event (rew, right_x, right_y, m, t, data);
           delayed_call_mouse_event ("dragging-right", x, y, m, t, data);
+        }
+        else if (rew == "dragging-right" || rew == "end-drag-right") {
+          delayed_call_mouse_event (rew, x, y, m, t, data);
         }
         else call_mouse_event (rew, x, y, m, t, data);
       }
