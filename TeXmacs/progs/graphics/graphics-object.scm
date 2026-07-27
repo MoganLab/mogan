@@ -218,7 +218,8 @@
     ) ;cond
   ) ;define
   ;; 对象未显式设置 magnify 时须继承绘图区放大率来量取包围盒
-  (with gm (graphics-eval-magnify)
+  (with gm
+    (graphics-eval-magnify)
     (when (and (in? mag '("default" "1")) gm (nin? gm '("default" "1")))
       (set! mag gm)
     ) ;when
