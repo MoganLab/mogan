@@ -14,7 +14,6 @@
 #include "message.hpp"
 #include "preferences.hpp"
 #include "sys_utils.hpp"
-#include "tm_debug.hpp"
 #include <moebius/data/colors.hpp>
 
 #include <lolly/data/unicode.hpp>

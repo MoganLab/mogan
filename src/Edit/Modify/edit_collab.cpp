@@ -125,7 +125,7 @@ edit_modify_rep::apply_remote (string bytes) {
 
   // 恢复游标与选中（observer 已随 apply 的树编辑更新位置）。恢复期间保持
   // loro_applying_remote=true，使 go_to/select 的 collab_cursor_moved_hook
-  // 被抑制 ——远端推送带来的光标/选区变化本就是同步的，不应再触发本端补发。
+  // 被抑制
   path nc= position_get (cur_save);
   position_delete (cur_save);
   if (!is_nil (nc)) go_to_correct (nc); // 游标按错位后路径恢复

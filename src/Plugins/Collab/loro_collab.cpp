@@ -309,162 +309,148 @@ collab_session::on_message (string data, bool is_binary) {
         editor ed= get_editor ();
         if (!is_nil (ed))
           ed->set_remote_cursor (rest (0, sp), rest (sp + 1, N (rest)));
-    else if (data == "SYNC-END") {
-      // 服务端补发完 snapshot/updates 后的下发结束标记：空文档无帧，靠它从
-      // await_frame 就绪；非空文档首帧已先行就绪，此处忽略。
+        else if (data == "SYNC-END") {
+          // 服务端补发完 snapshot/updates 后的下发结束标记：空文档无帧，靠它从
+          // await_frame 就绪；非空文档首帧已先行就绪，此处忽略。
+          if (state == collab_state::await_frame) {
+            if (DEBUG_LORO) debug_loro << "收到 SYNC-END，空文档就绪\n";
+            become_ready ();
+          }
+        }
+        return;
+      }
+      editor ed= get_editor ();
+      if (is_nil (ed)) return;
       if (state == collab_state::await_frame) {
-        if (DEBUG_LORO) debug_loro << "收到 SYNC-END，空文档就绪\n";
+        ed->apply_remote (data);
         become_ready ();
+        // 初始化（JOIN
+        // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
+        // 待用户实际移动光标/编辑时再上行。
+      }
+      else if (state == collab_state::ready) {
+        ed->apply_remote (data);
+        // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
+        // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
+        // 已被抑制）。
       }
     }
-    return;
-  }
-  editor ed= get_editor ();
-  if (is_nil (ed)) return;
-  if (state == collab_state::await_frame) {
-    ed->apply_remote (data);
-    become_ready ();
-    // 初始化（JOIN
-    // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
-    // 待用户实际移动光标/编辑时再上行。
-  }
-  else if (state == collab_state::ready) {
-    ed->apply_remote (data);
-    // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
-    // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
-    // 已被抑制）。
-  }
-}
 
-void
-collab_session::on_error (string msg) {
-  std_error << "WS Error: " << msg << "\n";
-}
-
-void
-collab_session::on_disconnect () {
-  if (DEBUG_LORO)
-    debug_loro << "WS 断开（want_reconnect=" << want_reconnect
-               << ", state=" << (int) state << "）\n";
-  if (want_reconnect) schedule_reconnect ();
-  else enter_idle ();
-}
-
-// -----------------------------------------------------------------------------
-// collab_session_manager
-// -----------------------------------------------------------------------------
-
-collab_session_manager::~collab_session_manager () {
-  for (int i= 0; i < N (sessions); i++) {
-    delete sessions[i];
-  }
-}
-
-collab_session*
-collab_session_manager::find_by_buffer (url buf_url) {
-  for (int i= 0; i < N (sessions); i++) {
-    if (sessions[i]->get_buffer_url () == buf_url) {
-      return sessions[i];
+    void collab_session::on_error (string msg) {
+      std_error << "WS Error: " << msg << "\n";
     }
-  }
-  return nullptr;
-}
 
-collab_session*
-collab_session_manager::get_or_create (url buf_url) {
-  collab_session* session= find_by_buffer (buf_url);
-  if (!session) {
-    session= new collab_session (buf_url);
-    sessions << session;
-  }
-  return session;
-}
-
-void
-collab_session_manager::remove_session (collab_session* session) {
-  array<collab_session*> new_sessions;
-  for (int i= 0; i < N (sessions); i++) {
-    if (sessions[i] != session) {
-      new_sessions << sessions[i];
+    void collab_session::on_disconnect () {
+      if (DEBUG_LORO)
+        debug_loro << "WS 断开（want_reconnect=" << want_reconnect
+                   << ", state=" << (int) state << "）\n";
+      if (want_reconnect) schedule_reconnect ();
+      else enter_idle ();
     }
-  }
-  sessions= new_sessions;
-  delete session;
-}
 
-void
-collab_session_manager::poll_all () {
-  // Use a copy to allow deletion during poll
-  array<collab_session*> copy= sessions;
-  for (int i= 0; i < N (copy); i++) {
-    copy[i]->poll ();
-    if (!copy[i]->is_active () && copy[i]->is_buffer_known () &&
-        is_nil (concrete_buffer (copy[i]->get_buffer_url ()))) {
-      remove_session (copy[i]);
+    // -----------------------------------------------------------------------------
+    // collab_session_manager
+    // -----------------------------------------------------------------------------
+
+    collab_session_manager::~collab_session_manager () {
+      for (int i= 0; i < N (sessions); i++) {
+        delete sessions[i];
+      }
     }
-  }
-}
 
-// -----------------------------------------------------------------------------
-// Public C API (loro_collab.hpp)
-// -----------------------------------------------------------------------------
+    collab_session* collab_session_manager::find_by_buffer (url buf_url) {
+      for (int i= 0; i < N (sessions); i++) {
+        if (sessions[i]->get_buffer_url () == buf_url) {
+          return sessions[i];
+        }
+      }
+      return nullptr;
+    }
 
-string
-loro_collab_create (string server_url) {
-  editor ed= get_current_editor ();
-  if (is_nil (ed)) {
-    std_error << "无当前编辑器，无法创建协作文档\n";
-    return "";
-  }
-  url             buf    = get_current_buffer ();
-  collab_session* session= g_session_manager.get_or_create (buf);
-  session->create (server_url);
-  return "";
-}
+    collab_session* collab_session_manager::get_or_create (url buf_url) {
+      collab_session* session= find_by_buffer (buf_url);
+      if (!session) {
+        session= new collab_session (buf_url);
+        sessions << session;
+      }
+      return session;
+    }
 
-void
-loro_collab_join (string server_url, string doc_id) {
-  editor ed= get_current_editor ();
-  if (is_nil (ed)) {
-    std_error << "无当前编辑器，无法加入协作文档\n";
-    return;
-  }
-  url             buf    = get_current_buffer ();
-  collab_session* session= g_session_manager.get_or_create (buf);
-  session->join (server_url, doc_id);
-}
+    void collab_session_manager::remove_session (collab_session * session) {
+      array<collab_session*> new_sessions;
+      for (int i= 0; i < N (sessions); i++) {
+        if (sessions[i] != session) {
+          new_sessions << sessions[i];
+        }
+      }
+      sessions= new_sessions;
+      delete session;
+    }
 
-void
-loro_collab_disconnect () {
-  editor ed= get_current_editor ();
-  if (is_nil (ed)) return;
-  url             buf    = get_current_buffer ();
-  collab_session* session= g_session_manager.find_by_buffer (buf);
-  if (session) {
-    session->disconnect ();
-    g_session_manager.remove_session (session);
-  }
-}
+    void collab_session_manager::poll_all () {
+      // Use a copy to allow deletion during poll
+      array<collab_session*> copy= sessions;
+      for (int i= 0; i < N (copy); i++) {
+        copy[i]->poll ();
+        if (!copy[i]->is_active () && copy[i]->is_buffer_known () &&
+            is_nil (concrete_buffer (copy[i]->get_buffer_url ()))) {
+          remove_session (copy[i]);
+        }
+      }
+    }
 
-bool
-loro_collab_is_active () {
-  editor ed= get_current_editor ();
-  if (is_nil (ed)) return false;
-  url             buf    = get_current_buffer ();
-  collab_session* session= g_session_manager.find_by_buffer (buf);
-  return session ? session->is_active () : false;
-}
+    // -----------------------------------------------------------------------------
+    // Public C API (loro_collab.hpp)
+    // -----------------------------------------------------------------------------
 
-string
-loro_collab_doc_id () {
-  editor ed= get_current_editor ();
-  if (is_nil (ed)) return "";
-  url             buf    = get_current_buffer ();
-  collab_session* session= g_session_manager.find_by_buffer (buf);
-  return session ? session->get_doc_id () : "";
-}
+    string loro_collab_create (string server_url) {
+      editor ed= get_current_editor ();
+      if (is_nil (ed)) {
+        std_error << "无当前编辑器，无法创建协作文档\n";
+        return "";
+      }
+      url             buf    = get_current_buffer ();
+      collab_session* session= g_session_manager.get_or_create (buf);
+      session->create (server_url);
+      return "";
+    }
 
-void
-loro_collab_poll () {
-  g_session_manager.poll_all ();
-}
+    void loro_collab_join (string server_url, string doc_id) {
+      editor ed= get_current_editor ();
+      if (is_nil (ed)) {
+        std_error << "无当前编辑器，无法加入协作文档\n";
+        return;
+      }
+      url             buf    = get_current_buffer ();
+      collab_session* session= g_session_manager.get_or_create (buf);
+      session->join (server_url, doc_id);
+    }
+
+    void loro_collab_disconnect () {
+      editor ed= get_current_editor ();
+      if (is_nil (ed)) return;
+      url             buf    = get_current_buffer ();
+      collab_session* session= g_session_manager.find_by_buffer (buf);
+      if (session) {
+        session->disconnect ();
+        g_session_manager.remove_session (session);
+      }
+    }
+
+    bool loro_collab_is_active () {
+      editor ed= get_current_editor ();
+      if (is_nil (ed)) return false;
+      url             buf    = get_current_buffer ();
+      collab_session* session= g_session_manager.find_by_buffer (buf);
+      return session ? session->is_active () : false;
+    }
+
+    string loro_collab_doc_id () {
+      editor ed= get_current_editor ();
+      if (is_nil (ed)) return "";
+      url             buf    = get_current_buffer ();
+      collab_session* session= g_session_manager.find_by_buffer (buf);
+      return session ? session->get_doc_id () : "";
+    }
+
+    void loro_collab_poll () { g_session_manager.poll_all (); }
