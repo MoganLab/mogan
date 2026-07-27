@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : thumbnail_loader.cpp
- * DESCRIPTION: 缩略图下载 + 本地缓存实现
+ * DESCRIPTION: 缩略图下载 + 本地缓存 + ETag 条件请求校验
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -16,21 +16,34 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QStandardPaths>
 
-// 通过 sys_utils.hpp 引入 get_env
 #include "sys_utils.hpp"
+
+static QString
+localPathForUrl (const QString& cacheDir, const QString& remoteUrl) {
+  QByteArray hash=
+      QCryptographicHash::hash (remoteUrl.toUtf8 (), QCryptographicHash::Md5);
+  return QDir (cacheDir).filePath (hash.toHex () + ".png");
+}
 
 ThumbnailLoader::ThumbnailLoader (QObject* parent) : QObject (parent) {
   nam_= new QNetworkAccessManager (this);
+  loadMeta ();
   connect (nam_, &QNetworkAccessManager::finished, this,
            &ThumbnailLoader::onDownloadFinished);
 }
 
 ThumbnailLoader::~ThumbnailLoader ()= default;
+
+// =========================================================================
+// 缓存目录
+// =========================================================================
 
 QString
 ThumbnailLoader::cacheDir () const {
@@ -42,18 +55,81 @@ ThumbnailLoader::cacheDir () const {
   return dir;
 }
 
+// =========================================================================
+// ETag 元数据持久化
+// =========================================================================
+
+QString
+ThumbnailLoader::metaFilePath () const {
+  return QDir (cacheDir ()).filePath ("thumbnails_meta.json");
+}
+
+void
+ThumbnailLoader::loadMeta () {
+  meta_.clear ();
+  QFile file (metaFilePath ());
+  if (!file.open (QIODevice::ReadOnly)) return;
+
+  QJsonDocument doc= QJsonDocument::fromJson (file.readAll ());
+  file.close ();
+  if (!doc.isObject ()) return;
+
+  for (auto it= doc.object ().begin (); it != doc.object ().end (); ++it) {
+    QJsonObject o = it.value ().toObject ();
+    ThumbnailMeta m;
+    m.etag         = o["etag"].toString ();
+    m.lastModified = o["lastModified"].toString ();
+    if (!m.etag.isEmpty () || !m.lastModified.isEmpty ()) meta_.insert (it.key (), m);
+  }
+}
+
+void
+ThumbnailLoader::saveMeta () {
+  QJsonObject root;
+  for (auto it= meta_.constBegin (); it != meta_.constEnd (); ++it) {
+    QJsonObject o;
+    if (!it->etag.isEmpty ()) o["etag"]= it->etag;
+    if (!it->lastModified.isEmpty ()) o["lastModified"]= it->lastModified;
+    if (!o.isEmpty ()) root[it.key ()]= o;
+  }
+
+  // 原子写入：先写临时文件再 rename
+  QString tmpPath= metaFilePath () + ".tmp";
+  QFile   tmpFile (tmpPath);
+  if (tmpFile.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+    tmpFile.write (QJsonDocument (root).toJson ());
+    tmpFile.close ();
+    QString destPath= metaFilePath ();
+    QFile::remove (destPath);
+    if (!tmpFile.rename (destPath))
+      qWarning () << "[ThumbnailLoader] Failed to rename meta temp file";
+  }
+  else {
+    qWarning () << "[ThumbnailLoader] Failed to write meta temp file";
+  }
+}
+
+// =========================================================================
+// 公开 API
+// =========================================================================
+
 QString
 ThumbnailLoader::getUrl (const QString& remoteUrl) {
-  return getUrlImpl (remoteUrl, true);
+  return getUrlImpl (remoteUrl, true, true);
 }
 
 QString
 ThumbnailLoader::queryUrl (const QString& remoteUrl) {
-  return getUrlImpl (remoteUrl, false);
+  return getUrlImpl (remoteUrl, false, false);
 }
 
+// =========================================================================
+// 核心逻辑
+// =========================================================================
+
 QString
-ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload) {
+ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload,
+                              bool validateCached) {
   if (remoteUrl.isEmpty ()) return remoteUrl;
 
   // 已是本地资源 / qrc 资源，不处理
@@ -61,32 +137,60 @@ ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload) {
       remoteUrl.startsWith (":"))
     return remoteUrl;
 
-  // file:// URL：校验文件是否存在（可能是旧缓存残留）
+  // file:// URL：校验文件是否存在
   if (remoteUrl.startsWith ("file://")) {
     if (QFile::exists (remoteUrl.mid (7))) return remoteUrl;
-    return QString (); // 文件已删除，无法恢复
+    return QString ();
   }
 
-  // 已缓存的映射（file:// 或下载中的本地路径）
+  // 检查 urlCache_ 中的 file:// 映射，校验文件是否仍存在
   auto it= urlCache_.constFind (remoteUrl);
-  if (it != urlCache_.constEnd ()) return *it;
-
-  // 生成唯一本地文件名
-  QByteArray hash=
-      QCryptographicHash::hash (remoteUrl.toUtf8 (), QCryptographicHash::Md5);
-  QString localPath= QDir (cacheDir ()).filePath (hash.toHex () + ".png");
-
-  // 本地文件已存在
-  if (QFile::exists (localPath)) {
-    urlCache_.insert (remoteUrl, "file://" + localPath);
-    return "file://" + localPath;
+  if (it != urlCache_.constEnd ()) {
+    // file:// URL 提取本地路径校验文件存在（用户可能手动删了缓存）
+    if (it->startsWith ("file://") && QFile::exists (it->mid (7)))
+      return *it;
+    if (!it->startsWith ("file://")) return *it; // qrc:/ 等非 file:// 直接返回
+    // file:// 但文件已不存在：清除缓存，继续走下载/查询逻辑
+    urlCache_.erase (it);
   }
 
-  // 不触发下载 → 直接返回原始远程 URL（QML Image 异步加载）
+  // 本地文件已存在（从未缓存过，或缓存因文件丢失被清除后重新检查）
+  QString localPath= localPathForUrl (cacheDir (), remoteUrl);
+  if (QFile::exists (localPath)) {
+    QString fileUrl= "file://" + localPath;
+    urlCache_.insert (remoteUrl, fileUrl);
+
+    // 后台 ETag 条件请求校验缓存是否过期
+    if (validateCached && !validatedUrls_.contains (remoteUrl) &&
+        !inFlight_.contains (remoteUrl)) {
+      ThumbnailMeta meta= meta_.value (remoteUrl);
+      if (!meta.etag.isEmpty () || !meta.lastModified.isEmpty ()) {
+        inFlight_.insert (remoteUrl);
+        QNetworkRequest req (remoteUrl);
+        req.setAttribute (QNetworkRequest::RedirectPolicyAttribute,
+                          QNetworkRequest::NoLessSafeRedirectPolicy);
+        req.setRawHeader ("Cache-Control", "no-cache");
+        if (!meta.etag.isEmpty ())
+          req.setRawHeader ("If-None-Match", meta.etag.toUtf8 ());
+        if (!meta.lastModified.isEmpty ())
+          req.setRawHeader ("If-Modified-Since", meta.lastModified.toUtf8 ());
+        nam_->get (req);
+      }
+      else {
+        // 无 ETag 元数据（旧版下载或元数据丢失）：标记为已验证，
+        // 不再发无条件请求浪费带宽
+        validatedUrls_.insert (remoteUrl);
+      }
+    }
+
+    return fileUrl;
+  }
+
+  // 不触发下载 → 返回原始远程 URL（QML Image 异步加载）
   if (!triggerDownload) return remoteUrl;
 
-  // 触发异步下载
-  if (inFlight_.contains (remoteUrl)) return remoteUrl; // 已在下载中
+  // 触发全量下载
+  if (inFlight_.contains (remoteUrl)) return remoteUrl;
   inFlight_.insert (remoteUrl);
   QNetworkRequest req (remoteUrl);
   req.setAttribute (QNetworkRequest::RedirectPolicyAttribute,
@@ -94,6 +198,10 @@ ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload) {
   nam_->get (req);
   return remoteUrl;
 }
+
+// =========================================================================
+// 网络响应处理
+// =========================================================================
 
 void
 ThumbnailLoader::onDownloadFinished (QNetworkReply* reply) {
@@ -104,20 +212,39 @@ ThumbnailLoader::onDownloadFinished (QNetworkReply* reply) {
 
   if (reply->error () != QNetworkReply::NoError) return;
 
-  // 检查 HTTP 状态码（网络层成功不代表 HTTP 成功，404/500 等应丢弃）
   int httpStatus=
       reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
+
+  // ---- 304 Not Modified：缓存仍然新鲜 ----
+  if (httpStatus == 304) {
+    validatedUrls_.insert (remoteUrl);
+    saveMeta ();
+    return;
+  }
+
+  // ---- HTTP 错误：丢弃 ----
   if (httpStatus < 200 || httpStatus >= 300) return;
 
-  // 生成本地文件名（与 getUrlImpl 中算法一致）
-  QByteArray hash=
-      QCryptographicHash::hash (remoteUrl.toUtf8 (), QCryptographicHash::Md5);
-  QString localPath= QDir (cacheDir ()).filePath (hash.toHex () + ".png");
+  // ---- 200 OK：保存文件 + 更新 ETag 元数据 ----
+  QString localPath= localPathForUrl (cacheDir (), remoteUrl);
 
   QFile file (localPath);
   if (!file.open (QIODevice::WriteOnly)) return;
   file.write (reply->readAll ());
   file.close ();
+
+  // 提取 ETag / Last-Modified
+  ThumbnailMeta meta;
+  meta.etag= QString::fromUtf8 (reply->rawHeader ("ETag"));
+  meta.lastModified=
+      QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
+  if (!meta.etag.isEmpty () || !meta.lastModified.isEmpty ())
+    meta_.insert (remoteUrl, meta);
+  else
+    meta_.remove (remoteUrl);
+
+  validatedUrls_.insert (remoteUrl);
+  saveMeta ();
 
   QString fileUrl= "file://" + localPath;
   urlCache_.insert (remoteUrl, fileUrl);
