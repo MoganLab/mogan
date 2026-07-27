@@ -15,6 +15,7 @@
 //   S→C  DOC <docId>       CREATE/JOIN 成功确认
 //   S→C  ERR <code> <msg>  错误（NO_SUCH_DOC / BAD_REQUEST / INTERNAL）
 //   S→C  PONG
+//   S→C  SYNC-END          补发完 snapshot/updates 后的下发结束标记（空文档也发）
 //
 // 运行：npm install && node server.js
 // 环境变量：
@@ -123,6 +124,10 @@ async function main () {
       ws.send(u);
       sent += 1;
     }
+    // 同步阶段结束标记：客户端据此确定性地从 await_frame 推进到 ready，
+    // 取代原先「1s 未收到帧即按空文档就绪」的超时猜测（消除非空文档慢帧竞态）。
+    // 空文档无 snapshot/updates，靠本标记就绪；非空文档首帧已先行就绪，此处忽略。
+    if (ws.readyState === WebSocket.OPEN) ws.send('SYNC-END');
     console.log(
       `${ts()} [client:${ws.clientId}] 同步下发完成 [doc:${entry.docId}] snapshot+${updates.length} updates（共 ${sent} 帧）`
     );

@@ -25,6 +25,7 @@
 #endif
 #include "boxes.hpp"
 #include "editor.hpp"
+#include "hash_utils.hpp"
 #include "iterator.hpp"
 #include "locale.hpp"
 #include "observers.hpp"

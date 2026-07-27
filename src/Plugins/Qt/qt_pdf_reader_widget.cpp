@@ -517,6 +517,9 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
   QClipboard* clipboard= QApplication::clipboard ();
   if (clipboard) {
     clipboard->setPixmap (selected);
+    // Trigger silent OCR to populate cache; the result is not inserted here.
+    exec_delayed (scheme_cmd (
+        "(when (defined? 'ocr-recognize-silent) (ocr-recognize-silent))"));
   }
 
   if (hintLabel_) {

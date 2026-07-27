@@ -137,6 +137,60 @@ im_is_printable_key (int key) {
   return (key >= 32 && key <= 93) || key == GLFW_KEY_GRAVE_ACCENT;
 }
 
+// US 布局下可打印键 shift 后的字形（数字行与常见符号）；字母键由调用方处理
+// （GLFW 已给出大写 ASCII）。返回 0 表示无标准 shift 字形。仅用于 Alt+Shift
+// 快捷键还原字形：macOS 浏览器会把 Alt+Shift+7 合字为 ‡，char 回调拿不到
+// shift 后字形，只能据物理键码 + US 布局还原。
+static char
+im_shift_glyph (int key) {
+  switch (key) {
+  case '1':
+    return '!';
+  case '2':
+    return '@';
+  case '3':
+    return '#';
+  case '4':
+    return '$';
+  case '5':
+    return '%';
+  case '6':
+    return '^';
+  case '7':
+    return '&';
+  case '8':
+    return '*';
+  case '9':
+    return '(';
+  case '0':
+    return ')';
+  case '-':
+    return '_';
+  case '=':
+    return '+';
+  case '[':
+    return '{';
+  case ']':
+    return '}';
+  case ';':
+    return ':';
+  case '\'':
+    return '"';
+  case '`':
+    return '~';
+  case '\\':
+    return '|';
+  case ',':
+    return '<';
+  case '.':
+    return '>';
+  case '/':
+    return '?';
+  default:
+    return 0;
+  }
+}
+
 string
 im_from_key_event (int key, int scancode, int action, int mods) {
   (void) scancode;
@@ -179,6 +233,39 @@ im_from_key_event (int key, int scancode, int action, int mods) {
   // 普通可打印按键且未按下 Ctrl/Super, 交由 char 回调以 Unicode 文本形式处理。
   if (im_is_printable_key (key) && (mods_text == "" || mods_text == "S-"))
     return "";
+
+  // Ctrl/Cmd + 可打印非字母键：发出快捷键串，对齐 Qt 的 from_key_press_event
+  // （字母键已在上面单独处理）。GLFW 的 key 码即未 shift 的 ASCII，shift 后的字
+  // 形（如 +）由 char 回调负责，故对 "X-S-" 丢弃 S-、按未 shift 码点拼接。
+  // 修复 Cmd+= / Cmd+- (zoom) 等修饰键 + 非字母键被静默丢弃的问题。仅限
+  // Ctrl/Cmd：Alt 走 char 回调做 Option 合字输入，不在此处理。
+  if (shortcut && im_is_printable_key (key))
+    return ((mods & GLFW_MOD_SHIFT) ? im_from_modifiers (mods & ~GLFW_MOD_SHIFT)
+                                    : mods_text) *
+           string (locase ((char) key));
+
+  // Alt+Shift + 可打印键 -> "A-" + US 布局 shift 字形（im_shift_glyph），对齐
+  // Qt 的 "A-S-" 分支。浏览器把 Alt+Shift+7 合字为 ‡、char 回调拿不到 '&'
+  // 字形，故据物理键码还原。修 "text &"->"A-&"。
+  if ((mods & GLFW_MOD_ALT) && (mods & GLFW_MOD_SHIFT) &&
+      im_is_printable_key (key)) {
+    char c= (char) key;
+    char g= im_shift_glyph (c);
+    return "A-" * string (g != 0 ? g : c);
+  }
+
+  // Alt + 字母/数字（无 Shift）-> "A-" + 键，命中 "text 1"->"A-1"（章节）、
+  // "text a"->"A-a" 等；Alt+符号仍返回 "" 走 char 回调做 Option 合字。代价：
+  // Alt+字母不再 Option 合字（如 Alt+p 不再出 π），与 Qt/macOS "text"
+  // 方案一致。
+  if ((mods & GLFW_MOD_ALT) && !(mods & GLFW_MOD_SHIFT) &&
+      im_is_printable_key (key)) {
+    char c    = (char) key;
+    bool alpha= (c >= 'A' && c <= 'Z');
+    bool digit= (c >= '0' && c <= '9');
+    if (alpha || digit) return "A-" * string (locase (c));
+    return "";
+  }
 
   if (DEBUG_KEYBOARD)
     debug_keyboard << "im_from_key_event: unmapped key " << key << LF;

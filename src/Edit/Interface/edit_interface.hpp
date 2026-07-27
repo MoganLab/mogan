@@ -102,6 +102,7 @@ protected:
   void   table_line_apply (SI x, SI y);
   void   table_line_stop ();
   int    table_scale_handle_type   = 0; // 0: N/A; 1: 下方; 2: 右方; 3: 右下方
+  bool   hover_style_cursor        = false;   // 悬停链刚设置了非默认光标样式
   path   table_scale_path          = path (); // 重绘时实时更新
   SI     table_scale_start_x       = 0;
   SI     table_scale_start_y       = 0;

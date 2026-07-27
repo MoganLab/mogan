@@ -47,7 +47,8 @@ string loro_collab_create (string server_url);
 /**
  * @brief 以当前编辑器为 target，连服务端加入已有云文档。
  *        连接后发 JOIN <doc_id>；服务端回 DOC 后补发 snapshot/updates，
- *        首帧到达时 apply_remote 构建 buffer 并置位协作开关。
+ *        首帧到达时 apply_remote 构建 buffer 并置位协作开关；补发结束时发
+ *        SYNC-END，空文档（无帧）据此直接就绪。
  */
 void loro_collab_join (string server_url, string doc_id);
 

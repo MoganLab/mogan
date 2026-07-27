@@ -71,6 +71,7 @@ node server.js
 | S→C | `ERR <code> <msg>` | 错误：`NO_SUCH_DOC` / `BAD_REQUEST` / `INTERNAL` |
 | S→C | `PONG` | 心跳响应 |
 | C→S / S→C | `CURSOR <peerId> <payload>` | 多光标：客户端发，服务端原样转发给同文档其他客户端（瞬态，不落盘）；payload 为位置编码，传输层不解析 |
+| S→C | `SYNC-END` | snapshot/updates 补发结束标记（空文档也发）；客户端据此从 JOIN 等帧态确定性地就绪 |
 | S→C | 二进制帧 | 历史补发（snapshot → 按序 updates）或其他客户端的实时 update |
 
 ### 典型时序
@@ -83,6 +84,7 @@ node server.js
   │                        │←── JOIN <uuid> ──────────│
   │                        │── DOC <uuid> ───────────→│
   │                        │── snapshot + updates ───→│ import 后即为最新状态
+  │                        │── SYNC-END ─────────────→│ （空文档则仅此帧即就绪）
   │←── 新 update ──────────│←── 二进制 update ────────│
 ```
 

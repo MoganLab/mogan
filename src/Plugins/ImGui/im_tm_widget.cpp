@@ -384,10 +384,10 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
     : im_widget_rep (im_widget_rep::texmacs_widget), win_id (++s_next_win_id),
       orig_name ("popup"), quit (_quit), zoomf (1.0), window (nullptr),
       document_texture (0), tex_w (0), tex_h (0), texture_dirty (true),
-      initialized (false), needs_refocus (false), last_key_mods (0), pic_w (0),
-      pic_h (0), pic_rf (0), menu_offset_y (0), footer_height (0),
-      footer_interactive (false), scroll_reset_frames (0),
-      last_size_canvas (nullptr) {
+      initialized (false), needs_refocus (false), last_key_mods (0),
+      last_key_handled (false), pic_w (0), pic_h (0), pic_rf (0),
+      menu_offset_y (0), footer_height (0), footer_interactive (false),
+      scroll_reset_frames (0), last_size_canvas (nullptr) {
   visibility[0] = (mask & 1) == 1;       // header
   visibility[1] = (mask & 2) == 2;       // main icons
   visibility[2] = (mask & 4) == 4;       // mode icons
@@ -1000,6 +1000,9 @@ im_tm_widget_rep::glfw_key_callback (GLFWwindow* w, int key, int scancode,
   // 在系统快捷键截屏后卡住的影响），供紧随其后的 glfw_char_callback 复用。
   self->last_key_mods= mods;
   string r           = im_from_key_event (key, scancode, action, mods);
+  // im_from_key_event 产出非空 key 串（快捷键/命名键）时，标记本次按键已处理，
+  // 供 glfw_char_callback 抑制随后的字符合字（避免快捷键与字面字符重复）。
+  self->last_key_handled= N (r) > 0;
   self->dispatch_keypress (r);
 }
 
@@ -1018,6 +1021,11 @@ im_tm_widget_rep::glfw_char_callback (GLFWwindow* w, unsigned int codepoint) {
   // 用 last_key_mods（本次按键的事件级 mods，见 glfw_key_callback）判断，而非
   // glfwGetKey——后者在系统快捷键（截屏等）后修饰键 keyup 丢失会卡住、误判。
   if (self->last_key_mods & (GLFW_MOD_CONTROL | GLFW_MOD_SUPER)) return;
+  // 本次按键已由 glfw_key_callback 作为快捷键/命名键分发（last_key_handled，
+  // 见 im_from_key_event 的 Alt 分支），抑制随后的字符合字/基础字符，与 Qt 一
+  // 致。用标志位而非 mods 判断：Alt+符号仍需走本回调做 Option 合字（Alt+- → –
+  // 等），im_from_key_event 对其返回 ""、标志位为假，故不抑制。
+  if (self->last_key_handled) return;
   self->dispatch_keypress (im_from_char (codepoint));
 }
 

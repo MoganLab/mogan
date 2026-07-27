@@ -173,6 +173,8 @@ test('完整生命周期：创建、协作、重连、重启恢复、RESYNC', as
   b.send(`JOIN ${docId}`);
   await b.waitFor(() => b.control.some((m) => m.startsWith('DOC ')));
   await b.waitFor(() => b.doc.getText('content').toString() === 'hello from A');
+  // JOIN 后服务端补发完历史必发 SYNC-END 结束标记
+  await b.waitFor(() => b.control.includes('SYNC-END'));
 
   // 4. B 编辑 → A 收敛
   b.doc.getText('content').insert(b.doc.getText('content').length, ' + B');
@@ -199,6 +201,23 @@ test('完整生命周期：创建、协作、重连、重启恢复、RESYNC', as
   await new Promise((r) => setTimeout(r, 500));
   assert.strictEqual(c.doc.getText('content').toString(), 'hello from A + B');
   c.close();
+});
+
+test('空文档 JOIN：仅下发 SYNC-END，无二进制帧', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docId = lastDocId(a);
+  // A 不编辑，文档保持为空
+  const b = new TestClient();
+  await b.connect();
+  b.send(`JOIN ${docId}`);
+  await b.waitFor(() => b.control.includes('SYNC-END'));
+  // 空文档无 snapshot/updates，故无任何二进制帧，内容仍为空
+  assert.strictEqual(b.doc.getText('content').toString(), '');
+  a.close();
+  b.close();
 });
 
 test('JOIN 不存在的文档返回 NO_SUCH_DOC', async () => {
