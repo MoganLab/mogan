@@ -12,6 +12,7 @@
 target("loro")
     set_kind("phony")
     if is_plat("wasm") then
+        add_packages("rustup")
     else
         add_packages("rust")
     end
