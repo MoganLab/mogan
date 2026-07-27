@@ -105,6 +105,17 @@ public:
    * 同处维护（seed_node / sync_walk / decode_id_node），故始终与当前 buffer
    * 一致。 */
   path cursor_path_of (mogan_tree_id id, int offset);
+  /** 取 TreeID 对应节点的 buffer-相对 path（不追加偏移）。节点未找到返回 nil。
+   */
+  path node_path_of (mogan_tree_id id);
+
+  /** 把原子文本节点（id 的 LoroText）在 unicode offset 处的**稳定位置**（Loro
+   * Cursor，op-id 锚定）编码为 hex 字符串（postcard 字节的 hex）。失败返回 ""。
+   * 稳定位置在并发编辑下自动跟随内容位移，是 CRDT 级光标同步的偏移表示。 */
+  string encode_cursor_hex (mogan_tree_id id, int offset);
+  /** 反向：hex（encode_cursor_hex 产出）→ 按**当前 doc** 解析为 unicode 偏移。
+   * 锚点被删时 Loro 自愈到邻近位置；容器消失等返回 -1（调用方丢弃）。 */
+  int decode_cursor_hex (string hex);
 
 private:
   // 取某 LoroTree 节点的子 TreeID 列表（用于 REMOVE 按位置删）

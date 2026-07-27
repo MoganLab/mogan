@@ -33,15 +33,18 @@ protected:
   bool        loro_vv_initialized=
       false; // 首次 import 远端数据后推进 export vv，避免回传
   // 远程 peer 光标列表：peer 数量少，线性查找/更新即可；重绘时遍历它，经
-  // cursor_path_of 把 TreeID+偏移解析回当前 buffer path。
+  // cursor_path_of 把 TreeID+偏移解析回当前 buffer path。偏移以 off_field
+  // 字符串存
+  // （"T<hex>"=Loro 稳定位置，重绘时按当前 doc 解析；"I<int>"=结构/整数偏移），
+  // 延迟解析以保证并发编辑下的 CRDT 级稳定。
   struct remote_cursor_entry {
     string        peer;
     mogan_tree_id c_tid;
-    int           c_off;
+    string        c_off;
     mogan_tree_id s_tid;
-    int           s_off;
+    string        s_off;
     mogan_tree_id e_tid;
-    int           e_off;
+    string        e_off;
   };
   array<remote_cursor_entry> remote_cursors;
 #endif

@@ -14,6 +14,7 @@
 #include "message.hpp"
 #include "preferences.hpp"
 #include "sys_utils.hpp"
+#include "tm_debug.hpp"
 #include <moebius/data/colors.hpp>
 
 #include <lolly/data/unicode.hpp>
@@ -213,12 +214,20 @@ edit_interface_rep::draw_remote_cursors (renderer ren, rectangle r) {
   rectangles visible (thicken (r, 2 * ren->pixel, 2 * ren->pixel));
   for (int i= 0; i < N (rc); i++) {
     color col= peer_selection_color (rc[i].peer);
-    // 选区高亮（起止不同才有）
+    // 选区高亮：先验证起止两点都是有效光标位置，任一 invalid（如锚定节点被
+    // 远端删除）则放弃整个选区——不 fallback 到整行/整文档（避免"全选"假象）。
     if (!is_nil (rc[i].sel_start) && !is_nil (rc[i].sel_end) &&
         rc[i].sel_start != rc[i].sel_end) {
-      selection sel= eb->find_check_selection (rc[i].sel_start, rc[i].sel_end);
-      ren->set_pencil (pencil (col, ren->pixel));
-      ren->draw_selection (sel->rs & visible);
+      cursor cu_s= eb->find_check_cursor (rc[i].sel_start);
+      cursor cu_e= eb->find_check_cursor (rc[i].sel_end);
+      if (cu_s->valid && cu_e->valid) {
+        selection sel=
+            eb->find_check_selection (rc[i].sel_start, rc[i].sel_end);
+        if (sel->valid) {
+          ren->set_pencil (pencil (col, ren->pixel));
+          ren->draw_selection (sel->rs & visible);
+        }
+      }
     }
     // 插入符：与本地光标同形状（竖条+衬线，按模式倾斜），颜色为 peer 实色
     if (!is_nil (rc[i].caret)) {

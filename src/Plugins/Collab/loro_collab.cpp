@@ -330,15 +330,15 @@ collab_session::on_message (string data, bool is_binary) {
   if (state == collab_state::await_frame) {
     ed->apply_remote (data);
     become_ready ();
-    flush_cursor (); // 首帧同步后补发本端初始光标
+    // 初始化（JOIN
+    // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
+    // 待用户实际移动光标/编辑时再上行。
   }
   else if (state == collab_state::ready) {
     ed->apply_remote (data);
-    // 远程编辑可能移动了本端光标/选区（如他人删除了与己重叠的选区内容）。
-    // 直接置本会话脏并立即补发（apply_remote 的 restore 经 get_current_buffer
-    // 找会话，对后台 buffer 可能漏标脏），避免对端视图滞后仍显示旧选区。
-    cursor_dirty= true;
-    flush_cursor ();
+    // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
+    // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
+    // 已被抑制）。
   }
 }
 
