@@ -103,13 +103,14 @@ private:
 
   TemplateManager* templateManager_= nullptr;
 
-  QVariantList styleCards_;
-  QVariantList recentDocs_;
-  QVariantList categories_;
-  QString      activeCategoryId_;
-  QString      activeCategoryName_;
-  QVariantList categoryTemplates_;
-  bool         categoryLoading_= false;
+  QVariantList                 styleCards_;
+  QVariantList                 recentDocs_;
+  QVariantList                 categories_;
+  QString                      activeCategoryId_;
+  QString                      activeCategoryName_;
+  QVariantList                 categoryTemplates_;
+  bool                         categoryLoading_= false;
+  QHash<QString, QVariantList> categoryTemplatesCache_;
 
   static const int kMaxRecentDocs= 50;
 };

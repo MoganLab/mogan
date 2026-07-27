@@ -80,7 +80,7 @@ readRecentMeta () {
         o.contains ("last_open") ? o["last_open"].toDouble () : 0);
     QDateTime dt= ts > 0 ? QDateTime::fromSecsSinceEpoch (ts)
                          : QDateTime::currentDateTime ();
-    meta.insert (p, {name, dt.toString ("yyyy-MM-dd hh:mm")});
+    meta.insert (p, {name, dt.toString ("yyyy-MM-dd HH:mm")});
   }
   return meta;
 }
@@ -88,7 +88,7 @@ readRecentMeta () {
 QVariantMap
 makeRecentEntry (const QString& fileName, const QString& filePath,
                  const QString& openedAt) {
-  QDateTime dt= QDateTime::fromString (openedAt, "yyyy-MM-dd hh:mm");
+  QDateTime dt= QDateTime::fromString (openedAt, "yyyy-MM-dd HH:mm");
   double    ts= dt.isValid ()
                     ? static_cast<double> (dt.toSecsSinceEpoch ())
                     : static_cast<double> (
@@ -115,6 +115,103 @@ makeTemplateEntry (const QString& id, const QString& name,
 // =========================================================================
 // StartupBridge
 // =========================================================================
+
+QString
+StartupBridge::thumbnailCachePath () const {
+  string cacheDir= get_env ("TEXMACS_HOME_PATH") * "/system/thumbnails";
+  QDir ().mkpath (to_qstring (cacheDir));
+  return to_qstring (cacheDir);
+}
+
+/** 确保远程缩略图已下载到本地缓存，返回本地 file:// 路径。 */
+static QString
+localThumbnailUrl (const QString& remoteUrl, const QString& cacheDir,
+                   QHash<QString, QString>& cache,
+                   QNetworkAccessManager*   networkManager) {
+  if (remoteUrl.isEmpty ()) return remoteUrl;
+
+  // 已是本地文件，直接返回
+  if (remoteUrl.startsWith ("qrc:/") || remoteUrl.startsWith ("file://") ||
+      remoteUrl.startsWith ("/") || remoteUrl.startsWith (":"))
+    return remoteUrl;
+
+  // 已缓存
+  auto it= cache.constFind (remoteUrl);
+  if (it != cache.constEnd ()) return *it;
+
+  // 生成本地文件名: thumbnails/<md5>.png
+  QByteArray hash=
+      QCryptographicHash::hash (remoteUrl.toUtf8 (), QCryptographicHash::Md5);
+  QString localPath= QDir (cacheDir).filePath (hash.toHex () + ".png");
+
+  // 本地文件已存在，直接记录映射
+  if (QFile::exists (localPath)) {
+    cache.insert (remoteUrl, "file://" + localPath);
+    return "file://" + localPath;
+  }
+
+  // 触发异步下载，先返回远程 URL
+  cache.insert (remoteUrl, localPath); // 标记为正在下载
+  QNetworkRequest req (remoteUrl);
+  req.setAttribute (QNetworkRequest::RedirectPolicyAttribute,
+                    QNetworkRequest::NoLessSafeRedirectPolicy);
+  networkManager->get (req);
+  return remoteUrl;
+}
+
+void
+StartupBridge::ensureThumbnailsLocal () {
+  QString cacheDir= thumbnailCachePath ();
+  for (int i= 0; i < categoryTemplates_.size (); ++i) {
+    QVariantMap m    = categoryTemplates_[i].toMap ();
+    QString     url  = m["thumbnailUrl"].toString ();
+    QString     local= localThumbnailUrl (url, cacheDir, thumbnailLocalCache_,
+                                          networkManager_);
+    if (local != url) {
+      m["thumbnailUrl"]    = local;
+      categoryTemplates_[i]= m;
+    }
+  }
+}
+
+void
+StartupBridge::onThumbnailDownloaded (QNetworkReply* reply) {
+  reply->deleteLater ();
+  if (reply->error () != QNetworkReply::NoError) return;
+
+  QString remoteUrl= reply->request ().url ().toString ();
+  auto    it       = thumbnailLocalCache_.constFind (remoteUrl);
+  if (it == thumbnailLocalCache_.constEnd ()) return;
+
+  // 已是 file:// URL（之前下载过），跳过
+  if (it->startsWith ("file://")) return;
+
+  QString localPath= *it;
+  QFile   file (localPath);
+  if (!file.open (QIODevice::WriteOnly)) {
+    thumbnailLocalCache_.remove (remoteUrl);
+    return;
+  }
+  file.write (reply->readAll ());
+  file.close ();
+
+  // 更新映射：remoteUrl → file://localPath
+  QString fileUrl= "file://" + localPath;
+  thumbnailLocalCache_.insert (remoteUrl, fileUrl);
+
+  // 更新当前 categoryTemplates_ 中对应条目的 thumbnailUrl
+  bool changed= false;
+  for (int i= 0; i < categoryTemplates_.size (); ++i) {
+    QVariantMap m  = categoryTemplates_[i].toMap ();
+    QString     url= m["thumbnailUrl"].toString ();
+    if (url == remoteUrl) {
+      m["thumbnailUrl"]    = fileUrl;
+      categoryTemplates_[i]= m;
+      changed              = true;
+    }
+  }
+  if (changed) emit categoryTemplatesChanged ();
+}
 
 StartupBridge::StartupBridge (QObject* parent) : QObject (parent) {}
 StartupBridge::~StartupBridge ()= default;
@@ -214,7 +311,7 @@ StartupBridge::loadRecentDocs () {
       time= it->second;
     }
     else {
-      time= QDateTime::currentDateTime ().toString ("yyyy-MM-dd hh:mm");
+      time= QDateTime::currentDateTime ().toString ("yyyy-MM-dd HH:mm");
     }
     recentDocs_ << makeRecentEntry (name, path, time);
   }
@@ -251,8 +348,17 @@ StartupBridge::saveRecentDocs () {
   if (tmpFile.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
     tmpFile.write (QJsonDocument (root).toJson ());
     tmpFile.close ();
-    QFile::remove (recentDocsFilePath ());
-    tmpFile.rename (recentDocsFilePath ());
+    QString destPath= recentDocsFilePath ();
+    // 跨文件系统 rename 可能失败，先用 remove 清理目标再 rename
+    if (!QFile::remove (destPath) && QFile::exists (destPath))
+      qWarning () << "[StartupBridge] Failed to remove old recent-files.json";
+    if (!tmpFile.rename (destPath))
+      qWarning () << "[StartupBridge] Failed to rename temp file to"
+                  << destPath;
+  }
+  else {
+    qWarning () << "[StartupBridge] Failed to open temp file for writing:"
+                << tmpPath;
   }
 }
 
@@ -279,7 +385,7 @@ StartupBridge::addRecentDoc (const QString& path) {
 
   recentDocs_.push_front (makeRecentEntry (
       QFileInfo (normPath).fileName (), normPath,
-      QDateTime::currentDateTime ().toString ("yyyy-MM-dd hh:mm")));
+      QDateTime::currentDateTime ().toString ("yyyy-MM-dd HH:mm")));
   while (recentDocs_.size () > kMaxRecentDocs)
     recentDocs_.removeLast ();
 
@@ -311,8 +417,21 @@ StartupBridge::onCategoriesLoaded () {
 void
 StartupBridge::refreshCategoryTemplates () {
   if (!templateManager_ || !templateManager_->isInitialized ()) return;
-  categoryTemplates_.clear ();
 
+  // 命中缓存：直接复用，避免不必要的 clear+重建导致 QML Image 重新加载
+  auto cacheIt= categoryTemplatesCache_.constFind (activeCategoryId_);
+  if (cacheIt != categoryTemplatesCache_.constEnd ()) {
+    if (categoryTemplates_ != *cacheIt) {
+      categoryTemplates_= *cacheIt;
+      emit categoryTemplatesChanged ();
+    }
+    // 确保已缓存的模板缩略图都转为了本地 file:// URL
+    ensureThumbnailsLocal ();
+    return;
+  }
+
+  // 缓存未命中：从 TemplateManager 构建并缓存
+  categoryTemplates_.clear ();
   auto templates=
       activeCategoryId_.isEmpty ()
           ? templateManager_->templates ()
@@ -322,6 +441,9 @@ StartupBridge::refreshCategoryTemplates () {
     categoryTemplates_ << makeTemplateEntry (t->id, t->name, t->author,
                                              t->version, t->thumbnailUrl);
   }
+  // 启动缩略图下载（异步），下载完成后自动更新为 file:// URL
+  ensureThumbnailsLocal ();
+  categoryTemplatesCache_.insert (activeCategoryId_, categoryTemplates_);
   emit categoryTemplatesChanged ();
 }
 
@@ -329,6 +451,8 @@ void
 StartupBridge::onTemplatesLoaded () {
   categoryLoading_= false;
   emit categoryLoadingChanged ();
+  // 异步新数据到达，清除缓存强制重新构建
+  categoryTemplatesCache_.remove (activeCategoryId_);
   refreshCategoryTemplates ();
 }
 
@@ -421,13 +545,23 @@ StartupBridge::selectCategory (const QString& categoryId) {
     }
   }
   emit activeCategoryChanged ();
-  categoryLoading_= true;
-  emit categoryLoadingChanged ();
-  if (templateManager_ && templateManager_->isInitialized ())
+  if (templateManager_ && templateManager_->isInitialized ()) {
+    categoryLoading_= true;
+    emit categoryLoadingChanged ();
     templateManager_->refreshTemplatesByCategory (categoryId);
-  refreshCategoryTemplates ();
-  categoryLoading_= false;
-  emit categoryLoadingChanged ();
+    // 同步刷新：处理已缓存分类（refreshTemplatesByCategory 对已缓存分类
+    // 是 no-op，不会触发 onTemplatesLoaded），同时为未缓存分类展示已有数据
+    refreshCategoryTemplates ();
+    // 若数据已就绪（缓存命中），同步结束 loading；否则等待 onTemplatesLoaded
+    if (!categoryTemplates_.isEmpty ()) {
+      categoryLoading_= false;
+      emit categoryLoadingChanged ();
+    }
+  }
+  else {
+    // 未初始化时无异步回调，直接同步刷新
+    refreshCategoryTemplates ();
+  }
 }
 
 void

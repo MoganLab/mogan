@@ -139,8 +139,8 @@ private slots:
 
     QSignalSpy spy (&bridge, &StartupBridge::activeCategoryChanged);
 
-    // 首次选择（未初始化 templateManager_，走安全路径：仅更新内部状态，
-    // 同步刷新后 loading 回到 false）
+    // 首次选择（未初始化 templateManager_，走同步路径：直接刷新，
+    // 不进入 loading 状态，不 emit categoryLoadingChanged）
     bridge.selectCategory ("cat-a");
     QCOMPARE (bridge.activeCategoryId (), QString ("cat-a"));
     QCOMPARE (bridge.categoryLoading (), false);
@@ -154,6 +154,21 @@ private slots:
     bridge.selectCategory ("cat-b");
     QCOMPARE (bridge.activeCategoryId (), QString ("cat-b"));
     QCOMPARE (spy.count (), 2);
+  }
+
+  void test_select_category_no_loading_when_uninitialized () {
+    StartupBridge bridge;
+
+    QSignalSpy loadingSpy (&bridge, &StartupBridge::categoryLoadingChanged);
+
+    // 未初始化时 selectCategory 走同步路径，不应 emit categoryLoadingChanged
+    bridge.selectCategory ("cat-a");
+    QCOMPARE (bridge.categoryLoading (), false);
+    QCOMPARE (loadingSpy.count (), 0);
+
+    bridge.selectCategory ("cat-b");
+    QCOMPARE (bridge.categoryLoading (), false);
+    QCOMPARE (loadingSpy.count (), 0);
   }
 
   // ---- 属性访问 ----

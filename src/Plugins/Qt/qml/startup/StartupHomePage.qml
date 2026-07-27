@@ -110,7 +110,10 @@ Item {
             ListView {
                 id: recentList
                 anchors.fill: parent
-                anchors.margins: StartupTheme.recentItemMarginH + StartupTheme.recentItemMarginV
+                anchors.leftMargin: StartupTheme.recentItemMarginH
+                anchors.rightMargin: StartupTheme.recentItemMarginH
+                anchors.topMargin: StartupTheme.recentItemMarginV
+                anchors.bottomMargin: StartupTheme.recentItemMarginV
                 spacing: 0
                 clip: true
                 model: page.recentDocs
