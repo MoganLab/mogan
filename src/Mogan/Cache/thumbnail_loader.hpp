@@ -14,6 +14,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -53,8 +54,10 @@ private:
   QString getUrlImpl (const QString& remoteUrl, bool triggerDownload);
 
   QNetworkAccessManager* nam_;
-  /// remote URL → 本地下载路径 / file:// 已缓存路径。
+  /// remote URL → file:// 已缓存路径（仅在下载完成后写入）。
   QHash<QString, QString> urlCache_;
+  /// 正在下载中的 remote URL（避免重复请求）。
+  QSet<QString> inFlight_;
 };
 
 #endif

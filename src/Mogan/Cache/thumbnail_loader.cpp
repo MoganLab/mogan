@@ -86,7 +86,8 @@ ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload) {
   if (!triggerDownload) return remoteUrl;
 
   // 触发异步下载
-  urlCache_.insert (remoteUrl, localPath); // 标记正在下载
+  if (inFlight_.contains (remoteUrl)) return remoteUrl; // 已在下载中
+  inFlight_.insert (remoteUrl);
   QNetworkRequest req (remoteUrl);
   req.setAttribute (QNetworkRequest::RedirectPolicyAttribute,
                     QNetworkRequest::NoLessSafeRedirectPolicy);
@@ -97,21 +98,24 @@ ThumbnailLoader::getUrlImpl (const QString& remoteUrl, bool triggerDownload) {
 void
 ThumbnailLoader::onDownloadFinished (QNetworkReply* reply) {
   reply->deleteLater ();
-  if (reply->error () != QNetworkReply::NoError) return;
 
   QString remoteUrl= reply->request ().url ().toString ();
-  auto    it       = urlCache_.constFind (remoteUrl);
-  if (it == urlCache_.constEnd ()) return;
+  inFlight_.remove (remoteUrl);
 
-  // 已是 file://（之前下载过），跳过
-  if (it->startsWith ("file://")) return;
+  if (reply->error () != QNetworkReply::NoError) return;
 
-  QString localPath= *it;
-  QFile   file (localPath);
-  if (!file.open (QIODevice::WriteOnly)) {
-    urlCache_.remove (remoteUrl);
-    return;
-  }
+  // 检查 HTTP 状态码（网络层成功不代表 HTTP 成功，404/500 等应丢弃）
+  int httpStatus=
+      reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
+  if (httpStatus < 200 || httpStatus >= 300) return;
+
+  // 生成本地文件名（与 getUrlImpl 中算法一致）
+  QByteArray hash=
+      QCryptographicHash::hash (remoteUrl.toUtf8 (), QCryptographicHash::Md5);
+  QString localPath= QDir (cacheDir ()).filePath (hash.toHex () + ".png");
+
+  QFile file (localPath);
+  if (!file.open (QIODevice::WriteOnly)) return;
   file.write (reply->readAll ());
   file.close ();
 
