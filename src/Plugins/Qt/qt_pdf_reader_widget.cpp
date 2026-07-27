@@ -38,6 +38,7 @@
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
+#include "tm_sys_utils.hpp"
 #include <mupdf/fitz.h>
 
 #include <mutex>
@@ -518,9 +519,7 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
   if (clipboard) {
     clipboard->setPixmap (selected);
     // Trigger silent OCR to populate cache; the result is not inserted here.
-    // Guard against test environments where the scheme interpreter (tm_s7)
-    // and/or the GUI (the_gui) are not initialized.
-    if (tm_s7) {
+    if (!is_community_stem ()) {
       exec_delayed (scheme_cmd (
           "(when (defined? 'ocr-recognize-silent) (ocr-recognize-silent))"));
     }

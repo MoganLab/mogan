@@ -1289,15 +1289,15 @@ command_queue::must_wait (time_t now) const {
 
 void
 exec_delayed (object cmd) {
-  if (the_gui) the_gui->delayed_commands.exec (cmd);
+  the_gui->delayed_commands.exec (cmd);
 }
 void
 exec_delayed_pause (object cmd) {
-  if (the_gui) the_gui->delayed_commands.exec_pause (cmd);
+  the_gui->delayed_commands.exec_pause (cmd);
 }
 void
 clear_pending_commands () {
-  if (the_gui) the_gui->delayed_commands.clear_pending ();
+  the_gui->delayed_commands.clear_pending ();
 }
 
 /******************************************************************************
