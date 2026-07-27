@@ -12,10 +12,10 @@
 #include "template_manager.hpp"
 #include "template_api.hpp"
 #include "template_cache.hpp"
+#include "thumbnail_loader.hpp"
 
 #include "image_cache_base.hpp"
 #include "qt_utilities.hpp"
-#include <QCryptographicHash>
 #include <QEventLoop>
 #include <QFile>
 #include <QJsonArray>
@@ -70,6 +70,19 @@ TemplateManager::TemplateManager (QObject* parent)
            &TemplateManager::onRemoteRecommendTemplatesLoaded);
   connect (api_, &TemplateAPI::recommendTemplatesLoadFailed, this,
            &TemplateManager::onRemoteRecommendTemplatesFailed);
+
+  // 缩略图下载器
+  thumbnailLoader_= new ThumbnailLoader (this);
+  connect (thumbnailLoader_, &ThumbnailLoader::ready, this,
+           [this] (const QString& remoteUrl) {
+             for (auto it= templates_.begin (); it != templates_.end (); ++it) {
+               TemplateMetadataPtr tmpl= it.value ();
+               if (tmpl && tmpl->thumbnailUrl == remoteUrl) {
+                 tmpl->thumbnailUrl= thumbnailLoader_->getUrl (remoteUrl);
+                 emit thumbnailCached (tmpl->id);
+               }
+             }
+           });
 }
 
 TemplateManager::~TemplateManager () { g_instance= nullptr; }
@@ -787,6 +800,12 @@ TemplateManager::mergeMetadata (
         debug_std << "[Template] " << qPrintable (tmpl->id)
                   << " found in cache\n";
     }
+  }
+
+  // 将模板缩略图 URL 转为本地 file:// 路径
+  for (auto it= templates_.begin (); it != templates_.end (); ++it) {
+    TemplateMetadataPtr tmpl= it.value ();
+    if (tmpl) tmpl->thumbnailUrl= thumbnailLoader_->getUrl (tmpl->thumbnailUrl);
   }
 }
 

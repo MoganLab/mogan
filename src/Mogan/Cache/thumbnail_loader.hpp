@@ -1,70 +1,57 @@
 
 /******************************************************************************
  * MODULE     : thumbnail_loader.hpp
- * DESCRIPTION: Shared thumbnail loading with queue, cache, and HTTP validation
+ * DESCRIPTION: 缩略图下载 + 本地缓存
  * COPYRIGHT  : (C) 2026 Yuki Lu
+ *******************************************************************************
+ * This software falls under the GNU general public license version 3 or later.
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
 #ifndef THUMBNAIL_LOADER_HPP
 #define THUMBNAIL_LOADER_HPP
 
+#include <QHash>
 #include <QObject>
-#include <QPointer>
-#include <QQueue>
-#include <QSet>
-#include <QSize>
 
-class QLabel;
 class QNetworkAccessManager;
 class QNetworkReply;
 
 /**
- * @brief Pending thumbnail load request
- */
-struct ThumbnailLoadRequest {
-  QPointer<QLabel> label;
-  QString          url;
-  QString          cachedEtag;
-  QSize            targetSize;
-};
-
-/**
- * @brief Shared thumbnail loader (singleton)
+ * @brief 缩略图下载器：将远程 URL 下载到本地，返回 file:// 路径。
  *
- * Manages a global download queue with concurrency control,
- * ETag-based conditional HTTP requests, and ThumbnailCache integration.
+ * 用法：
+ *   QString url= loader->getUrl (remoteUrl);
+ *   // 本地已有 → "file:///.../xxx.png"
+ *   // 首次访问 → 触发异步下载，返回原 remoteUrl
+ *
+ * 下载完成后 emit ready (remoteUrl)，消费者据此刷新对应 UI。
  */
 class ThumbnailLoader : public QObject {
   Q_OBJECT
+  Q_DISABLE_COPY (ThumbnailLoader)
 
 public:
   explicit ThumbnailLoader (QObject* parent= nullptr);
   ~ThumbnailLoader ();
 
-  static ThumbnailLoader* instance ();
+  /// @return 已缓存返回 "file://..."，否则触发异步下载并返回原 URL。
+  QString getUrl (const QString& remoteUrl);
 
-  /**
-   * @brief Load a thumbnail into a QLabel
-   *
-   * If the thumbnail is already cached, sets the pixmap immediately.
-   * If the cached entry needs validation (ETag-based conditional request),
-   * enqueues a background validation.  If not cached at all, downloads it.
-   *
-   * @param label      Target QLabel widget
-   * @param url        Image URL
-   * @param targetSize Desired display size (used for cache key and scaling)
-   */
-  void load (QLabel* label, const QString& url, const QSize& targetSize);
+signals:
+  /// remoteUrl 对应的本地 file:// 已就绪。
+  void ready (const QString& remoteUrl);
+
+private slots:
+  void onDownloadFinished (QNetworkReply* reply);
 
 private:
-  void processQueue ();
+  QString cacheDir () const;
 
-private:
-  QNetworkAccessManager*       networkManager_= nullptr;
-  QQueue<ThumbnailLoadRequest> queue_;
-  int                          activeRequests_= 0;
-  static constexpr int         MAX_CONCURRENT = 6;
-  QSet<QString>                validatedUrls_;
+  QNetworkAccessManager* nam_;
+  /// remote URL → 本地下载路径 / file:// 已缓存路径。
+  QHash<QString, QString> urlCache_;
 };
 
-#endif // THUMBNAIL_LOADER_HPP
+#endif

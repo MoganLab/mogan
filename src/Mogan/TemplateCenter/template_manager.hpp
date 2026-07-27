@@ -25,6 +25,7 @@ class string;
 // Forward declarations
 class TemplateCache;
 class TemplateAPI;
+class ThumbnailLoader;
 
 /**
  * @brief Template manager - main entry point for template operations
@@ -125,6 +126,9 @@ signals:
   // Update notifications
   void updateAvailable (int newTemplatesCount, int updatedTemplatesCount);
 
+  // 缩略图下载完成（通知 UI 刷新）
+  void thumbnailCached (const QString& templateId);
+
 private slots:
   void onRemoteCategoriesLoaded (const QList<TemplateCategory>& categories);
   void onRemoteCategoriesFailed (const QString& error);
@@ -165,8 +169,9 @@ private:
   QList<QString>                      recommendTemplateIds_;
 
   // Components
-  TemplateCache* cache_;
-  TemplateAPI*   api_;
+  TemplateCache*   cache_;
+  TemplateAPI*     api_;
+  ThumbnailLoader* thumbnailLoader_;
 
   // State
   bool          isOnline_;

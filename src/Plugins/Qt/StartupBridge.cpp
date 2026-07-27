@@ -133,6 +133,13 @@ StartupBridge::initialize () {
            Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::templatesLoadFailed, this,
            &StartupBridge::onTemplatesLoadFailed, Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::thumbnailCached, this,
+           [this] (const QString&) {
+             // 缩略图下载完成 → file:// URL 已可用，刷新分类模板和首页推荐卡片
+             categoryTemplatesCache_.remove (activeCategoryId_);
+             refreshCategoryTemplates ();
+             rebuildStyleCards ();
+           });
 
   if (templateManager_->isInitialized ()) {
     if (!templateManager_->categories ().isEmpty ()) onCategoriesLoaded ();
@@ -149,8 +156,9 @@ StartupBridge::initialize () {
 
 void
 StartupBridge::rebuildStyleCards () {
-  styleCards_.clear ();
-  auto* mgr= TemplateManager::instance ();
+  // build to a temp list to skip emit if nothing changed
+  QVariantList newCards;
+  auto*        mgr= TemplateManager::instance ();
   if (!mgr || !mgr->isInitialized ()) return;
   for (const auto& t : mgr->recommendTemplates ()) {
     if (!t) continue;
@@ -160,9 +168,12 @@ StartupBridge::rebuildStyleCards () {
     m["name"]     = t->name;
     m["titleText"]= t->name;
     if (!t->thumbnailUrl.isEmpty ()) m["thumbSrc"]= t->thumbnailUrl;
-    styleCards_ << m;
+    newCards << m;
   }
-  emit styleCardsChanged ();
+  if (newCards != styleCards_) {
+    styleCards_= newCards;
+    emit styleCardsChanged ();
+  }
 }
 
 void
