@@ -91,6 +91,7 @@ set_configvar("USE_FREETYPE", 1)
 includes("xmake/options.lua")
 
 includes("xmake/requires.lua")
+includes("updater")
 
 includes("xmake/targets/stem.lua")
 includes("xmake/targets/libmogan.lua")

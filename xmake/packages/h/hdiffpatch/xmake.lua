@@ -1,0 +1,35 @@
+package("hdiffpatch")
+    set_homepage("https://github.com/sisong/HDiffPatch")
+    set_description("A C/C++ library for binary differential compression and patching.")
+    set_license("MIT")
+
+    set_urls("https://github.com/sisong/HDiffPatch/archive/refs/tags/$(version).tar.gz")
+    add_versions("v5.1.2", "255f58b0b2b6a76c97e8fefce90097ea966a6eb40e4d2a10e530f875ef29deb1")
+
+    on_install("windows", function (package)
+        io.writefile("xmake.lua", [[
+            target("hdiffpatch") do
+                set_kind("static")
+                set_languages("c11")
+                set_runtimes("MT")
+                add_defines("_IS_USED_MULTITHREAD=0")
+                add_files("libHDiffPatch/HPatch/patch.c")
+                add_files("libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c")
+                add_files("file_for_patch.c")
+                add_files("dirDiffPatch/dir_patch/dir_patch.c")
+                add_files("dirDiffPatch/dir_patch/dir_patch_tools.c")
+                add_files("dirDiffPatch/dir_patch/new_dir_output.c")
+                add_files("dirDiffPatch/dir_patch/new_stream.c")
+                add_files("dirDiffPatch/dir_patch/ref_stream.c")
+                add_files("dirDiffPatch/dir_patch/res_handle_limit.c")
+            end
+        ]])
+
+        import("package.tools.xmake").install(package, {buildir = "build"})
+        os.cp("libHDiffPatch", package:installdir("include"))
+        os.cp("dirDiffPatch/dir_patch", package:installdir("include/dirDiffPatch"))
+        os.cp("file_for_patch.h", package:installdir("include"))
+        os.cp("hpatch_dir_listener.h", package:installdir("include"))
+        os.cp("decompress_plugin_demo.h", package:installdir("include"))
+        os.cp("checksum_plugin_demo.h", package:installdir("include"))
+    end)
