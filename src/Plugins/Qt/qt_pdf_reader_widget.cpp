@@ -518,8 +518,12 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
   if (clipboard) {
     clipboard->setPixmap (selected);
     // Trigger silent OCR to populate cache; the result is not inserted here.
-    exec_delayed (scheme_cmd (
-        "(when (defined? 'ocr-recognize-silent) (ocr-recognize-silent))"));
+    // Guard against test environments where the scheme interpreter (tm_s7)
+    // and/or the GUI (the_gui) are not initialized.
+    if (tm_s7) {
+      exec_delayed (scheme_cmd (
+          "(when (defined? 'ocr-recognize-silent) (ocr-recognize-silent))"));
+    }
   }
 
   if (hintLabel_) {
