@@ -36,6 +36,11 @@ function main()
                 scm_name = "use-plugin-updater?",
                 cpp_name = "use_plugin_updater",
                 ret_type = "bool"
+            },
+            {
+                scm_name = "loro-enabled?",
+                cpp_name = "loro_enabled",
+                ret_type = "bool",
             }
         }
     }

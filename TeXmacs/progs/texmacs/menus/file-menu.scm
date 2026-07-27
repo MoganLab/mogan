@@ -403,17 +403,17 @@
  ) ;if
  ("Save" (save-buffer))
  ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
- (when (loro-enabled?)
+ (if (loro-enabled?)
    (-> "Collaborative"
     ("New shared document" (collab-new-document))
     (-> "Join shared document" (link collab-docs-menu))
-    (when (loro-collab-active?)
+    (if (loro-collab-active?)
       ---
       ("Leave session" (collab-leave))
       ("Show document UUID" (set-message (loro-collab-doc-id) "Collaborative"))
-    ) ;when
+    ) ;if
    ) ;->
- ) ;when
+ ) ;if
  (if (qt-gui?)
    ---
    (link print-menu)

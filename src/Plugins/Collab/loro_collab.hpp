@@ -19,15 +19,6 @@
 #include "array.hpp"
 #include "string.hpp"
 
-inline bool
-loro_enabled () {
-#ifdef LORO_ENABLED
-  return true;
-#else
-  return false;
-#endif
-}
-
 /**
  * @brief 取协作服务端地址（运行期可配，无需重编译）：
  *        - native：OS 环境变量 MOGAN_LORO_SERVER
