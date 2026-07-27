@@ -254,6 +254,7 @@ target("libmogan") do
             "$(projectdir)/src/Typeset/Concat",
             "$(projectdir)/src/Typeset/Page",
             "$(projectdir)/src/Mogan/Cache",
+            "$(projectdir)/src/Mogan/HashUtils",
             "$(projectdir)/src/Mogan/TemplateCenter",
             "$(projectdir)/src/Mogan/Telemetry",
             "$(projectdir)/TeXmacs/include",
@@ -296,6 +297,7 @@ target("libmogan") do
         add_includedirs("$(projectdir)/src/Plugins/Qt", {public=true})
         add_files("$(projectdir)/src/Plugins/Qt/**.cpp", "$(projectdir)/src/Plugins/Qt/**.hpp")
         add_files("$(projectdir)/src/Mogan/Cache/**.cpp", "$(projectdir)/src/Mogan/Cache/**.hpp")
+        add_files("$(projectdir)/src/Mogan/HashUtils/**.cpp", "$(projectdir)/src/Mogan/HashUtils/**.hpp")
         add_files("$(projectdir)/src/Mogan/TemplateCenter/**.cpp", "$(projectdir)/src/Mogan/TemplateCenter/**.hpp")
         -- Qt resource files
         add_rules("qt.qrc")

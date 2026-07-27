@@ -33,6 +33,14 @@ function main()
                 }
             },
             {
+                scm_name = "md5-binary",
+                cpp_name = "md5_binary",
+                ret_type = "string",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
                 scm_name = "version-before?",
                 cpp_name = "version_inf",
                 ret_type = "bool",
