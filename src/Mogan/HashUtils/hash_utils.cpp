@@ -11,13 +11,21 @@
 
 #include "hash_utils.hpp"
 
-#include <QByteArray>
-#include <QCryptographicHash>
+#include "lolly/data/numeral.hpp"
+#include <tbox/tbox.h>
 
 string
 md5_binary (string s) {
-  QByteArray input (as_charp (s), N (s));
-  QByteArray hash= QCryptographicHash::hash (input, QCryptographicHash::Md5);
-  QByteArray hex = hash.toHex ();
-  return string (hex.constData (), hex.size ());
+  tb_byte_t o_buffer[16];
+  tb_size_t o_size=
+      tb_md5_make ((tb_byte_t*) as_charp (s), N (s), o_buffer, 16);
+  if (o_size != 16) {
+    return string ("");
+  }
+
+  string md5_hex;
+  for (int i= 0; i < 16; ++i) {
+    md5_hex << lolly::data::to_padded_hex (o_buffer[i]);
+  }
+  return md5_hex;
 }
