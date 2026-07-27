@@ -939,15 +939,35 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
       }
     }
   }
-  if (over_handles) {
+  
+  // 绘图区光标由绘图模式管理，单独走分支仅复位残留悬停样式；其余走正常光标链
+  bool over_gr= over_graphics (x, y);
+  if (over_gr) {
+    if (hover_style_cursor) {
+      set_cursor_style ("normal");
+      hover_style_cursor= false;
+    }
+#ifdef QTTEXMACS
+    hide_image_popup ();
+#endif
+    update_text_popup ();
+  }
+  else if (over_handles) {
     if (handle_cursor != "") set_cursor_style (handle_cursor);
     else set_cursor_style ("size_all");
+    hover_style_cursor= true;
   }
-  else if (hovering_table)
+  else if (hovering_table) {
     set_cursor_style (hovering_table == 1 ? "size_ver" : "size_hor");
-  else if (hovering_hlink) set_cursor_style ("pointing_hand");
+    hover_style_cursor= true;
+  }
+  else if (hovering_hlink) {
+    set_cursor_style ("pointing_hand");
+    hover_style_cursor= true;
+  }
   else if (hovering_image) {
     set_cursor_style ("pointing_hand");
+    hover_style_cursor       = true;
     path path_of_image_parent= path_up (current_path);
     tree tree_of_image_parent= subtree (et, path_of_image_parent);
     if (should_show_image_popup (tree_of_image_parent)) {
@@ -959,7 +979,8 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     hide_text_popup ();
   }
   else {
-    if (!over_graphics (x, y)) set_cursor_style ("normal");
+    set_cursor_style ("normal");
+    hover_style_cursor= false;
 #ifdef QTTEXMACS
     hide_image_popup ();
 #endif
