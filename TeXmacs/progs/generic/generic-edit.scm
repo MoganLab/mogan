@@ -1231,14 +1231,24 @@
 ;;
 ;; 语法
 ;; ----
-;; (ocr-paste)
-(tm-define (ocr-paste)
+;; (ocr-paste source-format)
+
+(define (clipboard-tree-image? data)
+  (or (tree-is? (tree-ref data 0) 'image)
+    (and (tree-is? data 'with) (tree-is? (tree-ref data 2) 'image))
+  ) ;or
+) ;define
+
+(tm-define (ocr-paste source-format)
   (when (not (defined? 'ocr-to-latex-by-cursor))
     (use-modules (liii ocr))
   ) ;when
   (with data
-    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
-    (when (tree-is? (tree-ref data 0) 'image)
+    (if (string=? source-format "texmacs-snippet")
+      (tree-ref (clipboard-get "primary") 1)
+      (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
+    ) ;if
+    (when (clipboard-tree-image? data)
       (ocr-to-latex-by-cursor data)
     ) ;when
   ) ;with
@@ -1309,12 +1319,8 @@
   (with img-tree
     (tree-ref (clipboard-get "primary") 1)
     (cond ((tree-is? img-tree 'image) (ocr-to-latex-by-cursor img-tree))
-          ((and (tree-is? img-tree 'with) (not (null? (tree-ref img-tree 2))))
-           (let* ((sub-img-tree (tree-ref img-tree 2)))
-             (when (tree-is? sub-img-tree 'image)
-               (ocr-to-latex-by-cursor img-tree)
-             ) ;when
-           ) ;let*
+          ((and (tree-is? img-tree 'with) (tree-is? (tree-ref img-tree 2) 'image))
+           (ocr-to-latex-by-cursor img-tree)
           ) ;
     ) ;cond
   ) ;with
@@ -1431,41 +1437,62 @@
 ) ;tm-define
 
 (tm-define (kbd-magic-paste)
-  (if (string-starts? (qt-clipboard-format) "image")
-    (begin
-      (ocr-paste)
-      (when (defined? 'track-event)
-        (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
-      ) ;when
-    ) ;begin
-    (with-magic-paste-check (lambda ()
-                              (with mode
-                                (get-env "mode")
-                                (cond ((== mode "prog")
-                                       (clipboard-paste-import "code" "primary")
-                                       (when (defined? 'track-event)
-                                         (track-event "MAGIC_PASTE" '(("mode"
-                                                                       . "prog")))
-                                       ) ;when
-                                      ) ;
-                                      ((== mode "math")
-                                       (clipboard-paste-import "latex" "primary")
-                                       (when (defined? 'track-event)
-                                         (track-event "MAGIC_PASTE" '(("mode"
-                                                                       . "math")))
-                                       ) ;when
-                                      ) ;
-                                      (else (smart-format-paste)
-                                        (when (defined? 'track-event)
-                                          (track-event "MAGIC_PASTE" '(("mode"
-                                                                        . "text")))
-                                        ) ;when
-                                      ) ;else
-                                ) ;cond
-                              ) ;with
-                            ) ;lambda
-    ) ;with-magic-paste-check
-  ) ;if
+  (let ((source-format (qt-clipboard-format)))
+    (cond ((string-starts? source-format "image")
+           (ocr-paste "image")
+           (when (defined? 'track-event)
+             (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
+           ) ;when
+          ) ;
+          ((string=? source-format "texmacs-snippet")
+           (with data
+             (tree-ref (clipboard-get "primary") 1)
+             (if (clipboard-tree-image? data)
+               (begin
+                 (ocr-paste "texmacs-snippet")
+                 (when (defined? 'track-event)
+                   (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
+                 ) ;when
+               ) ;begin
+               (begin
+                 (kbd-paste)
+                 (when (defined? 'track-event)
+                   (track-event "MAGIC_PASTE" '(("mode" . "internal")))
+                 ) ;when
+               ) ;begin
+             ) ;if
+           ) ;with
+          ) ;
+          (else (with-magic-paste-check (lambda ()
+                                          (with mode
+                                            (get-env "mode")
+                                            (cond ((== mode "prog")
+                                                   (clipboard-paste-import "code" "primary")
+                                                   (when (defined? 'track-event)
+                                                     (track-event "MAGIC_PASTE" '(("mode"
+                                                                                   . "prog")))
+                                                   ) ;when
+                                                  ) ;
+                                                  ((== mode "math")
+                                                   (clipboard-paste-import "latex" "primary")
+                                                   (when (defined? 'track-event)
+                                                     (track-event "MAGIC_PASTE" '(("mode"
+                                                                                   . "math")))
+                                                   ) ;when
+                                                  ) ;
+                                                  (else (smart-format-paste)
+                                                    (when (defined? 'track-event)
+                                                      (track-event "MAGIC_PASTE" '(("mode"
+                                                                                    . "text")))
+                                                    ) ;when
+                                                  ) ;else
+                                            ) ;cond
+                                          ) ;with
+                                        ) ;lambda
+                ) ;with-magic-paste-check
+          ) ;else
+    ) ;cond
+  ) ;let
   (when (and (defined? 'chat-input-buffer?) (chat-input-buffer? (current-buffer-url)))
     (qt-chat-notify-input-height)
   ) ;when
