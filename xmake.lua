@@ -17,6 +17,7 @@ includes("3rdparty/tbox.lua")
 
 includes("moebius")
 includes("lolly")
+includes("updater")
 includes("xmake/stem.lua")
 includes("xmake/rules/glue.lua")
 includes("xmake/goldfish.lua")
@@ -91,7 +92,6 @@ set_configvar("USE_FREETYPE", 1)
 includes("xmake/options.lua")
 
 includes("xmake/requires.lua")
-includes("updater")
 
 includes("xmake/targets/stem.lua")
 includes("xmake/targets/libmogan.lua")
