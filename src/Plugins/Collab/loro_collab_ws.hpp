@@ -31,9 +31,8 @@ private:
   time_t                               next_reconnect_at= 0;
   int                                  reconnect_attempt= 0;
   array<string>                        pending_updates;
-  // 多光标：本端 peer id（会话级稳定）、光标脏标记与节流时间戳
+  // 多光标：本端 peer id（会话级稳定）、光标节流时间戳
   string peer_id;
-  bool   cursor_dirty    = false;
   time_t last_cursor_send= 0;
 
   void   set_message (string left);
@@ -45,7 +44,6 @@ public:
   ~collab_session ();
 
   bool want_create () const { return mode == collab_mode::create; }
-  void mark_cursor_dirty () { cursor_dirty= true; }
 
   // Business logic API
   void create (string server_url);
@@ -55,8 +53,8 @@ public:
   void broadcast (string bytes);
   void
   send_cursor (string payload); // 多光标：发文本帧 "CURSOR <peer> <payload>"
-  void
-  flush_cursor (); // 编辑上行后立即补发光标（绕过节流），使之与编辑同帧到达
+  void flush_cursor (
+      bool force= false); // force=true 强制发（编辑后）；否则 ≥50ms 节流
   void schedule_reconnect ();
   void maybe_reconnect ();
 
@@ -97,9 +95,9 @@ public:
 
 extern collab_session_manager g_session_manager;
 extern void (*g_loro_broadcast_update) (string bytes);
-extern void (*g_loro_cursor_dirty) ();
+extern void (*g_loro_cursor_flush) ();
 extern void broadcast_to_server (string bytes);
-extern void mark_current_cursor_dirty ();
+extern void flush_current_cursor ();
 
 tm_websocket_client* create_collab_ws_client (collab_session* session);
 

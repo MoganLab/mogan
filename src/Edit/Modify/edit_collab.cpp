@@ -266,13 +266,13 @@ edit_modify_rep::collab_cursor_payload () {
          encode_path (et, loro_doc, ep);
 }
 
-extern void (*g_loro_cursor_dirty) ();
+extern void (*g_loro_cursor_flush) ();
 
 void
 edit_modify_rep::collab_cursor_moved_hook () {
   if (loro_applying_remote) return; // 远端应用期间恢复本地光标，不回灌
   if (!loro_collab_on) return;
-  if (g_loro_cursor_dirty) g_loro_cursor_dirty ();
+  if (g_loro_cursor_flush) g_loro_cursor_flush ();
 }
 
 void

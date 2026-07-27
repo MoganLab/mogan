@@ -18,7 +18,7 @@
 #include <cstdint>
 
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
-void (*g_loro_cursor_dirty) ()                = nullptr;
+void (*g_loro_cursor_flush) ()                = nullptr;
 collab_session_manager g_session_manager;
 
 void
@@ -27,19 +27,18 @@ broadcast_to_server (string bytes) {
   collab_session* session= g_session_manager.find_by_buffer (buf);
   if (session) {
     session->broadcast (bytes);
-    // 编辑已即时上行；光标须紧跟其后补发，避免对端先收到编辑、后收到（节流的）
-    // 光标，导致远程光标短暂落在新插入文本之前（如 "Line 1|test"）。
-    session->flush_cursor ();
+    // 编辑后强制补发光标（force=true），使之与编辑同帧到达对端。
+    session->flush_cursor (true);
   }
 }
 
-// 多光标：编辑器侧 collab_cursor_moved_hook 经此把「当前 buffer 的会话」标脏，
-// 待 poll() 节流上行。
+// 多光标：编辑器侧 collab_cursor_moved_hook 经此触发「当前 buffer 的会话」
+// 节流补发光标（≥50ms）。无 cursor_dirty 标记——hook 直接触发 flush。
 void
-mark_current_cursor_dirty () {
+flush_current_cursor () {
   url             buf    = get_current_buffer ();
   collab_session* session= g_session_manager.find_by_buffer (buf);
-  if (session) session->mark_cursor_dirty ();
+  if (session) session->flush_cursor (false);
 }
 
 // -----------------------------------------------------------------------------
@@ -131,7 +130,7 @@ collab_session::become_ready () {
   enter_ready ();
   buffer_known           = true;
   g_loro_broadcast_update= broadcast_to_server;
-  g_loro_cursor_dirty    = mark_current_cursor_dirty;
+  g_loro_cursor_flush    = flush_current_cursor;
 
   editor ed= get_editor ();
   if (is_nil (ed)) {
@@ -208,7 +207,6 @@ collab_session::disconnect () {
   reconnect_attempt= 0;
   buffer_known     = false;
   pending_updates  = array<string> ();
-  cursor_dirty     = false;
   if (ws) {
     ws->disconnect ();
     ws.reset ();
@@ -233,17 +231,6 @@ collab_session::poll () {
     std_error << "JOIN 长时间未收到 SYNC-END/历史帧，按空文档就绪（兜底）\n";
     await_frame_since= 0;
     become_ready ();
-  }
-  // 多光标：脏标记 + ≥50ms 节流上行本地光标
-  if (cursor_dirty && state == collab_state::ready &&
-      texmacs_time () - last_cursor_send >= 50) {
-    editor ed= get_editor ();
-    if (!is_nil (ed)) {
-      string payload= ed->collab_cursor_payload ();
-      if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
-    }
-    cursor_dirty    = false;
-    last_cursor_send= texmacs_time ();
   }
   maybe_reconnect ();
 }
@@ -271,18 +258,17 @@ collab_session::send_cursor (string payload) {
     ws->send (payload, false);
 }
 
-// 编辑上行后由 broadcast_to_server 调用：若光标脏则立即补发（绕过 poll 的 50ms
-// 节流），让光标更新紧随编辑、同 WS 有序到达对端。tp 已在 post_notify 中更新到
-// 编辑后位置（post_notify 先于 mirror_loro），故此处读到的是最新光标。
+// 发送本端光标。force=true（编辑后）总是发；force=false（光标移动/选区变化）
+// 按 ≥50ms 节流。无 cursor_dirty 标记——由调用方决定 force 与否。
 void
-collab_session::flush_cursor () {
-  if (!cursor_dirty || state != collab_state::ready) return;
+collab_session::flush_cursor (bool force) {
+  if (state != collab_state::ready) return;
+  if (!force && texmacs_time () - last_cursor_send < 50) return;
   editor ed= get_editor ();
   if (!is_nil (ed)) {
     string payload= ed->collab_cursor_payload ();
     if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
   }
-  cursor_dirty    = false;
   last_cursor_send= texmacs_time ();
 }
 
