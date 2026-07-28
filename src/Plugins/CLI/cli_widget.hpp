@@ -28,7 +28,8 @@ public:
 
   // 槽分发：widget_rep 的默认 send/query/read/write 会 TM_FAILED("no default
   // implementation")。CLI 不交互，全 no-op（query 返回空 box），避免 init /
-  // ensure_window 向桩 widget 投递槽时抛异常。渲染路径(render_to_images)不触槽。
+  // ensure_window 向桩 widget
+  // 投递槽时抛异常。渲染路径(render_to_images)不触槽。
   virtual void send (slot s, blackbox val) {
     (void) s;
     (void) val;
@@ -42,12 +43,18 @@ public:
       static int id= 1;
       return close_box<int> (id++);
     }
-    case SLOT_MAIN_ICONS_VISIBILITY: return close_box<bool> (false);
-    case SLOT_POSITION: return close_box<coord2> (coord2 (0, 0));
-    case SLOT_SIZE: return close_box<coord2> (coord2 (800, 600));
-    case SLOT_INVALID: return close_box<bool> (false);
-    case SLOT_SCROLL_POSITION: return close_box<coord2> (coord2 (0, 0));
-    case SLOT_EXTENTS: return close_box<coord4> (coord4 (0, 0, 800, 600));
+    case SLOT_MAIN_ICONS_VISIBILITY:
+      return close_box<bool> (false);
+    case SLOT_POSITION:
+      return close_box<coord2> (coord2 (0, 0));
+    case SLOT_SIZE:
+      return close_box<coord2> (coord2 (800, 600));
+    case SLOT_INVALID:
+      return close_box<bool> (false);
+    case SLOT_SCROLL_POSITION:
+      return close_box<coord2> (coord2 (0, 0));
+    case SLOT_EXTENTS:
+      return close_box<coord4> (coord4 (0, 0, 800, 600));
     case SLOT_VISIBLE_PART:
       return close_box<coord4> (coord4 (0, 0, 800, 600));
     default:

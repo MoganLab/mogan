@@ -89,10 +89,11 @@ gui_start_loop () {
   // 仅排空入队命令（-x / exec_delayed），直到队列空；(quit-TeXmacs) 在命令执行
   // 中调用 exit(0) 终结进程。
   //
-  // 刻意【不】驱动 interpose 回调（apply_changes / animate / windows_refresh）：
-  // CLI 无屏；被动 view 的 editor cvw 为空，apply_changes 会经 get_size 对 null
-  // widget 取尺寸而段错误。而渲染路径 render_to_images 自带排版（typeset_preamble
-  // / typeset_prepare / ::typeset），完全不依赖 apply_changes。
+  // 刻意【不】驱动 interpose 回调（apply_changes / animate /
+  // windows_refresh）： CLI 无屏；被动 view 的 editor cvw 为空，apply_changes
+  // 会经 get_size 对 null widget 取尺寸而段错误。而渲染路径 render_to_images
+  // 自带排版（typeset_preamble / typeset_prepare / ::typeset），完全不依赖
+  // apply_changes。
   for (;;) {
     exec_pending_commands ();
     if (N (g_delayed_q) == 0) break;
