@@ -30,18 +30,23 @@
 
 ;; render-doc-to-png：加载一个 .tmu，渲染到临时 PNG；断言返回 #t 且文件已生成。
 ;; （render-doc-to-png 经 make_raster_image→mupdf 写出，成功即产出有效 PNG。）
+
 (define (test-render-doc-to-png)
-  (let* ((tmu "$TEXMACS_PATH/tests/tmu/0101.tmu")
-         (png (url-glue (url-temp) "png")))
+  (let* ((tmu "$TEXMACS_PATH/tests/tmu/0101.tmu") (png (url-glue (url-temp) "png")))
     (load-buffer tmu)
     (check (render-doc-to-png tmu png 1.0) => #t)
-    (check (url-exists? png) => #t)))
+    (check (url-exists? png) => #t)
+  ) ;let*
+) ;define
 
 ;; current-window-url：get_current_window_safe 的 Scheme 入口。headless 下无窗口，
 ;; 返回 url-none 而非断言崩溃（旧 (current-window) 此处 ASSERT）。
+
 (define (test-current-window-url)
   (let ((w (current-window-url)))
-    (check (url? w) => #t)))
+    (check (url? w) => #t)
+  ) ;let
+) ;define
 
 (tm-define (test_0780)
   (test-render-doc-to-png)
