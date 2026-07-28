@@ -90,6 +90,14 @@ public:
   void show_meminfo ();
   void edit_special ();
 
+#ifdef LORO_ENABLED
+  // edit_main_rep 同时持有 edit_modify_rep 的 loro_doc 与 edit_typeset_rep 的
+  // style/init getter/setter，故 meta section 的同步逻辑集中在此实现。
+  void apply_remote_meta () override;
+  void loro_seed_local_meta () override;
+  void mirror_meta_if_active (string section) override;
+#endif
+
   friend class editor;
 };
 

@@ -47,6 +47,38 @@
 (define-public (pref-font-effects) "font-effects")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ParagraphFormat（格式 → 段落 / 文档 → 段落）
+;; 权威定义：paragraph-format-widgets.scm 的 paragraph-basic-fields /
+;; paragraph-advanced-fields 的 specs builder（get-env / get-init 读写）。
+;; 文档级「重置」走 init-default（恢复默认），key 字面值必须与此处完全一致，
+;; 否则断开 init-default 的回调链路。接线（裸字符串 → (pref-par-*) proc 引用）
+;; 见 paragraph-format-widgets.scm，本文件仅声明常量。
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; ---- Basic fields（基础 tab）----
+(define-public (pref-par-mode) "par-mode")
+(define-public (pref-par-left) "par-left")
+(define-public (pref-par-right) "par-right")
+(define-public (pref-par-first) "par-first")
+(define-public (pref-par-sep) "par-sep")
+(define-public (pref-par-par-sep) "par-par-sep")
+(define-public (pref-par-columns) "par-columns")
+(define-public (pref-par-columns-sep) "par-columns-sep")
+
+;; ---- Advanced fields（高级 tab）----
+(define-public (pref-par-hyphen) "par-hyphen")
+(define-public (pref-par-line-sep) "par-line-sep")
+(define-public (pref-par-ver-sep) "par-ver-sep")
+(define-public (pref-par-hor-sep) "par-hor-sep")
+(define-public (pref-par-flexibility) "par-flexibility")
+(define-public (pref-par-spacing) "par-spacing")
+(define-public (pref-par-kerning-stretch) "par-kerning-stretch")
+(define-public (pref-par-kerning-reduce) "par-kerning-reduce")
+(define-public (pref-par-expansion) "par-expansion")
+(define-public (pref-par-contraction) "par-contraction")
+(define-public (pref-par-kerning-margin) "par-kerning-margin")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Preferences（编辑 → 首选项）
 ;; 权威定义：preferences-widgets.scm 的 define-preference-names 注册处。
 ;; 新增 QML facade（preferences-qml-meta 等）统一引用此处 key。

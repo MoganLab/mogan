@@ -218,6 +218,41 @@ fn doc_from_ir(root: &IrNode) -> Result<LoroDoc, ()> {
     Ok(doc)
 }
 
+/// 把 IR 子树作为一个新的、带 `__section__` 标签的 root 装入 LoroTree。
+///
+/// 与 [`build_node`] 的区别：复用已创建的 root 节点，把 IR 根的 kind/label/text
+/// 「提升」进 root 自身（而非在 root 下再挂一层 wrapper），其子节点再递归 build。
+/// 这样 [`read_node`](root) 能直接还原该 section 树，多余的 `__section__` 元数据键
+/// 被 read_node 忽略。供 `mogan_loro_doc_seed_section` 使用——把 body 之外的文档部分
+/// （style/initial 等）作为独立 root 纳入同一 LoroDoc/LoroTree。
+fn seed_section_root(tree: &LoroTree, name: &[u8], ir_root: &IrNode) -> Result<TreeID, ()> {
+    let id = tree.create(TreeParentId::Root).map_err(|_| ())?;
+    let meta = tree.get_meta(id).map_err(|_| ())?;
+    meta.insert("__section__", name.to_vec()).map_err(|_| ())?;
+    meta.insert("kind", kind_to_str(ir_root.kind).to_string())
+        .map_err(|_| ())?;
+    match ir_root.kind {
+        KIND_ATOMIC => {
+            // 文本（合法 UTF-8）→ LoroText 子容器；二进制 → Binary 值（同 build_node）
+            if let Ok(s) = std::str::from_utf8(&ir_root.text) {
+                let txt = meta.insert_container("text", LoroText::new()).map_err(|_| ())?;
+                if !s.is_empty() {
+                    txt.insert(0, s).map_err(|_| ())?;
+                }
+            } else {
+                meta.insert("text", ir_root.text.clone()).map_err(|_| ())?;
+            }
+        }
+        _ => {
+            meta.insert("label", ir_root.label.clone()).map_err(|_| ())?;
+        }
+    }
+    for child in &ir_root.children {
+        build_node(tree, TreeParentId::Node(id), child)?;
+    }
+    Ok(id)
+}
+
 // =============================================================================
 // LoroDoc → IR
 // =============================================================================
@@ -671,6 +706,102 @@ pub unsafe extern "C" fn mogan_loro_doc_to_ir_with_ids(
     let mut w = Writer { buf: Vec::new() };
     write_node_with_id(&tree, root, &mut w);
     emit_out(w.buf, out, out_len);
+    0
+}
+
+/// 在 LoroTree 下创建一个新的、带 `__section__` = name 标签的 root，并把 IR 子树
+/// 提升进该 root（见 [`seed_section_root`]）。用于把 body 之外的文档部分（style/
+/// initial 等）作为独立 root 纳入同一 LoroDoc。返回新 root 的 TreeID；失败 NULL_ID。
+///
+/// # Safety
+/// `doc` 须为 `mogan_loro_doc_new` 返回的句柄；`name`/`ir` 须指向有效缓冲区。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_doc_seed_section(
+    doc: *mut LoroDoc,
+    name: *const u8,
+    name_len: usize,
+    ir: *const u8,
+    ir_len: usize,
+) -> MoganTreeId {
+    if doc.is_null() || name.is_null() {
+        return NULL_ID;
+    }
+    let name_buf = std::slice::from_raw_parts(name, name_len);
+    let ir_buf = if ir.is_null() || ir_len == 0 {
+        &[][..]
+    } else {
+        std::slice::from_raw_parts(ir, ir_len)
+    };
+    let mut r = Reader { buf: ir_buf, pos: 0 };
+    let ir_root = match r.node() {
+        Ok(n) => n,
+        Err(_) => return NULL_ID,
+    };
+    let tree = (*doc).get_tree(TREE_NAME);
+    match seed_section_root(&tree, name_buf, &ir_root) {
+        Ok(id) => treeid_to(id),
+        Err(()) => NULL_ID,
+    }
+}
+
+/// 从指定 root TreeID 读出 section 子树为 IR 扁平字节（复用 [`read_node`]，不读
+/// roots[0]）。供 shadow 把 meta section 还原为 tree。成功返回 0。
+///
+/// # Safety
+/// `doc` 须为有效句柄；`out`/`out_len` 可空。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_doc_section_to_ir(
+    doc: *mut LoroDoc,
+    root_id: MoganTreeId,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let root = match read_node(&tree, treeid_from(root_id)) {
+        Ok(n) => n,
+        Err(_) => return -2,
+    };
+    let mut w = Writer { buf: Vec::new() };
+    w.node(&root);
+    emit_out(w.buf, out, out_len);
+    0
+}
+
+/// 枚举 LoroTree 所有带 `__section__` 标签的 root（body 等无标签的 root 被跳过），
+/// 输出到 *out：每条为 `name_len:u32 name:bytes root_peer:u64 root_counter:i32`
+/// （均小端）。供 shadow 在 import 远端数据后重建 section -> root_id 账本。成功 0。
+///
+/// # Safety
+/// `doc` 须为有效句柄；`out`/`out_len` 可空。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_doc_list_sections(
+    doc: *mut LoroDoc,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let mut buf = Vec::new();
+    for id in tree.roots() {
+        let name_bytes = match tree
+            .get_meta(id)
+            .ok()
+            .and_then(|m| get_meta_bytes(&m, "__section__"))
+        {
+            Some(n) => n,
+            None => continue, // 无 __section__（body 等）→ 跳过
+        };
+        buf.extend_from_slice(&(name_bytes.len() as u32).to_le_bytes());
+        buf.extend_from_slice(&name_bytes);
+        buf.extend_from_slice(&id.peer.to_le_bytes());
+        buf.extend_from_slice(&id.counter.to_le_bytes());
+    }
+    emit_out(buf, out, out_len);
     0
 }
 

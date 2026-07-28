@@ -1,25 +1,59 @@
 <RCC>
     <qresource prefix="/">
+        <!-- ============================================================
+             Module declarations
+             ============================================================ -->
         <file>qml/qmldir</file>
         <file>qml/atoms/qmldir</file>
+        <file>qml/startup/qmldir</file>
+        <file>qml/startup/atoms/qmldir</file>
+
+        <!-- ============================================================
+             Atoms — 可复用原子组件
+             ============================================================ -->
+        <!-- Theme & Shell -->
         <file>qml/atoms/Theme.qml</file>
+        <file>qml/startup/atoms/StartupTheme.qml</file>
         <file>qml/atoms/DialogShell.qml</file>
+
+        <!-- Buttons -->
         <file>qml/atoms/DialogButtons.qml</file>
+        <file>qml/atoms/MiniButton.qml</file>
+
+        <!-- Cards -->
+        <file>qml/startup/atoms/StyleCard.qml</file>
+        <file>qml/startup/atoms/TemplateCard.qml</file>
+
+        <!-- Form controls -->
         <file>qml/atoms/EnumCombo.qml</file>
         <file>qml/atoms/EnumComboList.qml</file>
-        <file>qml/atoms/SelectableList.qml</file>
-        <file>qml/atoms/PreviewPane.qml</file>
-        <file>qml/atoms/TabBar.qml</file>
-        <file>qml/atoms/TabPanel.qml</file>
-        <file>qml/atoms/MiniButton.qml</file>
         <file>qml/atoms/Toggle.qml</file>
         <file>qml/atoms/GroupHeader.qml</file>
-        <file>qml/FontSelector.qml</file>
+
+        <!-- Lists & Selectors -->
+        <file>qml/atoms/SelectableList.qml</file>
+        <file>qml/atoms/PreviewPane.qml</file>
+
+        <!-- Navigation -->
+        <file>qml/atoms/TabBar.qml</file>
+        <file>qml/atoms/TabPanel.qml</file>
+
+        <!-- ============================================================
+             Dialogs — 模态弹窗页面
+             ============================================================ -->
         <file>qml/ConfirmClose.qml</file>
         <file>qml/ConfirmRestart.qml</file>
         <file>qml/FormDialog.qml</file>
+        <file>qml/FontSelector.qml</file>
         <file>qml/ParagraphFormat.qml</file>
         <file>qml/Statistics.qml</file>
         <file>qml/Preferences.qml</file>
+
+        <!-- ============================================================
+             Startup Tab — 启动页（非模态内嵌页面）
+             ============================================================ -->
+        <file>qml/startup/StartupTab.qml</file>
+        <file>qml/startup/StartupHomePage.qml</file>
+        <file>qml/startup/StartupTemplatePage.qml</file>
     </qresource>
 </RCC>

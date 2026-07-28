@@ -61,7 +61,21 @@ void    mogan_loro_doc_commit (void* doc);
 int32_t mogan_loro_doc_export_local_update (void* doc, uint8_t** out,
                                             size_t* out_len);
 // 把 export vv 水位推进到当前（不导出字节），用于 import 远端数据后避免回传。
-void    mogan_loro_doc_advance_export_vv (void* doc);
+void mogan_loro_doc_advance_export_vv (void* doc);
+
+// 在 LoroTree 下创建一个带 __section__=name 标签的新 root，把 IR 子树提升进该
+// root（用于把 body 之外的文档部分作为独立 root 纳入同一 LoroDoc）。返回新 root
+// 的 TreeID（失败返回 {0,0}）。
+mogan_tree_id mogan_loro_doc_seed_section (void* doc, const uint8_t* name,
+                                           size_t name_len, const uint8_t* ir,
+                                           size_t ir_len);
+// 从指定 root TreeID 读出 section 子树为 IR 扁平字节。
+int32_t mogan_loro_doc_section_to_ir (void* doc, mogan_tree_id root_id,
+                                      uint8_t** out, size_t* out_len);
+// 枚举所有带 __section__ 标签的 root：输出若干条 (name_len:name, peer,
+// counter)。
+int32_t mogan_loro_doc_list_sections (void* doc, uint8_t** out,
+                                      size_t* out_len);
 int32_t mogan_loro_doc_on_local_update (void* doc, mogan_local_update_cb cb,
                                         void* user_data);
 mogan_tree_id mogan_loro_node_create (void* doc, mogan_tree_id parent,

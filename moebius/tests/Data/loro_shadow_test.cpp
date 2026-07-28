@@ -564,4 +564,159 @@ TEST_CASE ("loro_shadow: mirror_mod with structural MOD_REMOVE") {
   CHECK_EQ (sh->to_tree () == t, true);
 }
 
+// ===== meta section（body 之外的文档部分）coarse 镜像 =====
+// 这些用例验证 body 之外的 section（style/initial/...）作为带 __section__
+// 标签的 独立 root 纳入同一 LoroDoc，与 body（roots[0]）共享一条 update 流，且
+// body 的 字符级精确镜像不受影响。
+
+// 多 section seed + round-trip，且 body 不受影响。
+TEST_CASE ("loro_shadow: metadata section seed and round-trip") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("hello");
+  loro_shadow sh;
+  sh->seed (body);
+
+  // style: (tuple "generic")
+  tree style (TUPLE, 1);
+  style[0]= tree ("generic");
+  sh->seed_meta ("style", style);
+  CHECK_EQ (sh->has_meta ("style"), true);
+  CHECK_EQ (sh->meta_to_tree ("style") == style, true);
+
+  // initial: (collection (assoc "page-medium" "paper"))
+  tree initial (COLLECTION, 1);
+  initial[0]= tree (ASSOCIATE, tree ("page-medium"), tree ("paper"));
+  sh->seed_meta ("initial", initial);
+  CHECK_EQ (sh->has_meta ("initial"), true);
+  CHECK_EQ (sh->meta_to_tree ("initial") == initial, true);
+
+  // body 仍是 roots[0]，to_tree 不含 meta
+  CHECK_EQ (sh->to_tree () == body, true);
+  CHECK_EQ (sh->has_id (body[0][0]), true);
+}
+
+// coarse replace：删旧 root + 重建，list_meta_sections 反映当前 section。
+TEST_CASE ("loro_shadow: metadata coarse replace") {
+  ensure_labels ();
+  loro_shadow sh;
+  tree        body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("x");
+  sh->seed (body);
+
+  tree s1 (TUPLE, 1);
+  s1[0]= tree ("article");
+  sh->seed_meta ("style", s1);
+  CHECK_EQ (sh->meta_to_tree ("style") == s1, true);
+
+  tree s2 (TUPLE, 2);
+  s2[0]= tree ("generic");
+  s2[1]= tree ("chinese");
+  sh->mirror_meta_replace ("style", s2);
+  CHECK_EQ (sh->meta_to_tree ("style") == s2, true);
+  CHECK_EQ (sh->has_meta ("style"), true);
+
+  // list_meta_sections 含 style
+  array<string> secs = sh->list_meta_sections ();
+  bool          found= false;
+  for (int i= 0; i < N (secs); i++)
+    if (secs[i] == "style") found= true;
+  CHECK_EQ (found, true);
+}
+
+// e2e：A seed body+meta → snapshot → B import → B 经 sync_meta_from_shadow
+// 重建账本，读到与 A 一致的 body 与各 section。
+TEST_CASE ("loro e2e: metadata propagates across snapshot import") {
+  ensure_labels ();
+  loro_shadow a;
+  tree        body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("hi");
+  a->seed (body);
+  tree style (TUPLE, 1);
+  style[0]= tree ("beamer");
+  a->seed_meta ("style", style);
+  tree initial (COLLECTION, 1);
+  initial[0]= tree (ASSOCIATE, tree ("page-medium"), tree ("beamer"));
+  a->seed_meta ("initial", initial);
+  // export_snapshot 内部 commit，把 seed_meta 的 op 一并带进 snapshot
+  string snap= a->export_snapshot ();
+  CHECK_EQ (N (snap) > 0, true);
+
+  loro_shadow b;
+  CHECK_EQ (b->import_data (snap), true);
+  b->sync_meta_from_shadow ();
+  CHECK_EQ (b->has_meta ("style"), true);
+  CHECK_EQ (b->has_meta ("initial"), true);
+  CHECK_EQ (b->meta_to_tree ("style") == style, true);
+  CHECK_EQ (b->meta_to_tree ("initial") == initial, true);
+  CHECK_EQ (b->to_tree () == body, true);
+}
+
+// 双向 coarse 替换收敛：A 改 style → 导出 → B import 后读到 A 的值。
+// 顺序执行（非真并发），验证删旧 root + 建新 root 在 CRDT 合并后 B
+// 端只看到新值。
+TEST_CASE ("loro meta: bidirectional coarse replace converges") {
+  ensure_labels ();
+  loro_shadow a;
+  tree        body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("c");
+  a->seed (body);
+  tree sA (TUPLE, 1);
+  sA[0]= tree ("generic");
+  a->seed_meta ("style", sA);
+  string s0= a->export_snapshot (); // 公共初始（style=sA）
+
+  // A 改 style -> article
+  tree sA2 (TUPLE, 1);
+  sA2[0]= tree ("article");
+  a->mirror_meta_replace ("style", sA2);
+  string sa= a->export_snapshot ();
+
+  // B 导入初始后再导入 A 的改动，应收敛到 article
+  loro_shadow b;
+  CHECK_EQ (b->import_data (s0), true);
+  b->sync_meta_from_shadow ();
+  CHECK_EQ (b->meta_to_tree ("style") == sA, true);
+  CHECK_EQ (b->import_data (sa), true);
+  b->sync_meta_from_shadow ();
+  CHECK_EQ (b->meta_to_tree ("style") == sA2, true);
+}
+
+// 回归：meta section 存在时，body 的字符级精确镜像（身份不变）仍然成立，
+// 且 body 编辑不破坏 meta section。
+TEST_CASE ("loro_shadow: body editing unaffected by metadata sections") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]      = tree (PARA, 1);
+  body[0][0]   = tree (CONCAT, 1);
+  body[0][0][0]= tree ("");
+  loro_shadow sh;
+  sh->seed (body);
+
+  // 预先 seed 若干 meta section
+  tree style (TUPLE, 1);
+  style[0]= tree ("generic");
+  sh->seed_meta ("style", style);
+  tree att (COLLECTION, 1);
+  att[0]= tree (ASSOCIATE, tree ("k"), tree ("v"));
+  sh->seed_meta ("attachments", att);
+
+  // body 字符级编辑：身份应逐字不变（精确 LoroText 路径）
+  path          atom= path (0) * 0 * 0;
+  mogan_tree_id id0 = sh->get_id (body[0][0][0]);
+  sh->mirror_mod (body, mod_insert (atom, 0, tree ("z")));
+  body[0][0][0]->label= string ("z");
+  mogan_tree_id id1   = sh->get_id (body[0][0][0]);
+  CHECK_EQ (id1.peer == id0.peer && id1.counter == id0.counter, true);
+  CHECK_EQ (sh->to_tree () == body, true);
+
+  // meta section 仍在且未被破坏
+  CHECK_EQ (sh->meta_to_tree ("style") == style, true);
+  CHECK_EQ (sh->meta_to_tree ("attachments") == att, true);
+}
+
 #endif // LORO_ENABLED

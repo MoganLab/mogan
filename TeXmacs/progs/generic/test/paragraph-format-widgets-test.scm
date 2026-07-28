@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic test paragraph-format-widgets-test)
-  (:use (generic paragraph-format-widgets))
+  (:use (generic paragraph-format-widgets) (kernel texmacs pref-keys))
 ) ;texmacs-module
 
 (import (liii check))
@@ -66,10 +66,60 @@
   ) ;let
 ) ;define
 
+;; pref-keys 接线契约：field 表第一列（var）必须取自 pref-keys.scm 的 (pref-par-*) proc
+;; 返回值，不能是裸字符串。本组用预期字面值清单交叉核对——既验「fields 用了 proc」
+;; （fields 取值 = proc 返回值），又验「声明完整、字面一致」（19 个 proc 全部被字段用到、
+;; 且与 specs builder 读写处一致）。key 改名或漏声明会在此失败。
+
+;; basic 字段顺序与字面（与 paragraph-basic-fields specs builder 对齐）。
+
+(define paragraph-basic-pref-keys
+  (list (pref-par-mode)
+    (pref-par-left)
+    (pref-par-right)
+    (pref-par-first)
+    (pref-par-sep)
+    (pref-par-par-sep)
+    (pref-par-columns)
+    (pref-par-columns-sep)
+  ) ;list
+) ;define
+
+(define (test-basic-fields-pref-keys)
+  (check (paragraph-format-basic-var-names) => paragraph-basic-pref-keys)
+  ;; 固定 8 个基础字段（Basic tab）。
+  (check (length (paragraph-format-basic-var-names)) => 8)
+) ;define
+
+;; advanced 字段顺序与字面（与 paragraph-advanced-fields specs builder 对齐）。
+
+(define paragraph-advanced-pref-keys
+  (list (pref-par-hyphen)
+    (pref-par-line-sep)
+    (pref-par-ver-sep)
+    (pref-par-hor-sep)
+    (pref-par-flexibility)
+    (pref-par-spacing)
+    (pref-par-kerning-stretch)
+    (pref-par-kerning-reduce)
+    (pref-par-expansion)
+    (pref-par-contraction)
+    (pref-par-kerning-margin)
+  ) ;list
+) ;define
+
+(define (test-advanced-fields-pref-keys)
+  (check (paragraph-format-advanced-var-names) => paragraph-advanced-pref-keys)
+  ;; 固定 11 个高级字段（Advanced tab）。
+  (check (length (paragraph-format-advanced-var-names)) => 11)
+) ;define
+
 (tm-define (regtest-paragraph-format-widgets)
   (test-sep-presets-count)
   (test-sep-presets-shape)
   (test-sep-presets-parsep-all-zero)
   (test-ui-labels-keys)
+  (test-basic-fields-pref-keys)
+  (test-advanced-fields-pref-keys)
   (check-report)
 ) ;tm-define
