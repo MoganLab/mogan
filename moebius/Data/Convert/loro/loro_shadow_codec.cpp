@@ -12,8 +12,8 @@
 
 namespace {
 tree
-decode_id_node (string& b, int& pos,
-                hashmap<tree_rep*, mogan_tree_id>& id_map) {
+decode_id_node (string& b, int& pos, hashmap<tree_rep*, mogan_tree_id>& id_map,
+                hashmap<mogan_tree_id, path>& rev_id_map, path acc) {
   auto get_u32= [&] () -> uint32_t {
     uint32_t v= (uint32_t) (unsigned char) b[pos] |
                 ((uint32_t) (unsigned char) b[pos + 1] << 8) |
@@ -49,9 +49,10 @@ decode_id_node (string& b, int& pos,
                                     : as_int (label (8, N (label)));
     r     = tree (op, (int) n);
     for (uint32_t i= 0; i < n; i++)
-      r[i]= decode_id_node (b, pos, id_map);
+      r[i]= decode_id_node (b, pos, id_map, rev_id_map, acc * path (i));
   }
   id_map (inside (r))= tid;
+  rev_id_map (tid)   = acc; // 与 id_map 同处维护：TreeID -> buffer-相对 path
   return r;
 }
 } // namespace
@@ -69,8 +70,9 @@ loro_shadow_rep::import_and_build (string bytes, tree& out_buffer) {
   string ir_bytes ((const char*) out, (int) out_len);
   mogan_loro_free (out, out_len);
   id_map    = hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
+  rev_id_map= hashmap<mogan_tree_id, path> (path ());
   int pos   = 0;
-  out_buffer= decode_id_node (ir_bytes, pos, id_map);
+  out_buffer= decode_id_node (ir_bytes, pos, id_map, rev_id_map, path ());
   return true;
 }
 

@@ -204,6 +204,11 @@ async function main () {
       case 'PING':
         ws.send('PONG');
         return;
+      case 'CURSOR': {
+        // 多光标：光标帧瞬态，原样转发给同文档其他客户端（不记账、不落盘）。
+        if (ws.docEntry) broadcast(ws.docEntry, ws, text);
+        return;
+      }
       default:
         sendErr(ws, 'BAD_REQUEST', `unknown_command:${cmd}`);
     }

@@ -35,4 +35,13 @@ use_plugin_bibtex () {
 #endif
 }
 
+inline bool
+loro_enabled () {
+#ifdef LORO_ENABLED
+  return true;
+#else
+  return false;
+#endif
+}
+
 #endif

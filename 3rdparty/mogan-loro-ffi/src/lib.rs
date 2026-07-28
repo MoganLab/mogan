@@ -41,6 +41,7 @@ use loro::{
     Container, ExportMode, LoroDoc, LoroMap, LoroText, LoroTree, Subscription, TreeID,
     TreeParentId, ValueOrContainer,
 };
+use loro::cursor::{Cursor, Side};
 
 // doc 句柄 -> 其 local-update 订阅。Subscription 必须保活，否则自动取消订阅。
 static LOCAL_SUBS: OnceLock<Mutex<HashMap<usize, Subscription>>> = OnceLock::new();
@@ -1043,6 +1044,94 @@ pub unsafe extern "C" fn mogan_loro_node_text_delete(
     txt.delete(pos as usize, len as usize)
         .map(|_| 0)
         .unwrap_or(-4)
+}
+
+// =============================================================================
+// 稳定光标位置（Cursor，op-id 锚定）——多光标 CRDT 级同步
+// =============================================================================
+
+/// 把原子文本节点（tree_id 的 meta.text LoroText）在 unicode `offset` 处的稳定
+/// 位置编码为 postcard 字节，写入 `*out`/`*out_len`（Rust 分配，需
+/// [`mogan_loro_free`] 释放）。稳定位置由 op-id 锚定，并发编辑下自动跟随内容
+/// 位移，是 CRDT 级光标同步的基础。
+///
+/// 返回 0 成功；-1 doc 空；-2 节点不存在；-3 非文本容器；-4 offset 越界。
+///
+/// # Safety
+/// `doc` 须为合法句柄；`out`/`out_len` 可空。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_encode_cursor(
+    doc: *mut LoroDoc,
+    tree_id: MoganTreeId,
+    offset: u32,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let meta = match tree.get_meta(treeid_from(tree_id)) {
+        Ok(m) => m,
+        Err(_) => return -2,
+    };
+    let txt = match meta.get("text") {
+        Some(ValueOrContainer::Container(Container::Text(t))) => t,
+        _ => return -3, // 非文本容器（复合节点走结构编码，不调本函数）
+    };
+    // 取稳定位置。末尾（offset==len）以 Middle 可能返回 None，退到前一字符右侧锚定
+    // （= 同一逻辑位置）。offset==0 且空容器时 get_cursor 返回 end-anchor（id=None）。
+    let cursor = txt
+        .get_cursor(offset as usize, Side::Middle)
+        .or_else(|| {
+            if offset > 0 {
+                txt.get_cursor(offset as usize - 1, Side::Right)
+            } else {
+                None
+            }
+        });
+    match cursor {
+        Some(c) => {
+            emit_out(c.encode(), out, out_len);
+            0
+        }
+        None => -4,
+    }
+}
+
+/// 反序列化 Cursor 字节并按**当前 doc** 解析为 unicode 偏移，写入 `*out_offset`。
+/// 锚点字符被并发删除时 Loro 自愈到邻近活位置（clamp）；仅当整个容器消失 / 历史
+/// 已 GC / id 找不到时返回负数（调用方据此丢弃该远程光标）。
+///
+/// 返回 0 成功；-1 doc/bytes 空；-2 字节反序列化失败；-3 位置不可解析。
+///
+/// # Safety
+/// `doc` 须为合法句柄；`bytes` 须指向 `len` 字节有效缓冲区；`out_offset` 可空。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_decode_cursor(
+    doc: *mut LoroDoc,
+    bytes: *const u8,
+    len: usize,
+    out_offset: *mut u32,
+) -> i32 {
+    if doc.is_null() || bytes.is_null() {
+        return -1;
+    }
+    let buf = std::slice::from_raw_parts(bytes, len);
+    let cursor = match Cursor::decode(buf) {
+        Ok(c) => c,
+        Err(_) => return -2,
+    };
+    // plain LoroText（无 style/attachment）：event index == unicode index
+    match (*doc).get_cursor_pos(&cursor) {
+        Ok(r) => {
+            if !out_offset.is_null() {
+                *out_offset = r.current.pos as u32;
+            }
+            0
+        }
+        Err(_) => -3, // ContainerDeleted / HistoryCleared / IdNotFound → 丢弃
+    }
 }
 
 #[cfg(test)]

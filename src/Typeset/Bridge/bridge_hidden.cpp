@@ -71,6 +71,8 @@ bridge_hidden_rep::notify_change () {
 void
 bridge_hidden_rep::my_typeset (int desired_status) {
   (void) desired_status;
+  // beamer 模式下 hidden 不分页也不显示，直接跳过完整排版。
+  if (env->get_string (PAGE_MEDIUM) == "beamer") return;
   stack_border     temp_sb;
   array<page_item> temp_l= typeset_stack (env, st, ip, ttt->a, ttt->b, temp_sb);
   int              i= 0, n= N (temp_l);

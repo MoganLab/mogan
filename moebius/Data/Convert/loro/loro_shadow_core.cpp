@@ -39,6 +39,74 @@ loro_shadow_rep::get_id (tree t) {
                                        : mogan_tree_id{0, 0};
 }
 
+path
+loro_shadow_rep::cursor_path_of (mogan_tree_id id, int offset) {
+  // O(1) 反查：rev_id_map 与 id_map 同处维护，始终反映当前 buffer。
+  if (!rev_id_map->contains (id)) return path (); // 节点未同步到/已被删除
+  return rev_id_map[id] * path (offset);          // 节点 path + 偏移
+}
+
+path
+loro_shadow_rep::node_path_of (mogan_tree_id id) {
+  return rev_id_map->contains (id) ? rev_id_map[id] : path ();
+}
+
+// 字节串 <-> hex（Cursor 的 postcard 字节需文本帧传输，hex 无空格/冒号）
+static string
+bytes_to_hex (string b) {
+  string r;
+  for (int i= 0; i < N (b); i++) {
+    unsigned char c = (unsigned char) b[i];
+    int           hi= (c >> 4) & 0xf, lo= c & 0xf;
+    r << (char) (hi < 10 ? '0' + hi : 'a' + hi - 10);
+    r << (char) (lo < 10 ? '0' + lo : 'a' + lo - 10);
+  }
+  return r;
+}
+
+static string
+hex_to_bytes (string h) {
+  string r;
+  int    n= N (h);
+  for (int i= 0; i + 1 < n; i+= 2) {
+    auto nib= [] (char c) -> int {
+      return (c >= '0' && c <= '9')   ? c - '0'
+             : (c >= 'a' && c <= 'f') ? c - 'a' + 10
+             : (c >= 'A' && c <= 'F') ? c - 'A' + 10
+                                      : 0;
+    };
+    r << (char) ((nib (h[i]) << 4) | nib (h[i + 1]));
+  }
+  return r;
+}
+
+string
+loro_shadow_rep::encode_cursor_hex (mogan_tree_id id, int offset) {
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  if (mogan_loro_encode_cursor (doc, id, (uint32_t) offset, &out, &out_len) !=
+          0 ||
+      out == nullptr) {
+    if (out) mogan_loro_free (out, out_len);
+    return "";
+  }
+  string r ((const char*) out, (int) out_len);
+  mogan_loro_free (out, out_len);
+  return bytes_to_hex (r);
+}
+
+int
+loro_shadow_rep::decode_cursor_hex (string hex) {
+  string bytes= hex_to_bytes (hex);
+  if (N (bytes) == 0) return -1;
+  uint32_t off= 0;
+  if (mogan_loro_decode_cursor (
+          doc, reinterpret_cast<const uint8_t*> (bytes.begin ()),
+          (size_t) N (bytes), &off) != 0)
+    return -1; // 容器消失/历史 GC/id 找不到 → 调用方丢弃
+  return (int) off;
+}
+
 string
 loro_shadow_rep::export_snapshot () {
   uint8_t* out    = nullptr;

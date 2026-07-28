@@ -147,6 +147,7 @@ edit_select_rep::select (path p1, path p2) {
   if (path_less (p1, p2)) cur_sel= simple_range (p1, p2);
   else cur_sel= simple_range (p2, p1);
   notify_change (THE_SELECTION);
+  collab_cursor_moved_hook (); // 多光标：选区变化 → 标记待节流上行
 }
 
 void

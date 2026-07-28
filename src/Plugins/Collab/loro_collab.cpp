@@ -11,11 +11,14 @@
 #include "loro_collab_ws.hpp"
 #include "new_view.hpp"
 #include "server.hpp"
+#include "sys_utils.hpp"
 #include "tm_buffer.hpp"
 #include "tm_timer.hpp"
 #include "url.hpp"
+#include <cstdint>
 
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
+void (*g_loro_cursor_flush) ()                = nullptr;
 collab_session_manager g_session_manager;
 
 void
@@ -24,14 +27,35 @@ broadcast_to_server (string bytes) {
   collab_session* session= g_session_manager.find_by_buffer (buf);
   if (session) {
     session->broadcast (bytes);
+    // 编辑后强制补发光标（force=true），使之与编辑同帧到达对端。
+    session->flush_cursor (true);
   }
+}
+
+// 多光标：编辑器侧 collab_cursor_moved_hook 经此触发「当前 buffer 的会话」
+// 节流补发光标（≥50ms）。无 cursor_dirty 标记——hook 直接触发 flush。
+void
+flush_current_cursor () {
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  if (session) session->flush_cursor (false);
 }
 
 // -----------------------------------------------------------------------------
 // collab_session
 // -----------------------------------------------------------------------------
 
-collab_session::collab_session (url buf_url) : buffer_url (buf_url) {}
+collab_session::collab_session (url buf_url) : buffer_url (buf_url) {
+  // 会话级 peer id：可由 MOGAN_LORO_PEER
+  // 强制（便于调试/指定颜色），否则随机生成。
+  string env= get_env ("MOGAN_LORO_PEER");
+  if (env != "") peer_id= env;
+  else {
+    static int counter= 0;
+    int seed= (int) texmacs_time () ^ (++counter) ^ (int) (intptr_t) this;
+    peer_id = "p" * as_string (seed);
+  }
+}
 
 collab_session::~collab_session () { disconnect (); }
 
@@ -106,6 +130,7 @@ collab_session::become_ready () {
   enter_ready ();
   buffer_known           = true;
   g_loro_broadcast_update= broadcast_to_server;
+  g_loro_cursor_flush    = flush_current_cursor;
 
   editor ed= get_editor ();
   if (is_nil (ed)) {
@@ -225,6 +250,28 @@ collab_session::broadcast (string bytes) {
   }
 }
 
+// 多光标：发文本帧 "CURSOR <peer> <payload>"。光标瞬态，仅在 ready 且已连接时
+// 发送，断线不缓冲（丢失即丢弃，下个节流周期自然补发）。
+void
+collab_session::send_cursor (string payload) {
+  if (state == collab_state::ready && ws && ws->connected ())
+    ws->send (payload, false);
+}
+
+// 发送本端光标。force=true（编辑后）总是发；force=false（光标移动/选区变化）
+// 按 ≥50ms 节流。无 cursor_dirty 标记——由调用方决定 force 与否。
+void
+collab_session::flush_cursor (bool force) {
+  if (state != collab_state::ready) return;
+  if (!force && texmacs_time () - last_cursor_send < 50) return;
+  editor ed= get_editor ();
+  if (!is_nil (ed)) {
+    string payload= ed->collab_cursor_payload ();
+    if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
+  }
+  last_cursor_send= texmacs_time ();
+}
+
 void
 collab_session::on_connect () {
   if (DEBUG_LORO) debug_loro << "已连接服务端 " << server_url << "\n";
@@ -253,6 +300,17 @@ collab_session::on_message (string data, bool is_binary) {
       enter_idle ();
       set_message (data * " — stopped reconnecting");
     }
+    else if (starts (data, "CURSOR ")) {
+      // "CURSOR <peer>
+      // <payload>"：peer=首空格前，payload=其后（含空格，不透明）
+      string rest= data (7, N (data));
+      int    sp  = search_forwards (" ", rest);
+      if (sp >= 0) {
+        editor ed= get_editor ();
+        if (!is_nil (ed))
+          ed->set_remote_cursor (rest (0, sp), rest (sp + 1, N (rest)));
+      }
+    }
     else if (data == "SYNC-END") {
       // 服务端补发完 snapshot/updates 后的下发结束标记：空文档无帧，靠它从
       // await_frame 就绪；非空文档首帧已先行就绪，此处忽略。
@@ -268,9 +326,15 @@ collab_session::on_message (string data, bool is_binary) {
   if (state == collab_state::await_frame) {
     ed->apply_remote (data);
     become_ready ();
+    // 初始化（JOIN
+    // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
+    // 待用户实际移动光标/编辑时再上行。
   }
   else if (state == collab_state::ready) {
     ed->apply_remote (data);
+    // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
+    // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
+    // 已被抑制）。
   }
 }
 

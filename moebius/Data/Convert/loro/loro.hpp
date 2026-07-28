@@ -96,6 +96,14 @@ int32_t mogan_loro_node_text_delete (void* doc, mogan_tree_id id, uint32_t pos,
                                      uint32_t len);
 int32_t mogan_loro_node_join_text (void* doc, mogan_tree_id x_id,
                                    mogan_tree_id y_id);
+// 稳定光标位置（Cursor，op-id 锚定）：把节点 LoroText 在 offset
+// 处的稳定位置编码 为 postcard 字节；反向按当前 doc 解析为 unicode
+// 偏移（并发编辑下自动跟随）。
+int32_t mogan_loro_encode_cursor (void* doc, mogan_tree_id tree_id,
+                                  uint32_t offset, uint8_t** out,
+                                  size_t* out_len);
+int32_t mogan_loro_decode_cursor (void* doc, const uint8_t* bytes, size_t len,
+                                  uint32_t* out_offset);
 void    mogan_loro_free (uint8_t* ptr, size_t len);
 }
 

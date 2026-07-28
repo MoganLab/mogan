@@ -31,6 +31,9 @@ private:
   time_t                               next_reconnect_at= 0;
   int                                  reconnect_attempt= 0;
   array<string>                        pending_updates;
+  // 多光标：本端 peer id（会话级稳定）、光标节流时间戳
+  string peer_id;
+  time_t last_cursor_send= 0;
 
   void   set_message (string left);
   time_t reconnect_backoff (int attempt);
@@ -48,6 +51,10 @@ public:
   void disconnect ();
   void poll ();
   void broadcast (string bytes);
+  void
+  send_cursor (string payload); // 多光标：发文本帧 "CURSOR <peer> <payload>"
+  void flush_cursor (
+      bool force= false); // force=true 强制发（编辑后）；否则 ≥50ms 节流
   void schedule_reconnect ();
   void maybe_reconnect ();
 
@@ -88,7 +95,9 @@ public:
 
 extern collab_session_manager g_session_manager;
 extern void (*g_loro_broadcast_update) (string bytes);
+extern void (*g_loro_cursor_flush) ();
 extern void broadcast_to_server (string bytes);
+extern void flush_current_cursor ();
 
 tm_websocket_client* create_collab_ws_client (collab_session* session);
 

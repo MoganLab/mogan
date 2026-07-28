@@ -240,6 +240,7 @@ edit_cursor_rep::notify_cursor_moved (int status) {
   cu       = eb->find_check_cursor (tp);
   notify_change (THE_CURSOR);
   if (cu->valid) call ("notify-cursor-moved", object (status));
+  collab_cursor_moved_hook (); // 多光标：本地光标移动 → 标记待节流上行
 }
 
 void
@@ -481,6 +482,10 @@ edit_cursor_rep::go_to (path p) {
       call ("notify-cursor-moved", object (DIRECT));
       set_user_active (true);
     }
+    // 多光标：post_notify（每次编辑后）经 go_to_correct→go_to 重定位光标；
+    // go_to 不经 notify_cursor_moved，须在此补触发「光标脏」，否则编辑后
+    // 远程光标位置不更新（如行末追加内容时对端 caret 停在旧位置）。
+    collab_cursor_moved_hook ();
   }
 }
 

@@ -16,11 +16,24 @@
 
 #include "loro.hpp"
 
+// mogan_tree_id 作为 hashmap key 所需的 hash 与相等（id_map 的反向 rev_id_map
+// 用）
+inline int
+hash (mogan_tree_id id) {
+  return (int) ((id.peer ^ (id.peer >> 32)) ^ (uint64_t) id.counter);
+}
+inline bool
+operator== (mogan_tree_id a, mogan_tree_id b) {
+  return a.peer == b.peer && a.counter == b.counter;
+}
+
 class loro_shadow_rep : public concrete_struct {
 public:
   void* doc; // mogan_loro_doc 句柄，所有操作都通过 FFI。
   hashmap<tree_rep*, mogan_tree_id>
-                id_map;  // 节点身份：mogan tree_rep* -> Loro TreeID
+      id_map; // 节点身份：mogan tree_rep* -> Loro TreeID
+  hashmap<mogan_tree_id, path>
+      rev_id_map; // 反向：TreeID -> 节点 buffer-相对 path（与 id_map 同处维护）
   mogan_tree_id root_id; // shadow 中根节点对应的 TreeID
   hashmap<string, mogan_tree_id>
       meta_root_ids; // body 之外的 section（style/initial/...）-> 其 root
@@ -88,6 +101,24 @@ public:
   tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
+  /** 反查：用 rev_id_map 把 TreeID 解析为节点 buffer-相对 path 并追加偏移
+   * offset（原子节点内即 LoroText 字符偏移；复合节点即子索引）。用于把远端
+   * peer 的光标/选区 TreeID 解析回本端 path，达成 CRDT 级稳定。节点未找到
+   * （尚未同步到/已被删除）返回 nil，调用方据此跳过渲染。rev_id_map 与 id_map
+   * 同处维护（seed_node / sync_walk / decode_id_node），故始终与当前 buffer
+   * 一致。 */
+  path cursor_path_of (mogan_tree_id id, int offset);
+  /** 取 TreeID 对应节点的 buffer-相对 path（不追加偏移）。节点未找到返回 nil。
+   */
+  path node_path_of (mogan_tree_id id);
+
+  /** 把原子文本节点（id 的 LoroText）在 unicode offset 处的**稳定位置**（Loro
+   * Cursor，op-id 锚定）编码为 hex 字符串（postcard 字节的 hex）。失败返回 ""。
+   * 稳定位置在并发编辑下自动跟随内容位移，是 CRDT 级光标同步的偏移表示。 */
+  string encode_cursor_hex (mogan_tree_id id, int offset);
+  /** 反向：hex（encode_cursor_hex 产出）→ 按**当前 doc** 解析为 unicode 偏移。
+   * 锚点被删时 Loro 自愈到邻近位置；容器消失等返回 -1（调用方丢弃）。 */
+  int decode_cursor_hex (string hex);
 
   // ===== meta section（body 之外的文档部分）的 coarse 镜像 =====
   /** 首次把一个 meta section（style/initial/final/project/attachments）灌入
@@ -109,7 +140,8 @@ private:
   void replace_meta (string name, tree section_tree); // seed/replace 共用
   // 取某 LoroTree 节点的子 TreeID 列表（用于 REMOVE 按位置删）
   array<mogan_tree_id> node_children (mogan_tree_id parent);
-  mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index);
+  mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index,
+                                  path p);
 
   // loro_shadow_mod
   bool mirror_insert (tree doc_root, modification mod);

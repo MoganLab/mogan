@@ -32,6 +32,21 @@ protected:
   bool        loro_collab_on= false; // 协作会话开启前，本地编辑不 seed/不上行
   bool        loro_vv_initialized=
       false; // 首次 import 远端数据后推进 export vv，避免回传
+  // 远程 peer 光标列表：peer 数量少，线性查找/更新即可；重绘时遍历它，经
+  // cursor_path_of 把 TreeID+偏移解析回当前 buffer path。偏移以 off_field
+  // 字符串存
+  // （"T<hex>"=Loro 稳定位置，重绘时按当前 doc 解析；"I<int>"=结构/整数偏移），
+  // 延迟解析以保证并发编辑下的 CRDT 级稳定。
+  struct remote_cursor_entry {
+    string        peer;
+    mogan_tree_id c_tid;
+    string        c_off;
+    mogan_tree_id s_tid;
+    string        s_off;
+    mogan_tree_id e_tid;
+    string        e_off;
+  };
+  array<remote_cursor_entry> remote_cursors;
 #endif
 
 public:
@@ -53,6 +68,10 @@ public:
   void ensure_loro_seeded () override;
   void mirror_loro (const modification& mod) override;
   void apply_remote (string bytes) override;
+  void set_remote_cursor (string peer, string payload) override;
+  array<remote_cursor_view> get_remote_cursors () override;
+  string                    collab_cursor_payload () override;
+  void                      collab_cursor_moved_hook () override;
 #endif
   void collab_enable () override;
   bool collab_enabled () override;

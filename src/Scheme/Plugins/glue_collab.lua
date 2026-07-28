@@ -87,11 +87,6 @@ function main()
                 scm_name = "loro-collab-poll",
                 cpp_name = "loro_collab_poll",
                 ret_type = "void",
-            },
-            {
-                scm_name = "loro-enabled?",
-                cpp_name = "loro_enabled",
-                ret_type = "bool",
             }
         }
     }

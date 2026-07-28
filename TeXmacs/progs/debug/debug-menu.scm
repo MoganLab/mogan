@@ -114,4 +114,5 @@
   ((verbatim "correct") (debug-toggle "correct"))
   ((verbatim "convert") (debug-toggle "convert"))
   ((verbatim "remote") (debug-toggle "remote"))
+  ((verbatim "loro") (debug-toggle "loro"))
 ) ;menu-bind
