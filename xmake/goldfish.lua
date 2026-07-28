@@ -127,6 +127,7 @@ target ("goldfish-bin") do
     set_basename("goldfish")
     add_packages("liii-tbox")
     add_packages("argh", {public = true})
+    add_defines("GOLDFISH_ENABLE_HTTP")
     set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
     add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
 end
