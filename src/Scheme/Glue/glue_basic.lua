@@ -1433,6 +1433,16 @@ function main()
                 }
             },
             {
+                scm_name = "render-doc-to-png",
+                cpp_name = "buffer_render_to_images",
+                ret_type = "bool",
+                arg_list = {
+                    "url",   -- buffer url
+                    "url",   -- destination png (multi-page: out-1.png, out-2.png, ...)
+                    "double" -- zoom factor
+                }
+            },
+            {
                 scm_name = "buffer-save",
                 cpp_name = "buffer_save",
                 ret_type = "bool",
@@ -1705,6 +1715,11 @@ function main()
             {
                 scm_name = "current-window",
                 cpp_name = "get_current_window",
+                ret_type = "url"
+            },
+            {
+                scm_name = "current-window-url",
+                cpp_name = "get_current_window_safe",
                 ret_type = "url"
             },
             {

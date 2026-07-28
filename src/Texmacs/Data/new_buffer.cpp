@@ -639,6 +639,15 @@ buffer_export (url name, url dest, string fm) {
   return export_tree (doc, dest, fm);
 }
 
+bool
+buffer_render_to_images (url name, url dest, double zoomf) {
+  // 用 passive（无窗口）view 将 buffer 各页渲染为 PNG，headless 可用。
+  tm_view vw= concrete_view (get_passive_view (name));
+  ASSERT (vw != NULL, "view expected");
+  vw->ed->render_to_images (dest, zoomf);
+  return true;
+}
+
 tree
 latex_expand (tree doc, url name) {
   tm_view vw  = concrete_view (get_recent_view (name));

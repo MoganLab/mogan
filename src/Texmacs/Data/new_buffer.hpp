@@ -109,6 +109,7 @@ bool       buffer_has_name (url name);
 bool       buffer_import (url name, url src, string fm);
 bool       buffer_load (url name);
 bool       buffer_export (url name, url dest, string fm);
+bool       buffer_render_to_images (url name, url dest, double zoomf);
 bool       buffer_save (url name);
 tree       import_loaded_tree (string s, url u, string fm);
 tree       import_tree (url u, string fm);

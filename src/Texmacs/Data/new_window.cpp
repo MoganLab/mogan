@@ -178,6 +178,15 @@ get_current_window () {
   return abstract_window (win);
 }
 
+url
+get_current_window_safe () {
+  // Like get_current_view_safe: return url_none instead of asserting when
+  // there is no current window (e.g. headless rendering of a passive view).
+  tm_view vw= concrete_view (get_current_view_safe ());
+  if (vw == NULL || vw->win == NULL) return url_none ();
+  return abstract_window (vw->win);
+}
+
 array<url>
 buffer_to_windows (url name) {
   array<url> r, vs= buffer_to_views (name);

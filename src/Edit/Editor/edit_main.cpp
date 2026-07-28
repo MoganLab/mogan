@@ -325,6 +325,32 @@ edit_main_rep::export_ps (url name, string first, string last) {
   print_doc (name, true, as_int (first), as_int (last));
 }
 
+void
+edit_main_rep::render_to_images (url dest, double zoomf) {
+  // 将每页排版结果经 mupdf 光栅化路径（make_raster_image）渲染为 PNG。
+  // 形态仿 print_doc，但目标是离屏图像而非 printer，故无需任何 GUI 窗口。
+  typeset_preamble ();
+  typeset_prepare ();
+  env->write (PAGE_SCREEN_MARGIN, "false");
+  env->write (PAGE_BORDER, "none");
+  if (is_func (env->read (BG_COLOR), PATTERN))
+    env->write (BG_COLOR, env->exec (env->read (BG_COLOR)));
+  env->style_init_env ();
+  env->update ();
+
+  typesetter ttt    = new_typesetter (env, subtree (et, rp), reverse (rp));
+  box        the_box= ::typeset (ttt);
+  int        n      = N (the_box[0]);
+  string     suf    = suffix (dest);
+  for (int i= 0; i < n; i++) {
+    url page= (n == 1) ? dest
+                       : glue (unglue (dest, N (suf) + 1),
+                               "-" * as_string (i + 1) * "." * suf);
+    make_raster_image (page, the_box[0][i], zoomf);
+  }
+  delete_typesetter (ttt);
+}
+
 array<int>
 edit_main_rep::print_snippet (url name, tree t, bool conserve_preamble) {
   tree buft= subtree (et, rp);

@@ -407,8 +407,8 @@ get_recent_view (url name) {
   // the current buffer or another view attached to a window
   array<url> vs= buffer_to_views (name);
   if (N (vs) == 0) return get_new_view (name);
-  url u= get_current_view ();
-  if (view_to_buffer (u) == name) return u;
+  url u= get_current_view_safe ();
+  if (!is_none (u) && view_to_buffer (u) == name) return u;
   url r= get_recent_view (name, true, false, true, false);
   if (!is_none (r)) return r;
   r= get_recent_view (name, true, false, false, false);
@@ -767,6 +767,12 @@ switch_to_buffer (url name) {
   url     u = get_passive_view_of_tabpage (name);
   tm_view vw= concrete_view (u);
   if (vw == NULL) return;
+  // Headless / no-window: make this the current view without attaching to a
+  // window, so buffer operations (load/export/render) work without a GUI.
+  if (!has_current_window ()) {
+    set_current_view (u);
+    return;
+  }
   window_set_view (get_current_window (), u, true);
   tm_window nwin= vw->win;
   if (nwin != NULL)
