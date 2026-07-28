@@ -1086,11 +1086,26 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
   if (self == nullptr || self->canvas () == nullptr) return;
   // 同 glfw_mouse_button_callback：菜单 UI 上或弹出菜单打开期间不分发。
   if (im_has_active_popup () || ImGui::GetIO ().WantCaptureMouse) return;
-  // Mirror Qt's wheelEvent: Ctrl/Meta ⇒ zoom. 用 last_key_mods（事件级 mods，见
-  // glfw_key_callback），避免 glfwGetKey
-  // 在系统快捷键卡住时把普通滚轮误判为缩放。
+  // Mirror Qt's wheelEvent: Ctrl/Meta ⇒ zoom.
+#if defined(OS_MACOS) || defined(__EMSCRIPTEN__)
+  // macOS / WASM：用事件级 mods（glfw_key_callback 记录的 last_key_mods）。
+  // macOS 上 NSEvent modifierFlags、WASM 上 e.metaKey 都是事件即时真实状态；
+  // 且 macOS 系统快捷键（截屏等）会吞掉修饰键 keyup，glfwGetKey 会永久卡在
+  // PRESS，把普通滚轮误判为缩放，故此处只能依赖事件级 mods。
   bool zoom_mod=
       (self->last_key_mods & (GLFW_MOD_CONTROL | GLFW_MOD_SUPER)) != 0;
+#else
+  // X11/Linux：GLFW 的 mods 形参取自事件发生「之前」的修饰键状态，对修饰键
+  // 自身恰好反相（按下 Ctrl 报无修饰、松开报 GLFW_MOD_CONTROL，见
+  // glfw/glfw#1630、 ocornut/imgui#6034）。用 last_key_mods 会让按下 Ctrl
+  // 滚动→上下滚动、松开 Ctrl 滚动→缩放，整体反相。glfwGetKey 在
+  // X11/Wayland/Windows 上读取实时按键 状态，不受上述反相影响（macOS
+  // 的系统快捷键卡死问题在这些平台不存在）。
+  bool zoom_mod= glfwGetKey (w, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+                 glfwGetKey (w, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
+                 glfwGetKey (w, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
+                 glfwGetKey (w, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS;
+#endif
   if (zoom_mod) {
     double factor= (sqrt (sqrt (sqrt (2.0))));
     if (yoffset < 0) call ("zoom-out", object (factor));
