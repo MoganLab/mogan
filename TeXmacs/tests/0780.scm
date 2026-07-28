@@ -32,7 +32,7 @@
 ;; （render-doc-to-png 经 make_raster_image→mupdf 写出，成功即产出有效 PNG。）
 (define (test-render-doc-to-png)
   (let* ((tmu "$TEXMACS_PATH/tests/tmu/0101.tmu")
-         (png (url-glue (url-temp) "png")))
+         (png (url-glue (url-temp) ".png")))
     (load-buffer tmu)
     (check (render-doc-to-png tmu png 1.0) => #t)
     (check (url-exists? png) => #t)))
