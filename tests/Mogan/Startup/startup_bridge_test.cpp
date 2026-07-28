@@ -108,7 +108,8 @@ private slots:
     // 写入：addRecentDoc 同步调用 saveRecentDocs() 落盘 recent-files.json
     // 注意：不能调用 QCoreApplication::processEvents()——addRecentDoc 还会通过
     // QTimer::singleShot(0, ...) 延迟调用 eval_scheme，而本测试未初始化 s7
-    // 解释器 (tm_s7 为空)，触发会 SIGSEGV。saveRecentDocs 是同步的，无需事件循环。
+    // 解释器 (tm_s7 为空)，触发会 SIGSEGV。saveRecentDocs
+    // 是同步的，无需事件循环。
     {
       StartupBridge bridge1;
       bridge1.addRecentDoc ("/tmp/persist-test.tmu");
