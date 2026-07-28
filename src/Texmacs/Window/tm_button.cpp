@@ -20,6 +20,8 @@
 #else
 #ifdef QTTEXMACS
 #include "Qt/qt_simple_widget.hpp"
+#elif defined(MOGAN_CLI)
+#include "CLI/cli_simple_widget.hpp"
 #else
 #include "ImGui/im_simple_widget.hpp"
 #endif

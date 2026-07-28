@@ -55,7 +55,13 @@ notify_graphics_extents (tree t, point lbot, point rtop) {
       array<object> args;
       args << object (id) << object (lbot[0]) << object (lbot[1])
            << object (rtop[0]) << object (rtop[1]);
+      // graphics-notify-extents 是发给编辑器的 UI
+      // 通知（图形边界），对渲染输出无影响。 其定义在
+      // scripts-edit.scm，经菜单链 lazy-load；无 UI 的 CLI 前端不加载它，
+      // 故用条件编译在 CLI 下排除该回调（Qt/ImGui 照常）。
+#ifndef MOGAN_CLI
       call ("graphics-notify-extents", args);
+#endif
     }
   }
   else if (is_func (t, GRAPHICS) || is_func (t, GR_GROUP)) {

@@ -44,6 +44,8 @@ target("libmogan") do
         --add_packages("qt6base", "qt6core", "qt6gui", "qt6widgets")
         add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
         add_frameworks("QtQml", "QtQuick", "QtQuickWidgets", "QtBodymovin")
+    elseif has_config("cli_frontend") then
+        set_kind("static")
     else
         add_deps("imgui")
         set_kind("static")
@@ -88,6 +90,9 @@ target("libmogan") do
         add_defines("QTPIPES")
         set_configvar("USE_QT_PRINTER", 1)
         add_defines("USE_QT_PRINTER")
+    elseif has_config("cli_frontend") then
+        set_configvar("MOGAN_CLI", 1)
+        add_defines("MOGAN_CLI")
     elseif not is_plat("wasm") then -- WASM GLFW is in EMCC
         add_packages("glfw")
     end
@@ -303,6 +308,8 @@ target("libmogan") do
         add_rules("qt.qrc")
         add_files("$(projectdir)/TeXmacs/misc/images/images.qrc")
         add_files("$(projectdir)/src/Plugins/Qt/moganqml.qrc")
+    elseif has_config("cli_frontend") then
+        add_files("$(projectdir)/src/Plugins/CLI/**.cpp")
     else
         add_files("$(projectdir)/src/Plugins/ImGui/**.cpp")
         if is_plat("macosx") then

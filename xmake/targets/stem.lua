@@ -140,8 +140,8 @@ target("stem") do
     end
 
     add_packages("mupdf")
-    if not has_config("qt_frontend") and not is_plat("wasm") then -- WASM GLFW is in EMCC
-        add_packages("glfw") 
+    if not has_config("qt_frontend") and not has_config("cli_frontend") and not is_plat("wasm") then -- WASM GLFW is in EMCC
+        add_packages("glfw")
     end
     if has_config("goldfish") then
         add_deps("goldfish-bin")
@@ -155,6 +155,11 @@ target("stem") do
     end
     if is_plat("linux") then
         add_syslinks("X11")
+    end
+    -- CLI 前端无 Qt/glfw 自带的 macOS 框架；Plugins/MacOS（HIDRemote/mac_utilities/
+    -- mac_spellservice）仍被编译，需显式链接 Cocoa(=AppKit+Foundation) 与 IOKit。
+    if is_plat("macosx") and has_config("cli_frontend") then
+        add_frameworks("Cocoa", "IOKit")
     end
 
     add_includedirs("$(builddir)", {public = true})
