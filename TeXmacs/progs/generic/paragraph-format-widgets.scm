@@ -14,72 +14,79 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic paragraph-format-widgets)
-  (:use (generic format-edit) (utils library dialog-value-table))
+  (:use (generic format-edit)
+    (kernel texmacs pref-keys)
+    (utils library dialog-value-table)
+  ) ;:use
 ) ;texmacs-module
 
 ;; 段落参数清单与取值（迁移自原 format-widgets.scm 的 tm-widget enum 取值）。
 ;; editable=#t 的字段允许 QML 端双击键入预设外的自定义值（对应原 enum 末尾空串槽位）。
 
 (define paragraph-basic-fields
-  (list (list "par-mode" "Alignment" '("left" "center" "right" "justify") #f)
-    (list "par-left" "Left margin" '("0tab" "1tab" "2tab") #t)
-    (list "par-right" "Right margin" '("0tab" "1tab" "2tab") #t)
-    (list "par-first" "First indentation" '("0fn" "2fn") #t)
-    (list "par-sep" "Interline space" '("0fn" "0.2fn" "0.25fn" "0.5fn" "1fn") #t)
-    (list "par-par-sep"
+  (list (list (pref-par-mode) "Alignment" '("left" "center" "right" "justify") #f)
+    (list (pref-par-left) "Left margin" '("0tab" "1tab" "2tab") #t)
+    (list (pref-par-right) "Right margin" '("0tab" "1tab" "2tab") #t)
+    (list (pref-par-first) "First indentation" '("0fn" "2fn") #t)
+    (list (pref-par-sep)
+      "Interline space"
+      '("0fn" "0.2fn" "0.25fn" "0.5fn" "1fn")
+      #t
+    ) ;list
+    (list (pref-par-par-sep)
       "Interparagraph space"
       '("0fn" "0.3333fn" "0.5fn" "0.6666fn" "1fn" "0.5fns")
       #t
     ) ;list
-    (list "par-columns" "Number of columns" '("1" "2" "3" "4" "5" "6") #f)
-    (list "par-columns-sep" "Column separation" '("1fn" "2fn" "3fn") #t)
+    (list (pref-par-columns) "Number of columns" '("1" "2" "3" "4" "5" "6") #f)
+    (list (pref-par-columns-sep) "Column separation" '("1fn" "2fn" "3fn") #t)
   ) ;list
 ) ;define
 
 (define paragraph-advanced-fields
-  (list (list "par-hyphen" "Line breaking" '("normal" "professional") #f)
-    (list "par-line-sep"
+  (list (list (pref-par-hyphen) "Line breaking" '("normal" "professional") #f)
+    (list (pref-par-line-sep)
       "Extra interline space"
       '("0fn" "0.025fns" "0.05fns" "0.1fns" "0.2fns" "0.5fns" "1fns")
       #t
     ) ;list
-    (list "par-ver-sep"
+    (list (pref-par-ver-sep)
       "Minimal line separation"
       '("0fn" "0.1fn" "0.2fn" "0.5fn" "1fn")
       #t
     ) ;list
-    (list "par-hor-sep"
+    (list (pref-par-hor-sep)
       "Horizontal collapse distance"
       '("0.1fn" "0.2fn" "0.5fn" "1fn" "2fn" "5fn" "10fn" "100fn")
       #t
     ) ;list
-    (list "par-flexibility" "Space stretchability" '("1" "2" "4" "1000") #t)
-    (list "par-spacing"
+    (list (pref-par-flexibility) "Space stretchability" '("1" "2" "4" "1000") #t)
+    (list (pref-par-spacing)
       "CJK spacing"
       '("plain" "quanjiao" "banjiao" "hangmobanjiao" "kaiming")
       #f
     ) ;list
-    (list "par-kerning-stretch"
+    (list (pref-par-kerning-stretch)
       "Intercharacter stretching"
       '("auto" "tolerant" "0" "0.02" "0.05" "0.1" "0.2" "0.5" "1")
       #t
     ) ;list
-    (list "par-kerning-reduce"
+    (list (pref-par-kerning-reduce)
       "Intercharacter compression"
       '("auto" "0" "0.01" "0.02" "0.03" "0.05" "0.1" "0.2")
       #t
     ) ;list
-    (list "par-expansion"
+    (list (pref-par-expansion)
       "Character expansion"
       '("auto" "tolerant" "0" "0.01" "0.02" "0.05" "0.1" "0.2")
       #t
     ) ;list
-    (list "par-contraction"
+    (list (pref-par-contraction)
       "Character contraction"
       '("auto" "tolerant" "0" "0.01" "0.02" "0.05" "0.1" "0.2")
       #t
     ) ;list
-    (list "par-kerning-margin" "Use margin kerning" '("false" "true") #f)
+    (list (pref-par-kerning-margin) "Use margin kerning" '("false" "true") #f)
   ) ;list
 ) ;define
 
@@ -225,7 +232,7 @@
     (if (== which "basic") paragraph-basic-fields paragraph-advanced-fields)
     (if (and (== scope 'document) (== which "basic"))
       (list-filter fields
-        (lambda (f) (not (in? (car f) (list "par-left" "par-right"))))
+        (lambda (f) (not (in? (car f) (list (pref-par-left) (pref-par-right)))))
       ) ;list-filter
       fields
     ) ;if
@@ -245,6 +252,15 @@
 (define (paragraph-all-var-names)
   (map car (append paragraph-basic-fields paragraph-advanced-fields))
 ) ;define
+
+;; 暴露各分组字段名（var 列）供测试核对 pref-keys 接线：值取自 (pref-par-*) proc，
+;; 不能是裸字符串。返回字段顺序与 specs builder 一致。
+
+(tm-define (paragraph-format-basic-var-names) (map car paragraph-basic-fields))
+
+(tm-define (paragraph-format-advanced-var-names)
+  (map car paragraph-advanced-fields)
+) ;tm-define
 
 ;; 返回某分组字段的 meta 列表（供 QML 打开时读一次，以及 reset 后重读重建 values）。
 ;; value 取本地真相表（register 填入、set/reset/Cancel 同步更新），即时、不实时读
