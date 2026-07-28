@@ -640,6 +640,13 @@ public:
   virtual void mirror_loro (const modification& mod)= 0;
   virtual void apply_remote (string bytes)          = 0;
   virtual void ensure_loro_seeded ()                = 0;
+  // 远端 update 到达后，把 meta section（style/initial/...）回写 buf->data。
+  virtual void apply_remote_meta ()= 0;
+  // ensure_loro_seeded 末尾调用：把本地缺失的 meta section 灌入 CRDT。
+  virtual void loro_seed_local_meta ()= 0;
+  // 本地 meta 改动镜像到 CRDT（由 edit_typeset 的 setter 调用，受
+  // applying_remote 守卫）。
+  virtual void mirror_meta_if_active (string section)= 0;
 #endif
   virtual void collab_enable () = 0; // 留在 LORO_ENABLED 条件外，由编译宏控制。
   virtual bool collab_enabled ()= 0; // 这是为了保证 glue 生成过程中能找到实现

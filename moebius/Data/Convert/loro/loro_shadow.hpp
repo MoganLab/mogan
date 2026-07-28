@@ -22,6 +22,9 @@ public:
   hashmap<tree_rep*, mogan_tree_id>
                 id_map;  // 节点身份：mogan tree_rep* -> Loro TreeID
   mogan_tree_id root_id; // shadow 中根节点对应的 TreeID
+  hashmap<string, mogan_tree_id>
+      meta_root_ids; // body 之外的 section（style/initial/...）-> 其 root
+                     // TreeID
 
   mogan_local_update_cb _update_cb       = nullptr;
   void*                 _update_user_data= nullptr;
@@ -86,7 +89,24 @@ public:
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
 
+  // ===== meta section（body 之外的文档部分）的 coarse 镜像 =====
+  /** 首次把一个 meta section（style/initial/final/project/attachments）灌入
+   * CRDT： 作为带 __section__ 标签的独立 root。幂等（若已存在先删旧 root
+   * 再建）。*/
+  void seed_meta (string name, tree section_tree);
+  /** 本地 meta section 改动：删旧 root + 重建（coarse，section 粒度 LWW），并
+   * commit。*/
+  void mirror_meta_replace (string name, tree section_tree);
+  /** 读回某 section 当前树（经 section_to_ir + ir_to_tree）。不存在返回空树。*/
+  tree          meta_to_tree (string name);
+  bool          has_meta (string name); // 该 meta section 是否存在
+  array<string> list_meta_sections ();  // 当前 shadow 中所有 meta section 名
+  /** 用 FFI list_sections 重建 meta_root_ids 账本（import 远端数据后调用）。
+   *  同名多 root（并发 coarse 改动）取字典序最大 TreeID，保证两端确定性一致。*/
+  void sync_meta_from_shadow ();
+
 private:
+  void replace_meta (string name, tree section_tree); // seed/replace 共用
   // 取某 LoroTree 节点的子 TreeID 列表（用于 REMOVE 按位置删）
   array<mogan_tree_id> node_children (mogan_tree_id parent);
   mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index);

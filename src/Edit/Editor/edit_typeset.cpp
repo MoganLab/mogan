@@ -114,6 +114,9 @@ edit_typeset_rep::get_att () {
 void
 edit_typeset_rep::set_fin (hashmap<string, tree> H) {
   fin= H;
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("final");
+#endif
 }
 void
 edit_typeset_rep::set_ref (hashmap<string, tree> H) {
@@ -126,6 +129,9 @@ edit_typeset_rep::set_aux (hashmap<string, tree> H) {
 void
 edit_typeset_rep::set_att (hashmap<string, tree> H) {
   buf->data->att= H;
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("attachments");
+#endif
 }
 
 tree
@@ -215,11 +221,17 @@ edit_typeset_rep::get_att (string key) {
 void
 edit_typeset_rep::set_att (string key, tree im) {
   buf->data->att (key)= im;
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("attachments");
+#endif
 }
 
 void
 edit_typeset_rep::reset_att (string key) {
   buf->data->att->reset (key);
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("attachments");
+#endif
 }
 
 array<string>
@@ -245,6 +257,9 @@ edit_typeset_rep::add_init (hashmap<string, tree> H) {
   init->join (H);
   ::notify_assign (ttt, path (), subtree (et, rp));
   notify_change (THE_ENVIRONMENT);
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("initial");
+#endif
 }
 
 void
@@ -977,6 +992,9 @@ edit_typeset_rep::change_style (tree t) {
   if (changed) {
     require_save ();
     notify_change (THE_ENVIRONMENT);
+#ifdef LORO_ENABLED
+    mirror_meta_if_active ("style");
+#endif
   }
 }
 
@@ -992,6 +1010,9 @@ edit_typeset_rep::init_style (string name) {
   else the_style= tree (TUPLE, name) * the_style (1, N (the_style));
   require_save ();
   notify_change (THE_ENVIRONMENT);
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("style");
+#endif
 }
 
 tree
@@ -1008,6 +1029,9 @@ edit_typeset_rep::init_env (string var, tree by) {
       var != ZOOM_FACTOR)
     require_save ();
   notify_change (THE_ENVIRONMENT);
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("initial");
+#endif
 }
 
 void
@@ -1017,6 +1041,9 @@ edit_typeset_rep::init_default (string var) {
   if (stydef->contains (var)) pre (var)= stydef[var];
   else pre->reset (var);
   notify_change (THE_ENVIRONMENT);
+#ifdef LORO_ENABLED
+  mirror_meta_if_active ("initial");
+#endif
 }
 
 /******************************************************************************
