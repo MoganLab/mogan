@@ -131,7 +131,21 @@ edit_modify_rep::apply_remote (string bytes) {
     debug_loro << "Diff produced " << N (mods) << " modifications.\n";
   for (list<modification> l= mods; !is_nil (l); l= l->next) {
     if (DEBUG_LORO) debug_loro << "Applying remote mod: " << l->item << "\n";
-    apply (et, rp * l->item);
+    // 防线：对账产出的 mod 若对当前 et 不可应用（如远端把 atomic para 结构化成
+    // compound 容器后，旧的字符 insert 落到 compound 父 → can_insert 非法），
+    // 跳过该 mod 并回退「该位置整子树 assign」——用 shadow 的 after 子树替换，
+    // 保证不崩溃且内容最终一致。is_applicable 用 et（含 rp 前缀的真实树）。
+    modification m= rp * l->item;
+    if (is_applicable (et, m)) apply (et, m);
+    else {
+      path tgt      = rp * root (l->item);
+      tree after_sub= loro_doc->to_tree ();
+      if (has_subtree (after_sub, root (l->item)))
+        apply (et, rp * mod_assign (root (l->item),
+                                    subtree (after_sub, root (l->item))));
+      if (DEBUG_LORO)
+        debug_loro << "  (mod not applicable; fell back to subtree assign)\n";
+    }
   }
   // applying_remote 暂不关闭：apply_remote_meta 的回写 setter 也要在守卫内
 

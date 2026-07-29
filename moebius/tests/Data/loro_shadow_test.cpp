@@ -580,6 +580,58 @@ mk_para (string s) {
   return p;
 }
 
+// 诊断：buffer/after 都是 document(para)，para 同 TreeID，para 内文本变化
+// （远端敲一个字符）。看 reconcile 产的 mod——是否 atomic insert 到 compound
+// para。
+TEST_CASE (
+    "loro reconcile: DIAG text edit inside shared para produces valid mod") {
+  ensure_labels ();
+  // A: document(para("This is tes"))
+  tree t (DOCUMENT, 1);
+  t[0]= mk_para ("This is tes");
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  tree   tA= t;
+  a->mirror_mod (tA,
+                 mod_insert (path (0) * 0, 11, tree ("t"))); // para 内加 't'
+  tA[0][0]->label= string ("This is test");
+  string sa      = a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  list<modification> mods= b->remote_diff_mods (sa, tB);
+  MESSAGE ("diag nmods=", N (mods));
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    MESSAGE ("  k=", (int) l->item->k, " t_atomic=", is_atomic (l->item->t),
+             " t_comp=", is_compound (l->item->t));
+}
+
+// 诊断：buffer=document(CONCAT(atomic 文本)) vs after=document(PARA(atomic
+// 文本)) ——远端把 concat para 变成 document para。看 reconcile 产的 mod（是否
+// atomic insert 到 compound）。
+TEST_CASE ("loro reconcile: DIAG concat-para becomes document-para") {
+  ensure_labels ();
+  // after: document(para("This is test"))
+  tree body (DOCUMENT, 1);
+  body[0]= mk_para ("This is test");
+  loro_shadow a;
+  a->seed (body);
+  string sa= a->export_snapshot ();
+  // buffer: document(concat("This is tes"))（文本 para 是 concat of atomic）
+  tree buf (DOCUMENT, 1);
+  tree con (CONCAT, 1);
+  con[0]= tree ("This is tes");
+  buf[0]= con;
+  loro_shadow        b;
+  list<modification> mods= b->remote_diff_mods (sa, buf);
+  MESSAGE ("diag nmods=", N (mods));
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    MESSAGE ("  k=", (int) l->item->k, " t_atomic=", is_atomic (l->item->t),
+             " t_comp=", is_compound (l->item->t));
+}
+
 // 诊断：用 apply()（真实 observer 路径，非 clean_apply）对 et[2] 做
 // remove-all-para + insert-para，复现 JOIN 崩溃。
 

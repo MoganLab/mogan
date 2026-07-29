@@ -8,6 +8,8 @@
 #include "tree_helper.hpp"
 
 namespace {
+// 字符级 diff（仅用于「同身份的 atomic 文本节点」内容变化，如 LoroText 的
+// 字符插入/删除）。mod 应用于 base 指向的 atomic 文本节点本身。
 void
 emit_text_diff (path p, string b, string a, list<modification>& mods) {
   int bn= N (b), an= N (a);
@@ -196,6 +198,11 @@ reconcile_children (loro_shadow_rep* self, tree b, tree a, path base,
 
 // 对账单个节点：同身份（TreeID 相同）则按类型/内容细分，否则交给调用方
 // （调用方在子节点对账里已按 TreeID 匹配，不会把不同身份的 b/a 传进来）。
+//
+// 防线：仅当 b 与 a 都是 **atomic 文本节点**（同一个 LoroText，其父在 et 里也
+// 是 atomic 文本节点）才用字符级 diff。b 或 a 是 compound（如 para 被远端
+// 结构化成容器）时绝不能 emit_text_diff——否则字符 insert 会落到 compound 父，
+// can_insert(compound, atomic) 非法 → 崩溃。
 static void
 reconcile_node (loro_shadow_rep* self, tree b, tree a, path base,
                 list<modification>& mods) {
