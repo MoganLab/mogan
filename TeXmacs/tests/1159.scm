@@ -65,11 +65,14 @@
   (check (cork->utf8 "\xC6") => "Æ")   ; text:symbol A var
   (check (cork->utf8 "\xF8") => "ø")   ; text:symbol o var
   (check (cork->utf8 "\xD8") => "Ø")   ; text:symbol O var
-  ;; cork 0xFF = ß（s var）：U+00DF 经 utf8->cork 成单字节 0xFF。
-  ;; cork 0xDF = "SS"（S var）：ß 的大写连字，无单一 unicode 码点，
-  ;; 故 polish-kbd.scm 里 S var 的 RHS 直接写 "SS" 字面量。
-  (check (cork->utf8 "\xFF") => "ß")   ; text:symbol s var
-  (check (cork->utf8 "\xDF") => "SS")  ; text:symbol S var
+  ;; ß / ẞ 在 cork 表里的现状：
+  ;;   cork 0xFF = ß (U+00DF) —— s var 的原字节，RHS 用 <#DF>。
+  ;;   cork 0xDF = "SS" 连字 —— 旧 cork 没有 ẞ 独立码点的权宜。
+  ;; ẞ (U+1E9E) 在 unicode 5.1 才加入，cork 表未收录，故 S var 的 RHS
+  ;; 直接用 <#1E9E> 转义（与 latex-kbd.scm:185 的 ("SS" (insert "<#1E9E>"))
+  ;; 同一写法），不再走 cork 0xDF 的 "SS" 权宜。
+  (check (cork->utf8 "\xFF") => "ß")   ; text:symbol s var 的原 cork 字节
+  (check (cork->utf8 "\xDF") => "SS")  ; 旧 cork 权宜（S var 已改用 <#1E9E>）
 ) ;define
 
 ;; UTF-8 字符 -> cork 字节（反向：直接输入这些字符时 Qt 交 UTF-8 给

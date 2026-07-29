@@ -40,7 +40,7 @@
  ("text:symbol o var" "<#F8>")
  ("text:symbol O var" "<#D8>")
  ("text:symbol s var" "<#DF>")
- ("text:symbol S var" "SS")
+ ("text:symbol S var" "<#1E9E>")
  ("text:symbol z var" "<#17A>")
  ("text:symbol Z var" "<#179>")
 ) ;kbd-map
