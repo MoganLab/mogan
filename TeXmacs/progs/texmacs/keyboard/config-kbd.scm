@@ -33,9 +33,7 @@
         ((== val "jcuken")
          (lazy-keyboard (text cyrillic jcuken-kbd) in-cyrillic-jcuken?)
         ) ;
-        ((== val "yawerty")
-         (lazy-keyboard (text cyrillic yawerty-kbd) in-cyrillic-yawerty?)
-        ) ;
+        ((== val "yawerty") (lazy-keyboard (lang yawerty-kbd) in-cyrillic-yawerty?))
   ) ;cond
 ) ;define
 
