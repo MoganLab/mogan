@@ -11,6 +11,7 @@
 #include "Editor/edit_main.hpp"
 #include "modification.hpp"
 #include "observers.hpp"
+#include "tm_debug.hpp"
 #include "tm_window.hpp"
 #include "tree_cursor.hpp"
 #include "tree_helper.hpp"
@@ -106,6 +107,7 @@ void
 edit_modify_rep::apply_remote (string bytes) {
   if (DEBUG_LORO)
     debug_loro << "Applying remote update of size " << N (bytes) << "\n";
+  bench_start ("apply_remote");
   // 远端 mod 经 apply()（tree_observer::raw_apply）改树，游标 tp 与选中路径会
   // 系统性错位（选中区域失效）。先把它们转成 observer 追踪位置（raw_apply 的
   // observer 回调会随树编辑更新 position），应用 mods 后取回错位后的路径恢复。
@@ -171,9 +173,10 @@ edit_modify_rep::apply_remote (string bytes) {
     if (DEBUG_LORO)
       debug_loro << "Forcing typeset invalidation and repaint...\n";
     notify_change (THE_TREE);
-    typeset_invalidate_all ();
-    send_invalidate_all (this);
   }
+  bench_cumul ("apply_remote");
+  if (DEBUG_BENCH) lolly::system::bench_print (std_bench);
+  bench_reset ("apply_remote");
 }
 
 /******************************************************************************
