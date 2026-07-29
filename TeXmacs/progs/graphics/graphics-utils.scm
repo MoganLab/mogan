@@ -351,7 +351,13 @@
         ,"gr-edit-grid-aspect"
         (tuple (tuple "axes" "none") (tuple "1" "none") (tuple "10" "none"))
         ,"gr-edit-grid"
-        (tuple "cartesian" (point "0" "0") "1"))
+        (tuple "cartesian" (point "0" "0") "1")
+        ,"gr-props-text-at"
+        (tuple "text-at-halign" "center" "text-at-valign" "center")
+        ,"gr-props-math-at"
+        (tuple "text-at-halign" "center" "text-at-valign" "center")
+        ,"gr-props-document-at"
+        (tuple "text-at-halign" "center" "doc-at-valign" "center"))
     ) ;set!
   ) ;when
   (graphics-reset-context 'begin)
