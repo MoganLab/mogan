@@ -35,6 +35,7 @@
 (define ghost-content "")
 
 ;; 发起请求时的光标位置，回调里校验是否移动过（移动则丢弃，避免插入位置错误）
+
 (define ghost-pending-cursor '())
 
 (define last-key-press "")
@@ -99,6 +100,7 @@
 ) ;define
 
 ;; inline 数学：光标在 with "mode" "math" 内但非 displayed 公式环境
+
 (define (ghost-innermost-inline-math)
   (and (in-math?) (not (ghost-find-formula)) (cursor-tree))
 ) ;define
@@ -152,12 +154,19 @@
       "]\n"
     ) ;display*
     ;; serial + 光标校验通过后才插入 ghost
-    (ghost-cloud-predict prefix suffix
+    (ghost-cloud-predict prefix
+      suffix
       (lambda (res)
-        (when (and res (== ghost-serial current)
-                   (equal? (cursor-path) ghost-pending-cursor)
-                   (not (string=? (car res) "")))
-          (ghost-on-predict (car res))))))
+        (when (and res
+                (== ghost-serial current)
+                (equal? (cursor-path) ghost-pending-cursor)
+                (not (string=? (car res) ""))
+              ) ;and
+          (ghost-on-predict (car res))
+        ) ;when
+      ) ;lambda
+    ) ;ghost-cloud-predict
+  ) ;let*
 ) ;tm-define
 
 (define (ghost-on-predict text)
@@ -170,19 +179,30 @@
 ) ;define
 
 ;; ghost body 是 accessible none，光标无法进入，故用 tree-search 定位
+
 (define (ghost-node)
   (let ((found (tree-search (buffer-get-body (current-buffer))
-                (lambda (t) (tree-is? t 'ghost)))))
-    (and (pair? found) (car found)))
+                 (lambda (t) (tree-is? t 'ghost))
+               ) ;tree-search
+        ) ;found
+       ) ;
+    (and (pair? found) (car found))
+  ) ;let
 ) ;define
 
 ;; 移除 ghost 节点；keep-content? 为真则保留补全文本
+
 (define (ghost-remove-node! keep-content?)
   (let ((t (ghost-node)))
     (when t
       (let ((p (tree-up t)) (i (tree-index t)))
         (tree-remove! p i 1)
-        (when keep-content? (insert (tree-ref t 0))))))
+        (when keep-content?
+          (insert (tree-ref t 0))
+        ) ;when
+      ) ;let
+    ) ;when
+  ) ;let
 ) ;define
 
 (tm-define (accept-ghost)
