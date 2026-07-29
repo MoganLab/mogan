@@ -227,10 +227,15 @@ loro_shadow_rep::diff_from_current (tree buffer) {
   // assign（一次性替换，不产生空片段 mod），容器由 import_and_build 整体重建。
   if (!is_compound (buffer) || !is_compound (after) || L (buffer) != L (after))
     return list<modification> (mod_assign (path (), after));
-  // JOIN 首帧：本端 buffer 根不在 id_map（本地对该 buffer 无 CRDT 血统，典型为
-  // 空 stub / 刚新建未 seed），逐项对账无意义且会删空 stub 再插，应用到 et 时
-  // 触发非法。直接整树 assign（一次性替换，后续增量再走对账）。
+  // 结构不可靠时整树 assign：本端 buffer 根**或其直接子**无 CRDT 血统
+  // （!has_id），即 JOIN 首帧的空 stub、或远端刚把 stub 结构化成 para（对端在空
+  // stub 上敲文本 → para 血统与远端不一致）。逐项对账会「删空 stub + 插远端」，
+  // 应用到 et 时 et 根被删空再插，触发 invalid modification。整树替换则一次性
+  // 就位，后续增量再走对账。正常协作 buffer 根与子始终在 id_map，不受影响。
   if (!has_id (buffer)) return list<modification> (mod_assign (path (), after));
+  for (int i= 0; i < N (buffer); i++)
+    if (!has_id (buffer[i]))
+      return list<modification> (mod_assign (path (), after));
   list<modification> mods= reconcile_walk (buffer, after);
   return mods;
 }

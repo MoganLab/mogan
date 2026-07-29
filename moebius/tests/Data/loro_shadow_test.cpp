@@ -698,6 +698,33 @@ TEST_CASE (
   CHECK_EQ (stub == body, true);
 }
 
+// JOIN 崩溃回归：远端把空 stub 的 para 结构化成 para("text")（对端在空
+// stub 上敲文本），本端 buffer 的 para 血统与远端不一致 → 整树 assign，不逐项
+// 对账（否则 remove+insert 应用到 et 崩溃）。
+TEST_CASE ("loro reconcile: stub paragraph restructured by remote falls back "
+           "to assign") {
+  ensure_labels ();
+  // 远端：document(para("this is a test"))
+  tree body (DOCUMENT, 1);
+  body[0]= mk_para ("this is a test");
+  loro_shadow a;
+  a->seed (body);
+  string sa= a->export_snapshot ();
+
+  // 本端 buffer：document(空 para)（stub，para 无远端血统——本地自构的 rep）
+  loro_shadow b;
+  tree        buf (DOCUMENT, 1);
+  buf[0]= mk_para (""); // 本地 rep，不在 b 的 id_map
+  // 让 b 只有根的血统（模拟 JOIN 首帧 assign 后：根绑定，para 还是本地 stub）
+  // 这里直接验证：buffer 子（para）无血统 → 整树 assign。
+  list<modification> mods= b->remote_diff_mods (sa, buf);
+  // 应是单个 assign（不逐项对账）
+  CHECK_EQ (N (mods), 1);
+  if (N (mods) == 1) CHECK_EQ ((int) mods->item->k, (int) MOD_ASSIGN);
+  apply_mods (buf, mods);
+  CHECK_EQ (buf == body, true);
+}
+
 // 同 peer 结构编辑：A（创建者）删掉中间 para "b"，B 共享血统后接收。身份
 // 对账按 TreeID 删 b，且复用 a/c 的 rep（不整段重排）。
 TEST_CASE ("loro reconcile: remote remove deletes correct child by TreeID") {
