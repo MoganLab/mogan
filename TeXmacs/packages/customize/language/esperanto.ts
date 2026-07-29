@@ -21,6 +21,8 @@
   </src-title>>
 
   <assign|language|esperanto>
+
+  <use-module|(lang esperanto-kbd)>
 </body>
 
 <\initial>
