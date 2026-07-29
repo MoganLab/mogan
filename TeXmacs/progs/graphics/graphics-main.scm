@@ -1138,7 +1138,6 @@
       (graphics-set-property "gr-mode" `(tuple ,@(map symbol->string val)))
       (when (func? val 'edit 1)
         (graphics-restore-type-config (cadr val))
-        (graphics-remember-inserted-type val)
       ) ;when
       (graphics-enter-mode (graphics-mode) val)
     ) ;begin

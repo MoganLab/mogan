@@ -239,15 +239,40 @@
   ) ;cond
 ) ;tm-define
 
-;; 按下 e：从更改属性模式切回上一次插入对象的插入模式
+;; 有对应插入模式 (edit <tag>) 的对象 tag（见 graphics-menu.scm 的插入菜单）
+
+(define graphics-insertable-tags
+  '(point line
+     cline
+     spline
+     smooth
+     bezier
+     cspline
+     csmooth
+     cbezier
+     std-arc-counterclockwise
+     sector-counterclockwise
+     circle
+     ellipse
+     hyperbola
+     parabola
+     rectangle
+     text-at
+     math-at
+     document-at)
+) ;define
+
+;; 按下 e：从更改属性模式切换到当前选中对象对应的插入模式
 (tm-define (graphics-resume-last-insert)
   (:mode in-active-graphics?)
-  (and-with last
-    (graphics-last-inserted-type)
-    (when (equal? (graphics-mode) '(group-edit edit-props))
-      (graphics-set-mode last)
-    ) ;when
-  ) ;and-with
+  (when (and (== (graphics-mode) '(group-edit edit-props)) (== (length (sketch-get)) 1))
+    (with obj
+      (stree-radical (tree->stree (car (sketch-get))))
+      (when (and (pair? obj) (in? (car obj) graphics-insertable-tags))
+        (graphics-set-mode `(edit ,(car obj)))
+      ) ;when
+    ) ;with
+  ) ;when
 ) ;tm-define
 
 (tm-define (mouse-drop-event x y obj)
