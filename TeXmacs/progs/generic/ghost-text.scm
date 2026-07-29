@@ -122,7 +122,7 @@
 ;; Model evaluation
 ;; =============================================================================
 
-(tm-define (trigger-ghost-text)
+(tm-define (trigger-ghost-text dl-time)
   (when (ghost-enable?)
     (when ghost-active?
       (ignore-ghost)
