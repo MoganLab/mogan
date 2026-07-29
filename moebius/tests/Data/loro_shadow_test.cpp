@@ -595,7 +595,7 @@ TEST_CASE ("loro reconcile: DIAG buffer=tuple-container vs after=document") {
   empty_doc[0]= tree ("");
   tree buf (TUPLE, 1);
   buf[0]= empty_doc;
-  loro_shadow b;
+  loro_shadow        b;
   list<modification> mods= b->remote_diff_mods (sa, buf);
   MESSAGE ("diag nmods=", N (mods));
   for (list<modification> l= mods; !is_nil (l); l= l->next)
@@ -604,7 +604,6 @@ TEST_CASE ("loro reconcile: DIAG buffer=tuple-container vs after=document") {
   CHECK_EQ (N (mods), 1);
   if (N (mods) == 1) CHECK_EQ ((int) mods->item->k, (int) MOD_ASSIGN);
 }
-
 
 // 诊断：模拟 et=TUPLE(空 document,空 document,空
 // document)，buffer=et[2]（rp=[2]）。 远端 document body 与 et[2]（空

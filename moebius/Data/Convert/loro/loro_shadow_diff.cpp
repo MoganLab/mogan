@@ -240,8 +240,14 @@ loro_shadow_rep::diff_from_current (tree buffer) {
     if (dbg2++ < 5)
       for (list<modification> l= mods; !is_nil (l); l= l->next) {
         modification m= l->item;
-        cout << "RECONDBG mod k=" << (int) m->k << " root=" << as_string (root (m))
-             << " idx=" << index (m) << " arg=" << argument (m) << "\n";
+        if (m->k == MOD_INSERT || m->k == MOD_REMOVE)
+          cout << "RECONDBG mod k=" << (int) m->k
+               << " root=" << as_string (root (m)) << " idx=" << index (m)
+               << (m->k == MOD_REMOVE
+                       ? string (" arg=") * as_string (argument (m))
+                       : string (""))
+               << "\n";
+        else cout << "RECONDBG mod k=" << (int) m->k << " (assign/other)\n";
       }
   }
   return mods;
