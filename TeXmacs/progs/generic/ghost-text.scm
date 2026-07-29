@@ -129,7 +129,7 @@
     ) ;when
     (set! ghost-serial (+ ghost-serial 1))
     (let ((current ghost-serial))
-      (delayed (:idle 500)
+      (delayed (:idle dl-time)
         (when (and (== ghost-serial current)
                 (not-in-tab-cycling?)
                 (or (in-text?) (in-math?))
@@ -256,13 +256,23 @@
 (tm-define (kbd-insert s)
   (former s)
   (when (not-in-tab-cycling?)
-    (trigger-ghost-text)
+    (trigger-ghost-text 500)
   ) ;when
 ) ;tm-define
 
 (tm-define (keyboard-press key time)
   (set! last-key-press key)
-  (former key time)
+  (when (== key "right")
+    (let ((before (cursor-path)))
+      (former key time)
+      (when (equal? (cursor-path) before)
+        (trigger-ghost-text 0)
+      ) ;when
+    ) ;let
+  ) ;when
+  (when (!= key "right")
+    (former key time)
+  ) ;when
 ) ;tm-define
 
 (tm-define (keyboard-press key time)
