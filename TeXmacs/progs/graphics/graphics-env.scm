@@ -43,6 +43,7 @@
           (multiselecting #f)
           (preselected #f)
           (layer-of-last-removed-object #f)
+          (last-inserted-type #f)
          ) ;
   ) ;slots
   (props ((current-x (f2s (get-graphical-x)))
@@ -114,6 +115,7 @@
     (state-set! st 'multiselecting multiselecting)
     (state-set! st 'preselected preselected)
     (state-set! st 'current-path current-path)
+    (state-set! st 'last-inserted-type last-inserted-type)
     st
   ) ;with
 ) ;tm-define
@@ -148,6 +150,7 @@
   (set! multiselecting (state-ref st 'multiselecting))
   (set! preselected (state-ref st 'preselected))
   (set! current-path (state-ref st 'current-path))
+  (set! last-inserted-type (state-ref st 'last-inserted-type))
 ) ;tm-define
 
 ;; State stack (2)
@@ -231,6 +234,7 @@
   (set! preselected #f)
   (set! current-path #f)
   (set! layer-of-last-removed-object #f)
+  (set! last-inserted-type #f)
 ) ;tm-define
 
 (tm-define (graphics-init-state)
@@ -596,3 +600,7 @@
 ) ;tm-define
 
 (tm-define (set-cursor-style-now) (set-cursor-style the-current-cursor-style))
+
+(tm-define (graphics-remember-inserted-type val) (set! last-inserted-type val))
+
+(tm-define (graphics-last-inserted-type) last-inserted-type)

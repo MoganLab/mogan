@@ -140,6 +140,7 @@
  ("t" (graphics-set-origin "0gw" "1gh"))
  ("l" (graphics-set-origin "0gw" "0.5gh"))
  ("b" (graphics-set-origin "0gw" "0gh"))
+ ("e" (graphics-resume-last-insert))
  ("#" (graphics-toggle-grid))
  ("!" (open-plots-editor "scheme" "default" ""))
  ("left" (graphics-arrow-left))
@@ -210,6 +211,7 @@
     "l"
     "b"
     "t"
+    "e"
     "left"
     "right"
     "down"
@@ -237,6 +239,17 @@
   (cond ((string-occurs? "-" key) (key-press key))
         ((in? key graphics-keys) (key-press key))
   ) ;cond
+) ;tm-define
+
+;; 按下 e：从更改属性模式切回上一次插入对象的插入模式
+(tm-define (graphics-resume-last-insert)
+  (:mode in-active-graphics?)
+  (and-with last
+    (graphics-last-inserted-type)
+    (when (equal? (graphics-mode) '(group-edit edit-props))
+      (graphics-set-mode last)
+    ) ;when
+  ) ;and-with
 ) ;tm-define
 
 (tm-define (mouse-drop-event x y obj)
