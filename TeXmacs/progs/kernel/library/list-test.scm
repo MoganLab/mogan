@@ -35,8 +35,7 @@
 ;; 纯函数：不修改入参，且返回新列表（后续 set-car! 不影响原列表）。
 
 (define (test-cdr-pure)
-  (let* ((l (list 1 2 3))
-         (r (cDr l)))
+  (let* ((l (list 1 2 3)) (r (cDr l)))
     (check l => '(1 2 3))
     (set-car! r 99)
     (check l => '(1 2 3))
@@ -61,8 +60,7 @@
 ;; 纯函数：返回新列表，set-car! 结果不影响原列表。
 
 (define (test-cddr-pure)
-  (let* ((l (list 1 2 3 4))
-         (r (cDDr l)))
+  (let* ((l (list 1 2 3 4)) (r (cDDr l)))
     (set-car! r 99)
     (check l => '(1 2 3 4))
   ) ;let*
@@ -102,8 +100,7 @@
 ;; 纯函数：返回新列表，set-car! 结果不影响原列表。
 
 (define (test-list-head-pure)
-  (let* ((l (list 1 2 3))
-         (r (list-head l 2)))
+  (let* ((l (list 1 2 3)) (r (list-head l 2)))
     (set-car! r 99)
     (check l => '(1 2 3))
   ) ;let*
@@ -132,13 +129,11 @@
 ;; 纯函数：返回新列表（k=0 时也是拷贝），set-car! 结果不影响原列表。
 
 (define (test-list-drop-right-pure)
-  (let* ((l (list 1 2 3))
-         (r (list-drop-right l 1)))
+  (let* ((l (list 1 2 3)) (r (list-drop-right l 1)))
     (set-car! r 99)
     (check l => '(1 2 3))
   ) ;let*
-  (let* ((l (list 1 2 3))
-         (r (list-drop-right l 0)))
+  (let* ((l (list 1 2 3)) (r (list-drop-right l 0)))
     (set-car! r 99)
     (check l => '(1 2 3))
   ) ;let*
