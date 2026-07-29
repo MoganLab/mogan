@@ -21,6 +21,8 @@
   </src-title>>
 
   <assign|language|polish>
+
+  <use-module|(lang polish-kbd)>
 </body>
 
 <\initial>

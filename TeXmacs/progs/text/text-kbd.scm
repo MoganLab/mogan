@@ -347,35 +347,6 @@
   ("text:symbol O var" "ÿ")
   ("text:symbol o var" "¯"))
 
-(kbd-map
-  (:mode in-polish?)
-  ("text:symbol a" "°")
-  ("text:symbol A" "Å")
-  ("text:symbol c" "¢")
-  ("text:symbol C" "Ç")
-  ("text:symbol e" "¶")
-  ("text:symbol E" "Ü")
-  ("text:symbol l" "™")
-  ("text:symbol L" "ä")
-  ("text:symbol n" "´")
-  ("text:symbol N" "ã")
-  ("text:symbol o" "Û")
-  ("text:symbol O" "”")
-  ("text:symbol s" "±")
-  ("text:symbol S" "ë")
-  ("text:symbol x" "π")
-  ("text:symbol X" "ô")
-  ("text:symbol z" "ª")
-  ("text:symbol Z" "õ")
-  ("text:symbol a var" "Ê")
-  ("text:symbol A var" "∆")
-  ("text:symbol o var" "¯")
-  ("text:symbol O var" "ÿ")
-  ("text:symbol s var" "ˇ")
-  ("text:symbol S var" "ﬂ")
-  ("text:symbol z var" "π")
-  ("text:symbol Z var" "ô"))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overwrite shortcuts which are inadequate in certain contexts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
