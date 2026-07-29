@@ -192,8 +192,17 @@ reconcile_children (loro_shadow_rep* self, tree b, tree a, path base,
   }
   // 4) 对共有的递归（此刻 after 下标 == 工作副本下标）
   for (int j= 0; j < an; j++)
-    if (keptr[j] >= 0)
-      reconcile_node (self, kept[j], a[j], base * path (j), mods);
+    if (keptr[j] >= 0) {
+      // 防线：buffer 子与 after 子虽然 TreeID 相同，但若**类型/label 已不同**
+      // （如远端把 atomic para 结构化成 compound 容器），绝不能逐项 diff——
+      // 否则会对 compound 产字符 mod（can_insert 非法 → 崩溃）。整子树 assign。
+      tree kb= kept[j], ka= a[j];
+      bool same_kind=
+          (is_atomic (kb) && is_atomic (ka)) ||
+          (is_compound (kb) && is_compound (ka) && L (kb) == L (ka));
+      if (same_kind) reconcile_node (self, kb, ka, base * path (j), mods);
+      else mods= mods * mod_assign (base * path (j), ka);
+    }
 }
 
 // 对账单个节点：同身份（TreeID 相同）则按类型/内容细分，否则交给调用方

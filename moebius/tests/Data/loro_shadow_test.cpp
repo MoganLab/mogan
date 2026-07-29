@@ -608,30 +608,6 @@ TEST_CASE (
              " t_comp=", is_compound (l->item->t));
 }
 
-// 诊断：buffer=document(CONCAT(atomic 文本)) vs after=document(PARA(atomic
-// 文本)) ——远端把 concat para 变成 document para。看 reconcile 产的 mod（是否
-// atomic insert 到 compound）。
-TEST_CASE ("loro reconcile: DIAG concat-para becomes document-para") {
-  ensure_labels ();
-  // after: document(para("This is test"))
-  tree body (DOCUMENT, 1);
-  body[0]= mk_para ("This is test");
-  loro_shadow a;
-  a->seed (body);
-  string sa= a->export_snapshot ();
-  // buffer: document(concat("This is tes"))（文本 para 是 concat of atomic）
-  tree buf (DOCUMENT, 1);
-  tree con (CONCAT, 1);
-  con[0]= tree ("This is tes");
-  buf[0]= con;
-  loro_shadow        b;
-  list<modification> mods= b->remote_diff_mods (sa, buf);
-  MESSAGE ("diag nmods=", N (mods));
-  for (list<modification> l= mods; !is_nil (l); l= l->next)
-    MESSAGE ("  k=", (int) l->item->k, " t_atomic=", is_atomic (l->item->t),
-             " t_comp=", is_compound (l->item->t));
-}
-
 // 诊断：用 apply()（真实 observer 路径，非 clean_apply）对 et[2] 做
 // remove-all-para + insert-para，复现 JOIN 崩溃。
 
@@ -711,6 +687,70 @@ apply_mods (tree& buf, list<modification> mods) {
     else if (m->k == MOD_REMOVE) test_remove_slice (buf, m);
     else if (m->k == MOD_ASSIGN) subtree (buf, root (m))= m->t;
   }
+}
+
+// 共享血统的 atomic para 被远端结构化成 compound para（同 TreeID）：对账不得对
+// compound 产字符 mod（can_insert 非法），应整子树 assign 该 para。
+TEST_CASE (
+    "loro reconcile: shared atomic-para structified to compound-para assigns") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]= tree ("TEST line ");
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  // A 把 atomic para 结构化成 PARA compound（"TEST line 1"）
+  tree tA (DOCUMENT, 1);
+  tA[0]= mk_para ("TEST line 1");
+  a->mirror_mod (tA, mod_assign (path (0), tA[0]));
+  string sa= a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  list<modification> mods= b->remote_diff_mods (sa, tB);
+  // 不得有 atomic insert/remove 到 compound（崩溃源）；应是 assign 或结构 mod
+  for (list<modification> l= mods; !is_nil (l); l= l->next) {
+    modification m= l->item;
+    if (m->k == MOD_INSERT || m->k == MOD_REMOVE)
+      CHECK_EQ (is_applicable (tB, m), true);
+  }
+  apply_mods (tB, mods);
+  CHECK_EQ (tB == tA, true);
+}
+
+// 精确复现崩溃序列：A 在 para 里敲字符（文本）→ A 把 para 结构化成 compound
+// → A 再敲一个字符。B 逐批接收，对账产出的 mod 应用到 buffer 应全部合法。
+TEST_CASE ("loro reconcile: text edit then structify then text edit") {
+  ensure_labels ();
+  // A: document(空 para "TEST line ")（para 是 compound PARA）
+  tree t (DOCUMENT, 1);
+  t[0]= mk_para ("TEST line ");
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  tree   tA= t;
+
+  // 批1：A 在 para 里敲 '1'（文本）
+  a->mirror_mod (tA, mod_insert (path (0) * 0, 10, tree ("1")));
+  tA[0][0]->label= string ("TEST line 1");
+  string sa1     = a->export_snapshot ();
+
+  // B：接收批1
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  list<modification> m1= b->remote_diff_mods (sa1, tB);
+  apply_mods (tB, m1);
+  CHECK_EQ (tB[0][0]->label, "TEST line 1");
+
+  // 批2：A 再敲一个字符（文本）
+  a->mirror_mod (tA, mod_insert (path (0) * 0, 11, tree ("2")));
+  tA[0][0]->label       = string ("TEST line 12");
+  string             sa2= a->export_snapshot ();
+  list<modification> m2 = b->remote_diff_mods (sa2, tB);
+  apply_mods (tB, m2);
+  CHECK_EQ (tB[0][0]->label, "TEST line 12");
 }
 
 // ===== 身份对账（0778）：跨 merge 后 buffer 与 shadow 顺序错位时，reconcile
