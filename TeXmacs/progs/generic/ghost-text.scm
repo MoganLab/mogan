@@ -145,14 +145,16 @@
 (tm-define (generate-ghost-text current)
   (let* ((ctx (ghost-collect-context)) (prefix (car ctx)) (suffix (cdr ctx)))
     (set! ghost-pending-cursor (cursor-path))
-    (display* "ghost-context: mode="
-      (if (in-math?) "math" "text")
-      " prefix=["
-      prefix
-      "] suffix=["
-      suffix
-      "]\n"
-    ) ;display*
+    (debug-message "debug-io"
+      (string-append "ghost-context: mode="
+        (if (in-math?) "math" "text")
+        " prefix=["
+        prefix
+        "] suffix=["
+        suffix
+        "]\n"
+      ) ;string-append
+    ) ;debug-message
     ;; serial + 光标校验通过后才插入 ghost
     (ghost-cloud-predict prefix
       suffix
@@ -170,7 +172,7 @@
 ) ;tm-define
 
 (define (ghost-on-predict text)
-  (display* "ghost-predict: text=[" text "]\n")
+  (debug-message "debug-io" (string-append "ghost-predict: text=[" text "]\n"))
   (set! ghost-content text)
   ;; cursor-after 保证光标停在 ghost 之前
   (cursor-after (insert `(ghost ,text)))
