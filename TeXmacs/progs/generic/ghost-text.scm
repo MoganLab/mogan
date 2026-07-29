@@ -172,7 +172,9 @@
 ) ;tm-define
 
 (define (ghost-on-predict text)
-  (debug-message "debug-io" (string-append "ghost-predict: text=[" (herk->utf8 text) "]\n"))
+  (debug-message "debug-io"
+    (string-append "ghost-predict: text=[" (herk->utf8 text) "]\n")
+  ) ;debug-message
   (set! ghost-content text)
   ;; cursor-after 保证光标停在 ghost 之前
   (cursor-after (insert `(ghost ,text)))
