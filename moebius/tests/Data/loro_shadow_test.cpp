@@ -642,6 +642,39 @@ apply_mods (tree& buf, list<modification> mods) {
 // 按 TreeID（而非位置）删/移，绝不错删并发节点。复现「<alpha> 被吞」的病根：
 // 位置型 diff_walk 会把 remove 落到错下标，身份对账则按 TreeID 精确删除。 =====
 
+// JOIN 容器回退：本端 buffer 是 TUPLE(空 document,...) 这类多文档容器（非
+// DOCUMENT body），与远端 body 异构。对账不得逐项比（会产生 remove+空 insert
+// 的非法 mod），应回退整树 assign。覆盖 0778 JOIN 崩溃。
+TEST_CASE (
+    "loro reconcile: non-document buffer falls back to whole-tree assign") {
+  ensure_labels ();
+  // 远端 body: (document (para "a") (para "b"))
+  tree body (DOCUMENT, 2);
+  body[0]= mk_para ("a");
+  body[1]= mk_para ("b");
+  loro_shadow a;
+  a->seed (body);
+  string sa= a->export_snapshot ();
+
+  // 本端 buffer 是多文档容器 TUPLE(空 document, 空 document, 空 document)
+  tree empty_doc (DOCUMENT, 1);
+  empty_doc[0]= tree ("");
+  tree cont (TUPLE, 3);
+  cont[0]= empty_doc;
+  cont[1]= empty_doc;
+  cont[2]= empty_doc;
+
+  loro_shadow        b;
+  tree               stub= cont; // 远端先到，本端还是容器 stub
+  list<modification> mods= b->remote_diff_mods (sa, stub);
+  // 必须是单个整树 assign（不产生 remove/空 insert）
+  CHECK_EQ (N (mods), 1);
+  if (N (mods) == 1) CHECK_EQ ((int) mods->item->k, (int) MOD_ASSIGN);
+  // 应用后 buffer == 远端 body
+  apply_mods (stub, mods);
+  CHECK_EQ (stub == body, true);
+}
+
 // 同 peer 结构编辑：A（创建者）删掉中间 para "b"，B 共享血统后接收。身份
 // 对账按 TreeID 删 b，且复用 a/c 的 rep（不整段重排）。
 TEST_CASE ("loro reconcile: remote remove deletes correct child by TreeID") {

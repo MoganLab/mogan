@@ -218,6 +218,12 @@ loro_shadow_rep::reconcile_walk (tree buffer, tree after) {
 list<modification>
 loro_shadow_rep::diff_from_current (tree buffer) {
   tree after= to_tree_with_ids ();
+  // 仅当 buffer 是协作 body（DOCUMENT 根，如 the_buffer()）才走身份对账。
+  // JOIN 时本端 buffer 可能是 TUPLE(空 document,...) 这类多文档容器，与 body
+  // 结构异构，逐项对账会产生 remove+空 insert（can_insert 非法）；容器由
+  // import_and_build 整体重建，这里回退整树 assign 兜底。
+  if (!is_compound (buffer) || L (buffer) != moebius::DOCUMENT)
+    return list<modification> (mod_assign (path (), after));
   return reconcile_walk (buffer, after);
 }
 
