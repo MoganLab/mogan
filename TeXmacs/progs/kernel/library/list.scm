@@ -76,21 +76,21 @@
 
 (define-public (cAr l) "Get last element of @l." (car (last-pair l)))
 
-(define-public (cDr l)
-  "Remove last element from @l."
-  (reverse (cdr (reverse l)))
-) ;define-public
+(define-public (cDr l) "Remove last element from @l." (list-drop-right l 1))
 
-(define-public (cADr l) "Get before last element of @l." (cadr (reverse l)))
+(define-public (cADr l)
+  "Get before last element of @l."
+  (car (list-take-right l 2))
+) ;define-public
 
 (define-public (cDDr l)
   "Remove two last elements from @l"
-  (reverse (cddr (reverse l)))
+  (list-drop-right l 2)
 ) ;define-public
 
 (define-public (cDDDr l)
-  "Remove two last elements from @l"
-  (reverse (cdddr (reverse l)))
+  "Remove three last elements from @l"
+  (list-drop-right l 3)
 ) ;define-public
 
 (define-public (cDdr l) "Remove first and last elements from @l" (cDr (cdr l)))
