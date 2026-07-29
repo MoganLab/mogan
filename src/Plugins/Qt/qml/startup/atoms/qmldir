@@ -1,0 +1,3 @@
+singleton StartupTheme 1.0 StartupTheme.qml
+StyleCard 1.0 StyleCard.qml
+TemplateCard 1.0 TemplateCard.qml
