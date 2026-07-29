@@ -43,7 +43,7 @@
   (kbd-variant (focus-tree) #t)
 ) ;tm-define
 
-(tm-define (u8-insert t) (insert (utf8->herk t)))
+(tm-define (utf8-insert t) (insert (utf8->herk t)))
 
 (define (var-make tag . opt-arity)
   (if (null? opt-arity) (cpp-make tag) (cpp-make-arity tag (car opt-arity)))

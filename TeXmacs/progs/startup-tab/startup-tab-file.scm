@@ -49,7 +49,7 @@
   ;; Get recent document paths with the same filtering and ordering
   ;; as File -> Recent used
   (let* ((raw (string->number (get-preference "startup-tab:max-recent")))
-         (nr (if (number? raw) raw 50))
+         (nr (if (number? raw) raw 10))
          (nr (max 1 nr))
         ) ;
     (map url->system (recent-file-list nr))

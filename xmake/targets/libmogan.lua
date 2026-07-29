@@ -50,6 +50,9 @@ target("libmogan") do
         add_deps("imgui")
         set_kind("static")
     end
+    if has_config("goldfish") and not is_plat("wasm") then
+        add_defines("GOLDFISH_ENABLE_HTTP")
+    end
 
     set_policy("check.auto_ignore_flags", false)
     on_install(function (target)
