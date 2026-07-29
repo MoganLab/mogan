@@ -37,6 +37,7 @@
   (:check-mark "v" in-source-mode?)
   (let ((new (if (string=? (get-env "preamble") "true") "false" "true")))
     (init-env "preamble" new)
+    (delayed (:idle 1) (update-menus 'all))
   ) ;let
 ) ;tm-define
 
@@ -447,6 +448,7 @@
           (delayed (:idle 25) (restore-zoom s))
         ) ;else
   ) ;cond
+  (delayed (:idle 1) (update-menus 'all))
 ) ;tm-define
 
 (tm-define (initial-get-page-rendering u)
