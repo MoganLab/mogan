@@ -34,6 +34,9 @@ private:
   // 多光标：本端 peer id（会话级稳定）、光标节流时间戳
   string peer_id;
   time_t last_cursor_send= 0;
+  // 节流丢弃的光标/选区变化标记：被 50ms 节流挡下时置位，待 poll() 补发，
+  // 保证拖动选区/取消选区的最终状态一定送达对端（参见 flush_cursor / poll）。
+  bool cursor_dirty= false;
 
   void   set_message (string left);
   time_t reconnect_backoff (int attempt);

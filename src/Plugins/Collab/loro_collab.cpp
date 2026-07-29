@@ -33,7 +33,8 @@ broadcast_to_server (string bytes) {
 }
 
 // 多光标：编辑器侧 collab_cursor_moved_hook 经此触发「当前 buffer 的会话」
-// 节流补发光标（≥50ms）。无 cursor_dirty 标记——hook 直接触发 flush。
+// 节流上行（≥50ms）。节流挡下时由 flush_cursor 置 cursor_dirty，poll() 补发，
+// 保证选区最终状态一定送达对端。
 void
 flush_current_cursor () {
   url             buf    = get_current_buffer ();
@@ -232,6 +233,12 @@ collab_session::poll () {
     await_frame_since= 0;
     become_ready ();
   }
+  // 节流补发：上次光标/选区变化被 50ms 节流挡下后，poll 时补发最终状态。
+  // poll 经 loro_collab_poll() 在每个 GUI
+  // 事件周期调用，故补发最多滞后一个重绘周期。
+  if (state == collab_state::ready && cursor_dirty &&
+      texmacs_time () - last_cursor_send >= 50)
+    flush_cursor (false);
   maybe_reconnect ();
 }
 
@@ -259,17 +266,23 @@ collab_session::send_cursor (string payload) {
 }
 
 // 发送本端光标。force=true（编辑后）总是发；force=false（光标移动/选区变化）
-// 按 ≥50ms 节流。无 cursor_dirty 标记——由调用方决定 force 与否。
+// 按 ≥50ms 节流。节流挡下时不丢弃，置 cursor_dirty 待 poll() 补发，保证选区
+// 最终状态一定送达（拖动/取消选区时同一帧内 go_to 先发旧选区、set_selection
+// 被节流丢弃，若无补发则选区永久滞后或停在旧高亮）。
 void
 collab_session::flush_cursor (bool force) {
   if (state != collab_state::ready) return;
-  if (!force && texmacs_time () - last_cursor_send < 50) return;
+  if (!force && texmacs_time () - last_cursor_send < 50) {
+    cursor_dirty= true; // 节流：标记待发，不丢弃
+    return;
+  }
   editor ed= get_editor ();
   if (!is_nil (ed)) {
     string payload= ed->collab_cursor_payload ();
     if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
   }
   last_cursor_send= texmacs_time ();
+  cursor_dirty    = false; // 已尝试发（含空 payload），清除脏标记
 }
 
 void
