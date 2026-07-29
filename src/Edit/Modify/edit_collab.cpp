@@ -125,34 +125,12 @@ edit_modify_rep::apply_remote (string bytes) {
     sel_end_save  = position_new (ep);
   }
 
-  loro_applying_remote= true;
-  if (DEBUG_LORO) {
-    tree buf= the_buffer ();
-    debug_loro << "apply_remote: rp=" << as_string (rp)
-               << " buffer is_comp=" << is_compound (buf)
-               << " op=" << (int) buf->op << " L=" << as_string (L (buf))
-               << " N=" << N (buf) << " | et op=" << (int) et->op
-               << " L=" << as_string (L (et)) << " N=" << N (et) << "\n";
-  }
+  loro_applying_remote   = true;
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
   if (DEBUG_LORO)
     debug_loro << "Diff produced " << N (mods) << " modifications.\n";
   for (list<modification> l= mods; !is_nil (l); l= l->next) {
     if (DEBUG_LORO) debug_loro << "Applying remote mod: " << l->item << "\n";
-    if (DEBUG_LORO) {
-      path rp2= rp * root (l->item);
-      debug_loro << "  target: rp*root=" << as_string (rp2)
-                 << " has_subtree=" << has_subtree (et, rp2)
-                 << (has_subtree (et, rp2)
-                         ? string (" st_comp=") *
-                               as_string (is_compound (subtree (et, rp2))) *
-                               string (" st_N=") *
-                               as_string (N (subtree (et, rp2))) *
-                               string (" st_L=") *
-                               as_string (L (subtree (et, rp2)))
-                         : string (" (no subtree)"))
-                 << "\n";
-    }
     apply (et, rp * l->item);
   }
   // applying_remote 暂不关闭：apply_remote_meta 的回写 setter 也要在守卫内
