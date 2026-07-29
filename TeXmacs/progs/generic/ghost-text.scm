@@ -134,6 +134,7 @@
                 (not-in-tab-cycling?)
                 (or (in-text?) (in-math?))
                 (in-editor-buffer?)
+                (not-at-line-start?)
               ) ;and
           (generate-ghost-text current)
         ) ;when
@@ -236,6 +237,14 @@
 
 (define (not-in-tab-cycling?)
   (not (== last-key-press "tab"))
+) ;define
+
+(define (not-at-line-start?)
+  (let* ((ctx (ghost-collect-context)) (prefix (car ctx)))
+    (and (not (string=? prefix ""))
+      (not (char=? (string-ref prefix (- (string-length prefix) 1)) #\newline))
+    ) ;and
+  ) ;let*
 ) ;define
 
 (define (in-editor-buffer?)
