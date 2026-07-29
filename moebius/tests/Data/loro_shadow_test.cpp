@@ -689,6 +689,69 @@ apply_mods (tree& buf, list<modification> mods) {
   }
 }
 
+// 不同 peer：A 换行 → B 接收 → A 敲字符 → B 接收。逐步看 buffer 结构与 mod。
+TEST_CASE ("loro reconcile: DIAG different-peer newline then type full") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]= mk_para ("TESTLINE1");
+  loro_shadow a;
+  a->seed (t);
+  // 批1：A 换行 → concat
+  tree tA1 (DOCUMENT, 1);
+  tree con (CONCAT, 2);
+  con[0]= tree ("TESTLINE");
+  con[1]= tree ("1");
+  tA1[0]= con;
+  a->mirror_mod (tA1, mod_assign (path (0), tA1[0]));
+  string sa1= a->export_snapshot ();
+  // B：seed 同内容（不同 peer），接收批1
+  tree tB (DOCUMENT, 1);
+  tB[0]= mk_para ("TESTLINE1");
+  loro_shadow b;
+  b->seed (tB);
+  list<modification> m1= b->remote_diff_mods (sa1, tB);
+  for (list<modification> l= m1; !is_nil (l); l= l->next)
+    MESSAGE ("  b1 k=", (int) l->item->k, " app=", is_applicable (tB, l->item));
+  apply_mods (tB, m1);
+  // 批2：A 敲字符（在 concat 的 atomic 子里）
+  a->mirror_mod (tA1, mod_insert (path (0) * 0, 8, tree ("2")));
+  tA1[0][0]->label      = string ("TESTLINE2");
+  string             sa2= a->export_snapshot ();
+  list<modification> m2 = b->remote_diff_mods (sa2, tB);
+  for (list<modification> l= m2; !is_nil (l); l= l->next)
+    MESSAGE ("  b2 k=", (int) l->item->k, " t_atomic=", is_atomic (l->item->t),
+             " app=", is_applicable (tB, l->item));
+}
+
+// 远端换行分段：para "TESTLINE1" 在某处分成两段。对账应按 TreeID 细粒度处理
+// （删/插 para + 文本对齐），不整树降级。
+TEST_CASE ("loro reconcile: remote splits para into two applies cleanly") {
+  ensure_labels ();
+  // A: document(para "TESTLINE1")
+  tree t (DOCUMENT, 1);
+  t[0]= mk_para ("TESTLINE1");
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  // A：把 para 分成两段（"TESTLINE" + "1"）——换行
+  tree tA (DOCUMENT, 2);
+  tA[0]= mk_para ("TESTLINE");
+  tA[1]= mk_para ("1");
+  a->mirror_mod (tA, mod_assign (path (), tA));
+  string sa= a->export_snapshot ();
+
+  // B：buffer = document(para "TESTLINE1")（共享血统）
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  list<modification> mods= b->remote_diff_mods (sa, tB);
+  // 所有 mod 必须对当前 buffer 可应用（不允许 atomic-insert-to-compound）
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    CHECK_EQ (is_applicable (tB, l->item), true);
+  apply_mods (tB, mods);
+  CHECK_EQ (tB == tA, true);
+}
+
 // 共享血统的 atomic para 被远端结构化成 compound para（同 TreeID）：对账不得对
 // compound 产字符 mod（can_insert 非法），应整子树 assign 该 para。
 TEST_CASE (
