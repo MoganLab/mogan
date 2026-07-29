@@ -1065,7 +1065,80 @@ QLabel#login-update-title {
   background: rgba(255, 255, 255, 0.92);
 }
 
-/* 模板预览对话框按钮 */
+/****************************************************************************
+* 启动标签页样式 (Startup Tab) - 墨绿主题
+* 主色: #215a6a (深墨绿)
+* 辅色: #2791ad (浅墨绿/青色)
+* 文字: 白色 / 黑色
+****************************************************************************/
+
+/* 启动标签页主窗口 - 左侧导航栏 */
+QWidget#startup-tab-sidebar {
+  background-color: #215a6a;
+}
+
+/* 导航栏分组标题 */
+QLabel#startup-tab-nav-title {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: bold;
+}
+
+/* 导航按钮 - 普通状态 */
+QPushButton#startup-tab-nav-btn {
+  color: #ffffff;
+  background-color: transparent;
+  border: none;
+  text-align: center;
+}
+
+QPushButton#startup-tab-nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 导航按钮 - 选中状态 */
+QPushButton#startup-tab-nav-btn:checked {
+  background-color: #2791ad;
+}
+
+/* 退出按钮 */
+QPushButton#startup-tab-quit-btn {
+  color: #ffffff;
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+QPushButton#startup-tab-quit-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: #ffffff;
+}
+
+/* 右侧内容区 */
+QWidget#startup-tab-content {
+  background-color: #f3f3f3;
+}
+
+/* 页面描述文字 */
+QLabel#startup-tab-page-desc {
+  color: #666666;
+}
+
+/* 模板网格容器 */
+QWidget#startup-tab-grid {
+  background-color: #f3f3f3;
+}
+
+/* 模板缩略图卡片 */
+QFrame#startup-tab-template-card  {
+  border: 1px solid #cfcfcf;
+  background-color: #ffffff;
+}
+
+QFrame#startup-tab-template-card:hover {
+  border: 1px solid #2791ad;
+}
+
+/* 模板使用按钮 - Template Use Button */
 QPushButton#template-use-btn {
   background-color: #2791ad;
   color: white;
@@ -1089,6 +1162,96 @@ QPushButton#template-cancel-btn:hover {
 
 QLabel#template-preview-desc {
   color: #666666;
+}
+
+QLabel#startup-tab-template-info {
+  color: #888888;
+}
+
+QLabel#startup-tab-template-thumbnail {
+  background: #f5f5f5;
+}
+
+/* Startup tab - file page */
+QFrame#startup-tab-separator {
+  color: #d8dde2;
+}
+
+QLabel#startup-tab-section-title {
+  font-weight: 600;
+  color: #215a6a;
+}
+
+QListWidget#recent-docs-list {
+  border: 1px solid #d7dce2;
+  background-color: #ffffff;
+  outline: none;
+}
+
+QListWidget#recent-docs-list::item {
+  border: none;
+}
+
+QListWidget#recent-docs-list::item:hover {
+  background-color: #f5f5f5;
+}
+
+QListWidget#recent-docs-list::item:selected {
+  background-color: #e8f3f7;
+}
+
+QWidget#startup-tab-recent-item {
+  background: transparent;
+}
+
+QLabel#startup-tab-recent-name {
+  font-weight: 700;
+  color: #1f2933;
+}
+
+QWidget#style-card {
+  background-color: #ffffff;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+}
+
+QWidget#style-card:hover {
+  border: 1px solid #2791ad;
+}
+
+QLabel#style-card-icon {
+  color: #215a6a;
+  font-weight: 700;
+}
+
+QLabel#style-card-icon-new {
+  border-image: url(":/startup-tab/new-file.svg") 0 0 0 0 stretch stretch;
+}
+
+QLabel#style-card-icon-open {
+  border-image: url(":/startup-tab/open-file.svg") 0 0 0 0 stretch stretch;
+}
+
+QLabel#style-card-name {
+  color: #2b3b45;
+}
+
+QFrame#style-card-frame {
+  border: 1px solid #cfcfcf;
+  background-color: #ffffff;
+}
+
+QFrame#style-card-frame:hover {
+  border: 1px solid #2791ad;
+}
+
+QLabel#style-card-thumbnail {
+  background: #f5f5f5;
+}
+
+QLabel#style-card-title {
+  background-color: #ffffff;
+  color: #2b3b45;
 }
 
 /****************************************************************************

@@ -12,10 +12,10 @@
 #include "template_manager.hpp"
 #include "template_api.hpp"
 #include "template_cache.hpp"
-#include "thumbnail_loader.hpp"
 
 #include "image_cache_base.hpp"
 #include "qt_utilities.hpp"
+#include <QCryptographicHash>
 #include <QEventLoop>
 #include <QFile>
 #include <QJsonArray>
@@ -70,15 +70,6 @@ TemplateManager::TemplateManager (QObject* parent)
            &TemplateManager::onRemoteRecommendTemplatesLoaded);
   connect (api_, &TemplateAPI::recommendTemplatesLoadFailed, this,
            &TemplateManager::onRemoteRecommendTemplatesFailed);
-
-  // 缩略图下载器
-  thumbnailLoader_= new ThumbnailLoader (this);
-  connect (thumbnailLoader_, &ThumbnailLoader::ready, this,
-           [this] (const QString&) {
-             // 不修改 templates_ 中的 thumbnailUrl（保持原始远程 URL），
-             // 仅通知消费者刷新，由 bridge 层通过 getUrl() 取本地路径。
-             emit thumbnailCached (QString ());
-           });
 }
 
 TemplateManager::~TemplateManager () { g_instance= nullptr; }
@@ -796,12 +787,6 @@ TemplateManager::mergeMetadata (
         debug_std << "[Template] " << qPrintable (tmpl->id)
                   << " found in cache\n";
     }
-  }
-
-  // 触发缩略图异步下载（不修改 thumbnailUrl，URL 转换在 bridge 层进行）
-  for (auto it= templates_.begin (); it != templates_.end (); ++it) {
-    TemplateMetadataPtr tmpl= it.value ();
-    if (tmpl) thumbnailLoader_->getUrl (tmpl->thumbnailUrl);
   }
 }
 
