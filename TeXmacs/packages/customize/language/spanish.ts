@@ -21,6 +21,8 @@
   </src-title>>
 
   <assign|language|spanish>
+
+  <use-module|(lang spanish-kbd)>
 </body>
 
 <\initial>

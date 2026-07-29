@@ -348,17 +348,6 @@
   ("text:symbol o var" "¯"))
 
 (kbd-map
-  (:mode in-spanish?)
-  ("°" "Ω")
-  ("ø" "æ")
-  ("! var" "Ω")
-  ("? var" "æ")
-  ("! `" "Ω")
-  ("? `" "æ")
-  ("! accent:grave" "Ω")
-  ("? accent:grave" "æ"))
-
-(kbd-map
   (:mode in-polish?)
   ("text:symbol a" "°")
   ("text:symbol A" "Å")
