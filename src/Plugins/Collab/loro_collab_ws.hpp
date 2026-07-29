@@ -31,6 +31,15 @@ private:
   time_t                               next_reconnect_at= 0;
   int                                  reconnect_attempt= 0;
   array<string>                        pending_updates;
+  // 远端节流（0774）：ready 稳态下收到的远端消息（二进制内容帧 + "CURSOR "
+  // 文本帧） 先入队，每 MOGAN_LORO_REMOTE_INTERVAL_MS（默认 1.5s）由
+  // flush_inbound 统一回放， 避免对端每键触发一次全量 retypeset。await_frame
+  // 初始同步与控制帧仍立即处理。
+  array<string>
+      pending_inbound_data; // 与 pending_inbound_binary 并行的待回放消息
+  array<bool>
+         pending_inbound_binary; // 每条是否二进制（true=内容帧，false=CURSOR）
+  time_t first_inbound_at= 0;    // 队首消息到达时间（ms）；0=队列空
   // 多光标：本端 peer id（会话级稳定）、光标节流时间戳
   string peer_id;
   time_t last_cursor_send= 0;
@@ -38,6 +47,12 @@ private:
   void   set_message (string left);
   time_t reconnect_backoff (int attempt);
   void   become_ready ();
+  // 远端节流（0774）：apply_inbound 真正落库；buffer_inbound 入队 + arm
+  // 时间戳； flush_inbound 节流到点按序回放（force=true 跳过节流，用于
+  // disconnect 前冲刷）。
+  void apply_inbound (string data, bool is_binary);
+  void buffer_inbound (string data, bool is_binary);
+  void flush_inbound (bool force= false);
 
 public:
   collab_session (url buf_url);

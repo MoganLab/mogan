@@ -201,6 +201,8 @@ collab_session::join (string url_str, string id) {
 
 void
 collab_session::disconnect () {
+  // 0774：拆连接前尽量冲刷已缓冲的远端消息，避免丢失未落地的对端编辑。
+  flush_inbound (true);
   want_reconnect= false;
   enter_idle ();
   doc_id           = "";
@@ -233,6 +235,9 @@ collab_session::poll () {
     become_ready ();
   }
   maybe_reconnect ();
+  // 0774：节流回放 ready 稳态下缓冲的远端消息（ws->poll 触发的 on_message
+  // 已先入队）。
+  flush_inbound ();
 }
 
 void
@@ -280,8 +285,68 @@ collab_session::on_connect () {
   else ws->send ("CREATE", false);
 }
 
+// 远端节流间隔（0774）：MOGAN_LORO_REMOTE_INTERVAL_MS 可覆盖；默认
+// 500ms，0=立即 （恢复旧行为，便于对比/测试）。读一次缓存。
+static time_t
+remote_flush_interval_ms () {
+  static time_t v= -1;
+  if (v < 0) {
+    string env   = get_env ("MOGAN_LORO_REMOTE_INTERVAL_MS");
+    time_t parsed= (env != "") ? (time_t) as_int (env) : -1;
+    v            = (parsed >= 0) ? parsed : 500;
+  }
+  return v;
+}
+
+// 真正落库一条远端消息：二进制→apply_remote（body+meta 内容）；"CURSOR "→解析
+// peer/payload 后 set_remote_cursor。on_message
+// 的立即路径（await_frame/其它态）与 flush_inbound 的节流回放共用此入口。
+void
+collab_session::apply_inbound (string data, bool is_binary) {
+  editor ed= get_editor ();
+  if (is_nil (ed)) return;
+  if (is_binary) ed->apply_remote (data);
+  else if (starts (data, "CURSOR ")) {
+    // "CURSOR <peer> <payload>"：peer=首空格前，payload=其后（含空格，不透明）
+    string rest= data (7, N (data));
+    int    sp  = search_forwards (" ", rest);
+    if (sp >= 0) ed->set_remote_cursor (rest (0, sp), rest (sp + 1, N (rest)));
+  }
+}
+
+// ready 稳态：远端消息先入队；仅队空时 arm
+// first_inbound_at，使节流窗口从队首算起。
+void
+collab_session::buffer_inbound (string data, bool is_binary) {
+  pending_inbound_data << data;
+  pending_inbound_binary << is_binary;
+  if (first_inbound_at == 0) first_inbound_at= texmacs_time ();
+}
+
+// 节流到点（或 force）则按到达顺序回放整队。内容帧必须保序（Loro update
+// 有序）； CURSOR 按序回放，set_remote_cursor 按 peer 覆盖，自然
+// last-wins。editor 为 nil 时 保留队列、下帧重试；回放前先取出再清空，避免
+// apply_remote 期间重入误清新消息。
+void
+collab_session::flush_inbound (bool force) {
+  if (N (pending_inbound_data) == 0) return;
+  if (!force &&
+      texmacs_time () - first_inbound_at < remote_flush_interval_ms ())
+    return;
+  editor ed= get_editor ();
+  if (is_nil (ed)) return; // 无视图：保留待应用，下帧重试
+  array<string> data_copy  = pending_inbound_data;
+  array<bool>   binary_copy= pending_inbound_binary;
+  pending_inbound_data     = array<string> ();
+  pending_inbound_binary   = array<bool> ();
+  first_inbound_at         = 0;
+  for (int i= 0; i < N (data_copy); i++)
+    apply_inbound (data_copy[i], binary_copy[i]);
+}
+
 void
 collab_session::on_message (string data, bool is_binary) {
+  // 控制文本帧：始终立即处理（驱动状态机），不进节流队列。
   if (!is_binary) {
     if (starts (data, "DOC ")) {
       doc_id= data (4, N (data));
@@ -293,23 +358,14 @@ collab_session::on_message (string data, bool is_binary) {
       else {
         enter_await_frame ();
       }
+      return;
     }
     else if (starts (data, "ERR ")) {
       std_error << "服务端错误: " << data << "\n";
       want_reconnect= false;
       enter_idle ();
       set_message (data * " — stopped reconnecting");
-    }
-    else if (starts (data, "CURSOR ")) {
-      // "CURSOR <peer>
-      // <payload>"：peer=首空格前，payload=其后（含空格，不透明）
-      string rest= data (7, N (data));
-      int    sp  = search_forwards (" ", rest);
-      if (sp >= 0) {
-        editor ed= get_editor ();
-        if (!is_nil (ed))
-          ed->set_remote_cursor (rest (0, sp), rest (sp + 1, N (rest)));
-      }
+      return;
     }
     else if (data == "SYNC-END") {
       // 服务端补发完 snapshot/updates 后的下发结束标记：空文档无帧，靠它从
@@ -318,24 +374,30 @@ collab_session::on_message (string data, bool is_binary) {
         if (DEBUG_LORO) debug_loro << "收到 SYNC-END，空文档就绪\n";
         become_ready ();
       }
+      return;
     }
+    // "CURSOR " 不在此处理：落入下方按状态分派（ready 节流 / 其它态立即）。
+  }
+
+  // 内容帧（二进制）与远程光标帧（"CURSOR "）按状态分派：
+  if (state == collab_state::ready) {
+    // 稳态节流（0774）：入队，等 flush_inbound 每 MOGAN_LORO_REMOTE_INTERVAL_MS
+    // 统一 应用，避免对端每键触发一次全量 retypeset。
+    if (is_binary || starts (data, "CURSOR ")) buffer_inbound (data, is_binary);
     return;
   }
-  editor ed= get_editor ();
-  if (is_nil (ed)) return;
   if (state == collab_state::await_frame) {
-    ed->apply_remote (data);
-    become_ready ();
-    // 初始化（JOIN
-    // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
-    // 待用户实际移动光标/编辑时再上行。
+    // 初始同步：立即落库；首条内容帧标志同步完成 → 就绪。初始化不补发光标。
+    if (is_binary) {
+      apply_inbound (data, true);
+      become_ready ();
+    }
+    else if (starts (data, "CURSOR ")) apply_inbound (data, false);
+    return;
   }
-  else if (state == collab_state::ready) {
-    ed->apply_remote (data);
-    // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
-    // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
-    // 已被抑制）。
-  }
+  // 其它状态：内容帧丢弃（同原行为）；CURSOR
+  // 仍立即应用（保留原"任意态应用光标"行为）。
+  if (!is_binary && starts (data, "CURSOR ")) apply_inbound (data, false);
 }
 
 void
