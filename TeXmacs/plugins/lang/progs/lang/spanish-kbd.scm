@@ -18,6 +18,4 @@
  ("? var" "<#BF>")
  ("! `" "<#A1>")
  ("? `" "<#BF>")
- ("! accent:grave" "<#A1>")
- ("? accent:grave" "<#BF>")
 ) ;kbd-map
