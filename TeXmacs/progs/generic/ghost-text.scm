@@ -1,5 +1,5 @@
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : ghost-text.scm
 ;; DESCRIPTION : Ghost Text feature for MoganSTEM
@@ -9,11 +9,17 @@
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 ;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; 用户停输入 500ms → 收集 FIM 上下文 → ghost-cloud-predict 经常驻 goldfish 子进程
+;; 异步请求 DeepSeek FIM → 回调做 serial + 光标校验后插入 ghost。不阻塞 GUI。
+;; 文本模式过滤表格/图片/公式为 [TABLE][IMAGE][FORMULA]；数学模式取当前公式转 LaTeX。
 
 (texmacs-module (generic ghost-text)
   (:use (kernel texmacs tm-define)
     (kernel texmacs tm-modes)
+    (kernel library content)
+    (kernel library tree)
     (utils library cursor)
   ) ;:use
 ) ;texmacs-module
@@ -26,41 +32,94 @@
 
 (define ghost-active? #f)
 
-(define ghost-mark 0)
-
 (define ghost-content "")
+
+;; 发起请求时的光标位置，回调里校验是否移动过（移动则丢弃，避免插入位置错误）
+(define ghost-pending-cursor '())
 
 (define last-key-press "")
 
-;; Local acceptance threshold (91%)
-
-(define ghost-acceptance-threshold 0.91)
-
 (tm-define (is-ghost-active?) ghost-active?)
 
-(tm-define (ghost-enable?) (not (community-stem?)))
+(tm-define (ghost-enable?) (defined? 'ghost-cloud-predict))
+
+;; =============================================================================
+;; Context collection
+;; =============================================================================
+
+(define (ghost-body-stree)
+  (tm->stree (buffer-get-body (current-buffer)))
+) ;define
+
+;; cursor-path 形如 (<buffer-path...> <doc-idx> ...)，去掉 buffer-path 前缀
+
+(define (ghost-relative-path)
+  (let* ((cp (cursor-path)) (bp (buffer-path)) (blen (length bp)))
+    (if (>= (length cp) blen) (list-tail cp blen) cp)
+  ) ;let*
+) ;define
+
+(define (ghost-collect-text-context)
+  (let* ((body (ghost-body-stree)) (path (ghost-relative-path)))
+    (ghost-split-text-context body path)
+  ) ;let*
+) ;define
+
+;; R7RS base 无 find，用命名 let 在 ghost-formula-labels 上递归
+
+(define (ghost-find-formula)
+  (let loop
+    ((labels ghost-formula-labels))
+    (if (null? labels)
+      #f
+      (let ((t (tree-innermost (car labels))))
+        (or t (loop (cdr labels)))
+      ) ;let
+    ) ;if
+  ) ;let
+) ;define
+
+(define (ghost-collect-math-context)
+  (let* ((formula-t (or (ghost-find-formula) (ghost-innermost-inline-math)))
+         (formula-stree (and formula-t (tm->stree formula-t)))
+        ) ;
+    (if (not formula-stree)
+      (cons "" "")
+      (let* ((fp (and formula-t (tree->path formula-t)))
+             (cp (cursor-path))
+             (inner (and fp (>= (length cp) (length fp)) (list-tail cp (length fp))))
+             (pair (ghost-split-math-context formula-stree (or inner '())))
+             (before-latex (ghost-stree->latex (car pair)))
+             (after-latex (ghost-stree->latex (cdr pair)))
+            ) ;
+        (cons before-latex after-latex)
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define
+
+;; inline 数学：光标在 with "mode" "math" 内但非 displayed 公式环境
+(define (ghost-innermost-inline-math)
+  (and (in-math?) (not (ghost-find-formula)) (cursor-tree))
+) ;define
+
+(define (ghost-stree->latex stree)
+  (if (string? stree)
+    stree
+    (let ((s (convert (tm->tree stree) "texmacs-tree" "latex-snippet")))
+      (if (string? s) s "")
+    ) ;let
+  ) ;if
+) ;define
+
+(define (ghost-collect-context)
+  (if (in-math?) (ghost-collect-math-context) (ghost-collect-text-context))
+) ;define
 
 ;; =============================================================================
 ;; Model evaluation
 ;; =============================================================================
 
-(define (mock-cloud-api)
-  ;; Simulate cloud API response with confidence level (100%)
-  (let* ((candidates '(" because of this"
-                       " to implement a demo"
-                       " as specified in the task"
-                       " with wonderful LiiiSTEM")
-         ) ;candidates
-         (text (list-ref candidates (random (length candidates))))
-         (confidence 1.0)
-        ) ;
-    (cons text confidence)
-  ) ;let*
-) ;define
-
-;; =============================================================================
-;; Ghost Text core control flow
-;; =============================================================================
 (tm-define (trigger-ghost-text)
   (when (ghost-enable?)
     (when ghost-active?
@@ -74,50 +133,80 @@
                 (or (in-text?) (in-math?))
                 (in-editor-buffer?)
               ) ;and
-          (generate-ghost-text)
+          (generate-ghost-text current)
         ) ;when
       ) ;delayed
     ) ;let
   ) ;when
 ) ;tm-define
 
-(tm-define (generate-ghost-text)
-  (let* ((api-res (mock-cloud-api)) (text (car api-res)) (confidence (cdr api-res)))
-    ;; Check if model confidence meets local acceptance threshold (91%)
-    (when (>= confidence ghost-acceptance-threshold)
-      (set! ghost-content text)
-      (set! ghost-mark (mark-new))
-      (mark-start ghost-mark)
-      (archive-state)
-      ;; cursor-after ensures the cursor position remains before the ghost text
-      (cursor-after (insert `(ghost ,text)))
-      (set! ghost-active? #t)
-      (show-ghost-popup)
-    ) ;when
-  ) ;let*
+(tm-define (generate-ghost-text current)
+  (let* ((ctx (ghost-collect-context)) (prefix (car ctx)) (suffix (cdr ctx)))
+    (set! ghost-pending-cursor (cursor-path))
+    (display* "ghost-context: mode="
+      (if (in-math?) "math" "text")
+      " prefix=["
+      prefix
+      "] suffix=["
+      suffix
+      "]\n"
+    ) ;display*
+    ;; serial + 光标校验通过后才插入 ghost
+    (ghost-cloud-predict prefix suffix
+      (lambda (res)
+        (when (and res (== ghost-serial current)
+                   (equal? (cursor-path) ghost-pending-cursor))
+          (let ((text (ghost-build-completion (vector->list (car res))
+                                              (vector->list (cdr res)))))
+            (when text (ghost-on-predict text)))))))
 ) ;tm-define
 
+;; =============================================================================
+;; Completion handling
+;; =============================================================================
+
+(define (ghost-on-predict text)
+  (display* "ghost-predict: text=[" text "]\n")
+  (set! ghost-content text)
+  (cursor-after (insert `(ghost ,text)))
+  (set! ghost-active? #t)
+  (show-ghost-popup)
+) ;define
+
+;; ghost body 是 accessible none，光标无法进入，故用 tree-search 定位
+(define (ghost-node)
+  (let ((found (tree-search (buffer-get-body (current-buffer))
+                (lambda (t) (tree-is? t 'ghost)))))
+    (and (pair? found) (car found)))
+) ;define
+
+;; 移除 ghost 节点；keep-content? 为真则保留补全文本
+(define (ghost-remove-node! keep-content?)
+  (let ((t (ghost-node)))
+    (when t
+      (let ((p (tree-up t)) (i (tree-index t)))
+        (tree-remove! p i 1)
+        (when keep-content? (insert (tree-ref t 0))))))
+) ;define
+
 (tm-define (accept-ghost)
-  (let ((text ghost-content))
-    (set! ghost-active? #f)
-    (hide-ghost-popup)
-    (mark-cancel ghost-mark)
-    (insert text)
-    (ghost-feedback 'accept)
-  ) ;let
+  (set! ghost-active? #f)
+  (hide-ghost-popup)
+  (ghost-remove-node! #t)
+  (ghost-feedback 'accept)
 ) ;tm-define
 
 (tm-define (reject-ghost)
   (set! ghost-active? #f)
   (hide-ghost-popup)
-  (mark-cancel ghost-mark)
+  (ghost-remove-node! #f)
   (ghost-feedback 'reject)
 ) ;tm-define
 
 (tm-define (ignore-ghost)
   (set! ghost-active? #f)
   (hide-ghost-popup)
-  (mark-cancel ghost-mark)
+  (ghost-remove-node! #f)
   (ghost-feedback 'ignore)
 ) ;tm-define
 
@@ -167,7 +256,4 @@
 ;; Feedback functions
 ;; =============================================================================
 
-(tm-define (ghost-feedback action)
-  ;; Action can be 'accept, 'reject, or 'ignore
-  (noop)
-) ;tm-define
+(tm-define (ghost-feedback action) (noop))
