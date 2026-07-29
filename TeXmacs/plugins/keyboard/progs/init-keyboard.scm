@@ -17,7 +17,7 @@
 (lazy-keyboard (generic generic-kbd) always?)
 (lazy-keyboard (generic search-kbd))
 (lazy-keyboard (text text-kbd) in-text?)
-(lazy-keyboard (text text-kbd-utf8) in-text?)
+(lazy-keyboard (keyboard text-kbd-utf8) in-text?)
 (lazy-keyboard (math math-kbd) in-math?)
 (lazy-keyboard (math math-sem-edit) in-sem-math?)
 (lazy-keyboard (prog prog-kbd) in-prog?)

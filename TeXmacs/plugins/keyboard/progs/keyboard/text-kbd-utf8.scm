@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text text-kbd-utf8)
+(texmacs-module (keyboard text-kbd-utf8)
   (:use (generic generic-kbd)
     (utils edit auto-close)
     (text text-edit)
@@ -29,6 +29,26 @@
  ("- > var" "->")
  ("< -" "<#2190>")
  ("< - var" "<less>-")
+) ;kbd-map
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Markdown style shortcuts
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(kbd-map (:mode in-text?)
+ ("# # var" (make 'section))
+ ("# # # var" (make 'subsection))
+ ("# # # # var" (make 'subsubsection))
+ ("` ` ` var" (make 'verbatim-code))
+ ("* * var" (make-with "font-series" "bold"))
+ ("* var" (make-with "font-shape" "italic"))
+ ("- space" (make-tmlist-if-line-start 'itemize "- "))
+ ("+ space" (make-tmlist-if-line-start 'itemize "+ "))
+ ("+ var" (make-tmlist 'itemize))
+ ("1 . space" (make-tmlist-if-line-start 'enumerate "1. "))
+ ("1 . var" (make-tmlist 'enumerate))
+ ("[ ] var" (make 'hlink))
+ ("[ ] var var" (make 'slink))
 ) ;kbd-map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

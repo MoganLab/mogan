@@ -60,21 +60,6 @@
   ("/ /" "//")
   ("/ / var" (make 'deleted))
 
-  ;; Markdown Style Shortcuts
-  ("# # var" (make 'section))
-  ("# # # var" (make 'subsection))
-  ("# # # # var" (make 'subsubsection))
-  ("` ` ` var" (make 'verbatim-code))
-  ("* * var" (make-with "font-series" "bold"))
-  ("* var" (make-with "font-shape" "italic"))
-  ("- space" (make-tmlist-if-line-start 'itemize "- "))
-  ("+ space" (make-tmlist-if-line-start 'itemize "+ "))
-  ("+ var" (make-tmlist 'itemize))
-  ("1 . space" (make-tmlist-if-line-start 'enumerate "1. "))
-  ("1 . var" (make-tmlist 'enumerate))
-  ("[ ] var" (make 'hlink))
-  ("[ ] var var" (make 'slink))
-
   ("space var" (make 'nbsp))
   ("space var var" (make-space "1em"))
   ("_" "_")
