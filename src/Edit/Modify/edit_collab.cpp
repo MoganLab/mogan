@@ -125,7 +125,15 @@ edit_modify_rep::apply_remote (string bytes) {
     sel_end_save  = position_new (ep);
   }
 
-  loro_applying_remote   = true;
+  loro_applying_remote= true;
+  if (DEBUG_LORO) {
+    tree buf= the_buffer ();
+    debug_loro << "apply_remote: rp=" << as_string (rp)
+               << " buffer is_comp=" << is_compound (buf)
+               << " op=" << (int) buf->op << " L=" << as_string (L (buf))
+               << " N=" << N (buf) << " | et op=" << (int) et->op
+               << " L=" << as_string (L (et)) << " N=" << N (et) << "\n";
+  }
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
   if (DEBUG_LORO)
     debug_loro << "Diff produced " << N (mods) << " modifications.\n";
