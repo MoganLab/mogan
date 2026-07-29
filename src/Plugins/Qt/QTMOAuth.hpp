@@ -42,14 +42,14 @@ private slots:
   void checkTokenStatus ();
 
 private:
-  void    loadExistingToken ();
-  QString generateCodeVerifier ();
-  QString generateCodeChallenge (const QString& verifier);
-  QUrl    getAuthorizationUrl ();
-  QUrl    getAccessTokenUrl ();
-  QString getGrowthUrl ();
+  void       loadExistingToken ();
+  QString    generateCodeVerifier ();
+  QString    generateCodeChallenge (const QString& verifier);
+  QUrl       getAuthorizationUrl ();
+  QUrl       getAccessTokenUrl ();
+  QString    getGrowthUrl ();
   QByteArray getPreviewCookieHeader ();
-  void    refreshCallbackHtml ();
+  void       refreshCallbackHtml ();
 
   bool m_isLoggedIn= false;
 

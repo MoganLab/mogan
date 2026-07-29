@@ -1379,8 +1379,9 @@
          (check-url (string-append base-url "/api/v1/oauth2/magicPaste/check"))
          (headers (stem-preview-request-headers check-url
                     (list (cons "Authorization" (string-append "Bearer " token))
-                          (cons "Content-Type" "application/json"))
-                  ) ;headers
+                      (cons "Content-Type" "application/json")
+                    ) ;list
+                  ) ;stem-preview-request-headers
          ) ;headers
         ) ;
     (if (string=? token "")
