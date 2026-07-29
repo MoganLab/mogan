@@ -642,9 +642,9 @@ apply_mods (tree& buf, list<modification> mods) {
 // 按 TreeID（而非位置）删/移，绝不错删并发节点。复现「<alpha> 被吞」的病根：
 // 位置型 diff_walk 会把 remove 落到错下标，身份对账则按 TreeID 精确删除。 =====
 
-// JOIN 容器回退：本端 buffer 是 TUPLE(空 document,...) 这类多文档容器（非
-// DOCUMENT body），与远端 body 异构。对账不得逐项比（会产生 remove+空 insert
-// 的非法 mod），应回退整树 assign。覆盖 0778 JOIN 崩溃。
+// JOIN 容器回退：本端 buffer 是 CONCAT(空 document,...) 这类多文档容器（label
+// 与远端 body 的 document 不同），逐项对账会产生 remove+空/失配 insert（应用到
+// et 时 can_insert 非法）。应回退整树 assign。覆盖 0778 JOIN 崩溃。
 TEST_CASE (
     "loro reconcile: non-document buffer falls back to whole-tree assign") {
   ensure_labels ();
@@ -656,10 +656,10 @@ TEST_CASE (
   a->seed (body);
   string sa= a->export_snapshot ();
 
-  // 本端 buffer 是多文档容器 TUPLE(空 document, 空 document, 空 document)
+  // 本端 buffer 是多文档容器 CONCAT(空 document, 空 document, 空 document)
   tree empty_doc (DOCUMENT, 1);
   empty_doc[0]= tree ("");
-  tree cont (TUPLE, 3);
+  tree cont (CONCAT, 3);
   cont[0]= empty_doc;
   cont[1]= empty_doc;
   cont[2]= empty_doc;
