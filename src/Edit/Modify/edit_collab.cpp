@@ -75,6 +75,10 @@ edit_modify_rep::ensure_loro_seeded () {
 void
 edit_modify_rep::mirror_loro (const modification& mod) {
   if (loro_applying_remote) return; // 远端应用期间不回灌镜像，避免循环
+  // 输入法 pre-edit 期间的插入（<pre-edit|s> 节点）与提交时 mark_cancel 的回撤
+  // 都属本地临时显示，不应同步给对端；提交后的正式文本在 pre_edit_mark 清零后
+  // 插入，仍会正常镜像。
+  if (is_pre_editing ()) return;
   if (const_cast<modification&> (mod)->k == MOD_SET_CURSOR) return;
   if (!loro_collab_on) {
     static bool warned= false; // 诊断：协作未开启时（首次）提示，定位不广播问题
@@ -383,6 +387,9 @@ encode_path (tree& et, loro_shadow loro_doc, path p) {
 string
 edit_modify_rep::collab_cursor_payload () {
   if (!loro_collab_on) return "";
+  // pre-edit 期间光标落在未同步的临时预编辑节点内，其位置对对端无意义：返回空
+  // 载荷，使本帧不上行光标（提交后 pre_edit_mark 清零，恢复正常上行）。
+  if (is_pre_editing ()) return "";
   path cp= tp;
   path sp= cp, ep= cp;
   if (selection_active_any ()) selection_get (sp, ep);

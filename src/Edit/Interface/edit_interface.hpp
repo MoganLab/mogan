@@ -158,6 +158,9 @@ public:
   /* setter and getter for user_active */
   void set_user_active (bool b) { user_active= b; }
   bool get_user_active () { return user_active; }
+  // 输入法 pre-edit（composition）进行中：pre_edit_mark!=0 表示当前有未提交的
+  // 预编辑节点。协作据此跳过该期间的镜像与光标上行（见 edit_collab.cpp）。
+  bool is_pre_editing () override { return pre_edit_mark != 0; }
 
   /* routines for dealing with shrinked coordinates */
   int  get_pixel_size ();

@@ -231,6 +231,7 @@ public:
   virtual void      recall_message ()                                      = 0;
   virtual void      set_user_active (bool b)                               = 0;
   virtual bool      get_user_active ()                                     = 0;
+  virtual bool      is_pre_editing () { return false; }
 
   /* public routines from edit_cursor */
   virtual path make_cursor_accessible (path p, bool forwards)= 0;
