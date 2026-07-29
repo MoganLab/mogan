@@ -143,6 +143,14 @@ edit_modify_rep::apply_remote (string bytes) {
     position_delete (sel_end_save);
     if (!is_nil (ns) && !is_nil (ne) && ns != ne) select (ns, ne);
   }
+  // 远端 mod 改变了树结构，上面的 go_to_correct/go_to_start/select 只是把
+  // 错位后的游标「按位恢复」，并非用户主动移动；但 go_to 会置位 user_active，
+  // 导致下一帧 apply_changes（edit_interface.cpp）误判为用户操作而调用
+  // cursor_visible()->scroll_to()，把视口强行拉回光标处。这里清除 user_active，
+  // 让本次远端更新被视为程序化编辑、视口保持原位——与 session-edit.scm 中
+  // session-output / field-process-input 插入后 (set-user-active #f) 一致
+  // （LLM/会话流式输出同样靠它避免视图跳动）。
+  set_user_active (false);
   loro_applying_remote= false;
 
   // 关键：apply_remote 通过 edit_announce 改了 buffer（新 tree_rep*），
