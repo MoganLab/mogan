@@ -178,6 +178,8 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
                         to_qstring (stem_user_agent ()).toUtf8 ());
   request.setRawHeader ("X-Device-Id",
                         to_qstring (stem_device_id ()).toUtf8 ());
+  QByteArray previewCookie= getPreviewCookieHeader ();
+  if (!previewCookie.isEmpty ()) request.setRawHeader ("Cookie", previewCookie);
 
   QNetworkAccessManager* manager= new QNetworkAccessManager (this);
   QNetworkReply*         reply=
@@ -262,6 +264,8 @@ QTMOAuth::refreshToken () {
                         to_qstring (stem_user_agent ()).toUtf8 ());
   request.setRawHeader ("X-Device-Id",
                         to_qstring (stem_device_id ()).toUtf8 ());
+  QByteArray previewCookie= getPreviewCookieHeader ();
+  if (!previewCookie.isEmpty ()) request.setRawHeader ("Cookie", previewCookie);
 
   // 发送刷新请求
   QNetworkAccessManager* manager= new QNetworkAccessManager (this);
@@ -456,6 +460,14 @@ QTMOAuth::getGrowthUrl () {
   eval ("(use-modules (liii account))");
   c_string growthUrl (as_string (call ("account-oauth2-config", "growth-url")));
   return QString::fromUtf8 ((const char*) growthUrl);
+}
+
+QByteArray
+QTMOAuth::getPreviewCookieHeader () {
+  eval ("(use-modules (liii account))");
+  c_string previewCookie (
+      as_string (call ("account-oauth2-config", "preview-cookie-header")));
+  return QByteArray ((const char*) previewCookie);
 }
 
 void

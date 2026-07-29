@@ -18,6 +18,7 @@
 #include <QtNetworkAuth/qoauthhttpserverreplyhandler.h>
 
 #include <QtCore/qabstractitemmodel.h>
+#include <QtCore/qbytearray.h>
 #include <QtCore/qjsonobject.h>
 #include <QtCore/qpointer.h>
 #include <QtCore/qtimer.h>
@@ -47,6 +48,7 @@ private:
   QUrl    getAuthorizationUrl ();
   QUrl    getAccessTokenUrl ();
   QString getGrowthUrl ();
+  QByteArray getPreviewCookieHeader ();
   void    refreshCallbackHtml ();
 
   bool m_isLoggedIn= false;

@@ -3047,6 +3047,10 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
                         to_qstring (stem_user_agent ()).toUtf8 ());
   request.setRawHeader ("X-Device-Id",
                         to_qstring (stem_device_id ()).toUtf8 ());
+  string previewCookie=
+      as_string (call ("account-oauth2-config", "preview-cookie-header"));
+  if (!is_empty (previewCookie))
+    request.setRawHeader ("Cookie", to_qstring (previewCookie).toUtf8 ());
 
   // 发送请求
   QNetworkReply* reply= manager->get (request);

@@ -1377,9 +1377,10 @@
   (let* ((token (account-load-token))
          (base-url (current-stem-site))
          (check-url (string-append base-url "/api/v1/oauth2/magicPaste/check"))
-         (headers (list (cons "Authorization" (string-append "Bearer " token))
-                    (cons "Content-Type" "application/json")
-                  ) ;list
+         (headers (stem-preview-request-headers check-url
+                    (list (cons "Authorization" (string-append "Bearer " token))
+                          (cons "Content-Type" "application/json"))
+                  ) ;headers
          ) ;headers
         ) ;
     (if (string=? token "")

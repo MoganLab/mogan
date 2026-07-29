@@ -68,6 +68,23 @@
         "production"
         sp)))
 
+;; stem-preview 只控制是否访问当前环境的蓝绿候选实例。
+;; stem-profile 仍只负责选择 staging 或 production 服务器。
+(tm-define (current-stem-preview?)
+  (string=? (get-preference "stem-preview") "on"))
+
+(tm-define (stem-preview-cookie-header)
+  (if (current-stem-preview?)
+      "liii_user_preview=preview; liii_agent_preview=preview; liii_admin_preview=preview"
+      ""))
+
+(tm-define (stem-preview-request-headers url headers)
+  (let ((preview-cookie (stem-preview-cookie-header)))
+    (if (and (not (string=? preview-cookie ""))
+             (string-starts? url (current-stem-site)))
+        (append headers (list (cons "Cookie" preview-cookie)))
+        headers)))
+
 ; 根据当前 profile 获取环境地址
 (tm-define (current-stem-site)
   (cond
@@ -84,6 +101,7 @@
       ((== key "access-token-url") (string-append base-url "/api/v1/oauth2/token"))
       ((== key "client-identifier") "public-client")
       ((== key "scope") "user+llm")
+      ((== key "preview-cookie-header") (stem-preview-cookie-header))
       ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
       ((== key "user-info-url") (string-append base-url "/api/v1/oauth2/membershipInfo"))
       ((== key "pricing-url") (string-append base-url "/pricing.html"))
