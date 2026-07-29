@@ -39,6 +39,10 @@ public:
       meta_root_ids; // body 之外的 section（style/initial/...）-> 其 root
                      // TreeID
 
+  // 身份对账用：最近一次 to_tree_with_ids 解出的 after 树的 节点 rep -> TreeID
+  // 映射（独立于 id_map，对账期间只读，避免污染 shadow 主映射）。
+  hashmap<tree_rep*, mogan_tree_id> after_id_map;
+
   mogan_local_update_cb _update_cb       = nullptr;
   void*                 _update_user_data= nullptr;
 
@@ -98,9 +102,18 @@ public:
    */
   list<modification> diff_from_current (tree buffer);
 
-  tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
+  tree to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
+  /** live doc -> 带身份的 after 树（经 to_ir_with_ids）：返回重建的树，并填
+   * after_id_map（after 树节点 rep -> TreeID）。供身份对账（reconcile_walk）
+   * 用，使远端合并后的 buffer 对齐按 TreeID 而非位置进行。 */
+  tree          to_tree_with_ids ();
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
+  /** 身份对账：diff buffer（旧）vs 带身份的 after 树（新），按 TreeID（而非
+   * 位置）匹配节点，生成把 buffer 变到 after 的 modification（并发 merge 重排
+   * 子节点时仍把删除/插入落到正确节点）。after 由 to_tree_with_ids 给出并填好
+   * after_id_map。供 diff_from_current 使用。 */
+  list<modification> reconcile_walk (tree buffer, tree after);
   /** 反查：用 rev_id_map 把 TreeID 解析为节点 buffer-相对 path 并追加偏移
    * offset（原子节点内即 LoroText 字符偏移；复合节点即子索引）。用于把远端
    * peer 的光标/选区 TreeID 解析回本端 path，达成 CRDT 级稳定。节点未找到

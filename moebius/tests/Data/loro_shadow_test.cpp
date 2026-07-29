@@ -8,10 +8,12 @@
  */
 
 #include "loro.hpp"
+#include "loro_ir.hpp"
 #include "loro_shadow.hpp"
 #include "moe_doctests.hpp"
 #include "tree.hpp"
 #include "tree_helper.hpp"
+#include <cstdio>
 #include <moebius/drd/drd_std.hpp>
 #include <moebius/vars.hpp>
 
@@ -562,6 +564,208 @@ TEST_CASE ("loro_shadow: mirror_mod with structural MOD_REMOVE") {
   sh->mirror_mod (t, mod_remove (path (), 1, 2));
 
   CHECK_EQ (sh->to_tree () == t, true);
+}
+
+// ===== 身份对账（0778）：跨 merge 后 buffer 与 shadow 顺序错位时，reconcile
+// 按 TreeID（而非位置）删/移，绝不错删并发节点。复现「<alpha> 被吞」的病根：
+// 位置型 diff_walk 会把 remove 落到错下标，身份对账则按 TreeID 精确删除。 =====
+
+static tree
+mk_para (string s) {
+  tree p (PARA, 1);
+  p[0]= tree (s);
+  return p;
+}
+
+// 树切片 INSERT（不复制 rep，保持 rep 复用语义）：mod_insert(parent, pos,
+// frag)。
+static void
+test_insert_slice (tree& buf, modification m) {
+  path  par   = root (m);
+  int   pos   = index (m);
+  tree  frag  = m->t;
+  tree& parref= subtree (buf, par);
+  int   old_n = N (parref);
+  int   nr    = N (frag);
+  tree  newp (L (parref), old_n + nr);
+  for (int i= 0; i < pos; i++)
+    newp[i]= parref[i];
+  for (int i= 0; i < nr; i++)
+    newp[pos + i]= frag[i];
+  for (int i= pos; i < old_n; i++)
+    newp[i + nr]= parref[i];
+  parref= newp;
+}
+
+// 树切片 REMOVE：mod_remove(parent, pos, nr)。
+static void
+test_remove_slice (tree& buf, modification m) {
+  path  par   = root (m);
+  int   pos   = index (m);
+  int   nr    = argument (m);
+  tree& parref= subtree (buf, par);
+  int   old_n = N (parref);
+  tree  newp (L (parref), old_n - nr);
+  for (int i= 0; i < pos; i++)
+    newp[i]= parref[i];
+  for (int i= pos + nr; i < old_n; i++)
+    newp[i - nr]= parref[i];
+  parref= newp;
+}
+
+// 对账把 mods 应用到持久 buffer（模拟编辑器 raw_apply，结构增删用切片、文本
+// 插入/删除直接改原子 label）。
+static void
+apply_mods (tree& buf, list<modification> mods) {
+  for (list<modification> l= mods; !is_nil (l); l= l->next) {
+    modification m= l->item;
+    if (m->k == MOD_INSERT && is_atomic (subtree (buf, root (m)))) {
+      tree&  atom= subtree (buf, root (m));
+      string s   = m->t->label;
+      int    pos = index (m);
+      atom->label=
+          atom->label (0, pos) * s * atom->label (pos, N (atom->label));
+    }
+    else if (m->k == MOD_REMOVE && is_atomic (subtree (buf, root (m)))) {
+      tree& atom= subtree (buf, root (m));
+      int   pos= index (m), nr= argument (m);
+      atom->label=
+          atom->label (0, pos) * atom->label (pos + nr, N (atom->label));
+    }
+    else if (m->k == MOD_INSERT) test_insert_slice (buf, m);
+    else if (m->k == MOD_REMOVE) test_remove_slice (buf, m);
+    else if (m->k == MOD_ASSIGN) subtree (buf, root (m))= m->t;
+  }
+}
+
+// ===== 身份对账（0778）：跨 merge 后 buffer 与 shadow 顺序错位时，reconcile
+// 按 TreeID（而非位置）删/移，绝不错删并发节点。复现「<alpha> 被吞」的病根：
+// 位置型 diff_walk 会把 remove 落到错下标，身份对账则按 TreeID 精确删除。 =====
+
+// 同 peer 结构编辑：A（创建者）删掉中间 para "b"，B 共享血统后接收。身份
+// 对账按 TreeID 删 b，且复用 a/c 的 rep（不整段重排）。
+TEST_CASE ("loro reconcile: remote remove deletes correct child by TreeID") {
+  ensure_labels ();
+  tree t (DOCUMENT, 3);
+  t[0]= mk_para ("a");
+  t[1]= mk_para ("b");
+  t[2]= mk_para ("c");
+
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  tree   tA= t;
+  a->mirror_mod (tA, mod_remove (path (), 1, 1)); // -> [a, c]
+  string sa= a->export_snapshot ();
+  CHECK_EQ (N (a->to_tree ()) == 2, true);
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  CHECK_EQ (N (tB) == 3, true);
+
+  apply_mods (tB, b->remote_diff_mods (sa, tB));
+  CHECK_EQ (N (tB), 2);
+  if (N (tB) == 2) {
+    CHECK_EQ (tB[0][0]->label, "a");
+    CHECK_EQ (tB[1][0]->label, "c");
+  }
+}
+
+// 同 peer 纯新增：A 插入一个 para，B 数量落后但顺序一致。对账只插入新增项。
+TEST_CASE ("loro reconcile: pure insert only adds new child") {
+  ensure_labels ();
+  tree t (DOCUMENT, 2);
+  t[0]= mk_para ("a");
+  t[1]= mk_para ("c");
+
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  tree   tA= t;
+  tree   ins (DOCUMENT, 1);
+  ins[0]= mk_para ("alpha");
+  // 精确 mirror：doc_root 用 post-apply 的 [a,alpha,c]，parent=root 已在
+  // id_map，走 mirror_insert 而非 reseed，root 身份不被换。
+  tree tAfter (DOCUMENT, 3);
+  tAfter[0]= tA[0];
+  tAfter[1]= mk_para ("alpha");
+  tAfter[2]= tA[1];
+  a->mirror_mod (tAfter, mod_insert (path (), 1, ins));
+  string sa= a->export_snapshot ();
+  CHECK_EQ (N (a->to_tree ()) == 3, true);
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  CHECK_EQ (N (tB) == 2, true);
+
+  apply_mods (tB, b->remote_diff_mods (sa, tB));
+  CHECK_EQ (N (tB), 3);
+  if (N (tB) == 3) {
+    CHECK_EQ (tB[0][0]->label, "a");
+    CHECK_EQ (tB[1][0]->label, "alpha");
+    CHECK_EQ (tB[2][0]->label, "c");
+  }
+}
+
+// 同 peer 文本编辑：A 改 para0 文本，B 共享身份接收。对账只改 para0 文本。
+TEST_CASE ("loro reconcile: text edit on one para only touches that para") {
+  ensure_labels ();
+  tree t (DOCUMENT, 2);
+  t[0]= mk_para ("x");
+  t[1]= mk_para ("y");
+
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  tree   tA= t;
+  a->mirror_mod (tA,
+                 mod_insert (path (0) * 0, 1, tree ("X"))); // para0 "x"->"xX"
+  tA[0][0]->label= string ("xX");
+  string sa      = a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+
+  apply_mods (tB, b->remote_diff_mods (sa, tB));
+  CHECK_EQ (tB[0][0]->label, "xX");
+  CHECK_EQ (tB[1][0]->label, "y");
+}
+
+// 同 peer 重排：A 删掉中间 para "b"，B 的 buffer 里 a/b/c 的 rep 与 A 共享。
+// 身份对账删 b 后，a/c 的 rep 被复用（不销毁重建）。
+TEST_CASE (
+    "loro reconcile: remote remove preserves surviving tree_rep identity") {
+  ensure_labels ();
+  tree t (DOCUMENT, 3);
+  t[0]= mk_para ("a");
+  t[1]= mk_para ("b");
+  t[2]= mk_para ("c");
+
+  loro_shadow a;
+  a->seed (t);
+  string s0= a->export_snapshot ();
+  tree   tA= t;
+  a->mirror_mod (tA, mod_remove (path (), 1, 1)); // -> [a, c]
+  string sa= a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  tree_rep* a_rep= inside (tB[0]); // "a" 的 rep
+  tree_rep* c_rep= inside (tB[2]); // "c" 的 rep
+
+  apply_mods (tB, b->remote_diff_mods (sa, tB));
+  CHECK_EQ (N (tB), 2);
+  if (N (tB) == 2) {
+    CHECK_EQ (tB[0][0]->label, "a");
+    CHECK_EQ (tB[1][0]->label, "c");
+    // 复用 rep：a、c 仍是原来的 rep
+    CHECK_EQ (inside (tB[0]) == a_rep, true);
+    CHECK_EQ (inside (tB[1]) == c_rep, true);
+  }
 }
 
 // ===== meta section（body 之外的文档部分）coarse 镜像 =====

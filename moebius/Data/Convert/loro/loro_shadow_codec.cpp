@@ -88,3 +88,22 @@ loro_shadow_rep::to_tree () {
   mogan_loro_free (out, out_len);
   return loro_ir_to_tree (loro_ir_decode (ir_bytes));
 }
+
+tree
+loro_shadow_rep::to_tree_with_ids () {
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  if (mogan_loro_doc_to_ir_with_ids (doc, &out, &out_len) != 0 ||
+      out == nullptr) {
+    if (out) mogan_loro_free (out, out_len);
+    return tree ("");
+  }
+  string ir_bytes ((const char*) out, (int) out_len);
+  mogan_loro_free (out, out_len);
+  // after 树的 rep 映射独立于主 id_map；反向路径映射对账用不到，用弃用占位
+  // map 以满足 decode_id_node 的签名，避免污染主 rev_id_map。
+  after_id_map= hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
+  hashmap<mogan_tree_id, path> scratch_rev;
+  int                          pos= 0;
+  return decode_id_node (ir_bytes, pos, after_id_map, scratch_rev, path ());
+}
