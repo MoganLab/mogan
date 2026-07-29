@@ -580,6 +580,30 @@ mk_para (string s) {
   return p;
 }
 
+// 诊断：buffer=document(空para("")) vs after=document(para("a"))，看 reconcile
+// 产 的 mod（尤其 insert 的 mod->t 是否 atomic）。
+TEST_CASE ("loro reconcile: DIAG empty-doc vs doc-with-para mods") {
+  ensure_labels ();
+  // after: document(para("a"))
+  tree body (DOCUMENT, 1);
+  body[0]= mk_para ("a");
+  loro_shadow a;
+  a->seed (body);
+  string sa= a->export_snapshot ();
+  // buffer: document(空 para(""))（空文档 stub）
+  tree buf (DOCUMENT, 1);
+  buf[0]   = tree (PARA, 1);
+  buf[0][0]= tree ("");
+  loro_shadow        b;
+  list<modification> mods= b->remote_diff_mods (sa, buf);
+  MESSAGE ("diag nmods=", N (mods));
+  for (list<modification> l= mods; !is_nil (l); l= l->next) {
+    modification m= l->item;
+    MESSAGE ("  k=", (int) m->k, " t_atomic=", is_atomic (m->t),
+             " t_comp=", is_compound (m->t));
+  }
+}
+
 // 诊断：buffer/after 都是 DOCUMENT N=1（空文档含1空para vs 新文档含1para），
 // reconcile 产 remove([],0,1)+insert([],0,para)。用 clean_apply 应用到 et=TUPLE
 // 的 et[2]（rp=[2]），模拟真实崩溃序列。
