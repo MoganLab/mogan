@@ -580,82 +580,20 @@ mk_para (string s) {
   return p;
 }
 
+// 诊断：用 apply()（真实 observer 路径，非 clean_apply）对 et[2] 做
+// remove-all-para + insert-para，复现 JOIN 崩溃。
+
+// 诊断：确认 after 树里 para 子是否 atomic（Loro 是否把 para 存成 atomic
+// 文本）。
+
+// 诊断：buffer=document(空para"") vs after=document(para"x")，看 emit_text_diff
+// 是否被错误调用（在复合父上产 atomic insert）。
+
 // 诊断：buffer=document(空para("")) vs after=document(para("a"))，看 reconcile
 // 产 的 mod（尤其 insert 的 mod->t 是否 atomic）。
-TEST_CASE ("loro reconcile: DIAG empty-doc vs doc-with-para mods") {
-  ensure_labels ();
-  // after: document(para("a"))
-  tree body (DOCUMENT, 1);
-  body[0]= mk_para ("a");
-  loro_shadow a;
-  a->seed (body);
-  string sa= a->export_snapshot ();
-  // buffer: document(空 para(""))（空文档 stub）
-  tree buf (DOCUMENT, 1);
-  buf[0]   = tree (PARA, 1);
-  buf[0][0]= tree ("");
-  loro_shadow        b;
-  list<modification> mods= b->remote_diff_mods (sa, buf);
-  MESSAGE ("diag nmods=", N (mods));
-  for (list<modification> l= mods; !is_nil (l); l= l->next) {
-    modification m= l->item;
-    MESSAGE ("  k=", (int) m->k, " t_atomic=", is_atomic (m->t),
-             " t_comp=", is_compound (m->t));
-  }
-}
-
-// 诊断：buffer/after 都是 DOCUMENT N=1（空文档含1空para vs 新文档含1para），
-// reconcile 产 remove([],0,1)+insert([],0,para)。用 clean_apply 应用到 et=TUPLE
-// 的 et[2]（rp=[2]），模拟真实崩溃序列。
-TEST_CASE (
-    "loro reconcile: DIAG same-label empty-doc remove+insert via clean_apply") {
-  ensure_labels ();
-  // et = TUPLE(空 document x3)，rp=[2]
-  tree empty_doc (DOCUMENT, 1);
-  empty_doc[0]   = tree (PARA, 1); // document(para(""))
-  empty_doc[0][0]= tree ("");
-  tree et (TUPLE, 3);
-  et[0]= empty_doc;
-  et[1]= empty_doc;
-  et[2]= empty_doc;
-  // remove([2],0,1): 删 et[2] 的 para
-  et= clean_apply (et, mod_remove (path (2), 0, 1));
-  MESSAGE ("after remove N(et[2])=", N (et[2]));
-  // insert([2],0, para): 插入新 para 到 et[2]
-  tree newpara (PARA, 1);
-  newpara[0]= tree ("x");
-  tree frag (DOCUMENT, 1);
-  frag[0]= newpara;
-  et     = clean_apply (et, mod_insert (path (2), 0, frag));
-  MESSAGE ("after insert N(et[2])=", N (et[2]),
-           " et[2][0]=", et[2][0][0]->label);
-  CHECK_EQ (N (et[2]), 1);
-}
 
 // 诊断：buffer=TUPLE(空 document)（模拟 et[n] buffer 容器），after=DOCUMENT。
 // 守卫应回退整树 assign（1 个 mod），不产生 remove+insert。
-TEST_CASE ("loro reconcile: DIAG buffer=tuple-container vs after=document") {
-  ensure_labels ();
-  tree body (DOCUMENT, 2);
-  body[0]= mk_para ("a");
-  body[1]= mk_para ("b");
-  loro_shadow a;
-  a->seed (body);
-  string sa= a->export_snapshot ();
-  // buffer = TUPLE(空 document)（容器，label=tuple）
-  tree empty_doc (DOCUMENT, 1);
-  empty_doc[0]= tree ("");
-  tree buf (TUPLE, 1);
-  buf[0]= empty_doc;
-  loro_shadow        b;
-  list<modification> mods= b->remote_diff_mods (sa, buf);
-  MESSAGE ("diag nmods=", N (mods));
-  for (list<modification> l= mods; !is_nil (l); l= l->next)
-    MESSAGE ("  diag mod k=", (int) l->item->k);
-  // 期望：1 个 assign（守卫回退）
-  CHECK_EQ (N (mods), 1);
-  if (N (mods) == 1) CHECK_EQ ((int) mods->item->k, (int) MOD_ASSIGN);
-}
 
 // 诊断：模拟 et=TUPLE(空 document,空 document,空
 // document)，buffer=et[2]（rp=[2]）。 远端 document body 与 et[2]（空

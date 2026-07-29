@@ -204,7 +204,9 @@ reconcile_node (loro_shadow_rep* self, tree b, tree a, path base,
   }
   else if (is_compound (b) && is_compound (a) && L (b) == L (a))
     reconcile_children (self, b, a, base, mods);
-  else mods= mods * mod_assign (base, a); // 同身份但类型/label 变（罕见）：替换
+  else
+    mods= mods *
+          mod_assign (base, a); // 类型/label 变（含 atomic<->compound）：替换
 }
 } // namespace
 
@@ -218,15 +220,6 @@ loro_shadow_rep::reconcile_walk (tree buffer, tree after) {
 list<modification>
 loro_shadow_rep::diff_from_current (tree buffer) {
   tree after= to_tree_with_ids ();
-  {
-    static int dbg= 0;
-    if (dbg++ < 5)
-      cout << "RECONDBG buf: is_comp=" << is_compound (buffer)
-           << " op=" << (int) buffer->op << " L=" << as_string (L (buffer))
-           << " N=" << N (buffer) << " | after: is_comp=" << is_compound (after)
-           << " op=" << (int) after->op << " L=" << as_string (L (after))
-           << " N=" << N (after) << "\n";
-  }
   // 仅当 buffer 与 after 同 label（同构，都是协作 body 的内容容器，如 DOCUMENT
   // 或 CONCAT）才走身份对账。JOIN 时本端 buffer 可能是空 stub / 多文档容器
   // （label 与远端 body 不同，或子节点是 document 而非 para），逐项对账会产生
@@ -234,28 +227,11 @@ loro_shadow_rep::diff_from_current (tree buffer) {
   // assign（一次性替换，不产生空片段 mod），容器由 import_and_build 整体重建。
   if (!is_compound (buffer) || !is_compound (after) || L (buffer) != L (after))
     return list<modification> (mod_assign (path (), after));
+  // JOIN 首帧：本端 buffer 根不在 id_map（本地对该 buffer 无 CRDT 血统，典型为
+  // 空 stub / 刚新建未 seed），逐项对账无意义且会删空 stub 再插，应用到 et 时
+  // 触发非法。直接整树 assign（一次性替换，后续增量再走对账）。
+  if (!has_id (buffer)) return list<modification> (mod_assign (path (), after));
   list<modification> mods= reconcile_walk (buffer, after);
-  {
-    static int dbg2= 0;
-    if (dbg2++ < 5)
-      for (list<modification> l= mods; !is_nil (l); l= l->next) {
-        modification m= l->item;
-        if (m->k == MOD_INSERT || m->k == MOD_REMOVE)
-          cout << "RECONDBG mod k=" << (int) m->k
-               << " root=" << as_string (root (m)) << " idx=" << index (m)
-               << (m->k == MOD_REMOVE
-                       ? string (" arg=") * as_string (argument (m))
-                       : string (""))
-               << " t_is_atomic=" << is_atomic (m->t)
-               << " t_is_comp=" << is_compound (m->t)
-               << (is_compound (m->t)
-                       ? string (" t_L=") * as_string (L (m->t)) *
-                             string (" t_N=") * as_string (N (m->t))
-                       : string (" t_label=") * m->t->label)
-               << "\n";
-        else cout << "RECONDBG mod k=" << (int) m->k << " (assign/other)\n";
-      }
-  }
   return mods;
 }
 
