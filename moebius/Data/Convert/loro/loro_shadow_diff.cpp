@@ -234,7 +234,17 @@ loro_shadow_rep::diff_from_current (tree buffer) {
   // assign（一次性替换，不产生空片段 mod），容器由 import_and_build 整体重建。
   if (!is_compound (buffer) || !is_compound (after) || L (buffer) != L (after))
     return list<modification> (mod_assign (path (), after));
-  return reconcile_walk (buffer, after);
+  list<modification> mods= reconcile_walk (buffer, after);
+  {
+    static int dbg2= 0;
+    if (dbg2++ < 5)
+      for (list<modification> l= mods; !is_nil (l); l= l->next) {
+        modification m= l->item;
+        cout << "RECONDBG mod k=" << (int) m->k << " root=" << as_string (root (m))
+             << " idx=" << index (m) << " arg=" << argument (m) << "\n";
+      }
+  }
+  return mods;
 }
 
 list<modification>

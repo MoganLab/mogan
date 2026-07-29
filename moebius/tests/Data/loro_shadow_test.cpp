@@ -580,6 +580,32 @@ mk_para (string s) {
   return p;
 }
 
+// 诊断：buffer=TUPLE(空 document)（模拟 et[n] buffer 容器），after=DOCUMENT。
+// 守卫应回退整树 assign（1 个 mod），不产生 remove+insert。
+TEST_CASE ("loro reconcile: DIAG buffer=tuple-container vs after=document") {
+  ensure_labels ();
+  tree body (DOCUMENT, 2);
+  body[0]= mk_para ("a");
+  body[1]= mk_para ("b");
+  loro_shadow a;
+  a->seed (body);
+  string sa= a->export_snapshot ();
+  // buffer = TUPLE(空 document)（容器，label=tuple）
+  tree empty_doc (DOCUMENT, 1);
+  empty_doc[0]= tree ("");
+  tree buf (TUPLE, 1);
+  buf[0]= empty_doc;
+  loro_shadow b;
+  list<modification> mods= b->remote_diff_mods (sa, buf);
+  MESSAGE ("diag nmods=", N (mods));
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    MESSAGE ("  diag mod k=", (int) l->item->k);
+  // 期望：1 个 assign（守卫回退）
+  CHECK_EQ (N (mods), 1);
+  if (N (mods) == 1) CHECK_EQ ((int) mods->item->k, (int) MOD_ASSIGN);
+}
+
+
 // 诊断：模拟 et=TUPLE(空 document,空 document,空
 // document)，buffer=et[2]（rp=[2]）。 远端 document body 与 et[2]（空
 // document）同 label，对账后 apply(et,[2]*mod)， 看是否复现崩溃/非法（remove
