@@ -218,6 +218,15 @@ loro_shadow_rep::reconcile_walk (tree buffer, tree after) {
 list<modification>
 loro_shadow_rep::diff_from_current (tree buffer) {
   tree after= to_tree_with_ids ();
+  {
+    static int dbg= 0;
+    if (dbg++ < 5)
+      cout << "RECONDBG buf: is_comp=" << is_compound (buffer)
+           << " op=" << (int) buffer->op << " L=" << as_string (L (buffer))
+           << " N=" << N (buffer) << " | after: is_comp=" << is_compound (after)
+           << " op=" << (int) after->op << " L=" << as_string (L (after))
+           << " N=" << N (after) << "\n";
+  }
   // 仅当 buffer 与 after 同 label（同构，都是协作 body 的内容容器，如 DOCUMENT
   // 或 CONCAT）才走身份对账。JOIN 时本端 buffer 可能是空 stub / 多文档容器
   // （label 与远端 body 不同，或子节点是 document 而非 para），逐项对账会产生

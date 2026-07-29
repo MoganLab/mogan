@@ -566,6 +566,9 @@ TEST_CASE ("loro_shadow: mirror_mod with structural MOD_REMOVE") {
   CHECK_EQ (sh->to_tree () == t, true);
 }
 
+// 诊断：remove 一个 compound 的全部子、再 insert 到它（模拟 JOIN 时 et[2] 的
+// 序列），用 clean_apply 看结果是否正确（不入 et，不触发 detach/IP）。
+
 // ===== 身份对账（0778）：跨 merge 后 buffer 与 shadow 顺序错位时，reconcile
 // 按 TreeID（而非位置）删/移，绝不错删并发节点。复现「<alpha> 被吞」的病根：
 // 位置型 diff_walk 会把 remove 落到错下标，身份对账则按 TreeID 精确删除。 =====
@@ -576,6 +579,11 @@ mk_para (string s) {
   p[0]= tree (s);
   return p;
 }
+
+// 诊断：模拟 et=TUPLE(空 document,空 document,空
+// document)，buffer=et[2]（rp=[2]）。 远端 document body 与 et[2]（空
+// document）同 label，对账后 apply(et,[2]*mod)， 看是否复现崩溃/非法（remove
+// et[2] 全部子 + insert）。
 
 // 树切片 INSERT（不复制 rep，保持 rep 复用语义）：mod_insert(parent, pos,
 // frag)。
