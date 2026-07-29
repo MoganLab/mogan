@@ -1115,6 +1115,11 @@ function main()
                 ret_type = "void"
             },
             {
+                scm_name = "is-pre-editing",
+                cpp_name = "is_pre_editing",
+                ret_type = "bool"
+            },
+            {
                 scm_name = "show-diff-popup",
                 cpp_name = "show_diff_popup",
                 ret_type = "void"

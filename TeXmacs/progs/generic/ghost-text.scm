@@ -162,6 +162,8 @@
       (lambda (res)
         (when (and res
                 (== ghost-serial current)
+                (not-in-tab-cycling?)
+                (not (is-pre-editing))
                 (equal? (cursor-path) ghost-pending-cursor)
                 (not (string=? (car res) ""))
               ) ;and
