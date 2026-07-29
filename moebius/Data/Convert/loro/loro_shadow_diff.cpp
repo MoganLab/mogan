@@ -246,6 +246,12 @@ loro_shadow_rep::diff_from_current (tree buffer) {
                << (m->k == MOD_REMOVE
                        ? string (" arg=") * as_string (argument (m))
                        : string (""))
+               << " t_is_atomic=" << is_atomic (m->t)
+               << " t_is_comp=" << is_compound (m->t)
+               << (is_compound (m->t)
+                       ? string (" t_L=") * as_string (L (m->t)) *
+                             string (" t_N=") * as_string (N (m->t))
+                       : string (" t_label=") * m->t->label)
                << "\n";
         else cout << "RECONDBG mod k=" << (int) m->k << " (assign/other)\n";
       }

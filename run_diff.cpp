@@ -3,8 +3,9 @@
 
 using namespace std;
 
-void emit_text_diff(string b, string a) {
-  int bn= b.length(), an= a.length();
+void
+emit_text_diff (string b, string a) {
+  int bn= b.length (), an= a.length ();
   int pre= 0;
   while (pre < bn && pre < an && b[pre] == a[pre])
     pre++;
@@ -15,17 +16,21 @@ void emit_text_diff(string b, string a) {
   int ins_len= an - pre - suf;
   cout << "b: " << b << endl;
   cout << "a: " << a << endl;
-  cout << "pre: " << pre << " suf: " << suf << " rm: " << rm_len << " ins: " << ins_len << endl;
-  
+  cout << "pre: " << pre << " suf: " << suf << " rm: " << rm_len
+       << " ins: " << ins_len << endl;
+
   if (rm_len > 0) cout << "remove " << rm_len << " at " << pre << endl;
-  if (ins_len > 0) cout << "insert " << a.substr(pre, ins_len) << " at " << pre << endl;
+  if (ins_len > 0)
+    cout << "insert " << a.substr (pre, ins_len) << " at " << pre << endl;
 }
 
-int main() {
-  emit_text_diff("cos2<alpha>=1-2<times>sin", "cos2<alpha>=1-2<times>sin^2<alpha>");
+int
+main () {
+  emit_text_diff ("cos2<alpha>=1-2<times>sin",
+                  "cos2<alpha>=1-2<times>sin^2<alpha>");
   cout << "---" << endl;
-  emit_text_diff("8<alpha>=1-", "8<alpha>=1-2");
+  emit_text_diff ("8<alpha>=1-", "8<alpha>=1-2");
   cout << "---" << endl;
-  emit_text_diff("8<alpha>=1-", "8<alpha>=1-2<times>");
+  emit_text_diff ("8<alpha>=1-", "8<alpha>=1-2<times>");
   return 0;
 }

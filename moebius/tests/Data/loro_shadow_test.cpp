@@ -580,6 +580,34 @@ mk_para (string s) {
   return p;
 }
 
+// 诊断：buffer/after 都是 DOCUMENT N=1（空文档含1空para vs 新文档含1para），
+// reconcile 产 remove([],0,1)+insert([],0,para)。用 clean_apply 应用到 et=TUPLE
+// 的 et[2]（rp=[2]），模拟真实崩溃序列。
+TEST_CASE (
+    "loro reconcile: DIAG same-label empty-doc remove+insert via clean_apply") {
+  ensure_labels ();
+  // et = TUPLE(空 document x3)，rp=[2]
+  tree empty_doc (DOCUMENT, 1);
+  empty_doc[0]   = tree (PARA, 1); // document(para(""))
+  empty_doc[0][0]= tree ("");
+  tree et (TUPLE, 3);
+  et[0]= empty_doc;
+  et[1]= empty_doc;
+  et[2]= empty_doc;
+  // remove([2],0,1): 删 et[2] 的 para
+  et= clean_apply (et, mod_remove (path (2), 0, 1));
+  MESSAGE ("after remove N(et[2])=", N (et[2]));
+  // insert([2],0, para): 插入新 para 到 et[2]
+  tree newpara (PARA, 1);
+  newpara[0]= tree ("x");
+  tree frag (DOCUMENT, 1);
+  frag[0]= newpara;
+  et     = clean_apply (et, mod_insert (path (2), 0, frag));
+  MESSAGE ("after insert N(et[2])=", N (et[2]),
+           " et[2][0]=", et[2][0][0]->label);
+  CHECK_EQ (N (et[2]), 1);
+}
+
 // 诊断：buffer=TUPLE(空 document)（模拟 et[n] buffer 容器），after=DOCUMENT。
 // 守卫应回退整树 assign（1 个 mod），不产生 remove+insert。
 TEST_CASE ("loro reconcile: DIAG buffer=tuple-container vs after=document") {
