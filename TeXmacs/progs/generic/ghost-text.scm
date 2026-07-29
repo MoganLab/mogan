@@ -149,9 +149,9 @@
       (string-append "ghost-context: mode="
         (if (in-math?) "math" "text")
         " prefix=["
-        prefix
+        (herk->utf8 prefix)
         "] suffix=["
-        suffix
+        (herk->utf8 suffix)
         "]\n"
       ) ;string-append
     ) ;debug-message
@@ -172,7 +172,7 @@
 ) ;tm-define
 
 (define (ghost-on-predict text)
-  (debug-message "debug-io" (string-append "ghost-predict: text=[" text "]\n"))
+  (debug-message "debug-io" (string-append "ghost-predict: text=[" (herk->utf8 text) "]\n"))
   (set! ghost-content text)
   ;; cursor-after 保证光标停在 ghost 之前
   (cursor-after (insert `(ghost ,text)))
