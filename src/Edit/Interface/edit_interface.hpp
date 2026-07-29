@@ -166,6 +166,7 @@ public:
   int  get_pixel_size ();
   SI   get_visible_width ();
   SI   get_visible_height ();
+  void invalidate_visible () override;
   SI   get_window_width ();
   SI   get_window_height ();
   SI   get_window_x ();

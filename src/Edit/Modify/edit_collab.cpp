@@ -183,8 +183,14 @@ edit_modify_rep::apply_remote (string bytes) {
 
   if (!is_nil (mods)) {
     if (DEBUG_LORO)
-      debug_loro << "Forcing typeset invalidation and repaint...\n";
+      debug_loro
+          << "Marking visible area for redraw (lazy typeset via THE_TREE)...\n";
     notify_change (THE_TREE);
+    // 仅标记当前可视区域重绘，不在此立即重排版：远端 mods 经 raw_apply
+    // 改树，排版器未增量通知、 boxes 已陈旧，完整重排版仍由 apply_changes 按
+    // THE_TREE 惰性触发（与 0774 一致）；
+    // 这里只把可视区域标脏，让对端编辑尽快可见。
+    exec_delayed (scheme_cmd ("(invalidate-visible)"));
   }
   bench_cumul ("apply_remote");
   if (DEBUG_BENCH) lolly::system::bench_print (std_bench);

@@ -228,6 +228,12 @@ edit_interface_rep::update_visible () {
   vy2= (SI) (vy2 / magf);
 }
 
+void
+edit_interface_rep::invalidate_visible () {
+  update_visible ();
+  invalidate (vx1, vy1, vx2, vy2);
+}
+
 SI
 edit_interface_rep::get_visible_width () {
   update_visible ();

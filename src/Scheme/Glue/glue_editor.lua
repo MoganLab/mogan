@@ -1973,6 +1973,11 @@ function main()
                 ret_type = "void"
             },
             {
+                scm_name = "invalidate-visible",
+                cpp_name = "invalidate_visible",
+                ret_type = "void"
+            },
+            {
                 scm_name = "update-forced",
                 cpp_name = "typeset_forced",
                 ret_type = "void"
