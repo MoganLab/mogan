@@ -65,12 +65,11 @@
   (check (cork->utf8 "\xC6") => "Æ")   ; text:symbol A var
   (check (cork->utf8 "\xF8") => "ø")   ; text:symbol o var
   (check (cork->utf8 "\xD8") => "Ø")   ; text:symbol O var
-  ;; cork 0xDF 是德语 ß 的大写连字，cork->utf8 解为 "SS"（两字符），
-  ;; 无单一 unicode 码点，故 polish-kbd.scm 里 s var / S var 的 RHS
-  ;; 直接写 "SS" 字面量，与原 cork 0xDF 显示等价。
-  (check (cork->utf8 "\xDF") => "SS")  ; text:symbol s var / S var
-  ;; 对照：ß (U+00DF) 在 cork 里是 0xFF，不是 0xDF。
-  (check (cork->utf8 "\xFF") => "ß")
+  ;; cork 0xFF = ß（s var）：U+00DF 经 utf8->cork 成单字节 0xFF。
+  ;; cork 0xDF = "SS"（S var）：ß 的大写连字，无单一 unicode 码点，
+  ;; 故 polish-kbd.scm 里 S var 的 RHS 直接写 "SS" 字面量。
+  (check (cork->utf8 "\xFF") => "ß")   ; text:symbol s var
+  (check (cork->utf8 "\xDF") => "SS")  ; text:symbol S var
 ) ;define
 
 ;; UTF-8 字符 -> cork 字节（反向：直接输入这些字符时 Qt 交 UTF-8 给

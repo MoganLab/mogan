@@ -39,7 +39,7 @@
  ("text:symbol A var" "<#C6>")
  ("text:symbol o var" "<#F8>")
  ("text:symbol O var" "<#D8>")
- ("text:symbol s var" "SS")
+ ("text:symbol s var" "<#DF>")
  ("text:symbol S var" "SS")
  ("text:symbol z var" "<#17A>")
  ("text:symbol Z var" "<#179>")
