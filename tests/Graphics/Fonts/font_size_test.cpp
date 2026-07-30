@@ -45,6 +45,7 @@ private slots:
 
   // Test script function
   void test_script_function ();
+  void test_font_script_size_cache ();
 
   // Test font creation with float sizes
   void test_smart_font_float_size ();
@@ -310,6 +311,39 @@ TestFontSize::test_script_function () {
   QVERIFY (qAbs (script (10.0, -1) - script (10.0, 0)) < 0.001);
   QVERIFY (qAbs (script (10.0, 3) - script (10.0, 2)) < 0.001);
   QVERIFY (qAbs (script (10.0, 100) - script (10.0, 2)) < 0.001);
+}
+
+// Test font_rep::script_size() cache
+void
+TestFontSize::test_font_script_size_cache () {
+  tree which= tree (TUPLE, "roman", "rm", "medium", "right", "$s", "$d");
+  tree by   = tree (TUPLE, "ec", "ecrm", "$s", "$d");
+  font_rule (which, by);
+
+  // 用唯一字号构造全新 font rep，保证缓存为冷
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 17.5, 600);
+  QVERIFY (!is_nil (fn));
+
+  // 值与 script(effective_size(), 1) 一致
+  double expected= script (fn->effective_size (), 1);
+  QVERIFY (qAbs (fn->script_size () - expected) < 0.001);
+
+  // 缓存命中：reset 后连续两次调用，底层 script() 至多执行一次
+  // （bench_print 仅在 invocations > 1 时输出 "(N invocations)"）
+  bench_reset ("font_script_calculation");
+  double v1= fn->script_size ();
+  double v2= fn->script_size ();
+  QVERIFY (qAbs (v1 - v2) < 0.001);
+  std_bench.buffer ();
+  lolly::system::bench_print (std_bench, "font_script_calculation", 0);
+  string out= std_bench.unbuffer ();
+  QVERIFY2 (!occurs ("invocations", out),
+            "script_size() should hit cache on second call");
+
+  // 字号变更后缓存自动失效（缓存键为 effective_size）
+  set_font_size ((font_rep*) fn.rep, 19.5);
+  double expected_new= script (19.5, 1);
+  QVERIFY (qAbs (fn->script_size () - expected_new) < 0.001);
 }
 
 // Test smart_font with float sizes
