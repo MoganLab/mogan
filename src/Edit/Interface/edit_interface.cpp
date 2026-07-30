@@ -1340,8 +1340,8 @@ void
 edit_interface_rep::after_menu_action () {
   notify_change (THE_DECORATIONS);
   end_editing ();
-  // 按钮 action 已执行完毕，立即全量重建
-  update_menus (MENU_ALL);
+  // 按钮 action 已执行完毕，apply_changes 排版后全量重建
+  notify_change (THE_MENUS);
   windows_delayed_refresh (1);
 }
 
