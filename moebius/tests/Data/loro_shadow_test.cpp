@@ -12,6 +12,7 @@
 #include "moe_doctests.hpp"
 #include "tree.hpp"
 #include "tree_helper.hpp"
+#include "tree_observer.hpp"
 #include <moebius/drd/drd_std.hpp>
 #include <moebius/vars.hpp>
 
@@ -717,6 +718,82 @@ TEST_CASE ("loro_shadow: body editing unaffected by metadata sections") {
   // meta section 仍在且未被破坏
   CHECK_EQ (sh->meta_to_tree ("style") == style, true);
   CHECK_EQ (sh->meta_to_tree ("attachments") == att, true);
+}
+
+// 回归（0782）：删除类镜像按 TreeID 定位。A 端并发插入了新孩子进入 shadow，
+// 使 shadow 的 child 顺序与本端 buffer 错位；本端删除 buffer 里某个孩子时，
+// 按位置 node_children[pos] 会咬到对端节点（旧行为），按身份删则只删目标。
+TEST_CASE (
+    "loro_shadow: identity remove deletes correct TreeID under reorder") {
+  ensure_labels ();
+  // 公共初始 (document (para "a") (para "b") (para "c"))
+  tree init (DOCUMENT, 3);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("a");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("b");
+  init[2]   = tree (PARA, 1);
+  init[2][0]= tree ("c");
+
+  loro_shadow a;
+  a->seed (init);
+  string s0= a->export_snapshot ();
+
+  // B 共享血统，往 shadow 里并发插入 para "alpha" 到位置 1
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  tree alpha (PARA, 1);
+  alpha[0]= tree ("alpha");
+  b->mirror_mod (tB, mod_insert (path (), 1, alpha));
+  insert (tB, 1, alpha);
+  string sb= b->export_snapshot ();
+
+  // A 导入：shadow 变为 [a, alpha, b, c]，而 A 的 buffer 仍是 [a, b, c]
+  // （模拟 apply_remote 前的错位：shadow child 顺序 ≠ buffer）
+  CHECK_EQ (a->import_data (sb), true);
+
+  // A 本地删除 buffer 位置 1 的 "b"：announce 捕获 b 的 TreeID
+  mogan_tree_id b_id= a->get_id (init[1]);
+  CHECK_EQ (b_id.peer != 0, true);
+  tree tA (DOCUMENT, 2);
+  tA[0]= init[0];
+  tA[1]= init[2];
+  array<mogan_tree_id> removed;
+  removed << b_id;
+  a->mirror_mod (tA, mod_remove (path (), 1, 1), removed);
+
+  // shadow 应为 [a, alpha, c]：删掉的是 "b"，对端的 "alpha" 保留
+  tree expected (DOCUMENT, 3);
+  expected[0]= init[0];
+  expected[1]= alpha;
+  expected[2]= init[2];
+  CHECK_EQ (a->to_tree () == expected, true);
+}
+
+TEST_CASE (
+    "loro_shadow: identity remove_node deletes wrapper, keeps promoted") {
+  ensure_labels ();
+  // (document (concat "ab") (para "tail"))
+  tree init (DOCUMENT, 2);
+  init[0]   = tree (CONCAT, 1);
+  init[0][0]= tree ("ab");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("tail");
+
+  loro_shadow sh;
+  sh->seed (init);
+  mogan_tree_id doc_id= sh->get_id (init);
+
+  // remove_node（语义：父被第 pos 个孩子替换）——document 被 concat 替换；
+  // buffer 变 (concat "ab")。capture 捕获被删父（document）的 TreeID。
+  tree                 out= init[0];
+  array<mogan_tree_id> removed;
+  removed << doc_id;
+  sh->mirror_mod (out, mod_remove_node (path (), 0), removed);
+
+  // concat 保留、document wrapper 被删 → shadow == (concat "ab")
+  CHECK_EQ (sh->to_tree () == out, true);
 }
 
 #endif // LORO_ENABLED

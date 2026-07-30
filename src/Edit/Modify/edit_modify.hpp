@@ -47,6 +47,11 @@ protected:
     string        e_off;
   };
   array<remote_cursor_entry> remote_cursors;
+  // MOD_REMOVE/MOD_REMOVE_NODE 在 edit_announce（pre-apply，buffer 未动）捕获
+  // 的被删节点 TreeID 栈；edit_done→mirror_loro 弹出后按身份删除。
+  // announce/done 严格配对（raw_* 同步、apply() 串行队列），push/pop 天然平衡；
+  // 仅在 mod 类别上对齐，不依赖 collab/remote 守卫的稳定性。
+  array<array<mogan_tree_id>> loro_removal_capture;
 #endif
 
 public:
@@ -66,7 +71,8 @@ public:
   void post_notify (path p);
 #ifdef LORO_ENABLED
   void ensure_loro_seeded () override;
-  void mirror_loro (const modification& mod) override;
+  void mirror_loro (modification& mod) override;
+  void capture_loro_removal (modification& mod) override;
   void apply_remote (string bytes) override;
   void set_remote_cursor (string peer, string payload) override;
   array<remote_cursor_view> get_remote_cursors () override;

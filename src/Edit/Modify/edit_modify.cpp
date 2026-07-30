@@ -247,7 +247,10 @@ edit_announce (editor_rep* ed, modification mod) {
   if (DEBUG_LORO) {
     if (mod->k != MOD_SET_CURSOR) debug_loro << "mod: " << mod << "\n";
   }
-  if (mod->k != MOD_SET_CURSOR) ed->ensure_loro_seeded ();
+  if (mod->k != MOD_SET_CURSOR) {
+    ed->ensure_loro_seeded ();
+    ed->capture_loro_removal (mod); // pre-apply：buffer 未动，捕获被删节点身份
+  }
 #endif
 
   switch (mod->k) {

@@ -73,14 +73,55 @@ edit_modify_rep::ensure_loro_seeded () {
   }
 }
 
+// edit_announce（pre-apply，buffer 未动）捕获 MOD_REMOVE/MOD_REMOVE_NODE 被删
+// 节点的 TreeID。被删节点 post-apply 已从 buffer 移除，只能在这里（改之前）
+// 经 id_map 查到其真实身份；push 与 mirror_loro 的 pop 按 mod 类别配对。
 void
-edit_modify_rep::mirror_loro (const modification& mod) {
+edit_modify_rep::capture_loro_removal (modification& mod) {
+  if (mod->k != MOD_REMOVE && mod->k != MOD_REMOVE_NODE) return;
+  array<mogan_tree_id> ids;
+  modification         bmod  = mod / rp; // buffer 相对
+  tree                 buf   = the_buffer ();
+  path                 rp_mod= root (bmod);
+  if (mod->k == MOD_REMOVE) {
+    if (has_subtree (buf, rp_mod)) {
+      tree& parent= subtree (buf, rp_mod);
+      if (is_compound (
+              parent)) { // 原子 remove 是文本删，偏移语义安全，无需捕获
+        int pos= index (bmod), nr= argument (bmod);
+        for (int j= pos; j < pos + nr && j < N (parent); j++) {
+          mogan_tree_id id= loro_doc->get_id (parent[j]);
+          if (id.peer != 0) ids << id; // 只收已在 CRDT 里的节点
+        }
+      }
+    }
+  }
+  else { // MOD_REMOVE_NODE：wrapper 节点 post-apply 被提升子节点替换
+    path wp= rp_mod * index (bmod); // wrapper 的完整路径
+    if (has_subtree (buf, wp)) {
+      mogan_tree_id id= loro_doc->get_id (subtree (buf, wp));
+      if (id.peer != 0) ids << id;
+    }
+  }
+  loro_removal_capture << ids; // push（可为空 → mirror 退化重 seed）
+}
+
+void
+edit_modify_rep::mirror_loro (modification& mod) {
+  // 先弹出 announce 的捕获（与 capture_loro_removal 的 push 按 mod 类别配对）；
+  // 在守卫 return 之前弹，保证远端应用/未开协作等提前 return 时栈仍平衡。
+  array<mogan_tree_id> removed_ids;
+  if ((mod->k == MOD_REMOVE || mod->k == MOD_REMOVE_NODE) &&
+      N (loro_removal_capture) > 0) {
+    removed_ids= loro_removal_capture[N (loro_removal_capture) - 1];
+    loro_removal_capture->resize (N (loro_removal_capture) - 1);
+  }
   if (loro_applying_remote) return; // 远端应用期间不回灌镜像，避免循环
   // 输入法 pre-edit 期间的插入（<pre-edit|s> 节点）与提交时 mark_cancel 的回撤
   // 都属本地临时显示，不应同步给对端；提交后的正式文本在 pre_edit_mark 清零后
   // 插入，仍会正常镜像。
   if (is_pre_editing ()) return;
-  if (const_cast<modification&> (mod)->k == MOD_SET_CURSOR) return;
+  if (mod->k == MOD_SET_CURSOR) return;
   if (!loro_collab_on) {
     static bool warned= false; // 诊断：协作未开启时（首次）提示，定位不广播问题
     if (!warned) {
@@ -93,15 +134,15 @@ edit_modify_rep::mirror_loro (const modification& mod) {
   }
   ensure_loro_seeded (); // Fallback in case not called from edit_announce
   if (DEBUG_LORO) debug_loro << "mirror_loro is mirroring mod to shadow\n";
-  loro_doc->mirror_mod (the_buffer (), mod / rp);
-#ifdef LORO_DEBUG
-  // debug_loro 验证：镜像后 buffer 应与 Loro
-  // 状态一致。不一致则告警（说明镜像链路有 bug）。 这是安全模式——mirror_loro 在
-  // edit_done(post-apply) 里，不调 edit_announce，无递归风险。
-  tree lt= loro_doc->to_tree ();
-  if (!(lt == the_buffer ()))
-    std_error << "MISMATCH: buffer != Loro after mirror\n";
-#endif
+  loro_doc->mirror_mod (the_buffer (), mod / rp, removed_ids);
+  if (DEBUG_LORO) {
+    // debug_loro 验证：镜像后 buffer 应与 Loro
+    // 状态一致。不一致则告警（说明镜像链路有 bug）。 这是安全模式——mirror_loro
+    // 在 edit_done(post-apply) 里，不调 edit_announce，无递归风险。
+    tree lt= loro_doc->to_tree ();
+    if (!(lt == the_buffer ()))
+      debug_loro << "MISMATCH: buffer != Loro after mirror\n";
+  }
 }
 
 // Phase 3：导入远端 update，把 diff 出的 mods 经 edit_announce 应用到 buffer。

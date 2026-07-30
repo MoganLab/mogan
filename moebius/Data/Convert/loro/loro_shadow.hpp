@@ -56,8 +56,13 @@ public:
   /** 一个 modification 镜像到 live doc。doc_root 是 mod->p 所相对的树根。
    *
    * 绝大多数操作（例如 INSERT/REMOVE）精确镜像到 LoroText
-   * 其余暂走整树重 seed 兜底，保证 shadow 始终与 buffer 一致 */
+   * 其余暂走整树重 seed 兜底，保证 shadow 始终与 buffer 一致。
+   * removed_ids：MOD_REMOVE/MOD_REMOVE_NODE 时被删节点的 TreeID（announce
+   * 预捕获，见 edit_collab.cpp）。有值时按身份删，避免位置型删除在并发重排
+   * 下咬到对端节点；缺省为空 → 退化到整树重 seed 兜底。 */
   void mirror_mod (tree doc_root, modification mod);
+  void mirror_mod (tree doc_root, modification mod,
+                   array<mogan_tree_id> removed_ids);
 
   // live doc -> snapshot 字节（包成 lolly string）
   string export_snapshot ();
@@ -145,11 +150,13 @@ private:
 
   // loro_shadow_mod
   bool mirror_insert (tree doc_root, modification mod);
-  bool mirror_remove (tree doc_root, modification mod);
+  bool mirror_remove (tree doc_root, modification mod,
+                      array<mogan_tree_id> removed_ids);
   bool mirror_assign_node (tree doc_root, modification mod);
   bool mirror_split (tree doc_root, modification mod);
   bool mirror_insert_node (tree doc_root, modification mod);
-  bool mirror_remove_node (tree doc_root, modification mod);
+  bool mirror_remove_node (tree doc_root, modification mod,
+                           array<mogan_tree_id> removed_ids);
   bool mirror_assign (tree doc_root, modification mod);
   bool mirror_join (tree doc_root, modification mod);
 };
