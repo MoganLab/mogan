@@ -577,8 +577,7 @@ rubber_font (font base) {
 
 double
 script (double sz, int level) {
-  bench_start ("font_script_calculation");
-
+  // 热路径（每个上下标盒子都会调用）：bench 计时开销远超函数体，勿在此埋点
   sz= normalize_half_multiple_size (sz);
 
   if (level < 0) level= 0;
@@ -587,7 +586,6 @@ script (double sz, int level) {
     sz= (sz * 2.0 + 2.0) / 3.0; // 浮点除法，保持精度
 
   // 输出可能不是0.5倍数，但这是设计允许的
-  bench_cumul ("font_script_calculation");
   return sz;
 }
 

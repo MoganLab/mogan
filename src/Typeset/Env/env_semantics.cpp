@@ -528,9 +528,8 @@ determine_sizes (tree szt, double sz) {
 
 double
 edit_env_rep::get_script_size (double sz, int level) {
-  bench_start ("get_script_size");
-  double result= 0.0;
-
+  // 热路径（单次排版数万次）：bench 计时的 string
+  // 哈希开销远超函数体，勿在此埋点
   sz= normalize_half_multiple_size (sz);
   // 将0.5倍数转换为整数索引（乘以2）
   int isz= (int) (sz * 2.0);
@@ -540,11 +539,8 @@ edit_env_rep::get_script_size (double sz, int level) {
     size_cache << determine_sizes (math_font_sizes, xsz);
   }
   array<double>& a (size_cache[isz]);
-  if (level < N (a)) result= a[level];
-  else result= a[N (a) - 1];
-
-  bench_cumul ("get_script_size");
-  return result;
+  if (level < N (a)) return a[level];
+  return a[N (a) - 1];
 }
 
 /******************************************************************************
