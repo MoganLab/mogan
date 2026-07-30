@@ -96,7 +96,7 @@ global_confirm () {
   while (it->busy ()) {
     archiver_rep* arch= (archiver_rep*) it->next ();
     arch->confirm ();
-    arch->simplify ();
+    // arch->simplify ();
   }
   pending_archs= hashset<pointer> ();
 }
@@ -107,7 +107,7 @@ global_cancel () {
   while (it->busy ()) {
     archiver_rep* arch= (archiver_rep*) it->next ();
     arch->cancel ();
-    arch->simplify ();
+    // arch->simplify ();
   }
   pending_archs= hashset<pointer> ();
 }
@@ -416,7 +416,7 @@ archiver_rep::simplify () {
       // （合并的相邻条目同作者，通常不在保存边界）。
       if (depth == last_autosave + 1) last_autosave= -1;
       depth--;
-      simplify ();
+      // simplify ();
     }
   }
 }
@@ -615,8 +615,8 @@ archiver_rep::mark_end (double m) {
   }
   archive= remove_marker (archive, m);
   depth--;
-  simplify ();
-  // show_all ();
+  // simplify ();
+  //  show_all ();
 }
 
 bool
@@ -628,7 +628,7 @@ archiver_rep::mark_cancel (double m) {
     if (is_marker (car (get_undo (archive)), m, false)) {
       archive= remove_marker (archive, m);
       depth--;
-      simplify ();
+      // simplify ();
       return true;
     }
     if (get_author (car (get_undo (archive))) != the_author) {
