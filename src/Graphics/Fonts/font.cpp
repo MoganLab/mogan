@@ -52,7 +52,8 @@ font_rep::font_rep (string s)
       zoomed_fn (NULL), global_lsub_correct (0), global_lsup_correct (0),
       global_rsub_correct (0), global_rsup_correct (0), lsub_correct (0.0),
       lsup_correct (0.0), rsub_correct (0.0), rsup_correct (0.0),
-      above_correct (0.0), below_correct (0.0), protrusion_maps (-1) {
+      above_correct (0.0), below_correct (0.0), protrusion_maps (-1),
+      script_size_key (-1.0), script_size_val (0.0) {
   lsub_correct = lsub_guessed_table ();
   lsup_correct = lsup_guessed_table ();
   rsub_correct = rsub_guessed_table ();
@@ -69,7 +70,8 @@ font_rep::font_rep (string s, font fn)
       sep (fn->sep), last_zoom (0.0), zoomed_fn (NULL), global_lsub_correct (0),
       global_lsup_correct (0), global_rsub_correct (0), global_rsup_correct (0),
       lsub_correct (0.0), lsup_correct (0.0), rsub_correct (0.0),
-      rsup_correct (0.0), protrusion_maps (-1) {
+      rsup_correct (0.0), protrusion_maps (-1), script_size_key (-1.0),
+      script_size_val (0.0) {
   lsub_correct = lsub_guessed_table ();
   lsup_correct = lsup_guessed_table ();
   rsub_correct = rsub_guessed_table ();
@@ -589,6 +591,16 @@ script (double sz, int level) {
   // 输出可能不是0.5倍数，但这是设计允许的
   bench_cumul ("font_script_calculation");
   return sz;
+}
+
+double
+font_rep::script_size () const {
+  double sz= effective_size ();
+  if (script_size_key != sz) {
+    script_size_key= sz;
+    script_size_val= script (sz, 1);
+  }
+  return script_size_val;
 }
 
 string

@@ -193,6 +193,12 @@ struct font_rep : rep<font> {
     return (double) size_int;
   }
 
+  // script(effective_size(), 1) 的缓存，上下标 box 构造时高频调用；
+  // 以 effective_size 为键，字号变更后自动失效
+  mutable double script_size_key;
+  mutable double script_size_val;
+  double         script_size () const;
+
   array<space> get_spacing_table (int mode, int id, array<array<space>>& t);
   space        get_spacing_entry (int mode, tree t, int i);
   space        get_spacing_entry (int mode, tree t, int i, string kind);
