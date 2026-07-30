@@ -1120,6 +1120,11 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "interrupt-shortcut",
+                cpp_name = "interrupt_shortcut",
+                ret_type = "void"
+            },
+            {
                 scm_name = "show-diff-popup",
                 cpp_name = "show_diff_popup",
                 ret_type = "void"
