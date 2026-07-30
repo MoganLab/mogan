@@ -57,6 +57,52 @@ diff_walk (tree b, tree a, path base, list<modification>& mods) {
       int rm_len = bn - pre - suf;
       int ins_len= an - pre - suf;
 
+      // SPLIT 检测：1 个原子 → N 个原子，拼接文本一致。
+      // 避免 diff 走 remove+insert（删旧重建毁字符身份），改吐 mod_split。
+      if (rm_len >= 1 && ins_len >= 2) {
+        bool   all_atomic= true;
+        string rm_text;
+        string ins_text;
+        for (int i= 0; i < rm_len && all_atomic; i++) {
+          if (!is_atomic (b[pre + i])) all_atomic= false;
+          else rm_text= rm_text * b[pre + i]->label;
+        }
+        for (int i= 0; i < ins_len && all_atomic; i++) {
+          if (!is_atomic (a[pre + i])) all_atomic= false;
+          else ins_text= ins_text * a[pre + i]->label;
+        }
+        if (all_atomic && rm_text == ins_text) {
+          // 按 shadow 各段的长度逐个 split（split 后下标递增）。
+          for (int i= 0; i < ins_len - 1; i++) {
+            mods= mods * mod_split (base, pre + i, N (a[pre + i]->label));
+          }
+          return true;
+        }
+      }
+
+      // JOIN 检测：N 个原子 → 1 个原子，拼接文本一致。
+      if (rm_len >= 2 && ins_len >= 1) {
+        bool   all_atomic= true;
+        string rm_text;
+        string ins_text;
+        for (int i= 0; i < rm_len && all_atomic; i++) {
+          if (!is_atomic (b[pre + i])) all_atomic= false;
+          else rm_text= rm_text * b[pre + i]->label;
+        }
+        for (int i= 0; i < ins_len && all_atomic; i++) {
+          if (!is_atomic (a[pre + i])) all_atomic= false;
+          else ins_text= ins_text * a[pre + i]->label;
+        }
+        if (all_atomic && rm_text == ins_text) {
+          // 逐对 join：每次 join child pre 与 pre+1，join 后下一段落到 pre+1
+          // → 再 join pre 与 pre+1（即原来的 pre+2）。故始终 join(base, pre)。
+          for (int i= 0; i < rm_len - 1; i++) {
+            mods= mods * mod_join (base, pre);
+          }
+          return true;
+        }
+      }
+
       if (rm_len > 0) {
         mods= mods * mod_remove (base, pre, rm_len);
       }

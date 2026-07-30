@@ -96,6 +96,26 @@ int32_t mogan_loro_node_text_delete (void* doc, mogan_tree_id id, uint32_t pos,
                                      uint32_t len);
 int32_t mogan_loro_node_join_text (void* doc, mogan_tree_id x_id,
                                    mogan_tree_id y_id);
+// ===== SPLIT 结构边界 marker（保字符身份）=====
+// marker 存在文本节点 meta 的 LoroMovableList（key "__split__"）里；位置用 Loro
+// Cursor（op-id 锚定）表示，并发增删自动跟随，不持久化整数 offset。SPLIT 只增
+// marker、JOIN 只删 marker，绝不 delete+insert 文本。
+// 在文本节点 offset 处创建一个 SPLIT marker，返回该 marker 元素的身份
+// （MovableList 元素 Cursor 的 postcard 字节，Rust 分配，需 mogan_loro_free
+// 释放）； 失败返回非 0。
+int32_t mogan_loro_node_split_marker_create (void* doc, mogan_tree_id id,
+                                             uint32_t offset, uint8_t** out,
+                                             size_t* out_len);
+// 按元素身份（marker_id postcard 字节）删除该 SPLIT marker；JOIN 用。返回 0
+// 成功。
+int32_t mogan_loro_node_split_marker_delete (void* doc, mogan_tree_id id,
+                                             const uint8_t* marker_id,
+                                             size_t         marker_id_len);
+// 按下标删除 SPLIT marker（JOIN 用）。index 是 MovableList 元素位置。
+int32_t mogan_loro_node_split_marker_delete_at (void* doc, mogan_tree_id id,
+                                                uint32_t index);
+// 文本节点当前是否含有效 SPLIT marker（测试/诊断）。返回 1=有，0=无，<0=错误。
+int32_t mogan_loro_node_has_split_markers (void* doc, mogan_tree_id id);
 // 稳定光标位置（Cursor，op-id 锚定）：把节点 LoroText 在 offset
 // 处的稳定位置编码 为 postcard 字节；反向按当前 doc 解析为 unicode
 // 偏移（并发编辑下自动跟随）。

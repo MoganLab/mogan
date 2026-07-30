@@ -31,6 +31,32 @@ loro_shadow_rep::node_children (mogan_tree_id parent) {
   return kids;
 }
 
+// 当文本节点有 SPLIT marker（一个 LoroText 物化成多段），对某一段的 text
+// insert/remove 必须把段内 local offset 翻译成 LoroText 全局 offset：加上
+// 前面所有同 TreeID 兄弟段的文本长度。
+static uint32_t
+seg_global_offset (tree doc_root, path rp_mod, mogan_tree_id id,
+                   hashmap<tree_rep*, mogan_tree_id>& id_map, int local_off) {
+  path pp= path_up (rp_mod);
+  if (is_nil (pp) || !has_subtree (doc_root, pp)) return (uint32_t) local_off;
+  tree& p= subtree (doc_root, pp);
+  if (!is_compound (p)) return (uint32_t) local_off;
+  int      seg_idx= last_item (rp_mod);
+  uint32_t off    = (uint32_t) local_off;
+  for (int i= 0; i < seg_idx; i++) {
+    path sp= pp * i;
+    if (has_subtree (doc_root, sp)) {
+      tree& sib= subtree (doc_root, sp);
+      if (is_atomic (sib) && id_map->contains (inside (sib)) &&
+          id_map (inside (sib)).peer == id.peer &&
+          id_map (inside (sib)).counter == id.counter) {
+        off+= (uint32_t) N (sib->label);
+      }
+    }
+  }
+  return off;
+}
+
 bool
 loro_shadow_rep::mirror_insert (tree doc_root, modification mod) {
   path rp_mod= root (mod);
@@ -39,7 +65,9 @@ loro_shadow_rep::mirror_insert (tree doc_root, modification mod) {
   if (is_atomic (parent) && id_map->contains (inside (parent))) {
     mogan_tree_id id= id_map (inside (parent));
     string        s = mod->t->label;
-    mogan_loro_node_text_insert (doc, id, (uint32_t) index (mod),
+    uint32_t      goff=
+        seg_global_offset (doc_root, rp_mod, id, id_map, index (mod));
+    mogan_loro_node_text_insert (doc, id, goff,
                                  reinterpret_cast<const uint8_t*> (s.begin ()),
                                  (size_t) N (s));
     return true;
@@ -67,8 +95,9 @@ loro_shadow_rep::mirror_remove (tree doc_root, modification mod) {
   tree& parent= subtree (doc_root, rp_mod);
   if (is_atomic (parent) && id_map->contains (inside (parent))) {
     mogan_tree_id id= id_map (inside (parent));
-    mogan_loro_node_text_delete (doc, id, (uint32_t) index (mod),
-                                 (uint32_t) argument (mod));
+    uint32_t      goff=
+        seg_global_offset (doc_root, rp_mod, id, id_map, index (mod));
+    mogan_loro_node_text_delete (doc, id, goff, (uint32_t) argument (mod));
     return true;
   }
   else if (is_compound (parent) && id_map->contains (inside (parent))) {
@@ -119,7 +148,21 @@ loro_shadow_rep::mirror_split (tree doc_root, modification mod) {
       path t2p= rp_mod * (pos + 1);
       if (has_subtree (doc_root, t2p)) {
         tree& t2= subtree (doc_root, t2p);
-        if (is_atomic (t2)) {
+        if (is_atomic (t2) && at > 0 && N (t2->label) > 0) {
+          // 保字符身份的 SPLIT（两段都非空）：不动 LoroText，只插 marker。
+          uint8_t* out    = nullptr;
+          size_t   out_len= 0;
+          if (mogan_loro_node_split_marker_create (doc, x_id, (uint32_t) at,
+                                                   &out, &out_len) != 0)
+            return false;
+          if (out) mogan_loro_free (out, out_len);
+          id_map (inside (t2))= x_id;
+          rev_id_map (x_id)   = rp_mod * pos;
+          return true;
+        }
+        else if (is_atomic (t2)) {
+          // 空段 split（at==0 或 t2 为空）：无字符需保身份，走 delete+insert
+          // （对空段等价于"不删 + 建空节点"，无害且结构正确）。
           mogan_loro_node_text_delete (doc, x_id, (uint32_t) at,
                                        (uint32_t) N (t2->label));
           mogan_tree_id y_id= mogan_loro_node_create (
@@ -264,6 +307,9 @@ loro_shadow_rep::mirror_join (tree doc_root, modification mod) {
     if (pos + 1 < N (kids)) {
       mogan_tree_id x_id= kids[pos];
       mogan_tree_id y_id= kids[pos + 1];
+      // 原子文本 join（常见退格合并）：join_text 把 Y 文本并入 X（X
+      // 文本字符身份 保留），Y 容器连同其上 SPLIT marker 一并删除——边界消除，即
+      // JOIN 语义。
       if (mogan_loro_node_join_text (doc, x_id, y_id) != 0) {
         array<mogan_tree_id> x_kids= node_children (x_id);
         array<mogan_tree_id> y_kids= node_children (y_id);
@@ -278,6 +324,19 @@ loro_shadow_rep::mirror_join (tree doc_root, modification mod) {
         rev_id_map (x_id)                                 = rp_mod * pos;
       }
       return true;
+    }
+    else if (N (kids) >= 1 && pos < N (kids)) {
+      // marker-based JOIN：LoroTree 只有 1 个文本子节点（带 marker），但 buffer
+      // 有 2+ 段（marker 物化）。删 marker[pos] 即可合并相邻段，不毁字符身份。
+      mogan_tree_id x_id= kids[0];
+      if (mogan_loro_node_split_marker_delete_at (doc, x_id, (uint32_t) pos) ==
+          0) {
+        if (has_subtree (doc_root, rp_mod * pos)) {
+          id_map (inside (subtree (doc_root, rp_mod * pos)))= x_id;
+          rev_id_map (x_id)                                 = rp_mod * pos;
+        }
+        return true;
+      }
     }
   }
   return false;

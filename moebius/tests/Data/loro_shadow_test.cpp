@@ -597,6 +597,433 @@ TEST_CASE ("loro_shadow: metadata section seed and round-trip") {
   CHECK_EQ (sh->has_id (body[0][0]), true);
 }
 
+// ===== SPLIT 结构边界 marker：保字符身份 =====
+// 本地 SPLIT 不再 delete+insert 文本，只在文本节点 meta 插一条边界 marker；
+// 字符身份保留（TreeID 不变），且 to_tree 按 marker 切出两段原子。
+TEST_CASE ("loro_shadow: split preserves char identity via marker") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow sh;
+  sh->seed (body);
+  CHECK_EQ (sh->to_tree () == body, true);
+
+  path          atom= path (0) * 0; // [0,0] 文本原子
+  mogan_tree_id id0 = sh->get_id (body[0][0]);
+
+  // 直接调 FFI 验证 split_marker_create 可用（绕过 mirror_split）
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 0);
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  int rc= mogan_loro_node_split_marker_create (sh->doc, id0, 3, &out, &out_len);
+  CHECK_EQ (rc, 0);
+  if (out) mogan_loro_free (out, out_len);
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 1);
+
+  // SPLIT at 3：buffer 变成两兄弟原子 ABC / DEF
+  tree split_buf (PARA, 2);
+  split_buf[0]= tree ("ABC");
+  split_buf[1]= tree ("DEF");
+  tree doc2 (DOCUMENT, 1);
+  doc2[0]= split_buf;
+  // 注：上面已直接创建了 marker，这里再 mirror 会重复；先测直接 FFI 路径
+  // sh->mirror_mod (doc2, mod_split (path (0), 0, 3));
+
+  // 物化：to_tree 按 marker 切出 ABC / DEF
+  CHECK_EQ (sh->to_tree () == doc2, true);
+}
+
+// SPLIT 后在 marker 左/右插入字符：cursor 跟随，归属正确，字符身份保留。
+// Phase 3 最小原型：直接在 shadow 层验证（不经过 mirror_mod，避开 id_map
+// 匹配）。
+TEST_CASE ("loro_shadow: inserts around split marker via FFI") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow sh;
+  sh->seed (body);
+  mogan_tree_id id0= sh->get_id (body[0][0]);
+
+  // SPLIT at 3（marker cursor 锚定 C|D 边界）
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (sh->doc, id0, 3, &out, &out_len), 0);
+  if (out) mogan_loro_free (out, out_len);
+
+  // 在 marker 左侧插入 X（offset 3 = 紧邻 marker 前）
+  CHECK_EQ (
+      mogan_loro_node_text_insert (sh->doc, id0, 3, (const uint8_t*) "X", 1),
+      0);
+  // 在 marker 右侧（DEF 之后）插入 Y（offset 现在 = 3+1+3 = 7）
+  CHECK_EQ (
+      mogan_loro_node_text_insert (sh->doc, id0, 7, (const uint8_t*) "Y", 1),
+      0);
+
+  // to_tree 应切出 ABCX / DEFY（marker cursor 跟随到 X|D）
+  tree want (PARA, 2);
+  want[0]= tree ("ABCX");
+  want[1]= tree ("DEFY");
+  tree wantdoc (DOCUMENT, 1);
+  wantdoc[0]= want;
+  CHECK_EQ (sh->to_tree () == wantdoc, true);
+  // marker 仍在
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 1);
+  // 字符身份不变（容器 TreeID 未被删旧重建）
+  mogan_tree_id id1= sh->get_id (body[0][0]);
+  CHECK_EQ (id1.peer == id0.peer && id1.counter == id0.counter, true);
+}
+
+// Case 3：marker 附近并发插入。shA 建 marker + 在 marker 前插 X；shB 在原 C|D
+// 边界插 Y。交换 snapshot 后 marker 应存活，X/Y 分属两侧（确定结果）。
+TEST_CASE ("loro_shadow: concurrent inserts around marker converge") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow shA;
+  shA->seed (body);
+  string        sa0= shA->export_snapshot ();
+  mogan_tree_id idA= shA->get_id (body[0][0]);
+
+  // shB 从公共 snapshot 导入
+  loro_shadow shB;
+  tree        tB;
+  CHECK_EQ (shB->import_and_build (sa0, tB), true);
+  mogan_tree_id idB= shB->get_id (tB[0][0]);
+  CHECK_EQ (idB.peer == idA.peer && idB.counter == idA.counter, true);
+
+  // shA：split at 3 + 在 marker 前插 X（offset 3）
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (shA->doc, idA, 3, &out, &out_len),
+      0);
+  if (out) mogan_loro_free (out, out_len);
+  CHECK_EQ (
+      mogan_loro_node_text_insert (shA->doc, idA, 3, (const uint8_t*) "X", 1),
+      0);
+  string sa= shA->export_snapshot ();
+
+  // shB：在原 C|D 边界（offset 3）插 Y（不知道 marker 存在）
+  CHECK_EQ (
+      mogan_loro_node_text_insert (shB->doc, idB, 3, (const uint8_t*) "Y", 1),
+      0);
+  string sb= shB->export_snapshot ();
+
+  // 互导 → CRDT 合并
+  CHECK_EQ (shA->import_data (sb), true);
+  CHECK_EQ (shB->import_data (sa), true);
+
+  // 两端收敛（文本内容一致），marker 在 shA 上存活
+  tree ta= shA->to_tree ();
+  tree tb= shB->to_tree ();
+  CHECK_EQ (ta == tb, true);
+  CHECK_EQ (mogan_loro_node_has_split_markers (shA->doc, idA), 1);
+  CHECK_EQ (mogan_loro_node_has_split_markers (shB->doc, idB), 1);
+  // 字符身份不变
+  mogan_tree_id idA2= shA->get_id (body[0][0]);
+  CHECK_EQ (idA2.peer == idA.peer && idA2.counter == idA.counter, true);
+}
+
+// Case 4：删除 marker 两侧的字符，marker 应 clamp 到邻近位置且持久保留。
+TEST_CASE ("loro_shadow: marker survives anchor deletion") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow sh;
+  sh->seed (body);
+  mogan_tree_id id0= sh->get_id (body[0][0]);
+
+  // split at 3
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (sh->doc, id0, 3, &out, &out_len), 0);
+  if (out) mogan_loro_free (out, out_len);
+
+  // 删 C（offset 2，marker 左邻）→ marker clamp 到 AB|DEF
+  CHECK_EQ (mogan_loro_node_text_delete (sh->doc, id0, 2, 1), 0);
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 1);
+  tree t1= sh->to_tree ();
+  CHECK_EQ (N (t1[0]) == 2, true); // 仍切 2 段
+  CHECK_EQ (t1[0][0] == tree ("AB"), true);
+
+  // 再删 D（现在 offset 2，marker 右邻）→ AB|EF
+  CHECK_EQ (mogan_loro_node_text_delete (sh->doc, id0, 2, 1), 0);
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 1);
+
+  // 删全部剩余 → marker 持久保留为空结构边界（用户拍板）
+  CHECK_EQ (mogan_loro_node_text_delete (sh->doc, id0, 0, 4), 0);
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 1);
+}
+
+// 多 SPLIT：SPLIT(2) + SPLIT(4) → AB[S1]CD[S2]EF → 3 段原子。
+TEST_CASE ("loro_shadow: multiple splits produce 3 segments") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow sh;
+  sh->seed (body);
+  mogan_tree_id id0= sh->get_id (body[0][0]);
+
+  // SPLIT at 2
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (sh->doc, id0, 2, &out, &out_len), 0);
+  if (out) mogan_loro_free (out, out_len);
+  // SPLIT at 4（在原始 ABCDEF 的 D|E 边界；marker cursor 锚定到 offset 4）
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (sh->doc, id0, 4, &out, &out_len), 0);
+  if (out) mogan_loro_free (out, out_len);
+
+  // 物化：3 段 AB / CD / EF
+  tree t= sh->to_tree ();
+  CHECK_EQ (N (t[0]) == 3, true);
+  CHECK_EQ (t[0][0] == tree ("AB"), true);
+  CHECK_EQ (t[0][1] == tree ("CD"), true);
+  CHECK_EQ (t[0][2] == tree ("EF"), true);
+}
+
+// JOIN：split 后用 split_marker_delete 删 marker → 两段合并为一。
+TEST_CASE ("loro_shadow: join removes marker and merges segments") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow sh;
+  sh->seed (body);
+  mogan_tree_id id0= sh->get_id (body[0][0]);
+
+  // split at 3
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (sh->doc, id0, 3, &out, &out_len), 0);
+  // marker_id = 返回的 postcard 字节
+  CHECK_EQ (out_len > 0, true);
+  // 删 marker（JOIN）
+  CHECK_EQ (mogan_loro_node_split_marker_delete (sh->doc, id0, out, out_len),
+            0);
+  mogan_loro_free (out, out_len);
+
+  // 物化：回到 1 段 ABCDEF
+  tree t= sh->to_tree ();
+  CHECK_EQ (N (t[0]) == 1, true);
+  CHECK_EQ (t[0][0] == tree ("ABCDEF"), true);
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 0);
+}
+
+// Phase 5 e2e：远端 split 到达时 diff_walk 应吐 mod_split（而非
+// remove+insert）。
+TEST_CASE ("loro_shadow: remote split produces mod_split not remove+insert") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow shA;
+  shA->seed (body);
+  mogan_tree_id idA    = shA->get_id (body[0][0]);
+  uint8_t*      out    = nullptr;
+  size_t        out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (shA->doc, idA, 3, &out, &out_len),
+      0);
+  if (out) mogan_loro_free (out, out_len);
+  string sa= shA->export_snapshot ();
+
+  loro_shadow shB;
+  // 不 seed：remote_diff_mods 内部 import A 的 snapshot（含 marker）
+  list<modification> mods     = shB->remote_diff_mods (sa, body);
+  bool               has_split= false, has_remove= false;
+  for (auto l= mods; !is_nil (l); l= l->next) {
+    if (l->item->k == MOD_SPLIT) has_split= true;
+    if (l->item->k == MOD_REMOVE) has_remove= true;
+  }
+  CHECK_EQ (has_split, true);
+  CHECK_EQ (has_remove, false);
+}
+
+// Phase 5 e2e：远端 JOIN 到达时 diff_walk 应吐 mod_join。
+TEST_CASE ("loro_shadow: remote join produces mod_join not remove+insert") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow shA;
+  shA->seed (body);
+  mogan_tree_id idA    = shA->get_id (body[0][0]);
+  uint8_t*      out    = nullptr;
+  size_t        out_len= 0;
+  CHECK_EQ (
+      mogan_loro_node_split_marker_create (shA->doc, idA, 3, &out, &out_len),
+      0);
+  CHECK_EQ (mogan_loro_node_split_marker_delete (shA->doc, idA, out, out_len),
+            0);
+  mogan_loro_free (out, out_len);
+  string sa= shA->export_snapshot ();
+
+  tree split_body (DOCUMENT, 1);
+  split_body[0]   = tree (PARA, 2);
+  split_body[0][0]= tree ("ABC");
+  split_body[0][1]= tree ("DEF");
+  loro_shadow shB;
+  // 不 seed：remote_diff_mods 内部 import A 的 snapshot（marker 已删 = JOIN
+  // 后）
+  list<modification> mods    = shB->remote_diff_mods (sa, split_body);
+  bool               has_join= false, has_remove= false;
+  for (auto l= mods; !is_nil (l); l= l->next) {
+    if (l->item->k == MOD_JOIN) has_join= true;
+    if (l->item->k == MOD_REMOVE) has_remove= true;
+  }
+  CHECK_EQ (has_join, true);
+  CHECK_EQ (has_remove, false);
+}
+
+// Phase 5a：import_and_build 在 split 后正确重建 buffer + id_map（1↔N）。
+// sync_walk 的 arity 校验不应 fail；两段原子各自映射到正确 TreeID。
+TEST_CASE ("loro_shadow: import_and_build maps split segments 1-to-N") {
+  ensure_labels ();
+  tree body (DOCUMENT, 1);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("ABCDEF");
+  loro_shadow shA;
+  shA->seed (body);
+  mogan_tree_id id_text= shA->get_id (body[0][0]);
+  // split at 3
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  CHECK_EQ (mogan_loro_node_split_marker_create (shA->doc, id_text, 3, &out,
+                                                 &out_len),
+            0);
+  if (out) mogan_loro_free (out, out_len);
+  string sa= shA->export_snapshot ();
+
+  // B 导入 + 构建 buffer
+  loro_shadow shB;
+  tree        buf;
+  CHECK_EQ (shB->import_and_build (sa, buf), true);
+  // buffer 应切出 2 段
+  CHECK_EQ (N (buf[0]) == 2, true);
+  CHECK_EQ (buf[0][0] == tree ("ABC"), true);
+  CHECK_EQ (buf[0][1] == tree ("DEF"), true);
+  // id_map 覆盖两段（sync_walk 1↔N 不 fail）
+  CHECK_EQ (shB->has_id (buf[0][0]), true);
+  CHECK_EQ (shB->has_id (buf[0][1]), true);
+  // 前缀段身份 = 原文本节点 TreeID（保字符身份）
+  mogan_tree_id id_seg0= shB->get_id (buf[0][0]);
+  CHECK_EQ (id_seg0.peer == id_text.peer && id_seg0.counter == id_text.counter,
+            true);
+}
+
+// ===== A/B 集成测试框架：模拟完整同步周期 =====
+// A 的编辑经 mirror_mod → snapshot → B 的 remote_diff_mods（import + diff）。
+// 不调 apply()（符号依赖 observer 栈）；改用 shB->to_tree() 作为被动 B 下一轮
+// diff 的 buffer 真值。校验 shA->to_tree() == shB->to_tree() 收敛。
+
+// A→B 单向同步（B 被动）：A 导 snapshot → B import + diff。
+static void
+ab_sync_a2b (loro_shadow shA, loro_shadow shB) {
+  string snap= shA->export_snapshot ();
+  tree   buf = shB->to_tree (); // B 当前 shadow 状态作 diff 基准
+  shB->remote_diff_mods (snap, buf);
+}
+
+// 场景：A 打字 "LINE1" → 在末尾 split（模拟 Return）→ B 被动同步。
+// 校验 B 的 shadow 与 A 收敛（不是 LINE2LINE1）。
+TEST_CASE ("loro_shadow: AB sync split at line end converges") {
+  ensure_labels ();
+  tree init (DOCUMENT, 1);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("ABCDEF");
+
+  loro_shadow shA;
+  shA->seed (init);
+  string sa0= shA->export_snapshot ();
+
+  loro_shadow shB;
+  tree        buf_b;
+  REQUIRE_EQ (shB->import_and_build (sa0, buf_b), true);
+
+  // A 在 "ABCDEF" 末尾 split（offset 6 = 产生 "ABCDEF" + "" 空段）
+  // 先把 init 更新到 post-split 状态（mirror_mod 读树解析路径）
+  init[0]   = tree (PARA, 2);
+  init[0][0]= tree ("ABCDEF");
+  init[0][1]= tree ("");
+  shA->mirror_mod (init, mod_split (path (0), 0, 6));
+
+  // sync to B
+  ab_sync_a2b (shA, shB);
+  CHECK_EQ (shA->to_tree () == shB->to_tree (), true);
+  // B 应有 2 段（ABCDEF + 空），不是 assign 整体替换
+  tree tb= shB->to_tree ();
+  CHECK_EQ (N (tb[0]) == 2, true);
+}
+
+// 场景：A 和 B 并发在同一段插入字符，互导后收敛。
+TEST_CASE ("loro_shadow: AB concurrent insert converges") {
+  ensure_labels ();
+  tree init (DOCUMENT, 1);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("X");
+
+  loro_shadow shA;
+  shA->seed (init);
+  string sa0= shA->export_snapshot ();
+
+  loro_shadow shB;
+  tree        buf_b;
+  REQUIRE_EQ (shB->import_and_build (sa0, buf_b), true);
+
+  // A 在 "X" 后插 "A"
+  shA->mirror_mod (init, mod_insert (path (0) * 0, 1, tree ("A")));
+  init[0][0]->label= string ("XA");
+  // B 在 "X" 后插 "B"（并发）
+  shB->mirror_mod (buf_b, mod_insert (path (0) * 0, 1, tree ("B")));
+  buf_b[0][0]->label= string ("XB");
+
+  // 互导
+  ab_sync_a2b (shA, shB);
+  tree   buf_a= shA->to_tree (); // A 当前 shadow 作 diff 基准
+  string sb   = shB->export_snapshot ();
+  shA->remote_diff_mods (sb, buf_a);
+
+  // 收敛
+  CHECK_EQ (shA->to_tree () == shB->to_tree (), true);
+  tree ta= shA->to_tree ();
+  CHECK_EQ (N (ta[0][0]->label) == 3, true); // X + A + B
+}
+
+// 旧文档兼容：seed 无 marker 的普通文档，to_tree 行为不变。
+TEST_CASE ("loro_shadow: old document without markers loads fine") {
+  ensure_labels ();
+  tree body (DOCUMENT, 2);
+  body[0]   = tree (PARA, 1);
+  body[0][0]= tree ("hello");
+  body[1]   = tree (PARA, 1);
+  body[1][0]= tree ("world");
+  loro_shadow sh;
+  sh->seed (body);
+
+  // 无 marker → has_split_markers = 0
+  mogan_tree_id id0= sh->get_id (body[0][0]);
+  CHECK_EQ (mogan_loro_node_has_split_markers (sh->doc, id0), 0);
+
+  // to_tree 原样返回
+  CHECK_EQ (sh->to_tree () == body, true);
+
+  // snapshot 往返后仍无 marker
+  string      snap= sh->export_snapshot ();
+  loro_shadow sh2;
+  CHECK_EQ (sh2->import_data (snap), true);
+  CHECK_EQ (sh2->to_tree () == body, true);
+}
+
 // coarse replace：删旧 root + 重建，list_meta_sections 反映当前 section。
 TEST_CASE ("loro_shadow: metadata coarse replace") {
   ensure_labels ();

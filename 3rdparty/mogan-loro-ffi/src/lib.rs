@@ -38,8 +38,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use loro::{
-    Container, ExportMode, LoroDoc, LoroMap, LoroText, LoroTree, Subscription, TreeID,
-    TreeParentId, ValueOrContainer,
+    Container, ContainerTrait, ExportMode, LoroDoc, LoroMap, LoroMovableList,
+    LoroText, LoroTree, Subscription, TreeID, TreeParentId, ValueOrContainer,
 };
 use loro::cursor::{Cursor, Side};
 
@@ -64,6 +64,12 @@ const KIND_GENERIC: u8 = 2;
 
 /// LoroTree 容器名（C++ 侧也用同名 root tree）
 const TREE_NAME: &str = "tree";
+
+/// 文本节点 meta 里存放 SPLIT 结构边界 marker 的 MovableList 键名。
+/// 每条 marker 是一个元素，value 为其在文本 LoroText 中边界的稳定位置
+/// （`Cursor` postcard 字节）。元素自身有 CRDT 身份（元素 Cursor 编码），
+/// 只增删、不动 LoroText 字符，故 SPLIT/JOIN 不破坏字符身份。
+const SPLIT_KEY: &str = "__split__";
 
 // =============================================================================
 // Rust 侧 IR 节点
@@ -306,23 +312,87 @@ fn str_to_kind(s: &str) -> u8 {
     }
 }
 
-fn read_node(tree: &LoroTree, id: TreeID) -> Result<IrNode, ()> {
+/// 把一个文本节点的 LoroText 内容按 SPLIT marker 切成 1..=N+1 个 IrNode 原子。
+/// 无 marker 或锚点失效时退化为 1 个原子（与旧行为一致）。`child_ids` 恒为空
+/// （文本容器不是 LoroTree 子节点，不计入树子节点数）。
+fn read_text_segments(doc: &LoroDoc, meta: &LoroMap) -> Vec<IrNode> {
+    let text = get_meta_text_or_binary(meta).unwrap_or_default();
+    let boundaries = match get_split(meta) {
+        Some(list) => split_boundaries(doc, &list),
+        None => Vec::new(),
+    };
+    let n = text.len();
+    let mut segs = Vec::new();
+    let mut start = 0usize;
+    for &b in &boundaries {
+        if b > start && b <= n {
+            segs.push(IrNode {
+                kind: KIND_ATOMIC,
+                label: Vec::new(),
+                text: text[start..b].to_vec(),
+                children: Vec::new(),
+            });
+            start = b;
+        }
+    }
+    segs.push(IrNode {
+        kind: KIND_ATOMIC,
+        label: Vec::new(),
+        text: text[start..].to_vec(),
+        children: Vec::new(),
+    });
+    segs
+}
+
+/// 无 LoroDoc 句柄时的退化切段：只按整段文本返回 1 个原子（无法解析 marker
+/// cursor 偏移；仅防御，正常路径都有 doc）。
+fn read_text_segments_no_doc(meta: &LoroMap) -> Vec<IrNode> {
+    let text = get_meta_text_or_binary(meta).unwrap_or_default();
+    vec![IrNode {
+        kind: KIND_ATOMIC,
+        label: Vec::new(),
+        text,
+        children: Vec::new(),
+    }]
+}
+
+/// 读一个 LoroTree 节点为 1..=N+1 个 IrNode（1↔N 物化）。
+/// 文本原子有 SPLIT marker 时切成多段，各段作为兄弟扁平展开（调用方 extend）。
+fn read_node_vec(tree: &LoroTree, id: TreeID) -> Result<Vec<IrNode>, ()> {
     let meta = tree.get_meta(id).map_err(|_| ())?;
     let kind = get_meta_str(&meta, "kind").unwrap_or_default();
     let kind_byte = str_to_kind(&kind);
-    let label = get_meta_bytes(&meta, "label").unwrap_or_default();
-    let text = get_meta_text_or_binary(&meta).unwrap_or_default();
+    if kind_byte == KIND_ATOMIC {
+        // 文本原子：按 SPLIT marker 切成 1..=N+1 段（扁平返回）。
+        return Ok(match tree.doc() {
+            Some(d) => read_text_segments(&d, &meta),
+            None => read_text_segments_no_doc(&meta),
+        });
+    }
+    // 复合节点：递归子节点（每个可能展开为多段），扁平收集。
     let child_ids = tree.children(TreeParentId::Node(id)).unwrap_or_default();
     let mut children = Vec::with_capacity(child_ids.len());
     for cid in child_ids {
-        children.push(read_node(tree, cid)?);
+        children.extend(read_node_vec(tree, cid)?);
     }
-    Ok(IrNode {
+    let label = get_meta_bytes(&meta, "label").unwrap_or_default();
+    Ok(vec![IrNode {
         kind: kind_byte,
         label,
-        text,
+        text: Vec::new(),
         children,
-    })
+    }])
+}
+
+fn read_node(tree: &LoroTree, id: TreeID) -> Result<IrNode, ()> {
+    // 根节点必定只返回 1 个 IrNode（根是复合，其子节点可能展开但归入根的 children）。
+    let mut v = read_node_vec(tree, id)?;
+    if v.len() == 1 {
+        Ok(v.remove(0))
+    } else {
+        // 根不应该是文本原子（不会有多段）；防御：取第一个
+        Ok(v.remove(0))
+    }
 }
 
 fn doc_to_ir(doc: &LoroDoc) -> Result<IrNode, ()> {
@@ -664,28 +734,92 @@ pub unsafe extern "C" fn mogan_loro_doc_advance_export_vv(doc: *mut LoroDoc) {
     *vv = (*doc).oplog_vv();
 }
 
-/// 递归写出"带 TreeID 的增强 IR"：每节点前缀 peer:u64 counter:i32，再跟普通 IR 节点。
-/// 用于 Phase 3：B 导入后据此把 buffer rep 关联到导入的 TreeID，使 B 的后续编辑能合并。
-fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) {
-    w.buf.extend_from_slice(&id.peer.to_le_bytes());
-    w.buf.extend_from_slice(&id.counter.to_le_bytes());
-    let (kind_byte, label, text, child_ids) = match tree.get_meta(id) {
-        Ok(meta) => {
-            let kind = get_meta_str(&meta, "kind").unwrap_or_default();
-            let label = get_meta_bytes(&meta, "label").unwrap_or_default();
-            let text = get_meta_text_or_binary(&meta).unwrap_or_default();
-            let children = tree.children(TreeParentId::Node(id)).unwrap_or_default();
-            (str_to_kind(&kind), label, text, children)
+/// 把一个 TreeID 编码为 16 字节数组（前 8 peer + 4 counter + 4 padding）。
+fn treeid_to_16(id: TreeID) -> [u8; 16] {
+    let mut b = [0u8; 16];
+    b[0..8].copy_from_slice(&id.peer.to_le_bytes());
+    b[8..12].copy_from_slice(&id.counter.to_le_bytes());
+    b
+}
+
+/// 把 16 字节身份写进 buffer（peer 8 + counter 4 = 12 字节有效）。
+fn write_mogan_id(w: &mut Writer, id16: &[u8]) {
+    w.buf.extend_from_slice(&id16[0..8]);
+    w.buf.extend_from_slice(&id16[8..12]);
+}
+
+/// 递归写出"带 TreeID 的增强 IR"，1↔N 扁平展开。
+/// 文本原子有 SPLIT marker 时展开为 N+1 个原子 IR 节点（扁平兄弟，无 wrapper）。
+/// 返回写的 IR 节数（1 或 N+1），供父节点计正确的 n_children。
+fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) -> usize {
+    let id_bytes = treeid_to_16(id);
+    let meta = match tree.get_meta(id) {
+        Ok(m) => m,
+        Err(_) => {
+            write_mogan_id(w, &id_bytes);
+            w.u8(KIND_COMPOUND);
+            w.bytes_field(&Vec::new());
+            w.bytes_field(&Vec::new());
+            w.u32(0);
+            return 1;
         }
-        Err(_) => (KIND_COMPOUND, Vec::new(), Vec::new(), Vec::new()),
     };
+    let kind_byte = str_to_kind(&get_meta_str(&meta, "kind").unwrap_or_default());
+
+    if kind_byte == KIND_ATOMIC {
+        let segs = match tree.doc() {
+            Some(d) => read_text_segments(&d, &meta),
+            None => read_text_segments_no_doc(&meta),
+        };
+        if segs.len() > 1 {
+            // 有 marker：展开为 N+1 个原子 IR 节点（扁平，无 wrapper）。
+            let elem_ids: Vec<Option<Vec<u8>>> = match get_split(&meta) {
+                Some(list) => (0..list.len()).map(|i| elem_identity(&list, i)).collect(),
+                None => Vec::new(),
+            };
+            for (si, s) in segs.iter().enumerate() {
+                let seg_id16= if si == 0 {
+                    id_bytes                         // 前缀段：真 TreeID
+                } else {
+                    // marker[si-1] 元素身份截断 16 字节；失败回退真 TreeID
+                    elem_ids.get(si - 1).and_then(|o| o.as_ref()).map_or(id_bytes, |v| {
+                        let mut b= [0u8; 16];
+                        if v.len() >= 16 { b.copy_from_slice(&v[0..16]); } else { b.copy_from_slice(&id_bytes); }
+                        b
+                    })
+                };
+                write_mogan_id(w, &seg_id16);
+                w.u8(KIND_ATOMIC);
+                w.bytes_field(&s.label);
+                w.bytes_field(&s.text);
+                w.u32(0);
+            }
+            return segs.len();
+        }
+        // 无 marker：1 个原子。
+        write_mogan_id(w, &id_bytes);
+        w.u8(KIND_ATOMIC);
+        w.bytes_field(&Vec::new());
+        w.bytes_field(&segs.into_iter().next().unwrap().text);
+        w.u32(0);
+        return 1;
+    }
+
+    // 复合节点：先把子节点写进 temp（展开计数），再写 header + children。
+    let label = get_meta_bytes(&meta, "label").unwrap_or_default();
+    let child_ids = tree.children(TreeParentId::Node(id)).unwrap_or_default();
+    let mut temp = Writer { buf: Vec::new() };
+    let mut n = 0usize;
+    for cid in &child_ids {
+        n += write_node_with_id(tree, *cid, &mut temp);
+    }
+    write_mogan_id(w, &id_bytes);
     w.u8(kind_byte);
     w.bytes_field(&label);
-    w.bytes_field(&text);
-    w.u32(child_ids.len() as u32);
-    for cid in child_ids {
-        write_node_with_id(tree, cid, w);
-    }
+    w.bytes_field(&Vec::new());
+    w.u32(n as u32);
+    w.buf.extend(temp.buf);
+    1
 }
 
 /// live doc -> 带 TreeID 的增强 IR 字节。
@@ -1134,6 +1268,262 @@ pub unsafe extern "C" fn mogan_loro_decode_cursor(
     }
 }
 
+// =============================================================================
+// SPLIT 结构边界 marker（保字符身份）
+// =============================================================================
+// marker 存在文本节点 meta 的 LoroMovableList（SPLIT_KEY）里，value 为边界的稳定
+// 位置（文本 Cursor postcard 字节）。元素自身有 CRDT 身份（元素 Cursor 编码）。
+// SPLIT 只插 marker、JOIN 只删 marker，绝不 delete+insert 文本，故字符身份不变。
+
+/// 取文本节点的 meta Map（须存在）。
+fn node_meta(tree: &LoroTree, id: TreeID) -> Result<LoroMap, ()> {
+    tree.get_meta(id).map_err(|_| ())
+}
+
+/// 取文本节点 meta 下的 LoroText（没有则 None）。
+fn get_text(meta: &LoroMap) -> Option<LoroText> {
+    match meta.get("text") {
+        Some(ValueOrContainer::Container(Container::Text(t))) => Some(t),
+        _ => None,
+    }
+}
+
+/// 取或创建文本节点 meta 下的 SPLIT MovableList。
+fn get_or_create_split(meta: &LoroMap) -> Option<LoroMovableList> {
+    match meta.get(SPLIT_KEY) {
+        Some(ValueOrContainer::Container(Container::MovableList(l))) => Some(l),
+        Some(_) => None,
+        None => meta
+            .insert_container(SPLIT_KEY, LoroMovableList::new())
+            .ok(),
+    }
+}
+
+/// 只读地取 SPLIT MovableList（没有则 None）。
+fn get_split(meta: &LoroMap) -> Option<LoroMovableList> {
+    match meta.get(SPLIT_KEY) {
+        Some(ValueOrContainer::Container(Container::MovableList(l))) => Some(l),
+        _ => None,
+    }
+}
+
+/// 读元素 value 里的边界 Cursor 字节（元素 value 是 Binary(postcard)）。
+fn marker_cursor_bytes(list: &LoroMovableList, i: usize) -> Option<Vec<u8>> {
+    match list.get(i) {
+        Some(ValueOrContainer::Value(v)) => {
+            let arc: std::sync::Arc<Vec<u8>> = std::sync::Arc::<Vec<u8>>::try_from(v).ok()?;
+            Some((*arc).clone())
+        }
+        _ => None,
+    }
+}
+
+/// 把各 marker 的边界 Cursor 解析成 unicode 偏移并升序排序（去重）。
+/// 解析失败（锚点容器被删等）的 marker 丢弃——文本节点已删则整个不导出。
+fn split_boundaries(doc: &LoroDoc, list: &LoroMovableList) -> Vec<usize> {
+    let mut offs: Vec<usize> = Vec::new();
+    for i in 0..list.len() {
+        if let Some(bytes) = marker_cursor_bytes(list, i) {
+            if let Ok(c) = Cursor::decode(&bytes) {
+                if let Ok(r) = doc.get_cursor_pos(&c) {
+                    offs.push(r.current.pos);
+                }
+            }
+        }
+    }
+    offs.sort_unstable();
+    offs.dedup();
+    offs
+}
+
+/// 元素身份 = 该元素在 MovableList 中的稳定位置 Cursor（op-id 锚定）编码。
+/// marker 只增不删可移动，故元素身份稳定且随 update 跨端可解析。
+fn elem_identity(list: &LoroMovableList, i: usize) -> Option<Vec<u8>> {
+    list.get_cursor(i, Side::Middle)
+        .or_else(|| {
+            if i > 0 {
+                list.get_cursor(i - 1, Side::Right)
+            } else {
+                None
+            }
+        })
+        .map(|c| c.encode())
+}
+
+/// 在文本节点 offset 处创建 SPLIT marker，返回元素身份（postcard 字节）。
+/// 字符不动：只在文本 LoroText 上取边界 Cursor，向 MovableList 插入一条 marker。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_node_split_marker_create(
+    doc: *mut LoroDoc,
+    id: MoganTreeId,
+    offset: u32,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let meta = match node_meta(&tree, treeid_from(id)) {
+        Ok(m) => m,
+        Err(_) => return -2,
+    };
+    let txt = match get_text(&meta) {
+        Some(t) => t,
+        None => return -3,
+    };
+    // 边界稳定位置（op-id 锚定，非整数 offset 持久化）。
+    let boundary = txt
+        .get_cursor(offset as usize, Side::Middle)
+        .or_else(|| {
+            if offset > 0 {
+                txt.get_cursor(offset as usize - 1, Side::Right)
+            } else {
+                None
+            }
+        });
+    let boundary = match boundary {
+        Some(c) => c,
+        None => return -4,
+    };
+    let list = match get_or_create_split(&meta) {
+        Some(l) => l,
+        None => return -5,
+    };
+    // 按当前边界把 marker 插到正确次序（保持段内按位置升序）。
+    let pos = doc_boundary_pos(&*doc, &boundary);
+    let mut insert_at = list.len();
+    for i in 0..list.len() {
+        if let Some(bytes) = marker_cursor_bytes(&list, i) {
+            if let Ok(c) = Cursor::decode(&bytes) {
+                if let Ok(r) = (*doc).get_cursor_pos(&c) {
+                    if r.current.pos > pos {
+                        insert_at = i;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    let bytes = boundary.encode();
+    if list.insert(insert_at, bytes).is_err() {
+        return -6;
+    }
+    // 元素身份：插入后该位置元素的 Cursor 编码。
+    match elem_identity(&list, insert_at) {
+        Some(id_bytes) => {
+            emit_out(id_bytes, out, out_len);
+            0
+        }
+        None => -7,
+    }
+}
+
+/// 边界 Cursor 在文本里的当前 unicode 偏移（解析失败返回 usize::MAX）。
+fn doc_boundary_pos(doc: &LoroDoc, c: &Cursor) -> usize {
+    match doc.get_cursor_pos(c) {
+        Ok(r) => r.current.pos,
+        Err(_) => usize::MAX,
+    }
+}
+
+/// 按元素身份删除 SPLIT marker（JOIN）。marker_id 是 create 返回的元素 Cursor 字节。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_node_split_marker_delete(
+    doc: *mut LoroDoc,
+    id: MoganTreeId,
+    marker_id: *const u8,
+    marker_id_len: usize,
+) -> i32 {
+    if doc.is_null() || marker_id.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let meta = match node_meta(&tree, treeid_from(id)) {
+        Ok(m) => m,
+        Err(_) => return -2,
+    };
+    let list = match get_split(&meta) {
+        Some(l) => l,
+        None => return -3,
+    };
+    let buf = std::slice::from_raw_parts(marker_id, marker_id_len);
+    let target = match Cursor::decode(buf) {
+        Ok(c) => c,
+        Err(_) => return -4,
+    };
+    // 找到元素身份与 target 相同的元素下标（比较各自元素 Cursor 的 op-id）。
+    for i in 0..list.len() {
+        if let Some(id_bytes) = elem_identity(&list, i) {
+            if let Ok(c) = Cursor::decode(&id_bytes) {
+                if c == target {
+                    if list.delete(i, 1).is_err() {
+                        return -6;
+                    }
+                    return 0;
+                }
+            }
+        }
+    }
+    -5 // 找不到该 marker
+}
+
+/// 按下标删除 SPLIT marker（JOIN 用）。index 是 MovableList 中的元素位置。
+/// 返回 0 成功；<0 错误。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_node_split_marker_delete_at(
+    doc: *mut LoroDoc,
+    id: MoganTreeId,
+    index: u32,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let meta = match node_meta(&tree, treeid_from(id)) {
+        Ok(m) => m,
+        Err(_) => return -2,
+    };
+    let list = match get_split(&meta) {
+        Some(l) => l,
+        None => return -3,
+    };
+    if index as usize >= list.len() {
+        return -4;
+    }
+    if list.delete(index as usize, 1).is_err() {
+        return -5;
+    }
+    0
+}
+
+/// 文本节点当前是否含有效 SPLIT marker（用于测试/诊断）。返回 1=有，0=无，<0=错误。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_node_has_split_markers(
+    doc: *mut LoroDoc,
+    id: MoganTreeId,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let tree = (*doc).get_tree(TREE_NAME);
+    let meta = match node_meta(&tree, treeid_from(id)) {
+        Ok(m) => m,
+        Err(_) => return -2,
+    };
+    match get_split(&meta) {
+        Some(list) => {
+            let b = split_boundaries(&*doc, &list);
+            if b.is_empty() {
+                0
+            } else {
+                1
+            }
+        }
+        None => 0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1380,5 +1770,59 @@ mod tests {
         assert_eq!(back.children[0].text, b"hi");
 
         unsafe { mogan_loro_doc_free(doc) };
+    }
+
+    /// 聚焦诊断：split_marker 各步是否成功。运行：
+    ///   cd 3rdparty/mogan-loro-ffi && cargo test split_marker_focus -- --nocapture
+    #[test]
+    fn split_marker_focus() {
+        // (paragraph "ABCDEF")
+        let ir = compound("paragraph", vec![atomic("ABCDEF")]);
+        let doc = doc_from_ir(&ir).expect("doc");
+        doc.commit();
+
+        let tree = doc.get_tree(TREE_NAME);
+        let para_id = tree.roots()[0];
+        let kids = tree.children(TreeParentId::Node(para_id)).expect("children");
+        let atom_id = kids[0]; // "ABCDEF" 原子
+
+        // 检查 meta + text 容器
+        let meta = tree.get_meta(atom_id).expect("meta");
+        let txt = get_text(&meta);
+        assert!(txt.is_some(), "atom must have LoroText");
+        let txt = txt.unwrap();
+
+        // 检查 get_cursor
+        let cur = txt.get_cursor(3, Side::Middle);
+        assert!(cur.is_some(), "get_cursor must succeed");
+        let boundary = cur.unwrap();
+
+        // 创建 SPLIT MovableList
+        let list = get_or_create_split(&meta);
+        assert!(list.is_some(), "get_or_create_split must succeed");
+        let list = list.unwrap();
+
+        // 插入 marker（Vec<u8> → LoroValue::Binary）
+        let bytes = boundary.encode();
+        let rc = list.insert(0, bytes);
+        assert!(rc.is_ok(), "list.insert must succeed: {:?}", rc);
+
+        doc.commit();
+
+        // split_boundaries 应解析出 1 个边界
+        let bounds = split_boundaries(&doc, &list);
+        eprintln!("[focus] split_boundaries = {:?}", bounds);
+        assert_eq!(bounds.len(), 1, "must have 1 boundary");
+
+        // to_ir：root=paragraph，其子节点 = 扁平展开的 2 段
+        let back = doc_to_ir(&doc).expect("to_ir");
+        eprintln!(
+            "[focus] to_ir root: kind={} n_children={}",
+            back.kind,
+            back.children.len()
+        );
+        assert_eq!(back.children.len(), 2, "root must have 2 segment children");
+        assert_eq!(back.children[0].text, b"ABC", "seg0 = ABC");
+        assert_eq!(back.children[1].text, b"DEF", "seg1 = DEF");
     }
 }
