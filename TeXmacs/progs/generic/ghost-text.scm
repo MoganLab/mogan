@@ -152,6 +152,7 @@
         (when (and res
                 (== ghost-serial current)
                 (not-in-tab-cycling?)
+                (not-in-math-subnode?)
                 (not (is-pre-editing))
                 (equal? (cursor-path) ghost-pending-cursor)
                 (not (string=? (car res) ""))
