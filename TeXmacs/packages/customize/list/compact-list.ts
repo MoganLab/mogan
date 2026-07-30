@@ -34,7 +34,7 @@
   <assign|render-list|<\macro|body>
     <\padded-normal|<item-vsep>|<item-vsep>>
       <\indent-left|<item-hsep>>
-        <surround|<no-page-break*>|<no-indent*>|<arg|body>>
+        <surround|<no-page-break*>|<if|<value|indent-after-block>||<no-indent*>>|<arg|body>>
       </indent-left>
     </padded-normal>
   </macro>>

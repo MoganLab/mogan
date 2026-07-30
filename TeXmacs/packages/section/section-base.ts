@@ -106,7 +106,7 @@
     </src-comment>
   </active*>
 
-  <assign|sectional-no-indent|<macro|<no-indent*>>>
+  <assign|sectional-no-indent|<macro|<if|<value|indent-after-block>||<no-indent*>>>>
 
   <assign|sectional-short|<macro|name|<no-indent><arg|name>>>
 

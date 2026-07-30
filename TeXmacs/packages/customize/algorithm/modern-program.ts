@@ -45,7 +45,7 @@
   </active*>
 
   <assign|render-code|<\macro|body>
-    <\surround||<no-indent*>>
+    <\surround||<if|<value|indent-after-block>||<no-indent*>>>
       <\padded*>
         <\indent>
           <\with|par-first|0fn|par-par-sep|0fn|item-hsep|<macro|1tab>|numbered-offset|<value|code-numbered-offset>>

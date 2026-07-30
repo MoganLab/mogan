@@ -27,6 +27,8 @@
 
   <use-package|std|env|title-generic|header-article|section-article>
 
+  <assign|indent-after-block|true>
+
   \;
 </body>
 

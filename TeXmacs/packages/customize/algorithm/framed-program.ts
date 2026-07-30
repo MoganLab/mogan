@@ -105,7 +105,7 @@
   </macro>>
 
   <assign|pseudo-code|<\macro|body>
-    <\surround||<no-indent*>>
+    <\surround||<if|<value|indent-after-block>||<no-indent*>>>
       <\framed-quoted>
         <\with|par-first|0fn|par-par-sep|0fn|item-hsep|<macro|1.5fn>>
           <\framed-code>
