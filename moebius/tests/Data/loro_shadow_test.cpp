@@ -453,8 +453,7 @@ TEST_CASE (
   CHECK_EQ (b->has_id (tb[0][0]), true);
 }
 
-TEST_CASE (
-    "loro_shadow: diff_from_current generates mods to update older buffer") {
+TEST_CASE ("loro_shadow: reconcile_ids generates mods to update older buffer") {
   ensure_labels ();
   tree t (DOCUMENT, 1);
   t[0]   = tree (PARA, 1);
@@ -463,12 +462,12 @@ TEST_CASE (
   loro_shadow sh;
   sh->seed (t);
 
-  // 提供一个旧状态的 buffer
+  // 提供一个旧状态的 buffer（无 id 的全新 rep）
   tree buf (DOCUMENT, 1);
   buf[0]   = tree (PARA, 1);
   buf[0][0]= tree ("old");
 
-  list<modification> mods= sh->diff_from_current (buf);
+  list<modification> mods= sh->reconcile_ids (buf);
   CHECK_EQ (N (mods) > 0, true);
 
   for (list<modification> l= mods; !is_nil (l); l= l->next) {
@@ -897,6 +896,147 @@ TEST_CASE ("loro_shadow: identity split binds correct node under reorder") {
 
   // shadow 应为 (document (concat "a" "b") (para "tail"))
   CHECK_EQ (sh->to_tree () == out, true);
+}
+
+// ===== reconcile_ids：身份对账（替代位置 diff）=====
+// 事故复现 [0782]：A 本地敲了字符 "t"（已镜像，有 id），B 并发删了同容器里
+// 另一个字符。旧 diff_walk 会按位置把 buffer 对齐到（少了被删字符的）shadow，
+// 连带把 A 的 "t" 也删掉；reconcile_ids 只删「IR 里没有的 id」，A 的 "t" 有 id
+// 且仍在 IR 中 → 保留。
+TEST_CASE (
+    "loro_shadow: reconcile keeps local concurrent char, deletes remote") {
+  ensure_labels ();
+  // 公共初始 (document (concat "ab"))
+  tree init (DOCUMENT, 1);
+  init[0]   = tree (CONCAT, 1);
+  init[0][0]= tree ("ab");
+  loro_shadow a;
+  a->seed (init);
+  string s0= a->export_snapshot ();
+
+  // B 删掉 "ab" → ""
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  b->mirror_mod (tB, mod_remove (path (0) * 0, 0, 2));
+  tB[0][0]->label= string ("");
+  string sb      = b->export_snapshot ();
+
+  // A 本地并发敲 "t" → "abt"（已镜像，"abt" 节点有 id）
+  tree tA= init;
+  a->mirror_mod (tA, mod_insert (path (0) * 0, 2, tree ("t")));
+  tA[0][0]->label= string ("abt");
+
+  // A 导入 B 的删除：shadow 里 "abt" 被并成 ""（B 删了原 "ab"）
+  CHECK_EQ (a->import_data (sb), true);
+
+  // reconcile：A 的 buffer 还是 "abt"。旧 diff 会删成 ""；reconcile 应只反映
+  // B 对原 "ab" 的删除意图——但 A 的 "t" 与 "ab" 同属一个 LoroText 节点（同
+  // id），CRDT 文本合并后内容为 "t"（B 删 ab、A 插 t，按 id 合并）。
+  list<modification> mods= a->reconcile_ids (tA);
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    tA= clean_apply (tA, l->item);
+  // 关键：A 本地敲的 "t" 不能被吞
+  CHECK_EQ (N (tA[0][0]->label) > 0, true);
+  CHECK_EQ (tA[0][0]->label == string ("t"), true);
+}
+
+// 远端新增节点：buffer 无此 id → 插入并绑定 id
+TEST_CASE ("loro_shadow: reconcile inserts remote-new node and binds id") {
+  ensure_labels ();
+  tree init (DOCUMENT, 1);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("x");
+  loro_shadow a;
+  a->seed (init);
+  string s0= a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  tree np (PARA, 1);
+  np[0]= tree ("new");
+  b->mirror_mod (tB, mod_insert (path (), 1, np));
+  insert (tB, 1, np);
+  string sb= b->export_snapshot ();
+
+  // A 的 buffer 还是单段，导入 B 的新段
+  CHECK_EQ (a->import_data (sb), true);
+  list<modification> mods= a->reconcile_ids (init);
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    init= clean_apply (init, l->item);
+
+  tree expected (DOCUMENT, 2);
+  expected[0]   = tree (PARA, 1);
+  expected[0][0]= tree ("x");
+  expected[1]   = tree (PARA, 1);
+  expected[1][0]= tree ("new");
+  CHECK_EQ (init == expected, true);
+  CHECK_EQ (a->has_id (init[1]), true); // 新段绑定了 id
+}
+
+// 只删被远端删的节点；本地无 id 的临时节点保留
+TEST_CASE (
+    "loro_shadow: reconcile deletes only removed node, keeps local temp") {
+  ensure_labels ();
+  tree init (DOCUMENT, 2);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("keep");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("drop");
+  loro_shadow a;
+  a->seed (init);
+  string s0= a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  b->mirror_mod (tB, mod_remove (path (), 1, 1));
+  tB       = tree (DOCUMENT, 1);
+  tB[0]    = init[0];
+  string sb= b->export_snapshot ();
+
+  // A 的 buffer：保留 keep，drop 还在；另有一个无 id 的本地临时段 "temp"
+  CHECK_EQ (a->import_data (sb), true);
+  tree buf (DOCUMENT, 2);
+  buf[0]   = init[0]; // keep（有 id）
+  buf[1]   = tree (PARA, 1);
+  buf[1][0]= tree ("temp"); // 本地临时，无 id
+  // 注意：drop 节点（有 id、IR 已无）应被删，但它不在 buf 里（buf 只有
+  // keep+temp）
+
+  list<modification> mods= a->reconcile_ids (buf);
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    buf= clean_apply (buf, l->item);
+  // temp 保留（无 id 本地节点不被删）
+  CHECK_EQ (N (buf) == 2, true);
+  CHECK_EQ (buf[0][0]->label == string ("keep"), true);
+  CHECK_EQ (buf[1][0]->label == string ("temp"), true);
+}
+
+// JOIN 全量同步：B 从 snapshot 导入并按身份绑定，to_tree 与原树一致
+TEST_CASE ("loro_shadow: reconcile full-sync via snapshot binds by identity") {
+  ensure_labels ();
+  tree t (DOCUMENT, 2);
+  t[0]   = tree (PARA, 1);
+  t[0][0]= tree ("one");
+  t[1]   = tree (PARA, 1);
+  t[1][0]= tree ("two");
+  loro_shadow a;
+  a->seed (t);
+  string snap= a->export_snapshot ();
+
+  loro_shadow b;
+  tree        tb (DOCUMENT, 2);
+  tb[0]   = tree (PARA, 1);
+  tb[0][0]= tree ("one"); // 同结构、新 rep（无 id）
+  tb[1]   = tree (PARA, 1);
+  tb[1][0]= tree ("two");
+  CHECK_EQ (b->import_data (snap), true);
+  CHECK_EQ (b->sync_id_map_from_shadow (tb), true);
+  CHECK_EQ (b->has_id (tb), true);
+  CHECK_EQ (b->has_id (tb[0][0]), true);
+  CHECK_EQ (b->has_id (tb[1][0]), true);
 }
 
 #endif // LORO_ENABLED

@@ -92,16 +92,17 @@ public:
    * 时安全（首次同步）。 */
   void advance_export_vv ();
 
-  /** 把远端 update 导入后，diff buffer（旧）vs shadow（新），生成把
-   * buffer 变到 新状态所需的 modification 序列（文本字符级 diff →
-   * INSERT/REMOVE；结构差异 → 整树 ASSIGN 兜底）。供编辑器在 versioning
+  /** 把远端 update 导入后，按 TreeID 身份对账 buffer（旧）vs shadow（新），
+   * 生成把 buffer 变到新状态所需的 modification 序列。供编辑器在 versioning
    * 模式下经 edit_modify 应用到 buffer。 */
   list<modification> remote_diff_mods (string bytes, tree buffer);
 
-  /** diff buffer（旧）vs shadow 当前状态（新），生成把 buffer 变到
-   * shadow 所需的 modification（不 import，用于 debug_loro 本地 round-trip）。
-   */
-  list<modification> diff_from_current (tree buffer);
+  /** 按 TreeID 的身份对账（替代位置 diff）：用带 TreeID 的增强 IR 把
+   * buffer 对账到 shadow 当前状态。删除只删「buffer 有 id 但 IR 里没有」的
+   * 节点——本地刚建、尚未被远端同步的节点在 IR 里也没有，但同 id 不会被删；
+   * 真正被远端删除的节点（buffer 有 id、IR 已无该 id）才会生成删除 mod。
+   * 返回把 buffer 变到 shadow 所需的 modification 序列。 */
+  list<modification> reconcile_ids (tree buffer);
 
   tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
   bool          has_id (tree t); // id_map 是否含该节点
@@ -162,6 +163,11 @@ private:
                     array<mogan_tree_id> removed_ids);
   bool mirror_split (tree doc_root, modification mod,
                      array<mogan_tree_id> removed_ids);
+
+  // loro_shadow_reconcile：按 TreeID 的身份对账（替代 diff_walk 的位置 diff）
+  void reconcile_walk (tree t, const struct IrNodeId& irn, path base,
+                       hashmap<mogan_tree_id, bool>& ir_ids,
+                       list<modification>&           mods);
 };
 
 class loro_shadow {
