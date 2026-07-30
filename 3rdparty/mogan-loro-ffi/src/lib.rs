@@ -317,11 +317,11 @@ fn str_to_kind(s: &str) -> u8 {
 /// （文本容器不是 LoroTree 子节点，不计入树子节点数）。
 fn read_text_segments(doc: &LoroDoc, meta: &LoroMap) -> Vec<IrNode> {
     let text = get_meta_text_or_binary(meta).unwrap_or_default();
+    let n    = text.len();
     let boundaries = match get_split(meta) {
-        Some(list) => split_boundaries(doc, &list),
+        Some(list) => split_boundaries(doc, &list, n),
         None => Vec::new(),
     };
-    let n = text.len();
     let mut segs = Vec::new();
     let mut start = 0usize;
     for &b in &boundaries {
@@ -1319,14 +1319,20 @@ fn marker_cursor_bytes(list: &LoroMovableList, i: usize) -> Option<Vec<u8>> {
 }
 
 /// 把各 marker 的边界 Cursor 解析成 unicode 偏移并升序排序（去重）。
-/// 解析失败（锚点容器被删等）的 marker 丢弃——文本节点已删则整个不导出。
-fn split_boundaries(doc: &LoroDoc, list: &LoroMovableList) -> Vec<usize> {
+/// 只保留**内部边界**（`0 < b < text_len`）：边界 0 或边界 == 文本长度会产出
+/// 空段，导致 to_tree 物化出多余空原子、干扰 diff_walk 路径映射（如 Return
+/// 建空行时远端把第二行内容错插到第一行）。marker 仍在 MovableList 里（持久
+/// 保留），只是不再物化为空段。
+fn split_boundaries(doc: &LoroDoc, list: &LoroMovableList, text_len: usize) -> Vec<usize> {
     let mut offs: Vec<usize> = Vec::new();
     for i in 0..list.len() {
         if let Some(bytes) = marker_cursor_bytes(list, i) {
             if let Ok(c) = Cursor::decode(&bytes) {
                 if let Ok(r) = doc.get_cursor_pos(&c) {
-                    offs.push(r.current.pos);
+                    let p = r.current.pos;
+                    if p > 0 && p < text_len {
+                        offs.push(p);
+                    }
                 }
             }
         }
@@ -1513,11 +1519,11 @@ pub unsafe extern "C" fn mogan_loro_node_has_split_markers(
     };
     match get_split(&meta) {
         Some(list) => {
-            let b = split_boundaries(&*doc, &list);
-            if b.is_empty() {
-                0
-            } else {
+            // marker 数据是否存在（与段物化无关：文本清空后 marker 仍持久保留）
+            if list.len() > 0 {
                 1
+            } else {
+                0
             }
         }
         None => 0,
@@ -1809,8 +1815,8 @@ mod tests {
 
         doc.commit();
 
-        // split_boundaries 应解析出 1 个边界
-        let bounds = split_boundaries(&doc, &list);
+        // split_boundaries 应解析出 1 个边界（text = "ABCDEF" = 6 字节）
+        let bounds = split_boundaries(&doc, &list, 6);
         eprintln!("[focus] split_boundaries = {:?}", bounds);
         assert_eq!(bounds.len(), 1, "must have 1 boundary");
 
