@@ -194,6 +194,13 @@ archiver_rep::apply (patch p) {
 }
 
 void
+archiver_rep::set_versioning (bool on) {
+  // 与 apply() 的回放用途一致：仅置本对象 versioning，使 archive_announce 跳过
+  // add()；不置全局 busy_versioning，以免干扰 is_busy_versioning() 语义。
+  versioning= on;
+}
+
+void
 archiver_rep::split (patch p1, patch p2, patch& re1, patch& re2) {
   // cout << "p1= " << p1 << "\n";
   // cout << "p2= " << p2 << "\n";
