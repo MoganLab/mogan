@@ -125,7 +125,7 @@ edit_modify_rep::apply_remote (string bytes) {
     sel_end_save  = position_new (ep);
   }
 
-  loro_applying_remote   = true;
+  loro_applying_remote= true;
   // 远端修改不得进入本地 undo 历史：它会混进本地按键所在的 current 单元，
   // 下一次按键 coalesce（reopen 最近单元 + 重算合并修改）会把对端刚插入的
   // 内容一并撤销删除。与 loro_applying_remote 同步置位，覆盖下面的 apply 循环
