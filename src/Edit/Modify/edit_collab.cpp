@@ -126,6 +126,11 @@ edit_modify_rep::apply_remote (string bytes) {
   }
 
   loro_applying_remote   = true;
+  // 远端修改不得进入本地 undo 历史：它会混进本地按键所在的 current 单元，
+  // 下一次按键 coalesce（reopen 最近单元 + 重算合并修改）会把对端刚插入的
+  // 内容一并撤销删除。与 loro_applying_remote 同步置位，覆盖下面的 apply 循环
+  // 与光标恢复——这些期间产生的都是程序化修改，不应成为 undo 条目。
+  arch->set_versioning (true);
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
   if (DEBUG_LORO)
     debug_loro << "Diff produced " << N (mods) << " modifications.\n";
@@ -171,6 +176,7 @@ edit_modify_rep::apply_remote (string bytes) {
   // meta 都处理完后再 关闭守卫。
   apply_remote_meta ();
   loro_applying_remote= false;
+  arch->set_versioning (false);
 
   // 首次 import 远端数据（JOIN 同步）后，把 export vv 推进到当前，标记这些 op
   // "已知"——否则后续 broadcast_update 会把刚收到的 snapshot 当本地增量回传

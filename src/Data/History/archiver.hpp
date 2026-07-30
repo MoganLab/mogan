@@ -74,6 +74,16 @@ public:
   ///@}
 
   /**
+   * @name 增量记录开关
+   */
+  ///@{
+  // 远端协作更新等「非用户修改」应用期间需暂停 undo 增量记录：否则远端修改
+  // 会混入本地按键所在的 current 单元，下一次按键 coalesce（reopen + 重算）
+   // 会把对端刚插入的内容一并撤销删除。参见 edit_modify_rep::apply_remote。
+  void set_versioning (bool on); //!< 临时禁用/恢复 archive_announce 的增量记录
+  ///@}
+
+  /**
    * @name 当前修改序列的累积（操作尚未确认进历史的 #current）
    */
   ///@{
