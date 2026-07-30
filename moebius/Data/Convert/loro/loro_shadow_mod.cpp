@@ -103,16 +103,18 @@ loro_shadow_rep::mirror_assign_node (tree doc_root, modification mod) {
 }
 
 bool
-loro_shadow_rep::mirror_split (tree doc_root, modification mod) {
+loro_shadow_rep::mirror_split (tree doc_root, modification mod,
+                               array<mogan_tree_id> removed_ids) {
   path rp_mod= root (mod);
   int  pos   = index (mod);
   int  at    = argument (mod);
   if (has_subtree (doc_root, rp_mod) &&
       id_map->contains (inside (subtree (doc_root, rp_mod)))) {
-    mogan_tree_id        pid = id_map (inside (subtree (doc_root, rp_mod)));
-    array<mogan_tree_id> kids= node_children (pid);
-    if (pos < N (kids)) {
-      mogan_tree_id x_id= kids[pos];
+    mogan_tree_id pid= id_map (inside (subtree (doc_root, rp_mod)));
+    // 按身份取被拆分节点的 TreeID：removed_ids = {x_id}（announce 预捕获）。
+    // 绝不能用 node_children(pid)[pos]——并发重排下 x_id 会绑错节点。
+    if (N (removed_ids) >= 1 && removed_ids[0].peer != 0) {
+      mogan_tree_id x_id= removed_ids[0];
       if (has_subtree (doc_root, rp_mod * pos)) {
         id_map (inside (subtree (doc_root, rp_mod * pos)))= x_id;
         rev_id_map (x_id)                                 = rp_mod * pos;
@@ -225,12 +227,13 @@ loro_shadow_rep::mirror_remove_node (tree doc_root, modification mod,
 }
 
 bool
-loro_shadow_rep::mirror_assign (tree doc_root, modification mod) {
-  path rp_mod= root (mod);
+loro_shadow_rep::mirror_assign (tree doc_root, modification mod,
+                                array<mogan_tree_id> removed_ids) {
+  path rp_mod= root (mod); // 被替换节点路径
   if (!is_nil (rp_mod) && has_subtree (doc_root, rp_mod)) {
-    tree&         node= subtree (doc_root, rp_mod);
-    path          pp  = path_up (rp_mod);
-    int           wi  = last_item (rp_mod);
+    tree& node= subtree (doc_root, rp_mod); // 替换后的新子树（post-apply）
+    path  pp  = path_up (rp_mod);
+    int   wi  = last_item (rp_mod);
     mogan_tree_id pid;
     bool          pid_ok= false;
     if (is_nil (pp)) {
@@ -242,9 +245,11 @@ loro_shadow_rep::mirror_assign (tree doc_root, modification mod) {
       pid   = id_map (inside (subtree (doc_root, pp)));
       pid_ok= true;
     }
-    if (pid_ok) {
-      array<mogan_tree_id> kids= node_children (pid);
-      if (wi < N (kids)) mogan_loro_node_delete (doc, kids[wi]);
+    // 按身份删被替换的旧节点：removed_ids 是 announce 预捕获的 TreeID。
+    // 绝不能用 node_children(pid)[wi]——并发远端插入使 shadow 子序错位时，
+    // 位置取下标会删掉对端的节点。
+    if (pid_ok && N (removed_ids) > 0 && removed_ids[0].peer != 0) {
+      mogan_loro_node_delete (doc, removed_ids[0]);
       seed_node (node, pid, (uint32_t) wi, rp_mod);
       return true;
     }
@@ -253,16 +258,20 @@ loro_shadow_rep::mirror_assign (tree doc_root, modification mod) {
 }
 
 bool
-loro_shadow_rep::mirror_join (tree doc_root, modification mod) {
-  path rp_mod= root (mod);
-  int  pos   = index (mod);
+loro_shadow_rep::mirror_join (tree doc_root, modification mod,
+                              array<mogan_tree_id> removed_ids) {
+  path rp_mod= root (mod);  // 父节点路径
+  int  pos   = index (mod); // join 的左孩子位置（左在 pos、右在 pos+1）
   if (has_subtree (doc_root, rp_mod) &&
       id_map->contains (inside (subtree (doc_root, rp_mod)))) {
-    mogan_tree_id        pid = id_map (inside (subtree (doc_root, rp_mod)));
-    array<mogan_tree_id> kids= node_children (pid);
-    if (pos + 1 < N (kids)) {
-      mogan_tree_id x_id= kids[pos];
-      mogan_tree_id y_id= kids[pos + 1];
+    mogan_tree_id pid= id_map (inside (subtree (doc_root, rp_mod)));
+    // 按身份取左右两个孩子：removed_ids = {x_id, y_id}（announce 预捕获）。
+    // 绝不能用 node_children(pid)[pos]/[pos+1]——并发重排下会 join 错节点、
+    // 删错 y_id。
+    if (N (removed_ids) >= 2 && removed_ids[0].peer != 0 &&
+        removed_ids[1].peer != 0) {
+      mogan_tree_id x_id= removed_ids[0];
+      mogan_tree_id y_id= removed_ids[1];
       if (mogan_loro_node_join_text (doc, x_id, y_id) != 0) {
         array<mogan_tree_id> x_kids= node_children (x_id);
         array<mogan_tree_id> y_kids= node_children (y_id);
@@ -302,7 +311,7 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod,
     mirrored= mirror_assign_node (doc_root, mod);
     break;
   case MOD_SPLIT:
-    mirrored= mirror_split (doc_root, mod);
+    mirrored= mirror_split (doc_root, mod, removed_ids);
     break;
   case MOD_INSERT_NODE:
     mirrored= mirror_insert_node (doc_root, mod);
@@ -311,10 +320,10 @@ loro_shadow_rep::mirror_mod (tree doc_root, modification mod,
     mirrored= mirror_remove_node (doc_root, mod, removed_ids);
     break;
   case MOD_ASSIGN:
-    mirrored= mirror_assign (doc_root, mod);
+    mirrored= mirror_assign (doc_root, mod, removed_ids);
     break;
   case MOD_JOIN:
-    mirrored= mirror_join (doc_root, mod);
+    mirrored= mirror_join (doc_root, mod, removed_ids);
     break;
   default:
     break;

@@ -15,12 +15,13 @@
 (check-set-mode! 'report-failed)
 
 ;; 收集 buffer 里所有原子文本，拼成一个大串，便于「<alpha> 是否还在」判断
+
 (define (collect-text t)
   (cond ((tree-atomic? t) (tree->string t))
-        ((tree-compound? t)
-         (apply string-append
-                (map collect-text (tree-children t))))
-        (else "")))
+        ((tree-compound? t) (apply string-append (map collect-text (tree-children t))))
+        (else "")
+  ) ;cond
+) ;define
 
 (tm-define (test_0782_collab_concurrent_remove)
   (display "Running Collab concurrent-remove integration test...")
@@ -32,60 +33,83 @@
       ;; ---- Client A：创建会话，写入初始两个段落 ----
       (new-buffer)
       (loro-collab-create "ws://127.0.0.1:8765")
-      (let loopA ((retries 100))
+      (let loopA
+        ((retries 100))
         (loro-collab-poll)
         (if (loro-collab-active?)
           (let ((doc-id (loro-collab-doc-id)))
-            (display "Client A active. Doc ID: ") (display doc-id) (newline)
-            (insert "alpha") (insert-return) (insert "beta")
+            (display "Client A active. Doc ID: ")
+            (display doc-id)
+            (newline)
+            (insert "alpha")
+            (insert-return)
+            (insert "beta")
             ;; A 把自己的内容广播出去，再断线交给 B 并发
-            (let wait-send ((w 20))
+            (let wait-send
+              ((w 20))
               (loro-collab-poll)
               (if (> w 0)
-                (exec-delayed-at (lambda () (wait-send (- w 1)))
-                                 (+ (texmacs-time) 50))
+                (exec-delayed-at (lambda () (wait-send (- w 1))) (+ (texmacs-time) 50))
                 (begin
                   (loro-collab-disconnect)
 
                   ;; ---- Client B：join，本地并发编辑（删除/改写另一段）----
                   (new-buffer)
                   (loro-collab-join "ws://127.0.0.1:8765" doc-id)
-                  (let loopB ((retriesB 100))
+                  (let loopB
+                    ((retriesB 100))
                     (loro-collab-poll)
                     (if (loro-collab-active?)
                       (begin
-                        (display "Client B active.") (newline)
+                        (display "Client B active.")
+                        (newline)
                         ;; B 在第二段并发改写 beta -> betaX（编辑器合成为
                         ;; remove+insert），触发位置型删除路径
-                        (let wait-b ((w2 20))
+                        (let wait-b
+                          ((w2 20))
                           (loro-collab-poll)
                           (if (> w2 0)
-                            (exec-delayed-at (lambda () (wait-b (- w2 1)))
-                                             (+ (texmacs-time) 50))
+                            (exec-delayed-at (lambda () (wait-b (- w2 1))) (+ (texmacs-time) 50))
                             (begin
                               (display "Buffer B text: ")
                               (display (collect-text (buffer-tree)))
                               (newline)
                               ;; 断言：A 的 alpha 未被吞、B 的 beta 保留
-                              (check (string-contains (collect-text (buffer-tree))
-                                                      "alpha") => #t)
-                              (check (string-contains (collect-text (buffer-tree))
-                                                      "beta") => #t)
+                              (check (string-contains (collect-text (buffer-tree)) "alpha") => #t)
+                              (check (string-contains (collect-text (buffer-tree)) "beta") => #t)
                               (check-report)
-                              (quit-TeXmacs)))))
+                              (quit-TeXmacs)
+                            ) ;begin
+                          ) ;if
+                        ) ;let
+                      ) ;begin
                       (if (> retriesB 0)
-                        (exec-delayed-at (lambda () (loopB (- retriesB 1)))
-                                         (+ (texmacs-time) 100))
+                        (exec-delayed-at (lambda () (loopB (- retriesB 1))) (+ (texmacs-time) 100))
                         (begin
                           (display "Timeout Client B\n")
-                          (quit-TeXmacs)))))))))
+                          (quit-TeXmacs)
+                        ) ;begin
+                      ) ;if
+                    ) ;if
+                  ) ;let
+                ) ;begin
+              ) ;if
+            ) ;let
+          ) ;let
           (if (> retries 0)
-            (exec-delayed-at (lambda () (loopA (- retries 1)))
-                             (+ (texmacs-time) 100))
+            (exec-delayed-at (lambda () (loopA (- retries 1))) (+ (texmacs-time) 100))
             (begin
               (display "Timeout Client A\n")
-              (quit-TeXmacs))))))
+              (quit-TeXmacs)
+            ) ;begin
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;begin
     (begin
       (display "loro not enabled, skipping")
-      (newline)))
-  (noop))
+      (newline)
+    ) ;begin
+  ) ;if
+  (noop)
+) ;tm-define

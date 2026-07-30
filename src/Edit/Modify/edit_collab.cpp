@@ -73,17 +73,22 @@ edit_modify_rep::ensure_loro_seeded () {
   }
 }
 
-// edit_announce（pre-apply，buffer 未动）捕获 MOD_REMOVE/MOD_REMOVE_NODE 被删
-// 节点的 TreeID。被删节点 post-apply 已从 buffer 移除，只能在这里（改之前）
-// 经 id_map 查到其真实身份；push 与 mirror_loro 的 pop 按 mod 类别配对。
+// edit_announce（pre-apply，buffer 未动）捕获受影响节点的 TreeID：
+//   MOD_REMOVE      → 被删的若干孩子 [pos, pos+nr)
+//   MOD_REMOVE_NODE → 被替换掉的父（wrapper）
+//   MOD_ASSIGN      → 被替换的旧子树
+//   MOD_JOIN        → join 的左、右两个孩子 {x, y}
+//   MOD_SPLIT       → 被拆分的那个孩子 {x}
+// 这些节点 post-apply 在 buffer 里已被改/删/替换，只能在改之前经 id_map 查到
+// 真实身份；push 与 mirror_loro 的 pop 按 mod 类别配对。
 void
-edit_modify_rep::capture_loro_removal (modification& mod) {
-  if (mod->k != MOD_REMOVE && mod->k != MOD_REMOVE_NODE) return;
+edit_modify_rep::capture_loro_targets (modification& mod) {
   array<mogan_tree_id> ids;
   modification         bmod  = mod / rp; // buffer 相对
   tree                 buf   = the_buffer ();
   path                 rp_mod= root (bmod);
-  if (mod->k == MOD_REMOVE) {
+  switch (mod->k) {
+  case MOD_REMOVE: {
     if (has_subtree (buf, rp_mod)) {
       tree& parent= subtree (buf, rp_mod);
       if (is_compound (
@@ -95,23 +100,59 @@ edit_modify_rep::capture_loro_removal (modification& mod) {
         }
       }
     }
+    break;
   }
-  else { // MOD_REMOVE_NODE：wrapper 节点 post-apply 被提升子节点替换
+  case MOD_REMOVE_NODE: {           // wrapper 节点 post-apply 被提升子节点替换
     path wp= rp_mod * index (bmod); // wrapper 的完整路径
     if (has_subtree (buf, wp)) {
       mogan_tree_id id= loro_doc->get_id (subtree (buf, wp));
       if (id.peer != 0) ids << id;
     }
+    break;
+  }
+  case MOD_ASSIGN: { // 被替换的旧子树（post-apply 已换新 rep）
+    if (!is_nil (rp_mod) && has_subtree (buf, rp_mod)) {
+      mogan_tree_id id= loro_doc->get_id (subtree (buf, rp_mod));
+      if (id.peer != 0) ids << id;
+    }
+    break;
+  }
+  case MOD_JOIN: { // join 的左、右两个孩子
+    if (has_subtree (buf, rp_mod)) {
+      int pos= index (bmod);
+      for (int j= pos; j <= pos + 1; j++) {
+        path c= rp_mod * j;
+        if (has_subtree (buf, c)) {
+          mogan_tree_id id= loro_doc->get_id (subtree (buf, c));
+          if (id.peer != 0) ids << id;
+        }
+      }
+    }
+    break;
+  }
+  case MOD_SPLIT: { // 被拆分的那个孩子
+    if (has_subtree (buf, rp_mod)) {
+      path c= rp_mod * index (bmod);
+      if (has_subtree (buf, c)) {
+        mogan_tree_id id= loro_doc->get_id (subtree (buf, c));
+        if (id.peer != 0) ids << id;
+      }
+    }
+    break;
+  }
+  default:
+    return; // 其它 mod 不捕获、不入栈
   }
   loro_removal_capture << ids; // push（可为空 → mirror 退化重 seed）
 }
 
 void
 edit_modify_rep::mirror_loro (modification& mod) {
-  // 先弹出 announce 的捕获（与 capture_loro_removal 的 push 按 mod 类别配对）；
+  // 先弹出 announce 的捕获（与 capture_loro_targets 的 push 按 mod 类别配对）；
   // 在守卫 return 之前弹，保证远端应用/未开协作等提前 return 时栈仍平衡。
   array<mogan_tree_id> removed_ids;
-  if ((mod->k == MOD_REMOVE || mod->k == MOD_REMOVE_NODE) &&
+  if ((mod->k == MOD_REMOVE || mod->k == MOD_REMOVE_NODE ||
+       mod->k == MOD_ASSIGN || mod->k == MOD_JOIN || mod->k == MOD_SPLIT) &&
       N (loro_removal_capture) > 0) {
     removed_ids= loro_removal_capture[N (loro_removal_capture) - 1];
     loro_removal_capture->resize (N (loro_removal_capture) - 1);

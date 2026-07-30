@@ -249,7 +249,8 @@ edit_announce (editor_rep* ed, modification mod) {
   }
   if (mod->k != MOD_SET_CURSOR) {
     ed->ensure_loro_seeded ();
-    ed->capture_loro_removal (mod); // pre-apply：buffer 未动，捕获被删节点身份
+    ed->capture_loro_targets (
+        mod); // pre-apply：buffer 未动，捕获受影响节点身份
   }
 #endif
 

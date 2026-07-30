@@ -72,7 +72,7 @@ public:
 #ifdef LORO_ENABLED
   void ensure_loro_seeded () override;
   void mirror_loro (modification& mod) override;
-  void capture_loro_removal (modification& mod) override;
+  void capture_loro_targets (modification& mod) override;
   void apply_remote (string bytes) override;
   void set_remote_cursor (string peer, string payload) override;
   array<remote_cursor_view> get_remote_cursors () override;

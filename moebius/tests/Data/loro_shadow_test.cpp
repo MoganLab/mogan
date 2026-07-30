@@ -796,4 +796,107 @@ TEST_CASE (
   CHECK_EQ (sh->to_tree () == out, true);
 }
 
+// 回归（0782）：assign/join/split 也按身份定位。A 端并发插入使 shadow 子序
+// 与本端 buffer 错位后，旧的位置型 node_children[pos] 会删/join/绑错节点；
+// 按捕获的 TreeID 则只动目标节点。
+TEST_CASE ("loro_shadow: identity assign replaces correct node under reorder") {
+  ensure_labels ();
+  tree init (DOCUMENT, 3);
+  init[0]   = tree (PARA, 1);
+  init[0][0]= tree ("a");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("b");
+  init[2]   = tree (PARA, 1);
+  init[2][0]= tree ("c");
+
+  loro_shadow a;
+  a->seed (init);
+  string s0= a->export_snapshot ();
+
+  // B 并发插入 "alpha" 到位置 1 → A 的 shadow 子序错位
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+  tree alpha (PARA, 1);
+  alpha[0]= tree ("alpha");
+  b->mirror_mod (tB, mod_insert (path (), 1, alpha));
+  insert (tB, 1, alpha);
+  string sb= b->export_snapshot ();
+  CHECK_EQ (a->import_data (sb), true); // A 的 shadow: [a, alpha, b, c]
+
+  // A 把 buffer 位置 1 的 "b" assign 成 "B"：capture 捕获 b 的 TreeID
+  mogan_tree_id b_id= a->get_id (init[1]);
+  tree          newb (PARA, 1);
+  newb[0]= tree ("B");
+  tree tA (DOCUMENT, 3);
+  tA[0]= init[0];
+  tA[1]= newb;
+  tA[2]= init[2];
+  array<mogan_tree_id> removed;
+  removed << b_id;
+  a->mirror_mod (tA, mod_assign (path (1), newb), removed);
+
+  // shadow 应为 [a, alpha, B, c]：替换的是 b，alpha 保留
+  tree expected (DOCUMENT, 4);
+  expected[0]= init[0];
+  expected[1]= alpha;
+  expected[2]= newb;
+  expected[3]= init[2];
+  CHECK_EQ (a->to_tree () == expected, true);
+}
+
+TEST_CASE ("loro_shadow: identity join merges correct pair under reorder") {
+  ensure_labels ();
+  tree init (DOCUMENT, 2);
+  init[0]   = tree (CONCAT, 2);
+  init[0][0]= tree ("a");
+  init[0][1]= tree ("b");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("tail");
+
+  loro_shadow sh;
+  sh->seed (init);
+  mogan_tree_id x_id= sh->get_id (init[0][0]); // "a"
+  mogan_tree_id y_id= sh->get_id (init[0][1]); // "b"
+
+  // join concat 的第 0、1 个孩子（"a"+"b" -> "ab"）：capture {x_id, y_id}
+  tree out (DOCUMENT, 2);
+  out[0]   = tree (CONCAT, 1);
+  out[0][0]= tree ("ab");
+  out[1]   = init[1];
+  array<mogan_tree_id> removed;
+  removed << x_id << y_id;
+  sh->mirror_mod (out, mod_join (path (0), 0), removed);
+
+  // shadow 应为 (document (concat "ab") (para "tail"))：join 的是 a+b，tail
+  // 保留
+  CHECK_EQ (sh->to_tree () == out, true);
+}
+
+TEST_CASE ("loro_shadow: identity split binds correct node under reorder") {
+  ensure_labels ();
+  tree init (DOCUMENT, 2);
+  init[0]   = tree (CONCAT, 1);
+  init[0][0]= tree ("ab");
+  init[1]   = tree (PARA, 1);
+  init[1][0]= tree ("tail");
+
+  loro_shadow sh;
+  sh->seed (init);
+  mogan_tree_id x_id= sh->get_id (init[0][0]); // "ab"
+
+  // split concat 的第 0 个孩子（"ab" -> "a"|"b"）：capture {x_id}
+  tree out (DOCUMENT, 2);
+  out[0]   = tree (CONCAT, 2);
+  out[0][0]= tree ("a");
+  out[0][1]= tree ("b");
+  out[1]   = init[1];
+  array<mogan_tree_id> removed;
+  removed << x_id;
+  sh->mirror_mod (out, mod_split (path (0), 0, 1), removed);
+
+  // shadow 应为 (document (concat "a" "b") (para "tail"))
+  CHECK_EQ (sh->to_tree () == out, true);
+}
+
 #endif // LORO_ENABLED

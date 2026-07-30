@@ -153,12 +153,15 @@ private:
   bool mirror_remove (tree doc_root, modification mod,
                       array<mogan_tree_id> removed_ids);
   bool mirror_assign_node (tree doc_root, modification mod);
-  bool mirror_split (tree doc_root, modification mod);
   bool mirror_insert_node (tree doc_root, modification mod);
   bool mirror_remove_node (tree doc_root, modification mod,
                            array<mogan_tree_id> removed_ids);
-  bool mirror_assign (tree doc_root, modification mod);
-  bool mirror_join (tree doc_root, modification mod);
+  bool mirror_assign (tree doc_root, modification mod,
+                      array<mogan_tree_id> removed_ids);
+  bool mirror_join (tree doc_root, modification mod,
+                    array<mogan_tree_id> removed_ids);
+  bool mirror_split (tree doc_root, modification mod,
+                     array<mogan_tree_id> removed_ids);
 };
 
 class loro_shadow {

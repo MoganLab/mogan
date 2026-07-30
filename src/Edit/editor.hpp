@@ -644,10 +644,10 @@ public:
   virtual void mirror_loro (modification& mod)= 0;
   virtual void apply_remote (string bytes)    = 0;
   virtual void ensure_loro_seeded ()          = 0;
-  // edit_announce（pre-apply，buffer 未动）捕获被删节点 TreeID，供 mirror 按
-  // 身份删除；edit_done→mirror_loro 弹出消费。见
+  // edit_announce（pre-apply，buffer 未动）捕获受影响节点 TreeID，供 mirror 按
+  // 身份删除/替换/join/split；edit_done→mirror_loro 弹出消费。见
   // edit_modify.cpp/edit_collab.cpp。
-  virtual void capture_loro_removal (modification& mod)= 0;
+  virtual void capture_loro_targets (modification& mod)= 0;
   // 远端 update 到达后，把 meta section（style/initial/...）回写 buf->data。
   virtual void apply_remote_meta ()= 0;
   // ensure_loro_seeded 末尾调用：把本地缺失的 meta section 灌入 CRDT。
