@@ -194,9 +194,11 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_
                              : -1;
   if (off < 0) return path ();
 
-  // 新的单 LoroText 光标编码（用 {0, 0} 做虚拟 tid）
   if (tid.peer == 0 && tid.counter == 0) {
-    path raw_p = linear_ir_path_at_offset (items, off);
+    array<linear_item> loro_items = markup_to_linear_ir (loro_doc->body_markup ());
+    int text_char_idx = linear_ir_text_index_of_offset (loro_items, off);
+    path raw_p = linear_ir_path_at_text_index (items, text_char_idx);
+    
     if (is_nil (raw_p)) return path ();
     path node_path = path_up (raw_p);
     path pp = path_up (node_path);
@@ -213,14 +215,9 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_
         }
       }
       if (concat_off >= 0) {
-        path rp2= pp * path (concat_off);
-        if (DEBUG_LORO)
-          debug_loro << "  resolve body_offset=" << off << " concat_path=" << as_string (rp2) << "\n";
-        return rp2;
+        return pp * path (concat_off);
       }
     }
-    if (DEBUG_LORO)
-      debug_loro << "  resolve body_offset=" << off << " raw_path=" << as_string (raw_p) << "\n";
     return raw_p;
   }
 
@@ -242,19 +239,10 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_
       }
     }
     if (concat_off >= 0) {
-      path rp2= pp * path (concat_off);
-      if (DEBUG_LORO)
-        debug_loro << "  resolve tid_counter=" << tid.counter << " "
-                   << off_field << " -> off=" << off
-                   << " concat_path=" << as_string (rp2) << "\n";
-      return rp2;
+      return pp * path (concat_off);
     }
   }
-  path p= node_path * path (off);
-  if (DEBUG_LORO)
-    debug_loro << "  resolve tid_counter=" << tid.counter << " " << off_field
-               << " -> off=" << off << " path=" << as_string (p) << "\n";
-  return p;
+  return node_path * path (off);
 }
 void
 edit_modify_rep::apply_remote (string bytes) {
