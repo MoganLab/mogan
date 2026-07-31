@@ -131,7 +131,9 @@ edit_modify_rep::apply_remote (string bytes) {
   // 内容一并撤销删除。与 loro_applying_remote 同步置位，覆盖下面的 apply 循环
   // 与光标恢复——这些期间产生的都是程序化修改，不应成为 undo 条目。
   arch->set_versioning (true);
+  bench_start ("remote_diff_mods");
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
+  bench_end ("remote_diff_mods");
   if (DEBUG_LORO)
     debug_loro << "Diff produced " << N (mods) << " modifications.\n";
   // 逐条应用远端 diff mod。每条先 is_applicable 预检：远端合并后的 shadow 形态
@@ -141,14 +143,19 @@ edit_modify_rep::apply_remote (string bytes) {
   // 停在半更新状态（用户所见「同步失败」）。预检失败即放弃增量，整 body 按
   // shadow 当前态重建（等价 diff_walk 的 assign 兜底，保证一致性）。
   bool remote_precise= true;
+  // 性能：buf 只取一次（tree 为引用计数浅句柄，与 buffer 实时共享 rep）。
+  // apply 改 et 后 et[rp] 仍与该句柄共享 buffer rep，无需逐条重读 the_buffer()。
+  tree buf= the_buffer ();
+  bench_start ("remote_apply_mods");
   for (list<modification> l= mods; !is_nil (l); l= l->next) {
     if (DEBUG_LORO) debug_loro << "Applying remote mod: " << l->item << "\n";
-    if (!is_applicable (the_buffer (), l->item)) {
+    if (!is_applicable (buf, l->item)) {
       remote_precise= false;
       break;
     }
     apply (et, rp * l->item);
   }
+  bench_end ("remote_apply_mods");
   if (!remote_precise && !is_nil (mods)) {
     if (DEBUG_LORO)
       debug_loro << "remote mod inapplicable to live buffer; reconcile body "
