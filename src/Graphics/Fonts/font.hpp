@@ -194,8 +194,9 @@ struct font_rep : rep<font> {
   }
 
   // script(effective_size(), 1) 的缓存，上下标 box 构造时高频调用；
-  // 以 effective_size 为键，字号变更后自动失效
-  mutable double script_size_key;
+  // 键为 (int)(effective_size()*2+0.5)（0.5 倍数 *2 是精确整数，规避 double
+  // 相等性判断），字号变更后自动失效
+  mutable int    script_size_key;
   mutable double script_size_val;
   double         script_size () const;
 

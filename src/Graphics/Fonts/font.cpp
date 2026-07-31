@@ -53,7 +53,7 @@ font_rep::font_rep (string s)
       global_rsub_correct (0), global_rsup_correct (0), lsub_correct (0.0),
       lsup_correct (0.0), rsub_correct (0.0), rsup_correct (0.0),
       above_correct (0.0), below_correct (0.0), protrusion_maps (-1),
-      script_size_key (-1.0), script_size_val (0.0) {
+      script_size_key (-1), script_size_val (0.0) {
   lsub_correct = lsub_guessed_table ();
   lsup_correct = lsup_guessed_table ();
   rsub_correct = rsub_guessed_table ();
@@ -70,7 +70,7 @@ font_rep::font_rep (string s, font fn)
       sep (fn->sep), last_zoom (0.0), zoomed_fn (NULL), global_lsub_correct (0),
       global_lsup_correct (0), global_rsub_correct (0), global_rsup_correct (0),
       lsub_correct (0.0), lsup_correct (0.0), rsub_correct (0.0),
-      rsup_correct (0.0), protrusion_maps (-1), script_size_key (-1.0),
+      rsup_correct (0.0), protrusion_maps (-1), script_size_key (-1),
       script_size_val (0.0) {
   lsub_correct = lsub_guessed_table ();
   lsup_correct = lsup_guessed_table ();
@@ -577,27 +577,38 @@ rubber_font (font base) {
   return larger;
 }
 
+// script(sz, level) 的全局 memo：sz 归一化为 0.5 倍数后 sz*2 是精确整数，
+// level 截断到 [0,2]，索引为 isz*3+level；结果恒为正，-1 表示未计算。
+// 调用方（determine_sizes 等）会在 env size_cache 重建时反复以相同参数调用，
+// memo 把每个 (sz, level) 组合的计算降为一次
+static array<double> script_memo;
+
 double
 script (double sz, int level) {
-  bench_start ("font_script_calculation");
-
   sz= normalize_half_multiple_size (sz);
-
   if (level < 0) level= 0;
   if (level > 2) level= 2;
+  int index= ((int) (sz * 2.0 + 0.5)) * 3 + level;
+  while (index >= N (script_memo))
+    script_memo << -1.0;
+  if (script_memo[index] >= 0.0) return script_memo[index];
+
+  bench_start ("font_script_calculation");
   for (int i= 0; i < level; i++)
     sz= (sz * 2.0 + 2.0) / 3.0; // 浮点除法，保持精度
+  bench_cumul ("font_script_calculation");
 
   // 输出可能不是0.5倍数，但这是设计允许的
-  bench_cumul ("font_script_calculation");
+  script_memo[index]= sz;
   return sz;
 }
 
 double
 font_rep::script_size () const {
-  double sz= effective_size ();
-  if (script_size_key != sz) {
-    script_size_key= sz;
+  double sz = effective_size ();
+  int    key= (int) (sz * 2.0 + 0.5); // sz 是 0.5 倍数，*2 后为精确整数
+  if (script_size_key != key) {
+    script_size_key= key;
     script_size_val= script (sz, 1);
   }
   return script_size_val;
