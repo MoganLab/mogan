@@ -129,7 +129,7 @@ QWK--WindowBar>QAbstractButton#login-button {
   color: #ffffff;
 }
 
-/* 邀请好友按钮 */
+/* 领取会员按钮 */
 QWK--WindowBar>QPushButton#invite-button {
   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #215a6a, stop:1 #2791ad);
   border: none;

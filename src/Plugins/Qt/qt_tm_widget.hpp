@@ -87,7 +87,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QWK::WidgetWindowAgent* windowAgent;
   QWK::NotificationBar*   scmNotificationBar; // SCM 提示条
   QWK::LoginButton*       loginButton;
-  QPushButton*      inviteButton; ///< 标题栏「邀请好友」按钮，已登录时显示
+  QPushButton*      inviteButton; ///< 标题栏「领取会员」按钮，已登录时显示
   QWK::LoginDialog* m_loginDialog;
   QLabel*           avatarLabel;
   QLabel*           nameLabel;

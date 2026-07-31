@@ -44,6 +44,7 @@
 
 #include "qt_chat_controller.hpp"
 #include "qt_gui.hpp"
+#include "dictionary.hpp"
 #include "qt_pdf_reader_widget.hpp"
 #include "qt_pdf_toolbar.hpp"
 #include "qt_picture.hpp"
@@ -454,18 +455,19 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // 邀请好友按钮 - 放在登录按钮左侧（商业版已登录时显示）
   inviteButton= new QPushButton (windowBar);
   inviteButton->setObjectName ("invite-button");
-  inviteButton->setText (qt_translate ("Invite Friends"));
+  inviteButton->setText (qt_translate ("Claim Membership"));
   inviteButton->setProperty ("system-button", true);
   inviteButton->setFocusPolicy (Qt::NoFocus);
   inviteButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
   inviteButton->setFixedSize (vipbuttonWidth, vipbuttonHeight);
   inviteButton->setCursor (Qt::PointingHandCursor);
+  bool isChinese= (get_output_language () == "chinese");
   inviteButton->setStyleSheet (
       QString (
           "QPushButton#invite-button { border-radius: %1px; font-size: %2px; "
           "margin-right: %3px; }")
           .arg (DpiUtils::scaled (12))
-          .arg (DpiUtils::scaled (12))
+          .arg (DpiUtils::scaled (isChinese ? 12 : 9))
           .arg (DpiUtils::scaled (4)));
 
   windowBar->setVipButton (inviteButton);
