@@ -216,9 +216,9 @@ tm_failure (const char* msg) {
   // cerr << "Autosaving...\n";
   call ("autosave-all");
   // cerr << "Closing pipes...\n";
-  // close_all_pipes ();
-  // call ("quit-TeXmacs-scheme");
-  // clear_pending_commands ();
+  close_all_pipes ();
+  call ("quit-TeXmacs-scheme");
+  clear_pending_commands ();
   // exit (1);
 #endif
 }
