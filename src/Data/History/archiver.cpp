@@ -393,6 +393,11 @@ archiver_rep::forget_cursor () {
 
 void
 archiver_rep::simplify () {
+#ifdef LORO_ENABLED
+  // simplify 在协作编辑这个复杂环境下会出问题，暂时 disable 掉
+  // TODO: revise simplify & revise archiver
+  return;
+#endif
   if (has_history () && nr_undo (cdr (get_undo (archive))) == 1 &&
       nr_redo (cdr (get_undo (archive))) == 0 && depth != last_save + 1) {
     patch p1= car (get_undo (archive));
