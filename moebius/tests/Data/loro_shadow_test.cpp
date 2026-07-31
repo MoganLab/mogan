@@ -796,4 +796,43 @@ TEST_CASE ("loro e2e: concurrent SPLIT near same region converges") {
   CHECK_EQ (a->to_tree () == b->to_tree (), true);
 }
 
+// 回归：并发结构操作（REMOVE_NODE，旧实现走 coarse 会 clobber 对端编辑）不得
+// 丢失对端的文本插入。模拟用户场景：一端 append 字符，另一端 remove_node 脱壳。
+TEST_CASE ("loro e2e: concurrent REMOVE_NODE keeps peer text insert") {
+  ensure_labels ();
+  // init: (document (concat "ab"))
+  tree init (DOCUMENT, 1);
+  init[0]   = tree (CONCAT, 1);
+  init[0][0]= tree ("ab");
+  loro_shadow a;
+  a->seed (init);
+  string      s0= a->export_snapshot ();
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+
+  // A：原子末尾插 "C" → "abC"
+  tree         tA= init;
+  modification mA= mod_insert (path (0) * 0, 2, tree ("C"));
+  tA             = clean_apply (tA, mA);
+  a->mirror_mod (tA, mA);
+  string sa= a->export_snapshot ();
+  // B：脱去 concat 包裹，提升原子 → (document "ab")
+  modification mB= mod_remove_node (path (0), 0);
+  tB             = clean_apply (tB, mB);
+  b->mirror_mod (tB, mB);
+  string sb= b->export_snapshot ();
+
+  CHECK_EQ (a->import_data (sb), true);
+  CHECK_EQ (b->import_data (sa), true);
+  // 收敛
+  CHECK_EQ (a->to_tree () == b->to_tree (), true);
+  // 关键回归：A 插入的 "C" 不得被 B 的结构操作 clobber
+  string merged= a->body_markup ();
+  bool   c_ok  = false;
+  for (int i= 0; i < N (merged); i++)
+    if (merged[i] == 'C') c_ok= true;
+  CHECK_EQ (c_ok, true);
+}
+
 #endif // LORO_ENABLED

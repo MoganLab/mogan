@@ -140,8 +140,20 @@ markup_edit_roundtrip (tree t, modification mod) {
   string             pre_mk= linear_ir_to_markup (pre);
   markup_edit        ed    = compute_markup_edit (pre, mod);
   if (!ed.ok) return false;
-  string result= pre_mk (0, ed.offset) * ed.insert_bytes *
-                 pre_mk (ed.offset + ed.delete_len, N (pre_mk));
+  // 按 offset 降序应用各 splice
+  array<markup_splice> ops= ed.ops;
+  for (int i= 0; i < N (ops); i++)
+    for (int j= i + 1; j < N (ops); j++)
+      if (ops[j].offset > ops[i].offset) {
+        markup_splice tmp= ops[i];
+        ops[i]           = ops[j];
+        ops[j]           = tmp;
+      }
+  string result= pre_mk;
+  for (int i= 0; i < N (ops); i++) {
+    result= result (0, ops[i].offset) * ops[i].insert_bytes *
+            result (ops[i].offset + ops[i].delete_len, N (result));
+  }
   string expected=
       linear_ir_to_markup (tree_to_linear_ir (clean_apply (t, mod)));
   if (result != expected) {
@@ -172,7 +184,7 @@ TEST_CASE ("markup_edit: text insert offset") {
   modification mod= mod_insert (path (0), 1, tree ("x"));
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
   markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
-  CHECK_EQ (ed.delete_len == 0 && ed.insert_bytes == "x", true);
+  CHECK_EQ (ed.ops[0].delete_len == 0 && ed.ops[0].insert_bytes == "x", true);
 }
 
 TEST_CASE ("markup_edit: text remove offset") {
@@ -182,7 +194,7 @@ TEST_CASE ("markup_edit: text remove offset") {
   modification mod= mod_remove (path (0), 1, 2);
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
   markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
-  CHECK_EQ (ed.delete_len == 2 && N (ed.insert_bytes) == 0, true);
+  CHECK_EQ (ed.ops[0].delete_len == 2 && N (ed.ops[0].insert_bytes) == 0, true);
 }
 
 TEST_CASE ("markup_edit: text insert into empty atomic") {
@@ -205,7 +217,7 @@ TEST_CASE ("markup_edit: text insert escapes sentinel byte") {
   string      exp;
   exp << (char) 0x02;
   exp << '1';
-  CHECK_EQ (ed.insert_bytes == exp, true);
+  CHECK_EQ (ed.ops[0].insert_bytes == exp, true);
 }
 
 TEST_CASE ("markup_edit: SPLIT atomic inserts only CLOSE+OPEN('')") {
@@ -215,7 +227,8 @@ TEST_CASE ("markup_edit: SPLIT atomic inserts only CLOSE+OPEN('')") {
   modification mod= mod_split (path (), 0, 3);
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
   markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
-  CHECK_EQ (ed.delete_len == 0 && ed.insert_bytes == close_open_empty_bytes (),
+  CHECK_EQ (ed.ops[0].delete_len == 0 &&
+                ed.ops[0].insert_bytes == close_open_empty_bytes (),
             true);
 }
 
@@ -239,7 +252,7 @@ TEST_CASE ("markup_edit: JOIN atomic deletes only CLOSE+OPEN('')") {
   modification mod= mod_join (path (), 0);
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
   markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
-  CHECK_EQ (ed.delete_len == 6 && N (ed.insert_bytes) == 0, true);
+  CHECK_EQ (ed.ops[0].delete_len == 6 && N (ed.ops[0].insert_bytes) == 0, true);
 }
 
 TEST_CASE ("markup_edit: JOIN compound deletes CLOSE+OPEN(label)") {
@@ -255,11 +268,83 @@ TEST_CASE ("markup_edit: JOIN compound deletes CLOSE+OPEN(label)") {
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
 }
 
-TEST_CASE ("markup_edit: INSERT_NODE falls back to coarse (ok=false)") {
+TEST_CASE (
+    "markup_edit: INSERT_NODE wraps precisely (OPEN before + CLOSE after)") {
   ensure_labels ();
   tree t (DOCUMENT, 1);
-  t[0]          = tree ("hello");
-  markup_edit ed= compute_markup_edit (
-      tree_to_linear_ir (t), mod_insert_node (path (0), 0, tree (CONCAT, 0)));
-  CHECK_EQ (ed.ok, false); // v1：INSERT_NODE 暂走 coarse 重 seed
+  t[0]            = tree ("hello");
+  modification mod= mod_insert_node (path (0), 0, tree (CONCAT, 0));
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  CHECK_EQ (ed.ok && N (ed.ops) == 2, true); // 包裹：两处插入
+}
+
+TEST_CASE ("markup_edit: REMOVE_NODE unwraps precisely (delete OPEN + CLOSE)") {
+  ensure_labels ();
+  tree inner (CONCAT, 1);
+  inner[0]= tree ("hello");
+  tree t (DOCUMENT, 1);
+  t[0]            = inner;
+  modification mod= mod_remove_node (path (0), 0);
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  CHECK_EQ (ed.ok && N (ed.ops) == 2, true); // 脱壳：两处删除
+}
+
+/******************************************************************************
+ * Phase 4 核心：body markup 字节偏移 ↔ 树位置 round-trip
+ *****************************************************************************/
+
+TEST_CASE ("linear_ir_pos: offset<->path round-trips atomic positions") {
+  ensure_labels ();
+  // (document (para "hello") (para "世界"))
+  tree t (DOCUMENT, 2);
+  t[0]                    = tree (PARA, 1);
+  t[0][0]                 = tree ("hello");
+  t[1]                    = tree (PARA, 1);
+  t[1][0]                 = tree ("世界");
+  array<linear_item> items= tree_to_linear_ir (t);
+  // "hello" @ [0,0]，字符 0..5
+  for (int k= 0; k <= 5; k++) {
+    int off= linear_ir_offset_of_atomic (items, path (0) * 0, k);
+    CHECK_EQ (off >= 0, true);
+    path back= linear_ir_path_at_offset (items, off);
+    CHECK_EQ (back == path (0) * 0 * k, true);
+  }
+  // "世界" @ [1,0]，字符 0..2
+  for (int k= 0; k <= 2; k++) {
+    int  off = linear_ir_offset_of_atomic (items, path (1) * 0, k);
+    path back= linear_ir_path_at_offset (items, off);
+    CHECK_EQ (back == path (1) * 0 * k, true);
+  }
+}
+
+TEST_CASE ("linear_ir_pos: round-trips through sentinel escape in text") {
+  ensure_labels ();
+  // 文本含哨兵字节 \x01（转义为两字节），偏移须穿透转义
+  string s;
+  s << "a";
+  s << (char) 0x01;
+  s << "b";
+  tree t (CONCAT, 1);
+  t[0]                    = tree (s);
+  array<linear_item> items= tree_to_linear_ir (t);
+  for (int k= 0; k <= 3; k++) {
+    int off= linear_ir_offset_of_atomic (items, path (0), k);
+    CHECK_EQ (off >= 0, true);
+    path back= linear_ir_path_at_offset (items, off);
+    CHECK_EQ (back == path (0) * k, true);
+  }
+}
+
+TEST_CASE ("linear_ir_pos: offset advances across atomics") {
+  ensure_labels ();
+  // 相邻原子：第二个原子的 offset 0 应严格大于第一个原子的 offset 末尾
+  tree t (CONCAT, 2);
+  t[0]                    = tree ("ab");
+  t[1]                    = tree ("cd");
+  array<linear_item> items= tree_to_linear_ir (t);
+  int end0  = linear_ir_offset_of_atomic (items, path (0), 2); // 第一原子末尾
+  int start1= linear_ir_offset_of_atomic (items, path (1), 0); // 第二原子开头
+  CHECK_EQ (start1 > end0, true);
 }
