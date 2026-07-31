@@ -1029,6 +1029,7 @@ edit_typeset_rep::init_env (string var, tree by) {
       var != ZOOM_FACTOR)
     require_save ();
   notify_change (THE_ENVIRONMENT);
+  notify_change (THE_MENUS);
 #ifdef LORO_ENABLED
   mirror_meta_if_active ("initial");
 #endif
@@ -1041,6 +1042,7 @@ edit_typeset_rep::init_default (string var) {
   if (stydef->contains (var)) pre (var)= stydef[var];
   else pre->reset (var);
   notify_change (THE_ENVIRONMENT);
+  notify_change (THE_MENUS);
 #ifdef LORO_ENABLED
   mirror_meta_if_active ("initial");
 #endif

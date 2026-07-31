@@ -297,6 +297,7 @@ edit_main_rep::apply_remote_meta () {
   }
   if (changed) {
     notify_change (THE_ENVIRONMENT);
+    notify_change (THE_MENUS);
     typeset_invalidate_env ();
   }
 }
