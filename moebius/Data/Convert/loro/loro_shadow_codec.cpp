@@ -12,11 +12,13 @@
 
 namespace {
 /// 读一个 IR-with-ids 子节点，返回 1 或 N+1 个 tree（split 原子展开）。
+/// wrap_para=true 时，每段原子包进 PARA（DOCUMENT 下的段落文本块）。
 /// 所有 split 段映射到同一 TreeID（共享 LoroText 容器）。
 array<tree>
 decode_id_expanded (string& b, int& pos,
                     hashmap<tree_rep*, mogan_tree_id>& id_map,
-                    hashmap<mogan_tree_id, path>& rev_id_map, path acc) {
+                    hashmap<mogan_tree_id, path>& rev_id_map, path acc,
+                    bool wrap_para) {
   auto get_u32= [&] () -> uint32_t {
     uint32_t v= (uint32_t) (unsigned char) b[pos] |
                 ((uint32_t) (unsigned char) b[pos + 1] << 8) |
@@ -46,55 +48,57 @@ decode_id_expanded (string& b, int& pos,
   uint32_t n    = get_u32 (); // n_children
 
   if (kind == LORO_ATOMIC) {
-    // 消费子节点（原子应为 0，防御性读取）
     for (uint32_t i= 0; i < n; i++)
-      decode_id_expanded (b, pos, id_map, rev_id_map, acc * path (i));
-    // 读 splits
+      decode_id_expanded (b, pos, id_map, rev_id_map, acc * path (i), false);
     uint32_t   ns= get_u32 ();
     array<int> splits;
     for (uint32_t i= 0; i < ns; i++)
       splits << (int) get_u32 ();
+    // 把段原子包进 PARA 或直接返回裸原子
+    auto make_seg= [&] (string s) -> tree {
+      id_map (inside (tree (s)))= tid; // 先注册再包装
+      if (wrap_para) {
+        tree para ((tree_label) moebius::PARA, 1);
+        para[0]= tree (s);
+        return para;
+      }
+      return tree (s);
+    };
     array<tree> result;
     if (ns == 0) {
-      tree r             = tree (text);
-      id_map (inside (r))= tid;
-      rev_id_map (tid)   = acc;
+      tree r          = make_seg (text);
+      rev_id_map (tid)= acc;
       result << r;
     }
     else {
-      // N+1 段，全部映射到同一 tid（共享 LoroText 容器）
       int start= 0;
       for (uint32_t i= 0; i < ns; i++) {
-        tree seg             = tree (text (start, splits[i]));
-        id_map (inside (seg))= tid;
-        result << seg;
+        result << make_seg (text (start, splits[i]));
         start= splits[i];
       }
-      tree last             = tree (text (start, N (text)));
-      id_map (inside (last))= tid;
-      result << last;
+      result << make_seg (text (start, N (text)));
       rev_id_map (tid)= acc;
     }
     return result;
   }
 
-  // 复合节点：逐个读 IR 子节点（展开），按展开后计数建 tree
+  // 复合节点
+  int  op= (kind == LORO_COMPOUND) ? (int) moebius::make_tree_label (label)
+                                   : as_int (label (8, N (label)));
+  bool child_wrap= (op == (int) moebius::DOCUMENT);
   array<tree> all_children;
   int         buf_idx= 0;
   for (uint32_t i= 0; i < n; i++) {
-    array<tree> child_set=
-        decode_id_expanded (b, pos, id_map, rev_id_map, acc * path (buf_idx));
+    array<tree> child_set= decode_id_expanded (
+        b, pos, id_map, rev_id_map, acc * path (buf_idx), child_wrap);
     for (int j= 0; j < N (child_set); j++)
       all_children << child_set[j];
     buf_idx+= N (child_set);
   }
-  // 跳过 splits（复合节点无 splits）
   uint32_t ns= get_u32 ();
   for (uint32_t i= 0; i < ns; i++)
     get_u32 ();
 
-  int  op= (kind == LORO_COMPOUND) ? (int) moebius::make_tree_label (label)
-                                   : as_int (label (8, N (label)));
   tree r (op, N (all_children));
   for (int i= 0; i < N (all_children); i++)
     r[i]= all_children[i];
@@ -122,7 +126,7 @@ loro_shadow_rep::import_and_build (string bytes, tree& out_buffer) {
   rev_id_map     = hashmap<mogan_tree_id, path> (path ());
   int         pos= 0;
   array<tree> roots=
-      decode_id_expanded (ir_bytes, pos, id_map, rev_id_map, path ());
+      decode_id_expanded (ir_bytes, pos, id_map, rev_id_map, path (), false);
   out_buffer= N (roots) > 0 ? roots[0] : tree ("");
   return true;
 }
