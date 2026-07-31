@@ -1047,6 +1047,136 @@ pub unsafe extern "C" fn mogan_loro_node_text_delete(
 }
 
 // =============================================================================
+// body 单 LoroText 容器（线性 markup 流）——结构作为 markup 解释结果
+//
+// body 不再用 LoroTree（可移动树），而是一条名为 BODY_NAME 的 LoroText，承载
+// 整篇 body 的 markup（linear_ir ↔ markup，见 C++ 侧 linear_ir*.cpp）。结构
+// 操作（SPLIT/JOIN/INSERT_NODE/REMOVE_NODE）退化为 markup token 的插入/删除，
+// 存活字符的 op-id 不变。meta-section 仍走 LoroTree（见上节）。
+
+/// body 容器名（C++ 侧同名 root text）
+const BODY_NAME: &str = "body";
+
+fn body_text(doc: &LoroDoc) -> LoroText {
+    doc.get_text(BODY_NAME)
+}
+
+/// 用 markup 字节 seed body：先清空既有内容，再整体插入。markup 须为合法 UTF-8。
+/// 成功返回 0。
+///
+/// # Safety
+/// `doc` 须为 `mogan_loro_doc_new` 句柄；`markup` 须指向 `len` 字节有效缓冲区。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_seed(
+    doc: *mut LoroDoc,
+    markup: *const u8,
+    len: usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let txt = body_text(&*doc);
+    let cur = txt.len_utf8();
+    if cur > 0 {
+        if txt.delete_utf8(0, cur).is_err() {
+            return -2;
+        }
+    }
+    if !markup.is_null() && len > 0 {
+        let buf = std::slice::from_raw_parts(markup, len);
+        let s = match std::str::from_utf8(buf) {
+            Ok(s) => s,
+            Err(_) => return -3, // markup 非法 UTF-8
+        };
+        if txt.insert_utf8(0, s).is_err() {
+            return -4;
+        }
+    }
+    0
+}
+
+/// body LoroText 在 utf-8 偏移 pos 处插入 bytes（须合法 UTF-8）。成功 0。
+///
+/// # Safety
+/// `doc` 须为有效句柄；`bytes` 须指向 `len` 字节有效缓冲区。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_text_insert(
+    doc: *mut LoroDoc,
+    pos: usize,
+    bytes: *const u8,
+    len: usize,
+) -> i32 {
+    if doc.is_null() || bytes.is_null() {
+        return -1;
+    }
+    let buf = std::slice::from_raw_parts(bytes, len);
+    let s = match std::str::from_utf8(buf) {
+        Ok(s) => s,
+        Err(_) => return -2,
+    };
+    let txt = body_text(&*doc);
+    if !s.is_empty() {
+        txt.insert_utf8(pos, s).map(|_| 0).unwrap_or(-3)
+    } else {
+        0
+    }
+}
+
+/// body LoroText 在 utf-8 偏移 pos 处删除 len 字节。成功 0。
+///
+/// # Safety
+/// `doc` 须为有效句柄。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_text_delete(
+    doc: *mut LoroDoc,
+    pos: usize,
+    len: usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let txt = body_text(&*doc);
+    if len > 0 {
+        txt.delete_utf8(pos, len).map(|_| 0).unwrap_or(-2)
+    } else {
+        0
+    }
+}
+
+/// 读出 body LoroText 的完整内容（utf-8 字节）到 *out/*out_len（Rust 分配，需
+/// [`mogan_loro_free`] 释放）。成功 0；body 不存在/为空时写出空串。
+///
+/// # Safety
+/// `doc` 须为有效句柄；`out`/`out_len` 可空。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_get_text(
+    doc: *mut LoroDoc,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let txt = body_text(&*doc);
+    let mut s = String::new();
+    txt.iter(|chunk| {
+        s.push_str(chunk);
+        true
+    });
+    emit_out(s.into_bytes(), out, out_len);
+    0
+}
+
+/// body LoroText 的 utf-8 字节长度（用于 coarse clear 等）。失败返回 0。
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_len_utf8(doc: *mut LoroDoc) -> usize {
+    if doc.is_null() {
+        return 0;
+    }
+    body_text(&*doc).len_utf8()
+}
+
+// =============================================================================
 // 稳定光标位置（Cursor，op-id 锚定）——多光标 CRDT 级同步
 // =============================================================================
 
@@ -1379,6 +1509,71 @@ mod tests {
         assert_eq!(back.children[0].kind, KIND_ATOMIC);
         assert_eq!(back.children[0].text, b"hi");
 
+        unsafe { mogan_loro_doc_free(doc) };
+    }
+
+    // ===== body 单 LoroText 容器 =====
+
+    /// get_text("body") 在新 doc 上可用（root text 容器按需创建，不 panic），
+    /// seed→get_text 往返，且 seed 覆盖旧内容。
+    #[test]
+    fn body_seed_and_read() {
+        let doc = mogan_loro_doc_new();
+        let mk = "\u{1}Odocument\u{1}\u{1}Opara\u{1}hello\u{1}C\u{1}\u{1}C\u{1}";
+        let rc = unsafe { mogan_loro_body_seed(doc, mk.as_ptr(), mk.len()) };
+        assert_eq!(rc, 0, "body_seed rc={}", rc);
+
+        let mut out = std::ptr::null_mut();
+        let mut out_len = 0usize;
+        let rc = unsafe { mogan_loro_body_get_text(doc, &mut out, &mut out_len) };
+        assert_eq!(rc, 0, "body_get_text rc={}", rc);
+        let got = unsafe { std::slice::from_raw_parts(out, out_len) }.to_vec();
+        unsafe { mogan_loro_free(out, out_len) };
+        assert_eq!(got, mk.as_bytes(), "body markup round-trip");
+
+        // 再次 seed 覆盖
+        let mk2 = "\u{1}Opara\u{1}world\u{1}C\u{1}";
+        let rc = unsafe { mogan_loro_body_seed(doc, mk2.as_ptr(), mk2.len()) };
+        assert_eq!(rc, 0, "body_seed overwrite rc={}", rc);
+        let mut out = std::ptr::null_mut();
+        let mut out_len = 0usize;
+        unsafe { mogan_loro_body_get_text(doc, &mut out, &mut out_len) };
+        let got2 = unsafe { std::slice::from_raw_parts(out, out_len) }.to_vec();
+        unsafe { mogan_loro_free(out, out_len) };
+        assert_eq!(got2, mk2.as_bytes(), "body_seed clears old content");
+
+        assert_eq!(
+            unsafe { mogan_loro_body_len_utf8(doc) },
+            mk2.len(),
+            "body_len_utf8"
+        );
+        unsafe { mogan_loro_doc_free(doc) };
+    }
+
+    /// body_text_insert / delete 在 utf-8 偏移处增删，get_text 反映结果。
+    #[test]
+    fn body_insert_and_delete() {
+        let doc = mogan_loro_doc_new();
+        let rc = unsafe { mogan_loro_body_seed(doc, b"hello".as_ptr(), 5) };
+        assert_eq!(rc, 0, "seed");
+        // 在偏移 2 处插入 "XYZ" → "heXYZllo"
+        let rc = unsafe { mogan_loro_body_text_insert(doc, 2, b"XYZ".as_ptr(), 3) };
+        assert_eq!(rc, 0, "insert");
+        let mut out = std::ptr::null_mut();
+        let mut out_len = 0usize;
+        unsafe { mogan_loro_body_get_text(doc, &mut out, &mut out_len) };
+        let got = unsafe { std::slice::from_raw_parts(out, out_len) }.to_vec();
+        unsafe { mogan_loro_free(out, out_len) };
+        assert_eq!(got, b"heXYZllo".to_vec(), "after insert");
+        // 删除偏移 2 起 3 字节 → "hello"
+        let rc = unsafe { mogan_loro_body_text_delete(doc, 2, 3) };
+        assert_eq!(rc, 0, "delete");
+        let mut out = std::ptr::null_mut();
+        let mut out_len = 0usize;
+        unsafe { mogan_loro_body_get_text(doc, &mut out, &mut out_len) };
+        let got = unsafe { std::slice::from_raw_parts(out, out_len) }.to_vec();
+        unsafe { mogan_loro_free(out, out_len) };
+        assert_eq!(got, b"hello".to_vec(), "after delete");
         unsafe { mogan_loro_doc_free(doc) };
     }
 }
