@@ -47,7 +47,7 @@ main () {
 
   loro_shadow a;
   a->seed (init);
-  string s0= a->export_snapshot ();
+  string      s0= a->export_snapshot ();
   loro_shadow b;
   tree        tB;
   b->import_and_build (s0, tB);
@@ -66,7 +66,7 @@ main () {
   });
 
   bench.run ("remote_diff_mods (import+diff)", [&] {
-    tree             buf = init;
+    tree               buf = init;
     list<modification> mods= a->remote_diff_mods (update, buf);
     ankerl::nanobench::doNotOptimizeAway (mods);
   });

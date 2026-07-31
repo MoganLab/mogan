@@ -144,7 +144,8 @@ edit_modify_rep::apply_remote (string bytes) {
   // shadow 当前态重建（等价 diff_walk 的 assign 兜底，保证一致性）。
   bool remote_precise= true;
   // 性能：buf 只取一次（tree 为引用计数浅句柄，与 buffer 实时共享 rep）。
-  // apply 改 et 后 et[rp] 仍与该句柄共享 buffer rep，无需逐条重读 the_buffer()。
+  // apply 改 et 后 et[rp] 仍与该句柄共享 buffer rep，无需逐条重读
+  // the_buffer()。
   tree buf= the_buffer ();
   bench_start ("remote_apply_mods");
   for (list<modification> l= mods; !is_nil (l); l= l->next) {

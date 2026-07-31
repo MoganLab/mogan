@@ -2,11 +2,11 @@
  *  \copyright GPLv3
  *  \details 线性文档流 IR：把 moebius 文档树展开成一条线性的 item 序列，作为
  *            body ↔ Loro 单条 LoroText 标记流转换的核心。**统一包裹**：每个节点
- *            （复合/泛型/原子）都表示为 OPEN(label) ... CLOSE；原子的 label 为空，
- *            其间恰好一条 TEXT/BINARY。这样相邻原子各有显式 OPEN/CLOSE 边界，
- *            无需 SEP 分隔符——结构编辑（SPLIT/JOIN/INSERT_NODE/REMOVE_NODE）
- *            统一退化为 CLOSE+OPEN token 的插入/删除，存活字符 op-id 不变。
- *            本层不依赖 loro-ffi，可独立编译与 round-trip 测试。
+ *            （复合/泛型/原子）都表示为 OPEN(label) ... CLOSE；原子的 label
+ * 为空， 其间恰好一条 TEXT/BINARY。这样相邻原子各有显式 OPEN/CLOSE 边界， 无需
+ * SEP 分隔符——结构编辑（SPLIT/JOIN/INSERT_NODE/REMOVE_NODE） 统一退化为
+ * CLOSE+OPEN token 的插入/删除，存活字符 op-id 不变。 本层不依赖
+ * loro-ffi，可独立编译与 round-trip 测试。
  *  \author Jim Zhou
  *  \date   2026
  */

@@ -14,7 +14,8 @@
  *   - 原子文本（TEXT）是 token 之间的裸字节，其中 \x01→\x02 '1'、\x02→\x02 '2'
  *     双写转义，故用户文本永不裸含 \x01，必在下一个 token 处终止。
  *   - label / base64 为有限 ASCII，不会含哨兵，无需转义。
- *   - 无 SEP：相邻原子各有 OPEN("")/CLOSE 边界，结构编辑统一为 CLOSE+OPEN 增删。
+ *   - 无 SEP：相邻原子各有 OPEN("")/CLOSE 边界，结构编辑统一为 CLOSE+OPEN
+ * 增删。
  *
  *  \author Jim Zhou
  *  \date   2026
@@ -32,8 +33,8 @@ using lolly::data::decode_base64;
 using lolly::data::encode_base64;
 
 static const string GENERIC_PREFIX= "generic:";
-static const char   ESC = '\x01'; // token 引入符 / 终止符
-static const char   ESCC= '\x02'; // 转义引入符
+static const char   ESC           = '\x01'; // token 引入符 / 终止符
+static const char   ESCC          = '\x02'; // 转义引入符
 
 /******************************************************************************
  * UTF-8 结构合法性（区分文本/二进制原子；与 Rust 侧 std::str::from_utf8 对齐）
@@ -100,7 +101,8 @@ emit_node (array<linear_item>& items, tree t) {
   }
   else {
     int n= N (t);
-    for (int i= 0; i < n; i++) emit_node (items, t[i]);
+    for (int i= 0; i < n; i++)
+      emit_node (items, t[i]);
   }
   linear_item close;
   close.kind= LI_CLOSE;
@@ -118,11 +120,11 @@ tree_to_linear_ir (tree t) {
  * 线性 IR -> tree
  *****************************************************************************/
 struct li_frame {
-  int           op;
-  bool          atomic; // OPEN("") 原子框：仅收一条 TEXT/BINARY
-  string        text;   // 原子框的文本
-  bool          has_text;
-  array<tree>   children;
+  int         op;
+  bool        atomic; // OPEN("") 原子框：仅收一条 TEXT/BINARY
+  string      text;   // 原子框的文本
+  bool        has_text;
+  array<tree> children;
 };
 
 static void
@@ -155,9 +157,9 @@ linear_ir_to_tree (array<linear_item> items) {
     linear_item& it= items[i];
     if (it.kind == LI_OPEN) {
       li_frame f;
-      f.atomic   = is_atomic_label (it.label);
-      f.op       = op_of_label (it.label);
-      f.has_text = false;
+      f.atomic  = is_atomic_label (it.label);
+      f.op      = op_of_label (it.label);
+      f.has_text= false;
       stack << f;
     }
     else if (it.kind == LI_CLOSE) {
@@ -221,7 +223,8 @@ linear_ir_to_markup (array<linear_item> items) {
     linear_item& it= items[i];
     if (it.kind == LI_OPEN) emit_token (out, 'O', it.label);
     else if (it.kind == LI_CLOSE) emit_token (out, 'C', "");
-    else if (it.kind == LI_BINARY) emit_token (out, 'B', encode_base64 (it.text));
+    else if (it.kind == LI_BINARY)
+      emit_token (out, 'B', encode_base64 (it.text));
     else emit_escaped (out, it.text); // LI_TEXT
   }
   return out;
@@ -251,7 +254,7 @@ markup_to_linear_ir (string s) {
         i++;
       }
       if (i < n) i++; // 终止 ESC
-      if (has_buf) { // token 之前累积的裸文本
+      if (has_buf) {  // token 之前累积的裸文本
         linear_item it;
         it.kind= LI_TEXT;
         it.text= buf;

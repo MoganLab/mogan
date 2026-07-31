@@ -1048,28 +1048,29 @@ TEST_CASE (
 TEST_CASE ("loro repro: concurrent text-insert + backslash-wrap converges") {
   ensure_labels ();
   tree init (DOCUMENT, 1);
-  init[0] = tree ("TEST");
+  init[0]= tree ("TEST");
   loro_shadow a;
   a->seed (init);
-  string s0= a->export_snapshot ();
+  string      s0= a->export_snapshot ();
   loro_shadow b;
   tree        tB;
   CHECK_EQ (b->import_and_build (s0, tB), true);
 
   // a：TE 后插 A → "TEAST"
-  tree          tA= init;
+  tree         tA= init;
   modification mA= mod_insert (path (0), 2, tree ("A"));
-  tA              = clean_apply (tA, mA);
+  tA             = clean_apply (tA, mA);
   a->mirror_mod (tA, mA);
-  string sa      = a->export_snapshot ();
+  string sa= a->export_snapshot ();
 
-  // b：\ 包裹序列（remove TEST + insert_node + 复合 insert 包裹 + remove + 脱壳）
+  // b：\ 包裹序列（remove TEST + insert_node + 复合 insert 包裹 + remove +
+  // 脱壳）
   tree sub (WITH, 1);
-  sub[0]         = tree ("TEST"); // 包裹内容（含 TEST）
+  sub[0]= tree ("TEST"); // 包裹内容（含 TEST）
   tree frag (CONCAT, 1);
-  frag[0]        = sub;
+  frag[0]   = sub;
   auto stepb= [&] (modification m) {
-    tB             = clean_apply (tB, m);
+    tB= clean_apply (tB, m);
     b->mirror_mod (tB, m);
   };
   stepb (mod_remove (path (0), 0, 4));

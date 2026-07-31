@@ -1,7 +1,8 @@
 /** \file linear_ir_test.cpp
  *  \copyright GPLv3
  *  \details tree <-> 线性 IR <-> markup 往返相等性测试（统一包裹方案：每个节点
- *            OPEN(label)...CLOSE，原子 label 为空）。覆盖 atomic、compound（内置
+ *            OPEN(label)...CLOSE，原子 label 为空）。覆盖
+ * atomic、compound（内置
  *            与扩展标签）、generic（op<0）、嵌套与子节点顺序、相邻原子、二进制
  *            原子、含哨兵字符的用户文本。本用例不依赖 loro-ffi（linear_ir 为纯
  *            C++），不以 LORO_ENABLED 门控，始终编译运行。compound 往复依赖标签
@@ -35,8 +36,8 @@ TEST_CASE ("linear_ir: atomic string round-trips") {
 }
 
 TEST_CASE ("linear_ir: atomic is wrapped OPEN('')+TEXT+CLOSE") {
-  tree                 t ("hi");
-  array<linear_item>   ir= tree_to_linear_ir (t);
+  tree               t ("hi");
+  array<linear_item> ir= tree_to_linear_ir (t);
   CHECK_EQ (N (ir) == 3, true);
   CHECK_EQ (ir[0].kind == LI_OPEN && N (ir[0].label) == 0, true);
   CHECK_EQ (ir[1].kind == LI_TEXT && ir[1].text == "hi", true);
@@ -46,9 +47,9 @@ TEST_CASE ("linear_ir: atomic is wrapped OPEN('')+TEXT+CLOSE") {
 TEST_CASE ("linear_ir: compound with known label round-trips") {
   ensure_labels ();
   tree t (DOCUMENT, 2);
-  t[0]   = tree ("a");
-  t[1]   = tree (PARA, 1);
-  t[1][0]= tree ("b");
+  t[0]     = tree ("a");
+  t[1]     = tree (PARA, 1);
+  t[1][0]  = tree ("b");
   tree back= linear_ir_to_tree (tree_to_linear_ir (t));
   CHECK_EQ (back == t, true);
   CHECK_EQ (as_string (L (back)) == "document", true);
@@ -65,7 +66,7 @@ TEST_CASE ("linear_ir: compound with extension label round-trips") {
 
 TEST_CASE ("linear_ir: generic op<0 round-trips") {
   tree t (-7, 1);
-  t[0]            = tree ("g");
+  t[0]                 = tree ("g");
   array<linear_item> ir= tree_to_linear_ir (t);
   CHECK_EQ (ir[0].kind == LI_OPEN, true);
   CHECK_EQ (ir[0].label == "generic:-7", true);
@@ -77,9 +78,9 @@ TEST_CASE ("linear_ir: adjacent atomics round-trip") {
   ensure_labels ();
   // (concat "a" "b" "c") —— 三个相邻原子，各有 OPEN('')/CLOSE 边界
   tree t (CONCAT, 3);
-  t[0]   = tree ("a");
-  t[1]   = tree ("b");
-  t[2]   = tree ("c");
+  t[0]     = tree ("a");
+  t[1]     = tree ("b");
+  t[2]     = tree ("c");
   tree back= linear_ir_to_tree (tree_to_linear_ir (t));
   CHECK_EQ (back == t, true);
 }
@@ -120,8 +121,8 @@ TEST_CASE ("linear_ir: binary atomic (non-UTF-8) round-trips") {
   bin << (char) 0x47;
   bin << (char) 0x0d;
   bin << (char) 0x0a;
-  tree                 t (bin);
-  array<linear_item>   ir= tree_to_linear_ir (t);
+  tree               t (bin);
+  array<linear_item> ir= tree_to_linear_ir (t);
   // OPEN('') BINARY CLOSE
   CHECK_EQ (N (ir) == 3, true);
   CHECK_EQ (ir[1].kind == LI_BINARY, true);
@@ -137,12 +138,12 @@ TEST_CASE ("linear_ir: binary atomic (non-UTF-8) round-trips") {
 TEST_CASE ("linear_ir: markup round-trips a compound document") {
   ensure_labels ();
   tree t (DOCUMENT, 2);
-  t[0]   = tree (PARA, 1);
-  t[0][0]= tree ("hello");
-  t[1]   = tree (PARA, 1);
-  t[1][0]= tree ("world");
+  t[0]                 = tree (PARA, 1);
+  t[0][0]              = tree ("hello");
+  t[1]                 = tree (PARA, 1);
+  t[1][0]              = tree ("world");
   array<linear_item> ir= tree_to_linear_ir (t);
-  tree               t2= linear_ir_to_tree (markup_to_linear_ir (linear_ir_to_markup (ir)));
+  tree t2= linear_ir_to_tree (markup_to_linear_ir (linear_ir_to_markup (ir)));
   CHECK_EQ (t2 == t, true);
 }
 
@@ -154,7 +155,8 @@ TEST_CASE ("linear_ir: markup escapes sentinel bytes in user text") {
   s << (char) 0x02;
   s << "c";
   tree t (s);
-  tree back= linear_ir_to_tree (markup_to_linear_ir (linear_ir_to_markup (tree_to_linear_ir (t))));
+  tree back= linear_ir_to_tree (
+      markup_to_linear_ir (linear_ir_to_markup (tree_to_linear_ir (t))));
   CHECK_EQ (back == t, true);
 }
 
@@ -165,7 +167,8 @@ TEST_CASE ("linear_ir: markup round-trips binary atomic") {
   bin << (char) 0x4e;
   bin << (char) 0x47;
   tree t (bin);
-  tree back= linear_ir_to_tree (markup_to_linear_ir (linear_ir_to_markup (tree_to_linear_ir (t))));
+  tree back= linear_ir_to_tree (
+      markup_to_linear_ir (linear_ir_to_markup (tree_to_linear_ir (t))));
   CHECK_EQ (back == t, true);
 }
 
@@ -176,7 +179,7 @@ TEST_CASE ("linear_ir: markup round-trips binary atomic") {
 TEST_CASE ("linear_ir: unclosed OPEN auto-heals at end") {
   ensure_labels ();
   array<linear_item> ir;
-  linear_item o;
+  linear_item        o;
   o.kind = LI_OPEN;
   o.label= "document";
   ir << o;
@@ -194,7 +197,7 @@ TEST_CASE ("linear_ir: unclosed OPEN auto-heals at end") {
 TEST_CASE ("linear_ir: stray CLOSE is skipped") {
   ensure_labels ();
   array<linear_item> ir;
-  linear_item c;
+  linear_item        c;
   c.kind= LI_CLOSE;
   ir << c;
   linear_item o;
