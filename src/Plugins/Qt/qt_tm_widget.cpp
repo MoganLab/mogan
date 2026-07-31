@@ -42,9 +42,9 @@
 #include "config.h"
 #include "scheme.hpp"
 
+#include "dictionary.hpp"
 #include "qt_chat_controller.hpp"
 #include "qt_gui.hpp"
-#include "dictionary.hpp"
 #include "qt_pdf_reader_widget.hpp"
 #include "qt_pdf_toolbar.hpp"
 #include "qt_picture.hpp"
