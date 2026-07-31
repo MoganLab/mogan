@@ -9,10 +9,14 @@
 #include "tree_helper.hpp"
 
 namespace {
+/// 读一个 IR-with-ids 节点，消费 parent 的若干个 buffer 子节点（1 或 N+1），
+/// 映射到 TreeID。out_consumed 返回消费的 buffer 子节点数。
+/// splits 的原子展开为 N+1 段，全部映射到同一 tid（共享 LoroText 容器）。
 bool
-sync_walk (tree t, string& ir, int& pos, mogan_tree_id& root_id,
-           hashmap<tree_rep*, mogan_tree_id>& id_map,
-           hashmap<mogan_tree_id, path>& rev_id_map, path acc) {
+sync_walk_n (tree parent, int start_idx, string& ir, int& pos,
+             mogan_tree_id& root_id, hashmap<tree_rep*, mogan_tree_id>& id_map,
+             hashmap<mogan_tree_id, path>& rev_id_map, int& out_consumed,
+             path acc) {
   if (pos + 12 > N (ir)) return false;
   auto get_u32= [&] () -> uint32_t {
     uint32_t v= (uint32_t) (unsigned char) ir[pos] |
@@ -38,17 +42,55 @@ sync_walk (tree t, string& ir, int& pos, mogan_tree_id& root_id,
   mogan_tree_id tid{peer, (int32_t) get_u32 ()};
   if (root_id.peer == 0) root_id= tid;
   // kind/label/text/n_children
-  pos++;                           // kind
-  get_str ();                      // label
-  get_str ();                      // text
-  uint32_t n         = get_u32 (); // n_children
+  uint8_t kind= (uint8_t) (unsigned char) ir[pos++];
+  (void) get_str ();      // label
+  (void) get_str ();      // text
+  uint32_t n= get_u32 (); // n_children
+
+  if (kind == LORO_ATOMIC) {
+    // 消费 IR 子节点（原子应为 0）
+    for (uint32_t i= 0; i < n; i++) {
+      int dummy;
+      if (!sync_walk_n (parent, start_idx, ir, pos, root_id, id_map, rev_id_map,
+                        dummy, acc))
+        return false;
+    }
+    // 读 splits
+    uint32_t   ns= get_u32 ();
+    array<int> splits;
+    for (uint32_t i= 0; i < ns; i++)
+      splits << (int) get_u32 ();
+    // N+1 段 buffer 子节点全部映射到 tid
+    int n_segs= (int) ns + 1;
+    for (int seg= 0; seg < n_segs; seg++) {
+      if (start_idx + seg >= N (parent)) return false;
+      id_map (inside (parent[start_idx + seg]))= tid;
+    }
+    rev_id_map (tid)= acc;
+    out_consumed    = n_segs;
+    return true;
+  }
+
+  // 复合节点：1 个 buffer 子节点（parent[start_idx]）
+  if (start_idx >= N (parent)) return false;
+  tree t             = parent[start_idx];
   id_map (inside (t))= tid;
-  rev_id_map (tid)   = acc; // 与 id_map 同处维护：TreeID -> buffer-相对 path
-  int nc             = is_atomic (t) ? 0 : N (t);
-  if (nc != (int) n) return false; // 结构不匹配
-  for (int i= 0; i < nc; i++)
-    if (!sync_walk (t[i], ir, pos, root_id, id_map, rev_id_map, acc * path (i)))
+  rev_id_map (tid)   = acc;
+  int nc             = N (t);
+  int buf_idx        = 0;
+  for (uint32_t i= 0; i < n; i++) {
+    int consumed= 0;
+    if (!sync_walk_n (t, buf_idx, ir, pos, root_id, id_map, rev_id_map,
+                      consumed, acc * path (buf_idx)))
       return false;
+    buf_idx+= consumed;
+  }
+  if (buf_idx != nc) return false; // 结构不匹配
+  // 跳过 splits（复合无 splits）
+  uint32_t ns= get_u32 ();
+  for (uint32_t i= 0; i < ns; i++)
+    get_u32 ();
+  out_consumed= 1;
   return true;
 }
 } // namespace
@@ -107,11 +149,16 @@ loro_shadow_rep::sync_id_map_from_shadow (tree buffer) {
   }
   string ir ((const char*) out, (int) out_len);
   mogan_loro_free (out, out_len);
-  id_map    = hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
-  rev_id_map= hashmap<mogan_tree_id, path> (path ());
-  root_id   = mogan_tree_id{0, 0};
-  int pos   = 0;
-  if (!sync_walk (buffer, ir, pos, root_id, id_map, rev_id_map, path ()))
+  id_map      = hashmap<tree_rep*, mogan_tree_id> (mogan_tree_id{0, 0});
+  rev_id_map  = hashmap<mogan_tree_id, path> (path ());
+  root_id     = mogan_tree_id{0, 0};
+  int pos     = 0;
+  int consumed= 0;
+  // 根节点：用 buffer 自身做 parent（根是唯一的，start_idx=0）
+  tree root_wrap ((tree_label) moebius::DOCUMENT, 1);
+  root_wrap[0]= buffer;
+  if (!sync_walk_n (root_wrap, 0, ir, pos, root_id, id_map, rev_id_map,
+                    consumed, path ()))
     return false;
   return root_id.peer != 0;
 }

@@ -80,6 +80,7 @@ struct IrNode {
     label: Vec<u8>,
     text: Vec<u8>,
     children: Vec<IrNode>,
+    splits: Vec<u32>, // ATOMIC 节点的 SPLIT 边界偏移（unicode），ir→tree 时解释为 N+1 段
 }
 
 // =============================================================================
@@ -138,12 +139,12 @@ impl<'a> Reader<'a> {
         for _ in 0..n {
             children.push(self.node()?);
         }
-        Ok(IrNode {
-            kind,
-            label,
-            text,
-            children,
-        })
+        let ns = self.u32()? as usize;
+        let mut splits = Vec::with_capacity(ns);
+        for _ in 0..ns {
+            splits.push(self.u32()?);
+        }
+        Ok(IrNode { kind, label, text, children, splits })
     }
 }
 
@@ -173,6 +174,10 @@ impl Writer {
         for c in &n.children {
             self.node(c);
         }
+        self.u32(n.splits.len() as u32);
+        for &s in &n.splits {
+            self.u32(s);
+        }
     }
 }
 
@@ -201,6 +206,25 @@ fn build_node(tree: &LoroTree, parent: TreeParentId, ir: &IrNode) -> Result<(), 
                 let txt = meta.insert_container("text", LoroText::new()).map_err(|_| ())?;
                 if !s.is_empty() {
                     txt.insert(0, s).map_err(|_| ())?;
+                }
+                // IR splits → Loro SPLIT markers（Cursor 锚定边界）
+                if !ir.splits.is_empty() {
+                    if let Some(list) = get_or_create_split(&meta) {
+                        for &off in &ir.splits {
+                            let cur = txt
+                                .get_cursor(off as usize, Side::Middle)
+                                .or_else(|| {
+                                    if off > 0 {
+                                        txt.get_cursor(off as usize - 1, Side::Right)
+                                    } else {
+                                        None
+                                    }
+                                });
+                            if let Some(c) = cur {
+                                let _ = list.insert(list.len(), c.encode());
+                            }
+                        }
+                    }
                 }
             } else {
                 meta.insert("text", ir.text.clone()).map_err(|_| ())?;
@@ -313,86 +337,54 @@ fn str_to_kind(s: &str) -> u8 {
 }
 
 /// 把一个文本节点的 LoroText 内容按 SPLIT marker 切成 1..=N+1 个 IrNode 原子。
-/// 无 marker 或锚点失效时退化为 1 个原子（与旧行为一致）。`child_ids` 恒为空
-/// （文本容器不是 LoroTree 子节点，不计入树子节点数）。
-fn read_text_segments(doc: &LoroDoc, meta: &LoroMap) -> Vec<IrNode> {
+/// 读一个文本节点的完整文本 + SPLIT 边界，返回**1 个** IrNode（不切段）。
+/// 1↔1：1 LoroTree 文本节点 → 1 IR 原子（full text + splits）。
+/// 段的切分（1→N+1）延迟到 C++ 侧 loro_ir_to_tree 解释 splits 时才发生。
+fn read_text_node(doc: &LoroDoc, meta: &LoroMap) -> IrNode {
     let text = get_meta_text_or_binary(meta).unwrap_or_default();
-    let n    = text.len();
-    let boundaries = match get_split(meta) {
-        Some(list) => split_boundaries(doc, &list, n),
+    let n = text.len();
+    let splits = match get_split(meta) {
+        Some(list) => split_boundaries(doc, &list, n).into_iter().map(|x| x as u32).collect(),
         None => Vec::new(),
     };
-    let mut segs = Vec::new();
-    let mut start = 0usize;
-    for &b in &boundaries {
-        if b > start && b <= n {
-            segs.push(IrNode {
-                kind: KIND_ATOMIC,
-                label: Vec::new(),
-                text: text[start..b].to_vec(),
-                children: Vec::new(),
-            });
-            start = b;
-        }
-    }
-    segs.push(IrNode {
-        kind: KIND_ATOMIC,
-        label: Vec::new(),
-        text: text[start..].to_vec(),
-        children: Vec::new(),
-    });
-    segs
-}
-
-/// 无 LoroDoc 句柄时的退化切段：只按整段文本返回 1 个原子（无法解析 marker
-/// cursor 偏移；仅防御，正常路径都有 doc）。
-fn read_text_segments_no_doc(meta: &LoroMap) -> Vec<IrNode> {
-    let text = get_meta_text_or_binary(meta).unwrap_or_default();
-    vec![IrNode {
+    IrNode {
         kind: KIND_ATOMIC,
         label: Vec::new(),
         text,
         children: Vec::new(),
-    }]
+        splits,
+    }
 }
 
-/// 读一个 LoroTree 节点为 1..=N+1 个 IrNode（1↔N 物化）。
-/// 文本原子有 SPLIT marker 时切成多段，各段作为兄弟扁平展开（调用方 extend）。
-fn read_node_vec(tree: &LoroTree, id: TreeID) -> Result<Vec<IrNode>, ()> {
+/// 无 doc 句柄时的退化（无法解析 marker cursor）。
+fn read_text_node_no_doc(meta: &LoroMap) -> IrNode {
+    IrNode {
+        kind: KIND_ATOMIC,
+        label: Vec::new(),
+        text: get_meta_text_or_binary(meta).unwrap_or_default(),
+        children: Vec::new(),
+        splits: Vec::new(),
+    }
+}
+
+/// 读一个 LoroTree 节点为**1 个** IrNode（严格 1↔1，不展开）。
+fn read_node(tree: &LoroTree, id: TreeID) -> Result<IrNode, ()> {
     let meta = tree.get_meta(id).map_err(|_| ())?;
     let kind = get_meta_str(&meta, "kind").unwrap_or_default();
     let kind_byte = str_to_kind(&kind);
     if kind_byte == KIND_ATOMIC {
-        // 文本原子：按 SPLIT marker 切成 1..=N+1 段（扁平返回）。
         return Ok(match tree.doc() {
-            Some(d) => read_text_segments(&d, &meta),
-            None => read_text_segments_no_doc(&meta),
+            Some(d) => read_text_node(&d, &meta),
+            None => read_text_node_no_doc(&meta),
         });
     }
-    // 复合节点：递归子节点（每个可能展开为多段），扁平收集。
     let child_ids = tree.children(TreeParentId::Node(id)).unwrap_or_default();
     let mut children = Vec::with_capacity(child_ids.len());
     for cid in child_ids {
-        children.extend(read_node_vec(tree, cid)?);
+        children.push(read_node(tree, cid)?);
     }
     let label = get_meta_bytes(&meta, "label").unwrap_or_default();
-    Ok(vec![IrNode {
-        kind: kind_byte,
-        label,
-        text: Vec::new(),
-        children,
-    }])
-}
-
-fn read_node(tree: &LoroTree, id: TreeID) -> Result<IrNode, ()> {
-    // 根节点必定只返回 1 个 IrNode（根是复合，其子节点可能展开但归入根的 children）。
-    let mut v = read_node_vec(tree, id)?;
-    if v.len() == 1 {
-        Ok(v.remove(0))
-    } else {
-        // 根不应该是文本原子（不会有多段）；防御：取第一个
-        Ok(v.remove(0))
-    }
+    Ok(IrNode { kind: kind_byte, label, text: Vec::new(), children, splits: Vec::new() })
 }
 
 fn doc_to_ir(doc: &LoroDoc) -> Result<IrNode, ()> {
@@ -748,10 +740,9 @@ fn write_mogan_id(w: &mut Writer, id16: &[u8]) {
     w.buf.extend_from_slice(&id16[8..12]);
 }
 
-/// 递归写出"带 TreeID 的增强 IR"，1↔N 扁平展开。
-/// 文本原子有 SPLIT marker 时展开为 N+1 个原子 IR 节点（扁平兄弟，无 wrapper）。
-/// 返回写的 IR 节数（1 或 N+1），供父节点计正确的 n_children。
-fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) -> usize {
+/// 递归写出"带 TreeID 的增强 IR"，严格 1↔1（不展开）。
+/// 文本原子写 full text + splits（从 markers 解析）；段切分延迟到 C++ 侧。
+fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) {
     let id_bytes = treeid_to_16(id);
     let meta = match tree.get_meta(id) {
         Ok(m) => m,
@@ -760,66 +751,38 @@ fn write_node_with_id(tree: &LoroTree, id: TreeID, w: &mut Writer) -> usize {
             w.u8(KIND_COMPOUND);
             w.bytes_field(&Vec::new());
             w.bytes_field(&Vec::new());
-            w.u32(0);
-            return 1;
+            w.u32(0); // n_children
+            w.u32(0); // n_splits
+            return;
         }
     };
     let kind_byte = str_to_kind(&get_meta_str(&meta, "kind").unwrap_or_default());
+    write_mogan_id(w, &id_bytes);
 
     if kind_byte == KIND_ATOMIC {
-        let segs = match tree.doc() {
-            Some(d) => read_text_segments(&d, &meta),
-            None => read_text_segments_no_doc(&meta),
+        let node = match tree.doc() {
+            Some(d) => read_text_node(&d, &meta),
+            None => read_text_node_no_doc(&meta),
         };
-        if segs.len() > 1 {
-            // 有 marker：展开为 N+1 个原子 IR 节点（扁平，无 wrapper）。
-            let elem_ids: Vec<Option<Vec<u8>>> = match get_split(&meta) {
-                Some(list) => (0..list.len()).map(|i| elem_identity(&list, i)).collect(),
-                None => Vec::new(),
-            };
-            for (si, s) in segs.iter().enumerate() {
-                let seg_id16= if si == 0 {
-                    id_bytes                         // 前缀段：真 TreeID
-                } else {
-                    // marker[si-1] 元素身份截断 16 字节；失败回退真 TreeID
-                    elem_ids.get(si - 1).and_then(|o| o.as_ref()).map_or(id_bytes, |v| {
-                        let mut b= [0u8; 16];
-                        if v.len() >= 16 { b.copy_from_slice(&v[0..16]); } else { b.copy_from_slice(&id_bytes); }
-                        b
-                    })
-                };
-                write_mogan_id(w, &seg_id16);
-                w.u8(KIND_ATOMIC);
-                w.bytes_field(&s.label);
-                w.bytes_field(&s.text);
-                w.u32(0);
-            }
-            return segs.len();
-        }
-        // 无 marker：1 个原子。
-        write_mogan_id(w, &id_bytes);
         w.u8(KIND_ATOMIC);
-        w.bytes_field(&Vec::new());
-        w.bytes_field(&segs.into_iter().next().unwrap().text);
-        w.u32(0);
-        return 1;
+        w.bytes_field(&node.label);
+        w.bytes_field(&node.text);
+        w.u32(0); // n_children
+        w.u32(node.splits.len() as u32);
+        for &s in &node.splits { w.u32(s); }
+        return;
     }
 
-    // 复合节点：先把子节点写进 temp（展开计数），再写 header + children。
     let label = get_meta_bytes(&meta, "label").unwrap_or_default();
     let child_ids = tree.children(TreeParentId::Node(id)).unwrap_or_default();
-    let mut temp = Writer { buf: Vec::new() };
-    let mut n = 0usize;
-    for cid in &child_ids {
-        n += write_node_with_id(tree, *cid, &mut temp);
-    }
-    write_mogan_id(w, &id_bytes);
     w.u8(kind_byte);
     w.bytes_field(&label);
     w.bytes_field(&Vec::new());
-    w.u32(n as u32);
-    w.buf.extend(temp.buf);
-    1
+    w.u32(child_ids.len() as u32);
+    for cid in &child_ids {
+        write_node_with_id(tree, *cid, w);
+    }
+    w.u32(0); // n_splits (compound has no splits)
 }
 
 /// live doc -> 带 TreeID 的增强 IR 字节。
@@ -1540,6 +1503,7 @@ mod tests {
             label: vec![],
             text: text.as_bytes().to_vec(),
             children: vec![],
+            splits: vec![],
         }
     }
 
@@ -1549,6 +1513,7 @@ mod tests {
             label: label.as_bytes().to_vec(),
             text: vec![],
             children,
+            splits: vec![],
         }
     }
 
@@ -1604,6 +1569,7 @@ mod tests {
             label: vec![],
             text: binary.clone(),
             children: vec![],
+            splits: vec![],
         };
         let doc = doc_from_ir(&orig).expect("doc_from_ir");
         let snap = doc.export(ExportMode::Snapshot).expect("export");
@@ -1820,15 +1786,15 @@ mod tests {
         eprintln!("[focus] split_boundaries = {:?}", bounds);
         assert_eq!(bounds.len(), 1, "must have 1 boundary");
 
-        // to_ir：root=paragraph，其子节点 = 扁平展开的 2 段
+        // to_ir：root=paragraph，其子节点 = 1 原子（full text + splits=[3]）
         let back = doc_to_ir(&doc).expect("to_ir");
         eprintln!(
             "[focus] to_ir root: kind={} n_children={}",
             back.kind,
             back.children.len()
         );
-        assert_eq!(back.children.len(), 2, "root must have 2 segment children");
-        assert_eq!(back.children[0].text, b"ABC", "seg0 = ABC");
-        assert_eq!(back.children[1].text, b"DEF", "seg1 = DEF");
+        assert_eq!(back.children.len(), 1, "1 IR node (not expanded)");
+        assert_eq!(back.children[0].text, b"ABCDEF", "full text preserved");
+        assert_eq!(back.children[0].splits, vec![3u32], "splits carry boundary");
     }
 }

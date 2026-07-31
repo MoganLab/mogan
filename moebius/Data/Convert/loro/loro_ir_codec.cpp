@@ -56,6 +56,11 @@ encode_node_into (string& s, loro_ir_node node) {
   put_u32 (s, (uint32_t) n);
   for (int i= 0; i < n; i++)
     encode_node_into (s, node.children[i]);
+  // splits（ATOMIC 的 SPLIT 边界）
+  int ns= N (node.splits);
+  put_u32 (s, (uint32_t) ns);
+  for (int i= 0; i < ns; i++)
+    put_u32 (s, (uint32_t) node.splits[i]);
 }
 
 string
@@ -94,6 +99,9 @@ decode_node_from (string& b, int& pos) {
   uint32_t n= get_u32_dec (b, pos);
   for (uint32_t i= 0; i < n; i++)
     node.children << decode_node_from (b, pos);
+  uint32_t ns= get_u32_dec (b, pos);
+  for (uint32_t i= 0; i < ns; i++)
+    node.splits << (int) get_u32_dec (b, pos);
   return node;
 }
 

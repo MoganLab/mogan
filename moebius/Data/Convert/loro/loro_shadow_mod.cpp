@@ -161,19 +161,28 @@ loro_shadow_rep::mirror_split (tree doc_root, modification mod) {
           return true;
         }
         else if (is_atomic (t2)) {
-          // 空段 split（at==0 或 t2 为空）：无字符需保身份，走 delete+insert
-          // （对空段等价于"不删 + 建空节点"，无害且结构正确）。
-          mogan_loro_node_text_delete (doc, x_id, (uint32_t) at,
-                                       (uint32_t) N (t2->label));
-          mogan_tree_id y_id= mogan_loro_node_create (
-              doc, pid, (uint32_t) (pos + 1), LORO_ATOMIC, nullptr, 0);
-          const uint8_t* tp=
-              reinterpret_cast<const uint8_t*> (t2->label.begin ());
-          mogan_loro_node_text_insert (doc, y_id, 0, tp,
-                                       (size_t) N (t2->label));
-          id_map (inside (t2))= y_id;
-          rev_id_map (y_id)   = t2p;
-          return true;
+          // 空段 split（at==0 或 t2 为空）：不删任何文本！
+          if (at == 0) {
+            // 空头满尾：x_id 保留全部文本做 t2，建空节点做 t1。
+            mogan_tree_id new_id= mogan_loro_node_create (
+                doc, pid, (uint32_t) pos, LORO_ATOMIC, nullptr, 0);
+            // create_at(pos) 把 x_id 挤到 pos+1
+            if (has_subtree (doc_root, rp_mod * pos)) {
+              id_map (inside (subtree (doc_root, rp_mod * pos)))= new_id;
+              rev_id_map (new_id)                               = rp_mod * pos;
+            }
+            id_map (inside (t2))= x_id; // t2 = 原节点（保留文本）
+            rev_id_map (x_id)   = t2p;
+            return true;
+          }
+          else {
+            // 满头空尾（N(t2)==0）：x_id 保留全部文本做 t1，建空节点做 t2。
+            mogan_tree_id y_id= mogan_loro_node_create (
+                doc, pid, (uint32_t) (pos + 1), LORO_ATOMIC, nullptr, 0);
+            id_map (inside (t2))= y_id;
+            rev_id_map (y_id)   = t2p;
+            return true;
+          }
         }
         else {
           string        lab = as_string (L (t2));

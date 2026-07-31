@@ -32,6 +32,7 @@ struct loro_ir_node {
   string              label;    // COMPOUND: 标签名；GENERIC: "generic:<op>"
   string              text;     // ATOMIC: 字符串叶子内容
   array<loro_ir_node> children; // COMPOUND / GENERIC: 有序子节点
+  array<int>          splits; // ATOMIC: SPLIT 边界偏移（ir→tree 时切成 N+1 段）
 };
 
 // moebius tree -> loro_ir_node

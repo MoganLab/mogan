@@ -30,6 +30,21 @@ bool
 diff_walk (tree b, tree a, path base, list<modification>& mods) {
   if (b == a) return true;
 
+  // 透明 CONCAT 包装：CONCAT(单原子) ≡ 原子。
+  // insert_node/remove_node 多步序列的中间态会在 shadow 里产生 CONCAT(原子)
+  // 包装，而 buffer 可能还是裸原子（或反过来）。把它们视为等价，避免 diff 走
+  // assign 兜底（整块替换毁身份）。
+  if (is_atomic (b) && is_concat (a) && N (a) == 1 && is_atomic (a[0])) {
+    if (b->label != a[0]->label)
+      emit_text_diff (base, b->label, a[0]->label, mods);
+    return true;
+  }
+  if (is_concat (b) && N (b) == 1 && is_atomic (b[0]) && is_atomic (a)) {
+    if (b[0]->label != a->label)
+      emit_text_diff (base * path (0), b[0]->label, a->label, mods);
+    return true;
+  }
+
   if (is_atomic (b) && is_atomic (a)) {
     if (b->label != a->label) emit_text_diff (base, b->label, a->label, mods);
     return true;
