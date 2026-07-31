@@ -1222,10 +1222,75 @@ pub unsafe extern "C" fn mogan_loro_encode_cursor(
         });
     match cursor {
         Some(c) => {
-            emit_out(c.encode(), out, out_len);
+            let bytes = c.encode();
+            if !out.is_null() && !out_len.is_null() {
+                let mut b = bytes.into_boxed_slice();
+                *out = b.as_mut_ptr();
+                *out_len = b.len();
+                std::mem::forget(b);
+            }
             0
         }
-        None => -4,
+        None => -1, // Cursor 提取失败（例如不在文本节点内）
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_encode_cursor(
+    doc: *mut LoroDoc,
+    offset: usize,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if doc.is_null() {
+        return -1;
+    }
+    let txt = body_text(&*doc);
+    let cursor = txt
+        .get_cursor(offset, Side::Middle)
+        .or_else(|| {
+            if offset > 0 {
+                txt.get_cursor(offset - 1, Side::Right)
+            } else {
+                None
+            }
+        });
+    match cursor {
+        Some(c) => {
+            let bytes = c.encode();
+            if !out.is_null() && !out_len.is_null() {
+                let mut b = bytes.into_boxed_slice();
+                *out = b.as_mut_ptr();
+                *out_len = b.len();
+                std::mem::forget(b);
+            }
+            0
+        }
+        None => -1,
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mogan_loro_body_decode_cursor(
+    doc: *mut LoroDoc,
+    bytes: *const u8,
+    len: usize,
+    out_offset: *mut usize,
+) -> i32 {
+    if doc.is_null() || bytes.is_null() || out_offset.is_null() {
+        return -1;
+    }
+    let buf = std::slice::from_raw_parts(bytes, len);
+    let cursor = match Cursor::decode(buf) {
+        Ok(c) => c,
+        Err(_) => return -2,
+    };
+    match (*doc).get_cursor_pos(&cursor) {
+        Ok(pos) => {
+            *out_offset = pos.current.pos as usize;
+            0
+        }
+        Err(_) => -3,
     }
 }
 
