@@ -15,147 +15,175 @@
 (import (liii os))
 
 ;; 获取当前时间戳（秒）
+
 (define (get-current-time)
-  (let* ((now (current-time))
-         (seconds (car now))
-         (microseconds (cdr now)))
-    (+ seconds (/ microseconds 1000000.0))))
+  (let* ((now (current-time)) (seconds (car now)) (microseconds (cdr now)))
+    (+ seconds (/ microseconds 1000000.0))
+  ) ;let*
+) ;define
 
 ;; 获取账户数据目录
+
 (define (get-account-data-dir)
-  (url-append (get-texmacs-home-path) "system/account"))
+  (url-append (get-texmacs-home-path) "system/account")
+) ;define
 
 ;; 获取账户数据文件路径
+
 (define (get-account-data-file filename)
-  (url-append (get-account-data-dir) filename))
+  (url-append (get-account-data-dir) filename)
+) ;define
 
 ;; 常量定义
+
 (define TOKEN_FILENAME "token.txt")
+
 (define REFRESH_TOKEN_FILENAME "refresh_token.txt")
+
 (define TOKEN_EXPIRY_FILENAME "token_expiry.txt")
 
 ;; 所有账户数据文件名列表
+
 (define ACCOUNT_DATA_FILENAME_LIST
-  (list TOKEN_FILENAME REFRESH_TOKEN_FILENAME TOKEN_EXPIRY_FILENAME))
+  (list TOKEN_FILENAME REFRESH_TOKEN_FILENAME TOKEN_EXPIRY_FILENAME)
+) ;define
 
 ;; 确保数据目录存在的辅助函数
+
 (define (ensure-data-dir-exists)
   (let ((data-dir (get-account-data-dir)))
-    (if (not (url-exists? data-dir))
-        (system-mkdir data-dir))))
+    (if (not (url-exists? data-dir)) (system-mkdir data-dir))
+  ) ;let
+) ;define
 
 ;; 通用：保存账户数据到文件
+
 (define (save-account-data filename content)
   (ensure-data-dir-exists)
   (let ((data-file (get-account-data-file filename)))
     ;; 如果文件存在则删除后重新创建，确保覆盖内容
     (when (url-exists? data-file)
-      (system-remove data-file))
+      (system-remove data-file)
+    ) ;when
     ;; 保存内容到文件
-    (string-save content data-file)))
+    (string-save content data-file)
+  ) ;let
+) ;define
 
 ;; 通用：从文件读取账户数据
+
 (define (load-account-data filename)
   (let ((data-file (get-account-data-file filename)))
-    (if (url-exists? data-file)
-        (string-load data-file)
-        "")))
+    (if (url-exists? data-file) (string-load data-file) "")
+  ) ;let
+) ;define
 
-; (set-preference) 
 (tm-define (current-stem-profile)
-  (with sp (get-preference "stem-profile")
-    (if (string=? sp "default")
-        "production"
-        sp)))
+  (with sp
+    (get-preference "stem-profile")
+    (if (string=? sp "default") "production" sp)
+  ) ;with
+) ;tm-define
 
 ;; stem-preview 只控制是否访问当前环境的蓝绿候选实例。
 ;; stem-profile 仍只负责选择 staging 或 production 服务器。
 (tm-define (current-stem-preview?)
-  (string=? (get-preference "stem-preview") "on"))
+  (string=? (get-preference "stem-preview") "on")
+) ;tm-define
 
 (tm-define (stem-preview-cookie-header)
   (if (current-stem-preview?)
-      "liii_user_preview=preview; liii_agent_preview=preview; liii_admin_preview=preview"
-      ""))
+    "liii_user_preview=preview; liii_agent_preview=preview; liii_admin_preview=preview"
+    ""
+  ) ;if
+) ;tm-define
 
 (tm-define (stem-preview-request-headers url headers)
   (let ((preview-cookie (stem-preview-cookie-header)))
     (if (and (not (string=? preview-cookie ""))
-             (string-starts? url (current-stem-site)))
-        (append headers (list (cons "Cookie" preview-cookie)))
-        headers)))
+          (string-starts? url (current-stem-site))
+        ) ;and
+      (append headers (list (cons "Cookie" preview-cookie)))
+      headers
+    ) ;if
+  ) ;let
+) ;tm-define
 
-; 根据当前 profile 获取环境地址
 (tm-define (current-stem-site)
-  (cond
-    ((string=? (current-stem-profile) "production") "https://liiistem.cn")
-    ((string=? (current-stem-profile) "staging") "https://test.liiistem.cn")
-    (else "local")))
+  (cond ((string=? (current-stem-profile) "production") "https://liiistem.cn")
+        ((string=? (current-stem-profile) "staging") "https://test.liiistem.cn")
+        (else "local")
+  ) ;cond
+) ;tm-define
 
 ;; OAuth2 配置
 (tm-define (account-oauth2-config key)
   (let ((base-url (current-stem-site)))
-    (cond
-      ((== key "authorization-url") (string-append base-url "/oauth2-login.html"))
-      ; 直接请求后台接口
-      ((== key "access-token-url") (string-append base-url "/api/v1/oauth2/token"))
-      ((== key "client-identifier") "public-client")
-      ((== key "scope") "user+llm")
-      ((== key "preview-cookie-header") (stem-preview-cookie-header))
-      ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
-      ((== key "user-info-url") (string-append base-url "/api/v1/oauth2/membershipInfo"))
-      ((== key "pricing-url") (string-append base-url "/pricing.html"))
-      ((== key "invitation-url") (string-append base-url "/personal-center/invitation"))
-      ((== key "growth-url") (string-append base-url "/personal-center/growth?from=oauth"))
-      ((== key "click-return-liii-url") "https://liiistem.cn/?from=login_button")
-      (else ""))))
+    (cond ((== key "authorization-url") (string-append base-url "/oauth2-login.html"))
+          ((== key "access-token-url") (string-append base-url "/api/v1/oauth2/token"))
+          ((== key "client-identifier") "public-client")
+          ((== key "scope") "user+llm")
+          ((== key "preview-cookie-header") (stem-preview-cookie-header))
+          ((== key "port-list")
+           "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895"
+          ) ;
+          ((== key "user-info-url")
+           (string-append base-url "/api/v1/oauth2/membershipInfo")
+          ) ;
+          ((== key "pricing-url") (string-append base-url "/pricing.html"))
+          ((== key "invitation-url")
+           (string-append base-url "/personal-center/invitation")
+          ) ;
+          ((== key "growth-url")
+           (string-append base-url
+             "/personal-center/growth?from=oauth&version=v"
+             (xmacs-version)
+           ) ;string-append
+          ) ;
+          ((== key "click-return-liii-url") "https://liiistem.cn/?from=login_button")
+          (else "")
+    ) ;cond
+  ) ;let
+) ;tm-define
 
 ;; 本地
-; (tm-define (account-oauth2-config key)
-;   (cond
-;     ((== key "authorization-url") "http://127.0.0.1:3000/oauth2-login")
-;     ((== key "access-token-url") "http://127.0.0.1:8081/api/v1/oauth2/token") ;init:oauth2/token -> api/v1/oauth2/token
-;     ((== key "client-identifier") "public-client")
-;     ((== key "client-secret") "secret")
-;     ((== key "scope") "user+llm")
-;     ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
-;     ((== key "user-info-url") "http://127.0.0.1:8081/api/v1/oauth2/membershipInfo") ;init:api/oauthUser/membershipInfo -> api/v1/oauth2/membershipInfo
-;     ((== key "pricing-url") "http://127.0.0.1:3000/pricing.html")
-;     ((== key "invitation-url") "http://127.0.0.1:3000/personal-center/invitation")
-;     ((== key "growth-url") "http://127.0.0.1:3000/personal-center/growth?from=oauth")
-;     ((== key "click-return-liii-url") "http://127.0.0.1:3000/?from=login_button")
-;     (else "")))
 
 ;; 1.1 token 保存到数据文件
-(tm-define (account-save-token token)
-  (save-account-data TOKEN_FILENAME token))
+(tm-define (account-save-token token) (save-account-data TOKEN_FILENAME token))
 
 ;; 1.2 读取token数据文件
-(tm-define (account-load-token)
-  (load-account-data TOKEN_FILENAME))
+(tm-define (account-load-token) (load-account-data TOKEN_FILENAME))
 
 ;; 2.1 refresh_token 保存到数据文件
 (tm-define (account-save-refresh-token refresh-token)
-  (save-account-data REFRESH_TOKEN_FILENAME refresh-token))
+  (save-account-data REFRESH_TOKEN_FILENAME refresh-token)
+) ;tm-define
 
 ;; 2.2读取refresh_token数据文件
 (tm-define (account-load-refresh-token)
-  (load-account-data REFRESH_TOKEN_FILENAME))
+  (load-account-data REFRESH_TOKEN_FILENAME)
+) ;tm-define
 
 ;; 3.1 token过期时间保存到数据文件
 (tm-define (account-save-token-expiry expiry-time)
-  (save-account-data TOKEN_EXPIRY_FILENAME expiry-time))
+  (save-account-data TOKEN_EXPIRY_FILENAME expiry-time)
+) ;tm-define
 
 ;; 3.2 读取token过期时间数据文件
 (tm-define (account-load-token-expiry)
-  (load-account-data TOKEN_EXPIRY_FILENAME))
+  (load-account-data TOKEN_EXPIRY_FILENAME)
+) ;tm-define
 
 ;; 4 清除所有token数据
 (tm-define (account-clear-tokens)
   (ensure-data-dir-exists)
-  (for-each
-   (lambda (filename)
-     (let ((data-file (get-account-data-file filename)))
-       (when (url-exists? data-file)
-         (system-remove data-file))))
-   ACCOUNT_DATA_FILENAME_LIST))
+  (for-each (lambda (filename)
+              (let ((data-file (get-account-data-file filename)))
+                (when (url-exists? data-file)
+                  (system-remove data-file)
+                ) ;when
+              ) ;let
+            ) ;lambda
+    ACCOUNT_DATA_FILENAME_LIST
+  ) ;for-each
+) ;tm-define
