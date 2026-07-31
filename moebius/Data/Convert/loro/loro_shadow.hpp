@@ -14,6 +14,8 @@
 #include "modification.hpp"
 #include "tree.hpp"
 
+#include "linear_ir.hpp"
+#include "linear_ir_ops.hpp"
 #include "loro.hpp"
 
 // mogan_tree_id 作为 hashmap key 所需的 hash 与相等（id_map 的反向 rev_id_map
@@ -99,6 +101,8 @@ public:
   list<modification> diff_from_current (tree buffer);
 
   tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
+  /** body 单 LoroText 的当前 markup（utf-8）。用于诊断与测试断言精确镜像路径。 */
+  string        body_markup ();
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
   /** 反查：用 rev_id_map 把 TreeID 解析为节点 buffer-相对 path 并追加偏移
@@ -138,20 +142,8 @@ public:
 
 private:
   void replace_meta (string name, tree section_tree); // seed/replace 共用
-  // 取某 LoroTree 节点的子 TreeID 列表（用于 REMOVE 按位置删）
-  array<mogan_tree_id> node_children (mogan_tree_id parent);
-  mogan_tree_id        seed_node (tree t, mogan_tree_id parent, uint32_t index,
-                                  path p);
-
-  // loro_shadow_mod
-  bool mirror_insert (tree doc_root, modification mod);
-  bool mirror_remove (tree doc_root, modification mod);
-  bool mirror_assign_node (tree doc_root, modification mod);
-  bool mirror_split (tree doc_root, modification mod);
-  bool mirror_insert_node (tree doc_root, modification mod);
-  bool mirror_remove_node (tree doc_root, modification mod);
-  bool mirror_assign (tree doc_root, modification mod);
-  bool mirror_join (tree doc_root, modification mod);
+  // body 单 LoroText 读写（markup 流）。偏移均为 utf-8 字节坐标。
+  void   body_seed_markup (string markup);
 };
 
 class loro_shadow {

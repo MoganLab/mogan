@@ -1,8 +1,8 @@
 /** \file loro.cpp
  *  \copyright GPLv3
- *  \details tree <-> Loro CRDT snapshot 的 FFI 胶水层。
- *            扁平编解码在 loro_ir.{hpp,cpp}（loro_ir_encode/decode，与
- *            3rdparty/mogan-loro-ffi/src/lib.rs 一致）。
+ *  \details tree <-> Loro CRDT snapshot 的 FFI 胶水层。body 用单条 LoroText
+ *            （markup 流）：tree → 线性 IR → markup → body_seed → snapshot；
+ *            反向 snapshot → import → body_get_text → markup → tree。
  *            LORO_ENABLED 关时为空桩（见 loro.hpp）。
  *  \author Jim Zhou
  *  \date   2026
@@ -10,51 +10,45 @@
 
 #include "loro.hpp"
 
-#include "loro_ir.hpp"
-#include "loro_ir_codec.hpp"
+#include "linear_ir.hpp"
 
 #include <cstddef>
 #include <cstdint>
 
-// mogan-loro-ffi 暴露的 C ABI（见 3rdparty/mogan-loro-ffi/src/lib.rs）
-extern "C" {
-int32_t mogan_loro_encode (const uint8_t* ir, size_t ir_len, uint8_t** out,
-                           size_t* out_len);
-int32_t mogan_loro_decode (const uint8_t* snap, size_t snap_len, uint8_t** out,
-                           size_t* out_len);
-void    mogan_loro_free (uint8_t* ptr, size_t len);
-}
-
 string
 tree_to_loro (tree t) {
-  string ir_bytes= loro_ir_encode (tree_to_loro_ir (t));
-
+  void*  doc= mogan_loro_doc_new ();
+  if (doc == nullptr) return string ();
+  string markup= linear_ir_to_markup (tree_to_linear_ir (t));
+  mogan_loro_body_seed (doc, reinterpret_cast<const uint8_t*> (markup.begin ()),
+                        (size_t) N (markup));
+  mogan_loro_doc_commit (doc);
   uint8_t* out    = nullptr;
   size_t   out_len= 0;
-  int      rc=
-      mogan_loro_encode (reinterpret_cast<const uint8_t*> (ir_bytes.begin ()),
-                         (size_t) N (ir_bytes), &out, &out_len);
-  if (rc != 0 || out == nullptr) {
-    if (out) mogan_loro_free (out, out_len);
-    return string ();
+  string   snapshot;
+  if (mogan_loro_doc_export (doc, &out, &out_len) == 0 && out != nullptr) {
+    snapshot= string ((const char*) out, (int) out_len);
+    mogan_loro_free (out, out_len);
   }
-  string snapshot ((const char*) out, (int) out_len);
-  mogan_loro_free (out, out_len);
+  mogan_loro_doc_free (doc);
   return snapshot;
 }
 
 tree
 loro_to_tree (string snapshot) {
+  void* doc= mogan_loro_doc_new ();
+  if (doc == nullptr) return tree ("");
+  mogan_loro_doc_import (
+      doc, reinterpret_cast<const uint8_t*> (snapshot.begin ()),
+      (size_t) N (snapshot));
   uint8_t* out    = nullptr;
   size_t   out_len= 0;
-  int      rc=
-      mogan_loro_decode (reinterpret_cast<const uint8_t*> (snapshot.begin ()),
-                         (size_t) N (snapshot), &out, &out_len);
-  if (rc != 0 || out == nullptr) {
-    if (out) mogan_loro_free (out, out_len);
-    return tree ("");
+  tree     r ("");
+  if (mogan_loro_body_get_text (doc, &out, &out_len) == 0 && out != nullptr) {
+    string markup ((const char*) out, (int) out_len);
+    mogan_loro_free (out, out_len);
+    if (N (markup) > 0) r= linear_ir_to_tree (markup_to_linear_ir (markup));
   }
-  string ir_bytes ((const char*) out, (int) out_len);
-  mogan_loro_free (out, out_len);
-  return loro_ir_to_tree (loro_ir_decode (ir_bytes));
+  mogan_loro_doc_free (doc);
+  return r;
 }
