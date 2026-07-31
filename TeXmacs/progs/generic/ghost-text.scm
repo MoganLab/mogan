@@ -148,6 +148,7 @@
     ;; 校验通过后才插入 ghost
     (ghost-cloud-predict prefix
       suffix
+      (if (in-math?) "math" "text")
       (lambda (res)
         (when (and res
                 (== ghost-serial current)
@@ -285,7 +286,6 @@
 
 (tm-define (kbd-insert s)
   (former s)
-  (display* (not-in-math-subnode?) "\n")
   (when (and (not-in-tab-cycling?) (not-in-math-subnode?))
     (trigger-ghost-text 500)
   ) ;when
