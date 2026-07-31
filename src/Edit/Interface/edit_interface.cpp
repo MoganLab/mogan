@@ -116,7 +116,7 @@ edit_interface_rep::resume () {
   bench_start ("resume");
   got_focus= true;
   // 切 tab / 新建 / 关闭标签均经 resume 触发全量重建
-  update_menus (MENU_ALL);
+  notify_change (THE_MENUS);
   cur_sb    = 2;
   env_change= env_change & (~THE_FREEZE);
   notify_change (THE_FOCUS + THE_EXTENTS);
