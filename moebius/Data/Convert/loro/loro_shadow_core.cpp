@@ -108,6 +108,31 @@ loro_shadow_rep::decode_cursor_hex (string hex) {
 }
 
 string
+loro_shadow_rep::encode_body_cursor_hex (int byte_offset) {
+  uint8_t* out    = nullptr;
+  size_t   out_len= 0;
+  if (mogan_loro_body_encode_cursor (doc, (size_t) byte_offset, &out, &out_len) != 0 || out == nullptr) {
+    if (out) mogan_loro_free (out, out_len);
+    return "";
+  }
+  string r ((const char*) out, (int) out_len);
+  mogan_loro_free (out, out_len);
+  return bytes_to_hex (r);
+}
+
+int
+loro_shadow_rep::decode_body_cursor_hex (string hex) {
+  string bytes= hex_to_bytes (hex);
+  if (N (bytes) == 0) return -1;
+  size_t off= 0;
+  if (mogan_loro_body_decode_cursor (
+          doc, reinterpret_cast<const uint8_t*> (bytes.begin ()),
+          (size_t) N (bytes), &off) != 0)
+    return -1;
+  return (int) off;
+}
+
+string
 loro_shadow_rep::export_snapshot () {
   uint8_t* out    = nullptr;
   size_t   out_len= 0;

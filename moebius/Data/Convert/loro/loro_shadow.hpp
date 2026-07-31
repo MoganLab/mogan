@@ -125,6 +125,9 @@ public:
    * 锚点被删时 Loro 自愈到邻近位置；容器消失等返回 -1（调用方丢弃）。 */
   int decode_cursor_hex (string hex);
 
+  string encode_body_cursor_hex (int byte_offset);
+  int decode_body_cursor_hex (string hex);
+
   // ===== meta section（body 之外的文档部分）的 coarse 镜像 =====
   /** 首次把一个 meta section（style/initial/final/project/attachments）灌入
    * CRDT： 作为带 __section__ 标签的独立 root。幂等（若已存在先删旧 root

@@ -414,23 +414,22 @@ split_spaces (string s) {
 // 跟随）；复合节点上的子位置下钻到该子节点、上传子节点 TreeID（结构偏移 0），
 // 不传 mogan 树子索引。不可定位（nil/path 越界）回退 0:0:I0。
 static string
-encode_path (tree& et, loro_shadow loro_doc, path p) {
+encode_path (tree& et, loro_shadow loro_doc, path p, const array<linear_item>& items) {
   if (is_nil (p) || is_nil (path_up (p)) || !has_subtree (et, path_up (p)))
     return format_group (mogan_tree_id{0, 0}, "I0");
+  
   tree node= subtree (et, path_up (p));
-  int  off = last_item (p);
-  if (is_atomic (node)) {
-    mogan_tree_id tid= loro_doc->get_id (node);
-    string        hex= loro_doc->encode_cursor_hex (tid, off);
-    // 文本内：稳定位置（hex 非空）；编码失败回落整数偏移
-    return format_group (tid, (hex != "") ? string ("T") * hex
-                                          : string ("I") * as_string (off));
+  int char_off = last_item (p);
+
+  int byte_off = linear_ir_offset_of_atomic (items, path_up (p), char_off);
+  if (byte_off >= 0) {
+    string hex = loro_doc->encode_body_cursor_hex (byte_off);
+    if (hex != "") {
+      return format_group (mogan_tree_id{0, 0}, string ("T") * hex);
+    }
+    return format_group (mogan_tree_id{0, 0}, string ("I") * as_string (byte_off));
   }
-  // 复合节点：光标在子位置 off——下钻到该子节点，上传子节点 id（结构偏移 0）
-  if (has_subtree (et, p))
-    return format_group (loro_doc->get_id (subtree (et, p)), "I0");
-  return format_group (loro_doc->get_id (node),
-                       "I" * as_string (off)); // 越界回落
+  return format_group (mogan_tree_id{0, 0}, "I0");
 }
 
 string
@@ -442,12 +441,14 @@ edit_modify_rep::collab_cursor_payload () {
   path cp= tp;
   path sp= cp, ep= cp;
   if (selection_active_any ()) selection_get (sp, ep);
-  string cg= encode_path (et, loro_doc, cp);
+  
+  array<linear_item> items = tree_to_linear_ir (et);
+  string cg= encode_path (et, loro_doc, cp, items);
   // 光标未就绪（如 JOIN 刚完成、tp 尚在 buffer 根/未定位 → path_up(tp) 为 nil）
   // 则不发本帧，避免对端把远程光标渲染成 {0,0} 而缺失。
   if (cg == format_group (mogan_tree_id{0, 0}, "I0")) return "";
-  return cg * " " * encode_path (et, loro_doc, sp) * " " *
-         encode_path (et, loro_doc, ep);
+  return cg * " " * encode_path (et, loro_doc, sp, items) * " " *
+         encode_path (et, loro_doc, ep, items);
 }
 
 extern void (*g_loro_cursor_flush) ();
@@ -487,6 +488,9 @@ edit_modify_rep::set_remote_cursor (string peer, string payload) {
 array<editor_rep::remote_cursor_view>
 edit_modify_rep::get_remote_cursors () {
   array<remote_cursor_view> out;
+  tree buf= the_buffer ();
+  array<linear_item> items = tree_to_linear_ir (buf);
+
   // off_field "T<hex>"→按当前 doc 解析稳定位置（并发编辑下自动跟随）；
   // "I<int>"→结构/整数偏移。延迟解析保证 CRDT
   // 级稳定。失败/节点缺失→nil（不渲染）。 原子节点若位于 concat
@@ -497,14 +501,44 @@ edit_modify_rep::get_remote_cursors () {
     if (N (off_field) == 0) return path ();
     char   head= off_field[0];
     string rest= off_field (1, N (off_field));
-    int    off = head == 'T'   ? loro_doc->decode_cursor_hex (rest)
+    int    off = head == 'T'   ? loro_doc->decode_body_cursor_hex (rest)
                  : head == 'I' ? as_int (rest)
                                : -1;
     if (off < 0) return path ();
+
+    // 新的单 LoroText 光标编码（用 {0, 0} 做虚拟 tid）
+    if (tid.peer == 0 && tid.counter == 0) {
+      path raw_p = linear_ir_path_at_offset (items, off);
+      if (is_nil (raw_p)) return path ();
+      path node_path = path_up (raw_p);
+      path pp = path_up (node_path);
+      if (!is_nil (pp) && has_subtree (buf, pp) &&
+          is_concat (subtree (buf, pp))) {
+        int idx       = last_item (node_path);
+        int concat_off= last_item (raw_p);
+        for (int j= 0; j < idx; j++) {
+          tree sib= subtree (buf, pp * path (j));
+          if (is_atomic (sib)) concat_off+= N (sib->label);
+          else {
+            concat_off= -1;
+            break;
+          }
+        }
+        if (concat_off >= 0) {
+          path rp2= pp * path (concat_off);
+          if (DEBUG_LORO)
+            debug_loro << "  resolve body_offset=" << off << " concat_path=" << as_string (rp2) << "\n";
+          return rp2;
+        }
+      }
+      if (DEBUG_LORO)
+        debug_loro << "  resolve body_offset=" << off << " raw_path=" << as_string (raw_p) << "\n";
+      return raw_p;
+    }
+
     path node_path=
         loro_doc->node_path_of (tid); // 节点 buffer-相对 path（如 0.0）
     if (is_nil (node_path)) return path ();
-    tree buf= the_buffer ();
     path pp = path_up (node_path);
     if (!is_nil (pp) && has_subtree (buf, pp) &&
         is_concat (subtree (buf, pp))) {
