@@ -3317,7 +3317,7 @@ qt_tm_widget_rep::openRenewalPage () {
 /**
  * @brief 打开邀请好友页面。
  *
- * 邀请页 base URL 通过 `account-oauth2-config` 的 `invitation-url` 配置项获取，
+ * 邀请页 base URL 通过 `account-oauth2-config` 的 `growth-url` 配置项获取，
  * 按 staging/prod profile 自动切换；URL 后缀由 buildAuthUrl 拼接
  * （key/user 参数用于后台识别邀请人）。
  */
@@ -3325,7 +3325,7 @@ void
 qt_tm_widget_rep::openInvitationPage () {
   // 获取邀请页面 URL
   string invitationUrl=
-      as_string (call ("account-oauth2-config", "invitation-url"));
+      as_string (call ("account-oauth2-config", "growth-url"));
   QString fullUrl= buildAuthUrl (to_qstring (invitationUrl));
 
   QDesktopServices::openUrl (QUrl (fullUrl));
