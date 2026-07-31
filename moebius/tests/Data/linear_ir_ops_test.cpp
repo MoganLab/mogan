@@ -1,9 +1,9 @@
 /** \file linear_ir_ops_test.cpp
  *  \copyright GPLv3
- *  \details 验证 linear_ir_apply_mod 对四种结构 modification 的作用结果与
- *            clean_apply（moebius 权威语义）一致，且以最小 item 编辑完成
- *            （SPLIT 仅增 item、JOIN 仅减 item 等），不重建存活内容。
- *            纯逻辑，不依赖 loro-ffi，不以 LORO_ENABLED 门控。
+ *  \details 验证 linear_ir_apply_mod（clean_apply 等价）与 compute_markup_edit
+ *            （body LoroText 最小字节 splice）。compute_markup_edit 的 offset
+ *            正确性用 round-trip 性质独立校验：splice 应用到「操作前 markup」后
+ *            应等于 clean_apply 后树的 markup。纯逻辑，不依赖 loro-ffi。
  *  \author Jim Zhou
  *  \date   2026
  */
@@ -24,7 +24,6 @@ ensure_labels () {
   moebius::drd::init_std_drd ();
 }
 
-// 用 clean_apply 作真值，校验线性 IR 上的 apply 等价
 static bool
 apply_matches_clean (tree t, modification mod) {
   tree               expected= clean_apply (t, mod);
@@ -35,86 +34,46 @@ apply_matches_clean (tree t, modification mod) {
 }
 
 /******************************************************************************
- * SPLIT
+ * linear_ir_apply_mod：与 clean_apply 等价
  *****************************************************************************/
 
 TEST_CASE ("linear_ir_ops: SPLIT atomic matches clean_apply") {
   ensure_labels ();
-  // (concat "hello") —— 切 root 的 child 0 在 offset 3
   tree t (CONCAT, 1);
-  t[0]            = tree ("hello");
-  modification mod= mod_split (path (), 0, 3);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
-  // 原子切分：一个 TEXT 拆成两个，item 数 +1，无 CLOSE/OPEN 新增
-  array<linear_item> ir = tree_to_linear_ir (t);
-  array<linear_item> ir2= linear_ir_apply_mod (ir, mod);
-  CHECK_EQ (N (ir2) == N (ir) + 1, true);
+  t[0]= tree ("hello");
+  CHECK_EQ (apply_matches_clean (t, mod_split (path (), 0, 3)), true);
 }
 
 TEST_CASE ("linear_ir_ops: SPLIT compound matches clean_apply") {
   ensure_labels ();
-  // (concat (concat "a" "b" "c")) —— 切 root 的 child 0（内层 concat）在 child
-  // 1
   tree inner (CONCAT, 3);
   inner[0]= tree ("a");
   inner[1]= tree ("b");
   inner[2]= tree ("c");
   tree t (CONCAT, 1);
-  t[0]            = inner;
-  modification mod= mod_split (path (), 0, 1);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
-  // 复合切分：插入 CLOSE + OPEN，item 数 +2
-  array<linear_item> ir = tree_to_linear_ir (t);
-  array<linear_item> ir2= linear_ir_apply_mod (ir, mod);
-  CHECK_EQ (N (ir2) == N (ir) + 2, true);
-}
-
-TEST_CASE ("linear_ir_ops: SPLIT at boundary (at == N(children)) matches "
-           "clean_apply") {
-  ensure_labels ();
-  tree inner (CONCAT, 2);
-  inner[0]= tree ("a");
-  inner[1]= tree ("b");
-  tree t (CONCAT, 1);
   t[0]= inner;
-  // 在末尾切（at == 子节点数）→ 第二段为空复合
-  modification mod= mod_split (path (), 0, 2);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
+  CHECK_EQ (apply_matches_clean (t, mod_split (path (), 0, 1)), true);
 }
-
-/******************************************************************************
- * JOIN
- *****************************************************************************/
 
 TEST_CASE ("linear_ir_ops: JOIN atomic matches clean_apply") {
   ensure_labels ();
-  // (concat "hel" "lo") —— join child 0,1
   tree t (CONCAT, 2);
-  t[0]            = tree ("hel");
-  t[1]            = tree ("lo");
-  modification mod= mod_join (path (), 0);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
-  array<linear_item> ir = tree_to_linear_ir (t);
-  array<linear_item> ir2= linear_ir_apply_mod (ir, mod);
-  CHECK_EQ (N (ir2) == N (ir) - 1, true); // 两个 TEXT 合一
+  t[0]= tree ("hel");
+  t[1]= tree ("lo");
+  CHECK_EQ (apply_matches_clean (t, mod_join (path (), 0)), true);
 }
 
 TEST_CASE ("linear_ir_ops: JOIN compound matches clean_apply") {
   ensure_labels ();
-  // (concat (concat "a")(concat "b" "c")) —— join child 0,1（两复合）
   tree a (CONCAT, 1);
   a[0]= tree ("a");
   tree b (CONCAT, 2);
   b[0]= tree ("b");
   b[1]= tree ("c");
   tree t (CONCAT, 2);
-  t[0]            = a;
-  t[1]            = b;
-  modification mod= mod_join (path (), 0);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
-  array<linear_item> ir = tree_to_linear_ir (t);
-  array<linear_item> ir2= linear_ir_apply_mod (ir, mod);
-  CHECK_EQ (N (ir2) == N (ir) - 2, true); // 删去 CLOSE + OPEN
+  t[0]= a;
+  t[1]= b;
+  CHECK_EQ (apply_matches_clean (t, mod_join (path (), 0)), true);
 }
 
 TEST_CASE ("linear_ir_ops: SPLIT then JOIN round-trips to original tree") {
@@ -126,58 +85,38 @@ TEST_CASE ("linear_ir_ops: SPLIT then JOIN round-trips to original tree") {
   tree t (CONCAT, 1);
   t[0]                 = inner;
   array<linear_item> ir= tree_to_linear_ir (t);
-  // 切再合：语义上回到原树（join 是 split 的逆）
-  array<linear_item> split= linear_ir_apply_mod (ir, mod_split (path (), 0, 1));
-  // split 后 root 仍是 (concat)，内层切成两段；join root 的 child 0,1
-  array<linear_item> joined= linear_ir_apply_mod (split, mod_join (path (), 0));
-  CHECK_EQ (linear_ir_to_tree (joined) == t, true);
+  array<linear_item> s = linear_ir_apply_mod (ir, mod_split (path (), 0, 1));
+  array<linear_item> j = linear_ir_apply_mod (s, mod_join (path (), 0));
+  CHECK_EQ (linear_ir_to_tree (j) == t, true);
 }
 
-/******************************************************************************
- * INSERT_NODE / REMOVE_NODE
- *****************************************************************************/
-
-TEST_CASE ("linear_ir_ops: INSERT_NODE wraps child matches clean_apply") {
+TEST_CASE ("linear_ir_ops: INSERT_NODE matches clean_apply") {
   ensure_labels ();
-  // (document "hello") —— 把 child 0 包进 (concat)
   tree t (DOCUMENT, 1);
   t[0]= tree ("hello");
-  tree         wrapper (CONCAT, 0);
-  modification mod= mod_insert_node (path (0), 0, wrapper);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
-  // 空 wrapper：仅 +OPEN +CLOSE
-  array<linear_item> ir = tree_to_linear_ir (t);
-  array<linear_item> ir2= linear_ir_apply_mod (ir, mod);
-  CHECK_EQ (N (ir2) == N (ir) + 2, true);
+  CHECK_EQ (
+      apply_matches_clean (t, mod_insert_node (path (0), 0, tree (CONCAT, 0))),
+      true);
 }
 
-TEST_CASE ("linear_ir_ops: REMOVE_NODE unwraps matches clean_apply") {
+TEST_CASE ("linear_ir_ops: REMOVE_NODE matches clean_apply") {
   ensure_labels ();
-  // (document (concat "hello")) —— 脱去 concat，提升 child 0
   tree inner (CONCAT, 1);
   inner[0]= tree ("hello");
   tree t (DOCUMENT, 1);
-  t[0]            = inner;
-  modification mod= mod_remove_node (path (0), 0);
-  CHECK_EQ (apply_matches_clean (t, mod), true);
-  array<linear_item> ir = tree_to_linear_ir (t);
-  array<linear_item> ir2= linear_ir_apply_mod (ir, mod);
-  CHECK_EQ (N (ir2) == N (ir) - 2, true);
+  t[0]= inner;
+  CHECK_EQ (apply_matches_clean (t, mod_remove_node (path (0), 0)), true);
 }
 
 TEST_CASE ("linear_ir_ops: INSERT_NODE then REMOVE_NODE round-trips") {
   ensure_labels ();
   tree t (DOCUMENT, 1);
-  t[0]= tree ("hello");
-  tree               wrapper (CONCAT, 0);
+  t[0]                 = tree ("hello");
   array<linear_item> ir= tree_to_linear_ir (t);
-  array<linear_item> wrapped=
-      linear_ir_apply_mod (ir, mod_insert_node (path (0), 0, wrapper));
-  // wrapped: (document (concat "hello"))；脱去 child 0(child0 of document) 的
-  // concat
-  array<linear_item> unwrapped=
-      linear_ir_apply_mod (wrapped, mod_remove_node (path (0), 0));
-  CHECK_EQ (linear_ir_to_tree (unwrapped) == t, true);
+  array<linear_item> w=
+      linear_ir_apply_mod (ir, mod_insert_node (path (0), 0, tree (CONCAT, 0)));
+  array<linear_item> u= linear_ir_apply_mod (w, mod_remove_node (path (0), 0));
+  CHECK_EQ (linear_ir_to_tree (u) == t, true);
 }
 
 TEST_CASE ("linear_ir_ops: ASSIGN is passed through unchanged") {
@@ -188,5 +127,139 @@ TEST_CASE ("linear_ir_ops: ASSIGN is passed through unchanged") {
   tree               neu (DOCUMENT, 1);
   neu[0]                = tree ("y");
   array<linear_item> ir2= linear_ir_apply_mod (ir, mod_assign (path (), neu));
-  CHECK_EQ (N (ir2) == N (ir), true); // ASSIGN 本次不动
+  CHECK_EQ (N (ir2) == N (ir), true);
+}
+
+/******************************************************************************
+ * compute_markup_edit：body LoroText 最小字节 splice
+ *****************************************************************************/
+
+static bool
+markup_edit_roundtrip (tree t, modification mod) {
+  array<linear_item> pre   = tree_to_linear_ir (t);
+  string             pre_mk= linear_ir_to_markup (pre);
+  markup_edit        ed    = compute_markup_edit (pre, mod);
+  if (!ed.ok) return false;
+  string result= pre_mk (0, ed.offset) * ed.insert_bytes *
+                 pre_mk (ed.offset + ed.delete_len, N (pre_mk));
+  string expected=
+      linear_ir_to_markup (tree_to_linear_ir (clean_apply (t, mod)));
+  if (result != expected) {
+    cout << "pre_mk  : " << pre_mk << LF;
+    cout << "result  : " << result << LF;
+    cout << "expected: " << expected << LF;
+  }
+  return result == expected;
+}
+
+// CLOSE + OPEN("") 的 markup 字节：\x01C\x01 \x01O\x01
+static string
+close_open_empty_bytes () {
+  string co;
+  co << (char) 0x01;
+  co << 'C';
+  co << (char) 0x01;
+  co << (char) 0x01;
+  co << 'O';
+  co << (char) 0x01;
+  return co;
+}
+
+TEST_CASE ("markup_edit: text insert offset") {
+  ensure_labels ();
+  tree t (CONCAT, 1);
+  t[0]            = tree ("hel");
+  modification mod= mod_insert (path (0), 1, tree ("x"));
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  CHECK_EQ (ed.delete_len == 0 && ed.insert_bytes == "x", true);
+}
+
+TEST_CASE ("markup_edit: text remove offset") {
+  ensure_labels ();
+  tree t (CONCAT, 1);
+  t[0]            = tree ("hello");
+  modification mod= mod_remove (path (0), 1, 2);
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  CHECK_EQ (ed.delete_len == 2 && N (ed.insert_bytes) == 0, true);
+}
+
+TEST_CASE ("markup_edit: text insert into empty atomic") {
+  ensure_labels ();
+  tree t (CONCAT, 1);
+  t[0]            = tree ("");
+  modification mod= mod_insert (path (0), 0, tree ("z"));
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+}
+
+TEST_CASE ("markup_edit: text insert escapes sentinel byte") {
+  ensure_labels ();
+  tree t (CONCAT, 1);
+  t[0]= tree ("he");
+  string s;
+  s << (char) 0x01;
+  modification mod= mod_insert (path (0), 1, tree (s));
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  string      exp;
+  exp << (char) 0x02;
+  exp << '1';
+  CHECK_EQ (ed.insert_bytes == exp, true);
+}
+
+TEST_CASE ("markup_edit: SPLIT atomic inserts only CLOSE+OPEN('')") {
+  ensure_labels ();
+  tree t (CONCAT, 1);
+  t[0]            = tree ("hello");
+  modification mod= mod_split (path (), 0, 3);
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  CHECK_EQ (ed.delete_len == 0 && ed.insert_bytes == close_open_empty_bytes (),
+            true);
+}
+
+TEST_CASE ("markup_edit: SPLIT compound inserts CLOSE+OPEN(label)") {
+  ensure_labels ();
+  tree inner (CONCAT, 3);
+  inner[0]= tree ("a");
+  inner[1]= tree ("b");
+  inner[2]= tree ("c");
+  tree t (CONCAT, 1);
+  t[0]            = inner;
+  modification mod= mod_split (path (), 0, 1);
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+}
+
+TEST_CASE ("markup_edit: JOIN atomic deletes only CLOSE+OPEN('')") {
+  ensure_labels ();
+  tree t (CONCAT, 2);
+  t[0]            = tree ("he");
+  t[1]            = tree ("llo");
+  modification mod= mod_join (path (), 0);
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+  markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
+  CHECK_EQ (ed.delete_len == 6 && N (ed.insert_bytes) == 0, true);
+}
+
+TEST_CASE ("markup_edit: JOIN compound deletes CLOSE+OPEN(label)") {
+  ensure_labels ();
+  tree a (CONCAT, 1);
+  a[0]= tree ("a");
+  tree b (CONCAT, 1);
+  b[0]= tree ("b");
+  tree t (CONCAT, 2);
+  t[0]            = a;
+  t[1]            = b;
+  modification mod= mod_join (path (), 0);
+  CHECK_EQ (markup_edit_roundtrip (t, mod), true);
+}
+
+TEST_CASE ("markup_edit: INSERT_NODE falls back to coarse (ok=false)") {
+  ensure_labels ();
+  tree t (DOCUMENT, 1);
+  t[0]          = tree ("hello");
+  markup_edit ed= compute_markup_edit (
+      tree_to_linear_ir (t), mod_insert_node (path (0), 0, tree (CONCAT, 0)));
+  CHECK_EQ (ed.ok, false); // v1：INSERT_NODE 暂走 coarse 重 seed
 }

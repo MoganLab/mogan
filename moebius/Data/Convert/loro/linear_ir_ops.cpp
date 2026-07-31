@@ -1,9 +1,9 @@
 /** \file linear_ir_ops.cpp
  *  \copyright GPLv3
  *
- * 实现 linear_ir_apply_mod：在 item 序列上以最小编辑完成结构 modification，
- * 语义对齐 clean_apply（modification.cpp）。路径解析、括号匹配均在规范的
- * OPEN/CLOSE 序列上进行（Phase 2 不产出 MARKER，故无需 marker 感知）。
+ * 实现 linear_ir_apply_mod（clean_apply 等价变换）与 compute_markup_edit（body
+ * LoroText 最小字节 splice）。统一包裹方案下 SPLIT/JOIN 对原子与复合一致：
+ * CLOSE+OPEN(label) 的插入/删除；存活字符 op-id 不变。
  *
  *  \author Jim Zhou
  *  \date   2026
@@ -17,7 +17,6 @@
  * 路径 -> item 索引解析（相对 buffer 根；根的子节点为 [0],[1],...）
  *****************************************************************************/
 
-// 候选路径 prefix+[last] 是否等于 target（moebius path 链表）
 static bool
 path_eq_prefix (array<int>& prefix, int last, path target) {
   path p= target;
@@ -30,14 +29,13 @@ path_eq_prefix (array<int>& prefix, int last, path target) {
   return is_nil (p);
 }
 
-// 节点（相对根的路径 target）在 item 序列中的首项索引：
-//   复合 -> 其 OPEN；原子 -> 其 TEXT/BINARY；target 为 nil -> 根。未找到返回
-//   -1。
+// 节点（相对根路径 target）的 OPEN item 索引；target 为 nil -> 根 OPEN。未找到
+// -1。
 static int
 item_index_of_path (array<linear_item>& items, path target) {
   if (N (items) == 0) return -1;
-  array<int> prefix; // 当前最内层复合内部的路径前缀
-  array<int> saved;  // 各复合层（除根）恢复用的 child 索引
+  array<int> prefix;
+  array<int> saved;
   int        next_child = 0;
   bool       inside_root= false;
   int        n          = N (items);
@@ -55,12 +53,8 @@ item_index_of_path (array<linear_item>& items, path target) {
       next_child= 0;
     }
     else if (k == LI_TEXT || k == LI_BINARY) {
-      if (!inside_root) { // 根为原子
-        if (is_nil (target)) return i;
-        return -1;
-      }
-      if (path_eq_prefix (prefix, next_child, target)) return i;
-      next_child++;
+      if (!inside_root) return -1; // 统一方案：根必为 OPEN
+      next_child++; // 内容项不占子节点槽（属其 OPEN("") 原子框），这里不会命中
     }
     else if (k == LI_CLOSE) {
       if (N (saved) > 0) {
@@ -73,7 +67,6 @@ item_index_of_path (array<linear_item>& items, path target) {
   return -1;
 }
 
-// open_idx(OPEN) 的配对 CLOSE 索引（括号匹配；序列规范时不遇 MARKER）
 static int
 matching_close (array<linear_item>& items, int open_idx) {
   int depth= 0;
@@ -88,7 +81,7 @@ matching_close (array<linear_item>& items, int open_idx) {
   return -1;
 }
 
-// 复合（OPEN 在 open_idx）的各直接子节点的首项索引
+// 复合/原子（OPEN 在 open_idx）的各直接子节点的 OPEN item 索引
 static array<int>
 direct_child_starts (array<linear_item>& items, int open_idx) {
   array<int> starts;
@@ -96,9 +89,9 @@ direct_child_starts (array<linear_item>& items, int open_idx) {
   int        i= open_idx + 1;
   while (i < n) {
     linear_item_kind k= items[i].kind;
-    if (k == LI_CLOSE) break; // 本复合闭合
-    starts << i;
-    if (k == LI_OPEN) { // 跳到其配对 CLOSE 之后
+    if (k == LI_CLOSE) break;
+    if (k == LI_OPEN) {
+      starts << i;
       int depth= 1;
       i++;
       while (i < n && depth > 0) {
@@ -107,182 +100,191 @@ direct_child_starts (array<linear_item>& items, int open_idx) {
         i++;
       }
     }
-    else i++; // TEXT/BINARY
+    else i++; // TEXT/BINARY（原子框内的内容项），跳过
   }
   return starts;
 }
 
-static void
-push_range (array<linear_item>& dst, array<linear_item>& src, int from,
-            int len) {
-  for (int i= 0; i < len; i++)
-    dst << src[from + i];
-}
-
-static bool
-is_atomic_item (linear_item& it) {
-  return it.kind == LI_TEXT || it.kind == LI_BINARY;
-}
-
 /******************************************************************************
- * 各结构操作
+ * linear_ir_apply_mod：clean_apply 等价变换
  *****************************************************************************/
-
-static array<linear_item>
-apply_split (array<linear_item>& items, modification mod) {
-  path parent= root (mod);
-  int  pos   = index (mod);
-  int  at    = argument (mod);
-  int  popen = item_index_of_path (items, parent);
-  if (popen < 0) return items;
-  array<int> kids= direct_child_starts (items, popen);
-  if (pos < 0 || pos >= N (kids)) return items;
-  int cstart= kids[pos];
-  if (is_atomic_item (items[cstart])) {
-    // 原子切分：TEXT/BINARY 一项拆成 head + tail
-    string s= items[cstart].text;
-    if (at < 0 || at > N (s)) return items;
-    linear_item_kind   hk= items[cstart].kind;
-    array<linear_item> r;
-    push_range (r, items, 0, cstart);
-    linear_item h;
-    h.kind= hk;
-    h.text= s (0, at);
-    r << h;
-    linear_item t;
-    t.kind= hk;
-    t.text= s (at, N (s));
-    r << t;
-    push_range (r, items, cstart + 1, N (items) - cstart - 1);
-    return r;
-  }
-  if (items[cstart].kind == LI_OPEN) {
-    // 复合切分：在切分点插入 CLOSE + OPEN(同 label)
-    int cclose= matching_close (items, cstart);
-    if (cclose < 0) return items;
-    array<int>         gkids= direct_child_starts (items, cstart);
-    int                ins  = (at >= 0 && at < N (gkids)) ? gkids[at] : cclose;
-    string             lbl  = items[cstart].label;
-    array<linear_item> r;
-    push_range (r, items, 0, ins);
-    linear_item c;
-    c.kind= LI_CLOSE;
-    r << c;
-    linear_item o;
-    o.kind = LI_OPEN;
-    o.label= lbl;
-    r << o;
-    push_range (r, items, ins, N (items) - ins);
-    return r;
-  }
-  return items;
-}
-
-static array<linear_item>
-apply_join (array<linear_item>& items, modification mod) {
-  path parent= root (mod);
-  int  pos   = index (mod);
-  int  popen = item_index_of_path (items, parent);
-  if (popen < 0) return items;
-  array<int> kids= direct_child_starts (items, popen);
-  if (pos < 0 || pos + 1 >= N (kids)) return items;
-  int  c1= kids[pos], c2= kids[pos + 1];
-  bool a1= is_atomic_item (items[c1]);
-  bool a2= is_atomic_item (items[c2]);
-  if (a1 && a2) {
-    // 原子合并：两个 TEXT 合一
-    linear_item_kind   hk    = items[c1].kind;
-    string             merged= items[c1].text * items[c2].text;
-    array<linear_item> r;
-    push_range (r, items, 0, c1);
-    linear_item m;
-    m.kind= hk;
-    m.text= merged;
-    r << m;
-    push_range (r, items, c2 + 1, N (items) - c2 - 1);
-    return r;
-  }
-  if (!a1 && !a2) {
-    // 复合合并：删去 c1 的 CLOSE 与 c2 的 OPEN（二者相邻）
-    int c1close= matching_close (items, c1);
-    if (c1close < 0 || c1close + 1 != c2) return items;
-    array<linear_item> r;
-    push_range (r, items, 0, c1close);
-    push_range (r, items, c2 + 1, N (items) - c2 - 1);
-    return r;
-  }
-  return items; // 混合原子/复合：罕见/非法，兜底不动
-}
-
-static array<linear_item>
-apply_insert_node (array<linear_item>& items, modification mod) {
-  path node_path= root (mod);     // 被包裹节点路径
-  int  pos      = argument (mod); // wrapper u 中该节点所占子槽
-  tree u        = mod->t;         // wrapper
-  int  nstart   = item_index_of_path (items, node_path);
-  if (nstart < 0) return items;
-  int nend; // 被包裹节点的 item 跨度末尾（exclusive）
-  if (items[nstart].kind == LI_OPEN) {
-    int cl= matching_close (items, nstart);
-    if (cl < 0) return items;
-    nend= cl + 1;
-  }
-  else nend= nstart + 1;
-
-  // wrapper u 的 IR：[OPEN(ulabel), ...u 子节点..., CLOSE]
-  array<linear_item> u_ir= tree_to_linear_ir (u);
-  int                un  = N (u_ir);
-  if (un < 2) return items;
-  int u_close= matching_close (u_ir, 0);
-  if (u_close < 0) return items;
-  array<int> u_kids= direct_child_starts (u_ir, 0);
-  int        lo    = (N (u_kids) > 0) ? u_kids[0] : u_close; // u 子节点起点
-  if (pos < 0 || pos > N (u_kids)) return items;
-  int split_pt= (pos < N (u_kids)) ? u_kids[pos] : u_close;
-
-  array<linear_item> r;
-  push_range (r, items, 0, nstart);                   // 节点之前
-  r << u_ir[0];                                       // OPEN(ulabel)
-  push_range (r, u_ir, lo, split_pt - lo);            // u 的 [0,pos) 子节点
-  push_range (r, items, nstart, nend - nstart);       // 被包裹节点（原位保留）
-  push_range (r, u_ir, split_pt, u_close - split_pt); // u 的 [pos,end) 子节点
-  r << u_ir[u_close];                                 // CLOSE
-  push_range (r, items, nend, N (items) - nend);      // 节点之后
-  return r;
-}
-
-static array<linear_item>
-apply_remove_node (array<linear_item>& items, modification mod) {
-  path wrapper_path= root (mod);  // wrapper 路径
-  int  k           = index (mod); // 被提升的子节点序号
-  int  wopen       = item_index_of_path (items, wrapper_path);
-  if (wopen < 0) return items;
-  int wclose= matching_close (items, wopen);
-  if (wclose < 0) return items;
-  array<int> kids= direct_child_starts (items, wopen);
-  if (k < 0 || k >= N (kids)) return items;
-  int kstart= kids[k];
-  int kend  = (k + 1 < N (kids)) ? kids[k + 1] : wclose; // exclusive
-  // 仅保留 [kstart, kend)，删去 wrapper 的 OPEN/CLOSE 与其余子节点
-  array<linear_item> r;
-  push_range (r, items, 0, wopen);
-  push_range (r, items, kstart, kend - kstart);
-  push_range (r, items, wclose + 1, N (items) - wclose - 1);
-  return r;
-}
-
 array<linear_item>
 linear_ir_apply_mod (array<linear_item> items, modification mod) {
   switch (mod->k) {
   case MOD_SPLIT:
-    return apply_split (items, mod);
   case MOD_JOIN:
-    return apply_join (items, mod);
   case MOD_INSERT_NODE:
-    return apply_insert_node (items, mod);
   case MOD_REMOVE_NODE:
-    return apply_remove_node (items, mod);
+    break;
   default:
     return items; // ASSIGN 等：本次不动
+  }
+  tree t = linear_ir_to_tree (items);
+  tree t2= clean_apply (t, mod);
+  return tree_to_linear_ir (t2);
+}
+
+/******************************************************************************
+ * compute_markup_edit：body LoroText 最小字节 splice
+ *****************************************************************************/
+
+static const char MESC   = '\x01'; // 与 linear_ir.cpp 的 ESC 一致
+static const char MESCAPE= '\x02'; // 与 linear_ir.cpp 的 ESCC 一致
+
+static int
+escape_size (char c) {
+  return (c == MESC || c == MESCAPE) ? 2 : 1;
+}
+
+static string
+escape_str (string s) {
+  string r;
+  for (int i= 0; i < N (s); i++) {
+    char c= s[i];
+    if (c == MESC) {
+      r << MESCAPE;
+      r << '1';
+    }
+    else if (c == MESCAPE) {
+      r << MESCAPE;
+      r << '2';
+    }
+    else r << c;
+  }
+  return r;
+}
+
+static int
+escaped_byte_offset (string s, int char_pos) {
+  int off= 0;
+  for (int i= 0; i < char_pos && i < N (s); i++)
+    off+= escape_size (s[i]);
+  return off;
+}
+
+static int
+escaped_byte_len (string s, int from, int nr) {
+  int off= 0;
+  for (int i= 0; i < nr && from + i < N (s); i++)
+    off+= escape_size (s[from + i]);
+  return off;
+}
+
+// item k 在 markup 中的起始 utf-8 字节偏移（序列化 [0,k) 前缀取长度）
+static int
+markup_offset_of_item (array<linear_item>& items, int k) {
+  if (k <= 0) return 0;
+  array<linear_item> prefix;
+  for (int i= 0; i < k; i++)
+    prefix << items[i];
+  return N (linear_ir_to_markup (prefix));
+}
+
+// CLOSE + OPEN(label) 两 item 的 markup 字节（SPLIT 插入 / JOIN 删除的内容）
+static string
+close_open_markup (string label) {
+  array<linear_item> toks;
+  linear_item        c;
+  c.kind= LI_CLOSE;
+  toks << c;
+  linear_item o;
+  o.kind = LI_OPEN;
+  o.label= label;
+  toks << o;
+  return linear_ir_to_markup (toks);
+}
+
+markup_edit
+compute_markup_edit (array<linear_item> items, modification mod) {
+  markup_edit ed;
+  ed.ok        = false;
+  ed.offset    = 0;
+  ed.delete_len= 0;
+  switch (mod->k) {
+  case MOD_INSERT: {
+    int k= item_index_of_path (items, root (mod));   // 原子 OPEN("")
+    if (k < 0 || N (items[k].label) != 0) return ed; // 复合插入 → coarse
+    int    pos     = index (mod);
+    string c       = mod->t->label;
+    int    text_idx= k + 1;
+    int    cstart  = markup_offset_of_item (items, text_idx);
+    string text= (text_idx < N (items) && (items[text_idx].kind == LI_TEXT ||
+                                           items[text_idx].kind == LI_BINARY))
+                     ? items[text_idx].text
+                     : string ("");
+    ed.ok      = true;
+    ed.offset  = cstart + escaped_byte_offset (text, pos);
+    ed.insert_bytes= escape_str (c);
+    return ed;
+  }
+  case MOD_REMOVE: {
+    int k= item_index_of_path (items, root (mod));
+    if (k < 0 || N (items[k].label) != 0) return ed;
+    int pos= index (mod), nr= argument (mod);
+    int text_idx= k + 1;
+    if (text_idx >= N (items) ||
+        (items[text_idx].kind != LI_TEXT && items[text_idx].kind != LI_BINARY))
+      return ed;
+    string text  = items[text_idx].text;
+    int    cstart= markup_offset_of_item (items, text_idx);
+    ed.ok        = true;
+    ed.offset    = cstart + escaped_byte_offset (text, pos);
+    ed.delete_len= escaped_byte_len (text, pos, nr);
+    return ed;
+  }
+  case MOD_SPLIT: {
+    path parent= root (mod);
+    int  pos   = index (mod);
+    int  at    = argument (mod);
+    int  popen = item_index_of_path (items, parent);
+    if (popen < 0) return ed;
+    array<int> kids= direct_child_starts (items, popen);
+    if (pos < 0 || pos >= N (kids)) return ed;
+    int nopen = kids[pos];
+    int cclose= matching_close (items, nopen);
+    if (cclose < 0) return ed;
+    bool atomic= (N (items[nopen].label) == 0);
+    if (atomic) {
+      // 在 TEXT 内容的字符边界插 CLOSE + OPEN("")
+      int    text_idx= nopen + 1;
+      string text= (text_idx < N (items) && (items[text_idx].kind == LI_TEXT ||
+                                             items[text_idx].kind == LI_BINARY))
+                       ? items[text_idx].text
+                       : string ("");
+      if (at < 0 || at > N (text)) return ed;
+      ed.ok    = true;
+      ed.offset= markup_offset_of_item (items, text_idx) +
+                 escaped_byte_offset (text, at);
+      ed.insert_bytes= close_open_markup ("");
+      return ed;
+    }
+    else {
+      // 在子节点边界插 CLOSE + OPEN(label)
+      array<int> gkids= direct_child_starts (items, nopen);
+      int        bidx = (at >= 0 && at < N (gkids)) ? gkids[at] : cclose;
+      ed.ok           = true;
+      ed.offset       = markup_offset_of_item (items, bidx);
+      ed.insert_bytes = close_open_markup (items[nopen].label);
+      return ed;
+    }
+  }
+  case MOD_JOIN: {
+    path parent= root (mod);
+    int  pos   = index (mod);
+    int  popen = item_index_of_path (items, parent);
+    if (popen < 0) return ed;
+    array<int> kids= direct_child_starts (items, popen);
+    if (pos < 0 || pos + 1 >= N (kids)) return ed;
+    int c1  = kids[pos];
+    int c1cl= matching_close (items, c1);
+    int c2  = kids[pos + 1];
+    if (c1cl < 0 || c1cl + 1 != c2) return ed; // 须相邻兄弟
+    ed.ok        = true;
+    ed.offset    = markup_offset_of_item (items, c1cl);
+    ed.delete_len= N (close_open_markup (items[c2].label));
+    return ed;
+  }
+  default:
+    return ed; // INSERT_NODE/REMOVE_NODE/ASSIGN → coarse（v1）
   }
 }

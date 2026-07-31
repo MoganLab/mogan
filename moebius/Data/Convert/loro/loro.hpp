@@ -104,6 +104,16 @@ int32_t mogan_loro_encode_cursor (void* doc, mogan_tree_id tree_id,
                                   size_t* out_len);
 int32_t mogan_loro_decode_cursor (void* doc, const uint8_t* bytes, size_t len,
                                   uint32_t* out_offset);
+
+// ===== body 单 LoroText 容器（线性 markup 流；结构作为 markup 解释结果）=====
+// body 不再用 LoroTree，而是一条名为 "body" 的 LoroText，承载整篇 body 的
+// markup （linear_ir ↔ markup，见 linear_ir*.cpp）。偏移均为 utf-8 字节坐标。
+int32_t mogan_loro_body_seed (void* doc, const uint8_t* markup, size_t len);
+int32_t mogan_loro_body_text_insert (void* doc, size_t pos,
+                                     const uint8_t* bytes, size_t len);
+int32_t mogan_loro_body_text_delete (void* doc, size_t pos, size_t len);
+int32_t mogan_loro_body_get_text (void* doc, uint8_t** out, size_t* out_len);
+size_t  mogan_loro_body_len_utf8 (void* doc);
 void    mogan_loro_free (uint8_t* ptr, size_t len);
 }
 
