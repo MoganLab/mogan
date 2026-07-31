@@ -147,6 +147,20 @@
 ) ;tm-define
 
 ;; 本地
+;; (tm-define (account-oauth2-config key)
+;;   (cond
+;;     ((== key "authorization-url") "http://127.0.0.1:3000/oauth2-login")
+;;     ((== key "access-token-url") "http://127.0.0.1:8081/api/v1/oauth2/token") ;init:oauth2/token -> api/v1/oauth2/token
+;;     ((== key "client-identifier") "public-client")
+;;     ((== key "client-secret") "secret")
+;;     ((== key "scope") "user+llm")
+;;     ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
+;;     ((== key "user-info-url") "http://127.0.0.1:8081/api/v1/oauth2/membershipInfo") ;init:api/oauthUser/membershipInfo -> api/v1/oauth2/membershipInfo
+;;     ((== key "pricing-url") "http://127.0.0.1:3000/pricing.html")
+;;     ((== key "invitation-url") "http://127.0.0.1:3000/personal-center/invitation")
+;;     ((== key "growth-url") (string-append "http://127.0.0.1:3000/personal-center/growth?from=oauth&version=v" (xmacs-version)))
+;;     ((== key "click-return-liii-url") "http://127.0.0.1:3000/?from=login_button")
+;;     (else "")))
 
 ;; 1.1 token 保存到数据文件
 (tm-define (account-save-token token) (save-account-data TOKEN_FILENAME token))
