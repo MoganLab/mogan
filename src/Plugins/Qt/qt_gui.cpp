@@ -966,6 +966,7 @@ qt_gui_rep::update () {
     if (the_interpose_handler) the_interpose_handler ();
 #ifdef LORO_ENABLED
     static time_t last_loro_poll_time = 0;
+    
     if (now - last_loro_poll_time >= 1000 / 6) {
       loro_collab_poll ();
       last_loro_poll_time = now;

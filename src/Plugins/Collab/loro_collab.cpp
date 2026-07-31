@@ -214,8 +214,12 @@ collab_session::disconnect () {
   }
 }
 
-void
+bool
 collab_session::poll () {
+  editor ed = get_editor();
+  if (!is_nil(ed))
+      ed->collab_snapshot_cursor();
+  has_remote_mod_in_current_poll = false;
   if (ws) ws->poll ();
   if (state != collab_state::idle && buffer_known &&
       is_nil (concrete_buffer (buffer_url))) {
@@ -223,7 +227,7 @@ collab_session::poll () {
     disconnect ();
     // We do not remove it from manager here, let the manager handle it or just
     // keep it idle
-    return;
+    return false;
   }
   // 兜底：仅在服务端不发 SYNC-END（旧版本）或连接静默失效时触发。
   // 正常路径下 SYNC-END / 首条历史帧会在毫秒级到达，此分支不应命中。
@@ -240,6 +244,10 @@ collab_session::poll () {
       texmacs_time () - last_cursor_send >= 50)
     flush_cursor (false);
   maybe_reconnect ();
+      if (has_remote_mod_in_current_poll && !is_nil(ed))
+      ed->collab_restore_cursor();
+
+  return has_remote_mod_in_current_poll;
 }
 
 void
@@ -339,12 +347,14 @@ collab_session::on_message (string data, bool is_binary) {
   if (state == collab_state::await_frame) {
     ed->apply_remote (data);
     become_ready ();
+    has_remote_mod_in_current_poll = true;
     // 初始化（JOIN
     // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
     // 待用户实际移动光标/编辑时再上行。
   }
   else if (state == collab_state::ready) {
     ed->apply_remote (data);
+    has_remote_mod_in_current_poll = true;
     // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
     // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
     // 已被抑制）。
@@ -409,7 +419,6 @@ collab_session_manager::remove_session (collab_session* session) {
 
 void
 collab_session_manager::poll_all () {
-  // Use a copy to allow deletion during poll
   array<collab_session*> copy= sessions;
   for (int i= 0; i < N (copy); i++) {
     copy[i]->poll ();
