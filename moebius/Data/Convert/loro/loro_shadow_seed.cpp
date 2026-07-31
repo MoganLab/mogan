@@ -58,6 +58,7 @@ sync_walk_n (tree parent, int start_idx, string& ir, int& pos,
       splits << (int) get_u32 ();
     // N+1 段 buffer 子节点全部映射到 tid
     int n_segs= (int) ns + 1;
+    if (!is_compound (parent)) return false; // 防御：非复合节点不应有子节点
     for (int seg= 0; seg < n_segs; seg++) {
       if (start_idx + seg >= N (parent)) return false;
       tree& child= parent[start_idx + seg];
@@ -75,7 +76,7 @@ sync_walk_n (tree parent, int start_idx, string& ir, int& pos,
   int  op= (kind == LORO_COMPOUND) ? (int) moebius::make_tree_label (label)
                                    : as_int (label (8, N (label)));
   bool child_wrap= (op == (int) moebius::DOCUMENT);
-  if (start_idx >= N (parent)) return false;
+  if (!is_compound (parent) || start_idx >= N (parent)) return false;
   tree t             = parent[start_idx];
   id_map (inside (t))= tid;
   rev_id_map (tid)   = acc;

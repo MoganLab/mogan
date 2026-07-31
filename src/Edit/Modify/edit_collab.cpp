@@ -164,12 +164,10 @@ edit_modify_rep::apply_remote (string bytes) {
   set_user_active (false);
   loro_applying_remote= false;
 
-  // 关键：apply_remote 通过 edit_announce 改了 buffer（新 tree_rep*），
-  // 但这些新 rep 不在 id_map 里，因此下一次本地编辑 mirror_mod 会 id_map miss
-  // -> 块级重 seed
-  // -> TreeID 被重洗 -> 远端 update 引用旧 TreeID -> 永久 Diff 0。
-  // 因此，这里重建 id_map，把 buffer 当前状态关联到 shadow 的 TreeID。
-  if (!is_nil (mods)) loro_doc->sync_id_map_from_shadow (the_buffer ());
+  // 暂时禁用 apply_remote 后的 id_map 重建：sync_walk_n 在 raw_apply 改树后
+  // 访问 tree_rep 会 use-after-free crash。下次本地编辑的 block reseed 兜底。
+  // TODO: 修复 sync_walk_n 对 raw_apply 后树的兼容性后再恢复。
+  // if (!is_nil (mods)) loro_doc->sync_id_map_from_shadow (the_buffer ());
 
   // 远端 meta section（style/initial/...）回写 buf->data：仍处于
   // applying_remote 守卫，回写触发的 setter 钩子会被守卫跳过，避免回环。body 与
