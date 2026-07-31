@@ -46,6 +46,7 @@ private slots:
   // Test script function
   void test_script_function ();
   void test_font_script_size_cache ();
+  void test_script_global_memo ();
 
   // Test font creation with float sizes
   void test_smart_font_float_size ();
@@ -344,6 +345,21 @@ TestFontSize::test_font_script_size_cache () {
   set_font_size ((font_rep*) fn.rep, 19.5);
   double expected_new= script (19.5, 1);
   QVERIFY (qAbs (fn->script_size () - expected_new) < 0.001);
+}
+
+// Test script() 全局 memo：相同 (sz, level) 重复调用不应重复计算
+void
+TestFontSize::test_script_global_memo () {
+  // 97.5/level 2 是其它用例未使用的组合，保证 memo 为冷
+  bench_reset ("font_script_calculation");
+  double v1= script (97.5, 2);
+  double v2= script (97.5, 2);
+  QVERIFY (qAbs (v1 - v2) < 0.001);
+  std_bench.buffer ();
+  lolly::system::bench_print (std_bench, "font_script_calculation", 0);
+  string out= std_bench.unbuffer ();
+  QVERIFY2 (!occurs ("invocations", out),
+            "script() should hit global memo on repeat call");
 }
 
 // Test smart_font with float sizes
