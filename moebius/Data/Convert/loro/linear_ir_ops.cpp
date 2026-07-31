@@ -228,33 +228,63 @@ compute_markup_edit (array<linear_item> items, modification mod) {
   ed.ok= false;
   switch (mod->k) {
   case MOD_INSERT: {
-    int k= item_index_of_path (items, root (mod));   // 原子 OPEN("")
-    if (k < 0 || N (items[k].label) != 0) return ed; // 复合插入 → coarse
-    int    pos     = index (mod);
-    string c       = mod->t->label;
-    int    text_idx= k + 1;
-    int    cstart  = markup_offset_of_item (items, text_idx);
-    string text= (text_idx < N (items) && (items[text_idx].kind == LI_TEXT ||
-                                           items[text_idx].kind == LI_BINARY))
-                     ? items[text_idx].text
-                     : string ("");
-    ed.ok      = true;
-    add_op (ed, cstart + escaped_byte_offset (text, pos), 0, escape_str (c));
+    int k  = item_index_of_path (items, root (mod));
+    int pos= index (mod);
+    if (k < 0) return ed;
+    if (N (items[k].label) == 0) {
+      // 原子文本插入
+      string c       = mod->t->label;
+      int    text_idx= k + 1;
+      int    cstart  = markup_offset_of_item (items, text_idx);
+      string text= (text_idx < N (items) && (items[text_idx].kind == LI_TEXT ||
+                                             items[text_idx].kind == LI_BINARY))
+                       ? items[text_idx].text
+                       : string ("");
+      ed.ok      = true;
+      add_op (ed, cstart + escaped_byte_offset (text, pos), 0, escape_str (c));
+      return ed;
+    }
+    // 复合子树插入：clean_insert 粘贴 u 的**子节点**（片段），故在 parent 的
+    // child pos 处插入 u 的子节点 markup（存活内容不动）
+    int kclose= matching_close (items, k);
+    if (kclose < 0) return ed;
+    array<int>         kids= direct_child_starts (items, k);
+    int                ins = (pos >= 0 && pos < N (kids)) ? kids[pos] : kclose;
+    array<linear_item> u_ir= tree_to_linear_ir (mod->t);
+    int                u_close= matching_close (u_ir, 0);
+    if (N (u_ir) < 2 || u_close < 0) return ed;
+    ed.ok= true;
+    add_op (ed, markup_offset_of_item (items, ins), 0,
+            linear_ir_to_range (u_ir, 1, u_close));
     return ed;
   }
   case MOD_REMOVE: {
-    int k= item_index_of_path (items, root (mod));
-    if (k < 0 || N (items[k].label) != 0) return ed;
+    int k  = item_index_of_path (items, root (mod));
     int pos= index (mod), nr= argument (mod);
-    int text_idx= k + 1;
-    if (text_idx >= N (items) ||
-        (items[text_idx].kind != LI_TEXT && items[text_idx].kind != LI_BINARY))
+    if (k < 0) return ed;
+    if (N (items[k].label) == 0) {
+      // 原子文本删除
+      int text_idx= k + 1;
+      if (text_idx >= N (items) || (items[text_idx].kind != LI_TEXT &&
+                                    items[text_idx].kind != LI_BINARY))
+        return ed;
+      string text  = items[text_idx].text;
+      int    cstart= markup_offset_of_item (items, text_idx);
+      ed.ok        = true;
+      add_op (ed, cstart + escaped_byte_offset (text, pos),
+              escaped_byte_len (text, pos, nr), "");
       return ed;
-    string text  = items[text_idx].text;
-    int    cstart= markup_offset_of_item (items, text_idx);
-    ed.ok        = true;
-    add_op (ed, cstart + escaped_byte_offset (text, pos),
-            escaped_byte_len (text, pos, nr), "");
+    }
+    // 复合子树删除：删 parent 的 child [pos, pos+nr)
+    int kclose= matching_close (items, k);
+    if (kclose < 0) return ed;
+    array<int> kids= direct_child_starts (items, k);
+    if (pos < 0 || pos + nr > N (kids)) return ed;
+    int rstart= kids[pos];
+    int rend  = (pos + nr < N (kids)) ? kids[pos + nr] : kclose;
+    ed.ok     = true;
+    add_op (ed, markup_offset_of_item (items, rstart),
+            markup_len_range (items, rstart, rend), "");
     return ed;
   }
   case MOD_SPLIT: {
