@@ -134,9 +134,27 @@ edit_modify_rep::apply_remote (string bytes) {
   list<modification> mods= loro_doc->remote_diff_mods (bytes, the_buffer ());
   if (DEBUG_LORO)
     debug_loro << "Diff produced " << N (mods) << " modifications.\n";
+  // 逐条应用远端 diff mod。每条先 is_applicable 预检：远端合并后的 shadow 形态
+  // 偶尔与本地 live buffer 错位（结构漂移），此时某条 mod 可能对 buffer
+  // 不适用， raw_apply 会抛 "clean_remove: Invalid remove from atomic tree"
+  // 等，且异常逸出 会让 buffer
+  // 停在半更新状态（用户所见「同步失败」）。预检失败即放弃增量，整 body 按
+  // shadow 当前态重建（等价 diff_walk 的 assign 兜底，保证一致性）。
+  bool remote_precise= true;
   for (list<modification> l= mods; !is_nil (l); l= l->next) {
     if (DEBUG_LORO) debug_loro << "Applying remote mod: " << l->item << "\n";
+    if (!is_applicable (the_buffer (), l->item)) {
+      remote_precise= false;
+      break;
+    }
     apply (et, rp * l->item);
+  }
+  if (!remote_precise && !is_nil (mods)) {
+    if (DEBUG_LORO)
+      debug_loro << "remote mod inapplicable to live buffer; reconcile body "
+                    "from shadow\n";
+    tree after= loro_doc->to_tree ();
+    apply (et, rp * mod_assign (path (), after));
   }
   // applying_remote 暂不关闭：apply_remote_meta 的回写 setter 也要在守卫内
 

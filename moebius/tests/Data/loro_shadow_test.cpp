@@ -835,4 +835,174 @@ TEST_CASE ("loro e2e: concurrent REMOVE_NODE keeps peer text insert") {
   CHECK_EQ (c_ok, true);
 }
 
+// 回归诊断：编辑器的「段落合并」序列（insert_node×2 + join×2 + remove_node）
+// 每一步精确镜像后 shadow 必须仍 == buffer；任一步 drift 即精确翻译 bug。
+TEST_CASE (
+    "loro repro: paragraph-join sequence keeps shadow==buffer each step") {
+  ensure_labels ();
+  // document(para(concat("TEST")), para(concat("LINEA")))
+  tree t (DOCUMENT, 2);
+  t[0]      = tree (PARA, 1);
+  t[0][0]   = tree (CONCAT, 1);
+  t[0][0][0]= tree ("TEST");
+  t[1]      = tree (PARA, 1);
+  t[1][0]   = tree (CONCAT, 1);
+  t[1][0][0]= tree ("LINEA");
+  loro_shadow sh;
+  sh->seed (t);
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  auto step= [&] (modification m) {
+    t= clean_apply (t, m);
+    sh->mirror_mod (t, m);
+    if (!(sh->to_tree () == t)) {
+      cout << "DRIFT after mod " << m << LF;
+      cout << "buffer: " << t << LF;
+      cout << "shadow: " << sh->to_tree () << LF;
+    }
+    CHECK_EQ (sh->to_tree () == t, true);
+  };
+  step (mod_insert_node (path (0), 0, tree (CONCAT, 0)));
+  step (mod_insert_node (path (1), 0, tree (CONCAT, 0)));
+  step (mod_join (path (), 0));
+  step (mod_join (path (0), 0));
+  step (mod_remove_node (path (0), 0));
+}
+
+// 回归复现：一端插 B，另一端做段落合并序列；交换后 B 端 apply 远端 diff 不得
+// 抛 clean_remove。
+TEST_CASE (
+    "loro repro: concurrent B-insert + paragraph-join, apply remote diff") {
+  ensure_labels ();
+  tree init (DOCUMENT, 2);
+  init[0]      = tree (PARA, 1);
+  init[0][0]   = tree (CONCAT, 1);
+  init[0][0][0]= tree ("TEST");
+  init[1]      = tree (PARA, 1);
+  init[1][0]   = tree (CONCAT, 1);
+  init[1][0][0]= tree ("LINEA");
+  loro_shadow a;
+  a->seed (init);
+  string      s0= a->export_snapshot ();
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+
+  // a：在 LINEA 前插 B → BLINEA
+  tree         tA= init;
+  modification mA= mod_insert (path (1) * 0 * 0, 0, tree ("B"));
+  tA             = clean_apply (tA, mA);
+  a->mirror_mod (tA, mA);
+  string sa= a->export_snapshot ();
+
+  // b：段落合并序列（退格）
+  auto stepb= [&] (modification m) {
+    tB= clean_apply (tB, m);
+    b->mirror_mod (tB, m);
+  };
+  stepb (mod_insert_node (path (0), 0, tree (CONCAT, 0)));
+  stepb (mod_insert_node (path (1), 0, tree (CONCAT, 0)));
+  stepb (mod_join (path (), 0));
+  stepb (mod_join (path (0), 0));
+  stepb (mod_remove_node (path (0), 0));
+  string sb= b->export_snapshot ();
+
+  CHECK_EQ (a->import_data (sb), true);
+  CHECK_EQ (b->import_data (sa), true);
+
+  // a 把「合并后的 shadow」与本地 buffer 的 diff 逐条应用（模拟 apply_remote）
+  list<modification> mods= a->diff_from_current (tA);
+  cout << "a diff mods: " << N (mods) << LF;
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    cout << "  " << l->item << LF;
+  for (list<modification> l= mods; !is_nil (l); l= l->next)
+    tA= clean_apply (tA, l->item); // 此处曾抛 clean_remove
+  // 收敛
+  CHECK_EQ (a->to_tree () == b->to_tree (), true);
+}
+
+// 回归复现（增量）：编辑器逐条应用远端 update。a 插 B 后，逐条导入 b 的 5 条
+// join update，每条 import+diff+apply。任一条 clean_apply 抛出即复现了崩溃。
+TEST_CASE ("loro repro: incremental join updates applied to B-side") {
+  ensure_labels ();
+  tree init (DOCUMENT, 2);
+  init[0]      = tree (PARA, 1);
+  init[0][0]   = tree (CONCAT, 1);
+  init[0][0][0]= tree ("TEST");
+  init[1]      = tree (PARA, 1);
+  init[1][0]   = tree (CONCAT, 1);
+  init[1][0][0]= tree ("LINEA");
+  loro_shadow a;
+  a->seed (init);
+  string      s0= a->export_snapshot ();
+  loro_shadow b;
+  tree        tB;
+  CHECK_EQ (b->import_and_build (s0, tB), true);
+
+  // a：插 B，捕获其 update
+  list<string> a_updates;
+  a->on_local_update (loro_test_collect_update, &a_updates);
+  tree         tA= init;
+  modification mA= mod_insert (path (1) * 0 * 0, 0, tree ("B"));
+  tA             = clean_apply (tA, mA);
+  a->mirror_mod (tA, mA);
+
+  // b：捕获其 5 条 join update
+  list<string> b_updates;
+  b->on_local_update (loro_test_collect_update, &b_updates);
+  auto stepb= [&] (modification m) {
+    tB= clean_apply (tB, m);
+    b->mirror_mod (tB, m);
+  };
+  stepb (mod_insert_node (path (0), 0, tree (CONCAT, 0)));
+  stepb (mod_insert_node (path (1), 0, tree (CONCAT, 0)));
+  stepb (mod_join (path (), 0));
+  stepb (mod_join (path (0), 0));
+  stepb (mod_remove_node (path (0), 0));
+
+  // 双向逐条交换：a 吃 b 的 update，b 吃 a 的 update
+  for (list<string> l= b_updates; !is_nil (l); l= l->next) {
+    list<modification> mods= a->remote_diff_mods (l->item, tA);
+    for (list<modification> m= mods; !is_nil (m); m= m->next)
+      tA= clean_apply (tA, m->item);
+  }
+  for (list<string> l= a_updates; !is_nil (l); l= l->next) {
+    list<modification> mods= b->remote_diff_mods (l->item, tB);
+    for (list<modification> m= mods; !is_nil (m); m= m->next)
+      tB= clean_apply (tB, m->item);
+  }
+  CHECK_EQ (a->to_tree () == b->to_tree (), true);
+}
+
+// 回归诊断：编辑器的「段落切分（Enter）」序列（insert_node + split + split +
+// remove_node×2）每步精确镜像后 shadow 必须 == buffer。用户复现：Enter 同步后
+// shadow.to_tree() 退化为裸原子 document(TEST,LINE)（丢 concat 包裹），后续编辑
+// 即崩。任一步 drift 即精确翻译 bug。
+TEST_CASE ("loro repro: paragraph-SPLIT sequence keeps shadow==buffer each step") {
+  ensure_labels ();
+  // 编辑器实拍：空文档敲入文本 -> document("TESTLINE")（裸原子为 document 子节点）
+  tree t (DOCUMENT, 1);
+  t[0]      = tree ("TESTLINE");
+  loro_shadow sh;
+  sh->seed (t);
+  CHECK_EQ (sh->to_tree () == t, true);
+
+  auto step= [&] (modification m) {
+    t                = clean_apply (t, m);
+    sh->mirror_mod (t, m);
+    if (!(sh->to_tree () == t)) {
+      cout << "DRIFT after mod " << m << LF;
+      cout << "buffer: " << t << LF;
+      cout << "shadow: " << sh->to_tree () << LF;
+    }
+    CHECK_EQ (sh->to_tree () == t, true);
+  };
+  // 与编辑器 Enter 序列一致（body 相对路径）
+  step (mod_insert_node (path (0), 0, tree (CONCAT, 0)));
+  step (mod_split (path (0), 0, 4));
+  step (mod_split (path (), 0, 1));
+  step (mod_remove_node (path (0), 0));
+  step (mod_remove_node (path (1), 0));
+}
+
 #endif // LORO_ENABLED
