@@ -231,6 +231,7 @@
   (ghost-remove-node! #t)
   (interrupt-shortcut)
   (ghost-feedback 'accept)
+  (trigger-ghost-text 0)
 ) ;tm-define
 
 (tm-define (reject-ghost)
