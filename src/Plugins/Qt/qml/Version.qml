@@ -11,11 +11,11 @@ DialogShell {
     implicitHeight: 220
     implicitMargins: Theme.margin
 
-    property string title: typeof versionTitle !== "undefined" ? versionTitle : ""
-    property var lines: typeof versionLines !== "undefined" ? versionLines : []
-    property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : []
+    property string title: versionBridge.title
+    property var lines: versionBridge.lines
+    property var buttonLabels: versionBridge.buttonLabels
 
-    onActivate: () => closeBridge.choose(1)
+    onActivate: () => versionBridge.confirm()
     Component.onCompleted: forceActiveFocus()
 
     content: Item {
@@ -63,9 +63,7 @@ DialogShell {
             DialogButtons {
                 anchors.horizontalCenter: parent.horizontalCenter
                 buttonLabels: root.buttonLabels
-                onClicked: function (index) {
-                    closeBridge.choose(index + 1);
-                }
+                onClicked: versionBridge.confirm()
             }
         }
     }

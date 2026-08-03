@@ -38,6 +38,27 @@ public:
   Q_INVOKABLE void startMove () {}
 };
 
+class VersionStubBridge : public QObject {
+  Q_OBJECT
+  Q_PROPERTY (QString title READ title CONSTANT)
+  Q_PROPERTY (QStringList lines READ lines CONSTANT)
+  Q_PROPERTY (QStringList buttonLabels READ buttonLabels CONSTANT)
+
+public:
+  explicit VersionStubBridge (QObject* p= nullptr) : QObject (p) {}
+  QString     title () const { return QString ("Version"); }
+  QStringList lines () const {
+    return {"You are using v2026.2.6.",
+            "The latest stable version is v2026.2.6."};
+  }
+  QStringList buttonLabels () const { return {"OK"}; }
+
+  int              cancelCount= 0;
+  Q_INVOKABLE void confirm () {}
+  Q_INVOKABLE void cancel () { ++cancelCount; }
+  Q_INVOKABLE void startMove () {}
+};
+
 // live 弹窗（FontSelector / ParagraphFormat）bridge 占位：加载阶段 QML 顶层会调
 // 一批 uiLabels/meta/currentXxx/requestXxx 取初始值，桩统一返回空（空串/空
 // list/空 map）， 仅保证文档能实例化、不验证交互语义。
@@ -339,22 +360,14 @@ TestQmlLoad::test_statistics_loads () {
 
 void
 TestQmlLoad::test_version_loads () {
-  QStringList buttons;
-  buttons << "OK";
-
-  QDialog       host;
-  QQuickWidget* qw= new QQuickWidget (&host);
+  QDialog            host;
+  QQuickWidget*      qw    = new QQuickWidget (&host);
+  VersionStubBridge* bridge= new VersionStubBridge (qw);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  StubBridge* bridge= new StubBridge (qw);
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("versionBridge", bridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->rootContext ()->setContextProperty ("versionTitle", QString ("Version"));
-  QStringList lines;
-  lines << "You are using v2026.2.6."
-        << "The latest stable version is v2026.2.6.";
-  qw->rootContext ()->setContextProperty ("versionLines", lines);
-  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/Version.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   QCOMPARE (qw->rootObject ()->implicitWidth (), 560.0);
@@ -365,26 +378,19 @@ TestQmlLoad::test_version_loads () {
   int messageLineCount= 0;
   for (QQuickItem* item : messageLines->childItems ())
     if (item->objectName () == "versionMessageLine") ++messageLineCount;
-  QCOMPARE (messageLineCount, lines.size ());
+  QCOMPARE (messageLineCount, bridge->lines ().size ());
 }
 
 void
 TestQmlLoad::test_version_escape_cancels () {
-  QStringList buttons;
-  buttons << "OK";
-
-  QDialog       host;
-  QQuickWidget* qw= new QQuickWidget (&host);
+  QDialog            host;
+  QQuickWidget*      qw    = new QQuickWidget (&host);
+  VersionStubBridge* bridge= new VersionStubBridge (qw);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  StubBridge* bridge= new StubBridge (qw);
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("versionBridge", bridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->rootContext ()->setContextProperty ("versionTitle", QString ("Version"));
-  QStringList lines;
-  lines << "Version information";
-  qw->rootContext ()->setContextProperty ("versionLines", lines);
-  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/Version.qml"));
   host.show ();
 

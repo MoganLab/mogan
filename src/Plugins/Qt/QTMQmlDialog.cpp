@@ -13,6 +13,7 @@
 #include "PreferencesBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
+#include "VersionDialogBridge.hpp"
 
 #include "analyze.hpp"   // occurs
 #include "converter.hpp" // cork_to_utf8
@@ -123,14 +124,19 @@ setup_frameless_qml_host (QDialog& d) {
  * QObject parent，不会被宿主 QDialog 析构带走，以便 form 型 exec 后取
  * results()）。
  */
-static QmlDialogBridge*
-inject_common_context (QQuickWidget* qw, QDialog& host) {
+static void
+inject_common_context_properties (QQuickWidget* qw, QObject* close_bridge) {
   bool isDark=
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  QmlDialogBridge* bridge= new QmlDialogBridge (&host);
-  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("closeBridge", close_bridge);
   qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
   qw->rootContext ()->setContextProperty ("isDark", isDark);
+}
+
+static QmlDialogBridge*
+inject_common_context (QQuickWidget* qw, QDialog& host) {
+  QmlDialogBridge* bridge= new QmlDialogBridge (&host);
+  inject_common_context_properties (qw, bridge);
   return bridge;
 }
 
@@ -577,17 +583,15 @@ cpp_version_dialog (string title, string message) {
 
   array<string> buttons;
   buttons << string ("OK");
-  QmlDialogBridge* bridge= nullptr;
-  int              choice= run_qml_dialog (
+  VersionDialogBridge* bridge= nullptr;
+  int                  choice= run_qml_dialog (
       "qrc:/qml/Version.qml", "Version.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
-        bridge= inject_common_context (qw, host);
-        qw->rootContext ()->setContextProperty (
-            "versionTitle", utf8_to_qstring (cork_to_utf8 (title)));
-        qw->rootContext ()->setContextProperty (
-            "versionLines", version_message_lines (message));
-        qw->rootContext ()->setContextProperty ("dialogButtons",
-                                                             translate_buttons (buttons));
+        bridge= new VersionDialogBridge (
+            &host, utf8_to_qstring (cork_to_utf8 (title)),
+            version_message_lines (message), translate_buttons (buttons));
+        inject_common_context_properties (qw, bridge);
+        qw->rootContext ()->setContextProperty ("versionBridge", bridge);
       },
       560, 220);
   delete bridge;
