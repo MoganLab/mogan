@@ -99,7 +99,7 @@
     ) ;->
   ) ;if
   ---
-  ("Search recent documents" (interactive docgrep-in-recent))
+  ("Search recent documents" (open-search-recent-documents))
   ---
   (if (use-menus?) (-> "Preferences" (link preferences-menu)))
   (if (use-popups?) ("Preferences" (open-preferences)))

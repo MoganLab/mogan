@@ -72,6 +72,7 @@ private slots:
   void test_translate_buttons ();
   void test_confirm_close_hook ();
   void test_form_dialog_hook ();
+  void test_search_recent_documents_hook ();
 };
 
 // 字段下标协议常量与协议文档一致。
@@ -242,6 +243,19 @@ TestQmlDialog::test_form_dialog_hook () {
     tree    r= cpp_form_dialog (form);
     QVERIFY (is_compound (r));
     QCOMPARE (N (r), 0);
+  }
+}
+
+void
+TestQmlDialog::test_search_recent_documents_hook () {
+  {
+    EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", "C:/docs/needle.tm");
+    QCOMPARE (cpp_search_recent_documents_dialog (),
+              string ("C:/docs/needle.tm"));
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", "cancel");
+    QCOMPARE (cpp_search_recent_documents_dialog (), string (""));
   }
 }
 

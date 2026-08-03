@@ -26,9 +26,12 @@ using moebius::data::scm_unquote;
 using moebius::data::tree_to_scheme_tree;
 
 #include <QDialog>
+#include <QDir>
+#include <QFileInfo>
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickWidget>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVBoxLayout>
@@ -598,4 +601,53 @@ cpp_preferences_dialog () {
       620, 600);
   delete bridge;
   return tree (TUPLE);
+}
+
+// ---- Search recent documents ------------------------------------------------
+
+string
+cpp_search_recent_documents_dialog () {
+  string preset= get_env ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS");
+  if (preset != "") return preset == "cancel" ? string ("") : preset;
+
+  QVariantList  recentDocuments;
+  QSet<QString> seenPaths;
+  tmscm         recentPaths= eval_scheme ("(recent-documents-for-qml)");
+  for (tmscm cur= recentPaths; !tmscm_is_null (cur); cur= tmscm_cdr (cur)) {
+    tmscm item= tmscm_car (cur);
+    if (!tmscm_is_string (item)) continue;
+    QString path= QString::fromUtf8 (as_charp (tmscm_to_string (item)));
+    if (path.isEmpty ()) continue;
+    QString normalizedPath= QDir::cleanPath (QDir::fromNativeSeparators (path));
+    if (seenPaths.contains (normalizedPath)) continue;
+    seenPaths.insert (normalizedPath);
+    QVariantMap document;
+    document["path"]= path;
+    document["name"]= QFileInfo (path).fileName ();
+    recentDocuments << document;
+  }
+
+  array<string>    buttons= {string ("Open"), string ("Cancel")};
+  QmlDialogBridge* bridge = nullptr;
+  run_qml_dialog (
+      "qrc:/qml/SearchRecentDocuments.qml", "SearchRecentDocuments.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty (
+            "searchDialogTitle", qt_translate ("Search recent documents"));
+        qw->rootContext ()->setContextProperty ("searchPlaceholder",
+                                                qt_translate ("Search"));
+        qw->rootContext ()->setContextProperty (
+            "searchEmptyText", qt_translate ("No matching recent documents"));
+        qw->rootContext ()->setContextProperty ("recentDocuments",
+                                                recentDocuments);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      520, 450);
+
+  QString path;
+  if (bridge) path= bridge->results ().value ("path").toString ();
+  delete bridge;
+  return from_qstring (path);
 }

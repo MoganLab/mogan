@@ -90,6 +90,12 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "cpp-search-recent-documents-dialog",
+                cpp_name = "cpp_search_recent_documents_dialog",
+                ret_type = "string",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-rasterize-widget",
                 cpp_name = "cpp_rasterize_widget",
                 ret_type = "string",

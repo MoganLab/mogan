@@ -185,6 +185,7 @@ private slots:
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
   void test_statistics_loads ();
+  void test_search_recent_documents_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -332,6 +333,36 @@ TestQmlLoad::test_statistics_loads () {
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/Statistics.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_search_recent_documents_loads () {
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("searchDialogTitle",
+                                          QString ("Search recent documents"));
+  qw->rootContext ()->setContextProperty ("searchPlaceholder",
+                                          QString ("Search"));
+  qw->rootContext ()->setContextProperty (
+      "searchEmptyText", QString ("No matching recent documents"));
+  QVariantMap document;
+  document["name"]= QString ("notes.tm");
+  document["path"]= QString ("C:/docs/notes.tm");
+  QVariantList documents;
+  documents << document;
+  qw->rootContext ()->setContextProperty ("recentDocuments", documents);
+  QStringList buttons;
+  buttons << "Open"
+          << "Cancel";
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/SearchRecentDocuments.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->rootObject ()->property ("selectedIndex").toInt (), -1);
 }
 
 #ifdef QTTEXMACS

@@ -204,4 +204,13 @@ void cpp_statistics_dialog (string title, tree items);
  */
 tree cpp_preferences_dialog ();
 
+/**
+ * @brief Open the QML search dialog for recently opened documents.
+ *
+ * @return The selected document path, or an empty string after Cancel, Esc,
+ *
+ * window close, or QML loading failure.
+ */
+string cpp_search_recent_documents_dialog ();
+
 #endif // defined QTM_QML_DIALOG_H
