@@ -95,7 +95,7 @@ public:
   collab_session* get_or_create (url buffer_url);
   void            remove_session (collab_session* session);
   void            poll_all ();
-  void apply_all ();
+  void            apply_all ();
 };
 
 extern collab_session_manager g_session_manager;

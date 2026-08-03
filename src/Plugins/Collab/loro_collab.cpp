@@ -288,8 +288,7 @@ collab_session::flush_cursor (bool force) {
 void
 collab_session::apply_queued_remote () {
   editor ed= get_editor ();
-  if (!is_nil (ed))
-    ed->apply_queued_remote ();
+  if (!is_nil (ed)) ed->apply_queued_remote ();
 }
 
 void
@@ -504,6 +503,6 @@ loro_collab_poll () {
 }
 
 void
-loro_collab_apply() {
+loro_collab_apply () {
   g_session_manager.apply_all ();
 }
