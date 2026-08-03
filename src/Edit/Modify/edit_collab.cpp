@@ -201,10 +201,11 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
     array<linear_item> loro_items=
         markup_to_linear_ir (loro_doc->body_markup ());
     bool prefer_start= false;
+    int  zero_length_skip= 0;
     int  text_char_idx=
-        linear_ir_text_index_of_offset (loro_items, off, prefer_start);
+        linear_ir_text_index_of_offset (loro_items, off, prefer_start, zero_length_skip);
     path raw_p=
-        linear_ir_path_at_text_index (items, text_char_idx, prefer_start);
+        linear_ir_path_at_text_index (items, text_char_idx, prefer_start, zero_length_skip);
 
     if (is_nil (raw_p)) return path ();
     path node_path= path_up (raw_p);

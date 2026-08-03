@@ -475,10 +475,11 @@ linear_ir_path_at_offset (array<linear_item> items, int byte_off) {
 
 int
 linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off,
-                                bool& prefer_start) {
+                                bool& prefer_start, int& zero_length_skip) {
   int text_idx= 0;
   int cur     = 0;
   prefer_start= false;
+  zero_length_skip = 0;
   for (int i= 0; i < N (items); i++) {
     linear_item it = items[i];
     int         len= item_markup_len (it);
@@ -492,6 +493,11 @@ linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off,
         return text_idx + N (it.text);
       }
       text_idx+= N (it.text);
+      if (N (it.text) == 0) {
+        zero_length_skip++;
+      } else {
+        zero_length_skip = 0;
+      }
     }
     cur+= len;
     if (cur > byte_off) {
@@ -504,12 +510,13 @@ linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off,
 
 path
 linear_ir_path_at_text_index (const array<linear_item>& items,
-                              int target_text_idx, bool prefer_start) {
+                              int target_text_idx, bool prefer_start, int zero_length_skip) {
   int        text_idx= 0;
   array<int> prefix, saved;
   int        next_child = 0;
   bool       inside_root= false;
   path       last_atomic= path ();
+  int        current_zero_skip = 0;
   for (int i= 0; i < N (items); i++) {
     linear_item it= items[i];
     if (it.kind == LI_OPEN) {
@@ -530,16 +537,29 @@ linear_ir_path_at_text_index (const array<linear_item>& items,
     else if (it.kind == LI_TEXT || it.kind == LI_BINARY) {
       int len= N (it.text);
       if (target_text_idx >= text_idx && target_text_idx <= text_idx + len) {
+        if (len == 0 && target_text_idx == text_idx) {
+          if (current_zero_skip < zero_length_skip) {
+            current_zero_skip++;
+            last_atomic = build_path (prefix, len);
+            continue;
+          }
+        }
         if (prefer_start && target_text_idx == text_idx + len && len > 0) {
           // 当前节点匹配到了它的末尾（或下个节点开头）。既然意图在段首，且本节点长度>0，跳过本节点，由下个节点兜住
           // 0 偏移
           text_idx+= len;
+          current_zero_skip = 0;
           last_atomic= build_path (prefix, len);
           continue;
         }
         return build_path (prefix, target_text_idx - text_idx);
       }
       text_idx+= len;
+      if (len == 0) {
+        current_zero_skip++;
+      } else {
+        current_zero_skip = 0;
+      }
       last_atomic= build_path (prefix, len);
     }
   }
