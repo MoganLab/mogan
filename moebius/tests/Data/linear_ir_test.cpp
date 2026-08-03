@@ -65,8 +65,8 @@ TEST_CASE ("linear_ir: atomic string round-trips") {
 }
 
 TEST_CASE ("linear_ir: atomic becomes single bare TEXT item") {
-  tree                 t ("hi");
-  array<linear_item>   ir= tree_to_linear_ir (t);
+  tree               t ("hi");
+  array<linear_item> ir= tree_to_linear_ir (t);
   CHECK_EQ (N (ir) == 1, true);
   CHECK_EQ (ir[0].kind == LI_TEXT, true);
   CHECK_EQ (ir[0].text == "hi", true);
@@ -76,9 +76,9 @@ TEST_CASE ("linear_ir: compound with known label round-trips") {
   ensure_labels ();
   // (document "a" (para "b"))
   tree t (DOCUMENT, 2);
-  t[0]   = tree ("a");
-  t[1]   = tree (PARA, 1);
-  t[1][0]= tree ("b");
+  t[0]     = tree ("a");
+  t[1]     = tree (PARA, 1);
+  t[1][0]  = tree ("b");
   tree back= linear_ir_to_tree (tree_to_linear_ir (t));
   CHECK_EQ (back == t, true);
   CHECK_EQ (as_string (L (back)) == "document", true);
@@ -95,7 +95,7 @@ TEST_CASE ("linear_ir: compound with extension label round-trips") {
 
 TEST_CASE ("linear_ir: generic op<0 round-trips") {
   tree t (-7, 1);
-  t[0]            = tree ("g");
+  t[0]                 = tree ("g");
   array<linear_item> ir= tree_to_linear_ir (t);
   CHECK_EQ (ir[0].kind == LI_OPEN, true);
   CHECK_EQ (ir[0].label == "generic:-7", true);
@@ -107,9 +107,9 @@ TEST_CASE ("linear_ir: adjacent atomics are distinct children") {
   ensure_labels ();
   // (concat "a" "b" "c") —— 三个相邻原子子节点
   tree t (CONCAT, 3);
-  t[0]   = tree ("a");
-  t[1]   = tree ("b");
-  t[2]   = tree ("c");
+  t[0]                 = tree ("a");
+  t[1]                 = tree ("b");
+  t[2]                 = tree ("c");
   array<linear_item> ir= tree_to_linear_ir (t);
   // OPEN(concat) TEXT TEXT TEXT CLOSE
   CHECK_EQ (N (ir) == 5, true);
@@ -157,8 +157,8 @@ TEST_CASE ("linear_ir: binary atomic (non-UTF-8) round-trips") {
   bin << (char) 0x47;
   bin << (char) 0x0d;
   bin << (char) 0x0a;
-  tree                 t (bin);
-  array<linear_item>   ir= tree_to_linear_ir (t);
+  tree               t (bin);
+  array<linear_item> ir= tree_to_linear_ir (t);
   CHECK_EQ (N (ir) == 1, true);
   CHECK_EQ (ir[0].kind == LI_BINARY, true);
   CHECK_EQ (ir[0].text == bin, true);
@@ -173,11 +173,11 @@ TEST_CASE ("linear_ir: binary atomic (non-UTF-8) round-trips") {
 TEST_CASE ("linear_ir: markup round-trips a compound document") {
   ensure_labels ();
   tree t (DOCUMENT, 2);
-  t[0]   = tree (PARA, 1);
-  t[0][0]= tree ("hello");
-  t[1]   = tree (PARA, 1);
-  t[1][0]= tree ("world");
-  array<linear_item> ir= tree_to_linear_ir (t);
+  t[0]                     = tree (PARA, 1);
+  t[0][0]                  = tree ("hello");
+  t[1]                     = tree (PARA, 1);
+  t[1][0]                  = tree ("world");
+  array<linear_item> ir    = tree_to_linear_ir (t);
   string             markup= linear_ir_to_markup (ir);
   array<linear_item> back  = markup_to_linear_ir (markup);
   tree               t2    = linear_ir_to_tree (back);
@@ -192,9 +192,9 @@ TEST_CASE ("linear_ir: markup escapes sentinel bytes in user text") {
   s << "b";
   s << (char) 0x02;
   s << "c";
-  tree t (s);
+  tree   t (s);
   string markup= linear_ir_to_markup (tree_to_linear_ir (t));
-  tree  back  = linear_ir_to_tree (markup_to_linear_ir (markup));
+  tree   back  = linear_ir_to_tree (markup_to_linear_ir (markup));
   CHECK_EQ (back == t, true);
 }
 
@@ -204,9 +204,9 @@ TEST_CASE ("linear_ir: markup round-trips binary atomic") {
   bin << (char) 0x50;
   bin << (char) 0x4e;
   bin << (char) 0x47;
-  tree t (bin);
+  tree   t (bin);
   string markup= linear_ir_to_markup (tree_to_linear_ir (t));
-  tree  back  = linear_ir_to_tree (markup_to_linear_ir (markup));
+  tree   back  = linear_ir_to_tree (markup_to_linear_ir (markup));
   CHECK_EQ (back == t, true);
 }
 
@@ -216,8 +216,8 @@ TEST_CASE ("linear_ir: markup round-trips binary atomic") {
 
 TEST_CASE ("linear_ir: SPLIT marker yields same-label siblings") {
   ensure_labels ();
-  // [OPEN(document), OPEN(para), TEXT("hel"), MARKER(SPLIT), TEXT("lo"), CLOSE, CLOSE]
-  // → (document (para "hel")(para "lo"))
+  // [OPEN(document), OPEN(para), TEXT("hel"), MARKER(SPLIT), TEXT("lo"), CLOSE,
+  // CLOSE] → (document (para "hel")(para "lo"))
   array<linear_item> ir;
   ir << mk_open ("document");
   ir << mk_open ("para");
@@ -238,7 +238,8 @@ TEST_CASE ("linear_ir: SPLIT marker yields same-label siblings") {
 
 TEST_CASE ("linear_ir: removing SPLIT (JOIN) keeps two atomics in one node") {
   ensure_labels ();
-  // 同上但去掉 SPLIT → (document (para "hel" "lo"))：两段原子成为同一 para 的子节点
+  // 同上但去掉 SPLIT → (document (para "hel" "lo"))：两段原子成为同一 para
+  // 的子节点
   array<linear_item> ir;
   ir << mk_open ("document");
   ir << mk_open ("para");

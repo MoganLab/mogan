@@ -3,7 +3,8 @@
  *  \details 线性文档流 IR：把 moebius 文档树展开成一条线性的 item 序列，作为
  *            body ↔ Loro 单条 LoroText 标记流转换的核心。复合/泛型节点以
  *            OPEN/CLOSE 包裹，原子以裸 TEXT/BINARY 表示，结构操作以 MARKER
- *            （当前仅 SPLIT）表示。本层不依赖 loro-ffi，可独立编译与 round-trip。
+ *            （当前仅 SPLIT）表示。本层不依赖 loro-ffi，可独立编译与
+ * round-trip。
  *
  *            设计目标：SPLIT/JOIN/INSERT_NODE/REMOVE_NODE 退化为 item 序列上的
  *            插入/删除，保留所有存活内容的身份（Loro 字符 op-id）。例如
@@ -38,13 +39,14 @@ enum linear_marker_kind { LM_SPLIT };
 
 struct linear_item {
   linear_item_kind   kind;
-  string             label;   // OPEN: 标签名 / "generic:<op>"
-  string             text;    // TEXT: 原文；BINARY: 原始字节
-  linear_marker_kind marker;  // MARKER 子类型
+  string             label;  // OPEN: 标签名 / "generic:<op>"
+  string             text;   // TEXT: 原文；BINARY: 原始字节
+  linear_marker_kind marker; // MARKER 子类型
 };
 
 /** moebius tree -> 线性 IR（先序展开）。复合/泛型 → OPEN ...children... CLOSE；
- *  原子 → 裸 TEXT（合法 UTF-8）或 BINARY（否则）。根原子产出单条 TEXT/BINARY。 */
+ *  原子 → 裸 TEXT（合法 UTF-8）或 BINARY（否则）。根原子产出单条 TEXT/BINARY。
+ */
 array<linear_item> tree_to_linear_ir (tree t);
 
 /** 线性 IR -> moebius tree（栈式解析）。MARKER(SPLIT) 关闭当前最内层复合并以

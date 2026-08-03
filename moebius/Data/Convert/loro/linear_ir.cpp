@@ -1,9 +1,9 @@
 /** \file linear_ir.cpp
  *  \copyright GPLv3
  *
- * 实现 tree <-> 线性 IR <-> markup 文本的双向映射。标签处理与 loro_ir.cpp 一致：
- * 导出用 as_string(L(t)) 取名字，导入用 make_tree_label(name) 反查（含扩展），
- * generic 节点（op<0）用 "generic:<op>" 前缀存取。
+ * 实现 tree <-> 线性 IR <-> markup 文本的双向映射。标签处理与 loro_ir.cpp
+ * 一致： 导出用 as_string(L(t)) 取名字，导入用 make_tree_label(name)
+ * 反查（含扩展）， generic 节点（op<0）用 "generic:<op>" 前缀存取。
  *
  * markup 编码（进出单条 LoroText）：
  *   - 哨兵 ESC = \x01 引入一个 token，ESCAPE = \x02 作转义引入符。
@@ -30,8 +30,8 @@ using lolly::data::decode_base64;
 using lolly::data::encode_base64;
 
 static const string GENERIC_PREFIX= "generic:";
-static const char   ESC = '\x01'; // token 引入符 / 终止符
-static const char   ESCC= '\x02'; // 转义引入符
+static const char   ESC           = '\x01'; // token 引入符 / 终止符
+static const char   ESCC          = '\x02'; // 转义引入符
 
 /******************************************************************************
  * UTF-8 结构合法性（区分文本/二进制原子；与 Rust 侧 std::str::from_utf8 对齐）
@@ -92,7 +92,8 @@ emit_node (array<linear_item>& items, tree t) {
     open.label= label_of (t);
     items << open;
     int n= N (t);
-    for (int i= 0; i < n; i++) emit_node (items, t[i]);
+    for (int i= 0; i < n; i++)
+      emit_node (items, t[i]);
     linear_item close;
     close.kind= LI_CLOSE;
     items << close;
@@ -110,8 +111,8 @@ tree_to_linear_ir (tree t) {
  * 线性 IR -> tree
  *****************************************************************************/
 struct li_frame {
-  int           op;
-  array<tree>   children;
+  int         op;
+  array<tree> children;
 };
 
 static void
@@ -201,8 +202,8 @@ emit_token (string& out, char type, string payload) {
 
 string
 linear_ir_to_markup (array<linear_item> items) {
-  string         out;
-  int            n   = N (items);
+  string           out;
+  int              n   = N (items);
   linear_item_kind prev= LI_CLOSE; // 首个 TEXT 前无需 SEP
   for (int i= 0; i < n; i++) {
     linear_item& it= items[i];
@@ -212,7 +213,7 @@ linear_ir_to_markup (array<linear_item> items) {
       emit_token (out, 'S', "");
     else if (it.kind == LI_BINARY)
       emit_token (out, 'B', encode_base64 (it.text));
-    else { // LI_TEXT
+    else {                                            // LI_TEXT
       if (prev == LI_TEXT) emit_token (out, 'P', ""); // 相邻原子分隔
       emit_escaped (out, it.text);
     }
