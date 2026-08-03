@@ -651,11 +651,11 @@ public:
   virtual void loro_seed_local_meta ()= 0;
   // 本地 meta 改动镜像到 CRDT（由 edit_typeset 的 setter 调用，受
   // applying_remote 守卫）。
-  virtual void mirror_meta_if_active (string section)= 0;
-  virtual void collab_snapshot_cursor () = 0;
-  virtual void collab_restore_cursor (bool apply = true) = 0;
-  virtual void queue_remote (string raw_mod) =0;
-  virtual void apply_queued_remote () =0;
+  virtual void mirror_meta_if_active (string section)  = 0;
+  virtual void collab_snapshot_cursor ()               = 0;
+  virtual void collab_restore_cursor (bool apply= true)= 0;
+  virtual void queue_remote (string raw_mod)           = 0;
+  virtual void apply_queued_remote ()                  = 0;
 #endif
   virtual void collab_enable () = 0; // 留在 LORO_ENABLED 条件外，由编译宏控制。
   virtual bool collab_enabled ()= 0; // 这是为了保证 glue 生成过程中能找到实现

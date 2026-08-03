@@ -965,11 +965,11 @@ qt_gui_rep::update () {
   if (!postpone_treatment) {
     if (the_interpose_handler) the_interpose_handler ();
 #ifdef LORO_ENABLED
-    static time_t last_loro_poll_time = 0;
+    static time_t last_loro_poll_time= 0;
     if (now - last_loro_poll_time >= 1000 / 6) {
       loro_collab_poll ();
       loro_collab_apply ();
-      last_loro_poll_time = now;
+      last_loro_poll_time= now;
     }
 #endif
     qt_simple_widget_rep::repaint_all ();
