@@ -286,6 +286,13 @@ collab_session::flush_cursor (bool force) {
 }
 
 void
+collab_session::apply_queued_remote () {
+  editor ed= get_editor ();
+  if (!is_nil (ed))
+    ed->apply_queued_remote ();
+}
+
+void
 collab_session::on_connect () {
   if (DEBUG_LORO) debug_loro << "已连接服务端 " << server_url << "\n";
   enter_await_doc ();
@@ -337,14 +344,14 @@ collab_session::on_message (string data, bool is_binary) {
   editor ed= get_editor ();
   if (is_nil (ed)) return;
   if (state == collab_state::await_frame) {
-    ed->apply_remote (data);
+    ed->queue_remote (data);
     become_ready ();
     // 初始化（JOIN
     // 首帧）不补发光标：远端推送/初始化带来的光标变化本就是同步的，
     // 待用户实际移动光标/编辑时再上行。
   }
   else if (state == collab_state::ready) {
-    ed->apply_remote (data);
+    ed->queue_remote (data);
     // 远程编辑不补发光标：远端推送带来的光标/选区变化本就是同步的，不应再触发
     // 本端补发（apply_remote 恢复期间 loro_applying_remote=true，hook
     // 已被抑制）。
@@ -420,6 +427,18 @@ collab_session_manager::poll_all () {
   }
 }
 
+void
+collab_session_manager::apply_all () {
+  array<collab_session*> copy= sessions;
+  for (int i= 0; i < N (copy); i++) {
+    copy[i]->apply_queued_remote ();
+    if (!copy[i]->is_active () && copy[i]->is_buffer_known () &&
+        is_nil (concrete_buffer (copy[i]->get_buffer_url ()))) {
+      remove_session (copy[i]);
+    }
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Public C API (loro_collab.hpp)
 // -----------------------------------------------------------------------------
@@ -482,4 +501,9 @@ loro_collab_doc_id () {
 void
 loro_collab_poll () {
   g_session_manager.poll_all ();
+}
+
+void
+loro_collab_apply() {
+  g_session_manager.apply_all ();
 }

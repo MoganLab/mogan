@@ -244,38 +244,119 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_
   }
   return node_path * path (off);
 }
+stable_cursor_snapshot::stable_cursor_snapshot (edit_modify_rep* ed, path tp, path rp, tree buf, loro_shadow* loro_doc)
+    : ed (ed), rp (rp), cur_save (nil_observer), had_sel (false),
+      sel_start_save (nil_observer), sel_end_save (nil_observer) {
+  cur_save= ed->position_new (tp);
+  had_sel = ed->selection_active_any ();
+  if (had_sel) {
+    path sp, ep;
+    ed->selection_get (sp, ep);
+    sel_start_save= ed->position_new (sp);
+    sel_end_save  = ed->position_new (ep);
+  }
+
+  if (rp <= tp) {
+    array<linear_item> items= tree_to_linear_ir (buf);
+    
+    cur_payload= encode_path (buf, *loro_doc, tp / rp, items);
+    if (DEBUG_LORO) {
+      debug_loro << "cursor payload = " << cur_payload << "\n";
+      debug_loro << "cursor tp = " << tp << "\n";
+      debug_loro << "cursor rp = " << rp << "\n";
+    }
+
+    if (had_sel) {
+      path sp, ep;
+      ed->selection_get (sp, ep);
+
+      if (rp <= sp && rp <= ep) {
+        sel_start_payload= encode_path (buf, *loro_doc, sp / rp, items);
+        sel_end_payload  = encode_path (buf, *loro_doc, ep / rp, items);
+
+        if (DEBUG_LORO) {
+          debug_loro << "selection start = " << sel_start_payload << "\n";
+          debug_loro << "selection end   = " << sel_end_payload << "\n";
+        }
+      }
+    }
+  }
+}
+
+void stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
+  array<linear_item> items2= tree_to_linear_ir (buf2);
+
+  path nc= ed->position_get (cur_save);
+  // 用稳定光标进行更高优先级的恢复
+  if (cur_payload != "") {
+    mogan_tree_id tid; string off_field;
+    if (parse_group (cur_payload, tid, off_field)) {
+      path stable_cp= resolve_cursor (tid, off_field, buf2, *loro_doc, items2);
+      if (!is_nil (stable_cp)) {
+        nc= rp * stable_cp;
+        if (DEBUG_LORO) debug_loro << "resolved cursor path = " << nc << "\n";
+      }
+    }
+  }
+
+  ed->position_delete (cur_save);
+  if (!is_nil (nc)) ed->go_to_correct (nc); // 游标按错位后路径恢复
+  else ed->go_to_start (rp); // 游标所在节点被远端删除：回落 buffer 起始
+
+  if (had_sel) {
+    path ns= ed->position_get (sel_start_save);
+    path ne= ed->position_get (sel_end_save);
+
+    if (sel_start_payload != "") {
+      mogan_tree_id tid; string off_field;
+      if (parse_group (sel_start_payload, tid, off_field)) {
+        path stable_sp= resolve_cursor (tid, off_field, buf2, *loro_doc, items2);
+        if (!is_nil (stable_sp)) {
+          ns= rp * stable_sp;
+          if (DEBUG_LORO) debug_loro << "resolved selection start path = " << ns << "\n";
+        }
+      }
+    }
+    if (sel_end_payload != "") {
+      mogan_tree_id tid; string off_field;
+      if (parse_group (sel_end_payload, tid, off_field)) {
+        path stable_ep= resolve_cursor (tid, off_field, buf2, *loro_doc, items2);
+        if (!is_nil (stable_ep)) {
+          ne= rp * stable_ep;
+          if (DEBUG_LORO) debug_loro << "resolved selection end path = " << ne << "\n";
+        }
+      }
+    }
+
+    ed->position_delete (sel_start_save);
+    ed->position_delete (sel_end_save);
+    if (!is_nil (ns) && !is_nil (ne) && ns != ne) ed->select (ns, ne);
+  }
+}
+
+void edit_modify_rep::collab_snapshot_cursor () {
+  if (current_cursor_snapshot) delete current_cursor_snapshot;
+  current_cursor_snapshot = new stable_cursor_snapshot (this, tp, rp, the_buffer (), &loro_doc);
+}
+
+void edit_modify_rep::collab_restore_cursor (bool apply) {
+  if (current_cursor_snapshot) {
+    if (apply) current_cursor_snapshot->restore (the_buffer (), &loro_doc);
+    else {
+      position_delete (current_cursor_snapshot->cur_save);
+      position_delete (current_cursor_snapshot->sel_start_save);
+      position_delete (current_cursor_snapshot->sel_end_save);
+    }
+    delete current_cursor_snapshot;
+    current_cursor_snapshot = nullptr;
+  }
+}
+
 void
 edit_modify_rep::apply_remote (string bytes) {
   if (DEBUG_LORO)
     debug_loro << "Applying remote update of size " << N (bytes) << "\n";
   bench_start ("apply_remote");
-  // 远端 mod 经 apply()（tree_observer::raw_apply）改树，游标 tp 与选中路径会
-  // 系统性错位（选中区域失效）。先把它们转成 observer 追踪位置（raw_apply 的
-  // observer 回调会随树编辑更新 position），应用 mods 后取回错位后的路径恢复。
-  observer cur_save      = position_new (tp);
-  bool     had_sel       = selection_active_any ();
-  observer sel_start_save= nil_observer, sel_end_save= nil_observer;
-  if (had_sel) {
-    path sp, ep;
-    selection_get (sp, ep);
-    sel_start_save= position_new (sp);
-    sel_end_save  = position_new (ep);
-  }
-
-  string cur_payload, sel_start_payload, sel_end_payload;
-  if (rp <= tp) {
-    tree buf = the_buffer();
-    array<linear_item> items = tree_to_linear_ir (buf);
-    cur_payload = encode_path (buf, loro_doc, tp / rp, items);
-    if (had_sel) {
-      path sp, ep;
-      selection_get (sp, ep);
-      if (rp <= sp && rp <= ep) {
-        sel_start_payload = encode_path (buf, loro_doc, sp / rp, items);
-        sel_end_payload = encode_path (buf, loro_doc, ep / rp, items);
-      }
-    }
-  }
 
   loro_applying_remote= true;
   // 远端修改不得进入本地 undo 历史：它会混进本地按键所在的 current 单元，
@@ -291,51 +372,6 @@ edit_modify_rep::apply_remote (string bytes) {
     apply (et, rp * l->item);
   }
   // applying_remote 暂不关闭：apply_remote_meta 的回写 setter 也要在守卫内
-
-  // 恢复游标与选中（observer 已随 apply 的树编辑更新位置）。恢复期间保持
-  // loro_applying_remote=true，使 go_to/select 的 collab_cursor_moved_hook
-  // 被抑制
-
-  tree buf2 = the_buffer();
-  array<linear_item> items2 = tree_to_linear_ir (buf2);
-
-  path nc= position_get (cur_save);
-  // 用稳定光标进行更高优先级的恢复
-  if (cur_payload != "") {
-    mogan_tree_id tid; string off_field;
-    if (parse_group(cur_payload, tid, off_field)) {
-      path stable_cp = resolve_cursor(tid, off_field, buf2, loro_doc, items2);
-      if (!is_nil(stable_cp)) nc = rp * stable_cp;
-    }
-  }
-
-  position_delete (cur_save);
-  if (!is_nil (nc)) go_to_correct (nc); // 游标按错位后路径恢复
-  else go_to_start (rp); // 游标所在节点被远端删除：回落 buffer 起始
-
-  if (had_sel) {
-    path ns= position_get (sel_start_save);
-    path ne= position_get (sel_end_save);
-
-    if (sel_start_payload != "") {
-      mogan_tree_id tid; string off_field;
-      if (parse_group(sel_start_payload, tid, off_field)) {
-        path stable_sp = resolve_cursor(tid, off_field, buf2, loro_doc, items2);
-        if (!is_nil(stable_sp)) ns = rp * stable_sp;
-      }
-    }
-    if (sel_end_payload != "") {
-      mogan_tree_id tid; string off_field;
-      if (parse_group(sel_end_payload, tid, off_field)) {
-        path stable_ep = resolve_cursor(tid, off_field, buf2, loro_doc, items2);
-        if (!is_nil(stable_ep)) ne = rp * stable_ep;
-      }
-    }
-
-    position_delete (sel_start_save);
-    position_delete (sel_end_save);
-    if (!is_nil (ns) && !is_nil (ne) && ns != ne) select (ns, ne);
-  }
 
   // 远端 mod 改变了树结构，上面的 go_to_correct/go_to_start/select 只是把
   // 错位后的游标「按位恢复」，并非用户主动移动；但 go_to 会置位 user_active，
@@ -595,5 +631,24 @@ edit_modify_rep::get_remote_cursors () {
     out << v;
   }
   return out;
+}
+
+void
+edit_modify_rep::queue_remote (string raw_mod) {
+  queued_remote_mods << raw_mod;
+}
+
+void
+edit_modify_rep::apply_queued_remote () {
+  array<string> q = queued_remote_mods;
+  queued_remote_mods = array<string> (0);
+  if (N(q) != 0) {
+    collab_snapshot_cursor ();
+
+    for (int i = 0; i < N (q); i++)
+      apply_remote (q[i]);
+
+    collab_restore_cursor();
+  }
 }
 #endif

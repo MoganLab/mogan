@@ -70,4 +70,7 @@ array<string> loro_collab_docs ();
 /** @brief 在 GUI 帧循环里驱动（drain WS 回调）。由 GUI 的 _interpose 调用。 */
 void loro_collab_poll ();
 
+/** @brief 在 GUI 帧循环里驱动 apply_remote */
+void loro_collab_apply ();
+
 #endif // LORO_COLLAB_HPP

@@ -19,6 +19,26 @@
 
 path inner_paragraph (tree t, path p);
 
+class edit_modify_rep;
+
+#ifdef LORO_ENABLED
+struct stable_cursor_snapshot {
+  edit_modify_rep* ed;
+  path             rp;
+  observer         cur_save;
+  bool             had_sel;
+  observer         sel_start_save;
+  observer         sel_end_save;
+  
+  string cur_payload;
+  string sel_start_payload;
+  string sel_end_payload;
+
+  stable_cursor_snapshot (edit_modify_rep* ed, path tp, path rp, tree buf, loro_shadow* loro_doc);
+  void restore (tree buf, loro_shadow* loro_doc);
+};
+#endif
+
 class edit_modify_rep : virtual public editor_rep {
 protected:
   observer cur_pos; // tree_position corresponding to tp
@@ -47,6 +67,8 @@ protected:
     string        e_off;
   };
   array<remote_cursor_entry> remote_cursors;
+  array<string> queued_remote_mods;
+  stable_cursor_snapshot*    current_cursor_snapshot = nullptr;
 #endif
 
 public:
@@ -72,6 +94,10 @@ public:
   array<remote_cursor_view> get_remote_cursors () override;
   string                    collab_cursor_payload () override;
   void                      collab_cursor_moved_hook () override;
+  void                      collab_snapshot_cursor () override;
+  void                      collab_restore_cursor (bool apply = true) override;
+  void queue_remote (string raw_mod) override;
+  void apply_queued_remote () override;
 #endif
   void collab_enable () override;
   bool collab_enabled () override;
