@@ -734,6 +734,7 @@
     "cpp-paragraph-format-dialog"
     "cpp-preferences-dialog"
     "cpp-statistics-dialog"
+    "cpp-version-dialog"
     "cpp-rasterize-widget"
     "kill-window"
     "kill-current-window-and-buffer"
