@@ -475,23 +475,27 @@ linear_ir_path_at_offset (array<linear_item> items, int byte_off) {
 
 
 int
-linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off) {
+linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off, bool& prefer_start) {
   int text_idx = 0;
   int cur = 0;
+  prefer_start = false;
   for (int i = 0; i < N(items); i++) {
     linear_item it = items[i];
     int len = item_markup_len(it);
     if (it.kind == LI_TEXT || it.kind == LI_BINARY) {
       if (byte_off >= cur && byte_off < cur + len) {
+        if (byte_off == cur) prefer_start = true;
         return text_idx + deescaped_char_offset(it.text, byte_off - cur);
       }
       if (byte_off == cur + len) {
+        if (len == 0) prefer_start = true; // 空节点视为停在 start
         return text_idx + N(it.text);
       }
       text_idx += N(it.text);
     }
     cur += len;
     if (cur > byte_off) {
+      prefer_start = true;
       return text_idx;
     }
   }
@@ -499,7 +503,7 @@ linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off) {
 }
 
 path
-linear_ir_path_at_text_index (const array<linear_item>& items, int target_text_idx) {
+linear_ir_path_at_text_index (const array<linear_item>& items, int target_text_idx, bool prefer_start) {
   int text_idx = 0;
   array<int> prefix, saved;
   int next_child = 0;
@@ -523,6 +527,12 @@ linear_ir_path_at_text_index (const array<linear_item>& items, int target_text_i
     } else if (it.kind == LI_TEXT || it.kind == LI_BINARY) {
       int len = N(it.text);
       if (target_text_idx >= text_idx && target_text_idx <= text_idx + len) {
+        if (prefer_start && target_text_idx == text_idx + len && len > 0) {
+          // 当前节点匹配到了它的末尾（或下个节点开头）。既然意图在段首，且本节点长度>0，跳过本节点，由下个节点兜住 0 偏移
+          text_idx += len;
+          last_atomic = build_path(prefix, len);
+          continue;
+        }
         return build_path(prefix, target_text_idx - text_idx);
       }
       text_idx += len;
