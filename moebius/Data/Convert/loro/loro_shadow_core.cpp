@@ -111,7 +111,9 @@ string
 loro_shadow_rep::encode_body_cursor_hex (int byte_offset) {
   uint8_t* out    = nullptr;
   size_t   out_len= 0;
-  if (mogan_loro_body_encode_cursor (doc, (size_t) byte_offset, &out, &out_len) != 0 || out == nullptr) {
+  if (mogan_loro_body_encode_cursor (doc, (size_t) byte_offset, &out,
+                                     &out_len) != 0 ||
+      out == nullptr) {
     if (out) mogan_loro_free (out, out_len);
     return "";
   }
