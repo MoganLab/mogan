@@ -10,10 +10,17 @@
 #ifndef QTM_QML_DIALOG_INTERNAL_H
 #define QTM_QML_DIALOG_INTERNAL_H
 
+#include "array.hpp"
+#include "string.hpp"
 #include "tree.hpp"
 
 #include <QStringList>
 #include <QVariantMap>
+#include <functional>
+
+class QDialog;
+class QQuickWidget;
+class QmlDialogBridge;
 
 // 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：
 // (<type> <label> <key> (<options>...) <value> <live?>)
@@ -56,5 +63,12 @@ QVariantMap field_tree_to_qml (tree f);
  * 硬编码漏译。
  */
 QStringList translate_buttons (array<string> buttons);
+
+QmlDialogBridge* inject_common_context (QQuickWidget* qw, QDialog& host);
+
+int run_qml_dialog (
+    const string& qml_url, const char* debug_tag,
+    std::function<void (QQuickWidget*, QDialog&)> inject_context, int logic_w,
+    int logic_h);
 
 #endif // defined QTM_QML_DIALOG_INTERNAL_H

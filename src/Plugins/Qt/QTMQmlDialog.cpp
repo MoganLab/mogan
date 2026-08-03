@@ -27,12 +27,9 @@ using moebius::data::scm_unquote;
 using moebius::data::tree_to_scheme_tree;
 
 #include <QDialog>
-#include <QDir>
-#include <QFileInfo>
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickWidget>
-#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVBoxLayout>
@@ -126,7 +123,7 @@ setup_frameless_qml_host (QDialog& d) {
  * QObject parent，不会被宿主 QDialog 析构带走，以便 form 型 exec 后取
  * results()）。
  */
-static QmlDialogBridge*
+QmlDialogBridge*
 inject_common_context (QQuickWidget* qw, QDialog& host) {
   bool isDark=
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
@@ -172,7 +169,7 @@ lock_fixed_size (QQuickWidget* qw, QVBoxLayout* vl, QDialog& d, int logic_w,
  *         QML 加载失败返回 -1。调用方据此映射结果（确认型 → 按钮下标；form 型
  *         → Accepted/Rejected，表单值另行从 bridge->results() 取）。
  */
-static int
+int
 run_qml_dialog (const string& qml_url, const char* debug_tag,
                 std::function<void (QQuickWidget*, QDialog&)> inject_context,
                 int logic_w, int logic_h) {
@@ -640,53 +637,4 @@ cpp_preferences_dialog () {
       620, 600);
   delete bridge;
   return tree (TUPLE);
-}
-
-// ---- Search recent documents ------------------------------------------------
-
-string
-cpp_search_recent_documents_dialog () {
-  string preset= get_env ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS");
-  if (preset != "") return preset == "cancel" ? string ("") : preset;
-
-  QVariantList  recentDocuments;
-  QSet<QString> seenPaths;
-  tmscm         recentPaths= eval_scheme ("(recent-documents-for-qml)");
-  for (tmscm cur= recentPaths; !tmscm_is_null (cur); cur= tmscm_cdr (cur)) {
-    tmscm item= tmscm_car (cur);
-    if (!tmscm_is_string (item)) continue;
-    QString path= QString::fromUtf8 (as_charp (tmscm_to_string (item)));
-    if (path.isEmpty ()) continue;
-    QString normalizedPath= QDir::cleanPath (QDir::fromNativeSeparators (path));
-    if (seenPaths.contains (normalizedPath)) continue;
-    seenPaths.insert (normalizedPath);
-    QVariantMap document;
-    document["path"]= path;
-    document["name"]= QFileInfo (path).fileName ();
-    recentDocuments << document;
-  }
-
-  array<string>    buttons= {string ("Open"), string ("Cancel")};
-  QmlDialogBridge* bridge = nullptr;
-  run_qml_dialog (
-      "qrc:/qml/SearchRecentDocuments.qml", "SearchRecentDocuments.qml",
-      [&] (QQuickWidget* qw, QDialog& host) {
-        bridge= inject_common_context (qw, host);
-        qw->rootContext ()->setContextProperty (
-            "searchDialogTitle", qt_translate ("Search recent documents"));
-        qw->rootContext ()->setContextProperty ("searchPlaceholder",
-                                                qt_translate ("Search"));
-        qw->rootContext ()->setContextProperty (
-            "searchEmptyText", qt_translate ("No matching recent documents"));
-        qw->rootContext ()->setContextProperty ("recentDocuments",
-                                                recentDocuments);
-        qw->rootContext ()->setContextProperty ("dialogButtons",
-                                                translate_buttons (buttons));
-      },
-      520, 450);
-
-  QString path;
-  if (bridge) path= bridge->results ().value ("path").toString ();
-  delete bridge;
-  return from_qstring (path);
 }

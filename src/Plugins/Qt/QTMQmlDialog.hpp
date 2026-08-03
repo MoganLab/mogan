@@ -92,6 +92,7 @@
 #define QTM_QML_DIALOG_H
 
 #include "array.hpp"
+#include "RecentDocumentsSearchDialog.hpp"
 #include "string.hpp"
 #include "tree.hpp"
 
@@ -213,14 +214,5 @@ bool cpp_version_dialog (string title, string message);
  * devel/2044.md 与 ai-docs/qml/README.md。
  */
 tree cpp_preferences_dialog ();
-
-/**
- * @brief Open the QML search dialog for recently opened documents.
- *
- * @return The selected document path, or an empty string after Cancel, Esc,
- *
- * window close, or QML loading failure.
- */
-string cpp_search_recent_documents_dialog ();
 
 #endif // defined QTM_QML_DIALOG_H
