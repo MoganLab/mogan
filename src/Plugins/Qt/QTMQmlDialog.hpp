@@ -187,7 +187,12 @@ tree cpp_paragraph_format_dialog (int specs_key);
 void cpp_statistics_dialog (string title, tree items);
 
 /**
- * @brief Version QML dialog glue entry.
+ * @brief 显示版本 QML 对话框。
+ *
+ * @param title 已翻译的对话框标题。
+ * @param message 已翻译的版本提示，换行会拆为独立 QML 文本行。
+ * @return 确认返回 true；取消、关闭或加载失败返回 false。
+ * @note MOGAN_TEST_VERSION_DIALOG 用于测试。
  */
 bool cpp_version_dialog (string title, string message);
 
