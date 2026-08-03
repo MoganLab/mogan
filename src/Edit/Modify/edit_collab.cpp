@@ -250,6 +250,7 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
   }
   return node_path * path (off);
 }
+
 stable_cursor_snapshot::stable_cursor_snapshot (edit_modify_rep* ed, path tp,
                                                 path rp, tree buf,
                                                 loro_shadow* loro_doc)
