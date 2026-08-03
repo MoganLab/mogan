@@ -44,6 +44,7 @@ target("libgoldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_complex.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_format.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_inexact.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_let.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_predicate.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_symbol.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_write.c",
@@ -70,6 +71,7 @@ target ("goldfish") do
     add_files({
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_base64.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_hashlib.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_string.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_njson.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",

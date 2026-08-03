@@ -42,6 +42,7 @@ s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_fv_ref_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_iv_ref_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cv_set_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args);
 
 #if !WITH_PURE_S7
 s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args);

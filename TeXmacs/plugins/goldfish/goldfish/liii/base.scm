@@ -30,6 +30,26 @@
     call-with-output-string
     reverse!
     format
+    let?
+    openlet?
+    funclet?
+    curlet
+    outlet
+    rootlet
+    owlet
+    funclet
+    inlet
+    sublet
+    varlet
+    cutlet
+    openlet
+    coverlet
+    unlet
+    let-ref
+    let-set!
+    let->list
+    symbol->value
+    symbol->dynamic-value
   ) ;export
   (begin
 
