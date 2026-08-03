@@ -271,6 +271,8 @@ TEST_CASE ("markup_edit: JOIN compound deletes CLOSE+OPEN(label)") {
 TEST_CASE (
     "markup_edit: INSERT_NODE wraps precisely (OPEN before + CLOSE after)") {
   ensure_labels ();
+  tree inner (CONCAT, 1);
+  inner[0]= tree ("hello");
   tree t (DOCUMENT, 1);
   t[0]            = tree ("hello");
   modification mod= mod_insert_node (path (0), 0, tree (CONCAT, 0));

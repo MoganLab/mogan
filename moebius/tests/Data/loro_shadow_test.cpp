@@ -1085,5 +1085,4 @@ TEST_CASE ("loro repro: concurrent text-insert + backslash-wrap converges") {
   CHECK_EQ (a->to_tree () == b->to_tree (), true); // 收敛
 }
 
->>>>>>> 0d4b933c4 (wk2)
 #endif // LORO_ENABLED
