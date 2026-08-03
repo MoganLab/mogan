@@ -31,8 +31,9 @@ class StubBridge : public QObject {
   Q_OBJECT
 public:
   explicit StubBridge (QObject* p= nullptr) : QObject (p) {}
+  int              cancelCount= 0;
   Q_INVOKABLE void choose (int) {}
-  Q_INVOKABLE void cancel () {}
+  Q_INVOKABLE void cancel () { ++cancelCount; }
   Q_INVOKABLE void submit (const QVariantMap&) {}
   Q_INVOKABLE void startMove () {}
 };
@@ -184,6 +185,8 @@ private slots:
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
+  void test_version_loads ();
+  void test_version_escape_cancels ();
   void test_statistics_loads ();
 };
 
@@ -334,12 +337,61 @@ TestQmlLoad::test_statistics_loads () {
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
-#ifdef QTTEXMACS
-QTEST_MAIN (TestQmlLoad)
-#else
-int
-main () {
-  return 0;
+void
+TestQmlLoad::test_version_loads () {
+  QStringList buttons;
+  buttons << "OK";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("versionTitle", QString ("Version"));
+  QStringList lines;
+  lines << "You are using v2026.2.6."
+        << "The latest stable version is v2026.2.6.";
+  qw->rootContext ()->setContextProperty ("versionLines", lines);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/Version.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->rootObject ()->implicitWidth (), 560.0);
+  QCOMPARE (qw->rootObject ()->implicitHeight (), 220.0);
+  QQuickItem* messageLines=
+      qw->rootObject ()->findChild<QQuickItem*> ("versionMessageLines");
+  QVERIFY (messageLines);
+  int messageLineCount= 0;
+  for (QQuickItem* item : messageLines->childItems ())
+    if (item->objectName () == "versionMessageLine") ++messageLineCount;
+  QCOMPARE (messageLineCount, lines.size ());
 }
-#endif
+
+void
+TestQmlLoad::test_version_escape_cancels () {
+  QStringList buttons;
+  buttons << "OK";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("versionTitle", QString ("Version"));
+  QStringList lines;
+  lines << "Version information";
+  qw->rootContext ()->setContextProperty ("versionLines", lines);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/Version.qml"));
+  host.show ();
+
+  QTRY_VERIFY (qw->rootObject ()->hasActiveFocus ());
+  QTest::keyClick (qw, Qt::Key_Escape);
+  QCOMPARE (bridge->cancelCount, 1);
+}
+
+QTEST_MAIN (TestQmlLoad)
 #include "qml_load_test.moc"

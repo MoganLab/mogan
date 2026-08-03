@@ -14,8 +14,9 @@
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 
-#include "analyze.hpp" // occurs
-#include "gui.hpp"     // tm_style_sheet
+#include "analyze.hpp"   // occurs
+#include "converter.hpp" // cork_to_utf8
+#include "gui.hpp"       // tm_style_sheet
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"     // eval_scheme
 #include "sys_utils.hpp" // lolly: get_env
@@ -63,6 +64,19 @@ translate_buttons (array<string> buttons) {
   for (int i= 0; i < N (buttons); i++)
     out << qt_translate (buttons[i]);
   return out;
+}
+
+static QStringList
+version_message_lines (const string& message) {
+  QStringList lines;
+  int         start= 0;
+  for (int i= 0; i < N (message); i++) {
+    if (message[i] != '\n') continue;
+    lines << utf8_to_qstring (cork_to_utf8 (message (start, i)));
+    start= i + 1;
+  }
+  lines << utf8_to_qstring (cork_to_utf8 (message (start, N (message))));
+  return lines;
 }
 
 /**
@@ -553,6 +567,31 @@ cpp_statistics_dialog (string title, tree items) {
                           &QObject::deleteLater);
       },
       380, 300);
+}
+
+bool
+cpp_version_dialog (string title, string message) {
+  string preset= get_env ("MOGAN_TEST_VERSION_DIALOG");
+  if (preset == "ok") return true;
+  if (preset == "cancel") return false;
+
+  array<string> buttons;
+  buttons << string ("OK");
+  QmlDialogBridge* bridge= nullptr;
+  int              choice= run_qml_dialog (
+      "qrc:/qml/Version.qml", "Version.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty (
+            "versionTitle", utf8_to_qstring (cork_to_utf8 (title)));
+        qw->rootContext ()->setContextProperty (
+            "versionLines", version_message_lines (message));
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                             translate_buttons (buttons));
+      },
+      560, 220);
+  delete bridge;
+  return choice == 1;
 }
 
 /**

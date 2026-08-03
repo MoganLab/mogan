@@ -21,5 +21,6 @@
         <file>qml/ParagraphFormat.qml</file>
         <file>qml/Statistics.qml</file>
         <file>qml/Preferences.qml</file>
+        <file>qml/Version.qml</file>
     </qresource>
 </RCC>

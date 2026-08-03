@@ -991,6 +991,7 @@
       <button class="nav-btn" data-target="font">FontSelector.qml</button>
       <button class="nav-btn" data-target="paragraph">ParagraphFormat.qml</button>
       <button class="nav-btn" data-target="statistics">Statistics.qml</button>
+      <button class="nav-btn" data-target="version">Version.qml</button>
       <button class="nav-btn" data-target="preferences">Preferences.qml</button>
       <button class="nav-btn" data-target="confirmRestart">ConfirmRestart.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
@@ -1321,6 +1322,24 @@
           <code>onClicked -> closeBridge.choose(0)</code>
         </p>
       </section>
+      <section class="panel" id="panel-version">
+        <article class="dialog" style="max-width: 560px;">
+          <h3>Version</h3>
+          <p style="text-align: left; line-height: 1.55; margin: 0;">
+            You are using v2026.2.6.<br>
+            The latest stable version of Mogan STEM is v2026.2.6, and the latest stable version of Liii STEM is v2026.2.6.<br>
+            Please click OK to visit the official website to download the latest stable version.
+          </p>
+          <div class="btn-row" style="margin-top: 20px;">
+            <button class="btn primary" data-log="Version: closeBridge.choose(1)">OK</button>
+          </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>versionTitle + versionLines + dialogButtons</code>
+          <code>onClicked -> closeBridge.choose(index + 1)</code>
+          <code>Scheme 根据确认结果决定是否打开官网</code>
+        </p>
+      </section>
       <section class="panel" id="panel-preferences">
         <article class="pref-shell">
           <div class="pref-tabs">
@@ -1590,11 +1609,13 @@
         font: document.getElementById('panel-font'),
         paragraph: document.getElementById('panel-paragraph'),
         statistics: document.getElementById('panel-statistics'),
+        version: document.getElementById('panel-version'),
         preferences: document.getElementById('panel-preferences'),
         confirmRestart: document.getElementById('panel-confirm-restart')
       };
 
       const titleMap = {
+        version: 'Version.qml preview',
         confirm: 'ConfirmClose.qml 模拟',
         form: 'FormDialog.qml 模拟',
         font: 'FontSelector.qml 模拟',
@@ -1605,6 +1626,7 @@
       };
 
       const codeMap = {
+        version: 'versionTitle + versionLines + closeBridge.choose(1)',
         confirm: 'dialogMessage + dialogButtons + closeBridge.choose()',
         form: 'formFields + values 收集 + closeBridge.submit(values)',
         font: 'fontBridge 联动: family/style/filter/customize/preview',

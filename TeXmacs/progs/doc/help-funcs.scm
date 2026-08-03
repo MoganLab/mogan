@@ -232,6 +232,14 @@
   ) ;with
 ) ;define
 
+(define (show-version-dialog msg url open-website?)
+  (when (cpp-version-dialog (translate "Version") msg)
+    (when open-website?
+      (open-url url)
+    ) ;when
+  ) ;when
+) ;define
+
 ;; 显示Mogan版本信息
 (tm-define (mogan-version)
   (let* ((cur-ver (xmacs-version))
@@ -250,20 +258,22 @@
     (if community?
       ;; 社区版：同时展示社区版和商业版的最新稳定版
       (let ((msg (if community-latest?
-                   (replace (string-append "You are using v%1.\n"
-                              "The latest stable version of Mogan STEM is v%2, "
-                              "and the latest stable version of Liii STEM is v%3."
-                            ) ;string-append
+                   (replace (translate (string-append "You are using v%1.\n"
+                                         "The latest stable version of Mogan STEM is v%2, "
+                                         "and the latest stable version of Liii STEM is v%3."
+                                       ) ;string-append
+                            ) ;translate
                      cur-ver
                      community-ver
                      commercial-ver
                    ) ;replace
-                   (replace (string-append "You are using v%1.\n"
-                              "The latest stable version of Mogan STEM is v%2, "
-                              "and the latest stable version of Liii STEM is v%3.\n"
-                              "Please click OK to visit the official website "
-                              "to download the latest stable version."
-                            ) ;string-append
+                   (replace (translate (string-append "You are using v%1.\n"
+                                         "The latest stable version of Mogan STEM is v%2, "
+                                         "and the latest stable version of Liii STEM is v%3.\n"
+                                         "Please click OK to visit the official website "
+                                         "to download the latest stable version."
+                                       ) ;string-append
+                            ) ;translate
                      cur-ver
                      community-ver
                      commercial-ver
@@ -271,31 +281,27 @@
                  ) ;if
             ) ;msg
            ) ;
-        (if community-latest?
-          (show-message msg (translate "Version"))
-          (show-message-with-callback msg (translate "Version") (lambda x (open-url url)))
-        ) ;if
+        (show-version-dialog msg url (not community-latest?))
       ) ;let
       ;; 商业版：只展示商业版的最新稳定版
       (let ((msg (if commercial-latest?
-                   (replace "You are using v%1, and the latest stable version of Liii STEM is v%2."
+                   (replace (translate "You are using v%1, and the latest stable version of Liii STEM is v%2."
+                            ) ;translate
                      cur-ver
                      commercial-ver
                    ) ;replace
-                   (replace (string-append "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
-                              "Please click OK to visit the official website "
-                              "to download the latest stable version."
-                            ) ;string-append
+                   (replace (translate (string-append "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
+                                         "Please click OK to visit the official website "
+                                         "to download the latest stable version."
+                                       ) ;string-append
+                            ) ;translate
                      cur-ver
                      commercial-ver
                    ) ;replace
                  ) ;if
             ) ;msg
            ) ;
-        (if commercial-latest?
-          (show-message msg (translate "Version"))
-          (show-message-with-callback msg (translate "Version") (lambda x (open-url url)))
-        ) ;if
+        (show-version-dialog msg url (not commercial-latest?))
       ) ;let
     ) ;if
   ) ;let*

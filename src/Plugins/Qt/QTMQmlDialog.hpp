@@ -187,6 +187,11 @@ tree cpp_paragraph_format_dialog (int specs_key);
 void cpp_statistics_dialog (string title, tree items);
 
 /**
+ * @brief Version QML dialog glue entry.
+ */
+bool cpp_version_dialog (string title, string message);
+
+/**
  * @brief 首选项 QML 对话框的 glue 入口（本地暂存 + OK 一次性提交）。
  * @return 非阻塞 show 路径立即返回空 tree；测试钩子命中时返回 `(tuple "ok")` 供
  * 自动化区分。本地暂存模型：打开时拉一次 meta 建 QML 本地 values 快照、改动只改

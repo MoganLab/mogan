@@ -84,6 +84,15 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-version-dialog",
+                cpp_name = "cpp_version_dialog",
+                ret_type = "bool",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
                 scm_name = "cpp-preferences-dialog",
                 cpp_name = "cpp_preferences_dialog",
                 ret_type = "tree",
