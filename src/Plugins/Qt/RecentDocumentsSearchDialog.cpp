@@ -7,8 +7,7 @@
  * It comes WITHOUT ANY WARRANTY whatsoever. Details see LICENSE.
  ******************************************************************************/
 
-#include "RecentDocumentsSearchDialog.hpp"
-
+#include "QTMQmlDialog.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 #include "RecentDocumentsSearchBridge.hpp"
