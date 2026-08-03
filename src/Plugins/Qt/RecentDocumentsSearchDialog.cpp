@@ -11,6 +11,7 @@
 
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
+#include "RecentDocumentsSearchBridge.hpp"
 
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
@@ -53,16 +54,14 @@ cpp_search_recent_documents_dialog () {
       "qrc:/qml/SearchRecentDocuments.qml", "SearchRecentDocuments.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
         bridge= inject_common_context (qw, host);
-        qw->rootContext ()->setContextProperty (
-            "searchDialogTitle", qt_translate ("Search recent documents"));
-        qw->rootContext ()->setContextProperty ("searchPlaceholder",
-                                                qt_translate ("Search"));
-        qw->rootContext ()->setContextProperty (
-            "searchEmptyText", qt_translate ("No matching recent documents"));
-        qw->rootContext ()->setContextProperty ("recentDocuments",
-                                                recentDocuments);
-        qw->rootContext ()->setContextProperty ("dialogButtons",
-                                                translate_buttons (buttons));
+        RecentDocumentsSearchBridge* searchBridge=
+            new RecentDocumentsSearchBridge (
+                recentDocuments, qt_translate ("Search recent documents"),
+                qt_translate ("Search"),
+                qt_translate ("No matching recent documents"),
+                translate_buttons (buttons), &host);
+        qw->rootContext ()->setContextProperty ("recentSearchBridge",
+                                                searchBridge);
       },
       520, 450);
 

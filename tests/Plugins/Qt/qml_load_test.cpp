@@ -13,6 +13,7 @@
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.
  ******************************************************************************/
 
+#include "RecentDocumentsSearchBridge.hpp"
 #include "base.hpp"
 
 #include <QDialog>
@@ -347,22 +348,18 @@ TestQmlLoad::test_search_recent_documents_loads () {
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->rootContext ()->setContextProperty ("searchDialogTitle",
-                                          QString ("Search recent documents"));
-  qw->rootContext ()->setContextProperty ("searchPlaceholder",
-                                          QString ("Search"));
-  qw->rootContext ()->setContextProperty (
-      "searchEmptyText", QString ("No matching recent documents"));
   QVariantMap document;
   document["name"]= QString ("notes.tm");
   document["path"]= QString ("C:/docs/notes.tm");
   QVariantList documents;
   documents << document;
-  qw->rootContext ()->setContextProperty ("recentDocuments", documents);
   QStringList buttons;
   buttons << "Open"
           << "Cancel";
-  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  RecentDocumentsSearchBridge* searchBridge= new RecentDocumentsSearchBridge (
+      documents, QString ("Search recent documents"), QString ("Search"),
+      QString ("No matching recent documents"), buttons, qw);
+  qw->rootContext ()->setContextProperty ("recentSearchBridge", searchBridge);
   qw->setSource (QUrl ("qrc:/qml/SearchRecentDocuments.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   QCOMPARE (qw->rootObject ()->property ("selectedIndex").toInt (), -1);

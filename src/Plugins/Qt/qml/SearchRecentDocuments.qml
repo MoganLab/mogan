@@ -7,11 +7,11 @@ DialogShell {
     implicitHeight: 450
     implicitMargins: Theme.margin
 
-    property string title: typeof searchDialogTitle !== "undefined" ? searchDialogTitle : "Search recent documents"
-    property string placeholder: typeof searchPlaceholder !== "undefined" ? searchPlaceholder : "Search"
-    property string emptyText: typeof searchEmptyText !== "undefined" ? searchEmptyText : "No matching recent documents"
-    property var documents: typeof recentDocuments !== "undefined" ? recentDocuments : []
-    property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : ["Open", "Cancel"]
+    property string title: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.title : "Search recent documents"
+    property string placeholder: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.placeholder : "Search"
+    property string emptyText: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.emptyText : "No matching recent documents"
+    property var documents: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.documents : []
+    property var buttonLabels: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.buttonLabels : ["Open", "Cancel"]
     property var matches: []
     property int selectedIndex: -1
 

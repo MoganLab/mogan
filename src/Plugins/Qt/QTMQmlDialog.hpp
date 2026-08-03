@@ -91,8 +91,8 @@
 #ifndef QTM_QML_DIALOG_H
 #define QTM_QML_DIALOG_H
 
-#include "array.hpp"
 #include "RecentDocumentsSearchDialog.hpp"
+#include "array.hpp"
 #include "string.hpp"
 #include "tree.hpp"
 

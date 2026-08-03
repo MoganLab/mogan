@@ -66,9 +66,9 @@ QStringList translate_buttons (array<string> buttons);
 
 QmlDialogBridge* inject_common_context (QQuickWidget* qw, QDialog& host);
 
-int run_qml_dialog (
-    const string& qml_url, const char* debug_tag,
-    std::function<void (QQuickWidget*, QDialog&)> inject_context, int logic_w,
-    int logic_h);
+int
+run_qml_dialog (const string& qml_url, const char* debug_tag,
+                std::function<void (QQuickWidget*, QDialog&)> inject_context,
+                int logic_w, int logic_h);
 
 #endif // defined QTM_QML_DIALOG_INTERNAL_H
