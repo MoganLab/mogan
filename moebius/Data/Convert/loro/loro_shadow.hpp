@@ -126,7 +126,7 @@ public:
   int decode_cursor_hex (string hex);
 
   string encode_body_cursor_hex (int byte_offset);
-  int decode_body_cursor_hex (string hex);
+  int    decode_body_cursor_hex (string hex);
 
   // ===== meta section（body 之外的文档部分）的 coarse 镜像 =====
   /** 首次把一个 meta section（style/initial/final/project/attachments）灌入

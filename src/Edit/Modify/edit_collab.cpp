@@ -167,25 +167,28 @@ split_spaces (string s) {
 // 跟随）；复合节点上的子位置下钻到该子节点、上传子节点 TreeID（结构偏移 0），
 // 不传 mogan 树子索引。不可定位（nil/path 越界）回退 0:0:I0。
 static string
-encode_path (tree& buf, loro_shadow loro_doc, path p, const array<linear_item>& items) {
+encode_path (tree& buf, loro_shadow loro_doc, path p,
+             const array<linear_item>& items) {
   if (is_nil (p) || is_nil (path_up (p)) || !has_subtree (buf, path_up (p)))
     return format_group (mogan_tree_id{0, 0}, "I0");
-  
-  int char_off = last_item (p);
 
-  int byte_off = linear_ir_offset_of_atomic (items, path_up (p), char_off);
+  int char_off= last_item (p);
+
+  int byte_off= linear_ir_offset_of_atomic (items, path_up (p), char_off);
   if (byte_off >= 0) {
-    string hex = loro_doc->encode_body_cursor_hex (byte_off);
+    string hex= loro_doc->encode_body_cursor_hex (byte_off);
     if (hex != "") {
       return format_group (mogan_tree_id{0, 0}, string ("T") * hex);
     }
-    return format_group (mogan_tree_id{0, 0}, string ("I") * as_string (byte_off));
+    return format_group (mogan_tree_id{0, 0},
+                         string ("I") * as_string (byte_off));
   }
   return format_group (mogan_tree_id{0, 0}, "I0");
 }
 
 static path
-resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_doc, const array<linear_item>& items) {
+resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
+                loro_shadow loro_doc, const array<linear_item>& items) {
   if (N (off_field) == 0) return path ();
   char   head= off_field[0];
   string rest= off_field (1, N (off_field));
@@ -195,13 +198,14 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_
   if (off < 0) return path ();
 
   if (tid.peer == 0 && tid.counter == 0) {
-    array<linear_item> loro_items = markup_to_linear_ir (loro_doc->body_markup ());
-    int text_char_idx = linear_ir_text_index_of_offset (loro_items, off);
-    path raw_p = linear_ir_path_at_text_index (items, text_char_idx);
-    
+    array<linear_item> loro_items=
+        markup_to_linear_ir (loro_doc->body_markup ());
+    int  text_char_idx= linear_ir_text_index_of_offset (loro_items, off);
+    path raw_p        = linear_ir_path_at_text_index (items, text_char_idx);
+
     if (is_nil (raw_p)) return path ();
-    path node_path = path_up (raw_p);
-    path pp = path_up (node_path);
+    path node_path= path_up (raw_p);
+    path pp       = path_up (node_path);
     if (!is_nil (pp) && has_subtree (buf, pp) &&
         is_concat (subtree (buf, pp))) {
       int idx       = last_item (node_path);
@@ -224,9 +228,8 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf, loro_shadow loro_
   path node_path=
       loro_doc->node_path_of (tid); // 节点 buffer-相对 path（如 0.0）
   if (is_nil (node_path)) return path ();
-  path pp = path_up (node_path);
-  if (!is_nil (pp) && has_subtree (buf, pp) &&
-      is_concat (subtree (buf, pp))) {
+  path pp= path_up (node_path);
+  if (!is_nil (pp) && has_subtree (buf, pp) && is_concat (subtree (buf, pp))) {
     // 父是 concat：合并到 concat 级偏移 = 前置原子长度之和 + 原子内偏移
     int idx       = last_item (node_path);
     int concat_off= off;
@@ -264,15 +267,15 @@ edit_modify_rep::apply_remote (string bytes) {
 
   string cur_payload, sel_start_payload, sel_end_payload;
   if (rp <= tp) {
-    tree buf = the_buffer();
-    array<linear_item> items = tree_to_linear_ir (buf);
-    cur_payload = encode_path (buf, loro_doc, tp / rp, items);
+    tree               buf  = the_buffer ();
+    array<linear_item> items= tree_to_linear_ir (buf);
+    cur_payload             = encode_path (buf, loro_doc, tp / rp, items);
     if (had_sel) {
       path sp, ep;
       selection_get (sp, ep);
       if (rp <= sp && rp <= ep) {
-        sel_start_payload = encode_path (buf, loro_doc, sp / rp, items);
-        sel_end_payload = encode_path (buf, loro_doc, ep / rp, items);
+        sel_start_payload= encode_path (buf, loro_doc, sp / rp, items);
+        sel_end_payload  = encode_path (buf, loro_doc, ep / rp, items);
       }
     }
   }
@@ -296,16 +299,17 @@ edit_modify_rep::apply_remote (string bytes) {
   // loro_applying_remote=true，使 go_to/select 的 collab_cursor_moved_hook
   // 被抑制
 
-  tree buf2 = the_buffer();
-  array<linear_item> items2 = tree_to_linear_ir (buf2);
+  tree               buf2  = the_buffer ();
+  array<linear_item> items2= tree_to_linear_ir (buf2);
 
   path nc= position_get (cur_save);
   // 用稳定光标进行更高优先级的恢复
   if (cur_payload != "") {
-    mogan_tree_id tid; string off_field;
-    if (parse_group(cur_payload, tid, off_field)) {
-      path stable_cp = resolve_cursor(tid, off_field, buf2, loro_doc, items2);
-      if (!is_nil(stable_cp)) nc = rp * stable_cp;
+    mogan_tree_id tid;
+    string        off_field;
+    if (parse_group (cur_payload, tid, off_field)) {
+      path stable_cp= resolve_cursor (tid, off_field, buf2, loro_doc, items2);
+      if (!is_nil (stable_cp)) nc= rp * stable_cp;
     }
   }
 
@@ -318,17 +322,19 @@ edit_modify_rep::apply_remote (string bytes) {
     path ne= position_get (sel_end_save);
 
     if (sel_start_payload != "") {
-      mogan_tree_id tid; string off_field;
-      if (parse_group(sel_start_payload, tid, off_field)) {
-        path stable_sp = resolve_cursor(tid, off_field, buf2, loro_doc, items2);
-        if (!is_nil(stable_sp)) ns = rp * stable_sp;
+      mogan_tree_id tid;
+      string        off_field;
+      if (parse_group (sel_start_payload, tid, off_field)) {
+        path stable_sp= resolve_cursor (tid, off_field, buf2, loro_doc, items2);
+        if (!is_nil (stable_sp)) ns= rp * stable_sp;
       }
     }
     if (sel_end_payload != "") {
-      mogan_tree_id tid; string off_field;
-      if (parse_group(sel_end_payload, tid, off_field)) {
-        path stable_ep = resolve_cursor(tid, off_field, buf2, loro_doc, items2);
-        if (!is_nil(stable_ep)) ne = rp * stable_ep;
+      mogan_tree_id tid;
+      string        off_field;
+      if (parse_group (sel_end_payload, tid, off_field)) {
+        path stable_ep= resolve_cursor (tid, off_field, buf2, loro_doc, items2);
+        if (!is_nil (stable_ep)) ne= rp * stable_ep;
       }
     }
 
@@ -512,29 +518,28 @@ edit_main_rep::mirror_meta_if_active (string section) {
  * 传输层不解析，原样收发。
  ******************************************************************************/
 
-
 string
 edit_modify_rep::collab_cursor_payload () {
   if (!loro_collab_on) return "";
   // pre-edit 期间光标落在未同步的临时预编辑节点内，其位置对对端无意义：返回空
   // 载荷，使本帧不上行光标（提交后 pre_edit_mark 清零，恢复正常上行）。
   if (is_pre_editing ()) return "";
-  
+
   if (!(rp <= tp)) return "";
-  path cp = tp / rp;
-  path sp = cp, ep = cp;
+  path cp= tp / rp;
+  path sp= cp, ep= cp;
   if (selection_active_any ()) {
     path global_sp, global_ep;
     selection_get (global_sp, global_ep);
     if (rp <= global_sp && rp <= global_ep) {
-      sp = global_sp / rp;
-      ep = global_ep / rp;
+      sp= global_sp / rp;
+      ep= global_ep / rp;
     }
   }
-  
-  tree buf = the_buffer ();
-  array<linear_item> items = tree_to_linear_ir (buf);
-  string cg = encode_path (buf, loro_doc, cp, items);
+
+  tree               buf  = the_buffer ();
+  array<linear_item> items= tree_to_linear_ir (buf);
+  string             cg   = encode_path (buf, loro_doc, cp, items);
   // 光标未就绪（如 JOIN 刚完成、tp 尚在 buffer 根/未定位 → path_up(tp) 为 nil）
   // 则不发本帧，避免对端把远程光标渲染成 {0,0} 而缺失。
   if (cg == format_group (mogan_tree_id{0, 0}, "I0")) return "";
@@ -579,8 +584,8 @@ edit_modify_rep::set_remote_cursor (string peer, string payload) {
 array<editor_rep::remote_cursor_view>
 edit_modify_rep::get_remote_cursors () {
   array<remote_cursor_view> out;
-  tree buf= the_buffer ();
-  array<linear_item> items = tree_to_linear_ir (buf);
+  tree                      buf  = the_buffer ();
+  array<linear_item>        items= tree_to_linear_ir (buf);
 
   for (int i= 0; i < N (remote_cursors); i++) {
     remote_cursor_entry& e= remote_cursors[i];

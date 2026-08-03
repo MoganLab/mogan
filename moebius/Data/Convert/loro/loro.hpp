@@ -114,8 +114,10 @@ int32_t mogan_loro_body_text_insert (void* doc, size_t pos,
 int32_t mogan_loro_body_text_delete (void* doc, size_t pos, size_t len);
 int32_t mogan_loro_body_get_text (void* doc, uint8_t** out, size_t* out_len);
 size_t  mogan_loro_body_len_utf8 (void* doc);
-int32_t mogan_loro_body_encode_cursor (void* doc, size_t offset, uint8_t** out, size_t* out_len);
-int32_t mogan_loro_body_decode_cursor (void* doc, const uint8_t* bytes, size_t len, size_t* out_offset);
+int32_t mogan_loro_body_encode_cursor (void* doc, size_t offset, uint8_t** out,
+                                       size_t* out_len);
+int32_t mogan_loro_body_decode_cursor (void* doc, const uint8_t* bytes,
+                                       size_t len, size_t* out_offset);
 void    mogan_loro_free (uint8_t* ptr, size_t len);
 }
 

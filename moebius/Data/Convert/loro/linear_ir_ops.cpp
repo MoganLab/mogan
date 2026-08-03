@@ -473,24 +473,23 @@ linear_ir_path_at_offset (array<linear_item> items, int byte_off) {
   return last_atomic;
 }
 
-
 int
 linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off) {
-  int text_idx = 0;
-  int cur = 0;
-  for (int i = 0; i < N(items); i++) {
+  int text_idx= 0;
+  int cur     = 0;
+  for (int i= 0; i < N (items); i++) {
     linear_item it = items[i];
-    int len = item_markup_len(it);
+    int         len= item_markup_len (it);
     if (it.kind == LI_TEXT || it.kind == LI_BINARY) {
       if (byte_off >= cur && byte_off < cur + len) {
-        return text_idx + deescaped_char_offset(it.text, byte_off - cur);
+        return text_idx + deescaped_char_offset (it.text, byte_off - cur);
       }
       if (byte_off == cur + len) {
-        return text_idx + N(it.text);
+        return text_idx + N (it.text);
       }
-      text_idx += N(it.text);
+      text_idx+= N (it.text);
     }
-    cur += len;
+    cur+= len;
     if (cur > byte_off) {
       return text_idx;
     }
@@ -499,34 +498,37 @@ linear_ir_text_index_of_offset (const array<linear_item>& items, int byte_off) {
 }
 
 path
-linear_ir_path_at_text_index (const array<linear_item>& items, int target_text_idx) {
-  int text_idx = 0;
+linear_ir_path_at_text_index (const array<linear_item>& items,
+                              int                       target_text_idx) {
+  int        text_idx= 0;
   array<int> prefix, saved;
-  int next_child = 0;
-  bool inside_root = false;
-  path last_atomic = path();
-  for (int i = 0; i < N(items); i++) {
-    linear_item it = items[i];
+  int        next_child = 0;
+  bool       inside_root= false;
+  path       last_atomic= path ();
+  for (int i= 0; i < N (items); i++) {
+    linear_item it= items[i];
     if (it.kind == LI_OPEN) {
-      if (!inside_root) inside_root = true;
+      if (!inside_root) inside_root= true;
       else {
         saved << next_child;
         prefix << next_child;
-        next_child = 0;
+        next_child= 0;
       }
-    } else if (it.kind == LI_CLOSE) {
-      if (N(saved) > 0) {
-        next_child = saved[N(saved)-1] + 1;
-        saved->resize(N(saved)-1);
-        prefix->resize(N(prefix)-1);
+    }
+    else if (it.kind == LI_CLOSE) {
+      if (N (saved) > 0) {
+        next_child= saved[N (saved) - 1] + 1;
+        saved->resize (N (saved) - 1);
+        prefix->resize (N (prefix) - 1);
       }
-    } else if (it.kind == LI_TEXT || it.kind == LI_BINARY) {
-      int len = N(it.text);
+    }
+    else if (it.kind == LI_TEXT || it.kind == LI_BINARY) {
+      int len= N (it.text);
       if (target_text_idx >= text_idx && target_text_idx <= text_idx + len) {
-        return build_path(prefix, target_text_idx - text_idx);
+        return build_path (prefix, target_text_idx - text_idx);
       }
-      text_idx += len;
-      last_atomic = build_path(prefix, len);
+      text_idx+= len;
+      last_atomic= build_path (prefix, len);
     }
   }
   return last_atomic;
