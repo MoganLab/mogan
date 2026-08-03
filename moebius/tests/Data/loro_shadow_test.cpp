@@ -45,7 +45,8 @@ TEST_CASE ("loro_shadow: seed round-trips a document") {
   string snap = sh->export_snapshot ();
   tree   back2= loro_to_tree (snap);
   CHECK_EQ (back2 == t, true);
-  // body 节点不再有 TreeID 身份（线性 LoroText，身份为字符 op-id；Phase 4 Cursor 化）
+  // body 节点不再有 TreeID 身份（线性 LoroText，身份为字符 op-id；Phase 4
+  // Cursor 化）
 }
 
 TEST_CASE ("loro_shadow: atomic text (UTF-8) seeded via LoroText") {
@@ -442,7 +443,8 @@ TEST_CASE (
 
   CHECK_EQ (b->has_id (tb), false);
   CHECK_EQ (b->sync_id_map_from_shadow (tb), true);
-  // body 已同步：to_tree 还原；body 节点无 TreeID 身份（线性 LoroText，Phase 4 Cursor 化）
+  // body 已同步：to_tree 还原；body 节点无 TreeID 身份（线性 LoroText，Phase 4
+  // Cursor 化）
   CHECK_EQ (b->to_tree () == tb, true);
 }
 
@@ -712,10 +714,10 @@ TEST_CASE ("loro_shadow: body editing unaffected by metadata sections") {
   CHECK_EQ (sh->meta_to_tree ("attachments") == att, true);
 }
 
-// ===== Phase 3 验收：结构操作身份保持（精确 token 编辑，非 coarse 重 seed）=====
-// body 为单条 LoroText：SPLIT = 插 CLOSE+OPEN('')，JOIN = 删 CLOSE+OPEN('')，
-// 存活字符 op-id 不变。用 body markup 长度增量断言走的是精确路径（coarse 会整树
-// 重 seed，增量远大于 6）。
+// ===== Phase 3 验收：结构操作身份保持（精确 token 编辑，非 coarse 重
+// seed）===== body 为单条 LoroText：SPLIT = 插 CLOSE+OPEN('')，JOIN = 删
+// CLOSE+OPEN('')， 存活字符 op-id 不变。用 body markup
+// 长度增量断言走的是精确路径（coarse 会整树 重 seed，增量远大于 6）。
 
 TEST_CASE ("loro_shadow: SPLIT atomic mirrors as minimal token insert") {
   ensure_labels ();
@@ -726,8 +728,8 @@ TEST_CASE ("loro_shadow: SPLIT atomic mirrors as minimal token insert") {
   sh->seed (t);
   modification mod= mod_split (path (0), 0, 3); // 切 para 的原子 "hello" @3
   tree         expected= clean_apply (t, mod);
-  int          before= N (sh->body_markup ());
-  t                 = clean_apply (t, mod); // post-apply buffer（如 edit_done）
+  int          before  = N (sh->body_markup ());
+  t= clean_apply (t, mod); // post-apply buffer（如 edit_done）
   sh->mirror_mod (t, mod);
   int after= N (sh->body_markup ());
   CHECK_EQ (sh->to_tree () == expected, true);
@@ -742,10 +744,10 @@ TEST_CASE ("loro_shadow: JOIN atomic mirrors as minimal token delete") {
   t[0][1]= tree ("lo");
   loro_shadow sh;
   sh->seed (t);
-  modification mod= mod_join (path (0), 0); // 合并 para 的 child 0,1
-  tree         expected= clean_apply (t, mod); // → (para "hello")
-  int          before= N (sh->body_markup ());
-  t                 = clean_apply (t, mod);
+  modification mod     = mod_join (path (0), 0); // 合并 para 的 child 0,1
+  tree         expected= clean_apply (t, mod);   // → (para "hello")
+  int          before  = N (sh->body_markup ());
+  t                    = clean_apply (t, mod);
   sh->mirror_mod (t, mod);
   int after= N (sh->body_markup ());
   CHECK_EQ (sh->to_tree () == expected, true);
@@ -755,12 +757,12 @@ TEST_CASE ("loro_shadow: JOIN atomic mirrors as minimal token delete") {
 TEST_CASE ("loro_shadow: INSERT_NODE/REMOVE_NODE mirror correctly (coarse)") {
   ensure_labels ();
   tree t (DOCUMENT, 1);
-  t[0]   = tree ("hello");
+  t[0]= tree ("hello");
   loro_shadow sh;
   sh->seed (t);
   modification mod= mod_insert_node (path (0), 0, tree (CONCAT, 0)); // 包裹
   tree         expected= clean_apply (t, mod);
-  t                 = clean_apply (t, mod);
+  t                    = clean_apply (t, mod);
   sh->mirror_mod (t, mod);
   CHECK_EQ (sh->to_tree () == expected, true); // v1 走 coarse，树仍正确
 }
@@ -772,21 +774,21 @@ TEST_CASE ("loro e2e: concurrent SPLIT near same region converges") {
   init[0][0]= tree ("abcdef");
   loro_shadow a;
   a->seed (init);
-  string s0= a->export_snapshot ();
+  string      s0= a->export_snapshot ();
   loro_shadow b;
   tree        tB;
   CHECK_EQ (b->import_and_build (s0, tB), true);
 
   // A 在 offset 2 切，B 在 offset 4 切（同段不同位，并发）
-  tree          tA = init;
-  modification mA = mod_split (path (0), 0, 2);
+  tree         tA= init;
+  modification mA= mod_split (path (0), 0, 2);
   tA             = clean_apply (tA, mA);
   a->mirror_mod (tA, mA);
-  string sa      = a->export_snapshot ();
-  modification mB = mod_split (path (0), 0, 4);
+  string       sa= a->export_snapshot ();
+  modification mB= mod_split (path (0), 0, 4);
   tB             = clean_apply (tB, mB);
   b->mirror_mod (tB, mB);
-  string sb      = b->export_snapshot ();
+  string sb= b->export_snapshot ();
 
   CHECK_EQ (a->import_data (sb), true);
   CHECK_EQ (b->import_data (sa), true);

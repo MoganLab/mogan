@@ -3,8 +3,9 @@
  *  \author Jim Zhou
  *  \date   2026
  *
- * body 用单条 LoroText（markup 流）：seed = tree → 线性 IR → markup → body_seed。
- * body 节点不再有 TreeID 身份（id_map 留空；多光标身份由 Phase 4 Cursor 化补回）。
+ * body 用单条 LoroText（markup 流）：seed = tree → 线性 IR → markup →
+ * body_seed。 body 节点不再有 TreeID 身份（id_map 留空；多光标身份由 Phase 4
+ * Cursor 化补回）。
  */
 
 #include "loro_ir.hpp"

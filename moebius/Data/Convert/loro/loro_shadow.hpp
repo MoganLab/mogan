@@ -100,8 +100,9 @@ public:
    */
   list<modification> diff_from_current (tree buffer);
 
-  tree          to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
-  /** body 单 LoroText 的当前 markup（utf-8）。用于诊断与测试断言精确镜像路径。 */
+  tree to_tree (); // live doc -> tree（经 to_ir + loro_ir_to_tree）
+  /** body 单 LoroText 的当前 markup（utf-8）。用于诊断与测试断言精确镜像路径。
+   */
   string        body_markup ();
   bool          has_id (tree t); // id_map 是否含该节点
   mogan_tree_id get_id (tree t); // 取节点的 TreeID（不在表中返回 {0,0}）
@@ -143,7 +144,7 @@ public:
 private:
   void replace_meta (string name, tree section_tree); // seed/replace 共用
   // body 单 LoroText 读写（markup 流）。偏移均为 utf-8 字节坐标。
-  void   body_seed_markup (string markup);
+  void body_seed_markup (string markup);
 };
 
 class loro_shadow {

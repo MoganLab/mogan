@@ -17,7 +17,7 @@
 
 string
 tree_to_loro (tree t) {
-  void*  doc= mogan_loro_doc_new ();
+  void* doc= mogan_loro_doc_new ();
   if (doc == nullptr) return string ();
   string markup= linear_ir_to_markup (tree_to_linear_ir (t));
   mogan_loro_body_seed (doc, reinterpret_cast<const uint8_t*> (markup.begin ()),
@@ -38,9 +38,9 @@ tree
 loro_to_tree (string snapshot) {
   void* doc= mogan_loro_doc_new ();
   if (doc == nullptr) return tree ("");
-  mogan_loro_doc_import (
-      doc, reinterpret_cast<const uint8_t*> (snapshot.begin ()),
-      (size_t) N (snapshot));
+  mogan_loro_doc_import (doc,
+                         reinterpret_cast<const uint8_t*> (snapshot.begin ()),
+                         (size_t) N (snapshot));
   uint8_t* out    = nullptr;
   size_t   out_len= 0;
   tree     r ("");
