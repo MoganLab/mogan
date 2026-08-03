@@ -354,6 +354,41 @@ s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
   return(g_vector(sc, lst));
 }
 
+s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer pred = s7_car(args);
+  s7_pointer vec = s7_cadr(args);
+  if (!s7_is_procedure(pred))
+    return(s7_wrong_type_arg_error(sc, "vector-filter", 1, pred, "a procedure"));
+  if (!s7_is_vector(vec))
+    return(s7_wrong_type_arg_error(sc, "vector-filter", 2, vec, "a vector"));
+  /* args may live in evaluator-recycled cells, so keep pred and vec in our own
+   * pair, with the result vector as the anchor's cdr; everything stays
+   * GC-reachable while pred runs */
+  s7_pointer anchor = s7_cons(sc, s7_cons(sc, pred, vec), s7_make_vector(sc, s7_vector_length(vec)));
+  s7_gc_protect_via_stack(sc, anchor);
+  s7_pointer result = s7_cdr(anchor);
+  s7_int len = s7_vector_length(vec);
+  s7_int count = 0;
+  for (s7_int i = 0; i < len; i++)
+    {
+      s7_pointer elem = s7_vector_ref(sc, vec, i);
+      if (s7i_is_true(sc, s7_apply_function(sc, pred, s7i_set_plist_1(sc, elem))))
+        {
+          s7_vector_set(sc, result, count, elem);
+          count++;
+        }
+    }
+  s7_gc_unprotect_via_stack(sc, anchor);
+  if (count == len) return(result);
+  {
+    s7_pointer exact = s7_make_vector(sc, count);
+    for (s7_int i = 0; i < count; i++)
+      s7_vector_set(sc, exact, i, s7_vector_ref(sc, result, i));
+    return(exact);
+  }
+}
+
 #if !WITH_PURE_S7
 
 s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args)
