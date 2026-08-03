@@ -968,6 +968,7 @@ qt_gui_rep::update () {
     static time_t last_loro_poll_time = 0;
     if (now - last_loro_poll_time >= 1000 / 6) {
       loro_collab_poll ();
+      loro_collab_apply ();
       last_loro_poll_time = now;
     }
 #endif

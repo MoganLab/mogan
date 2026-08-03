@@ -60,6 +60,7 @@ public:
       bool force= false); // force=true 强制发（编辑后）；否则 ≥50ms 节流
   void schedule_reconnect ();
   void maybe_reconnect ();
+  void apply_queued_remote ();
 
   // State transitions
   void enter_idle ();
@@ -94,6 +95,7 @@ public:
   collab_session* get_or_create (url buffer_url);
   void            remove_session (collab_session* session);
   void            poll_all ();
+  void apply_all ();
 };
 
 extern collab_session_manager g_session_manager;
