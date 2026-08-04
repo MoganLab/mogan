@@ -2248,4 +2248,297 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 #define is_safe_closure_star_op(op) ((op >= OP_SAFE_CLOSURE_STAR_A) && (op < OP_C_SS))
 #define is_unknown_op(op)           ((op >= OP_UNKNOWN) && (op <= OP_UNKNOWN_NP))
 
+/* ---- macros copied from s7.c for s7_scheme_let.c (keep in sync!) ---- */
+#define caadr(p)                       car(car(cdr(p)))
+#define cadar(p)                       car(cdr(car(p)))
+#define cadddr(p)                      car(cdr(cdr(cdr(p))))
+#define cdar(p)                        cdr(car(p))
+#define clear_has_methods(p)           clear_mid_type_bit(T_Met(p), T_MID_HAS_METHODS)
+#if S7_DEBUGGING
+#define gc_protect_1(Sc, X) gc_protect_2(Sc, X, __LINE__)
+#else
+#define gc_protect_1(Sc, X) s7_gc_protect(Sc, X)
+#endif
+#define gc_protect_via_stack(Sc, Obj) push_stack_no_code(Sc, OP_GC_PROTECT, Obj)
+#define global_slot(p)                 T_Sld((T_Sym(p))->object.sym.global_slot)
+#define global_value(p)                slot_value(global_slot(T_Sym(p)))
+#define has_active_methods(Sc, p)      ((has_mid_type_bit(T_Ext(p), T_MID_HAS_METHODS)) && (Sc->has_openlets)) /* g_char #<eof> */
+#define has_let_fallback(p)            has_mid_type_bit(T_Let(p), (T_MID_HAS_LET_REF_FALLBACK | T_MID_HAS_LET_SET_FALLBACK))
+#define has_let_ref_fallback(p)        ((mid_type(T_Let(p)) & (T_MID_HAS_LET_REF_FALLBACK | T_MID_HAS_METHODS)) == (T_MID_HAS_LET_REF_FALLBACK | T_MID_HAS_METHODS))
+#define has_let_set_fallback(p)        ((mid_type(T_Let(p)) & (T_MID_HAS_LET_SET_FALLBACK | T_MID_HAS_METHODS)) == (T_MID_HAS_LET_SET_FALLBACK | T_MID_HAS_METHODS))
+#define has_methods(p)                 has_mid_type_bit(T_Exs(p), T_MID_HAS_METHODS) /* display slot hits T_Ext here */
+#define if_let_method_exists_return_value(Sc, Let, Method, Args)	\
+  {							\
+    s7_pointer _Func_;					\
+    if ((has_active_methods(Sc, T_Let(Let))) &&				\
+	((_Func_ = find_method(Sc, Let, Method)) != Sc->undefined)) \
+      return(s7_apply_function(Sc, _Func_, Args)); \
+  }
+#define initial_value(p)               symbol_info(p)->ex.ex_ptr
+#define integer(p)                     (T_Int(p))->object.number.integer_value
+#define is_any_procedure(P)            (type(P) >= T_CLOSURE)
+#define is_applicable(P)               (t_applicable_p[type(P)])
+#define is_boolean(p)                  (type(p) == T_BOOLEAN)
+#define is_bound_symbol(Sc, p)         (is_slot(s7_slot(Sc, p))) /* (s7_slot(Sc, p) != Sc->undefined) is the same speed apparently */
+#define is_c_object(p)                 (type(p) == T_C_OBJECT)
+#define is_defined_global(p)           ((is_slot(global_slot(p))) && (symbol_id(p) == 0))
+#define is_global(p)                   (symbol_id(p) == 0)
+#define is_immutable_let(p)            has_mid_type_bit(T_Let(p), T_MID_IMMUTABLE)
+#define is_immutable_slot(p)           has_mid_type_bit(T_Slt(p), T_MID_IMMUTABLE)
+#define is_keyword(p)                  has_high_type_bit(T_Sym(p), T_SHORT_KEYWORD)
+#define is_let(p)                      (type(p) == T_LET)
+#define is_let_unchecked(p)            (type_unchecked(p) == T_LET)
+#if S7_DEBUGGING
+  #define is_not_slot_end(p)           ((p) && (T_Slt(p)))
+#else
+  #define is_not_slot_end(p)           (p) /* used for loop through let slots which end in null, not for general slot recognition */
+#endif
+#define is_openlet(p)                  has_mid_type_bit(T_Let(p), T_MID_HAS_METHODS)
+#define is_possibly_constant(p)        has_high_type_bit(T_Sym(p), T_SYMCONS)
+#define is_quoted_symbol(Sc, p)        ((is_quoted_pair(Sc, p)) && (is_pair(cdr(p))) && (is_symbol(cadr(p))))
+#define is_safe_quoted_pair(Sc, p)     ((is_pair(p)) && (is_safe_quote(Sc, car(p))))
+#define is_quoted_pair(Sc, p)          ((is_pair(p)) && (is_quote(Sc, car(p))))
+#define is_slot(p)                     (type(p) == T_SLOT)
+#define is_string(p)                   (type(p) == T_STRING)
+#define is_symbol_and_keyword(p)       ((is_symbol(p)) && (is_keyword(p)))
+#define is_syntactic_symbol(p)         has_low_type_bit(T_Sym(p), T_SYNTACTIC)
+#define is_syntax(p)                   (type(p) == T_SYNTAX)
+#define is_syntax_or_qq(p)	       ((is_syntax(p)) || ((p) == sc->quasiquote_function)) /* qq is from s7_define_macro -> T_C_MACRO */
+#define is_t_integer(p)                (type(p) == T_INTEGER)
+#define is_t_real(p)                   (type(p) == T_REAL)
+#define is_unlet(p)                    has_high_type_bit(T_Let(p), T_UNLET)
+#define iterator_carrier(p)            (T_Itr(p))->object.iter.cur
+#define iterator_is_at_end(p)          (!iter_ok(p))                /* ((full_type(T_Itr(p)) & T_ITER_OK) == 0) */
+#define keyword_symbol(p)              symbol_info(T_Key(p))->nx.ksym        /* keyword only, so does not collide with documentation */
+#define let_id(p)                      (T_Let(p))->object.let.id
+#if S7_DEBUGGING
+  #define let_set_id(p, Id)            do {(T_Let(p))->object.let.id = Id; if ((p == sc->rootlet) && (Id != -1)) {fprintf(stderr, "%s[%d]: rootlet id: %" ld64 "\n", __func__, __LINE__, (s7_int)Id); if (sc->stop_at_error) abort();}} while (0)
+#else
+  #define let_set_id(p, Id)            (T_Let(p))->object.let.id = Id
+#endif
+#define let_set_outlet(p, ol)          (T_Let(p))->object.let.nxt = T_Out(ol)
+#if S7_DEBUGGING
+  #define let_set_slots(p, Slot)       check_let_set_slots(sc, p, Slot, __func__, __LINE__)
+#else
+  #define let_set_slots(p, Slot)       (T_Let(p))->object.let.slots = T_Sln(Slot)
+#endif
+#define let_slots(p)                   T_Sln((T_Let(p))->object.let.slots)
+#define local_slot(p)                  T_Slt((T_Sym(p))->object.sym.local_slot)        /* was T_Sld 1-Aug-25 */
+#define local_value(p)                 slot_value(local_slot(T_Sym(p)))
+  #define make_boolean(Sc, Val)        ((Val) ? Sc->T : Sc->F)
+/* make_integer/make_real fast paths depend on s7.c's static small_ints array;
+ * s7_scheme_let.c defines them as s7_make_integer/s7_make_real wrappers. */
+#define next_slot(p)                   T_Sln((T_Slt(p))->object.slt.nxt)
+#define optimize_op(P)                 (T_Ext(P))->tf.bits.opt_bits
+#if S7_DEBUGGING
+#define push_stack_no_let(Sc, Op, Args, Code)   push_stack(Sc, Op, Args, Code)
+#else
+#define push_stack_no_let(Sc, Op, Args, Code) \
+  do { \
+      stack_end_code(Sc) = Code; \
+      stack_end_args(Sc) = Args; \
+      stack_end_op(Sc) = (s7_pointer)(opcode_t)(Op); \
+      Sc->stack_end += 4; \
+  } while (0)
+#endif
+#if S7_DEBUGGING
+#define push_stack_no_code(Sc, Op, Args)        push_stack(Sc, Op, Args, Sc->unused)
+#else
+#define push_stack_no_code(Sc, Op, Args) \
+  do { \
+      stack_end_let(Sc) = Sc->curlet; \
+      stack_end_args(Sc) = Args; \
+      stack_end_op(Sc) = (s7_pointer)(opcode_t)(Op); \
+      Sc->stack_end += 4; \
+  } while (0)
+#endif
+#define real(p)                        (T_Rel(p))->object.number.real_value
+#define set_all_methods(p, Let)        mid_type(T_Let(p)) |= (mid_type(Let) & (T_MID_HAS_METHODS | T_MID_HAS_LET_REF_FALLBACK | T_MID_HAS_LET_SET_FALLBACK))
+#define set_car(p, Val)                car(p) = Val                   /* can be a slot or #<unused> or #<catch> etc */
+#define set_fn_direct(f, X)            do {set_opt2(f, (s7_pointer)(X), OPT2_FN); set_has_fn(f);} while (0)
+#define set_global_value(p, Val)       slot_set_value(global_slot(T_Sym(p)), Val) /* slot_set_value checks T_Ext */
+#if S7_DEBUGGING
+  #define set_has_carrier(p)           do {set_mid_type_bit(T_Itr(p), T_MARK_SEQ); p->carrier_line = __LINE__;} while (0)
+#else
+  #define set_has_carrier(p)           set_mid_type_bit(T_Itr(p), T_MARK_SEQ)
+#endif
+#define set_has_let_ref_fallback(p)    set_mid_type_bit(T_Let(p), T_MID_HAS_LET_REF_FALLBACK)
+#define set_has_let_set_fallback(p)    set_mid_type_bit(T_Let(p), T_MID_HAS_LET_SET_FALLBACK)
+#define set_has_methods(p)             set_mid_type_bit(T_Met(p), T_MID_HAS_METHODS)
+#define set_is_unlet(p)                set_high_type_bit(T_Let(p), T_UNLET)
+#if REPORT_ROOTLET_REDEF
+  #define set_local(Symbol)            set_local_1(sc, T_Sym(Symbol), __func__, __LINE__)
+#else
+  #define set_local(p)                 full_type(T_Sym(p)) &= ~(T_DONT_EVAL_ARGS | T_SYNTACTIC)
+#endif
+#if !S7_DEBUGGING
+#define set_opt2(p, x, r)              (p)->object.cons.o2.opt2 = (s7_pointer)(x)
+#else
+#define set_opt2(p, x, Role)           set_opt2_1(sc, T_Pair(p), (s7_pointer)(x), Role, __func__, __LINE__)
+#endif
+#if !S7_DEBUGGING
+#define set_opt3(p, x, r)              do {(p)->object.cons.o3.opt3 = x; clear_type_bit(p, T_LOCATION);} while (0)
+#else
+#define set_opt3(p, x, Role)           set_opt3_1(T_Pair(p), x, Role)
+#endif
+#define set_opt3_sym(P, X)             set_opt3(P, T_Sym(X),        OPT3_SYM)
+#define slot_end                       NULL
+#define slot_has_setter(p)             has_mid_type_bit(T_Slt(p), T_HAS_SETTER)
+#define slot_set_has_setter(p)         set_mid_type_bit(T_Slt(p), T_HAS_SETTER)
+#define slot_set_next(p, Val)          (T_Slt(p))->object.slt.nxt = T_Sln(Val)
+#define slot_set_symbol_and_value(Slot, Symbol, Value) do {slot_set_symbol(Slot, Symbol); slot_set_value(Slot, Value);} while (0)
+#define slot_setter(p)                 T_Prc((T_Slt(p)->object.slt.pending_value))
+#if S7_DEBUGGING
+#define slot_set_value(slot, value) \
+  do { \
+       if (is_immutable_slot(slot)) fprintf(stderr, "%s[%d]: setting immutable slot %s\n", __func__, __LINE__, symbol_name(slot_symbol(slot))); \
+       (T_Slt(slot))->object.slt.val = T_Nmv(value); \
+     } while (0)
+#else
+#define slot_set_value(p, Val)         (T_Slt(p))->object.slt.val = T_Nmv(Val)
+#endif
+#define slot_set_value_with_hook(Slot, Value) \
+  do {if (hook_has_functions(sc->rootlet_redefinition_hook)) slot_set_value_with_hook_1(sc, T_Slt(Slot), T_Nmv(Value)); else slot_set_value(T_Slt(Slot), T_Nmv(Value));} while (0)
+#define slot_symbol(p)                 T_Sym((T_Slt(p))->object.slt.sym)
+#define slot_value(p)                  T_Nmv((T_Slt(p))->object.slt.val)
+#define starlet_symbol_id(p)           ((uint8_t)((block_size(symbol_info(p)) >> 8) & 0xff))  /* *s7* id -- can be gensym, eval unopt section */
+#define string_length(p)               (T_Str(p))->object.string.length
+#define symbol_id(p)                   (T_Sym(p))->object.sym.id
+#define symbol_increment_ctr(p)        (T_Sym(p))->object.sym.ctr++          /* despite this expense, ctr does save a lot overall */
+#define symbol_set_local_slot(Symbol, Id, Slot) \
+  do {set_local_slot(Symbol, Slot); symbol_set_id(Symbol, Id); symbol_increment_ctr(Symbol);} while (0)
+#define symbol_set_local_slot_unincremented(Symbol, Id, Slot) \
+  do {set_local_slot(Symbol, Slot); symbol_set_id(Symbol, Id);} while (0)
+#if S7_DEBUGGING
+#define unstack_gc_protect(Sc) unstack_with(Sc, OP_GC_PROTECT)
+#else
+#define unstack_gc_protect(Sc) Sc->stack_end -= 4
+#endif
+#if S7_DEBUGGING
+#define unstack_with(Sc, Op) unstack_1(Sc, Op, __func__, __LINE__)
+#else
+#define unstack_with(Sc, op) Sc->stack_end -= 4
+#endif
+#define is_any_macro(P)                t_any_macro_p[type(P)]
+#define has_closure_let(P)             t_has_closure_let[type(P)]
+#define closure_let(p)                 T_Let((T_Clo(p))->object.func.let)
+#define funclet_function(p)            T_Sym((C_Let(p, L_FUNC))->object.let.edat.efnc.function)
+#define has_let_file(p)                has_high_type_bit(T_Let(p), T_HAS_LET_FILE)
+#define let_line(p)                    (C_Let(p, L_FUNC))->object.let.edat.efnc.line
+#define let_file(p)                    (C_Let(p, L_FUNC))->object.let.edat.efnc.file
+#define mid_type(p)                    (p)->tf.bits.mid_bits
+#define symbol_info(p)                 (symbol_name_cell(p))->object.string.block
+#define is_quote(Sc, p)                (((p) == Sc->quote_symbol) || ((p) == Sc->quote_function)) /* order here apparently does not matter */
+#define is_safe_quote(Sc, p)           ((((p) == Sc->quote_symbol) && (is_global(Sc->quote_symbol))) || ((p) == Sc->quote_function))
+#define set_has_fn(p)                  set_high_type_bit(T_Pair(p), T_HAS_FN)
+#if S7_DEBUGGING
+  #define C_Let(p, role)               check_let_ref(p, role, __func__, __LINE__)
+#else
+  #define C_Let(p, role)               p
+#endif
+#define iter_ok(p)                     has_mid_type_bit(T_Itr(p), T_MID_ITER_OK)
+#define T_SAFE_PROCEDURE               (1 << (16 + 5))
+#define T_UNLET                        T_SYMCONS
+#define T_MID_HAS_LET_REF_FALLBACK     T_MID_MUTABLE
+#define T_MID_HAS_LET_SET_FALLBACK     T_MID_SAFE_STEPPER
+#define T_HAS_SETTER                   T_MID_LOCATION
+#define T_MARK_SEQ                     T_MID_MUTABLE
+#define T_SYMCONS                      (1 << 0)
+#define T_SHORT_KEYWORD                (1 << 7)
+#define T_HAS_LET_FILE                 (1 << 1)
+#define OPT2_FN                        (1 << 19)  /* fn (s7_function) func (sc, arglist) */
+#define OPT3_SYM                       (1 << 23)  /* expression symbol access */
+#define L_FUNC                         (1LL << 41)
+#define T_HAS_FN                       (1 << 13)
+
+/* ---- extern globals from s7.c for s7_scheme_let.c ---- */
+extern bool t_any_macro_p[NUM_TYPES], t_any_closure_p[NUM_TYPES], t_has_closure_let[NUM_TYPES], t_applicable_p[NUM_TYPES];
+extern s7_pointer too_many_arguments_string, a_boolean_string, a_let_string, a_non_constant_symbol_string,
+  a_procedure_or_a_macro_string, a_symbol_string, immutable_error_string;
+
+/* sl_no_field and friends (starlet field ids), copied from s7.c */
+typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl_catches, sl_cpu_time, sl_c_types,
+	      sl_debug, sl_default_hash_table_length, sl_default_random_state, sl_default_rationalize_error, sl_equivalent_float_epsilon,
+	      sl_expansions, sl_filenames, sl_file_names, sl_float_format_precision, sl_free_heap_size, sl_gc_freed, sl_gc_info,
+	      sl_gc_protected_objects, sl_gc_resize_heap_by_4_fraction, sl_gc_resize_heap_fraction, sl_gc_stats, sl_gc_temps_size,
+	      sl_gc_total_freed, sl_hash_table_float_epsilon, sl_hash_table_missing_key_value, sl_heap_size, sl_history, sl_history_enabled,
+	      sl_history_size, sl_initial_string_port_length, sl_iterator_at_end_value, sl_major_version, sl_max_heap_size, sl_max_list_length,
+	      sl_max_stack_size, sl_max_string_length, sl_max_string_port_length, sl_max_vector_dimensions, sl_max_vector_length,
+	      sl_memory_usage, sl_minor_version, sl_most_negative_fixnum, sl_most_positive_fixnum, sl_muffle_warnings,
+	      sl_number_separator, sl_openlets, sl_output_file_port_length, sl_print_length, sl_profile, sl_profile_info,
+	      sl_profile_prefix, sl_rootlet_size, sl_safety, sl_scheme_version, sl_stack, sl_stacktrace_defaults, sl_stack_size, sl_stack_top,
+	      sl_symbol_quote, sl_symbol_printer, sl_undefined_constant_warnings, sl_undefined_identifier_warnings, sl_version,
+	      sl_num_fields} starlet_t;
+
+/* ---- function declarations (defined in s7.c) for s7_scheme_let.c ---- */
+s7_pointer add_slot_at_end(s7_scheme *sc, s7_uint id, s7_pointer last_slot, s7_pointer symbol, s7_pointer value);
+s7_pointer add_slot_checked_at_end(s7_scheme *sc, s7_uint id, s7_pointer last_slot, s7_pointer symbol, s7_pointer value);
+s7_pointer add_slot_checked_with_id(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_pointer value);
+void add_slot_unchecked(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_pointer value, s7_uint id);
+s7_pointer call_setter(s7_scheme *sc, s7_pointer slot, s7_pointer old_value);
+s7_pointer checked_slot_set_value(s7_scheme *sc, s7_pointer slot, s7_pointer value);
+s7_pointer find_let(s7_scheme *sc, s7_pointer obj);
+no_return void find_let_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer let, s7_pointer new_let, int32_t arg_num, s7_pointer args);
+s7_pointer find_method(s7_scheme *sc, s7_pointer let, s7_pointer symbol);
+bool is_constant_symbol(s7_scheme *sc, s7_pointer sym);
+bool is_eq_initial_value(s7_pointer symbol, s7_pointer other);
+bool is_proper_quote(s7_scheme *sc, s7_pointer p);
+s7_pointer make_string_with_length(s7_scheme *sc, const char *str, s7_int len);
+s7_pointer make_symbol(s7_scheme *sc, const char *name, s7_int len);
+s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t position);
+s7_pointer object_type_name(s7_scheme *sc, s7_pointer obj);
+int32_t position_of(const s7_pointer p, s7_pointer args);
+s7_pointer proper_list_reverse_in_place(s7_scheme *sc, s7_pointer list);
+s7_pointer set_elist_3(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3);
+s7_pointer set_elist_4(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4);
+s7_pointer set_elist_5(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4, s7_pointer x5);
+s7_pointer set_mlist_1(s7_scheme *sc, s7_pointer x1);
+s7_pointer set_mlist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
+s7_pointer set_plist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
+s7_pointer set_plist_3(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3);
+s7_pointer set_qlist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
+s7_pointer set_qlist_3(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3);
+s7_pointer set_ulist_1(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
+void slot_set_setter(s7_pointer slot, s7_pointer val);
+s7_pointer starlet(s7_scheme *sc, s7_int choice);
+s7_pointer starlet_set_1(s7_scheme *sc, s7_pointer sym, s7_pointer val);
+s7_pointer symbol_to_local_slot(s7_scheme *sc, s7_pointer symbol, s7_pointer let);
+s7_pointer copy_any_list(s7_scheme *sc, s7_pointer a);
+s7_pointer g_procedure_source(s7_scheme *sc, s7_pointer args);
+#if WITH_HISTORY
+s7_pointer sanitize_history(s7_scheme *sc, s7_pointer code);
+#endif
+
+#define clear_mid_type_bit(p, b)       (p)->tf.bits.mid_bits &= (~(b))
+#define hook_has_functions(p)          (is_pair(s7_hook_functions(sc, T_Clo(p))))
+#define set_integer(p, x)              integer(p) = x
+#define set_local_slot(p, Val)         (T_Sym(p))->object.sym.local_slot = T_Slt(Val)
+#define slot_set_symbol(p, Sym)        (T_Slt(p))->object.slt.sym = T_Sym(Sym)
+#define symbol_name_cell(p)            T_Str((T_Sym(p))->object.sym.name)
+#define symbol_name(p)                 string_value(symbol_name_cell(p))
+#if S7_DEBUGGING
+void check_let_set_slots(s7_scheme *sc, s7_pointer let, s7_pointer slot, const char *func, int32_t line);
+void set_opt2_1(s7_scheme *sc, s7_pointer p, s7_pointer x, s7_uint role, const char *func, int32_t line);
+void set_opt3_1(s7_pointer p, s7_pointer x, s7_uint role);
+s7_int gc_protect_2(s7_scheme *sc, s7_pointer x, int32_t line);
+void unstack_1(s7_scheme *sc, opcode_t op, const char *func, int32_t line);
+#endif
+#define set_real(p, x)                 real(p) = x
+#define T_MID_LOCATION                 (1 << 2)
+#define T_MID_MUTABLE                  (1 << 10)
+#define T_MID_SAFE_STEPPER             (1 << 11)
+#define T_MID_ITER_OK                  (1 << 15)
+#define T_DONT_EVAL_ARGS               (1 << (8 + 5))
+#define T_LOCATION                     (1 << (16 + 2))
+
+/* more decls for s7_scheme_let.c */
+#if S7_DEBUGGING
+void symbol_set_id(s7_pointer sym, s7_int id);
+#else
+#define symbol_set_id(p, X)            (T_Sym(p))->object.sym.id = X
+#endif
+void slot_set_value_with_hook_1(s7_scheme *sc, s7_pointer slot, s7_pointer value);
+no_return void wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
+void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
+
 #endif /* S7_INTERNAL_H */

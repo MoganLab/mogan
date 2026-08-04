@@ -4,6 +4,7 @@
 ;; MODULE      : version-compare.scm
 ;; DESCRIPTION : comparing two files
 ;; COPYRIGHT   : (C) 2010  Joris van der Hoeven
+;; COPYRIGHT   : (C) 2026 AcceleratorX
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -36,7 +37,7 @@
 ;; Useful subroutines for document comparison
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (denormalize-string s)
+(define (denormalize-words s)
   (if (== s "")
     (list)
     (with d
@@ -44,13 +45,38 @@
       (if (or (not d) (== s " "))
         (list s)
         (let ((h (substring s 0 d))
-              (t (denormalize-string (substring s (+ 1 d) (string-length s))))
+              (t (denormalize-words (substring s (+ 1 d) (string-length s))))
              ) ;
           (cond ((== d 0) (cons " " t))
                 ((== d (- (string-length s) 1)) (list h " "))
                 (else (cons h (cons " " t)))
           ) ;cond
         ) ;let
+      ) ;if
+    ) ;with
+  ) ;if
+) ;define
+
+;; herk 编码下中文等字符以 <#XXXX> 转义存在，整串无空格会被当成一个词。
+;; 每个转义序列切为独立 token，使 CJK 文本按字符对齐；其余仍按空格切词
+
+(define (denormalize-string s)
+  (if (== s "")
+    (list)
+    (with p
+      (string-index s #\<)
+      (if (or (not p) (== p (- (string-length s) 1)) (!= (string-ref s (+ p 1)) #\#))
+        (denormalize-words s)
+        (with q
+          (string-index (substring s p (string-length s)) #\>)
+          (if (not q)
+            (denormalize-words s)
+            (append (denormalize-words (substring s 0 p))
+              (list (substring s p (+ p q 1)))
+              (denormalize-string (substring s (+ p q 1) (string-length s)))
+            ) ;append
+          ) ;if
+        ) ;with
       ) ;if
     ) ;with
   ) ;if

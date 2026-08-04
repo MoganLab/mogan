@@ -58,45 +58,7 @@
       (typed-lambda ((str string?) (sub-str string?)) (string-contains str sub-str))
     ) ;define
 
-    (define (string-split str sep)
-      (define (split-characters input)
-        (let ((input-len (utf8-string-length input)))
-          (let loop
-            ((i 0) (parts '()))
-            (if (= i input-len)
-              (reverse parts)
-              (loop (+ i 1) (cons (utf8-substring input i (+ i 1)) parts))
-            ) ;if
-          ) ;let
-        ) ;let
-      ) ;define
-
-      (when (not (string? str))
-        (type-error "string-split: first parameter must be string")
-      ) ;when
-
-      (let* ((sep-str (cond ((string? sep) sep)
-                            ((char? sep) (string sep))
-                            (else (type-error "string-split: second parameter must be string or char"))
-                      ) ;cond
-             ) ;sep-str
-             (str-len (string-length str))
-             (sep-len (string-length sep-str))
-            ) ;
-        (if (zero? sep-len)
-          (split-characters str)
-          (let loop
-            ((search-start 0) (parts '()))
-            (let ((next-pos (string-position sep-str str search-start)))
-              (if next-pos
-                (loop (+ next-pos sep-len) (cons (substring str search-start next-pos) parts))
-                (reverse (cons (substring str search-start str-len) parts))
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
+    (define string-split g_string-split)
 
     (define (string-replace str old new . rest)
       (when (> (length rest) 1)

@@ -29,6 +29,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QStandardPaths>
 #include <QStringList>
 #include <QStyleOption>
 #include <QTimer>
@@ -747,7 +748,18 @@ QTMHomePage::createDocumentWithStyle (const QString& styleId) {
 
   if (styleId == "open") {
     if (!recentDocs_.isEmpty ()) {
-      QString dir= QFileInfo (recentDocs_.first ().filePath).absolutePath ();
+      QString filePath             = recentDocs_.first ().filePath;
+      QString dir                  = QFileInfo (filePath).absolutePath ();
+      bool    isTemporaryPreviewDir= filePath.contains (".lolly");
+      if (isTemporaryPreviewDir) {
+        dir= QStandardPaths::writableLocation (
+            QStandardPaths::DocumentsLocation);
+        if (dir.isEmpty ()) {
+          dir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
+        }
+        dir= QDir (dir).filePath ("LiiiSTEM");
+        if (!QDir (dir).exists ()) QDir ().mkpath (dir);
+      }
       eval_scheme (
           "(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
           "(system->url " *
