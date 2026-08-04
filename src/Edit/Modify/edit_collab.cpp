@@ -216,6 +216,9 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
     array<linear_item> loro_items=
         markup_to_linear_ir (loro_doc->body_markup ());
     path raw_p= linear_ir_path_at_offset_with_anchor (loro_items, off, anchor);
+    if (DEBUG_LORO)
+      debug_loro << "DIAG resolve_cursor: off=" << off << " anchor=" << anchor
+                 << " raw_p=" << raw_p << "\n";
 
     if (is_nil (raw_p)) return path ();
     if (anchor == 'T') {
@@ -338,15 +341,25 @@ stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
   // position_get 为 Mogan 原生 C++ 树 Observer 在 live tree 上的 Ground Truth；
   // 仅当观察节点被远端彻底删除 (nc 为 nil) 时，才由 Loro Cursor 兜底恢复。
   if (is_nil (nc) && cur_payload != "") {
+    if (DEBUG_LORO)
+      debug_loro << "DIAG restore: position_get nil, falling back to "
+                    "resolve_cursor payload="
+                 << cur_payload << "\n";
     mogan_tree_id tid;
     string        off_field;
     if (parse_group (cur_payload, tid, off_field)) {
       path stable_cp= resolve_cursor (tid, off_field, buf2, *loro_doc, items2);
+      if (DEBUG_LORO)
+        debug_loro << "DIAG restore: resolve_cursor returned " << stable_cp
+                   << " (nil=fallthrough to go_to_start)\n";
       if (!is_nil (stable_cp)) {
         nc= rp * stable_cp;
         if (DEBUG_LORO) debug_loro << "resolved cursor path = " << nc << "\n";
       }
     }
+  }
+  else if (DEBUG_LORO) {
+    debug_loro << "DIAG restore: position_get ok nc=" << nc << "\n";
   }
 
   ed->position_delete (cur_save);
