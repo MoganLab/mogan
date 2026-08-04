@@ -404,11 +404,13 @@ edit_select_rep::selection_active_enlarging () {
 void
 edit_select_rep::selection_correct (path i1, path i2, path& o1, path& o2) {
   if (!(rp <= i1)) {
-    std_warning << "DIAG selection_correct: i1=" << i1 << " not inside rp=" << rp
+    std_warning << "DIAG selection_correct: i1=" << i1
+                << " not inside rp=" << rp
                 << " (cur_sel stale after remote edit)\n";
   }
   if (!(rp <= i2)) {
-    std_warning << "DIAG selection_correct: i2=" << i2 << " not inside rp=" << rp
+    std_warning << "DIAG selection_correct: i2=" << i2
+                << " not inside rp=" << rp
                 << " (cur_sel stale after remote edit)\n";
   }
   ASSERT (rp <= i1 && rp <= i2, "paths not inside document");

@@ -337,15 +337,15 @@ void
 stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
   array<linear_item> items2= tree_to_linear_ir (buf2);
 
-  // 恢复优先级：CRDT 稳定光标（Loro op-id 锚定）优先，tree_position 观察者兜底。
-  // 观察者以裸 tree_rep* 跟踪节点，在远端 remove+insert+assign 重构文档子树
-  // （如段落回车拆分）时，rep 指针会漂移到兄弟节点，position_get 返回错误位置
-  // （实测从段落3漂到段落2末尾）。而 resolve_cursor 经 Loro op-id 自动跟随并发
-  // 编辑位移，结构变更下仍能定位到正确节点。仅当 payload 缺失或为退化 I0
-  // （cursor 未就绪，如 JOIN 刚完成）时才回退到观察者。
-  path            nc      = path ();
-  static string   degenerate= format_group (mogan_tree_id{0, 0}, "I0");
-  bool            crdt_ok   = false;
+  // 恢复优先级：CRDT 稳定光标（Loro op-id 锚定）优先，tree_position
+  // 观察者兜底。 观察者以裸 tree_rep* 跟踪节点，在远端 remove+insert+assign
+  // 重构文档子树 （如段落回车拆分）时，rep 指针会漂移到兄弟节点，position_get
+  // 返回错误位置 （实测从段落3漂到段落2末尾）。而 resolve_cursor 经 Loro op-id
+  // 自动跟随并发 编辑位移，结构变更下仍能定位到正确节点。仅当 payload
+  // 缺失或为退化 I0 （cursor 未就绪，如 JOIN 刚完成）时才回退到观察者。
+  path          nc        = path ();
+  static string degenerate= format_group (mogan_tree_id{0, 0}, "I0");
+  bool          crdt_ok   = false;
   if (cur_payload != "" && cur_payload != degenerate) {
     mogan_tree_id tid;
     string        off_field;
