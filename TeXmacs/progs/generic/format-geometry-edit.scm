@@ -822,19 +822,22 @@
            (nw (- ow sx))
            (nh (- oh sy))
            (uniform-scale (lambda (scale-x scale-y)
-                            (let* ((ow2 (* ow ow))
-                                   (oh2 (* oh oh))
-                                   (scale (/ (+ (* scale-x ow2) (* scale-y oh2)) (+ ow2 oh2)))
-                                  ) ;
-                              (let* ((nw (* ow scale)) (nh (* oh scale)))
-                                (when (> nw 0.1)
-                                  (tree-set! t 1 (cm->str nw))
-                                ) ;when
-                                (when (> nh 0.1)
-                                  (tree-set! t 2 (cm->str nh))
-                                ) ;when
-                                (refresh-window)
-                              ) ;let*
+                            ;; 保护:ow/oh 同时为 0 时跳过,避免除零写入 infcm
+                            (let* ((ow2 (* ow ow)) (oh2 (* oh oh)) (den (+ ow2 oh2)))
+                              (when (> den 0)
+                                (let* ((scale (/ (+ (* scale-x ow2) (* scale-y oh2)) den))
+                                       (nw (* ow scale))
+                                       (nh (* oh scale))
+                                      ) ;
+                                  (when (> nw 0.1)
+                                    (tree-set! t 1 (cm->str nw))
+                                  ) ;when
+                                  (when (> nh 0.1)
+                                    (tree-set! t 2 (cm->str nh))
+                                  ) ;when
+                                  (refresh-window)
+                                ) ;let*
+                              ) ;when
                             ) ;let*
                           ) ;lambda
            ) ;uniform-scale
