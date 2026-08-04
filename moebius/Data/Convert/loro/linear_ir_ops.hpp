@@ -56,7 +56,7 @@ int linear_ir_offset_of_atomic (array<linear_item> items, path atomic_path,
  *  - 若 p 指向复合节点的 OPEN 边界，out_anchor 置为 'O'。
  *  - 若 p 指向复合节点的 CLOSE 边界，out_anchor 置为 'C'。
  *  返回字节偏移，失败 -1。 */
-int linear_ir_offset_of_path (const array<linear_item>& items, path p, tree buf,
+int linear_ir_offset_of_path (const array<linear_item>& items, path p,
                               char& out_anchor);
 
 /** body markup 字节偏移 -> 树位置路径（原子路径 * 字符偏移）。落在原子内容外

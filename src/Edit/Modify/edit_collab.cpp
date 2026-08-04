@@ -173,7 +173,7 @@ encode_path (tree& buf, loro_shadow loro_doc, path p,
     return format_group (mogan_tree_id{0, 0}, "I0");
 
   char anchor  = 'T';
-  int  byte_off= linear_ir_offset_of_path (items, p, buf, anchor);
+  int  byte_off= linear_ir_offset_of_path (items, p, anchor);
   if (byte_off >= 0) {
     string hex= loro_doc->encode_body_cursor_hex (byte_off);
     if (hex != "") {
