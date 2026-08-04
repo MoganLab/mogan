@@ -39,6 +39,7 @@
  ("min increase" "0.1" noop)
  ("% increase" "5" noop)
  ("default unit" "ex" noop)
+ ("image preserve aspect ratio" "off" noop)
 ) ;define-preferences
 
 (define step-table (make-ahash-table))
@@ -619,6 +620,20 @@
 ;; Images
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (image-preserve-aspect-ratio?)
+  ;; 检查是否启用了图片宽高比锁定
+  (test-preference? "image preserve aspect ratio" "on")
+) ;define
+
+(define (image-decode-length t i)
+  ;; 读取图片第 i 个子节点（宽度或高度）的渲染尺寸，单位为 tmpt
+  ;; 节点为空时返回 #f
+  (with s
+    (tm->string (tree-ref t i))
+    (and s (not (string-null? s)) (length-decode s))
+  ) ;with
+) ;define
+
 (tm-define (geometry-speed t inc?)
   (:require (image-context? t))
   (with inc
@@ -633,7 +648,16 @@
     (if forward? 1 -1)
     (with-focus-after t
       (replace-empty t 1 "1w")
-      (length-increase (tree-ref t 1) inc)
+      (if (image-preserve-aspect-ratio?)
+        ;; 锁定宽高比：按宽度变化的缩放比例同步缩放高度
+        (let* ((old-w (image-decode-length t 1)))
+          (length-increase (tree-ref t 1) inc)
+          (when (and old-w (> old-w 0))
+            (let* ((new-w (image-decode-length t 1))
+                   (scale (and new-w (/ new-w old-w))))
+              (when (and scale (> scale 0))
+                (length-scale (tree-ref t 2) scale 0.001)))))
+        (length-increase (tree-ref t 1) inc))
     ) ;with-focus-after
   ) ;with
 ) ;tm-define
@@ -644,7 +668,16 @@
     (if down? -1 1)
     (with-focus-after t
       (replace-empty t 2 "1h")
-      (length-increase (tree-ref t 2) inc)
+      (if (image-preserve-aspect-ratio?)
+        ;; 锁定宽高比：按高度变化的缩放比例同步缩放宽度
+        (let* ((old-h (image-decode-length t 2)))
+          (length-increase (tree-ref t 2) inc)
+          (when (and old-h (> old-h 0))
+            (let* ((new-h (image-decode-length t 2))
+                   (scale (and new-h (/ new-h old-h))))
+              (when (and scale (> scale 0))
+                (length-scale (tree-ref t 1) scale 0.001)))))
+        (length-increase (tree-ref t 2) inc))
     ) ;with-focus-after
   ) ;with
 ) ;tm-define
@@ -804,23 +837,42 @@
        ((ne) (uniform-scale (/ (+ ow sx) ow) (/ (+ oh sy) oh)))
        ((nw) (uniform-scale (/ nw ow) (/ (+ oh sy) oh)))
        ((e)
-        (when (> (+ ow sx) 0.1)
-          (tree-set! t 1 (cm->str (+ ow sx)))
-          (refresh-window)
-        ) ;when
+        (if (image-preserve-aspect-ratio?)
+          ;; 锁定宽高比：按宽度缩放比例同步缩放高度
+          (uniform-scale (/ (+ ow sx) ow) (/ (+ ow sx) ow))
+          (when (> (+ ow sx) 0.1)
+            (tree-set! t 1 (cm->str (+ ow sx)))
+            (refresh-window)
+          ) ;when
+        ) ;if
        ) ;
-       ((w) (when (> nw 0.1) (tree-set! t 1 (cm->str nw)) (refresh-window)))
+       ((w)
+        (if (image-preserve-aspect-ratio?)
+          (uniform-scale (/ nw ow) (/ nw ow))
+          (when (> nw 0.1)
+            (tree-set! t 1 (cm->str nw))
+            (refresh-window)
+          ) ;when
+        ) ;if
+       ) ;
        ((n)
-        (when (> (+ oh sy) 0.1)
-          (tree-set! t 2 (cm->str (+ oh sy)))
-          (refresh-window)
-        ) ;when
+        (if (image-preserve-aspect-ratio?)
+          ;; 锁定宽高比：按高度缩放比例同步缩放宽度
+          (uniform-scale (/ (+ oh sy) oh) (/ (+ oh sy) oh))
+          (when (> (+ oh sy) 0.1)
+            (tree-set! t 2 (cm->str (+ oh sy)))
+            (refresh-window)
+          ) ;when
+        ) ;if
        ) ;
        ((s)
-        (when (> (- oh sy) 0.1)
-          (tree-set! t 2 (cm->str (- oh sy)))
-          (refresh-window)
-        ) ;when
+        (if (image-preserve-aspect-ratio?)
+          (uniform-scale (/ (- oh sy) oh) (/ (- oh sy) oh))
+          (when (> (- oh sy) 0.1)
+            (tree-set! t 2 (cm->str (- oh sy)))
+            (refresh-window)
+          ) ;when
+        ) ;if
        ) ;
       ) ;case
     ) ;let*

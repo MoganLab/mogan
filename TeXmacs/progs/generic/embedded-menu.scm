@@ -55,3 +55,8 @@
     (link embedded-load-menu)
   ) ;=>
 ) ;tm-menu
+
+(tm-menu (focus-extra-menu t)
+  (:require (image-context? t))
+  ("Preserve aspect ratio" (toggle-preference "image preserve aspect ratio"))
+) ;tm-menu
