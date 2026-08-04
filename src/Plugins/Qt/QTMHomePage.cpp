@@ -747,17 +747,27 @@ QTMHomePage::createDocumentWithStyle (const QString& styleId) {
   }
 
   if (styleId == "open") {
-    QString docsDir=
-        QStandardPaths::writableLocation (QStandardPaths::DocumentsLocation);
-    if (docsDir.isEmpty ()) {
-      docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
+    if (!recentDocs_.isEmpty ()) {
+      QString filePath             = recentDocs_.first ().filePath;
+      QString dir                  = QFileInfo (filePath).absolutePath ();
+      bool    isTemporaryPreviewDir= filePath.contains (".lolly");
+      if (isTemporaryPreviewDir) {
+        dir= QStandardPaths::writableLocation (
+            QStandardPaths::DocumentsLocation);
+        if (dir.isEmpty ()) {
+          dir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
+        }
+        dir= QDir (dir).filePath ("LiiiSTEM");
+        if (!QDir (dir).exists ()) QDir ().mkpath (dir);
+      }
+      eval_scheme (
+          "(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
+          "(system->url " *
+          qt_scheme_quote_utf8 (dir) * "))");
     }
-    docsDir= QDir (docsDir).filePath ("LiiiSTEM");
-    if (!QDir (docsDir).exists ()) QDir ().mkpath (docsDir);
-
-    eval_scheme ("(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
-                 "(system->url " *
-                 qt_scheme_quote_utf8 (docsDir) * "))");
+    else {
+      eval_scheme ("(open-document)");
+    }
     return;
   }
 
