@@ -165,11 +165,11 @@ make_brush (tree p, int a) {
     // 防御性处理：先判断 p 本身结构是否合法。
     // - L (p) != PATTERN：节点类型不对
     // - N (p) < 3：参数不足（至少需要 资源/宽/高 3 个子节点）
-    if (L (p) != moebius::PATTERN || N (p) < 3)
-      return tm_new<no_brush_rep> ();
+    if (L (p) != moebius::PATTERN || N (p) < 3) return tm_new<no_brush_rep> ();
     // 再判断 p 内数据是否有效。
     // - !is_atomic (p[0])：资源标识形态不对（应为原子）
-    // - as_string (p[0]) == "" || "{}"：资源标识为空或占位（防止 201_72 崩溃回归）
+    // - as_string (p[0]) == "" || "{}"：资源标识为空或占位（防止 201_72
+    // 崩溃回归）
     if (!is_atomic (p[0]) || as_string (p[0]) == "" || as_string (p[0]) == "{}")
       return tm_new<no_brush_rep> ();
     color c= white;

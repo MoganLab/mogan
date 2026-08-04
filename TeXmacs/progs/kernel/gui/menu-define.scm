@@ -13,6 +13,8 @@
 
 (texmacs-module (kernel gui menu-define) (:use (kernel gui gui-markup)))
 
+(import (only (liii path) path-as-posix))
+
 (define use-minibars? (== (cpp-get-preference "use minibars" "off") "on"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -792,9 +794,10 @@
   ) ;when
   ;; Windows 路径反斜杠会导致偏好持久化时序列化/反序列化不对称
   ;; （object->string + scm_quote 双重转义，unslash + scm_unquote + read
-  ;;  三重反转义），改用正斜杠避免反斜杠进入序列化链路。
+  ;;  三重反转义），改用 liii-path 的 path-as-posix 统一转正斜杠，
+  ;; 避免反斜杠进入序列化链路（仅 Windows 平台生效）。
   (when (string? name)
-    (set! name (string-replace name "\\" "/"))
+    (set! name (path-as-posix (path name)))
   ) ;when
   (cond ((url-exists? (url-append "$TEXMACS_PATTERN_PATH" (url-tail name)))
          `(pattern ,(url->unix (url-tail name)) ,@args)
