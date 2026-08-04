@@ -249,9 +249,9 @@ TestQmlDialog::test_form_dialog_hook () {
 void
 TestQmlDialog::test_search_recent_documents_hook () {
   {
-    EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", "C:/docs/needle.tm");
-    QCOMPARE (cpp_search_recent_documents_dialog (),
-              string ("C:/docs/needle.tm"));
+    string  path= "C:/文档/报告.tm";
+    EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", path);
+    QCOMPARE (cpp_search_recent_documents_dialog (), path);
   }
   {
     EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", "cancel");

@@ -13,7 +13,6 @@
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.
  ******************************************************************************/
 
-#include "RecentDocumentsSearchBridge.hpp"
 #include "base.hpp"
 
 #include <QDialog>
@@ -37,6 +36,29 @@ public:
   Q_INVOKABLE void cancel () { ++cancelCount; }
   Q_INVOKABLE void submit (const QVariantMap&) {}
   Q_INVOKABLE void startMove () {}
+};
+
+class RecentDocumentsSearchStubBridge : public QObject {
+  Q_OBJECT
+  Q_PROPERTY (QVariantList documents READ documents CONSTANT)
+  Q_PROPERTY (QString title READ title CONSTANT)
+  Q_PROPERTY (QString placeholder READ placeholder CONSTANT)
+  Q_PROPERTY (QString emptyText READ emptyText CONSTANT)
+
+public:
+  explicit RecentDocumentsSearchStubBridge (QVariantList documents,
+                                            QObject*     parent= nullptr)
+      : QObject (parent), m_documents (documents) {}
+
+  QVariantList documents () const { return m_documents; }
+  QString      title () const { return "Search recent documents"; }
+  QString      placeholder () const { return "Search"; }
+  QString      emptyText () const { return "No matching recent documents"; }
+
+  Q_INVOKABLE void open (const QString&) {}
+
+private:
+  QVariantList m_documents;
 };
 
 class VersionStubBridge : public QObject {
@@ -374,9 +396,8 @@ TestQmlLoad::test_search_recent_documents_loads () {
   document["path"]= QString ("C:/docs/notes.tm");
   QVariantList documents;
   documents << document;
-  RecentDocumentsSearchBridge* searchBridge= new RecentDocumentsSearchBridge (
-      documents, QString ("Search recent documents"), QString ("Search"),
-      QString ("No matching recent documents"), qw);
+  RecentDocumentsSearchStubBridge* searchBridge=
+      new RecentDocumentsSearchStubBridge (documents, qw);
   qw->rootContext ()->setContextProperty ("recentSearchBridge", searchBridge);
   qw->rootContext ()->setContextProperty ("dialogButtons",
                                           QStringList{"Open", "Cancel"});

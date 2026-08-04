@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE      : RecentDocumentsSearchBridge.cpp
- * DESCRIPTION : 最近打开文档搜索的 QML 数据桥接实现。
+ * DESCRIPTION : 最近打开文档搜索 QML bridge 的数据与确认动作实现。
  * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
@@ -9,26 +9,30 @@
 
 #include "RecentDocumentsSearchBridge.hpp"
 
-#include "converter.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 
+#include <QDialog>
 #include <QDir>
 #include <QFileInfo>
 #include <QSet>
 #include <QVariantMap>
 
-RecentDocumentsSearchBridge::RecentDocumentsSearchBridge (QObject* parent)
-    : RecentDocumentsSearchBridge (
-          recent_documents (), qt_translate ("Search recent documents"),
-          qt_translate ("Search"),
-          qt_translate ("No matching recent documents"), parent) {}
+RecentDocumentsSearchBridge::RecentDocumentsSearchBridge (QDialog* host)
+    : m_documents (recent_documents ()), m_host (host),
+      m_title (qt_translate ("Search recent documents")),
+      m_placeholder (qt_translate ("Search")),
+      m_emptyText (qt_translate ("No matching recent documents")) {
+  ASSERT (host != NULL,
+          "RecentDocumentsSearchBridge expects a valid QDialog host");
+}
 
-RecentDocumentsSearchBridge::RecentDocumentsSearchBridge (
-    QVariantList documents, QString title, QString placeholder,
-    QString emptyText, QObject* parent)
-    : QObject (parent), m_documents (documents), m_title (title),
-      m_placeholder (placeholder), m_emptyText (emptyText) {}
+void
+RecentDocumentsSearchBridge::open (const QString& path) {
+  if (path.isEmpty ()) return;
+  m_selectedPath= path;
+  m_host->done (QDialog::Accepted);
+}
 
 QVariantList
 RecentDocumentsSearchBridge::recent_documents () {
@@ -39,7 +43,8 @@ RecentDocumentsSearchBridge::recent_documents () {
     tmscm item= tmscm_car (cur);
     if (!tmscm_is_string (item)) continue;
 
-    QString path= utf8_to_qstring (cork_to_utf8 (tmscm_to_string (item)));
+    // url->system 已给出 UTF-8 系统路径；再转 Cork 会破坏非 ASCII 文件名。
+    QString path= QString::fromUtf8 (as_charp (tmscm_to_string (item)));
     if (path.isEmpty ()) continue;
     QString normalizedPath= QDir::cleanPath (QDir::fromNativeSeparators (path));
 #ifdef Q_OS_WIN

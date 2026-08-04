@@ -1,4 +1,4 @@
-// Keep filtering and selection local so searching cannot change recent records.
+// 筛选和选择留在 QML 本地，避免搜索过程改写 Scheme 的最近记录。
 
 import QtQuick
 import "atoms"
@@ -69,7 +69,7 @@ DialogShell {
 
     function openSelection() {
         if (selectedIndex >= 0 && selectedIndex < matches.length)
-            closeBridge.submit({ "path": matches[selectedIndex].path })
+            recentSearchBridge.open(matches[selectedIndex].path)
     }
 
     Component.onCompleted: root.updateMatches()

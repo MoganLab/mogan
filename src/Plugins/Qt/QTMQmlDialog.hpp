@@ -215,12 +215,7 @@ bool cpp_version_dialog (string title, string message);
 tree cpp_preferences_dialog ();
 
 /**
- * @brief Open the QML search dialog for recently opened documents.
- *
- *
- * @return The selected document path, or an empty string after Cancel, Esc,
- *
- * window close, or QML loading failure.
+ * @brief 打开最近文档搜索 QML 对话框。
  */
 string cpp_search_recent_documents_dialog ();
 

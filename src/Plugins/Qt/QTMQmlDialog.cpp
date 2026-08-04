@@ -13,6 +13,7 @@
 #include "PreferencesBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
+#include "RecentDocumentsSearchBridge.hpp"
 #include "VersionDialogBridge.hpp"
 
 #include "analyze.hpp"   // occurs
@@ -598,8 +599,36 @@ cpp_version_dialog (string title, string message) {
   return choice == 1;
 }
 
+string
+cpp_search_recent_documents_dialog () {
+  string preset= get_env ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS");
+  if (preset != "") return preset == "cancel" ? string ("") : preset;
+
+  array<string>                buttons= {string ("Open"), string ("Cancel")};
+  QmlDialogBridge*             closeBridge = nullptr;
+  RecentDocumentsSearchBridge* searchBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/SearchRecentDocuments.qml", "SearchRecentDocuments.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge = inject_common_context (qw, host);
+        searchBridge= new RecentDocumentsSearchBridge (&host);
+        qw->rootContext ()->setContextProperty ("recentSearchBridge",
+                                                searchBridge);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      520, 450);
+
+  QString path;
+  if (searchBridge) path= searchBridge->selectedPath ();
+  delete closeBridge;
+  delete searchBridge;
+  return from_qstring_utf8 (path);
+}
+
 /**
- * @brief 首选项 QML 对话框的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ * @brief 首选项 QML 对话框的 glue 入口（声明/语义见
+ * QTMQmlDialog.hpp）。
  *
  * @details 走 run_qml_dialog（exec 阻塞模态，同
  * FormDialog——首选项是一次性提交， 无需 live
