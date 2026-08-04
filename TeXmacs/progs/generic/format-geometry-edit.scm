@@ -653,11 +653,15 @@
         (let* ((old-w (image-decode-length t 1)))
           (length-increase (tree-ref t 1) inc)
           (when (and old-w (> old-w 0))
-            (let* ((new-w (image-decode-length t 1))
-                   (scale (and new-w (/ new-w old-w))))
+            (let* ((new-w (image-decode-length t 1)) (scale (and new-w (/ new-w old-w))))
               (when (and scale (> scale 0))
-                (length-scale (tree-ref t 2) scale 0.001)))))
-        (length-increase (tree-ref t 1) inc))
+                (length-scale (tree-ref t 2) scale 0.001)
+              ) ;when
+            ) ;let*
+          ) ;when
+        ) ;let*
+        (length-increase (tree-ref t 1) inc)
+      ) ;if
     ) ;with-focus-after
   ) ;with
 ) ;tm-define
@@ -673,11 +677,15 @@
         (let* ((old-h (image-decode-length t 2)))
           (length-increase (tree-ref t 2) inc)
           (when (and old-h (> old-h 0))
-            (let* ((new-h (image-decode-length t 2))
-                   (scale (and new-h (/ new-h old-h))))
+            (let* ((new-h (image-decode-length t 2)) (scale (and new-h (/ new-h old-h))))
               (when (and scale (> scale 0))
-                (length-scale (tree-ref t 1) scale 0.001)))))
-        (length-increase (tree-ref t 2) inc))
+                (length-scale (tree-ref t 1) scale 0.001)
+              ) ;when
+            ) ;let*
+          ) ;when
+        ) ;let*
+        (length-increase (tree-ref t 2) inc)
+      ) ;if
     ) ;with-focus-after
   ) ;with
 ) ;tm-define
