@@ -243,16 +243,12 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
             }
           }
           if (concat_off >= 0) {
-            path res= pp * path (concat_off);
-            if (!is_nil (path_up (res)) && has_subtree (buf, path_up (res)))
-              return res;
+            return pp * path (concat_off);
           }
         }
       }
     }
-    if (!is_nil (path_up (raw_p)) && has_subtree (buf, path_up (raw_p)))
-      return raw_p;
-    return path ();
+    return raw_p;
   }
 
   path node_path=
@@ -272,14 +268,10 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
       }
     }
     if (concat_off >= 0) {
-      path res= pp * path (concat_off);
-      if (!is_nil (path_up (res)) && has_subtree (buf, path_up (res)))
-        return res;
+      return pp * path (concat_off);
     }
   }
-  path res= node_path * path (off);
-  if (!is_nil (path_up (res)) && has_subtree (buf, path_up (res))) return res;
-  return path ();
+  return node_path * path (off);
 }
 
 stable_cursor_snapshot::stable_cursor_snapshot (edit_modify_rep* ed, path tp,
@@ -328,9 +320,8 @@ stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
   array<linear_item> items2= tree_to_linear_ir (buf2);
 
   path nc= ed->position_get (cur_save);
-  // position_get 为 Mogan 原生 C++ 树 Observer 在 live tree 上的 Ground Truth；
-  // 仅当观察节点被远端彻底删除 (nc 为 nil) 时，才由 Loro Cursor 兜底恢复。
-  if (is_nil (nc) && cur_payload != "") {
+  // 用稳定光标进行更高优先级的恢复
+  if (cur_payload != "") {
     mogan_tree_id tid;
     string        off_field;
     if (parse_group (cur_payload, tid, off_field)) {
@@ -350,7 +341,7 @@ stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
     path ns= ed->position_get (sel_start_save);
     path ne= ed->position_get (sel_end_save);
 
-    if (is_nil (ns) && sel_start_payload != "") {
+    if (sel_start_payload != "") {
       mogan_tree_id tid;
       string        off_field;
       if (parse_group (sel_start_payload, tid, off_field)) {
@@ -363,7 +354,7 @@ stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
         }
       }
     }
-    if (is_nil (ne) && sel_end_payload != "") {
+    if (sel_end_payload != "") {
       mogan_tree_id tid;
       string        off_field;
       if (parse_group (sel_end_payload, tid, off_field)) {
