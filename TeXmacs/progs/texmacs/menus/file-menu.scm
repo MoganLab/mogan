@@ -297,19 +297,15 @@
    ("Print buffer" (print-buffer))
    ("Print page selection" (interactive print-pages))
   ) ;if
-  ("Print buffer to file"
-    (choose-file print-to-file "Print all to file" "postscript")
-  ) ;
-  ("Print page selection to file"
-    (interactive choose-file-and-print-page-selection)
-  ) ;
+  ("Print buffer to file" (open-print-to-file))
+  ("Print page selection to file" (open-page-selection-to-file))
 ) ;menu-bind
 
 (menu-bind print-menu
  ("Preview" (preview-buffer))
  (if (use-print-dialog?)
    (if (has-printing-cmd?) ("Print" (print-buffer)))
-   ("Print to file" (choose-file print-to-file "Print all to file" "postscript"))
+   ("Print to file" (open-print-to-file))
  ) ;if
  (if (not (use-print-dialog?)) (-> "Print" (link print-menu-sub)))
  (if (use-menus?) (-> "Page setup" (link page-setup-menu)))
@@ -320,7 +316,7 @@
  ("Preview" (preview-buffer))
  (if (use-print-dialog?)
    (if (has-printing-cmd?) ("Print" (print-buffer)))
-   ("Print to file" (choose-file print-to-file "Print all to file" "postscript"))
+   ("Print to file" (open-print-to-file))
  ) ;if
  (if (not (use-print-dialog?)) --- (link print-menu-sub) ---)
  (if (use-menus?) (-> "Page setup" (link page-setup-menu)))

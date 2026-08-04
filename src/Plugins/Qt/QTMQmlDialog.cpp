@@ -36,6 +36,7 @@ using moebius::data::tree_to_scheme_tree;
 #include <QVBoxLayout>
 #include <QVariantList>
 #include <QVariantMap>
+#include <algorithm>
 
 #include <functional>
 
@@ -449,6 +450,75 @@ cpp_form_dialog (tree fields) {
     tree kv (TUPLE);
     kv << tree (from_qstring (it.key ()));
     kv << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
+}
+
+tree
+cpp_print_to_file_dialog (string filename, int page_count, bool page_range) {
+  string preset= get_env ("MOGAN_TEST_PRINT_TO_FILE");
+  if (preset == "cancel") return tree (TUPLE);
+
+  QVariantMap defaults;
+  defaults["file"]  = to_qstring (filename);
+  defaults["format"]= "postscript";
+  defaults["range"] = page_range ? "range" : "all";
+  defaults["first"] = "1";
+  defaults["last"]  = QString::number (std::max (1, page_count));
+
+  if (preset == "ok") {
+    tree r (TUPLE);
+    for (auto it= defaults.begin (); it != defaults.end (); ++it) {
+      tree kv (TUPLE);
+      kv << tree (from_qstring (it.key ()))
+         << tree (from_qstring (it.value ().toString ()));
+      r << kv;
+    }
+    return r;
+  }
+
+  QmlDialogBridge* bridge = nullptr;
+  array<string>    buttons= {string ("Print"), string ("Cancel")};
+  run_qml_dialog (
+      "qrc:/qml/PrintToFile.qml", "PrintToFile.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("printDefaults", defaults);
+        qw->rootContext ()->setContextProperty ("printTitle",
+                                                qt_translate ("Print to file"));
+        qw->rootContext ()->setContextProperty ("fileLabel",
+                                                qt_translate ("File:"));
+        qw->rootContext ()->setContextProperty ("formatLabel",
+                                                qt_translate ("Format:"));
+        qw->rootContext ()->setContextProperty ("pagesLabel",
+                                                qt_translate ("Pages:"));
+        qw->rootContext ()->setContextProperty ("allPagesLabel",
+                                                qt_translate ("All pages"));
+        qw->rootContext ()->setContextProperty ("pageRangeLabel",
+                                                qt_translate ("Page range"));
+        qw->rootContext ()->setContextProperty ("fromLabel",
+                                                qt_translate ("From"));
+        qw->rootContext ()->setContextProperty ("toLabel", qt_translate ("To"));
+        qw->rootContext ()->setContextProperty ("browseLabel",
+                                                qt_translate ("Browse"));
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      500, 430);
+
+  tree               r (TUPLE);
+  const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();
+  delete bridge;
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    // QFileDialog paths are system strings, not document text. Preserve their
+    // UTF-8 bytes so Scheme's system->url performs the same conversion as the
+    // established Qt choose-file implementation.
+    const string value= it.key () == "file"
+                            ? from_qstring_utf8 (it.value ().toString ())
+                            : from_qstring (it.value ().toString ());
+    kv << tree (from_qstring (it.key ())) << tree (value);
     r << kv;
   }
   return r;

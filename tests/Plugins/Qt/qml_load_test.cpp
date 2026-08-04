@@ -31,11 +31,15 @@ class StubBridge : public QObject {
   Q_OBJECT
 public:
   explicit StubBridge (QObject* p= nullptr) : QObject (p) {}
-  int              cancelCount= 0;
-  Q_INVOKABLE void choose (int) {}
-  Q_INVOKABLE void cancel () { ++cancelCount; }
-  Q_INVOKABLE void submit (const QVariantMap&) {}
-  Q_INVOKABLE void startMove () {}
+  int                 cancelCount= 0;
+  Q_INVOKABLE void    choose (int) {}
+  Q_INVOKABLE void    cancel () { ++cancelCount; }
+  Q_INVOKABLE void    submit (const QVariantMap&) {}
+  Q_INVOKABLE void    startMove () {}
+  Q_INVOKABLE QString chooseSaveFile (const QString&, const QString&,
+                                       const QString&) {
+    return QString ();
+  }
 };
 
 class VersionStubBridge : public QObject {
@@ -203,6 +207,7 @@ private slots:
   void test_confirm_close_loads ();
   void test_confirm_restart_loads ();
   void test_form_dialog_loads ();
+  void test_print_to_file_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
@@ -276,6 +281,42 @@ TestQmlLoad::test_form_dialog_loads () {
   qw->rootContext ()->setContextProperty ("formFields", fields);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/FormDialog.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_print_to_file_loads () {
+  QVariantMap defaults;
+  defaults["file"]  = QString ("document.ps");
+  defaults["format"]= QString ("postscript");
+  defaults["range"] = QString ("all");
+  defaults["first"] = QString ("1");
+  defaults["last"]  = QString ("1");
+  QStringList buttons;
+  buttons << "Print" << "Cancel";
+
+  QDialog       host;
+  QQuickWidget* qw    = new QQuickWidget (&host);
+  StubBridge*   bridge= new StubBridge (qw);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("printDefaults", defaults);
+  qw->rootContext ()->setContextProperty ("printTitle",
+                                          QString ("Print to file"));
+  qw->rootContext ()->setContextProperty ("fileLabel", QString ("File:"));
+  qw->rootContext ()->setContextProperty ("formatLabel", QString ("Format:"));
+  qw->rootContext ()->setContextProperty ("pagesLabel", QString ("Pages:"));
+  qw->rootContext ()->setContextProperty ("allPagesLabel",
+                                          QString ("All pages"));
+  qw->rootContext ()->setContextProperty ("pageRangeLabel",
+                                          QString ("Page range"));
+  qw->rootContext ()->setContextProperty ("fromLabel", QString ("From"));
+  qw->rootContext ()->setContextProperty ("toLabel", QString ("To"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/PrintToFile.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
