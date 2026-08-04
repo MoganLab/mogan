@@ -14,6 +14,7 @@
 #include "boot.hpp"
 
 #include <QDialog>
+#include <QFileDialog>
 #include <QObject>
 #include <QString>
 #include <QVariantMap>
@@ -68,6 +69,30 @@ public:
   Q_INVOKABLE void submit (QVariantMap values) {
     m_results= values;
     m_host->done (QDialog::Accepted);
+  }
+
+  /**
+   * @brief Open the native save-file picker for QML dialogs that need a
+   * path.
+   *
+   * The surrounding dialog remains responsible for validating
+   * and submitting
+   * the returned path. Keeping the platform picker here
+   * avoids duplicating
+   * platform-specific file-dialog behavior in QML.
+ */
+  Q_INVOKABLE QString chooseSaveFile (const QString& currentFileName,
+                                      const QString& format,
+                                      const QString& title) {
+    const QString filter=
+        format == "pdf" ? "PDF files (*.pdf)" : "PostScript files (*.ps)";
+    const QString selected=
+        QFileDialog::getSaveFileName (m_host, title, currentFileName, filter);
+    if (m_host) {
+      m_host->raise ();
+      m_host->activateWindow ();
+    }
+    return selected;
   }
 
   /**

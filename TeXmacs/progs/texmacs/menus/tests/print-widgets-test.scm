@@ -98,6 +98,47 @@
   ) ;let*
 ) ;define
 
+;; QML print-to-file dialog returns a named tuple. Lookup must not depend on
+;; QVariantMap iteration order, because the C++ bridge owns that representation.
+
+(define (test-print-to-file-dialog-value)
+  (let ((values '((tuple "last" "4")
+                  (tuple "file" "out.pdf")
+                  (tuple "range" "all"))))
+    (check (print-to-file-dialog-value values "file" "") => "out.pdf")
+    (check (print-to-file-dialog-value values "first" "1") => "1")
+  ) ;let
+) ;define
+
+;; The dialog result must drive the same print operation as the legacy menu:
+;; all pages use print-to-file, while a selected range preserves both bounds.
+
+(define (test-print-to-file-dispatch)
+  (let ((calls '()))
+    (dispatch-print-to-file-result (stree->tree '(tuple (tuple "file" "all.pdf")
+                                                   (tuple "range" "all")
+                                                   (tuple "first" "1")
+                                                   (tuple "last" "4"))
+                                   ) ;stree->tree
+      4
+      (lambda (name) (set! calls (list "all" name)))
+      (lambda (name first last) (set! calls (list "range" name first last)))
+    ) ;dispatch-print-to-file-result
+    (check calls => '("all" "all.pdf"))
+    (dispatch-print-to-file-result (stree->tree '(tuple (tuple "file"
+                                                          "selection.ps")
+                                                   (tuple "range" "range")
+                                                   (tuple "first" "2")
+                                                   (tuple "last" "3"))
+                                   ) ;stree->tree
+      4
+      (lambda (name) (set! calls (list "all" name)))
+      (lambda (name first last) (set! calls (list "range" name first last)))
+    ) ;dispatch-print-to-file-result
+    (check calls => '("range" "selection.ps" "2" "3"))
+  ) ;let
+) ;define
+
 (tm-define (regtest-print-widgets)
   (test-enum-field-value-in-options)
   (test-enum-field-value-not-in-options)
@@ -105,5 +146,7 @@
   (test-option-lists)
   (test-ok-result-destructuring)
   (test-cancel-empty-result-no-op)
+  (test-print-to-file-dialog-value)
+  (test-print-to-file-dispatch)
   (check-report)
 ) ;tm-define

@@ -72,6 +72,7 @@ private slots:
   void test_translate_buttons ();
   void test_confirm_close_hook ();
   void test_form_dialog_hook ();
+  void test_print_to_file_dialog_hook ();
 };
 
 // 字段下标协议常量与协议文档一致。
@@ -240,6 +241,33 @@ TestQmlDialog::test_form_dialog_hook () {
   {
     EnvHook hook ("MOGAN_TEST_FORM_DIALOG", "cancel");
     tree    r= cpp_form_dialog (form);
+    QVERIFY (is_compound (r));
+    QCOMPARE (N (r), 0);
+  }
+}
+
+void
+TestQmlDialog::test_print_to_file_dialog_hook () {
+  auto range_value= [] (tree result) {
+    for (int i= 0; i < N (result); i++)
+      if (result[i][0]->label == "range") return result[i][1]->label;
+    return string ();
+  };
+  {
+    EnvHook hook ("MOGAN_TEST_PRINT_TO_FILE", "ok");
+    tree    r= cpp_print_to_file_dialog ("document.ps", 3, false);
+    QVERIFY (is_compound (r));
+    QCOMPARE (N (r), 5);
+    QCOMPARE (range_value (r), string ("all"));
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_PRINT_TO_FILE", "ok");
+    tree    r= cpp_print_to_file_dialog ("document.ps", 3, true);
+    QCOMPARE (range_value (r), string ("range"));
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_PRINT_TO_FILE", "cancel");
+    tree    r= cpp_print_to_file_dialog ("document.ps", 3, false);
     QVERIFY (is_compound (r));
     QCOMPARE (N (r), 0);
   }

@@ -19,6 +19,7 @@
         <file>qml/ConfirmRestart.qml</file>
         <file>qml/FormDialog.qml</file>
         <file>qml/ParagraphFormat.qml</file>
+        <file>qml/PrintToFile.qml</file>
         <file>qml/Statistics.qml</file>
         <file>qml/Preferences.qml</file>
     </qresource>
