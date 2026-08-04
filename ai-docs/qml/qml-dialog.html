@@ -1672,7 +1672,7 @@
           <h3>Search recent documents</h3>
           <input class="recent-search-input" id="recent-search-input" type="text" placeholder="Search">
           <ul class="recent-results" id="recent-results">
-            <li class="recent-result active" data-name="National Natural Science Foundation proposal" data-path="C:\\Users\\Mogan\\Documents\\National Natural Science Foundation proposal.tmu">
+            <li class="recent-result" data-name="National Natural Science Foundation proposal" data-path="C:\\Users\\Mogan\\Documents\\National Natural Science Foundation proposal.tmu">
               <strong>National Natural Science Foundation proposal</strong>
               <span>C:\\Users\\Mogan\\Documents\\National Natural Science Foundation proposal.tmu</span>
             </li>
@@ -1775,7 +1775,7 @@
       const recentSearchInput = document.getElementById('recent-search-input');
       const recentResults = document.querySelectorAll('.recent-result');
       const recentEmpty = document.getElementById('recent-empty');
-      let recentSelected = document.querySelector('.recent-result.active');
+       let recentSelected = null;
 
       function fuzzyMatch(text, query) {
         let cursor = 0;
@@ -1797,11 +1797,8 @@
           if (matched) visibleCount += 1;
         });
         recentEmpty.style.display = visibleCount ? 'none' : 'block';
-        const selectedVisible = recentSelected && recentSelected.style.display !== 'none';
-        if (!selectedVisible) {
-          recentSelected = Array.from(recentResults).find((row) => row.style.display !== 'none') || null;
-          recentResults.forEach((row) => row.classList.toggle('active', row === recentSelected));
-        }
+         recentSelected = null;
+         recentResults.forEach((row) => row.classList.remove('active'));
       });
 
       recentResults.forEach((row) => {

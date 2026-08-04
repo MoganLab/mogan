@@ -29,6 +29,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QStandardPaths>
 #include <QStringList>
 #include <QStyleOption>
 #include <QTimer>
@@ -746,16 +747,17 @@ QTMHomePage::createDocumentWithStyle (const QString& styleId) {
   }
 
   if (styleId == "open") {
-    if (!recentDocs_.isEmpty ()) {
-      QString dir= QFileInfo (recentDocs_.first ().filePath).absolutePath ();
-      eval_scheme (
-          "(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
-          "(system->url " *
-          qt_scheme_quote_utf8 (dir) * "))");
+    QString docsDir=
+        QStandardPaths::writableLocation (QStandardPaths::DocumentsLocation);
+    if (docsDir.isEmpty ()) {
+      docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
     }
-    else {
-      eval_scheme ("(open-document)");
-    }
+    docsDir= QDir (docsDir).filePath ("LiiiSTEM");
+    if (!QDir (docsDir).exists ()) QDir ().mkpath (docsDir);
+
+    eval_scheme ("(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
+                 "(system->url " *
+                 qt_scheme_quote_utf8 (docsDir) * "))");
     return;
   }
 

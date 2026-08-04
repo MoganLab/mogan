@@ -18,59 +18,6 @@
 ;; Helper functions
 ;; =============================================================================
 
-(define (remove-random-thes words count)
-  (cond ((null? words) '())
-        ((<= count 0) words)
-        ((== (car words) "the")
-         (cond ((<= (random 3) 1) (remove-random-thes (cdr words) (- count 1)))
-               (else (cons (car words) (remove-random-thes (cdr words) count)))
-         ) ;cond
-        ) ;
-        (else (cons (car words) (remove-random-thes (cdr words) count)))
-  ) ;cond
-) ;define
-
-(define (insert-random-as words count)
-  (cond ((null? words)
-         (if (> count 0) (cons "a" (insert-random-as '() (- count 1))) '())
-        ) ;
-        ((<= count 0) words)
-        (else (if (== (random 5) 0)
-                (cons "a" (insert-random-as words (- count 1)))
-                (cons (car words) (insert-random-as (cdr words) count))
-              ) ;if
-        ) ;else
-  ) ;cond
-) ;define
-
-(define (upcase-random-words words count)
-  (cond ((or (null? words) (<= count 0)) words)
-        ((> (string-length (car words)) 1)
-         (if (== (random 4) 0)
-           (cons (upcase-all (car words)) (upcase-random-words (cdr words) (- count 1)))
-           (cons (car words) (upcase-random-words (cdr words) count))
-         ) ;if
-        ) ;
-        (else (cons (car words) (upcase-random-words (cdr words) count)))
-  ) ;cond
-) ;define
-
-(define (demo-suggest t)
-  (cond ((not t) #f)
-        ((string? t)
-         (let* ((words (string-split t #\space))
-                (words-no-the (remove-random-thes words 2))
-                (words-with-a (insert-random-as words-no-the 2))
-                (final-words (upcase-random-words words-with-a 3))
-               ) ;
-           (string-recompose final-words " ")
-         ) ;let*
-        ) ;
-        ((pair? t) (cons (car t) (map demo-suggest (cdr t))))
-        (else t)
-  ) ;cond
-) ;define
-
 (define (diff-check-popup)
   ;; 先隐藏弹窗，避免位置错乱
   (set! diff-active? #f)
@@ -101,43 +48,75 @@
 
 (tm-define (is-diff-active?) diff-active?)
 
-(tm-define (diff-enable?) (not (community-stem?)))
+(tm-define (diff-enable?) (defined? 'diff-cloud-polish))
 
 ;; =============================================================================
 ;; Diff Text core control flow
 ;; =============================================================================
 
 (tm-define (trigger-diff-text)
-  (let* ((sel (selection-tree))
-         (origin_stree (tree->stree sel))
-         (suggested_stree (demo-suggest origin_stree))
-         (pre-cur (cursor-path))
-         (pre-grain (get-preference "versioning grain"))
-        ) ;
-    ;; 设为字符级精度 "detailed"；其余选项："block" (块级)、"rough" (粗粒度)
-    (set-preference "versioning grain" "detailed")
-    (let* ((diff-stree (compare-versions origin_stree suggested_stree))
-           (diff-tree (stree->tree diff-stree))
+  (when (diff-enable?)
+    (let* ((sel (selection-tree))
+           (origin-stree (tree->stree sel))
+           (pre-cur (cursor-path))
+           (stree-str (object->string origin-stree))
           ) ;
-      (clipboard-cut "primary")
-      (insert diff-tree)
-      (go-to pre-cur)
-      (diff-scan-next)
+      (debug-message "debug-io"
+        (string-append "diff-request: stree=[" (herk->utf8 stree-str) "]\n")
+      ) ;debug-message
+      (diff-cloud-polish stree-str
+        (lambda (suggested-str)
+          (diff-apply-suggestion origin-stree suggested-str pre-cur)
+        ) ;lambda
+      ) ;diff-cloud-polish
     ) ;let*
-    ;; 还原精度
-    (set-preference "versioning grain" pre-grain)
-  ) ;let*
+  ) ;when
 ) ;tm-define
+
+(define (diff-apply-suggestion origin-stree suggested-str pre-cur)
+  (when (and (string? suggested-str)
+          (not (string=? suggested-str ""))
+          (selection-active?)
+        ) ;and
+    (debug-message "debug-io"
+      (string-append "diff-predict: suggested=[" (herk->utf8 suggested-str) "]\n")
+    ) ;debug-message
+    (let ((suggested-stree (catch #t (lambda () (string->object suggested-str)) (lambda args #f))
+          ) ;suggested-stree
+         ) ;
+      (when suggested-stree
+        (let ((pre-grain (get-preference "versioning grain")))
+          ;; 设为字符级精度 "detailed"；其余选项："block" (块级)、"rough" (粗粒度)
+          (set-preference "versioning grain" "detailed")
+          (let* ((diff-stree (compare-versions origin-stree suggested-stree))
+                 (diff-tree (stree->tree diff-stree))
+                ) ;
+            (clipboard-cut "primary")
+            (insert diff-tree)
+            (go-to pre-cur)
+            (diff-scan-next)
+          ) ;let*
+          ;; 还原精度
+          (set-preference "versioning grain" pre-grain)
+        ) ;let
+      ) ;when
+    ) ;let
+  ) ;when
+) ;define
 
 (tm-define (accept-diff)
   (let ((t (tree-innermost 'version-both)))
     (when t
-      (let* ((new-val (tree-ref t 1)) (p (tree-up t)) (i (tree-index t)))
-        (tree-remove! p i 1)
-        (when (not (tree-is? new-val 'version-suppressed))
-          (insert new-val)
-        ) ;when
-      ) ;let*
+      (let ((new-val (tree-ref t 1)))
+        ;; 用 tree-set! 原位替换，不走「删除 + 光标处 insert」：
+        ;; 父节点是 with 时，光标式 insert 会把文本粘进 with 的参数位
+        (if (tree-is? new-val 'version-suppressed)
+          (let ((p (tree-up t)) (i (tree-index t)))
+            (tree-remove! p i 1)
+          ) ;let
+          (tree-set! t new-val)
+        ) ;if
+      ) ;let
     ) ;when
   ) ;let
   (diff-feedback 'accept)
@@ -148,12 +127,14 @@
 (tm-define (reject-diff)
   (let ((t (tree-innermost 'version-both)))
     (when t
-      (let* ((old-val (tree-ref t 0)) (p (tree-up t)) (i (tree-index t)))
-        (tree-remove! p i 1)
-        (when (not (tree-is? old-val 'version-suppressed))
-          (insert old-val)
-        ) ;when
-      ) ;let*
+      (let ((old-val (tree-ref t 0)))
+        (if (tree-is? old-val 'version-suppressed)
+          (let ((p (tree-up t)) (i (tree-index t)))
+            (tree-remove! p i 1)
+          ) ;let
+          (tree-set! t old-val)
+        ) ;if
+      ) ;let
     ) ;when
   ) ;let
   (diff-feedback 'reject)
