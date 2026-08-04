@@ -316,19 +316,13 @@
   (:proposals last (list (number->string (get-page-count)) ""))
 ) ;tm-property
 
-;; QML front-end for both file-print commands. The result is intentionally a
-;; named tuple so C++ can evolve the dialog without coupling Scheme to field
-;; ordering.
-
 (define (print-to-file-dialog-value values key fallback)
   (let loop
     ((remaining values))
     (if (null? remaining)
       fallback
       (let* ((entry (car remaining))
-             ;; tree->stree represents every C++ key/value tuple as
-             ;; (tuple "key" "value"). Keep accepting plain pairs too, so this
-             ;; helper remains convenient for Scheme callers and tests.
+             ;; 兼容 tree->stree 的 tuple 形状及测试直接传入的 pair。
              (pair (if (and (pair? entry) (eq? (car entry) 'tuple)) (cdr entry) entry))
             ) ;
         (if (and (pair? pair) (pair? (cdr pair)) (string=? (car pair) key))
@@ -357,9 +351,7 @@
   (let ((page-count (get-page-count)))
     (dispatch-print-to-file-result (cpp-print-to-file-dialog (propose-postscript-name) page-count page-range?)
       page-count
-      ;; QFileDialog returns an operating-system path string, while the print
-      ;; glue takes Mogan's url object. Legacy choose-file performs this
-      ;; conversion before invoking its callback.
+      ;; 与 choose-file 一致，将系统路径转换为 Mogan url。
       (lambda (name) (print-to-file (system->url name)))
       (lambda (name first last) (print-pages-to-file (system->url name) first last))
     ) ;dispatch-print-to-file-result

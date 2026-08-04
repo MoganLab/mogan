@@ -31,13 +31,19 @@ class StubBridge : public QObject {
   Q_OBJECT
 public:
   explicit StubBridge (QObject* p= nullptr) : QObject (p) {}
-  int                 cancelCount= 0;
-  Q_INVOKABLE void    choose (int) {}
-  Q_INVOKABLE void    cancel () { ++cancelCount; }
-  Q_INVOKABLE void    submit (const QVariantMap&) {}
-  Q_INVOKABLE void    startMove () {}
+  int              cancelCount= 0;
+  Q_INVOKABLE void choose (int) {}
+  Q_INVOKABLE void cancel () { ++cancelCount; }
+  Q_INVOKABLE void submit (const QVariantMap&) {}
+  Q_INVOKABLE void startMove () {}
+};
+
+class PrintStubBridge : public QObject {
+  Q_OBJECT
+public:
+  explicit PrintStubBridge (QObject* p= nullptr) : QObject (p) {}
   Q_INVOKABLE QString chooseSaveFile (const QString&, const QString&,
-                                       const QString&) {
+                                      const QString&) {
     return QString ();
   }
 };
@@ -295,11 +301,13 @@ TestQmlLoad::test_print_to_file_loads () {
   QStringList buttons;
   buttons << "Print" << "Cancel";
 
-  QDialog       host;
-  QQuickWidget* qw    = new QQuickWidget (&host);
-  StubBridge*   bridge= new StubBridge (qw);
+  QDialog          host;
+  QQuickWidget*    qw         = new QQuickWidget (&host);
+  StubBridge*      bridge     = new StubBridge (qw);
+  PrintStubBridge* printBridge= new PrintStubBridge (qw);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("printBridge", printBridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->rootContext ()->setContextProperty ("printDefaults", defaults);

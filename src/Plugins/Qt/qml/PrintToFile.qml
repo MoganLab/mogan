@@ -144,7 +144,7 @@ DialogShell {
                 text: root.browseText
                 onClicked: {
                     root.browsing = true;
-                    var picked = closeBridge.chooseSaveFile(root.fileName, root.format, root.titleText);
+                    var picked = printBridge.chooseSaveFile(root.fileName, root.format, root.titleText);
                     root.browsing = false;
                     if (picked.length > 0)
                         root.fileName = root.fileWithExtension(picked, root.extensionForFormat(root.format));
@@ -177,32 +177,16 @@ DialogShell {
                 color: Theme.fg
                 font.pixelSize: Theme.fontBody
             }
-            Repeater {
+            TabBar {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - 72 * Theme.scaleFactor - Theme.gapS
                 model: [
                     { "key": "all", "label": root.allPagesText },
                     { "key": "range", "label": root.pageRangeText }
                 ]
-                delegate: Rectangle {
-                    width: Math.max(104 * Theme.scaleFactor, textItem.implicitWidth + 2 * Theme.pad)
-                    height: Theme.rowH
-                    radius: Theme.radius
-                    color: root.range === modelData.key ? Theme.selectBg : Theme.fieldBg
-                    border.width: Theme.borderW
-                    border.color: root.range === modelData.key ? Theme.selectBorder : Theme.borderClr
-
-                    Text {
-                        id: textItem
-                        anchors.centerIn: parent
-                        text: modelData.label
-                        color: root.range === modelData.key ? Theme.selectFg : Theme.fg
-                        font.pixelSize: Theme.fontBody
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.range = modelData.key
-                    }
+                activeKey: root.range
+                onSelected: function(key) {
+                    root.range = key;
                 }
             }
         }

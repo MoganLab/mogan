@@ -11,6 +11,7 @@
 #include "FontSelectorBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
 #include "PreferencesBridge.hpp"
+#include "PrintToFileBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
@@ -483,7 +484,11 @@ cpp_print_to_file_dialog (string filename, int page_count, bool page_range) {
   run_qml_dialog (
       "qrc:/qml/PrintToFile.qml", "PrintToFile.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
-        bridge= inject_common_context (qw, host);
+        bridge                        = inject_common_context (qw, host);
+        PrintToFileBridge* printBridge= new PrintToFileBridge (&host);
+        qw->rootContext ()->setContextProperty ("printBridge", printBridge);
+        QObject::connect (&host, &QDialog::destroyed, printBridge,
+                          &QObject::deleteLater);
         qw->rootContext ()->setContextProperty ("printDefaults", defaults);
         qw->rootContext ()->setContextProperty ("printTitle",
                                                 qt_translate ("Print to file"));
@@ -512,9 +517,7 @@ cpp_print_to_file_dialog (string filename, int page_count, bool page_range) {
   delete bridge;
   for (auto it= res.begin (); it != res.end (); ++it) {
     tree kv (TUPLE);
-    // QFileDialog paths are system strings, not document text. Preserve their
-    // UTF-8 bytes so Scheme's system->url performs the same conversion as the
-    // established Qt choose-file implementation.
+    // 路径须保留 UTF-8，匹配 choose-file 的 system->url 转换。
     const string value= it.key () == "file"
                             ? from_qstring_utf8 (it.value ().toString ())
                             : from_qstring (it.value ().toString ());

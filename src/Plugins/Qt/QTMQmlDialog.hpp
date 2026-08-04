@@ -147,21 +147,7 @@ string cpp_confirm_restart (string title, string message);
  */
 tree cpp_form_dialog (tree fields);
 
-/**
- * @brief QML dialog for exporting the current document as a printable
- * file.
- * @param filename Proposed output path.
- * @param page_count Current
- * document page count, used to seed the page range.
- * @param page_range
- * Whether the page-range option is selected initially.
- * @return A tuple
- * containing file, format, range, first and last values, or an
- * empty tuple
- * when the dialog is cancelled.
- * @note MOGAN_TEST_PRINT_TO_FILE=ok|cancel
- * bypasses the modal dialog.
- */
+/** @brief 打印文件选择 QML glue。 */
 tree cpp_print_to_file_dialog (string filename, int page_count,
                                bool page_range);
 
