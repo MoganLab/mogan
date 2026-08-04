@@ -650,6 +650,8 @@
       (replace-empty t 1 "1w")
       (if (image-preserve-aspect-ratio?)
         ;; 锁定宽高比：按宽度变化的缩放比例同步缩放高度
+        ;; 若图片原本宽度为空（replace-empty 填了 "1w"），old-w 取不到有效值，
+        ;; 则高度不联动——可接受的降级，避免对未知尺寸做错误缩放。
         (let* ((old-w (image-decode-length t 1)))
           (length-increase (tree-ref t 1) inc)
           (when (and old-w (> old-w 0))
