@@ -766,6 +766,9 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (N (focus_get ()) >= N (p))
         if (!recurse || get_preference ("show full context") == "on") {
           if (recurse) rs << outlines (sel->rs, pixel);
+          // 绘图区（GRAPHICS）作为焦点时改用边框而非半透明背景填充，
+          // 避免画布被覆盖影响视觉（Issue #2091）。
+          else if (is_func (st, GRAPHICS)) rs << outlines (sel->rs, pixel);
           else rs << thicken (sel->rs, 0, 2 * pixel);
         }
     }
@@ -1125,9 +1128,10 @@ edit_interface_rep::apply_changes () {
       ;
     else pp= path_up (pp);
     if (full_context || table_cells) compute_env_rects (pp, env_rects, true);
-    // 在绘图区中不计算 foc_rects，即不会产生淡蓝色背景高亮
-    if (show_focus && (!semantic_flag || !semantic_only) &&
-        !inside_graphics (false))
+    // 光标处于绘图区时仍计算 foc_rects，但在 compute_env_rects 内部
+    // 会对 GRAPHICS 节点改用边框（outlines）而非背景填充（thicken），
+    // 以避免画布被半透明色覆盖影响视觉。
+    if (show_focus && (!semantic_flag || !semantic_only))
       compute_env_rects (pp, foc_rects, false);
     if (env_rects != old_env_rects) {
       invalidate (old_env_rects);
