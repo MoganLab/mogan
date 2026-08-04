@@ -374,16 +374,20 @@ TestQmlLoad::test_search_recent_documents_loads () {
   document["path"]= QString ("C:/docs/notes.tm");
   QVariantList documents;
   documents << document;
-  QStringList buttons;
-  buttons << "Open"
-          << "Cancel";
   RecentDocumentsSearchBridge* searchBridge= new RecentDocumentsSearchBridge (
       documents, QString ("Search recent documents"), QString ("Search"),
-      QString ("No matching recent documents"), buttons, qw);
+      QString ("No matching recent documents"), qw);
   qw->rootContext ()->setContextProperty ("recentSearchBridge", searchBridge);
+  qw->rootContext ()->setContextProperty ("dialogButtons",
+                                          QStringList{"Open", "Cancel"});
   qw->setSource (QUrl ("qrc:/qml/SearchRecentDocuments.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   QCOMPARE (qw->rootObject ()->property ("selectedIndex").toInt (), -1);
+  const QVariantList buttonLabels=
+      qw->rootObject ()->property ("buttonLabels").toList ();
+  QCOMPARE (buttonLabels.size (), 2);
+  QCOMPARE (buttonLabels[0].toString (), QString ("Open"));
+  QCOMPARE (buttonLabels[1].toString (), QString ("Cancel"));
 }
 
 void

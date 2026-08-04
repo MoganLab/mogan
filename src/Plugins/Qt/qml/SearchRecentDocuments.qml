@@ -1,3 +1,5 @@
+// Keep filtering and selection local so searching cannot change recent records.
+
 import QtQuick
 import "atoms"
 
@@ -6,14 +8,16 @@ DialogShell {
     implicitWidth: 520
     implicitHeight: 450
     implicitMargins: Theme.margin
+    onActivate: root.openSelection()
 
     property string title: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.title : "Search recent documents"
     property string placeholder: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.placeholder : "Search"
     property string emptyText: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.emptyText : "No matching recent documents"
     property var documents: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.documents : []
-    property var buttonLabels: typeof recentSearchBridge !== "undefined" ? recentSearchBridge.buttonLabels : ["Open", "Cancel"]
+    property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : ["Open", "Cancel"]
     property var matches: []
     property int selectedIndex: -1
+    readonly property real resultListHeight: 230 * Theme.scaleFactor
 
     function fuzzyScore(text, query) {
         var haystack = text.toLocaleLowerCase()
@@ -39,11 +43,28 @@ DialogShell {
             if (score < 0 && query.length > 0)
                 score = fuzzyScore(document.path, query)
             if (score >= 0)
-                next.push({ "name": document.name, "path": document.path, "score": score })
+                next.push({
+                    "name": document.name,
+                    "path": document.path,
+                    "score": score,
+                    "order": i
+                })
         }
-        next.sort(function(a, b) { return a.score - b.score })
-        matches = next
-        selectedIndex = -1
+        next.sort(function(a, b) {
+            return a.score === b.score ? a.order - b.order : a.score - b.score
+        })
+        root.matches = next
+        root.selectedIndex = -1
+    }
+
+    function moveSelection(step) {
+        if (matches.length === 0)
+            return
+        if (selectedIndex < 0)
+            selectedIndex = step > 0 ? 0 : matches.length - 1
+        else
+            selectedIndex = Math.max(0, Math.min(matches.length - 1, selectedIndex + step))
+        resultList.positionViewAtIndex(selectedIndex, ListView.Contain)
     }
 
     function openSelection() {
@@ -51,8 +72,8 @@ DialogShell {
             closeBridge.submit({ "path": matches[selectedIndex].path })
     }
 
-    Component.onCompleted: updateMatches()
-    onDocumentsChanged: updateMatches()
+    Component.onCompleted: root.updateMatches()
+    onDocumentsChanged: root.updateMatches()
 
     content: Column {
         spacing: Theme.gapM
@@ -62,7 +83,7 @@ DialogShell {
             height: Theme.titleH
             text: root.title
             color: Theme.fg
-            font.pixelSize: 18 * Theme.scaleFactor
+            font.pixelSize: Theme.fontBody + Theme.padS
             font.weight: Font.Bold
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -102,12 +123,24 @@ DialogShell {
                 focus: true
                 onTextChanged: root.updateMatches()
                 Component.onCompleted: forceActiveFocus()
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Down) {
+                        root.moveSelection(1)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Up) {
+                        root.moveSelection(-1)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        root.openSelection()
+                        event.accepted = true
+                    }
+                }
             }
         }
 
         Rectangle {
             width: parent.width
-            height: 230 * Theme.scaleFactor
+            height: root.resultListHeight
             radius: Theme.radius
             color: Theme.listBg
             border.width: Theme.borderW
@@ -130,7 +163,7 @@ DialogShell {
 
                     delegate: Rectangle {
                         width: resultList.width
-                        height: 48 * Theme.scaleFactor
+                        height: Theme.rowH + Theme.padS
                         radius: Theme.radius
                         color: root.selectedIndex === index ? Theme.selectBg : (resultMouse.containsMouse ? Theme.fieldBgHover : "transparent")
                         border.width: root.selectedIndex === index ? Theme.borderW : 0
@@ -183,6 +216,7 @@ DialogShell {
         DialogButtons {
             anchors.horizontalCenter: parent.horizontalCenter
             buttonLabels: root.buttonLabels
+            primaryIndex: 0
             onClicked: function(index) {
                 if (index === 0)
                     root.openSelection()
