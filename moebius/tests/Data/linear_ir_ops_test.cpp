@@ -377,3 +377,30 @@ TEST_CASE ("linear_ir_pos: offset advances across atomics") {
   int start1= linear_ir_offset_of_atomic (items, path (1), 0); // 第二原子开头
   CHECK_EQ (start1 > end0, true);
 }
+
+TEST_CASE ("linear_ir_pos: round-trips structural cursor OPEN and CLOSE") {
+  ensure_labels ();
+  // (document (para "hello"))
+  tree t (DOCUMENT, 1);
+  t[0]                    = tree (PARA, 1);
+  t[0][0]                 = tree ("hello");
+  array<linear_item> items= tree_to_linear_ir (t);
+
+  // Structural OPEN at PARA (path [0, 0])
+  char anchor_open= 'T';
+  int  off_open= linear_ir_offset_of_path (items, path (0, 0), t, anchor_open);
+  CHECK_EQ (off_open >= 0, true);
+  CHECK_EQ (anchor_open == 'O', true);
+  path back_open=
+      linear_ir_path_at_offset_with_anchor (items, off_open, anchor_open);
+  CHECK_EQ (back_open == path (0, 0), true);
+
+  // Structural CLOSE at PARA (path [0, 1])
+  char anchor_close= 'T';
+  int off_close= linear_ir_offset_of_path (items, path (0, 1), t, anchor_close);
+  CHECK_EQ (off_close >= 0, true);
+  CHECK_EQ (anchor_close == 'C', true);
+  path back_close=
+      linear_ir_path_at_offset_with_anchor (items, off_close, anchor_close);
+  CHECK_EQ (back_close == path (0, 1), true);
+}
