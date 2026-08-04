@@ -53,10 +53,7 @@ public:
   }
   QStringList buttonLabels () const { return {"OK"}; }
 
-  int              cancelCount= 0;
   Q_INVOKABLE void confirm () {}
-  Q_INVOKABLE void cancel () { ++cancelCount; }
-  Q_INVOKABLE void startMove () {}
 };
 
 // live 弹窗（FontSelector / ParagraphFormat）bridge 占位：加载阶段 QML 顶层会调
@@ -362,9 +359,10 @@ void
 TestQmlLoad::test_version_loads () {
   QDialog            host;
   QQuickWidget*      qw    = new QQuickWidget (&host);
+  StubBridge*        close = new StubBridge (qw);
   VersionStubBridge* bridge= new VersionStubBridge (qw);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
   qw->rootContext ()->setContextProperty ("versionBridge", bridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
@@ -385,9 +383,10 @@ void
 TestQmlLoad::test_version_escape_cancels () {
   QDialog            host;
   QQuickWidget*      qw    = new QQuickWidget (&host);
+  StubBridge*        close = new StubBridge (qw);
   VersionStubBridge* bridge= new VersionStubBridge (qw);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
   qw->rootContext ()->setContextProperty ("versionBridge", bridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
@@ -396,7 +395,7 @@ TestQmlLoad::test_version_escape_cancels () {
 
   QTRY_VERIFY (qw->rootObject ()->hasActiveFocus ());
   QTest::keyClick (qw, Qt::Key_Escape);
-  QCOMPARE (bridge->cancelCount, 1);
+  QCOMPARE (close->cancelCount, 1);
 }
 
 QTEST_MAIN (TestQmlLoad)

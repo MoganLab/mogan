@@ -15,9 +15,8 @@
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
 
-#include "analyze.hpp"   // occurs
-#include "converter.hpp" // cork_to_utf8
-#include "gui.hpp"       // tm_style_sheet
+#include "analyze.hpp" // occurs
+#include "gui.hpp"     // tm_style_sheet
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"     // eval_scheme
 #include "sys_utils.hpp" // lolly: get_env
@@ -67,19 +66,6 @@ translate_buttons (array<string> buttons) {
   return out;
 }
 
-static QStringList
-version_message_lines (const string& message) {
-  QStringList lines;
-  int         start= 0;
-  for (int i= 0; i < N (message); i++) {
-    if (message[i] != '\n') continue;
-    lines << utf8_to_qstring (cork_to_utf8 (message (start, i)));
-    start= i + 1;
-  }
-  lines << utf8_to_qstring (cork_to_utf8 (message (start, N (message))));
-  return lines;
-}
-
 /**
  * @brief 统一拼装无边框透明模态 QDialog + 内嵌 QQuickWidget 的宿主。
  *
@@ -124,19 +110,14 @@ setup_frameless_qml_host (QDialog& d) {
  * QObject parent，不会被宿主 QDialog 析构带走，以便 form 型 exec 后取
  * results()）。
  */
-static void
-inject_common_context_properties (QQuickWidget* qw, QObject* close_bridge) {
-  bool isDark=
-      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  qw->rootContext ()->setContextProperty ("closeBridge", close_bridge);
-  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
-  qw->rootContext ()->setContextProperty ("isDark", isDark);
-}
-
 static QmlDialogBridge*
 inject_common_context (QQuickWidget* qw, QDialog& host) {
+  bool isDark=
+      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   QmlDialogBridge* bridge= new QmlDialogBridge (&host);
-  inject_common_context_properties (qw, bridge);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
+  qw->rootContext ()->setContextProperty ("isDark", isDark);
   return bridge;
 }
 
@@ -583,17 +564,18 @@ cpp_version_dialog (string title, string message) {
 
   array<string> buttons;
   buttons << string ("OK");
-  VersionDialogBridge* bridge= nullptr;
-  int                  choice= run_qml_dialog (
+  QmlDialogBridge*     closeBridge= nullptr;
+  VersionDialogBridge* bridge     = nullptr;
+  int                  choice     = run_qml_dialog (
       "qrc:/qml/Version.qml", "Version.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
-        bridge= new VersionDialogBridge (
-            &host, utf8_to_qstring (cork_to_utf8 (title)),
-            version_message_lines (message), translate_buttons (buttons));
-        inject_common_context_properties (qw, bridge);
+        closeBridge= inject_common_context (qw, host);
+        bridge= new VersionDialogBridge (&host, title, message,
+                                                               translate_buttons (buttons));
         qw->rootContext ()->setContextProperty ("versionBridge", bridge);
       },
       560, 220);
+  delete closeBridge;
   delete bridge;
   return choice == 1;
 }
