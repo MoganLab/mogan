@@ -125,6 +125,7 @@ struct smart_font_rep : font_rep {
   int  adjusted_dpi (string fam, string var, string ser, string sh, int att);
 
   font make_rubber_font (font base) override;
+  font get_subfont (string s) override;
 
   bool   supports (string c);
   void   get_extents (string s, metric& ex);
