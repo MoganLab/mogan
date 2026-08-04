@@ -261,7 +261,12 @@
                  ) ;lambda
          ) ;setter
         ) ;
-    (hlist (enum (set-name (url->unix answer))
+    (hlist (enum (set-name (if (string? answer)
+                             ;; 输入框粘贴 Windows 路径时同样归一化为正斜杠（liii-path）
+                             (path-as-posix (path answer))
+                             (url->unix answer)
+                           ) ;if
+                 ) ;set-name
              (list `(verbatim ,(url->system name)) "")
              `(verbatim ,(url->system name))
              "15em"
