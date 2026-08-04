@@ -251,7 +251,9 @@
          (curr (decode-pattern-name (get-name)))
          (setter (lambda (c)
                    (when (and (pair? c) (url? (car c)))
-                     (set-name (url->unix (car c)))
+                     ;; Windows 上 url->unix 对盘符路径会产生 "/C/..." 丢失冒号，
+                     ;; 改用 url->system 保留完整路径，反斜杠在 tm-pattern 中统一处理。
+                     (set-name (url->system (car c)))
                    ) ;when
                  ) ;lambda
          ) ;setter

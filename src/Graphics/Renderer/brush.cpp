@@ -143,13 +143,14 @@ make_brush (color c) {
  * @brief 根据颜色描述树创建画刷对象。
  * @param p 画刷输入描述，支持两种形态：
  *   - 原子树：颜色名，例如 "red"、"#ff0000"、"none"。
- *   - 复合树：PATTERN(image, w, h, color)，当前实现要求 N(p) == 4。
+ *   - 复合树：PATTERN(image, w, h, [color|effect])，要求 N(p) >= 3。
  *     - p[0]：pattern 资源标识（通常是图片路径，必须为原子）。
  *     - p[1]：宽度表达式（例如 "20"、"100%"）。
  *     - p[2]：高度表达式（例如 "20"、"100%"）。
- *     - p[3]：叠加颜色名（传给 named_color，与 a 一起决定最终颜色）。
+ *     - p[3]：可选，叠加颜色名（原子时作为颜色，复合时为效果，由渲染层处理）。
  *   示例：
  *   - p = "blue"
+ *   - p = (PATTERN "paper.png" "100%" "100%")
  *   - p = (PATTERN "paper.png" "100%" "100%" "white")
  * @param a 透明度 alpha，通常取值范围 [0, 255]。
  */
@@ -161,19 +162,18 @@ make_brush (tree p, int a) {
     else return make_brush (named_color (s, a));
   }
   else {
-    // 防御性处理：复合树必须是合法 PATTERN 结构。
-    // 否则继续解包可能在访问 pattern[1]/pattern[2]/pattern[3] 时触发异常。
+    // 防御性处理：先判断 p 本身结构是否合法。
     // - L (p) != PATTERN：节点类型不对
-    // - N (p) != 4：参数个数不对（后续会读取 p[3]）
-    // - !is_atomic (p[0])：资源标识形态不对（应为原子）
-    // - as_string (p[0]) == "" || "{}"：资源标识为空或占位
-    if (L (p) != moebius::PATTERN || N (p) != 4 || !is_atomic (p[0]))
+    // - N (p) < 3：参数不足（至少需要 资源/宽/高 3 个子节点）
+    if (L (p) != moebius::PATTERN || N (p) < 3)
       return tm_new<no_brush_rep> ();
-    // p[0] 为空串或 "{}" 时直接回退 no_brush，避免后续取图路径异常。
-    if (as_string (p[0]) == "" || as_string (p[0]) == "{}")
+    // 再判断 p 内数据是否有效。
+    // - !is_atomic (p[0])：资源标识形态不对（应为原子）
+    // - as_string (p[0]) == "" || "{}"：资源标识为空或占位（防止 201_72 崩溃回归）
+    if (!is_atomic (p[0]) || as_string (p[0]) == "" || as_string (p[0]) == "{}")
       return tm_new<no_brush_rep> ();
     color c= white;
-    c      = named_color (as_string (p[3]), a);
+    if (N (p) >= 4 && is_atomic (p[3])) c= named_color (as_string (p[3]), a);
     return tm_new<pattern_brush_rep> (c, p, a);
   }
 }

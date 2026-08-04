@@ -785,18 +785,26 @@
 ) ;define-public
 
 (define-public (tm-pattern name . args)
+  ;; 统一把 name 转成字符串形式。url 用 url->system 转换；
+  ;; 字符串保持原样，避免重复解析导致 Windows 盘符冒号丢失。
+  (when (url? name)
+    (set! name (url->system name))
+  ) ;when
+  ;; Windows 路径反斜杠会导致偏好持久化时序列化/反序列化不对称
+  ;; （object->string + scm_quote 双重转义，unslash + scm_unquote + read
+  ;;  三重反转义），改用正斜杠避免反斜杠进入序列化链路。
+  (when (string? name)
+    (set! name (string-replace name "\\" "/"))
+  ) ;when
   (cond ((url-exists? (url-append "$TEXMACS_PATTERN_PATH" (url-tail name)))
          `(pattern ,(url->unix (url-tail name)) ,@args)
         ) ;
         ((and-let* ((delta-unix (url->delta-unix name)))
            (string-starts? (url->unix delta-unix) "../")
          ) ;and-let*
-         (when (url? name)
-           (set! name (url->system name))
-         ) ;when
          `(pattern ,name ,@args)
         ) ;
-        (else `(pattern ,(url->system name) ,@args))
+        (else `(pattern ,name ,@args))
   ) ;cond
 ) ;define-public
 

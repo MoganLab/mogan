@@ -433,7 +433,7 @@ renderer_rep::clear_pattern (SI mx1, SI my1, SI mx2, SI my2, SI x1, SI y1,
     else if (is_percentage (pattern[1]))
       w= (SI) (as_percentage (pattern[1]) * ((double) w));
     else flag= true;
-    if (pattern[1] == "") h= imh;
+    if (pattern[2] == "") h= imh;
     else if (is_int (pattern[2])) h= as_int (pattern[2]);
     else if (is_percentage (pattern[2]))
       h= (SI) (as_percentage (pattern[2]) * ((double) h));
