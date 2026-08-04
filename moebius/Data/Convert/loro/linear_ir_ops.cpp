@@ -32,7 +32,7 @@ path_eq_prefix (array<int>& prefix, int last, path target) {
 // 节点（相对根路径 target）的 OPEN item 索引；target 为 nil -> 根 OPEN。未找到
 // -1。
 static int
-item_index_of_path (array<linear_item>& items, path target) {
+item_index_of_path (const array<linear_item>& items, path target) {
   if (N (items) == 0) return -1;
   array<int> prefix;
   array<int> saved;
@@ -172,7 +172,7 @@ escaped_byte_len (string s, int from, int nr) {
 
 // item k 在 markup 中的起始 utf-8 字节偏移（序列化 [0,k) 前缀取长度）
 static int
-markup_offset_of_item (array<linear_item>& items, int k) {
+markup_offset_of_item (const array<linear_item>& items, int k) {
   if (k <= 0) return 0;
   array<linear_item> prefix;
   for (int i= 0; i < k; i++)
@@ -391,7 +391,7 @@ compute_markup_edit (array<linear_item> items, modification mod) {
 
 // 单个 item 的 markup 字节长度（统一方案无 SEP，单 item 序列化与上下文无关）
 static int
-item_markup_len (linear_item& it) {
+item_markup_len (const linear_item& it) {
   array<linear_item> one;
   one << it;
   return N (linear_ir_to_markup (one));
@@ -422,12 +422,115 @@ build_path (array<int>& prefix, int last) {
 int
 linear_ir_offset_of_atomic (array<linear_item> items, path atomic_path,
                             int char_off) {
-  int open_idx= item_index_of_path (items, atomic_path);
-  if (open_idx < 0 || N (items[open_idx].label) != 0) return -1; // 非原子
-  int text_idx= open_idx + 1;
-  if (text_idx >= N (items) || items[text_idx].kind != LI_TEXT) return -1;
-  int content_start= markup_offset_of_item (items, text_idx);
-  return content_start + escaped_byte_offset (items[text_idx].text, char_off);
+  char anchor= 'T';
+  return linear_ir_offset_of_path (items, atomic_path * path (char_off),
+                                   anchor);
+}
+
+int
+linear_ir_offset_of_path (const array<linear_item>& items, path p,
+                          char& out_anchor) {
+  out_anchor= 'T';
+  if (is_nil (p) || is_nil (path_up (p))) return -1;
+  path node_path= path_up (p);
+  int  char_off = last_item (p);
+
+  int open_idx= item_index_of_path (items, node_path);
+  if (open_idx < 0) return -1;
+  if (N (items[open_idx].label) == 0) {
+    // 原子节点
+    int text_idx= open_idx + 1;
+    // 若无 LI_TEXT 项或 LI_TEXT 内容为空串 ("")：均视为空原子
+    if (text_idx >= N (items) || items[text_idx].kind != LI_TEXT ||
+        N (items[text_idx].text) == 0) {
+      out_anchor= 'O';
+      return markup_offset_of_item (items, open_idx) +
+             item_markup_len (items[open_idx]);
+    }
+    int content_start= markup_offset_of_item (items, text_idx);
+    out_anchor       = 'T';
+    return content_start + escaped_byte_offset (items[text_idx].text, char_off);
+  }
+
+  // 复合节点
+  if (char_off == 0) {
+    out_anchor= 'O';
+    return markup_offset_of_item (items, open_idx) +
+           item_markup_len (items[open_idx]);
+  }
+  else {
+    // char_off >= 1: 复合节点的结构 CLOSE (node_path * 1)
+    int depth    = 0;
+    int close_idx= -1;
+    for (int i= open_idx; i < N (items); i++) {
+      if (items[i].kind == LI_OPEN) depth++;
+      else if (items[i].kind == LI_CLOSE) {
+        depth--;
+        if (depth == 0) {
+          close_idx= i;
+          break;
+        }
+      }
+    }
+    if (close_idx < 0) return -1;
+    out_anchor= 'C';
+    return markup_offset_of_item (items, close_idx);
+  }
+}
+
+path
+linear_ir_path_at_offset_with_anchor (const array<linear_item>& items,
+                                      int byte_off, char anchor) {
+  if (anchor != 'O' && anchor != 'C') {
+    bool prefer_start= false;
+    int  text_char_idx=
+        linear_ir_text_index_of_offset (items, byte_off, prefer_start);
+    return linear_ir_path_at_text_index (items, text_char_idx, prefer_start);
+  }
+
+  int        n  = N (items);
+  int        cur= 0;
+  array<int> prefix, saved;
+  int        next_child = 0;
+  bool       inside_root= false;
+
+  for (int i= 0; i < n; i++) {
+    const linear_item& it   = items[i];
+    int                len  = item_markup_len (it);
+    int                start= cur, end= cur + len;
+
+    if (it.kind == LI_OPEN) {
+      if (!inside_root) {
+        inside_root= true;
+      }
+      else {
+        saved << next_child;
+        prefix << next_child;
+        next_child= 0;
+      }
+      if (anchor == 'O' && byte_off > start && byte_off <= end) {
+        return build_path (prefix, 0);
+      }
+    }
+    else if (it.kind == LI_CLOSE) {
+      if (anchor == 'C' && byte_off >= start &&
+          (byte_off < end || i == n - 1)) {
+        return build_path (prefix, 1);
+      }
+      if (N (saved) > 0) {
+        next_child= saved[N (saved) - 1] + 1;
+        saved->resize (N (saved) - 1);
+        prefix->resize (N (prefix) - 1);
+      }
+    }
+
+    cur+= len;
+  }
+
+  bool prefer_start= false;
+  int  text_char_idx=
+      linear_ir_text_index_of_offset (items, byte_off, prefer_start);
+  return linear_ir_path_at_text_index (items, text_char_idx, prefer_start);
 }
 
 path

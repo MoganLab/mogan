@@ -51,9 +51,21 @@ markup_edit compute_markup_edit (array<linear_item> items, modification mod);
 int linear_ir_offset_of_atomic (array<linear_item> items, path atomic_path,
                                 int char_off);
 
+/** 计算任意树路径 p（原子或复合节点）在 markup 中的 utf-8 字节偏移。
+ *  - 若 p 指向原子节点（或字符偏移），out_anchor 置为 'T'。
+ *  - 若 p 指向复合节点的 OPEN 边界，out_anchor 置为 'O'。
+ *  - 若 p 指向复合节点的 CLOSE 边界，out_anchor 置为 'C'。
+ *  返回字节偏移，失败 -1。 */
+int linear_ir_offset_of_path (const array<linear_item>& items, path p,
+                              char& out_anchor);
+
 /** body markup 字节偏移 -> 树位置路径（原子路径 * 字符偏移）。落在原子内容外
  *  （token 区）时就近吸附到相邻原子；无原子返回 nil。 */
 path linear_ir_path_at_offset (array<linear_item> items, int byte_off);
+
+/** body markup 字节偏移 + Anchor 标志 ('T' / 'O' / 'C') -> 树位置路径 path。 */
+path linear_ir_path_at_offset_with_anchor (const array<linear_item>& items,
+                                           int byte_off, char anchor);
 
 int  linear_ir_text_index_of_offset (const array<linear_item>& items,
                                      int byte_off, bool& prefer_start);

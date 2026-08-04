@@ -44,11 +44,23 @@
 ;; State variables for Diff Text
 ;; =============================================================================
 
+(define diff-serial 0)
+
 (define diff-active? #f)
 
 (tm-define (is-diff-active?) diff-active?)
 
 (tm-define (diff-enable?) (defined? 'diff-cloud-polish))
+
+;; 树锚点（tree pin）：触发时把选区两端点所在的树节点钉住，
+;; 树引用随编辑自动追踪，选区取消/光标移动后仍能找回原区域
+
+(define (diff-pin->path pin offset)
+  ;; 锚点节点存活则重建「当前路径 + 原偏移」，节点被删（区域已移除）返回 #f
+  (let ((p (tree->path pin)))
+    (if (pair? p) (append p (list offset)) #f)
+  ) ;let
+) ;define
 
 ;; =============================================================================
 ;; Diff Text core control flow
@@ -56,9 +68,16 @@
 
 (tm-define (trigger-diff-text)
   (when (diff-enable?)
-    (let* ((sel (selection-tree))
+    (set! diff-serial (+ diff-serial 1))
+    (let* ((current diff-serial)
+           (sel (selection-tree))
            (origin-stree (tree->stree sel))
-           (pre-cur (cursor-path))
+           (p1 (selection-get-start))
+           (p2 (selection-get-end))
+           (pin1 (path->tree (cDr p1)))
+           (pin2 (path->tree (cDr p2)))
+           (off1 (cAr p1))
+           (off2 (cAr p2))
            (stree-str (object->string origin-stree))
           ) ;
       (debug-message "debug-io"
@@ -66,42 +85,51 @@
       ) ;debug-message
       (diff-cloud-polish stree-str
         (lambda (suggested-str)
-          (diff-apply-suggestion origin-stree suggested-str pre-cur)
+          (diff-apply-suggestion current origin-stree suggested-str pin1 off1 pin2 off2)
         ) ;lambda
       ) ;diff-cloud-polish
     ) ;let*
   ) ;when
 ) ;tm-define
 
-(define (diff-apply-suggestion origin-stree suggested-str pre-cur)
-  (when (and (string? suggested-str)
-          (not (string=? suggested-str ""))
-          (selection-active?)
-        ) ;and
-    (debug-message "debug-io"
-      (string-append "diff-predict: suggested=[" (herk->utf8 suggested-str) "]\n")
-    ) ;debug-message
-    (let ((suggested-stree (catch #t (lambda () (string->object suggested-str)) (lambda args #f))
-          ) ;suggested-stree
-         ) ;
-      (when suggested-stree
-        (let ((pre-grain (get-preference "versioning grain")))
-          ;; 设为字符级精度 "detailed"；其余选项："block" (块级)、"rough" (粗粒度)
-          (set-preference "versioning grain" "detailed")
-          (let* ((diff-stree (compare-versions origin-stree suggested-stree))
-                 (diff-tree (stree->tree diff-stree))
-                ) ;
-            (clipboard-cut "primary")
-            (insert diff-tree)
-            (go-to pre-cur)
-            (diff-scan-next)
-          ) ;let*
-          ;; 还原精度
-          (set-preference "versioning grain" pre-grain)
-        ) ;let
-      ) ;when
-    ) ;let
-  ) ;when
+(define (diff-apply-suggestion current origin-stree suggested-str pin1 off1 pin2 off2)
+  (let ((new-p1 (diff-pin->path pin1 off1)) (new-p2 (diff-pin->path pin2 off2)))
+    (when (and (== current diff-serial)
+            (string? suggested-str)
+            (not (string=? suggested-str ""))
+          ) ;and
+      (if (and new-p1 new-p2)
+        (begin
+          (debug-message "debug-io"
+            (string-append "diff-predict: suggested=[" (herk->utf8 suggested-str) "]\n")
+          ) ;debug-message
+          (let ((suggested-stree (catch #t (lambda () (string->object suggested-str)) (lambda args #f))
+                ) ;suggested-stree
+               ) ;
+            (when suggested-stree
+              (let ((pre-grain (get-preference "versioning grain")))
+                ;; 设为字符级精度 "detailed"；其余选项："block" (块级)、"rough" (粗粒度)
+                (set-preference "versioning grain" "detailed")
+                (let* ((diff-stree (compare-versions origin-stree suggested-stree))
+                       (diff-tree (stree->tree diff-stree))
+                      ) ;
+                  ;; 经树锚点重建选区，与当前活跃选区无关
+                  (selection-set new-p1 new-p2)
+                  (clipboard-cut "primary")
+                  (insert diff-tree)
+                  (go-to new-p1)
+                  (diff-scan-next)
+                ) ;let*
+                ;; 还原精度
+                (set-preference "versioning grain" pre-grain)
+              ) ;let
+            ) ;when
+          ) ;let
+        ) ;begin
+        (debug-message "debug-io" "diff-predict: dropped (region deleted)\n")
+      ) ;if
+    ) ;when
+  ) ;let
 ) ;define
 
 (tm-define (accept-diff)

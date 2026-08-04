@@ -377,3 +377,117 @@ TEST_CASE ("linear_ir_pos: offset advances across atomics") {
   int start1= linear_ir_offset_of_atomic (items, path (1), 0); // 第二原子开头
   CHECK_EQ (start1 > end0, true);
 }
+
+TEST_CASE ("linear_ir_pos: round-trips structural cursor OPEN and CLOSE") {
+  ensure_labels ();
+  // (document (para "hello"))
+  tree t (DOCUMENT, 1);
+  t[0]                    = tree (PARA, 1);
+  t[0][0]                 = tree ("hello");
+  array<linear_item> items= tree_to_linear_ir (t);
+
+  // Structural OPEN at PARA (path [0, 0])
+  char anchor_open= 'T';
+  int  off_open   = linear_ir_offset_of_path (items, path (0, 0), anchor_open);
+  CHECK_EQ (off_open >= 0, true);
+  CHECK_EQ (anchor_open == 'O', true);
+  path back_open=
+      linear_ir_path_at_offset_with_anchor (items, off_open, anchor_open);
+  CHECK_EQ (back_open == path (0, 0), true);
+
+  // Structural CLOSE at PARA (path [0, 1])
+  char anchor_close= 'T';
+  int  off_close= linear_ir_offset_of_path (items, path (0, 1), anchor_close);
+  CHECK_EQ (off_close >= 0, true);
+  CHECK_EQ (anchor_close == 'C', true);
+  path back_close=
+      linear_ir_path_at_offset_with_anchor (items, off_close, anchor_close);
+  CHECK_EQ (back_close == path (0, 1), true);
+}
+
+TEST_CASE ("linear_ir_pos: round-trips multiple empty lines / empty atoms") {
+  ensure_labels ();
+  // (document (para "") (para "") (para "hello"))
+  tree t (DOCUMENT, 3);
+  t[0]                    = tree (PARA, 1);
+  t[0][0]                 = tree ("");
+  t[1]                    = tree (PARA, 1);
+  t[1][0]                 = tree ("");
+  t[2]                    = tree (PARA, 1);
+  t[2][0]                 = tree ("hello");
+  array<linear_item> items= tree_to_linear_ir (t);
+
+  // Empty line 0 -> path [0, 0, 0]
+  char anchor0= 'T';
+  int  off0   = linear_ir_offset_of_path (items, path (0, 0, 0), anchor0);
+  CHECK_EQ (off0 >= 0, true);
+  CHECK_EQ (anchor0 == 'O', true);
+  path back0= linear_ir_path_at_offset_with_anchor (items, off0, anchor0);
+  CHECK_EQ (back0 == path (0, 0, 0), true);
+
+  // Empty line 1 -> path [1, 0, 0]
+  char anchor1= 'T';
+  int  off1   = linear_ir_offset_of_path (items, path (1, 0, 0), anchor1);
+  CHECK_EQ (off1 >= 0, true);
+  CHECK_EQ (anchor1 == 'O', true);
+  CHECK_EQ (off1 != off0, true); // 物理 offset 互不重合
+  path back1= linear_ir_path_at_offset_with_anchor (items, off1, anchor1);
+  CHECK_EQ (back1 == path (1, 0, 0), true);
+}
+
+TEST_CASE ("linear_ir_pos: round-trips empty compound paragraph without text") {
+  ensure_labels ();
+  // (document (para) (para))
+  tree t (DOCUMENT, 2);
+  t[0]                    = tree (PARA, 0);
+  t[1]                    = tree (PARA, 0);
+  array<linear_item> items= tree_to_linear_ir (t);
+
+  char anchor0= 'T';
+  int  off0   = linear_ir_offset_of_path (items, path (0, 0), anchor0);
+  CHECK_EQ (off0 >= 0, true);
+  CHECK_EQ (anchor0 == 'O', true);
+  path back0= linear_ir_path_at_offset_with_anchor (items, off0, anchor0);
+  CHECK_EQ (back0 == path (0, 0), true);
+
+  char anchor1= 'T';
+  int  off1   = linear_ir_offset_of_path (items, path (1, 0), anchor1);
+  CHECK_EQ (off1 >= 0, true);
+  CHECK_EQ (anchor1 == 'O', true);
+  CHECK_EQ (off1 != off0, true);
+  path back1= linear_ir_path_at_offset_with_anchor (items, off1, anchor1);
+  CHECK_EQ (back1 == path (1, 0), true);
+}
+
+TEST_CASE (
+    "linear_ir_pos: round-trips with block structural cursor OPEN and CLOSE") {
+  ensure_labels ();
+  // (concat "T" (with "font-series" "bold" "ES") "T")
+  tree w (WITH, 3);
+  w[0]= tree ("font-series");
+  w[1]= tree ("bold");
+  w[2]= tree ("ES");
+  tree t (CONCAT, 3);
+  t[0]                    = tree ("T");
+  t[1]                    = w;
+  t[2]                    = tree ("T");
+  array<linear_item> items= tree_to_linear_ir (t);
+
+  // OPEN of with -> path [1, 0]
+  char anchor_open= 'T';
+  int  off_open   = linear_ir_offset_of_path (items, path (1, 0), anchor_open);
+  CHECK_EQ (off_open >= 0, true);
+  CHECK_EQ (anchor_open == 'O', true);
+  path back_open=
+      linear_ir_path_at_offset_with_anchor (items, off_open, anchor_open);
+  CHECK_EQ (back_open == path (1, 0), true);
+
+  // CLOSE of with -> path [1, 1]
+  char anchor_close= 'T';
+  int  off_close= linear_ir_offset_of_path (items, path (1, 1), anchor_close);
+  CHECK_EQ (off_close >= 0, true);
+  CHECK_EQ (anchor_close == 'C', true);
+  path back_close=
+      linear_ir_path_at_offset_with_anchor (items, off_close, anchor_close);
+  CHECK_EQ (back_close == path (1, 1), true);
+}

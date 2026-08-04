@@ -172,16 +172,20 @@ encode_path (tree& buf, loro_shadow loro_doc, path p,
   if (is_nil (p) || is_nil (path_up (p)) || !has_subtree (buf, path_up (p)))
     return format_group (mogan_tree_id{0, 0}, "I0");
 
-  int char_off= last_item (p);
-
-  int byte_off= linear_ir_offset_of_atomic (items, path_up (p), char_off);
+  char anchor  = 'T';
+  int  byte_off= linear_ir_offset_of_path (items, p, anchor);
   if (byte_off >= 0) {
     string hex= loro_doc->encode_body_cursor_hex (byte_off);
     if (hex != "") {
-      return format_group (mogan_tree_id{0, 0}, string ("T") * hex);
+      string off_field= string ("T") * hex;
+      if (anchor == 'O') off_field= off_field * "@O";
+      else if (anchor == 'C') off_field= off_field * "@C";
+      return format_group (mogan_tree_id{0, 0}, off_field);
     }
-    return format_group (mogan_tree_id{0, 0},
-                         string ("I") * as_string (byte_off));
+    string off_field= string ("I") * as_string (byte_off);
+    if (anchor == 'O') off_field= off_field * "@O";
+    else if (anchor == 'C') off_field= off_field * "@C";
+    return format_group (mogan_tree_id{0, 0}, off_field);
   }
   return format_group (mogan_tree_id{0, 0}, "I0");
 }
@@ -190,8 +194,19 @@ static path
 resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
                 loro_shadow loro_doc, const array<linear_item>& items) {
   if (N (off_field) == 0) return path ();
-  char   head= off_field[0];
-  string rest= off_field (1, N (off_field));
+
+  char   anchor  = 'T';
+  int    at_pos  = search_forwards ("@", off_field);
+  string core_off= off_field;
+  if (at_pos >= 0) {
+    core_off= off_field (0, at_pos);
+    if (at_pos + 1 < N (off_field)) {
+      anchor= off_field[at_pos + 1];
+    }
+  }
+
+  char   head= core_off[0];
+  string rest= core_off (1, N (core_off));
   int    off = head == 'T'   ? loro_doc->decode_body_cursor_hex (rest)
                : head == 'I' ? as_int (rest)
                              : -1;
@@ -200,29 +215,37 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
   if (tid.peer == 0 && tid.counter == 0) {
     array<linear_item> loro_items=
         markup_to_linear_ir (loro_doc->body_markup ());
-    bool prefer_start= false;
-    int  text_char_idx=
-        linear_ir_text_index_of_offset (loro_items, off, prefer_start);
-    path raw_p=
-        linear_ir_path_at_text_index (items, text_char_idx, prefer_start);
+    path raw_p= linear_ir_path_at_offset_with_anchor (loro_items, off, anchor);
 
     if (is_nil (raw_p)) return path ();
-    path node_path= path_up (raw_p);
-    path pp       = path_up (node_path);
-    if (!is_nil (pp) && has_subtree (buf, pp) &&
-        is_concat (subtree (buf, pp))) {
-      int idx       = last_item (node_path);
-      int concat_off= last_item (raw_p);
-      for (int j= 0; j < idx; j++) {
-        tree sib= subtree (buf, pp * path (j));
-        if (is_atomic (sib)) concat_off+= N (sib->label);
-        else {
-          concat_off= -1;
-          break;
+    if (anchor == 'T') {
+      path node_path= path_up (raw_p);
+      path pp       = path_up (node_path);
+      if (!is_nil (pp) && has_subtree (buf, pp) &&
+          is_concat (subtree (buf, pp))) {
+        tree concat_t  = subtree (buf, pp);
+        bool all_atomic= true;
+        for (int j= 0; j < N (concat_t); j++) {
+          if (!is_atomic (concat_t[j])) {
+            all_atomic= false;
+            break;
+          }
         }
-      }
-      if (concat_off >= 0) {
-        return pp * path (concat_off);
+        if (all_atomic) {
+          int idx       = last_item (node_path);
+          int concat_off= last_item (raw_p);
+          for (int j= 0; j < idx; j++) {
+            tree sib= subtree (buf, pp * path (j));
+            if (is_atomic (sib)) concat_off+= N (sib->label);
+            else {
+              concat_off= -1;
+              break;
+            }
+          }
+          if (concat_off >= 0) {
+            return pp * path (concat_off);
+          }
+        }
       }
     }
     return raw_p;
