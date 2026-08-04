@@ -380,8 +380,44 @@ compute_markup_edit (array<linear_item> items, modification mod) {
             markup_len_range (items, kend, wclose + 1), "");
     return ed;
   }
+  case MOD_ASSIGN: {
+    // 子树替换：把节点 path 的 OPEN..CLOSE 整段 markup 删除，原位插入新树
+    // markup。整段 splice 只动被替换区域，存活兄弟与 op-id 不变——避免旧
+    // coarse 路径 body_seed_markup 重建整 body、摧毁 Loro op-id 稳定锚点
+    // （并发编辑下导致对端 Cursor 编码失败退化为 I<int>、远端解析崩 bad
+    // path）。
+    path P    = root (mod); // = mod->p
+    int  nopen= item_index_of_path (items, P);
+    if (nopen < 0) return ed;
+    int nclose= matching_close (items, nopen);
+    if (nclose < 0) return ed;
+    array<linear_item> u_ir= tree_to_linear_ir (mod->t);
+    ed.ok                 = true;
+    add_op (ed, markup_offset_of_item (items, nopen),
+            markup_len_range (items, nopen, nclose + 1),
+            linear_ir_to_markup (u_ir));
+    return ed;
+  }
+  case MOD_ASSIGN_NODE: {
+    // 改标签：节点 OPEN 的 label 字段字节变化，CLOSE 不变。删旧 OPEN、插新
+    // OPEN（同位置），保留内部子节点 markup 与全部 op-id。
+    path P    = root (mod); // = mod->p
+    int  nopen= item_index_of_path (items, P);
+    if (nopen < 0) return ed;
+    int nclose= matching_close (items, nopen);
+    if (nclose < 0) return ed;
+    array<linear_item> u_ir= tree_to_linear_ir (mod->t);
+    if (N (u_ir) < 1 || u_ir[0].kind != LI_OPEN) return ed;
+    array<linear_item> open_only;
+    open_only << u_ir[0];
+    ed.ok= true;
+    add_op (ed, markup_offset_of_item (items, nopen),
+            markup_len_range (items, nopen, nopen + 1),
+            linear_ir_to_markup (open_only));
+    return ed;
+  }
   default:
-    return ed; // ASSIGN 等 → coarse（罕见；后续精确化）
+    return ed; // SET_CURSOR 等 → coarse（罕见；后续精确化）
   }
 }
 
