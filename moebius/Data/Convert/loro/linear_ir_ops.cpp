@@ -460,11 +460,11 @@ linear_ir_offset_of_atomic (array<linear_item> items, path atomic_path,
                             int char_off) {
   char anchor= 'T';
   return linear_ir_offset_of_path (items, atomic_path * path (char_off),
-                                   tree (), anchor);
+                                   anchor);
 }
 
 int
-linear_ir_offset_of_path (const array<linear_item>& items, path p, tree buf,
+linear_ir_offset_of_path (const array<linear_item>& items, path p,
                           char& out_anchor) {
   out_anchor= 'T';
   if (is_nil (p) || is_nil (path_up (p))) return -1;
