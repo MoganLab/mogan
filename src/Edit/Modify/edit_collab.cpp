@@ -219,6 +219,13 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
 
     if (is_nil (raw_p)) return path ();
     if (anchor == 'T') {
+      if (is_nil (path_up (raw_p))) {
+        if (DEBUG_LORO)
+          debug_loro << "DIAG resolve_cursor: raw_p=" << raw_p
+                     << " too short for concat-flatten (off=" << off
+                     << " anchor=T)\n";
+        return path ();
+      }
       path node_path= path_up (raw_p);
       path pp       = path_up (node_path);
       if (!is_nil (pp) && has_subtree (buf, pp) &&
@@ -349,6 +356,8 @@ stable_cursor_snapshot::restore (tree buf2, loro_shadow* loro_doc) {
   if (had_sel) {
     path ns= ed->position_get (sel_start_save);
     path ne= ed->position_get (sel_end_save);
+    if (DEBUG_LORO)
+      debug_loro << "DIAG restore: sel ns=" << ns << " ne=" << ne << "\n";
 
     if (is_nil (ns) && sel_start_payload != "") {
       mogan_tree_id tid;

@@ -18,6 +18,7 @@
 #include "packrat.hpp"
 #include "path.hpp"
 #include "preferences.hpp"
+#include "tm_debug.hpp"
 #include "tree_modify.hpp"
 #include "tree_observer.hpp"
 #include "tree_select.hpp"
@@ -402,6 +403,14 @@ edit_select_rep::selection_active_enlarging () {
 
 void
 edit_select_rep::selection_correct (path i1, path i2, path& o1, path& o2) {
+  if (!(rp <= i1)) {
+    std_warning << "DIAG selection_correct: i1=" << i1 << " not inside rp=" << rp
+                << " (cur_sel stale after remote edit)\n";
+  }
+  if (!(rp <= i2)) {
+    std_warning << "DIAG selection_correct: i2=" << i2 << " not inside rp=" << rp
+                << " (cur_sel stale after remote edit)\n";
+  }
   ASSERT (rp <= i1 && rp <= i2, "paths not inside document");
   int old_mode= get_access_mode ();
   if (in_source ()) set_access_mode (DRD_ACCESS_SOURCE);
@@ -923,7 +932,11 @@ edit_select_rep::selection_cut (string key) {
       }
     }
     else {
+      std_warning << "DIAG selection_cut: cur_sel start=" << start (cur_sel)
+                  << " end=" << end (cur_sel) << " rp=" << rp << "\n";
       selection_get (p1, p2);
+      std_warning << "DIAG selection_cut: corrected p1=" << p1 << " p2=" << p2
+                  << "\n";
       go_to (p2);
       if (p2 == p1) return;
       if (key != "none") {
