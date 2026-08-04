@@ -77,18 +77,17 @@
 ) ;tm-define
 
 (define (diff-apply-suggestion origin-stree suggested-str pre-cur)
-  (when (and (string? suggested-str) (not (string=? suggested-str "")) (selection-active?))
+  (when (and (string? suggested-str)
+          (not (string=? suggested-str ""))
+          (selection-active?)
+        ) ;and
     (debug-message "debug-io"
       (string-append "diff-predict: suggested=["
         (substring suggested-str 0 (min 500 (string-length suggested-str)))
         "]\n"
       ) ;string-append
     ) ;debug-message
-    (let ((suggested-stree
-            (catch #t
-              (lambda () (string->object suggested-str))
-              (lambda args #f)
-            ) ;catch
+    (let ((suggested-stree (catch #t (lambda () (string->object suggested-str)) (lambda args #f))
           ) ;suggested-stree
          ) ;
       (when suggested-stree
