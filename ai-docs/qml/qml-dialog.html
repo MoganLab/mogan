@@ -1694,7 +1694,7 @@
         <p class="legend">
           QML: <code>recentDocuments + fuzzyScore()</code>
           <code>onTextChanged -&gt; updateMatches()</code>
-          <code>Open -&gt; closeBridge.submit({ path })</code>
+          <code>Open -&gt; recentSearchBridge.open(path)</code>
         </p>
       </section>
 
@@ -1737,7 +1737,7 @@
         statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
         preferences: 'prefTabs(5) + subTabs(6) + EnumCombo + Toggle + 纯 OK 提交',
         confirmRestart: 'message + buttonLabels + closeBridge.choose(index)',
-        recentSearch: 'recentDocuments + fuzzyScore() + closeBridge.submit({ path })'
+        recentSearch: 'recentDocuments + fuzzyScore() + recentSearchBridge.open(path)'
       };
 
       const viewTitle = document.getElementById('view-title');
@@ -1809,7 +1809,7 @@
       });
 
       document.getElementById('recent-open').addEventListener('click', () => {
-        if (recentSelected) log('SearchRecentDocuments: submit({ path: "' + recentSelected.dataset.path + '" })');
+        if (recentSelected) log('SearchRecentDocuments: open("' + recentSelected.dataset.path + '")');
       });
 
       document.getElementById('form-submit').addEventListener('click', () => {
