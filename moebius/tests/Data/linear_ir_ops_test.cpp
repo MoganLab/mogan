@@ -320,13 +320,14 @@ TEST_CASE ("markup_edit: compound REMOVE (subtree children) is precise") {
   CHECK_EQ (ed.ok && N (ed.ops) == 1, true);
 }
 
-TEST_CASE ("markup_edit: ASSIGN atomic subtree is precise (no coarse re-seed)") {
+TEST_CASE (
+    "markup_edit: ASSIGN atomic subtree is precise (no coarse re-seed)") {
   ensure_labels ();
   // (document (para "abc")) —— 把 para 的原子内容整体换成 "xyz"
   tree t (DOCUMENT, 1);
   t[0]            = tree (PARA, 1);
   t[0][0]         = tree ("abc");
-  tree neu        = tree ("xyz");
+  tree         neu= tree ("xyz");
   modification mod= mod_assign (path (0, 0), neu);
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
   markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
@@ -337,14 +338,14 @@ TEST_CASE ("markup_edit: ASSIGN compound subtree is precise") {
   ensure_labels ();
   // (document (concat "a" "b")) —— 把 concat 换成 (with "x" "y" "z")
   tree c (CONCAT, 2);
-  c[0]    = tree ("a");
-  c[1]    = tree ("b");
+  c[0]= tree ("a");
+  c[1]= tree ("b");
   tree t (DOCUMENT, 1);
-  t[0]   = c;
+  t[0]= c;
   tree w (WITH, 3);
-  w[0]   = tree ("font-series");
-  w[1]   = tree ("bold");
-  w[2]   = tree ("z");
+  w[0]            = tree ("font-series");
+  w[1]            = tree ("bold");
+  w[2]            = tree ("z");
   modification mod= mod_assign (path (0), w);
   CHECK_EQ (markup_edit_roundtrip (t, mod), true);
   markup_edit ed= compute_markup_edit (tree_to_linear_ir (t), mod);
@@ -355,7 +356,7 @@ TEST_CASE ("markup_edit: ASSIGN whole body (path ()) is precise") {
   ensure_labels ();
   // 整 body 替换：常见于 apply_remote 的 mod_assign(path()) 兜底
   tree t (DOCUMENT, 1);
-  t[0]            = tree ("old");
+  t[0]= tree ("old");
   tree neu (DOCUMENT, 2);
   neu[0]          = tree ("new1");
   neu[1]          = tree ("new2");

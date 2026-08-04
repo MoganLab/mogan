@@ -392,7 +392,7 @@ compute_markup_edit (array<linear_item> items, modification mod) {
     int nclose= matching_close (items, nopen);
     if (nclose < 0) return ed;
     array<linear_item> u_ir= tree_to_linear_ir (mod->t);
-    ed.ok                 = true;
+    ed.ok                  = true;
     add_op (ed, markup_offset_of_item (items, nopen),
             markup_len_range (items, nopen, nclose + 1),
             linear_ir_to_markup (u_ir));
