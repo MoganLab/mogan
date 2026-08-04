@@ -458,3 +458,36 @@ TEST_CASE ("linear_ir_pos: round-trips empty compound paragraph without text") {
   path back1= linear_ir_path_at_offset_with_anchor (items, off1, anchor1);
   CHECK_EQ (back1 == path (1, 0), true);
 }
+
+TEST_CASE (
+    "linear_ir_pos: round-trips with block structural cursor OPEN and CLOSE") {
+  ensure_labels ();
+  // (concat "T" (with "font-series" "bold" "ES") "T")
+  tree w (WITH, 3);
+  w[0]= tree ("font-series");
+  w[1]= tree ("bold");
+  w[2]= tree ("ES");
+  tree t (CONCAT, 3);
+  t[0]                    = tree ("T");
+  t[1]                    = w;
+  t[2]                    = tree ("T");
+  array<linear_item> items= tree_to_linear_ir (t);
+
+  // OPEN of with -> path [1, 0]
+  char anchor_open= 'T';
+  int  off_open= linear_ir_offset_of_path (items, path (1, 0), t, anchor_open);
+  CHECK_EQ (off_open >= 0, true);
+  CHECK_EQ (anchor_open == 'O', true);
+  path back_open=
+      linear_ir_path_at_offset_with_anchor (items, off_open, anchor_open);
+  CHECK_EQ (back_open == path (1, 0), true);
+
+  // CLOSE of with -> path [1, 1]
+  char anchor_close= 'T';
+  int off_close= linear_ir_offset_of_path (items, path (1, 1), t, anchor_close);
+  CHECK_EQ (off_close >= 0, true);
+  CHECK_EQ (anchor_close == 'C', true);
+  path back_close=
+      linear_ir_path_at_offset_with_anchor (items, off_close, anchor_close);
+  CHECK_EQ (back_close == path (1, 1), true);
+}

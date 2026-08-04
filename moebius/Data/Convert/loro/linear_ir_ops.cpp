@@ -453,15 +453,13 @@ linear_ir_offset_of_path (const array<linear_item>& items, path p, tree buf,
   }
 
   // 复合节点
-  int n_children=
-      has_subtree (buf, node_path) ? N (subtree (buf, node_path)) : 0;
-
   if (char_off == 0) {
     out_anchor= 'O';
     return markup_offset_of_item (items, open_idx) +
            item_markup_len (items[open_idx]);
   }
-  else if (char_off == n_children && n_children > 0) {
+  else {
+    // char_off >= 1: 复合节点的结构 CLOSE (node_path * 1)
     int depth    = 0;
     int close_idx= -1;
     for (int i= open_idx; i < N (items); i++) {
@@ -478,15 +476,6 @@ linear_ir_offset_of_path (const array<linear_item>& items, path p, tree buf,
     out_anchor= 'C';
     return markup_offset_of_item (items, close_idx);
   }
-  else if (char_off > 0 && char_off <= n_children) {
-    path child_path= node_path * path (char_off);
-    int  child_open= item_index_of_path (items, child_path);
-    if (child_open < 0) return -1;
-    out_anchor= 'O';
-    return markup_offset_of_item (items, child_open);
-  }
-
-  return -1;
 }
 
 path
@@ -526,7 +515,7 @@ linear_ir_path_at_offset_with_anchor (const array<linear_item>& items,
     else if (it.kind == LI_CLOSE) {
       if (anchor == 'C' && byte_off >= start &&
           (byte_off < end || i == n - 1)) {
-        return build_path (prefix, next_child);
+        return build_path (prefix, 1);
       }
       if (N (saved) > 0) {
         next_child= saved[N (saved) - 1] + 1;

@@ -223,18 +223,28 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
       path pp       = path_up (node_path);
       if (!is_nil (pp) && has_subtree (buf, pp) &&
           is_concat (subtree (buf, pp))) {
-        int idx       = last_item (node_path);
-        int concat_off= last_item (raw_p);
-        for (int j= 0; j < idx; j++) {
-          tree sib= subtree (buf, pp * path (j));
-          if (is_atomic (sib)) concat_off+= N (sib->label);
-          else {
-            concat_off= -1;
+        tree concat_t  = subtree (buf, pp);
+        bool all_atomic= true;
+        for (int j= 0; j < N (concat_t); j++) {
+          if (!is_atomic (concat_t[j])) {
+            all_atomic= false;
             break;
           }
         }
-        if (concat_off >= 0) {
-          return pp * path (concat_off);
+        if (all_atomic) {
+          int idx       = last_item (node_path);
+          int concat_off= last_item (raw_p);
+          for (int j= 0; j < idx; j++) {
+            tree sib= subtree (buf, pp * path (j));
+            if (is_atomic (sib)) concat_off+= N (sib->label);
+            else {
+              concat_off= -1;
+              break;
+            }
+          }
+          if (concat_off >= 0) {
+            return pp * path (concat_off);
+          }
         }
       }
     }
