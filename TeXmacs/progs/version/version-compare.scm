@@ -59,15 +59,13 @@
 
 ;; herk 编码下中文等字符以 <#XXXX> 转义存在，整串无空格会被当成一个词。
 ;; 每个转义序列切为独立 token，使 CJK 文本按字符对齐；其余仍按空格切词
+
 (define (denormalize-string s)
   (if (== s "")
     (list)
     (with p
       (string-index s #\<)
-      (if (or (not p)
-            (== p (- (string-length s) 1))
-            (!= (string-ref s (+ p 1)) #\#)
-          ) ;or
+      (if (or (not p) (== p (- (string-length s) 1)) (!= (string-ref s (+ p 1)) #\#))
         (denormalize-words s)
         (with q
           (string-index (substring s p (string-length s)) #\>)

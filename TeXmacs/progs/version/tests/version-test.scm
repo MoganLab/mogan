@@ -34,7 +34,10 @@
   (check (denormalize-string " ") => '(" "))
   (check (denormalize-string " a  b ") => '(" " "a" " " " " "b" " "))
   ;; 纯英文按空格切词（原有行为）
-  (check (denormalize-string "hello brave world") => '("hello" " " "brave" " " "world"))
+  (check (denormalize-string "hello brave world")
+    =>
+    '("hello" " " "brave" " " "world")
+  ) ;check
   ;; 单个词不拆分
   (check (denormalize-string "abcd") => '("abcd"))
 ) ;define
@@ -81,9 +84,12 @@
 ) ;define
 
 (define cjk-old
-  "<#4F60><#597D><#554A><#FF0C><#8BF7><#95EE><#4F60><#5728><#54EA><#91CC><#5BC6><#8DEF><#7684><#FF1F>")
+  "<#4F60><#597D><#554A><#FF0C><#8BF7><#95EE><#4F60><#5728><#54EA><#91CC><#5BC6><#8DEF><#7684><#FF1F>"
+) ;define
+
 (define cjk-new
-  "<#4F60><#597D><#554A><#FF0C><#8BF7><#95EE><#4F60><#5728><#54EA><#91CC><#8FF7><#8DEF><#7684><#FF1F>")
+  "<#4F60><#597D><#554A><#FF0C><#8BF7><#95EE><#4F60><#5728><#54EA><#91CC><#8FF7><#8DEF><#7684><#FF1F>"
+) ;define
 
 (define (test-compare-cjk)
   ;; 只改一个字符（密->谜）：恰好一个变更块，且新旧版本可完整取回
