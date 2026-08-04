@@ -15,7 +15,7 @@
 
 (texmacs-module (generic pattern-selector) (:use (generic format-widgets)))
 
-(import (only (liii path) path-as-posix))
+(import (only (liii path) path-as-posix path))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Name conversions

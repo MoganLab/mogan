@@ -13,7 +13,7 @@
 
 (texmacs-module (kernel gui menu-define) (:use (kernel gui gui-markup)))
 
-(import (only (liii path) path-as-posix))
+(import (only (liii path) path-as-posix path))
 
 (define use-minibars? (== (cpp-get-preference "use minibars" "off") "on"))
 
