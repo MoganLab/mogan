@@ -288,10 +288,10 @@ edit_done (editor_rep* ed, modification mod) {
   path p= copy (mod->p);
   ASSERT (ed->the_buffer_path () <= p, "invalid modification");
   if (mod->k != MOD_SET_CURSOR) {
-    ed->post_notify (p);
 #ifdef LORO_ENABLED
     ed->mirror_loro (mod);
 #endif
+    ed->post_notify (p);
   }
 }
 
