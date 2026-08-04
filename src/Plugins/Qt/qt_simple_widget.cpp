@@ -246,6 +246,11 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
     qp-= QPoint (sz.width () / 2, sz.height () / 2);
     // NOTE: adjust because child is centered
     scrollarea ()->setOrigin (qp);
+    // origin 变化会改变 popup 全局坐标映射，及时刷新 popup
+    if (ghostTextPopup && ghostTextPopup->isVisible ())
+      ghostTextPopup->updatePosition ();
+    if (diffTextPopup && diffTextPopup->isVisible ())
+      diffTextPopup->updatePosition ();
   } break;
 
   case SLOT_ZOOM_FACTOR: {
@@ -278,6 +283,11 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
     check_type<coord2> (val, s);
     coord2 p= open_box<coord2> (val);
     canvas ()->setCursorPos (to_qpoint (p));
+    // 光标坐标在此刷新，及时刷新 popup
+    if (ghostTextPopup && ghostTextPopup->isVisible ())
+      ghostTextPopup->updatePosition ();
+    if (diffTextPopup && diffTextPopup->isVisible ())
+      diffTextPopup->updatePosition ();
 #ifdef Q_OS_LINUX
     QInputMethod* im= QGuiApplication::inputMethod ();
     if (im) im->update (Qt::ImCursorRectangle);
