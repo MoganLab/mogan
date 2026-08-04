@@ -15,7 +15,6 @@
 #include "iterator.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"
-#include "tm_debug.hpp"
 #include "tree_traverse.hpp"
 
 #include <moebius/data/scheme.hpp>
@@ -444,9 +443,6 @@ void
 edit_cursor_rep::go_to_here () {
   cu= eb->find_check_cursor (tp);
   if (!cu->valid || !valid_cursor (et, tp)) {
-    if (is_nil (tp) || is_nil (path_up (tp)))
-      std_warning << "DIAG go_to_here: stale/short tp=" << tp
-                  << " before super_correct\n";
     tp= super_correct (et, tp);
     cu= eb->find_check_cursor (tp);
   }
