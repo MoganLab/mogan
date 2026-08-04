@@ -437,11 +437,16 @@ linear_ir_offset_of_path (const array<linear_item>& items, path p, tree buf,
 
   int open_idx= item_index_of_path (items, node_path);
   if (open_idx < 0) return -1;
-
   if (N (items[open_idx].label) == 0) {
     // 原子节点
     int text_idx= open_idx + 1;
-    if (text_idx >= N (items) || items[text_idx].kind != LI_TEXT) return -1;
+    // 若无 LI_TEXT 项或 LI_TEXT 内容为空串 ("")：均视为空原子
+    if (text_idx >= N (items) || items[text_idx].kind != LI_TEXT ||
+        N (items[text_idx].text) == 0) {
+      out_anchor= 'O';
+      return markup_offset_of_item (items, open_idx) +
+             item_markup_len (items[open_idx]);
+    }
     int content_start= markup_offset_of_item (items, text_idx);
     out_anchor       = 'T';
     return content_start + escaped_byte_offset (items[text_idx].text, char_off);
