@@ -481,7 +481,6 @@
   tmweb-update-dir-keep-texmacs
   tmweb-interactive-build
   tmweb-interactive-update
-  open-website-builder
 ) ;lazy-define
 (lazy-define (doc apidoc) apidoc-all-modules apidoc-all-symbols)
 (lazy-menu (doc apidoc-menu) apidoc-menu)
@@ -489,7 +488,6 @@
 (lazy-tmfs-handler (doc tmdoc) help)
 (lazy-tmfs-handler (doc apidoc) apidoc)
 (define-secure-symbols tmdoc-include youtube-select)
-(tm-property (open-website-builder) (:interactive #t))
 
 ;; (display "Booting converters\n")
 

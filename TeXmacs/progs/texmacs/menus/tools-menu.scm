@@ -55,10 +55,6 @@
   (-> "Project" (link project-manage-menu))
   ("Statistics" (show-counts))
   ---
-  ("Create web site" (open-website-builder))
-  ;; (-> "Web"
-  ;;    ("Create web site" (tmweb-interactive-build))
-  ;;    ("Update web site" (tmweb-interactive-update)))
   (-> "Fonts"
    ("Scan disk for fonts" (scan-disk-for-fonts))
    ("Clear font cache" (clear-font-cache))
