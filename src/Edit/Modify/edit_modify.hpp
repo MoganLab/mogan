@@ -77,7 +77,6 @@ protected:
   path   last_ep;
   bool   last_sel_active= false;
   string cached_payload;
-  void   reset_cursor_payload_cache ();
 #endif
 
 public:
@@ -100,6 +99,7 @@ public:
   void mirror_loro (const modification& mod) override;
   void apply_remote (string bytes) override;
   void set_remote_cursor (string peer, string payload) override;
+  void reset_cursor_payload_cache ();
   array<remote_cursor_view> get_remote_cursors () override;
   string                    collab_cursor_payload () override;
   void                      collab_cursor_moved_hook () override;

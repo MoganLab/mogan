@@ -22,17 +22,6 @@
  * Switches
  ******************************************************************************/
 
-void
-edit_modify_rep::reset_cursor_payload_cache () {
-#ifdef LORO_ENABLED
-  last_cp        = path ();
-  last_sp        = path ();
-  last_ep        = path ();
-  last_sel_active= false;
-  cached_payload = "";
-#endif
-}
-
 // 协作会话开关：loro_collab 在 CREATE/JOIN 成功建立会话后置位；
 // 置位前本地编辑不 seed/不上行（见 ensure_loro_seeded）。
 void
@@ -106,7 +95,6 @@ edit_modify_rep::mirror_loro (const modification& mod) {
   ensure_loro_seeded (); // Fallback in case not called from edit_announce
   if (DEBUG_LORO) debug_loro << "mirror_loro is mirroring mod to shadow\n";
   loro_doc->mirror_mod (the_buffer (), mod / rp);
-  reset_cursor_payload_cache ();
 #ifdef LORO_DEBUG
   // debug_loro 验证：镜像后 buffer 应与 Loro
   // 状态一致。不一致则告警（说明镜像链路有 bug）。 这是安全模式——mirror_loro 在
@@ -630,6 +618,15 @@ edit_main_rep::mirror_meta_if_active (string section) {
  * 传输层不解析，原样收发。
  ******************************************************************************/
 
+void
+edit_modify_rep::reset_cursor_payload_cache () {
+  last_cp        = path ();
+  last_sp        = path ();
+  last_ep        = path ();
+  last_sel_active= false;
+  cached_payload = "";
+}
+
 string
 edit_modify_rep::collab_cursor_payload () {
   if (!loro_collab_on) return "";
@@ -640,8 +637,7 @@ edit_modify_rep::collab_cursor_payload () {
   if (!(rp <= tp)) return "";
   path cp= tp / rp;
   path sp= cp, ep= cp;
-  bool sel_active= selection_active_any ();
-  if (sel_active) {
+  if (selection_active_any ()) {
     path global_sp, global_ep;
     selection_get (global_sp, global_ep);
     if (rp <= global_sp && rp <= global_ep) {
