@@ -599,17 +599,6 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
   rs2->item->x1= mid;
 }
 
-// lolly 的 array.hpp 只提供了 operator<< (array<string>&, char*)，字符串
-// 字面量是 const char*。GCC 靠弃用转换容忍（仅告警），而 MSVC 的重载解析
-// 不认该转换序列，直接编译失败（C2676），故仅在 Windows 上补 const char*
-// 重载（与 upgradetm.cpp 同款），其余平台维持原行为。
-#ifdef OS_WIN
-static array<string>&
-operator<< (array<string>& a, const char* x) {
-  return a << string (x);
-}
-#endif
-
 // 保留蓝色焦点填充的 inline 标签白名单：其余结构（段落、列表、表格、
 // 绘图区等块级标签）一律只画边框，避免大面积蓝色填充遮挡内容
 // （Issue #2091）。DRD 目前没有 inline/block 属性可查询，故显式列举。
@@ -618,59 +607,23 @@ is_inline_focus_tag (tree st) {
   if (!is_compound (st)) return false;
   static hashset<string> tags;
   if (N (tags) == 0) {
-    array<string> init;
-    init << "strong"
-         << "em"
-         << "dfn"
-         << "samp"
-         << "name"
-         << "person"
-         << "abbr"
-         << "acronym"
-         << "kbd"
-         << "var"
-         << "tt"
-         << "verbatim"
-         << "cite*"
-         << "math"
-         << "rsub"
-         << "rsup"
-         << "hlink"
-         << "slink"
-         << "action"
-         << "item"
-         << "cell"
-         << "around"
-         << "around*"
-         << "sqrt"
-         << "frac"
-         << "frac*"
-         << "dfrac"
-         << "tfrac"
-         << "cfrac"
-         << "above"
-         << "lsub"
-         << "lsup"
-         << "strike-through"
-         << "underline"
-         << "bold"
-         << "below"
-         << "really-tiny"
-         << "tiny"
-         << "very-small"
-         << "normal-size"
-         << "large"
-         << "very-large"
-         << "huge"
-         << "really-huge"
-         << "overline"
-         << "small"
-         << "long-arrow"
-         << "wide"
-         << "paragraph"
-         << "subparagraph";
-    for (int i= 0; i < N (init); i++)
-      tags->insert (init[i]);
+    tags << string ("strong") << string ("em") << string ("dfn")
+         << string ("samp") << string ("name") << string ("person")
+         << string ("abbr") << string ("acronym") << string ("kbd")
+         << string ("var") << string ("tt") << string ("verbatim")
+         << string ("cite*") << string ("math") << string ("rsub")
+         << string ("rsup") << string ("hlink") << string ("slink")
+         << string ("action") << string ("item") << string ("cell")
+         << string ("around") << string ("around*") << string ("sqrt")
+         << string ("frac") << string ("frac*") << string ("dfrac")
+         << string ("tfrac") << string ("cfrac") << string ("above")
+         << string ("lsub") << string ("lsup") << string ("strike-through")
+         << string ("underline") << string ("bold") << string ("below")
+         << string ("really-tiny") << string ("tiny") << string ("very-small")
+         << string ("normal-size") << string ("large") << string ("very-large")
+         << string ("huge") << string ("really-huge") << string ("overline")
+         << string ("small") << string ("long-arrow") << string ("wide")
+         << string ("paragraph") << string ("subparagraph");
   }
   return tags->contains (as_string (L (st)));
 }
