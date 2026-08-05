@@ -416,19 +416,36 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     tab_menu_signature= sig;
   }
   if (menu_cache->contains (xmenu)) {
-    if (menu_current[which] == xmenu) return false;
+#ifdef OS_WASM
+    // WASM/React 是纯 push 模型：menu-expand 经 replace-procedures 把 lazy
+    // 子菜单 lambda 换成 procedure-source，xmenu 与动态数据（如 collab 文档
+    // 列表）无关，结构判等会永远短路，React 端永远收不到新树。主菜单每次
+    // 重建推送；update_menus 是 THE_MENUS 事件驱动的，开销可接受。
+    bool skip_current_check= (which == -1);
+#else
+    bool skip_current_check= false;
+#endif
+    cout << "CKPT1" << LF;
+    if (!skip_current_check && menu_current[which] == xmenu) return false;
+    cout << "CKPT2" << LF;
     if (which < 10) {
       menu_current (which)= xmenu;
       w                   = menu_cache[xmenu];
       return true;
     }
   }
+    cout << "CKPT3" << LF;
   menu_current (which)= xmenu;
+    cout << "CKPT4" << LF;
   object umenu        = eval ("'" * menu);
-  if (which == 10 || which == 11) w= make_menu_widget (umenu, 400, 1000);
-  else w= make_menu_widget (umenu);
+    cout << "CKPT5" << LF;
+  if (which == 10 || which == 11) {w= make_menu_widget (umenu, 400, 1000);
+    cout << "CKPT6" << LF;}
+  else {w= make_menu_widget (umenu);
+    cout << "CKPT7" << LF;}
   if (menu_caching)
     if (which >= 10 || as_bool (call ("cache-menu?", xmenu))) {
+    cout << "CKPT8" << LF;
       menu_cache (xmenu)= w;
     }
   return true;
