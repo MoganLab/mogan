@@ -603,7 +603,7 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
 // 字面量是 const char*。GCC 靠弃用转换容忍（仅告警），而 MSVC 的重载解析
 // 不认该转换序列，直接编译失败（C2676），故仅在 Windows 上补 const char*
 // 重载（与 upgradetm.cpp 同款），其余平台维持原行为。
-#ifdef _WIN32
+#ifdef OS_WIN
 static array<string>&
 operator<< (array<string>& a, const char* x) {
   return a << string (x);
