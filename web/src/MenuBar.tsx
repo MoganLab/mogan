@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MenuNode } from './types';
 import { subscribeMenu } from './bridge';
-import { MenuItems } from './MenuItems';
+import { MenuItems, useCanScrollClass } from './MenuItems';
 
 /**
  * Top-of-window menu bar. Renders the top-level submenu entries (File, Edit,
@@ -88,14 +88,7 @@ export function MenuBar({ onHeight }: { onHeight: (h: number) => void }) {
             onClick={() => setOpenIndex(open ? null : i)}
           >
             <span className="mogan-menu-label">{node.label}</span>
-            {open && (
-              <ul className="mogan-menu-dropdown" role="menu">
-                <MenuItems
-                  nodes={node.children}
-                  onInvoke={() => setOpenIndex(null)}
-                />
-              </ul>
-            )}          </li>
+            {open && <TopDropdown node={node} onInvoke={() => setOpenIndex(null)} />}          </li>
         );
       })}
     </ul>
@@ -109,4 +102,24 @@ export function MenuBar({ onHeight }: { onHeight: (h: number) => void }) {
 function flattenTop(tree: MenuNode[]): MenuNode[] {
   if (tree.length === 1 && tree[0].kind === 'container') return tree[0].children;
   return tree;
+}
+
+/**
+ * One top-level dropdown. Split into its own component so the can-scroll
+ * detection hook can run per open dropdown (hooks can't be called inside the
+ * parent's .map). The spacer class only appears when the menu truly overflows.
+ */
+function TopDropdown({
+  node,
+  onInvoke,
+}: {
+  node: MenuNode & { kind: 'submenu' };
+  onInvoke: () => void;
+}) {
+  const dd = useCanScrollClass<HTMLUListElement>([]);
+  return (
+    <ul ref={dd.ref} className={'mogan-menu-dropdown' + dd.cls} role="menu">
+      <MenuItems nodes={node.children} onInvoke={onInvoke} />
+    </ul>
+  );
 }

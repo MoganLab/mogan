@@ -106,6 +106,17 @@
   padding: 4px;
   position: absolute;
   min-width: 180px;
+  /* Cap height and scroll vertically when the menu is taller than the
+     viewport. Only a small 4px breathing room at top/bottom so the scrollable
+     area uses nearly the full viewport height. Nested flyouts are
+     position:fixed (viewport coords), so they are NOT clipped by this scroll
+     container — see .mogan-menu-flyout. */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Hide the scrollbar while keeping scrollability (user preference). */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
   background: var(--popup-bg);
   border: 1px solid var(--popup-border);
   border-radius: var(--radius-popup);
@@ -115,28 +126,50 @@
   font-size: 13px;
 }
 
+.mogan-menu-dropdown::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
 /* Top-level dropdown opens below its menu bar item, with a small gap so the
    rounded popup reads as floating rather than attached. */
 .mogan-menubar-item > .mogan-menu-dropdown {
   top: 100%;
   left: 0;
   margin-top: 4px;
+  /* Top-level dropdown opens below the 30px menu bar, so a 100vh-based cap
+     would overshoot the viewport bottom by roughly the bar height. Subtract
+     the bar height (+ its margin) so the menu's bottom stays on screen and
+     the final item can scroll fully into view. */
+  max-height: calc(100vh - var(--menu-frame-h) - 12px);
 }
 
-/* Nested flyout opens to the right of its parent item. */
-.mogan-menu-dropdown .mogan-menu-item.submenu {
-  position: relative;
+/* Nested flyout. It's position:fixed and placed by JS at the parent row's
+   viewport rect, so it escapes the scroll container's clipping and pops out
+   to the right of the row even inside a scrolling dropdown. The .submenu row
+   no longer needs position:relative. */
+.mogan-menu-flyout {
+  position: fixed;
+  margin: 0;
 }
-.mogan-menu-dropdown .mogan-menu-item.submenu > .mogan-menu-dropdown.nested {
-  top: -4px;
-  left: 100%;
-  margin-left: 2px;
+
+/* Small transparent spacer appended only when a menu actually overflows and
+   can scroll (the .can-scroll class is added from JS). Some browsers don't
+   count padding-bottom toward the scrollable overflow, so without it the last
+   item ends up flush against (and clipped by) the bottom border / rounded
+   corner. Scoped to .can-scroll so short menus and flyouts that fit don't get
+   a stray blank row. */
+.mogan-menu-dropdown.can-scroll::after {
+  content: '';
+  display: block;
+  height: 40px;
 }
 
 .mogan-menu-item {
   display: flex;
   align-items: center;
-  padding: 6px 12px;
+  /* Slim left gutter (no left check column anymore — the check mark sits at
+     the row end). Right padding keeps shortcut/arrow breathing room. */
+  padding: 6px 12px 6px 6px;
   border-radius: var(--radius-item);
   cursor: default;
   color: var(--chrome-text);
@@ -150,7 +183,9 @@
 }
 .mogan-menu-item:hover .mogan-menu-shortcut,
 .mogan-menu-item.open .mogan-menu-shortcut {
-  color: rgba(255, 255, 255, 0.65);
+  /* Solid light grey on the dark hover pill: the previous rgba(255,255,255,0.65)
+     rendered as a faint wash and read as invisible on the menubar. */
+  color: #d6d6d6;
 }
 .mogan-menu-item.disabled {
   color: var(--text-disabled);
@@ -159,11 +194,21 @@
   background: transparent;
   color: var(--text-disabled);
 }
+/* A disabled row never gets the hover pill, so its shortcut must not flip to
+   the light hover color either — keep it at the readable non-hover grey. */
+.mogan-menu-item.disabled:hover .mogan-menu-shortcut,
+.mogan-menu-item.disabled .mogan-menu-shortcut {
+  color: var(--text-disabled);
+}
 
-.mogan-menu-check {
-  width: 16px;
+/* Check mark rendered at the END of the row (after the shortcut), per
+   preference — there is no left check column, so rows sit flush left and the
+   gutter stays slim. Fixed width keeps it from shifting the shortcut. */
+.mogan-menu-check-end {
+  width: 14px;
   display: inline-block;
   text-align: center;
+  flex: 0 0 auto;
 }
 /* Scope the label stretch + shortcut gutter to dropdown rows (.mogan-menu-item)
    only. The top-level menubar reuses .mogan-menu-label inside .mogan-menubar-item,
@@ -174,7 +219,9 @@
   padding-right: 24px;
 }
 .mogan-menu-shortcut {
-  color: var(--text-disabled);
+  /* Near-body grey so it's directly readable on the popup's white background
+     without needing hover, in both dropdowns and nested flyouts. */
+  color: #555555;
   font-size: 12px;
 }
 .mogan-menu-arrow {

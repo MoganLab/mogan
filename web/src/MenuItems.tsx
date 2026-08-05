@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import type { MenuNode } from './types';
 import { invokeMenu } from './bridge';
 
@@ -155,43 +155,150 @@ function MenuRow({
             onInvoke?.();
           }}
         >
-          <span className="mogan-menu-check">{node.checked ? '✓' : ''}</span>
           <span className="mogan-menu-label">{node.label}</span>
           <span className="mogan-menu-shortcut">{node.shortcut ?? ''}</span>
+          {/* Check mark shown at the END of the row (after the shortcut), per
+              preference — no left check column, so rows sit flush left. */}
+          <span className="mogan-menu-check-end">{node.checked ? '✓' : ''}</span>
         </li>
       );
 
     case 'submenu':
       return (
-        <li
-          className={'mogan-menu-item submenu' + (open ? ' open' : '')}
-          onMouseEnter={onHoverOpen}
-          onMouseLeave={onHoverClose}
-          // Clicking a submenu row only opens/pins its flyout — it runs no
-          // command, so onInvoke is NOT called and the menu stays open.
-          onClick={onClickRow}
-        >
-          <span className="mogan-menu-check" />
-          <span className="mogan-menu-label">{node.label}</span>
-          <span className="mogan-menu-arrow">▶</span>
-          {open && (
-            <ul
-              className="mogan-menu-dropdown nested"
-              role="menu"
-              // See header: keep a click inside this flyout from looking like an
-              // "outside" click to the window-level dismiss listener (this flyout
-              // isn't DOM-nested under its parent dropdown).
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth + 1} />
-            </ul>
-          )}
-        </li>
+        <SubmenuRow
+          node={node}
+          open={open}
+          onHoverOpen={onHoverOpen}
+          onHoverClose={onHoverClose}
+          onClickRow={onClickRow}
+          onInvoke={onInvoke}
+          depth={depth}
+        />
       );
 
     default:
       return <Fragment />;
   }
+}
+
+/**
+ * Ref callback + className helper for a dropdown <ul>: after mount / whenever
+ * `deps` change, mark the element .can-scroll when its content actually
+ * overflows its (capped) visible height. The CSS appends the small end spacer
+ * only for .can-scroll menus, so short menus get no stray blank row.
+ */
+export function useCanScrollClass<T extends HTMLElement>(deps: unknown[]) {
+  const ref = useRef<T | null>(null);
+  const [cls, setCls] = useState('');
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setCls(el.scrollHeight > el.clientHeight + 1 ? ' can-scroll' : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return { ref, cls };
+}
+
+/**
+ * A submenu row + its flyout. The flyout flips to grow upward (bottom-aligned
+ * to the row) when the row sits low enough that a downward-opening flyout
+ * would overflow the viewport — decided from the row's position each time the
+ * flyout opens, so it doesn't need a render during the same pass.
+ */
+function SubmenuRow({
+  node,
+  open,
+  onHoverOpen,
+  onHoverClose,
+  onClickRow,
+  onInvoke,
+  depth,
+}: {
+  node: MenuNode & { kind: 'submenu' };
+  open: boolean;
+  onHoverOpen: () => void;
+  onHoverClose: () => void;
+  onClickRow: () => void;
+  onInvoke?: () => void;
+  depth: number;
+}) {
+  const rowRef = useRef<HTMLLIElement>(null);
+  const flyout = useCanScrollClass<HTMLUListElement>([open]);
+  // Viewport coordinates for the fixed-position flyout. `top` starts aligned
+  // with the row; after the flyout renders we measure its real height and, if
+  // it would overflow the viewport bottom, shift it up JUST enough to fit —
+  // keeping it as close to the parent row as possible.
+  const [pos, setPos] = useState<{ left: number; top: number }>({
+    left: 0,
+    top: 0,
+  });
+
+  const measure = () => {
+    const el = rowRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const left = Math.round(rect.right + 2);
+    let top = Math.round(rect.top - 4);
+    if (top < 8) top = 8;
+    setPos({ left, top });
+  };
+
+  // Keep the flyout as close to the row as possible while leaving a usable
+  // amount of it on screen: if aligning to the row would push the flyout so
+  // low that fewer than ~120px (a couple of rows) remain visible, shift it up
+  // so that much fits. The bottom is then kept inside the viewport by the
+  // inline maxHeight, and any taller content scrolls.
+  useLayoutEffect(() => {
+    if (!open) return;
+    setPos((p) => {
+      const minVisible = 120;
+      const maxTop = Math.max(8, window.innerHeight - 8 - minVisible);
+      const top = Math.min(p.top, maxTop);
+      return top === p.top ? p : { left: p.left, top };
+    });
+  }, [open]);
+
+  return (
+    <li
+      ref={rowRef}
+      className={'mogan-menu-item submenu' + (open ? ' open' : '')}
+      onMouseEnter={() => {
+        measure();
+        onHoverOpen();
+      }}
+      onMouseLeave={onHoverClose}
+      // Clicking a submenu row only opens/pins its flyout — it runs no
+      // command, so onInvoke is NOT called and the menu stays open.
+      onClick={() => {
+        measure();
+        onClickRow();
+      }}
+    >
+      <span className="mogan-menu-label">{node.label}</span>
+      <span className="mogan-menu-arrow">▶</span>
+      {open && (
+        <ul
+          ref={flyout.ref}
+          className={'mogan-menu-dropdown mogan-menu-flyout' + flyout.cls}
+          role="menu"
+          style={{
+            left: pos.left,
+            top: pos.top,
+            // Constrain by the space actually remaining below the flyout's top
+            // (not a fixed 100vh), so the bottom never runs past the viewport
+            // edge — content taller than that scrolls instead of being cut.
+            maxHeight: Math.max(80, window.innerHeight - pos.top - 8),
+          }}
+          // See header: keep a click inside this flyout from looking like an
+          // "outside" click to the window-level dismiss listener (this flyout
+          // isn't DOM-nested under its parent dropdown).
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth + 1} />
+        </ul>
+      )}
+    </li>
+  );
 }
 
 function normalizeSeparators(nodes: MenuNode[]): MenuNode[] {

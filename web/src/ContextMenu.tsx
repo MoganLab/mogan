@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { MenuNode } from './types';
 import { closePopup, subscribePopupClose, subscribePopupOpen } from './bridge';
-import { MenuItems } from './MenuItems';
+import { MenuItems, useCanScrollClass } from './MenuItems';
 
 interface PopupState {
   tree: MenuNode[];
@@ -24,6 +24,7 @@ interface PopupState {
  */
 export function ContextMenu() {
   const [popup, setPopup] = useState<PopupState | null>(null);
+  const dd = useCanScrollClass<HTMLUListElement>([popup]);
 
   useEffect(
     () =>
@@ -82,7 +83,8 @@ export function ContextMenu() {
 
   return (
     <ul
-      className="mogan-menu-dropdown mogan-context-menu"
+      ref={dd.ref}
+      className={'mogan-menu-dropdown mogan-context-menu' + dd.cls}
       role="menu"
       style={{ left, top }}
     >
