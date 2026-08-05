@@ -1,45 +1,226 @@
-<TMU|<tuple|1.1.0|2026.2.12>>
+<TMU|<tuple|1.1.0|2026.3.0>>
 
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
-  <section|绘图区域>
+  <subparagraph|em><em|强调>一般都是斜体
 
-  <with|gr-mode|<tuple|group-edit|edit-props>|gr-frame|<tuple|scale|2cm|<tuple|0.5gw|0.5gh>>|gr-geometry|<tuple|geometry|1par|0.6par>|gr-grid|<tuple|cartesian|<point|0|0>|1>|gr-edit-grid-aspect|<tuple|<tuple|axes|none>|<tuple|1|none>|<tuple|5|none>>|gr-edit-grid|<tuple|cartesian|<point|0|0>|1>|gr-props-text-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-math-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-document-at|<tuple|text-at-halign|center|doc-at-valign|center>|magnify|2.0|gr-as-visual-grid|off|gr-grid-aspect|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|gr-grid-aspect-props|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|<graphics||<rectangle|<point|-3.6|2.2>|<point|-3.4|2.0>>|<rectangle|<point|3.2|-1.8>|<point|3.4|-2.0>>>>
+  <subparagraph|strong><strong|着重>一般都是粗体
 
-  <section|有序列表>
+  <subparagraph|bold><bold|加粗>一般都是粗体
+
+  <dfn|dfn> <dfn|定义>一般都是粗体
+
+  <subparagraph|overline><overline|上划线>
+
+  <subparagraph|underline><underline|下划线>
+
+  <subparagraph|strike-through><strike-through|删除线>
+
+  <subparagraph|math>行内数学 <math|1+2>
+
+  <subparagraph|frac>行内数学里面有分式 <math|<frac|1|2>>
+
+  <subparagraph|sqrt>行内数学里面有根式 <math|<sqrt|x>>
+
+  <subparagraph|long-arrow><math|<long-arrow|\<rubber-rightarrow\>|\<bbb-d\>\<bbb-d\>>>
+
+  <subparagraph|wide> <math|<wide|a bc|\<wide-overbrace\>>+a> <math|<wide|a|\<ddot\>>>
+
+  <subparagraph|abbr><abbr|ABC>
+
+  <subparagraph|rsup>右侧上标 <math|x<rsup|2>>
+
+  <subparagraph|rsub>右侧下标 <math|x<rsub|2>>
+
+  <subparagraph|lsup>左侧上标 <math|<lsup|x>A>
+
+  <subparagraph|rsup>右侧下标 <math|<lsub|y>A>
+
+  <subparagraph|above>顶标 <above|拼音|pinyin>
+
+  <subparagraph|below>底标 <below|拼音|pinyin>
+
+  <subparagraph|really-tiny> <really-tiny|非常小>
+
+  <subparagraph|tiny><tiny|细小>
+
+  <subparagraph|very-tiny> <very-small|很小>
+
+  <subparagraph|small><small|小>
+
+  <subparagraph|normal-size><normal-size|正常大小>
+
+  <subparagraph|large><large|大>
+
+  <subparagraph|very-large><very-large|很大>
+
+  <subparagraph|huge><huge|巨大>
+
+  <subparagraph|very-huge><really-huge|非常大>
+
+  有序列表的每一行的序号会显示焦点的蓝色背景
 
   <\enumerate>
-    <item>答卷前，考生务必用黑色字迹钢笔或签字笔将自己的姓名、考生号、考场号和座位号填写在答题卡上。用2B铅笔将试卷类型（A）填涂在答题卡相应位置上。将条形码横贴在答题卡右上角“条形码粘贴处”。
+    <item>
 
-    <item>作答选择题时，选出每小题答案后，用2B铅笔在答题卡上对应题目选项的答案信息点涂黑；如需改动，用橡皮擦干净后，再选涂其他答案，答案不能答在试卷上。\ 
+    <item>
 
-    <item>非选择题必须用黑色字迹的钢笔或签字笔作答，答案必须写在答题卡各题目指定区域内相应位置上；如需改动，先划掉原来的答案，然后再写上新答案；不准使用铅笔和涂改液，不按以上要求作答无效。\ 
-
-    <item>考生必须保持答题卡的整洁。考试结束后，将试卷和答题卡一并交回。\ 
+    <item>
   </enumerate>
+
+  无序列表的每一行也会显示焦点的蓝色背景
+
+  <\itemize>
+    <item>
+
+    <item>
+
+    <item>
+  </itemize>
+
+  <section|没有蓝色背景>
+
+  <\big-table|<tabular|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<twith|table-hyphen|y>|<table|<row|<\cell>
+    1
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    1
+  </cell>>>>>>
+    \;
+  </big-table>
+
+  <\equation*>
+    <matrix|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<\cell>
+      1
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      1
+    </cell>>>>>
+  </equation*>
+
+  <with|gr-mode|point|gr-frame|<tuple|scale|2cm|<tuple|0.5gw|0.5gh>>|gr-geometry|<tuple|geometry|1par|0.6par>|gr-grid|<tuple|cartesian|<point|0|0>|1>|gr-edit-grid-aspect|<tuple|<tuple|axes|none>|<tuple|1|none>|<tuple|5|none>>|gr-edit-grid|<tuple|cartesian|<point|0|0>|1>|gr-props-text-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-math-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-document-at|<tuple|text-at-halign|center|doc-at-valign|center>|magnify|2.0|gr-as-visual-grid|off|gr-grid-aspect|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|gr-grid-aspect-props|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|<graphics||<point|-1|1>|<point|0|0>|<point|1|-1>>>
 </body>
 
 <\initial>
   <\collection>
     <associate|page-screen-margin|false>
-    <associate|stem-doc-id|3DDAAEC1-7F73-4170-8AAF-21E632650F70>
+    <associate|preamble|false>
   </collection>
 </initial>
 
 <\references>
   <\collection>
     <associate|auto-1|<tuple|1|?>>
+    <associate|auto-10|<tuple|10|?>>
+    <associate|auto-11|<tuple|11|?>>
+    <associate|auto-12|<tuple|12|?>>
+    <associate|auto-13|<tuple|13|?>>
+    <associate|auto-14|<tuple|14|?>>
+    <associate|auto-15|<tuple|15|?>>
+    <associate|auto-16|<tuple|16|?>>
+    <associate|auto-17|<tuple|17|?>>
+    <associate|auto-18|<tuple|18|?>>
+    <associate|auto-19|<tuple|19|?>>
     <associate|auto-2|<tuple|2|?>>
+    <associate|auto-20|<tuple|20|?>>
+    <associate|auto-21|<tuple|21|?>>
+    <associate|auto-22|<tuple|22|?>>
+    <associate|auto-23|<tuple|23|?>>
+    <associate|auto-24|<tuple|24|?>>
+    <associate|auto-25|<tuple|25|?>>
+    <associate|auto-26|<tuple|26|?>>
+    <associate|auto-27|<tuple|27|?>>
+    <associate|auto-28|<tuple|1|?>>
+    <associate|auto-29|<tuple|1|?>>
+    <associate|auto-3|<tuple|3|?>>
+    <associate|auto-4|<tuple|4|?>>
+    <associate|auto-5|<tuple|5|?>>
+    <associate|auto-6|<tuple|6|?>>
+    <associate|auto-7|<tuple|7|?>>
+    <associate|auto-8|<tuple|8|?>>
+    <associate|auto-9|<tuple|9|?>>
   </collection>
 </references>
 
 <\auxiliary>
   <\collection>
     <\associate|toc>
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>绘图区域><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+      <with|par-left|<quote|4tab>|em<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1>>
 
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|2<space|2spc>有序列表><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2><vspace|0.5fn>
+      <with|par-left|<quote|4tab>|strong<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+      <with|par-left|<quote|4tab>|bold<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+      <with|par-left|<quote|4tab>|overline<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4>>
+
+      <with|par-left|<quote|4tab>|underline<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-5>>
+
+      <with|par-left|<quote|4tab>|strike-through<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-6>>
+
+      <with|par-left|<quote|4tab>|math<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-7>>
+
+      <with|par-left|<quote|4tab>|frac<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-8>>
+
+      <with|par-left|<quote|4tab>|sqrt<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-9>>
+
+      <with|par-left|<quote|4tab>|long-arrow<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-10>>
+
+      <with|par-left|<quote|4tab>|wide<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-11>>
+
+      <with|par-left|<quote|4tab>|abbr<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-12>>
+
+      <with|par-left|<quote|4tab>|rsup<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-13>>
+
+      <with|par-left|<quote|4tab>|rsub<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-14>>
+
+      <with|par-left|<quote|4tab>|lsup<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-15>>
+
+      <with|par-left|<quote|4tab>|rsup<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-16>>
+
+      <with|par-left|<quote|4tab>|above<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-17>>
+
+      <with|par-left|<quote|4tab>|below<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-18>>
+
+      <with|par-left|<quote|4tab>|really-tiny<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-19>>
+
+      <with|par-left|<quote|4tab>|tiny<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-20>>
+
+      <with|par-left|<quote|4tab>|very-tiny<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-21>>
+
+      <with|par-left|<quote|4tab>|small<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-22>>
+
+      <with|par-left|<quote|4tab>|normal-size<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-23>>
+
+      <with|par-left|<quote|4tab>|large<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-24>>
+
+      <with|par-left|<quote|4tab>|very-large<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-25>>
+
+      <with|par-left|<quote|4tab>|huge<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-26>>
+
+      <with|par-left|<quote|4tab>|very-huge<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-27>>
     </associate>
   </collection>
 </auxiliary>

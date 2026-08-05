@@ -60,6 +60,13 @@ notify_graphics_extents (tree t, point lbot, point rtop) {
       // scripts-edit.scm，经菜单链 lazy-load；无 UI 的 CLI 前端不加载它，
       // 故用条件编译在 CLI 下排除该回调（Qt/ImGui 照常）。
 #ifndef MOGAN_CLI
+      // 文档打开时菜单链尚未触发 lazy-load，先主动加载模块，
+      // 避免 graphics-notify-extents 未绑定（Issue #2091）
+      static bool scripts_edit_loaded= false;
+      if (!scripts_edit_loaded) {
+        eval ("(use-modules (dynamic scripts-edit))");
+        scripts_edit_loaded= true;
+      }
       call ("graphics-notify-extents", args);
 #endif
     }

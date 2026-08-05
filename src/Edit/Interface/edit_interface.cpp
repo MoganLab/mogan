@@ -15,6 +15,7 @@
 #include "data_cache.hpp"
 #include "file.hpp"
 #include "gui.hpp" // for gui_interrupted
+#include "hashset.hpp"
 #include "message.hpp"
 #include "new_view.hpp"
 #include "observers.hpp"
@@ -598,15 +599,35 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
   rs2->item->x1= mid;
 }
 
-// 光标（tp 的父路径）位于表格（TABLE/SUBTABLE）内部时返回 true
+// 保留蓝色焦点填充的 inline 标签白名单：其余结构（段落、列表、表格、
+// 绘图区等块级标签）一律只画边框，避免大面积蓝色填充遮挡内容
+// （Issue #2091）。DRD 目前没有 inline/block 属性可查询，故显式列举。
 static bool
-path_inside_table (tree et, path p) {
-  while (!is_nil (p)) {
-    tree st= subtree (et, p);
-    if (is_func (st, TABLE) || is_func (st, SUBTABLE)) return true;
-    p= path_up (p);
+is_inline_focus_tag (tree st) {
+  if (!is_compound (st)) return false;
+  static hashset<string> tags;
+  if (N (tags) == 0) {
+    const char* init[]= {"strong",      "em",          "dfn",
+                         "samp",        "name",        "person",
+                         "abbr",        "acronym",     "kbd",
+                         "var",         "tt",          "verbatim",
+                         "cite*",       "math",        "rsub",
+                         "rsup",        "hlink",       "slink",
+                         "action",      "item",        "cell",
+                         "around",      "around*",     "sqrt",
+                         "frac",        "frac*",       "dfrac",
+                         "tfrac",       "cfrac",       "above",
+                         "lsub",        "lsup",        "strike-through",
+                         "underline",   "bold",        "below",
+                         "really-tiny", "tiny",        "very-small",
+                         "normal-size", "large",       "very-large",
+                         "huge",        "really-huge", "overline",
+                         "small",       "long-arrow",  "wide",
+                         "paragraph",   "subparagraph"};
+    for (int i= 0; i < (int) (sizeof (init) / sizeof (init[0])); i++)
+      tags->insert (init[i]);
   }
-  return false;
+  return tags->contains (as_string (L (st)));
 }
 
 void
@@ -777,18 +798,11 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (N (focus_get ()) >= N (p))
         if (!recurse || get_preference ("show full context") == "on") {
           if (recurse) rs << outlines (sel->rs, pixel);
-          // 光标位于绘图区（graphics 上下文，含 with 包裹的画布）、enumerate
-          // 环境或表格内部时改用边框而非半透明背景填充：避免画布被覆盖；
-          // enumerate 条目通常较多、表格整片蓝色填充干扰明显（Issue #2091）。
-          // 表格内 CELL/ROW/TABLE/TFORMAT 均走上方 skip 分支，填充实际落在
-          // 表格外层节点（如 tabular 宏），故表格判断基于光标路径 tp 而非 p。
-          // 表格的灰色细线由上方 recurse 分支（env_rects）绘制，不受影响。
-          else if (is_func (st, GRAPHICS) || inside_graphics (false) ||
-                   (is_compound (st) &&
-                    starts (as_string (L (st)), "enumerate")) ||
-                   path_inside_table (et, path_up (tp)))
-            rs << outlines (sel->rs, pixel);
-          else rs << thicken (sel->rs, 0, 2 * pixel);
+          // 仅 inline 标签白名单保留半透明蓝色填充，其余结构（段落、
+          // 列表、表格、绘图区等）一律只画边框（Issue #2091）。
+          else if (is_inline_focus_tag (st))
+            rs << thicken (sel->rs, 0, 2 * pixel);
+          else rs << outlines (sel->rs, pixel);
         }
     }
     set_access_mode (old_mode);
@@ -1148,9 +1162,9 @@ edit_interface_rep::apply_changes () {
       ;
     else pp= path_up (pp);
     if (full_context || table_cells) compute_env_rects (pp, env_rects, true);
-    // 光标处于绘图区时仍计算 foc_rects，但在 compute_env_rects 内部
-    // 会对 GRAPHICS 节点改用边框（outlines）而非背景填充（thicken），
-    // 以避免画布被半透明色覆盖影响视觉。
+    // 光标处于绘图区时仍计算 foc_rects；焦点填充样式在 compute_env_rects
+    // 内部分流：仅 inline 标签白名单用背景填充（thicken），其余结构
+    // （含绘图区）一律改用边框（outlines），避免大面积遮挡内容。
     if (show_focus && (!semantic_flag || !semantic_only))
       compute_env_rects (pp, foc_rects, false);
     if (env_rects != old_env_rects) {
