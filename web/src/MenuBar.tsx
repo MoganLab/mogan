@@ -5,9 +5,15 @@ import { MenuItems } from './MenuItems';
 
 /**
  * Top-of-window menu bar. Renders the top-level submenu entries (File, Edit,
- * …) from the menu tree pushed by C++; clicking/hovering one opens a dropdown
- * with its children. Only the top level is rendered horizontally here —
- * dropdowns and nested flyouts are handled by MenuItems.
+ * …) from the menu tree pushed by C++; clicking one opens its dropdown.
+ * Only the top level is rendered horizontally here — dropdowns and nested
+ * flyouts are handled by MenuItems.
+ *
+ * Open semantics: a dropdown stays open once opened — it does NOT close when
+ * the pointer leaves the bar. It closes only on an explicit gesture: picking
+ * an item, pressing Escape, clicking another top-level entry, or a mousedown
+ * anywhere outside the bar. That outside mousedown is swallowed in the
+ * capture phase so it never falls through to the editor canvas.
  *
  * Reports its pixel height to C++ via setChromeMetrics on mount/resize so the
  * document canvas is positioned below it.
@@ -29,6 +35,36 @@ export function MenuBar({ onHeight }: { onHeight: (h: number) => void }) {
     return () => ro.disconnect();
   }, [onHeight]);
 
+  // Close only on explicit dismiss: Escape, or a mousedown anywhere outside
+  // the menu UI. The listener is window-level and checks every .mogan-menubar /
+  // .mogan-menu-dropdown element, so it covers the bar, its dropdown, and any
+  // nested flyouts alike — clicks inside any of them never close. An outside
+  // mousedown is captured (and swallowed) BEFORE it reaches the canvas's GLFW
+  // listener, so the click that closes the menu never reaches the editor.
+  // Deliberately NOT closed on mouse-leave: the menu stays open until one of
+  // these explicit gestures.
+  useEffect(() => {
+    if (openIndex === null) return;
+    const onPointerDown = (e: MouseEvent) => {
+      const inside = (e.target as Element | null)?.closest?.(
+        '.mogan-menubar, .mogan-menu-dropdown',
+      );
+      if (!inside) {
+        e.stopPropagation(); // swallow: don't let the click fall through to the canvas
+        setOpenIndex(null);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenIndex(null);
+    };
+    window.addEventListener('mousedown', onPointerDown, true);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown, true);
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, [openIndex]);
+
   // Top-level is always a single container holding the menu entries
   // ((horizontal (link texmacs-menu))). Flatten one level so we can render the
   // submenu buttons across the bar.
@@ -39,7 +75,6 @@ export function MenuBar({ onHeight }: { onHeight: (h: number) => void }) {
       ref={barRef}
       className="mogan-menubar"
       role="menubar"
-      onMouseLeave={() => setOpenIndex(null)}
     >
       {topLevel.map((node, i) => {
         if (node.kind !== 'submenu') return null;
@@ -60,8 +95,7 @@ export function MenuBar({ onHeight }: { onHeight: (h: number) => void }) {
                   onInvoke={() => setOpenIndex(null)}
                 />
               </ul>
-            )}
-          </li>
+            )}          </li>
         );
       })}
     </ul>

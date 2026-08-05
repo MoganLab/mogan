@@ -7,8 +7,23 @@ import { invokeMenu } from './bridge';
  * dropdowns (MenuDropdown) and the context menu. Mirrors the kinds handled by
  * render_node() in src/Plugins/ImGui/im_menu.cpp.
  *
- * `onInvoke` runs after a leaf button is clicked (lets the parent close its
- * dropdown / popup).
+ * `onInvoke` runs only after an ENABLED leaf button actually fires its
+ * command (it lets the parent close the whole menu). Inert clicks do not
+ * trigger it, so the menu stays open when the user clicks a disabled item, a
+ * group/section header, a separator, or a submenu row that only expands.
+ *
+ * Submenu (flyout) open state is managed PER LIST (this component), not per
+ * row: only one flyout per level is open at a time, and hovering a sibling
+ * closes the previous one. An open flyout NEVER collapses just because the
+ * pointer left it — it closes only when a sibling flyout opens or the whole
+ * menu is dismissed. Clicking a submenu row runs no command, so it never
+ * closes the surrounding menu.
+ *
+ * Every dropdown layer stops its own mousedown from bubbling: the dismiss
+ * listeners on MenuBar / ContextMenu listen at window capture time, and a
+ * click inside a nested flyout would otherwise look "outside" the parent
+ * dropdown it isn't DOM-nested under. Marking it here keeps such clicks from
+ * being treated as an outside dismiss (and swallowed).
  */
 interface MenuItemsProps {
   nodes: MenuNode[];
@@ -23,10 +38,34 @@ export function MenuItems({ nodes, onInvoke, depth = 0 }: MenuItemsProps) {
   // normalization in im_menu.cpp render_node k_container.
   const normalized = normalizeSeparators(nodes);
 
+  // Index (into `normalized`) of the currently-open submenu at THIS level.
+  // One open flyout per level; hovering a different submenu row switches to
+  // it, and an open flyout never auto-collapses on pointer-leave — it only
+  // closes when a sibling opens or the whole menu is dismissed.
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
   return (
     <>
       {normalized.map((node, i) => (
-        <MenuRow key={i} node={node} onInvoke={onInvoke} depth={depth} />
+        <MenuRow
+          key={i}
+          node={node}
+          onInvoke={onInvoke}
+          depth={depth}
+          open={openIdx === i}
+          onHoverOpen={() => setOpenIdx(i)}
+          onHoverClose={() => {
+            // A flyout never collapses just because the pointer left it — it
+            // stays open until the user hovers a sibling submenu (openIdx
+            // moves) or dismisses the whole menu. Nothing to do here.
+          }}
+          onClickRow={() => {
+            // Clicking a submenu row just opens its flyout (and keeps it
+            // pinned via the no-auto-collapse rule above). No command runs, so
+            // onInvoke is not called and the surrounding menu stays open.
+            setOpenIdx(i);
+          }}
+        />
       ))}
     </>
   );
@@ -36,13 +75,20 @@ function MenuRow({
   node,
   onInvoke,
   depth,
+  open,
+  onHoverOpen,
+  onHoverClose,
+  onClickRow,
 }: {
   node: MenuNode;
   onInvoke?: () => void;
   depth: number;
+  /** Whether this row's flyout is open (only meaningful for submenu rows). */
+  open: boolean;
+  onHoverOpen: () => void;
+  onHoverClose: () => void;
+  onClickRow: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-
   switch (node.kind) {
     case 'container':
       return <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth} />;
@@ -73,7 +119,17 @@ function MenuRow({
                 {child.label}
               </button>
             ) : (
-              <MenuRow key={i} node={child} onInvoke={onInvoke} depth={depth} />
+              <span key={i} className="mogan-menu-tile-cell">
+                <MenuRow
+                  node={child}
+                  onInvoke={onInvoke}
+                  depth={depth}
+                  open={false}
+                  onHoverOpen={() => {}}
+                  onHoverClose={() => {}}
+                  onClickRow={() => {}}
+                />
+              </span>
             ),
           )}
         </li>
@@ -109,14 +165,24 @@ function MenuRow({
       return (
         <li
           className={'mogan-menu-item submenu' + (open ? ' open' : '')}
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
+          onMouseEnter={onHoverOpen}
+          onMouseLeave={onHoverClose}
+          // Clicking a submenu row only opens/pins its flyout — it runs no
+          // command, so onInvoke is NOT called and the menu stays open.
+          onClick={onClickRow}
         >
           <span className="mogan-menu-check" />
           <span className="mogan-menu-label">{node.label}</span>
           <span className="mogan-menu-arrow">▶</span>
           {open && (
-            <ul className="mogan-menu-dropdown nested" role="menu">
+            <ul
+              className="mogan-menu-dropdown nested"
+              role="menu"
+              // See header: keep a click inside this flyout from looking like an
+              // "outside" click to the window-level dismiss listener (this flyout
+              // isn't DOM-nested under its parent dropdown).
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth + 1} />
             </ul>
           )}

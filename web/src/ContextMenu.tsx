@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { MenuNode } from './types';
 import { closePopup, subscribePopupClose, subscribePopupOpen } from './bridge';
 import { MenuItems } from './MenuItems';
@@ -14,13 +14,16 @@ interface PopupState {
  * serializes the same popup widget tree the native ImGui build renders and
  * asks us to show it at a screen position. Reuses MenuItems for rendering.
  *
- * Closes on item invoke, outside click, or Esc — every path calls closePopup()
- * so C++ deactivates the active popup and resumes forwarding mouse events to
- * the editor (its GLFW callbacks early-return while a popup is active).
+ * Shares the menu bar's open semantics: it does NOT close when the pointer
+ * leaves. It closes only on an explicit gesture — an enabled item firing its
+ * command, Escape, or a mousedown outside the menu. That outside mousedown is
+ * swallowed in the capture phase so it never reaches the editor canvas. Every
+ * dismiss path also calls closePopup() so C++ deactivates the active popup and
+ * resumes forwarding mouse events to the editor (its GLFW callbacks
+ * early-return while a popup is active).
  */
 export function ContextMenu() {
   const [popup, setPopup] = useState<PopupState | null>(null);
-  const menuRef = useRef<HTMLUListElement>(null);
 
   useEffect(
     () =>
@@ -46,7 +49,15 @@ export function ContextMenu() {
   useEffect(() => {
     if (!popup) return;
     const onPointerDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      // Window-level: a click inside any dropdown layer (including nested
+      // flyouts, which aren't DOM-nested under this popup) is "inside" and
+      // must not dismiss. Only a genuinely outside click closes — and it's
+      // swallowed here so it never falls through to the canvas.
+      const inside = (e.target as Element | null)?.closest?.(
+        '.mogan-menu-dropdown',
+      );
+      if (!inside) {
+        e.stopPropagation();
         dismiss();
       }
     };
@@ -71,7 +82,6 @@ export function ContextMenu() {
 
   return (
     <ul
-      ref={menuRef}
       className="mogan-menu-dropdown mogan-context-menu"
       role="menu"
       style={{ left, top }}
