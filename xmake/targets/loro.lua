@@ -41,8 +41,10 @@ target("loro")
         add_syslinks("iconv", "resolv", "System", {public = true})
         add_frameworks("Security", "Foundation", {public = true})
     elseif is_plat("windows") then
-        -- 补充：Rust 静态库在 Windows 上必需的底层系统链接
-        add_syslinks("userenv", "ws2_32", "bcrypt", {public = true})
+        -- 补充：Rust 静态库在 Windows 上必需的底层系统链接。
+        -- ntdll：std 文件系统用到 NtCreateFile/NtReadFile 等 Native API，
+        -- cargo 链接 Rust exe 时会自动追加，外部消费 staticlib 需手动补。
+        add_syslinks("userenv", "ws2_32", "bcrypt", "ntdll", {public = true})
     end
 
     before_build(function(target)

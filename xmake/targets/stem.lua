@@ -186,9 +186,9 @@ target("stem") do
         set_values("qt.deploy.flags", {"-printsupport", "--no-opengl-sw", "--no-translations", "--release"})
     end
     if is_plat("windows") and has_config("loro") then
-        add_ldflags("/VERBOSE:LIB", {force = true})
-        add_linkdirs("C:/Users/yifan/git/mogan/3rdparty/mogan-loro-ffi/target/release", {public = true})
-        add_ldflags("/WHOLEARCHIVE:mogan_loro_ffi.lib", {force = true})
+        -- /WHOLEARCHIVE 会把 staticlib 中重复的 bcryptprimitives.dll 导入桩全部
+        -- 拉入导致 LNK2005，/FORCE:MULTIPLE 取首个定义规避（rust#129218）
+        add_ldflags("/WHOLEARCHIVE:mogan_loro_ffi.lib", "/FORCE:MULTIPLE", {force = true})
     end
 
     after_build(function (target)
