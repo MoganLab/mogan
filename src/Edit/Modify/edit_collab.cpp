@@ -433,7 +433,6 @@ edit_modify_rep::apply_remote (string bytes) {
     debug_loro << "Applying remote update of size " << N (bytes) << "\n";
   bench_start ("apply_remote");
 
-  loro_applying_remote= true;
   // 远端修改不得进入本地 undo 历史：它会混进本地按键所在的 current 单元，
   // 下一次按键 coalesce（reopen 最近单元 + 重算合并修改）会把对端刚插入的
   // 内容一并撤销删除。与 loro_applying_remote 同步置位，覆盖下面的 apply 循环
@@ -472,9 +471,6 @@ edit_modify_rep::apply_remote (string bytes) {
     tree after= loro_doc->to_tree ();
     apply (et, rp * mod_assign (path (), after));
   }
-  // applying_remote 暂不关闭：apply_remote_meta 的回写 setter 也要在守卫内
-
-  loro_applying_remote= false;
 
   // 关键：apply_remote 通过 edit_announce 改了 buffer（新 tree_rep*），
   // 但这些新 rep 不在 id_map 里，因此下一次本地编辑 mirror_mod 会 id_map miss
@@ -487,7 +483,6 @@ edit_modify_rep::apply_remote (string bytes) {
   // applying_remote 守卫，回写触发的 setter 钩子会被守卫跳过，避免回环。body 与
   // meta 都处理完后再 关闭守卫。
   apply_remote_meta ();
-  loro_applying_remote= false;
   arch->set_versioning (false);
 
   // 首次 import 远端数据（JOIN 同步）后，把 export vv 推进到当前，标记这些 op
@@ -740,6 +735,7 @@ edit_modify_rep::apply_queued_remote () {
   // session-output / field-process-input 插入后 (set-user-active #f) 一致
   // （LLM/会话流式输出同样靠它避免视图跳动）。
   set_user_active (false);
+  loro_applying_remote= true;
   queued_remote_mods= array<string> (0);
   if (N (q) != 0) {
     collab_snapshot_cursor ();
@@ -749,5 +745,11 @@ edit_modify_rep::apply_queued_remote () {
 
     collab_restore_cursor ();
   }
+  loro_applying_remote= false;
+}
+
+bool
+edit_modify_rep::collab_applying_remote (){
+  return loro_applying_remote;
 }
 #endif
