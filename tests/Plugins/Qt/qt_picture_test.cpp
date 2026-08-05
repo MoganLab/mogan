@@ -34,20 +34,20 @@ void
 TestQtPicture::test_as_qt_picture_keeps_qt_picture () {
   picture p= qt_picture (QImage (3, 2, QImage::Format_ARGB32), 1, 1);
   picture q= as_qt_picture (p);
-  QVERIFY (dynamic_cast<qt_picture_rep*> (q.operator-> ()) != NULL);
-  QCOMPARE (q.operator-> (), p.operator-> ());
+  QVERIFY (dynamic_cast<qt_picture_rep*> (q.operator->()) != NULL);
+  QCOMPARE (q.operator->(), p.operator->());
 }
 
 void
 TestQtPicture::test_as_qt_picture_converts_mupdf_picture () {
 #ifdef USE_MUPDF_RENDERER
   picture p= native_picture (3, 2, 1, 1);
-  QVERIFY (dynamic_cast<mupdf_picture_rep*> (p.operator-> ()) != NULL);
+  QVERIFY (dynamic_cast<mupdf_picture_rep*> (p.operator->()) != NULL);
   p->set_pixel (0, 0, 0xFFFF0000);
 
   picture q= as_qt_picture (p);
   // 转换结果必须是真正的 qt_picture_rep，drawImage 才不会踩野指针
-  QVERIFY (dynamic_cast<qt_picture_rep*> (q.operator-> ()) != NULL);
+  QVERIFY (dynamic_cast<qt_picture_rep*> (q.operator->()) != NULL);
   QCOMPARE (q->get_width (), 3);
   QCOMPARE (q->get_height (), 2);
   QCOMPARE (q->get_origin_x (), 1);
