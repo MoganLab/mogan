@@ -1222,8 +1222,7 @@ smart_font_rep::resolve (string c) {
     }
   }
 
-  // Fallback Geometric Shapes (U+2500-U+25FF) to DejaVu Sans
-  // or Noto Sans Symbols2
+  // Fallback Geometric Shapes (U+2500-U+25FF) to Stix Two Math
   int geom_code= -1;
   {
     string uc  = strict_cork_to_utf8 (c);
@@ -1232,16 +1231,13 @@ smart_font_rep::resolve (string c) {
     if (pos == N (uc)) geom_code= code;
   }
   if (geom_code >= 0x2500 && geom_code <= 0x25FF) {
-    const char* candidates[]= {"DejaVu Sans", "Noto Sans Symbols2"};
-    for (int i= 0; i < 2; i++) {
-      font cfn=
-          closest_font (candidates[i], "rm", "medium", "right", sz, dpi, 1);
-      if (!is_nil (cfn) && cfn->supports (c)) {
-        tree key= tuple ("symbol-font", candidates[i]);
-        int  nr = sm->add_font (key, REWRITE_NONE);
-        maybe_initialize_font (nr);
-        return sm->add_char (key, c);
-      }
+    font cfn=
+        closest_font ("Stix Two Math", "rm", "medium", "right", sz, dpi, 1);
+    if (!is_nil (cfn) && cfn->supports (c)) {
+      tree key= tuple ("symbol-font", "Stix Two Math");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
     }
   }
 
