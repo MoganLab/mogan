@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MenuNode } from './types';
 import { closePopup, subscribePopupClose, subscribePopupOpen } from './bridge';
 import { MenuItems } from './MenuItems';
@@ -14,8 +14,9 @@ interface PopupState {
  * serializes the same popup widget tree the native ImGui build renders and
  * asks us to show it at a screen position. Reuses MenuItems for rendering.
  *
- * Closes on outside click or Esc, calling closePopup() so C++ deactivates the
- * active popup and resumes forwarding mouse events to the editor.
+ * Closes on item invoke, outside click, or Esc — every path calls closePopup()
+ * so C++ deactivates the active popup and resumes forwarding mouse events to
+ * the editor (its GLFW callbacks early-return while a popup is active).
  */
 export function ContextMenu() {
   const [popup, setPopup] = useState<PopupState | null>(null);
@@ -34,18 +35,24 @@ export function ContextMenu() {
     [],
   );
 
+  // C++ deactivates the active popup (resuming editor mouse dispatch) only
+  // when closePopup() runs — so every dismiss path must call it, not just
+  // hide the menu locally.
+  const dismiss = useCallback(() => {
+    closePopup();
+    setPopup(null);
+  }, []);
+
   useEffect(() => {
     if (!popup) return;
     const onPointerDown = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        closePopup();
-        setPopup(null);
+        dismiss();
       }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closePopup();
-        setPopup(null);
+        dismiss();
       }
     };
     window.addEventListener('mousedown', onPointerDown, true);
@@ -54,7 +61,7 @@ export function ContextMenu() {
       window.removeEventListener('mousedown', onPointerDown, true);
       window.removeEventListener('keydown', onKey, true);
     };
-  }, [popup]);
+  }, [popup, dismiss]);
 
   if (!popup) return null;
 
@@ -69,7 +76,7 @@ export function ContextMenu() {
       role="menu"
       style={{ left, top }}
     >
-      <MenuItems nodes={popup.tree} onInvoke={() => setPopup(null)} />
+      <MenuItems nodes={popup.tree} onInvoke={dismiss} />
     </ul>
   );
 }

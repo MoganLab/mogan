@@ -64,6 +64,10 @@ mogan_menu_invoke (int id) {
   // no-reentrancy invariant documented at im_menu.cpp:34-39.
   im_queue_menu_command (cmd);
   im_flush_menu_commands ();
+  // 兜底：命令已执行，若活动 popup 仍未注销（例如 React 侧某个关闭路径漏调
+  // mogan_menu_close_popup），在此清掉，否则编辑器鼠标分发会被
+  // im_has_active_popup 永久门控。
+  im_deactivate_active_popup ();
 }
 
 extern "C" EMSCRIPTEN_KEEPALIVE void
