@@ -1,0 +1,21 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|number-europe|chinese>>
+
+<\body>
+  Test 2092: 图片大小设定支持固定宽高比
+
+  点击下方图片，拖动边中点手柄可自由拉伸（默认）；勾选图片焦点菜单
+  中的 "Preserve aspect ratio" 后，拖动边中点按比例缩放，角手柄始终等比。
+
+  <\with|par-mode|center>
+    <image|../../misc/images/stem-512.png|6cm|4cm||>
+  </with>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
