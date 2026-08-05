@@ -1,13 +1,13 @@
-<TMU|<tuple|1.1.0|2026.3.0>>
+<TMU|<tuple|1.1.0|2026.2.12>>
 
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
-  绘图区域
+  <section|绘图区域>
 
-  <with|gr-mode|<tuple|group-edit|edit-props>|gr-frame|<tuple|scale|2cm|<tuple|0.5gw|0.5gh>>|gr-geometry|<tuple|geometry|1par|0.6par>|gr-grid|<tuple|cartesian|<point|0|0>|1>|gr-edit-grid-aspect|<tuple|<tuple|axes|none>|<tuple|1|none>|<tuple|5|none>>|gr-edit-grid|<tuple|cartesian|<point|0|0>|1>|gr-props-text-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-math-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-document-at|<tuple|text-at-halign|center|doc-at-valign|center>|magnify|2.0|gr-as-visual-grid|off|gr-grid-aspect|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|gr-grid-aspect-props|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|gr-text-at-halign|center|gr-text-at-valign|center|<graphics|>>
+  <with|gr-mode|<tuple|group-edit|edit-props>|gr-frame|<tuple|scale|2cm|<tuple|0.5gw|0.5gh>>|gr-geometry|<tuple|geometry|1par|0.6par>|gr-grid|<tuple|cartesian|<point|0|0>|1>|gr-edit-grid-aspect|<tuple|<tuple|axes|none>|<tuple|1|none>|<tuple|5|none>>|gr-edit-grid|<tuple|cartesian|<point|0|0>|1>|gr-props-text-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-math-at|<tuple|text-at-halign|center|text-at-valign|center>|gr-props-document-at|<tuple|text-at-halign|center|doc-at-valign|center>|magnify|2.0|gr-as-visual-grid|off|gr-grid-aspect|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|gr-grid-aspect-props|<tuple|<tuple|axes|#808080>|<tuple|1|#c0c0c0>|<tuple|5|#e0e0ff>>|<graphics||<rectangle|<point|-3.6|2.2>|<point|-3.4|2.0>>|<rectangle|<point|3.2|-1.8>|<point|3.4|-2.0>>>>
 
-  有序列表：
+  <section|有序列表>
 
   <\enumerate>
     <item>答卷前，考生务必用黑色字迹钢笔或签字笔将自己的姓名、考生号、考场号和座位号填写在答题卡上。用2B铅笔将试卷类型（A）填涂在答题卡相应位置上。将条形码横贴在答题卡右上角“条形码粘贴处”。
@@ -26,3 +26,20 @@
     <associate|stem-doc-id|3DDAAEC1-7F73-4170-8AAF-21E632650F70>
   </collection>
 </initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+    <associate|auto-2|<tuple|2|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>绘图区域><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|2<space|2spc>有序列表><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
