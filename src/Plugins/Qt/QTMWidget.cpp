@@ -417,6 +417,9 @@ QTMWidget::inputMethodEvent (QInputMethodEvent* event) {
 QVariant
 QTMWidget::inputMethodQuery (Qt::InputMethodQuery query) const {
   switch (query) {
+  case Qt::ImEnabled:
+    // 数学模式下禁用输入法，按键直接进入公式编辑
+    return QVariant (!as_bool (call ("in-math?")));
 #if QT_VERSION < 0x060000
   case Qt::ImMicroFocus: {
     const QPoint& topleft= cursor_pos - tm_widget ()->backing_pos +
@@ -424,9 +427,6 @@ QTMWidget::inputMethodQuery (Qt::InputMethodQuery query) const {
     return QVariant (QRect (topleft, QSize (5, 5)));
   }
 #else
-  case Qt::ImEnabled: {
-    return QVariant (true);
-  }
   case Qt::ImCursorRectangle: {
     const QPoint& topleft= cursor_pos - tm_widget ()->backing_pos +
                            surface ()->geometry ().topLeft ();
