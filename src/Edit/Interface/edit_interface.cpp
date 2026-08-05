@@ -599,6 +599,14 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
   rs2->item->x1= mid;
 }
 
+// lolly 的 array.hpp 只提供了 operator<< (array<string>&, char*)，字符串
+// 字面量是 const char*，GCC 靠弃用转换容忍（仅告警），MSVC 则直接编译
+// 失败（C2676）。与 upgradetm.cpp 相同的做法，补一个 const char* 重载。
+static array<string>&
+operator<< (array<string>& a, const char* x) {
+  return a << string (x);
+}
+
 // 保留蓝色焦点填充的 inline 标签白名单：其余结构（段落、列表、表格、
 // 绘图区等块级标签）一律只画边框，避免大面积蓝色填充遮挡内容
 // （Issue #2091）。DRD 目前没有 inline/block 属性可查询，故显式列举。
