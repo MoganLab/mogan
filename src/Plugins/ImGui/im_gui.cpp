@@ -27,6 +27,10 @@
 
 #include <GLFW/glfw3.h> // system clipboard (glfwSet/GetClipboardString)
 
+#ifdef LORO_ENABLED
+#include "loro_collab.hpp" // loro_collab_disconnect
+#endif
+
 #ifndef GL_SILENCE_DEPRECATION
 #define GL_SILENCE_DEPRECATION
 #endif
@@ -512,6 +516,11 @@ im_interpose () {
 
 void
 gui_close () {
+#ifdef LORO_ENABLED
+  // 关闭协作会话的 WS，避免进程退出时 curl 在半操作中 teardown（镜像
+  // qt_gui.cpp 的 gui_close）。
+  loro_collab_disconnect ();
+#endif
   if (s_glfw_initialized) {
     glfwTerminate ();
     s_glfw_initialized= false;

@@ -29,6 +29,10 @@
 #include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
 #include "im_simple_widget.hpp" // editor canvas (main_widget)
 
+#ifdef LORO_ENABLED
+#include "loro_collab.hpp" // loro_collab_poll / apply / disconnect
+#endif
+
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 #ifndef __EMSCRIPTEN__
@@ -736,6 +740,22 @@ im_tm_widget_rep::im_main_loop () {
 
   // Drive one TeXmacs tick. 驱动编辑器。
   im_interpose ();
+#ifdef LORO_ENABLED
+  // 驱动协同会话：drain WS 回调 + apply_remote。节流到 ~6Hz，镜像
+  // qt_gui.cpp 的 loro_collab_poll/apply 接入点。Native 与 WASM 都走
+  // im_main_loop，此处一处覆盖两平台。放在 iconified 检查之前，使最小化时
+  // 仍保持 CRDT 同步（不依赖渲染管线）。远程光标由 kernel 的
+  // draw_remote_cursors 画进同一纹理，无需此处处理。
+  {
+    static time_t last_loro_poll_time= 0;
+    time_t       now                  = texmacs_time ();
+    if (now - last_loro_poll_time >= 1000 / 6) {
+      loro_collab_poll ();
+      loro_collab_apply ();
+      last_loro_poll_time= now;
+    }
+  }
+#endif
   if (glfwGetWindowAttrib (window, GLFW_ICONIFIED) != 0) {
     ImGui_ImplGlfw_Sleep (10);
     return;
