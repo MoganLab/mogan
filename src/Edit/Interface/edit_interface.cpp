@@ -598,7 +598,7 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
   rs2->item->x1= mid;
 }
 
-// 焦点路径 p 位于表格（TABLE/SUBTABLE）内部时返回 true
+// 光标（tp 的父路径）位于表格（TABLE/SUBTABLE）内部时返回 true
 static bool
 path_inside_table (tree et, path p) {
   while (!is_nil (p)) {
@@ -779,13 +779,14 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
           if (recurse) rs << outlines (sel->rs, pixel);
           // 光标位于绘图区（graphics 上下文，含 with 包裹的画布）、enumerate
           // 环境或表格内部时改用边框而非半透明背景填充：避免画布被覆盖；
-          // enumerate 条目通常较多、表格单元格整片蓝色填充干扰明显
-          // （Issue #2091）。表格的灰色细线由上方 recurse 分支（env_rects）
-          // 绘制，不受此处影响。
+          // enumerate 条目通常较多、表格整片蓝色填充干扰明显（Issue #2091）。
+          // 表格内 CELL/ROW/TABLE/TFORMAT 均走上方 skip 分支，填充实际落在
+          // 表格外层节点（如 tabular 宏），故表格判断基于光标路径 tp 而非 p。
+          // 表格的灰色细线由上方 recurse 分支（env_rects）绘制，不受影响。
           else if (is_func (st, GRAPHICS) || inside_graphics (false) ||
                    (is_compound (st) &&
                     starts (as_string (L (st)), "enumerate")) ||
-                   path_inside_table (et, p))
+                   path_inside_table (et, path_up (tp)))
             rs << outlines (sel->rs, pixel);
           else rs << thicken (sel->rs, 0, 2 * pixel);
         }
