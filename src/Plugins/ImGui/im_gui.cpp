@@ -484,6 +484,11 @@ void
 gui_open (int& argc, char** argv) {
   (void) argc;
   (void) argv;
+  // 补初始化全局颜色常量（red/blue/... 等 moebius 全局 color）。X11 移除后原
+  // 初始化路径已断，Qt 在 qt_gui.cpp 的 gui_open 里补了；ImGui 此前漏补，导致
+  // 这些常量保持零初始化，peer_color() 返回 0、remote 协作光标被画成全透明
+  // （alpha=0）而不可见。
+  initialize_colors ();
   // The guard makes repeated calls harmless
   if (!s_glfw_initialized) {
     glfwSetErrorCallback (&im_glfw_error_callback);
