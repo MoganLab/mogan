@@ -185,6 +185,11 @@ target("stem") do
     if is_plat("windows") and has_config("qt_frontend")  then
         set_values("qt.deploy.flags", {"-printsupport", "--no-opengl-sw", "--no-translations", "--release"})
     end
+    if is_plat("windows") and has_config("loro") then
+        add_ldflags("/VERBOSE:LIB", {force = true})
+        add_linkdirs("C:/Users/yifan/git/mogan/3rdparty/mogan-loro-ffi/target/release", {public = true})
+        add_ldflags("/WHOLEARCHIVE:mogan_loro_ffi.lib", {force = true})
+    end
 
     after_build(function (target)
         if is_plat("wasm") then

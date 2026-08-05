@@ -33,7 +33,7 @@ if not is_plat("wasm") then
 end
 
 if has_config("loro") then
-    if is_plat("wasm") then
+    if is_plat("wasm") or is_plat("windows") then
         add_requires("rustup")
     else
         add_requires("rust 1.96.1")

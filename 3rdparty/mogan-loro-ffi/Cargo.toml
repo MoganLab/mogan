@@ -18,3 +18,6 @@ loro = { path = "../loro/crates/loro" }
 # 在此声明即可对其整个依赖图（含 loro）生效。
 [patch.crates-io]
 generic-btree = { path = "../loro/crates/generic-btree" }
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
