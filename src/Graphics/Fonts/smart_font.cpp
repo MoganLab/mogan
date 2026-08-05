@@ -1222,6 +1222,29 @@ smart_font_rep::resolve (string c) {
     }
   }
 
+  // Fallback Geometric Shapes (U+2500-U+25FF) to DejaVu Sans
+  // or Noto Sans Symbols2
+  int geom_code= -1;
+  {
+    string uc  = strict_cork_to_utf8 (c);
+    int    pos = 0;
+    int    code= decode_from_utf8 (uc, pos);
+    if (pos == N (uc)) geom_code= code;
+  }
+  if (geom_code >= 0x2500 && geom_code <= 0x25FF) {
+    const char* candidates[]= {"DejaVu Sans", "Noto Sans Symbols2"};
+    for (int i= 0; i < 2; i++) {
+      font cfn=
+          closest_font (candidates[i], "rm", "medium", "right", sz, dpi, 1);
+      if (!is_nil (cfn) && cfn->supports (c)) {
+        tree key= tuple ("symbol-font", candidates[i]);
+        int  nr = sm->add_font (key, REWRITE_NONE);
+        maybe_initialize_font (nr);
+        return sm->add_char (key, c);
+      }
+    }
+  }
+
   if (math_kind != 0) {
     string upc= substitute_upright (c);
     if (upc != "" && fn[SUBFONT_MAIN]->supports (upc)) {
@@ -1348,6 +1371,9 @@ smart_font_rep::initialize_font (int nr) {
   else if (a[0] == "subfont")
     fn[nr]= smart_font_bis (a[1], variant, series, shape, sz, hdpi, dpi);
   else if (a[0] == "emoji-font")
+    fn[nr]= adjust_subfont (
+        closest_font (a[1], "rm", "medium", "right", sz, dpi, 1));
+  else if (a[0] == "symbol-font")
     fn[nr]= adjust_subfont (
         closest_font (a[1], "rm", "medium", "right", sz, dpi, 1));
   else if (a[0] == "special")

@@ -843,8 +843,8 @@
 ; white rectangle			"#25AD"
 ; black vertical rectangle		"#25AE"
 ("<oblong>"				"#25AF")
-; black parallelogram			"#25B0"
-; white parallelogram			"#25B1"
+("<blackparallelogram>"			"#25B0")
+("<parallelogram>"			"#25B1")
 ; black up-pointing triangle		"#25B2"
 ("<bigtriangleup>"	                "#25B3")
 ("<blacktriangle>"			"#25B4")
