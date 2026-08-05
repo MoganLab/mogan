@@ -15,6 +15,7 @@
 #include "converter.hpp"  // cork_to_utf8
 #include "cork.hpp"       // tm_var_encode
 #include "dictionary.hpp" // translate, get_input/output_language
+#include "im_react_bridge.hpp" // WASM React shell bridge (no-op on native)
 #include "message.hpp"    // slot, blackbox, SLOT_*, open_box
 
 #include "imgui.h"
@@ -145,11 +146,21 @@ im_activate_popup (im_popup_rep* p) {
   p->pos_y      = io.MousePos.y;
   p->just_opened= true;
   g_active_popup= p;
+#ifdef __EMSCRIPTEN__
+  // WASM：弹出菜单由 React shell 渲染。把 popup 的菜单树序列化后连同打开坐标
+  // 推给 JS（仍由 mogan_menu_invoke/mogan_menu_close_popup 回调驱动命令执行与关闭）。
+  im_react_open_popup (p->menu, p->pos_x, p->pos_y);
+#endif
 }
 
 void
 im_deactivate_popup (im_popup_rep* p) {
   if (g_active_popup == p) g_active_popup= nullptr;
+}
+
+void
+im_deactivate_active_popup () {
+  g_active_popup= nullptr;
 }
 
 bool

@@ -18,6 +18,7 @@ on:
       - ".github/workflows/cd-research-mogan-app.yml"
       - "TeXmacs/tests/*.scm"
       - "3rdparty/**"
+      - "web/**"
   workflow_dispatch:
 
 env:
@@ -64,6 +65,25 @@ jobs:
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
           key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
 
+      # Build the React shell (web/) before the C++ link step. xmake's
+      # after_build copies web/dist into the stem target dir, so the Vite
+      # output must exist before `xmake build stem` links.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: build react shell
+        run: |
+          cd web
+          npm ci
+          npm run build
+
       - name: config
         run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m release -p wasm --qt_frontend=no --pdfhummus=no --goldfish=no --yes
 
@@ -73,8 +93,13 @@ jobs:
       - name: Prepare GitHub Pages files
         run: |
           echo "research.mogan.app" > ${{ runner.workspace }}/build/wasm/wasm32/release/CNAME
-          mv ${{ runner.workspace }}/build/wasm/wasm32/release/stem.html \
-            ${{ runner.workspace }}/build/wasm/wasm32/release/index.html
+          # The React shell (web/dist) already provides index.html; stem.html
+          # is a mirror of it for the dev server. Only fall back to the legacy
+          # rename when the JS shell wasn't built.
+          if [ ! -f ${{ runner.workspace }}/build/wasm/wasm32/release/index.html ]; then
+            mv ${{ runner.workspace }}/build/wasm/wasm32/release/stem.html \
+              ${{ runner.workspace }}/build/wasm/wasm32/release/index.html
+          fi
           rm ${{ runner.workspace }}/build/wasm/wasm32/release/*.a
 
       - name: Push

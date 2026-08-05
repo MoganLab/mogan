@@ -93,6 +93,10 @@ bool im_has_active_popup ();
 void im_activate_popup (im_popup_rep* p);
 void im_deactivate_popup (im_popup_rep* p);
 
+/// 无条件注销当前活动弹出菜单（WASM 上由 React shell 的关闭回调调用，
+/// native 路径下由 im_render_active_popup 的 BeginPopup 返回 false 隐式完成）。
+void im_deactivate_active_popup ();
+
 /// 菜单命令入队 / 执行（遍历菜单树期间只入队，结束后统一 flush，避免重入）
 void im_queue_menu_command (command cmd);
 void im_flush_menu_commands ();

@@ -1,0 +1,206 @@
+/* React shell chrome for the ImGui WASM build.
+   Styled to match the native ImGui main menu bar / status bar: ~22px frame
+   height, neutral grays, system font (set on <body> in index.html). */
+
+:root {
+  --menu-bg: #dcdcdc;
+  --menu-bg-hover: #c8c8c8;
+  --menu-bg-active: #b8b8b8;
+  --menu-border: #b0b0b0;
+  --menu-text: #1a1a1a;
+  --menu-text-disabled: #8a8a8a;
+  --menu-separator: #b0b0b0;
+  --menu-group: #5a5a5a;
+  --menu-frame-h: 22px;
+  --footer-bg: #dcdcdc;
+  --footer-border: #b0b0b0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.mogan-shell {
+  position: fixed;
+  inset: 0;
+}
+
+/* Menu and footer sit above the canvas. The canvas fills the area between. */
+.mogan-menubar-host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--menu-bg);
+  border-bottom: 1px solid var(--menu-border);
+}
+
+.mogan-footer-host {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--footer-bg);
+  border-top: 1px solid var(--footer-border);
+}
+
+.mogan-canvas-host {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+#main-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  background: #9f9f9f;
+}
+
+/* ---- Top-level menu bar ---- */
+.mogan-menubar {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  height: var(--menu-frame-h);
+  user-select: none;
+}
+
+.mogan-menubar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  cursor: default;
+  font-size: 13px;
+  color: var(--menu-text);
+  white-space: nowrap;
+}
+.mogan-menubar-item:hover,
+.mogan-menubar-item.open {
+  background: var(--menu-bg-hover);
+}
+.mogan-menubar-item.open {
+  background: var(--menu-bg-active);
+}
+
+/* ---- Dropdown menus (shared by top-level, nested flyouts, context menu) ---- */
+.mogan-menu-dropdown {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  position: absolute;
+  min-width: 180px;
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+  z-index: 40;
+  user-select: none;
+  font-size: 13px;
+}
+
+/* Top-level dropdown opens below its menu bar item. */
+.mogan-menubar-item > .mogan-menu-dropdown {
+  top: 100%;
+  left: 0;
+}
+
+/* Nested flyout opens to the right of its parent item. */
+.mogan-menu-dropdown .mogan-menu-item.submenu {
+  position: relative;
+}
+.mogan-menu-dropdown .mogan-menu-item.submenu > .mogan-menu-dropdown.nested {
+  top: -4px;
+  left: 100%;
+  margin-top: -4px;
+}
+
+.mogan-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 3px 10px;
+  cursor: default;
+  color: var(--menu-text);
+  white-space: nowrap;
+  position: relative;
+}
+.mogan-menu-item:hover,
+.mogan-menu-item.open {
+  background: var(--menu-bg-hover);
+}
+.mogan-menu-item.disabled {
+  color: var(--menu-text-disabled);
+}
+.mogan-menu-item.disabled:hover {
+  background: transparent;
+}
+
+.mogan-menu-check {
+  width: 16px;
+  display: inline-block;
+  text-align: center;
+}
+.mogan-menu-label {
+  flex: 1 1 auto;
+  padding-right: 24px;
+}
+.mogan-menu-shortcut {
+  color: var(--menu-text-disabled);
+  font-size: 12px;
+}
+.mogan-menu-arrow {
+  margin-left: 8px;
+  font-size: 9px;
+}
+
+.mogan-menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--menu-separator);
+  list-style: none;
+}
+.mogan-menu-group {
+  padding: 4px 10px 2px;
+  color: var(--menu-group);
+  font-size: 12px;
+  list-style: none;
+}
+.mogan-menu-text {
+  padding: 3px 10px;
+  color: var(--menu-text-disabled);
+  list-style: none;
+}
+
+/* ---- Context menu ---- */
+.mogan-context-menu {
+  position: fixed;
+  z-index: 50;
+}
+
+/* ---- Footer / status bar ---- */
+.mogan-footer {
+  display: flex;
+  align-items: center;
+  height: var(--menu-frame-h);
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--menu-text);
+  user-select: none;
+}
+.mogan-footer-left {
+  flex: 1 1 0;
+  text-align: left;
+}
+.mogan-footer-middle {
+  flex: 1 1 0;
+  text-align: center;
+}
+.mogan-footer-right {
+  flex: 1 1 0;
+  text-align: right;
+}
