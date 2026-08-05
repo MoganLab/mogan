@@ -218,8 +218,7 @@ edit_interface_rep::draw_remote_cursors (renderer ren, rectangle r) {
     color col= peer_selection_color (rc[i].peer);
 
     // selection
-    if (!is_nil (rc[i].sel_start) &&
-        !is_nil (rc[i].sel_end) &&
+    if (!is_nil (rc[i].sel_start) && !is_nil (rc[i].sel_end) &&
         rc[i].sel_start != rc[i].sel_end) {
 
       cursor cu_s= eb->find_check_cursor (rc[i].sel_start);

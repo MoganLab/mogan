@@ -736,7 +736,7 @@ edit_modify_rep::apply_queued_remote () {
   // （LLM/会话流式输出同样靠它避免视图跳动）。
   set_user_active (false);
   loro_applying_remote= true;
-  queued_remote_mods= array<string> (0);
+  queued_remote_mods  = array<string> (0);
   if (N (q) != 0) {
     collab_snapshot_cursor ();
 
@@ -749,7 +749,7 @@ edit_modify_rep::apply_queued_remote () {
 }
 
 bool
-edit_modify_rep::collab_applying_remote (){
+edit_modify_rep::collab_applying_remote () {
   return loro_applying_remote;
 }
 #endif

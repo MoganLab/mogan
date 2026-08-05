@@ -15,11 +15,11 @@
 #ifdef __EMSCRIPTEN__
 
 #include "array.hpp"
-#include "converter.hpp"   // cork_to_utf8
-#include "cork.hpp"        // tm_var_encode
-#include "dictionary.hpp"  // translate, get_input/output_language
-#include "im_menu.hpp"     // im_menu_rep, im_activate/deactivate_popup
-#include "message.hpp"     // slot, blackbox, SLOT_*
+#include "converter.hpp"  // cork_to_utf8
+#include "cork.hpp"       // tm_var_encode
+#include "dictionary.hpp" // translate, get_input/output_language
+#include "im_menu.hpp"    // im_menu_rep, im_activate/deactivate_popup
+#include "message.hpp"    // slot, blackbox, SLOT_*
 #include "string.hpp"
 #include "widget.hpp"
 
@@ -51,7 +51,7 @@ static int                              g_next_cmd_id= 1;
 
 // Chrome metrics reported by JS (px). Zero until the React shell measures its
 // menu/footer; see im_react_chrome_metrics().
-static int g_js_menu_h= 0;
+static int g_js_menu_h  = 0;
 static int g_js_footer_h= 0;
 
 extern "C" EMSCRIPTEN_KEEPALIVE void
@@ -79,7 +79,7 @@ mogan_menu_close_popup () {
 
 extern "C" EMSCRIPTEN_KEEPALIVE void
 mogan_set_chrome_metrics (int menu_h, int footer_h) {
-  g_js_menu_h= menu_h;
+  g_js_menu_h  = menu_h;
   g_js_footer_h= footer_h;
 }
 
@@ -91,41 +91,52 @@ mogan_set_chrome_metrics (int menu_h, int footer_h) {
  *   im_js_open_popup(json, x, y)                — open the context menu
  *   im_js_close_popup()                         — close the context menu
  *
- * Each dispatches to a window.moganOn* registrar installed by web/src/bridge.ts.
+ * Each dispatches to a window.moganOn* registrar installed by
+ *web/src/bridge.ts.
  ******************************************************************************/
 
 EM_JS (void, im_js_push_menu, (const char* json), {
   try {
     var tree= JSON.parse (UTF8ToString (json));
     if (typeof window.moganOnMenu === 'function') window.moganOnMenu (tree);
-  } catch (e) { console.error ('mogan: push_menu failed', e); }
+  } catch (e) {
+    console.error ('mogan: push_menu failed', e);
+  }
 });
 
 EM_JS (void, im_js_push_footer,
-       (const char* left, const char* mid, const char* right, int interactive), {
-  try {
-    var s= {
-      left      : UTF8ToString (left),
-      middle    : UTF8ToString (mid),
-      right     : UTF8ToString (right),
-      interactive : interactive ? true : false
-    };
-    if (typeof window.moganOnFooter === 'function') window.moganOnFooter (s);
-  } catch (e) { console.error ('mogan: push_footer failed', e); }
-});
+       (const char* left, const char* mid, const char* right, int interactive),
+       {
+         try {
+           var s= {
+             left : UTF8ToString (left),
+             middle : UTF8ToString (mid),
+             right : UTF8ToString (right),
+             interactive : interactive ? true : false
+           };
+           if (typeof window.moganOnFooter === 'function')
+             window.moganOnFooter (s);
+         } catch (e) {
+           console.error ('mogan: push_footer failed', e);
+         }
+       });
 
 EM_JS (void, im_js_open_popup, (const char* json, double x, double y), {
   try {
     var tree= JSON.parse (UTF8ToString (json));
     if (typeof window.moganOnOpenPopup === 'function')
       window.moganOnOpenPopup (tree, x, y);
-  } catch (e) { console.error ('mogan: open_popup failed', e); }
+  } catch (e) {
+    console.error ('mogan: open_popup failed', e);
+  }
 });
 
 EM_JS (void, im_js_close_popup, (), {
   try {
-    if (typeof window.moganOnClosePopup === 'function') window.moganOnClosePopup ();
-  } catch (e) { /* ignore */ }
+    if (typeof window.moganOnClosePopup === 'function')
+      window.moganOnClosePopup ();
+  } catch (e) { /* ignore */
+  }
 });
 
 /******************************************************************************
@@ -142,13 +153,27 @@ json_escape (const string& s) {
   for (int i= 0; i < N (s); ++i) {
     char c= s[i];
     switch (c) {
-    case '"': r << "\\\""; break;
-    case '\\': r << "\\\\"; break;
-    case '\b': r << "\\b"; break;
-    case '\f': r << "\\f"; break;
-    case '\n': r << "\\n"; break;
-    case '\r': r << "\\r"; break;
-    case '\t': r << "\\t"; break;
+    case '"':
+      r << "\\\"";
+      break;
+    case '\\':
+      r << "\\\\";
+      break;
+    case '\b':
+      r << "\\b";
+      break;
+    case '\f':
+      r << "\\f";
+      break;
+    case '\n':
+      r << "\\n";
+      break;
+    case '\r':
+      r << "\\r";
+      break;
+    case '\t':
+      r << "\\t";
+      break;
     default:
       if ((unsigned char) c < 0x20) {
         // control char as \u00XX
@@ -204,8 +229,8 @@ serialize_node (widget w, string& out) {
     out << ",\"children\":[";
     // Force the lazy promise (dynamic menus, like Qt QTMLazyMenu).
     if (!is_nil (m->sub)) {
-      widget sub= m->sub ();
-      im_menu_rep* sm= dynamic_cast<im_menu_rep*> (sub.rep);
+      widget       sub= m->sub ();
+      im_menu_rep* sm = dynamic_cast<im_menu_rep*> (sub.rep);
       if (sm != nullptr) {
         array<widget>& kids= sm->menu_children ();
         for (int i= 0; i < N (kids); ++i) {
@@ -217,9 +242,9 @@ serialize_node (widget w, string& out) {
     out << "]}";
   } break;
   case im_menu_rep::k_button: {
-    int  id      = g_next_cmd_id++;
-    bool checked = m->pre != "" || (m->style & WIDGET_STYLE_PRESSED);
-    bool enabled = (m->style & WIDGET_STYLE_INERT) == 0;
+    int  id     = g_next_cmd_id++;
+    bool checked= m->pre != "" || (m->style & WIDGET_STYLE_PRESSED);
+    bool enabled= (m->style & WIDGET_STYLE_INERT) == 0;
     if (!is_nil (m->cmd)) g_cmd_registry[id]= m->cmd;
     out << "{\"kind\":\"button\",\"id\":";
     out << as_string (id);
@@ -254,8 +279,8 @@ serialize_node (widget w, string& out) {
 string
 im_menu_to_json (widget root) {
   // Wrap as a top-level container array so React always gets a list of nodes.
-  string out= "[";
-  im_menu_rep* m= dynamic_cast<im_menu_rep*> (root.rep);
+  string       out= "[";
+  im_menu_rep* m  = dynamic_cast<im_menu_rep*> (root.rep);
   if (m != nullptr) {
     array<widget>& kids= m->menu_children ();
     for (int i= 0; i < N (kids); ++i) {
@@ -277,7 +302,7 @@ im_react_push_menu (widget root) {
   // previous menu tree can never be invoked. (React always gets a fresh tree.)
   g_cmd_registry.clear ();
   g_next_cmd_id= 1;
-  string json= im_menu_to_json (root);
+  string   json= im_menu_to_json (root);
   c_string cs (json);
   im_js_push_menu ((const char*) cs);
 }
@@ -296,7 +321,7 @@ im_react_open_popup (widget menu, float x, float y) {
   // scoped to this popup. Clearing here is safe because the main menu is only
   // rebuilt via im_react_push_menu (which re-clears), and the popup is modal —
   // no main-menu click can race while it's open.
-  string json= im_menu_to_json (menu);
+  string   json= im_menu_to_json (menu);
   c_string cs (json);
   im_js_open_popup ((const char*) cs, (double) x, (double) y);
 }
