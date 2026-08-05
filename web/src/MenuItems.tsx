@@ -47,6 +47,38 @@ function MenuRow({
     case 'container':
       return <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth} />;
 
+    case 'tile':
+      // Grid of equally-sized cells (e.g. math symbol palettes). Column width
+      // fits the widest label (max-content) rather than stretching to the
+      // menu width, and the label is centered in its cell.
+      return (
+        <li
+          className="mogan-menu-tile"
+          role="presentation"
+          style={{ gridTemplateColumns: `repeat(${Math.max(1, node.cols)}, max-content)` }}
+        >
+          {node.children.map((child, i) =>
+            child.kind === 'button' ? (
+              <button
+                key={i}
+                type="button"
+                className={'mogan-menu-tile-cell' + (child.enabled ? '' : ' disabled')}
+                disabled={!child.enabled}
+                title={child.label}
+                onClick={() => {
+                  invokeMenu(child.id);
+                  onInvoke?.();
+                }}
+              >
+                {child.label}
+              </button>
+            ) : (
+              <MenuRow key={i} node={child} onInvoke={onInvoke} depth={depth} />
+            ),
+          )}
+        </li>
+      );
+
     case 'separator':
       return <li className="mogan-menu-separator" role="separator" />;
 

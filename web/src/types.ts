@@ -10,6 +10,7 @@
 /** One node in a menu tree (main menu, submenu, or context menu). */
 export type MenuNode =
   | { kind: 'container'; children: MenuNode[] }
+  | { kind: 'tile'; cols: number; children: MenuNode[] }
   | { kind: 'submenu'; label: string; children: MenuNode[] }
   | {
       kind: 'button';

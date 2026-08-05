@@ -78,6 +78,11 @@
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
+  /* Width fits the label (flex item, no grow/shrink); text centers within the
+     pill. The li wraps a single .mogan-menu-label span, so justify-content on
+     the flex row is what centers it. */
+  flex: 0 0 auto;
   padding: 4px 12px;
   border-radius: var(--radius-item);
   cursor: default;
@@ -160,7 +165,11 @@
   display: inline-block;
   text-align: center;
 }
-.mogan-menu-label {
+/* Scope the label stretch + shortcut gutter to dropdown rows (.mogan-menu-item)
+   only. The top-level menubar reuses .mogan-menu-label inside .mogan-menubar-item,
+   and there flex:1 + the 24px right padding pushed the text left and left a
+   long trailing gap — the menubar label must stay shrink-to-fit and centered. */
+.mogan-menu-item .mogan-menu-label {
   flex: 1 1 auto;
   padding-right: 24px;
 }
@@ -189,6 +198,41 @@
   padding: 6px 12px;
   color: var(--text-disabled);
   list-style: none;
+}
+
+/* ---- Tile menus (grid palettes, e.g. math symbols) ---- */
+.mogan-menu-tile {
+  display: grid;
+  /* gridTemplateColumns set inline from node.cols; max-content keeps each
+     column at its widest label instead of stretching to the menu width. */
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  list-style: none;
+}
+.mogan-menu-tile-cell {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  border-radius: var(--radius-item);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chrome-text);
+  text-align: center;
+  cursor: default;
+  /* A few tile entries carry long translated labels; cap the cell so one
+     wide label can't blow up the whole grid (title attr shows the full text). */
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mogan-menu-tile-cell:hover:not(:disabled) {
+  background: var(--select-bg);
+  color: var(--select-text);
+}
+.mogan-menu-tile-cell:disabled {
+  color: var(--text-disabled);
 }
 
 /* ---- Context menu ---- */

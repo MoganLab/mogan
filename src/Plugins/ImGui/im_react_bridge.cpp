@@ -174,6 +174,17 @@ serialize_node (widget w, string& out) {
     return;
   }
   switch (m->kind) {
+  case im_menu_rep::k_tile: {
+    array<widget>& kids= m->menu_children ();
+    out << "{\"kind\":\"tile\",\"cols\":";
+    out << as_string (m->cols);
+    out << ",\"children\":[";
+    for (int i= 0; i < N (kids); ++i) {
+      if (i > 0) out << ',';
+      serialize_node (kids[i], out);
+    }
+    out << "]}";
+  } break;
   case im_menu_rep::k_container: {
     array<widget>& kids= m->menu_children ();
     out << "{\"kind\":\"container\",\"children\":[";

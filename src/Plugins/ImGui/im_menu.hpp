@@ -27,8 +27,9 @@
 class im_menu_rep : public im_widget_rep {
 public:
   enum kind_t {
-    k_container, // horizontal_menu / vertical_menu / vertical_list / tile_menu
+    k_container, // horizontal_menu / vertical_menu / vertical_list
                  // / minibar_menu
+    k_tile,      // tile_menu（cols 列格子布局）
     k_submenu,   // pulldown_button / pullright_button（惰性 promise 子菜单）
     k_button,    // menu_button（命令按钮）
     k_separator, // menu_separator
@@ -45,9 +46,10 @@ public:
   int             style;    // WIDGET_STYLE_* 标志（INERT 禁用、PRESSED 选中…）
   promise<widget> sub;      // k_submenu 的惰性子菜单
   bool            vertical; // k_separator 方向
+  int             cols;     // k_tile 的列数（=0 表示普通容器）
 
   im_menu_rep (kind_t k)
-      : im_widget_rep (none), kind (k), style (0), vertical (false) {}
+      : im_widget_rep (none), kind (k), style (0), vertical (false), cols (0) {}
 
   /// 经 i18n 翻译 + cork→utf8 后的可显示标签
   string display_label () const;
