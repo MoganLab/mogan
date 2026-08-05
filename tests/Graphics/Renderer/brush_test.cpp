@@ -54,8 +54,7 @@ void
 TestBrush::test_malformed_patterns () {
   // 缺宽度/高度参数：绘制时会读取 p[1]/p[2]，必须回退 no_brush
   QCOMPARE (brush (tree (PATTERN))->get_type (), brush_none);
-  QCOMPARE (brush (tree (PATTERN, "paper.png"))->get_type (),
-            brush_none);
+  QCOMPARE (brush (tree (PATTERN, "paper.png"))->get_type (), brush_none);
   QCOMPARE (brush (tree (PATTERN, "paper.png", "100%"))->get_type (),
             brush_none);
   // 资源标识为空或为占位符
