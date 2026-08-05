@@ -501,7 +501,8 @@ renderer_rep::draw_emoji (int char_code, font_glyphs fn, SI x, SI y) {
   // Calculate emoji size
   SI    xo, yo;
   glyph pre_gl= fn->get (char_code);
-  glyph gl    = shrink (pre_gl, std_shrinkf, std_shrinkf, xo, yo);
+  if (is_nil (pre_gl)) return false;
+  glyph gl= shrink (pre_gl, std_shrinkf, std_shrinkf, xo, yo);
   int   w= gl->width, h= gl->height;
   if (is_printer ()) {
     w= pre_gl->width, h= pre_gl->height;
