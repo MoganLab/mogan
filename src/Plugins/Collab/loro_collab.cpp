@@ -204,10 +204,12 @@ void
 collab_session::disconnect () {
   want_reconnect= false;
   enter_idle ();
-  doc_id           = "";
-  reconnect_attempt= 0;
-  buffer_known     = false;
-  pending_updates  = array<string> ();
+  doc_id                  = "";
+  reconnect_attempt       = 0;
+  buffer_known            = false;
+  pending_updates         = array<string> ();
+  last_sent_cursor_payload= "";
+  cursor_dirty            = false;
   if (ws) {
     ws->disconnect ();
     ws.reset ();
@@ -233,12 +235,10 @@ collab_session::poll () {
     await_frame_since= 0;
     become_ready ();
   }
-  // 节流补发：上次光标/选区变化被 50ms 节流挡下后，poll 时补发最终状态。
+  // 节流补发：上次光标/选区变化被节流挡下后，poll 时补发最终状态。
   // poll 经 loro_collab_poll() 在每个 GUI
   // 事件周期调用，故补发最多滞后一个重绘周期。
-  if (state == collab_state::ready && cursor_dirty &&
-      texmacs_time () - last_cursor_send >= 50)
-    flush_cursor (false);
+  if (state == collab_state::ready && cursor_dirty) flush_cursor (false);
   maybe_reconnect ();
 }
 
@@ -266,20 +266,26 @@ collab_session::send_cursor (string payload) {
 }
 
 // 发送本端光标。force=true（编辑后）总是发；force=false（光标移动/选区变化）
-// 按 ≥50ms 节流。节流挡下时不丢弃，置 cursor_dirty 待 poll() 补发，保证选区
+// 按 >= 1000 / 6 ms 节流并按 payload 去重（避免光标闪烁重绘触发无意义上行）。
+// 节流挡下时不丢弃，置 cursor_dirty 待 poll() 补发，保证选区
 // 最终状态一定送达（拖动/取消选区时同一帧内 go_to 先发旧选区、set_selection
 // 被节流丢弃，若无补发则选区永久滞后或停在旧高亮）。
 void
 collab_session::flush_cursor (bool force) {
   if (state != collab_state::ready) return;
-  if (!force && texmacs_time () - last_cursor_send < 50) {
+  if (!force && texmacs_time () - last_cursor_send < 1000 / 6) {
     cursor_dirty= true; // 节流：标记待发，不丢弃
     return;
   }
   editor ed= get_editor ();
   if (!is_nil (ed)) {
     string payload= ed->collab_cursor_payload ();
-    if (payload != "") send_cursor ("CURSOR " * peer_id * " " * payload);
+    if (payload != "") {
+      if (force || payload != last_sent_cursor_payload) {
+        send_cursor ("CURSOR " * peer_id * " " * payload);
+        last_sent_cursor_payload= payload;
+      }
+    }
   }
   last_cursor_send= texmacs_time ();
   cursor_dirty    = false; // 已尝试发（含空 payload），清除脏标记
