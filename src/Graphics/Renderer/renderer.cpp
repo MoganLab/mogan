@@ -486,9 +486,11 @@ renderer_rep::draw_scalable (scalable im, SI x, SI y, int alpha) {
 bool
 renderer_rep::draw_emoji (int char_code, font_glyphs fn, SI x, SI y) {
   static hashmap<index_type, scalable> emoji_cache;
-  // Cast to TrueType font glyphs representation
-  auto tt_font= static_cast<tt_font_glyphs_rep*> (fn.rep);
-  if (is_nil (tt_font->face) || is_nil (tt_font->face->cbdt_table)) {
+  // fn 可能是 poor/virtual 字体的 glyphs（如数学模式的加粗符号经
+  // poor_bold 包装），并非 tt_font_glyphs_rep，强转会读到野 face
+  auto tt_font= dynamic_cast<tt_font_glyphs_rep*> (fn.rep);
+  if (tt_font == NULL || is_nil (tt_font->face) ||
+      is_nil (tt_font->face->cbdt_table)) {
     return false;
   }
 
