@@ -1,0 +1,24 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|number-europe|chinese>>
+
+<\body>
+  Test 2090: 文档背景图案
+
+  本页设置了 neutral 图案背景,应能看到背景图片渲染。
+
+  <\with|bg-color|<pattern|neutral-pattern.png|100%|100%>>
+    带 neutral 图案背景的文本块。
+  </with>
+
+  <\with|bg-color|<pattern|paper-ridged-bright.png|100%|100%>>
+    带纸纹图案背景的文本块。
+  </with>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
