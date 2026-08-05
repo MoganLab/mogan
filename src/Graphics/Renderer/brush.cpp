@@ -18,7 +18,7 @@ using namespace moebius::data;
 #include "tree_analyze.hpp"
 #include <moebius/data/true_color.hpp>
 
-#ifndef KERNEL_L3
+#if not defined(KERNEL_L3)
 url get_current_buffer_safe ();
 #endif
 
