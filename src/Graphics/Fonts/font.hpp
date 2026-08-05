@@ -148,6 +148,7 @@ struct font_rep : rep<font> {
   void copy_math_pars (font fn);
 
   virtual font make_rubber_font (font base);
+  virtual font get_subfont (string s);
   virtual bool supports (string c)               = 0;
   virtual void get_extents (string s, metric& ex)= 0;
   virtual void get_extents (string s, metric& ex, bool ligf);

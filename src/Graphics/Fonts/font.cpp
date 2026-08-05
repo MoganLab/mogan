@@ -552,6 +552,12 @@ use_poor_rubber (font fn) {
 }
 
 font
+font_rep::get_subfont (string s) {
+  (void) s;
+  return font (this);
+}
+
+font
 font_rep::make_rubber_font (font fn) {
   string name= locase_all (fn->res_name);
   if (starts (name, "stix-") || starts (name, "stix,") ||

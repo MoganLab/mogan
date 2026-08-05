@@ -17,12 +17,14 @@
 #include "file.hpp"
 #include "iterator.hpp"
 #include "merge_sort.hpp"
+#include "new_document.hpp"
 #include "new_style.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"
 #include "tm_timer.hpp"
 #include "tree_modify.hpp"
 #include "tree_observer.hpp"
+#include "typesetter.hpp"
 #include <climits>
 
 using namespace moebius;
@@ -615,6 +617,37 @@ edit_typeset_rep::get_init_value (string var) {
 string
 edit_typeset_rep::get_env_string (string var) {
   return as_string (get_env_value (var));
+}
+
+static font
+find_leaf_font (box b) {
+  if (is_nil (b)) return font ();
+  if (b->get_type () == TEXT_BOX) return b->get_leaf_font ();
+  int n= N (b);
+  for (int i= 0; i < n; i++) {
+    font f= find_leaf_font (b[i]);
+    if (!is_nil (f)) return f;
+  }
+  return font ();
+}
+
+string
+edit_typeset_rep::physical_font_for_string (string s) {
+  // 复用 print_snippet 的临时文档排版路径，量真实排版结果：
+  // 叶子物理字体的 res_name；字符无字体覆盖时为 "error-" 前缀
+  path temp_root= new_document ();
+  temp_root << 0;
+  assign (subtree (et, temp_root), tree (s));
+  typeset_prepare ();
+  env->style_init_env ();
+  env->update ();
+  box b= typeset_as_box (env, tree (s), reverse (temp_root));
+  delete_document (path_up (temp_root));
+  font fn= find_leaf_font (b);
+  if (is_nil (fn)) return "";
+  // 文本盒挂的是 smart font，需按字符下钻到实际物理子字体
+  font sub= fn->get_subfont (s);
+  return is_nil (sub) ? string ("") : sub->res_name;
 }
 
 string

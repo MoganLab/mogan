@@ -390,6 +390,14 @@ function main()
                 }
             },
             {
+                scm_name = "physical-font-for-string",
+                cpp_name = "physical_font_for_string",
+                ret_type = "string",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
                 scm_name = "get-env-tree",
                 cpp_name = "get_env_value",
                 ret_type = "tree",

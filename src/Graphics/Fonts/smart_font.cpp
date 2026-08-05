@@ -868,6 +868,17 @@ smart_font_rep::advance (string s, int& pos, string& r, int& nr) {
   }
 }
 
+font
+smart_font_rep::get_subfont (string s) {
+  int    pos= 0, nr= -1;
+  string r;
+  advance (s, pos, r, nr);
+  if (nr < 0 || nr >= N (fn)) return font ();
+  maybe_initialize_font (nr);
+  if (is_nil (fn[nr])) return font ();
+  return fn[nr]->get_subfont (r);
+}
+
 bool
 is_italic_font (string master) {
   return contains (string ("italic"), master_features (master));
