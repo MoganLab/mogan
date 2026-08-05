@@ -1,19 +1,23 @@
 /* React shell chrome for the ImGui WASM build.
-   Styled to match the native ImGui main menu bar / status bar: ~22px frame
-   height, neutral grays, system font (set on <body> in index.html). */
+   Palette mirrors the liii Qt theme (TeXmacs/misc/themes/liii.css): light gray
+   chrome (#f3f3f3), near-black selection (#2c2c2c) with white text, white
+   dropdowns with a light border, rounded (4px) menu items. */
 
 :root {
-  --menu-bg: #dcdcdc;
-  --menu-bg-hover: #c8c8c8;
-  --menu-bg-active: #b8b8b8;
-  --menu-border: #b0b0b0;
-  --menu-text: #1a1a1a;
-  --menu-text-disabled: #8a8a8a;
-  --menu-separator: #b0b0b0;
-  --menu-group: #5a5a5a;
-  --menu-frame-h: 22px;
-  --footer-bg: #dcdcdc;
-  --footer-border: #b0b0b0;
+  --chrome-bg: #f3f3f3;
+  --chrome-text: #2c2c2c;
+  --select-bg: #2c2c2c;
+  --select-text: #ffffff;
+  --select-bg-pressed: #1a1a1a;
+  --popup-bg: #ffffff;
+  --popup-border: #e0e0e0;
+  --text-disabled: #a0a0a0;
+  --separator: #e0e0e0;
+  --group-text: #8a8a8a;
+  --radius-item: 4px;
+  --radius-popup: 8px;
+  --menu-frame-h: 30px;
+  --shadow-popup: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 * {
@@ -32,8 +36,7 @@
   left: 0;
   right: 0;
   z-index: 30;
-  background: var(--menu-bg);
-  border-bottom: 1px solid var(--menu-border);
+  background: var(--chrome-bg);
 }
 
 .mogan-footer-host {
@@ -42,8 +45,7 @@
   left: 0;
   right: 0;
   z-index: 30;
-  background: var(--footer-bg);
-  border-top: 1px solid var(--footer-border);
+  background: var(--chrome-bg);
 }
 
 .mogan-canvas-host {
@@ -64,9 +66,10 @@
 .mogan-menubar {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px 6px;
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  gap: 4px;
   height: var(--menu-frame-h);
   user-select: none;
 }
@@ -75,39 +78,44 @@
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 4px 12px;
+  border-radius: var(--radius-item);
   cursor: default;
   font-size: 13px;
-  color: var(--menu-text);
+  color: var(--chrome-text);
   white-space: nowrap;
 }
 .mogan-menubar-item:hover,
 .mogan-menubar-item.open {
-  background: var(--menu-bg-hover);
+  background: var(--select-bg);
+  color: var(--select-text);
 }
-.mogan-menubar-item.open {
-  background: var(--menu-bg-active);
+.mogan-menubar-item.open:active {
+  background: var(--select-bg-pressed);
 }
 
 /* ---- Dropdown menus (shared by top-level, nested flyouts, context menu) ---- */
 .mogan-menu-dropdown {
   list-style: none;
   margin: 0;
-  padding: 4px 0;
+  padding: 4px;
   position: absolute;
   min-width: 180px;
-  background: var(--menu-bg);
-  border: 1px solid var(--menu-border);
-  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--radius-popup);
+  box-shadow: var(--shadow-popup);
   z-index: 40;
   user-select: none;
   font-size: 13px;
 }
 
-/* Top-level dropdown opens below its menu bar item. */
+/* Top-level dropdown opens below its menu bar item, with a small gap so the
+   rounded popup reads as floating rather than attached. */
 .mogan-menubar-item > .mogan-menu-dropdown {
   top: 100%;
   left: 0;
+  margin-top: 4px;
 }
 
 /* Nested flyout opens to the right of its parent item. */
@@ -117,27 +125,34 @@
 .mogan-menu-dropdown .mogan-menu-item.submenu > .mogan-menu-dropdown.nested {
   top: -4px;
   left: 100%;
-  margin-top: -4px;
+  margin-left: 2px;
 }
 
 .mogan-menu-item {
   display: flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 6px 12px;
+  border-radius: var(--radius-item);
   cursor: default;
-  color: var(--menu-text);
+  color: var(--chrome-text);
   white-space: nowrap;
   position: relative;
 }
 .mogan-menu-item:hover,
 .mogan-menu-item.open {
-  background: var(--menu-bg-hover);
+  background: var(--select-bg);
+  color: var(--select-text);
+}
+.mogan-menu-item:hover .mogan-menu-shortcut,
+.mogan-menu-item.open .mogan-menu-shortcut {
+  color: rgba(255, 255, 255, 0.65);
 }
 .mogan-menu-item.disabled {
-  color: var(--menu-text-disabled);
+  color: var(--text-disabled);
 }
 .mogan-menu-item.disabled:hover {
   background: transparent;
+  color: var(--text-disabled);
 }
 
 .mogan-menu-check {
@@ -150,7 +165,7 @@
   padding-right: 24px;
 }
 .mogan-menu-shortcut {
-  color: var(--menu-text-disabled);
+  color: var(--text-disabled);
   font-size: 12px;
 }
 .mogan-menu-arrow {
@@ -160,19 +175,19 @@
 
 .mogan-menu-separator {
   height: 1px;
-  margin: 4px 6px;
-  background: var(--menu-separator);
+  margin: 4px 8px;
+  background: var(--separator);
   list-style: none;
 }
 .mogan-menu-group {
-  padding: 4px 10px 2px;
-  color: var(--menu-group);
+  padding: 4px 12px 2px;
+  color: var(--group-text);
   font-size: 12px;
   list-style: none;
 }
 .mogan-menu-text {
-  padding: 3px 10px;
-  color: var(--menu-text-disabled);
+  padding: 6px 12px;
+  color: var(--text-disabled);
   list-style: none;
 }
 
@@ -186,10 +201,10 @@
 .mogan-footer {
   display: flex;
   align-items: center;
-  height: var(--menu-frame-h);
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 10px;
   font-size: 12px;
-  color: var(--menu-text);
+  color: var(--chrome-text);
   user-select: none;
 }
 .mogan-footer-left {
