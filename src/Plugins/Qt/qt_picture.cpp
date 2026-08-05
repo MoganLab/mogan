@@ -137,9 +137,11 @@ native_picture (int w, int h, int ox, int oy) {
 
 void
 qt_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
+  if (is_nil (p)) return;
   p                   = as_qt_picture (p);
   qt_picture_rep* pict= (qt_picture_rep*) p->get_handle ();
-  int             x0= pict->ox, y0= pict->h - 1 - pict->oy;
+  if (pict == NULL || pict->pict.isNull ()) return;
+  int x0= pict->ox, y0= pict->h - 1 - pict->oy;
   decode (x, y);
   qreal old_opacity= painter->opacity ();
   painter->setOpacity (qreal (alpha) / qreal (255));
