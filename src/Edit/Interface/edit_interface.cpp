@@ -607,24 +607,58 @@ is_inline_focus_tag (tree st) {
   if (!is_compound (st)) return false;
   static hashset<string> tags;
   if (N (tags) == 0) {
-    const char* init[]= {"strong",      "em",          "dfn",
-                         "samp",        "name",        "person",
-                         "abbr",        "acronym",     "kbd",
-                         "var",         "tt",          "verbatim",
-                         "cite*",       "math",        "rsub",
-                         "rsup",        "hlink",       "slink",
-                         "action",      "item",        "cell",
-                         "around",      "around*",     "sqrt",
-                         "frac",        "frac*",       "dfrac",
-                         "tfrac",       "cfrac",       "above",
-                         "lsub",        "lsup",        "strike-through",
-                         "underline",   "bold",        "below",
-                         "really-tiny", "tiny",        "very-small",
-                         "normal-size", "large",       "very-large",
-                         "huge",        "really-huge", "overline",
-                         "small",       "long-arrow",  "wide",
-                         "paragraph",   "subparagraph"};
-    for (int i= 0; i < (int) (sizeof (init) / sizeof (init[0])); i++)
+    array<string> init;
+    init << "strong"
+         << "em"
+         << "dfn"
+         << "samp"
+         << "name"
+         << "person"
+         << "abbr"
+         << "acronym"
+         << "kbd"
+         << "var"
+         << "tt"
+         << "verbatim"
+         << "cite*"
+         << "math"
+         << "rsub"
+         << "rsup"
+         << "hlink"
+         << "slink"
+         << "action"
+         << "item"
+         << "cell"
+         << "around"
+         << "around*"
+         << "sqrt"
+         << "frac"
+         << "frac*"
+         << "dfrac"
+         << "tfrac"
+         << "cfrac"
+         << "above"
+         << "lsub"
+         << "lsup"
+         << "strike-through"
+         << "underline"
+         << "bold"
+         << "below"
+         << "really-tiny"
+         << "tiny"
+         << "very-small"
+         << "normal-size"
+         << "large"
+         << "very-large"
+         << "huge"
+         << "really-huge"
+         << "overline"
+         << "small"
+         << "long-arrow"
+         << "wide"
+         << "paragraph"
+         << "subparagraph";
+    for (int i= 0; i < N (init); i++)
       tags->insert (init[i]);
   }
   return tags->contains (as_string (L (st)));
