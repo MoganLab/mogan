@@ -17,8 +17,11 @@
     (generic format-drd)
     (kernel gui kbd-handlers)
     (utils library length)
+    (kernel texmacs tm-preferences)
   ) ;:use
 ) ;texmacs-module
+
+(import (only (liii path) path-append-text path))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customizable step changes for length modifications
@@ -622,7 +625,7 @@
 
 (define (image-preserve-aspect-ratio?)
   ;; 检查是否启用了图片宽高比锁定
-  (test-preference? "image preserve aspect ratio" "on")
+  (== (get-preference "image preserve aspect ratio") "on")
 ) ;define
 
 (define (image-decode-length t i)
@@ -887,6 +890,7 @@
           ) ;when
         ) ;if
        ) ;
+       (else (noop))
       ) ;case
     ) ;let*
   ) ;when
