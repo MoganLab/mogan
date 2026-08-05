@@ -748,7 +748,7 @@ im_tm_widget_rep::im_main_loop () {
   // draw_remote_cursors 画进同一纹理，无需此处处理。
   {
     static time_t last_loro_poll_time= 0;
-    time_t       now                  = texmacs_time ();
+    time_t        now                = texmacs_time ();
     if (now - last_loro_poll_time >= 1000 / 6) {
       loro_collab_poll ();
       loro_collab_apply ();
