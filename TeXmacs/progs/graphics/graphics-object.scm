@@ -764,7 +764,7 @@
     (for (o sketch0)
       (with layer
         layer-of-last-removed-object
-        (sketch-toggle (path->tree (graphics-group-insert-bis o group-mode?)))
+        (sketch-toggle (path->tree (graphics-group-insert-bis o #f)))
         (if (not (list? layer)) (set! layer-of-last-removed-object layer))
       ) ;with
     ) ;for
