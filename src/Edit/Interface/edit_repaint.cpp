@@ -211,17 +211,9 @@ void
 edit_interface_rep::draw_remote_cursors (renderer ren, rectangle r) {
   auto rc= get_remote_cursors ();
 
-  cout << "[remote_cursor] draw_remote_cursors, count=" << N(rc) << LF;
-
   rectangles visible (thicken (r, 2 * ren->pixel, 2 * ren->pixel));
 
   for (int i= 0; i < N (rc); i++) {
-    cout << "[remote_cursor] #" << i
-         << " peer=" << rc[i].peer
-         << " caret=" << rc[i].caret
-         << " sel_start=" << rc[i].sel_start
-         << " sel_end=" << rc[i].sel_end
-         << LF;
 
     color col= peer_selection_color (rc[i].peer);
 
@@ -233,46 +225,24 @@ edit_interface_rep::draw_remote_cursors (renderer ren, rectangle r) {
       cursor cu_s= eb->find_check_cursor (rc[i].sel_start);
       cursor cu_e= eb->find_check_cursor (rc[i].sel_end);
 
-      cout << "  selection cursor valid: "
-           << cu_s->valid << " "
-           << cu_e->valid << LF;
-
       if (cu_s->valid && cu_e->valid) {
         selection sel=
             eb->find_check_selection (rc[i].sel_start, rc[i].sel_end);
 
-        cout << "  selection valid=" << sel->valid << LF;
-
         if (sel->valid) {
           ren->set_pencil (pencil (col, ren->pixel));
           ren->draw_selection (sel->rs & visible);
-          cout << "  selection drawn" << LF;
         }
       }
     }
 
     // caret
     if (!is_nil (rc[i].caret)) {
-      cout << "  finding caret..." << LF;
-
       cursor cu= eb->find_check_cursor (rc[i].caret);
 
-      cout << "  cursor valid=" << cu->valid << LF;
-
       if (cu->valid) {
-        cout << "  ox=" << cu->ox
-             << " oy=" << cu->oy
-             << " delta=" << cu->delta
-             << " slope=" << cu->slope
-             << LF;
-
-        cout << "  draw_caret()" << LF;
-
         draw_caret (ren, cu, peer_color (rc[i].peer), 0, zpixel);
       }
-    }
-    else {
-      cout << "  caret=nil" << LF;
     }
   }
 }
