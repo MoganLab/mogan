@@ -22,12 +22,24 @@
  * Switches
  ******************************************************************************/
 
+void
+edit_modify_rep::reset_cursor_payload_cache () {
+#ifdef LORO_ENABLED
+  last_cp        = path ();
+  last_sp        = path ();
+  last_ep        = path ();
+  last_sel_active= false;
+  cached_payload = "";
+#endif
+}
+
 // 协作会话开关：loro_collab 在 CREATE/JOIN 成功建立会话后置位；
 // 置位前本地编辑不 seed/不上行（见 ensure_loro_seeded）。
 void
 edit_modify_rep::collab_enable () {
 #ifdef LORO_ENABLED
   loro_collab_on= true;
+  reset_cursor_payload_cache ();
   if (DEBUG_LORO) debug_loro << "Collaboration enabled\n";
 #endif
 }
@@ -94,6 +106,7 @@ edit_modify_rep::mirror_loro (const modification& mod) {
   ensure_loro_seeded (); // Fallback in case not called from edit_announce
   if (DEBUG_LORO) debug_loro << "mirror_loro is mirroring mod to shadow\n";
   loro_doc->mirror_mod (the_buffer (), mod / rp);
+  reset_cursor_payload_cache ();
 #ifdef LORO_DEBUG
   // debug_loro 验证：镜像后 buffer 应与 Loro
   // 状态一致。不一致则告警（说明镜像链路有 bug）。 这是安全模式——mirror_loro 在
@@ -476,6 +489,7 @@ edit_modify_rep::apply_remote (string bytes) {
   }
 
   if (!is_nil (mods)) {
+    reset_cursor_payload_cache ();
     if (DEBUG_LORO)
       debug_loro
           << "Marking visible area for redraw (lazy typeset via THE_TREE)...\n";
@@ -626,7 +640,8 @@ edit_modify_rep::collab_cursor_payload () {
   if (!(rp <= tp)) return "";
   path cp= tp / rp;
   path sp= cp, ep= cp;
-  if (selection_active_any ()) {
+  bool sel_active= selection_active_any ();
+  if (sel_active) {
     path global_sp, global_ep;
     selection_get (global_sp, global_ep);
     if (rp <= global_sp && rp <= global_ep) {
@@ -635,14 +650,30 @@ edit_modify_rep::collab_cursor_payload () {
     }
   }
 
+  // 轻量预检：若轻量原生路径与选区激活状态与上次一致，直接返回缓存 payload
+  // （微秒级 O(depth) path 比较，跳过后续全量树遍历与 Loro CRDT 节点编解码）
+  if (cp == last_cp && sp == last_sp && ep == last_ep &&
+      sel_active == last_sel_active) {
+    return cached_payload;
+  }
+
   tree               buf  = the_buffer ();
   array<linear_item> items= tree_to_linear_ir (buf);
   string             cg   = encode_path (buf, loro_doc, cp, items);
   // 光标未就绪（如 JOIN 刚完成、tp 尚在 buffer 根/未定位 → path_up(tp) 为 nil）
   // 则不发本帧，避免对端把远程光标渲染成 {0,0} 而缺失。
   if (cg == format_group (mogan_tree_id{0, 0}, "I0")) return "";
-  return cg * " " * encode_path (buf, loro_doc, sp, items) * " " *
-         encode_path (buf, loro_doc, ep, items);
+
+  string res= cg * " " * encode_path (buf, loro_doc, sp, items) * " " *
+              encode_path (buf, loro_doc, ep, items);
+
+  last_cp        = cp;
+  last_sp        = sp;
+  last_ep        = ep;
+  last_sel_active= sel_active;
+  cached_payload = res;
+
+  return res;
 }
 
 extern void (*g_loro_cursor_flush) ();

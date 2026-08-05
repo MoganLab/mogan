@@ -70,6 +70,14 @@ protected:
   array<remote_cursor_entry> remote_cursors;
   array<string>              queued_remote_mods;
   stable_cursor_snapshot*    current_cursor_snapshot= nullptr;
+  // 本地光标 payload 路径预检缓存（微秒级 O(depth) path
+  // 预检，避免误触发全量重度计算）
+  path   last_cp;
+  path   last_sp;
+  path   last_ep;
+  bool   last_sel_active= false;
+  string cached_payload;
+  void   reset_cursor_payload_cache ();
 #endif
 
 public:
