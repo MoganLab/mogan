@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
+#include "editor.hpp" // get_current_editor, notify_change, THE_MENUS
 #include "loro_collab.hpp"
 #include "url.hpp"
 #include <emscripten.h>
@@ -28,6 +29,13 @@ mogan_collab_docs_received (const char* text, int ok) {
     g_docs_status= docs_status::error;
     g_docs_data.clear ();
   }
+  // 文档列表状态变化后通知编辑器菜单已过期：下一帧 apply_changes() 据此
+  // 重建主菜单（update_menus(MENU_MAIN) → menu_main → SLOT_MAIN_MENU），
+  // WASM 端的 React shell 收到新的 JSON 树后即刷新 Join 子菜单内容。这是
+  // native ImGui「每帧重建菜单」语义的等价通知路径——native 下也走同样的
+  // update_menus，只是它本来还会每帧重渲染兜底。
+  editor ed= get_current_editor ();
+  if (!is_nil (ed)) ed->notify_change (THE_MENUS);
 }
 
 EM_JS_DEPS (mogan_collab, "$ccall");
