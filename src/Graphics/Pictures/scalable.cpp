@@ -76,6 +76,7 @@ public:
     }
     picture pict=
         cached_load_picture (u, w / ren->pixel, h / ren->pixel, eff, px, false);
+    if (is_nil (pict)) return;
     ren->draw_picture (pict, x, y, alpha);
   }
 };
