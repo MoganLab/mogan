@@ -694,6 +694,7 @@
   (symbol "<box>")
   (symbol "<diamond>")
   (symbol "<vartriangle>")
+  (symbol "<parallelogram>")
   (symbol "<clubsuit>")
   (symbol "<diamondsuit>")
   (symbol "<heartsuit>")
