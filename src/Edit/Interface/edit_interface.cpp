@@ -766,9 +766,12 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (N (focus_get ()) >= N (p))
         if (!recurse || get_preference ("show full context") == "on") {
           if (recurse) rs << outlines (sel->rs, pixel);
-          // 光标位于绘图区（graphics 上下文，含 with 包裹的画布）时改用边框
-          // 而非半透明背景填充，避免画布被覆盖影响视觉（Issue #2091）。
-          else if (is_func (st, GRAPHICS) || inside_graphics (false))
+          // 光标位于绘图区（graphics 上下文，含 with 包裹的画布）或 enumerate
+          // 环境时改用边框而非半透明背景填充：避免画布被覆盖；enumerate 条目
+          // 通常较多，整片蓝色填充干扰明显（Issue #2091）。
+          else if (is_func (st, GRAPHICS) || inside_graphics (false) ||
+                   (is_compound (st) &&
+                    starts (as_string (L (st)), "enumerate")))
             rs << outlines (sel->rs, pixel);
           else rs << thicken (sel->rs, 0, 2 * pixel);
         }
