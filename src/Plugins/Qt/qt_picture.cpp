@@ -22,6 +22,12 @@
 #include "scheme.hpp"
 #include "tm_file.hpp"
 
+#ifdef USE_MUPDF_RENDERER
+#include "mupdf_picture.hpp"
+#endif
+
+#include <cstring>
+
 #include <QObject>
 #include <QPaintDevice>
 #include <QPainter>
@@ -84,7 +90,27 @@ qt_picture (const QImage& im, int ox, int oy) {
 
 picture
 as_qt_picture (picture pic) {
+#ifdef USE_MUPDF_RENDERER
+  // mupdf_picture_rep 同样上报 picture_native，类型标签无法区分两种
+  // native picture，必须按实际 rep 类型判断，否则强转会读到非法 QImage
+  if (dynamic_cast<qt_picture_rep*> (pic.operator->()) != NULL) return pic;
+  if (mupdf_picture_rep* mp=
+          dynamic_cast<mupdf_picture_rep*> (pic.operator->())) {
+    fz_pixmap* pix= mp->pix;
+    QImage     qimg;
+    if (pix->n == 4)
+      qimg= QImage (mp->w, mp->h, QImage::Format_RGBA8888_Premultiplied);
+    else if (pix->n == 3) qimg= QImage (mp->w, mp->h, QImage::Format_RGB888);
+    if (!qimg.isNull ()) {
+      const uchar* src= fz_pixmap_samples (mupdf_context (), pix);
+      for (int y= 0; y < mp->h; y++)
+        memcpy (qimg.scanLine (y), src + y * pix->stride, mp->w * pix->n);
+      return qt_picture (qimg, mp->ox, mp->oy);
+    }
+  }
+#else
   if (pic->get_type () == picture_native) return pic;
+#endif
   picture ret= qt_picture (
       QImage (pic->get_width (), pic->get_height (), QImage::Format_ARGB32),
       pic->get_origin_x (), pic->get_origin_y ());

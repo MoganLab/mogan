@@ -38,6 +38,7 @@ public:
 
 QImage* get_image (url u, int w, int h, tree eff, SI pixel);
 picture qt_picture (const QImage& im, int ox, int oy);
+picture as_qt_picture (picture pic);
 QImage* xpm_image (url file_name);
 QPixmap qt_load_svg_icon (url file_name);
 QIcon   qt_load_icon (url file_name);
