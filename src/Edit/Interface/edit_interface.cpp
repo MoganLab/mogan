@@ -598,6 +598,17 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
   rs2->item->x1= mid;
 }
 
+// 焦点路径 p 位于表格（TABLE/SUBTABLE）内部时返回 true
+static bool
+path_inside_table (tree et, path p) {
+  while (!is_nil (p)) {
+    tree st= subtree (et, p);
+    if (is_func (st, TABLE) || is_func (st, SUBTABLE)) return true;
+    p= path_up (p);
+  }
+  return false;
+}
+
 void
 edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
   if (p == rp) return;
@@ -766,12 +777,15 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (N (focus_get ()) >= N (p))
         if (!recurse || get_preference ("show full context") == "on") {
           if (recurse) rs << outlines (sel->rs, pixel);
-          // 光标位于绘图区（graphics 上下文，含 with 包裹的画布）或 enumerate
-          // 环境时改用边框而非半透明背景填充：避免画布被覆盖；enumerate 条目
-          // 通常较多，整片蓝色填充干扰明显（Issue #2091）。
+          // 光标位于绘图区（graphics 上下文，含 with 包裹的画布）、enumerate
+          // 环境或表格内部时改用边框而非半透明背景填充：避免画布被覆盖；
+          // enumerate 条目通常较多、表格单元格整片蓝色填充干扰明显
+          // （Issue #2091）。表格的灰色细线由上方 recurse 分支（env_rects）
+          // 绘制，不受此处影响。
           else if (is_func (st, GRAPHICS) || inside_graphics (false) ||
                    (is_compound (st) &&
-                    starts (as_string (L (st)), "enumerate")))
+                    starts (as_string (L (st)), "enumerate")) ||
+                   path_inside_table (et, p))
             rs << outlines (sel->rs, pixel);
           else rs << thicken (sel->rs, 0, 2 * pixel);
         }
