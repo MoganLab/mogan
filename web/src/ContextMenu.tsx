@@ -41,10 +41,12 @@ export function ContextMenu() {
 
   // C++ deactivates the active popup (resuming editor mouse dispatch) only
   // when closePopup() runs — so every dismiss path must call it, not just
-  // hide the menu locally.
+  // hide the menu locally. Hide locally FIRST (sync setState) and defer the
+  // ccall: closePopup's mogan_menu_close_popup runs synchronously and would
+  // otherwise delay the dismiss repaint, making the popup feel stuck.
   const dismiss = useCallback(() => {
-    closePopup();
     setPopup(null);
+    setTimeout(() => closePopup(), 0);
   }, []);
 
   useEffect(() => {

@@ -117,8 +117,11 @@ function MenuRow({
                 disabled={!child.enabled}
                 title={child.label}
                 onClick={() => {
-                  invokeMenu(child.id);
+                  // Close first, run the command deferred — see the button
+                  // case below for why (a synchronous ccall command can block
+                  // the main thread and delay the close repaint).
                   onInvoke?.();
+                  setTimeout(() => invokeMenu(child.id), 0);
                 }}
               >
                 {child.label}
@@ -172,8 +175,14 @@ function MenuRow({
           onMouseEnter={onHoverSibling}
           onClick={() => {
             if (!node.enabled) return;
-            invokeMenu(node.id);
+            // Close the menu FIRST (synchronous setState), then defer the
+            // command. invokeMenu -> ccall -> mogan_menu_invoke runs the C++
+            // command synchronously, and a heavy command (menu rebuild /
+            // repaint) would block the main thread and delay the close
+            // repaint, making the menu feel stuck. Running it after the close
+            // state has been queued lets the menu vanish immediately.
             onInvoke?.();
+            setTimeout(() => invokeMenu(node.id), 0);
           }}
         >
           <span className="mogan-menu-label">{node.label}</span>
