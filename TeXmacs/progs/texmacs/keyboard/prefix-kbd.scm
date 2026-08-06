@@ -277,7 +277,6 @@
   ("math:bold:cal" "math:bold math:cal" #t)
   ("math:bold:greek" "math:bold math:greek" #t)
   ("math:symbol:circled" "math:symbol @" #t)
-  ("math:symbol:limits" "math:symbol L" #t)
 
   ("math:over" "math o" #t)
   ("math:under" "math u" #t)
@@ -377,7 +376,6 @@
   ("math:right" "" "Insert a large right delimiter")
   ("math:symbol" "" "Insert a mathematical symbol")
   ("math:symbol:circled" "" "Insert a big circled operator")
-  ("math:symbol:limits" "" "Insert a mathematical symbol with limits")
   ("math:syntax" "" "Specify an alternative semantics"))
 
 (kbd-map
