@@ -150,9 +150,11 @@
           ) ;
           (else
            (for (p (collab-docs-pairs (loro-collab-docs)))
-             (with (uuid . name) p
-               ((eval `(verbatim ,(collab-doc-label uuid name)))
-                (collab-join-document uuid name))
+             (with uuid (car p)
+               (with name (cdr p)
+                 ((eval `(verbatim ,(collab-doc-label uuid name)))
+                  (collab-join-document uuid name))
+               ) ;with
              ) ;with
            ) ;for
           ) ;else
