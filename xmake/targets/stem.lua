@@ -162,6 +162,11 @@ target("stem") do
     add_deps("liblolly")
     add_deps("libmogan")
     add_deps("libmoebius")
+    -- WASM: build the React shell (web/) before linking so the after_build
+    -- hook can copy web/dist into the target dir. No-op on other platforms.
+    if is_plat("wasm") then
+        add_deps("web_shell")
+    end
     if not is_plat("windows") then
         add_syslinks("pthread", "dl", "m")
     end
