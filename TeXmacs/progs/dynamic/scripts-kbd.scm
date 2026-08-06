@@ -14,6 +14,7 @@
 (texmacs-module (dynamic scripts-kbd)
   (:use (math math-kbd) (dynamic scripts-edit))
 ) ;texmacs-module
+(debug-message "keyboard" "(dynamic scripts-kbd): registering kbd-map ...\n")
 
 (kbd-map ("script *" (make 'script-eval))
  ("script !" (make-script-input))
@@ -26,3 +27,4 @@
  ("std \\" (insert-go-to '(converter-eval "latex" "") '(1 0)))
  ("std \\ var" (insert-go-to '(converter-input "latex" "" "") '(1 0)))
 ) ;kbd-map
+(debug-message "keyboard" "(dynamic scripts-kbd): kbd-map registered\n")

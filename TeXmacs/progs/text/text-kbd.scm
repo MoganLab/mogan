@@ -15,6 +15,7 @@
   (:use (generic generic-kbd)
         (utils edit auto-close)
         (text text-edit)))
+(debug-message "keyboard" "(text text-kbd): registering kbd-map ...\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Special symbols in text mode
@@ -438,3 +439,4 @@
 (kbd-map
   (:mode in-std?)
   ("std @" (go-to-section-title)))
+(debug-message "keyboard" "(text text-kbd): kbd-map registered\n")

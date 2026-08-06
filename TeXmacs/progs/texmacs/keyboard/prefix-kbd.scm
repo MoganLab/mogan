@@ -17,6 +17,7 @@
 	(texmacs texmacs tm-server)
 	(texmacs texmacs tm-files)
 	(generic generic-edit)))
+(debug-message "keyboard" "(texmacs keyboard prefix-kbd): registering kbd-map ...\n")
 
 (set-variant-keys "tab" "S-tab")
 
@@ -382,3 +383,4 @@
 (kbd-map
   (:mode in-prog?)
   ("prog" "" "TeXmacs command"))
+(debug-message "keyboard" "(texmacs keyboard prefix-kbd): kbd-map registered\n")

@@ -19,6 +19,7 @@
     (various comment-widgets)
   ) ;:use
 ) ;texmacs-module
+(debug-message "keyboard" "(keyboard text-kbd-utf8): registering kbd-map ...\n")
 
 (kbd-map (:mode in-text?)
  ("<" "<less>")
@@ -122,3 +123,4 @@
  ("std ;" (make-folded-comment "comment"))
  ("std /" (make-unfolded-comment "comment"))
 ) ;kbd-map
+(debug-message "keyboard" "(keyboard text-kbd-utf8): kbd-map registered\n")

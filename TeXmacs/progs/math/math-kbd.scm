@@ -19,6 +19,7 @@
     (table table-edit)
   ) ;:use
 ) ;texmacs-module
+(debug-message "keyboard" "(math math-kbd): registering kbd-map ...\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bypassing the pre-edit mechanism
@@ -3039,3 +3040,4 @@
 (kbd-map (:require (inside? 'eqnarray*))
  ("C-&" (eqnarray->equation (tree-innermost 'eqnarray*)))
 ) ;kbd-map
+(debug-message "keyboard" "(math math-kbd): kbd-map registered\n")

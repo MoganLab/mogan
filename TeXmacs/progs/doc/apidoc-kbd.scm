@@ -14,6 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (doc apidoc-kbd) (:use (doc apidoc-widgets)))
+(debug-message "keyboard" "(doc apidoc-kbd): registering kbd-map ...\n")
 
 (tm-define (macro-popup-help)
   (:synopsis "Pops up the help window for the innermost TeXmacs macro")
@@ -26,3 +27,4 @@
 (kbd-map (:require (and developer-mode? (not (in-prog-scheme?))))
  ("A-F1" (macro-popup-help))
 ) ;kbd-map
+(debug-message "keyboard" "(doc apidoc-kbd): kbd-map registered\n")
