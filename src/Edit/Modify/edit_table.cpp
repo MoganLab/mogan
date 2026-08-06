@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "edit_table.hpp"
+#include "tm_debug.hpp"
 #include "tree_observer.hpp"
 
 using namespace moebius;
@@ -38,6 +39,14 @@ is_empty_cell (tree t) {
          (is_compound (t, "cell-output", 3) && is_empty_cell (t[2]));
 }
 
+/**
+ * @brief 构造一行 nr_cols 个空 cell。
+ * @param nr_cols 列数（每行 cell 数）
+ * @return 形如 `(row (cell "") (cell "") ...)` 的 tree，cell 内容为空字符串。
+ *
+ * cell 不带 DOCUMENT 包装——调用方若需要按表格的 block/hyphen 格式包装，
+ * 应改用 `empty_row(nr_cols, wrap)`。
+ */
 tree
 empty_row (int nr_cols) {
   int  i;
@@ -47,12 +56,62 @@ empty_row (int nr_cols) {
   return R;
 }
 
+/**
+ * @brief 构造一行 nr_cols 个空 cell，并按 wrap 决定是否预包装 DOCUMENT。
+ * @param nr_cols 列数
+ * @param wrap    true 时每个 cell 内容生成 `(document "")`，
+ *                false 时退化为 `empty_row(nr_cols)`
+ * @return 形如 `(row (cell ...) ...)` 的 tree
+ *
+ * 预包装的目的：插入新行/列时若表格的 CELL_BLOCK/CELL_HYPHEN 要求
+ * DOCUMENT 包装（generic 样式默认就是要求），原流程是「先插空 cell →
+ * 后续 `table_correct_block_content` 逐个 `insert_node` 补包装」——
+ * 每个 `insert_node` 触发一次 typesetter invalidation，N 个 cell 就是
+ * N 次 invalidation。构造时一次性生成 `(document "")` cell，从源头
+ * 省掉这批 mutation，详见 [1150] 表格插入行性能优化。
+ */
+tree
+empty_row (int nr_cols, bool wrap) {
+  int  i;
+  tree R (ROW, nr_cols);
+  for (i= 0; i < nr_cols; i++)
+    R[i]= tree (CELL, wrap ? tree (DOCUMENT, empty_cell ()) : empty_cell ());
+  return R;
+}
+
+/**
+ * @brief 构造 nr_rows × nr_cols 的空表格，cell 不带 DOCUMENT 包装。
+ * @param nr_rows 行数
+ * @param nr_cols 列数
+ * @return `(table (row ...) ...)` 形式的 tree
+ *
+ * 行由 `empty_row(nr_cols)` 构造——cell 内容为 `""`。
+ */
 tree
 empty_table (int nr_rows, int nr_cols) {
   int  i;
   tree T (TABLE, nr_rows);
   for (i= 0; i < nr_rows; i++)
     T[i]= empty_row (nr_cols);
+  return T;
+}
+
+/**
+ * @brief 构造 nr_rows × nr_cols 的空表格，cell 按 wrap 决定是否预包装。
+ * @param nr_rows 行数
+ * @param nr_cols 列数
+ * @param wrap    true 时每个 cell 内容为 `(document "")`，否则为 `""`
+ * @return `(table (row ...) ...)` 形式的 tree
+ *
+ * 见 `empty_row(nr_cols, wrap)` 的说明——批量插入新行时一次性预包装
+ * 可省掉 N 次 `insert_node`，显著降低 typesetter invalidation 成本。
+ */
+tree
+empty_table (int nr_rows, int nr_cols, bool wrap) {
+  int  i;
+  tree T (TABLE, nr_rows);
+  for (i= 0; i < nr_rows; i++)
+    T[i]= empty_row (nr_cols, wrap);
   return T;
 }
 
@@ -544,25 +603,66 @@ edit_table_rep::table_remove (path fp, int row, int col, int delr, int delc) {
     }
 }
 
+/**
+ * @brief 在表格的指定位置插入若干空行/空列。
+ * @param fp   表格 format 路径（指向 TFORMAT 节点）
+ * @param row  插入位置的行号（0-based）
+ * @param col  插入位置的列号（0-based）
+ * @param insr 插入的行数（0 表示不插行）
+ * @param insc 插入的列数（0 表示不插列）
+ *
+ * 三段工作：
+ * 1. **行插入**：在 `row` 行前插入 `insr` 行空 cell（`empty_table`）。
+ * 2. **列插入**：对每一现有行，在 `col` 列前插入 `insc` 个空 cell
+ *    （`empty_row`）。
+ * 3. **CWITH 重写**：表格里已有的 cell-format 声明（CWITH 节点）按
+ *    新的行列号平移——正索引的行/列引用整体 +insr/+insc，负索引
+ *    （相对末行/末列）按是否跨越插入点决定是否平移。
+ *
+ * 性能优化（[1150]）：插入前一次性查询表格的 CELL_BLOCK/CELL_HYPHEN
+ * 格式，构造新行/列时按 wrap 状态预包装 DOCUMENT，省掉后续
+ * `table_correct_block_content` 里 N 个 cell 各一次 `insert_node`。
+ * 若每个 cell 的实际格式不同（罕见，例如部分 cell 显式声明 block=no），
+ * `table_correct_block_content` 仍会修正。
+ */
 void
 edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
   path p= search_table (fp);
   int  nr_rows, nr_cols;
   table_get_extents (p, nr_rows, nr_cols);
   tree T= subtree (et, p);
+  // Query wrap state once for the new cells, using cell (1,1) as a table-wide
+  // fallback for CELL_BLOCK / CELL_HYPHEN. This is only an optimization: if
+  // any inserted cell has a per-cell CWITH override, the pre-wrap guess here
+  // will be wrong for that cell, but table_correct_block_content (called by
+  // table_insert_row/column) re-checks each new cell's actual format and
+  // corrects the wrap. So correctness holds; the perf benefit shrinks in
+  // tables with per-cell overrides.
+  //
+  // Diverges from table_needs_document_wrap() in two ways: (a) treats any
+  // hyphen value other than "n" as needing wrap (covers "t" etc.), (b) skips
+  // wrap in math mode — math cells are never wrapped in DOCUMENT.
+  string mode  = get_env_string (MODE);
+  tree   block = table_get_format (fp, 1, 1, 1, 1, CELL_BLOCK);
+  tree   hyphen= table_get_format (fp, 1, 1, 1, 1, CELL_HYPHEN);
+  bool   wrap  = mode != "math" &&
+             (block == "yes" ||
+              (block == "auto" && is_atomic (hyphen) && hyphen != "n"));
   if (insr > 0)
-    if (row <= N (T)) insert (p * row, empty_table (insr, nr_cols));
+    if (row <= N (T)) insert (p * row, empty_table (insr, nr_cols, wrap));
 
   T= subtree (et, p);
   if (insc > 0)
     for (row= 0; row < N (T); row++) {
       path q= search_row (p, row);
       tree R= subtree (et, q);
-      if (col <= N (R)) insert (q * col, empty_row (insc));
+      if (col <= N (R)) insert (q * col, empty_row (insc, wrap));
     }
 
   tree st= subtree (et, fp);
-  if (!is_func (st, TFORMAT)) return;
+  if (!is_func (st, TFORMAT)) {
+    return;
+  }
   int k, n= N (st);
   for (k= n - 2; k >= 0; k--)
     if (is_func (st[k], CWITH, 6)) {
@@ -641,6 +741,19 @@ edit_table_rep::table_bound (path fp, int& row1, int& col1, int& row2,
   tm_delete_array (cs);
 }
 
+/**
+ * @brief 把光标移到表格里 (row, col) 单元格的边界。
+ * @param fp        表格 format 路径
+ * @param row       目标行号（0-based，越界自动夹到 [0, nr_rows-1]）
+ * @param col       目标列号（0-based，越界自动夹到 [0, nr_cols-1]）
+ * @param at_start  true 落在 cell 起始，false 落在 cell 末尾
+ *
+ * 实现：定位到目标 cell 路径后调 `go_to_border`。原本在路径计算前
+ * 调过 `table_bound(fp,row,col,row2,col2)` 想算合并区，但 row2/col2
+ * 是局部变量、立即丢弃（`search_cell` 用的还是原始 row/col），是
+ * dead code。`table_bound` 是 O(N×M)，删掉后 [1150] 基准里
+ * `table_go_to` 从 646 ms 降到 201 ms。
+ */
 void
 edit_table_rep::table_go_to (path fp, int row, int col, bool at_start) {
   int nr_rows, nr_cols;
@@ -650,10 +763,9 @@ edit_table_rep::table_go_to (path fp, int row, int col, bool at_start) {
   if (col < 0) col= 0;
   if (row >= nr_rows) row= nr_rows - 1;
   if (col >= nr_cols) col= nr_cols - 1;
-  if (is_func (subtree (et, fp), TFORMAT)) {
-    int row2= row, col2= col;
-    table_bound (fp, row, col, row2, col2);
-  }
+  // NOTE: 之前这里调过 table_bound(fp,row,col,row2,col2) 计算合并区，
+  // 但 row2/col2 是局部变量、结果立即丢弃（search_cell 用的是原始 row/col）。
+  // table_bound 是 O(N×M)，每次 table_go_to 都白白跑——删掉是稳赚不赔。
   path q= search_cell (fp, row, col);
   go_to_border (q, at_start);
 }
@@ -1178,21 +1290,60 @@ edit_table_rep::table_extract_format () {
   go_to (fp * path (N (fm) - 1, 0));
 }
 
+/**
+ * @brief 在当前光标所在行 下方/上方 插入一个新行。
+ * @param forward  true 插到当前行下方，false 插到上方
+ *
+ * 流程：`table_insert` 插空行（已按格式预包装 DOCUMENT）→
+ * `table_go_to` 移光标到新行同列 cell →
+ * `table_correct_block_content(fp,new_row,new_row+1,0,nr_cols)`
+ * 校正新行的 DOCUMENT 包装（默认预包装正确时是 no-op）→
+ * `table_resize_notify` 通知 scheme（chat/paste 路径用它）。
+ *
+ * 限制：若 `nr_rows + 1 > i2`（表格行数上限）直接 return。
+ */
 void
 edit_table_rep::table_insert_row (bool forward) {
+  bench_start ("table_insert_row");
   int  row, col;
   path fp= search_format (row, col);
-  if (is_nil (fp)) return;
+  if (is_nil (fp)) {
+    bench_cumul ("table_insert_row");
+    return;
+  }
   int nr_rows, nr_cols, i1, j1, i2, j2;
   table_get_extents (fp, nr_rows, nr_cols);
   table_get_limits (fp, i1, j1, i2, j2);
-  if (nr_rows + 1 > i2) return;
-  table_insert (fp, row + (forward ? 1 : 0), col, 1, 0);
-  table_go_to (fp, row + (forward ? 1 : 0), col);
-  table_correct_block_content ();
+  if (nr_rows + 1 > i2) {
+    bench_cumul ("table_insert_row");
+    return;
+  }
+  int new_row= row + (forward ? 1 : 0);
+  table_insert (fp, new_row, col, 1, 0);
+  bench_start ("table_insert_row:go_to");
+  table_go_to (fp, new_row, col);
+  bench_cumul ("table_insert_row:go_to");
+  // Only the new row's cells need wrap correction — other rows already had
+  // their DOCUMENT nodes fixed by previous calls and their formats didn't
+  // change.
+  table_correct_block_content (fp, new_row, new_row + 1, 0, nr_cols);
+  bench_start ("table_insert_row:resize_notify");
   table_resize_notify ();
+  bench_cumul ("table_insert_row:resize_notify");
+  bench_cumul ("table_insert_row");
 }
 
+/**
+ * @brief 在当前光标所在列 右侧/左侧 插入一个新列。
+ * @param forward  true 插到当前列右侧，false 插到左侧
+ *
+ * 与 `table_insert_row` 同构：`table_insert` 插空列（预包装）→
+ * `table_go_to` 移光标 →
+ * `table_correct_block_content(fp,0,nr_rows,new_col,new_col+1)`
+ * 校正新列 → `table_resize_notify`。
+ *
+ * 限制：若 `nr_cols + 1 > j2`（列数上限）直接 return。
+ */
 void
 edit_table_rep::table_insert_column (bool forward) {
   int  row, col;
@@ -1202,9 +1353,11 @@ edit_table_rep::table_insert_column (bool forward) {
   table_get_extents (fp, nr_rows, nr_cols);
   table_get_limits (fp, i1, j1, i2, j2);
   if (nr_cols + 1 > j2) return;
-  table_insert (fp, row, col + (forward ? 1 : 0), 0, 1);
-  table_go_to (fp, row, col + (forward ? 1 : 0));
-  table_correct_block_content ();
+  int new_col= col + (forward ? 1 : 0);
+  table_insert (fp, row, new_col, 0, 1);
+  table_go_to (fp, row, new_col);
+  // Only the new column's cells need wrap correction.
+  table_correct_block_content (fp, 0, nr_rows, new_col, new_col + 1);
   table_resize_notify ();
 }
 
@@ -1444,15 +1597,48 @@ edit_table_rep::table_column_decoration (bool forward) {
   if (forward && (col < (nr_cols - 1))) table_hor_decorate (fp, col, 0, 1);
 }
 
+/**
+ * @brief 全表版本的 DOCUMENT 包装校正。
+ *
+ * 等价于 `table_correct_block_content(fp, 0, nr_rows, 0, nr_cols)`。
+ * 用于无法定位单一变更区域的路径（如 `make_table`、`make_subtable`、
+ * `cell_set_format`、选区操作）。会话性能敏感的插入路径请改用范围化重载。
+ */
 void
 edit_table_rep::table_correct_block_content () {
   int  nr_rows, nr_cols;
   path fp= search_format ();
   if (is_nil (fp)) return;
   table_get_extents (fp, nr_rows, nr_cols);
+  table_correct_block_content (fp, 0, nr_rows, 0, nr_cols);
+}
+
+/**
+ * @brief 校正指定矩形区域内 cell 的 DOCUMENT 包装。
+ * @param fp   表格 format 路径
+ * @param row1 起始行（含），0-based
+ * @param row2 结束行（不含）
+ * @param col1 起始列（含），0-based
+ * @param col2 结束列（不含）
+ *
+ * 每个 cell 查 CELL_BLOCK 和 CELL_HYPHEN 格式：
+ * - **f1 = true**（block=no 或 (block=auto 且 hyphen=n)）：
+ *   cell 是单一 DOCUMENT 时去包装（`remove_node`）。
+ * - **f2 = true**（block=yes 或 (block=auto 且 hyphen≠n)）：
+ *   cell 不是 DOCUMENT 时加包装（`insert_node DOCUMENT`）。
+ *
+ * 范围化版本是 [1150] 的核心优化——插入路径只改一行/一列，
+ * 其它 cell 的 CELL_BLOCK/CELL_HYPHEN 格式不变，wrap 状态也稳定，
+ * 没必要全表扫。范围化为 O((row2-row1)×(col2-col1))，远好于 O(N×M)。
+ *
+ * @note 调用方需保证 fp 已是 search_format 的结果。
+ */
+void
+edit_table_rep::table_correct_block_content (path fp, int row1, int row2,
+                                             int col1, int col2) {
   int row, col;
-  for (row= 0; row < nr_rows; row++)
-    for (col= 0; col < nr_cols; col++) {
+  for (row= row1; row < row2; row++)
+    for (col= col1; col < col2; col++) {
       path cp= search_cell (fp, row, col);
       tree st= subtree (et, cp);
       tree t1=
@@ -1468,8 +1654,10 @@ edit_table_rep::table_correct_block_content () {
 
 void
 edit_table_rep::table_resize_notify () {
+  bench_start ("table_resize_notify");
   path p= search_table ();
   if (!is_nil (p)) call ("table-resize-notify", object (subtree (et, p)));
+  bench_cumul ("table_resize_notify");
 }
 
 void

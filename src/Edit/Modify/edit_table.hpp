@@ -71,6 +71,12 @@ protected:
   void table_hor_decorate (path fp, int col, int cbef, int caft);
   void table_ver_decorate (path fp, int row, int rbef, int raft);
 
+  // Correct DOCUMENT wrap on a sub-rectangle of cells only. Insert paths
+  // (table_insert_row/column) only mutate one row/column, so re-scanning the
+  // whole table is O(N×M) waste. Range bounds are [row1,row2) × [col1,col2).
+  void table_correct_block_content (path fp, int row1, int row2, int col1,
+                                    int col2);
+
   // Positioning the cursor inside tables
   void table_bound (path fp, int& row1, int& col1, int& row2, int& col2);
   void table_go_to (path fp, int row, int col, bool at_start= false);
