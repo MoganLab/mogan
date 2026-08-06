@@ -10,52 +10,41 @@ import type { MenuNode } from './types';
 import { invokeMenu, requestSubmenu, subscribeSubmenu } from './bridge';
 
 /**
- * Cache of lazily-expanded submenu children, keyed by the submenu's id (the id
- * C++ assigned during serialization). Populated by subscribeSubmenu when C++
- * pushes an expanded branch. Ids are invalidated on every full-menu rebuild
- * (C++ clears its registry and re-assigns), so entries are keyed by id and
- * simply go stale — a stale id is never re-requested because the rebuilt tree
- * carries fresh ids.
- */
-const submenuChildrenCache = new Map<number, MenuNode[]>();
-
-/** Subscribe a component to submenu-expansion pushes; returns a version that
- * bumps whenever any submenu's children arrive, so the component re-renders
- * and picks the children out of submenuChildrenCache. */
-function useSubmenuExpansions(): number {
-  const [version, setVersion] = useState(0);
-  useEffect(
-    () =>
-      subscribeSubmenu((id, children) => {
-        submenuChildrenCache.set(id, children);
-        setVersion((v) => v + 1);
-      }),
-    [],
-  );
-  return version;
-}
-
-/**
- * Resolve a submenu's children, requesting them lazily from C++ on first need.
- * Returns the children once available (undefined while the expansion request
- * is in flight). `ensure()` triggers the request; call it when the submenu is
- * about to open. Shared by the nested flyout (SubmenuRow) and the top-level
- * dropdown (TopDropdown).
+ * Resolve a submenu's children, re-requesting them from C++ EVERY time the
+ * submenu opens — mirroring Qt's QTMLazyMenu, whose aboutToShow re-forces the
+ * promise so the menu always reflects current state (no stale snapshot).
+ *
+ * Each submenu component owns its children state. `ensure()` fires a fresh
+ * requestSubmenu(id); when C++ pushes the branch back, the matching component
+ * (by id) updates its own state. Previously-shown children keep rendering
+ * until the fresh ones arrive, so re-opening doesn't flash an empty menu.
  */
 export function useSubmenuChildren(node: MenuNode & { kind: 'submenu' }): {
   children: MenuNode[] | undefined;
   ensure: () => void;
 } {
-  // Re-render whenever any submenu's children arrive from C++.
-  useSubmenuExpansions();
-  const requested = useRef(false);
-  const children =
-    node.children ??
-    (node.id !== undefined ? submenuChildrenCache.get(node.id) : undefined);
+  // Local copy of the latest children for THIS submenu. Seed from the node's
+  // embedded children if present (eagerly-serialized case).
+  const [children, setChildren] = useState<MenuNode[] | undefined>(
+    node.children,
+  );
+  // Track in-flight request to avoid spamming C++ while one is pending.
+  const inflight = useRef(false);
+
+  // Subscribe once; only adopt children addressed to this submenu's id.
+  useEffect(() => {
+    if (node.id === undefined) return;
+    return subscribeSubmenu((id, kids) => {
+      if (id === node.id) {
+        inflight.current = false;
+        setChildren(kids);
+      }
+    });
+  }, [node.id]);
+
   const ensure = () => {
-    if (children !== undefined) return;
-    if (node.id === undefined || requested.current) return;
-    requested.current = true;
+    if (node.id === undefined || inflight.current) return;
+    inflight.current = true;
     requestSubmenu(node.id);
   };
   return { children, ensure };

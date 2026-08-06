@@ -97,17 +97,26 @@ export function closePopup(): void {
 
 /**
  * Request a lazily-expanded submenu's children. C++ forces the promise and
- * pushes the children back via the moganOnSubmenu listener.
+ * pushes the children back via the moganOnSubmenu listeners.
  */
 export function requestSubmenu(id: number): void {
   ccall('mogan_menu_expand', null, ['number'], [id]);
 }
 
+// Multiple submenu components subscribe at once (one per open submenu row), so
+// this is a multicast set rather than the single-slot registrar used by the
+// whole-tree/footer/popup callbacks. The single window.moganOnSubmenu hook
+// fans out to every registered listener; each listener filters by submenu id.
+const submenuListeners = new Set<SubmenuListener>();
+window.moganOnSubmenu = (id, children) => {
+  submenuListeners.forEach((cb) => cb(id, children));
+};
+
 /** Subscribe to lazily-expanded submenu children pushed from C++. */
 export function subscribeSubmenu(cb: SubmenuListener): () => void {
-  window.moganOnSubmenu = cb;
+  submenuListeners.add(cb);
   return () => {
-    if (window.moganOnSubmenu === cb) window.moganOnSubmenu = undefined;
+    submenuListeners.delete(cb);
   };
 }
 
