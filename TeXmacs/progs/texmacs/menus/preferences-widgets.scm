@@ -147,6 +147,8 @@
  ("yawerty" "Yawerty")
 ) ;define-preference-names
 
+(define-preference-names "emoji keyboard" ("off" "Disabled") ("on" "Enabled"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convert 各子 tab 的编解码表（LaTeX / BibTeX 双向偏好 helper、image format
 ;; helper 见 preferences-tools.scm）
@@ -419,6 +421,12 @@
       "Cyrillic input method"
       '("none" "translit" "jcuken" "yawerty")
       '("None" "Translit" "Jcuken" "Yawerty")
+      #f
+    ) ;list
+    (list (pref-keyboard-emoji-keyboard)
+      "Emoji shortcuts"
+      '("off" "on")
+      '("Disabled" "Enabled")
       #f
     ) ;list
     ;; keyboard shortcut style 仅 macOS（field->descriptor 按平台谓词过滤）。

@@ -18,7 +18,6 @@
 (lazy-keyboard (generic search-kbd))
 (lazy-keyboard (text text-kbd) in-text?)
 (lazy-keyboard (keyboard text-kbd-utf8) in-text?)
-(lazy-keyboard (keyboard emoji) always?)
 (lazy-keyboard (math math-kbd) in-math?)
 (lazy-keyboard (math math-sem-edit) in-sem-math?)
 (lazy-keyboard (prog prog-kbd) in-prog?)
@@ -35,6 +34,19 @@
 (lazy-keyboard (version version-kbd) with-versioning-tool?)
 
 (lazy-keyboard-force #t)
+
+;; 默认关闭；开启时才加载 (keyboard emoji) 注册 emoji kbd-map
+
+(define (notify-emoji-keyboard var val)
+  (when (== val "on")
+    (when (not (defined? 'enable-emoji-keyboard))
+      (use-modules (keyboard emoji))
+    ) ;when
+    (enable-emoji-keyboard)
+  ) ;when
+) ;define
+
+(define-preferences ("emoji keyboard" "off" notify-emoji-keyboard))
 
 (delayed (:idle 0)
   (kbd-map (:require (or (full-screen?) (full-screen-edit?)))
