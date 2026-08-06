@@ -86,26 +86,6 @@ mogan_menu_close_popup () {
   im_react_close_popup ();
 }
 
-// im_menu_to_json is defined further below; declared here for the expand hook.
-string im_menu_to_json (widget root);
-// im_js_push_submenu is an EM_JS hook defined further below. EM_JS emits the
-// definition with C language linkage, so the forward declaration must match.
-extern "C" void im_js_push_submenu (int id, const char* json);
-
-extern "C" EMSCRIPTEN_KEEPALIVE void
-mogan_menu_expand (int id) {
-  // React opened a lazy submenu: force its promise and push the freshly
-  // expanded children back. No-op if the id is stale (menu rebuilt since).
-  auto it= g_submenu_registry.find (id);
-  if (it == g_submenu_registry.end ()) return;
-  promise<widget> sub= it->second;
-  if (is_nil (sub)) return;
-  widget    w   = sub ();
-  string    json= im_menu_to_json (w);
-  c_string  cs (json);
-  im_js_push_submenu (id, (const char*) cs);
-}
-
 extern "C" EMSCRIPTEN_KEEPALIVE void
 mogan_set_chrome_metrics (int menu_h, int footer_h) {
   g_js_menu_h  = menu_h;
@@ -327,6 +307,22 @@ im_menu_to_json (widget root) {
   }
   out << "]";
   return out;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_menu_expand (int id) {
+  // React opened a lazy submenu: force its promise and push the freshly
+  // expanded children back. No-op if the id is stale (menu rebuilt since).
+  // Defined after both im_js_push_submenu (EM_JS) and im_menu_to_json so the
+  // EM_JS symbol resolves at link time without a forward declaration.
+  auto it= g_submenu_registry.find (id);
+  if (it == g_submenu_registry.end ()) return;
+  promise<widget> sub= it->second;
+  if (is_nil (sub)) return;
+  widget   w   = sub ();
+  string   json= im_menu_to_json (w);
+  c_string cs (json);
+  im_js_push_submenu (id, (const char*) cs);
 }
 
 /******************************************************************************
