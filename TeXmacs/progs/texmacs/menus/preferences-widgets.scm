@@ -258,6 +258,20 @@
   (list "look and feel" "gui theme" "language" "keyboard shortcut style")
 ) ;define
 
+;; emoji keyboard 方向相关：开启时 notify 实时注册 kbd-map 无需重启；
+;; 关闭后已注册绑定当次会话仍在，需重启才不再生效。
+
+(define (preferences-qml-restart-relevant? key changed-assoc)
+  (if (or (member key preferences-qml-restart-keys)
+        (and (== key (pref-keyboard-emoji-keyboard))
+          (== (cdr (assoc key changed-assoc)) "off")
+        ) ;and
+      ) ;or
+    #t
+    #f
+  ) ;if
+) ;define
+
 ;; ---- hint 文案（英文 key，供 translate 查翻译表） ----
 ;; 集中管理避免散落重复；facade preferences-qml-flags->assoc 对 hint 过 translate。
 
@@ -1204,7 +1218,9 @@
   (with changed-keys
     (map car changed-assoc)
     (with restart-changed
-      (list-filter changed-keys (lambda (k) (member k preferences-qml-restart-keys)))
+      (list-filter changed-keys
+        (lambda (k) (preferences-qml-restart-relevant? k changed-assoc))
+      ) ;list-filter
       (with non-restart-changed
         (list-filter changed-keys (lambda (k) (not (member k restart-changed))))
         (if (null? restart-changed)
