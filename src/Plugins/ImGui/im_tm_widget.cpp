@@ -27,7 +27,9 @@
 #include "im_ime_macos.hpp" // macOS IME bridge (no-op stubs elsewhere)
 #include "im_input.hpp"
 #include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
-#include "im_react_bridge.hpp"  // WASM React shell bridge (no-op on native)
+#ifdef __EMSCRIPTEN__
+#include "im_react_bridge.hpp" // WASM React shell bridge (no-op on native)
+#endif
 #include "im_simple_widget.hpp" // editor canvas (main_widget)
 
 #ifdef LORO_ENABLED
@@ -1241,23 +1243,31 @@ im_tm_widget_rep::send (slot s, blackbox val) {
     break;
   case SLOT_LEFT_FOOTER: {
     footer_left= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
     im_react_push_footer (footer_left, footer_middle, footer_right,
                           footer_interactive);
+#endif
   } break;
   case SLOT_MIDDLE_FOOTER: {
     footer_middle= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
     im_react_push_footer (footer_left, footer_middle, footer_right,
                           footer_interactive);
+#endif
   } break;
   case SLOT_RIGHT_FOOTER: {
     footer_right= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
     im_react_push_footer (footer_left, footer_middle, footer_right,
                           footer_interactive);
+#endif
   } break;
   case SLOT_INTERACTIVE_MODE: {
     footer_interactive= open_box<bool> (val);
+#ifdef __EMSCRIPTEN__
     im_react_push_footer (footer_left, footer_middle, footer_right,
                           footer_interactive);
+#endif
   } break;
   default: {
     int vi;
@@ -1334,7 +1344,9 @@ im_tm_widget_rep::write (slot s, blackbox index, widget w) {
     menu_widget= w;
     // WASM：把同一棵树序列化为 JSON 推给 React shell 渲染（native 侧为
     // no-op）。
+#ifdef __EMSCRIPTEN__
     im_react_push_menu (menu_widget);
+#endif
     break;
   default:
     im_widget_rep::write (s, index, w);
