@@ -143,13 +143,16 @@
   max-height: calc(100vh - var(--menu-frame-h) - 12px);
 }
 
-/* Nested flyout. It's position:fixed and placed by JS at the parent row's
-   viewport rect, so it escapes the scroll container's clipping and pops out
-   to the right of the row even inside a scrolling dropdown. The .submenu row
-   no longer needs position:relative. */
+/* Nested flyout. Rendered into document.body via a React portal and placed by
+   JS at the parent row's viewport rect (position:fixed). Portaling escapes the
+   parent dropdown's overflow clipping — Safari clips position:fixed descendants
+   against a non-visible-overflow ancestor, Chrome doesn't; body keeps both
+   consistent. z-index sits above plain dropdowns (40) since it now shares the
+   body's top-level stacking context. */
 .mogan-menu-flyout {
   position: fixed;
   margin: 0;
+  z-index: 60;
 }
 
 /* Small transparent spacer appended only when a menu actually overflows and

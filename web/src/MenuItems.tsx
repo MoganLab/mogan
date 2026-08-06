@@ -1,4 +1,5 @@
 import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { MenuNode } from './types';
 import { invokeMenu } from './bridge';
 
@@ -257,8 +258,17 @@ function SubmenuRow({
     const el = rowRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const left = Math.round(rect.right + 2);
+    // Clamp left so the flyout never starts past the right viewport edge.
+    const left = Math.min(
+      Math.round(rect.right + 2),
+      Math.max(8, window.innerWidth - 220),
+    );
+    // Clamp top into the visible viewport even when the row itself is
+    // scrolled outside it (a long, scrollable parent menu): the flyout is
+    // fixed-position and must stay on screen regardless of the row's rect.
     let top = Math.round(rect.top - 4);
+    const maxTop = Math.max(8, window.innerHeight - 48);
+    if (top > maxTop) top = maxTop;
     if (top < 8) top = 8;
     setPos({ left, top });
   };
@@ -274,7 +284,8 @@ function SubmenuRow({
       const minVisible = 120;
       const maxTop = Math.max(8, window.innerHeight - 8 - minVisible);
       const top = Math.min(p.top, maxTop);
-      return top === p.top ? p : { left: p.left, top };
+      const left = Math.min(p.left, Math.max(8, window.innerWidth - 220));
+      return top === p.top && left === p.left ? p : { left, top };
     });
   }, [open]);
 
@@ -296,27 +307,35 @@ function SubmenuRow({
     >
       <span className="mogan-menu-label">{node.label}</span>
       <span className="mogan-menu-arrow">▶</span>
-      {open && (
-        <ul
-          ref={flyout.ref}
-          className={'mogan-menu-dropdown mogan-menu-flyout' + flyout.cls}
-          role="menu"
-          style={{
-            left: pos.left,
-            top: pos.top,
-            // Constrain by the space actually remaining below the flyout's top
-            // (not a fixed 100vh), so the bottom never runs past the viewport
-            // edge — content taller than that scrolls instead of being cut.
-            maxHeight: Math.max(80, window.innerHeight - pos.top - 8),
-          }}
-          // See header: keep a click inside this flyout from looking like an
-          // "outside" click to the window-level dismiss listener (this flyout
-          // isn't DOM-nested under its parent dropdown).
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth + 1} />
-        </ul>
-      )}
+      {open &&
+        // Render the flyout into document.body via a portal so it fully
+        // escapes the parent dropdown's overflow-y:auto scroll container.
+        // Safari (unlike Chrome) clips position:fixed descendants against an
+        // ancestor that has non-visible overflow, which is exactly why the
+        // flyout was cut off at the parent menu's edge there. Portaling to
+        // body removes that clip on both engines. Coordinates are already
+        // viewport-based (position:fixed), so nothing else changes.
+        createPortal(
+          <ul
+            ref={flyout.ref}
+            className={'mogan-menu-dropdown mogan-menu-flyout' + flyout.cls}
+            role="menu"
+            style={{
+              left: pos.left,
+              top: pos.top,
+              // Constrain by the space actually remaining below the flyout's
+              // top (not a fixed 100vh), so the bottom never runs past the
+              // viewport edge — content taller than that scrolls.
+              maxHeight: Math.max(80, window.innerHeight - pos.top - 8),
+            }}
+            // See header: keep a click inside this flyout from looking like an
+            // "outside" click to the window-level dismiss listener.
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth + 1} />
+          </ul>,
+          document.body,
+        )}
     </li>
   );
 }
