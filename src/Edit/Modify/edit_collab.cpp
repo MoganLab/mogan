@@ -764,8 +764,9 @@ edit_modify_rep::queue_remote (string raw_mod) {
 
 void
 edit_modify_rep::apply_queued_remote () {
-  array<string> q   = queued_remote_mods;
-  queued_remote_mods= array<string> (0);
+  array<string> q     = queued_remote_mods;
+  queued_remote_mods  = array<string> (0);
+  loro_applying_remote= true;
   if (N (q) != 0) {
     collab_snapshot_cursor ();
 
