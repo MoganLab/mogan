@@ -8,14 +8,18 @@
 //      之后作为广播通道把新 update 推给同文档其他客户端
 //
 // 协议（文本帧为控制消息，二进制帧为 Loro update/snapshot 载荷）：
-//   C→S  CREATE            申请新文档
+//   C→S  CREATE            申请新文档（无名）
+//   C→S  CREATE <name>     申请新文档并指定显示名（仅显示用途，docId 仍是 UUID）
 //   C→S  JOIN <docId>      加入文档（首次连接/重连均走此路径，服务端补发历史）
 //   C→S  RESYNC            主动重新同步（重新下发 snapshot + updates）
 //   C→S  PING              心跳（回复 PONG）
-//   S→C  DOC <docId>       CREATE/JOIN 成功确认
-//   S→C  ERR <code> <msg>  错误（NO_SUCH_DOC / BAD_REQUEST / INTERNAL）
+//   S→C  DOC <docId>       CREATE/JOIN 成功确认（无名文档）
+//   S→C  DOC <docId> <name>  成功确认并携带显示名（name 已经服务端 trim）
+//   S→C  ERR <code> <msg>  错误（NO_SUCH_DOC / BAD_REQUEST / BAD_NAME / INTERNAL）
 //   S→C  PONG
 //   S→C  SYNC-END          补发完 snapshot/updates 后的下发结束标记（空文档也发）
+//
+// 注意：DOC 帧格式升级（可携带 name），客户端需与服务端同版本。
 //
 // 运行：npm install && node server.js
 // 环境变量：
@@ -30,6 +34,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const { DocStore } = require('./store');
 const { DocRegistry } = require('./registry');
+const { validateDocName } = require('./validate');
 
 const HOST = process.env.MOGAN_LORO_HOST || '0.0.0.0';
 const PORT = parseInt(process.env.MOGAN_LORO_PORT || '8765', 10);
@@ -61,9 +66,9 @@ async function main () {
       (USE_TLS ? '，TLS 已启用（wss+https）' : '（明文 ws+http）')
   );
 
-  // 内嵌 HTTP(S) 服务：/healthz 供部署探活，/docs 列出可用文档 UUID（供客户端
-  // 在 JOIN 前发现文档，纯文本每行一个 UUID，便于 C++ 端按行解析），同时
-  // 承载 WebSocket upgrade。所有响应带 CORS 头：WASM 客户端从浏览器 fetch /docs
+  // 内嵌 HTTP(S) 服务：/healthz 供部署探活，/docs 列出可用文档（每行
+  // <docId>\t<name>，无名文档仅 docId；供客户端在 JOIN 前发现文档，纯文本
+  // 便于 C++ 端按行解析），同时承载 WebSocket upgrade。所有响应带 CORS 头：WASM 客户端从浏览器 fetch /docs
   // 是跨源请求，无 CORS 头会被浏览器拦截。提供 TLS cert/key 时用 https（HTTPS
   // 页面如 GitHub Pages 必须走 https/wss，否则浏览器拦 Mixed Content）。
   const requestHandler = async (req, res) => {
@@ -83,15 +88,19 @@ async function main () {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, docs: registry.docs.size }));
     } else if (req.url === '/docs') {
-      // 仅返回已落盘的文档（磁盘记录稳定，避免内存中瞬时 entry 抖动）
-      let ids = [];
+      // 仅返回已落盘的文档（磁盘记录稳定，避免内存中瞬时 entry 抖动）。
+      // 每行 <docId>\t<name>；无名文档仅 <docId>（无 TAB）。TAB 属控制字符，
+      // 不可能出现在合法 name 中，客户端按第一个 TAB 切分即可。
+      let docs = [];
       try {
-        ids = await store.listDocs();
+        docs = await store.listDocsWithNames();
       } catch (err) {
         console.error(`${ts()} [http] listDocs 失败:`, err);
       }
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-      res.end(ids.join('\n'));
+      res.end(
+        docs.map((d) => (d.name ? `${d.docId}\t${d.name}` : d.docId)).join('\n')
+      );
     } else {
       res.writeHead(404);
       res.end();
@@ -158,7 +167,7 @@ async function main () {
     leaveDoc(ws);
     entry.clients.add(ws);
     ws.docEntry = entry;
-    ws.send(`DOC ${entry.docId}`);
+    ws.send(entry.name ? `DOC ${entry.docId} ${entry.name}` : `DOC ${entry.docId}`);
     console.log(
       `${ts()} [client:${ws.clientId}] 加入文档 [doc:${entry.docId}]，当前 ${entry.clients.size} 人`
     );
@@ -173,11 +182,18 @@ async function main () {
     const arg = rest.join(' ').trim();
     switch (cmd) {
       case 'CREATE': {
+        const name = validateDocName(arg);
+        if (name === undefined) {
+          return sendErr(ws, 'BAD_NAME', 'invalid_doc_name');
+        }
         const docId = crypto.randomUUID();
         registry
-          .create(docId)
+          .create(docId, name)
           .then((entry) => {
-            console.log(`${ts()} [client:${ws.clientId}] 创建文档 [doc:${docId}]`);
+            console.log(
+              `${ts()} [client:${ws.clientId}] 创建文档 [doc:${docId}]` +
+                (name ? `（${name}）` : '')
+            );
             joinDoc(ws, entry);
           })
           .catch((err) => {

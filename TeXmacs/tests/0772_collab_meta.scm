@@ -17,7 +17,7 @@
 
       (display "Creating collab session (Client A)...")
       (newline)
-      (loro-collab-create "ws://127.0.0.1:8765")
+      (loro-collab-create "ws://127.0.0.1:8765" "")
 
       (let loopA
         ((retries 100))
@@ -51,7 +51,7 @@
 
                     (display "Joining collab session (Client B)...")
                     (newline)
-                    (loro-collab-join "ws://127.0.0.1:8765" doc-id)
+                    (loro-collab-join "ws://127.0.0.1:8765" doc-id "")
 
                     (let loopB
                       ((retriesB 100))

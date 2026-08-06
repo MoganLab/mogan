@@ -23,6 +23,9 @@ private:
   collab_state                         state= collab_state::idle;
   collab_mode                          mode = collab_mode::create;
   string                               doc_id;
+  // 文档显示名（仅显示用途，doc_id 仍是唯一标识）；CREATE 时随帧上行，
+  // DOC 帧到达后以帧内 name 为准（服务端权威）
+  string                               doc_name;
   string                               server_url;
   url                                  buffer_url;
   bool                                 buffer_known     = false;
@@ -50,8 +53,8 @@ public:
   bool want_create () const { return mode == collab_mode::create; }
 
   // Business logic API
-  void create (string server_url);
-  void join (string server_url, string doc_id);
+  void create (string server_url, string doc_name);
+  void join (string server_url, string doc_id, string doc_name);
   void disconnect ();
   void poll ();
   void broadcast (string bytes);
@@ -74,6 +77,7 @@ public:
   // Getters
   bool         is_active () const { return state == collab_state::ready; }
   string       get_doc_id () const { return doc_id; }
+  string       get_doc_name () const { return doc_name; }
   url          get_buffer_url () const { return buffer_url; }
   bool         is_buffer_known () const { return buffer_known; }
   class editor get_editor () const;

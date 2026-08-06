@@ -37,38 +37,91 @@
   (set! collab-buffer-url (current-buffer))
 ) ;tm-define
 
-;; 新建协作文档：先建空 buffer 并切到它（成为当前编辑器），再让会话层
-;; 连服务端 CREATE。服务端分配 UUID 后回 DOC，会话层据此置位协作开关；
+;; === 文档显示名校验与列表工具（纯函数，供测试覆盖） ===
+;; 规则与服务端 tools/loro-server/validate.js 保持一致：trim 后长度 1–64
+;; （按字符计，用 utf8-string-length——string-length 计字节数），
+;; 禁止 \ / : * ? " < > | 及控制字符。Scheme 侧仅做预校验（即时反馈），
+;; 服务端仍是权威校验方。
+
+(define collab-doc-name-forbidden-chars
+  '(#\\ #\/ #\: #\* #\? #\" #\< #\> #\|))
+
+(define (collab-valid-doc-name? name)
+  (and (string? name)
+       (>= (utf8-string-length name) 1)
+       (<= (utf8-string-length name) 64)
+       ;; UTF-8 字符串按字节遍历安全：CJK 等首字节均 >= 128，
+       ;; 不可能误判 < 32 / == 127；禁字符都是单字节 ASCII
+       (not (list-find (string->list name)
+              (lambda (c)
+                (or (in? c collab-doc-name-forbidden-chars)
+                    (< (char->integer c) 32)
+                    (== (char->integer c) 127)))))))
+
+;; loro-collab-docs 返回扁平交替列表 (uuid0 name0 uuid1 name1 ...)，
+;; 两两解构为 ((uuid . name) ...)。防御奇数长度（末尾落单的忽略）。
+(define (collab-docs-pairs flat)
+  (if (or (null? flat) (null? (cdr flat)))
+      '()
+      (cons (cons (car flat) (cadr flat))
+            (collab-docs-pairs (cddr flat)))))
+
+;; Join 子菜单项文字：有名 → "name (uuid前8位)"（重名消歧）；无名 → uuid 全文。
+(define (collab-doc-label uuid name)
+  (if (and (string? name) (> (string-length name) 0))
+      (string-append name " ("
+                     (substring uuid 0 (min 8 (string-length uuid)))
+                     ")")
+      uuid))
+
+;; 新建协作文档：交互输入显示名（留空则创建无名文档，兼容旧行为）。
+;; 先建空 buffer 并切到它（成为当前编辑器），再让会话层连服务端 CREATE。
+;; 服务端分配 UUID 后回 DOC，会话层据此置位协作开关并把标题设为显示名；
 ;; 用户随后首次编辑会 seed shadow 并把初始全量上行。
 (tm-define (collab-new-document)
-  (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-    (collab-mark-current-buffer)
-    (loro-collab-create (collab-server-url))
-    (set-message (string-append "Creating collaborative document (Server "
-                   (collab-server-url)
-                   ")"
-                 ) ;string-append
-      "Collaborative"
-    ) ;set-message
-  ) ;with-default-view
+  (:argument name "Document name")
+  (cond ((and (string? name) (> (string-length name) 0)
+              (not (collab-valid-doc-name? name)))
+         (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
+           "Collaborative"))
+        (else
+         (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+           (collab-mark-current-buffer)
+           (loro-collab-create (collab-server-url) name)
+           (set-message (string-append "Creating collaborative document (Server "
+                          (collab-server-url)
+                          ")"
+                        ) ;string-append
+             "Collaborative"
+           ) ;set-message
+         ) ;with-default-view
+        ) ;else
+  ) ;cond
 ) ;tm-define
 
-;; 加入指定 UUID 的协作文档（非交互：UUID 由 Join 子菜单选中项传入）。
+;; 加入指定 UUID 的协作文档（非交互：UUID 由 Join 子菜单选中项传入，
+;; opt-name 为菜单已知的显示名预填，最终以服务端 DOC 帧内 name 为准）。
 ;; 建空 buffer 并切到它 → 会话层 JOIN。服务端回 DOC 后补发 snapshot/updates，
 ;; 首帧到达时把内容构建进 buffer。
-(tm-define (collab-join-document doc-id)
-  (when (and (string? doc-id) (> (string-length doc-id) 0))
-    (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-      (collab-mark-current-buffer)
-      ;; JOIN 的 UUID 已知，立即把标题设为 UUID（CREATE 的 UUID 待服务端 DOC
-      ;; 回复，由 C++ become_ready 经 set_title_buffer 设置）
-      (buffer-set-title (current-buffer) doc-id)
-      (loro-collab-join (collab-server-url) doc-id)
-      (set-message (string-append "Joining collaborative document " doc-id)
-        "Collaborative"
-      ) ;set-message
-    ) ;with-default-view
-  ) ;when
+(tm-define (collab-join-document doc-id . opt-name)
+  (let ((name (if (and (nnull? opt-name) (string? (car opt-name)))
+                  (car opt-name)
+                  "")))
+    (when (and (string? doc-id) (> (string-length doc-id) 0))
+      (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+        (collab-mark-current-buffer)
+        ;; 标题立即设为显示名（无名回退 UUID）；DOC 帧到达后 C++ become_ready
+        ;; 会以服务端 name 重设标题（最终一致）
+        (buffer-set-title (current-buffer)
+          (if (> (string-length name) 0) name doc-id))
+        (loro-collab-join (collab-server-url) doc-id name)
+        (set-message (string-append "Joining collaborative document "
+                       (if (> (string-length name) 0) name doc-id))
+          "Collaborative"
+        ) ;set-message
+      ) ;with-default-view
+    ) ;when
+  ) ;let
 ) ;tm-define
 
 ;; 触发后台拉取服务端可用文档 UUID（异步、幂等：loading 中为 no-op）。
@@ -76,7 +129,8 @@
 
 ;; Join 子菜单：展开时触发后台拉取（不阻塞 GUI），按状态显示
 ;;   loading → "(loading...)"，error → "(unreachable)"，
-;;   ready+空 → "(no documents)"，ready+非空 → 各 UUID 项（点击即加入）。
+;;   ready+空 → "(no documents)"，ready+非空 → 各文档项（点击即加入；
+;;   菜单文字为显示名，无名回退 UUID，见 collab-doc-label）。
 ;; Refresh 强制重新拉取。状态经 loro-collab-docs-status 轮询，ImGui 每帧重建
 ;; 菜单时自动刷新到最新结果，无需缓存。
 (tm-menu (collab-docs-menu)
@@ -94,7 +148,13 @@
           ((and (== status "ready") (null? (loro-collab-docs)))
            ("(no documents)" (collab-refresh-docs))
           ) ;
-          (else (for (id (loro-collab-docs)) ((eval `(verbatim ,id)) (collab-join-document id)))
+          (else
+           (for (p (collab-docs-pairs (loro-collab-docs)))
+             (with (uuid . name) p
+               ((eval `(verbatim ,(collab-doc-label uuid name)))
+                (collab-join-document uuid name))
+             ) ;with
+           ) ;for
           ) ;else
     ) ;cond
     ---

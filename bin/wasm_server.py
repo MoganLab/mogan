@@ -23,7 +23,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 server = ThreadingHTTPServer(
-    ("127.0.0.1", 8000),
+    ("0.0.0.0", 8000),
     Handler
 )
 

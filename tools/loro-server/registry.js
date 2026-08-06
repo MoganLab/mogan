@@ -9,8 +9,9 @@ const SNAPSHOT_UPDATE_THRESHOLD = 100; // updates.log 达到该条数即截断�
 const SNAPSHOT_BYTE_THRESHOLD = 1024 * 1024; // 或自上次 snapshot 以来累计字节数
 
 class DocEntry {
-  constructor (docId, store) {
+  constructor (docId, store, name = null) {
     this.docId = docId;
+    this.name = name; // 显示名（可为 null）；load() 会从 meta 回填
     this.store = store;
     this.shadow = null; // LoroDoc 影子，懒加载
     this.seq = 0; // 已持久化的 update 总条数
@@ -30,6 +31,7 @@ class DocEntry {
     const meta = await this.store.readMeta(this.docId);
     this.seq = meta.updateCount;
     this.snapshottedSeq = meta.snapshotSeq;
+    this.name = typeof meta.name === 'string' ? meta.name : null;
   }
 
   unload () {
@@ -108,9 +110,9 @@ class DocRegistry {
     return this.docs.size;
   }
 
-  async create (docId) {
-    await this.store.createDoc(docId);
-    const entry = new DocEntry(docId, this.store);
+  async create (docId, name = null) {
+    await this.store.createDoc(docId, name);
+    const entry = new DocEntry(docId, this.store, name);
     this.docs.set(docId, entry);
     return entry;
   }

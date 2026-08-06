@@ -29,19 +29,23 @@ string loro_collab_server_url ();
 
 /**
  * @brief 以当前编辑器为_target，连服务端创建新云文档。
- *        连接后发 CREATE；服务端回 DOC <uuid> 后置位协作开关，
- *        之后本地首编辑会 seed shadow 并广播初始全量。
+ *        连接后发 CREATE（doc_name 非空时为 CREATE <name>）；服务端回
+ *        DOC <uuid> [<name>] 后置位协作开关，之后本地首编辑会 seed shadow
+ *        并广播初始全量。
+ * @param doc_name 文档显示名（仅显示用途，docId 仍是 UUID）；空串表示无名。
  * @return 服务端分配的文档 UUID（连接已发起但 DOC 尚未回来时为空串）。
  */
-string loro_collab_create (string server_url);
+string loro_collab_create (string server_url, string doc_name);
 
 /**
  * @brief 以当前编辑器为 target，连服务端加入已有云文档。
  *        连接后发 JOIN <doc_id>；服务端回 DOC 后补发 snapshot/updates，
  *        首帧到达时 apply_remote 构建 buffer 并置位协作开关；补发结束时发
  *        SYNC-END，空文档（无帧）据此直接就绪。
+ * @param doc_name 显示名预填（来自 /docs 缓存，可为空串）；DOC 帧携带的
+ *        name 到达后以帧内为准（服务端权威）。
  */
-void loro_collab_join (string server_url, string doc_id);
+void loro_collab_join (string server_url, string doc_id, string doc_name);
 
 /** @brief 断开协作会话（关闭 WS、清空 target、收回上行回调）。 */
 void loro_collab_disconnect ();
@@ -51,6 +55,9 @@ bool loro_collab_is_active ();
 
 /** @brief 当前会话的服务端文档 UUID（未就绪时为空串）。 */
 string loro_collab_doc_id ();
+
+/** @brief 当前会话的文档显示名（无名文档/未就绪时为空串）。 */
+string loro_collab_doc_name ();
 
 /**
  * @brief 异步触发：在后台线程 HTTP GET <server>/docs（不建 WS、不阻塞 GUI），
@@ -64,7 +71,11 @@ void loro_collab_fetch_docs (string server_url);
  */
 string loro_collab_docs_status ();
 
-/** @brief 已缓存的文档 UUID 列表（未就绪时为空）。GUI 线程读取。 */
+/**
+ * @brief 已缓存的文档列表（未就绪时为空）。GUI 线程读取。
+ *        扁平交替数组 [uuid0, name0, uuid1, name1, ...]，name 可为空串
+ *        （无名文档回退显示 uuid）。
+ */
 array<string> loro_collab_docs ();
 
 /** @brief 在 GUI 帧循环里驱动（drain WS 回调）。由 GUI 的 _interpose 调用。 */
