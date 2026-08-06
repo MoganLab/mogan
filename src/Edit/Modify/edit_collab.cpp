@@ -668,7 +668,8 @@ edit_modify_rep::collab_cursor_payload () {
   if (!(rp <= tp)) return "";
   path cp= tp / rp;
   path sp= cp, ep= cp;
-  if (selection_active_any ()) {
+  bool sel_active= selection_active_any ();
+  if (sel_active) {
     path global_sp, global_ep;
     selection_get (global_sp, global_ep);
     if (rp <= global_sp && rp <= global_ep) {
