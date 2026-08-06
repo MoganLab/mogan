@@ -481,7 +481,6 @@ edit_modify_rep::apply_remote (string bytes) {
   // session-output / field-process-input 插入后 (set-user-active #f) 一致
   // （LLM/会话流式输出同样靠它避免视图跳动）。
   set_user_active (false);
-  loro_applying_remote= false;
 
   // 关键：apply_remote 通过 edit_announce 改了 buffer（新 tree_rep*），
   // 但这些新 rep 不在 id_map 里，因此下一次本地编辑 mirror_mod 会 id_map miss
