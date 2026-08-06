@@ -691,9 +691,9 @@
       (if (url-exists? u)
         (with fname
           (url-materialize u "r")
-          (debug-message "debug-std" (string-append "Loading plugin " name "\n"))
+          (debug-message "plugin" (string-append "(" name "): loading plugin ...\n"))
           (load fname)
-          (debug-message "debug-std" (string-append "Loaded plugin " name "\n"))
+          (debug-message "plugin" (string-append "(" name "): plugin loaded\n"))
         ) ;with
       ) ;if
       (if (plugin-all-initialized?) (plugin-save-setup))
