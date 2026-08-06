@@ -481,9 +481,9 @@ edit_cursor_rep::go_to (path p) {
     if (cu->valid) {
       call ("notify-cursor-moved", object (DIRECT));
 #ifdef LORO_ENABLED
-      if (!collab_applying_remote ()) 
+      if (!collab_applying_remote ())
 #endif
-      set_user_active (true);
+        set_user_active (true);
     }
   }
 }
