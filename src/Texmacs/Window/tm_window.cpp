@@ -407,7 +407,7 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     if (vw != NULL) the_drd= vw->ed->drd;
   }
   object xmenu= call ("menu-expand", eval ("'" * menu));
-  the_drd= old_drd;
+  the_drd     = old_drd;
   // tab 栏（which==4）：xmenu 含每次新建的 lambda，无法用 equal 比较，故用
   // 稳定签名判等。签名不变（如切 tab）=> 跳过重建，保持上次 widget。
   if (which == 4) {
