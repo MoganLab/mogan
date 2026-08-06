@@ -116,6 +116,7 @@ target("stem") do
         add_ldflags("-sEXPORTED_FUNCTIONS=" ..
             "_main," ..
             "_mogan_menu_invoke," ..
+            "_mogan_menu_expand," ..
             "_mogan_menu_close_popup," ..
             "_mogan_set_chrome_metrics", {force = true})
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/doc/about/mogan/stem.en.tmu") .. "@/TeXmacs/doc/about/mogan/stem.en.tmu")

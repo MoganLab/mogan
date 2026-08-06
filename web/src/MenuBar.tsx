@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MenuNode } from './types';
 import { subscribeMenu } from './bridge';
-import { MenuItems, useCanScrollClass } from './MenuItems';
+import { MenuItems, useCanScrollClass, useSubmenuChildren } from './MenuItems';
 
 /**
  * Top-of-window menu bar. Renders the top-level submenu entries (File, Edit,
@@ -117,9 +117,19 @@ function TopDropdown({
   onInvoke: () => void;
 }) {
   const dd = useCanScrollClass<HTMLUListElement>([]);
+  // Top-level menus are also lazy: request children when the dropdown opens.
+  const { children, ensure } = useSubmenuChildren(node);
+  useEffect(() => {
+    ensure();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <ul ref={dd.ref} className={'mogan-menu-dropdown' + dd.cls} role="menu">
-      <MenuItems nodes={node.children} onInvoke={onInvoke} />
+      {children === undefined ? (
+        <li className="mogan-menu-text">…</li>
+      ) : (
+        <MenuItems nodes={children} onInvoke={onInvoke} />
+      )}
     </ul>
   );
 }

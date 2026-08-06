@@ -21,6 +21,8 @@ type MenuListener = (tree: MenuNode[]) => void;
 type FooterListener = (state: FooterState) => void;
 type PopupOpenListener = (tree: MenuNode[], x: number, y: number) => void;
 type PopupCloseListener = () => void;
+/** Delivers a lazily-expanded submenu's children: (submenu id, children). */
+type SubmenuListener = (id: number, children: MenuNode[]) => void;
 
 type CcallFn = (
   name: string,
@@ -47,6 +49,7 @@ declare global {
     moganOnFooter?: FooterListener;
     moganOnOpenPopup?: PopupOpenListener;
     moganOnClosePopup?: PopupCloseListener;
+    moganOnSubmenu?: SubmenuListener;
   }
 }
 
@@ -90,6 +93,22 @@ export function invokeMenu(id: number): void {
 /** Tell C++ to close the active context menu (outside click / Esc). */
 export function closePopup(): void {
   ccall('mogan_menu_close_popup', null, [], []);
+}
+
+/**
+ * Request a lazily-expanded submenu's children. C++ forces the promise and
+ * pushes the children back via the moganOnSubmenu listener.
+ */
+export function requestSubmenu(id: number): void {
+  ccall('mogan_menu_expand', null, ['number'], [id]);
+}
+
+/** Subscribe to lazily-expanded submenu children pushed from C++. */
+export function subscribeSubmenu(cb: SubmenuListener): () => void {
+  window.moganOnSubmenu = cb;
+  return () => {
+    if (window.moganOnSubmenu === cb) window.moganOnSubmenu = undefined;
+  };
 }
 
 /**

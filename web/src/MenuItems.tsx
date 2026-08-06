@@ -1,7 +1,65 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import type { MenuNode } from './types';
-import { invokeMenu } from './bridge';
+import { invokeMenu, requestSubmenu, subscribeSubmenu } from './bridge';
+
+/**
+ * Cache of lazily-expanded submenu children, keyed by the submenu's id (the id
+ * C++ assigned during serialization). Populated by subscribeSubmenu when C++
+ * pushes an expanded branch. Ids are invalidated on every full-menu rebuild
+ * (C++ clears its registry and re-assigns), so entries are keyed by id and
+ * simply go stale — a stale id is never re-requested because the rebuilt tree
+ * carries fresh ids.
+ */
+const submenuChildrenCache = new Map<number, MenuNode[]>();
+
+/** Subscribe a component to submenu-expansion pushes; returns a version that
+ * bumps whenever any submenu's children arrive, so the component re-renders
+ * and picks the children out of submenuChildrenCache. */
+function useSubmenuExpansions(): number {
+  const [version, setVersion] = useState(0);
+  useEffect(
+    () =>
+      subscribeSubmenu((id, children) => {
+        submenuChildrenCache.set(id, children);
+        setVersion((v) => v + 1);
+      }),
+    [],
+  );
+  return version;
+}
+
+/**
+ * Resolve a submenu's children, requesting them lazily from C++ on first need.
+ * Returns the children once available (undefined while the expansion request
+ * is in flight). `ensure()` triggers the request; call it when the submenu is
+ * about to open. Shared by the nested flyout (SubmenuRow) and the top-level
+ * dropdown (TopDropdown).
+ */
+export function useSubmenuChildren(node: MenuNode & { kind: 'submenu' }): {
+  children: MenuNode[] | undefined;
+  ensure: () => void;
+} {
+  // Re-render whenever any submenu's children arrive from C++.
+  useSubmenuExpansions();
+  const requested = useRef(false);
+  const children =
+    node.children ??
+    (node.id !== undefined ? submenuChildrenCache.get(node.id) : undefined);
+  const ensure = () => {
+    if (children !== undefined) return;
+    if (node.id === undefined || requested.current) return;
+    requested.current = true;
+    requestSubmenu(node.id);
+  };
+  return { children, ensure };
+}
 
 /**
  * Shared renderer for a list of menu nodes — used by both the top-level
@@ -254,6 +312,9 @@ function SubmenuRow({
 }) {
   const rowRef = useRef<HTMLLIElement>(null);
   const flyout = useCanScrollClass<HTMLUListElement>([open]);
+  // Lazily-expanded children (see useSubmenuChildren): undefined until the
+  // submenu is first opened and C++ pushes the branch.
+  const { children, ensure: ensureChildren } = useSubmenuChildren(node);
   // Viewport coordinates for the fixed-position flyout. `top` starts aligned
   // with the row; after the flyout renders we measure its real height and, if
   // it would overflow the viewport bottom, shift it up JUST enough to fit —
@@ -304,6 +365,7 @@ function SubmenuRow({
       className={'mogan-menu-item submenu' + (open ? ' open' : '')}
       onMouseEnter={() => {
         measure();
+        ensureChildren();
         onHoverOpen();
       }}
       onMouseLeave={onHoverClose}
@@ -311,6 +373,7 @@ function SubmenuRow({
       // command, so onInvoke is NOT called and the menu stays open.
       onClick={() => {
         measure();
+        ensureChildren();
         onClickRow();
       }}
     >
@@ -341,7 +404,11 @@ function SubmenuRow({
             // "outside" click to the window-level dismiss listener.
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <MenuItems nodes={node.children} onInvoke={onInvoke} depth={depth + 1} />
+            {children === undefined ? (
+              <li className="mogan-menu-text">…</li>
+            ) : (
+              <MenuItems nodes={children} onInvoke={onInvoke} depth={depth + 1} />
+            )}
           </ul>,
           document.body,
         )}

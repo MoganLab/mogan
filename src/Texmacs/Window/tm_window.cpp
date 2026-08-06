@@ -14,6 +14,7 @@
 #include "iterator.hpp"
 #include "merge_sort.hpp"
 #include "message.hpp"
+#include "tm_debug.hpp" // bench_start / bench_end
 #include "preferences.hpp"
 #include "tm_data.hpp"
 #include "tm_url.hpp"
@@ -406,7 +407,9 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     tm_view vw= concrete_view (window_to_view (id));
     if (vw != NULL) the_drd= vw->ed->drd;
   }
+  if (which == -1) bench_start ("menu-expand");
   object xmenu= call ("menu-expand", eval ("'" * menu));
+  if (which == -1) bench_end ("menu-expand");
   the_drd     = old_drd;
   // tab 栏（which==4）：xmenu 含每次新建的 lambda，无法用 equal 比较，故用
   // 稳定签名判等。签名不变（如切 tab）=> 跳过重建，保持上次 widget。
@@ -416,16 +419,7 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     tab_menu_signature= sig;
   }
   if (menu_cache->contains (xmenu)) {
-#ifdef OS_WASM
-    // WASM/React 是纯 push 模型：menu-expand 经 replace-procedures 把 lazy
-    // 子菜单 lambda 换成 procedure-source，xmenu 与动态数据（如 collab 文档
-    // 列表）无关，结构判等会永远短路，React 端永远收不到新树。主菜单每次
-    // 重建推送；update_menus 是 THE_MENUS 事件驱动的，开销可接受。
-    bool skip_current_check= (which == -1);
-#else
-    bool skip_current_check= false;
-#endif
-    if (!skip_current_check && menu_current[which] == xmenu) return false;
+    if (menu_current[which] == xmenu) return false;
     if (which < 10) {
       menu_current (which)= xmenu;
       w                   = menu_cache[xmenu];
@@ -434,12 +428,14 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
   }
   menu_current (which)= xmenu;
   object umenu= eval ("'" * menu);
+  if (which == -1) bench_start ("make_menu_widget");
   if (which == 10 || which == 11) {
     w= make_menu_widget (umenu, 400, 1000);
   }
   else {
     w= make_menu_widget (umenu);
   }
+  if (which == -1) bench_end ("make_menu_widget");
   if (menu_caching)
     if (which >= 10 || as_bool (call ("cache-menu?", xmenu))) {
       menu_cache (xmenu)= w;

@@ -11,7 +11,20 @@
 export type MenuNode =
   | { kind: 'container'; children: MenuNode[] }
   | { kind: 'tile'; cols: number; children: MenuNode[] }
-  | { kind: 'submenu'; label: string; children: MenuNode[] }
+  | {
+      kind: 'submenu';
+      label: string;
+      /**
+       * Lazy-expansion id. Present when the C++ side deferred this submenu's
+       * children; React requests them via requestSubmenu(id) on first open.
+       */
+      id?: number;
+      /**
+       * Children are absent until the submenu is expanded on demand (lazy
+       * expansion). After the C++ side pushes them they are populated here.
+       */
+      children?: MenuNode[];
+    }
   | {
       kind: 'button';
       id: number;

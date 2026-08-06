@@ -20,6 +20,7 @@
 #include "dictionary.hpp" // translate, get_input/output_language
 #include "im_menu.hpp"    // im_menu_rep, im_activate/deactivate_popup
 #include "message.hpp"    // slot, blackbox, SLOT_*
+#include "tm_debug.hpp"   // bench_start / bench_end
 #include "string.hpp"
 #include "widget.hpp"
 
@@ -49,6 +50,14 @@ EM_JS_DEPS (mogan_react, "$ccall");
 static std::unordered_map<int, command> g_cmd_registry;
 static int                              g_next_cmd_id= 1;
 
+// Lazy-submenu registry, same id space and lifecycle as g_cmd_registry (both
+// are cleared on every full-menu push, and React always receives a fresh tree
+// with freshly-assigned ids). Key = the submenu's id; value = its lazy
+// promise, forced only when React actually expands that submenu — this keeps
+// menu pushes from eagerly expanding every submenu (the Qt/QTMLazyMenu and
+// native ImGui BeginMenu semantics), which is the main update_menus cost.
+static std::unordered_map<int, promise<widget>> g_submenu_registry;
+
 // Chrome metrics reported by JS (px). Zero until the React shell measures its
 // menu/footer; see im_react_chrome_metrics().
 static int g_js_menu_h  = 0;
@@ -77,6 +86,26 @@ mogan_menu_close_popup () {
   im_react_close_popup ();
 }
 
+// im_menu_to_json is defined further below; declared here for the expand hook.
+string im_menu_to_json (widget root);
+// im_js_push_submenu is an EM_JS hook defined further below. EM_JS emits the
+// definition with C language linkage, so the forward declaration must match.
+extern "C" void im_js_push_submenu (int id, const char* json);
+
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_menu_expand (int id) {
+  // React opened a lazy submenu: force its promise and push the freshly
+  // expanded children back. No-op if the id is stale (menu rebuilt since).
+  auto it= g_submenu_registry.find (id);
+  if (it == g_submenu_registry.end ()) return;
+  promise<widget> sub= it->second;
+  if (is_nil (sub)) return;
+  widget    w   = sub ();
+  string    json= im_menu_to_json (w);
+  c_string  cs (json);
+  im_js_push_submenu (id, (const char*) cs);
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void
 mogan_set_chrome_metrics (int menu_h, int footer_h) {
   g_js_menu_h  = menu_h;
@@ -101,6 +130,16 @@ EM_JS (void, im_js_push_menu, (const char* json), {
     if (typeof window.moganOnMenu === 'function') window.moganOnMenu (tree);
   } catch (e) {
     console.error ('mogan: push_menu failed', e);
+  }
+});
+
+EM_JS (void, im_js_push_submenu, (int id, const char* json), {
+  try {
+    var children= JSON.parse (UTF8ToString (json));
+    if (typeof window.moganOnSubmenu === 'function')
+      window.moganOnSubmenu (id, children);
+  } catch (e) {
+    console.error ('mogan: push_submenu failed', e);
   }
 });
 
@@ -226,20 +265,18 @@ serialize_node (widget w, string& out) {
   case im_menu_rep::k_submenu: {
     out << "{\"kind\":\"submenu\",\"label\":";
     out << json_escape (m->display_label ());
-    out << ",\"children\":[";
-    // Force the lazy promise (dynamic menus, like Qt QTMLazyMenu).
+    // Lazy expansion: do NOT force m->sub here. Register the promise under a
+    // fresh id and emit only the label; React requests the children via
+    // mogan_menu_expand(id) when the user actually opens this submenu. This
+    // mirrors Qt QTMLazyMenu / native ImGui BeginMenu (expand-on-open) and is
+    // the key to keeping menu pushes cheap.
     if (!is_nil (m->sub)) {
-      widget       sub= m->sub ();
-      im_menu_rep* sm = dynamic_cast<im_menu_rep*> (sub.rep);
-      if (sm != nullptr) {
-        array<widget>& kids= sm->menu_children ();
-        for (int i= 0; i < N (kids); ++i) {
-          if (i > 0) out << ',';
-          serialize_node (kids[i], out);
-        }
-      }
+      int id                  = g_next_cmd_id++;
+      g_submenu_registry[id]  = m->sub;
+      out << ",\"id\":";
+      out << as_string (id);
     }
-    out << "]}";
+    out << "}";
   } break;
   case im_menu_rep::k_button: {
     int  id     = g_next_cmd_id++;
@@ -301,10 +338,13 @@ im_react_push_menu (widget root) {
   // Each rebuild invalidates prior ids; clear the registry so stale ids from a
   // previous menu tree can never be invoked. (React always gets a fresh tree.)
   g_cmd_registry.clear ();
+  g_submenu_registry.clear ();
   g_next_cmd_id= 1;
+  bench_start ("menu_serialize_push");
   string   json= im_menu_to_json (root);
   c_string cs (json);
   im_js_push_menu ((const char*) cs);
+  bench_end ("menu_serialize_push");
 }
 
 void
