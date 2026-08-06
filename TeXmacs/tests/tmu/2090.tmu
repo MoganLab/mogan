@@ -1,0 +1,11 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\initial>
+  <\collection>
+    <associate|bg-color|<pattern|/home/da/git/mogan/TeXmacs/misc/images/stem-512.png|100%|100%>>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|E973E011-57F4-4570-8B5D-2BA1813203C0>
+  </collection>
+</initial>

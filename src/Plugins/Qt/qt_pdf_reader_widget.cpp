@@ -974,6 +974,8 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   }
 
   extractPageLinks ();
+  extractOutline ();
+  emit outlineLoaded (outlineItems_);
 
   // 创建所有页面 label（先不渲染，由 rebuildPages 统一处理可见性）
   for (int i= 0; i < pageCount_; ++i) {
@@ -1007,6 +1009,7 @@ PDFReaderWidget::clear () {
   pageAspectRatios_.clear ();
   autoFitApplied_= false;
   clearPageLinks ();
+  outlineItems_.clear ();
   pageCache_.clear ();
 
   QLayoutItem* item;
@@ -1085,6 +1088,67 @@ PDFReaderWidget::extractPageLinks () {
   }
   fz_catch (ctx) {
     qWarning () << "MuPDF link extraction error:" << fz_caught_message (ctx);
+  }
+
+  if (stream) fz_drop_stream (ctx, stream);
+  if (buf) fz_drop_buffer (ctx, buf);
+  if (doc) fz_drop_document (ctx, doc);
+}
+
+namespace {
+void
+walkOutline (fz_context* ctx, fz_document* doc, const fz_outline* node,
+             int level, QVector<PdfOutlineItem>& out) {
+  for (const fz_outline* cur= node; cur; cur= cur->next) {
+    PdfOutlineItem item;
+    item.title= QString::fromUtf8 (cur->title ? cur->title : "");
+    item.page = -1;
+    if (cur->uri) {
+      float       xp= 0, yp= 0;
+      fz_location loc= fz_resolve_link (ctx, doc, cur->uri, &xp, &yp);
+      if (loc.page >= 0) item.page= loc.page;
+    }
+    if (cur->down) {
+      walkOutline (ctx, doc, cur->down, level + 1, item.children);
+    }
+    out.append (item);
+  }
+}
+} // namespace
+
+void
+PDFReaderWidget::extractOutline () {
+  outlineItems_.clear ();
+  if (pdfData_.isEmpty ()) return;
+
+  fz_context* ctx= mupdf_context ();
+  if (!ctx) return;
+
+  fz_document* doc   = nullptr;
+  fz_buffer*   buf   = nullptr;
+  fz_stream*   stream= nullptr;
+
+  fz_var (doc);
+  fz_var (buf);
+  fz_var (stream);
+
+  fz_try (ctx) {
+    buf= fz_new_buffer_from_copied_data (
+        ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
+        pdfData_.size ());
+    stream= fz_open_buffer (ctx, buf);
+    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
+    if (!doc)
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF for outline");
+
+    fz_outline* outline= fz_load_outline (ctx, doc);
+    if (outline) {
+      walkOutline (ctx, doc, outline, 0, outlineItems_);
+      fz_drop_outline (ctx, outline);
+    }
+  }
+  fz_catch (ctx) {
+    qWarning () << "MuPDF outline extraction error:" << fz_caught_message (ctx);
   }
 
   if (stream) fz_drop_stream (ctx, stream);

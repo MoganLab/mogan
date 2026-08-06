@@ -42,7 +42,10 @@ private slots:
     defaultMessageHandler= qInstallMessageHandler (filterTestWarnings);
   }
 
-  void init () { init_lolly (); }
+  void init () {
+    init_lolly ();
+    qRegisterMetaType<QVector<PdfOutlineItem>> ("QVector<PdfOutlineItem>");
+  }
 
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
@@ -1474,6 +1477,63 @@ private slots:
     QVERIFY2 (
         qAbs (vbar->value () - initialScrollY) <= 5,
         "Scroll position did not return to original after round-trip zoom");
+    delete widget;
+  }
+
+  // -- outline 提取测试 --
+
+  void test_outlineLoaded_noOutlineEmitsEmpty () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    QSignalSpy spy (widget,
+                    SIGNAL (outlineLoaded (const QVector<PdfOutlineItem>&)));
+
+    // pdf_1_4_sample.pdf 无大纲，应发出空 outline
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+    QTest::qWait (200);
+
+    QCOMPARE (spy.count (), 1);
+    QList<QVariant>         args= spy.takeFirst ();
+    QVector<PdfOutlineItem> outline=
+        args.at (0).value<QVector<PdfOutlineItem>> ();
+    QVERIFY (outline.isEmpty ());
+
+    delete widget;
+  }
+
+  void test_outlineLoaded_withOutline () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    QSignalSpy spy (widget,
+                    SIGNAL (outlineLoaded (const QVector<PdfOutlineItem>&)));
+
+    url pdfUrl=
+        url_system ("$TEXMACS_PATH/tests/PDF/quartus_manual_with_outline.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+    QTest::qWait (200);
+
+    QCOMPARE (spy.count (), 1);
+    QList<QVariant>         args= spy.takeFirst ();
+    QVector<PdfOutlineItem> outline=
+        args.at (0).value<QVector<PdfOutlineItem>> ();
+    // 该 PDF 应至少包含一个大纲条目
+    QVERIFY (!outline.isEmpty ());
+    // 第一个条目应有非空标题
+    QVERIFY (!outline.first ().title.isEmpty ());
+    // 第一个条目应解析到有效页码（>=0）
+    QVERIFY (outline.first ().page >= 0);
+
     delete widget;
   }
 };

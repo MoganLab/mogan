@@ -27,7 +27,7 @@
 #include "im_ime_macos.hpp" // macOS IME bridge (no-op stubs elsewhere)
 #include "im_input.hpp"
 #include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
-#include "im_react_bridge.hpp" // WASM React shell bridge (no-op on native)
+#include "im_react_bridge.hpp"  // WASM React shell bridge (no-op on native)
 #include "im_simple_widget.hpp" // editor canvas (main_widget)
 
 #ifdef LORO_ENABLED
@@ -749,7 +749,7 @@ im_tm_widget_rep::im_main_loop () {
   // draw_remote_cursors 画进同一纹理，无需此处处理。
   {
     static time_t last_loro_poll_time= 0;
-    time_t       now                  = texmacs_time ();
+    time_t        now                = texmacs_time ();
     if (now - last_loro_poll_time >= 1000 / 6) {
       loro_collab_poll ();
       loro_collab_apply ();
@@ -774,11 +774,12 @@ im_tm_widget_rep::im_main_loop () {
   // im_flush_menu_commands 统一执行，避免在遍历菜单树时重入。
   float menu_h= 0.0f;
 #ifdef __EMSCRIPTEN__
-  // WASM：菜单条 / 状态栏 / 右键弹出菜单全部由 React shell 渲染，ImGui 不再绘制。
-  // header_h / footer_h 改用 JS 回报的实测像素高度（首帧 JS 尚未回报时退化为
-  // ImGui 默认帧高 ~22px），以保证画布依旧落在菜单与状态栏之间、screen_to_si 的
-  // 坐标对齐不变。弹出菜单与命令执行仍走 im_flush_menu_commands（mogan_menu_invoke
-  // 入队后立即 flush）。
+  // WASM：菜单条 / 状态栏 / 右键弹出菜单全部由 React shell 渲染，ImGui
+  // 不再绘制。 header_h / footer_h 改用 JS 回报的实测像素高度（首帧 JS
+  // 尚未回报时退化为 ImGui 默认帧高
+  // ~22px），以保证画布依旧落在菜单与状态栏之间、screen_to_si 的
+  // 坐标对齐不变。弹出菜单与命令执行仍走
+  // im_flush_menu_commands（mogan_menu_invoke 入队后立即 flush）。
   {
     int js_menu_h= 22, js_footer_h= 22;
     im_react_chrome_metrics (js_menu_h, js_footer_h);
@@ -1331,7 +1332,8 @@ im_tm_widget_rep::write (slot s, blackbox index, widget w) {
     // 主菜单条由 Scheme 层经 menu_main → set_main_menu 写入。tm_data 会按需重发
     // （焦点/语言变化等），这里只保留最新一棵，每帧即时渲染。
     menu_widget= w;
-    // WASM：把同一棵树序列化为 JSON 推给 React shell 渲染（native 侧为 no-op）。
+    // WASM：把同一棵树序列化为 JSON 推给 React shell 渲染（native 侧为
+    // no-op）。
     im_react_push_menu (menu_widget);
     break;
   default:

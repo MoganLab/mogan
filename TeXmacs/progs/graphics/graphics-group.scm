@@ -127,13 +127,18 @@
 ) ;define
 
 (define (group-zoom x y)
-  (with h
-    (/ (point-norm (sub-point `(,x ,y) `(,group-bary-x ,group-bary-y)))
-      (point-norm (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x
-                                                                ,group-bary-y))
-      ) ;point-norm
-    ) ;/
-    (lambda (o) (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
+  (with denom
+    (point-norm (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x
+                                                              ,group-bary-y))
+    ) ;point-norm
+    ;; 首点与重心重合时缩放比例无定义（如单锚点 text-at），保持原大小避免除零
+    (with h
+      (if (< denom 1e-9)
+        1.0
+        (/ (point-norm (sub-point `(,x ,y) `(,group-bary-x ,group-bary-y))) denom)
+      ) ;if
+      (lambda (o) (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
+    ) ;with
   ) ;with
 ) ;define
 

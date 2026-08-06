@@ -203,6 +203,11 @@ target("stem") do
     if is_plat("windows") and has_config("qt_frontend")  then
         set_values("qt.deploy.flags", {"-printsupport", "--no-opengl-sw", "--no-translations", "--release"})
     end
+    if is_plat("windows") and has_config("loro") then
+        -- /WHOLEARCHIVE 会把 staticlib 中重复的 bcryptprimitives.dll 导入桩全部
+        -- 拉入导致 LNK2005，/FORCE:MULTIPLE 取首个定义规避（rust#129218）
+        add_ldflags("/WHOLEARCHIVE:mogan_loro_ffi.lib", "/FORCE:MULTIPLE", {force = true})
+    end
 
     after_build(function (target)
         if is_plat("wasm") then

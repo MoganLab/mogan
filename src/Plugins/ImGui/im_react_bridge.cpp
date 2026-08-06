@@ -20,8 +20,8 @@
 #include "dictionary.hpp" // translate, get_input/output_language
 #include "im_menu.hpp"    // im_menu_rep, im_activate/deactivate_popup
 #include "message.hpp"    // slot, blackbox, SLOT_*
-#include "tm_debug.hpp"   // bench_start / bench_end
 #include "string.hpp"
+#include "tm_debug.hpp" // bench_start / bench_end
 #include "widget.hpp"
 
 #include <emscripten.h>
@@ -251,8 +251,8 @@ serialize_node (widget w, string& out) {
     // mirrors Qt QTMLazyMenu / native ImGui BeginMenu (expand-on-open) and is
     // the key to keeping menu pushes cheap.
     if (!is_nil (m->sub)) {
-      int id                  = g_next_cmd_id++;
-      g_submenu_registry[id]  = m->sub;
+      int id                = g_next_cmd_id++;
+      g_submenu_registry[id]= m->sub;
       out << ",\"id\":";
       out << as_string (id);
     }

@@ -975,6 +975,7 @@
 (STHeiti STHeiti SansSerif)
 (Stix Stix)
 (Stix\ Math Stix\ Math)
+(Stix\ Two\ Math Stix\ Two\ Math)
 (STKaiti STKaiti)
 (Stone\ Sans\ ITC\ TT Stone\ ITC\ TT SansSerif Bold)
 (Stone\ Sans\ Sem\ ITC\ TT Stone\ Sem\ ITC\ TT SansSerif)

@@ -22,7 +22,7 @@
     (let* ((obj (stree-radical (car (sketch-get1)))) (pts (cdr obj)))
       (let loop
         ((i 0) (res '()))
-        (if (< i current-point-no)
+        (if (< i (min current-point-no (length pts)))
           (let ((p (list-ref pts i)))
             (if (and (pair? p) (== (car p) 'point))
               (loop (+ i 1) (cons (cdr p) res))

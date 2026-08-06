@@ -55,12 +55,20 @@ void im_react_chrome_metrics (int& menu_h, int& footer_h);
 #else
 
 // Non-WASM: provide no-op stubs so callers can compile unconditionally.
-inline string im_menu_to_json (widget) { return "[]"; }
-inline void    im_react_push_menu (widget) {}
-inline void    im_react_push_footer (string, string, string, bool) {}
-inline void    im_react_open_popup (widget, float, float) {}
-inline void    im_react_close_popup () {}
-inline void    im_react_chrome_metrics (int&, int&) {}
+inline string
+im_menu_to_json (widget) {
+  return "[]";
+}
+inline void
+im_react_push_menu (widget) {}
+inline void
+im_react_push_footer (string, string, string, bool) {}
+inline void
+im_react_open_popup (widget, float, float) {}
+inline void
+im_react_close_popup () {}
+inline void
+im_react_chrome_metrics (int&, int&) {}
 
 #endif // __EMSCRIPTEN__
 

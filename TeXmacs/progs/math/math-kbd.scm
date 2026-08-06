@@ -1396,6 +1396,7 @@
 
  ("/ / var" "<parallel>")
  ("/ / var var" "//")
+ ("/ / var var var" "<parallelogram>")
  ("| /" "<nmid>")
  ("| / var" "<ndivides>")
  ("| var" "|")

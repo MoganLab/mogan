@@ -2510,6 +2510,7 @@
 ((Stix Italic) ((STIX-Italic.otf 0 177388) (STIX-Italic.otf 0 175332)))
 ((Stix Regular) ((STIX-Regular.otf 0 426992) (STIX-Regular.otf 0 426932)))
 ((Stix\ Math Regular) ((STIXMath-Regular.otf 0 477848) (STIXMath-Regular.otf 0 476872)))
+((Stix\ Two\ Math Regular) ((STIXTwoMath-Regular.ttf 0 1518116)))
 ((STKaiti Regular) ((华文楷体.ttf 0 17502796) (Kaiti.ttc 4 70712356) (楷体.ttc 3 23433244)))
 ((Stone\ Sans\ ITC\ TT Bold) ((Stone\ Sans.ttc 2 432996) (Stone\ Sans.ttc 2 499532)))
 ((Stone\ Sans\ Sem\ ITC\ TT Semi) ((Stone\ Sans.ttc 0 432996) (Stone\ Sans.ttc 0 499532)))

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "unicode.hpp"
+#include "numeral.hpp"
 #include "tbox/tbox.h"
 
 namespace lolly {
@@ -95,6 +96,18 @@ decode_from_utf8 (string_u8 s, int& i) {
   return code;
 }
 
+static bool
+is_cjk_unified_ideograph_code (int code) {
+  return (code >= 0x4e00 && code <= 0x9fff) ||   // CJK 统一汉字基本区
+         (code >= 0x3400 && code <= 0x4dbf) ||   // CJK 统一汉字扩展区 A
+         (code >= 0x20000 && code <= 0x2a6df) || // CJK 统一汉字扩展区 B
+         (code >= 0x2a700 && code <= 0x2b81f) || // CJK 统一汉字扩展区 C & D
+         (code >= 0x2b820 && code <= 0x2ee5f) || // CJK 统一汉字扩展区 E, F & I
+         (code >= 0x30000 && code <= 0x3347f) || // CJK 统一汉字扩展区 G, H & J
+         (code >= 0xf900 && code <= 0xfaff) ||   // CJK 兼容表意文字
+         (code >= 0x2f800 && code <= 0x2fa1f);   // CJK 兼容表意文字补充区
+}
+
 string
 unicode_get_range (int code) {
   if (code <= 0x7f) return "ascii";
@@ -102,9 +115,11 @@ unicode_get_range (int code) {
   else if (code >= 0x380 && code <= 0x3ff) return "greek";
   else if (code >= 0x400 && code <= 0x4ff) return "cyrillic";
   else if (code >= 0x2460 && code <= 0x24ff) return "enclosed_alphanumerics";
-  else if (code >= 0x3000 && code <= 0x303f) return "cjk";
-  else if (code >= 0x4e00 && code <= 0x9fcc) return "cjk";
-  else if (code >= 0xff00 && code <= 0xffef) return "cjk";
+  else if (code >= 0x3000 && code <= 0x303f) return "cjk"; // CJK 符号和标点
+  else if (is_cjk_unified_ideograph_code (code))
+    return "cjk"; // CJK 统一汉字及各大扩展、兼容区
+  else if (code >= 0xff00 && code <= 0xffef)
+    return "cjk"; // 半角和全角形式标点与字符
   else if (code >= 0x3040 && code <= 0x309F) return "hiragana";
   else if (code >= 0xac00 && code <= 0xd7af) return "hangul";
   else if (code >= 0x2000 && code <= 0x23ff) return "mathsymbols";
@@ -140,8 +155,9 @@ is_cjk_unified_ideographs (string s) {
       i        = i + 2;
       while (i < n && s[i] != '>')
         i++;
-      string r= s (start, i);
-      if ("4E00" <= r && r <= "9FBF") continue;
+      string r   = s (start, i);
+      int    code= from_hex (r);
+      if (is_cjk_unified_ideograph_code (code)) continue;
       else return false;
     }
     else {
@@ -159,8 +175,9 @@ has_cjk_unified_ideographs (string s) {
       i        = i + 2;
       while (i < n && s[i] != '>')
         i++;
-      string r= s (start, i);
-      if ("4E00" <= r && r <= "9FBF") return true;
+      string r   = s (start, i);
+      int    code= from_hex (r);
+      if (is_cjk_unified_ideograph_code (code)) return true;
       else continue;
     }
     else {

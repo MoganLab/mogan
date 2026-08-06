@@ -14,9 +14,9 @@
 #include "iterator.hpp"
 #include "merge_sort.hpp"
 #include "message.hpp"
-#include "tm_debug.hpp" // bench_start / bench_end
 #include "preferences.hpp"
 #include "tm_data.hpp"
+#include "tm_debug.hpp" // bench_start / bench_end
 #include "tm_url.hpp"
 
 #include <moebius/drd/drd_std.hpp>
@@ -410,7 +410,7 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
   if (which == -1) bench_start ("menu-expand");
   object xmenu= call ("menu-expand", eval ("'" * menu));
   if (which == -1) bench_end ("menu-expand");
-  the_drd     = old_drd;
+  the_drd= old_drd;
   // tab 栏（which==4）：xmenu 含每次新建的 lambda，无法用 equal 比较，故用
   // 稳定签名判等。签名不变（如切 tab）=> 跳过重建，保持上次 widget。
   if (which == 4) {
@@ -427,7 +427,7 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
     }
   }
   menu_current (which)= xmenu;
-  object umenu= eval ("'" * menu);
+  object umenu        = eval ("'" * menu);
   if (which == -1) bench_start ("make_menu_widget");
   if (which == 10 || which == 11) {
     w= make_menu_widget (umenu, 400, 1000);

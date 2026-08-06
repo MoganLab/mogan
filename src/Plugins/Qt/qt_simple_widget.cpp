@@ -288,10 +288,14 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
       ghostTextPopup->updatePosition ();
     if (diffTextPopup && diffTextPopup->isVisible ())
       diffTextPopup->updatePosition ();
-#ifdef Q_OS_LINUX
     QInputMethod* im= QGuiApplication::inputMethod ();
-    if (im) im->update (Qt::ImCursorRectangle);
+    if (im) {
+      // 光标进出数学模式时通知平台重查 ImEnabled，切换输入法启用状态
+      im->update (Qt::ImEnabled);
+#ifdef Q_OS_LINUX
+      im->update (Qt::ImCursorRectangle);
 #endif
+    }
   } break;
 
   default:

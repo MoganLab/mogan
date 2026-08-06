@@ -15,6 +15,7 @@
 #include "data_cache.hpp"
 #include "file.hpp"
 #include "gui.hpp" // for gui_interrupted
+#include "hashset.hpp"
 #include "message.hpp"
 #include "new_view.hpp"
 #include "observers.hpp"
@@ -598,6 +599,35 @@ correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
   rs2->item->x1= mid;
 }
 
+// 保留蓝色焦点填充的 inline 标签白名单：其余结构（段落、列表、表格、
+// 绘图区等块级标签）一律只画边框，避免大面积蓝色填充遮挡内容
+// （Issue #2091）。DRD 目前没有 inline/block 属性可查询，故显式列举。
+static bool
+is_inline_focus_tag (tree st) {
+  if (!is_compound (st)) return false;
+  static hashset<string> tags;
+  if (N (tags) == 0) {
+    tags << string ("strong") << string ("em") << string ("dfn")
+         << string ("samp") << string ("name") << string ("person")
+         << string ("abbr") << string ("acronym") << string ("kbd")
+         << string ("var") << string ("tt") << string ("verbatim")
+         << string ("cite*") << string ("math") << string ("rsub")
+         << string ("rsup") << string ("hlink") << string ("slink")
+         << string ("action") << string ("item") << string ("cell")
+         << string ("around") << string ("around*") << string ("sqrt")
+         << string ("frac") << string ("frac*") << string ("dfrac")
+         << string ("tfrac") << string ("cfrac") << string ("above")
+         << string ("lsub") << string ("lsup") << string ("strike-through")
+         << string ("underline") << string ("bold") << string ("below")
+         << string ("really-tiny") << string ("tiny") << string ("very-small")
+         << string ("normal-size") << string ("large") << string ("very-large")
+         << string ("huge") << string ("really-huge") << string ("overline")
+         << string ("small") << string ("long-arrow") << string ("wide")
+         << string ("paragraph") << string ("subparagraph");
+  }
+  return tags->contains (as_string (L (st)));
+}
+
 void
 edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
   if (p == rp) return;
@@ -766,7 +796,11 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (N (focus_get ()) >= N (p))
         if (!recurse || get_preference ("show full context") == "on") {
           if (recurse) rs << outlines (sel->rs, pixel);
-          else rs << thicken (sel->rs, 0, 2 * pixel);
+          // 仅 inline 标签白名单保留半透明蓝色填充，其余结构（段落、
+          // 列表、表格、绘图区等）一律只画边框（Issue #2091）。
+          else if (is_inline_focus_tag (st))
+            rs << thicken (sel->rs, 0, 2 * pixel);
+          else rs << outlines (sel->rs, pixel);
         }
     }
     set_access_mode (old_mode);
@@ -1134,9 +1168,10 @@ edit_interface_rep::apply_changes () {
       ;
     else pp= path_up (pp);
     if (full_context || table_cells) compute_env_rects (pp, env_rects, true);
-    // 在绘图区中不计算 foc_rects，即不会产生淡蓝色背景高亮
-    if (show_focus && (!semantic_flag || !semantic_only) &&
-        !inside_graphics (false))
+    // 光标处于绘图区时仍计算 foc_rects；焦点填充样式在 compute_env_rects
+    // 内部分流：仅 inline 标签白名单用背景填充（thicken），其余结构
+    // （含绘图区）一律改用边框（outlines），避免大面积遮挡内容。
+    if (show_focus && (!semantic_flag || !semantic_only))
       compute_env_rects (pp, foc_rects, false);
     if (env_rects != old_env_rects) {
       invalidate (old_env_rects);

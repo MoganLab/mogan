@@ -44,6 +44,7 @@ class QToolBar;
 class QTMInteractivePrompt;
 class PDFReaderWidget;
 class PdfToolBar;
+class OutlineWidget;
 
 /*! Models one main window with toolbars, an associated view, etc.
 
@@ -81,7 +82,8 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QDockWidget*            leftTools;
   QDockWidget*            bottomTools;
   QDockWidget*            extraTools;
-  QDockWidget*            chatSideDock; ///< AI 聊天侧边栏 Dock
+  QDockWidget*            chatSideDock;   ///< AI 聊天侧边栏 Dock
+  OutlineWidget*          pdfOutlineDock; ///< PDF 目录（大纲）侧边栏 Dock
   QTMTabPageContainer*    tabPageContainer;
   QTMAuxiliaryWidget*     auxiliaryWidget;
   QWK::WidgetWindowAgent* windowAgent;

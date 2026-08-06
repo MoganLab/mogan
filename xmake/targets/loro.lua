@@ -11,7 +11,7 @@
 
 target("loro")
     set_kind("phony")
-    if is_plat("wasm") then
+    if is_plat("wasm") or is_plat("windows") then
         add_packages("rustup")
     else
         add_packages("rust")
@@ -41,14 +41,23 @@ target("loro")
         add_syslinks("iconv", "resolv", "System", {public = true})
         add_frameworks("Security", "Foundation", {public = true})
     elseif is_plat("windows") then
-        -- 补充：Rust 静态库在 Windows 上必需的底层系统链接
-        add_syslinks("userenv", "ws2_32", "bcrypt", {public = true})
+        -- 补充：Rust 静态库在 Windows 上必需的底层系统链接。
+        -- ntdll：std 文件系统用到 NtCreateFile/NtReadFile 等 Native API，
+        -- cargo 链接 Rust exe 时会自动追加，外部消费 staticlib 需手动补。
+        add_syslinks("userenv", "ws2_32", "bcrypt", "ntdll", {public = true})
     end
 
     before_build(function(target)
         cprint("${yellow}setting up rust toolchain")
         if is_plat("wasm") then
             local rust_version = "1.96.1" 
+            os.vrunv("rustup", {"toolchain", "install", rust_version})
+            os.vrunv("rustup", {"default", rust_version})
+            os.vrunv("rustup", {"target", "add", rust_target})
+        elseif is_plat("windows") then
+            -- Windows 上安装 x86_64 MSVC 工具链
+            local rust_version = "1.96.1"
+            local rust_target = "x86_64-pc-windows-msvc"
             os.vrunv("rustup", {"toolchain", "install", rust_version})
             os.vrunv("rustup", {"default", rust_version})
             os.vrunv("rustup", {"target", "add", rust_target})
@@ -64,24 +73,6 @@ target("loro")
         table.join2(args, {"--profile", profile})
         if rust_target then
             table.join2(args, {"--target", rust_target})
-        end
-
-        if is_plat("windows") then
-            -- Cargo otherwise resolves link.exe from PATH, which can select the
-            -- incompatible Scoop shim instead of the configured MSVC linker.
-            local msvc = assert(target:toolchain("msvc"), "MSVC toolchain not found")
-            local linker = assert(msvc:tool("ld"), "MSVC linker not found")
-            local rustc = assert(target:tool("rc"), "Rust compiler not found")
-            cargo_envs = msvc:runenvs() or {}
-            local host_path = os.getenv("PATH")
-            if host_path then
-                cargo_envs.PATH = cargo_envs.PATH
-                    and path.joinenv({cargo_envs.PATH, host_path})
-                    or host_path
-            end
-            cargo_envs.CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = linker
-            cargo_envs.RUSTC = rustc
-            cprint("${yellow}using MSVC linker: %s", linker)
         end
 
         if option.get("verbose") then

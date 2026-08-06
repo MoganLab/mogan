@@ -663,6 +663,11 @@ TEST_CASE ("test_cork_to_utf8_named_entities") {
   string_eq (cork_to_utf8 (">"), ">");
 }
 
+TEST_CASE ("test_cork_to_utf8_symbol_entities") {
+  string_eq (cork_to_utf8 ("<parallelogram>"), "▱");      // U+25B1
+  string_eq (cork_to_utf8 ("<blackparallelogram>"), "▰"); // U+25B0
+}
+
 TEST_CASE ("test_utf8_to_cork_named_entities") {
   string_eq (utf8_to_cork ("<"), "<less>");
   string_eq (utf8_to_cork (">"), "<gtr>");
