@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : init-emoji.scm
-;; DESCRIPTION : Initialize the emoji plugin
+;; MODULE      : emoji.scm
+;; DESCRIPTION : emoji shortcuts (: smile : -> U+1F604 etc.)
 ;; COPYRIGHT   : (C) 2024  Darcy Shen
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -10,7 +10,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (emoji))
+(texmacs-module (keyboard emoji))
+
+(debug-message "keyboard" "(keyboard emoji): registering emoji kbd-map ...\n")
 
 (kbd-map (": + 1 :" "<#1F44D>")
  (": - 1 :" "<#1F44E>")
@@ -809,3 +811,5 @@
  (": z a p :" "<#26A1>")
  (": z z z :" "<#1F4A4>")
 ) ;kbd-map
+
+(debug-message "keyboard" "(keyboard emoji): emoji kbd-map registered\n")
