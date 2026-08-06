@@ -253,12 +253,11 @@ box_widget (scheme_tree p, string s, color col, bool trans, bool ink) {
   if ((n >= 5) && is_atomic (p[4])) sz= as_int (p[4]);
   if ((n >= 6) && is_atomic (p[5])) dpi= as_int (p[5]);
   if ((n >= 7) && is_atomic (p[6])) dw= as_int (p[6]);
-  bool adjust= s == "<lefttimesthree>" || s == "<righttimesthree>";
-  font fn= smart_font (family, fn_class, series, shape, adjust ? 1.15 * sz : sz,
-                       dpi);
-  box  b = text_box (decorate (), 0, s, fn, col);
+  font fn= find_font (family, fn_class, series, shape, sz, dpi);
+  if (is_nil (fn) || !fn->supports (s))
+    fn= smart_font (family, fn_class, series, shape, sz, dpi);
+  box b= text_box (decorate (), 0, s, fn, col);
   if (ink) b= resize_box (decorate (), b, b->x3, b->y3, b->x4, b->y4, true);
-  if (adjust) b= shift_box (decorate (), b, 0, -fn->wfn / 16);
   return box_widget (b, trans, dw);
 }
 
