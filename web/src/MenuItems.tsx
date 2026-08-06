@@ -39,10 +39,11 @@ export function MenuItems({ nodes, onInvoke, depth = 0 }: MenuItemsProps) {
   const normalized = normalizeSeparators(nodes);
 
   // Index (into `normalized`) of the currently-open submenu at THIS level.
-  // One open flyout per level; hovering a different submenu row switches to
-  // it, and an open flyout never auto-collapses on pointer-leave — it only
-  // closes when a sibling opens or the whole menu is dismissed.
+  // One open flyout per level. Hovering a sibling submenu switches to it;
+  // hovering ANY other (non-submenu) row closes the open flyout. An open
+  // flyout never collapses just because the pointer left the menu entirely.
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const closeFlyout = () => setOpenIdx(null);
 
   return (
     <>
@@ -56,13 +57,13 @@ export function MenuItems({ nodes, onInvoke, depth = 0 }: MenuItemsProps) {
           onHoverOpen={() => setOpenIdx(i)}
           onHoverClose={() => {
             // A flyout never collapses just because the pointer left it — it
-            // stays open until the user hovers a sibling submenu (openIdx
-            // moves) or dismisses the whole menu. Nothing to do here.
+            // stays open until the user hovers a sibling (handled by
+            // onHoverOpen / onHoverSibling) or dismisses the whole menu.
           }}
+          onHoverSibling={closeFlyout}
           onClickRow={() => {
-            // Clicking a submenu row just opens its flyout (and keeps it
-            // pinned via the no-auto-collapse rule above). No command runs, so
-            // onInvoke is not called and the surrounding menu stays open.
+            // Clicking a submenu row just opens its flyout. No command runs,
+            // so onInvoke is not called and the surrounding menu stays open.
             setOpenIdx(i);
           }}
         />
@@ -78,6 +79,7 @@ function MenuRow({
   open,
   onHoverOpen,
   onHoverClose,
+  onHoverSibling,
   onClickRow,
 }: {
   node: MenuNode;
@@ -87,6 +89,8 @@ function MenuRow({
   open: boolean;
   onHoverOpen: () => void;
   onHoverClose: () => void;
+  /** Fired when a NON-submenu sibling is hovered (closes the open flyout). */
+  onHoverSibling: () => void;
   onClickRow: () => void;
 }) {
   switch (node.kind) {
@@ -127,6 +131,7 @@ function MenuRow({
                   open={false}
                   onHoverOpen={() => {}}
                   onHoverClose={() => {}}
+                  onHoverSibling={() => {}}
                   onClickRow={() => {}}
                 />
               </span>
@@ -136,19 +141,34 @@ function MenuRow({
       );
 
     case 'separator':
-      return <li className="mogan-menu-separator" role="separator" />;
+      return (
+        <li
+          className="mogan-menu-separator"
+          role="separator"
+          onMouseEnter={onHoverSibling}
+        />
+      );
 
     case 'group':
-      return <li className="mogan-menu-group">{node.label}</li>;
+      return (
+        <li className="mogan-menu-group" onMouseEnter={onHoverSibling}>
+          {node.label}
+        </li>
+      );
 
     case 'text':
-      return <li className="mogan-menu-text">{node.label}</li>;
+      return (
+        <li className="mogan-menu-text" onMouseEnter={onHoverSibling}>
+          {node.label}
+        </li>
+      );
 
     case 'button':
       return (
         <li
           className={'mogan-menu-item' + (node.enabled ? '' : ' disabled')}
           role="menuitem"
+          onMouseEnter={onHoverSibling}
           onClick={() => {
             if (!node.enabled) return;
             invokeMenu(node.id);
