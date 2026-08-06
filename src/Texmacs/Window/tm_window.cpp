@@ -425,31 +425,23 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
 #else
     bool skip_current_check= false;
 #endif
-    cout << "CKPT1" << LF;
     if (!skip_current_check && menu_current[which] == xmenu) return false;
-    cout << "CKPT2" << LF;
     if (which < 10) {
       menu_current (which)= xmenu;
       w                   = menu_cache[xmenu];
       return true;
     }
   }
-  cout << "CKPT3" << LF;
   menu_current (which)= xmenu;
-  cout << "CKPT4" << LF;
   object umenu= eval ("'" * menu);
-  cout << "CKPT5" << LF;
   if (which == 10 || which == 11) {
     w= make_menu_widget (umenu, 400, 1000);
-    cout << "CKPT6" << LF;
   }
   else {
     w= make_menu_widget (umenu);
-    cout << "CKPT7" << LF;
   }
   if (menu_caching)
     if (which >= 10 || as_bool (call ("cache-menu?", xmenu))) {
-      cout << "CKPT8" << LF;
       menu_cache (xmenu)= w;
     }
   return true;
