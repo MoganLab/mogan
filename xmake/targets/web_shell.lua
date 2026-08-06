@@ -22,8 +22,13 @@ target("web_shell")
     on_build(function (target)
         -- Hard fail if the JS toolchain is missing: we don't want a silent
         -- fallback to the legacy stem.html when xmake owns the web build.
-        assert(os.find_executable("node"), "node not found in PATH (required to build web/)")
-        assert(os.find_executable("npm"),  "npm not found in PATH (required to build web/)")
+        import("lib.detect.find_tool")
+
+        local node = find_tool("node")
+        local npm  = find_tool("npm")
+
+        assert(node, "node not found in PATH (required to build web/)")
+        assert(npm,  "npm not found in PATH (required to build web/)")
 
         cprint("${yellow}building web shell (npm)")
 
