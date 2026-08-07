@@ -633,6 +633,8 @@
 ;;; ========== 测试入口 ==========
 
 (tm-define (test_0205)
+  ;; llm 插件按 idle 延迟初始化，headless 下测试先于插件加载执行
+  (use-modules (llm chat-loader))
   (test-chat-persist-home-path)
   (test-chat-persist-base-dir)
   (test-chat-persist-manifest-path)

@@ -55,6 +55,8 @@ ChatController::destroyView () {
 QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   // 1. Load session metadata
+  // llm 插件按 idle 延迟初始化，新建 Chat 标签页时其 scheme 模块可能尚未加载
+  eval ("(use-modules (llm chat-loader))");
   call ("chat-persist-load-all");
   cout << "[chat-persist] ChatController: restored "
        << sessionManager_.sessionCount () << " session metadatas" << LF;
