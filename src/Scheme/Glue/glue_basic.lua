@@ -1443,6 +1443,15 @@ function main()
                 }
             },
             {
+                scm_name = "render-doc-to-pdf",
+                cpp_name = "buffer_render_to_pdf",
+                ret_type = "bool",
+                arg_list = {
+                    "url",   -- buffer url
+                    "url"    -- destination pdf
+                }
+            },
+            {
                 scm_name = "buffer-save",
                 cpp_name = "buffer_save",
                 ret_type = "bool",

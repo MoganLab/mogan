@@ -648,6 +648,17 @@ buffer_render_to_images (url name, url dest, double zoomf) {
   return true;
 }
 
+bool
+buffer_render_to_pdf (url name, url dest) {
+  // 用 passive（无窗口）view 将 buffer 导出为 PDF，headless 可用。
+  // 直接走 print_doc 而非 print_to_file，避免无窗 editor 下 set_message
+  // 经 get_current_editor 取空指针而崩溃。
+  tm_view vw= concrete_view (get_passive_view (name));
+  ASSERT (vw != NULL, "view expected");
+  vw->ed->print_doc (dest, false, 1, 1000000);
+  return true;
+}
+
 tree
 latex_expand (tree doc, url name) {
   tm_view vw  = concrete_view (get_recent_view (name));
