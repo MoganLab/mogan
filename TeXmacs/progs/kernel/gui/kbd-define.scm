@@ -53,27 +53,30 @@
 ) ;define
 
 (tm-define (lazy-keyboard-force . opt)
-  (debug-message "debug-std"
-    (string-append "lazy-keyboard-force called, opt="
-      (object->string opt)
-      ", waiting="
-      (number->string (length lazy-keyboard-waiting))
-      "\n"
-    ) ;string-append
-  ) ;debug-message
-  (set! lazy-force-all? (or lazy-force-all? (nnull? opt)))
-  (when (not lazy-force-busy?)
-    (set! lazy-force-busy? #t)
-    (let* ((l1 (reverse lazy-keyboard-waiting)) (l2 (lazy-keyboard-force-do l1)))
-      (set! lazy-keyboard-waiting (reverse l2))
-      (set! lazy-force-busy? #f)
-      (when (null? lazy-keyboard-waiting)
-        (set! lazy-force-all? #f)
-      ) ;when
-      (when (and lazy-force-all? (nnull? lazy-keyboard-waiting))
-        (lazy-keyboard-force #t)
-      ) ;when
-    ) ;let*
+  ;; 等待队列为空且非强制时直接返回，避免每次查表都白走一趟
+  (when (or (nnull? opt) (nnull? lazy-keyboard-waiting))
+    (debug-message "debug-std"
+      (string-append "lazy-keyboard-force called, opt="
+        (object->string opt)
+        ", waiting="
+        (number->string (length lazy-keyboard-waiting))
+        "\n"
+      ) ;string-append
+    ) ;debug-message
+    (set! lazy-force-all? (or lazy-force-all? (nnull? opt)))
+    (when (not lazy-force-busy?)
+      (set! lazy-force-busy? #t)
+      (let* ((l1 (reverse lazy-keyboard-waiting)) (l2 (lazy-keyboard-force-do l1)))
+        (set! lazy-keyboard-waiting (reverse l2))
+        (set! lazy-force-busy? #f)
+        (when (null? lazy-keyboard-waiting)
+          (set! lazy-force-all? #f)
+        ) ;when
+        (when (and lazy-force-all? (nnull? lazy-keyboard-waiting))
+          (lazy-keyboard-force #t)
+        ) ;when
+      ) ;let*
+    ) ;when
   ) ;when
 ) ;tm-define
 
