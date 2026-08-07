@@ -14,7 +14,7 @@
 
 (tm-define (enable-emoji-keyboard)
   (debug-message "keyboard" "(keyboard emoji): registering emoji kbd-map ...\n")
-  (kbd-map (": + 1 :" "<#1F44D>")
+  (delayed-kbd-map (": + 1 :" "<#1F44D>")
    (": - 1 :" "<#1F44E>")
    (": 1 0 0 :" "<#1F4AF>")
    (": 1 2 3 4 :" "<#1F522>")
@@ -810,6 +810,6 @@
    (": y u m :" "<#1F60B>")
    (": z a p :" "<#26A1>")
    (": z z z :" "<#1F4A4>")
-  ) ;kbd-map
+  ) ;delayed-kbd-map
   (debug-message "keyboard" "(keyboard emoji): emoji kbd-map registered\n")
 ) ;tm-define
