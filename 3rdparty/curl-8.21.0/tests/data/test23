@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unsupported scheme
+</keywords>
+</info>
+# Server-side
+<reply>
+<data>
+</data>
+</reply>
+
+# Client-side
+<client>
+<server>
+http
+</server>
+<name>
+unsupported protocol:// URL
+</name>
+<command>
+htfp://%HOSTIP:%HTTPPORT/none.htfml
+</command>
+</client>
+
+# Verify data after the test has been "shot"
+<verify>
+<errorcode>
+1
+</errorcode>
+</verify>
+</testcase>

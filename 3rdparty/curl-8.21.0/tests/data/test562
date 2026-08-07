@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+FTP
+PASV
+RETR
+</keywords>
+</info>
+# Server-side
+<reply>
+<data>
+silly data
+over FTP
+</data>
+</reply>
+
+# Client-side
+<client>
+<server>
+ftp
+</server>
+<tool>
+lib%TESTNUMBER
+</tool>
+<name>
+FTP a type=A URL and CURLOPT_PORT set
+</name>
+
+# note that we need quotes around the URL below to make sure the shell does not
+# treat the semicolon as a separator!
+<command>
+'ftp://%HOSTIP:23456/%TESTNUMBER;type=A' %FTPPORT
+</command>
+
+</client>
+
+# Verify data after the test has been "shot"
+# There is no MTDM in the protocol here since this code does not ask for the
+# time/date of the file
+<verify>
+<protocol crlf="yes">
+USER anonymous
+PASS ftp@example.com
+PWD
+EPSV
+TYPE A
+RETR %TESTNUMBER
+QUIT
+</protocol>
+</verify>
+</testcase>

@@ -1,0 +1,413 @@
+#***************************************************************************
+#                                  _   _ ____  _
+#  Project                     ___| | | |  _ \| |
+#                             / __| | | | |_) | |
+#                            | (__| |_| |  _ <| |___
+#                             \___|\___/|_| \_\_____|
+#
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution. The terms
+# are also available at https://curl.se/docs/copyright.html.
+#
+# You may opt to use, copy, modify, merge, publish, distribute and/or sell
+# copies of the Software, and permit persons to whom the Software is
+# furnished to do so, under the terms of the COPYING file.
+#
+# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+# KIND, either express or implied.
+#
+# SPDX-License-Identifier: curl
+#
+###########################################################################
+
+package getpart;
+
+use strict;
+use warnings;
+
+BEGIN {
+    use base qw(Exporter);
+
+    our @EXPORT = qw(
+        compareparts
+        fulltest
+        checktest
+        getpart
+        getpartattr
+        loadarray
+        loadtest
+        partexists
+        striparray
+        writearray
+    );
+}
+
+use Memoize;
+
+my @xml;      # test data file contents
+my $xmlfile;  # test data filename
+
+my $warning = 0;
+my $trace = 0;
+
+# Normalize the part function arguments for proper caching. This includes the
+# filename in the arguments since that is an implied parameter that affects the
+# return value.  Any error messages are only displayed the first time, but
+# those are disabled by default anyway, so should never been seen outside
+# development.
+sub normalize_part {
+    push @_, $xmlfile;
+    return join("\t", @_);
+}
+
+sub testcaseattr {
+    my %hash;
+    for(@xml) {
+        if(($_ =~ /^ *\<testcase ([^>]*)/)) {
+            my $attr = $1;
+            while($attr =~ s/ *([^=]*)= *(\"([^\"]*)\"|\'([^\']*)\')//) {
+                my ($var, $cont) = ($1, $2);
+                $cont =~ s/^\"(.*)\"$/$1/;
+                $cont =~ s/^\'(.*)\'$/$1/;
+                $hash{$var} = $cont;
+            }
+        }
+    }
+    return %hash;
+}
+
+sub getpartattr {
+    # if $part is undefined (ie only one argument) then
+    # return the attributes of the section
+
+    my ($section, $part) = @_;
+
+    my %hash;
+    my $inside = 0;
+
+  # print "Section: $section, part: $part\n";
+
+    for(@xml) {
+      # print "$inside: $_";
+        if(!$inside && ($_ =~ /^ *\<$section/)) {
+            $inside++;
+        }
+        if((1 == $inside) && (($_ =~ /^ *\<$part ([^>]*)/) ||
+                              !(defined($part)))
+             ) {
+            $inside++;
+            my $attr = $1;
+
+            while($attr =~ s/ *([^=]*)= *(\"([^\"]*)\"|\'([^\']*)\')//) {
+                my ($var, $cont) = ($1, $2);
+                $cont =~ s/^\"(.*)\"$/$1/;
+                $cont =~ s/^\'(.*)\'$/$1/;
+                $hash{$var} = $cont;
+            }
+            last;
+        }
+        # detect end of section when part was not found
+        elsif((1 == $inside) && ($_ =~ /^ *\<\/$section\>/)) {
+            last;
+        }
+        elsif((2 == $inside) && ($_ =~ /^ *\<\/$part/)) {
+            $inside--;
+        }
+    }
+    return %hash;
+}
+memoize('getpartattr', NORMALIZER => 'normalize_part');  # cache each result
+
+sub getpart {
+    my ($section, $part) = @_;
+
+    my @this;
+    my $inside = 0;
+    my $line;
+
+    for(@xml) {
+        $line++;
+        if(!$inside && ($_ =~ /^ *\<$section/)) {
+            $inside++;
+        }
+        elsif(($inside >= 1) && ($_ =~ /^ *\<$part[ \>]/)) {
+            if($inside > 1) {
+                push @this, $_;
+            }
+            $inside++;
+        }
+        elsif(($inside >= 2) && ($_ =~ /^ *\<\/$part[ \>]/)) {
+            if($inside > 2) {
+                push @this, $_;
+            }
+            $inside--;
+        }
+        elsif(($inside >= 1) && ($_ =~ /^ *\<\/$section/)) {
+            if($inside > 1) {
+                print STDERR "$xmlfile:$line:1: error: missing </$part> tag before </$section>\n";
+                @this = ("format error in $xmlfile");
+            }
+            if($trace && @this) {
+                print STDERR "*** getpart.pm: $section/$part returned data!\n";
+            }
+            if($warning && !@this) {
+                print STDERR "*** getpart.pm: $section/$part returned empty!\n";
+            }
+            return @this;
+        }
+        elsif($inside >= 2) {
+            push @this, $_;
+        }
+    }
+    if($trace && @this) {
+        # section/part has data but end of section not detected,
+        # end of file implies end of section.
+        print STDERR "*** getpart.pm: $section/$part returned data!\n";
+    }
+    if($warning && !@this) {
+        # section/part does not exist or has no data without an end of
+        # section; end of file implies end of section.
+        print STDERR "*** getpart.pm: $section/$part returned empty!\n";
+    }
+    return @this;
+}
+memoize('getpart', NORMALIZER => 'normalize_part');  # cache each result
+
+sub partexists {
+    my ($section, $part) = @_;
+
+    my $inside = 0;
+
+    for(@xml) {
+        if(!$inside && ($_ =~ /^ *\<$section/)) {
+            $inside++;
+        }
+        elsif((1 == $inside) && ($_ =~ /^ *\<$part[ \>]/)) {
+            return 1; # exists
+        }
+        elsif((1 == $inside) && ($_ =~ /^ *\<\/$section/)) {
+            return 0; # does not exist
+        }
+    }
+    return 0; # does not exist
+}
+
+# The code currently never calls this more than once per part per file, so
+# caching a result that is never used again only slows things down.
+# memoize('partexists', NORMALIZER => 'normalize_part');  # cache each result
+
+sub loadtest {
+    my ($file, $original) = @_;
+
+    if(defined $xmlfile && $file eq $xmlfile) {
+        # This test is already loaded
+        return
+    }
+
+    undef @xml;
+    $xmlfile = "";
+
+    if(open(my $xmlh, "<", $file)) {
+        if($original) {
+            binmode $xmlh, ':crlf';
+        }
+        else {
+            binmode $xmlh; # for crapage systems, use binary
+        }
+        while(<$xmlh>) {
+            push @xml, $_;
+        }
+        close($xmlh);
+        if(!@xml) {
+            print STDERR "file $file is empty!\n";
+            return 1;
+        }
+    }
+    else {
+        # failure
+        if($warning) {
+            print STDERR "file $file would not open!\n";
+        }
+        return 1;
+    }
+    $xmlfile = $file;
+    return 0;
+}
+
+# Return entire document as list of lines
+sub fulltest {
+    return @xml;
+}
+
+sub eol_detect {
+    my ($content) = @_;
+
+    my $cr = () = $content =~ /\r/g;
+    my $lf = () = $content =~ /\n/g;
+
+    if($cr > 0 && $lf == 0) {
+        return "cr";
+    }
+    elsif($cr == 0 && $lf > 0) {
+        return "lf";
+    }
+    elsif($cr == 0 && $lf == 0) {
+        return "bin";
+    }
+    elsif($cr == $lf) {
+        return "crlf";
+    }
+
+    return "";
+}
+
+sub checktest {
+    my ($file) = @_;
+
+    if(open(my $xmlh, '<', $file)) {
+        binmode $xmlh; # we want the raw data to check original newlines
+        my $content = do { local $/; <$xmlh> };
+        close($xmlh);
+
+        if(index($content, '<?xml version="1.0" encoding="US-ASCII"?>') != 0) {
+            print STDERR "*** getpart.pm: $xmlfile is missing the XML prolog.\n";
+            return 1;
+        }
+
+        my $eol = eol_detect($content);
+        if($eol eq '') {
+            print STDERR "*** getpart.pm: $xmlfile has mixed newlines. Replace significant carriage return with %CR macro, or convert to consistent newlines.\n";
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+# write the test to the given file
+sub savetest {
+    my ($file) = @_;
+
+    if(open(my $xmlh, ">", $file)) {
+        binmode $xmlh; # for crapage systems, use binary
+        for(@xml) {
+            print $xmlh $_;
+        }
+        close($xmlh);
+    }
+    else {
+        # failure
+        if($warning) {
+            print STDERR "file $file would not open!\n";
+        }
+        return 1;
+    }
+    return 0;
+}
+
+#
+# Strip off all lines that match the specified pattern and return
+# the new array.
+#
+sub striparray {
+    my ($pattern, $arrayref) = @_;
+
+    my @array;
+
+    for(@$arrayref) {
+        if($_ !~ /$pattern/) {
+            push @array, $_;
+        }
+    }
+    return @array;
+}
+
+#
+# pass array *REFERENCES* !
+#
+sub compareparts {
+    my ($firstref, $secondref) = @_;
+
+    # we cannot compare arrays index per index since with data chunks,
+    # they may not be "evenly" distributed
+    my $first = join("", @$firstref);
+    my $second = join("", @$secondref);
+
+    if($first =~ /%alternatives\[/) {
+        die "bad use of compareparts\n";
+    }
+
+    if($second =~ /%alternatives\[([^,]*),([^\]]*)\]/) {
+        # there can be many %alternatives in this chunk, so we call
+        # this function recursively
+        my $alt = $second;
+        $alt =~ s/%alternatives\[([^,]*),([^\]]*)\]/$1/;
+
+        # check first alternative
+        {
+            my @f;
+            my @s;
+            push @f, $first;
+            push @s, $alt;
+            if(!compareparts(\@f, \@s)) {
+                return 0;
+            }
+        }
+
+        $alt = $second;
+        $alt =~ s/%alternatives\[([^,]*),([^\]]*)\]/$2/;
+        # check second alternative
+        {
+            my @f;
+            my @s;
+            push @f, $first;
+            push @s, $alt;
+            if(!compareparts(\@f, \@s)) {
+                return 0;
+            }
+        }
+
+        # neither matched
+        return 1;
+    }
+
+    if($first ne $second) {
+        return 1;
+    }
+
+    return 0;
+}
+
+#
+# Write a given array to the specified file
+#
+sub writearray {
+    my ($filename, $arrayref) = @_;
+
+    open(my $temp, ">", $filename) or die "Failure writing file";
+    binmode($temp,":raw");  # Cygwin fix
+    for(@$arrayref) {
+        print $temp $_;
+    }
+    close($temp) or die "Failure writing file";
+}
+
+#
+# Load a specified file and return it as an array
+#
+sub loadarray {
+    my ($filename) = @_;
+    my @array;
+
+    if(open(my $temp, "<", $filename)) {
+        while(<$temp>) {
+            push @array, $_;
+        }
+        close($temp);
+    }
+    return @array;
+}
+
+1;

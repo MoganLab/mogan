@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<!-- This replaces test 558 -->
+<info>
+<keywords>
+unittest
+hash
+</keywords>
+</info>
+
+# Client-side
+<client>
+<features>
+unittest
+</features>
+<name>
+internal hash create/destroy testing
+</name>
+<command>
+%TESTNUMBER
+</command>
+</client>
+</testcase>

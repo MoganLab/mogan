@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+multi
+multi-threaded
+wakeup
+</keywords>
+</info>
+
+# Server-side
+<reply>
+<data nocheck="yes">
+HTTP/1.1 200 OK
+Content-Length: 3
+
+OK
+</data>
+</reply>
+
+# Client-side
+<client>
+<features>
+wakeup
+</features>
+<server>
+http
+</server>
+<tool>
+lib%TESTNUMBER
+</tool>
+<name>
+wakeup from another thread
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+</client>
+
+# Verify data after the test has been "shot"
+<verify>
+</verify>
+</testcase>

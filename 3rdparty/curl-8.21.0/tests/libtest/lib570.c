@@ -1,0 +1,114 @@
+/***************************************************************************
+ *                                  _   _ ____  _
+ *  Project                     ___| | | |  _ \| |
+ *                             / __| | | | |_) | |
+ *                            | (__| |_| |  _ <| |___
+ *                             \___|\___/|_| \_\_____|
+ *
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This software is licensed as described in the file COPYING, which
+ * you should have received as part of this distribution. The terms
+ * are also available at https://curl.se/docs/copyright.html.
+ *
+ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
+ * copies of the Software, and permit persons to whom the Software is
+ * furnished to do so, under the terms of the COPYING file.
+ *
+ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+ * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
+ *
+ ***************************************************************************/
+#include "first.h"
+
+static CURLcode test_lib570(const char *URL)
+{
+  CURLcode result;
+  CURL *curl;
+  int request = 1;
+  char *stream_uri = NULL;
+
+  if(curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
+    curl_mfprintf(stderr, "curl_global_init() failed\n");
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  curl = curl_easy_init();
+  if(!curl) {
+    curl_mfprintf(stderr, "curl_easy_init() failed\n");
+    curl_global_cleanup();
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  easy_setopt(curl, CURLOPT_HEADERDATA, stdout);
+  easy_setopt(curl, CURLOPT_WRITEDATA, stdout);
+  easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+  easy_setopt(curl, CURLOPT_URL, URL);
+
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_OPTIONS);
+
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  result = curl_easy_perform(curl);
+  if(result != CURLE_RTSP_CSEQ_ERROR) {
+    curl_mfprintf(stderr, "Failed to detect CSeq mismatch");
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+
+  easy_setopt(curl, CURLOPT_RTSP_CLIENT_CSEQ, 999L);
+  easy_setopt(curl, CURLOPT_RTSP_TRANSPORT,
+              "RAW/RAW/UDP;unicast;client_port=3056-3057");
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_SETUP);
+
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  result = curl_easy_perform(curl);
+  if(result)
+    goto test_cleanup;
+
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_PLAY);
+
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  result = curl_easy_perform(curl);
+  if(result == CURLE_RTSP_SESSION_ERROR) {
+    result = CURLE_OK;
+  }
+  else {
+    curl_mfprintf(stderr, "Failed to detect a Session ID mismatch");
+    result = TEST_ERR_FAILURE;
+  }
+
+test_cleanup:
+  curl_free(stream_uri);
+
+  curl_easy_cleanup(curl);
+  curl_global_cleanup();
+
+  return result;
+}
