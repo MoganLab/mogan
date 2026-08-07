@@ -274,7 +274,8 @@ void im_react_push_dialog (string title, string prompts, string defaults,
 // null），会在启动期崩于 gc_mark（memory access out of bounds）。函数局部
 // static 懒构造——首次调用是 im_wasm_start_dialog，仅由 interactive() 在运行期
 // （s7 就绪后）触达。与项目既有 idiom 一致（new_style.cpp 的
-// `static object cache;`）。scheme_tree/bool 的 ctor 是 s7-free，仍用普通 static。
+// `static object cache;`）。scheme_tree/bool 的 ctor 是 s7-free，仍用普通
+// static。
 static object&
 wasm_dlg_fun_slot () {
   static object slot;
