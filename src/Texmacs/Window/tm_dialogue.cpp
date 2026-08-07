@@ -267,7 +267,19 @@ void im_react_push_dialog (string title, string prompts, string defaults,
 
 // 一次最多一个活动交互对话框：暂存 scheme fun 与参数规格，等 React
 // submit/cancel。
-static object      g_wasm_dlg_fun;
+//
+// `object` 必须用函数局部 static，不能是文件作用域 static 实例：object() 的
+// 默认 ctor 会构造 tmscm_object_rep，触达 s7 运行时（tmscm_cons→GC）；而 WASM
+// 文件作用域 static 在 __wasm_call_ctors 阶段构造，早于 s7 初始化（tm_s7 为
+// null），会在启动期崩于 gc_mark（memory access out of bounds）。函数局部
+// static 懒构造——首次调用是 im_wasm_start_dialog，仅由 interactive() 在运行期
+// （s7 就绪后）触达。与项目既有 idiom 一致（new_style.cpp 的
+// `static object cache;`）。scheme_tree/bool 的 ctor 是 s7-free，仍用普通 static。
+static object&
+wasm_dlg_fun_slot () {
+  static object slot;
+  return slot;
+}
 static scheme_tree g_wasm_dlg_p;
 static bool        g_wasm_dlg_pending= false;
 
@@ -295,9 +307,9 @@ im_wasm_start_dialog (object fun, scheme_tree p) {
   }
   string title= translate ("Enter data");
   if (n > 0 && ends (prompts[0], "?")) title= translate ("Question");
-  g_wasm_dlg_fun    = fun;
-  g_wasm_dlg_p      = p;
-  g_wasm_dlg_pending= true;
+  wasm_dlg_fun_slot ()= fun;
+  g_wasm_dlg_p        = p;
+  g_wasm_dlg_pending  = true;
   im_react_push_dialog (title, join_newline (prompts), join_newline (defaults),
                         join_newline (types));
 }
@@ -306,11 +318,12 @@ im_wasm_start_dialog (object fun, scheme_tree p) {
 void
 im_wasm_dialog_deliver (array<string> values, bool cancelled) {
   if (!g_wasm_dlg_pending) return;
-  object      fun   = g_wasm_dlg_fun;
-  scheme_tree p     = g_wasm_dlg_p;
-  g_wasm_dlg_pending= false;
-  g_wasm_dlg_fun    = object ();
-  g_wasm_dlg_p      = scheme_tree ();
+  object&     fun_slot= wasm_dlg_fun_slot ();
+  object      fun     = fun_slot;
+  scheme_tree p       = g_wasm_dlg_p;
+  g_wasm_dlg_pending  = false;
+  fun_slot            = object ();
+  g_wasm_dlg_p        = scheme_tree ();
   if (cancelled) return;
   int    nr   = N (p);
   object cmd  = null_object ();
