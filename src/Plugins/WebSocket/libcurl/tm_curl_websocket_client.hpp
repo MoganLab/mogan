@@ -51,6 +51,7 @@ private:
   std::deque<ws_std_msg>  in_pending;  // worker -> GUI: inbound messages
   std::deque<ws_std_msg>  tx_queue;    // partial-send progress, worker-only
   std::deque<std::string> err_pending; // worker -> GUI: error strings
+  std::deque<ws_std_msg>  failed_pending; // worker -> GUI: 断线时未送达的消息
 
   std::mutex              q_mutex;
   std::condition_variable cv; // wakes worker on send/quit

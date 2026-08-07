@@ -48,6 +48,10 @@ public:
   virtual void on_connect () {}
   virtual void on_disconnect () {}
   virtual void on_error (string msg) {}
+
+  // 发送途中连接断开时，把未送达的消息交还上层（GUI 线程）。
+  // 上层可据此把消息重新排队（如 collab_session 的 pending_updates）。
+  virtual void on_send_failed (string data, bool is_binary) {}
 };
 
 #endif // TM_WEBSOCKET_HPP

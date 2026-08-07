@@ -83,6 +83,8 @@ public:
   void on_message (string data, bool is_binary);
   void on_error (string msg);
   void on_disconnect ();
+  // 发送途中断线时未送达的消息（二进制 update），重新压入 pending_updates 待补发
+  void on_send_failed (string data, bool is_binary);
 };
 
 class collab_session_manager {

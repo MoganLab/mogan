@@ -31,6 +31,10 @@ public:
   void on_error (string msg) override { session->on_error (msg); }
 
   void on_disconnect () override { session->on_disconnect (); }
+
+  void on_send_failed (string data, bool is_binary) override {
+    session->on_send_failed (data, is_binary);
+  }
 };
 
 tm_websocket_client*

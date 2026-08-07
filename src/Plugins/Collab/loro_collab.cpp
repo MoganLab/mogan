@@ -368,6 +368,19 @@ collab_session::on_error (string msg) {
   std_error << "WS Error: " << msg << "\n";
 }
 
+// 发送途中断线时未送达的消息：压回 pending_updates，
+// 重连 become_ready() 时与其它缓冲 update 一起补发。文本帧（CURSOR）瞬态，
+// 丢弃不补发（下个节流周期自然重发）。loro import 幂等，补发顺序不影响收敛。
+void
+collab_session::on_send_failed (string data, bool is_binary) {
+  if (!is_binary) return;
+  if (!want_reconnect) return;
+  pending_updates << data;
+  if (DEBUG_LORO)
+    debug_loro << "回收未送达 update（" << N (data)
+               << " 字节），待重连后补发\n";
+}
+
 void
 collab_session::on_disconnect () {
   if (DEBUG_LORO)

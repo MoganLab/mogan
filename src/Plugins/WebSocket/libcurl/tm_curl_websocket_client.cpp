@@ -73,12 +73,14 @@ tm_curl_websocket_client::send (string data, bool is_binary) {
 void
 tm_curl_websocket_client::poll () {
   std::deque<ws_std_msg>  msgs;
+  std::deque<ws_std_msg>  failed;
   std::deque<std::string> errs;
   int                     ev;
   {
     std::lock_guard<std::mutex> lk (q_mutex);
     msgs.swap (in_pending);
     errs.swap (err_pending);
+    failed.swap (failed_pending);
     ev= conn_event.exchange (0);
   }
 
@@ -89,6 +91,10 @@ tm_curl_websocket_client::poll () {
   for (ws_std_msg_iter it= msgs.begin (); it != msgs.end (); ++it)
     on_message (string (it->data.data (), (int) it->data.size ()),
                 it->is_binary);
+  // 未送达消息在 on_disconnect 之前交还，上层可据此重新排队
+  for (ws_std_msg_iter it= failed.begin (); it != failed.end (); ++it)
+    on_send_failed (string (it->data.data (), (int) it->data.size ()),
+                    it->is_binary);
   // disconnect fires last so queued messages are not dropped
   if (ev == 2) on_disconnect ();
 }
@@ -147,10 +153,24 @@ tm_curl_websocket_client::process_tx_queue () {
       // Socket full, try again later
       break;
     }
+    else if (res == CURLE_SEND_ERROR) {
+      // 可恢复的发送失败（对端接收窗口满、内核发送缓冲暂时不可用等）：
+      // 保留 msg.offset，消息留在 tx_queue 头部，下轮 poll 重试，不断连、不丢消息。
+      msg.offset+= sent;
+      break;
+    }
     else if (res != CURLE_OK) {
+      // 致命错误：断线前把当前未发完的消息带回 GUI 线程（failed_pending），
+      // 由 collab_session 经 on_send_failed 重新压入 pending_updates，
+      // 重连 become_ready() 时补发。已发部分按不完整帧被对端丢弃，补发整条。
       std::string err_msg= "Failed to send WebSocket message: ";
       err_msg+= curl_easy_strerror (res);
       push_error (std::move (err_msg));
+      {
+        std::lock_guard<std::mutex> lk (q_mutex);
+        failed_pending.push_back (std::move (msg));
+        tx_queue.pop_front ();
+      }
       is_connected.store (false);
       conn_event.store (2);
       return;
