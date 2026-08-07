@@ -183,6 +183,7 @@ void
 tm_velopack::do_download () {
   try {
     ensure_mgr ();
+    // mgr/info 由 ensure_mgr 在锁内一次性创建、info 检查后不再变，此处读无需持锁
     rep->mgr->DownloadUpdates (*rep->info, &tm_velopack::progress_cb, this);
     std::lock_guard<std::mutex> lk (rep->mtx);
     rep->st= UPDATER_READY;
@@ -204,6 +205,7 @@ tm_velopack::applyUpdate () {
     rep->st= UPDATER_APPLYING;
   }
   try {
+    // mgr/info 锁内一次性写定、运行期不变，锁外读安全；此调用阻塞至进程退出，更不能持锁
     rep->mgr->WaitExitThenApplyUpdates (rep->info->TargetFullRelease,
                                         /*silent*/ false, /*restart*/ true);
   }
