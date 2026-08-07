@@ -18,6 +18,8 @@
 #include "new_buffer.hpp"
 #include "s7_tm.hpp"
 #include "scheme.hpp"
+#include "tm_debug.hpp"
+#include "tm_timer.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -54,10 +56,13 @@ ChatController::destroyView () {
 
 QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
+  time_t t0= texmacs_time ();
   // 1. Load session metadata
   // llm 插件按 idle 延迟初始化，新建 Chat 标签页时其 scheme 模块可能尚未加载
   eval ("(use-modules (llm chat-loader))");
+  time_t t1= texmacs_time ();
   call ("chat-persist-load-all");
+  time_t t2= texmacs_time ();
   cout << "[chat-persist] ChatController: restored "
        << sessionManager_.sessionCount () << " session metadatas" << LF;
 
@@ -72,10 +77,12 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   else {
     initialId= sessionManager_.firstActiveSessionId ();
   }
+  time_t t3= texmacs_time ();
 
   // 3. 创建 View，Sidebar 构造时就有数据
   view_= new QTChatTabWidget (infos, initialId, parent);
   view_->setParentTmWidget (tm);
+  time_t t4= texmacs_time ();
 
   // 连接 Sidebar 信号
   ChatSidebar* sb= view_->sidebar ();
@@ -128,12 +135,14 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   }
 
   // 4. 激活初始会话（按需创建 Panel）
+  time_t t5= texmacs_time ();
   if (!is_empty (initialId)) {
     activateSession (initialId);
   }
   else {
     ensureNewConversation ();
   }
+  time_t t6= texmacs_time ();
 
   // 5. 恢复当前模型（使用激活的会话）
   if (!is_empty (initialId)) {
@@ -148,6 +157,16 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
     if (!view_) return nullptr;
     return view_->contentWidget ();
   });
+
+  if (DEBUG_STD) {
+    time_t t7= texmacs_time ();
+    debug_std << "[chat-tab] createView: use-modules=" << (t1 - t0)
+              << "ms, load-all=" << (t2 - t1) << "ms, build-infos=" << (t3 - t2)
+              << "ms, new-widget=" << (t4 - t3) << "ms, connect=" << (t5 - t4)
+              << "ms, activate=" << (t6 - t5) << "ms, misc=" << (t7 - t6)
+              << "ms, total=" << (t7 - t0) << "ms\n";
+  }
+  view_->armFirstPaintLog (texmacs_time ());
 
   return view_;
 }
@@ -486,8 +505,13 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
   // 只在非归档会话且内容未加载时才加载
   if (s->archived) return;
 
+  time_t t0= texmacs_time ();
   call ("chat-persist-load-session-content", panel->sessionId (),
         object (s->defaultExpandCount));
+  if (DEBUG_STD) {
+    debug_std << "[chat-tab] loadSessionContent: scheme-load="
+              << (texmacs_time () - t0) << "ms\n";
+  }
 
   // 检查消息 buffer 是否非空，若非空则进入会话模式并滚动到底部
   tree msgBody= get_buffer_body (
@@ -595,15 +619,19 @@ ChatController::ensureNewConversation () {
   }
 
   // 创建新会话
+  time_t                 t0   = texmacs_time ();
   string                 sid  = sessionManager_.createSession ();
   ChatConversationPanel* panel= view_->createPanel (sid);
   if (!panel) return;
+  time_t t1= texmacs_time ();
 
   sessionManager_.setPanel (sid, panel);
   sessionManager_.setModel (sid, currentModel_);
 
   call ("chat-tab-sync-dark-style!", sid);
+  time_t t1b= texmacs_time ();
   call ("chat-tab-load-input-styles!", sid);
+  time_t t2= texmacs_time ();
 
   if (panel->sessionTitle ()) panel->sessionTitle ()->hide ();
 
@@ -612,6 +640,15 @@ ChatController::ensureNewConversation () {
 
   view_->activatePanel (panel);
   view_->sidebar ()->setActiveItem ("");
+
+  if (DEBUG_STD) {
+    time_t t3= texmacs_time ();
+    debug_std << "[chat-tab] ensureNewConversation: create-panel=" << (t1 - t0)
+              << "ms, sync-dark-style=" << (t1b - t1)
+              << "ms, load-input-styles=" << (t2 - t1b)
+              << "ms, activate-panel=" << (t3 - t2) << "ms, total=" << (t3 - t0)
+              << "ms\n";
+  }
 }
 
 /**
@@ -629,13 +666,19 @@ ChatController::getOrCreatePanel (const string& sessionId) {
   if (s->panel) return static_cast<ChatConversationPanel*> (s->panel);
 
   // 按需创建面板
+  time_t                 t0   = texmacs_time ();
   ChatConversationPanel* panel= view_->createPanel (sessionId);
   if (!panel) return nullptr;
+  time_t t1= texmacs_time ();
 
   sessionManager_.setPanel (sessionId, panel);
 
   call ("chat-tab-sync-dark-style!", sessionId);
   call ("chat-tab-init-session!", sessionId, s->model);
+  if (DEBUG_STD) {
+    debug_std << "[chat-tab] getOrCreatePanel: create-panel=" << (t1 - t0)
+              << "ms, scheme-init=" << (texmacs_time () - t1) << "ms\n";
+  }
 
   // 连接 Panel 的信号
   connectPanelSignals (panel);

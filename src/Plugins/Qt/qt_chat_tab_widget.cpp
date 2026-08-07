@@ -21,6 +21,8 @@
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
 #include "s7_tm.hpp"
+#include "tm_debug.hpp"
+#include "tm_timer.hpp"
 #include "tm_window.hpp"
 
 #include <moebius/tree_label.hpp>
@@ -1671,6 +1673,17 @@ QTChatTabWidget::setGlobalSidebarCollapsed (bool collapsed) {
 /******************************************************************************
  * QTChatTabWidget 事件处理
  ******************************************************************************/
+
+void
+QTChatTabWidget::paintEvent (QPaintEvent* event) {
+  if (firstPaintPending_) {
+    firstPaintPending_= false;
+    if (DEBUG_STD)
+      debug_std << "[chat-tab] first paint: show->paint="
+                << (texmacs_time () - createFinishTime_) << "ms\n";
+  }
+  QWidget::paintEvent (event);
+}
 
 void
 QTChatTabWidget::keyPressEvent (QKeyEvent* event) {

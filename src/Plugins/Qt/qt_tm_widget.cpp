@@ -52,6 +52,8 @@
 #include "qt_renderer.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
+#include "tm_debug.hpp"
+#include "tm_timer.hpp"
 
 bool in_presentation_mode ();
 
@@ -1259,8 +1261,12 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
       chatContentWidget=
           get_chat_controller ()->createView (centralwidget (), this);
     }
+    time_t t_show0= texmacs_time ();
     show_widget_in_layout (chatContentWidget, layout);
     chatContentWidget->setFocus (Qt::OtherFocusReason);
+    if (DEBUG_STD)
+      debug_std << "[chat-tab] sync_chat_tab_mode: show+focus="
+                << (texmacs_time () - t_show0) << "ms\n";
   }
   else {
     // Show normal editor view only when no special tab mode is active

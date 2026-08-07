@@ -55,7 +55,17 @@
   (cond ((null? l) l)
         ((ahash-ref lazy-keyboard-done (cdar l)) (lazy-keyboard-force-do (cdr l)))
         ((or lazy-force-all? (texmacs-in-mode? (caar l)))
-         (module-provide (cdar l))
+         (let ((start (texmacs-time)))
+           (module-provide (cdar l))
+           (debug-message "debug-std"
+             (string-append "lazy-keyboard-force: loaded "
+               (object->string (cdar l))
+               " in "
+               (number->string (- (texmacs-time) start))
+               " ms\n"
+             ) ;string-append
+           ) ;debug-message
+         ) ;let
          (ahash-set! lazy-keyboard-done (cdar l) #t)
          (lazy-keyboard-force-do (cdr l))
         ) ;
