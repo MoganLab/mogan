@@ -177,10 +177,6 @@ tm_curl_websocket_client::process_tx_queue () {
       if (fragsz > 0 && (res == CURLE_OK || res == CURLE_AGAIN))
         msg.header_written=
             true; // 帧头已写入 sendbuf（即便 ws_flush 返回 AGAIN）
-      if (total_len > 65536 && getenv ("MOGAN_LORO_DEBUG"))
-        std::fprintf (stderr, "[ws-tx] total=%zu off=%zu sent=%zu res=%d%s\n",
-                      total_len, msg.offset, sent, (int) res,
-                      fragsz > 0 ? " head" : "");
       if (res == CURLE_AGAIN) return; // socket 满：交还 worker 循环续写
       if (res != CURLE_OK) {
         std::string err_msg= "Failed to send WebSocket message: ";
@@ -193,8 +189,6 @@ tm_curl_websocket_client::process_tx_queue () {
       if (sent == 0) return; // 无进展：交还 worker 循环
     }
     tx_queue.pop_front (); // 本帧已整体发完
-    if (total_len > 65536 && getenv ("MOGAN_LORO_DEBUG"))
-      std::fprintf (stderr, "[ws-tx] large send done: %zu bytes\n", total_len);
   }
 }
 
@@ -276,12 +270,6 @@ tm_curl_websocket_client::worker_main (std::string url) {
       int       sndbuf= 4 * 1024 * 1024; // 4 MB（系统上限内取最大）
       socklen_t sl    = sizeof (sndbuf);
       setsockopt (sfd, SOL_SOCKET, SO_SNDBUF, (const void*) &sndbuf, sl);
-      if (getenv ("MOGAN_LORO_DEBUG")) {
-        int       cur= 0;
-        socklen_t cl = sizeof (cur);
-        if (getsockopt (sfd, SOL_SOCKET, SO_SNDBUF, &cur, &cl) == 0)
-          std::fprintf (stderr, "[ws] SO_SNDBUF=%d\n", cur);
-      }
     }
   }
   while (!stop_requested.load () && is_connected.load ()) {
