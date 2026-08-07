@@ -37,8 +37,9 @@
   (check (collab-valid-doc-name? "") => #f)
   (check (collab-valid-doc-name? (make-string 65 #\a)) => #f)
   (check (collab-valid-doc-name? (utf8-make-string 65 #\中)) => #f)
-  (for-each
-    (lambda (bad) (check (collab-valid-doc-name? (string-append "a" bad "b")) => #f))
+  (for-each (lambda (bad)
+              (check (collab-valid-doc-name? (string-append "a" bad "b")) => #f)
+            ) ;lambda
     (list "\\" "/" ":" "*" "?" "\"" "<" ">" "|" "\t" (string (integer->char 127)))
   ) ;for-each
   (check (collab-valid-doc-name? 42) => #f)
@@ -49,7 +50,9 @@
 (define (test-docs-pairs)
   (check (collab-docs-pairs '()) => '())
   (check (collab-docs-pairs '("u1" "名字" "u2" ""))
-    => '(("u1" . "名字") ("u2" . "")))
+    =>
+    '(("u1" . "名字") ("u2" . ""))
+  ) ;check
   ;; 防御奇数长度：末尾落单的忽略
   (check (collab-docs-pairs '("u1" "n1" "u3")) => '(("u1" . "n1")))
 ) ;define
@@ -60,20 +63,29 @@
 (define (test-doc-label)
   (check (collab-doc-label "abcd1234-0000" "周报" #f) => '(verbatim "周报"))
   (check (collab-doc-label "abcd1234-0000" "周报" #t)
-    => '(concat (verbatim "周报") " "
-          (with "color" "dark grey" (verbatim "(abcd)"))))
+    =>
+    '(concat (verbatim "周报")
+       " "
+       (with "color" "dark grey" (verbatim "(abcd)")))
+  ) ;check
   (check (collab-doc-label "abcd1234-0000" "" #f) => "abcd1234-0000")
   ;; 防御：uuid 不足 4 位不越界
   (check (collab-doc-label "ab" "n" #t)
-    => '(concat (verbatim "n") " "
-          (with "color" "dark grey" (verbatim "(ab)"))))
+    =>
+    '(concat (verbatim "n") " " (with "color" "dark grey" (verbatim "(ab)")))
+  ) ;check
 ) ;define
 
 ;; collab-doc-name-duplicates：仅非空 name 参与统计。
 
 (define (test-doc-name-duplicates)
-  (let ((counts (collab-doc-name-duplicates
-                  '(("u1" . "周报") ("u2" . "周报") ("u3" "") ("u4" . "月报")))))
+  (let ((counts (collab-doc-name-duplicates '(("u1" . "周报")
+                                              ("u2" . "周报")
+                                              ("u3" "")
+                                              ("u4" . "月报"))
+                ) ;collab-doc-name-duplicates
+        ) ;counts
+       ) ;
     (check (assoc "周报" counts) => '("周报" . 2))
     (check (assoc "月报" counts) => '("月报" . 1))
     (check (assoc "" counts) => #f)

@@ -43,83 +43,88 @@
 ;; 禁止 \ / : * ? " < > | 及控制字符。Scheme 侧仅做预校验（即时反馈），
 ;; 服务端仍是权威校验方。
 
-(define collab-doc-name-forbidden-chars
-  '(#\\ #\/ #\: #\* #\? #\" #\< #\> #\|))
+(define collab-doc-name-forbidden-chars '(#\\ #\/ #\: #\* #\? #\" #\< #\> #\|))
 
 (define (collab-valid-doc-name? name)
   (and (string? name)
-       (>= (utf8-string-length name) 1)
-       (<= (utf8-string-length name) 64)
-       ;; UTF-8 字符串按字节遍历安全：CJK 等首字节均 >= 128，
-       ;; 不可能误判 < 32 / == 127；禁字符都是单字节 ASCII
-       (not (list-find (string->list name)
-              (lambda (c)
-                (or (in? c collab-doc-name-forbidden-chars)
-                    (< (char->integer c) 32)
-                    (== (char->integer c) 127)))))))
+    (>= (utf8-string-length name) 1)
+    (<= (utf8-string-length name) 64)
+    (not (list-find (string->list name)
+           (lambda (c)
+             (or (in? c collab-doc-name-forbidden-chars)
+               (< (char->integer c) 32)
+               (== (char->integer c) 127)
+             ) ;or
+           ) ;lambda
+         ) ;list-find
+    ) ;not
+  ) ;and
+) ;define
 
-;; loro-collab-docs 返回扁平交替列表 (uuid0 name0 uuid1 name1 ...)，
-;; 两两解构为 ((uuid . name) ...)。防御奇数长度（末尾落单的忽略）。
 (define (collab-docs-pairs flat)
   (if (or (null? flat) (null? (cdr flat)))
-      '()
-      (cons (cons (car flat) (cadr flat))
-            (collab-docs-pairs (cddr flat)))))
+    '()
+    (cons (cons (car flat) (cadr flat)) (collab-docs-pairs (cddr flat)))
+  ) ;if
+) ;define
 
-;; Join 子菜单项 label：
-;;   有名且唯一 → (verbatim name)；有名但重名 → 末尾追加灰色 uuid 前 4 位
-;;   消歧（富文本 (concat (verbatim name) " " (with "color" "dark grey" suffix))，
-;;   样式对齐快捷键的弱化显示）；无名 → uuid 全文。
 (define (collab-doc-label uuid name dup?)
   (if (and (string? name) (> (string-length name) 0))
-      (if dup?
-          `(concat (verbatim ,name) " "
-                   (with "color" "dark grey"
-                     (verbatim
-                       ,(string-append "("
-                                       (substring uuid 0 (min 4 (string-length uuid)))
-                                       ")"))))
-          `(verbatim ,name))
-      uuid))
+    (if dup?
+      `(concat (verbatim ,name)
+         ," "
+         (with ,"color"
+           ,"dark grey"
+           (verbatim ,(string-append "("
+                        (substring uuid 0 (min 4 (string-length uuid)))
+                        ")"))))
+      `(verbatim ,name)
+    ) ;if
+    uuid
+  ) ;if
+) ;define
 
-;; 统计 name 出现次数（非空 name 才参与重名判定）。
 (define (collab-doc-name-duplicates pairs)
   (let ((counts '()))
     (for (p pairs)
-      (with name (cdr p)
+      (with name
+        (cdr p)
         (when (and (string? name) (> (string-length name) 0))
           (let ((cell (assoc name counts)))
-            (if cell (set-cdr! cell (+ (cdr cell) 1))
-                (set! counts (cons (cons name 1) counts)))))))
-    counts))
-
-;; 新建协作文档：交互输入显示名（留空则创建无名文档，兼容旧行为）。
-;; 先建空 buffer 并切到它（成为当前编辑器），再让会话层连服务端 CREATE。
-;; 服务端分配 UUID 后回 DOC，会话层据此置位协作开关并把标题设为显示名；
-;; 用户随后首次编辑会 seed shadow 并把初始全量上行。
+            (if cell
+              (set-cdr! cell (+ (cdr cell) 1))
+              (set! counts (cons (cons name 1) counts))
+            ) ;if
+          ) ;let
+        ) ;when
+      ) ;with
+    ) ;for
+    counts
+  ) ;let
+) ;define
 (tm-define (collab-new-document)
   (:interactive #t)
-  (interactive (lambda (name) (collab-new-document-named name))
-    "Document name"))
-
-;; collab-new-document 的非交互入口（供测试/脚本调用；name 为空串/全空格
-;; 时按无名文档创建）。名字非法时就地提示，不创建。
+  (interactive (lambda (name) (collab-new-document-named name)) "Document name")
+) ;tm-define
 (tm-define (collab-new-document-named name)
-  (cond ((and (string? name) (> (string-length name) 0)
-              (not (collab-valid-doc-name? name)))
+  (cond ((and (string? name)
+           (> (string-length name) 0)
+           (not (collab-valid-doc-name? name))
+         ) ;and
          (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
-           "Collaborative"))
-        (else
-         (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-           (collab-mark-current-buffer)
-           (loro-collab-create (collab-server-url) name)
-           (set-message (string-append "Creating collaborative document (Server "
-                          (collab-server-url)
-                          ")"
-                        ) ;string-append
-             "Collaborative"
-           ) ;set-message
-         ) ;with-default-view
+           "Collaborative"
+         ) ;set-message
+        ) ;
+        (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+                (collab-mark-current-buffer)
+                (loro-collab-create (collab-server-url) name)
+                (set-message (string-append "Creating collaborative document (Server "
+                               (collab-server-url)
+                               ")"
+                             ) ;string-append
+                  "Collaborative"
+                ) ;set-message
+              ) ;with-default-view
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -129,19 +134,17 @@
 ;; 建空 buffer 并切到它 → 会话层 JOIN。服务端回 DOC 后补发 snapshot/updates，
 ;; 首帧到达时把内容构建进 buffer。
 (tm-define (collab-join-document doc-id . opt-name)
-  (let ((name (if (and (nnull? opt-name) (string? (car opt-name)))
-                  (car opt-name)
-                  "")))
+  (let ((name (if (and (nnull? opt-name) (string? (car opt-name))) (car opt-name) "")))
     (when (and (string? doc-id) (> (string-length doc-id) 0))
       (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
         (collab-mark-current-buffer)
         ;; 标题立即设为显示名（无名回退 UUID）；DOC 帧到达后 C++ become_ready
         ;; 会以服务端 name 重设标题（最终一致）
-        (buffer-set-title (current-buffer)
-          (if (> (string-length name) 0) name doc-id))
+        (buffer-set-title (current-buffer) (if (> (string-length name) 0) name doc-id))
         (loro-collab-join (collab-server-url) doc-id name)
         (set-message (string-append "Joining collaborative document "
-                       (if (> (string-length name) 0) name doc-id))
+                       (if (> (string-length name) 0) name doc-id)
+                     ) ;string-append
           "Collaborative"
         ) ;set-message
       ) ;with-default-view
@@ -173,22 +176,26 @@
           ((and (== status "ready") (null? (loro-collab-docs)))
            ("(no documents)" (collab-refresh-docs))
           ) ;
-          (else
-           (with pairs (collab-docs-pairs (loro-collab-docs))
-             (with dups (collab-doc-name-duplicates pairs)
-               (for (p pairs)
-                 (with uuid (car p)
-                   (with name (cdr p)
-                     (with dup? (let ((cell (assoc name dups)))
-                                  (and cell (> (cdr cell) 1)))
-                       ((eval (collab-doc-label uuid name dup?))
-                        (collab-join-document uuid name))
-                     ) ;with
-                   ) ;with
-                 ) ;with
-               ) ;for
-             ) ;with
-           ) ;with
+          (else (with pairs
+                  (collab-docs-pairs (loro-collab-docs))
+                  (with dups
+                    (collab-doc-name-duplicates pairs)
+                    (for (p pairs)
+                      (with uuid
+                        (car p)
+                        (with name
+                          (cdr p)
+                          (with dup?
+                            (let ((cell (assoc name dups)))
+                              (and cell (> (cdr cell) 1))
+                            ) ;let
+                            ((eval (collab-doc-label uuid name dup?)) (collab-join-document uuid name))
+                          ) ;with
+                        ) ;with
+                      ) ;with
+                    ) ;for
+                  ) ;with
+                ) ;with
           ) ;else
     ) ;cond
     ---

@@ -25,15 +25,15 @@ private:
   string                               doc_id;
   // 文档显示名（仅显示用途，doc_id 仍是唯一标识）；CREATE 时随帧上行，
   // DOC 帧到达后以帧内 name 为准（服务端权威）
-  string                               doc_name;
-  string                               server_url;
-  url                                  buffer_url;
-  bool                                 buffer_known     = false;
-  time_t                               await_frame_since= 0;
-  bool                                 want_reconnect   = false;
-  time_t                               next_reconnect_at= 0;
-  int                                  reconnect_attempt= 0;
-  array<string>                        pending_updates;
+  string        doc_name;
+  string        server_url;
+  url           buffer_url;
+  bool          buffer_known     = false;
+  time_t        await_frame_since= 0;
+  bool          want_reconnect   = false;
+  time_t        next_reconnect_at= 0;
+  int           reconnect_attempt= 0;
+  array<string> pending_updates;
   // 多光标：本端 peer id（会话级稳定）、光标节流时间戳与去重缓存
   string peer_id;
   time_t last_cursor_send= 0;
