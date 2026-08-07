@@ -16,6 +16,7 @@
 #include <QList>
 #include <QMap>
 #include <QWidget>
+#include <ctime>
 
 #include "widget.hpp"
 
@@ -398,6 +399,12 @@ public:
   // ---- 供外部组件访问 ----
   QWidget* contentWidget () const { return contentWidget_; }
 
+  /// 标记 createView 完成，等待首次 paint 打点（性能定位用）
+  void armFirstPaintLog (time_t createFinishTime) {
+    firstPaintPending_= true;
+    createFinishTime_ = createFinishTime;
+  }
+
 signals:
   void cancelRequested (const string& sessionId);
   void newChatRequested ();
@@ -409,6 +416,8 @@ protected:
   void keyReleaseEvent (QKeyEvent* event) override;
   /// 事件过滤器
   bool eventFilter (QObject* watched, QEvent* event) override;
+  /// 首次绘制时打点（用于测量点击标签页到界面可见的耗时）
+  void paintEvent (QPaintEvent* event) override;
 
 private:
   /// 构建左侧侧边栏布局
@@ -441,6 +450,9 @@ private:
   qt_tm_widget_rep*      parentTmWidget_= nullptr; ///< 关联的 TeXmacs widget
 
   static bool globalSidebarCollapsed_; ///< 全局记忆的侧边栏折叠状态
+
+  bool   firstPaintPending_= false; ///< 是否等待首次绘制打点
+  time_t createFinishTime_ = 0;     ///< createView 完成时刻（ms）
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP
