@@ -1,5 +1,6 @@
 # binary files
 *.vs
+.superpowers/
 *.so
 *.[oa]
 *.exe
