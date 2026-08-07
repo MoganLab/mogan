@@ -106,6 +106,19 @@ target("stem") do
         add_ldflags("-sINITIAL_MEMORY=512MB")
         add_ldflags("-sALLOW_MEMORY_GROWTH=1")
         add_ldflags("-sSTACK_SIZE=32MB", {force = true})
+        -- Export the C functions the React shell (web/) calls back into via
+        -- Module.ccall, plus the runtime helpers (ccall/cwrap, UTF8_ToString).
+        -- Only the three React-shell entry points are listed here; the IME,
+        -- file-chooser and collab bridges keep themselves alive via
+        -- EMSCRIPTEN_KEEPALIVE in their own TUs and are already exported that
+        -- way (hardcoding them here would break builds with --loro=no etc.).
+        add_ldflags("-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,UTF8ToString", {force = true})
+        add_ldflags("-sEXPORTED_FUNCTIONS=" ..
+            "_main," ..
+            "_mogan_menu_invoke," ..
+            "_mogan_menu_expand," ..
+            "_mogan_menu_close_popup," ..
+            "_mogan_set_chrome_metrics", {force = true})
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/doc/about/mogan/stem.en.tmu") .. "@/TeXmacs/doc/about/mogan/stem.en.tmu")
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/progs") .. "@/TeXmacs/progs")
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/langs") .. "@/TeXmacs/langs")
@@ -150,6 +163,11 @@ target("stem") do
     add_deps("liblolly")
     add_deps("libmogan")
     add_deps("libmoebius")
+    -- WASM: build the React shell (web/) before linking so the after_build
+    -- hook can copy web/dist into the target dir. No-op on other platforms.
+    if is_plat("wasm") then
+        add_deps("web_shell")
+    end
     if not is_plat("windows") then
         add_syslinks("pthread", "dl", "m")
     end
@@ -193,11 +211,24 @@ target("stem") do
 
     after_build(function (target)
         if is_plat("wasm") then
-            cprint("${yellow}creating stem.html${clear}")
-            os.cp(
-                path.join(os.projectdir(), "tools", "wasm", "stem.html"),
-                target:targetdir()
-            )
+            local web_dist = path.join(os.projectdir(), "web", "dist")
+            local legacy_shell = path.join(os.projectdir(), "tools", "wasm", "stem.html")
+            local td = target:targetdir()
+            if os.exists(path.join(web_dist, "index.html")) then
+                -- React shell (Vite build of web/). Flatten web/dist into the
+                -- target dir so stem.js / stem.wasm / stem.data and the React
+                -- assets all sit side by side. The dev server (wasm_server.py)
+                -- and the CD workflow both load stem.html as the entry point,
+                -- so mirror the built index.html to stem.html.
+                cprint("${yellow}installing React shell from web/dist${clear}")
+                os.cp(path.join(web_dist, "*"), td)
+                os.cp(path.join(td, "index.html"), path.join(td, "stem.html"))
+            else
+                -- Fallback: no JS build available (e.g. a C++-only CI branch).
+                cprint("${yellow}web/dist not found; using legacy stem.html${clear}")
+                cprint("${yellow}Run `npm run build` in web/ to enable the React shell.${clear}")
+                os.cp(legacy_shell, td)
+            end
         end
     end)
 

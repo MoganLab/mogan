@@ -224,6 +224,11 @@ collab_session::disconnect () {
     ws->disconnect ();
     ws.reset ();
   }
+  // 会话回到 idle 后 loro-collab-active? 变 false，菜单需随之恢复为
+  // New/Join 形态。join()/create() 开头也会调本函数清旧会话，此时新会话
+  // 尚未 ready，谓词同样应为 false，通知语义一致。
+  editor ed= get_current_editor ();
+  if (!is_nil (ed)) ed->notify_change (THE_MENUS);
 }
 
 void

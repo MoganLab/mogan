@@ -12,10 +12,11 @@
 
 #include "im_menu.hpp"
 
-#include "converter.hpp"  // cork_to_utf8
-#include "cork.hpp"       // tm_var_encode
-#include "dictionary.hpp" // translate, get_input/output_language
-#include "message.hpp"    // slot, blackbox, SLOT_*, open_box
+#include "converter.hpp"       // cork_to_utf8
+#include "cork.hpp"            // tm_var_encode
+#include "dictionary.hpp"      // translate, get_input/output_language
+#include "im_react_bridge.hpp" // WASM React shell bridge (no-op on native)
+#include "message.hpp"         // slot, blackbox, SLOT_*, open_box
 
 #include "imgui.h"
 
@@ -64,6 +65,52 @@ render_node (widget w) {
   im_menu_rep* m= dynamic_cast<im_menu_rep*> (w.rep);
   if (m == nullptr) return; // 非菜单节点（桩等）直接跳过
   switch (m->kind) {
+  case im_menu_rep::k_tile: {
+    // tile_menu：cols 列网格。格子宽度取该 tile 内最宽标签的文本宽度，
+    // 保证每格刚好容纳内容且文字居中（不整列拉伸）。
+    array<widget>& kids= m->menu_children ();
+    int            cols= m->cols > 0 ? m->cols : 1;
+    float          cell= 0.0f;
+    for (int i= 0; i < N (kids); ++i) {
+      im_menu_rep* km= dynamic_cast<im_menu_rep*> (kids[i].rep);
+      if (km == nullptr || km->kind != im_menu_rep::k_button) continue;
+      c_string lbl (km->display_label ());
+      float    w= ImGui::CalcTextSize ((const char*) lbl).x;
+      if (w > cell) cell= w;
+    }
+    cell+= 2.0f * ImGui::GetStyle ().FramePadding.x;
+    // 宽度封顶：个别 tile 项标签很长（翻译文本），不封顶会把整个格子撑爆；
+    // 超出的部分 ImGui 自动以 "..." 截断。
+    float cell_cap= ImGui::GetFontSize () * 14.0f;
+    if (cell > cell_cap) cell= cell_cap;
+    int col= 0;
+    for (int i= 0; i < N (kids); ++i) {
+      im_menu_rep* km= dynamic_cast<im_menu_rep*> (kids[i].rep);
+      if (km == nullptr || km->kind != im_menu_rep::k_button) {
+        render_node (kids[i]);
+        continue;
+      }
+      c_string lbl (km->display_label ());
+      bool     selected= km->pre != "" || (km->style & WIDGET_STYLE_PRESSED);
+      bool     enabled = (km->style & WIDGET_STYLE_INERT) == 0;
+      if (selected)
+        ImGui::PushStyleColor (
+            ImGuiCol_Text, ImGui::GetStyleColorVec4 (ImGuiCol_TextDisabled));
+      if (!enabled) ImGui::BeginDisabled ();
+      ImVec2 avail= ImGui::GetContentRegionAvail ();
+      if (col > 0 && avail.x < cell) {
+        ImGui::NewLine ();
+        col= 0;
+      }
+      if (ImGui::Button ((const char*) lbl, ImVec2 (cell, 0.0f))) {
+        if (!is_nil (km->cmd)) im_queue_menu_command (km->cmd);
+      }
+      if (!enabled) ImGui::EndDisabled ();
+      if (selected) ImGui::PopStyleColor ();
+      col= (col + 1) % cols;
+      if (col != 0) ImGui::SameLine (0.0f, ImGui::GetStyle ().ItemSpacing.x);
+    }
+  } break;
   case im_menu_rep::k_container: {
     // horizontal_menu / vertical_menu / …：逐项渲染子节点
     array<widget>& kids= m->menu_children ();
@@ -145,11 +192,22 @@ im_activate_popup (im_popup_rep* p) {
   p->pos_y      = io.MousePos.y;
   p->just_opened= true;
   g_active_popup= p;
+#ifdef __EMSCRIPTEN__
+  // WASM：弹出菜单由 React shell 渲染。把 popup 的菜单树序列化后连同打开坐标
+  // 推给 JS（仍由 mogan_menu_invoke/mogan_menu_close_popup
+  // 回调驱动命令执行与关闭）。
+  im_react_open_popup (p->menu, p->pos_x, p->pos_y);
+#endif
 }
 
 void
 im_deactivate_popup (im_popup_rep* p) {
   if (g_active_popup == p) g_active_popup= nullptr;
+}
+
+void
+im_deactivate_active_popup () {
+  g_active_popup= nullptr;
 }
 
 bool

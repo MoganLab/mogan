@@ -463,6 +463,7 @@ edit_cursor_rep::go_to_here () {
 
 void
 edit_cursor_rep::go_to (path p) {
+  cout << "edit_cursor_rep::go_to" << LF;
   if (rp <= p) {
     // if (tp != p) cout << "Go to " << p << "\n";
     tp       = p;
@@ -479,7 +480,10 @@ edit_cursor_rep::go_to (path p) {
     notify_change (THE_CURSOR);
     if (cu->valid) {
       call ("notify-cursor-moved", object (DIRECT));
-      set_user_active (true);
+#ifdef LORO_ENABLED
+      if (!collab_applying_remote ())
+#endif
+        set_user_active (true);
     }
   }
 }

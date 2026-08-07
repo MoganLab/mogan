@@ -27,6 +27,9 @@
 #include "im_ime_macos.hpp" // macOS IME bridge (no-op stubs elsewhere)
 #include "im_input.hpp"
 #include "im_menu.hpp" // im_render_main_menu / im_render_active_popup / im_has_active_popup
+#ifdef __EMSCRIPTEN__
+#include "im_react_bridge.hpp" // WASM React shell bridge (no-op on native)
+#endif
 #include "im_simple_widget.hpp" // editor canvas (main_widget)
 
 #ifdef LORO_ENABLED
@@ -772,18 +775,41 @@ im_tm_widget_rep::im_main_loop () {
   // 主菜单条 + 右键弹出菜单（即时模式，每帧渲染）。菜单项命令延迟到
   // im_flush_menu_commands 统一执行，避免在遍历菜单树时重入。
   float menu_h= 0.0f;
+#ifdef __EMSCRIPTEN__
+  // WASM：菜单条 / 状态栏 / 右键弹出菜单全部由 React shell 渲染，ImGui
+  // 不再绘制。 header_h / footer_h 改用 JS 回报的实测像素高度（首帧 JS
+  // 尚未回报时退化为 ImGui 默认帧高
+  // ~22px），以保证画布依旧落在菜单与状态栏之间、screen_to_si 的
+  // 坐标对齐不变。弹出菜单与命令执行仍走
+  // im_flush_menu_commands（mogan_menu_invoke 入队后立即 flush）。
+  {
+    int js_menu_h= 22, js_footer_h= 22;
+    im_react_chrome_metrics (js_menu_h, js_footer_h);
+    if (visibility[0]) menu_h= (float) js_menu_h;
+    im_flush_menu_commands ();
+  }
+#else
   if (visibility[0] && !is_nil (menu_widget)) {
     im_render_main_menu (menu_widget);
     menu_h= ImGui::GetFrameHeight ();
   }
+  im_render_active_popup ();
+  im_flush_menu_commands ();
+#endif
   // header_h = 菜单条 + 工具栏总高（当前无工具栏，=
   // menu_h）。画布在此高度之下。
   float header_h= menu_h;
-  im_render_active_popup ();
-  im_flush_menu_commands ();
 
   // 底部状态栏（即时模式）。显示/隐藏由 SLOT_FOOTER_VISIBILITY 控制。
   float footer_h= 0.0f;
+#ifdef __EMSCRIPTEN__
+  // WASM：状态栏由 React shell 渲染，仅取 JS 实测高度用于画布布局。
+  if (visibility[5] && win_h > 0) {
+    int js_menu_h= 22, js_footer_h= 22;
+    im_react_chrome_metrics (js_menu_h, js_footer_h);
+    footer_h= (float) js_footer_h;
+  }
+#else
   if (visibility[5] && win_h > 0) {
     footer_h= ImGui::GetFrameHeight ();
     ImGui::SetNextWindowPos (ImVec2 (0.0f, (float) win_h - footer_h));
@@ -822,6 +848,7 @@ im_tm_widget_rep::im_main_loop () {
     }
     ImGui::End ();
   }
+#endif
 
   // 顶部 header（菜单条 + 工具栏）占用 header_h 像素：记为 SI 偏移，供
   // screen_to_si 把鼠标坐标对齐到 header 下方的画布原点。
@@ -1216,15 +1243,31 @@ im_tm_widget_rep::send (slot s, blackbox val) {
     break;
   case SLOT_LEFT_FOOTER: {
     footer_left= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
+    im_react_push_footer (footer_left, footer_middle, footer_right,
+                          footer_interactive);
+#endif
   } break;
   case SLOT_MIDDLE_FOOTER: {
     footer_middle= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
+    im_react_push_footer (footer_left, footer_middle, footer_right,
+                          footer_interactive);
+#endif
   } break;
   case SLOT_RIGHT_FOOTER: {
     footer_right= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
+    im_react_push_footer (footer_left, footer_middle, footer_right,
+                          footer_interactive);
+#endif
   } break;
   case SLOT_INTERACTIVE_MODE: {
     footer_interactive= open_box<bool> (val);
+#ifdef __EMSCRIPTEN__
+    im_react_push_footer (footer_left, footer_middle, footer_right,
+                          footer_interactive);
+#endif
   } break;
   default: {
     int vi;
@@ -1299,6 +1342,11 @@ im_tm_widget_rep::write (slot s, blackbox index, widget w) {
     // 主菜单条由 Scheme 层经 menu_main → set_main_menu 写入。tm_data 会按需重发
     // （焦点/语言变化等），这里只保留最新一棵，每帧即时渲染。
     menu_widget= w;
+    // WASM：把同一棵树序列化为 JSON 推给 React shell 渲染（native 侧为
+    // no-op）。
+#ifdef __EMSCRIPTEN__
+    im_react_push_menu (menu_widget);
+#endif
     break;
   default:
     im_widget_rep::write (s, index, w);

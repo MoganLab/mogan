@@ -425,8 +425,13 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
   }
   menu_current (which)= xmenu;
   object umenu        = eval ("'" * menu);
-  if (which == 10 || which == 11) w= make_menu_widget (umenu, 400, 1000);
-  else w= make_menu_widget (umenu);
+  if (which == 10 || which == 11) {
+    w= make_menu_widget (umenu, 400, 1000);
+  }
+  else {
+    w= make_menu_widget (umenu);
+  }
+  if (which == -1) bench_end ("make_menu_widget");
   if (menu_caching)
     if (which >= 10 || as_bool (call ("cache-menu?", xmenu))) {
       menu_cache (xmenu)= w;

@@ -107,6 +107,7 @@ public:
   void                      collab_restore_cursor (bool apply= true) override;
   void                      queue_remote (string raw_mod) override;
   void                      apply_queued_remote () override;
+  bool                      collab_applying_remote () override;
 #endif
   void collab_enable () override;
   bool collab_enabled () override;

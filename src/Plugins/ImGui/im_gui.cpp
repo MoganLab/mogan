@@ -195,8 +195,8 @@ vertical_menu (array<widget> a) {
 }
 widget
 tile_menu (array<widget> a, int cols) {
-  (void) cols; // ImGui 暂以普通容器渲染（不分行）
-  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_container);
+  im_menu_rep* m= tm_new<im_menu_rep> (im_menu_rep::k_tile);
+  m->cols       = cols;
   m->add_children (a);
   return widget ((widget_rep*) m);
 }

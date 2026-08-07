@@ -1,0 +1,315 @@
+/* React shell chrome for the ImGui WASM build.
+   Palette mirrors the liii Qt theme (TeXmacs/misc/themes/liii.css): light gray
+   chrome (#f3f3f3), near-black selection (#2c2c2c) with white text, white
+   dropdowns with a light border, rounded (4px) menu items. */
+
+:root {
+  --chrome-bg: #f3f3f3;
+  --chrome-text: #2c2c2c;
+  --select-bg: #2c2c2c;
+  --select-text: #ffffff;
+  --select-bg-pressed: #1a1a1a;
+  --popup-bg: #ffffff;
+  --popup-border: #e0e0e0;
+  --text-disabled: #a0a0a0;
+  --separator: #e0e0e0;
+  --group-text: #8a8a8a;
+  --radius-item: 4px;
+  --radius-popup: 8px;
+  --menu-frame-h: 30px;
+  --shadow-popup: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.mogan-shell {
+  position: fixed;
+  inset: 0;
+}
+
+/* Menu and footer sit above the canvas. The canvas fills the area between. */
+.mogan-menubar-host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--chrome-bg);
+}
+
+.mogan-footer-host {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--chrome-bg);
+}
+
+.mogan-canvas-host {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+#main-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  background: #9f9f9f;
+}
+
+/* ---- Top-level menu bar ---- */
+.mogan-menubar {
+  list-style: none;
+  margin: 0;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--menu-frame-h);
+  user-select: none;
+}
+
+.mogan-menubar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Width fits the label (flex item, no grow/shrink); text centers within the
+     pill. The li wraps a single .mogan-menu-label span, so justify-content on
+     the flex row is what centers it. */
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border-radius: var(--radius-item);
+  cursor: default;
+  font-size: 13px;
+  color: var(--chrome-text);
+  white-space: nowrap;
+}
+.mogan-menubar-item:hover,
+.mogan-menubar-item.open {
+  background: var(--select-bg);
+  color: var(--select-text);
+}
+.mogan-menubar-item.open:active {
+  background: var(--select-bg-pressed);
+}
+
+/* ---- Dropdown menus (shared by top-level, nested flyouts, context menu) ---- */
+.mogan-menu-dropdown {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  position: absolute;
+  min-width: 180px;
+  /* Cap height and scroll vertically when the menu is taller than the
+     viewport. Only a small 4px breathing room at top/bottom so the scrollable
+     area uses nearly the full viewport height. Nested flyouts are
+     position:fixed (viewport coords), so they are NOT clipped by this scroll
+     container — see .mogan-menu-flyout. */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Hide the scrollbar while keeping scrollability (user preference). */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--radius-popup);
+  box-shadow: var(--shadow-popup);
+  z-index: 40;
+  user-select: none;
+  font-size: 13px;
+}
+
+.mogan-menu-dropdown::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
+/* Top-level dropdown opens below its menu bar item, with a small gap so the
+   rounded popup reads as floating rather than attached. */
+.mogan-menubar-item > .mogan-menu-dropdown {
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  /* Top-level dropdown opens below the 30px menu bar, so a 100vh-based cap
+     would overshoot the viewport bottom by roughly the bar height. Subtract
+     the bar height (+ its margin) so the menu's bottom stays on screen and
+     the final item can scroll fully into view. */
+  max-height: calc(100vh - var(--menu-frame-h) - 12px);
+}
+
+/* Nested flyout. Rendered into document.body via a React portal and placed by
+   JS at the parent row's viewport rect (position:fixed). Portaling escapes the
+   parent dropdown's overflow clipping — Safari clips position:fixed descendants
+   against a non-visible-overflow ancestor, Chrome doesn't; body keeps both
+   consistent. z-index sits above plain dropdowns (40) since it now shares the
+   body's top-level stacking context. */
+.mogan-menu-flyout {
+  position: fixed;
+  margin: 0;
+  z-index: 60;
+}
+
+/* Small transparent spacer appended only when a menu actually overflows and
+   can scroll (the .can-scroll class is added from JS). Some browsers don't
+   count padding-bottom toward the scrollable overflow, so without it the last
+   item ends up flush against (and clipped by) the bottom border / rounded
+   corner. Scoped to .can-scroll so short menus and flyouts that fit don't get
+   a stray blank row. */
+.mogan-menu-dropdown.can-scroll::after {
+  content: '';
+  display: block;
+  height: 40px;
+}
+
+.mogan-menu-item {
+  display: flex;
+  align-items: center;
+  /* Slim left gutter (no left check column anymore — the check mark sits at
+     the row end). Right padding keeps shortcut/arrow breathing room. */
+  padding: 6px 12px 6px 6px;
+  border-radius: var(--radius-item);
+  cursor: default;
+  color: var(--chrome-text);
+  white-space: nowrap;
+  position: relative;
+}
+.mogan-menu-item:hover,
+.mogan-menu-item.open {
+  background: var(--select-bg);
+  color: var(--select-text);
+}
+.mogan-menu-item:hover .mogan-menu-shortcut,
+.mogan-menu-item.open .mogan-menu-shortcut {
+  /* Solid light grey on the dark hover pill: the previous rgba(255,255,255,0.65)
+     rendered as a faint wash and read as invisible on the menubar. */
+  color: #d6d6d6;
+}
+.mogan-menu-item.disabled {
+  color: var(--text-disabled);
+}
+.mogan-menu-item.disabled:hover {
+  background: transparent;
+  color: var(--text-disabled);
+}
+/* A disabled row never gets the hover pill, so its shortcut must not flip to
+   the light hover color either — keep it at the readable non-hover grey. */
+.mogan-menu-item.disabled:hover .mogan-menu-shortcut,
+.mogan-menu-item.disabled .mogan-menu-shortcut {
+  color: var(--text-disabled);
+}
+
+/* Check mark rendered at the END of the row (after the shortcut), per
+   preference — there is no left check column, so rows sit flush left and the
+   gutter stays slim. Fixed width keeps it from shifting the shortcut. */
+.mogan-menu-check-end {
+  width: 14px;
+  display: inline-block;
+  text-align: center;
+  flex: 0 0 auto;
+}
+/* Scope the label stretch + shortcut gutter to dropdown rows (.mogan-menu-item)
+   only. The top-level menubar reuses .mogan-menu-label inside .mogan-menubar-item,
+   and there flex:1 + the 24px right padding pushed the text left and left a
+   long trailing gap — the menubar label must stay shrink-to-fit and centered. */
+.mogan-menu-item .mogan-menu-label {
+  flex: 1 1 auto;
+  padding-right: 24px;
+}
+.mogan-menu-shortcut {
+  /* Near-body grey so it's directly readable on the popup's white background
+     without needing hover, in both dropdowns and nested flyouts. */
+  color: #555555;
+  font-size: 12px;
+}
+.mogan-menu-arrow {
+  margin-left: 8px;
+  font-size: 9px;
+}
+
+.mogan-menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--separator);
+  list-style: none;
+}
+.mogan-menu-group {
+  padding: 4px 12px 2px;
+  color: var(--group-text);
+  font-size: 12px;
+  list-style: none;
+}
+.mogan-menu-text {
+  padding: 6px 12px;
+  color: var(--text-disabled);
+  list-style: none;
+}
+
+/* ---- Tile menus (grid palettes, e.g. math symbols) ---- */
+.mogan-menu-tile {
+  display: grid;
+  /* gridTemplateColumns set inline from node.cols; max-content keeps each
+     column at its widest label instead of stretching to the menu width. */
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  list-style: none;
+}
+.mogan-menu-tile-cell {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  border-radius: var(--radius-item);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chrome-text);
+  text-align: center;
+  cursor: default;
+  /* A few tile entries carry long translated labels; cap the cell so one
+     wide label can't blow up the whole grid (title attr shows the full text). */
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mogan-menu-tile-cell:hover:not(:disabled) {
+  background: var(--select-bg);
+  color: var(--select-text);
+}
+.mogan-menu-tile-cell:disabled {
+  color: var(--text-disabled);
+}
+
+/* ---- Context menu ---- */
+.mogan-context-menu {
+  position: fixed;
+  z-index: 50;
+}
+
+/* ---- Footer / status bar ---- */
+.mogan-footer {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--chrome-text);
+  user-select: none;
+}
+.mogan-footer-left {
+  flex: 1 1 0;
+  text-align: left;
+}
+.mogan-footer-middle {
+  flex: 1 1 0;
+  text-align: center;
+}
+.mogan-footer-right {
+  flex: 1 1 0;
+  text-align: right;
+}

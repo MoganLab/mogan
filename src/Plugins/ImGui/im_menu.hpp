@@ -27,8 +27,9 @@
 class im_menu_rep : public im_widget_rep {
 public:
   enum kind_t {
-    k_container, // horizontal_menu / vertical_menu / vertical_list / tile_menu
+    k_container, // horizontal_menu / vertical_menu / vertical_list
                  // / minibar_menu
+    k_tile,      // tile_menu（cols 列格子布局）
     k_submenu,   // pulldown_button / pullright_button（惰性 promise 子菜单）
     k_button,    // menu_button（命令按钮）
     k_separator, // menu_separator
@@ -45,9 +46,10 @@ public:
   int             style;    // WIDGET_STYLE_* 标志（INERT 禁用、PRESSED 选中…）
   promise<widget> sub;      // k_submenu 的惰性子菜单
   bool            vertical; // k_separator 方向
+  int             cols;     // k_tile 的列数（=0 表示普通容器）
 
   im_menu_rep (kind_t k)
-      : im_widget_rep (none), kind (k), style (0), vertical (false) {}
+      : im_widget_rep (none), kind (k), style (0), vertical (false), cols (0) {}
 
   /// 经 i18n 翻译 + cork→utf8 后的可显示标签
   string display_label () const;
@@ -92,6 +94,10 @@ bool im_has_active_popup ();
 /// 活动弹出菜单激消（由 im_popup_rep::send 调用）
 void im_activate_popup (im_popup_rep* p);
 void im_deactivate_popup (im_popup_rep* p);
+
+/// 无条件注销当前活动弹出菜单（WASM 上由 React shell 的关闭回调调用，
+/// native 路径下由 im_render_active_popup 的 BeginPopup 返回 false 隐式完成）。
+void im_deactivate_active_popup ();
 
 /// 菜单命令入队 / 执行（遍历菜单树期间只入队，结束后统一 flush，避免重入）
 void im_queue_menu_command (command cmd);

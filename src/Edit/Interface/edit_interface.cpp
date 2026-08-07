@@ -873,6 +873,10 @@ edit_interface_rep::update_menus (int mask) {
 
   if ((mask & MENU_MAIN) && !is_startup && !is_chat)
     SERVER (menu_main ("(horizontal (link texmacs-menu))"));
+#ifndef OS_WASM
+  // WASM/React shell 只渲染主菜单（SLOT_MAIN_MENU → im_react_push_menu）；
+  // icons/tabs 的 widget 建了也无前端消费，每次 update_menus 都为它们跑
+  // scheme 求值是纯浪费（这是 WASM 下 update_menus 慢的主因）。native 保留。
   if ((mask & ICONS_MAIN) && !is_startup && !is_chat)
     SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
   if ((mask & ICONS_MODE) && !is_startup)
@@ -883,6 +887,7 @@ edit_interface_rep::update_menus (int mask) {
     SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
   if (mask & TAB_PAGES)
     SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+#endif
   if ((mask & NOTIFICATION) && !is_startup && !is_chat)
     SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
   if (is_startup || is_chat) {
@@ -890,6 +895,8 @@ edit_interface_rep::update_menus (int mask) {
     bench_end ("update_menus");
     return;
   }
+#ifndef OS_WASM
+  // 同 icons：WASM/React 无 side-tools 前端，跳过其 scheme 求值。
   if (mask & SIDE_TOOLS) {
     array<url> a= buffer_to_windows (buf->buf->name);
     if (N (a) > 0) {
@@ -902,6 +909,7 @@ edit_interface_rep::update_menus (int mask) {
       SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
     }
   }
+#endif
   set_footer ();
   if (mask == MENU_ALL) {
     if (has_current_window ()) {

@@ -18,6 +18,7 @@ on:
       - ".github/workflows/ci-macos-wasm.yml"
       - "TeXmacs/tests/*.scm"
       - "3rdparty/**"
+      - "web/**"
   pull_request:
     branches: [main]
     paths:
@@ -36,6 +37,7 @@ on:
       - ".github/workflows/ci-macos-wasm.yml"
       - "TeXmacs/tests/*.scm"
       - "3rdparty/**"
+      - "web/**"
   workflow_dispatch:
 
 env:
@@ -81,6 +83,19 @@ jobs:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
           key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
+
+      # node/npm are still required: xmake's web_shell target runs
+      # `npm install && npm run build` during `xmake build stem`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
 
       - name: config
         run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg -p wasm --qt_frontend=no --pdfhummus=no --goldfish=no --yes
