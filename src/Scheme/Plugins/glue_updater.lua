@@ -51,6 +51,41 @@ function main()
                     "int"
                 }
             },
+            {
+                scm_name = "updater-state",
+                cpp_name = "updater_state",
+                ret_type = "int"
+            },
+            {
+                scm_name = "updater-available-version",
+                cpp_name = "updater_available_version",
+                ret_type = "string"
+            },
+            {
+                scm_name = "updater-release-notes",
+                cpp_name = "updater_release_notes",
+                ret_type = "string"
+            },
+            {
+                scm_name = "updater-progress",
+                cpp_name = "updater_progress",
+                ret_type = "int"
+            },
+            {
+                scm_name = "updater-error-code",
+                cpp_name = "updater_error_code",
+                ret_type = "string"
+            },
+            {
+                scm_name = "updater-download",
+                cpp_name = "updater_download",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "updater-apply",
+                cpp_name = "updater_apply",
+                ret_type = "bool"
+            },
         }
     }
 end

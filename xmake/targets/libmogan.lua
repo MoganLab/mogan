@@ -159,6 +159,7 @@ target("libmogan") do
                 USE_PLUGIN_TEX = true,
                 USE_PLUGIN_ISPELL = true,
                 USE_PLUGIN_PDF = has_config("pdfhummus"),
+                USE_PLUGIN_VELOPACK = is_plat("windows") and is_arch("x64"),
                 USE_PLUGIN_HTML = true,
                 USE_MUPDF_RENDERER = has_config("mupdf"),
                 USE_STARTUP_TAB = has_config("startup_tab"),
