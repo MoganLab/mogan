@@ -183,6 +183,14 @@ target("stem") do
     add_includedirs("$(builddir)", {public = true})
     add_files("$(projectdir)/src/Mogan/Research/research.cpp")
 
+    -- Velopack C++ runtime：启动钩子编译/链接 + 动态库随 bin/ 发布
+    if is_plat("windows") and is_arch("x64") then
+        add_velopack_runtime ()
+        -- 导入库内嵌 DLL 名为 velopack_libc.dll，发布时改名，exe 才能加载
+        add_installfiles ("$(projectdir)/3rdparty/velopack/lib/velopack_libc_win_x64_msvc.dll",
+                          {prefixdir = "bin", filename = "velopack_libc.dll"})
+    end
+
     -- install tm files for testing purpose
     if is_mode("releasedbg") then
         if is_plat("mingw", "windows") then

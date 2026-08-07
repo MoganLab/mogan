@@ -20,6 +20,7 @@ includes("lolly")
 includes("xmake/stem.lua")
 includes("xmake/rules/glue.lua")
 includes("xmake/goldfish.lua")
+includes("xmake/velopack.lua")
 
 set_project(stem_project_name)
 set_policy("run.autobuild", false)
