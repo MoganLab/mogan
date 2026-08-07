@@ -58,7 +58,8 @@ jobs:
         run: |
           dotnet tool install -g vpk --version 1.2.0
           Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.dotnet\tools"
-      # pandoc 已在 gs and pandoc 步骤落进 bin/，stage 会把它一并摊平到暂存根。
+      # pandoc 已在 gs and pandoc 步骤落进 bin/，stage 会把它收进暂存根 bin/
+      # （$TEXMACS_PATH/bin，find-binary 按此查找）。
       - name: Stage Velopack
         run: xmake l tools/release/stage_velopack.lua
       # vpk pack 在 outputDir 存在上一版本时自动生成 delta 增量包；首次发布无
