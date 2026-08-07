@@ -19,6 +19,8 @@
 -- 暂存根，不能收进 TeXmacs/ 包装目录，否则 $TEXMACS_PATH/progs 永远解析失败。
 -- 辅助二进制（pandoc.exe、vc_redist.x64.exe 等）保留在暂存根 bin/ 子目录：
 -- find-binary 与 pandoc 等按 $TEXMACS_PATH/bin 查找；.pdb 调试符号不发布。
+-- 目录拷贝一律用内容合并语义（merge_copy）：Qt 插件子目录（如 styles/）与同名
+-- 数据目录合并同层，避免 os.cp 在 dst 已存在时整目录嵌套成 dst/basename(src)。
 -- 为何不沿用 xpack 的 NSIS 目录布局：NSIS 允许任意 --packDir 结构，Velopack
 -- 要求主程序位于根部，摊平这一步不可省。
 --
@@ -57,8 +59,26 @@ if os.exists (out_dir) then
 end
 os.mkdir (out_dir)
 
+-- 目录内容合并拷贝：逐条目复制，同名子目录递归合并。
+-- 不能直接用 os.cp(src_dir, dst_dir)：dst 已存在时 xmake 会整目录嵌套成
+-- dst/basename(src)（bin/styles 与数据 styles 撞名即因此产生 out/styles/styles/）。
+-- 文件过滤掉 *.pdb（debug 符号属构建中间产物，不进暂存根）。
+local function merge_copy (src, dst)
+    os.mkdir (dst)
+    for _, f in ipairs (os.files (path.join (src, "*"))) do
+        local name = path.filename (f)
+        if not name:match ("%.pdb$") then
+            os.cp (f, path.join (dst, name))
+        end
+    end
+    for _, sub in ipairs (os.dirs (path.join (src, "*"))) do
+        merge_copy (sub, path.join (dst, path.filename (sub)))
+    end
+end
+
 -- 1) bin/ 拆分：
---    - 顶层目录（platforms/ qml/ 等 Qt 插件子目录）整体拷到暂存根
+--    - 顶层目录（platforms/ qml/ 等 Qt 插件子目录）用内容合并语义拷到暂存根：
+--      Qt 插件子目录（如 styles/）与同名数据目录合并同层，避免 os.cp 整目录嵌套
 --    - 顶层 MoganSTEM.exe 与 *.dll（含 velopack_libc.dll、d3dcompiler、dxcompiler、
 --      dxil）拷到暂存根 —— Qt DLL 与主 exe 同根平铺，Qt 插件才能被发现
 --    - 顶层 *.pdb 跳过（调试符号不发布；vpk pack 默认 --exclude .*\.pdb 也会剔除）
@@ -78,7 +98,7 @@ if os.isdir (bin_dir) then
         end
     end
     for _, d in ipairs (os.dirs (path.join (bin_dir, "*"))) do
-        os.cp (d, path.join (out_dir, path.filename (d)))
+        merge_copy (d, path.join (out_dir, path.filename (d)))
     end
 end
 
@@ -97,7 +117,11 @@ if not os.isdir (tx_src) then
 end
 for _, name in ipairs (texmacs_entries) do
     local f = path.join (tx_src, name)
-    if os.exists (f) then
+    if os.isdir (f) then
+        -- 目录条目用内容合并语义：与 bin/ 拆分落下的同名目录（如 styles/）合并同层
+        merge_copy (f, path.join (out_dir, name))
+    elseif os.isfile (f) then
+        -- 文件条目（COPYING/INSTALL/README/TEX_FONTS）无嵌套问题，直接拷到根
         os.cp (f, path.join (out_dir, name))
     end
 end
@@ -124,9 +148,11 @@ for _, sub in ipairs ({"progs", "plugins", "fonts"}) do
     end
 end
 
--- 5) 全树扫描：运行期日志/构建中间产物（.log/.tmp/~ 结尾、.git 目录）不得发布。
---    用逐目录递归而不是 **/* 批量 glob：实测 xmake 的 **/* 会漏掉深层大文件
---    （如 fonts/opentype/noto 下的 CJK 字体），逐目录扫描才是可靠全集。
+-- 5) 全树扫描：运行期日志/构建中间产物（.log/.tmp/.pdb/~ 结尾、.git 目录）不得发布。
+--    merge_copy 已过滤 pdb，此处 %.pdb$ 是硬失败兜底：正常源树不应再出现 pdb，
+--    出现即说明拷贝逻辑有漏洞。用逐目录递归而不是 **/* 批量 glob：实测 xmake 的
+--    **/* 会漏掉深层大文件（如 fonts/opentype/noto 下的 CJK 字体），逐目录扫描才是
+--    可靠全集。
 local all_files = {}
 local forbidden = {}
 local total_bytes = 0
@@ -135,7 +161,7 @@ local function scan (d)
         table.insert (all_files, f)
         total_bytes = total_bytes + (os.filesize (f) or 0)
         local name = path.filename (f)
-        if name:match ("%.log$") or name:match ("%.tmp$") or name:match ("~$") then
+        if name:match ("%.log$") or name:match ("%.tmp$") or name:match ("%.pdb$") or name:match ("~$") then
             table.insert (forbidden, f)
         end
     end
@@ -161,6 +187,7 @@ end
 local named = {
     ["MoganSTEM.exe"] = true, ["bin"] = true,
     ["LICENSE"] = true, ["TeXmacs.ico"] = true,
+    ["COPYING"] = true, ["INSTALL"] = true, ["README"] = true, ["TEX_FONTS"] = true,
 }
 for _, f in ipairs (os.files (path.join (out_dir, "*"))) do
     local name = path.filename (f)
