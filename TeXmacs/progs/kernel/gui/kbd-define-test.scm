@@ -31,17 +31,18 @@
 ) ;define
 
 (define (test-getter-drains)
-  ;; 不经显式 flush,查询路径经 getter 自动 drain
+  ;; 不经显式 flush,按键查询路径(kbd-find-key-binding)自动 drain
   (delayed-kbd-map ("T17b" "BBB"))
   (check (kbd-find-key-binding "T17b") => (list "BBB" ""))
   (check (kbd-pending-empty?) => #t)
 ) ;define
 
 (define (test-override-after-delayed)
-  ;; delayed 先入队 old,同步 kbd-map 随后写 new:同步写先触发 drain,后定义胜出
+  ;; 同步写不触发 drain:delayed 批次的 old 在查询 drain 时才执行,
+  ;; 按执行先后后执行的 old 覆盖先写入的 new
   (delayed-kbd-map ("T17c" "old"))
   (kbd-map ("T17c" "new"))
-  (check (kbd-find-key-binding "T17c") => (list "new" ""))
+  (check (kbd-find-key-binding "T17c") => (list "old" ""))
 ) ;define
 
 (define (test-override-before-delayed)

@@ -247,8 +247,12 @@
   ) ;when
 ) ;tm-define
 
+;; kbd-get-map 保持纯读，不隐式 drain：需要一致性的入口显式调
+;; kbd-flush-pending（kbd-find-key-binding / kbd-find-prefix-tab-inner /
+;; 快捷键编辑器工具）。注意同步写不再触发 drain，与在途 delayed 批次
+;; 绑定同键同条件时，批次 drain 时后执行会覆盖同步写
+
 (define (kbd-get-map key)
-  (kbd-flush-pending)
   (ahash-ref kbd-map-table key)
 ) ;define
 
@@ -310,6 +314,8 @@
   (:synopsis "Find the command associated to the keystroke @key")
   ;; (display* "Find binding '" key "'\n")
   (lazy-keyboard-force)
+  ;; 按键是正确性关键路径：查表前必须 drain 在途 delayed 批次
+  (kbd-flush-pending)
   (ctx-resolve (kbd-get-map key) #f)
 ) ;tm-define
 
@@ -664,6 +670,7 @@
 ;; 2. 返回结果中的条件部分始终是一个列表（如 `((cond1) (cond2))`），
 ;;   因为 Mogan 允许一个快捷键绑定同时依赖多个条件（逻辑与关系）。
 (tm-define (get-kbd-bindings key-str)
+  (kbd-flush-pending)
   (let ((raw-map (kbd-get-map key-str)))
     (if (not raw-map)
       (list 'not-bound)
@@ -815,6 +822,7 @@
 ;; - 如果存在冲突：返回冲突绑定的命令源码（通常是一个列表）。
 ;; - 如果无冲突：返回 #f。
 (tm-define (kbd-conflict-query conds new-key)
+  (kbd-flush-pending)
   (let ((raw-map (kbd-get-map new-key)))
     (if raw-map
       (let loop
@@ -873,6 +881,7 @@
 ;; - 删除: old-key="C-b",  new-key="" -> C-b 被解绑，且没有新绑定生成。
 ;; - 无效操作：都为空，直接返回。
 (tm-define (kbd-execute-edit conds cmd old-key new-key)
+  (kbd-flush-pending)
   ;; 1. 如果提供了旧按键，则尝试删除旧绑定
   (when (and (string? old-key) (> (string-length old-key) 0))
     (let ((raw-map (kbd-get-map old-key)))
