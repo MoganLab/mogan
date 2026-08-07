@@ -67,6 +67,14 @@ table_default_hyphen_enabled (string mode, int nr_rows) {
   return mode != "math" && nr_rows > 10;
 }
 
+bool
+table_format_has_hyphen_with (tree st) {
+  // st 为 TFORMAT 树，最后一个子节点是 TABLE
+  for (int k= 0; k < N (st) - 1; k++)
+    if (is_func (st[k], TWITH, 2) && st[k][0] == "table-hyphen") return true;
+  return false;
+}
+
 tree
 default_table_tree (int nr_rows, int nr_cols, bool enable_table_hyphen) {
   tree T= empty_table (nr_rows, nr_cols);
@@ -1184,6 +1192,17 @@ edit_table_rep::table_extract_format () {
 }
 
 void
+edit_table_rep::table_auto_hyphen (path fp) {
+  // 行数增长超过 10 时自动开启分页；显式设置过（含手动关掉的 "n"）不覆盖
+  if (get_env_string (MODE) == "math") return;
+  int nr_rows, nr_cols;
+  table_get_extents (fp, nr_rows, nr_cols);
+  if (nr_rows <= 10) return;
+  if (table_format_has_hyphen_with (subtree (et, fp))) return;
+  table_set_format (fp, "table-hyphen", "y");
+}
+
+void
 edit_table_rep::table_insert_row (bool forward) {
   int  row, col;
   path fp= search_format (row, col);
@@ -1194,6 +1213,7 @@ edit_table_rep::table_insert_row (bool forward) {
   if (nr_rows + 1 > i2) return;
   table_insert (fp, row + (forward ? 1 : 0), col, 1, 0);
   table_go_to (fp, row + (forward ? 1 : 0), col);
+  table_auto_hyphen (fp);
   table_correct_block_content ();
   table_resize_notify ();
 }
@@ -1303,6 +1323,7 @@ edit_table_rep::table_set_extents (int rows, int cols) {
   rows= min (max_rows, max (min_rows, rows));
   cols= min (max_cols, max (min_cols, cols));
   table_set_extents (fp, rows, cols);
+  table_auto_hyphen (fp);
 }
 
 int

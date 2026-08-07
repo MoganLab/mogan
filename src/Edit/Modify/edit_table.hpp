@@ -57,6 +57,7 @@ protected:
   // Main routines for manipulating the entire table
   void table_get_extents (path fp, int& nr_rows, int& nr_cols);
   void table_set_extents (path fp, int nr_rows, int nr_cols);
+  void table_auto_hyphen (path fp);
   void table_get_limits (path fp, int& i1, int& j1, int& i2, int& j2);
   void table_insert (path fp, int row, int col, int nr_rows, int nr_cols);
   void table_remove (path fp, int row, int col, int nr_rows, int nr_cols);

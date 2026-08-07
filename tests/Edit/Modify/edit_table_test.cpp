@@ -17,6 +17,7 @@ extern tree empty_table (int nr_rows, int nr_cols);
 extern tree default_table_tree (int nr_rows, int nr_cols,
                                 bool enable_table_hyphen);
 extern bool table_default_hyphen_enabled (string mode, int nr_rows);
+extern bool table_format_has_hyphen_with (tree st);
 extern bool table_needs_document_wrap (string hyphen, string block,
                                        string mode);
 
@@ -38,6 +39,9 @@ private slots:
   void test_default_hyphen_disabled_in_math_mode ();
   void test_default_table_tree_skips_table_hyphen_in_math_mode ();
   void test_no_document_wrap_in_math_mode ();
+  void test_format_has_hyphen_with_present ();
+  void test_format_has_hyphen_with_absent ();
+  void test_format_has_hyphen_with_explicit_off ();
 };
 
 void
@@ -204,6 +208,26 @@ TestEditTable::test_default_table_tree_skips_table_hyphen_in_math_mode () {
 void
 TestEditTable::test_no_document_wrap_in_math_mode () {
   QVERIFY (!table_needs_document_wrap ("y", "no", "math"));
+}
+
+void
+TestEditTable::test_format_has_hyphen_with_present () {
+  tree T= default_table_tree (11, 3, true);
+  QVERIFY (table_format_has_hyphen_with (T));
+}
+
+void
+TestEditTable::test_format_has_hyphen_with_absent () {
+  tree T= default_table_tree (2, 3, false);
+  QVERIFY (!table_format_has_hyphen_with (T));
+}
+
+void
+TestEditTable::test_format_has_hyphen_with_explicit_off () {
+  // 用户手动关掉分页时 twith 值为 "n"，同样视为已显式设置
+  tree T (TFORMAT);
+  T << tree (TWITH, "table-hyphen", "n") << empty_table (2, 3);
+  QVERIFY (table_format_has_hyphen_with (T));
 }
 
 QTEST_MAIN (TestEditTable)
