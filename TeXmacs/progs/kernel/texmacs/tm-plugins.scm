@@ -704,7 +704,11 @@
 (define-public (lazy-plugin-initialize name)
   "Initialize the plug-in @name in a lazy way"
   (ahash-set! plugin-initialize-todo name #t)
-  (delayed (:idle 10) (plugin-initialize name))
+  ;; telemetry 与文档无关，直接初始化，不走 idle 延迟
+  (if (== name 'telemetry)
+    (plugin-initialize name)
+    (delayed (:idle 10) (plugin-initialize name))
+  ) ;if
 ) ;define-public
 
 (define-public (lazy-plugin-force-one name)
