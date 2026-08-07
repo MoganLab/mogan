@@ -43,7 +43,11 @@ package("libcurl")
         elseif package:is_plat("linux") then
             package:add("syslinks", "pthread")
         elseif package:is_plat("windows", "mingw") then
-            package:add("syslinks", "advapi32", "crypt32", "wldap32", "winmm", "ws2_32", "user32")
+            -- libcurl 8.21（SCHANNEL）在 Windows 上的系统依赖（见其 CMakeLists.txt 的 CURL_LIBS）：
+            -- iphlpapi(if_nametoindex)、secur32(InitSecurityInterfaceA)、bcrypt(BCryptGenRandom)、
+            -- normaliz(IdnToAscii)。旧表缺这 4 个会导致消费方/test 链接报 LNK2019。
+            package:add("syslinks", "advapi32", "crypt32", "wldap32", "winmm", "ws2_32", "user32",
+                         "iphlpapi", "secur32", "bcrypt", "normaliz")
         end
 
         if package:is_plat("mingw") and is_subhost("msys") then
