@@ -152,7 +152,10 @@
 ) ;define
 
 (define (simple-insert l x)
-  (if (nlist? l) (list x) (list-union (list x) l))
+  (cond ((nlist? l) (list x))
+        ((member x l) l)
+        (else (cons x l))
+  ) ;cond
 ) ;define
 
 (define (simple-remove l x)
@@ -318,13 +321,14 @@
 ) ;define
 
 (define (kbd-sub-bindings-sub conds s prev-end end)
-  (cond ((== end (string-length s)) (noop))
-        ((== (string-ref s end) #\space)
-         (kbd-sub-binding conds s prev-end end)
-         (kbd-sub-bindings-sub conds s end (+ end 1))
-        ) ;
-        (else (kbd-sub-bindings-sub conds s prev-end (+ end 1)))
-  ) ;cond
+  ;; 用 C 级 char-position 直接跳到下一个空格，替代逐字符递归扫描
+  (with pos
+    (char-position #\space s end)
+    (when pos
+      (kbd-sub-binding conds s prev-end pos)
+      (kbd-sub-bindings-sub conds s pos (+ pos 1))
+    ) ;when
+  ) ;with
 ) ;define
 
 (define (kbd-sub-bindings conds s)
