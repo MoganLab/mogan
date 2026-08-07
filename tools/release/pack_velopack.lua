@@ -23,6 +23,8 @@
 --
 -- 关于 delta：--delta 保持默认 BestSpeed，当 outputDir 已存在上一个版本时会
 -- 自动生成增量包；首次发布没有上一个版本，自然只有全量包。
+-- 关于同版本重打：vpk 拒绝 channel 内已有 ≥ 当前 packVersion 的包（防误覆盖已发布
+-- 版本）。本地重复验证若需重打同一 packVersion，须先删除 outputDir 中的上一发布再 pack。
 --
 -- 关于 MSI：--msi 暂不启用（默认 False）。按机器安装的 MSI 属独立渠道决策，
 -- 当前仍走每用户 Setup.exe 通道。
