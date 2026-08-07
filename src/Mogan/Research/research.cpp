@@ -40,6 +40,10 @@
 #include "tm_url.hpp"
 #include "tm_window.hpp"
 
+#if defined (OS_WIN)
+#include "Velopack.hpp"
+#endif
+
 #ifdef AQUATEXMACS
 void mac_fix_paths ();
 #endif
@@ -160,6 +164,12 @@ immediate_options (int argc, char** argv) {
 
 int
 main (int argc, char** argv) {
+
+  // Velopack 启动钩子：处理待安装的更新（无安装时为空操作）。
+  // 必须早于任何系统初始化与参数解析，且仅限 Windows。
+#if defined (OS_WIN)
+  Velopack::VelopackApp::Build ().Run ();
+#endif
 
   // 1.系统初始化
   lolly::init_tbox ();                // 初始化tbox库
