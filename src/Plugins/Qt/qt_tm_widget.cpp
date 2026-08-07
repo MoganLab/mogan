@@ -1563,9 +1563,10 @@ qt_tm_widget_rep::update_visibility () {
     pdfOutlineDock->setVisible (new_pdfOutlineVisibility);
   }
 
-  // AI 聊天侧边栏浮动按钮可见性
+  // AI 聊天侧边栏浮动按钮可见性（community 版无 AI Chat，始终隐藏）
   if (chatSidebarToggleBtn) {
-    bool shouldShow= !chatTabMode && !chatSidebarMode && !startupTabMode;
+    bool shouldShow= !is_community_stem () && !chatTabMode &&
+                     !chatSidebarMode && !startupTabMode;
     chatSidebarToggleBtn->setVisible (shouldShow);
     if (shouldShow) {
       chatSidebarToggleBtn->raise ();
