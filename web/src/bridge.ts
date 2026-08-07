@@ -15,7 +15,7 @@
  * Before stem.js loads we must set window.Module so Emscripten picks up our
  * canvas element — done in main.tsx.
  */
-import type { FooterState, MenuNode } from './types';
+import type { DialogState, FooterState, MenuNode } from './types';
 
 type MenuListener = (tree: MenuNode[]) => void;
 type FooterListener = (state: FooterState) => void;
@@ -23,6 +23,8 @@ type PopupOpenListener = (tree: MenuNode[], x: number, y: number) => void;
 type PopupCloseListener = () => void;
 /** Delivers a lazily-expanded submenu's children: (submenu id, children). */
 type SubmenuListener = (id: number, children: MenuNode[]) => void;
+/** Delivers an interactive dialog pushed from C++. */
+type DialogListener = (state: DialogState) => void;
 
 type CcallFn = (
   name: string,
@@ -50,6 +52,7 @@ declare global {
     moganOnOpenPopup?: PopupOpenListener;
     moganOnClosePopup?: PopupCloseListener;
     moganOnSubmenu?: SubmenuListener;
+    moganOnDialog?: DialogListener;
   }
 }
 
@@ -117,6 +120,27 @@ export function subscribeSubmenu(cb: SubmenuListener): () => void {
   submenuListeners.add(cb);
   return () => {
     submenuListeners.delete(cb);
+  };
+}
+
+/**
+ * Submit the interactive dialog's field values back to C++ (which runs the
+ * pending scheme fun with them). Values are '\n'-joined to match the C++ split.
+ */
+export function submitDialog(values: string[]): void {
+  ccall('mogan_dialog_submit', null, ['string'], [values.join('\n')]);
+}
+
+/** Cancel the interactive dialog (Esc / overlay click): C++ drops the pending fun. */
+export function cancelDialog(): void {
+  ccall('mogan_dialog_cancel', null, [], []);
+}
+
+/** Subscribe to interactive dialogs pushed from C++. */
+export function subscribeDialog(cb: DialogListener): () => void {
+  window.moganOnDialog = cb;
+  return () => {
+    if (window.moganOnDialog === cb) window.moganOnDialog = undefined;
   };
 }
 

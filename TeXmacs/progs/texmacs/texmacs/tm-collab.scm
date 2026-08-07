@@ -103,6 +103,7 @@
 ;; 会话进行中禁止改地址：连接 URL 在连接时固定，改了也不迁移当前会话，故要求先 Leave。
 (tm-define (collab-configure-server)
   (:interactive #t)
+  (:imgui-supported #t)
   (if (loro-collab-active?)
     (set-message "Leave the current session before changing the server address"
       "Collaborative"
@@ -207,6 +208,7 @@
 ) ;define
 (tm-define (collab-new-document)
   (:interactive #t)
+  (:imgui-supported #t)
   (interactive (lambda (name) (collab-new-document-named name)) "Document name")
 ) ;tm-define
 (tm-define (collab-new-document-named name)
@@ -262,6 +264,7 @@
 ;; 无需等待首次编辑。
 (tm-define (collab-new-document-from-file)
   (:interactive #t)
+  (:imgui-supported #t)
   (choose-file collab-share-file-prompt-name "Load file to share" "action_open")
 ) ;tm-define
 

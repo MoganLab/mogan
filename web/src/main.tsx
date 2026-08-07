@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MenuBar } from './MenuBar';
 import { FooterBar } from './FooterBar';
 import { ContextMenu } from './ContextMenu';
+import { Dialog } from './Dialog';
 import { setChromeMetrics } from './bridge';
 import './styles.css';
 
@@ -63,6 +64,7 @@ function Shell() {
         <FooterBar onHeight={setFooterH} />
       </div>
       <ContextMenu />
+      <Dialog />
     </div>
   );
 }

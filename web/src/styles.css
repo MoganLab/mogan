@@ -291,6 +291,77 @@
   z-index: 50;
 }
 
+/* ---- Interactive dialog (collab new-doc / configure-server / ...) ---- */
+.mogan-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+.mogan-dialog {
+  min-width: 320px;
+  max-width: 90vw;
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--radius-popup);
+  box-shadow: var(--shadow-popup);
+  padding: 16px;
+  font-size: 13px;
+  color: var(--chrome-text);
+}
+.mogan-dialog-title {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.mogan-dialog-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+.mogan-dialog-label {
+  margin-bottom: 4px;
+  color: var(--group-text);
+  font-size: 12px;
+}
+.mogan-dialog-input {
+  padding: 5px 8px;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--radius-item);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chrome-text);
+  background: var(--popup-bg);
+  outline: none;
+}
+.mogan-dialog-input:focus {
+  border-color: var(--chrome-text);
+}
+.mogan-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.mogan-dialog-actions button {
+  padding: 5px 14px;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--radius-item);
+  background: var(--popup-bg);
+  color: var(--chrome-text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: default;
+}
+.mogan-dialog-actions button.mogan-dialog-primary {
+  background: var(--select-bg);
+  color: var(--select-text);
+  border-color: var(--select-bg);
+}
+
 /* ---- Footer / status bar ---- */
 .mogan-footer {
   display: flex;

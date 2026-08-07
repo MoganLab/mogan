@@ -52,6 +52,14 @@ void im_react_close_popup ();
 /// (~22px) so the document canvas is laid out correctly on the first frames.
 void im_react_chrome_metrics (int& menu_h, int& footer_h);
 
+/// Push an interactive dialog to the React shell. The four strings each carry
+/// '\n'-joined fields (title is a single string; prompts/defaults/types have
+/// one entry per field). React renders a modal and returns the values via
+/// mogan_dialog_submit / mogan_dialog_cancel. Used by the WASM bypass of the
+/// stubbed inputs_list_widget/dialogue_start path (see tm_dialogue.cpp).
+void im_react_push_dialog (string title, string prompts, string defaults,
+                           string types);
+
 #else
 
 // Non-WASM: provide no-op stubs so callers can compile unconditionally.
@@ -69,6 +77,8 @@ inline void
 im_react_close_popup () {}
 inline void
 im_react_chrome_metrics (int&, int&) {}
+inline void
+im_react_push_dialog (string, string, string, string) {}
 
 #endif // __EMSCRIPTEN__
 

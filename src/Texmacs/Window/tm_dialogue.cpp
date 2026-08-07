@@ -257,9 +257,88 @@ interactive_command_rep::apply () {
   }
 }
 
+/******************************************************************************
+ * WASM：绕过 inputs_list_widget/dialogue_start 桩，改由 React 模态对话框收集中
+ ******************************************************************************/
+#ifdef __EMSCRIPTEN__
+// Transport（定义于 im_react_bridge.cpp）：把字段推给 React shell。
+void im_react_push_dialog (string title, string prompts, string defaults,
+                           string types);
+
+// 一次最多一个活动交互对话框：暂存 scheme fun 与参数规格，等 React
+// submit/cancel。
+static object      g_wasm_dlg_fun;
+static scheme_tree g_wasm_dlg_p;
+static bool        g_wasm_dlg_pending= false;
+
+static string
+join_newline (array<string> a) {
+  string r;
+  for (int i= 0; i < N (a); ++i) {
+    if (i > 0) r << '\n';
+    r << a[i];
+  }
+  return r;
+}
+
+// 由 tm_frame_rep::interactive 在 WASM 下调用：跳过桩化的
+// inputs_list_widget/dialogue_start，改为推送字段给 React 模态。
+void
+im_wasm_start_dialog (object fun, scheme_tree p) {
+  int           n= N (p);
+  array<string> prompts (n), defaults (n), types (n);
+  for (int i= 0; i < n; ++i) {
+    prompts[i]             = get_prompt (p, i);
+    types[i]               = get_type (p, i);
+    array<string> proposals= get_proposals (p, i);
+    defaults[i]            = (N (proposals) > 0) ? proposals[0] : string ("");
+  }
+  string title= translate ("Enter data");
+  if (n > 0 && ends (prompts[0], "?")) title= translate ("Question");
+  g_wasm_dlg_fun    = fun;
+  g_wasm_dlg_p      = p;
+  g_wasm_dlg_pending= true;
+  im_react_push_dialog (title, join_newline (prompts), join_newline (defaults),
+                        join_newline (types));
+}
+
+// React 回传值（或取消）。镜像 dialogue_command_rep::apply（行 51-73）。
+void
+im_wasm_dialog_deliver (array<string> values, bool cancelled) {
+  if (!g_wasm_dlg_pending) return;
+  object      fun   = g_wasm_dlg_fun;
+  scheme_tree p     = g_wasm_dlg_p;
+  g_wasm_dlg_pending= false;
+  g_wasm_dlg_fun    = object ();
+  g_wasm_dlg_p      = scheme_tree ();
+  if (cancelled) return;
+  int    nr   = N (p);
+  object cmd  = null_object ();
+  object learn= null_object ();
+  for (int i= nr - 1; i >= 0; --i) {
+    string s_arg= (i < N (values)) ? values[i] : string ("");
+    object arg  = string_to_object (s_arg);
+    cmd         = cons (arg, cmd);
+    if (get_type (p, i) == "password")
+      learn= cons (cons (object (as_string (i)), object ("")), learn);
+    else learn= cons (cons (object (as_string (i)), arg), learn);
+  }
+  call ("learn-interactive", fun, learn);
+  cmd= cons (fun, cmd);
+  exec_delayed (scheme_cmd (cmd));
+}
+#endif // __EMSCRIPTEN__
+
 void
 tm_frame_rep::interactive (object fun, scheme_tree p) {
   ASSERT (is_tuple (p), "tuple expected");
+#ifdef __EMSCRIPTEN__
+  // WASM：N(p)>0 的交互式命令统一走 React 模态（绕过桩化的对话框控件）。
+  if (N (p) > 0) {
+    im_wasm_start_dialog (fun, p);
+    return;
+  }
+#endif
   if (N (p) == 0) {
     string ret= object_to_string (call (fun));
     if (ret != "" && ret != "<unspecified>" && ret != "#<unspecified>")

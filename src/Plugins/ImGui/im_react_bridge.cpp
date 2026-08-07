@@ -123,6 +123,31 @@ EM_JS (void, im_js_push_submenu, (int id, const char* json), {
   }
 });
 
+// Each of prompts/defaults/types is a '\n'-joined string; empty string => []
+// (so a single field with empty default doesn't yield a phantom ['']). React
+// iterates by prompts.length and indexes the others defensively.
+EM_JS (void, im_js_push_dialog,
+       (const char* title, const char* prompts, const char* defaults,
+        const char* types),
+       {
+         try {
+           function split (s) {
+             var str      = UTF8ToString (s);
+             return str === '' ? [] : str.split ('\n');
+           }
+           var d= {
+             title : UTF8ToString (title),
+             prompts : split (prompts),
+             defaults : split (defaults),
+             types : split (types)
+           };
+           if (typeof window.moganOnDialog === 'function')
+             window.moganOnDialog (d);
+         } catch (e) {
+           console.error ('mogan: push_dialog failed', e);
+         }
+       });
+
 EM_JS (void, im_js_push_footer,
        (const char* left, const char* mid, const char* right, int interactive),
        {
@@ -325,6 +350,40 @@ mogan_menu_expand (int id) {
   im_js_push_submenu (id, (const char*) cs);
 }
 
+// Dialog deliver-back: defined in tm_dialogue.cpp (owns the pending scheme fun
+// + arg spec). Forward-declared here; only the WASM build links it.
+void im_wasm_dialog_deliver (array<string> values, bool cancelled);
+
+// Split a '\n'-joined string into a mogan array<string>.
+static array<string>
+split_newline (string s) {
+  array<string> a;
+  string        cur;
+  for (int i= 0; i < N (s); ++i) {
+    if (s[i] == '\n') {
+      a << cur;
+      cur= "";
+    }
+    else cur << s[i];
+  }
+  a << cur;
+  return a;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_dialog_submit (const char* joined) {
+  // React submitted the modal: split the '\n'-joined values and deliver.
+  string s (joined);
+  im_wasm_dialog_deliver (split_newline (s), false);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_dialog_cancel () {
+  // React cancelled (Esc / overlay click): deliver with cancelled=true so the
+  // pending scheme fun is NOT invoked.
+  im_wasm_dialog_deliver (array<string> (0), true);
+}
+
 /******************************************************************************
  * Public push hooks
  ******************************************************************************/
@@ -349,6 +408,14 @@ im_react_push_footer (string left, string middle, string right,
   c_string cl (left), cm (middle), cr (right);
   im_js_push_footer ((const char*) cl, (const char*) cm, (const char*) cr,
                      interactive ? 1 : 0);
+}
+
+void
+im_react_push_dialog (string title, string prompts, string defaults,
+                      string types) {
+  c_string ct (title), cp (prompts), cd (defaults), cy (types);
+  im_js_push_dialog ((const char*) ct, (const char*) cp, (const char*) cd,
+                     (const char*) cy);
 }
 
 void

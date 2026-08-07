@@ -118,7 +118,9 @@ target("stem") do
             "_mogan_menu_invoke," ..
             "_mogan_menu_expand," ..
             "_mogan_menu_close_popup," ..
-            "_mogan_set_chrome_metrics", {force = true})
+            "_mogan_set_chrome_metrics," ..
+            "_mogan_dialog_submit," ..
+            "_mogan_dialog_cancel", {force = true})
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/doc/about/mogan/stem.en.tmu") .. "@/TeXmacs/doc/about/mogan/stem.en.tmu")
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/progs") .. "@/TeXmacs/progs")
         add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs/langs") .. "@/TeXmacs/langs")

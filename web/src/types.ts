@@ -46,3 +46,16 @@ export interface FooterState {
   /** Reserved for a future minibuffer-style input mode (not yet rendered). */
   interactive: boolean;
 }
+
+/**
+ * An interactive dialog pushed from C++ (the WASM bypass of the stubbed
+ * inputs_list_widget/dialogue_start path). One field per prompt; defaults/types
+ * may be shorter than prompts — index them defensively. React returns the values
+ * via submitDialog / cancelDialog.
+ */
+export interface DialogState {
+  title: string;
+  prompts: string[];
+  defaults: string[];
+  types: string[];
+}
