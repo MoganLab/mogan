@@ -163,12 +163,20 @@
 (define (kbd-pump)
   (set! kbd-pump-armed? #f)
   (set! kbd-pumping? #t)
-  (with start
-    (texmacs-time)
+  (with (start (texmacs-time) n 0)
     ;; 每片最多 5ms，片间让出事件循环使用户输入可插队
     (while (and (not (list-queue-empty? kbd-pending)) (< (- (texmacs-time) start) 5))
      ((list-queue-remove-front! kbd-pending))
+     (set! n (+ n 1))
     ) ;while
+    (debug-message "keyboard"
+      (string-append "kbd-pump: registered "
+        (number->string n)
+        " bindings in "
+        (number->string (- (texmacs-time) start))
+        " ms\n"
+      ) ;string-append
+    ) ;debug-message
   ) ;with
   (set! kbd-pumping? #f)
   (when (and (not (list-queue-empty? kbd-pending)) (not kbd-pump-armed?))
