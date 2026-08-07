@@ -26,7 +26,30 @@ class DocEntry {
     if (this.shadow) return;
     this.shadow = new LoroDoc();
     const { snapshot, updates } = await this.store.readState(this.docId);
-    if (snapshot) this.shadow.import(snapshot);
+    if (snapshot) {
+      try {
+        this.shadow.import(snapshot);
+      } catch (err) {
+        // snapshot 文件可读但 Loro 解析失败（内容损坏）：重置干净影子，读 .bak 兜底
+        console.warn(
+          `[registry] ${this.docId}: snapshot 解析失败，尝试 .bak 兜底: ${err.message}`
+        );
+        this.shadow = new LoroDoc();
+        const bak = await this.store.readSnapshotBak(this.docId);
+        if (bak) {
+          try {
+            this.shadow.import(bak);
+          } catch (err2) {
+            console.error(
+              `[registry] ${this.docId}: .bak 也解析失败，仅靠 updates.log 恢复: ${err2.message}`
+            );
+            this.shadow = new LoroDoc();
+          }
+        } else {
+          this.shadow = new LoroDoc();
+        }
+      }
+    }
     for (const u of updates) this.shadow.import(u);
     const meta = await this.store.readMeta(this.docId);
     this.seq = meta.updateCount;
@@ -44,16 +67,30 @@ class DocEntry {
   // 注意：本方法会被并发调用（ws message 事件 fire-and-forget），
   // 所有共享状态（seq/影子/字节计数）只能由 persistQueue 串行链触碰，
   // await 之外的同步段不得读写它们——否则并发交错会造成 seq 竞态。
+  //
+  // 容错关键：body 用 try/catch 包裹且链尾再加 .catch，使 persistQueue 永不
+  // reject。否则一次落盘失败（磁盘满/瞬时权限/坏 meta）会让链中断，此后所有
+  // update 的 body 被跳过——编辑照常广播给他人但永不再落盘，造成静默永久丢写。
+  // 失败时影子已 import，下次成功的 snapshot 会以全量 export 重新落盘自愈。
   applyUpdate (payload, broadcast) {
     this.persistQueue = this.persistQueue.then(async () => {
-      await this.load();
-      this.shadow.import(payload); // 仅记账：CRDT merge 是幂等的
-      this.seq += 1;
-      this.bytesSinceSnapshot += payload.length;
-      broadcast(payload);
-      await this.store.appendUpdate(this.docId, payload);
-      if (this.shouldSnapshot()) this.scheduleFlush();
+      try {
+        await this.load();
+        this.shadow.import(payload); // 仅记账：CRDT merge 是幂等的
+        this.seq += 1;
+        this.bytesSinceSnapshot += payload.length;
+        broadcast(payload);
+        await this.store.appendUpdate(this.docId, payload);
+        if (this.shouldSnapshot()) this.scheduleFlush();
+      } catch (err) {
+        console.error(
+          `[registry] ${this.docId}: 落盘失败，已降级、保留内存态并尽快 snapshot 补救:`,
+          err
+        );
+        this.scheduleFlush(); // 触发全量 snapshot，把内存态整体落盘补救这条未追加的 edit
+      }
     });
+    this.persistQueue = this.persistQueue.catch(() => {}); // 兜底：链永不 reject
     return this.persistQueue;
   }
 
@@ -68,7 +105,15 @@ class DocEntry {
     if (this.flushTimer) return;
     this.flushTimer = setTimeout(() => {
       this.flushTimer = null;
-      this.persistQueue = this.persistQueue.then(() => this.flushSnapshot());
+      // flushSnapshot 失败也不能中毒 persistQueue：仅记日志，链保持已 resolve。
+      // 落盘持续失败时每次 applyUpdate 的 catch 都会重新 arm 本定时器，形成 5s 级重试。
+      this.persistQueue = this.persistQueue.then(async () => {
+        try {
+          await this.flushSnapshot();
+        } catch (err) {
+          console.error(`[registry] ${this.docId}: snapshot 落盘失败（保留内存态重试）:`, err);
+        }
+      });
     }, 5000); // 合并窗口：阈值触发后等一波再统一落盘
   }
 
@@ -136,8 +181,13 @@ class DocRegistry {
     for (const e of [...this.docs.values ()]) {
       await e.persistQueue;
       if (e.seq === 0 && !e.shadow) continue; // 无任何数据可落盘
-      await e.load ();
-      await e.flushSnapshot (true);
+      // 单篇 flush 失败不拖垮其余文档的关停落盘
+      try {
+        await e.load ();
+        await e.flushSnapshot (true);
+      } catch (err) {
+        console.error(`[registry] ${e.docId}: 关停落盘失败（跳过，其余文档继续）:`, err);
+      }
     }
   }
 }

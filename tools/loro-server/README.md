@@ -92,14 +92,20 @@ node server.js
 
 ```
 data/<docId>/
-  snapshot.bin   最近一次 export(snapshot) 的完整状态
-  updates.log    snapshot 之后的增量记录：[4B 大端长度][payload] 重复
-  meta.json      { docId, createdAt, snapshotSeq, updateCount }
+  snapshot.bin      最近一次 export(snapshot) 的完整状态
+  snapshot.bin.bak  上一代 snapshot（写新快照前保留一代，作损坏回退兜底）
+  updates.log       snapshot 之后的增量记录：[4B 大端长度][payload] 重复
+  meta.json         { docId, createdAt, snapshotSeq, updateCount }
 ```
 
-- update 先 append 到 `updates.log` 再广播；写 snapshot 用临时文件 + rename 保证原子性。
+- update 先 append 到 `updates.log` 再广播；写 snapshot/meta 用临时文件 + rename 保证原子性。
+- **落盘持久性**：append 与 rename 后均 `fsync`（默认开启），断电 / `kill -9` 下已 ack 的
+  编辑不会停留在 OS 页缓存而丢失。CI / 基准可设 `MOGAN_LORO_FSYNC=off` 关闭。
 - `updates.log` 达到 100 条或累计 1MB 后，经 5 秒合并窗口统一导出 snapshot 并截断日志
   （`SNAPSHOT_UPDATE_THRESHOLD` / `SNAPSHOT_BYTE_THRESHOLD`，见 `registry.js`）。
+- **容错自愈**：单条 update 落盘失败（磁盘满 / 瞬时权限 / `meta.json` 损坏）不会中断该文档的
+  落盘链——影子已 `import`，下次成功的 snapshot 会以全量 export 重新落盘补救这条未追加的 edit。
+- `meta.json` 损坏时按 `updates.log` 帧数重建计数；`snapshot.bin` 损坏/为空时回退读 `.bak`。
 - 启动时扫描数据目录恢复全部文档索引；影子 doc 懒加载（首条 update/同步请求时才从磁盘回放）。
 - 房间无人后影子卸载，状态全在磁盘；`SIGINT`/`SIGTERM` 触发优雅退出（在途写入与快照落盘后再退出）。
 
