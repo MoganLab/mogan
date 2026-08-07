@@ -463,7 +463,6 @@ edit_cursor_rep::go_to_here () {
 
 void
 edit_cursor_rep::go_to (path p) {
-  cout << "edit_cursor_rep::go_to" << LF;
   if (rp <= p) {
     // if (tp != p) cout << "Go to " << p << "\n";
     tp       = p;
