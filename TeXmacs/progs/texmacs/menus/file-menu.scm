@@ -405,14 +405,23 @@
  ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
  (if (loro-enabled?)
    (-> "Collaborative"
-    ("New shared document" (collab-new-document))
-    ("New shared document from file" (collab-new-document-from-file))
-    (-> "Join shared document" (link collab-docs-menu))
-    (if (loro-collab-active?)
+     ;; 未配置服务端：仅显示设置项，引导先填地址/端口。
+     (if (not (collab-server-configured?))
+      ("Set server address..." (collab-configure-server))
+     ) ;if
+     ;; 已配置：完整协作菜单 + 修改服务端入口。
+     (if (collab-server-configured?)
+      ("New shared document" (collab-new-document))
+      ("New shared document from file" (collab-new-document-from-file))
+      (-> "Join shared document" (link collab-docs-menu))
+      (if (loro-collab-active?)
+        ---
+        ("Leave session" (collab-leave))
+        ("Show document UUID" (set-message (loro-collab-doc-id) "Collaborative"))
+      ) ;if
       ---
-      ("Leave session" (collab-leave))
-      ("Show document UUID" (set-message (loro-collab-doc-id) "Collaborative"))
-    ) ;if
+      ("Change server address..." (collab-configure-server))
+     ) ;if
    ) ;->
  ) ;if
  (if (qt-gui?)

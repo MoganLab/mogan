@@ -17,10 +17,113 @@
   (:use (texmacs texmacs tm-server) (texmacs texmacs tm-files))
 ) ;texmacs-module
 
-;; 协作服务端地址：经 C++ loro-collab-server-url 取（native 读 OS env
-;; MOGAN_LORO_SERVER；WASM 读 window.MOGAN_LORO_SERVER / ?loro_server= 查询参数），
-;; 未设置回落 ws://127.0.0.1:8765。运行期可配，无需重编译。
-(tm-define (collab-server-url) (loro-collab-server-url))
+;; 协作服务端地址优先级：用户经 Collaborative 菜单设置的偏好（collab:server-url）
+;; > C++ loro-collab-server-url（native 读 OS env MOGAN_LORO_SERVER；WASM 读
+;; window.MOGAN_LORO_SERVER / ?loro_server= 查询参数；都未设回落 ws://127.0.0.1:8765）。
+;; 偏好是终端用户上线的主路径，env 保留给开发/CI。
+
+(define collab-server-url-key "collab:server-url")
+
+(tm-define (collab-server-url)
+  (with configured
+    (get-preference collab-server-url-key)
+    (if (!= configured "") configured (loro-collab-server-url))
+  ) ;with
+) ;tm-define
+
+;; 是否已显式配置服务端（Collaborative 菜单据此切「仅设置项 / 完整菜单」两形态）。
+(tm-define (collab-server-configured?)
+  (!= (get-preference collab-server-url-key) "")
+) ;tm-define
+
+;; === 服务端地址：地址+端口两框 ↔ 完整 URL（纯函数，供单测） ===
+;; 地址框默认填纯 host，端口单独一框，拼成 ws://host:port；但地址框亦接受完整
+;; ws(s):// URL（隐藏的高级回退，保留 wss/TLS、IPv6、路径等能力）。
+
+;; 判前缀（mogan scheme 无 string-prefix?，手写）。
+
+(define (collab-string-prefix? p s)
+  (and (>= (string-length s) (string-length p))
+    (string=? (substring s 0 (string-length p)) p)
+  ) ;and
+) ;define
+
+;; 已存 URL → (address . port) 回填两框。仅处理常见 ws(s)://host:port；
+;; 含路径 / 多冒号（IPv6 等）/ 非 ws(s) scheme → 整串塞进 address（端口空），
+;; 即「地址框支持完整 URL」的回退。逐字符扫描，避开本模块未导入的 string-index/
+;; string-contains（只用 string->list / char=?，与 collab-valid-doc-name? 同套）。
+
+(define (collab-url->fields url)
+  (let ((strip (lambda (p)
+                 (and (collab-string-prefix? p url)
+                   (substring url (string-length p) (string-length url))
+                 ) ;and
+               ) ;lambda
+        ) ;strip
+       ) ;
+    (let ((rest (or (strip "ws://") (strip "wss://"))))
+      (if (not rest)
+        (cons url "")
+        (let loop
+          ((cs (string->list rest)) (i 0) (colon #f))
+          (cond ((null? cs)
+                 (if (not colon)
+                   (cons rest "")
+                   (cons (substring rest 0 colon)
+                     (substring rest (+ colon 1) (string-length rest))
+                   ) ;cons
+                 ) ;if
+                ) ;
+                ((char=? (car cs) #\/) (cons url ""))
+                ((and (char=? (car cs) #\:) colon) (cons url ""))
+                ((char=? (car cs) #\:) (loop (cdr cs) (+ i 1) i))
+                (else (loop (cdr cs) (+ i 1) colon))
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;let
+  ) ;let
+) ;define
+
+;; 两框 → URL。地址为完整 URL（ws/wss 开头）→ 原样；地址空 → 清除；
+;; 否则按 host[:port] 拼 ws://。
+
+(define (collab-fields->url addr port)
+  (cond ((== addr "") "")
+        ((or (collab-string-prefix? "ws://" addr) (collab-string-prefix? "wss://" addr))
+         addr
+        ) ;
+        ((== port "") (string-append "ws://" addr))
+        (else (string-append "ws://" addr ":" port))
+  ) ;cond
+) ;define
+
+;; 弹框配置/修改协作服务端：地址 + 端口两框（预填当前生效值）；地址框亦接受完整
+;; ws(s):// URL。空地址 = 清除偏好（回到 env/默认）。设置后下次展开菜单自动切完整形态。
+;; 会话进行中禁止改地址：连接 URL 在连接时固定，改了也不迁移当前会话，故要求先 Leave。
+(tm-define (collab-configure-server)
+  (:interactive #t)
+  (if (loro-collab-active?)
+    (set-message "Leave the current session before changing the server address"
+      "Collaborative"
+    ) ;set-message
+    (with cur
+      (collab-url->fields (collab-server-url))
+      (interactive (lambda (addr port)
+                     (with url
+                       (collab-fields->url addr port)
+                       (if (== url "")
+                         (reset-preference collab-server-url-key)
+                         (set-preference collab-server-url-key url)
+                       ) ;if
+                     ) ;with
+                   ) ;lambda
+        (list "Server address" "string" (car cur))
+        (list "Server port" "string" (cdr cur))
+      ) ;interactive
+    ) ;with
+  ) ;if
+) ;tm-define
 
 ;; === collab 缓冲（云端文档）的标识 ===
 ;; 单会话：同时只有一个 collab 缓冲。new/join 时把新建 buffer 的 url 记入
