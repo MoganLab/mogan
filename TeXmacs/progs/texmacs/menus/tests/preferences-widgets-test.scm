@@ -54,7 +54,7 @@
 (define (test-meta-field-counts)
   (let ((meta (preferences-qml-meta)))
     (check (length (caddr (tab-ref meta "general"))) => 9)
-    (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 14 13))
+    (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 15 14))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
     (check (length (caddr (tab-ref meta "other"))) => (if (os-macos?) 17 15))
@@ -361,6 +361,7 @@
   (check (pref-general-gui-theme) => "gui theme")
   (check (pref-math-semantic-editing) => "semantic editing")
   (check (pref-math-semantic-correctness) => "semantic correctness")
+  (check (pref-keyboard-emoji-keyboard) => "emoji keyboard")
   (check (pref-convert-latex-encoding) => "texmacs->latex:encoding")
   (check (pref-convert-html-css) => "texmacs->html:css")
   (check (pref-convert-bibtex-command) => "bibtex command")
@@ -493,6 +494,26 @@
   ) ;let*
 ) ;define
 
+;; ---- 18. emoji keyboard 方向相关重启：关闭需重启，开启不需要 ----
+
+(define (test-emoji-keyboard-directional-restart)
+  (check-true (preferences-qml-restart-relevant? "emoji keyboard"
+                '(("emoji keyboard" . "off"))
+              ) ;preferences-qml-restart-relevant?
+  ) ;check-true
+  (check-false (preferences-qml-restart-relevant? "emoji keyboard"
+                 '(("emoji keyboard" . "on"))
+               ) ;preferences-qml-restart-relevant?
+  ) ;check-false
+  (check-false (preferences-qml-restart-relevant? "automatic brackets"
+                 '(("automatic brackets" . "off"))
+               ) ;preferences-qml-restart-relevant?
+  ) ;check-false
+  (check-true (preferences-qml-restart-relevant? "gui theme" '(("gui theme"
+                                                                . "liii")))
+  ) ;check-true
+) ;define
+
 ;; ---- runner ----
 
 (tm-define (regtest-preferences-widgets)
@@ -520,5 +541,6 @@
   (test-latex-unified-keys-in-meta)
   (test-scripting-language-options)
   (test-restart-keys-set)
+  (test-emoji-keyboard-directional-restart)
   (check-report)
 ) ;tm-define

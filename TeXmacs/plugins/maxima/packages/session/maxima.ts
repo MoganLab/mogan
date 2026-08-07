@@ -20,6 +20,10 @@
     </src-license>
   </src-title>>
 
+  <use-module|(plugin maxima-menu)>
+
+  <use-module|(plugin maxima-kbd)>
+
   <assign|maxima-output|<\macro|body>
     <\padded>
       <generic-output*|<arg|body>>

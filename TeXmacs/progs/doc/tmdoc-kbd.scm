@@ -12,9 +12,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (doc tmdoc-kbd) (:use (text text-kbd)))
+(debug-message "keyboard" "(doc tmdoc-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode in-manual?)
  ("S-F7" (make 'scm))
  ("C-F7" (make 'scm-arg))
  ("M-F7" (make 'scm-code))
 ) ;kbd-map
+(debug-message "keyboard" "(doc tmdoc-kbd): kbd-map registered\n")

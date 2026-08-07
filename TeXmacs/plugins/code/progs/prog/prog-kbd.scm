@@ -20,6 +20,7 @@
     (code cpp-edit)
   ) ;:use
 ) ;texmacs-module
+(debug-message "keyboard" "(prog prog-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode in-prog?)
  ("cmd i" (program-indent #f))
@@ -45,3 +46,4 @@
  ("- -" "--")
  ("- - -" "---")
 ) ;kbd-map
+(debug-message "keyboard" "(prog prog-kbd): kbd-map registered\n")

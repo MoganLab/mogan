@@ -147,6 +147,8 @@
  ("yawerty" "Yawerty")
 ) ;define-preference-names
 
+(define-preference-names "emoji keyboard" ("off" "Disabled") ("on" "Enabled"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convert 各子 tab 的编解码表（LaTeX / BibTeX 双向偏好 helper、image format
 ;; helper 见 preferences-tools.scm）
@@ -254,6 +256,20 @@
 
 (define preferences-qml-restart-keys
   (list "look and feel" "gui theme" "language" "keyboard shortcut style")
+) ;define
+
+;; emoji keyboard 方向相关：开启时 notify 实时注册 kbd-map 无需重启；
+;; 关闭后已注册绑定当次会话仍在，需重启才不再生效。
+
+(define (preferences-qml-restart-relevant? key changed-assoc)
+  (if (or (member key preferences-qml-restart-keys)
+        (and (== key (pref-keyboard-emoji-keyboard))
+          (== (cdr (assoc key changed-assoc)) "off")
+        ) ;and
+      ) ;or
+    #t
+    #f
+  ) ;if
 ) ;define
 
 ;; ---- hint 文案（英文 key，供 translate 查翻译表） ----
@@ -419,6 +435,12 @@
       "Cyrillic input method"
       '("none" "translit" "jcuken" "yawerty")
       '("None" "Translit" "Jcuken" "Yawerty")
+      #f
+    ) ;list
+    (list (pref-keyboard-emoji-keyboard)
+      "Emoji shortcuts"
+      '("off" "on")
+      '("Disabled" "Enabled")
       #f
     ) ;list
     ;; keyboard shortcut style 仅 macOS（field->descriptor 按平台谓词过滤）。
@@ -1196,7 +1218,9 @@
   (with changed-keys
     (map car changed-assoc)
     (with restart-changed
-      (list-filter changed-keys (lambda (k) (member k preferences-qml-restart-keys)))
+      (list-filter changed-keys
+        (lambda (k) (preferences-qml-restart-relevant? k changed-assoc))
+      ) ;list-filter
       (with non-restart-changed
         (list-filter changed-keys (lambda (k) (not (member k restart-changed))))
         (if (null? restart-changed)

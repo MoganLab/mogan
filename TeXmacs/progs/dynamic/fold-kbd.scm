@@ -14,6 +14,7 @@
 (texmacs-module (dynamic fold-kbd)
   (:use (generic generic-kbd) (dynamic fold-edit))
 ) ;texmacs-module
+(debug-message "keyboard" "(dynamic fold-kbd): registering kbd-map ...\n")
 
 (define (reset-buffer-players)
   (players-set-elapsed (buffer-tree) 0.0)
@@ -47,3 +48,4 @@
  ("F10" (screens-switch-to :previous))
  ("F11" (screens-switch-to :next))
 ) ;kbd-map
+(debug-message "keyboard" "(dynamic fold-kbd): kbd-map registered\n")

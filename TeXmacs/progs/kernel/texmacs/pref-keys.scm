@@ -104,6 +104,7 @@
 (define-public (pref-keyboard-automatic-quotes) "automatic quotes")
 (define-public (pref-keyboard-automatic-brackets) "automatic brackets")
 (define-public (pref-keyboard-cyrillic-input-method) "cyrillic input method")
+(define-public (pref-keyboard-emoji-keyboard) "emoji keyboard")
 ;; Remote controllers (IR combos，editable)
 (define-public (pref-ir-left) "ir-left")
 (define-public (pref-ir-right) "ir-right")

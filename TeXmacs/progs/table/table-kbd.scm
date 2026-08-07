@@ -14,6 +14,7 @@
 (texmacs-module (table table-kbd)
   (:use (generic generic-kbd) (table table-edit))
 ) ;texmacs-module
+(debug-message "keyboard" "(table table-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode in-table?)
  ("table N" "" "New table (t: tabular, b: block)")
@@ -123,3 +124,4 @@
  ("table s" (interactive cell-set-span))
  ("table j" (cell-set-span-selection))
 ) ;kbd-map
+(debug-message "keyboard" "(table table-kbd): kbd-map registered\n")

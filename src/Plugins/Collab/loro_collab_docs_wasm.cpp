@@ -139,7 +139,7 @@ loro_collab_docs () {
       }
       else {
         result << l;
-        result << "";
+        result << string ("");
       }
     }
     start= next + 1;

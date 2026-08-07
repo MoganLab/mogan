@@ -34,6 +34,7 @@
         ((== which "keyboard shortcut style")
          (translate "Switch keyboard shortcut style")
         ) ;
+        ((== which "emoji keyboard") (translate "Disable emoji shortcuts"))
         (else (translate "Switch preference"))
   ) ;cond
 ) ;tm-define
@@ -71,6 +72,28 @@
       ) ;cond
     ) ;with
   ) ;with
+) ;tm-define
+
+;; emoji keyboard 方向相关：开启实时注册快捷键；关闭后已注册绑定当次会话仍在，
+;; 需重启生效，故关闭时弹三按钮重启确认（开启时无确认直接生效）。
+
+(define (emoji-keyboard-on?)
+  (== (get-preference "emoji keyboard") "on")
+) ;define
+
+(tm-define (toggle-emoji-keyboard)
+  (:check-mark "*" emoji-keyboard-on?)
+  (if (emoji-keyboard-on?)
+    (confirm-restart-and-act (restart-preference-title "emoji keyboard")
+      (lambda () (set-preference "emoji keyboard" "off"))
+      (lambda () (noop))
+      (lambda ()
+        (cpp-set-preference-silent "emoji keyboard" "off")
+        (save-preferences)
+      ) ;lambda
+    ) ;confirm-restart-and-act
+    (set-preference "emoji keyboard" "on")
+  ) ;if
 ) ;tm-define
 
 (tm-menu (scripts-preferences-menu)
@@ -208,7 +231,8 @@
       (enum ("Automatic brackets" "automatic brackets")
         ("Disable" "off")
         ("Inside mathematics" "mathematics")
-        ("Enable" "on")))
+        ("Enable" "on"))
+      (item ("Emoji shortcuts" (toggle-emoji-keyboard))))
     (-> ,"Printer" unquote page-setup-tree)
     (enum ("Security" "security")
       ("Accept no scripts" "accept no scripts")

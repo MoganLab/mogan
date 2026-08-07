@@ -12,6 +12,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (utils automate auto-kbd) (:use (utils automate auto-tmfs)))
+(debug-message "keyboard"
+  "(utils automate auto-kbd): registering kbd-map ...\n"
+) ;debug-message
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard shortcuts
@@ -34,3 +37,4 @@
  ("O u t" (make-inline-output))
  ("$ $" (make-output-string))
 ) ;kbd-map
+(debug-message "keyboard" "(utils automate auto-kbd): kbd-map registered\n")
