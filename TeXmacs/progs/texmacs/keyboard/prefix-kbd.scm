@@ -269,7 +269,6 @@
   ("math:cal" "F7" #t)
   ("math:calstar" "F8" #t)
   ("math:frak" "F9" #t)
-  ("math:symbol" "S-F5" #t)
 
   ("math:over" "math o" #t)
   ("math:under" "math u" #t)
@@ -362,7 +361,6 @@
   ("math:left" "" "Insert a large left delimiter or left subscript")
   ("math:middle" "" "Insert a large separator")
   ("math:right" "" "Insert a large right delimiter")
-  ("math:symbol" "" "Insert a mathematical symbol")
   ("math:syntax" "" "Specify an alternative semantics"))
 
 (kbd-map
