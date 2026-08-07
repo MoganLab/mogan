@@ -1238,8 +1238,9 @@ smart_font_rep::resolve (string c) {
   {
     string uc  = strict_cork_to_utf8 (c);
     int    pos = 0;
-    int    code= decode_from_utf8 (uc, pos);
-    if (pos == N (uc)) geom_code= code;
+    int    code= -1;
+    if (N (uc) > 0) code= decode_from_utf8 (uc, pos);
+    if (pos == N (uc) && code >= 0) geom_code= code;
   }
   if (geom_code >= 0x2500 && geom_code <= 0x25FF) {
     font cfn=
