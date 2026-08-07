@@ -76,6 +76,33 @@
   ) ;check
 ) ;define
 
+;; collab-fields->url：地址+端口 → 完整 URL。地址为完整 ws(s):// URL 原样保留；
+;; 地址空 → 清除（空串）；仅 host/缺端口 → 不附 ":port"。
+
+(define (test-fields->url)
+  (check (collab-fields->url "1.2.3.4" "8765") => "ws://1.2.3.4:8765")
+  (check (collab-fields->url "host" "") => "ws://host")
+  (check (collab-fields->url "wss://x.com:443" "") => "wss://x.com:443")
+  (check (collab-fields->url "" "8765") => "")
+  ;; 完整 URL 优先，端口忽略
+  (check (collab-fields->url "ws://[::1]:8765" "9999") => "ws://[::1]:8765")
+) ;define
+
+;; collab-url->fields：完整 URL → (address . port) 回填两框。仅常见 ws(s)://host:port
+;; 才拆；含路径 / 多冒号（IPv6）/ 非 ws(s) scheme → 整串塞进 address（端口空）。
+
+(define (test-url->fields)
+  (check (collab-url->fields "ws://1.2.3.4:8765") => '("1.2.3.4" . "8765"))
+  (check (collab-url->fields "wss://x.com:443") => '("x.com" . "443"))
+  (check (collab-url->fields "ws://h") => '("h" . ""))
+  ;; 含路径 → 整串回填
+  (check (collab-url->fields "ws://h:1/p") => '("ws://h:1/p" . ""))
+  ;; 多冒号（IPv6）→ 整串回填
+  (check (collab-url->fields "ws://[::1]:8765") => '("ws://[::1]:8765" . ""))
+  ;; 非 ws(s) scheme → 整串回填
+  (check (collab-url->fields "http://x") => '("http://x" . ""))
+) ;define
+
 ;; collab-doc-name-duplicates：仅非空 name 参与统计。
 
 (define (test-doc-name-duplicates)
@@ -98,5 +125,7 @@
   (test-docs-pairs)
   (test-doc-label)
   (test-doc-name-duplicates)
+  (test-fields->url)
+  (test-url->fields)
   (check-report)
 ) ;tm-define
