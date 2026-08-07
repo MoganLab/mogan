@@ -8,6 +8,14 @@
 -- It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
+-------------------------------------------------------------------------------
+--
+-- 迁移期桥接保留：
+-- Velopack 已接管常规 Windows 发布（见 tools/release/stage_velopack.lua 与
+-- tools/release/pack_velopack.lua），本 target 仅作为 NSIS 桥接保留，保证
+-- 迁移窗口内仍能产出 NSIS 安装包。迁移窗口结束、NSIS 桥接发布停用后，
+-- 将下面的 set_formats("nsis") 禁用（target 定义可一并移除）。
+-------------------------------------------------------------------------------
 includes("@builtin/xpack")
 xpack("stem") do
     set_formats("nsis")
