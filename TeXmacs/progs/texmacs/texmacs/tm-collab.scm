@@ -66,20 +66,45 @@
       (cons (cons (car flat) (cadr flat))
             (collab-docs-pairs (cddr flat)))))
 
-;; Join 子菜单项文字：有名 → "name (uuid前8位)"（重名消歧）；无名 → uuid 全文。
-(define (collab-doc-label uuid name)
+;; Join 子菜单项 label：
+;;   有名且唯一 → (verbatim name)；有名但重名 → 末尾追加灰色 uuid 前 4 位
+;;   消歧（富文本 (concat (verbatim name) " " (with "color" "dark grey" suffix))，
+;;   样式对齐快捷键的弱化显示）；无名 → uuid 全文。
+(define (collab-doc-label uuid name dup?)
   (if (and (string? name) (> (string-length name) 0))
-      (string-append name " ("
-                     (substring uuid 0 (min 8 (string-length uuid)))
-                     ")")
+      (if dup?
+          `(concat (verbatim ,name) " "
+                   (with "color" "dark grey"
+                     (verbatim
+                       ,(string-append "("
+                                       (substring uuid 0 (min 4 (string-length uuid)))
+                                       ")"))))
+          `(verbatim ,name))
       uuid))
+
+;; 统计 name 出现次数（非空 name 才参与重名判定）。
+(define (collab-doc-name-duplicates pairs)
+  (let ((counts '()))
+    (for (p pairs)
+      (with name (cdr p)
+        (when (and (string? name) (> (string-length name) 0))
+          (let ((cell (assoc name counts)))
+            (if cell (set-cdr! cell (+ (cdr cell) 1))
+                (set! counts (cons (cons name 1) counts)))))))
+    counts))
 
 ;; 新建协作文档：交互输入显示名（留空则创建无名文档，兼容旧行为）。
 ;; 先建空 buffer 并切到它（成为当前编辑器），再让会话层连服务端 CREATE。
 ;; 服务端分配 UUID 后回 DOC，会话层据此置位协作开关并把标题设为显示名；
 ;; 用户随后首次编辑会 seed shadow 并把初始全量上行。
 (tm-define (collab-new-document)
-  (:argument name "Document name")
+  (:interactive #t)
+  (interactive (lambda (name) (collab-new-document-named name))
+    "Document name"))
+
+;; collab-new-document 的非交互入口（供测试/脚本调用；name 为空串/全空格
+;; 时按无名文档创建）。名字非法时就地提示，不创建。
+(tm-define (collab-new-document-named name)
   (cond ((and (string? name) (> (string-length name) 0)
               (not (collab-valid-doc-name? name)))
          (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
@@ -149,14 +174,21 @@
            ("(no documents)" (collab-refresh-docs))
           ) ;
           (else
-           (for (p (collab-docs-pairs (loro-collab-docs)))
-             (with uuid (car p)
-               (with name (cdr p)
-                 ((eval `(verbatim ,(collab-doc-label uuid name)))
-                  (collab-join-document uuid name))
-               ) ;with
+           (with pairs (collab-docs-pairs (loro-collab-docs))
+             (with dups (collab-doc-name-duplicates pairs)
+               (for (p pairs)
+                 (with uuid (car p)
+                   (with name (cdr p)
+                     (with dup? (let ((cell (assoc name dups)))
+                                  (and cell (> (cdr cell) 1)))
+                       ((eval (collab-doc-label uuid name dup?))
+                        (collab-join-document uuid name))
+                     ) ;with
+                   ) ;with
+                 ) ;with
+               ) ;for
              ) ;with
-           ) ;for
+           ) ;with
           ) ;else
     ) ;cond
     ---

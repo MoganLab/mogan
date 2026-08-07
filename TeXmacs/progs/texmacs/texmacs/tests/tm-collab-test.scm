@@ -54,15 +54,30 @@
   (check (collab-docs-pairs '("u1" "n1" "u3")) => '(("u1" . "n1")))
 ) ;define
 
-;; collab-doc-label：有名 → "name (uuid前8位)"；无名/空名 → uuid 全文。
+;; collab-doc-label：唯一有名 → (verbatim name)；重名 → 追加灰色 uuid 前 4 位；
+;; 无名/空名 → uuid 全文。
 
 (define (test-doc-label)
-  (check (collab-doc-label "abcd1234-0000-0000-0000-000000000000" "周报")
-    => "周报 (abcd1234)")
-  (check (collab-doc-label "abcd1234-0000-0000-0000-000000000000" "")
-    => "abcd1234-0000-0000-0000-000000000000")
-  ;; 防御：uuid 不足 8 位不越界
-  (check (collab-doc-label "abc" "n") => "n (abc)")
+  (check (collab-doc-label "abcd1234-0000" "周报" #f) => '(verbatim "周报"))
+  (check (collab-doc-label "abcd1234-0000" "周报" #t)
+    => '(concat (verbatim "周报") " "
+          (with "color" "dark grey" (verbatim "(abcd)"))))
+  (check (collab-doc-label "abcd1234-0000" "" #f) => "abcd1234-0000")
+  ;; 防御：uuid 不足 4 位不越界
+  (check (collab-doc-label "ab" "n" #t)
+    => '(concat (verbatim "n") " "
+          (with "color" "dark grey" (verbatim "(ab)"))))
+) ;define
+
+;; collab-doc-name-duplicates：仅非空 name 参与统计。
+
+(define (test-doc-name-duplicates)
+  (let ((counts (collab-doc-name-duplicates
+                  '(("u1" . "周报") ("u2" . "周报") ("u3" "") ("u4" . "月报")))))
+    (check (assoc "周报" counts) => '("周报" . 2))
+    (check (assoc "月报" counts) => '("月报" . 1))
+    (check (assoc "" counts) => #f)
+  ) ;let
 ) ;define
 
 (tm-define (regtest-tm-collab)
@@ -70,5 +85,6 @@
   (test-invalid-names)
   (test-docs-pairs)
   (test-doc-label)
+  (test-doc-name-duplicates)
   (check-report)
 ) ;tm-define
