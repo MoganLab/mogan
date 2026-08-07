@@ -48,40 +48,34 @@ jobs:
         run: |
           cp ~\scoop\apps\pandoc\current\pandoc.exe D:\a\mogan\mogan\build\packages\stem\data\bin
           wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/gs.exe
-      - name: Generate Installer
-        run: xmake pack --yes -vD stem
-      - name: Rename installer using XMACS_VERSION
+      # Velopack 已接管常规 Windows 发布（见 tools/release/*.lua）；NSIS
+      # （xmake pack）仅迁移期桥接保留，迁移窗口结束、NSIS 桥接发布停用后再移除。
+      # 注意：CI 产物不签名（VPK_SIGN_PARAMS 为空），正式签名在 SafeNet 签名机
+      # 上通过环境变量注入 signtool 参数完成；交互式令牌不允许并发签名，签名机
+      # 上须固定 --signParallel 1。
+      - name: Install vpk
         shell: pwsh
         run: |
-          $content = Get-Content "xmake/vars.lua" -Raw -ErrorAction SilentlyContinue
-          if ($content -match 'XMACS_VERSION.*"(.*)"') {
-            $ver = $Matches[1]
-            Write-Host "Found version: $ver"
-            $packDir = Join-Path -Path "build" -ChildPath "xpack/stem"
-            if (Test-Path $packDir) {
-              $exe = Get-ChildItem -Path $packDir -Filter "*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-              if ($exe) {
-                $newName = "MoganSTEM-v${ver}-64bit-installer.exe"
-                Write-Host "Renaming $($exe.Name) -> $newName"
-                Rename-Item -Path $exe.FullName -NewName $newName -Force
-                Write-Host "Rename complete"
-              } else {
-                Write-Warning "No .exe installer found in $packDir"
-              }
-            } else {
-              Write-Warning "Package directory '$packDir' not found"
-            }
-          }
-      - name: Upload 
+          dotnet tool install -g vpk --version 1.2.0
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.dotnet\tools"
+      # pandoc 已在 gs and pandoc 步骤落进 bin/，stage 会把它一并摊平到暂存根。
+      - name: Stage Velopack
+        run: xmake l tools/release/stage_velopack.lua
+      # vpk pack 在 outputDir 存在上一版本时自动生成 delta 增量包；首次发布无
+      # 上一版本，只有全量包。要恢复增量发布，需在 CI 缓存/恢复上一次的
+      # build/velopack_release 目录（或用 vpk download 拉取基线）。
+      - name: Pack Velopack
+        run: xmake l tools/release/pack_velopack.lua
+      - name: Upload
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           path: |
-            build/xpack/stem/*.exe
+            build/velopack_release/*
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           prerelease: true
           files: |
-            build/xpack/stem/*.exe
+            build/velopack_release/*
