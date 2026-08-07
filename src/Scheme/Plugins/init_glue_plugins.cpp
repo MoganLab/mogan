@@ -45,6 +45,10 @@ initialize_glue_plugins () {
   initialize_glue_html ();
 #endif
 
+#if defined(USE_PLUGIN_VELOPACK)
+  initialize_glue_updater ();
+#endif
+
 #ifdef USE_PLUGIN_BIBTEX
   initialize_glue_bibtex ();
 #endif

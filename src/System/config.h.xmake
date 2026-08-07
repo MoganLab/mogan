@@ -63,6 +63,7 @@ ${define USE_PLUGIN_PDF}
 ${define USE_PLUGIN_BIBTEX}
 ${define USE_PLUGIN_TEX}
 ${define USE_PLUGIN_ISPELL}
+${define USE_PLUGIN_VELOPACK}
 ${define USE_PLUGIN_HTML}
 ${define USE_PLUGIN_GIT}
 

@@ -10,7 +10,11 @@
 
 inline bool
 use_plugin_updater () {
+#if defined(USE_PLUGIN_VELOPACK)
+  return true;
+#else
   return false;
+#endif
 }
 
 inline bool
