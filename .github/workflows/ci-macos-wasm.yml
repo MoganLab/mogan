@@ -98,7 +98,7 @@ jobs:
           key: npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
 
       - name: config
-        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg -p wasm --qt_frontend=no --pdfhummus=no --goldfish=no --yes
+        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg -p wasm --qt_frontend=no --pdfhummus=no --goldfish=no --loro=yes --yes
 
       - name: build
         run: xmake build --yes -vD stem
