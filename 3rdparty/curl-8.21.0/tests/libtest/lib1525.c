@@ -1,0 +1,98 @@
+/***************************************************************************
+ *                                  _   _ ____  _
+ *  Project                     ___| | | |  _ \| |
+ *                             / __| | | | |_) | |
+ *                            | (__| |_| |  _ <| |___
+ *                             \___|\___/|_| \_\_____|
+ *
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Vijay Panghal, <vpanghal@maginatics.com>, et al.
+ *
+ * This software is licensed as described in the file COPYING, which
+ * you should have received as part of this distribution. The terms
+ * are also available at https://curl.se/docs/copyright.html.
+ *
+ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
+ * copies of the Software, and permit persons to whom the Software is
+ * furnished to do so, under the terms of the COPYING file.
+ *
+ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+ * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
+ *
+ ***************************************************************************/
+
+/*
+ * This unit test PUT http data over proxy. Proxy header is different
+ * from server http header
+ */
+
+#include "first.h"
+
+static const char t1525_data[] = "Hello Cloud!\n";
+static size_t const t1525_datalen = sizeof(t1525_data) - 1;
+
+static size_t t1525_read_cb(char *ptr, size_t size, size_t nmemb, void *stream)
+{
+  size_t amount = nmemb * size; /* Total bytes curl wants */
+  if(amount < t1525_datalen) {
+    return t1525_datalen;
+  }
+  (void)stream;
+  memcpy(ptr, t1525_data, t1525_datalen);
+  return t1525_datalen;
+}
+
+static CURLcode test_lib1525(const char *URL)
+{
+  CURL *curl = NULL;
+  CURLcode result = CURLE_FAILED_INIT;
+  /* http and proxy header list */
+  struct curl_slist *hhl = NULL;
+
+  if(curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
+    curl_mfprintf(stderr, "curl_global_init() failed\n");
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  curl = curl_easy_init();
+  if(!curl) {
+    curl_mfprintf(stderr, "curl_easy_init() failed\n");
+    curl_global_cleanup();
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  hhl = curl_slist_append(hhl, "User-Agent: Http Agent");
+
+  if(!hhl) {
+    goto test_cleanup;
+  }
+
+  easy_setopt(curl, CURLOPT_URL, URL);
+  easy_setopt(curl, CURLOPT_PROXY, libtest_arg2);
+  easy_setopt(curl, CURLOPT_HTTPHEADER, hhl);
+  easy_setopt(curl, CURLOPT_PROXYHEADER, hhl);
+  easy_setopt(curl, CURLOPT_HEADEROPT, CURLHEADER_UNIFIED);
+  easy_setopt(curl, CURLOPT_POST, 0L);
+  easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+  easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  easy_setopt(curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+  easy_setopt(curl, CURLOPT_HEADER, 1L);
+  easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
+  easy_setopt(curl, CURLOPT_READFUNCTION, t1525_read_cb);
+  easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L);
+  easy_setopt(curl, CURLOPT_INFILESIZE, (long)t1525_datalen);
+
+  result = curl_easy_perform(curl);
+
+test_cleanup:
+
+  curl_easy_cleanup(curl);
+
+  curl_slist_free_all(hhl);
+
+  curl_global_cleanup();
+
+  return result;
+}

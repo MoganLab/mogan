@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+FTP
+FTPS
+</keywords>
+</info>
+
+# Client-side
+<client>
+<features>
+SSL
+</features>
+<server>
+ftps
+</server>
+<name>
+FTPS with invalid cacert
+</name>
+<command>
+--ftp-ssl-control --cacert "%LOGDIR/cacert" ftps://%HOSTIP:%FTPSPORT/
+</command>
+<file name="%LOGDIR/cacert">
+made up content
+</file>
+</client>
+
+# Verify data after the test has been "shot"
+<verify>
+<errorcode>
+77,60
+</errorcode>
+</verify>
+</testcase>

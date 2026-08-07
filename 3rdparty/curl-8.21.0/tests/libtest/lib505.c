@@ -1,0 +1,146 @@
+/***************************************************************************
+ *                                  _   _ ____  _
+ *  Project                     ___| | | |  _ \| |
+ *                             / __| | | | |_) | |
+ *                            | (__| |_| |  _ <| |___
+ *                             \___|\___/|_| \_\_____|
+ *
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This software is licensed as described in the file COPYING, which
+ * you should have received as part of this distribution. The terms
+ * are also available at https://curl.se/docs/copyright.html.
+ *
+ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
+ * copies of the Software, and permit persons to whom the Software is
+ * furnished to do so, under the terms of the COPYING file.
+ *
+ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+ * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
+ *
+ ***************************************************************************/
+#include "first.h"
+
+/*
+ * This example shows an FTP upload, with a rename of the file right after
+ * a successful upload.
+ *
+ * Example based on source code provided by Erick Nuwendam. Thanks!
+ */
+
+static CURLcode test_lib505(const char *URL)
+{
+  CURL *curl;
+  CURLcode result = CURLE_OK;
+  char errbuf[STRERROR_LEN];
+  FILE *hd_src;
+  int hd;
+  curlx_struct_stat file_info;
+  struct curl_slist *headerlist;
+  struct curl_slist *temp;
+
+  static const char *buf_1 = "RNFR 505";
+  static const char *buf_2 = "RNTO 505-forreal";
+
+  if(!libtest_arg2) {
+    curl_mfprintf(stderr, "Usage: <url> <file-to-upload>\n");
+    return TEST_ERR_USAGE;
+  }
+
+  hd_src = curlx_fopen(libtest_arg2, "rb");
+  if(!hd_src) {
+    curl_mfprintf(stderr, "fopen() failed with error (%d) %s\n",
+                  errno, curlx_strerror(errno, errbuf, sizeof(errbuf)));
+    curl_mfprintf(stderr, "Error opening file '%s'\n", libtest_arg2);
+    return TEST_ERR_MAJOR_BAD; /* if this happens things are major weird */
+  }
+
+  /* get the file size of the local file */
+  hd = curlx_fstat(fileno(hd_src), &file_info);
+  if(hd == -1) {
+    /* cannot open file, bail out */
+    curl_mfprintf(stderr, "fstat() failed with error (%d) %s\n",
+                  errno, curlx_strerror(errno, errbuf, sizeof(errbuf)));
+    curl_mfprintf(stderr, "Error opening file '%s'\n", libtest_arg2);
+    curlx_fclose(hd_src);
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  if(!file_info.st_size) {
+    curl_mfprintf(stderr, "File %s has zero size!\n", libtest_arg2);
+    curlx_fclose(hd_src);
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  if(curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
+    curl_mfprintf(stderr, "curl_global_init() failed\n");
+    curlx_fclose(hd_src);
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  /* get a curl handle */
+  curl = curl_easy_init();
+  if(!curl) {
+    curl_mfprintf(stderr, "curl_easy_init() failed\n");
+    curl_global_cleanup();
+    curlx_fclose(hd_src);
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  /* build a list of commands to pass to libcurl */
+
+  headerlist = curl_slist_append(NULL, buf_1);
+  if(!headerlist) {
+    curl_mfprintf(stderr, "curl_slist_append() failed\n");
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+    curlx_fclose(hd_src);
+    return TEST_ERR_MAJOR_BAD;
+  }
+  temp = curl_slist_append(headerlist, buf_2);
+  if(!temp) {
+    curl_mfprintf(stderr, "curl_slist_append() failed\n");
+    curl_slist_free_all(headerlist);
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+    curlx_fclose(hd_src);
+    return TEST_ERR_MAJOR_BAD;
+  }
+  headerlist = temp;
+
+  /* enable uploading */
+  easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+
+  /* enable verbose */
+  easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+  /* specify target */
+  easy_setopt(curl, CURLOPT_URL, URL);
+
+  /* pass in that last of FTP commands to run after the transfer */
+  easy_setopt(curl, CURLOPT_POSTQUOTE, headerlist);
+
+  /* now specify which file to upload */
+  easy_setopt(curl, CURLOPT_READDATA, hd_src);
+
+  /* and give the size of the upload (optional) */
+  easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
+
+  /* Now run off and do what you have been told! */
+  result = curl_easy_perform(curl);
+
+test_cleanup:
+
+  /* clean up the FTP commands list */
+  curl_slist_free_all(headerlist);
+
+  /* close the local file */
+  curlx_fclose(hd_src);
+
+  curl_easy_cleanup(curl);
+  curl_global_cleanup();
+
+  return result;
+}

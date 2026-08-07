@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+globbing
+{} list
+</keywords>
+</info>
+# Server-side
+<reply>
+</reply>
+
+# Client-side
+<client>
+<name>
+abusing {}-globbing
+</name>
+<command>
+"%HOSTIP:%NOLISTENPORT/%TESTNUMBER[0-1]{" "%HOSTIP:%NOLISTENPORT/{}{}{}{"
+</command>
+</client>
+
+# Verify data after the test has been "shot"
+<verify>
+# 3 == CURLE_URL_MALFORMAT
+<errorcode>
+3
+</errorcode>
+</verify>
+</testcase>

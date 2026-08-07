@@ -3,11 +3,11 @@ package("libcurl")
     set_description("The multiprotocol file transfer library.")
     set_license("MIT")
 
-    set_urls("https://curl.haxx.se/download/curl-$(version).tar.bz2")
-    add_urls("https://github.com/curl/curl/releases/download/curl-$(version).tar.bz2",
-        {version = function (version) return (version:gsub("%.", "_")) .. "/curl-" .. version end})
-    add_urls("https://gitee.com/mirrors/curl.git")
-    add_versions("v8.11.1", "curl-8_11_1")
+    -- 直接使用仓库内 3rdparty/curl-8.21.0 源码构建：系统 libcurl（macOS 8.7.1）的
+    -- ws_flush 在 EAGAIN 下忙转，导致大帧 WebSocket 上行卡死（见 devel/0706.md）；
+    -- 8.21.0 已修复（ws_flush 直接返回 CURLE_AGAIN），ws:// 与 wss:// 均生效。
+    -- 不再从网络下载，故无 set_urls/add_versions。
+    set_sourcedir(path.join(os.projectdir(), "3rdparty/curl-8.21.0"))
 
     add_configs("cares",    {description = "Enable c-ares support.", default = false, type = "boolean"})
     add_configs("openssl",  {description = "Enable OpenSSL for SSL/TLS.", default = nil, type = "boolean"})
@@ -86,44 +86,42 @@ package("libcurl")
     end)
 
     on_install("windows", "mingw", "linux", "macosx", "iphoneos", "cross", "android", function (package)
-        local version = package:version()
-
+        -- 源码固定为 8.21.0（set_sourcedir），原 version:ge(...) 条件对 8.21 均取现代
+        -- 分支，故直接硬编码 CURL_USE_* 选项；set_sourcedir 不带版本号，不调用
+        -- package:version()（否则报 nil）。
         local configs = {"-DBUILD_TESTING=OFF", "-DENABLE_MANUAL=OFF", "-DENABLE_CURL_MANUAL=OFF"}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
 
-        if (package:is_plat("mingw") and version:ge("7.85")) then
+        if package:is_plat("mingw") then
             package:add("syslinks", "bcrypt")
         end
 
         local configopts = {cares    = "ENABLE_ARES",
-                            mbedtls  = (version:ge("7.81") and "CURL_USE_MBEDTLS" or "CMAKE_USE_MBEDTLS"),
+                            mbedtls  = "CURL_USE_MBEDTLS",
                             nghttp2  = "USE_NGHTTP2",
                             libidn2  = "USE_LIBIDN2",
                             zlib     = "CURL_ZLIB",
                             zstd     = "CURL_ZSTD",
                             brotli   = "CURL_BROTLI",
-                            libssh2  = (version:ge("7.81") and "CURL_USE_LIBSSH2" or "CMAKE_USE_LIBSSH2"),
+                            libssh2  = "CURL_USE_LIBSSH2",
                             libpsl   = "CURL_USE_LIBPSL"}
         for name, opt in pairs(configopts) do
             table.insert(configs, "-D" .. opt .. "=" .. (package:config(name) and "ON" or "OFF"))
         end
-        table.insert(configs, "-D" .. (version:ge("7.81") and "CURL_USE_OPENSSL" or "CMAKE_USE_OPENSSL") .. "=" .. ((package:config("openssl") or package:config("openssl3")) and "ON" or "OFF"))
+        table.insert(configs, "-DCURL_USE_OPENSSL=" .. ((package:config("openssl") or package:config("openssl3")) and "ON" or "OFF"))
 
         if not package:config("openldap") then
             table.insert(configs, "-DCURL_DISABLE_LDAP=ON")
         end
         if package:is_plat("windows", "mingw") then
-            table.insert(configs, (version:ge("7.80") and "-DCURL_USE_SCHANNEL=ON" or "-DCMAKE_USE_SCHANNEL=ON"))
+            table.insert(configs, "-DCURL_USE_SCHANNEL=ON")
         end
         if package:is_plat("macosx", "iphoneos") then
-            table.insert(configs, (version:ge("7.65") and "-DCURL_USE_SECTRANSP=ON" or "-DCMAKE_USE_DARWINSSL=ON"))
+            table.insert(configs, "-DCURL_USE_SECTRANSP=ON")
         end
         if package:is_plat("windows") then
             table.insert(configs, "-DCURL_STATIC_CRT=" .. (package:config("vs_runtime"):startswith("MT") and "ON" or "OFF"))
-        end
-        if package:is_plat("mingw") and version:le("7.85.0") then
-            io.replace("src/CMakeLists.txt", 'COMMAND ${CMAKE_COMMAND} -E echo "/* built-in manual is disabled, blank function */" > tool_hugehelp.c', "", {plain = true})
         end
         if package:is_plat("linux", "cross") then
             io.replace("CMakeLists.txt", "list(APPEND CURL_LIBS OpenSSL::SSL OpenSSL::Crypto)", "list(APPEND CURL_LIBS OpenSSL::SSL OpenSSL::Crypto dl)", {plain = true})

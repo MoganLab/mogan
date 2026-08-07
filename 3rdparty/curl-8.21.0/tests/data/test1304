@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unittest
+netrc
+</keywords>
+</info>
+
+# Client-side
+<client>
+<features>
+unittest
+netrc
+</features>
+<name>
+netrc parsing unit tests
+</name>
+<command>
+%LOGDIR/netrc%TESTNUMBER
+</command>
+<file name="%LOGDIR/netrc%TESTNUMBER">
+machine example.com login admin password passwd
+machine curl.example.com login none password none
+</file>
+</client>
+</testcase>

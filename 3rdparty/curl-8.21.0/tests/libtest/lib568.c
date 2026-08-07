@@ -1,0 +1,175 @@
+/***************************************************************************
+ *                                  _   _ ____  _
+ *  Project                     ___| | | |  _ \| |
+ *                             / __| | | | |_) | |
+ *                            | (__| |_| |  _ <| |___
+ *                             \___|\___/|_| \_\_____|
+ *
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This software is licensed as described in the file COPYING, which
+ * you should have received as part of this distribution. The terms
+ * are also available at https://curl.se/docs/copyright.html.
+ *
+ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
+ * copies of the Software, and permit persons to whom the Software is
+ * furnished to do so, under the terms of the COPYING file.
+ *
+ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+ * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
+ *
+ ***************************************************************************/
+#include "first.h"
+
+/*
+ * Test the Client->Server ANNOUNCE functionality (PUT style)
+ */
+static CURLcode test_lib568(const char *URL)
+{
+  CURLcode result;
+  CURL *curl;
+  char errbuf[STRERROR_LEN];
+  int sdp;
+  FILE *sdpf = NULL;
+  curlx_struct_stat file_info;
+  char *stream_uri = NULL;
+  int request = 1;
+  struct curl_slist *custom_headers = NULL;
+
+  if(curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
+    curl_mfprintf(stderr, "curl_global_init() failed\n");
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  curl = curl_easy_init();
+  if(!curl) {
+    curl_mfprintf(stderr, "curl_easy_init() failed\n");
+    curl_global_cleanup();
+    return TEST_ERR_MAJOR_BAD;
+  }
+
+  easy_setopt(curl, CURLOPT_HEADERDATA, stdout);
+  easy_setopt(curl, CURLOPT_WRITEDATA, stdout);
+
+  easy_setopt(curl, CURLOPT_URL, URL);
+
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  sdp = curlx_open(libtest_arg2, O_RDONLY);
+  if(sdp == -1) {
+    curl_mfprintf(stderr, "open() failed with error (%d) %s\n",
+                  errno, curlx_strerror(errno, errbuf, sizeof(errbuf)));
+    curl_mfprintf(stderr, "Error opening file '%s'\n", libtest_arg2);
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  curlx_fstat(sdp, &file_info);
+  curlx_close(sdp);
+
+  sdpf = curlx_fopen(libtest_arg2, "rb");
+  if(!sdpf) {
+    curl_mfprintf(stderr, "fopen() failed with error (%d) %s\n",
+                  errno, curlx_strerror(errno, errbuf, sizeof(errbuf)));
+    curl_mfprintf(stderr, "Error opening file '%s'\n", libtest_arg2);
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_ANNOUNCE);
+
+  easy_setopt(curl, CURLOPT_READDATA, sdpf);
+  easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+  easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
+  easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+  /* Do the ANNOUNCE */
+  result = curl_easy_perform(curl);
+  if(result)
+    goto test_cleanup;
+
+  easy_setopt(curl, CURLOPT_UPLOAD, 0L);
+  curlx_fclose(sdpf);
+  sdpf = NULL;
+
+  /* Make sure we can do a normal request now */
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_DESCRIBE);
+  result = curl_easy_perform(curl);
+  if(result)
+    goto test_cleanup;
+
+  /* Now do a POST style one */
+
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  custom_headers = curl_slist_append(custom_headers,
+                                     "Content-Type: posty goodness");
+  if(!custom_headers) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSPHEADER, custom_headers);
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_ANNOUNCE);
+  easy_setopt(curl, CURLOPT_POSTFIELDS,
+              "postyfield=postystuff&project=curl\n");
+
+  result = curl_easy_perform(curl);
+  if(result)
+    goto test_cleanup;
+
+  easy_setopt(curl, CURLOPT_POSTFIELDS, NULL);
+  easy_setopt(curl, CURLOPT_RTSPHEADER, NULL);
+  curl_slist_free_all(custom_headers);
+  custom_headers = NULL;
+
+  /* Make sure we can do a normal request now */
+  stream_uri = tutil_suburl(URL, request++);
+  if(!stream_uri) {
+    result = TEST_ERR_MAJOR_BAD;
+    goto test_cleanup;
+  }
+  easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, stream_uri);
+  curl_free(stream_uri);
+  stream_uri = NULL;
+
+  easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_OPTIONS);
+  result = curl_easy_perform(curl);
+
+test_cleanup:
+
+  if(sdpf)
+    curlx_fclose(sdpf);
+
+  curl_free(stream_uri);
+
+  if(custom_headers)
+    curl_slist_free_all(custom_headers);
+
+  curl_easy_cleanup(curl);
+  curl_global_cleanup();
+
+  return result;
+}
