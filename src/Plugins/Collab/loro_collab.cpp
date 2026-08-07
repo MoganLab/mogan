@@ -428,6 +428,12 @@ collab_session_manager::get_or_create (url buf_url) {
     session= new collab_session (buf_url);
     sessions << session;
   }
+  // 无论新建还是复用会话都置位：复用（如 no_name_<n> 的 url 被新一轮
+  // create/join 命中残留会话）时构造函数不跑，而 buffer 可能是新的
+  // tm_buffer_rep（cloud 默认 false），故必须在每次挂接时显式标记，否则
+  // editor::need_save 会把云文档当脏文档。
+  tm_buffer tmb= concrete_buffer (buf_url);
+  if (!is_nil (tmb)) tmb->cloud= true;
   return session;
 }
 

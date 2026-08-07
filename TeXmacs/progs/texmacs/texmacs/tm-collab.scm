@@ -117,6 +117,11 @@
         ) ;
         (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
                 (collab-mark-current-buffer)
+                ;; 标题立即设为用户输入的显示名（无名文档保持 No Name，待服务端
+                ;; 回 DOC 后 become_ready 用 UUID 兜底），避免 tab 暂显 No Name[n]。
+                (when (> (string-length name) 0)
+                  (buffer-set-title (current-buffer) name)
+                ) ;when
                 (loro-collab-create (collab-server-url) name)
                 (set-message (string-append "Creating collaborative document (Server "
                                (collab-server-url)
@@ -264,18 +269,18 @@
 
 ;; === collab 缓冲特殊语义的覆盖 ===
 ;; collab 文档（云端）：
-;;   - 永不"已修改" → 无星号、关闭不弹保存提示、不进自动备份（filter buffer-modified?）
+;;   - 永不"已修改" → 无星号、关闭不弹保存提示、不进自动备份：
+;;     已下沉到 C++ editor::need_save（据 tm_buffer_rep::cloud 标志，由会话层
+;;     collab_session_manager::get_or_create 在每次挂接时置位——复用残留会话时
+;;     构造函数不跑，故必须在 get_or_create 里显式标记）。need_save 是标题星号
+;;     / 关闭提示 / tab 星号 / 自动保存的公共收敛点，故不再在 Scheme 侧覆盖
+;;     buffer-modified?。
 ;;   - Save 无效（文档在云端）→ 提示用 Save as 导出本地副本；Save as 正常
-;; 用「模块加载时捕获原始绑定」覆盖，避免对纯 glue 函数用 former（tm-define 对
-;; 未注册到 tm-defined-table 的函数走 else 分支，former 退化为 noop，会全局破坏）。
-
-(define %original-buffer-modified? buffer-modified?)
+;; 用「模块加载时捕获原始绑定」覆盖 save-buffer，避免对纯 glue 函数用 former
+;; （tm-define 对未注册到 tm-defined-table 的函数走 else 分支，former 退化为
+;; noop，会全局破坏）。
 
 (define %original-save-buffer save-buffer)
-
-(tm-define (buffer-modified? name)
-  (if (collab-buffer? name) #f (%original-buffer-modified? name))
-) ;tm-define
 
 (tm-define (save-buffer . l)
   (if (collab-buffer? (current-buffer))
