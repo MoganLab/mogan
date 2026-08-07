@@ -129,6 +129,59 @@
   ) ;cond
 ) ;tm-define
 
+;; 由文件 url 推导共享文档默认显示名：取文件名（去目录与后缀）。
+
+(define (collab-file->doc-name u)
+  (let* ((tail (url->system (url-tail u))) (suffix (url-suffix u)))
+    (if (and (string? suffix) (> (string-length suffix) 0))
+      (substring tail 0 (- (string-length tail) (+ 1 (string-length suffix))))
+      tail
+    ) ;if
+  ) ;let*
+) ;define
+
+;; 选定文件后弹显示名输入框（预填文件名），确认走 collab-new-document-from-file-named。
+
+(define (collab-share-file-prompt-name u)
+  (interactive (lambda (name) (collab-new-document-from-file-named u name))
+    (list "Document name" "string" (collab-file->doc-name u))
+  ) ;interactive
+) ;define
+
+;; 打开（上传）本地 .tmu/.tm 文件为共享文档：文件对话框选文件 → 输入显示名
+;; （预填文件名）→ 加载文件到 buffer → 标记 collab → CREATE。会话就绪时 C++ 端
+;; eager-seed（见 loro_collab.cpp become_ready）把文件内容作为初始全量推到服务端，
+;; 无需等待首次编辑。
+(tm-define (collab-new-document-from-file)
+  (:interactive #t)
+  (choose-file collab-share-file-prompt-name "Load file to share" "action_open")
+) ;tm-define
+
+(tm-define (collab-new-document-from-file-named u name)
+  (cond ((and (string? name)
+           (> (string-length name) 0)
+           (not (collab-valid-doc-name? name))
+         ) ;and
+         (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
+           "Collaborative"
+         ) ;set-message
+        ) ;
+        (else
+          ;; 加载文件到 buffer（window-per-buffer 开新窗口，否则新标签页），
+          ;; current-buffer 随即切到该文件 buffer。
+          (if (window-per-buffer?) (load-buffer-in-new-window u) (load-buffer u))
+          (collab-mark-current-buffer)
+          (loro-collab-create (collab-server-url) name)
+          (set-message (string-append "Uploading file as collaborative document (Server "
+                         (collab-server-url)
+                         ")"
+                       ) ;string-append
+            "Collaborative"
+          ) ;set-message
+        ) ;else
+  ) ;cond
+) ;tm-define
+
 ;; 加入指定 UUID 的协作文档（非交互：UUID 由 Join 子菜单选中项传入，
 ;; opt-name 为菜单已知的显示名预填，最终以服务端 DOC 帧内 name 为准）。
 ;; 建空 buffer 并切到它 → 会话层 JOIN。服务端回 DOC 后补发 snapshot/updates，

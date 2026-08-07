@@ -139,6 +139,11 @@ collab_session::become_ready () {
   }
   else {
     ed->collab_enable ();
+    // CREATE 模式：会话就绪即 seed 当前 buffer（含已加载文件内容）并广播全量，
+    // 使「打开/上传本地 tmu
+    // 文件为共享文档」无需等待首次编辑即把内容推到服务端。 空文档 seed
+    // 无副作用（仅多一次空全量广播，与延迟 seed 行为等价）。
+    if (want_create ()) ed->ensure_loro_seeded ();
   }
 
   if (N (pending_updates) > 0) {
