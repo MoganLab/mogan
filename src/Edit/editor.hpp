@@ -11,7 +11,7 @@
 
 #ifndef EDITOR_H
 #define EDITOR_H
-
+      
 #include "config.h"
 #include "new_data.hpp"
 #include "server.hpp"
