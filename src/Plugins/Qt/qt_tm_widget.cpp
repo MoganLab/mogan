@@ -1466,8 +1466,10 @@ qt_tm_widget_rep::update_visibility () {
   bool new_titleVisibility     = visibility[0];
   bool new_pdfToolBarVisibility= false;
   bool new_pdfOutlineVisibility= false;
+  bool outlineEnabled= get_preference ("outline sidebar", "off") == "on";
   // 编辑器模式：根据文档大纲内容决定是否显示 dock
-  if (!startupTabMode && !pdfTabMode && !chatTabMode && pdfOutlineDock) {
+  if (!startupTabMode && !pdfTabMode && !chatTabMode && pdfOutlineDock &&
+      outlineEnabled) {
     new_pdfOutlineVisibility= pdfOutlineDock->hasContent ();
   }
 
@@ -1518,7 +1520,8 @@ qt_tm_widget_rep::update_visibility () {
     new_tabVisibility       = true;
     new_titleVisibility     = true;
     new_pdfToolBarVisibility= true;
-    new_pdfOutlineVisibility= (pdfOutlineDock && pdfOutlineDock->hasContent ());
+    new_pdfOutlineVisibility=
+        outlineEnabled && pdfOutlineDock && pdfOutlineDock->hasContent ();
   }
   if (XOR (old_mainVisibility, new_mainVisibility)) {
     mainToolBar->setVisible (new_mainVisibility);

@@ -10,11 +10,21 @@
 #include <QTreeWidgetItem>
 
 #include "converter.hpp" // cork_to_utf8
+#include "preferences.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_reader_widget.hpp"
 #include "qt_utilities.hpp" // utf8_to_qstring
 #include "s7_tm.hpp"
 #include "sys_utils.hpp" // get_env
+
+namespace {
+/** @brief 大纲侧边栏功能开关，默认关闭（探索性功能），
+ *  可通过 (set-preference "outline sidebar" "on") 开启。 */
+static bool
+outline_sidebar_enabled () {
+  return get_preference ("outline sidebar", "off") == "on";
+}
+} // namespace
 
 OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
     : QDockWidget (title, parent), tree_ (new QTreeWidget (this)) {
@@ -82,7 +92,7 @@ OutlineWidget::buildTree (const QVector<OutlineItem>& items,
 void
 OutlineWidget::setOutline (const QVector<PdfOutlineItem>& outline) {
   tree_->clear ();
-  if (outline.isEmpty ()) {
+  if (!outline_sidebar_enabled () || outline.isEmpty ()) {
     setVisible (false);
     return;
   }
@@ -94,7 +104,7 @@ OutlineWidget::setOutline (const QVector<PdfOutlineItem>& outline) {
 void
 OutlineWidget::setOutline (const QVector<OutlineItem>& outline) {
   tree_->clear ();
-  if (outline.isEmpty ()) {
+  if (!outline_sidebar_enabled () || outline.isEmpty ()) {
     setVisible (false);
     return;
   }
@@ -131,6 +141,10 @@ parseOutlinePair (tmscm pair) {
 bool
 OutlineWidget::loadDocumentOutline () {
   tree_->clear ();
+  if (!outline_sidebar_enabled ()) {
+    setVisible (false);
+    return false;
+  }
   // 确保模块已加载（init-research.scm 中的 use-modules 可能未生效时兜底）
   if (!eval_scheme ("(defined? 'document-outline)")) {
     string texmacs_path= get_env ("TEXMACS_PATH");
