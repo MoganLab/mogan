@@ -81,7 +81,7 @@ jobs:
       # 3. 编译流程
       # ==========================================
       - name: Config
-        run: xmake config --yes -vD -m release --policies=build.ccache
+        run: xmake config --loro=yes --yes -vD -m release --policies=build.ccache
 
       - name: Build
         run: xmake build -vD stem
