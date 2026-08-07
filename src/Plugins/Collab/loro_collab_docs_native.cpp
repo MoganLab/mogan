@@ -126,7 +126,7 @@ loro_collab_docs () {
     }
     else {
       result << line;
-      result << "";
+      result << string ("");
     }
   }
   return result;
