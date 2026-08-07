@@ -270,9 +270,6 @@
   ("math:calstar" "F8" #t)
   ("math:frak" "F9" #t)
   ("math:symbol" "S-F5" #t)
-  ("math:bbb" "S-F6" #t)
-
-  ("math:symbol:circled" "math:symbol @" #t)
 
   ("math:over" "math o" #t)
   ("math:under" "math u" #t)
@@ -360,14 +357,12 @@
   ("math:cal" "" "Insert a calligraphic character")
   ("math:calstar" "" "Insert a script character")
   ("math:frak" "" "Insert a fraktur character")
-  ("math:bbb" "" "Insert a blackboard bold character")
   ("math:over" "" "Insert a wide symbol above")
   ("math:under" "" "Insert a wide symbol below")
   ("math:left" "" "Insert a large left delimiter or left subscript")
   ("math:middle" "" "Insert a large separator")
   ("math:right" "" "Insert a large right delimiter")
   ("math:symbol" "" "Insert a mathematical symbol")
-  ("math:symbol:circled" "" "Insert a big circled operator")
   ("math:syntax" "" "Specify an alternative semantics"))
 
 (kbd-map
