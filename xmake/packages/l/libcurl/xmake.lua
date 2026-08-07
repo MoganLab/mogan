@@ -43,7 +43,11 @@ package("libcurl")
         elseif package:is_plat("linux") then
             package:add("syslinks", "pthread")
         elseif package:is_plat("windows", "mingw") then
-            package:add("syslinks", "advapi32", "crypt32", "wldap32", "winmm", "ws2_32", "user32")
+            -- libcurl 8.21（SCHANNEL）在 Windows 上的系统依赖（见其 CMakeLists.txt 的 CURL_LIBS）：
+            -- iphlpapi(if_nametoindex)、secur32(InitSecurityInterfaceA)、bcrypt(BCryptGenRandom)、
+            -- normaliz(IdnToAscii)。旧表缺这 4 个会导致消费方/test 链接报 LNK2019。
+            package:add("syslinks", "advapi32", "crypt32", "wldap32", "winmm", "ws2_32", "user32",
+                         "iphlpapi", "secur32", "bcrypt", "normaliz")
         end
 
         if package:is_plat("mingw") and is_subhost("msys") then
@@ -89,7 +93,12 @@ package("libcurl")
         -- 源码固定为 8.21.0（set_sourcedir），原 version:ge(...) 条件对 8.21 均取现代
         -- 分支，故直接硬编码 CURL_USE_* 选项；set_sourcedir 不带版本号，不调用
         -- package:version()（否则报 nil）。
-        local configs = {"-DBUILD_TESTING=OFF", "-DENABLE_MANUAL=OFF", "-DENABLE_CURL_MANUAL=OFF"}
+        -- vendored 源码已删去 docs/ 与 tests/（减体积），故关掉所有引用它们的 CMake 目标：
+        -- BUILD_EXAMPLES=OFF 跳过 docs/examples；禁用 Perl 跳过 docs/cmdline-opts 手册页 +
+        -- 测试（tests 已由 BUILD_TESTING=OFF 跳过）。只构建 libcurl 本体。
+        local configs = {"-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF",
+                         "-DENABLE_MANUAL=OFF", "-DENABLE_CURL_MANUAL=OFF",
+                         "-DCMAKE_DISABLE_FIND_PACKAGE_Perl=ON"}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
 

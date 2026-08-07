@@ -57,13 +57,8 @@
 
 (plugin-configure maxima
   (:require (has-binary-maxima?))
-  ,(#_apply-values (maxima-launchers))
+  ,@(maxima-launchers)
   (:serializer ,maxima-serialize)
   (:session "Maxima")
   (:scripts "Maxima")
 ) ;plugin-configure
-
-(when (supports-maxima?)
-  (lazy-input-converter (maxima-input) maxima)
-  (plugin-approx-command-set! "maxima" "float")
-) ;when

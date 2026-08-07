@@ -156,7 +156,7 @@
                (when (not (file-exists? spec))
                  (value-error (string-append who ": file does not exist") spec)
                ) ;when
-               `((name unquote name) (file unquote spec))
+               `((name . ,name) (file . ,spec))
               ) ;
               ((alist? spec)
                (let* ((normalized-spec (map (lambda (item) (http-normalize-file-spec-entry who item)) spec)
@@ -171,9 +171,9 @@
                  (when (not (file-exists? file))
                    (value-error (string-append who ": file does not exist") file)
                  ) ;when
-                 (append `((name unquote name) (file unquote file))
-                   (if filename `((filename unquote filename)) '())
-                   (if content-type `((content-type unquote content-type)) '())
+                 (append `((name . ,name) (file . ,file))
+                   (if filename `((filename . ,filename)) '())
+                   (if content-type `((content-type . ,content-type)) '())
                  ) ;append
                ) ;let*
               ) ;

@@ -233,7 +233,7 @@
         ("Inside mathematics" "mathematics")
         ("Enable" "on"))
       (item ("Emoji shortcuts" (toggle-emoji-keyboard))))
-    (-> ,"Printer" unquote page-setup-tree)
+    (-> ,"Printer" . ,page-setup-tree)
     (enum ("Security" "security")
       ("Accept no scripts" "accept no scripts")
       ("Prompt on scripts" "prompt on scripts")

@@ -1139,17 +1139,17 @@
 ;; 往返。返回 assoc list，bridge 转 QVariantMap。family 改动刷新 style 列表。
 (tm-define (font-selector-set-family key family)
   (font-selector-set key :family family)
-  `((styles unquote (font-selector-styles key family))
-    (preview unquote (font-selector-preview key)))
+  `((styles . ,(font-selector-styles key family))
+    (preview . ,(font-selector-preview key)))
 ) ;tm-define
 
 (tm-define (font-selector-set-style key style)
   (font-selector-set key :style style)
-  `((preview unquote (font-selector-preview key)))
+  `((preview . ,(font-selector-preview key)))
 ) ;tm-define
 (tm-define (font-selector-set-size key size)
   (font-selector-set key :size size)
-  `((preview unquote (font-selector-preview key)))
+  `((preview . ,(font-selector-preview key)))
 ) ;tm-define
 
 ;; 9 项 Filter 的可选项（集中自原 tm-widget 内联）。var 用 string（无冒号），facade
@@ -1239,8 +1239,8 @@
 ;; 转 keyword。
 (tm-define (font-selector-set-filter key var val)
   (selector-set (font-selector-lookup-specs key) (string->keyword var) val)
-  `((families unquote (font-selector-families key))
-    (preview unquote (font-selector-preview key)))
+  `((families . ,(font-selector-families key))
+    (preview . ,(font-selector-preview key)))
 ) ;tm-define
 
 ;; 预览光栅化：同步返回 data URL。bg-color/magnification 包裹照搬 font-sample-text。
@@ -1287,7 +1287,7 @@
 ;; 设样本类型，返回 {preview}（样本内容随类型变）。
 (tm-define (font-selector-set-sample-kind key kind)
   (set-font-sample-kind kind)
-  `((preview unquote (font-selector-preview key)))
+  `((preview . ,(font-selector-preview key)))
 ) ;tm-define
 
 ;; Advanced 定制（Effects / Variants / Mathematics）。每项返回
@@ -1477,15 +1477,15 @@
 ;; 固定 UI 文案的翻译，供 QML 一次性拉取。key 为稳定标识符，value 经 translate
 ;; 跟随界面语言。
 (tm-define (font-selector-ui-labels key)
-  `((family unquote (translate "Font family"))
-    (style unquote (translate "Style"))
-    (size unquote (translate "Size"))
-    (sample unquote (translate "Sample"))
-    (filter unquote (translate "Filter"))
-    (advanced unquote (translate "Advanced"))
-    (import unquote (translate "Import"))
-    (reset unquote (translate "Reset"))
-    (ok unquote (translate "Ok"))
-    (cancel unquote (translate "Cancel"))
-    (done unquote (translate "Done")))
+  `((family . ,(translate "Font family"))
+    (style . ,(translate "Style"))
+    (size . ,(translate "Size"))
+    (sample . ,(translate "Sample"))
+    (filter . ,(translate "Filter"))
+    (advanced . ,(translate "Advanced"))
+    (import . ,(translate "Import"))
+    (reset . ,(translate "Reset"))
+    (ok . ,(translate "Ok"))
+    (cancel . ,(translate "Cancel"))
+    (done . ,(translate "Done")))
 ) ;tm-define

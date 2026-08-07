@@ -141,7 +141,7 @@ jobs:
             ${{ github.workspace }}/build/.build_cache
           key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
       - name: config
-        run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows
+        run: xmake config --policies=build.ccache --yes -vD -m releasedbg --loro=yes --plat=windows
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake build --yes -vD liblolly

@@ -110,9 +110,7 @@
              (callback (current-log-callback))
             ) ;
         (when (procedure? callback)
-          (callback `((SEVERITY unquote severity)
-                      (MESSAGE unquote message)
-                      ,@alist))
+          (callback `((SEVERITY . ,severity) (MESSAGE . ,message) ,@alist))
         ) ;when
       ) ;let*
     ) ;define

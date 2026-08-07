@@ -19,7 +19,7 @@
     (table table-edit)
   ) ;:use
 ) ;texmacs-module
-(debug-message "keyboard" "(math math-kbd): registering kbd-map ...\n")
+(debug-message "keyboard" "(math math-kbd): enqueueing delayed kbd-map ...\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bypassing the pre-edit mechanism
@@ -73,7 +73,7 @@
 ;; Main keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map (:mode in-math?)
+(delayed-kbd-map (:mode in-math?)
   ;; must come first in order not to screw the menus up
   ("accent:deadhat" (make-script #t #t))
   ("accent:deadhat var" "^")
@@ -1227,9 +1227,9 @@
   ("~ ~ /" "<napprox>")
   ("~ - /" "<nsimeq>")
   ("~ = /" "<ncong>")
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:mode in-math-or-hybrid?)
+(delayed-kbd-map (:mode in-math-or-hybrid?)
  ("/ \\" "<wedge>")
  ("/ \\ var " "<cap>")
  ("/ \\ var var" "<sqcap>")
@@ -1249,9 +1249,9 @@
  ("\\ / var var var var var var" "<curlyveeuparrow>")
  ("\\ / var var var var var var var" (begin (make-hybrid) (insert "/")))
  ("\\ / -" "<veebar>")
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:mode in-math?)
+(delayed-kbd-map (:mode in-math?)
  ("# var" "<sharp>")
  ("# var var" "<natural>")
  ("# var var var" "<flat>")
@@ -1510,9 +1510,9 @@
  ("math:misc | | var" "<shortparallel>")
  ("math:misc | | var /" "<nshortparallel>")
  ("math:misc | | var var /" "<nvarparallel>")
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:mode in-math-not-hybrid?)
+(delayed-kbd-map (:mode in-math-not-hybrid?)
  ("a var" "<alpha>")
  ("b var" "<beta>")
  ("b var var" "<flat>")
@@ -1672,9 +1672,9 @@
  ("i j k var" "ijk")
  ("x y z" (insert '(concat "x" " " "y" " " "z")))
  ("x y z var" "xyz")
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:mode in-math?)
+(delayed-kbd-map (:mode in-math?)
  ("math:bold 0" "<b-0>")
  ("math:bold 1" "<b-1>")
  ("math:bold 2" "<b-2>")
@@ -2092,9 +2092,9 @@
  ("math:frak X" "<frak-X>")
  ("math:frak Y" "<frak-Y>")
  ("math:frak Z" "<frak-Z>")
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:mode in-math-not-hybrid?)
+(delayed-kbd-map (:mode in-math-not-hybrid?)
  ("0 var" "<emptyset>")
  ("0 0 var" "<Bbb-0>")
  ("0 0 var var" "<b-0>")
@@ -2473,13 +2473,13 @@
  ("d w var" "<mathd><omega>")
  ("d w var var" "<mathd><mho>")
  ("d w var var var" "dw")
-) ;kbd-map
+) ;delayed-kbd-map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Textual operators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map (:mode in-math-english?)
+(delayed-kbd-map (:mode in-math-english?)
   ;; ("a n d" (make 'infix-and))
   ;; ("a n d space" (make 'infix-and))
   ("space a" " a")
@@ -2509,56 +2509,21 @@
   ("f o r space" "for ")
   ("f o r space a l l" (make 'prefix-for-all))
   ("f o r space a l l space" (make 'prefix-for-all))
-) ;kbd-map
-
-(kbd-map (:mode in-math-dutch?)
-  ;; ("e n" (make 'infix-and))
-  ;; ("e n space" (make 'infix-and))
-  ("space e" " e")
-  ("space e var" (begin (kbd-space) (insert "<varepsilon>")))
-  ("space e var var" (begin (kbd-space) (insert "<mathe>")))
-  ("space e var var var" (begin (kbd-space) (insert "<epsilon>")))
-  ("space e var var var var" (begin (kbd-space) (insert "<backepsilon>")))
-  ("space e n" (make 'infix-and))
-  ("space e n space" (make 'infix-and))
-  ;; ("e n var" "en")
-  ;; ("o f" (make 'infix-or))
-  ;; ("o f space" (make 'infix-or))
-  ("space o" " o")
-  ("space o var" (begin (kbd-space) (insert "<omicron>")))
-  ("space o f" (make 'infix-or))
-  ("space o f space" (make 'infix-or))
-  ;; ("o f var" "of")
-  ;; ("d e s d a" (make 'infix-iff))
-  ;; ("d e s d a space" (make 'infix-iff))
-  ("space d" " d")
-  ("space d var" (begin (kbd-space) (insert "<delta>")))
-  ("space d var var" (begin (kbd-space) (insert "<mathd>")))
-  ("space d var var var" (begin (kbd-space) (insert "<partial>")))
-  ("space d e" " de")
-  ("space d e s" " des")
-  ("space d e s d" " desd")
-  ("space d e s d a" (make 'infix-iff))
-  ("space d e s d a space" (make 'infix-iff))
-  ;; ("d e s d a var" "desda")
-  ("v o o r space" "voor ")
-  ("v o o r space a l l e" (make 'prefix-for-all))
-  ("v o o r space a l l e space" (make 'prefix-for-all))
-) ;kbd-map
+) ;delayed-kbd-map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Special toggles
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map (:require (inside? 'equation*))
+(delayed-kbd-map (:require (inside? 'equation*))
  ("C-&" (equation->eqnarray (tree-innermost 'equation*)))
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:require (inside? 'equation))
+(delayed-kbd-map (:require (inside? 'equation))
  ("C-&" (equation->eqnarray (tree-innermost 'equation)))
-) ;kbd-map
+) ;delayed-kbd-map
 
-(kbd-map (:require (inside? 'eqnarray*))
+(delayed-kbd-map (:require (inside? 'eqnarray*))
  ("C-&" (eqnarray->equation (tree-innermost 'eqnarray*)))
-) ;kbd-map
+) ;delayed-kbd-map
 (debug-message "keyboard" "(math math-kbd): kbd-map registered\n")

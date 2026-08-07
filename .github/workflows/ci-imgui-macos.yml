@@ -44,7 +44,7 @@ jobs:
           key: ${{ runner.os }}-xrepo-imgui-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
 
       - name: config
-        run: xmake config -vD --qt_frontend=no --policies=build.ccache --yes
+        run: xmake config -vD --qt_frontend=no --loro=yes --policies=build.ccache --yes
 
       - name: build stem
         run: xmake b -vD stem

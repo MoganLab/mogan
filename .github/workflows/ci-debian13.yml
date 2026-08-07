@@ -134,7 +134,7 @@ jobs:
               - '3rdparty/**'
 
       - name: config
-        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --loro=yes --yes
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake build --yes -vD liblolly

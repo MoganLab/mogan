@@ -39,7 +39,7 @@ jobs:
           wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Bold.ttc
           wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Regular.ttc
       - name: config
-        run: xmake config --yes -vD -m release
+        run: xmake config --loro=yes --yes -vD -m release
       - name: build
         run: xmake build -vD stem 
       - name: install

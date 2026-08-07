@@ -21,6 +21,8 @@
   </src-title>>
 
   <assign|language|dutch>
+
+  <use-module|(lang dutch-kbd)>
 </body>
 
 <\initial>

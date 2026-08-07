@@ -56,7 +56,7 @@
                          ) ;if
                          (set! new-vars (cons var new-vars))
                          (set-cdr! growth-point `((let (,claw)
-                                                    (and unquote var-cell))))
+                                                    (and . ,var-cell))))
                          (set! growth-point var-cell)
                        ) ;let*
                       ) ;

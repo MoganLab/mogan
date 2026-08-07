@@ -11,10 +11,20 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin maxima-kbd) (:use (dynamic scripts-kbd)))
+(texmacs-module (plugin maxima-kbd)
+  (:use (dynamic scripts-kbd)
+    (utils plugins plugin-cmd)
+    (utils plugins plugin-convert)
+  ) ;:use
+) ;texmacs-module
 
 (texmacs-modes (maxima-scripts-math% #t maxima-scripts% in-math%))
 
 (kbd-map (:mode maxima-scripts-math?) (": =" (insert '(script-assign))))
 
 (kbd-map (:mode in-maxima?) (:mode in-math?) ("$" "$"))
+
+(when (supports-maxima?)
+  (lazy-input-converter (plugin maxima-input) maxima)
+  (plugin-approx-command-set! "maxima" "float")
+) ;when

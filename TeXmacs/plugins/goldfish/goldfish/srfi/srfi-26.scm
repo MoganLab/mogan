@@ -45,7 +45,7 @@
                       (error 'syntax-error "<...> must be the last parameter of cut")
                     ) ;when
                 (let ((parsed (parse xs paras)))
-                  `(lambda (,@xs unquote rest) (apply ,@parsed))
+                  `(lambda (,@xs . ,rest) (apply ,@parsed))
                 ) ;let
               ) ;else
         ) ;cond

@@ -92,7 +92,7 @@
 
 (plugin-configure python
   (:require (or (has-binary-conda?) (has-binary-python3?)))
-  ,(#_apply-values (all-python-launchers))
+  ,@(all-python-launchers)
   (:tab-completion #t)
   (:serializer ,python-serialize)
   (:session "Python")

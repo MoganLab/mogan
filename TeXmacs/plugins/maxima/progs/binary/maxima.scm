@@ -11,26 +11,25 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary maxima)
-  (:use (binary common)))
+(texmacs-module (binary maxima) (:use (binary common)))
 
 (define (maxima-binary-candidates)
   (cond ((os-macos?)
          (list "/opt/homebrew/bin/maxima"
-               "/usr/local/bin/maxima"
-               "/Applications/Maxima.app/Contents/Resources/opt/bin/maxima"))
-        ((os-win32?)
-         (list "C:\\maxima-*\\bin\\maxima.bat"))
-        (else
-         (list
-          "/usr/bin/maxima"))))
+           "/usr/local/bin/maxima"
+           "/Applications/Maxima.app/Contents/Resources/opt/bin/maxima"
+         ) ;list
+        ) ;
+        ((os-win32?) (list "C:\\maxima-*\\bin\\maxima.bat"))
+        (else (list "/usr/bin/maxima"))
+  ) ;cond
+) ;define
 
 (tm-define (find-binary-maxima)
   (:synopsis "Find the url to the maxima binary, return (url-none) if not found")
-  (find-binary (maxima-binary-candidates) "maxima"))
+  (find-binary (maxima-binary-candidates) "maxima")
+) ;tm-define
 
-(tm-define (has-binary-maxima?)
-  (not (url-none? (find-binary-maxima))))
+(tm-define (has-binary-maxima?) (not (url-none? (find-binary-maxima))))
 
-(tm-define (version-binary-maxima)
-  (version-binary (find-binary-maxima)))
+(tm-define (version-binary-maxima) (version-binary (find-binary-maxima)))

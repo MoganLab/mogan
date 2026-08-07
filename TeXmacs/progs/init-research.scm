@@ -28,7 +28,7 @@
 (varlet (rootlet) '*current-module* (curlet))
 
 ;; 启动期 telemetry pending 队列：telemetry 实现已迁至 (plugin telemetry-*)
-;; 插件，由事件循环 ~3s 后懒加载。插件加载前的 C++ 上报（OPEN/LOGIN 等）
+;; 插件，启动时由 lazy-plugin-initialize 直接加载。插件加载前的 C++ 上报（OPEN/LOGIN 等）
 ;; 由 telemetry-track-or-enqueue 入队，(plugin init-telemetry) 加载时
 ;; 通过 telemetry-drain-pending! 一次性补 track。这组符号注入 rootlet，
 ;; 不依赖任何模块，C++ 可直接 call。
