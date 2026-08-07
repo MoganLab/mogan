@@ -154,8 +154,7 @@ target("stem") do
         add_syslinks("pthread", "dl", "m")
     end
     if is_plat("linux") then
-        -- X11: 基础系统库；harfbuzz: mupdf 的 html-layout 依赖（USE_SYSTEM_HARFBUZZ）
-        add_syslinks("X11", "harfbuzz")
+        add_syslinks("X11")
     end
     -- CLI 前端无 Qt/glfw 自带的 macOS 框架；Plugins/MacOS（HIDRemote/mac_utilities/
     -- mac_spellservice）仍被编译，需显式链接 Cocoa(=AppKit+Foundation) 与 IOKit。
