@@ -272,8 +272,6 @@
   ("math:symbol" "S-F5" #t)
   ("math:bbb" "S-F6" #t)
 
-  ("math:bold:up" "math:bold math:up" #t)
-  ("math:bold:cal" "math:bold math:cal" #t)
   ("math:symbol:circled" "math:symbol @" #t)
 
   ("math:over" "math o" #t)
@@ -359,10 +357,8 @@
   ("math" "" "Insert mathematical markup")
   ("math:up" "" "Insert an upright character")
   ("math:bold" "" "Insert a bold character")
-  ("math:bold:up" "" "Insert an upright bold character")
   ("math:cal" "" "Insert a calligraphic character")
   ("math:calstar" "" "Insert a script character")
-  ("math:bold:cal" "" "Insert a bold calligraphic character")
   ("math:frak" "" "Insert a fraktur character")
   ("math:bbb" "" "Insert a blackboard bold character")
   ("math:over" "" "Insert a wide symbol above")
