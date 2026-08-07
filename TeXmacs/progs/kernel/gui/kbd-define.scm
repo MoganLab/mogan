@@ -160,24 +160,41 @@
 
 (tm-define (kbd-pending-empty?) (list-queue-empty? kbd-pending))
 
+(define kbd-pump-budget 5)
+
+;; 每片注册条数，初始 10，按上片实测耗时向 budget 等比自适应
+
+(define kbd-pump-batch 10)
+
 (define (kbd-pump)
   (set! kbd-pump-armed? #f)
   (set! kbd-pumping? #t)
-  (with (start (texmacs-time) n 0)
-    ;; 每片最多 5ms，片间让出事件循环使用户输入可插队
-    (while (and (not (list-queue-empty? kbd-pending)) (< (- (texmacs-time) start) 5))
+  (let* ((start (texmacs-time)) (n 0))
+    ;; 每片最多 kbd-pump-batch 条，片间让出事件循环使用户输入可插队
+    (while (and (not (list-queue-empty? kbd-pending)) (< n kbd-pump-batch))
      ((list-queue-remove-front! kbd-pending))
      (set! n (+ n 1))
     ) ;while
-    (debug-message "keyboard"
-      (string-append "kbd-pump: registered "
-        (number->string n)
-        " bindings in "
-        (number->string (- (texmacs-time) start))
-        " ms\n"
-      ) ;string-append
-    ) ;debug-message
-  ) ;with
+    (with elapsed
+      (- (texmacs-time) start)
+      (when (> n 0)
+        ;; 按实测耗时等比调整批量；不足 1ms 测不出时翻倍试探
+        (set! kbd-pump-batch
+          (if (> elapsed 0) (max 1 (quotient (* n kbd-pump-budget) elapsed)) (* n 2))
+        ) ;set!
+        (debug-message "keyboard"
+          (string-append "kbd-pump: registered "
+            (number->string n)
+            " bindings in "
+            (number->string elapsed)
+            " ms (next batch "
+            (number->string kbd-pump-batch)
+            ")\n"
+          ) ;string-append
+        ) ;debug-message
+      ) ;when
+    ) ;with
+  ) ;let*
   (set! kbd-pumping? #f)
   (when (and (not (list-queue-empty? kbd-pending)) (not kbd-pump-armed?))
     (set! kbd-pump-armed? #t)
@@ -200,11 +217,13 @@
   (ahash-ref kbd-map-table key)
 ) ;define
 
+;; inv/rev 是菜单反查显示路径，不 drain：避免菜单重建把队列同步抽干，
+;; 容忍短暂缺失（与 lazy-keyboard 未加载模块时菜单无快捷键同语义）
+
 (define (kbd-get-inv key)
-  (kbd-flush-pending)
   (ahash-ref kbd-inv-table key)
 ) ;define
-(tm-define (kbd-get-rev key) (kbd-flush-pending) (ahash-ref kbd-rev-table key))
+(tm-define (kbd-get-rev key) (ahash-ref kbd-rev-table key))
 
 (define (kbd-remove-map! key)
   (ahash-remove! kbd-map-table key)
