@@ -57,7 +57,12 @@
     (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 15 14))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
-    (check (length (caddr (tab-ref meta "other"))) => (if (os-macos?) 17 15))
+    ;; other 计数 = 基线 + 更新器插件激活时新增的 2 个 info 行
+    ;; （updater:state / updater:available-version）。
+    (check (length (caddr (tab-ref meta "other")))
+      =>
+      (+ (if (os-macos?) 17 15) (if (use-plugin-updater?) 2 0))
+    ) ;check
   ) ;let
 ) ;define
 

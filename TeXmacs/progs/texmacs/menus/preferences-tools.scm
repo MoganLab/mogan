@@ -190,6 +190,9 @@
          ) ;when
          (if (defined? 'auto-backup-button-label) (auto-backup-button-label) "")
         ) ;
+        ;; check-updates-now：返回源码字面量，由 preferences-qml-flags->assoc
+        ;; 统一 utf8->cork + translate（与 open-auto-backup-location 结构一致）。
+        ((== action 'check-updates-now) "Check for updates")
         (else "")
   ) ;cond
 ) ;define
@@ -306,6 +309,9 @@
         ) ;
         ;; Last check info：非真实 preference，显示上次检查更新时间（updater 插件注入）。
         ((== key "updater:last-check") (last-check-string))
+        ;; 更新状态 / 可用版本 info：实时读 tm_updater 状态机（updater 插件注入）。
+        ((== key "updater:state") (updater-status-string))
+        ((== key "updater:available-version") (updater-available-version-display))
         ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
         (else "")
   ) ;cond

@@ -953,11 +953,15 @@
       #f
     ) ;list
     ;; updater 字段仅启用插件更新器时可见（use-plugin-updater?）。
+    ;; action-button 挂行内「Check for updates」按钮（点击经 bridge callAction
+    ;; 路由到 preferences-qml-call-action 的 "check-updates-now"）。
     (list (pref-updater-interval)
       "Check for automatic updates"
       '("0" "24" "168" "720")
       '("Never" "Once a day" "Once a week" "Once a month")
       #f
+      'action-button
+      'check-updates-now
       'platform-filter
       'updater-only
     ) ;list
@@ -965,6 +969,28 @@
     ;; 'info flag 显式标 info kind（key 非空但无 setter、不入 diff）。
     (list "updater:last-check"
       "Last check"
+      '()
+      '()
+      #f
+      'info
+      #t
+      'platform-filter
+      'updater-only
+    ) ;list
+    ;; Update status / Available version：info 只读行，实时读 tm_updater
+    ;; 状态机（updater-status-string / updater-available-version-display）。
+    (list "updater:state"
+      "Update status"
+      '()
+      '()
+      #f
+      'info
+      #t
+      'platform-filter
+      'updater-only
+    ) ;list
+    (list "updater:available-version"
+      "Available version"
       '()
       '()
       #f
@@ -1362,6 +1388,15 @@
          ) ;when
          (when (defined? 'open-auto-backup-location)
            (open-auto-backup-location)
+         ) ;when
+        ) ;
+        ;; Check for updates：updater 插件按 idle 延迟加载，先 use-modules 兜底。
+        ((== name "check-updates-now")
+         (when (not (defined? 'updater-check-now))
+           (use-modules (utils misc updater))
+         ) ;when
+         (when (defined? 'updater-check-now)
+           (updater-check-now)
          ) ;when
         ) ;
   ) ;cond
