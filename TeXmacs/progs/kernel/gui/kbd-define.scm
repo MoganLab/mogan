@@ -14,6 +14,7 @@
 (texmacs-module (kernel gui kbd-define) (:use (kernel texmacs tm-define)))
 
 (import (liii hash-table))
+(import (liii queue))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Lazy keyboard bindings
@@ -134,14 +135,68 @@
   (ahash-set! kbd-rev-table key im)
 ) ;define
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Delayed (chunked) registration of keyboard bindings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define kbd-pending (make-list-queue '()))
+
+;; 泵/flush 执行期间为 #t，防止经 getter 重入 drain
+
+(define kbd-pumping? #f)
+
+(define kbd-pump-armed? #f)
+
+(tm-define (kbd-flush-pending)
+  ;; 同步跑完剩余全部注册，供读写三张表前兜底
+  (when (and (not (list-queue-empty? kbd-pending)) (not kbd-pumping?))
+    (set! kbd-pumping? #t)
+    (while (not (list-queue-empty? kbd-pending))
+     ((list-queue-remove-front! kbd-pending))
+    ) ;while
+    (set! kbd-pumping? #f)
+  ) ;when
+) ;tm-define
+
+(tm-define (kbd-pending-empty?) (list-queue-empty? kbd-pending))
+
+(define (kbd-pump)
+  (set! kbd-pump-armed? #f)
+  (set! kbd-pumping? #t)
+  (with start
+    (texmacs-time)
+    ;; 每片最多 5ms，片间让出事件循环使用户输入可插队
+    (while (and (not (list-queue-empty? kbd-pending)) (< (- (texmacs-time) start) 5))
+     ((list-queue-remove-front! kbd-pending))
+    ) ;while
+  ) ;with
+  (set! kbd-pumping? #f)
+  (when (and (not (list-queue-empty? kbd-pending)) (not kbd-pump-armed?))
+    (set! kbd-pump-armed? #t)
+    (exec-delayed kbd-pump)
+  ) ;when
+) ;define
+
+(tm-define (kbd-enqueue thunks)
+  ;; thunks 为 per-binding thunk 列表，整体按序入队
+  ;; tm-define:delayed-kbd-map 的展开式在调用方模块中求值，需导出
+  (for-each (lambda (t) (list-queue-add-back! kbd-pending t)) thunks)
+  (when (and (nnull? thunks) (not kbd-pump-armed?) (not kbd-pumping?))
+    (set! kbd-pump-armed? #t)
+    (exec-delayed kbd-pump)
+  ) ;when
+) ;tm-define
+
 (define (kbd-get-map key)
+  (kbd-flush-pending)
   (ahash-ref kbd-map-table key)
 ) ;define
 
 (define (kbd-get-inv key)
+  (kbd-flush-pending)
   (ahash-ref kbd-inv-table key)
 ) ;define
-(tm-define (kbd-get-rev key) (ahash-ref kbd-rev-table key))
+(tm-define (kbd-get-rev key) (kbd-flush-pending) (ahash-ref kbd-rev-table key))
 
 (define (kbd-remove-map! key)
   (ahash-remove! kbd-map-table key)
@@ -246,6 +301,8 @@
 ) ;tm-define
 
 (tm-define (kbd-find-prefix-tab-inner prefix)
+  ;; 直读 kbd-map-table 绕过 getter，需显式 drain
+  (kbd-flush-pending)
   (let* ((pairs (filter (lambda (pair)
                           (let* ((key (car pair)) (val (cdr pair)))
                             (and (string? key)
@@ -390,6 +447,11 @@
 (tm-define-macro (kbd-map . l)
   (:synopsis "Add entries in @l to the keyboard mapping")
   `(begin ,@(kbd-map-body '() l))
+) ;tm-define-macro
+
+(tm-define-macro (delayed-kbd-map . l)
+  (:synopsis "Like kbd-map, but register bindings in chunks via the event loop")
+  `(kbd-enqueue (list ,@(map (lambda (x) `(lambda ,() ,x)) (kbd-map-body '() l))))
 ) ;tm-define-macro
 
 (define (kbd-remove-one conds key)
