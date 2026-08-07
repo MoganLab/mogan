@@ -233,10 +233,6 @@ async function main () {
   wss.on('connection', (ws) => {
     ws.clientId = nextClientId++;
     ws.docEntry = null;
-    // 诊断：统计每条连接的原始入站字节数（含文本+二进制+分片），定位大帧卡住时
-    // 服务端到底收了多少、是否停止从 socket 读取。用完即撤。
-    ws._rawIn = 0;
-    if (ws._socket) ws._socket.on('data', (c) => { ws._rawIn += c.length; });
     console.log(
       `${ts()} [client:${ws.clientId}] 新连接，当前总连接数 ${wss.clients.size}`
     );
@@ -299,28 +295,6 @@ async function main () {
       `${ts()} [server] Mogan Loro 协作服务 listening on ${USE_TLS ? 'wss' : 'ws'}://${HOST}:${PORT}`
     );
   });
-
-  // 诊断：每秒打印各连接的入站字节与 socket 状态，定位大帧卡住的根因。
-  //   rawIn       = 'data' 事件累计字节（Node 已从内核读出并投递给 ws 的量）
-  //   bytesRead   = 内核层累计读出字节
-  //   readableLen = Node readable 缓冲区里尚未投递的字节
-  //   paused      = socket 是否被 pause()
-  // 若 rawIn/readableLen 都不再增长且 paused=false → 内核无数据（客户端停发）。
-  // 若 readableLen 大幅增长 → Node 读出但 ws 未消费（Writable 背压）。
-  // 若 paused=true → socket 被 ws 暂停且未恢复。用完即撤。
-  setInterval(() => {
-    for (const c of wss.clients) {
-      if (c._rawIn > 0) {
-        const s = c._socket;
-        console.log(
-          `${ts()} [diag] client:${c.clientId} rawIn=${c._rawIn}` +
-            ` bytesRead=${s && s.bytesRead}` +
-            ` readableLen=${s && s.readableLength}` +
-            ` paused=${s && s.isPaused()}`
-        );
-      }
-    }
-  }, 1000).unref();
 
   // 优雅退出：先把在途写入与快照落盘，再退出
   let shuttingDown = false;

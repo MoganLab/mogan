@@ -9,9 +9,6 @@
 
 #include "tm_curl_websocket_client.hpp"
 #include "basic.hpp" // for cout, debug_std
-#include <cstdio>
-#include <cstdlib>
-#include <poll.h>
 
 /******************************************************************************
  * Threaded implementation (native platforms)
@@ -119,81 +116,55 @@ tm_curl_websocket_client::process_tx_queue () {
   // connection state so worker_main's loop exits
   if (!is_connected.load () || !easy_handle) return;
 
-  // 发送前用 poll(POLLOUT) 确认 socket 可写，避免在 socket 已满时调用
-  // curl_ws_send——其内部 ws_flush(complete=TRUE) 在 EAGAIN 下会 n=0;continue
-  // 无限忙转、锁死 worker 线程（大帧 + LAN 背压下复现：worker 卡死、服务端只收
-  // 到半帧且永不完成；环回无背压故不复现）。
-  curl_socket_t sockfd= CURL_SOCKET_BAD;
-  curl_easy_getinfo (easy_handle, CURLINFO_ACTIVESOCKET, &sockfd);
-
   while (!tx_queue.empty ()) {
-    ws_std_msg&  msg       = tx_queue.front ();
-    size_t       total_len = msg.data.size ();
-    unsigned int base_flags= msg.is_binary ? CURLWS_BINARY : CURLWS_TEXT;
-    // 用 CURLWS_OFFSET 把一条消息作为「单个 WebSocket 帧」分多次 curl_ws_send
-    // 发送：首次以 fragsize=total 声明整帧长度并写一次帧头（带 MASK+FIN），其后
-    // fragsize=0 仅续写同一帧的已掩码载荷（mask 偏移 xori 跨调用延续）。
-    //
-    // 三个关键点（均只在 LAN 大帧背压下暴露，环回不背压故不复现）：
-    //  1) 每次 buflen 限 64KB，与 libcurl sendbuf（~128KB 固定容量）量级匹配，
-    //     避免一次把数十万字节制进 sendbuf 致 ws_flush/掩码异常（曾报 MASK
-    //     错）。
-    //  2) header_written 保证帧头只写一次：重试（CURLE_AGAIN）时不重置
-    //     fragsize=total，杜绝「重复帧头」损坏帧流（曾报 RSV2/RSV3）。
-    //  3) 无论 OK 还是 AGAIN 都按 sent 推进 offset，与 libcurl 的
-    //  payload_remain
-    //     同步，避免重传已入帧字节造成载荷重复/缺失（曾报 Checksum mismatch）。
-    while (msg.offset < total_len) {
-      if (stop_requested.load ()) return; // 让 disconnect() 能及时中断大帧发送
-      // 等 socket 可写（最多 25ms）；不可写则交还 worker 循环做 recv/重试，
-      // 绝不在 socket 满时盲目 curl_ws_send（否则 ws_flush 忙转锁死 worker）。
-      if (sockfd != CURL_SOCKET_BAD) {
-        struct pollfd pfd;
-        pfd.fd     = sockfd;
-        pfd.events = POLLOUT;
-        pfd.revents= 0;
-        int pr     = ::poll (&pfd, 1, 25);
-        // socket 出错（对端关闭/连接断）：surface
-        // 为断连，避免误判为「等可写」永悬
-        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
-          push_error (
-              std::string ("WebSocket send: socket closed (poll revents=") +
-              std::to_string (pfd.revents) + ")");
-          is_connected.store (false);
-          conn_event.store (2);
-          return;
-        }
-        if (pr <= 0 || !(pfd.revents & POLLOUT)) return;
-      }
-      size_t       remaining= total_len - msg.offset;
-      size_t       chunk    = remaining > 65536 ? 65536 : remaining;
-      unsigned int flags    = base_flags | CURLWS_OFFSET;
-      curl_off_t   fragsz   = msg.header_written ? 0 : (curl_off_t) total_len;
-      size_t       sent     = 0;
-      CURLcode res= curl_ws_send (easy_handle, msg.data.data () + msg.offset,
-                                  chunk, &sent, fragsz, flags);
-      msg.offset+= sent; // 已入帧字节（OK 与 AGAIN 均有效）
-      if (fragsz > 0 && (res == CURLE_OK || res == CURLE_AGAIN))
-        msg.header_written=
-            true; // 帧头已写入 sendbuf（即便 ws_flush 返回 AGAIN）
-      if (total_len > 65536 && getenv ("MOGAN_LORO_DEBUG"))
-        std::fprintf (stderr, "[ws-tx] total=%zu off=%zu sent=%zu res=%d%s\n",
-                      total_len, msg.offset, sent, (int) res,
-                      fragsz > 0 ? " head" : "");
-      if (res == CURLE_AGAIN) return; // socket 满：交还 worker 循环续写
-      if (res != CURLE_OK) {
-        std::string err_msg= "Failed to send WebSocket message: ";
-        err_msg+= curl_easy_strerror (res);
-        push_error (std::move (err_msg));
-        is_connected.store (false);
-        conn_event.store (2);
-        return;
-      }
-      if (sent == 0) return; // 无进展：交还 worker 循环
+    ws_std_msg& msg      = tx_queue.front ();
+    size_t      total_len= msg.data.size ();
+    size_t      remaining= total_len - msg.offset;
+    size_t      chunk_size=
+        remaining > 65536
+                 ? 65536
+                 : remaining; // Send in 64KB chunks to avoid large buffer issues
+
+    unsigned int flags   = msg.is_binary ? CURLWS_BINARY : CURLWS_TEXT;
+    curl_off_t   fragsize= 0;
+
+    if (remaining > chunk_size) {
+      flags|= CURLWS_OFFSET;
     }
-    tx_queue.pop_front (); // 本帧已整体发完
-    if (total_len > 65536 && getenv ("MOGAN_LORO_DEBUG"))
-      std::fprintf (stderr, "[ws-tx] large send done: %zu bytes\n", total_len);
+
+    if (msg.offset == 0 && total_len > chunk_size) {
+      fragsize= total_len;
+    }
+    else {
+      fragsize= 0;
+    }
+
+    size_t   sent= 0;
+    CURLcode res = curl_ws_send (easy_handle, msg.data.data () + msg.offset,
+                                 chunk_size, &sent, fragsize, flags);
+
+    if (res == CURLE_AGAIN) {
+      // Socket full, try again later
+      break;
+    }
+    else if (res != CURLE_OK) {
+      std::string err_msg= "Failed to send WebSocket message: ";
+      err_msg+= curl_easy_strerror (res);
+      push_error (std::move (err_msg));
+      is_connected.store (false);
+      conn_event.store (2);
+      return;
+    }
+
+    msg.offset+= sent;
+    if (msg.offset >= total_len) {
+      // Finished this message
+      tx_queue.pop_front ();
+    }
+    else {
+      // Partial send, wait for next poll
+      break;
+    }
   }
 }
 

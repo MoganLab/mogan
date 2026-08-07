@@ -42,7 +42,6 @@ private:
     std::string data;
     bool        is_binary;
     size_t      offset;
-    bool header_written= false; // CURLWS_OFFSET：帧头是否已写（只写一次）
   };
   typedef std::deque<ws_std_msg>::iterator ws_std_msg_iter;
 
