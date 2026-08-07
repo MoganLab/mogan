@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <poll.h>
+#include <sys/socket.h>
 
 /******************************************************************************
  * Threaded implementation (native platforms)
@@ -262,6 +263,27 @@ tm_curl_websocket_client::worker_main (std::string url) {
   // Phase 2: connected. The easy handle was removed from the multi handle by
   // CONNECT_ONLY, so curl_multi_poll no longer fires on ws traffic; poll the
   // socket non-blocking and wait on cv between rounds (woken early by send).
+  //
+  // 调大内核发送缓冲：libcurl 的 ws_flush(complete=TRUE) 在 EAGAIN 下会
+  // `n=0;continue;` 忙转（不 sleep、无退出），一旦大帧突发填满内核 send buffer
+  // 就会把 worker 线程钉死在 100% CPU（LAN 粘大图复现）。把 SO_SNDBUF 调到数
+  // MB， 让整帧先缓冲进内核、由服务端按自身读速消化，避免触发 EAGAIN 忙转。
+  {
+    curl_socket_t sfd= CURL_SOCKET_BAD;
+    if (curl_easy_getinfo (easy_handle, CURLINFO_ACTIVESOCKET, &sfd) ==
+            CURLE_OK &&
+        sfd != CURL_SOCKET_BAD) {
+      int       sndbuf= 4 * 1024 * 1024; // 4 MB（系统上限内取最大）
+      socklen_t sl    = sizeof (sndbuf);
+      setsockopt (sfd, SOL_SOCKET, SO_SNDBUF, (const void*) &sndbuf, sl);
+      if (getenv ("MOGAN_LORO_DEBUG")) {
+        int       cur= 0;
+        socklen_t cl = sizeof (cur);
+        if (getsockopt (sfd, SOL_SOCKET, SO_SNDBUF, &cur, &cl) == 0)
+          std::fprintf (stderr, "[ws] SO_SNDBUF=%d\n", cur);
+      }
+    }
+  }
   while (!stop_requested.load () && is_connected.load ()) {
     {
       std::lock_guard<std::mutex> lk (q_mutex);
