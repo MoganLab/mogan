@@ -217,14 +217,18 @@ init_texmacs_path (int& argc, char** argv) {
 
 #if defined(OS_MINGW) || defined(OS_WIN)
   // Win bundle environment initialization
-  // TEXMACS_PATH is set by assuming that the executable is in TeXmacs/bin/
-  // Always trust the bundled resource path instead of any inherited
-  // TEXMACS_PATH from the user's environment.
+  // TEXMACS_PATH 优先取 exe 所在目录（Velopack 扁平布局：exe 与
+  // progs/doc/fonts 等数据同根），否则取 exe 的父目录（NSIS 布局：
+  // exe 位于 bin/，数据在父目录）。永远信任捆绑的资源路径，而非用户
+  // 环境里继承的 TEXMACS_PATH。
   // HOME is set to USERPROFILE
   // PWD is set to HOME
   // if PWD is lacking, then the path resolution machinery may not work
 
-  builtin_texmacs_path= as_string (exedir * "..");
+  if (exists (exedir * "progs"))
+    builtin_texmacs_path= as_string (exedir);
+  else
+    builtin_texmacs_path= as_string (exedir * "..");
   set_env ("TEXMACS_PATH", builtin_texmacs_path);
   // if (get_env ("HOME") == "") //now set in immediate_options otherwise
   // --setup option fails

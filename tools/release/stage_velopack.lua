@@ -12,9 +12,13 @@
 --
 -- 设计说明：
 -- Velopack 的 Windows 打包约定要求 --packDir 的根部就是安装后的 current/ 目录，
--- 且 --mainExe 只能是根部的文件名（如 MoganSTEM.exe）。而 xmake install stem
--- 产出的是 bin/ 与 TeXmacs 内容（doc/langs/progs/...）分立的树，vpk pack 无法
--- 直接消费，因此这里把 bin/ 摊平到暂存根、TeXmacs 内容收进暂存根的 TeXmacs/。
+-- 且 --mainExe 只能是根部的文件名（如 MoganSTEM.exe）。因此主 exe、Qt DLL、
+-- Qt 插件子目录（platforms/ qml/ ...）必须与数据同根平铺。
+-- 应用按 $TEXMACS_PATH/progs、$TEXMACS_PATH/doc、$TEXMACS_PATH/fonts 等**扁平**
+-- 查找资源（见 init_texmacs.cpp 的 TEXMACS_PATH 探测），所以 TeXmacs 内容直接拷到
+-- 暂存根，不能收进 TeXmacs/ 包装目录，否则 $TEXMACS_PATH/progs 永远解析失败。
+-- 辅助二进制（pandoc.exe、vc_redist.x64.exe 等）保留在暂存根 bin/ 子目录：
+-- find-binary 与 pandoc 等按 $TEXMACS_PATH/bin 查找；.pdb 调试符号不发布。
 -- 为何不沿用 xpack 的 NSIS 目录布局：NSIS 允许任意 --packDir 结构，Velopack
 -- 要求主程序位于根部，摊平这一步不可省。
 --
@@ -53,16 +57,34 @@ if os.exists (out_dir) then
 end
 os.mkdir (out_dir)
 
--- 1) 摊平 bin/ 到暂存根：bin/MoganSTEM.exe -> out/MoganSTEM.exe，
---    bin/platforms/qwindows.dll -> out/platforms/qwindows.dll。
---    Qt DLL 与 velopack_libc.dll 必须与主 exe 同根平铺，Qt 插件才能被发现。
+-- 1) bin/ 拆分：
+--    - 顶层目录（platforms/ qml/ 等 Qt 插件子目录）整体拷到暂存根
+--    - 顶层 MoganSTEM.exe 与 *.dll（含 velopack_libc.dll、d3dcompiler、dxcompiler、
+--      dxil）拷到暂存根 —— Qt DLL 与主 exe 同根平铺，Qt 插件才能被发现
+--    - 顶层 *.pdb 跳过（调试符号不发布；vpk pack 默认 --exclude .*\.pdb 也会剔除）
+--    - 顶层其他文件（pandoc.exe、vc_redist.x64.exe 等辅助程序）拷入暂存根 bin/ 子目录，
+--      find-binary 与 pandoc 等按 $TEXMACS_PATH/bin 查找
 local bin_dir = path.join (src_dir, "bin")
 if os.isdir (bin_dir) then
-    os.cp (path.join (bin_dir, "*"), out_dir)
+    os.mkdir (path.join (out_dir, "bin"))
+    for _, f in ipairs (os.files (path.join (bin_dir, "*"))) do
+        local name = path.filename (f)
+        if name:match ("%.pdb$") then
+            -- 调试符号不发布
+        elseif name:match ("%.dll$") or name == "MoganSTEM.exe" then
+            os.cp (f, path.join (out_dir, name))
+        else
+            os.cp (f, path.join (out_dir, "bin", name))
+        end
+    end
+    for _, d in ipairs (os.dirs (path.join (bin_dir, "*"))) do
+        os.cp (d, path.join (out_dir, path.filename (d)))
+    end
 end
 
--- 2) 收拢 TeXmacs 内容到 out/TeXmacs/。条目清单覆盖 stem.lua 安装的全部
---    TeXmacs 内容；两种源布局都能从这份清单取到对应条目。
+-- 2) 数据平铺到暂存根：不再建 out/TeXmacs 包装目录，每个条目直接拷到 out/<name>。
+--    应用按 $TEXMACS_PATH/progs、$TEXMACS_PATH/doc、$TEXMACS_PATH/fonts 等扁平查找，
+--    TeXmacs/ 包装目录会让 $TEXMACS_PATH/progs 永远解析失败。
 local texmacs_entries = {
     "doc", "fonts", "langs", "misc", "packages", "plugins", "progs",
     "styles", "templates", "tests", "texts",
@@ -73,11 +95,10 @@ if not os.isdir (tx_src) then
     -- 当前 Windows install 产物：TeXmacs 内容直接摊在 src 根（bin 除外）
     tx_src = src_dir
 end
-os.mkdir (path.join (out_dir, "TeXmacs"))
 for _, name in ipairs (texmacs_entries) do
     local f = path.join (tx_src, name)
     if os.exists (f) then
-        os.cp (f, path.join (out_dir, "TeXmacs", name))
+        os.cp (f, path.join (out_dir, name))
     end
 end
 
@@ -96,9 +117,9 @@ if not os.isfile (path.join (out_dir, "MoganSTEM.exe")) then
     ok = false
 end
 for _, sub in ipairs ({"progs", "plugins", "fonts"}) do
-    local d = path.join (out_dir, "TeXmacs", sub)
+    local d = path.join (out_dir, sub)
     if not os.isdir (d) then
-        cprint ("${bright red}error: 暂存根缺少 TeXmacs/" .. sub .. "${clear}")
+        cprint ("${bright red}error: 暂存根缺少扁平数据目录 " .. sub .. "${clear}")
         ok = false
     end
 end
@@ -134,11 +155,11 @@ if #forbidden > 0 then
     os.exit (1)
 end
 
--- 6) 顶层条目应只有主 exe / TeXmacs / LICENSE / TeXmacs.ico + bin 摊平的
---    DLL 与插件子目录。此处仅告警不失败：MoganSTEM.pdb 等构建中间产物会在
---    vpk pack 阶段被默认 --exclude .*\.pdb 剔除。
+-- 6) 顶层条目应只有主 exe / bin / LICENSE / TeXmacs.ico + 平铺的 DLL、
+--    数据目录与 Qt 插件子目录。此处仅告警不失败：MoganSTEM.pdb 等构建中间产物
+--    会被 stage 显式跳过，vpk pack 阶段也会被默认 --exclude .*\.pdb 剔除。
 local named = {
-    ["MoganSTEM.exe"] = true, ["TeXmacs"] = true,
+    ["MoganSTEM.exe"] = true, ["bin"] = true,
     ["LICENSE"] = true, ["TeXmacs.ico"] = true,
 }
 for _, f in ipairs (os.files (path.join (out_dir, "*"))) do
