@@ -62,8 +62,3 @@
   (:session "Maxima")
   (:scripts "Maxima")
 ) ;plugin-configure
-
-(when (supports-maxima?)
-  (lazy-input-converter (maxima-input) maxima)
-  (plugin-approx-command-set! "maxima" "float")
-) ;when

@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (maxima-input)
-  (:use (utils plugins plugin-convert)))
+(texmacs-module (plugin maxima-input) (:use (utils plugins plugin-convert)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Specific conversion routines
@@ -20,115 +19,140 @@
 
 (define (maxima-input-var-row r)
   (if (nnull? r)
-      (begin
-	(display ", ")
-	(plugin-input (car r))
-	(maxima-input-var-row (cdr r)))))
+    (begin
+      (display ", ")
+      (plugin-input (car r))
+      (maxima-input-var-row (cdr r))
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (maxima-input-row r)
   (display "[")
   (plugin-input (car r))
   (maxima-input-var-row (cdr r))
-  (display "]"))
+  (display "]")
+) ;define
 
 (define (maxima-input-var-rows t)
   (if (nnull? t)
-      (begin
-	(display ", ")
-	(maxima-input-row (car t))
-	(maxima-input-var-rows (cdr t)))))
+    (begin
+      (display ", ")
+      (maxima-input-row (car t))
+      (maxima-input-var-rows (cdr t))
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (maxima-input-rows t)
   (display "matrix(")
   (maxima-input-row (car t))
   (maxima-input-var-rows (cdr t))
-  (display ")"))
+  (display ")")
+) ;define
 
 (define (maxima-input-descend-last args)
   (if (null? (cdr args))
-      (plugin-input (car args))
-      (maxima-input-descend-last (cdr args))))
+    (plugin-input (car args))
+    (maxima-input-descend-last (cdr args))
+  ) ;if
+) ;define
 
 (define (maxima-input-det args)
   (display "determinant(")
   (maxima-input-descend-last args)
-  (display ")"))
+  (display ")")
+) ;define
 
 (define (maxima-input-binom args)
   (display "binomial(")
   (plugin-input (car args))
   (display ",")
   (plugin-input (cadr args))
-  (display ")"))
+  (display ")")
+) ;define
 
 (define (maxima-input-sqrt args)
   (if (= (length args) 1)
-      (begin
-        (display "sqrt(")
-        (plugin-input (car args))
-        (display ")"))
-      (begin
-        (display "(")
-        (plugin-input (car args))
-        (display ")^(1/(")
-        (plugin-input (cadr args))
-        (display "))"))))
+    (begin
+      (display "sqrt(")
+      (plugin-input (car args))
+      (display ")")
+    ) ;begin
+    (begin
+      (display "(")
+      (plugin-input (car args))
+      (display ")^(1/(")
+      (plugin-input (cadr args))
+      (display "))")
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (maxima-input-sum args)
   (if (nnull? args)
-      (if (nnull? (cdr args))
-          (begin ;; both lower and upper index
-            (display "tmsum(")
-            (plugin-input (car args))
-            (display ",")
-            (plugin-input (cadr args))
-            (display ","))
-          (begin ;; lower index only
-            (display "tmlsum(")
-            (plugin-input (car args))
-            (display ",")))
-      (display "tmsum(")))
+    (if (nnull? (cdr args))
+      (begin
+        ;; both lower and upper index
+        (display "tmsum(")
+        (plugin-input (car args))
+        (display ",")
+        (plugin-input (cadr args))
+        (display ",")
+      ) ;begin
+      (begin
+        ;; lower index only
+        (display "tmlsum(")
+        (plugin-input (car args))
+        (display ",")
+      ) ;begin
+    ) ;if
+    (display "tmsum(")
+  ) ;if
+) ;define
 
 (define (maxima-input-prod args)
   (if (nnull? args)
-      (begin
-        (display "tmprod(")
-        (plugin-input (car args))
-        (if (nnull? (cdr args))
-            (begin
-              (display ",")
-              (plugin-input (cadr args))))
-        (display ","))
-      (display "tmprod(")))
+    (begin
+      (display "tmprod(")
+      (plugin-input (car args))
+      (if (nnull? (cdr args)) (begin (display ",") (plugin-input (cadr args))))
+      (display ",")
+    ) ;begin
+    (display "tmprod(")
+  ) ;if
+) ;define
 
 (define (maxima-input-int args)
   (if (nnull? args)
-      (begin
-        (display "tmint(")
-        (plugin-input (car args))
-        (if (nnull? (cdr args))
-            (begin
-              (display ",")
-              (plugin-input (cadr args))))
-        (display ","))
-      (display "integrate(")))
+    (begin
+      (display "tmint(")
+      (plugin-input (car args))
+      (if (nnull? (cdr args)) (begin (display ",") (plugin-input (cadr args))))
+      (display ",")
+    ) ;begin
+    (display "integrate(")
+  ) ;if
+) ;define
 
 
 (define (maxima-input-big-around args)
   (let* ((b `(big-around ,@args))
-	 (op (big-name b))
-	 (sub (big-subscript b))
-	 (sup (big-supscript b))
-	 (body (big-body b))
-	 (l (cond ((and sub sup) (list sub sup))
-		  (sub (list sub))
-		  (else (list)))))
-    (cond ((== op "sum")  (maxima-input-sum l))
-	  ((== op "prod") (maxima-input-prod l))
-	  ((== op "int")  (maxima-input-int l))
-	  (else (display op) (display "(")))
+         (op (big-name b))
+         (sub (big-subscript b))
+         (sup (big-supscript b))
+         (body (big-body b))
+         (l (cond ((and sub sup) (list sub sup)) (sub (list sub)) (else (list))))
+        ) ;
+    (cond ((== op "sum") (maxima-input-sum l))
+          ((== op "prod") (maxima-input-prod l))
+          ((== op "int") (maxima-input-int l))
+          (else (display op) (display "("))
+    ) ;cond
     (plugin-input body)
-    (display ")")))
+    (display ")")
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialization
@@ -141,15 +165,16 @@
   (big-around maxima-input-big-around)
   (binom maxima-input-binom)
 
-  ("<infty>"      "inf")
-  ("<emptyset>"   "[]")
-  ("<mathd>"      "1,")
-  ("<mathi>"      "%i")
-  ("<mathe>"      "%e")
-  ("<in>"         "=")
+  ("<infty>" "inf")
+  ("<emptyset>" "[]")
+  ("<mathd>" "1,")
+  ("<mathi>" "%i")
+  ("<mathe>" "%e")
+  ("<in>" "=")
 
-  ("<times>"	  "~")
-  ("<cdot>"	  ".")
+  ("<times>" "~")
+  ("<cdot>" ".")
 
-  ("<gamma>"      "%gamma")
-  ("<pi>"         "%pi"))
+  ("<gamma>" "%gamma")
+  ("<pi>" "%pi")
+) ;plugin-input-converters
