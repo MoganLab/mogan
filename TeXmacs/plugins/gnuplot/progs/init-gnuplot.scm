@@ -62,7 +62,7 @@
     (define (init-gnuplot)
       (plugin-configure gnuplot
         (:require (and (has-binary-goldfish?) (has-binary-gnuplot?)))
-        ,(#_apply-values (all-gnuplot-launchers))
+        ,@(all-gnuplot-launchers)
         (:serializer ,gnuplot-serialize)
         (:session "Gnuplot")
       ) ;plugin-configure

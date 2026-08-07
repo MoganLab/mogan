@@ -621,12 +621,12 @@
                                           current-path
                                           pts)))
                            (append props
-                             `((concat unquote
-                                 (append (cond ((== pts 'points) op)
-                                               ((== pts 'object) `(,mag-o))
-                                               ((== pts 'object-and-points)
-                                                (cons mag-o op)))
-                                   (graphics-extra-decorations))))
+                             `((concat
+                                 . ,(append (cond ((== pts 'points) op)
+                                                  ((== pts 'object) `(,mag-o))
+                                                  ((== pts 'object-and-points)
+                                                   (cons mag-o op)))
+                                      (graphics-extra-decorations))))
                            ) ;append
                          ) ;if
       ) ;graphical-object!

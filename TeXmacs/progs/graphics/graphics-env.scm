@@ -421,8 +421,7 @@
             (,obj current-obj)
             (,no current-point-no)
             (,edge current-edge-sel?))
-       unquote
-       body))
+       . ,body))
 ) ;define-public-macro
 ;; Deprecated
 

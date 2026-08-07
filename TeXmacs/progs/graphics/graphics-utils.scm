@@ -218,7 +218,7 @@
       (set-car! list-find-prop-cons val)
       l
     ) ;begin
-    `(with ,var ,val unquote (if (eq? (car l) 'with) (cdr l) l))
+    `(with ,var ,val . ,(if (eq? (car l) 'with) (cdr l) l))
   ) ;if
 ) ;tm-define
 

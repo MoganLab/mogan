@@ -488,10 +488,9 @@
     (define priv:TIME-DISPATCH
       `((,TIME-MONOTONIC
          ,priv:current-time-monotonic
-         unquote
-         steady-clock-resolution)
-        (,TIME-TAI ,priv:current-time-tai unquote system-clock-resolution)
-        (,TIME-UTC ,priv:current-time-utc unquote system-clock-resolution))
+         . ,steady-clock-resolution)
+        (,TIME-TAI ,priv:current-time-tai . ,system-clock-resolution)
+        (,TIME-UTC ,priv:current-time-utc . ,system-clock-resolution))
     ) ;define
     (define (priv:query-time-dispatch clock-type querier)
       (let ((entry (assq clock-type priv:TIME-DISPATCH)))

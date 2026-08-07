@@ -182,13 +182,11 @@
                (callback *log-callback*)
               ) ;
           (if callback
-            (callback `((SEVERITY unquote severity)
-                        (MESSAGE unquote message)
-                        ,@alist))
+            (callback `((SEVERITY . ,severity) (MESSAGE . ,message) ,@alist))
             ;; 默认行为：ERROR 及以上到 stderr，其他到 stdout
             (let ((port (if (<= severity ERROR) (current-error-port) (current-output-port))))
-              (default-log-handler `((SEVERITY unquote severity)
-                                     (MESSAGE unquote message)
+              (default-log-handler `((SEVERITY . ,severity)
+                                     (MESSAGE . ,message)
                                      ,@alist)
                 port
               ) ;default-log-handler

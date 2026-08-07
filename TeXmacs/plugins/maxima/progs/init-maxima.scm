@@ -57,7 +57,7 @@
 
 (plugin-configure maxima
   (:require (has-binary-maxima?))
-  ,(#_apply-values (maxima-launchers))
+  ,@(maxima-launchers)
   (:serializer ,maxima-serialize)
   (:session "Maxima")
   (:scripts "Maxima")
