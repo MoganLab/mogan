@@ -13,11 +13,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules (dynamic session-edit)
-  (dynamic program-edit)
-  (binary python3)
-  (binary conda)
-) ;use-modules
+(use-modules (binary python3) (binary conda))
 
 (lazy-format (data python) python)
 
@@ -102,4 +98,3 @@
   (:session "Python")
   (:scripts "Python")
 ) ;plugin-configure
-
