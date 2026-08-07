@@ -704,7 +704,7 @@
 (define-public (lazy-plugin-initialize name)
   "Initialize the plug-in @name in a lazy way"
   (ahash-set! plugin-initialize-todo name #t)
-  (delayed (:pause 3000) (plugin-initialize name))
+  (delayed (:idle 10) (plugin-initialize name))
 ) ;define-public
 
 (define-public (lazy-plugin-force-one name)

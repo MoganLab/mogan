@@ -18,8 +18,6 @@
 (lazy-keyboard (generic search-kbd))
 (lazy-keyboard (text text-kbd) in-text?)
 (lazy-keyboard (keyboard text-kbd-utf8) in-text?)
-(lazy-keyboard (math math-kbd) in-math?)
-(lazy-keyboard (math math-sem-edit) in-sem-math?)
 (lazy-keyboard (prog prog-kbd) in-prog?)
 (lazy-keyboard (source source-kbd) always?)
 (lazy-keyboard (table table-kbd) in-table?)
