@@ -462,6 +462,10 @@ edit_modify_rep::notify_save (bool real_save) {
 
 bool
 edit_modify_rep::need_save (bool real_save) {
+  // 云文档内容权威在云端，永不"需保存"：本判断是标题星号、关闭提示、
+  // tab 星号、自动保存的公共收敛点（update_menus 与 needs_to_be_saved
+  // 均经此）。
+  if (!is_nil (buf) && buf->cloud) return false;
   if (arch->conform_save ()) return false;
   if (real_save) return true;
   return !arch->conform_autosave ();
