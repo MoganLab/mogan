@@ -406,6 +406,7 @@
  (if (loro-enabled?)
    (-> "Collaborative"
     ("New shared document" (collab-new-document))
+    ("New shared document from file" (collab-new-document-from-file))
     (-> "Join shared document" (link collab-docs-menu))
     (if (loro-collab-active?)
       ---

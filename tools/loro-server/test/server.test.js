@@ -134,6 +134,14 @@ function lastDocId (client) {
   return docMsgs[docMsgs.length - 1].slice(4).trim();
 }
 
+// DOC 帧解析：<docId> 或 <docId> <name>（name 可含空格，取首个空格后全部）
+function parseDocFrame (msg) {
+  const rest = msg.slice(4);
+  const sp = rest.indexOf(' ');
+  if (sp < 0) return { docId: rest, name: null };
+  return { docId: rest.slice(0, sp), name: rest.slice(sp + 1) };
+}
+
 before(async () => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'loro-server-test-'));
   await startServer();
@@ -220,6 +228,69 @@ test('空文档 JOIN：仅下发 SYNC-END，无二进制帧', async () => {
   b.close();
 });
 
+test('CREATE 带显示名：meta 落盘、DOC 帧携带 name、/docs 返回 name', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE 会议纪要 2026-08');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docMsgs = a.control.filter((m) => m.startsWith('DOC '));
+  const { docId, name } = parseDocFrame(docMsgs[docMsgs.length - 1]);
+  assert.match(docId, /^[0-9a-f-]{36}$/, 'docId 应为 UUID');
+  assert.strictEqual(name, '会议纪要 2026-08', 'DOC 帧应携带 name（含空格/CJK）');
+
+  const meta = JSON.parse(
+    fs.readFileSync(path.join(dataDir, docId, 'meta.json'), 'utf8')
+  );
+  assert.strictEqual(meta.name, '会议纪要 2026-08', 'meta.json 应含 name');
+
+  // /docs：有 name 的文档行为 <docId>\t<name>
+  const res = await fetch(`http://127.0.0.1:${PORT}/docs`);
+  const lines = (await res.text()).split('\n').filter((l) => l.length > 0);
+  const line = lines.find((l) => l.startsWith(docId));
+  assert.ok(line, '/docs 应包含该文档');
+  assert.strictEqual(line, `${docId}\t会议纪要 2026-08`);
+
+  // JOIN 有 name 文档：DOC 帧携带 name
+  const b = new TestClient();
+  await b.connect();
+  b.send(`JOIN ${docId}`);
+  await b.waitFor(() => b.control.some((m) => m.startsWith('DOC ')));
+  const bMsgs = b.control.filter((m) => m.startsWith('DOC '));
+  assert.strictEqual(parseDocFrame(bMsgs[bMsgs.length - 1]).name, '会议纪要 2026-08');
+  a.close();
+  b.close();
+});
+
+test('CREATE 带非法显示名：ERR BAD_NAME 且不建目录', async () => {
+  const before = fs.readdirSync(dataDir).length;
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE bad/name');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('ERR BAD_NAME')));
+  assert.ok(
+    !a.control.some((m) => m.startsWith('DOC ')),
+    '非法 name 不应创建文档'
+  );
+  assert.strictEqual(fs.readdirSync(dataDir).length, before, '不应新建目录');
+  a.close();
+});
+
+test('CREATE 全空格/不带名字：按无名文档处理（兼容旧行为）', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE    ');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docMsgs = a.control.filter((m) => m.startsWith('DOC '));
+  const { docId, name } = parseDocFrame(docMsgs[docMsgs.length - 1]);
+  assert.strictEqual(name, null, '全空格 name 应视为无名');
+  const meta = JSON.parse(
+    fs.readFileSync(path.join(dataDir, docId, 'meta.json'), 'utf8')
+  );
+  assert.ok(!('name' in meta), '无名文档 meta 不应有 name 字段');
+  a.close();
+});
+
+
 test('JOIN 不存在的文档返回 NO_SUCH_DOC', async () => {
   const c = new TestClient();
   await c.connect();
@@ -228,8 +299,7 @@ test('JOIN 不存在的文档返回 NO_SUCH_DOC', async () => {
   c.close();
 });
 
-test('CURSOR 帧原样转发给同文档其他客户端（排除发送者）', async () => {
-  const a = new TestClient();
+test('CURSOR 帧原样转发给同文档其他客户端（排除发送者）', async () => {  const a = new TestClient();
   await a.connect();
   a.send('CREATE');
   await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
@@ -249,6 +319,69 @@ test('CURSOR 帧原样转发给同文档其他客户端（排除发送者）', a
   a.close();
   b.close();
 });
+
+test('CREATE 带显示名：meta 落盘、DOC 帧携带 name、/docs 返回 name', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE 会议纪要 2026-08');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docMsgs = a.control.filter((m) => m.startsWith('DOC '));
+  const { docId, name } = parseDocFrame(docMsgs[docMsgs.length - 1]);
+  assert.match(docId, /^[0-9a-f-]{36}$/, 'docId 应为 UUID');
+  assert.strictEqual(name, '会议纪要 2026-08', 'DOC 帧应携带 name（含空格/CJK）');
+
+  const meta = JSON.parse(
+    fs.readFileSync(path.join(dataDir, docId, 'meta.json'), 'utf8')
+  );
+  assert.strictEqual(meta.name, '会议纪要 2026-08', 'meta.json 应含 name');
+
+  // /docs：有 name 的文档行为 <docId>\t<name>
+  const res = await fetch(`http://127.0.0.1:${PORT}/docs`);
+  const lines = (await res.text()).split('\n').filter((l) => l.length > 0);
+  const line = lines.find((l) => l.startsWith(docId));
+  assert.ok(line, '/docs 应包含该文档');
+  assert.strictEqual(line, `${docId}\t会议纪要 2026-08`);
+
+  // JOIN 有 name 文档：DOC 帧携带 name
+  const b = new TestClient();
+  await b.connect();
+  b.send(`JOIN ${docId}`);
+  await b.waitFor(() => b.control.some((m) => m.startsWith('DOC ')));
+  const bMsgs = b.control.filter((m) => m.startsWith('DOC '));
+  assert.strictEqual(parseDocFrame(bMsgs[bMsgs.length - 1]).name, '会议纪要 2026-08');
+  a.close();
+  b.close();
+});
+
+test('CREATE 带非法显示名：ERR BAD_NAME 且不建目录', async () => {
+  const before = fs.readdirSync(dataDir).length;
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE bad/name');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('ERR BAD_NAME')));
+  assert.ok(
+    !a.control.some((m) => m.startsWith('DOC ')),
+    '非法 name 不应创建文档'
+  );
+  assert.strictEqual(fs.readdirSync(dataDir).length, before, '不应新建目录');
+  a.close();
+});
+
+test('CREATE 全空格/不带名字：按无名文档处理（兼容旧行为）', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE    ');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docMsgs = a.control.filter((m) => m.startsWith('DOC '));
+  const { docId, name } = parseDocFrame(docMsgs[docMsgs.length - 1]);
+  assert.strictEqual(name, null, '全空格 name 应视为无名');
+  const meta = JSON.parse(
+    fs.readFileSync(path.join(dataDir, docId, 'meta.json'), 'utf8')
+  );
+  assert.ok(!('name' in meta), '无名文档 meta 不应有 name 字段');
+  a.close();
+});
+
 
 test('snapshot 截断：累积超过阈值后生成 snapshot.bin 并清空 updates.log', async () => {
   const a = new TestClient();
@@ -284,3 +417,66 @@ test('snapshot 截断：累积超过阈值后生成 snapshot.bin 并清空 updat
   a.close();
   b.close();
 });
+
+test('CREATE 带显示名：meta 落盘、DOC 帧携带 name、/docs 返回 name', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE 会议纪要 2026-08');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docMsgs = a.control.filter((m) => m.startsWith('DOC '));
+  const { docId, name } = parseDocFrame(docMsgs[docMsgs.length - 1]);
+  assert.match(docId, /^[0-9a-f-]{36}$/, 'docId 应为 UUID');
+  assert.strictEqual(name, '会议纪要 2026-08', 'DOC 帧应携带 name（含空格/CJK）');
+
+  const meta = JSON.parse(
+    fs.readFileSync(path.join(dataDir, docId, 'meta.json'), 'utf8')
+  );
+  assert.strictEqual(meta.name, '会议纪要 2026-08', 'meta.json 应含 name');
+
+  // /docs：有 name 的文档行为 <docId>\t<name>
+  const res = await fetch(`http://127.0.0.1:${PORT}/docs`);
+  const lines = (await res.text()).split('\n').filter((l) => l.length > 0);
+  const line = lines.find((l) => l.startsWith(docId));
+  assert.ok(line, '/docs 应包含该文档');
+  assert.strictEqual(line, `${docId}\t会议纪要 2026-08`);
+
+  // JOIN 有 name 文档：DOC 帧携带 name
+  const b = new TestClient();
+  await b.connect();
+  b.send(`JOIN ${docId}`);
+  await b.waitFor(() => b.control.some((m) => m.startsWith('DOC ')));
+  const bMsgs = b.control.filter((m) => m.startsWith('DOC '));
+  assert.strictEqual(parseDocFrame(bMsgs[bMsgs.length - 1]).name, '会议纪要 2026-08');
+  a.close();
+  b.close();
+});
+
+test('CREATE 带非法显示名：ERR BAD_NAME 且不建目录', async () => {
+  const before = fs.readdirSync(dataDir).length;
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE bad/name');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('ERR BAD_NAME')));
+  assert.ok(
+    !a.control.some((m) => m.startsWith('DOC ')),
+    '非法 name 不应创建文档'
+  );
+  assert.strictEqual(fs.readdirSync(dataDir).length, before, '不应新建目录');
+  a.close();
+});
+
+test('CREATE 全空格/不带名字：按无名文档处理（兼容旧行为）', async () => {
+  const a = new TestClient();
+  await a.connect();
+  a.send('CREATE    ');
+  await a.waitFor(() => a.control.some((m) => m.startsWith('DOC ')));
+  const docMsgs = a.control.filter((m) => m.startsWith('DOC '));
+  const { docId, name } = parseDocFrame(docMsgs[docMsgs.length - 1]);
+  assert.strictEqual(name, null, '全空格 name 应视为无名');
+  const meta = JSON.parse(
+    fs.readFileSync(path.join(dataDir, docId, 'meta.json'), 'utf8')
+  );
+  assert.ok(!('name' in meta), '无名文档 meta 不应有 name 字段');
+  a.close();
+});
+

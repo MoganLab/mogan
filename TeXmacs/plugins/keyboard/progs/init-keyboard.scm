@@ -35,6 +35,19 @@
 
 (lazy-keyboard-force #t)
 
+;; 默认关闭；开启时才加载 (keyboard emoji) 注册 emoji kbd-map
+
+(define (notify-emoji-keyboard var val)
+  (when (== val "on")
+    (when (not (defined? 'enable-emoji-keyboard))
+      (use-modules (keyboard emoji))
+    ) ;when
+    (enable-emoji-keyboard)
+  ) ;when
+) ;define
+
+(define-preferences ("emoji keyboard" "off" notify-emoji-keyboard))
+
 (delayed (:idle 0)
   (kbd-map (:require (or (full-screen?) (full-screen-edit?)))
    ("escape" (exit-fullscreen) "Exit full screen")

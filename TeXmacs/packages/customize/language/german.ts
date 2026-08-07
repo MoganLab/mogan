@@ -21,6 +21,8 @@
   </src-title>>
 
   <assign|language|german>
+
+  <use-module|(lang german-kbd)>
 </body>
 
 <\initial>

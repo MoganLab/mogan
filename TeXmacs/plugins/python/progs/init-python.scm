@@ -13,11 +13,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules
-  (dynamic session-edit)
-  (dynamic program-edit)
-  (binary python3)
-  (binary conda))
+(use-modules (binary python3) (binary conda))
 
 (lazy-format (data python) python)
 
@@ -33,70 +29,72 @@
 ;; from TeXmacs, but, at the time of this writing, it did not work.--A
 
 (define (python-serialize lan t)
-  (with u (pre-serialize lan t)
-    (with s (texmacs->utf8raw (stree->tree u))
-      (string-append  s  "\n<EOF>\n"))))
+  (with u
+    (pre-serialize lan t)
+    (with s (texmacs->utf8raw (stree->tree u)) (string-append s "\n<EOF>\n"))
+  ) ;with
+) ;define
 
 (define (python-utf8-command)
-  (string-append (url->system (find-binary-python3)) " -X utf8 "))
+  (string-append (url->system (find-binary-python3)) " -X utf8 ")
+) ;define
 
 (define (python-launcher)
   (if (url-exists? "$TEXMACS_HOME_PATH/plugins/python")
-      (string-append (python-utf8-command)
-       (string-quote
-        (url->string
-         (string->url
-          "$TEXMACS_HOME_PATH/plugins/python/bin/python.pex"))))
-      (string-append (python-utf8-command)
-       (string-quote
-        (url->string
-         (string->url
-          "$TEXMACS_PATH/plugins/python/bin/python.pex"))))))
+    (string-append (python-utf8-command)
+      (string-quote (url->string (string->url "$TEXMACS_HOME_PATH/plugins/python/bin/python.pex"))
+      ) ;string-quote
+    ) ;string-append
+    (string-append (python-utf8-command)
+      (string-quote (url->string (string->url "$TEXMACS_PATH/plugins/python/bin/python.pex"))
+      ) ;string-quote
+    ) ;string-append
+  ) ;if
+) ;define
 
 (define (conda-launcher path)
   (if (url-exists? "$TEXMACS_HOME_PATH/plugins/python")
-      (string-append
-       (url->system path)
-       " -X utf8 "
-       (string-quote
-        (url->string
-         (string->url
-          "$TEXMACS_HOME_PATH/plugins/python/bin/python.pex"))))
-      (string-append
-       (url->system path)
-       " -X utf8 "
-       (string-quote
-        (url->string
-         (string->url
-          "$TEXMACS_PATH/plugins/python/bin/python.pex"))))))
+    (string-append (url->system path)
+      " -X utf8 "
+      (string-quote (url->string (string->url "$TEXMACS_HOME_PATH/plugins/python/bin/python.pex"))
+      ) ;string-quote
+    ) ;string-append
+    (string-append (url->system path)
+      " -X utf8 "
+      (string-quote (url->string (string->url "$TEXMACS_PATH/plugins/python/bin/python.pex"))
+      ) ;string-quote
+    ) ;string-append
+  ) ;if
+) ;define
 
 (define (conda-launchers)
   (map (lambda (path)
          (list :launch
-               (string-append "conda_" (conda-env-name path)) (conda-launcher path)))
-       (conda-env-python-list)))
+           (string-append "conda_" (conda-env-name path))
+           (conda-launcher path)
+         ) ;list
+       ) ;lambda
+    (conda-env-python-list)
+  ) ;map
+) ;define
 
 (define (all-python-launchers)
   (let* ((launchers (conda-launchers))
-         (default-launcher
-           (cond ((has-binary-python3?) (python-launcher))
-                 ((has-binary-conda?) (caddr (car launchers)))
-                 (else ""))))
-    (cons (list :launch default-launcher)
-          launchers)))
+         (default-launcher (cond ((has-binary-python3?) (python-launcher))
+                                 ((has-binary-conda?) (caddr (car launchers)))
+                                 (else "")
+                           ) ;cond
+         ) ;default-launcher
+        ) ;
+    (cons (list :launch default-launcher) launchers)
+  ) ;let*
+) ;define
 
 (plugin-configure python
-  (:require (or (has-binary-conda?)
-                (has-binary-python3?)))
-  ,@(all-python-launchers)
+  (:require (or (has-binary-conda?) (has-binary-python3?)))
+  ,(#_apply-values (all-python-launchers))
   (:tab-completion #t)
   (:serializer ,python-serialize)
   (:session "Python")
-  (:scripts "Python"))
-
-;(set-session-multiline-input "python" "default" #t)
-;(set-program-multiline-input "python" "default" #t)
-
-(when (supports-python?)
-  (import-from (python-menus)))
-
+  (:scripts "Python")
+) ;plugin-configure

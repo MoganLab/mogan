@@ -120,6 +120,8 @@ loro_collab_docs_status () {
 
 array<string>
 loro_collab_docs () {
+  // 每行 <uuid> 或 <uuid>\t<name>（TAB 不可能出现在合法 name 中），
+  // 输出扁平交替数组 [uuid0, name0, uuid1, name1, ...]
   array<string>      result;
   const std::string& body = g_docs_data;
   size_t             start= 0;
@@ -128,7 +130,18 @@ loro_collab_docs () {
     if (next == std::string::npos) next= body.size ();
     std::string line= body.substr (start, next - start);
     if (!line.empty () && line.back () == '\r') line.pop_back ();
-    if (!line.empty ()) result << string (line.data (), (int) line.size ());
+    if (!line.empty ()) {
+      string l (line.data (), (int) line.size ());
+      int    tab= search_forwards ("\t", l);
+      if (tab >= 0) {
+        result << l (0, tab);
+        result << l (tab + 1, N (l));
+      }
+      else {
+        result << l;
+        result << string ("");
+      }
+    }
     start= next + 1;
   }
   return result;

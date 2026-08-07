@@ -29,6 +29,7 @@
     (doc help-funcs)
   ) ;:use
 ) ;texmacs-module
+(debug-message "keyboard" "(generic generic-kbd): registering kbd-map ...\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General shortcuts for all modes
@@ -835,3 +836,4 @@
 
 (kbd-apply-magic-paste-shortcut)
 ;; added for convenience
+(debug-message "keyboard" "(generic generic-kbd): kbd-map registered\n")

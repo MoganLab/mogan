@@ -12,6 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (dynamic calc-kbd) (:use (math math-kbd) (dynamic calc-table)))
+(debug-message "keyboard" "(dynamic calc-kbd): registering kbd-map ...\n")
 
 (kbd-map (:require (inside? 'calc-table))
  (", ," (make 'cell-commas))
@@ -33,3 +34,4 @@
  ("C-!" (calc-solutions #f))
  ("C-?" (calc-solutions #t))
 ) ;kbd-map
+(debug-message "keyboard" "(dynamic calc-kbd): kbd-map registered\n")

@@ -31,20 +31,24 @@ function main()
                 ret_type = "string"
             },
             {
-                -- 协作：以当前编辑器为 target 创建新云文档（连服务端、CREATE）
+                -- 协作：以当前编辑器为 target 创建新云文档（连服务端、CREATE；
+                -- 第二参为显示名，空串表示无名文档）
                 scm_name = "loro-collab-create",
                 cpp_name = "loro_collab_create",
                 ret_type = "string",
                 arg_list = {
+                    "string",
                     "string"
                 }
             },
             {
-                -- 协作：以当前编辑器为 target 加入已有云文档（JOIN <uuid>）
+                -- 协作：以当前编辑器为 target 加入已有云文档（JOIN <uuid>；
+                -- 第三参为显示名预填，可为空串，最终以 DOC 帧内 name 为准）
                 scm_name = "loro-collab-join",
                 cpp_name = "loro_collab_join",
                 ret_type = "void",
                 arg_list = {
+                    "string",
                     "string",
                     "string"
                 }
@@ -65,6 +69,12 @@ function main()
                 ret_type = "string"
             },
             {
+                -- 当前会话的文档显示名（无名文档/未就绪时为空串）
+                scm_name = "loro-collab-doc-name",
+                cpp_name = "loro_collab_doc_name",
+                ret_type = "string"
+            },
+            {
                 -- 异步触发 HTTP 拉取服务端可用文档 UUID 列表（不建 WS、不阻塞 GUI）
                 scm_name = "loro-collab-fetch-docs",
                 cpp_name = "loro_collab_fetch_docs",
@@ -79,6 +89,8 @@ function main()
                 ret_type = "string"
             },
             {
+                -- 已缓存文档列表：扁平交替 (uuid0 name0 uuid1 name1 ...)，
+                -- name 可为空串（无名文档回退显示 uuid）
                 scm_name = "loro-collab-docs",
                 cpp_name = "loro_collab_docs",
                 ret_type = "array_string"

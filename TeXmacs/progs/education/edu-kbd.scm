@@ -12,6 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (education edu-kbd) (:use (education edu-edit)))
+(debug-message "keyboard" "(education edu-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode in-edu-text?)
  ("text c" (make-mc 'mc))
@@ -30,3 +31,4 @@
  (". . ." (make 'gap))
  (". . . ." (make 'gap-wide))
 ) ;kbd-map
+(debug-message "keyboard" "(education edu-kbd): kbd-map registered\n")

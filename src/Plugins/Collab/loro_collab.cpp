@@ -139,9 +139,11 @@ collab_session::become_ready () {
   }
   else {
     ed->collab_enable ();
-    // 菜单谓词 loro-collab-active? 依赖会话状态；WASM/React 菜单是快照式
-    // 推送，必须显式失效才会重建（native 每帧重估，无此问题）。
-    ed->notify_change (THE_MENUS);
+    // CREATE 模式：会话就绪即 seed 当前 buffer（含已加载文件内容）并广播全量，
+    // 使「打开/上传本地 tmu
+    // 文件为共享文档」无需等待首次编辑即把内容推到服务端。 空文档 seed
+    // 无副作用（仅多一次空全量广播，与延迟 seed 行为等价）。
+    if (want_create ()) ed->ensure_loro_seeded ();
   }
 
   if (N (pending_updates) > 0) {
@@ -153,10 +155,12 @@ collab_session::become_ready () {
     pending_updates= array<string> ();
   }
 
-  set_title_buffer (buffer_url, doc_id);
-  set_message (was_reconnect ? "Reconnected to " * doc_id
-                             : "Session ready: " * doc_id);
-  if (DEBUG_LORO) debug_loro << "会话就绪 doc=" << doc_id << "\n";
+  string title= (N (doc_name) > 0) ? doc_name : doc_id;
+  set_title_buffer (buffer_url, title);
+  set_message (was_reconnect ? "Reconnected to " * title
+                             : "Session ready: " * title);
+  if (DEBUG_LORO)
+    debug_loro << "会话就绪 doc=" << doc_id << " name=" << doc_name << "\n";
 }
 
 void
@@ -176,10 +180,11 @@ collab_session::maybe_reconnect () {
 }
 
 void
-collab_session::create (string url_str) {
+collab_session::create (string url_str, string name) {
   disconnect ();
   mode             = collab_mode::create;
   doc_id           = "";
+  doc_name         = name;
   server_url       = url_str;
   reconnect_attempt= 0;
   want_reconnect   = true;
@@ -190,10 +195,11 @@ collab_session::create (string url_str) {
 }
 
 void
-collab_session::join (string url_str, string id) {
+collab_session::join (string url_str, string id, string name) {
   disconnect ();
   mode             = collab_mode::join;
   doc_id           = id;
+  doc_name         = name;
   server_url       = url_str;
   reconnect_attempt= 0;
   want_reconnect   = true;
@@ -208,6 +214,7 @@ collab_session::disconnect () {
   want_reconnect= false;
   enter_idle ();
   doc_id                  = "";
+  doc_name                = "";
   reconnect_attempt       = 0;
   buffer_known            = false;
   pending_updates         = array<string> ();
@@ -310,6 +317,7 @@ collab_session::on_connect () {
   if (DEBUG_LORO) debug_loro << "已连接服务端 " << server_url << "\n";
   enter_await_doc ();
   if (N (doc_id) > 0) ws->send ("JOIN " * doc_id, false);
+  else if (N (doc_name) > 0) ws->send ("CREATE " * doc_name, false);
   else ws->send ("CREATE", false);
 }
 
@@ -317,7 +325,15 @@ void
 collab_session::on_message (string data, bool is_binary) {
   if (!is_binary) {
     if (starts (data, "DOC ")) {
-      doc_id= data (4, N (data));
+      // "DOC <docId>" 或 "DOC <docId> <name>"：name 取首个空格后全部
+      // （服务端已 trim，可含空格/CJK；无名文档无此段）
+      string rest= data (4, N (data));
+      int    sp  = search_forwards (" ", rest);
+      if (sp >= 0) {
+        doc_id  = rest (0, sp);
+        doc_name= rest (sp + 1, N (rest));
+      }
+      else doc_id= rest;
       if (DEBUG_LORO)
         debug_loro << "服务端确认文档 " << doc_id
                    << "（mode=" << (want_create () ? "create" : "join")
@@ -457,7 +473,7 @@ collab_session_manager::apply_all () {
 // -----------------------------------------------------------------------------
 
 string
-loro_collab_create (string server_url) {
+loro_collab_create (string server_url, string doc_name) {
   editor ed= get_current_editor ();
   if (is_nil (ed)) {
     std_error << "无当前编辑器，无法创建协作文档\n";
@@ -465,12 +481,12 @@ loro_collab_create (string server_url) {
   }
   url             buf    = get_current_buffer ();
   collab_session* session= g_session_manager.get_or_create (buf);
-  session->create (server_url);
+  session->create (server_url, doc_name);
   return "";
 }
 
 void
-loro_collab_join (string server_url, string doc_id) {
+loro_collab_join (string server_url, string doc_id, string doc_name) {
   editor ed= get_current_editor ();
   if (is_nil (ed)) {
     std_error << "无当前编辑器，无法加入协作文档\n";
@@ -478,7 +494,7 @@ loro_collab_join (string server_url, string doc_id) {
   }
   url             buf    = get_current_buffer ();
   collab_session* session= g_session_manager.get_or_create (buf);
-  session->join (server_url, doc_id);
+  session->join (server_url, doc_id, doc_name);
 }
 
 void
@@ -509,6 +525,15 @@ loro_collab_doc_id () {
   url             buf    = get_current_buffer ();
   collab_session* session= g_session_manager.find_by_buffer (buf);
   return session ? session->get_doc_id () : "";
+}
+
+string
+loro_collab_doc_name () {
+  editor ed= get_current_editor ();
+  if (is_nil (ed)) return "";
+  url             buf    = get_current_buffer ();
+  collab_session* session= g_session_manager.find_by_buffer (buf);
+  return session ? session->get_doc_name () : "";
 }
 
 void

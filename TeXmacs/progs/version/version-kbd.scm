@@ -14,6 +14,7 @@
 (texmacs-module (version version-kbd)
   (:use (generic generic-kbd) (version version-compare))
 ) ;texmacs-module
+(debug-message "keyboard" "(version version-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode with-versioning-tool?)
  ("version home" (version-first-difference))
@@ -44,3 +45,4 @@
   (:require (and (tree-is-buffer? t) (in-versioning?)))
   (version-retain 'current)
 ) ;tm-define
+(debug-message "keyboard" "(version version-kbd): kbd-map registered\n")

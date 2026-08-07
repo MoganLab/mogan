@@ -113,11 +113,21 @@ loro_collab_docs_status () {
 
 array<string>
 loro_collab_docs () {
+  // 每行 <uuid> 或 <uuid>\t<name>（TAB 不可能出现在合法 name 中），
+  // 输出扁平交替数组 [uuid0, name0, uuid1, name1, ...]
   array<string>               result;
   std::lock_guard<std::mutex> lk (g_docs_mutex);
   for (const auto& s : g_docs_data) {
     string line ((const char*) s.data (), (int) s.size ());
-    result << line;
+    int    tab= search_forwards ("\t", line);
+    if (tab >= 0) {
+      result << line (0, tab);
+      result << line (tab + 1, N (line));
+    }
+    else {
+      result << line;
+      result << string ("");
+    }
   }
   return result;
 }

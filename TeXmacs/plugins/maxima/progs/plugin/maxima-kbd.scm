@@ -11,12 +11,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (maxima-kbd)
-  (:use (dynamic scripts-kbd)))
+(texmacs-module (plugin maxima-kbd) (:use (dynamic scripts-kbd)))
 
-(texmacs-modes
-  (maxima-scripts-math% #t maxima-scripts% in-math%))
+(texmacs-modes (maxima-scripts-math% #t maxima-scripts% in-math%))
 
-(kbd-map
-  (:mode maxima-scripts-math?)
-  (": =" (insert '(script-assign))))
+(kbd-map (:mode maxima-scripts-math?) (": =" (insert '(script-assign))))
+
+(kbd-map (:mode in-maxima?) (:mode in-math?) ("$" "$"))

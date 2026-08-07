@@ -19,6 +19,7 @@
     (graphics graphics-edit)
   ) ;:use
 ) ;texmacs-module
+(debug-message "keyboard" "(graphics graphics-kbd): registering kbd-map ...\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Various contexts
@@ -434,3 +435,4 @@
 (kbd-map (:mode inside-graphical-over-under?)
  ("C-*" (graphics-toggle-over-under))
 ) ;kbd-map
+(debug-message "keyboard" "(graphics graphics-kbd): kbd-map registered\n")

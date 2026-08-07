@@ -11,6 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic search-kbd) (:use (generic search-widgets)))
+(debug-message "keyboard" "(generic search-kbd): registering kbd-map ...\n")
 
 (kbd-map (:require (inside-search-or-replace-buffer?))
  ("std ?" (make 'select-region))
@@ -45,3 +46,4 @@
    ) ;replace-all
  ) ;
 ) ;kbd-map
+(debug-message "keyboard" "(generic search-kbd): kbd-map registered\n")

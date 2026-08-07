@@ -18,6 +18,7 @@
     (link link-extract)
   ) ;:use
 ) ;texmacs-module
+(debug-message "keyboard" "(link link-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode with-linking-tool?)
  ("link L" (make-locus))
@@ -35,3 +36,4 @@
  ("link i" (build-locus-page))
  ("link e" (interactive build-environment-page))
 ) ;kbd-map
+(debug-message "keyboard" "(link link-kbd): kbd-map registered\n")

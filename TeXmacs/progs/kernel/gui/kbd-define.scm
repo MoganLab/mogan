@@ -53,27 +53,30 @@
 ) ;define
 
 (tm-define (lazy-keyboard-force . opt)
-  (debug-message "debug-std"
-    (string-append "lazy-keyboard-force called, opt="
-      (object->string opt)
-      ", waiting="
-      (number->string (length lazy-keyboard-waiting))
-      "\n"
-    ) ;string-append
-  ) ;debug-message
-  (set! lazy-force-all? (or lazy-force-all? (nnull? opt)))
-  (when (not lazy-force-busy?)
-    (set! lazy-force-busy? #t)
-    (let* ((l1 (reverse lazy-keyboard-waiting)) (l2 (lazy-keyboard-force-do l1)))
-      (set! lazy-keyboard-waiting (reverse l2))
-      (set! lazy-force-busy? #f)
-      (when (null? lazy-keyboard-waiting)
-        (set! lazy-force-all? #f)
-      ) ;when
-      (when (and lazy-force-all? (nnull? lazy-keyboard-waiting))
-        (lazy-keyboard-force #t)
-      ) ;when
-    ) ;let*
+  ;; 等待队列为空且非强制时直接返回，避免每次查表都白走一趟
+  (when (or (nnull? opt) (nnull? lazy-keyboard-waiting))
+    (debug-message "debug-std"
+      (string-append "lazy-keyboard-force called, opt="
+        (object->string opt)
+        ", waiting="
+        (number->string (length lazy-keyboard-waiting))
+        "\n"
+      ) ;string-append
+    ) ;debug-message
+    (set! lazy-force-all? (or lazy-force-all? (nnull? opt)))
+    (when (not lazy-force-busy?)
+      (set! lazy-force-busy? #t)
+      (let* ((l1 (reverse lazy-keyboard-waiting)) (l2 (lazy-keyboard-force-do l1)))
+        (set! lazy-keyboard-waiting (reverse l2))
+        (set! lazy-force-busy? #f)
+        (when (null? lazy-keyboard-waiting)
+          (set! lazy-force-all? #f)
+        ) ;when
+        (when (and lazy-force-all? (nnull? lazy-keyboard-waiting))
+          (lazy-keyboard-force #t)
+        ) ;when
+      ) ;let*
+    ) ;when
   ) ;when
 ) ;tm-define
 
@@ -149,7 +152,10 @@
 ) ;define
 
 (define (simple-insert l x)
-  (if (nlist? l) (list x) (list-union (list x) l))
+  (cond ((nlist? l) (list x))
+        ((member x l) l)
+        (else (cons x l))
+  ) ;cond
 ) ;define
 
 (define (simple-remove l x)
@@ -315,13 +321,14 @@
 ) ;define
 
 (define (kbd-sub-bindings-sub conds s prev-end end)
-  (cond ((== end (string-length s)) (noop))
-        ((== (string-ref s end) #\space)
-         (kbd-sub-binding conds s prev-end end)
-         (kbd-sub-bindings-sub conds s end (+ end 1))
-        ) ;
-        (else (kbd-sub-bindings-sub conds s prev-end (+ end 1)))
-  ) ;cond
+  ;; 用 C 级 char-position 直接跳到下一个空格，替代逐字符递归扫描
+  (with pos
+    (char-position #\space s end)
+    (when pos
+      (kbd-sub-binding conds s prev-end pos)
+      (kbd-sub-bindings-sub conds s pos (+ pos 1))
+    ) ;when
+  ) ;with
 ) ;define
 
 (define (kbd-sub-bindings conds s)

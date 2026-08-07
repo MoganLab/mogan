@@ -2,7 +2,7 @@
 // 文档持久化存储层：每个文档一个目录，内含
 //   snapshot.bin  最近一次 export(Snapshot) 的完整状态
 //   updates.log   snapshot 之后的增量 commit 记录（[4B 大端长度][payload] 重复）
-//   meta.json     { docId, createdAt, snapshotSeq, updateCount }
+//   meta.json     { docId, createdAt, snapshotSeq, updateCount, name? }
 // 写 snapshot 用临时文件 + rename 保证原子性；updates.log 只追加。
 const fs = require('fs');
 const fsp = fs.promises;
@@ -26,7 +26,23 @@ class DocStore {
     return entries.filter((e) => e.isDirectory()).map((e) => e.name);
   }
 
-  async createDoc (docId) {
+  // 列出全部文档及其显示名（供 /docs）。单篇 meta 读取失败（缺失/损坏）
+  // 不拖垮整个列表，该文档 name 记 null（客户端回退显示 docId）。
+  async listDocsWithNames () {
+    const ids = await this.listDocs();
+    return Promise.all(
+      ids.map(async (docId) => {
+        try {
+          const meta = await this.readMeta(docId);
+          return { docId, name: typeof meta.name === 'string' ? meta.name : null };
+        } catch {
+          return { docId, name: null };
+        }
+      })
+    );
+  }
+
+  async createDoc (docId, name = null) {
     const dir = this.docDir(docId);
     await fsp.mkdir(dir, { recursive: false }).catch((err) => {
       if (err.code !== 'EEXIST') throw err;
@@ -37,6 +53,7 @@ class DocStore {
       snapshotSeq: 0,
       updateCount: 0,
     };
+    if (name !== null) meta.name = name;
     await this.writeMeta(docId, meta);
     return meta;
   }

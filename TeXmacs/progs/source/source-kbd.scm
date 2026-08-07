@@ -14,6 +14,7 @@
 (texmacs-module (source source-kbd)
   (:use (generic generic-kbd) (source source-edit))
 ) ;texmacs-module
+(debug-message "keyboard" "(source source-kbd): registering kbd-map ...\n")
 
 (kbd-map ("altcmd )" (make-style-with "src-compact" "none"))
  ("altcmd (" (make-style-with "src-compact" "all"))
@@ -88,3 +89,4 @@
  ("special ," (make 'unquote))
  ("special ?" (make 'if))
 ) ;kbd-map
+(debug-message "keyboard" "(source source-kbd): kbd-map registered\n")

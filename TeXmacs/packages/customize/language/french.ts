@@ -22,6 +22,8 @@
 
   <assign|language|french>
 
+  <use-module|(lang french-kbd)>
+
   \;
 
   <assign|text-dots-sep|0.25spc>
