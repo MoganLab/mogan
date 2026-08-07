@@ -16,6 +16,16 @@
 (import (liii hash-table))
 (import (liii queue))
 
+(define (kbd-on-linux?)
+  ;; lolly glue 只有 os-win32?/os-mingw?/os-macos?/os-wasm?,反向推断
+  (not (or (os-win32?) (os-mingw?) (os-macos?) (os-wasm?)))
+) ;define
+
+;; (liii logging) 仅 Linux 加载，节省其他平台的加载时间
+(when (kbd-on-linux?)
+  (import (liii logging))
+) ;when
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Lazy keyboard bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -147,13 +157,39 @@
 
 (define kbd-pump-armed? #f)
 
+;; 分片日志仅 Linux 启用（/tmp 路径语义）；文件 handler 全局唯一，惰性初始化
+
+(define kbd-pump-log-inited? #f)
+
+(define (kbd-pump-log msg)
+  (when (kbd-on-linux?)
+    (when (not kbd-pump-log-inited?)
+      (log-set-file-handler! "/tmp/kbd-pump.log")
+      (set! kbd-pump-log-inited? #t)
+    ) ;when
+    (log-info msg)
+    ;; liii logging 只在 s7 exit-hook 里 flush,mogan 退出不走该钩子,逐条 flush
+    (log-flush!)
+  ) ;when
+) ;define
+
 (tm-define (kbd-flush-pending)
   ;; 同步跑完剩余全部注册，供读写三张表前兜底
   (when (and (not (list-queue-empty? kbd-pending)) (not kbd-pumping?))
     (set! kbd-pumping? #t)
-    (while (not (list-queue-empty? kbd-pending))
-     ((list-queue-remove-front! kbd-pending))
-    ) ;while
+    (let ((n 0) (start (texmacs-time)))
+      (while (not (list-queue-empty? kbd-pending))
+       ((list-queue-remove-front! kbd-pending))
+       (set! n (+ n 1))
+      ) ;while
+      (kbd-pump-log (string-append "kbd-flush: drained "
+                      (number->string n)
+                      " bindings in "
+                      (number->string (- (texmacs-time) start))
+                      " ms"
+                    ) ;string-append
+      ) ;kbd-pump-log
+    ) ;let
     (set! kbd-pumping? #f)
   ) ;when
 ) ;tm-define
@@ -182,16 +218,15 @@
         (set! kbd-pump-batch
           (if (> elapsed 0) (max 1 (quotient (* n kbd-pump-budget) elapsed)) (* n 2))
         ) ;set!
-        (debug-message "keyboard"
-          (string-append "kbd-pump: registered "
-            (number->string n)
-            " bindings in "
-            (number->string elapsed)
-            " ms (next batch "
-            (number->string kbd-pump-batch)
-            ")\n"
-          ) ;string-append
-        ) ;debug-message
+        (kbd-pump-log (string-append "kbd-pump: registered "
+                        (number->string n)
+                        " bindings in "
+                        (number->string elapsed)
+                        " ms (next batch "
+                        (number->string kbd-pump-batch)
+                        ")"
+                      ) ;string-append
+        ) ;kbd-pump-log
       ) ;when
     ) ;with
   ) ;let*
