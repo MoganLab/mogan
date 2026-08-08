@@ -101,7 +101,6 @@
               ) ;:or
   ) ;:menu-item
   (:menu-item-list (:repeat :menu-item))
-  (:tab-page (tab-page :%4))
 ) ;define-regexp-grammar
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -687,22 +686,6 @@
   ) ;let
 ) ;define
 
-(define (make-tab-page entry-data style bar?)
-
-  (let* ((args (cdar entry-data))
-         (url (first args))
-         (title (second args))
-         (close-btn (third args))
-         (active? (fourth args))
-        ) ;
-    (widget-tab-page url
-      (car (make-menu-items title style bar?))
-      (car (make-menu-items close-btn style bar?))
-      active?
-    ) ;widget-tab-page
-  ) ;let*
-) ;define
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Symbol fields
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1119,7 +1102,7 @@
   (append-map (lambda (p) (make-menu-items p style bar?)) l)
 ) ;define
 
-(define (make-menu-items p style bar?)
+(define-public (make-menu-items p style bar?)
   "Make menu items @p. The items are on a bar if @bar? and of a given @style."
   ;; (display* "Make items " p ", " style "\n")
   (if (pair? p)
@@ -1152,7 +1135,6 @@
              (list (make-menu-entry p style bar?))
            ) ;if
           ) ;
-          ((match? (car p) ':tab-page) (list (make-tab-page p style bar?)))
           (else (make-menu-items-list p style bar?))
     ) ;cond
     (cond ((== p '---) (list (make-menu-hsep)))
@@ -1162,7 +1144,7 @@
           (else (list (make-menu-bad-format p style)))
     ) ;cond
   ) ;if
-) ;define
+) ;define-public
 
 (define-table make-menu-items-table
   (glue (:boolean? :boolean? :integer? :integer?)

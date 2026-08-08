@@ -14,6 +14,7 @@
 #include "iterator.hpp"
 #include "merge_sort.hpp"
 #include "message.hpp"
+#include "object_l5.hpp"
 #include "preferences.hpp"
 #include "tm_data.hpp"
 #include "tm_url.hpp"
@@ -408,13 +409,6 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
   }
   object xmenu= call ("menu-expand", eval ("'" * menu));
   the_drd     = old_drd;
-  // tab 栏（which==4）：xmenu 含每次新建的 lambda，无法用 equal 比较，故用
-  // 稳定签名判等。签名不变（如切 tab）=> 跳过重建，保持上次 widget。
-  if (which == 4) {
-    string sig= as_string (call ("tabpage-menu-signature"));
-    if (sig == tab_menu_signature) return false;
-    tab_menu_signature= sig;
-  }
   if (menu_cache->contains (xmenu)) {
     if (menu_current[which] == xmenu) return false;
     if (which < 10) {
@@ -455,8 +449,34 @@ tm_window_rep::menu_icons (int which, string menu) {
     else if (which == 1) set_mode_icons (wid, w);
     else if (which == 2) set_focus_icons (wid, w);
     else if (which == 3) set_user_icons (wid, w);
-    else if (which == 4) set_tab_pages (wid, w);
   }
+}
+
+/**
+ * @brief 重建 tab 栏。
+ *
+ * tab 栏不经 tm-menu：scheme 的 texmacs-tab-pages 直接用 widget 原语构建
+ * 整栏 widget。这里仅做签名判等（签名由 tabpage-menu-signature 给出，
+ * 不含每次新建的 lambda，故可稳定比较）：签名不变（如切 tab）则跳过重建，
+ * 保持上次下发的 widget，active 高亮由 Qt 端 updateActiveTab 维护。
+ */
+void
+tm_window_rep::tab_pages () {
+  eval ("(lazy-initialize-force)");
+  drd_info old_drd= the_drd;
+  if (!is_none (window_to_view (id))) {
+    tm_view vw= concrete_view (window_to_view (id));
+    if (vw != NULL) the_drd= vw->ed->drd;
+  }
+  string sig= as_string (call ("tabpage-menu-signature"));
+  if (sig == tab_menu_signature) {
+    the_drd= old_drd;
+    return;
+  }
+  tab_menu_signature= sig;
+  widget w          = as_widget (call ("texmacs-tab-pages"));
+  the_drd           = old_drd;
+  if (!is_nil (w)) set_tab_pages (wid, w);
 }
 
 void

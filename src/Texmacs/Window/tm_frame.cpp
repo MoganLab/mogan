@@ -136,6 +136,12 @@ tm_frame_rep::menu_icons (int which, string menu) {
 }
 
 void
+tm_frame_rep::tab_pages () {
+  if (!has_current_view ()) return;
+  concrete_window ()->tab_pages ();
+}
+
+void
 tm_frame_rep::notification_bar (string menu) {
   if (!has_current_view ()) return;
   concrete_window ()->notification_bar (menu);

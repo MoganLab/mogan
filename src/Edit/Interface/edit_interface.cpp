@@ -932,7 +932,7 @@ edit_interface_rep::update_menus (int mask) {
   }
   if (should_update_menu (mask & TAB_PAGES, name)) {
     bench_start ("update_menus: icons4-tabs");
-    SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+    SERVER (tab_pages ());
     bench_end ("update_menus: icons4-tabs");
   }
 #endif

@@ -50,26 +50,38 @@
   ) ;let
 ) ;define
 
-(tm-menu (texmacs-tab-pages)
-  (for (view (tabpage-list #t))
-    (let* ((buf (view->buffer view))
-           (view-win (view->window-of-tabpage view))
-           (tab-title (tabpage-display-title buf))
-           (doc-path (tabpage-doc-path buf))
-          ) ;
-      (tab-page (eval view)
-       ((balloon (eval `(verbatim ,tab-title)) (eval `(verbatim ,doc-path)))
-        (window-set-view view-win view #t)
-       ) ;
-       ;; #t stansd for focus
-       ((balloon "" "Close") (safely-kill-tabpage-by-url view-win view buf))
-       ;; active 不进展开树（否则切 tab 让展开树变化、缓存失效、整条重建），
-       ;; 改由 Qt 端 updateActiveTab 维护。这里恒为 #f。
-       (eval #f)
-      ) ;tab-page
-    ) ;let*
-  ) ;for
-) ;tm-menu
+;; tab 栏不经 tm-menu：直接用 widget 原语构建整栏。
+;; title/close 子 widget 仍复用 kernel 的 make-menu-items（widget 构造器，
+;; 非 tm-menu），参数 style=0、bar?=#t 与旧 make-tab-page 一致，
+;; 保证 Qt 端拿到的 widget 树形状不变。
+;; active 恒为 #f：不进展开树（否则切 tab 让树变化、签名失效、整条重建），
+;; active 高亮由 Qt 端 updateActiveTab 维护。
+
+(define (tabpage->widget view)
+  (let* ((buf (view->buffer view))
+         (view-win (view->window-of-tabpage view))
+         (tab-title (tabpage-display-title buf))
+         (doc-path (tabpage-doc-path buf))
+         (title (list (list 'balloon (list 'verbatim tab-title) (list 'verbatim doc-path))
+                  (lambda () (window-set-view view-win view #t))
+                ) ;list
+         ) ;title
+         (close-btn (list (list 'balloon "" "Close")
+                      (lambda () (safely-kill-tabpage-by-url view-win view buf))
+                    ) ;list
+         ) ;close-btn
+        ) ;
+    (widget-tab-page view
+      (car (make-menu-items title 0 #t))
+      (car (make-menu-items close-btn 0 #t))
+      #f
+    ) ;widget-tab-page
+  ) ;let*
+) ;define
+
+(tm-define (texmacs-tab-pages)
+  (widget-hmenu (map tabpage->widget (tabpage-list #t)))
+) ;tm-define
 
 ;; tab 栏稳定签名：view-url + 显示标题序列（不含 lambda/command）。
 ;; get_menu_widget 对 which==4 用它判等——menu-expand 后的 xmenu 含每次新建的
