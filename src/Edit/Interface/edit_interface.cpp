@@ -888,7 +888,7 @@ edit_interface_rep::update_menus (int mask) {
     SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
     bench_end ("update_menus: icons0-main");
   }
-  if ((mask & ICONS_MODE) && !is_startup) {
+  if ((mask & ICONS_MODE) && !is_startup && !is_chat) {
     bench_start ("update_menus: icons1-mode");
     SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
     bench_end ("update_menus: icons1-mode");
