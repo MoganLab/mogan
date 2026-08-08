@@ -163,6 +163,22 @@ TEST_CASE ("contains/occurs") {
 TEST_CASE ("replace") {
   CHECK_EQ (replace ("a-b", "-", "_") == "a_b", true);
   CHECK_EQ (replace ("a-b-c", "-", "_") == "a_b_c", true);
+  // 无命中：内容不变
+  CHECK_EQ (replace ("abc", "-", "_") == "abc", true);
+  CHECK_EQ (replace ("", "-", "_") == "", true);
+  // 首尾命中与相邻命中
+  CHECK_EQ (replace ("-a-", "-", "_") == "_a_", true);
+  CHECK_EQ (replace ("a--b", "-", "_") == "a__b", true);
+  // 替换串比模式长/短/为空
+  CHECK_EQ (replace ("a-b", "-", "<->") == "a<->b", true);
+  CHECK_EQ (replace ("a<->b", "<->", "-") == "a-b", true);
+  CHECK_EQ (replace ("a-b", "-", "") == "ab", true);
+  // 多字符模式不重叠匹配：从左到右，命中后跳过整个模式
+  CHECK_EQ (replace ("aaaa", "aa", "b") == "bb", true);
+  CHECK_EQ (replace ("aaa", "aa", "b") == "ba", true);
+  // 空模式守卫：原样返回，不死循环
+  CHECK_EQ (replace ("abc", "", "_") == "abc", true);
+  CHECK_EQ (replace ("", "", "_") == "", true);
 }
 
 TEST_CASE ("tokenize") {
