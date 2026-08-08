@@ -70,14 +70,23 @@
   ) ;with
 ) ;define-public
 
+;; 累加器收集 + 一次 reverse!：避免旧实现每层节点 append 复制子树结果（O(N*树深)）。
+;; 累加列表全部由本函数 cons 出来，reverse! 就地反转是安全的。
+
 (define-public (tree-search t pred?)
-  (with me
-    (if (pred? t) (list t) '())
-    (if (tree-atomic? t)
-      me
-      (append me (append-map (cut tree-search <> pred?) (tree-children t)))
-    ) ;if
-  ) ;with
+  (define (visit-sub t acc)
+    (with acc1
+      (if (pred? t) (cons t acc) acc)
+      (if (tree-atomic? t)
+        acc1
+        (let loop
+          ((cs (tree-children t)) (acc2 acc1))
+          (if (null? cs) acc2 (loop (cdr cs) (visit-sub (car cs) acc2)))
+        ) ;let
+      ) ;if
+    ) ;with
+  ) ;define
+  (reverse! (visit-sub t '()))
 ) ;define-public
 
 (define (prepend-index l i)
