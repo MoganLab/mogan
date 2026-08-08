@@ -183,10 +183,7 @@
       ) ;unless
       (cond ((null? lists) initial)
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
-             (let loop
-               ((acc initial) (lst (car lists)))
-               (if (null? lst) acc (loop (f (car lst) acc) (cdr lst)))
-             ) ;let
+             (g_fold f initial (car lists))
             ) ;
             (else (let loop
                     ((acc initial) (lsts lists))
@@ -207,10 +204,7 @@
       ) ;unless
       (cond ((null? lists) initial)
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
-             (let loop
-               ((lst (car lists)))
-               (if (null? lst) initial (f (car lst) (loop (cdr lst))))
-             ) ;let
+             (g_fold_right f initial (car lists))
             ) ;
             (else (let loop
                     ((lsts lists))
@@ -269,12 +263,7 @@
       (filter (lambda (x) (not (pred x))) l)
     ) ;define
 
-    (define (find pred l)
-      (cond ((null? l) #f)
-            ((pred (car l)) (car l))
-            (else (find pred (cdr l)))
-      ) ;cond
-    ) ;define
+    (define find g_find)
 
     (define (take-while pred lst)
       (if (null? lst)
@@ -294,19 +283,9 @@
       ) ;let
     ) ;define
 
-    (define (any pred? l)
-      (cond ((null? l) #f)
-            ((pred? (car l)) #t)
-            (else (any pred? (cdr l)))
-      ) ;cond
-    ) ;define
+    (define any g_any)
 
-    (define (every pred? l)
-      (cond ((null? l) #t)
-            ((not (pred? (car l))) #f)
-            (else (every pred? (cdr l)))
-      ) ;cond
-    ) ;define
+    (define every g_every)
 
     (define (%extract-maybe-equal maybe-equal)
       (let ((my-equal (if (null-list? maybe-equal) equal? (car maybe-equal))))

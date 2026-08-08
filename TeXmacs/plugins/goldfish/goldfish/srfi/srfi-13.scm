@@ -79,10 +79,19 @@
               (else (error 'type-error "optional params in string-join"))
         ) ;cond
       ) ;define
+      ;; 一次性把元素和分隔符交错收集到列表，再交给 string-append 一次完成拼接
+      ;; 避免旧实现每层递归重复拼接后缀导致的 O(n^2) 开销
       (define (string-join-sub l delim)
         (cond ((null-list? l) "")
-              ((= (length l) 1) (car l))
-              (else (string-append (car l) delim (string-join-sub (cdr l) delim)))
+              ((null? (cdr l)) (car l))
+              (else (let loop
+                      ((rest (cdr l)) (acc (list (car l))))
+                      (if (null? rest)
+                        (apply string-append (reverse acc))
+                        (loop (cdr rest) (cons (car rest) (cons delim acc)))
+                      ) ;if
+                    ) ;let
+              ) ;else
         ) ;cond
       ) ;define
       (let* ((params (extract-params delim+grammer))
