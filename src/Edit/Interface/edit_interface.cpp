@@ -852,6 +852,9 @@ edit_interface_rep::update_menus (int mask) {
   bool is_startup= is_startup_tab_buffer (buf->buf->name);
   bool is_chat   = is_chat_tab_buffer (buf->buf->name);
   bench_start ("update_menus");
+  // 临时诊断：记录触发重建的 buffer 与类别，定位 chat_init 期间两次全量重建
+  cout << "[update_menus] buffer=" << as_string (buf->buf->name)
+       << " mask=" << mask << LF;
 
 #ifdef LIII_DEBUG
   cout << "update_menus [";
@@ -871,25 +874,46 @@ edit_interface_rep::update_menus (int mask) {
     return;
   }
 
-  if ((mask & MENU_MAIN) && !is_startup && !is_chat)
+  if ((mask & MENU_MAIN) && !is_startup && !is_chat) {
+    bench_start ("update_menus: menu_main");
     SERVER (menu_main ("(horizontal (link texmacs-menu))"));
+    bench_end ("update_menus: menu_main");
+  }
 #ifndef OS_WASM
   // WASM/React shell 只渲染主菜单（SLOT_MAIN_MENU → im_react_push_menu）；
   // icons/tabs 的 widget 建了也无前端消费，每次 update_menus 都为它们跑
   // scheme 求值是纯浪费（这是 WASM 下 update_menus 慢的主因）。native 保留。
-  if ((mask & ICONS_MAIN) && !is_startup && !is_chat)
+  if ((mask & ICONS_MAIN) && !is_startup && !is_chat) {
+    bench_start ("update_menus: icons0-main");
     SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-  if ((mask & ICONS_MODE) && !is_startup)
+    bench_end ("update_menus: icons0-main");
+  }
+  if ((mask & ICONS_MODE) && !is_startup) {
+    bench_start ("update_menus: icons1-mode");
     SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-  if ((mask & ICONS_FOCUS) && !is_startup && !is_chat)
+    bench_end ("update_menus: icons1-mode");
+  }
+  if ((mask & ICONS_FOCUS) && !is_startup && !is_chat) {
+    bench_start ("update_menus: icons2-focus");
     SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-  if ((mask & ICONS_EXTRA) && !is_startup && !is_chat)
+    bench_end ("update_menus: icons2-focus");
+  }
+  if ((mask & ICONS_EXTRA) && !is_startup && !is_chat) {
+    bench_start ("update_menus: icons3-extra");
     SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
-  if (mask & TAB_PAGES)
+    bench_end ("update_menus: icons3-extra");
+  }
+  if (mask & TAB_PAGES) {
+    bench_start ("update_menus: icons4-tabs");
     SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+    bench_end ("update_menus: icons4-tabs");
+  }
 #endif
-  if ((mask & NOTIFICATION) && !is_startup && !is_chat)
+  if ((mask & NOTIFICATION) && !is_startup && !is_chat) {
+    bench_start ("update_menus: notification");
     SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
+    bench_end ("update_menus: notification");
+  }
   if (is_startup || is_chat) {
     last_update= last_change;
     bench_end ("update_menus");
@@ -898,6 +922,7 @@ edit_interface_rep::update_menus (int mask) {
 #ifndef OS_WASM
   // 同 icons：WASM/React 无 side-tools 前端，跳过其 scheme 求值。
   if (mask & SIDE_TOOLS) {
+    bench_start ("update_menus: side-tools");
     array<url> a= buffer_to_windows (buf->buf->name);
     if (N (a) > 0) {
       string win = "(string->url \"" * as_string (a[0]) * "\")";
@@ -908,8 +933,10 @@ edit_interface_rep::update_menus (int mask) {
       SERVER (side_tools (0, "(vertical " * rdyn * ")"));
       SERVER (bottom_tools (0, "(vertical " * bdyn * ")"));
     }
+    bench_end ("update_menus: side-tools");
   }
 #endif
+  bench_start ("update_menus: footer+tail");
   set_footer ();
   if (mask == MENU_ALL) {
     if (has_current_window ()) {
@@ -929,6 +956,7 @@ edit_interface_rep::update_menus (int mask) {
   if ((mask & (ICONS_MODE | ICONS_FOCUS)) == (ICONS_MODE | ICONS_FOCUS))
     menu_focus_path= focus_get ();
   if (mask & TAB_PAGES) menu_need_save= need_save ();
+  bench_end ("update_menus: footer+tail");
   bench_end ("update_menus");
 }
 
