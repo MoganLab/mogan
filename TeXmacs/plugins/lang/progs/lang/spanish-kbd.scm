@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (lang spanish-kbd) (:use (text text-kbd)))
+(texmacs-module (lang spanish-kbd))
 
 (kbd-map (:mode in-spanish?)
  ("! var" "<#A1>")

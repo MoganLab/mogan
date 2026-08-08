@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (lang chinese-kbd) (:use (text text-kbd)))
+(texmacs-module (lang chinese-kbd))
 
 (kbd-map (:mode in-chinese?)
  ("\x10;" "<#201C>")

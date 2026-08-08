@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (lang polish-kbd) (:use (text text-kbd)))
+(texmacs-module (lang polish-kbd))
 
 ;; 迁移自 text-kbd.scm 的 in-polish? kbd-map（原 cork 字节 RHS 已用
 ;; <#XXXX> unicode 转义重建，cork↔utf8 字节契约由 tests/1159.scm 钉死）。
