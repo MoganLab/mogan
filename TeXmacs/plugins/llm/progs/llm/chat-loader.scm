@@ -21,5 +21,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (llm chat-loader)
-  (:use (llm chat-protocol) (llm chat-list) (llm chat-persist))
+  (:use (llm chat-style) (llm chat-protocol) (llm chat-list) (llm chat-persist))
 ) ;texmacs-module

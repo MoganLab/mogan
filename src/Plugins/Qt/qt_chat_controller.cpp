@@ -614,7 +614,7 @@ ChatController::ensureNewConversation () {
   sessionManager_.setPanel (sid, panel);
   sessionManager_.setModel (sid, currentModel_);
 
-  eval ("(use-modules (llm chat-protocol))");
+  eval ("(use-modules (llm chat-style))");
   call ("chat-tab-sync-dark-style!", sid);
   call ("chat-tab-load-input-styles!", sid);
 
@@ -647,6 +647,7 @@ ChatController::getOrCreatePanel (const string& sessionId) {
 
   sessionManager_.setPanel (sessionId, panel);
 
+  eval ("(use-modules (llm chat-style) (llm chat-protocol))");
   call ("chat-tab-sync-dark-style!", sessionId);
   call ("chat-tab-init-session!", sessionId, s->model);
 

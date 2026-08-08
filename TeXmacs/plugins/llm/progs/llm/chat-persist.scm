@@ -12,6 +12,7 @@
 
 (texmacs-module (llm chat-persist)
   (:use (llm chat-list)
+    (llm chat-style)
     (llm chat-protocol)
     (dynamic session-edit)
     (texmacs texmacs tm-files)

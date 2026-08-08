@@ -392,25 +392,3 @@
     ) ;let*
   ) ;with-buffer
 ) ;tm-define
-
-;;; ---------- 样式包管理 ----------
-
-(tm-define (chat-tab-add-default-style-packages! session-name)
-  ;; 偏好驱动，参考 buffer-set-default-style（tm-files.scm:130-146）
-  ;; 一次性 set-style-list：逐包 add 会每包触发一次样式树重建，耗时成倍
-  (let ((packs (list "number-europe" "preview-ref")) (lan (get-preference "language")))
-    (when (and (!= lan "english") (in? lan supported-languages))
-      (set! packs (append packs (list lan)))
-      ;; 中文等 CJK 语言自动加载对应样式包
-      (when (== lan "chinese")
-        (set! packs (append packs (list "table-captions-above")))
-      ) ;when
-    ) ;when
-    ;; 插件样式包：动态检测，参考 session-edit 的 make-session
-    (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append session-name ".ts"))
-          ) ;url-exists?
-      (set! packs (append packs (list session-name)))
-    ) ;when
-    (set-style-list (append (get-style-list) packs))
-  ) ;let
-) ;tm-define
