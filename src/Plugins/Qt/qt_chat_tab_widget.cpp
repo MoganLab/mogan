@@ -1682,10 +1682,13 @@ QTChatTabWidget::setGlobalSidebarCollapsed (bool collapsed) {
 
 void
 QTChatTabWidget::paintEvent (QPaintEvent* event) {
-  QWidget::paintEvent (event);
   // 点击 Chat 标签页后的首次绘制视为渲染完成，结束 chat_init 计时
-  if (initBenchPending_) {
+  bool benching= initBenchPending_;
+  if (benching) bench_start ("chat_init: first paint");
+  QWidget::paintEvent (event);
+  if (benching) {
     initBenchPending_= false;
+    bench_end ("chat_init: first paint", 10);
     bench_end ("chat_init");
   }
 }

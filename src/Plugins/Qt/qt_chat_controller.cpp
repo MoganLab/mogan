@@ -59,12 +59,8 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   // llm 插件按 idle 延迟初始化，新建 Chat 标签页时其 scheme 模块可能尚未加载
   bool benching= QTChatTabWidget::isInitBenchPending ();
   if (benching) bench_start ("chat_init: load chat modules");
-  if (benching) bench_start ("chat_init: load/use-modules");
   eval ("(use-modules (llm chat-list))");
-  if (benching) bench_end ("chat_init: load/use-modules");
-  if (benching) bench_start ("chat_init: load/persist-load-all");
   call ("chat-persist-load-all");
-  if (benching) bench_end ("chat_init: load/persist-load-all");
   if (benching) bench_end ("chat_init: load chat modules");
   cout << "[chat-persist] ChatController: restored "
        << sessionManager_.sessionCount () << " session metadatas" << LF;
@@ -82,9 +78,7 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   }
 
   // 3. 创建 View，Sidebar 构造时就有数据
-  if (benching) bench_start ("chat_init: new QTChatTabWidget");
   view_= new QTChatTabWidget (infos, initialId, parent);
-  if (benching) bench_end ("chat_init: new QTChatTabWidget");
   view_->setParentTmWidget (tm);
 
   // 连接 Sidebar 信号

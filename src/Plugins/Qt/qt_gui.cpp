@@ -31,6 +31,7 @@
 #include "loro_collab.hpp"
 #endif
 
+#include "qt_chat_tab_widget.hpp" // for QTChatTabWidget::isInitBenchPending
 #include "qt_gui.hpp"
 #include "qt_renderer.hpp" // for the_qt_renderer
 #include "qt_simple_widget.hpp"
@@ -908,6 +909,13 @@ qt_gui_rep::update () {
   updatetimer->stop ();
   updating= true;
 
+  // chat_init 窗口内的 update 计时：窗口内首次必打，后续 <10ms 不打印。
+  // delayed 命令 + 队列事件 + 重绘全在里面，再细分子段定位
+  bool        bench_chat_init  = QTChatTabWidget::isInitBenchPending ();
+  static bool gui_update_logged= false;
+  if (!bench_chat_init) gui_update_logged= false;
+  if (bench_chat_init) bench_start ("chat_init: gui update");
+
   static int count_events   = 0;
   static int max_proc_events= 40;
 
@@ -936,7 +944,11 @@ qt_gui_rep::update () {
   // 2.
   // Manage delayed commands
 
-  if (delayed_commands.must_wait (now)) process_delayed_commands ();
+  if (delayed_commands.must_wait (now)) {
+    if (bench_chat_init) bench_start ("chat_init: update/delayed");
+    process_delayed_commands ();
+    if (bench_chat_init) bench_end ("chat_init: update/delayed", 10);
+  }
 
   // 3.
   // If there are pending events in the private queue process them until the
@@ -949,7 +961,9 @@ qt_gui_rep::update () {
   }
   else
     while (waiting_events.size () > 0 && count_events < max_proc_events) {
+      if (bench_chat_init) bench_start ("chat_init: update/queued");
       process_queued_events (1);
+      if (bench_chat_init) bench_end ("chat_init: update/queued", 10);
       count_events++;
       // if (the_interpose_handler) the_interpose_handler();
     }
@@ -963,6 +977,7 @@ qt_gui_rep::update () {
   timeout_time= texmacs_time () + time_credit;
 
   if (!postpone_treatment) {
+    if (bench_chat_init) bench_start ("chat_init: update/repaint");
     if (the_interpose_handler) the_interpose_handler ();
 #ifdef LORO_ENABLED
     static time_t last_loro_poll_time= 0;
@@ -973,6 +988,11 @@ qt_gui_rep::update () {
     }
 #endif
     qt_simple_widget_rep::repaint_all ();
+    if (bench_chat_init) bench_end ("chat_init: update/repaint", 10);
+  }
+  if (bench_chat_init) {
+    bench_end ("chat_init: gui update", gui_update_logged ? 10 : 0);
+    gui_update_logged= true;
   }
 
   if (waiting_events.size () > 0) needing_update= true;

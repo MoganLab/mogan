@@ -373,6 +373,17 @@ QTMTabPage::mousePressEvent (QMouseEvent* e) {
 }
 
 void
+QTMTabPage::mouseReleaseEvent (QMouseEvent* e) {
+  // chat tab 的 release 派发内含 QAction 触发与同步切 view 全链路；
+  // beginInitBench 到此处起点之间即按下→抬起的间隔，不计入任何子段
+  bool benching=
+      is_chat_tab_view (m_viewUrl) && QTChatTabWidget::isInitBenchPending ();
+  if (benching) bench_start ("chat_init: release dispatch");
+  QToolButton::mouseReleaseEvent (e);
+  if (benching) bench_end ("chat_init: release dispatch", 10);
+}
+
+void
 QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
   m_hoverOnCloseArea= isPointerOnCloseArea (e->pos ());
   updateCloseButtonVisibility ();
