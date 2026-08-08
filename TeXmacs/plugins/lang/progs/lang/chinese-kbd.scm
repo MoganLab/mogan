@@ -13,7 +13,7 @@
 
 (texmacs-module (lang chinese-kbd))
 
-(kbd-map (:mode in-chinese?)
+(delayed-kbd-map (:mode in-chinese?)
  ("\x10;" "<#201C>")
  ("\x11;" "<#201D>")
  ("\x16;" "<#2014>")
@@ -135,4 +135,4 @@
  ("i 5 0 0 var" "<#217E>")
  ("i 1 0 0 0 var" "<#217F>")
  ("C-m" (kbd-select-enlarge))
-) ;kbd-map
+) ;delayed-kbd-map

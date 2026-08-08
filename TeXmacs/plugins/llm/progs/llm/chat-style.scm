@@ -33,7 +33,7 @@
 (tm-define (chat-tab-add-default-style-packages! session-name)
   ;; 偏好驱动，参考 buffer-set-default-style（tm-files.scm:130-146）
   ;; 一次性 set-style-list：逐包 add 会每包触发一次样式树重建，耗时成倍
-  (let ((packs (list "number-europe" "preview-ref")) (lan (get-preference "language")))
+  (let ((packs (list "number-europe")) (lan (get-preference "language")))
     (when (and (!= lan "english") (in? lan supported-languages))
       (set! packs (append packs (list lan)))
       ;; 中文等 CJK 语言自动加载对应样式包
