@@ -201,15 +201,11 @@ ChatConversationPanel::setup_ui () {
 
   // Message area
   qreal chatZoom= DpiUtils::scaled (100) / 100.0;
-  // 仅在 chat_init 计时窗口内打子阶段日志，避免新建会话时误报
-  bool benching= QTChatTabWidget::isInitBenchPending ();
-  if (benching) bench_start ("chat_init: message widget");
   messageWidget_= texmacs_input_widget (
       tree (WITH, "font", "sys-chinese", "zoom-factor", as_string (chatZoom),
             tree (DOCUMENT, "")),
       compound (kChatEmbeddedStyle, tuple ("generic")), msgBufferUrl_);
   set_zoom_factor (messageWidget_, chatZoom);
-  if (benching) bench_end ("chat_init: message widget");
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
   messageFrame_          = new QWidget (topPanel);
@@ -251,13 +247,11 @@ ChatConversationPanel::setup_ui () {
   inputAreaLayout->setContentsMargins (0, 0, 0, 0);
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
-  if (benching) bench_start ("chat_init: input widget");
   inputWidget= texmacs_input_widget (
       tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese", "zoom-factor",
             as_string (chatZoom), tree (DOCUMENT, "")),
       compound (kChatEmbeddedStyle, tuple ("generic")), inputBufferUrl_);
   set_zoom_factor (inputWidget, chatZoom);
-  if (benching) bench_end ("chat_init: input widget");
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
 
@@ -1367,8 +1361,6 @@ QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
   mainLayout->setSpacing (0);
 
   // 左侧侧边栏
-  bool benching= isInitBenchPending ();
-  if (benching) bench_start ("chat_init: setup_left_sidebar");
   QWidget* sidebar= new QWidget (this);
   sidebar->setObjectName ("chat-tab-sidebar");
   sidebar->setMinimumWidth (DpiUtils::scaled (kSidebarMinWidth));
@@ -1388,12 +1380,9 @@ QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
       qMax (DpiUtils::scaled (kSidebarMinWidth), contentWidth);
   sidebar->setFixedWidth (sidebarExpandedWidth_);
   mainLayout->addWidget (sidebar);
-  if (benching) bench_end ("chat_init: setup_left_sidebar");
 
   // 右侧内容区
-  if (benching) bench_start ("chat_init: setup_right_content");
   setup_right_content (mainLayout);
-  if (benching) bench_end ("chat_init: setup_right_content");
 
   // 根据全局记忆的状态恢复侧边栏
   if (globalSidebarCollapsed_ && sidebarWidget_ && floatingBtnContainer_) {
@@ -1533,10 +1522,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout,
   normalLayout->addWidget (newChatButton_, 0, Qt::AlignHCenter);
 
   // ChatSidebar
-  bool benching= isInitBenchPending ();
-  if (benching) bench_start ("chat_init: new ChatSidebar");
   sidebar_= new ChatSidebar (sessions, activeSessionId, normalContent);
-  if (benching) bench_end ("chat_init: new ChatSidebar");
   normalLayout->addWidget (sidebar_, 1);
 
   sidebarNormalContent_= normalContent;

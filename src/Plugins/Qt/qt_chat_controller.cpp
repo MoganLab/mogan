@@ -70,10 +70,8 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
        << sessionManager_.sessionCount () << " session metadatas" << LF;
 
   // 2. 构建显示数据 + 确定初始激活会话
-  if (benching) bench_start ("chat_init: buildDisplayInfos");
   QList<SessionDisplayInfo> infos= buildDisplayInfos ();
-  if (benching) bench_end ("chat_init: buildDisplayInfos");
-  string initialId;
+  string                    initialId;
   if (firstOpen_) {
     // 首次打开：切换到新会话（触发 ensureNewConversation）
     initialId = "";
