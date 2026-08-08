@@ -635,8 +635,11 @@ qt_simple_widget_rep::repaint_all () {
   iterator<pointer> i= iterate (qt_simple_widget_rep::all_widgets);
   while (i->busy ()) {
     qt_simple_widget_rep* w= static_cast<qt_simple_widget_rep*> (i->next ());
-    if (w->canvas () && w->canvas ()->isVisible ())
+    if (w->canvas () && w->canvas ()->isVisible ()) {
+      bench_start ("repaint_invalid_regions");
       w->repaint_invalid_regions ();
+      bench_end ("repaint_invalid_regions", 10);
+    }
   }
 }
 

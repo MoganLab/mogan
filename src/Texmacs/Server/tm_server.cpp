@@ -26,6 +26,7 @@
 #include "socket_notifier.hpp"
 #include "sys_utils.hpp"
 #include "tm_configure.hpp"
+#include "tm_debug.hpp"
 #include "tm_link.hpp"
 #include "tm_sys_utils.hpp"
 #include "tmfs_url.hpp"
@@ -222,7 +223,12 @@ tm_server_rep::interpose_handler () {
 
       for (j= 0; j < N (buf->vws); j++) {
         tm_view vw= (tm_view) buf->vws[j];
-        if (vw->win != NULL) vw->ed->apply_changes ();
+        if (vw->win != NULL) {
+          string btask= "apply_changes: " * as_string (vw->buf->buf->name);
+          bench_start (btask);
+          vw->ed->apply_changes ();
+          bench_end (btask, 10);
+        }
         vw->ed->set_user_active (false);
       }
 

@@ -977,8 +977,9 @@ qt_gui_rep::update () {
   timeout_time= texmacs_time () + time_credit;
 
   if (!postpone_treatment) {
-    if (bench_chat_init) bench_start ("chat_init: update/repaint");
+    if (bench_chat_init) bench_start ("chat_init: update/interpose");
     if (the_interpose_handler) the_interpose_handler ();
+    if (bench_chat_init) bench_end ("chat_init: update/interpose", 10);
 #ifdef LORO_ENABLED
     static time_t last_loro_poll_time= 0;
     if (now - last_loro_poll_time >= 1000 / 6) {
@@ -987,8 +988,9 @@ qt_gui_rep::update () {
       last_loro_poll_time= now;
     }
 #endif
+    if (bench_chat_init) bench_start ("chat_init: update/repaint_all");
     qt_simple_widget_rep::repaint_all ();
-    if (bench_chat_init) bench_end ("chat_init: update/repaint", 10);
+    if (bench_chat_init) bench_end ("chat_init: update/repaint_all", 10);
   }
   if (bench_chat_init) {
     bench_end ("chat_init: gui update", gui_update_logged ? 10 : 0);
