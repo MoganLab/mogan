@@ -32,6 +32,7 @@ class QTimer;
 class QToolButton;
 class QVBoxLayout;
 class QEvent;
+class QPaintEvent;
 class QTMWidget;
 class QTMStateToolButton;
 class qt_tm_widget_rep;
@@ -398,6 +399,12 @@ public:
   // ---- 供外部组件访问 ----
   QWidget* contentWidget () const { return contentWidget_; }
 
+  /**
+   * @brief 点击 Chat 标签页时开始 chat_init 计时，
+   * 在控件首次绘制完成（paintEvent）时结束。
+   */
+  static void beginInitBench ();
+
 signals:
   void cancelRequested (const string& sessionId);
   void newChatRequested ();
@@ -409,6 +416,8 @@ protected:
   void keyReleaseEvent (QKeyEvent* event) override;
   /// 事件过滤器
   bool eventFilter (QObject* watched, QEvent* event) override;
+  /// 首次绘制时结束 chat_init 计时
+  void paintEvent (QPaintEvent* event) override;
 
 private:
   /// 构建左侧侧边栏布局
@@ -441,6 +450,7 @@ private:
   qt_tm_widget_rep*      parentTmWidget_= nullptr; ///< 关联的 TeXmacs widget
 
   static bool globalSidebarCollapsed_; ///< 全局记忆的侧边栏折叠状态
+  static bool initBenchPending_;       ///< chat_init 计时待结束标记
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

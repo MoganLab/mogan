@@ -12,6 +12,7 @@
 
 #include "QTMTabPage.hpp"
 #include "new_view.hpp"
+#include "qt_chat_tab_widget.hpp"
 #include "qt_utilities.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
@@ -358,6 +359,7 @@ QTMTabPage::mousePressEvent (QMouseEvent* e) {
     if (!is_none (currentView) && currentView == m_viewUrl) {
       return;
     }
+    if (is_chat_tab_view (m_viewUrl)) QTChatTabWidget::beginInitBench ();
     return QToolButton::mousePressEvent (e);
   }
   if (e->button () == Qt::LeftButton) {

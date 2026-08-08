@@ -21,6 +21,7 @@
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
 #include "s7_tm.hpp"
+#include "tm_debug.hpp"
 #include "tm_window.hpp"
 
 #include <moebius/tree_label.hpp>
@@ -50,6 +51,13 @@
 using namespace moebius;
 
 bool QTChatTabWidget::globalSidebarCollapsed_= false;
+bool QTChatTabWidget::initBenchPending_      = false;
+
+void
+QTChatTabWidget::beginInitBench () {
+  initBenchPending_= true;
+  bench_start ("chat_init");
+}
 
 namespace {
 
@@ -1671,6 +1679,16 @@ QTChatTabWidget::setGlobalSidebarCollapsed (bool collapsed) {
 /******************************************************************************
  * QTChatTabWidget 事件处理
  ******************************************************************************/
+
+void
+QTChatTabWidget::paintEvent (QPaintEvent* event) {
+  QWidget::paintEvent (event);
+  // 点击 Chat 标签页后的首次绘制视为渲染完成，结束 chat_init 计时
+  if (initBenchPending_) {
+    initBenchPending_= false;
+    bench_end ("chat_init");
+  }
+}
 
 void
 QTChatTabWidget::keyPressEvent (QKeyEvent* event) {
