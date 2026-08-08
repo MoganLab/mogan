@@ -10,11 +10,7 @@
 
 inline bool
 use_plugin_updater () {
-#ifdef USE_PLUGIN_SPARKLE
-  return true;
-#else
   return false;
-#endif
 }
 
 inline bool

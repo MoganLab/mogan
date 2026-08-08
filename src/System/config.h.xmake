@@ -63,7 +63,6 @@ ${define USE_PLUGIN_PDF}
 ${define USE_PLUGIN_BIBTEX}
 ${define USE_PLUGIN_TEX}
 ${define USE_PLUGIN_ISPELL}
-${define USE_PLUGIN_SPARKLE}
 ${define USE_PLUGIN_HTML}
 ${define USE_PLUGIN_GIT}
 
@@ -85,8 +84,6 @@ ${define USE_FREETYPE}
 ${define USE_FONTCONFIG}
 
 ${define USE_ICONV}
-
-${define USE_PLUGIN_SPARKLE}
 
 /* Use MuPDF library */
 ${define USE_MUPDF_RENDERER}

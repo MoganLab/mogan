@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE     : tm_updater.hpp
- * DESCRIPTION: Base class for auto-update frameworks like (Win)Sparkle
+ * DESCRIPTION: Base class for auto-update frameworks
  * COPYRIGHT  : (C) 2013 Miguel de Benito Delgado
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.

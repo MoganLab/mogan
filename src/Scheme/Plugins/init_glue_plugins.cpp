@@ -45,10 +45,6 @@ initialize_glue_plugins () {
   initialize_glue_html ();
 #endif
 
-#ifdef USE_PLUGIN_SPARKLE
-  initialize_glue_updater ();
-#endif
-
 #ifdef USE_PLUGIN_BIBTEX
   initialize_glue_bibtex ();
 #endif

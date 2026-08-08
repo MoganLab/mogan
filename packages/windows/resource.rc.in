@@ -6,7 +6,7 @@ appicon ICON "Xmacs.ico"
 
 #include <winver.h>
 
-// Version information; this, too, is used by WinSparkle
+// Version information
 1 VERSIONINFO
  FILEVERSION     2025,0,4,0
  PRODUCTVERSION  2025,0,4,0
