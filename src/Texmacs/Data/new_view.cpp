@@ -87,16 +87,6 @@ is_chat_tab_buffer (url name) {
   return starts (as_string (name), "tmfs://chat-tab");
 }
 
-/**
- * @brief 判断 buffer 名称是否指向聊天标签页的内嵌编辑器。
- * @param name 待检测的 buffer URL。
- * @return 若名称以 \c tmfs://chat/ 开头（消息/输入框 buffer）则返回 true。
- */
-bool
-is_chat_embedded_buffer (url name) {
-  return starts (as_string (name), "tmfs://chat/");
-}
-
 bool
 is_startup_tab_buffer (url name) {
   return name == url ("tmfs://startup-tab");

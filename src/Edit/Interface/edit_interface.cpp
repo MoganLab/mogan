@@ -850,10 +850,7 @@ edit_interface_rep::update_menus () {
 void
 edit_interface_rep::update_menus (int mask) {
   bool is_startup= is_startup_tab_buffer (buf->buf->name);
-  // 聊天页全屏模式下工具栏全部隐藏，内嵌编辑器（消息/输入框）buffer
-  // 触发的菜单重建同样不可见，一并跳过
-  bool is_chat= is_chat_tab_buffer (buf->buf->name) ||
-                is_chat_embedded_buffer (buf->buf->name);
+  bool is_chat   = is_chat_tab_buffer (buf->buf->name);
   bench_start ("update_menus");
   // 临时诊断：记录触发重建的 buffer 与类别，定位 chat_init 期间两次全量重建
   cout << "[update_menus] buffer=" << as_string (buf->buf->name)
