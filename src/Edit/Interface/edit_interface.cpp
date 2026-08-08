@@ -903,7 +903,7 @@ edit_interface_rep::update_menus (int mask) {
     SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
     bench_end ("update_menus: icons3-extra");
   }
-  if (mask & TAB_PAGES) {
+  if ((mask & TAB_PAGES) && !is_chat) {
     bench_start ("update_menus: icons4-tabs");
     SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
     bench_end ("update_menus: icons4-tabs");
