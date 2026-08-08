@@ -100,6 +100,17 @@ is_chat_message_buffer (url name) {
   return starts (s, "tmfs://chat/") && ends (s, "/message");
 }
 
+/**
+ * @brief 判断 buffer 名称是否指向聊天会话的输入框。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称形如 \c tmfs://chat/<sid>/input 则返回 true。
+ */
+bool
+is_chat_input_buffer (url name) {
+  string s= as_string (name);
+  return starts (s, "tmfs://chat/") && ends (s, "/input");
+}
+
 bool
 is_startup_tab_buffer (url name) {
   return name == url ("tmfs://startup-tab");

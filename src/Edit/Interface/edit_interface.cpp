@@ -847,18 +847,40 @@ edit_interface_rep::update_menus () {
   update_menus (MENU_ALL);
 }
 
+/**
+ * @brief 判断指定 buffer 在 update_menus 中是否应重建某些段。
+ * @param mask 待检测的段（MENU_MAIN / ICONS_* / TAB_PAGES / NOTIFICATION /
+ * SIDE_TOOLS，可多位或）。
+ * @param name buffer URL。
+ * @return 若 mask 中所有位对该 buffer 都允许重建则返回 true；空掩码视为不
+ * 重建，故调用处直接传 \c{mask & BIT} 即可同时完成「已请求」与「按规则
+ * 允许」两种判断。
+ * @par 规则（由 should_update_menu_test 钉死）
+ * - 普通 buffer：全部重建；
+ * - startup tab：仅重建 tab 栏（TAB_PAGES）；
+ * - chat 标签页 / 只读消息区：全部跳过；
+ * - chat 输入框：仅重建模式工具栏（ICONS_MODE）——dock 侧边栏模式下焦点
+ *   切到输入框时模式工具栏可见，仍需随其重建。
+ */
+bool
+should_update_menu (int mask, url name) {
+  // 未请求的段直接判不重建，避免无谓的 buffer 类别判定（字符串比较）
+  if (mask == 0) return false;
+  int allow= MENU_ALL;
+  if (is_startup_tab_buffer (name)) allow= TAB_PAGES;
+  else if (is_chat_tab_buffer (name) || is_chat_message_buffer (name)) allow= 0;
+  else if (is_chat_input_buffer (name)) allow= ICONS_MODE;
+  return (mask & allow) == mask;
+}
+
 void
 edit_interface_rep::update_menus (int mask) {
-  bool is_startup= is_startup_tab_buffer (buf->buf->name);
-  bool is_chat   = is_chat_tab_buffer (buf->buf->name);
-  // 只读消息展示区任何模式下都不需要菜单/工具栏重建；输入框不并入——
-  // dock 侧边栏模式下焦点切到输入框时模式工具栏可见，仍需随其重建
-  bool is_chat_msg       = is_chat_message_buffer (buf->buf->name);
-  bool should_skip_update= is_startup || is_chat || is_chat_msg;
-  bench_start ("update_menus");
+  url    name      = buf->buf->name;
+  string bench_task= "update_menus: " * as_string (name);
+  bench_start (bench_task);
 #ifdef LIII_DEBUG
-  cout << "[update_menus] buffer=" << as_string (buf->buf->name)
-       << " mask=" << mask << LF;
+  cout << "[update_menus] buffer=" << as_string (name) << " mask=" << mask
+       << LF;
 #endif
 
 #ifdef LIII_DEBUG
@@ -875,11 +897,11 @@ edit_interface_rep::update_menus (int mask) {
 #endif
 
   if (get_server ()->in_full_screen_mode ()) {
-    bench_end ("update_menus");
+    bench_end (bench_task);
     return;
   }
 
-  if ((mask & MENU_MAIN) && !should_skip_update) {
+  if (should_update_menu (mask & MENU_MAIN, name)) {
     bench_start ("update_menus: menu_main");
     SERVER (menu_main ("(horizontal (link texmacs-menu))"));
     bench_end ("update_menus: menu_main");
@@ -888,47 +910,42 @@ edit_interface_rep::update_menus (int mask) {
   // WASM/React shell 只渲染主菜单（SLOT_MAIN_MENU → im_react_push_menu）；
   // icons/tabs 的 widget 建了也无前端消费，每次 update_menus 都为它们跑
   // scheme 求值是纯浪费（这是 WASM 下 update_menus 慢的主因）。native 保留。
-  if ((mask & ICONS_MAIN) && !should_skip_update) {
+  if (should_update_menu (mask & ICONS_MAIN, name)) {
     bench_start ("update_menus: icons0-main");
     SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
     bench_end ("update_menus: icons0-main");
   }
-  if ((mask & ICONS_MODE) && !should_skip_update) {
+  if (should_update_menu (mask & ICONS_MODE, name)) {
     bench_start ("update_menus: icons1-mode");
     SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
     bench_end ("update_menus: icons1-mode");
   }
-  if ((mask & ICONS_FOCUS) && !should_skip_update) {
+  if (should_update_menu (mask & ICONS_FOCUS, name)) {
     bench_start ("update_menus: icons2-focus");
     SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
     bench_end ("update_menus: icons2-focus");
   }
-  if ((mask & ICONS_EXTRA) && !should_skip_update) {
+  if (should_update_menu (mask & ICONS_EXTRA, name)) {
     bench_start ("update_menus: icons3-extra");
     SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
     bench_end ("update_menus: icons3-extra");
   }
-  if ((mask & TAB_PAGES) && !is_chat && !is_chat_msg) {
+  if (should_update_menu (mask & TAB_PAGES, name)) {
     bench_start ("update_menus: icons4-tabs");
     SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
     bench_end ("update_menus: icons4-tabs");
   }
 #endif
-  if ((mask & NOTIFICATION) && !should_skip_update) {
+  if (should_update_menu (mask & NOTIFICATION, name)) {
     bench_start ("update_menus: notification");
     SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
     bench_end ("update_menus: notification");
   }
-  if (should_skip_update) {
-    last_update= last_change;
-    bench_end ("update_menus");
-    return;
-  }
 #ifndef OS_WASM
   // 同 icons：WASM/React 无 side-tools 前端，跳过其 scheme 求值。
-  if (mask & SIDE_TOOLS) {
+  if (should_update_menu (mask & SIDE_TOOLS, name)) {
     bench_start ("update_menus: side-tools");
-    array<url> a= buffer_to_windows (buf->buf->name);
+    array<url> a= buffer_to_windows (name);
     if (N (a) > 0) {
       string win = "(string->url \"" * as_string (a[0]) * "\")";
       string ldyn= "(dynamic (texmacs-left-tools " * win * "))";
@@ -941,6 +958,13 @@ edit_interface_rep::update_menus (int mask) {
     bench_end ("update_menus: side-tools");
   }
 #endif
+  // MENU_MAIN 不重建的 buffer（startup/chat 标签页/消息区/输入框）
+  // 同样不需要 footer 与尾部簿记
+  if (!should_update_menu (MENU_MAIN, name)) {
+    last_update= last_change;
+    bench_end (bench_task);
+    return;
+  }
   bench_start ("update_menus: footer+tail");
   set_footer ();
   if (mask == MENU_ALL) {
@@ -962,7 +986,7 @@ edit_interface_rep::update_menus (int mask) {
     menu_focus_path= focus_get ();
   if (mask & TAB_PAGES) menu_need_save= need_save ();
   bench_end ("update_menus: footer+tail");
-  bench_end ("update_menus");
+  bench_end (bench_task);
 }
 
 int
