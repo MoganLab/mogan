@@ -52,6 +52,7 @@
 #include "qt_renderer.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
+#include "tm_debug.hpp"
 
 bool in_presentation_mode ();
 
@@ -1226,6 +1227,8 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
 
   if (chatTabMode) {
     // Show Chat tab view
+    bool benching= QTChatTabWidget::isInitBenchPending ();
+    if (benching) bench_start ("chat_init: sync_chat_tab_mode");
     // 如果之前处于侧边栏模式，先关闭（记住用户选择，切回时恢复）
     if (chatSidebarMode) {
       chatSidebarModeMemory_= true;
@@ -1256,11 +1259,14 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
     update_visibility ();
 
     if (!chatContentWidget) {
+      if (benching) bench_start ("chat_init: createView");
       chatContentWidget=
           get_chat_controller ()->createView (centralwidget (), this);
+      if (benching) bench_end ("chat_init: createView");
     }
     show_widget_in_layout (chatContentWidget, layout);
     chatContentWidget->setFocus (Qt::OtherFocusReason);
+    if (benching) bench_end ("chat_init: sync_chat_tab_mode");
   }
   else {
     // Show normal editor view only when no special tab mode is active

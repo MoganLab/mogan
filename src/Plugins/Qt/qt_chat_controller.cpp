@@ -18,6 +18,7 @@
 #include "new_buffer.hpp"
 #include "s7_tm.hpp"
 #include "scheme.hpp"
+#include "tm_debug.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -56,14 +57,19 @@ QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   // 1. Load session metadata
   // llm 插件按 idle 延迟初始化，新建 Chat 标签页时其 scheme 模块可能尚未加载
+  bool benching= QTChatTabWidget::isInitBenchPending ();
+  if (benching) bench_start ("chat_init: load chat modules");
   eval ("(use-modules (llm chat-loader))");
   call ("chat-persist-load-all");
+  if (benching) bench_end ("chat_init: load chat modules");
   cout << "[chat-persist] ChatController: restored "
        << sessionManager_.sessionCount () << " session metadatas" << LF;
 
   // 2. 构建显示数据 + 确定初始激活会话
+  if (benching) bench_start ("chat_init: buildDisplayInfos");
   QList<SessionDisplayInfo> infos= buildDisplayInfos ();
-  string                    initialId;
+  if (benching) bench_end ("chat_init: buildDisplayInfos");
+  string initialId;
   if (firstOpen_) {
     // 首次打开：切换到新会话（触发 ensureNewConversation）
     initialId = "";
@@ -74,7 +80,9 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   }
 
   // 3. 创建 View，Sidebar 构造时就有数据
+  if (benching) bench_start ("chat_init: new QTChatTabWidget");
   view_= new QTChatTabWidget (infos, initialId, parent);
+  if (benching) bench_end ("chat_init: new QTChatTabWidget");
   view_->setParentTmWidget (tm);
 
   // 连接 Sidebar 信号
@@ -128,12 +136,14 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   }
 
   // 4. 激活初始会话（按需创建 Panel）
+  if (benching) bench_start ("chat_init: activate session");
   if (!is_empty (initialId)) {
     activateSession (initialId);
   }
   else {
     ensureNewConversation ();
   }
+  if (benching) bench_end ("chat_init: activate session");
 
   // 5. 恢复当前模型（使用激活的会话）
   if (!is_empty (initialId)) {

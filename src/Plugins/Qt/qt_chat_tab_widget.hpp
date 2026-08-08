@@ -404,6 +404,8 @@ public:
    * 在控件首次绘制完成（paintEvent）时结束。
    */
   static void beginInitBench ();
+  /// chat_init 计时是否进行中（用于子阶段日志门控）
+  static bool isInitBenchPending () { return initBenchPending_; }
 
 signals:
   void cancelRequested (const string& sessionId);
