@@ -87,6 +87,19 @@ is_chat_tab_buffer (url name) {
   return starts (as_string (name), "tmfs://chat-tab");
 }
 
+/**
+ * @brief 判断 buffer 名称是否指向聊天会话的只读消息展示区。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称形如 \c tmfs://chat/<sid>/message 则返回 true。
+ * @note 输入框（\c .../input）不在此列：dock 侧边栏模式下焦点切到输入框时
+ * 模式工具栏仍需随其重建。
+ */
+bool
+is_chat_message_buffer (url name) {
+  string s= as_string (name);
+  return starts (s, "tmfs://chat/") && ends (s, "/message");
+}
+
 bool
 is_startup_tab_buffer (url name) {
   return name == url ("tmfs://startup-tab");
