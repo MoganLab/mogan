@@ -398,7 +398,10 @@
 (tm-define (chat-tab-add-default-style-packages! session-name)
   ;; 偏好驱动，参考 buffer-set-default-style（tm-files.scm:130-146）
   ;; 一次性 set-style-list：逐包 add 会每包触发一次样式树重建，耗时成倍
-  (let ((packs (list "number-europe" "preview-ref")) (lan (get-preference "language")))
+  (let ((t0 (texmacs-time))
+        (packs (list "number-europe" "preview-ref"))
+        (lan (get-preference "language"))
+       ) ;
     (when (and (!= lan "english") (in? lan supported-languages))
       (set! packs (append packs (list lan)))
       ;; 中文等 CJK 语言自动加载对应样式包
@@ -406,11 +409,25 @@
         (set! packs (append packs (list "table-captions-above")))
       ) ;when
     ) ;when
-    ;; 插件样式包：动态检测，参考 session-edit 的 make-session
-    (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append session-name ".ts"))
-          ) ;url-exists?
-      (set! packs (append packs (list session-name)))
-    ) ;when
-    (set-style-list (append (get-style-list) packs))
+    (let ((t1 (texmacs-time)))
+      ;; 插件样式包：动态检测，参考 session-edit 的 make-session
+      (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append session-name ".ts"))
+            ) ;url-exists?
+        (set! packs (append packs (list session-name)))
+      ) ;when
+      (let ((t2 (texmacs-time)))
+        (set-style-list (append (get-style-list) packs))
+        (debug-message "debug-std"
+          (string-append "[chat-tab] add-default-style-packages: pref="
+            (number->string (- t1 t0))
+            "ms, url-exists="
+            (number->string (- t2 t1))
+            "ms, set-style-list="
+            (number->string (- (texmacs-time) t2))
+            "ms\n"
+          ) ;string-append
+        ) ;debug-message
+      ) ;let
+    ) ;let
   ) ;let
 ) ;tm-define
