@@ -13,8 +13,8 @@
 // 被测函数定义于 edit_interface.cpp
 extern bool should_update_menu (int mask, url name);
 
-static const int ALL_BITS[]= {MENU_MAIN,   ICONS_MAIN, ICONS_MODE,
-                              ICONS_FOCUS, ICONS_EXTRA, TAB_PAGES,
+static const int ALL_BITS[]= {MENU_MAIN,    ICONS_MAIN,  ICONS_MODE,
+                              ICONS_FOCUS,  ICONS_EXTRA, TAB_PAGES,
                               NOTIFICATION, SIDE_TOOLS};
 static const int N_BITS    = sizeof (ALL_BITS) / sizeof (ALL_BITS[0]);
 
