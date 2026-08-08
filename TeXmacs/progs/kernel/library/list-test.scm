@@ -149,6 +149,61 @@
   (check-catch 'wrong-type-arg (list-drop-right 'a 1))
 ) ;define
 
+;; exists?/forall?：谓词短路遍历（g_any/g_every 的 C 实现）。
+
+(define (test-exists-basic)
+  (check (exists? even? '(1 3 4 5)) => #t)
+  (check (exists? even? '(1 3 5)) => #f)
+  (check (exists? even? '()) => #f)
+  (check (exists? (lambda (x) (and (> x 2) "hit")) '(1 2 3)) => #t)
+) ;define
+
+(define (test-exists-errors)
+  (check-catch 'wrong-type-arg (exists? (lambda (x) #f) '(1 2 . 3)))
+) ;define
+
+(define (test-forall-basic)
+  (check (forall? even? '(2 4 6)) => #t)
+  (check (forall? even? '(2 3 6)) => #f)
+  (check (forall? even? '()) => #t)
+) ;define
+
+;; list-find：返回首个满足谓词的元素（g_find 的 C 实现）。
+
+(define (test-list-find-basic)
+  (check (list-find '(3 1 4 1 5) even?) => 4)
+  (check (list-find '(1 3 5) even?) => #f)
+  (check (list-find '() even?) => #f)
+) ;define
+
+(define (test-list-find-errors)
+  (check-catch 'wrong-type-arg (list-find '(1 2 . 3) (lambda (x) #f)))
+) ;define
+
+;; list-fold/list-fold-right：单列表路径走 g_fold/g_fold_right 的 C 实现。
+
+(define (test-list-fold-basic)
+  (check (list-fold + 0 '(1 2 3 4)) => 10)
+  (check (list-fold cons '() '(1 2 3 4)) => '(4 3 2 1))
+  (check (list-fold + 0 '()) => 0)
+  (check (list-fold + 0 '(1 2 3) '(4 5 6)) => 21)
+) ;define
+
+(define (test-list-fold-errors)
+  (check-catch 'wrong-type-arg (list-fold + 0 '(1 2 . 3)))
+) ;define
+
+(define (test-list-fold-right-basic)
+  (check (list-fold-right + 0 '(1 2 3 4)) => 10)
+  (check (list-fold-right cons '() '(1 2 3 4)) => '(1 2 3 4))
+  (check (list-fold-right + 0 '()) => 0)
+  (check (list-fold-right + 0 '(1 2 3) '(4 5 6)) => 21)
+) ;define
+
+(define (test-list-fold-right-errors)
+  (check-catch 'wrong-type-arg (list-fold-right + 0 '(1 2 . 3)))
+) ;define
+
 (tm-define (regtest-list)
   (test-cdr-basic)
   (test-cdr-mixed-elements)
@@ -165,5 +220,14 @@
   (test-list-drop-right-basic)
   (test-list-drop-right-pure)
   (test-list-drop-right-errors)
+  (test-exists-basic)
+  (test-exists-errors)
+  (test-forall-basic)
+  (test-list-find-basic)
+  (test-list-find-errors)
+  (test-list-fold-basic)
+  (test-list-fold-errors)
+  (test-list-fold-right-basic)
+  (test-list-fold-right-errors)
   (check-report)
 ) ;tm-define

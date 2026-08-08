@@ -166,10 +166,7 @@
 (define-public (list-fold kons knil list1 . rest)
   "Fundamental list iterator."
   (if (null? rest)
-    (let f
-      ((knil knil) (list1 list1))
-      (if (null? list1) knil (f (kons (car list1) knil) (cdr list1)))
-    ) ;let
+    (g_fold kons knil list1)
     (let f
       ((knil knil) (lists (cons list1 rest)))
       (if (list-any null? lists)
@@ -185,10 +182,7 @@
 (define-public (list-fold-right kons knil clist1 . rest)
   "Fundamental list recursion operator."
   (if (null? rest)
-    (let f
-      ((list1 clist1))
-      (if (null? list1) knil (kons (car list1) (f (cdr list1))))
-    ) ;let
+    (g_fold_right kons knil clist1)
     (let f
       ((lists (cons clist1 rest)))
       (if (list-any null? lists)
@@ -325,19 +319,9 @@
   (append-map (lambda (x) (list (car x) (cdr x))) l)
 ) ;define-public
 
-(define-public (forall? pred? l)
-  (cond ((null? l) #t)
-        ((not (pred? (car l))) #f)
-        (else (forall? pred? (cdr l)))
-  ) ;cond
-) ;define-public
+(define-public exists? g_any)
 
-(define-public (exists? pred? l)
-  (cond ((null? l) #f)
-        ((pred? (car l)) (pred? (car l)))
-        (else (exists? pred? (cdr l)))
-  ) ;cond
-) ;define-public
+(define-public forall? g_every)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search and replace
@@ -345,10 +329,7 @@
 
 (define-public (list-find l pred?)
   "Applies @pred? on elements of @l until it evaluates to true."
-  (let next
-    ((l l))
-    (if (null? l) #f (if (pred? (car l)) (car l) (next (cdr l))))
-  ) ;let
+  (g_find pred? l)
 ) ;define-public
 
 (define-public (list-find-index l pred?)
