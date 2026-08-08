@@ -897,17 +897,20 @@ overlapping (string s1, string s2) {
 
 string
 replace (string s, string what, string by) {
-  int    i, n= N (s);
+  int i, n= N (s), k= N (what);
+  // 空模式按「不匹配任何位置」处理，否则下方 i+= k 步进为 0 会死循环
+  if (k == 0) return s;
   string r;
+  int    start= 0;
   for (i= 0; i < n;)
     if (test (s, i, what)) {
+      r << s (start, i);
       r << by;
-      i+= N (what);
+      i+= k;
+      start= i;
     }
-    else {
-      r << s[i];
-      i++;
-    }
+    else i++;
+  r << s (start, n);
   return r;
 }
 
