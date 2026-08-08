@@ -61,55 +61,12 @@
       ) ;cond
     ) ;define
 
-    (define (string-join l . delim+grammer)
-      (define (extract-params params-l)
-        (cond ((null-list? params-l) (list "" 'infix))
-              ((and (= (length params-l) 1) (string? (car params-l)))
-               (list (car params-l) 'infix)
-              ) ;
-              ((and (= (length params-l) 2)
-                 (string? (first params-l))
-                 (symbol? (second params-l))
-               ) ;and
-               params-l
-              ) ;
-              ((> (length params-l) 2)
-               (error 'wrong-number-of-args "optional params in string-join")
-              ) ;
-              (else (error 'type-error "optional params in string-join"))
-        ) ;cond
-      ) ;define
-      ;; 一次性把元素和分隔符交错收集到列表，再交给 string-append 一次完成拼接
-      ;; 避免旧实现每层递归重复拼接后缀导致的 O(n^2) 开销
-      (define (string-join-sub l delim)
-        (cond ((null-list? l) "")
-              ((null? (cdr l)) (car l))
-              (else (let loop
-                      ((rest (cdr l)) (acc (list (car l))))
-                      (if (null? rest)
-                        (apply string-append (reverse acc))
-                        (loop (cdr rest) (cons (car rest) (cons delim acc)))
-                      ) ;if
-                    ) ;let
-              ) ;else
-        ) ;cond
-      ) ;define
-      (let* ((params (extract-params delim+grammer))
-             (delim (first params))
-             (grammer (second params))
-             (ret (string-join-sub l delim))
-            ) ;
-        (case grammer
-         ('infix ret)
-         ('strict-infix
-          (if (null-list? l) (error 'value-error "empty list not allowed") ret)
-         ) ;
-         ('suffix (if (null-list? l) "" (string-append ret delim)))
-         ('prefix (if (null-list? l) "" (string-append delim ret)))
-         (else (error 'value-error "invalid grammer"))
-        ) ;case
-      ) ;let*
-    ) ;define
+    ;; string-join 的 C 实现见 src/liii_string.cpp 的 g_string-join
+    ;; 错误契约与旧 Scheme 实现一致：
+    ;;   type-error "optional params in string-join"（分隔符非字符串或 grammar 非符号）
+    ;;   value-error "invalid grammer"（grammar 非四种之一）
+    ;;   value-error "empty list not allowed"（strict-infix 遇到空列表）
+    (define string-join g_string-join)
 
     (define (string-null? str)
       (if (not (string? str))
@@ -330,18 +287,21 @@
       ) ;let
     ) ;define
 
+    ;; string-prefix?/string-suffix? 复用 C 实现的 g_string-starts?/g_string-ends?
+    ;; （见 src/liii_string.cpp），避免旧实现的 substring 临时分配；
+    ;; 注意参数顺序相反，且错误契约为 wrong-type-arg（区别于 liii 的 type-error）
     (define (string-prefix? prefix str)
-      (let* ((prefix-len (string-length prefix)) (str-len (string-length str)))
-        (and (<= prefix-len str-len) (string=? prefix (substring str 0 prefix-len)))
-      ) ;let*
+      (if (and (string? prefix) (string? str))
+        (g_string-starts? str prefix)
+        (error 'wrong-type-arg "string-prefix?: expected string arguments")
+      ) ;if
     ) ;define
 
     (define (string-suffix? suffix str)
-      (let* ((suffix-len (string-length suffix)) (str-len (string-length str)))
-        (and (<= suffix-len str-len)
-          (string=? suffix (substring str (- str-len suffix-len) str-len))
-        ) ;and
-      ) ;let*
+      (if (and (string? suffix) (string? str))
+        (g_string-ends? str suffix)
+        (error 'wrong-type-arg "string-suffix?: expected string arguments")
+      ) ;if
     ) ;define
 
     (define (string-index str char/pred? . start+end)
