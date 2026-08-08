@@ -111,6 +111,46 @@
   ) ;let*
 ) ;define
 
+;; 性能基准：深链 + 宽文档两种树形，供优化前后对比耗时。
+;; 只打印耗时不断言上限，避免慢机器上误报；匹配数仍做 check 保证规模正确。
+
+(define (make-deep-tree n)
+  (if (<= n 0)
+    (string->tree "x")
+    (tm->tree (list 'emph (make-deep-tree (- n 1))))
+  ) ;if
+) ;define
+
+(define (make-wide-doc n)
+  (tm->tree (cons 'document (map (lambda (i) (list 'frac (number->string i) "y")) (.. 0 n)))
+  ) ;tm->tree
+) ;define
+
+(define (bench-tree-search)
+  (let ((deep (make-deep-tree 200)) (wide (make-wide-doc 500)) (start 0))
+    (check (length (tree-search deep (lambda (t) (tree-func? t 'emph)))) => 200)
+    (check (length (tree-search wide frac?)) => 500)
+    (set! start (texmacs-time))
+    (do ((i 0 (+ i 1)))
+      ((= i 50))
+      (tree-search deep (lambda (t) (tree-func? t 'emph)))
+    ) ;do
+    (display* "bench tree-search deep(200) x50: "
+      (- (texmacs-time) start)
+      " msec\n"
+    ) ;display*
+    (set! start (texmacs-time))
+    (do ((i 0 (+ i 1)))
+      ((= i 50))
+      (tree-search wide frac?)
+    ) ;do
+    (display* "bench tree-search wide(500) x50: "
+      (- (texmacs-time) start)
+      " msec\n"
+    ) ;display*
+  ) ;let
+) ;define
+
 (tm-define (regtest-tree)
   (test-tree-search-basic)
   (test-tree-search-document-order)
@@ -120,5 +160,6 @@
   (test-tree-search-atomic)
   (test-tree-search-empty-compound)
   (test-tree-search-pure)
+  (bench-tree-search)
   (check-report)
 ) ;tm-define
