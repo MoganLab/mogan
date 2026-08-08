@@ -635,4 +635,7 @@
   ) ;string-append
 ) ;debug-message
 (texmacs-banner)
+
+(lazy-keyboard (generic generic-kbd) always?)
+
 (debug-message "debug-std" "Initialization done\n")

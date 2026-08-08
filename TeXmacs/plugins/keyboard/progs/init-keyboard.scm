@@ -14,7 +14,6 @@
 
 (lazy-keyboard (utils automate auto-kbd) in-auto?)
 (lazy-keyboard (texmacs keyboard prefix-kbd) always?)
-(lazy-keyboard (generic generic-kbd) always?)
 (lazy-keyboard (generic search-kbd))
 (lazy-keyboard (text text-kbd) in-text?)
 (lazy-keyboard (keyboard text-kbd-utf8) in-text?)
