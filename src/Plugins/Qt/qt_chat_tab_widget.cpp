@@ -441,6 +441,8 @@ ChatConversationPanel::readInputMessage () const {
 
 bool
 ChatConversationPanel::is_empty_document_body (tree body) {
+  // get_buffer_body 对不存在的 buffer 返回原子空串，同样视为空文档
+  if (is_atomic (body)) return body->label == "";
   if (!is_func (body, DOCUMENT)) return false;
   if (N (body) == 0) return true;
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";

@@ -98,6 +98,18 @@ private slots:
     QVERIFY (!ChatConversationPanel::is_empty_document_body (doc));
   }
 
+  void test_is_empty_document_body_missing_buffer () {
+    // get_buffer_body 对不存在的 buffer 返回原子空串，必须视为空文档，
+    // 否则复用空白会话会被误判有消息而进入对话模式（消息区误显示）
+    tree missing= tree ("");
+    QVERIFY (ChatConversationPanel::is_empty_document_body (missing));
+  }
+
+  void test_is_empty_document_body_atomic_non_empty () {
+    tree atom= tree ("hello");
+    QVERIFY (!ChatConversationPanel::is_empty_document_body (atom));
+  }
+
   // === setSidebarCollapsed / isSidebarCollapsed ===
   void test_setSidebarCollapsed_expand () {
     QList<SessionDisplayInfo> sessions;

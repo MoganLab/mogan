@@ -100,6 +100,8 @@ public:
 
   /**
    * @brief 判断文档体是否为空（仅含一个空字符串的 DOCUMENT 节点）。
+   *
+   * get_buffer_body 对不存在的 buffer 返回原子空串，也视为空。
    * @param body 文档体 tree
    * @return 为空时返回 true
    */
