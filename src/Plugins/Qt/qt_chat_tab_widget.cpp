@@ -199,16 +199,8 @@ ChatConversationPanel::setup_ui () {
   topLayout->addWidget (sessionTitle_, 0, Qt::AlignHCenter);
   topLayout->addSpacing (DpiUtils::scaled (kTitleToMessageSpacing));
 
-  // Message area
-  qreal chatZoom= DpiUtils::scaled (100) / 100.0;
-  messageWidget_= texmacs_input_widget (
-      tree (WITH, "font", "sys-chinese", "zoom-factor", as_string (chatZoom),
-            tree (DOCUMENT, "")),
-      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufferUrl_);
-  set_zoom_factor (messageWidget_, chatZoom);
-
-  QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
-  messageFrame_          = new QWidget (topPanel);
+  // Message area（容器先行、嵌入编辑器懒创建，见 ensureMessageWidget）
+  messageFrame_= new QWidget (topPanel);
   messageFrame_->setObjectName ("chat-tab-message-frame");
   messageFrame_->setStyleSheet (
       QString ("border: none; border-radius: %1px;")
@@ -216,30 +208,11 @@ ChatConversationPanel::setup_ui () {
   QVBoxLayout* messageFrameLayout= new QVBoxLayout (messageFrame_);
   messageFrameLayout->setContentsMargins (0, 0, 0, 0);
   messageFrameLayout->setSpacing (0);
-  messageQWidget->setParent (messageFrame_);
-  messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
-  // Ignored: 忽略 TeXmacs widget 返回的屏幕尺寸 sizeHint，
-  // 避免在 dock 模式下窗口被向下拉伸。
-  messageQWidget->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
-  {
-    QAbstractScrollArea* msgArea=
-        messageQWidget->findChild<QAbstractScrollArea*> ();
-    if (msgArea) {
-      msgArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-      msgArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-      msgArea->viewport ()->setBackgroundRole (QPalette::Base);
-    }
-    QTMWidget* msgEditor= messageQWidget->findChild<QTMWidget*> ();
-    if (msgEditor) {
-      msgEditor->setProperty ("chat_message_readonly", true);
-      msgEditor->installEventFilter (this);
-    }
-  }
-  messageFrameLayout->addWidget (messageQWidget);
   messageFrame_->hide ();
   topLayout->addWidget (messageFrame_, 1);
 
   // Input area
+  qreal    chatZoom = DpiUtils::scaled (100) / 100.0;
   QWidget* inputArea= new QWidget (topPanel);
   inputArea->setObjectName ("chat-tab-input-area-wrap");
   inputArea->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -346,9 +319,47 @@ ChatConversationPanel::setup_ui () {
 }
 
 void
+ChatConversationPanel::ensureMessageWidget () {
+  if (!is_nil (messageWidget_) || !messageFrame_) return;
+  // message buffer 可能已被 scheme 侧写入内容（恢复的消息 / 首个问答轮）；
+  // texmacs_input_widget 对已存在 buffer 会 set_buffer_tree 整体覆盖，
+  // 故必须以现有 body 初始化
+  tree body= tree (DOCUMENT, "");
+  if (contains (msgBufferUrl_, get_all_buffers ()))
+    body= get_buffer_body (msgBufferUrl_);
+  qreal chatZoom= DpiUtils::scaled (100) / 100.0;
+  messageWidget_= texmacs_input_widget (
+      tree (WITH, "font", "sys-chinese", "zoom-factor", as_string (chatZoom),
+            body),
+      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufferUrl_);
+  set_zoom_factor (messageWidget_, chatZoom);
+
+  QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
+  messageQWidget->setParent (messageFrame_);
+  messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
+  // Ignored: 忽略 TeXmacs widget 返回的屏幕尺寸 sizeHint，
+  // 避免在 dock 模式下窗口被向下拉伸。
+  messageQWidget->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
+  QAbstractScrollArea* msgArea=
+      messageQWidget->findChild<QAbstractScrollArea*> ();
+  if (msgArea) {
+    msgArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+    msgArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+    msgArea->viewport ()->setBackgroundRole (QPalette::Base);
+  }
+  QTMWidget* msgEditor= messageQWidget->findChild<QTMWidget*> ();
+  if (msgEditor) {
+    msgEditor->setProperty ("chat_message_readonly", true);
+    msgEditor->installEventFilter (this);
+  }
+  messageFrame_->layout ()->addWidget (messageQWidget);
+}
+
+void
 ChatConversationPanel::enterConversationMode () {
   if (conversationMode_) return;
 
+  ensureMessageWidget ();
   conversationMode_  = true;
   const int endOffset= DpiUtils::scaled (kConversationTopOffsetY);
 

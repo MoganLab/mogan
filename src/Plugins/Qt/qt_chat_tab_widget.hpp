@@ -72,6 +72,15 @@ public:
   void enterConversationMode ();
 
   /**
+   * @brief 按需创建消息区嵌入编辑器（幂等）。
+   *
+   * welcome 阶段只展示输入框，message 嵌入编辑器推迟到进入对话模式时
+   * 才创建，避免空会话为不可见编辑器支付 buffer/view/typeset 成本。
+   * buffer 中可能已有 scheme 侧写入的内容，创建时以现有 body 初始化。
+   */
+  void ensureMessageWidget ();
+
+  /**
    * @brief 聚焦到输入区域。
    */
   void focusInput ();
