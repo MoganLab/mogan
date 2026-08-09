@@ -11,13 +11,13 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (various comment-edit)
+(texmacs-module (comment comment-edit)
   (:use (utils library tree)
         (utils library cursor)
         (generic document-edit)
         (generic document-style)
         (link ref-edit)
-        (various comment-drd)))
+        (comment comment-drd)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Caching highly volatile computations

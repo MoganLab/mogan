@@ -11,8 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (various comment-widgets)
-  (:use (various comment-edit)
+(texmacs-module (comment comment-widgets)
+  (:use (comment comment-edit)
         (utils library cursor)
         (generic document-style)
         (generic generic-edit)

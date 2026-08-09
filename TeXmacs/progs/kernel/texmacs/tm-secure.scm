@@ -96,7 +96,7 @@
   refresh-now
 ) ;define-secure-symbols
 
-(lazy-define (various comment-edit)
+(lazy-define (comment comment-edit)
   ext-abbreviate-name
   ext-contains-shown-comments?
   ext-comment-color

@@ -15,8 +15,8 @@
   (:use (generic generic-kbd)
     (utils edit auto-close)
     (text text-edit)
-    (various comment-edit)
-    (various comment-widgets)
+    (comment comment-edit)
+    (comment comment-widgets)
   ) ;:use
 ) ;texmacs-module
 (debug-message "keyboard" "(keyboard text-kbd-utf8): registering kbd-map ...\n")

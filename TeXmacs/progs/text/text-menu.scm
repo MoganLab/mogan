@@ -18,8 +18,8 @@
     (prog prog-menu)
     (generic format-edit)
     (generic document-style)
-    (various comment-edit)
-    (various comment-widgets)
+    (comment comment-edit)
+    (comment comment-widgets)
   ) ;:use
 ) ;texmacs-module
 
