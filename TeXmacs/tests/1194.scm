@@ -19,29 +19,34 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (liii check))
+(import (liii check) (liii os))
 (check-set-mode! 'report-failed)
 
 ;; 与 C++ plugin_list 同构：读两个 plugins 目录 -> 合并排序 -> 去连续重复 ->
-;; 滤 "." ".."。C++ 端 read_directory 返回条目名，scheme 侧 url-read-directory
-;; 返回完整 url，需 url-tail 取末段再转字符串；元素最终转 symbol 与 glue 返回对齐
+;; 滤 "." ".."。liii os 的 listdir 与 C++ read_directory 一样直接返回条目名，
+;; 无需经 url 抽象；元素最终转 symbol 与 glue 返回对齐
 ;; （plugin-list 的元素是 symbol，见 help-menu.scm 的 symbol->string 用法）。
+;; listdir 对不存在的目录抛错（如 TEXMACS_HOME_PATH/plugins 缺失），先判存在性。
 
 (define (read-plugin-dir path)
-  (map (lambda (u) (url->string (url-tail u))) (url-read-directory path "*"))
+  (let ((u (string->url path)))
+    ;; listdir 返回 vector
+    (if (url-exists? u) (vector->list (listdir (url->system u))) '())
+  ) ;let
 ) ;define
 
 (define (scheme-plugin-list)
   (let* ((a (read-plugin-dir "$TEXMACS_PATH/plugins"))
          (b (read-plugin-dir "$TEXMACS_HOME_PATH/plugins"))
          (sorted (list-sort (append a b) string<?))
-         (deduped
-           (let loop ((l sorted))
-             (cond ((null? l) '())
-                   ((or (== (car l) ".") (== (car l) "..")) (loop (cdr l)))
-                   ((and (pair? (cdr l)) (== (car l) (cadr l))) (loop (cdr l)))
-                   (else (cons (car l) (loop (cdr l)))))
-           ) ;let
+         (deduped (let loop
+                    ((l sorted))
+                    (cond ((null? l) '())
+                          ((or (== (car l) ".") (== (car l) "..")) (loop (cdr l)))
+                          ((and (pair? (cdr l)) (== (car l) (cadr l))) (loop (cdr l)))
+                          (else (cons (car l) (loop (cdr l))))
+                    ) ;cond
+                  ) ;let
          ) ;deduped
         ) ;
     (map string->symbol deduped)
@@ -51,7 +56,7 @@
 (define (bench f n)
   (let ((start (texmacs-time)))
     (do ((i 0 (+ i 1)))
-        ((= i n))
+      ((= i n))
       (f)
     ) ;do
     (- (texmacs-time) start)
@@ -60,10 +65,7 @@
 
 (tm-define (test_1194)
   (check (scheme-plugin-list) => (plugin-list))
-  (let* ((n 100)
-         (cpp-ms (bench plugin-list n))
-         (scm-ms (bench scheme-plugin-list n))
-        ) ;
+  (let* ((n 100) (cpp-ms (bench plugin-list n)) (scm-ms (bench scheme-plugin-list n)))
     (display (string-append "bench plugin-list (C++) x"
                (number->string n)
                ": "
@@ -78,6 +80,6 @@
                " ms\n"
              ) ;string-append
     ) ;display
-  ) ;let
+  ) ;let*
   (check-report)
 ) ;tm-define
