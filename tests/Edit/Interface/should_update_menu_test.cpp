@@ -30,6 +30,7 @@ private slots:
   void test_chat_input ();
   void test_unknown_chat_sub_buffer ();
   void test_aux_search ();
+  void test_aux_replace ();
 };
 
 // 普通 buffer：所有段都重建
@@ -98,6 +99,15 @@ TestShouldUpdateMenu::test_unknown_chat_sub_buffer () {
 void
 TestShouldUpdateMenu::test_aux_search () {
   url u= url ("tmfs://aux/search/0123456789abcdef0123456789abcdef/1");
+  for (int i= 0; i < N_BITS; i++)
+    QVERIFY (!should_update_menu (ALL_BITS[i], u));
+  QVERIFY (!should_update_menu (MENU_ALL, u));
+}
+
+// 替换辅助缓冲区：全部不重建（与 search 同属搜索面板 widget）
+void
+TestShouldUpdateMenu::test_aux_replace () {
+  url u= url ("tmfs://aux/replace/0123456789abcdef0123456789abcdef/1");
   for (int i= 0; i < N_BITS; i++)
     QVERIFY (!should_update_menu (ALL_BITS[i], u));
   QVERIFY (!should_update_menu (MENU_ALL, u));
