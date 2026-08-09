@@ -106,12 +106,11 @@
   (list->string (reverse cs))
 ) ;provide-public
 
+;; C 实现见 goldfish src/liii_string.cpp 的 g_string-join；
+;; 注意 g_string-join 缺省分隔符是 ""，kernel 契约是 " "，需显式传入
 (provide-public (string-join ss . opt)
   "Concatenate elements of @ss inserting separators."
-  (if (null? opt)
-    (string-join ss " ")
-    (string-concatenate (list-intersperse ss (car opt)))
-  ) ;if
+  (if (null? opt) (g_string-join ss " ") (g_string-join ss (car opt)))
 ) ;provide-public
 
 (provide-public (string-drop-right s n)
