@@ -805,21 +805,6 @@ TeXmacs_main (int argc, char** argv) {
                (s == "-delete-file-cache") || (s == "-delete-doc-cache") ||
                (s == "-delete-plugin-cache") || (s == "-headless"))
         ;
-      else if (s == "-build-manual") {
-        if ((++i) < argc)
-          extra_init_cmd << "(build-manual " << scm_quote (argv[i])
-                         << " delayed-quit)";
-      }
-      else if (s == "-reference-suite") {
-        if ((++i) < argc)
-          extra_init_cmd << "(build-ref-suite " << scm_quote (argv[i])
-                         << " delayed-quit)";
-      }
-      else if (s == "-test-suite") {
-        if ((++i) < argc)
-          extra_init_cmd << "(run-test-suite " << scm_quote (argv[i])
-                         << "delayed-quit)";
-      }
       else if (starts (s, "-psn"))
         ;
       else {
@@ -938,9 +923,7 @@ TeXmacs_main (int argc, char** argv) {
       else if ((s == "-b") || (s == "-initialize-buffer") || (s == "-fn") ||
                (s == "-font") || (s == "-i") || (s == "-initialize") ||
                (s == "-g") || (s == "-geometry") || (s == "-x") ||
-               (s == "-execute") || (s == "-log-file") ||
-               (s == "-build-manual") || (s == "-reference-suite") ||
-               (s == "-test-suite")) {
+               (s == "-execute") || (s == "-log-file")) {
         i++;
       }
     }
