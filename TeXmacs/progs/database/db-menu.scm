@@ -26,7 +26,7 @@
 (define (db-toolbar-search search)
   (let* ((u-search (cork->utf8 search))
          (keys (compute-keys-string u-search "verbatim"))
-         (s (string-recompose keys ","))
+         (s (string-join keys ","))
         ) ;
     (db-set-query-preference (current-buffer) "exact-search" search)
     (db-set-query-preference (current-buffer) "search" s)

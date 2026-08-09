@@ -243,7 +243,7 @@
 
 (define-public (string-recompose-comma l)
   "Turn list @l of strings into comma separated string."
-  (string-recompose l ", ")
+  (string-join l ", ")
 ) ;define-public
 
 (define (property-pair->string p)
@@ -264,7 +264,7 @@
 
 (define-public (alist->string l)
   "Pretty print the association list @l as a string."
-  (string-recompose (map property-pair->string l) "/")
+  (string-join (map property-pair->string l) "/")
 ) ;define-public
 
 (define-public (raw-quote s) (string-append (string-append "\"" s "\"")))

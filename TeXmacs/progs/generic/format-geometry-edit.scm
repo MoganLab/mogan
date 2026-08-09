@@ -128,7 +128,7 @@
   (cond ((tm-atomic? t) (tm->string t))
         ((tm-is? t 'plus)
          (with s
-           (string-recompose (map tm->rich-length (tm-children t)) "+")
+           (string-join (map tm->rich-length (tm-children t)) "+")
            (string-replace s "+-" "-")
          ) ;with
         ) ;

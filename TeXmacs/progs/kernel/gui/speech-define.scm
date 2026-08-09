@@ -374,7 +374,7 @@
   (let* ((l (string-decompose s " "))
          (r (map (cut string-replace-trailing-one <> what by) l))
         ) ;
-    (string-recompose r " ")
+    (string-join r " ")
   ) ;let*
 ) ;tm-define
 
@@ -389,7 +389,7 @@
 
 (define (speech-rewrite*** lan mode h t)
   (with key
-    (locase-all (string-recompose h " "))
+    (locase-all (string-join h " "))
     (if (null? h)
       (if (null? t) t (cons (car t) (speech-rewrite*** lan mode (cdr t) (list))))
       (or (and-with im
@@ -422,7 +422,7 @@
   (set! s (speech-sanitize lan mode s))
   ;; (display* "Sanitized " (cork->utf8 s) "\n")
   (let* ((l (string-decompose s " ")) (r (speech-rewrite* lan mode l)))
-    (string-recompose r " ")
+    (string-join r " ")
   ) ;let*
 ) ;tm-define
 
@@ -474,7 +474,7 @@
 (define (speech-recognizes-list? lan mode h t)
   ;; (display* "    checking " h ", " t "\n")
   (with key
-    (locase-all (string-recompose h " "))
+    (locase-all (string-join h " "))
     (if (null? h)
       (null? t)
       (or (and (or (string->number key)
@@ -514,7 +514,7 @@
 (tm-define (speech-exec-hook l) #f)
 
 (define (speech-exec-list lan h t)
-  (let* ((key* (locase-all (string-recompose h " ")))
+  (let* ((key* (locase-all (string-join h " ")))
          (key (string-append (symbol->string lan) ":" key*))
         ) ;
     ;; (display* "  Try " key* " -> " (kbd-find-key-binding key) "\n")

@@ -148,7 +148,7 @@
          (l (string-decompose s " "))
          (r (map (cut letterize-one lan <>) l))
         ) ;
-    (string-recompose r " ")
+    (string-join r " ")
   ) ;let*
 ) ;tm-define
 

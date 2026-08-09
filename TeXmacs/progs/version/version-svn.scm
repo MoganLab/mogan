@@ -73,7 +73,7 @@
          (lines (remove-empty-strings (string-decompose decoded "\n")))
          (data (string-decompose (car lines) " | "))
          (date-info (string-decompose (caddr data) " "))
-         (msg (string-recompose (cdr lines) " "))
+         (msg (string-join (cdr lines) " "))
         ) ;
     (list (car data) (cadr data) (car date-info) msg)
   ) ;let*

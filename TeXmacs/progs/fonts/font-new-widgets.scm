@@ -378,7 +378,7 @@
          (lf (logical-font-private fam var ser sh))
          (fn2 (logical-font-search lf))
          (fn1 (list (selector-get specs :family) (selector-get specs :style)))
-         (sel (string-recompose (selected-properties specs) " "))
+         (sel (string-join (selected-properties specs) " "))
          (nm1 (string-append (car fn1) " " (cadr fn1)))
          (nm2 (string-append (car fn2) " " (cadr fn2)))
          (nm+ (if (== sel "") nm1 (string-append nm1 " + " sel)))
@@ -602,7 +602,7 @@
       (add "bold" embold)
       (add "bbb" embbb)
       (add "slant" slant)
-      (string-recompose effs ",")
+      (string-join effs ",")
     ) ;with
   ) ;let*
 ) ;define

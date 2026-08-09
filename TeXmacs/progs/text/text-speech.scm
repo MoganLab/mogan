@@ -179,9 +179,9 @@
 ) ;define
 
 (define (text-math-speech* lan pre l post)
-  (let* ((s1 (string-recompose pre " "))
-         (s2 (string-recompose l " "))
-         (s3 (string-recompose post " "))
+  (let* ((s1 (string-join pre " "))
+         (s2 (string-join l " "))
+         (s3 (string-join post " "))
         ) ;
     ;; (display* "  Found " s1 " / " s2 " / " s3 "\n")
     (kbd-insert s1)
@@ -218,14 +218,14 @@
 ) ;define
 
 (define (text-math-speech-bis lan pre l punc post)
-  (let* ((s (string-recompose l " "))
+  (let* ((s (string-join l " "))
          (w (speech-rewrite lan 'math s))
          (r (string-decompose w " "))
          (l* (post-punctuate l punc))
          (post* (if (== punc "") post (cons punc post)))
         ) ;
-    ;; (display* "Try " (string-recompose pre " ")
-    ;;          " / " s " / " punc (string-recompose post " ") "\n")
+    ;; (display* "Try " (string-join pre " ")
+    ;;          " / " s " / " punc (string-join post " ") "\n")
     (cond ((or (null? l) (null? r)) (text-speech* lan (post-punctuate pre punc) post))
           ((speech-has? lan 'math-mode (car l))
            (set! l (cdr l))
@@ -305,7 +305,7 @@
 (define (text-speech* lan h t)
   (if (null? t)
     (when (nnull? h)
-      (kbd-insert (string-recompose h " "))
+      (kbd-insert (string-join h " "))
     ) ;when
     (with l
       (longest-math-prefix lan t)
@@ -313,12 +313,12 @@
         (text-speech* lan (rcons h (car t)) (cdr t))
         (with r
           (sublist t (length l) (length t))
-          ;; (display* "Try mathematics " (string-recompose l " ") "\n")
+          ;; (display* "Try mathematics " (string-join l " ") "\n")
           ;; (debug-message "keyboard-warning"
           ;;               (string-append "Mathematics "
-          ;;                              (string-recompose h " ") " / "
-          ;;                              (string-recompose l " ") " / "
-          ;;                              (string-recompose r " ") "\n"))
+          ;;                              (string-join h " ") " / "
+          ;;                              (string-join l " ") " / "
+          ;;                              (string-join r " ") "\n"))
           (text-math-speech lan h l r)
         ) ;with
       ) ;if

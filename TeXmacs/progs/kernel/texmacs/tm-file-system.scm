@@ -638,9 +638,7 @@
 ;; 示例
 ;; ----
 ;; (list->query '(("a" . "1") ("b" . "2"))) => "a=1&b=2"
-(define-public (list->query l)
-  (with r (map pair->entry l) (string-recompose r "&"))
-) ;define-public
+(define-public (list->query l) (with r (map pair->entry l) (string-join r "&")))
 
 ;; entry->pair
 ;; 将查询字符串中的单个 "key=value" 条目解析为键值对。

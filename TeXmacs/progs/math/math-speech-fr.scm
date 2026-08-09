@@ -35,7 +35,7 @@
 (define (string-table-replace s t)
   (with repl
     (lambda (x) (with y (ahash-ref t x) (if y (car y) x)))
-    (with l (string-decompose s " ") (string-recompose (map repl l) " "))
+    (with l (string-decompose s " ") (string-join (map repl l) " "))
   ) ;with
 ) ;define
 
@@ -60,7 +60,7 @@
   (set! s (locase-all s))
   (set! s (letterize s))
   (set! s (list->tmstring (clean-letter-digit (tmstring->list s))))
-  (set! s (string-recompose (map rewrite-/ (string-decompose s " ")) " "))
+  (set! s (string-join (map rewrite-/ (string-decompose s " ")) " "))
   (set! s (spaced-quotes s))
   (set! s (string-replace s "+" " plus "))
   (set! s (string-replace-trailing s "-" " moins "))
@@ -201,7 +201,7 @@
 
 (define (french-normalize-compute mode s)
   (let* ((l (string-decompose s " ")) (r (map (cut french-normalize-one mode <>) l)))
-    (string-recompose r " ")
+    (string-join r " ")
   ) ;let*
 ) ;define
 
