@@ -320,11 +320,6 @@ function main()
                 ret_type = "bool"
             },
             {
-                scm_name = "os-macos?",
-                cpp_name = "os_macos",
-                ret_type = "bool"
-            },
-            {
                 scm_name = "os-wasm?",
                 cpp_name = "os_wasm",
                 ret_type = "bool"
