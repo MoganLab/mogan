@@ -114,7 +114,9 @@
 (define remote-client-list (list))
 
 (debug-message "debug-std" "Booting TeXmacs kernel functionality\n")
+(boot-bench-mark "prelude")
 (load (url-concretize "$TEXMACS_PATH/progs/kernel/boot/boot-s7.scm"))
+(boot-bench-mark "kernel/boot-s7")
 
 (inherit-modules (kernel boot compat-s7)
   (kernel boot abbrevs)
@@ -123,17 +125,21 @@
   (kernel boot ahash-table)
   (kernel boot prologue)
 ) ;inherit-modules
+(boot-bench-mark "kernel/boot")
 (inherit-modules (kernel library base)
   (kernel library list)
   (kernel library tree)
   (kernel library content)
   (kernel library patch)
 ) ;inherit-modules
+(boot-bench-mark "kernel/library")
 (inherit-modules (kernel regexp regexp-match) (kernel regexp regexp-select))
+(boot-bench-mark "kernel/regexp")
 (inherit-modules (kernel logic logic-rules)
   (kernel logic logic-query)
   (kernel logic logic-data)
 ) ;inherit-modules
+(boot-bench-mark "kernel/logic")
 (inherit-modules (kernel texmacs tm-define)
   (kernel texmacs tm-preferences)
   (kernel texmacs tm-modes)
@@ -145,18 +151,14 @@
   (kernel texmacs tm-file-system)
   (kernel texmacs tm-states)
 ) ;inherit-modules
+(boot-bench-mark "kernel/texmacs")
 (inherit-modules (kernel gui gui-markup)
   (kernel gui menu-define)
   (kernel gui menu-widget)
   (kernel gui kbd-define)
   (kernel gui kbd-handlers)
-  (kernel gui menu-test)
-  (kernel old-gui old-gui-widget)
-  (kernel old-gui old-gui-factory)
-  (kernel old-gui old-gui-form)
-  (kernel old-gui old-gui-test)
 ) ;inherit-modules
-(boot-bench-mark "kernel")
+(boot-bench-mark "kernel/gui")
 
 ;; (display "Booting utilities\n")
 (use-modules (utils library cpp-wrap))
