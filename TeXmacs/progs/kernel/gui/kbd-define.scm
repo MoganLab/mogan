@@ -16,13 +16,8 @@
 (import (liii hash-table))
 (import (liii queue))
 
-(define (kbd-on-linux?)
-  ;; 反向推断 Linux：windows/macos 由 (liii os) 提供，mingw/wasm 走 glue
-  (not (or (os-windows?) (os-mingw?) (os-macos?) (os-wasm?)))
-) ;define
-
 ;; (liii logging) 仅 Linux 加载，节省其他平台的加载时间
-(when (kbd-on-linux?)
+(when (os-linux?)
   (import (liii logging))
 ) ;when
 
@@ -162,7 +157,7 @@
 (define kbd-pump-log-inited? #f)
 
 (define (kbd-pump-log msg)
-  (when (kbd-on-linux?)
+  (when (os-linux?)
     (when (not kbd-pump-log-inited?)
       (log-set-file-handler! "/tmp/kbd-pump.log")
       (set! kbd-pump-log-inited? #t)
