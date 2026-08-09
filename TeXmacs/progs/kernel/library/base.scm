@@ -79,18 +79,15 @@
   (!= (string-index s c) #f)
 ) ;define-public
 
+;; C 实现见 goldfish src/liii_string.cpp 的 g_string-starts?/g_string-ends?
 (define-public (string-starts? s what)
   "Test whether @s starts with @what."
-  (let ((n (string-length s)) (k (string-length what)))
-    (and (>= n k) (== (substring s 0 k) what))
-  ) ;let
+  (g_string-starts? s what)
 ) ;define-public
 
 (define-public (string-ends? s what)
   "Test whether @s ends with @what."
-  (let ((n (string-length s)) (k (string-length what)))
-    (and (>= n k) (== (substring s (- n k) n) what))
-  ) ;let
+  (g_string-ends? s what)
 ) ;define-public
 
 (define-public (string-contains? s what)
