@@ -215,3 +215,4 @@
 (load "scheme/boot.scm")
 (import (scheme base))
 (import (scheme char))
+(import (liii os))
