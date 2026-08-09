@@ -15,7 +15,7 @@
   (:use (kernel texmacs tm-define) (kernel texmacs tm-modes))
 ) ;texmacs-module
 
-(import (liii os) (liii vector))
+(import (liii vector))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Lazy exports from other modules
