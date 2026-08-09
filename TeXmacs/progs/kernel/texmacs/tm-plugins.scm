@@ -403,7 +403,7 @@
             ) ;vector-append
          ) ;v
          (sorted (sort! v string<?))
-         (entries (vector-filter (lambda (s) (not (in? s '("." "..")))) sorted))
+         (entries (vector-filter (lambda (s) (not (member s '("." "..")))) sorted))
          (n (vector-length entries))
         ) ;
     (let loop
