@@ -20,7 +20,6 @@
 
 (define (test-default-chinese-font)
   (cond ((os-macos?) (check (default-chinese-font) => "Singti SC"))
-        ((os-mingw?) (check (default-chinese-font) => "simsun"))
         (else (check (default-chinese-font) => "Noto CJK SC"))
   ) ;cond
 ) ;define
