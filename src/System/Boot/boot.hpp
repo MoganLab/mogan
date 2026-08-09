@@ -31,7 +31,6 @@ void init_env_vars ();
 void init_misc ();
 int  load_settings_and_check_version ();
 
-scheme_tree plugin_list ();
-void        TeXmacs_main (int argc, char** argv);
+void TeXmacs_main (int argc, char** argv);
 
 #endif // defined BOOT_H

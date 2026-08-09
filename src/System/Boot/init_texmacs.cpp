@@ -287,20 +287,6 @@ plugin_path (string which) {
   return expand (complete (search, "r"));
 }
 
-scheme_tree
-plugin_list () {
-  bool          flag;
-  array<string> a= read_directory ("$TEXMACS_PATH/plugins", flag);
-  a << read_directory ("$TEXMACS_HOME_PATH/plugins", flag);
-  merge_sort (a);
-  int  i, n= N (a);
-  tree t (TUPLE);
-  for (i= 0; i < n; i++)
-    if ((a[i] != ".") && (a[i] != "..") && ((i == 0) || (a[i] != a[i - 1])))
-      t << a[i];
-  return t;
-}
-
 /******************************************************************************
  * Initialize main paths
  ******************************************************************************/

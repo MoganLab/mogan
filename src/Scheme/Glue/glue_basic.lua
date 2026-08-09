@@ -151,11 +151,6 @@ function main()
                 ret_type = "string"
             },
             {
-                scm_name = "plugin-list",
-                cpp_name = "plugin_list",
-                ret_type = "scheme_tree"
-            },
-            {
                 scm_name = "set-fast-environments",
                 cpp_name = "set_fast_environments",
                 ret_type = "void",

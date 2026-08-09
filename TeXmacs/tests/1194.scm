@@ -2,14 +2,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : 1194.scm
-;; DESCRIPTION : 性能对比：scheme 实现的 scheme-plugin-list vs C++ glue plugin-list
+;; DESCRIPTION : 回归测试：plugin-list 的 scheme 实现（tm-plugins.scm）
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; PURPOSE
-;;   [1194] plugin-list（C++，read_directory + merge_sort + 去重）是启动期
-;;   plugins 阶段的第一步。本测试在 scheme 侧用 url-read-directory 等价实现
-;;   scheme-plugin-list，钉死两者结果一致，并各跑 N 轮对比耗时，评估该逻辑
-;;   下沉 scheme 的可行性。
+;;   [1194] plugin-list 由 C++ glue（read_directory + merge_sort + 去重）下沉为
+;;   tm-plugins.scm 的 scheme 实现（(liii os) listdir + sort! vector + 按下标
+;;   去重）。基准显示 scheme 版（15 ms/100 轮）快于原 C++ 版（42 ms/100 轮）。
+;;   本测试钉死数据契约：
+;;     1. 返回 symbol 列表且按 string<? 升序、无重复。
+;;     2. 不含 "." / ".."。
+;;     3. 与 listdir 原始读目结果一致（手工重算参考值对比）。
 ;;
 ;; USAGE
 ;;   xmake b stem && xmake r 1194    # headless 即可跑（同步基准，无异步链）
@@ -22,40 +25,30 @@
 (import (liii check) (liii os))
 (check-set-mode! 'report-failed)
 
-;; 与 C++ plugin_list 同构：读两个 plugins 目录 -> 合并排序 -> 去连续重复 ->
-;; 滤 "." ".."。liii os 的 listdir 与 C++ read_directory 一样直接返回条目名，
-;; 无需经 url 抽象；元素最终转 symbol 与 glue 返回对齐
-;; （plugin-list 的元素是 symbol，见 help-menu.scm 的 symbol->string 用法）。
-;; listdir 对不存在的目录抛错（如 TEXMACS_HOME_PATH/plugins 缺失），先判存在性。
-;; listdir 返回 vector：不做 vector->list，直接在 vector 上 sort! + 按下标
-;; 去重，仅最终结果 cons 成 list。
+;; 用 listdir 原始结果手工重算参考值（list 路径，与被测实现的 vector 路径
+;; 互为交叉验证），契约与 plugin-list 文档一致：排序 + 去重 + 滤 "." ".."
 
 (define (read-plugin-dir path)
   (let ((u (string->url path)))
-    (if (url-exists? u) (listdir (url->system u)) #())
+    (if (url-exists? u) (vector->list (listdir (url->system u))) '())
   ) ;let
 ) ;define
 
-(define (scheme-plugin-list)
-  (let* ((v (vector-append (read-plugin-dir "$TEXMACS_PATH/plugins")
-              (read-plugin-dir "$TEXMACS_HOME_PATH/plugins")
-            ) ;vector-append
-         ) ;v
-         (sorted (sort! v string<?))
-         (n (vector-length sorted))
+(define (plugin-list-reference)
+  (let* ((a (read-plugin-dir "$TEXMACS_PATH/plugins"))
+         (b (read-plugin-dir "$TEXMACS_HOME_PATH/plugins"))
+         (sorted (list-sort (append a b) string<?))
+         (deduped (let loop
+                    ((l sorted))
+                    (cond ((null? l) '())
+                          ((or (== (car l) ".") (== (car l) "..")) (loop (cdr l)))
+                          ((and (pair? (cdr l)) (== (car l) (cadr l))) (loop (cdr l)))
+                          (else (cons (car l) (loop (cdr l))))
+                    ) ;cond
+                  ) ;let
+         ) ;deduped
         ) ;
-    (let loop
-      ((i 0) (prev #f) (acc '()))
-      (if (= i n)
-        (reverse acc)
-        (let ((s (vector-ref sorted i)))
-          (if (or (== s ".") (== s "..") (and prev (== s prev)))
-            (loop (+ i 1) prev acc)
-            (loop (+ i 1) s (cons (string->symbol s) acc))
-          ) ;if
-        ) ;let
-      ) ;if
-    ) ;let
+    (map string->symbol deduped)
   ) ;let*
 ) ;define
 
@@ -70,19 +63,19 @@
 ) ;define
 
 (tm-define (test_1194)
-  (check (scheme-plugin-list) => (plugin-list))
-  (let* ((n 100) (cpp-ms (bench plugin-list n)) (scm-ms (bench scheme-plugin-list n)))
-    (display (string-append "bench plugin-list (C++) x"
+  (let ((plugins (plugin-list)))
+    (check plugins => (plugin-list-reference))
+    (check (list-and (map symbol? plugins)) => #t)
+    (check (list-filter plugins (lambda (s) (in? (symbol->string s) '("." ".."))))
+      =>
+      '()
+    ) ;check
+  ) ;let
+  (let* ((n 100) (ms (bench plugin-list n)))
+    (display (string-append "bench plugin-list x"
                (number->string n)
                ": "
-               (number->string cpp-ms)
-               " ms\n"
-             ) ;string-append
-    ) ;display
-    (display (string-append "bench scheme-plugin-list x"
-               (number->string n)
-               ": "
-               (number->string scm-ms)
+               (number->string ms)
                " ms\n"
              ) ;string-append
     ) ;display
