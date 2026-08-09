@@ -15,13 +15,7 @@
   (:use (plugin telemetry-utils) (utils plugins plugin-eval))
 ) ;texmacs-module
 
-(import (scheme base)
-  (liii base)
-  (liii os)
-  (liii path)
-  (liii string)
-  (liii list)
-) ;import
+(import (scheme base) (liii base) (liii path) (liii string) (liii list))
 
 (define-public *telemetry-event-queue* '())
 
@@ -51,10 +45,10 @@
 ;; event 仅供日志，worker 不消费。
 
 (define (build-upload-payload event)
-  (let ((payload `((,"event" unquote event)
-                   (,"main-dir" unquote (telemetry-main-dir))
-                   (,"api-url" unquote (telemetry-api-url))
-                   (,"api-key" unquote (telemetry-current-token)))
+  (let ((payload `((,"event" . ,event)
+                   (,"main-dir" . ,(telemetry-main-dir))
+                   (,"api-url" . ,(telemetry-api-url))
+                   (,"api-key" . ,(telemetry-current-token)))
         ) ;payload
        ) ;
     (telemetry->json payload)
@@ -139,7 +133,7 @@
       #f
     ) ;if
   ) ;if
-) ;define-public
+) ;tm-define
 
 (define-public (telemetry-queue-length) (length *telemetry-event-queue*))
 

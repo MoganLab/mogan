@@ -16,7 +16,6 @@
 (import (scheme base)
   (liii base)
   (liii njson)
-  (liii os)
   (liii path)
   (liii string)
   (liii uuid)
@@ -54,9 +53,7 @@
   ) ;if
 ) ;define-public
 
-(define-public (telemetry-home-path)
-  (url->system (get-texmacs-home-path))
-) ;define
+(define-public (telemetry-home-path) (url->system (get-texmacs-home-path)))
 
 (define (telemetry-ensure-dir dir)
   (if (not (path-exists? dir))
@@ -268,9 +265,8 @@
 
 (define-public (telemetry-meta-add-entry filename)
   (let* ((entries (telemetry-read-meta))
-         (new-entry `((,"filename" unquote filename)
-                      (,"timestamp" unquote (telemetry-now)))
-         ) ;new-entry
+         (new-entry `((,"filename" . ,filename)
+                      (,"timestamp" . ,(telemetry-now))))
          (updated (cons new-entry entries))
         ) ;
     (if (> (length updated) telemetry-meta-max-entries)
@@ -301,15 +297,15 @@
 ) ;define-public
 
 (define-public (telemetry-make-event event-type properties)
-  `((,"eventType" unquote event-type)
-    (,"timestamp" unquote (telemetry-now))
-    (,"distinctId" unquote (telemetry-device-id))
-    (,"sessionId" unquote (telemetry-session-id))
-    (,"eventId" unquote (uuid4))
-    (,"appVersion" unquote (telemetry-app-version))
-    (,"deviceId" unquote (telemetry-device-id))
-    (,"platform" unquote (telemetry-platform))
-    (,"language" unquote (telemetry-language))
-    (,"timezone" unquote (telemetry-timezone))
-    (,"properties" unquote (if (null? properties) '(()) properties)))
+  `((,"eventType" . ,event-type)
+    (,"timestamp" . ,(telemetry-now))
+    (,"distinctId" . ,(telemetry-device-id))
+    (,"sessionId" . ,(telemetry-session-id))
+    (,"eventId" . ,(uuid4))
+    (,"appVersion" . ,(telemetry-app-version))
+    (,"deviceId" . ,(telemetry-device-id))
+    (,"platform" . ,(telemetry-platform))
+    (,"language" . ,(telemetry-language))
+    (,"timezone" . ,(telemetry-timezone))
+    (,"properties" . ,(if (null? properties) '(()) properties)))
 ) ;define-public

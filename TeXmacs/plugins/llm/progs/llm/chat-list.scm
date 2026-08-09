@@ -12,7 +12,7 @@
 
 (texmacs-module (llm chat-list))
 
-(import (liii njson) (liii os))
+(import (liii njson))
 
 ;;; ---------- 路径工具 ----------
 
