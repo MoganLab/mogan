@@ -239,15 +239,6 @@ function main()
                 }
             },
             {
-                scm_name = "cpp-string-recompose",
-                cpp_name = "recompose",
-                ret_type = "string",
-                arg_list = {
-                    "array_string",
-                    "string"
-                }
-            },
-            {
                 scm_name = "string-trim-spaces-left",
                 cpp_name = "trim_spaces_left",
                 ret_type = "string",

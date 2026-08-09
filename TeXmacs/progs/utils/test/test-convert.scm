@@ -441,7 +441,7 @@
            (l (cpp-string-tokenize info "\n"))
            (k (list-filter l pdf-keep?))
           ) ;
-      (cpp-string-recompose k "\n")
+      (string-join k "\n")
     ) ;let*
   ) ;if
 ) ;define

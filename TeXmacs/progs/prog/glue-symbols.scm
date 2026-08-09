@@ -416,7 +416,6 @@
     "integer->padded-hexadecimal"
     "hexadecimal->integer"
     "cpp-string-tokenize"
-    "cpp-string-recompose"
     "string-differences"
     "string-distance"
     "fuzzy-string-match"
