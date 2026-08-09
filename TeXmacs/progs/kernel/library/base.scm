@@ -227,15 +227,6 @@
   ) ;with
 ) ;define-public
 
-(define-public (string-recompose l sep)
-  "Turn list @l of strings into one string using @sep as separator."
-  (if (char? sep) (set! sep (list->string (list sep))))
-  (cond ((null? l) "")
-        ((null? (cdr l)) (car l))
-        (else (string-append (car l) sep (string-recompose (cdr l) sep)))
-  ) ;cond
-) ;define-public
-
 (define-public (string-tokenize-comma s)
   "Cut string @s into pieces using comma as a separator and remove whitespace."
   (map tm-string-trim-both (string-tokenize-by-char s #\,))

@@ -257,10 +257,7 @@
            (set! tmtex-use-catcodes? #f)
            (set! tmtex-use-unicode? #t)
           ) ;
-          ((== charset "cork")
-           (set! tmtex-use-catcodes? #t)
-           (set! tmtex-use-unicode? #f)
-          ) ;
+          ((== charset "cork") (set! tmtex-use-catcodes? #t) (set! tmtex-use-unicode? #f))
     ) ;cond
   ) ;with
 ) ;define
@@ -2473,7 +2470,7 @@
 ) ;define
 
 (define (tmtex-smart-ref s l)
-  (let* ((ss (map force-string l)) (key (string-recompose ss ",")))
+  (let* ((ss (map force-string l)) (key (string-join ss ",")))
     (list 'Cref key)
   ) ;let*
 ) ;define
@@ -3195,8 +3192,9 @@
   (set! l (escape-braces l))
   (set! s (car (string-decompose s "-")))
   (if (or (== s "verbatim") (== s "code"))
-    `((!begin* ,"alltt") ,(tmtex-verbatim* "" l))
-    (with lang `((!option ,s))
+    `((!begin* "alltt") ,(tmtex-verbatim* "" l))
+    (with lang
+      `((!option ,s))
       `((!begin* ,"tmcode" ,@lang) ,(tmtex-verbatim* "" l))
     ) ;with
   ) ;if
