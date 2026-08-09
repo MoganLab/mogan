@@ -10,25 +10,22 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary pandoc)
-  (:use (binary common)))
+(texmacs-module (binary pandoc) (:use (binary common)))
 
 (define (pandoc-binary-candidates)
-  (cond ((os-macos?)
-         (list "/usr/local/bin/pandoc"
-               "/opt/homebrew/bin/pandoc"))
-        ((os-win32?)
-         (list "$TEXMACS_PATH\\bin\\pandoc.exe"
-               "C:\\Program Files\\Pandoc\\pandoc.exe"))
-        (else
-         (list "/usr/bin/pandoc" "/usr/local/bin/pandoc"))))
+  (cond ((os-macos?) (list "/usr/local/bin/pandoc" "/opt/homebrew/bin/pandoc"))
+        ((os-windows?)
+         (list "$TEXMACS_PATH\\bin\\pandoc.exe" "C:\\Program Files\\Pandoc\\pandoc.exe")
+        ) ;
+        (else (list "/usr/bin/pandoc" "/usr/local/bin/pandoc"))
+  ) ;cond
+) ;define
 
 (tm-define (find-binary-pandoc)
   (:synopsis "Find the url to the pandoc binary, return (url-none) if not found")
-  (find-binary (pandoc-binary-candidates) "pandoc"))
+  (find-binary (pandoc-binary-candidates) "pandoc")
+) ;tm-define
 
-(tm-define (has-binary-pandoc?)
-  (not (url-none? (find-binary-pandoc))))
+(tm-define (has-binary-pandoc?) (not (url-none? (find-binary-pandoc))))
 
-(tm-define (version-binary-pandoc)
-  (version-binary (find-binary-pandoc)))
+(tm-define (version-binary-pandoc) (version-binary (find-binary-pandoc)))

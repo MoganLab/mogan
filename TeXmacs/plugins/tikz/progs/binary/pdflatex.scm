@@ -12,8 +12,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary pdflatex)
-  (:use (binary common)))
+(texmacs-module (binary pdflatex) (:use (binary common)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; pdflatex
@@ -25,23 +24,23 @@
            "/usr/texbin/pdflatex"
            "/opt/homebrew/bin/pdflatex"
            "/usr/local/bin/pdflatex"
-         ))
-        ((os-win32?)
-         (list
-          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\x64\\pdflatex.exe"
-          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\pdflatex.exe"
-         ))
-        (else
-         (list "/usr/bin/pdflatex"
-           "/usr/local/bin/pdflatex"
-         ))))
+         ) ;list
+        ) ;
+        ((os-windows?)
+         (list "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\x64\\pdflatex.exe"
+           "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\pdflatex.exe"
+         ) ;list
+        ) ;
+        (else (list "/usr/bin/pdflatex" "/usr/local/bin/pdflatex"))
+  ) ;cond
+) ;define
 
 (tm-define (find-binary-pdflatex)
-  (:synopsis "Find the url to the pdflatex binary, return (url-none) if not found")
-  (find-binary (pdflatex-binary-candidates) "pdflatex"))
+  (:synopsis "Find the url to the pdflatex binary, return (url-none) if not found"
+  ) ;:synopsis
+  (find-binary (pdflatex-binary-candidates) "pdflatex")
+) ;tm-define
 
-(tm-define (has-binary-pdflatex?)
-  (not (url-none? (find-binary-pdflatex))))
+(tm-define (has-binary-pdflatex?) (not (url-none? (find-binary-pdflatex))))
 
-(tm-define (version-binary-pdflatex)
-  (version-binary (find-binary-pdflatex)))
+(tm-define (version-binary-pdflatex) (version-binary (find-binary-pdflatex)))

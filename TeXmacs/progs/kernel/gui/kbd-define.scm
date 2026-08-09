@@ -17,8 +17,8 @@
 (import (liii queue))
 
 (define (kbd-on-linux?)
-  ;; lolly glue 只有 os-win32?/os-mingw?/os-macos?/os-wasm?,反向推断
-  (not (or (os-win32?) (os-mingw?) (os-macos?) (os-wasm?)))
+  ;; 反向推断 Linux：windows/macos 由 (liii os) 提供，mingw/wasm 走 glue
+  (not (or (os-windows?) (os-mingw?) (os-macos?) (os-wasm?)))
 ) ;define
 
 ;; (liii logging) 仅 Linux 加载，节省其他平台的加载时间

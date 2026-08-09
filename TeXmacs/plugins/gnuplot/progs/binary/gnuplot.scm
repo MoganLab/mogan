@@ -15,7 +15,7 @@
 
 (define (gnuplot-binary-candidates)
   (cond ((os-macos?) (list "/opt/homebrew/bin/gnuplot" "/usr/local/bin/gnuplot"))
-        ((os-win32?)
+        ((os-windows?)
          (list "C:\\Program Files*\\gnuplot\\bin\\gnuplot.exe"
            "$USERPROFILE\\scoop\\apps\\gnuplot\\current\\bin\\gnuplot.exe"
          ) ;list

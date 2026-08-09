@@ -44,9 +44,9 @@
 ) ;define
 
 (define (test-drive-letter)
-  (check (url-drive-letter "C:\\Users\\test") => (if (os-win32?) "C" ""))
-  (check (url-drive-letter "D:\\program files\\app") => (if (os-win32?) "D" ""))
-  (check (url-drive-letter "Z:\\") => (if (os-win32?) "Z" ""))
+  (check (url-drive-letter "C:\\Users\\test") => (if (os-windows?) "C" ""))
+  (check (url-drive-letter "D:\\program files\\app") => (if (os-windows?) "D" ""))
+  (check (url-drive-letter "Z:\\") => (if (os-windows?) "Z" ""))
   (check (url-drive-letter "\\\\server\\share") => "")
   (check (url-drive-letter "/home/user") => "")
   (check (url-drive-letter "docs\\file.txt") => "")

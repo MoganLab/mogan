@@ -11,23 +11,21 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary inkscape)
-  (:use (binary common)))
+(texmacs-module (binary inkscape) (:use (binary common)))
 
 (define (inkscape-binary-candidates)
-  (cond ((os-macos?)
-         (list "/Applications/Inkscape.app/Contents/MacOS/inkscape"))
-        ((os-win32?)
-         (list "C:\\Program Files*\\Inkscape\\bin\\inkscape.exe"))
-        (else
-         (list "/usr/bin/inkscape"))))
+  (cond ((os-macos?) (list "/Applications/Inkscape.app/Contents/MacOS/inkscape"))
+        ((os-windows?) (list "C:\\Program Files*\\Inkscape\\bin\\inkscape.exe"))
+        (else (list "/usr/bin/inkscape"))
+  ) ;cond
+) ;define
 
 (tm-define (find-binary-inkscape)
-  (:synopsis "Find the url to the inkscape binary, return (url-none) if not found")
-  (find-binary (inkscape-binary-candidates) "inkscape"))
+  (:synopsis "Find the url to the inkscape binary, return (url-none) if not found"
+  ) ;:synopsis
+  (find-binary (inkscape-binary-candidates) "inkscape")
+) ;tm-define
 
-(tm-define (has-binary-inkscape?)
-  (not (url-none? (find-binary-inkscape))))
+(tm-define (has-binary-inkscape?) (not (url-none? (find-binary-inkscape))))
 
-(tm-define (version-binary-inkscape)
-  (version-binary (find-binary-inkscape)))
+(tm-define (version-binary-inkscape) (version-binary (find-binary-inkscape)))

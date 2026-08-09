@@ -20,7 +20,7 @@
            "/Applications/Maxima.app/Contents/Resources/opt/bin/maxima"
          ) ;list
         ) ;
-        ((os-win32?) (list "C:\\maxima-*\\bin\\maxima.bat"))
+        ((os-windows?) (list "C:\\maxima-*\\bin\\maxima.bat"))
         (else (list "/usr/bin/maxima"))
   ) ;cond
 ) ;define

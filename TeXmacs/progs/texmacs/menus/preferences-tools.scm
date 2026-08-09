@@ -314,7 +314,7 @@
 ;; look and feel 平台允许的内部键列表（用于过滤 options）。
 
 (define (preferences-qml-general-look-and-feel-allowed)
-  (cond ((os-win32?) '("default" "emacs" "windows"))
+  (cond ((os-windows?) '("default" "emacs" "windows"))
         ((os-macos?) '("default" "emacs" "macos"))
         (else '("default" "emacs" "gnome" "kde"))
   ) ;cond

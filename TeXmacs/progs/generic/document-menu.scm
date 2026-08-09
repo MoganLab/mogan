@@ -380,7 +380,7 @@
 ) ;tm-define
 
 (menu-bind document-short-chinese-font-menu
-  (cond ((os-win32?)
+  (cond ((os-windows?)
          (if (font-exists-in-tt? "simhei") ("SimHei" (init-font "simhei")))
          (if (font-exists-in-tt? "simfang") ("SimFang" (init-font "simfang")))
          (if (font-exists-in-tt? "simkai") ("SimKai" (init-font "simkai")))

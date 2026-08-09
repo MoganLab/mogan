@@ -310,11 +310,6 @@ function main()
                 ret_type = "string"
             },
             {
-                scm_name = "os-win32?",
-                cpp_name = "os_win",
-                ret_type = "bool"
-            },
-            {
                 scm_name = "os-mingw?",
                 cpp_name = "os_mingw",
                 ret_type = "bool"

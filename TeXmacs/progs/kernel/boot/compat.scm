@@ -24,7 +24,7 @@
   ) ;make-soft-port
 ) ;define
 
-(if (os-win32?)
+(if (os-windows?)
   (begin
     (set-current-output-port cout-port)
     (set-current-error-port cout-port)

@@ -230,7 +230,7 @@
                                             (refresh-now "input-path-widget")
                                           ) ;lambda
                                "Choose binary file"
-                               (if (os-win32?) "windows-executables" "generic")
+                               (if (os-windows?) "windows-executables" "generic")
                              ) ;choose-file
                             ) ;
           ) ;explicit-buttons

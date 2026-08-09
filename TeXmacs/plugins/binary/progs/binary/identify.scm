@@ -11,26 +11,25 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary identify)
-  (:use (binary common)))
+(texmacs-module (binary identify) (:use (binary common)))
 
 (define (identify-binary-candidates)
-  (cond ((os-macos?)
-         (list "/opt/homebrew/bin/identify"
-               "/usr/local/bin/identify"))
-        ((os-win32?)
-         (list 
-          "C:\\Program Files*\\ImageMagick*\\convert.exe"
-          "$USERPROFILE\\scoop\\apps\\imagemagick\\current\\identify.exe"))
-        (else
-         (list "/usr/bin/identify"))))
+  (cond ((os-macos?) (list "/opt/homebrew/bin/identify" "/usr/local/bin/identify"))
+        ((os-windows?)
+         (list "C:\\Program Files*\\ImageMagick*\\convert.exe"
+           "$USERPROFILE\\scoop\\apps\\imagemagick\\current\\identify.exe"
+         ) ;list
+        ) ;
+        (else (list "/usr/bin/identify"))
+  ) ;cond
+) ;define
 
 (tm-define (find-binary-identify)
-  (:synopsis "Find the url to the identify binary, return (url-none) if not found")
-  (find-binary (identify-binary-candidates) "identify"))
+  (:synopsis "Find the url to the identify binary, return (url-none) if not found"
+  ) ;:synopsis
+  (find-binary (identify-binary-candidates) "identify")
+) ;tm-define
 
-(tm-define (has-binary-identify?)
-  (not (url-none? (find-binary-identify))))
+(tm-define (has-binary-identify?) (not (url-none? (find-binary-identify))))
 
-(tm-define (version-binary-identify)
-  (version-binary (find-binary-identify)))
+(tm-define (version-binary-identify) (version-binary (find-binary-identify)))

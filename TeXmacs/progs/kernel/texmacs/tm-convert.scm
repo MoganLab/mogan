@@ -174,7 +174,7 @@
 (define (converter-shell-cmd l from to)
   (with x
     (car l)
-    (string-append (if (or (os-win32?) (os-mingw?))
+    (string-append (if (or (os-windows?) (os-mingw?))
                      (escape-shell (url-concretize (url-resolve-in-path x)))
                      x
                    ) ;if
@@ -624,7 +624,7 @@
 ) ;define
 
 (define (format-get-suffixes fm)
-  (cond ((and (== fm "image") (os-win32?))
+  (cond ((and (== fm "image") (os-windows?))
          '("ps"
            "eps"
            "bmp"

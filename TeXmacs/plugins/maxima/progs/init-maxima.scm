@@ -32,7 +32,7 @@
 ) ;define
 
 (define (maxima-launchers)
-  (if (os-win32?)
+  (if (os-windows?)
     `((,:launch
        ,(string-append "cmd.exe /c "
           (url->system (find-binary-maxima))

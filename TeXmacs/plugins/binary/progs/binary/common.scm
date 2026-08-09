@@ -15,44 +15,59 @@
 
 (define (find-binary-in-path name)
   (let* ((u (url-resolve-in-path name))
-         (excluded? (and (os-win32?) (url-descends? u (system->url "C:\\Windows\\System32")))))
-    (if excluded? (url-none) u)))
+         (excluded? (and (os-windows?) (url-descends? u (system->url "C:\\Windows\\System32")))
+         ) ;excluded?
+        ) ;
+    (if excluded? (url-none) u)
+  ) ;let*
+) ;define
 
-; If candidates name could bin found in path, return it, otherwise, return (url-none)
 (define (find-binary-in-candidates-name candidates)
-  (with names (list-remove-duplicates (map (lambda (x) (url->string (url-tail x))) candidates))
-    (with u (list-find (map (lambda (x) (find-binary-in-path x)) names) url-exists?)
-      (or u (url-none)))))
+  (with names
+    (list-remove-duplicates (map (lambda (x) (url->string (url-tail x))) candidates)
+    ) ;list-remove-duplicates
+    (with u
+      (list-find (map (lambda (x) (find-binary-in-path x)) names) url-exists?)
+      (or u (url-none))
+    ) ;with
+  ) ;with
+) ;define
 
-; If candidates exist, return it, otherwise, return #f
 (define (find-binary-in-candidates candidates)
-  (with u (list-find candidates (lambda (x) (url-exists? (url-resolve x "r"))))
-    (and u (url-resolve u "r"))))
+  (with u
+    (list-find candidates (lambda (x) (url-exists? (url-resolve x "r"))))
+    (and u (url-resolve u "r"))
+  ) ;with
+) ;define
 
 (define (find-binary-in-specified path)
-  (with u (url-resolve path "r")
-    (if (and (url-exists? u) (url-regular? u))
-        u
-        #f)))
+  (with u (url-resolve path "r") (if (and (url-exists? u) (url-regular? u)) u #f))
+) ;define
 
 (tm-define (find-binary candidates binary-id)
   (let* ((global-binary-opt (get-preference "plugin:binary"))
-         (this-binary-opt (get-preference (string-append "plugin:binary:" binary-id))))
+         (this-binary-opt (get-preference (string-append "plugin:binary:" binary-id)))
+        ) ;
     (cond ((== global-binary-opt "off") (url-none))
           ((== this-binary-opt "off") (url-none))
           ((== this-binary-opt "candidates-only") (find-binary-in-candidates candidates))
-          (else
-           (or (and (!= this-binary-opt "default") (find-binary-in-specified this-binary-opt))
-               (find-binary-in-candidates candidates)
-               (find-binary-in-candidates-name candidates))))))
+          (else (or (and (!= this-binary-opt "default") (find-binary-in-specified this-binary-opt))
+                  (find-binary-in-candidates candidates)
+                  (find-binary-in-candidates-name candidates)
+                ) ;or
+          ) ;else
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 (tm-define (version-binary u)
   (if (url-none? u)
     ""
-    (let*
-     ((msg (check-stdout (string-append (url->system u) " --version")))
-      (msg-l (filter (lambda (x) (not (string-null? x)))
-                 (string-split msg #\newline))))
-     (if (== (length msg-l) 0)
-         ""
-         (car msg-l)))))
+    (let* ((msg (check-stdout (string-append (url->system u) " --version")))
+           (msg-l (filter (lambda (x) (not (string-null? x))) (string-split msg #\newline))
+           ) ;msg-l
+          ) ;
+      (if (== (length msg-l) 0) "" (car msg-l))
+    ) ;let*
+  ) ;if
+) ;tm-define

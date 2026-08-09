@@ -11,24 +11,22 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary aspell)
-  (:use (binary common)))
+(texmacs-module (binary aspell) (:use (binary common)))
 
 (define (aspell-binary-candidates)
-  (cond ((os-macos?)
-         (list "/opt/homebrew/bin/aspell"
-               "/usr/local/bin/aspell"))
-        ((os-win32?)
-         (list "$USERPROFILE\\scoop\\apps\\aspell\\current\\bin\\aspell.exe"))
-        (else
-         (list "/usr/bin/aspell"))))
+  (cond ((os-macos?) (list "/opt/homebrew/bin/aspell" "/usr/local/bin/aspell"))
+        ((os-windows?)
+         (list "$USERPROFILE\\scoop\\apps\\aspell\\current\\bin\\aspell.exe")
+        ) ;
+        (else (list "/usr/bin/aspell"))
+  ) ;cond
+) ;define
 
 (tm-define (find-binary-aspell)
   (:synopsis "Find the url to the aspell binary, return (url-none) if not found")
-  (find-binary (aspell-binary-candidates) "aspell"))
+  (find-binary (aspell-binary-candidates) "aspell")
+) ;tm-define
 
-(tm-define (has-binary-aspell?)
-  (not (url-none? (find-binary-aspell))))
+(tm-define (has-binary-aspell?) (not (url-none? (find-binary-aspell))))
 
-(tm-define (version-binary-aspell)
-  (version-binary (find-binary-aspell)))
+(tm-define (version-binary-aspell) (version-binary (find-binary-aspell)))

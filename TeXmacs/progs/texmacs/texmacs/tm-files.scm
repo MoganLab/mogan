@@ -166,7 +166,7 @@
   (with name
     (url->unix (current-buffer))
     (cond ((not (url-scratch? name)) name)
-          ((os-win32?) "")
+          ((os-windows?) "")
           (else (string-append (var-eval-system "pwd") "/"))
     ) ;cond
   ) ;with

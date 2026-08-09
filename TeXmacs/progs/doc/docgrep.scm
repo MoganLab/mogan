@@ -126,7 +126,7 @@
 
 (define url-collect-cache (make-ahash-table))
 
-(define path-separator (if (or (os-mingw?) (os-win32?)) #\; #\:))
+(define path-separator (if (or (os-mingw?) (os-windows?)) #\; #\:))
 
 (define (url-collect path pattern)
   (or (ahash-ref url-collect-cache (string-append path pattern))
