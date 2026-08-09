@@ -15,7 +15,7 @@
   (:use (kernel texmacs tm-define) (kernel texmacs tm-modes))
 ) ;texmacs-module
 
-(import (liii os))
+(import (liii os) (liii vector))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Lazy exports from other modules
@@ -397,20 +397,21 @@
 
 (define-public (plugin-list)
   ;; 返回已安装插件名（symbol）列表：读两个 plugins 目录 -> 合并排序 ->
-  ;; 去连续重复 -> 滤 "." ".."。listdir 返回 vector，直接 sort! 不转 list
+  ;; 滤 "." ".." -> 去连续重复。listdir 返回 vector，直接 sort! 不转 list
   (let* ((v (vector-append (plugin-read-dir "$TEXMACS_PATH/plugins")
               (plugin-read-dir "$TEXMACS_HOME_PATH/plugins")
             ) ;vector-append
          ) ;v
          (sorted (sort! v string<?))
-         (n (vector-length sorted))
+         (entries (vector-filter (lambda (s) (not (in? s '("." "..")))) sorted))
+         (n (vector-length entries))
         ) ;
     (let loop
       ((i 0) (prev #f) (acc '()))
       (if (= i n)
         (reverse acc)
-        (let ((s (vector-ref sorted i)))
-          (if (or (== s ".") (== s "..") (and prev (== s prev)))
+        (let ((s (vector-ref entries i)))
+          (if (and prev (== s prev))
             (loop (+ i 1) prev acc)
             (loop (+ i 1) s (cons (string->symbol s) acc))
           ) ;if
