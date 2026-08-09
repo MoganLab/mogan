@@ -13,7 +13,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-modules (binary goldfish))
-(use-modules (plugin autosave))
+(use-modules (autosave plugin))
 (import (liii path))
 
 (define (autosave-serialize lan t)

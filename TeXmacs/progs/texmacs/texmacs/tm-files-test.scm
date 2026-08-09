@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs texmacs tm-files-test)
-  (:use (texmacs texmacs tm-files) (plugin autosave))
+  (:use (texmacs texmacs tm-files) (autosave plugin))
 ) ;texmacs-module
 
 (import (liii check))

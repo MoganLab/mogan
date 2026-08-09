@@ -333,7 +333,7 @@
         (confirm-close-dialog "There are unsaved documents. Really quit?"
           (lambda ()
             (when (not (defined? 'save-all-buffers))
-              (use-modules (plugin autosave))
+              (use-modules (autosave plugin))
             ) ;when
             (save-all-buffers)
             (quit-TeXmacs)

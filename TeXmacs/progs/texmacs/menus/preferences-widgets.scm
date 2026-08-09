@@ -1248,7 +1248,7 @@
                        (preferences-qml-set-field-silent key (cdr (assoc key changed-assoc)))
                      ) ;for
                      (when (not (defined? 'save-all-buffers))
-                       (use-modules (plugin autosave))
+                       (use-modules (autosave plugin))
                      ) ;when
                      (save-all-buffers)
                      (restart-TeXmacs)
@@ -1351,14 +1351,14 @@
 ) ;define
 
 ;; ---- action 按钮：combo 旁的行内按钮（如 Auto backup 打开备份目录） ----
-;; action 函数由插件注入（(plugin autosave) 模块），先 use-modules 兜底加载、再调
+;; action 函数由插件注入（(autosave plugin) 模块），先 use-modules 兜底加载、再调
 ;; 字面函数名。label 取值（preferences-qml-action-button-label）见 preferences-tools.scm；
 ;; bridge callAction(name) 透传到本模块的 preferences-qml-call-action 执行。
 
 (tm-define (preferences-qml-call-action name)
   (cond ((== name "open-auto-backup-location")
          (when (not (defined? 'open-auto-backup-location))
-           (use-modules (plugin autosave))
+           (use-modules (autosave plugin))
          ) ;when
          (when (defined? 'open-auto-backup-location)
            (open-auto-backup-location)

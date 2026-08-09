@@ -179,14 +179,14 @@
 ) ;define
 
 ;; action 按钮的显示文案：按 action 名路由（目前仅 open-auto-backup-location）。
-;; action 函数由插件注入（(plugin autosave) 模块），先 use-modules 兜底加载、
+;; action 函数由插件注入（(autosave plugin) 模块），先 use-modules 兜底加载、
 ;; 再调其 label 函数；未注入则空串。bridge callAction(name) 透传到
 ;; preferences-qml-call-action。
 
 (define (preferences-qml-action-button-label action)
   (cond ((== action 'open-auto-backup-location)
          (when (not (defined? 'auto-backup-button-label))
-           (use-modules (plugin autosave))
+           (use-modules (autosave plugin))
          ) ;when
          (if (defined? 'auto-backup-button-label) (auto-backup-button-label) "")
         ) ;

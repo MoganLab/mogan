@@ -62,7 +62,7 @@
       (cond ((== choice "restart")
              (apply-proc)
              (when (not (defined? 'save-all-buffers))
-               (use-modules (plugin autosave))
+               (use-modules (autosave plugin))
              ) ;when
              (save-all-buffers)
              (restart-TeXmacs)

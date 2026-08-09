@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : autosave-impl.scm
+;; MODULE      : plugin.scm
 ;; DESCRIPTION : autosave and auto-backup implementation for the autosave plugin
 ;; COPYRIGHT   : (C) 2026  Darcy Shen
 ;;
@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin autosave-impl) (:use (utils library cursor)))
+(texmacs-module (autosave plugin) (:use (utils library cursor)))
 
 (import (liii uuid))
 (import (liii json))
