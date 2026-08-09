@@ -16,7 +16,7 @@
 
 inline bool
 os_gnu_linux () {
-  return !os_win () && !os_mingw () && !os_macos ();
+  return !os_win () && !os_macos ();
 }
 
 #include <QtTest/QtTest>

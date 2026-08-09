@@ -100,15 +100,6 @@ os_win () {
 }
 
 bool
-os_mingw () {
-#ifdef OS_MINGW
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool
 os_macos () {
 #if defined(OS_MACOS)
   return true;

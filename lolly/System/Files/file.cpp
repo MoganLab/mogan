@@ -111,7 +111,7 @@ is_of_type (url name, string filter) {
   int i, n= N (filter);
 
   // Normal files
-  if (os_win () || os_mingw ()) {
+  if (os_win ()) {
     string suf;
     if (filter == "x") {
       suf= suffix (name);

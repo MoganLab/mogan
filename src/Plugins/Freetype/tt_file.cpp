@@ -92,7 +92,7 @@ tt_font_search_path () {
   if (!is_empty (xtt)) {
     ret= ret | url (xtt);
   }
-  if (os_win () || os_mingw ()) {
+  if (os_win ()) {
     ret= ret | url_system ("$windir/Fonts");
   }
   else if (os_macos ()) {

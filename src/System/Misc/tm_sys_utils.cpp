@@ -117,7 +117,7 @@ void
 init_texmacs_home_path () {
   if (!is_empty (get_env ("TEXMACS_HOME_PATH"))) return;
 
-  if (os_mingw () || os_win ()) {
+  if (os_win ()) {
     set_env ("TEXMACS_HOME_PATH", get_env ("APPDATA") * "/" * PREFIX_DIR);
   }
   else if (os_macos ()) {

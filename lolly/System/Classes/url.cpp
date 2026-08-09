@@ -194,18 +194,6 @@ heuristic_is_ftp (string name) {
   return starts (name, "ftp.");
 }
 
-static bool
-heuristic_is_mingw_default (string name, int type) {
-#ifdef WINPATHS
-  return type != URL_SYSTEM && N (name) >= 2 && name[0] == '/' &&
-         is_alpha (name[1]) && (N (name) == 2 || name[2] == '/');
-#else
-  (void) name;
-  (void) type;
-  return false;
-#endif
-}
-
 static url
 url_get_atom (string s, int type) {
   if (type < URL_STANDARD) {
@@ -288,12 +276,6 @@ url_path (string s, int type) {
 }
 
 static url
-url_mingw_default (string name, int type) {
-  string s= name (0, 2) * ":" * name (2, N (name));
-  return url_root ("default") * url_get_name (s, type);
-}
-
-static url
 url_default (string name, int type= URL_SYSTEM) {
   url u= url_get_name (name, type);
 #ifdef WINPATHS
@@ -331,8 +313,6 @@ url_general (string name, int type= URL_SYSTEM) {
     return url_path (name, type);
   }
   if (heuristic_is_default (name, type)) return url_default (name, type);
-  if (os_mingw () && heuristic_is_mingw_default (name, type))
-    return url_mingw_default (name, type);
   if (type != URL_CLEAN_UNIX) {
     if (heuristic_is_http (name)) return http_url (name);
     if (heuristic_is_ftp (name)) return ftp_url (name);

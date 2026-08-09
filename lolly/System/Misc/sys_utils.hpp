@@ -30,7 +30,6 @@ string get_user_login ();
 string get_user_name ();
 
 bool os_win ();
-bool os_mingw ();
 bool os_macos ();
 bool os_wasm ();
 

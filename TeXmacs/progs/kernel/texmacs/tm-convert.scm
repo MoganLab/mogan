@@ -174,10 +174,7 @@
 (define (converter-shell-cmd l from to)
   (with x
     (car l)
-    (string-append (if (or (os-windows?) (os-mingw?))
-                     (escape-shell (url-concretize (url-resolve-in-path x)))
-                     x
-                   ) ;if
+    (string-append (if (os-windows?) (escape-shell (url-concretize (url-resolve-in-path x))) x)
       " "
       (converter-shell-cmd-args (cdr l) from to)
     ) ;string-append

@@ -575,7 +575,7 @@
 ) ;define
 
 (define-public (plugin-add-windows-path rad rel after?)
-  (when (or (os-windows?) (os-mingw?))
+  (when (os-windows?)
     (add-windows-program-path (url-append rad rel) after?)
   ) ;when
 ) ;define-public
@@ -645,7 +645,7 @@
          (connection-insert-handler name (second cmd) (symbol->string (third cmd)))
         ) ;
         ((func? cmd :winpath 2)
-         (when (or (os-windows?) (os-mingw?))
+         (when (os-windows?)
            (add-windows-program-path (url-append (second cmd) (third cmd)) #t)
          ) ;when
         ) ;

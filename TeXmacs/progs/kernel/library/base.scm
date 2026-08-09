@@ -382,11 +382,7 @@
   (with base
     (buffer-get-master (current-buffer))
     ;; Handle Windows drive letter issues - if different drives, return #f
-    (cond ((and (or (os-mingw?) (os-windows?))
-             (!= (url-drive-letter u) (url-drive-letter base))
-           ) ;and
-           #f
-          ) ;
+    (cond ((and (os-windows?) (!= (url-drive-letter u) (url-drive-letter base))) #f)
           ((and (url-rooted? u) (not (url-none? base))) (url->unix (url-delta base u)))
           (else (url->unix u))
     ) ;cond

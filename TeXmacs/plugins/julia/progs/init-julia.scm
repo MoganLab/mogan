@@ -33,7 +33,7 @@
 
 (define (julia-launcher)
   (let* ((boot (string-quote (julia-entry))) (cmd (url->system (find-binary-julia))))
-    (if (or (os-windows?) (os-mingw?))
+    (if (os-windows?)
       (string-append cmd " " boot)
       (string-append "env -u LD_LIBRARY_PATH -u QT_PLUGIN_PATH " cmd " " boot)
     ) ;if

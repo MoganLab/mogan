@@ -211,7 +211,7 @@
 
 (define (default-look-and-feel)
   (cond ((os-macos?) "macos")
-        ((or (os-windows?) (os-mingw?)) "windows")
+        ((os-windows?) "windows")
         ((== (xdg-dekstop-session) "kde") "kde")
         ((== (xdg-dekstop-session) "deepin") "kde")
         ((== (xdg-dekstop-session) "gnome") "gnome")

@@ -626,7 +626,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   double status_scale=
       (((double) retina_icons) > retina_scale ? 1.5 : retina_scale);
   if (status_scale > 1.0) {
-    int std_h= (os_mingw () ? 28 : 20);
+    int std_h= 20;
     int min_h= (int) floor (std_h * status_scale);
     bar->setMinimumHeight (min_h);
   }
