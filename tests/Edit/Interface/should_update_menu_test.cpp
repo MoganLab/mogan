@@ -32,6 +32,7 @@ private slots:
   void test_aux_search ();
   void test_aux_replace ();
   void test_aux_page_header_footer ();
+  void test_aux_comment ();
 };
 
 // 普通 buffer：所有段都重建
@@ -126,6 +127,15 @@ TestShouldUpdateMenu::test_aux_page_header_footer () {
       QVERIFY (!should_update_menu (ALL_BITS[i], u));
     QVERIFY (!should_update_menu (MENU_ALL, u));
   }
+}
+
+// 评论编辑辅助缓冲区：全部不重建（嵌在 comment 插件的辅助 widget 里）
+void
+TestShouldUpdateMenu::test_aux_comment () {
+  url u= url ("tmfs://aux/edit-comment/1");
+  for (int i= 0; i < N_BITS; i++)
+    QVERIFY (!should_update_menu (ALL_BITS[i], u));
+  QVERIFY (!should_update_menu (MENU_ALL, u));
 }
 
 QTEST_MAIN (TestShouldUpdateMenu)
