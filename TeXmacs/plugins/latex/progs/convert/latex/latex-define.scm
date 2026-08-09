@@ -432,6 +432,7 @@
   (dueto (textup (textbf (!append "(" 1 ") "))))
   (op 1)
   (todo (!group (!append (color "red!75!black") "[To do: " 1 "]")))
+  (algostate (!group "\\State " 1))
   (tmoutput 1)
   (tmerrput (!append (color "red!50!black") 1))
   (tmtiming (!append (hfill) (footnotesize) (color "black!50") 1 (par)))
