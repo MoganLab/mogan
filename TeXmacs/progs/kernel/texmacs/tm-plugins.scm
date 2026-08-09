@@ -408,8 +408,9 @@
         ) ;
     (let loop
       ((i 0) (prev #f) (acc '()))
+      ;; acc 是本函数新建的临时列表，可用破坏性 reverse!
       (if (= i n)
-        (reverse acc)
+        (reverse! acc)
         (let ((s (vector-ref entries i)))
           (if (and prev (== s prev))
             (loop (+ i 1) prev acc)
