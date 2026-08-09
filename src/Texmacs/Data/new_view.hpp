@@ -57,6 +57,7 @@ bool       is_chat_input_buffer (url name);
 bool       is_startup_tab_buffer (url name);
 bool       is_aux_search_buffer (url name);
 bool       is_aux_replace_buffer (url name);
+bool       is_aux_page_buffer (url name);
 bool       is_tmfs_view_type (string s, string type);
 bool       is_tmfs_view_type (url s, string type);
 

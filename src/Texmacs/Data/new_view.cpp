@@ -136,6 +136,17 @@ is_aux_replace_buffer (url name) {
   return starts (as_string (name), "tmfs://aux/replace");
 }
 
+/**
+ * @brief 判断 buffer 名称是否指向页眉页脚辅助缓冲区。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称以 \c tmfs://aux/page- 开头则返回 true
+ *         （page-odd/even-header/footer 四个变体均命中）。
+ */
+bool
+is_aux_page_buffer (url name) {
+  return starts (as_string (name), "tmfs://aux/page-");
+}
+
 url
 abstract_view (tm_view vw) {
   if (vw == NULL) return url_none ();

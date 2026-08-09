@@ -31,6 +31,7 @@ private slots:
   void test_unknown_chat_sub_buffer ();
   void test_aux_search ();
   void test_aux_replace ();
+  void test_aux_page_header_footer ();
 };
 
 // 普通 buffer：所有段都重建
@@ -111,6 +112,20 @@ TestShouldUpdateMenu::test_aux_replace () {
   for (int i= 0; i < N_BITS; i++)
     QVERIFY (!should_update_menu (ALL_BITS[i], u));
   QVERIFY (!should_update_menu (MENU_ALL, u));
+}
+
+// 页眉页脚辅助缓冲区：全部不重建（嵌在页眉页脚设置 widget 里）
+void
+TestShouldUpdateMenu::test_aux_page_header_footer () {
+  const char* names[]= {
+      "tmfs://aux/page-odd-header/1", "tmfs://aux/page-even-header/1",
+      "tmfs://aux/page-odd-footer/1", "tmfs://aux/page-even-footer/1"};
+  for (int n= 0; n < 4; n++) {
+    url u= url (names[n]);
+    for (int i= 0; i < N_BITS; i++)
+      QVERIFY (!should_update_menu (ALL_BITS[i], u));
+    QVERIFY (!should_update_menu (MENU_ALL, u));
+  }
 }
 
 QTEST_MAIN (TestShouldUpdateMenu)
