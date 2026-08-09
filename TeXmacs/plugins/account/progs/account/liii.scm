@@ -1,7 +1,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : account.scm
+;; MODULE      : liii.scm
 ;; DESCRIPTION : login
 ;; COPYRIGHT   : (C) 2025  Mogan STEM authors
 ;;
@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (liii account))
+(texmacs-module (account liii))
 (import (liii os))
 
 ;; 获取当前时间戳（秒）

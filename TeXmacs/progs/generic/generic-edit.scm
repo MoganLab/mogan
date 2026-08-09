@@ -1372,7 +1372,7 @@
 ;; 那么应该粘贴为LaTeX格式
 (tm-define (check-magic-paste)
   (when (not (defined? 'account-load-token))
-    (use-modules (liii account))
+    (use-modules (account liii))
   ) ;when
   (let* ((token (account-load-token))
          (base-url (current-stem-site))

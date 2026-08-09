@@ -3025,7 +3025,7 @@ qt_tm_widget_rep::refreshMembershipInfoInBackground () {
     return;
   }
 
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   QString token= to_qstring (as_string (call ("account-load-token")));
   if (token.isEmpty ()) {
     syncScmMembershipNotification (false);
@@ -3059,7 +3059,7 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
   setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
 
   // 使用scheme代码获取本地token缓存
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   string  token  = as_string (call ("account-load-token"));
   QString q_token= to_qstring (token);
   qDebug ("Cached token: %s", q_token.isEmpty () ? "empty" : "found");
@@ -3092,7 +3092,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
   // 创建请求
   QNetworkRequest request;
   // 从Scheme配置获取用户信息API URL
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   string userInfoUrl=
       as_string (call ("account-oauth2-config", "user-info-url"));
   request.setUrl (QUrl (to_qstring (userInfoUrl)));
@@ -3191,7 +3191,7 @@ qt_tm_widget_rep::triggerOAuth2 () {
     m_loginDialog->hide ();
   }
   // 直接调用scheme代码触发OAuth2登录流程
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   call ("login");
 }
 
@@ -3345,7 +3345,7 @@ qt_tm_widget_rep::logout () {
  */
 QString
 qt_tm_widget_rep::buildAuthUrl (const QString& baseUrl) {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   string  token  = as_string (call ("account-load-token"));
   QString q_token= to_qstring (token);
 

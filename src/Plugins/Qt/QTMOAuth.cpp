@@ -35,7 +35,7 @@
 
 QTMOAuth::QTMOAuth (QObject* parent) {
   // 加载 OAuth2 配置
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
 
   c_string clientIdentifier (
       as_string (call ("account-oauth2-config", "client-identifier")));
@@ -201,7 +201,7 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
         oauth2.setToken (accessToken);
 
         // 保存token信息
-        eval ("(use-modules (liii account))");
+        eval ("(use-modules (account liii))");
         call ("account-save-token", from_qstring (accessToken));
 
         // 设置登录状态
@@ -288,7 +288,7 @@ QTMOAuth::refreshToken () {
         oauth2.setToken (newAccessToken);
 
         // 保存新的token信息
-        eval ("(use-modules (liii account))");
+        eval ("(use-modules (account liii))");
         call ("account-save-token", from_qstring (newAccessToken));
 
         if (!newRefreshToken.isEmpty ()) {
@@ -369,7 +369,7 @@ QTMOAuth::checkTokenStatus () {
 
 void
 QTMOAuth::loadExistingToken () {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
 
   // 加载access_token
   c_string tokenStr (as_string (call ("account-load-token")));
@@ -394,7 +394,7 @@ QTMOAuth::loadExistingToken () {
 
 void
 QTMOAuth::clearInvalidTokens () {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   call ("account-clear-tokens");
 
   // 清除内存中的token信息
@@ -441,7 +441,7 @@ QTMOAuth::generateCodeChallenge (const QString& verifier) {
 
 QUrl
 QTMOAuth::getAuthorizationUrl () {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   c_string authorizationUrl (
       as_string (call ("account-oauth2-config", "authorization-url")));
   return QUrl ((char*) authorizationUrl);
@@ -449,7 +449,7 @@ QTMOAuth::getAuthorizationUrl () {
 
 QUrl
 QTMOAuth::getAccessTokenUrl () {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   c_string accessTokenUrl (
       as_string (call ("account-oauth2-config", "access-token-url")));
   return QUrl ((char*) accessTokenUrl);
@@ -457,14 +457,14 @@ QTMOAuth::getAccessTokenUrl () {
 
 QString
 QTMOAuth::getGrowthUrl () {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   c_string growthUrl (as_string (call ("account-oauth2-config", "growth-url")));
   return QString::fromUtf8 ((const char*) growthUrl);
 }
 
 QByteArray
 QTMOAuth::getPreviewCookieHeader () {
-  eval ("(use-modules (liii account))");
+  eval ("(use-modules (account liii))");
   c_string previewCookie (
       as_string (call ("account-oauth2-config", "preview-cookie-header")));
   return QByteArray ((const char*) previewCookie);
