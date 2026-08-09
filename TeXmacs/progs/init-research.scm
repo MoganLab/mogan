@@ -93,6 +93,24 @@
 
 (define boot-start (texmacs-time))
 
+(define boot-bench-last boot-start)
+
+;; 自上一个打点以来的增量耗时，用于定位启动回归发生的阶段
+
+(define (boot-bench-mark stage)
+  (let ((now (texmacs-time)))
+    (debug-message "debug-std"
+      (string-append "bench "
+        stage
+        ": "
+        (number->string (- now boot-bench-last))
+        " ms\n"
+      ) ;string-append
+    ) ;debug-message
+    (set! boot-bench-last now)
+  ) ;let
+) ;define
+
 (define remote-client-list (list))
 
 (debug-message "debug-std" "Booting TeXmacs kernel functionality\n")
@@ -138,6 +156,7 @@
   (kernel old-gui old-gui-form)
   (kernel old-gui old-gui-test)
 ) ;inherit-modules
+(boot-bench-mark "kernel")
 
 ;; (display "Booting utilities\n")
 (use-modules (utils library cpp-wrap))
@@ -152,23 +171,20 @@
 (lazy-tmfs-handler (utils automate auto-tmfs) automate)
 (lazy-define (utils automate auto-tmfs) auto-load-help)
 (lazy-define (utils misc gui-keyboard) get-keyboard)
+(boot-bench-mark "utils")
 
 ;; (display "Booting BibTeX style modules\n")
 (use-modules (bibtex bib-utils))
 (lazy-define (bibtex bib-complete) current-bib-file citekey-completions)
 (lazy-menu (bibtex bib-widgets) open-bibliography-inserter)
+(boot-bench-mark "bibtex")
 
 ;; (display "Booting main TeXmacs functionality\n")
 (use-modules (texmacs texmacs tm-server) (texmacs texmacs tm-view))
+(boot-bench-mark "tm-server/tm-view")
 
-(define tm-files-boot-start (texmacs-time))
 (use-modules (texmacs texmacs tm-files))
-(debug-message "debug-std"
-  (string-append "bench tm-files: "
-    (number->string (- (texmacs-time) tm-files-boot-start))
-    " ms\n"
-  ) ;string-append
-) ;debug-message
+(boot-bench-mark "tm-files")
 (use-modules (texmacs texmacs tm-print))
 (use-modules (texmacs keyboard config-kbd))
 (lazy-menu (texmacs menus file-menu)
@@ -194,6 +210,7 @@
 (lazy-define (texmacs menus file-menu) recent-file-list recent-directory-list)
 (lazy-define (texmacs menus view-menu) set-bottom-bar test-bottom-bar?)
 (tm-define (notify-set-attachment name key val) (noop))
+(boot-bench-mark "menus")
 
 ;; (display "Booting generic mode\n")
 (lazy-menu (generic generic-menu) focus-menu texmacs-focus-icons)
@@ -580,11 +597,11 @@
 (lazy-menu (various theme-menu) basic-theme-menu)
 (lazy-define (various theme-edit) current-basic-theme)
 (lazy-define (various theme-menu) basic-theme-name)
-;; (display* "time: " (- (texmacs-time) boot-start) "\n")
-;; (display* "memory: " (texmacs-memory) " bytes\n")
+(boot-bench-mark "lazy registrations")
 
 ;; (display "Booting plugins\n")
 (for-each lazy-plugin-initialize (plugin-list))
+(boot-bench-mark "plugins")
 ;; (display* "time: " (- (texmacs-time) boot-start) "\n")
 ;; (display* "memory: " (texmacs-memory) " bytes\n")
 
@@ -606,12 +623,9 @@
 ) ;lazy-define
 (tm-property (open-font-selector) (:interactive #t))
 (tm-property (open-document-font-selector) (:interactive #t))
-;; (display* "time: " (- (texmacs-time) boot-start) "\n")
-;; (display* "memory: " (texmacs-memory) " bytes\n")
+(boot-bench-mark "fonts")
 
 ;; (display "Booting regression testing\n")
-;; (display* "time: " (- (texmacs-time) boot-start) "\n")
-;; (display* "memory: " (texmacs-memory) " bytes\n")
 
 ;; (display "Booting autoupdater\n")
 (when (use-plugin-updater?)
