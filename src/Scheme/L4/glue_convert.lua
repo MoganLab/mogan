@@ -113,6 +113,22 @@ function main()
                 }
             },
             {
+                scm_name = "string->stree",
+                cpp_name = "string_to_scheme_tree",
+                ret_type = "scheme_tree",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                scm_name = "stree->string",
+                cpp_name = "scheme_tree_to_string",
+                ret_type = "string",
+                arg_list = {
+                    "scheme_tree"
+                }
+            },
+            {
                 scm_name = "stree->tree",
                 cpp_name = "scheme_tree_to_tree",
                 ret_type = "tree",

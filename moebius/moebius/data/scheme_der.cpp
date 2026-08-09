@@ -72,20 +72,39 @@ unslash (string& s, int i, int end_index, string& r, int& r_index) {
   }
 }
 
-static bool
-is_spc (char c) {
-  return (c == ' ') || (c == '\t') || (c == '\n');
-}
-
-static bool
-is_paren_or_spc (char c) {
-  return (c == ' ') || (c == '\t') || (c == '\n') || (c == '(') || (c == ')');
+// Character type flags for fast classification via lookup table
+enum {
+  CT_SPC  = 1 << 0, // whitespace: ' ', '\t', '\n'
+  CT_PAREN= 1 << 1, // parenthesis: '(', ')'
+  CT_ESC  = 1 << 2, // backslash: '\\'
+  CT_QUOTE= 1 << 3, // double quote: '\"'
+  CT_SEMI = 1 << 4  // semicolon: ';'
 };
+
+static unsigned char char_type[256];
+static bool          char_type_init= false;
+
+static void
+init_char_type () {
+  char_type[(unsigned char) ' ']|= CT_SPC | CT_PAREN;
+  char_type[(unsigned char) '\t']|= CT_SPC | CT_PAREN;
+  char_type[(unsigned char) '\n']|= CT_SPC | CT_PAREN;
+  char_type[(unsigned char) '(']|= CT_PAREN;
+  char_type[(unsigned char) ')']|= CT_PAREN;
+  char_type[(unsigned char) '\\']|= CT_ESC;
+  char_type[(unsigned char) '\"']|= CT_QUOTE;
+  char_type[(unsigned char) ';']|= CT_SEMI;
+  char_type_init= true;
+}
 
 static void
 skip_scheme_blanks (string& s, int& i, const int length) {
-  while (i < length && (is_spc (s[i]) || s[i] == ';')) {
-    if (s[i] == ';') {
+  unsigned char* types= char_type;
+  while (i < length) {
+    unsigned char t= types[(unsigned char) s[i]];
+    if (!(t & (CT_SPC | CT_SEMI))) break;
+    if (t & CT_SEMI) {
+      i++;
       while (i < length && s[i] != '\n')
         i++;
     }
@@ -121,11 +140,14 @@ string_to_scheme_tree (string& s, int& i, const int length) {
 
     case '\"': { // "
       i++;
-      int       end_index  = i;
-      const int start_index= i;
-      char      ch         = s[end_index];
+      int            end_index  = i;
+      const int      start_index= i;
+      char           ch         = s[end_index];
+      unsigned char* types      = char_type;
       while (!(ch == '\"') && end_index < length) {
-        if ((ch == '\\') && (end_index < length - 1)) end_index++;
+        if (types[(unsigned char) ch] & CT_ESC) {
+          if (end_index < length - 1) end_index++;
+        }
         end_index++;
         ch= s[end_index];
       }
@@ -134,12 +156,8 @@ string_to_scheme_tree (string& s, int& i, const int length) {
       string    quoted (r_size + end_index - i);
       quoted[0]= '"';
       unslash (s, start_index, end_index, quoted, quoted_index);
-      if (i < length) {
-        i= end_index + 1;
-      }
-      else {
-        i= end_index;
-      };
+      if (i < length) i= end_index + 1;
+      else i= end_index;
       quoted->resize (quoted_index + 1);
       quoted[quoted_index]= '"';
       return scheme_tree (quoted);
@@ -151,11 +169,15 @@ string_to_scheme_tree (string& s, int& i, const int length) {
       break;
 
     default: {
-      int       end_index  = i;
-      const int start_index= i;
-      char      ch         = s[end_index];
-      while (!(is_paren_or_spc (ch)) && end_index < length) {
-        if ((ch == '\\') && (end_index < length - 1)) end_index++;
+      int            end_index  = i;
+      const int      start_index= i;
+      char           ch         = s[end_index];
+      unsigned char* types      = char_type;
+      while (end_index < length &&
+             !(types[(unsigned char) ch] & (CT_SPC | CT_PAREN))) {
+        if (types[(unsigned char) ch] & CT_ESC) {
+          if (end_index < length - 1) end_index++;
+        }
         end_index++;
         ch= s[end_index];
       }
@@ -174,6 +196,7 @@ string_to_scheme_tree (string& s, int& i, const int length) {
 
 scheme_tree
 string_to_scheme_tree (string s) {
+  if (!char_type_init) init_char_type ();
   s               = replace (s, "\015", "");
   int       i     = 0;
   const int length= N (s);
@@ -182,6 +205,7 @@ string_to_scheme_tree (string s) {
 
 scheme_tree
 block_to_scheme_tree (string s) {
+  if (!char_type_init) init_char_type ();
   scheme_tree p (TUPLE);
   int         i     = 0;
   const int   length= N (s);

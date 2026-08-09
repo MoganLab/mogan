@@ -13,7 +13,9 @@
 
 using moebius::data::scheme_document_to_tree;
 using moebius::data::scheme_to_tree;
+using moebius::data::scheme_tree_to_string;
 using moebius::data::scheme_tree_to_tree;
+using moebius::data::string_to_scheme_tree;
 using moebius::data::tree_to_scheme;
 using moebius::data::tree_to_scheme_tree;
 
