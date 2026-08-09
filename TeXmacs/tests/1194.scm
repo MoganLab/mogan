@@ -27,29 +27,35 @@
 ;; 无需经 url 抽象；元素最终转 symbol 与 glue 返回对齐
 ;; （plugin-list 的元素是 symbol，见 help-menu.scm 的 symbol->string 用法）。
 ;; listdir 对不存在的目录抛错（如 TEXMACS_HOME_PATH/plugins 缺失），先判存在性。
+;; listdir 返回 vector：不做 vector->list，直接在 vector 上 sort! + 按下标
+;; 去重，仅最终结果 cons 成 list。
 
 (define (read-plugin-dir path)
   (let ((u (string->url path)))
-    ;; listdir 返回 vector
-    (if (url-exists? u) (vector->list (listdir (url->system u))) '())
+    (if (url-exists? u) (listdir (url->system u)) #())
   ) ;let
 ) ;define
 
 (define (scheme-plugin-list)
-  (let* ((a (read-plugin-dir "$TEXMACS_PATH/plugins"))
-         (b (read-plugin-dir "$TEXMACS_HOME_PATH/plugins"))
-         (sorted (list-sort (append a b) string<?))
-         (deduped (let loop
-                    ((l sorted))
-                    (cond ((null? l) '())
-                          ((or (== (car l) ".") (== (car l) "..")) (loop (cdr l)))
-                          ((and (pair? (cdr l)) (== (car l) (cadr l))) (loop (cdr l)))
-                          (else (cons (car l) (loop (cdr l))))
-                    ) ;cond
-                  ) ;let
-         ) ;deduped
+  (let* ((v (vector-append (read-plugin-dir "$TEXMACS_PATH/plugins")
+              (read-plugin-dir "$TEXMACS_HOME_PATH/plugins")
+            ) ;vector-append
+         ) ;v
+         (sorted (sort! v string<?))
+         (n (vector-length sorted))
         ) ;
-    (map string->symbol deduped)
+    (let loop
+      ((i 0) (prev #f) (acc '()))
+      (if (= i n)
+        (reverse acc)
+        (let ((s (vector-ref sorted i)))
+          (if (or (== s ".") (== s "..") (and prev (== s prev)))
+            (loop (+ i 1) prev acc)
+            (loop (+ i 1) s (cons (string->symbol s) acc))
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;let
   ) ;let*
 ) ;define
 
