@@ -12,17 +12,19 @@
 #define TM_VELOPACK_HPP
 
 #include "tm_updater.hpp"
+#include <memory>
 #include <time.h>
 
 /**
  * @brief 基于 Velopack C++ 运行时的自动更新器。
  *
- * 采用 pimpl 封装：内部实现（tm_velopack_rep）在 .cpp 中定义，头文件不依赖
- * Velopack.hpp，避免把 std::vector 等标准库类型泄漏到 glue 等编译单元。
+ * 采用 pimpl 封装：内部实现（tm_velopack_rep）在 .cpp 中定义，头文件只暴露一个
+ * 指向实现的 unique_ptr，不依赖 Velopack.hpp——避免把 std::vector 等标准库类型
+ * 泄漏到 glue 等编译单元，头文件仅多引入 <memory>。
  */
 class tm_velopack : public tm_updater {
-  struct tm_velopack_rep;       // 内部实现，定义在 .cpp
-  tm_velopack_rep* rep;
+  struct tm_velopack_rep;                 // 内部实现，定义在 .cpp
+  std::unique_ptr<tm_velopack_rep> rep;
 
   tm_velopack ();
   ~tm_velopack ();
@@ -39,7 +41,6 @@ public:
   bool isRunning () const;
   time_t lastCheck () const;
   bool setCheckInterval (int hours);
-  bool setAppcast (url _url);
 
   tm_updater_state state () const;
   string availableVersion () const;

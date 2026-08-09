@@ -21,12 +21,11 @@
 
 (define (test-updater-state-name)
   (check (updater-state-name 0) => "idle")
-  (check (updater-state-name 1) => "checking")
-  (check (updater-state-name 2) => "available")
-  (check (updater-state-name 3) => "downloading")
-  (check (updater-state-name 4) => "ready")
-  (check (updater-state-name 5) => "applying")
-  (check (updater-state-name 6) => "failed")
+  (check (updater-state-name 1) => "available")
+  (check (updater-state-name 2) => "downloading")
+  (check (updater-state-name 3) => "ready")
+  (check (updater-state-name 4) => "applying")
+  (check (updater-state-name 5) => "failed")
   (check (updater-state-name 99) => "unknown")
 ) ;define
 

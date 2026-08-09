@@ -44,18 +44,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; 更新器状态整型 -> 显示名。
-;; st: tm_updater 状态值（0 idle / 1 checking / 2 available /
-;;      3 downloading / 4 ready / 5 applying / 6 failed）
+;; st: tm_updater 状态值（0 idle / 1 available / 2 downloading /
+;;      3 ready / 4 applying / 5 failed）
 ;; 返回对应状态名，未知状态返回 "unknown"。
+;; 无 checking：检查是查询操作，进行中由 updater-running? 表达。
 
 (tm-define (updater-state-name st)
   (cond ((== st 0) "idle")
-        ((== st 1) "checking")
-        ((== st 2) "available")
-        ((== st 3) "downloading")
-        ((== st 4) "ready")
-        ((== st 5) "applying")
-        ((== st 6) "failed")
+        ((== st 1) "available")
+        ((== st 2) "downloading")
+        ((== st 3) "ready")
+        ((== st 4) "applying")
+        ((== st 5) "failed")
         (else "unknown")
   ) ;cond
 ) ;tm-define
@@ -67,7 +67,7 @@
 (tm-define (updater-status-string)
   (if (use-plugin-updater?)
     (let ((st (updater-state)))
-      (if (or (== st 2) (== st 3) (== st 4))
+      (if (or (== st 1) (== st 2) (== st 3))
         ;; 版本来自 Velopack（UTF-8 字节），scheme 字面量也按 UTF-8 存；
         ;; PreferencesBridge 对值统一 cork_to_utf8，故这里整体归一为 Cork。
         (string-append (updater-state-name st)
@@ -88,7 +88,7 @@
 (tm-define (updater-available-version-display)
   (if (use-plugin-updater?)
     (let ((st (updater-state)))
-      (if (or (== st 2) (== st 4)) (utf8->cork (updater-available-version)) "")
+      (if (or (== st 1) (== st 3)) (utf8->cork (updater-available-version)) "")
     ) ;let
     ""
   ) ;if
@@ -111,7 +111,20 @@
 ;; 应用已就绪更新（成功后进程退出并安装；未就绪时返回 #f）。
 ;; 返回是否已触发应用。
 
-(tm-define (updater-apply-update) (if (use-plugin-updater?) (updater-apply) #f))
+(tm-define (updater-apply-update)
+  (if (use-plugin-updater?)
+    (with ok
+      (updater-apply)
+      ;; apply 成功意味着更新器进程已在后台等待本进程退出；走正常退出通道
+      ;; (safely-quit-TeXmacs) 完成保存提示与 on-exit 清理后退出，更新器接管。
+      (when ok
+        (safely-quit-TeXmacs)
+      ) ;when
+      ok
+    ) ;with
+    #f
+  ) ;if
+) ;tm-define
 
 ;; 定时检查循环：每 10 分钟自查一次，按 updater:interval 偏好决定是否真正触发
 ;; 后台检查（距上次检查超过 interval 小时才检查）。
@@ -132,12 +145,12 @@
   ) ;when
 ) ;tm-define
 
-;; 重启以更新：更新已就绪（state==4）时弹确认框，确认后触发
+;; 重启以更新：更新已就绪（state==3，即 READY）时弹确认框，确认后触发
 ;; updater-apply-update（进程退出并安装）。其余状态为 no-op。
 
 (tm-define (updater-maybe-restart-to-update)
   (when (use-plugin-updater?)
-    (when (== (updater-state) 4)
+    (when (== (updater-state) 3)
       (with choice
         (cpp-confirm-restart (translate "Update ready")
           (translate "An update is ready to install. Restart Mogan now?")

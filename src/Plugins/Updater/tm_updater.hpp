@@ -22,7 +22,8 @@
 // (updater_state) 在类作用域会遮蔽标签名，导致 MSVC 语法错误。
 enum tm_updater_state {
   UPDATER_IDLE = 0,
-  UPDATER_CHECKING,
+  // 无 CHECKING：检查是查询操作而非生命周期阶段，进行中由 running 标志表达，
+  // 结果（AVAILABLE/IDLE/FAILED）由 do_check 比对版本后写入。勿重新引入。
   UPDATER_AVAILABLE,
   UPDATER_DOWNLOADING,
   UPDATER_READY,
