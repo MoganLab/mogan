@@ -865,6 +865,8 @@ edit_interface_rep::update_menus () {
  * - chat 只读消息区：全部跳过；
  * - chat 输入框：仅重建模式工具栏（ICONS_MODE）——dock 侧边栏模式下焦点
  *   切到输入框时模式工具栏可见，仍需随其重建。
+ * - 搜索辅助缓冲区（tmfs://aux/search）：全部跳过——它嵌在搜索面板
+ *   widget 里，各菜单段都与它无关。
  */
 bool
 should_update_menu (int mask, url name) {
@@ -875,6 +877,7 @@ should_update_menu (int mask, url name) {
   else if (is_chat_tab_buffer (name)) allow= TAB_PAGES;
   else if (is_chat_message_buffer (name)) allow= 0;
   else if (is_chat_input_buffer (name)) allow= ICONS_MODE;
+  else if (is_aux_search_buffer (name)) allow= 0;
   return (mask & allow) == mask;
 }
 
@@ -963,7 +966,7 @@ edit_interface_rep::update_menus (int mask) {
     bench_end ("update_menus: side-tools");
   }
 #endif
-  // MENU_MAIN 不重建的 buffer（startup/chat 标签页/消息区/输入框）
+  // MENU_MAIN 不重建的 buffer（startup/chat 标签页/消息区/输入框/搜索辅助）
   // 同样不需要 footer 与尾部簿记
   if (!should_update_menu (MENU_MAIN, name)) {
     last_update= last_change;

@@ -116,6 +116,16 @@ is_startup_tab_buffer (url name) {
   return name == url ("tmfs://startup-tab");
 }
 
+/**
+ * @brief 判断 buffer 名称是否指向搜索辅助缓冲区。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称以 \c tmfs://aux/search 开头则返回 true。
+ */
+bool
+is_aux_search_buffer (url name) {
+  return starts (as_string (name), "tmfs://aux/search");
+}
+
 url
 abstract_view (tm_view vw) {
   if (vw == NULL) return url_none ();
