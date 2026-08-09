@@ -18,12 +18,12 @@
 
 (load "./TeXmacs/progs/kernel/library/base.scm")
 
-;; string-join：缺省分隔符是 " "（kernel 契约，区别于 g_string-join 的 ""）。
+;; string-join：分隔符必传，直接转调 g_string-join（不再有缺省 " " 分支）。
 
-(define (test-string-join-default-delimiter)
-  (check (string-join '("a" "b" "c")) => "a b c")
-  (check (string-join '("solo")) => "solo")
-  (check (string-join '()) => "")
+(define (test-string-join-space-delimiter)
+  (check (string-join '("a" "b" "c") " ") => "a b c")
+  (check (string-join '("solo") " ") => "solo")
+  (check (string-join '() " ") => "")
 ) ;define
 
 (define (test-string-join-explicit-delimiter)
@@ -47,6 +47,8 @@
   (check-catch 'type-error (string-join '("a" 1) ":"))
   (check-catch 'type-error (string-join '("a" "b") 1))
   (check-catch 'type-error (string-join '("a" . "b") ":"))
+  ;; 分隔符必传：缺参按 wrong-number-of-args 拒绝
+  (check-catch 'wrong-number-of-args (string-join '("a" "b")))
 ) ;define
 
 ;; string-starts?/string-ends?：转调 g_string-starts?/g_string-ends? 的 C 实现。
@@ -68,7 +70,7 @@
 ) ;define
 
 (tm-define (regtest-base)
-  (test-string-join-default-delimiter)
+  (test-string-join-space-delimiter)
   (test-string-join-explicit-delimiter)
   (test-string-join-infix)
   (test-string-join-errors)
