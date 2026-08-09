@@ -54,12 +54,15 @@ TestShouldUpdateMenu::test_startup_tab () {
   QVERIFY (!should_update_menu (MENU_ALL, u));
 }
 
-// chat 标签页：全部不重建
+// chat 标签页：仅重建 tab 栏（关闭当前 tab 跳转到 chat 时，tab 栏须能移除
+// 已关 tab；解耦后 tab_pages() 签名判等，不变时仅一次签名比较）
 void
 TestShouldUpdateMenu::test_chat_tab () {
   url u= url ("tmfs://chat-tab/B86AD167-589F-4820-88A0-388A12AAAF30");
-  for (int i= 0; i < N_BITS; i++)
-    QVERIFY (!should_update_menu (ALL_BITS[i], u));
+  for (int i= 0; i < N_BITS; i++) {
+    if (ALL_BITS[i] == TAB_PAGES) QVERIFY (should_update_menu (TAB_PAGES, u));
+    else QVERIFY (!should_update_menu (ALL_BITS[i], u));
+  }
   QVERIFY (!should_update_menu (MENU_ALL, u));
 }
 

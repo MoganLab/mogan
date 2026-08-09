@@ -858,7 +858,11 @@ edit_interface_rep::update_menus () {
  * @par 规则（由 should_update_menu_test 钉死）
  * - 普通 buffer：全部重建；
  * - startup tab：仅重建 tab 栏（TAB_PAGES）；
- * - chat 标签页 / 只读消息区：全部跳过；
+ * - chat 标签页：仅重建 tab 栏（TAB_PAGES）——关闭当前 tab 后视图中转到
+ *   chat 时，tab 栏必须随这次 update_menus 重建才能移除已关 tab；解耦后
+ *   tab_pages() 有签名判等，tab 集不变时仅一次签名比较，代价远低于旧
+ *   menu-expand 全量重建（f1a09d932 全部跳过的初衷）；
+ * - chat 只读消息区：全部跳过；
  * - chat 输入框：仅重建模式工具栏（ICONS_MODE）——dock 侧边栏模式下焦点
  *   切到输入框时模式工具栏可见，仍需随其重建。
  */
@@ -868,7 +872,8 @@ should_update_menu (int mask, url name) {
   if (mask == 0) return false;
   int allow= MENU_ALL;
   if (is_startup_tab_buffer (name)) allow= TAB_PAGES;
-  else if (is_chat_tab_buffer (name) || is_chat_message_buffer (name)) allow= 0;
+  else if (is_chat_tab_buffer (name)) allow= TAB_PAGES;
+  else if (is_chat_message_buffer (name)) allow= 0;
   else if (is_chat_input_buffer (name)) allow= ICONS_MODE;
   return (mask & allow) == mask;
 }
