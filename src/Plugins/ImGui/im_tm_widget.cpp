@@ -219,6 +219,9 @@ extern "C" EMSCRIPTEN_KEEPALIVE void
 mogan_ime_preedit (const char* utf8) {
   if (utf8 == nullptr) return;
   if (as_bool (call ("in-math?"))) return;
+  // 协作文档禁用预编辑
+  editor ed= get_current_editor ();
+  if (!is_nil (ed) && ed->collab_enabled ()) return;
   g_ime_pending << ("pre-edit:" * string (utf8));
 }
 #endif // __EMSCRIPTEN__
@@ -231,6 +234,9 @@ void
 im_macos_enqueue_preedit (const char* utf8) {
   if (utf8 == nullptr) return;
   if (as_bool (call ("in-math?"))) return;
+  // 协作文档禁用预编辑
+  editor ed= get_current_editor ();
+  if (!is_nil (ed) && ed->collab_enabled ()) return;
   g_ime_pending << ("pre-edit:" * string (utf8));
 }
 
