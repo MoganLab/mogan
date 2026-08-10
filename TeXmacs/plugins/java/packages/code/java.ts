@@ -22,7 +22,7 @@
 
   <use-module|(data java)>
 
-  <use-module|(code java-edit)>
+  <use-module|(java java-edit)>
 
   <assign|java|<macro|body|<with|mode|prog|prog-language|java|font-family|rm|<arg|body>>>>
 

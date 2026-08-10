@@ -11,23 +11,23 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code java-edit)
-  (:use (prog prog-edit)))
+(texmacs-module (java java-edit) (:use (prog prog-edit)))
 
-(tm-define (get-tabstop)
-  (:mode in-prog-java?)
-  4)
+(tm-define (get-tabstop) (:mode in-prog-java?) 4)
 
 (tm-define (kbd-paste)
   (:mode in-prog-java?)
-  (clipboard-paste-import "java" "primary"))
+  (clipboard-paste-import "java" "primary")
+) ;tm-define
 
-(kbd-map
-  (:mode in-prog-java?)
-  ("p s v m var"
+(kbd-map (:mode in-prog-java?)
+ ("p s v m var"
    (begin
-    (insert "public static void main(String[] args) {}")
-    (go-to-previous)
-    (insert-return)
-    (insert-raw-return)
-    (go-to-previous))))
+     (insert "public static void main(String[] args) {}")
+     (go-to-previous)
+     (insert-return)
+     (insert-raw-return)
+     (go-to-previous)
+   ) ;begin
+ ) ;
+) ;kbd-map
