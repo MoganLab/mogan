@@ -10,9 +10,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code tikz-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (tikz tikz-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-tikz% (== (get-env "prog-language") "tikz"))
-  (in-prog-tikz% #t in-prog% in-tikz%))
+(texmacs-modes (in-tikz% (== (get-env "prog-language") "tikz"))
+  (in-prog-tikz% #t in-prog% in-tikz%)
+) ;texmacs-modes

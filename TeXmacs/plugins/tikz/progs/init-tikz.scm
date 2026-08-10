@@ -19,41 +19,37 @@
     (use-modules (binary pdflatex) (binary goldfish))
 
     (define (tikz-serialize lan t)
-      (let* ((u (pre-serialize lan t))
-             (s (texmacs->utf8raw (stree->tree u))))
+      (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
         (string-append s "\n<EOF>\n")
-      )
-    )
+      ) ;let*
+    ) ;define
 
     (define (tikz-launcher)
-      (string-append
-        (string-quote (url->system (find-binary-goldfish)))
+      (string-append (string-quote (url->system (find-binary-goldfish)))
         " "
         "load"
         " "
-        (string-quote
-          (string-append (url->system (get-texmacs-path))
-            "/plugins/tikz/goldfish/tm-tikz.scm"
-          )
-        )
+        (string-quote (string-append (url->system (get-texmacs-path))
+                        "/plugins/tikz/goldfish/tm-tikz.scm"
+                      ) ;string-append
+        ) ;string-quote
         " "
         (string-quote (url->system (find-binary-pdflatex)))
-      )
-    )
+      ) ;string-append
+    ) ;define
 
     (define (init-tikz)
       (plugin-configure tikz
-        (:require (and (has-binary-goldfish?)
-                       (has-binary-pdflatex?)))
+        (:require (and (has-binary-goldfish?) (has-binary-pdflatex?)))
         (:launch ,(tikz-launcher))
         (:serializer ,tikz-serialize)
         (:session "TikZ")
-      )
-    )
-  )
-)
+      ) ;plugin-configure
+    ) ;define
+  ) ;begin
+) ;define-library
 
 (import (session tikz))
 (init-tikz)
 (lazy-format (data tikz) tikz)
-(use-modules (code tikz-mode) (code tikz-edit))
+(use-modules (tikz tikz-mode) (tikz tikz-edit))

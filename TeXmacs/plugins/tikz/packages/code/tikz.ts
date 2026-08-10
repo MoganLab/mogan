@@ -12,7 +12,7 @@
   </src-title>>
 
   <use-module|(data tikz)>
-  <use-module|(code tikz-edit)>
+  <use-module|(tikz tikz-edit)>
 
   <assign|tikz|<macro|body|<with|mode|prog|prog-language|tikz|font-family|rm|<arg|body>>>>
 

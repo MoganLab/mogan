@@ -10,38 +10,34 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code tikz-edit)
-  (:use (prog prog-edit)
-    (code tikz-mode)))
+(texmacs-module (tikz tikz-edit) (:use (prog prog-edit) (tikz tikz-mode)))
 
-(tm-define (get-tabstop)
-  (:mode in-prog-tikz?)
-  2)
+(tm-define (get-tabstop) (:mode in-prog-tikz?) 2)
 
-(tm-define (tikz-bracket-open lbr rbr)
-  (bracket-open lbr rbr "\\"))
+(tm-define (tikz-bracket-open lbr rbr) (bracket-open lbr rbr "\\"))
 
-(tm-define (tikz-bracket-close lbr rbr)
-  (bracket-close lbr rbr "\\"))
+(tm-define (tikz-bracket-close lbr rbr) (bracket-close lbr rbr "\\"))
 
 (tm-define (notify-cursor-moved status)
   (:require prog-highlight-brackets?)
   (:mode in-prog-tikz?)
-  (select-brackets-after-movement "([{" ")]}" "\\"))
+  (select-brackets-after-movement "([{" ")]}" "\\")
+) ;tm-define
 
 (tm-define (kbd-paste)
   (:mode in-prog-tikz?)
-  (clipboard-paste-import "tikz" "primary"))
+  (clipboard-paste-import "tikz" "primary")
+) ;tm-define
 
-(kbd-map
-  (:mode in-prog-tikz?)
-  ("A-tab" (insert-tabstop))
-  ("cmd S-tab" (remove-tabstop))
-  ("{" (tikz-bracket-open "{" "}"))
-  ("}" (tikz-bracket-close "{" "}"))
-  ("(" (tikz-bracket-open "(" ")"))
-  (")" (tikz-bracket-close "(" ")"))
-  ("[" (tikz-bracket-open "[" "]"))
-  ("]" (tikz-bracket-close "[" "]"))
-  ("\"" (tikz-bracket-open "\"" "\""))
-  ("'" (tikz-bracket-open "'" "'")))
+(kbd-map (:mode in-prog-tikz?)
+ ("A-tab" (insert-tabstop))
+ ("cmd S-tab" (remove-tabstop))
+ ("{" (tikz-bracket-open "{" "}"))
+ ("}" (tikz-bracket-close "{" "}"))
+ ("(" (tikz-bracket-open "(" ")"))
+ (")" (tikz-bracket-close "(" ")"))
+ ("[" (tikz-bracket-open "[" "]"))
+ ("]" (tikz-bracket-close "[" "]"))
+ ("\"" (tikz-bracket-open "\"" "\""))
+ ("'" (tikz-bracket-open "'" "'"))
+) ;kbd-map
