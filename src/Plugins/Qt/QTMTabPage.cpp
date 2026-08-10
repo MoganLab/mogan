@@ -185,6 +185,10 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   p_title->setChecked (p_isActive);
   setDefaultAction (p_title);
   applyDisplayTitle (p_title->text ());
+#ifdef LIII_DEBUG
+  cout << "TabPage ctor '" << p_title->text ().toUtf8 ().constData ()
+       << "' url=" << as_string (m_viewUrl) << "\n";
+#endif
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton (p_closeBtn);
   int pad   = DpiUtils::scaled (8);
@@ -210,6 +214,10 @@ QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
   QString cleanTitle;
   m_isDirty= extract_dirty_suffix (rawTitle, cleanTitle);
   setText (cleanTitle);
+#ifdef LIII_DEBUG
+  cout << "TabPage applyDisplayTitle '" << cleanTitle.toUtf8 ().constData ()
+       << "'\n";
+#endif
 }
 
 void
@@ -218,6 +226,11 @@ QTMTabPage::syncDisplay (const QString& cleanTitle, bool dirty) {
   bool changed= (m_isDirty != dirty) || (text () != cleanTitle);
   m_isDirty   = dirty;
   setText (cleanTitle);
+#ifdef LIII_DEBUG
+  cout << "TabPage syncDisplay '" << cleanTitle.toUtf8 ().constData ()
+       << "' changed=" << changed << " text()='"
+       << text ().toUtf8 ().constData () << "'\n";
+#endif
   if (changed) {
     updateCloseButtonVisibility ();
     update ();
@@ -520,16 +533,28 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
       continue;
     }
     QString key= to_qstring (as_string (srcTab->m_viewUrl));
-    auto    it = existing.find (key);
+#ifdef LIII_DEBUG
+    cout << "replaceTabPages srcTab url=" << as_string (srcTab->m_viewUrl)
+         << " text='" << srcTab->text ().toUtf8 ().constData () << "'\n";
+#endif
+    auto it= existing.find (key);
     if (it != existing.end ()) {
       // 复用：已有同 url 的 tab，同步标题即可（active 由 updateActiveTab
       // 维护）。
       QTMTabPage* tab= it.value ();
       existing.erase (it);
+#ifdef LIII_DEBUG
+      cout << "  reuse text(before)='" << tab->text ().toUtf8 ().constData ()
+           << "'\n";
+#endif
       // srcTab 构造时已 applyDisplayTitle 解析过尾部 `*`：其 text() 为干净
       // 标题、isDirty() 为最新脏状态。复用 tab 必须同步这两者，否则 m_isDirty
       // 停留在首次构造的旧值，编辑标脏/保存去脏都不会反映到 `*` 显示。
       tab->syncDisplay (srcTab->text (), srcTab->isDirty ());
+#ifdef LIII_DEBUG
+      cout << "  reuse text(after)='" << tab->text ().toUtf8 ().constData ()
+           << "'\n";
+#endif
       next.append (tab);
       // srcTab 是本次 carrier 新建的 widget，未被接管。QTMTabPageAction 的
       // dtor 不会删 m_widget（见 hpp 注释），此处须手动释放，否则每次重建都
@@ -591,8 +616,14 @@ QTMTabPageContainer::updateActiveTab (const url& currentView) {
        << LF;
 #endif
   for (int i= 0; i < m_tabPageList.size (); ++i) {
-    QTMTabPage* tab= m_tabPageList[i];
-    tab->setChecked (as_string (tab->m_viewUrl) == as_string (currentView));
+    QTMTabPage* tab   = m_tabPageList[i];
+    bool        active= (as_string (tab->m_viewUrl) == as_string (currentView));
+    tab->setChecked (active);
+#ifdef LIII_DEBUG
+    cout << "  updateActiveTab url=" << as_string (tab->m_viewUrl)
+         << " active=" << active << " text='"
+         << tab->text ().toUtf8 ().constData () << "'\n";
+#endif
   }
 }
 

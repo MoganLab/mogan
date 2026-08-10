@@ -129,6 +129,11 @@ collab_session::get_editor () const {
 void
 collab_session::become_ready () {
   bool was_reconnect= (reconnect_attempt > 0);
+#ifdef LIII_DEBUG
+  cout << "become_ready ENTER want_create=" << want_create () << " doc_id='"
+       << doc_id << "' buffer_url=" << as_string (buffer_url) << " doc_name='"
+       << doc_name << "'\n";
+#endif
   enter_ready ();
   buffer_known           = true;
   g_loro_broadcast_update= broadcast_to_server;
@@ -142,6 +147,18 @@ collab_session::become_ready () {
     url old_url= buffer_url;
     url new_url= url ("tmfs://collab/" * doc_id);
     if (!(old_url == new_url)) {
+      // 先把标题设为 doc_name，使随后的 rename_buffer 内 propose_title 保留之
+      // （keep_old：doc_name 非空/非 No name/非 tmfs URL）；否则若标题仍是
+      // scratch 的 "No name [N]"，propose_title 会返回 tmfs URL，导致第一次 tab
+      // 重建显示 URL（scheme 入口的 buffer-set-title 在异步 become_ready 前可能
+      // 未及生效，故在此兜底）。
+      string title0=
+          lolly::data::utf8_to_cork ((N (doc_name) > 0) ? doc_name : doc_id);
+#ifdef LIII_DEBUG
+      cout << "become_ready set_title old_url=" << as_string (old_url)
+           << " title0='" << title0 << "'\n";
+#endif
+      set_title_buffer (old_url, title0);
       buffer_url= new_url;
       rename_buffer (old_url, new_url);
     }

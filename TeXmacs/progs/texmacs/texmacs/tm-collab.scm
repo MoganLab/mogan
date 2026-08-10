@@ -235,14 +235,15 @@
           (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
                   ;; 新建 buffer 改名为 tmfs 占位 URL（成为可识别的 collab buffer）；
                   ;; C++ become_ready 收到 DOC 后再改名为 tmfs://collab/<真实 doc_id>。
-                  (buffer-rename (current-buffer)
-                    (collab-buffer-url->tmfs (collab-placeholder-doc-id))
-                  ) ;buffer-rename
-                  ;; 标题立即设为用户输入的显示名（无名文档保持 No Name，待服务端
-                  ;; 回 DOC 后 become_ready 用 UUID 兜底），避免 tab 暂显 No Name[n]。
+                  ;; 标题先设为用户输入的显示名（无名文档保持 No Name），再 rename：
+                  ;; rename 的 propose_title 据 old_title 决定，old_title=doc_name 时
+                  ;; keep_old 保留（而非 No name→tmfs URL），避免第一次 tab 重建显示 URL。
                   (when (> (string-length name) 0)
                     (buffer-set-title (current-buffer) name)
                   ) ;when
+                  (buffer-rename (current-buffer)
+                    (collab-buffer-url->tmfs (collab-placeholder-doc-id))
+                  ) ;buffer-rename
                   (loro-collab-create (collab-server-url) uname)
                   (set-message (string-append "Creating collaborative document (Server "
                                  (collab-server-url)
@@ -331,11 +332,12 @@
         ;; url->unix 串比较：buffer-exists? 经 url->url，对 tmfs URL 易失配。
         (switch-to-buffer buf-url)
         (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+          ;; 标题先设为显示名（无名回退 UUID），再 rename：rename 的 propose_title
+          ;; 据 old_title 决定，old_title=doc_name 时 keep_old 保留（而非 No
+          ;; name→tmfs URL），避免第一次 tab 重建显示 URL。
+          (buffer-set-title (current-buffer) (if (> (string-length name) 0) name doc-id))
           ;; join 的 doc_id 已知，直接改名为最终 tmfs URL（无需 become_ready 再改）。
           (buffer-rename (current-buffer) buf-url)
-          ;; 标题立即设为显示名（无名回退 UUID）；DOC 帧到达后 C++ become_ready
-          ;; 会以服务端 name 重设标题（最终一致）
-          (buffer-set-title (current-buffer) (if (> (string-length name) 0) name doc-id))
           (loro-collab-join (collab-server-url) doc-id name)
           (set-message (string-append "Joining collaborative document "
                          (if (> (string-length name) 0) name doc-id)
