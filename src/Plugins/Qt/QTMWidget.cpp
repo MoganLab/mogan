@@ -369,6 +369,8 @@ QTMWidget::inputMethodEvent (QInputMethodEvent* event) {
   }
   // Disable preedit in math mode to prevent crash in QQPinyin
   if (as_bool (call ("in-math?"))) im_preedit_switch= false;
+  // 协作文档禁用预编辑（与数学模式同理），不改用户 IM:preedit 偏好
+  if (as_bool (call ("collab-enabled?"))) im_preedit_switch= false;
 
   string r= "pre-edit:";
   if (im_preedit_switch && !preedit_string.isEmpty ()) {

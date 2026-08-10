@@ -148,7 +148,7 @@
 
 (define collab-doc-name-forbidden-chars '(#\\ #\/ #\: #\* #\? #\" #\< #\> #\|))
 
-(define (collab-valid-doc-name? name)
+(tm-define (collab-valid-doc-name? name)
   (and (string? name)
     (>= (utf8-string-length name) 1)
     (<= (utf8-string-length name) 64)
