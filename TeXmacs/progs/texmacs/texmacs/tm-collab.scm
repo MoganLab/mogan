@@ -162,7 +162,7 @@
          ) ;list-find
     ) ;not
   ) ;and
-) ;define
+) ;tm-define
 
 (define (collab-docs-pairs flat)
   (if (or (null? flat) (null? (cdr flat)))
@@ -210,31 +210,33 @@
   (interactive (lambda (name) (collab-new-document-named name)) "Document name")
 ) ;tm-define
 (tm-define (collab-new-document-named name)
-  (cond ((and (string? name)
-           (> (string-length name) 0)
-           (not (collab-valid-doc-name? name))
-         ) ;and
-         (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
-           "Collaborative"
-         ) ;set-message
-        ) ;
-        (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-                (collab-mark-current-buffer)
-                ;; 标题立即设为用户输入的显示名（无名文档保持 No Name，待服务端
-                ;; 回 DOC 后 become_ready 用 UUID 兜底），避免 tab 暂显 No Name[n]。
-                (when (> (string-length name) 0)
-                  (buffer-set-title (current-buffer) name)
-                ) ;when
-                (loro-collab-create (collab-server-url) name)
-                (set-message (string-append "Creating collaborative document (Server "
-                               (collab-server-url)
-                               ")"
-                             ) ;string-append
-                  "Collaborative"
-                ) ;set-message
-              ) ;with-default-view
-        ) ;else
-  ) ;cond
+  (let ((uname (cork->utf8 name)))
+    (cond ((and (string? uname)
+             (> (string-length uname) 0)
+             (not (collab-valid-doc-name? uname))
+           ) ;and
+           (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
+             "Collaborative"
+           ) ;set-message
+          ) ;
+          (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+                  (collab-mark-current-buffer)
+                  ;; 标题立即设为用户输入的显示名（无名文档保持 No Name，待服务端
+                  ;; 回 DOC 后 become_ready 用 UUID 兜底），避免 tab 暂显 No Name[n]。
+                  (when (> (string-length name) 0)
+                    (buffer-set-title (current-buffer) name)
+                  ) ;when
+                  (loro-collab-create (collab-server-url) uname)
+                  (set-message (string-append "Creating collaborative document (Server "
+                                 (collab-server-url)
+                                 ")"
+                               ) ;string-append
+                    "Collaborative"
+                  ) ;set-message
+                ) ;with-default-view
+          ) ;else
+    ) ;cond
+  ) ;let
 ) ;tm-define
 
 ;; 由文件 url 推导共享文档默认显示名：取文件名（去目录与后缀）。
@@ -266,28 +268,31 @@
 ) ;tm-define
 
 (tm-define (collab-new-document-from-file-named u name)
-  (cond ((and (string? name)
-           (> (string-length name) 0)
-           (not (collab-valid-doc-name? name))
-         ) ;and
-         (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
-           "Collaborative"
-         ) ;set-message
-        ) ;
-        (else
-          ;; 加载文件到 buffer（window-per-buffer 开新窗口，否则新标签页），
-          ;; current-buffer 随即切到该文件 buffer。
-          (if (window-per-buffer?) (load-buffer-in-new-window u) (load-buffer u))
-          (collab-mark-current-buffer)
-          (loro-collab-create (collab-server-url) name)
-          (set-message (string-append "Uploading file as collaborative document (Server "
-                         (collab-server-url)
-                         ")"
-                       ) ;string-append
-            "Collaborative"
-          ) ;set-message
-        ) ;else
-  ) ;cond
+  ;; name 来自 Qt 输入框为 Cork 编码，协作链下游期望 UTF-8（见 collab-new-document-named）。
+  (let ((uname (cork->utf8 name)))
+    (cond ((and (string? uname)
+             (> (string-length uname) 0)
+             (not (collab-valid-doc-name? uname))
+           ) ;and
+           (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
+             "Collaborative"
+           ) ;set-message
+          ) ;
+          (else
+            ;; 加载文件到 buffer（window-per-buffer 开新窗口，否则新标签页），
+            ;; current-buffer 随即切到该文件 buffer。
+            (if (window-per-buffer?) (load-buffer-in-new-window u) (load-buffer u))
+            (collab-mark-current-buffer)
+            (loro-collab-create (collab-server-url) uname)
+            (set-message (string-append "Uploading file as collaborative document (Server "
+                           (collab-server-url)
+                           ")"
+                         ) ;string-append
+              "Collaborative"
+            ) ;set-message
+          ) ;else
+    ) ;cond
+  ) ;let
 ) ;tm-define
 
 ;; 加入指定 UUID 的协作文档（非交互：UUID 由 Join 子菜单选中项传入，

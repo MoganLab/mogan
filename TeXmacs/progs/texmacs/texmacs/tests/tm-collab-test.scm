@@ -119,12 +119,32 @@
   ) ;let
 ) ;define
 
+;; cork->utf8：还原 Qt 输入框 Cork 化后的 <#XXXX> 转义。GUI 输入中文经
+;; from_qstring→utf8_to_cork 变成 <#XXXX>，协作入口需 cork->utf8 还原为 UTF-8
+;; 才能校验/传输。此用例覆盖修复核心——现有 UTF-8 字面量用例测不到该路径
+;; （正是原 bug 漏网的原因）。
+
+(define (test-cork-decode)
+  (check (cork->utf8 "<#6D4B><#8BD5>") => "测试")
+  (check (cork->utf8 "<#6D4B><#8BD5><#6587><#6863>") => "测试文档")
+  ;; ASCII 透明（英文文档名不受 Cork 影响）
+  (check (cork->utf8 "abc") => "abc")
+  ;; 混合：ASCII + CJK 转义
+  (check (cork->utf8 "a<#6D4B>b") => "a测b")
+  ;; 协作入口视角：Cork 化的中文文档名还原为 UTF-8 后应通过校验
+  (check (collab-valid-doc-name? (cork->utf8 "<#6D4B><#8BD5><#6587><#6863>"))
+    =>
+    #t
+  ) ;check
+) ;define
+
 (tm-define (regtest-tm-collab)
   (test-valid-names)
   (test-invalid-names)
   (test-docs-pairs)
   (test-doc-label)
   (test-doc-name-duplicates)
+  (test-cork-decode)
   (test-fields->url)
   (test-url->fields)
   (check-report)
