@@ -38,6 +38,13 @@
               (check-true (collab-buffer? buf))
               (check-true (string-starts? (url->unix buf) "tmfs://collab/"))
               (check-true (== (url->unix buf) (string-append "tmfs://collab/" doc-id)))
+              ;; [7001] join 同一 doc_id：buffer 已存在 → 跳转，不新建 buffer
+              ;; （同一文档在本进程唯一 buffer，避免 tmfs URL 冲突）
+              (let ((n (length (buffer-list))))
+                (collab-join-document doc-id "url-test-dup")
+                (check-true (== (length (buffer-list)) n))
+                (check-true (== (url->unix (current-buffer)) (url->unix buf)))
+              ) ;let
               (check-report)
               (quit-TeXmacs)
             ) ;let

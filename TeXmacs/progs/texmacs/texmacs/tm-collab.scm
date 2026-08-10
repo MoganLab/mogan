@@ -321,21 +321,28 @@
 ;; 建空 buffer 并切到它 → 会话层 JOIN。服务端回 DOC 后补发 snapshot/updates，
 ;; 首帧到达时把内容构建进 buffer。
 (tm-define (collab-join-document doc-id . opt-name)
-  (let ((name (if (and (nnull? opt-name) (string? (car opt-name))) (car opt-name) "")))
+  (let ((name (if (and (nnull? opt-name) (string? (car opt-name))) (car opt-name) ""))
+        (buf-url (collab-buffer-url->tmfs doc-id))
+       ) ;
     (when (and (string? doc-id) (> (string-length doc-id) 0))
-      (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-        ;; join 的 doc_id 已知，直接改名为最终 tmfs URL（无需 become_ready 再改）。
-        (buffer-rename (current-buffer) (collab-buffer-url->tmfs doc-id))
-        ;; 标题立即设为显示名（无名回退 UUID）；DOC 帧到达后 C++ become_ready
-        ;; 会以服务端 name 重设标题（最终一致）
-        (buffer-set-title (current-buffer) (if (> (string-length name) 0) name doc-id))
-        (loro-collab-join (collab-server-url) doc-id name)
-        (set-message (string-append "Joining collaborative document "
-                       (if (> (string-length name) 0) name doc-id)
-                     ) ;string-append
-          "Collaborative"
-        ) ;set-message
-      ) ;with-default-view
+      (if (buffer-exists? buf-url)
+        ;; 同进程同 doc_id 已打开：直接跳转，不新建 buffer（同一文档在本进程
+        ;; 唯一 buffer，与打开同一文件的行为一致；避免 tmfs URL 冲突）。
+        (switch-to-buffer buf-url)
+        (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+          ;; join 的 doc_id 已知，直接改名为最终 tmfs URL（无需 become_ready 再改）。
+          (buffer-rename (current-buffer) buf-url)
+          ;; 标题立即设为显示名（无名回退 UUID）；DOC 帧到达后 C++ become_ready
+          ;; 会以服务端 name 重设标题（最终一致）
+          (buffer-set-title (current-buffer) (if (> (string-length name) 0) name doc-id))
+          (loro-collab-join (collab-server-url) doc-id name)
+          (set-message (string-append "Joining collaborative document "
+                         (if (> (string-length name) 0) name doc-id)
+                       ) ;string-append
+            "Collaborative"
+          ) ;set-message
+        ) ;with-default-view
+      ) ;if
     ) ;when
   ) ;let
 ) ;tm-define
