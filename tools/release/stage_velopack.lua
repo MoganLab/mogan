@@ -105,9 +105,11 @@ end
 -- 2) 数据平铺到暂存根：不再建 out/TeXmacs 包装目录，每个条目直接拷到 out/<name>。
 --    应用按 $TEXMACS_PATH/progs、$TEXMACS_PATH/doc、$TEXMACS_PATH/fonts 等扁平查找，
 --    TeXmacs/ 包装目录会让 $TEXMACS_PATH/progs 永远解析失败。
+-- tests/ 不发布：TeXmacs/tests/{tm,tex,bib} 是格式回归样例文档，仅开发/测试用，
+-- 进发布物徒增体积且无运行期作用，故从 texmacs_entries 清单中排除。
 local texmacs_entries = {
     "doc", "fonts", "langs", "misc", "packages", "plugins", "progs",
-    "styles", "templates", "tests", "texts",
+    "styles", "templates", "texts",
     "COPYING", "INSTALL", "README", "TEX_FONTS",
 }
 local tx_src = path.join (src_dir, "TeXmacs")
