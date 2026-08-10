@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code goldfish-edit) (:use (prog prog-edit)))
+(texmacs-module (goldfish goldfish-edit) (:use (prog prog-edit)))
 
 (texmacs-modes (in-goldfish% (== (get-env "prog-language") "goldfish"))
   (in-prog-goldfish% #t in-prog% in-goldfish%)

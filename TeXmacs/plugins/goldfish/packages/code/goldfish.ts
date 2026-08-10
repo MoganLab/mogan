@@ -22,7 +22,7 @@
 
   <use-module|(data goldfish)>
 
-  <use-module|(code goldfish-edit)>
+  <use-module|(goldfish goldfish-edit)>
 
   <assign|goldfish-prompt-color|dark green>
 

@@ -15,7 +15,7 @@
 ;; https://docs.julialang.org/en/v1/base/base/#Keywords
 
 
-(texmacs-module (code julia-lang) (:use (prog default-lang)))
+(texmacs-module (julia julia-lang) (:use (prog default-lang)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "julia") (== key "keyword")))

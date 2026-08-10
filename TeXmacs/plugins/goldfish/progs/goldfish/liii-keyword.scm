@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code liii-keyword))
+(texmacs-module (goldfish liii-keyword))
 
 (define (liii-base)
   (map symbol->string '(== != display* in? compose identity case-class? any?))

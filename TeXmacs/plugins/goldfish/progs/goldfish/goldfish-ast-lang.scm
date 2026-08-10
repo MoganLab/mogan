@@ -11,11 +11,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code goldfish-ast-lang)
+(texmacs-module (goldfish goldfish-ast-lang)
   (:use (code default-ast-lang)
-    (code r7rs-keyword)
-    (code srfi-keyword)
-    (code liii-keyword)
+    (r7rs r7rs-keyword)
+    (r7rs srfi-keyword)
+    (goldfish liii-keyword)
   ) ;:use
 ) ;texmacs-module
 

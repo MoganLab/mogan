@@ -10,11 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code fish-edit)
-  (:use (prog prog-edit)
-        (code fish-mode)
-  ) ;:use
-) ;texmacs-module
+(texmacs-module (fish fish-edit) (:use (prog prog-edit) (fish fish-mode)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Indentation policy
@@ -22,60 +18,70 @@
 
 (tm-define (fish-tabstop) 4)
 
-(tm-define (get-tabstop)
-  (:mode in-prog-fish?)
-  (fish-tabstop)
-) ;tm-define
+(tm-define (get-tabstop) (:mode in-prog-fish?) (fish-tabstop))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define fish-block-openers
-  '("case" "command" "define" "else" "for" "foreach" "if" "loop"
-    "section" "struct" "structure" "while")
+  '("case"
+    "command"
+    "define"
+    "else"
+    "for"
+    "foreach"
+    "if"
+    "loop"
+    "section"
+    "struct"
+    "structure"
+    "while")
 ) ;define
 
 (define fish-block-closers
-  '("end" "end_if" "endif" "end_loop" "end_section"
-    "endcase" "endcommand" "endloop" "endsection")
+  '("end"
+    "end_if"
+    "endif"
+    "end_loop"
+    "end_section"
+    "endcase"
+    "endcommand"
+    "endloop"
+    "endsection")
 ) ;define
 
-(define fish-block-middle
-  '("case" "else")
-) ;define
+(define fish-block-middle '("case" "else"))
 
 (define (fish-word-in? w lst)
-  (cond
-    ((null? lst) #f)
-    ((== w (car lst)) #t)
-    (else (fish-word-in? w (cdr lst)))
+  (cond ((null? lst) #f)
+        ((== w (car lst)) #t)
+        (else (fish-word-in? w (cdr lst)))
   ) ;cond
 ) ;define
 
 (define (fish-string-prefix? s p)
   (and (>= (string-length s) (string-length p))
-       (== (substring s 0 (string-length p)) p)
+    (== (substring s 0 (string-length p)) p)
   ) ;and
 ) ;define
 
 (define (fish-trim-left s)
-  (let loop ((i 0) (n (string-length s)))
-    (if (or (>= i n)
-            (not (char-whitespace? (string-ref s i))))
-        (substring s i n)
-        (loop (+ i 1) n)
+  (let loop
+    ((i 0) (n (string-length s)))
+    (if (or (>= i n) (not (char-whitespace? (string-ref s i))))
+      (substring s i n)
+      (loop (+ i 1) n)
     ) ;if
   ) ;let
 ) ;define
 
 (define (fish-trim-right s)
-  (let loop ((i (- (string-length s) 1)))
-    (if (< i 0) ""
-        (if (char-whitespace? (string-ref s i))
-            (loop (- i 1))
-            (substring s 0 (+ i 1))
-        ) ;if
+  (let loop
+    ((i (- (string-length s) 1)))
+    (if (< i 0)
+      ""
+      (if (char-whitespace? (string-ref s i)) (loop (- i 1)) (substring s 0 (+ i 1)))
     ) ;if
   ) ;let
 ) ;define
@@ -85,69 +91,55 @@
 ) ;define
 
 (define (fish-word-char? c)
-  (or (char-alphabetic? c)
-      (char-numeric? c)
-      (== c #\_)
-  ) ;or
+  (or (char-alphabetic? c) (char-numeric? c) (== c #\_))
 ) ;define
 
 (define (fish-first-word s)
-  (let* ((t (fish-trim-left s))
-         (n (string-length t)))
-    (let loop ((i 0))
-      (if (or (>= i n)
-              (not (fish-word-char? (string-ref t i))))
-          (if (<= i 0) "" (substring t 0 i))
-          (loop (+ i 1))
+  (let* ((t (fish-trim-left s)) (n (string-length t)))
+    (let loop
+      ((i 0))
+      (if (or (>= i n) (not (fish-word-char? (string-ref t i))))
+        (if (<= i 0) "" (substring t 0 i))
+        (loop (+ i 1))
       ) ;if
     ) ;let
   ) ;let*
 ) ;define
 
 (define (fish-line-continues? line)
-  (let* ((t (fish-trim-right line))
-         (n (string-length t)))
+  (let* ((t (fish-trim-right line)) (n (string-length t)))
     (and (> n 0)
-         (or (and (>= n 3)
-                  (== (substring t (- n 3) n) "..."))
-             (== (string-ref t (- n 1)) #\&)
-         ) ;or
+      (or (and (>= n 3) (== (substring t (- n 3) n) "..."))
+        (== (string-ref t (- n 1)) #\&)
+      ) ;or
     ) ;and
   ) ;let*
 ) ;define
 
 (define (fish-line-opens-block? line)
-  (let* ((t (fish-trim line))
-         (w (fish-first-word t)))
-    (or (and (!= w "")
-             (or (fish-word-in? w fish-block-openers)
-                 (== w "caseof"))
-             ) ;or
-        (fish-string-prefix? t "if ")
-        (== t "if")
-        (fish-string-prefix? t "else if ")
-        (and (or (fish-string-prefix? t "if ")
-                 (fish-string-prefix? t "else if ")
-                 (fish-string-prefix? t "caseof "))
-             (or (== t "then")
-                 (fish-string-prefix? t "then ")
-                 (and (>= (string-length t) 4)
-                      (== (substring t (- (string-length t) 4)
-                                     (string-length t))
-                          "then"
-                      ) ;==
-                 ) ;and
-             ) ;or
-        ) ;and
+  (let* ((t (fish-trim line)) (w (fish-first-word t)))
+    (or (and (!= w "") (or (fish-word-in? w fish-block-openers) (== w "caseof")))
+      (fish-string-prefix? t "if ")
+      (== t "if")
+      (fish-string-prefix? t "else if ")
+      (and (or (fish-string-prefix? t "if ")
+             (fish-string-prefix? t "else if ")
+             (fish-string-prefix? t "caseof ")
+           ) ;or
+        (or (== t "then")
+          (fish-string-prefix? t "then ")
+          (and (>= (string-length t) 4)
+            (== (substring t (- (string-length t) 4) (string-length t)) "then")
+          ) ;and
+        ) ;or
+      ) ;and
     ) ;or
   ) ;let*
 ) ;define
 
 (define (fish-line-starts-with-outdent? line)
   (let ((w (fish-first-word line)))
-    (or (fish-word-in? w fish-block-closers)
-        (fish-word-in? w fish-block-middle)
-    ) ;or
+    (or (fish-word-in? w fish-block-closers) (fish-word-in? w fish-block-middle))
   ) ;let
 ) ;define
 
@@ -162,12 +154,13 @@
 ) ;define
 
 (define (fish-prev-nonempty-row row)
-  (let loop ((r (- row 1)))
-    (if (< r 0) -1
-        (let* ((line (fish-get-line r))
-               (t (fish-trim line)))
-          (if (== t "") (loop (- r 1)) r)
-        ) ;let*
+  (let loop
+    ((r (- row 1)))
+    (if (< r 0)
+      -1
+      (let* ((line (fish-get-line r)) (t (fish-trim line)))
+        (if (== t "") (loop (- r 1)) r)
+      ) ;let*
     ) ;if
   ) ;let
 ) ;define
@@ -178,15 +171,15 @@
 
 (define (fish-indent-level-from-prev row)
   (let* ((pr (fish-prev-nonempty-row row)))
-    (if (< pr 0) 0
-        (let* ((pline (fish-get-line pr))
-               (base (string-get-indent pline))
-               (tab (get-tabstop))
-               (inc? (or (fish-line-continues? pline)
-                         (fish-line-opens-block? pline)))
-               ) ;inc?
-          (+ base (if inc? tab 0))
-        ) ;let*
+    (if (< pr 0)
+      0
+      (let* ((pline (fish-get-line pr))
+             (base (string-get-indent pline))
+             (tab (get-tabstop))
+             (inc? (or (fish-line-continues? pline) (fish-line-opens-block? pline)))
+            ) ;
+        (+ base (if inc? tab 0))
+      ) ;let*
     ) ;if
   ) ;let*
 ) ;define
@@ -195,11 +188,9 @@
   (:mode in-prog-fish?)
   (let* ((tab (get-tabstop))
          (line (fish-get-line row))
-         (base (fish-indent-level-from-prev row)))
-    (if (fish-line-starts-with-outdent? line)
-        (max 0 (- base tab))
-        base
-    ) ;if
+         (base (fish-indent-level-from-prev row))
+        ) ;
+    (if (fish-line-starts-with-outdent? line) (max 0 (- base tab)) base)
   ) ;let*
 ) ;tm-define
 
@@ -207,10 +198,7 @@
 ;; Commenting
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (program-comment-start)
-  (:mode in-prog-fish?)
-  ";"
-) ;tm-define
+(tm-define (program-comment-start) (:mode in-prog-fish?) ";")
 
 (tm-define (program-toggle-comment)
   (:mode in-prog-fish?)
@@ -230,13 +218,9 @@
 ;; Brackets / quotes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (fish-bracket-open lbr rbr)
-  (bracket-open lbr rbr "\\")
-) ;tm-define
+(tm-define (fish-bracket-open lbr rbr) (bracket-open lbr rbr "\\"))
 
-(tm-define (fish-bracket-close lbr rbr)
-  (bracket-close lbr rbr "\\")
-) ;tm-define
+(tm-define (fish-bracket-close lbr rbr) (bracket-close lbr rbr "\\"))
 
 (tm-define (notify-cursor-moved status)
   (:require prog-highlight-brackets?)
@@ -248,16 +232,15 @@
 ;; Keyboard mappings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map
-  (:mode in-prog-fish?)
-  ("A-tab" (insert-tabstop))
-  ("cmd S-tab" (remove-tabstop))
-  ("{" (fish-bracket-open "{" "}" ))
-  ("}" (fish-bracket-close "{" "}" ))
-  ("(" (fish-bracket-open "(" ")" ))
-  (")" (fish-bracket-close "(" ")" ))
-  ("[" (fish-bracket-open "[" "]" ))
-  ("]" (fish-bracket-close "[" "]" ))
-  ("\"" (fish-bracket-open "\"" "\"" ))
-  ("'" (fish-bracket-open "'" "'" ))
+(kbd-map (:mode in-prog-fish?)
+ ("A-tab" (insert-tabstop))
+ ("cmd S-tab" (remove-tabstop))
+ ("{" (fish-bracket-open "{" "}"))
+ ("}" (fish-bracket-close "{" "}"))
+ ("(" (fish-bracket-open "(" ")"))
+ (")" (fish-bracket-close "(" ")"))
+ ("[" (fish-bracket-open "[" "]"))
+ ("]" (fish-bracket-close "[" "]"))
+ ("\"" (fish-bracket-open "\"" "\""))
+ ("'" (fish-bracket-open "'" "'"))
 ) ;kbd-map
