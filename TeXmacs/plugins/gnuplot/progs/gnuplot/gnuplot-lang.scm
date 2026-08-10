@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code gnuplot-lang) (:use (prog default-lang)))
+(texmacs-module (gnuplot gnuplot-lang) (:use (prog default-lang)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "gnuplot") (== key "keyword")))
