@@ -10,7 +10,7 @@
       This package contains macros for the automatic sorting of citations.
     </src-purpose>
 
-    <src-copyright|2013|François Poulain, Joris van der Hoeven>
+    <src-copyright|2013|Franï¿½ois Poulain, Joris van der Hoeven>
 
     <\src-license>
       This software falls under the <hlink|GNU general public license,
@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(contrib cite cite-sort)>
+  <use-module|(cite cite-sort)>
 
   <assign|cite-sort|<macro|body|<extern|cite-sort|<arg|body>>>>
 

@@ -12,7 +12,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (contrib cite cite-sort))
+(texmacs-module (cite cite-sort))
 
 (define (compare-string s1 s2)
   (if (and (string->number s1) (string->number s2))
@@ -30,7 +30,7 @@
      (t2 (car t2))
      (s1 (if (string? t1) t1 (convert t1 "texmacs-stree" "verbatim-snippet")))
      (s2 (if (string? t2) t2 (convert t2 "texmacs-stree" "verbatim-snippet"))))
-    (compare-string s1 s2)))
+    (comparator s1 s2)))
 
 (define (expand-references k)
   (with key (stree->tree `(get-binding ,(cadr k)))
