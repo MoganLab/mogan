@@ -12,7 +12,7 @@
   </src-title>>
 
   <use-module|(data matlab)>
-  <use-module|(code matlab-edit)>
+  <use-module|(matlab matlab-edit)>
 
   <assign|matlab|<macro|body|<with|mode|prog|prog-language|matlab|font-family|rm|<arg|body>>>>
 

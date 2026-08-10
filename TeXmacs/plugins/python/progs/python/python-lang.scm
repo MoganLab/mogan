@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code python-lang) (:use (prog default-lang)))
+(texmacs-module (python python-lang) (:use (prog default-lang)))
 
 ;; 定义解析器特性函数，用于获取Python语言的关键字定义
 ;; 当语言为"python"且键为"keyword"时返回关键字分类
