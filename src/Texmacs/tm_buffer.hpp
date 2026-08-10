@@ -36,11 +36,10 @@ public:
   path            rp;     // path to the document's root in the_et
   link_repository lns;    // global links
   bool            notify; // notify modifications to scheme
-  bool            cloud;  // 云文档：内容权威在云端，本地"需保存"无意义
 
   inline tm_buffer_rep (url name)
       : buf (name), data (), vws (0), prj (NULL), rp (new_document ()),
-        notify (false), cloud (false) {}
+        notify (false) {}
 
   inline ~tm_buffer_rep () { delete_document (rp); }
 
