@@ -11,16 +11,16 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code csv-lang)
-  (:use (prog default-lang)))
+(texmacs-module (csv csv-lang) (:use (prog default-lang)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "csv") (== key "operator")))
-  `(,(string->symbol key)
-    (operator ",")))
+  `(,(string->symbol key) (operator ","))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "csv") (== key "string")))
   `(,(string->symbol key)
-    (bool_features )
-    (escape_sequences "\\" "/" "\"" "b" "f" "n" "r" "t")))
+    (bool_features)
+    (escape_sequences "\\" "/" "\"" "b" "f" "n" "r" "t"))
+) ;tm-define
