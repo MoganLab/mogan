@@ -11,7 +11,7 @@
     </src-purpose>
   </src-title>>
 
-  <use-module|(data r)> <use-module|(code r-edit)>
+  <use-module|(data r)> <use-module|(r r-edit)>
 
   <assign|r|<macro|body|<with|mode|prog|prog-language|r|font-family|rm|<arg|body>>>>
 

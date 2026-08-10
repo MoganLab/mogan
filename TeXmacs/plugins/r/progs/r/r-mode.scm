@@ -4,9 +4,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(texmacs-module (code r-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (r r-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-r% (== (get-env "prog-language") "r"))
-  (in-prog-r% #t in-prog% in-r%))
+(texmacs-modes (in-r% (== (get-env "prog-language") "r"))
+  (in-prog-r% #t in-prog% in-r%)
+) ;texmacs-modes
