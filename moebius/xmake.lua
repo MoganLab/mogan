@@ -164,7 +164,7 @@ task("test-with-log")
 
             catch
             {
-                function (errors)
+                function ()
                     failed = true
                 end
             }
@@ -179,49 +179,28 @@ task("test-with-log")
         print("TEST FAILED - DUMPING TEST LOGS")
         print("========================================")
 
-        local builddir = get_config("builddir")
-        if not builddir then
-            builddir = path.join(os.projectdir(), "build")
+        local stdout_log =
+            path.absolute("../build/.gens/moebius_tests_loro_tmu_test/macosx/arm64/releasedbg/tests/moebius_tests/loro_tmu_test.stdout.log")
+
+        local stderr_log =
+            path.absolute("../build/.gens/moebius_tests_loro_tmu_test/macosx/arm64/releasedbg/tests/moebius_tests/loro_tmu_test.errors.log")
+
+        print("")
+        print("========== stdout: " .. stdout_log .. " ==========")
+
+        if os.isfile(stdout_log) then
+            print(io.readfile(stdout_log))
+        else
+            print("stdout log not found")
         end
 
-        builddir = path.absolute(builddir)
+        print("")
+        print("========== stderr: " .. stderr_log .. " ==========")
 
-        print("builddir: " .. builddir)
-
-        -- Xmake test reports names such as:
-        --
-        --   moebius_tests/loro_tmu_test
-        --
-        -- The corresponding .gens directory is:
-        --
-        --   .gens/moebius_tests_loro_tmu_test
-        --
-        local test_name = "loro_tmu_test"
-
-        local test_gendir = path.join(
-            builddir,
-            ".gens",
-            "moebius_tests_" .. test_name
-        )
-
-        local stdout_logs = os.files(
-            path.join(test_gendir, "**/" .. test_name .. ".stdout.log")
-        )
-
-        local stderr_logs = os.files(
-            path.join(test_gendir, "**/" .. test_name .. ".errors.log")
-        )
-
-        for _, file in ipairs(stdout_logs) do
-            print("")
-            print("========== stdout: " .. file .. " ==========")
-            print(io.readfile(file))
-        end
-
-        for _, file in ipairs(stderr_logs) do
-            print("")
-            print("========== stderr: " .. file .. " ==========")
-            print(io.readfile(file))
+        if os.isfile(stderr_log) then
+            print(io.readfile(stderr_log))
+        else
+            print("stderr log not found")
         end
 
         os.raise("tests failed")

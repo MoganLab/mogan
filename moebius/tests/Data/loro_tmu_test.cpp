@@ -34,7 +34,7 @@ ensure_labels () {
 static string
 resolve_fixture_dir () {
   const char* cands[]= {
-      "../../../TeXmacs/tests/tmu/",
+      "../../../../TeXmacs/tests/tmu/",
   };
   int n= sizeof (cands) / sizeof (cands[0]);
   for (int i= 0; i < n; i++) {
