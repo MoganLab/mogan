@@ -76,6 +76,10 @@ jobs:
     timeout-minutes: 45
     if: always()
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: debug checkout
         run: |
           echo "PWD:"
@@ -95,10 +99,6 @@ jobs:
 
           echo "git tracked tmu files:"
           git ls-files 'TeXmacs/tests/tmu/**' | head -20
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
       - name: cache xmake
         uses: actions/cache@v4
