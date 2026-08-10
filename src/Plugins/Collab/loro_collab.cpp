@@ -16,6 +16,7 @@
 #include "tm_timer.hpp"
 #include "url.hpp"
 #include <cstdint>
+#include <lolly/data/cork.hpp>
 
 void (*g_loro_broadcast_update) (string bytes)= nullptr;
 void (*g_loro_cursor_flush) ()                = nullptr;
@@ -155,7 +156,11 @@ collab_session::become_ready () {
     pending_updates= array<string> ();
   }
 
-  string title= (N (doc_name) > 0) ? doc_name : doc_id;
+  // doc_name 是 UTF-8（scheme 入口 cork->utf8 后传入）；WS 传输（on_connect 的
+  // CREATE 帧）直接用 UTF-8。但 buffer 标题与 footer 消息走显示层，期望 Cork
+  // 编码（CJK 以 <#XXXX> 表示、渲染时还原），故 title 转 Cork 再用于显示。
+  string title=
+      lolly::data::utf8_to_cork ((N (doc_name) > 0) ? doc_name : doc_id);
   set_title_buffer (buffer_url, title);
   set_message (was_reconnect ? "Reconnected to " * title
                              : "Session ready: " * title);
