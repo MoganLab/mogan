@@ -8,9 +8,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code sql-edit)
-  (:use (prog prog-edit)
-        (code sql-mode)))
+(texmacs-module (sql sql-edit) (:use (prog prog-edit) (sql sql-mode)))
 
 (import (liii string))
 
@@ -23,9 +21,7 @@
 
 (tm-define (sql-tabstop) 2)
 
-(tm-define (get-tabstop)
-  (:mode in-prog-sql?)
-  (sql-tabstop))
+(tm-define (get-tabstop) (:mode in-prog-sql?) (sql-tabstop))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Basic indentation heuristics for SQL
@@ -39,90 +35,150 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define sql-increase-indent-keys
-  '("SELECT" "FROM" "WHERE" "JOIN" "INNER" "LEFT" "RIGHT" "FULL" "OUTER"
-    "GROUP" "HAVING" "ORDER" "WITH" "CASE" "WHEN" "AND" "OR"
-    "select" "from" "where" "join" "inner" "left" "right" "full" "outer"
-    "group" "having" "order" "with" "case" "when" "and" "or"))
+  '("SELECT"
+    "FROM"
+    "WHERE"
+    "JOIN"
+    "INNER"
+    "LEFT"
+    "RIGHT"
+    "FULL"
+    "OUTER"
+    "GROUP"
+    "HAVING"
+    "ORDER"
+    "WITH"
+    "CASE"
+    "WHEN"
+    "AND"
+    "OR"
+    "select"
+    "from"
+    "where"
+    "join"
+    "inner"
+    "left"
+    "right"
+    "full"
+    "outer"
+    "group"
+    "having"
+    "order"
+    "with"
+    "case"
+    "when"
+    "and"
+    "or")
+) ;define
 
-(define sql-decrease-indent-keys
-  '("END" "ELSE" "ELSEIF"
-    "end" "else" "elseif"))
+(define sql-decrease-indent-keys '("END" "ELSE" "ELSEIF" "end" "else" "elseif"))
 
-(define sql-end-keys
-  '(")" "END"
-        "end"))
+(define sql-end-keys '(")" "END" "end"))
 
 ;; Trim whitespace from left side of string
+
 (define (string-strip-left s)
-  (with char-set:not-whitespace (char-set-complement char-set:whitespace)
-    (with n (string-length s)
-      (with r (or (string-index s char-set:not-whitespace) 0)
-        ; (string-take s (min n (+ 1 r)))
-        (substring s r n)))))
+  (with char-set:not-whitespace
+    (char-set-complement char-set:whitespace)
+    (with n
+      (string-length s)
+      (with r (or (string-index s char-set:not-whitespace) 0) (substring s r n))
+    ) ;with
+  ) ;with
+) ;define
 
 ;; Trim whitespace from right side of string
-(define (string-strip-right s)
-  (with char-set:not-whitespace (char-set-complement char-set:whitespace)
-    (with n (string-length s)
-      (with r (or (string-rindex s char-set:not-whitespace) n)
-        (string-take s (min n (+ 1 r)))))))
 
-(define (string-strip s) (string-strip-right (string-strip-left s)))
+(define (string-strip-right s)
+  (with char-set:not-whitespace
+    (char-set-complement char-set:whitespace)
+    (with n
+      (string-length s)
+      (with r
+        (or (string-rindex s char-set:not-whitespace) n)
+        (string-take s (min n (+ 1 r)))
+      ) ;with
+    ) ;with
+  ) ;with
+) ;define
+
+(define (string-strip s)
+  (string-strip-right (string-strip-left s))
+) ;define
 
 ;; Helper function to check if string ends with a keyword
+
 (define (ends-with-keyword? s keys)
   (and (not (null? keys))
-       (or (string-ends? s (car keys))
-           (ends-with-keyword? s (cdr keys)))))
+    (or (string-ends? s (car keys)) (ends-with-keyword? s (cdr keys)))
+  ) ;and
+) ;define
 
 ;; Helper function to check if string starts with a keyword
+
 (define (starts-with-keyword? s keys)
   (and (not (null? keys))
-       (or (string-starts? s (string-append (car keys) " "))
-           (starts-with-keyword? s (cdr keys)))))
+    (or (string-starts? s (string-append (car keys) " "))
+      (starts-with-keyword? s (cdr keys))
+    ) ;or
+  ) ;and
+) ;define
 
 ;; Get indentation level of a line (number of leading spaces)
+
 (define (string-get-indent s)
-  (let loop ((i 0) (n (string-length s)))
-    (if (or (>= i n) (not (char-whitespace? (string-ref s i))))
-        i
-        (loop (+ i 1) n))))
+  (let loop
+    ((i 0) (n (string-length s)))
+    (if (or (>= i n) (not (char-whitespace? (string-ref s i)))) i (loop (+ i 1) n))
+  ) ;let
+) ;define
 
 ;; Compute indentation for SQL code
 (tm-define (program-compute-indentation doc row col)
   (:mode in-prog-sql?)
-  (if (<= row 0) 0
-      (let* ((prev-row (- row 1))
-             (prev-line (program-row prev-row))
-             (stripped-prev (string-strip-right (if prev-line prev-line "")))
-             (prev-indent (string-get-indent stripped-prev))
-             (tab-width (get-tabstop))
-             (current-line (program-row row))
-             (stripped-current (string-strip-left (if current-line current-line ""))))
+  (if (<= row 0)
+    0
+    (let* ((prev-row (- row 1))
+           (prev-line (program-row prev-row))
+           (stripped-prev (string-strip-right (if prev-line prev-line "")))
+           (prev-indent (string-get-indent stripped-prev))
+           (tab-width (get-tabstop))
+           (current-line (program-row row))
+           (stripped-current (string-strip-left (if current-line current-line "")))
+          ) ;
 
-        ;; Check for parentheses
-        (let ((open-parens (string-count stripped-prev #\())
-              (close-parens (string-count stripped-prev #\))))
-          (cond
-            ;; If previous line has more open than close parens, increase indent
-            ((> open-parens close-parens)
-             (+ prev-indent tab-width))
+      ;; Check for parentheses
+      (let ((open-parens (string-count stripped-prev #\())
+            (close-parens (string-count stripped-prev #\)))
+           ) ;
+        (cond
+          ;; If previous line has more open than close parens, increase indent
+          ((> open-parens close-parens) (+ prev-indent tab-width))
 
-            ;; If previous line ends with increase-indent keyword
-            ((ends-with-keyword? stripped-prev sql-increase-indent-keys)
-             (+ prev-indent tab-width))
+          ;; If previous line ends with increase-indent keyword
+          ((ends-with-keyword? stripped-prev sql-increase-indent-keys)
+           (+ prev-indent tab-width)
+          ) ;
 
-            ;; If current line starts with decrease-indent keyword
-            ((starts-with-keyword? stripped-current sql-decrease-indent-keys)
-             (max 0 (- prev-indent tab-width)))
+          ;; If current line starts with decrease-indent keyword
+          ((starts-with-keyword? stripped-current sql-decrease-indent-keys)
+           (max 0 (- prev-indent tab-width))
+          ) ;
 
-            ;; If current line starts with closing paren or END keyword, decrease indent
-            ((or (and stripped-current (string-starts? stripped-current ")"))
-                 (starts-with-keyword? stripped-current sql-end-keys))
-             (max 0 (- prev-indent tab-width)))
+          ;; If current line starts with closing paren or END keyword, decrease indent
+          ((or (and stripped-current (string-starts? stripped-current ")"))
+             (starts-with-keyword? stripped-current sql-end-keys)
+           ) ;or
+           (max 0 (- prev-indent tab-width))
+          ) ;
 
-            ;; Otherwise maintain previous indent
-            (else prev-indent))))))
+          ;; Otherwise maintain previous indent
+          (else prev-indent)
+        ) ;cond
+      ) ;let
+    ) ;let*
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bracket and quote handling
@@ -130,11 +186,13 @@
 
 (tm-define (sql-bracket-open lbr rbr)
   ;; Insert a pair of brackets/quotes and position cursor between them
-  (bracket-open lbr rbr "\\"))
+  (bracket-open lbr rbr "\\")
+) ;tm-define
 
 (tm-define (sql-bracket-close lbr rbr)
   ;; Handle closing bracket/quote and position cursor appropriately
-  (bracket-close lbr rbr "\\"))
+  (bracket-close lbr rbr "\\")
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Comment toggling
@@ -143,4 +201,5 @@
 (tm-define (program-comment-toggle)
   (:mode in-prog-sql?)
   ;; SQL uses -- for single-line comments
-  (program-comment-toggle-line "--"))
+  (program-comment-toggle-line "--")
+) ;tm-define

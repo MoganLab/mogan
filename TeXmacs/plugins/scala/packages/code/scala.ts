@@ -21,7 +21,7 @@
   </src-title>>
 
   <use-module|(data scala)>
-  <use-module|(code scala-edit)>
+  <use-module|(scala scala-edit)>
 
   <assign|scala|<macro|body|<with|mode|prog|prog-language|scala|font-family|rm|<arg|body>>>>
 

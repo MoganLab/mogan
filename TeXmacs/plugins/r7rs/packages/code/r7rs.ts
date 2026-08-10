@@ -22,7 +22,7 @@
 
   <use-module|(data r7rs)>
 
-  <use-module|(code r7rs-edit)>
+  <use-module|(r7rs r7rs-edit)>
 
   <assign|goldfish-prompt-color|dark green>
 

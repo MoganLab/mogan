@@ -8,9 +8,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code sql-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (sql sql-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-sql% (== (get-env "prog-language") "sql"))
-  (in-prog-sql% #t in-prog% in-sql%))
+(texmacs-modes (in-sql% (== (get-env "prog-language") "sql"))
+  (in-prog-sql% #t in-prog% in-sql%)
+) ;texmacs-modes

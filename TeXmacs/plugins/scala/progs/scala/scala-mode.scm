@@ -11,9 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code scala-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (scala scala-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-scala% (== (get-env "prog-language") "scala"))
-  (in-prog-scala% #t in-prog% in-scala%))
+(texmacs-modes (in-scala% (== (get-env "prog-language") "scala"))
+  (in-prog-scala% #t in-prog% in-scala%)
+) ;texmacs-modes

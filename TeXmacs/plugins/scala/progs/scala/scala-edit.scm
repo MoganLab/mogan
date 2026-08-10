@@ -10,14 +10,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code scala-edit)
-  (:use (prog prog-edit)
-        (code scala-mode)))
+(texmacs-module (scala scala-edit) (:use (prog prog-edit) (scala scala-mode)))
 
-(tm-define (get-tabstop)
-  (:mode in-prog-scala?)
-  2)
+(tm-define (get-tabstop) (:mode in-prog-scala?) 2)
 
 (tm-define (kbd-paste)
   (:mode in-prog-scala?)
-  (clipboard-paste-import "scala" "primary"))
+  (clipboard-paste-import "scala" "primary")
+) ;tm-define

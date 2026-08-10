@@ -11,39 +11,38 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code r7rs-edit)
-  (:use (prog prog-edit)))
+(texmacs-module (r7rs r7rs-edit) (:use (prog prog-edit)))
 
-(texmacs-modes
-  (in-r7rs% (== (get-env "prog-language") "r7rs"))
-  (in-prog-r7rs% #t in-prog% in-r7rs%))
+(texmacs-modes (in-r7rs% (== (get-env "prog-language") "r7rs"))
+  (in-prog-r7rs% #t in-prog% in-r7rs%)
+) ;texmacs-modes
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Automatic insertion, highlighting and selection of brackets and quotes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (r7rs-bracket-open lbr rbr)
-  (bracket-open lbr rbr "\\"))
+(tm-define (r7rs-bracket-open lbr rbr) (bracket-open lbr rbr "\\"))
 
-(tm-define (r7rs-bracket-close lbr rbr)
-  (bracket-close lbr rbr "\\"))
+(tm-define (r7rs-bracket-close lbr rbr) (bracket-close lbr rbr "\\"))
 
 (tm-define (kbd-select-enlarge)
   (:require prog-select-brackets?)
   (:mode in-prog-r7rs?)
-  (program-select-enlarge "(" ")"))
+  (program-select-enlarge "(" ")")
+) ;tm-define
 
 (tm-define (notify-cursor-moved status)
   (:require prog-highlight-brackets?)
   (:mode in-prog-r7rs?)
-  (select-brackets-after-movement "([{" ")]}" "\\"))
+  (select-brackets-after-movement "([{" ")]}" "\\")
+) ;tm-define
 
-(kbd-map
-  (:mode in-prog-r7rs?)
-  ("{" (r7rs-bracket-open "{" "}" ))
-  ("}" (r7rs-bracket-close "{" "}" ))
-  ("(" (r7rs-bracket-open "(" ")" ))
-  (")" (r7rs-bracket-close "(" ")" ))
-  ("[" (r7rs-bracket-open "[" "]" ))
-  ("]" (r7rs-bracket-close "[" "]" ))
-  ("\"" (r7rs-bracket-open "\"" "\"" )))
+(kbd-map (:mode in-prog-r7rs?)
+ ("{" (r7rs-bracket-open "{" "}"))
+ ("}" (r7rs-bracket-close "{" "}"))
+ ("(" (r7rs-bracket-open "(" ")"))
+ (")" (r7rs-bracket-close "(" ")"))
+ ("[" (r7rs-bracket-open "[" "]"))
+ ("]" (r7rs-bracket-close "[" "]"))
+ ("\"" (r7rs-bracket-open "\"" "\""))
+) ;kbd-map

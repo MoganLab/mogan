@@ -11,15 +11,14 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code r7rs-lang)
-  (:use (prog default-lang)
-        (code r7rs-keyword)))
+(texmacs-module (r7rs r7rs-lang) (:use (prog default-lang) (r7rs r7rs-keyword)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "identifier")))
   `(,(string->symbol key)
     (extra_chars "?" "+" "-" "." "!" "*" ">" "=" "<" "#")
-    (start_chars "?" "+" "-" "." "!" "*" ">" "=" "<" "#")))
+    (start_chars "?" "+" "-" "." "!" "*" ">" "=" "<" "#"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "keyword")))
@@ -29,55 +28,60 @@
     (keyword ,@(r7rs-keywords-others))
     (declare_type ,@(r7rs-keywords-define))
     (keyword_conditional ,@(r7rs-keywords-branch))
-    (keyword_control ,@(r7rs-keywords-exception))))
+    (keyword_control ,@(r7rs-keywords-exception)))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "operator")))
   `(,(string->symbol key)
     (operator "=" "+" "-" "*" "/" "=>" "->" ">" "<" ">=" "<=")
     (operator_special "@" "," "'" "`")
-    (operator_openclose "{" "[" "(" ")" "]" "}")))
+    (operator_openclose "{" "[" "(" ")" "]" "}"))
+) ;tm-define
 
 (define (r7rs-number-suffix)
-  `(suffix
-    (imaginary "i")))
+  '(suffix (imaginary "i"))
+) ;define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "number")))
   `(,(string->symbol key)
     (bool_features "prefix_#")
     (separator "_")
-    ,(r7rs-number-suffix)))
+    ,(r7rs-number-suffix))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "string")))
   `(,(string->symbol key)
-    (bool_features 
-     "hex_with_8_bits" "hex_with_16_bits"
-     "hex_with_32_bits" "octal_upto_3_digits")
+    (bool_features "hex_with_8_bits"
+      "hex_with_16_bits"
+      "hex_with_32_bits"
+      "octal_upto_3_digits")
     (escape_sequences "\\" "\"" "a" "b" "f" "n" "r" "t" "v")
-    (pairs "\"")))
+    (pairs "\""))
+) ;tm-define
 
-; See: https://r7rs.org/doc/v6.1.0/Single-Line-Comments.html
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "comment")))
-  `(,(string->symbol key)
-    (inline ";")))
+  `(,(string->symbol key) (inline ";"))
+) ;tm-define
 
 (define (notify-r7rs-syntax var val)
-  (syntax-read-preferences "r7rs"))
+  (syntax-read-preferences "r7rs")
+) ;define
 
-(define-preferences
-  ("syntax:r7rs:none" "red" notify-r7rs-syntax)
-  ("syntax:r7rs:comment" "brown" notify-r7rs-syntax)
-  ("syntax:r7rs:declare_type" "#309090" notify-r7rs-syntax)
-  ("syntax:r7rs:keyword_conditional" "#309090" notify-r7rs-syntax)
-  ("syntax:r7rs:keyword_control" "#309090" notify-r7rs-syntax)
-  ("syntax:r7rs:keyword" "#204080" notify-r7rs-syntax)
-  ("syntax:r7rs:constant_number" "#4040c0" notify-r7rs-syntax)
-  ("syntax:r7rs:constant_string" "dark grey" notify-r7rs-syntax)
-  ("syntax:r7rs:constant_char" "#333333" notify-r7rs-syntax)
-  ("syntax:r7rs:operator_special" "dark magenta" notify-r7rs-syntax)
-  ("syntax:r7rs:operator_openclose" "dark" notify-r7rs-syntax)
-  ("syntax:r7rs:variable_identifier" "#204080" notify-r7rs-syntax)
-  ("syntax:r7rs:declare_category" "#d030d0" notify-r7rs-syntax))
+(define-preferences ("syntax:r7rs:none" "red" notify-r7rs-syntax)
+ ("syntax:r7rs:comment" "brown" notify-r7rs-syntax)
+ ("syntax:r7rs:declare_type" "#309090" notify-r7rs-syntax)
+ ("syntax:r7rs:keyword_conditional" "#309090" notify-r7rs-syntax)
+ ("syntax:r7rs:keyword_control" "#309090" notify-r7rs-syntax)
+ ("syntax:r7rs:keyword" "#204080" notify-r7rs-syntax)
+ ("syntax:r7rs:constant_number" "#4040c0" notify-r7rs-syntax)
+ ("syntax:r7rs:constant_string" "dark grey" notify-r7rs-syntax)
+ ("syntax:r7rs:constant_char" "#333333" notify-r7rs-syntax)
+ ("syntax:r7rs:operator_special" "dark magenta" notify-r7rs-syntax)
+ ("syntax:r7rs:operator_openclose" "dark" notify-r7rs-syntax)
+ ("syntax:r7rs:variable_identifier" "#204080" notify-r7rs-syntax)
+ ("syntax:r7rs:declare_category" "#d030d0" notify-r7rs-syntax)
+) ;define-preferences

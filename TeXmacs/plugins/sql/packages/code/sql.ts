@@ -12,7 +12,7 @@
   </src-title>>
 
   <use-module|(data sql)>
-  <use-module|(code sql-edit)>
+  <use-module|(sql sql-edit)>
 
   <assign|sql|<macro|body|<with|mode|prog|prog-language|sql|font-family|rm|<arg|body>>>>
 
