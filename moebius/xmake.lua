@@ -179,8 +179,18 @@ task("test-with-log")
         print("TEST FAILED - DUMPING TEST LOGS")
         print("========================================")
 
-        local stdout_logs = os.files("build/.gens/**.stdout.log")
-        local stderr_logs = os.files("build/.gens/**.errors.log")
+        local builddir = get_config("builddir")
+        if not builddir then
+            builddir = path.join(os.projectdir(), "build")
+        end
+        print("builddir: " .. builddir)
+
+        local stdout_logs = os.files(
+            path.join(builddir, ".gens/**.stdout.log")
+        )
+        local stderr_logs = os.files(
+            path.join(builddir, ".gens/**.errors.log")
+        )
 
         for _, file in ipairs(stdout_logs) do
             print("")
