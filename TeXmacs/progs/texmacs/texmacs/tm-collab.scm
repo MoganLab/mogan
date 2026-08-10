@@ -205,10 +205,12 @@
     counts
   ) ;let
 ) ;define
+                                    
 (tm-define (collab-new-document)
   (:interactive #t)
   (interactive (lambda (name) (collab-new-document-named name)) "Document name")
 ) ;tm-define
+
 (tm-define (collab-new-document-named name)
   (let ((uname (cork->utf8 name)))
     (cond ((and (string? uname)
