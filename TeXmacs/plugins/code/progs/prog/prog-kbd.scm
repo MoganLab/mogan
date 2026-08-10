@@ -17,7 +17,7 @@
     (prog scheme-tools)
     (prog prog-mode)
     (code scheme-edit)
-    (code cpp-edit)
+    (cpp cpp-edit)
   ) ;:use
 ) ;texmacs-module
 (debug-message "keyboard" "(prog prog-kbd): registering kbd-map ...\n")

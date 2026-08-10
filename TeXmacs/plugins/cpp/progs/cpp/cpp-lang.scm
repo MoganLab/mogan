@@ -12,97 +12,197 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code cpp-lang)
-  (:use (prog default-lang)))
+(texmacs-module (cpp cpp-lang) (:use (prog default-lang)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "cpp") (== key "keyword")))
   `(,(string->symbol key)
-    (constant
-      "false" "true" "cout" "cin" "cerr"
-      "null" "nullptr" "nullptr_t" "NULL")
-    (constant_type
-      "bool" "byte" "char" "char16_t" "char32_t" "char8_t" "double" "float"
-      "int" "int16_t" "int32_t" "int8_t" "long" "short" "signed" "uint16_t"
-      "uint32_t" "uint8_t" "unsigned" "void" "wchar_t")
+    (constant "false"
+      "true"
+      "cout"
+      "cin"
+      "cerr"
+      "null"
+      "nullptr"
+      "nullptr_t"
+      "NULL")
+    (constant_type "bool"
+      "byte"
+      "char"
+      "char16_t"
+      "char32_t"
+      "char8_t"
+      "double"
+      "float"
+      "int"
+      "int16_t"
+      "int32_t"
+      "int8_t"
+      "long"
+      "short"
+      "signed"
+      "uint16_t"
+      "uint32_t"
+      "uint8_t"
+      "unsigned"
+      "void"
+      "wchar_t")
     (declare_type "class" "interface" "enum")
     (declare_module "namespace" "using")
-    (keyword
-      "asm" "auto" "calloc" "class" "concept" "concrete" "const"
-      "const_cast" "constant" "constexpr" "default" "delete" "dynamic_cast"
-      "enum" "explicit" "export" "extern" "free" "friend" "inline" "malloc"
-      "mutable" "new" "operator" "private" "protected" "public" "realloc"
-      "register" "reinterpret_cast" "sizeof" "static" "static_cast"
-      "struct" "template" "this" "to" "typedef" "typeid" "typename" "union"
-      "virtual" "volatile")
-    (keyword_conditional
-      "break" "continue" "do" "else" "for" "if"
-      "while" "goto" "switch" "case")
-    (keyword_control
-      "throw" "catch" "finally" "return" "try" "yield")))
+    (keyword "asm"
+      "auto"
+      "calloc"
+      "class"
+      "concept"
+      "concrete"
+      "const"
+      "const_cast"
+      "constant"
+      "constexpr"
+      "default"
+      "delete"
+      "dynamic_cast"
+      "enum"
+      "explicit"
+      "export"
+      "extern"
+      "free"
+      "friend"
+      "inline"
+      "malloc"
+      "mutable"
+      "new"
+      "operator"
+      "private"
+      "protected"
+      "public"
+      "realloc"
+      "register"
+      "reinterpret_cast"
+      "sizeof"
+      "static"
+      "static_cast"
+      "struct"
+      "template"
+      "this"
+      "to"
+      "typedef"
+      "typeid"
+      "typename"
+      "union"
+      "virtual"
+      "volatile")
+    (keyword_conditional "break"
+      "continue"
+      "do"
+      "else"
+      "for"
+      "if"
+      "while"
+      "goto"
+      "switch"
+      "case")
+    (keyword_control "throw" "catch" "finally" "return" "try" "yield"))
+) ;tm-define
 
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "cpp") (== key "operator")))
   `(,(string->symbol key)
-    (operator
-      "+" "-" "/" "*" "%" ;; Arith
-      "|" "&" "^" ;; Bit
-      "<<" ">>" 
-      "==" "!=" "<" ">" "<=" ">=" "&&" "||" "!" "==" ;; Boolean
-      "+=" "-=" "/=" "*=" "%=" "|=" "&=" "^=" ;; Assignment
-      "=" ":")
+    (operator "+"
+      "-"
+      "/"
+      "*"
+      "%"
+      ;; Arith
+      "|"
+      "&"
+      "^"
+      ;; Bit
+      "<<"
+      ">>"
+      "=="
+      "!="
+      "<"
+      ">"
+      "<="
+      ">="
+      "&&"
+      "||"
+      "!"
+      "=="
+      ;; Boolean
+      "+="
+      "-="
+      "/="
+      "*="
+      "%="
+      "|="
+      "&="
+      "^="
+      ;; Assignment
+      "="
+      ":")
     (operator_special "->")
     (operator_decoration "@")
     (operator_field "." "::")
-    (operator_openclose "{" "[" "(" ")" "]" "}")))
+    (operator_openclose "{" "[" "(" ")" "]" "}"))
+) ;tm-define
 
 
 (define (cpp-number-suffix)
-  `(suffix
-    (long "l" "L")
-    (double "d" "D")
-    (float "f" "F")))
+  '(suffix (long "l" "L") (double "d" "D") (float "f" "F"))
+) ;define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "cpp") (== key "number")))
   `(,(string->symbol key)
-    (bool_features
-     "prefix_0x"
-     "sci_notation")
+    (bool_features "prefix_0x" "sci_notation")
     ,(cpp-number-suffix)
-    (separator "_")))
+    (separator "_"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "cpp") (== key "string")))
   `(,(string->symbol key)
-    (bool_features )
-    (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "t")))
+    (bool_features)
+    (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "t"))
+) ;tm-define
 
 
 ;; https://en.cppreference.com/w/cpp/preprocessor
 (tm-define (parser-feature lan key)
   (:require (and (== lan "cpp") (== key "preprocessor")))
   `(,(string->symbol key)
-    (directives
-     "define" "undef" "include"
-     "if" "ifdef" "ifndef" "else" "elif" "endif"
-     "line" "error" "pragma")))
+    (directives "define"
+      "undef"
+      "include"
+      "if"
+      "ifdef"
+      "ifndef"
+      "else"
+      "elif"
+      "endif"
+      "line"
+      "error"
+      "pragma"))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Preferences for syntax highlighting
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (notify-cpp-pref var val)
-   (syntax-read-preferences "cpp"))
+  (syntax-read-preferences "cpp")
+) ;define
 
-(define-preferences
-  ("syntax:cpp:none" "black" notify-cpp-pref)
-  ("syntax:cpp:comment" "dark grey" notify-cpp-pref)
-  ("syntax:cpp:keyword" "dark magenta" notify-cpp-pref)
-  ("syntax:cpp:error" "dark red" notify-cpp-pref)
-  ("syntax:cpp:preprocessor" "dark brown" notify-cpp-pref)
-  ("syntax:cpp:preprocessor_directive" "dark green" notify-cpp-pref)
-  ("syntax:cpp:constant_type" "#4040c0" notify-cpp-pref)
-  ("syntax:cpp:constant_number" "#4040c0" notify-cpp-pref)
-  ("syntax:cpp:constant_string" "dark red" notify-cpp-pref))
+(define-preferences ("syntax:cpp:none" "black" notify-cpp-pref)
+ ("syntax:cpp:comment" "dark grey" notify-cpp-pref)
+ ("syntax:cpp:keyword" "dark magenta" notify-cpp-pref)
+ ("syntax:cpp:error" "dark red" notify-cpp-pref)
+ ("syntax:cpp:preprocessor" "dark brown" notify-cpp-pref)
+ ("syntax:cpp:preprocessor_directive" "dark green" notify-cpp-pref)
+ ("syntax:cpp:constant_type" "#4040c0" notify-cpp-pref)
+ ("syntax:cpp:constant_number" "#4040c0" notify-cpp-pref)
+ ("syntax:cpp:constant_string" "dark red" notify-cpp-pref)
+) ;define-preferences
