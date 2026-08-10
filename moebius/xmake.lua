@@ -183,27 +183,46 @@ task("test-with-log")
         if not builddir then
             builddir = path.join(os.projectdir(), "build")
         end
+
+        builddir = path.absolute(builddir)
+
         print("builddir: " .. builddir)
 
-        local stdout_logs = os.files(
-            path.join(builddir, ".gens/**.stdout.log")
+        -- Xmake test reports names such as:
+        --
+        --   moebius_tests/loro_tmu_test
+        --
+        -- The corresponding .gens directory is:
+        --
+        --   .gens/moebius_tests_loro_tmu_test
+        --
+        local test_name = "loro_tmu_test"
+
+        local test_gendir = path.join(
+            builddir,
+            ".gens",
+            "moebius_tests_" .. test_name
         )
+
+        local stdout_logs = os.files(
+            path.join(test_gendir, "**/" .. test_name .. ".stdout.log")
+        )
+
         local stderr_logs = os.files(
-            path.join(builddir, ".gens/**.errors.log")
+            path.join(test_gendir, "**/" .. test_name .. ".errors.log")
         )
 
         for _, file in ipairs(stdout_logs) do
             print("")
             print("========== stdout: " .. file .. " ==========")
-            os.execv("cat", {file})
+            print(io.readfile(file))
         end
 
         for _, file in ipairs(stderr_logs) do
             print("")
             print("========== stderr: " .. file .. " ==========")
-            os.execv("cat", {file})
+            print(io.readfile(file))
         end
 
-        -- Keep the task failed.
         os.raise("tests failed")
     end)
