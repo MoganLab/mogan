@@ -165,7 +165,12 @@
 (tm-define (propose-name-buffer)
   (with name
     (url->unix (current-buffer))
-    (cond ((not (url-scratch? name)) name)
+    (cond ((string-starts? name "tmfs://")
+           ;; tmfs buffer（协作云文档等）的 URL 非本地路径，不能直接作文件名；
+           ;; 用 buffer 标题（协作云文档即文档显示名，cork 编码 → UTF-8 文件名）
+           (cork->utf8 (buffer-get-title (current-buffer)))
+          ) ;
+          ((not (url-scratch? name)) name)
           ((os-windows?) "")
           (else (string-append (var-eval-system "pwd") "/"))
     ) ;cond

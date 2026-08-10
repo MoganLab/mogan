@@ -325,9 +325,10 @@
         (buf-url (collab-buffer-url->tmfs doc-id))
        ) ;
     (when (and (string? doc-id) (> (string-length doc-id) 0))
-      (if (buffer-exists? buf-url)
+      (if (in? (url->unix buf-url) (map url->unix (buffer-list)))
         ;; 同进程同 doc_id 已打开：直接跳转，不新建 buffer（同一文档在本进程
-        ;; 唯一 buffer，与打开同一文件的行为一致；避免 tmfs URL 冲突）。
+        ;; 唯一 buffer，与打开同一文件的行为一致；避免 tmfs URL 冲突）。用
+        ;; url->unix 串比较：buffer-exists? 经 url->url，对 tmfs URL 易失配。
         (switch-to-buffer buf-url)
         (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
           ;; join 的 doc_id 已知，直接改名为最终 tmfs URL（无需 become_ready 再改）。

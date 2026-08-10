@@ -228,10 +228,16 @@
                      ) ;and
            ) ;last-dir
           ) ;
-      (if (and last-dir (string? last-dir) (not (string-null? last-dir)))
-        (set! opts (list (car opts) (system->url last-dir)))
-        (set! opts (list (car opts) master))
-      ) ;if
+      (cond ((and last-dir (string? last-dir) (not (string-null? last-dir)))
+             (set! opts (list (car opts) (system->url last-dir)))
+            ) ;
+            ((url-rooted-tmfs? master)
+             ;; tmfs buffer（协作云文档等）master 是 tmfs URL，非本地路径；
+             ;; 用 buffer 标题作默认文件名（propose-name-buffer 已转 UTF-8）
+             (set! opts (list (car opts) (system->url (propose-name-buffer))))
+            ) ;
+            (else (set! opts (list (car opts) master)))
+      ) ;cond
     ) ;let*
   ) ;when
   (cpp-choose-file (lambda (u)
