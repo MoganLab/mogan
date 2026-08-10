@@ -183,10 +183,13 @@ rename_buffer (url name, url new_name) {
   array<url> vs   = buffer_to_views (new_name);
   for (int i= 0; i < N (vs); i++)
     view_to_editor (vs[i])->notify_change (THE_ENVIRONMENT);
-  notify_rename_after (new_name);
+  // 先更新标题再 notify_rename_after：后者同步触发 update_menus(TAB_PAGES)
+  // 重建 tab 栏，若此时标题仍是旧值（如 scratch 的 "No name [N]"）会被缓存，
+  // 而后续 set_title_buffer 不再触发 tab 重建，导致错误标题残留。
   tree   doc  = subtree (the_et, buf->rp);
   string title= propose_title (buf->buf->title, new_name, doc);
   set_title_buffer (new_name, title);
+  notify_rename_after (new_name);
 }
 
 url
@@ -243,8 +246,17 @@ propose_title (string old_title, url u, tree doc) {
   }
   if ((name == "") || (name == ".")) name= as_string (tail (u * url_parent ()));
   if ((name == "") || (name == ".")) name= as_string (u);
-  if (is_rooted_tmfs (u))
-    name= as_string (call ("tmfs-title", as_string (u), object (doc)));
+  if (is_rooted_tmfs (u)) {
+    // tmfs buffer 的标题由业务层显式设定后（如协作 become_ready 设 doc_name）应
+    // 保留，避免 tmfs-title 默认返回完整 URL（tmfs://collab/<doc_id>）覆盖。
+    // 仅当 old_title 为空 / 默认 (No name) / 已是 tmfs URL 时才重算
+    // tmfs-title。
+    bool keep_old= (N (old_title) > 0) && !starts (old_title, "tmfs://") &&
+                   !starts (old_title, "No name");
+    name= keep_old
+              ? old_title
+              : as_string (call ("tmfs-title", as_string (u), object (doc)));
+  }
 
   int i, j;
   for (j= 1; true; j++) {

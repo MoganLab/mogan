@@ -175,6 +175,10 @@ collab_session::become_ready () {
   string title=
       lolly::data::utf8_to_cork ((N (doc_name) > 0) ? doc_name : doc_id);
   set_title_buffer (buffer_url, title);
+  // set_title_buffer 不触发 tab 栏重建，且协作 buffer need_save 恒 false 使
+  // update_globals 的 tab 刷新也不触发；显式通知菜单重建，确保 tab 显示
+  // doc_name 而非 rename 时 propose_title 留下的临时标题（tmfs URL/doc_id）。
+  if (!is_nil (ed)) ed->notify_change (THE_MENUS);
   set_message (was_reconnect ? "Reconnected to " * title
                              : "Session ready: " * title);
   if (DEBUG_LORO)
