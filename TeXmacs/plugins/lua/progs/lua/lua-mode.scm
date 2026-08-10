@@ -11,9 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code lua-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (lua lua-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-lua% (== (get-env "prog-language") "lua"))
-  (in-prog-lua% #t in-prog% in-lua%))
+(texmacs-modes (in-lua% (== (get-env "prog-language") "lua"))
+  (in-prog-lua% #t in-prog% in-lua%)
+) ;texmacs-modes
