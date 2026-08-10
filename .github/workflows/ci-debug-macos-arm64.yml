@@ -76,6 +76,26 @@ jobs:
     timeout-minutes: 45
     if: always()
     steps:
+      - name: debug checkout
+        run: |
+          echo "PWD:"
+          pwd
+
+          echo "Workspace:"
+          echo "${{ github.workspace }}"
+
+          echo "TeXmacs:"
+          ls -la TeXmacs || true
+
+          echo "TeXmacs/tests:"
+          ls -la TeXmacs/tests || true
+
+          echo "tmu:"
+          ls -la TeXmacs/tests/tmu || true
+
+          echo "git tracked tmu files:"
+          git ls-files 'TeXmacs/tests/tmu/**' | head -20
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
