@@ -39,12 +39,34 @@ resolve_fixture_dir () {
       "../../TeXmacs/tests/tmu/",
       "../../../TeXmacs/tests/tmu/",
       "../../../../TeXmacs/tests/tmu/",
+      "../../../../../TeXmacs/tests/tmu/",
+      "../../../../../../TeXmacs/tests/tmu/",
+      "../../../../../../../TeXmacs/tests/tmu/",
   };
+
+  cout << "========== resolve_fixture_dir ==========" << LF;
+
   int n= sizeof (cands) / sizeof (cands[0]);
+
   for (int i= 0; i < n; i++) {
     string c= cands[i];
-    if (is_directory (c)) return c;
+
+    cout << "candidate[" << i << "]: " << c << LF;
+
+    bool exists= is_directory (c);
+
+    cout << "  is_directory: " << (exists ? "true" : "false") << LF;
+
+    if (exists) {
+      cout << "  >>> FOUND: " << c << LF;
+      cout << "=========================================" << LF;
+      return c;
+    }
   }
+
+  cout << "  >>> NO FIXTURE DIRECTORY FOUND" << LF;
+  cout << "=========================================" << LF;
+
   return string ();
 }
 
