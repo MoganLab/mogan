@@ -11,9 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code moonbit-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (moonbit moonbit-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-moonbit% (== (get-env "prog-language") "moonbit"))
-  (in-prog-moonbit% #t in-prog% in-moonbit%))
+(texmacs-modes (in-moonbit% (== (get-env "prog-language") "moonbit"))
+  (in-prog-moonbit% #t in-prog% in-moonbit%)
+) ;texmacs-modes

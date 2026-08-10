@@ -10,14 +10,13 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code moonbit-edit)
-  (:use (prog prog-edit)
-        (code moonbit-mode)))
+(texmacs-module (moonbit moonbit-edit)
+  (:use (prog prog-edit) (moonbit moonbit-mode))
+) ;texmacs-module
 
-(tm-define (get-tabstop)
-  (:mode in-prog-moonbit?)
-  2)
+(tm-define (get-tabstop) (:mode in-prog-moonbit?) 2)
 
 (tm-define (kbd-paste)
   (:mode in-prog-moonbit?)
-  (clipboard-paste-import "moonbit" "primary"))
+  (clipboard-paste-import "moonbit" "primary")
+) ;tm-define

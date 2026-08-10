@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data moonbit)> <use-module|(code moonbit-edit)>
+  <use-module|(data moonbit)> <use-module|(moonbit moonbit-edit)>
 
   <assign|moonbit|<macro|body|<with|mode|prog|prog-language|moonbit|font-family|rm|<arg|body>>>>
 
