@@ -138,6 +138,28 @@
   ) ;check
 ) ;define
 
+;; collab-buffer-url->tmfs / collab-buffer? / collab-placeholder-doc-id：
+;; 协作 buffer 的 tmfs URL 构造与谓词（取代旧的 URL 外单值变量标识）。
+
+(define (test-collab-url)
+  ;; URL 构造：doc_id（含 UUID 连字符）→ tmfs://collab/<doc_id>
+  (check (url->unix (collab-buffer-url->tmfs "abc-123"))
+    =>
+    "tmfs://collab/abc-123"
+  ) ;check
+  (check (url->unix (collab-buffer-url->tmfs "550e8400-e29b-41d4-a716-446655440000"))
+    =>
+    "tmfs://collab/550e8400-e29b-41d4-a716-446655440000"
+  ) ;check
+  ;; 谓词：仅 collab 协议为 #t（含 pending 占位），chat / 文件路径为 #f
+  (check (collab-buffer? (unix->url "tmfs://collab/abc")) => #t)
+  (check (collab-buffer? (unix->url "tmfs://collab/pending-1-2")) => #t)
+  (check (collab-buffer? (unix->url "tmfs://chat/x")) => #f)
+  (check (collab-buffer? (unix->url "/tmp/x.tmu")) => #f)
+  ;; 占位 id 唯一：连续两次调用 counter 递增，结果不同
+  (check (string=? (collab-placeholder-doc-id) (collab-placeholder-doc-id)) => #f)
+) ;define
+
 (tm-define (regtest-tm-collab)
   (test-valid-names)
   (test-invalid-names)
@@ -147,5 +169,6 @@
   (test-cork-decode)
   (test-fields->url)
   (test-url->fields)
+  (test-collab-url)
   (check-report)
 ) ;tm-define

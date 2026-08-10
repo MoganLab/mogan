@@ -126,19 +126,32 @@
 ) ;tm-define
 
 ;; === collab 缓冲（云端文档）的标识 ===
-;; 单会话：同时只有一个 collab 缓冲。new/join 时把新建 buffer 的 url 记入
-;; collab-buffer-url，collab-buffer? 据此判定。下游 buffer-modified?/save-buffer
-;; 覆盖用它门控特殊语义（不标修改/不可保存/关闭不提示）。
+;; 多会话：每个协作 buffer 用专用 tmfs URL（tmfs://collab/<doc_id>）标识，
+;; collab-buffer? 据 URL 协议判定，无需单值变量。下游 save-buffer 覆盖用它
+;; 门控（不可保存）；C++ editor::need_save 据 tm_buffer_rep::cloud 短路
+;; （不标脏/不弹保存）。tmfs buffer 自动当 scratch，关闭弹「另存」契合云文档。
 
-(define collab-buffer-url #f)
-
-(tm-define (collab-buffer? u) (and collab-buffer-url (== u collab-buffer-url)))
-
-;; 把当前 buffer 标记为 collab 缓冲（在 with-default-view 建 new-buffer 后调用，
-;; 此时 (current-buffer) 即新建的协作 buffer）。
-(tm-define (collab-mark-current-buffer)
-  (set! collab-buffer-url (current-buffer))
+;; collab buffer URL：tmfs://collab/<doc_id>。
+(tm-define (collab-buffer-url->tmfs doc-id)
+  (unix->url (string-append "tmfs://collab/" doc-id))
 ) ;tm-define
+
+;; create 时 doc_id 尚未从服务端返回，用唯一占位 id（也是 collab 协议，
+;; 被 collab-buffer? 识别）；become_ready 收到 DOC 后改名成真实 doc_id。
+
+(define collab-placeholder-counter 0)
+
+(define (collab-placeholder-doc-id)
+  (set! collab-placeholder-counter (+ collab-placeholder-counter 1))
+  (string-append "pending-"
+    (number->string (texmacs-time))
+    "-"
+    (number->string collab-placeholder-counter)
+  ) ;string-append
+) ;define
+
+;; 纯 URL 谓词：支持多会话，占位（pending-…）与最终 doc_id URL 都识别。
+(tm-define (collab-buffer? u) (url-rooted-tmfs-protocol? u "collab"))
 
 ;; === 文档显示名校验与列表工具（纯函数，供测试覆盖） ===
 ;; 规则与服务端 tools/loro-server/validate.js 保持一致：trim 后长度 1–64
@@ -220,7 +233,11 @@
            ) ;set-message
           ) ;
           (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-                  (collab-mark-current-buffer)
+                  ;; 新建 buffer 改名为 tmfs 占位 URL（成为可识别的 collab buffer）；
+                  ;; C++ become_ready 收到 DOC 后再改名为 tmfs://collab/<真实 doc_id>。
+                  (buffer-rename (current-buffer)
+                    (collab-buffer-url->tmfs (collab-placeholder-doc-id))
+                  ) ;buffer-rename
                   ;; 标题立即设为用户输入的显示名（无名文档保持 No Name，待服务端
                   ;; 回 DOC 后 become_ready 用 UUID 兜底），避免 tab 暂显 No Name[n]。
                   (when (> (string-length name) 0)
@@ -282,7 +299,11 @@
             ;; 加载文件到 buffer（window-per-buffer 开新窗口，否则新标签页），
             ;; current-buffer 随即切到该文件 buffer。
             (if (window-per-buffer?) (load-buffer-in-new-window u) (load-buffer u))
-            (collab-mark-current-buffer)
+            ;; 文件内容已随 buffer 载入；改名成 tmfs 占位 URL（内容不变），
+            ;; become_ready eager-seed 时仍能把文件内容推到服务端。
+            (buffer-rename (current-buffer)
+              (collab-buffer-url->tmfs (collab-placeholder-doc-id))
+            ) ;buffer-rename
             (loro-collab-create (collab-server-url) uname)
             (set-message (string-append "Uploading file as collaborative document (Server "
                            (collab-server-url)
@@ -303,7 +324,8 @@
   (let ((name (if (and (nnull? opt-name) (string? (car opt-name))) (car opt-name) "")))
     (when (and (string? doc-id) (> (string-length doc-id) 0))
       (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-        (collab-mark-current-buffer)
+        ;; join 的 doc_id 已知，直接改名为最终 tmfs URL（无需 become_ready 再改）。
+        (buffer-rename (current-buffer) (collab-buffer-url->tmfs doc-id))
         ;; 标题立即设为显示名（无名回退 UUID）；DOC 帧到达后 C++ become_ready
         ;; 会以服务端 name 重设标题（最终一致）
         (buffer-set-title (current-buffer) (if (> (string-length name) 0) name doc-id))

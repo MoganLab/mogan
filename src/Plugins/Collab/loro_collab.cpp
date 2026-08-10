@@ -134,6 +134,19 @@ collab_session::become_ready () {
   g_loro_broadcast_update= broadcast_to_server;
   g_loro_cursor_flush    = flush_current_cursor;
 
+  // CREATE 模式：把占位 URL 换成服务端分配的 doc_id URL。先更新 session 的
+  // buffer_url，保证改名后 poll/get_editor/find_by_buffer 用新 URL 匹配
+  // （否则 poll 会误判 buffer 已关闭而断开会话）。join 模式建 buffer 时已是
+  // 最终 URL，old==new 跳过；重连同理。
+  if (want_create () && N (doc_id) > 0) {
+    url old_url= buffer_url;
+    url new_url= url ("tmfs://collab/" * doc_id);
+    if (!(old_url == new_url)) {
+      buffer_url= new_url;
+      rename_buffer (old_url, new_url);
+    }
+  }
+
   editor ed= get_editor ();
   if (is_nil (ed)) {
     std_error << "become_ready: 当前编辑器为空！\n";
