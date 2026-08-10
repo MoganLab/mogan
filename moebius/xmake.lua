@@ -142,3 +142,34 @@ cpp_bench_on_all_plat = os.files("bench/**_bench.cpp")
 for _, filepath in ipairs(cpp_bench_on_all_plat) do
     add_bench_target (filepath)
 end
+
+
+
+task("test-with-log")
+    set_menu {
+        usage = "xmake test-with-log",
+        description = "Run tests and print stdout/stderr when tests fail"
+    }
+
+    on_run(function ()
+        local result = os.exec("xmake test -vD \"moebius_tests/*\"")
+        if result == 0 then
+            return
+        end
+        print("")
+        print("========== TEST LOGS ==========")
+        local stdout_logs = os.files("build/.gens/**/**/*.stdout.log")
+        local stderr_logs = os.files("build/.gens/**/**/*.errors.log")
+
+        for _, file in ipairs(stdout_logs) do
+            print("")
+            print("========== " .. file .. " ==========")
+            os.execv("cat", {file})
+        end
+
+        for _, file in ipairs(stderr_logs) do
+            print("")
+            print("========== " .. file .. " ==========")
+            os.execv("cat", {file})
+        end
+    end)
