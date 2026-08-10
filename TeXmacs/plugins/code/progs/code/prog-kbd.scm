@@ -11,16 +11,16 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (prog prog-kbd)
+(texmacs-module (code prog-kbd)
   (:use (kernel gui kbd-define)
     (utils edit selections)
     (prog scheme-tools)
-    (prog prog-mode)
+    (code prog-mode)
     (code scheme-edit)
     (cpp cpp-edit)
   ) ;:use
 ) ;texmacs-module
-(debug-message "keyboard" "(prog prog-kbd): registering kbd-map ...\n")
+(debug-message "keyboard" "(code prog-kbd): registering kbd-map ...\n")
 
 (kbd-map (:mode in-prog?)
  ("cmd i" (program-indent #f))
@@ -46,4 +46,4 @@
  ("- -" "--")
  ("- - -" "---")
 ) ;kbd-map
-(debug-message "keyboard" "(prog prog-kbd): kbd-map registered\n")
+(debug-message "keyboard" "(code prog-kbd): kbd-map registered\n")

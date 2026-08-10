@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text text-drd) (:use (utils edit variants) (prog prog-drd)))
+(texmacs-module (text text-drd) (:use (utils edit variants) (code prog-drd)))
 
 ;; General groups
 

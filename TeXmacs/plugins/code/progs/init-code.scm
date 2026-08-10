@@ -12,4 +12,4 @@
 
 (texmacs-module (code))
 
-(lazy-keyboard (prog prog-kbd) in-prog?)
+(lazy-keyboard (code prog-kbd) in-prog?)

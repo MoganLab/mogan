@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (prog prog-mode)
+(texmacs-module (code prog-mode)
   (:use (kernel texmacs tm-modes)))
 
 (texmacs-modes
