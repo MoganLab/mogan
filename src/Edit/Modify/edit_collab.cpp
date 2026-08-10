@@ -28,6 +28,7 @@ void
 edit_modify_rep::collab_enable () {
 #ifdef LORO_ENABLED
   loro_collab_on= true;
+  arch->set_collab (true); // 本归档器进入协作模式：simplify 据此跳过
   reset_cursor_payload_cache ();
   if (DEBUG_LORO) debug_loro << "Collaboration enabled\n";
 #endif

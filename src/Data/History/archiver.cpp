@@ -33,7 +33,8 @@ static hashset<pointer> pending_archs;
 archiver_rep::archiver_rep (double author, path rp2)
     : archive (make_branches (0)), current (make_compound (0)), depth (0),
       last_save (0), last_autosave (0), the_author (author), the_owner (0),
-      rp (rp2), undo_obs (undo_observer (this)), versioning (false) {
+      rp (rp2), undo_obs (undo_observer (this)), versioning (false),
+      collab (false) {
   // last_save/last_autosave 初始化为 0（与 depth 一致）：新空文档视为已保存；
   // 而 clear() 重置后二者置 -1，表示状态未与任何保存点对齐。
   archs->insert ((pointer) this);
@@ -198,6 +199,11 @@ archiver_rep::set_versioning (bool on) {
   // 与 apply() 的回放用途一致：仅置本对象 versioning，使 archive_announce 跳过
   // add()；不置全局 busy_versioning，以免干扰 is_busy_versioning() 语义。
   versioning= on;
+}
+
+void
+archiver_rep::set_collab (bool on) {
+  collab= on;
 }
 
 void
@@ -393,11 +399,9 @@ archiver_rep::forget_cursor () {
 
 void
 archiver_rep::simplify () {
-#ifdef LORO_ENABLED
-  // simplify 在协作编辑这个复杂环境下会出问题，暂时 disable 掉
+  // 协作文档：历史树重排（合并相邻条目）在 CRDT 协同下不安全，跳过。
   // TODO: revise simplify & revise archiver
-  return;
-#endif
+  if (collab) return;
   if (has_history () && nr_undo (cdr (get_undo (archive))) == 1 &&
       nr_redo (cdr (get_undo (archive))) == 0 && depth != last_save + 1) {
     patch p1= car (get_undo (archive));
