@@ -162,7 +162,7 @@
          ) ;list-find
     ) ;not
   ) ;and
-) ;tm-define
+) ;define
 
 (define (collab-docs-pairs flat)
   (if (or (null? flat) (null? (cdr flat)))
