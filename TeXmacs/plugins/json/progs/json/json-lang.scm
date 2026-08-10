@@ -11,31 +11,30 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code json-lang)
-  (:use (prog default-lang)))
+(texmacs-module (json json-lang) (:use (prog default-lang)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "json") (== key "keyword")))
-  `(,(string->symbol key)
-    (constant
-      "false" "true" "null")))
+  `(,(string->symbol key) (constant "false" "true" "null"))
+) ;tm-define
 
 ;; Ref: https://ecma-international.org/ecma-262/10.0/index.html#sec-update-expressions
 (tm-define (parser-feature lan key)
   (:require (and (== lan "json") (== key "operator")))
   `(,(string->symbol key)
     (operator "+" "-" ":" ",")
-    (operator_openclose "{" "[" "(" ")" "]" "}")))
+    (operator_openclose "{" "[" "(" ")" "]" "}"))
+) ;tm-define
 
 ;; Ref: https://ecma-international.org/ecma-262/10.0/index.html#sec-literals-numeric-literals
 (tm-define (parser-feature lan key)
   (:require (and (== lan "json") (== key "number")))
-  `(,(string->symbol key)
-    (bool_features
-      "sci_notation")))
+  `(,(string->symbol key) (bool_features "sci_notation"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "json") (== key "string")))
   `(,(string->symbol key)
-    (bool_features )
-    (escape_sequences "\\" "/" "\"" "b" "f" "n" "r" "t")))
+    (bool_features)
+    (escape_sequences "\\" "/" "\"" "b" "f" "n" "r" "t"))
+) ;tm-define
