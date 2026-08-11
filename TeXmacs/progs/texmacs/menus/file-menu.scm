@@ -418,6 +418,10 @@
       ("New shared document" (collab-new-document))
       ("New shared document from file" (collab-new-document-from-file))
       (-> "Join shared document" (link collab-docs-menu))
+      ;; 最近协作文档（当前服务端有记录才出现，避免空列表占位）。
+      (when (nnull? (collab-recent-docs))
+        (-> "Recent shared documents" (link collab-recent-docs-menu))
+      ) ;when
       (if (loro-collab-active?)
         ---
         ("Leave session" (collab-leave))
