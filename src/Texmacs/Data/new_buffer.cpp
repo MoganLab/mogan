@@ -183,13 +183,10 @@ rename_buffer (url name, url new_name) {
   array<url> vs   = buffer_to_views (new_name);
   for (int i= 0; i < N (vs); i++)
     view_to_editor (vs[i])->notify_change (THE_ENVIRONMENT);
-  // 先更新标题再 notify_rename_after：后者同步触发 update_menus(TAB_PAGES)
-  // 重建 tab 栏，若此时标题仍是旧值（如 scratch 的 "No name [N]"）会被缓存，
-  // 而后续 set_title_buffer 不再触发 tab 重建，导致错误标题残留。
+  notify_rename_after (new_name);
   tree   doc  = subtree (the_et, buf->rp);
   string title= propose_title (buf->buf->title, new_name, doc);
   set_title_buffer (new_name, title);
-  notify_rename_after (new_name);
 }
 
 url
