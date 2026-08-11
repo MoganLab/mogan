@@ -186,7 +186,8 @@ async function main () {
         if (name === undefined) {
           return sendErr(ws, 'BAD_NAME', 'invalid_doc_name');
         }
-        const docId = crypto.randomUUID();
+        // 统一 UUID 为大写，与客户端 (uuid4)（tbox tb_uuid4_make_cstr 大写）一致。
+        const docId = crypto.randomUUID().toUpperCase();
         registry
           .create(docId, name)
           .then((entry) => {
