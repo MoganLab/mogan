@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert mathml mathtm-test) (:use (convert html htmltm)))
+(texmacs-module (html mathtm-test) (:use (html htmltm)))
 
 (import (liii check))
 

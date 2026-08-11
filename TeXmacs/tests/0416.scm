@@ -12,7 +12,7 @@
 
 (import (liii check))
 
-(use-modules (convert html tmhtml))
+(use-modules (html tmhtml))
 
 (check-set-mode! 'report-failed)
 

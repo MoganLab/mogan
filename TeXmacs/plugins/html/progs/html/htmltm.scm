@@ -11,16 +11,16 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert html htmltm)
+(texmacs-module (html htmltm)
   (:use (convert tools tmlength)
     (convert tools tmcolor)
     (convert tools old-tmtable)
     (convert tools stm)
-    (convert data sxml)
-    (convert data sxhtml)
+    (html sxml)
+    (html sxhtml)
     (convert tools environment)
-    (convert data xmltm)
-    (convert mathml mathtm)
+    (html xmltm)
+    (html mathtm)
   ) ;:use
 ) ;texmacs-module
 

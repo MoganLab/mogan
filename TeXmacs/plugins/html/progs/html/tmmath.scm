@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert mathml tmmath)
+(texmacs-module (html tmmath)
   (:use (convert tools tmconcat)
     (convert tools tmtable)
     (html mathml-drd)
@@ -546,4 +546,3 @@
   (if (nnull? opt-env) (set! tmmath-env (car opt-env)))
   (ahash-with tmmath-env "mode" "math" (tmmath x))
 ) ;tm-define
-

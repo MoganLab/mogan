@@ -12,8 +12,8 @@
 
 (import (liii check))
 
-(use-modules (convert html tmhtml))
-(use-modules (convert html tmhtml-expand))
+(use-modules (html tmhtml))
+(use-modules (html tmhtml-expand))
 
 (check-set-mode! 'report-failed)
 

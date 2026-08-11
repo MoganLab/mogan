@@ -32,12 +32,8 @@
 
 ;; !!! Check semantic of mathvariant on multiple symbols !!!
 
-(texmacs-module (convert mathml mathtm)
-  (:use (convert tools tmtable)
-    (convert data sxml)
-    (convert data xmltm)
-    (html mathml-drd)
-  ) ;:use
+(texmacs-module (html mathtm)
+  (:use (convert tools tmtable) (html sxml) (html xmltm) (html mathml-drd))
 ) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

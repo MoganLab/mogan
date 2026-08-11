@@ -11,9 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert data xmltm)
+(texmacs-module (html xmltm)
   (:use (convert tools stm)
-    (convert data sxml)
+    (html sxml)
     (convert tools environment)
     (convert tools tmconcat)
   ) ;:use
@@ -481,22 +481,15 @@
                ) ;cond
         ) ;clean
         (proc-alist (cond ((eq? kind :inline)
-                           `((,:procedure
-                              unquote
-                              htmltm-handler/procedure/inline)
+                           `((,:procedure . ,htmltm-handler/procedure/inline)
                              (,:environment
-                              unquote
-                              htmltm-handler/environment/inline)
-                             (,:literal unquote htmltm-handler/literal/inline))
+                              . ,htmltm-handler/environment/inline)
+                             (,:literal . ,htmltm-handler/literal/inline))
                           ) ;
                           ((eq? kind :block)
-                           `((,:procedure
-                              unquote
-                              htmltm-handler/procedure/block)
-                             (,:environment
-                              unquote
-                              htmltm-handler/environment/block)
-                             (,:literal unquote htmltm-handler/literal/block))
+                           `((,:procedure . ,htmltm-handler/procedure/block)
+                             (,:environment . ,htmltm-handler/environment/block)
+                             (,:literal . ,htmltm-handler/literal/block))
                           ) ;
                           (error "Bad kind: " kind)
                     ) ;cond

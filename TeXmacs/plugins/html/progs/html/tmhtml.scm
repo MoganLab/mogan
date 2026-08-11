@@ -11,15 +11,15 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert html tmhtml)
+(texmacs-module (html tmhtml)
   (:use (convert tools tmconcat)
-    (convert mathml tmmath)
+    (html tmmath)
     (convert tools stm)
     (convert tools tmlength)
     (convert tools tmtable)
     (convert tools old-tmtable)
-    (convert data sxml)
-    (convert data sxhtml)
+    (html sxml)
+    (html sxhtml)
     (html css)
     (html htmlout)
   ) ;:use
