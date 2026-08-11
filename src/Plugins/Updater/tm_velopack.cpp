@@ -10,7 +10,7 @@
 
 #include "tm_configure.hpp"
 
-#if defined(USE_PLUGIN_VELOPACK) && (defined(OS_MINGW) || defined(OS_WIN))
+#if defined(USE_PLUGIN_VELOPACK) && defined(OS_WIN)
 
 #include "string.hpp"
 #include "tm_velopack.hpp"

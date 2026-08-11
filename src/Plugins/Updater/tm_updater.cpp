@@ -13,7 +13,7 @@
 #include "config.h"
 #include "scheme.hpp"
 
-#if (defined(OS_MINGW) || defined(OS_WIN)) && defined(USE_PLUGIN_VELOPACK)
+#if defined(OS_WIN) && defined(USE_PLUGIN_VELOPACK)
 #include "tm_velopack.hpp"
 #endif
 
