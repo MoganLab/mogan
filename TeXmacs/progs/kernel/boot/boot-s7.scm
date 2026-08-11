@@ -106,13 +106,34 @@
 ) ;define
 
 (define (list->module module)
-  (let* ((aux (lambda (s) (string-append "/" (symbol->string s))))
+  ;; 按最外层模块名路由，固定路径定位，不再扫描 $GUILE_LOAD_PATH：
+  ;;   内置模块 → $TEXMACS_PATH/progs/
+  ;;   插件模块 → $TEXMACS_HOME_PATH/plugins/<first-ns>/progs/ 优先，
+  ;;             其次 $TEXMACS_PATH/plugins/<first-ns>/progs/
+  (let* ((sep (string (os-sep)))
+         (aux (lambda (s) (string-append sep (symbol->string s))))
          (name* (apply string-append (map aux module)))
          (name (substring name* 1 (string-length name*)))
-         (u (url-unix "$GUILE_LOAD_PATH" (string-append name ".scm")))
-         ;; FIXME: should use %load-path instead of $GUILE_LOAD_PATH
+         (first-ns (symbol->string (car module)))
+         (file (string-append name ".scm"))
+         (texmacs-path (url->system (get-texmacs-path)))
+         (texmacs-home-path (url->system (get-texmacs-home-path)))
+         ;; 1. 内置模块
+         (p1 (string-append texmacs-path sep "progs" sep file))
         ) ;
-    (url-materialize u "r")
+    (if (file-exists? p1)
+      p1
+      ;; 2. 插件（用户路径优先）
+      (let* ((plug-dir (string-append "plugins" sep first-ns sep "progs" sep))
+             (p2 (string-append texmacs-home-path sep plug-dir file))
+            ) ;
+        (if (file-exists? p2)
+          p2
+          ;; 3. 插件（系统路径）
+          (string-append texmacs-path sep plug-dir file)
+        ) ;if
+      ) ;let*
+    ) ;if
   ) ;let*
 ) ;define
 
