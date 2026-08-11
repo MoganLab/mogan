@@ -539,7 +539,7 @@ qt_ui_element_rep::as_qaction () {
       {
         typedef quartet<string, int, color, bool> T1;
         T1 y= open_box<T1> (get_payload (help, text_widget));
-        act->setToolTip (utf8_to_qstring (cork_to_utf8 (y.x1)));
+        act->setToolTip (to_qstring (y.x1));
         // HACK: force displaying of the tooltip (needed for items in the
         // QMenuBar)
         QObject::connect (act, SIGNAL (hovered ()), act, SLOT (showToolTip ()));
@@ -955,7 +955,7 @@ qt_ui_element_rep::as_qwidget () {
     typedef quartet<string, int, color, bool> T1;
     T1       y= open_box<T1> (get_payload (help, text_widget));
     QWidget* w= qtw->as_qwidget ();
-    w->setToolTip (utf8_to_qstring (cork_to_utf8 (y.x1)));
+    w->setToolTip (to_qstring (y.x1));
     qwid= w;
   } break;
 
