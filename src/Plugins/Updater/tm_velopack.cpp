@@ -28,29 +28,37 @@
 
 static std::string
 exception_message () {
-  try { throw; }
-  catch (std::exception& e) { return e.what (); }
-  catch (...) { return "unknown error"; }
+  try {
+    throw;
+  } catch (std::exception& e) {
+    return e.what ();
+  } catch (...) {
+    return "unknown error";
+  }
 }
 
 struct tm_velopack::tm_velopack_rep {
-  Velopack::UpdateManager* mgr;                 // 惰性创建
+  Velopack::UpdateManager*            mgr;      // 惰性创建
   std::optional<Velopack::UpdateInfo> info;     // 最近一次检查结果
-  std::thread worker;                            // 当前检查/下载线程
-  std::mutex  mtx;                               // 保护以下字段
-  tm_updater_state st;                           // = UPDATER_IDLE
-  std::string version;                           // 目标版本
-  std::string notes;                             // 发行说明 (markdown)
-  std::string error;                             // 错误码/消息
-  int         progress;                          // 0..100
-  time_t      last;                              // 最近检查时间
-  bool        running;                           // 是否有线程在跑
-  std::string feed_url;                          // 更新源
+  std::thread                         worker;   // 当前检查/下载线程
+  std::mutex                          mtx;      // 保护以下字段
+  tm_updater_state                    st;       // = UPDATER_IDLE
+  std::string                         version;  // 目标版本
+  std::string                         notes;    // 发行说明 (markdown)
+  std::string                         error;    // 错误码/消息
+  int                                 progress; // 0..100
+  time_t                              last;     // 最近检查时间
+  bool                                running;  // 是否有线程在跑
+  std::string                         feed_url; // 更新源
 
   tm_velopack_rep ()
-    : mgr (nullptr), st (UPDATER_IDLE), progress (0), last (0), running (false),
-      feed_url ("https://updates.mogan.app/mogan/windows-x64/stable") {}
-  ~tm_velopack_rep () { if (worker.joinable ()) worker.join (); delete mgr; }
+      : mgr (nullptr), st (UPDATER_IDLE), progress (0), last (0),
+        running (false),
+        feed_url ("https://updates.mogan.app/mogan/windows-x64/stable") {}
+  ~tm_velopack_rep () {
+    if (worker.joinable ()) worker.join ();
+    delete mgr;
+  }
 };
 
 tm_velopack::tm_velopack () : rep (new tm_velopack_rep ()) {}
@@ -75,9 +83,9 @@ tm_velopack::checkInBackground () {
   std::lock_guard<std::mutex> lk (rep->mtx);
   if (rep->running) return false;
   if (rep->worker.joinable ()) rep->worker.join ();
-  rep->st= UPDATER_CHECKING;
+  rep->st     = UPDATER_CHECKING;
   rep->running= true;
-  rep->worker= std::thread ([this]{ do_check (); });
+  rep->worker = std::thread ([this] { do_check (); });
   return true;
 }
 
@@ -109,23 +117,22 @@ tm_velopack::do_check () {
   try {
     ensure_mgr ();
     std::optional<Velopack::UpdateInfo> u= rep->mgr->CheckForUpdates ();
-    std::lock_guard<std::mutex> lk (rep->mtx);
+    std::lock_guard<std::mutex>         lk (rep->mtx);
     if (u) {
-      rep->info= u;
-      rep->st= UPDATER_AVAILABLE;
+      rep->info   = u;
+      rep->st     = UPDATER_AVAILABLE;
       rep->version= u->TargetFullRelease.Version;
-      rep->notes= u->TargetFullRelease.NotesMarkdown;
+      rep->notes  = u->TargetFullRelease.NotesMarkdown;
     }
     else {
       rep->st= UPDATER_IDLE;
     }
-    rep->last= time (NULL);
+    rep->last   = time (NULL);
     rep->running= false;
-  }
-  catch (...) {
+  } catch (...) {
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_FAILED;
-    rep->error= exception_message ();
+    rep->st     = UPDATER_FAILED;
+    rep->error  = exception_message ();
     rep->running= false;
   }
 }
@@ -166,15 +173,15 @@ tm_velopack::downloadUpdate () {
   if (rep->st != UPDATER_AVAILABLE) return false;
   if (rep->running) return false;
   if (rep->worker.joinable ()) rep->worker.join ();
-  rep->st= UPDATER_DOWNLOADING;
+  rep->st     = UPDATER_DOWNLOADING;
   rep->running= true;
-  rep->worker= std::thread ([this]{ do_download (); });
+  rep->worker = std::thread ([this] { do_download (); });
   return true;
 }
 
 void
 tm_velopack::progress_cb (void* user_data, size_t progress) {
-  tm_velopack* self= static_cast<tm_velopack*> (user_data);
+  tm_velopack*                self= static_cast<tm_velopack*> (user_data);
   std::lock_guard<std::mutex> lk (self->rep->mtx);
   self->rep->progress= static_cast<int> (progress);
 }
@@ -185,13 +192,12 @@ tm_velopack::do_download () {
     ensure_mgr ();
     rep->mgr->DownloadUpdates (*rep->info, &tm_velopack::progress_cb, this);
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_READY;
+    rep->st     = UPDATER_READY;
     rep->running= false;
-  }
-  catch (...) {
+  } catch (...) {
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_FAILED;
-    rep->error= exception_message ();
+    rep->st     = UPDATER_FAILED;
+    rep->error  = exception_message ();
     rep->running= false;
   }
 }
@@ -206,10 +212,9 @@ tm_velopack::applyUpdate () {
   try {
     rep->mgr->WaitExitThenApplyUpdates (rep->info->TargetFullRelease,
                                         /*silent*/ false, /*restart*/ true);
-  }
-  catch (...) {
+  } catch (...) {
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_FAILED;
+    rep->st   = UPDATER_FAILED;
     rep->error= exception_message ();
     return false;
   }
