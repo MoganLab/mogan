@@ -964,7 +964,6 @@ TeXmacs_main (int argc, char** argv) {
     eval ("(plugin-initialize 'data)");
     // eval ("(plugin-initialize 'goldfish)");
     eval ("(plugin-initialize 'image)");
-    eval ("(plugin-initialize 'image_xmgrace)");
     // eval ("(plugin-initialize 'json)");
     // eval ("(plugin-initialize 'julia)");
     // eval ("(plugin-initialize 'llm)");

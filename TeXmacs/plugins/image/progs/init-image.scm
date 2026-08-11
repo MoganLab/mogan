@@ -13,10 +13,13 @@
 
 (texmacs-module (image)
   (:use (image gif)
-        (image jpeg)
-        (image pdf)
-        (image png)
-        (image postscript)
-        (image svg)
-        (image tif)
-        (image webp)))
+    (image jpeg)
+    (image pdf)
+    (image png)
+    (image postscript)
+    (image svg)
+    (image tif)
+    (image webp)
+    (image xmgrace)
+  ) ;:use
+) ;texmacs-module
