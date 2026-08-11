@@ -13,7 +13,7 @@
 
 #if !IS_COMMUNITY
 
-// telemetry 相关 scheme 代码已迁移至 (plugin telemetry-*) 模块，由
+// telemetry 相关 scheme 代码已迁移至 (telemetry telemetry-*) 模块，由
 // telemetry 插件在事件循环启动 ~3s 后懒加载。C++ 调用由 init-research.scm
 // 注入 rootlet 的 telemetry-track-or-enqueue 兜底：插件加载前事件入
 // *telemetry-pending* 队列，加载后 (init-telemetry) 通过

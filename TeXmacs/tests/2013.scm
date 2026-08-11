@@ -18,7 +18,7 @@
   (only (liii path) path-exists? path-with-suffix path->string)
 ) ;import
 
-(use-modules (plugin telemetry-utils))
+(use-modules (telemetry telemetry-utils))
 
 (check-set-mode! 'report-failed)
 

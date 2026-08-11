@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-modules (binary goldfish))
-(use-modules (plugin telemetry))
+(use-modules (telemetry telemetry))
 (import (liii path))
 
 (define (telemetry-serialize lan t)

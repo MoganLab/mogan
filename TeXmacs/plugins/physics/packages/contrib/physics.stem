@@ -16,7 +16,7 @@
                                       ) ;document
                            ) ;src-title
                   ) ;active*
-          (use-module "(contrib physics physics-drd)")
+          (use-module "(physics physics-drd)")
           (active* (src-comment (document "Braket operators")))
           (assign "bra" (macro "x" (around* "<langle>" (arg "x") "|")))
           (assign "bra*" (macro "x" (concat "<langle>" (arg "x") "|")))

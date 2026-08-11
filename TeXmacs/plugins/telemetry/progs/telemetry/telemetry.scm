@@ -2,7 +2,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : telemetry.scm
-;; DESCRIPTION : Entry point of the (plugin telemetry) module
+;; DESCRIPTION : Entry point of the (telemetry telemetry) module
 ;;
 ;; This module serves as the entry point loaded by init-telemetry.scm.
 ;; It MUST NOT contain (import ...) statements.
@@ -21,6 +21,6 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin telemetry)
-  (:use (plugin telemetry-utils) (plugin telemetry-track) (plugin init-telemetry))
+(texmacs-module (telemetry telemetry)
+  (:use (telemetry telemetry-utils) (telemetry telemetry-track) (telemetry init-telemetry))
 ) ;texmacs-module

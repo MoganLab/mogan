@@ -1,4 +1,4 @@
-(texmacs-module (contrib physics physics-drd) (:use (utils edit variants)))
+(texmacs-module (physics physics-drd) (:use (utils edit variants)))
 
 (define-group variant-tag (physics-dirac-tag))
 

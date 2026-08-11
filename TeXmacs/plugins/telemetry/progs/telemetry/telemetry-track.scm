@@ -11,8 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin telemetry-track)
-  (:use (plugin telemetry-utils) (utils plugins plugin-eval))
+(texmacs-module (telemetry telemetry-track)
+  (:use (telemetry telemetry-utils) (utils plugins plugin-eval))
 ) ;texmacs-module
 
 (import (scheme base) (liii base) (liii path) (liii string) (liii list))

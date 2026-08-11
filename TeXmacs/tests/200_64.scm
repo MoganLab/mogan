@@ -17,8 +17,8 @@
 
 (check-set-mode! 'report-failed)
 
-(use-modules (plugin telemetry-utils))
-(use-modules (plugin telemetry-track))
+(use-modules (telemetry telemetry-utils))
+(use-modules (telemetry telemetry-track))
 
 (define (string-contains-digit? s)
   (let loop

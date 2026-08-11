@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin telemetry-utils))
+(texmacs-module (telemetry telemetry-utils))
 
 (import (scheme base)
   (liii base)
