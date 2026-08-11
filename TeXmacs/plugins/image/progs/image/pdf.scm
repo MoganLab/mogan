@@ -13,34 +13,42 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (image pdf)
-  (:use (binary convert)
-        (binary gs)
-        (binary pdftocairo)))
+  (:use (binary convert) (binary gs) (binary pdftocairo))
+) ;texmacs-module
 
-(converter pdf-file svg-file
+(converter pdf-file
+  svg-file
   (:require (url-exists-in-path? "pdf2svg"))
-  (:shell "pdf2svg" from to))
+  (:shell "pdf2svg" from to)
+) ;converter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convert PDF to other formats via pdftocairo
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(converter pdf-file svg-file
+(converter pdf-file
+  svg-file
   (:require (has-binary-pdftocairo?))
-  (:shell ,(url->system (find-binary-pdftocairo)) "-origpagesizes -nocrop -nocenter -svg" from to))
+  (:shell ,(url->system (find-binary-pdftocairo))
+    "-origpagesizes -nocrop -nocenter -svg"
+    from
+    to
+  ) ;:shell
+) ;converter
 
 
-(converter pdf-file jpeg-file
+(converter pdf-file
+  jpeg-file
   (:require (has-binary-pdftocairo?))
   (:function-with-options pdf-file->pdftocairo-raster)
-  ;;(:option "texmacs->image:raster-resolution" "300")
-  )
+  ;; (:option "texmacs->image:raster-resolution" "300")
+) ;converter
 
-;;(converter pdf-file postscript-document
+;; (converter pdf-file postscript-document
 ;;  (:require (has-pdftocairo?))
 ;;  (:shell "pdftocairo" "-eps" from to))
 ;;
-;;(converter pdf-file postscript-file
+;; (converter pdf-file postscript-file
 ;;  (:require (has-pdftocairo?))
 ;;  (:shell "pdftocairo" "-eps" from to))
 
@@ -48,43 +56,38 @@
 ;; Convert PDF to other formats via ImageMagick
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(converter pdf-file jpeg-file
+(converter pdf-file
+  jpeg-file
   (:require (has-binary-convert?))
   (:function-with-options pdf-file->imagemagick-raster)
-  ;;(:option "texmacs->image:raster-resolution" "300")
-  )
- 
-(converter pdf-file tif-file
+  ;; (:option "texmacs->image:raster-resolution" "300")
+) ;converter
+
+(converter pdf-file
+  tif-file
   (:require (has-binary-convert?))
   (:function-with-options pdf-file->imagemagick-raster)
-  ;;(:option "texmacs->image:raster-resolution" "300")
-  )
+  ;; (:option "texmacs->image:raster-resolution" "300")
+) ;converter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convert PDF to other formats via Ghostscript
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 
-; (converter pdf-file jpeg-file
-;   (:require (has-binary-gs?))
-;   (:function-with-options pdf-file->gs-raster))
-; 
-; (converter pdf-file tif-file
-;   (:require (has-binary-gs?))
-;   (:function-with-options pdf-file->gs-raster))
-; 
-; (converter pdf-file postscript-file
-;   (:require (has-binary-gs?))
-;   (:function-with-options gs-convert))
 
-; pdf -> png (the latter one works)
-(converter pdf-file png-file
+(converter pdf-file
+  png-file
   (:require (has-binary-convert?))
-  (:function-with-options pdf-file->imagemagick-raster))
-  
-(converter pdf-file png-file
-  (:require (has-binary-pdftocairo?))
-  (:function-with-options pdf-file->pdftocairo-raster))
+  (:function-with-options pdf-file->imagemagick-raster)
+) ;converter
 
-(converter pdf-file png-file
+(converter pdf-file
+  png-file
+  (:require (has-binary-pdftocairo?))
+  (:function-with-options pdf-file->pdftocairo-raster)
+) ;converter
+
+(converter pdf-file
+  png-file
   (:require (has-binary-gs?))
-  (:function-with-options gs-pdf-to-png))
+  (:function-with-options gs-pdf-to-png)
+) ;converter

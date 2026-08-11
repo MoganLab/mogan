@@ -12,8 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (comment comment-menu)
-  (:use (comment comment-edit)
-        (comment comment-widgets)))
+  (:use (comment comment-edit) (comment comment-widgets))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main 'Comment' menu
@@ -31,64 +31,78 @@
   ("Fold comments" (operate-on-comments :fold))
   ("Unfold comments" (operate-on-comments :unfold))
   ("Remove comments" (operate-on-comments :cut))
-  (with tl (comment-type-list :all)
+  (with tl
+    (comment-type-list :all)
     (assuming (> (length tl) 1)
       ---
       (for (tp tl)
-        ((check (eval (upcase-first tp)) "v" (comment-test-type? tp))
-         (comment-toggle-type tp)))))
-  (with bl (comment-by-list :all)
+       ((check (eval (upcase-first tp)) "v" (comment-test-type? tp))
+        (comment-toggle-type tp)
+       ) ;
+      ) ;for
+    ) ;assuming
+  ) ;with
+  (with bl
+    (comment-by-list :all)
     (assuming (> (length bl) 1)
       ---
       (for (by bl)
-        ((check (eval by) "v" (comment-test-by? by))
-         (comment-toggle-by by))))))
+       ((check (eval by) "v" (comment-test-by? by)) (comment-toggle-by by))
+      ) ;for
+    ) ;assuming
+  ) ;with
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selecting the colors of different types of comments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-menu (comment-color-menu type by val)
-  (with setter (lambda (val) (when val (set-comment-color type by val)))
+  (with setter
+    (lambda (val) (when val (set-comment-color type by val)))
     ((check "Default" "v" (default-comment-color? type by))
-     (reset-comment-color type by))
+     (reset-comment-color type by)
+    ) ;
     ---
     (pick-color (setter answer))
     ---
     ("Palette" (interactive-color setter (list val)))
-    ("Other" (interactive setter
-               (list "Color" "color" val)))))
+    ("Other" (interactive setter (list "Color" "color" val)))
+  ) ;with
+) ;tm-menu
 
 (tm-menu (focus-extra-menu t)
   (:require (any-comment-context? t))
-  (let* ((type (comment-type t))
-         (by (comment-by t))
-         (val (get-comment-color type by)))
-    (-> "Set color"
-        (dynamic (comment-color-menu type by val)))))
+  (let* ((type (comment-type t)) (by (comment-by t)) (val (get-comment-color type by)))
+    (-> "Set color" (dynamic (comment-color-menu type by val)))
+  ) ;let*
+) ;tm-menu
 
 (tm-menu (focus-hidden-icons t)
   (:require (any-comment-context? t))
-  (dynamic (string-input-icon t 3)))
+  (dynamic (string-input-icon t 3))
+) ;tm-menu
 
 (tm-menu (focus-extra-icons t)
   (:require (any-comment-context? t))
   (let* ((type (comment-type t))
          (by (comment-by t))
          (val (get-comment-color type by))
-         (setter (lambda (val) (when val (set-comment-color type by val)))))
+         (setter (lambda (val) (when val (set-comment-color type by val))))
+        ) ;
     //
     (mini #t (text "Color:"))
-    (=> (color val #f #f 24 16) 
-        (dynamic (comment-color-menu type by val)))))
+    (=> (color val #f #f 24 16) (dynamic (comment-color-menu type by val)))
+  ) ;let*
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard shortcuts for comments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map
-  (:mode in-comment?)
-  ("std [" (go-to-comment :previous))
-  ("std ]" (go-to-comment :next))
-  ("std {" (go-to-comment :first))
-  ("std }" (go-to-comment :last)))
+(kbd-map (:mode in-comment?)
+ ("std [" (go-to-comment :previous))
+ ("std ]" (go-to-comment :next))
+ ("std {" (go-to-comment :first))
+ ("std }" (go-to-comment :last))
+) ;kbd-map

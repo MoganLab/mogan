@@ -72,14 +72,14 @@
                 "none"
                 (concat (simple-page)
                   (assign "page-even-header"
-                    `(small (style-with "src-compact"
-                              "none"
-                              (wide-std-underlined (style-with "src-compact"
-                                                     "none"
+                    `(small (style-with ,"src-compact"
+                              ,"none"
+                              (wide-std-underlined (style-with ,"src-compact"
+                                                     ,"none"
                                                      (concat ,(page-number)
                                                        (htab "5mm")
-                                                       (with "font-shape"
-                                                         "small-caps"
+                                                       (with ,"font-shape"
+                                                         ,"small-caps"
                                                          ,(arg "name")))))))
                   ) ;assign
                 ) ;concat
@@ -89,10 +89,10 @@
           (assign "header-author"
             (macro "name"
               (assign "page-odd-header"
-                `(small (style-with "src-compact"
-                          "none"
-                          (wide-std-underlined (concat (with "font-shape"
-                                                         "small-caps"
+                `(small (style-with ,"src-compact"
+                          ,"none"
+                          (wide-std-underlined (concat (with ,"font-shape"
+                                                         ,"small-caps"
                                                          ,(arg "name"))
                                                  (htab "5mm")
                                                  ,(page-number)))))

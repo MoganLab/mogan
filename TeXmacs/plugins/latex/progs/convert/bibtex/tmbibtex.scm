@@ -19,7 +19,9 @@
 
 (tm-define (texmacs->bibtex x)
   (if (tmfile? x)
-      (let ((body (tmfile-extract x 'body)))
-	(texmacs->bibtex body))
-      x))
-
+    (let ((body (tmfile-extract x 'body)))
+      (texmacs->bibtex body)
+    ) ;let
+    x
+  ) ;if
+) ;tm-define

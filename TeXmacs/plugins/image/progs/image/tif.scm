@@ -14,5 +14,4 @@
 
 (texmacs-module (image tif))
 
-(converter tif-file postscript-document
-  (:function image->psdoc))
+(converter tif-file postscript-document (:function image->psdoc))

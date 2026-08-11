@@ -15,17 +15,31 @@
 
 ;; Code fragments
 
-(define-group code-tag
-  (inline-code-tag) (block-code-tag))
+(define-group code-tag (inline-code-tag) (block-code-tag))
 
 (define-group inline-code-tag
-  verbatim scm cpp mmx r fortran
-  python scilab shell)
+  verbatim
+  scm
+  cpp
+  mmx
+  r
+  fortran
+  python
+  scilab
+  shell
+) ;define-group
 
 (define-group block-code-tag
-  verbatim-code scm-code cpp-code mmx-code r-code fortran-code
-  python-code scilab-code shell-code)
+  verbatim-code
+  scm-code
+  cpp-code
+  mmx-code
+  r-code
+  fortran-code
+  python-code
+  scilab-code
+  shell-code
+) ;define-group
 
 ;; Listings
-(define-group listing-tag
-  listing shell-listing scm-listing cpp-listing)
+(define-group listing-tag listing shell-listing scm-listing cpp-listing)

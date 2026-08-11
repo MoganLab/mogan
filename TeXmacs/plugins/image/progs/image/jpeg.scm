@@ -14,5 +14,4 @@
 
 (texmacs-module (image jpeg))
 
-(converter jpeg-file postscript-document
-  (:function image->psdoc))
+(converter jpeg-file postscript-document (:function image->psdoc))

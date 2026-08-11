@@ -335,8 +335,7 @@
       "%%"
       "%"
       ;; ${var##pat} ${var%pat} ...
-    )
-  )
+    ))
 ) ;tm-define
 
 ;; Paths / urls

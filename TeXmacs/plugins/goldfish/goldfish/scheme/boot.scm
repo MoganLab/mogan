@@ -32,13 +32,7 @@
                  (cons '*export* ())
                  (cons 'export
                    (define-macro (,(gensym) . names)
-                     (#_list-values
-                      'set!
-                      '*export*
-                      (#_list-values
-                       'append
-                       (#_list-values #_quote names)
-                       '*export*)))))
+                     `(set! *export* (append (quote ,names) *export*)))))
        ,@body
        (apply inlet
          (map (lambda (entry)

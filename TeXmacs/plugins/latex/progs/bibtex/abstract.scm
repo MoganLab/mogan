@@ -11,11 +11,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (bibtex abstract)
-  (:use (bibtex bib-utils) (bibtex plain)))
+(texmacs-module (bibtex abstract) (:use (bibtex bib-utils) (bibtex plain)))
 
 (bib-define-style "abstract" "plain")
 
 (tm-define (bib-format-bibitem n x)
   (:mode bib-abstract?)
-  `(bibitem* ,(list-ref x 2)))
+  `(bibitem* ,(list-ref x 2))
+) ;tm-define

@@ -12,19 +12,22 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (image postscript)
-  (:use (binary convert)
-        (binary gs)))
+(texmacs-module (image postscript) (:use (binary convert) (binary gs)))
 
-(converter postscript-file pdf-file
+(converter postscript-file
+  pdf-file
   (:require (has-binary-gs?))
-  (:function-with-options gs-eps-to-pdf))
+  (:function-with-options gs-eps-to-pdf)
+) ;converter
 
-; eps -> png (the latter one works)
-(converter postscript-file png-file
+(converter postscript-file
+  png-file
   (:require (has-binary-convert?))
-  (:shell ,(url->system (find-binary-convert)) from to))
+  (:shell ,(url->system (find-binary-convert)) from to)
+) ;converter
 
-(converter postscript-file png-file
+(converter postscript-file
+  png-file
   (:require (has-binary-gs?))
-  (:function-with-options gs-eps-to-png))
+  (:function-with-options gs-eps-to-png)
+) ;converter

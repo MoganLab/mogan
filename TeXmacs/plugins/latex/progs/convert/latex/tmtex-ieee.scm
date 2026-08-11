@@ -11,10 +11,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert latex tmtex-ieee)
-  (:use (convert latex tmtex)))
+(texmacs-module (convert latex tmtex-ieee) (:use (convert latex tmtex)))
 
 (define conference? #f)
+
 (define clustered? #f)
 
 (tm-define (tmtex-style-init doc)
@@ -22,19 +22,23 @@
   ;; ieeetran require to be in conference mode to print affiliations and emails
   (set! conference? (contains-tags? doc '(author-email author-affiliation)))
   (set! clustered?
-    (and
-      conference?
-      (or
-        (contains-stree? doc '(doc-title-options "cluster-all"))
-        (contains-stree? doc '(doc-title-options "cluster-by-affiliation"))))))
+    (and conference?
+      (or (contains-stree? doc '(doc-title-options "cluster-all"))
+        (contains-stree? doc '(doc-title-options "cluster-by-affiliation"))
+      ) ;or
+    ) ;and
+  ) ;set!
+) ;tm-define
 
 (tm-define (tmtex-transform-style x)
   (:mode ieee-style?)
   (cond ((== x "ieeeconf") "IEEEconf")
-        ((and (or clustered? conference?) (== x "ieeetran"))
-         '("conference" "IEEEtran"))
+        ((and (or clustered? conference?) (== x "ieeetran")) '("conference"
+                                                               "IEEEtran"))
         ((== x "ieeetran") "IEEEtran")
-        (else x)))
+        (else x)
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; IEEEconf metadata presentation
@@ -43,18 +47,36 @@
 (tm-define (tmtex-append-authors l)
   (:mode ieee-conf-style?)
   (set! l (filter nnull? l))
-  (if (null? l) l
-    (with sep '(!concat (!linefeed) (and) (!linefeed))
-      `((author (!indent (!concat ,@(list-intersperse (map cadr l) sep))))))))
+  (if (null? l)
+    l
+    (with sep
+      '(!concat (!linefeed) (and) (!linefeed))
+      `((author (!indent (!concat ,@(list-intersperse (map cadr l) sep)))))
+    ) ;with
+  ) ;if
+) ;tm-define
 
-(tm-define (tmtex-make-author names affiliations emails urls miscs notes
-                              affs-l emails-l urls-l miscs-l notes-l)
+(tm-define (tmtex-make-author names
+             affiliations
+             emails
+             urls
+             miscs
+             notes
+             affs-l
+             emails-l
+             urls-l
+             miscs-l
+             notes-l
+           ) ;tmtex-make-author
   (:mode ieee-conf-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
          (result `(,@names ,@urls ,@notes ,@miscs))
          (result (if (null? result) '() `((!concat ,@result))))
-         (result `(,@result ,@affiliations ,@emails)))
-    (if (null? result) '() `(author (!paragraph ,@result)))))
+         (result `(,@result ,@affiliations ,@emails))
+        ) ;
+    (if (null? result) '() `(author (!paragraph ,@result)))
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; IEEEconf specific titlemarkup
@@ -62,17 +84,20 @@
 
 (tm-define (tmtex-author-affiliation t)
   (:mode ieee-conf-style?)
-  `((!begin "affiliation") ,(tmtex (cadr t))))
+  `((!begin "affiliation") ,(tmtex (cadr t)))
+) ;tm-define
 
 (tm-define (tmtex-author-email t)
   (:mode ieee-conf-style?)
   (set! t (tmtex-remove-line-feeds t))
-  `(email ,(tmtex (cadr t))))
+  `(email ,(tmtex (cadr t)))
+) ;tm-define
 
 (tm-define (tmtex-author-homepage t)
   (:mode ieee-conf-style?)
   (set! t (tmtex-remove-line-feeds t))
-  `(tmfnhomepage ,(tmtex-inline (cadr t))))
+  `(tmfnhomepage ,(tmtex-inline (cadr t)))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; IEEEtran metadata presentation
@@ -81,39 +106,68 @@
 (tm-define (tmtex-append-authors l)
   (:mode ieee-tran-style?)
   (set! l (filter nnull? l))
-  (if (null? l) l
-    (with sep '(!concat (!linefeed) "and~")
-      `((author (!indent (!concat ,@(list-intersperse (map cadr l) sep))))))))
+  (if (null? l)
+    l
+    (with sep
+      '(!concat (!linefeed) "and~")
+      `((author (!indent (!concat ,@(list-intersperse (map cadr l) sep)))))
+    ) ;with
+  ) ;if
+) ;tm-define
 
 (tm-define (tmtex-append-authors l)
   (:mode ieee-tran-style?)
   (:require conference?)
   (set! l (filter nnull? l))
-  (if (null? l) l
-    (with sep '(!concat (!linefeed) (and) (!linefeed))
-      `((author (!indent (!concat ,@(list-intersperse (map cadr l) sep))))))))
+  (if (null? l)
+    l
+    (with sep
+      '(!concat (!linefeed) (and) (!linefeed))
+      `((author (!indent (!concat ,@(list-intersperse (map cadr l) sep)))))
+    ) ;with
+  ) ;if
+) ;tm-define
 
-(tm-define (tmtex-make-author names affs emails urls miscs notes
-                              affs* emails* urls* miscs* notes*)
+(tm-define (tmtex-make-author names
+             affs
+             emails
+             urls
+             miscs
+             notes
+             affs*
+             emails*
+             urls*
+             miscs*
+             notes*
+           ) ;tmtex-make-author
   (:mode ieee-tran-style?)
   (:require conference?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
-         (affs         (if clustered? affs (map cadr affs)))
+         (affs (if clustered? affs (map cadr affs)))
          (authorblockN `(,@names ,@affs* ,@emails* ,@urls ,@notes ,@miscs))
-         (authorblockN (if (null? authorblockN) '()
-                         `((IEEEauthorblockN (!concat ,@authorblockN)))))
+         (authorblockN (if (null? authorblockN) '() `((IEEEauthorblockN (!concat ,@authorblockN))))
+         ) ;authorblockN
          (authorblockA `(,@affs ,@emails))
          (authorblockA (if clustered?
-                         (map (lambda (x)
-                                `(IEEEauthorblockA ,x)) authorblockA)
-                         (list-intersperse authorblockA '(!nextline))))
+                         (map (lambda (x) `(IEEEauthorblockA ,x)) authorblockA)
+                         (list-intersperse authorblockA '(!nextline))
+                       ) ;if
+         ) ;authorblockA
          (authorblockA (if (and (not clustered?) (nnull? authorblockA))
                          `((IEEEauthorblockA (!concat ,@authorblockA)))
-                         authorblockA)))
-    (if (and (null? authorblockN) (null? authorblockA)) '()
+                         authorblockA
+                       ) ;if
+         ) ;authorblockA
+        ) ;
+    (if (and (null? authorblockN) (null? authorblockA))
+      '()
       (if clustered?
         `(,@authorblockN ,@authorblockA)
-        `(author (!paragraph ,@authorblockN ,@authorblockA))))))
+        `(author (!paragraph ,@authorblockN ,@authorblockA))
+      ) ;if
+    ) ;if
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; IEEEtran clustered metadata presentation
@@ -125,27 +179,31 @@
   (set! l (map tmtex-replace-documents l))
   (set! l (make-references l 'author-affiliation #t #t))
   (set! l (make-references l 'author-email #t #t))
-  l)
+  l
+) ;tm-define
 
 (tm-define (tmtex-append-authors l)
   (:mode ieee-tran-style?)
   (:require clustered?)
   (set! l (filter nnull? l))
-  (if (null? l) ()
-    (let* ((sep   '(!concat (!linefeed)))
-           (names (map (lambda (au)
-                         (filter (lambda (x)
-                                   (== (car x) 'IEEEauthorblockN)) au)) l))
+  (if (null? l)
+    ()
+    (let* ((sep '(!concat (!linefeed)))
+           (names (map (lambda (au) (filter (lambda (x) (== (car x) 'IEEEauthorblockN)) au)) l)
+           ) ;names
            (names (map car (filter nnull? names)))
            (names (tmtex-concat-sep (map cadr names)))
-           (l*    (map (lambda (au)
-                         (filter (lambda (x)
-                                   (!= (car x) 'IEEEauthorblockN)) au)) l))
-           (l*    (filter nnull? l*))
-           (l*    (apply append l*))
+           (l* (map (lambda (au) (filter (lambda (x) (!= (car x) 'IEEEauthorblockN)) au)) l)
+           ) ;l*
+           (l* (filter nnull? l*))
+           (l* (apply append l*))
            (names (if (null? names) '() `((IEEEauthorblockN ,@names))))
-           (r     `(,@names ,@l*)))
-      `((author (!indent (!concat ,@(list-intersperse r sep))))))))
+           (r `(,@names ,@l*))
+          ) ;
+      `((author (!indent (!concat ,@(list-intersperse r sep)))))
+    ) ;let*
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; IEEEtran specific titlemarkup
@@ -153,37 +211,44 @@
 
 (tm-define (tmtex-author-affiliation-ref s l)
   (:mode ieee-tran-style?)
-  `(IEEEauthorrefmark ,(car l)))
+  `(IEEEauthorrefmark ,(car l))
+) ;tm-define
 
 (tm-define (tmtex-author-affiliation-label s l)
   (:mode ieee-tran-style?)
-  `(!concat (IEEEauthorrefmark ,(car l))
-            ,(tmtex (cadr l))))
+  `(!concat (IEEEauthorrefmark ,(car l)) ,(tmtex (cadr l)))
+) ;tm-define
 
 (tm-define (tmtex-author-email-ref s l)
   (:mode ieee-tran-style?)
-  `(IEEEauthorrefmark ,(car l)))
+  `(IEEEauthorrefmark ,(car l))
+) ;tm-define
 
 (tm-define (tmtex-author-email-label s l)
   (:mode ieee-tran-style?)
-  `(!concat (IEEEauthorrefmark ,(car l))
-                               ,(tmtex-author-email l)))
+  `(!concat (IEEEauthorrefmark ,(car l)) ,(tmtex-author-email l))
+) ;tm-define
 
 (tm-define (tmtex-author-affiliation t)
   (:mode ieee-tran-style?)
   (:require conference?)
-  `(IEEEauthorblockA ,(tmtex (cadr t))))
+  `(IEEEauthorblockA ,(tmtex (cadr t)))
+) ;tm-define
 
 (tm-define (tmtex-author-email t)
   (:mode ieee-tran-style?)
   (:require conference?)
   (set! t (tmtex-remove-line-feeds t))
-  `(tmieeeemail ,(tmtex (cadr t))))
+  `(tmieeeemail ,(tmtex (cadr t)))
+) ;tm-define
 
 (tm-define (tmtex-abstract-keywords t)
   (:mode ieee-tran-style?)
-  (with args (list-intersperse (map tmtex (cdr t)) '(!concat (tmsep) " "))
-    `((!begin "IEEEkeywords") (!concat ,@args))))
+  (with args
+    (list-intersperse (map tmtex (cdr t)) '(!concat (tmsep) " "))
+    `((!begin "IEEEkeywords") (!concat ,@args))
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Further tweaking for IEEE styles
@@ -195,21 +260,22 @@
         ((== t '(jmath)) '(ieeejmath))
         ((== t '(amalg)) '(ieeeamalg))
         ((== t '(coprod)) '(ieeecoprod))
-        (else (map ieee-replace t))))
+        (else (map ieee-replace t))
+  ) ;cond
+) ;define
 
-(tm-define (tmtex-postprocess-body x)
-  (:mode ieee-conf-style?)
-  (ieee-replace x))
+(tm-define (tmtex-postprocess-body x) (:mode ieee-conf-style?) (ieee-replace x))
 
-(logic-group latex-texmacs-symbol%
-  ieeehbar ieeejmath ieeeamalg ieeecoprod)
+(logic-group latex-texmacs-symbol% ieeehbar ieeejmath ieeeamalg ieeecoprod)
 
 (smart-table latex-texmacs-macro
   (ieeehbar (not "h"))
   (ieeejmath "j")
-  (ieeecoprod
-   (!group (mathop (mbox (reflectbox (rotatebox
-     (!option "origin=c") "180" (!math (prod))))))))
-  (ieeeamalg
-   (!group (mathop (mbox (reflectbox (rotatebox
-     (!option "origin=c") "180" (!math (Pi)))))))))
+  (ieeecoprod (!group (mathop (mbox (reflectbox (rotatebox (!option "origin=c") "180" (!math (prod)))))
+                      ) ;mathop
+              ) ;!group
+  ) ;ieeecoprod
+  (ieeeamalg (!group (mathop (mbox (reflectbox (rotatebox (!option "origin=c") "180" (!math (Pi))))))
+             ) ;!group
+  ) ;ieeeamalg
+) ;smart-table

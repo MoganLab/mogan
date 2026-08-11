@@ -17,39 +17,35 @@
     (use-modules (binary pdflatex) (binary goldfish))
 
     (define (quiver-serialize lan t)
-      (let* ((u (pre-serialize lan t))
-             (s (texmacs->utf8raw (stree->tree u))))
+      (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
         (string-append s "\n<EOF>\n")
-      )
-    )
+      ) ;let*
+    ) ;define
 
     (define (quiver-launcher)
-      (string-append
-        (string-quote (url->system (find-binary-goldfish)))
+      (string-append (string-quote (url->system (find-binary-goldfish)))
         " "
         "load"
         " "
-        (string-quote
-          (string-append (url->system (get-texmacs-path))
-            "/plugins/quiver/goldfish/tm-quiver.scm"
-          )
-        )
+        (string-quote (string-append (url->system (get-texmacs-path))
+                        "/plugins/quiver/goldfish/tm-quiver.scm"
+                      ) ;string-append
+        ) ;string-quote
         " "
         (string-quote (url->system (find-binary-pdflatex)))
-      )
-    )
+      ) ;string-append
+    ) ;define
 
     (define (init-quiver)
       (plugin-configure quiver
-        (:require (and (has-binary-goldfish?)
-                       (has-binary-pdflatex?)))
+        (:require (and (has-binary-goldfish?) (has-binary-pdflatex?)))
         (:launch ,(quiver-launcher))
         (:serializer ,quiver-serialize)
         (:session "Quiver")
-      )
-    )
-  )
-)
+      ) ;plugin-configure
+    ) ;define
+  ) ;begin
+) ;define-library
 
 (import (session quiver))
 (init-quiver)

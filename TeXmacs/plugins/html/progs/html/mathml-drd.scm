@@ -85,7 +85,6 @@
  ("&RightArrow;" "<rightarrow>")
  ("&OverBar;" "¯")
 
-
  ("&DifferentialD;" "<mathd>")
  ("&Sum;" "<sum>")
  ("&straightphi;" "<phi>")

@@ -111,8 +111,8 @@
                 "none"
                 (concat (simple-page)
                   (assign "page-even-header"
-                    `(small (style-with "src-compact"
-                              "none"
+                    `(small (style-with ,"src-compact"
+                              ,"none"
                               (wide-std-underlined (headline (concat ,(page-number)
                                                                (htab "5mm")
                                                                ,(arg "name"))))))
@@ -124,8 +124,8 @@
           (assign "header-author"
             (macro "name"
               (assign "page-odd-header"
-                `(small (style-with "src-compact"
-                          "none"
+                `(small (style-with ,"src-compact"
+                          ,"none"
                           (wide-std-underlined (headline (concat ,(arg "name")
                                                            (htab "5mm")
                                                            ,(page-number))))))

@@ -18,20 +18,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (parse-bibtex s)
-  (tree->stree (parse-bib s)))
+  (tree->stree (parse-bib s))
+) ;define
 
-(tm-define (parse-bibtex-snippet s)
-  (parse-bibtex s))
+(tm-define (parse-bibtex-snippet s) (parse-bibtex s))
 
 (tm-define (parse-bibtex-document s)
-  `(!file (document
-	    (style "bibliography")
-	    (body ,(parse-bibtex s)))))
+  `(!file (document (style "bibliography") (body ,(parse-bibtex s))))
+) ;tm-define
 
 (tm-define (bibtex->texmacs bib)
   (:type (-> stree stree))
   (:synopsis "Convert a parsed BibTeX stree @t into a TeXmacs stree.")
-  (let* ((snippet? (not (func? bib '!file 1)))
-	 (body (if snippet? bib (cadr bib))))
-    body))
-
+  (let* ((snippet? (not (func? bib '!file 1))) (body (if snippet? bib (cadr bib))))
+    body
+  ) ;let*
+) ;tm-define

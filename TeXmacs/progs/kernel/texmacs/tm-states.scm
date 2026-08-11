@@ -143,14 +143,9 @@
        (with cprops
          ,#f
          (set! cprops
-           (map (lambda (x)
-                  (eval (#_list-values
-                         'lambda
-                         ()
-                         (#_list-values 'set! (car x) (cadr x)))))
+           (map (lambda (x) (eval `(lambda ,() (set! ,(car x) ,(cadr x)))))
              (quote ,props)))
-         (set! ,name
-           (state-create (append (quote (,slots ,props)) (#_list-values cprops))))))
+         (set! ,name (state-create (append (quote (,slots ,props)) `(,cprops))))))
   ) ;let*
 ) ;define-public-macro
 

@@ -11,15 +11,17 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (image webp)
-  (:use (binary inkscape)
-        (binary convert)))
+(texmacs-module (image webp) (:use (binary inkscape) (binary convert)))
 
 ;; webp -> postscript (the latter one which meets the requirements will work)
-(converter webp-file postscript-file
+(converter webp-file
+  postscript-file
   (:require (has-binary-convert?))
-  (:shell ,(url->system (find-binary-convert)) from to))
+  (:shell ,(url->system (find-binary-convert)) from to)
+) ;converter
 
-(converter webp-file postscript-file
+(converter webp-file
+  postscript-file
   (:require (has-binary-inkscape?))
-  (:shell ,(url->system (find-binary-inkscape)) from "-o" to))
+  (:shell ,(url->system (find-binary-inkscape)) from "-o" to)
+) ;converter

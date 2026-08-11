@@ -14,5 +14,4 @@
 
 (texmacs-module (image gif))
 
-(converter gif-file postscript-document
-  (:function image->psdoc))
+(converter gif-file postscript-document (:function image->psdoc))

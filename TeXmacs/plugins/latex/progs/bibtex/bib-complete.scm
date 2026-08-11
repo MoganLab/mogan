@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : bib-complete.scm
-;; DESCRIPTION : Autocompletion of bibtex citekeys 
+;; DESCRIPTION : Autocompletion of bibtex citekeys
 ;; COPYRIGHT   : (C) 2013 Miguel de Benito Delgado
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -10,58 +10,83 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (bibtex bib-complete)
-  (:use (utils library ptrees)))
+(texmacs-module (bibtex bib-complete) (:use (utils library ptrees)))
 
 (define parse-times (make-ahash-table))
+
 (define parse-results (make-ahash-table))
+
 (define bib-files-cache (make-ahash-table))
+
 (define bib-styles-cache (make-ahash-table))
 
 (define (get-citekeys-list l)
-  (list-fold
-   (lambda (entry rest) 
-     (if (tm-func? entry 'bib-entry) (cons (caddr entry) rest) rest))
-   '() l))
+  (list-fold (lambda (entry rest)
+               (if (tm-func? entry 'bib-entry) (cons (caddr entry) rest) rest)
+             ) ;lambda
+    '()
+    l
+  ) ;list-fold
+) ;define
 
 (define (get-citekeys-pt u)
-  (let ((mod-time (url-last-modified u))
-        (parse-time (or (ahash-ref parse-times u) 0)))
-    (if (> mod-time parse-time) ; handy: false also if url invalid
-        (begin
-          (ahash-set! parse-times u mod-time)
-          (ahash-set! parse-results u
-           (pt-add-list (make-ptree)
-             (get-citekeys-list
-              (tree->stree (parse-bib (string-load u))))))))
-    (ahash-ref parse-results u)))
+  (let ((mod-time (url-last-modified u)) (parse-time (or (ahash-ref parse-times u) 0)))
+    (if (> mod-time parse-time)
+      (begin
+        (ahash-set! parse-times u mod-time)
+        (ahash-set! parse-results
+          u
+          (pt-add-list (make-ptree)
+            (get-citekeys-list (tree->stree (parse-bib (string-load u))))
+          ) ;pt-add-list
+        ) ;ahash-set!
+      ) ;begin
+    ) ;if
+    (ahash-ref parse-results u)
+  ) ;let
+) ;define
 
-; FIXME: if the user changes the bibliography file we still retrieve from cache
 (tm-define (current-bib-file usecache?)
   (:synopsis "Returns the (cached) name of the bibliography file")
-  (with u (current-buffer-url)
+  (with u
+    (current-buffer-url)
     (or (and usecache? (ahash-ref bib-files-cache u))
-        (with l (select (buffer-tree) '(:* bibliography))
-          (if (nnull? l)
-              (ahash-set! bib-files-cache u
-               (url-append (url-head u) (tm->string (tree-ref (car l) 2))))
-              (url-none))))))
+      (with l
+        (select (buffer-tree) '(:* bibliography))
+        (if (nnull? l)
+          (ahash-set! bib-files-cache
+            u
+            (url-append (url-head u) (tm->string (tree-ref (car l) 2)))
+          ) ;ahash-set!
+          (url-none)
+        ) ;if
+      ) ;with
+    ) ;or
+  ) ;with
+) ;tm-define
 
 (tm-define (current-bib-style usecache?)
   (:synopsis "Returns the (cached) style of the bibliography")
-  (with u (current-buffer-url)
+  (with u
+    (current-buffer-url)
     (or (and usecache? (ahash-ref bib-styles-cache u))
-        (with l (select (buffer-tree) '(:* bibliography))
-          (if (nnull? l)
-              (ahash-set! bib-styles-cache u (tm->string (tree-ref (car l) 1)))
-              "tm-plain")))))
+      (with l
+        (select (buffer-tree) '(:* bibliography))
+        (if (nnull? l)
+          (ahash-set! bib-styles-cache u (tm->string (tree-ref (car l) 1)))
+          "tm-plain"
+        ) ;if
+      ) ;with
+    ) ;or
+  ) ;with
+) ;tm-define
 
 (tm-define (citekey-list u s)
   (:synopsis "Completions for @s in the bibtex file @u as a list")
-  (if (url-none? u) '()
-      (pt-words-below (pt-find (get-citekeys-pt u) s))))
+  (if (url-none? u) '() (pt-words-below (pt-find (get-citekeys-pt u) s)))
+) ;tm-define
 
 (tm-define (citekey-completions u t)
   (:synopsis "Completions for @t in the bibtex file @u for custom-complete")
-  `(tuple ,t
-     ,@(map string->tmstring (citekey-list u (tree->string t)))))
+  `(tuple ,t ,@(map string->tmstring (citekey-list u (tree->string t))))
+) ;tm-define

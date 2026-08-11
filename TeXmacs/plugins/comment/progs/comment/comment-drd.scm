@@ -11,39 +11,40 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (comment comment-drd)
-  (:use (utils edit variants)))
+(texmacs-module (comment comment-drd) (:use (utils edit variants)))
 
 ;; General groups
 
-(define-group variant-tag
-  (comment-tag))
+(define-group variant-tag (comment-tag))
 
-(define-group similar-tag
-  (comment-tag))
+(define-group similar-tag (comment-tag))
 
 ;; Comments
 
-(define-group folded-comment-tag
-  folded-comment)
+(define-group folded-comment-tag folded-comment)
 
-(define-group comment-tag
-  folded-comment unfolded-comment)
+(define-group comment-tag folded-comment unfolded-comment)
 
-(define-group shown-comment-tag
-  (comment-tag) nested-comment)
+(define-group shown-comment-tag (comment-tag) nested-comment)
 
 ;; Hidden comments
 
-(define-group hidden-folded-comment-tag
-  hidden-folded-comment)
+(define-group hidden-folded-comment-tag hidden-folded-comment)
 
 (define-group hidden-comment-tag
-  hidden-folded-comment hidden-unfolded-comment hidden-nested-comment)
+  hidden-folded-comment
+  hidden-unfolded-comment
+  hidden-nested-comment
+) ;define-group
 
 (define-group any-comment-tag
-  (shown-comment-tag) (hidden-comment-tag)
-  mirror-comment carbon-comment)
+  (shown-comment-tag)
+  (hidden-comment-tag)
+  mirror-comment
+  carbon-comment
+) ;define-group
 
 (define-group any-folded-comment-tag
-  (folded-comment-tag) (hidden-folded-comment-tag))
+  (folded-comment-tag)
+  (hidden-folded-comment-tag)
+) ;define-group

@@ -11,12 +11,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (bibtex unsrt)
-  (:use (bibtex bib-utils) (bibtex plain)))
+(texmacs-module (bibtex unsrt) (:use (bibtex bib-utils) (bibtex plain)))
 
 (bib-define-style "unsrt" "plain")
 
 (tm-define (bib-sorted-entries l)
   (:mode bib-unsrt?)
-  (with is-entry? (lambda (x) (func? x 'bib-entry))
-    (list-filter l is-entry?)))
+  (with is-entry? (lambda (x) (func? x 'bib-entry)) (list-filter l is-entry?))
+) ;tm-define

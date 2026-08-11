@@ -22,8 +22,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (plugin telemetry)
-  (:use (plugin telemetry-utils)
-    (plugin telemetry-track)
-    (plugin init-telemetry)
-  ) ;:use
+  (:use (plugin telemetry-utils) (plugin telemetry-track) (plugin init-telemetry))
 ) ;texmacs-module

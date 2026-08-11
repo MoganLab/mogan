@@ -12,9 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (utils literate lp-edit)
-  (:use (utils library cursor)
-        (generic document-edit)
-        (dynamic dynamic-drd)))
+  (:use (utils library cursor) (generic document-edit) (dynamic dynamic-drd))
+) ;texmacs-module
 
 (import (liii list))
 
@@ -23,20 +22,33 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-group chunk-tag
-  generic-chunk verbatim-chunk scm-chunk cpp-chunk mmx-chunk
-  python-chunk scilab-chunk shell-chunk scala-chunk java-chunk
-  goldfish-chunk elvish-chunk json-chunk)
+  generic-chunk
+  verbatim-chunk
+  scm-chunk
+  cpp-chunk
+  mmx-chunk
+  python-chunk
+  scilab-chunk
+  shell-chunk
+  scala-chunk
+  java-chunk
+  goldfish-chunk
+  elvish-chunk
+  json-chunk
+) ;define-group
 
-(define-group variant-tag
-  (chunk-tag))
+(define-group variant-tag (chunk-tag))
 
-(define-group similar-tag
-  (chunk-tag))
+(define-group similar-tag (chunk-tag))
 
 (define-group appended-tag
-  folded-newline-before unfolded-newline-before
-  folded-opening unfolded-opening
-  folded-ending unfolded-ending)
+  folded-newline-before
+  unfolded-newline-before
+  folded-opening
+  unfolded-opening
+  folded-ending
+  unfolded-ending
+) ;define-group
 
 (define-fold folded-newline-before unfolded-newline-before)
 (define-fold folded-opening unfolded-opening)
@@ -46,61 +58,72 @@
 ;; Searching chunks in document
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tm-chunk? t)
-  (and (tm-in? t (chunk-tag-list)) (== (tm-arity t) 4)))
+(tm-define (tm-chunk? t) (and (tm-in? t (chunk-tag-list)) (== (tm-arity t) 4)))
 
 (define (search-chunks t)
   (cond ((tm-atomic? t) (list))
-        ((tm-func? t 'document)
-         (flat-map search-chunks (tm-children t)))
-        ((tm-chunk? t)
-         (if (and (tm-atomic? (tm-ref t 0))) (list t) (list)))
-        (else
-          (with l (list-filter (tm-children t) (cut tm-func? <> 'document))
-            (flat-map search-chunks l)))))
+        ((tm-func? t 'document) (flat-map search-chunks (tm-children t)))
+        ((tm-chunk? t) (if (and (tm-atomic? (tm-ref t 0))) (list t) (list)))
+        (else (with l
+                (list-filter (tm-children t) (cut tm-func? <> 'document))
+                (flat-map search-chunks l)
+              ) ;with
+        ) ;else
+  ) ;cond
+) ;define
 
-(tm-define (get-all-chunks)
-  (search-chunks (buffer-tree)))
+(tm-define (get-all-chunks) (search-chunks (buffer-tree)))
 
 (define (search-named-chunks name all-chunks)
-  (list-filter all-chunks (lambda (c) (== (tm->string (tm-ref c 0)) name))))
+  (list-filter all-chunks (lambda (c) (== (tm->string (tm-ref c 0)) name)))
+) ;define
 
 (tm-define (search-chunk-types all-chunks)
-  (let* ((l all-chunks)
-         (r (map (lambda (c) (tm->string (tm-ref c 0))) l)))
-    (list-remove-duplicates r)))
+  (let* ((l all-chunks) (r (map (lambda (c) (tm->string (tm-ref c 0))) l)))
+    (list-remove-duplicates r)
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Maintaining states (links to previous and next chunks)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (update-chunk-states name all-chunks)
-  (with l (search-named-chunks name all-chunks)
+  (with l
+    (search-named-chunks name all-chunks)
     (when (nnull? l)
       (tree-set (tm-ref (car l) 1) "false")
-      (for (x (cdr l))
-        (tree-set (tm-ref x 1) "true"))
+      (for (x (cdr l)) (tree-set (tm-ref x 1) "true"))
       (tree-set (tm-ref (cAr l) 2) "false")
-      (for (x (cDr l))
-        (tree-set (tm-ref x 2) "true")))))
+      (for (x (cDr l)) (tree-set (tm-ref x 2) "true"))
+    ) ;when
+  ) ;with
+) ;tm-define
 
 (tm-define (update-all-chunk-states)
-  (with all-chunks (get-all-chunks)
+  (with all-chunks
+    (get-all-chunks)
     (for (name (search-chunk-types all-chunks))
-    (update-chunk-states name all-chunks))))
+      (update-chunk-states name all-chunks)
+    ) ;for
+  ) ;with
+) ;tm-define
 
 (tm-define (update-document what)
   (:require (style-has? "literate-dtd"))
   (former what)
   (when (or (== what "all") (== what "chunks"))
-    (update-all-chunk-states)))
+    (update-all-chunk-states)
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting new chunks; semi-automatic determination of appropriate language
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (chunk-format name)
-  (with suffix (locase-all (url-suffix name))
+  (with suffix
+    (locase-all (url-suffix name))
     (cond ((== suffix "") "generic")
           ((in? suffix '("txt")) "verbatim")
           ((in? suffix '("scm")) "scm")
@@ -111,32 +134,49 @@
           ((in? suffix '("py")) "python")
           ((in? suffix '("sce" "sci")) "scilab")
           ((in? suffix '("bat" "sh")) "shell")
-          (else "verbatim"))))
+          (else "verbatim")
+    ) ;cond
+  ) ;with
+) ;define
 
 (define (chunk-tag name)
-  (string->symbol (string-append (chunk-format name) "-chunk")))
+  (string->symbol (string-append (chunk-format name) "-chunk"))
+) ;define
 
 (define (similar-chunk-tag name all-chunks)
-  (with l (search-named-chunks name all-chunks)
-    (if (null? l) (chunk-tag name) (tree-label (car l)))))
+  (with l
+    (search-named-chunks name all-chunks)
+    (if (null? l) (chunk-tag name) (tree-label (car l)))
+  ) ;with
+) ;define
 
 (tm-define (insert-new-chunk tag)
-  (insert-go-to `(,tag "" "false" "false" (document "")) '(0 0)))
+  (insert-go-to `(,tag ,"" ,"false" ,"false" (document "")) '(0 0))
+) ;tm-define
 
 (tm-define (insert-next-chunk name)
   (:argument name "Chunk name")
-  (with all-chunks (get-all-chunks)
-    (with tag (similar-chunk-tag name all-chunks)
-      (insert-go-to `(,tag ,name "true" "false" (document "")) '(3 0))
-      (update-chunk-states name all-chunks))))
+  (with all-chunks
+    (get-all-chunks)
+    (with tag
+      (similar-chunk-tag name all-chunks)
+      (insert-go-to `(,tag ,name ,"true" ,"false" (document "")) '(3 0))
+      (update-chunk-states name all-chunks)
+    ) ;with
+  ) ;with
+) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (and (tm-chunk? t) (cursor-inside? (tm-ref t 0))))
   (let* ((name (if (tm-atomic? (tm-ref t 0)) (tm->string (tm-ref t 0)) ""))
-         (tag (chunk-tag name)))
+         (tag (chunk-tag name))
+        ) ;
     (when (!= tag 'generic-chunk)
-      (tree-assign-node! t tag))
-    (tree-go-to t 3 :start)))
+      (tree-assign-node! t tag)
+    ) ;when
+    (tree-go-to t 3 :start)
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Removing chunks
@@ -144,102 +184,121 @@
 
 (tm-define (kbd-remove t forwards?)
   (:require (tm-chunk? t))
-  (cond ((selection-active-any?)
-         (former t forwards?))
+  (cond ((selection-active-any?) (former t forwards?))
         ((and (tree-empty? (tm-ref t 0)) (tree-empty? (tm-ref t 3)))
          (tree-select t)
-         (clipboard-cut "nowhere"))
-        ((and (tree-cursor-at? t 0 :start) (not forwards?))
-         (tree-go-to t :start))
-        ((and (tree-cursor-at? t 0 :end) forwards?)
-         (tree-go-to t 3 :start))
-        ((and (tree-cursor-at? t 3 :start) (not forwards?))
-         (tree-go-to t 0 :end))
-        ((and (tree-cursor-at? t 3 :end) forwards?)
-         (tree-go-to t :end))
-        ((cursor-inside? (tree-ref t 0))
-         (former t forwards?))
-        (else (former t forwards?))))
+         (clipboard-cut "nowhere")
+        ) ;
+        ((and (tree-cursor-at? t 0 :start) (not forwards?)) (tree-go-to t :start))
+        ((and (tree-cursor-at? t 0 :end) forwards?) (tree-go-to t 3 :start))
+        ((and (tree-cursor-at? t 3 :start) (not forwards?)) (tree-go-to t 0 :end))
+        ((and (tree-cursor-at? t 3 :end) forwards?) (tree-go-to t :end))
+        ((cursor-inside? (tree-ref t 0)) (former t forwards?))
+        (else (former t forwards?))
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Cursor movement
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define ((inside-named-chunk? name nr same-type? other?) t)
-  (and-with c (tree-search-upwards t tm-chunk?)
-    (and (or (not same-type?)
-             (tm-equal? (tm-ref c 0) name))
-         (or (not other?)
-             (!= (tree->path (tree-ref c 0))
-                 (tree->path name)))
-         (cursor-inside? (tm-ref c nr)))))
+  (and-with c
+    (tree-search-upwards t tm-chunk?)
+    (and (or (not same-type?) (tm-equal? (tm-ref c 0) name))
+      (or (not other?) (!= (tree->path (tree-ref c 0)) (tree->path name)))
+      (cursor-inside? (tm-ref c nr))
+    ) ;and
+  ) ;and-with
+) ;define
 
 (define (go-to-next-in-chunk fun same-type? other?)
-  (with-innermost t tm-chunk?
-    (if (not t) (fun)
-        (let* ((name (tm-ref t 0))
-               (nr (tree-index (tree-down t)))
-               (inside? (inside-named-chunk? name nr same-type? other?)))
-          ;;(go-to-next-inside fun inside?)))))
-          (go-to-next-such-that fun inside?)))))
+  (with-innermost t
+    tm-chunk?
+    (if (not t)
+      (fun)
+      (let* ((name (tm-ref t 0))
+             (nr (tree-index (tree-down t)))
+             (inside? (inside-named-chunk? name nr same-type? other?))
+            ) ;
+        ;; (go-to-next-inside fun inside?)))))
+        (go-to-next-such-that fun inside?)
+      ) ;let*
+    ) ;if
+  ) ;with-innermost
+) ;define
 
 (define (go-to-start-chunk)
-  (with-innermost t tm-chunk?
+  (with-innermost t
+    tm-chunk?
     (when (and t (tree-down t))
-      (with nr (tree-index (tree-down t))
-        (tree-go-to t nr :start)))))
+      (with nr (tree-index (tree-down t)) (tree-go-to t nr :start))
+    ) ;when
+  ) ;with-innermost
+) ;define
 
-;;(tm-define (kbd-horizontal t forwards?)
+;; (tm-define (kbd-horizontal t forwards?)
 ;;  (:require (tm-chunk? t))
 ;;  (go-to-next-in-chunk (if forwards? go-right go-left) #f #f))
 
 (tm-define (kbd-vertical t downwards?)
   (:require (tm-chunk? t))
-  (go-to-next-in-chunk (if downwards? go-down go-up) #f #f))
+  (go-to-next-in-chunk (if downwards? go-down go-up) #f #f)
+) ;tm-define
 
 (tm-define (kbd-incremental t downwards?)
   (:require (tm-chunk? t))
   (go-to-next-in-chunk (if downwards? go-down go-up) #f #t)
-  (go-to-start-chunk))
+  (go-to-start-chunk)
+) ;tm-define
 
 (tm-define (traverse-extremal t forwards?)
   (:require (tm-chunk? t))
-  (with move (if forwards? go-down go-up)
-    (with chunk-move (lambda ()
-                       (go-to-next-in-chunk move #t #t)
-                       (go-to-start-chunk))
-      (go-to-repeat chunk-move))))
+  (with move
+    (if forwards? go-down go-up)
+    (with chunk-move
+      (lambda () (go-to-next-in-chunk move #t #t) (go-to-start-chunk))
+      (go-to-repeat chunk-move)
+    ) ;with
+  ) ;with
+) ;tm-define
 
 (tm-define (traverse-incremental t downwards?)
   (:require (tm-chunk? t))
   (go-to-next-in-chunk (if downwards? go-down go-up) #t #t)
-  (go-to-start-chunk))
+  (go-to-start-chunk)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Folding
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tm-appended? t)
-  (tm-in? t (appended-tag-list)))
+(tm-define (tm-appended? t) (tm-in? t (appended-tag-list)))
 
 (tm-define (search-appended t)
   (cond ((tm-atomic? t) (list))
         ((tm-func? t 'document) (flat-map search-appended (tm-children t)))
         ((tm-appended? t) (list t))
-        (else
-          (with l (list-filter (tm-children t) (cut tm-func? <> 'document))
-            (flat-map search-appended l)))))
+        (else (with l
+                (list-filter (tm-children t) (cut tm-func? <> 'document))
+                (flat-map search-appended l)
+              ) ;with
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 (tm-define (search-appended-folded t)
-  (list-filter (search-appended t) alternate-standard-first?))
+  (list-filter (search-appended t) alternate-standard-first?)
+) ;tm-define
 
 (tm-define (search-appended-unfolded t)
-  (list-filter (search-appended t) alternate-standard-second?))
+  (list-filter (search-appended t) alternate-standard-second?)
+) ;tm-define
 
 (tm-define (fold-appended)
-  (with l (search-appended (buffer-tree))
-    (for-each alternate-fold l)))
+  (with l (search-appended (buffer-tree)) (for-each alternate-fold l))
+) ;tm-define
 
 (tm-define (unfold-appended)
-  (with l (search-appended (buffer-tree))
-    (for-each alternate-unfold l)))
+  (with l (search-appended (buffer-tree)) (for-each alternate-unfold l))
+) ;tm-define

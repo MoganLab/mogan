@@ -11,15 +11,17 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (bibtex abbrv)
-  (:use (bibtex bib-utils) (bibtex plain)))
+(texmacs-module (bibtex abbrv) (:use (bibtex bib-utils) (bibtex plain)))
 
 (bib-define-style "abbrv" "plain")
 
 (tm-define (bib-format-first-name x)
   (:mode bib-abbrv?)
-  (if (bib-null? (list-ref x 1)) ""
-      (with f (bib-abbreviate (list-ref x 1) "." `(nbsp))
-        (if (bib-name-ends? f ".")
-            (tmconcat f '(nbsp))
-            (tmconcat f " ")))))
+  (if (bib-null? (list-ref x 1))
+    ""
+    (with f
+      (bib-abbreviate (list-ref x 1) "." '(nbsp))
+      (if (bib-name-ends? f ".") (tmconcat f '(nbsp)) (tmconcat f " "))
+    ) ;with
+  ) ;if
+) ;tm-define

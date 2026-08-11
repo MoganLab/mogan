@@ -11,11 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code prog-mode)
-  (:use (kernel texmacs tm-modes)))
+(texmacs-module (code prog-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes
-  (in-cpp% (== (get-env "prog-language") "cpp"))
+(texmacs-modes (in-cpp% (== (get-env "prog-language") "cpp"))
   (in-prog-cpp% #t in-prog% in-cpp%)
   (in-dot% (== (get-env "prog-language") "dot"))
   (in-prog-dot% #t in-prog% in-dot%)
@@ -32,4 +30,5 @@
   (in-python% (== (get-env "prog-language") "python"))
   (in-prog-python% #t in-prog% in-python%)
   (in-julia% (== (get-env "prog-language") "julia"))
-  (in-prog-julia% #t in-prog% in-julia%))
+  (in-prog-julia% #t in-prog% in-julia%)
+) ;texmacs-modes

@@ -12,19 +12,19 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (image png)
-  (:use (binary inkscape)
-        (binary convert)))
+(texmacs-module (image png) (:use (binary inkscape) (binary convert)))
 
 ;; png -> postscript (the latter one which meets the requirements will work)
-(converter png-file postscript-file
+(converter png-file
+  postscript-file
   (:require (has-binary-convert?))
-  (:shell ,(url->system (find-binary-convert)) from to))
+  (:shell ,(url->system (find-binary-convert)) from to)
+) ;converter
 
-; open a png image via inkscape manually and check `do not ask`
-; in this way, inkscape will not ask you when trying to import png
-(converter png-file postscript-file
+(converter png-file
+  postscript-file
   (:require (has-binary-inkscape?))
-  (:shell ,(url->system (find-binary-inkscape)) from "-o" to))
+  (:shell ,(url->system (find-binary-inkscape)) from "-o" to)
+) ;converter
 
 ;; we do not need png -> pdf, because the hummus pdfwriter supports png image

@@ -89,4 +89,4 @@
       (debug-message "debug-events" "[telemetry] init: disabled\n")
     ) ;if
   ) ;if
-) ;define-public
+) ;tm-define

@@ -482,8 +482,9 @@
       "prefix_0b"
       ;; Scientific notation: e/E
       "sci_notation")
-    (suffix )  ;; No standard numeric suffixes in SQL
-  )
+    (suffix)
+    ;; No standard numeric suffixes in SQL
+   )
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
