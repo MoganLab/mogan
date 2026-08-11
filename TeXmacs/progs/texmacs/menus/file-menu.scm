@@ -97,7 +97,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (short-menu-name u)
-  (cond ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
+  (cond ((collab-buffer? u)
+         ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
+         (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
+        ) ;
+        ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
         ((url-rooted-web? u)
          (string-append (url->system (url-tail u)) " @ " (url-host u))
         ) ;
@@ -116,8 +120,16 @@
           ) ;
       ((balloon (eval short-name) (eval long-name))
        (begin
-         (if win? (load-document name) (load-buffer name))
-         (when (not (url-exists? (url->system name)))
+         ;; 云文档按 doc_id 重新 join（非 load 文件）；带上存储里的 title，否则
+         ;; collab-join-document 名字缺省 → buffer 标题退化为 UUID。本地按 win? 走 load-document/load-buffer。
+         (if (collab-buffer? name)
+           (collab-join-document (collab-url->doc-id name)
+             (or (recent-files-get-name (url->system name)) "")
+           ) ;collab-join-document
+           (if win? (load-document name) (load-buffer name))
+         ) ;if
+         ;; 缺失清理仅对本地文件：云 URL 非磁盘路径，url-exists? 必假，不可据此误删。
+         (when (and (not (collab-buffer? name)) (not (url-exists? (url->system name))))
            (recent-files-remove-by-path (url->system name))
          ) ;when
        ) ;begin
@@ -418,10 +430,6 @@
       ("New shared document" (collab-new-document))
       ("New shared document from file" (collab-new-document-from-file))
       (-> "Join shared document" (link collab-docs-menu))
-      ;; 最近协作文档（当前服务端有记录才出现，避免空列表占位）。
-      (when (nnull? (collab-recent-docs))
-        (-> "Recent shared documents" (link collab-recent-docs-menu))
-      ) ;when
       (if (loro-collab-active?)
         ---
         ("Leave session" (collab-leave))

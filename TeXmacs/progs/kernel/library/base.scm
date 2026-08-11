@@ -423,7 +423,11 @@
 (define-public (buffer-master) (buffer-get-master (current-buffer)))
 
 (define-public (buffer-in-recent-menu? u)
-  (or (not (url-rooted-tmfs? u)) (string-starts? (url->unix u) "tmfs://part/"))
+  (or (not (url-rooted-tmfs? u))
+    (string-starts? (url->unix u) "tmfs://part/")
+    ;; 协作（云端）文档以 tmfs://collab/<doc_id> 入同一份 Recent，点按 doc_id 重 join
+    (string-starts? (url->unix u) "tmfs://collab/")
+  ) ;or
 ) ;define-public
 
 (define-public (buffer-in-menu? u)

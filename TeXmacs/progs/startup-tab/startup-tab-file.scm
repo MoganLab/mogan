@@ -56,6 +56,20 @@
   ) ;let*
 ) ;tm-define
 
+;; C++ 启动页点击最近文档的分派入口：云文档（tmfs://collab/<doc_id>）按 doc_id
+;; 重新 join，本地文档走 load-document。与 File→Recent 的 file-list-menu 同语义。
+;; 云文档须带上存储里的 title，否则 collab-join-document 名字缺省 → 标题退化为 UUID。
+(tm-define (startup-tab-open-recent path)
+  (let ((u (system->url path)))
+    (if (collab-buffer? u)
+      (collab-join-document (collab-url->doc-id u)
+        (or (recent-files-get-name (url->system u)) "")
+      ) ;collab-join-document
+      (load-document u)
+    ) ;if
+  ) ;let
+) ;tm-define
+
 (tm-define (startup-tab-add-recent-doc path)
   ;; Add or refresh a document in global recent-file state
   (learn-interactive 'recent-buffer (list (cons "0" path)))

@@ -3,9 +3,9 @@
 ;; MODULE      : tm-collab-test.scm
 ;; DESCRIPTION : 纯逻辑单元测试：协作文档显示名的校验（collab-valid-doc-name?）、
 ;;               /docs 交替列表解构（collab-docs-pairs）、菜单标签
-;;               （collab-doc-label）与最近协作文档列表（collab-recent-*）。
-;;               规则与服务端 tools/loro-server/validate.js 保持一致。不弹任何
-;;               GUI，headless 可跑。
+;;               （collab-doc-label）、URL↔doc_id 互逆（collab-url->doc-id）与
+;;               真实 doc_id 判定（collab-real-doc-id?）。规则与服务端
+;;               tools/loro-server/validate.js 保持一致。不弹任何 GUI，headless 可跑。
 ;; COPYRIGHT   : (C) 2026  Jim Zhou
 ;;
 ;; USAGE
@@ -183,76 +183,6 @@
   (check (collab-real-doc-id? #f) => #f)
 ) ;define
 
-;; collab-recent-entry + 访问器：构造与读取往返；空/非 string name → ""；
-;; 旧版缺 name 的 2 元素条目 → name 回退 ""。
-
-(define (test-recent-entry)
-  (let ((e (collab-recent-entry "ws://h:8765" "uuid-1" "周报")))
-    (check (collab-recent-entry-server e) => "ws://h:8765")
-    (check (collab-recent-entry-doc-id e) => "uuid-1")
-    (check (collab-recent-entry-name e) => "周报")
-  ) ;let
-  ;; 空 name 规范化为 ""
-  (check (collab-recent-entry-name (collab-recent-entry "ws://h:8765" "uuid-2" ""))
-    =>
-    ""
-  ) ;check
-  ;; 非 string 的 name（防御）→ ""
-  (check (collab-recent-entry-name (collab-recent-entry "ws://h:8765" "uuid-3" 42))
-    =>
-    ""
-  ) ;check
-  ;; 旧版/损坏条目缺 name → 回退 ""
-  (check (collab-recent-entry-name '("ws://h:8765" "uuid-4")) => "")
-) ;define
-
-;; collab-recent-filter-server：仅留 server 匹配且结构合法者（非 pair 剔除）。
-
-(define (test-recent-filter-server)
-  (let ((entries (list (list "ws://a:1" "u1" "n1")
-                   (list "ws://b:1" "u2" "n2")
-                   (list "ws://a:1" "u3" "")
-                   (list "ws://a:1" "u4")
-                   "bad"
-                 ) ;list
-        ) ;entries
-       ) ;
-    ;; server a：u1/u3/u4（"bad" 非 pair 被剔除）
-    (check (length (collab-recent-filter-server entries "ws://a:1")) => 3)
-    (check (length (collab-recent-filter-server entries "ws://b:1")) => 1)
-    (check (collab-recent-filter-server entries "ws://c:1") => '())
-  ) ;let
-) ;define
-
-;; collab-recent-add：去重（同 server+doc_id）、前插、截断上限 collab-recent-max。
-
-(define (test-recent-add)
-  ;; 空表前插
-  (check (collab-recent-add '() "ws://a:1" "u1" "n1")
-    =>
-    '(("ws://a:1" "u1" "n1"))
-  ) ;check
-  ;; 同 server+doc_id 去重，name 以新为准
-  (let ((r (collab-recent-add '(("ws://a:1" "u1" "old")) "ws://a:1" "u1" "new")))
-    (check (length r) => 1)
-    (check (collab-recent-entry-name (car r)) => "new")
-  ) ;let
-  ;; 不同 server 同 doc_id 不去重
-  (let ((r (collab-recent-add '(("ws://a:1" "u1" "n1")) "ws://b:1" "u1" "n2")))
-    (check (length r) => 2)
-  ) ;let
-  ;; 截断上限：10 条 + 1 新 → 10 条，且新条目在最前
-  (let* ((old (map (lambda (i) (list "ws://a:1" (string-append "u" (number->string i)) "n"))
-                (iota 10)
-              ) ;map
-         ) ;old
-         (r (collab-recent-add old "ws://a:1" "new-u" "new-n"))
-        ) ;
-    (check (length r) => 10)
-    (check (collab-recent-entry-doc-id (car r)) => "new-u")
-  ) ;let*
-) ;define
-
 (tm-define (regtest-tm-collab)
   (test-valid-names)
   (test-invalid-names)
@@ -264,8 +194,5 @@
   (test-url->fields)
   (test-collab-url)
   (test-real-doc-id?)
-  (test-recent-entry)
-  (test-recent-filter-server)
-  (test-recent-add)
   (check-report)
 ) ;tm-define

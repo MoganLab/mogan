@@ -24,14 +24,6 @@
 
 (define collab-server-url-key "collab:server-url")
 
-;; 最近协作文档偏好键与上限。每条目为 (server doc-id name) 三元组：doc_id 仅在
-;; 其来源服务端有效，故展示前按 collab-server-url 过滤当前服务端条目（切服务端
-;; 时旧条目隐藏而非删除）。
-
-(define collab-recent-docs-key "collab:recent-docs")
-
-(define collab-recent-max 10)
-
 (tm-define (collab-server-url)
   (with configured
     (get-preference collab-server-url-key)
@@ -226,131 +218,28 @@
   ) ;let
 ) ;define
 
-(define (collab-recent-entry server doc-id name)
-  (list server
-    doc-id
-    (if (and (string? name) (> (string-length name) 0)) name "")
-  ) ;list
-) ;define
-
-(define (collab-recent-entry-server e)
-  (car e)
-) ;define
-
-(define (collab-recent-entry-doc-id e)
-  (cadr e)
-) ;define
-
-(define (collab-recent-entry-name e)
-  (if (and (pair? (cddr e)) (string? (caddr e))) (caddr e) "")
-) ;define
-
 (define (collab-real-doc-id? doc-id)
   (and (string? doc-id)
     (> (string-length doc-id) 0)
     (not (collab-string-prefix? "pending-" doc-id))
   ) ;and
 ) ;define
-
-(define (collab-recent-filter-server entries server)
-  (list-filter entries
-    (lambda (e)
-      (and (pair? e) (>= (length e) 2) (string? (car e)) (string=? (car e) server))
-    ) ;lambda
-  ) ;list-filter
-) ;define
-
-(define (collab-recent-add entries server doc-id name)
-  (let* ((entry (collab-recent-entry server doc-id name))
-         (rest (list-filter entries
-                 (lambda (e)
-                   (not (and (pair? e)
-                          (>= (length e) 2)
-                          (string=? (car e) server)
-                          (string=? (cadr e) doc-id)
-                        ) ;and
-                   ) ;not
-                 ) ;lambda
-               ) ;list-filter
-         ) ;rest
-         (new-list (cons entry rest))
-        ) ;
-    (if (> (length new-list) collab-recent-max)
-      (sublist new-list 0 collab-recent-max)
-      new-list
-    ) ;if
-  ) ;let*
-) ;define
-(tm-define (collab-recent-docs)
-  (collab-recent-filter-server (get-preferred-list collab-recent-docs-key collab-recent-max)
-    (collab-server-url)
-  ) ;collab-recent-filter-server
-) ;tm-define
-(tm-define (collab-record-recent-doc doc-id name)
+(tm-define (collab-record-recent doc-id name)
   (when (collab-real-doc-id? doc-id)
-    (let* ((server (collab-server-url))
-           (old (get-preferred-list collab-recent-docs-key collab-recent-max))
-           (new (collab-recent-add old server doc-id name))
-          ) ;
-      (set-preference collab-recent-docs-key new)
-    ) ;let*
+    (recent-files-learn (url->system (collab-buffer-url->tmfs doc-id)) name)
+    (recent-files-save)
   ) ;when
-) ;tm-define
-(tm-define (collab-clear-recent-docs)
-  (let* ((server (collab-server-url))
-         (old (get-preferred-list collab-recent-docs-key collab-recent-max))
-         (rest (list-filter old
-                 (lambda (e) (not (and (pair? e) (>= (length e) 2) (string=? (car e) server))))
-               ) ;list-filter
-         ) ;rest
-        ) ;
-    (if (null? rest)
-      (reset-preference collab-recent-docs-key)
-      (set-preference collab-recent-docs-key rest)
-    ) ;if
-  ) ;let*
 ) ;tm-define
 
 (define (collab-schedule-record-on-create)
   (delayed (:pause 1500)
     (let ((doc-id (loro-collab-doc-id)))
       (when (collab-real-doc-id? doc-id)
-        (collab-record-recent-doc doc-id (loro-collab-doc-name))
+        (collab-record-recent doc-id (loro-collab-doc-name))
       ) ;when
     ) ;let
   ) ;delayed
 ) ;define
-(tm-menu (collab-recent-docs-menu)
-  (with entries
-    (collab-recent-docs)
-    (when (nnull? entries)
-      (with pairs
-        (map (lambda (e) (cons (collab-recent-entry-doc-id e) (collab-recent-entry-name e)))
-          entries
-        ) ;map
-        (with dups
-          (collab-doc-name-duplicates pairs)
-          (for (p pairs)
-            (with uuid
-              (car p)
-              (with name
-                (cdr p)
-                (with dup?
-                  (let ((cell (assoc name dups)))
-                    (and cell (> (cdr cell) 1))
-                  ) ;let
-                  ((eval (collab-doc-label uuid name dup?)) (collab-join-document uuid name))
-                ) ;with
-              ) ;with
-            ) ;with
-          ) ;for
-        ) ;with
-      ) ;with
-    ) ;when
-  ) ;with
-  ---
-  ("Clear list" (collab-clear-recent-docs))
-) ;tm-menu
 (tm-define (collab-new-document)
   (:interactive #t)
   (interactive (lambda (name) (collab-new-document-named name)) "Document name")
@@ -482,7 +371,8 @@
         ) ;with-default-view
       ) ;if
       ;; 记录到最近文档（join 的 doc_id 同步可用，覆盖 switch 与 open 两分支）。
-      (collab-record-recent-doc doc-id name)
+      ;; 记录到统一最近列表（join 的 doc_id 同步可用，覆盖 switch 与 open 两分支）。
+      (collab-record-recent doc-id name)
     ) ;when
   ) ;let
 ) ;tm-define

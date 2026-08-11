@@ -42,9 +42,10 @@ struct DocStyle {
  * @brief 最近文档条目
  */
 struct RecentDoc {
-  QString   fileName; // 文件名
-  QString   filePath; // 完整路径
-  QDateTime openedAt; // 最后打开时间
+  QString   fileName;  // 文件名
+  QString   filePath;  // 完整路径
+  QDateTime openedAt;  // 最后打开时间
+  bool isCloud= false; // 协作（云端）文档：path 形如 tmfs://collab/<doc_id>
 };
 
 /**
