@@ -35,10 +35,23 @@
   (if (use-plugin-updater?) (updater-download) #f)
 ) ;tm-define
 
-;; 应用已就绪更新（成功后进程退出并安装；未就绪时返回 #f）。
+;; 应用已就绪更新（未就绪时返回 #f）。
+;; apply 成功意味着更新器进程已在后台等待本进程退出；走正常退出通道
+;; (safely-quit-TeXmacs) 完成保存提示与 on-exit 清理后退出，更新器随即接管。
 ;; 返回是否已触发应用。
 
-(tm-define (updater-apply-update) (if (use-plugin-updater?) (updater-apply) #f))
+(tm-define (updater-apply-update)
+  (if (use-plugin-updater?)
+    (with ok
+      (updater-apply)
+      (when ok
+        (safely-quit-TeXmacs)
+      ) ;when
+      ok
+    ) ;with
+    #f
+  ) ;if
+) ;tm-define
 
 ;; 定时检查循环：每 10 分钟自查一次，距上次检查超过 1 小时才真正触发后台检查。
 ;; 由 updater-initialize 启动；每次执行后重新排定下一次

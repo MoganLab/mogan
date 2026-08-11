@@ -21,8 +21,9 @@
 // 注意：枚举类型名不能叫 updater_state——同名 Scheme 接口函数
 // (updater_state) 在类作用域会遮蔽标签名，导致 MSVC 语法错误。
 enum tm_updater_state {
-  UPDATER_IDLE= 0,
-  UPDATER_CHECKING,
+  UPDATER_IDLE = 0,
+  // 无 CHECKING：检查是查询操作而非生命周期阶段，进行中由 running 标志表达，
+  // 结果（AVAILABLE/IDLE/FAILED）由 do_check 比对版本后写入。勿重新引入。
   UPDATER_AVAILABLE,
   UPDATER_DOWNLOADING,
   UPDATER_READY,
@@ -58,16 +59,13 @@ public:
   }
 
   virtual tm_updater_state state () const { return UPDATER_IDLE; }
-  virtual string           availableVersion () const { return string (); }
-  virtual string           releaseNotes () const { return string (); }
-  virtual int              progress () const { return 0; }
-  virtual string           errorCode () const { return string (); }
-  virtual bool             downloadUpdate () { return false; }
-  virtual bool             applyUpdate () { return false; }
-  virtual bool             setAppcast (url _url) {
-    appcast= _url;
-    return true;
-  }
+  virtual string        availableVersion () const { return string (); }
+  virtual string        releaseNotes () const { return string (); }
+  virtual int           progress () const { return 0; }
+  virtual string        errorCode () const { return string (); }
+  virtual bool          downloadUpdate () { return false; }
+  virtual bool          applyUpdate () { return false; }
+  virtual bool          setAppcast (url _url) { appcast = _url; return true; }
 };
 
 /******************************************************************************
