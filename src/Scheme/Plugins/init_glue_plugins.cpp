@@ -40,13 +40,10 @@ void
 initialize_glue_plugins () {
   initialize_glue_plugin ();
   initialize_glue_xml ();
+  initialize_glue_updater ();
 
 #ifdef USE_PLUGIN_HTML
   initialize_glue_html ();
-#endif
-
-#if defined(USE_PLUGIN_VELOPACK)
-  initialize_glue_updater ();
 #endif
 
 #ifdef USE_PLUGIN_BIBTEX
