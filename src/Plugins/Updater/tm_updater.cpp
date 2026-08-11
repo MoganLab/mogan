@@ -22,7 +22,7 @@ tm_updater::instance () {
   static tm_updater* _instance= NULL;
 
   if (!_instance) {
-#if (defined(OS_MINGW) || defined(OS_WIN)) && defined(USE_PLUGIN_VELOPACK)
+#if defined(OS_WIN) && defined(USE_PLUGIN_VELOPACK)
     _instance= new tm_velopack ();
 #else
     _instance= new tm_updater ();
