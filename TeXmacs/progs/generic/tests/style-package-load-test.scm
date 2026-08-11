@@ -14,21 +14,15 @@
 (check-set-mode! 'report-failed)
 
 ;; Test 1: stem package file should exist
+
 (define (test-stem-package-exists)
-  (check
-    (url-exists? (url-append "$TEXMACS_STYLE_PATH" "python.stem"))
-    =>
-    #t
-  )
+  (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "python.stem")) => #t)
 ) ;define
 
 ;; Test 2: ts package should NOT exist (was deleted in 1131)
+
 (define (test-ts-package-absent)
-  (check
-    (url-exists? (url-append "$TEXMACS_STYLE_PATH" "python.ts"))
-    =>
-    #f
-  )
+  (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "python.ts")) => #f)
 ) ;define
 
 (tm-define (regtest-style-package-load)
