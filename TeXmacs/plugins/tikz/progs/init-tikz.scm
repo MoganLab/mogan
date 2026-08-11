@@ -51,5 +51,5 @@
 
 (import (session tikz))
 (init-tikz)
-(lazy-format (data tikz) tikz)
+(lazy-format (tikz tikz-format) tikz)
 (use-modules (tikz tikz-mode) (tikz tikz-edit))

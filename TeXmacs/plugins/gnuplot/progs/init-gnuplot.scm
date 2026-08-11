@@ -17,7 +17,7 @@
   (begin
     (use-modules (binary gnuplot) (binary goldfish) (binary gs))
 
-    (lazy-format (data gnuplot) gnuplot)
+    (lazy-format (gnuplot gnuplot-format) gnuplot)
 
     (define (gnuplot-serialize lan t)
       (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))

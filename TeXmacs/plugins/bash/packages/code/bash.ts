@@ -11,7 +11,7 @@
     </src-purpose>
   </src-title>>
 
-  <use-module|(data bash)> <use-module|(bash bash-edit)>
+  <use-module|(bash bash-format)> <use-module|(bash bash-edit)>
 
   <assign|bash|<macro|body|<with|mode|prog|prog-language|bash|font-family|rm|<arg|body>>>>
 

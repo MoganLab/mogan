@@ -11,7 +11,7 @@
     </src-purpose>
   </src-title>>
 
-  <use-module|(data fish)>
+  <use-module|(fish fish-format)>
   <use-module|(fish fish-edit)>
 
   <assign|fish|<macro|body|<with|mode|prog|prog-language|fish|font-family|rm|<arg|body>>>>

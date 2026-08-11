@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data javascript)>
+  <use-module|(javascript javascript-format)>
 
   <assign|javascript|<macro|body|<with|mode|prog|prog-language|javascript|font-family|rm|<arg|body>>>>
 

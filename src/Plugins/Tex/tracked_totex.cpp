@@ -166,7 +166,7 @@ latex_check_transparency (string ums, string s, hashmap<int, array<path>> corr,
 
 string
 tree_to_latex_document (tree d, object opts) {
-  eval ("(use-modules (data latex))");
+  eval ("(use-modules (latex latex-format))");
   return as_string (call ("texmacs->latex-document", object (d), opts));
 }
 

@@ -22,7 +22,7 @@
     (kernel texmacs tm-plugins)
     (texmacs texmacs tm-files)
     (texmacs texmacs tm-server)
-    (data latex)
+    (latex latex-format)
   ) ;:use
 ) ;texmacs-module
 

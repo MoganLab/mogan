@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data lua)>
+  <use-module|(lua lua-format)>
   <use-module|(lua lua-edit)>
 
   <assign|lua|<macro|body|<with|mode|prog|prog-language|lua|font-family|rm|<arg|body>>>>

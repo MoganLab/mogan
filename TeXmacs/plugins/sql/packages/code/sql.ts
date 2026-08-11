@@ -11,7 +11,7 @@
     </src-purpose>
   </src-title>>
 
-  <use-module|(data sql)>
+  <use-module|(sql sql-format)>
   <use-module|(sql sql-edit)>
 
   <assign|sql|<macro|body|<with|mode|prog|prog-language|sql|font-family|rm|<arg|body>>>>

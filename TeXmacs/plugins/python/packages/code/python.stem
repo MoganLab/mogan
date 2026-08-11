@@ -18,7 +18,7 @@
                                       ) ;document
                            ) ;src-title
                   ) ;active*
-          (use-module "(data python)")
+          (use-module "(python python-format)")
           (use-module "(python python-edit)")
           (assign "python"
             (macro "body"

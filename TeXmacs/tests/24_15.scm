@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (import (srfi srfi-78))
-(use-modules (data docx))
+(use-modules (docx docx-format))
 
 (define (tm->docx tm-file-url docx-file-url)
   ; Step 1: load the tm file

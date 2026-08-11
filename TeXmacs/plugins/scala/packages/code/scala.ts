@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data scala)>
+  <use-module|(scala scala-format)>
   <use-module|(scala scala-edit)>
 
   <assign|scala|<macro|body|<with|mode|prog|prog-language|scala|font-family|rm|<arg|body>>>>

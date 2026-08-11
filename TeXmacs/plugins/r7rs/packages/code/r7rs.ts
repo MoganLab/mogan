@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data r7rs)>
+  <use-module|(r7rs r7rs-format)>
 
   <use-module|(r7rs r7rs-edit)>
 

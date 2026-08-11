@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data gnuplot)>
+  <use-module|(gnuplot gnuplot-format)>
 
   <assign|gnuplot|<macro|body|<with|mode|prog|prog-language|gnuplot|font-family|rm|<arg|body>>>>
 

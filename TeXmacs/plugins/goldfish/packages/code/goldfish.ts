@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data goldfish)>
+  <use-module|(goldfish goldfish-format)>
 
   <use-module|(goldfish goldfish-edit)>
 

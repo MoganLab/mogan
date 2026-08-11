@@ -13,7 +13,7 @@
 
 (use-modules (binary julia))
 
-(lazy-format (data julia) julia)
+(lazy-format (julia julia-format) julia)
 
 (define (julia-serialize lan t)
   (with u

@@ -1,9 +1,9 @@
-(use-modules (data java)
-  (data julia)
-  (data scala)
-  (data python)
-  (data code)
-  (data stem)
+(use-modules (java java-format)
+  (julia julia-format)
+  (scala scala-format)
+  (python python-format)
+  (data code-format)
+  (stem stem-format)
 ) ;use-modules
 
 (import (liii check))

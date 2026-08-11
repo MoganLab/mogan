@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data julia)>
+  <use-module|(julia julia-format)>
 
   <assign|julia|<macro|body|<with|mode|prog|prog-language|julia|font-family|rm|<arg|body>>>>
 

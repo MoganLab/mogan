@@ -12,7 +12,7 @@
 
 (texmacs-module (llm chat-tree-ops)
   (:use (utils library tree)
-    (data latex)
+    (latex latex-format)
     (utils edit variants)
     (texmacs texmacs tm-files)
     (utils library cursor)

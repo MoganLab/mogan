@@ -505,17 +505,17 @@
 
 ;; (display "Booting converters\n")
 
-(lazy-format (data code) cpp scheme)
-(lazy-format (data csv) csv)
+(lazy-format (data code-format) cpp scheme)
+(lazy-format (csv csv-format) csv)
 
-(lazy-format (data image) postscript pdf svg gif jpeg png ppm tif webp xpm)
+(lazy-format (data image-format) postscript pdf svg gif jpeg png ppm tif webp xpm)
 
 (lazy-format (convert rewrite init-rewrite) texmacs verbatim)
-(lazy-format (data stm) stm)
-(lazy-format (data stem) stem)
-(lazy-format (data tmu) tmu)
-(lazy-format (data docx) docx)
-(lazy-format (data html) html)
+(lazy-format (stm stm-format) stm)
+(lazy-format (stem stem-format) stem)
+(lazy-format (tmu tmu-format) tmu)
+(lazy-format (docx docx-format) docx)
+(lazy-format (html html-format) html)
 (lazy-define (convert images tmimage)
   export-selection-as-graphics
   clipboard-copy-image

@@ -13,7 +13,7 @@
 
 (use-modules (binary goldfish))
 
-(lazy-format (data r7rs) r7rs)
+(lazy-format (r7rs r7rs-format) r7rs)
 
 (define (goldfish-serialize lan t)
   (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))

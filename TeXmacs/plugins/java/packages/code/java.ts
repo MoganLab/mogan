@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-module|(data java)>
+  <use-module|(java java-format)>
 
   <use-module|(java java-edit)>
 

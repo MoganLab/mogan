@@ -15,7 +15,7 @@
 
 (use-modules (binary python3) (binary conda))
 
-(lazy-format (data python) python)
+(lazy-format (python python-format) python)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Plugin configuration

@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules (data tmu) (texmacs texmacs tm-tools))
+(use-modules (tmu tmu-format) (texmacs texmacs tm-tools))
 
 (import (liii check) (liii path))
 
