@@ -1,0 +1,20 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (compound "src-package" "r" "1.0")
+                                        (src-purpose (document "r Language"))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (concat (use-module "(r r-format)") " " (use-module "(r r-edit)"))
+          (assign "r"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "r" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "r-code"
+            (macro "body" (document (pseudo-code (document (r (arg "body"))))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "5")))
+) ;document

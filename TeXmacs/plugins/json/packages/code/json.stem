@@ -1,0 +1,44 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (compound "src-package" "json" "1.0")
+                                        (src-purpose (document "json Language"))
+                                        (src-copyright "2020-2024" "Darcy Shen")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(json json-format)")
+          (assign "json"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "json" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "json-code"
+            (macro "body" (document (pseudo-code (document (json (arg "body"))))))
+          ) ;assign
+          (assign "json-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (document (json (document (arg "body"))))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "5")))
+) ;document

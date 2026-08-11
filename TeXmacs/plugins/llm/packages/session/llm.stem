@@ -1,0 +1,149 @@
+(document (TeXmacs "2.1.4")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "llm" "1.0")
+                                        (src-purpose (document "Markup for LLM sessions."))
+                                        (src-copyright "2021"
+                                          (document "Joris van der Hoeven"
+                                            "    2024 by Darcy Shen"
+                                            "    2025 by Jack Yansong Li"
+                                          ) ;document
+                                        ) ;src-copyright
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-package "session")
+          (assign "session"
+            (macro "language"
+              "session"
+              "body"
+              (document (with "prog-language"
+                          (arg "language")
+                          "prog-session"
+                          (arg "session")
+                          (document (render-session (arg "body")) "")
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "llm-input-bg-color"
+            (macro (if (equal (value "color") "white") "#9ba8c2" "#f0f4ff"))
+          ) ;assign
+          (assign "llm-prompt-color" "#4d6cff")
+          (assign "llm-input-color"
+            (macro (if (equal (value "color") "white") "#242938" "dark blue"))
+          ) ;assign
+          (active* (document (src-comment (document "Input field with background color")))
+          ) ;active*
+          (macro "indent-both"
+            (macro "left-indentation"
+              "right-indentation"
+              "body"
+              (document (with "par-left"
+                          (plus (value "par-left") (arg "left-indentation"))
+                          "par-right"
+                          (plus (value "par-right") (arg "right-indentation"))
+                          (arg "body")
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;macro
+          (assign "llm-indent" (macro (if (greater "1par" "20cm") "0.1par" "0par")))
+          (assign "llm-input"
+            (macro "prompt"
+              "body"
+              (document (indent-both (llm-indent)
+                          (llm-indent)
+                          (document (with "ornament-shape"
+                                      "classic"
+                                      "ornament-color"
+                                      (llm-input-bg-color)
+                                      "ornament-border"
+                                      "0ln"
+                                      "ornament-vpadding"
+                                      "0.3fn"
+                                      (document (ornament (document (tabular (tformat (twith "table-width" "1par")
+                                                                               (cwith "1" "1" "2" "2" "cell-hpart" "1")
+                                                                               (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
+                                                                               (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
+                                                                               (cwith "1" "1" "2" "2" "cell-lsep" "0fn")
+                                                                               (cwith "1" "1" "2" "2" "cell-rsep" "0fn")
+                                                                               (cwith "1" "1" "2" "2" "cell-hyphen" "t")
+                                                                               (twith "table-hyphen" "y")
+                                                                               (table (row (cell (id-function (with "color" (value "llm-prompt-color") (arg "prompt"))))
+                                                                                        (cell (document (with "color" (llm-input-color) "math-display" "true" (arg "body")))
+                                                                                        ) ;cell
+                                                                                      ) ;row
+                                                                               ) ;table
+                                                                             ) ;tformat
+                                                                    ) ;tabular
+                                                          ) ;document
+                                                ) ;ornament
+                                      ) ;document
+                                    ) ;with
+                          ) ;document
+                        ) ;indent-both
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Use verbatim output"))))
+          (assign "llm-output"
+            (macro "body"
+              (document (indent-both (llm-indent)
+                          (llm-indent)
+                          (document (with "info-flag"
+                                      "none"
+                                      "font-family"
+                                      "CMU"
+                                      (document (generic-output (document (text (arg "body")))))
+                                    ) ;with
+                          ) ;document
+                        ) ;indent-both
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "llm-errput"
+            (macro "body"
+              (document (with "mode"
+                          "text"
+                          "language"
+                          "verbatim"
+                          "font-family"
+                          "CMU"
+                          (document (generic-errput (document (arg "body"))))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "llm-thinking-dots"
+            (macro (anim-repeat (anim-compose (anim-constant "" "0.35sec")
+                                  (anim-constant "." "0.35sec")
+                                  (anim-constant ".." "0.35sec")
+                                  (anim-constant "..." "0.35sec")
+                                ) ;anim-compose
+                   ) ;anim-repeat
+            ) ;macro
+          ) ;assign
+          (assign "script-busy"
+            (macro "msg"
+              (script-status (if (equal (arg "msg") (uninit))
+                               (concat (localize "Thinking") (llm-thinking-dots))
+                               (arg "msg")
+                             ) ;if
+              ) ;script-status
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

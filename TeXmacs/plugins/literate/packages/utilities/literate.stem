@@ -1,0 +1,352 @@
+(document (TeXmacs "2.1.4")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "literate" "1.0")
+                                        (src-purpose (document "Literate programming based on chunks"))
+                                        (src-copyright "1998--2015" "Joris van der Hoeven")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(utils literate lp-menu)")
+          (active* (document (src-comment (document "Presentation macros"))))
+          (assign "wide-bothlined-named"
+            (macro "top-border"
+              "bot-border"
+              "top-sep"
+              "bot-sep"
+              "body"
+              "title"
+              (surround (no-indent)
+                ""
+                (tabular (tformat (twith "table-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-lsep" "0pt")
+                           (cwith "1" "2" "1" "1" "cell-rsep" "0pt")
+                           (cwith "2" "2" "1" "1" "cell-hyphen" "t")
+                           (cwith "2" "2" "1" "1" "cell-tborder" (arg "top-border"))
+                           (cwith "2" "2" "1" "1" "cell-bborder" (arg "bot-border"))
+                           (cwith "1" "2" "1" "1" "cell-tsep" (arg "top-sep"))
+                           (cwith "1" "1" "1" "1" "cell-bsep" (arg "top-sep"))
+                           (cwith "2" "2" "1" "1" "cell-bsep" (arg "bot-sep"))
+                           (cwith "1" "1" "1" "1" "cell-tsep" "0spc")
+                           (cwith "1" "1" "1" "1" "cell-vcorrect" "b")
+                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                           (table (row (cell (document (arg "title"))))
+                             (row (cell (document (arg "body"))))
+                           ) ;table
+                         ) ;tformat
+                ) ;tabular
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-bothlined-named"
+            (macro "body"
+              "title"
+              (wide-bothlined-named (value "overlined-width")
+                (value "underlined-width")
+                (value "overlined-sep")
+                (value "underlined-sep")
+                (arg "body")
+                (arg "title")
+              ) ;wide-bothlined-named
+            ) ;macro
+          ) ;assign
+          (assign "bothlined-named"
+            (macro "body"
+              "title"
+              (document (padded (wide-std-bothlined-named (arg "body") (arg "title"))))
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Generic chunks"))))
+          (assign "chunk-number" (macro "name" (value (merge (arg "name") "-nr"))))
+          (assign "chunk-inc"
+            (macro "name"
+              (if (provides (merge (arg "name") "-nr"))
+                (assign (merge (arg "name") "-nr")
+                  (plus (value (merge (arg "name") "-nr")) "1")
+                ) ;assign
+                (assign (merge (arg "name") "-nr") "1")
+              ) ;if
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "chunk-label"
+            (macro "name"
+              (if (provides (merge (arg "name") "-nr"))
+                (concat (assign "the-label" (arg "name"))
+                  (label (merge "chunk-" (arg "name") "-" (value (merge (arg "name") "-nr"))))
+                ) ;concat
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "chunk-ref"
+            (macro "name"
+              (concat (math "<langle>")
+                (hlink (arg "name") (merge "#chunk-" (arg "name") "-1"))
+                (math "<rangle>")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "chunk-up"
+            (macro "name"
+              (hlink (math "<vartriangle>")
+                (merge "#chunk-"
+                  (arg "name")
+                  "-"
+                  (minus (value (merge (arg "name") "-nr")) "1")
+                ) ;merge
+              ) ;hlink
+            ) ;macro
+          ) ;assign
+          (assign "chunk-down"
+            (macro "name"
+              (hlink (math "<triangledown>")
+                (merge "#chunk-" (arg "name") "-" (plus (value (merge (arg "name") "-nr")) "1"))
+              ) ;hlink
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "chunk-link"
+            (macro "name"
+              (if (unequal (find-file (arg "name")) "false")
+                (slink (arg "name"))
+                (arg "name")
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "chunk-this"
+            (macro "name" (with "color" "#404050" (chunk-link (arg "name"))))
+          ) ;assign
+          (assign "chunk-assign"
+            (macro "prev"
+              "next"
+              (if (arg "prev")
+                (math "+<equiv>")
+                (if (arg "next") (concat ":" (math "<equiv>")) (math "<equiv>"))
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "chunk-assign" (macro "prev" "next" ""))
+          ""
+          (assign "generic-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (surround (if (arg "prev")
+                                    (chunk-inc (arg "name"))
+                                    (assign (merge (arg "name") "-nr") "1")
+                                  ) ;if
+                          ""
+                          (document (bothlined-named (document (compact (document (surround (chunk-label (arg "name")) "" (concat (yes-indent*) (arg "body")))
+                                                                        ) ;document
+                                                               ) ;compact
+                                                     ) ;document
+                                      (small (concat (chunk-this (arg "name"))
+                                               " "
+                                               (chunk-assign (arg "prev") (arg "next"))
+                                               (htab "5mm")
+                                               (if (arg "prev") (chunk-up (arg "name")) (phantom (math "<vartriangle>")))
+                                               " "
+                                               (if (or (arg "prev") (arg "next")) (chunk-number (arg "name")))
+                                               " "
+                                               (if (arg "next") (chunk-down (arg "name")) (phantom (math "<triangledown>")))
+                                             ) ;concat
+                                      ) ;small
+                                    ) ;bothlined-named
+                          ) ;document
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Chunks for specific programming languages")))
+          ) ;active*
+          (assign "scm-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (scm (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "goldfish-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (document (goldfish-lang (document (arg "body"))))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "elvish-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (document (elvish-lang (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "cpp-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (cpp (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "java-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (document (java (document (arg "body"))))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "mmx-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (mmx (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "python-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (python (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "scala-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (scala (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "scilab-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (scilab (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "shell-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (shell (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "verbatim-chunk"
+            (macro "name"
+              "prev"
+              "next"
+              "body"
+              (document (generic-chunk (arg "name")
+                          (arg "prev")
+                          (arg "next")
+                          (verbatim (document (arg "body")))
+                        ) ;generic-chunk
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Macros to keep parts of the chunks invisible while editing. This can typically be used for adding some newlines during the actual generation of code, or inserting some copyright information into the header."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "unfolded-newline-before"
+            (macro "body" (document "" (wide-normal (document (arg "body")))))
+          ) ;assign
+          (assign "folded-newline-before"
+            (macro "body" (document (wide-normal (document (arg "body")))))
+          ) ;assign
+          (assign "unfolded-opening"
+            (macro "before"
+              "body"
+              (document (greyed (document (wide-normal (document (arg "before")))))
+                (wide-normal (document (arg "body")))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "folded-opening"
+            (macro "before" "body" (document (wide-normal (document (arg "body")))))
+          ) ;assign
+          (assign "unfolded-ending"
+            (macro "body"
+              "after"
+              (document (wide-normal (document (arg "body")))
+                (greyed (document (wide-normal (document (arg "after")))))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "folded-ending"
+            (macro "body" "after" (document (wide-normal (document (arg "body")))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

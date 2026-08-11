@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.1.1>>
+<TMU|<tuple|1.1.0|2026.3.0>>
 
 <style|<tuple|tmudoc|number-europe|bash>>
 
@@ -71,5 +71,6 @@
     <associate|page-medium|paper>
     <associate|page-screen-margin|false>
     <associate|preamble|false>
+    <associate|stem-doc-id|BCAFEF72-F99D-4000-896F-74714384F260>
   </collection>
 </initial>

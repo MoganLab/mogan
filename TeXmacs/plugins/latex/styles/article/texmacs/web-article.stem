@@ -1,0 +1,42 @@
+(document (TeXmacs "1.99.13")
+  (style "source")
+  (body (document (active* (document (src-title (document (src-style-file "web" "article-1.0")
+                                                  (src-purpose (document "Article style that mimicks web pages."))
+                                                  (src-copyright "2020" (document "Joris van der Hoeven"))
+                                                  (src-license (document (concat "This software falls under the "
+                                                                           (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                           ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                           (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                             "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                           ) ;hlink
+                                                                           "."
+                                                                         ) ;concat
+                                                               ) ;document
+                                                  ) ;src-license
+                                                ) ;document
+                                     ) ;src-title
+                           ) ;document
+                  ) ;active*
+          (use-package "generic" "biolinum-font")
+          (active* (document (src-comment (document "Global page style."))))
+          (assign "page-medium" "automatic")
+          (assign "page-screen-margin" "false")
+          ""
+          (assign "page-odd" "5em")
+          (assign "page-even" "5em")
+          (assign "page-right" "5em")
+          (assign "page-top" "5em")
+          (assign "page-bot" "5em")
+          ""
+          (assign "page-screen-left" "5em")
+          (assign "page-screen-right" "5em")
+          (assign "page-screen-top" "5em")
+          (assign "page-screen-bot" "5em")
+          ""
+          (assign "page-odd-footer" "")
+          (assign "page-even-footer" "")
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

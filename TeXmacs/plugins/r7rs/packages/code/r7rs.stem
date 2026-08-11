@@ -1,0 +1,63 @@
+(document (TeXmacs "2.1.2")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "r7rs" "1.0")
+                                        (src-purpose (document "Markup for Scheme defined in R7RS."))
+                                        (src-copyright "2024" "Darcy Shen")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(r7rs r7rs-format)")
+          (use-module "(r7rs r7rs-edit)")
+          (assign "goldfish-prompt-color" "dark green")
+          (assign "r7rs"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "r7rs" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "r7rs-code"
+            (macro "body" (document (pseudo-code (document (r7rs (arg "body"))))))
+          ) ;assign
+          (assign "r7rs-input"
+            (macro "prompt"
+              "body"
+              (document (with "generic-prompt-color"
+                          (value "goldfish-prompt-color")
+                          "generic-input-color"
+                          (value "scheme-input-color")
+                          (document (generic-input (arg "prompt") (arg "body")))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "r7rs-result"
+            (macro "body"
+              (document (with "ornament-border"
+                          "0ln"
+                          "ornament-hpadding"
+                          "0spc"
+                          "padding-above"
+                          "0fn"
+                          "padding-below"
+                          "0fn"
+                          "ornament-color"
+                          "pastel green"
+                          (ornamented (document (arg "body")))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection))
+) ;document

@@ -1,0 +1,119 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "physics" "1.1.0")
+                                        (src-purpose (document "This package contains macros for physics"))
+                                        (src-copyright "2026" "Darcy Shen and (Jack) Yansong Li")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(contrib physics physics-drd)")
+          (active* (src-comment (document "Braket operators")))
+          (assign "bra" (macro "x" (around* "<langle>" (arg "x") "|")))
+          (assign "bra*" (macro "x" (concat "<langle>" (arg "x") "|")))
+          (assign "ket" (macro "x" (around* "|" (arg "x") "<rangle>")))
+          (assign "ket*" (macro "x" (concat "|" (arg "x") "<rangle>")))
+          (assign "braket"
+            (macro "var1"
+              "var2"
+              (around* "<langle>" (concat (arg "var1") (mid "|") (arg "var2")) "<rangle>")
+            ) ;macro
+          ) ;assign
+          (assign "braket*"
+            (macro "var1"
+              "var2"
+              (concat "<langle>" (arg "var1") "|" (arg "var2") "<rangle>")
+            ) ;macro
+          ) ;assign
+          (assign "comm"
+            (macro "var1" "var2" (around* "[" (concat (arg "var1") "," (arg "var2")) "]"))
+          ) ;assign
+          (assign "comm*"
+            (macro "var1" "var2" (concat "[" (arg "var1") "," (arg "var2") "]"))
+          ) ;assign
+          (assign "commutator"
+            (macro "var1" "var2" (around* "[" (concat (arg "var1") "," (arg "var2")) "]"))
+          ) ;assign
+          (assign "commutator*"
+            (macro "var1" "var2" (concat "[" (arg "var1") "," (arg "var2") "]"))
+          ) ;assign
+          (assign "acomm"
+            (macro "var1" "var2" (around* "{" (concat (arg "var1") "," (arg "var2")) "}"))
+          ) ;assign
+          (assign "acomm*"
+            (macro "var1" "var2" (concat "{" (arg "var1") "," (arg "var2") "}"))
+          ) ;assign
+          (assign "anticommutator"
+            (macro "var1" "var2" (around* "{" (concat (arg "var1") "," (arg "var2")) "}"))
+          ) ;assign
+          (assign "anticommutator*"
+            (macro "var1" "var2" (concat "{" (arg "var1") "," (arg "var2") "}"))
+          ) ;assign
+          (assign "mel"
+            (macro "var1"
+              "var2"
+              "var3"
+              (around* "<langle>"
+                (concat (arg "var1") (mid "|") (arg "var2") (mid "|") (arg "var3"))
+                "<rangle>"
+              ) ;around*
+            ) ;macro
+          ) ;assign
+          (assign "mel*"
+            (macro "var1"
+              "var2"
+              "var3"
+              (concat "<langle>" (arg "var1") "|" (arg "var2") "|" (arg "var3") "<rangle>")
+            ) ;macro
+          ) ;assign
+          ""
+          (active* (src-comment (document "vectors")))
+          (assign "vb" (macro "var" (with "font-series" "bold" (arg "var"))))
+          (assign "vb*" (macro "var" (with "font-series" "bold" (arg "var"))))
+          (assign "vu"
+            (macro "var"
+              (tabular (tformat (cwith "1" "1" "1" "1" "cell-halign" "c")
+                         (cwith "1" "1" "1" "1" "cell-tsep" "0sep")
+                         (cwith "1" "1" "1" "1" "cell-rsep" "0spc")
+                         (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
+                         (cwith "1" "1" "1" "1" "cell-valign" "b")
+                         (cwith "1" "1" "1" "1" "cell-bsep" "-9sep")
+                         (cwith "2" "2" "1" "1" "cell-tsep" "0sep")
+                         (cwith "2" "2" "1" "1" "cell-valign" "b")
+                         (cwith "2" "2" "1" "1" "cell-bsep" "-2sep")
+                         (table (row (cell "^")) (row (cell (with "font-series" "bold" (arg "var")))))
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+          (assign "va"
+            (macro "var"
+              (tabular (tformat (cwith "1" "1" "1" "1" "cell-halign" "c")
+                         (cwith "1" "1" "1" "1" "cell-tsep" "0sep")
+                         (cwith "1" "1" "1" "1" "cell-rsep" "0spc")
+                         (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
+                         (cwith "1" "1" "1" "1" "cell-valign" "b")
+                         (cwith "1" "1" "1" "1" "cell-bsep" "-9sep")
+                         (cwith "2" "2" "1" "1" "cell-tsep" "0sep")
+                         (cwith "2" "2" "1" "1" "cell-valign" "b")
+                         (cwith "2" "2" "1" "1" "cell-bsep" "-2sep")
+                         (table (row (cell "<vect>"))
+                           (row (cell (with "font-series" "bold" (arg "var"))))
+                         ) ;table
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection))
+) ;document

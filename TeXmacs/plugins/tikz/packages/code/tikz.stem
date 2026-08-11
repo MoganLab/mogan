@@ -1,0 +1,20 @@
+(document (TeXmacs "2.1.2")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (compound "src-package" "tikz" "1.0")
+                                        (src-purpose (document "TikZ Language"))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (concat (use-module "(tikz tikz-format)") " " (use-module "(tikz tikz-edit)"))
+          (assign "tikz"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "tikz" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "tikz-code"
+            (macro "body" (document (pseudo-code (document (tikz (arg "body"))))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "5")))
+) ;document
