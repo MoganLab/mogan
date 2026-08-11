@@ -11,6 +11,7 @@
 
 #include "edit_modify.hpp"
 #include "modification.hpp"
+#include "new_view.hpp"
 #include "new_window.hpp"
 #include "observers.hpp"
 #include "tm_window.hpp"
@@ -456,8 +457,19 @@ edit_modify_rep::notify_save (bool real_save) {
   arch->notify_autosave ();
   if (real_save) {
     arch->notify_save ();
-    // 保存清脏后刷新 tab 栏与侧栏文档列表
-    if (has_current_window ()) update_menus (TAB_PAGES | SIDE_TOOLS);
+    // 保存清脏后刷新 tab 栏与侧栏文档列表；本 editor 的视图未挂窗口时跳过：
+    // update_menus 的 SERVER 宏会 focus_on_this_editor 把 current view 切到
+    // 本 editor 的视图，无窗口（如导出 PDF 临时 buffer 的 passive view）时
+    // concrete_window () 断言 "no window attached to view"
+    bool attached= false;
+    if (!is_nil (buf)) {
+      array<url> vs= buffer_to_views (buf->buf->name);
+      for (int i= 0; i < N (vs); i++)
+        if (view_to_editor (vs[i]) == editor (this) &&
+            !is_none (view_to_window (vs[i])))
+          attached= true;
+    }
+    if (attached) update_menus (TAB_PAGES | SIDE_TOOLS);
   }
 }
 
