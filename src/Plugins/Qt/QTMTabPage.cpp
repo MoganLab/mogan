@@ -591,9 +591,8 @@ QTMTabPageContainer::updateActiveTab (const url& currentView) {
        << LF;
 #endif
   for (int i= 0; i < m_tabPageList.size (); ++i) {
-    QTMTabPage* tab   = m_tabPageList[i];
-    bool        active= (as_string (tab->m_viewUrl) == as_string (currentView));
-    tab->setChecked (active);
+    QTMTabPage* tab= m_tabPageList[i];
+    tab->setChecked (as_string (tab->m_viewUrl) == as_string (currentView));
   }
 }
 

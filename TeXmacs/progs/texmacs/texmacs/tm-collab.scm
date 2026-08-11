@@ -128,8 +128,7 @@
 ;; === collab 缓冲（云端文档）的标识 ===
 ;; 多会话：每个协作 buffer 用专用 tmfs URL（tmfs://collab/<doc_id>）标识，
 ;; collab-buffer? 据 URL 协议判定，无需单值变量。下游 save-buffer 覆盖用它
-;; 门控（不可保存）；C++ editor::need_save 据 tm_buffer_rep::cloud 短路
-;; （不标脏/不弹保存）。tmfs buffer 自动当 scratch，关闭弹「另存」契合云文档。
+;; 门控（不可保存）。tmfs buffer 自动当 scratch，关闭弹「另存」契合云文档。
 
 ;; collab buffer URL：tmfs://collab/<doc_id>。
 (tm-define (collab-buffer-url->tmfs doc-id)

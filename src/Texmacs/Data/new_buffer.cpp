@@ -290,9 +290,6 @@ set_title_buffer (url name, string title) {
       win->set_window_name (title);
       win->set_window_url (name);
     }
-    // title 变化须同步刷新 tab 栏（tabpage-display-title 读 title 字段），
-    // 否则 tab 缓存旧标题（如 rename 时的 tmfs URL）。
-    view_to_editor (vs[i])->update_menus (TAB_PAGES);
   }
 }
 

@@ -141,18 +141,6 @@ collab_session::become_ready () {
   if (want_create () && N (doc_id) > 0) {
     url old_url= buffer_url;
     url new_url= url ("tmfs://collab/" * doc_id);
-    if (!(old_url == new_url)) {
-      // 先把标题设为 doc_name，使随后的 rename_buffer 内 propose_title 保留之
-      // （keep_old：doc_name 非空/非 No name/非 tmfs URL）；否则若标题仍是
-      // scratch 的 "No name [N]"，propose_title 会返回 tmfs URL，导致第一次 tab
-      // 重建显示 URL（scheme 入口的 buffer-set-title 在异步 become_ready 前可能
-      // 未及生效，故在此兜底）。
-      string title0=
-          lolly::data::utf8_to_cork ((N (doc_name) > 0) ? doc_name : doc_id);
-      set_title_buffer (old_url, title0);
-      buffer_url= new_url;
-      rename_buffer (old_url, new_url);
-    }
   }
 
   editor ed= get_editor ();
@@ -183,10 +171,6 @@ collab_session::become_ready () {
   string title=
       lolly::data::utf8_to_cork ((N (doc_name) > 0) ? doc_name : doc_id);
   set_title_buffer (buffer_url, title);
-  // set_title_buffer 不触发 tab 栏重建，且协作 buffer need_save 恒 false 使
-  // update_globals 的 tab 刷新也不触发；显式通知菜单重建，确保 tab 显示
-  // doc_name 而非 rename 时 propose_title 留下的临时标题（tmfs URL/doc_id）。
-  if (!is_nil (ed)) ed->notify_change (THE_MENUS);
   set_message (was_reconnect ? "Reconnected to " * title
                              : "Session ready: " * title);
   if (DEBUG_LORO)
