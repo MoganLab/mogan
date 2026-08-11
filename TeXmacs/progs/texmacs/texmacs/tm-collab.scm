@@ -414,16 +414,73 @@
 ;;     构造函数不跑，故必须在 get_or_create 里显式标记）。need_save 是标题星号
 ;;     / 关闭提示 / tab 星号 / 自动保存的公共收敛点，故不再在 Scheme 侧覆盖
 ;;     buffer-modified?。
-;;   - Save 无效（文档在云端）→ 提示用 Save as 导出本地副本；Save as 正常
-;; 用「模块加载时捕获原始绑定」覆盖 save-buffer，避免对纯 glue 函数用 former
-;; （tm-define 对未注册到 tm-defined-table 的函数走 else 分支，former 退化为
-;; noop，会全局破坏）。
+;;   - Save 无效（文档在云端）→ 提示用 Download 导出本地副本；协作模式下
+;;     Save as 在菜单上显示为 Download，功能也变为 Download：用 buffer-export
+;;     仅写一份本地副本，不 buffer-rename、不切换 buffer（云端会话不中断）。
+;; 用「模块加载时捕获原始绑定」覆盖 save-buffer / save-buffer-as，避免对纯
+;; glue 函数用 former（tm-define 对未注册到 tm-defined-table 的函数走 else
+;; 分支，former 退化为 noop，会全局破坏）。
 
 (define %original-save-buffer save-buffer)
 
 (tm-define (save-buffer . l)
   (if (collab-buffer? (current-buffer))
-    (set-message "Cloud document: use Save as to export a local copy" "Save")
+    (set-message "Cloud document: use Download to export a local copy" "Save")
     (apply %original-save-buffer l)
+  ) ;if
+) ;tm-define
+
+;; 协作（云端）文档：把当前 buffer 导出一份本地副本（Download 语义）。
+;; 不 buffer-rename、不 buffer-pretend-modified、不写回云端源 buffer——只写 dest。
+;; 写盘用 buffer-export（buffer_export，dest≠源，无回写副作用），区别于
+;; save-buffer-as 的 rename+save 链（会把云端 buffer 改名成本地文件，破坏协作
+;; 会话）。覆盖确认只用 url-test?/user-confirm（均为 glue/原语，全局可见）；
+;; tm-files 的 cannot-write? 是模块私有 define，跨模块不可见，且其只读对话框
+;; 的"Save as"按钮会递归回到本覆盖，故不复用——写盘失败由 buffer-export 返回
+;; 值兜底报"Could not save"。
+
+(define (collab-do-export new-name)
+  (with vname
+    `(verbatim ,(url->system new-name))
+    (with fm
+      (url-format new-name)
+      ;; 未知后缀兜底 texmacs，避免退化成 verbatim 丢失格式。
+      (when (== fm "generic")
+        (set! fm "texmacs")
+      ) ;when
+      (if (buffer-export (current-buffer) new-name fm)
+        (set-message `(concat ,"Could not save " ,vname) "Save file")
+        (set-message `(concat ,"Saved " ,vname) "Save file")
+      ) ;if
+    ) ;with
+  ) ;with
+) ;define
+
+(define (collab-download-copy new-name)
+  (if (url-test? new-name "f")
+    (user-confirm "File already exists. Really overwrite?"
+      #f
+      (lambda (answ) (when answ (collab-do-export new-name)))
+    ) ;user-confirm
+    (collab-do-export new-name)
+  ) ;if
+) ;define
+
+(define %original-save-buffer-as save-buffer-as)
+
+;; 协作模式下 Save as → Download：仅导出本地副本，不切 buffer。
+;; 非协作 buffer 原样委派给原始 save-buffer-as（含其 :argument/:default 元数据、
+;; 文件名消毒、权限/覆盖/格式检查与 rename+save 链），行为零变化。
+(tm-define (save-buffer-as new-name . args)
+  (:argument new-name texmacs-file "Save as")
+  (:default new-name (propose-name-buffer))
+  (if (collab-buffer? (current-buffer))
+    (with-default-view (when (string? new-name)
+                         (set! new-name (string-replace new-name ":" "-"))
+                         (set! new-name (string-replace new-name ";" "-"))
+                       ) ;when
+      (collab-download-copy new-name)
+    ) ;with-default-view
+    (apply %original-save-buffer-as (cons new-name args))
   ) ;if
 ) ;tm-define

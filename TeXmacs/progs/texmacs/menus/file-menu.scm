@@ -277,7 +277,9 @@
 
 (menu-bind save-menu
  ("Save" (save-buffer))
- ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
+ ((eval (if (collab-buffer? (current-buffer)) "Download" "Save as"))
+  (choose-file save-buffer-as "Save TeXmacs file" "action_save_as")
+ ) ;
  ---
  (link export-top-menu)
  ---
@@ -402,7 +404,9 @@
    ---
  ) ;if
  ("Save" (save-buffer))
- ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
+ ((eval (if (collab-buffer? (current-buffer)) "Download" "Save as"))
+  (choose-file save-buffer-as "Save TeXmacs file" "action_save_as")
+ ) ;
  (if (loro-enabled?)
    (-> "Collaborative"
      ;; 未配置服务端：仅显示设置项，引导先填地址/端口。
