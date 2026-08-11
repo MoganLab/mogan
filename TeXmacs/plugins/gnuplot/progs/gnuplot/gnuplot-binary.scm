@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary gnuplot) (:use (binary common)))
+(texmacs-module (gnuplot gnuplot-binary) (:use (binary common)))
 
 (define (gnuplot-binary-candidates)
   (cond ((os-macos?) (list "/opt/homebrew/bin/gnuplot" "/usr/local/bin/gnuplot"))

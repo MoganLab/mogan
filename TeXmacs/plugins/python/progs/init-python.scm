@@ -13,7 +13,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules (binary python3) (binary conda))
+(use-modules (python python-binary) (binary conda))
 
 (lazy-format (python python-format) python)
 

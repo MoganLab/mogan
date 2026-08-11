@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary julia) (:use (binary common)))
+(texmacs-module (julia julia-binary) (:use (binary common)))
 
 (define (julia-binary-candidates)
   (cond ((os-macos?)

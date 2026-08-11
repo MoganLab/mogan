@@ -15,7 +15,7 @@
   (import (scheme base) (liii list))
   (export init-gnuplot)
   (begin
-    (use-modules (binary gnuplot) (binary goldfish) (binary gs))
+    (use-modules (gnuplot gnuplot-binary) (binary goldfish) (binary gs))
 
     (lazy-format (gnuplot gnuplot-format) gnuplot)
 

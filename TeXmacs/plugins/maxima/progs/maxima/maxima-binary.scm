@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary maxima) (:use (binary common)))
+(texmacs-module (maxima maxima-binary) (:use (binary common)))
 
 (define (maxima-binary-candidates)
   (cond ((os-macos?)
