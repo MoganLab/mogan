@@ -5,6 +5,7 @@
 ;; DESCRIPTION : support utilities for tm_updater
 ;; COPYRIGHT   : (C) 2013 Miguel de Benito Delgado
 ;;               2019 modified by Gregoire Lecerf
+;;               2026 Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -20,14 +21,34 @@
 
 (tm-define (updater-initialize)
   (when (use-plugin-updater?)
-    (with n
-      (get-preference "updater:interval")
-      (when (string-number? n)
-        (updater-set-interval (string->number n))
-        (updater-check-background)
-      ) ;when
-    ) ;with
+    (updater-check-background)
+    (updater-scheduled-check)
   ) ;when
 ) ;tm-define
 
 (define-preferences ("updater:interval" "null" noop))
+
+;; 下载已可用更新（非更新器平台或未到 available 状态返回 #f）。
+;; 返回是否已启动下载。
+
+(tm-define (updater-download-update)
+  (if (use-plugin-updater?) (updater-download) #f)
+) ;tm-define
+
+;; 应用已就绪更新（成功后进程退出并安装；未就绪时返回 #f）。
+;; 返回是否已触发应用。
+
+(tm-define (updater-apply-update) (if (use-plugin-updater?) (updater-apply) #f))
+
+;; 定时检查循环：每 10 分钟自查一次，距上次检查超过 1 小时才真正触发后台检查。
+;; 由 updater-initialize 启动；每次执行后重新排定下一次
+;; （delayed :idle 600000），形成周期循环。guard 保证仅更新器平台进入。
+
+(tm-define (updater-scheduled-check)
+  (when (use-plugin-updater?)
+    (when (> (- (current-time) (updater-last-check)) 3600)
+      (updater-check-background)
+    ) ;when
+    (delayed (:idle 600000) (updater-scheduled-check))
+  ) ;when
+) ;tm-define
