@@ -463,10 +463,14 @@ edit_modify_rep::notify_save (bool real_save) {
 
 bool
 edit_modify_rep::need_save (bool real_save) {
-  // 云文档内容权威在云端，永不"需保存"：本判断是标题星号、关闭提示、
-  // tab 星号、自动保存的公共收敛点（update_menus 与 needs_to_be_saved
-  // 均经此）。据 tmfs://collab/ URL 判定，与 scheme 侧 collab-buffer? 同源。
-  if (!is_nil (buf) && is_rooted_tmfs (buf->buf->name, "collab")) return false;
+  // 云文档内容权威在云端，但需让 autosave 能感知本端编辑以触发本地备份上传：
+  // 仅"真保存"语义（real_save=true，经 needs_to_be_saved，驱动标题星号 / 关闭
+  // 提示 / tab 星号）对云文档恒不脏；autosave（real_save=false，经
+  // needs_to_be_autosaved）照常跟 archiver——本端编辑 require_save 置脏、远端
+  // apply_remote 不 require_save，故 autosave 只跟本端编辑。据 tmfs://collab/
+  // URL 判定，与 scheme 侧 collab-buffer? 同源。
+  if (!is_nil (buf) && is_rooted_tmfs (buf->buf->name, "collab") && real_save)
+    return false;
   if (arch->conform_save ()) return false;
   if (real_save) return true;
   return !arch->conform_autosave ();

@@ -346,42 +346,58 @@
 ;; doc id 只在用户明确保存时随文档持久化；打开已有文件时不会静默
 ;; 写回源文件。
 
-(tm-define (save-buffer-save name opts . kind*)
+(define (save-buffer-save-file name opts kind)
   ;; (display* "save-buffer-save " name "\n")
+  (with vname
+    `(verbatim ,(utf8->cork (url->system name)))
+    (when (defined? 'auto-backup-ensure-buffer-doc-id!)
+      (auto-backup-ensure-buffer-doc-id! name)
+    ) ;when
+    (if (buffer-save name)
+      (begin
+        (buffer-pretend-modified name)
+        (set-message `(concat ,"Could not save " ,vname) "Save file")
+      ) ;begin
+      (begin
+        (if (== (url-suffix name) "ts") (style-clear-cache))
+        (buffer-notify-recent name)
+        ;; Remember directory for file dialog
+        (remember-file-dialog-directory name)
+        (set-message `(concat ,"Saved " ,vname) "Save file")
+        (when (defined? 'auto-backup-trig)
+          (auto-backup-trig name kind)
+        ) ;when
+        ;; 埋点只关心保存成功的结果，失败分支不上报
+        (when (and (defined? 'track-event) (defined? 'auto-backup-buffer-doc-id))
+          (let ((doc-id (auto-backup-buffer-doc-id name)))
+            (when (and (string? doc-id) (!= doc-id ""))
+              (track-event (if (string=? kind "save-as") "DOC_SAVE_AS" "DOC_SAVE")
+                (list (cons "doc_id" doc-id))
+              ) ;track-event
+            ) ;when
+          ) ;let
+        ) ;when
+        (save-buffer-post name opts)
+      ) ;begin
+    ) ;if
+  ) ;with
+) ;define
+
+;; 协作文档走 collab 本地备份 + autosave 上传；普通文档走原文件保存（save-buffer-save-file）。
+(tm-define (save-buffer-save name opts . kind*)
   (let ((kind (if (null? kind*) "save" (car kind*))))
-    (with vname
-      `(verbatim ,(utf8->cork (url->system name)))
-      (when (defined? 'auto-backup-ensure-buffer-doc-id!)
-        (auto-backup-ensure-buffer-doc-id! name)
+    (if (collab-buffer? name)
+      ;; 协作文档：仅当有本端编辑（buffer-modified-since-autosave?，远端 apply_remote
+      ;; 不置脏）才写本地备份 + 上传——与普通 buffer 的 save-buffer-main「未改不存」
+      ;; （line ~520）语义一致；无本端编辑（含纯远端编辑）则静默 no-op。
+      (when (buffer-modified-since-autosave? name)
+        (collab-silent-backup name)
+        (when (defined? 'auto-backup-trig)
+          (auto-backup-trig name kind)
+        ) ;when
       ) ;when
-      (if (buffer-save name)
-        (begin
-          (buffer-pretend-modified name)
-          (set-message `(concat ,"Could not save " ,vname) "Save file")
-        ) ;begin
-        (begin
-          (if (== (url-suffix name) "ts") (style-clear-cache))
-          (buffer-notify-recent name)
-          ;; Remember directory for file dialog
-          (remember-file-dialog-directory name)
-          (set-message `(concat ,"Saved " ,vname) "Save file")
-          (when (defined? 'auto-backup-trig)
-            (auto-backup-trig name kind)
-          ) ;when
-          ;; 埋点只关心保存成功的结果，失败分支不上报
-          (when (and (defined? 'track-event) (defined? 'auto-backup-buffer-doc-id))
-            (let ((doc-id (auto-backup-buffer-doc-id name)))
-              (when (and (string? doc-id) (!= doc-id ""))
-                (track-event (if (string=? kind "save-as") "DOC_SAVE_AS" "DOC_SAVE")
-                  (list (cons "doc_id" doc-id))
-                ) ;track-event
-              ) ;when
-            ) ;let
-          ) ;when
-          (save-buffer-post name opts)
-        ) ;begin
-      ) ;if
-    ) ;with
+      (save-buffer-save-file name opts kind)
+    ) ;if
   ) ;let
 ) ;tm-define
 

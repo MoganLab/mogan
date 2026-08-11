@@ -10,7 +10,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (autosave plugin) (:use (utils library cursor)))
+(texmacs-module (autosave plugin)
+  (:use (utils library cursor) (texmacs texmacs tm-collab))
+) ;texmacs-module
 
 (import (liii uuid))
 (import (liii json))
@@ -183,8 +185,16 @@
 ) ;tm-define
 
 (tm-define (auto-backup-trig-payload name kind)
-  (let* ((path (url->system name))
-         (doc-id (auto-backup-ensure-buffer-doc-id! name))
+  (let* ((collab? (collab-buffer? name))
+         ;; 协作文档：path 指向本地不可见备份文件（collab-silent-backup 已在 save-buffer-save
+         ;; 里同步写盘）；id 用 tmfs URL 的 doc_id 段（非 stem-doc-id，后者对 tmfs 返 #f）。
+         (path (if collab?
+                 (url->system (collab-backup-url (collab-url->doc-id name)))
+                 (url->system name)
+               ) ;if
+         ) ;path
+         (doc-id (if collab? (collab-url->doc-id name) (auto-backup-ensure-buffer-doc-id! name))
+         ) ;doc-id
          (session-id (uuid4))
          (payload (string->json "{}"))
         ) ;
@@ -240,7 +250,9 @@
 ;; 备份类型，例如 "save"、"save-as"、"export-pdf"、"on-open"、"auto"、"manual-open"。
 
 (tm-define (auto-backup-trig u kind)
-  (when (and (auto-backup-enabled?) (auto-backup-buffer-eligible? u))
+  (when (and (auto-backup-enabled?)
+          (or (collab-buffer? u) (auto-backup-buffer-eligible? u))
+        ) ;and
     (receive (s session-id)
       (auto-backup-trig-payload u kind)
       (silent-feed* "autosave"
@@ -311,6 +323,16 @@
         (save-buffer-save name (list) "auto")
       ) ;when
     ) ;let
+    ;; 协作文档恒不 buffer-modified?（need_save(true) 短路）；用 buffer-modified-since-autosave?
+    ;; 捕获本端编辑（远端 apply_remote 不 require_save，故只跟本端）。扫所有 collab buffer，
+    ;; save-buffer-save 写备份时已清脏，下一 tick 无新编辑即跳过。
+    (for-each (lambda (name)
+                (when (and (collab-buffer? name) (buffer-modified-since-autosave? name))
+                  (save-buffer-save name (list) "auto")
+                ) ;when
+              ) ;lambda
+      (buffer-list)
+    ) ;for-each
     (autosave-delayed)
   ) ;when
 ) ;tm-define
