@@ -458,8 +458,11 @@
 (tm-define (kbd-binding conds key2 cmd help)
   (:synopsis "Helper routine for kbd-map macro")
   ;; (display* conds ", " key2 ", " cmd ", " help "\n")
+  ;; 键名字面量按 UTF-8 归一为运行时查找用的 cork，kbd-map 因此可直接
+  ;; 书写非 ASCII 键（如 "￥"，见 devel/1199.md）；查找路径不转换——
+  ;; 运行时键本就是 cork，可能含单字节高位 cork 字符，再转会被破坏
   (with key
-    (kbd-pre-rewrite key2)
+    (kbd-pre-rewrite (string-convert key2 "UTF-8" "Cork"))
     (kbd-sub-bindings conds key)
     (kbd-insert-key-binding conds key (list cmd help))
   ) ;with

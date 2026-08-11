@@ -109,6 +109,8 @@
   ("altcmd F7" (make 'math-tt))
   ("altcmd F8" (make 'math-ss))
   ("$" (math-make-math))
+  ;; 中文输入法 Shift+4 提交的全角 ￥，与 $ 一致：跳出数学模式
+  ("￥" (math-make-math))
   ("math $" (make 'text))
   ("`" (make-lprime "`"))
   ("'" (make-rprime "'"))

@@ -50,8 +50,16 @@
  ("\\" (if (or (inside? 'hybrid) (in-prog?)) (insert "\\") (make-hybrid)))
  ("\\ var" "\\")
  ("\\ var var" "<setminus>")
+ ;; 中文输入法 \ 键提交的 、（U+3001）：默认同 \（进 hybrid），
+ ;; Tab 变体插入 、 字符本身（shorthand 用 cork，见 kbd-insert）
+ ("、" (if (or (inside? 'hybrid) (in-prog?)) (insert "<#3001>") (make-hybrid)))
+ ("、 var" "<#3001>")
  ("$" (make 'math))
  ("$ var" "$")
+ ;; 中文输入法 Shift+4 提交的全角 ￥（U+FFE5）：默认进数学模式（同 $），
+ ;; 按 Tab 变体插入 ￥ 字符本身（shorthand 用 cork，见 kbd-insert）
+ ("￥" (make 'math))
+ ("￥ var" "<#FFE5>")
 
  ("-" "-")
  ("space" (kbd-space))
