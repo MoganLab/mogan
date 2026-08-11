@@ -427,7 +427,9 @@
 
 (tm-define (save-buffer . l)
   (if (collab-buffer? (current-buffer))
-    (collab-silent-backup (current-buffer))
+    ;; 走统一保存路径：save-buffer-save 的 collab 分支写本地备份 + 触发 autosave
+    ;; 上传 + 清脏（与普通 buffer 的 Cmd+S 行为一致）。
+    (save-buffer-save (current-buffer) '() "save")
     (apply %original-save-buffer l)
   ) ;if
 ) ;tm-define
@@ -475,32 +477,32 @@
 ;; buffer_export→save_string 同步，返回时字节已落盘，将来 autosave 在它返回后读盘
 ;; 即可保证时序。占位 URL（pending-…，服务端尚未回真实 doc_id）跳过。
 
-(define (collab-url->doc-id u)
+(tm-define (collab-url->doc-id u)
   (let ((s (url->unix u)))
     (substring s (string-length "tmfs://collab/") (string-length s))
   ) ;let
-) ;define
+) ;tm-define
 
 (define (collab-backups-dir)
   (url-append (get-texmacs-home-path) (system->url "system/collab-backups"))
 ) ;define
 
-(define (collab-backup-url doc-id)
+(tm-define (collab-backup-url doc-id)
   (url-append (get-texmacs-home-path)
     (system->url (string-append "system/collab-backups/" doc-id ".tmu"))
   ) ;url-append
-) ;define
+) ;tm-define
 
 ;; 写本地备份，返回 #t 成功 / #f 跳过或失败。静默（用户不可见）；仅失败时给一行
 ;; 提示，不暴露内部路径。不重命名、不进最近文件、不弹窗、不写回云端源 buffer。
 ;; 单一同步入口：buffer_export→save_string 同步，返回时字节已落盘——将来 autosave
 ;; 在它返回后读盘即可保证时序。
 
-(define (collab-silent-backup . opt-buf)
+(tm-define (collab-silent-backup . opt-buf)
   (let ((buf (if (pair? opt-buf) (car opt-buf) (current-buffer))))
     (and (collab-buffer? buf) (collab-do-silent-backup buf))
   ) ;let
-) ;define
+) ;tm-define
 
 ;; 占位 URL（pending-…）/ 空 doc_id 跳过：服务端尚未回真实 doc_id。
 
@@ -513,18 +515,20 @@
   ) ;let
 ) ;define
 
-;; system/ 启动时已存在，只需建一层 collab-backups。buffer-export 失败时给一行提示。
+;; system/ 启动时已存在，只需建一层 collab-backups。静默：成功后 buffer-pretend-saved
+;; （→ notify_save 清 conform_autosave），让 buffer-modified-since-autosave? 复位、定时器
+;; 无新编辑时不重复备份；失败返回 #f（不弹消息，避免 120s 定时器刷状态栏）。
 
 (define (collab-write-backup buf doc-id)
   (when (not (url-exists? (collab-backups-dir)))
     (system-mkdir (collab-backups-dir))
   ) ;when
   (if (buffer-export buf (collab-backup-url doc-id) "tmu")
+    #f
     (begin
-      (set-message "Backup failed" "Save")
-      #f
+      (buffer-pretend-saved buf)
+      #t
     ) ;begin
-    #t
   ) ;if
 ) ;define
 
