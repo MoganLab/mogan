@@ -13,7 +13,7 @@
 (import (liii check))
 (check-set-mode! 'report-failed)
 
-(tm-define (test_7001_collab_url)
+(tm-define (test_7001)
   (display "Running Collab buffer URL integration test ([7001])...")
   (newline)
   (if (loro-enabled?)
