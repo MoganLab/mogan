@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin maxima-menu)
+(texmacs-module (maxima maxima-menu)
   (:use (utils plugins plugin-cmd)
     (doc help-funcs)
     (dynamic scripts-edit)

@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils literate lp-build) (:use (utils literate lp-edit)))
+(texmacs-module (literate lp-build) (:use (literate lp-edit)))
 
 (import (liii hash-table) (liii base) (liii list))
 

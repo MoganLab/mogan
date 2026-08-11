@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (liii ocr))
+(texmacs-module (ocr liii-ocr))
 (import (liii base64))
 (import (liii time))
 (import (only (srfi srfi-19) current-time time-second))

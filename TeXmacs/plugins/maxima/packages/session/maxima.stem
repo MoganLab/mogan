@@ -16,8 +16,8 @@
                                       ) ;document
                            ) ;src-title
                   ) ;active*
-          (use-module "(plugin maxima-menu)")
-          (use-module "(plugin maxima-kbd)")
+          (use-module "(maxima maxima-menu)")
+          (use-module "(maxima maxima-kbd)")
           (assign "maxima-output"
             (macro "body" (document (padded (document (generic-output* (arg "body"))))))
           ) ;assign

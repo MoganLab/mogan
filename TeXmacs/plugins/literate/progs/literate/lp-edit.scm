@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils literate lp-edit)
+(texmacs-module (literate lp-edit)
   (:use (utils library cursor) (generic document-edit) (dynamic dynamic-drd))
 ) ;texmacs-module
 

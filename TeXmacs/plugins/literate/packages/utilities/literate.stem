@@ -16,7 +16,7 @@
                                       ) ;document
                            ) ;src-title
                   ) ;active*
-          (use-module "(utils literate lp-menu)")
+          (use-module "(literate lp-menu)")
           (active* (document (src-comment (document "Presentation macros"))))
           (assign "wide-bothlined-named"
             (macro "top-border"

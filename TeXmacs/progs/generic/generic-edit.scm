@@ -1245,7 +1245,7 @@
 
 (tm-define (ocr-paste source-format)
   (when (not (defined? 'ocr-to-latex-by-cursor))
-    (use-modules (liii ocr))
+    (use-modules (ocr liii-ocr))
   ) ;when
   (with data
     (if (string=? source-format "texmacs-snippet")
@@ -1271,7 +1271,7 @@
       (kbd-paste)
       (kbd-return)
       (when (not (defined? 'ocr-to-latex-by-cursor))
-        (use-modules (liii ocr))
+        (use-modules (ocr liii-ocr))
       ) ;when
       (ocr-to-latex-by-cursor data)
     ) ;when
@@ -1318,7 +1318,7 @@
 
 (tm-define (paste-as-texmacs)
   (when (not (defined? 'ocr-to-latex-by-cursor))
-    (use-modules (liii ocr))
+    (use-modules (ocr liii-ocr))
   ) ;when
   (with img-tree
     (tree-ref (clipboard-get "primary") 0)

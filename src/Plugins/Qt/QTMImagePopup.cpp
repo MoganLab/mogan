@@ -63,7 +63,7 @@ QTMImagePopup::QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner)
   alignGroup->addButton (rightBtn);
   alignGroup->addButton (ocrBtn);
   alignGroup->setExclusive (true);
-  eval ("(use-modules (liii ocr))");
+  eval ("(use-modules (ocr liii-ocr))");
   connect (alignGroup,
            QOverload<QAbstractButton*>::of (&QButtonGroup::buttonClicked), this,
            [=] (QAbstractButton* button) {

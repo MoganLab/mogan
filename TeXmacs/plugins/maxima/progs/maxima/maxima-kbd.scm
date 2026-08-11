@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (plugin maxima-kbd)
+(texmacs-module (maxima maxima-kbd)
   (:use (dynamic scripts-kbd)
     (utils plugins plugin-cmd)
     (utils plugins plugin-convert)
@@ -25,6 +25,6 @@
 (kbd-map (:mode in-maxima?) (:mode in-math?) ("$" "$"))
 
 (when (supports-maxima?)
-  (lazy-input-converter (plugin maxima-input) maxima)
+  (lazy-input-converter (maxima maxima-input) maxima)
   (plugin-approx-command-set! "maxima" "float")
 ) ;when
