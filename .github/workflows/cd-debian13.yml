@@ -69,6 +69,7 @@ jobs:
             fakeroot \
             debhelper \
             file \
+            fcitx5-frontend-qt6
           apt remove -y 7zip
 
 
