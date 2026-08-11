@@ -335,7 +335,7 @@
 (lazy-define (convert html htmltm) parse-html-snippet)
 (lazy-define (convert html htmltm) parse-html-document)
 (lazy-define (convert html htmltm) html->texmacs)
-(lazy-define (convert html htmlout) serialize-html)
+(lazy-define (html htmlout) serialize-html)
 (lazy-define (convert html tmhtml) texmacs->html)
 (converter html-document html-stree (:function parse-html-document))
 (converter html-stree html-document (:function serialize-html))

@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert data css) (:use (convert data sxml)))
+(texmacs-module (html css) (:use (convert data sxml)))
 
 (define (css-style-item->pair s)
   (with l
