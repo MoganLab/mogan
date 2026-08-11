@@ -122,7 +122,8 @@
        (begin
          ;; 云文档按 doc_id 重新 join（非 load 文件）；带上存储里的 title，否则
          ;; collab-join-document 名字缺省 → buffer 标题退化为 UUID。本地按 win? 走 load-document/load-buffer。
-         (if (collab-buffer? name)
+         ;; collab 分派叠 (loro-enabled?)：loro=no 下云 glue 未注册，残留云条目改走 load-* 优雅失败。
+         (if (and (collab-buffer? name) (loro-enabled?))
            (collab-join-document (collab-url->doc-id name)
              (or (recent-files-get-name (url->system name)) "")
            ) ;collab-join-document

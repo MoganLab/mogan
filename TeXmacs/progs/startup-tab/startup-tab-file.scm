@@ -59,9 +59,11 @@
 ;; C++ 启动页点击最近文档的分派入口：云文档（tmfs://collab/<doc_id>）按 doc_id
 ;; 重新 join，本地文档走 load-document。与 File→Recent 的 file-list-menu 同语义。
 ;; 云文档须带上存储里的 title，否则 collab-join-document 名字缺省 → 标题退化为 UUID。
+;; collab 分派叠 (loro-enabled?) 门控：loro=no 构建下 loro-collab-join 等 glue
+;; 未注册，残留云条目点击改走 load-document 优雅失败，而非撞未注册 glue 崩溃。
 (tm-define (startup-tab-open-recent path)
   (let ((u (system->url path)))
-    (if (collab-buffer? u)
+    (if (and (collab-buffer? u) (loro-enabled?))
       (collab-join-document (collab-url->doc-id u)
         (or (recent-files-get-name (url->system u)) "")
       ) ;collab-join-document
