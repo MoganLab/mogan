@@ -1227,7 +1227,13 @@ edit_env_rep::exec_use_package (tree t) {
     // cout << as_string (t[i]) << " -> " << name << "\n";
     string doc_s;
     if (!load_string (name, doc_s, false)) {
-      tree doc= texmacs_document_to_tree (doc_s);
+      tree doc;
+      if (ends (as_string (name), ".stem")) {
+        doc= generic_to_tree (doc_s, "stem-document");
+      }
+      else {
+        doc= texmacs_document_to_tree (doc_s);
+      }
       if (is_compound (doc)) exec (filter_style (extract (doc, "body")));
     }
   }
