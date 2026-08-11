@@ -22,5 +22,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (telemetry telemetry)
-  (:use (telemetry telemetry-utils) (telemetry telemetry-track) (telemetry init-telemetry))
+  (:use (telemetry telemetry-utils)
+    (telemetry telemetry-track)
+    (telemetry init-telemetry)
+  ) ;:use
 ) ;texmacs-module
