@@ -66,14 +66,9 @@ jobs:
             libdbus-1-3 libglib2.0-0t64 libegl1 libgl-dev libxkbcommon0 \
             fonts-noto-cjk \
             ghostscript \
-            qt6-base-dev \
-            libqt6svg6-dev \
-            libqt6networkauth6-dev \
-            qt6-base-private-dev \
             fakeroot \
             debhelper \
             file \
-            fcitx5-frontend-qt6
           apt remove -y 7zip
 
 
