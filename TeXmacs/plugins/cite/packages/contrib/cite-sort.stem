@@ -1,0 +1,32 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "cite-sort" "1.0.0")
+                                        (src-purpose (document "This package contains macros for the automatic sorting of citations."
+                                                     ) ;document
+                                        ) ;src-purpose
+                                        (compound "src-copyright" "2013" "François Poulain, Joris van der Hoeven")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(cite cite-sort)")
+          (assign "cite-sort" (macro "body" (extern "cite-sort" (arg "body"))))
+          (assign "cite-raw"
+            (xmacro "keys" (cite-sort (map-args "cite-arg" "tuple" "keys")))
+          ) ;assign
+          (assign "cite"
+            (xmacro "keys" (render-cite (cite-sort (map-args "cite-arg" "tuple" "keys"))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

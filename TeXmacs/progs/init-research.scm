@@ -537,9 +537,9 @@
   texmacs->utf8raw
   utf8raw->texmacs
 ) ;lazy-define
-(lazy-define (convert html tmhtml) ext-tmhtml-eqnarray*)
+(lazy-define (html tmhtml) ext-tmhtml-eqnarray*)
 (define-secure-symbols ext-tmhtml-eqnarray*)
-(lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
+(lazy-define (html tmhtml-expand) tmhtml-env-patch)
 (lazy-define (convert latex latex-drd) latex-arity latex-type)
 (lazy-define (convert latex tmtex) tmtex-env-patch)
 (lazy-define (convert latex latex-tools)

@@ -1,0 +1,34 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (compound "src-package" "moonbit" "1.0")
+                                        (src-purpose (document "moonbit Language"))
+                                        (src-copyright "2025" "Jack Yansong Li")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (concat (use-module "(moonbit moonbit-format)")
+            " "
+            (use-module "(moonbit moonbit-edit)")
+          ) ;concat
+          (assign "moonbit"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "moonbit" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "moonbit-code"
+            (macro "body" (document (pseudo-code (document (moonbit (arg "body"))))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "5")))
+) ;document

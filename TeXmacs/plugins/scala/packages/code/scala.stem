@@ -1,0 +1,34 @@
+(document (TeXmacs "2.1.2")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (compound "src-package" "scala" "1.0")
+                                        (src-purpose (document "scala Language"))
+                                        (src-copyright "2020-2024" "Darcy Shen")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (concat (use-module "(scala scala-format)")
+            " "
+            (use-module "(scala scala-edit)")
+          ) ;concat
+          (assign "scala"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "scala" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "scala-code"
+            (macro "body" (document (pseudo-code (document (scala (arg "body"))))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "5")))
+) ;document

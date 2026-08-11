@@ -1,0 +1,20 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (compound "src-package" "bash" "1.0")
+                                        (src-purpose (document "Bash Language"))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (concat (use-module "(bash bash-format)") " " (use-module "(bash bash-edit)"))
+          (assign "bash"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "bash" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "bash-code"
+            (macro "body" (document (pseudo-code (document (bash (arg "body"))))))
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "5")))
+) ;document

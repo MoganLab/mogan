@@ -1,0 +1,117 @@
+(document (TeXmacs "2.1.2")
+  (style "source")
+  (body (document (active* (document (src-title (document (src-style-file "ieeeconf" "0.1")
+                                                  (src-purpose (document "The IEEEconf style."))
+                                                  (src-copyright "2013" (document "François Poulain, Joris van der Hoeven"))
+                                                  (src-license (document (concat "This software falls under the "
+                                                                           (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                           ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                           (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                             "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                           ) ;hlink
+                                                                           "."
+                                                                         ) ;concat
+                                                               ) ;document
+                                                  ) ;src-license
+                                                ) ;document
+                                     ) ;src-title
+                           ) ;document
+                  ) ;active*
+          (use-package "article" "std-latex" "two-columns")
+          (active* (src-comment "Global style parameters"))
+          (assign "par-sep" "0.2fn")
+          (assign "par-ver-sep" "0.1fn")
+          (active* (src-comment "Global layout parameters"))
+          (assign "tex-odd-side-margin" (macro "-.304in"))
+          (assign "tex-even-side-margin" (macro "-.304in"))
+          (assign "tex-text-width" (macro "6.875in"))
+          (assign "tex-top-margin" (macro "0in"))
+          (assign "tex-head-height" (macro "0in"))
+          (assign "tex-text-height" (macro "8.875in"))
+          (assign "tex-column-sep" (macro "0.3125in"))
+          (assign "par-first" (macro "0.25in"))
+          (active* (document (src-comment (document "Title."))))
+          (assign "doc-make-title"
+            (macro "body"
+              (document (with "par-columns"
+                          "1"
+                          (document (surround "" (right-flush) (document (doc-title-block (arg "body")) "" ""))
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "by-text" (macro ""))
+          (assign "author-name"
+            (macro "author" (doc-author-block (author-by (arg "author"))))
+          ) ;assign
+          (assign "author-email"
+            (macro "email"
+              (doc-author-block (concat (with "font-shape" "italic" (concat (email-text) (localize ":") " "))
+                                  " "
+                                  (arg "email")
+                                ) ;concat
+              ) ;doc-author-block
+            ) ;macro
+          ) ;assign
+          (assign "author-email-note"
+            (macro "sym"
+              "id"
+              "email"
+              (doc-author-block (doc-note-text (arg "sym")
+                                  (arg "id")
+                                  (concat (with "font-shape" "italic" (concat (email-text) (localize ":") " "))
+                                    (arg "email")
+                                  ) ;concat
+                                ) ;doc-note-text
+              ) ;doc-author-block
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Abstract."))))
+          (assign "render-abstract"
+            (macro "body"
+              (document (concat (sectional-centered-bold (abstract-text)) (vspace "0.5fn"))
+                (with "font-shape" "italic" (document (arg "body")))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-abstract*"
+            (macro "body"
+              "note"
+              (document (quasi (document (render-abstract (document (surround "" (vspace "0.5fn") ,(quote-arg "body"))
+                                                            (with "par-par-sep"
+                                                              "0.25fn"
+                                                              "font-shape"
+                                                              "right"
+                                                              (document (unquote* (arg "note")))
+                                                            ) ;with
+                                                          ) ;document
+                                         ) ;render-abstract
+                               ) ;document
+                        ) ;quasi
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Headers."))))
+          (assign "header-title"
+            (macro "name"
+              (concat (assign "page-odd-header" "") (assign "page-even-header" ""))
+            ) ;macro
+          ) ;assign
+          (assign "header-author"
+            (macro "name"
+              (concat (assign "page-odd-header" "") (assign "page-even-header" ""))
+            ) ;macro
+          ) ;assign
+          (assign "header-primary" (macro "name" "nr" "what" ""))
+          (assign "header-secondary" (macro "name" "nr" "what" ""))
+          (active* (document (src-comment (document "Sections."))))
+          (assign "sectional-sep" (macro (concat "." (space "2spc"))))
+          (assign "sectional-post-sep" (macro (space "2spc")))
+          (assign "sectional-no-indent" (macro ""))
+          (active* (document (src-comment (document "Lists."))))
+          (assign "transform-bibitem" (macro "body" (concat "[" (arg "body") "] ")))
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

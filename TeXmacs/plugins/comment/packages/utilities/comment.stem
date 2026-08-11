@@ -1,0 +1,391 @@
+(document (TeXmacs "2.1.4")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "comment" "1.0")
+                                        (src-purpose (document "Various types of comments by various authors on a text")
+                                        ) ;src-purpose
+                                        (src-copyright "2020" "Joris van der Hoeven")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-package "std-shadow")
+          (use-module "(comment comment-menu)")
+          (active* (document (src-comment (document "Rendering macros"))))
+          (concat (assign "comment-color"
+                    (macro "type" "by" (extern "ext-comment-color" (arg "type") (arg "by")))
+                  ) ;assign
+            " "
+            (assign "comment-bg-color" (macro "type" "by" (extern "ext-comment-bg-color")))
+          ) ;concat
+          (assign "abbreviate-name"
+            (macro "by" (extern "ext-abbreviate-name" (arg "by")))
+          ) ;assign
+          (assign "render-inline-comment"
+            (macro "type"
+              "by"
+              "body"
+              (surround (with "color"
+                          (comment-color (arg "type") (arg "by"))
+                          (concat "[" (condensed (name (abbreviate-name (arg "by")))) ": ")
+                        ) ;with
+                (with "color" (compound "comment-color" (arg "type") (arg "by")) "]")
+                (arg "body")
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "render-block-comment"
+            (macro "type"
+              "by"
+              "body"
+              (surround (with "color"
+                          (comment-color (arg "type") (arg "by"))
+                          (concat (name (abbreviate-name (arg "by"))) "<rangle> ")
+                        ) ;with
+                ""
+                (arg "body")
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "render-box-comment"
+            (macro "type"
+              "by"
+              "body"
+              (document (with "shadow-elevation"
+                          "0.75"
+                          (half-bend-in-shadow (document (wide-tabular (document (tformat (cwith "1"
+                                                                                            "1"
+                                                                                            "1"
+                                                                                            "1"
+                                                                                            "cell-background"
+                                                                                            (comment-color (arg "type") (arg "by"))
+                                                                                          ) ;cwith
+                                                                                   (cwith "1" "-1" "1" "1" "cell-lsep" "1spc")
+                                                                                   (cwith "1" "-1" "1" "1" "cell-rsep" "1spc")
+                                                                                   (cwith "1" "-1" "1" "1" "cell-tsep" "0.5spc")
+                                                                                   (cwith "1" "-1" "1" "1" "cell-bsep" "0.5spc")
+                                                                                   (cwith "2" "-1" "1" "1" "cell-tsep" "2spc")
+                                                                                   (cwith "2" "-1" "1" "1" "cell-bsep" "1spc")
+                                                                                   (table (row (cell (document (samp (with "color" "white" "locus-color" "preserve" (copy (arg "by"))))
+                                                                                                     ) ;document
+                                                                                               ) ;cell
+                                                                                          ) ;row
+                                                                                     (row (cell (document (arg "body"))))
+                                                                                   ) ;table
+                                                                                 ) ;tformat
+                                                                       ) ;document
+                                                         ) ;wide-tabular
+                                               ) ;document
+                          ) ;half-bend-in-shadow
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Various kinds of comments"))))
+          (assign "inline-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (with "old-locus-color"
+                (value "locus-color")
+                "locus-color"
+                "preserve"
+                (style-with "src-compact"
+                  "none"
+                  (locus (id (arg "mirror-id"))
+                    (observer (arg "unique-id") "mirror-notify")
+                    (with "locus-color"
+                      (value "old-color")
+                      (surround (extern "mirror-initialize" (quote-arg "body"))
+                        ""
+                        (expand-as (arg "body")
+                          (render-inline-comment (arg "type") (arg "by") (arg "body"))
+                        ) ;expand-as
+                      ) ;surround
+                    ) ;with
+                  ) ;locus
+                ) ;style-with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "block-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (with "old-locus-color"
+                (value "locus-color")
+                "locus-color"
+                "preserve"
+                (style-with "src-compact"
+                  "none"
+                  (locus (id (arg "mirror-id"))
+                    (observer (arg "unique-id") "mirror-notify")
+                    (with "locus-color"
+                      (value "old-color")
+                      (surround (extern "mirror-initialize" (quote-arg "body"))
+                        ""
+                        (expand-as (arg "body")
+                          (render-block-comment (arg "type") (arg "by") (arg "body"))
+                        ) ;expand-as
+                      ) ;surround
+                    ) ;with
+                  ) ;locus
+                ) ;style-with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "unfolded-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (expand-as (arg "body")
+                (compound (if (equal (get-label (quote-arg "body")) "document")
+                            "block-comment"
+                            "inline-comment"
+                          ) ;if
+                  (arg "unique-id")
+                  (arg "mirror-id")
+                  (arg "type")
+                  (arg "by")
+                  (arg "time")
+                  (arg "src")
+                  (arg "body")
+                ) ;compound
+              ) ;expand-as
+            ) ;macro
+          ) ;assign
+          (assign "nested-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (expand-as (arg "body")
+                (compound (if (equal (get-label (quote-arg "body")) "document")
+                            "block-comment"
+                            "inline-comment"
+                          ) ;if
+                  (arg "unique-id")
+                  (arg "mirror-id")
+                  (arg "type")
+                  (arg "by")
+                  (arg "time")
+                  (arg "src")
+                  (arg "body")
+                ) ;compound
+              ) ;expand-as
+            ) ;macro
+          ) ;assign
+          (assign "folded-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (with "old-locus-color"
+                (value "locus-color")
+                "locus-color"
+                "preserve"
+                (style-with "src-compact"
+                  "none"
+                  (locus (id (arg "mirror-id"))
+                    (observer (arg "unique-id") "mirror-notify")
+                    (expand-as (arg "body")
+                      (concat (extern "mirror-initialize" (quote-arg "body"))
+                        (flag (abbreviate-name (arg "by")) (comment-color (arg "type") (arg "by")))
+                        (hidden (arg "body"))
+                      ) ;concat
+                    ) ;expand-as
+                  ) ;locus
+                ) ;style-with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "mirror-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (with "old-locus-color"
+                (value "locus-color")
+                "locus-color"
+                "preserve"
+                (style-with "src-compact"
+                  "none"
+                  (locus (id (arg "mirror-id"))
+                    (observer (arg "unique-id") "mirror-notify")
+                    (with "locus-color"
+                      (value "old-color")
+                      (surround (extern "mirror-initialize" (quote-arg "body"))
+                        ""
+                        (render-box-comment (arg "type") (arg "by") (arg "body"))
+                      ) ;surround
+                    ) ;with
+                  ) ;locus
+                ) ;style-with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "carbon-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (with "old-locus-color"
+                (value "locus-color")
+                "locus-color"
+                "preserve"
+                (style-with "src-compact"
+                  "none"
+                  (locus (id (arg "mirror-id"))
+                    (observer (arg "unique-id") "mirror-notify")
+                    (with "locus-color"
+                      (value "old-color")
+                      (surround (extern "mirror-initialize" (quote-arg "body")) "" (arg "body"))
+                    ) ;with
+                  ) ;locus
+                ) ;style-with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "preview-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (document (with "preview-bg-color"
+                          (blend (comment-bg-color) (comment-color (arg "type") (arg "by")))
+                          (document (preview-balloon (document (render-block-comment (arg "type") (arg "by") (arg "body")))
+                                    ) ;preview-balloon
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (drd-props "unfolded-comment" "arity" "7" "accessible" "6")
+          (drd-props "nested-comment" "arity" "7" "accessible" "6")
+          (drd-props "mirror-comment" "arity" "7" "accessible" "6" "border" "no")
+          (drd-props "carbon-comment" "arity" "7" "accessible" "6" "border" "no")
+          (active* (document (src-comment (document "Completely invisible comments (except when they contain visible nested comments)"
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "hidden-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (hidden (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "hidden-unfolded-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (compound (if (extern "ext-contains-shown-comments?" (quote-arg "body"))
+                          (if (equal (get-label (quote-arg "body")) "document")
+                            "block-comment"
+                            "inline-comment"
+                          ) ;if
+                          "hidden-comment"
+                        ) ;if
+                (arg "unique-id")
+                (arg "mirror-id")
+                (arg "type")
+                (arg "by")
+                (arg "time")
+                (arg "src")
+                (arg "body")
+              ) ;compound
+            ) ;macro
+          ) ;assign
+          (assign "hidden-folded-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (compound (if (extern "ext-contains-shown-comments?" (quote-arg "body"))
+                          "folded-comment"
+                          "hidden-comment"
+                        ) ;if
+                (arg "unique-id")
+                (arg "mirror-id")
+                (arg "type")
+                (arg "by")
+                (arg "time")
+                (arg "src")
+                (arg "body")
+              ) ;compound
+            ) ;macro
+          ) ;assign
+          (assign "hidden-nested-comment"
+            (macro "unique-id"
+              "mirror-id"
+              "type"
+              "by"
+              "time"
+              "src"
+              "body"
+              (compound (if (extern "ext-contains-shown-comments?" (quote-arg "body"))
+                          "nested-comment"
+                          "hidden-comment"
+                        ) ;if
+                (arg "unique-id")
+                (arg "mirror-id")
+                (arg "type")
+                (arg "by")
+                (arg "time")
+                (arg "src")
+                (arg "body")
+              ) ;compound
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

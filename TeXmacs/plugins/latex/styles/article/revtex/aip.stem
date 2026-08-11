@@ -1,0 +1,727 @@
+(document (TeXmacs "1.99.19")
+  (style "source")
+  (body (document (active* (document (src-title (document (src-style-file "aip" "1.0")
+                                                  (src-purpose (document "The Revtex's American Institude of Physic style."))
+                                                  (src-copyright "2012--2012" (document "Joris van der Hoeven, François Poulain"))
+                                                  (src-license (document (concat "This software falls under the "
+                                                                           (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                           ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                           (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                             "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                           ) ;hlink
+                                                                           "."
+                                                                         ) ;concat
+                                                               ) ;document
+                                                  ) ;src-license
+                                                ) ;document
+                                     ) ;src-title
+                           ) ;document
+                  ) ;active*
+          (use-package "std"
+            "env"
+            "header-generic"
+            "section-book"
+            "title-generic"
+            "std-latex"
+            "cite-author-year"
+            "std-automatic"
+            "two-columns"
+            "html-font-size"
+          ) ;use-package
+          (active* (src-comment (document "Page layout.")))
+          (assign "par-first" "1em")
+          (assign "parindent" (value "par-first"))
+          (assign "page-type" "a4")
+          (assign "par-columns" "2")
+          (assign "tex-odd-side-margin" "0pt")
+          (assign "tex-even-side-margin" "0pt")
+          (assign "tex-margin-par-width" "60pt")
+          (assign "tex-margin-par-sep" "10pt")
+          (assign "tex-top-margin" "-37pt")
+          (assign "tex-head-height" "12pt")
+          (assign "tex-head-sep" "25pt")
+          (assign "tex-top-skip" "25pt")
+          (assign "tex-text-height" "665.5pt")
+          (assign "tex-text-width" "468pt")
+          (assign "tex-column-sep" "10pt")
+          (assign "tex-footnote-sep" "10pt")
+          (assign "tex-float-sep" (texlen "14pt" "2pt" "4pt"))
+          (assign "tex-text-float-sep" (texlen "20pt" "2pt" "4pt"))
+          (assign "tex-in-text-sep" (texlen "14pt" "2pt" "4pt"))
+          (active* (src-comment (document "Sectionning macros.")))
+          (style-with "src-compact"
+            "none"
+            (assign "part-title"
+              (style-with "src-compact"
+                "none"
+                (macro "name"
+                  (style-with "src-compact"
+                    "none"
+                    (sectional-normal-bold (concat (vspace* "4ex") (really-huge (arg "name")) (vspace "3ex") (new-line))
+                    ) ;sectional-normal-bold
+                  ) ;style-with
+                ) ;macro
+              ) ;style-with
+            ) ;assign
+          ) ;style-with
+          (style-with "src-compact"
+            "none"
+            (assign (style-with "src-compact" "none" "part-numbered-title")
+              (style-with "src-compact"
+                "none"
+                (macro (style-with "src-compact" "all" "name")
+                  (style-with "src-compact"
+                    "none"
+                    (sectional-short-bold (concat (vspace* "4ex")
+                                            (very-large (concat (part-text) " " (the-part) (new-line) (vspace* (value "parindent")))
+                                            ) ;very-large
+                                            (huge (arg "name"))
+                                            (vspace "3ex")
+                                            (new-line)
+                                          ) ;concat
+                    ) ;sectional-short-bold
+                  ) ;style-with
+                ) ;macro
+              ) ;style-with
+            ) ;assign
+          ) ;style-with
+          (assign "section-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* (tex-len "0.8cm" "1ex" "0.2ex"))
+                                        (with "font-family" "ss" (small (change-case (arg "name") "UPCASE")))
+                                        (vspace "0.5cm")
+                                      ) ;concat
+                ) ;sectional-short-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "section-numbered-title"
+            (macro "name"
+              (section-title (sectional-prefixed (concat (the-section) (section-sep))
+                               (concat (change-case (arg "name") "UPCASE") (section-post-sep))
+                             ) ;sectional-prefixed
+              ) ;section-title
+            ) ;macro
+          ) ;assign
+          (assign "subsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-normal-bold (concat (vspace* (tex-len "0.8cm" "1ex" "0.2ex"))
+                                         (with "font-family" "ss" (small (arg "name")))
+                                         (vspace "0.5cm")
+                                       ) ;concat
+                ) ;sectional-normal-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsubsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-normal-bold (concat (vspace* (tex-len "0.8cm" "1ex" "0.2ex"))
+                                         (with "font-family" "ss" (small (arg "name")))
+                                         (vspace "0.5cm")
+                                       ) ;concat
+                ) ;sectional-normal-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "paragraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-italic (concat (space (parindent))
+                                          (normal-size (arg "name"))
+                                          (space (value "parindent"))
+                                          (vspace "-1em")
+                                        ) ;concat
+                ) ;sectional-short-italic
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subparagraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* (tex-len "3.25ex" "1ex" "0.2ex"))
+                                        (space (value "parindent"))
+                                        (normal-size (arg "name"))
+                                        (space (value "parindent"))
+                                        (vspace "-1em")
+                                      ) ;concat
+                ) ;sectional-short-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "appendix-text" "Appendix")
+          (assign "appendix-numbered-title"
+            (macro "title"
+              (document (assign "display-equation"
+                          (macro "nr" (concat (the-appendix) (number (arg "nr") "arabic")))
+                        ) ;assign
+                (concat (assign "subsection-display" "arabic")
+                  (subsection-title (concat (appendix-text) " " (the-appendix) ": " (arg "title"))
+                  ) ;subsection-title
+                ) ;concat
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "Section and environment numbering.")))
+          (assign "sectional-sep" (macro (space "1.1fn")))
+          (assign "section-clean" (macro (reset-subsection)))
+          (style-with "src-compact"
+            "all"
+            (assign "display-std-env" (macro "nr" (document (arg "nr"))))
+          ) ;style-with
+          (assign "part-display-numbers" (macro "true"))
+          (assign "section-display-numbers" (macro "true"))
+          (assign "subsection-display-numbers" (macro "true"))
+          (assign "subsubsection-display-numbers" (macro "true"))
+          (assign "paragraph-display-numbers" (macro "true"))
+          (assign "subparagraph-display-numbers" (macro "false"))
+          (assign "display-section" (macro "nr" (concat (number (arg "nr") "Roman") ".")))
+          (assign "subsection-display" "Alpha")
+          (assign "display-subsection"
+            (macro "nr" (concat (number (arg "nr") (subsection-display)) "."))
+          ) ;assign
+          (assign "display-subsubsection" (macro "nr" (concat (arg "nr") ".")))
+          (assign "display-paragraph"
+            (macro "nr" (concat (number (arg "nr") "alpha") "."))
+          ) ;assign
+          (assign "display-subparagraph" "")
+          (active* (src-comment (document "Headers and footers.")))
+          (set-header (concat (no-indent)
+                        (tabular (tformat (twith "table-width" "1par")
+                                   (cwith "1" "-1" "1" "1" "cell-halign" "r")
+                                   (table (row (cell (page-number))))
+                                 ) ;tformat
+                        ) ;tabular
+                      ) ;concat
+          ) ;set-header
+          (set-footer "")
+          (assign "header-title" (macro "name" ""))
+          (assign "header-author" (macro "name" ""))
+          (assign "header-primary" (macro "name" "nr" "what" ""))
+          (assign "header-secondary" (macro "name" "nr" "what" ""))
+          (assign "start-page" (macro "s" ""))
+          (active* (src-comment (document "Footnotes.")))
+          (assign "footnote-sep" "")
+          (assign "display-footnote" (macro "nr" (number (arg "nr") "alpha")))
+          (assign "render-footnote"
+            (macro "nr"
+              "body"
+              (style-with "src-compact"
+                "none"
+                (float "footnote"
+                  ""
+                  (document (smaller (with "par-mode"
+                                       "justify"
+                                       "par-left"
+                                       "0cm"
+                                       "par-right"
+                                       "0cm"
+                                       (style-with "src-compact"
+                                         "none"
+                                         (surround (concat (rsup (concat (locus (id (hard-id (arg "body")))
+                                                                           (link "hyperlink"
+                                                                             (id (hard-id (arg "body")))
+                                                                             (url (merge "#footnr-" (arg "nr")))
+                                                                           ) ;link
+                                                                           (arg "nr")
+                                                                         ) ;locus
+                                                                   ")"
+                                                                 ) ;concat
+                                                           ) ;rsup
+                                                     (footnote-sep)
+                                                   ) ;concat
+                                           (concat (set-binding (merge "footnote-" (arg "nr")) (value "the-label") "body")
+                                             (right-flush)
+                                           ) ;concat
+                                           (style-with "src-compact" "none" (arg "body"))
+                                         ) ;surround
+                                       ) ;style-with
+                                     ) ;with
+                            ) ;smaller
+                  ) ;document
+                ) ;float
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "footnote"
+            (macro "body"
+              (style-with "src-compact"
+                "none"
+                (concat (next-footnote)
+                  (render-footnote (the-footnote) (arg "body"))
+                  (space "0spc")
+                  (label (merge "footnr-" (the-footnote)))
+                  (rsup (concat (reference (merge "footnote-" (the-footnote))) ")"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "List environments."))))
+          (assign "render-list"
+            (macro "body"
+              (surround (no-page-break*)
+                (concat (right-flush) (no-indent*))
+                (with "par-left"
+                  (plus (value ,(merge "left-margin-"
+                                  (plus (itemize-level) (enumerate-level))))
+                    (value "par-left")
+                  ) ;plus
+                  "par-par-sep"
+                  (value ,(merge "par-par-sep-"
+                            (plus (itemize-level) (enumerate-level))))
+                  (arg "body")
+                ) ;with
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "item-1" (macro (active* (with "mode" "math" "<bullet>"))))
+          (assign "item-2" (macro (active* (with "mode" "math" (rigid "-")))))
+          (assign "item-3" (macro (active* (math "<ast>"))))
+          (assign "item-4" (macro (active* (math "<cdot>"))))
+          (new-list "itemize-1" (value "aligned-item") (macro "name" (item-tag)))
+          (new-list "itemize-2" (value "aligned-item") (macro "name" (item-tag)))
+          (new-list "itemize-3" (value "aligned-item") (macro "name" (item-tag)))
+          (new-list "itemize-4" (value "aligned-item") (macro "name" (item-tag)))
+          ""
+          (assign "item-hsep" (macro "6pt"))
+          ""
+          (assign "left-margin-0" "24pt")
+          (assign "left-margin-1" "24pt")
+          (assign "left-margin-2" "20pt")
+          (assign "left-margin-3" "16pt")
+          (assign "left-margin-4" "14pt")
+          (assign "left-margin-5" "6pt")
+          (assign "left-margin-6" "6pt")
+          ""
+          (assign "top-sep-0" (tex-len "10pt" "4pt" "6pt"))
+          (assign "top-sep-1" (tex-len "10pt" "4pt" "6pt"))
+          (assign "top-sep-2" (tex-len "5pt" "2.5pt" "1pt"))
+          (assign "top-sep-3" (tex-len "2.5pt" "1pt" "1pt"))
+          ""
+          (assign "par-par-sep-0" (tex-len "5pt" "2.5pt" "1pt"))
+          (assign "par-par-sep-1" (tex-len "5pt" "2.5pt" "1pt"))
+          (assign "par-par-sep-2" (tex-len "2.5pt" "1pt" "1pt"))
+          (assign "par-par-sep-3" (tex-len "0pt" "1pt" "1pt"))
+          ""
+          (assign "enumerate-level" "0")
+          (assign "enum-1" (macro "name" (number (arg "name") "arabic")))
+          (assign "enum-2" (macro "name" (number (arg "name") "alpha")))
+          (assign "enum-3" (macro "name" (number (arg "name") "roman")))
+          (assign "enum-4" (macro "name" (number (arg "name") "Alpha")))
+          (new-list "enumerate-1"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (new-list "enumerate-2"
+            (value "aligned-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (new-list "enumerate-3"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (new-list "enumerate-4"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (assign "enumerate-reduce"
+            (macro "nr" (plus (mod (minus (arg "nr") "1") "4") "1"))
+          ) ;assign
+          (active* (src-comment (document "Rendering of tables.")))
+          (assign "table-text" (macro (localize "TABLE")))
+          (assign "list-of-tables-text" (macro (localize "List of Tables")))
+          (assign "the-table" (macro (number (value "table-nr") "Roman")))
+          (assign "ruledtabular"
+            (macro "body"
+              (with "tabular"
+                (value "ruled-tabular")
+                "tabular*"
+                (value "ruled-tabular*")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "table*" (macro "body" (with "par-columns" "1" (arg "body"))))
+          (assign "ruled-tabular"
+            (macro "body"
+              (tformat (twith "table-width" "1par")
+                (cwith "1" "1" "1" "-1" "cell-bborder" "0.5pt")
+                (cwith "1" "1" "1" "-1" "cell-tborder" "1pt")
+                (cwith "-1" "-1" "1" "-1" "cell-bborder" "1pt")
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "ruled-tabular*"
+            (macro "body"
+              (with "par-columns"
+                "1"
+                (tformat (twith "table-width" "1par")
+                  (cwith "1" "1" "1" "-1" "cell-bborder" "0.5pt")
+                  (cwith "1" "1" "1" "-1" "cell-tborder" "1pt")
+                  (cwith "-1" "-1" "1" "-1" "cell-bborder" "1pt")
+                  (arg "body")
+                ) ;tformat
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "big-table-enlarge"
+            (macro "contents"
+              "body"
+              (if (greater (times "2" (look-up (box-info (arg "contents") "w") "0"))
+                    (look-up (box-info (space (tex-text-width)) "w") "0")
+                  ) ;greater
+                (with "par-columns" "1" (arg "body"))
+                (arg "body")
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "big-table"
+            (macro "body"
+              "caption"
+              (document (big-table-enlarge (arg "body")
+                          (document (surround (compound "next-table")
+                                      ""
+                                      (document (render-big-table (document "table")
+                                                  (concat (compound "table-text") " " (compound "the-table"))
+                                                  (arg "body")
+                                                  (arg "caption")
+                                                ) ;render-big-table
+                                      ) ;document
+                                    ) ;surround
+                          ) ;document
+                        ) ;big-table-enlarge
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-big-table"
+            (macro "type"
+              "name"
+              "fig"
+              "cap"
+              (document (padded-normal "1fn"
+                          "1fn"
+                          (tabular* (tformat (twith "table-width" "1par")
+                                      (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                                      (cwith "1" "-1" "1" "-1" "cell-lsep" "0spc")
+                                      (cwith "1" "-1" "1" "-1" "cell-rsep" "0spc")
+                                      (cwith "2" "2" "1" "1" "cell-height" "0.5fn")
+                                      (cwith "1" "1" "1" "1" "cell-lsep" "1.5fn")
+                                      (cwith "1" "1" "1" "1" "cell-rsep" "1.5fn")
+                                      (table (row (cell (document (small (surround (concat (figure-name (concat (arg "name") (figure-sep)))
+                                                                                     (list-caption (arg "type") (arg "cap"))
+                                                                                   ) ;concat
+                                                                           ""
+                                                                           (document (arg "cap"))
+                                                                         ) ;surround
+                                                                  ) ;small
+                                                        ) ;document
+                                                  ) ;cell
+                                             ) ;row
+                                        (row (cell ""))
+                                        (row (cell (arg "fig")))
+                                      ) ;table
+                                    ) ;tformat
+                          ) ;tabular*
+                        ) ;padded-normal
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "Rendering of figures.")))
+          (assign "figure-text" (macro (localize "FIG.")))
+          (assign "figure*" (macro "body" (with "par-columns" "1" (arg "body"))))
+          (assign "list-of-figures-text" (macro (localize "List of Figures")))
+          (assign "big-figure"
+            (macro "body"
+              "caption"
+              (document (surround (next-figure)
+                          ""
+                          (document (render-big-figure "figure"
+                                      (concat (figure-text) " " (the-figure))
+                                      (arg "body")
+                                      (arg "caption")
+                                    ) ;render-big-figure
+                          ) ;document
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "figure-name" (macro "name" (arg "name")))
+          (assign "caption-left-padding" "0fn")
+          (assign "caption-right-padding" "0fn")
+          (assign "figure-width" "1par")
+          (assign "render-big-figure"
+            (macro "type"
+              "name"
+              "fig"
+              "cap"
+              (document (padded-normal "1fn"
+                          "1fn"
+                          (tabular* (tformat (twith "table-width" (value "figure-width"))
+                                      (cwith "3" "3" "1" "1" "cell-hyphen" "t")
+                                      (cwith "1" "-1" "1" "-1" "cell-lsep" (value "figure-left-padding"))
+                                      (cwith "1" "-1" "1" "-1" "cell-rsep" (value "figure-right-padding"))
+                                      (cwith "2" "2" "1" "1" "cell-height" (value "figure-caption-sep"))
+                                      (cwith "3" "3" "1" "1" "cell-lsep" (value "caption-left-padding"))
+                                      (cwith "3" "3" "1" "1" "cell-rsep" (value "caption-right-padding"))
+                                      (table (row (cell (arg "fig")))
+                                        (row (cell ""))
+                                        (row (cell (document (small (surround (concat (figure-name (concat (arg "name") (figure-sep)))
+                                                                                (list-caption (arg "type") (arg "cap"))
+                                                                              ) ;concat
+                                                                      ""
+                                                                      (document (arg "cap"))
+                                                                    ) ;surround
+                                                             ) ;small
+                                                   ) ;document
+                                             ) ;cell
+                                        ) ;row
+                                      ) ;table
+                                    ) ;tformat
+                          ) ;tabular*
+                        ) ;padded-normal
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Bibliography."))))
+          (assign "bibitem-width" "2em")
+          (assign "transform-bibitem" (macro "body" (concat "[" (arg "body") "] ")))
+          (assign "xtransform-bibitem" (macro "body" (rsup (arg "body"))))
+          (assign "xrender-bibitem"
+            (macro "text"
+              (style-with "src-compact"
+                "none"
+                (concat (with "par-first" (minus "1tmpt" (value "bibitem-width")) (yes-indent))
+                  (hspace (maximum "0cm" (minus (value "bibitem-width") (box-info (arg "text") "w.")))
+                  ) ;hspace
+                  (arg "text")
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "bib-list"
+            (macro "largest"
+              "body"
+              (document (small (document (with "bibitem-width"
+                                           (minimum (box-info (concat (transform-bibitem (arg "largest")) ".") "w.") "2em")
+                                           "item-hsep"
+                                           (value "bibitem-hsep")
+                                           "bibitem-nr"
+                                           "0"
+                                           "par-flexibility"
+                                           "2.0"
+                                           (document (description (document (arg "body"))))
+                                         ) ;with
+                               ) ;document
+                        ) ;small
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "bibliography-text" (macro (rule "9cm" "1pt")))
+          (assign "bibliography-text"
+            (macro (document (with "par-columns"
+                               "1"
+                               (document (tabular (tformat (cwith "1" "-1" "1" "-1" "cell-width" "1cm")
+                                                    (cwith "1" "-1" "1" "-1" "cell-hmode" "exact")
+                                                    (cwith "1" "-1" "1" "-1" "cell-height" "0.1pt")
+                                                    (cwith "1" "-1" "1" "-1" "cell-vmode" "exact")
+                                                    (cwith "1" "1" "4" "6" "cell-bborder" "0.7pt")
+                                                    (cwith "1" "1" "3" "3" "cell-bborder" "0.5pt")
+                                                    (cwith "1" "1" "7" "7" "cell-bborder" "0.5pt")
+                                                    (cwith "1" "1" "8" "8" "cell-bborder" "0.4pt")
+                                                    (cwith "1" "1" "2" "2" "cell-bborder" "0.4pt")
+                                                    (cwith "1" "1" "1" "1" "cell-bborder" "0.3pt")
+                                                    (cwith "1" "1" "9" "9" "cell-bborder" "0.3pt")
+                                                    (table (row (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                             (cell "")
+                                                           ) ;row
+                                                      (row (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                        (cell "")
+                                                      ) ;row
+                                                    ) ;table
+                                                  ) ;tformat
+                                         ) ;tabular
+                               ) ;document
+                             ) ;with
+                   ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "bibliography-text" (macro (localize "References")))
+          (assign "render-bibliography"
+            (macro "name" "body" (document (section* (arg "name")) (arg "body")))
+          ) ;assign
+          (active* (src-comment (document "Title rendering.")))
+          (assign "doc-footnote-ref"
+            (macro "body"
+              (style-with "src-compact"
+                "none"
+                (if (quasi (unequal (get-arity ,(quote-arg "body")) "0"))
+                  (with "font-family" "rm" (rsup (concat (doc-author-note-next) ")")))
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "the-doc-note" (macro (number (value "doc-note-nr") "alpha")))
+          (assign "by-text" (macro (localize "")))
+          (assign "author-render-name"
+            (macro "author" (doc-author-block (with "font-family" "ss" (arg "author"))))
+          ) ;assign
+          (assign "author-affiliation"
+            (macro "address"
+              (document (surround (vspace* "0.5fn")
+                          (vspace "0.5fn")
+                          (doc-author-block (with "font-shape" "italic" (arg "address")))
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "doc-author-main"
+            (macro "data"
+              (document (quasi (document (unquote* (select (quote-arg "data") "author-name"))
+                                 (unquote* (select (quote-arg "data") "author-affiliation"))
+                               ) ;document
+                        ) ;quasi
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "doc-author-data-note"
+            (xmacro "data"
+              (quasi (document (unquote* (select (quote-arg "data") "author-homepage" (pat-any)))
+                       (unquote* (select (quote-arg "data") "author-note" "document" (pat-any)))
+                     ) ;document
+              ) ;quasi
+            ) ;xmacro
+          ) ;assign
+          (assign "doc-date"
+            (macro "body" (doc-author-block (concat "(Dated: " (arg "body") ")")))
+          ) ;assign
+          (assign "abstract-text" "")
+          (assign "render-abstract"
+            (macro "body" (surround "" (vspace "2fn") (doc-author-block (arg "body"))))
+          ) ;assign
+          (assign "doc-authors-block" (macro "body" (doc-author-block (arg "body"))))
+          (assign "doc-author-block"
+            (macro "body"
+              (document (with "par-columns"
+                          "1"
+                          (document (with "par-mode"
+                                      "right"
+                                      (document (tabular (tformat (cwith "1" "1" "1" "1" "cell-width" "400pt")
+                                                           (cwith "1" "1" "1" "1" "cell-hmode" "exact")
+                                                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                                                           (table (row (cell (document (arg "body")))))
+                                                         ) ;tformat
+                                                ) ;tabular
+                                      ) ;document
+                                    ) ;with
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "doc-data"
+            (xmacro "args"
+              (with "par-columns"
+                "1"
+                "par-first"
+                "0em"
+                (extern "doc-data" (quote-arg "args") "")
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (assign "doc-render-title"
+            (macro "x"
+              (surround (vspace* "0.5fn")
+                ""
+                (document (doc-title-block (font-magnify "1.682"
+                                             (with "math-font-series"
+                                               "bold"
+                                               "font-series"
+                                               "bold"
+                                               "font-family"
+                                               "ss"
+                                               (arg "x")
+                                             ) ;with
+                                           ) ;font-magnify
+                          ) ;doc-title-block
+                ) ;document
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "doc-title" (value "doc-render-title"))
+          (assign "doc-title-block" (macro "body" (arg "body")))
+          (assign "doc-authors-data"
+            (xmacro "data"
+              (document (style-with "src-compact"
+                          "none"
+                          (document (quasi (document (unquote* (quote-arg "data")))))
+                        ) ;style-with
+              ) ;document
+            ) ;xmacro
+          ) ;assign
+          (assign "render-doc-author" (macro "body" (arg "body")))
+          (assign "render-doc-authors" (macro "body" (arg "body")))
+          (active* (src-comment (document "Customization of other environments.")))
+          (assign "table-of-contents-text" (macro (localize "Contents")))
+          (active* (src-comment (document "Specific macros from Revtex style.")))
+          (style-with "src-compact"
+            "none"
+            (assign "widetext"
+              (macro "body"
+                (with "par-columns"
+                  "1"
+                  (document (tabular (tformat (twith "table-hmode" "exact")
+                                       (twith "table-width" "1par")
+                                       (cwith "1" "1" "1" "-1" "cell-height" "1ex")
+                                       (cwith "1" "1" "1" "-1" "cell-vmode" "exact")
+                                       (cwith "1" "-1" "1" "1" "cell-bborder" "0.1pt")
+                                       (cwith "1" "-1" "1" "1" "cell-rborder" "0.1pt")
+                                       (table (row (cell "") (cell "")))
+                                     ) ;tformat
+                            ) ;tabular
+                    (arg "body")
+                    (tabular (tformat (twith "table-hmode" "exact")
+                               (twith "table-width" "1par")
+                               (cwith "1" "1" "1" "2" "cell-height" "1ex")
+                               (cwith "1" "1" "1" "2" "cell-vmode" "exact")
+                               (cwith "1" "1" "2" "2" "cell-lborder" "0.1pt")
+                               (cwith "1" "1" "2" "2" "cell-tborder" "0.1pt")
+                               (table (row (cell "") (cell "")))
+                             ) ;tformat
+                    ) ;tabular
+                  ) ;document
+                ) ;with
+              ) ;macro
+            ) ;assign
+          ) ;style-with
+          (assign "acknowledgments*"
+            (macro "body" (document (section* (localize "Acknowledgments")) (arg "body")))
+          ) ;assign
+          (active* (src-comment (document "Font sizes and AIP layout from Revtex.")))
+          (use-package (merge "revtex-" (value "font-base-size") "pt"))
+        ) ;document
+  ) ;body
+  (initial (collection))
+) ;document

@@ -1,0 +1,378 @@
+(document (TeXmacs "1.99.19")
+  (style "source")
+  (body (document (active* (document (src-title (document (src-style-file "ifac" "1.0")
+                                                  (src-purpose (document "The ifac style."))
+                                                  (src-copyright "2002--2004" (document "Adrien Bourdet"))
+                                                  (src-license (document (concat "This software falls under the "
+                                                                           (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                           ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                           (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                             "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                           ) ;hlink
+                                                                           "."
+                                                                         ) ;concat
+                                                               ) ;document
+                                                  ) ;src-license
+                                                ) ;document
+                                     ) ;src-title
+                           ) ;document
+                  ) ;active*
+          (concat (active* "") (use-package "elsarticle" "env-math" "two-columns"))
+          (active* (src-comment (document "LaTeX-like page layout parameters.")))
+          (assign "tex-odd-side-margin" (macro "-11mm"))
+          (assign "tex-even-side-margin" (macro "-11mm"))
+          (assign "tex-text-width" (macro "180mm"))
+          ""
+          (assign "tex-voffset" (macro "-12.5mm"))
+          (assign "tex-top-margin" (macro "2mm"))
+          (assign "tex-head-height" (macro "10pt"))
+          (assign "tex-head-sep" (macro "20pt"))
+          (assign "tex-top-skip" (macro "10pt"))
+          (assign "tex-text-height" (macro "245mm"))
+          (assign "tex-foot-height-heuristic" (macro "1em"))
+          (assign "tex-foot-skip" (macro "10pt"))
+          ""
+          (assign "tex-footnote-sep" (macro "6.65pt"))
+          (assign "tex-footnote-tm-barlen" (macro "2in"))
+          (assign "tex-column-sep" (macro "5mm"))
+          (assign "tex-float-sep" (macro (tmlen "8pt" "4pt" "2pt")))
+          (assign "tex-margin-par-width" (macro "1pc"))
+          (assign "tex-margin-par-sep" (macro "10pt"))
+          (active* (src-comment (document "Global layout.")))
+          (assign "font-base-size" "10")
+          (assign "par-columns" "2")
+          (assign "par-par-sep" "5pt")
+          (assign "par-sep" "1pt")
+          (assign "par-first" "0fn")
+          (assign "padded-par-par-sep" "5pt")
+          (assign "indent-par-first" "1.5fn")
+          ""
+          (assign "tex-jot" "2pt")
+          (assign "tex-above-display-skip" (macro (tex-len "3pt" "1pt" "1pt")))
+          (assign "tex-below-display-skip" (macro (tex-len "3pt" "1pt" "1pt")))
+          (assign "tex-above-display-short-skip" (macro (tex-len "0pt" "2pt" "0pt")))
+          (assign "tex-below-display-short-skip" (macro (tex-len "2pt" "1pt" "1pt")))
+          (active* (src-comment (document "Sizes.")))
+          (assign "tiny" (macro "x" (with "font-size" "0.6" "par-sep" "1pt" (arg "x"))))
+          (assign "very-small"
+            (macro "x" (with "font-size" "0.7" "par-sep" "1pt" (arg "x")))
+          ) ;assign
+          (assign "small"
+            (macro "x"
+              (style-with "src-compact"
+                "none"
+                (with "font-size"
+                  "0.8"
+                  "par-sep"
+                  "2pt"
+                  "tex-above-display-skip"
+                  (macro (tex-len "7pt" "2pt" "4pt"))
+                  "tex-below-display-skip"
+                  (macro (tex-len "7pt" "2pt" "4pt"))
+                  "tex-above-display-short-skip"
+                  (macro (tex-len "0pt" "1pt" "0pt"))
+                  "tex-below-display-short-skip"
+                  (macro (tex-len "3pt" "1pt" "2pt"))
+                  (arg "x")
+                ) ;with
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "normal-size"
+            (macro "x"
+              (style-with "src-compact"
+                "none"
+                (with "font-size"
+                  "1.0"
+                  "par-sep"
+                  "0.2em"
+                  "tex-above-display-skip"
+                  (macro (tex-len "5.75pt" "2pt" "2pt"))
+                  "tex-below-display-skip"
+                  (macro (tex-len "5.75pt" "2pt" "2pt"))
+                  "tex-above-display-short-skip"
+                  (macro (tex-len "0pt" "2pt" "0pt"))
+                  "tex-below-display-short-skip"
+                  (macro (tex-len "3.5pt" "2pt" "2pt"))
+                  (arg "x")
+                ) ;with
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "large" (macro "x" (with "font-size" "1.3" "par-sep" "1pt" (arg "x"))))
+          (assign "larger" (macro "x" (with "font-size" "1.7" "par-sep" "3pt" (arg "x"))))
+          (assign "very-large"
+            (macro "x" (with "font-size" "1.8" "par-sep" "4pt" (arg "x")))
+          ) ;assign
+          (assign "huge" (macro "x" (with "font-size" "2.0" "par-sep" "2pt" (arg "x"))))
+          (assign "really-huge"
+            (macro "x" (with "font-size" "2.5" "par-sep" "2pt" (arg "x")))
+          ) ;assign
+          (active* (src-comment (document "Sectional macros.")))
+          (assign "display-part"
+            (macro "nr"
+              (concat (change-case (localize "Part") "UPCASE")
+                " "
+                (number (arg "nr") "Roman")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "part-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-normal (concat (vspace* (tmlen "0.8bls" "0.4bls" "0bls"))
+                                    (normal-size (change-case (arg "name") "UPCASE"))
+                                    (vspace "1bls")
+                                  ) ;concat
+                ) ;sectional-normal
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "section-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-centered (concat (vspace* (tmlen "0.5bls" "0.2bls" "0.1bls"))
+                                      (normal-size (change-case (arg "name") "UPCASE"))
+                                      (vspace "0.5bls")
+                                    ) ;concat
+                ) ;sectional-centered
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "section-numbered-title"
+            (macro "name"
+              (section-title (sectional-prefixed (concat (the-section) (section-sep))
+                               (concat (change-case (arg "name") "UPCASE") (section-post-sep))
+                             ) ;sectional-prefixed
+              ) ;section-title
+            ) ;macro
+          ) ;assign
+          (assign "subsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-normal-italic (concat (vspace* (tmlen "0.3bls" "0.2bls" "0.1bls"))
+                                           (normal-size (arg "name"))
+                                           (vspace "0.3bls")
+                                         ) ;concat
+                ) ;sectional-normal-italic
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsubsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-normal-italic (concat (vspace* (tmlen "0.3bls" "0.1bls" "0bls"))
+                                           (normal-size (arg "name"))
+                                           (vspace "0.001bls")
+                                         ) ;concat
+                ) ;sectional-normal-italic
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "paragraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* "3.25ex" "2ex" "0.2ex")
+                                        (normal-size (arg "name"))
+                                        (space "1em")
+                                      ) ;concat
+                ) ;sectional-short-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subparagraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* "3.25ex" "2ex" "0.2ex")
+                                        (space "1em")
+                                        (normal-size (arg "name"))
+                                        (space "1em")
+                                      ) ;concat
+                ) ;sectional-short-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "Section and environment numbering.")))
+          (assign "section-sep" (macro (concat "." (space "0.6fn"))))
+          (assign "part-sep" (macro (concat "." (space "0.6fn"))))
+          (assign "paragraph-display-numbers" (macro "true"))
+          (assign "subparagraph-display-numbers" (macro "true"))
+          (active* (src-comment (document "Theorem-like environments.")))
+          (assign "enunciation-name"
+            (macro "name" (with "font-shape" "italic" (arg "name")))
+          ) ;assign
+          (assign "enunciation-sep" ". ")
+          (assign "render-theorem"
+            (macro "which"
+              "body"
+              (document (render-enunciation (theorem-name (concat (arg "which") (theorem-sep)))
+                          (arg "body")
+                        ) ;render-enunciation
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-proof"
+            (macro "which"
+              "body"
+              (surround (concat (with "font-series" "bold" "font-shape" "right" (arg "which"))
+                          (space "1em")
+                        ) ;concat
+                (tab-qed)
+                (arg "body")
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "Rendering of floating objects.")))
+          (assign "render-big-figure"
+            (macro "type"
+              "name"
+              "fig"
+              "cap"
+              (document (padded-normal "1fn"
+                          "1fn"
+                          (style-with "src-compact"
+                            "none"
+                            (tabular* (tformat (twith "table-width" "1par")
+                                        (cwith "1" "-1" "1" "-1" "cell-lsep" "0spc")
+                                        (cwith "1" "-1" "1" "-1" "cell-rsep" "0spc")
+                                        (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                                        (cwith "1" "1" "1" "1" "cell-valign" "b")
+                                        (table (row (cell (document (with "par-left"
+                                                                      (plus (value "par-left") "4em")
+                                                                      (document ""
+                                                                        (surround (concat (figure-name (concat (arg "name") (figure-sep)))
+                                                                                    (list-caption (arg "type") (arg "cap"))
+                                                                                  ) ;concat
+                                                                          ""
+                                                                          (document (arg "cap"))
+                                                                        ) ;surround
+                                                                      ) ;document
+                                                                    ) ;with
+                                                          ) ;document
+                                                    ) ;cell
+                                               ) ;row
+                                          (row (cell ""))
+                                          (row (cell (arg "fig")))
+                                        ) ;table
+                                      ) ;tformat
+                            ) ;tabular*
+                          ) ;style-with
+                        ) ;padded-normal
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-footnote"
+            (macro "nr"
+              "body"
+              (style-with "src-compact"
+                "none"
+                (float "footnote"
+                  ""
+                  (with "font-size"
+                    "0.84"
+                    "par-mode"
+                    "justify"
+                    "par-left"
+                    "0cm"
+                    "par-right"
+                    "0cm"
+                    (style-with "src-compact"
+                      "none"
+                      (surround (concat (arg "nr") (footnote-sep) (label (merge "footnote-" (arg "nr"))))
+                        (right-flush)
+                        (style-with "src-compact" "none" (with "font-shape" "right" (arg "body")))
+                      ) ;surround
+                    ) ;style-with
+                  ) ;with
+                ) ;float
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "Title rendering.")))
+          (assign "doc-title"
+            (macro "x"
+              (document ""
+                (surround (vspace* "0.5fn")
+                  (vspace "0.5fn")
+                  (document (doc-title-block (with "font-size" "1.414" (strong (arg "x")))))
+                ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "author-name"
+            (macro "author" (doc-author-block (strong (author-by (arg "author")))))
+          ) ;assign
+          (assign "author-affiliation"
+            (macro "address"
+              (document (surround (vspace* "0.5fn")
+                          (vspace "0.5fn")
+                          (doc-author-block (em (arg "address")))
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "author-email"
+            (macro "email"
+              (doc-author-block (concat (with "font-shape" "italic" (concat (email-text) (localize ":") " "))
+                                  " "
+                                  (verbatim (arg "email"))
+                                ) ;concat
+              ) ;doc-author-block
+            ) ;macro
+          ) ;assign
+          (assign "author-email-note"
+            (macro "sym"
+              "id"
+              "email"
+              (doc-author-block (doc-note-text (arg "sym")
+                                  (arg "id")
+                                  (concat (with "font-shape" "italic" (concat (email-text) (localize ":") " "))
+                                    (verbatim (arg "email"))
+                                  ) ;concat
+                                ) ;doc-note-text
+              ) ;doc-author-block
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "Abstract.")))
+          (assign "render-abstract"
+            (macro "body"
+              (document (with "par-columns"
+                          "1"
+                          "par-left"
+                          "17mm"
+                          "par-right"
+                          "17mm"
+                          "overlined-sep"
+                          "1spc"
+                          "underlined-sep"
+                          "1spc"
+                          (document (wide-std-bothlined (document (surround (concat (abstract-text) (localize ":") " ")
+                                                                    (right-flush)
+                                                                    (arg "body")
+                                                                  ) ;surround
+                                                        ) ;document
+                                    ) ;wide-std-bothlined
+                            ""
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Headers."))))
+          (set-header "")
+          (set-footer "")
+          (assign "header-title" (macro "name" ""))
+          (assign "header-author" (macro "name" ""))
+          (assign "header-primary" (macro "name" "nr" "what" ""))
+          (assign "header-secondary" (macro "name" "nr" "what" ""))
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "7")))
+) ;document

@@ -1,0 +1,129 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source"))
+  (body (document (active* (src-title (document (src-package "chinese" "1.0")
+                                        (src-purpose (document "A style package for chinese language support"))
+                                        (src-copyright "2013" (document "Joris van der Hoeven"))
+                                        (src-copyright "2020-2021" (document "Darcy Shen"))
+                                        (src-copyright "2023" (document "Jingkaimori"))
+                                        (src-copyright "2025" (document "Yuki Lu"))
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (assign "language" "chinese")
+          (assign "font" "sys-chinese")
+          (use-module "(lang chinese-kbd)")
+          (if (greater (value "par-first") "0fn") (assign "par-first" "2fn"))
+          (assign "par-spacing" "kaiming")
+          (active* (document (src-comment (document "Document in Chinese should indent every paragraph, though some mathematics documents in Latin align the first paragraph in section to the title of section."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "sectional-normal"
+            (macro "name" (wide-normal (concat (arg "name") (no-page-break))))
+          ) ;assign
+          (assign "sectional-centered"
+            (macro "name" (wide-centered (concat (arg "name") (no-page-break))))
+          ) ;assign
+          (active* (document (src-comment (document "Customize doc-data macro"))))
+          (assign "by-text" "")
+          (active* (document (src-comment (document "For Algorithm and Pseudo code blocks, do not translate the underlying keywords when documentation language is Chinese."
+                                            ""
+                                            "Affected:"
+                                            (concat "Insert -<gtr> Program"
+                                              (compound "math" "")
+                                              (compound "math" "")
+                                              " -<gtr> Algorithm"
+                                            ) ;concat
+                                            "Insert -<gtr> Program -<gtr> Pseudo code"
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "render-keyword"
+            (macro "name" (with "font-series" "bold" (arg "name")))
+          ) ;assign
+          (assign "dfn"
+            (macro "body"
+              (with "font-series" "bold" "math-font-series" "bold" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "cite*" (macro "body" (arg "body")))
+          (assign "render-theorem"
+            (macro "which"
+              "body"
+              (document (render-enunciation (theorem-name (concat (arg "which") (theorem-sep)))
+                          (arg "body")
+                        ) ;render-enunciation
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "ordinal-text" "第")
+          (assign "the-chapter-hanzi" (macro (number (value "chapter-nr") "hanzi")))
+          (assign "chapter-numbered-title"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (concat (chapter-title (concat (ordinal-text) " " (the-chapter) " " (chapter-text)))
+                  (new-line)
+                  (chapter-title-render (huge (arg "title")))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "chapter-toc"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (toc-main-1 (toc-title "chapter" (arg "name")))
+                  (toc-main-2 (if (chapter-numbered)
+                                (concat (ordinal-text)
+                                  " "
+                                  (the-chapter)
+                                  " "
+                                  (chapter-text)
+                                  (chapter-sep)
+                                  (arg "name")
+                                ) ;concat
+                                (arg "name")
+                              ) ;if
+                  ) ;toc-main-2
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "part-numbered-title"
+            (macro "name"
+              (part-title-sub (concat (htab "0fn")
+                                (ordinal-text)
+                                " "
+                                (the-part)
+                                " "
+                                (part-text)
+                                (htab "0fn")
+                                (vspace "0.1pag")
+                                (new-line)
+                                (htab "0fn")
+                                (arg "name")
+                                (htab "0fn")
+                              ) ;concat
+              ) ;part-title-sub
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection))
+) ;document
