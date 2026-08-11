@@ -764,6 +764,14 @@ edit_modify_rep::queue_remote (string raw_mod) {
 
 void
 edit_modify_rep::apply_queued_remote () {
+  // pre-edit 期间 live buffer 含未同步的临时 <pre-edit|s> 节点，与 shadow
+  // 形态不一致：此时 apply 远端 diff（基于无该节点的 shadow）会路径错位——
+  // is_applicable 失败触发整 body 重建而抹掉该节点，或 clean_* 抛异常；且光标
+  // 落在该临时节点内，restore 必然失败。故推迟到 pre-edit 提交/取消
+  // （pre_edit_mark 清零）后下一帧再排空队列：彼时 buffer 与 shadow 形态
+  // 一致，apply 与光标恢复均安全。queued_remote_mods 持续累积（queue_remote
+  // 仅追加），无丢失。
+  if (is_pre_editing ()) return;
   array<string> q     = queued_remote_mods;
   queued_remote_mods  = array<string> (0);
   loro_applying_remote= true;
