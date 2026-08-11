@@ -92,7 +92,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            tmp/build/.build_cache
+            ${{ runner.workspace }}/mogan/build/.build_cache
           key: ${{ runner.os }}-build-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: Detect changes
