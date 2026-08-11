@@ -9,14 +9,9 @@
     ]
   },
   "scheme": {
-    "suffix": ["scm"],
+    "suffix": ["scm", "stem"],
     "path": [
-      "TeXmacs/plugins/gnuplot",
-      "TeXmacs/plugins/goldfish",
-      "TeXmacs/plugins/julia",
-      "TeXmacs/plugins/llm/progs",
-      "TeXmacs/plugins/maxima",
-      "TeXmacs/plugins/python",
+      "TeXmacs/plugins",
       "TeXmacs/progs/client",
       "TeXmacs/progs/convert",
       "TeXmacs/progs/database",
