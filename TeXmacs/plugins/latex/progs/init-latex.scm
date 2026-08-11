@@ -15,4 +15,4 @@
 (lazy-format (latex latex-format) latex)
 (lazy-format (latex bibtex-format) bibtex)
 
-(import-from (latex-kbd))
+(import-from (latex latex-kbd))

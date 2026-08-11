@@ -16,7 +16,7 @@
     (utils library cursor)
     (utils edit variants)
     (utils misc tooltip)
-    (bibtex bib-complete)
+    (latex bibtex-bib-complete)
     (source macro-search)
   ) ;:use
 ) ;texmacs-module

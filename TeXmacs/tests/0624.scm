@@ -147,7 +147,10 @@
       (check (string-contains? tex-content "\\nabla") => #t)
 
       ;; Assert that tmtex-image-total is evaluated as greater than 0
-      (check (> ((resolve-module '(convert latex tmtex)) 'tmtex-image-total) 0) => #t)
+      (check (> ((resolve-module '(latex convert-latex-tmtex)) 'tmtex-image-total) 0)
+        =>
+        #t
+      ) ;check
 
       ;; Assert that progress bar functions were triggered
       (check (> progress-start-count 0) => #t)

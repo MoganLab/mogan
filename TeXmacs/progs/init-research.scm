@@ -176,9 +176,9 @@
 (boot-bench-mark "utils")
 
 ;; (display "Booting BibTeX style modules\n")
-(use-modules (bibtex bib-utils))
-(lazy-define (bibtex bib-complete) current-bib-file citekey-completions)
-(lazy-menu (bibtex bib-widgets) open-bibliography-inserter)
+(use-modules (latex bibtex-bib-utils))
+(lazy-define (latex bibtex-bib-complete) current-bib-file citekey-completions)
+(lazy-menu (latex bibtex-bib-widgets) open-bibliography-inserter)
 (boot-bench-mark "bibtex")
 
 ;; (display "Booting main TeXmacs functionality\n")
@@ -540,9 +540,9 @@
 (lazy-define (html tmhtml) ext-tmhtml-eqnarray*)
 (define-secure-symbols ext-tmhtml-eqnarray*)
 (lazy-define (html tmhtml-expand) tmhtml-env-patch)
-(lazy-define (convert latex latex-drd) latex-arity latex-type)
-(lazy-define (convert latex tmtex) tmtex-env-patch)
-(lazy-define (convert latex latex-tools)
+(lazy-define (latex convert-latex-drd) latex-arity latex-type)
+(lazy-define (latex convert-latex-tmtex) tmtex-env-patch)
+(lazy-define (latex convert-latex-tools)
   latex-set-virtual-packages
   latex-has-style?
   latex-has-package?

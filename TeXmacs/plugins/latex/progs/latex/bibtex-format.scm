@@ -19,11 +19,11 @@
 
 (define-format bibtex (:name "RawBibTeX") (:suffix "rawbib") (:hidden))
 
-(lazy-define (convert bibtex bibtextm) parse-bibtex-snippet)
-(lazy-define (convert bibtex bibtextm) parse-bibtex-document)
-(lazy-define (convert bibtex bibtextm) bibtex->texmacs)
-(lazy-define (convert bibtex bibtexout) serialize-bibtex)
-(lazy-define (convert bibtex tmbibtex) texmacs->bibtex)
+(lazy-define (latex convert-bibtex-bibtextm) parse-bibtex-snippet)
+(lazy-define (latex convert-bibtex-bibtextm) parse-bibtex-document)
+(lazy-define (latex convert-bibtex-bibtextm) bibtex->texmacs)
+(lazy-define (latex convert-bibtex-bibtexout) serialize-bibtex)
+(lazy-define (latex convert-bibtex-tmbibtex) texmacs->bibtex)
 
 (converter bibtex-snippet bibtex-stree (:function parse-bibtex-snippet))
 

@@ -177,8 +177,8 @@
 ;; TeXmacs->LaTeX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(lazy-define (convert latex texout) serialize-latex)
-(lazy-define (convert latex tmtex) texmacs->latex)
+(lazy-define (latex convert-latex-texout) serialize-latex)
+(lazy-define (latex convert-latex-tmtex) texmacs->latex)
 
 (converter texmacs-stree
   latex-stree

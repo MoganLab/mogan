@@ -15,7 +15,7 @@
   (:use (database db-convert)
         (database db-edit)
         (latex bibtex-format)
-        (convert bibtex bibtexout)))
+        (latex convert-bibtex-bibtexout)))
 
 (tm-define (bib-database) (user-database "bib"))
 

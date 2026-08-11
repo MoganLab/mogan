@@ -394,7 +394,7 @@
 
 (tm-define (bib-generate prefix style doc)
   (with m
-    `(bibtex ,(string->symbol style))
+    '(latex bibtex-, (string->symbol style))
     (module-provide m)
     (bib-process prefix style doc)
   ) ;with

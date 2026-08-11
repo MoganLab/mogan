@@ -196,7 +196,7 @@ edit_process_rep::generate_bibliography (string bib, string style,
       if (!load_string (xbib_file, xsbib, false)) sbib << "\n" << xsbib;
       tree   te= bib_entries (parse_bib (sbib), bib_t);
       object ot= tree_to_stree (te);
-      eval ("(use-modules (bibtex " * style (3, N (style)) * "))");
+      eval ("(use-modules (latex bibtex-" * style (3, N (style)) * "))");
       t= stree_to_tree (
           call (string ("bib-process"), bib, style (3, N (style)), ot));
     }
