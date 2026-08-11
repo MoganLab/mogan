@@ -18,21 +18,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (stm-recognizes? s)
-  (and (string? s) (string-starts? s "(document (TeXmacs")))
+  (and (string? s) (string-starts? s "(document (TeXmacs"))
+) ;define
 
 (define-format stm
   (:name "TeXmacs Scheme")
   (:suffix "stm")
-  (:must-recognize stm-recognizes?))
+  (:must-recognize stm-recognizes?)
+) ;define-format
 
-(converter texmacs-tree stm-document
-  (:function texmacs->stm))
+(converter texmacs-tree stm-document (:function texmacs->stm))
 
-(converter stm-document texmacs-tree
-  (:function stm->texmacs))
+(converter stm-document texmacs-tree (:function stm->texmacs))
 
-(converter texmacs-tree stm-snippet
-  (:function texmacs->stm))
+(converter texmacs-tree stm-snippet (:function texmacs->stm))
 
-(converter stm-snippet texmacs-tree
-  (:function stm-snippet->texmacs))
+(converter stm-snippet texmacs-tree (:function stm-snippet->texmacs))

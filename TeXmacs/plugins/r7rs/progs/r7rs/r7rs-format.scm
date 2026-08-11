@@ -17,27 +17,24 @@
 ;; r7rs source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format r7rs
-  (:name "R7RS source code")
-  (:suffix "scm" ".sld" ".ss"))
-  
+(define-format r7rs (:name "R7RS source code") (:suffix "scm" ".sld" ".ss"))
+
 (define (texmacs->r7rs x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (r7rs->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (r7rs-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree r7rs-document
-  (:function texmacs->r7rs))
+(converter texmacs-tree r7rs-document (:function texmacs->r7rs))
 
-(converter r7rs-document texmacs-tree
-  (:function r7rs->texmacs))
-  
-(converter texmacs-tree r7rs-snippet
-  (:function texmacs->r7rs))
+(converter r7rs-document texmacs-tree (:function r7rs->texmacs))
 
-(converter r7rs-snippet texmacs-tree
-  (:function r7rs-snippet->texmacs))
+(converter texmacs-tree r7rs-snippet (:function texmacs->r7rs))
+
+(converter r7rs-snippet texmacs-tree (:function r7rs-snippet->texmacs))

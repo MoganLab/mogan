@@ -17,27 +17,27 @@
 ;; Javascript source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format javascript
-  (:name "Javascript source code")
-  (:suffix "js"))
-  
+(define-format javascript (:name "Javascript source code") (:suffix "js"))
+
 (define (texmacs->javascript x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (javascript->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (javascript-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree javascript-document
-  (:function texmacs->javascript))
+(converter texmacs-tree javascript-document (:function texmacs->javascript))
 
-(converter javascript-document texmacs-tree
-  (:function javascript->texmacs))
-  
-(converter texmacs-tree javascript-snippet
-  (:function texmacs->javascript))
+(converter javascript-document texmacs-tree (:function javascript->texmacs))
 
-(converter javascript-snippet texmacs-tree
-  (:function javascript-snippet->texmacs))
+(converter texmacs-tree javascript-snippet (:function texmacs->javascript))
+
+(converter javascript-snippet
+  texmacs-tree
+  (:function javascript-snippet->texmacs)
+) ;converter

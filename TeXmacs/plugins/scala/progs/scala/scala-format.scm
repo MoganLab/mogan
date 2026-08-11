@@ -17,27 +17,24 @@
 ;; Scala source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format scala
-  (:name "Scala source code")
-  (:suffix "scala" "sc" "sbt"))
+(define-format scala (:name "Scala source code") (:suffix "scala" "sc" "sbt"))
 
 (define (texmacs->scala x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (scala->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (scala-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree scala-document
-  (:function texmacs->scala))
+(converter texmacs-tree scala-document (:function texmacs->scala))
 
-(converter scala-document texmacs-tree
-  (:function scala->texmacs))
-  
-(converter texmacs-tree scala-snippet
-  (:function texmacs->scala))
+(converter scala-document texmacs-tree (:function scala->texmacs))
 
-(converter scala-snippet texmacs-tree
-  (:function scala-snippet->texmacs))
+(converter texmacs-tree scala-snippet (:function texmacs->scala))
+
+(converter scala-snippet texmacs-tree (:function scala-snippet->texmacs))

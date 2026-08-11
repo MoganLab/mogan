@@ -17,27 +17,24 @@
 ;; Moonbit source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format moonbit
-  (:name "Moonbit source code")
-  (:suffix "moonbit" "mbt"))
+(define-format moonbit (:name "Moonbit source code") (:suffix "moonbit" "mbt"))
 
 (define (texmacs->moonbit x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (moonbit->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (moonbit-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree moonbit-document
-  (:function texmacs->moonbit))
+(converter texmacs-tree moonbit-document (:function texmacs->moonbit))
 
-(converter moonbit-document texmacs-tree
-  (:function moonbit->texmacs))
-  
-(converter texmacs-tree moonbit-snippet
-  (:function texmacs->moonbit))
+(converter moonbit-document texmacs-tree (:function moonbit->texmacs))
 
-(converter moonbit-snippet texmacs-tree
-  (:function moonbit-snippet->texmacs))
+(converter texmacs-tree moonbit-snippet (:function texmacs->moonbit))
+
+(converter moonbit-snippet texmacs-tree (:function moonbit-snippet->texmacs))

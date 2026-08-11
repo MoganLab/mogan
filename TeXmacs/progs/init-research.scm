@@ -508,7 +508,18 @@
 (lazy-format (data code-format) cpp scheme)
 (lazy-format (csv csv-format) csv)
 
-(lazy-format (data image-format) postscript pdf svg gif jpeg png ppm tif webp xpm)
+(lazy-format (data image-format)
+  postscript
+  pdf
+  svg
+  gif
+  jpeg
+  png
+  ppm
+  tif
+  webp
+  xpm
+) ;lazy-format
 
 (lazy-format (convert rewrite init-rewrite) texmacs verbatim)
 (lazy-format (stm stm-format) stm)

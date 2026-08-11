@@ -17,50 +17,28 @@
 ;; Graphical document and geometric image formats
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format postscript
-  (:name "Postscript")
-  (:suffix "ps" "eps"))
+(define-format postscript (:name "Postscript") (:suffix "ps" "eps"))
 
-(define-format pdf
-  (:name "Pdf")
-  (:suffix "pdf"))
+(define-format pdf (:name "Pdf") (:suffix "pdf"))
 
-(define-format tmu.pdf
-  (:name "TMU.PDF")
-  (:suffix "tmu.pdf"))
+(define-format tmu.pdf (:name "TMU.PDF") (:suffix "tmu.pdf"))
 
-(define-format svg
-   (:name "Svg")
-   (:suffix "svg"))
+(define-format svg (:name "Svg") (:suffix "svg"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bitmap image formats
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format gif
-  (:name "Gif")
-  (:suffix "gif"))
+(define-format gif (:name "Gif") (:suffix "gif"))
 
-(define-format jpeg
-  (:name "Jpeg")
-  (:suffix "jpg" "jpeg"))
+(define-format jpeg (:name "Jpeg") (:suffix "jpg" "jpeg"))
 
-(define-format png
-  (:name "Png")
-  (:suffix "png"))
+(define-format png (:name "Png") (:suffix "png"))
 
-(define-format ppm
-  (:name "Ppm")
-  (:suffix "ppm"))
+(define-format ppm (:name "Ppm") (:suffix "ppm"))
 
-(define-format tif
-  (:name "Tif")
-  (:suffix "tif" "tiff"))
+(define-format tif (:name "Tif") (:suffix "tif" "tiff"))
 
-(define-format webp
-  (:name "WebP")
-  (:suffix "webp"))
+(define-format webp (:name "WebP") (:suffix "webp"))
 
-(define-format xpm
-  (:name "Xpm")
-  (:suffix "xpm"))
+(define-format xpm (:name "Xpm") (:suffix "xpm"))

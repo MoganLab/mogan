@@ -17,28 +17,24 @@
 ;; JSON source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format json
-  (:name "JSON")
-  (:suffix "json"))
+(define-format json (:name "JSON") (:suffix "json"))
 
 (define (texmacs->json x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (json->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (json-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree json-document
-  (:function texmacs->json))
+(converter texmacs-tree json-document (:function texmacs->json))
 
-(converter json-document texmacs-tree
-  (:function json->texmacs))
-  
-(converter texmacs-tree json-snippet
-  (:function texmacs->json))
+(converter json-document texmacs-tree (:function json->texmacs))
 
-(converter json-snippet texmacs-tree
-  (:function json-snippet->texmacs))
+(converter texmacs-tree json-snippet (:function texmacs->json))
 
+(converter json-snippet texmacs-tree (:function json-snippet->texmacs))

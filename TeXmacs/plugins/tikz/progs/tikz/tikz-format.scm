@@ -12,39 +12,36 @@
 
 (texmacs-module (tikz tikz-format))
 
-;;------------------------------------------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; Format definition
 ;;
 
-(define-format tikz
-  (:name "TikZ source code")
-  (:suffix "tikz"))
+(define-format tikz (:name "TikZ source code") (:suffix "tikz"))
 
-;;------------------------------------------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; Conversion functions
 ;;
 
 (define (texmacs->tikz x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (tikz->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (tikz-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-;;------------------------------------------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; Converter registration
 ;;
 
-(converter texmacs-tree tikz-document
-  (:function texmacs->tikz))
+(converter texmacs-tree tikz-document (:function texmacs->tikz))
 
-(converter tikz-document texmacs-tree
-  (:function tikz->texmacs))
+(converter tikz-document texmacs-tree (:function tikz->texmacs))
 
-(converter texmacs-tree tikz-snippet
-  (:function texmacs->tikz))
+(converter texmacs-tree tikz-snippet (:function texmacs->tikz))
 
-(converter tikz-snippet texmacs-tree
-  (:function tikz-snippet->texmacs))
+(converter tikz-snippet texmacs-tree (:function tikz-snippet->texmacs))

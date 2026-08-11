@@ -14,28 +14,29 @@
 (use-modules (docx docx-format))
 
 (define (tm->docx tm-file-url docx-file-url)
-  ; Step 1: load the tm file
-  ; (display* "load-buffer: " tm-file-url "\n")
   (load-buffer tm-file-url)
-  ; (display* "buffer-loaded: " tm-file-url "\n")
 
-  ; Step 2: Export the buffer to the docx file url
-  ; (display* "export buffer to: " docx-file-url "\n")
   (export-buffer-main (current-buffer) docx-file-url "docx" ())
-  
-  ; Check if the docx file exists
-  (if (url-exists? docx-file-url)
-      (display* "Export successful: " docx-file-url "\n")
-      (display* "Export failed: " docx-file-url "\n"))
 
-  (url-exists? docx-file-url))
+  (if (url-exists? docx-file-url)
+    (display* "Export successful: " docx-file-url "\n")
+    (display* "Export failed: " docx-file-url "\n")
+  ) ;if
+
+  (url-exists? docx-file-url)
+) ;define
 
 (define (test_24_15)
-  (when (os-macos?) (exit 0))
-  (display  (url-exists? (system->url "$TEXMACS_PATH/tests/tm/24_15.tm")))
+  (when (os-macos?)
+    (exit 0)
+  ) ;when
+  (display (url-exists? (system->url "$TEXMACS_PATH/tests/tm/24_15.tm")))
   (let* ((tm-url "$TEXMACS_PATH/tests/tm/24_15.tm")
          (docx-url "$TEXMACS_PATH/tests/tm/24_15.docx")
-         (result (tm->docx tm-url docx-url)))
+         (result (tm->docx tm-url docx-url))
+        ) ;
     (check result => #t)
     (check-report)
-    (if (check-failed?) (exit -1))))
+    (if (check-failed?) (exit -1))
+  ) ;let*
+) ;define

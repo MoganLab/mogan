@@ -15,27 +15,24 @@
 ;; Common extensions: .sql (standard), .ddl, .dml, .pks, .pkb (Oracle)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format sql
-  (:name "SQL source code")
-  (:suffix "sql" "SQL" "ddl" "dml"))
+(define-format sql (:name "SQL source code") (:suffix "sql" "SQL" "ddl" "dml"))
 
 (define (texmacs->sql x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (sql->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (sql-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree sql-document
-  (:function texmacs->sql))
+(converter texmacs-tree sql-document (:function texmacs->sql))
 
-(converter sql-document texmacs-tree
-  (:function sql->texmacs))
+(converter sql-document texmacs-tree (:function sql->texmacs))
 
-(converter texmacs-tree sql-snippet
-  (:function texmacs->sql))
+(converter texmacs-tree sql-snippet (:function texmacs->sql))
 
-(converter sql-snippet texmacs-tree
-  (:function sql-snippet->texmacs))
+(converter sql-snippet texmacs-tree (:function sql-snippet->texmacs))

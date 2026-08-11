@@ -17,57 +17,52 @@
 ;; C++ source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format cpp
-  (:name "C++ source code")
-  (:suffix "cpp" "cc" "hpp" "hh"))
+(define-format cpp (:name "C++ source code") (:suffix "cpp" "cc" "hpp" "hh"))
 
 (define (texmacs->cpp x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (cpp->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (cpp-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree cpp-document
-  (:function texmacs->cpp))
+(converter texmacs-tree cpp-document (:function texmacs->cpp))
 
-(converter cpp-document texmacs-tree
-  (:function cpp->texmacs))
-  
-(converter texmacs-tree cpp-snippet
-  (:function texmacs->cpp))
+(converter cpp-document texmacs-tree (:function cpp->texmacs))
 
-(converter cpp-snippet texmacs-tree
-  (:function cpp-snippet->texmacs))
+(converter texmacs-tree cpp-snippet (:function texmacs->cpp))
+
+(converter cpp-snippet texmacs-tree (:function cpp-snippet->texmacs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Scheme source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format scheme
-  (:name "Scheme source code")
-  (:suffix "scm"))
+(define-format scheme (:name "Scheme source code") (:suffix "scm"))
 
 (define (texmacs->scheme x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (scheme->texmacs x . opts)
-  (verbatim->texmacs x (acons "verbatim->texmacs:encoding" "SourceCode" '())))
+  (verbatim->texmacs x (acons "verbatim->texmacs:encoding" "SourceCode" '()))
+) ;define
 
 (define (scheme-snippet->texmacs x . opts)
-  (verbatim-snippet->texmacs x 
-    (acons "verbatim->texmacs:encoding" "SourceCode" '())))
+  (verbatim-snippet->texmacs x
+    (acons "verbatim->texmacs:encoding" "SourceCode" '())
+  ) ;verbatim-snippet->texmacs
+) ;define
 
-(converter texmacs-tree scheme-document
-  (:function texmacs->scheme))
+(converter texmacs-tree scheme-document (:function texmacs->scheme))
 
-(converter scheme-document texmacs-tree
-  (:function scheme->texmacs))
-  
-(converter texmacs-tree scheme-snippet
-  (:function texmacs->scheme))
+(converter scheme-document texmacs-tree (:function scheme->texmacs))
 
-(converter scheme-snippet texmacs-tree
-  (:function scheme-snippet->texmacs))
+(converter texmacs-tree scheme-snippet (:function texmacs->scheme))
+
+(converter scheme-snippet texmacs-tree (:function scheme-snippet->texmacs))

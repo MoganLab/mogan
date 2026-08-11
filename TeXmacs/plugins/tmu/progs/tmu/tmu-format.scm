@@ -13,27 +13,20 @@
 
 (texmacs-module (tmu tmu-format))
 
-(define-format tmu 
-  (:name "TMU")
-  (:suffix "tmu"))
+(define-format tmu (:name "TMU") (:suffix "tmu"))
 
-(tm-define (texmacs->tmu t)
-  (serialize-tmu (herk-tree->utf8-tree t)))
+(tm-define (texmacs->tmu t) (serialize-tmu (herk-tree->utf8-tree t)))
 
-(tm-define (tmu->texmacs t)
-  (utf8-tree->herk-tree (parse-tmu t)))
+(tm-define (tmu->texmacs t) (utf8-tree->herk-tree (parse-tmu t)))
 
 (define (tmu-snippet->texmacs t)
-  (utf8-tree->herk-tree (parse-tmu-snippet t)))
+  (utf8-tree->herk-tree (parse-tmu-snippet t))
+) ;define
 
-(converter tmu-document texmacs-tree
-  (:function tmu->texmacs))
+(converter tmu-document texmacs-tree (:function tmu->texmacs))
 
-(converter texmacs-tree tmu-document
-  (:function texmacs->tmu))
+(converter texmacs-tree tmu-document (:function texmacs->tmu))
 
-(converter tmu-snippet texmacs-tree
-  (:function tmu-snippet->texmacs))
+(converter tmu-snippet texmacs-tree (:function tmu-snippet->texmacs))
 
-(converter texmacs-tree tmu-snippet
-  (:function texmacs->tmu))
+(converter texmacs-tree tmu-snippet (:function texmacs->tmu))

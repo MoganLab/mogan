@@ -1,13 +1,13 @@
-(use-modules
-  (tmu tmu-format))
+(use-modules (tmu tmu-format))
 
-(import (liii check)(liii path))
+(import (liii check) (liii path))
 
 (define (test-single-quote)
-  (let ((cork_60 (string (integer->char #x60)))
-        (cork_27 (string (integer->char #x27))))
+  (let ((cork_60 (string (integer->char 96))) (cork_27 (string (integer->char 39))))
     (check (utf8->herk "‘’") => (string-append cork_60 "<#2019>"))
-    (check (herk->utf8 (string-append cork_60 "<#2019>")) => "‘’")))
+    (check (herk->utf8 (string-append cork_60 "<#2019>")) => "‘’")
+  ) ;let
+) ;define
 
 
 (define (test-binary-data-encoding)
@@ -26,15 +26,15 @@
          ;; Path to the expected STM output file
          (stm-path "TeXmacs/texts/misc/66_7_encoding.txt")
          ;; Read the expected STM output for comparison
-         (expected-stm (path-read-text stm-path)))
-    ;;(path-write-text stm-path stm)
-    ; ;; Save the generated STM to file for inspection
-    ; (path-write-text stm-path stm)
+         (expected-stm (path-read-text stm-path))
+        ) ;
+    ;; (path-write-text stm-path stm)
+    ;; Save the generated STM to file for inspection
     ;; Verify that the STM format matches the expected output
     (check stm => expected-stm)
     ;; Verify that the TeXmacs tree structure is preserved through conversions
-    (check texmacs-tree => expected-texmacs-tree)))
+    (check texmacs-tree => expected-texmacs-tree)
+  ) ;let*
+) ;define
 
-(tm-define (test_66_7)
-  (test-single-quote)
-  (test-binary-data-encoding))
+(tm-define (test_66_7) (test-single-quote) (test-binary-data-encoding))

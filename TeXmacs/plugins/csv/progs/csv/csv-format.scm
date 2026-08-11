@@ -17,27 +17,24 @@
 ;; CSV source files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format csv
-  (:name "CSV")
-  (:suffix "csv"))
+(define-format csv (:name "CSV") (:suffix "csv"))
 
 (define (texmacs->csv x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (csv->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (csv-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree csv-document
-  (:function texmacs->csv))
+(converter texmacs-tree csv-document (:function texmacs->csv))
 
-(converter csv-document texmacs-tree
-  (:function csv->texmacs))
-  
-(converter texmacs-tree csv-snippet
-  (:function texmacs->csv))
+(converter csv-document texmacs-tree (:function csv->texmacs))
 
-(converter csv-snippet texmacs-tree
-  (:function csv-snippet->texmacs))
+(converter texmacs-tree csv-snippet (:function texmacs->csv))
+
+(converter csv-snippet texmacs-tree (:function csv-snippet->texmacs))
