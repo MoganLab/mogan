@@ -469,17 +469,10 @@ tm_window_rep::tab_pages () {
     if (vw != NULL) the_drd= vw->ed->drd;
   }
   string sig= as_string (call ("tabpage-menu-signature"));
-#ifdef LIII_DEBUG
-  cout << "tab_pages sig='" << sig << "' cached='" << tab_menu_signature
-       << "'\n";
-#endif
   if (sig == tab_menu_signature) {
     the_drd= old_drd;
     return;
   }
-#ifdef LIII_DEBUG
-  cout << "tab_pages REBUILD\n";
-#endif
   tab_menu_signature= sig;
   widget w          = as_widget (call ("texmacs-tab-pages"));
   the_drd           = old_drd;

@@ -280,23 +280,8 @@ get_title_buffer (url name) {
 void
 set_title_buffer (url name, string title) {
   tm_buffer buf= concrete_buffer (name);
-  if (is_nil (buf)) {
-#ifdef LIII_DEBUG
-    cout << "set_title_buffer NIL name=" << as_string (name, URL_UNIX) << "\n";
-#endif
-    return;
-  }
-  if (buf->buf->title == title) {
-#ifdef LIII_DEBUG
-    cout << "set_title_buffer SAME name=" << as_string (name, URL_UNIX) << " '"
-         << title << "'\n";
-#endif
-    return;
-  }
-#ifdef LIII_DEBUG
-  cout << "set_title_buffer " << as_string (name, URL_UNIX) << " '"
-       << buf->buf->title << "' => '" << title << "'\n";
-#endif
+  if (is_nil (buf)) return;
+  if (buf->buf->title == title) return;
   buf->buf->title= title;
   array<url> vs  = buffer_to_views (name);
   for (int i= 0; i < N (vs); i++) {
@@ -333,10 +318,6 @@ set_buffer_tree (url name, tree doc) {
     tree body= detach_data (doc, buf->data);
     set_document (buf->rp, body);
     buf->buf->title= propose_title (buf->buf->title, name, body);
-#ifdef LIII_DEBUG
-    cout << "set_buffer_tree(new) " << as_string (name, URL_UNIX) << " => '"
-         << buf->buf->title << "'\n";
-#endif
     if (buf->data->project != "") {
       url prj_name= head (name) * as_string (buf->data->project);
       buf->prj    = concrete_buffer_insist (prj_name);
@@ -349,10 +330,6 @@ set_buffer_tree (url name, tree doc) {
     assign (buf->rp, body);
     set_buffer_data (name, buf->data);
     buf->buf->title= propose_title (old_title, name, body);
-#ifdef LIII_DEBUG
-    cout << "set_buffer_tree(existing) " << as_string (name, URL_UNIX)
-         << " old='" << old_title << "' => '" << buf->buf->title << "'\n";
-#endif
     if (buf->data->project != "" && buf->data->project != old_project) {
       url prj_name= head (name) * as_string (buf->data->project);
       buf->prj    = concrete_buffer_insist (prj_name);

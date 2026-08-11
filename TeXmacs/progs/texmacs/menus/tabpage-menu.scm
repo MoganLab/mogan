@@ -40,14 +40,6 @@
          (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
          (mod? (buffer-modified? buf))
         ) ;
-    (display "tabpage-display-title buf=")
-    (display (url->unix buf))
-    (display " title='")
-    (display title)
-    (display "' => '")
-    (display title*)
-    (display "'")
-    (newline)
     (string-append title* (if mod? " *" ""))
   ) ;let*
 ) ;define

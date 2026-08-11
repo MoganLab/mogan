@@ -129,11 +129,6 @@ collab_session::get_editor () const {
 void
 collab_session::become_ready () {
   bool was_reconnect= (reconnect_attempt > 0);
-#ifdef LIII_DEBUG
-  cout << "become_ready ENTER want_create=" << want_create () << " doc_id='"
-       << doc_id << "' buffer_url=" << as_string (buffer_url) << " doc_name='"
-       << doc_name << "'\n";
-#endif
   enter_ready ();
   buffer_known           = true;
   g_loro_broadcast_update= broadcast_to_server;
@@ -154,10 +149,6 @@ collab_session::become_ready () {
       // 未及生效，故在此兜底）。
       string title0=
           lolly::data::utf8_to_cork ((N (doc_name) > 0) ? doc_name : doc_id);
-#ifdef LIII_DEBUG
-      cout << "become_ready set_title old_url=" << as_string (old_url)
-           << " title0='" << title0 << "'\n";
-#endif
       set_title_buffer (old_url, title0);
       buffer_url= new_url;
       rename_buffer (old_url, new_url);
