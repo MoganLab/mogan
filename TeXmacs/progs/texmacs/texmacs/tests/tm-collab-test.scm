@@ -151,6 +151,17 @@
     =>
     "tmfs://collab/550e8400-e29b-41d4-a716-446655440000"
   ) ;check
+  ;; doc_id 提取（collab-url->doc-id）：与 collab-buffer-url->tmfs 互逆；含 UUID 连字符
+  (check (collab-url->doc-id (collab-buffer-url->tmfs "550e8400-e29b-41d4-a716-446655440000")
+         ) ;collab-url->doc-id
+    =>
+    "550e8400-e29b-41d4-a716-446655440000"
+  ) ;check
+  ;; 占位 doc_id 也被正确切出（是否跳过由调用方 collab-do-silent-backup 决定）
+  (check (collab-url->doc-id (unix->url "tmfs://collab/pending-1-2"))
+    =>
+    "pending-1-2"
+  ) ;check
   ;; 谓词：仅 collab 协议为 #t（含 pending 占位），chat / 文件路径为 #f
   (check (collab-buffer? (unix->url "tmfs://collab/abc")) => #t)
   (check (collab-buffer? (unix->url "tmfs://collab/pending-1-2")) => #t)

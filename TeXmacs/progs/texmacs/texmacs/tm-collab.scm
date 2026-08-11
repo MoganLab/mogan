@@ -414,9 +414,11 @@
 ;;     构造函数不跑，故必须在 get_or_create 里显式标记）。need_save 是标题星号
 ;;     / 关闭提示 / tab 星号 / 自动保存的公共收敛点，故不再在 Scheme 侧覆盖
 ;;     buffer-modified?。
-;;   - Save 无效（文档在云端）→ 提示用 Download 导出本地副本；协作模式下
-;;     Save as 在菜单上显示为 Download，功能也变为 Download：用 buffer-export
-;;     仅写一份本地副本，不 buffer-rename、不切换 buffer（云端会话不中断）。
+;;   - Save（Cmd+S）→ 静默写一份本地备份（$TEXMACS_HOME_PATH/system/collab-backups/
+;;     <doc_id>.tmu），为磁盘类下游（如 autosave 云备份插件需要从磁盘读文档）提供
+;;     落点。云端文档本体仍在云端，不 buffer-rename、不切 buffer。占位 URL 跳过。
+;;   - Save as 在协作模式下菜单显示为 Download，功能也变为 Download：用 buffer-export
+;;     仅写一份用户选定路径的本地副本，不 buffer-rename、不切换 buffer（云端会话不中断）。
 ;; 用「模块加载时捕获原始绑定」覆盖 save-buffer / save-buffer-as，避免对纯
 ;; glue 函数用 former（tm-define 对未注册到 tm-defined-table 的函数走 else
 ;; 分支，former 退化为 noop，会全局破坏）。
@@ -425,7 +427,7 @@
 
 (tm-define (save-buffer . l)
   (if (collab-buffer? (current-buffer))
-    (set-message "Cloud document: use Download to export a local copy" "Save")
+    (collab-silent-backup (current-buffer))
     (apply %original-save-buffer l)
   ) ;if
 ) ;tm-define
@@ -463,6 +465,66 @@
       (lambda (answ) (when answ (collab-do-export new-name)))
     ) ;user-confirm
     (collab-do-export new-name)
+  ) ;if
+) ;define
+
+;; === 协作文档 → 本地不可见备份（Cmd+S / save-buffer 触发）===
+;; 云端文档无磁盘落点，磁盘类下游（如 autosave 云备份插件需从磁盘读文档）无法处理。
+;; 这里把 tmfs://collab/<doc_id> 映射到 $TEXMACS_HOME_PATH/system/collab-backups/
+;; <doc_id>.tmu，由 Cmd+S 同步写一份。collab-silent-backup 是单一同步入口——
+;; buffer_export→save_string 同步，返回时字节已落盘，将来 autosave 在它返回后读盘
+;; 即可保证时序。占位 URL（pending-…，服务端尚未回真实 doc_id）跳过。
+
+(define (collab-url->doc-id u)
+  (let ((s (url->unix u)))
+    (substring s (string-length "tmfs://collab/") (string-length s))
+  ) ;let
+) ;define
+
+(define (collab-backups-dir)
+  (url-append (get-texmacs-home-path) (system->url "system/collab-backups"))
+) ;define
+
+(define (collab-backup-url doc-id)
+  (url-append (get-texmacs-home-path)
+    (system->url (string-append "system/collab-backups/" doc-id ".tmu"))
+  ) ;url-append
+) ;define
+
+;; 写本地备份，返回 #t 成功 / #f 跳过或失败。静默（用户不可见）；仅失败时给一行
+;; 提示，不暴露内部路径。不重命名、不进最近文件、不弹窗、不写回云端源 buffer。
+;; 单一同步入口：buffer_export→save_string 同步，返回时字节已落盘——将来 autosave
+;; 在它返回后读盘即可保证时序。
+
+(define (collab-silent-backup . opt-buf)
+  (let ((buf (if (pair? opt-buf) (car opt-buf) (current-buffer))))
+    (and (collab-buffer? buf) (collab-do-silent-backup buf))
+  ) ;let
+) ;define
+
+;; 占位 URL（pending-…）/ 空 doc_id 跳过：服务端尚未回真实 doc_id。
+
+(define (collab-do-silent-backup buf)
+  (let ((doc-id (collab-url->doc-id buf)))
+    (cond ((string=? doc-id "") #f)
+          ((collab-string-prefix? "pending-" doc-id) #f)
+          (else (collab-write-backup buf doc-id))
+    ) ;cond
+  ) ;let
+) ;define
+
+;; system/ 启动时已存在，只需建一层 collab-backups。buffer-export 失败时给一行提示。
+
+(define (collab-write-backup buf doc-id)
+  (when (not (url-exists? (collab-backups-dir)))
+    (system-mkdir (collab-backups-dir))
+  ) ;when
+  (if (buffer-export buf (collab-backup-url doc-id) "tmu")
+    (begin
+      (set-message "Backup failed" "Save")
+      #f
+    ) ;begin
+    #t
   ) ;if
 ) ;define
 
