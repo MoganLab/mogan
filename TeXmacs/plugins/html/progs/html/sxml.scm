@@ -119,7 +119,7 @@
   `(let rpt
      ((pos (1- ,len)))
      (cond ((negative? pos) #f)
-           ((char=? (*char-literal* "#\\:" #\:) (string-ref name pos)) pos)
+           ((char=? #\: (string-ref name pos)) pos)
            (else (rpt (1- pos)))))
 ) ;define-macro
 
