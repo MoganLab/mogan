@@ -59,7 +59,7 @@
 
 ## 提交规范
 
-1. 一个 PR 至少分为两个 commit：
+1. 一个 PR 至少分为两个 commit（如果分支上已有 commit，此规则不适用）：
    - 第一个 commit 更新 `devel/xxxx.md` 任务文档
    - 后续 commit 为代码改动
 2. **提交前必须运行 `gf fmt --changed-since=main`** 格式化变更的 `.scm` 和 C++（`.cpp`/`.hpp`）文件
