@@ -3000,7 +3000,7 @@
 ("solutions" "рішення")
 ("sound" "звук")
 ("source code" "джерельний код")
-("source directory:" каталог джерела:")
+("source directory:" "каталог джерела:")
 ("source macros tool" "інструмент джерел макросів")
 ("source tags" "джерельні теги")
 ("source" "джерело")

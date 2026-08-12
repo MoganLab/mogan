@@ -56,7 +56,8 @@
   ;; (set! tmtex-packages (cons "cite-author-year" tmtex-packages))
   (latex-set-packages '("amsthm"
                         "yjsco"
-                        ;; "natbib")
+                        ;; "natbib"
+                       )
   ) ;latex-set-packages
 ) ;tm-define
 
