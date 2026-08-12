@@ -42,13 +42,7 @@
 
 (tm-define (updater-apply-update)
   (if (use-plugin-updater?)
-    (with ok
-      (updater-apply)
-      (when ok
-        (safely-quit-TeXmacs)
-      ) ;when
-      ok
-    ) ;with
+    (with ok (updater-apply) (when ok (safely-quit-TeXmacs)) ok)
     #f
   ) ;if
 ) ;tm-define
