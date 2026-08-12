@@ -112,19 +112,21 @@ struct tm_velopack::tm_velopack_rep {
   std::unique_ptr<Velopack::UpdateManager>
                  mgr;      // 惰性创建，恰好一次（call_once 保证）
   std::once_flag mgr_once; // 保护 mgr 的单次初始化
-  std::optional<Velopack::UpdateInfo> info;     // 最近一次检查结果
-  std::thread                         worker;   // 当前检查/下载线程
-  std::mutex                          mtx;      // 保护以下字段
-  tm_updater_state                    st;       // = UPDATER_IDLE
-  std::string                         version;  // 目标版本
-  std::string                         notes;    // 发行说明 (markdown)
-  std::string                         error;    // 错误码/消息
-  int                                 progress; // 0..100
-  time_t                              last;     // 最近检查时间
-  bool                                running;  // 是否有线程在跑
+  std::optional<Velopack::UpdateInfo> info;            // 最近一次检查结果
+  std::thread                         worker;          // 当前检查/下载线程
+  std::mutex                          mtx;             // 保护以下字段
+  tm_updater_state                    st;              // = UPDATER_IDLE
+  tm_updater_state                    st_before_check; // 检查启动前的状态
+  std::string                         version;         // 目标版本
+  std::string                         notes;           // 发行说明 (markdown)
+  std::string                         error;           // 错误码/消息
+  int                                 progress;        // 0..100
+  time_t                              last;            // 最近检查时间
+  bool                                running;         // 是否有线程在跑
 
   tm_velopack_rep ()
-      : st (UPDATER_IDLE), progress (0), last (0), running (false) {}
+      : st (UPDATER_IDLE), st_before_check (UPDATER_IDLE), progress (0),
+        last (0), running (false) {}
   ~tm_velopack_rep () {
     if (worker.joinable ()) worker.join ();
   }
@@ -148,10 +150,12 @@ tm_velopack::checkInBackground () {
   if (rep->running) return false;
   if (rep->st == UPDATER_APPLYING) return false; // 应用更新期间不接受新检查
   if (rep->worker.joinable ()) rep->worker.join ();
-  // 状态机由结果驱动：启动时不改状态（不置 CHECKING），避免一次复查把 READY
-  // 「待应用」冲掉；do_check 拿到结果并比对版本后才进入 AVAILABLE。
-  rep->running= true;
-  rep->worker = std::thread ([this] { do_check (); });
+  // 启动检查置 CHECKING；同时保存检查前状态，do_check 结果驱动时据此判断
+  // 是否保持 READY「待应用」（复查不应把它冲掉，否则要重新下载）。
+  rep->st_before_check= rep->st;
+  rep->st             = UPDATER_CHECKING;
+  rep->running        = true;
+  rep->worker         = std::thread ([this] { do_check (); });
   return true;
 }
 
@@ -193,19 +197,28 @@ tm_velopack::do_check () {
       // 「待应用」冲掉，否则要重新下载。仅当版本更高（或当前不在 READY，如
       // 失败后重试）时才覆盖为目标版本。
       bool keep_ready=
-          rep->st == UPDATER_READY &&
+          rep->st_before_check == UPDATER_READY &&
           !newer_version (u->TargetFullRelease.Version, rep->version);
-      if (!keep_ready) {
+      if (keep_ready) {
+        rep->st= UPDATER_READY; // 复查后仍保持「待应用」
+      }
+      else {
         rep->info   = u;
         rep->st     = UPDATER_AVAILABLE;
         rep->version= u->TargetFullRelease.Version;
         rep->notes  = u->TargetFullRelease.NotesMarkdown;
       }
     }
-    else if (rep->st == UPDATER_FAILED) {
-      // 一次成功的「无更新」检查清掉残留的失败标记
-      rep->st   = UPDATER_IDLE;
-      rep->error= "";
+    else {
+      // 无更新：失败标记被清除；其余状态恢复到检查前的结论（复查不改变
+      // 既有状态）。
+      if (rep->st_before_check == UPDATER_FAILED) {
+        rep->st   = UPDATER_IDLE;
+        rep->error= "";
+      }
+      else {
+        rep->st= rep->st_before_check;
+      }
     }
     rep->last   = time (NULL);
     rep->running= false;
