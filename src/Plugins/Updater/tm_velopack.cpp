@@ -33,14 +33,18 @@
 
 // 默认更新源（feed 根 URL）。当前按静态 feed 设计编译期写死；若将来要运行时
 // 切源（stable/beta 渠道、内网镜像），需改为可配置并在 setAppcast 里重建 mgr。
-static const std::string default_feed_url =
+static const std::string default_feed_url=
     "https://updates.mogan.app/mogan/windows-x64/stable";
 
 static std::string
 exception_message () {
-  try { throw; }
-  catch (std::exception& e) { return e.what (); }
-  catch (...) { return "unknown error"; }
+  try {
+    throw;
+  } catch (std::exception& e) {
+    return e.what ();
+  } catch (...) {
+    return "unknown error";
+  }
 }
 
 // 按 semver2 优先级比较两个版本串（忽略 build 元数据；核心段逐数字比较，预发布
@@ -50,23 +54,27 @@ static int
 compare_versions (const std::string& a, const std::string& b) {
   auto split= [] (const std::string& s, char c) {
     std::vector<std::string> parts;
-    std::string cur;
-    for (char ch: s) {
-      if (ch == c) { parts.push_back (cur); cur.clear (); }
-      else cur += ch;
+    std::string              cur;
+    for (char ch : s) {
+      if (ch == c) {
+        parts.push_back (cur);
+        cur.clear ();
+      }
+      else cur+= ch;
     }
     parts.push_back (cur);
     return parts;
   };
   auto is_num= [] (const std::string& s) {
-    return !s.empty () && std::all_of (s.begin (), s.end (),
-                                       [] (char ch) { return ::isdigit ((unsigned char) ch); });
+    return !s.empty () && std::all_of (s.begin (), s.end (), [] (char ch) {
+      return ::isdigit ((unsigned char) ch);
+    });
   };
   // 剥离 build 元数据；a0/b0 即「核心段[-预发布段]」
-  auto a0= a.substr (0, a.find ('+')), b0= b.substr (0, b.find ('+'));
-  auto ac= split (a0.substr (0, a0.find ('-')), '.');
-  auto bc= split (b0.substr (0, b0.find ('-')), '.');
-  size_t n= std::max (ac.size (), bc.size ());
+  auto   a0= a.substr (0, a.find ('+')), b0= b.substr (0, b.find ('+'));
+  auto   ac= split (a0.substr (0, a0.find ('-')), '.');
+  auto   bc= split (b0.substr (0, b0.find ('-')), '.');
+  size_t n = std::max (ac.size (), bc.size ());
   for (size_t i= 0; i < n; i++) {
     long an= i < ac.size () ? std::atol (ac[i].c_str ()) : 0;
     long bn= i < bc.size () ? std::atol (bc[i].c_str ()) : 0;
@@ -79,16 +87,16 @@ compare_versions (const std::string& a, const std::string& b) {
   if (!aPre) return 0;
   auto ap= split (a0.substr (a0.find ('-') + 1), '.');
   auto bp= split (b0.substr (b0.find ('-') + 1), '.');
-  n= std::max (ap.size (), bp.size ());
+  n      = std::max (ap.size (), bp.size ());
   for (size_t i= 0; i < n; i++) {
-    if (i >= ap.size ()) return -1;          // a 缺少标识符，a < b
+    if (i >= ap.size ()) return -1; // a 缺少标识符，a < b
     if (i >= bp.size ()) return 1;
     bool aNum= is_num (ap[i]), bNum= is_num (bp[i]);
     if (aNum && bNum) {
       long an= std::atol (ap[i].c_str ()), bn= std::atol (bp[i].c_str ());
       if (an != bn) return an < bn ? -1 : 1;
     }
-    else if (aNum) return -1;                // 数字标识符 < 字母标识符
+    else if (aNum) return -1; // 数字标识符 < 字母标识符
     else if (bNum) return 1;
     else if (ap[i] != bp[i]) return ap[i] < bp[i] ? -1 : 1;
   }
@@ -101,22 +109,25 @@ newer_version (const std::string& a, const std::string& b) {
 }
 
 struct tm_velopack::tm_velopack_rep {
-  std::unique_ptr<Velopack::UpdateManager> mgr; // 惰性创建，恰好一次（call_once 保证）
-  std::once_flag mgr_once;                      // 保护 mgr 的单次初始化
+  std::unique_ptr<Velopack::UpdateManager>
+                 mgr;      // 惰性创建，恰好一次（call_once 保证）
+  std::once_flag mgr_once; // 保护 mgr 的单次初始化
   std::optional<Velopack::UpdateInfo> info;     // 最近一次检查结果
-  std::thread worker;                            // 当前检查/下载线程
-  std::mutex  mtx;                               // 保护以下字段
-  tm_updater_state st;                           // = UPDATER_IDLE
-  std::string version;                           // 目标版本
-  std::string notes;                             // 发行说明 (markdown)
-  std::string error;                             // 错误码/消息
-  int         progress;                          // 0..100
-  time_t      last;                              // 最近检查时间
-  bool        running;                           // 是否有线程在跑
+  std::thread                         worker;   // 当前检查/下载线程
+  std::mutex                          mtx;      // 保护以下字段
+  tm_updater_state                    st;       // = UPDATER_IDLE
+  std::string                         version;  // 目标版本
+  std::string                         notes;    // 发行说明 (markdown)
+  std::string                         error;    // 错误码/消息
+  int                                 progress; // 0..100
+  time_t                              last;     // 最近检查时间
+  bool                                running;  // 是否有线程在跑
 
   tm_velopack_rep ()
-    : st (UPDATER_IDLE), progress (0), last (0), running (false) {}
-  ~tm_velopack_rep () { if (worker.joinable ()) worker.join (); }
+      : st (UPDATER_IDLE), progress (0), last (0), running (false) {}
+  ~tm_velopack_rep () {
+    if (worker.joinable ()) worker.join ();
+  }
 };
 
 tm_velopack::tm_velopack () : rep (std::make_unique<tm_velopack_rep> ()) {}
@@ -126,7 +137,7 @@ tm_velopack::~tm_velopack () {}
 void
 tm_velopack::ensure_mgr () {
   // mgr 由 call_once 保证恰好创建一次；feed URL 编译期写死，无需加锁。
-  std::call_once (rep->mgr_once, [this]{
+  std::call_once (rep->mgr_once, [this] {
     rep->mgr= std::make_unique<Velopack::UpdateManager> (default_feed_url);
   });
 }
@@ -135,12 +146,12 @@ bool
 tm_velopack::checkInBackground () {
   std::lock_guard<std::mutex> lk (rep->mtx);
   if (rep->running) return false;
-  if (rep->st == UPDATER_APPLYING) return false;  // 应用更新期间不接受新检查
+  if (rep->st == UPDATER_APPLYING) return false; // 应用更新期间不接受新检查
   if (rep->worker.joinable ()) rep->worker.join ();
   // 状态机由结果驱动：启动时不改状态（不置 CHECKING），避免一次复查把 READY
   // 「待应用」冲掉；do_check 拿到结果并比对版本后才进入 AVAILABLE。
   rep->running= true;
-  rep->worker= std::thread ([this]{ do_check (); });
+  rep->worker = std::thread ([this] { do_check (); });
   return true;
 }
 
@@ -172,8 +183,8 @@ tm_velopack::do_check () {
   try {
     ensure_mgr ();
     std::optional<Velopack::UpdateInfo> u= rep->mgr->CheckForUpdates ();
-    std::lock_guard<std::mutex> lk (rep->mtx);
-    if (rep->st == UPDATER_APPLYING) {          // 应用已开始，本次结果作废
+    std::lock_guard<std::mutex>         lk (rep->mtx);
+    if (rep->st == UPDATER_APPLYING) { // 应用已开始，本次结果作废
       rep->running= false;
       return;
     }
@@ -181,27 +192,27 @@ tm_velopack::do_check () {
       // 已就绪的同版（或更旧）更新不再进入 AVAILABLE：一次复查不应把 READY
       // 「待应用」冲掉，否则要重新下载。仅当版本更高（或当前不在 READY，如
       // 失败后重试）时才覆盖为目标版本。
-      bool keep_ready= rep->st == UPDATER_READY &&
-        !newer_version (u->TargetFullRelease.Version, rep->version);
+      bool keep_ready=
+          rep->st == UPDATER_READY &&
+          !newer_version (u->TargetFullRelease.Version, rep->version);
       if (!keep_ready) {
-        rep->info= u;
-        rep->st= UPDATER_AVAILABLE;
+        rep->info   = u;
+        rep->st     = UPDATER_AVAILABLE;
         rep->version= u->TargetFullRelease.Version;
-        rep->notes= u->TargetFullRelease.NotesMarkdown;
+        rep->notes  = u->TargetFullRelease.NotesMarkdown;
       }
     }
     else if (rep->st == UPDATER_FAILED) {
       // 一次成功的「无更新」检查清掉残留的失败标记
-      rep->st= UPDATER_IDLE;
+      rep->st   = UPDATER_IDLE;
       rep->error= "";
     }
-    rep->last= time (NULL);
+    rep->last   = time (NULL);
     rep->running= false;
-  }
-  catch (...) {
+  } catch (...) {
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_FAILED;
-    rep->error= exception_message ();
+    rep->st     = UPDATER_FAILED;
+    rep->error  = exception_message ();
     rep->running= false;
   }
 }
@@ -242,15 +253,15 @@ tm_velopack::downloadUpdate () {
   if (rep->st != UPDATER_AVAILABLE) return false;
   if (rep->running) return false;
   if (rep->worker.joinable ()) rep->worker.join ();
-  rep->st= UPDATER_DOWNLOADING;
+  rep->st     = UPDATER_DOWNLOADING;
   rep->running= true;
-  rep->worker= std::thread ([this]{ do_download (); });
+  rep->worker = std::thread ([this] { do_download (); });
   return true;
 }
 
 void
 tm_velopack::progress_cb (void* user_data, size_t progress) {
-  tm_velopack* self= static_cast<tm_velopack*> (user_data);
+  tm_velopack*                self= static_cast<tm_velopack*> (user_data);
   std::lock_guard<std::mutex> lk (self->rep->mtx);
   self->rep->progress= static_cast<int> (progress);
 }
@@ -263,19 +274,19 @@ tm_velopack::do_download () {
     Velopack::UpdateInfo info;
     {
       std::lock_guard<std::mutex> lk (rep->mtx);
-      if (rep->st != UPDATER_DOWNLOADING || !rep->info) return; // 仅 downloadUpdate 武装后可达
+      if (rep->st != UPDATER_DOWNLOADING || !rep->info)
+        return; // 仅 downloadUpdate 武装后可达
       info= *rep->info;
     }
     ensure_mgr ();
     rep->mgr->DownloadUpdates (info, &tm_velopack::progress_cb, this);
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_READY;
+    rep->st     = UPDATER_READY;
     rep->running= false;
-  }
-  catch (...) {
+  } catch (...) {
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_FAILED;
-    rep->error= exception_message ();
+    rep->st     = UPDATER_FAILED;
+    rep->error  = exception_message ();
     rep->running= false;
   }
 }
@@ -286,7 +297,7 @@ tm_velopack::applyUpdate () {
   {
     std::lock_guard<std::mutex> lk (rep->mtx);
     if (rep->st != UPDATER_READY || !rep->info) return false;
-    info= *rep->info;              // 锁内快照，锁外不再读共享 info
+    info   = *rep->info; // 锁内快照，锁外不再读共享 info
     rep->st= UPDATER_APPLYING;
   }
   try {
@@ -297,10 +308,9 @@ tm_velopack::applyUpdate () {
     // 更新器最多等待 60s 后放弃，且状态停留在 APPLYING。
     rep->mgr->WaitExitThenApplyUpdates (info.TargetFullRelease,
                                         /*silent*/ false, /*restart*/ true);
-  }
-  catch (...) {
+  } catch (...) {
     std::lock_guard<std::mutex> lk (rep->mtx);
-    rep->st= UPDATER_FAILED;
+    rep->st   = UPDATER_FAILED;
     rep->error= exception_message ();
     return false;
   }

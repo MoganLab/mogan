@@ -23,32 +23,33 @@
  * 泄漏到 glue 等编译单元，头文件仅多引入 <memory>。
  */
 class tm_velopack : public tm_updater {
-  struct tm_velopack_rep;                 // 内部实现，定义在 .cpp
+  struct tm_velopack_rep; // 内部实现，定义在 .cpp
   std::unique_ptr<tm_velopack_rep> rep;
 
   tm_velopack ();
   ~tm_velopack ();
   friend class tm_updater;
 
-  void do_check ();             // 工作线程：检查更新
-  void do_download ();          // 工作线程：下载更新
-  void ensure_mgr ();           // 惰性创建 UpdateManager
-  static void progress_cb (void* user_data, size_t progress); // Velopack 进度回调
+  void        do_check ();    // 工作线程：检查更新
+  void        do_download (); // 工作线程：下载更新
+  void        ensure_mgr ();  // 惰性创建 UpdateManager
+  static void progress_cb (void*  user_data,
+                           size_t progress); // Velopack 进度回调
 
 public:
-  bool checkInBackground ();
-  bool checkInForeground ();
-  bool isRunning () const;
+  bool   checkInBackground ();
+  bool   checkInForeground ();
+  bool   isRunning () const;
   time_t lastCheck () const;
-  bool setCheckInterval (int hours);
+  bool   setCheckInterval (int hours);
 
   tm_updater_state state () const;
-  string availableVersion () const;
-  string releaseNotes () const;
-  int progress () const;
-  string errorCode () const;
-  bool downloadUpdate ();
-  bool applyUpdate ();
+  string           availableVersion () const;
+  string           releaseNotes () const;
+  int              progress () const;
+  string           errorCode () const;
+  bool             downloadUpdate ();
+  bool             applyUpdate ();
 };
 
 #endif // TM_VELOPACK_HPP
