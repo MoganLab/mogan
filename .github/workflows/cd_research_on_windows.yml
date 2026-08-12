@@ -27,7 +27,7 @@ jobs:
         with:
           install_scoop: 'true'
           buckets: main
-          apps: wget pandoc ghostscript
+          apps: wget pandoc ghostscript dark
           update_path: 'true'
       - name: Noto fonts
         shell: pwsh
@@ -48,6 +48,10 @@ jobs:
         run: |
           cp ~\scoop\apps\pandoc\current\pandoc.exe D:\a\mogan\mogan\build\packages\stem\data\bin
           wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/gs.exe
+      # app-local CRT：stage 从 vc_redist.x64.exe 提取运行库 DLL 进 payload，
+      # 不再使用 vpk --framework（避免 Setup.exe 在用户机器上从微软 CDN 下载）。
+      # vc_redist.x64.exe 由 Qt 部署（windeployqt）在 xmake install 时从构建机
+      # VS 的 VC\Redist 目录自动拷入安装树 bin/（与旧 NSIS 流程一致），无需下载。
       # Velopack 已接管常规 Windows 发布（见 tools/release/*.lua）；NSIS
       # （xmake pack）仅迁移期桥接保留，迁移窗口结束、NSIS 桥接发布停用后再移除。
       # 注意：CI 产物不签名（VPK_SIGN_PARAMS 为空），正式签名在 SafeNet 签名机

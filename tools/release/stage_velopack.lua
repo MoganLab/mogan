@@ -17,8 +17,13 @@
 -- 应用按 $TEXMACS_PATH/progs、$TEXMACS_PATH/doc、$TEXMACS_PATH/fonts 等**扁平**
 -- 查找资源（见 init_texmacs.cpp 的 TEXMACS_PATH 探测），所以 TeXmacs 内容直接拷到
 -- 暂存根，不能收进 TeXmacs/ 包装目录，否则 $TEXMACS_PATH/progs 永远解析失败。
--- 辅助二进制（pandoc.exe、vc_redist.x64.exe 等）保留在暂存根 bin/ 子目录：
--- find-binary 与 pandoc 等按 $TEXMACS_PATH/bin 查找；.pdb 调试符号不发布。
+-- 辅助二进制（pandoc.exe 等）保留在暂存根 bin/ 子目录；vc_redist.x64.exe
+-- 只作为运行库提取源使用、不随包携带：Qt DLL 为 /MD，依赖 VC++ 14.3 运行库，
+-- 本脚本从官方 vc_redist.x64.exe 提取 vcruntime140/msvcp140 等 DLL 放进暂存根
+-- 做 app-local 部署（见步骤 4），安装期无需联网。该文件由 Qt 部署
+-- （windeployqt）在 xmake install 时从构建机 VS 的 VC\Redist 目录自动拷入
+-- 安装树 bin/（与旧 NSIS 流程一致）。find-binary 与 pandoc 等按
+-- $TEXMACS_PATH/bin 查找；.pdb 调试符号不发布。
 -- 目录拷贝一律用内容合并语义（merge_copy）：Qt 插件子目录（如 styles/）与同名
 -- 数据目录合并同层，避免 os.cp 在 dst 已存在时整目录嵌套成 dst/basename(src)。
 -- 为何不沿用 xpack 的 NSIS 目录布局：NSIS 允许任意 --packDir 结构，Velopack
@@ -82,14 +87,18 @@ end
 --    - 顶层 MoganSTEM.exe 与 *.dll（含 velopack_libc.dll、d3dcompiler、dxcompiler、
 --      dxil）拷到暂存根 —— Qt DLL 与主 exe 同根平铺，Qt 插件才能被发现
 --    - 顶层 *.pdb 跳过（调试符号不发布；vpk pack 默认 --exclude .*\.pdb 也会剔除）
---    - 顶层其他文件（pandoc.exe、vc_redist.x64.exe 等辅助程序）拷入暂存根 bin/ 子目录，
---      find-binary 与 pandoc 等按 $TEXMACS_PATH/bin 查找
+--    - 顶层其他文件（pandoc.exe 等辅助程序）拷入暂存根 bin/ 子目录，find-binary
+--      与 pandoc 等按 $TEXMACS_PATH/bin 查找；vc_redist.x64.exe 明确排除
+--      （仅作运行库提取源，见步骤 4）
 local bin_dir = path.join (src_dir, "bin")
 if os.isdir (bin_dir) then
     os.mkdir (path.join (out_dir, "bin"))
     for _, f in ipairs (os.files (path.join (bin_dir, "*"))) do
         local name = path.filename (f)
-        if name:match ("%.pdb$") then
+        if name:lower () == "vc_redist.x64.exe" then
+            -- 不随包携带：只用作 app-local 运行库提取源（见步骤 4），
+            -- 随包只是 ~25MB 死文件
+        elseif name:match ("%.pdb$") then
             -- 调试符号不发布
         elseif name:match ("%.dll$") or name == "MoganSTEM.exe" then
             os.cp (f, path.join (out_dir, name))
@@ -136,7 +145,71 @@ for _, name in ipairs ({"LICENSE", "TeXmacs.ico"}) do
     end
 end
 
--- 4) 清单校验：必选文件/目录缺失即失败（硬失败，不静默放行）
+-- 4) VC++ 运行库 app-local 部署：Qt DLL（Qt6Core.dll 等）为 /MD，依赖
+--    VC++ 14.3（VS2022）x64 运行库。从官方 vc_redist.x64.exe（源安装树 bin/
+--    下的文件，由 Qt 部署 windeployqt 从构建机 VS 的 VC\Redist 目录自动拷入，
+--    版本即构建机 VS 自带的运行库版本）提取运行库 DLL 放进暂存根、与 Qt DLL
+--    同根平铺，安装期不联网、不需要任何安装器步骤。提取依赖 dark.exe（WiX，
+--    scoop main bucket）与 msiexec /a（管理安装，只解文件不落系统）。
+--    vc_redist.x64.exe 缺失时硬失败。
+local vc_redist = path.join (bin_dir, "vc_redist.x64.exe")
+if os.isfile (vc_redist) then
+    local work = path.join (os.projectdir (), "build/velopack_crt_work")
+    if os.exists (work) then os.rm (work) end
+    os.mkdir (work)
+    -- payload 二进制实际引用的运行库 DLL（导入扫描结果）
+    local crt_dlls = {
+        "vcruntime140.dll", "vcruntime140_1.dll",
+        "msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll",
+        "msvcp140_atomic_wait.dll",
+    }
+    -- dark 解包 Burn 引导器，取出内嵌 MSI
+    local code = os.execv ("dark", {vc_redist, "-x", work}, {try = true})
+    if code ~= 0 then
+        cprint ("${bright red}error: dark 解包 vc_redist.x64.exe 失败，退出码 " .. code .. "${clear}")
+        os.exit (1)
+    end
+    -- 定位 x64 Minimum MSI（运行库 DLL 都在其中；Additional 只有 MFC，不需要）
+    local msi = nil
+    for _, f in ipairs (os.files (path.join (work, "AttachedContainer", "packages", "*", "*"))) do
+        local n = path.filename (f):lower ()
+        if n:match ("vc_runtimeminimum") and n:match ("%.msi$") and n:match ("x64") then
+            msi = f
+            break
+        end
+    end
+    if msi == nil then
+        cprint ("${bright red}error: vc_redist.x64.exe 中未找到 x64 Minimum MSI${clear}")
+        os.exit (1)
+    end
+    -- msiexec /a 管理安装：仅把 MSI 内容解到临时目录，不写系统
+    local msi_out = path.join (work, "msi")
+    code = os.execv ("msiexec.exe", {"/a", msi, "/qn", "TARGETDIR=" .. msi_out}, {try = true})
+    if code ~= 0 then
+        cprint ("${bright red}error: msiexec /a 提取运行库失败，退出码 " .. code .. "${clear}")
+        os.exit (1)
+    end
+    local sys64 = path.join (msi_out, "System64")
+    for _, n in ipairs (crt_dlls) do
+        local f = path.join (sys64, n)
+        if os.isfile (f) then
+            os.cp (f, path.join (out_dir, n))
+        else
+            cprint ("${bright red}error: 运行库缺少 " .. n .. "${clear}")
+            os.exit (1)
+        end
+    end
+    os.rm (work)
+    cprint ("${green}app-local 运行库已提取: " .. #crt_dlls .. " 个 DLL${clear}")
+else
+    cprint ("${bright red}error: 缺少 vc_redist.x64.exe: " .. vc_redist .. "${clear}")
+    cprint ("${yellow}该文件由 Qt 部署（windeployqt）在 xmake install 时从构建机 VS 的${clear}")
+    cprint ("${yellow}VC\\Redist 目录自动拷入；若缺失，请确认在 Windows + MSVC 下执行了 xmake install stem，${clear}")
+    cprint ("${yellow}或手动从 VS 的 VC\\Redist 拷贝一份到源安装树 bin/ 目录${clear}")
+    os.exit (1)
+end
+
+-- 5) 清单校验：必选文件/目录缺失即失败（硬失败，不静默放行）
 local ok = true
 if not os.isfile (path.join (out_dir, "MoganSTEM.exe")) then
     cprint ("${bright red}error: 暂存根缺少 MoganSTEM.exe${clear}")
@@ -150,7 +223,7 @@ for _, sub in ipairs ({"progs", "plugins", "fonts"}) do
     end
 end
 
--- 5) 全树扫描：运行期日志/构建中间产物（.log/.tmp/.pdb/~ 结尾、.git 目录）不得发布。
+-- 6) 全树扫描：运行期日志/构建中间产物（.log/.tmp/.pdb/~ 结尾、.git 目录）不得发布。
 --    merge_copy 已过滤 pdb，此处 %.pdb$ 是硬失败兜底：正常源树不应再出现 pdb，
 --    出现即说明拷贝逻辑有漏洞。用逐目录递归而不是 **/* 批量 glob：实测 xmake 的
 --    **/* 会漏掉深层大文件（如 fonts/opentype/noto 下的 CJK 字体），逐目录扫描才是
@@ -183,7 +256,7 @@ if #forbidden > 0 then
     os.exit (1)
 end
 
--- 6) 顶层条目应只有主 exe / bin / LICENSE / TeXmacs.ico + 平铺的 DLL、
+-- 7) 顶层条目应只有主 exe / bin / LICENSE / TeXmacs.ico + 平铺的 DLL、
 --    数据目录与 Qt 插件子目录。此处仅告警不失败：MoganSTEM.pdb 等构建中间产物
 --    会被 stage 显式跳过，vpk pack 阶段也会被默认 --exclude .*\.pdb 剔除。
 local named = {
@@ -202,7 +275,7 @@ if not ok then
     os.exit (1)
 end
 
--- 7) 汇总输出
+-- 8) 汇总输出
 local top_entries = #os.files (path.join (out_dir, "*")) + #os.dirs (path.join (out_dir, "*"))
 cprint ("${green}staging 完成: " .. out_dir .. "${clear}")
 cprint ("  顶层条目数: " .. top_entries)

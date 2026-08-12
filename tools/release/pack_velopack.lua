@@ -29,6 +29,13 @@
 -- 关于 MSI：--msi 暂不启用（默认 False）。按机器安装的 MSI 属独立渠道决策，
 -- 当前仍走每用户 Setup.exe 通道。
 --
+-- 关于 VC++ 运行库：Qt DLL（Qt6Core.dll 等）为 /MD，依赖 VC++ 14.3（VS2022）
+-- x64 运行库。stage_velopack.lua 已从官方 vc_redist.x64.exe 提取运行库 DLL
+-- （vcruntime140/vcruntime140_1/msvcp140 等）放进暂存根，与 Qt DLL 同根做
+-- app-local 部署：安装期不联网、无额外安装器步骤。因此这里不使用 vpk 的
+-- --framework vcredist143-x64（那会让 Setup.exe 在目标机缺库时从微软 CDN
+-- 下载并安装运行库）。
+--
 -- 环境变量覆盖：
 --   VPK_PATH         vpk 可执行文件；默认自动定位
 --   VPK_PACK_DIR     默认 build/velopack_staging

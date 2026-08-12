@@ -225,10 +225,8 @@ init_texmacs_path (int& argc, char** argv) {
   // PWD is set to HOME
   // if PWD is lacking, then the path resolution machinery may not work
 
-  if (exists (exedir * "progs"))
-    builtin_texmacs_path= as_string (exedir);
-  else
-    builtin_texmacs_path= as_string (exedir * "..");
+  if (exists (exedir * "progs")) builtin_texmacs_path= as_string (exedir);
+  else builtin_texmacs_path= as_string (exedir * "..");
   set_env ("TEXMACS_PATH", builtin_texmacs_path);
   // if (get_env ("HOME") == "") //now set in immediate_options otherwise
   // --setup option fails
