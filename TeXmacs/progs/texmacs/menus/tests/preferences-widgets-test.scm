@@ -57,7 +57,7 @@
     (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 15 14))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
-    (check (length (caddr (tab-ref meta "other"))) => (if (os-macos?) 15 13))
+    (check (length (caddr (tab-ref meta "other"))) => (if (os-macos?) 17 15))
   ) ;let
 ) ;define
 
