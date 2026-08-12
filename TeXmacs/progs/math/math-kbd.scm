@@ -1229,6 +1229,8 @@
   ("~ = /" "<ncong>")
 ) ;delayed-kbd-map
 
+(utf8-delayed-kbd-map (:mode in-math?) ("￥" (math-make-math)))
+
 (delayed-kbd-map (:mode in-math-or-hybrid?)
  ("/ \\" "<wedge>")
  ("/ \\ var " "<cap>")

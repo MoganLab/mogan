@@ -229,6 +229,12 @@
  ("std j" (toggle-chat-sidebar))
 ) ;kbd-map
 
+(utf8-kbd-map ("、" (if (or (inside? 'hybrid) (in-prog?)) (insert "<#3001>") (make-hybrid)))
+ ("、 var" "<#3001>")
+ ("￥" (make 'math))
+ ("￥ var" "<#FFE5>")
+) ;utf8-kbd-map
+
 (kbd-map (:require (list-structured-insert-context?))
  ("structured:insert delete" (structured-remove-down))
  ("structured:insert backspace" (structured-remove-up))

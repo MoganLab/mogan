@@ -512,9 +512,62 @@
   `(begin ,@(kbd-map-body '() l))
 ) ;tm-define-macro
 
+(tm-define (utf8-kbd-binding conds key2 cmd help)
+  (:synopsis "Helper routine for utf8-kbd-map macro")
+  (with key
+    (kbd-pre-rewrite (string-convert key2 "UTF-8" "Cork"))
+    (kbd-sub-bindings conds key)
+    (kbd-insert-key-binding conds key (list cmd help))
+  ) ;with
+) ;tm-define
+
+(define (utf8-kbd-map-one conds l)
+  (if (not (and (pair? l) (string? (car l)) (pair? (cdr l))))
+    (texmacs-error "utf8-kbd-map-pre-one" "Bad keymap in: ~S" l)
+  ) ;if
+  (with (key action . opt)
+    l
+    (if (string? action)
+      (with help
+        (if (null? opt) "" (car opt))
+        `(utf8-kbd-binding (list ,@conds) ,key ,action ,help)
+      ) ;with
+      `(utf8-kbd-binding (list ,@conds) ,key (lambda ,() ,action ,@opt) ,"")
+    ) ;if
+  ) ;with
+) ;define
+
+(define (utf8-kbd-map-body conds l)
+  (cond ((null? l) '())
+        ((symbol? (car l)) (utf8-kbd-map-body (list 0 (car l)) (cdr l)))
+        ((and (pair? (car l)) (== (caar l) :profile))
+         (if (not (has-look-and-feel? (cdar l)))
+           '((noop))
+           (utf8-kbd-map-body conds (cdr l))
+         ) ;if
+        ) ;
+        ((and (pair? (car l)) (keyword? (caar l)))
+         (utf8-kbd-map-body (kbd-add-condition conds (car l)) (cdr l))
+        ) ;
+        (else (map (lambda (x) (utf8-kbd-map-one conds x)) l))
+  ) ;cond
+) ;define
+
+(tm-define-macro (utf8-kbd-map . l)
+  (:synopsis "Add entries with UTF-8 key names to the keyboard mapping")
+  `(begin ,@(utf8-kbd-map-body '() l))
+) ;tm-define-macro
+
 (tm-define-macro (delayed-kbd-map . l)
   (:synopsis "Like kbd-map, but register bindings in chunks via the event loop")
   `(kbd-enqueue (list ,@(map (lambda (x) `(lambda ,() ,x)) (kbd-map-body '() l))))
+) ;tm-define-macro
+
+(tm-define-macro (utf8-delayed-kbd-map . l)
+  (:synopsis "Like utf8-kbd-map, but register bindings in chunks via the event loop"
+  ) ;:synopsis
+  `(kbd-enqueue (list ,@(map (lambda (x) `(lambda ,() ,x))
+                          (utf8-kbd-map-body '() l))))
 ) ;tm-define-macro
 
 (define (kbd-remove-one conds key)
