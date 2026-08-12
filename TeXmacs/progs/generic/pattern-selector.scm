@@ -19,22 +19,41 @@
 ;; Name conversions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (pattern-name->url s)
+  ;; 兼容旧版本写入的 /C/Users/... 路径。
+  (if (and (os-windows?)
+        (>= (string-length s) 3)
+        (== (string-ref s 0) #\/)
+        (char-alphabetic? (string-ref s 1))
+        (== (string-ref s 2) #\/)
+      ) ;and
+    (system->url (string-append (substring s 1 2) ":" (substring s 2 (string-length s)))
+    ) ;system->url
+    (unix->url s)
+  ) ;if
+) ;define
+
+(define (pattern-url->name u)
+  ;; 用正斜杠避免 Windows 反斜杠破坏偏好设置的 Scheme 语法。
+  (if (os-windows?) (string-replace (url->system u) "\\" "/") (url->unix u))
+) ;define
+
 (define (encode-pattern-name u)
   (let* ((name (if (string? u) u (url->unix u)))
          (t (url->unix (url-tail u)))
          (p (url->unix "$TEXMACS_PATH/misc/patterns"))
          (a (url->unix "$TEXMACS_PATH/misc"))
-         (p* (url-append (unix->url p) "dummy"))
-         (a* (url-append (unix->url a) "dummy"))
+         (p* (url-append (pattern-name->url p) "dummy"))
+         (a* (url-append (pattern-name->url a) "dummy"))
         ) ;
-    (cond ((string-starts? name p) (url->unix (url-delta p* (unix->url name))))
+    (cond ((string-starts? name p) (url->unix (url-delta p* (pattern-name->url name))))
           (else u)
     ) ;cond
   ) ;let*
 ) ;define
 
 (define (decode-pattern-name s)
-  (let* ((name (unix->url s))
+  (let* ((name (pattern-name->url s))
          (base1 "$TEXMACS_PATH/misc/patterns/neutral-pattern.png")
          (base2 "$TEXMACS_PATH/misc/pictures/gradients/vertical-white-black.png")
          (base (if global-gradient? base2 base1))
@@ -239,7 +258,12 @@
 ) ;define
 
 (define (normalize-color col)
-  (if (tm-func? col 'pattern) (apply tm-pattern (cdr col)) col)
+  ;; 图片选择器已经将本地路径规范化为可写入文档的 Unix 形式。
+  ;; 再经 tm-pattern 转为系统路径会在 Windows 偏好项中留下反斜杠。
+  (if (and (tm-func? col 'pattern) (not global-picture?))
+    (apply tm-pattern (cdr col))
+    col
+  ) ;if
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -247,16 +271,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget (pattern-name-selector)
-  (let* ((name (unix->url (get-name)))
+  (let* ((name (pattern-name->url (get-name)))
          (curr (decode-pattern-name (get-name)))
          (setter (lambda (c)
                    (when (and (pair? c) (url? (car c)))
-                     (set-name (url->unix (car c)))
+                     (set-name (pattern-url->name (car c)))
                    ) ;when
                  ) ;lambda
          ) ;setter
         ) ;
-    (hlist (enum (set-name (url->unix answer))
+    (hlist (enum (set-name (pattern-url->name answer))
              (list `(verbatim ,(url->system name)) "")
              `(verbatim ,(url->system name))
              "15em"
@@ -269,7 +293,7 @@
               (choose-file setter "Background pattern" "image" "" curr)
              ) ;
              (global-gradient? (choose-file setter "Background gradient" "image" "" curr))
-             ((url-rooted? (unix->url (get-name)))
+             ((url-rooted? (pattern-name->url (get-name)))
               (choose-file setter "Background picture" "image" "" curr)
              ) ;
              (else (choose-file setter "Background picture" "image"))

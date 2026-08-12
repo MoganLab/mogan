@@ -2059,13 +2059,25 @@ tree
 edit_env_rep::exec_pattern (tree t) {
   if (N (t) < 1) return tree (ERROR, "bad pattern");
   if (no_patterns && N (t) == 4 && is_atomic (t[3])) return exec (t[3]);
-  url im= url_system (exec_string (t[0]));
+  string name= exec_string (t[0]);
+  // 选择器保存的 C:/ 路径须经系统解析器识别为盘符路径。
+  url im= url_system (name);
   url image;
   if (is_none (base_file_name)) {
     image= resolve_pattern (im);
   }
   else {
     image= resolve_pattern (relative (base_file_name, im));
+  }
+  if (is_none (image)) {
+    // 保持对旧版 Unix 形式路径的兼容。
+    im= url_unix (name);
+    if (is_none (base_file_name)) {
+      image= resolve_pattern (im);
+    }
+    else {
+      image= resolve_pattern (relative (base_file_name, im));
+    }
   }
   if (is_none (image)) return "white";
   int imw_pt, imh_pt;

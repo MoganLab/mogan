@@ -108,8 +108,14 @@ url
 brush_rep::get_pattern_url () {
   tree t= get_pattern ();
   if (is_atomic (t) || N (t) == 0 || !is_atomic (t[0])) return url ();
-  url u= url_system (as_string (t[0]));
+  string name= as_string (t[0]);
+  // 选择器保存的 C:/ 路径须经系统解析器识别为盘符路径。
+  url u= url_system (name);
   url r= resolve_pattern (u);
+  if (!is_none (r)) return r;
+  // 保持对旧版 Unix 形式路径的兼容。
+  u= url_unix (name);
+  r= resolve_pattern (u);
   if (!is_none (r)) return r;
 #if defined(KERNEL_L3)
   url base= url_pwd ();

@@ -13,6 +13,7 @@
 
 #include "base.hpp"
 #include "brush.hpp"
+#include "tm_url.hpp"
 
 #include <QtTest/QtTest>
 #include <moebius/tree_label.hpp>
@@ -28,6 +29,7 @@ private slots:
   void test_atomic_color ();
   void test_pattern_three_args ();
   void test_pattern_four_args ();
+  void test_pattern_system_url ();
   void test_malformed_patterns ();
 };
 
@@ -48,6 +50,15 @@ void
 TestBrush::test_pattern_four_args () {
   tree p (PATTERN, "paper.png", "100%", "100%", "white");
   QCOMPARE (brush (p)->get_type (), brush_pattern);
+}
+
+void
+TestBrush::test_pattern_system_url () {
+#if defined(OS_MINGW) || defined(OS_WIN)
+  url picture= url_system ("C:/Users/test/Picture.png");
+  QCOMPARE (as_string (picture, URL_SYSTEM),
+            string ("C:\\Users\\test\\Picture.png"));
+#endif
 }
 
 void
