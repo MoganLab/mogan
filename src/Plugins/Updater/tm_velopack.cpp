@@ -159,27 +159,10 @@ tm_velopack::checkInBackground () {
   return true;
 }
 
-bool
-tm_velopack::checkInForeground () {
-  return checkInBackground ();
-}
-
-bool
-tm_velopack::isRunning () const {
-  std::lock_guard<std::mutex> lk (rep->mtx);
-  return rep->running;
-}
-
 time_t
 tm_velopack::lastCheck () const {
   std::lock_guard<std::mutex> lk (rep->mtx);
   return rep->last;
-}
-
-bool
-tm_velopack::setCheckInterval (int hours) {
-  interval= hours;
-  return true;
 }
 
 void

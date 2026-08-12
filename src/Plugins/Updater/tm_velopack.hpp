@@ -38,10 +38,7 @@ class tm_velopack : public tm_updater {
 
 public:
   bool   checkInBackground ();
-  bool   checkInForeground ();
-  bool   isRunning () const;
   time_t lastCheck () const;
-  bool   setCheckInterval (int hours);
 
   tm_updater_state state () const;
   string           availableVersion () const;

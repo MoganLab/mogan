@@ -124,29 +124,6 @@
   ) ;let*
 ) ;define
 
-;; updater last check：info 行显示上次检查更新时间（updater 插件注入）。
-
-(define (updater-last-check-formatted)
-  "Time since last update check formatted for use in the preferences dialog"
-  (with c
-    (updater-last-check)
-    (if (<= c 0)
-      "Never"
-      (with h
-        (ceiling (/ (- (current-time) c) 3600))
-        (cond ((< h 24) (replace "Less than %1 hour(s) ago" h))
-              ((< h 720) (replace "%1 days ago" (ceiling (/ h 24))))
-              (else (translate "More than 1 month ago"))
-        ) ;cond
-      ) ;with
-    ) ;if
-  ) ;with
-) ;define
-
-(define (last-check-string)
-  (if (use-plugin-updater?) (updater-last-check-formatted) "Never (unsupported)")
-) ;define
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; QML facade 纯函数族：紧凑字段格式 (key label options options-pretty
 ;; editable? . flags) -> assoc-list field-descriptor（供 C++ bridge 消费）。
@@ -276,7 +253,6 @@
           ((== (cdr pf) 'macos-only) (os-macos?))
           ((== (cdr pf) 'native-pdf-only) (supports-native-pdf?))
           ((== (cdr pf) 'qt-only) (qt-gui?))
-          ((== (cdr pf) 'updater-only) (use-plugin-updater?))
           (else #t)
     ) ;cond
   ) ;let*
@@ -304,8 +280,6 @@
         ((== key "latex:transparent-source-tracking")
          (if (get-latex-transparent-source-tracking) "on" "off")
         ) ;
-        ;; Last check info：非真实 preference，显示上次检查更新时间（updater 插件注入）。
-        ((== key "updater:last-check") (last-check-string))
         ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
         (else "")
   ) ;cond

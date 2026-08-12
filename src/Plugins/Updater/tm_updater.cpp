@@ -38,27 +38,9 @@ tm_updater::instance () {
  ******************************************************************************/
 
 bool
-updater_is_running () {
-  tm_updater* updater= tm_updater::instance ();
-  return updater && updater->isRunning ();
-}
-
-bool
 updater_check_background () {
   tm_updater* updater= tm_updater::instance ();
   return updater && updater->checkInBackground ();
-}
-
-bool
-updater_check_foreground () {
-  tm_updater* updater= tm_updater::instance ();
-  return updater && updater->checkInForeground ();
-}
-
-bool
-updater_set_interval (int hours) {
-  tm_updater* updater= tm_updater::instance ();
-  return updater && updater->setCheckInterval (hours);
 }
 
 time_t

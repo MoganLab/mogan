@@ -15,10 +15,6 @@
 
 (texmacs-module (utils misc updater))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Preference management
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (tm-define (updater-initialize)
   (when (use-plugin-updater?)
     (updater-check-background)
@@ -26,8 +22,6 @@
     (updater-auto-download-loop)
   ) ;when
 ) ;tm-define
-
-(define-preferences ("updater:interval" "null" noop))
 
 ;; 下载已可用更新（非更新器平台或未到 available 状态返回 #f）。
 ;; 返回是否已启动下载。

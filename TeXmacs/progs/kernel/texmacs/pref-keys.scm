@@ -220,7 +220,6 @@
 (define-public (pref-security) "security")
 (define-public (pref-scripting-language) "scripting language")
 (define-public (pref-document-update-times) "document update times")
-(define-public (pref-updater-interval) "updater:interval")
 
 ;; ---- Other / Experimental toggles ----
 (define-public (pref-experimental-fast-environments) "fast environments")

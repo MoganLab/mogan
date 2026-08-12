@@ -202,14 +202,6 @@
  ("accept all scripts" "Accept all scripts")
 ) ;define-preference-names
 
-(define-preference-names "updater:interval"
- ("0" "Never")
- ("0" "Unsupported")
- ("24" "Once a day")
- ("168" "Once a week")
- ("720" "Once a month")
-) ;define-preference-names
-
 (define-preference-names "document update times"
  ("1" "Once")
  ("2" "Twice")
@@ -951,27 +943,6 @@
       '("1" "2" "3")
       '("Once" "Twice" "Three times")
       #f
-    ) ;list
-    ;; updater 字段仅启用插件更新器时可见（use-plugin-updater?）。
-    (list (pref-updater-interval)
-      "Check for automatic updates"
-      '("0" "24" "168" "720")
-      '("Never" "Once a day" "Once a week" "Once a month")
-      #f
-      'platform-filter
-      'updater-only
-    ) ;list
-    ;; Last check：info 只读行，显示上次检查更新时间（updater 插件启用时）。
-    ;; 'info flag 显式标 info kind（key 非空但无 setter、不入 diff）。
-    (list "updater:last-check"
-      "Last check"
-      '()
-      '()
-      #f
-      'info
-      #t
-      'platform-filter
-      'updater-only
     ) ;list
   ) ;list
 ) ;define
