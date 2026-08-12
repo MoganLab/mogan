@@ -23,6 +23,7 @@
   (when (use-plugin-updater?)
     (updater-check-background)
     (updater-scheduled-check)
+    (updater-auto-download-loop)
   ) ;when
 ) ;tm-define
 
@@ -57,5 +58,19 @@
       (updater-check-background)
     ) ;when
     (delayed (:idle 600000) (updater-scheduled-check))
+  ) ;when
+) ;tm-define
+
+;; 自动下载监听循环：每秒轮询一次状态机，available（==2）时自动触发下载。
+;; 下载就绪（==4）后不再动作（下次启动由 VelopackApp 自动应用）；失败（==6）
+;; 时同样不动作，等下一次定时检查（1 小时）重新发现更新后再试。
+;; 由 updater-initialize 启动；guard 保证仅更新器平台进入。
+
+(tm-define (updater-auto-download-loop)
+  (when (use-plugin-updater?)
+    (when (== (updater-state) 2)
+      (updater-download-update)
+    ) ;when
+    (delayed (:idle 1000) (updater-auto-download-loop))
   ) ;when
 ) ;tm-define
