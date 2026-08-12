@@ -145,7 +145,7 @@
 
 (define (user-confirm-open-pdf fname)
   (user-simple-confirm "Open PDF?"
-    #f
+    #t
     (lambda (open?) (when open? (preview-file fname)))
   ) ;user-simple-confirm
 ) ;define
