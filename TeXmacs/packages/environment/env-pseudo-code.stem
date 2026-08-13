@@ -1,18 +1,18 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : env-pseudo-code.stem
+;; COPYRIGHT   : (C) 2012--2014  François Poulain, Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (document (TeXmacs "1.99.8")
   (style (tuple "source" "std"))
   (body (document (active* (src-title (document (src-package "env-pseudo-code" "1.0")
                                         (src-purpose (document "Some environments for typesetting pseudo-code."))
-                                        (src-copyright "2012--2014" "François Poulain, Joris van der Hoeven")
-                                        (src-license (document (concat "This software falls under the "
-                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
-                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
-                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
-                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
-                                                                 ) ;hlink
-                                                                 "."
-                                                               ) ;concat
-                                                     ) ;document
-                                        ) ;src-license
                                       ) ;document
                            ) ;src-title
                   ) ;active*
