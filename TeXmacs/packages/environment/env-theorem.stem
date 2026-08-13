@@ -1,0 +1,48 @@
+(document (TeXmacs "2.1.4")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "env-theorem" "1.0")
+                                        (src-purpose (document "Standard theorem-like environments."))
+                                        (src-copyright "1998--2018" "Joris van der Hoeven")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-package "environment/env-enunciation")
+          (active* (document (src-comment (document "Standard theorems, remarks and exercises.")))
+          ) ;active*
+          (new-theorem "theorem" "Theorem")
+          (new-theorem "proposition" "Proposition")
+          (new-theorem "lemma" "Lemma")
+          (new-theorem "corollary" "Corollary")
+          (new-theorem "axiom" "Axiom")
+          (new-remark "fact" "Fact")
+          (new-theorem "notation" "Notation")
+          (new-theorem "conjecture" "Conjecture")
+          ""
+          (new-remark "definition" "Definition")
+          (new-remark "assumption" "Assumption")
+          (new-remark "remark" "Remark")
+          (new-remark "example" "Example")
+          (new-remark "note" "Note")
+          (new-remark "warning" "Warning")
+          (new-remark "convention" "Convention")
+          (new-remark "acknowledgments" "Acknowledgments")
+          ""
+          (new-exercise "exercise" "Exercise")
+          (new-exercise "problem" "Problem")
+          (new-exercise "solution" "Solution")
+          (new-question "question" "Question")
+          (new-question "answer" "Answer")
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

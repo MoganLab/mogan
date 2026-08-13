@@ -1,0 +1,427 @@
+(document (TeXmacs "1.99.6")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "env-base" "1.0")
+                                        (src-purpose (document "Managing groups of environments."))
+                                        (src-copyright "1998--2011" "Joris van der Hoeven")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Groups and counters for all standard environments."))
+                   ) ;document
+          ) ;active*
+          (new-counter-group "std-env")
+          (new-counter-group "theorem-env")
+          (add-to-counter-group "theorem-env" "std-env")
+          (group-common-counter "theorem-env")
+          (new-counter-group "exercise-env")
+          (add-to-counter-group "exercise-env" "std-env")
+          (group-individual-counters "exercise-env")
+          (add-to-counter-group "algorithm-env" "std-env")
+          (group-individual-counters "algorithm-env")
+          (new-counter-group "question-env")
+          (add-to-counter-group "question-env" "std-env")
+          (group-individual-counters "question-env")
+          (new-counter-group "figure-env")
+          (add-to-counter-group "figure-env" "std-env")
+          (group-individual-counters "figure-env")
+          (add-to-counter-group "equation" "std-env")
+          (add-to-counter-group "footnote" "std-env")
+          (assign "resetstdenv" (macro (reset-std-env)))
+          (active* (document (src-comment (document "Defining new enunciations."))))
+          (assign "env-number" (macro "num" (with "font-shape" "right" (arg "num"))))
+          (assign "new-env"
+            (macro "env"
+              "name"
+              "grp"
+              "render"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (concat (add-to-counter-group ,(arg "env") ,(arg "grp"))
+                         (assign ,(merge (arg "env") "-text") (macro (localize ,(arg "name"))))
+                         (assign ,(merge (arg "env") "-numbered")
+                           (macro "text" "num" (concat (arg "text") " " (env-number (arg "num"))))
+                         ) ;assign
+                         (assign ,(merge (arg "env") "-unnumbered") (macro "text" (arg "text")))
+                         (assign ,(arg "env")
+                           (macro "body"
+                             (document (surround (compound ,(merge "next-"
+                                                              (arg "env")))
+                                         ""
+                                         (style-with "src-compact"
+                                           "none"
+                                           (compound ,(arg "render")
+                                             (style-with "src-compact"
+                                               "none"
+                                               (compound ,(merge (arg "env")
+                                                            "-numbered")
+                                                 (compound ,(merge (arg "env")
+                                                              "-text"))
+                                                 (compound ,(merge "the-"
+                                                              (arg "env")))
+                                               ) ;compound
+                                             ) ;style-with
+                                             (arg "body")
+                                           ) ;compound
+                                         ) ;style-with
+                                       ) ;surround
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge (arg "env") "*")
+                           (macro "body"
+                             (document (style-with "src-compact"
+                                         "none"
+                                         (compound ,(arg "render")
+                                           (style-with "src-compact"
+                                             "none"
+                                             (compound ,(merge (arg "env")
+                                                          "-unnumbered")
+                                               (compound ,(merge (arg "env")
+                                                            "-text"))
+                                             ) ;compound
+                                           ) ;style-with
+                                           (arg "body")
+                                         ) ;compound
+                                       ) ;style-with
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                       ) ;concat
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (assign "new-theorem"
+            (macro "env"
+              "name"
+              (new-env (arg "env") (arg "name") "theorem-env" "render-theorem")
+            ) ;macro
+          ) ;assign
+          (assign "new-remark"
+            (macro "env"
+              "name"
+              (new-env (arg "env") (arg "name") "theorem-env" "render-remark")
+            ) ;macro
+          ) ;assign
+          (assign "new-exercise"
+            (macro "env"
+              "name"
+              (new-env (arg "env") (arg "name") "exercise-env" "render-exercise")
+            ) ;macro
+          ) ;assign
+          (assign "new-question"
+            (macro "env"
+              "name"
+              (new-env (arg "env") (arg "name") "question-env" "render-remark")
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Defining new algorithmic environments.")))
+          ) ;active*
+          (assign "new-algorithm"
+            (macro "env"
+              "name"
+              "render"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (concat (add-to-counter-group ,(arg "env") "algorithm-env")
+                         (assign ,(merge (arg "env") "-text") (macro (localize ,(arg "name"))))
+                         (assign ,(arg "env")
+                           (macro "body"
+                             (document (surround (compound ,(merge "next-"
+                                                              (arg "env")))
+                                         ""
+                                         (document (render-algorithm (concat (compound ,(merge (arg "env")
+                                                                                          "-text"))
+                                                                       " "
+                                                                       (with "font-shape" "right" (compound ,(merge "the-"
+                                                                                                               (arg "env"))))
+                                                                     ) ;concat
+                                                     (document (arg "body"))
+                                                   ) ;render-algorithm
+                                         ) ;document
+                                       ) ;surround
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge (arg "env") "*")
+                           (macro "body"
+                             (document (render-algorithm (compound ,(merge (arg "env")
+                                                                      "-text"))
+                                         (document (arg "body"))
+                                       ) ;render-algorithm
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "named-" (arg "env"))
+                           (macro "name"
+                             "body"
+                             (document (render-algorithm (concat (compound ,(merge (arg "env")
+                                                                              "-text")) " " (arg "name"))
+                                         (document (arg "body"))
+                                       ) ;render-algorithm
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "specified-" (arg "env"))
+                           (macro "intro"
+                             "body"
+                             (document (surround (compound ,(merge "next-"
+                                                              (arg "env")))
+                                         ""
+                                         (document (render-specified-algorithm (concat (compound ,(merge (arg "env")
+                                                                                                    "-text"))
+                                                                                 " "
+                                                                                 (with "font-shape" "right" (compound ,(merge "the-"
+                                                                                                                         (arg "env"))))
+                                                                               ) ;concat
+                                                     (document (arg "intro"))
+                                                     (document (arg "body"))
+                                                   ) ;render-specified-algorithm
+                                         ) ;document
+                                       ) ;surround
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "specified-" (arg "env") "*")
+                           (macro "intro"
+                             "body"
+                             (document (render-specified-algorithm (compound ,(merge (arg "env")
+                                                                                "-text"))
+                                         (document (arg "intro"))
+                                         (document (arg "body"))
+                                       ) ;render-specified-algorithm
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "named-specified-" (arg "env"))
+                           (macro "name"
+                             "intro"
+                             "body"
+                             (document (render-specified-algorithm (concat (compound ,(merge (arg "env")
+                                                                                        "-text")) " " (arg "name"))
+                                         (document (arg "intro"))
+                                         (document (arg "body"))
+                                       ) ;render-specified-algorithm
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                       ) ;concat
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Defining new figure-like environments.")))
+          ) ;active*
+          (assign "new-figure"
+            (macro "env"
+              "name"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (concat (add-to-counter-group ,(arg "env") "figure-env")
+                         (assign ,(merge (arg "env") "-text") (macro (localize ,(arg "name"))))
+                         (assign ,(merge "small-" (arg "env"))
+                           (macro "body"
+                             "caption"
+                             (style-with "src-compact"
+                               "none"
+                               (concat (compound ,(merge "next-" (arg "env")))
+                                 (style-with "src-compact"
+                                   "none"
+                                   (render-small-figure ,(arg "env")
+                                     (style-with "src-compact"
+                                       "none"
+                                       (concat (compound ,(merge (arg "env")
+                                                            "-text"))
+                                         " "
+                                         (compound ,(merge "the-" (arg "env")))
+                                       ) ;concat
+                                     ) ;style-with
+                                     (arg "body")
+                                     (surround (set-binding (compound ,(merge "the-"
+                                                                         (arg "env"))))
+                                       ""
+                                       (arg "caption")
+                                     ) ;surround
+                                   ) ;render-small-figure
+                                 ) ;style-with
+                               ) ;concat
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "small-" (arg "env") "*")
+                           (macro "body"
+                             "caption"
+                             (style-with "src-compact"
+                               "none"
+                               (render-small-figure ,(arg "env")
+                                 (compound ,(merge (arg "env") "-text"))
+                                 (arg "body")
+                                 (arg "caption")
+                               ) ;render-small-figure
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "big-" (arg "env"))
+                           (macro "body"
+                             "caption"
+                             (document (surround (compound ,(merge "next-"
+                                                              (arg "env")))
+                                         ""
+                                         (style-with "src-compact"
+                                           "none"
+                                           (render-big-figure ,(arg "env")
+                                             (style-with "src-compact"
+                                               "none"
+                                               (concat (compound ,(merge (arg "env")
+                                                                    "-text"))
+                                                 " "
+                                                 (compound ,(merge "the-"
+                                                              (arg "env")))
+                                               ) ;concat
+                                             ) ;style-with
+                                             (arg "body")
+                                             (surround (set-binding (compound ,(merge "the-"
+                                                                                 (arg "env"))))
+                                               ""
+                                               (arg "caption")
+                                             ) ;surround
+                                           ) ;render-big-figure
+                                         ) ;style-with
+                                       ) ;surround
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "big-" (arg "env") "*")
+                           (macro "body"
+                             "caption"
+                             (document (style-with "src-compact"
+                                         "none"
+                                         (render-big-figure ,(arg "env")
+                                           (compound ,(merge (arg "env")
+                                                        "-text"))
+                                           (arg "body")
+                                           (arg "caption")
+                                         ) ;render-big-figure
+                                       ) ;style-with
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                       ) ;concat
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (assign "new-table"
+            (macro "env"
+              "name"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (concat (add-to-counter-group ,(arg "env") "figure-env")
+                         (assign ,(merge (arg "env") "-text") (macro (localize ,(arg "name"))))
+                         (assign ,(merge "small-" (arg "env"))
+                           (macro "body"
+                             "caption"
+                             (style-with "src-compact"
+                               "none"
+                               (concat (compound ,(merge "next-" (arg "env")))
+                                 (style-with "src-compact"
+                                   "none"
+                                   (render-small-table ,(arg "env")
+                                     (style-with "src-compact"
+                                       "none"
+                                       (concat (compound ,(merge (arg "env")
+                                                            "-text"))
+                                         " "
+                                         (compound ,(merge "the-" (arg "env")))
+                                       ) ;concat
+                                     ) ;style-with
+                                     (arg "body")
+                                     (surround (set-binding (compound ,(merge "the-"
+                                                                         (arg "env"))))
+                                       ""
+                                       (arg "caption")
+                                     ) ;surround
+                                   ) ;render-small-table
+                                 ) ;style-with
+                               ) ;concat
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "small-" (arg "env") "*")
+                           (macro "body"
+                             "caption"
+                             (style-with "src-compact"
+                               "none"
+                               (render-small-table ,(arg "env")
+                                 (compound ,(merge (arg "env") "-text"))
+                                 (arg "body")
+                                 (arg "caption")
+                               ) ;render-small-table
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "big-" (arg "env"))
+                           (macro "body"
+                             "caption"
+                             (document (surround (compound ,(merge "next-"
+                                                              (arg "env")))
+                                         ""
+                                         (style-with "src-compact"
+                                           "none"
+                                           (render-big-table ,(arg "env")
+                                             (style-with "src-compact"
+                                               "none"
+                                               (concat (compound ,(merge (arg "env")
+                                                                    "-text"))
+                                                 " "
+                                                 (compound ,(merge "the-"
+                                                              (arg "env")))
+                                               ) ;concat
+                                             ) ;style-with
+                                             (arg "body")
+                                             (surround (set-binding (compound ,(merge "the-"
+                                                                                 (arg "env"))))
+                                               ""
+                                               (arg "caption")
+                                             ) ;surround
+                                           ) ;render-big-table
+                                         ) ;style-with
+                                       ) ;surround
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign ,(merge "big-" (arg "env") "*")
+                           (macro "body"
+                             "caption"
+                             (document (style-with "src-compact"
+                                         "none"
+                                         (render-big-table ,(arg "env")
+                                           (compound ,(merge (arg "env")
+                                                        "-text"))
+                                           (arg "body")
+                                           (arg "caption")
+                                         ) ;render-big-table
+                                       ) ;style-with
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                       ) ;concat
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

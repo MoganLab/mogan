@@ -1,0 +1,148 @@
+(document (TeXmacs "1.99.13")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "env-enunciation" "1.0")
+                                        (src-purpose (document "Rendering of theorem-like environments."))
+                                        (src-copyright "1998--2018" "Joris van der Hoeven")
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Style parameters"))))
+          (assign "enunciation-name" (macro "name" (strong (arg "name"))))
+          (assign "enunciation-sep" (macro ". "))
+          (assign "theorem-name" (macro "name" (enunciation-name (arg "name"))))
+          (assign "theorem-sep" (macro (enunciation-sep)))
+          (assign "remark-name" (macro "name" (enunciation-name (arg "name"))))
+          (assign "remark-sep" (macro (enunciation-sep)))
+          (assign "exercise-name" (macro "name" (enunciation-name (arg "name"))))
+          (assign "exercise-sep" (macro (enunciation-sep)))
+          (assign "exercise-indentation" "1tab")
+          ""
+          (drd-props "enunciation-sep" "macro-parameter" "string")
+          (drd-props "theorem-sep" "macro-parameter" "string")
+          (drd-props "remark-sep" "macro-parameter" "string")
+          (drd-props "exercise-sep" "macro-parameter" "string")
+          (active* (document (src-comment (document "Rendering of theorem-like environments and exercises."))
+                   ) ;document
+          ) ;active*
+          (assign "render-enunciation"
+            (macro "which"
+              "body"
+              (document (padded* (document (surround (arg "which") (yes-indent*) (arg "body"))))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-remark"
+            (macro "which"
+              "body"
+              (document (render-enunciation (remark-name (concat (arg "which") (remark-sep)))
+                          (arg "body")
+                        ) ;render-enunciation
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-theorem"
+            (macro "which"
+              "body"
+              (document (render-enunciation (theorem-name (concat (arg "which") (theorem-sep)))
+                          (with "font-shape" "italic" (arg "body"))
+                        ) ;render-enunciation
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-exercise"
+            (macro "which"
+              "body"
+              (document (padded (document (indent-left (value "exercise-indentation")
+                                            (document (small (document (surround (exercise-name (concat (arg "which") (exercise-sep)))
+                                                                         (yes-indent*)
+                                                                         (arg "body")
+                                                                       ) ;surround
+                                                             ) ;document
+                                                      ) ;small
+                                            ) ;document
+                                          ) ;indent-left
+                                ) ;document
+                        ) ;padded
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Further markup related to theorems.")))
+          ) ;active*
+          (assign "dueto"
+            (macro "name"
+              (with "font-shape" "right" (theorem-name (concat "(" (arg "name") ") ")))
+            ) ;macro
+          ) ;assign
+          (assign "qed" (macro (math-ignore (active* (with "mode" "math" "<box>")))))
+          (assign "tab-qed" (macro (concat (htab "0.5fn" "0") (qed))))
+          (assign "tmhtml-tab-qed" (macro (concat (space "1em") (qed))))
+          ""
+          (assign "proof-text" (macro (localize "Proof")))
+          (assign "solution-text" (macro (localize "Solution")))
+          (assign "answer-text" (macro (localize "Answer")))
+          ""
+          (assign "render-proof"
+            (macro "which"
+              "body"
+              (document (surround ""
+                          (if (occurs-inside '(qed) "body") "" (tab-qed))
+                          (document (render-remark (arg "which") (document (arg "body"))))
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "proof"
+            (macro "body" (document (render-proof (proof-text) (arg "body"))))
+          ) ;assign
+          (assign "proof-of"
+            (macro "what"
+              "body"
+              (document (render-proof (concat (proof-text) " " (arg "what")) (arg "body")))
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "render-solution"
+            (macro "which"
+              "body"
+              (document (render-exercise (arg "which")
+                          (document (with "par-left" "0em" (document (arg "body"))))
+                        ) ;render-exercise
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "solution-old"
+            (macro "body" (document (render-solution (solution-text) (arg "body"))))
+          ) ;assign
+          (assign "solution-of"
+            (macro "what"
+              "body"
+              (document (render-solution (concat (solution-text) " " (arg "what")) (arg "body"))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "render-answer" (value "render-remark"))
+          (assign "answer-old"
+            (macro "body" (document (render-answer (answer-text) (arg "body"))))
+          ) ;assign
+          (assign "answer-to"
+            (macro "what"
+              "body"
+              (document (answer-answer (concat (answer-text) " " (arg "what")) (arg "body")))
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document
