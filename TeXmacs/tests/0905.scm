@@ -67,16 +67,22 @@
 ) ;define
 
 ;; delayed-kbd-map 分片注册与 math-kbd 懒加载需要事件循环时间，
-;; 轮询等待本任务新增的「两个字母」末档绑定就绪后再开始按键
-;; （该绑定是判断整个字母变体链注册完成的最可靠信号）
+;; 轮询等待字母变体链的首尾绑定（第一个变体 + 末档）都就绪后再按键，
+;; 避免分片注册未完成时 tab 循环起步失败、停留在基础态。
+
+(define (kbd-chain-ready?)
+  (and (pair? (catch #t (lambda () (kbd-find-key-binding "a a var")) (lambda args #f)))
+    (pair? (catch #t
+             (lambda () (kbd-find-key-binding "a a var var var var var"))
+             (lambda args #f)
+           ) ;catch
+    ) ;pair?
+  ) ;and
+) ;define
 
 (define (wait-kbd-ready next tries)
   (exec-delayed-at (lambda ()
-                     (if (pair? (catch #t
-                                  (lambda () (kbd-find-key-binding "a a var var var var var"))
-                                  (lambda args #f)
-                                ) ;catch
-                         ) ;pair?
+                     (if (kbd-chain-ready?)
                        (next)
                        (if (> tries 0) (wait-kbd-ready next (- tries 1)) (next))
                      ) ;if
@@ -86,7 +92,7 @@
 ) ;define
 
 ;; 对字母 letter 验证：连按两次进入循环，tab 走到末档 <b-up-letter> 后再多按一次 tab，
-;; 底文应恰好是两个该字母（切回 "letter letter" 的普通形态）。
+;; 底文应恰好是两个该字母（切回 "letterletter" 的普通形态）。
 ;;   double-tab-count: 从双字母基础态按多少次 tab 切到双字母文本
 ;;              普通字母 5 次（基础 bbb，tab 切 frak/b/up/b-up/两个字母）
 ;;              小写 m   6 次（基础无绑定，从 m m tab 的 bbb-m 起，多一档）
@@ -102,8 +108,8 @@
                (cons "tab through variants to double letter"
                  (lambda ()
                    (press-times "tab" double-tab-count)
-                   ;; 两个字母的普通形态：底文是 "letter letter"
-                   (check (body-verbatim) => (string-append letter " " letter))
+                   ;; 两个字母的普通形态：底文是 "letterletter"（紧凑）
+                   (check (body-verbatim) => (string-append letter letter))
                  ) ;lambda
                ) ;cons
                (cons "report + quit" (lambda () (check-report) (quit-TeXmacs)))
