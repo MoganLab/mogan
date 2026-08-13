@@ -66,21 +66,91 @@ jobs:
       # （$TEXMACS_PATH/bin，find-binary 按此查找）。
       - name: Stage Velopack
         run: xmake l tools/release/stage_velopack.lua
-      # vpk pack 在 outputDir 存在上一版本时自动生成 delta 增量包；首次发布无
-      # 上一版本，只有全量包。要恢复增量发布，需在 CI 缓存/恢复上一次的
-      # build/velopack_release 目录（或用 vpk download 拉取基线）。
+      # 从 GitHub Release 拉取上一版本的发布压缩包作为 delta 基线：vpk pack
+      # 只有 outputDir 里存在上一版本 full 包时才会生成 delta。所有发布都标了
+      # prerelease，releases/latest 接口拿不到，这里列出最近 100 个 release，
+      # 排除 draft 和当前 tag（重跑同一 tag 时避免把自己当基线），取最新的
+      # 非当前发布，wget 下载其中的 mogan-release-*.zip 并解压拣出 full 包。
+      # 首次发布或 GitHub 上尚无压缩包时失败属正常，容忍跳过（没有基线时
+      # pack 只出 full 包，是合法状态）。
+      - name: Fetch delta baseline from GitHub Release
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            Accept        = "application/vnd.github+json"
+            "User-Agent"  = "mogan-cd"
+          }
+          $releases = Invoke-RestMethod -Headers $headers `
+            -Uri "https://api.github.com/repos/XmacsLabs/mogan/releases?per_page=100"
+          $release = $releases |
+            Where-Object { -not $_.draft -and $_.tag_name -ne $env:GITHUB_REF_NAME } |
+            Select-Object -First 1
+          if (-not $release) {
+            Write-Host "未找到上一版本 release，跳过基线（首次发布？）"
+            exit 0
+          }
+          New-Item -ItemType Directory -Path build/velopack_baseline -Force | Out-Null
+          $zip = $release.assets |
+            Where-Object { $_.name -like 'mogan-release-*.zip' } |
+            Select-Object -First 1
+          if ($zip) {
+            wget -q "$($zip.browser_download_url)" -O build/velopack_baseline.zip
+            Expand-Archive -Path build/velopack_baseline.zip -DestinationPath build/velopack_baseline -Force
+          } else {
+            # 兼容过渡期：旧 release 直接散装上传 nupkg、没有 zip，退而下载 full 包
+            $asset = $release.assets |
+              Where-Object { $_.name -like '*-stable-full.nupkg' } |
+              Select-Object -First 1
+            if (-not $asset) {
+              Write-Host "release $($release.tag_name) 没有 zip 也没有 full 包，跳过基线"
+              exit 0
+            }
+            wget -q "$($asset.browser_download_url)" -O "build/velopack_baseline/$($asset.name)"
+          }
+          $full = Get-ChildItem build/velopack_baseline -Filter '*-stable-full.nupkg' |
+            Select-Object -First 1
+          if (-not $full) {
+            Write-Host "未找到 stable full 包，跳过基线"
+            exit 0
+          }
+          $vars = Get-Content xmake/vars.lua -Raw
+          $currentVer = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          $baselineVer = $full.Name -replace '^Mogan-', '' -replace '-stable-full\.nupkg$', ''
+          if ($baselineVer -ne $currentVer) {
+            New-Item -ItemType Directory -Path build/velopack_release -Force | Out-Null
+            Copy-Item $full.FullName build/velopack_release/
+            Write-Host "已就位 delta 基线: $($full.Name)"
+          } else {
+            Write-Host "基线版本与当前版本相同（$baselineVer），跳过（重跑同一版本）"
+          }
+      # vpk pack 在 outputDir 存在上一版本（上一步拉取的 full 包）时自动生成
+      # delta 增量包；首次发布无上一版本，只有全量包。
       - name: Pack Velopack
         run: xmake l tools/release/pack_velopack.lua
+      # 把整个发布目录（Setup、Portable、full/delta nupkg、feed json）打成
+      # 单一 zip，作为 GitHub Release 的唯一资产。下游（delta 基线、OSS 手动
+      # 上传）下载后自行解压拣选所需文件。
+      - name: Create release archive
+        shell: pwsh
+        run: |
+          $vars = Get-Content xmake/vars.lua -Raw
+          $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          $archive = "build/mogan-release-$ver.zip"
+          Compress-Archive -Path build/velopack_release/* -DestinationPath $archive -CompressionLevel Optimal -Force
+          Get-Item $archive | Select-Object Name, Length
       - name: Upload
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           path: |
             build/velopack_release/*
+            build/mogan-release-*.zip
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           prerelease: true
           files: |
-            build/velopack_release/*
+            build/mogan-release-*.zip
