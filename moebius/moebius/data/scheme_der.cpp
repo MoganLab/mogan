@@ -258,6 +258,18 @@ scheme_to_tree (string s) {
 tree
 scheme_document_to_tree (string s) {
   tree error (moebius::ERROR, "bad format or data");
+  // 允许文件以 ; 行注释（如版权头）开头，先跳过再找 document 前缀
+  int       start= 0;
+  const int s_N  = N (s);
+  while (start < s_N) {
+    if (s[start] == ';') {
+      while (start < s_N && s[start] != '\n')
+        start++;
+    }
+    else if (is_spc (s[start])) start++;
+    else break;
+  }
+  if (start > 0) s= s (start, s_N);
   if (starts (s, "(document (apply \"TeXmacs\" ") ||
       starts (s, "(document (expand \"TeXmacs\" ") ||
       starts (s, "(document (TeXmacs ")) {
