@@ -1860,8 +1860,9 @@
                  ) ;if
                ) ;let*
               ) ;
-              ((string-starts? (url->system buf) "tmfs:")
-               ;; 其他 tmfs:// 缓冲区保持禁用搜索
+              ((and (string-starts? (url->system buf) "tmfs:") (not (collab-buffer? buf)))
+               ;; 协作（远程）文档是完整可编辑的 CRDT 文档，可搜索；
+               ;; 其余 tmfs:// 缓冲区（aux / window 等辅助/系统 buffer）保持禁用
                (noop)
               ) ;
               (else (set! search-replace-text
@@ -1883,7 +1884,9 @@
 (tm-define (interactive-replace)
   (:interactive #t)
   (with-buffer (search-command-target-buffer (current-buffer))
-    (unless (string-starts? (url->system (current-buffer)) "tmfs:")
+    (unless (and (string-starts? (url->system (current-buffer)) "tmfs:")
+              (not (collab-buffer? (current-buffer)))
+            ) ;and
       (set! search-replace-text
         (cond ((in-math?) "Only search and replace in math mode")
               ((in-prog?) "Only search and replace in Program mode")
