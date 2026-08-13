@@ -233,8 +233,13 @@
             ) ;
             ((url-rooted-tmfs? master)
              ;; tmfs buffer（协作云文档等）master 是 tmfs URL，非本地路径；
-             ;; 用 buffer 标题作默认文件名（propose-name-buffer 已转 UTF-8）
-             (set! opts (list (car opts) (system->url (propose-name-buffer))))
+             ;; 默认落到系统下载目录，buffer 标题作默认文件名
+             ;; （propose-name-buffer 已转 UTF-8）；裸文件名会退化为 cwd
+             (set! opts
+               (list (car opts)
+                 (url-append (get-downloads-path) (system->url (propose-name-buffer)))
+               ) ;list
+             ) ;set!
             ) ;
             (else (set! opts (list (car opts) master)))
       ) ;cond
