@@ -403,30 +403,14 @@
                                                          ,"1"
                                                          ,"cell-background"
                                                          ,fillcolor)
-                                                       (cwith "1"
-                                                         "1"
-                                                         "1"
-                                                         "1"
-                                                         "cell-lsep"
-                                                         "0spc")
-                                                       (cwith "1"
-                                                         "1"
-                                                         "1"
-                                                         "1"
-                                                         "cell-tsep"
-                                                         "0sep")
-                                                       (cwith "1"
-                                                         "1"
-                                                         "1"
-                                                         "1"
-                                                         "cell-rsep"
-                                                         "0spc")
-                                                       (cwith "1"
-                                                         "1"
-                                                         "1"
-                                                         "1"
-                                                         "cell-bsep"
-                                                         "0sep")
+                                                       (cwith "1" "1" "1" "1"
+                                                         "cell-lsep" "0spc")
+                                                       (cwith "1" "1" "1" "1"
+                                                         "cell-tsep" "0sep")
+                                                       (cwith "1" "1" "1" "1"
+                                                         "cell-rsep" "0spc")
+                                                       (cwith "1" "1" "1" "1"
+                                                         "cell-bsep" "0sep")
                                                        (table (row (cell ,tm-fragment1))))))
                                      ;; otherwise (multiline selection) use doc-at to get proper pagewidth
                                      `(with ,"fill-color"
@@ -434,9 +418,7 @@
                                         ,"doc-at-width"
                                         ,parcm
                                         ,"doc-at-hmode"
-                                        ,(if (or iseqnarray
-                                               indisplaymath
-                                               inmath)
+                                        ,(if (or iseqnarray indisplaymath inmath)
                                            "min"
                                            "exact")
                                         ,"doc-at-padding"

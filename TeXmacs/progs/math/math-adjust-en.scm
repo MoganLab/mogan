@@ -415,38 +415,13 @@
 
 (speech-collection dangerous english "is")
 
-(speech-collection skip-start
-  english
-  "and"
-  "in"
-  "or"
-  "the"
-  "integer"
-  "integers"
-  "rational"
-  "rationals"
-  "real"
-  "reals"
-  "sum"
-  "product"
-  "integral"
-  "quotient"
+(speech-collection skip-start english "and" "in" "or" "the" "integer" "integers"
+  "rational" "rationals" "real" "reals" "sum" "product" "integral" "quotient"
   "remainder"
 ) ;speech-collection
 
-(speech-collection skip-end
-  english
-  "are"
-  "as"
-  "be"
-  "he"
-  "if"
-  "in"
-  "me"
-  "or"
-  "we"
-  "quotient"
-  "remainder"
+(speech-collection skip-end english "are" "as" "be" "he" "if" "in" "me" "or"
+  "we" "quotient" "remainder"
 ) ;speech-collection
 
 (speech-collection skip english "and" "such" "that")

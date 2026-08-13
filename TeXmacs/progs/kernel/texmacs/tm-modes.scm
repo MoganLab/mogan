@@ -192,8 +192,7 @@
     in-text%
   ) ;in-verbatim%
   (in-variants-disabled% (tree-in? (tree-up (cursor-tree)) '(hlink reference
-                                                              pageref
-                                                              label))
+                                                              pageref label))
   ) ;in-variants-disabled%
 ) ;texmacs-modes
 
@@ -202,33 +201,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public supported-languages
-  '("british"
-    "bulgarian"
-    "chinese"
-    "croatian"
-    "czech"
-    "danish"
-    "dutch"
-    "english"
-    "esperanto"
-    "finnish"
-    "french"
-    "german"
-    "greek"
-    "hungarian"
-    "italian"
-    "japanese"
-    "korean"
-    "polish"
-    "portuguese"
-    "romanian"
-    "russian"
-    "slovak"
-    "slovene"
-    "spanish"
-    "swedish"
-    "taiwanese"
-    "ukrainian")
+  '("british" "bulgarian" "chinese" "croatian" "czech" "danish" "dutch"
+    "english" "esperanto" "finnish" "french" "german" "greek" "hungarian"
+    "italian" "japanese" "korean" "polish" "portuguese" "romanian" "russian"
+    "slovak" "slovene" "spanish" "swedish" "taiwanese" "ukrainian")
 ) ;define-public
 
 (define-public (supported-language? lan)
@@ -247,9 +223,7 @@
                                                          "ukrainian"))
                  in-text%
                ) ;in-cyrillic%
-  (in-oriental% (in? (get-env "language") '("chinese"
-                                            "japanese"
-                                            "korean"
+  (in-oriental% (in? (get-env "language") '("chinese" "japanese" "korean"
                                             "taiwanese"))
     in-text%
   ) ;in-oriental%

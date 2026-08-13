@@ -343,22 +343,8 @@
     (new-local-fonts)
     ;; '(("Arial" "Italic") ("Fava" "Regular"))
     (with kinds
-      (list :name
-        :thin
-        :light
-        :bold
-        :black
-        :oblique
-        :italic
-        :condensed
-        :wide
-        :smallcaps
-        :mono
-        :sansserif
-        :typewriter
-        "abc"
-        "ABC"
-        "123"
+      (list :name :thin :light :bold :black :oblique :italic :condensed :wide
+        :smallcaps :mono :sansserif :typewriter "abc" "ABC" "123"
       ) ;list
       (tm->tree (build-font-table fns kinds))
     ) ;with

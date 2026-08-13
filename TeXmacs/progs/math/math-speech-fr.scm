@@ -223,28 +223,13 @@
 
 (speech-collection prefix french "grand" "petit")
 
-(speech-collection postfix
-  french
-  "majuscule"
-  "minuscule"
-  "gras"
-  "droit"
-  "calligraphique"
-  "fraktur"
-  "gothique"
-  "tableau noir gras"
-  "sans serif"
+(speech-collection postfix french "majuscule" "minuscule" "gras" "droit"
+  "calligraphique" "fraktur" "gothique" "tableau noir gras" "sans serif"
   "machine à écrire"
 ) ;speech-collection
 
-(speech-collection prefix
-  french
-  "exponentielle"
-  "logarithme"
-  "sinus"
-  "cosinus"
-  "tangente"
-  "racine carrée"
+(speech-collection prefix french "exponentielle" "logarithme" "sinus" "cosinus"
+  "tangente" "racine carrée"
 ) ;speech-collection
 
 (speech-collection postfix french "prime" "factoriel" "carré" "cube")

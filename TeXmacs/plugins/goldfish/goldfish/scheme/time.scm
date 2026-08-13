@@ -16,13 +16,8 @@
 
 (define-library (scheme time)
   (import (only (scheme base) let-values s7-round))
-  (export current-second
-    current-jiffy
-    jiffies-per-second
-    get-time-of-day
-    monotonic-nanosecond
-    system-clock-resolution
-    steady-clock-resolution
+  (export current-second current-jiffy jiffies-per-second get-time-of-day
+    monotonic-nanosecond system-clock-resolution steady-clock-resolution
   ) ;export
   (begin
 

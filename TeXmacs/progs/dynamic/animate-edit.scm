@@ -145,17 +145,7 @@
 (tm-define (parameter-choice-list var)
   (:require (or (string-starts? var "emboss-start-") (string-starts? var "emboss-end-"))
   ) ;:require
-  (list "-5ln"
-    "-4ln"
-    "-3ln"
-    "-2ln"
-    "-1ln"
-    "0ln"
-    "1ln"
-    "2ln"
-    "3ln"
-    "4ln"
-    "5ln"
+  (list "-5ln" "-4ln" "-3ln" "-2ln" "-1ln" "0ln" "1ln" "2ln" "3ln" "4ln" "5ln"
     :other
   ) ;list
 ) ;tm-define

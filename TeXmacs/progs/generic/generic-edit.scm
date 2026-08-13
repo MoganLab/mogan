@@ -110,16 +110,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define algo-macro-tags
-  '(algo-if algo-else-if
-     algo-else
-     algo-while
-     algo-for
-     algo-for-all
-     algo-for-each
-     algo-repeat
-     algo-loop
-     algo-procedure
-     algo-function
+  '(algo-if algo-else-if algo-else algo-while algo-for algo-for-all
+     algo-for-each algo-repeat algo-loop algo-procedure algo-function
      algo-if-else-if)
 ) ;define
 
@@ -594,19 +586,10 @@
 ;; 辅助函数：定义 enumerate-tag-list
 
 (define (enumerate-tag-list)
-  '(enumerate enumerate-numeric
-     enumerate-numeric-bracket
-     enumerate-roman
-     enumerate-roman-bracket
-     enumerate-roman-paren
-     enumerate-Roman
-     enumerate-alpha
-     enumerate-alpha-bracket
-     enumerate-alpha-full-paren
-     enumerate-Alpha
-     enumerate-circle
-     enumerate-hanzi
-     enumerate-numeric-paren)
+  '(enumerate enumerate-numeric enumerate-numeric-bracket enumerate-roman
+     enumerate-roman-bracket enumerate-roman-paren enumerate-Roman
+     enumerate-alpha enumerate-alpha-bracket enumerate-alpha-full-paren
+     enumerate-Alpha enumerate-circle enumerate-hanzi enumerate-numeric-paren)
 ) ;define
 
 ;; 辅助函数：定义 itemize-tag-list
@@ -618,11 +601,8 @@
 ;; 辅助函数：定义 description-tag-list
 
 (define (description-tag-list)
-  '(description description-compact
-     description-aligned
-     description-dash
-     description-long
-     description-paragraphs)
+  '(description description-compact description-aligned description-dash
+     description-long description-paragraphs)
 ) ;define
 
 ;; 辅助函数：检查是否在有序列表环境中
@@ -1667,12 +1647,7 @@
 ) ;tm-define
 
 (tm-define (focus-has-preferences? t)
-  (:require (tree-in? t '(reference pageref
-                           eqref
-                           smart-ref
-                           hlink
-                           locus
-                           ornament))
+  (:require (tree-in? t '(reference pageref eqref smart-ref hlink locus ornament))
   ) ;:require
   #t
 ) ;tm-define
@@ -2242,16 +2217,9 @@
 
 (tm-define (standard-parameters l)
   (:require (== l "ornament"))
-  (list "ornament-shape"
-    "ornament-title-style"
-    "ornament-border"
-    "ornament-corner"
-    "ornament-hpadding"
-    "ornament-vpadding"
-    "ornament-color"
-    "ornament-extra-color"
-    "ornament-sunny-color"
-    "ornament-shadow-color"
+  (list "ornament-shape" "ornament-title-style" "ornament-border"
+    "ornament-corner" "ornament-hpadding" "ornament-vpadding" "ornament-color"
+    "ornament-extra-color" "ornament-sunny-color" "ornament-shadow-color"
   ) ;list
 ) ;tm-define
 
@@ -2285,13 +2253,8 @@
 
 (tm-define (parameter-choice-list l)
   (:require (== l "ornament-title-style"))
-  (list "classic"
-    "top left"
-    "top center"
-    "top right"
-    "bottom left"
-    "bottom center"
-    "bottom right"
+  (list "classic" "top left" "top center" "top right" "bottom left"
+    "bottom center" "bottom right"
   ) ;list
 ) ;tm-define
 
@@ -2405,11 +2368,8 @@
          (is-ref? (cut tree-in? <> '(note-ref note-ref*)))
          (is-text? (cut tree-in?
                      <>
-                     '(note-inline note-inline*
-                        note-wide
-                        note-wide*
-                        note-footnote
-                        note-footnote*)
+                     '(note-inline note-inline* note-wide note-wide*
+                        note-footnote note-footnote*)
                    ) ;cut
          ) ;is-text?
          (ref-l (tree-search buf is-ref?))
@@ -2443,13 +2403,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (thumbnail-suffixes)
-  (list->url (map url-wildcard '("*.gif"
-                                 "*.jpg"
-                                 "*.jpeg"
-                                 "*.JPG"
-                                 "*.JPEG"
-                                 "*.png"
-                                 "*.PNG"))
+  (list->url (map url-wildcard '("*.gif" "*.jpg" "*.jpeg" "*.JPG" "*.JPEG"
+                                 "*.png" "*.PNG"))
   ) ;list->url
 ) ;define
 
@@ -2615,9 +2570,7 @@
 
 (tm-define (make-balloon)
   (:synopsis "Insert a balloon")
-  (wrap-selection-small (insert-go-to '(inactive (hover-balloon ""
-                                                   ""
-                                                   "left"
+  (wrap-selection-small (insert-go-to '(inactive (hover-balloon "" "" "left"
                                                    "Bottom")) '(0 0 0))
   ) ;wrap-selection-small
 ) ;tm-define

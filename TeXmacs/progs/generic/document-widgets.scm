@@ -33,16 +33,9 @@
 ) ;tm-widget
 
 (tm-widget (select-common-style-widget)
-  (dynamic (select-style-among-widget (list "article"
-                                        "beamer"
-                                        "book"
-                                        "browser"
-                                        "exam"
-                                        "generic"
-                                        "letter"
-                                        "manual"
-                                        "seminar"
-                                        "source"
+  (dynamic (select-style-among-widget (list "article" "beamer" "book" "browser"
+                                        "exam" "generic" "letter" "manual"
+                                        "seminar" "source"
                                       ) ;list
            ) ;select-style-among-widget
   ) ;dynamic
@@ -488,15 +481,9 @@
   ======
   (explicit-buttons (hlist >>>
                      ("Reset"
-                       (initial-default u
-                         "page-medium"
-                         "page-type"
-                         "page-orientation"
-                         "page-border"
-                         "page-packet"
-                         "page-offset"
-                         "page-width"
-                         "page-height"
+                       (initial-default u "page-medium" "page-type"
+                         "page-orientation" "page-border" "page-packet"
+                         "page-offset" "page-width" "page-height"
                          "page-crop-marks"
                        ) ;initial-default
                        (refresh-now "page-format-settings")
@@ -691,21 +678,11 @@
   ======
   (explicit-buttons (hlist >>>
                      ("Reset"
-                       (initial-default u
-                         "page-odd"
-                         "page-even"
-                         "page-right"
-                         "page-top"
-                         "page-bot"
-                         "par-width"
-                         "page-odd-shift"
-                         "page-even-shift"
-                         "page-screen-left"
-                         "page-screen-right"
-                         "page-screen-top"
-                         "page-screen-bot"
-                         "page-width-margin"
-                         "page-screen-margin"
+                       (initial-default u "page-odd" "page-even" "page-right"
+                         "page-top" "page-bot" "par-width" "page-odd-shift"
+                         "page-even-shift" "page-screen-left"
+                         "page-screen-right" "page-screen-top" "page-screen-bot"
+                         "page-width-margin" "page-screen-margin"
                        ) ;initial-default
                        (refresh-now "page-margin-toggles")
                        (refresh-now "page-margin-settings")
@@ -865,22 +842,12 @@
   ======
   (explicit-buttons (hlist >>>
                      ("Reset"
-                       (initial-default u
-                         "tex-odd-side-margin"
-                         "tex-even-side-margin"
-                         "tex-text-width"
-                         "tex-line-width"
-                         "tex-column-width"
-                         "tex-top-margin"
-                         "tex-head-height"
-                         "tex-head-sep"
-                         "tex-text-height"
-                         "tex-foot-skip"
-                         "page-screen-left"
-                         "page-screen-right"
-                         "page-screen-top"
-                         "page-screen-bot"
-                         "page-width-margin"
+                       (initial-default u "tex-odd-side-margin"
+                         "tex-even-side-margin" "tex-text-width"
+                         "tex-line-width" "tex-column-width" "tex-top-margin"
+                         "tex-head-height" "tex-head-sep" "tex-text-height"
+                         "tex-foot-skip" "page-screen-left" "page-screen-right"
+                         "page-screen-top" "page-screen-bot" "page-width-margin"
                          "page-screen-margin"
                        ) ;initial-default
                        (refresh-now "page-margin-toggles")
@@ -910,9 +877,7 @@
                      ) ;item
               (item (text "Allowed page height reduction:")
                 (enum (initial-set u "page-shrink" answer)
-                  (cons-new (initial-get u "page-shrink") '("0cm"
-                                                            "0.5cm"
-                                                            "1cm"
+                  (cons-new (initial-get u "page-shrink") '("0cm" "0.5cm" "1cm"
                                                             ""))
                   (initial-get u "page-shrink")
                   "10em"
@@ -920,9 +885,7 @@
               ) ;item
               (item (text "Allowed page height extension:")
                 (enum (initial-set u "page-extend" answer)
-                  (cons-new (initial-get u "page-extend") '("0cm"
-                                                            "0.5cm"
-                                                            "1cm"
+                  (cons-new (initial-get u "page-extend") '("0cm" "0.5cm" "1cm"
                                                             ""))
                   (initial-get u "page-extend")
                   "10em"
@@ -930,12 +893,9 @@
               ) ;item
               (item (text "Vertical space stretchability:")
                 (enum (initial-set u "page-flexibility" answer)
-                  (cons-new (initial-get u "page-flexibility") '("0"
-                                                                 "0.25"
-                                                                 "0.5"
-                                                                 "0.75"
-                                                                 "1"
-                                                                 ""))
+                  (cons-new (initial-get u "page-flexibility") '("0" "0.25"
+                                                                 "0.5" "0.75"
+                                                                 "1" ""))
                   (initial-get u "page-flexibility")
                   "10em"
                 ) ;enum
@@ -947,11 +907,8 @@
   ===
   (explicit-buttons (hlist >>>
                      ("Reset"
-                       (initial-default u
-                         "page-breaking"
-                         "page-shrink"
-                         "page-extend"
-                         "page-flexibility"
+                       (initial-default u "page-breaking" "page-shrink"
+                         "page-extend" "page-flexibility"
                        ) ;initial-default
                        (refresh-now "page-breaking-settings")
                      ) ;

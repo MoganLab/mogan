@@ -372,43 +372,13 @@
   ,(string->symbol ".")
 ) ;logic-group
 
-(logic-group latex-command-2%
-  binom
-  tbinom
-  dbinom
-  cfrac
-  tfrac
-  equal
-  href
-  sideset
-  stackrel
-  underaccent
-  setcounter
-  addtocounter
-  setlength
-  addtolength
-  colorbox
-  scalebox
-  texorpdfstring
-  raisebox
-  foreignlanguage
-  Call
-  Function
-  Procedure
-  SetKw
-  SetKwData
-  SetKwFunction
-  SetKwInOut
-  ifthispageodd
-  adjustbox
+(logic-group latex-command-2% binom tbinom dbinom cfrac tfrac equal href sideset
+  stackrel underaccent setcounter addtocounter setlength addtolength colorbox
+  scalebox texorpdfstring raisebox foreignlanguage Call Function Procedure SetKw
+  SetKwData SetKwFunction SetKwInOut ifthispageodd adjustbox
 ) ;logic-group
 
-(logic-group latex-command-3%
-  ifthenelse
-  resizebox
-  fcolorbox
-  @setfontsize
-  eIf
+(logic-group latex-command-3% ifthenelse resizebox fcolorbox @setfontsize eIf
   multicolumn
 ) ;logic-group
 
@@ -446,82 +416,21 @@
   hdashline
 ) ;logic-group
 
-(logic-group latex-command-1*%
-  usepackage
-  documentclass
-  documentstyle
-  sqrt
-  bibitem
-  cite
-  caption
-  title
-  author
-  thanks
-  marginpar
-  part
-  chapter
-  section
-  subsection
-  subsubsection
-  paragraph
-  subparagraph
-  includegraphics
-  includegraphics*
-  makebox
-  subjclass
-  declaretheorem
-  footnotetext
-  xleftarrow
-  xrightarrow
-  xleftrightarrow
-  xminus
-  xLeftarrow
-  xRightarrow
-  xLeftrightarrow
-  xequal
-  xmapsto
-  xmapsfrom
-  citealp
-  citet
-  citep
-  citet*
-  citep*
-  Begin
-  ELSIF
-  FORALL
-  FOR
-  IF
-  WHILE
-  tcp
-  tcp*
-  tcc
-  tcc*
-  hyperref
+(logic-group latex-command-1*% usepackage documentclass documentstyle sqrt
+  bibitem cite caption title author thanks marginpar part chapter section
+  subsection subsubsection paragraph subparagraph includegraphics
+  includegraphics* makebox subjclass declaretheorem footnotetext xleftarrow
+  xrightarrow xleftrightarrow xminus xLeftarrow xRightarrow xLeftrightarrow
+  xequal xmapsto xmapsfrom citealp citet citep citet* citep* Begin ELSIF FORALL
+  FOR IF WHILE tcp tcp* tcc tcc* hyperref
 ) ;logic-group
 
-(logic-group latex-command-2*%
-  def
-  newcommand
-  renewcommand
-  providecommand
-  newtheorem
-  newtheorem*
-  frac
-  parbox
-  ElseIf
-  uElseIf
-  lElseIf
-  ForEach
-  lForEach
-  lForAll
-  lFor
+(logic-group latex-command-2*% def newcommand renewcommand providecommand
+  newtheorem newtheorem* frac parbox ElseIf uElseIf lElseIf ForEach lForEach
+  lForAll lFor
 ) ;logic-group
 
-(logic-group latex-command-3*%
-  category
-  newenvironment
-  renewenvironment
-  multirow
+(logic-group latex-command-3*% category newenvironment renewenvironment multirow
 ) ;logic-group
 
 (logic-rules ((latex-command-0% 'x) (latex-command-0*% 'x))
@@ -538,41 +447,19 @@
 ;; Environments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-environment-0%
-  begin-mdframed
-  begin-document
-  begin-abstract
-  begin-verbatim
-  begin-proof
-  begin-matrix
-  begin-pmatrix
-  begin-bmatrix
-  begin-vmatrix
-  begin-smallmatrix
-  begin-cases
-  begin-center
-  begin-flushleft
-  begin-flushright
-  begin-picture
+(logic-group latex-environment-0% begin-mdframed begin-document begin-abstract
+  begin-verbatim begin-proof begin-matrix begin-pmatrix begin-bmatrix
+  begin-vmatrix begin-smallmatrix begin-cases begin-center begin-flushleft
+  begin-flushright begin-picture
 ) ;logic-group
 
-(logic-group latex-environment-0*%
-  begin-figure
-  begin-table
-  begin-figure*
-  begin-table*
-  begin-algorithmic
-  begin-algorithm
-  begin-algorithm2e
+(logic-group latex-environment-0*% begin-figure begin-table begin-figure*
+  begin-table* begin-algorithmic begin-algorithm begin-algorithm2e
   begin-teaserfigure
 ) ;logic-group
 
-(logic-group latex-environment-1%
-  begin-otherlanguage
-  begin-otherlanguage*
-  begin-tabbing
-  begin-thebibliography
-  begin-multicols
+(logic-group latex-environment-1% begin-otherlanguage begin-otherlanguage*
+  begin-tabbing begin-thebibliography begin-multicols
 ) ;logic-group
 
 (logic-group latex-environment-1*% begin-array begin-tabular begin-minipage)
@@ -680,95 +567,18 @@
 ;; Modifiers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-modifier-0%
-  normalfont
-  rm
-  tt
-  sf
-  md
-  bf
-  it
-  em
-  sl
-  sc
-  rmfamily
-  ttfamily
-  sffamily
-  mdseries
-  bfseries
-  upshape
-  itshape
-  slshape
-  scshape
-  displaystyle
-  textstyle
-  scriptstyle
-  scriptscriptstyle
-  cal
-  frak
-  Bbb
-  boldmath
-  tiny
-  scriptsize
-  footnotesize
-  small
-  normalsize
-  large
-  Large
-  LARGE
-  huge
-  Huge
-  black
-  white
-  grey
-  red
-  blue
-  yellow
-  green
-  orange
-  magenta
-  brown
-  pink
-  centering
-  raggedleft
-  raggedright
-  flushleft
-  flushright
+(logic-group latex-modifier-0% normalfont rm tt sf md bf it em sl sc rmfamily
+  ttfamily sffamily mdseries bfseries upshape itshape slshape scshape
+  displaystyle textstyle scriptstyle scriptscriptstyle cal frak Bbb boldmath
+  tiny scriptsize footnotesize small normalsize large Large LARGE huge Huge
+  black white grey red blue yellow green orange magenta brown pink centering
+  raggedleft raggedright flushleft flushright
 ) ;logic-group
 
-(logic-group latex-modifier-1%
-  textnormalfont
-  textrm
-  texttt
-  textsf
-  textmd
-  textbf
-  textup
-  textit
-  textsl
-  textsc
-  emph
-  mathrm
-  mathtt
-  mathsf
-  mathmd
-  mathbf
-  mathup
-  mathit
-  mathsl
-  mathnormal
-  mathcal
-  mathfrak
-  mathbb
-  mathbbm
-  mathscr
-  operatorname
-  boldsymbol
-  lowercase
-  MakeLowercase
-  uppercase
-  MakeUppercase
-  selectlanguage
+(logic-group latex-modifier-1% textnormalfont textrm texttt textsf textmd textbf
+  textup textit textsl textsc emph mathrm mathtt mathsf mathmd mathbf mathup
+  mathit mathsl mathnormal mathcal mathfrak mathbb mathbbm mathscr operatorname
+  boldsymbol lowercase MakeLowercase uppercase MakeUppercase selectlanguage
 ) ;logic-group
 
 (logic-group latex-modifier-1*% color)
@@ -793,73 +603,20 @@
 
 (logic-group latex-control% $ & % ,(string->symbol "#") _ { } <less> <gtr>)
 
-(logic-group latex-operator%
-  arccos
-  arcsin
-  arctan
-  arg
-  cos
-  cosh
-  cot
-  coth
-  csc
-  deg
-  det
-  dim
-  exp
-  gcd
-  hom
-  inf
-  ker
-  lg
-  lim
-  liminf
-  limsup
-  varliminf
-  varlimsup
-  ln
-  log
-  max
-  min
-  Pr
-  sec
-  sin
-  sinh
-  sup
-  tan
-  tanh
+(logic-group latex-operator% arccos arcsin arctan arg cos cosh cot coth csc deg
+  det dim exp gcd hom inf ker lg lim liminf limsup varliminf varlimsup ln log
+  max min Pr sec sin sinh sup tan tanh
 ) ;logic-group
 
-(logic-group latex-list%
-  begin-itemize
-  begin-enumerate
-  begin-description
-  begin-asparaitem
-  begin-inparaitem
-  begin-compactitem
-  begin-asparaenum
-  begin-inparaenum
-  begin-compactenum
+(logic-group latex-list% begin-itemize begin-enumerate begin-description
+  begin-asparaitem begin-inparaitem begin-compactitem begin-asparaenum
+  begin-inparaenum begin-compactenum
 ) ;logic-group
 
-(logic-group latex-math-environment-0%
-  begin-formula
-  begin-equation*
-  begin-math
-  begin-displaymath
-  begin-equation
-  begin-eqnarray
-  begin-eqnarray*
-  begin-flalign
-  begin-flalign*
-  begin-align
-  begin-align*
-  begin-multline
-  begin-multline*
-  begin-gather
-  begin-gather*
-  begin-eqsplit
-  begin-eqsplit*
+(logic-group latex-math-environment-0% begin-formula begin-equation* begin-math
+  begin-displaymath begin-equation begin-eqnarray begin-eqnarray* begin-flalign
+  begin-flalign* begin-align begin-align* begin-multline begin-multline*
+  begin-gather begin-gather* begin-eqsplit begin-eqsplit*
 ) ;logic-group
 
 (logic-group latex-math-environment-1% begin-alignat begin-alignat*)
@@ -877,19 +634,8 @@
 ;; Counters
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-counter%
-  badness
-  enumi
-  enumii
-  enumiii
-  enumiv
-  equation
-  figure
-  inputlineno
-  mpfootnote
-  page
-  setlanguage
-  table
+(logic-group latex-counter% badness enumi enumii enumiii enumiv equation figure
+  inputlineno mpfootnote page setlanguage table
 ) ;logic-group
 
 (logic-rules ((latex-arity% 'x 0) (latex-counter% 'x)))
@@ -898,17 +644,8 @@
 ;; Names
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-name%
-  abstractname
-  appendixname
-  contentname
-  figurename
-  indexname
-  litfigurename
-  littablename
-  partname
-  refname
-  tablename
+(logic-group latex-name% abstractname appendixname contentname figurename
+  indexname litfigurename littablename partname refname tablename
 ) ;logic-group
 
 (logic-rules ((latex-arity% 'x 0) (latex-name% 'x)))
@@ -1059,19 +796,8 @@
 ;; To be ignored
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-ignore-0%
-  allowbreak
-  notag
-  xspace
-  break
-  sloppy
-  makeatother
-  makeatletter
-  relax
-  qedhere
-  ignorespacesafterend
-  ignorespaces
-  balancecolumns
+(logic-group latex-ignore-0% allowbreak notag xspace break sloppy makeatother
+  makeatletter relax qedhere ignorespacesafterend ignorespaces balancecolumns
   tightlist
 ) ;logic-group
 

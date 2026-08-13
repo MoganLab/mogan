@@ -20,21 +20,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (poster-themes)
-  (list "boring-white"
-    "dark"
-    "blackboard"
-    "bluish"
-    "dark-vador"
-    "granite"
-    "ice"
-    "manila-paper"
-    "metal"
-    "pale-blue"
-    "pine"
-    "reddish"
-    "ridged-paper"
-    "rough-paper"
-    "xperiment"
+  (list "boring-white" "dark" "blackboard" "bluish" "dark-vador" "granite" "ice"
+    "manila-paper" "metal" "pale-blue" "pine" "reddish" "ridged-paper"
+    "rough-paper" "xperiment"
   ) ;list
 ) ;tm-define
 

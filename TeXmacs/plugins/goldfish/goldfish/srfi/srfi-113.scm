@@ -29,93 +29,20 @@
     (srfi srfi-1)
     (srfi srfi-128)
   ) ;import
-  (export set
-    set-unfold
-    list->set
-    list->set!
-    set-copy
-    set->list
-    set?
-    set-contains?
-    set-empty?
-    set-disjoint?
-    set-element-comparator
-    set-size
-    set=?
-    set<?
-    set>?
-    set<=?
-    set>=?
-    set-any?
-    set-every?
-    set-find
-    set-count
-    set-member
-    set-search!
-    set-map
-    set-for-each
-    set-fold
-    set-filter
-    set-filter!
-    set-remove
-    set-remove!
-    set-partition
-    set-partition!
-    set-union
-    set-intersection
-    set-difference
-    set-xor
-    set-union!
-    set-intersection!
-    set-difference!
-    set-xor!
-    set-adjoin
-    set-adjoin!
-    set-replace
-    set-replace!
-    set-delete
-    set-delete!
-    set-delete-all
-    set-delete-all!
-    bag
-    bag-unfold
-    bag-member
-    bag-comparator
-    bag->list
-    bag-copy
-    list->bag
-    list->bag!
-    bag?
-    bag-contains?
-    bag-empty?
-    bag-disjoint?
-    bag-size
-    bag-find
-    bag-count
-    bag-any?
-    bag-every?
-    bag=?
-    bag<?
-    bag>?
-    bag<=?
-    bag>=?
-    bag-union
-    bag-intersection
-    bag-difference
-    bag-xor
-    bag-union!
-    bag-intersection!
-    bag-difference!
-    bag-xor!
-    bag-adjoin
-    bag-adjoin!
-    bag-replace
-    bag-replace!
-    bag-delete
-    bag-delete!
-    bag-delete-all
-    bag-delete-all!
-    bag-search!
+  (export set set-unfold list->set list->set! set-copy set->list set?
+    set-contains? set-empty? set-disjoint? set-element-comparator set-size set=?
+    set<? set>? set<=? set>=? set-any? set-every? set-find set-count set-member
+    set-search! set-map set-for-each set-fold set-filter set-filter! set-remove
+    set-remove! set-partition set-partition! set-union set-intersection
+    set-difference set-xor set-union! set-intersection! set-difference! set-xor!
+    set-adjoin set-adjoin! set-replace set-replace! set-delete set-delete!
+    set-delete-all set-delete-all! bag bag-unfold bag-member bag-comparator
+    bag->list bag-copy list->bag list->bag! bag? bag-contains? bag-empty?
+    bag-disjoint? bag-size bag-find bag-count bag-any? bag-every? bag=? bag<?
+    bag>? bag<=? bag>=? bag-union bag-intersection bag-difference bag-xor
+    bag-union! bag-intersection! bag-difference! bag-xor! bag-adjoin bag-adjoin!
+    bag-replace bag-replace! bag-delete bag-delete! bag-delete-all
+    bag-delete-all! bag-search!
   ) ;export
   (begin
 

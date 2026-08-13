@@ -104,15 +104,8 @@
                            (search (if search-pair (cdr search-pair) "disabled"))
                           ) ;
                       ;; 只传元数据给 C++，不加载 buffer 内容
-                      (qt-chat-tab-restore-session sid
-                        title
-                        model
-                        archived-str
-                        created-at
-                        updated-at
-                        expand-count
-                        thinking
-                        search
+                      (qt-chat-tab-restore-session sid title model archived-str
+                        created-at updated-at expand-count thinking search
                       ) ;qt-chat-tab-restore-session
                     ) ;let*
                   ) ;lambda
@@ -136,14 +129,8 @@
          (updated-at (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
          (manifest-path (chat-persist-manifest-path))
-         (entry (chat-persist-make-entry session-id
-                  title
-                  model
-                  archived
-                  created-at
-                  thinking
-                  search
-                  updated-at
+         (entry (chat-persist-make-entry session-id title model archived
+                  created-at thinking search updated-at
                 ) ;chat-persist-make-entry
          ) ;entry
         ) ;

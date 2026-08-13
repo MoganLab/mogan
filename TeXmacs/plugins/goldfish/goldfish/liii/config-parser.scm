@@ -24,22 +24,10 @@
     (liii error)
     (srfi srfi-128)
   ) ;import
-  (export make-config-parser
-    config-parser?
-    config-read-string
-    config-read-file
-    config-sections
-    config-has-section?
-    config-has-option?
-    config-get
-    config-get-int
-    config-get-boolean
-    config-options
-    config-items
-    config-set!
-    config-add-section!
-    config-remove-section!
-    config-remove-option!
+  (export make-config-parser config-parser? config-read-string config-read-file
+    config-sections config-has-section? config-has-option? config-get
+    config-get-int config-get-boolean config-options config-items config-set!
+    config-add-section! config-remove-section! config-remove-option!
     config-write
   ) ;export
   (begin

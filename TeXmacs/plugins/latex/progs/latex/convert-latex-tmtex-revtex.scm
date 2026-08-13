@@ -86,17 +86,8 @@
 ;;; RevTeX metadata presentation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tmtex-make-author names
-             affiliations
-             emails
-             urls
-             miscs
-             notes
-             affs-l
-             emails-l
-             urls-l
-             miscs-l
-             notes-l
+(tm-define (tmtex-make-author names affiliations emails urls miscs notes affs-l
+             emails-l urls-l miscs-l notes-l
            ) ;tmtex-make-author
   (:mode revtex-style?)
   (if (and (not revtex-clustered?) (null? affiliations))
@@ -110,18 +101,8 @@
   ) ;let*
 ) ;tm-define
 
-(tm-define (tmtex-make-doc-data titles
-             subtitles
-             authors
-             dates
-             miscs
-             notes
-             subtits-l
-             dates-l
-             miscs-l
-             notes-l
-             tr
-             ar
+(tm-define (tmtex-make-doc-data titles subtitles authors dates miscs notes
+             subtits-l dates-l miscs-l notes-l tr ar
            ) ;tmtex-make-doc-data
   (:mode revtex-style?)
   (let* ((title-data `(,@titles ,@subtitles ,@notes ,@miscs))

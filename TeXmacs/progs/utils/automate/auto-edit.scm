@@ -17,15 +17,8 @@
 ;; DRD properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-group implied-tag
-  implied-generic
-  implied-verbatim
-  implied-scm
-  implied-cpp
-  implied-mmx
-  implied-python
-  implied-julia
-  implied-scilab
+(define-group implied-tag implied-generic implied-verbatim implied-scm
+  implied-cpp implied-mmx implied-python implied-julia implied-scilab
   implied-shell
 ) ;define-group
 
@@ -33,19 +26,11 @@
 
 (define-group similar-tag (implied-tag))
 
-(define-group auto-block-tag
-  block-if
-  block-for
-  block-while
-  block-assign
+(define-group auto-block-tag block-if block-for block-while block-assign
   block-intersperse
 ) ;define-group
 
-(define-group auto-inline-tag
-  inline-if
-  inline-for
-  inline-while
-  inline-assign
+(define-group auto-inline-tag inline-if inline-for inline-while inline-assign
   inline-intersperse
 ) ;define-group
 

@@ -152,35 +152,13 @@
     ) ;define
     ;; note empty string in 0th place.
     (define priv:LOCALE-ABBR-MONTH-VECTOR
-      (vector ""
-        "Jan"
-        "Feb"
-        "Mar"
-        "Apr"
-        "May"
-        "Jun"
-        "Jul"
-        "Aug"
-        "Sep"
-        "Oct"
-        "Nov"
-        "Dec"
+      (vector "" "Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct"
+        "Nov" "Dec"
       ) ;vector
     ) ;define
     (define priv:LOCALE-LONG-MONTH-VECTOR
-      (vector ""
-        "January"
-        "February"
-        "March"
-        "April"
-        "May"
-        "June"
-        "July"
-        "August"
-        "September"
-        "October"
-        "November"
-        "December"
+      (vector "" "January" "February" "March" "April" "May" "June" "July"
+        "August" "September" "October" "November" "December"
       ) ;vector
     ) ;define
 

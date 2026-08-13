@@ -14,206 +14,52 @@
 (texmacs-module (r7rs srfi-keyword))
 
 (tm-define (srfi-1-keywords)
-  (list "srfi-1"
-    "list"
-    "cons"
-    "xcons"
-    "cons*"
-    "make-list"
-    "list-tabulate"
-    "list-copy"
-    "circular-list"
-    "iota"
-    "pair?"
-    "null?"
-    "proper-list?"
-    "circular-list?"
-    "dotted-list?"
-    "not-pair?"
-    "null-list?"
-    "list="
-    "list?"
-    "car"
-    "caar"
-    "cdar"
-    "cadr"
-    "caddr"
-    "cadddr"
-    "cdr"
-    "cddr"
-    "cdddr"
-    "cddddr"
-    "list-ref"
-    "first"
-    "second"
-    "third"
-    "fourth"
-    "fifth"
-    "sixth"
-    "seventh"
-    "eighth"
-    "ninth"
-    "tenth"
-    "take"
-    "drop"
-    "take-right"
-    "drop-right"
-    "last"
-    "last-pair"
-    "concatenate"
-    "reverse"
-    "append-reverse"
-    "zip"
-    "count"
-    "fold"
-    "fold-right"
-    "reduce"
-    "reduce-right"
-    "map"
-    "unfold"
-    "unfold-right"
-    "for-each"
-    "map-in-order"
-    "filter"
-    "partition"
-    "remove"
-    "find"
-    "find-tail"
-    "take-while"
-    "drop-while"
-    "span"
-    "any"
-    "every"
-    "list-index"
-    "member"
-    "memq"
-    "memv"
-    "delete"
-    "delete-duplicates"
+  (list "srfi-1" "list" "cons" "xcons" "cons*" "make-list" "list-tabulate"
+    "list-copy" "circular-list" "iota" "pair?" "null?" "proper-list?"
+    "circular-list?" "dotted-list?" "not-pair?" "null-list?" "list=" "list?"
+    "car" "caar" "cdar" "cadr" "caddr" "cadddr" "cdr" "cddr" "cdddr" "cddddr"
+    "list-ref" "first" "second" "third" "fourth" "fifth" "sixth" "seventh"
+    "eighth" "ninth" "tenth" "take" "drop" "take-right" "drop-right" "last"
+    "last-pair" "concatenate" "reverse" "append-reverse" "zip" "count" "fold"
+    "fold-right" "reduce" "reduce-right" "map" "unfold" "unfold-right"
+    "for-each" "map-in-order" "filter" "partition" "remove" "find" "find-tail"
+    "take-while" "drop-while" "span" "any" "every" "list-index" "member" "memq"
+    "memv" "delete" "delete-duplicates"
   ) ;list
 ) ;tm-define
 
 (tm-define (srfi-8-keywords) (list "srfi-8" "call-with-values" "receive"))
 
 (tm-define (srfi-13-keywords)
-  (list "srfi-13"
-    "string?"
-    "string-null?"
-    "string-every"
-    "string-any"
-    "make-string"
-    "string"
-    "string-tabulate"
-    "string->list"
-    "list->string"
-    "reverse-list->string"
-    "string-join"
-    "string-length"
-    "string-ref"
-    "string-copy"
-    "substring"
-    "string-copy!"
-    "string-take"
-    "string-take-right"
-    "string-drop"
-    "string-drop-right"
-    "string-pad"
-    "string-pad-right"
-    "string-trim"
-    "string-trim-right"
-    "string-trim-both"
-    "string-compare"
-    "string="
-    "string<>"
-    "string-index"
-    "string-index-right"
-    "string-skip"
-    "string-skip-right"
-    "string-count"
-    "string-contains"
-    "string-reverse"
-    "string-append"
-    "string-map"
-    "string-fold"
-    "string-fold-right"
-    "string-for-each"
-    "string-for-each-index"
-    "string-replace"
-    "string-tokenize"
-    "string-filter"
-    "string-delete"
+  (list "srfi-13" "string?" "string-null?" "string-every" "string-any"
+    "make-string" "string" "string-tabulate" "string->list" "list->string"
+    "reverse-list->string" "string-join" "string-length" "string-ref"
+    "string-copy" "substring" "string-copy!" "string-take" "string-take-right"
+    "string-drop" "string-drop-right" "string-pad" "string-pad-right"
+    "string-trim" "string-trim-right" "string-trim-both" "string-compare"
+    "string=" "string<>" "string-index" "string-index-right" "string-skip"
+    "string-skip-right" "string-count" "string-contains" "string-reverse"
+    "string-append" "string-map" "string-fold" "string-fold-right"
+    "string-for-each" "string-for-each-index" "string-replace" "string-tokenize"
+    "string-filter" "string-delete"
   ) ;list
 ) ;tm-define
 
 (tm-define (srfi-60-keywords)
-  (list "bitwise-and"
-    "bitwise-ior"
-    "bitwise-xor"
-    "bitwise-not"
-    "arithmetic-shift"
-    "ash"
+  (list "bitwise-and" "bitwise-ior" "bitwise-xor" "bitwise-not"
+    "arithmetic-shift" "ash"
   ) ;list
 ) ;tm-define
 
 (tm-define (srfi-70-keywords)
-  (list "srfi-70"
-    "number?"
-    "complex?"
-    "real?"
-    "rational?"
-    "integer?"
-    "exact?"
-    "inexact?"
-    "finite?"
-    "infinite?"
-    "zero?"
-    "positive?"
-    "negative?"
-    "odd?"
-    "even?"
-    "floor?"
-    "max"
-    "min"
-    "abs"
-    "quotient"
-    "remainder"
-    "modulo"
-    "gcd"
-    "lcm"
-    "numerator"
-    "denominator"
-    "floor"
-    "ceiling"
-    "truncate"
-    "round"
-    "rationalize"
-    "expt"
-    "log"
-    "complex"
-    "real-part"
-    "imag-part"
-    "sin"
-    "cos"
-    "tan"
-    "asin"
-    "acos"
-    "atan"
-    "sinh"
-    "cosh"
-    "tanh"
-    "asinh"
-    "acosh"
-    "atanh"
-    "sqrt"
-    "expt"
-    "make-rectangular"
-    "make-polar"
-    "magnitude"
-    "angle"
-    "exact->inexact"
-    "inexact->exact"
-    "string->number"
-    "number->string"
+  (list "srfi-70" "number?" "complex?" "real?" "rational?" "integer?" "exact?"
+    "inexact?" "finite?" "infinite?" "zero?" "positive?" "negative?" "odd?"
+    "even?" "floor?" "max" "min" "abs" "quotient" "remainder" "modulo" "gcd"
+    "lcm" "numerator" "denominator" "floor" "ceiling" "truncate" "round"
+    "rationalize" "expt" "log" "complex" "real-part" "imag-part" "sin" "cos"
+    "tan" "asin" "acos" "atan" "sinh" "cosh" "tanh" "asinh" "acosh" "atanh"
+    "sqrt" "expt" "make-rectangular" "make-polar" "magnitude" "angle"
+    "exact->inexact" "inexact->exact" "string->number" "number->string"
   ) ;list
 ) ;tm-define
 
@@ -223,55 +69,26 @@
 
 (tm-define (srfi-125-keywords)
   (map symbol->string
-    '(make-hash-table hash-table
-       hash-table-unfold
-       alist->hash-table
-       hash-table?
-       hash-table-contains?
-       hash-table-empty?
-       hash-table=?
-       hash-table-mutable?
-       hash-table-ref
-       hash-table-ref/default
-       hash-table-set!
-       hash-table-delete!
-       hash-table-intern!
-       hash-table-update!
-       hash-table-update!/default
-       hash-table-pop!
-       hash-table-clear!
-       hash-table-size
-       hash-table-keys
-       hash-table-values
-       hash-table-entries
-       hash-table-find
-       hash-table-count)
+    '(make-hash-table hash-table hash-table-unfold alist->hash-table hash-table?
+       hash-table-contains? hash-table-empty? hash-table=? hash-table-mutable?
+       hash-table-ref hash-table-ref/default hash-table-set! hash-table-delete!
+       hash-table-intern! hash-table-update! hash-table-update!/default
+       hash-table-pop! hash-table-clear! hash-table-size hash-table-keys
+       hash-table-values hash-table-entries hash-table-find hash-table-count)
   ) ;map
 ) ;tm-define
 
 (tm-define (srfi-133-keywords)
   (map symbol->string
-    '(vector-empty? vector-count
-       vector-any
-       vector-every
-       vector-copy
-       vector-copy!
-       vector-index
-       vector-index-right
-       vector-partition
+    '(vector-empty? vector-count vector-any vector-every vector-copy
+       vector-copy! vector-index vector-index-right vector-partition
        vector-swap!)
   ) ;map
 ) ;tm-define
 
 (tm-define (srfi-151-keywords)
   (map symbol->string
-    '(bitwise-not bitwise-and
-       bitwise-ior
-       bitwise-xor
-       bitwise-or
-       bitwise-nor
-       bitwise-nand
-       bit-count
-       arithmetic-shift)
+    '(bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-or bitwise-nor
+       bitwise-nand bit-count arithmetic-shift)
   ) ;map
 ) ;tm-define

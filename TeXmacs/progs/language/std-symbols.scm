@@ -780,14 +780,8 @@
 
   (define Big-product-symbol "prod" "otimes" "odot" "triangleup")
 
-  (define Big-operator-symbol
-    Big-separator-symbol
-    Big-or-symbol
-    Big-and-symbol
-    Big-union-symbol
-    Big-intersection-symbol
-    Big-sum-symbol
-    Big-product-symbol
+  (define Big-operator-symbol Big-separator-symbol Big-or-symbol Big-and-symbol
+    Big-union-symbol Big-intersection-symbol Big-sum-symbol Big-product-symbol
   ) ;define
 
   (define Big-nolim-symbol
@@ -1850,9 +1844,7 @@
     "<nospace>"
   ) ;define
 
-  (define Spacing-symbol
-    Spacing-visible-symbol
-    Spacing-wide-symbol
+  (define Spacing-symbol Spacing-visible-symbol Spacing-wide-symbol
     Spacing-invisible-symbol
   ) ;define
 
@@ -1945,46 +1937,15 @@
 
   (define Postfix-symbol Other-postfix-symbol)
 
-  (define Infix-symbol
-    Assign-symbol
-    Models-symbol
-    Modeled-symbol
-    Imply-symbol
-    Or-symbol
-    And-symbol
-    Relation-symbol
-    Arrow-symbol
-    Union-symbol
-    Intersection-symbol
-    Exclude-symbol
-    Plus-symbol
-    Minus-symbol
-    Times-symbol
-    Over-symbol
-    Power-symbol
+  (define Infix-symbol Assign-symbol Models-symbol Modeled-symbol Imply-symbol
+    Or-symbol And-symbol Relation-symbol Arrow-symbol Union-symbol
+    Intersection-symbol Exclude-symbol Plus-symbol Minus-symbol Times-symbol
+    Over-symbol Power-symbol
   ) ;define
 
-  (define Reserved-symbol
-    :<frac
-    :<sqrt
-    :<wide
-    :<table
-    :<row
-    :<around
-    :<around*
-    :<big-around
-    :<left
-    :<mid
-    :<right
-    :<big
-    :<lsub
-    :<lsup
-    :<rsub
-    :<rsup
-    :<lprime
-    :<rprime
-    :<Prefix
-    :<Postfix
+  (define Reserved-symbol :<frac :<sqrt :<wide :<table :<row :<around :<around*
+    :<big-around :<left :<mid :<right :<big :<lsub :<lsup :<rsub :<rsup :<lprime
+    :<rprime :<Prefix :<Postfix
   ) ;define
 
   (attach-macro ("<ldots>" low-dots)

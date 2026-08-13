@@ -445,22 +445,17 @@
   (padded (hlist (vlist (refreshable "pattern-sample"
                           (resize "600px"
                             "450px"
-                            (texmacs-output `(document (block (tformat (cwith "1"
-                                                                         "1"
-                                                                         "1"
-                                                                         "1"
+                            (texmacs-output `(document (block (tformat (cwith
+                                                                         "1" "1"
+                                                                         "1" "1"
                                                                          "cell-width"
                                                                          "596guipx")
-                                                                (cwith "1"
-                                                                  "1"
-                                                                  "1"
-                                                                  "1"
+                                                                (cwith "1" "1"
+                                                                  "1" "1"
                                                                   "cell-height"
                                                                   "446guipx")
-                                                                (cwith "1"
-                                                                  "1"
-                                                                  "1"
-                                                                  "1"
+                                                                (cwith "1" "1"
+                                                                  "1" "1"
                                                                   "cell-vmode"
                                                                   "exact")
                                                                 (cwith ,"1"
@@ -590,8 +585,7 @@
         ) ;or
     (set! global-picture? #f)
     (set! global-gradient? #t)
-    (set! global-pattern-color '(pattern "vertical-white-black.png"
-                                  "100%"
+    (set! global-pattern-color '(pattern "vertical-white-black.png" "100%"
                                   "100%"))
   ) ;when
   (when (nnull? opt-old)

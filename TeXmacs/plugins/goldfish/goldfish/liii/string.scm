@@ -1,39 +1,12 @@
 (define-library (liii string)
-  (export string-null?
-    string-join
-    string-every
-    string-any
-    string-take
-    string-take-right
-    string-drop
-    string-drop-right
-    string-pad
-    string-pad-right
-    string-trim
-    string-trim-left
-    string-trim-right
-    string-trim-both
-    string-index
-    string-index-right
-    string-skip
-    string-skip-right
-    string-contains
-    string-count
-    string-fold
-    string-fold-right
-    string-for-each-index
-    string-reverse
-    string-tokenize
-    string-starts?
-    string-contains?
-    string-ends?
-    string-split
-    string-replace
-    string-remove-prefix
-    string-remove-suffix
-    pyfmt
-    string-position
-    char-position
+  (export string-null? string-join string-every string-any string-take
+    string-take-right string-drop string-drop-right string-pad string-pad-right
+    string-trim string-trim-left string-trim-right string-trim-both string-index
+    string-index-right string-skip string-skip-right string-contains
+    string-count string-fold string-fold-right string-for-each-index
+    string-reverse string-tokenize string-starts? string-contains? string-ends?
+    string-split string-replace string-remove-prefix string-remove-suffix pyfmt
+    string-position char-position
   ) ;export
   (import (except (srfi srfi-13) string-replace)
     (scheme base)

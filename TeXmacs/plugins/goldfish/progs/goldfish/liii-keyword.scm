@@ -19,13 +19,8 @@
 
 (define (liii-check)
   (map symbol->string
-    '(test check
-       check-set-mode!
-       check-catch
-       check-report
-       check-failed?
-       check-true
-       check-false)
+    '(test check check-set-mode! check-catch check-report check-failed?
+       check-true check-false)
   ) ;map
 ) ;define
 
@@ -43,47 +38,21 @@
 
 (define (liii-os)
   (map symbol->string
-    '(os-arch os-type
-       os-windows?
-       os-linux?
-       os-macos?
-       os-temp-dir
-       os-call
-       system
-       mkdir
-       chdir
-       rmdir
-       getenv
-       unsetenv
-       getcwd
-       listdir
-       access
-       getlogin
-       getpid)
+    '(os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-call system
+       mkdir chdir rmdir getenv unsetenv getcwd listdir access getlogin getpid)
   ) ;map
 ) ;define
 
 (define (liii-queue)
   (map symbol->string
-    '(queue queue?
-       queue-empty?
-       queue-size
-       queue-front
-       queue-back
-       queue-pop!
-       queue-push!
-       queue->list)
+    '(queue queue? queue-empty? queue-size queue-front queue-back queue-pop!
+       queue-push! queue->list)
   ) ;map
 ) ;define
 
 (define (liii-stack)
   (map symbol->string
-    '(stack stack?
-       stack-empty?
-       stack-size
-       stack-top
-       stack-push!
-       stack-pop!
+    '(stack stack? stack-empty? stack-size stack-top stack-push! stack-pop!
        stack->list)
   ) ;map
 ) ;define
@@ -98,29 +67,15 @@
 
 (define (liii-base64)
   (map symbol->string
-    '(string-base64-encode bytevector-base64-encode
-       base64-encode
-       string-base64-decode
-       bytevector-base64-decode
-       base64-decode)
+    '(string-base64-encode bytevector-base64-encode base64-encode
+       string-base64-decode bytevector-base64-decode base64-decode)
   ) ;map
 ) ;define
 
 (define (liii-bitwise)
   (map symbol->string
-    '(bitwise-not bitwise-and
-       bitwise-ior
-       bitwise-xor
-       bitwise-or
-       bitwise-nor
-       bitwise-nand
-       bit-count
-       arithmetic-shift
-       lognot
-       logand
-       logior
-       logxor
-       ash)
+    '(bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-or bitwise-nor
+       bitwise-nand bit-count arithmetic-shift lognot logand logior logxor ash)
   ) ;map
 ) ;define
 
@@ -132,59 +87,13 @@
 
 (tm-define (liii-methods)
   (map symbol->string
-    '(:equals :to-string
-       :is-instance-of
-       :apply
-       :get
-       :get-or-else
-       :or-else
-       :collect
-       :exists
-       :forall
-       :contains
-       :empty?
-       :defined?
-       :map
-       :filter
-       :flat-map
-       :for-each
-       :fold
-       :fold-right
-       :reduce
-       :reduce-right
-       :take
-       :take-right
-       :drop
-       :drop-right
-       :take-while
-       :drop-while
-       :sum
-       :produce
-       :min
-       :max
-       :min-by
-       :max-by
-       :sorted
-       :sort-by
-       :sortWith
-       :union
-       :intersect
-       :diff
-       :distinct
-       :find
-       :count
-       :length
-       :size
-       :group-by
-       :partition
-       :zip
-       :zip-with-index
-       :unzip
-       :par
-       :make-string
-       :to-list
-       :to-vector
-       :to-map
+    '(:equals :to-string :is-instance-of :apply :get :get-or-else :or-else
+       :collect :exists :forall :contains :empty? :defined? :map :filter
+       :flat-map :for-each :fold :fold-right :reduce :reduce-right :take
+       :take-right :drop :drop-right :take-while :drop-while :sum :produce :min
+       :max :min-by :max-by :sorted :sort-by :sortWith :union :intersect :diff
+       :distinct :find :count :length :size :group-by :partition :zip
+       :zip-with-index :unzip :par :make-string :to-list :to-vector :to-map
        :to-set)
   ) ;map
 ) ;tm-define
@@ -206,31 +115,15 @@
 
 (tm-define (liii-keywords-define)
   (map symbol->string
-    '(and-let* typed-lambda
-       defined?
-       define-macro
-       define-constant
-       autoload
-       require
-       provide
-       define*
-       lambda*
-       eval-string
-       case*
-       typed-define
+    '(and-let* typed-lambda defined? define-macro define-constant autoload
+       require provide define* lambda* eval-string case* typed-define
        define-case-class)
   ) ;map
 ) ;tm-define
 
 (tm-define (liii-keywords-error)
   (map symbol->string
-    '(os-error file-not-found-error
-       not-a-directory-error
-       file-exists-error
-       timeout-error
-       type-error
-       value-error
-       ???
-       not-implemented-error)
+    '(os-error file-not-found-error not-a-directory-error file-exists-error
+       timeout-error type-error value-error ??? not-implemented-error)
   ) ;map
 ) ;tm-define

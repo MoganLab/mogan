@@ -98,23 +98,9 @@
 ) ;define
 
 (define customize-vars
-  (list "bold"
-    "italic"
-    "smallcaps"
-    "sansserif"
-    "typewriter"
-    "math"
-    "greek"
-    "bbb"
-    "cal"
-    "frak"
-    "embold"
-    "embbb"
-    "slant"
-    "hmagnify"
-    "vmagnify"
-    "hextended"
-    "vextended"
+  (list "bold" "italic" "smallcaps" "sansserif" "typewriter" "math" "greek"
+    "bbb" "cal" "frak" "embold" "embbb" "slant" "hmagnify" "vmagnify"
+    "hextended" "vextended"
   ) ;list
 ) ;define
 
@@ -193,14 +179,17 @@
        ,"Special: ([{|}]) \"`,.:;!?'\" @#$%&_\\~"
        ,(string-append "Accented: <#E0><#E1><#E4><#E2><#E3><#E8><#E9><#EB><#EA><#EC><#ED><#EF>"
           "<#EE><#F2><#F3><#F6><#F4><#F5><#F9><#FA><#FC><#FB>")
-       ,(string-append "Greek: <alpha><beta><gamma><delta><varepsilon><zeta><eta><theta>"
+       ,(string-append
+          "Greek: <alpha><beta><gamma><delta><varepsilon><zeta><eta><theta>"
           "<iota><kappa><lambda><mu><nu><xi><omicron><pi>"
           "<rho><sigma><tau><upsilon><varphi><psi><chi><omega>")
-       ,(string-append "Cyrillic: <#430><#431><#432><#433><#434><#435><#436><#437>"
+       ,(string-append
+          "Cyrillic: <#430><#431><#432><#433><#434><#435><#436><#437>"
           "<#438><#439><#43A><#43B><#43C><#43D><#43E><#43F>"
           "<#440><#441><#442><#443><#444><#445><#446><#447>"
           "<#448><#449><#44A><#44B><#44C><#44D><#44E><#44F>")
-       ,(string-append "Mathematics: <leq><geq><leqslant><geqslant><prec><succ> "
+       ,(string-append
+          "Mathematics: <leq><geq><leqslant><geqslant><prec><succ> "
           "<leftarrow><rightarrow><Leftarrow><Rightarrow><mapsto> "
           "<times><cdot><oplus><otimes>")
        (concat "Variants: "
@@ -223,27 +212,32 @@
        (concat "Uppercase Roman: "
          (math "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"))
        (concat ,"Lowercase Greek: "
-         (math ,(string-append "<alpha> <beta> <gamma> <delta> <varepsilon> <zeta> <eta>"
+         (math ,(string-append
+                  "<alpha> <beta> <gamma> <delta> <varepsilon> <zeta> <eta>"
                   " <theta> <iota> <kappa> <lambda> <mu> <nu> <xi> <omicron>"
                   " <pi> <rho> <sigma> <tau> <upsilon> <varphi> <psi>"
                   " <chi> <omega>")))
        (concat ,"Uppercase Greek: "
-         (math ,(string-append "<Alpha> <Beta> <Gamma> <Delta> <Epsilon> <Zeta> <Eta>"
+         (math ,(string-append
+                  "<Alpha> <Beta> <Gamma> <Delta> <Epsilon> <Zeta> <Eta>"
                   " <Theta> <Iota> <Kappa> <Lambda> <Mu> <Nu> <Xi> <Omicron>"
                   " <Pi> <Rho> <Sigma> <Tau> <Upsilon> <Phi> <Psi>"
                   " <Chi> <Omega>")))
        (concat ,"Blackboard bold: "
-         (math ,(string-append "<bbb-A> <bbb-B> <bbb-C> <bbb-D> <bbb-E> <bbb-F> <bbb-G>"
+         (math ,(string-append
+                  "<bbb-A> <bbb-B> <bbb-C> <bbb-D> <bbb-E> <bbb-F> <bbb-G>"
                   " <bbb-H> <bbb-I> <bbb-J> <bbb-K> <bbb-L> <bbb-M> <bbb-N>"
                   " <bbb-O> <bbb-P> <bbb-Q> <bbb-R> <bbb-S> <bbb-T> <bbb-U>"
                   " <bbb-V> <bbb-W> <bbb-X> <bbb-Y> <bbb-Z>")))
        (concat ,"Calligraphic: "
-         (math ,(string-append "<cal-A> <cal-B> <cal-C> <cal-D> <cal-E> <cal-F> <cal-G>"
+         (math ,(string-append
+                  "<cal-A> <cal-B> <cal-C> <cal-D> <cal-E> <cal-F> <cal-G>"
                   " <cal-H> <cal-I> <cal-J> <cal-K> <cal-L> <cal-M> <cal-N>"
                   " <cal-O> <cal-P> <cal-Q> <cal-R> <cal-S> <cal-T> <cal-U>"
                   " <cal-V> <cal-W> <cal-X> <cal-Y> <cal-Z>")))
        (concat ,"Fraktur: "
-         (math ,(string-append "<frak-A> <frak-B> <frak-C> <frak-D> <frak-E> <frak-F>"
+         (math ,(string-append
+                  "<frak-A> <frak-B> <frak-C> <frak-D> <frak-E> <frak-F>"
                   " <frak-G> <frak-H> <frak-I> <frak-J> <frak-K> <frak-L>"
                   " <frak-M> <frak-N> <frak-O> <frak-P> <frak-Q> <frak-R>"
                   " <frak-S> <frak-T> <frak-U> <frak-V> <frak-W> <frak-X>"
@@ -612,50 +606,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (font-default-sizes)
-  '("5"
-    "5.5"
-    "6.5"
-    "7.5"
-    "8"
-    "9"
-    "10"
-    "10.5"
-    "12"
-    "14"
-    "15"
-    "16"
-    "18"
-    "20"
-    "22"
-    "24"
-    "26"
-    "36"
-    "42"
-    "48"
-    "64"
-    "72"
-    "96"
-    "128"
-    "144"
-    "192")
+  '("5" "5.5" "6.5" "7.5" "8" "9" "10" "10.5" "12" "14" "15" "16" "18" "20" "22"
+    "24" "26" "36" "42" "48" "64" "72" "96" "128" "144" "192")
 ) ;tm-define
 
 (tm-define (font-default-sizes*)
-  '("8"
-    "8.5"
-    "9"
-    "9.5"
-    "10"
-    "10.5"
-    "11"
-    "11.5"
-    "12"
-    "14"
-    "16"
-    "18"
-    "20"
-    "24"
-    "")
+  '("8" "8.5" "9" "9.5" "10" "10.5" "11" "11.5" "12" "14" "16" "18" "20" "24" "")
 ) ;tm-define
 
 (tm-widget (font-family-selector* specs)
@@ -764,22 +720,9 @@
     ) ;item
     (item (text "Category:")
       (enum (selector-set* specs :category answer)
-        '("Any"
-          "Ancient"
-          "Attached"
-          "Calligraphic"
-          "Comic"
-          "Decorative"
-          "Distorted"
-          "Gothic"
-          "Handwritten"
-          "Initials"
-          "Medieval"
-          "Miscellaneous"
-          "Outline"
-          "Retro"
-          "Scifi"
-          "Title")
+        '("Any" "Ancient" "Attached" "Calligraphic" "Comic" "Decorative"
+          "Distorted" "Gothic" "Handwritten" "Initials" "Medieval"
+          "Miscellaneous" "Outline" "Retro" "Scifi" "Title")
         (selector-get specs :category)
         "150px"
       ) ;enum
@@ -787,16 +730,8 @@
     (item ====== ======)
     (item (text "Glyphs:")
       (enum (selector-set* specs :glyphs answer)
-        '("Any"
-          "ASCII"
-          "Latin"
-          "Greek"
-          "Cyrillic"
-          "CJK"
-          "Hangul"
-          "Math Symbols"
-          "Math Extra"
-          "Math Letters")
+        '("Any" "ASCII" "Latin" "Greek" "Cyrillic" "CJK" "Hangul" "Math Symbols"
+          "Math Extra" "Math Letters")
         (selector-get specs :glyphs)
         "150px"
       ) ;enum
@@ -814,35 +749,11 @@
   (cond ((== which "embold") '("1" "1.25" "1.5" "2" "2.5" "3" "3.5" "4" ""))
         ((== which "embbb") '("1" "1.5" "2" "2.5" "3" "3.5" "4" "4.5" "5" ""))
         ((== which "slant")
-         '("-0.5"
-           "-0.25"
-           "-0.1"
-           "0"
-           "0.1"
-           "0.2"
-           "0.25"
-           "0.3"
-           "0.4"
-           "0.5"
-           "0.75"
-           "1"
-           "")
+         '("-0.5" "-0.25" "-0.1" "0" "0.1" "0.2" "0.25" "0.3" "0.4" "0.5" "0.75"
+           "1" "")
         ) ;
-        (else '("0.5"
-                "0.6"
-                "0.7"
-                "0.8"
-                "0.9"
-                "1"
-                "1.1"
-                "1.2"
-                "1.3"
-                "1.4"
-                "1.5"
-                "1.6"
-                "1.8"
-                "2"
-                "")
+        (else '("0.5" "0.6" "0.7" "0.8" "0.9" "1" "1.1" "1.2" "1.3" "1.4" "1.5"
+                "1.6" "1.8" "2" "")
         ) ;else
   ) ;cond
 ) ;define
@@ -880,12 +791,8 @@
 ) ;tm-widget
 
 (define (default-subfonts-list which)
-  '("TeXmacs Computer Modern"
-    "Stix"
-    "TeX Gyre Bonum"
-    "TeX Gyre Pagella"
-    "TeX Gyre Schola"
-    "TeX Gyre Termes")
+  '("TeXmacs Computer Modern" "Stix" "TeX Gyre Bonum" "TeX Gyre Pagella"
+    "TeX Gyre Schola" "TeX Gyre Termes")
 ) ;define
 
 (define (default-subfonts which)
@@ -1166,34 +1073,13 @@
       '("Any" "Print" "Typewriter" "Digital" "Pen" "Art Pen" "Chalk" "Marker")
     ) ;cons
     (cons "category"
-      '("Any"
-        "Ancient"
-        "Attached"
-        "Calligraphic"
-        "Comic"
-        "Decorative"
-        "Distorted"
-        "Gothic"
-        "Handwritten"
-        "Initials"
-        "Medieval"
-        "Miscellaneous"
-        "Outline"
-        "Retro"
-        "Scifi"
-        "Title")
+      '("Any" "Ancient" "Attached" "Calligraphic" "Comic" "Decorative"
+        "Distorted" "Gothic" "Handwritten" "Initials" "Medieval" "Miscellaneous"
+        "Outline" "Retro" "Scifi" "Title")
     ) ;cons
     (cons "glyphs"
-      '("Any"
-        "ASCII"
-        "Latin"
-        "Greek"
-        "Cyrillic"
-        "CJK"
-        "Hangul"
-        "Math Symbols"
-        "Math Extra"
-        "Math Letters")
+      '("Any" "ASCII" "Latin" "Greek" "Cyrillic" "CJK" "Hangul" "Math Symbols"
+        "Math Extra" "Math Letters")
     ) ;cons
   ) ;list
 ) ;define
@@ -1263,23 +1149,10 @@
 ;; 样本类型。
 
 (define font-sample-kinds
-  '("Standard"
-    "Mathematics"
-    "Selection"
-    "ASCII"
-    "Latin"
-    "Greek"
-    "Cyrillic"
-    "CJK"
-    "Hangul"
-    "Math Symbols"
-    "Math Extra"
-    "Math Letters"
-    "Unicode 0000-0fff"
-    "Unicode 1000-1fff"
-    "Unicode 2000-2fff"
-    "Unicode 3000-3fff"
-    "Unicode 4000-4fff")
+  '("Standard" "Mathematics" "Selection" "ASCII" "Latin" "Greek" "Cyrillic"
+    "CJK" "Hangul" "Math Symbols" "Math Extra" "Math Letters"
+    "Unicode 0000-0fff" "Unicode 1000-1fff" "Unicode 2000-2fff"
+    "Unicode 3000-3fff" "Unicode 4000-4fff")
 ) ;define
 
 (tm-define (font-selector-sample-kinds key) font-sample-kinds)
@@ -1325,16 +1198,8 @@
 
 (define (font-selector-subfont? which)
   (in? which
-    '("bold"
-      "italic"
-      "smallcaps"
-      "sansserif"
-      "typewriter"
-      "math"
-      "greek"
-      "bbb"
-      "cal"
-      "frak")
+    '("bold" "italic" "smallcaps" "sansserif" "typewriter" "math" "greek" "bbb"
+      "cal" "frak")
   ) ;in?
 ) ;define
 

@@ -129,20 +129,8 @@
 (define binary-path "")
 
 (define binary-list
-  (list "python"
-    "aspell"
-    "conda"
-    "convert"
-    "goldfish"
-    "ghostscript"
-    "hunspell"
-    "identify"
-    "inkscape"
-    "julia"
-    "pandoc"
-    "pdftocairo"
-    "rsvg-convert"
-    "maxima"
+  (list "python" "aspell" "conda" "convert" "goldfish" "ghostscript" "hunspell"
+    "identify" "inkscape" "julia" "pandoc" "pdftocairo" "rsvg-convert" "maxima"
   ) ;list
 ) ;define
 

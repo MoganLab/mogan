@@ -466,12 +466,7 @@
            (if (tm-func? r 'tformat) r (append (cDr (tm-children t)) (list r)))
          ) ;with
         ) ;
-        ((tm-in? t '(table tabular
-                      tabular*
-                      wide-tabular
-                      block
-                      block*
-                      wide-block)) tf)
+        ((tm-in? t '(table tabular tabular* wide-tabular block block* wide-block)) tf)
         (else (cons (tm-label t) (map (cut tformat-subst-selection <> tf) (tm-children t)))
         ) ;else
   ) ;cond
@@ -682,15 +677,9 @@
   (with env
     (tm-children (get-full-env))
     (sort (list-difference (map get-key env)
-            (list "atom-decorations"
-              "line-decorations"
-              "page-decorations"
-              "xoff-decorations"
-              "yoff-decorations"
-              "cell-decoration"
-              "cell-format"
-              "wide-framed-colored"
-              "wide-std-framed-colored"
+            (list "atom-decorations" "line-decorations" "page-decorations"
+              "xoff-decorations" "yoff-decorations" "cell-decoration"
+              "cell-format" "wide-framed-colored" "wide-std-framed-colored"
             ) ;list
           ) ;list-difference
       string<=?
@@ -707,8 +696,7 @@
                                               "page-decorations"
                                               "xoff-decorations"
                                               "yoff-decorations"
-                                              "cell-decoration"
-                                              "cell-format"
+                                              "cell-decoration" "cell-format"
                                               "wide-framed-colored"
                                               "wide-std-framed-colored"
                                             ) ;list

@@ -594,10 +594,8 @@
                      (low-surrogate-high (ash low-surrogate -8))
                      (low-surrogate-low (bitwise-and low-surrogate 255))
                     ) ;
-                (bytevector high-surrogate-high
-                  high-surrogate-low
-                  low-surrogate-high
-                  low-surrogate-low
+                (bytevector high-surrogate-high high-surrogate-low
+                  low-surrogate-high low-surrogate-low
                 ) ;bytevector
               ) ;let*
             ) ;else
@@ -697,10 +695,8 @@
                      (low-surrogate-low (bitwise-and low-surrogate 255))
                      (low-surrogate-high (ash low-surrogate -8))
                     ) ;
-                (bytevector high-surrogate-low
-                  high-surrogate-high
-                  low-surrogate-low
-                  low-surrogate-high
+                (bytevector high-surrogate-low high-surrogate-high
+                  low-surrogate-low low-surrogate-high
                 ) ;bytevector
               ) ;let*
             ) ;else

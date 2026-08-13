@@ -41,29 +41,9 @@
 (define (menu-item-cmd-0? x)
   (and (pair? x)
     (in? (car x)
-      '(horizontal vertical
-         hlist
-         vlist
-         aligned
-         aligned-item
-         item
-         meti
-         tabs
-         tab
-         icon-tabs
-         icon-tab
-         minibar
-         extend
-         scrollable
-         hsplit
-         vsplit
-         inert
-         explicit-buttons
-         bold
-         grey
-         monospaced
-         padded
-         centered)
+      '(horizontal vertical hlist vlist aligned aligned-item item meti tabs tab
+         icon-tabs icon-tab minibar extend scrollable hsplit vsplit inert
+         explicit-buttons bold grey monospaced padded centered)
     ) ;in?
   ) ;and
 ) ;define

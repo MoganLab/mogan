@@ -100,16 +100,9 @@
          (h (number->string (- (fourth box) (second box))))
          (offset-x (number->string (- (first box))))
          (offset-y (number->string (- (second box))))
-         (gs-inline (string-append "<< /PageSize [ "
-                      w
-                      " "
-                      h
-                      " ] >> setpagedevice gsave "
-                      offset-x
-                      " "
-                      offset-y
-                      " translate "
-                      "1 1 scale"
+         (gs-inline (string-append "<< /PageSize [ " w " " h
+                      " ] >> setpagedevice gsave " offset-x " " offset-y
+                      " translate " "1 1 scale"
                     ) ;string-append
          ) ;gs-inline
          (cmd (string-append (url->system (find-binary-gs))

@@ -5,15 +5,8 @@
 
 (define-library (liii http)
   (import (liii hash-table) (liii alist) (liii error) (scheme file))
-  (export http-head
-    http-get
-    http-post
-    http-ok?
-    http-async-get
-    http-async-post
-    http-async-head
-    http-poll
-    http-wait-all
+  (export http-head http-get http-post http-ok? http-async-get http-async-post
+    http-async-head http-poll http-wait-all
   ) ;export
   (begin
 

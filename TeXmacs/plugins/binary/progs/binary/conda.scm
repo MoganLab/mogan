@@ -15,12 +15,9 @@
 
 (define (conda-binary-candidates)
   (cond ((os-macos?)
-         (list "/opt/homebrew/anaconda3/bin/conda"
-           "/opt/anaconda3/bin/conda"
-           "/opt/homebrew/miniconda3/bin/conda"
-           "/opt/miniconda3/bin/conda"
-           "$HOME/anaconda3/bin/conda"
-           "$HOME/miniconda3/bin/conda"
+         (list "/opt/homebrew/anaconda3/bin/conda" "/opt/anaconda3/bin/conda"
+           "/opt/homebrew/miniconda3/bin/conda" "/opt/miniconda3/bin/conda"
+           "$HOME/anaconda3/bin/conda" "$HOME/miniconda3/bin/conda"
          ) ;list
         ) ;
         ((os-windows?)

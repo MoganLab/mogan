@@ -760,21 +760,8 @@
 
 (tm-define (parameter-choice-list var)
   (:require (in? var (list "slanted-slope")))
-  (list "-1"
-    "-0.5"
-    "-0.33"
-    "-0.25"
-    "-0.2"
-    "-0.15"
-    "-0.1"
-    "0.1"
-    "0.15"
-    "0.2"
-    "0.25"
-    "0.33"
-    "0.5"
-    "1"
-    :other
+  (list "-1" "-0.5" "-0.33" "-0.25" "-0.2" "-0.15" "-0.1" "0.1" "0.15" "0.2"
+    "0.25" "0.33" "0.5" "1" :other
   ) ;list
 ) ;tm-define
 
@@ -896,8 +883,7 @@
 ) ;tm-define
 
 (tm-define (customizable-parameters t)
-  (:require (tree-in? t '(outline gaussian-outline
-                           oval-outline
+  (:require (tree-in? t '(outline gaussian-outline oval-outline
                            rectangular-outline))
   ) ;:require
   (list (list "outline-pen-width" "Pen width")
@@ -912,8 +898,7 @@
 ) ;tm-define
 
 (tm-define (customizable-parameters t)
-  (:require (tree-in? t '(thicken gaussian-thicken
-                           oval-thicken
+  (:require (tree-in? t '(thicken gaussian-thicken oval-thicken
                            rectangular-thicken))
   ) ;:require
   (list (list "thicken-pen-width" "Pen width")
@@ -945,18 +930,8 @@
               (list "shadow-dx" "shadow-dy" "engrave-dx" "engrave-dy" "emboss-dx" "emboss-dy")
             ) ;in?
   ) ;:require
-  (list "-2.5ln"
-    "-2ln"
-    "-1.5ln"
-    "-1ln"
-    "-0.5ln"
-    "0ln"
-    "0.5ln"
-    "1ln"
-    "1.5ln"
-    "2ln"
-    "2.5ln"
-    :other
+  (list "-2.5ln" "-2ln" "-1.5ln" "-1ln" "-0.5ln" "0ln" "0.5ln" "1ln" "1.5ln"
+    "2ln" "2.5ln" :other
   ) ;list
 ) ;tm-define
 
@@ -1105,10 +1080,7 @@
     (set! t (tree-innermost pen-effect-context?))
   ) ;when
   (cond ((not (tree? t)) (noop))
-        ((tree-in? t '(blur gaussian-blur
-                        oval-blur
-                        rectangular-blur
-                        motion-blur))
+        ((tree-in? t '(blur gaussian-blur oval-blur rectangular-blur motion-blur))
          (cond ((== pen "gaussian") (variant-set t 'gaussian-blur))
                ((== pen "oval") (variant-set t 'oval-blur))
                ((== pen "rectangular") (variant-set t 'rectangular-blur))
@@ -1116,9 +1088,7 @@
          ) ;cond
         ) ;
         ((tree-in? t
-           '(outline gaussian-outline
-              oval-outline
-              rectangular-outline
+           '(outline gaussian-outline oval-outline rectangular-outline
               motion-outline)
          ) ;tree-in?
          (cond ((== pen "gaussian") (variant-set t 'gaussian-outline))
@@ -1128,9 +1098,7 @@
          ) ;cond
         ) ;
         ((tree-in? t
-           '(thicken gaussian-thicken
-              oval-thicken
-              rectangular-thicken
+           '(thicken gaussian-thicken oval-thicken rectangular-thicken
               motion-thicken)
          ) ;tree-in?
          (cond ((== pen "gaussian") (variant-set t 'gaussian-thicken))
@@ -1139,9 +1107,7 @@
                ((== pen "motion") (variant-set t 'motion-thicken))
          ) ;cond
         ) ;
-        ((tree-in? t '(erode gaussian-erode
-                        oval-erode
-                        rectangular-erode
+        ((tree-in? t '(erode gaussian-erode oval-erode rectangular-erode
                         motion-erode))
          (cond ((== pen "gaussian") (variant-set t 'gaussian-erode))
                ((== pen "oval") (variant-set t 'oval-erode))

@@ -154,10 +154,7 @@
     (let* ((head (car l)) (tail (inits->assignments (cdr l))))
       (cond ((not (and (tm-func? head 'associate 2) (string? (tm-ref head 0)))) tail)
             ((in? (tm-ref head 0)
-               (list "zoom-factor"
-                 "sfactor"
-                 "preamble"
-                 "page-screen-width"
+               (list "zoom-factor" "sfactor" "preamble" "page-screen-width"
                  "page-screen-height"
                ) ;list
              ) ;in?

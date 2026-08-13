@@ -27,20 +27,9 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape
-    json-string-unescape
-    string->json
-    json->string
-    json-ref
-    json-ref*
-    json-set
-    json-set*
-    json-push
-    json-push*
-    json-drop
-    json-drop*
-    json-reduce
-    json-reduce*
+  (export json-string-escape json-string-unescape string->json json->string
+    json-ref json-ref* json-set json-set* json-push json-push* json-drop
+    json-drop* json-reduce json-reduce*
   ) ;export
   (begin
 

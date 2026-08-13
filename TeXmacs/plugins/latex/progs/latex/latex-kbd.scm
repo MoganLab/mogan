@@ -787,19 +787,7 @@
  ("overbrace" "Insert overbrace" (make-wide "<wide-overbrace>"))
 ) ;kbd-commands
 
-(kbd-symbols "ddots"
-  "mho"
-  "Backepsilon"
-  "Backsigma"
-  "homsim"
-  "mathcatalan"
-  "mathD"
-  "mathd"
-  "mathe"
-  "mathi"
-  "mathGamma"
-  "mathLaplace"
-  "matheuler"
-  "mathlambda"
-  "mathpi"
+(kbd-symbols "ddots" "mho" "Backepsilon" "Backsigma" "homsim" "mathcatalan"
+  "mathD" "mathd" "mathe" "mathi" "mathGamma" "mathLaplace" "matheuler"
+  "mathlambda" "mathpi"
 ) ;kbd-symbols

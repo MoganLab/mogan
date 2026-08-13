@@ -584,12 +584,7 @@
              ) ;item
       (item (text "Vertical:")
         (enum (table-set-format* "table-valign" (encode-valign* answer))
-          '("Axis"
-            "Top"
-            "Center"
-            "Bottom"
-            "Top baseline"
-            "Center baseline"
+          '("Axis" "Top" "Center" "Bottom" "Top baseline" "Center baseline"
             "Bottom baseline")
           (decode-valign* (table-get-format "table-halign"))
           "10em"

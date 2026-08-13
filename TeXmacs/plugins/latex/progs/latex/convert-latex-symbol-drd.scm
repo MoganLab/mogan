@@ -241,105 +241,25 @@
   bracevert
 ) ;logic-group
 
-(logic-group latex-big-symbol%
-  sum
-  prod
-  coprod
-  bignone
-  bigtimes
-  bigoplus
-  bigotimes
-  bigodot
-  bigvee
-  bigwedge
-  bigsqcup
-  bigcup
-  bigcap
-  bigpluscup
-  bigtriangledown
-  bigtriangleup
-  int
-  iint
-  iiint
-  iiiint
-  idotsint
-  bigint
-  bigiint
-  bigiiint
-  bigiiiint
-  bigidotsint
-  upint
-  upiint
-  upiiint
-  upiiiint
-  upidotsint
-  bigupint
-  bigupiint
-  bigupiiint
-  bigupiiiint
-  bigupidotsint
-  oint
-  oiint
-  oiiint
-  bigoint
-  bigoiint
-  bigoiiint
-  upoint
-  upoiint
-  upoiiint
-  bigupoint
-  bigupoiint
-  bigupoiiint
-  intwl
-  iintwl
-  iiintwl
-  iiiintwl
-  idotsintwl
-  bigintwl
-  bigiintwl
-  bigiiintwl
-  bigiiiintwl
-  bigidotsintwl
-  upintwl
-  upiintwl
-  upiiintwl
-  upiiiintwl
-  upidotsintwl
-  bigupintwl
-  bigupiintwl
-  bigupiiintwl
-  bigupiiiintwl
-  bigupidotsintwl
-  ointwl
-  oiintwl
-  oiiintwl
-  bigointwl
-  bigoiintwl
-  bigoiiintwl
-  upointwl
-  upoiintwl
-  upoiiintwl
-  bigupointwl
-  bigupoiintwl
-  bigupoiiintwl
+(logic-group latex-big-symbol% sum prod coprod bignone bigtimes bigoplus
+  bigotimes bigodot bigvee bigwedge bigsqcup bigcup bigcap bigpluscup
+  bigtriangledown bigtriangleup int iint iiint iiiint idotsint bigint bigiint
+  bigiiint bigiiiint bigidotsint upint upiint upiiint upiiiint upidotsint
+  bigupint bigupiint bigupiiint bigupiiiint bigupidotsint oint oiint oiiint
+  bigoint bigoiint bigoiiint upoint upoiint upoiiint bigupoint bigupoiint
+  bigupoiiint intwl iintwl iiintwl iiiintwl idotsintwl bigintwl bigiintwl
+  bigiiintwl bigiiiintwl bigidotsintwl upintwl upiintwl upiiintwl upiiiintwl
+  upidotsintwl bigupintwl bigupiintwl bigupiiintwl bigupiiiintwl bigupidotsintwl
+  ointwl oiintwl oiiintwl bigointwl bigoiintwl bigoiiintwl upointwl upoiintwl
+  upoiiintwl bigupointwl bigupoiintwl bigupoiiintwl
 ) ;logic-group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Symbols from latexsym package
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-latexsym-symbol%
-  mho
-  Join
-  Box
-  Diamond
-  leadsto
-  sqsubset
-  sqsupset
-  lhd
-  rhd
-  unlhd
-  unrhd
+(logic-group latex-latexsym-symbol% mho Join Box Diamond leadsto sqsubset
+  sqsupset lhd rhd unlhd unrhd
 ) ;logic-group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -796,14 +716,8 @@
   Yup
 ) ;logic-group
 
-(logic-group latex-stmary-big-symbol%
-  bigbox
-  bigcurlyvee
-  bigcurlywedge
-  biginterleave
-  bignplus
-  bigparallel
-  bigsqcap
+(logic-group latex-stmary-big-symbol% bigbox bigcurlyvee bigcurlywedge
+  biginterleave bignplus bigparallel bigsqcap
 ) ;logic-group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -820,27 +734,10 @@
 ;; Symbols from textcomp package
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-textcomp-symbol%
-  textcent
-  textcurrency
-  textyen
-  textbrokenbar
-  textasciidieresis
-  textlnot
-  textasciimacron
-  textdegree
-  degree
-  textpm
-  texttwosuperior
-  textthreesuperior
-  textasciiacute
-  textmu
-  textonesuperior
-  textonequarter
-  textonehalf
-  textthreequarters
-  texttimes
-  textdiv
+(logic-group latex-textcomp-symbol% textcent textcurrency textyen textbrokenbar
+  textasciidieresis textlnot textasciimacron textdegree degree textpm
+  texttwosuperior textthreesuperior textasciiacute textmu textonesuperior
+  textonequarter textonehalf textthreequarters texttimes textdiv
 ) ;logic-group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

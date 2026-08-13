@@ -93,8 +93,7 @@
      (list ,@(map-in-order (lambda (b)
                              (if (not (list-length=2? b))
                                (syntax-error "with-environment"
-                                 "Ill-formed binding: ~A"
-                                 b))
+                                 "Ill-formed binding: ~A" b))
                              `(list (quote ,(first b)) ,(second b)))
                bindings))
      (lambda (,env) ,@body))

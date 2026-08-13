@@ -71,15 +71,10 @@
     (former l)
     (let* ((l* (list-remove l "hyperref"))
            (s1 (if (null? l*) "" (former l*)))
-           (s2 (string-append "\\makeatletter\n"
-                 "\\let\\old@ssect\\@ssect\n"
-                 "\\makeatother\n"
-                 "\\usepackage{hyperref}\n"
-                 "\\makeatletter\n"
-                 "\\def\\@ssect#1#2#3#4#5#6{%\n"
-                 "  \\NR@gettitle{#6}%\n"
-                 "  \\old@ssect{#1}{#2}{#3}{#4}{#5}{#6}%\n"
-                 "}\n"
+           (s2 (string-append "\\makeatletter\n" "\\let\\old@ssect\\@ssect\n"
+                 "\\makeatother\n" "\\usepackage{hyperref}\n" "\\makeatletter\n"
+                 "\\def\\@ssect#1#2#3#4#5#6{%\n" "  \\NR@gettitle{#6}%\n"
+                 "  \\old@ssect{#1}{#2}{#3}{#4}{#5}{#6}%\n" "}\n"
                  "\\makeatother\n"
                ) ;string-append
            ) ;s2
@@ -454,18 +449,8 @@
 ;; Elsevier title and author presentation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tmtex-make-doc-data titles
-             subtitles
-             authors
-             dates
-             miscs
-             notes
-             subtitles-l
-             dates-l
-             miscs-l
-             notes-l
-             tr
-             ar
+(tm-define (tmtex-make-doc-data titles subtitles authors dates miscs notes
+             subtitles-l dates-l miscs-l notes-l tr ar
            ) ;tmtex-make-doc-data
   (:mode elsevier-style?)
   (let* ((authors (filter nnull? authors))
@@ -486,17 +471,8 @@
   ) ;let*
 ) ;tm-define
 
-(tm-define (tmtex-make-author names
-             affs
-             emails
-             urls
-             miscs
-             notes
-             affs*
-             emails*
-             urls*
-             miscs*
-             notes*
+(tm-define (tmtex-make-author names affs emails urls miscs notes affs* emails*
+             urls* miscs* notes*
            ) ;tmtex-make-author
   (:mode elsevier-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))

@@ -59,31 +59,9 @@
     ;; Keywords for program structure and visibility
     (declare_module "import" "pub")
     ;; Other keywords from the official list
-    (keyword "as"
-      "extern"
-      "fnalias"
-      "typealias"
-      "traitalias"
-      "mut"
-      "derive"
-      "break"
-      "continue"
-      "return"
-      "throw"
-      "raise"
-      "try"
-      "catch"
-      "with"
-      "guard"
-      "async"
-      "is"
-      "suberror"
-      "and"
-      "letrec"
-      "enumview"
-      "noraise"
-      "defer"
-      "test"
+    (keyword "as" "extern" "fnalias" "typealias" "traitalias" "mut" "derive"
+      "break" "continue" "return" "throw" "raise" "try" "catch" "with" "guard"
+      "async" "is" "suberror" "and" "letrec" "enumview" "noraise" "defer" "test"
       "impl"))
 ) ;tm-define
 

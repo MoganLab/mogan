@@ -771,17 +771,9 @@
   ) ;->
   (-> "Margins"
    ("Default"
-     (init-default "page-width-margin"
-       "page-height-margin"
-       "page-odd"
-       "page-even"
-       "page-right"
-       "par-width"
-       "page-odd-shift"
-       "page-even-shift"
-       "page-top"
-       "page-bot"
-       "page-height-margin"
+     (init-default "page-width-margin" "page-height-margin" "page-odd"
+       "page-even" "page-right" "par-width" "page-odd-shift" "page-even-shift"
+       "page-top" "page-bot" "page-height-margin"
      ) ;init-default
    ) ;
    ---
@@ -809,11 +801,8 @@
   ) ;->
   (-> "Screen margins"
    ("Default"
-     (init-default "page-screen-margin"
-       "page-screen-left"
-       "page-screen-right"
-       "page-screen-top"
-       "page-screen-bot"
+     (init-default "page-screen-margin" "page-screen-left" "page-screen-right"
+       "page-screen-top" "page-screen-bot"
      ) ;init-default
    ) ;
    ("Margins as on paper" (toggle-page-screen-margin))

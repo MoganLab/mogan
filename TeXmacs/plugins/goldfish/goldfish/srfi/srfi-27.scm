@@ -26,17 +26,10 @@
 
 (define-library (srfi srfi-27)
   (import (scheme base) (srfi srfi-19) (liii error))
-  (export random-integer
-    random-real
-    default-random-source
-    make-random-source
-    random-source?
-    random-source-state-ref
-    random-source-state-set!
-    random-source-randomize!
-    random-source-pseudo-randomize!
-    random-source-make-integers
-    random-source-make-reals
+  (export random-integer random-real default-random-source make-random-source
+    random-source? random-source-state-ref random-source-state-set!
+    random-source-randomize! random-source-pseudo-randomize!
+    random-source-make-integers random-source-make-reals
   ) ;export
   (begin
 
@@ -53,13 +46,8 @@
     ;; - make-reals: procedure returning a random-real generator
 
     (define-record-type <random-source>
-      (%make-random-source state
-        state-ref
-        state-set!
-        randomize!
-        pseudo-randomize!
-        make-integers
-        make-reals
+      (%make-random-source state state-ref state-set! randomize!
+        pseudo-randomize! make-integers make-reals
       ) ;%make-random-source
       random-source?
       (state random-source-internal-state)

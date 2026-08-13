@@ -309,31 +309,10 @@
     (with (w1 w2 w3 wpos h1 h2 h3 hpos)
       global-resize
       (with attrs
-        (list "page-medium"
-          "papyrus"
-          "page-type"
-          "user"
-          "page-width"
-          w2
-          "page-height"
-          h2
-          "page-odd"
-          "4px"
-          "page-even"
-          "4px"
-          "page-right"
-          "4px"
-          "page-top"
-          "2px"
-          "page-bot"
-          "2px"
-          "page-screen-left"
-          "4px"
-          "page-screen-right"
-          "4px"
-          "page-screen-top"
-          "2px"
-          "page-screen-bot"
+        (list "page-medium" "papyrus" "page-type" "user" "page-width" w2
+          "page-height" h2 "page-odd" "4px" "page-even" "4px" "page-right" "4px"
+          "page-top" "2px" "page-bot" "2px" "page-screen-left" "4px"
+          "page-screen-right" "4px" "page-screen-top" "2px" "page-screen-bot"
           "2px"
         ) ;list
         (if (tm-is? t 'with)
@@ -1261,24 +1240,11 @@
 (define (static-menu-link? name)
   "Menus whose expanded result never changes at runtime."
   (in? name
-    '(style-menu add-package-menu
-       remove-package-menu
-       toggle-package-menu
-       basic-theme-menu
-       document-page-size-menu
-       document-language-menu
-       document-short-font-menu
-       document-font-base-size-menu
-       page-rendering-menu
-       page-layout-menu
-       document-columns-menu
-       print-menu-inline
-       new-file-menu
-       load-menu
-       save-menu
-       close-menu
-       color-menu
-       document-encryption-menu
+    '(style-menu add-package-menu remove-package-menu toggle-package-menu
+       basic-theme-menu document-page-size-menu document-language-menu
+       document-short-font-menu document-font-base-size-menu page-rendering-menu
+       page-layout-menu document-columns-menu print-menu-inline new-file-menu
+       load-menu save-menu close-menu color-menu document-encryption-menu
        document-columns-menu)
   ) ;in?
 ) ;define
@@ -1977,14 +1943,8 @@
 
 (tm-define (tool-close pos tool quit . opt-win)
   (if (== pos :any)
-    (for (pos* (list :transient-right
-                 :right
-                 :bottom-right
-                 :transient-left
-                 :left
-                 :bottom-left
-                 :transient-bottom
-                 :bottom
+    (for (pos* (list :transient-right :right :bottom-right :transient-left :left
+                 :bottom-left :transient-bottom :bottom
                ) ;list
          ) ;pos*
       (apply tool-close (cons* pos* tool quit opt-win))

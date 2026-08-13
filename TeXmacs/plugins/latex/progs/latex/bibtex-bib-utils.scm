@@ -88,16 +88,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (bib-standard-styles)
-  (list "tm-plain"
-    "tm-abbrv"
-    "tm-abstract"
-    "tm-acm"
-    "tm-alpha"
-    "tm-elsart-num"
-    "tm-ieeetr"
-    "tm-siam"
-    "tm-unsrt"
-    "tm-gbt7714-2015"
+  (list "tm-plain" "tm-abbrv" "tm-abstract" "tm-acm" "tm-alpha" "tm-elsart-num"
+    "tm-ieeetr" "tm-siam" "tm-unsrt" "tm-gbt7714-2015"
     "tm-gbt7714-2015-author-year"
   ) ;list
 ) ;tm-define

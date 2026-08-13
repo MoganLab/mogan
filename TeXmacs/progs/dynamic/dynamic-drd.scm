@@ -108,10 +108,7 @@
 
 (define-group overlays-tag (std-overlays-tag) gr-overlays)
 
-(define-group std-overlays-tag
-  overlays
-  overlays-compressed
-  overlays-phantoms
+(define-group std-overlays-tag overlays overlays-compressed overlays-phantoms
   overlays-greyed
 ) ;define-group
 
@@ -121,25 +118,15 @@
   (binary-overlay-tag)
 ) ;define-group
 
-(define-group nullary-overlay-tag
-  show-always
-  show-from
-  show-until
-  show-this
+(define-group nullary-overlay-tag show-always show-from show-until show-this
   show-other
 ) ;define-group
 
-(define-group unary-overlay-tag
-  overlay-from
-  overlay-until
-  overlay-this
+(define-group unary-overlay-tag overlay-from overlay-until overlay-this
   overlay-other
 ) ;define-group
 
-(define-group binary-overlay-tag
-  alternate-from
-  alternate-until
-  alternate-this
+(define-group binary-overlay-tag alternate-from alternate-until alternate-this
   alternate-other
 ) ;define-group
 
@@ -177,16 +164,11 @@
 
 (define-group disappear-tag translate-out progressive-out fade-out zoom-out)
 
-(define-group smooth-tag
-  translate-smooth
-  progressive-smooth
-  fade-smooth
+(define-group smooth-tag translate-smooth progressive-smooth fade-smooth
   zoom-smooth
 ) ;define-group
 
-(define-group anim-emphasize-tag
-  shadowed-smooth
-  emboss-smooth
+(define-group anim-emphasize-tag shadowed-smooth emboss-smooth
   outlined-emboss-smooth
 ) ;define-group
 

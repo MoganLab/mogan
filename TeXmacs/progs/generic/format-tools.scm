@@ -71,20 +71,16 @@
         (item ====== ======)
         (item (text "Left margin:")
           (enum (window-set-env win "par-left" answer mode)
-            (cons-new (window-get-env win "par-left" mode) '("0tab"
-                                                             "1tab"
-                                                             "2tab"
-                                                             ""))
+            (cons-new (window-get-env win "par-left" mode) '("0tab" "1tab"
+                                                             "2tab" ""))
             (window-get-env win "par-left" mode)
             "10em"
           ) ;enum
         ) ;item
         (item (text "Right margin:")
           (enum (window-set-env win "par-right" answer mode)
-            (cons-new (window-get-env win "par-right" mode) '("0tab"
-                                                              "1tab"
-                                                              "2tab"
-                                                              ""))
+            (cons-new (window-get-env win "par-right" mode) '("0tab" "1tab"
+                                                              "2tab" ""))
             (window-get-env win "par-right" mode)
             "10em"
           ) ;enum
@@ -92,10 +88,8 @@
       ) ;assuming
       (item (text "First indentation:")
         (enum (window-set-env win "par-first" answer mode)
-          (cons-new (window-get-env win "par-first" mode) '("0tab"
-                                                            "1tab"
-                                                            "-1tab"
-                                                            ""))
+          (cons-new (window-get-env win "par-first" mode) '("0tab" "1tab"
+                                                            "-1tab" ""))
           (window-get-env win "par-first" mode)
           "10em"
         ) ;enum
@@ -103,11 +97,8 @@
       (item ====== ======)
       (item (text "Interline space:")
         (enum (window-set-env win "par-sep" answer mode)
-          (cons-new (window-get-env win "par-sep" mode) '("0fn"
-                                                          "0.2fn"
-                                                          "0.5fn"
-                                                          "1fn"
-                                                          ""))
+          (cons-new (window-get-env win "par-sep" mode) '("0fn" "0.2fn" "0.5fn"
+                                                          "1fn" ""))
           (window-get-env win "par-sep" mode)
           "10em"
         ) ;enum
@@ -140,8 +131,7 @@
             (enum (window-set-env win "par-columns-sep" answer mode)
               (cons-new (window-get-env win "par-columns-sep" mode) '("1fn"
                                                                       "2fn"
-                                                                      "3fn"
-                                                                      ""))
+                                                                      "3fn" ""))
               (window-get-env win "par-columns-sep" mode)
               "10em"
             ) ;enum
@@ -189,11 +179,8 @@
         (item ====== ======)
         (item (text "Space stretchability:")
           (enum (window-set-env win "par-flexibility" answer mode)
-            (cons-new (window-get-env win "par-flexibility" mode) '("1"
-                                                                    "2"
-                                                                    "4"
-                                                                    "1000"
-                                                                    ""))
+            (cons-new (window-get-env win "par-flexibility" mode) '("1" "2" "4"
+                                                                    "1000" ""))
             (window-get-env win "par-flexibility" mode)
             "10em"
           ) ;enum
@@ -339,11 +326,7 @@
 
 (define (page-rendering-options)
   (if (in-beamer?)
-    '("Single Page"
-      "Continuous Scroll"
-      "Beamer"
-      "Two Page"
-      "Panorama"
+    '("Single Page" "Continuous Scroll" "Beamer" "Two Page" "Panorama"
       "Slideshow")
     '("Single Page" "Continuous Scroll" "Two Page" "Panorama")
   ) ;if
@@ -435,15 +418,8 @@
     (division "discrete"
       (hlist >>
        ("Restore defaults"
-         (window-reset-init win
-           "page-medium"
-           "page-type"
-           "page-orientation"
-           "page-border"
-           "page-packet"
-           "page-offset"
-           "page-width"
-           "page-height"
+         (window-reset-init win "page-medium" "page-type" "page-orientation"
+           "page-border" "page-packet" "page-offset" "page-width" "page-height"
            "page-crop-marks"
          ) ;window-reset-init
        ) ;
@@ -639,21 +615,10 @@
   (division "discrete"
     (hlist >>
      ("Restore defaults"
-       (window-reset-init win
-         "page-odd"
-         "page-even"
-         "page-right"
-         "page-top"
-         "page-bot"
-         "par-width"
-         "page-odd-shift"
-         "page-even-shift"
-         "page-screen-left"
-         "page-screen-right"
-         "page-screen-top"
-         "page-screen-bot"
-         "page-width-margin"
-         "page-screen-margin"
+       (window-reset-init win "page-odd" "page-even" "page-right" "page-top"
+         "page-bot" "par-width" "page-odd-shift" "page-even-shift"
+         "page-screen-left" "page-screen-right" "page-screen-top"
+         "page-screen-bot" "page-width-margin" "page-screen-margin"
        ) ;window-reset-init
        (refresh-now "page-margin-toggles")
        (refresh-now "page-margin-settings")
@@ -799,23 +764,11 @@
   (division "discrete"
     (hlist >>
      ("Restore defaults"
-       (window-reset-init win
-         "tex-odd-side-margin"
-         "tex-even-side-margin"
-         "tex-text-width"
-         "tex-line-width"
-         "tex-column-width"
-         "tex-top-margin"
-         "tex-head-height"
-         "tex-head-sep"
-         "tex-text-height"
-         "tex-foot-skip"
-         "page-screen-left"
-         "page-screen-right"
-         "page-screen-top"
-         "page-screen-bot"
-         "page-width-margin"
-         "page-screen-margin"
+       (window-reset-init win "tex-odd-side-margin" "tex-even-side-margin"
+         "tex-text-width" "tex-line-width" "tex-column-width" "tex-top-margin"
+         "tex-head-height" "tex-head-sep" "tex-text-height" "tex-foot-skip"
+         "page-screen-left" "page-screen-right" "page-screen-top"
+         "page-screen-bot" "page-width-margin" "page-screen-margin"
        ) ;window-reset-init
        (refresh-now "page-margin-toggles")
        (refresh-now "page-tex-hor-margins")
@@ -842,20 +795,14 @@
              ) ;item
       (item (text "Allowed page height reduction:")
         (enum (window-set-init win "page-shrink" answer)
-          (cons-new (window-get-init win "page-shrink") '("0cm"
-                                                          "0.5cm"
-                                                          "1cm"
-                                                          ""))
+          (cons-new (window-get-init win "page-shrink") '("0cm" "0.5cm" "1cm" ""))
           (window-get-init win "page-shrink")
           "10em"
         ) ;enum
       ) ;item
       (item (text "Allowed page height extension:")
         (enum (window-set-init win "page-extend" answer)
-          (cons-new (window-get-init win "page-extend") '("0cm"
-                                                          "0.5cm"
-                                                          "1cm"
-                                                          ""))
+          (cons-new (window-get-init win "page-extend") '("0cm" "0.5cm" "1cm" ""))
           (window-get-init win "page-extend")
           "10em"
         ) ;enum
@@ -874,10 +821,7 @@
     (division "discrete"
       (hlist >>
        ("Restore defaults"
-         (window-reset-init win
-           "page-breaking"
-           "page-shrink"
-           "page-extend"
+         (window-reset-init win "page-breaking" "page-shrink" "page-extend"
            "page-flexibility"
          ) ;window-reset-init
          (refresh-now "page-breaking-settings")

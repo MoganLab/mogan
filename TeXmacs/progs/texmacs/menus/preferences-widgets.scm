@@ -380,13 +380,9 @@
 (define preferences-qml-keyboard-fields
   (list (list (pref-keyboard-text-spacebar)
           "Space bar in text mode"
-          '("default"
-            "allow multiple spaces"
-            "glue multiple spaces"
+          '("default" "allow multiple spaces" "glue multiple spaces"
             "no multiple spaces")
-          '("Default"
-            "Allow multiple spaces"
-            "Glue multiple spaces"
+          '("Default" "Allow multiple spaces" "Glue multiple spaces"
             "No multiple spaces")
           #f
           'group
@@ -394,26 +390,16 @@
         ) ;list
     (list (pref-keyboard-math-spacebar)
       "Space bar in math mode"
-      '("default"
-        "allow spurious spaces"
-        "avoid spurious spaces"
+      '("default" "allow spurious spaces" "avoid spurious spaces"
         "no spurious spaces")
-      '("Default"
-        "Allow spurious spaces"
-        "Avoid spurious spaces"
+      '("Default" "Allow spurious spaces" "Avoid spurious spaces"
         "No spurious spaces")
       #f
     ) ;list
     (list (pref-keyboard-automatic-quotes)
       "Automatic quotes"
       '("default" "none" "dutch" "english" "french" "german" "spanish" "swiss")
-      '("Default"
-        "Disabled"
-        "Dutch"
-        "English"
-        "French"
-        "German"
-        "Spanish"
+      '("Default" "Disabled" "Dutch" "English" "French" "German" "Spanish"
         "Swiss")
       #f
     ) ;list
@@ -662,13 +648,11 @@
     ) ;list
     (list (pref-convert-html-css-stylesheet)
       "CSS stylesheet"
-      '("---"
-        "https://www.texmacs.org/css/web-article.css"
+      '("---" "https://www.texmacs.org/css/web-article.css"
         "https://www.texmacs.org/css/web-article-dark.css"
         "https://www.texmacs.org/css/web-article-colored.css"
         "https://www.texmacs.org/css/web-article-dark-colored.css")
-      '("---"
-        "https://www.texmacs.org/css/web-article.css"
+      '("---" "https://www.texmacs.org/css/web-article.css"
         "https://www.texmacs.org/css/web-article-dark.css"
         "https://www.texmacs.org/css/web-article-colored.css"
         "https://www.texmacs.org/css/web-article-dark-colored.css")

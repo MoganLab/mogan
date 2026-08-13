@@ -23,29 +23,12 @@
 
 (define-group graphical-atomic-tag point)
 
-(define-group graphical-open-curve-tag
-  line
-  spline
-  bezier
-  smooth
-  arc
-  std-arc
-  std-arc-counterclockwise
-  hyperbola
-  parabola
+(define-group graphical-open-curve-tag line spline bezier smooth arc std-arc
+  std-arc-counterclockwise hyperbola parabola
 ) ;define-group
 
-(define-group graphical-closed-curve-tag
-  cline
-  cspline
-  cbezier
-  csmooth
-  carc
-  oval
-  circle
-  ellipse
-  sector
-  sector-counterclockwise
+(define-group graphical-closed-curve-tag cline cspline cbezier csmooth carc oval
+  circle ellipse sector sector-counterclockwise
 ) ;define-group
 
 (define-group graphical-curve-tag
@@ -240,18 +223,9 @@
 (tm-define (graphics-attributes tag)
   (:require (or (graphical-curve-tag? tag) (graphical-user-tag? tag)))
   (append (graphics-common-attributes)
-    '("fill-color"
-      "line-width"
-      "line-join"
-      "line-caps"
-      "line-effects"
-      "line-portion"
-      "dash-style"
-      "dash-style-unit"
-      "arrow-begin"
-      "arrow-end"
-      "arrow-length"
-      "arrow-height")
+    '("fill-color" "line-width" "line-join" "line-caps" "line-effects"
+      "line-portion" "dash-style" "dash-style-unit" "arrow-begin" "arrow-end"
+      "arrow-length" "arrow-height")
   ) ;append
 ) ;tm-define
 
@@ -265,15 +239,8 @@
 (tm-define (graphics-attributes tag)
   (:require (graphical-long-text-tag? tag))
   (append (graphics-common-attributes)
-    '("text-at-halign"
-      "doc-at-valign"
-      "text-at-repulse"
-      "text-at-snapping"
-      "fill-color"
-      "doc-at-width"
-      "doc-at-hmode"
-      "doc-at-ppsep"
-      "doc-at-border"
+    '("text-at-halign" "doc-at-valign" "text-at-repulse" "text-at-snapping"
+      "fill-color" "doc-at-width" "doc-at-hmode" "doc-at-ppsep" "doc-at-border"
       "doc-at-padding")
   ) ;append
 ) ;tm-define
@@ -281,18 +248,9 @@
 (tm-define (graphics-attributes tag)
   (:require (graphical-penscript-tag? tag))
   (append (graphics-common-attributes)
-    '("pen-enhance"
-      "line-width"
-      "line-join"
-      "line-caps"
-      "line-effects"
-      "line-portion"
-      "dash-style"
-      "dash-style-unit"
-      "arrow-begin"
-      "arrow-end"
-      "arrow-length"
-      "arrow-height")
+    '("pen-enhance" "line-width" "line-join" "line-caps" "line-effects"
+      "line-portion" "dash-style" "dash-style-unit" "arrow-begin" "arrow-end"
+      "arrow-length" "arrow-height")
   ) ;append
 ) ;tm-define
 

@@ -352,12 +352,8 @@
    ) ;with
    (with u
      (list-difference gr-tags-user
-       '(arrow-with-text arrow-with-text*
-          circle
-          std-arc
-          sector
-          std-arc-counterclockwise
-          sector-counterclockwise)
+       '(arrow-with-text arrow-with-text* circle std-arc sector
+          std-arc-counterclockwise sector-counterclockwise)
      ) ;list-difference
      (with l
        (list-filter u (lambda (s) (style-has? (symbol->string s))))

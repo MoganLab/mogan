@@ -28,89 +28,27 @@
 (tm-define (tmhtml-env-patch)
   ;; FIXME: we should use the DRD here
   `(collection ,@(map tmhtml-env-macro
-                   '(TeXmacs TeX
-                      LaTeX
-                      shown
-                      hrule
-                      item
-                      chapter-title
-                      section-title
-                      subsection-title
-                      subsubsection-title
-                      paragraph-title
-                      subparagraph-title
-                      itemize
-                      itemize-minus
-                      itemize-dot
-                      itemize-arrow
-                      enumerate
-                      enumerate-numeric
-                      enumerate-numeric-bracket
-                      enumerate-numeric-paren
-                      enumerate-roman
-                      enumerate-roman-bracket
-                      enumerate-roman-paren
-                      enumerate-Roman
-                      enumerate-alpha
-                      enumerate-alpha-bracket
-                      enumerate-alpha-full-paren
-                      enumerate-Alpha
-                      enumerate-circle
-                      enumerate-hanzi
-                      description
-                      description-compact
-                      description-dash
-                      description-aligned
-                      description-long
-                      description-paragraphs
-                      item*
-                      strong
-                      em
-                      dfn
-                      code*
-                      samp
-                      kbd
-                      var
-                      abbr
-                      acronym
-                      verbatim
-                      code
-                      tt
-                      underline
-                      overline
-                      strike-through
-                      deleted
-                      marked
-                      fill-out
-                      hidden-title
-                      doc-title-block
-                      equation*
-                      equation-lab
-                      equations-base
-                      wide-float
-                      draw-over
-                      draw-under
-                      html-tag
-                      html-attr
-                      html-div-style
-                      html-div-class
-                      html-style
-                      html-class
-                      html-javascript
-                      html-javascript-src
-                      html-video
-                      web-title
-                      tmdoc-title
-                      tmdoc-flag
-                      tmdoc-license
-                      tmdoc-title*
-                      tmdoc-title**
-                      tmdoc-copyright
-                      hlink
-                      action
-                      hyper-link
-                      mouse-over-balloon
-                      mouse-over-balloon*))
+                   '(TeXmacs TeX LaTeX shown hrule item chapter-title
+                      section-title subsection-title subsubsection-title
+                      paragraph-title subparagraph-title itemize itemize-minus
+                      itemize-dot itemize-arrow enumerate enumerate-numeric
+                      enumerate-numeric-bracket enumerate-numeric-paren
+                      enumerate-roman enumerate-roman-bracket
+                      enumerate-roman-paren enumerate-Roman enumerate-alpha
+                      enumerate-alpha-bracket enumerate-alpha-full-paren
+                      enumerate-Alpha enumerate-circle enumerate-hanzi
+                      description description-compact description-dash
+                      description-aligned description-long
+                      description-paragraphs item* strong em dfn code* samp kbd
+                      var abbr acronym verbatim code tt underline overline
+                      strike-through deleted marked fill-out hidden-title
+                      doc-title-block equation* equation-lab equations-base
+                      wide-float draw-over draw-under html-tag html-attr
+                      html-div-style html-div-class html-style html-class
+                      html-javascript html-javascript-src html-video web-title
+                      tmdoc-title tmdoc-flag tmdoc-license tmdoc-title*
+                      tmdoc-title** tmdoc-copyright hlink action hyper-link
+                      mouse-over-balloon mouse-over-balloon*))
      ;; FIXME: should apply 'filter_style' to the environment
      ;; in an appropriate way to avoid adding the primitives below
      ,@(map tmhtml-env-macro

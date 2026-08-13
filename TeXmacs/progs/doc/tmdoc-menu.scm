@@ -123,9 +123,7 @@
 
 (tm-define (focus-can-move? t)
   (:require (tree-in? t
-              '(tmdoc-title tmweb-title
-                 tmdoc-copyright
-                 tmdoc-license
+              '(tmdoc-title tmweb-title tmdoc-copyright tmdoc-license
                  tmweb-license)
             ) ;tree-in?
   ) ;:require

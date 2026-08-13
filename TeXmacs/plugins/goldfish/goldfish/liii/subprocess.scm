@@ -15,20 +15,8 @@
 ;;
 
 (define-library (liii subprocess)
-  (export run
-    run-values
-    run-either
-    run-set!
-    run-get
-    run-allow!
-    run-ban!
-    run-unban!
-    run-and
-    run-or
-    run-sequence
-    run-pipe
-    run-if
-    run-when
+  (export run run-values run-either run-set! run-get run-allow! run-ban!
+    run-unban! run-and run-or run-sequence run-pipe run-if run-when
   ) ;export
   (import (scheme base)
     (liii base)
@@ -175,21 +163,10 @@
                             ) ;
                             ((or env input timeout stdout stderr stdin)
                              (let-values (((out err code)
-                                           (run-values command
-                                             :cwd
-                                             cwd
-                                             :env
-                                             env
-                                             :input
-                                             input
-                                             :timeout
-                                             timeout
-                                             :stdout
-                                             stdout
-                                             :stderr
-                                             stderr
-                                             :stdin
-                                             stdin
+                                           (run-values command :cwd cwd :env env
+                                             :input input :timeout timeout
+                                             :stdout stdout :stderr stderr
+                                             :stdin stdin
                                            ) ;run-values
                                           ) ;
                                          ) ;
@@ -301,28 +278,14 @@
                              (values "" "" 0)
                             ) ;
                             ((pair? cmd-spec)
-                             (g_subprocess-run-values cmd-spec
-                               cwd
-                               env
-                               input
-                               timeout
-                               stdout
-                               stdout-mode
-                               stderr
-                               stderr-mode
+                             (g_subprocess-run-values cmd-spec cwd env input
+                               timeout stdout stdout-mode stderr stderr-mode
                                stdin
                              ) ;g_subprocess-run-values
                             ) ;
-                            (else (g_subprocess-run-values cmd-spec
-                                    cwd
-                                    env
-                                    input
-                                    timeout
-                                    stdout
-                                    stdout-mode
-                                    stderr
-                                    stderr-mode
-                                    stdin
+                            (else (g_subprocess-run-values cmd-spec cwd env
+                                    input timeout stdout stdout-mode stderr
+                                    stderr-mode stdin
                                   ) ;g_subprocess-run-values
                             ) ;else
                       ) ;cond

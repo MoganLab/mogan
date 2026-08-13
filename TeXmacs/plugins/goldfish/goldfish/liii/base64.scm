@@ -1,11 +1,7 @@
 (define-library (liii base64)
   (import (scheme base) (liii base) (liii bitwise) (liii error))
-  (export string-base64-encode
-    bytevector-base64-encode
-    base64-encode
-    string-base64-decode
-    bytevector-base64-decode
-    base64-decode
+  (export string-base64-encode bytevector-base64-encode base64-encode
+    string-base64-decode bytevector-base64-decode base64-decode
   ) ;export
   (begin
     (define bytevector-base64-encode

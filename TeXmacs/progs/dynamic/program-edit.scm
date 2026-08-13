@@ -417,10 +417,7 @@
 ) ;tm-define
 
 (tm-define prog-field-tags
-  '(input unfolded-prog-io
-     folded-prog-io
-     input-math
-     unfolded-prog-io-math
+  '(input unfolded-prog-io folded-prog-io input-math unfolded-prog-io-math
      folded-prog-io-math)
 ) ;tm-define
 

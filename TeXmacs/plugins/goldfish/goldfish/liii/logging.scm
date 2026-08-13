@@ -18,41 +18,13 @@
 ;; 提供便捷函数、级别控制、格式化输出和文件处理器
 
 (define-library (liii logging)
-  (export send-log
-    current-log-fields
-    current-log-callback
-    EMERGENCY
-    ALERT
-    CRITICAL
-    ERROR
-    WARNING
-    NOTICE
-    INFO
-    DEBUG
-    log-set-fields!
-    log-set-callback!
-    log-set-file-handler!
-    current-log-fields-in-alist
-    log-emergency
-    log-alert
-    log-critical
-    log-error
-    log-warning
-    log-notice
-    log-info
-    log-debug
-    log-set-level!
-    current-log-level
-    log-set-format!
-    current-log-format
-    log-flush!
-    default-log-handler
-    make-stdout-handler
-    make-stderr-handler
-    make-file-handler
-    log-message-severity
-    log-message-message
-    log-message-field
+  (export send-log current-log-fields current-log-callback EMERGENCY ALERT
+    CRITICAL ERROR WARNING NOTICE INFO DEBUG log-set-fields! log-set-callback!
+    log-set-file-handler! current-log-fields-in-alist log-emergency log-alert
+    log-critical log-error log-warning log-notice log-info log-debug
+    log-set-level! current-log-level log-set-format! current-log-format
+    log-flush! default-log-handler make-stdout-handler make-stderr-handler
+    make-file-handler log-message-severity log-message-message log-message-field
   ) ;export
   (import (scheme base)
     (scheme write)

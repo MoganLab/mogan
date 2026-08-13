@@ -16,33 +16,12 @@
 
 (define-library (srfi srfi-13)
   (import (liii base) (srfi srfi-1) (scheme char) (srfi srfi-175))
-  (export string-null?
-    string-copy
-    string-join
-    string-every
-    string-any
-    string-take
-    string-take-right
-    string-drop
-    string-drop-right
-    string-pad
-    string-pad-right
-    string-trim
-    string-trim-right
-    string-trim-both
-    string-prefix?
-    string-suffix?
-    string-index
-    string-index-right
-    string-skip
-    string-skip-right
-    string-contains
-    string-count
-    string-fold
-    string-fold-right
-    string-for-each-index
-    string-reverse
-    string-tokenize
+  (export string-null? string-copy string-join string-every string-any
+    string-take string-take-right string-drop string-drop-right string-pad
+    string-pad-right string-trim string-trim-right string-trim-both
+    string-prefix? string-suffix? string-index string-index-right string-skip
+    string-skip-right string-contains string-count string-fold string-fold-right
+    string-for-each-index string-reverse string-tokenize
   ) ;export
   (begin
 

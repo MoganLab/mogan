@@ -81,28 +81,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define paragraph-parameters
-  (list "par-mode"
-    "par-flexibility"
-    "par-hyphen"
-    "par-spacing"
-    "par-kerning-stretch"
-    "par-kerning-reduce"
-    "par-expansion"
-    "par-contraction"
-    "par-kerning-margin"
-    "par-width"
-    "par-left"
-    "par-right"
-    "par-first"
-    "par-no-first"
-    "par-sep"
-    "par-hor-sep"
-    "par-ver-sep"
-    "par-line-sep"
-    "par-par-sep"
-    "par-fnote-sep"
-    "par-columns"
-    "par-columns-sep"
+  (list "par-mode" "par-flexibility" "par-hyphen" "par-spacing"
+    "par-kerning-stretch" "par-kerning-reduce" "par-expansion" "par-contraction"
+    "par-kerning-margin" "par-width" "par-left" "par-right" "par-first"
+    "par-no-first" "par-sep" "par-hor-sep" "par-ver-sep" "par-line-sep"
+    "par-par-sep" "par-fnote-sep" "par-columns" "par-columns-sep"
   ) ;list
 ) ;tm-define
 

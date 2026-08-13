@@ -58,49 +58,27 @@
 ) ;define
 
 (define (gen-pdf-precode pdf-path)
-  (string-append "reset\n"
-    "set terminal pdfcairo enhanced\n"
-    "set output\n"
-    "set output '"
-    pdf-path
-    "'\n"
-    "set size 1,1\n"
-    "set autoscale\n"
+  (string-append "reset\n" "set terminal pdfcairo enhanced\n" "set output\n"
+    "set output '" pdf-path "'\n" "set size 1,1\n" "set autoscale\n"
   ) ;string-append
 ) ;define
 
 (define (gen-eps-precode eps-path)
-  (string-append "reset\n"
-    "set terminal postscript eps enhanced\n"
-    "set output\n"
-    "set output '"
-    eps-path
-    "'\n"
-    "set size 1,1\n"
+  (string-append "reset\n" "set terminal postscript eps enhanced\n"
+    "set output\n" "set output '" eps-path "'\n" "set size 1,1\n"
     "set autoscale\n"
   ) ;string-append
 ) ;define
 
 (define (gen-png-precode png-path)
-  (string-append "reset\n"
-    "set terminal pngcairo enhanced\n"
-    "set output\n"
-    "set output '"
-    png-path
-    "'\n"
-    "set size 1,1\n"
+  (string-append "reset\n" "set terminal pngcairo enhanced\n" "set output\n"
+    "set output '" png-path "'\n" "set size 1,1\n"
   ) ;string-append
 ) ;define
 
 (define (gen-svg-precode svg-path)
-  (string-append "reset\n"
-    "set terminal svg enhanced\n"
-    "set output\n"
-    "set output '"
-    svg-path
-    "'\n"
-    "set size 1,1\n"
-    "set autoscale\n"
+  (string-append "reset\n" "set terminal svg enhanced\n" "set output\n"
+    "set output '" svg-path "'\n" "set size 1,1\n" "set autoscale\n"
   ) ;string-append
 ) ;define
 

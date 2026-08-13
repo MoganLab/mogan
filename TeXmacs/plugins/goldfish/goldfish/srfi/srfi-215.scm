@@ -18,17 +18,8 @@
 ;; 严格按照 SRFI-215 标准实现
 
 (define-library (srfi srfi-215)
-  (export send-log
-    current-log-fields
-    current-log-callback
-    EMERGENCY
-    ALERT
-    CRITICAL
-    ERROR
-    WARNING
-    NOTICE
-    INFO
-    DEBUG
+  (export send-log current-log-fields current-log-callback EMERGENCY ALERT
+    CRITICAL ERROR WARNING NOTICE INFO DEBUG
   ) ;export
   (import (scheme base) (scheme write))
   (begin

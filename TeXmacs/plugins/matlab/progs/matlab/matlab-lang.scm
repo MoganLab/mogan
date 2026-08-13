@@ -33,36 +33,16 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "matlab") (== key "keyword")))
   `(,(string->symbol key)
-    (constant "Inf"
-      "NaN"
-      "eps"
-      "pi"
-      "i"
-      "j"
-      "true"
-      "false"
-      "ans"
-      "realmin"
+    (constant "Inf" "NaN" "eps" "pi" "i" "j" "true" "false" "ans" "realmin"
       "realmax")
     (declare_function "function")
-    (declare_type "classdef"
-      "properties"
-      "methods"
-      "events"
-      "enumerate"
-      "struct"
-      "attributes")
+    (declare_type "classdef" "properties" "methods" "events" "enumerate"
+      "struct" "attributes")
     (declare_module "import")
     (declare_identifier "global" "persistent")
     (keyword "nargin" "nargout" "varargin" "varargout" "parsing")
     (keyword_conditional "if" "else" "elseif" "switch" "case" "otherwise")
-    (keyword_control "for"
-      "while"
-      "break"
-      "continue"
-      "return"
-      "try"
-      "catch"
+    (keyword_control "for" "while" "break" "continue" "return" "try" "catch"
       "end"))
 ) ;tm-define
 

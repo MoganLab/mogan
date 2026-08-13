@@ -680,16 +680,8 @@
  ("tmparmod"
   ((!begin "list"
      ""
-     (!append "\\setlength{\\topsep}{0pt}"
-       "\\setlength{\\leftmargin}{"
-       1
-       "}"
-       "\\setlength{\\rightmargin}{"
-       2
-       "}"
-       "\\setlength{\\parindent}{"
-       3
-       "}"
+     (!append "\\setlength{\\topsep}{0pt}" "\\setlength{\\leftmargin}{" 1 "}"
+       "\\setlength{\\rightmargin}{" 2 "}" "\\setlength{\\parindent}{" 3 "}"
        "\\setlength{\\listparindent}{\\parindent}"
        "\\setlength{\\itemindent}{\\parindent}"
        "\\setlength{\\parsep}{\\parskip}"
@@ -934,53 +926,29 @@
         ,"}\\limits_{#1}^{#2}}\n")))
 ) ;define-macro
 
-(latex-texmacs-long "\\xminus"
-  "-"
-  "\\DOTSB\\relbar"
-  "\\relbar"
+(latex-texmacs-long "\\xminus" "-" "\\DOTSB\\relbar" "\\relbar"
   "\\DOTSB\\relbar"
 ) ;latex-texmacs-long
-(latex-texmacs-long "\\xleftrightarrow"
-  "\\longleftrightarrow"
-  "\\leftarrow"
-  "\\relbar"
+(latex-texmacs-long "\\xleftrightarrow" "\\longleftrightarrow" "\\leftarrow"
+  "\\relbar" "\\rightarrow"
+) ;latex-texmacs-long
+(latex-texmacs-long "\\xmapsto" "\\longmapsto" "\\vdash" "\\relbar"
   "\\rightarrow"
 ) ;latex-texmacs-long
-(latex-texmacs-long "\\xmapsto"
-  "\\longmapsto"
-  "\\vdash"
-  "\\relbar"
-  "\\rightarrow"
+(latex-texmacs-long "\\xmapsfrom" "\\leftarrow\\!\\!\\dashv" "\\leftarrow"
+  "\\relbar" "\\dashv"
 ) ;latex-texmacs-long
-(latex-texmacs-long "\\xmapsfrom"
-  "\\leftarrow\\!\\!\\dashv"
-  "\\leftarrow"
-  "\\relbar"
-  "\\dashv"
-) ;latex-texmacs-long
-(latex-texmacs-long "\\xequal"
-  "="
-  "\\DOTSB\\Relbar"
-  "\\Relbar"
+(latex-texmacs-long "\\xequal" "=" "\\DOTSB\\Relbar" "\\Relbar"
   "\\DOTSB\\Relbar"
 ) ;latex-texmacs-long
-(latex-texmacs-long "\\xLeftarrow"
-  "\\Longleftarrow"
-  "\\Leftarrow"
-  "\\Relbar"
+(latex-texmacs-long "\\xLeftarrow" "\\Longleftarrow" "\\Leftarrow" "\\Relbar"
   "\\Relbar"
 ) ;latex-texmacs-long
-(latex-texmacs-long "\\xRightarrow"
-  "\\Longrightarrow"
-  "\\Relbar"
-  "\\Relbar"
+(latex-texmacs-long "\\xRightarrow" "\\Longrightarrow" "\\Relbar" "\\Relbar"
   "\\Rightarrow"
 ) ;latex-texmacs-long
-(latex-texmacs-long "\\xLeftrightarrow"
-  "\\Longleftrightarrow"
-  "\\Leftarrow"
-  "\\Relbar"
-  "\\Rightarrow"
+(latex-texmacs-long "\\xLeftrightarrow" "\\Longleftrightarrow" "\\Leftarrow"
+  "\\Relbar" "\\Rightarrow"
 ) ;latex-texmacs-long
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

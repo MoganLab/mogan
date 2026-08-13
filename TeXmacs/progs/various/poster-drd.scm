@@ -15,9 +15,7 @@
 
 (define-group variant-tag (titled-block-tag) (untitled-block-tag))
 
-(define-group titled-block-tag
-  plain-titled-block
-  framed-titled-block
+(define-group titled-block-tag plain-titled-block framed-titled-block
   alternate-titled-block
 ) ;define-group
 

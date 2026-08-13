@@ -1,17 +1,6 @@
 (define-library (liii stack)
-  (export make-stack
-    stack
-    stack?
-    stack-empty?
-    stack-top
-    stack-size
-    stack-push!
-    stack-pop!
-    stack->list
-    list->stack
-    stack-map
-    stack-map!
-    stack-for-each
+  (export make-stack stack stack? stack-empty? stack-top stack-size stack-push!
+    stack-pop! stack->list list->stack stack-map stack-map! stack-for-each
     stack-copy
   ) ;export
   (import (liii error))

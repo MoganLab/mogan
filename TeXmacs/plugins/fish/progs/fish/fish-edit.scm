@@ -25,30 +25,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define fish-block-openers
-  '("case"
-    "command"
-    "define"
-    "else"
-    "for"
-    "foreach"
-    "if"
-    "loop"
-    "section"
-    "struct"
-    "structure"
-    "while")
+  '("case" "command" "define" "else" "for" "foreach" "if" "loop" "section"
+    "struct" "structure" "while")
 ) ;define
 
 (define fish-block-closers
-  '("end"
-    "end_if"
-    "endif"
-    "end_loop"
-    "end_section"
-    "endcase"
-    "endcommand"
-    "endloop"
-    "endsection")
+  '("end" "end_if" "endif" "end_loop" "end_section" "endcase" "endcommand"
+    "endloop" "endsection")
 ) ;define
 
 (define fish-block-middle '("case" "else"))

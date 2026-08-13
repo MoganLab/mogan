@@ -89,37 +89,18 @@
 
 ;; Sections
 
-(define-group section-tag
-  part
-  chapter
-  appendix
-  section
-  subsection
-  subsubsection
-  paragraph
-  subparagraph
+(define-group section-tag part chapter appendix section subsection subsubsection
+  paragraph subparagraph
 ) ;define-group
 
-(define-group section*-tag
-  part*
-  chapter*
-  appendix*
-  section*
-  subsection*
-  subsubsection*
-  paragraph*
-  subparagraph*
+(define-group section*-tag part* chapter* appendix* section* subsection*
+  subsubsection* paragraph* subparagraph*
 ) ;define-group
 
 (define-group special-section-tag prologue epilogue)
 
-(define-group automatic-section-tag
-  table-of-contents
-  bibliography
-  the-index
-  the-glossary
-  list-of-figures
-  list-of-tables
+(define-group automatic-section-tag table-of-contents bibliography the-index
+  the-glossary list-of-figures list-of-tables
 ) ;define-group
 
 (define-group long-principal-section-tag
@@ -145,30 +126,15 @@
 
 (define-group itemize-tag itemize itemize-minus itemize-dot itemize-arrow)
 
-(define-group enumerate-tag
-  enumerate
-  enumerate-numeric
-  enumerate-numeric-bracket
-  enumerate-roman
-  enumerate-roman-bracket
-  enumerate-roman-paren
-  enumerate-Roman
-  enumerate-alpha
-  enumerate-alpha-bracket
-  enumerate-alpha-full-paren
-  enumerate-Alpha
-  enumerate-circle
-  enumerate-hanzi
+(define-group enumerate-tag enumerate enumerate-numeric
+  enumerate-numeric-bracket enumerate-roman enumerate-roman-bracket
+  enumerate-roman-paren enumerate-Roman enumerate-alpha enumerate-alpha-bracket
+  enumerate-alpha-full-paren enumerate-Alpha enumerate-circle enumerate-hanzi
   enumerate-numeric-paren
 ) ;define-group
 
-(define-group description-tag
-  description
-  description-compact
-  description-aligned
-  description-dash
-  description-long
-  description-paragraphs
+(define-group description-tag description description-compact
+  description-aligned description-dash description-long description-paragraphs
 ) ;define-group
 
 ;; Document titles
@@ -179,35 +145,20 @@
   doc-title-options
 ) ;define-group
 
-(define-group doc-title-active-tag
-  doc-title
-  doc-subtitle
-  doc-author
-  doc-date
-  doc-misc
-  doc-note
+(define-group doc-title-active-tag doc-title doc-subtitle doc-author doc-date
+  doc-misc doc-note
 ) ;define-group
 
 (define-group doc-title-inactive-tag doc-running-title doc-running-author)
 
 (define-group doc-author-tag author-data)
 
-(define-group author-data-tag
-  author-name
-  author-affiliation
-  author-email
-  author-homepage
-  author-misc
-  author-note
+(define-group author-data-tag author-name author-affiliation author-email
+  author-homepage author-misc author-note
 ) ;define-group
 
-(define-group abstract-data-tag
-  abstract
-  abstract-acm
-  abstract-arxiv
-  abstract-pacs
-  abstract-msc
-  abstract-keywords
+(define-group abstract-data-tag abstract abstract-acm abstract-arxiv
+  abstract-pacs abstract-msc abstract-keywords
 ) ;define-group
 
 ;; Enunciations
@@ -230,11 +181,8 @@
 
 (define-group solution-tag solution answer)
 
-(define-group render-enunciation-tag
-  render-theorem
-  render-remark
-  render-exercise
-  render-solution
+(define-group render-enunciation-tag render-theorem render-remark
+  render-exercise render-solution
 ) ;define-group
 
 ;; Other textual environments
@@ -243,21 +191,14 @@
 
 (define-group compression-tag ultra-compact compact compressed amplified)
 
-(define-group alignment-tag
-  padded-center
-  padded-left-aligned
+(define-group alignment-tag padded-center padded-left-aligned
   padded-right-aligned
 ) ;define-group
 
 (define-group frame-tag padded overlined underlined bothlined framed ornamented)
 
-(define-group frame-titled-tag
-  padded-titled
-  overlined-titled
-  underlined-titled
-  bothlined-titled
-  framed-titled
-  ornamented-titled
+(define-group frame-titled-tag padded-titled overlined-titled underlined-titled
+  bothlined-titled framed-titled ornamented-titled
 ) ;define-group
 
 ;; Textual markup tags
@@ -277,16 +218,8 @@
 
 (define-group monospaced-tag kbd code* var)
 
-(define-group size-tag
-  really-tiny
-  tiny
-  very-small
-  small
-  normal-size
-  large
-  very-large
-  huge
-  really-huge
+(define-group size-tag really-tiny tiny very-small small normal-size large
+  very-large huge really-huge
 ) ;define-group
 
 (define-group opacity-tag pastel greyed light)
@@ -317,56 +250,29 @@
 
 ;; Algorithms
 
-(define-group algorithm-tag
-  algorithm
-  algorithm*
-  named-algorithm
-  specified-algorithm
-  specified-algorithm*
-  named-specified-algorithm
+(define-group algorithm-tag algorithm algorithm* named-algorithm
+  specified-algorithm specified-algorithm* named-specified-algorithm
 ) ;define-group
 
 ;; ornaments
 
-(define-group ornament-tag
-  manila-paper
-  rough-paper
-  ridged-paper
-  pine
-  granite
+(define-group ornament-tag manila-paper rough-paper ridged-paper pine granite
   metal
 ) ;define-group
 
-(define-group art-frame-tag
-  carved-wood-frame
-  decorated-wood-frame
-  black-floral1-frame
-  black-floral2-frame
+(define-group art-frame-tag carved-wood-frame decorated-wood-frame
+  black-floral1-frame black-floral2-frame
 ) ;define-group
 
-(define-group shadow-tag
-  drop-contour
-  bend-in-contour
-  bend-out-contour
-  diagonal-bend-in-contour
-  drop-shadow
-  bend-in-shadow
-  bend-out-shadow
-  half-bend-in-shadow
-  quarter-bend-in-shadow
-  drop-down
-  half-bend-in-down
+(define-group shadow-tag drop-contour bend-in-contour bend-out-contour
+  diagonal-bend-in-contour drop-shadow bend-in-shadow bend-out-shadow
+  half-bend-in-shadow quarter-bend-in-shadow drop-down half-bend-in-down
 ) ;define-group
 
 ;; balloons
 
-(define-group balloon-tag
-  hover-balloon
-  hover-balloon*
-  popup-balloon
-  popup-balloon*
-  focus-balloon
-  help-balloon
+(define-group balloon-tag hover-balloon hover-balloon* popup-balloon
+  popup-balloon* focus-balloon help-balloon
 ) ;define-group
 
 ;; detached notes

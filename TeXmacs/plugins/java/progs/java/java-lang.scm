@@ -16,22 +16,9 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "java") (== key "keyword")))
   `(,(string->symbol key)
-    (constant "false"
-      "true"
-      "null"
-      "boolean"
-      "byte"
-      "char"
-      "double"
-      "float"
-      "int"
-      "long"
-      "short"
-      "void"
-      "IllegalArgumentException"
-      "NullPointerException"
-      "Exception"
-      "RuntimeException")
+    (constant "false" "true" "null" "boolean" "byte" "char" "double" "float"
+      "int" "long" "short" "void" "IllegalArgumentException"
+      "NullPointerException" "Exception" "RuntimeException")
     (declare_type "class" "interface" "enum")
     (declare_identifier "val" "var")
     (declare_module "package" "import")
@@ -56,16 +43,8 @@
       ;; Access Modifiers
       "throws"
       "synchronized")
-    (keyword_conditional "break"
-      "continue"
-      "do"
-      "else"
-      "for"
-      "if"
-      "while"
-      "goto"
-      "switch"
-      "case")
+    (keyword_conditional "break" "continue" "do" "else" "for" "if" "while"
+      "goto" "switch" "case")
     (keyword_control "throw" "catch" "finally" "return" "try" "yield"))
 ) ;tm-define
 
@@ -127,9 +106,7 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "java") (== key "string")))
   `(,(string->symbol key)
-    (bool_features "hex_with_8_bits"
-      "hex_with_16_bits"
-      "hex_with_32_bits"
+    (bool_features "hex_with_8_bits" "hex_with_16_bits" "hex_with_32_bits"
       "octal_upto_3_digits")
     (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "t"))
 ) ;tm-define

@@ -19,13 +19,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-library (liii autosave)
-  (export autosave-keep-max
-    autosave-home
-    autosave-dir
-    autosave-target-path
-    ensure-parent-dir
-    autosave-prune-dir
-    document->string
+  (export autosave-keep-max autosave-home autosave-dir autosave-target-path
+    ensure-parent-dir autosave-prune-dir document->string
   ) ;export
   (import (liii base)
     (liii error)

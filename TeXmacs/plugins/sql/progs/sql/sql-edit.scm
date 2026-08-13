@@ -35,40 +35,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define sql-increase-indent-keys
-  '("SELECT"
-    "FROM"
-    "WHERE"
-    "JOIN"
-    "INNER"
-    "LEFT"
-    "RIGHT"
-    "FULL"
-    "OUTER"
-    "GROUP"
-    "HAVING"
-    "ORDER"
-    "WITH"
-    "CASE"
-    "WHEN"
-    "AND"
-    "OR"
-    "select"
-    "from"
-    "where"
-    "join"
-    "inner"
-    "left"
-    "right"
-    "full"
-    "outer"
-    "group"
-    "having"
-    "order"
-    "with"
-    "case"
-    "when"
-    "and"
-    "or")
+  '("SELECT" "FROM" "WHERE" "JOIN" "INNER" "LEFT" "RIGHT" "FULL" "OUTER" "GROUP"
+    "HAVING" "ORDER" "WITH" "CASE" "WHEN" "AND" "OR" "select" "from" "where"
+    "join" "inner" "left" "right" "full" "outer" "group" "having" "order" "with"
+    "case" "when" "and" "or")
 ) ;define
 
 (define sql-decrease-indent-keys '("END" "ELSE" "ELSEIF" "end" "else" "elseif"))

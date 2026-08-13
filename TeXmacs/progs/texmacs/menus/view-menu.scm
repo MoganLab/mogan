@@ -30,11 +30,8 @@
 (tm-define toolbar-animate-active? #f)
 
 (tm-define (extra-bottom-tools?)
-  (or toolbar-search-active?
-    toolbar-replace-active?
-    toolbar-spell-active?
-    toolbar-db-active?
-    toolbar-animate-active?
+  (or toolbar-search-active? toolbar-replace-active? toolbar-spell-active?
+    toolbar-db-active? toolbar-animate-active?
   ) ;or
 ) ;tm-define
 

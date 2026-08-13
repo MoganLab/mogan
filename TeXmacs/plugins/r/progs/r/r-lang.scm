@@ -171,28 +171,8 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r") (== key "operator")))
   `(,(string->symbol key)
-    (operator "+"
-      "-"
-      "*"
-      "/"
-      "^"
-      ":"
-      "%%"
-      "%/%"
-      "<"
-      ">"
-      "<="
-      ">="
-      "=="
-      "!="
-      "&"
-      "&&"
-      "|"
-      "||"
-      "!"
-      "~"
-      "$"
-      "@")
+    (operator "+" "-" "*" "/" "^" ":" "%%" "%/%" "<" ">" "<=" ">=" "==" "!=" "&"
+      "&&" "|" "||" "!" "~" "$" "@")
     (operator_special "::" ":::" "|>")
     (operator_openclose "(" "[" "{" ")" "]" "}")
     (operator_field "$" "@" "<-" "=" "<<-" "->" "->>"))
@@ -211,25 +191,10 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r") (== key "string")))
   `(,(string->symbol key)
-    (bool_features "single_quote"
-      "double_quote"
-      "multi_byte"
-      "unicode_escape"
+    (bool_features "single_quote" "double_quote" "multi_byte" "unicode_escape"
       "hex_escape")
-    (escape_sequences "\\"
-      "\""
-      "'"
-      "a"
-      "b"
-      "f"
-      "n"
-      "r"
-      "t"
-      "v"
-      "newline"
-      "x"
-      "u"
-      "U"))
+    (escape_sequences "\\" "\"" "'" "a" "b" "f" "n" "r" "t" "v" "newline" "x"
+      "u" "U"))
 ) ;tm-define
 
 ;; 注释格式

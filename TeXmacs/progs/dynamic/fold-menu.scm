@@ -514,24 +514,13 @@
       (hlist (refreshable "slide-color-sample"
                (resize "150px"
                  "100px"
-                 (texmacs-output `(document (block (tformat (cwith "1"
-                                                              "1"
-                                                              "1"
-                                                              "1"
-                                                              "cell-width"
+                 (texmacs-output `(document (block (tformat (cwith "1" "1" "1"
+                                                              "1" "cell-width"
                                                               "140px")
-                                                     (cwith "1"
-                                                       "1"
-                                                       "1"
-                                                       "1"
-                                                       "cell-height"
-                                                       "90px")
-                                                     (cwith "1"
-                                                       "1"
-                                                       "1"
-                                                       "1"
-                                                       "cell-vmode"
-                                                       "exact")
+                                                     (cwith "1" "1" "1" "1"
+                                                       "cell-height" "90px")
+                                                     (cwith "1" "1" "1" "1"
+                                                       "cell-vmode" "exact")
                                                      (cwith ,"1"
                                                        ,"1"
                                                        ,"1"

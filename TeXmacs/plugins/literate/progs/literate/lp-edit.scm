@@ -21,33 +21,17 @@
 ;; DRD properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-group chunk-tag
-  generic-chunk
-  verbatim-chunk
-  scm-chunk
-  cpp-chunk
-  mmx-chunk
-  python-chunk
-  scilab-chunk
-  shell-chunk
-  scala-chunk
-  java-chunk
-  goldfish-chunk
-  elvish-chunk
-  json-chunk
+(define-group chunk-tag generic-chunk verbatim-chunk scm-chunk cpp-chunk
+  mmx-chunk python-chunk scilab-chunk shell-chunk scala-chunk java-chunk
+  goldfish-chunk elvish-chunk json-chunk
 ) ;define-group
 
 (define-group variant-tag (chunk-tag))
 
 (define-group similar-tag (chunk-tag))
 
-(define-group appended-tag
-  folded-newline-before
-  unfolded-newline-before
-  folded-opening
-  unfolded-opening
-  folded-ending
-  unfolded-ending
+(define-group appended-tag folded-newline-before unfolded-newline-before
+  folded-opening unfolded-opening folded-ending unfolded-ending
 ) ;define-group
 
 (define-fold folded-newline-before unfolded-newline-before)

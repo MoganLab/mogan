@@ -20,10 +20,8 @@
 
 (define (pdflatex-binary-candidates)
   (cond ((os-macos?)
-         (list "/Library/TeX/texbin/pdflatex"
-           "/usr/texbin/pdflatex"
-           "/opt/homebrew/bin/pdflatex"
-           "/usr/local/bin/pdflatex"
+         (list "/Library/TeX/texbin/pdflatex" "/usr/texbin/pdflatex"
+           "/opt/homebrew/bin/pdflatex" "/usr/local/bin/pdflatex"
          ) ;list
         ) ;
         ((os-windows?)

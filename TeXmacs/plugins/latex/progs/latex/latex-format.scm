@@ -506,13 +506,8 @@
   ) ;cond
 ) ;define
 
-(define (has-cwith-property? options
-          row-start
-          row-end
-          col-start
-          col-end
-          property
-          value-pred
+(define (has-cwith-property? options row-start row-end col-start col-end
+          property value-pred
         ) ;has-cwith-property?
   (cond ((null? options) #f)
         ((and (pair? (car options)) (eq? (caar options) 'cwith))

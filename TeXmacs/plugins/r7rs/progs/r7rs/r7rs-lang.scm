@@ -54,9 +54,7 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "r7rs") (== key "string")))
   `(,(string->symbol key)
-    (bool_features "hex_with_8_bits"
-      "hex_with_16_bits"
-      "hex_with_32_bits"
+    (bool_features "hex_with_8_bits" "hex_with_16_bits" "hex_with_32_bits"
       "octal_upto_3_digits")
     (escape_sequences "\\" "\"" "a" "b" "f" "n" "r" "t" "v")
     (pairs "\""))
