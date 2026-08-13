@@ -17,10 +17,7 @@
 ;; Scheme format for TeXmacs source files (no information loss)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format stem
-  (:name "STEM")
-  (:suffix "stem")
-) ;define-format
+(define-format stem (:name "STEM") (:suffix "stem"))
 
 (define (texmacs->stem t)
   (texmacs->stm (herk-tree->utf8-tree t))
