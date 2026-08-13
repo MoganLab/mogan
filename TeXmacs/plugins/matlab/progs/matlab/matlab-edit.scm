@@ -34,15 +34,7 @@
 ;; 定义MATLAB特定的关键字，这些关键字后面需要增加缩进
 
 (define matlab-increase-indent-keys
-  '("for"
-    "if"
-    "while"
-    "switch"
-    "try"
-    "classdef"
-    "methods"
-    "properties"
-    "events")
+  '("for" "if" "while" "switch" "try" "classdef" "methods" "properties" "events")
 ) ;define
 
 ;; 定义MATLAB特定的配对关键字，这些关键字会减少缩进

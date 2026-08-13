@@ -21,7 +21,7 @@
     </src-license>
   </src-title>>
 
-  <use-package|env-pseudo-code>
+  <use-package|environment/env-pseudo-code>
 
   <\active*>
     <\src-comment>

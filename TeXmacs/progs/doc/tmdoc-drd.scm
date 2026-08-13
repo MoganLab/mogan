@@ -41,22 +41,12 @@
 
 (define-group tmdoc-traversal-tag branch extra-branch continue optional-branch)
 
-(define-group tmdoc-menu-tag
-  menu
-  submenu
-  subsubmenu
-  subsubsubmenu
+(define-group tmdoc-menu-tag menu submenu subsubmenu subsubsubmenu
   subsubsubsubmenu
 ) ;define-group
 
-(define-group tmdoc-annotation-tag
-  markup
-  src-arg
-  src-var
-  src-length
-  src-tt
-  src-numeric
-  src-textual
+(define-group tmdoc-annotation-tag markup src-arg src-var src-length src-tt
+  src-numeric src-textual
 ) ;define-group
 
 (define-group tmdoc-style-annotation-tag tmstyle tmpackage tmdtd)
@@ -65,10 +55,7 @@
 
 (define-group tmdoc-big-box-tag big-focus big-envbox)
 
-(define-group tmdoc-if-ref-tag
-  tmdoc-if-ref
-  tmdoc-if-ref*
-  tmdoc-if-nref
+(define-group tmdoc-if-ref-tag tmdoc-if-ref tmdoc-if-ref* tmdoc-if-nref
   tmdoc-if-nref*
 ) ;define-group
 

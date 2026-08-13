@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-package|env-base|env-math|env-theorem|env-float|env-program>
+  <use-package|environment/env-base|environment/env-math|environment/env-theorem|environment/env-float|environment/env-program>
 
   \;
 </body>

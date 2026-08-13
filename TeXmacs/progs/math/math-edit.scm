@@ -44,11 +44,7 @@
              (type (and last (math-symbol-type last)))
             ) ;
         (nin? type
-          (list "prefix"
-            "infix"
-            "separator"
-            "prefix-infix"
-            "opening-bracket"
+          (list "prefix" "infix" "separator" "prefix-infix" "opening-bracket"
             "middle-bracket"
           ) ;list
         ) ;nin?
@@ -96,12 +92,8 @@
            (type (if (string? s) (math-symbol-type s) "symbol"))
           ) ;
       (when (in? type
-              (list "postfix"
-                "infix"
-                "separator"
-                "prefix-infix"
-                "middle-bracket"
-                "closing-bracket"
+              (list "postfix" "infix" "separator" "prefix-infix"
+                "middle-bracket" "closing-bracket"
               ) ;list
             ) ;in?
         (remove-text #f)
@@ -270,16 +262,9 @@
 (tm-define (inside-comment-or-balloon? t)
   (and t
     (if (tree-search-upwards t
-          '(folded-comment unfolded-comment
-             mirror-comment
-             carbon-comment
-             nested-comment
-             hover-balloon
-             hover-balloon*
-             popup-balloon
-             popup-balloon*
-             focus-balloon
-             help-balloon)
+          '(folded-comment unfolded-comment mirror-comment carbon-comment
+             nested-comment hover-balloon hover-balloon* popup-balloon
+             popup-balloon* focus-balloon help-balloon)
         ) ;tree-search-upwards
       #t
       #f
@@ -535,27 +520,17 @@
 ) ;define
 
 (define wide-list-3
-  '("<wide-overbrace>"
-    "<wide-underbrace*>"
-    "<wide-poverbrace>"
-    "<wide-punderbrace*>"
-    "<wide-sqoverbrace>"
-    "<wide-squnderbrace*>")
+  '("<wide-overbrace>" "<wide-underbrace*>" "<wide-poverbrace>"
+    "<wide-punderbrace*>" "<wide-sqoverbrace>" "<wide-squnderbrace*>")
 ) ;define
 
 (define wide-list-4
-  '("<wide-underbrace>"
-    "<wide-overbrace*>"
-    "<wide-punderbrace>"
-    "<wide-poverbrace*>"
-    "<wide-squnderbrace>"
-    "<wide-sqoverbrace*>")
+  '("<wide-underbrace>" "<wide-overbrace*>" "<wide-punderbrace>"
+    "<wide-poverbrace*>" "<wide-squnderbrace>" "<wide-sqoverbrace*>")
 ) ;define
 
 (define wide-list-5
-  '("<wide-varrightarrow>"
-    "<wide-varleftarrow>"
-    "<wide-varleftrightarrow>"
+  '("<wide-varrightarrow>" "<wide-varleftarrow>" "<wide-varleftrightarrow>"
     "<wide-bar>")
 ) ;define
 
@@ -630,35 +605,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define lbrackets
-  '("("
-    "["
-    "{"
-    "<langle>"
-    "<llbracket>"
-    "<lfloor>"
-    "<lceil>"
-    "|"
-    "<||>"
-    "/"
-    "\\"
-    "<nobracket>")
+  '("(" "[" "{" "<langle>" "<llbracket>" "<lfloor>" "<lceil>" "|" "<||>" "/"
+    "\\" "<nobracket>")
 ) ;define
 
 (define mbrackets '("|" "<||>" "/" "\\"))
 
 (define rbrackets
-  '(")"
-    "]"
-    "}"
-    "<rangle>"
-    "<rrbracket>"
-    "<rfloor>"
-    "<rceil>"
-    "|"
-    "<||>"
-    "\\"
-    "/"
-    "<nobracket>")
+  '(")" "]" "}" "<rangle>" "<rrbracket>" "<rfloor>" "<rceil>" "|" "<||>" "\\"
+    "/" "<nobracket>")
 ) ;define
 
 (define (bracket-circulate t forward? brackets)
@@ -693,29 +648,10 @@
 ) ;tm-define
 
 (define bigops
-  '("<int>"
-    "<intlim>"
-    "<oint>"
-    "<ointlim>"
-    "<sum>"
-    "<prod>"
-    "<amalg>"
-    "<cap>"
-    "<cup>"
-    "<sqcap>"
-    "<sqcup>"
-    "<vee>"
-    "<wedge>"
-    "<curlyvee>"
-    "<curlywedge>"
-    "<odot>"
-    "<otimes>"
-    "<oplus>"
-    "<triangleup>"
-    "<triangledown>"
-    "<box>"
-    "<parallel>"
-    "<interleave>")
+  '("<int>" "<intlim>" "<oint>" "<ointlim>" "<sum>" "<prod>" "<amalg>" "<cap>"
+    "<cup>" "<sqcap>" "<sqcup>" "<vee>" "<wedge>" "<curlyvee>" "<curlywedge>"
+    "<odot>" "<otimes>" "<oplus>" "<triangleup>" "<triangledown>" "<box>"
+    "<parallel>" "<interleave>")
 ) ;define
 
 (tm-define (variant-circulate t forward?)
@@ -1488,15 +1424,9 @@
           ((in? v '(acute grave dot ddot dddot ddddot circle))
            '(acute grave dot ddot dddot ddddot circle)
           ) ;
-          ((in? v '(overbrace underbrace
-                     poverbrace
-                     punderbrace
-                     sqoverbrace
+          ((in? v '(overbrace underbrace poverbrace punderbrace sqoverbrace
                      squnderbrace))
-           '(overbrace underbrace
-              poverbrace
-              punderbrace
-              sqoverbrace
+           '(overbrace underbrace poverbrace punderbrace sqoverbrace
               squnderbrace)
           ) ;
           ((in? v '(rightarrow leftarrow leftrightarrow wide-bar))

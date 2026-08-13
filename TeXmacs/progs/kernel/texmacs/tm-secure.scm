@@ -24,76 +24,13 @@
   '(noop)
 ) ;define-public-macro
 
-(define-secure-symbols boolean?
-  null?
-  symbol?
-  string?
-  pair?
-  list?
-  equal?
-  ==
-  not
-  string-length
-  substring
-  string-append
-  string->list
-  list->string
-  string-ref
-  string-set!
-  +
-  -
-  *
-  /
-  gcd
-  lcm
-  quotient
-  remainder
-  modulo
-  abs
-  log
-  exp
-  sqrt
-  car
-  cdr
-  caar
-  cadr
-  cdar
-  cddr
-  caaar
-  caadr
-  cadar
-  caddr
-  cdaar
-  cdadr
-  cddar
-  cdddr
-  caaaar
-  caaadr
-  caadar
-  caaddr
-  cadaar
-  cadadr
-  caddar
-  cadddr
-  cdaaar
-  cdaadr
-  cdadar
-  cdaddr
-  cddaar
-  cddadr
-  cdddar
-  cddddr
-  cons
-  list
-  append
-  length
-  reverse
-  texmacs-version
-  texmacs-version-release*
-  xmacs-version
-  display
-  display*
-  refresh-now
+(define-secure-symbols boolean? null? symbol? string? pair? list? equal? == not
+  string-length substring string-append string->list list->string string-ref
+  string-set! + - * / gcd lcm quotient remainder modulo abs log exp sqrt car cdr
+  caar cadr cdar cddr caaar caadr cadar caddr cdaar cdadr cddar cdddr caaaar
+  caaadr caadar caaddr cadaar cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr
+  cddaar cddadr cdddar cddddr cons list append length reverse texmacs-version
+  texmacs-version-release* xmacs-version display display* refresh-now
 ) ;define-secure-symbols
 
 (lazy-define (comment comment-edit)
@@ -105,10 +42,8 @@
 
 (lazy-define (part part-shared) mirror-initialize)
 
-(define-secure-symbols ext-abbreviate-name
-  ext-contains-shown-comments?
-  ext-comment-color
-  ext-comment-bg-color
+(define-secure-symbols ext-abbreviate-name ext-contains-shown-comments?
+  ext-comment-color ext-comment-bg-color
 ) ;define-secure-symbols
 
 (define-secure-symbols mirror-initialize)

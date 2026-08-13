@@ -17,90 +17,25 @@
 ;; Data
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group tmpre-inline-env%
-  verbatim
-  code
-  center
-  indent
-  description
-  itemize
-  itemize-minus
-  itemize-dot
-  itemize-arrow
-  enumerate
-  enumerate-numeric
-  enumerate-numeric-bracket
-  enumerate-roman
-  enumerate-roman-bracket
-  enumerate-roman-paren
-  enumerate-Roman
-  enumerate-alpha
-  enumerate-alpha-bracket
-  enumerate-alpha-full-paren
-  enumerate-Alpha
-  enumerate-circle
-  enumerate-hanzi
-  enumerate-numeric-paren
-  equation
-  equation*
-  eqnarray
-  eqnarray*
-  leqnarray
-  leqnarray*
-  elsequation
-  elsequation*
+(logic-group tmpre-inline-env% verbatim code center indent description itemize
+  itemize-minus itemize-dot itemize-arrow enumerate enumerate-numeric
+  enumerate-numeric-bracket enumerate-roman enumerate-roman-bracket
+  enumerate-roman-paren enumerate-Roman enumerate-alpha enumerate-alpha-bracket
+  enumerate-alpha-full-paren enumerate-Alpha enumerate-circle enumerate-hanzi
+  enumerate-numeric-paren equation equation* eqnarray eqnarray* leqnarray
+  leqnarray* elsequation elsequation*
 ) ;logic-group
 
-(logic-group tmpre-sectional%
-  part
-  chapter
-  appendix
-  section
-  subsection
-  subsubsection
-  paragraph
-  subparagraph
-  part*
-  chapter*
-  appendix*
-  section*
-  subsection*
-  subsubsection*
-  paragraph*
-  subparagraph*
+(logic-group tmpre-sectional% part chapter appendix section subsection
+  subsubsection paragraph subparagraph part* chapter* appendix* section*
+  subsection* subsubsection* paragraph* subparagraph*
 ) ;logic-group
 
-(logic-group tmpre-theorem-env%
-  theorem
-  proposition
-  lemma
-  corollary
-  axiom
-  definition
-  notation
-  conjecture
-  remark
-  note
-  example
-  warning
-  convention
-  acknowledgments
-  exercise
-  theorem*
-  proposition*
-  lemma*
-  corollary*
-  axiom*
-  definition*
-  notation*
-  conjecture*
-  remark*
-  note*
-  example*
-  warning*
-  convention*
-  acknowledgments*
-  exercise*
+(logic-group tmpre-theorem-env% theorem proposition lemma corollary axiom
+  definition notation conjecture remark note example warning convention
+  acknowledgments exercise theorem* proposition* lemma* corollary* axiom*
+  definition* notation* conjecture* remark* note* example* warning* convention*
+  acknowledgments* exercise*
 ) ;logic-group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

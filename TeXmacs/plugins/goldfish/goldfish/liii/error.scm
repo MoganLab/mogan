@@ -1,14 +1,6 @@
 (define-library (liii error)
-  (export ???
-    os-error
-    file-not-found-error
-    not-a-directory-error
-    file-exists-error
-    timeout-error
-    type-error
-    type-error?
-    key-error
-    value-error
+  (export ??? os-error file-not-found-error not-a-directory-error
+    file-exists-error timeout-error type-error type-error? key-error value-error
     index-error
   ) ;export
   (begin

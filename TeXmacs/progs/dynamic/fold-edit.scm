@@ -26,20 +26,9 @@
 ;; Style package rules for beamer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (tm-define (beamer-themes)
-  (list "bluish"
-    "dark"
-    "boring-white"
-    "dark-vador"
-    "granite"
-    "ice"
-    "manila-paper"
-    "metal"
-    "pale-blue"
-    "pine"
-    "reddish"
-    "ridged-paper"
-    "rough-paper"
-    "xperiment"
+  (list "bluish" "dark" "boring-white" "dark-vador" "granite" "ice"
+    "manila-paper" "metal" "pale-blue" "pine" "reddish" "ridged-paper"
+    "rough-paper" "xperiment"
   ) ;list
 ) ;tm-define
 

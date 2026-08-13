@@ -19,17 +19,9 @@
                                      ) ;src-title
                            ) ;document
                   ) ;active*
-          (use-package "std"
-            "env-base"
-            "env-math"
-            "env-enunciation"
-            "env-float"
-            "env-program"
-            "header-article"
-            "title-base"
-            "section-article"
-            "std-latex"
-            "html-font-size"
+          (use-package "std" "env-base" "env-math" "env-enunciation" "env-float"
+            "env-program" "header-article" "title-base" "section-article"
+            "std-latex" "html-font-size"
           ) ;use-package
           (assign "env-theorem-dtd" "1.0")
           (active* (src-comment (document "TeX-like style parameters.")))

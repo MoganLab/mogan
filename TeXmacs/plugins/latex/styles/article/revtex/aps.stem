@@ -17,16 +17,9 @@
                                      ) ;src-title
                            ) ;document
                   ) ;active*
-          (use-package "std"
-            "env"
-            "header-generic"
-            "section-book"
-            "title-generic"
-            "std-latex"
-            "cite-author-year"
-            "std-automatic"
-            "two-columns"
-            "html-font-size"
+          (use-package "std" "env" "header-generic" "section-book"
+            "title-generic" "std-latex" "cite-author-year" "std-automatic"
+            "two-columns" "html-font-size"
           ) ;use-package
           (active* (src-comment (document "Page layout.")))
           (assign "par-first" "1em")

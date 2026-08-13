@@ -16,8 +16,7 @@
   (cond ((os-macos?)
          (list "/Applications/Julia-*.app/Contents/Resources/julia/bin/julia"
            "$HOME/Applications/Julia-*.app/Contents/Resources/julia/bin/julia"
-           "/opt/homebrew/bin/julia"
-           "/usr/local/bin/julia"
+           "/opt/homebrew/bin/julia" "/usr/local/bin/julia"
          ) ;list
         ) ;
         ((os-windows?)

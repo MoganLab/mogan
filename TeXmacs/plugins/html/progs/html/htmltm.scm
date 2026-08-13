@@ -200,14 +200,10 @@
       (,"rhs" ,(delay (format-frame "table-rborder")))
       (,"vsides" ,(delay (format-frame "table-lborder" "table-rborder")))
       (,"box"
-       ,(delay (format-frame "table-tborder"
-                 "table-bborder"
-                 "table-lborder"
+       ,(delay (format-frame "table-tborder" "table-bborder" "table-lborder"
                  "table-rborder")))
       (,"border"
-       ,(delay (format-frame "table-tborder"
-                 "table-bborder"
-                 "table-lborder"
+       ,(delay (format-frame "table-tborder" "table-bborder" "table-lborder"
                  "table-rborder"))))
   ) ;define
   (define rules-values-alist

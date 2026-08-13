@@ -692,49 +692,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (standard-color-list)
-  '("dark red"
-    "dark magenta"
-    "dark blue"
-    "dark cyan"
-    "dark green"
-    "dark yellow"
-    "dark orange"
-    "dark brown"
-    "red"
-    "magenta"
-    "blue"
-    "cyan"
-    "green"
-    "yellow"
-    "orange"
-    "brown"
-    "#faa"
-    "#faf"
-    "#aaf"
-    "#aff"
-    "#afa"
-    "#ffa"
-    "#fa6"
-    "#a66"
-    "pastel red"
-    "pastel magenta"
-    "pastel blue"
-    "pastel cyan"
-    "pastel green"
-    "pastel yellow"
-    "pastel orange"
-    "pastel brown")
+  '("dark red" "dark magenta" "dark blue" "dark cyan" "dark green" "dark yellow"
+    "dark orange" "dark brown" "red" "magenta" "blue" "cyan" "green" "yellow"
+    "orange" "brown" "#faa" "#faf" "#aaf" "#aff" "#afa" "#ffa" "#fa6" "#a66"
+    "pastel red" "pastel magenta" "pastel blue" "pastel cyan" "pastel green"
+    "pastel yellow" "pastel orange" "pastel brown")
 ) ;define
 
 (define (standard-grey-list)
-  '("black"
-    "darker grey"
-    "dark grey"
-    "#a0a0a0"
-    "light grey"
-    "pastel grey"
-    "#f0f0f0"
-    "white")
+  '("black" "darker grey" "dark grey" "#a0a0a0" "light grey" "pastel grey"
+    "#f0f0f0" "white")
 ) ;define
 
 (tm-menu (standard-color-menu cmd)

@@ -5,55 +5,14 @@
           ) ;rename
     (srfi srfi-128)
   ) ;import
-  (export set
-    set-unfold
-    list->set
-    list->set!
-    set-copy
-    set->list
-    list->set-with-comparator
-    make-set-with-comparator
-    set?
-    set-contains?
-    set-empty?
-    set-disjoint?
-    set-element-comparator
-    set-size
-    set=?
-    set<?
-    set>?
-    set<=?
-    set>=?
-    set-any?
-    set-every?
-    set-find
-    set-count
-    set-member
-    set-search!
-    set-map
-    set-for-each
-    set-fold
-    set-filter
-    set-filter!
-    set-remove
-    set-remove!
-    set-partition
-    set-partition!
-    set-union
-    set-intersection
-    set-difference
-    set-xor
-    set-union!
-    set-intersection!
-    set-difference!
-    set-xor!
-    set-adjoin
-    set-adjoin!
-    set-replace
-    set-replace!
-    set-delete
-    set-delete!
-    set-delete-all
+  (export set set-unfold list->set list->set! set-copy set->list
+    list->set-with-comparator make-set-with-comparator set? set-contains?
+    set-empty? set-disjoint? set-element-comparator set-size set=? set<? set>?
+    set<=? set>=? set-any? set-every? set-find set-count set-member set-search!
+    set-map set-for-each set-fold set-filter set-filter! set-remove set-remove!
+    set-partition set-partition! set-union set-intersection set-difference
+    set-xor set-union! set-intersection! set-difference! set-xor! set-adjoin
+    set-adjoin! set-replace set-replace! set-delete set-delete! set-delete-all
     set-delete-all!
   ) ;export
 

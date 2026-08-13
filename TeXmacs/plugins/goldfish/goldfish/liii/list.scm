@@ -1,59 +1,11 @@
 (define-library (liii list)
-  (export circular-list
-    iota
-    xcons
-    cons*
-    null-list?
-    circular-list?
-    proper-list?
-    dotted-list?
-    first
-    second
-    third
-    fourth
-    fifth
-    sixth
-    seventh
-    eighth
-    ninth
-    tenth
-    take
-    drop
-    take-right
-    drop-right
-    split-at
-    last-pair
-    last
-    zip
-    count
-    fold
-    fold-right
-    reduce
-    reduce-right
-    filter
-    partition
-    remove
-    append-map
-    find
-    any
-    every
-    list-index
-    take-while
-    drop-while
-    delete
-    alist-cons
-    flat-map
-    list-null?
-    list-not-null?
-    not-null-list?
-    length=?
-    length>?
-    length>=?
-    flatten
-    list-take
-    list-drop
-    list-take-right
-    list-drop-right
+  (export circular-list iota xcons cons* null-list? circular-list? proper-list?
+    dotted-list? first second third fourth fifth sixth seventh eighth ninth
+    tenth take drop take-right drop-right split-at last-pair last zip count fold
+    fold-right reduce reduce-right filter partition remove append-map find any
+    every list-index take-while drop-while delete alist-cons flat-map list-null?
+    list-not-null? not-null-list? length=? length>? length>=? flatten list-take
+    list-drop list-take-right list-drop-right
   ) ;export
   (import (scheme base) (srfi srfi-1) (srfi srfi-13) (liii error))
   (begin

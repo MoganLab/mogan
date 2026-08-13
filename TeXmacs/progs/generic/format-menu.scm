@@ -329,15 +329,9 @@
 
 (tm-define (page-numbering-context? t)
   (tree-in? t
-    '(set-this-page-header set-this-page-footer
-       set-header
-       set-footer
-       set-odd-page-header
-       set-even-page-header
-       set-odd-page-footer
-       set-even-page-footer
-       set-page-number
-       set-page-number-macro)
+    '(set-this-page-header set-this-page-footer set-header set-footer
+       set-odd-page-header set-even-page-header set-odd-page-footer
+       set-even-page-footer set-page-number set-page-number-macro)
   ) ;tree-in?
 ) ;tm-define
 

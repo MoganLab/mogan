@@ -1,26 +1,7 @@
 (define-library (liii os)
-  (export os-arch
-    os-type
-    os-windows?
-    os-linux?
-    os-macos?
-    os-temp-dir
-    os-sep
-    pathsep
-    os-call
-    mkdir
-    chdir
-    rmdir
-    remove
-    rename
-    getenv
-    putenv
-    unsetenv
-    getcwd
-    listdir
-    access
-    getlogin
-    getpid
+  (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
+    pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
+    getcwd listdir access getlogin getpid
   ) ;export
   (import (scheme process-context) (liii base) (liii error) (liii string))
   (begin

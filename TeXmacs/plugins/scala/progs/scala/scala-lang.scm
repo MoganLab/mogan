@@ -17,48 +17,12 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "scala") (== key "keyword")))
   `(,(string->symbol key)
-    (constant "false"
-      "true"
-      "null"
-      "Byte"
-      "Short"
-      "Int"
-      "Long"
-      "Char"
-      "String"
-      "Float"
-      "Double"
-      "Boolean"
-      "Array"
-      "List"
-      "Map"
-      "Set"
-      "Function"
-      "Class"
-      "aggregate"
-      "collect"
-      "map"
-      "filter"
-      "filterNot"
-      "foreach"
-      "forall"
-      "fold"
-      "foldLeft"
-      "foldRight"
-      "reduce"
-      "reduceLeft"
-      "reduceRight"
-      "scan"
-      "scanLeft"
-      "scanRight"
-      "zip"
-      "unzip"
-      "flatMap"
-      "grouped"
-      "groupBy"
-      "IllegalArgumentException"
-      "NullPointerException"
-      "Exception"
+    (constant "false" "true" "null" "Byte" "Short" "Int" "Long" "Char" "String"
+      "Float" "Double" "Boolean" "Array" "List" "Map" "Set" "Function" "Class"
+      "aggregate" "collect" "map" "filter" "filterNot" "foreach" "forall" "fold"
+      "foldLeft" "foldRight" "reduce" "reduceLeft" "reduceRight" "scan"
+      "scanLeft" "scanRight" "zip" "unzip" "flatMap" "grouped" "groupBy"
+      "IllegalArgumentException" "NullPointerException" "Exception"
       "RuntimeException")
     (declare_function "def")
     (declare_type "type" "class" "object" "trait")
@@ -147,9 +111,7 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "scala") (== key "string")))
   `(,(string->symbol key)
-    (bool_features "hex_with_8_bits"
-      "hex_with_16_bits"
-      "hex_with_32_bits"
+    (bool_features "hex_with_8_bits" "hex_with_16_bits" "hex_with_32_bits"
       "octal_upto_3_digits")
     (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "t"))
 ) ;tm-define

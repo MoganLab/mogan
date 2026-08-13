@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "tm_sys_utils.hpp"
+#include "analyze.hpp"
 #include "file.hpp"
 #include "lolly/system/subprocess.hpp"
 #include "sys_utils.hpp"
@@ -140,6 +141,40 @@ get_documents_path () {
   string docs= get_env ("TEXMACS_DOCUMENTS_PATH");
   if (!is_empty (docs)) return url_system (docs);
   return url_system (get_env ("HOME"), "Documents");
+}
+
+// 解析 xdg user-dirs.dirs 的 XDG_DOWNLOAD_DIR（值形如 "$HOME/下载"），
+// 失败返回空串——中文发行版的下载目录常不是 ~/Downloads。
+static string
+xdg_download_dir () {
+  string config_home= get_env ("XDG_CONFIG_HOME");
+  if (is_empty (config_home)) config_home= get_env ("HOME") * "/.config";
+  url    u= url_system (config_home, "user-dirs.dirs");
+  string content;
+  // load_string 对缺失文件也会打日志，先挡一层
+  if (!exists (u) || load_string (u, content, false)) return "";
+  string key= "XDG_DOWNLOAD_DIR=\"";
+  int    pos= search_forwards (key, 0, content);
+  if (pos < 0) return "";
+  int begin= pos + N (key);
+  int end  = search_forwards (string ("\""), begin, content);
+  if (end < 0) return "";
+  string dir= content (begin, end);
+  if (starts (dir, string ("$HOME"))) dir= get_env ("HOME") * dir (5, N (dir));
+  return dir;
+}
+
+url
+get_downloads_path () {
+  string downloads= get_env ("TEXMACS_DOWNLOADS_PATH");
+  if (!is_empty (downloads)) return url_system (downloads);
+  if (os_win ()) return url_system (get_env ("USERPROFILE"), "Downloads");
+  if (!os_macos () && !os_wasm ()) {
+    // Linux/BSD 遵循 xdg-user-dirs 的本地化下载目录
+    string xdg= xdg_download_dir ();
+    if (!is_empty (xdg)) return url_system (xdg);
+  }
+  return url_system (get_env ("HOME"), "Downloads");
 }
 
 url

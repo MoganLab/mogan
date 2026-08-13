@@ -46,17 +46,8 @@
 ;;; Beamer metadata presentation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tmtex-make-author names
-             affiliations
-             emails
-             urls
-             miscs
-             notes
-             affs-l
-             emails-l
-             urls-l
-             miscs-l
-             notes-l
+(tm-define (tmtex-make-author names affiliations emails urls miscs notes affs-l
+             emails-l urls-l miscs-l notes-l
            ) ;tmtex-make-author
   (:mode beamer-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
@@ -171,16 +162,8 @@
   (with old-tmtex-make-author
     (eval tmtex-make-author)
     (set! tmtex-make-author
-      (lambda (names affiliations
-                emails
-                urls
-                miscs
-                notes
-                affs-l
-                emails-l
-                urls-l
-                miscs-l
-                notes-l
+      (lambda (names affiliations emails urls miscs notes affs-l emails-l urls-l
+                miscs-l notes-l
               ) ;names
         (with names
           (tmtex-concat-Sep (map cadr names))

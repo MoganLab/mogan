@@ -1,14 +1,6 @@
 (define-library (liii check)
-  (export test
-    check
-    check-approx
-    check-set-mode!
-    check:proc
-    check-catch
-    check-report
-    check-failed?
-    check-true
-    check-false
+  (export test check check-approx check-set-mode! check:proc check-catch
+    check-report check-failed? check-true check-false
   ) ;export
   (import (srfi srfi-78)
     (rename (srfi srfi-78) (check-report srfi-78-check-report))

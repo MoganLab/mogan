@@ -134,6 +134,11 @@ function main()
                 ret_type = "url"
             },
             {
+                scm_name = "get-downloads-path",
+                cpp_name = "get_downloads_path",
+                ret_type = "url"
+            },
+            {
                 scm_name = "get-tm-cache-path",
                 cpp_name = "get_tm_cache_path",
                 ret_type = "url"

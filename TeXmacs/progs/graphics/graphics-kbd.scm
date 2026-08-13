@@ -191,46 +191,9 @@
 ) ;kbd-map
 
 (define graphics-keys
-  '("+"
-    "="
-    "-"
-    "1"
-    "2"
-    "3"
-    "4"
-    "5"
-    "6"
-    "7"
-    "8"
-    "9"
-    "0"
-    "#"
-    "!"
-    "c"
-    "l"
-    "b"
-    "t"
-    "e"
-    "left"
-    "right"
-    "down"
-    "up"
-    "home"
-    "end"
-    "pageup"
-    "pagedown"
-    "return"
-    "backspace"
-    "delete"
-    "tab"
-    "F1"
-    "F2"
-    "F3"
-    "F4"
-    "F9"
-    "F10"
-    "F11"
-    "F12")
+  '("+" "=" "-" "1" "2" "3" "4" "5" "6" "7" "8" "9" "0" "#" "!" "c" "l" "b" "t"
+    "e" "left" "right" "down" "up" "home" "end" "pageup" "pagedown" "return"
+    "backspace" "delete" "tab" "F1" "F2" "F3" "F4" "F9" "F10" "F11" "F12")
 ) ;define
 
 (tm-define (keyboard-press key time)
@@ -243,24 +206,9 @@
 ;; 有对应插入模式 (edit <tag>) 的对象 tag（见 graphics-menu.scm 的插入菜单）
 
 (define graphics-insertable-tags
-  '(point line
-     cline
-     spline
-     smooth
-     bezier
-     cspline
-     csmooth
-     cbezier
-     std-arc-counterclockwise
-     sector-counterclockwise
-     circle
-     ellipse
-     hyperbola
-     parabola
-     rectangle
-     text-at
-     math-at
-     document-at)
+  '(point line cline spline smooth bezier cspline csmooth cbezier
+     std-arc-counterclockwise sector-counterclockwise circle ellipse hyperbola
+     parabola rectangle text-at math-at document-at)
 ) ;define
 
 ;; 按下 e：从更改属性模式切换到当前选中对象对应的插入模式

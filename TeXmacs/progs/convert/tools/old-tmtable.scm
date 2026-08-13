@@ -242,39 +242,17 @@
 
 (define (stm-table-length-name? name)
   (in? name
-    '("cell-width"
-      "cell-height"
-      "cell-lsep"
-      "cell-rsep"
-      "cell-bsep"
-      "cell-tsep"
-      "cell-lborder"
-      "cell-rborder"
-      "cell-bborder"
-      "cell-tborder"
-      "table-width"
-      "table-height"
-      "table-lsep"
-      "table-rsep"
-      "table-bsep"
-      "table-tsep"
-      "table-lborder"
-      "table-rborder"
-      "table-bborder"
-      "table-tborder")
+    '("cell-width" "cell-height" "cell-lsep" "cell-rsep" "cell-bsep" "cell-tsep"
+      "cell-lborder" "cell-rborder" "cell-bborder" "cell-tborder" "table-width"
+      "table-height" "table-lsep" "table-rsep" "table-bsep" "table-tsep"
+      "table-lborder" "table-rborder" "table-bborder" "table-tborder")
   ) ;in?
 ) ;define
 
 (define (stm-table-number-name? name)
   (in? name
-    '("cell-row-span"
-      "cell-col-span"
-      "table-row-origin"
-      "table-col-origin"
-      "table-min-rows"
-      "table-min-cols"
-      "table-max-rows"
-      "table-max-cols")
+    '("cell-row-span" "cell-col-span" "table-row-origin" "table-col-origin"
+      "table-min-rows" "table-min-cols" "table-max-rows" "table-max-cols")
   ) ;in?
 ) ;define
 

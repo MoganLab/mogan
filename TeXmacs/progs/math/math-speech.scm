@@ -87,28 +87,8 @@
 ;; Separate letters that where agglutinated by the speech recognition software
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-collection consonants
-  "b"
-  "c"
-  "d"
-  "f"
-  "g"
-  "h"
-  "j"
-  "k"
-  "l"
-  "m"
-  "n"
-  "p"
-  "q"
-  "r"
-  "s"
-  "t"
-  "v"
-  "w"
-  "x"
-  "z"
-  "y"
+(define-collection consonants "b" "c" "d" "f" "g" "h" "j" "k" "l" "m" "n" "p"
+  "q" "r" "s" "t" "v" "w" "x" "z" "y"
 ) ;define-collection
 
 (define (letterize-one lan s)
@@ -214,14 +194,8 @@
 ) ;tm-define
 
 (define 2d-list
-  (list :subscript
-    :short-subscript
-    :superscript
-    :short-superscript
-    :over
-    :short-over
-    :sqrt
-    :wide
+  (list :subscript :short-subscript :superscript :short-superscript :over
+    :short-over :sqrt :wide
   ) ;list
 ) ;define
 
@@ -1004,10 +978,7 @@
     (cond ((tm-in? prev '(frac frac*)) (insert "*"))
           ((tm-is? prev 'big) (make 'rsub))
           ((editing-big-operator?) (with-innermost t script-context? (tree-go-to t :end)))
-          ((or (math-symbol? prev) (tm-in? prev '(with math-ss
-                                                   math-tt
-                                                   rsub
-                                                   rsup
+          ((or (math-symbol? prev) (tm-in? prev '(with math-ss math-tt rsub rsup
                                                    around)))
            (speech-apply)
           ) ;

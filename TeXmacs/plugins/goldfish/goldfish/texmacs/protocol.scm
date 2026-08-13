@@ -1,20 +1,8 @@
 
 (define-library (texmacs protocol)
-  (export data-begin
-    data-end
-    data-escape
-    DATA_BEGIN
-    DATA_END
-    DATA_COMMAND
-    DATA_ESCAPE
-    flush-verbatim
-    flush-prompt
-    flush-scheme
-    flush-file
-    flush-markdown
-    flush-latex
-    flush-command
-    read-paragraph-by-visible-eof
+  (export data-begin data-end data-escape DATA_BEGIN DATA_END DATA_COMMAND
+    DATA_ESCAPE flush-verbatim flush-prompt flush-scheme flush-file
+    flush-markdown flush-latex flush-command read-paragraph-by-visible-eof
   ) ;export
   (begin
 

@@ -16,20 +16,8 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "javascript") (== key "keyword")))
   `(,(string->symbol key)
-    (constant "false"
-      "true"
-      "null"
-      "undefined"
-      "NaN"
-      "Infinity"
-      "void"
-      "Array"
-      "Boolean"
-      "BigInt"
-      "Map"
-      "Object"
-      "String"
-      "Set")
+    (constant "false" "true" "null" "undefined" "NaN" "Infinity" "void" "Array"
+      "Boolean" "BigInt" "Map" "Object" "String" "Set")
     (declare_type "class" "interface" "enum")
     (declare_identifier "let" "var")
     (declare_module "as" "default" "export" "from" "import" "package")
@@ -54,19 +42,8 @@
       "async"
       "await")
     (keyword_conditional "else" "if" "goto" "switch" "case")
-    (keyword_control "await"
-      "break"
-      "catch"
-      "continue"
-      "debugger"
-      "do"
-      "for"
-      "finally"
-      "return"
-      "throw"
-      "try"
-      "while"
-      "with"))
+    (keyword_control "await" "break" "catch" "continue" "debugger" "do" "for"
+      "finally" "return" "throw" "try" "while" "with"))
 ) ;tm-define
 
 ;; Ref: https://ecma-international.org/ecma-262/10.0/index.html#sec-update-expressions
@@ -148,9 +125,7 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "javascript") (== key "string")))
   `(,(string->symbol key)
-    (bool_features "hex_with_8_bits"
-      "hex_with_16_bits"
-      "hex_with_32_bits"
+    (bool_features "hex_with_8_bits" "hex_with_16_bits" "hex_with_32_bits"
       "octal_upto_3_digits")
     (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "v" "t"))
 ) ;tm-define

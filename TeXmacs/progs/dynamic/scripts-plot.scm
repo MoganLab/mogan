@@ -165,40 +165,31 @@
 (define sine (list "($graph2d -10 10 200 sin)"))
 
 (define sine-cosine
-  (list "($graphical"
-    "  ($pen-color \"dark blue\""
-    "    ($graph2d -10 10 200 sin))"
-    "  ($pen-color \"dark green\""
+  (list "($graphical" "  ($pen-color \"dark blue\""
+    "    ($graph2d -10 10 200 sin))" "  ($pen-color \"dark green\""
     "    ($graph2d -10 10 200 cos)))"
   ) ;list
 ) ;define
 
 (define lissajous
-  (list "($fill-color \"pastel yellow\""
-    "  ($curve2d -3.14159 3.14159 500"
+  (list "($fill-color \"pastel yellow\"" "  ($curve2d -3.14159 3.14159 500"
     "    (lambda (t) (* 4 (sin (* 6 t))))"
     "    (lambda (t) (* 3 (cos (* 10 t))))))"
   ) ;list
 ) ;define
 
 (define animation-1
-  (list "($animation \"0.2s\""
-    "  ($for (t (.. 1 40))"
-    "    ($graph2d -10 10 (* 20 t)"
-    "      (lambda (x)"
+  (list "($animation \"0.2s\"" "  ($for (t (.. 1 40))"
+    "    ($graph2d -10 10 (* 20 t)" "      (lambda (x)"
     "        (/ (sin (* 0.2 x t)) (+ (* x x) 1))))))"
   ) ;list
 ) ;define
 
 (define animation-2
-  (list "($animation \"0.2s\""
-    "  ($for (k (.. 0 101))"
-    "    ($fill-color \"pastel yellow\""
-    "      ($curve2d -3.14159 3.14159 400"
-    "        (lambda (t)"
-    "          (* 4 (sin (+ (* 6 t) (* k 0.0314159)))))"
-    "        (lambda (t)"
-    "          (* 3 (cos (* 10 t))))))))"
+  (list "($animation \"0.2s\"" "  ($for (k (.. 0 101))"
+    "    ($fill-color \"pastel yellow\"" "      ($curve2d -3.14159 3.14159 400"
+    "        (lambda (t)" "          (* 4 (sin (+ (* 6 t) (* k 0.0314159)))))"
+    "        (lambda (t)" "          (* 3 (cos (* 10 t))))))))"
   ) ;list
 ) ;define
 

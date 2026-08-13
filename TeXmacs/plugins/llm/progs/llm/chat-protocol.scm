@@ -106,9 +106,7 @@
 ;;; ---------- 编码/解码 ----------
 
 (define (chat-tab-session-encode input session-id out opts)
-  (list (list chat-tab-session-do
-          chat-tab-session-notify
-          chat-tab-session-next
+  (list (list chat-tab-session-do chat-tab-session-notify chat-tab-session-next
           chat-tab-session-cancel
         ) ;list
     input

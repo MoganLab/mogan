@@ -10,43 +10,14 @@
       (json-ref ljson-ref)
     ) ;rename
   ) ;import
-  (export njson?
-    njson-null?
-    njson-object?
-    njson-array?
-    njson-string?
-    njson-number?
-    njson-integer?
-    njson-boolean?
-    njson-size
-    njson-empty?
-    njson-free
-    string->njson
-    file->njson
-    njson->string
-    njson-format-string
-    njson->file
-    json->njson
-    njson->json
-    njson-object->alist
-    njson-object->hash-table
-    njson-array->list
-    njson-array->vector
-    let-njson
-    njson-ref
-    njson-set
-    njson-append
-    njson-set!
-    njson-append!
-    njson-merge
-    njson-merge!
-    njson-deep-merge
-    njson-deep-merge!
-    njson-drop
-    njson-drop!
-    njson-contains-key?
-    njson-keys
-    njson-schema-report
+  (export njson? njson-null? njson-object? njson-array? njson-string?
+    njson-number? njson-integer? njson-boolean? njson-size njson-empty?
+    njson-free string->njson file->njson njson->string njson-format-string
+    njson->file json->njson njson->json njson-object->alist
+    njson-object->hash-table njson-array->list njson-array->vector let-njson
+    njson-ref njson-set njson-append njson-set! njson-append! njson-merge
+    njson-merge! njson-deep-merge njson-deep-merge! njson-drop njson-drop!
+    njson-contains-key? njson-keys njson-schema-report
   ) ;export
   (begin
     (define (njson-null-symbol? x)

@@ -15,27 +15,10 @@
 ;;
 
 (define-library (scheme char)
-  (export char-upcase
-    char-downcase
-    char-foldcase
-    char-upper-case?
-    char-lower-case?
-    digit-value
-    char-numeric?
-    char-alphabetic?
-    char-whitespace?
-    char-ci=?
-    char-ci<?
-    char-ci>?
-    char-ci<=?
-    char-ci>=?
-    string-ci=?
-    string-ci<?
-    string-ci>?
-    string-ci<=?
-    string-ci>=?
-    string-upcase
-    string-downcase
+  (export char-upcase char-downcase char-foldcase char-upper-case?
+    char-lower-case? digit-value char-numeric? char-alphabetic? char-whitespace?
+    char-ci=? char-ci<? char-ci>? char-ci<=? char-ci>=? string-ci=? string-ci<?
+    string-ci>? string-ci<=? string-ci>=? string-upcase string-downcase
     string-foldcase
   ) ;export
   (import (scheme base) (liii unicode))

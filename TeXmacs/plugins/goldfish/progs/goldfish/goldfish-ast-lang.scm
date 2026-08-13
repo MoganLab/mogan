@@ -123,11 +123,7 @@
     ("#D32F2F" "string_content" "string_quote" "character")
     ("#BF2C2C" "escape_sequence")
     ("red" "error")
-    ("#000000"
-     "symbol"
-     "operator"
-     "normal-brackets"
-     "vector_tag"
+    ("#000000" "symbol" "operator" "normal-brackets" "vector_tag"
      "byte_vector_tag")
     ("#800080" "ERROR")
     ("#ff115f" "(0" ")0" "[0" "]0" "{0" "}0")

@@ -17,13 +17,8 @@
                                      ) ;src-title
                            ) ;document
                   ) ;active*
-          (use-package "std"
-            "env"
-            "title-generic"
-            "header-article"
-            "section-base"
-            "std-latex-base"
-            "html-font-size"
+          (use-package "std" "env" "title-generic" "header-article"
+            "section-base" "std-latex-base" "html-font-size"
           ) ;use-package
           (active* (src-comment "Global layout parameters"))
           (assign "font" "Linux Libertine")

@@ -18,21 +18,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (basic-themes)
-  (list "dark"
-    "blackboard"
-    "bluish"
-    "boring-white"
-    "dark-vador"
-    "granite"
-    "ice"
-    "manila-paper"
-    "metal"
-    "pale-blue"
-    "pine"
-    "reddish"
-    "ridged-paper"
-    "rough-paper"
-    "xperiment"
+  (list "dark" "blackboard" "bluish" "boring-white" "dark-vador" "granite" "ice"
+    "manila-paper" "metal" "pale-blue" "pine" "reddish" "ridged-paper"
+    "rough-paper" "xperiment"
   ) ;list
 ) ;tm-define
 

@@ -17,25 +17,12 @@
 ;; Groups
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-group calc-table-tag
-  textual-table
-  numeric-dot-table
-  numeric-comma-table
+(define-group calc-table-tag textual-table numeric-dot-table numeric-comma-table
 ) ;define-group
 
-(define-group calc-labeled-tag
-  calc-inert
-  calc-input
-  calc-output
-  cell-input
-  cell-output
-  calc-generate
-  calc-generate-command
-  calc-answer
-  calc-answer-command
-  calc-check
-  calc-check-predicate
-  calc-check-command
+(define-group calc-labeled-tag calc-inert calc-input calc-output cell-input
+  cell-output calc-generate calc-generate-command calc-answer
+  calc-answer-command calc-check calc-check-predicate calc-check-command
   calc-suggest
 ) ;define-group
 

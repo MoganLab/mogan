@@ -54,9 +54,7 @@
 (define (css-merge-attrs a1 a2)
   (cond ((null? a1) a2)
         ((not (assoc-ref a2 (caar a1))) (cons (car a1) (css-merge-attrs (cdr a1) a2)))
-        ((in? (caar a1) '("margin-top"
-                          "margin-bottom"
-                          "padding-top"
+        ((in? (caar a1) '("margin-top" "margin-bottom" "padding-top"
                           "padding-bottom"))
          (let* ((k (caar a1))
                 (v (css-max (assoc-ref a1 k) (assoc-ref a2 k)))
@@ -65,9 +63,7 @@
            (css-merge-attrs (cdr a1) a2*)
          ) ;let*
         ) ;
-        ((in? (caar a1) '("margin-left"
-                          "margin-right"
-                          "padding-left"
+        ((in? (caar a1) '("margin-left" "margin-right" "padding-left"
                           "padding-right"))
          (let* ((k (caar a1))
                 (v (css-add (assoc-ref a1 k) (assoc-ref a2 k)))

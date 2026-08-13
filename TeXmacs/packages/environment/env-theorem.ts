@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-package|env-enunciation>
+  <use-package|environment/env-enunciation>
 
   <\active*>
     <\src-comment>

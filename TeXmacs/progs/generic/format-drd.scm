@@ -65,11 +65,7 @@
 
 (define-group new-page-tag new-page new-page* new-dpage new-dpage*)
 
-(define-group page-break-tag
-  page-break
-  page-break*
-  no-break-here
-  no-break-here*
+(define-group page-break-tag page-break page-break* no-break-here no-break-here*
 ) ;define-group
 
 ;; Various geometry adjustment tags
@@ -84,35 +80,14 @@
 
 (define-group reduce-by-tag reduce-by reduce-bottom-by reduce-top-by)
 
-(define-group font-effect-tag
-  embold
-  embbb
-  slanted
-  hmagnified
-  vmagnified
-  condensed
-  extended
-  degraded
-  distorted
-  gnawed
+(define-group font-effect-tag embold embbb slanted hmagnified vmagnified
+  condensed extended degraded distorted gnawed
 ) ;define-group
 
 (define-group eff-tag eff-blur eff-outline eff-thicken eff-erode)
 
-(define-group basic-effect-tag
-  blur
-  outline
-  thicken
-  erode
-  shadow
-  engrave
-  emboss
-  shadowed-raise
-  outlined-engrave
-  outlined-emboss
-  degrade
-  distort
-  gnaw
+(define-group basic-effect-tag blur outline thicken erode shadow engrave emboss
+  shadowed-raise outlined-engrave outlined-emboss degrade distort gnaw
 ) ;define-group
 
 (define-group color-effect-tag make-transparent make-opaque recolor skin)
@@ -128,25 +103,16 @@
   (motion-effect-tag)
 ) ;define-group
 
-(define-group gaussian-effect-tag
-  gaussian-blur
-  gaussian-outline
-  gaussian-thicken
-  gaussian-erode
+(define-group gaussian-effect-tag gaussian-blur gaussian-outline
+  gaussian-thicken gaussian-erode
 ) ;define-group
 
 (define-group oval-effect-tag oval-blur oval-outline oval-thicken oval-erode)
 
-(define-group rectangular-effect-tag
-  rectangular-blur
-  rectangular-outline
-  rectangular-thicken
-  rectangular-erode
+(define-group rectangular-effect-tag rectangular-blur rectangular-outline
+  rectangular-thicken rectangular-erode
 ) ;define-group
 
-(define-group motion-effect-tag
-  motion-blur
-  motion-outline
-  motion-thicken
+(define-group motion-effect-tag motion-blur motion-outline motion-thicken
   motion-erode
 ) ;define-group

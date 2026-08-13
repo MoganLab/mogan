@@ -73,19 +73,8 @@
   (cond ((null? t) 0)
         ((npair? t) 0)
         ((in? (car t)
-           '(image graphics
-              draw-over
-              draw-under
-              para
-              table
-              tformat
-              equation
-              equation*
-              eqnarray
-              eqnarray*
-              section
-              subsection
-              subsubsection)
+           '(image graphics draw-over draw-under para table tformat equation
+              equation* eqnarray eqnarray* section subsection subsubsection)
          ) ;in?
          1
         ) ;
@@ -124,26 +113,13 @@
 
   ;;; ACM styles
   (acm-style% (in? tmtex-style
-                '("acmconf"
-                  "sig-alternate"
-                  "acm_proc_article-sp"
-                  "acmsmall"
-                  "acmlarge"
-                  "acmtog"
-                  "sigconf"
-                  "sigchi"
-                  "sigplan"
-                  "acmart")
+                '("acmconf" "sig-alternate" "acm_proc_article-sp" "acmsmall"
+                  "acmlarge" "acmtog" "sigconf" "sigchi" "sigplan" "acmart")
               ) ;in?
   ) ;acm-style%
   (acm-art-style% (in? tmtex-style
-                    '("acmsmall"
-                      "acmlarge"
-                      "acmtog"
-                      "sigconf"
-                      "sigchi"
-                      "sigplan"
-                      "acmart")
+                    '("acmsmall" "acmlarge" "acmtog" "sigconf" "sigchi"
+                      "sigplan" "acmart")
                   ) ;in?
     acm-style%
   ) ;acm-art-style%
@@ -881,12 +857,7 @@
 
 (tm-define (tmtex-transform-style x)
   (cond ((in? x
-           '("generic"
-             "exam"
-             "old-generic"
-             "old-article"
-             "tmarticle"
-             "tmdoc"
+           '("generic" "exam" "old-generic" "old-article" "tmarticle" "tmdoc"
              "mmxdoc")
          ) ;in?
          "article"
@@ -1646,28 +1617,15 @@
          (tmtex-decode-long-arrow (substring s 8 (- (string-length s) 1)))
         ) ;
         ((in? s
-           '("minus"
-             "leftarrow"
-             "rightarrow"
-             "leftrightarrow"
-             "equal"
-             "Leftarrow"
-             "Rightarrow"
-             "Leftrightarrow"
-             "mapsto"
-             "mapsfrom")
+           '("minus" "leftarrow" "rightarrow" "leftrightarrow" "equal"
+             "Leftarrow" "Rightarrow" "Leftrightarrow" "mapsto" "mapsfrom")
          ) ;in?
          (string->symbol (string-append "x" s))
         ) ;
         ((in? s
-           '("leftrightarrows"
-             "leftleftarrows"
-             "threeleftarrows"
-             "fourleftarrows"
-             "rightleftarrows"
-             "rightrightarrows"
-             "threerightarrows"
-             "fourrightarrows")
+           '("leftrightarrows" "leftleftarrows" "threeleftarrows"
+             "fourleftarrows" "rightleftarrows" "rightrightarrows"
+             "threerightarrows" "fourrightarrows")
          ) ;in?
          (string-append "<long" s ">")
         ) ;
@@ -2795,17 +2753,8 @@
 
 (tm-define (tmtex-prepare-author-data l) l)
 
-(tm-define (tmtex-make-author names
-             affiliations
-             emails
-             urls
-             miscs
-             notes
-             affs*
-             emails*
-             urls*
-             miscs*
-             notes*
+(tm-define (tmtex-make-author names affiliations emails urls miscs notes affs*
+             emails* urls* miscs* notes*
            ) ;tmtex-make-author
   (let* ((names (tmtex-concat-Sep (map cadr names)))
          (result `(,@names ,@notes ,@miscs ,@affiliations ,@emails ,@urls))
@@ -2835,17 +2784,8 @@
            (notes (append notes (tmtex-get-transform l 'author-note-label)))
            (emails (append emails (tmtex-get-transform l 'author-email-label)))
           ) ;
-      (tmtex-make-author names
-        affs
-        emails
-        urls
-        miscs
-        notes
-        affs*
-        emails*
-        urls*
-        miscs*
-        notes*
+      (tmtex-make-author names affs emails urls miscs notes affs* emails* urls*
+        miscs* notes*
       ) ;tmtex-make-author
     ) ;let*
   ) ;if
@@ -2880,18 +2820,8 @@
   ) ;cond
 ) ;tm-define
 
-(tm-define (tmtex-make-doc-data titles
-             subtitles
-             authors
-             dates
-             miscs
-             notes
-             subtits-l
-             dates-l
-             miscs-l
-             notes-l
-             tr
-             ar
+(tm-define (tmtex-make-doc-data titles subtitles authors dates miscs notes
+             subtits-l dates-l miscs-l notes-l tr ar
            ) ;tmtex-make-doc-data
   `(!document ,@(tmtex-make-title titles subtitles notes miscs tr)
      ,@(tmtex-append-authors authors)
@@ -2922,18 +2852,8 @@
          (miscs (append miscs (tmtex-get-transform l 'doc-misc-ref)))
          (notes (append notes (tmtex-get-transform l 'doc-note-ref)))
         ) ;
-    (tmtex-make-doc-data titles
-      subtits
-      authors
-      dates
-      miscs
-      notes
-      subtits-l
-      dates-l
-      miscs-l
-      notes-l
-      tr
-      ar
+    (tmtex-make-doc-data titles subtits authors dates miscs notes subtits-l
+      dates-l miscs-l notes-l tr ar
     ) ;tmtex-make-doc-data
   ) ;let*
 ) ;tm-define
@@ -4120,28 +4040,8 @@
  ) ;
  (syntax tmtex-syntax)
 
- ((:or or
-    xor
-    and
-    not
-    plus
-    minus
-    times
-    over
-    div
-    mod
-    merge
-    length
-    range
-    find-file
-    is-tuple
-    look-up
-    equal
-    unequal
-    less
-    lesseq
-    greater
-    greatereq
+ ((:or or xor and not plus minus times over div mod merge length range find-file
+    is-tuple look-up equal unequal less lesseq greater greatereq
   ) ;:or
   tmtex-noop
  ) ;
@@ -4150,50 +4050,17 @@
  (change-case tmtex-change-case)
  (date tmtex-date)
 
- ((:or cm-length
-    mm-length
-    in-length
-    pt-length
-    bp-length
-    dd-length
-    pc-length
-    cc-length
-    fs-length
-    fbs-length
-    em-length
-    ln-length
-    sep-length
-    yfrac-length
-    ex-length
-    fn-length
-    fns-length
-    bls-length
-    spc-length
-    xspc-length
-    par-length
-    pag-length
-    gm-length
-    gh-length
+ ((:or cm-length mm-length in-length pt-length bp-length dd-length pc-length
+    cc-length fs-length fbs-length em-length ln-length sep-length yfrac-length
+    ex-length fn-length fns-length bls-length spc-length xspc-length par-length
+    pag-length gm-length gh-length
   ) ;:or
   tmtex-noop
  ) ;
 
- ((:or style-with
-    style-with*
-    style-only
-    style-only*
-    active
-    active*
-    inactive
-    inactive*
-    rewrite-inactive
-    inline-tag
-    open-tag
-    middle-tag
-    close-tag
-    symbol
-    latex
-    hybrid
+ ((:or style-with style-with* style-only style-only* active active* inactive
+    inactive* rewrite-inactive inline-tag open-tag middle-tag close-tag symbol
+    latex hybrid
   ) ;:or
   tmtex-noop
  ) ;
@@ -4209,13 +4076,8 @@
  (specific tmtex-specific)
  ((:or tag meaning flag) tmtex-noop)
 
- ((:or anim-compose
-    anim-repeat
-    anim-constant
-    anim-translate
-    anim-progressive
-    video
-    sound
+ ((:or anim-compose anim-repeat anim-constant anim-translate anim-progressive
+    video sound
   ) ;:or
   tmtex-noop
  ) ;
@@ -4228,27 +4090,9 @@
  (image tmtex-image)
  ((:or box-info frame-direct frame-inverse) tmtex-noop)
 
- ((:or format
-    line-sep
-    split
-    delay
-    hold
-    release
-    old-matrix
-    old-table
-    old-mosaic
-    old-mosaic-item
-    set
-    reset
-    expand
-    expand*
-    hide-expand
-    display-baloon
-    apply
-    begin
-    end
-    func
-    env
+ ((:or format line-sep split delay hold release old-matrix old-table old-mosaic
+    old-mosaic-item set reset expand expand* hide-expand display-baloon apply
+    begin end func env
   ) ;:or
   tmtex-noop
  ) ;
@@ -4287,48 +4131,12 @@
  ((:or doc-title-options author-data) (,tmtex-default -1))
  (appendix (,tmtex-appendix 1))
  (appendix* (,tmtex-appendix* 1))
- ((:or theorem
-    proposition
-    lemma
-    corollary
-    proof
-    axiom
-    definition
-    notation
-    conjecture
-    remark
-    note
-    example
-    convention
-    warning
-    acknowledgments
-    exercise
-    problem
-    question
-    solution
-    answer
-    quote-env
-    quotation
-    verse
-    theorem*
-    proposition*
-    lemma*
-    corollary*
-    axiom*
-    definition*
-    notation*
-    conjecture*
-    remark*
-    note*
-    example*
-    convention*
-    warning*
-    acknowledgments*
-    exercise*
-    problem*
-    question*
-    solution*
-    answer*
+ ((:or theorem proposition lemma corollary proof axiom definition notation
+    conjecture remark note example convention warning acknowledgments exercise
+    problem question solution answer quote-env quotation verse theorem*
+    proposition* lemma* corollary* axiom* definition* notation* conjecture*
+    remark* note* example* convention* warning* acknowledgments* exercise*
+    problem* question* solution* answer*
   ) ;:or
   (,tmtex-enunciation 1)
  ) ;
@@ -4348,69 +4156,23 @@
  ((:or footnote wide-footnote) (,tmtex-footnote 1))
  (footnotemark (,tmtex-default 0))
  (footnotemark* (,tmtex-footnotemark 1))
- ((:or description
-    description-compact
-    description-aligned
-    description-dash
-    description-long
-    description-paragraphs
-    itemize
-    itemize-minus
-    itemize-dot
-    itemize-arrow
-    enumerate
-    enumerate-numeric
-    enumerate-numeric-bracket
-    enumerate-roman
-    enumerate-roman-bracket
-    enumerate-roman-paren
-    enumerate-Roman
-    enumerate-alpha
-    enumerate-alpha-bracket
-    enumerate-alpha-full-paren
-    enumerate-Alpha
-    enumerate-hanzi
+ ((:or description description-compact description-aligned description-dash
+    description-long description-paragraphs itemize itemize-minus itemize-dot
+    itemize-arrow enumerate enumerate-numeric enumerate-numeric-bracket
+    enumerate-roman enumerate-roman-bracket enumerate-roman-paren
+    enumerate-Roman enumerate-alpha enumerate-alpha-bracket
+    enumerate-alpha-full-paren enumerate-Alpha enumerate-hanzi
   ) ;:or
   (,tmtex-list-env 1)
  ) ;
- ((:or folded
-    unfolded
-    folded-plain
-    unfolded-plain
-    folded-std
-    unfolded-std
-    folded-explain
-    unfolded-explain
-    folded-env
-    unfolded-env
-    folded-documentation
-    unfolded-documentation
-    folded-grouped
-    unfolded-grouped
-    summarized
-    detailed
-    summarized-plain
-    summarized-std
-    summarized-env
-    summarized-documentation
-    summarized-grouped
-    summarized-raw
-    summarized-tiny
-    detailed-plain
-    detailed-std
-    detailed-env
-    detailed-documentation
-    detailed-grouped
-    detailed-raw
-    detailed-tiny
-    unfolded-subsession
-    folded-subsession
-    folded-io
-    unfolded-io
-    input
-    output
-    errput
-    timing
+ ((:or folded unfolded folded-plain unfolded-plain folded-std unfolded-std
+    folded-explain unfolded-explain folded-env unfolded-env folded-documentation
+    unfolded-documentation folded-grouped unfolded-grouped summarized detailed
+    summarized-plain summarized-std summarized-env summarized-documentation
+    summarized-grouped summarized-raw summarized-tiny detailed-plain
+    detailed-std detailed-env detailed-documentation detailed-grouped
+    detailed-raw detailed-tiny unfolded-subsession folded-subsession folded-io
+    unfolded-io input output errput timing
   ) ;:or
   (,tmtex-tm -1)
  ) ;
@@ -4437,32 +4199,9 @@
  (very-large (,tmtex-LARGE 1))
  (really-large (,tmtex-LARGE 1))
  (really-huge (,tmtex-Huge 1))
- ((:or british
-    bulgarian
-    chinese
-    croatian
-    czech
-    danish
-    dutch
-    english
-    esperanto
-    finnish
-    french
-    german
-    greek
-    hungarian
-    italian
-    japanese
-    korean
-    polish
-    portuguese
-    romanian
-    russian
-    slovak
-    slovene
-    spanish
-    swedish
-    chineset
+ ((:or british bulgarian chinese croatian czech danish dutch english esperanto
+    finnish french german greek hungarian italian japanese korean polish
+    portuguese romanian russian slovak slovene spanish swedish chineset
     ukrainian
   ) ;:or
   (,tmtex-specific-language 1)
@@ -4497,19 +4236,8 @@
  (math-close (,tmtex-mathclose 1))
  (math-ordinary (,tmtex-mathord 1))
  (math-ignore (,tmtex-mathord 1))
- ((:or eqnarray
-    eqnarray*
-    leqnarray*
-    gather
-    multline
-    gather*
-    multline*
-    align
-    flalign
-    alignat
-    align*
-    flalign*
-    alignat*
+ ((:or eqnarray eqnarray* leqnarray* gather multline gather* multline* align
+    flalign alignat align* flalign* alignat*
   ) ;:or
   (,tmtex-eqnarray 1)
  ) ;
@@ -4704,82 +4432,9 @@
 ;; Protected tags
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group tmtex-protected%
-  a
-  b
-  c
-  d
-  i
-  j
-  k
-  l
-  o
-  r
-  t
-  u
-  v
-  H
-  L
-  O
-  P
-  S
-  aa
-  ae
-  bf
-  cr
-  dh
-  dj
-  dp
-  em
-  fi
-  ge
-  gg
-  ht
-  if
-  in
-  it
-  le
-  lg
-  ll
-  lu
-  lq
-  mp
-  mu
-  ne
-  ng
-  ni
-  nu
-  oe
-  or
-  pi
-  pm
-  rm
-  rq
-  sb
-  sc
-  sf
-  sl
-  sp
-  ss
-  th
-  tt
-  wd
-  wp
-  wr
-  xi
-  AA
-  AE
-  DH
-  DJ
-  Im
-  NG
-  OE
-  Pi
-  Pr
-  Re
-  SS
-  TH
-  Xi
+(logic-group tmtex-protected% a b c d i j k l o r t u v H L O P S aa ae bf cr dh
+  dj dp em fi ge gg ht if in it le lg ll lu lq mp mu ne ng ni nu oe or pi pm rm
+  rq sb sc sf sl sp ss th tt wd wp wr xi AA AE DH DJ Im NG OE Pi Pr Re SS TH Xi
 ) ;logic-group
 
 (logic-group tmtex-protected-symbol% space)
@@ -5008,9 +4663,7 @@
            (att (tmfile-extract x 'attachments))
            (doc (list '!file body style lan init att (url->string (get-texmacs-path))))
           ) ;
-      (set! tmtex-cjk-document? (in? lan '("chinese"
-                                           "chineset"
-                                           "japanese"
+      (set! tmtex-cjk-document? (in? lan '("chinese" "chineset" "japanese"
                                            "korean")))
       (latex-set-style main-style)
       (latex-set-packages '())

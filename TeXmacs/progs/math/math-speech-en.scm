@@ -81,119 +81,32 @@
   s
 ) ;tm-define
 
-(speech-collection dont-break
-  english
-  "ad"
-  "ag"
-  "ah"
-  "al"
-  "an"
-  "ar"
-  "as"
-  "eg"
-  "el"
-  "em"
-  "en"
-  "ex"
-  "if"
-  "in"
-  "is"
-  "it"
-  "of"
-  "oh"
-  "ok"
-  "ol"
-  "or"
-  "up"
-  "be"
-  "de"
-  "he"
-  "pe"
-  "se"
-  "ve"
-  "we"
-  "ma"
-  "va"
-  "bi"
-  "hi"
-  "ji"
-  "pi"
-  "si"
-  "xi"
-  "yi"
-  "do"
-  "fo"
-  "ho"
-  "jo"
-  "ko"
-  "lo"
-  "no"
-  "po"
-  "so"
-  "to"
-  "vo"
-  "wo"
-  "mu"
-  "nu"
-  "by"
-  "hy"
-  "ky"
-  "my"
-  "sy"
+(speech-collection dont-break english "ad" "ag" "ah" "al" "an" "ar" "as" "eg"
+  "el" "em" "en" "ex" "if" "in" "is" "it" "of" "oh" "ok" "ol" "or" "up" "be"
+  "de" "he" "pe" "se" "ve" "we" "ma" "va" "bi" "hi" "ji" "pi" "si" "xi" "yi"
+  "do" "fo" "ho" "jo" "ko" "lo" "no" "po" "so" "to" "vo" "wo" "mu" "nu" "by"
+  "hy" "ky" "my" "sy"
 ) ;speech-collection
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tables for recognizing mathematics inside text
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-collection prefix
-  english
-  "big"
-  "small"
-  "capital"
-  "uppercase"
-  "lowercase"
-  "bold"
-  "upright"
-  "calligraphic"
-  "fraktur"
-  "gothic"
-  "blackboard bold"
-  "sans serif"
-  "typewriter"
+(speech-collection prefix english "big" "small" "capital" "uppercase"
+  "lowercase" "bold" "upright" "calligraphic" "fraktur" "gothic"
+  "blackboard bold" "sans serif" "typewriter"
 ) ;speech-collection
 
-(speech-collection prefix
-  english
-  "exponential"
-  "logarithm"
-  "sine"
-  "cosine"
-  "tangent"
-  "square root"
+(speech-collection prefix english "exponential" "logarithm" "sine" "cosine"
+  "tangent" "square root"
 ) ;speech-collection
 
-(speech-collection postfix
-  english
-  "prime"
-  "dagger"
-  "square"
-  "squared"
-  "cube"
+(speech-collection postfix english "prime" "dagger" "square" "squared" "cube"
   "cubed"
 ) ;speech-collection
 
-(speech-collection infix
-  english
-  "equal"
-  "assign"
-  "congruent"
-  "superior"
-  "inferior"
-  "smaller"
-  "larger"
-  "less"
-  "greater"
+(speech-collection infix english "equal" "assign" "congruent" "superior"
+  "inferior" "smaller" "larger" "less" "greater"
 ) ;speech-collection
 
 (speech-collection math-mode english "math" "maths" "mathematics")

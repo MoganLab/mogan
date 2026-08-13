@@ -109,14 +109,8 @@
 ) ;tm-define
 
 (define weak-infix-types
-  (list "Assign-symbol"
-    "Models-symbol"
-    "Modeled-symbol"
-    "Imply-nolim-symbol"
-    "Or-symbol"
-    "And-symbol"
-    "Relation-nolim-symbol"
-    "Arrow-nolim-symbol"
+  (list "Assign-symbol" "Models-symbol" "Modeled-symbol" "Imply-nolim-symbol"
+    "Or-symbol" "And-symbol" "Relation-nolim-symbol" "Arrow-nolim-symbol"
   ) ;list
 ) ;define
 
@@ -313,73 +307,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define basic-letters
-  (list "a"
-    "b"
-    "c"
-    "d"
-    "e"
-    "o"
-    "u"
-    "v"
-    "w"
-    "x"
-    "y"
-    "z"
-    "<alpha>"
-    "<beta>"
-    "<gamma>"
-    "<delta>"
-    "<varepsilon>"
-    "<eta>"
-    "<theta>"
-    "<lambda>"
-    "<mu>"
-    "<xi>"
-    "<omicron>"
-    "<pi>"
-    "<rho>"
-    "<sigma>"
-    "<tau>"
-    "<upsilon>"
-    "<chi>"
-    "<omega>"
-    "<mathe>"
-    "<mathi>"
-    "<mathpi>"
-    "<mathgamma>"
-    "A"
-    "B"
-    "C"
-    "D"
-    "E"
-    "F"
-    "G"
-    "H"
-    "I"
-    "J"
-    "K"
-    "L"
-    "M"
-    "N"
-    "O"
-    "P"
-    "Q"
-    "R"
-    "S"
-    "T"
-    "U"
-    "V"
-    "W"
-    "X"
-    "Y"
-    "Z"
-    "<Delta>"
-    "<Theta>"
-    "<Lambda>"
-    "<Xi>"
-    "<Pi>"
-    "<Sigma>"
-    "<Omega>"
+  (list "a" "b" "c" "d" "e" "o" "u" "v" "w" "x" "y" "z" "<alpha>" "<beta>"
+    "<gamma>" "<delta>" "<varepsilon>" "<eta>" "<theta>" "<lambda>" "<mu>"
+    "<xi>" "<omicron>" "<pi>" "<rho>" "<sigma>" "<tau>" "<upsilon>" "<chi>"
+    "<omega>" "<mathe>" "<mathi>" "<mathpi>" "<mathgamma>" "A" "B" "C" "D" "E"
+    "F" "G" "H" "I" "J" "K" "L" "M" "N" "O" "P" "Q" "R" "S" "T" "U" "V" "W" "X"
+    "Y" "Z" "<Delta>" "<Theta>" "<Lambda>" "<Xi>" "<Pi>" "<Sigma>" "<Omega>"
   ) ;list
 ) ;define
 
@@ -459,15 +392,7 @@
     (when (if (string? x)
             (not (or (string-number? x) (math-symbol? x) (math-operator? x)))
             (not (tree-in? x
-                   '(math-ss math-tt
-                      rsub
-                      rsup
-                      wide
-                      wide*
-                      frac
-                      frac*
-                      sqrt
-                      around
+                   '(math-ss math-tt rsub rsup wide wide* frac frac* sqrt around
                       around*)
                  ) ;tree-in?
             ) ;not

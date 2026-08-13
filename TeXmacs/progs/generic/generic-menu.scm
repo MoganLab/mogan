@@ -592,14 +592,8 @@
 
 (tm-define (parameter-show-in-menu? l)
   (:require (in? l
-              (list "the-label"
-                "auto-nr"
-                "current-part"
-                "language"
-                "page-nr"
-                "page-the-page"
-                "prog-language"
-                "caption-summarized"
+              (list "the-label" "auto-nr" "current-part" "language" "page-nr"
+                "page-the-page" "prog-language" "caption-summarized"
                 "figure-width"
               ) ;list
             ) ;in?
@@ -1272,12 +1266,8 @@
                           ) ;with
                          ) ;
                          (side? `(menu-dynamic ===
-                                   (aligned ,@(map (cut interactive-tool-arg
-                                                     win
-                                                     fun
-                                                     args
-                                                     <>
-                                                     width)
+                                   (aligned ,@(map (cut interactive-tool-arg win
+                                                     fun args <> width)
                                                 (.. 0 (length args))))
                                    ===
                                    (hlist >>>
@@ -1287,7 +1277,8 @@
                                           (quote ,fun)
                                           (quote ,args))))))
                          ) ;side?
-                         (else `(menu-dynamic (hlist (vlist (aligned ,@(map (cut interactive-tool-arg
+                         (else `(menu-dynamic (hlist (vlist (aligned ,@(map (cut
+                                                                              interactive-tool-arg
                                                                               win
                                                                               fun
                                                                               args

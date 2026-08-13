@@ -199,10 +199,7 @@
   ) ;:require
   (with t
     (tree-search-upwards t
-      '(abstract-msc abstract-acm
-         abstract-pacs
-         abstract-arxiv
-         abstract-keywords)
+      '(abstract-msc abstract-acm abstract-pacs abstract-arxiv abstract-keywords)
     ) ;tree-search-upwards
     (with pos
       (1+ (tree-down-index t))
@@ -680,16 +677,8 @@
 
 (tm-define (parameter-choice-list l)
   (:require (in? l (list "item-tag" "item-1" "item-2" "item-3" "item-4")))
-  (list "<bullet>"
-    "<circ>"
-    "<minus>"
-    "<cdot>"
-    "*"
-    "<rightarrow>"
-    "<Rightarrow>"
-    "<triangleright>"
-    "<blacktriangleright>"
-    :other
+  (list "<bullet>" "<circ>" "<minus>" "<cdot>" "*" "<rightarrow>" "<Rightarrow>"
+    "<triangleright>" "<blacktriangleright>" :other
   ) ;list
 ) ;tm-define
 
@@ -1252,13 +1241,8 @@
 (tm-define (rich-float-context? t)
   (cond ((tree-in? t '(float wide-float)) #t)
         ((tree-in? t
-           '(big-figure big-figure*
-              big-table
-              big-table*
-              algorithm
-              algorithm*
-              document
-              concat)
+           '(big-figure big-figure* big-table big-table* algorithm algorithm*
+              document concat)
          ) ;tree-in?
          (and (tree-up t) (rich-float-context? (tree-up t)))
         ) ;
@@ -1267,10 +1251,7 @@
 ) ;tm-define
 
 (tm-define (floatable-context? t)
-  (and (tree-in? t '(big-figure big-figure*
-                      big-table
-                      big-table*
-                      algorithm
+  (and (tree-in? t '(big-figure big-figure* big-table big-table* algorithm
                       algorithm*))
     (not (rich-float-context? t))
     (or (tree-is? t :up 'document)
@@ -1308,10 +1289,7 @@
 (define (floatable-path t)
   (if (or (tm-func? t 'document 1)
         (tm-func? t 'with 3)
-        (tm-in? t '(big-figure big-figure*
-                     big-table
-                     big-table*
-                     algorithm
+        (tm-in? t '(big-figure big-figure* big-table big-table* algorithm
                      algorithm*))
       ) ;or
     (with last (- (tm-arity t) 1) (cons last (floatable-path (tm-ref t :last))))

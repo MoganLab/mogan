@@ -413,12 +413,7 @@
          (r (kbd-find-inv-system-binding '(geometry-right)))
         ) ;
     (if (and l r)
-      (set-message (string-append s
-                     " using "
-                     l
-                     ", "
-                     r
-                     ", etc. or "
+      (set-message (string-append s " using " l ", " r ", etc. or "
                      "via the fields in the focus bar"
                    ) ;string-append
         c

@@ -67,10 +67,7 @@
          (name (car c))
          (name* (if (not (tm-equal? name ""))
                   name
-                  `(concat (with "color"
-                             "red"
-                             "font-shape"
-                             "italic"
+                  `(concat (with "color" "red" "font-shape" "italic"
                              "enter-name")
                      ,name)
                 ) ;if
@@ -80,10 +77,7 @@
          (body (cAr c))
          (body* (if (not (and (tm-equal? name "") (tm-equal? body "")))
                   body
-                  `(concat (with "color"
-                             "red"
-                             "font-shape"
-                             "italic"
+                  `(concat (with "color" "red" "font-shape" "italic"
                              "enter-body")
                      ,body)
                 ) ;if

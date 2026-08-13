@@ -16,36 +16,12 @@
   (export circular-list iota list-copy xcons cons*)
   (export circular-list? null-list? proper-list? dotted-list?)
   (export first second third fourth fifth sixth seventh eighth ninth tenth)
-  (export take
-    drop
-    take-right
-    drop-right
-    fold
-    fold-right
-    split-at
-    reduce
-    reduce-right
-    append-map
-    filter
-    partition
-    remove
-    find
-    delete
-    delete-duplicates
-    zip
-    count
+  (export take drop take-right drop-right fold fold-right split-at reduce
+    reduce-right append-map filter partition remove find delete
+    delete-duplicates zip count
   ) ;export
-  (export assoc
-    assq
-    assv
-    alist-cons
-    take-while
-    drop-while
-    list-index
-    any
-    every
-    last-pair
-    last
+  (export assoc assq assv alist-cons take-while drop-while list-index any every
+    last-pair last
   ) ;export
   (begin
 

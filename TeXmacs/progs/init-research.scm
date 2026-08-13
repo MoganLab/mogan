@@ -167,7 +167,6 @@
 (lazy-define (utils cas cas-out) cas->stree)
 (lazy-define (utils plugins plugin-cmd) pre-serialize utf8raw-serialize)
 (use-modules (utils library smart-table))
-(use-modules (utils plugins plugin-convert))
 (use-modules (utils misc markup-funcs))
 (use-modules (utils handwriting handwriting))
 (lazy-tmfs-handler (utils automate auto-tmfs) automate)

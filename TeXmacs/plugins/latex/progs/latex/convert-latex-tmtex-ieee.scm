@@ -58,17 +58,8 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (tmtex-make-author names
-             affiliations
-             emails
-             urls
-             miscs
-             notes
-             affs-l
-             emails-l
-             urls-l
-             miscs-l
-             notes-l
+(tm-define (tmtex-make-author names affiliations emails urls miscs notes affs-l
+             emails-l urls-l miscs-l notes-l
            ) ;tmtex-make-author
   (:mode ieee-conf-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
@@ -130,17 +121,8 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (tmtex-make-author names
-             affs
-             emails
-             urls
-             miscs
-             notes
-             affs*
-             emails*
-             urls*
-             miscs*
-             notes*
+(tm-define (tmtex-make-author names affs emails urls miscs notes affs* emails*
+             urls* miscs* notes*
            ) ;tmtex-make-author
   (:mode ieee-tran-style?)
   (:require conference?)

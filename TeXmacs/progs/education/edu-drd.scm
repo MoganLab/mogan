@@ -25,36 +25,18 @@
 
 (define-group similar-tag (short-question-tag) (short-answer-tag))
 
-(define-group short-question-tag
-  question-arabic
-  question-alpha
-  question-Alpha
-  question-roman
-  question-Roman
-  question-item
+(define-group short-question-tag question-arabic question-alpha question-Alpha
+  question-roman question-Roman question-item
 ) ;define-group
 
-(define-group short-answer-tag
-  answer-arabic
-  answer-alpha
-  answer-Alpha
-  answer-roman
-  answer-Roman
-  answer-item
+(define-group short-answer-tag answer-arabic answer-alpha answer-Alpha
+  answer-roman answer-Roman answer-item
 ) ;define-group
 
 ;; Buttons
 
-(define-group button-tag
-  button-box
-  button-box*
-  button-circle
-  button-circle*
-  button-arabic
-  button-alpha
-  button-Alpha
-  button-roman
-  button-Roman
+(define-group button-tag button-box button-box* button-circle button-circle*
+  button-arabic button-alpha button-Alpha button-roman button-Roman
 ) ;define-group
 
 (define-group variant-tag (button-tag))
@@ -62,17 +44,9 @@
 
 ;; Buttons themes
 
-(define-group with-button-tag
-  with-button-box
-  with-button-box*
-  with-button-circle
-  with-button-circle*
-  with-button-arabic
-  with-button-alpha
-  with-button-Alpha
-  with-button-roman
-  with-button-Roman
-  with-button-ornament
+(define-group with-button-tag with-button-box with-button-box*
+  with-button-circle with-button-circle* with-button-arabic with-button-alpha
+  with-button-Alpha with-button-roman with-button-Roman with-button-ornament
 ) ;define-group
 
 (define-group variant-tag (with-button-tag))

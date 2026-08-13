@@ -16,35 +16,13 @@
 
 (define-library (srfi srfi-133)
   (import (liii base))
-  (export vector-empty?
-    vector-unfold
-    vector-unfold-right
-    vector-unfold!
-    vector-unfold-right!
-    vector-fold
-    vector-fold-right
-    vector-count
-    vector-any
-    vector-every
-    vector-copy
-    vector-copy!
-    vector-index
-    vector-index-right
-    vector-skip
-    vector-skip-right
-    vector-binary-search
-    vector-concatenate
-    vector-partition
-    vector-append-subvectors
-    vector-swap!
-    vector-reverse!
-    vector-reverse-copy
-    vector-reverse-copy!
-    vector-map!
-    vector-cumulate
-    reverse-vector->list
-    reverse-list->vector
-    vector=
+  (export vector-empty? vector-unfold vector-unfold-right vector-unfold!
+    vector-unfold-right! vector-fold vector-fold-right vector-count vector-any
+    vector-every vector-copy vector-copy! vector-index vector-index-right
+    vector-skip vector-skip-right vector-binary-search vector-concatenate
+    vector-partition vector-append-subvectors vector-swap! vector-reverse!
+    vector-reverse-copy vector-reverse-copy! vector-map! vector-cumulate
+    reverse-vector->list reverse-list->vector vector=
   ) ;export
   (begin
 

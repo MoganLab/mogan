@@ -206,8 +206,7 @@
                 " display: none; } "
                 ".balloon-anchor: hover [hidden] { position: absolute; left: 1em;"
                 " top: 2em; z-index: 99; margin-left: 0;"
-                " width: 500px; display: inline-block; } "
-                ".balloon-body { } "
+                " width: 500px; display: inline-block; } " ".balloon-body { } "
                 ".ornament { border-width: 1px; border-style: solid;"
                 " border-color: black; display: inline-block; padding: 0.2em; } "
                 ".right-tab { float: right; position: relative; top: -1em; } "
@@ -531,15 +530,7 @@
 ) ;define
 
 (define (force-block? x)
-  (or (and (tm-in? x '(h:p h:div
-                        h:pre
-                        h:h1
-                        h:h2
-                        h:h3
-                        h:h4
-                        h:ol
-                        h:ul
-                        h:dl
+  (or (and (tm-in? x '(h:p h:div h:pre h:h1 h:h2 h:h3 h:h4 h:ol h:ul h:dl
                         h:table))
         (not (and-with style (sxml-attr x 'style) (string-contains? style "display: inline"))
         ) ;not
@@ -1794,24 +1785,10 @@
                  (tmar (number->htmlstring (- y2 y4)))
                  (valign (number->htmlstring (- y3 (- y3 y1))))
                  (height (number->htmlstring (- y4 y3)))
-                 (style (string-append "margin-left: "
-                          lmar
-                          "em; "
-                          "margin-bottom: "
-                          bmar
-                          "em; "
-                          "margin-right: "
-                          rmar
-                          "em; "
-                          "margin-top: "
-                          tmar
-                          "em; "
-                          "vertical-align: "
-                          valign
-                          "em; "
-                          "height: "
-                          height
-                          "em"
+                 (style (string-append "margin-left: " lmar "em; "
+                          "margin-bottom: " bmar "em; " "margin-right: " rmar
+                          "em; " "margin-top: " tmar "em; " "vertical-align: "
+                          valign "em; " "height: " height "em"
                         ) ;string-append
                  ) ;style
                  (attrs (if tmhtml-base64?
@@ -2826,48 +2803,15 @@
   (include tmhtml-include)
   (use-package tmhtml-noop)
 
-  ((:or or
-     xor
-     and
-     not
-     plus
-     minus
-     times
-     over
-     div
-     mod
-     merge
-     length
-     range
-     number
-     date
-     translate
-     is-tuple
-     look-up
-     equal
-     unequal
-     less
-     lesseq
-     greater
-     greatereq
-     if
-     case
-     while
-     extern
-     authorize
+  ((:or or xor and not plus minus times over div mod merge length range number
+     date translate is-tuple look-up equal unequal less lesseq greater greatereq
+     if case while extern authorize
    ) ;:or
    tmhtml-noop
   ) ;
 
-  ((:or style-with
-     style-with*
-     style-only
-     style-only*
-     active
-     active*
-     inactive
-     inactive*
-     rewrite-inactive
+  ((:or style-with style-with* style-only style-only* active active* inactive
+     inactive* rewrite-inactive
    ) ;:or
    tmhtml-noop
   ) ;
@@ -2920,29 +2864,16 @@
   (subparagraph-title (h:h6))
   ;; Lists
   ((:or itemize itemize-minus itemize-dot itemize-arrow) ,tmhtml-itemize)
-  ((:or enumerate
-     enumerate-numeric
-     enumerate-numeric-bracket
-     enumerate-numeric-paren
-     enumerate-roman
-     enumerate-roman-bracket
-     enumerate-roman-paren
-     enumerate-Roman
-     enumerate-alpha
-     enumerate-alpha-bracket
-     enumerate-alpha-full-paren
-     enumerate-Alpha
-     enumerate-circle
-     enumerate-hanzi
+  ((:or enumerate enumerate-numeric enumerate-numeric-bracket
+     enumerate-numeric-paren enumerate-roman enumerate-roman-bracket
+     enumerate-roman-paren enumerate-Roman enumerate-alpha
+     enumerate-alpha-bracket enumerate-alpha-full-paren enumerate-Alpha
+     enumerate-circle enumerate-hanzi
    ) ;:or
    ,tmhtml-enumerate
   ) ;
-  ((:or description
-     description-compact
-     description-dash
-     description-aligned
-     description-long
-     description-paragraphs
+  ((:or description description-compact description-dash description-aligned
+     description-long description-paragraphs
    ) ;:or
    ,tmhtml-description
   ) ;

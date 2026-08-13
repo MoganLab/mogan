@@ -185,12 +185,8 @@
           ) ;
           ((== type "C++") (srcgrep what "$TEXMACS_SOURCE_PATH/src" "*.hpp" "*.cpp"))
           ((== type "All code")
-           (srcgrep what
-             "$TEXMACS_PATH:$TEXMACS_SOURCE_PATH/src"
-             "*.scm"
-             "*.hpp"
-             "*.cpp"
-             "*.ts"
+           (srcgrep what "$TEXMACS_PATH:$TEXMACS_SOURCE_PATH/src" "*.scm"
+             "*.hpp" "*.cpp" "*.ts"
            ) ;srcgrep
           ) ;
           ((== type "texts") (docgrep what "$TEXMACS_FILE_PATH" "*.tm"))

@@ -251,29 +251,9 @@
 ;; Extra TeXmacs macros
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-texmacs-0%
-  tmunsc
-  emdash
-  tmhrule
-  tmat
-  tmbsl
-  tmdummy
-  TeXmacs
-  madebyTeXmacs
-  withTeXmacstext
-  citewebsite
-  tmmade
-  scheme
-  tmsep
-  tmSep
-  pari
-  qed
-  textdots
-  hrule
-  filldots
-  infixand
-  infixor
-  infixiff
+(logic-group latex-texmacs-0% tmunsc emdash tmhrule tmat tmbsl tmdummy TeXmacs
+  madebyTeXmacs withTeXmacstext citewebsite tmmade scheme tmsep tmSep pari qed
+  textdots hrule filldots infixand infixor infixiff
 ) ;logic-group
 
 (logic-group latex-texmacs-1%
@@ -354,73 +334,25 @@
 
 (logic-group latex-texmacs-1*% tmcodeinline)
 
-(logic-group latex-texmacs-2%
-  tmcolor
-  tmsummarizeddocumentation
-  tmsummarizedgrouped
-  tmsummarizedexplain
-  tmsummarizedplain
-  tmsummarizedtiny
-  tmsummarizedraw
-  tmsummarizedenv
-  tmsummarizedstd
-  tmsummarized
-  tmdetaileddocumentation
-  tmdetailedgrouped
-  tmdetailedexplain
-  tmdetailedplain
-  tmdetailedtiny
-  tmdetailedraw
-  tmdetailedenv
-  tmdetailedstd
-  tmdetailed
-  tmfoldeddocumentation
-  tmunfoldeddocumentation
-  tmfoldedsubsession
-  tmunfoldedsubsession
-  tmfoldedgrouped
-  tmunfoldedgrouped
-  tmfoldedexplain
-  tmunfoldedexplain
-  tmfoldedplain
-  tmunfoldedplain
-  tmfoldedenv
-  tmunfoldedenv
-  tmfoldedstd
-  tmunfoldedstd
-  tmfolded
-  tmunfolded
-  tminput
-  tminputmath
-  tmhlink
-  tmaction
-  ontop
-  subindex
-  renderfootnote
-  tmlinenumber
-  addtocountergroup
+(logic-group latex-texmacs-2% tmcolor tmsummarizeddocumentation
+  tmsummarizedgrouped tmsummarizedexplain tmsummarizedplain tmsummarizedtiny
+  tmsummarizedraw tmsummarizedenv tmsummarizedstd tmsummarized
+  tmdetaileddocumentation tmdetailedgrouped tmdetailedexplain tmdetailedplain
+  tmdetailedtiny tmdetailedraw tmdetailedenv tmdetailedstd tmdetailed
+  tmfoldeddocumentation tmunfoldeddocumentation tmfoldedsubsession
+  tmunfoldedsubsession tmfoldedgrouped tmunfoldedgrouped tmfoldedexplain
+  tmunfoldedexplain tmfoldedplain tmunfoldedplain tmfoldedenv tmunfoldedenv
+  tmfoldedstd tmunfoldedstd tmfolded tmunfolded tminput tminputmath tmhlink
+  tmaction ontop subindex renderfootnote tmlinenumber addtocountergroup
 ) ;logic-group
 
-(logic-group latex-texmacs-3%
-  tmsession
-  tmfoldedio
-  tmunfoldedio
-  tmfoldediomath
-  tmunfoldediomath
-  tmlinenote
-  subsubindex
-  tmref
-  glossaryentry
-  natbib-triple
+(logic-group latex-texmacs-3% tmsession tmfoldedio tmunfoldedio tmfoldediomath
+  tmunfoldediomath tmlinenote subsubindex tmref glossaryentry natbib-triple
   renderfootnotestar
 ) ;logic-group
 
-(logic-group latex-texmacs-4%
-  tmscriptinput
-  tmscriptoutput
-  tmconverterinput
-  tmconverteroutput
-  subsubsubindex
+(logic-group latex-texmacs-4% tmscriptinput tmscriptoutput tmconverterinput
+  tmconverteroutput subsubsubindex
 ) ;logic-group
 
 (logic-rules ((latex-texmacs% 'x) (latex-texmacs-0% 'x))
@@ -469,26 +401,15 @@
 
 (logic-table latex-texmacs-option% ("tmcode" #t))
 
-(logic-group latex-texmacs-environment-0%
-  begin-proof
-  begin-leftaligned
-  begin-rightaligned
-  begin-quoteenv
-  begin-tmcompact
-  begin-tmcompressed
-  begin-tmamplified
-  begin-tmjumpin
-  begin-tmindent
-  begin-tmlisting
-  begin-elsequation
-  begin-elsequation*
+(logic-group latex-texmacs-environment-0% begin-proof begin-leftaligned
+  begin-rightaligned begin-quoteenv begin-tmcompact begin-tmcompressed
+  begin-tmamplified begin-tmjumpin begin-tmindent begin-tmlisting
+  begin-elsequation begin-elsequation*
 ) ;logic-group
 
 (logic-group latex-texmacs-environment-0*% begin-tmcode)
 
-(logic-group latex-texmacs-environment-1%
-  begin-proof*
-  begin-tmparsep
+(logic-group latex-texmacs-environment-1% begin-proof* begin-tmparsep
   begin-theglossary
 ) ;logic-group
 
@@ -530,24 +451,12 @@
  ("descriptionparagraphs" 0)
 ) ;logic-table
 
-(logic-group latex-texmacs-list%
-  begin-itemizeminus
-  begin-itemizedot
-  begin-itemizearrow
-  begin-enumeratenumeric
-  begin-enumeratenumericbracket
-  begin-enumerateroman
-  begin-enumerateromanbracket
-  begin-enumerateromanparen
-  begin-enumerateromancap
-  begin-enumeratealpha
-  begin-enumeratealphabracket
-  begin-enumeratealphafullparen
-  begin-enumeratealphacap
-  begin-descriptioncompact
-  begin-descriptionaligned
-  begin-descriptiondash
-  begin-descriptionlong
+(logic-group latex-texmacs-list% begin-itemizeminus begin-itemizedot
+  begin-itemizearrow begin-enumeratenumeric begin-enumeratenumericbracket
+  begin-enumerateroman begin-enumerateromanbracket begin-enumerateromanparen
+  begin-enumerateromancap begin-enumeratealpha begin-enumeratealphabracket
+  begin-enumeratealphafullparen begin-enumeratealphacap begin-descriptioncompact
+  begin-descriptionaligned begin-descriptiondash begin-descriptionlong
   begin-descriptionparagraphs
 ) ;logic-group
 
@@ -594,13 +503,8 @@
 ;; Environments requiring special definitions in the preamble
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(logic-group latex-texmacs-env-preamble-environment%
-  "tmpadded"
-  "tmoverlined"
-  "tmunderlined"
-  "tmbothlined"
-  "tmframed"
-  "tmornamented"
+(logic-group latex-texmacs-env-preamble-environment% "tmpadded" "tmoverlined"
+  "tmunderlined" "tmbothlined" "tmframed" "tmornamented"
 ) ;logic-group
 
 (logic-group latex-texmacs-theorem-environment%

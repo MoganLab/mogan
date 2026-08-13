@@ -31,9 +31,7 @@
 
 (define-group hidden-folded-comment-tag hidden-folded-comment)
 
-(define-group hidden-comment-tag
-  hidden-folded-comment
-  hidden-unfolded-comment
+(define-group hidden-comment-tag hidden-folded-comment hidden-unfolded-comment
   hidden-nested-comment
 ) ;define-group
 

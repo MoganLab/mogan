@@ -1,20 +1,8 @@
 (define-library (liii option)
   (import (liii base))
-  (export none
-    option
-    option?
-    option-map
-    option-filter
-    option-flat-map
-    option-for-each
-    option-get
-    option-get-or-else
-    option=?
-    option-or-else
-    option-defined?
-    option-empty?
-    option-every
-    option-any
+  (export none option option? option-map option-filter option-flat-map
+    option-for-each option-get option-get-or-else option=? option-or-else
+    option-defined? option-empty? option-every option-any
   ) ;export
   (begin
 

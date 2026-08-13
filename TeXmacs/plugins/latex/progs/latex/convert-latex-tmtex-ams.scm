@@ -56,17 +56,8 @@
 ;;; AMS metadata presentation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tmtex-make-author names
-             affiliations
-             emails
-             urls
-             miscs
-             notes
-             affs-l
-             emails-l
-             urls-l
-             miscs-l
-             notes-l
+(tm-define (tmtex-make-author names affiliations emails urls miscs notes affs-l
+             emails-l urls-l miscs-l notes-l
            ) ;tmtex-make-author
   (:mode ams-style?)
   (let* ((names (map (lambda (x) `(author ,x)) (list-intersperse (map cadr names) '(tmSep)))
@@ -77,18 +68,8 @@
   ) ;let*
 ) ;tm-define
 
-(tm-define (tmtex-make-doc-data titles
-             subtitles
-             authors
-             dates
-             miscs
-             notes
-             subtits-l
-             dates-l
-             miscs-l
-             notes-l
-             tr
-             ar
+(tm-define (tmtex-make-doc-data titles subtitles authors dates miscs notes
+             subtits-l dates-l miscs-l notes-l tr ar
            ) ;tmtex-make-doc-data
   (:mode ams-style?)
   (let* ((title-opt (if (null? tr) '() `((!option ,@(tmtex-concat-Sep tr)))))

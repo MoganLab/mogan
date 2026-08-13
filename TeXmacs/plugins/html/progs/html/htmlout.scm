@@ -121,17 +121,7 @@
     ;; If tag is a self-closing (void) element according to HTML5 spec, close it with "/>"
     ;; "Void elements only have a start tag; end tags must not be specified for void elements."
     ;; Reference: HTML5 spec, section 13.1.2 - Elements (https://html.spec.whatwg.org/multipage/syntax.html#void-elements)
-    (if (member s '(area base
-                     br
-                     col
-                     embed
-                     hr
-                     img
-                     input
-                     link
-                     meta
-                     source
-                     track
+    (if (member s '(area base br col embed hr img input link meta source track
                      wbr))
       (htmlout-text " />")
       (htmlout-text ">")
@@ -143,18 +133,8 @@
 (define (htmlout-close s)
   ;; Do not close the tag if it is a self-closing (void) element
   ;; Reference: HTML5 spec, section 13.1.2 - Elements (https://html.spec.whatwg.org/multipage/syntax.html#void-elements)
-  (if (not (member s '(area base
-                        br
-                        col
-                        embed
-                        hr
-                        img
-                        input
-                        link
-                        meta
-                        source
-                        track
-                        wbr))
+  (if (not (member s '(area base br col embed hr img input link meta source
+                        track wbr))
       ) ;not
     (begin
       (htmlout-indent-close s -2)

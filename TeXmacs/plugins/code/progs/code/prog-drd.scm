@@ -17,28 +17,11 @@
 
 (define-group code-tag (inline-code-tag) (block-code-tag))
 
-(define-group inline-code-tag
-  verbatim
-  scm
-  cpp
-  mmx
-  r
-  fortran
-  python
-  scilab
-  shell
+(define-group inline-code-tag verbatim scm cpp mmx r fortran python scilab shell
 ) ;define-group
 
-(define-group block-code-tag
-  verbatim-code
-  scm-code
-  cpp-code
-  mmx-code
-  r-code
-  fortran-code
-  python-code
-  scilab-code
-  shell-code
+(define-group block-code-tag verbatim-code scm-code cpp-code mmx-code r-code
+  fortran-code python-code scilab-code shell-code
 ) ;define-group
 
 ;; Listings

@@ -610,14 +610,8 @@
 ) ;tm-define
 
 (tm-define field-tags
-  '(input unfolded-io
-     folded-io
-     input-math
-     unfolded-io-math
-     folded-io-math
-     input-text
-     unfolded-io-text
-     folded-io-text)
+  '(input unfolded-io folded-io input-math unfolded-io-math folded-io-math
+     input-text unfolded-io-text folded-io-text)
 ) ;tm-define
 
 (tm-define (field-context? t)

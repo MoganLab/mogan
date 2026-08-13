@@ -452,8 +452,7 @@
 
 (tm-define (alternate-toggle t)
   (:require (tree-in? t
-              '(calc-input calc-generate-command
-                 calc-answer-command
+              '(calc-input calc-generate-command calc-answer-command
                  calc-check-predicate)
             ) ;tree-in?
   ) ;:require

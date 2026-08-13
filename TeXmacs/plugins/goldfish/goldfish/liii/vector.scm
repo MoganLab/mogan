@@ -1,53 +1,16 @@
 (define-library (liii vector)
   (import (scheme base) (srfi srfi-133) (srfi srfi-13))
-  (export vector-empty?
-    vector-unfold
-    vector-unfold-right
-    vector-unfold!
-    vector-unfold-right!
-    vector-fold
-    vector-fold-right
-    vector-count
-    vector-any
-    vector-every
-    vector-index
-    vector-index-right
-    vector-skip
-    vector-skip-right
-    vector-binary-search
-    vector-concatenate
-    vector-partition
-    vector-append-subvectors
-    vector-swap!
-    vector-reverse!
-    vector-reverse-copy
-    vector-reverse-copy!
-    vector-map!
-    vector-cumulate
-    reverse-vector->list
-    reverse-list->vector
-    vector=
-    vector-contains?
-    vector-filter
-    vector-contains?
-    vector-take
-    vector-drop
-    vector-take-right
-    vector-drop-right
-    int-vector
-    int-vector?
-    make-int-vector
-    int-vector-ref
-    int-vector-set!
-    complex-vector
-    complex-vector?
-    make-complex-vector
-    complex-vector-ref
-    complex-vector-set!
-    float-vector
-    float-vector?
-    make-float-vector
-    float-vector-ref
+  (export vector-empty? vector-unfold vector-unfold-right vector-unfold!
+    vector-unfold-right! vector-fold vector-fold-right vector-count vector-any
+    vector-every vector-index vector-index-right vector-skip vector-skip-right
+    vector-binary-search vector-concatenate vector-partition
+    vector-append-subvectors vector-swap! vector-reverse! vector-reverse-copy
+    vector-reverse-copy! vector-map! vector-cumulate reverse-vector->list
+    reverse-list->vector vector= vector-contains? vector-filter vector-contains?
+    vector-take vector-drop vector-take-right vector-drop-right int-vector
+    int-vector? make-int-vector int-vector-ref int-vector-set! complex-vector
+    complex-vector? make-complex-vector complex-vector-ref complex-vector-set!
+    float-vector float-vector? make-float-vector float-vector-ref
     float-vector-set!
   ) ;export
   (begin

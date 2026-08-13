@@ -29,12 +29,8 @@
 
 (define-library (srfi srfi-267)
   (import (only (srfi srfi-13) string-contains string-suffix?))
-  (export raw-string-read-error?
-    raw-string-write-error?
-    read-raw-string
-    read-raw-string-after-prefix
-    can-delimit?
-    generate-delimiter
+  (export raw-string-read-error? raw-string-write-error? read-raw-string
+    read-raw-string-after-prefix can-delimit? generate-delimiter
     write-raw-string
   ) ;export
   (begin

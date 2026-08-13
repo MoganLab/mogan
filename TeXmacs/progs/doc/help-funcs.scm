@@ -321,10 +321,7 @@
   ;; 根据语言设置加载远程文档的本地化版本
   (let* ((lan (string-take (language-to-locale (get-output-language)) 2))
          (lan_doc (string-append "http://git.tmml.wiki/texmacs/doc/raw/master/"
-                    path
-                    "."
-                    lan
-                    ".tm"
+                    path "." lan ".tm"
                   ) ;string-append
          ) ;lan_doc
          (en_doc (string-append "http://git.tmml.wiki/texmacs/doc/raw/master/" path ".en.tm")

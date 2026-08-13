@@ -309,9 +309,7 @@
         ((== type "figure") (list "big-figure" "small-figure"))
         ((== type "table") (list "big-table" "small-table"))
         ((== type "algorithm")
-         (list "algorithm"
-           "specified-algorithm"
-           "named-algorithm"
+         (list "algorithm" "specified-algorithm" "named-algorithm"
            "named-specified-algorithm"
          ) ;list
         ) ;
@@ -537,19 +535,8 @@
 
 (define (preview-expand-context? t)
   (tree-in? t
-    '(theorem proposition
-       lemma
-       corollary
-       conjecture
-       theorem*
-       proposition*
-       lemma*
-       corollary*
-       conjecture*
-       definition
-       axiom
-       definition*
-       axiom*)
+    '(theorem proposition lemma corollary conjecture theorem* proposition*
+       lemma* corollary* conjecture* definition axiom definition* axiom*)
   ) ;tree-in?
 ) ;define
 
@@ -590,12 +577,8 @@
       (path->tree (cDr p))
       (cond ((label-context? t) (label-preview t id))
             ((tree-in? t
-               '(glossary glossary-explain
-                  glossary-dup
-                  index
-                  subindex
-                  subsubindex
-                  index-complex)
+               '(glossary glossary-explain glossary-dup index subindex
+                  subsubindex index-complex)
              ) ;tree-in?
              (label-preview t id)
             ) ;

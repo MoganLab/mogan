@@ -286,13 +286,8 @@
     Expression
   ) ;define
 
-  (define Expression
-    Assignment
-    Quantifier-prefix-symbol
-    Prime-symbol
-    Infix
-    Prefix
-    Postfix
+  (define Expression Assignment Quantifier-prefix-symbol Prime-symbol Infix
+    Prefix Postfix
   ) ;define
 
   (define Informal-relation (Union-list Relation-infix Union))

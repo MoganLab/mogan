@@ -25,59 +25,12 @@
     ;; 常量
     (constant "true" "false")
     ;; Bash builtins
-    (declare_function ":"
-      "."
-      "source"
-      "alias"
-      "unalias"
-      "bg"
-      "fg"
-      "jobs"
-      "disown"
-      "wait"
-      "kill"
-      "suspend"
-      "cd"
-      "pwd"
-      "dirs"
-      "pushd"
-      "popd"
-      "echo"
-      "printf"
-      "read"
-      "mapfile"
-      "test"
-      "["
-      "[["
-      "type"
-      "hash"
-      "help"
-      "builtin"
-      "command"
-      "enable"
-      "eval"
-      "exec"
-      "exit"
-      "logout"
-      "return"
-      "export"
-      "readonly"
-      "unset"
-      "set"
-      "shift"
-      "getopts"
-      "declare"
-      "typeset"
-      "local"
-      "let"
-      "trap"
-      "shopt"
-      "ulimit"
-      "umask"
-      "history"
-      "fc"
-      "compgen"
-      "complete"
+    (declare_function ":" "." "source" "alias" "unalias" "bg" "fg" "jobs"
+      "disown" "wait" "kill" "suspend" "cd" "pwd" "dirs" "pushd" "popd" "echo"
+      "printf" "read" "mapfile" "test" "[" "[[" "type" "hash" "help" "builtin"
+      "command" "enable" "eval" "exec" "exit" "logout" "return" "export"
+      "readonly" "unset" "set" "shift" "getopts" "declare" "typeset" "local"
+      "let" "trap" "shopt" "ulimit" "umask" "history" "fc" "compgen" "complete"
       "times")
     (external_command "ssh"
       "scp"
@@ -241,26 +194,8 @@
       "whoami"
       "yes")
     ;; 关键字
-    (keyword "if"
-      "then"
-      "elif"
-      "else"
-      "fi"
-      "for"
-      "in"
-      "until"
-      "while"
-      "do"
-      "done"
-      "case"
-      "esac"
-      "select"
-      "function"
-      "coproc"
-      "time"
-      "{"
-      "}"
-      "!")
+    (keyword "if" "then" "elif" "else" "fi" "for" "in" "until" "while" "do"
+      "done" "case" "esac" "select" "function" "coproc" "time" "{" "}" "!")
     ;; 控制/环境相关
     (keyword_control "break" "continue"))
 ) ;tm-define
@@ -270,50 +205,11 @@
   (:require (and (== lan "bash") (== key "operator")))
   `(,(string->symbol key)
     ;; 基本运算符（算术/比较/逻辑）
-    (operator "+"
-      "-"
-      "*"
-      "/"
-      "%"
-      "**"
-      "++"
-      "--"
-      "=="
-      "!="
-      "<"
-      ">"
-      "<="
-      ">="
-      "!"
-      "~"
-      "&"
-      "&&"
-      "|"
-      "||"
-      "^"
-      "="
-      "+="
-      "-="
-      "*="
-      "/="
-      "%=")
+    (operator "+" "-" "*" "/" "%" "**" "++" "--" "==" "!=" "<" ">" "<=" ">=" "!"
+      "~" "&" "&&" "|" "||" "^" "=" "+=" "-=" "*=" "/=" "%=")
     ;; 特殊运算符
-    (operator_special ";"
-      ";;"
-      "|&"
-      ">"
-      ">>"
-      "<"
-      "<<"
-      "<<<"
-      "<>"
-      ">|"
-      "2>"
-      "2>>"
-      "1>"
-      "1>>"
-      "&>"
-      "&>>")
+    (operator_special ";" ";;" "|&" ">" ">>" "<" "<<" "<<<" "<>" ">|" "2>" "2>>"
+      "1>" "1>>" "&>" "&>>")
     ;; 开闭符号
     (operator_openclose "(" ")" "[" "]" "{" "}")
     ;; 字段/参数相关符号（特殊参数 + 参数展开运算符）
@@ -358,29 +254,11 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "bash") (== key "string")))
   `(,(string->symbol key)
-    (bool_features "single_quote"
-      "double_quote"
-      "multi_byte"
-      "unicode_escape"
+    (bool_features "single_quote" "double_quote" "multi_byte" "unicode_escape"
       "hex_escape")
     ;; Bash 常见转义
-    (escape_sequences "\\"
-      "\""
-      "'"
-      "a"
-      "b"
-      "f"
-      "n"
-      "r"
-      "t"
-      "v"
-      "newline"
-      "x"
-      "u"
-      "U"
-      "$"
-      "`"
-      "!"))
+    (escape_sequences "\\" "\"" "'" "a" "b" "f" "n" "r" "t" "v" "newline" "x"
+      "u" "U" "$" "`" "!"))
 ) ;tm-define
 
 ;; Comments

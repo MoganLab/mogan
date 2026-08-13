@@ -18,23 +18,8 @@
     (extra_chars "_")
     (constant "nil" "true" "false" "_G" "_VERSION" "arg" "self")
     (declare_function "function")
-    (keyword "and"
-      "break"
-      "do"
-      "else"
-      "elseif"
-      "end"
-      "for"
-      "if"
-      "in"
-      "local"
-      "not"
-      "or"
-      "repeat"
-      "return"
-      "then"
-      "until"
-      "while")
+    (keyword "and" "break" "do" "else" "elseif" "end" "for" "if" "in" "local"
+      "not" "or" "repeat" "return" "then" "until" "while")
     (keyword_control "break" "return" "do" "end" "while" "repeat" "until" "for")
     (keyword_conditional "if" "then" "else" "elseif"))
 ) ;tm-define

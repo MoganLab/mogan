@@ -65,11 +65,8 @@
   ) ;let
 ) ;tm-define
 
-(tm-define (notification-bar-set-membership-state has-data?
-             member-type
-             period-label
-             period-label-color
-             product-type
+(tm-define (notification-bar-set-membership-state has-data? member-type
+             period-label period-label-color product-type
            ) ;notification-bar-set-membership-state
   (set! notification-bar-membership-has-data? has-data?)
   (set! notification-bar-membership-member-type

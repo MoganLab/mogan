@@ -1,20 +1,8 @@
 (define-library (liii either)
   (import (liii base))
-  (export from-left
-    to-left
-    from-right
-    to-right
-    either?
-    either-left?
-    either-right?
-    either-map
-    either-flat-map
-    either-for-each
-    either-get-or-else
-    either-or-else
-    either-filter-or-else
-    either-contains?
-    either-every
+  (export from-left to-left from-right to-right either? either-left?
+    either-right? either-map either-flat-map either-for-each either-get-or-else
+    either-or-else either-filter-or-else either-contains? either-every
     either-any
   ) ;export
   (begin

@@ -1,57 +1,14 @@
 (define-library (liii path)
-  (export path
-    path?
-    path-copy
-    path-copy-into
-    path-dir?
-    path-file?
-    path-exists?
-    path-getsize
-    path-read-text
-    path-read-bytes
-    path-write-text
-    path-write-bytes
-    path-append-text
-    path-touch
-    path-root
-    path-of-drive
-    path-from-parts
-    path-from-env
-    path-cwd
-    path-home
-    path-temp-dir
-    path-parts
-    path-type
-    path-drive
-    path->string
-    path-from-string
-    path-name
-    path-stem
-    path-suffix
-    path-suffixes
-    path-with-name
-    path-with-stem
-    path-with-suffix
-    path-relative-to
-    path-starts-with?
-    path-equals?
-    path=?
-    path-absolute?
-    path-relative?
-    path-join
-    path-parent
-    path-parents
-    path-list
-    path-list-path
-    path-rmdir
-    path-unlink
-    path-rename
-    path-mkdir
-    path-absolute
-    path-expanduser
-    path-match
-    path-as-posix
-    path-resolve
+  (export path path? path-copy path-copy-into path-dir? path-file? path-exists?
+    path-getsize path-read-text path-read-bytes path-write-text path-write-bytes
+    path-append-text path-touch path-root path-of-drive path-from-parts
+    path-from-env path-cwd path-home path-temp-dir path-parts path-type
+    path-drive path->string path-from-string path-name path-stem path-suffix
+    path-suffixes path-with-name path-with-stem path-with-suffix
+    path-relative-to path-starts-with? path-equals? path=? path-absolute?
+    path-relative? path-join path-parent path-parents path-list path-list-path
+    path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
+    path-match path-as-posix path-resolve
   ) ;export
   (import (liii base)
     (liii error)

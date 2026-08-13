@@ -11,15 +11,9 @@
 
 (define-library (liii raw-string)
   (import (srfi srfi-267) (srfi srfi-1) (srfi srfi-13) (liii error))
-  (export raw-string-read-error?
-    raw-string-write-error?
-    read-raw-string
-    read-raw-string-after-prefix
-    can-delimit?
-    generate-delimiter
-    write-raw-string
-    deindent
-    &-
+  (export raw-string-read-error? raw-string-write-error? read-raw-string
+    read-raw-string-after-prefix can-delimit? generate-delimiter
+    write-raw-string deindent &-
   ) ;export
   (begin
     (define (string-split-lines str)

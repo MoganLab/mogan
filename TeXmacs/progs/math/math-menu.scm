@@ -1558,28 +1558,9 @@
 
 (tm-define (focus-tag-name l)
   (:require (in? l
-              '(tilde hat
-                 bar
-                 vector
-                 check
-                 breve
-                 invbreve
-                 acute
-                 grave
-                 dot
-                 ddot
-                 dddot
-                 ddddot
-                 circle
-                 overbrace
-                 underbrace
-                 poverbrace
-                 punderbrace
-                 sqoverbrace
-                 squnderbrace
-                 rightarrow
-                 leftarrow
-                 leftrightarrow
+              '(tilde hat bar vector check breve invbreve acute grave dot ddot
+                 dddot ddddot circle overbrace underbrace poverbrace punderbrace
+                 sqoverbrace squnderbrace rightarrow leftarrow leftrightarrow
                  wide-bar)
             ) ;in?
   ) ;:require
@@ -1674,17 +1655,8 @@
 (tm-define (focus-tag-name l)
   ;; 具体括号类型伪变体表
   (:require (in? l
-              '(parentheses brackets
-                 braces
-                 angle
-                 double
-                 floor
-                 ceiling
-                 vertical
-                 double-vertical
-                 slash
-                 backslash
-                 empty)
+              '(parentheses brackets braces angle double floor ceiling vertical
+                 double-vertical slash backslash empty)
             ) ;in?
   ) ;:require
   (cond ((== l 'parentheses) "Parentheses ( )")
@@ -1704,17 +1676,8 @@
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(around around*)))
-  '(parentheses brackets
-     braces
-     angle
-     double
-     floor
-     ceiling
-     vertical
-     double-vertical
-     slash
-     backslash
-     empty)
+  '(parentheses brackets braces angle double floor ceiling vertical
+     double-vertical slash backslash empty)
 ) ;tm-define
 
 (tm-menu (focus-toggle-menu t)
