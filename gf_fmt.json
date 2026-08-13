@@ -8,10 +8,15 @@
       {"path": "build", "reason": "构建产物目录（含各子模块下的 build），无需格式化"}
     ]
   },
-  "scheme": {
-    "suffix": ["scm", "stem"],
+  "stem": {
+    "suffix": ["stem"],
     "path": [
-      "TeXmacs/packages",
+        "TeXmacs/packages"
+    ]
+  },
+  "scheme": {
+    "suffix": ["scm"],
+    "path": [
       "TeXmacs/plugins",
       "TeXmacs/progs/client",
       "TeXmacs/progs/convert",
