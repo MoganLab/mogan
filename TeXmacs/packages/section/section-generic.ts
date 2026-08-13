@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <use-package|section-base>
+  <use-package|section/section-base>
 
   <\active*>
     <\src-comment>

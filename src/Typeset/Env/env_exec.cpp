@@ -1258,6 +1258,9 @@ edit_env_rep::exec_use_package (tree t) {
       }
       name= resolve (name);
     }
+    if (is_none (name)) {
+      debug_io << "use-package: package not found: " << pi << LF;
+    }
     string doc_s;
     if (!load_string (name, doc_s, false)) {
       tree doc;
@@ -1269,7 +1272,7 @@ edit_env_rep::exec_use_package (tree t) {
       }
       if (is_compound (doc)) exec (filter_style (extract (doc, "body")));
     }
-    bench_end (task);
+    bench_end (task, 10);
   }
   return "";
 }
