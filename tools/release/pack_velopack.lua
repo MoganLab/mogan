@@ -143,3 +143,48 @@ if code ~= 0 then
 end
 
 cprint ("${green}vpk pack 完成: " .. out_dir .. "${clear}")
+
+-- 发布物改名：沿用旧 NSIS 命名 MoganSTEM-v<版本>-64bit-<渠道>-Setup/Portable。
+-- vpk 默认名是 <packId>-<channel>-Setup.exe / -Portable.zip；改名后同步更新
+-- assets.<channel>.json 里的 Installer/Portable 引用，避免下载链接失效。
+local function rename_asset (old_name, new_name)
+    local old_path= path.join (out_dir, old_name)
+    local new_path= path.join (out_dir, new_name)
+    if os.isfile (old_path) then
+        if os.isfile (new_path) then
+            os.rm (new_path) -- 同名残留先清掉，避免 os.mv 目标已存在失败
+        end
+        os.mv (old_path, new_path)
+        cprint ("${green}已改名: " .. new_name .. "${clear}")
+        return true
+    end
+    return false
+end
+
+local setup_old   = "Mogan-" .. channel .. "-Setup.exe"
+local setup_new   = "MoganSTEM-v" .. version .. "-64bit-" .. channel .. "-Setup.exe"
+local portable_old= "Mogan-" .. channel .. "-Portable.zip"
+local portable_new= "MoganSTEM-v" .. version .. "-64bit-" .. channel .. "-Portable.zip"
+
+if not rename_asset (setup_old, setup_new) then
+    cprint ("${bright red}error: 未找到 Setup.exe: " .. path.join (out_dir, setup_old) .. "${clear}")
+    os.exit (1)
+end
+if not rename_asset (portable_old, portable_new) then
+    cprint ("${bright red}error: 未找到 Portable.zip: " .. path.join (out_dir, portable_old) .. "${clear}")
+    os.exit (1)
+end
+
+-- 同步 assets.<channel>.json 中的文件名引用
+local assets_file= path.join (out_dir, "assets." .. channel .. ".json")
+if os.isfile (assets_file) then
+    local content= io.readfile (assets_file) or ""
+    local function swap_name (old_name, new_name)
+        -- Lua 模式中 - . 是 magic 字符，先转义再替换
+        local escaped= old_name:gsub ("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+        content= content:gsub (escaped, function () return new_name end)
+    end
+    swap_name (setup_old, setup_new)
+    swap_name (portable_old, portable_new)
+    io.writefile (assets_file, content)
+end
