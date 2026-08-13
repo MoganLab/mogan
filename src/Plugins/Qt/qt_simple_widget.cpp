@@ -57,6 +57,12 @@ qt_simple_widget_rep::~qt_simple_widget_rep () {
   if (textPopup != nullptr) delete textPopup;
 }
 
+// 上一个编辑器稳定后的 extents 尺寸。新建编辑器的 extents 要等排版后才
+// 下发，若初始直接用全窗口提示尺寸，首帧 surface 会撑满整窗，把页面白底
+// 铺到灰边位置（新建/打开文档闪白）；沿用上个编辑器的稳定尺寸可让首帧
+// 直接以页宽居中显示。
+static QSize last_editor_extents;
+
 QWidget*
 qt_simple_widget_rep::as_qwidget () {
   if (qwid) return qwid;
@@ -67,7 +73,16 @@ qt_simple_widget_rep::as_qwidget () {
   handle_get_size_hint (width, height);
   QSize sz                  = to_qsize (width, height);
   scrollarea ()->editor_flag= is_editor_widget ();
-  scrollarea ()->setExtents (QRect (QPoint (0, 0), sz));
+  // 编辑器画布从创建起就是 Fixed 尺寸策略：页宽小于窗口时 surface 居中、
+  // 两侧由 viewport 透出灰边。若等 sync_startup_tab_mode 再设置，首帧
+  // surface 会撑满整窗，把页面白底铺到灰边位置（新建/打开文档闪白）
+  if (is_editor_widget ())
+    scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
+                                              QSizePolicy::Fixed);
+  QSize esz= sz;
+  if (is_editor_widget () && last_editor_extents.isValid ())
+    esz= last_editor_extents;
+  scrollarea ()->setExtents (QRect (QPoint (0, 0), esz));
   canvas ()->resize (sz);
 
   all_widgets->insert ((pointer) this);
@@ -229,7 +244,10 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
   case SLOT_EXTENTS: {
     check_type<coord4> (val, s);
     coord4 p= open_box<coord4> (val);
-    scrollarea ()->setExtents (to_qrect (p));
+    QRect  r= to_qrect (p);
+    if (is_editor_widget () && r.isValid () && !r.isEmpty ())
+      last_editor_extents= r.size ();
+    scrollarea ()->setExtents (r);
   } break;
 
   case SLOT_SIZE: {

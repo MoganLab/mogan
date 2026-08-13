@@ -1841,6 +1841,25 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     sync_startup_tab_mode ();
     sync_chat_tab_mode ();
     sync_chat_sidebar_mode ();
+    // 解冻前先把布局和新编辑器的首帧重绘同步做完：编辑器排版后才知道
+    // 页面真实宽度（extents），surface 据此收缩居中；若直接解冻，首帧会以
+    // 全宽 surface 把页面白底铺到灰边位置（新建/打开文档闪白）。
+    // 冻结期间 surface()->repaint 被抑制，force_update 只刷新屏外
+    // backing store，用户看到的仍是旧内容。
+    if (centralWidgetUpdatesFrozen_) {
+      if (centralwidget ()->layout ()) centralwidget ()->layout ()->activate ();
+      the_gui->force_update (); // 排版并下发真实 extents
+      if (!is_nil (main_widget) &&
+          main_widget.rep->type == qt_widget_rep::simple_widget) {
+        qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
+        if (sw->is_editor_widget () && sw->scrollarea () &&
+            sw->scrollarea ()->viewport () &&
+            sw->scrollarea ()->viewport ()->layout ())
+          // extents 到位后收缩 surface、居中
+          sw->scrollarea ()->viewport ()->layout ()->activate ();
+      }
+      the_gui->force_update (); // 按最终几何重绘 backing store
+    }
     set_central_widget_updates_frozen (false);
     // SLOT_FILE 由 window_set_view 在切 view 后触发：轻量同步 active 高亮，
     // 避免重建 tab bar。

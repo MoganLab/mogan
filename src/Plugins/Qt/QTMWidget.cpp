@@ -207,6 +207,14 @@ void
 QTMWidget::paintEvent (QPaintEvent* event) {
   QImage   bs= tm_widget ()->get_backing_store ();
   QPainter p (surface ());
+  // backing store 尺寸落后于 surface（视图切换、surface 居中之隙）时，
+  // 旧内容被拉伸会把页面白底铺到灰边位置；此时先刷灰边底色，等
+  // repaint_invalid_regions 重建 backing store 后再正常上屏
+  QSize expect= retina_factor * surface ()->size ();
+  if (bs.isNull () || bs.size () != expect) {
+    p.fillRect (surface ()->rect (), to_qcolor (tm_background));
+    return;
+  }
   // this code override the invalid region computations
   p.drawImage (QRect (QPoint (), size ()), bs,
                QRect (QPoint (), size () * retina_factor));
