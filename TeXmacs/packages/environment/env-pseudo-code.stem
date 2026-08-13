@@ -1,4 +1,4 @@
-(document (TeXmacs "1.99.8")
+(document (TeXmacs "2.1.4")
   (style (tuple "source" "std"))
   (body (document (active* (src-title (document (src-package "env-pseudo-code" "1.0")
                                         (src-purpose (document "Some environments for typesetting pseudo-code."))
@@ -324,59 +324,56 @@
           (assign "algo-new-function"
             (macro "name"
               "body"
-              `(style-with "src-compact"
-                 "none"
-                 (concat (assign (arg "name")
-                           (macro (concat (render-keyword* (concat ,(arg "body")
-                                                             ":"))
-                                    " ")))
-                   (assign (merge (arg "name") "*")
-                     (macro "x"
-                       (surround (concat (render-keyword* (concat ,(arg "body")
-                                                            ":"))
-                                   " ")
-                         ""
-                         (arg "x"))))))
+              (style-with "src-compact"
+                "none"
+                (concat (assign (arg "name")
+                          (macro (concat (render-keyword* (concat (arg "body") ":")) " "))
+                        ) ;assign
+                  (assign (merge (arg "name") "*")
+                    (macro "x"
+                      (surround (concat (render-keyword* (concat (arg "body") ":")) " ") "" (arg "x"))
+                    ) ;macro
+                  ) ;assign
+                ) ;concat
+              ) ;style-with
             ) ;macro
           ) ;assign
           (assign "algo-new-data"
             (macro "name"
               "body"
-              `(style-with "src-compact"
-                 "none"
-                 (concat (assign (arg "name")
-                           (macro (concat (render-keyword* (concat ,(arg "body")
-                                                             ":"))
-                                    " ")))
-                   (assign (merge (arg "name") "*")
-                     (macro "x"
-                       (surround (concat (render-keyword* (concat ,(arg "body")
-                                                            ":"))
-                                   " ")
-                         ""
-                         (arg "x"))))))
+              (style-with "src-compact"
+                "none"
+                (concat (assign (arg "name")
+                          (macro (concat (render-keyword* (concat (arg "body") ":")) " "))
+                        ) ;assign
+                  (assign (merge (arg "name") "*")
+                    (macro "x"
+                      (surround (concat (render-keyword* (concat (arg "body") ":")) " ") "" (arg "x"))
+                    ) ;macro
+                  ) ;assign
+                ) ;concat
+              ) ;style-with
             ) ;macro
           ) ;assign
           (assign "algo-new-input"
             (macro "name"
               "body"
-              `(assign (arg "name")
-                 (macro "x"
-                   (surround (concat (render-keyword* (concat ,(arg "body") ":"))
-                               " ")
-                     ""
-                     (arg "x"))))
+              "`"
+              (assign (arg "name")
+                (macro "x"
+                  (surround (concat (render-keyword* (concat (arg "body") ":")) " ") "" (arg "x"))
+                ) ;macro
+              ) ;assign
             ) ;macro
           ) ;assign
           (assign "algo-new-in-out"
             (macro "name"
               "body"
-              `(assign (arg "name")
-                 (macro "x"
-                   (surround (concat (render-keyword* (concat ,(arg "body") ":"))
-                               " ")
-                     ""
-                     (arg "x"))))
+              (assign (arg "name")
+                (macro "x"
+                  (surround (concat (render-keyword* (concat (arg "body") ":")) " ") "" (arg "x"))
+                ) ;macro
+              ) ;assign
             ) ;macro
           ) ;assign
         ) ;document
