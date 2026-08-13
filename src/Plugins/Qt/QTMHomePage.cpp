@@ -645,8 +645,11 @@ QTMHomePage::renderRecentDocs () {
     DpiUtils::applyScaledFont (timeLabel, kRecentTimeFontPx);
     timeLabel->setAlignment (Qt::AlignRight | Qt::AlignVCenter);
 
-    rowLayout->addWidget (nameLabel, 1, Qt::AlignLeft | Qt::AlignVCenter);
+    // 标题与「云端」标签按内容宽度依次排列，弹性空间留给中间 stretch，
+    // 使标签紧跟标题而非被顶到行尾
+    rowLayout->addWidget (nameLabel, 0, Qt::AlignLeft | Qt::AlignVCenter);
     if (cloudLabel) rowLayout->addWidget (cloudLabel, 0, Qt::AlignVCenter);
+    rowLayout->addStretch (1);
     rowLayout->addWidget (timeLabel, 0, Qt::AlignRight | Qt::AlignVCenter);
     recentList_->setItemWidget (item, rowWidget);
   }
