@@ -290,7 +290,7 @@ scheme_document_to_tree (string s) {
       while (start < s_N && s[start] != '\n')
         start++;
     }
-    else if (is_spc (s[start])) start++;
+    else if (is_space (s[start])) start++;
     else break;
   }
   if (start > 0) s= s (start, s_N);
