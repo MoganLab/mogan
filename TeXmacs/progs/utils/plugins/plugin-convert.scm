@@ -492,3 +492,9 @@
   ("<Psi>" "Psi")
   ("<Omega>" "Omega")
 ) ;plugin-input-converters
+
+;; julia 无自定义转换规则（走 generic 回退），空规则块仅声明其属于
+;; plugin-input-converters% 组（即会话支持数学输入）。
+;; 1201 后本模块不再随启动预载，插件 init 加载时本宏可能尚未定义，
+;; 故该声明从 init-julia.scm 迁回本模块。
+(plugin-input-converters julia)

@@ -48,6 +48,6 @@
   (:session "Julia")
 ) ;plugin-configure
 
-(when (supports-julia?)
-  (plugin-input-converters julia)
-) ;when
+;; 数学输入支持（plugin-input-converters% 组成员）改由
+;; utils/plugins/plugin-convert.scm 随 generic 规则一并声明，
+;; 避免插件 init 加载时 plugin-convert 尚未预载导致宏未定义
