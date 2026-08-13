@@ -1,10 +1,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : 0905.scm
-;; DESCRIPTION : 回归测试：双字母 tab 循环最右端应能切到单字母斜体形态
+;; DESCRIPTION : 回归测试：双字母 tab 循环最右端应能切回两个字母的普通形态
 ;;
 ;; 数学模式下连按两个相同字母（如 a a）进入符号变体 tab 循环，
-;; 循环到最末档后应能继续切到「只按一个字母」的斜体形态（如 a），
+;; 循环到最末档后应能继续切回「两个字母」的普通形态（如 a a），
 ;; 构成完整闭环。本测试覆盖普通字母 a、大写字母 A、以及基础绑定
 ;; 特殊的小写 m（其变体链整体后移一个 var 层级）。
 ;;
@@ -67,7 +67,7 @@
 ) ;define
 
 ;; delayed-kbd-map 分片注册与 math-kbd 懒加载需要事件循环时间，
-;; 轮询等待本任务新增的「单字母斜体」末档绑定就绪后再开始按键
+;; 轮询等待本任务新增的「两个字母」末档绑定就绪后再开始按键
 ;; （该绑定是判断整个字母变体链注册完成的最可靠信号）
 
 (define (wait-kbd-ready next tries)
@@ -86,12 +86,12 @@
 ) ;define
 
 ;; 对字母 letter 验证：连按两次进入循环，tab 走到末档 <b-up-letter> 后再多按一次 tab，
-;; 底文应恰好是该字母的斜体形态（与单按一次该字母一致）。
-;;   single-tab-count: 从双字母基础态按多少次 tab 切到单字母斜体
-;;              普通字母 5 次（基础 bbb，tab 切 frak/b/up/b-up/single）
+;; 底文应恰好是两个该字母（切回 "letter letter" 的普通形态）。
+;;   double-tab-count: 从双字母基础态按多少次 tab 切到双字母文本
+;;              普通字母 5 次（基础 bbb，tab 切 frak/b/up/b-up/两个字母）
 ;;              小写 m   6 次（基础无绑定，从 m m tab 的 bbb-m 起，多一档）
 
-(define (check-cycle-to-single letter single-tab-count)
+(define (check-cycle-to-double letter double-tab-count)
   (run-chain (list (cons "new document"
                      (lambda () (new-document) (check (get-env "mode") => "text"))
                    ) ;cons
@@ -99,12 +99,11 @@
                (cons (string-append "type " letter letter)
                  (lambda () (press letter) (press letter))
                ) ;cons
-               (cons "tab through variants to single letter"
+               (cons "tab through variants to double letter"
                  (lambda ()
-                   (press-times "tab" single-tab-count)
-                   ;; 单字母斜体形态：底文恰好是该字母（数学模式渲染为斜体），
-                   ;; 不再含任何 <...> 符号标记
-                   (check (body-verbatim) => letter)
+                   (press-times "tab" double-tab-count)
+                   ;; 两个字母的普通形态：底文是 "letter letter"
+                   (check (body-verbatim) => (string-append letter " " letter))
                  ) ;lambda
                ) ;cons
                (cons "report + quit" (lambda () (check-report) (quit-TeXmacs)))
@@ -113,7 +112,7 @@
 ) ;define
 
 (define (run-steps)
-  (check-cycle-to-single "a" 5)
+  (check-cycle-to-double "a" 5)
 ) ;define
 
 (tm-define (test_0905)
