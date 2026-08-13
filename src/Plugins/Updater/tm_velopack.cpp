@@ -49,7 +49,8 @@ exception_message () {
 
 // 按 semver2 优先级比较两个版本串（忽略 build 元数据；核心段逐数字比较，预发布
 // 段按标识符比较，数字标识符小于字母标识符）。返回 a 是否严格高于 b。
-// 版本串来自 Velopack feed（如 "2026.3.0-rc9"），字符串序处理不了 rc9/rc10。
+// 版本串来自 Velopack feed（如 "2026.3.1-rc.1"）。发布约定预发布段必须用
+// "rc.N" 数字标识符（"rcN" 按字典序会把 rc10 等判成旧版本，见 devel/0512.md）。
 static int
 compare_versions (const std::string& a, const std::string& b) {
   auto split= [] (const std::string& s, char c) {

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '新版本号 (如 v2026.2.1)'
+        description: '新版本号 (如 v2026.2.1、v2026.2.1-rc.1)'
         required: true
 
 jobs:
@@ -24,8 +24,8 @@ jobs:
       - name: Validate version format
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          if ! echo "$VERSION" | grep -qE '^v[0-9]{4}\.[0-9]{1,2}(\.[0-9]+)?(-rc[0-9]+)?$'; then
-            echo "版本格式错误，应为 v2026.2.1 或 v2026.2.1-rc1"
+          if ! echo "$VERSION" | grep -qE '^v[0-9]{4}\.[0-9]{1,2}(\.[0-9]+)?(-rc\.[0-9]+)?$'; then
+            echo "版本格式错误，应为 v2026.2.1 或 v2026.2.1-rc.1"
             exit 1
           fi
 
