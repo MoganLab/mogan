@@ -49,5 +49,6 @@
 ) ;plugin-configure
 
 (when (supports-julia?)
+  (use-modules (utils plugins plugin-convert))
   (plugin-input-converters julia)
 ) ;when
