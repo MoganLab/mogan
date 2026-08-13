@@ -72,18 +72,25 @@ jobs:
       # 排除 draft 和当前 tag（重跑同一 tag 时避免把自己当基线），取最新的
       # 非当前发布，wget 下载其中的 mogan-release-*.zip 并解压拣出 full 包。
       # 首次发布或 GitHub 上尚无压缩包时失败属正常，容忍跳过（没有基线时
-      # pack 只出 full 包，是合法状态）。
+      # pack 只出 full 包，是合法状态）。GITHUB_TOKEN 不会自动注入为环境变量，
+      # 必须显式传入 secrets.GITHUB_TOKEN；为空时回退为公开仓库的匿名访问。
       - name: Fetch delta baseline from GitHub Release
         shell: pwsh
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $headers = @{
-            Authorization = "Bearer $env:GITHUB_TOKEN"
             Accept        = "application/vnd.github+json"
             "User-Agent"  = "mogan-cd"
           }
+          if ($env:GITHUB_TOKEN) {
+            $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN"
+          }
+          # 仓库已由 XmacsLabs/mogan 改名为 MoganLab/mogan，这里跟随当前仓库，
+          # 避免硬编码旧名依赖 GitHub 重定向
           $releases = Invoke-RestMethod -Headers $headers `
-            -Uri "https://api.github.com/repos/XmacsLabs/mogan/releases?per_page=100"
+            -Uri "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100"
           $release = $releases |
             Where-Object { -not $_.draft -and $_.tag_name -ne $env:GITHUB_REF_NAME } |
             Select-Object -First 1
