@@ -138,13 +138,14 @@ jobs:
         run: xmake l tools/release/pack_velopack.lua
       # 把整个发布目录（Setup、Portable、full/delta nupkg、feed json）打成
       # 单一 zip，作为 GitHub Release 的唯一资产。下游（delta 基线、OSS 手动
-      # 上传）下载后自行解压拣选所需文件。
+      # 上传）下载后自行解压拣选所需文件。文件名带平台架构（win-x64），
+      # 与 vpk pack 的 --runtime win-x64 保持一致。
       - name: Create release archive
         shell: pwsh
         run: |
           $vars = Get-Content xmake/vars.lua -Raw
           $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
-          $archive = "build/mogan-release-$ver.zip"
+          $archive = "build/mogan-release-$ver-win-x64.zip"
           Compress-Archive -Path build/velopack_release/* -DestinationPath $archive -CompressionLevel Optimal -Force
           Get-Item $archive | Select-Object Name, Length
       - name: Upload
