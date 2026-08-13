@@ -1,0 +1,1056 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-edu.stem
+;; COPYRIGHT   : (C) 2019  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.2")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-edu" "1.0")
+                                        (src-purpose (document "Standard educational macros."))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(education edu-edit)")
+          (use-module "(education edu-markup)")
+          (active* (document (src-comment (document "Same rendering for exercise, problem and question"))
+                   ) ;document
+          ) ;active*
+          (assign "render-exercise"
+            (macro "which"
+              "body"
+              (document (padded* (document (surround (exercise-name (concat (arg "which") (exercise-sep))) "" (arg "body"))
+                                 ) ;document
+                        ) ;padded*
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Short question and answer environments")))
+          ) ;active*
+          (assign "short-item"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (concat (with "par-first" (minus (item-hsep)) (yes-indent))
+                  (resize (arg "name")
+                    (minus "1r" (minus (item-hsep) "0.5fn"))
+                    ""
+                    (plus "1r" "0.5fn")
+                    ""
+                  ) ;resize
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "short-sep" (macro ")"))
+          (assign "short-nameless"
+            (macro (concat (math "<blacktriangleright>") (space "0.5spc")))
+          ) ;assign
+          (assign "short-arabic" (macro "nr" (arg "nr")))
+          (assign "short-alpha" (macro "nr" (number (arg "nr") "alpha")))
+          (assign "short-Alpha" (macro "nr" (number (arg "nr") "Alpha")))
+          (assign "short-roman" (macro "nr" (number (arg "nr") "roman")))
+          (assign "short-Roman" (macro "nr" (number (arg "nr") "Roman")))
+          (assign "short-env"
+            (macro "pre"
+              "body"
+              (document (padded* (document (with "par-left"
+                                             (plus (value "par-left") (item-hsep))
+                                             "enumerate-level"
+                                             "1"
+                                             (document (surround (short-item (arg "pre")) "" (document (arg "body"))))
+                                           ) ;with
+                                 ) ;document
+                        ) ;padded*
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "short-question"
+            (macro "disp"
+              "body"
+              (document (with "display-question"
+                          (arg "disp")
+                          (document (surround (next-question)
+                                      ""
+                                      (document (short-env (concat (the-question) (short-sep)) (document (arg "body")))
+                                      ) ;document
+                                    ) ;surround
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "question-item"
+            (macro "body" (document (short-env (short-nameless) (document (arg "body")))))
+          ) ;assign
+          (assign "question-arabic"
+            (macro "body"
+              (document (short-question (value "short-arabic") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "question-alpha"
+            (macro "body"
+              (document (short-question (value "short-alpha") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "question-Alpha"
+            (macro "body"
+              (document (short-question (value "short-Alpha") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "question-roman"
+            (macro "body"
+              (document (short-question (value "short-roman") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "question-Roman"
+            (macro "body"
+              (document (short-question (value "short-Roman") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "short-answer"
+            (macro "disp"
+              "body"
+              (document (with "display-answer"
+                          (arg "disp")
+                          (document (surround (next-answer)
+                                      ""
+                                      (document (short-env (concat (the-answer) (short-sep)) (document (arg "body"))))
+                                    ) ;surround
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "answer-item"
+            (macro "body" (document (short-env (short-nameless) (document (arg "body")))))
+          ) ;assign
+          (assign "answer-arabic"
+            (macro "body"
+              (document (short-answer (value "short-arabic") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "answer-alpha"
+            (macro "body"
+              (document (short-answer (value "short-alpha") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "answer-Alpha"
+            (macro "body"
+              (document (short-answer (value "short-Alpha") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "answer-roman"
+            (macro "body"
+              (document (short-answer (value "short-roman") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (assign "answer-Roman"
+            (macro "body"
+              (document (short-answer (value "short-Roman") (document (arg "body"))))
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Numbered answers when questions are folded")))
+          ) ;active*
+          (assign "solution-dup"
+            (macro "body"
+              (document (render-exercise (concat (solution-text)
+                                           " "
+                                           (if (equal (value "exercise-nr") "0") (the-problem) (the-exercise))
+                                         ) ;concat
+                          (document (arg "body"))
+                        ) ;render-exercise
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "answer-dup"
+            (macro "body"
+              (document (render-remark (concat (answer-text) " " (the-question))
+                          (document (arg "body"))
+                        ) ;render-remark
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "answer-item-dup"
+            (macro "body"
+              (document (short-env (concat (the-question) (short-sep)) (document (arg "body")))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "with-folded-questions"
+            (macro "body"
+              (document (with "solution*"
+                          (value "solution-dup")
+                          "answer*"
+                          (value "answer-dup")
+                          "answer-item"
+                          (value "answer-item-dup")
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Folding"))))
+          (assign "folded"
+            (macro "x"
+              "y"
+              (document (surround ""
+                          (concat (right-flush)
+                            (action (with "color"
+                                      "#336666"
+                                      (specific "screen*" (strong (math (op "<triangleleft>"))))
+                                    ) ;with
+                              "mouse-unfold"
+                              (arg "x")
+                            ) ;action
+                          ) ;concat
+                          (document (arg "x"))
+                        ) ;surround
+                (hidden (arg "y"))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "unfolded"
+            (macro "x"
+              "y"
+              (document (surround ""
+                          (concat (right-flush)
+                            (action (with "color"
+                                      "#336666"
+                                      (specific "screen*" (strong (math (op "<blacktriangledown>"))))
+                                    ) ;with
+                              "mouse-fold"
+                              (arg "x")
+                            ) ;action
+                          ) ;concat
+                          (arg "x")
+                        ) ;surround
+                (surround "" (right-flush) (arg "y"))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "folded-reverse"
+            (macro "x"
+              "y"
+              (document (hidden (arg "x"))
+                (surround ""
+                  (concat (right-flush)
+                    (action (with "color"
+                              "#336666"
+                              (specific "screen*" (strong (math (op "<triangleleft>"))))
+                            ) ;with
+                      "mouse-unfold"
+                      (arg "y")
+                    ) ;action
+                  ) ;concat
+                  (document (with-folded-questions (document (arg "y"))))
+                ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "unfolded-reverse"
+            (macro "x"
+              "y"
+              (document (arg "x")
+                (surround ""
+                  (concat (right-flush)
+                    (action (with "color"
+                              "#336666"
+                              (specific "screen*" (strong (math (op "<blacktriangleup>"))))
+                            ) ;with
+                      "mouse-fold"
+                      (arg "y")
+                    ) ;action
+                  ) ;concat
+                  (arg "y")
+                ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Attaching scripts to buttons and input fields"))
+                   ) ;document
+          ) ;active*
+          (assign "attached-script" "(noop)")
+          (assign "attach-script"
+            (macro "body" "cmd" (with "attached-script" (arg "cmd") (arg "body")))
+          ) ;assign
+          (active* (document (src-comment (document "Unnumbered buttons"))))
+          (assign "render-button"
+            (macro "state"
+              "off"
+              "on"
+              (with "locus-color"
+                "preserve"
+                (quasi (action (if (arg "state") (arg "on") (arg "off"))
+                         "mouse-toggle-button"
+                         (arg "state")
+                         (unquote (value "attached-script"))
+                       ) ;action
+                ) ;quasi
+              ) ;with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "button-box-off" (math "<box>"))
+          (assign "button-box-on" (math "<blacksquare>"))
+          (assign "button-box-cross" (math "<boxtimes>"))
+          (assign "button-box"
+            (macro "state"
+              (render-button (arg "state") (value "button-box-off") (value "button-box-on"))
+            ) ;macro
+          ) ;assign
+          (assign "button-box*"
+            (macro "state"
+              (render-button (arg "state")
+                (value "button-box-off")
+                (value "button-box-cross")
+              ) ;render-button
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "button-circle-off" (math "○"))
+          (assign "button-circle-on" (math "●"))
+          (assign "button-circle-off*" (math "<oempty>"))
+          (assign "button-circle-cross" (math "<otimes>"))
+          (assign "button-circle"
+            (macro "state"
+              (render-button (arg "state")
+                (value "button-circle-off")
+                (value "button-circle-on")
+              ) ;render-button
+            ) ;macro
+          ) ;assign
+          (assign "button-circle*"
+            (macro "state"
+              (render-button (arg "state")
+                (value "button-circle-off*")
+                (value "button-circle-cross")
+              ) ;render-button
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Numbered buttons"))))
+          (assign "button-nr" "0")
+          (assign "circled-button-padding" "0.5spc")
+          (assign "render-circled-button"
+            (macro "state"
+              "text"
+              "sep"
+              (concat (with "ornament-shape"
+                        "rounded"
+                        "ornament-color"
+                        ""
+                        "ornament-border"
+                        (if (arg "state") "1ln" "0ln")
+                        "ornament-hpadding"
+                        (value "circled-button-padding")
+                        "ornament-vpadding"
+                        (value "circled-button-padding")
+                        "locus-color"
+                        "preserve"
+                        (resize (concat (ornament (quasi (action (arg "text")
+                                                           "mouse-toggle-button"
+                                                           (arg "state")
+                                                           (unquote (value "attached-script"))
+                                                         ) ;action
+                                                  ) ;quasi
+                                        ) ;ornament
+                                  (shift (arg "sep") (minus (value "ornament-hpadding")) "")
+                                ) ;concat
+                          (plus "1r" "-1tab")
+                          ""
+                          ""
+                          ""
+                        ) ;resize
+                      ) ;with
+                (assign "button-nr" (plus (value "button-nr") "1"))
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "button-arabic-sep" "")
+          (assign "button-alpha-sep" "")
+          (assign "button-Alpha-sep" "")
+          (assign "button-roman-sep" "")
+          (assign "button-Roman-sep" "")
+          (assign "button-arabic"
+            (macro "state"
+              (render-circled-button (arg "state")
+                (number (plus (value "button-nr") "1") "arabic")
+                (value "button-arabic-sep")
+              ) ;render-circled-button
+            ) ;macro
+          ) ;assign
+          (assign "button-alpha"
+            (macro "state"
+              (render-circled-button (arg "state")
+                (concat (with "font-shape"
+                          "italic"
+                          (concat (number (plus (value "button-nr") "1") "alpha")
+                            (value "button-alpha-sep")
+                          ) ;concat
+                        ) ;with
+                  (resize (phantom ".") "" "" "0.001em" "")
+                ) ;concat
+                ""
+              ) ;render-circled-button
+            ) ;macro
+          ) ;assign
+          (assign "button-Alpha"
+            (macro "state"
+              (render-circled-button (arg "state")
+                (concat (with "font-shape"
+                          "italic"
+                          (concat (number (plus (value "button-nr") "1") "Alpha")
+                            (value "button-Alpha-sep")
+                          ) ;concat
+                        ) ;with
+                  (resize (phantom ".") "" "" "0.001em" "")
+                ) ;concat
+                ""
+              ) ;render-circled-button
+            ) ;macro
+          ) ;assign
+          (assign "button-roman"
+            (macro "state"
+              (render-circled-button (arg "state")
+                (number (plus (value "button-nr") "1") "roman")
+                (value "button-roman-sep")
+              ) ;render-circled-button
+            ) ;macro
+          ) ;assign
+          (assign "button-Roman"
+            (macro "state"
+              (render-circled-button (arg "state")
+                (number (plus (value "button-nr") "1") "Roman")
+                (value "button-Roman-sep")
+              ) ;render-circled-button
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Button themes"))))
+          (assign "button" (value "button-box"))
+          (assign "with-button-box"
+            (macro "body" (with "button" (value "button-box") (arg "body")))
+          ) ;assign
+          (assign "with-button-box*"
+            (macro "body" (with "button" (value "button-box*") (arg "body")))
+          ) ;assign
+          (assign "with-button-circle"
+            (macro "body" (with "button" (value "button-circle") (arg "body")))
+          ) ;assign
+          (assign "with-button-circle*"
+            (macro "body" (with "button" (value "button-circle*") (arg "body")))
+          ) ;assign
+          (assign "with-button-arabic"
+            (macro "body" (with "button" (value "button-arabic") (arg "body")))
+          ) ;assign
+          (assign "with-button-alpha"
+            (macro "body" (with "button" (value "button-alpha") (arg "body")))
+          ) ;assign
+          (assign "with-button-Alpha"
+            (macro "body" (with "button" (value "button-Alpha") (arg "body")))
+          ) ;assign
+          (assign "with-button-roman"
+            (macro "body" (with "button" (value "button-roman") (arg "body")))
+          ) ;assign
+          (assign "with-button-Roman"
+            (macro "body" (with "button" (value "button-Roman") (arg "body")))
+          ) ;assign
+          (active* (document (src-comment (document "Wide buttons based on ornaments"))))
+          (assign "button-bg-color" "")
+          (assign "button-select-bg-color" "dark blue")
+          (assign "button-shadow-color" "#ccc")
+          (assign "button-select-shadow-color" "#00c")
+          (assign "button-sunny-color" "#eee")
+          (assign "button-select-sunny-color" "#002")
+          (assign "button-text-color" "")
+          (assign "button-select-text-color" "white")
+          (assign "button-border" "0ln")
+          ""
+          (assign "with-button-theme"
+            (macro "state"
+              "body"
+              (with "locus-color"
+                "preserve"
+                "ornament-color"
+                (if (arg "state") (value "button-select-bg-color") (value "button-bg-color"))
+                "ornament-shadow-color"
+                (if (arg "state")
+                  (value "button-select-shadow-color")
+                  (value "button-shadow-color")
+                ) ;if
+                "ornament-sunny-color"
+                (if (arg "state")
+                  (value "button-select-sunny-color")
+                  (value "button-sunny-color")
+                ) ;if
+                "color"
+                (if (arg "state")
+                  (value "button-select-text-color")
+                  (if (equal (value "button-text-color") "")
+                    (value "color")
+                    (value "button-text-color")
+                  ) ;if
+                ) ;if
+                "ornament-border"
+                (value "button-border")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "button-ornament"
+            (macro "state"
+              "text"
+              (style-with "src-compact"
+                "none"
+                (with-button-theme (arg "state")
+                  (quasi (action (ornament (arg "text"))
+                           "mouse-toggle-button"
+                           (arg "state")
+                           (unquote (value "attached-script"))
+                         ) ;action
+                  ) ;quasi
+                ) ;with-button-theme
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "button-ornament-narrow"
+            (macro "state"
+              "text"
+              (button-ornament (arg "state")
+                (surround (resize (phantom "dp") "" "" "0em" "") "" (arg "text"))
+              ) ;button-ornament
+            ) ;macro
+          ) ;assign
+          (assign "button-ornament-wide"
+            (macro "state"
+              "text"
+              (button-ornament (arg "state")
+                (surround (resize (phantom "dp") "" "" "0em" "") (right-flush) (arg "text"))
+              ) ;button-ornament
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Multiple choice environments"))))
+          (assign "hide-simple" (macro "student" "teacher" (arg "student")))
+          (assign "show-simple" (macro "student" "teacher" (arg "teacher")))
+          (drd-props "hide-simple" "arity" "2" "accessible" "0" "border" "no")
+          (drd-props "show-simple" "arity" "2" "accessible" "1" "border" "no")
+          ""
+          (assign "mc-field-sep" " ")
+          (assign "mc-field"
+            (macro "state"
+              "text"
+              (concat (button (arg "state")) (value "mc-field-sep") (arg "text"))
+            ) ;macro
+          ) ;assign
+          (assign "mc-wide-field"
+            (macro "state"
+              "text"
+              (with "par-left"
+                (plus (value "par-left") (value "item-hsep"))
+                (surround (concat (with "par-first" (minus (item-hsep)) (yes-indent))
+                            (resize (button (arg "state"))
+                              (minus "1r" (minus (item-hsep) "0.5fn"))
+                              ""
+                              (plus "1r" "0.5fn")
+                              ""
+                            ) ;resize
+                          ) ;concat
+                  ""
+                  (arg "text")
+                ) ;surround
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (drd-props "mc-field" "arity" "2" "accessible" "1" "border" "no")
+          ""
+          (assign "mc-monospaced-cols" "5")
+          (assign "mc-monospaced-one"
+            (macro "a"
+              "nr"
+              (concat (resize (arg "a") "" "" (over "0.9999par" (value "mc-monospaced-cols")) "")
+                (if (equal (mod (plus (arg "nr") "1") (value "mc-monospaced-cols")) "0")
+                  (line-break)
+                ) ;if
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "mc-monospaced"
+            (xmacro "args"
+              (with "dummy"
+                (value "mc-monospaced-cols")
+                "button-nr"
+                "0"
+                (map-args "mc-monospaced-one" "concat" "args")
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (assign "mcs-monospaced"
+            (xmacro "args"
+              (with "dummy"
+                (value "mc-monospaced-cols")
+                "button-nr"
+                "0"
+                (map-args "mc-monospaced-one" "concat" "args")
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "mc-monospaced" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          (drd-props "mcs-monospaced" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          ""
+          (assign "mc-horizontal-sep" "2em")
+          (assign "mc-horizontal-one" (macro "a" (hgroup (arg "a"))))
+          (assign "mc-horizontal-extra"
+            (macro "a" (concat (space (value "mc-horizontal-sep")) " " (hgroup (arg "a"))))
+          ) ;assign
+          (assign "mc-horizontal"
+            (xmacro "args"
+              (with "dummy"
+                (value "mc-horizontal-sep")
+                "button-nr"
+                "0"
+                (concat (mc-horizontal-one (arg "args" "0"))
+                  (map-args "mc-horizontal-extra" "concat" "args" "1")
+                ) ;concat
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (assign "mcs-horizontal"
+            (xmacro "args"
+              (with "dummy"
+                (value "mc-horizontal-sep")
+                "button-nr"
+                "0"
+                (concat (mc-horizontal-one (arg "args" "0"))
+                  (map-args "mc-horizontal-extra" "concat" "args" "1")
+                ) ;concat
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "mc-horizontal" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          (drd-props "mcs-horizontal" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          ""
+          (assign "mc-vertical-one"
+            (macro "a" (with "mc-field" (value "mc-wide-field") (arg "a")))
+          ) ;assign
+          (assign "mc-vertical"
+            (xmacro "args"
+              (surround ""
+                (right-flush)
+                (with "button-nr" "0" (map-args "mc-vertical-one" "document" "args"))
+              ) ;surround
+            ) ;xmacro
+          ) ;assign
+          (assign "mcs-vertical"
+            (xmacro "args"
+              (surround ""
+                (right-flush)
+                (with "button-nr" "0" (map-args "mc-vertical-one" "document" "args"))
+              ) ;surround
+            ) ;xmacro
+          ) ;assign
+          (drd-props "mc-vertical" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          (drd-props "mcs-vertical" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          ""
+          (assign "mc" (value "mc-monospaced"))
+          (assign "mcs" (value "mcs-monospaced"))
+          (drd-props "mc" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          (drd-props "mcs" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          (active* (document (src-comment (document "Multiple choice customizations for wide buttons"))
+                   ) ;document
+          ) ;active*
+          (assign "horizontal-items-border" "1ln")
+          (assign "horizontal-items-sep" "1em")
+          (assign "horizontal-items"
+            (xmacro "args"
+              (with "mc-field"
+                (value "button-ornament-narrow")
+                "button-ornament-border"
+                (value "horizontal-items-border")
+                "mc-horizontal-sep"
+                (value "horizontal-items-sep")
+                (concat (mc-horizontal-one (arg "args" "0"))
+                  (map-args "mc-horizontal-extra" "concat" "args" "1")
+                ) ;concat
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "horizontal-items"
+            "arity"
+            (tuple "repeat" "1" "1")
+            "accessible"
+            "all"
+          ) ;drd-props
+          ""
+          (assign "tiled-items-border" "1ln")
+          (assign "tiled-items"
+            (xmacro "items"
+              (with "mc-field"
+                (value "button-ornament-wide")
+                "button-ornament-border"
+                (value "tiled-items-border")
+                (extern "ext-tiled-items"
+                  (quote-arg "items")
+                  (quote-value "mc-monospaced-cols")
+                ) ;extern
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "tiled-items" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          ""
+          (assign "vertical-items-outer-border" "1ln")
+          (assign "vertical-items-inner-border" "0ln")
+          (assign "vertical-items"
+            (xmacro "items"
+              (with "mc-field"
+                (value "button-ornament-wide")
+                (extern "ext-vertical-items"
+                  (quote-arg "items")
+                  (quote-value "vertical-items-outer-border")
+                  (quote-value "vertical-items-inner-border")
+                ) ;extern
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "vertical-items" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          ""
+          (assign "with-button-ornament"
+            (macro "body"
+              (with "mc"
+                (value "tiled-items")
+                "mcs"
+                (value "tiled-items")
+                "mc-monospaced"
+                (value "tiled-items")
+                "mcs-monospaced"
+                (value "tiled-items")
+                "mc-horizontal"
+                (value "horizontal-items")
+                "mcs-horizontal"
+                (value "horizontal-items")
+                "mc-vertical"
+                (value "vertical-items")
+                "mcs-vertical"
+                (value "vertical-items")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Multiple choices using popup menus")))
+          ) ;active*
+          (assign "button-in-popup"
+            (macro "state"
+              "text"
+              (style-with "src-compact"
+                "none"
+                (with-button-theme (arg "state")
+                  (relay (ornament (concat (space "0em" "-0.2em" "0.8em") (arg "text") (htab "0mm")))
+                    "popup-toggle-button"
+                    (arg "state")
+                    (value "attached-script")
+                  ) ;relay
+                ) ;with-button-theme
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "vertical-items*"
+            (xmacro "items"
+              (with "mc-field"
+                (value "button-in-popup")
+                (extern "ext-vertical-items"
+                  (quote-arg "items")
+                  (quote-value "vertical-items-outer-border")
+                  (quote-value "vertical-items-inner-border")
+                ) ;extern
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "vertical-items*"
+            "arity"
+            (tuple "repeat" "1" "1")
+            "accessible"
+            "all"
+          ) ;drd-props
+          ""
+          (assign "button-popup-activate" "click")
+          (assign "button-popup"
+            (macro "x"
+              "x*"
+              "y"
+              "halign"
+              "valign"
+              (on-event (value "button-popup-activate")
+                (arg "x")
+                "display-balloon"
+                (quote-arg "x*")
+                (arg "y")
+                (arg "halign")
+                (arg "valign")
+                (if (equal (value "button-popup-activate") "focus") "keyboard" "default")
+              ) ;on-event
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "mc-selected-field"
+            (macro "x"
+              (with-button-theme "false"
+                (ornament (concat (space "0em" "-0.2em" "0.8em") (arg "x")))
+              ) ;with-button-theme
+            ) ;macro
+          ) ;assign
+          (assign "mc-selected-none"
+            (macro "x" (mc-selected-field (with "opacity" "0" (arg "x"))))
+          ) ;assign
+          (assign "mc-popup"
+            (xmacro "items"
+              (with "button-nr"
+                "0"
+                "locus-color"
+                "preserve"
+                (extern "ext-mc-popup" (quote-arg "items"))
+              ) ;with
+            ) ;xmacro
+          ) ;assign
+          (drd-props "mc-popup" "arity" (tuple "repeat" "1" "1") "accessible" "all")
+          (active* (document (src-comment (document "Possibly hidden text in gaps"))))
+          (assign "gap-font" "")
+          (assign "gap-font-size" "1")
+          (assign "render-gap-text"
+            (macro "body"
+              (with "font"
+                (if (unequal (value "gap-font") "") (value "gap-font") (value "font"))
+                "font-size"
+                (value "gap-font-size")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "hide-reply"
+            (macro "user" "answer" (superpose (phantom (arg "answer")) (arg "user")))
+          ) ;assign
+          (assign "hide-reply"
+            (macro "user"
+              "answer"
+              (extend (arg "user")
+                ""
+                ""
+                (times (look-up (box-info (arg "answer") "w") "0") "1tmpt")
+                ""
+              ) ;extend
+            ) ;macro
+          ) ;assign
+          (assign "show-reply" (macro "user" "answer" (arg "answer")))
+          (drd-props "hide-reply" "arity" "2" "accessible" "0")
+          (drd-props "show-reply" "arity" "2" "accessible" "1")
+          (active* (document (src-comment (document "Text with gaps"))))
+          (assign "gap-dots-color" "")
+          (assign "gap-dots-vsep" "0.2fn")
+          (assign "gap-dots-hsep" "0fn")
+          (assign "gap-dots-hpadding" "0.5spc")
+          (assign "gap-dots-min-width" "1em")
+          (assign "gap-dots-short"
+            (macro "body"
+              (repeat-through (with "color"
+                                (if (equal (value "gap-dots-color") "")
+                                  (value "color")
+                                  (value "gap-dots-color")
+                                ) ;if
+                                (concat (move "." "" (minus (value "gap-dots-vsep")))
+                                  (hspace (value "gap-dots-hsep"))
+                                ) ;concat
+                              ) ;with
+                (render-gap-text (arg "body"))
+              ) ;repeat-through
+            ) ;macro
+          ) ;assign
+          (assign "gap-dots"
+            (macro "body"
+              (gap-dots-short (concat (hspace (value "gap-dots-hpadding"))
+                                (extend (arg "body") "" "" (value "gap-dots-min-width") "")
+                                (hspace (value "gap-dots-hpadding"))
+                              ) ;concat
+              ) ;gap-dots-short
+            ) ;macro
+          ) ;assign
+          (assign "gap-dots*"
+            (macro "body" (gap-dots-short (concat (arg "body") (htab "5mm"))))
+          ) ;assign
+          (assign "gap-dots-wide"
+            (macro "body"
+              (gap-dots-short (concat (hspace (value "gap-dots-hpadding")) (arg "body") (htab "5mm"))
+              ) ;gap-dots-short
+            ) ;macro
+          ) ;assign
+          (assign "gap-dots-long"
+            (macro "body"
+              (document (with "par-par-sep"
+                          "0fn"
+                          (document (extern "ext-apply-on-paragraphs" "gap-dots*" (quote-arg "body")))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (drd-props "gap-dots" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-dots-wide" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-dots-long" "with-like" "yes" "arity" "1" "accessible" "all")
+          ""
+          (assign "gap-underlined-color" "#c0f0f0")
+          (assign "gap-underlined-vsep" "0.2fn")
+          (assign "gap-underlined-hpadding" "0.5spc")
+          (assign "gap-underlined-min-width" "1em")
+          (assign "gap-underlined-short"
+            (macro "body"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (datoms (macro "x"
+                                 (with "color"
+                                   (if (equal (value "gap-underlined-color") "")
+                                     (value "color")
+                                     (value "gap-underlined-color")
+                                   ) ;if
+                                   (repeat* (with "color" (unquote (value "color")) (arg "x"))
+                                     (move (resize "--" (plus "0.6667l" "0.3333r") "" (plus "0.3333l" "0.6667r") "")
+                                       ""
+                                       (minus "-0.5ex" (value "gap-underlined-vsep"))
+                                     ) ;move
+                                   ) ;repeat*
+                                 ) ;with
+                               ) ;macro
+                         (render-gap-text (arg "body"))
+                       ) ;datoms
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (assign "gap-underlined"
+            (macro "body"
+              (gap-underlined-short (concat (hspace (value "gap-underlined-hpadding"))
+                                      (extend (arg "body") "" "" (value "gap-underlined-min-width") "")
+                                      (hspace (value "gap-underlined-hpadding"))
+                                    ) ;concat
+              ) ;gap-underlined-short
+            ) ;macro
+          ) ;assign
+          (assign "gap-underlined*"
+            (macro "body" (gap-underlined-short (concat (arg "body") (htab "5mm"))))
+          ) ;assign
+          (assign "gap-underlined-wide"
+            (macro "body"
+              (gap-underlined-short (concat (hspace (value "gap-underlined-hpadding")) (arg "body") (htab "5mm"))
+              ) ;gap-underlined-short
+            ) ;macro
+          ) ;assign
+          (assign "gap-underlined-long"
+            (macro "body"
+              (document (with "par-par-sep"
+                          "0fn"
+                          (document (map-args "gap-underlined*" "document" "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "gap-underlined-long"
+            (macro "body"
+              (document (with "par-par-sep"
+                          "0fn"
+                          (document (extern "ext-apply-on-paragraphs" "gap-underlined*" (quote-arg "body"))
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (drd-props "gap-underlined" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-underlined-wide" "with-like" "yes" "arity" "1"
+            "accessible" "all"
+          ) ;drd-props
+          (drd-props "gap-underlined-long" "with-like" "yes" "arity" "1"
+            "accessible" "all"
+          ) ;drd-props
+          ""
+          (assign "gap-box-color" "#f0e8e0")
+          (assign "gap-box-shadow-color" "#f8f4f0")
+          (assign "gap-box-sunny-color" "#e0d0c0")
+          (assign "gap-box-hpadding" "0.5spc")
+          (assign "gap-box-vpadding" "0.5spc")
+          (assign "gap-box-min-width" "1em")
+          (assign "gap-box"
+            (macro "body"
+              (quasi (datoms (macro "x"
+                               (with "ornament-color"
+                                 (value "gap-box-color")
+                                 "ornament-shadow-color"
+                                 (value "gap-box-shadow-color")
+                                 "ornament-sunny-color"
+                                 (value "gap-box-sunny-color")
+                                 "ornament-hpadding"
+                                 (value "gap-box-hpadding")
+                                 "ornament-vpadding"
+                                 (value "gap-box-vpadding")
+                                 (resize (ornament (arg "x"))
+                                   (plus "1l" (value "gap-box-hpadding"))
+                                   ""
+                                   (minus "1r" (value "gap-box-hpadding"))
+                                   ""
+                                 ) ;resize
+                               ) ;with
+                             ) ;macro
+                       (extend (render-gap-text (arg "body")) "" "" (value "gap-box-min-width") "")
+                     ) ;datoms
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (assign "gap-box-wide"
+            (macro "body" (gap-box (concat (arg "body") (htab "5mm"))))
+          ) ;assign
+          (assign "gap-box-long"
+            (macro "body"
+              (document (with "par-par-sep"
+                          "0fn"
+                          "ornament-color"
+                          (value "gap-box-color")
+                          "ornament-shadow-color"
+                          (value "gap-box-shadow-color")
+                          "ornament-sunny-color"
+                          (value "gap-box-sunny-color")
+                          "ornament-hpadding"
+                          (value "gap-box-hpadding")
+                          "ornament-vpadding"
+                          (value "gap-box-vpadding")
+                          (document (ornament (document (surround "" (right-flush) (document (render-gap-text (document (arg "body")))))
+                                              ) ;document
+                                    ) ;ornament
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (drd-props "gap-box" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-box-wide" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-box-long" "with-like" "yes" "arity" "1" "accessible" "all")
+          ""
+          (assign "gap" (value "gap-dots"))
+          (assign "gap-wide" (value "gap-dots-wide"))
+          (assign "gap-long" (value "gap-dots-long"))
+          (drd-props "gap" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-wide" "with-like" "yes" "arity" "1" "accessible" "all")
+          (drd-props "gap-long" "with-like" "yes" "arity" "1" "accessible" "all")
+          (active* (document (src-comment (document "Extra macros for import from LaTeX exam style"))
+                   ) ;document
+          ) ;active*
+          (assign "questions" (macro "body" (arg "body")))
+          (assign "answers" (macro "body" (arg "body")))
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "src-special" "normal"))
+  ) ;initial
+) ;document

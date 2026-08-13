@@ -1,0 +1,1018 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-utils.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "1.99.19")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-utils" "1.0")
+                                        (src-purpose (document "This package contains useful macros for writing style files.")
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Helper macros for wide block environments (work also for inline content, like section titles)."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "hflush" (macro (htab "0fn" "0")))
+          (assign "right-flush" (macro (specific "texmacs" (htab "0fn" "first"))))
+          (assign "left-flush" (macro (htab "0fn" "last")))
+          (assign "wide-normal"
+            (macro "body"
+              (surround (no-indent) (specific "texmacs" (htab "0fn" "first")) (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "wide-centered"
+            (macro "body"
+              (surround (concat (no-indent) (htab "0fn" "last"))
+                (htab "0fn" "first")
+                (arg "body")
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Helper macros for vertically padded environments"))
+                   ) ;document
+          ) ;active*
+          (assign "padding-above" "0.5fn")
+          (assign "padding-below" "0.5fn")
+          (assign "large-padding-above" "1fn")
+          (assign "large-padding-below" "1fn")
+          (assign "padded-normal"
+            (macro "before"
+              "after"
+              "body"
+              (surround (concat (vspace* (arg "before")) (no-indent))
+                (concat (specific "texmacs" (htab "0fn" "first")) (vspace (arg "after")))
+                (arg "body")
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "padded-centered"
+            (macro "before"
+              "after"
+              "body"
+              (surround (concat (vspace* (arg "before")) (no-indent) (htab "0fn" "last"))
+                (concat (htab "0fn" "first") (vspace (arg "after")))
+                (arg "body")
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "padded-normal-titled"
+            (macro "before"
+              "after"
+              "body"
+              "title"
+              (document (surround (concat (vspace* (arg "before")) (no-indent))
+                          ""
+                          (document (arg "title"))
+                        ) ;surround
+                (surround (no-indent)
+                  (concat (specific "texmacs" (htab "0fn" "first")) (vspace (arg "after")))
+                  (document (arg "body"))
+                ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "padded"
+            (macro "body"
+              (document (padded-normal (value "padding-above")
+                          (value "padding-below")
+                          (document (arg "body"))
+                        ) ;padded-normal
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "padded*"
+            (macro "body"
+              (document (padded-normal (value "large-padding-above")
+                          (value "large-padding-below")
+                          (document (arg "body"))
+                        ) ;padded-normal
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "padded-titled"
+            (macro "body"
+              "title"
+              (document (padded-normal-titled (value "padding-above")
+                          (value "padding-below")
+                          (document (arg "body"))
+                          (arg "title")
+                        ) ;padded-normal-titled
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "padded-center"
+            (macro "body"
+              (with "par-mode"
+                "center"
+                (surround (concat (vspace* (value "padding-above")) (no-indent))
+                  (vspace (value "padding-below"))
+                  (arg "body")
+                ) ;surround
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "padded-left-aligned"
+            (macro "body"
+              (with "par-mode"
+                "left"
+                (surround (concat (vspace* (value "padding-above")) (no-indent))
+                  (vspace (value "padding-below"))
+                  (arg "body")
+                ) ;surround
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "padded-right-aligned"
+            (macro "body"
+              (with "par-mode"
+                "right"
+                (surround (concat (vspace* (value "padding-above")) (no-indent))
+                  (vspace (value "padding-below"))
+                  (arg "body")
+                ) ;surround
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Helper macros for underlined/overlined block environments (work also for inline content, like page headers)."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "overlined-width" "1ln")
+          (assign "overlined-sep" "1sep")
+          (assign "underlined-width" "1ln")
+          (assign "underlined-sep" "1sep")
+          (assign "wide-bothlined"
+            (macro "top-border"
+              "bot-border"
+              "top-sep"
+              "bot-sep"
+              "body"
+              (surround (no-indent)
+                ""
+                (tabular (tformat (twith "table-width" "1par")
+                           (cwith "1" "1" "1" "1" "cell-width" "1par")
+                           (cwith "1" "1" "1" "1" "cell-lsep" "0pt")
+                           (cwith "1" "1" "1" "1" "cell-rsep" "0pt")
+                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                           (cwith "1" "1" "1" "1" "cell-tborder" (arg "top-border"))
+                           (cwith "1" "1" "1" "1" "cell-bborder" (arg "bot-border"))
+                           (cwith "1" "1" "1" "1" "cell-tsep" (arg "top-sep"))
+                           (cwith "1" "1" "1" "1" "cell-bsep" (arg "bot-sep"))
+                           (table (row (cell (arg "body"))))
+                         ) ;tformat
+                ) ;tabular
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "wide-bothlined-titled"
+            (macro "top-border"
+              "bot-border"
+              "top-sep"
+              "bot-sep"
+              "body"
+              "title"
+              (surround (no-indent)
+                ""
+                (tabular (tformat (twith "table-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-lsep" "0pt")
+                           (cwith "1" "2" "1" "1" "cell-rsep" "0pt")
+                           (cwith "2" "2" "1" "1" "cell-hyphen" "t")
+                           (cwith "1" "2" "1" "1" "cell-tborder" (arg "top-border"))
+                           (cwith "2" "2" "1" "1" "cell-bborder" (arg "bot-border"))
+                           (cwith "1" "2" "1" "1" "cell-tsep" (arg "top-sep"))
+                           (cwith "1" "1" "1" "1" "cell-bsep" (arg "top-sep"))
+                           (cwith "2" "2" "1" "1" "cell-bsep" (arg "bot-sep"))
+                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                           (table (row (cell (document (arg "title"))))
+                             (row (cell (document (arg "body"))))
+                           ) ;table
+                         ) ;tformat
+                ) ;tabular
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "wide-bothlined-titled*"
+            (macro "top-border"
+              "bot-border"
+              "top-sep"
+              "bot-sep"
+              "body"
+              "title"
+              (surround (no-indent)
+                ""
+                (tabular (tformat (twith "table-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-lsep" "0pt")
+                           (cwith "1" "2" "1" "1" "cell-rsep" "0pt")
+                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                           (cwith "1" "1" "1" "1" "cell-tborder" (arg "top-border"))
+                           (cwith "1" "2" "1" "1" "cell-bborder" (arg "bot-border"))
+                           (cwith "1" "1" "1" "1" "cell-tsep" (arg "top-sep"))
+                           (cwith "2" "2" "1" "1" "cell-tsep" (arg "bot-sep"))
+                           (cwith "1" "2" "1" "1" "cell-bsep" (arg "bot-sep"))
+                           (cwith "2" "2" "1" "1" "cell-hyphen" "t")
+                           (table (row (cell (document (arg "body"))))
+                             (row (cell (document (arg "title"))))
+                           ) ;table
+                         ) ;tformat
+                ) ;tabular
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-bothlined"
+            (macro "body"
+              (wide-bothlined (value "overlined-width")
+                (value "underlined-width")
+                (value "overlined-sep")
+                (value "underlined-sep")
+                (arg "body")
+              ) ;wide-bothlined
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-bothlined-titled"
+            (macro "body"
+              "title"
+              (wide-bothlined-titled (value "overlined-width")
+                (value "underlined-width")
+                (value "overlined-sep")
+                (value "underlined-sep")
+                (arg "body")
+                (arg "title")
+              ) ;wide-bothlined-titled
+            ) ;macro
+          ) ;assign
+          (assign "padded-bothlined"
+            (macro "before"
+              "after"
+              "top-border"
+              "bot-border"
+              "top-sep"
+              "bot-sep"
+              "body"
+              (surround (vspace* (arg "before"))
+                (vspace (arg "after"))
+                (wide-bothlined (arg "top-border")
+                  (arg "bot-border")
+                  (arg "top-sep")
+                  (arg "bot-sep")
+                  (arg "body")
+                ) ;wide-bothlined
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "padded-std-bothlined"
+            (macro "before"
+              "after"
+              "body"
+              (document (padded-bothlined (arg "before")
+                          (arg "after")
+                          (value "overlined-width")
+                          (value "underlined-width")
+                          (value "overlined-sep")
+                          (value "underlined-sep")
+                          (arg "body")
+                        ) ;padded-bothlined
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "wide-overlined"
+            (macro "tborder"
+              "tsep"
+              "body"
+              (wide-bothlined (arg "tborder") "0pt" (arg "tsep") "0pt" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-overlined"
+            (macro "body"
+              (wide-overlined (value "overlined-width") (value "overlined-sep") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-overlined-titled"
+            (macro "body"
+              "title"
+              (wide-bothlined-titled (value "overlined-width")
+                "0pt"
+                (value "overlined-sep")
+                "0pt"
+                (arg "body")
+                (arg "title")
+              ) ;wide-bothlined-titled
+            ) ;macro
+          ) ;assign
+          (assign "wide-underlined"
+            (macro "bborder"
+              "bsep"
+              "body"
+              (wide-bothlined "0pt" (arg "bborder") "0pt" (arg "bsep") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-underlined"
+            (macro "body"
+              (wide-underlined (value "underlined-width")
+                (value "underlined-sep")
+                (arg "body")
+              ) ;wide-underlined
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-underlined-titled"
+            (macro "body"
+              "title"
+              (wide-bothlined-titled* "0pt"
+                (value "underlined-width")
+                "0pt"
+                (value "underlined-sep")
+                (arg "body")
+                (arg "title")
+              ) ;wide-bothlined-titled*
+            ) ;macro
+          ) ;assign
+          (assign "overlined"
+            (macro "body" (document (padded (wide-std-overlined (arg "body")))))
+          ) ;assign
+          (assign "underlined"
+            (macro "body" (document (padded (wide-std-underlined (arg "body")))))
+          ) ;assign
+          (assign "bothlined"
+            (macro "body" (document (padded (wide-std-bothlined (arg "body")))))
+          ) ;assign
+          (assign "overlined-titled"
+            (macro "body"
+              "title"
+              (document (padded (wide-std-overlined-titled (arg "body") (arg "title"))))
+            ) ;macro
+          ) ;assign
+          (assign "underlined-titled"
+            (macro "body"
+              "title"
+              (document (padded (wide-std-underlined-titled (arg "body") (arg "title"))))
+            ) ;macro
+          ) ;assign
+          (assign "bothlined-titled"
+            (macro "body"
+              "title"
+              (document (padded (wide-std-bothlined-titled (arg "body") (arg "title"))))
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Helper macros for framed block environments (work also for inline content)."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "framed-color" "")
+          (assign "framed-width" "1ln")
+          (assign "framed-hsep" "1spc")
+          (assign "framed-vsep" "1sep")
+          (assign "wide-framed"
+            (macro "border-width"
+              "hsep"
+              "vsep"
+              "body"
+              (surround (no-indent)
+                ""
+                (tabular (tformat (twith "table-width" "1par")
+                           (cwith "1" "1" "1" "1" "cell-width" "1par")
+                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                           (cwith "1" "1" "1" "1" "cell-lborder" (arg "border-width"))
+                           (cwith "1" "1" "1" "1" "cell-rborder" (arg "border-width"))
+                           (cwith "1" "1" "1" "1" "cell-tborder" (arg "border-width"))
+                           (cwith "1" "1" "1" "1" "cell-bborder" (arg "border-width"))
+                           (cwith "1" "1" "1" "1" "cell-lsep" (arg "hsep"))
+                           (cwith "1" "1" "1" "1" "cell-rsep" (arg "hsep"))
+                           (cwith "1" "1" "1" "1" "cell-tsep" (arg "vsep"))
+                           (cwith "1" "1" "1" "1" "cell-bsep" (arg "vsep"))
+                           (cwith "1" "1" "1" "1" "cell-background" (value "framed-color"))
+                           (table (row (cell (arg "body"))))
+                         ) ;tformat
+                ) ;tabular
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "wide-framed-titled"
+            (macro "border-width"
+              "hsep"
+              "vsep"
+              "body"
+              "title"
+              (surround (no-indent)
+                ""
+                (tabular (tformat (twith "table-width" "1par")
+                           (cwith "1" "2" "1" "1" "cell-width" "1par")
+                           (cwith "2" "2" "1" "1" "cell-hyphen" "t")
+                           (cwith "1" "2" "1" "1" "cell-lborder" (arg "border-width"))
+                           (cwith "1" "2" "1" "1" "cell-rborder" (arg "border-width"))
+                           (cwith "1" "2" "1" "1" "cell-tborder" (arg "border-width"))
+                           (cwith "1" "2" "1" "1" "cell-bborder" (arg "border-width"))
+                           (cwith "1" "2" "1" "1" "cell-lsep" (arg "hsep"))
+                           (cwith "1" "2" "1" "1" "cell-rsep" (arg "hsep"))
+                           (cwith "1" "2" "1" "1" "cell-tsep" (arg "vsep"))
+                           (cwith "1" "2" "1" "1" "cell-bsep" (arg "vsep"))
+                           (cwith "1" "2" "1" "1" "cell-background" (value "framed-color"))
+                           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                           (table (row (cell (document (arg "title"))))
+                             (row (cell (document (arg "body"))))
+                           ) ;table
+                         ) ;tformat
+                ) ;tabular
+              ) ;surround
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-framed"
+            (macro "body"
+              (wide-framed (value "framed-width")
+                (value "framed-hsep")
+                (value "framed-vsep")
+                (arg "body")
+              ) ;wide-framed
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-framed-titled"
+            (macro "body"
+              "title"
+              (wide-framed-titled (value "framed-width")
+                (value "framed-hsep")
+                (value "framed-vsep")
+                (arg "body")
+                (arg "title")
+              ) ;wide-framed-titled
+            ) ;macro
+          ) ;assign
+          (assign "wide-framed-colored"
+            (macro "border-color"
+              "body-color"
+              "border-width"
+              "hsep"
+              "vsep"
+              "body"
+              (with "old-color"
+                (value "color")
+                "color"
+                (arg "border-color")
+                "framed-color"
+                (arg "body-color")
+                (wide-framed (arg "border-width")
+                  (arg "hsep")
+                  (arg "vsep")
+                  (with "color"
+                    (value "old-color")
+                    (style-with "src-compact" "none" (arg "body"))
+                  ) ;with
+                ) ;wide-framed
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "wide-std-framed-colored"
+            (macro "border-color"
+              "body-color"
+              "body"
+              (wide-framed-colored (arg "border-color")
+                (arg "body-color")
+                (value "framed-width")
+                (value "framed-hsep")
+                (value "framed-vsep")
+                (style-with "src-compact" "none" (arg "body"))
+              ) ;wide-framed-colored
+            ) ;macro
+          ) ;assign
+          (assign "framed"
+            (macro "body" (document (padded (wide-std-framed (arg "body")))))
+          ) ;assign
+          (assign "mdframed" (macro "body" (document (framed (arg "body")))))
+          (assign "framed-titled"
+            (macro "body"
+              "title"
+              (document (padded (compound "wide-std-framed-titled" (arg "body") (arg "title")))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Ornamented environments."))))
+          (assign "ornamented"
+            (macro "body"
+              (document (padded (document (decorated (document (surround "" (right-flush) (document (arg "body")))))
+                                ) ;document
+                        ) ;padded
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "ornamented-titled"
+            (macro "body"
+              "title"
+              (document (padded (document (decorated-titled (arg "title")
+                                            (document (surround "" (right-flush) (document (arg "body"))))
+                                          ) ;decorated-titled
+                                ) ;document
+                        ) ;padded
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (drd-props "ornamented" "arity" "1" "accessible" "all" "locals" (attrs))
+          (drd-props "ornamented-titled" "arity" "2" "accessible" "all" "locals" (attrs))
+          (assign "ornament-indent"
+            (macro "left"
+              "right"
+              "bottom"
+              "top"
+              "body"
+              (document (with "old-shape"
+                          (value "ornament-shape")
+                          "old-color"
+                          (value "ornament-color")
+                          "old-hpadding"
+                          (value "ornament-hpadding")
+                          "old-vpadding"
+                          (value "ornament-vpadding")
+                          "old-border"
+                          (value "ornament-border")
+                          "ornament-shape"
+                          "classic"
+                          "ornament-color"
+                          "#fff0"
+                          "ornament-hpadding"
+                          (tuple (arg "left") (arg "right"))
+                          "ornament-vpadding"
+                          (tuple (arg "bottom") (arg "top"))
+                          "ornament-border"
+                          "0ln"
+                          (document (ornament (document (surround ""
+                                                          (right-flush)
+                                                          (document (with "ornament-shape"
+                                                                      (value "old-shape")
+                                                                      "ornament-color"
+                                                                      (value "old-color")
+                                                                      "ornament-hpadding"
+                                                                      (value "old-hpadding")
+                                                                      "ornament-vpadding"
+                                                                      (value "old-vpadding")
+                                                                      "ornament-border"
+                                                                      (value "old-border")
+                                                                      (document (arg "body"))
+                                                                    ) ;with
+                                                          ) ;document
+                                                        ) ;surround
+                                              ) ;document
+                                    ) ;ornament
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Decorations based on ornaments."))))
+          (assign "ornament-render-title" (macro "body" (arg "body")))
+          (assign "ornament-render-body" (macro "body" (arg "body")))
+          (assign "ornament-render-extra" (macro "body" (arg "body")))
+          ""
+          (assign "decorated-hook"
+            (macro "body"
+              (with "bg-color"
+                (value "ornament-extra-color")
+                "old-color"
+                (value "color")
+                "old-math-color"
+                (value "math-color")
+                "old-strong-color"
+                (value "strong-color")
+                (ornament-render-title (with "ornament-extra-color"
+                                         (value "bg-color")
+                                         "color"
+                                         (value "old-color")
+                                         "math-color"
+                                         (value "old-math-color")
+                                         "strong-color"
+                                         (value "old-strong-color")
+                                         (with "bg-color"
+                                           (value "ornament-color")
+                                           (ornament-render-body (with "ornament-color" (value "bg-color") (arg "body")))
+                                         ) ;with
+                                       ) ;with
+                ) ;ornament-render-title
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "decorated-title" (macro "body" (ornament-render-title (arg "body"))))
+          (assign "decorated-body" (macro "body" (ornament-render-body (arg "body"))))
+          (assign "decorated-extra" (macro "body" (ornament-render-extra (arg "body"))))
+          ""
+          (assign "decorated"
+            (macro "body"
+              (decorated-hook (decorated-extra (ornament (decorated-body (arg "body")))))
+            ) ;macro
+          ) ;assign
+          (assign "decorated-block"
+            (macro "body"
+              (document (decorated-hook (decorated-extra (ornament (document (wide-normal (document (decorated-body (document (arg "body"))))))
+                                                         ) ;ornament
+                                        ) ;decorated-extra
+                        ) ;decorated-hook
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "decorated-titled"
+            (macro "name"
+              "body"
+              (decorated-hook (decorated-extra (ornament (decorated-body (arg "body")) (decorated-title (arg "name")))
+                              ) ;decorated-extra
+              ) ;decorated-hook
+            ) ;macro
+          ) ;assign
+          (assign "decorated-titled-block"
+            (macro "name"
+              "body"
+              (document (decorated-hook (decorated-extra (ornament (document (wide-normal (document (decorated-body (arg "body")))))
+                                                           (decorated-title (arg "name"))
+                                                         ) ;ornament
+                                        ) ;decorated-extra
+                        ) ;decorated-hook
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (drd-props "decorated" "arity" "1" "accessible" "all" "locals" (attrs))
+          (drd-props "decorated-block" "arity" "1" "accessible" "all" "locals" (attrs))
+          (drd-props "decorated-titled" "arity" "2" "accessible" "all" "locals" (attrs))
+          (drd-props "decorated-titled-block"
+            "arity"
+            "2"
+            "accessible"
+            "all"
+            "locals"
+            (attrs)
+          ) ;drd-props
+          (active* (document (src-comment (document "Indentation."))))
+          (assign "indent-left"
+            (macro "indentation"
+              "body"
+              (document (with "par-left"
+                          (plus (value "par-left") (arg "indentation"))
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "indent-right"
+            (macro "indentation"
+              "body"
+              (document (with "par-right"
+                          (plus (value "par-right") (arg "indentation"))
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "indent-both"
+            (macro "left-indentation"
+              "right-indentation"
+              "body"
+              (document (with "par-left"
+                          (plus (value "par-left") (arg "left-indentation"))
+                          "par-right"
+                          (plus (value "par-right") (arg "right-indentation"))
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "margin-first-other"
+            (macro "head-indent"
+              "tail-indent"
+              "body"
+              (with "par-left"
+                (plus (arg "tail-indent") "0em")
+                "par-first"
+                (minus (arg "head-indent") (arg "tail-indent"))
+                (surround (yes-indent) "" (arg "body"))
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "page-length"
+            (macro "x"
+              (if (equal (value "length-mode") "fixed")
+                (arg "x")
+                (over (arg "x") (value "magnification"))
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "no-left-margin"
+            (macro "body"
+              (document (with "par-left"
+                          (minus (page-length (value "page-odd")))
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "no-right-margin"
+            (macro "body"
+              (document (with "par-right"
+                          (minus (page-length (value "page-right")))
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "no-margins"
+            (macro "body"
+              (document (with "par-left"
+                          (minus (page-length (value "page-odd")))
+                          "par-right"
+                          (minus (page-length (value "page-right")))
+                          (document (arg "body"))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Mini paragraphs."))))
+          (assign "mini-paragraph"
+            (macro "width"
+              "body"
+              (document (tabular (tformat (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
+                                   (cwith "1" "1" "1" "1" "cell-rsep" "0spc")
+                                   (cwith "1" "1" "1" "1" "cell-bsep" "0spc")
+                                   (cwith "1" "1" "1" "1" "cell-tsep" "0spc")
+                                   (cwith "1" "1" "1" "1" "cell-vcorrect" "n")
+                                   (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                                   (cwith "1" "1" "1" "1" "cell-width" (arg "width"))
+                                   (cwith "1" "1" "1" "1" "cell-hmode" "exact")
+                                   (table (row (cell (document (arg "body")))))
+                                 ) ;tformat
+                        ) ;tabular
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Header information."))))
+          (assign "page-number" (macro (quote (page-the-page))))
+          (assign "set-this-page-header"
+            (macro "header"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "this page header") "brown" "header")
+                  (assign "page-this-header" (arg "header"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-header"
+            (macro "header"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "header") "brown" "header")
+                  (assign "page-odd-header" (arg "header"))
+                  (assign "page-even-header" (arg "header"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-odd-page-header"
+            (macro "header"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "odd page header") "brown" "header")
+                  (assign "page-odd-header" (arg "header"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-even-page-header"
+            (macro "header"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "even page header") "brown" "header")
+                  (assign "page-odd-header" (arg "header"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-this-page-footer"
+            (macro "footer"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "this page footer") "brown" "footer")
+                  (assign "page-this-footer" (arg "footer"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-footer"
+            (macro "footer"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "footer") "brown" "footer")
+                  (assign "page-odd-footer" (arg "footer"))
+                  (assign "page-even-footer" (arg "footer"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-odd-page-footer"
+            (macro "footer"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "odd page footer") "brown" "footer")
+                  (assign "page-odd-footer" (arg "footer"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-even-page-footer"
+            (macro "footer"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "even page footer") "brown" "footer")
+                  (assign "page-odd-footer" (arg "footer"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-page-number"
+            (macro "nr"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "renumber this page") "brown" "nr")
+                  (assign "page-nr" (arg "nr"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "set-page-number-macro"
+            (macro "rendering-macro"
+              (style-with "src-compact"
+                "none"
+                (concat (flag (localize "page number text") "brown" "rendering-macro")
+                  (assign "page-the-page" (arg "rendering-macro"))
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "blanc-page"
+            (macro (style-with "src-compact"
+                     "none"
+                     (concat (assign "page-this-header" "") (assign "page-this-footer" ""))
+                   ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "simple-page"
+            (macro (style-with "src-compact"
+                     "none"
+                     (concat (assign "page-this-header" "")
+                       (assign "page-this-footer"
+                         (concat (no-indent) (htab "5mm") (page-number) (htab "5mm"))
+                       ) ;assign
+                     ) ;concat
+                   ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Further table macros."))))
+          (assign "description-table"
+            (macro "body"
+              (tformat (twith "table-width" "1par")
+                (twith "table-hmode" "exact")
+                (twith "table-block" "yes")
+                (twith "table-min-cols" "2")
+                (cwith "1" "-1" "2" "-1" "cell-hyphen" "t")
+                (cwith "1" "-1" "1" "-1" "cell-hpart" "0.001")
+                (cwith "1" "-1" "1" "1" "cell-lsep" "0fn")
+                (cwith "1" "-1" "-1" "-1" "cell-rsep" "0fn")
+                (cwith "1" "-2" "1" "-1" "cell-bsep" (value "par-par-sep"))
+                (cwith "2" "-1" "1" "-1" "cell-tsep" (value "par-sep"))
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "prefixed-line"
+            (macro "prefix"
+              "body"
+              (document (with "par-first"
+                          "0fn"
+                          (document (description-table (document (tformat (twith "table-valign" "T")
+                                                                   (twith "table-hmode" "min")
+                                                                   (cwith "1" "-1" "1" "-1" "cell-lsep" "0em")
+                                                                   (cwith "1" "-1" "1" "-1" "cell-rsep" "0em")
+                                                                   (cwith "1" "1" "1" "-1" "cell-tsep" "0em")
+                                                                   (cwith "-1" "-1" "1" "-1" "cell-bsep" "0em")
+                                                                   (cwith "1" "-1" "1" "-1" "cell-vcorrect" "n")
+                                                                   (table (row (cell (arg "prefix")) (cell (document (arg "body")))))
+                                                                 ) ;tformat
+                                                       ) ;document
+                                    ) ;description-table
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "alt-prefixed-line"
+            (macro "prefix"
+              "body"
+              (with "p"
+                (times (look-up (box-info (arg "prefix") "w") "0") "1tmpt")
+                (with "par-left"
+                  (plus (value "par-left") (value "p"))
+                  "par-first"
+                  (minus (value "p"))
+                  (surround (concat (yes-indent) (arg "prefix")) "" (arg "body"))
+                ) ;with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Other macros."))))
+          (assign "localize"
+            (macro "text" (translate (arg "text") "english" (value "language")))
+          ) ;assign
+          (assign "language-suffix" (macro (extern "ext-language-suffix")))
+          (assign "map" (macro "fun" "args" (extern "ext-map" (arg "fun") (arg "args"))))
+          (assign "concat-tuple"
+            (macro "args"
+              "sep"
+              "fin"
+              (extern "ext-concat-tuple" (arg "args") (arg "sep") (arg "fin"))
+            ) ;macro
+          ) ;assign
+          (assign "comma-separated" (xmacro "x" (concat-tuple (quote-arg "x") ", ")))
+          (assign "semicolon-separated" (xmacro "x" (concat-tuple (quote-arg "x") "; ")))
+          (drd-props "comma-separated"
+            "arity"
+            (tuple "repeat" "1" "1")
+            "accessible"
+            "all"
+          ) ;drd-props
+          (drd-props "semicolon-separated"
+            "arity"
+            (tuple "repeat" "1" "1")
+            "accessible"
+            "all"
+          ) ;drd-props
+          (assign "tm-ref"
+            (xmacro "x"
+              (extern "ext-tm-ref" (quote-arg "x" "0") (map-args "identity" "tuple" "x" "1"))
+            ) ;xmacro
+          ) ;assign
+          (assign "tm-arity"
+            (xmacro "x"
+              (extern "ext-tm-arity"
+                (quote-arg "x" "0")
+                (map-args "identity" "tuple" "x" "1")
+              ) ;extern
+            ) ;xmacro
+          ) ;assign
+          (assign "tm-index"
+            (xmacro "x"
+              (extern "ext-tm-index"
+                (quote-arg "x" "0")
+                (map-args "identity" "tuple" "x" "1")
+              ) ;extern
+            ) ;xmacro
+          ) ;assign
+          (assign "tm-last?"
+            (xmacro "x"
+              (extern "ext-tm-last?"
+                (quote-arg "x" "0")
+                (map-args "identity" "tuple" "x" "1")
+              ) ;extern
+            ) ;xmacro
+          ) ;assign
+          (assign "tm-ref-example"
+            (macro "body" (quasi (tm-ref (unquote (quote-arg "body")) "0")))
+          ) ;assign
+          (drd-props "tm-ref" "arity" (tuple "repeat" "1" "1"))
+          (drd-props "tm-arity" "arity" (tuple "repeat" "1" "1"))
+          (drd-props "tm-index" "arity" (tuple "repeat" "1" "1"))
+          (drd-props "tm-last?" "arity" (tuple "repeat" "1" "1"))
+          (assign "prepend-space" (macro "x" (concat " " (arg "x"))))
+          (assign "space-separated"
+            (xmacro "items"
+              (concat (arg "items" "0") (map-args "prepend-space" "concat" "items" "1"))
+            ) ;xmacro
+          ) ;assign
+          (assign "document-bis"
+            (xmacro "items" (map-args "identity" "document" "items"))
+          ) ;assign
+          (assign "font-magnify"
+            (macro "factor"
+              "body"
+              (with "font-size" (times (value "font-size") (arg "factor")) (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "hidden-title" (macro "title" ""))
+          (assign "inline-block"
+            (macro "body"
+              (tabular (tformat (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
+                         (twith "table-width" "1par")
+                         (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
+                         (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                         (table (row (cell (document (arg "body")))))
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

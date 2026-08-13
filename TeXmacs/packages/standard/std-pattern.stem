@@ -1,0 +1,145 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-pattern.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "1.0.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-pattern" "1.0")
+                                        (src-purpose (document "Macros for rendering patterns and pattern-based transformations")
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (assign "pat-or*"
+            (macro "x"
+              (concat (active* (with "color" "dark magenta" "mode" "math" "<vee>")) (arg "x"))
+            ) ;macro
+          ) ;assign
+          (assign "pat-or"
+            (xmacro "x"
+              (concat (active* (with "color" "dark magenta" "("))
+                (arg "x" "0")
+                (map-args "pat-or*" "concat" "x" "1")
+                (active* (with "color" "dark magenta" ")"))
+              ) ;concat
+            ) ;xmacro
+          ) ;assign
+          (assign "pat-and*"
+            (macro "x"
+              (concat (active* (with "color" "dark magenta" "mode" "math" "<wedge>"))
+                (arg "x")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "pat-and"
+            (xmacro "x"
+              (concat (active* (with "color" "dark magenta" "("))
+                (arg "x" "0")
+                (map-args "pat-and*" "concat" "x" "1")
+                (active* (with "color" "dark magenta" ")"))
+              ) ;concat
+            ) ;xmacro
+          ) ;assign
+          (assign "pat-and-not"
+            (macro "x"
+              "y"
+              (concat (active* (with "color" "dark magenta" "("))
+                (arg "x")
+                (active* (with "color" "dark magenta" "mode" "math" "\\\\"))
+                (arg "y")
+                (active* (with "color" "dark magenta" ")"))
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "pat-group*"
+            (macro "x"
+              (concat (active* (with "color" "dark magenta" "mode" "math" "|")) (arg "x"))
+            ) ;macro
+          ) ;assign
+          (assign "pat-group"
+            (xmacro "x"
+              (concat (active* (with "color" "dark magenta" "mode" "math" "("))
+                (arg "x" "0")
+                (map-args "pat-group*" "concat" "x" "1")
+                (active* (with "color" "dark magenta" "mode" "math" ")"))
+              ) ;concat
+            ) ;xmacro
+          ) ;assign
+          (assign "pat-compound*"
+            (macro "x"
+              (concat (active* (with "color" "dark magenta" "mode" "math" "|")) (arg "x"))
+            ) ;macro
+          ) ;assign
+          (assign "pat-compound"
+            (xmacro "x"
+              (concat (active* (with "color"
+                                 "dark magenta"
+                                 (concat (with "mode" "math" "<langle>")
+                                   (with "font-family" "ss" (inactive* (arg "x" "0")))
+                                 ) ;concat
+                               ) ;with
+                      ) ;active*
+                (map-args "pat-compound*" "concat" "x" "1")
+                (active* (with "color" "dark magenta" "mode" "math" "<rangle>"))
+              ) ;concat
+            ) ;xmacro
+          ) ;assign
+          (assign "pat-repeat"
+            (macro "x"
+              (concat (arg "x")
+                (active* (with "color" "dark magenta" "mode" "math" (rsup "<ast>")))
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "pat-any"
+            (macro (active* (with "color" "magenta" "mode" "math" (rigid "<ast>"))))
+          ) ;assign
+          (assign "pat-several-any"
+            (macro "nr"
+              (concat (pat-any)
+                (active* (with "color" "dark magenta" "mode" "math" (rsup (inactive* (arg "nr"))))
+                ) ;active*
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "pat-repeat-any" (macro (pat-repeat (pat-any))))
+          (assign "pat-quote"
+            (macro "x" (with "color" "magenta" "font-shape" "italic" (arg "x")))
+          ) ;assign
+          (assign "pat-range"
+            (macro "start"
+              "end"
+              (concat (active* (with "color" "dark magenta" "("))
+                (arg "start")
+                (active* (with "color" "dark magenta" "–"))
+                (arg "end")
+                (active* (with "color" "dark magenta" ")"))
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "pat-match"
+            (macro "x"
+              (concat (arg "x") (active* (with "color" "dark magenta" "mode" "math" "?")))
+            ) ;macro
+          ) ;assign
+          (assign "pat-replace"
+            (macro "x"
+              (concat (arg "x") (active* (with "color" "dark magenta" "mode" "math" "!")))
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "select"
+            (xmacro "x" (extern "ext-select" (arg "x" "0") (quote-arg "x")))
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

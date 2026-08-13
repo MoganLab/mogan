@@ -1,0 +1,209 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-symbol.stem
+;; COPYRIGHT   : (C) 1998--2025  Joris van der Hoeven, Darcy Shen
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-symbol" "1.0")
+                                        (src-purpose (document "Some additional symbols for text mode. This file should become obsolete when better support for Unicode will be implemented."
+                                                     ) ;document
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (assign "cent"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ć")
+                              (with "mode" "text" "font" "tc" "ć")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "currency"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ď")
+                              (with "mode" "text" "font" "tc" "ď")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "yen"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ě")
+                              (with "mode" "text" "font" "tc" "ě")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "copyright"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tcx" "ľ")
+                              (with "mode" "text" "font" "tcx" "ľ")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "copyleft"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tcx" "ń")
+                              (with "mode" "text" "font" "tcx" "ń")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "registered"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tcx" "ő")
+                              (with "mode" "text" "font" "tcx" "ő")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "degreesign"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ř")
+                              (with "mode" "text" "font" "tc" "ř")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "twosuperior"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "š")
+                              (with "mode" "text" "font" "tc" "š")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "threesuperior"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ş")
+                              (with "mode" "text" "font" "tc" "ş")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "onesuperior"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ź")
+                              (with "mode" "text" "font" "tc" "ź")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "mu"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tcx" "ţ")
+                              (with "mode" "text" "font" "tcx" "ţ")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "paragraphsign"
+            (active* (macro (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ű")
+                              (with "mode" "text" "font" "tc" "ű")
+                            ) ;if
+                     ) ;macro
+            ) ;active*
+          ) ;assign
+          (assign "onequarter"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "ĳ")
+                              (with "mode" "text" "font" "tc" "ĳ")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "onehalf"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "¡")
+                              (with "mode" "text" "font" "tc" "¡")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "threequarters"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tc" "¿")
+                              (with "mode" "text" "font" "tc" "¿")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "euro"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tcx" "£")
+                              (with "mode" "text" "font" "tcx" "£")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "trademark"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "mode" "text" "font" "tcx" "Ů")
+                              (with "mode" "text" "font" "tcx" "Ů")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "emdash"
+            (macro (active* (if (equal (value "mode") "math")
+                              (with "mode" "text" "font" "roman" "—")
+                              (with "font" "roman" "—")
+                            ) ;if
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "masculine" (active* (rsup (wide* "o" "<wide-bar>"))))
+          (assign "pandocbounded" (macro "body" "arg" (arg "body")))
+          (assign "ordfeminine" (active* (rsup (wide* "a" "<wide-bar>"))))
+          (assign "varmasculine" (active* (rsup "o")))
+          (assign "varordfeminine" (active* (rsup "a")))
+          (assign "textless" "<less>")
+          (assign "textgreater" "<gtr>")
+          (assign "textbar" "|")
+          (assign "textasciitilde" "~")
+          (assign "iint" (macro (big "iint")))
+          (assign "iiint" (macro (big "iiint")))
+          (assign "oint" (macro (big "oint")))
+          (assign "oiint" (macro (big "oiint")))
+          (assign "idotsint" (macro (big "idotsint")))
+          (assign "nbsp-color" (value "bg-color"))
+          (assign "nbsp"
+            (macro (concat " "
+                     (no-break)
+                     (specific "screen"
+                       (resize (move (with "color" (value "nbsp-color") "-") "-0.3em" "")
+                         "0em"
+                         ""
+                         "0em"
+                         ""
+                       ) ;resize
+                     ) ;specific
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "nbhyph" (macro (concat "-" (no-break))))
+          (assign "boxed" (macro "x" (ornament (arg "x"))))
+          (assign "textquotesingle" "'")
+          (assign "mathscr" (macro "body" (with "font" "cal*" (arg "body"))))
+          (assign "textendash" "–")
+          (assign "textemdash" "—")
+          (assign "mathbfcal"
+            (macro "var" (with "font" "cal" (with "font-series" "bold" (arg "var"))))
+          ) ;assign
+          (assign "bold" (macro "x" (with "font-series" "bold" (arg "x"))))
+          (assign "italic" (macro "x" (with "font-shape" "italic" (arg "x"))))
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

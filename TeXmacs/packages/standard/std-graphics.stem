@@ -1,0 +1,691 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-graphics.stem
+;; COPYRIGHT   : (C) 2005--2012  Joris van der Hoeven, Henri Lesourd
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "1.99.13")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-graphics" "1.0")
+                                        (src-purpose (document "Macros for graphics."))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Drawing over background."))))
+          (assign "gr-geom"
+            (macro "dims"
+              "cm-1"
+              (style-with "src-compact"
+                "none"
+                (tuple "geometry"
+                  (merge (times (look-up (arg "dims") "0") (arg "cm-1")) "cm")
+                  (merge (times (look-up (arg "dims") "1") (arg "cm-1")) "cm")
+                ) ;tuple
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "gr-tbl"
+            (macro "x"
+              (block (tformat (cwith "1" "1" "1" "1" "cell-lsep" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-rsep" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-bsep" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-tsep" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-lborder" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-rborder" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-bborder" "0pt")
+                       (cwith "1" "1" "1" "1" "cell-tborder" "0pt")
+                       (table (row (cell (arg "x"))))
+                     ) ;tformat
+              ) ;block
+            ) ;macro
+          ) ;assign
+          (assign "draw-over"
+            (macro "bg"
+              "fg"
+              "pad"
+              (with "dims"
+                (box-info (gr-tbl (arg "bg")) "wh")
+                "cm-1"
+                (over (look-up (cm-length) "0"))
+                (with "ww"
+                  (look-up (value "dims") "0")
+                  "hh"
+                  (look-up (value "dims") "1")
+                  "pd"
+                  (over (arg "pad") "0.5tmpt")
+                  (with "gr-geometry"
+                    (gr-geom (tuple (plus (value "ww") (value "pd")) (plus (value "hh") (value "pd")))
+                      (value "cm-1")
+                    ) ;gr-geom
+                    "gr-frame"
+                    (tuple "scale" (merge (value "magnification") "cm") (tuple "0.5gw" "0.5gh"))
+                    (style-with "src-compact"
+                      "none"
+                      (superpose (freeze (gr-tbl (concat (if (equal (quote-arg "bg") "") (flag "draw over" "blue")) (arg "bg"))
+                                         ) ;gr-tbl
+                                 ) ;freeze
+                        (resize (move (gr-tbl (arg "fg")) (minus (arg "pad")) "")
+                          "0"
+                          (plus "0.5ex" (times (value "hh") "-0.5tmpt"))
+                          (times (value "ww") "1tmpt")
+                          (plus "0.5ex" (times (value "hh") "0.5tmpt"))
+                        ) ;resize
+                      ) ;superpose
+                    ) ;style-with
+                  ) ;with
+                ) ;with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "draw-under"
+            (macro "bg"
+              "fg"
+              "pad"
+              (with "dims"
+                (box-info (gr-tbl (arg "bg")) "wh")
+                "cm-1"
+                (over (look-up (cm-length) "0"))
+                (with "ww"
+                  (look-up (value "dims") "0")
+                  "hh"
+                  (look-up (value "dims") "1")
+                  "pd"
+                  (over (arg "pad") "0.5tmpt")
+                  (with "gr-geometry"
+                    (gr-geom (tuple (plus (value "ww") (value "pd")) (plus (value "hh") (value "pd")))
+                      (value "cm-1")
+                    ) ;gr-geom
+                    "gr-frame"
+                    (tuple "scale" (merge (value "magnification") "cm") (tuple "0.5gw" "0.5gh"))
+                    (style-with "src-compact"
+                      "none"
+                      (superpose (gr-tbl (concat (if (equal (quote-arg "bg") "") (flag "draw over" "blue")) (arg "bg"))
+                                 ) ;gr-tbl
+                        (freeze (resize (move (gr-tbl (arg "fg")) (minus (arg "pad")) "")
+                                  "0"
+                                  (plus "0.5ex" (times (value "hh") "-0.5tmpt"))
+                                  (times (value "ww") "1tmpt")
+                                  (plus "0.5ex" (times (value "hh") "0.5tmpt"))
+                                ) ;resize
+                        ) ;freeze
+                      ) ;superpose
+                    ) ;style-with
+                  ) ;with
+                ) ;with
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (drd-props "draw-over" "arity" "3" "length" "2")
+          (drd-props "draw-under" "arity" "3" "length" "2")
+          (active* (document (src-comment (document "Paragraph boxes for inside text-at boxes")))
+          ) ;active*
+          (assign "hpar-length"
+            (macro (over (minus "1par" (value "par-columns-sep")) "2"))
+          ) ;assign
+          (assign "paragraph-box"
+            (macro "body"
+              (tabular (tformat (cwith "1" "1" "1" "1" "cell-lsep" (value "doc-at-padding"))
+                         (cwith "1" "1" "1" "1" "cell-rsep" (value "doc-at-padding"))
+                         (cwith "1" "1" "1" "1" "cell-bsep" (value "doc-at-padding"))
+                         (cwith "1" "1" "1" "1" "cell-tsep" (value "doc-at-padding"))
+                         (twith "table-width" (value "doc-at-width"))
+                         (twith "table-hmode" (value "doc-at-hmode"))
+                         (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                         (cwith "1" "1" "1" "1" "cell-background" (value "fill-color"))
+                         (cwith "1" "1" "1" "1" "cell-tborder" (value "doc-at-border"))
+                         (cwith "1" "1" "1" "1" "cell-bborder" (value "doc-at-border"))
+                         (cwith "1" "1" "1" "1" "cell-lborder" (value "doc-at-border"))
+                         (cwith "1" "1" "1" "1" "cell-rborder" (value "doc-at-border"))
+                         (table (row (cell (document (with "par-par-sep"
+                                                       (if (equal (value "doc-at-ppsep") "")
+                                                         (value "par-par-sep")
+                                                         (value "doc-at-ppsep")
+                                                       ) ;if
+                                                       (document (arg "body"))
+                                                     ) ;with
+                                           ) ;document
+                                     ) ;cell
+                                ) ;row
+                         ) ;table
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Predefined useful objects."))))
+          (assign "rectangle"
+            (macro "p1"
+              "p2"
+              (document (cline (arg "p1")
+                          (point (look-up (arg "p1") "0") (look-up (arg "p2") "1"))
+                          (arg "p2")
+                          (point (look-up (arg "p2") "0") (look-up (arg "p1") "1"))
+                        ) ;cline
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "circle" (macro "p1" "p2" (extern "circle" (arg "p1") (arg "p2"))))
+          (assign "std-arc"
+            (macro "p1" "p2" "p3" (extern "std-arc" (arg "p1") (arg "p2") (arg "p3")))
+          ) ;assign
+          (assign "std-arc-counterclockwise"
+            (macro "p1"
+              "p2"
+              "p3"
+              (extern "std-arc-counterclockwise" (arg "p1") (arg "p2") (arg "p3"))
+            ) ;macro
+          ) ;assign
+          (assign "sector"
+            (macro "p1" "p2" "p3" (extern "sector" (arg "p1") (arg "p2") (arg "p3")))
+          ) ;assign
+          (assign "sector-counterclockwise"
+            (macro "p1"
+              "p2"
+              "p3"
+              (extern "sector-counterclockwise" (arg "p1") (arg "p2") (arg "p3"))
+            ) ;macro
+          ) ;assign
+          (assign "arrow-with-text"
+            (macro "p1"
+              "p2"
+              "t"
+              (extern "arrow-with-text" (arg "p1") (arg "p2") (quote-arg "t"))
+            ) ;macro
+          ) ;assign
+          (assign "arrow-with-text*"
+            (macro "p1"
+              "p2"
+              "t"
+              (extern "arrow-with-text*" (arg "p1") (arg "p2") (quote-arg "t"))
+            ) ;macro
+          ) ;assign
+          (drd-props "arrow-with-text" "arity" "3" "accessible" "2")
+          (drd-props "arrow-with-text*" "arity" "3" "accessible" "2")
+          (active* (document (src-comment (document "Transformations"))))
+          (assign "rotate"
+            (macro "angle"
+              "body"
+              (gr-transform (arg "body") (tuple "rotation" (arg "angle")))
+            ) ;macro
+          ) ;assign
+          (assign "rotate-at"
+            (macro "angle"
+              "x"
+              "y"
+              "body"
+              (gr-transform (arg "body")
+                (tuple "rotation"
+                  (point (over (arg "x") "1tmpt") (over (arg "y") "1tmpt"))
+                  (arg "angle")
+                ) ;tuple
+              ) ;gr-transform
+            ) ;macro
+          ) ;assign
+          (assign "dilate"
+            (macro "x-factor"
+              "y-factor"
+              "body"
+              (gr-transform (arg "body") (tuple "scaling" (arg "x-factor") (arg "y-factor")))
+            ) ;macro
+          ) ;assign
+          (assign "skew"
+            (macro "slant"
+              "body"
+              (gr-transform (arg "body") (tuple "slanting" (arg "slant")))
+            ) ;macro
+          ) ;assign
+          (assign "linear-2d"
+            (macro "a"
+              "b"
+              "c"
+              "d"
+              "body"
+              (gr-transform (arg "body")
+                (tuple "linear" (arg "a") (arg "b") (arg "c") (arg "d"))
+              ) ;gr-transform
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Blur effect"))))
+          (assign "blur-pen-width" "1ln")
+          (assign "blur-pen-height" "1ln")
+          (assign "blur-pen-angle" "0")
+          (assign "blur-pen-dx" "1ln")
+          (assign "blur-pen-dy" "1ln")
+          ""
+          (assign "blur" (macro "body" (gaussian-blur (arg "body"))))
+          (assign "gaussian-blur"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-blur "0"
+                  (eff-gaussian (value "blur-pen-width")
+                    (value "blur-pen-height")
+                    (over (value "blur-pen-angle") "57.2957795131")
+                  ) ;eff-gaussian
+                ) ;eff-blur
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "oval-blur"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-blur "0"
+                  (eff-oval (value "blur-pen-width")
+                    (value "blur-pen-height")
+                    (over (value "blur-pen-angle") "57.2957795131")
+                  ) ;eff-oval
+                ) ;eff-blur
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "rectangular-blur"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-blur "0"
+                  (eff-rectangular (value "blur-pen-width")
+                    (value "blur-pen-height")
+                    (over (value "blur-pen-angle") "57.2957795131")
+                  ) ;eff-rectangular
+                ) ;eff-blur
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "motion-blur"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-blur "0" (eff-motion (value "blur-pen-dx") (value "blur-pen-dy")))
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Outline effect"))))
+          (assign "outline-pen-width" "0.5ln")
+          (assign "outline-pen-height" "0.5ln")
+          (assign "outline-pen-angle" "0")
+          (assign "outline-pen-dx" "1ln")
+          (assign "outline-pen-dy" "1ln")
+          ""
+          (assign "outline" (macro "body" (oval-outline (arg "body"))))
+          (assign "gaussian-outline"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-outline "0"
+                  (eff-gaussian (value "outline-pen-width")
+                    (value "outline-pen-height")
+                    (over (value "outline-pen-angle") "57.2957795131")
+                  ) ;eff-gaussian
+                ) ;eff-outline
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "oval-outline"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-outline "0"
+                  (eff-oval (value "outline-pen-width")
+                    (value "outline-pen-height")
+                    (over (value "outline-pen-angle") "57.2957795131")
+                  ) ;eff-oval
+                ) ;eff-outline
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "rectangular-outline"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-outline "0"
+                  (eff-rectangular (value "outline-pen-width")
+                    (value "outline-pen-height")
+                    (over (value "outline-pen-angle") "57.2957795131")
+                  ) ;eff-rectangular
+                ) ;eff-outline
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "motion-outline"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-outline "0" (eff-motion (value "outline-pen-dx") (value "outline-pen-dy")))
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Thicken effect"))))
+          (assign "thicken-pen-width" "1ln")
+          (assign "thicken-pen-height" "1ln")
+          (assign "thicken-pen-angle" "0")
+          (assign "thicken-pen-dx" "1ln")
+          (assign "thicken-pen-dy" "1ln")
+          ""
+          (assign "thicken" (macro "body" (rectangular-thicken (arg "body"))))
+          (assign "gaussian-thicken"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-thicken "0"
+                  (eff-gaussian (value "thicken-pen-width")
+                    (value "thicken-pen-height")
+                    (over (value "thicken-pen-angle") "57.2957795131")
+                  ) ;eff-gaussian
+                ) ;eff-thicken
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "oval-thicken"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-thicken "0"
+                  (eff-oval (value "thicken-pen-width")
+                    (value "thicken-pen-height")
+                    (over (value "thicken-pen-angle") "57.2957795131")
+                  ) ;eff-oval
+                ) ;eff-thicken
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "rectangular-thicken"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-thicken "0"
+                  (eff-rectangular (value "thicken-pen-width")
+                    (value "thicken-pen-height")
+                    (over (value "thicken-pen-angle") "57.2957795131")
+                  ) ;eff-rectangular
+                ) ;eff-thicken
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "motion-thicken"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-thicken "0" (eff-motion (value "thicken-pen-dx") (value "thicken-pen-dy")))
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Erode effect"))))
+          (assign "erode-pen-width" "0.5ln")
+          (assign "erode-pen-height" "0.5ln")
+          (assign "erode-pen-angle" "0")
+          (assign "erode-pen-dx" "1ln")
+          (assign "erode-pen-dy" "1ln")
+          ""
+          (assign "erode" (macro "body" (rectangular-erode (arg "body"))))
+          (assign "gaussian-erode"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-erode "0"
+                  (eff-gaussian (value "erode-pen-width")
+                    (value "erode-pen-height")
+                    (over (value "erode-pen-angle") "57.2957795131")
+                  ) ;eff-gaussian
+                ) ;eff-erode
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "oval-erode"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-erode "0"
+                  (eff-oval (value "erode-pen-width")
+                    (value "erode-pen-height")
+                    (over (value "erode-pen-angle") "57.2957795131")
+                  ) ;eff-oval
+                ) ;eff-erode
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "rectangular-erode"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-erode "0"
+                  (eff-rectangular (value "erode-pen-width")
+                    (value "erode-pen-height")
+                    (over (value "erode-pen-angle") "57.2957795131")
+                  ) ;eff-rectangular
+                ) ;eff-erode
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "motion-erode"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-erode "0" (eff-motion (value "erode-pen-dx") (value "erode-pen-dy")))
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Further effects"))))
+          (assign "shadow-dx" "-1ln")
+          (assign "shadow-dy" "-1ln")
+          (assign "shadow-color" "grey")
+          (assign "shadow-blur-radius" "1ln")
+          (assign "eff-shadow"
+            (macro "eff"
+              "dx"
+              "dy"
+              "col"
+              "r"
+              (eff-blur (eff-monochrome (eff-move "0" (arg "dx") (arg "dy")) (arg "col") "1")
+                (eff-gaussian (arg "r"))
+              ) ;eff-blur
+            ) ;macro
+          ) ;assign
+          (assign "shadow"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose (eff-blur (eff-monochrome (eff-move "0" (minus (value "shadow-dx")) (minus (value "shadow-dy")))
+                                           (value "shadow-color")
+                                           "1"
+                                         ) ;eff-monochrome
+                                 (eff-gaussian (value "shadow-blur-radius"))
+                               ) ;eff-blur
+                  "0"
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "shadowed-raise"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose (eff-blur (eff-monochrome "0" (value "shadow-color") "1")
+                                 (eff-gaussian (value "shadow-blur-radius"))
+                               ) ;eff-blur
+                  (eff-move "0" (value "shadow-dx") (value "shadow-dy"))
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "engrave-dx" "0.5ln")
+          (assign "engrave-dy" "0.5ln")
+          (assign "engrave-color" "grey")
+          (assign "engrave"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose "0"
+                  (eff-monochrome (eff-sub "0"
+                                    (eff-erode "0" (eff-motion (value "engrave-dx") (value "engrave-dy")))
+                                  ) ;eff-sub
+                    (value "engrave-color")
+                    "1"
+                  ) ;eff-monochrome
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "outlined-engrave"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose (eff-outline "0"
+                                 (eff-oval (value "outline-pen-width")
+                                   (value "outline-pen-height")
+                                   (over (value "outline-pen-angle") "57.2957795131")
+                                 ) ;eff-oval
+                               ) ;eff-outline
+                  (eff-erode "0" (eff-motion (value "engrave-dx") (value "engrave-dy")))
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "emboss-dx" "-1.5ln")
+          (assign "emboss-dy" "-1.5ln")
+          (assign "emboss-color" "grey")
+          (assign "emboss"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose (eff-monochrome (eff-thicken "0" (eff-motion (value "emboss-dx") (value "emboss-dy")))
+                                 (value "emboss-color")
+                                 "1"
+                               ) ;eff-monochrome
+                  (eff-move "0" (value "emboss-dx") (value "emboss-dy"))
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "outlined-emboss"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose (eff-outline (eff-thicken "0" (eff-motion (value "emboss-dx") (value "emboss-dy")))
+                                 (eff-oval (value "outline-pen-width")
+                                   (value "outline-pen-height")
+                                   (over (value "outline-pen-angle") "57.2957795131")
+                                 ) ;eff-oval
+                               ) ;eff-outline
+                  (eff-move "0" (value "emboss-dx") (value "emboss-dy"))
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Degradation, distortion and gnawing")))
+          ) ;active*
+          (assign "degrade-wavelen-x" "0.25fn")
+          (assign "degrade-wavelen-y" "0.25fn")
+          (assign "degrade-threshold" "0.667")
+          (assign "degrade-sharpness" "1.0")
+          (assign "degrade"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-degrade "0"
+                  (value "degrade-wavelen-x")
+                  (value "degrade-wavelen-y")
+                  (value "degrade-threshold")
+                  (value "degrade-sharpness")
+                ) ;eff-degrade
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "distort-wavelen-x" "0.25fn")
+          (assign "distort-wavelen-y" "0.25fn")
+          (assign "distort-radius-x" "0.1fn")
+          (assign "distort-radius-y" "0.1fn")
+          (assign "distort"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-distort "0"
+                  (value "distort-wavelen-x")
+                  (value "distort-wavelen-y")
+                  (value "distort-radius-x")
+                  (value "distort-radius-y")
+                ) ;eff-distort
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "gnaw-wavelen-x" "0.25fn")
+          (assign "gnaw-wavelen-y" "0.25fn")
+          (assign "gnaw-radius-x" "0.1fn")
+          (assign "gnaw-radius-y" "0.1fn")
+          (assign "gnaw"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-gnaw "0"
+                  (value "gnaw-wavelen-x")
+                  (value "gnaw-wavelen-y")
+                  (value "gnaw-radius-x")
+                  (value "gnaw-radius-y")
+                ) ;eff-gnaw
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Color effects"))))
+          (assign "make-transparent-bg-color" "white")
+          (assign "make-transparent-threshold" "0.1")
+          (assign "make-transparent"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-make-transparent "0"
+                  (value "make-transparent-bg-color")
+                  (value "make-transparent-threshold")
+                ) ;eff-make-transparent
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "make-opaque-bg-color" "white")
+          (assign "make-opaque"
+            (macro "body"
+              (gr-effect (arg "body") (eff-make-opaque "0" (value "make-opaque-bg-color")))
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "recolor-color" "black")
+          (assign "recolor"
+            (macro "body"
+              (gr-effect (arg "body") (eff-recolor "0" (value "recolor-color")))
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "skin-color" "#0004")
+          (assign "skin"
+            (macro "body" (gr-effect (arg "body") (eff-skin "0" (value "skin-color"))))
+          ) ;assign
+          (active* (document (src-comment (document "Miscellaneous effects"))))
+          (assign "no-effect" (macro "body" (gr-effect (arg "body") "0")))
+          (assign "burning"
+            (macro "body"
+              (gr-effect (arg "body")
+                (eff-superpose (eff-shadow "0" "0.1ex" "0.9ex" "#f20" "0.9ex")
+                  (eff-shadow "0" "-0.1ex" "0.75ex" "#f80" "0.55ex")
+                  (eff-shadow "0" "0.2ex" "0.5ex" "#fd3" "0.3ex")
+                  (eff-shadow "0" "0ex" "0.25ex" "#ff3" "0.2ex")
+                  (eff-shadow "0" "0ex" "0ex" "#ccc" "0.2ex")
+                  "0"
+                ) ;eff-superpose
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "bubble"
+            (macro "body"
+              "r"
+              "lambda"
+              (gr-effect (arg "body") (eff-bubble "0" (arg "r") (arg "lambda")))
+            ) ;macro
+          ) ;assign
+          (assign "turbulence"
+            (macro "body"
+              "seed"
+              "w"
+              "h"
+              "octaves"
+              (gr-effect (arg "body")
+                (eff-turbulence "0" (arg "seed") (arg "w") (arg "h") (arg "octaves"))
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          (assign "fractal-noise"
+            (macro "body"
+              "seed"
+              "w"
+              "h"
+              "octaves"
+              (gr-effect (arg "body")
+                (eff-fractal-noise "0" (arg "seed") (arg "w") (arg "h") (arg "octaves"))
+              ) ;gr-effect
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

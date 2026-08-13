@@ -1,0 +1,555 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-list.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std" "english"))
+  (body (document (active* (src-title (document (src-package "std-list" "1.3")
+                                        (src-purpose (document "Standard list environments"))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Customizable ways to render items.")))
+          ) ;active*
+          (assign "item-hsep" (macro "3fn"))
+          (assign "item-vsep" (macro "0fn"))
+          (assign "aligned-item"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (concat (vspace* (item-vsep))
+                  (with "par-first" (minus (item-hsep)) (yes-indent))
+                  (resize (arg "name")
+                    (minus "1r" (minus (item-hsep) "0.5fn"))
+                    ""
+                    (plus "1r" "0.5fn")
+                    ""
+                  ) ;resize
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "compact-item"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (concat (vspace* (item-vsep))
+                  (with "par-first" (minus (over (item-hsep) "2")) (yes-indent))
+                  (resize (arg "name") "" "" (maximum "1r" (over (item-hsep) "2")) "")
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Further variants for rendering items which should not be customized."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "item-spc" (macro ""))
+          (assign "item-strong"
+            (macro "name"
+              (with "font-series" "bold" "math-font-series" "bold" (arg "name"))
+            ) ;macro
+          ) ;assign
+          (assign "item-long" (macro "name" (concat (arg "name") (next-line))))
+          (assign "aligned-space-item"
+            (macro "name" (aligned-item (concat (arg "name") "  ")))
+          ) ;assign
+          (assign "aligned-dot-item"
+            (macro "name" (aligned-item (concat (arg "name") "." (item-spc))))
+          ) ;assign
+          (assign "aligned-comma-item"
+            (macro "name" (aligned-item (concat (arg "name") "、" (item-spc))))
+          ) ;assign
+          (assign "aligned-bracket-item"
+            (macro "name"
+              (aligned-item (concat (arg "name") (with "font-shape" "right" ")") (item-spc)))
+            ) ;macro
+          ) ;assign
+          (assign "aligned-paren-item"
+            (macro "name" (aligned-item (concat "(" (arg "name") ")" (item-spc))))
+          ) ;assign
+          (assign "aligned-full-paren-item"
+            (macro "name" (aligned-item (concat "(" (arg "name") ")" (item-spc))))
+          ) ;assign
+          (assign "aligned-strong-dot-item"
+            (macro "name" (aligned-item (item-strong (concat (arg "name") "." (item-spc)))))
+          ) ;assign
+          (assign "compact-space-item"
+            (macro "name" (compact-item (concat (arg "name") "  ")))
+          ) ;assign
+          (assign "compact-strong-space-item"
+            (macro "name" (compact-item (item-strong (concat (arg "name") "  "))))
+          ) ;assign
+          (assign "compact-strong-dot-item"
+            (macro "name" (compact-item (item-strong (concat (arg "name") ". "))))
+          ) ;assign
+          (assign "compact-strong-dot-item*"
+            (macro "name"
+              (concat (no-indent)
+                (move (item-strong (concat (arg "name") ".")) "-1.5fn" "0fn")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "compact-strong-dash-item"
+            (macro "name"
+              (compact-item (concat (item-strong (arg "name")) " " (emdash) " "))
+            ) ;macro
+          ) ;assign
+          (assign "long-compact-strong-dot-item"
+            (macro "name"
+              (item-long (concat (no-indent)
+                           (move (item-strong (concat (arg "name") ".")) "-1.5fn" "0fn")
+                         ) ;concat
+              ) ;item-long
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document (concat "The main item tags; "
+                                                      (verbatim "current-item")
+                                                      " and "
+                                                      (verbatim "transform-item")
+                                                      " are locally changed inside lists."
+                                                    ) ;concat
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (new-counter "item")
+          (assign "last-item"
+            (active* (with "mode"
+                       "math"
+                       (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                     ) ;with
+            ) ;active*
+          ) ;assign
+          (assign "last-item-nr" "0")
+          (assign "current-item" (value "aligned-space-item"))
+          (assign "transform-item"
+            (macro "name"
+              (active* (with "mode"
+                         "math"
+                         (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                       ) ;with
+              ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "the-item" (macro (transform-item (value (counter-item)))))
+          (assign "render-item"
+            (macro "name"
+              (concat (assign "last-item" (arg "name")) (current-item (arg "name")))
+            ) ;macro
+          ) ;assign
+          (assign "item*"
+            (macro "name"
+              (concat (render-item (arg "name"))
+                (with "index-enabled" "false" (set-binding (arg "name")))
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "item"
+            (macro (concat (next-item)
+                     (assign "last-item-nr" (value "item-nr"))
+                     (render-item (the-item))
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Rendering of list environments."))))
+          (assign "render-list"
+            (macro "body"
+              (document (padded-normal (item-vsep)
+                          (item-vsep)
+                          (document (indent-left (item-hsep)
+                                      (document (surround (no-page-break*) (no-indent*) (arg "body")))
+                                    ) ;indent-left
+                          ) ;document
+                        ) ;padded-normal
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "list-depth" "0")
+          (assign "list"
+            (macro "item-render"
+              "item-transform"
+              "body"
+              (document (with "current-item"
+                          (arg "item-render")
+                          "transform-item"
+                          (arg "item-transform")
+                          "list-depth"
+                          (plus (value "list-depth") "1")
+                          "item-nr"
+                          (if (equal (value "list-depth") "0") (value "item-nr") "0")
+                          (document (render-list (arg "body")))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "list*"
+            (macro "item-render"
+              "item-transform"
+              "body"
+              (document (with "current-item"
+                          (arg "item-render")
+                          "transform-item"
+                          (quasiquote
+                            (macro "name"
+                              (concat (unquote (value "last-item"))
+                                "."
+                                (compound (unquote (arg "item-transform")) (arg "name"))
+                              ) ;concat
+                            ) ;macro
+                          ) ;quasiquote
+                          "list-depth"
+                          (plus (value "list-depth") "1")
+                          "item-nr"
+                          (value "item-nr")
+                          "last-item-nr"
+                          "0"
+                          (document (render-list (arg "body")))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "list-continued"
+            (macro "item-render"
+              "item-transform"
+              "body"
+              (document (with "current-item"
+                          (arg "item-render")
+                          "transform-item"
+                          (arg "item-transform")
+                          "list-depth"
+                          (plus (value "list-depth") "1")
+                          "item-nr"
+                          (value "last-item-nr")
+                          (document (render-list (arg "body")))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "new-list"
+            (macro "name"
+              "item-render"
+              "item-transform"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (concat (assign (merge "prefix-" (arg "name")) "false")
+                         (assign (arg "name")
+                           (macro "body"
+                             (document (compound (if (and (value (merge "prefix-" (unquote (arg "name"))))
+                                                       (unequal (value "last-item-nr") "0")
+                                                     ) ;and
+                                                   "list*"
+                                                   "list"
+                                                 ) ;if
+                                         (unquote (arg "item-render"))
+                                         (unquote (arg "item-transform"))
+                                         (arg "body")
+                                       ) ;compound
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign (merge (arg "name") "*")
+                           (macro "body"
+                             (document (compound (if (and (value (merge "prefix-" (unquote (arg "name"))))
+                                                       (unequal (value "last-item-nr") "0")
+                                                     ) ;and
+                                                   "list"
+                                                   "list*"
+                                                 ) ;if
+                                         (unquote (arg "item-render"))
+                                         (unquote (arg "item-transform"))
+                                         (arg "body")
+                                       ) ;compound
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                         (assign (merge (arg "name") "-continued")
+                           (macro "body"
+                             (document (list-continued (unquote (arg "item-render"))
+                                         (unquote (arg "item-transform"))
+                                         (arg "body")
+                                       ) ;list-continued
+                             ) ;document
+                           ) ;macro
+                         ) ;assign
+                       ) ;concat
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "The standard itemize environment with three levels."))
+                   ) ;document
+          ) ;active*
+          (assign "itemize-level" "0")
+          (assign "itemize-levels" "3")
+          (assign "item-1" (macro (active* (with "mode" "math" "<bullet>"))))
+          (assign "item-2" (macro (active* (with "mode" "math" (rigid "<circ>")))))
+          (assign "item-3" (macro (active* (with "mode" "math" (rigid "-")))))
+          (assign "item-4" (macro (active* (with "mode" "math" (rigid ".")))))
+          (assign "item-tag"
+            (macro (compound (merge "item-" (itemize-reduce (value "itemize-level")))))
+          ) ;assign
+          (new-list "itemize-1" (value "aligned-space-item") (macro "name" (item-tag)))
+          (new-list "itemize-2" (value "aligned-space-item") (macro "name" (item-tag)))
+          (new-list "itemize-3" (value "aligned-space-item") (macro "name" (item-tag)))
+          (new-list "itemize-4" (value "aligned-space-item") (macro "name" (item-tag)))
+          (assign "itemize-reduce"
+            (macro "nr"
+              (plus (mod (minus (arg "nr") "1") (minimum (value "itemize-levels") "4")) "1")
+            ) ;macro
+          ) ;assign
+          (assign "itemize"
+            (macro "body"
+              (document (with "itemize-level"
+                          (plus (value "itemize-level") "1")
+                          (document (compound (merge "itemize-" (itemize-reduce (value "itemize-level")))
+                                      (arg "body")
+                                    ) ;compound
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "itemize*"
+            (macro "body"
+              (document (with "itemize-level"
+                          (plus (value "itemize-level") "1")
+                          (document (compound (merge "itemize-" (itemize-reduce (value "itemize-level")) "*")
+                                      (arg "body")
+                                    ) ;compound
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "itemize-continued"
+            (macro "body"
+              (document (with "itemize-level"
+                          (plus (value "itemize-level") "1")
+                          (document (compound (merge "itemize-" (itemize-reduce (value "itemize-level")) "-continued")
+                                      (arg "body")
+                                    ) ;compound
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "The standard enumerate environment with three levels."))
+                   ) ;document
+          ) ;active*
+          (assign "enumerate-level" "0")
+          (assign "enumerate-levels" "4")
+          (assign "enum-1" (macro "name" (arg "name")))
+          (assign "enum-2" (macro "name" (number (arg "name") "alpha")))
+          (assign "enum-3" (macro "name" (number (arg "name") "roman")))
+          (assign "enum-4" (macro "name" (number (arg "name") "Alpha")))
+          (assign "enum-tag"
+            (macro "name"
+              (compound (merge "enum-" (enumerate-reduce (value "enumerate-level")))
+                (arg "name")
+              ) ;compound
+            ) ;macro
+          ) ;assign
+          (new-list "enumerate-1"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (new-list "enumerate-2"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (new-list "enumerate-3"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (new-list "enumerate-4"
+            (value "aligned-dot-item")
+            (macro "name" (enum-tag (arg "name")))
+          ) ;new-list
+          (assign "enumerate-reduce"
+            (macro "nr"
+              (plus (mod (minus (arg "nr") "1") (minimum (value "enumerate-levels") "4")) "1")
+            ) ;macro
+          ) ;assign
+          (assign "enumerate"
+            (macro "body"
+              (document (with "enumerate-level"
+                          (plus (value "enumerate-level") "1")
+                          (document (compound (merge "enumerate-" (enumerate-reduce (value "enumerate-level")))
+                                      (arg "body")
+                                    ) ;compound
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "enumerate*"
+            (macro "body"
+              (document (with "enumerate-level"
+                          (plus (value "enumerate-level") "1")
+                          (document (compound (merge "enumerate-" (enumerate-reduce (value "enumerate-level")) "*")
+                                      (arg "body")
+                                    ) ;compound
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "enumerate-continued"
+            (macro "body"
+              (document (with "enumerate-level"
+                          (plus (value "enumerate-level") "1")
+                          (document (compound (merge "enumerate-" (enumerate-reduce (value "enumerate-level")) "-continued")
+                                      (arg "body")
+                                    ) ;compound
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Descriptions which use one paragraph for each item with description")
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "item-paragraph"
+            (macro "name" (paragraph-unnumbered-title (arg "name")))
+          ) ;assign
+          (assign "description-paragraphs"
+            (macro "body"
+              (document (with "item*"
+                          (value "item-paragraph")
+                          (document (padded-normal (item-vsep)
+                                      (item-vsep)
+                                      (document (surround (no-page-break*) (no-indent*) (arg "body")))
+                                    ) ;padded-normal
+                          ) ;document
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Further standard list environments")))
+          ) ;active*
+          (new-list "itemize-minus"
+            (value "aligned-space-item")
+            (macro "name" (active* (with "mode" "math" (rigid "-"))))
+          ) ;new-list
+          (new-list "itemize-dot"
+            (value "aligned-space-item")
+            (macro "name" (active* (with "mode" "math" "<bullet>")))
+          ) ;new-list
+          (new-list "itemize-arrow"
+            (value "aligned-space-item")
+            (macro "name" (active* (with "mode" "math" (rigid "<rightarrow>"))))
+          ) ;new-list
+          (new-list "enumerate-numeric" (value "aligned-dot-item") (value "identity"))
+          (new-list "enumerate-numeric-bracket"
+            (value "aligned-bracket-item")
+            (value "identity")
+          ) ;new-list
+          (new-list "enumerate-numeric-paren"
+            (value "aligned-paren-item")
+            (value "identity")
+          ) ;new-list
+          (new-list "enumerate-roman"
+            (value "aligned-dot-item")
+            (macro "name" (number (arg "name") "roman"))
+          ) ;new-list
+          (new-list "enumerate-roman-bracket"
+            (value "aligned-bracket-item")
+            (macro "name" (number (arg "name") "roman"))
+          ) ;new-list
+          (new-list "enumerate-roman-paren"
+            (value "aligned-paren-item")
+            (macro "name" (number (arg "name") "roman"))
+          ) ;new-list
+          (new-list "enumerate-Roman"
+            (value "aligned-dot-item")
+            (macro "name" (number (arg "name") "Roman"))
+          ) ;new-list
+          (new-list "enumerate-alpha"
+            (value "aligned-dot-item")
+            (macro "name" (number (arg "name") "alpha"))
+          ) ;new-list
+          (new-list "enumerate-alpha-bracket"
+            (value "aligned-bracket-item")
+            (macro "name" (number (arg "name") "alpha"))
+          ) ;new-list
+          (new-list "enumerate-alpha-full-paren"
+            (value "aligned-full-paren-item")
+            (macro "name" (number (arg "name") "alpha"))
+          ) ;new-list
+          (new-list "enumerate-Alpha"
+            (value "aligned-dot-item")
+            (macro "name" (number (arg "name") "Alpha"))
+          ) ;new-list
+          (new-list "enumerate-circle"
+            (value "aligned-item")
+            (macro "name" (number (arg "name") "circle"))
+          ) ;new-list
+          (new-list "enumerate-hanzi"
+            (value "aligned-comma-item")
+            (macro "name" (number (arg "name") "hanzi"))
+          ) ;new-list
+          (new-list "description-compact"
+            (value "compact-strong-dot-item")
+            (macro "name"
+              (active* (with "mode"
+                         "math"
+                         (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                       ) ;with
+              ) ;active*
+            ) ;macro
+          ) ;new-list
+          (new-list "description-aligned"
+            (value "aligned-strong-dot-item")
+            (macro "name"
+              (active* (with "mode"
+                         "math"
+                         (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                       ) ;with
+              ) ;active*
+            ) ;macro
+          ) ;new-list
+          (new-list "description-dash"
+            (value "compact-strong-dash-item")
+            (macro "name"
+              (active* (with "mode"
+                         "math"
+                         (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                       ) ;with
+              ) ;active*
+            ) ;macro
+          ) ;new-list
+          (new-list "description-long"
+            (value "long-compact-strong-dot-item")
+            (macro "name"
+              (active* (with "mode"
+                         "math"
+                         (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                       ) ;with
+              ) ;active*
+            ) ;macro
+          ) ;new-list
+          (new-list "description"
+            (value "compact-strong-dot-item")
+            (macro "name"
+              (active* (with "mode"
+                         "math"
+                         (with "font-series" "bold" "math-font-series" "bold" (rigid "<ast>"))
+                       ) ;with
+              ) ;active*
+            ) ;macro
+          ) ;new-list
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection))
+) ;document

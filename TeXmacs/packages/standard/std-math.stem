@@ -1,0 +1,621 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-math.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-math" "1.0")
+                                        (src-purpose (document "This package defines additional macros for mathematics.")
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Extra style parameters"))))
+          (assign "math-swell" "0.6666ex")
+          (assign "table-math-swell" "0.9ex")
+          (active* (document (src-comment (document "Textual operators"))))
+          (assign "math-up"
+            (macro "x" (text (with "font-family" "rm" "font-shape" "right" (arg "x"))))
+          ) ;assign
+          (assign "math-ss"
+            (macro "x" (text (with "font-family" "ss" "font-shape" "right" (arg "x"))))
+          ) ;assign
+          (assign "math-tt"
+            (macro "x" (text (with "font-family" "tt" "font-shape" "right" (arg "x"))))
+          ) ;assign
+          (assign "math-bf"
+            (macro "x"
+              (text (with "font-family" "rm" "font-series" "bold" "font-shape" "right" (arg "x"))
+              ) ;text
+            ) ;macro
+          ) ;assign
+          (assign "math-it"
+            (macro "x" (text (with "font-family" "rm" "font-shape" "italic" (arg "x"))))
+          ) ;assign
+          (assign "math-sl"
+            (macro "x" (text (with "font-family" "rm" "font-shape" "slanted" (arg "x"))))
+          ) ;assign
+          (drd-props "math-up" "syntax" (macro "x" "x"))
+          (drd-props "math-ss" "syntax" (macro "x" "x"))
+          (drd-props "math-tt" "syntax" (macro "x" "x"))
+          (drd-props "math-bf" "syntax" (macro "x" "x"))
+          (drd-props "math-it" "syntax" (macro "x" "x"))
+          (drd-props "math-sl" "syntax" (macro "x" "x"))
+          (active* (document (src-comment (document "Mathematical content tags."))))
+          (assign "math-separator" (macro "x" (syntax (arg "x") ",")))
+          (assign "math-quantifier" (macro "x" (syntax (arg "x") "<forall>")))
+          (assign "math-imply" (macro "x" (syntax (arg "x") "<Rightarrow>")))
+          (assign "math-or" (macro "x" (syntax (arg "x") "<vee>")))
+          (assign "math-and" (macro "x" (syntax (arg "x") "<wedge>")))
+          (assign "math-not" (macro "x" (syntax (arg "x") "<neg>")))
+          (assign "math-relation" (macro "x" (syntax (arg "x") "<less>")))
+          (assign "math-union" (macro "x" (syntax (arg "x") "<cup>")))
+          (assign "math-intersection" (macro "x" (syntax (arg "x") "<cap>")))
+          (assign "math-exclude" (macro "x" (syntax (arg "x") "<setminus>")))
+          (assign "math-plus" (macro "x" (syntax (arg "x") "+")))
+          (assign "math-minus" (macro "x" (syntax (arg "x") "-")))
+          (assign "math-times" (macro "x" (syntax (arg "x") "*")))
+          (assign "math-over" (macro "x" (syntax (arg "x") "/")))
+          (assign "math-big" (macro "x" (syntax (arg "x") (big "sum"))))
+          (assign "math-prefix" (macro "x" (syntax (arg "x") "#")))
+          (assign "math-postfix" (macro "x" (syntax (arg "x") "!")))
+          (assign "math-open" (macro "x" (syntax (arg "x") "(")))
+          (assign "math-close" (macro "x" (syntax (arg "x") ")")))
+          (assign "math-ordinary" (macro "x" (syntax (arg "x") "x")))
+          (assign "math-ignore" (macro "x" (syntax (arg "x") "")))
+          (active* (document (src-comment (document "Textual operators."))))
+          (assign "prefix-for-all"
+            (macro (math-quantifier (text (concat (localize "for all") " "))))
+          ) ;assign
+          (assign "infix-and" (macro (math-and (text (concat " " (localize "and") " ")))))
+          (assign "infix-or" (macro (math-or (text (concat " " (localize "or") " ")))))
+          (assign "infix-iff"
+            (macro (math-imply (text (concat " " (localize "iff") " "))))
+          ) ;assign
+          (active* (document (src-comment (document "Additional mathematical macros."))))
+          (assign "upright"
+            (macro "x" (with "font-shape" "right" "math-font-shape" "right" (arg "x")))
+          ) ;assign
+          (assign "shrink-inline"
+            (macro "x"
+              (style-with "src-compact"
+                "none"
+                (if (equal (value "math-display") "false")
+                  (with "math-level" (plus (value "math-level") "1") (arg "x"))
+                  (with "math-display" "false" (arg "x"))
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (drd-props "shrink-inline"
+            "arity"
+            "1"
+            "accessible"
+            "all"
+            "syntax"
+            (macro "x" (arg "x"))
+          ) ;drd-props
+          (assign "math-choice"
+            (macro "disp"
+              "level-0"
+              "level-1"
+              "level-2"
+              (if (equal (value "math-display") "true")
+                (arg "disp")
+                (case (equal (value "math-level") "0")
+                      (arg "level-0")
+                      (equal (value "math-level") "1")
+                      (arg "level-1")
+                      (arg "level-2")
+                ) ;case
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "binom"
+            (macro "x"
+              "y"
+              (style-only* (with "mode"
+                             "math"
+                             (shrink-inline (concat (left "(")
+                                              (resize (tabular* (tformat (cwith "1" "-1" "1" "1" "cell-lsep" "0spc")
+                                                                  (cwith "1" "-1" "1" "1" "cell-rsep" "0spc")
+                                                                  (table (row (cell (inactive* (arg "x")))) (row (cell (inactive* (arg "y")))))
+                                                                ) ;tformat
+                                                      ) ;tabular*
+                                                ""
+                                                (plus "1b" "2.5sep")
+                                                ""
+                                                (minus "1t" "2.5sep")
+                                              ) ;resize
+                                              (right ")")
+                                            ) ;concat
+                             ) ;shrink-inline
+                           ) ;with
+              ) ;style-only*
+            ) ;macro
+          ) ;assign
+          (assign "tbinom"
+            (macro "x"
+              "y"
+              (with "mode" "math" (with "math-display" "false" (binom (arg "x") (arg "y"))))
+            ) ;macro
+          ) ;assign
+          (assign "dbinom"
+            (macro "x"
+              "y"
+              (with "mode" "math" (with "math-display" "true" (binom (arg "x") (arg "y"))))
+            ) ;macro
+          ) ;assign
+          (assign "modulo" (macro "x" (concat (space "0.2spc") "mod " (arg "x"))))
+          (assign "bmod" (macro (concat (space "0.2spc") "mod ")))
+          (assign "pmod" (macro "x" (around* "(" (concat "mod " (arg "x")) ")")))
+          (assign "pod" (macro "x" (around* "(" (arg "x") ")")))
+          (assign "ontop"
+            (macro "x"
+              "y"
+              (style-only* (with "mode"
+                             "math"
+                             (shrink-inline (resize (tabular* (tformat (cwith "1" "-1" "1" "1" "cell-lsep" "0spc")
+                                                                (cwith "1" "-1" "1" "1" "cell-rsep" "0spc")
+                                                                (table (row (cell (inactive* (arg "x")))) (row (cell (inactive* (arg "y")))))
+                                                              ) ;tformat
+                                                    ) ;tabular*
+                                              ""
+                                              (plus "1b" "2.5sep")
+                                              ""
+                                              (minus "1t" "2.5sep")
+                                            ) ;resize
+                             ) ;shrink-inline
+                           ) ;with
+              ) ;style-only*
+            ) ;macro
+          ) ;assign
+          (assign "choose" (value "binom"))
+          (assign "tfrac"
+            (macro "x"
+              "y"
+              (with "mode" "math" (with "math-display" "false" (frac (arg "x") (arg "y"))))
+            ) ;macro
+          ) ;assign
+          (assign "dfrac"
+            (macro "x"
+              "y"
+              (with "mode" "math" (with "math-display" "true" (frac (arg "x") (arg "y"))))
+            ) ;macro
+          ) ;assign
+          (assign "cfrac"
+            (macro "x"
+              "y"
+              (with "mode"
+                "math"
+                (dfrac (arg "x") (resize (arg "y") "" "" (plus "1r" "-1sep") ""))
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "frac*"
+            (macro "x"
+              "y"
+              (move (concat (lsup (arg "x"))
+                      (resize "/"
+                        (plus "1l" "0.15em")
+                        (plus "1b" "0.5em")
+                        (minus "1r" "0.15em")
+                        (minus "1t" "0.5em")
+                      ) ;resize
+                      (rsub (arg "y"))
+                    ) ;concat
+                ""
+                "0.05em"
+              ) ;move
+            ) ;macro
+          ) ;assign
+          (drd-props "frac*"
+            "arity"
+            "2"
+            "syntax"
+            (macro "x" "y" (concat (arg "x") "/" (arg "y")))
+          ) ;drd-props
+          (assign "separating-space" (macro "len" (space (arg "len"))))
+          (assign "application-space" (macro "len" (space (arg "len"))))
+          (drd-props "separating-space" "syntax" (macro "len" ","))
+          (drd-props "application-space" "syntax" (macro "len" " "))
+          (assign "genfrac"
+            (macro "left"
+              "right"
+              "sep"
+              "disp"
+              "x"
+              "y"
+              (style-only* (with "mode"
+                             "math"
+                             (shrink-inline (around* (inactive* (arg "left"))
+                                              (resize (tabular* (tformat (cwith "1" "-1" "1" "1" "cell-lsep" "0spc")
+                                                                  (cwith "1" "-1" "1" "1" "cell-rsep" "0spc")
+                                                                  (cwith "1" "1" "1" "-1" "cell-bborder" "sep")
+                                                                  (table (row (cell (inactive* (arg "x")))) (row (cell (inactive* (arg "y")))))
+                                                                ) ;tformat
+                                                      ) ;tabular*
+                                                ""
+                                                (plus "1b" "2.5sep")
+                                                ""
+                                                (minus "1t" "2.5sep")
+                                              ) ;resize
+                                              (inactive* (arg "right"))
+                                            ) ;around*
+                             ) ;shrink-inline
+                           ) ;with
+              ) ;style-only*
+            ) ;macro
+          ) ;assign
+          (assign "left-script"
+            (macro "body"
+              "s"
+              (active* (tabular (tformat (cwith "1" "1" "1" "-1" "cell-lsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-rsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-bsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-tsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-vcorrect" "n")
+                                  (cwith "1" "1" "1" "-1" "cell-valign" "c")
+                                  (cwith "1" "1" "1" "1" "cell-halign" "r")
+                                  (cwith "1" "1" "2" "2" "cell-halign" "c")
+                                  (cwith "1" "1" "3" "3" "cell-halign" "l")
+                                  (table (row (cell (with "math-level"
+                                                      (plus (value "math-level") "1")
+                                                      (resize (arg "s") (minus "1r" "1.5ex") "" (minus "1r" "0.5ex") "")
+                                                    ) ;with
+                                              ) ;cell
+                                           (cell (arg "body"))
+                                           (cell (with "math-level"
+                                                   (plus (value "math-level") "1")
+                                                   (resize "" "0ex" "" "1ex" "")
+                                                 ) ;with
+                                           ) ;cell
+                                         ) ;row
+                                  ) ;table
+                                ) ;tformat
+                       ) ;tabular
+              ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "right-script"
+            (macro "body"
+              "s"
+              (active* (tabular (tformat (cwith "1" "1" "1" "-1" "cell-lsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-rsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-bsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-tsep" "0spc")
+                                  (cwith "1" "1" "1" "-1" "cell-vcorrect" "n")
+                                  (cwith "1" "1" "1" "-1" "cell-valign" "c")
+                                  (cwith "1" "1" "2" "2" "cell-halign" "c")
+                                  (table (row (cell (with "math-level"
+                                                      (plus (value "math-level") "1")
+                                                      (resize "" "0ex" "" "1ex" "")
+                                                    ) ;with
+                                              ) ;cell
+                                           (cell (arg "body"))
+                                           (cell (with "math-level"
+                                                   (plus (value "math-level") "1")
+                                                   (resize (arg "s") (plus "1l" "0.5ex") "" (plus "1l" "1.5ex") "")
+                                                 ) ;with
+                                           ) ;cell
+                                         ) ;row
+                                  ) ;table
+                                ) ;tformat
+                       ) ;tabular
+              ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "suppressed" (macro "x" (with "color" "#e0b080" (arg "x"))))
+          (drd-props "suppressed" "arity" "1" "accessible" "none")
+          (assign "tiny-box"
+            (macro (tiny (with "font" "roman" "math-font" "roman" (move "<Box>" "" "0.05ex")))
+            ) ;macro
+          ) ;assign
+          (assign "explicit-space" (macro (syntax "<short-underscore>" " ")))
+          (assign "old-spacing" (macro "body" (with "spacing-policy" "old" (arg "body"))))
+          (assign "normal-spacing"
+            (macro "body" (with "spacing-policy" "default" (arg "body")))
+          ) ;assign
+          (assign "wide-spacing"
+            (macro "body" (with "spacing-policy" "wide" (arg "body")))
+          ) ;assign
+          (active* (document (src-comment (document "Dots."))))
+          (assign "math-dots-min-sep" "0em")
+          (assign "math-dots-sep" "0.15em")
+          (assign "math-dots-max-sep" "0.2em")
+          (assign "math-dots-min-padding" "0em")
+          (assign "math-dots-padding" "0.05em")
+          (assign "math-dots-max-padding" "0.1em")
+          (assign "math-dots-vsep" "0.05em")
+          (assign "math-dots-vpadding" "0.05em")
+          (assign "math-dots-spc"
+            (macro (hspace (value "math-dots-min-sep")
+                     (value "math-dots-sep")
+                     (value "math-dots-max-sep")
+                   ) ;hspace
+            ) ;macro
+          ) ;assign
+          (assign "math-dots-pad"
+            (macro (hspace (value "math-dots-min-padding")
+                     (value "math-dots-padding")
+                     (value "math-dots-max-padding")
+                   ) ;hspace
+            ) ;macro
+          ) ;assign
+          (assign "math-dots-pre" (macro (space "0em" "0em" "0em")))
+          (assign "math-dots-post" (macro (space "0em" "0em" "0em")))
+          (assign "low-dots"
+            (macro (concat (math-dots-pad)
+                     "."
+                     (math-dots-spc)
+                     "."
+                     (math-dots-spc)
+                     "."
+                     (math-dots-pad)
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "low-dots*"
+            (macro (concat (math-dots-pre)
+                     (math-dots-spc)
+                     "."
+                     (math-dots-spc)
+                     "."
+                     (math-dots-spc)
+                     "."
+                     (math-dots-spc)
+                     (math-dots-post)
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "center-dots"
+            (macro (concat (math-dots-pad)
+                     (rigid "<cdot>")
+                     (math-dots-spc)
+                     (rigid "<cdot>")
+                     (math-dots-spc)
+                     (rigid "<cdot>")
+                     (math-dots-pad)
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "high-dots"
+            (macro (concat (math-dots-pad)
+                     (rigid "<hdot>")
+                     (math-dots-spc)
+                     (rigid "<hdot>")
+                     (math-dots-spc)
+                     (rigid "<hdot>")
+                     (math-dots-pad)
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "vertical-dots"
+            (macro (with "d"
+                     (plus (times (look-up (box-info "<cdot>" "w") "0") "1tmpt")
+                       (value "math-dots-vsep")
+                     ) ;plus
+                     (resize (superpose "<cdot>"
+                               (move "<cdot>" "0em" (value "d"))
+                               (move "<cdot>" "0em" (minus (value "d")))
+                             ) ;superpose
+                       ""
+                       (minus "1b" (value "math-dots-vpadding"))
+                       ""
+                       (plus "1t" (value "math-dots-vpadding"))
+                     ) ;resize
+                   ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "diagonal-dots"
+            (macro (with "d"
+                     (times (look-up (box-info "<cdot>" "w") "0") "1tmpt")
+                     (with "hd"
+                       (plus (value "d") (value "math-dots-sep"))
+                       "vd"
+                       (plus (value "d") (value "math-dots-vsep"))
+                       (concat (math-dots-pad)
+                         (resize (superpose "<cdot>"
+                                   (move "<cdot>" (minus (value "hd")) (value "vd"))
+                                   (move "<cdot>" (value "hd") (minus (value "vd")))
+                                 ) ;superpose
+                           ""
+                           (minus "1b" (value "math-dots-vpadding"))
+                           ""
+                           (plus "1t" (value "math-dots-vpadding"))
+                         ) ;resize
+                         (math-dots-pad)
+                       ) ;concat
+                     ) ;with
+                   ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "upward-dots"
+            (macro (with "d"
+                     (times (look-up (box-info "<cdot>" "w") "0") "1tmpt")
+                     (with "hd"
+                       (plus (value "d") (value "math-dots-sep"))
+                       "vd"
+                       (plus (value "d") (value "math-dots-vsep"))
+                       (concat (math-dots-pad)
+                         (resize (superpose "<cdot>"
+                                   (move "<cdot>" (value "hd") (value "vd"))
+                                   (move "<cdot>" (minus (value "hd")) (minus (value "vd")))
+                                 ) ;superpose
+                           ""
+                           (minus "1b" (value "math-dots-vpadding"))
+                           ""
+                           (plus "1t" (value "math-dots-vpadding"))
+                         ) ;resize
+                         (math-dots-pad)
+                       ) ;concat
+                     ) ;with
+                   ) ;with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Mathematical tabular structures."))))
+          (assign "math-table-base"
+            (macro "x"
+              (style-with "src-compact"
+                "none"
+                (if (equal (value "math-display") "false")
+                  (with "math-level"
+                    (plus (value "math-level") "1")
+                    "math-top-swell-start"
+                    "1.6ex"
+                    "math-top-swell-end"
+                    "2.5ex"
+                    "math-bot-swell-start"
+                    "-0.6ex"
+                    "math-bot-swell-end"
+                    "-1.5ex"
+                    (arg "x")
+                  ) ;with
+                  (with "math-display"
+                    "false"
+                    "math-top-swell-start"
+                    "1.6ex"
+                    "math-top-swell-end"
+                    "2.5ex"
+                    "math-bot-swell-start"
+                    "-0.6ex"
+                    "math-bot-swell-end"
+                    "-1.5ex"
+                    (arg "x")
+                  ) ;with
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (drd-props "math-table-base"
+            "arity"
+            "1"
+            "accessible"
+            "all"
+            "syntax"
+            (macro "x" (arg "x"))
+          ) ;drd-props
+          (assign "matrix*"
+            (macro "x"
+              (math-table-base (style-with "src-compact"
+                                 "none"
+                                 (tformat (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                                   (cwith "1" "-1" "1" "-1" "cell-swell" (value "table-math-swell"))
+                                   (arg "x")
+                                 ) ;tformat
+                               ) ;style-with
+              ) ;math-table-base
+            ) ;macro
+          ) ;assign
+          (assign "matrix"
+            (macro "x"
+              (math-table-base (style-with "src-compact"
+                                 "none"
+                                 ""
+                                 ""
+                                 ""
+                                 ""
+                                 (concat (left "(")
+                                   (tformat (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                                     (cwith "1" "-1" "1" "-1" "cell-swell" (value "table-math-swell"))
+                                     (arg "x")
+                                   ) ;tformat
+                                   (right ")")
+                                 ) ;concat
+                               ) ;style-with
+              ) ;math-table-base
+            ) ;macro
+          ) ;assign
+          (assign "bmatrix"
+            (macro "x"
+              (math-table-base (style-with "src-compact"
+                                 "none"
+                                 (concat (left "[")
+                                   (tformat (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                                     (cwith "1" "-1" "1" "-1" "cell-swell" (value "table-math-swell"))
+                                     (arg "x")
+                                   ) ;tformat
+                                   (right "]")
+                                 ) ;concat
+                               ) ;style-with
+              ) ;math-table-base
+            ) ;macro
+          ) ;assign
+          (assign "Bmatrix"
+            (macro "x"
+              (math-table-base (style-with "src-compact"
+                                 "none"
+                                 (concat (left "{")
+                                   (tformat (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                                     (cwith "1" "-1" "1" "-1" "cell-swell" (value "table-math-swell"))
+                                     (arg "x")
+                                   ) ;tformat
+                                   (right "}")
+                                 ) ;concat
+                               ) ;style-with
+              ) ;math-table-base
+            ) ;macro
+          ) ;assign
+          (assign "det"
+            (macro "x"
+              (math-table-base (style-with "src-compact"
+                                 "none"
+                                 (concat (left "|")
+                                   (tformat (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                                     (cwith "1" "-1" "1" "-1" "cell-swell" (value "table-math-swell"))
+                                     (arg "x")
+                                   ) ;tformat
+                                   (right "|")
+                                 ) ;concat
+                               ) ;style-with
+              ) ;math-table-base
+            ) ;macro
+          ) ;assign
+          (assign "choice"
+            (macro "x"
+              (math-table-base (style-with "src-compact"
+                                 "none"
+                                 (concat (left "{")
+                                   (tformat (cwith "1" "-1" "1" "-1" "cell-swell" (value "table-math-swell"))
+                                     (arg "x")
+                                   ) ;tformat
+                                   (right ".")
+                                 ) ;concat
+                               ) ;style-with
+              ) ;math-table-base
+            ) ;macro
+          ) ;assign
+          (assign "stack"
+            (macro "x"
+              (tformat (twith "table-valign" "C")
+                (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                (cwith "1" "-1" "1" "1" "cell-lsep" "0spc")
+                (cwith "1" "-1" "-1" "-1" "cell-rsep" "0spc")
+                (cwith "1" "-1" "1" "-1" "cell-bsep" "0.5sep")
+                (cwith "1" "-1" "1" "-1" "cell-tsep" "0.5sep")
+                (cwith "1" "1" "1" "-1" "cell-tsep" "0sep")
+                (cwith "-1" "-1" "1" "-1" "cell-bsep" "0sep")
+                (arg "x")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "subarray" (macro "x" (stack (arg "x"))))
+          (concat (assign "to" (macro "<rightarrow>"))
+            " "
+            (assign "varOmega" (macro "<varOmega>"))
+          ) ;concat
+          (concat (assign "varlimsup" (macro (wide "lim" "<wide-bar>")))
+            " "
+            (assign "varliminf" (macro (wide* "lim" "<wide-bar>")))
+          ) ;concat
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

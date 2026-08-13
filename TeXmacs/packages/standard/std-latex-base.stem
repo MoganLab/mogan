@@ -1,0 +1,85 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-latex-base.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "1.99.13")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-latex-base" "1.0")
+                                        (src-purpose (document "Macros which make it easier to port TeX/LaTeX style files to TeXmacs, base part"
+                                                     ) ;document
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (src-comment (document "TeX-like lengths.")))
+          (assign "tex-len"
+            (macro "default"
+              "increase"
+              "decrease"
+              (style-with "src-compact"
+                "none"
+                (tmlen (minus (arg "default") (arg "decrease"))
+                  (arg "default")
+                  (plus (arg "default") (arg "increase"))
+                ) ;tmlen
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (src-comment (document "TeX style lists.")))
+          (assign "itemize-reduce" (macro "nr" (minimum (arg "nr") "4")))
+          (assign "enumerate-reduce" (macro "nr" (minimum (arg "nr") "4")))
+          (active* (src-comment (document "LaTeX boxes.")))
+          (assign "minipage"
+            (macro "pos"
+              "width"
+              "body"
+              (tabular (tformat (cwith "1" "1" "1" "1" "cell-width" (arg "width"))
+                         (cwith "1" "1" "1" "1" "cell-hmode" "exact")
+                         (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                         (twith "table-valign" (arg "pos"))
+                         (table (row (cell (arg "body"))))
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+          (assign "fcolorbox"
+            (macro "border"
+              "background"
+              "body"
+              (document (with "text-color"
+                          (value "color")
+                          (with "color"
+                            (arg "border")
+                            (colored-frame (arg "background")
+                              (with "color" (value "text-color") (arg "body"))
+                            ) ;colored-frame
+                          ) ;with
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Footnotes."))))
+          (assign "footnotemark"
+            (macro (rsup (with "font-shape"
+                           "right"
+                           (concat (next-footnote) (reference (merge "footnote-" (the-footnote))))
+                         ) ;with
+                   ) ;rsup
+            ) ;macro
+          ) ;assign
+          (assign "footnotemark*"
+            (macro "num"
+              (rsup (with "font-shape" "right" (reference (merge "footnote-" (arg "num")))))
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "sfactor" "7")))
+) ;document

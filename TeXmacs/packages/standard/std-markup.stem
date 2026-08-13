@@ -1,0 +1,1187 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : std-markup.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style (tuple "source" "std"))
+  (body (document (active* (src-title (document (src-package "std-markup" "1.0")
+                                        (src-purpose (document "This package contains several frequently used macros."))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "The following macros don't take any arguments."))
+                   ) ;document
+          ) ;active*
+          (assign "TeXmacs"
+            (macro (active* (concat "T"
+                              (rsub (concat (space "-0.4spc")
+                                      (move (resize (with "math-level" "0" "E") "" "" "" "0.5fn") "0fn" "-0.1fn")
+                                    ) ;concat
+                              ) ;rsub
+                              (space "-0.4spc")
+                              "X"
+                              (rsub (concat (space "-0.4spc")
+                                      (move (resize (concat "M" (space "-0.2spc") "A" (space "-0.4spc") "CS")
+                                              ""
+                                              ""
+                                              ""
+                                              "0.5fn"
+                                            ) ;resize
+                                        "0fn"
+                                        "-0.1fn"
+                                      ) ;move
+                                    ) ;concat
+                              ) ;rsub
+                            ) ;concat
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "TeXmacs-version" (macro (extern "texmacs-version")))
+          (assign "TeXmacs-version-release"
+            (macro "type" (extern "texmacs-version-release*" (quote-arg "type")))
+          ) ;assign
+          (assign "Xmacs-version" (macro (extern "xmacs-version")))
+          (assign "made-by-TeXmacs"
+            (macro (float "footnote"
+                     ""
+                     (with "font-size"
+                       "0.84"
+                       "par-mode"
+                       "justify"
+                       "par-left"
+                       "0cm"
+                       "par-right"
+                       "0cm"
+                       (concat (localize "This document has been produced using")
+                         " Mogan STEM ("
+                         (localize "see")
+                         " "
+                         (with "font-family" "tt" "https://mogan.app")
+                         ")."
+                         (right-flush)
+                       ) ;concat
+                     ) ;with
+                   ) ;float
+            ) ;macro
+          ) ;assign
+          (assign "tm-made"
+            (macro (with "ornament-color"
+                     ""
+                     "ornament-shadow-color"
+                     (value "color")
+                     "ornament-sunny-color"
+                     (value "color")
+                     "ornament-border"
+                     "1ln"
+                     "ornament-shape"
+                     "rounded"
+                     "ornament-hpadding"
+                     "0.5spc"
+                     "ornament-vpadding"
+                     "0.5spc"
+                     (ornament (math "<Backsigma>"))
+                   ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "TeX"
+            (macro (active* (concat "T"
+                              (rsub (concat (space "-0.4spc")
+                                      (move (resize (with "math-level" "0" "E") "" "" "" "0.5fn") "0fn" "-0.1fn")
+                                    ) ;concat
+                              ) ;rsub
+                              (space "-0.4spc")
+                              "X"
+                            ) ;concat
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "LaTeX"
+            (macro (active* (concat "L"
+                              (rsup (concat (space "-0.8spc") (move "A" "0fn" "-0.1fn")))
+                              (space "-0.2spc")
+                              "T"
+                              (rsub (concat (space "-0.4spc")
+                                      (move (resize (with "math-level" "0" "E") "" "" "" "0.5fn") "0fn" "-0.1fn")
+                                    ) ;concat
+                              ) ;rsub
+                              (space "-0.4spc")
+                              "X"
+                            ) ;concat
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "LaTeXe"
+            (macro (concat (active* (concat "L"
+                                      (rsup (concat (space "-0.8spc") (move "A" "0fn" "-0.1fn")))
+                                      (space "-0.2spc")
+                                      "T"
+                                      (rsub (concat (space "-0.4spc")
+                                              (move (resize (with "math-level" "0" "E") "" "" "" "0.5fn") "0fn" "-0.1fn")
+                                            ) ;concat
+                                      ) ;rsub
+                                      (space "-0.4spc")
+                                      "X"
+                                      (compound "math" "")
+                                    ) ;concat
+                           ) ;active*
+                     (space "0.2spc")
+                     "2"
+                     (move (math "<varepsilon>") "-0.0fn" "-0.15fn")
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "LaTeX*"
+            (macro (active* (concat "(L"
+                              (rsup (concat (space "-0.8spc") (move "A" "0fn" "-0.1fn")))
+                              (space "-0.2spc")
+                              ")"
+                              (space "-0.2spc")
+                              "T"
+                              (rsub (concat (space "-0.4spc")
+                                      (move (resize (with "math-level" "0" "E") "" "" "" "0.5fn") "0fn" "-0.1fn")
+                                    ) ;concat
+                              ) ;rsub
+                              (space "-0.4spc")
+                              "X"
+                            ) ;concat
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "BibTeX"
+            (macro (active* (concat (with "font-shape" "small-caps" "Bib")
+                              "T"
+                              (rsub (concat (space "-0.4spc")
+                                      (move (resize (with "math-level" "0" "E") "" "" "" "0.5fn") "0fn" "-0.1fn")
+                                    ) ;concat
+                              ) ;rsub
+                              (space "-0.4spc")
+                              "X"
+                            ) ;concat
+                   ) ;active*
+            ) ;macro
+          ) ;assign
+          (assign "old-hrule"
+            (macro (concat (no-indent)
+                     (tabular (tformat (cwith "1" "-1" "1" "-1" "cell-tborder" "1ln")
+                                (twith "table-width" "1par")
+                                (cwith "1" "-1" "1" "-1" "cell-vmode" "exact")
+                                (cwith "1" "-1" "1" "-1" "cell-height" "1ln")
+                                (cwith "1" "-1" "1" "-1" "cell-lsep" "0fn")
+                                (cwith "1" "-1" "1" "-1" "cell-rsep" "0fn")
+                                (cwith "1" "-1" "1" "-1" "cell-bsep" "0fn")
+                                (cwith "1" "-1" "1" "-1" "cell-tsep" "0fn")
+                                (cwith "1" "-1" "1" "-1" "cell-vcorrect" "n")
+                                (table (row (cell (space "1fn" "0ln" "1ln"))))
+                              ) ;tformat
+                     ) ;tabular
+                   ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "pre-edit"
+            (macro "body"
+              (with "ornament-color"
+                "#ffffc0"
+                "ornament-sunny-color"
+                "#fff0e0"
+                "ornament-shadow-color"
+                "#ffc080"
+                "ornament-border"
+                "1px"
+                "ornament-hpadding"
+                "2px"
+                "ornament-vpadding"
+                "2px"
+                (smash (ornament (with "color" "#4040c0" (arg "body"))))
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (drd-props "pre-edit" "arity" "1" "border" "no")
+          (assign "ghost" (macro "body" (with "color" "#808080" (arg "body"))))
+          (drd-props "ghost" "arity" "1" "accessible" "none" "border" "no")
+          (active* (document (src-comment (document "Size tags (very-small: scriptsize, smaller: footnotesize, larger: Large, very-large: LARGE, really-huge: HUGE)"
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "really-tiny" (macro "body" (with "font-size" "0.5" (arg "body"))))
+          (assign "very-tiny" (macro "body" (with "font-size" "0.545" (arg "body"))))
+          (assign "tiny" (macro "body" (with "font-size" "0.595" (arg "body"))))
+          (assign "really-small" (macro "body" (with "font-size" "0.648" (arg "body"))))
+          (assign "very-small" (macro "body" (with "font-size" "0.707" (arg "body"))))
+          (assign "smaller" (macro "body" (with "font-size" "0.771" (arg "body"))))
+          (assign "small" (macro "body" (with "font-size" "0.841" (arg "body"))))
+          (assign "flat-size" (macro "body" (with "font-size" "0.917" (arg "body"))))
+          (assign "normal-size" (macro "body" (with "font-size" "1" (arg "body"))))
+          (assign "sharp-size" (macro "body" (with "font-size" "1.091" (arg "body"))))
+          (assign "large" (macro "body" (with "font-size" "1.189" (arg "body"))))
+          (assign "larger" (macro "body" (with "font-size" "1.297" (arg "body"))))
+          (assign "very-large" (macro "body" (with "font-size" "1.414" (arg "body"))))
+          (assign "really-large" (macro "body" (with "font-size" "1.542" (arg "body"))))
+          (assign "huge" (macro "body" (with "font-size" "1.682" (arg "body"))))
+          (assign "very-huge" (macro "body" (with "font-size" "1.834" (arg "body"))))
+          (assign "really-huge" (macro "body" (with "font-size" "2" (arg "body"))))
+          (assign "font-zoom"
+            (macro "factor"
+              "body"
+              (with "font-size" (times (value "font-size") (arg "factor")) (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "font-unzoom"
+            (macro "factor"
+              "body"
+              (with "font-size" (over (value "font-size") (arg "factor")) (arg "body"))
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Frequently used content tags."))))
+          (assign "strong"
+            (macro "body"
+              (with "font-series" "bold" "math-font-series" "bold" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "em"
+            (macro "body"
+              (with "font-shape"
+                (if (equal (value "font-shape") "italic") "right" "italic")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "tt"
+            (macro "body" (with "font-family" "tt" "math-font-family" "ttt" (arg "body")))
+          ) ;assign
+          (assign "name" (macro "body" (with "font-shape" "small-caps" (arg "body"))))
+          (assign "samp" (macro "body" (with "font-family" "ss" (arg "body"))))
+          (assign "abbr" (macro "body" (rigid (arg "body"))))
+          (assign "math" (macro "body" (with "mode" "math" (arg "body"))))
+          (assign "text" (macro "body" (with "mode" "text" (arg "body"))))
+          (assign "cite*"
+            (macro "body"
+              (with "font-shape"
+                (if (equal (value "font-shape") "italic") "right" "italic")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "dfn"
+            (macro "body"
+              (with "font-shape"
+                (if (equal (value "font-shape") "italic") "right" "italic")
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "code*" (macro "body" (with "font-family" "tt" (arg "body"))))
+          (assign "kbd" (macro "body" (with "font-family" "tt" (arg "body"))))
+          (assign "var"
+            (macro "body" (with "font-family" "tt" "font-shape" "italic" (arg "body")))
+          ) ;assign
+          (assign "acronym" (macro "body" (with "font-shape" "small-caps" (arg "body"))))
+          (assign "person" (macro "body" (with "font-shape" "small-caps" (arg "body"))))
+          (assign "op"
+            (macro "body" (with "math-condensed" "true" (syntax (arg "body") "x")))
+          ) ;assign
+          (drd-props "op" "arity" "1" "syntax" (macro "body" "x"))
+          (active* (document (src-comment (document "Common language tags."))))
+          (assign "british" (macro "body" (with "language" "british" (arg "body"))))
+          (assign "bulgarian" (macro "body" (with "language" "bulgarian" (arg "body"))))
+          (assign "chinese" (macro "body" (with "language" "chinese" (arg "body"))))
+          (assign "croatian" (macro "body" (with "language" "croatian" (arg "body"))))
+          (assign "czech" (macro "body" (with "language" "czech" (arg "body"))))
+          (assign "danish" (macro "body" (with "language" "danish" (arg "body"))))
+          (assign "dutch" (macro "body" (with "language" "dutch" (arg "body"))))
+          (assign "english" (macro "body" (with "language" "english" (arg "body"))))
+          (assign "esperanto" (macro "body" (with "language" "esperanto" (arg "body"))))
+          (assign "finnish" (macro "body" (with "language" "finnish" (arg "body"))))
+          (assign "french" (macro "body" (with "language" "french" (arg "body"))))
+          (assign "german" (macro "body" (with "language" "german" (arg "body"))))
+          (assign "hungarian" (macro "body" (with "language" "hungarian" (arg "body"))))
+          (assign "italian" (macro "body" (with "language" "italian" (arg "body"))))
+          (assign "japanese" (macro "body" (with "language" "japanese" (arg "body"))))
+          (assign "korean" (macro "body" (with "language" "korean" (arg "body"))))
+          (assign "polish" (macro "body" (with "language" "polish" (arg "body"))))
+          (assign "portuguese" (macro "body" (with "language" "portuguese" (arg "body"))))
+          (assign "romanian" (macro "body" (with "language" "romanian" (arg "body"))))
+          (assign "russian" (macro "body" (with "language" "russian" (arg "body"))))
+          (assign "slovak" (macro "body" (with "language" "slovak" (arg "body"))))
+          (assign "slovene" (macro "body" (with "language" "slovene" (arg "body"))))
+          (assign "spanish" (macro "body" (with "language" "spanish" (arg "body"))))
+          (assign "swedish" (macro "body" (with "language" "swedish" (arg "body"))))
+          (assign "taiwanese" (macro "body" (with "language" "taiwanese" (arg "body"))))
+          (assign "ukrainian" (macro "body" (with "language" "ukrainian" (arg "body"))))
+          (active* (document (src-comment (document "Frequently used content environments.")))
+          ) ;active*
+          (assign "tab-length" (macro "1.5fn"))
+          (assign "quote-left-indentation" "2tab")
+          (assign "quote-right-indentation" "2tab")
+          (assign "quote-interparagraph" "0.25fn")
+          (assign "verse-hangover" "1tab")
+          (assign "jump-in-hangover" "1tab")
+          ""
+          (assign "quote-env"
+            (macro "body"
+              (document (padded (document (indent-both (value "quote-left-indentation")
+                                            (value "quote-right-indentation")
+                                            (document (with "par-first"
+                                                        "0fn"
+                                                        "par-par-sep"
+                                                        (value "quote-interparagraph")
+                                                        (arg "body")
+                                                      ) ;with
+                                            ) ;document
+                                          ) ;indent-both
+                                ) ;document
+                        ) ;padded
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "quotation"
+            (macro "body"
+              (document (padded (document (indent-both (value "quote-left-indentation")
+                                            (value "quote-right-indentation")
+                                            (document (surround (yes-indent) "" (arg "body")))
+                                          ) ;indent-both
+                                ) ;document
+                        ) ;padded
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "verse"
+            (macro "body"
+              (document (padded (document (indent-both (plus (value "quote-left-indentation") (value "verse-hangover"))
+                                            (value "quote-right-indentation")
+                                            (document (with "par-first"
+                                                        (minus (value "verse-hangover"))
+                                                        "par-par-sep"
+                                                        "0.fn"
+                                                        (surround (yes-indent) "" (arg "body"))
+                                                      ) ;with
+                                            ) ;document
+                                          ) ;indent-both
+                                ) ;document
+                        ) ;padded
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "jump-in"
+            (macro "body"
+              (document (surround ""
+                          (right-flush)
+                          (document (with "par-left"
+                                      (plus (value "par-left") (value "jump-in-hangover"))
+                                      "par-first"
+                                      (minus (value "jump-in-hangover"))
+                                      (document (arg "body"))
+                                    ) ;with
+                          ) ;document
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "ultra-compact"
+            (macro "body"
+              (document (surround ""
+                          (right-flush)
+                          (document (with "par-sep"
+                                      "0fn"
+                                      "par-ver-sep"
+                                      "0fn"
+                                      "par-line-sep"
+                                      "0fn"
+                                      "par-par-sep"
+                                      "0fn"
+                                      (document (arg "body"))
+                                    ) ;with
+                          ) ;document
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "compact"
+            (macro "body"
+              (document (surround ""
+                          (right-flush)
+                          (document (with "par-par-sep" "0fn" (document (arg "body"))))
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "compressed"
+            (macro "body"
+              (document (surround ""
+                          (right-flush)
+                          (document (with "par-par-sep" (times "0.5" (value "par-par-sep")) (document (arg "body")))
+                          ) ;document
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "amplified"
+            (macro "body"
+              (document (surround ""
+                          (right-flush)
+                          (document (with "par-par-sep" (times "1.5" (value "par-par-sep")) (document (arg "body")))
+                          ) ;document
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "vgroup"
+            (macro "body"
+              (document (surround (no-break-start)
+                          (concat (no-break-end) (right-flush))
+                          (document (with "par-min-penalty" "100000000" (document (arg "body"))))
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "indivisible" (value "vgroup"))
+          ""
+          (assign "center" (macro "body" (with "par-mode" "center" (arg "body"))))
+          (assign "left-aligned" (macro "body" (with "par-mode" "left" (arg "body"))))
+          (assign "right-aligned" (macro "body" (with "par-mode" "right" (arg "body"))))
+          ""
+          (assign "verbatim"
+            (macro "body" (with "font-family" "tt" "language" "verbatim" (arg "body")))
+          ) ;assign
+          (assign "code"
+            (macro "body"
+              (document (padded* (document (surround ""
+                                             (htab "5mm")
+                                             (with "font-family"
+                                               "tt"
+                                               "language"
+                                               "verbatim"
+                                               "par-first"
+                                               "0fn"
+                                               "par-par-sep"
+                                               "0fn"
+                                               (arg "body")
+                                             ) ;with
+                                           ) ;surround
+                                 ) ;document
+                        ) ;padded*
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Basic tabular environments."))))
+          (assign "tabular*"
+            (macro "body"
+              (tformat (cwith "1" "-1" "1" "-1" "cell-halign" "c") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "block"
+            (macro "body"
+              (tformat (cwith "1" "-1" "1" "-1" "cell-rborder" "1ln")
+                (cwith "1" "-1" "1" "-1" "cell-bborder" "1ln")
+                (cwith "1" "1" "1" "-1" "cell-tborder" "1ln")
+                (cwith "1" "-1" "1" "1" "cell-lborder" "1ln")
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "block*"
+            (macro "body"
+              (tformat (cwith "1" "-1" "1" "-1" "cell-rborder" "1ln")
+                (cwith "1" "-1" "1" "-1" "cell-bborder" "1ln")
+                (cwith "1" "1" "1" "-1" "cell-tborder" "1ln")
+                (cwith "1" "-1" "1" "1" "cell-lborder" "1ln")
+                (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "wide-tabular"
+            (macro "body"
+              (tformat (twith "table-width" "1par")
+                (twith "table-hmode" "exact")
+                (twith "table-block" "yes")
+                (cwith "1" "-1" "1" "-1" "cell-hyphen" "t")
+                (cwith "1" "-1" "1" "-1" "cell-hpart" "0.001")
+                (cwith "1" "-1" "1" "1" "cell-lsep" "0fn")
+                (cwith "1" "-1" "-1" "-1" "cell-rsep" "0fn")
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "wide-block"
+            (macro "body"
+              (tformat (twith "table-width" "1par")
+                (twith "table-hmode" "exact")
+                (twith "table-block" "yes")
+                (cwith "1" "-1" "1" "-1" "cell-hyphen" "t")
+                (cwith "1" "-1" "1" "-1" "cell-hpart" "0.001")
+                (cwith "1" "-1" "1" "-1" "cell-rborder" "1ln")
+                (cwith "1" "-1" "1" "-1" "cell-bborder" "1ln")
+                (cwith "1" "1" "1" "-1" "cell-tborder" "1ln")
+                (cwith "1" "-1" "1" "1" "cell-lborder" "1ln")
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (assign "par-block"
+            (macro "body"
+              (tabular (tformat (twith "table-width" "1par")
+                         (twith "table-hmode" "exact")
+                         (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                         (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
+                         (cwith "1" "1" "1" "1" "cell-rsep" "0spc")
+                         (table (row (cell (document (arg "body")))))
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+          (assign "three-line-table"
+            (macro "body"
+              (tformat (twith "table-min-rows" "2")
+                (cwith "1" "-1" "1" "-1" "cell-halign" "c")
+                (cwith "1" "1" "1" "-1" "cell-tborder" "1ln")
+                (cwith "-1" "-1" "1" "-1" "cell-bborder" "1ln")
+                (cwith "1" "1" "1" "-1" "cell-bborder" "0.5ln")
+                (arg "body")
+              ) ;tformat
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Transparency."))))
+          (assign "with-opacity"
+            (macro "factor"
+              "body"
+              (with "opacity" (times (arg "factor") (value "opacity")) (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "pastel" (macro "body" (with-opacity "0.1" (arg "body"))))
+          (assign "greyed" (macro "body" (with-opacity "0.33333" (arg "body"))))
+          (assign "light" (macro "body" (with-opacity "0.5" (arg "body"))))
+          ""
+          (assign "phantom" (macro "body" (if* "false" (arg "body"))))
+          (drd-props "phantom" "arity" "1" "accessible" "none" "syntax" (macro "body" ""))
+          (assign "hphantom" (macro "body" (vresize (phantom (arg "body")) "0ex" "1ex")))
+          (assign "vphantom" (macro "body" (hresize (phantom (arg "body")) "0em" "0em")))
+          (assign "concealed" (macro "body" ""))
+          (active* (document (src-comment (document "Adjusting the sizes of boxes."))))
+          (assign "hresize"
+            (macro "body"
+              "left"
+              "right"
+              (resize (arg "body") (arg "left") "" (arg "right") "")
+            ) ;macro
+          ) ;assign
+          (assign "vresize"
+            (macro "body"
+              "bottom"
+              "top"
+              (resize (arg "body") "" (arg "bottom") "" (arg "top"))
+            ) ;macro
+          ) ;assign
+          (assign "smash" (macro "body" (vresize (arg "body") "0ex" "1ex")))
+          (assign "smash-top" (macro "body" (vresize (arg "body") "1b" "1ex")))
+          (assign "smash-bottom" (macro "body" (vresize (arg "body") "0ex" "1t")))
+          (assign "reduce-by"
+            (macro "body"
+              "by"
+              (vresize (arg "body") (plus "1b" (arg "by")) (minus "1t" (arg "by")))
+            ) ;macro
+          ) ;assign
+          (assign "reduce-top-by"
+            (macro "body" "by" (vresize (arg "body") "" (minus "1t" (arg "by"))))
+          ) ;assign
+          (assign "reduce-bottom-by"
+            (macro "body" "by" (vresize (arg "body") (plus "1b" (arg "by")) ""))
+          ) ;assign
+          ""
+          (assign "extend"
+            (macro "body"
+              "left"
+              "bottom"
+              "right"
+              "top"
+              (style-with "src-compact"
+                "none"
+                (resize (arg "body")
+                  (if (equal (arg "left") "") "1l" (minimum "1l" (arg "left")))
+                  (if (equal (arg "bottom") "") "1b" (minimum "1b" (arg "bottom")))
+                  (if (equal (arg "right") "") "1r" (maximum "1r" (arg "right")))
+                  (if (equal (arg "top") "") "1t" (maximum "1t" (arg "top")))
+                ) ;resize
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (drd-props "extend" "arity" "5" "accessible" "0" "length" "1" "length"
+            "2" "length" "3" "length" "4"
+          ) ;drd-props
+          (assign "extend-right"
+            (macro "body"
+              "right"
+              (resize (arg "body") "" "" (maximum "1r" (arg "right")) "")
+            ) ;macro
+          ) ;assign
+          (assign "inflate"
+            (macro "body"
+              (resize (arg "body") "" (minimum "1b" "1fnbot") "" (maximum "1t" "1fntop"))
+            ) ;macro
+          ) ;assign
+          (assign "inflate-bottom"
+            (macro "body" (resize (arg "body") "" (minimum "1b" "1fnbot") "" ""))
+          ) ;assign
+          (assign "inflate-top"
+            (macro "body" (resize (arg "body") "" "" "" (maximum "1t" "1fntop")))
+          ) ;assign
+          ""
+          (assign "mini-paragraph"
+            (macro "width"
+              "body"
+              (tabular (tformat (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+                         (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
+                         (cwith "1" "1" "1" "1" "cell-rsep" "0spc")
+                         (twith "table-width" (arg "width"))
+                         (twith "table-hmode" "exact")
+                         (twith "table-valign" "T")
+                         (table (row (cell (document (arg "body")))))
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+          (drd-props "mini-paragraph" "arity" "2" "length" "0" "accessible" "1")
+          (active* (document (src-comment (document "Frames."))))
+          (assign "frame"
+            (macro "body" (block (tformat (table (row (cell (arg "body")))))))
+          ) ;assign
+          (assign "colored-frame"
+            (macro "col"
+              "body"
+              (block (tformat (cwith "1" "1" "1" "1" "cell-background" (arg "col"))
+                       (table (row (cell (arg "body"))))
+                     ) ;tformat
+              ) ;block
+            ) ;macro
+          ) ;assign
+          (assign "tmfs-title"
+            (macro "name"
+              (document (surround ""
+                          (vspace "1fn")
+                          (block* (tformat (cwith "1" "1" "1" "1" "cell-background" "pastel blue")
+                                    (twith "table-width" "1par")
+                                    (twith "table-hmode" "exact")
+                                    (cwith "1" "1" "1" "1" "cell-lsep" "2spc")
+                                    (cwith "1" "1" "1" "1" "cell-rsep" "2spc")
+                                    (cwith "1" "1" "1" "1" "cell-bsep" "2spc")
+                                    (cwith "1" "1" "1" "1" "cell-tsep" "2spc")
+                                    (table (row (cell (large (strong (arg "name"))))))
+                                  ) ;tformat
+                          ) ;block*
+                        ) ;surround
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Decorated text."))))
+          (assign "overline"
+            (macro "body"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (datoms (macro "x"
+                                 (with "color" (unquote (value "color")) (wide (arg "x") "<wide-bar>"))
+                               ) ;macro
+                         (arg "body")
+                       ) ;datoms
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (drd-props "overline" "with-like" "yes" "arity" "1" "accessible" "all")
+          (assign "underline"
+            (macro "body"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (datoms (macro "x"
+                                 (with "color" (unquote (value "color")) (wide* (arg "x") "<wide-bar>"))
+                               ) ;macro
+                         (arg "body")
+                       ) ;datoms
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (drd-props "underline" "with-like" "yes" "arity" "1" "accessible" "all")
+          (assign "stressed-color" "black")
+          (assign "stressed-distance" "0.2fn")
+          (assign "stressed"
+            (macro "body"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (datoms (macro "x"
+                                 (with "color"
+                                   (unquote (value "stressed-color"))
+                                   (repeat* (with "color" (unquote (value "color")) (arg "x"))
+                                     (move (resize "-" (plus "0.6667l" "0.3333r") "" (plus "0.3333l" "0.6667r") "")
+                                       ""
+                                       (minus "-0.5ex" (unquote (value "stressed-distance")))
+                                     ) ;move
+                                   ) ;repeat*
+                                 ) ;with
+                               ) ;macro
+                         (arg "body")
+                       ) ;datoms
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (drd-props "stressed" "with-like" "yes" "arity" "1" "accessible" "all")
+          (assign "strike-through"
+            (macro "body"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (datoms (macro "x"
+                                 (with "color"
+                                   (unquote (value "color"))
+                                   (repeat (arg "x")
+                                     (resize "-" (plus "0.6667l" "0.3333r") "" (plus "0.3333l" "0.6667r") "")
+                                   ) ;repeat
+                                 ) ;with
+                               ) ;macro
+                         (arg "body")
+                       ) ;datoms
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (drd-props "strike-through" "with-like" "yes" "arity" "1" "accessible" "all")
+          (assign "hrule" (macro (strike-through (htab "5mm"))))
+          (assign "repeat-through"
+            (macro "what"
+              "body"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (datoms (macro "x" (repeat (arg "x") (unquote (arg "what")))) (arg "body"))
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (drd-props "repeat-through" "arity" "2" "accessible" "1")
+          ""
+          (assign "deleted-color" "red")
+          (assign "deleted"
+            (macro "body"
+              (repeat-through (with "color" (value "deleted-color") "/") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (drd-props "deleted" "with-like" "yes" "arity" "1" "accessible" "all")
+          ""
+          (assign "fill-out-color" "black")
+          (assign "fill-out-distance" "0.2fn")
+          (assign "fill-out-hspace" "0fn")
+          (assign "fill-out"
+            (macro "body"
+              (repeat-through (with "color"
+                                (value "fill-out-color")
+                                (concat (move "." "" (minus (value "fill-out-distance")))
+                                  (hspace (value "fill-out-hspace"))
+                                ) ;concat
+                              ) ;with
+                (arg "body")
+              ) ;repeat-through
+            ) ;macro
+          ) ;assign
+          (assign "fill-out*"
+            (macro "body" (fill-out (concat (arg "body") (htab "5mm"))))
+          ) ;assign
+          (assign "fill-dots" (macro (fill-out (htab "5mm"))))
+          (drd-props "fill-out" "with-like" "yes" "arity" "1" "accessible" "all")
+          ""
+          (assign "marked-color" "#ffe47f")
+          (assign "marked-padding" "0.2fn")
+          (assign "marked"
+            (macro "body" (with "text-bg-color" (value "marked-color") (arg "body")))
+          ) ;assign
+          (drd-props "marked" "with-like" "yes" "arity" "1" "accessible" "all")
+          ""
+          (assign "todo-color" "dark red")
+          (assign "todo-bg-color" "pastel red")
+          (assign "render-todo"
+            (macro "fg"
+              "bg"
+              "body"
+              (with "color"
+                (arg "fg")
+                (quasi (style-with "src-compact"
+                         "none"
+                         (datoms (macro "x"
+                                   (style-with "src-compact"
+                                     "none"
+                                     (resize (tabular (tformat (cwith "1" "1" "1" "1" "cell-background" (unquote (arg "bg")))
+                                                        (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
+                                                        (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
+                                                        (cwith "1" "1" "1" "1" "cell-bsep" (unquote (value "marked-padding")))
+                                                        (cwith "1" "1" "1" "1" "cell-tsep" (unquote (value "marked-padding")))
+                                                        (cwith "1" "-1" "1" "-1" "cell-lborder" "0ln")
+                                                        (cwith "1" "-1" "1" "-1" "cell-rborder" "0ln")
+                                                        (cwith "1" "-1" "1" "-1" "cell-bborder" "0ln")
+                                                        (cwith "1" "-1" "1" "-1" "cell-tborder" "0ln")
+                                                        (twith "table-width" "")
+                                                        (twith "table-hmode" "auto")
+                                                        (twith "table-block" "no")
+                                                        (table (row (cell (arg "x"))))
+                                                      ) ;tformat
+                                             ) ;tabular
+                                       (plus "1l" "0fn")
+                                       (plus "1b" (unquote (value "marked-padding")))
+                                       (minus "1r" "0fn")
+                                       (minus "1t" (unquote (value "marked-padding")))
+                                     ) ;resize
+                                   ) ;style-with
+                                 ) ;macro
+                           (concat "[" (arg "body") "]")
+                         ) ;datoms
+                       ) ;style-with
+                ) ;quasi
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (assign "todo"
+            (macro "body"
+              (render-todo (value "todo-color") (value "todo-bg-color") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "todo*"
+            (macro "body" (render-todo "dark orange" "pastel orange" (arg "body")))
+          ) ;assign
+          (drd-props "render-todo" "arity" "3" "color" "0" "color" "1" "accessible" "2")
+          (active* (document (src-comment (document "Marginal notes."))))
+          (assign "marginal-note-width" "2cm")
+          (assign "marginal-note-sep" "5mm")
+          (assign "marginal-note-table"
+            (macro "body"
+              "hpos"
+              "hhyph"
+              "vpos"
+              "vhyph"
+              (tabular (tformat (twith "table-width" (value "marginal-note-width"))
+                         (twith "table-hmode" "exact")
+                         (cwith "1" "1" "1" "1" "cell-hyphen" (arg "vhyph"))
+                         (twith "table-valign" (arg "vpos"))
+                         (cwith "1" "1" "1" "1" "cell-lsep" "0em")
+                         (cwith "1" "1" "1" "1" "cell-rsep" "0em")
+                         (cwith "1" "1" "1" "1" "cell-halign" (arg "hpos"))
+                         (table (row (cell (document (with "par-par-sep"
+                                                       "0em"
+                                                       "par-line-sep"
+                                                       "0em"
+                                                       "par-mode"
+                                                       (arg "hhyph")
+                                                       (document (arg "body"))
+                                                     ) ;with
+                                           ) ;document
+                                     ) ;cell
+                                ) ;row
+                         ) ;table
+                       ) ;tformat
+              ) ;tabular
+            ) ;macro
+          ) ;assign
+          (assign "marginal-even-left-note"
+            (macro "vpos"
+              "body"
+              (concat (line-note (specific "even"
+                                   (marginal-note-table (arg "body")
+                                     "r"
+                                     "right"
+                                     (change-case (arg "vpos") "UPCASE")
+                                     (arg "vpos")
+                                   ) ;marginal-note-table
+                                 ) ;specific
+                        (minus "0cm" (plus (value "marginal-note-width") (value "marginal-note-sep")))
+                        "0cm"
+                      ) ;line-note
+                (line-note (specific "odd"
+                             (marginal-note-table (arg "body")
+                               "l"
+                               "left"
+                               (change-case (arg "vpos") "UPCASE")
+                               (arg "vpos")
+                             ) ;marginal-note-table
+                           ) ;specific
+                  (plus "1par" (value "marginal-note-sep") (value "par-left") (value "par-right"))
+                  "0cm"
+                ) ;line-note
+                (flag "marginal note" "dark brown")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "marginal-even-right-note"
+            (macro "vpos"
+              "body"
+              (concat (line-note (specific "odd"
+                                   (marginal-note-table (arg "body")
+                                     "r"
+                                     "right"
+                                     (change-case (arg "vpos") "UPCASE")
+                                     (arg "vpos")
+                                   ) ;marginal-note-table
+                                 ) ;specific
+                        (minus "0cm" (plus (value "marginal-note-width") (value "marginal-note-sep")))
+                        "0cm"
+                      ) ;line-note
+                (line-note (specific "even"
+                             (marginal-note-table (arg "body")
+                               "l"
+                               "left"
+                               (change-case (arg "vpos") "UPCASE")
+                               (arg "vpos")
+                             ) ;marginal-note-table
+                           ) ;specific
+                  (plus "1par" (value "marginal-note-sep") (value "par-left") (value "par-right"))
+                  "0cm"
+                ) ;line-note
+                (flag "marginal note" "dark brown")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "marginal-left-note"
+            (macro "vpos"
+              "body"
+              (concat (line-note (marginal-note-table (arg "body")
+                                   "r"
+                                   "right"
+                                   (change-case (arg "vpos") "UPCASE")
+                                   (arg "vpos")
+                                 ) ;marginal-note-table
+                        (minus "0cm" (plus (value "marginal-note-width") (value "marginal-note-sep")))
+                        "0cm"
+                      ) ;line-note
+                (flag "marginal note" "dark brown")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "marginal-right-note"
+            (macro "vpos"
+              "body"
+              (concat (line-note (marginal-note-table (arg "body")
+                                   "l"
+                                   "left"
+                                   (change-case (arg "vpos") "UPCASE")
+                                   (arg "vpos")
+                                 ) ;marginal-note-table
+                        (plus "1par" (value "marginal-note-sep") (value "par-left") (value "par-right"))
+                        "0cm"
+                      ) ;line-note
+                (flag "marginal note" "dark brown")
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "marginal-normal-note"
+            (macro "vpos"
+              "body"
+              (compound (if (and (equal (value "page-odd") (value "page-even"))
+                              (equal (value "page-odd-shift") (value "page-even-shift"))
+                            ) ;and
+                          "marginal-left-note"
+                          "marginal-even-left-note"
+                        ) ;if
+                (arg "vpos")
+                (arg "body")
+              ) ;compound
+            ) ;macro
+          ) ;assign
+          (assign "marginal-note"
+            (macro "hpos"
+              "vpos"
+              "body"
+              (with "dummy1"
+                (value "marginal-note-width")
+                "dummy2"
+                (value "marginal-note-sep")
+                (compound (merge "marginal-" (arg "hpos") "-note")
+                  (arg "vpos")
+                  (arg "body")
+                  (arg "hpos")
+                ) ;compound
+              ) ;with
+            ) ;macro
+          ) ;assign
+          (drd-props "marginal-note" "arity" "3" "accessible" "2")
+          (active* (document (src-comment (document "Tags for HTML generation."))))
+          (assign "web-title" (macro "title" ""))
+          (assign "html-tag" (macro "name" "body" (arg "body")))
+          (assign "html-attr" (macro "attr" "val" "body" (arg "body")))
+          (assign "html-div-style" (macro "name" "body" (arg "body")))
+          (assign "html-div-class" (macro "name" "body" (arg "body")))
+          (assign "html-style" (macro "style" "body" (arg "body")))
+          (assign "html-class" (macro "style" "body" (arg "body")))
+          (assign "html-javascript"
+            (macro "script"
+              (small (colored-frame "pastel yellow"
+                       (concat (with "font-family" "ss" "Javascript: ")
+                         (with "font-family" "tt" (arg "script"))
+                       ) ;concat
+                     ) ;colored-frame
+              ) ;small
+            ) ;macro
+          ) ;assign
+          (assign "html-javascript-src"
+            (macro "source-file"
+              (small (colored-frame "pastel yellow"
+                       (concat (with "font-family" "ss" "Javascript source: ")
+                         (href (arg "source-file"))
+                       ) ;concat
+                     ) ;colored-frame
+              ) ;small
+            ) ;macro
+          ) ;assign
+          (assign "html-video"
+            (macro "dest"
+              "width"
+              "height"
+              (small (colored-frame "pastel yellow"
+                       (tabular* (tformat (table (row (cell (small (with "font-family" "tt" (arg "dest")))))
+                                            (row (cell (concat (arg "width") " " (math "<times>") " " (arg "height"))))
+                                          ) ;table
+                                 ) ;tformat
+                       ) ;tabular*
+                     ) ;colored-frame
+              ) ;small
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Poor man font effects."))))
+          (assign "add-font-effect"
+            (macro "prop"
+              "val"
+              "body"
+              (with "font-effects"
+                (merge (value "font-effects")
+                  (if (equal (value "font-effects") "") "" ",")
+                  (arg "prop")
+                  "="
+                  (arg "val")
+                ) ;merge
+                (arg "body")
+              ) ;with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "embold-strength" "2")
+          (assign "embbb-strength" "3")
+          (assign "slanted-slope" "0.25")
+          (assign "hmagnified-factor" "1.5")
+          (assign "vmagnified-factor" "1.5")
+          (assign "condensed-factor" "0.8")
+          (assign "extended-factor" "1.2")
+          (assign "monospaced-factor" "0.75")
+          (assign "degraded-threshold" "0.667")
+          (assign "degraded-frequency" "1.0")
+          (assign "distorted-strength" "0.5")
+          (assign "distorted-frequency" "1.0")
+          (assign "gnawed-strength" "0.6")
+          (assign "gnawed-frequency" "1.0")
+          ""
+          (assign "embold"
+            (macro "body" (add-font-effect "bold" (value "embold-strength") (arg "body")))
+          ) ;assign
+          (assign "embbb"
+            (macro "body" (add-font-effect "bbb" (value "embbb-strength") (arg "body")))
+          ) ;assign
+          (assign "slanted"
+            (macro "body" (add-font-effect "slant" (value "slanted-slope") (arg "body")))
+          ) ;assign
+          (assign "hmagnified"
+            (macro "body"
+              (add-font-effect "hmagnify" (value "hmagnified-factor") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "vmagnified"
+            (macro "body"
+              (add-font-effect "vmagnify" (value "vmagnified-factor") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "condensed"
+            (macro "body"
+              (add-font-effect "hextended" (value "condensed-factor") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "extended"
+            (macro "body"
+              (add-font-effect "hextended" (value "extended-factor") (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "monospaced"
+            (macro "body" (add-font-effect "mono" (value "monospaced-factor") (arg "body")))
+          ) ;assign
+          (assign "degraded"
+            (macro "body"
+              (add-font-effect "degraded"
+                (merge (value "degraded-threshold") ";" (value "degraded-frequency"))
+                (arg "body")
+              ) ;add-font-effect
+            ) ;macro
+          ) ;assign
+          (assign "distorted"
+            (macro "body"
+              (add-font-effect "distorted"
+                (merge (value "distorted-strength") ";" (value "distorted-frequency"))
+                (arg "body")
+              ) ;add-font-effect
+            ) ;macro
+          ) ;assign
+          (assign "gnawed"
+            (macro "body"
+              (add-font-effect "gnawed"
+                (merge (value "gnawed-strength") ";" (value "gnawed-frequency"))
+                (arg "body")
+              ) ;add-font-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Artistic font effects."))))
+          (assign "blurred-radius" "0.6pt")
+          (assign "shadow-font-color" "#222")
+          (assign "sunny-font-color" "#ddd")
+          ""
+          (assign "blurred"
+            (macro "body" (add-font-effect "blurred" (value "blurred-radius") (arg "body")))
+          ) ;assign
+          (assign "enhanced"
+            (macro "body"
+              (add-font-effect "enhanced"
+                (merge (value "blurred-radius")
+                  ";"
+                  (value "shadow-font-color")
+                  ";"
+                  (value "sunny-font-color")
+                ) ;merge
+                (arg "body")
+              ) ;add-font-effect
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Miscellaneous."))))
+          (assign "href"
+            (macro "body"
+              (hlink (with "font-family" "tt" "language" "verbatim" (arg "body"))
+                (arg "body")
+              ) ;hlink
+            ) ;macro
+          ) ;assign
+          (assign "slink"
+            (macro "body"
+              (hlink (with "font-family" "tt" "language" "verbatim" (arg "body"))
+                (arg "body")
+              ) ;hlink
+            ) ;macro
+          ) ;assign
+          (assign "square" (macro "x" (times (arg "x") (arg "x"))))
+          (assign "text-dots-sep" "0.3333spc")
+          (assign "text-spc" (macro (hspace (value "text-dots-sep"))))
+          (assign "text-dots"
+            (macro (concat (text-spc) "." (text-spc) "." (text-spc) "." (text-spc)))
+          ) ;assign
+          (assign "indent-par-first" "1.5fn")
+          (assign "padded-par-par-sep" "0.6666fn")
+          (assign "math-color" (value "color"))
+          (assign "strong-color" (value "color"))
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true") (associate "src-special" "normal"))
+  ) ;initial
+) ;document
