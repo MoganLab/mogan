@@ -1133,7 +1133,7 @@ qt_tm_widget_rep::poll_central_unfreeze (int generation, qint64 start_ms) {
     }
     if (ready) {
       qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
-      sw->awaiting_first_show= false;
+      sw->awaiting_first_show = false;
       set_central_widget_updates_frozen (false);
     }
     // 兜底：超时也解冻，宁可显示过渡帧也不能一直冻着
