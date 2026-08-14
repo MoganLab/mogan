@@ -1891,9 +1891,11 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     // 新建编辑器控件的首帧要等真实 extents 下发、surface 收缩居中并重绘后
     // 才稳定；若立即解冻，用户会看到「沿用旧 extents 的过渡帧」（页面边缘
     // 闪灰带/白页）。此时改为延迟解冻：轮询首帧就绪后再放开，期间中央区
-    // 保持显示旧内容。
+    // 保持显示旧内容。仅在真正展示编辑器时延迟：首页/PDF/聊天标签页显示
+    // 的不是编辑器控件，其编辑器在后台永远等不到首帧，会白等整条超时。
     bool unfreeze_deferred= false;
-    if (centralWidgetUpdatesFrozen_ && !is_nil (main_widget) &&
+    if (centralWidgetUpdatesFrozen_ && !startupTabMode && !pdfTabMode &&
+        !chatTabMode && !is_nil (main_widget) &&
         main_widget.rep->type == qt_widget_rep::simple_widget) {
       qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
       if (sw->is_editor_widget () && sw->awaiting_first_show) {
