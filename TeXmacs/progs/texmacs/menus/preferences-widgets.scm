@@ -880,20 +880,6 @@
   ) ;list
 ) ;define
 
-;; ---- Convert / Mogan Scheme fields ----
-
-(define preferences-qml-convert-mogan-scheme-fields
-  (list (list (pref-convert-mogan-scheme-formatted)
-          "Use the Formatted Mogan Scheme"
-          '()
-          '()
-          #f
-          'group
-          "TeXmacs → Mogan Scheme"
-        ) ;list
-  ) ;list
-) ;define
-
 ;; ---- Other / Misc fields ----
 
 (define preferences-qml-other-misc-fields
@@ -1128,10 +1114,6 @@
                                  (list "image"
                                    (translate "Image")
                                    (preferences-qml-build-tab preferences-qml-convert-image-fields)
-                                 ) ;list
-                                 (list "mogan-scheme"
-                                   (translate "Mogan Scheme")
-                                   (preferences-qml-build-tab preferences-qml-convert-mogan-scheme-fields)
                                  ) ;list
                                ) ;list
                     identity

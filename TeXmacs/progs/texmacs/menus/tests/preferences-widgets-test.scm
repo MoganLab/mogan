@@ -61,17 +61,17 @@
   ) ;let
 ) ;define
 
-;; ---- 3. Convert 7 子 tab + key 顺序固定 ----
+;; ---- 3. Convert 6 子 tab + key 顺序固定 ----
 
 (define (test-meta-convert-subtabs)
   (let* ((meta (preferences-qml-meta))
          (convert (tab-ref meta "convert"))
          (subs (cadddr convert))
         ) ;
-    (check (length subs) => 7)
+    (check (length subs) => 6)
     (check (map car subs)
       =>
-      (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "mogan-scheme")
+      (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
     ) ;check
   ) ;let*
 ) ;define
