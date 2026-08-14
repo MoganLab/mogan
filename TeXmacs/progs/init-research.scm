@@ -642,7 +642,7 @@
 ;; (display "Booting autoupdater\n")
 (when (use-plugin-updater?)
   (use-modules (utils misc updater))
-  (delayed (:idle 2000) (updater-initialize))
+  (delayed (:pause 2000) (updater-initialize))
 ) ;when
 (debug-message "debug-std"
   (string-append "time: "

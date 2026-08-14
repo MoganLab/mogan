@@ -44,14 +44,15 @@
 
 ;; 定时检查循环：每 10 分钟自查一次，距上次检查超过 1 小时才真正触发后台检查。
 ;; 由 updater-initialize 启动；每次执行后重新排定下一次
-;; （delayed :idle 600000），形成周期循环。guard 保证仅更新器平台进入。
+;; （delayed :pause 600000），形成周期循环。guard 保证仅更新器平台进入。
+;; 注意：不能用 :idle —— 本环境 delayed :idle 不触发（见 devel/0512.md）。
 
 (tm-define (updater-scheduled-check)
   (when (use-plugin-updater?)
     (when (> (- (current-time) (updater-last-check)) 3600)
       (updater-check-background)
     ) ;when
-    (delayed (:idle 600000) (updater-scheduled-check))
+    (delayed (:pause 600000) (updater-scheduled-check))
   ) ;when
 ) ;tm-define
 
@@ -65,6 +66,6 @@
     (when (== (updater-state) 2)
       (updater-download-update)
     ) ;when
-    (delayed (:idle 1000) (updater-auto-download-loop))
+    (delayed (:pause 1000) (updater-auto-download-loop))
   ) ;when
 ) ;tm-define
