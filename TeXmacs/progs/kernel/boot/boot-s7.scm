@@ -233,7 +233,15 @@
   ) ;cons
 ) ;set!
 
-(load "scheme/boot.scm")
+;; goldfish v18.11.26 起 define-library/import 为 C 实现
+;; （s7_r7rs_library.c）。其 export 校验对本 body 未定义的名字依赖
+;; 「落入 rootlet」的兜底（s7_is_defined）：scheme/boot.scm 顶层定义的
+;; delete-file、(scheme base) 的 list-copy 等经此通道被 srfi-1、
+;; (scheme file) 等库传递性 re-export。goldfish 自身在 rootlet 求值，
+;; 这些定义天然全局；mogan 顶层是 *texmacs-user-module*，故 boot.scm
+;; 与基础库需显式装入 rootlet。
+(load "scheme/boot.scm" (rootlet))
+(with-let (rootlet) (import (scheme base)))
 (import (scheme base))
 (import (scheme char))
 (import (liii os))

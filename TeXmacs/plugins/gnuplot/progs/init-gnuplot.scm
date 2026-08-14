@@ -11,64 +11,57 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-library (session gnuplot)
-  (import (scheme base) (liii list))
-  (export init-gnuplot)
-  (begin
-    (use-modules (gnuplot gnuplot-binary) (binary goldfish) (binary gs))
+(use-modules (gnuplot gnuplot-binary) (binary goldfish) (binary gs))
 
-    (lazy-format (gnuplot gnuplot-format) gnuplot)
+(lazy-format (gnuplot gnuplot-format) gnuplot)
 
-    (define (gnuplot-serialize lan t)
-      (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
-        (string-append s "\n<EOF>\n")
-      ) ;let*
-    ) ;define
+(define (gnuplot-serialize lan t)
+  (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
+    (string-append s "\n<EOF>\n")
+  ) ;let*
+) ;define
 
-    (define (gen-launcher image-format)
-      (string-append (string-quote (url->system (find-binary-goldfish)))
-        " "
-        "load"
-        " "
-        (string-quote (string-append (url->system (get-texmacs-path))
-                        "/plugins/gnuplot/goldfish/tm-gnuplot.scm"
-                      ) ;string-append
-        ) ;string-quote
-        " "
-        (string-quote (url->system (find-binary-gnuplot)))
-        " "
-        image-format
-      ) ;string-append
-    ) ;define
+(define (gen-launcher image-format)
+  (string-append (string-quote (url->system (find-binary-goldfish)))
+    " "
+    "load"
+    " "
+    (string-quote (string-append (url->system (get-texmacs-path))
+                    "/plugins/gnuplot/goldfish/tm-gnuplot.scm"
+                  ) ;string-append
+    ) ;string-quote
+    " "
+    (string-quote (url->system (find-binary-gnuplot)))
+    " "
+    image-format
+  ) ;string-append
+) ;define
 
-    (define (gnuplot-launchers)
-      (let ((l (list (list :launch "pdf" (gen-launcher "pdf"))
-                 (list :launch "svg" (gen-launcher "svg"))
-                 (list :launch "png" (gen-launcher "png"))
-               ) ;list
-            ) ;l
-           ) ;
-        (if (has-binary-gs?)
-          (append l (list (list :launch "eps" (gen-launcher "eps"))))
-          l
-        ) ;if
-      ) ;let
-    ) ;define
+(define (gnuplot-launchers)
+  (let ((l (list (list :launch "pdf" (gen-launcher "pdf"))
+             (list :launch "svg" (gen-launcher "svg"))
+             (list :launch "png" (gen-launcher "png"))
+           ) ;list
+        ) ;l
+       ) ;
+    (if (has-binary-gs?)
+      (append l (list (list :launch "eps" (gen-launcher "eps"))))
+      l
+    ) ;if
+  ) ;let
+) ;define
 
-    (define (all-gnuplot-launchers)
-      (cons (list :launch (gen-launcher "pdf")) (gnuplot-launchers))
-    ) ;define
+(define (all-gnuplot-launchers)
+  (cons (list :launch (gen-launcher "pdf")) (gnuplot-launchers))
+) ;define
 
-    (define (init-gnuplot)
-      (plugin-configure gnuplot
-        (:require (and (has-binary-goldfish?) (has-binary-gnuplot?)))
-        ,@(all-gnuplot-launchers)
-        (:serializer ,gnuplot-serialize)
-        (:session "Gnuplot")
-      ) ;plugin-configure
-    ) ;define
-  ) ;begin
-) ;define-library
+(define (init-gnuplot)
+  (plugin-configure gnuplot
+    (:require (and (has-binary-goldfish?) (has-binary-gnuplot?)))
+    ,@(all-gnuplot-launchers)
+    (:serializer ,gnuplot-serialize)
+    (:session "Gnuplot")
+  ) ;plugin-configure
+) ;define
 
-(import (session gnuplot))
 (init-gnuplot)

@@ -12,44 +12,37 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-library (session tikz)
-  (import (scheme base) (liii list))
-  (export init-tikz)
-  (begin
-    (use-modules (binary pdflatex) (binary goldfish))
+(use-modules (binary pdflatex) (binary goldfish))
 
-    (define (tikz-serialize lan t)
-      (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
-        (string-append s "\n<EOF>\n")
-      ) ;let*
-    ) ;define
+(define (tikz-serialize lan t)
+  (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
+    (string-append s "\n<EOF>\n")
+  ) ;let*
+) ;define
 
-    (define (tikz-launcher)
-      (string-append (string-quote (url->system (find-binary-goldfish)))
-        " "
-        "load"
-        " "
-        (string-quote (string-append (url->system (get-texmacs-path))
-                        "/plugins/tikz/goldfish/tm-tikz.scm"
-                      ) ;string-append
-        ) ;string-quote
-        " "
-        (string-quote (url->system (find-binary-pdflatex)))
-      ) ;string-append
-    ) ;define
+(define (tikz-launcher)
+  (string-append (string-quote (url->system (find-binary-goldfish)))
+    " "
+    "load"
+    " "
+    (string-quote (string-append (url->system (get-texmacs-path))
+                    "/plugins/tikz/goldfish/tm-tikz.scm"
+                  ) ;string-append
+    ) ;string-quote
+    " "
+    (string-quote (url->system (find-binary-pdflatex)))
+  ) ;string-append
+) ;define
 
-    (define (init-tikz)
-      (plugin-configure tikz
-        (:require (and (has-binary-goldfish?) (has-binary-pdflatex?)))
-        (:launch ,(tikz-launcher))
-        (:serializer ,tikz-serialize)
-        (:session "TikZ")
-      ) ;plugin-configure
-    ) ;define
-  ) ;begin
-) ;define-library
+(define (init-tikz)
+  (plugin-configure tikz
+    (:require (and (has-binary-goldfish?) (has-binary-pdflatex?)))
+    (:launch ,(tikz-launcher))
+    (:serializer ,tikz-serialize)
+    (:session "TikZ")
+  ) ;plugin-configure
+) ;define
 
-(import (session tikz))
 (init-tikz)
 (lazy-format (tikz tikz-format) tikz)
 (use-modules (tikz tikz-mode) (tikz tikz-edit))
