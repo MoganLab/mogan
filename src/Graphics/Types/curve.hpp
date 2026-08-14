@@ -176,7 +176,6 @@ curve recontrol (curve c, array<point> a, array<path> cip);
 array<point> intersection (curve f, curve g, point p0, double eps);
 point        closest (curve f, point p);
 bool         is_straight_line (curve f);
-bool         is_straight_line (curve f, double t1, double t2);
 
 array<point> simplify_polyline (array<point> a, double eps);
 array<point> std_bezier_fit (array<point> a, int pack_size);
