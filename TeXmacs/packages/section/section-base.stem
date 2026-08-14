@@ -1,0 +1,762 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : section-base.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "section-base" "1.0")
+                                        (src-purpose (document (concat "The common base for most " (TeXmacs) " styles with sectional markup.")
+                                                     ) ;document
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (active* (document (src-comment (document "Environment parameters."))))
+          (assign "sectional-sep" (macro (space "2spc")))
+          (assign "sectional-post-sep" (macro (sectional-sep)))
+          (assign "sectional-short-style" (macro "true"))
+          (assign "in-appendix" "false")
+          (assign "chapter-title-style" "left")
+          (assign "section-title-style" "left")
+          (assign "subsection-title-style" "left")
+          (assign "subsubsection-title-style" "left")
+          (assign "chapter-number-style" "arabic")
+          (assign "section-number-style" "arabic")
+          (assign "subsection-number-style" "arabic")
+          (assign "subsubsection-number-style" "arabic")
+          (drd-props "sectional-short-style" "macro-parameter" "boolean")
+          (drd-props "chapter-number-style" "macro-parameter" "string")
+          (drd-props "section-number-style" "macro-parameter" "string")
+          (drd-props "subsection-number-style" "macro-parameter" "string")
+          (drd-props "subsubsection-number-style" "macro-parameter" "string")
+          (drd-props "sectional-sep" "macro-parameter" "regular")
+          (drd-props "chapter-title-style" "macro-parameter" "string")
+          (drd-props "section-title-style" "macro-parameter" "string")
+          (drd-props "subsection-title-style" "macro-parameter" "string")
+          (drd-props "subsubsection-title-style" "macro-parameter" "string")
+          (active* (document (src-comment (document "Names of special sections."))))
+          (assign "prologue-text" (macro (localize "Prologue")))
+          (assign "epilogue-text" (macro (localize "Epilogue")))
+          (assign "bibliography-text" (macro (localize "Bibliography")))
+          (assign "bib-no-translate" "true")
+          (drd-props "bib-no-translate" "macro-parameter" "boolean")
+          (assign "table-of-contents-text" (macro (localize "Table of contents")))
+          (assign "index-text" (macro (localize "Index")))
+          (assign "glossary-text" (macro (localize "Glossary")))
+          (assign "list-of-figures-text" (macro (localize "List of figures")))
+          (assign "list-of-tables-text" (macro (localize "List of tables")))
+          (assign "list-of-abbreviations-text" (macro (localize "List of abbreviations")))
+          (active* (document (src-comment (document "Some useful macros on which the rendering of section titles can be based."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "sectional-no-indent" (macro (no-indent*)))
+          (assign "sectional-short" (macro "name" (concat (no-indent) (arg "name"))))
+          (assign "sectional-normal"
+            (macro "name"
+              (wide-normal (concat (arg "name") (no-page-break) (sectional-no-indent)))
+            ) ;macro
+          ) ;assign
+          (assign "sectional-centered"
+            (macro "name"
+              (wide-centered (concat (arg "name") (no-page-break) (sectional-no-indent)))
+            ) ;macro
+          ) ;assign
+          (assign "sectional-short-italic"
+            (macro "name" (sectional-short (with "font-shape" "italic" (arg "name"))))
+          ) ;assign
+          (assign "sectional-normal-italic"
+            (macro "name" (sectional-normal (with "font-shape" "italic" (arg "name"))))
+          ) ;assign
+          (assign "sectional-centered-italic"
+            (macro "name" (sectional-centered (with "font-shape" "italic" (arg "name"))))
+          ) ;assign
+          (assign "sectional-short-bold"
+            (macro "name"
+              (style-with "src-compact" "none" (sectional-short (strong (arg "name"))))
+            ) ;macro
+          ) ;assign
+          (assign "sectional-normal-bold"
+            (macro "name"
+              (style-with "src-compact" "none" (sectional-normal (strong (arg "name"))))
+            ) ;macro
+          ) ;assign
+          (assign "sectional-centered-bold"
+            (macro "name"
+              (style-with "src-compact" "none" (sectional-centered (strong (arg "name"))))
+            ) ;macro
+          ) ;assign
+          (assign "sectional-select-bold"
+            (macro "style"
+              "name"
+              (if (equal (arg "style") "center")
+                (sectional-centered-bold (arg "name"))
+                (sectional-normal-bold (arg "name"))
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "chapter-title-render"
+            (macro "name"
+              (sectional-select-bold (value "chapter-title-style") (arg "name"))
+            ) ;macro
+          ) ;assign
+          (assign "section-title-render"
+            (macro "name"
+              (sectional-select-bold (value "section-title-style") (arg "name"))
+            ) ;macro
+          ) ;assign
+          (assign "subsection-title-render"
+            (macro "name"
+              (sectional-select-bold (value "subsection-title-style") (arg "name"))
+            ) ;macro
+          ) ;assign
+          (assign "subsubsection-title-render"
+            (macro "name"
+              (sectional-select-bold (value "subsubsection-title-style") (arg "name"))
+            ) ;macro
+          ) ;assign
+          (assign "sectional-prefixed"
+            (macro "prefix" "name" (prefixed-line (arg "prefix") (arg "name")))
+          ) ;assign
+          (assign "tmhtml-sectional-prefixed"
+            (macro "prefix" "name" (concat (arg "prefix") (arg "name")))
+          ) ;assign
+          (active* (document (src-comment (document (concat "The "
+                                                      (verbatim "new-section")
+                                                      " primitive is used for the definition of a new sectional tag. Each new sectional tag "
+                                                      (verbatim "x")
+                                                      " gives rise to a corresponding sectional counter and several additional environment variables:"
+                                                    ) ;concat
+                                            (concat "  " (verbatim "x") ": for numbered sections.")
+                                            (concat "  " (verbatim "x*") ": for unnumbered sections.")
+                                            (concat "  "
+                                              (verbatim "x-text")
+                                              ": section text like Chapter, Section, etc. By the default, the first character of "
+                                              (verbatim "x")
+                                              " is upcased."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-numbered")
+                                              ": flag for knowing whether the last section is numbered or not."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-prefix")
+                                              ": macro for displaying the section number as a prefix (for subsection numbers)."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-title")
+                                              ": a macro for displaying the title of the section."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-unnumbered-title")
+                                              ": a macro for displaying an unnumbered title (including an optinal separator)."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-numbered-title")
+                                              ": a macro for displaying a numbered title (including an optinal separator)."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-display-numbers")
+                                              ": predicate for testing whether the section numbers should be displayed."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-sep")
+                                              ": the separator between the number of a title and the title itself."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-post-sep")
+                                              ": an optional separator between the title and the body of the section."
+                                            ) ;concat
+                                            (concat "  "
+                                              (verbatim "x-clean")
+                                              ": a macro for additional cleaning up (used for resetting standard environments and "
+                                              (verbatim "appendix")
+                                              ")."
+                                            ) ;concat
+                                            (concat "  " (verbatim "x-header") ": a macro for setting the header.")
+                                            (concat "  "
+                                              (verbatim "x-toc")
+                                              ": a macro for entering the section in the table of contents."
+                                            ) ;concat
+                                            (concat "All macros are set to reasonable defaults, but they may be customized afterwards. The flag "
+                                              (verbatim "x-numbered")
+                                              " and the macro "
+                                              (verbatim "x-prefix")
+                                              " are set in the bodies of "
+                                              (verbatim "x")
+                                              " and "
+                                              (verbatim "x*")
+                                              ", so they cannot be customized. Nevertheless, it may sometimes be useful to change the "
+                                              (verbatim "x-prefix")
+                                              " tag inside macros, as we do in the case of "
+                                              (verbatim "appendix")
+                                              "."
+                                            ) ;concat
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "new-section"
+            (macro "x"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (concat (new-counter (unquote (arg "x")))
+                         (assign (unquote (merge (arg "x") "-text"))
+                           (style-with "src-compact"
+                             "none"
+                             (macro (change-case (localize (unquote (arg "x"))) "Upcase"))
+                           ) ;style-with
+                         ) ;assign
+                         (assign (unquote (arg "x"))
+                           (macro "title"
+                             (style-with "src-compact"
+                               "none"
+                               (concat (assign (unquote (merge (arg "x") "-numbered"))
+                                         (style-with "src-compact"
+                                           "none"
+                                           (compound (unquote (merge (arg "x") "-display-numbers")))
+                                         ) ;style-with
+                                       ) ;assign
+                                 (assign (unquote (merge (arg "x") "-prefix"))
+                                   (style-with "src-compact"
+                                     "none"
+                                     (macro (concat (compound (unquote (merge "the-" (arg "x"))))
+                                              (compound (unquote (merge (arg "x") "-prefix-sep")))
+                                            ) ;concat
+                                     ) ;macro
+                                   ) ;style-with
+                                 ) ;assign
+                                 (compound (unquote (merge "next-" (arg "x"))))
+                                 (compound (unquote (merge (arg "x") "-clean")))
+                                 (compound (unquote (merge (arg "x") "-header")) (arg "title"))
+                                 (compound (unquote (merge (arg "x") "-toc")) (arg "title"))
+                                 (style-with "src-compact"
+                                   "none"
+                                   (if (value (unquote (merge (arg "x") "-numbered")))
+                                     (style-with "src-compact"
+                                       "none"
+                                       (compound (unquote (merge (arg "x") "-numbered-title")) (arg "title"))
+                                     ) ;style-with
+                                     (style-with "src-compact"
+                                       "none"
+                                       (compound (unquote (merge (arg "x") "-unnumbered-title")) (arg "title"))
+                                     ) ;style-with
+                                   ) ;if
+                                 ) ;style-with
+                               ) ;concat
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign (unquote (merge (arg "x") "*"))
+                           (macro "title"
+                             (style-with "src-compact"
+                               "none"
+                               (concat (assign (unquote (merge (arg "x") "-numbered")) "false")
+                                 (assign (unquote (merge (arg "x") "-prefix")) (macro ""))
+                                 (compound (unquote (merge (arg "x") "-clean")))
+                                 (compound (unquote (merge (arg "x") "-header")) (arg "title"))
+                                 (compound (unquote (merge (arg "x") "-toc")) (arg "title"))
+                                 (style-with "src-compact"
+                                   "none"
+                                   (compound (unquote (merge (arg "x") "-unnumbered-title")) (arg "title"))
+                                 ) ;style-with
+                               ) ;concat
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign (unquote (merge (arg "x") "-numbered")) "false")
+                         (assign (unquote (merge (arg "x") "-prefix")) (macro ""))
+                         (assign (unquote (merge (arg "x") "-display-numbers")) "true")
+                         (drd-props (unquote (merge (arg "x") "-display-numbers"))
+                           "macro-parameter"
+                           "boolean"
+                         ) ;drd-props
+                         (assign (unquote (merge (arg "x") "-sep")) (macro (sectional-sep)))
+                         (drd-props (unquote (merge (arg "x") "-sep")) "macro-parameter" "regular")
+                         (assign (unquote (merge (arg "x") "-prefix-sep")) (macro "."))
+                         (drd-props (unquote (merge (arg "x") "-prefix-sep"))
+                           "macro-parameter"
+                           "regular"
+                         ) ;drd-props
+                         (assign (unquote (merge (arg "x") "-post-sep")) (macro (sectional-post-sep)))
+                         (drd-props (unquote (merge (arg "x") "-post-sep")) "macro-parameter" "regular")
+                         (assign (unquote (merge (arg "x") "-title"))
+                           (macro "title" (strong (arg "title")))
+                         ) ;assign
+                         (assign (unquote (merge (arg "x") "-unnumbered-title"))
+                           (macro "title"
+                             (style-with "src-compact"
+                               "none"
+                               (compound (unquote (merge (arg "x") "-title"))
+                                 (concat (arg "title") (compound (unquote (merge (arg "x") "-post-sep"))))
+                               ) ;compound
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign (unquote (merge (arg "x") "-numbered-title"))
+                           (macro "title"
+                             (style-with "src-compact"
+                               "none"
+                               (compound (unquote (merge (arg "x") "-title"))
+                                 (sectional-prefixed (concat (compound (unquote (merge "the-" (arg "x"))))
+                                                       (compound (unquote (merge (arg "x") "-sep")))
+                                                     ) ;concat
+                                   (concat (arg "title") (compound (unquote (merge (arg "x") "-post-sep"))))
+                                 ) ;sectional-prefixed
+                               ) ;compound
+                             ) ;style-with
+                           ) ;macro
+                         ) ;assign
+                         (assign (unquote (merge (arg "x") "-clean")) (macro ""))
+                         (assign (unquote (merge (arg "x") "-header")) (macro "title" ""))
+                         (assign (unquote (merge (arg "x") "-toc")) (macro "title" ""))
+                       ) ;concat
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Define the standard sectional tags. Also link with the standard environments."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (new-section "part")
+          (new-section "chapter")
+          (new-section "section")
+          (new-section "subsection")
+          (new-section "subsubsection")
+          (new-section "paragraph")
+          (new-section "subparagraph")
+          ""
+          (assign "display-part" (macro "nr" (number (arg "nr") "Roman")))
+          (assign "display-chapter"
+            (macro "nr" (number (arg "nr") (value "chapter-number-style")))
+          ) ;assign
+          (assign "display-section"
+            (macro "nr"
+              (if (sectional-short-style)
+                (number (arg "nr") (value "section-number-style"))
+                (concat (chapter-prefix) (number (arg "nr") (value "section-number-style")))
+              ) ;if
+            ) ;macro
+          ) ;assign
+          (assign "display-subsection"
+            (macro "nr"
+              (concat (section-prefix) (number (arg "nr") (value "subsection-number-style")))
+            ) ;macro
+          ) ;assign
+          (assign "display-subsubsection"
+            (macro "nr"
+              (concat (subsection-prefix)
+                (number (arg "nr") (value "subsubsection-number-style"))
+              ) ;concat
+            ) ;macro
+          ) ;assign
+          (assign "display-paragraph"
+            (macro "nr" (concat (subsubsection-prefix) (arg "nr")))
+          ) ;assign
+          (assign "display-subparagraph"
+            (macro "nr" (concat (paragraph-prefix) (arg "nr")))
+          ) ;assign
+          (assign "paragraph-display-numbers" (macro "false"))
+          (assign "subparagraph-display-numbers" (macro "false"))
+          ""
+          (assign "chapter-clean"
+            (macro (concat (assign "in-appendix" "false") (reset-section) (section-clean)))
+          ) ;assign
+          (assign "section-clean" (macro (concat (reset-subsection) (subsection-clean))))
+          (assign "subsection-clean"
+            (macro (concat (reset-subsubsection) (subsubsection-clean)))
+          ) ;assign
+          (assign "subsubsection-clean"
+            (macro (concat (reset-paragraph) (paragraph-clean)))
+          ) ;assign
+          (assign "paragraph-clean"
+            (macro (concat (reset-subparagraph) (subparagraph-clean)))
+          ) ;assign
+          (active* (document (src-comment (document "Special treatment of appendices and other special sectional tags")
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (new-section "appendix")
+          (assign "display-appendix" (macro "nr" (number (arg "nr") "Alpha")))
+          (assign "appendix-clean"
+            (macro (style-with "src-compact"
+                     "none"
+                     (if (sectional-short-style)
+                       (style-with "src-compact"
+                         "none"
+                         (concat (reset-subsection)
+                           (section-clean)
+                           (assign "section-prefix" (value "appendix-prefix"))
+                         ) ;concat
+                       ) ;style-with
+                       (style-with "src-compact"
+                         "none"
+                         (concat (reset-section)
+                           (chapter-clean)
+                           (assign "in-appendix" "true")
+                           (assign "chapter-prefix" (value "appendix-prefix"))
+                         ) ;concat
+                       ) ;style-with
+                     ) ;if
+                   ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "appendix-title"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (section-title (arg "title"))
+                  (chapter-title (arg "title"))
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          ""
+          (assign "principal-section"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style) (section (arg "title")) (chapter (arg "title")))
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "principal-section*"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style) (section* (arg "title")) (chapter* (arg "title")))
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "prologue" (macro (principal-section* (prologue-text))))
+          (assign "epilogue" (macro (principal-section* (epilogue-text))))
+          (active* (document (src-comment (document "Hooks for the table of contents."))))
+          (assign "toc-title"
+            (macro "env"
+              "title"
+              (quasi (style-with "src-compact"
+                       "none"
+                       (if (compound (unquote (merge (arg "env") "-numbered")))
+                         (concat (compound (unquote (merge "the-" (arg "env"))))
+                           (compound (unquote (merge (arg "env") "-sep")))
+                           (arg "title")
+                         ) ;concat
+                         (arg "title")
+                       ) ;if
+                     ) ;style-with
+              ) ;quasi
+            ) ;macro
+          ) ;assign
+          (assign "part-toc" (macro "name" (toc-main-1 (toc-title "part" (arg "name")))))
+          (assign "chapter-toc"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (toc-main-1 (toc-title "chapter" (arg "name")))
+                  (toc-main-2 (if (chapter-numbered)
+                                (concat (chapter-text) " " (the-chapter) (chapter-sep) (arg "name"))
+                                (arg "name")
+                              ) ;if
+                  ) ;toc-main-2
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "section-toc"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (toc-main-2 (toc-title "section" (arg "name")))
+                  (if (value "in-appendix") "" (toc-normal-2 (toc-title "section" (arg "name"))))
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsection-toc"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (toc-normal-2 (toc-title "subsection" (arg "name")))
+                  (if (value "in-appendix")
+                    ""
+                    (toc-normal-3 (toc-title "subsection" (arg "name")))
+                  ) ;if
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsubsection-toc"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (toc-normal-3 (toc-title "subsubsection" (arg "name")))
+                  ""
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "paragraph-toc"
+            (macro "name" (toc-small-1 (toc-title "paragraph" (arg "name"))))
+          ) ;assign
+          (assign "subparagraph-toc"
+            (macro "name" (toc-small-2 (toc-title "subparagraph" (arg "name"))))
+          ) ;assign
+          (assign "appendix-toc"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (toc-main-2 (concat (appendix-text)
+                              (if (appendix-numbered) (concat " " (the-appendix)))
+                              (appendix-sep)
+                              (arg "name")
+                            ) ;concat
+                ) ;toc-main-2
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Hooks for sectional headers."))))
+          (assign "chapter-header"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (not (sectional-short-style))
+                  (style-with "src-compact"
+                    "none"
+                    (header-primary (arg "name")
+                      (if (chapter-numbered) (the-chapter))
+                      (chapter-text)
+                    ) ;header-primary
+                  ) ;style-with
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "section-header"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (style-with "src-compact"
+                    "none"
+                    (header-primary (arg "name")
+                      (if (section-numbered) (the-section))
+                      (section-text)
+                    ) ;header-primary
+                  ) ;style-with
+                  (style-with "src-compact"
+                    "none"
+                    (header-secondary (arg "name")
+                      (if (section-numbered) (the-section))
+                      (section-text)
+                    ) ;header-secondary
+                  ) ;style-with
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsection-header"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (if (sectional-short-style)
+                  (style-with "src-compact"
+                    "none"
+                    (header-secondary (arg "name")
+                      (if (subsection-numbered) (the-subsection))
+                      (section-text)
+                    ) ;header-secondary
+                  ) ;style-with
+                ) ;if
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "appendix-header"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (header-primary (arg "name")
+                  (if (appendix-numbered) (the-appendix))
+                  (appendix-text)
+                ) ;header-primary
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Rendering of sections with automatically generated content.")
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "render-bibliography"
+            (macro "name"
+              "body"
+              (document (principal-section* (arg "name"))
+                (with "par-first" "0fn" "par-par-sep" "0fn" "font-size" "0.84" (arg "body"))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-table-of-contents"
+            (macro "name"
+              "body"
+              (document (with "chapter-toc"
+                          (macro "name" "")
+                          "section-toc"
+                          (macro "name" "")
+                          (principal-section* (arg "name"))
+                        ) ;with
+                (with "par-first" "0fn" "par-par-sep" "0fn" (arg "body"))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-index"
+            (macro "name"
+              "body"
+              (document (with "par-par-sep" "-0.5fn" (document (principal-section* (arg "name")) ""))
+                (with "par-first"
+                  "0fn"
+                  "par-par-sep"
+                  "0fn"
+                  "font-size"
+                  "0.84"
+                  "par-columns"
+                  "2"
+                  (arg "body")
+                ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "render-glossary"
+            (macro "name"
+              "body"
+              (document (principal-section* (arg "name"))
+                (with "par-first" "0fn" "par-par-sep" "0fn" "font-size" "0.84" (arg "body"))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Sections with automatically generated content. The *-forms generate content in the same way as the main form, but allow the use of another auxiliary channel and another name (c.f. lists of figures)."
+                                          ) ;document
+                             ) ;src-comment
+                   ) ;document
+          ) ;active*
+          (assign "bibliography"
+            (macro "aux"
+              "style"
+              "file-name"
+              "body"
+              (document (render-bibliography (bibliography-text) (arg "body")))
+            ) ;macro
+          ) ;assign
+          (assign "bibliography*"
+            (macro "aux"
+              "style"
+              "file-name"
+              "name"
+              "body"
+              (document (render-bibliography (localize (arg "name")) (arg "body")))
+            ) ;macro
+          ) ;assign
+          (drd-props "bibliography" "arity" "4" "identifier" "0" "string" "1" "url" "2")
+          (drd-props "bibliography*" "arity" "5" "identifier" "0" "string" "1" "url" "2")
+          (assign "thebibliography"
+            (macro "largest"
+              "body"
+              (document (render-bibliography (bibliography-text)
+                          (bib-list (arg "largest") (arg "body"))
+                        ) ;render-bibliography
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "table-of-contents"
+            (macro "aux"
+              "body"
+              (document (render-table-of-contents (table-of-contents-text) (arg "body")))
+            ) ;macro
+          ) ;assign
+          (assign "table-of-contents*"
+            (macro "aux"
+              "name"
+              "body"
+              (document (render-table-of-contents (localize (arg "name")) (arg "body")))
+            ) ;macro
+          ) ;assign
+          (assign "the-index"
+            (macro "aux" "body" (document (render-index (index-text) (arg "body"))))
+          ) ;assign
+          (assign "the-index*"
+            (macro "aux"
+              "name"
+              "body"
+              (document (render-index (localize (arg "name")) (arg "body")))
+            ) ;macro
+          ) ;assign
+          (assign "the-glossary"
+            (macro "aux" "body" (document (render-glossary (glossary-text) (arg "body"))))
+          ) ;assign
+          (assign "the-glossary*"
+            (macro "aux"
+              "name"
+              "body"
+              (document (render-glossary (localize (arg "name")) (arg "body")))
+            ) ;macro
+          ) ;assign
+          (assign "list-of-figures"
+            (macro "aux"
+              "body"
+              (document (the-glossary* (arg "aux") (list-of-figures-text) (document (arg "body")))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "list-of-tables"
+            (macro "aux"
+              "body"
+              (document (the-glossary* (arg "aux") (list-of-tables-text) (document (arg "body")))
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "list-of-abbreviations"
+            (macro "body"
+              (document (style-with "src-compact"
+                          "none"
+                          (if (sectional-short-style)
+                            (section-toc (list-of-abbreviations-text))
+                            (chapter-toc (list-of-abbreviations-text))
+                          ) ;if
+                        ) ;style-with
+                (sectional-centered-bold (concat (very-large (list-of-abbreviations-text)) (vspace "1fn"))
+                ) ;sectional-centered-bold
+                (tabular (tformat (twith "table-min-cols" "2")
+                           (twith "table-max-cols" "2")
+                           (twith "table-hyphen" "y")
+                           (cwith "1" "-1" "1" "-1" "cell-valign" "c")
+                           (twith "table-width" "1par")
+                           (twith "table-hmode" "exact")
+                           (cwith "1" "-1" "2" "2" "cell-hmode" "exact")
+                           (cwith "1" "-1" "1" "1" "cell-bsep" "0.25fn")
+                           (cwith "1" "-1" "1" "1" "cell-tsep" "0.25fn")
+                           (cwith "1" "-1" "1" "1" "cell-width" "7em")
+                           (cwith "1" "-1" "2" "2" "cell-width" "33em")
+                           (arg "body")
+                         ) ;tformat
+                  ""
+                ) ;tabular
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

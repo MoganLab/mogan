@@ -1,0 +1,107 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : section-generic.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "1.99.9")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "section-generic" "1.0")
+                                        (src-purpose (document "Sectional markup for the generic style."))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-package "section/section-base")
+          (active* (document (src-comment (document "Parts and chapters."))))
+          (assign "part-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-centered-bold (concat (vspace* "3fn") (really-huge (arg "name")) (vspace "1.5fn"))
+                ) ;sectional-centered-bold
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "chapter-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (chapter-title-render (concat (vspace* "2fn") (huge (arg "name")) (vspace "1fn"))
+                ) ;chapter-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "chapter-numbered-title"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (chapter-title (concat (chapter-text) " " (the-chapter) (chapter-sep) (arg "title"))
+                ) ;chapter-title
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "appendix-numbered-title"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (appendix-title (concat (appendix-text) " " (the-appendix) (appendix-sep) (arg "title"))
+                ) ;appendix-title
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Sections, subsections and subsubsections.")))
+          ) ;active*
+          (assign "section-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (section-title-render (concat (vspace* "1.5fn") (very-large (arg "name")) (vspace "0.5fn"))
+                ) ;section-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (subsection-title-render (concat (vspace* "1fn") (large (arg "name")) (vspace "0.3333fn"))
+                ) ;subsection-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsubsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (subsubsection-title-render (concat (vspace* "0.75fn") (arg "name") (vspace "0.25fn"))
+                ) ;subsubsection-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Paragraphs and subparagraphs."))))
+          (assign "paragraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* "0.5fn") (arg "name")))
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subparagraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* "0.25fn") (arg "name")))
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

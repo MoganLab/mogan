@@ -53,6 +53,29 @@
   (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "std-math.ts")) => #f)
 ) ;define
 
+;; Test 7: section package converted to .stem in 1206
+
+(define (test-section-stem-package-exists)
+  (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "section-base.stem"))
+    =>
+    #t
+  ) ;check
+  (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "section-generic.stem"))
+    =>
+    #t
+  ) ;check
+) ;define
+
+;; Test 8: section .ts packages should NOT exist (deleted in 1206)
+
+(define (test-section-ts-package-absent)
+  (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "section-base.ts")) => #f)
+  (check (url-exists? (url-append "$TEXMACS_STYLE_PATH" "section-generic.ts"))
+    =>
+    #f
+  ) ;check
+) ;define
+
 (tm-define (regtest-style-package-load)
   (display "=== Running style-package-load tests ===\n")
   (test-stem-package-exists)
@@ -61,5 +84,7 @@
   (test-env-ts-package-absent)
   (test-std-stem-package-exists)
   (test-std-ts-package-absent)
+  (test-section-stem-package-exists)
+  (test-section-ts-package-absent)
   (check-report)
 ) ;tm-define

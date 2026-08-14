@@ -1,0 +1,175 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : section-book.stem
+;; COPYRIGHT   : (C) 1998--2004  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "1.99.9")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "section-book" "1.0")
+                                        (src-purpose (document "Sectional markup for books."))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-package "section-base")
+          (assign "sectional-short-style" (macro "false"))
+          (assign "chapter-clean" (macro (concat (reset-section) (reset-std-env))))
+          (assign "display-std-env" (macro "nr" (concat (chapter-prefix) (arg "nr"))))
+          (active* (document (src-comment (document "Parts."))))
+          (assign "part-title-sub"
+            (macro "body"
+              (style-with "src-compact"
+                "none"
+                (concat (new-dpage*)
+                  (no-indent)
+                  (assign "page-this-header" "")
+                  (assign "page-this-footer" "")
+                  (new-line)
+                  (no-indent)
+                  (vspace* "0.25pag")
+                  (with "math-font-series"
+                    "bold"
+                    "font-series"
+                    "bold"
+                    "font-size"
+                    "3"
+                    (arg "body")
+                  ) ;with
+                  (vspace "0.05pag")
+                  (no-indent*)
+                  (new-dpage)
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "part-title"
+            (macro "name"
+              (part-title-sub (style-with "src-compact"
+                                "none"
+                                (concat (vspace "0.05pag") (new-line) (htab "0fn") (arg "name") (htab "0fn"))
+                              ) ;style-with
+              ) ;part-title-sub
+            ) ;macro
+          ) ;assign
+          (assign "part-numbered-title"
+            (macro "name"
+              (part-title-sub (style-with "src-compact"
+                                "none"
+                                (concat (htab "0fn")
+                                  (part-text)
+                                  " "
+                                  (the-part)
+                                  (htab "0fn")
+                                  (vspace "0.1pag")
+                                  (new-line)
+                                  (htab "0fn")
+                                  (arg "name")
+                                  (htab "0fn")
+                                ) ;concat
+                              ) ;style-with
+              ) ;part-title-sub
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Chapters."))))
+          (assign "chapter-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (concat (new-dpage*)
+                  (no-indent)
+                  (new-line)
+                  (no-indent)
+                  (vspace* "5fn")
+                  (with "math-font-series" "bold" "font-series" "bold" (really-huge (arg "name")))
+                  (vspace "2fn")
+                  (no-page-break)
+                  (no-indent*)
+                ) ;concat
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "chapter-numbered-title"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (chapter-title (concat (chapter-text)
+                                 " "
+                                 (the-chapter)
+                                 (vspace "1fn")
+                                 (new-line)
+                                 (arg "title")
+                               ) ;concat
+                ) ;chapter-title
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "appendix-numbered-title"
+            (macro "title"
+              (style-with "src-compact"
+                "none"
+                (chapter-title (concat (appendix-text)
+                                 " "
+                                 (the-appendix)
+                                 (vspace "1fn")
+                                 (new-line)
+                                 (arg "title")
+                               ) ;concat
+                ) ;chapter-title
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Sections."))))
+          (assign "section-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (section-title-render (concat (vspace* "3fn") (very-large (arg "name")) (vspace "1fn"))
+                ) ;section-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (subsection-title-render (concat (vspace* "2fn") (large (arg "name")) (vspace "0.5fn"))
+                ) ;subsection-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subsubsection-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (subsubsection-title-render (concat (vspace* "1fn") (arg "name") (vspace "0.5fn"))
+                ) ;subsubsection-title-render
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (active* (document (src-comment (document "Paragraphs."))))
+          (assign "paragraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* "0.5fn") (arg "name")))
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          (assign "subparagraph-title"
+            (macro "name"
+              (style-with "src-compact"
+                "none"
+                (sectional-short-bold (concat (vspace* "0.25fn") (arg "name")))
+              ) ;style-with
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document
