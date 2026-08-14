@@ -166,19 +166,25 @@ grad (curve f, double t) {
   return f->grad (t, error);
 }
 
-// 单点切向对圆等曲线没有代表性：采样多处切向，方向一致才视为直线
+// 单点切向对圆等曲线没有代表性：采样多处切向，方向一致才视为直线。
+// 区间版本用于从折线/多边形中逐边识别直线段
 bool
-is_straight_line (curve f) {
+is_straight_line (curve f, double t1, double t2) {
   point v0;
   for (int k= 0; k < 3; k++) {
     bool  err;
-    point v= f->grad (0.25 * (k + 1), err);
+    point v= f->grad (t1 + (t2 - t1) * (k + 1) / 4.0, err);
     if (err || N (v) != 2) return false;
     if (k == 0) v0= v;
     else if (fabs (v0[0] * v[1] - v0[1] * v[0]) >= 1e-4 * norm (v0) * norm (v))
       return false;
   }
   return true;
+}
+
+bool
+is_straight_line (curve f) {
+  return is_straight_line (f, 0.0, 1.0);
 }
 
 bool

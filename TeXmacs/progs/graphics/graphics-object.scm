@@ -597,6 +597,9 @@
       (graphical-object! (if (or (== no 'group)
                                (and (!= no 'no-group) (graphics-group-mode? (graphics-mode)))
                              ) ;or
+                           ;; group 模式（如绘制完成后自动进入的 edit-props
+                           ;; 选择态）悬停线段时也显示中点绿点；标尺等绘制
+                           ;; 辅助装饰不在此渲染
                            `(with ,"magnify"
                               ,(number->string (magnify->number (graphics-get-property "magnify")))
                               (concat ,@(create-graphical-contours (map (lambda (x)
@@ -605,7 +608,8 @@
                                                                             x))
                                                                      the-sketch)
                                           current-path
-                                          pts)))
+                                          pts)
+                                ,@(graphics-get-decorations-midpoint)))
                            (append props
                              `((concat
                                  . ,(append (cond ((== pts 'points) op)
@@ -617,7 +621,11 @@
                          ) ;if
       ) ;graphical-object!
     ) ;let*
-    (graphical-object! '(concat))
+    ;; 无当前对象时仍保留中点绿点预览，与 edit_move 各模式的行为一致
+    (if (graphics-midpoints-active?)
+      (graphics-render-midpoints)
+      (graphical-object! '(concat))
+    ) ;if
   ) ;if
 ) ;tm-define
 
@@ -675,6 +683,7 @@
 
 (tm-define (graphics-decorations-reset)
   (graphics-clear-ghost-lines)
+  (graphics-clear-midpoints)
   (create-graphical-object #f #f #f #f)
 ) ;tm-define
 
@@ -779,4 +788,8 @@
 
 (tm-define (sketch-cancel) #t)
 
-(tm-define (graphics-extra-decorations) (graphics-get-decorations-ghost-line))
+(tm-define (graphics-extra-decorations)
+  (append (graphics-get-decorations-ghost-line)
+    (graphics-get-decorations-midpoint)
+  ) ;append
+) ;tm-define

@@ -99,6 +99,7 @@ can_snap (gr_selection sel) {
   if (type == "ghost-curve-point&curve-point" ||
       type == "curve-point&ghost-curve-point")
     return check_snap_mode ("ghost line") && check_snap_mode ("curve point");
+  if (type == "curve-mid-point") return check_snap_mode ("curve point");
   cout << "Uncaptured snap type " << type << "\n";
   return true;
 }
@@ -411,6 +412,81 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
   }
 }
 
+/** 鼠标到线段 (a, b) 的距离（投影限制在线段内） */
+static double
+dist_to_segment (point p, point a, point b) {
+  point  v = b - a;
+  double vv= v[0] * v[0] + v[1] * v[1];
+  if (vv < 1e-12) return norm (p - a);
+  double t= (v[0] * (p[0] - a[0]) + v[1] * (p[1] - a[1])) / vv;
+  if (t < 0.0) t= 0.0;
+  if (t > 1.0) t= 1.0;
+  point q= a + t * v;
+  return norm (p - q);
+}
+
+static void
+snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
+                     frame f2) {
+  tree   points (TUPLE);
+  string cur_set; // 当前序列化的中点集合，用于去重
+  if (check_snap_mode ("curve point")) {
+    int n= N (sels);
+    for (int i= 0; i < n; i++) {
+      // curve-handle（鼠标近端点）与 curve-point（鼠标近曲线内部）都说明
+      // 鼠标贴近该曲线对象；折线/多边形的每条直边单独取中点
+      string type= sels[i]->type;
+      if (type != "curve-point" && type != "curve-handle") continue;
+      curve c= sels[i]->c;
+      if (is_nil (c)) continue;
+      array<double> abs;
+      array<point>  pts;
+      array<path>   paths;
+      int           np= c->get_control_points (abs, pts, paths);
+      if (np < 2) continue;
+      // 与 curve_box_rep::graphical_select 一致：闭合曲线补上首尾相连边
+      int ne= np - 1;
+      if (abs[0] != 0.0 || abs[np - 1] != 1.0) ne++;
+      for (int e= 0; e < ne; e++) {
+        int j= (e + 1) % np;
+        if (norm (pts[j] - pts[e]) < 1e-6) continue;
+        // 鼠标须贴近该直边本身，而非仅仅贴近曲线对象
+        if (dist_to_segment (fp, pts[e], pts[j]) > snap_distance) continue;
+        if (!is_straight_line (c, abs[e], abs[j])) continue;
+        point mid      = c->evaluate ((abs[e] + abs[j]) / 2.0);
+        point mid_local= f2[mid]; // 转换到文档坐标系供装饰绘制
+        if (N (mid_local) != 2) continue;
+        string sx = as_string (mid_local[0]);
+        string sy = as_string (mid_local[1]);
+        string key= sx * "," * sy * ";";
+        if (occurs (key, cur_set)) continue;
+        cur_set= cur_set * key;
+
+        tree en (TUPLE);
+        en << sx;
+        en << sy;
+        points << en;
+
+        // 仅当鼠标与中点本身足够近时才成为吸附候选，避免长边远端被强拉
+        double d= norm (mid - fp);
+        if (d < snap_distance) {
+          gr_selection sel;
+          sel->type= "curve-mid-point";
+          sel->p   = mid;
+          sel->dist= (SI) d;
+          sel->cp  = sels[i]->cp;
+          sel->pts = sels[i]->pts;
+          sels << sel;
+        }
+      }
+    }
+  }
+  // 每次移动都重新上报，由 scheme 侧做变更检测并触发刷新：
+  // scheme 侧状态可能被 graphics-decorations-reset 清空，C++ 侧缓存
+  // 会与之处不同步（ghost line 每次移动同样会回调 scheme，开销一致）
+  call ("graphics-set-midpoints", points);
+}
+
 point
 edit_graphics_rep::adjust (point p) {
   frame f= find_frame ();
@@ -430,6 +506,7 @@ edit_graphics_rep::adjust (point p) {
   point fp= f2 (p);
 
   snap_ghost_line (this, fp, snap_distance, sels, f2);
+  snap_curve_midpoint (fp, snap_distance, sels, f2);
 
   if ((tree) g != "empty_grid") {
     point q = g->find_point_around (p, snap_distance, f);

@@ -16,6 +16,8 @@
 
 (define ghost-lines '())
 
+(define midpoints '())
+
 (tm-define (graphics-get-all-previous-points)
   (:state graphics-state)
   (if (and sticky-point (integer? current-point-no) (> current-point-no 0))
@@ -87,4 +89,60 @@
     ) ;let
     '()
   ) ;if
+) ;tm-define
+
+;; 把中点列表 (("x1" "y1") ...) 转成绿色圆点装饰，坐标为字符串
+
+(define (midpoint-decorations pts)
+  (if (nnull? pts)
+    (map (lambda (p)
+           `(with ,"color"
+              ,"green"
+              ,"point-style"
+              ,"disk"
+              (point ,(car p) ,(cadr p)))
+         ) ;lambda
+      pts
+    ) ;map
+    '()
+  ) ;if
+) ;define
+
+(tm-define (graphics-clear-midpoints)
+  (:state graphics-state)
+  (set! midpoints '())
+) ;tm-define
+
+;; 参数 points: (tuple (x y) ...)；C++ 每次鼠标移动都会调用，
+;; 这里做变更检测，仅当中点集合变化时才刷新装饰
+(tm-define (graphics-set-midpoints points)
+  (:state graphics-state)
+  (let* ((l (if (tree? points) (tree->stree points) points))
+         (new (if (and (pair? l) (== (car l) 'tuple))
+                (map (lambda (e) (list (cadr e) (caddr e))) (cdr l))
+                '()
+              ) ;if
+         ) ;new
+        ) ;
+    (if (not (equal? new midpoints))
+      (begin
+        (set! midpoints new)
+        (graphics-decorations-update)
+      ) ;begin
+    ) ;if
+  ) ;let*
+) ;tm-define
+
+(tm-define (graphics-get-decorations-midpoint) (midpoint-decorations midpoints))
+
+(tm-define (graphics-midpoints-active?)
+  (:state graphics-state)
+  (nnull? midpoints)
+) ;tm-define
+
+;; 非绘制态（未落第一个点）悬停线段时，装饰层会被整体重建；此时仅
+;; 保留中点绿点，避免绿点预览被清空
+(tm-define (graphics-render-midpoints)
+  (:state graphics-state)
+  (graphical-object! `(concat ,@(midpoint-decorations midpoints)))
 ) ;tm-define

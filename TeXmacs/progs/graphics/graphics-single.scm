@@ -16,6 +16,7 @@
 (texmacs-module (graphics graphics-single)
   (:use (graphics graphics-object)
     (graphics graphics-env)
+    (graphics graphics-ghost)
     (graphics graphics-main)
   ) ;:use
 ) ;texmacs-module
@@ -499,7 +500,12 @@
     ) ;begin
     (begin
       (set-message "Left click: new object" "Graphics")
-      (graphics-decorations-reset)
+      ;; 鼠标仍贴近线段时保留中点绿点预览（非绘制态悬停），
+      ;; 其余情况整体清空装饰层
+      (if (graphics-midpoints-active?)
+        (graphics-render-midpoints)
+        (graphics-decorations-reset)
+      ) ;if
     ) ;begin
   ) ;if
 ) ;tm-define
