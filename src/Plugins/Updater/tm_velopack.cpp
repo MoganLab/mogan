@@ -35,7 +35,7 @@
 // 切源（stable/beta 渠道、内网镜像），需改为可配置并在 setAppcast 里重建 mgr。
 // 当前为内网联调源（上游 OSS 更新服务器），与 CD 上传目录对应。
 static const std::string default_feed_url=
-    "http://10.0.178.209:8081/api/v1/public/update/win-x64";
+    "https://liiistem.cn/api/v1/public/update/win-x64";
 
 static std::string
 exception_message () {
