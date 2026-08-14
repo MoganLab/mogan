@@ -39,6 +39,42 @@
   ) ;if
 ) ;tm-define
 
+;; 折线（line/cline）绘制中，已落固定点连成的各线段中点。绘制中的
+;; 对象尚未进入文档树，C++ graphical_select 选不到，由这里按文档坐标
+;; 系提供；spline 等曲线的控制点连线不是线段，不在其列
+(tm-define (graphics-get-previous-midpoints)
+  (:state graphics-state)
+  (if (and sticky-point (integer? current-point-no) (> current-point-no 1))
+    (let* ((obj (stree-radical (car (sketch-get1))))
+           (pts (list-head (cdr obj) (min current-point-no (length (cdr obj)))))
+          ) ;
+      (if (and (pair? obj) (in? (car obj) '(line cline)))
+        (let loop
+          ((l pts) (res '()))
+          (if (or (null? l) (null? (cdr l)))
+            (tm->tree (cons 'tuple (reverse res)))
+            (let* ((p1 (car l)) (p2 (cadr l)))
+              (if (and (tm-func? p1 'point 2) (tm-func? p2 'point 2))
+                (let* ((x1 (s2f (cadr p1)))
+                       (y1 (s2f (caddr p1)))
+                       (x2 (s2f (cadr p2)))
+                       (y2 (s2f (caddr p2)))
+                       (m (cons 'tuple (list (f2s (/ (+ x1 x2) 2)) (f2s (/ (+ y1 y2) 2)))))
+                      ) ;
+                  (loop (cdr l) (cons m res))
+                ) ;let*
+                (loop (cdr l) res)
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let
+        (tm->tree '(tuple))
+      ) ;if
+    ) ;let*
+    (tm->tree '(tuple))
+  ) ;if
+) ;tm-define
+
 (tm-define (graphics-clear-ghost-lines)
   (:state graphics-state)
   (set! ghost-lines '())

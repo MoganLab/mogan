@@ -43,7 +43,7 @@
   (check (midpoint-decorations '(("0.5" "-0.5") ("3" "4")))
     =>
     '((with "color" "green" "point-style" "disk" (point "0.5" "-0.5"))
-       (with "color" "green" "point-style" "disk" (point "3" "4")))
+      (with "color" "green" "point-style" "disk" (point "3" "4")))
   ) ;check
 ) ;define
 
