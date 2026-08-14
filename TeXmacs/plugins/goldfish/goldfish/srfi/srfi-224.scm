@@ -42,7 +42,6 @@
     alist->fxmapping
     alist->fxmapping/combinator
     fxmapping-unfold
-    fxmapping-accumulate
     ;; Predicates
     fxmapping?
     fxmapping-contains?
@@ -59,13 +58,9 @@
     fxmapping-adjust
     fxmapping-delete
     fxmapping-delete-all
-    fxmapping-update
-    fxmapping-alter
     fxmapping-delete-min
-    fxmapping-update-min
     fxmapping-pop-min
     fxmapping-delete-max
-    fxmapping-update-max
     fxmapping-pop-max
     ;; The whole fxmapping
     fxmapping-size

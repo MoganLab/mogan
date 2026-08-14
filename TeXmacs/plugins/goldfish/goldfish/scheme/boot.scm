@@ -25,23 +25,27 @@
   ) ;if
 ) ;define
 
-(define-macro (define-library libname . body)
-  `(define ,(symbol (object->string libname))
-     (with-let (sublet (unlet)
-                 (cons 'import import)
-                 (cons '*export* ())
-                 (cons 'export
-                   (define-macro (,(gensym) . names)
-                     `(set! *export* (append (quote ,names) *export*)))))
-       ,@body
-       (apply inlet
-         (map (lambda (entry)
-                (if (or (member (car entry) '(*export* export import))
-                      (and (pair? *export*) (not (member (car entry) *export*))))
-                  (values)
-                  entry))
-           (curlet)))))
-) ;define-macro
+;; C 实现的 define-library（src/s7_r7rs_library.c）已注册时，此后备版本不生效
+(unless (defined? 'define-library)
+  (define-macro (define-library libname . body)
+    `(define ,(symbol (object->string libname))
+       (with-let (sublet (unlet)
+                   (cons 'import import)
+                   (cons '*export* ())
+                   (cons 'export
+                     (define-macro (,(gensym) . names)
+                       `(set! *export* (append (quote ,names) *export*)))))
+         ,@body
+         (apply inlet
+           (map (lambda (entry)
+                  (if (or (member (car entry) '(*export* export import))
+                        (and (pair? *export*)
+                          (not (member (car entry) *export*))))
+                    (values)
+                    entry))
+             (curlet)))))
+  ) ;define-macro
+) ;unless
 
 (unless (defined? 'r7rs-import-library-filename)
   (define (r7rs-import-library-filename libs)
@@ -69,56 +73,59 @@
   ) ;define
 ) ;unless
 
-(define-macro (import . libs)
-  `(begin
-     (r7rs-import-library-filename (quote ,libs))
-     (varlet (curlet)
-       ,@(map (lambda (lib)
-                (case (car lib)
-                      ((only)
-                       `((lambda (e names)
-                           (apply inlet
-                             (map (lambda (name) (cons name (e name))) names)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
-                         (cddr (quote ,lib))))
-                      ((except)
-                       `((lambda (e names)
-                           (apply inlet
-                             (map (lambda (entry)
-                                    (if (member (car entry) names)
-                                      (values)
-                                      entry))
-                               e)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
-                         (cddr (quote ,lib))))
-                      ((prefix)
-                       `((lambda (e prefx)
-                           (apply inlet
-                             (map (lambda (entry)
-                                    (cons (string->symbol (string-append (symbol->string prefx)
-                                                            (symbol->string (car entry))))
-                                      (cdr entry)))
-                               e)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
-                         (caddr (quote ,lib))))
-                      ((rename)
-                       `((lambda (e names)
-                           (apply inlet
-                             (map (lambda (entry)
-                                    (let ((info (assoc (car entry) names)))
-                                      (if info
-                                        (cons (cadr info) (cdr entry))
-                                        entry)))
-                               e)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
-                         (cddr (quote ,lib))))
-                      (else `(let ((sym (symbol (object->string (quote ,lib)))))
-                               (if (not (defined? sym))
-                                 (format () "~A not loaded~%" sym)
-                                 (symbol->value sym))))))
-           libs)))
-) ;define-macro
+;; C 实现的 import（src/s7_r7rs_library.c）已注册时，此后备版本不生效
+(unless (defined? 'import)
+  (define-macro (import . libs)
+    `(begin
+       (r7rs-import-library-filename (quote ,libs))
+       (varlet (curlet)
+         ,@(map (lambda (lib)
+                  (case (car lib)
+                        ((only)
+                         `((lambda (e names)
+                             (apply inlet
+                               (map (lambda (name) (cons name (e name))) names)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (cddr (quote ,lib))))
+                        ((except)
+                         `((lambda (e names)
+                             (apply inlet
+                               (map (lambda (entry)
+                                      (if (member (car entry) names)
+                                        (values)
+                                        entry))
+                                 e)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (cddr (quote ,lib))))
+                        ((prefix)
+                         `((lambda (e prefx)
+                             (apply inlet
+                               (map (lambda (entry)
+                                      (cons (string->symbol (string-append (symbol->string prefx)
+                                                              (symbol->string (car entry))))
+                                        (cdr entry)))
+                                 e)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (caddr (quote ,lib))))
+                        ((rename)
+                         `((lambda (e names)
+                             (apply inlet
+                               (map (lambda (entry)
+                                      (let ((info (assoc (car entry) names)))
+                                        (if info
+                                          (cons (cadr info) (cdr entry))
+                                          entry)))
+                                 e)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (cddr (quote ,lib))))
+                        (else `(let ((sym (symbol (object->string (quote ,lib)))))
+                                 (if (not (defined? sym))
+                                   (format () "~A not loaded~%" sym)
+                                   (symbol->value sym))))))
+             libs)))
+  ) ;define-macro
+) ;unless

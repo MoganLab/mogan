@@ -183,8 +183,6 @@
     current-error-port
     open-input-file
     open-output-file
-    open-binary-input-file
-    open-binary-output-file
     close-port
     close-input-port
     close-output-port

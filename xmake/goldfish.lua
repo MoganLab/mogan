@@ -39,6 +39,7 @@ target("libgoldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_dtoa.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_module.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_op_names.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_r7rs_library.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_base.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_char.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_scheme_complex.c",
@@ -76,6 +77,7 @@ target ("goldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_subprocess.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_sort.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_base.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_char.cpp",
     })
