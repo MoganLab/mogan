@@ -104,6 +104,32 @@ private slots:
     QVERIFY (!tab.isDirty ());
   }
 
+  // 回归（0910）：updateActiveTab -> setChecked(true) 经
+  // QToolButton::checkStateSet 把勾选状态写回 defaultAction，ActionChanged
+  // 同步派发回按钮后 QToolButton 重新执行 setDefaultAction，用 action 文本
+  // （若仍带尾部 ` *`）覆盖按钮文本——文本里的 `*` 与关闭按钮位置的脏标记
+  // `*` 叠加显示成两个星号。修复：剥离 `*` 时把干净标题同步回 action 文本。
+  void test_checked_state_sync_keeps_title_clean () {
+    QAction    titleAction ("no_name_1.tmu *", nullptr);
+    QAction    closeAction ("Close", nullptr);
+    QTMTabPage tab (url ("tmfs://view/9"), &titleAction, &closeAction, false);
+    tab.resize (220, 32);
+    tab.show ();
+    QVERIFY (QTest::qWaitForWindowExposed (&tab));
+    QVERIFY (tab.isDirty ());
+    QCOMPARE (tab.text (), QString::fromUtf8 ("no_name_1.tmu"));
+
+    tab.setChecked (true); // 模拟 updateActiveTab 激活该标签页
+    QVERIFY (tab.isDirty ());
+    QCOMPARE (tab.text (), QString::fromUtf8 ("no_name_1.tmu"));
+    QCOMPARE (titleAction.text (), QString::fromUtf8 ("no_name_1.tmu"));
+
+    tab.setChecked (false); // 切走后再切回，回写路径重复触发仍需保持干净
+    tab.setChecked (true);
+    QVERIFY (tab.isDirty ());
+    QVERIFY (!tab.text ().endsWith (QLatin1Char ('*')));
+  }
+
   // 端到端：replaceTabPages 复用 tab 时，新标题的尾部 `*` 必须刷新到既有
   // tab 的 dirty 状态（而非停留在构造时解析的旧值）。这正是 0350+2014 回归
   // bug 的真实触发路径：编辑标脏后上层重发带 `*` 的标题，复用分支需把 dirty

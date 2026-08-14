@@ -76,6 +76,7 @@ protected:
 
 private:
   void applyDisplayTitle (const QString& rawTitle);
+  void syncActionText (const QString& cleanTitle);
   bool isPointerOnCloseArea (const QPoint& pos) const;
   void updateCloseButtonVisibility ();
   void initializeCloseButton (QAction* closeAction= nullptr);

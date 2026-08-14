@@ -210,6 +210,21 @@ QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
   QString cleanTitle;
   m_isDirty= extract_dirty_suffix (rawTitle, cleanTitle);
   setText (cleanTitle);
+  syncActionText (cleanTitle);
+}
+
+/**
+ * @brief 把干净标题同步回 defaultAction 的文本。
+ *
+ * QToolButton 在 defaultAction 触发 ActionChanged（如 setChecked 经
+ * checkStateSet 把勾选状态写回 action）时会重新执行 setDefaultAction，用
+ * action 文本覆盖按钮文本。action 若保留尾部 ` *`，按钮文本会重新带 `*`，
+ * 与关闭按钮位置的脏标记叠加显示成两个星号，这里同步清掉使回写无害。
+ */
+void
+QTMTabPage::syncActionText (const QString& cleanTitle) {
+  QAction* act= defaultAction ();
+  if (act != nullptr && act->text () != cleanTitle) act->setText (cleanTitle);
 }
 
 void
@@ -218,6 +233,7 @@ QTMTabPage::syncDisplay (const QString& cleanTitle, bool dirty) {
   bool changed= (m_isDirty != dirty) || (text () != cleanTitle);
   m_isDirty   = dirty;
   setText (cleanTitle);
+  syncActionText (cleanTitle);
   if (changed) {
     updateCloseButtonVisibility ();
     update ();
