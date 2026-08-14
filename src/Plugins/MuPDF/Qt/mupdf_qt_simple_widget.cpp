@@ -11,6 +11,8 @@
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_simple_widget.hpp"
 
+#include <QDateTime>
+
 void
 qt_simple_widget_rep::repaint_invalid_regions () {
 
@@ -138,6 +140,7 @@ qt_simple_widget_rep::repaint_invalid_regions () {
     } // !is_nil (invalid_regions)
   }
   delete_renderer (ren);
+  last_repaint_ms= QDateTime::currentMSecsSinceEpoch ();
   // propagate immediately the changes to the screen
   canvas ()->surface ()->repaint (qrgn);
 }

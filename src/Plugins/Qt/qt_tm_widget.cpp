@@ -236,7 +236,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false),
       chatSideDock (nullptr), pdfOutlineDock (nullptr),
       chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
-      chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false) {
+      chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false),
+      centralUnfreezeGeneration_ (0) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -1101,6 +1102,52 @@ qt_tm_widget_rep::set_central_widget_updates_frozen (bool frozen) {
 }
 
 void
+qt_tm_widget_rep::schedule_central_unfreeze () {
+  centralUnfreezeGeneration_++;
+  poll_central_unfreeze (centralUnfreezeGeneration_,
+                         QDateTime::currentMSecsSinceEpoch ());
+}
+
+void
+qt_tm_widget_rep::poll_central_unfreeze (int generation, qint64 start_ms) {
+  QPointer<QWidget> guard (centralwidget ());
+  QTimer::singleShot (16, guard, [this, guard, generation, start_ms] () {
+    if (!guard) return;
+    if (generation != centralUnfreezeGeneration_) return;
+    if (!centralWidgetUpdatesFrozen_) return;
+
+    bool ready= false;
+    if (!is_nil (main_widget) &&
+        main_widget.rep->type == qt_widget_rep::simple_widget) {
+      qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
+      if (sw->is_editor_widget () && sw->scrollarea () &&
+          sw->scrollarea ()->surface ()) {
+        QWidget* surface= sw->scrollarea ()->surface ();
+        // 首帧就绪 = 真实 extents 已下发、其后的重绘已完成、无待重绘区域、
+        // surface 已收缩到 extents 决定的最终尺寸
+        bool extents_ready= sw->last_extents_ms >= start_ms &&
+                            sw->last_repaint_ms >= sw->last_extents_ms;
+        bool geometry_stable= surface->size () == surface->minimumSize ();
+        ready= extents_ready && !sw->is_invalid () && geometry_stable;
+      }
+    }
+    if (ready) {
+      qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
+      sw->awaiting_first_show= false;
+      set_central_widget_updates_frozen (false);
+    }
+    // 兜底：超时也解冻，宁可显示过渡帧也不能一直冻着
+    else if (QDateTime::currentMSecsSinceEpoch () - start_ms >= 800) {
+      if (!is_nil (main_widget) &&
+          main_widget.rep->type == qt_widget_rep::simple_widget)
+        concrete_simple_widget (main_widget)->awaiting_first_show= false;
+      set_central_widget_updates_frozen (false);
+    }
+    else poll_central_unfreeze (generation, start_ms);
+  });
+}
+
+void
 qt_tm_widget_rep::sync_startup_tab_mode () {
   QWidget* editorWidget= main_widget->qwid;
   QLayout* layout      = centralwidget ()->layout ();
@@ -1841,26 +1888,20 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     sync_startup_tab_mode ();
     sync_chat_tab_mode ();
     sync_chat_sidebar_mode ();
-    // 解冻前先把布局和新编辑器的首帧重绘同步做完：编辑器排版后才知道
-    // 页面真实宽度（extents），surface 据此收缩居中；若直接解冻，首帧会以
-    // 全宽 surface 把页面白底铺到灰边位置（新建/打开文档闪白）。
-    // 冻结期间 surface()->repaint 被抑制，force_update 只刷新屏外
-    // backing store，用户看到的仍是旧内容。
-    if (centralWidgetUpdatesFrozen_) {
-      if (centralwidget ()->layout ()) centralwidget ()->layout ()->activate ();
-      the_gui->force_update (); // 排版并下发真实 extents
-      if (!is_nil (main_widget) &&
-          main_widget.rep->type == qt_widget_rep::simple_widget) {
-        qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
-        if (sw->is_editor_widget () && sw->scrollarea () &&
-            sw->scrollarea ()->viewport () &&
-            sw->scrollarea ()->viewport ()->layout ())
-          // extents 到位后收缩 surface、居中
-          sw->scrollarea ()->viewport ()->layout ()->activate ();
+    // 新建编辑器控件的首帧要等真实 extents 下发、surface 收缩居中并重绘后
+    // 才稳定；若立即解冻，用户会看到「沿用旧 extents 的过渡帧」（页面边缘
+    // 闪灰带/白页）。此时改为延迟解冻：轮询首帧就绪后再放开，期间中央区
+    // 保持显示旧内容。
+    bool unfreeze_deferred= false;
+    if (centralWidgetUpdatesFrozen_ && !is_nil (main_widget) &&
+        main_widget.rep->type == qt_widget_rep::simple_widget) {
+      qt_simple_widget_rep* sw= concrete_simple_widget (main_widget);
+      if (sw->is_editor_widget () && sw->awaiting_first_show) {
+        schedule_central_unfreeze ();
+        unfreeze_deferred= true;
       }
-      the_gui->force_update (); // 按最终几何重绘 backing store
     }
-    set_central_widget_updates_frozen (false);
+    if (!unfreeze_deferred) set_central_widget_updates_frozen (false);
     // SLOT_FILE 由 window_set_view 在切 view 后触发：轻量同步 active 高亮，
     // 避免重建 tab bar。
     if (tabPageContainer) {

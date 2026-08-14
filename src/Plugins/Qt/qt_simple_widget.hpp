@@ -94,6 +94,15 @@ public:
   QTMWidget*     canvas () { return qobject_cast<QTMWidget*> (qwid); }
   QTMScrollView* scrollarea () { return qobject_cast<QTMScrollView*> (qwid); }
 
+  // 首帧就绪跟踪（用于新建/打开文档时延迟解冻中央区，避免过渡帧闪屏）：
+  // awaiting_first_show 在 as_qwidget 创建编辑器控件时置位，首帧稳定后清除；
+  // last_extents_ms / last_repaint_ms 记录最近一次 extents 下发与 backing
+  // store 重绘完成的墙钟毫秒。
+  bool   awaiting_first_show= false;
+  qint64 last_extents_ms    = 0;
+  qint64 last_repaint_ms    = 0;
+  bool   is_invalid ();
+
   ////////////////////// Completion popup support
   void show_completion_popup (array<string>& completions, SI x, SI y);
   void show_completion_popup (string mode, path tp, array<string>& completions,
@@ -170,7 +179,6 @@ protected:
 
   void invalidate_rect (int x1, int y1, int x2, int y2);
   void invalidate_all ();
-  bool is_invalid ();
   void repaint_invalid_regions ();
 #ifdef USE_MUPDF_RENDERER
   QImage get_backing_store ();

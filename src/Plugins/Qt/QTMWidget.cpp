@@ -207,11 +207,19 @@ void
 QTMWidget::paintEvent (QPaintEvent* event) {
   QImage   bs= tm_widget ()->get_backing_store ();
   QPainter p (surface ());
-  // backing store 尺寸落后于 surface（视图切换、surface 居中之隙）时，
-  // 旧内容被拉伸会把页面白底铺到灰边位置；此时先刷灰边底色，等
-  // repaint_invalid_regions 重建 backing store 后再正常上屏
+  // backing store 尺寸落后于 surface 时分两种情况：差异很大（视图切换、
+  // surface 居中之隙，约 2 倍）时旧内容被拉伸会把页面白底铺到灰边位置，
+  // 改刷灰边底色，等 repaint_invalid_regions 重建后再正常上屏；差异很小
+  // （如滚动条宽度引起的 extents 微调）时拉伸量不可感知，直接绘制，
+  // 避免整页灰帧闪烁
   QSize expect= retina_factor * surface ()->size ();
-  if (bs.isNull () || bs.size () != expect) {
+  if (bs.isNull ()) {
+    p.fillRect (surface ()->rect (), to_qcolor (tm_background));
+    return;
+  }
+  double rw= (double) bs.width () / qMax (1, expect.width ());
+  double rh= (double) bs.height () / qMax (1, expect.height ());
+  if (rw < 2.0 / 3.0 || rw > 1.5 || rh < 2.0 / 3.0 || rh > 1.5) {
     p.fillRect (surface ()->rect (), to_qcolor (tm_background));
     return;
   }

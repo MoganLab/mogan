@@ -185,6 +185,9 @@ private:
   void sync_chat_sidebar_mode ();
   void position_chat_sidebar_button ();
   void set_central_widget_updates_frozen (bool frozen);
+  /// 新编辑器首帧就绪前保持中央区冻结，就绪后解冻（轮询，带超时兜底）。
+  void schedule_central_unfreeze ();
+  void poll_central_unfreeze (int generation, qint64 start_ms);
 
   // Version update notification
   void    checkVersionUpdate ();
@@ -219,6 +222,7 @@ private:
   bool             chatSidebarMode;   ///\< AI 聊天侧边栏模式是否激活。
   bool   chatSidebarModeMemory_;      ///\< 记忆用户主动设置的侧边栏模式状态。
   bool   centralWidgetUpdatesFrozen_; ///\< 标签切换期间冻结编辑区更新。
+  int    centralUnfreezeGeneration_;  ///\< 延迟解冻的代际号，防止旧轮询误解冻。
   string currentEditorFile;           ///\< 当前编辑器打开的文件路径。
 
 public:

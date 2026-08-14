@@ -28,6 +28,7 @@
 #include <QGuiApplication>
 #include <QInputMethod>
 #endif
+#include <QDateTime>
 #include <QLayout>
 #include <QPixmap>
 #if QT_VERSION >= 0x060000
@@ -84,6 +85,7 @@ qt_simple_widget_rep::as_qwidget () {
     esz= last_editor_extents;
   scrollarea ()->setExtents (QRect (QPoint (0, 0), esz));
   canvas ()->resize (sz);
+  if (is_editor_widget ()) awaiting_first_show= true;
 
   all_widgets->insert ((pointer) this);
   backing_pos= canvas ()->origin ();
@@ -245,8 +247,10 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
     check_type<coord4> (val, s);
     coord4 p= open_box<coord4> (val);
     QRect  r= to_qrect (p);
-    if (is_editor_widget () && r.isValid () && !r.isEmpty ())
+    if (is_editor_widget () && r.isValid () && !r.isEmpty ()) {
       last_editor_extents= r.size ();
+      last_extents_ms    = QDateTime::currentMSecsSinceEpoch ();
+    }
     scrollarea ()->setExtents (r);
   } break;
 
