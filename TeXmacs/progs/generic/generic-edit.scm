@@ -2718,16 +2718,10 @@
 ) ;tm-define
 
 (tm-define (kbd-dunhao-tab)
-  ;; 「、 Tab」：消费刚插入的顿号，进入 hybrid 命令模式（对齐 \ 键的 make-hybrid）
-  (if (or (inside? 'hybrid) (in-prog?))
-    (noop)
-    (begin
-      (when (== (before-cursor) "<#3001>")
-        (remove-text #f)
-      ) ;when
-      (make-hybrid)
-    ) ;begin
-  ) ;if
+  ;; 「、 Tab」：组合命中时 try_shortcut 的 mark_cancel 已回滚最近一次按键
+  ;; 插入的顿号（、、Tab 只吞离 Tab 最近的那个），这里只需进 hybrid
+  ;; 命令模式（对齐 \ 键的 make-hybrid）
+  (if (or (inside? 'hybrid) (in-prog?)) (noop) (make-hybrid))
 ) ;tm-define
 
 (tm-define (hybrid-kbd-sub) (activate-hybrid #f) (make-script #f #t))
