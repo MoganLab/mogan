@@ -16,7 +16,7 @@
                                       ) ;document
                            ) ;src-title
                   ) ;active*
-          (use-package "section-base")
+          (use-package "section/section-base")
           (assign "sectional-short-style" (macro "false"))
           (assign "chapter-clean" (macro (concat (reset-section) (reset-std-env))))
           (assign "display-std-env" (macro "nr" (concat (chapter-prefix) (arg "nr"))))

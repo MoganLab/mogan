@@ -16,7 +16,7 @@
                                       ) ;document
                            ) ;src-title
                   ) ;active*
-          (use-package "section-base")
+          (use-package "section/section-base")
           (active* (document (src-comment (document "Parts and chapters."))))
           (assign "part-title"
             (macro "name"
