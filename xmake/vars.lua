@@ -141,3 +141,4 @@ libstem_srcs = {
     "$(projectdir)/src/Texmacs/Window/**.cpp",
     "$(projectdir)/src/Typeset/**.cpp",
 } 
+
