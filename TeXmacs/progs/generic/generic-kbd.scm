@@ -229,8 +229,8 @@
  ("std j" (toggle-chat-sidebar))
 ) ;kbd-map
 
-(utf8-kbd-map ("、" (if (or (inside? 'hybrid) (in-prog?)) (insert "<#3001>") (make-hybrid)))
- ("、 var" "<#3001>")
+(utf8-kbd-map ("、" "<#3001>")
+ ("、 var" (kbd-dunhao-tab))
  ("￥" (make 'math))
  ("￥ var" "<#FFE5>")
 ) ;utf8-kbd-map

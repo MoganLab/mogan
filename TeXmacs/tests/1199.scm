@@ -54,8 +54,16 @@
                (cons "￥ leaves math"
                  (lambda () (keyboard-press "<#FFE5>" 0) (check (get-env "mode") => "text"))
                ) ;cons
-               (cons "、 enters hybrid"
-                 (lambda () (keyboard-press "<#3001>" 0) (check-true (inside? 'hybrid)))
+               (cons "、 inserts dunhao"
+                 (lambda () (keyboard-press "<#3001>" 0) (check (before-cursor) => "<#3001>"))
+               ) ;cons
+               (cons "、 tab enters hybrid"
+                 (lambda ()
+                   (keyboard-press "tab" 0)
+                   (check-true (inside? 'hybrid))
+                   ;; 顿号已被消费，不残留在 hybrid 前
+                   (check (before-cursor) => #f)
+                 ) ;lambda
                ) ;cons
                (cons "report + quit" (lambda () (check-report) (quit-TeXmacs)))
              ) ;list

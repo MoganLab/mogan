@@ -2717,6 +2717,19 @@
   ) ;with-innermost
 ) ;tm-define
 
+(tm-define (kbd-dunhao-tab)
+  ;; 「、 Tab」：消费刚插入的顿号，进入 hybrid 命令模式（对齐 \ 键的 make-hybrid）
+  (if (or (inside? 'hybrid) (in-prog?))
+    (noop)
+    (begin
+      (when (== (before-cursor) "<#3001>")
+        (remove-text #f)
+      ) ;when
+      (make-hybrid)
+    ) ;begin
+  ) ;if
+) ;tm-define
+
 (tm-define (hybrid-kbd-sub) (activate-hybrid #f) (make-script #f #t))
 
 (tm-define (hybrid-kbd-sup) (activate-hybrid #f) (make-script #t #t))
