@@ -43,6 +43,7 @@
 --   VPK_CHANNEL      默认 stable
 --   VPK_VERSION      默认从 xmake/vars.lua 解析 XMACS_VERSION
 --   VPK_SIGN_PARAMS  默认空字符串；签名机注入 signtool 参数
+--   VPK_PRUNE_ONLY   只跑后处理（清理历史 full 包 + manifest），不重新 pack
 -------------------------------------------------------------------------------
 
 -- 定位 vpk：显式环境变量优先，其次常见安装路径，最后回退到 PATH 上的 vpk
@@ -87,12 +88,14 @@ if out_dir == nil or out_dir == "" then out_dir = "build/velopack_release" end
 local channel = os.getenv ("VPK_CHANNEL")
 if channel == nil or channel == "" then channel = "stable" end
 local sign_params = os.getenv ("VPK_SIGN_PARAMS") or ""
+local prune_only  = os.getenv ("VPK_PRUNE_ONLY") == "1"
 
 pack_dir = path.absolute (path.join (os.projectdir (), pack_dir))
 out_dir = path.absolute (path.join (os.projectdir (), out_dir))
 local icon = path.absolute (path.join (os.projectdir (), "packages/windows/Xmacs.ico"))
 
--- 先决条件：暂存根与图标必须存在
+-- 先决条件：暂存根与图标必须存在（prune-only 模式跳过，只依赖 outputDir）
+if not prune_only then
 if not os.isdir (pack_dir) then
     cprint ("${bright red}error: 暂存目录不存在: " .. pack_dir .. "${clear}")
     cprint ("${yellow}请先运行 xmake l tools/release/stage_velopack.lua${clear}")
@@ -188,3 +191,53 @@ if os.isfile (assets_file) then
     swap_name (portable_old, portable_new)
     io.writefile (assets_file, content)
 end
+end -- if not prune_only
+
+-------------------------------------------------------------------------------
+-- 后处理：清理发布目录中的历史 full 包，release 只留当前版本产物。
+-- vpk pack 把 outputDir 当作 channel 累积目录：上一版本 full 会留在 outputDir
+-- 并被写进 releases.<channel>.json。那份旧 full 只是算 delta 的基线，客户端
+-- 走 delta 用的是本地 packages 目录里的旧 full（见联调日志），feed 上的旧 full
+-- 不会被拉取，纯属冗余（回滚另走 OSS 保留策略）。这里删掉旧 full 文件并在
+-- manifest 中去掉对应条目，只保留当前版本 full 与历史 delta。outputDir 仍
+-- 保留当前版本 full，作为下一次 pack 的 delta 基线，不受影响。
+-------------------------------------------------------------------------------
+local function prune_old_full (out_dir, channel, version)
+    local json = import ("core.base.json")
+    local current_full = "Mogan-" .. version .. "-" .. channel .. "-full.nupkg"
+
+    -- 1) 删除旧版本 full 包文件（当前版本 full 保留，作下次 delta 基线）
+    for _, f in ipairs (os.files (path.join (out_dir, "Mogan-*-" .. channel .. "-full.nupkg"))) do
+        if path.filename (f) ~= current_full then
+            os.rm (f)
+            cprint ("${yellow}已清理历史 full: " .. path.filename (f) .. "${clear}")
+        end
+    end
+
+    -- 2) releases.<channel>.json 去掉旧 full 条目，保留当前 full 与全部 delta。
+    -- 注意 xmake lua 沙箱无 pcall / try-catch（见本文件 git 历史），防御靠
+    -- 内容结构检查：缺 "Assets" 就跳过，vpk 生成的 manifest 正常情况必然合法。
+    local rel_file= path.join (out_dir, "releases." .. channel .. ".json")
+    if os.isfile (rel_file) then
+        local content= io.readfile (rel_file) or ""
+        if content:find ('"Assets"') then
+            local data= json.decode (content)
+            if type (data) == "table" and type (data.Assets) == "table" then
+                local kept= {}
+                for _, a in ipairs (data.Assets) do
+                    if a.Type ~= "Full" or a.Version == version then
+                        table.insert (kept, a)
+                    end
+                end
+                data.Assets= kept
+                io.writefile (rel_file, json.encode (data))
+                cprint ("${green}releases." .. channel .. ".json 已去除历史 full 条目${clear}")
+            end
+        else
+            cprint ("${yellow}warning: " .. path.filename (rel_file) .. " 缺少 Assets 结构，跳过 manifest 清理${clear}")
+        end
+    end
+end
+
+-- 打包完成后做后处理；VPK_PRUNE_ONLY=1 时独立重跑清理
+prune_old_full (out_dir, channel, version)
