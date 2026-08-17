@@ -470,7 +470,8 @@ static void
 snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
                      frame f2) {
   tree   points (TUPLE);
-  string cur_set; // 当前序列化的中点集合，用于去重
+  string cur_set;                        // 当前序列化的中点集合，用于去重
+  SI     on_line_tol= snap_distance / 2; // 压线容差：吸附距离的一半
   if (check_snap_mode ("curve point")) {
     int n= N (sels);
     for (int i= 0; i < n; i++) {
@@ -491,8 +492,8 @@ snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
       for (int e= 0; e < ne; e++) {
         int j= (e + 1) % np;
         if (norm (pts[j] - pts[e]) < 1e-6) continue;
-        // 鼠标须贴近该直边本身，而非仅仅贴近曲线对象
-        if (dist_to_segment (fp, pts[e], pts[j]) > snap_distance) continue;
+        // 鼠标须贴近该直边本身（吸附距离的一半），而非整个吸附距离内
+        if (dist_to_segment (fp, pts[e], pts[j]) > on_line_tol) continue;
         if (!is_straight_edge (c, abs[e], abs[j])) continue;
         point mid      = c->evaluate ((abs[e] + abs[j]) / 2.0);
         point mid_local= f2[mid]; // 转换到文档坐标系供装饰绘制
@@ -503,14 +504,16 @@ snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
       }
     }
     // 折线绘制中：对象尚未进入文档树，graphical_select 选不到，由
-    // scheme 提供已落固定点连成的线段中点（文档坐标系）
-    tree t_prev= as_tree (call ("graphics-get-previous-midpoints"));
+    // scheme 提供已落固定点（文档坐标系），逐边过滤后取中点
+    tree t_prev= as_tree (call ("graphics-get-previous-line-points"));
     if (is_tuple (t_prev)) {
-      for (int i= 0; i < N (t_prev); i++) {
-        point m= as_point (t_prev[i]);
-        if (N (m) != 2) continue;
-        point ms= f2 (m); // 文档坐标转屏幕坐标
-        register_midpoint (fp, snap_distance, ms, as_string (m[0]),
+      for (int i= 0; i + 1 < N (t_prev); i++) {
+        point a= as_point (t_prev[i]);
+        point b= as_point (t_prev[i + 1]);
+        if (N (a) != 2 || N (b) != 2) continue;
+        if (dist_to_segment (fp, f2 (a), f2 (b)) > on_line_tol) continue;
+        point m= 0.5 * (a + b);
+        register_midpoint (fp, snap_distance, f2 (m), as_string (m[0]),
                            as_string (m[1]), cur_set, points, sels,
                            array<path> (), array<point> ());
       }
