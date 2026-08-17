@@ -200,8 +200,9 @@ get_tm_cache_path () {
 
 url
 get_tm_preference_path () {
-  return get_texmacs_home_path () *
-         ("system/" * string (XMACS_VERSION) * "/preferences.json");
+  // 统一存放于 system/ 下，不随版本号变化——迁移完成后路径永久固定，
+  // 避免版本 bump 导致「每次升级首选项重置」
+  return get_texmacs_home_path () * "system/preferences.json";
 }
 
 string

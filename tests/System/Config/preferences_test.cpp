@@ -48,7 +48,7 @@ TestPreferences::test_save_load_roundtrip () {
   set_env ("TEXMACS_HOME_PATH", string (home.path ().toUtf8 ().constData ()));
   load_user_preferences (); // 复位全局首选项状态
 
-  // save_string 不建父目录，先建 system/<版本>/
+  // save_string 不建父目录，先建 system/（统一存放位置）
   url prefs_file= get_tm_preference_path ();
   make_dir (head (prefs_file));
 

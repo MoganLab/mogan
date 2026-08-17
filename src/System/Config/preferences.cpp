@@ -10,7 +10,6 @@
  ******************************************************************************/
 
 #include "preferences.hpp"
-#include "analyze.hpp"
 #include "file.hpp"
 #include "iterator.hpp"
 #include "merge_sort.hpp"
@@ -23,7 +22,6 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-using moebius::data::block_to_scheme_tree;
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
 using nlohmann::json;
