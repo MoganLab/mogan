@@ -13,6 +13,7 @@
 #include "analyze.hpp"
 #include "file.hpp"
 #include "iterator.hpp"
+#include "lolly/data/json.hpp"
 #include "merge_sort.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
@@ -21,6 +22,9 @@
 
 #include <moebius/data/scheme.hpp>
 
+using lolly::data::json;
+using lolly::data::JSON_PAIR;
+using lolly::data::json_tree;
 using moebius::data::block_to_scheme_tree;
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
@@ -127,23 +131,31 @@ get_user_preference (string var, string val) {
  * Loading and saving user preferences
  ******************************************************************************/
 
-void
-load_user_preferences () {
-  url  prefs_file= get_tm_preference_path ();
-  tree p (TUPLE);
-  if (exists (prefs_file)) {
-    p= block_to_scheme_tree (string_load (prefs_file));
-  }
-  while (is_func (p, TUPLE, 1))
-    p= p[0];
-  for (int i= 0; i < N (p); i++)
-    if (is_func (p[i], TUPLE, 2) && is_atomic (p[i][0]) &&
-        is_atomic (p[i][1]) && is_quoted (p[i][0]->label) &&
-        is_quoted (p[i][1]->label)) {
-      string var      = scm_unquote (p[i][0]->label);
-      string val      = scm_unquote (p[i][1]->label);
+// 读取 JSON 首选项文件：仅导入键值均为字符串的原子项，
+// 其余（数字/布尔/null）跳过以容错
+static void
+load_json_preferences (url prefs_file) {
+  json j= json::read (string_load (prefs_file));
+  if (!j.is_object ()) return;
+  json_tree t= j->t;
+  for (int i= 0; i < lolly::data::arity (t); i++) {
+    json_tree pair= t[i];
+    if (pair->op != JSON_PAIR) continue;
+    if (lolly::data::is_atomic (pair[0]) && lolly::data::is_atomic (pair[1])) {
+      string var      = pair[0]->label;
+      string val      = pair[1]->label;
       user_prefs (var)= val;
     }
+  }
+}
+
+void
+load_user_preferences () {
+  url prefs_file= get_tm_preference_path ();
+  user_prefs    = hashmap<string, string> ("");
+  if (exists (prefs_file)) {
+    load_json_preferences (prefs_file);
+  }
   user_prefs_modified= false;
 }
 
@@ -156,11 +168,10 @@ save_user_preferences () {
   while (it->busy ())
     a << it->next ();
   merge_sort (a);
-  string s;
+  json j;
   for (int i= 0; i < N (a); i++)
-    s << "(" << scm_quote (a[i]) << " " << scm_quote (user_prefs[a[i]])
-      << ")\n";
-  if (save_string (prefs_file, s))
+    j.set (a[i], user_prefs[a[i]]);
+  if (save_string (prefs_file, j.dump ()))
     std_warning << "The user preferences could not be saved\n";
   user_prefs_modified= false;
 }

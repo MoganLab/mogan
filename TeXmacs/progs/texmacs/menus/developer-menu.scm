@@ -115,8 +115,8 @@
   ((replace "Open %1" (verbatim "my-init-buffer.scm"))
    (scm-load-buffer (url-concretize "$TEXMACS_HOME_PATH/progs/my-init-buffer.scm"))
   ) ;
-  ((replace "Open %1" (verbatim "preferences.scm"))
-   (scm-load-buffer (url-concretize "$TEXMACS_HOME_PATH/system/preferences.scm"))
+  ((replace "Open %1" (verbatim "preferences.json"))
+   (scm-load-buffer (url-concretize "$TEXMACS_HOME_PATH/system/preferences.json"))
   ) ;
   ---
   (group "Custom keyboard")
