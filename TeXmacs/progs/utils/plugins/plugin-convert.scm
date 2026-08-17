@@ -21,10 +21,23 @@
 
 (define current-plugin-input-stree "")
 
-(define (convert-test)
-  (set! current-plugin-input-stree (tree->stree (selection-tree)))
-  (write (tm-with-output-to-string plugin-input-caller))
-  (display "\n")
+;; 捕获期间所有 handler 经 plugin-output 写往独立的 string port，
+;; 与全局 cout（C++ 日志）隔离，避免日志混入插件输入
+
+(define plugin-input-port (current-output-port))
+
+(tm-define (plugin-output s) (display s plugin-input-port))
+
+(define (call-with-plugin-output-string thunk)
+  (call-with-output-string (lambda (p)
+                             (let ((saved plugin-input-port))
+                               (dynamic-wind (lambda () (set! plugin-input-port p))
+                                 thunk
+                                 (lambda () (set! plugin-input-port saved))
+                               ) ;dynamic-wind
+                             ) ;let
+                           ) ;lambda
+  ) ;call-with-output-string
 ) ;define
 
 (tm-define (plugin-math-input l)
@@ -32,7 +45,7 @@
   (:argument l "A list of the form @(tuple plugin expr)")
   (set! current-plugin-input-stree (caddr l))
   (set! plugin-input-current-plugin (cadr l))
-  (tm-with-output-to-string plugin-input-caller)
+  (call-with-plugin-output-string plugin-input-caller)
 ) ;tm-define
 
 (define (plugin-input-caller)
@@ -55,9 +68,9 @@
   (if (and (string? t) (= (length (string->tmtokens t 0 (string-length t))) 1))
     (plugin-input t)
     (begin
-      (display "(")
+      (plugin-output "(")
       (plugin-input t)
-      (display ")")
+      (plugin-output ")")
     ) ;begin
   ) ;if
 ) ;tm-define
@@ -105,10 +118,10 @@
   (let ((im (plugin-input-ref s)))
     (if (== im #f)
       (if (and (!= s "") (== (string-ref s 0) #\<))
-        (display (substring s 1 (- (string-length s) 1)))
-        (display s)
+        (plugin-output (substring s 1 (- (string-length s) 1)))
+        (plugin-output s)
       ) ;if
-      (if (procedure? im) (im s) (display im))
+      (if (procedure? im) (im s) (plugin-output im))
     ) ;if
   ) ;let
 ) ;define
@@ -154,37 +167,37 @@
 ) ;define
 
 (define (plugin-input-frac args)
-  (display "(")
+  (plugin-output "(")
   (plugin-input-arg (car args))
-  (display "/")
+  (plugin-output "/")
   (plugin-input-arg (cadr args))
-  (display ")")
+  (plugin-output ")")
 ) ;define
 
 (define (plugin-input-sqrt args)
   (if (= (length args) 1)
     (begin
-      (display "sqrt(")
+      (plugin-output "sqrt(")
       (plugin-input (car args))
-      (display ")")
+      (plugin-output ")")
     ) ;begin
     (begin
       (plugin-input-arg (car args))
-      (display "^(1/")
+      (plugin-output "^(1/")
       (plugin-input-arg (cadr args))
-      (display ")")
+      (plugin-output ")")
     ) ;begin
   ) ;if
 ) ;define
 
 (define (plugin-input-rsub args)
-  (display "[")
+  (plugin-output "[")
   (plugin-input (car args))
-  (display "]")
+  (plugin-output "]")
 ) ;define
 
 (define (plugin-input-rsup args)
-  (display "^")
+  (plugin-output "^")
   (plugin-input-arg (car args))
 ) ;define
 
@@ -203,27 +216,27 @@
          (sup (big-supscript b))
          (body (big-body b))
         ) ;
-    (display name)
-    (display "(")
+    (plugin-output name)
+    (plugin-output "(")
     (when sub
       (plugin-input sub)
-      (display ",")
+      (plugin-output ",")
     ) ;when
     (when (and sub sup)
       (plugin-input sup)
-      (display ",")
+      (plugin-output ",")
     ) ;when
     (plugin-input body)
-    (display ")")
+    (plugin-output ")")
   ) ;let*
 ) ;define
 
 (define (plugin-input-large args)
-  (display (car args))
+  (plugin-output (car args))
 ) ;define
 
 (define (plugin-input-script-assign args)
-  (display ":=")
+  (plugin-output ":=")
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -238,9 +251,9 @@
 ) ;define
 
 (define (plugin-input-det args)
-  (display "matdet(")
+  (plugin-output "matdet(")
   (plugin-input-descend-last args)
-  (display ")")
+  (plugin-output ")")
 ) ;define
 
 (define (rewrite-cell c)
@@ -260,7 +273,7 @@
     (plugin-input (car r))
     (begin
       (plugin-input (car r))
-      (display ", ")
+      (plugin-output ", ")
       (plugin-input-row (cdr r))
     ) ;begin
   ) ;if
@@ -269,7 +282,7 @@
 (define (plugin-input-var-rows t)
   (if (nnull? t)
     (begin
-      (display "; ")
+      (plugin-output "; ")
       (plugin-input-row (car t))
       (plugin-input-var-rows (cdr t))
     ) ;begin
@@ -277,10 +290,10 @@
 ) ;define
 
 (define (plugin-input-rows t)
-  (display "[")
+  (plugin-output "[")
   (plugin-input-row (car t))
   (plugin-input-var-rows (cdr t))
-  (display "]")
+  (plugin-output "]")
 ) ;define
 
 (define (plugin-input-table args)
