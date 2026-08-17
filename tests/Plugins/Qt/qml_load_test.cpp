@@ -47,13 +47,15 @@ class VersionStubBridge : public QObject {
 public:
   explicit VersionStubBridge (QObject* p= nullptr) : QObject (p) {}
   QString     title () const { return QString ("Version"); }
-  QStringList lines () const {
-    return {"You are using v2026.2.6.",
-            "The latest stable version is v2026.2.6."};
-  }
+  QStringList lines () const { return m_lines; }
   QStringList buttonLabels () const { return {"OK"}; }
+  void        setLines (const QStringList& lines) { m_lines= lines; }
 
   Q_INVOKABLE void confirm () {}
+
+private:
+  QStringList m_lines{"You are using v2026.2.6.",
+                      "The latest stable version is v2026.2.6."};
 };
 
 // live 弹窗（FontSelector / ParagraphFormat）bridge 占位：加载阶段 QML 顶层会调
@@ -205,6 +207,7 @@ private slots:
   void test_preferences_loads ();
   void test_version_loads ();
   void test_version_escape_cancels ();
+  void test_version_long_line_wraps ();
   void test_statistics_loads ();
 };
 
@@ -396,6 +399,38 @@ TestQmlLoad::test_version_escape_cancels () {
   QTRY_VERIFY (qw->rootObject ()->hasActiveFocus ());
   QTest::keyClick (qw, Qt::Key_Escape);
   QCOMPARE (close->cancelCount, 1);
+}
+
+void
+TestQmlLoad::test_version_long_line_wraps () {
+  // 单行远超弹窗宽度：应自动换行（行高成倍）、弹窗 implicitHeight 超出最小高度
+  QDialog            host;
+  QQuickWidget*      qw    = new QQuickWidget (&host);
+  StubBridge*        close = new StubBridge (qw);
+  VersionStubBridge* bridge= new VersionStubBridge (qw);
+  bridge->setLines ({QString (400, 'x')});
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("versionBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/Version.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  // 隐藏状态下 QQuickWidget 不向 root 同步尺寸，show 后视图定宽、root 跟随
+  host.show ();
+  qw->resize (560, 480);
+  QTRY_VERIFY (qw->rootObject ()->implicitHeight () > 220.0);
+  QQuickItem* messageLines=
+      qw->rootObject ()->findChild<QQuickItem*> ("versionMessageLines");
+  QVERIFY (messageLines);
+  QQuickItem* line= nullptr;
+  for (QQuickItem* item : messageLines->childItems ())
+    if (item->objectName () == "versionMessageLine") {
+      line= item;
+      break;
+    }
+  QVERIFY (line);
+  QTRY_VERIFY (line->height () > 40.0); // 单行 14*1.35≈19，换行后显著更高
 }
 
 QTEST_MAIN (TestQmlLoad)

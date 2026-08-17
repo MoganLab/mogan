@@ -1,6 +1,12 @@
 // Version.qml -- 「帮助 -> 版本」模态弹窗。
 //
 // Scheme 侧负责翻译和组织 versionMessage；本组件仅渲染文本并回传确认结果。
+// 正文按 \n 分行；单行超过弹窗宽度时自动换行，弹窗高度随内容自适应（见
+// implicitHeight 绑定，C++ 定宽后读取该值锁定弹窗高度）。
+//
+// 文本宽度绑定到 contentW（定宽弹窗的正文内容宽），而非实际父宽：弹窗 show
+// 之前 C++ 就要读 implicitHeight 定高，此刻布局宽度尚未就位，绑实际宽度会
+// 量出错误的换行结果。
 
 import QtQuick
 import "atoms"
@@ -8,8 +14,12 @@ import "atoms"
 DialogShell {
     id: root
     implicitWidth: 560
-    implicitHeight: 220
+    implicitHeight: Math.max(220 * Theme.scaleFactor,
+                             body.implicitHeight + 2 * Theme.margin)
     implicitMargins: Theme.margin
+
+    // 定宽弹窗的正文内容宽（QML 像素）：窗口物理宽 = 逻辑宽 × scaleFactor
+    readonly property real contentW: implicitWidth * Theme.scaleFactor - 2 * implicitMargins
 
     property string title: versionBridge.title
     property var lines: versionBridge.lines
@@ -28,7 +38,7 @@ DialogShell {
             spacing: Theme.pad
 
             Text {
-                width: body.width
+                width: root.contentW
                 text: root.title
                 color: Theme.fg
                 horizontalAlignment: Text.AlignHCenter
@@ -40,7 +50,7 @@ DialogShell {
             Column {
                 id: messageLines
                 objectName: "versionMessageLines"
-                width: parent.width
+                width: root.contentW
                 spacing: Theme.gapS
 
                 Repeater {
@@ -53,7 +63,9 @@ DialogShell {
                         text: modelData
                         color: Theme.fg
                         horizontalAlignment: Text.AlignLeft
-                        wrapMode: Text.NoWrap
+                        // Wrap：优先按词边界折行，超长词（URL/版本号）断开；
+                        // 中文无空格也可在字符间断开
+                        wrapMode: Text.Wrap
                         font.pixelSize: Theme.fontBody
                         lineHeight: 1.35
                     }

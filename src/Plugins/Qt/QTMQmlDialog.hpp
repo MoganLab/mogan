@@ -192,6 +192,8 @@ void cpp_statistics_dialog (string title, tree items);
  * @param title 已翻译的对话框标题。
  * @param message 已翻译的版本提示，换行会拆为独立 QML 文本行。
  * @return 确认返回 true；取消、关闭或加载失败返回 false。
+ * @note 单行超过弹窗宽度时 QML 侧自动换行，弹窗高度随内容自适应（定宽 560，
+ *       高度取 QML 根对象 implicitHeight，220 为回退值）。
  * @note MOGAN_TEST_VERSION_DIALOG 用于测试。
  */
 bool cpp_version_dialog (string title, string message);
