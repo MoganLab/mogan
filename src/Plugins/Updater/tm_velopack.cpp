@@ -31,11 +31,18 @@
 #include <thread>
 #include <vector>
 
-// 默认更新源（feed 根 URL）。当前按静态 feed 设计编译期写死；若将来要运行时
-// 切源（stable/beta 渠道、内网镜像），需改为可配置并在 setAppcast 里重建 mgr。
-// 当前为内网联调源（上游 OSS 更新服务器），与 CD 上传目录对应。
+// 默认更新源（feed 根 URL）。按社区版/商业版（IS_COMMUNITY 宏）编译期选定；
+// 若将来要运行时切源（stable/beta 渠道、内网镜像），需改为可配置并在
+// setAppcast 里重建 mgr。
+// 两通道 packageId 一致：社区版切到商业版 feed 后，Velopack 找不到匹配
+// baseVersion 的 delta 会自动回退 full 包，可直接跨通道升级。
+#ifdef IS_COMMUNITY
 static const std::string default_feed_url=
     "https://liiistem.cn/api/v1/public/update/win-x64";
+#else
+static const std::string default_feed_url=
+    "https://liiistem.cn/api/v1/public/commercial/update/win-x64";
+#endif
 
 static std::string
 exception_message () {
