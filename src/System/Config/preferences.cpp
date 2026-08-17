@@ -138,7 +138,7 @@ lolly_string (const std::string& s) {
 
 static std::string
 std_string (const string& s) {
-  std::string r= (std::string) s.c_str ();
+  std::string r= std::string (c_string (s));
   return r;
 }
 
