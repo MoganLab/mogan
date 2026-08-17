@@ -51,13 +51,20 @@ hashmap_rep<T, U>::resize (int n2) {
   list<hashentry<T, U>>* olda= a;
   n                          = n2;
   a                          = tm_new_array<list<hashentry<T, U>>> (n);
+  // 把旧桶的节点直接搬到新桶:复用已存的 code 免再哈希,
+  // 并原样重挂节点,避免逐条目重新分配/析构
   for (i= 0; i < oldn; i++) {
     list<hashentry<T, U>> l (olda[i]);
     while (!is_nil (l)) {
-      list<hashentry<T, U>>& newl= a[hash (l->item.key) & (n - 1)];
-      newl                       = list<hashentry<T, U>> (l->item, newl);
-      l                          = l->next;
+      list_rep<hashentry<T, U>>* node= l.rep;
+      list<hashentry<T, U>>    next (node->next);
+      list<hashentry<T, U>>&   newl  = a[hash_bucket (node->item.code, n)];
+      node->next                     = newl;
+      node->ref_count++; // 所有权转移给新桶
+      newl.rep                       = node;
+      l                              = next;
     }
+    olda[i]= list<hashentry<T, U>> ();
   }
   tm_delete_array (olda);
 }
@@ -65,7 +72,7 @@ hashmap_rep<T, U>::resize (int n2) {
 TMPL bool
 hashmap_rep<T, U>::contains (T x) {
   int hv= hash (x);
-  for (auto l= a[hv & (n - 1)]; !is_nil (l); l= l->next) {
+  for (auto l= a[hash_bucket (hv, n)]; !is_nil (l); l= l->next) {
     if (l->item.code == hv && l->item.key == x) return true;
   }
   return false;
@@ -79,11 +86,11 @@ hashmap_rep<T, U>::empty () {
 TMPL U&
 hashmap_rep<T, U>::bracket_rw (T x) {
   int hv= hash (x);
-  for (auto p= a[hv & (n - 1)]; !is_nil (p); p= p->next) {
+  for (auto p= a[hash_bucket (hv, n)]; !is_nil (p); p= p->next) {
     if (p->item.code == hv && p->item.key == x) return p->item.im;
   }
   if (size >= n * max) resize (n << 1);
-  list<hashentry<T, U>>& rl= a[hv & (n - 1)];
+  list<hashentry<T, U>>& rl= a[hash_bucket (hv, n)];
   rl                       = list<hashentry<T, U>> (H (hv, x, init), rl);
   size++;
   return rl->item.im;
@@ -92,7 +99,7 @@ hashmap_rep<T, U>::bracket_rw (T x) {
 TMPL U
 hashmap_rep<T, U>::bracket_ro (T x) {
   int                   hv= hash (x);
-  list<hashentry<T, U>> l (a[hv & (n - 1)]);
+  list<hashentry<T, U>> l (a[hash_bucket (hv, n)]);
   while (!is_nil (l)) {
     if (l->item.code == hv && l->item.key == x) return l->item.im;
     l= l->next;
@@ -103,7 +110,7 @@ hashmap_rep<T, U>::bracket_ro (T x) {
 TMPL void
 hashmap_rep<T, U>::reset (T x) {
   int                    hv= hash (x);
-  list<hashentry<T, U>>* l = &(a[hv & (n - 1)]);
+  list<hashentry<T, U>>* l = &(a[hash_bucket (hv, n)]);
   while (!is_nil (*l)) {
     if ((*l)->item.code == hv && (*l)->item.key == x) {
       *l= (*l)->next;
@@ -143,8 +150,26 @@ TMPL void
 hashmap_rep<T, U>::join (hashmap<T, U> h) {
   int i= 0, n= h->n;
   for (; i < n; i++) {
-    for (auto p= h->a[i]; !is_nil (p); p= p->next)
-      bracket_rw (p->item.key)= copy (p->item.im);
+    for (auto p= h->a[i]; !is_nil (p); p= p->next) {
+      // 直接复用条目已存的 code,免去对 key 的二次哈希
+      int hv                    = p->item.code;
+      list<hashentry<T, U>>* rl = &(a[hash_bucket (hv, this->n)]);
+      bool found                = false;
+      for (auto q= *rl; !is_nil (q); q= q->next) {
+        if (q->item.code == hv && q->item.key == p->item.key) {
+          q->item.im= copy (p->item.im);
+          found    = true;
+          break;
+        }
+      }
+      if (!found) {
+        if (size >= this->n * max) resize (this->n << 1);
+        rl           = &(a[hash_bucket (hv, this->n)]);
+        *rl          = list<hashentry<T, U>> (
+            H (hv, p->item.key, copy (p->item.im)), *rl);
+        size++;
+      }
+    }
   }
 }
 

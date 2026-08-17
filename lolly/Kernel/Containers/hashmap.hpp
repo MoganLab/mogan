@@ -44,6 +44,16 @@ template <class T, class U> struct hashentry {
   hashentry<T, U> (int code, T key2, U im2);
 };
 
+/**
+ * @brief 由完整哈希值求桶下标。
+ * @note hash(int) 等恒等哈希下,等差或按指针对齐的键低位相同,直接取
+ * 低位会把大量键挤进同一桶;乘黄金比例常数让低位均匀分散。
+ */
+static inline int
+hash_bucket (int hv, int n) {
+  return (int) ((unsigned int) hv * 2654435769u) & (n - 1);
+}
+
 template <class T, class U> class hashmap_rep : concrete_struct {
   int                    size; // size of hashmap (nr of entries)
   int                    n;    // nr of keys (a power of two)

@@ -19,17 +19,17 @@
 TMPL void
 hashmap_rep<T, U>::write_back (T x, hashmap<T, U> base) {
   int                   hv= hash (x);
-  list<hashentry<T, U>> l (a[hv & (n - 1)]);
+  list<hashentry<T, U>> l (a[hash_bucket (hv, n)]);
   while (!is_nil (l)) {
     if (l->item.code == hv && l->item.key == x) return;
     l= l->next;
   }
   if (size >= n * max) resize (n << 1);
-  list<hashentry<T, U>>& rl= a[hv & (n - 1)];
+  list<hashentry<T, U>>& rl= a[hash_bucket (hv, n)];
   rl                       = list<hashentry<T, U>> (H (hv, x, init), rl);
   size++;
 
-  list<hashentry<T, U>> bl (base->a[hv & (base->n - 1)]);
+  list<hashentry<T, U>> bl (base->a[hash_bucket (hv, base->n)]);
   while (!is_nil (bl)) {
     if (bl->item.code == hv && bl->item.key == x) {
       rl->item.im= bl->item.im;
