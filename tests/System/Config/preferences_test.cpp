@@ -9,8 +9,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "base.hpp"
 #include "analyze.hpp"
+#include "base.hpp"
 #include "file.hpp"
 #include "preferences.hpp"
 #include "sys_utils.hpp"
@@ -36,9 +36,7 @@ private slots:
     init_lolly ();
     orig_home= get_env ("TEXMACS_HOME_PATH");
   }
-  void cleanup () {
-    restore_env ("TEXMACS_HOME_PATH", orig_home);
-  }
+  void cleanup () { restore_env ("TEXMACS_HOME_PATH", orig_home); }
   void test_save_load_roundtrip ();
   void test_load_missing_file ();
 };
@@ -72,9 +70,9 @@ TestPreferences::test_save_load_roundtrip () {
 
   // 重新加载，取回原值
   load_user_preferences ();
-  QVERIFY2 (get_user_preference ("test.str", "") == "a\"b\\c\n",
-            as_charp ("roundtrip broken: " *
-                      get_user_preference ("test.str", "")));
+  QVERIFY2 (
+      get_user_preference ("test.str", "") == "a\"b\\c\n",
+      as_charp ("roundtrip broken: " * get_user_preference ("test.str", "")));
   QVERIFY2 (get_user_preference ("test.empty", "") == "",
             as_charp ("empty value roundtrip broken"));
   QVERIFY2 (get_user_preference ("test.normal", "") == "hello",

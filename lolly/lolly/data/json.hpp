@@ -100,18 +100,6 @@ public:
   json   operator() (string key);
   void   set (string key, json value);
   string dump ();
-
-  /**
-   * @brief Parse a JSON string into a json object.
-   *
-   * Supports objects, arrays, strings (with escape sequences and \uXXXX),
-   * numbers, booleans and null. On any syntax error, an empty object is
-   * returned so callers can degrade to defaults.
-   *
-   * @param s The JSON text to parse.
-   * @return The parsed json value, or an empty object on error.
-   */
-  static json read (string s);
 };
 CONCRETE_CODE (json);
 

@@ -13,7 +13,6 @@
 #include "analyze.hpp"
 #include "file.hpp"
 #include "iterator.hpp"
-#include "lolly/data/json.hpp"
 #include "merge_sort.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
@@ -21,13 +20,13 @@
 #include "tree_helper.hpp"
 
 #include <moebius/data/scheme.hpp>
+#include <nlohmann/json.hpp>
+#include <string>
 
-using lolly::data::json;
-using lolly::data::JSON_PAIR;
-using lolly::data::json_tree;
 using moebius::data::block_to_scheme_tree;
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
+using nlohmann::json;
 
 tree texmacs_settings= tuple ();
 
@@ -131,22 +130,30 @@ get_user_preference (string var, string val) {
  * Loading and saving user preferences
  ******************************************************************************/
 
+// lolly string 与 std::string 互转（nlohmann::json 的键/值用 std::string）
+static string
+lolly_string (const std::string& s) {
+  return string (s.c_str ());
+}
+
+static std::string
+std_string (const string& s) {
+  std::string r;
+  for (int i= 0; i < N (s); i++)
+    r+= s[i];
+  return r;
+}
+
 // 读取 JSON 首选项文件：仅导入键值均为字符串的原子项，
 // 其余（数字/布尔/null）跳过以容错
 static void
 load_json_preferences (url prefs_file) {
-  json j= json::read (string_load (prefs_file));
-  if (!j.is_object ()) return;
-  json_tree t= j->t;
-  for (int i= 0; i < lolly::data::arity (t); i++) {
-    json_tree pair= t[i];
-    if (pair->op != JSON_PAIR) continue;
-    if (lolly::data::is_atomic (pair[0]) && lolly::data::is_atomic (pair[1])) {
-      string var      = pair[0]->label;
-      string val      = pair[1]->label;
-      user_prefs (var)= val;
-    }
-  }
+  json j= json::parse (std_string (string_load (prefs_file)), nullptr, false);
+  if (j.is_discarded () || !j.is_object ()) return;
+  for (json::iterator it= j.begin (); it != j.end (); ++it)
+    if (it.value ().is_string ())
+      user_prefs (lolly_string (it.key ()))=
+          lolly_string (it.value ().get<std::string> ());
 }
 
 void
@@ -168,10 +175,10 @@ save_user_preferences () {
   while (it->busy ())
     a << it->next ();
   merge_sort (a);
-  json j;
+  json j= json::object ();
   for (int i= 0; i < N (a); i++)
-    j.set (a[i], user_prefs[a[i]]);
-  if (save_string (prefs_file, j.dump ()))
+    j[std_string (a[i])]= std_string (user_prefs[a[i]]);
+  if (save_string (prefs_file, lolly_string (j.dump ())))
     std_warning << "The user preferences could not be saved\n";
   user_prefs_modified= false;
 }
