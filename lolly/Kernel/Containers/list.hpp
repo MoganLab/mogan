@@ -267,6 +267,15 @@ TMPL list<T> remove (list<T> l, T what);
 TMPL bool contains (list<T> l, T what);
 
 TMPL tm_ostream& operator<< (tm_ostream& out, list<T> l);
+/**
+ * @brief Append an item to the end of a list in place.
+ *
+ * @note Each append walks from the head to the tail, i.e. O(n) per call;
+ * appending n items one by one costs O(n^2). To build a long list, prepend
+ * with `list<T> (item, l)` and finish with `reverse (l)`, or keep a local
+ * handle to the last node as `copy (list<T>)` does.
+ * @note The append mutates the (possibly shared) list in place.
+ */
 TMPL list<T>& operator<< (list<T>& l, T item);
 TMPL list<T>& operator<< (list<T>& l1, list<T> l2);
 TMPL list<T>& operator>> (T item, list<T>& l);

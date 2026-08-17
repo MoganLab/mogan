@@ -109,6 +109,35 @@ TEST_CASE ("append") {
   CHECK_EQ (list<long> (1L) * list<long> (2L, 3L, list<long> ()), normal);
 }
 
+TEST_CASE ("operator<< keeps order") {
+  auto l= list<long> ();
+  l << 1L;
+  l << 2L;
+  l << 3L;
+  CHECK_EQ (l, normal);
+
+  auto l2= list<long> (1L);
+  l2 << list<long> (2L, 3L, list<long> ());
+  CHECK_EQ (l2, normal);
+
+  // 追加是原地修改，共享同一链表的句柄可见
+  auto shared= l;
+  l << 4L;
+  CHECK_EQ (N (shared), 4);
+  CHECK_EQ (last_item (shared), 4L);
+}
+
+TEST_CASE ("copy of long list") {
+  auto l= gen (10000);
+  CHECK_EQ (N (l), 10000);
+  auto c= copy (l);
+  CHECK_EQ (c, l);
+  CHECK_EQ (last_item (c), 9999L);
+  // 迭代版 copy 不复用原链节点
+  access_last (c)= -1L;
+  CHECK_EQ (last_item (l), 9999L);
+}
+
 TEST_CASE ("head and tail") {
   // QVERIFY_EXCEPTION_THROWN (head (the_nil_list), string);
   // QVERIFY_EXCEPTION_THROWN (tail (the_nil_list), string);

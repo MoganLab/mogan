@@ -47,16 +47,25 @@ list<T>::operator[] (int i) {
 template <class T>
 list<T>&
 operator<< (list<T>& l, T item) {
-  if (is_nil (l)) l= list<T> (item, list<T> ());
-  else l->next << item;
+  if (is_nil (l)) {
+    l= list<T> (item, list<T> ());
+    return l;
+  }
+  list<T> p= l;
+  while (!is_nil (p->next))
+    p= p->next;
+  p->next= list<T> (item, list<T> ());
   return l;
 }
 
 template <class T>
 list<T>&
 operator<< (list<T>& l1, list<T> l2) {
-  if (is_nil (l1)) l1= l2;
-  else l1->next << l2;
+  if (is_nil (l1)) return l1= l2;
+  list<T> p= l1;
+  while (!is_nil (p->next))
+    p= p->next;
+  p->next= l2;
   return l1;
 }
 
@@ -88,16 +97,24 @@ template <class T>
 T&
 access_last (list<T>& l) {
   ASSERT (!is_nil (l), "access_last on nil list");
-  if (is_nil (l->next)) return l->item;
-  return access_last (l->next);
+  list<T> p= l;
+  while (!is_nil (p->next))
+    p= p->next;
+  return p->item;
 }
 
 template <class T>
 list<T>&
 suppress_last (list<T>& l) {
   ASSERT (!is_nil (l), "empty path");
-  if (is_nil (l->next)) l= list<T> ();
-  else suppress_last (l->next);
+  if (is_nil (l->next)) {
+    l= list<T> ();
+    return l;
+  }
+  list<T> p= l;
+  while (!is_nil (p->next->next))
+    p= p->next;
+  p->next= list<T> ();
   return l;
 }
 
@@ -163,7 +180,13 @@ template <class T>
 list<T>
 copy (list<T> l) {
   if (is_nil (l)) return list<T> ();
-  else return list<T> (l->item, copy (l->next));
+  list<T> r (l->item, list<T> ());
+  list<T> tail= r;
+  for (list<T> p= l->next; !is_nil (p); p= p->next) {
+    tail->next= list<T> (p->item, list<T> ());
+    tail      = tail->next;
+  }
+  return r;
 }
 
 template <class T>
