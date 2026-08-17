@@ -41,6 +41,23 @@ function main()
                 scm_name = "loro-enabled?",
                 cpp_name = "loro_enabled",
                 ret_type = "bool",
+            },
+            {
+                -- WASM 简单文本输入（浏览器 window.prompt）：ImGui/WASM 端未实现
+                -- interactive 弹窗，协作菜单等场景的输入经此桥接；取消时返回空串
+                -- 且 wasm-prompt-cancelled? 为真。非 WASM 恒为取消。
+                scm_name = "wasm-prompt",
+                cpp_name = "wasm_prompt",
+                ret_type = "string",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
+                scm_name = "wasm-prompt-cancelled?",
+                cpp_name = "wasm_prompt_cancelled",
+                ret_type = "bool",
             }
         }
     }

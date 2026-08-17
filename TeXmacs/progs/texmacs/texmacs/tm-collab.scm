@@ -98,30 +98,54 @@
   ) ;cond
 ) ;define
 
+;; WASM（ImGui 前端）无 interactive 弹窗/minibuffer，改走浏览器 window.prompt
+;; （wasm-prompt glue）：单框输入完整 ws(s):// 地址，预填当前生效值。
+;; 空串 = 清除偏好（回到 env/默认，与 Qt 两框版「空地址 = 清除」语义一致），取消 = 不动。
+
+(define (collab-configure-server-wasm)
+  (let ((ans (wasm-prompt "Server address (e.g. ws://127.0.0.1:8765)" (collab-server-url))
+        ) ;ans
+       ) ;
+    (when (not (wasm-prompt-cancelled?))
+      (if (== ans "")
+        (reset-preference collab-server-url-key)
+        (set-preference collab-server-url-key ans)
+      ) ;if
+    ) ;when
+  ) ;let
+) ;define
+
 ;; 弹框配置/修改协作服务端：地址 + 端口两框（预填当前生效值）；地址框亦接受完整
 ;; ws(s):// URL。空地址 = 清除偏好（回到 env/默认）。设置后下次展开菜单自动切完整形态。
 ;; 会话进行中禁止改地址：连接 URL 在连接时固定，改了也不迁移当前会话，故要求先 Leave。
+;; :imgui-supported：WASM 分支（window.prompt）已实现，菜单过滤器保留本项。
 (tm-define (collab-configure-server)
   (:interactive #t)
+  (:imgui-supported #t)
   (if (loro-collab-active?)
     (set-message "Leave the current session before changing the server address"
       "Collaborative"
     ) ;set-message
-    (with cur
-      (collab-url->fields (collab-server-url))
-      (interactive (lambda (addr port)
-                     (with url
-                       (collab-fields->url addr port)
-                       (if (== url "")
-                         (reset-preference collab-server-url-key)
-                         (set-preference collab-server-url-key url)
-                       ) ;if
-                     ) ;with
-                   ) ;lambda
-        (list "Server address" "string" (car cur))
-        (list "Server port" "string" (cdr cur))
-      ) ;interactive
-    ) ;with
+    (cond ((os-wasm?) (collab-configure-server-wasm))
+          ((qt-gui?)
+           (with cur
+             (collab-url->fields (collab-server-url))
+             (interactive (lambda (addr port)
+                            (with url
+                              (collab-fields->url addr port)
+                              (if (== url "")
+                                (reset-preference collab-server-url-key)
+                                (set-preference collab-server-url-key url)
+                              ) ;if
+                            ) ;with
+                          ) ;lambda
+               (list "Server address" "string" (car cur))
+               (list "Server port" "string" (cdr cur))
+             ) ;interactive
+           ) ;with
+          ) ;
+          (else (set-message "Not supported on this frontend" "Collaborative"))
+    ) ;cond
   ) ;if
 ) ;tm-define
 
@@ -242,7 +266,19 @@
 ) ;define
 (tm-define (collab-new-document)
   (:interactive #t)
-  (interactive (lambda (name) (collab-new-document-named name)) "Document name")
+  (:imgui-supported #t)
+  (cond ((os-wasm?)
+         (let ((ans (wasm-prompt "Document name" "")))
+           (when (not (wasm-prompt-cancelled?))
+             (collab-new-document-named ans)
+           ) ;when
+         ) ;let
+        ) ;
+        ((qt-gui?)
+         (interactive (lambda (name) (collab-new-document-named name)) "Document name")
+        ) ;
+        (else (set-message "Not supported on this frontend" "Collaborative"))
+  ) ;cond
 ) ;tm-define
 (tm-define (collab-new-document-named name)
   (let ((uname (cork->utf8 name)))
@@ -292,19 +328,34 @@
 ) ;define
 
 ;; 选定文件后弹显示名输入框（预填文件名），确认走 collab-new-document-from-file-named。
+;; WASM：window.prompt 单框输入（取消 = 不上传）。
 
 (define (collab-share-file-prompt-name u)
-  (interactive (lambda (name) (collab-new-document-from-file-named u name))
-    (list "Document name" "string" (collab-file->doc-name u))
-  ) ;interactive
+  (cond ((os-wasm?)
+         (let ((ans (wasm-prompt "Document name" (collab-file->doc-name u))))
+           (when (not (wasm-prompt-cancelled?))
+             (collab-new-document-from-file-named u ans)
+           ) ;when
+         ) ;let
+        ) ;
+        ((qt-gui?)
+         (interactive (lambda (name) (collab-new-document-from-file-named u name))
+           (list "Document name" "string" (collab-file->doc-name u))
+         ) ;interactive
+        ) ;
+        (else (set-message "Not supported on this frontend" "Collaborative"))
+  ) ;cond
 ) ;define
 
 ;; 打开（上传）本地 .tmu/.tm 文件为共享文档：文件对话框选文件 → 输入显示名
 ;; （预填文件名）→ 加载文件到 buffer → 标记 collab → CREATE。会话就绪时 C++ 端
 ;; eager-seed（见 loro_collab.cpp become_ready）把文件内容作为初始全量推到服务端，
 ;; 无需等待首次编辑。
+;; :imgui-supported：WASM 上 choose-file 由 im_chooser_widget 文件选择器实现，
+;; 命名框走 window.prompt（见 collab-share-file-prompt-name）。
 (tm-define (collab-new-document-from-file)
   (:interactive #t)
+  (:imgui-supported #t)
   (choose-file collab-share-file-prompt-name "Load file to share" "action_open")
 ) ;tm-define
 
