@@ -33,7 +33,13 @@
 
 (tm-define (get-last-file-dialog-directory)
   "Get the last directory used in file dialog"
-  (or last-file-dialog-directory (get-preference "last-file-dialog-directory"))
+  ;; 偏好未设置时 get-preference 返回哨兵字符串 "default"，须视为「无记录」，
+  ;; 否则 choose-file 会把 "default" 当目录解析成进程 cwd
+  (let ((dir (or last-file-dialog-directory (get-preference "last-file-dialog-directory"))
+        ) ;dir
+       ) ;
+    (and (!= dir "default") dir)
+  ) ;let
 ) ;tm-define
 
 (tm-define (set-last-file-dialog-directory dir)
