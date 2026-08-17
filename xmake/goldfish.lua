@@ -52,6 +52,7 @@ target("libgoldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_bitwise.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_hash_table.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_list.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_record.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_string.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_vector.c"
     )
@@ -72,6 +73,7 @@ target ("goldfish") do
     add_files({
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_base64.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_hashlib.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_json.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_string.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_njson.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",

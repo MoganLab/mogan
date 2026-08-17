@@ -636,6 +636,191 @@ s7_pointer g_every(s7_scheme *sc, s7_pointer args)
   return(s7_t(sc));
 }
 
+/* -------------------------------- count -------------------------------- */
+
+s7_pointer g_count(s7_scheme *sc, s7_pointer args)
+{
+  /* (count pred clist1 clist2 ...) applies pred to one element of each list
+   * per iteration and returns the number of true results; the walk stops at
+   * the end of the shortest list */
+  s7_pointer pred = s7_car(args);
+  if (!s7_is_procedure(pred))
+    return(s7_wrong_type_arg_error(sc, "count", 1, pred, "a procedure"));
+
+  s7_pointer rest = s7_cdr(args);   /* (clist1 clist2 ...) */
+
+  if (s7_is_null(sc, s7_cdr(rest)))
+    {
+      /* single-list case: same GC pattern as g_any -- keep pred and lst
+       * anchored in our own protected pair while pred runs */
+      s7_pointer lst = s7_car(rest);
+      s7_pointer keep = s7_cons(sc, pred, s7_cons(sc, lst, s7_nil(sc)));
+      s7_gc_protect_via_stack(sc, keep);
+      s7_pointer p = lst;
+      s7_int i = 0;
+      while (s7_is_pair(p))
+        {
+          if (s7i_is_true(sc, s7_apply_function(sc, s7_car(keep), s7i_set_plist_1(sc, s7_car(p)))))
+            i++;
+          p = s7_cdr(p);
+        }
+      s7_gc_unprotect_via_stack(sc, keep);
+      if (!s7_is_null(sc, p))
+        return(s7_wrong_type_arg_error(sc, "count", 2, lst, "a proper list"));
+      return(s7_make_integer(sc, i));
+    }
+
+  /* multi-list case: check properness up front (no Scheme callbacks here, so
+   * no GC concerns), then walk all lists in lockstep */
+  for (s7_pointer lp = rest; s7_is_pair(lp); lp = s7_cdr(lp))
+    if (!s7_is_proper_list(sc, s7_car(lp)))
+      return(s7_wrong_type_arg_error(sc, "count", 2, s7_car(lp), "a proper list"));
+
+  /* keep pred, a slot for the current call args, and one "current position"
+   * cell per list (in argument order) in our own protected cells: the args
+   * cells may be recycled by the evaluator while pred runs; the slot sits at
+   * cadr so the position-cell walk below starts after it */
+  s7_pointer anchor = s7_cons(sc, pred, s7_cons(sc, s7_cons(sc, s7_nil(sc), s7_nil(sc)), s7_nil(sc)));
+  s7_gc_protect_via_stack(sc, anchor);
+  s7_pointer tail = s7_cdr(anchor);   /* (call-args-slot) */
+  for (s7_pointer lp = rest; s7_is_pair(lp); lp = s7_cdr(lp))
+    {
+      s7_set_cdr(tail, s7_cons(sc, s7_car(lp), s7_nil(sc)));
+      tail = s7_cdr(tail);
+    }
+  s7_pointer args_slot = s7_car(s7_cdr(anchor));
+
+  s7_int i = 0;
+  while (true)
+    {
+      /* build the call args from the current heads, linking each new pair
+       * into args_slot right after s7_cons so the growing list stays
+       * GC-reachable; advance the position cells in the same pass */
+      s7_set_car(args_slot, s7_nil(sc));
+      s7_pointer prev = NULL;
+      bool shortest_ended = false;
+      for (s7_pointer cell = s7_cdr(s7_cdr(anchor)); s7_is_pair(cell); cell = s7_cdr(cell))
+        {
+          s7_pointer cur = s7_car(cell);
+          if (!s7_is_pair(cur))
+            {
+              /* pre-checked above, so the shortest list just ended */
+              shortest_ended = true;
+              break;
+            }
+          s7_pointer node = s7_cons(sc, s7_car(cur), s7_nil(sc));
+          if (prev == NULL)
+            s7_set_car(args_slot, node);
+          else
+            s7_set_cdr(prev, node);
+          prev = node;
+          s7_set_car(cell, s7_cdr(cur));
+        }
+      if (shortest_ended)
+        break;
+      if (s7i_is_true(sc, s7_apply_function(sc, s7_car(anchor), s7_car(args_slot))))
+        i++;
+    }
+  s7_gc_unprotect_via_stack(sc, anchor);
+  return(s7_make_integer(sc, i));
+}
+
+/* ------------------------------ list-index ------------------------------ */
+
+s7_pointer g_list_index(s7_scheme *sc, s7_pointer args)
+{
+  /* (list-index pred clist1 clist2 ...) applies pred to one element of each
+   * list per iteration and returns the index of the first true result, or #f;
+   * the walk stops at the end of the shortest list */
+  s7_pointer pred = s7_car(args);
+  if (!s7_is_procedure(pred))
+    return(s7_wrong_type_arg_error(sc, "list-index", 1, pred, "a procedure"));
+
+  s7_pointer rest = s7_cdr(args);   /* (clist1 clist2 ...) */
+
+  if (s7_is_null(sc, s7_cdr(rest)))
+    {
+      /* single-list case: same GC pattern as g_count -- keep pred and lst
+       * anchored in our own protected pair while pred runs; properness is
+       * checked lazily, so an early match returns without touching the tail */
+      s7_pointer lst = s7_car(rest);
+      s7_pointer keep = s7_cons(sc, pred, s7_cons(sc, lst, s7_nil(sc)));
+      s7_gc_protect_via_stack(sc, keep);
+      s7_pointer p = lst;
+      s7_int i = 0;
+      while (s7_is_pair(p))
+        {
+          if (s7i_is_true(sc, s7_apply_function(sc, s7_car(keep), s7i_set_plist_1(sc, s7_car(p)))))
+            {
+              s7_gc_unprotect_via_stack(sc, keep);
+              return(s7_make_integer(sc, i));
+            }
+          i++;
+          p = s7_cdr(p);
+        }
+      s7_gc_unprotect_via_stack(sc, keep);
+      if (!s7_is_null(sc, p))
+        return(s7_wrong_type_arg_error(sc, "list-index", 2, lst, "a proper list"));
+      return(s7_f(sc));
+    }
+
+  /* multi-list case: check properness up front (no Scheme callbacks here, so
+   * no GC concerns), then walk all lists in lockstep */
+  for (s7_pointer lp = rest; s7_is_pair(lp); lp = s7_cdr(lp))
+    if (!s7_is_proper_list(sc, s7_car(lp)))
+      return(s7_wrong_type_arg_error(sc, "list-index", 2, s7_car(lp), "a proper list"));
+
+  /* same anchor layout as g_count: pred, a slot for the current call args,
+   * then one "current position" cell per list in argument order */
+  s7_pointer anchor = s7_cons(sc, pred, s7_cons(sc, s7_cons(sc, s7_nil(sc), s7_nil(sc)), s7_nil(sc)));
+  s7_gc_protect_via_stack(sc, anchor);
+  s7_pointer tail = s7_cdr(anchor);   /* (call-args-slot) */
+  for (s7_pointer lp = rest; s7_is_pair(lp); lp = s7_cdr(lp))
+    {
+      s7_set_cdr(tail, s7_cons(sc, s7_car(lp), s7_nil(sc)));
+      tail = s7_cdr(tail);
+    }
+  s7_pointer args_slot = s7_car(s7_cdr(anchor));
+
+  s7_int i = 0;
+  while (true)
+    {
+      /* build the call args from the current heads, linking each new pair
+       * into args_slot right after s7_cons so the growing list stays
+       * GC-reachable; advance the position cells in the same pass */
+      s7_set_car(args_slot, s7_nil(sc));
+      s7_pointer prev = NULL;
+      bool shortest_ended = false;
+      for (s7_pointer cell = s7_cdr(s7_cdr(anchor)); s7_is_pair(cell); cell = s7_cdr(cell))
+        {
+          s7_pointer cur = s7_car(cell);
+          if (!s7_is_pair(cur))
+            {
+              /* pre-checked above, so the shortest list just ended */
+              shortest_ended = true;
+              break;
+            }
+          s7_pointer node = s7_cons(sc, s7_car(cur), s7_nil(sc));
+          if (prev == NULL)
+            s7_set_car(args_slot, node);
+          else
+            s7_set_cdr(prev, node);
+          prev = node;
+          s7_set_car(cell, s7_cdr(cur));
+        }
+      if (shortest_ended)
+        break;
+      if (s7i_is_true(sc, s7_apply_function(sc, s7_car(anchor), s7_car(args_slot))))
+        {
+          s7_gc_unprotect_via_stack(sc, anchor);
+          return(s7_make_integer(sc, i));
+        }
+      i++;
+    }
+  s7_gc_unprotect_via_stack(sc, anchor);
+  return(s7_f(sc));
+}
+
 /* -------------------------------- fold / fold-right -------------------------------- */
 
 s7_pointer g_fold(s7_scheme *sc, s7_pointer args)

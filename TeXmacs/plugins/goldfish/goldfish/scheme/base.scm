@@ -257,41 +257,6 @@
          (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
     ) ;define-macro
 
-    (define-macro (define-record-type type make ? . fields)
-      (let ((obj (gensym))
-            (typ (gensym))
-            (args (map (lambda (field)
-                         (values (list 'quote (car field))
-                           (let ((par (memq (car field) (cdr make))))
-                             (and (pair? par) (car par))
-                           ) ;let
-                         ) ;values
-                       ) ;lambda
-                    fields
-                  ) ;map
-            ) ;args
-           ) ;
-        `(begin
-           (define (,? ,obj)
-             (and (let? ,obj) (eq? (let-ref ,obj (quote ,typ)) (quote ,type))))
-           (define ,make (inlet (quote ,typ) (quote ,type) ,@args))
-           ,@(map (lambda (field)
-                    (when (pair? field)
-                      (if (null? (cdr field))
-                        (values)
-                        (if (null? (cddr field))
-                          `(define (,(cadr field) ,obj)
-                             (let-ref ,obj (quote ,(car field))))
-                          `(begin
-                             (define (,(cadr field) ,obj)
-                               (let-ref ,obj (quote ,(car field))))
-                             (define (,(caddr field) ,obj val)
-                               (let-set! ,obj (quote ,(car field)) val)))))))
-               fields)
-           (quote ,type))
-      ) ;let
-    ) ;define-macro
-
     (define exact inexact->exact)
 
     (define inexact exact->inexact)

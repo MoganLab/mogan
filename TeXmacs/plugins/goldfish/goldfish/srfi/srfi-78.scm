@@ -104,11 +104,13 @@
       (newline)
       (check:write expression)
       (display " => ")
+      (flush-output-port)
     ) ;define
 
     (define (check:report-actual-result actual-result)
       (check:write actual-result)
       (display " ; ")
+      (flush-output-port)
     ) ;define
 
     (define (check:report-correct cases)

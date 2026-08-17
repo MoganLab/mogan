@@ -2,10 +2,6 @@
   (import (liii base)
     (liii list)
     (rename (guenchi json)
-      (json-ref g:json-ref)
-      (json-ref* g:json-ref*)
-      (json-set g:json-set)
-      (json-set* g:json-set*)
       (json-push g:json-push)
       (json-push* g:json-push*)
       (json-drop g:json-drop)
@@ -50,35 +46,22 @@
     ;; ; 0. 统一接口
     ;; ; ---------------------------------------------------------
 
+    ;; json->string 由 C++ 实现（src/liii_json.cpp 中的 g_json->string）
+    (define json->string g_json->string)
+
+    ;; string->json 由 C++ 实现（src/liii_json.cpp 中的 g_string->json）
+    (define string->json g_string->json)
+
+    ;; json-ref 由 C++ 实现（src/liii_json.cpp 中的 g_json_ref）
+    (define json-ref g_json_ref)
+
+    ;; json-set 由 C++ 实现（src/liii_json.cpp 中的 g_json_set）
+    (define json-set g_json_set)
+
     (define (ensure-json-structure x)
       (unless (or (json-object? x) (json-array? x))
         (type-error "Value is not a JSON object or array" x)
       ) ;unless
-    ) ;define
-
-    (define (json-ref json key . args)
-      (if (null? json)
-        '()
-        (begin
-          (ensure-json-structure json)
-          (let ((val (if (and (json-object? json) (equal? json '(()))) '() (g:json-ref json key))
-                ) ;val
-               ) ;
-            (if (null? args) val (apply json-ref (cons val args)))
-          ) ;let
-        ) ;begin
-      ) ;if
-    ) ;define
-
-    (define (json-set json key val . args)
-      (ensure-json-structure json)
-      (if (null? args)
-        (if (and (json-object? json) (equal? json '(())))
-          json
-          (g:json-set json key val)
-        ) ;if
-        (json-set json key (lambda (x) (apply json-set (cons x (cons val args)))))
-      ) ;if
     ) ;define
 
     (define (json-push json key val . args)

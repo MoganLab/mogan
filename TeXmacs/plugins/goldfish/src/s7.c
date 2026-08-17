@@ -38028,6 +38028,7 @@ s7_pointer s7_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
       if ((!is_pair(b)) && (!is_null(b)))
 	return(g_list_append(sc, list_2(sc, a, b)));
       sc->temp9 = a; /* tempx? */
+      sc->temp7 = b; /* GC protect b across the copy loop below (it is not otherwise protected here) */
       q = list_1(sc, car(a));
       begin_temp(sc->temp6, q);
       p = cdr(a);
@@ -38039,6 +38040,7 @@ s7_pointer s7_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
 	  set_cdr(np, list_1(sc, car(p)));
 	}
       end_temp(sc->temp6);
+      sc->temp7 = sc->unused;
       if (!is_null(p))
 	wrong_type_error_nr(sc, sc->append_symbol, 1, a, a_proper_list_string);
       sc->temp9 = sc->unused;
@@ -85752,6 +85754,14 @@ is #t, the string is also sent to the current-output-port."
   #define H_every "(g_every pred lst) returns #t if (pred element) is not #f for every element of lst, otherwise #f"
   #define Q_every s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_every", g_every, 2, 0, false, H_every, Q_every);
+
+  #define H_count "(g_count pred clist1 clist2 ...) returns the number of element tuples for which (pred elem1 elem2 ...) is not #f, stopping at the end of the shortest list"
+  #define Q_count s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_count", g_count, 2, 0, true, H_count, Q_count);
+
+  #define H_list_index "(g_list_index pred clist1 clist2 ...) returns the index of the first element tuple for which (pred elem1 elem2 ...) is not #f, or #f if there is none, stopping at the end of the shortest list"
+  #define Q_list_index s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_list_index", g_list_index, 2, 0, true, H_list_index, Q_list_index);
 
   #define H_fold "(g_fold f init lst) folds f over the elements of lst: (f elem acc)"
   #define Q_fold s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
