@@ -31,6 +31,22 @@ main () {
   bench.run ("last_item 4", [&] { last_item (l4); });
   bench.run ("last_item 16", [&] { last_item (l16); });
 
+  bench.run ("access_last 32", [&] { access_last (l32); });
+  bench.run ("access_last 64", [&] { access_last (l64); });
+
+  bench.minEpochIterations (10000);
+  bench.run ("copy 32",
+             [&] { ankerl::nanobench::doNotOptimizeAway (copy (l32)); });
+  bench.run ("copy 64",
+             [&] { ankerl::nanobench::doNotOptimizeAway (copy (l64)); });
+
+  bench.minEpochIterations (1000);
+  bench.run ("gen 64 (append)",
+             [&] { ankerl::nanobench::doNotOptimizeAway (gen (64)); });
+  bench.run ("gen 256 (append)",
+             [&] { ankerl::nanobench::doNotOptimizeAway (gen (256)); });
+
+  bench.minEpochIterations (100000);
   bench.run ("N 32", [&] { N (l32); });
 
   bench.minEpochIterations (100000);
