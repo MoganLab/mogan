@@ -12,6 +12,7 @@
 
 #if defined(USE_PLUGIN_VELOPACK) && defined(OS_WIN)
 
+#include "preferences.hpp"
 #include "string.hpp"
 #include "tm_velopack.hpp"
 
@@ -31,18 +32,28 @@
 #include <thread>
 #include <vector>
 
-// 默认更新源（feed 根 URL）。按社区版/商业版（IS_COMMUNITY 宏）编译期选定；
-// 若将来要运行时切源（stable/beta 渠道、内网镜像），需改为可配置并在
-// setAppcast 里重建 mgr。
+// 更新源 feed URL 的 base URL：按 stem-profile 首选项运行时选定
+// （default/production → 生产 liiistem.cn，staging → 测试 test.liiistem.cn）。
+// stem-profile 是运行期首选项（可被 set-preference 切换），故 feed URL 不能
+// 编译期固化；profile 变化后由 ensure_mgr 按快照重建 mgr 换源。
 // 两通道 packageId 一致：社区版切到商业版 feed 后，Velopack 找不到匹配
 // baseVersion 的 delta 会自动回退 full 包，可直接跨通道升级。
+static std::string
+feed_base_url () {
+  string profile= get_user_preference ("stem-profile", "default");
+  if (profile == "staging") return "https://test.liiistem.cn";
+  return "https://liiistem.cn";
+}
+
+// 完整 feed URL = base URL + 按社区版/商业版（IS_COMMUNITY 宏）选定的路径段
+static std::string
+feed_url (const std::string& base) {
 #ifdef IS_COMMUNITY
-static const std::string default_feed_url=
-    "https://liiistem.cn/api/v1/public/update/win-x64";
+  return base + "/api/v1/public/update/win-x64";
 #else
-static const std::string default_feed_url=
-    "https://liiistem.cn/api/v1/public/commercial/update/win-x64";
+  return base + "/api/v1/public/commercial/update/win-x64";
 #endif
+}
 
 static std::string
 exception_message () {
@@ -119,8 +130,9 @@ newer_version (const std::string& a, const std::string& b) {
 
 struct tm_velopack::tm_velopack_rep {
   std::unique_ptr<Velopack::UpdateManager>
-                 mgr;      // 惰性创建，恰好一次（call_once 保证）
-  std::once_flag mgr_once; // 保护 mgr 的单次初始化
+                 mgr;       // 惰性创建；stem-profile 切换后重建
+  std::string    mgr_base;  // mgr 创建时的 base URL（判断是否需重建）
+  std::string    feed_base; // 本次检查/下载启动时快照的 base URL（主线程写入）
   std::optional<Velopack::UpdateInfo> info;            // 最近一次检查结果
   std::thread                         worker;          // 当前检查/下载线程
   std::mutex                          mtx;             // 保护以下字段
@@ -135,7 +147,7 @@ struct tm_velopack::tm_velopack_rep {
 
   tm_velopack_rep ()
       : st (UPDATER_IDLE), st_before_check (UPDATER_IDLE), progress (0),
-        last (0), running (false) {}
+        last (0), running (false), feed_base (feed_base_url ()) {}
   ~tm_velopack_rep () {
     if (worker.joinable ()) worker.join ();
   }
@@ -147,10 +159,16 @@ tm_velopack::~tm_velopack () {}
 
 void
 tm_velopack::ensure_mgr () {
-  // mgr 由 call_once 保证恰好创建一次；feed URL 编译期写死，无需加锁。
-  std::call_once (rep->mgr_once, [this] {
-    rep->mgr= std::make_unique<Velopack::UpdateManager> (default_feed_url);
-  });
+  // mgr 惰性创建，并随 stem-profile 变化重建：检查/下载启动时主线程把当前
+  // base URL 快照到 feed_base，这里按快照建/重建 mgr，切换 profile 后下一次
+  // 检查即换源。重建只发生在 worker 内且 mgr 未被并发使用（状态机保证同一
+  // 时刻至多一个 worker，APPLYING 期间不接受新检查），无需额外同步。
+  std::lock_guard<std::mutex> lk (rep->mtx);
+  if (!rep->mgr || rep->mgr_base != rep->feed_base) {
+    rep->mgr     = std::make_unique<Velopack::UpdateManager> (
+        feed_url (rep->feed_base));
+    rep->mgr_base= rep->feed_base;
+  }
 }
 
 bool
@@ -159,6 +177,9 @@ tm_velopack::checkInBackground () {
   if (rep->running) return false;
   if (rep->st == UPDATER_APPLYING) return false; // 应用更新期间不接受新检查
   if (rep->worker.joinable ()) rep->worker.join ();
+  // 主线程快照当前 stem-profile 对应的 base URL；worker 内 ensure_mgr 按此
+  // 快照建/重建 mgr，避免工作线程触碰首选项（scheme 回调非线程安全）。
+  rep->feed_base= feed_base_url ();
   // 启动检查置 CHECKING；同时保存检查前状态，do_check 结果驱动时据此判断
   // 是否保持 READY「待应用」（复查不应把它冲掉，否则要重新下载）。
   rep->st_before_check= rep->st;
@@ -258,6 +279,9 @@ tm_velopack::downloadUpdate () {
   if (rep->st != UPDATER_AVAILABLE) return false;
   if (rep->running) return false;
   if (rep->worker.joinable ()) rep->worker.join ();
+  // 下载前同样按当前 stem-profile 刷新快照，profile 切换后 mgr 立即换源；
+  // DownloadUpdates 使用 info 内已解析的资产 URL，重建 mgr 不影响本次下载。
+  rep->feed_base= feed_base_url ();
   rep->st     = UPDATER_DOWNLOADING;
   rep->running= true;
   rep->worker = std::thread ([this] { do_download (); });
