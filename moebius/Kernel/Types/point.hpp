@@ -15,18 +15,19 @@
 
 typedef array<double> point;
 
-point operator- (point p);
-point operator+ (point p1, point p2);
-point operator- (point p1, point p2);
-point operator* (double x, point p);
-point operator* (point p1, point p2);
-point operator/ (point p, double x);
-point operator/ (point p1, point p2);
-bool  operator== (point p1, point p2);
+// 只读参数一律按 const 引用传递，避免 array 引用计数的原子加减
+point operator- (const point& p);
+point operator+ (const point& p1, const point& p2);
+point operator- (const point& p1, const point& p2);
+point operator* (double x, const point& p);
+point operator* (const point& p1, const point& p2);
+point operator/ (const point& p, double x);
+point operator/ (const point& p1, const point& p2);
+bool  operator== (const point& p1, const point& p2);
 
-point  abs (point p);
-double min (point p);
-double max (point p);
+point  abs (const point& p);
+double min (const point& p);
+double max (const point& p);
 
 bool is_point (tree t);
 inline point
@@ -36,28 +37,29 @@ as_point (double x) {
   return p;
 }
 point as_point (tree t);
-tree  as_tree (point p);
+tree  as_tree (const point& p);
 
-double inner (point p1, point p2);
-point  rotate_2D (point p, point o, double angle);
-point  slanted (point p, double slant);
+double inner (const point& p1, const point& p2);
+point  rotate_2D (const point& p, const point& o, double angle);
+point  slanted (const point& p, double slant);
 
-double norm (point p);
+double norm (const point& p);
 double arg (point p);
-bool   collinear (point p1, point p2);
-bool   linearly_dependent (point p1, point p2, point p3);
-bool   orthogonalize (point& i, point& j, point p1, point p2, point p3);
+bool   collinear (const point& p1, const point& p2);
+bool   linearly_dependent (const point& p1, const point& p2, const point& p3);
+bool   orthogonalize (point& i, point& j, const point& p1, const point& p2,
+                      const point& p3);
 
 typedef struct {
   point p0, p1;
 } axis;
 
-point  proj (axis a, point p);
-double dist (axis a, point p);
-double seg_dist (axis a, point p);
-double seg_dist (point p1, point p2, point p);
-axis   midperp (point p1, point p2, point p3);
-point  intersection (axis A, axis B);
+point  proj (const axis& a, const point& p);
+double dist (const axis& a, const point& p);
+double seg_dist (const axis& a, const point& p);
+double seg_dist (const point& p1, const point& p2, const point& p);
+axis   midperp (const point& p1, const point& p2, const point& p3);
+point  intersection (const axis& A, const axis& B);
 
 /**
  * @brief 判断二维点是否位于闭合矩形内
@@ -71,6 +73,6 @@ point  intersection (axis A, axis B);
  * @param p2 矩形的另一个对角顶点（各分量取较大值的一角）
  * @return   点在矩形内（含边界）时返回 true，否则返回 false
  */
-bool inside_rectangle (point p, point p1, point p2);
+bool inside_rectangle (const point& p, const point& p1, const point& p2);
 
 #endif // defined POINT_H

@@ -103,3 +103,73 @@ TEST_CASE ("test axis proj/dist") {
   CHECK (fabs (dist (a, p) - 4.0) < 1e-6);
   CHECK (fabs (seg_dist (a, p) - 4.0) < 1e-6);
 }
+
+TEST_CASE ("test point-wise mul/div") {
+  CHECK ((mkp (2, 3) * mkp (4, 5)) == mkp (8, 15));
+  CHECK ((mkp (8, 6) / mkp (2, 3)) == mkp (4, 2));
+}
+
+TEST_CASE ("test seg_dist endpoint cases") {
+  axis a;
+  a.p0= mkp (0, 0);
+  a.p1= mkp (10, 0);
+  // 垂足落在延长线上时，取到端点的距离
+  CHECK (fabs (seg_dist (a, mkp (-3, 4)) - 5.0) < 1e-6);
+  CHECK (fabs (seg_dist (a, mkp (13, 4)) - 5.0) < 1e-6);
+  // 三参数版本与 axis 版本一致
+  CHECK (fabs (seg_dist (mkp (0, 0), mkp (10, 0), mkp (3, 4)) - 4.0) < 1e-6);
+}
+
+TEST_CASE ("test proj degenerate axis") {
+  axis a;
+  a.p0= mkp (1, 1);
+  a.p1= mkp (1, 1);
+  CHECK (proj (a, mkp (5, 5)) == mkp (1, 1));
+}
+
+TEST_CASE ("test linearly_dependent") {
+  CHECK (linearly_dependent (mkp (0, 0), mkp (1, 1), mkp (2, 2)));
+  CHECK (!linearly_dependent (mkp (0, 0), mkp (1, 0), mkp (0, 1)));
+  // 任意两点重合即线性相关
+  CHECK (linearly_dependent (mkp (1, 2), mkp (1, 2), mkp (0, 5)));
+}
+
+TEST_CASE ("test orthogonalize") {
+  point i, j;
+  CHECK (orthogonalize (i, j, mkp (0, 0), mkp (2, 0), mkp (0, 3)));
+  CHECK (i == mkp (1, 0));
+  CHECK (j == mkp (0, 1));
+  // 三点共线时失败
+  CHECK (!orthogonalize (i, j, mkp (0, 0), mkp (1, 1), mkp (2, 2)));
+}
+
+TEST_CASE ("test midperp") {
+  axis a= midperp (mkp (0, 0), mkp (2, 0), mkp (0, 1));
+  // 中垂线过中点 (1,0) 且竖直
+  CHECK (a.p0 == mkp (1, 0));
+  CHECK (fabs (a.p1[0] - 1.0) < 1e-6);
+  // 三点共线时退化为空点 point(0)
+  axis b= midperp (mkp (0, 0), mkp (1, 1), mkp (2, 2));
+  CHECK (N (b.p0) == 0);
+  CHECK (N (b.p1) == 0);
+}
+
+TEST_CASE ("test intersection") {
+  axis A, B;
+  A.p0= mkp (0, 0);
+  A.p1= mkp (4, 0);
+  B.p0= mkp (2, -2);
+  B.p1= mkp (2, 2);
+  CHECK (intersection (A, B) == mkp (2, 0));
+  // 平行轴无交点，返回空点 point(0)
+  axis C;
+  C.p0= mkp (0, 1);
+  C.p1= mkp (4, 1);
+  CHECK (N (intersection (A, C)) == 0);
+}
+
+TEST_CASE ("test arg") {
+  CHECK (fabs (arg (mkp (1, 0)) - 0.0) < 1e-6);
+  CHECK (fabs (arg (mkp (0, 1)) - tm_PI / 2) < 1e-6);
+  CHECK (fabs (arg (mkp (0, -1)) - 3 * tm_PI / 2) < 1e-6);
+}

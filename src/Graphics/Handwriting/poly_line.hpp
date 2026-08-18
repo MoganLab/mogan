@@ -9,29 +9,17 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "tree.hpp"
+#include "point.hpp"
 
-typedef array<double>    point;
 typedef array<point>     poly_line;
 typedef array<poly_line> contours;
 
-point operator- (point p);
-point operator+ (point p1, point p2);
-point operator- (point p1, point p2);
-point operator* (double x, point p);
-point operator/ (point p, double x);
-bool  operator== (point p1, point p2);
-
 double l2_norm (point p);
-double min (point p);
-double max (point p);
-double inner (point p, point q);
 double distance (point p, point q);
 point  project (point p, point q1, point q2);
 double distance (point p, point q1, point q2);
 point  inf (point p, point q);
 point  sup (point p, point q);
-point  abs (point p);
 
 double        distance (point p, poly_line pl);
 bool          nearby (point p, poly_line pl);
