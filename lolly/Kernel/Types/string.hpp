@@ -23,13 +23,14 @@ using lolly::data::string_view;
 class string;
 class string_rep : concrete_struct {
   int   n;
+  int   cap;
   char* a;
 
 public:
-  inline string_rep () : n (0), a (NULL) {}
+  inline string_rep () : n (0), cap (0), a (NULL) {}
   string_rep (int n);
   inline ~string_rep () {
-    if (n != 0) tm_delete_array (a);
+    if (cap != 0) tm_delete_array (a);
   }
   void resize (int n);
 

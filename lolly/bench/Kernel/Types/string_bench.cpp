@@ -80,6 +80,19 @@ main () {
     a << 'x';
     a->resize (7);
   });
+  // 循环追加场景: 验证容量几何增长是否消除反复 realloc
+  bench.run ("append 64 chars in loop", [&] {
+    static string a;
+    for (int i= 0; i < 64; i++)
+      a << 'x';
+    a->resize (0);
+  });
+  bench.run ("append 64 short strings in loop", [&] {
+    static string a, b ("de");
+    for (int i= 0; i < 64; i++)
+      a << b;
+    a->resize (0);
+  });
   // 填充移到计时区外,避免每轮迭代重复 1KB 写入
   static string a_1k (1024);
   for (int i= 0; i < N (a_1k); i++)

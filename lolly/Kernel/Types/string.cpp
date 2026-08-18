@@ -31,25 +31,24 @@ round_length (int n) {
 }
 
 string_rep::string_rep (int n2)
-    : n (n2),
-      a ((n == 0) ? ((char*) NULL) : tm_new_array<char> (round_length (n))) {}
+    : n (n2), cap (round_length (n2)),
+      a ((cap == 0) ? ((char*) NULL) : tm_new_array<char> (cap)) {}
 
+/**
+ * @brief 调整字符串长度。容量不足时按几何增长（2 倍）扩容，
+ *        缩短时保留已分配容量，避免反复追加场景下的重复 realloc。
+ */
 void
 string_rep::resize (int m) {
-  int nn= round_length (n);
-  int mm= round_length (m);
-  if (mm != nn) {
-    if (mm != 0) {
-      if (nn != 0) {
-        a= tm_resize_array<char> (mm, a);
-      }
-      else {
-        a= tm_new_array<char> (mm);
-      }
-    }
-    else if (nn != 0) tm_delete_array (a);
+  if (m <= cap) {
+    n= m;
+    return;
   }
-  n= m;
+  int mm= max (cap << 1, round_length (m));
+  if (a == NULL) a= tm_new_array<char> (mm);
+  else a= tm_resize_array<char> (mm, a);
+  cap= mm;
+  n  = m;
 }
 
 string::string (char c) {
