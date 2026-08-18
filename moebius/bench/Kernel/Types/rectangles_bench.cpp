@@ -24,6 +24,16 @@ old_translate (rectangles l, SI x, SI y) {
                      old_translate (l->next, x, y));
 }
 
+// 优化前的递归按值实现,用于同二进制 A/B 对比
+static rectangles
+old_thicken (rectangles l, SI width, SI height) {
+  if (is_nil (l)) return l;
+  rectangle& r= l->item;
+  return rectangles (
+      rectangle (r->x1 - width, r->y1 - height, r->x2 + width, r->y2 + height),
+      old_thicken (l->next, width, height));
+}
+
 int
 main () {
   ankerl::nanobench::Bench bench;
@@ -49,6 +59,14 @@ main () {
   });
   bench.run ("translate rectangles x1024", [&] {
     ankerl::nanobench::doNotOptimizeAway (translate (large, 5, 7));
+  });
+  bench.run ("thicken rectangle",
+             [&] { ankerl::nanobench::doNotOptimizeAway (thicken (r, 5, 7)); });
+  bench.run ("old thicken rectangles x1024", [&] {
+    ankerl::nanobench::doNotOptimizeAway (old_thicken (large, 5, 7));
+  });
+  bench.run ("thicken rectangles x1024", [&] {
+    ankerl::nanobench::doNotOptimizeAway (thicken (large, 5, 7));
   });
   return 0;
 }

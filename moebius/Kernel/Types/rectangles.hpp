@@ -57,7 +57,7 @@ rectangles disjoint_union (rectangles l, rectangle r);
 rectangles operator* (rectangles l, int d);
 rectangles operator/ (rectangles l, int d);
 rectangles translate (const rectangles& l, SI x, SI y);
-rectangles thicken (rectangles l, SI width, SI height);
+rectangles thicken (const rectangles& l, SI width, SI height);
 rectangles outlines (rectangles l, SI pixel);
 rectangles correct (rectangles l);
 rectangles simplify (rectangles l);

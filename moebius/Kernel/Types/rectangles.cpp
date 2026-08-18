@@ -266,12 +266,17 @@ translate (const rectangles& l, SI x, SI y) {
 }
 
 rectangles
-thicken (rectangles l, SI width, SI height) {
-  if (is_nil (l)) return l;
-  rectangle& r= l->item;
-  return rectangles (
-      rectangle (r->x1 - width, r->y1 - height, r->x2 + width, r->y2 + height),
-      thicken (l->next, width, height));
+thicken (const rectangles& l, SI width, SI height) {
+  // 迭代 + 尾槽位直挂：避免深度等于列表长度的递归，也避免 reverse 的二次分配
+  rectangles  out;
+  rectangles* tail= &out;
+  for (rectangles p= l; !is_nil (p); p= p->next) {
+    rectangle& r= p->item;
+    rectangles::adopt_tail (tail, rectangles::fresh_cell (rectangle (
+                                      r->x1 - width, r->y1 - height,
+                                      r->x2 + width, r->y2 + height)));
+  }
+  return out;
 }
 
 rectangles
