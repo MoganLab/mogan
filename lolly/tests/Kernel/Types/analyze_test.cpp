@@ -179,6 +179,24 @@ TEST_CASE ("replace") {
   // 空模式守卫：原样返回，不死循环
   CHECK_EQ (replace ("abc", "", "_") == "abc", true);
   CHECK_EQ (replace ("", "", "_") == "", true);
+  // 模式比原串长：尾部不足以容纳模式的区段不匹配
+  CHECK_EQ (replace ("ab", "abc", "x") == "ab", true);
+  CHECK_EQ (replace ("ab-", "ab-", "") == "", true);
+  // 模式首字符出现但整体不匹配
+  CHECK_EQ (replace ("aXbXc", "XY", "Z") == "aXbXc", true);
+  // 命中后模式整体跳过，替换串中再现模式不递归替换
+  CHECK_EQ (replace ("a-b", "-", "--") == "a--b", true);
+}
+
+TEST_CASE ("replace large input") {
+  // 大输入冒烟：等长替换长度不变且模式被完全替换
+  string line= "the quick brown fox jumps over the lazy dog\n";
+  string text;
+  for (int i= 0; i < 2000; i++)
+    text << line;
+  string r= replace (text, "quick", "brisk");
+  CHECK (N (r) == N (text));
+  CHECK_EQ (occurs ("quick", r), false);
 }
 
 TEST_CASE ("tokenize") {

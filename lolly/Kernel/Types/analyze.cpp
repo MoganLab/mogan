@@ -895,15 +895,27 @@ overlapping (string s1, string s2) {
   return 0;
 }
 
+/**
+ * @brief 将字符串 s 中所有出现的子串 what 替换为 by
+ *
+ * @param s    原字符串
+ * @param what 待替换的子串（非空）
+ * @param by   替换后的子串
+ * @return     替换完成后的新字符串；what 为空串时原样返回 s
+ *
+ * @note 扫描时先用首字符快速筛选，仅当 s[i] 与 what[0] 相同才进入
+ *       test 做完整比较；模式尾部不足以容纳 what 的区段直接跳过。
+ */
 string
 replace (string s, string what, string by) {
   int i, n= N (s), k= N (what);
   // 空模式按「不匹配任何位置」处理，否则下方 i+= k 步进为 0 会死循环
   if (k == 0) return s;
+  char   c= what[0];
   string r;
   int    start= 0;
-  for (i= 0; i < n;)
-    if (test (s, i, what)) {
+  for (i= 0; i + k <= n;)
+    if (s[i] == c && test (s, i, what)) {
       r << s (start, i);
       r << by;
       i+= k;
