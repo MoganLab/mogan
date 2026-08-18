@@ -111,18 +111,15 @@
 ;; 把中点列表 (("x1" "y1") ...) 转成绿色圆点装饰，坐标为字符串
 
 (define (midpoint-decorations pts)
-  (if (nnull? pts)
-    (map (lambda (p)
-           `(with ,"color"
-              ,"green"
-              ,"point-style"
-              ,"disk"
-              (point ,(car p) ,(cadr p)))
-         ) ;lambda
-      pts
-    ) ;map
-    '()
-  ) ;if
+  (map (lambda (p)
+         `(with ,"color"
+            ,"green"
+            ,"point-style"
+            ,"disk"
+            (point ,(car p) ,(cadr p)))
+       ) ;lambda
+    pts
+  ) ;map
 ) ;define
 
 (tm-define (graphics-clear-midpoints)
@@ -161,5 +158,5 @@
 ;; 保留中点绿点，避免绿点预览被清空
 (tm-define (graphics-render-midpoints)
   (:state graphics-state)
-  (graphical-object! `(concat ,@(midpoint-decorations midpoints)))
+  (graphical-object! `(concat ,@(graphics-get-decorations-midpoint)))
 ) ;tm-define

@@ -412,28 +412,14 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
   }
 }
 
-/** 鼠标到线段 (a, b) 的距离（投影限制在线段内） */
-static double
-dist_to_segment (point p, point a, point b) {
-  point  v = b - a;
-  double vv= v[0] * v[0] + v[1] * v[1];
-  if (vv < 1e-12) return norm (p - a);
-  double t= (v[0] * (p[0] - a[0]) + v[1] * (p[1] - a[1])) / vv;
-  if (t < 0.0) t= 0.0;
-  if (t > 1.0) t= 1.0;
-  point q= a + t * v;
-  return norm (p - q);
-}
-
 /** 注册一个线段中点：按文档坐标字符串去重后加入显示集合；
     仅当鼠标与中点本身足够近时追加吸附候选（避免长边远端被强拉） */
 static void
 register_midpoint (point fp, double snap_distance, point ms, string sx,
-                   string sy, string& cur_set, tree& points,
-                   gr_selections& sels, array<path> cp, array<point> pts) {
-  string key= sx * "," * sy * ";";
-  if (occurs (key, cur_set)) return;
-  cur_set= cur_set * key;
+                   string sy, tree& points, gr_selections& sels, array<path> cp,
+                   array<point> pts) {
+  for (int k= 0; k < N (points); k++)
+    if (points[k][0] == sx && points[k][1] == sy) return;
   tree en (TUPLE);
   en << sx;
   en << sy;
@@ -450,28 +436,11 @@ register_midpoint (point fp, double snap_distance, point ms, string sx,
   }
 }
 
-/** 曲线在参数区间 [t1, t2] 内是否为直线段（区间内切向一致），
-    用于从折线/多边形中逐边识别直线段 */
-static bool
-is_straight_edge (curve c, double t1, double t2) {
-  point v0;
-  for (int k= 0; k < 3; k++) {
-    bool  err;
-    point v= c->grad (t1 + (t2 - t1) * (k + 1) / 4.0, err);
-    if (err || N (v) != 2) return false;
-    if (k == 0) v0= v;
-    else if (fabs (v0[0] * v[1] - v0[1] * v[0]) >= 1e-4 * norm (v0) * norm (v))
-      return false;
-  }
-  return true;
-}
-
 static void
 snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
                      frame f2) {
-  tree   points (TUPLE);
-  string cur_set;                        // 当前序列化的中点集合，用于去重
-  SI     on_line_tol= snap_distance / 2; // 压线容差：吸附距离的一半
+  tree points (TUPLE);
+  SI   on_line_tol= snap_distance / 2; // 压线容差：吸附距离的一半
   if (check_snap_mode ("curve point")) {
     int n= N (sels);
     for (int i= 0; i < n; i++) {
@@ -493,14 +462,14 @@ snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
         int j= (e + 1) % np;
         if (norm (pts[j] - pts[e]) < 1e-6) continue;
         // 鼠标须贴近该直边本身（吸附距离的一半），而非整个吸附距离内
-        if (dist_to_segment (fp, pts[e], pts[j]) > on_line_tol) continue;
-        if (!is_straight_edge (c, abs[e], abs[j])) continue;
+        if (seg_dist (pts[e], pts[j], fp) > on_line_tol) continue;
+        if (!is_straight_line (part (c, abs[e], abs[j]))) continue;
         point mid      = c->evaluate ((abs[e] + abs[j]) / 2.0);
         point mid_local= f2[mid]; // 转换到文档坐标系供装饰绘制
         if (N (mid_local) != 2) continue;
         register_midpoint (fp, snap_distance, mid, as_string (mid_local[0]),
-                           as_string (mid_local[1]), cur_set, points, sels,
-                           sels[i]->cp, sels[i]->pts);
+                           as_string (mid_local[1]), points, sels, sels[i]->cp,
+                           sels[i]->pts);
       }
     }
     // 折线绘制中：对象尚未进入文档树，graphical_select 选不到，由
@@ -511,11 +480,11 @@ snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
         point a= as_point (t_prev[i]);
         point b= as_point (t_prev[i + 1]);
         if (N (a) != 2 || N (b) != 2) continue;
-        if (dist_to_segment (fp, f2 (a), f2 (b)) > on_line_tol) continue;
+        if (seg_dist (f2 (a), f2 (b), fp) > on_line_tol) continue;
         point m= 0.5 * (a + b);
         register_midpoint (fp, snap_distance, f2 (m), as_string (m[0]),
-                           as_string (m[1]), cur_set, points, sels,
-                           array<path> (), array<point> ());
+                           as_string (m[1]), points, sels, array<path> (),
+                           array<point> ());
       }
     }
   }
