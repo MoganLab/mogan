@@ -49,6 +49,19 @@ TEST_CASE ("test subset") {
 TEST_CASE ("test translate") {
   rectangle r (0, 0, 10, 10);
   CHECK (translate (r, 5, 7) == rectangle (5, 7, 15, 17));
+  CHECK (translate (r, 0, 0) == r);
+  CHECK (translate (r, -3, -4) == rectangle (-3, -4, 7, 6));
+}
+
+TEST_CASE ("test translate rectangles") {
+  CHECK (translate (rectangles (), 5, 7) == rectangles ());
+  rectangles l= rectangles (rectangle (0, 0, 2, 2),
+                            rectangles (rectangle (5, 5, 8, 8), rectangles ()));
+  rectangles t= translate (l, 1, -1);
+  CHECK (t == rectangles (rectangle (1, -1, 3, 1),
+                          rectangles (rectangle (6, 4, 9, 7), rectangles ())));
+  CHECK (l == rectangles (rectangle (0, 0, 2, 2),
+                          rectangles (rectangle (5, 5, 8, 8), rectangles ())));
 }
 
 TEST_CASE ("test thicken") {

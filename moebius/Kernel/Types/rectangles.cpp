@@ -66,6 +66,13 @@ intersect (rectangle r1, rectangle r2) {
          (r1->y2 > r2->y1);
 }
 
+/**
+ * @brief 平移单个矩形
+ * @param r 待平移的矩形
+ * @param x 水平方向平移量（向右为正）
+ * @param y 垂直方向平移量（向上为正）
+ * @return 平移后的新矩形，原矩形不变
+ */
 rectangle
 translate (rectangle r, SI x, SI y) {
   return rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y);
@@ -237,6 +244,13 @@ operator| (rectangles l1, rectangles l2) {
   return l;
 }
 
+/**
+ * @brief 平移矩形列表中的所有矩形
+ * @param l 待平移的矩形列表
+ * @param x 水平方向平移量（向右为正）
+ * @param y 垂直方向平移量（向上为正）
+ * @return 所有矩形均平移后的新列表，元素顺序保持不变，原列表不变
+ */
 rectangles
 translate (rectangles l, SI x, SI y) {
   if (is_nil (l)) return l;
