@@ -57,6 +57,21 @@ bench_string_tokenize (string base_name, string s, string sep) {
       });
 }
 
+/**
+ * @brief 对 search_forwards
+ * 做微基准：覆盖多命中、无命中、首字符干扰三种典型负载
+ */
+void
+bench_string_search (string base_name, string s, string what) {
+  ankerl::nanobench::Bench ()
+      .title ("search_forwards")
+      .relative (true)
+      .run (c_string (base_name), [&] {
+        auto r= search_forwards (what, s);
+        ankerl::nanobench::doNotOptimizeAway (r);
+      });
+}
+
 int
 main () {
   lolly::init_tbox ();
@@ -90,6 +105,13 @@ main () {
   bench_string_tokenize ("tokenize no hit", text, "::;");
   // 首字符干扰：分隔符首字符大量出现但整体不匹配，考验快速筛选
   bench_string_tokenize ("tokenize first-char noise", text, "the!");
+
+  // 多命中：每行两次命中
+  bench_string_search ("search hit each line", text, "the");
+  // 无命中：纯扫描开销
+  bench_string_search ("search no hit", text, "QUICK");
+  // 首字符干扰：模式首字符大量出现但整体不匹配，考验快速筛选
+  bench_string_search ("search first-char noise", text, "totally");
 
   return 0;
 }

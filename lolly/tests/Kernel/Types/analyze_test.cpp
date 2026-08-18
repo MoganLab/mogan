@@ -149,6 +149,49 @@ TEST_CASE ("test_read_word") {
   CHECK_EQ (i, 0);
 }
 
+TEST_CASE ("search_forwards") {
+  // 基本命中
+  CHECK_EQ (search_forwards ("quick", "the quick brown"), 4);
+  CHECK_EQ (search_forwards ("the", "the quick brown"), 0);
+  CHECK_EQ (search_forwards ("brown", "the quick brown"), 10);
+  // 无命中
+  CHECK_EQ (search_forwards ("QUICK", "the quick brown"), -1);
+  // 空模式：返回起始位置
+  CHECK_EQ (search_forwards ("", "abc"), 0);
+  CHECK_EQ (search_forwards ("", 2, "abc"), 2);
+  // 模式长于原串 / 与原串等长
+  CHECK_EQ (search_forwards ("abcdef", "abc"), -1);
+  CHECK_EQ (search_forwards ("abc", "abc"), 0);
+  // 带起始位置
+  CHECK_EQ (search_forwards ("the", 1, "the quick the"), 10);
+  CHECK_EQ (search_forwards ("the", 10, "the quick the"), 10);
+  // 起始位置越过最后一个可能匹配点
+  CHECK_EQ (search_forwards ("the", 11, "the quick the"), -1);
+  // 首字符干扰：首字符大量出现但整体不匹配
+  CHECK_EQ (search_forwards ("totally", "the quick brown"), -1);
+  CHECK_EQ (search_forwards ("at", "that at"), 2);
+  // 尾部命中（验证窗口右边界含最后一个起点）
+  CHECK_EQ (search_forwards ("dog", "the lazy dog"), 9);
+  // 字符串内可含 '\0'
+  CHECK_EQ (search_forwards (string ("b\0d", 3), string ("a\0b\0d", 5)), 2);
+  // array 重载：多模式取最早命中，含首字符干扰与长度过滤
+  array<string> pats= array<string> ("brown", "quick");
+  CHECK_EQ (search_forwards (pats, 0, "the quick brown"), 4);
+  array<string> pats2= array<string> ("zzzzz", "quick");
+  CHECK_EQ (search_forwards (pats2, 0, "the quick brown"), 4);
+  CHECK_EQ (search_forwards (pats, 0, "none here"), -1);
+  // array 重载：pos == N(in) 时不再越界读
+  CHECK_EQ (search_forwards (pats, 15, "the quick brown"), -1);
+  // 大输入冒烟
+  string line= "the quick brown fox jumps over the lazy dog\n";
+  string text;
+  for (int i= 0; i < 2000; i++)
+    text << line;
+  CHECK_EQ (search_forwards ("lazy", text), 35);
+  CHECK_EQ (search_forwards ("LAZY", text), -1);
+  CHECK_EQ (count_occurrences ("the", text), 4000);
+}
+
 TEST_CASE ("contains/occurs") {
   CHECK (contains ("abc", "a"));
   CHECK (contains ("abc", "ab"));
