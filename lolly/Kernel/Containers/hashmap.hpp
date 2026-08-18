@@ -44,22 +44,25 @@ template <class T, class U> struct hashentry {
   hashentry<T, U> (int code, T key2, U im2);
 };
 
-/**
- * @brief 由完整哈希值求桶下标。
- * @note hash(int) 等恒等哈希下,等差或按指针对齐的键低位相同,直接取
- * 低位会把大量键挤进同一桶;乘黄金比例常数让低位均匀分散。
- */
-static inline int
-hash_bucket (int hv, int n) {
-  return (int) ((unsigned int) hv * 2654435769u) & (n - 1);
-}
-
 template <class T, class U> class hashmap_rep : concrete_struct {
   int                    size; // size of hashmap (nr of entries)
   int                    n;    // nr of keys (a power of two)
   int                    max;  // mean number of entries per key
   U                      init; // default entry
   list<hashentry<T, U>>* a;    // the array of entries
+
+  /**
+   * @brief 在桶内按完整哈希码与键裸指针查找节点。
+   * @note 避免句柄遍历带来的每节点两次引用计数增减。
+   */
+  static list_rep<hashentry<T, U>>* find_node (list<hashentry<T, U>>& bucket,
+                                               int hv, T x);
+
+  /**
+   * @brief 以裸指针在桶头挂一个新条目节点(必要时先扩容)。
+   * @note 避免临时句柄的引用计数增减;返回新节点。
+   */
+  list_rep<hashentry<T, U>>* insert_node (int hv, T key, U im);
 
 public:
   /**
@@ -111,15 +114,9 @@ public:
   bool contains (T x);
   bool empty ();
 
-  /**
-   * @brief 在桶内按完整哈希码与键裸指针查找节点。
-   * @note 避免句柄遍历带来的每节点两次引用计数增减。
-   */
-  static list_rep<hashentry<T, U>>* find_node (list<hashentry<T, U>>& bucket,
-                                               int hv, T x);
-  U                                 bracket_ro (T x);
-  U&                                bracket_rw (T x);
-  U&                                bracket_rw_debug (T x);
+  U  bracket_ro (T x);
+  U& bracket_rw (T x);
+  U& bracket_rw_debug (T x);
 
   /**
    * @brief Joins another hashmap into the current hashmap.

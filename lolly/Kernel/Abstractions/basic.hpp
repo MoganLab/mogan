@@ -157,6 +157,16 @@ hash (int i) {
 }
 
 /**
+ * @brief 由完整哈希值求哈希表(hashmap/hashset)的桶下标。
+ * @note hash(int) 等恒等哈希下,等差或按指针对齐的键低位相同,直接取
+ * 低位会把大量键挤进同一桶;乘黄金比例常数让低位均匀分散。
+ */
+inline int
+hash_bucket (int hv, int n) {
+  return (int) ((unsigned int) hv * 2654435769u) & (n - 1);
+}
+
+/**
  * @brief Hashes a long integer.
  *
  * @param i The long integer to hash.

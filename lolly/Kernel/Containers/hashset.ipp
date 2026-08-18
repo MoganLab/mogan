@@ -24,7 +24,7 @@ hashset_rep<T>::resize (int n2) {
   for (i= 0; i < oldn; i++) {
     list<T> l (olda[i]);
     while (!is_nil (l)) {
-      list<T>& newl= a[hash (l->item) & (n - 1)];
+      list<T>& newl= a[hash_bucket (hash (l->item), n)];
       newl         = list<T> (l->item, newl);
       l            = l->next;
     }
@@ -45,14 +45,14 @@ search (list<T> l, T x) {
 template <class T>
 bool
 hashset_rep<T>::contains (T x) {
-  return (search (a[hash (x) & (n - 1)], x) == NULL ? false : true);
+  return (search (a[hash_bucket (hash (x), n)], x) == NULL ? false : true);
 }
 
 template <class T>
 void
 hashset_rep<T>::insert (T x) {
   if (size == n * max) resize (n << 1);
-  list<T>& l= a[hash (x) & (n - 1)];
+  list<T>& l= a[hash_bucket (hash (x), n)];
   if (search (l, x) != NULL) return;
   l= list<T> (x, l);
   size++;
@@ -61,7 +61,7 @@ hashset_rep<T>::insert (T x) {
 template <class T>
 void
 hashset_rep<T>::remove (T x) {
-  list<T>* lptr= &a[hash (x) & (n - 1)];
+  list<T>* lptr= &a[hash_bucket (hash (x), n)];
   while (!is_nil (*lptr)) {
     if ((*lptr)->item == x) {
       *lptr= (*lptr)->next;
