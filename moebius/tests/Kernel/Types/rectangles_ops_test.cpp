@@ -153,6 +153,69 @@ TEST_CASE ("test difference multiple subtrahends") {
   CHECK_EQ (area (d), 60.0 - 8.0);
 }
 
+// 逐对校验碎片列表互不相交(差集结果的基本不变量)
+static bool
+pairwise_disjoint (rectangles l) {
+  for (rectangles p= l; !is_nil (p); p= p->next)
+    for (rectangles q= p->next; !is_nil (q); q= q->next)
+      if (intersect (p->item, q->item)) return false;
+  return true;
+}
+
+TEST_CASE ("test difference cross cuts") {
+  // 十字切缝:先竖一刀再横一刀,切成 4 块,面积守恒且互不相交
+  rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
+  rectangles l2=
+      rectangles (rectangle (4, 0, 6, 10),
+                  rectangles (rectangle (0, 4, 10, 6), rectangles ()));
+  rectangles d= l1 - l2;
+  CHECK (pairwise_disjoint (d));
+  CHECK_EQ (area (d), 68.0);
+  CHECK (least_upper_bound (d) == rectangle (0, 0, 10, 10));
+}
+
+TEST_CASE ("test difference scattered cuts") {
+  // 大矩形内散布多个减数,每个减数只切到部分碎片;
+  // 结果互不相交且面积守恒(总面积减去被挖面积)
+  rectangles l1= rectangles (rectangle (0, 0, 30, 30), rectangles ());
+  rectangles l2;
+  for (int i= 4; i >= 0; i--)
+    l2= rectangles (rectangle (i * 6, i * 6, i * 6 + 4, i * 6 + 4), l2);
+  rectangles d= l1 - l2;
+  CHECK (pairwise_disjoint (d));
+  CHECK_EQ (area (d), 900.0 - 5 * 16.0);
+}
+
+TEST_CASE ("test difference partial hit keeps untouched fragment") {
+  // 第二个减数只切到部分碎片:未命中碎片原样保留(元素级相等)
+  rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
+  rectangles l2= rectangles (
+      rectangle (4, 0, 6, 10), // 竖切:左 4x10 + 右 4x10
+      rectangles (rectangle (0, 0, 2, 4), rectangles ())); // 再挖左块一角
+  rectangles d= l1 - l2;
+  CHECK (pairwise_disjoint (d));
+  CHECK_EQ (area (d), 100.0 - 20.0 - 8.0);
+  bool has_right= false;
+  for (rectangles p= d; !is_nil (p); p= p->next)
+    if (p->item == rectangle (6, 0, 10, 10)) has_right= true;
+  CHECK (has_right);
+}
+
+TEST_CASE ("test difference mixed elements") {
+  // 多元素 l1:一个不交、一个被完全覆盖、一个被切,均独立处理
+  rectangles l1= rectangles (
+      rectangle (0, 0, 2, 2),
+      rectangles (rectangle (5, 5, 8, 8),
+                  rectangles (rectangle (20, 20, 30, 30), rectangles ())));
+  rectangles l2=
+      rectangles (rectangle (4, 4, 9, 9),
+                  rectangles (rectangle (22, 22, 24, 24), rectangles ()));
+  rectangles d= l1 - l2;
+  CHECK_EQ (area (d), 4.0 + (100.0 - 4.0));
+  CHECK (pairwise_disjoint (d));
+  CHECK (d->item == rectangle (0, 0, 2, 2)); // 不交元素保序直挂
+}
+
 TEST_CASE ("test correct drops degenerate") {
   CHECK (correct (rectangles ()) == rectangles ());
   // 零宽/零高/负宽高的矩形均被剔除，其余顺序保持

@@ -152,22 +152,38 @@ thicken (rectangle r, SI width, SI height) {
  ******************************************************************************/
 
 // 单个矩形对 l2 求差,结果尾挂到 tail:
-// 与 l2 全不交时原矩形一次直挂,零差分开销
+// 与 l2 全不交时原矩形一次直挂,零差分开销;
+// 被切过后碎片表由本函数独占(全为新鲜节点),后续切割原地摘链改写,
+// 只重分配真正与减数相交的碎片,不再整表重建
 static void
 append_difference (rectangle r, rectangles l2, rectangles*& tail) {
   rectangles cur;
   bool       cut= false;
   for (rectangles q= l2; !is_nil (q); q= q->next) {
-    if (!intersect (r, q->item)) continue;
     if (!cut) {
+      if (!intersect (r, q->item)) continue;
       complement (r, q->item, cur);
       cut= true;
       continue;
     }
-    rectangles next;
-    for (rectangles p= cur; !is_nil (p); p= p->next)
-      complement (p->item, q->item, next);
-    cur= next;
+    rectangles* link= &cur;
+    while (!is_nil (*link)) {
+      rectangle frag= (*link)->item;
+      if (!intersect (frag, q->item)) {
+        link= &(*link)->next;
+        continue;
+      }
+      *link= (*link)->next; // 独占节点,槽位赋值即摘链并释放原节点
+      rectangles frags;
+      complement (frag, q->item, frags); // 头插产出,独占新节点
+      while (!is_nil (frags)) {
+        rectangles cell= frags;
+        frags          = frags->next; // 摘头,普通赋值保证引用计数平衡
+        cell->next     = *link;
+        *link          = cell;
+      }
+    }
+    if (is_nil (cur)) break; // 碎片已被挖空,后续减数无事可做
   }
   if (!cut) rectangles::append (tail, r);
   else

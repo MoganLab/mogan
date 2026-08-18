@@ -59,6 +59,39 @@ old_subtract (rectangles l1, rectangles l2) {
   return a;
 }
 
+// 第八轮实现:单矩形独立求差,但被切过后每个相交 q 仍整表重建碎片表,
+// 用于同二进制 A/B 对比
+static void
+r8_append_difference (rectangle r, rectangles l2, rectangles*& tail) {
+  rectangles cur;
+  bool       cut= false;
+  for (rectangles q= l2; !is_nil (q); q= q->next) {
+    if (!intersect (r, q->item)) continue;
+    if (!cut) {
+      complement (r, q->item, cur);
+      cut= true;
+      continue;
+    }
+    rectangles next;
+    for (rectangles p= cur; !is_nil (p); p= p->next)
+      complement (p->item, q->item, next);
+    cur= next;
+  }
+  if (!cut) rectangles::append (tail, r);
+  else
+    for (rectangles p= cur; !is_nil (p); p= p->next)
+      rectangles::append (tail, p->item);
+}
+
+static rectangles
+r8_subtract (rectangles l1, rectangles l2) {
+  rectangles  out;
+  rectangles* tail= &out;
+  for (; !is_nil (l1); l1= l1->next)
+    r8_append_difference (l1->item, l2, tail);
+  return out;
+}
+
 // 优化前的实现:每个 l2 元素经 disjoint_union 克隆整个前缀,用于同二进制 A/B 对比
 static rectangles
 old_union (rectangles l1, rectangles l2) {
@@ -129,6 +162,19 @@ main () {
   });
   bench.run ("subtract x1024 disjoint16",
              [&] { ankerl::nanobench::doNotOptimizeAway (large - faraway); });
+  // 碎片化场景:单个大矩形被 64 个散布小矩形反复切割,碎片表逐轮膨胀,
+  // 第八轮实现每个相交减数都整表重建碎片
+  rectangles big= rectangles (rectangle (0, 0, 1024, 1024), rectangles ());
+  rectangles holes;
+  for (int i= 63; i >= 0; i--) {
+    int x= (i % 8) * 128 + 32, y= (i / 8) * 128 + 32;
+    holes= rectangles (rectangle (x, y, x + 64, y + 64), holes);
+  }
+  bench.run ("r8 subtract fragmentation64", [&] {
+    ankerl::nanobench::doNotOptimizeAway (r8_subtract (big, holes));
+  });
+  bench.run ("subtract fragmentation64",
+             [&] { ankerl::nanobench::doNotOptimizeAway (big - holes); });
   // 并集场景:模拟失效区域逐矩形累积,16 块均不与 large 相邻(全走尾插)
   bench.run ("old union x1024 append16", [&] {
     ankerl::nanobench::doNotOptimizeAway (old_union (large, faraway));
