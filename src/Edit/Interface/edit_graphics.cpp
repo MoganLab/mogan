@@ -99,6 +99,7 @@ can_snap (gr_selection sel) {
   if (type == "ghost-curve-point&curve-point" ||
       type == "curve-point&ghost-curve-point")
     return check_snap_mode ("ghost line") && check_snap_mode ("curve point");
+  if (type == "curve-mid-point") return check_snap_mode ("curve point");
   cout << "Uncaptured snap type " << type << "\n";
   return true;
 }
@@ -411,6 +412,93 @@ snap_ghost_line (edit_graphics_rep* eg, point fp, double snap_distance,
   }
 }
 
+void
+register_midpoint (point fp, double snap_distance, point ms, string sx,
+                   string sy, tree& points, gr_selections& sels, array<path> cp,
+                   array<point> pts) {
+  for (int k= 0; k < N (points); k++)
+    if (points[k][0] == sx && points[k][1] == sy) return;
+  tree en (TUPLE);
+  en << sx;
+  en << sy;
+  points << en;
+  double d= norm (ms - fp);
+  if (d < snap_distance) {
+    gr_selection sel;
+    sel->type= "curve-mid-point";
+    sel->p   = ms;
+    sel->dist= (SI) d;
+    sel->cp  = cp;
+    sel->pts = pts;
+    sels << sel;
+  }
+}
+
+/**
+ * @brief 鼠标贴近线段时收集各直边中点：上报 scheme 显示绿点并追加吸附候选
+ * @param fp            鼠标位置（屏幕/布局坐标系）
+ * @param snap_distance 吸附距离（像素）
+ * @param sels          [inout] 当前命中集合（graphical_select 结果），
+ *                      命中时追加 curve-mid-point 候选
+ * @param f2            文档坐标系到屏幕坐标系的变换（f2[p] 为逆变换）
+ * @note 两条中点来源：一是命中集合中的文档曲线对象（curve-point /
+ *       curve-handle 命中），逐边经 straight_edge_midpoints 取中点；
+ *       二是折线（line/cline）绘制中的已落固定点——绘制中的对象尚未
+ *       进入文档树，graphical_select 选不到，由 scheme 侧
+ *       graphics-get-previous-line-points 提供（文档坐标系）。
+ *       显示条件是「鼠标贴近该线段本身」（seg_dist <= 吸附距离的一半，
+ *       在 straight_edge_midpoints 与本函数第二路径中统一施加），而非
+ *       落入整个吸附距离即可。每次鼠标移动都通过
+ *       graphics-set-midpoints 重新上报中点集合，变更检测与刷新放在
+ *       scheme 侧（C++ 侧缓存会在 graphics-decorations-reset 清空
+ *       scheme 状态后失同步）。
+ */
+static void
+snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
+                     frame f2) {
+  tree points (TUPLE);
+  SI   on_line_tol= snap_distance / 2; // 压线容差：吸附距离的一半
+  if (check_snap_mode ("curve point")) {
+    int n= N (sels);
+    for (int i= 0; i < n; i++) {
+      // curve-handle（鼠标近端点）与 curve-point（鼠标近曲线内部）都说明
+      // 鼠标贴近该曲线对象；折线/多边形的每条直边单独取中点
+      string type= sels[i]->type;
+      if (type != "curve-point" && type != "curve-handle") continue;
+      curve c= sels[i]->c;
+      if (is_nil (c)) continue;
+      array<point> mids= straight_edge_midpoints (c, fp, (double) on_line_tol);
+      for (int e= 0; e < N (mids); e++) {
+        point mid_local= f2[mids[e]]; // 转换到文档坐标系供装饰绘制
+        if (N (mid_local) != 2) continue;
+        register_midpoint (fp, snap_distance, mids[e], as_string (mid_local[0]),
+                           as_string (mid_local[1]), points, sels, sels[i]->cp,
+                           sels[i]->pts);
+      }
+    }
+    // 折线绘制中：对象尚未进入文档树，graphical_select 选不到，由
+    // scheme 提供已落固定点（文档坐标系），逐边做压线过滤后取中点
+    tree t_prev= as_tree (call ("graphics-get-previous-line-points"));
+    if (is_tuple (t_prev)) {
+      for (int i= 0; i + 1 < N (t_prev); i++) {
+        point a= as_point (t_prev[i]);
+        point b= as_point (t_prev[i + 1]);
+        if (N (a) != 2 || N (b) != 2) continue;
+        if (norm (b - a) < 1e-6) continue;
+        if (seg_dist (f2 (a), f2 (b), fp) > on_line_tol) continue;
+        point m= 0.5 * (a + b);
+        register_midpoint (fp, snap_distance, f2 (m), as_string (m[0]),
+                           as_string (m[1]), points, sels, array<path> (),
+                           array<point> ());
+      }
+    }
+  }
+  // 每次移动都重新上报，由 scheme 侧做变更检测并触发刷新：
+  // scheme 侧状态可能被 graphics-decorations-reset 清空，C++ 侧缓存
+  // 会与之处不同步（ghost line 每次移动同样会回调 scheme，开销一致）
+  call ("graphics-set-midpoints", points);
+}
+
 point
 edit_graphics_rep::adjust (point p) {
   frame f= find_frame ();
@@ -430,6 +518,7 @@ edit_graphics_rep::adjust (point p) {
   point fp= f2 (p);
 
   snap_ghost_line (this, fp, snap_distance, sels, f2);
+  snap_curve_midpoint (fp, snap_distance, sels, f2);
 
   if ((tree) g != "empty_grid") {
     point q = g->find_point_around (p, snap_distance, f);

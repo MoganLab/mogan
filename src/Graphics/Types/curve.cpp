@@ -181,6 +181,28 @@ is_straight_line (curve f) {
   return true;
 }
 
+array<point>
+straight_edge_midpoints (curve c, point p, double tol) {
+  array<point> res;
+  if (is_nil (c)) return res;
+  array<double> abs;
+  array<point>  pts;
+  array<path>   paths;
+  int           np= c->get_control_points (abs, pts, paths);
+  if (np < 2) return res;
+  // 与 curve_box_rep::graphical_select 一致：闭合曲线补上首尾相连边
+  int ne= np - 1;
+  if (abs[0] != 0.0 || abs[np - 1] != 1.0) ne++;
+  for (int e= 0; e < ne; e++) {
+    int j= (e + 1) % np;
+    if (norm (pts[j] - pts[e]) < 1e-6) continue;
+    if (seg_dist (pts[e], pts[j], p) > tol) continue;
+    if (!is_straight_line (part (c, abs[e], abs[j]))) continue;
+    res << c->evaluate ((abs[e] + abs[j]) / 2.0);
+  }
+  return res;
+}
+
 bool
 intersection (curve f, curve g, double& t, double& u) {
   // for two dimensional curves only

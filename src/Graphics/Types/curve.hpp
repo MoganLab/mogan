@@ -177,6 +177,21 @@ array<point> intersection (curve f, curve g, point p0, double eps);
 point        closest (curve f, point p);
 bool         is_straight_line (curve f);
 
+/**
+ * @brief 求曲线各直边的中点，仅返回参考点所贴近的边的中点
+ * @param c   待处理的曲线，可为 nil（返回空数组）
+ * @param p   参考点（通常为鼠标位置），与曲线处于同一坐标系
+ * @param tol 贴近容差：参考点到边的距离（seg_dist）大于该值时忽略该边
+ * @return 满足条件的各直边中点（曲线坐标系），按控制点区间顺序排列
+ * @note 按 get_control_points 的控制点区间逐边处理，区间划分与
+ *       curve_box_rep::graphical_select 一致：闭合曲线（首末控制点参数
+ *       不恰为 0/1）补首尾相连边。退化边（两端点距离 < 1e-6）与非直边
+ *       （is_straight_line 为假）一律跳过；中点取区间参数中值的
+ *       evaluate 结果，而非两端点算术平均（对参数化不均匀的曲线两者
+ *       可能不同）。
+ */
+array<point> straight_edge_midpoints (curve c, point p, double tol);
+
 array<point> simplify_polyline (array<point> a, double eps);
 array<point> std_bezier_fit (array<point> a, int pack_size);
 array<point> alt_bezier_fit (array<point> a, int pack_size);
