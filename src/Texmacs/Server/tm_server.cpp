@@ -22,7 +22,6 @@
 #include "goldfish.hpp"
 #include "lolly/system/subprocess.hpp"
 #include "new_style.hpp"
-#include "new_view.hpp"
 #include "s7_blackbox.hpp"
 #include "socket_notifier.hpp"
 #include "sys_utils.hpp"
@@ -224,8 +223,7 @@ tm_server_rep::interpose_handler () {
 
       for (j= 0; j < N (buf->vws); j++) {
         tm_view vw= (tm_view) buf->vws[j];
-        // 启动页 UI 由 Qt widget 承担,排版结果不显示,无需 apply_changes
-        if (vw->win != NULL && !is_startup_tab_buffer (vw->buf->buf->name)) {
+        if (vw->win != NULL) {
           string btask= "apply_changes: " * as_string (vw->buf->buf->name);
           bench_start (btask);
           vw->ed->apply_changes ();
