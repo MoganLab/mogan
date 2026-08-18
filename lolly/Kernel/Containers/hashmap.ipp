@@ -69,13 +69,24 @@ hashmap_rep<T, U>::resize (int n2) {
   tm_delete_array (olda);
 }
 
+/**
+ * @brief 在桶内按完整哈希码与键裸指针查找节点。
+ * @note 避免句柄遍历带来的每节点两次引用计数增减。
+ */
+TMPL list_rep<hashentry<T, U>>*
+hashmap_rep<T, U>::find_node (list<hashentry<T, U>>& bucket, int hv, T x) {
+  list_rep<hashentry<T, U>>* p= bucket.rep;
+  while (p != NULL) {
+    if (p->item.code == hv && p->item.key == x) return p;
+    p= p->next.rep;
+  }
+  return NULL;
+}
+
 TMPL bool
 hashmap_rep<T, U>::contains (T x) {
   int hv= hash (x);
-  for (auto l= a[hash_bucket (hv, n)]; !is_nil (l); l= l->next) {
-    if (l->item.code == hv && l->item.key == x) return true;
-  }
-  return false;
+  return find_node (a[hash_bucket (hv, n)], hv, x) != NULL;
 }
 
 TMPL bool
@@ -86,25 +97,29 @@ hashmap_rep<T, U>::empty () {
 TMPL U&
 hashmap_rep<T, U>::bracket_rw (T x) {
   int hv= hash (x);
-  for (auto p= a[hash_bucket (hv, n)]; !is_nil (p); p= p->next) {
-    if (p->item.code == hv && p->item.key == x) return p->item.im;
+  {
+    list_rep<hashentry<T, U>>* p=
+        find_node (a[hash_bucket (hv, n)], hv, x);
+    if (p != NULL) return p->item.im;
   }
   if (size >= n * max) resize (n << 1);
-  list<hashentry<T, U>>& rl= a[hash_bucket (hv, n)];
-  rl                       = list<hashentry<T, U>> (H (hv, x, init), rl);
+  // 裸指针挂新节点:免去临时句柄的引用计数增减
+  list_rep<hashentry<T, U>>* node=
+      tm_new<list_rep<hashentry<T, U>>> (H (hv, x, init),
+                                        list<hashentry<T, U>> ());
+  list<hashentry<T, U>>&     rl= a[hash_bucket (hv, n)];
+  node->next.rep                 = rl.rep; // 桶对旧头部的引用转由 node 持有
+  rl.rep                         = node;
   size++;
-  return rl->item.im;
+  return node->item.im;
 }
 
 TMPL U
 hashmap_rep<T, U>::bracket_ro (T x) {
-  int                   hv= hash (x);
-  list<hashentry<T, U>> l (a[hash_bucket (hv, n)]);
-  while (!is_nil (l)) {
-    if (l->item.code == hv && l->item.key == x) return l->item.im;
-    l= l->next;
-  }
-  return init;
+  int hv= hash (x);
+  list_rep<hashentry<T, U>>* p=
+      find_node (a[hash_bucket (hv, n)], hv, x);
+  return p == NULL ? init : p->item.im;
 }
 
 TMPL void
@@ -152,23 +167,20 @@ hashmap_rep<T, U>::join (hashmap<T, U> h) {
   for (; i < n; i++) {
     for (auto p= h->a[i]; !is_nil (p); p= p->next) {
       // 直接复用条目已存的 code,免去对 key 的二次哈希
-      int hv                    = p->item.code;
-      list<hashentry<T, U>>* rl = &(a[hash_bucket (hv, this->n)]);
-      bool found                = false;
-      for (auto q= *rl; !is_nil (q); q= q->next) {
-        if (q->item.code == hv && q->item.key == p->item.key) {
-          q->item.im= copy (p->item.im);
-          found    = true;
-          break;
-        }
+      int hv= p->item.code;
+      list_rep<hashentry<T, U>>* q=
+          find_node (a[hash_bucket (hv, this->n)], hv, p->item.key);
+      if (q != NULL) {
+        q->item.im= copy (p->item.im);
+        continue;
       }
-      if (!found) {
-        if (size >= this->n * max) resize (this->n << 1);
-        rl           = &(a[hash_bucket (hv, this->n)]);
-        *rl          = list<hashentry<T, U>> (
-            H (hv, p->item.key, copy (p->item.im)), *rl);
-        size++;
-      }
+      if (size >= this->n * max) resize (this->n << 1);
+      list_rep<hashentry<T, U>>* node= tm_new<list_rep<hashentry<T, U>>> (
+          H (hv, p->item.key, copy (p->item.im)), list<hashentry<T, U>> ());
+      list<hashentry<T, U>>&     rl= a[hash_bucket (hv, this->n)];
+      node->next.rep                 = rl.rep; // 桶对旧头部的引用转由 node 持有
+      rl.rep                         = node;
+      size++;
     }
   }
 }
@@ -178,8 +190,14 @@ operator== (hashmap<T, U> h1, hashmap<T, U> h2) {
   if (h1->size != h2->size) return false;
   int i= 0, n= h1->n;
   for (; i < n; i++) {
-    for (auto p= h1->a[i]; !is_nil (p); p= p->next)
-      if (h2[p->item.key] != p->item.im) return false;
+    for (auto p= h1->a[i]; !is_nil (p); p= p->next) {
+      // 复用条目已存的 code 在 h2 内查找,免去二次哈希
+      int hv= p->item.code;
+      list_rep<hashentry<T, U>>* q=
+          hashmap_rep<T, U>::find_node (h2->a[hash_bucket (hv, h2->n)], hv,
+                                        p->item.key);
+      if (q == NULL || q->item.im != p->item.im) return false;
+    }
   }
   return true;
 }

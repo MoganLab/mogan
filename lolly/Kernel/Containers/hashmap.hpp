@@ -110,9 +110,16 @@ public:
 
   bool contains (T x);
   bool empty ();
-  U    bracket_ro (T x);
-  U&   bracket_rw (T x);
-  U&   bracket_rw_debug (T x);
+
+  /**
+   * @brief 在桶内按完整哈希码与键裸指针查找节点。
+   * @note 避免句柄遍历带来的每节点两次引用计数增减。
+   */
+  static list_rep<hashentry<T, U>>* find_node (list<hashentry<T, U>>& bucket,
+                                               int hv, T x);
+  U                                 bracket_ro (T x);
+  U&                                bracket_rw (T x);
+  U&                                bracket_rw_debug (T x);
 
   /**
    * @brief Joins another hashmap into the current hashmap.
