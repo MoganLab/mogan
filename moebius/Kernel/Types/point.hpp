@@ -92,7 +92,23 @@ typedef struct {
  * @param p 待投影的点
  * @return  p 在轴上的正交投影点
  */
-point  proj (const axis& a, const point& p);
+point proj (const axis& a, const point& p);
+/**
+ * @brief 求点 p 到轴 a（过 p0、p1 的直线）的正交距离
+ *
+ * 距离为 |p - proj(a, p)|，即 p 与其在轴上正交投影点之间的欧氏距离。
+ * 与 proj 一样，投影参数 t 不受 [0,1] 限制，因此本函数度量的是到
+ * 整条直线的距离，而非到线段 p0p1 的距离（后者见 seg_dist）。
+ * 若 p0 与 p1 几乎重合（|p1 - p0| < 1e-6），退化为 |p - p0|。
+ * 只有前 min(N(p), N(p0), N(p1)) 个分量参与计算。
+ *
+ * @note 实现上与 proj 使用同一公式，但直接在分量上累加残差平方和，
+ *       不构造投影点与差向量等临时 point，适用于高频调用场景。
+ *
+ * @param a 轴（过 a.p0 与 a.p1 的直线）
+ * @param p 待测点
+ * @return  p 到轴 a 所在直线的正交距离
+ */
 double dist (const axis& a, const point& p);
 double seg_dist (const axis& a, const point& p);
 double seg_dist (const point& p1, const point& p2, const point& p);

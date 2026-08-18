@@ -222,6 +222,48 @@ TEST_CASE ("test proj dim mismatch") {
   CHECK (r == mkp (3, 0));
 }
 
+TEST_CASE ("test dist degenerate axis") {
+  // 轴退化为单点（|p1-p0| < 1e-6）时，dist 退化为 |p - p0|
+  axis a;
+  a.p0= mkp (1, 1);
+  a.p1= mkp (1, 1);
+  CHECK (fabs (dist (a, mkp (4, 5)) - 5.0) < 1e-9);
+}
+
+TEST_CASE ("test dist to line not segment") {
+  // 垂足落在延长线上时，dist 仍取到直线的距离（与 seg_dist 不同）
+  axis a;
+  a.p0= mkp (0, 0);
+  a.p1= mkp (10, 0);
+  CHECK (fabs (dist (a, mkp (-3, 4)) - 4.0) < 1e-9);
+  CHECK (fabs (dist (a, mkp (13, 4)) - 4.0) < 1e-9);
+  // 轴上的点距离为零
+  CHECK (fabs (dist (a, mkp (5, 0))) < 1e-9);
+  CHECK (fabs (dist (a, mkp (-7, 0))) < 1e-9);
+}
+
+TEST_CASE ("test dist dim mismatch") {
+  // 只有前 min(N(p), N(p0), N(p1)) 个分量参与计算：p 多出的分量不影响结果
+  axis a;
+  a.p0= mkp (0, 0);
+  a.p1= mkp (10, 0);
+  point p3 (3);
+  p3[0]= 3;
+  p3[1]= 4;
+  p3[2]= 100;
+  CHECK (fabs (dist (a, p3) - 4.0) < 1e-9);
+  // p 维度小于轴时同样按截断维度计算（一维轴上的距离）
+  axis  b;
+  point b0 (1), b1 (1);
+  b0[0]= 0;
+  b1[0]= 10;
+  b.p0 = b0;
+  b.p1 = b1;
+  point p1d (1);
+  p1d[0]= 3;
+  CHECK (fabs (dist (b, p1d)) < 1e-9);
+}
+
 TEST_CASE ("test linearly_dependent") {
   CHECK (linearly_dependent (mkp (0, 0), mkp (1, 1), mkp (2, 2)));
   CHECK (!linearly_dependent (mkp (0, 0), mkp (1, 0), mkp (0, 1)));

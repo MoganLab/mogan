@@ -226,7 +226,17 @@ proj (const axis& ax, const point& p) {
 
 double
 dist (const axis& ax, const point& p) {
-  return norm (p - proj (ax, p));
+  // 与 proj 同公式，但直接累加残差平方和，不构造投影点与差向量
+  double aa= inner_ddiff (ax.p1, ax.p0, ax.p1, ax.p0);
+  if (sqrt (aa) < 1.0e-6) return sqrt (norm2_diff (p, ax.p0));
+  double t= inner_ddiff (ax.p1, ax.p0, p, ax.p0) / aa;
+  int    i, n= min (N (p), min (N (ax.p0), N (ax.p1)));
+  double r= 0;
+  for (i= 0; i < n; i++) {
+    double d= p[i] - ax.p0[i] - t * (ax.p1[i] - ax.p0[i]);
+    r+= d * d;
+  }
+  return sqrt (r);
 }
 
 double

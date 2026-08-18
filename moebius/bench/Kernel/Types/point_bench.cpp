@@ -35,6 +35,7 @@ main () {
   ax.p0= mkp (0, 0);
   ax.p1= mkp (10, 0);
   bench.run ("proj", [&] { proj (ax, a); });
+  bench.run ("dist", [&] { dist (ax, a); });
   bench.run ("seg_dist", [&] { seg_dist (ax, a); });
   bench.run ("rotate_2D", [&] { rotate_2D (a, o, 0.5); });
 
