@@ -445,40 +445,24 @@
   ) ;if
 ) ;define
 
-(define (search-balloon-help action)
-  (and-with source
-    (promise-source action)
-    (and (pair? source)
-      (or (and-with prop
-            (property (car source) :balloon)
-            (with txt (apply (car prop) (cdr source)) (and (string? txt) txt))
-          ) ;and-with
-        (and-with prop
-          (property (car source) :synopsis)
-          (and (pair? prop)
-            (string? (car prop))
-            (with txt (synopsis-substitute (car prop) source) (and (string? txt) txt))
-          ) ;and
+(define (search-balloon-help source)
+  (and (pair? source)
+    (or (and-with prop
+          (property (car source) :balloon)
+          (with txt (apply (car prop) (cdr source)) (and (string? txt) txt))
         ) ;and-with
-      ) ;or
-    ) ;and
-  ) ;and-with
+      (and-with prop
+        (property (car source) :synopsis)
+        (and (pair? prop)
+          (string? (car prop))
+          (with txt (synopsis-substitute (car prop) source) (and (string? txt) txt))
+        ) ;and
+      ) ;and-with
+    ) ;or
+  ) ;and
 ) ;define
 
-(define (add-menu-entry-balloon but style action)
-  (with txt
-    (search-balloon-help action)
-    (if (not txt)
-      but
-      (with bal
-        (widget-text (translate txt) style (color "black") #t)
-        (widget-balloon but bal)
-      ) ;with
-    ) ;if
-  ) ;with
-) ;define
-
-(define (make-menu-entry-button style bar? bal? check label short action)
+(define (make-menu-entry-button style bar? bal? check label short action balloon-txt)
   (let* ((command (make-menu-command (if (active? style) (apply action '()))))
          (l (make-menu-label label style))
          (pressed? (and bar? (!= check "")))
@@ -489,7 +473,13 @@
         (widget-menu-button l command "" "" new-style)
         (widget-menu-button l command check short style)
       ) ;if
-      (if bal? but (add-menu-entry-balloon but style action))
+      (if (or bal? (not balloon-txt))
+        but
+        (with bal
+          (widget-text (translate balloon-txt) style (color "black") #t)
+          (widget-balloon but bal)
+        ) ;with
+      ) ;if
     ) ;with
   ) ;let*
 ) ;define
@@ -508,14 +498,10 @@
   ) ;and
 ) ;define-public
 
-(define (make-menu-entry-shortcut label action opt-key)
+(define (make-menu-entry-shortcut label source opt-key)
   (cond (opt-key (kbd-system opt-key #t))
         ((pair? label) "")
-        (else (with source
-                (promise-source action)
-                (if source (kbd-find-shortcut source #t) "")
-              ) ;with
-        ) ;else
+        (else (if source (kbd-find-shortcut source #t) ""))
   ) ;cond
 ) ;define
 
@@ -526,21 +512,18 @@
   ) ;cond
 ) ;define
 
-(define (make-menu-entry-check opt-check action)
+(define (make-menu-entry-check opt-check source)
   (if opt-check
     (make-menu-entry-check-sub ((cadr opt-check)) (car opt-check))
-    (with source
-      (promise-source action)
-      (cond ((not (and source (pair? source))) "")
-            (else (with prop
-                    (property (car source) :check-mark)
-                    (make-menu-entry-check-sub (and prop (apply (cadr prop) (cdr source)))
-                      (and prop (car prop))
-                    ) ;make-menu-entry-check-sub
-                  ) ;with
-            ) ;else
-      ) ;cond
-    ) ;with
+    (if (not (and source (pair? source)))
+      ""
+      (with prop
+        (property (car source) :check-mark)
+        (make-menu-entry-check-sub (and prop (apply (cadr prop) (cdr source)))
+          (and prop (car prop))
+        ) ;make-menu-entry-check-sub
+      ) ;with
+    ) ;if
   ) ;if
 ) ;define
 
@@ -556,15 +539,16 @@
   ) ;cond
 ) ;define
 
-(define (make-menu-entry-dots label action)
-  (if (menu-action-interactive? action) (menu-label-add-dots label) label)
+(define (make-menu-entry-dots label interactive?)
+  (if interactive? (menu-label-add-dots label) label)
+) ;define
+
+(define (menu-source-interactive? source)
+  (and source (pair? source) (property (car source) :interactive))
 ) ;define
 
 (define (menu-action-interactive? action)
-  (with source
-    (promise-source action)
-    (and source (pair? source) (property (car source) :interactive))
-  ) ;with
+  (menu-source-interactive? (promise-source action))
 ) ;define
 
 (define (imgui-supported-action? action)
@@ -579,20 +563,17 @@
 ) ;define
 
 
-(define (make-menu-entry-style style action)
-  (with source
-    (promise-source action)
-    (if (not (pair? source))
-      style
-      (with prop
-        (property (car source) :applicable)
-        (if (or (not prop) (apply (car prop) (list)))
-          style
-          (logior style (+ widget-style-inert widget-style-grey))
-        ) ;if
-      ) ;with
-    ) ;if
-  ) ;with
+(define (make-menu-entry-style source style)
+  (if (not (pair? source))
+    style
+    (with prop
+      (property (car source) :applicable)
+      (if (or (not prop) (apply (car prop) (list)))
+        style
+        (logior style (+ widget-style-inert widget-style-grey))
+      ) ;if
+    ) ;with
+  ) ;if
 ) ;define
 
 (define (make-menu-entry-attrs label action opt-key opt-check)
@@ -606,17 +587,34 @@
   ) ;cond
 ) ;define
 
+(tm-define (menu-entry-attributes label source style opt-key opt-check)
+  (:synopsis "Derive all display attributes of a menu entry from its action source"
+  ) ;:synopsis
+  ;; 一次性导出 (new-style check dotted-label shortcut balloon)，
+  ;; 避免每个属性各做一次 promise-source
+  (list (make-menu-entry-style source style)
+    (make-menu-entry-check opt-check source)
+    (make-menu-entry-dots label (menu-source-interactive? source))
+    (make-menu-entry-shortcut label source opt-key)
+    (search-balloon-help source)
+  ) ;list
+) ;tm-define
+
 (define (make-menu-entry-sub p style bar?)
   (receive (label action opt-key opt-check)
     (make-menu-entry-attrs (car p) (cAr p) #f #f)
-    (make-menu-entry-button (make-menu-entry-style style action)
-      bar?
-      (tuple? (car p) 'balloon 2)
-      (make-menu-entry-check opt-check action)
-      (make-menu-entry-dots label action)
-      (make-menu-entry-shortcut label action opt-key)
-      action
-    ) ;make-menu-entry-button
+    (with (new-style check new-label short balloon)
+      (menu-entry-attributes label (promise-source action) style opt-key opt-check)
+      (make-menu-entry-button new-style
+        bar?
+        (tuple? (car p) 'balloon 2)
+        check
+        new-label
+        short
+        action
+        balloon
+      ) ;make-menu-entry-button
+    ) ;with
   ) ;receive
 ) ;define
 
