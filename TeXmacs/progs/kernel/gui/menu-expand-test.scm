@@ -14,7 +14,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (kernel gui menu-expand-test)
-  (:use (kernel gui menu-widget) (kernel gui gui-markup)))
+  (:use (kernel gui menu-widget) (kernel gui gui-markup))
+) ;texmacs-module
 
 (import (liii check))
 
@@ -60,9 +61,13 @@
 
 (define (test-menu-expand-layout)
   (check (menu-expand '(horizontal (glue #t #f 5 0) ---))
-    => '(horizontal (glue #t #f 5 0) ---))
+    =>
+    '(horizontal (glue #t #f 5 0) ---)
+  ) ;check
   (check (menu-expand '(vertical (text "a") (text "b")))
-    => '(vertical (text "a") (text "b")))
+    =>
+    '(vertical (text "a") (text "b"))
+  ) ;check
 ) ;define
 
 (define (test-menu-expand-if)
@@ -73,31 +78,44 @@
 
 (define (test-menu-expand-when)
   (check (menu-expand (list 'when (lambda () #t) '(text "a")))
-    => '(when #t (text "a")))
+    =>
+    '(when #t (text "a"))
+  ) ;check
   ;; 条件为假时条目中的过程仍被源码化（保证可缓存的纯数据结构）
   (check (menu-expand (list 'when (lambda () #f) (list 'text "a" (lambda () 1))))
-    => '(when #f (text "a" (lambda () 1))))
+    =>
+    '(when #f (text "a" (lambda () 1)))
+  ) ;check
 ) ;define
 
 (define (test-menu-expand-for)
   ;; (for gen-func vals-promise)：gen-func 返回条目列表，对 vals 逐个展开
-  (check (menu-expand (list 'for
-                        (lambda (x) (list (list 'text x)))
-                        (lambda () '("a" "b"))))
-    => '((text "a") (text "b")))
+  (check (menu-expand (list 'for (lambda (x) (list (list 'text x))) (lambda () '("a"
+                                                                                 "b")))
+         ) ;menu-expand
+    =>
+    '((text "a") (text "b"))
+  ) ;check
 ) ;define
 
 (define (test-menu-expand-mini)
   (check (menu-expand (list 'mini (lambda () #t) '(text "a")))
-    => '(mini #t (text "a")))
+    =>
+    '(mini #t (text "a"))
+  ) ;check
 ) ;define
 
 (define (test-menu-expand-procedures)
   ;; replace-procedures 的间接契约：结构中的过程被源码化
-  (check (menu-expand (list 'text "a" (lambda () 1))) => '(text "a" (lambda () 1)))
+  (check (menu-expand (list 'text "a" (lambda () 1)))
+    =>
+    '(text "a" (lambda () 1))
+  ) ;check
   ;; must-eval-list 成员（toggle）：on-thunk 被求值
   (check (menu-expand (list 'toggle (lambda (a) a) (lambda () #t)))
-    => '(toggle (lambda (a) a) #t))
+    =>
+    '(toggle (lambda (a) a) #t)
+  ) ;check
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

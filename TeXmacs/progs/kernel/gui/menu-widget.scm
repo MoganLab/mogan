@@ -462,26 +462,29 @@
   ) ;and
 ) ;define
 
-(define (make-menu-entry-button style bar? bal? check label short action balloon-txt)
-  (let* ((command (make-menu-command (if (active? style) (apply action '()))))
-         (l (make-menu-label label style))
-         (pressed? (and bar? (!= check "")))
-         (new-style (logior style (if pressed? widget-style-pressed 0)))
-        ) ;
-    (with but
-      (if bar?
-        (widget-menu-button l command "" "" new-style)
-        (widget-menu-button l command check short style)
-      ) ;if
-      (if (or bal? (not balloon-txt))
-        but
-        (with bal
-          (widget-text (translate balloon-txt) style (color "black") #t)
-          (widget-balloon but bal)
-        ) ;with
-      ) ;if
-    ) ;with
-  ) ;let*
+(define (make-menu-entry-button attrs bar? bal? action)
+  (with (style check label short balloon-txt)
+    attrs
+    (let* ((command (make-menu-command (if (active? style) (apply action '()))))
+           (l (make-menu-label label style))
+           (pressed? (and bar? (!= check "")))
+           (new-style (logior style (if pressed? widget-style-pressed 0)))
+          ) ;
+      (with but
+        (if bar?
+          (widget-menu-button l command "" "" new-style)
+          (widget-menu-button l command check short style)
+        ) ;if
+        (if (or bal? (not balloon-txt))
+          but
+          (with bal
+            (widget-text (translate balloon-txt) style (color "black") #t)
+            (widget-balloon but bal)
+          ) ;with
+        ) ;if
+      ) ;with
+    ) ;let*
+  ) ;with
 ) ;define
 
 (define-public (promise-source action)
@@ -587,32 +590,26 @@
   ) ;cond
 ) ;define
 
-(tm-define (menu-entry-attributes label source style opt-key opt-check)
-  (:synopsis "Derive all display attributes of a menu entry from its action source"
-  ) ;:synopsis
+(define-public (menu-entry-attributes label source style opt-key opt-check bal?)
   ;; 一次性导出 (new-style check dotted-label shortcut balloon)，
-  ;; 避免每个属性各做一次 promise-source
+  ;; 避免每个属性各做一次 promise-source；bal? 为真时气球帮助必然被丢弃，不算
   (list (make-menu-entry-style source style)
     (make-menu-entry-check opt-check source)
     (make-menu-entry-dots label (menu-source-interactive? source))
     (make-menu-entry-shortcut label source opt-key)
-    (search-balloon-help source)
+    (and (not bal?) (search-balloon-help source))
   ) ;list
-) ;tm-define
+) ;define-public
 
-(define (make-menu-entry-sub p style bar?)
+(define (make-menu-entry-sub p style bar? source)
   (receive (label action opt-key opt-check)
     (make-menu-entry-attrs (car p) (cAr p) #f #f)
-    (with (new-style check new-label short balloon)
-      (menu-entry-attributes label (promise-source action) style opt-key opt-check)
-      (make-menu-entry-button new-style
+    (with bal?
+      (tuple? (car p) 'balloon 2)
+      (make-menu-entry-button (menu-entry-attributes label source style opt-key opt-check bal?)
         bar?
-        (tuple? (car p) 'balloon 2)
-        check
-        new-label
-        short
+        bal?
         action
-        balloon
       ) ;make-menu-entry-button
     ) ;with
   ) ;receive
@@ -620,14 +617,6 @@
 
 (define (make-menu-entry p style bar?)
   "Make @:menu-wide-item menu item."
-
-  (define (retrieve-shortcut p)
-    (let* ((cmd (and (nnull? (cdr p)) (procedure? (cadr p)) (cadr p)))
-           (source (and cmd (promise-source cmd)))
-          ) ;
-      (and source (kbd-find-shortcut source #f))
-    ) ;let*
-  ) ;define
 
   (define (create-text-widget text shortcut style)
     (let* ((txt (if (or (not shortcut) (== shortcut ""))
@@ -641,26 +630,22 @@
     ) ;let*
   ) ;define
 
-  (let ((but (make-menu-entry-sub p style bar?)) (label (car p)))
-    (cond ((tuple? label 'balloon 2)
-           (let* ((text (caddr label))
-                  (shortcut (retrieve-shortcut p))
-                  (twid (create-text-widget text shortcut style))
-                 ) ;
-             (widget-balloon but twid)
-           ) ;let*
-          ) ;
-          ((and (tuple? label 'check 3) (tuple? (cadr label) 'balloon 2))
-           (let* ((text (caddr (cadr label)))
-                  (shortcut (retrieve-shortcut p))
-                  (twid (create-text-widget text shortcut style))
-                 ) ;
-             (widget-balloon but twid)
-           ) ;let*
-          ) ;
-          (else but)
-    ) ;cond
-  ) ;let
+  (with source
+    (promise-source (cAr p))
+    (let ((but (make-menu-entry-sub p style bar? source))
+          (label (car p))
+          (shortcut (and source (kbd-find-shortcut source #f)))
+         ) ;
+      (cond ((tuple? label 'balloon 2)
+             (widget-balloon but (create-text-widget (caddr label) shortcut style))
+            ) ;
+            ((and (tuple? label 'check 3) (tuple? (cadr label) 'balloon 2))
+             (widget-balloon but (create-text-widget (caddr (cadr label)) shortcut style))
+            ) ;
+            (else but)
+      ) ;cond
+    ) ;let
+  ) ;with
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

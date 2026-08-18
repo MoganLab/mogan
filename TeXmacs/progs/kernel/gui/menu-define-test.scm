@@ -51,11 +51,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (test-gui-make-composite)
-  (check (gui-make '(-> "File" (text "x")))
-    => '($-> "File" ($menu-text "x")))
+  (check (gui-make '(-> "File" (text "x"))) => '($-> "File" ($menu-text "x")))
   (check (gui-make '(hlist (text "a") /)) => '($hlist ($menu-text "a") $/))
   (check (gui-make '(vlist (text "a") (text "b")))
-    => '($vlist ($menu-text "a") ($menu-text "b")))
+    =>
+    '($vlist ($menu-text "a") ($menu-text "b"))
+  ) ;check
   (check (gui-make '(when #t (text "a"))) => '($assuming #t ($menu-text "a")))
   (check (gui-make '(if #t (text "a"))) => '($delayed-when #t ($menu-text "a")))
   ;; 裸 ("label" cmd) 形式的条目
