@@ -1005,6 +1005,9 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
     debug_widgets << "qt_tm_widget_rep::~qt_tm_widget_rep of widget "
                   << type_as_string () << LF;
 
+  // 窗口关闭时保存 PDF 阅读页码（须在 delete pdfViewerWidget 之前）
+  save_pdf_last_page ();
+
   // clear any residual waiting menu installation
   waiting_widgets= remove (waiting_widgets, this);
 
@@ -1147,6 +1150,48 @@ qt_tm_widget_rep::poll_central_unfreeze (int generation, qint64 start_ms) {
   });
 }
 
+/******************************************************************************
+ * PDF 阅读位置记忆（存取由 scheme 侧 pdf-last-page-get/set 负责）
+ ******************************************************************************/
+
+static void
+pdf_last_pages_ensure_module () {
+  static bool loaded= false;
+  if (!loaded) {
+    eval_scheme ("(use-modules (texmacs texmacs tm-files))");
+    loaded= true;
+  }
+}
+
+void
+qt_tm_widget_rep::save_pdf_last_page () {
+  if (!pdfTabMode || !pdfViewerWidget || currentPdfPath.isEmpty ()) return;
+  int page= pdfViewerWidget->currentPage ();
+  if (page <= 0) return;
+  pdf_last_pages_ensure_module ();
+  eval_scheme ("(pdf-last-page-set " *
+               scm_quote (from_qstring_utf8 (currentPdfPath)) * " " *
+               as_string (page) * ")");
+}
+
+void
+qt_tm_widget_rep::schedule_restore_pdf_last_page () {
+  if (!pdfViewerWidget || currentPdfPath.isEmpty ()) return;
+  pdf_last_pages_ensure_module ();
+  // 延迟到事件循环下一轮再跳页：布局与滚动范围需在 show 后才就绪
+  QPointer<PDFReaderWidget> viewer (pdfViewerWidget);
+  string                    path= from_qstring_utf8 (currentPdfPath);
+  QTimer::singleShot (0, pdfViewerWidget, [viewer, path] () {
+    if (!viewer) return;
+    tmscm r=
+        eval_scheme ("(pdf-last-page-to-restore " * scm_quote (path) * ")");
+    if (tmscm_is_int (r)) {
+      int page= tmscm_to_int (r);
+      if (page > 0) viewer->goToPage (page);
+    }
+  });
+}
+
 void
 qt_tm_widget_rep::sync_startup_tab_mode () {
   QWidget* editorWidget= main_widget->qwid;
@@ -1220,6 +1265,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
       pdfViewerWidget->loadFromFile (currentPdfPath);
       lastLoadedPdfPath= currentPdfPath;
     }
+    schedule_restore_pdf_last_page ();
   }
   else {
     // Show normal editor view (unless chat tab mode is active)
@@ -1879,8 +1925,11 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
     currentEditorFile= file;
-    startupTabMode   = is_startup_tab_file (file);
-    pdfTabMode       = is_pdf_tab_file (file);
+    // 离开 PDF 标签页（切走或换另一个 PDF）前记下阅读页码
+    if (pdfTabMode && file != from_qstring_utf8 (currentPdfPath))
+      save_pdf_last_page ();
+    startupTabMode= is_startup_tab_file (file);
+    pdfTabMode    = is_pdf_tab_file (file);
     if (pdfTabMode) {
       currentPdfPath= utf8_to_qstring (file);
     }
