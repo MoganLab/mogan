@@ -41,6 +41,33 @@ TEST_CASE ("test inner and norm") {
   CHECK_EQ (norm (mkp (3, 4)), 5.0);
 }
 
+TEST_CASE ("test norm") {
+  // 空点与零向量的范数为 0
+  CHECK_EQ (norm (point ()), 0.0);
+  CHECK (fnull (norm (mkp (0, 0)), 1e-12));
+  // 一维点的范数即分量绝对值
+  CHECK_EQ (norm (as_point (-3.0)), 3.0);
+  // 二维：分量符号不影响结果
+  CHECK_EQ (norm (mkp (-3, -4)), 5.0);
+  CHECK_EQ (norm (mkp (-3, 4)), 5.0);
+  CHECK (fnull (norm (mkp (1.5, 2.0)) - 2.5, 1e-12));
+  // 三维及更高维走通用累加路径
+  point p3 (3);
+  p3[0]= 1;
+  p3[1]= 2;
+  p3[2]= 2;
+  CHECK_EQ (norm (p3), 3.0);
+  point p4 (4);
+  p4[0]= 1;
+  p4[1]= 1;
+  p4[2]= 1;
+  p4[3]= 1;
+  CHECK_EQ (norm (p4), 2.0);
+  // 范数与 inner 自洽：norm(p)^2 == inner(p, p)
+  point p= mkp (6, 8);
+  CHECK (fnull (norm (p) * norm (p) - inner (p, p), 1e-9));
+}
+
 TEST_CASE ("test min/max/abs") {
   CHECK_EQ (min (mkp (3, -1)), -1.0);
   CHECK_EQ (max (mkp (3, -1)), 3.0);

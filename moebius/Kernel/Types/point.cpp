@@ -203,15 +203,6 @@ slanted (const point& p, double slant) {
 }
 
 double
-norm (const point& p) {
-  int    i, n= N (p);
-  double r= 0;
-  for (i= 0; i < n; i++)
-    r+= p[i] * p[i];
-  return sqrt (r);
-}
-
-double
 arg (point p) {
   double n= norm (p);
   p       = p / n;

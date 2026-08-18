@@ -43,7 +43,32 @@ double inner (const point& p1, const point& p2);
 point  rotate_2D (const point& p, const point& o, double angle);
 point  slanted (const point& p, double slant);
 
-double norm (const point& p);
+/**
+ * @brief 计算点的欧几里得范数（各分量平方和的平方根）
+ *
+ * 即 sqrt(p[0]^2 + p[1]^2 + ... + p[N(p)-1]^2)，几何意义为点到原点的
+ * 距离。二维点走无循环快路径；其余维度逐分量平方累加后开方。
+ * 实现内联于头文件：norm 是几何计算的热点函数（dist、seg_dist、
+ * collinear 等均经此收敛），内联可消除跨编译单元的函数调用开销。
+ *
+ * @param p 输入点，可为任意维度（排版与图形场景通常为二维）
+ * @return  点的欧几里得范数；空点（N(p) == 0）返回 0
+ * @note 直接对分量平方求和，坐标绝对值过大（约 1e154 以上）时平方
+ *       会上溢为 inf，此时返回 inf；调用方如需避免溢出应自行缩放
+ */
+inline double
+norm (const point& p) {
+  int n= N (p);
+  if (n == 2) {
+    double x= p[0], y= p[1];
+    return sqrt (x * x + y * y);
+  }
+  double r= 0;
+  for (int i= 0; i < n; i++)
+    r+= p[i] * p[i];
+  return sqrt (r);
+}
+
 double arg (point p);
 bool   collinear (const point& p1, const point& p2);
 bool   linearly_dependent (const point& p1, const point& p2, const point& p3);
