@@ -813,12 +813,8 @@ search_forwards (array<string> a, int pos, string in) {
   int n= N (in), na= N (a);
   // 非空模式不可能在 pos == n 处命中，上界收紧为 n - 1 也避免了越界读 in[n]
   while (pos < n) {
-    for (int i= 0; i < na; i++) {
-      int k= N (a[i]);
-      if (k > 0 && k <= n - pos && in[pos] == a[i][0] &&
-          memcmp (in.begin () + pos, a[i].begin (), k) == 0)
-        return pos;
-    }
+    for (int i= 0; i < na; i++)
+      if (N (a[i]) > 0 && test (in, pos, a[i])) return pos;
     pos++;
   }
   return -1;
@@ -828,7 +824,7 @@ int
 search_forwards (string s, int pos, string in) {
   int k= N (s), n= N (in);
   if (k == 0) return pos;
-  if (k > n) return -1;
+  if (pos > n - k) return -1;
   // memchr 找模式首字符，memcmp 做整段比较，均直接在原始缓冲区上进行
   const char* hay = in.begin () + pos;
   const char* last= in.begin () + (n - k); // 最后一个可能的匹配起点
@@ -914,25 +910,22 @@ overlapping (string s1, string s2) {
  * @param by   替换后的子串
  * @return     替换完成后的新字符串；what 为空串时原样返回 s
  *
- * @note 扫描时先用首字符快速筛选，仅当 s[i] 与 what[0] 相同才进入
- *       test 做完整比较；模式尾部不足以容纳 what 的区段直接跳过。
+ * @note 扫描复用 search_forwards（memchr/memcmp 加速）；从左到右
+ *       不重叠匹配，命中后跳过整个模式。
  */
 string
 replace (string s, string what, string by) {
-  int i, n= N (s), k= N (what);
-  // 空模式按「不匹配任何位置」处理，否则下方 i+= k 步进为 0 会死循环
+  int n= N (s), k= N (what);
+  // 空模式按「不匹配任何位置」处理，否则下方步进为 0 会死循环
   if (k == 0) return s;
-  char   c= what[0];
   string r;
   int    start= 0;
-  for (i= 0; i + k <= n;)
-    if (s[i] == c && test (s, i, what)) {
-      r << s (start, i);
-      r << by;
-      i+= k;
-      start= i;
-    }
-    else i++;
+  for (int hit= search_forwards (what, start, s); hit != -1;
+       hit    = search_forwards (what, start, s)) {
+    r << s (start, hit);
+    r << by;
+    start= hit + k;
+  }
   r << s (start, n);
   return r;
 }
@@ -972,22 +965,20 @@ find_non_alpha (string s, int pos, bool forward) {
 
 array<string>
 tokenize (string s, string sep) {
-  int start= 0, n= N (s), k= N (sep);
+  int n= N (s), k= N (sep);
   // 空分隔符不匹配任何位置，整串作为唯一 token 返回
   if (k == 0) {
     array<string> a;
     a << s;
     return a;
   }
-  char          c= sep[0];
   array<string> a;
-  for (int i= 0; i + k <= n;)
-    if (s[i] == c && test (s, i, sep)) {
-      a << s (start, i);
-      i+= k;
-      start= i;
-    }
-    else i++;
+  int           start= 0;
+  for (int hit= search_forwards (sep, start, s); hit != -1;
+       hit    = search_forwards (sep, start, s)) {
+    a << s (start, hit);
+    start= hit + k;
+  }
   a << s (start, n);
   return a;
 }
