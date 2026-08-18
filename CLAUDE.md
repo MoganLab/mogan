@@ -273,6 +273,19 @@ xmake b stem && MOGAN_TEST_GUI=1 xmake r 2044
 - C++ 测试仅覆盖 Qt 钩子/返回值形状/bridge 入口（如 `MOGAN_TEST_*=ok|cancel`）
 - GUI 专属路径（tab 切换、菜单重建）用 GUI 集成测试
 
+### lolly 单元测试（`lolly/tests/**_test.cpp`）
+
+lolly 是独立的 xmake 子工程,须在 `lolly/` 目录下构建,测试目标名为
+`lolly_tests/<测试文件名>`（不含 `_test` 后缀）:
+
+```bash
+cd lolly
+xmake b lolly_tests
+xmake test lolly_tests/hashmap_test   # 单个测试
+# 或直接跑二进制(支持 doctest 参数过滤用例):
+./build/linux/x86_64/releasedbg/lolly_tests_hashmap_test --test-case="*resize*"
+```
+
 ## 构建命令
 
 主项目构建：`xmake b stem`
