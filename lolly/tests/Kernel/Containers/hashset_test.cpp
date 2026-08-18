@@ -71,6 +71,25 @@ TEST_CASE ("test remove missing is noop") {
   CHECK_EQ (set->contains (1), true);
 }
 
+TEST_CASE ("test repeated resize with duplicates") {
+  // max=8 触发多次扩容;穿插重复插入与删除,验证节点重挂后条目不丢不重
+  auto set= hashset<int> (1, 8);
+  for (int round= 0; round < 3; round++) {
+    for (int i= 0; i < 300; i++)
+      set << (i * 97);
+    for (int i= 0; i < 300; i++)
+      set << (i * 97); // 重复插入为 no-op
+    CHECK_EQ (N (set), 300);
+    for (int i= 0; i < 150; i++)
+      set->remove (i * 97);
+    CHECK_EQ (N (set), 150);
+    for (int i= 0; i < 150; i++)
+      CHECK_EQ (set->contains (i * 97), false);
+    for (int i= 150; i < 300; i++)
+      CHECK_EQ (set->contains (i * 97), true);
+  }
+}
+
 TEST_CASE ("test equality after copy and remove") {
   auto s1= hashset<int> ();
   for (int i= 0; i < 100; i++)

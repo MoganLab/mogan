@@ -13,6 +13,7 @@
 template <class T> class list_rep;
 template <class T> class list;
 template <class T, class U> class hashmap_rep;
+template <class T> class hashset_rep;
 
 /**
  * @brief Check if a list is nil (i.e., an empty list).
@@ -51,6 +52,7 @@ template <class T> class list {
 
   // resize 时重挂桶内节点,需直接访问 rep 做所有权转移
   template <class T2, class U2> friend class hashmap_rep;
+  template <class T2> friend class hashset_rep;
 
   /**
    * @brief Construct a new list object with a single item.
@@ -135,6 +137,7 @@ public:
   inline ~list_rep<T> () { TM_DEBUG (list_count--); }
   friend class list<T>;
   template <class T2, class U2> friend class hashmap_rep;
+  template <class T2> friend class hashset_rep;
 };
 
 CONCRETE_NULL_TEMPLATE_CODE (list, class, T);

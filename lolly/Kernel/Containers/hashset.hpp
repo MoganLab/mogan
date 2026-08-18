@@ -29,6 +29,18 @@ template <class T> class hashset_rep : concrete_struct {
   int      max;  /**< The mean number of entries per key. */
   list<T>* a;    /**< The array of entries. */
 
+  /**
+   * @brief 在桶内按裸指针查找节点。
+   * @note 避免句柄遍历带来的每节点两次引用计数增减。
+   */
+  static list_rep<T>* find_node (list<T>& bucket, T x);
+
+  /**
+   * @brief 以裸指针在桶头挂一个新节点(必要时先扩容)。
+   * @note 避免临时句柄的引用计数增减。
+   */
+  void insert_node (T x);
+
 public:
   /**
    * @brief Construct a new hashset_rep object with default values.
