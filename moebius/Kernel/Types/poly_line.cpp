@@ -9,14 +9,14 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "math_util.hpp"
 #include "poly_line.hpp"
+#include "math_util.hpp"
 
 // 点到线段距离的平方：内联投影参数并夹断到 [0,1]；
 // t == 0 时 a 取 0，末循环退化为到端点 q1 的距离平方
 inline double
 seg_dist2 (const point& p, const point& q1, const point& q2) {
-  int    n= N (p);
+  int n= N (p);
   ASSERT (n == N (q1) && n == N (q2), "unequal lengths");
   double s= 0.0, t= 0.0;
   for (int i= 0; i < n; i++) {
@@ -115,7 +115,7 @@ inf (const poly_line& pl) {
   int n= N (pl);
   ASSERT (n > 0, "non zero length expected");
   point p= copy (pl[0]);
-  int    m= N (p);
+  int   m= N (p);
   for (int i= 1; i < n; i++) {
     const point& q= pl[i];
     for (int j= 0; j < m; j++)
@@ -129,7 +129,7 @@ sup (const poly_line& pl) {
   int n= N (pl);
   ASSERT (n > 0, "non zero length expected");
   point p= copy (pl[0]);
-  int    m= N (p);
+  int   m= N (p);
   for (int i= 1; i < n; i++) {
     const point& q= pl[i];
     for (int j= 0; j < m; j++)
