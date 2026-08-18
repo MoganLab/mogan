@@ -1121,6 +1121,11 @@ edit_interface_rep::apply_changes () {
     }
   }
 
+  // 启动页 UI 由 Qt widget 承担,排版结果不显示:屏蔽除菜单外的全部
+  // 改动位,跳过排版/光标/选区等编辑器路径(eb 保持 nil,相关代码均不可
+  // 触达),仅保留 tab 页栏重建
+  if (is_startup_tab_buffer (buf->buf->name)) env_change&= THE_MENUS;
+
   // cout << "Handling selection\n";
   if (env_change & (THE_TREE + THE_ENVIRONMENT + THE_SELECTION)) {
     if (!is_nil (selection_rects)) {
