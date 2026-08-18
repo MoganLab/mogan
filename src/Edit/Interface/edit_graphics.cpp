@@ -466,7 +466,7 @@ snap_curve_midpoint (point fp, double snap_distance, gr_selections& sels,
       string type= sels[i]->type;
       if (type != "curve-point" && type != "curve-handle") continue;
       curve c= sels[i]->c;
-      if (is_nil (c)) continue;
+      if (!is_polyline_or_segment (c)) continue;
       array<point> mids= straight_edge_midpoints (c, fp, (double) on_line_tol);
       for (int e= 0; e < N (mids); e++) {
         point mid_local= f2[mids[e]]; // 转换到文档坐标系供装饰绘制

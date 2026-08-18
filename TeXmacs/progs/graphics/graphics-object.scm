@@ -332,15 +332,8 @@
                 (va (get-graphical-prop 'basic "text-at-valign"))
                 (mag (get-graphical-prop 'basic "magnify"))
                ) ;
-           (create-graphical-embedding-box o
-             ha
-             va
-             "center"
-             "center"
-             "1par"
-             "min"
-             "0fn"
-             mag
+           (create-graphical-embedding-box o ha va "center" "center" "1par"
+             "min" "0fn" mag
            ) ;create-graphical-embedding-box
          ) ;let*
         ) ;
@@ -525,15 +518,8 @@
                             (va (get-graphical-prop path0 "text-at-valign"))
                             (mag (get-graphical-prop path0 "magnify"))
                            ) ;
-                       (create-graphical-embedding-box o
-                         ha
-                         va
-                         "center"
-                         "center"
-                         "1par"
-                         "min"
-                         "0fn"
-                         mag
+                       (create-graphical-embedding-box o ha va "center" "center"
+                         "1par" "min" "0fn" mag
                        ) ;create-graphical-embedding-box
                      ) ;let*
                    ) ;asc

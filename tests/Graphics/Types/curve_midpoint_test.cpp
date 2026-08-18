@@ -47,8 +47,10 @@ private slots:
   void test_closed_polyline_closing_edge ();
   // 退化边（两端点重合）跳过，不影响其余边
   void test_degenerate_edge_skipped ();
-  // 非直边（抛物线弧）即使贴近也不取中点
-  void test_non_straight_edge_skipped ();
+
+  // is_polyline_or_segment：线段、折线（含被坐标变换包裹）为真，
+  // 圆弧、样条、nil 为假
+  void test_is_polyline_or_segment ();
 };
 
 void
@@ -75,7 +77,7 @@ void
 TestStraightEdgeMidpoints::test_polyline_per_edge () {
   array<point> a;
   a << mkp (0, 0) << mkp (4, 0) << mkp (4, 4);
-  curve        c= poly_segment (a, array<path> ());
+  curve        c = poly_segment (a, array<path> ());
   array<point> m1= straight_edge_midpoints (c, mkp (2, 0.3), 0.5);
   QCOMPARE (N (m1), 1);
   QVERIFY (pt_eq (m1[0], 2, 0));
@@ -117,12 +119,23 @@ TestStraightEdgeMidpoints::test_degenerate_edge_skipped () {
 }
 
 void
-TestStraightEdgeMidpoints::test_non_straight_edge_skipped () {
+TestStraightEdgeMidpoints::test_is_polyline_or_segment () {
+  curve nil_c;
+  QVERIFY (!is_polyline_or_segment (nil_c));
+  QVERIFY (is_polyline_or_segment (segment (mkp (0, 0), mkp (4, 0))));
   array<point> a;
-  a << mkp (-1, -1) << mkp (1, -1) << mkp (0, 0);
-  curve c= parabola (a, array<path> (), false);
-  // 容差足够大、参考点就在曲线上，但抛物线弧不是直边
-  QVERIFY (N (straight_edge_midpoints (c, mkp (0, -0.5), 100.0)) == 0);
+  a << mkp (0, 0) << mkp (4, 0) << mkp (4, 4);
+  curve poly= poly_segment (a, array<path> ());
+  QVERIFY (is_polyline_or_segment (poly));
+  // curve_box_rep::transform 用 fr(c) 包裹曲线
+  frame fr= shift_2D (mkp (1, 1));
+  QVERIFY (is_polyline_or_segment (fr (poly)));
+  QVERIFY (is_polyline_or_segment (fr (segment (mkp (0, 0), mkp (4, 0)))));
+  array<point> arc_pts;
+  arc_pts << mkp (-1, -1) << mkp (1, -1) << mkp (0, 0);
+  QVERIFY (!is_polyline_or_segment (parabola (arc_pts, array<path> (), false)));
+  QVERIFY (!is_polyline_or_segment (arc (arc_pts, array<path> (), false)));
+  QVERIFY (!is_polyline_or_segment (spline (a, array<path> ())));
 }
 
 QTEST_MAIN (TestStraightEdgeMidpoints)

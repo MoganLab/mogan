@@ -157,7 +157,26 @@ struct parabola_rep : public curve_rep {
                              array<path>& cip) override;
 };
 
+/**
+ * @brief 构造连接两点的直线段曲线
+ *
+ * 参数 t ∈ [0,1] 线性插值：`(1-t)*p1 + t*p2`；曲率恒为无穷大（直线）。
+ * @param p1 起点
+ * @param p2 终点
+ * @return 直线段曲线对象
+ */
 curve segment (point p1, point p2);
+
+/**
+ * @brief 构造依序连接多个控制点的折线（多段直线）曲线
+ *
+ * n+1 个控制点 a[0..n] 构成 n 段直线；参数 t ∈ [0,1] 均匀映射到整条折线
+ * （每段占 1/n），各顶点对应参数 i/n。绘图工具中的「折线」（`<line>` 标签）
+ * 即由此实现。单个 segment 可视为 n=1 的特例。
+ * @param a 控制点序列（至少 2 个点）
+ * @param cip 各控制点在源树中的位置（用于图形编辑时的反向定位）
+ * @return 折线曲线对象
+ */
 curve poly_segment (array<point> a, array<path> cip);
 curve spline (array<point> a, array<path> cip, bool close= false,
               bool interpol= true);
@@ -175,7 +194,26 @@ curve recontrol (curve c, array<point> a, array<path> cip);
 
 array<point> intersection (curve f, curve g, point p0, double eps);
 point        closest (curve f, point p);
-bool         is_straight_line (curve f);
+/**
+ * @brief 判断曲线 f 是否为（近似）直线段
+ *
+ * 在参数 t = 0.25、0.5、0.75 处采样切向量，若所有切向量二维且方向一致
+ * （叉积接近零），则视为直线。单点切向对圆等曲线没有代表性，故采样多处。
+ * @param f 待检测的曲线
+ * @return 曲线近似为直线时返回 true；切向计算失败、非二维或方向不一致返回 false
+ */
+bool is_straight_line (curve f);
+
+/**
+ * @brief 判断曲线是否为线段或折线（可被坐标变换包裹）
+ *
+ * 直线类图形只有 segment 与 poly_segment 两种实现；只需处理直边时，
+ * 可先用本函数排除椭圆、样条等曲线，避免逐边做直线性检测。
+ * @param c 待检测的曲线，可为 nil
+ * @return 线段或折线（含被 transformed_curve_rep / recontrol_curve_rep
+ *         包裹的情形）返回 true
+ */
+bool is_polyline_or_segment (curve c);
 
 /**
  * @brief 求曲线各直边的中点，仅返回参考点所贴近的边的中点
@@ -185,10 +223,10 @@ bool         is_straight_line (curve f);
  * @return 满足条件的各直边中点（曲线坐标系），按控制点区间顺序排列
  * @note 按 get_control_points 的控制点区间逐边处理，区间划分与
  *       curve_box_rep::graphical_select 一致：闭合曲线（首末控制点参数
- *       不恰为 0/1）补首尾相连边。退化边（两端点距离 < 1e-6）与非直边
- *       （is_straight_line 为假）一律跳过；中点取区间参数中值的
- *       evaluate 结果，而非两端点算术平均（对参数化不均匀的曲线两者
- *       可能不同）。
+ *       不恰为 0/1）补首尾相连边。退化边（两端点距离 < 1e-6）跳过；
+ *       中点取区间参数中值的 evaluate 结果，而非两端点算术平均（对
+ *       参数化不均匀的曲线两者可能不同）。调用方须保证传入的是线段或
+ *       折线（is_polyline_or_segment），非直边曲线不做过滤。
  */
 array<point> straight_edge_midpoints (curve c, point p, double tol);
 

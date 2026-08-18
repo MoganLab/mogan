@@ -197,7 +197,6 @@ straight_edge_midpoints (curve c, point p, double tol) {
     int j= (e + 1) % np;
     if (norm (pts[j] - pts[e]) < 1e-6) continue;
     if (seg_dist (pts[e], pts[j], p) > tol) continue;
-    if (!is_straight_line (part (c, abs[e], abs[j]))) continue;
     res << c->evaluate ((abs[e] + abs[j]) / 2.0);
   }
   return res;
@@ -1633,4 +1632,26 @@ struct recontrol_curve_rep : public curve_rep {
 curve
 recontrol (curve c, array<point> a, array<path> cip) {
   return tm_new<recontrol_curve_rep> (c, a, cip);
+}
+
+/**
+ * @brief 判断曲线是否为线段或折线（可被坐标变换/控制点重设包裹）
+ *
+ * 直线类图形只有 segment 与 poly_segment 两种实现；只需处理直边时，
+ * 可先用本函数排除椭圆、样条等曲线，避免逐边做直线性检测。
+ * @param c 待检测的曲线，可为 nil
+ * @return 线段或折线（含被 transformed_curve_rep / recontrol_curve_rep
+ *         包裹的情形）返回 true
+ */
+bool
+is_polyline_or_segment (curve c) {
+  if (is_nil (c)) return false;
+  curve_rep* rep= c.get_rep ();
+  if (dynamic_cast<segment_rep*> (rep) != nullptr) return true;
+  if (dynamic_cast<poly_segment_rep*> (rep) != nullptr) return true;
+  transformed_curve_rep* tr= dynamic_cast<transformed_curve_rep*> (rep);
+  if (tr != nullptr) return is_polyline_or_segment (tr->c);
+  recontrol_curve_rep* rc= dynamic_cast<recontrol_curve_rep*> (rep);
+  if (rc != nullptr) return is_polyline_or_segment (rc->c);
+  return false;
 }

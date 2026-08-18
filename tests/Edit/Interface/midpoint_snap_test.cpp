@@ -9,8 +9,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "base.hpp"
 #include "Interface/edit_graphics.hpp"
+#include "base.hpp"
 #include <QtTest/QtTest>
 
 static point
