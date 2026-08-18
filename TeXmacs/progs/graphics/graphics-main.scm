@@ -1096,6 +1096,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(tm-define (graphics-handwriting?)
+  (:synopsis "Are we in the hand-drawn (handwriting) graphics mode?")
+  (== (car (graphics-mode)) 'hand-edit)
+) ;tm-define
+
 (tm-define (graphics-mode)
   (with m
     (tree->stree (get-env-tree "gr-mode"))

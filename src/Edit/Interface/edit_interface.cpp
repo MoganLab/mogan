@@ -1371,9 +1371,12 @@ edit_interface_rep::apply_changes () {
     update_menus (MENU_ALL);
   }
   else if (env_change & THE_CURSOR) {
-    // 光标移动仅当焦点树身份变化时，轻量刷新 mode/focus 栏
+    // 光标移动仅当焦点树身份变化时，轻量刷新 mode/focus 栏；
+    // 手写模式拖拽过程中工具栏内容不变，跳过重建
+    bool handwriting=
+        inside_active_graphics () && as_bool (call ("graphics-handwriting?"));
     path fp= focus_get ();
-    if (fp != menu_focus_path) {
+    if (!handwriting && fp != menu_focus_path) {
       menu_focus_path= fp;
       update_menus (ICONS_MODE | ICONS_FOCUS);
     }
