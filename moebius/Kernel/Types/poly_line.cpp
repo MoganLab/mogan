@@ -9,11 +9,28 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
+#include "math_util.hpp"
 #include "poly_line.hpp"
 
+// 点到线段距离的平方：内联投影参数并夹断到 [0,1]；
+// t == 0 时 a 取 0，末循环退化为到端点 q1 的距离平方
 inline double
-square (double x) {
-  return x * x;
+seg_dist2 (const point& p, const point& q1, const point& q2) {
+  int    n= N (p);
+  ASSERT (n == N (q1) && n == N (q2), "unequal lengths");
+  double s= 0.0, t= 0.0;
+  for (int i= 0; i < n; i++) {
+    double d= q2[i] - q1[i];
+    s+= d * (p[i] - q1[i]);
+    t+= square (d);
+  }
+  double a= (t == 0.0) ? 0.0 : s / t;
+  if (a < 0.0) a= 0.0;
+  if (a > 1.0) a= 1.0;
+  double m= 0.0;
+  for (int i= 0; i < n; i++)
+    m+= square (q1[i] + a * (q2[i] - q1[i]) - p[i]);
+  return m;
 }
 
 /******************************************************************************
@@ -22,17 +39,15 @@ square (double x) {
 
 double
 l2_norm (point p) {
-  double s= 0.0;
-  for (int i= 0; i < N (p); i++)
-    s+= square (p[i]);
-  return sqrt (s);
+  return norm (p);
 }
 
 double
 distance (point p, point q) {
-  ASSERT (N (p) == N (q), "unequal lengths");
+  int n= N (p);
+  ASSERT (n == N (q), "unequal lengths");
   double s= 0.0;
-  for (int i= 0; i < N (p); i++)
+  for (int i= 0; i < n; i++)
     s+= square (q[i] - p[i]);
   return sqrt (s);
 }
@@ -54,8 +69,7 @@ project (point p, point q1, point q2) {
 
 double
 distance (point p, point q1, point q2) {
-  if (q1 == q2) return distance (p, q1);
-  else return distance (p, project (p, q1, q2));
+  return sqrt (seg_dist2 (p, q1, q2));
 }
 
 point
@@ -81,12 +95,13 @@ sup (point p, point q) {
  ******************************************************************************/
 
 double
-distance (point p, poly_line pl) {
-  double m= 1.0e10;
-  if (N (pl) == 1) return distance (p, pl[0]);
-  for (int i= 0; i + 1 < N (pl); i++)
-    m= min (m, distance (p, pl[i], pl[i + 1]));
-  return m;
+distance (point p, const poly_line& pl) {
+  int n= N (pl);
+  if (n == 1) return distance (p, pl[0]);
+  double m2= 1.0e100;
+  for (int i= 0; i + 1 < n; i++)
+    m2= min (m2, seg_dist2 (p, pl[i], pl[i + 1]));
+  return sqrt (m2);
 }
 
 bool
@@ -94,21 +109,32 @@ nearby (point p, poly_line pl) {
   return distance (p, pl) <= 5.0;
 }
 
+// inf/sup 采用原地分量更新，避免逐点两两合并时的临时 point 分配
 point
-inf (poly_line pl) {
-  ASSERT (N (pl) > 0, "non zero length expected");
-  point p= pl[0];
-  for (int i= 1; i < N (pl); i++)
-    p= inf (p, pl[i]);
+inf (const poly_line& pl) {
+  int n= N (pl);
+  ASSERT (n > 0, "non zero length expected");
+  point p= copy (pl[0]);
+  int    m= N (p);
+  for (int i= 1; i < n; i++) {
+    const point& q= pl[i];
+    for (int j= 0; j < m; j++)
+      p[j]= min (p[j], q[j]);
+  }
   return p;
 }
 
 point
-sup (poly_line pl) {
-  ASSERT (N (pl) > 0, "non zero length expected");
-  point p= pl[0];
-  for (int i= 1; i < N (pl); i++)
-    p= sup (p, pl[i]);
+sup (const poly_line& pl) {
+  int n= N (pl);
+  ASSERT (n > 0, "non zero length expected");
+  point p= copy (pl[0]);
+  int    m= N (p);
+  for (int i= 1; i < n; i++) {
+    const point& q= pl[i];
+    for (int j= 0; j < m; j++)
+      p[j]= max (p[j], q[j]);
+  }
   return p;
 }
 
@@ -151,22 +177,24 @@ normalize (poly_line pl) {
 
 double
 length (poly_line pl) {
+  int    n  = N (pl);
   double len= 0.0;
-  for (int i= 1; i < N (pl); i++)
+  for (int i= 1; i < n; i++)
     len+= distance (pl[i], pl[i - 1]);
   return len;
 }
 
 point
 access (poly_line pl, double t) {
+  int n= N (pl);
   if (t < 0) return pl[0];
-  for (int i= 1; i < N (pl); i++) {
+  for (int i= 1; i < n; i++) {
     point  dp = pl[i] - pl[i - 1];
     double len= l2_norm (dp);
     if (t < len) return pl[i - 1] + (t / len) * dp;
     t-= len;
   }
-  return pl[N (pl) - 1];
+  return pl[n - 1];
 }
 
 /******************************************************************************
