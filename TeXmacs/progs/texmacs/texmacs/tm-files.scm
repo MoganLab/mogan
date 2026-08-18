@@ -71,19 +71,22 @@
 
 (define pdf-last-pages-limit 100)
 
+(define-preferences ("pdf:restore-last-page" "on" (lambda args (noop))))
+
 (define (pdf-last-page-entry? x)
   (and (pair? x) (string? (car x)) (integer? (cdr x)) (> (cdr x) 0))
 ) ;define
 
 ;; 序列化逐条一行：规避 s7 print-length（默认 40）把整个列表截断成 "..."；
-;; 单条 (path . page) 仅 2 元素、长字符串不受 print-length 影响
+;; 单条 (path . page) 仅 2 元素、长字符串不受 print-length 影响。
+;; 不用 object->tmstring：其 unescape-guile 会把含反斜杠的路径序列化成有损形式
 
 (define (pdf-last-pages-write lst)
   (string-join (map object->string lst) "\n")
 ) ;define
 
 (define (pdf-last-pages-parse-line line)
-  (catch #t (lambda () (read (open-input-string line))) (lambda args #f))
+  (catch #t (lambda () (string->object line)) (lambda args #f))
 ) ;define
 
 (define (pdf-last-pages-read)
@@ -121,10 +124,7 @@
 
 (tm-define (pdf-last-page-to-restore path)
   "Page to jump to when opening a PDF file, or #f"
-  ;; 开关缺省视为开（哨兵 "default"），仅显式 "off" 关闭
-  (and (!= (get-preference "pdf:restore-last-page") "off")
-    (pdf-last-page-get path)
-  ) ;and
+  (and (preference-on? "pdf:restore-last-page") (pdf-last-page-get path))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
