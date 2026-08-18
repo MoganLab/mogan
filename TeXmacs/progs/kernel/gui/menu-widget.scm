@@ -462,7 +462,7 @@
   ) ;and
 ) ;define
 
-(define (make-menu-entry-button attrs bar? bal? action)
+(define (make-menu-entry-button attrs bar? action)
   (with (style check label short balloon-txt)
     attrs
     (let* ((command (make-menu-command (if (active? style) (apply action '()))))
@@ -475,7 +475,8 @@
           (widget-menu-button l command "" "" new-style)
           (widget-menu-button l command check short style)
         ) ;if
-        (if (or bal? (not balloon-txt))
+        ;; bal? 为真时 menu-entry-attributes 已把气球槽置为 #f，这里无需再判
+        (if (not balloon-txt)
           but
           (with bal
             (widget-text (translate balloon-txt) style (color "black") #t)
@@ -608,7 +609,6 @@
       (tuple? (car p) 'balloon 2)
       (make-menu-entry-button (menu-entry-attributes label source style opt-key opt-check bal?)
         bar?
-        bal?
         action
       ) ;make-menu-entry-button
     ) ;with
@@ -634,13 +634,14 @@
     (promise-source (cAr p))
     (let ((but (make-menu-entry-sub p style bar? source))
           (label (car p))
-          (shortcut (and source (kbd-find-shortcut source #f)))
+          ;; 仅气球分支用到快捷键，懒求值避免普通条目做反向键表查找
+          (shortcut (lambda () (and source (kbd-find-shortcut source #f))))
          ) ;
       (cond ((tuple? label 'balloon 2)
-             (widget-balloon but (create-text-widget (caddr label) shortcut style))
+             (widget-balloon but (create-text-widget (caddr label) (shortcut) style))
             ) ;
             ((and (tuple? label 'check 3) (tuple? (cadr label) 'balloon 2))
-             (widget-balloon but (create-text-widget (caddr (cadr label)) shortcut style))
+             (widget-balloon but (create-text-widget (caddr (cadr label)) (shortcut) style))
             ) ;
             (else but)
       ) ;cond

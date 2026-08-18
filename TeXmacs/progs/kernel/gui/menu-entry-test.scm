@@ -14,7 +14,9 @@
 ;; 替代原先 make-menu-entry-sub 中分散的 5+ 次 promise-source 调用。
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (kernel gui menu-entry-test) (:use (kernel gui menu-widget)))
+(texmacs-module (kernel gui menu-entry-test)
+  (:use (kernel gui menu-widget) (kernel gui gui-markup))
+) ;texmacs-module
 
 (import (liii check))
 
@@ -35,8 +37,6 @@
 (tm-define (menu-entry-test-hint) "hint text")
 
 (tm-define (menu-entry-test-ballooned) (:balloon menu-entry-test-hint) (noop))
-
-;; widget-style-inert(16) + widget-style-grey(4) = 20
 
 (define (test-plain-entry)
   (check (menu-entry-attributes "Open" '(menu-entry-test-plain) 0 #f #f #f)
@@ -68,14 +68,15 @@
 ) ;define
 
 (define (test-inapplicable-greys)
+  ;; 不适用条目叠加 widget-style-inert + widget-style-grey
   (check (menu-entry-attributes "Opt" '(menu-entry-test-inapplicable) 0 #f #f #f)
     =>
-    '(20 "" "Opt" "" #f)
+    (list (+ widget-style-inert widget-style-grey) "" "Opt" "" #f)
   ) ;check
   ;; 原有样式位保留
   (check (menu-entry-attributes "Opt" '(menu-entry-test-inapplicable) 1 #f #f #f)
     =>
-    '(21 "" "Opt" "" #f)
+    (list (+ 1 widget-style-inert widget-style-grey) "" "Opt" "" #f)
   ) ;check
 ) ;define
 
