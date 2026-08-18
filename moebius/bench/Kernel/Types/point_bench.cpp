@@ -39,13 +39,11 @@ main () {
   bench.run ("rotate_2D", [&] { rotate_2D (a, o, 0.5); });
 
   point p1= mkp (0, 0), p2= mkp (1, 0), p3= mkp (2, 1);
-  bench.run ("linearly_dependent",
-             [&] { linearly_dependent (p1, p2, p3); });
+  bench.run ("linearly_dependent", [&] { linearly_dependent (p1, p2, p3); });
   bench.run ("midperp", [&] { midperp (p1, p2, p3); });
 
   point acc= mkp (0, 0);
-  bench.run ("composite a-b+2*c",
-             [&] { acc= (a - b) + 2.0 * (b + a); });
+  bench.run ("composite a-b+2*c", [&] { acc= (a - b) + 2.0 * (b + a); });
 
   ankerl::nanobench::doNotOptimizeAway (acc);
   return 0;
