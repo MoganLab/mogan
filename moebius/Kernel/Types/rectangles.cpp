@@ -247,10 +247,22 @@ disjoint_union (rectangles l, rectangle r) {
 
 rectangles
 operator| (rectangles l1, rectangles l2) {
-  rectangles l (l1 - l2);
-  while (!is_nil (l2)) {
-    l = disjoint_union (l, l2->item);
-    l2= l2->next;
+  // operator- 的结果全是新鲜节点,可原地改链:
+  // 每个 l2 元素只做摘链/改写,不再克隆整个前缀
+  rectangles l= l1 - l2;
+  for (; !is_nil (l2); l2= l2->next) {
+    rectangle   r   = l2->item;
+    rectangles* link= &l;
+    while (!is_nil (*link)) {
+      if (!adjacent ((*link)->item, r)) {
+        link= &(*link)->next;
+        continue;
+      }
+      // 相邻则并入 r 并把被吸收的节点摘链,继续向后扫
+      r    = least_upper_bound ((*link)->item, r);
+      *link= (*link)->next;
+    }
+    rectangles::append (link, r);
   }
   return l;
 }

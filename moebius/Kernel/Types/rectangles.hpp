@@ -79,6 +79,16 @@ typedef list<rectangle> rectangles;
  */
 rectangles operator- (rectangles l1, rectangles l2);
 rectangles operator& (rectangles l1, rectangles l2);
+
+/**
+ * @brief 矩形列表并集：先求 l1 - l2 去掉重叠，再把 l2 各矩形逐个并入
+ * @param l1 第一个列表
+ * @param l2 第二个列表
+ * @return 并集结果的新列表，原列表不变
+ * @note 并入时与累积列表中相邻的矩形会被合并（disjoint union 语义），
+ *   与全部元素都不相邻的矩形追加到尾部。典型用于失效/重绘区域的
+ *   逐矩形累积合并。
+ */
 rectangles operator| (rectangles l1, rectangles l2);
 rectangles disjoint_union (rectangles l, rectangle r);
 rectangles operator* (rectangles l, int d);

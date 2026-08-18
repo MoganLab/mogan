@@ -189,3 +189,54 @@ TEST_CASE ("test simplify long list returns copy") {
   CHECK_EQ (N (s), 26);
   CHECK (s == l);
 }
+
+TEST_CASE ("test union merges adjacent in place") {
+  // l2 元素与累积列表相邻时被吸收合并,不产生重复
+  rectangles l1= rectangles (rectangle (0, 0, 2, 2), rectangles ());
+  rectangles l2= rectangles (rectangle (2, 0, 4, 2), rectangles ());
+  rectangles u = l1 | l2;
+  CHECK_EQ (N (u), 1);
+  CHECK (u->item == rectangle (0, 0, 4, 2));
+}
+
+TEST_CASE ("test union appends disjoint") {
+  // 与累积列表全不相邻的元素追加到尾部,原有元素原样保留
+  rectangles l1=
+      rectangles (rectangle (0, 0, 2, 2),
+                  rectangles (rectangle (5, 5, 8, 8), rectangles ()));
+  rectangles l2= rectangles (rectangle (20, 20, 30, 30), rectangles ());
+  rectangles u = l1 | l2;
+  CHECK_EQ (N (u), 3);
+  CHECK (u->item == rectangle (0, 0, 2, 2));
+  CHECK ((u->next)->item == rectangle (5, 5, 8, 8));
+  CHECK ((u->next->next)->item == rectangle (20, 20, 30, 30));
+}
+
+TEST_CASE ("test union absorbs overlapping l2") {
+  // l2 与 l1 重叠:先做 l1 - l2 去重叠,再并入 l2,面积等于并集面积
+  rectangles l1= rectangles (rectangle (0, 0, 4, 4), rectangles ());
+  rectangles l2= rectangles (rectangle (2, 0, 6, 4), rectangles ());
+  rectangles u = l1 | l2;
+  CHECK_EQ (N (u), 1);
+  CHECK (u->item == rectangle (0, 0, 6, 4));
+}
+
+TEST_CASE ("test union chain merges multiple") {
+  // 链式相邻:l2 一次并入时把累积列表中多块相邻碎片逐个吸收
+  rectangles l1= rectangles (
+      rectangle (0, 0, 2, 2),
+      rectangles (rectangle (2, 0, 4, 2),
+                  rectangles (rectangle (10, 0, 12, 2), rectangles ())));
+  rectangles l2= rectangles (rectangle (4, 0, 10, 2), rectangles ());
+  rectangles u = l1 | l2;
+  CHECK_EQ (N (u), 2);
+  CHECK (u->item == rectangle (0, 0, 2, 2));
+  CHECK ((u->next)->item == rectangle (2, 0, 12, 2));
+}
+
+TEST_CASE ("test union area conservation") {
+  // 不相交并集面积守恒
+  rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
+  rectangles l2= rectangles (rectangle (0, 20, 10, 30), rectangles ());
+  CHECK_EQ (area (l1 | l2), 200.0);
+}

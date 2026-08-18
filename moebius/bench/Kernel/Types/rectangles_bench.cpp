@@ -59,6 +59,17 @@ old_subtract (rectangles l1, rectangles l2) {
   return a;
 }
 
+// 优化前的实现:每个 l2 元素经 disjoint_union 克隆整个前缀,用于同二进制 A/B 对比
+static rectangles
+old_union (rectangles l1, rectangles l2) {
+  rectangles l (l1 - l2);
+  while (!is_nil (l2)) {
+    l = disjoint_union (l, l2->item);
+    l2= l2->next;
+  }
+  return l;
+}
+
 int
 main () {
   ankerl::nanobench::Bench bench;
@@ -118,5 +129,20 @@ main () {
   });
   bench.run ("subtract x1024 disjoint16",
              [&] { ankerl::nanobench::doNotOptimizeAway (large - faraway); });
+  // 并集场景:模拟失效区域逐矩形累积,16 块均不与 large 相邻(全走尾插)
+  bench.run ("old union x1024 append16", [&] {
+    ankerl::nanobench::doNotOptimizeAway (old_union (large, faraway));
+  });
+  bench.run ("union x1024 append16",
+             [&] { ankerl::nanobench::doNotOptimizeAway (large | faraway); });
+  // 并集场景:与 large 部分元素相邻,触发合并路径
+  rectangles touchy;
+  for (int i= 1024 - 64; i >= 0; i-= 64)
+    touchy= rectangles (rectangle (i + 10, i, i + 12, i + 10), touchy);
+  bench.run ("old union x1024 adjacent16", [&] {
+    ankerl::nanobench::doNotOptimizeAway (old_union (large, touchy));
+  });
+  bench.run ("union x1024 adjacent16",
+             [&] { ankerl::nanobench::doNotOptimizeAway (large | touchy); });
   return 0;
 }
