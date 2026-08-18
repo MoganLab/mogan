@@ -7,7 +7,8 @@
 #include "nanobench.h"
 #include "path.hpp"
 
-/** build a left-leaning tree: compound(op=1, [child]) wrapping a leaf n times */
+/** build a left-leaning tree: compound(op=1, [child]) wrapping a leaf n times
+ */
 static void
 mk_deep_tree (tree& t, int depth) {
   t= tree ("leaf");
@@ -49,11 +50,10 @@ main () {
   path wide_p (50, 1);
 
   tree* r= nullptr;
-  bool   b= false;
+  bool  b= false;
   bench.run ("subtree deep hit", [&] { r= &subtree (deep, deep_p); });
   bench.run ("subtree shallow", [&] { r= &subtree (wide, wide_p); });
-  bench.run ("subtree parent",
-             [&] { r= &parent_subtree (deep, deep_p); });
+  bench.run ("subtree parent", [&] { r= &parent_subtree (deep, deep_p); });
   bench.run ("subtree miss", [&] { r= &subtree (deep, deep_p_bad); });
   bench.run ("has_subtree", [&] { b= has_subtree (deep, deep_p); });
 
