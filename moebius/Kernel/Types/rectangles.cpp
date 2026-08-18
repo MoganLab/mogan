@@ -74,7 +74,7 @@ intersect (rectangle r1, rectangle r2) {
  * @return 平移后的新矩形，原矩形不变
  */
 rectangle
-translate (rectangle r, SI x, SI y) {
+translate (const rectangle& r, SI x, SI y) {
   return rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y);
 }
 
@@ -252,7 +252,7 @@ operator| (rectangles l1, rectangles l2) {
  * @return 所有矩形均平移后的新列表，元素顺序保持不变，原列表不变
  */
 rectangles
-translate (rectangles l, SI x, SI y) {
+translate (const rectangles& l, SI x, SI y) {
   if (is_nil (l)) return l;
   rectangle& r= l->item;
   return rectangles (rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y),

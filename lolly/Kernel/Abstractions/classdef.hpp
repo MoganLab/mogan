@@ -143,6 +143,7 @@ public:                                                                        \
   inline PTR (const PTR&);                                                     \
   inline ~PTR ();                                                              \
   inline PTR##_rep* operator->();                                              \
+  inline PTR##_rep* operator->() const;                                        \
   inline PTR&       operator= (PTR x)
 
 /**
@@ -162,6 +163,7 @@ public:                                                                        \
   inline PTR::PTR (const PTR& x) : rep (x.rep) { INC_COUNT (this->rep); }      \
   inline PTR::~PTR () { DEC_COUNT (this->rep); }                               \
   inline PTR##_rep* PTR::operator->() { return rep; }                          \
+  inline PTR##_rep* PTR::operator->() const { return rep; }                    \
   inline PTR&       PTR::operator= (PTR x) {                                   \
     INC_COUNT (x.rep);                                                   \
     DEC_COUNT (this->rep);                                               \
@@ -196,6 +198,7 @@ public:                                                                        \
   inline PTR (const PTR<T>&);                                                  \
   inline ~PTR ();                                                              \
   inline PTR##_rep<T>* operator->();                                           \
+  inline PTR##_rep<T>* operator->() const;                                     \
   inline PTR<T>&       operator= (PTR<T> x)
 
 /**
@@ -220,6 +223,9 @@ public:                                                                        \
   }                                                                            \
   template <TT T> inline PTR<T>::~PTR () { DEC_COUNT (this->rep); }            \
   template <TT T> inline PTR##_rep<T>* PTR<T>::operator->() {                  \
+    return this->rep;                                                          \
+  }                                                                            \
+  template <TT T> inline PTR##_rep<T>* PTR<T>::operator->() const {            \
     return this->rep;                                                          \
   }                                                                            \
   template <TT T> inline PTR<T>& PTR<T>::operator= (PTR<T> x) {                \
@@ -257,6 +263,7 @@ public:                                                                        \
   inline PTR (const PTR<T1, T2>&);                                             \
   inline ~PTR ();                                                              \
   inline PTR##_rep<T1, T2>* operator->();                                      \
+  inline PTR##_rep<T1, T2>* operator->() const;                                \
   inline PTR<T1, T2>&       operator= (PTR<T1, T2> x)
 
 /**
@@ -287,6 +294,10 @@ public:                                                                        \
   }                                                                            \
   template <TT1 T1, TT2 T2>                                                    \
   inline PTR##_rep<T1, T2>* PTR<T1, T2>::operator->() {                        \
+    return this->rep;                                                          \
+  }                                                                            \
+  template <TT1 T1, TT2 T2>                                                    \
+  inline PTR##_rep<T1, T2>* PTR<T1, T2>::operator->() const {                  \
     return this->rep;                                                          \
   }                                                                            \
   template <TT1 T1, TT2 T2>                                                    \
@@ -368,6 +379,7 @@ public:                                                                        \
   inline PTR::PTR (const PTR& x) : rep (x.rep) { INC_COUNT_NULL (this->rep); } \
   inline PTR::~PTR () { DEC_COUNT_NULL (this->rep); }                          \
   inline PTR##_rep* PTR::operator->() { return this->rep; }                    \
+  inline PTR##_rep* PTR::operator->() const { return this->rep; }              \
   inline PTR&       PTR::operator= (PTR x) {                                   \
     INC_COUNT_NULL (x.rep);                                              \
     DEC_COUNT_NULL (this->rep);                                          \
@@ -401,6 +413,9 @@ public:                                                                        \
   }                                                                            \
   template <TT T> inline PTR<T>::~PTR () { DEC_COUNT_NULL (this->rep); }       \
   template <TT T> inline PTR##_rep<T>* PTR<T>::operator->() {                  \
+    return this->rep;                                                          \
+  }                                                                            \
+  template <TT T> inline PTR##_rep<T>* PTR<T>::operator->() const {            \
     return this->rep;                                                          \
   }                                                                            \
   template <TT T> inline PTR<T>& PTR<T>::operator= (PTR<T> x) {                \
@@ -444,6 +459,10 @@ public:                                                                        \
     DEC_COUNT_NULL (this->rep);                                                \
   }                                                                            \
   template <TT1 T1, TT2 T2> PTR##_rep<T1, T2>* PTR<T1, T2>::operator->() {     \
+    return this->rep;                                                          \
+  }                                                                            \
+  template <TT1 T1, TT2 T2>                                                    \
+  PTR##_rep<T1, T2>* PTR<T1, T2>::operator->() const {                         \
     return this->rep;                                                          \
   }                                                                            \
   template <TT1 T1, TT2 T2>                                                    \
