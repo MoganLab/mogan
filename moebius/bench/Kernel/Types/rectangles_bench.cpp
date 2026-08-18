@@ -29,7 +29,7 @@ main () {
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (1000).unit ("op");
 
-  rectangle r (0, 0, 10, 10);
+  rectangle  r (0, 0, 10, 10);
   rectangles large= mk_rects (1024);
 
   bench.run ("translate rectangle", [&] {
