@@ -95,6 +95,15 @@ template <class T> class list {
   }
 
   /**
+   * @brief 新建仅含 item 的节点并尾挂到 tail(等价 fresh_cell + adopt_tail)。
+   * @param tail 当前链尾的 next 槽位(构建期间始终为 nil)
+   * @note 融合封装,使「adopt_tail 只接受 fresh_cell 节点」的约定无法被绕过。
+   */
+  static void append (list<T>*& tail, T item) {
+    adopt_tail (tail, fresh_cell (item));
+  }
+
+  /**
    * @brief Construct a new list object with a single item.
    *
    * @param item The item to be stored in the list.

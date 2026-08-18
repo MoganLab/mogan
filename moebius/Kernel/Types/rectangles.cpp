@@ -160,18 +160,19 @@ append_difference (rectangle r, rectangles l2, rectangles*& tail) {
   for (rectangles q= l2; !is_nil (q); q= q->next) {
     if (!intersect (r, q->item)) continue;
     if (!cut) {
-      cur= rectangles (r, rectangles ());
+      complement (r, q->item, cur);
       cut= true;
+      continue;
     }
     rectangles next;
     for (rectangles p= cur; !is_nil (p); p= p->next)
       complement (p->item, q->item, next);
     cur= next;
   }
-  if (!cut) rectangles::adopt_tail (tail, rectangles::fresh_cell (r));
+  if (!cut) rectangles::append (tail, r);
   else
     for (rectangles p= cur; !is_nil (p); p= p->next)
-      rectangles::adopt_tail (tail, rectangles::fresh_cell (p->item));
+      rectangles::append (tail, p->item);
 }
 
 rectangles
@@ -261,9 +262,8 @@ translate (const rectangles& l, SI x, SI y) {
   rectangles* tail= &out;
   for (rectangles p= l; !is_nil (p); p= p->next) {
     rectangle& r= p->item;
-    rectangles::adopt_tail (
-        tail, rectangles::fresh_cell (
-                  rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y)));
+    rectangles::append (tail,
+                        rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y));
   }
   return out;
 }
@@ -275,9 +275,8 @@ thicken (const rectangles& l, SI width, SI height) {
   rectangles* tail= &out;
   for (rectangles p= l; !is_nil (p); p= p->next) {
     rectangle& r= p->item;
-    rectangles::adopt_tail (tail, rectangles::fresh_cell (rectangle (
-                                      r->x1 - width, r->y1 - height,
-                                      r->x2 + width, r->y2 + height)));
+    rectangles::append (tail, rectangle (r->x1 - width, r->y1 - height,
+                                         r->x2 + width, r->y2 + height));
   }
   return out;
 }
@@ -307,8 +306,7 @@ correct (const rectangles& l) {
   rectangles* tail= &out;
   for (rectangles p= l; !is_nil (p); p= p->next) {
     rectangle& r= p->item;
-    if ((r->x1 < r->x2) && (r->y1 < r->y2))
-      rectangles::adopt_tail (tail, rectangles::fresh_cell (r));
+    if ((r->x1 < r->x2) && (r->y1 < r->y2)) rectangles::append (tail, r);
   }
   return out;
 }

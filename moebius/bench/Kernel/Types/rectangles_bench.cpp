@@ -43,22 +43,8 @@ old_correct (rectangles l) {
   return rectangles (l->item, old_correct (l->next));
 }
 
-// 优化前的按值实现,用于同二进制 A/B 对比
-#define min(x, y) ((x) <= (y) ? (x) : (y))
-#define max(x, y) ((x) <= (y) ? (y) : (x))
-static void
-old_complement (rectangle r1, rectangle r2, rectangles& l) {
-  if (!intersect (r1, r2)) {
-    r1 >> l;
-    return;
-  }
-  if (r1->x1 < r2->x1) rectangle (r1->x1, r1->y1, r2->x1, r1->y2) >> l;
-  if (r1->x2 > r2->x2) rectangle (r2->x2, r1->y1, r1->x2, r1->y2) >> l;
-  if (r1->y1 < r2->y1)
-    rectangle (max (r1->x1, r2->x1), r1->y1, min (r1->x2, r2->x2), r2->y1) >> l;
-  if (r1->y2 > r2->y2)
-    rectangle (max (r1->x1, r2->x1), r2->y2, min (r1->x2, r2->x2), r1->y2) >> l;
-}
+// 生产代码中的单矩形差分辅助(外部链接,rectangles.cpp 未导出到 hpp)
+void complement (rectangle r1, rectangle r2, rectangles& l);
 
 // 优化前的按值实现,用于同二进制 A/B 对比
 static rectangles
@@ -67,7 +53,7 @@ old_subtract (rectangles l1, rectangles l2) {
   for (; !is_nil (l2); l2= l2->next) {
     rectangles b;
     for (rectangles p= a; !is_nil (p); p= p->next)
-      old_complement (p->item, l2->item, b);
+      complement (p->item, l2->item, b);
     a= b;
   }
   return a;
