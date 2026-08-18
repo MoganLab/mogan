@@ -56,8 +56,29 @@ TEST_CASE ("test rotate_2D") {
 TEST_CASE ("test slanted") { CHECK (slanted (mkp (2, 4), 0.5) == mkp (4, 4)); }
 
 TEST_CASE ("test inside_rectangle") {
-  CHECK (inside_rectangle (mkp (1, 1), mkp (0, 0), mkp (2, 2)));
-  CHECK (!inside_rectangle (mkp (3, 1), mkp (0, 0), mkp (2, 2)));
+  point pmin= mkp (0, 0), pmax= mkp (2, 2);
+  // 内部点
+  CHECK (inside_rectangle (mkp (1, 1), pmin, pmax));
+  // 四条边外侧各排除一个方向
+  CHECK (!inside_rectangle (mkp (-1, 1), pmin, pmax));
+  CHECK (!inside_rectangle (mkp (3, 1), pmin, pmax));
+  CHECK (!inside_rectangle (mkp (1, -1), pmin, pmax));
+  CHECK (!inside_rectangle (mkp (1, 3), pmin, pmax));
+  // 判定含边界：四角与四边中点均在矩形内
+  CHECK (inside_rectangle (mkp (0, 0), pmin, pmax));
+  CHECK (inside_rectangle (mkp (2, 2), pmin, pmax));
+  CHECK (inside_rectangle (mkp (0, 2), pmin, pmax));
+  CHECK (inside_rectangle (mkp (2, 0), pmin, pmax));
+  CHECK (inside_rectangle (mkp (1, 0), pmin, pmax));
+  CHECK (inside_rectangle (mkp (1, 2), pmin, pmax));
+  CHECK (inside_rectangle (mkp (0, 1), pmin, pmax));
+  CHECK (inside_rectangle (mkp (2, 1), pmin, pmax));
+  // 退化矩形：对角顶点重合为单点，仅该点自身在内
+  CHECK (inside_rectangle (mkp (1, 1), mkp (1, 1), mkp (1, 1)));
+  CHECK (!inside_rectangle (mkp (1, 1.5), mkp (1, 1), mkp (1, 1)));
+  // 退化矩形：零高度线段，x 方向含边界、y 必须等于 1
+  CHECK (inside_rectangle (mkp (1.5, 1), mkp (0, 1), mkp (2, 1)));
+  CHECK (!inside_rectangle (mkp (1.5, 1.5), mkp (0, 1), mkp (2, 1)));
 }
 
 TEST_CASE ("test collinear") {

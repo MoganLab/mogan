@@ -59,6 +59,18 @@ double seg_dist (point p1, point p2, point p);
 axis   midperp (point p1, point p2, point p3);
 point  intersection (axis A, axis B);
 
+/**
+ * @brief 判断二维点是否位于闭合矩形内
+ *
+ * 矩形由其对角顶点 p1（左下角）与 p2（右上角）确定，要求
+ * p1[0] <= p2[0] 且 p1[1] <= p2[1]。判定含边界：坐标恰好落在
+ * 矩形边上的点视为在矩形内。
+ *
+ * @param p  待判断的二维点
+ * @param p1 矩形的一个对角顶点（各分量取较小值的一角）
+ * @param p2 矩形的另一个对角顶点（各分量取较大值的一角）
+ * @return   点在矩形内（含边界）时返回 true，否则返回 false
+ */
 bool inside_rectangle (point p, point p1, point p2);
 
 #endif // defined POINT_H
