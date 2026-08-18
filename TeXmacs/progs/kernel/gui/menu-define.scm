@@ -584,11 +584,15 @@
          ) ;cond
         ) ;
         ((string? x) x)
-        ((and (pair? x) (ahash-ref gui-make-table (car x)))
-         (apply (car (ahash-ref gui-make-table (car x))) (list x))
-        ) ;
-        ((and (pair? x) (or (string? (car x)) (pair? (car x))))
-         `($> ,(gui-make (car x)) ,@(cdr x))
+        ((pair? x)
+         (with entry
+           (ahash-ref gui-make-table (car x))
+           (cond (entry (apply (car entry) (list x)))
+                 ((or (string? (car x)) (pair? (car x))) `($> ,(gui-make (car x))
+                                                            ,@(cdr x)))
+                 (else (texmacs-error "gui-make" "invalid menu item ~S" x))
+           ) ;cond
+         ) ;with
         ) ;
         (else (texmacs-error "gui-make" "invalid menu item ~S" x))
   ) ;cond

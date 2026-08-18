@@ -1386,16 +1386,9 @@
   `(toggle ,(replace-procedures (cadr p)) ,((caddr p)))
 ) ;define
 
-(define menu-expand-count 0)
-
 (define (menu-expand-list l)
   "Expand links and conditional menus in list of menus @l."
-  (map (lambda (item)
-         (set! menu-expand-count (+ menu-expand-count 1))
-         (menu-expand item)
-       ) ;lambda
-    l
-  ) ;map
+  (map menu-expand l)
 ) ;define
 
 (define must-eval-list '(input enum choice filtered-choice toggle))
