@@ -51,18 +51,15 @@ hashmap_rep<T, U>::resize (int n2) {
   list<hashentry<T, U>>* olda= a;
   n                          = n2;
   a                          = tm_new_array<list<hashentry<T, U>>> (n);
-  // 把旧桶的节点直接搬到新桶:复用已存的 code 免再哈希,
-  // 并原样重挂节点,避免逐条目重新分配/析构
+  // 原样重挂旧桶节点到新桶,复用已存的 code 免再哈希
   for (i= 0; i < oldn; i++) {
     list<hashentry<T, U>> l (olda[i]);
     while (!is_nil (l)) {
       list_rep<hashentry<T, U>>* node= l.rep;
       list<hashentry<T, U>>    next (node->next);
-      list<hashentry<T, U>>&   newl  = a[hash_bucket (node->item.code, n)];
-      node->next                     = newl;
-      node->ref_count++; // 所有权转移给新桶
-      newl.rep                       = node;
-      l                              = next;
+      list<hashentry<T, U>>::rehang (
+          a[hash_bucket (node->item.code, n)], node);
+      l= next;
     }
     olda[i]= list<hashentry<T, U>> ();
   }
@@ -91,8 +88,7 @@ hashmap_rep<T, U>::insert_node (int hv, T key, U im) {
   list_rep<hashentry<T, U>>* node= tm_new<list_rep<hashentry<T, U>>> (
       H (hv, key, im), list<hashentry<T, U>> ());
   list<hashentry<T, U>>& rl= a[hash_bucket (hv, n)];
-  node->next.rep             = rl.rep; // 桶对旧头部的引用转由 node 持有
-  rl.rep                     = node;
+  list<hashentry<T, U>>::adopt (rl, node);
   size++;
   return node;
 }

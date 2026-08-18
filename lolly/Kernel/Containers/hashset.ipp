@@ -21,17 +21,13 @@ hashset_rep<T>::resize (int n2) {
   list<T>* olda= a;
   n            = n2;
   a            = tm_new_array<list<T>> (n);
-  // 把旧桶的节点直接搬到新桶:原样重挂节点,避免逐条目重新分配/析构
   for (i= 0; i < oldn; i++) {
     list<T> l (olda[i]);
     while (!is_nil (l)) {
       list_rep<T>* node= l.rep;
       list<T>      next (node->next);
-      list<T>&     newl= a[hash_bucket (hash (node->item), n)];
-      node->next.rep    = newl.rep; // 桶对旧头部的引用转由 node 持有
-      node->ref_count++;            // 所有权转移给新桶
-      newl.rep          = node;
-      l                 = next;
+      list<T>::rehang (a[hash_bucket (hash (node->item), n)], node);
+      l= next;
     }
     olda[i]= list<T> ();
   }
@@ -57,21 +53,19 @@ hashset_rep<T>::contains (T x) {
 
 template <class T>
 void
-hashset_rep<T>::insert_node (T x) {
+hashset_rep<T>::insert_node (int hv, T x) {
   if (size >= n * max) resize (n << 1);
   list_rep<T>* node= tm_new<list_rep<T>> (x, list<T> ());
-  list<T>&     rl  = a[hash_bucket (hash (x), n)];
-  node->next.rep   = rl.rep; // 桶对旧头部的引用转由 node 持有
-  rl.rep           = node;
+  list<T>::adopt (a[hash_bucket (hv, n)], node);
   size++;
 }
 
 template <class T>
 void
 hashset_rep<T>::insert (T x) {
-  list<T>& l= a[hash_bucket (hash (x), n)];
-  if (find_node (l, x) != NULL) return;
-  insert_node (x);
+  int hv= hash (x);
+  if (find_node (a[hash_bucket (hv, n)], x) != NULL) return;
+  insert_node (hv, x);
 }
 
 template <class T>
@@ -107,7 +101,6 @@ operator<= (hashset<T> h1, hashset<T> h2) {
   for (; i < n; i++) {
     list<T> l= h1->a[i];
     for (; !is_nil (l); l= l->next, j++) {
-      // 裸指针在 h2 桶内查找,免去 contains 的句柄拷贝
       if (hashset_rep<T>::find_node (
               h2->a[hash_bucket (hash (l->item), h2->n)], l->item) == NULL)
         return false;

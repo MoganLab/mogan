@@ -37,8 +37,10 @@ main () {
       (void) found;
     }
   });
-  bench.run ("remove() all entries", [&] {
-    hashset<int> h2= hs;
+  // remove 会破坏数据,每个 epoch 都须深拷贝一份(hashset 赋值是共享 rep
+  // 的浅拷贝),故本用例计时含 copy
+  bench.run ("copy()+remove() all entries", [&] {
+    hashset<int> h2= copy (hs);
     for (auto k : keys)
       h2->remove (k);
   });
@@ -46,18 +48,19 @@ main () {
     auto c= copy (hs);
     ankerl::nanobench::doNotOptimizeAway (c);
   });
+  hashset<int> sub;
+  for (int i= 0; i < N; i+= 2)
+    sub->insert (keys[i]);
+
   bench.run ("operator<=() subset", [&] {
-    hashset<int> sub;
-    for (int i= 0; i < N; i+= 2)
-      sub->insert (keys[i]);
-    volatile bool le= (sub <= hs);
-    (void) le;
-  });
-  bench.run ("single resize op", [&] {
-    hashset<int> h;
-    for (int i= 0; i < 2; ++i)
-      h->insert (i);
-    h->insert (2);
+    bool le= true;
+    // 交替包含/不包含的键扰动输入,防止编译器把结果当成不变量折叠
+    for (int i= 0; i < 1000; ++i) {
+      sub->insert (keys[0] + N + i);
+      le= le && (sub <= hs);
+      sub->remove (keys[0] + N + i);
+    }
+    ankerl::nanobench::doNotOptimizeAway (le);
   });
 
   return 0;

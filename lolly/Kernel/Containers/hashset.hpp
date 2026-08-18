@@ -37,9 +37,9 @@ template <class T> class hashset_rep : concrete_struct {
 
   /**
    * @brief 以裸指针在桶头挂一个新节点(必要时先扩容)。
-   * @note 避免临时句柄的引用计数增减。
+   * @param hv 调用方已算好的完整哈希值,避免重复哈希。
    */
-  void insert_node (T x);
+  void insert_node (int hv, T x);
 
 public:
   /**

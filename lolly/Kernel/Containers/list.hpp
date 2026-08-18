@@ -55,6 +55,27 @@ template <class T> class list {
   template <class T2> friend class hashset_rep;
 
   /**
+   * @brief 把 node 重挂到 dst 链头(所有权转移,node 仍被原持有者引用)。
+   * @note 句柄赋值会释放 node 对原后继的引用;ref_count++ 补偿 dst.rep
+   * 裸赋值新增的引用。hashmap/hashset resize 搬桶时使用。
+   */
+  static void rehang (list<T>& dst, list_rep<T>* node) {
+    node->next= dst;
+    node->ref_count++;
+    dst.rep= node;
+  }
+
+  /**
+   * @brief 把新建节点(ref_count==1)挂到 dst 链头,所有权让渡给 dst。
+   * @note dst 对旧头部的引用原样转由 node 持有,不经引用计数。
+   * hashmap/hashset 插入新节点时使用。
+   */
+  static void adopt (list<T>& dst, list_rep<T>* node) {
+    node->next.rep= dst.rep;
+    dst.rep       = node;
+  }
+
+  /**
    * @brief Construct a new list object with a single item.
    *
    * @param item The item to be stored in the list.
