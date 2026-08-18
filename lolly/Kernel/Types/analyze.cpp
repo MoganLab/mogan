@@ -961,16 +961,23 @@ find_non_alpha (string s, int pos, bool forward) {
 
 array<string>
 tokenize (string s, string sep) {
-  int           start= 0;
+  int start= 0, n= N (s), k= N (sep);
+  // 空分隔符不匹配任何位置，整串作为唯一 token 返回
+  if (k == 0) {
+    array<string> a;
+    a << s;
+    return a;
+  }
+  char          c= sep[0];
   array<string> a;
-  for (int i= 0; i < N (s);)
-    if (test (s, i, sep)) {
+  for (int i= 0; i + k <= n;)
+    if (s[i] == c && test (s, i, sep)) {
       a << s (start, i);
-      i+= N (sep);
+      i+= k;
       start= i;
     }
     else i++;
-  a << s (start, N (s));
+  a << s (start, n);
   return a;
 }
 

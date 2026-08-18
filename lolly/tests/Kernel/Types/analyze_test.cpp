@@ -203,6 +203,24 @@ TEST_CASE ("tokenize") {
   CHECK_EQ (tokenize ("hello world", " "), array<string> ("hello", "world"));
   CHECK_EQ (tokenize ("zotero://select/library/items/2AIFJFS7", "://"),
             array<string> ("zotero", "select/library/items/2AIFJFS7"));
+  // 分隔符长于原串：整串作为唯一 token
+  array<string> single;
+  single << "ab";
+  CHECK_EQ (tokenize ("ab", "abc"), single);
+  // 尾部不足以容纳分隔符的片段原样保留
+  CHECK_EQ (tokenize ("a::b:", "::"), array<string> ("a", "b:"));
+  // 首字符干扰：首字符相同但整体不匹配，不拆分
+  array<string> whole;
+  whole << "a:b";
+  CHECK_EQ (tokenize ("a:b", "::"), whole);
+  // 空分隔符：整串作为唯一 token（原实现此处会死循环）
+  CHECK_EQ (tokenize ("a:b", ""), whole);
+  // 大输入冒烟
+  string big;
+  for (int i= 0; i < 2000; i++)
+    big << "key=value;";
+  CHECK_EQ (N (tokenize (big, ";")), 2001);
+  string_eq (tokenize (big, ";")[1999], "key=value");
 }
 
 TEST_CASE ("recompose") {

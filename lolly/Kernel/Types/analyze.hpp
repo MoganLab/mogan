@@ -523,11 +523,15 @@ int fuzzy_match_score (string pattern, string target);
 int find_non_alpha (string s, int pos, bool forward);
 
 /**
- * Splits a string into an array of strings based on a separator string.
+ * @brief 将字符串 s 按分隔符 sep 拆分为子串数组
  *
- * @param s The string to split.
- * @param sep The separator string.
- * @return An array of strings split based on the separator.
+ * @param s   原字符串
+ * @param sep 分隔符（非空）
+ * @return    拆分后的子串数组；sep 为空串时返回仅含 s 自身的数组
+ *
+ * @note 扫描时先用首字符快速筛选，仅当 s[i] 与 sep[0] 相同才进入
+ *       test 做完整比较；模式尾部不足以容纳 sep 的区段直接跳过。
+ *       空分隔符原实现会死循环，现按整串唯一 token 处理。
  */
 array<string> tokenize (string s, string sep);
 
