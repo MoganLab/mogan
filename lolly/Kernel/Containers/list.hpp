@@ -76,6 +76,25 @@ template <class T> class list {
   }
 
   /**
+   * @brief 新建一个仅含 item 的节点(ref_count==1, next 为 nil)。
+   * @note 配合 adopt_tail 做迭代式尾插构建，供跳过深层递归的
+   * 列表整体映射(如 rectangles 的 translate/thicken)使用。
+   */
+  static list_rep<T>* fresh_cell (T item);
+
+  /**
+   * @brief 把 fresh_cell 新建的节点挂到 tail 槽位,并把 tail 推进到新链尾。
+   * @param tail 当前链尾的 next 槽位(构建期间始终为 nil)
+   * @param cell fresh_cell 新建的节点
+   * @note 槽位为 NULL 且节点 ref_count==1,裸赋值即所有权让渡,
+   * 不经引用计数;正确使用时无需 INC/DEC。
+   */
+  static void adopt_tail (list<T>*& tail, list_rep<T>* cell) {
+    tail->rep= cell;
+    tail     = &cell->next;
+  }
+
+  /**
    * @brief Construct a new list object with a single item.
    *
    * @param item The item to be stored in the list.
@@ -171,6 +190,10 @@ TMPL inline list<T>::list (T item1, T item2, list<T> next)
     : rep (tm_new<list_rep<T>> (item1, list<T> (item2, next))) {}
 TMPL inline list<T>::list (T item1, T item2, T item3, list<T> next)
     : rep (tm_new<list_rep<T>> (item1, list<T> (item2, item3, next))) {}
+TMPL inline list_rep<T>*
+list<T>::fresh_cell (T item) {
+  return tm_new<list_rep<T>> (item, list<T> ());
+}
 TMPL inline bool
 is_atom (list<T> l) {
   return (!is_nil (l)) && is_nil (l->next);

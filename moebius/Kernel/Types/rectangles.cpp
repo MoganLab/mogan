@@ -253,10 +253,16 @@ operator| (rectangles l1, rectangles l2) {
  */
 rectangles
 translate (const rectangles& l, SI x, SI y) {
-  if (is_nil (l)) return l;
-  rectangle& r= l->item;
-  return rectangles (rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y),
-                     translate (l->next, x, y));
+  // 迭代 + 尾槽位直挂：避免深度等于列表长度的递归，也避免 reverse 的二次分配
+  rectangles  out;
+  rectangles* tail= &out;
+  for (rectangles p= l; !is_nil (p); p= p->next) {
+    rectangle& r= p->item;
+    rectangles::adopt_tail (
+        tail, rectangles::fresh_cell (
+                  rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y)));
+  }
+  return out;
 }
 
 rectangles

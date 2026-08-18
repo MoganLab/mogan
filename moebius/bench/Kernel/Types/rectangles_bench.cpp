@@ -35,6 +35,15 @@ main () {
   bench.run ("translate rectangle", [&] {
     ankerl::nanobench::doNotOptimizeAway (translate (r, 5, 7));
   });
+  bench.run ("rev+reverse translate x1024", [&] {
+    rectangles rev;
+    for (rectangles p= large; !is_nil (p); p= p->next) {
+      rectangle& r= p->item;
+      rev= rectangles (rectangle (r->x1 + 5, r->y1 + 7, r->x2 + 5, r->y2 + 7),
+                       rev);
+    }
+    ankerl::nanobench::doNotOptimizeAway (reverse (rev));
+  });
   bench.run ("old translate rectangles x1024", [&] {
     ankerl::nanobench::doNotOptimizeAway (old_translate (large, 5, 7));
   });
