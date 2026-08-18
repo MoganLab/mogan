@@ -127,6 +127,74 @@ TEST_CASE ("test proj degenerate axis") {
   CHECK (proj (a, mkp (5, 5)) == mkp (1, 1));
 }
 
+TEST_CASE ("test proj oblique axis") {
+  // 斜率为 1 的直线 y = x，点 (0, 2) 的垂足为 (1, 1)
+  axis a;
+  a.p0   = mkp (0, 0);
+  a.p1   = mkp (5, 5);
+  point r= proj (a, mkp (0, 2));
+  CHECK (fabs (r[0] - 1.0) < 1e-9);
+  CHECK (fabs (r[1] - 1.0) < 1e-9);
+  CHECK (fabs (dist (a, mkp (0, 2)) - sqrt (2.0)) < 1e-9);
+}
+
+TEST_CASE ("test proj outside segment") {
+  // t 不受 [0,1] 限制：垂足落在延长线上
+  axis a;
+  a.p0= mkp (0, 0);
+  a.p1= mkp (10, 0);
+  CHECK (proj (a, mkp (-3, 4)) == mkp (-3, 0));
+  CHECK (proj (a, mkp (13, 4)) == mkp (13, 0));
+  CHECK (proj (a, mkp (10, 0)) == mkp (10, 0));
+  CHECK (proj (a, mkp (0, 0)) == mkp (0, 0));
+}
+
+TEST_CASE ("test proj orthogonal invariant") {
+  // 投影点到原点的连线与轴方向正交
+  axis a;
+  a.p0   = mkp (1, 2);
+  a.p1   = mkp (4, 6);
+  point p= mkp (5, 1);
+  point r= proj (a, p);
+  CHECK (fabs (inner (r - p, a.p1 - a.p0)) < 1e-9);
+}
+
+TEST_CASE ("test proj 3d") {
+  // 三维：投影到 z 轴
+  point p0 (3), p1 (3), p (3);
+  p0[0]= 0;
+  p0[1]= 0;
+  p0[2]= 0;
+  p1[0]= 0;
+  p1[1]= 0;
+  p1[2]= 1;
+  p[0] = 1;
+  p[1] = 2;
+  p[2] = 5;
+  axis z_axis;
+  z_axis.p0= p0;
+  z_axis.p1= p1;
+  point r  = proj (z_axis, p);
+  CHECK (r[0] == 0);
+  CHECK (r[1] == 0);
+  CHECK (fabs (r[2] - 5.0) < 1e-9);
+  CHECK (fabs (dist (z_axis, p) - sqrt (5.0)) < 1e-9);
+}
+
+TEST_CASE ("test proj dim mismatch") {
+  // 结果维度取 min(N(p0), N(p1))，与 p 的维度无关
+  axis a;
+  a.p0= mkp (0, 0);
+  a.p1= mkp (10, 0);
+  point p3 (3);
+  p3[0]  = 3;
+  p3[1]  = 4;
+  p3[2]  = 100;
+  point r= proj (a, p3);
+  CHECK (N (r) == 2);
+  CHECK (r == mkp (3, 0));
+}
+
 TEST_CASE ("test linearly_dependent") {
   CHECK (linearly_dependent (mkp (0, 0), mkp (1, 1), mkp (2, 2)));
   CHECK (!linearly_dependent (mkp (0, 0), mkp (1, 0), mkp (0, 1)));
