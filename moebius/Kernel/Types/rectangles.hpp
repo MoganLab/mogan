@@ -68,6 +68,15 @@ bool      is_zero (rectangle r);
 
 typedef list<rectangle> rectangles;
 
+/**
+ * @brief 矩形列表差集：从 l1 中挖去所有与 l2 相交的部分
+ * @param l1 被减列表
+ * @param l2 减数列表
+ * @return 差集结果的新列表，元素按 l1 顺序逐个产出，原列表不变
+ * @note 与 l2 全不交的 l1 元素原样保留；完全被覆盖的元素被丢弃；
+ *   部分相交的元素被切成至多数块碎片。结果可能含相邻可合并的碎片，
+ *   需要时由调用方再用 simplify 收敛。
+ */
 rectangles operator- (rectangles l1, rectangles l2);
 rectangles operator& (rectangles l1, rectangles l2);
 rectangles operator| (rectangles l1, rectangles l2);

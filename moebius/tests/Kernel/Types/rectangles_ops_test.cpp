@@ -116,6 +116,43 @@ TEST_CASE ("test union and difference") {
   CHECK_EQ (area (d), 8.0);
 }
 
+TEST_CASE ("test difference full coverage") {
+  // 被完全覆盖的矩形被整块丢弃,结果为空
+  rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
+  rectangles l2= rectangles (rectangle (-1, -1, 11, 11), rectangles ());
+  rectangles d = l1 - l2;
+  CHECK (is_nil (d));
+}
+
+TEST_CASE ("test difference disjoint keeps order") {
+  // 与被减列表全不交的元素原样保留且保序
+  rectangles l1=
+      rectangles (rectangle (0, 0, 2, 2),
+                  rectangles (rectangle (5, 5, 8, 8), rectangles ()));
+  rectangles l2= rectangles (rectangle (20, 20, 30, 30), rectangles ());
+  CHECK ((l1 - l2) == l1);
+}
+
+TEST_CASE ("test difference splits pieces") {
+  // 中间被挖掉一条,切成上下两块,面积守恒
+  rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
+  rectangles l2= rectangles (rectangle (0, 4, 10, 6), rectangles ());
+  rectangles d = l1 - l2;
+  CHECK_EQ (N (d), 2);
+  CHECK_EQ (area (d), 80.0);
+  CHECK (least_upper_bound (d) == rectangle (0, 0, 10, 10));
+}
+
+TEST_CASE ("test difference multiple subtrahends") {
+  // 依次被两个减数切割:先挖右侧,再从剩余碎片中挖一块
+  rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
+  rectangles l2=
+      rectangles (rectangle (6, 0, 12, 10),
+                  rectangles (rectangle (0, 0, 2, 4), rectangles ()));
+  rectangles d= l1 - l2;
+  CHECK_EQ (area (d), 60.0 - 8.0);
+}
+
 TEST_CASE ("test correct drops degenerate") {
   CHECK (correct (rectangles ()) == rectangles ());
   // 零宽/零高/负宽高的矩形均被剔除，其余顺序保持
