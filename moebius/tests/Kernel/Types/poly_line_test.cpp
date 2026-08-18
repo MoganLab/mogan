@@ -128,9 +128,12 @@ TEST_CASE ("test vertices") {
   // 直线段：只有首尾
   poly_line     line= mk_pl (0.0, 0.0, 0.5, 0.0, 1.0, 0.0);
   array<double> ts  = vertices (line);
-  REQUIRE (N (ts) == 2);
-  CHECK_EQ (ts[0], 0.0);
-  CHECK_EQ (ts[1], 1.0);
+  // REQUIRE 依赖异常，MSVC 关异常下不可用；CHECK 后需自行防止越界访问
+  CHECK (N (ts) == 2);
+  if (N (ts) == 2) {
+    CHECK_EQ (ts[0], 0.0);
+    CHECK_EQ (ts[1], 1.0);
+  }
   // 直角折线：中间顶点应被检出
   poly_line     bend= mk_pl (0.0, 0.0, 1.0, 0.0, 1.0, 1.0);
   array<double> vs  = vertices (bend);
@@ -172,9 +175,11 @@ TEST_CASE ("test invariants") {
   array<double> cont;
   invariants (gl, 1, disc, cont);
   // 离散特征：轮廓条数 + 每条折线顶点数
-  REQUIRE (N (disc) == 2);
-  CHECK (disc[0] == tree ("1"));
-  CHECK (disc[1] == tree ("2"));
+  CHECK (N (disc) == 2);
+  if (N (disc) == 2) {
+    CHECK (disc[0] == tree ("1"));
+    CHECK (disc[1] == tree ("2"));
+  }
   // 连续特征：21 个采样点坐标 + 顶点参数（缩放 2.5 倍）
   CHECK (N (cont) == 21 * 2 + 2);
   CHECK_EQ (cont[0], 0.0);
