@@ -54,8 +54,27 @@ strip (path p, path q) {
  * Getting subtrees from paths
  ******************************************************************************/
 
-bool  has_subtree (tree t, path p);
-tree& subtree (tree& t, path p);
-tree& parent_subtree (tree& t, path p);
+/**
+ * @brief 判断树 t 中是否存在 path p 所指的子树
+ * @param t  待查询的树
+ * @param p  子树坐标
+ * @return   存在返回 true；p 为空 path 或逐段索引均落在 compound 范围内时成立
+ */
+bool has_subtree (tree t, const path& p);
+/**
+ * @brief 取树 t 中 path p 所指的子树引用
+ * @param t  待查询的树
+ * @param p  子树坐标，p 为空时返回 t 本身
+ * @return   所指子树的引用
+ * @note     p 越界或命中原子节点时打印一次诊断信息并返回 t 本身
+ */
+tree& subtree (tree& t, const path& p);
+/**
+ * @brief 取树 t 中 path p 所指子树的父节点引用
+ * @param t  待查询的树
+ * @param p  子树坐标，至少长度为 1
+ * @return   所指子树父节点的引用；p 长度为 1 时返回 t
+ */
+tree& parent_subtree (tree& t, const path& p);
 
 #endif // defined PATH_H

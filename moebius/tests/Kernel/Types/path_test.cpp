@@ -112,3 +112,38 @@ TEST_CASE ("test has_subtree") {
       has_subtree (tree (2, tree (3, tree ()), tree (4, tree ())), path (1)),
       true);
 }
+
+static tree
+mk_test_tree () {
+  // op=0 表示原子节点，compound 的 op 必须为正： (1 (2 (3 "x")) (4 "y"))
+  return tree (1, tree (2, tree (3, tree ("x"))), tree (4, tree ("y")));
+}
+
+TEST_CASE ("test subtree") {
+  tree t= mk_test_tree ();
+  CHECK_EQ (subtree (t, path ()), t);
+  CHECK_EQ (subtree (t, path (0)), tree (2, tree (3, tree ("x"))));
+  CHECK_EQ (subtree (t, path (0, 0)), tree (3, tree ("x")));
+  CHECK_EQ (subtree (t, path (0, 0, 0)), tree ("x"));
+  CHECK_EQ (subtree (t, path (1, 0)), tree ("y"));
+  // 越界与命中原子节点：打印诊断并返回原树
+  CHECK_EQ (subtree (t, path (2)), t);
+  CHECK_EQ (subtree (t, path (0, 0, 0, 0)), t);
+  CHECK_EQ (subtree (t, path (-1)), t);
+}
+
+TEST_CASE ("test parent_subtree") {
+  tree t= mk_test_tree ();
+  CHECK_EQ (parent_subtree (t, path (0)), t);
+  CHECK_EQ (parent_subtree (t, path (0, 0)), tree (2, tree (3, tree ("x"))));
+  CHECK_EQ (parent_subtree (t, path (1, 0)), tree (4, tree ("y")));
+}
+
+TEST_CASE ("test has_subtree miss") {
+  tree t= mk_test_tree ();
+  CHECK_EQ (has_subtree (t, path (2)), false);
+  CHECK_EQ (has_subtree (t, path (-1)), false);
+  CHECK_EQ (has_subtree (t, path (0, 0, 0, 0)), false);
+  CHECK_EQ (has_subtree (t, path ()), true);
+  CHECK_EQ (has_subtree (tree ("leaf"), path (0)), false);
+}

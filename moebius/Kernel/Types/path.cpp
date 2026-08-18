@@ -148,26 +148,63 @@ common (path start, path end) {
  * Main modification routines
  ******************************************************************************/
 
+/**
+ * @brief 判断树 t 中是否存在 path p 所指的子树
+ * @param t  待查询的树
+ * @param p  子树坐标
+ * @return   存在返回 true；p 为空 path 或逐段索引均落在 compound 范围内时成立
+ */
 bool
-has_subtree (tree t, path p) {
-  if (is_nil (p)) return true;
-  int i= p->item;
-  return is_compound (t) && i >= 0 && i < N (t) && has_subtree (t[i], p->next);
-}
-
-tree&
-subtree (tree& t, path p) {
-  if (is_nil (p)) return t;
-  else if (N (t) > p->item) return subtree (t[p->item], p->next);
-  else {
-    cout << "The required path does not exist\n";
-    return t;
+has_subtree (tree t, const path& p) {
+  tree* r= &t;
+  path  q= p;
+  while (!is_nil (q)) {
+    int i= q->item;
+    // 每层只做一次 compound 与边界检查，命中前不递归
+    if (!is_compound (*r) || i < 0 || i >= N (*r)) return false;
+    r= &(*r)[i];
+    q= q->next;
   }
+  return true;
 }
 
+/**
+ * @brief 取树 t 中 path p 所指的子树引用
+ * @param t  待查询的树
+ * @param p  子树坐标，p 为空时返回 t 本身
+ * @return   所指子树的引用
+ * @note     p 越界或命中原子节点时打印一次诊断信息并返回 t 本身
+ */
 tree&
-parent_subtree (tree& t, path p) {
+subtree (tree& t, const path& p) {
+  tree* r= &t;
+  path  q= p;
+  while (!is_nil (q)) {
+    int i= q->item;
+    if (!is_compound (*r) || i < 0 || i >= N (*r)) {
+      cout << "The required path does not exist\n";
+      return t;
+    }
+    r= &(*r)[i];
+    q= q->next;
+  }
+  return *r;
+}
+
+/**
+ * @brief 取树 t 中 path p 所指子树的父节点引用
+ * @param t  待查询的树
+ * @param p  子树坐标，至少长度为 1
+ * @return   所指子树父节点的引用；p 长度为 1 时返回 t
+ */
+tree&
+parent_subtree (tree& t, const path& p) {
   ASSERT (!is_nil (p), "path too short");
-  if (is_nil (p->next)) return t;
-  else return parent_subtree (t[p->item], p->next);
+  tree* r= &t;
+  path  q= p;
+  while (!is_nil (q->next)) {
+    r= &(*r)[q->item];
+    q= q->next;
+  }
+  return *r;
 }
