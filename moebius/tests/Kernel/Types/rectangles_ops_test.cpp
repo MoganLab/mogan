@@ -164,13 +164,14 @@ pairwise_disjoint (rectangles l) {
 
 TEST_CASE ("test difference cross cuts") {
   // 十字切缝:先竖一刀再横一刀,切成 4 块,面积守恒且互不相交
+  // (挖去 20+20-4,两条切缝的 2x2 交集只计一次)
   rectangles l1= rectangles (rectangle (0, 0, 10, 10), rectangles ());
   rectangles l2=
       rectangles (rectangle (4, 0, 6, 10),
                   rectangles (rectangle (0, 4, 10, 6), rectangles ()));
   rectangles d= l1 - l2;
   CHECK (pairwise_disjoint (d));
-  CHECK_EQ (area (d), 68.0);
+  CHECK_EQ (area (d), 64.0);
   CHECK (least_upper_bound (d) == rectangle (0, 0, 10, 10));
 }
 
