@@ -130,9 +130,9 @@ newer_version (const std::string& a, const std::string& b) {
 
 struct tm_velopack::tm_velopack_rep {
   std::unique_ptr<Velopack::UpdateManager>
-                 mgr;       // 惰性创建；stem-profile 切换后重建
-  std::string    mgr_base;  // mgr 创建时的 base URL（判断是否需重建）
-  std::string    feed_base; // 本次检查/下载启动时快照的 base URL（主线程写入）
+              mgr;       // 惰性创建；stem-profile 切换后重建
+  std::string mgr_base;  // mgr 创建时的 base URL（判断是否需重建）
+  std::string feed_base; // 本次检查/下载启动时快照的 base URL（主线程写入）
   std::optional<Velopack::UpdateInfo> info;            // 最近一次检查结果
   std::thread                         worker;          // 当前检查/下载线程
   std::mutex                          mtx;             // 保护以下字段
@@ -165,8 +165,8 @@ tm_velopack::ensure_mgr () {
   // 时刻至多一个 worker，APPLYING 期间不接受新检查），无需额外同步。
   std::lock_guard<std::mutex> lk (rep->mtx);
   if (!rep->mgr || rep->mgr_base != rep->feed_base) {
-    rep->mgr     = std::make_unique<Velopack::UpdateManager> (
-        feed_url (rep->feed_base));
+    rep->mgr=
+        std::make_unique<Velopack::UpdateManager> (feed_url (rep->feed_base));
     rep->mgr_base= rep->feed_base;
   }
 }
@@ -282,9 +282,9 @@ tm_velopack::downloadUpdate () {
   // 下载前同样按当前 stem-profile 刷新快照，profile 切换后 mgr 立即换源；
   // DownloadUpdates 使用 info 内已解析的资产 URL，重建 mgr 不影响本次下载。
   rep->feed_base= feed_base_url ();
-  rep->st     = UPDATER_DOWNLOADING;
-  rep->running= true;
-  rep->worker = std::thread ([this] { do_download (); });
+  rep->st       = UPDATER_DOWNLOADING;
+  rep->running  = true;
+  rep->worker   = std::thread ([this] { do_download (); });
   return true;
 }
 
