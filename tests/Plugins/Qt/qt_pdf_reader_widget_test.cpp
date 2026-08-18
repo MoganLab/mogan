@@ -17,6 +17,7 @@
 #include <QPinchGesture>
 #include <QRubberBand>
 #include <QScrollBar>
+#include <QTimer>
 #include <QWheelEvent>
 #include <QtTest/QtTest>
 
@@ -213,6 +214,29 @@ private slots:
     QApplication::processEvents ();
 
     QCOMPARE (widget->currentPage (), 1);
+    delete widget;
+  }
+
+  // 1221：复现生产代码 schedule_restore_pdf_last_page 的恢复路径——
+  // loadFromFile 后立即 singleShot(0) 跳页。页面懒渲染，布局未就绪时
+  // w->y() 全为 0，goToPage 实际滚回第 1 页。
+  void test_restoreLastPage_deferredJump () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl=
+        url_system ("$TEXMACS_PATH/tests/PDF/quartus_manual_with_outline.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QVERIFY (widget->pageCount () > 5);
+
+    QTimer::singleShot (0, widget, [widget] () { widget->goToPage (5); });
+    // 等渲染与布局稳定（懒渲染完成后页高才正确）
+    QTest::qWaitFor ([widget] () { return widget->currentPage () > 1; }, 5000);
+
+    QCOMPARE (widget->currentPage (), 5);
     delete widget;
   }
 

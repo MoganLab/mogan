@@ -1005,9 +1005,6 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
     debug_widgets << "qt_tm_widget_rep::~qt_tm_widget_rep of widget "
                   << type_as_string () << LF;
 
-  // 窗口关闭时保存 PDF 阅读页码（须在 delete pdfViewerWidget 之前）
-  save_pdf_last_page ();
-
   // clear any residual waiting menu installation
   waiting_widgets= remove (waiting_widgets, this);
 
@@ -1156,23 +1153,12 @@ qt_tm_widget_rep::poll_central_unfreeze (int generation, qint64 start_ms) {
  ******************************************************************************/
 
 void
-qt_tm_widget_rep::save_pdf_last_page () {
-  if (!pdfTabMode || !pdfViewerWidget) return;
-  int page= pdfViewerWidget->currentPage ();
-  if (page <= 0) return;
-  call ("pdf-last-page-set", from_qstring_utf8 (currentPdfPath), page);
-}
-
-void
-qt_tm_widget_rep::schedule_restore_pdf_last_page () {
-  if (!pdfViewerWidget) return;
+qt_tm_widget_rep::schedule_restore_pdf_last_page (int page) {
+  if (!pdfViewerWidget || page <= 0) return;
   // 延迟到事件循环下一轮再跳页：布局与滚动范围需在 show 后才就绪
   PDFReaderWidget* viewer= pdfViewerWidget;
-  string           path  = from_qstring_utf8 (currentPdfPath);
-  QTimer::singleShot (0, viewer, [viewer, path] () {
-    object r= call ("pdf-last-page-to-restore", path);
-    if (is_int (r)) viewer->goToPage (as_int (r));
-  });
+  QTimer::singleShot (0, viewer,
+                      [viewer, page] () { viewer->goToPage (page); });
 }
 
 void
@@ -1222,6 +1208,16 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
 
     if (!pdfViewerWidget) {
       pdfViewerWidget= new PDFReaderWidget (centralwidget ());
+      // 翻页即存：窗口关闭/程序退出时 ~qt_tm_widget_rep 并不执行，
+      // 退出前没有可靠的保存时机，改为页码变化时立刻写入 preference
+      // （内存 hashmap，落盘由退出时的 save-preferences 统一完成）
+      PDFReaderWidget* viewer= pdfViewerWidget;
+      QObject::connect (pdfViewerWidget, &PDFReaderWidget::pageChanged, viewer,
+                        [this] (int page, int) {
+                          if (pdfTabMode && page > 0)
+                            call ("pdf-last-page-set",
+                                  from_qstring_utf8 (currentPdfPath), page);
+                        });
       // 连接大纲提取 → dock 填充，dock 点击 → 阅读器跳页（仅连一次）
       if (pdfOutlineDock) {
         QObject::connect (
@@ -1243,12 +1239,17 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     // Connect toolbar to the PDF reader
     pdfToolBar->connectTo (pdfViewerWidget);
 
+    // 恢复页码须在 loadFromFile 之前查询：load 完成时的
+    // updatePageNavigation 会发 pageChanged(1)，把旧记录覆盖成第 1 页
+    object restorePage=
+        call ("pdf-last-page-to-restore", from_qstring_utf8 (currentPdfPath));
+    int pageToRestore= is_int (restorePage) ? as_int (restorePage) : 0;
     // Load PDF if path changed
     if (!currentPdfPath.isEmpty () && currentPdfPath != lastLoadedPdfPath) {
       pdfViewerWidget->loadFromFile (currentPdfPath);
       lastLoadedPdfPath= currentPdfPath;
     }
-    schedule_restore_pdf_last_page ();
+    schedule_restore_pdf_last_page (pageToRestore);
   }
   else {
     // Show normal editor view (unless chat tab mode is active)
@@ -1908,10 +1909,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
     currentEditorFile= file;
-    // 离开 PDF 标签页（切走或换另一个 PDF）前记下阅读页码（幂等，值未变不落盘）
-    save_pdf_last_page ();
-    startupTabMode= is_startup_tab_file (file);
-    pdfTabMode    = is_pdf_tab_file (file);
+    startupTabMode   = is_startup_tab_file (file);
+    pdfTabMode       = is_pdf_tab_file (file);
     if (pdfTabMode) {
       currentPdfPath= utf8_to_qstring (file);
     }
