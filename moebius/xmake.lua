@@ -80,7 +80,9 @@ target("libmoebius") do
 end
 
 target("moebius_tests") do
-    set_kind ("binary")
+    -- 仅作为 add_tests 子测试的容器；phony 使其不链接成单一二进制
+    -- （原先 binary 会因无 main 而在 `xmake b moebius_tests` 时链接失败）
+    set_kind ("phony")
     set_languages("c++17")
     set_default (false)
 
