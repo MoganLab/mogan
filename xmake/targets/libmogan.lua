@@ -274,7 +274,6 @@ target("libmogan") do
             "$(projectdir)/src/Data/**.cpp",
             "$(projectdir)/src/Edit/**.cpp",
             "$(projectdir)/src/Graphics/**.cpp",
-            "$(projectdir)/src/Kernel/**.cpp",
             "$(projectdir)/src/Scheme/Scheme/**.cpp",
             "$(projectdir)/src/Scheme/S7/**.cpp",
             "$(projectdir)/src/Scheme/L2/**.cpp",
