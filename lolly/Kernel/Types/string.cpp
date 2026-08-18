@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <string>
 
 /******************************************************************************
  * Low level routines and constructors
@@ -60,22 +59,18 @@ string::string (char c) {
 
 string::string (char c, int n) {
   rep= tm_new<string_rep> (n);
-  for (int i= 0; i < n; i++)
-    rep->a[i]= c;
+  if (n > 0) memset (rep->a, c, n);
 }
 
 string::string (const char* a) {
-  int i, n= strlen (a);
-  rep= tm_new<string_rep> (n);
-  for (i= 0; i < n; i++)
-    rep->a[i]= a[i];
+  int n= (int) strlen (a);
+  rep  = tm_new<string_rep> (n);
+  if (n > 0) memcpy (rep->a, a, n);
 }
 
 string::string (const char* a, int n) {
-  int i;
   rep= tm_new<string_rep> (n);
-  for (i= 0; i < n; i++)
-    rep->a[i]= a[i];
+  if (n > 0) memcpy (rep->a, a, n);
 }
 
 /******************************************************************************
@@ -116,14 +111,12 @@ string::operator!= (string a) {
 
 string
 string::operator() (int begin, int end) const {
-  if (end <= begin) return string ();
-
-  int i;
   begin= max (min (rep->n, begin), 0);
   end  = max (min (rep->n, end), 0);
+  if (end <= begin) return string ();
+
   string r (end - begin);
-  for (i= begin; i < end; i++)
-    r[i - begin]= rep->a[i];
+  memcpy (r.rep->a, rep->a + begin, end - begin);
   return r;
 }
 
@@ -134,10 +127,9 @@ string::operator() (int begin, int end) {
 
 string
 copy (string s) {
-  int    i, n= N (s);
+  int    n= N (s);
   string r (n);
-  for (i= 0; i < n; i++)
-    r[i]= s[i];
+  if (n > 0) memcpy (r.begin (), s.begin (), n);
   return r;
 }
 
@@ -150,21 +142,18 @@ operator<< (string& a, char x) {
 
 string&
 operator<< (string& a, string b) {
-  int i, k1= N (a), k2= N (b);
+  int k1= N (a), k2= N (b);
   a->resize (k1 + k2);
-  for (i= 0; i < k2; i++)
-    a[i + k1]= b[i];
+  if (k2 > 0) memcpy (a.begin () + k1, b.begin (), k2);
   return a;
 }
 
 string
 operator* (string a, string b) {
-  int    i, n1= N (a), n2= N (b);
+  int    n1= N (a), n2= N (b);
   string c (n1 + n2);
-  for (i= 0; i < n1; i++)
-    c[i]= a[i];
-  for (i= 0; i < n2; i++)
-    c[i + n1]= b[i];
+  if (n1 > 0) memcpy (c.begin (), a.begin (), n1);
+  if (n2 > 0) memcpy (c.begin () + n1, b.begin (), n2);
   return c;
 }
 
@@ -246,10 +235,9 @@ double
 as_double (string s) {
   double x= 0.0;
   {
-    int i, n= N (s);
+    int n= N (s);
     STACK_NEW_ARRAY (buf, char, n + 1);
-    for (i= 0; i < n; i++)
-      buf[i]= s[i];
+    if (n > 0) memcpy (buf, s.begin (), n);
     buf[n]= '\0';
     sscanf (buf, "%lf", &x);
     STACK_DELETE_ARRAY (buf);
@@ -259,10 +247,9 @@ as_double (string s) {
 
 char*
 as_charp (string s) {
-  int   i, n= N (s);
+  int   n = N (s);
   char* s2= tm_new_array<char> (n + 1);
-  for (i= 0; i < n; i++)
-    s2[i]= s[i];
+  if (n > 0) memcpy (s2, s.begin (), n);
   s2[n]= '\0';
   return s2;
 }
@@ -273,19 +260,27 @@ as_string_bool (bool f) {
   else return string ("false");
 }
 
+// 直接 snprintf 进栈缓冲,避免 std::to_string 的堆分配与二次拷贝
+static string
+as_string_int (long long v) {
+  char buf[24];
+  int  n= snprintf (buf, sizeof (buf), "%lld", v);
+  return string (buf, n);
+}
+
 string
 as_string (int16_t i) {
-  return string ((std::to_string (i)).c_str ());
+  return as_string_int (i);
 }
 
 string
 as_string (int32_t i) {
-  return string ((std::to_string (i)).c_str ());
+  return as_string_int (i);
 }
 
 string
 as_string (int64_t i) {
-  return string ((std::to_string (i)).c_str ());
+  return as_string_int (i);
 }
 
 string
