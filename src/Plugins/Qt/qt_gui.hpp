@@ -17,6 +17,8 @@
 #include <QTimer>
 #include <QTranslator>
 
+#include <functional>
+
 #include "array.hpp"
 #include "font.hpp"
 #include "gui.hpp"
@@ -208,6 +210,10 @@ public:
 
 /*! Force an immediate update of the internal texmacs state. */
 void force_update ();
+
+/*! 注册启动开窗钩子：事件循环起跑后的第一个事件里执行（见
+ * qt_gui_rep::event_loop） */
+void gui_set_boot_open_hook (std::function<void ()> f);
 
 #define BEGIN_SLOT try {
 #define END_SLOT                                                               \

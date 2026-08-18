@@ -597,6 +597,14 @@ qt_gui_rep::show_wait_indicator (widget w, string message, string arg) {
 
 void (*the_interpose_handler) (void)= NULL;
 
+// 启动开窗钩子：一次性触发，事件循环起跑后的第一个事件里执行
+static std::function<void ()> the_boot_open_hook= [] () {};
+
+void
+gui_set_boot_open_hook (std::function<void ()> f) {
+  the_boot_open_hook= f;
+}
+
 void
 gui_interpose (void (*r) (void)) {
   the_interpose_handler= r;
@@ -607,6 +615,13 @@ qt_gui_rep::event_loop () {
   QCoreApplication* app;
   if (headless_mode) app= QCoreApplication::instance ();
   else app= QApplication::instance ();
+  // 启动开窗钩子在首次 update 前同步执行：事件队列/interpose 依赖
+  // 已存在的 active view，无窗口时处理队列事件会触发 "no active view"
+  if (the_boot_open_hook) {
+    std::function<void ()> hook= the_boot_open_hook;
+    the_boot_open_hook         = [] () {};
+    hook ();
+  }
   update ();
   // need_update();
   app->exec ();

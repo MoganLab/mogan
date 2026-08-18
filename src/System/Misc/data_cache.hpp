@@ -32,5 +32,6 @@ void cache_load (string buffer);
 void cache_memorize ();
 void cache_refresh ();
 void cache_initialize ();
+void cache_validate_font_dirs ();
 
 #endif // defined DATA_CACHE_H

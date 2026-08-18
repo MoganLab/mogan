@@ -12,8 +12,10 @@
 #include "analyze.hpp"
 #include "boot.hpp"
 #include "convert.hpp"
+#include "data_cache.hpp"
 #include "editor.hpp"
 #include "file.hpp"
+#include "font.hpp"
 #include "language.hpp"
 #include "merge_sort.hpp"
 #include "moebius/tree_label.hpp"
@@ -92,6 +94,56 @@ bool show_startup_login_dialog ();
 #endif
 
 void server_start ();
+
+#ifdef QTTEXMACS
+// qt_gui.cpp：注册启动开窗钩子（事件循环起跑后首个事件触发）
+void gui_set_boot_open_hook (std::function<void ()> f);
+#endif
+
+/**
+ * @brief 启动时创建主窗口并打开命令行传入的文件
+ * @note  Qt 后端下延迟到事件循环起跑后执行，避免阻塞事件循环启动
+ */
+static void
+texmacs_boot_open (int argc, char** argv) {
+  cache_validate_font_dirs ();
+  init_tex ();
+  font_database_load ();
+  ensure_window ();
+  // 与原流程保持一致：隐藏包扫描在开窗之后执行
+  ensure_hidden_package_set ();
+  bool first_file= true;
+  for (int i= 1; i < argc; i++) {
+    if (argv[i] == NULL) break;
+    string s= argv[i];
+    if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
+    if ((s[0] != '-') && (s[0] != '+')) {
+      if (DEBUG_STD) debug_std << "Loading " << s << "...\n";
+      url u= url_system (s);
+      if (!is_rooted (u)) u= resolve (url_pwd (), "") * u;
+      string b= scm_quote (as_string (u));
+      string cmd;
+      // only open window once
+      if (first_file) {
+        buffer_load (u);
+        new_buffer_in_this_window (u, tree (moebius::DOCUMENT));
+        eval_scheme ("(buffer-notify-recent " * b * ")");
+        first_file= false;
+      }
+      else {
+        cmd= "(switch-to-buffer " * b * ")";
+        exec_delayed (scheme_cmd (cmd));
+      }
+    }
+    if ((s == "-c") || (s == "-convert")) i+= 2;
+    else if ((s == "-b") || (s == "-initialize-buffer") || (s == "-fn") ||
+             (s == "-font") || (s == "-i") || (s == "-initialize") ||
+             (s == "-g") || (s == "-geometry") || (s == "-x") ||
+             (s == "-execute") || (s == "-log-file")) {
+      i++;
+    }
+  }
+}
 
 /******************************************************************************
  * Clean exit on fatal signals
@@ -585,9 +637,8 @@ init_texmacs () {
   // cout << "Initialize -- User preferences\n";
   load_user_preferences ();
 
-  // cout << "Initialize -- font_database_load\n";
-  font_database_load ();
-  // cout << "Initialize -- font_database_load end\n";
+  // font_database_load 推迟到 texmacs_boot_open：首个 buffer 排版才需要
+  // 字体数据库（fonts_loaded 守卫保证其他入口仍可按需加载）
 }
 
 /******************************************************************************
@@ -618,7 +669,8 @@ load_settings_and_check_version () {
 void
 init_plugins () {
   setup_tex ();
-  init_tex ();
+  // init_tex（tfm/pk/pfb 路径递归扫描）推迟到 texmacs_boot_open，
+  // 首个 buffer 排版前才需要这些路径
 }
 
 void
@@ -880,41 +932,14 @@ TeXmacs_main (int argc, char** argv) {
     // 暂且延长生命周期到程序结束
     (void) new server (app_type::RESEARCH);
 #endif
-    string where     = "";
-    bool   first_file= true;
-
-    ensure_window ();
-
-    for (i= 1; i < argc; i++) {
-      if (argv[i] == NULL) break;
-      string s= argv[i];
-      if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
-      if ((s[0] != '-') && (s[0] != '+')) {
-        if (DEBUG_STD) debug_std << "Loading " << s << "...\n";
-        url u= url_system (s);
-        if (!is_rooted (u)) u= resolve (url_pwd (), "") * u;
-        string b= scm_quote (as_string (u));
-        string cmd;
-        // only open window once
-        if (first_file) {
-          buffer_load (u);
-          new_buffer_in_this_window (u, tree (moebius::DOCUMENT));
-          eval_scheme ("(buffer-notify-recent " * b * ")");
-          first_file= false;
-        }
-        else {
-          cmd= "(switch-to-buffer " * b * ")";
-          exec_delayed (scheme_cmd (cmd));
-        }
-      }
-      if ((s == "-c") || (s == "-convert")) i+= 2;
-      else if ((s == "-b") || (s == "-initialize-buffer") || (s == "-fn") ||
-               (s == "-font") || (s == "-i") || (s == "-initialize") ||
-               (s == "-g") || (s == "-geometry") || (s == "-x") ||
-               (s == "-execute") || (s == "-log-file")) {
-        i++;
-      }
-    }
+#ifdef QTTEXMACS
+    // Qt 后端：开窗与首文件加载延后到事件循环起跑后的第一个事件执行，
+    // 避免会话恢复/首个 buffer 排版阻塞事件循环启动
+    gui_set_boot_open_hook (
+        [argc, argv] () { texmacs_boot_open (argc, argv); });
+#else
+    texmacs_boot_open (argc, argv);
+#endif
 
     if (DEBUG_BENCH) lolly::system::bench_print (std_bench);
     bench_reset ("initialize texmacs");
@@ -953,8 +978,8 @@ TeXmacs_main (int argc, char** argv) {
 #endif
 
     if (N (extra_init_cmd) > 0) exec_delayed (scheme_cmd (extra_init_cmd));
-    ensure_hidden_package_set ();
 #ifndef QTTEXMACS
+    ensure_hidden_package_set ();
     // Qt 后端会在构建主菜单时顺带强制加载已发现的插件
     // （tm_window_rep::menu_main → "(lazy-initialize-force)"）。
     //

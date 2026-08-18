@@ -11,7 +11,6 @@
 
 #include "tm_configure.hpp"
 #include "url.hpp"
-#include <fcntl.h>
 #ifndef OS_WIN
 #include <unistd.h>
 #endif

@@ -225,6 +225,15 @@ cache_initialize () {
   texmacs_font_path_string= concretize (texmacs_home_path * "fonts/");
 
   cache_refresh ();
+}
+
+/**
+ * @brief 校验字体目录是否仍是最新，否则清除错误字体缓存
+ * @note  4 次目录树递归扫描开销不小，推迟到事件循环起跑后、首 buffer
+ *        排版前调用（见 texmacs_boot_open），避免阻塞事件循环启动
+ */
+void
+cache_validate_font_dirs () {
   if (is_recursively_up_to_date (texmacs_path * "fonts/type1") &&
       is_recursively_up_to_date (texmacs_path * "fonts/truetype") &&
       is_recursively_up_to_date (texmacs_home_path * "fonts/type1") &&
