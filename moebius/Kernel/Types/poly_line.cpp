@@ -197,6 +197,42 @@ access (poly_line pl, double t) {
   return pl[n - 1];
 }
 
+/**
+ * @brief 预计算折线各段长度：seg[i] 为 pl[i] 到 pl[i+1] 的段长。
+ * @note 供 access_by_segs 使用，避免热路径逐步重复 l2_norm。
+ */
+static array<double>
+segment_lengths (poly_line pl) {
+  int           n= N (pl);
+  int           m= (n > 1 ? n - 1 : 0);
+  array<double> seg (m);
+  for (int i= 0; i < m; i++)
+    seg[i]= distance (pl[i + 1], pl[i]);
+  return seg;
+}
+
+/**
+ * @brief access 的段表版本：用预计算段长做与 access 完全一致的扫描插值。
+ * @param pl 折线
+ * @param seg segment_lengths 的结果
+ * @param t 弧长参数
+ * @return 折线上弧长 t 处的点
+ */
+static point
+access_by_segs (poly_line pl, const array<double>& seg, double t) {
+  int n= N (pl);
+  if (t < 0) return pl[0];
+  for (int i= 1; i < n; i++) {
+    double len= seg[i - 1];
+    if (t < len) {
+      point dp= pl[i] - pl[i - 1];
+      return pl[i - 1] + (t / len) * dp;
+    }
+    t-= len;
+  }
+  return pl[n - 1];
+}
+
 /******************************************************************************
  * Contours
  ******************************************************************************/
@@ -275,7 +311,9 @@ normalize (contours gl) {
 
 array<double>
 vertices (poly_line pl) {
-  pl= (1.0 / length (pl)) * pl;
+  double l         = length (pl);
+  pl               = (1.0 / l) * pl;
+  array<double> seg= segment_lengths (pl);
   array<double> r;
   double        t = 0.0;
   double        dt= 0.025;
@@ -288,16 +326,20 @@ vertices (poly_line pl) {
       double t1= max (t - dt, 0.000000001);
       double t2= min (t + dt, 0.999999999);
       point  p = pl[i];
-      point  p1= access (pl, t1);
-      point  p2= access (pl, t2);
-      double pr= inner (p1 - p, p2 - p);
+      point  p1= access_by_segs (pl, seg, t1);
+      point  p2= access_by_segs (pl, seg, t2);
+      // 手写点积，避免 p1-p / p2-p 的临时点分配
+      double pr= 0.0;
+      int    nn= N (p);
+      for (int k= 0; k < nn; k++)
+        pr+= (p1[k] - p[k]) * (p2[k] - p[k]);
       if (pr >= 0 && (todo_i < 0 || pr > todo_p)) {
         todo_i= i;
         todo_t= t;
         todo_p= pr;
       }
     }
-    t+= distance (pl[i + 1], pl[i]);
+    t+= seg[i];
     if (todo_i >= 0 && t >= todo_t + dt) {
       r << todo_t;
       todo_i= -1;
@@ -313,11 +355,12 @@ vertices (poly_line pl) {
 
 void
 invariants (poly_line pl, int level, array<tree>& disc, array<double>& cont) {
-  double l     = length (pl);
-  int    pieces= 20;
+  double        l     = length (pl);
+  array<double> seg   = segment_lengths (pl);
+  int           pieces= 20;
   for (int i= 0; i <= pieces; i++) {
     double t= (0.999999999 * i) / pieces;
-    point  p= access (pl, t * l);
+    point  p= access_by_segs (pl, seg, t * l);
     cont << p;
   }
 

@@ -21,6 +21,21 @@ array<array<tree>>   learned_disc1;
 array<array<double>> learned_cont1;
 array<array<tree>>   learned_disc2;
 array<array<double>> learned_cont2;
+// 预计算的 disc 哈希：识别时先比哈希再决定是否做深度 tree 比较
+array<int> learned_hash1;
+array<int> learned_hash2;
+
+void
+clear_learned_glyphs () {
+  learned_glyphs= array<contours> ();
+  learned_names = array<string> ();
+  learned_disc1 = array<array<tree>> ();
+  learned_cont1 = array<array<double>> ();
+  learned_disc2 = array<array<tree>> ();
+  learned_cont2 = array<array<double>> ();
+  learned_hash1 = array<int> ();
+  learned_hash2 = array<int> ();
+}
 
 void
 register_glyph (string name, contours gl) {
@@ -36,5 +51,7 @@ register_glyph (string name, contours gl) {
   learned_cont1 << cont1;
   learned_disc2 << disc2;
   learned_cont2 << cont2;
+  learned_hash1 << hash (disc1);
+  learned_hash2 << hash (disc2);
   // cout << "Added " << name << ", " << disc1 << "\n";
 }
