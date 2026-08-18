@@ -67,17 +67,7 @@ typedef struct {
  * @param p 待投影的点
  * @return  p 在轴上的正交投影点
  */
-point proj (const axis& a, const point& p);
-
-/**
- * @brief 求点 p 到轴 a（过 p0、p1 的直线）的距离
- *
- * 距离为 |p - proj(a, p)|，直线距离，不含端点限制。
- *
- * @param a 轴（过 a.p0 与 a.p1 的直线）
- * @param p 待测点
- * @return  点到直线的欧氏距离
- */
+point  proj (const axis& a, const point& p);
 double dist (const axis& a, const point& p);
 double seg_dist (const axis& a, const point& p);
 double seg_dist (const point& p1, const point& p2, const point& p);
