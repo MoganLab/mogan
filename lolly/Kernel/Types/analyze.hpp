@@ -451,15 +451,6 @@ int search_backwards (string what, string in);
 int search_backwards (string what, int pos, string in);
 
 /**
- * Counts the occurrences of a substring in a string.
- *
- * @param s The substring to count.
- * @param in The string to search in.
- * @return Number of occurrences of the substring.
- */
-int count_occurrences (string what, string in);
-
-/**
  * Checks whether a substring occurs within another string.
  *
  * @param what The string to find.

@@ -189,7 +189,6 @@ TEST_CASE ("search_forwards") {
     text << line;
   CHECK_EQ (search_forwards ("lazy", text), 35);
   CHECK_EQ (search_forwards ("LAZY", text), -1);
-  CHECK_EQ (count_occurrences ("the", text), 4000);
 }
 
 TEST_CASE ("contains/occurs") {

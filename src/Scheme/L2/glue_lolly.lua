@@ -90,15 +90,6 @@ function main()
                 }
             },
             {
-                scm_name = "string-count-occurrences",
-                cpp_name = "count_occurrences",
-                ret_type = "int",
-                arg_list = {
-                    "string",
-                    "string"
-                }
-            },
-            {
                 scm_name = "string-search-forwards",
                 cpp_name = "search_forwards",
                 ret_type = "int",

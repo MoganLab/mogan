@@ -879,19 +879,6 @@ search_backwards (string s, string in) {
 }
 
 int
-count_occurrences (string s, string in) {
-  int count= 0;
-  int i= 0, next, n= N (in);
-  while (i < n) {
-    next= search_forwards (s, i, in);
-    if (next == -1) break;
-    count++;
-    i= next + 1;
-  }
-  return count;
-}
-
-int
 overlapping (string s1, string s2) {
   // return the longuest string being suffix of s1 and prefix of s2
   int i= min (N (s1), N (s2)), n= N (s1);
