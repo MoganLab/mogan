@@ -34,6 +34,15 @@ old_thicken (rectangles l, SI width, SI height) {
       old_thicken (l->next, width, height));
 }
 
+// 优化前的递归按值实现,用于同二进制 A/B 对比
+static rectangles
+old_correct (rectangles l) {
+  if (is_nil (l)) return l;
+  if ((l->item->x1 >= l->item->x2) || (l->item->y1 >= l->item->y2))
+    return old_correct (l->next);
+  return rectangles (l->item, old_correct (l->next));
+}
+
 int
 main () {
   ankerl::nanobench::Bench bench;
@@ -68,5 +77,10 @@ main () {
   bench.run ("thicken rectangles x1024", [&] {
     ankerl::nanobench::doNotOptimizeAway (thicken (large, 5, 7));
   });
+  bench.run ("old correct x1024", [&] {
+    ankerl::nanobench::doNotOptimizeAway (old_correct (large));
+  });
+  bench.run ("correct x1024",
+             [&] { ankerl::nanobench::doNotOptimizeAway (correct (large)); });
   return 0;
 }

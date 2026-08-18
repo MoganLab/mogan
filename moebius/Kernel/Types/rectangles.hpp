@@ -59,7 +59,7 @@ rectangles operator/ (rectangles l, int d);
 rectangles translate (const rectangles& l, SI x, SI y);
 rectangles thicken (const rectangles& l, SI width, SI height);
 rectangles outlines (rectangles l, SI pixel);
-rectangles correct (rectangles l);
+rectangles correct (const rectangles& l);
 rectangles simplify (rectangles l);
 rectangle  least_upper_bound (rectangles l);
 rectangle  least_upper_bound (array<rectangle> l);

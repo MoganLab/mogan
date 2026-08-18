@@ -321,11 +321,16 @@ operator/ (rectangles l, int d) {
  * @return 仅含非退化矩形的新列表；空列表原样返回
  */
 rectangles
-correct (rectangles l) {
-  if (is_nil (l)) return l;
-  if ((l->item->x1 >= l->item->x2) || (l->item->y1 >= l->item->y2))
-    return correct (l->next);
-  return rectangles (l->item, correct (l->next));
+correct (const rectangles& l) {
+  // 迭代 + 尾槽位直挂：避免深度等于列表长度的递归，也避免 reverse 的二次分配
+  rectangles  out;
+  rectangles* tail= &out;
+  for (rectangles p= l; !is_nil (p); p= p->next) {
+    rectangle& r= p->item;
+    if ((r->x1 < r->x2) && (r->y1 < r->y2))
+      rectangles::adopt_tail (tail, rectangles::fresh_cell (r));
+  }
+  return out;
 }
 
 rectangles
