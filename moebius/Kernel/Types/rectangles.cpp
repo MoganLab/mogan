@@ -154,6 +154,13 @@ operator/ (rectangle r, double x) {
                     (SI) ceil (r->x2 / x), (SI) ceil (r->y2 / x));
 }
 
+/**
+ * @brief 加厚单个矩形：四边向外扩
+ * @param r 待加厚的矩形
+ * @param width 水平方向的扩展量（左右各扩 width）
+ * @param height 垂直方向的扩展量（上下各扩 height）
+ * @return 加厚后的新矩形，原矩形不变
+ */
 rectangle
 thicken (rectangle r, SI width, SI height) {
   return rectangle (r->x1 - width, r->y1 - height, r->x2 + width,
@@ -265,6 +272,13 @@ translate (const rectangles& l, SI x, SI y) {
   return out;
 }
 
+/**
+ * @brief 加厚矩形列表中的所有矩形：每个矩形四边向外扩
+ * @param l 待加厚的矩形列表
+ * @param width 水平方向的扩展量（左右各扩 width）
+ * @param height 垂直方向的扩展量（上下各扩 height）
+ * @return 所有矩形均加厚后的新列表，元素顺序保持不变，原列表不变
+ */
 rectangles
 thicken (const rectangles& l, SI width, SI height) {
   // 迭代 + 尾槽位直挂：避免深度等于列表长度的递归，也避免 reverse 的二次分配
@@ -297,6 +311,15 @@ operator/ (rectangles l, int d) {
   return rectangles (l->item / d, l->next / d);
 }
 
+/**
+ * @brief 剔除列表中的退化矩形
+ *
+ * 宽或高非正（x1 >= x2 或 y1 >= y2）的矩形视为退化，被丢弃；其余矩形
+ * 原样保留，顺序不变。
+ *
+ * @param l 待修正的矩形列表
+ * @return 仅含非退化矩形的新列表；空列表原样返回
+ */
 rectangles
 correct (rectangles l) {
   if (is_nil (l)) return l;
@@ -311,6 +334,16 @@ simplify_bis (rectangles l) {
   return simplify_bis (l->next) | rectangles (l->item);
 }
 
+/**
+ * @brief 化简矩形列表：合并可合并的相邻矩形
+ *
+ * 列表较短（不超过 25 个元素）时，反复做不相交并（operator|），把共享
+ * 边界且可拼成矩形的相邻元素合并；过长时直接返回副本，避免 O(n^2) 合并
+ * 开销。
+ *
+ * @param l 待化简的矩形列表
+ * @return 化简后的新列表，原列表不变
+ */
 rectangles
 simplify (rectangles l) {
   if (N (l) > 25) return copy (l);

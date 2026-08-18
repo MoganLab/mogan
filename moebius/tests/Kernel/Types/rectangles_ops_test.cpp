@@ -67,6 +67,18 @@ TEST_CASE ("test translate rectangles") {
 TEST_CASE ("test thicken") {
   rectangle r (0, 0, 10, 10);
   CHECK (thicken (r, 2, 3) == rectangle (-2, -3, 12, 13));
+  CHECK (thicken (r, 0, 0) == r);
+}
+
+TEST_CASE ("test thicken rectangles") {
+  CHECK (thicken (rectangles (), 2, 3) == rectangles ());
+  rectangles l= rectangles (rectangle (0, 0, 2, 2),
+                            rectangles (rectangle (5, 5, 8, 8), rectangles ()));
+  rectangles t= thicken (l, 1, 2);
+  CHECK (t == rectangles (rectangle (-1, -2, 3, 4),
+                          rectangles (rectangle (4, 3, 9, 10), rectangles ())));
+  CHECK (l == rectangles (rectangle (0, 0, 2, 2),
+                          rectangles (rectangle (5, 5, 8, 8), rectangles ())));
 }
 
 TEST_CASE ("test scaling") {
@@ -105,8 +117,38 @@ TEST_CASE ("test union and difference") {
 }
 
 TEST_CASE ("test correct drops degenerate") {
-  rectangles l= rectangles (rectangle (5, 5, 5, 5),
-                            rectangles (rectangle (0, 0, 2, 2), rectangles ()));
+  CHECK (correct (rectangles ()) == rectangles ());
+  // 零宽/零高/负宽高的矩形均被剔除，其余顺序保持
+  rectangles l=
+      rectangles (rectangle (0, 0, 2, 2),
+                  rectangles (rectangle (5, 5, 5, 9),
+                              rectangles (rectangle (0, 0, 2, 2),
+                                          rectangles (rectangle (7, 2, 4, 8),
+                                                      rectangles ()))));
   rectangles c= correct (l);
-  CHECK_EQ (N (c), 1);
+  CHECK (c == rectangles (rectangle (0, 0, 2, 2),
+                          rectangles (rectangle (0, 0, 2, 2), rectangles ())));
+}
+
+TEST_CASE ("test simplify merges adjacent") {
+  // 左右相邻的两个矩形合并为一个
+  rectangles l= rectangles (rectangle (0, 0, 2, 2),
+                            rectangles (rectangle (2, 0, 4, 2), rectangles ()));
+  rectangles s= simplify (l);
+  CHECK_EQ (N (s), 1);
+  CHECK (least_upper_bound (s) == rectangle (0, 0, 4, 2));
+  // 不相邻的矩形保持不变
+  rectangles d= rectangles (rectangle (0, 0, 2, 2),
+                            rectangles (rectangle (3, 0, 5, 2), rectangles ()));
+  CHECK_EQ (N (simplify (d)), 2);
+}
+
+TEST_CASE ("test simplify long list returns copy") {
+  // 超过 25 个元素时直接返回副本，不做合并
+  rectangles l= rectangles ();
+  for (int i= 0; i < 26; i++)
+    l= rectangles (rectangle (i, i, i + 1, i + 1), l);
+  rectangles s= simplify (l);
+  CHECK_EQ (N (s), 26);
+  CHECK (s == l);
 }
