@@ -99,14 +99,17 @@
 
 (define (boot-bench-mark stage)
   (let ((now (texmacs-time)))
-    (debug-message "debug-std"
-      (string-append "bench "
-        stage
-        ": "
-        (number->string (- now boot-bench-last))
-        " ms\n"
-      ) ;string-append
-    ) ;debug-message
+    ;; 不足 10ms 的阶段不打印，避免启动日志被 0ms 级条目刷屏
+    (if (>= (- now boot-bench-last) 10)
+      (debug-message "debug-std"
+        (string-append "bench "
+          stage
+          ": "
+          (number->string (- now boot-bench-last))
+          " ms\n"
+        ) ;string-append
+      ) ;debug-message
+    ) ;if
     (set! boot-bench-last now)
   ) ;let
 ) ;define

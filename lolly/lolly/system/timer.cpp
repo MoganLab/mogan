@@ -79,11 +79,12 @@ collect (hashmap<string, uint32_t> h) {
 
 void
 bench_print (tm_ostream& ostream) {
-  // print timings for all types of tasks
+  // print timings for all types of tasks（不足 10ms 的任务不打印，
+  // 避免启动日志被 0ms 级条目刷屏）
   array<string> a= collect (timing_cumul);
   int           i, n= N (a);
   for (i= 0; i < n; i++)
-    bench_print (ostream, a[i]);
+    bench_print (ostream, a[i], 10);
 }
 
 } // namespace system

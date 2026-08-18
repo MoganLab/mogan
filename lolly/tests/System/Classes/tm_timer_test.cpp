@@ -217,10 +217,11 @@ TEST_CASE ("function bench_print") {
     timer_cumul ("task1");
     timer_start ("task2");
     timer_cumul ("task2");
+    // 全量打印带 10ms 门槛：0ms 任务不输出
     bench_print (ostream);
 
     string out= to_zero (ostream);
-    string b  = "Task 'task1' took 0 ms\nTask 'task2' took 0 ms\n";
+    string b  = "";
 
     CHECK (out == b);
   }
