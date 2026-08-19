@@ -833,9 +833,33 @@ search_sections (tree t) {
   return a;
 }
 
+// herk 双向映射表里,字节 32..126 除 0x60(反引号,映到 0)外均恒等;
+// 纯此类字节的字符串 utf8->herk 结果与输入相同,可跳过逐字符解码重排
+static bool
+utf8_herk_identity (string s) {
+  for (int i= 0; i < N (s); i++) {
+    unsigned char c= (unsigned char) s[i];
+    if (c < 32 || c > 126 || c == 96) return false;
+  }
+  return true;
+}
+
+// herk->utf8 同样在 32..126(除 0x60,映到 U+2018)恒等,
+// 但 "<#" 会被解析为十六进制转义,需一并排除
+static bool
+herk_utf8_identity (string s) {
+  for (int i= 0; i < N (s); i++) {
+    unsigned char c= (unsigned char) s[i];
+    if (c < 32 || c > 126 || c == 96) return false;
+    if (c == '<' && i + 1 < N (s) && s[i + 1] == '#') return false;
+  }
+  return true;
+}
+
 tree
 tree_utf8_to_herk (tree_u8 t) {
   if (is_atomic (t)) {
+    if (utf8_herk_identity (t->label)) return tree (t->label);
     return tree (lolly::data::utf8_to_herk (t->label));
   }
   else if (!is_func (t, RAW_DATA)) {
@@ -853,6 +877,7 @@ tree_utf8_to_herk (tree_u8 t) {
 tree_u8
 tree_herk_to_utf8 (tree t) {
   if (is_atomic (t)) {
+    if (herk_utf8_identity (t->label)) return tree_u8 (t->label);
     return tree (lolly::data::herk_to_utf8 (t->label));
   }
   else if (!is_func (t, RAW_DATA)) {
