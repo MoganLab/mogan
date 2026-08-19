@@ -47,6 +47,19 @@ legacy_sup_pl (poly_line pl) {
   return p;
 }
 
+/// 旧版 access：逐段扫描，每步一次 l2_norm（sqrt + 临时 point 分配），
+/// 段长对每个 t 都重复重算
+static point
+legacy_access_pl (poly_line pl, double t) {
+  if (t <= 0) return pl[0];
+  for (int i= 1; i < N (pl); i++) {
+    double len= l2_norm (pl[i] - pl[i - 1]);
+    if (t < len) return pl[i - 1] + (t / len) * (pl[i] - pl[i - 1]);
+    t-= len;
+  }
+  return pl[N (pl) - 1];
+}
+
 int
 main () {
   ankerl::nanobench::Bench bench;
@@ -69,6 +82,24 @@ main () {
   bench.run ("legacy sup(poly_line)", [&] { legacy_sup_pl (pl); });
   bench.run ("length(poly_line)", [&] { length (pl); });
   bench.run ("access(poly_line)", [&] { access (pl, 60.0); });
+  bench.run ("legacy access(poly_line)",
+             [&] { legacy_access_pl (pl, 60.0); });
+  // 沿折线均匀取 21 点：模拟 invariants 采样对 access 的批量调用形态
+  {
+    double l= length (pl);
+    bench.run ("access x21 (uniform sampling)", [&] {
+      point acc (0.0, 0.0);
+      for (int k= 0; k <= 20; k++)
+        acc= acc + access (pl, l * k / 20.0);
+      ankerl::nanobench::doNotOptimizeAway (acc);
+    });
+    bench.run ("legacy access x21 (uniform sampling)", [&] {
+      point acc (0.0, 0.0);
+      for (int k= 0; k <= 20; k++)
+        acc= acc + legacy_access_pl (pl, l * k / 20.0);
+      ankerl::nanobench::doNotOptimizeAway (acc);
+    });
+  }
   bench.run ("normalize(poly_line)", [&] { normalize (pl); });
   bench.run ("vertices(poly_line)", [&] { vertices (pl); });
 

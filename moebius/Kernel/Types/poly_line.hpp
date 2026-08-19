@@ -148,9 +148,16 @@ double length (poly_line pl);
 
 /**
  * @brief 按弧长参数 t 取折线上的点。
+ *
+ * t 是从起点出发沿折线走过的距离（绝对长度，不是 [0,1] 比例参数）。
+ * 实现为逐段弧长扫描：依次扣除各段长度定位到所在段，再在段内按剩余
+ * 比例线性插值，故沿折线等速取点。
+ *
  * @param pl 折线
- * @param t 弧长参数；t <= 0 返回首点，t 超过总长返回末点
- * @return 折线上距起点弧长为 t 处的点（含段内线性插值）
+ * @param t 弧长参数；t <= 0 返回首点，t >= 总弧长（length(pl)）返回末点
+ * @return 折线上距起点弧长为 t 处的点
+ * @note 与 vertices 的归一化参数配套使用：t = p * length(pl)。
+ * @see length, vertices
  */
 point access (poly_line pl, double t);
 
