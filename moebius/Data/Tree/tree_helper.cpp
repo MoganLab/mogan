@@ -25,6 +25,26 @@ L (modification mod) {
  * Compound trees
  ******************************************************************************/
 
+/**
+ * @brief "suppressed" 标签的缓存编号，避免 is_empty 每次做字符串比较
+ * @note make_tree_label 幂等，函数局部静态首次调用后仅做静态读取
+ */
+static tree_label
+label_suppressed () {
+  static tree_label l= make_tree_label ("suppressed");
+  return l;
+}
+
+/**
+ * @brief "TeXmacs" 文档根标记标签的缓存编号，供 is_snippet 快速比较
+ * @note make_tree_label 幂等，函数局部静态首次调用后仅做静态读取
+ */
+static tree_label
+label_texmacs_marker () {
+  static tree_label l= make_tree_label ("TeXmacs");
+  return l;
+}
+
 tree
 compound (string s) {
   return tree (make_tree_label (s));
@@ -89,7 +109,7 @@ is_snippet (tree doc) {
   if (!is_document (doc)) return true;
   int i, n= N (doc);
   for (i= 0; i < n; i++)
-    if (is_compound (doc[i], "TeXmacs", 1)) return false;
+    if (is_func (doc[i], label_texmacs_marker (), 1)) return false;
   return true;
 }
 
@@ -234,7 +254,8 @@ is_empty (tree t) {
       if (!is_empty (t[i])) return false;
     return is_concat (t) || (n <= 1);
   }
-  return is_compound (t, "suppressed");
+  // suppressed 可带任意 arity，不能用在零参时为假的 is_func
+  return L (t) == label_suppressed ();
 }
 
 bool
