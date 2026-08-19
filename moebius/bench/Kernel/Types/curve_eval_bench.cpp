@@ -25,7 +25,7 @@ old_poly_evaluate (array<point> a, int n, double t) {
 static point
 old_rotate_2D (point p, point o, double angle) {
   double c= cos (angle), s= sin (angle);
-  point   d= p - o;
+  point  d= p - o;
   if (N (d) == 0) d= point (0.0, 0.0);
   if (N (d) == 1) d= point (d[0], 0.0);
   return point (c * d[0] - s * d[1], s * d[0] + c * d[1]) + o;
@@ -36,7 +36,7 @@ main () {
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (10000).unit ("x1024");
 
-  curve        seg = segment (point (0.0, 0.0), point (3.0, 4.0));
+  curve        seg= segment (point (0.0, 0.0), point (3.0, 4.0));
   array<point> a;
   a << point (0.0, 0.0) << point (1.0, 2.0) << point (4.0, 2.0)
     << point (5.0, 0.0);

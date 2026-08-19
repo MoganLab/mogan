@@ -124,3 +124,48 @@ TEST_CASE ("poly_segment grad 方向与倍率") {
   // n=2,第二段方向 (0,100),grad = 2*(0,100)
   CHECK (g == mkp (0, 200));
 }
+
+TEST_CASE ("spline evaluate 端点与缓存一致性") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 3) << mkp (3, 2) << mkp (5, 5) << mkp (7, 1);
+  curve c= spline (a, array<path> (), false, true);
+  // 端点插值:开样条经过首末控制点
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+  CHECK (c->evaluate (1.0) == mkp (7, 1));
+  // 同一 t 反复求值(interval_no 缓存命中路径)结果一致
+  point p1= c->evaluate (0.37);
+  point p2= c->evaluate (0.37);
+  point p3= c->evaluate (0.37);
+  CHECK (p1 == p2);
+  CHECK (p1 == p3);
+  // t 跳跃后回到原区间,结果仍一致(缓存失效重扫路径)
+  point p4= c->evaluate (0.9);
+  point p5= c->evaluate (0.37);
+  CHECK (p1 == p5);
+  CHECK (!(p1 == p4));
+}
+
+TEST_CASE ("spline rectify 首末点") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 3) << mkp (3, 2) << mkp (5, 5) << mkp (7, 1);
+  curve        c = spline (a, array<path> (), false, true);
+  array<point> ps= c->rectify (0.05);
+  CHECK (N (ps) >= 2);
+  CHECK (ps[0] == mkp (0, 0));
+  CHECK (ps[N (ps) - 1] == mkp (7, 1));
+}
+
+TEST_CASE ("spline grad 与 bound 契约") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 3) << mkp (3, 2) << mkp (5, 5) << mkp (7, 1);
+  curve c  = spline (a, array<path> (), false, true);
+  bool  err= true;
+  point g  = c->grad (0.5, err);
+  CHECK (!err);
+  CHECK_EQ (N (g), 2);
+  double eps  = 0.5;
+  double delta= c->bound (0.5, eps);
+  point  v1   = c->evaluate (0.5);
+  point  v2   = c->evaluate (max (0.5 - delta, 0.0));
+  CHECK (norm2_diff (v2, v1) <= (eps + 1e-6) * (eps + 1e-6));
+}

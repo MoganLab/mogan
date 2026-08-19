@@ -107,6 +107,24 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: `moebius/bench/Kernel/Types/curve_eval_bench.cpp`（含优化前
   实现的同二进制 A/B 对比）
 
+### 5.5 spline 求值：interval_no 缓存 + 跳过单位标量乘（2026-08-20）
+- **文件**: `moebius/Kernel/Types/curve.cpp`（spline_rep）
+- **What**:
+  1. `interval_no` 加上次命中缓存（求值常按 t 单调推进，先验上次区间）；
+  2. `evaluate(t,o)` 在 o=0 时跳过 `prod(k,o)*res`（系数为 1，省一次
+     整点分配）；
+  3. `approx` 中 `norm(p1-p2)` 改用 `norm2_diff` 开平方，避免差向量临时。
+- **Why**: spline 求值是样条曲线渲染/取直的最内层循环；每次求值都要
+  interval_no 全表线性扫描定位区间。
+- **How**: 新增成员 `last_interval`（默认 -1），命中直接返回，未命中
+  全扫后记录。A/B 用 `git stash` 临时还原旧实现测得旧值。
+- **结果**: 513 点求值扫：单调 21.0µs→14.9µs（**1.41x**）、震荡
+  20.9µs→15.6µs（1.33x）；rectify 7.9µs→7.5µs（基本持平，取直主要
+  开销在递归细分而非求值）。
+- **测试**: `curve_test.cpp` 追加 3 用例（端点插值、缓存命中/失效
+  一致性、rectify 首末点、grad/bound 契约）
+- **基准**: `curve_bench.cpp` 追加 spline 求值扫（单调/震荡）与 rectify
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

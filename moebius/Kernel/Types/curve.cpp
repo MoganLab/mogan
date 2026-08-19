@@ -394,6 +394,8 @@ struct spline_rep : public curve_rep {
   array<double> U;
   array<dpols>  p;
   bool          close, interpol;
+  // interval_no 的上次命中缓存:求值常按 t 单调推进(取直/渲染),先验上次区间
+  int last_interval= -1;
 
   spline_rep (array<point> a, array<path> cip, bool close= false,
               bool interpol= true);
@@ -562,9 +564,15 @@ spline_rep::spline (int i, double u, int o) {
 
 int
 spline_rep::interval_no (double u) {
+  if (last_interval >= 0 && last_interval + 1 < N (U) &&
+      u >= U[last_interval] && u < U[last_interval + 1])
+    return last_interval;
   int i;
   for (i= 0; i < N (U); i++)
-    if (u >= U[i] && u < U[i + 1]) return i;
+    if (u >= U[i] && u < U[i + 1]) {
+      last_interval= i;
+      return i;
+    }
   return -1;
 }
 
@@ -589,6 +597,8 @@ spline_rep::evaluate (double t, int o) {
   if (no < 2) res= spline (2, U[2], o);
   else if (no > n) res= spline (n, U[n + 1], o);
   else res= spline (no, t, o);
+  // o=0 时 prod(k,0)==1,免去一次标量乘的整点分配
+  if (o == 0) return res;
   return prod (k, o) * res;
 }
 
@@ -615,7 +625,9 @@ spline_rep::approx (int i, double u1, double u2, double eps) {
   point  p1, p2;
   p1= spline (i, u1);
   p2= spline (i, u2);
-  l = norm (p1 - p2);
+  // 平方距离比较避免构造差向量临时 point
+  double l2= norm2_diff (p1, p2);
+  l        = sqrt (l2);
   // When l and R are very small, the test l<=R
   // can fail forever. So we set l to exactly 0
   if (l != 0 && fnull (l, 1.0e-6)) l= 0;
