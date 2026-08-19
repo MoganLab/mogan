@@ -265,8 +265,16 @@ struct segment_rep : public curve_rep {
   point p1, p2;
   path  cip1, cip2;
   segment_rep (point p1b, point p2b) : p1 (p1b), p2 (p2b) {}
-  point evaluate (double t) { return (1.0 - t) * p1 + t * p2; }
-  void  rectify_cumul (array<point>& a, double eps) {
+  // 逐分量线性插值,避免两个标量乘临时与加法临时共三次分配
+  point evaluate (double t) {
+    double u= 1.0 - t;
+    int    i, n= min (N (p1), N (p2));
+    point  r (n);
+    for (i= 0; i < n; i++)
+      r[i]= u * p1[i] + t * p2[i];
+    return r;
+  }
+  void rectify_cumul (array<point>& a, double eps) {
     (void) eps;
     a << p2;
   }
@@ -317,10 +325,16 @@ struct poly_segment_rep : public curve_rep {
   int          n;
   poly_segment_rep (array<point> a2, array<path> cip2)
       : a (a2), cip (cip2), n (N (a) - 1) {}
-  int   nr_components () { return n; }
+  int nr_components () { return n; }
+  // 逐分量线性插值,避免两个标量乘临时与加法临时共三次分配
   point evaluate (double t) {
-    int i= max (min ((int) (n * t), n - 1), 0);
-    return (i + 1 - n * t) * a[i] + (n * t - i) * a[i + 1];
+    int    i= max (min ((int) (n * t), n - 1), 0);
+    double u= n * t - i;
+    int    k, m= min (N (a[i]), N (a[i + 1]));
+    point  r (m);
+    for (k= 0; k < m; k++)
+      r[k]= (1.0 - u) * a[i][k] + u * a[i + 1][k];
+    return r;
   }
   void rectify_cumul (array<point>& cum, double eps) {
     (void) eps;
@@ -336,7 +350,12 @@ struct poly_segment_rep : public curve_rep {
   point grad (double t, bool& error) {
     error= false;
     int i= min ((int) (n * t), n - 1);
-    return n * (a[i + 1] - a[i]);
+    // 差向量逐分量放大,避免差向量临时
+    int   k, m= min (N (a[i]), N (a[i + 1]));
+    point r (m);
+    for (k= 0; k < m; k++)
+      r[k]= n * (a[i + 1][k] - a[i][k]);
+    return r;
   }
   int get_control_points (array<double>& abs, array<point>& pts,
                           array<path>& cip);

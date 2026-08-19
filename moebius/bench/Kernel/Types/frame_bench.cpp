@@ -4,9 +4,9 @@
  *  \date   2026
  */
 
-#include "nanobench.h"
 #include "frame.hpp"
 #include "matrix.hpp"
+#include "nanobench.h"
 
 // 优化前的标量 scaling 直变换:两个中间 point 临时,用于同二进制 A/B 对比
 static point
@@ -25,10 +25,10 @@ main () {
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (10000).unit ("op");
 
-  point  origin= point (0.0, 0.0);
-  frame  sc    = scaling (2.0, point (1.0, 1.0));
-  frame  ansc  = scaling (point (2.0, 3.0), point (1.0, 1.0));
-  frame  lin   = linear_2D (matrix_2D (1.5, 0.2, -0.1, 2.5));
+  point origin= point (0.0, 0.0);
+  frame sc    = scaling (2.0, point (1.0, 1.0));
+  frame ansc  = scaling (point (2.0, 3.0), point (1.0, 1.0));
+  frame lin   = linear_2D (matrix_2D (1.5, 0.2, -0.1, 2.5));
 
   // 模拟图形渲染:同一片点集反复变换
   enum { NPTS= 1024 };
@@ -53,7 +53,8 @@ main () {
   });
   bench.run ("old an_scaling direct x1024", [&] {
     for (int i= 0; i < NPTS; i++) {
-      point q= old_anscaling_direct (point (2.0, 3.0), point (1.0, 1.0), pts[i]);
+      point q=
+          old_anscaling_direct (point (2.0, 3.0), point (1.0, 1.0), pts[i]);
       acc+= q[0];
     }
     ankerl::nanobench::doNotOptimizeAway (acc);
@@ -74,9 +75,8 @@ main () {
   });
   // 矩形包围盒:graphics 中 frame::enclose 的典型入口
   rectangle r (0, 0, 100, 100);
-  bench.run ("enclose rect scaling", [&] {
-    ankerl::nanobench::doNotOptimizeAway (sc (r));
-  });
+  bench.run ("enclose rect scaling",
+             [&] { ankerl::nanobench::doNotOptimizeAway (sc (r)); });
   (void) origin;
   return 0;
 }

@@ -340,3 +340,17 @@ TEST_CASE ("test norm2_diff") {
   p1d[0]= 3;
   CHECK_EQ (norm2_diff (p1d, mkp (0, 100)), 9.0);
 }
+
+TEST_CASE ("test rotate_2D degenerate dims") {
+  // 空点与一维点走 mult 回退路径,先补维再旋转
+  point r0= rotate_2D (point (), mkp (0, 0), tm_PI / 2);
+  CHECK_EQ (N (r0), 2);
+  CHECK (fabs (r0[0]) < 1e-9);
+  CHECK (fabs (r0[1]) < 1e-9);
+  point p1 (1);
+  p1[0]   = 1.0;
+  point r1= rotate_2D (p1, mkp (0, 0), 0.0);
+  CHECK_EQ (N (r1), 2);
+  CHECK (fabs (r1[0] - 1.0) < 1e-9);
+  CHECK (fabs (r1[1]) < 1e-9);
+}

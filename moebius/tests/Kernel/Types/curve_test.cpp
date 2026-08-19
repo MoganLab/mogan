@@ -77,3 +77,50 @@ TEST_CASE ("bound 契约: |t'-t|<=delta 时 |c(t')-c(t)|<=eps") {
     }
   }
 }
+
+TEST_CASE ("segment evaluate 端点与中点") {
+  curve c = segment (mkp (0, 0), mkp (3, 4));
+  point e0= c->evaluate (0.0);
+  point e1= c->evaluate (1.0);
+  point em= c->evaluate (0.5);
+  CHECK (e0 == mkp (0, 0));
+  CHECK (e1 == mkp (3, 4));
+  CHECK (em == mkp (1.5, 2.0));
+  // 三维点插值维度保持
+  point q0 (3), q1 (3);
+  q0[0]   = 0;
+  q0[1]   = 0;
+  q0[2]   = 0;
+  q1[0]   = 3;
+  q1[1]   = 4;
+  q1[2]   = 5;
+  curve c3= segment (q0, q1);
+  point m3= c3->evaluate (0.5);
+  CHECK_EQ (N (m3), 3);
+  CHECK (fabs (m3[0] - 1.5) < 1e-9);
+  CHECK (fabs (m3[1] - 2.0) < 1e-9);
+  CHECK (fabs (m3[2] - 2.5) < 1e-9);
+}
+
+TEST_CASE ("poly_segment evaluate 分段边界") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c= poly_segment (a, array<path> ());
+  // n=2,每段占 t 的一半
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+  CHECK (c->evaluate (0.25) == mkp (5, 0));
+  CHECK (c->evaluate (0.5) == mkp (10, 0));
+  CHECK (c->evaluate (0.75) == mkp (10, 50));
+  CHECK (c->evaluate (1.0) == mkp (10, 100));
+}
+
+TEST_CASE ("poly_segment grad 方向与倍率") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c  = poly_segment (a, array<path> ());
+  bool  err= true;
+  point g  = c->grad (0.5, err);
+  CHECK (!err);
+  // n=2,第二段方向 (0,100),grad = 2*(0,100)
+  CHECK (g == mkp (0, 200));
+}

@@ -87,6 +87,26 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: `moebius/bench/Kernel/Types/frame_bench.cpp`（含优化前
   实现的同二进制 A/B 对比 + linear_2D 基线 + enclose 包围盒场景）
 
+### 5.4 segment/poly_segment 求值与 rotate_2D 消除中间 point 临时（2026-08-20）
+- **文件**: `moebius/Kernel/Types/curve.cpp`、`moebius/Kernel/Types/point.cpp`
+- **What**:
+  1. `segment_rep::evaluate` 由 `(1-t)*p1 + t*p2`（3 次分配）改为逐分量
+     线性插值（1 次分配）；
+  2. `poly_segment_rep::evaluate` 同样逐分量插值；
+  3. `poly_segment_rep::grad` 由 `n*(a[i+1]-a[i])`（2 次分配）改为
+     逐分量差值放大；
+  4. `rotate_2D` 加 2D 快路径，避免 `p-o` 与 `+o` 两个中间临时；
+     非常规维度走原 mult 回退路径。
+- **Why**: 曲线求值是图形渲染/取直(rectify)/边框计算的最内层循环，
+  每个采样点一次 evaluate；poly_segment 是折线图形的通用表示。
+- **结果**: x1024 循环：segment 53.0µs→15.6µs（**3.4x**），
+  poly_segment 32.5µs→18.1µs（1.8x），rotate_2D 54.6µs→22.8µs（2.4x）。
+- **测试**: `curve_test.cpp` 追加 3 用例（segment 端点/中点/三维维度、
+  poly_segment 分段边界 n=2 语义、grad 倍率）；`point_test.cpp` 追加
+  rotate_2D 退化维度回退路径用例
+- **基准**: `moebius/bench/Kernel/Types/curve_eval_bench.cpp`（含优化前
+  实现的同二进制 A/B 对比）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

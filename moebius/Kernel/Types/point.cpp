@@ -182,6 +182,12 @@ mult (double re, double im, point p) {
 
 point
 rotate_2D (const point& p, const point& o, double angle) {
+  // 常见 2D 快路径:单次结果分配,避免 p-o 与 +o 两个中间临时
+  if (N (p) == 2 && N (o) == 2) {
+    double c= cos (angle), s= sin (angle);
+    double dx= p[0] - o[0], dy= p[1] - o[1];
+    return point (o[0] + c * dx - s * dy, o[1] + s * dx + c * dy);
+  }
   return mult (cos (angle), sin (angle), p - o) + o;
 }
 
