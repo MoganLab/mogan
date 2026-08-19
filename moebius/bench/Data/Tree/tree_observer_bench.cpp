@@ -28,7 +28,8 @@ ip_attached (path ip) {
 }
 observer
 list_observer (observer o1, observer o2) {
-  (void) o1; (void) o2; // 基准树未挂观察者，不会被调用
+  (void) o1;
+  (void) o2; // 基准树未挂观察者，不会被调用
   return observer ();
 }
 
