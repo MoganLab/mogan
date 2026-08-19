@@ -394,11 +394,44 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: `tree_cursor_bench.cpp` 追加 correct_cursor 扫描
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
-## 6 Why（总体）
+## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
+
+| # | 函数/路径 | 提速 | 场景 |
+|---|---|---|---|
+| 5.1 | tree_utf8↔herk | 5.3x/2.1x | 1000 段文档加载转换 |
+| 5.2 | correct_node | 1.96x | 预校正树 sweep×100 |
+| 5.3 | scaling 直变换 | 2.3–3.1x | x1024 点设备变换 |
+| 5.4 | segment/poly_segment 求值 | 4.4x/1.8x | 渲染采样 |
+| 5.5 | spline 求值 | 1.4x | 单调扫 |
+| 5.6 | raw_split/raw_join | 7.4x | 1000 孩子中部×500 |
+| 5.7 | get_env_child | 1.37x | 光标校验 mode 读 |
+| 5.8 | can_* 适用性检查 | 1.9–2.0x | 深度 9 路径 |
+| 5.9 | move_any | 1.33x | 逐字符全扫 |
+| 5.10 | tmu_to_tree | 2.47x | TMU 文档解析 |
+| 5.11 | 三对角求解 | 1.10–1.33x | spline 构造 |
+| 5.12 | scheme 解析 OOB 修复 | — | 正确性（3 处越界读） |
+| 5.13 | slash/scm_quote | 1.11x | 序列化 |
+| 5.14 | move_word/tm_codepoint_at | 1.12x | Ctrl+方向键 |
+| 5.15 | simplify_correct | 结构性 | 未变子树共享 |
+| 5.16 | .tm 加载 | 1.04x | codes 跳过+unquote |
+| 5.17 | 曲线最近点/求交 | 1.07x | 图形点选 |
+| 5.18 | arc/ellipse 求值 | 2.5–2.7x | conic 采样 |
+| 5.19 | bezier 求值/取直 | 3.4–4.1x | 平滑路径 |
+| 5.20 | hyperbola/parabola | 2.4–3.2x | 求值采样 |
+| 5.21 | keep_positive | 1.16x | 光标校正 |
+
+负结果（已回退并记录）：linear_2D 展开、is_compound 标签比较、
+tmu write 成段追加、make_tree_label 备忘缓存、simplify_correct
+第一版先建后判。
+
+剩余未动的区域：patch/commute（undo 冷路径）、s7 object glue
+（薄封装）、observers 内部（需联动 mogan 主程序）。
+
+## 7 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。
 
-## 7 How（总体）
+## 8 How（总体）
 - 优化前先写 bench（同二进制内保留旧实现做 A/B 对比）
 - 优化后跑 `xmake test moebius_tests/<name>` 回归
 - 每轮记录到本文档第 5 节
