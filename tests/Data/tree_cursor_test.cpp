@@ -26,6 +26,7 @@ private slots:
   void test_valid_cursor_basics ();
   void test_valid_cursor_input_math ();
   void test_next_valid ();
+  void test_next_word ();
 };
 
 void
@@ -52,13 +53,12 @@ TestTreeCursor::test_valid_cursor_input_math () {
   QVERIFY (!valid_cursor (input_math, path (1, 0)));
 
   // 普通的 input（第二个孩子不是 math）不受影响
-  tree input_plain (make_tree_label ("input"), tree ("name"),
-                    tree ("plain"));
+  tree input_plain (make_tree_label ("input"), tree ("name"), tree ("plain"));
   QVERIFY (valid_cursor (input_plain, path (1, 0)));
 
   // 同名 with 结构不受 input 特判影响
-  tree with_math (make_tree_label ("with"), tree ("mode"),
-                  tree ("math"), tree ("body"));
+  tree with_math (make_tree_label ("with"), tree ("mode"), tree ("math"),
+                  tree ("body"));
   QVERIFY (valid_cursor (with_math, path (2, 0)));
 }
 
@@ -69,8 +69,8 @@ TestTreeCursor::test_next_valid () {
     tree par (CONCAT);
     par << tree ("aa") << tree ("bb");
     if (i == 2)
-      par << tree (make_tree_label ("with"), tree ("color"),
-                   tree ("red"), tree ("inner"));
+      par << tree (make_tree_label ("with"), tree ("color"), tree ("red"),
+                   tree ("inner"));
     doc << par;
   }
   // 从首个原子起点逐步前进，位置应单调不减且始终合法
@@ -84,6 +84,37 @@ TestTreeCursor::test_next_valid () {
   // 反向移动应能回到起点附近
   path back= previous_valid (doc, p);
   QVERIFY (back != p);
+}
+
+void
+TestTreeCursor::test_next_word () {
+  // 词级移动应前进到合法光标位置（到达末尾后停驻）
+  tree doc (DOCUMENT, tree (CONCAT, tree ("aaa bbb ccc ddd eee fff")));
+  path p (0, 0, 0);
+  int progressed= 0;
+  for (int i= 0; i < 10; i++) {
+    path q= next_word (doc, p);
+    QVERIFY (valid_cursor (doc, q));
+    QVERIFY (path_inf_eq (p, q));
+    if (q == p) break;
+    progressed++;
+    p= q;
+  }
+  QVERIFY (progressed >= 1);
+
+  // 含 <#XXXX> 中文字符的文本：词移动不崩溃，前进后停驻于合法位置
+  tree cjk (DOCUMENT, tree (CONCAT, tree ("<#4e2d><#6587> abc")));
+  path r (0, 0, 0);
+  int cjk_progressed= 0;
+  for (int i= 0; i < 20; i++) {
+    path s= next_word (cjk, r);
+    QVERIFY (valid_cursor (cjk, s));
+    QVERIFY (path_inf_eq (r, s));
+    if (s == r) break;
+    cjk_progressed++;
+    r= s;
+  }
+  QVERIFY (cjk_progressed >= 1);
 }
 
 #ifdef QTTEXMACS

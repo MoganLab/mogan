@@ -363,28 +363,30 @@ is_iso_alphanum (char c) {
 
 // Extract a single TeXmacs character at byte position `pos`
 // and return a coarse Unicode codepoint for boundary checks.
+// 直接在原串上扫描，不构造子串：词级移动每步都会调用，
+// 子串切片的堆分配在 CJK 文本（<#XXXX> 形式）下是主要开销
 static inline bool
 tm_codepoint_at (string s, int pos, unsigned int& code) {
   if (pos < 0 || pos >= N (s)) return false;
 
   int i= pos;
   tm_char_forwards (s, i);
-  string c= s (pos, i);
-  if (c == "") return false;
+  int len= i - pos;
+  if (len < 1) return false;
 
   // Plain ASCII
-  if (N (c) == 1) {
-    code= (unsigned int) (unsigned char) c[0];
+  if (len == 1) {
+    code= (unsigned int) (unsigned char) s[pos];
     return true;
   }
 
   // TeXmacs internal hexadecimal form: <#....>
   // Only parse leading hex digits for block-level checks.
-  if (starts (c, "<#") && ends (c, ">")) {
+  if (s[pos] == '<' && s[pos + 1] == '#' && s[i - 1] == '>') {
     unsigned int v= 0;
-    int          k= 2, cnt= 0;
-    for (; k < N (c) - 1 && cnt < 4; k++, cnt++) {
-      char         ch= c[k];
+    int          k= pos + 2, cnt= 0;
+    for (; k < i - 1 && cnt < 4; k++, cnt++) {
+      char         ch= s[k];
       unsigned int d;
       if (ch >= '0' && ch <= '9') d= (unsigned int) (ch - '0');
       else if (ch >= 'a' && ch <= 'f') d= 10u + (unsigned int) (ch - 'a');
