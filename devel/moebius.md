@@ -230,6 +230,26 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: 新建 `bench/Kernel/Types/spline_bench.cpp`（开/闭合样条
   构造）；`bench/Data/Convert/tmu_write_bench.cpp`（写路径对照）
 
+### 5.12 scheme 解析器越界读修复（2026-08-20）
+- **文件**: `moebius/moebius/data/scheme_der.cpp`
+- **What**（正确性为主，性能持平）:
+  1. 词元扫描与引号串扫描的 `ch= s[end_index]` 先读后判界，缓冲区
+     末尾各越界读一字节——改为循环顶先判界；
+  2. `unslash` 尾部 `ch= s[i]` 同样越界——同样改为循环顶读取；
+  3. `string_to_scheme_tree` 的 `replace(s,"\\015","")` 整串拷贝改为
+     先探测含 CR 才替换；
+  4. 修复 `block_bench.cpp` 失效的资源路径（bench/ → moebius/bench/，
+     子目录迁移后无人发现）。
+- **Why**: 越界读是未定义行为（ASAN 会报）；scheme 解析是启动加载
+  全部 .scm 的必经路径。
+- **结果**: block_bench 解析 5.69→5.77 ns/char（噪声内持平）。
+- **尝试后回退**: `is_compound(t,s)` 改标签编号比较——名字比较短路
+  vs 哈希全串，实测反而慢 54%（32.9→50.7µs），已回退。
+- **测试**: 新建 `tests/moebius/data/scheme_der_test.cpp`（9 用例：
+  词元在缓冲区末尾、末尾反斜杠、引号转义、未闭合引号、注释、
+  quote 糖、CR 剔除、block 多表达式）
+- **基准**: `block_bench.cpp`（路径修复后可正常运行）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

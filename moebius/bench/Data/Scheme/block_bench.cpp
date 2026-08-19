@@ -19,7 +19,7 @@ int
 main () {
   lolly::init_tbox ();
   string buffer;
-  url    u= url_pwd () * url ("bench/Data/Scheme/dictionary.scm");
+  url    u= url_pwd () * url ("moebius/bench/Data/Scheme/dictionary.scm");
   load_string (u, buffer, false);
   bench.minEpochIterations (10)
       .batch (N (buffer))
@@ -30,7 +30,7 @@ main () {
   bench.run ("serializing large group of simple element",
              [&] { scheme_tree_to_block (parsed_tree); });
 
-  u= url_pwd () * url ("bench/Data/Scheme/virtual-font.scm");
+  u= url_pwd () * url ("moebius/bench/Data/Scheme/virtual-font.scm");
   load_string (u, buffer, false);
   bench.batch (N (buffer))
       .run ("parsing group of complex tree",

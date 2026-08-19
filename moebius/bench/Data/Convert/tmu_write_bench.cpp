@@ -49,8 +49,7 @@ main () {
   bench.run ("tree_to_tmu empty paras x2000", [&] {
     ankerl::nanobench::doNotOptimizeAway (tree_to_tmu (empties));
   });
-  bench.run ("tree_to_tmu regular doc500x10", [&] {
-    ankerl::nanobench::doNotOptimizeAway (tree_to_tmu (doc));
-  });
+  bench.run ("tree_to_tmu regular doc500x10",
+             [&] { ankerl::nanobench::doNotOptimizeAway (tree_to_tmu (doc)); });
   return 0;
 }
