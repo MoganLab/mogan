@@ -92,9 +92,20 @@
       (unless (integer? n)
         (type-error "list-take-right: second argument must be an integer" n)
       ) ;unless
-      (cond ((< n 0) '())
-            ((>= n (length lst)) lst)
-            (else (take-right lst n))
+      (cond ((<= n 0) '())
+            (else (let advance
+                    ((lead lst) (count 0))
+                    (cond ((null? lead) lst)
+                          ((>= count n)
+                           (let scan
+                             ((lead lead) (lag lst))
+                             (if (null? lead) lag (scan (cdr lead) (cdr lag)))
+                           ) ;let
+                          ) ;
+                          (else (advance (cdr lead) (+ count 1)))
+                    ) ;cond
+                  ) ;let
+            ) ;else
       ) ;cond
     ) ;define
 
@@ -105,7 +116,7 @@
       (unless (integer? n)
         (type-error "list-drop-right: second argument must be an integer" n)
       ) ;unless
-      (cond ((< n 0) lst)
+      (cond ((<= n 0) lst)
             ((>= n (length lst)) '())
             (else (drop-right lst n))
       ) ;cond
