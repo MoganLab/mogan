@@ -25,15 +25,6 @@ mk_pl (double x0, double y0, double x1, double y1, double x2, double y2) {
   return pl;
 }
 
-static bool
-almost_eq (point p, point q, double eps= 1e-9) {
-  int n= N (p);
-  if (n != N (q)) return false;
-  for (int i= 0; i < n; i++)
-    if (fabs (p[i] - q[i]) > eps) return false;
-  return true;
-}
-
 TEST_CASE ("test l2_norm and point distance") {
   CHECK_EQ (l2_norm (point (3.0, 4.0)), 5.0);
   CHECK_EQ (distance (point (0.0, 0.0), point (3.0, 4.0)), 5.0);

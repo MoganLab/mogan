@@ -17,7 +17,7 @@
 
 /**
  * @brief 在已学习字形中按指定级别搜索最佳匹配。
- * @param gl 输入轮廓
+ * @param n_contours 输入轮廓的折线条数
  * @param level 不变量级别（1 或 2）
  * @param disc 输入轮廓的离散不变量
  * @param cont 输入轮廓的连续不变量
@@ -25,32 +25,28 @@
  * @param best_rec [in,out] 当前最佳匹配得分
  */
 static void
-search_level (contours gl, int level, const array<tree>& disc,
+search_level (int n_contours, int level, const array<tree>& disc,
               const array<double>& cont, string& best, double& best_rec) {
-  const array<array<tree>>& learned_disc=
-      (level == 1 ? learned_disc1 : learned_disc2);
-  const array<array<double>>& learned_cont=
-      (level == 1 ? learned_cont1 : learned_cont2);
-  const array<int>& learned_hash= (level == 1 ? learned_hash1 : learned_hash2);
-  int               h           = hash (disc);
-  for (int i= 0; i < N (learned_names); i++)
-    if (N (learned_glyphs[i]) == N (gl) && h == learned_hash[i] &&
-        disc == learned_disc[i]) {
-      // 内联距离计算，避免 l2_norm(cont - cont) 的临时数组分配
-      string               name= learned_names[i];
-      const array<double>& ref = learned_cont[i];
-      double               s   = 0.0;
-      for (int k= 0; k < N (cont); k++) {
-        double d= ref[k] - cont[k];
-        s+= d * d;
-      }
-      double rec= 1.0 - sqrt (s) / sqrt (N (cont));
-      if (rec > best_rec) {
-        best_rec= rec;
-        best    = name;
-      }
-      // cout << name << ": " << 100.0 * rec << "%\n";
+  int h= hash (disc);
+  for (int i= 0; i < N (learned_glyphs); i++) {
+    const glyph_record& r= learned_glyphs[i];
+    if (N (r.gl) != n_contours) continue;
+    if (h != (level == 1 ? r.hash1 : r.hash2)) continue;
+    if (disc != (level == 1 ? r.disc1 : r.disc2)) continue;
+    // 内联距离计算，避免 l2_norm(cont - cont) 的临时数组分配
+    const array<double>& ref= (level == 1 ? r.cont1 : r.cont2);
+    double               s  = 0.0;
+    for (int k= 0; k < N (cont); k++) {
+      double d= ref[k] - cont[k];
+      s+= d * d;
     }
+    double rec= 1.0 - sqrt (s) / sqrt (N (cont));
+    if (rec > best_rec) {
+      best_rec= rec;
+      best    = r.name;
+    }
+    // cout << r.name << ": " << 100.0 * rec << "%\n";
+  }
 }
 
 void
@@ -61,7 +57,7 @@ recognize_glyph_one (contours gl, int& level, string& best, double& best_rec) {
 
   best    = "";
   best_rec= -100.0;
-  search_level (gl, 1, disc1, cont1, best, best_rec);
+  search_level (N (gl), 1, disc1, cont1, best, best_rec);
   if (best != "") {
     level= 1;
     return;
@@ -71,7 +67,7 @@ recognize_glyph_one (contours gl, int& level, string& best, double& best_rec) {
   array<tree>   disc2;
   array<double> cont2;
   invariants (gl, 2, disc2, cont2);
-  search_level (gl, 2, disc2, cont2, best, best_rec);
+  search_level (N (gl), 2, disc2, cont2, best, best_rec);
   level= 2;
 }
 

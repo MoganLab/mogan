@@ -7,19 +7,22 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "handwriting.hpp"
 #include "nanobench.h"
 #include "tm_ostream.hpp"
-#include "handwriting.hpp"
 
-/** \brief 生成模拟手写笔画的折线：带圆弧扰动的锯齿线 */
+/** \brief 生成模拟手写笔画的折线：k 段折线拼接，含 k 个明显转角 */
 static poly_line
-mk_stroke (int n, double w, double h, double phase) {
+mk_stroke (int corners, double w, double h, double phase) {
   poly_line pl;
+  int       n= 8 * corners;
   for (int i= 0; i < n; i++) {
     double t= (double) i / (n - 1);
     double x= w * t;
-    double y= h * (0.5 + 0.5 * sin (6.28 * t + phase));
-    pl << point (x, y);
+    // 分段线性锯齿：每段一个转角，模拟真实笔画的顶点结构
+    double y= h * ((i / 8 % 2 == 0) ? t * 8 - (i / 8) * 2 + 0.5
+                                    : 1.5 - (t * 8 - (i / 8) * 2));
+    pl << point (x, y + 0.01 * sin (6.28 * t + phase));
   }
   return pl;
 }
@@ -37,7 +40,8 @@ mk_glyph (int corners, double phase, double noise, unsigned int& seed) {
   return gl;
 }
 
-/* ---------- 优化前实现（对照组）：无哈希预过滤、二级不变量总是计算 ---------- */
+/* ---------- 优化前实现（对照组）：无哈希预过滤、二级不变量总是计算 ----------
+ */
 
 static void
 legacy_recognize_one (contours gl, int& level, string& best, double& best_rec) {
@@ -50,39 +54,44 @@ legacy_recognize_one (contours gl, int& level, string& best, double& best_rec) {
 
   best    = "";
   best_rec= -100.0;
-  for (int i= 0; i < N (learned_names); i++)
-    if (N (learned_glyphs[i]) == N (gl) && disc1 == learned_disc1[i]) {
-      double dist= l2_norm (learned_cont1[i] - cont1) / sqrt (N (cont1));
+  for (int i= 0; i < N (learned_glyphs); i++) {
+    const glyph_record& r= learned_glyphs[i];
+    if (N (r.gl) == N (gl) && disc1 == r.disc1) {
+      double dist= l2_norm (r.cont1 - cont1) / sqrt (N (cont1));
       double rec = 1.0 - dist;
       if (rec > best_rec) {
         best_rec= rec;
-        best    = learned_names[i];
+        best    = r.name;
       }
     }
+  }
   if (best != "") {
     level= 1;
     return;
   }
-  for (int i= 0; i < N (learned_names); i++)
-    if (N (learned_glyphs[i]) == N (gl) && disc2 == learned_disc2[i]) {
-      double dist= l2_norm (learned_cont2[i] - cont2) / sqrt (N (cont2));
+  for (int i= 0; i < N (learned_glyphs); i++) {
+    const glyph_record& r= learned_glyphs[i];
+    if (N (r.gl) == N (gl) && disc2 == r.disc2) {
+      double dist= l2_norm (r.cont2 - cont2) / sqrt (N (cont2));
       double rec = 1.0 - dist;
       if (rec > best_rec) {
         best_rec= rec;
-        best    = learned_names[i];
+        best    = r.name;
       }
     }
+  }
   level= 2;
 }
 
 int
 main () {
   // 模拟真实规模：数百个已学习字形
-  const int glyph_count= 400;
-  unsigned int seed= 42;
+  const int    glyph_count= 400;
+  unsigned int seed       = 42;
   clear_learned_glyphs ();
   for (int i= 0; i < glyph_count; i++)
-    register_glyph ("g" * as_string (i), mk_glyph (2 + i % 5, 0.1 * i, 0.0, seed));
+    register_glyph ("g" * as_string (i),
+                    mk_glyph (2 + i % 5, 0.1 * i, 0.0, seed));
 
   // 命中一级匹配的查询（常见路径）
   contours hit= mk_glyph (2 + 7 % 5, 0.1 * 7, 0.01, seed);
@@ -98,7 +107,8 @@ main () {
   string legacy_hit= best;
   recognize_glyph_one (hit, lev, best, rec);
   if (best != legacy_hit) { // 优化前后结果必须一致
-    cout << "FATAL: optimized result " << best << " != legacy " << legacy_hit << LF;
+    cout << "FATAL: optimized result " << best << " != legacy " << legacy_hit
+         << LF;
     std::exit (1);
   }
 
@@ -115,17 +125,16 @@ main () {
             [&] { recognize_glyph_one (miss, lev, best, rec); });
 
   {
-    array<tree>   d;
-    array<double> c;
     ankerl::nanobench::Bench ()
         .title ("handwriting invariants alone")
         .unit ("glyph")
-        .run ("invariants(level=1)", [&] {
-          array<tree>   disc;
-          array<double> cont;
-          invariants (hit, 1, disc, cont);
-          ankerl::nanobench::doNotOptimizeAway (cont);
-        })
+        .run ("invariants(level=1)",
+              [&] {
+                array<tree>   disc;
+                array<double> cont;
+                invariants (hit, 1, disc, cont);
+                ankerl::nanobench::doNotOptimizeAway (cont);
+              })
         .run ("invariants(level=2)", [&] {
           array<tree>   disc;
           array<double> cont;

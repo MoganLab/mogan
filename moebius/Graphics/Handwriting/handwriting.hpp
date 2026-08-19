@@ -11,14 +11,23 @@
 
 #include "poly_line.hpp"
 
-extern array<contours>      learned_glyphs;
-extern array<string>        learned_names;
-extern array<array<tree>>   learned_disc1;
-extern array<array<double>> learned_cont1;
-extern array<array<tree>>   learned_disc2;
-extern array<array<double>> learned_cont2;
-extern array<int>           learned_hash1;
-extern array<int>           learned_hash2;
+/**
+ * @brief 单个已学习字形的完整记录。
+ * @note 一二级不变量及其哈希在学习时一次性算好，识别时只读；
+ *       hash1/hash2 分别是 disc1/disc2 的缓存哈希，用于识别前的快速预过滤。
+ */
+struct glyph_record {
+  string        name;  ///< 字形名
+  contours      gl;    ///< 原始轮廓
+  array<tree>   disc1; ///< 一级离散不变量
+  array<double> cont1; ///< 一级连续不变量
+  array<tree>   disc2; ///< 二级离散不变量
+  array<double> cont2; ///< 二级连续不变量
+  int           hash1; ///< disc1 的缓存哈希
+  int           hash2; ///< disc2 的缓存哈希
+};
+
+extern array<glyph_record> learned_glyphs;
 
 void   clear_learned_glyphs ();
 void   register_glyph (string name, contours gl);

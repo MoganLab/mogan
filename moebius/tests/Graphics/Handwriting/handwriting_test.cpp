@@ -8,16 +8,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "moe_doctests.hpp"
 #include "handwriting.hpp"
-
-static bool
-almost_eq_point (point p, point q, double eps= 1e-9) {
-  if (N (p) != N (q)) return false;
-  for (int i= 0; i < N (p); i++)
-    if (fabs (p[i] - q[i]) > eps) return false;
-  return true;
-}
+#include "moe_doctests.hpp"
 
 /** \brief 生成 k 段折线拼接的锯齿笔画，含 k 个明显转角 */
 static poly_line
@@ -57,7 +49,7 @@ TEST_CASE ("test register_glyph and recognize_glyph round trip") {
   register_glyph ("two", mk_glyph (2));
   register_glyph ("three", mk_glyph (3));
   register_glyph ("four", mk_glyph (4));
-  CHECK_EQ (N (learned_names), 3);
+  CHECK_EQ (N (learned_glyphs), 3);
 
   // 完全相同的轮廓：一级匹配
   int    lev = 0;
@@ -83,7 +75,7 @@ TEST_CASE ("test register_glyph and recognize_glyph round trip") {
   CHECK_EQ (recognize_glyph (mk_glyph (4)), "four");
 
   clear_learned_glyphs ();
-  CHECK_EQ (N (learned_names), 0);
+  CHECK_EQ (N (learned_glyphs), 0);
   CHECK_EQ (recognize_glyph (mk_glyph (3)), "");
 }
 
@@ -94,7 +86,7 @@ TEST_CASE ("test learned hash consistency") {
   array<tree>   disc1;
   array<double> cont1;
   invariants (mk_glyph (2), 1, disc1, cont1);
-  CHECK_EQ (learned_hash1[0], hash (disc1));
+  CHECK_EQ (learned_glyphs[0].hash1, hash (disc1));
   clear_learned_glyphs ();
 }
 
@@ -112,8 +104,8 @@ TEST_CASE ("test simplify") {
   array<point> s= simplify (line, 0.05, 10.0);
   CHECK (N (s) < 20);
   CHECK (N (s) >= 2);
-  CHECK (almost_eq_point (s[0], line[0]));
-  CHECK (almost_eq_point (s[N (s) - 1], line[N (line) - 1]));
+  CHECK (almost_eq (s[0], line[0]));
+  CHECK (almost_eq (s[N (s) - 1], line[N (line) - 1]));
   // 保留的相邻点间距不小于 eps（continue 跳过更短跳转）
   for (int i= 1; i < N (s); i++) {
     double d= 0.0;
@@ -138,8 +130,8 @@ TEST_CASE ("test simplify") {
   CHECK (N (sb) < N (bent));
   bool has_corner= false;
   for (int i= 0; i < N (sb); i++)
-    if (almost_eq_point (sb[i], point (0.49, 0.0), 1e-6)) has_corner= true;
+    if (almost_eq (sb[i], point (0.49, 0.0), 1e-6)) has_corner= true;
   CHECK (has_corner);
-  CHECK (almost_eq_point (sb[0], bent[0]));
-  CHECK (almost_eq_point (sb[N (sb) - 1], bent[N (bent) - 1]));
+  CHECK (almost_eq (sb[0], bent[0]));
+  CHECK (almost_eq (sb[N (sb) - 1], bent[N (bent) - 1]));
 }

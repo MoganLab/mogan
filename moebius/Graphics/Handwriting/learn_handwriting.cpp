@@ -15,43 +15,22 @@
  * Learning glyphs
  ******************************************************************************/
 
-array<contours>      learned_glyphs;
-array<string>        learned_names;
-array<array<tree>>   learned_disc1;
-array<array<double>> learned_cont1;
-array<array<tree>>   learned_disc2;
-array<array<double>> learned_cont2;
-// 预计算的 disc 哈希：识别时先比哈希再决定是否做深度 tree 比较
-array<int> learned_hash1;
-array<int> learned_hash2;
+array<glyph_record> learned_glyphs;
 
 void
 clear_learned_glyphs () {
-  learned_glyphs= array<contours> ();
-  learned_names = array<string> ();
-  learned_disc1 = array<array<tree>> ();
-  learned_cont1 = array<array<double>> ();
-  learned_disc2 = array<array<tree>> ();
-  learned_cont2 = array<array<double>> ();
-  learned_hash1 = array<int> ();
-  learned_hash2 = array<int> ();
+  learned_glyphs= array<glyph_record> ();
 }
 
 void
 register_glyph (string name, contours gl) {
-  array<tree>   disc1;
-  array<double> cont1;
-  invariants (gl, 1, disc1, cont1);
-  array<tree>   disc2;
-  array<double> cont2;
-  invariants (gl, 2, disc2, cont2);
-  learned_names << name;
-  learned_glyphs << gl;
-  learned_disc1 << disc1;
-  learned_cont1 << cont1;
-  learned_disc2 << disc2;
-  learned_cont2 << cont2;
-  learned_hash1 << hash (disc1);
-  learned_hash2 << hash (disc2);
-  // cout << "Added " << name << ", " << disc1 << "\n";
+  glyph_record r;
+  r.name= name;
+  r.gl  = gl;
+  invariants (gl, 1, r.disc1, r.cont1);
+  invariants (gl, 2, r.disc2, r.cont2);
+  r.hash1= hash (r.disc1);
+  r.hash2= hash (r.disc2);
+  learned_glyphs << r;
+  // cout << "Added " << name << ", " << r.disc1 << "\n";
 }

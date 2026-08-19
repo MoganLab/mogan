@@ -184,25 +184,12 @@ length (poly_line pl) {
   return len;
 }
 
-point
-access (poly_line pl, double t) {
-  int n= N (pl);
-  if (t < 0) return pl[0];
-  for (int i= 1; i < n; i++) {
-    point  dp = pl[i] - pl[i - 1];
-    double len= l2_norm (dp);
-    if (t < len) return pl[i - 1] + (t / len) * dp;
-    t-= len;
-  }
-  return pl[n - 1];
-}
-
 /**
  * @brief 预计算折线各段长度：seg[i] 为 pl[i] 到 pl[i+1] 的段长。
  * @note 供 access_by_segs 使用，避免热路径逐步重复 l2_norm。
  */
 static array<double>
-segment_lengths (poly_line pl) {
+segment_lengths (const poly_line& pl) {
   int           n= N (pl);
   int           m= (n > 1 ? n - 1 : 0);
   array<double> seg (m);
@@ -212,14 +199,14 @@ segment_lengths (poly_line pl) {
 }
 
 /**
- * @brief access 的段表版本：用预计算段长做与 access 完全一致的扫描插值。
+ * @brief 按段表做弧长扫描插值：唯一的插值实现，access 也经由它。
  * @param pl 折线
  * @param seg segment_lengths 的结果
  * @param t 弧长参数
  * @return 折线上弧长 t 处的点
  */
 static point
-access_by_segs (poly_line pl, const array<double>& seg, double t) {
+access_by_segs (const poly_line& pl, const array<double>& seg, double t) {
   int n= N (pl);
   if (t < 0) return pl[0];
   for (int i= 1; i < n; i++) {
@@ -231,6 +218,11 @@ access_by_segs (poly_line pl, const array<double>& seg, double t) {
     t-= len;
   }
   return pl[n - 1];
+}
+
+point
+access (poly_line pl, double t) {
+  return access_by_segs (pl, segment_lengths (pl), t);
 }
 
 /******************************************************************************
@@ -355,9 +347,11 @@ vertices (poly_line pl) {
 
 void
 invariants (poly_line pl, int level, array<tree>& disc, array<double>& cont) {
-  double        l     = length (pl);
-  array<double> seg   = segment_lengths (pl);
-  int           pieces= 20;
+  array<double> seg= segment_lengths (pl);
+  double        l  = 0.0;
+  for (int i= 0; i < N (seg); i++)
+    l+= seg[i];
+  int pieces= 20;
   for (int i= 0; i <= pieces; i++) {
     double t= (0.999999999 * i) / pieces;
     point  p= access_by_segs (pl, seg, t * l);
