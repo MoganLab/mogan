@@ -86,5 +86,21 @@ main () {
     acc= r;
     ankerl::nanobench::doNotOptimizeAway (acc);
   });
+  // EXTERN 节点(可执行标记)的光标可达性:每个节点都要
+  // 派生 "extern:<name>" 标签
+  tree xdoc (DOCUMENT);
+  for (int i= 0; i < 200; i++) {
+    tree ex (EXTERN, tree ("strong-tag" * as_string (i % 5)));
+    for (int j= 0; j < 4; j++)
+      ex << tree ("arg" * as_string (j));
+    xdoc << ex;
+  }
+  bench.run ("is_accessible_child extern sweep", [&] {
+    int n= 0;
+    for (int i= 0; i < N (xdoc); i++)
+      for (int j= 0; j < N (xdoc[i]); j++)
+        n+= the_drd->is_accessible_child (xdoc[i], j) ? 1 : 0;
+    ankerl::nanobench::doNotOptimizeAway (n);
+  });
   return 0;
 }

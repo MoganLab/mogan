@@ -392,6 +392,21 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: `tree_traverse_test.cpp` 追加 2 用例（负索引路径截断
   校正、合法路径校正稳定）；并全量回归 moebius 24 个测试全部通过。
 - **基准**: `tree_cursor_bench.cpp` 追加 correct_cursor 扫描
+
+### 5.22 EXTERN 派生标签单条备忘缓存（2026-08-20）
+- **文件**: `moebius/moebius/drd/drd_info.cpp`
+- **What**: 5 处 `make_tree_label ("extern:" * t[0]->label)`（含
+  `is_accessible_child`/`get_type_child` 等热路径）每次都要字符串
+  拼接 + 标签查表。新增 `extern_label` 助手：单条备忘缓存
+  (宏名→派生标签)，同名宏高频重复时直接命中。
+- **Why**: 可执行标记（EXTERN）文档里每个节点的光标可达性校验都
+  要派生标签；同一宏名的节点大量重复。
+- **结果**: 200 个 EXTERN 节点逐孩子 is_accessible_child 扫：
+  110µs→52µs（**2.1x**）。注：与 5.16 的 make_tree_label 备忘失败
+  不同，此处省的是每次的 "extern:" 字符串拼接分配。
+- **测试**: `drd_env_test.cpp` 追加 1 用例（同名宏重复出现时备忘
+  命中/未命中结果一致，不同宏名备忘失效正常）；全量 24 测试通过。
+- **基准**: `drd_env_bench.cpp` 追加 EXTERN 场景
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

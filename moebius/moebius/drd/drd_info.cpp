@@ -471,11 +471,24 @@ drd_info_rep::freeze_type (tree_label l, int nr) {
   ci.freeze_type= true;
 }
 
+// EXTERN 节点的派生标签按宏名高频重复(同一宏多次出现),
+// 单条备忘缓存免去每次 "extern:" 字符串拼接与标签查表
+static tree_label
+extern_label (string s) {
+  static string     memo_s;
+  static tree_label memo_l= UNKNOWN;
+  if (memo_l != UNKNOWN && N (memo_s) == N (s) && memo_s == s) return memo_l;
+  tree_label l= make_tree_label ("extern:" * s);
+  memo_s      = s;
+  memo_l      = l;
+  return l;
+}
+
 int
 drd_info_rep::get_type_child (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -542,7 +555,7 @@ drd_info_rep::is_accessible_child (tree t, int i) {
   // cout << "l= " << as_string (L(t)) << "\n";
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -609,7 +622,7 @@ int
 drd_info_rep::get_writability_child (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -651,7 +664,7 @@ string
 drd_info_rep::get_child_name (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -669,7 +682,7 @@ string
 drd_info_rep::get_child_long_name (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }

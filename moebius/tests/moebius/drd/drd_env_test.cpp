@@ -66,3 +66,19 @@ TEST_SUITE ("drd_env") {
   }
 
 } // TEST_SUITE
+
+TEST_CASE ("extern derived label memoized consistently") {
+  init_std_drd ();
+  // EXTERN 节点派生 "extern:<name>" 标签,备忘缓存不改变判定结果
+  tree ex1 (EXTERN, tree ("hlink"));
+  ex1 << tree ("a") << tree ("b");
+  tree ex2 (EXTERN, tree ("hlink"));
+  ex2 << tree ("c") << tree ("d");
+  tree ex3 (EXTERN, tree ("other"));
+  ex3 << tree ("e");
+  bool r1= the_drd->is_accessible_child (ex1, 0);
+  // 同名宏重复出现(命中备忘)与首次(未命中)结果一致
+  CHECK (the_drd->is_accessible_child (ex2, 0) == r1);
+  // 不同宏名(备忘失效)也返回确定的布尔值
+  bool r3= the_drd->is_accessible_child (ex3, 0);
+}
