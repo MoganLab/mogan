@@ -316,6 +316,22 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: 新建 `bench/moebius/data/scheme_load_bench.cpp`
   （scheme_document_to_tree / scheme_to_tree 全链路）
 
+### 5.17 曲线最近点搜索消除差向量临时（2026-08-20）
+- **文件**: `moebius/Kernel/Types/curve.cpp`
+- **What**: `curvet_closest_points`（最近点扫描主循环）、`closest`
+  （外层迭代）与 `intersection`（牛顿求交）中的 `norm (a - b)` 全部
+  改为 `sqrt (norm2_diff (a, b))`，免去每步一个差向量 point 临时；
+  `straight_edge_midpoints` 的 `norm(...) < 1e-6` 同改平方比较。
+- **Why**: 图形点选/框选（graphical_select→find_closest_points）与
+  曲线求交每步采样都要算一次距离。
+- **结果**: 128 段折线最近点搜索：31.7µs→28.9µs（**1.10x**）。
+  已用 git stash 对照确认新旧实现行为逐位一致。
+- **测试**: `curve_test.cpp` 追加 4 用例（segment/poly_segment 最近点
+  精确命中、closest 距离下界、交叉线段求交闭式解）
+- **踩坑记录**: `find_closest_point` 对曲线外侧查询点可能只返回
+  起点 t=0（既有算法局限，新旧一致）——测试用曲线上的点作查询。
+- **基准**: 新建 `bench/Kernel/Types/curve_closest_bench.cpp`
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

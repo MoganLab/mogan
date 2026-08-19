@@ -169,3 +169,50 @@ TEST_CASE ("spline grad 与 bound 契约") {
   point  v2   = c->evaluate (max (0.5 - delta, 0.0));
   CHECK (norm2_diff (v2, v1) <= (eps + 1e-6) * (eps + 1e-6));
 }
+
+TEST_CASE ("find_closest_point on segment") {
+  curve c  = segment (mkp (0, 0), mkp (10, 0));
+  bool  err= true;
+  // 查询点取在曲线上,内点即为精确最近点
+  double t= c->find_closest_point (0.0, 1.0, mkp (4, 0), 0.01, err);
+  CHECK (err);
+  point q= c->evaluate (t);
+  CHECK (fabs (q[0] - 4.0) < 0.1);
+  CHECK (fabs (q[1]) < 1e-9);
+}
+
+TEST_CASE ("find_closest_point on poly_segment") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c  = poly_segment (a, array<path> ());
+  bool  err= true;
+  // 距离第二段更近的查询点
+  double t= c->find_closest_point (0.0, 1.0, mkp (9, 60), 0.01, err);
+  CHECK (err);
+  point q= c->evaluate (t);
+  CHECK (fabs (q[0] - 10.0) < 0.5);
+  CHECK (fabs (q[1] - 60.0) < 1.0);
+}
+
+TEST_CASE ("closest returns near-minimum distance") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c= poly_segment (a, array<path> ());
+  // 查询点取在曲线上,最近距离应为 0
+  point  q= closest (c, mkp (5, 0));
+  double d= sqrt (norm2_diff (q, mkp (5, 0)));
+  CHECK (d < 0.1);
+}
+
+TEST_CASE ("intersection of crossing segments") {
+  // (curve,curve,double&,double&) 未导出到 hpp,补声明
+  bool   intersection (curve f, curve g, double& t, double& u);
+  curve  f= segment (mkp (0, 0), mkp (10, 10));
+  curve  g= segment (mkp (0, 10), mkp (10, 0));
+  double t= 0.2, u= 0.2;
+  bool   ok= intersection (f, g, t, u);
+  CHECK (ok);
+  point pf= f->evaluate (t);
+  CHECK (fabs (pf[0] - 5.0) < 1e-6);
+  CHECK (fabs (pf[1] - 5.0) < 1e-6);
+}

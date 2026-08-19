@@ -91,8 +91,10 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
     bool   decreasing= false;
     double max_step  = 0.5 / max (c->nr_components (), 1);
     for (t= t1; t <= t2;) {
-      point  pt= c->evaluate (t);
-      double n = norm (pt - p);
+      point pt= c->evaluate (t);
+      // 平方距离比较避免每步构造差向量临时 point
+      double n2= norm2_diff (pt, p);
+      double n = sqrt (n2);
       if (n < n0) {
         n0      = n;
         closest = t;
@@ -102,7 +104,7 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
       decreasing= n < nprec;
       if (!stored && !decreasing) {
         curvet ct;
-        ct.dist= norm (pclosest - p);
+        ct.dist= sqrt (norm2_diff (pclosest, p));
         ct.t   = closest;
         res << ct;
         stored= true;
@@ -114,7 +116,7 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
     }
     if (!stored && decreasing) {
       curvet ct;
-      ct.dist= norm (pclosest - p);
+      ct.dist= sqrt (norm2_diff (pclosest, p));
       ct.t   = closest;
       res << ct;
     }
@@ -152,13 +154,14 @@ closest (curve f, point p) {
   double t1  = abs[0];
   double t2  = abs[N (abs) - 1];
   double best= 0;
-  double eps = norm (f (0) - p);
+  double eps = sqrt (norm2_diff (f (0), p));
   for (int i= 0; i < 10; i++) {
     bool   found= false;
     double t    = f->find_closest_point (t1, t2, p, eps, found);
     if (found) best= t;
     else break;
-    double eps2= norm (f (t) - p);
+    // 平方距离比较避免构造差向量临时 point
+    double eps2= sqrt (norm2_diff (f (t), p));
     if (eps2 >= 0.9 * eps) break;
     eps= eps2;
   }
@@ -200,7 +203,7 @@ straight_edge_midpoints (curve c, point p, double tol) {
   if (abs[0] != 0.0 || abs[np - 1] != 1.0) ne++;
   for (int e= 0; e < ne; e++) {
     int j= (e + 1) % np;
-    if (norm (pts[j] - pts[e]) < 1e-6) continue;
+    if (norm2_diff (pts[j], pts[e]) < 1e-12) continue;
     if (seg_dist (pts[e], pts[j], p) > tol) continue;
     res << c->evaluate ((abs[e] + abs[j]) / 2.0);
   }
@@ -210,7 +213,7 @@ straight_edge_midpoints (curve c, point p, double tol) {
 bool
 intersection (curve f, curve g, double& t, double& u) {
   // for two dimensional curves only
-  double d= norm (f (t) - g (u));
+  double d= sqrt (norm2_diff (f (t), g (u)));
   while (!fnull (d, 1.0e-9)) {
     point  ft = f (t);
     point  gu = g (u);
@@ -223,7 +226,7 @@ intersection (curve f, curve g, double& t, double& u) {
     double T = t + dt;
     double U = u + du;
     if (T < 0.0 || T > 1.0 || U < 0.0 || U > 1.0) break;
-    double D= norm (f (T) - g (U));
+    double D= sqrt (norm2_diff (f (T), g (U)));
     if (D > 0.9 * d) break;
     t= T;
     u= U;
