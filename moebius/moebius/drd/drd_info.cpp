@@ -60,6 +60,12 @@ drd_info_rep::contains (string l) {
   return existing_tree_label (l) && info->contains (as_tree_label (l));
 }
 
+bool
+drd_info_rep::contains (tree_label l) {
+  // 树节点上 L(t) 已是 interned 标签,无需经字符串名绕行两次查表
+  return info->contains (l);
+}
+
 tm_ostream&
 operator<< (tm_ostream& out, drd_info drd) {
   return out << "drd [" << drd->name << "]";

@@ -49,6 +49,25 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: `moebius/bench/Data/Tree/tree_traverse_bench.cpp`（含优化前
   实现的同二进制 A/B 对比）
 
+### 5.2 correct_node 消除标签字符串绕行（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_modify.cpp`、`moebius/moebius/drd/drd_info.{hpp,cpp}`
+- **What**: `correct_node` 原来调 `the_drd->contains (as_string (L (t)))`，
+  每个节点一次字符串名转换 + existing_tree_label/as_tree_label 两次哈希查表。
+  新增 `drd_info::contains (tree_label)` 重载（直接 `info->contains (l)`），
+  热路径改走标签编号。
+- **Why**: `correct_downwards`/`correct_node` 对每个节点调用（粘贴、
+  scheme 侧修正等编辑路径）；与已合入的 1228 系列"缓存标签编号，
+  消除热路径字符串比较"同类。
+- **How**: drd_info 经 CONCRETE 宏自动获得转发包装；树节点上 `L(t)`
+  已是 interned 标签，`as_tree_label(as_string(l)) == l`，语义等价。
+- **结果**: 预校正树全树 sweep x100：10.1ms→5.5ms（**1.84x**）；
+  含 `copy(doc)` 的端到端场景差异被稀释（~1.6ms 持平）。
+- **测试**: `moebius/tests/Data/Tree/tree_modify_test.cpp`（9 用例：
+  contains 两个重载一致性、arity 修正、concat 原子合并、递归下探、
+  simplify_concat/document 展平）
+- **基准**: `moebius/bench/Data/Tree/tree_modify_bench.cpp`（含优化前
+  实现的同二进制 A/B 对比；隔离 sweep 场景避免 copy 稀释）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。
