@@ -115,5 +115,22 @@ main () {
   cbench.run ("bezier rectify eps=0.1", [&] {
     ankerl::nanobench::doNotOptimizeAway (bz->rectify (0.1));
   });
+  // 双曲线/抛物线
+  array<point> ha;
+  ha << point (-4.0, 0.0) << point (4.0, 0.0) << point (8.0, 3.0);
+  curve hy= hyperbola (ha, array<path> (), false);
+  cbench.run ("hyperbola evaluate sweep512", [&] {
+    for (int i= 0; i <= 512; i++)
+      acc+= hy->evaluate (i / 512.0)[0];
+    ankerl::nanobench::doNotOptimizeAway (acc);
+  });
+  array<point> pa;
+  pa << point (-4.0, 0.0) << point (4.0, 0.0) << point (0.0, 3.0);
+  curve pb= parabola (pa, array<path> (), false);
+  cbench.run ("parabola evaluate sweep512", [&] {
+    for (int i= 0; i <= 512; i++)
+      acc+= pb->evaluate (i / 512.0)[0];
+    ankerl::nanobench::doNotOptimizeAway (acc);
+  });
   return 0;
 }

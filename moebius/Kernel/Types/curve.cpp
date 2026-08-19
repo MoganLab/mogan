@@ -1264,14 +1264,23 @@ hyperbola_rep::hyperbola_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 hyperbola_rep::evaluate (double t) {
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  double u;
+  double sign;
   if (t < 0.5) {
-    double u= (4.0 * t - 1.0) * u_max;
-    return center + r1 * cosh (u) * i + r2 * sinh (u) * j;
+    u   = (4.0 * t - 1.0) * u_max;
+    sign= 1.0;
   }
   else {
-    double u= (4.0 * t - 3.0) * u_max;
-    return center - r1 * cosh (u) * i + r2 * sinh (u) * j;
+    u   = (4.0 * t - 3.0) * u_max;
+    sign= -1.0;
   }
+  double co= r1 * cosh (u), si= r2 * sinh (u);
+  int    k, n                 = min (N (center), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= center[k] + sign * co * i[k] + si * j[k];
+  return q;
 }
 
 void
@@ -1298,15 +1307,24 @@ hyperbola_rep::bound (double t, double eps) {
 
 point
 hyperbola_rep::grad (double t, bool& error) {
+  // 逐分量直写,免去链式中间 point 临时
   error= false;
+  double u, sign;
   if (t < 0.5) {
-    double u= (4.0 * t - 1.0) * u_max;
-    return 4.0 * u_max * (r1 * sinh (u) * i + r2 * cosh (u) * j);
+    u   = (4.0 * t - 1.0) * u_max;
+    sign= 1.0;
   }
   else {
-    double u= (4.0 * t - 3.0) * u_max;
-    return 4.0 * u_max * (-r1 * sinh (u) * i + r2 * cosh (u) * j);
+    u   = (4.0 * t - 3.0) * u_max;
+    sign= -1.0;
   }
+  double si= 4.0 * u_max * r1 * sinh (u);
+  double co= 4.0 * u_max * r2 * cosh (u);
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= sign * si * i[k] + co * j[k];
+  return q;
 }
 
 double
@@ -1365,8 +1383,14 @@ parabola_rep::parabola_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 parabola_rep::evaluate (double t) {
-  double u= (2 * t - 1) * u_max;
-  return vertex + (square (u) / (2 * d)) * i + u * j;
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  double u = (2 * t - 1) * u_max;
+  double ui= square (u) / (2 * d);
+  int    k, n= min (N (vertex), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= vertex[k] + ui * i[k] + u * j[k];
+  return q;
 }
 
 void
@@ -1385,9 +1409,16 @@ parabola_rep::bound (double t, double eps) {
 
 point
 parabola_rep::grad (double t, bool& error) {
-  error   = false;
-  double u= (2 * t - 1) * u_max;
-  return 2 * u_max * ((u / d) * i + j);
+  // 逐分量直写,免去链式中间 point 临时
+  error    = false;
+  double u = (2 * t - 1) * u_max;
+  double f = 2 * u_max;
+  double ui= f * u / d;
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= ui * i[k] + f * j[k];
+  return q;
 }
 
 double

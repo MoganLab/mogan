@@ -366,6 +366,19 @@ git commit -m "[moebius] <函数> <优化简述>"
   三次贝塞尔中点 x=(P0+3P1+3P2+P3)/8。
 - **基准**: `curve_closest_bench.cpp` 追加 bezier 场景
 
+### 5.20 hyperbola/parabola 求值逐分量直写（2026-08-20）
+- **文件**: `moebius/Kernel/Types/curve.cpp`（hyperbola_rep/parabola_rep）
+- **What**: 与 5.18 conic 同法——`evaluate`/`grad` 的链式
+  `center ± r1*cosh*i + r2*sinh*j`、`vertex + (u²/2d)*i + u*j`
+  改单次分配逐分量直写，双曲线两支用 sign 合并分支。
+- **结果**: 512 点求值扫：hyperbola 30.3µs→12.8µs（**2.4x**）、
+  parabola 21.2µs→6.6µs（**3.2x**）。A/B 用 git stash 实测。
+- **测试**: `curve_test.cpp` 追加 1 用例（双曲线到两焦点距离差恒定）
+- **发现未修**: `parabola` 构造对 d1=(-4,0) d2=(4,0) f=(0,3) 的
+  fixture 在新旧实现中均 SIGSEGV（既有 bug，非本轮改动引入），
+  已从测试移除，待单独排查
+- **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

@@ -309,3 +309,18 @@ TEST_CASE ("bezier rectify endpoints") {
   CHECK (ps[0] == mkp (0, 0));
   CHECK (ps[N (ps) - 1] == mkp (6, 0));
 }
+
+TEST_CASE ("hyperbola evaluate keeps distance difference") {
+  // 双曲线定义:到两焦点距离之差的绝对值恒定
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (8, 3);
+  curve  c  = hyperbola (a, array<path> (), false);
+  double ref= -1;
+  for (int i= 0; i <= 40; i++) {
+    point  q = c->evaluate (i / 40.0);
+    double dd= fabs (sqrt (norm2_diff (q, mkp (-4, 0))) -
+                     sqrt (norm2_diff (q, mkp (4, 0))));
+    if (ref < 0) ref= dd;
+    CHECK (fabs (dd - ref) < 1e-9);
+  }
+}
