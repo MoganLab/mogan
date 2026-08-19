@@ -209,6 +209,27 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **注**: 未 `init_std_drd` 时 `as_string(RIGID)` 返回 "?"，writer 会
   把标记写成 `<?|...>`，往返后标签编号变化——标记结构测试需先初始化
 
+### 5.11 三对角求解逐分量就地写（2026-08-20）
+- **文件**: `moebius/Kernel/Types/equations.cpp`、
+  `moebius/Data/Convert/tmu.cpp`（cr 原地截断）
+- **What**:
+  1. `tridiag_solve` 前代 `(y-a*x)/li` 与回代 `x-u*x` 每行产生 1–2 个
+     中间 point，改为逐分量就地写（x 行初始为空点，维度不足时整行重建）；
+  2. `quasitridiag_solve` 的 `vx= vx + v[i]*x[i]` 累加（O(n) 个临时）
+     改为预分配单点累加；末尾修正 `x[i]= x[i]-z[i][0]*vx` 逐分量就地减；
+  3. `tmu_writer::cr` 行尾空格改写由整段前缀拷贝改为 `resize` 原地截断
+     （实测常规文档无差异，渐近防御性改进）。
+- **Why**: 三对角求解是 spline 构造的必经路径（闭合样条 xtridiag 走
+  quasitridiag）。尝试过 tmu_writer::write 成段追加——短词场景子串
+  分配反而更贵，已回退。
+- **结果**: 256 控制点 spline 构造：开样条 117µs→106µs（1.10x），
+  闭合样条 1.08ms→0.81ms（**1.33x**）。A/B 用 git stash 实测。
+- **测试**: 新建 `tests/Kernel/Types/equations_test.cpp`（3 用例：
+  3x3 二维方程残差校验、维度保持、零耦合恒等与秩一修正
+  Sherman-Morrison 闭式解）
+- **基准**: 新建 `bench/Kernel/Types/spline_bench.cpp`（开/闭合样条
+  构造）；`bench/Data/Convert/tmu_write_bench.cpp`（写路径对照）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

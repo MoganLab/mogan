@@ -605,8 +605,9 @@ tmu_writer::cr () {
   for (i= n - 1; i >= 0; i--)
     if ((buf[i] != ' ') || ((i > 0) && (buf[i - 1] == '\\'))) break;
   if (i < n - 1) {
-    buf= buf (0, i + 1);
-    n  = n - N (buf);
+    // 原地截断代替整段前缀拷贝:buf 由 writer 独占,rep 引用计数为 1
+    buf->resize (i + 1);
+    n= n - N (buf);
     for (i= 0; i < n; i++)
       buf << "\\ ";
   }

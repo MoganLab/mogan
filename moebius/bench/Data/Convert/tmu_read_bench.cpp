@@ -39,12 +39,10 @@ main () {
   string tmu  = tree_to_tmu (doc);
   size_t bytes= N (tmu);
 
-  bench.run ("tmu_to_tree doc500x10", [&] {
-    ankerl::nanobench::doNotOptimizeAway (tmu_to_tree (tmu));
-  });
-  bench.run ("tree_to_tmu doc500x10", [&] {
-    ankerl::nanobench::doNotOptimizeAway (tree_to_tmu (doc));
-  });
+  bench.run ("tmu_to_tree doc500x10",
+             [&] { ankerl::nanobench::doNotOptimizeAway (tmu_to_tree (tmu)); });
+  bench.run ("tree_to_tmu doc500x10",
+             [&] { ankerl::nanobench::doNotOptimizeAway (tree_to_tmu (doc)); });
   ankerl::nanobench::doNotOptimizeAway (bytes);
   return 0;
 }
