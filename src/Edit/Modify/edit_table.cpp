@@ -70,7 +70,7 @@ static const int TABLE_HYPHEN_ROW_THRESHOLD= 10;
  * @param nr_rows 表格总行数
  * @return 是否默认开启 table-hyphen
  */
-static bool
+bool
 table_default_hyphen (string mode, int nr_rows) {
   return mode != "math" && nr_rows > TABLE_HYPHEN_ROW_THRESHOLD;
 }
