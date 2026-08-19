@@ -4,10 +4,10 @@
  *  \date   2026
  */
 
+#include "cork.hpp"
 #include "nanobench.h"
 #include "tree.hpp"
 #include "tree_cursor.hpp"
-#include "cork.hpp"
 #include "tree_helper.hpp"
 #include "tree_traverse.hpp"
 
@@ -45,7 +45,7 @@ old_move_any (tree t, path p, bool forward) {
   }
   if (is_atomic (st)) {
     string s= st->label;
-    l      = max (min (l, N (s)), 0);
+    l       = max (min (l, N (s)), 0);
     if (forward) {
       if (l < N (s)) {
         tm_char_forwards (s, l);
@@ -89,7 +89,6 @@ old_move_any (tree t, path p, bool forward) {
   }
   return q * (forward ? 1 : 0);
 }
-
 
 // 生产代码导出但未写入 hpp,基准中补声明
 path next_any (tree t, path p);

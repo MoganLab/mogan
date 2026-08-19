@@ -352,28 +352,40 @@ tmu_reader::read_next () {
   }
 
   string r;
-  pos= old_pos;
-  while (true) {
-    old_pos= pos;
-    c      = read_char ();
-    if (c == "") return r;
-    else if (c == "\\") {
-      if ((pos < buf_N) && (buf[pos] == '\\')) {
-        r << c << "\\";
-        pos++;
+  // 字节级扫描代替逐字符 read_char:普通字符成段一次追加,
+  // 转义 '\\' 逐字保留并连同后续一个 utf8 序列一起复制,
+  // 免去原文档加载热路径上每字符一次的子串分配
+  pos    = old_pos;
+  int run= pos;
+  while (pos < buf_N) {
+    char b= buf[pos];
+    if (b == '\t' || b == '\r' || b == '\n' || b == ' ' || b == '<' ||
+        b == '|' || b == '>')
+      break;
+    if (b == '\\') {
+      r << buf (run, pos);
+      // 行续接 "\<newline>" 由 read_char 语义跳过
+      if ((pos + 1 < buf_N) && (buf[pos + 1] == '\n')) {
+        pos+= 2;
+        skip_spaces (buf, pos);
+        run= pos;
+        continue;
       }
-      else r << c << read_char ();
+      r << b;
+      pos++;
+      if (pos >= buf_N) {
+        run= pos;
+        break;
+      }
+      int start= pos;
+      decode_from_utf8 (buf, pos);
+      r << buf (start, pos);
+      run= pos;
+      continue;
     }
-    else if (c == "\t") break;
-    else if (c == "\r") break;
-    else if (c == "\n") break;
-    else if (c == " ") break;
-    else if (c == "<") break;
-    else if (c == "|") break;
-    else if (c == ">") break;
-    else r << c;
+    decode_from_utf8 (buf, pos);
   }
-  pos= old_pos;
+  if (pos > run) r << buf (run, pos);
   return r;
 }
 

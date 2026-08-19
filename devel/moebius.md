@@ -192,6 +192,23 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **注**: `next_any/previous_any` 未在 hpp 声明，测试与基准中补原型；
   `tm_char_forwards` 在 `cork.hpp` 不在 `analyze.hpp`
 
+### 5.10 tmu_reader::read_next 字节级扫描（2026-08-20）
+- **文件**: `moebius/Data/Convert/tmu.cpp`
+- **What**: `read_next` 的词元累积循环原来逐字符调 `read_char`——
+  每个字符一次子串分配（文档加载百万级小分配）。改为字节级扫描：
+  分隔符均为单字节 ASCII，普通字符成段（run）一次追加，转义 `\\`
+  连同后续一个 utf8 序列一起复制，行续接 `\<newline>` 原样跳过。
+- **Why**: TMU 是 Mogan 原生文档格式，`tmu_to_tree` 是打开文件的
+  必经路径；词元读取是最内层循环。
+- **结果**: 500 段×10 词文档 `tmu_to_tree`：1.51ms→0.61ms（**2.47x**）；
+  `tree_to_tmu` 持平（未改动）。A/B 用 `git stash` 还原旧实现实测。
+- **测试**: 新建 `tests/Data/Convert/tmu_test.cpp`（6 用例：纯词、
+  词内空格、`\\`/`<`/`|`/`>` 转义往返、utf8 不截断、concat+标记结构、
+  密集反斜杠）
+- **基准**: 新建 `bench/Data/Convert/tmu_read_bench.cpp`
+- **注**: 未 `init_std_drd` 时 `as_string(RIGID)` 返回 "?"，writer 会
+  把标记写成 `<?|...>`，往返后标签编号变化——标记结构测试需先初始化
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。
