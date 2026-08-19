@@ -6,6 +6,8 @@
 #include "tree_cursor.hpp"
 #include "tree_helper.hpp"
 
+#include <string.h>
+
 extern tree the_et;
 
 /******************************************************************************
@@ -248,12 +250,18 @@ raw_insert (tree& ref, int pos, tree t) {
     ref->label=
         ref->label (0, pos) * t->label * ref->label (pos, N (ref->label));
   else {
-    int i, n= N (ref), nr= N (t);
+    int n= N (ref), nr= N (t);
+    // 块移动代替逐元素赋值：每个被移动孩子的引用计数加减一次都省去。
+    // 记账：memmove 把 [pos, n) 的句柄位原样搬到 [pos+nr, n+nr)，
+    // 数组对其所有权引用随位移动转移；洞里的 stale 位用 placement-new
+    // 默认句柄覆盖（不减计数），随后被赋值语句正常接管
     AR (ref)->resize (n + nr);
-    for (i= n - 1; i >= pos; i--)
-      ref[i + nr]= ref[i];
-    for (i= 0; i < nr; i++)
-      ref[pos + i]= t[i];
+    tree* a= A (AR (ref));
+    memmove (a + pos + nr, a + pos, (size_t) (n - pos) * sizeof (tree));
+    for (int i= 0; i < nr; i++)
+      new ((void*) (a + pos + i)) tree ();
+    for (int i= 0; i < nr; i++)
+      a[pos + i]= t[i];
   }
   if (!is_nil (ref->data)) {
     ref->data->notify_insert (ref, pos, is_atomic (t) ? N (t->label) : N (t));
@@ -287,9 +295,13 @@ raw_remove (tree& ref, int pos, int nr) {
   if (is_atomic (ref))
     ref->label= ref->label (0, pos) * ref->label (pos + nr, N (ref->label));
   else {
-    int i, n= N (ref) - nr;
-    for (i= pos; i < n; i++)
-      ref[i]= ref[i + nr];
+    int n= N (ref) - nr;
+    // 先把被删孩子拷出（引用计数 +1，接管数组的所有权），memmove 尾部
+    // 下移（计数随位移动转移，超出新长度的重复位直接丢弃），
+    // 最后 tmp 析构时统一释放被删孩子的所有权
+    array<tree> tmp (A (AR (ref)) + pos, nr);
+    tree*       a= A (AR (ref));
+    memmove (a + pos, a + pos + nr, (size_t) (n - pos) * sizeof (tree));
     AR (ref)->resize (n);
   }
   if (!is_nil (ref->data)) ref->data->done (ref, mod);
