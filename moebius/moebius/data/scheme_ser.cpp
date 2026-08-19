@@ -13,23 +13,35 @@
 #include "moebius/data/scheme.hpp"
 #include "tree_helper.hpp"
 
+#include <string.h>
+
 namespace moebius {
 namespace data {
+
+// 成段 memcpy 直写目标串(resize 后整块拷贝,无子串分配)
+static inline void
+append_run (string& r, const char* src, int len) {
+  if (len <= 0) return;
+  int old_n= N (r);
+  r->resize (old_n + len);
+  memcpy (r.begin () + old_n, src, len);
+}
 
 string
 scm_quote (string s) {
   // R5RS compliant external string representation.
-  // 普通字符成段一次追加,转义字符单独处理
-  int    i, n= N (s), run= 0;
-  string r;
+  // 普通字符成段 memcpy 直写,转义字符单独处理
+  int         i, n= N (s), run= 0;
+  string      r;
+  const char* raw= s.begin ();
   r << '"';
   for (i= 0; i < n; i++)
     if (s[i] == '\"' || s[i] == '\\') {
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       r << '\\' << s[i];
       run= i + 1;
     }
-  if (n > run) r << s (run, n);
+  append_run (r, raw + run, n - run);
   r << '"';
   return r;
 }
@@ -40,22 +52,23 @@ scm_quote (string s) {
 
 string
 slash (string s) {
-  // 普通字符成段一次追加,特殊字符单独转义
-  int    i, n= N (s), run= 0;
-  string r;
+  // 普通字符成段 memcpy 直写,特殊字符单独转义
+  int         i, n= N (s), run= 0;
+  string      r;
+  const char* raw= s.begin ();
   for (i= 0; i < n; i++)
     switch (s[i]) {
     case '(':
     case ')':
     case ' ':
     case '\'':
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       if ((n < 2) || (s[0] != '\042') || (s[n - 1] != '\042')) r << "\\";
       r << s[i];
       run= i + 1;
       break;
     case '\\':
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       r << '\\' << s[i];
       run= i + 1;
       break;
@@ -65,30 +78,30 @@ slash (string s) {
         ; // 首尾引号原样保留,并入当前 run
       }
       else {
-        if (i > run) r << s (run, i);
+        append_run (r, raw + run, i - run);
         r << "\\" << s[i];
         run= i + 1;
       }
       break;
     case ((char) 0):
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       r << "\\0";
       run= i + 1;
       break;
     case '\t':
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       r << "\\t";
       run= i + 1;
       break;
     case '\n':
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       r << "\\n";
       run= i + 1;
       break;
     default:
       break;
     }
-  if (n > run) r << s (run, n);
+  append_run (r, raw + run, n - run);
   return r;
 }
 

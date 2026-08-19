@@ -561,6 +561,18 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `tmu_test.cpp` 全部用例（词内空格/转义往返覆盖
   write 路径）；全量 24 测试通过。
 - **基准**: `tmu_read_bench.cpp` 复用 tree_to_tmu 场景
+
+### 5.34 slash/scm_quote 改 resize+memcpy 直写（2026-08-20）
+- **文件**: `moebius/moebius/data/scheme_ser.cpp`
+- **What**: 5.13 轮的 run 子串追加（`r << s(run,i)`，每次 substring
+  分配）升级为 `append_run`（resize + memcpy 整块直写，零子串
+  分配）——5.33 验证的技术回补到旧优化点。
+- **结果**: block_bench 序列化：简单元素 10.65→9.41 ns/char
+  （**1.13x**）、复杂树 13.38→10.97（**1.22x**）、单树 13.15→10.82
+  （**1.22x**）。相对最初逐字符实现累计约 1.3x。
+- **测试**: 复用 `scheme_der_test.cpp` 的 slash/scm_quote 用例；
+  全量 24 测试通过。
+- **基准**: `block_bench.cpp` 复用
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
