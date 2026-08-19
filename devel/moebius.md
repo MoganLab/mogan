@@ -596,6 +596,15 @@ git commit -m "[moebius] <函数> <优化简述>"
   次数相同只是位置移动，节省的第二次查表被 contains(low) 的
   重新哈希抵消。已回退代码，保留 `colors_bench.cpp` 作为该路径
   的基线基准。
+
+### 5.37（第 41 轮）放弃：rel_hashmap 读取双探测合一
+- **评估**: `rel_hashmap::operator[]`（drd 的 `info[l]`）= contains
+  一探 + item[x] 一探共两次哈希探测；理论上可在调用方
+  （drd_info.cpp）写单探测助手。但"键缺失"与"值等于 init 缺省"
+  经读取不可区分，链式下探（局部 DRD 作用域）语义有正确性风险；
+  且 tree_label 的 int 哈希极廉价，预估仅省数 ns/调用
+  （is_accessible_child ≈65ns/调用）。放弃。
+- **验证**: 全量 24 测试通过；七组基准读数与既往一致。
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 两次全量复测，24/24 测试通过；第 39 轮更新至 5.35）
