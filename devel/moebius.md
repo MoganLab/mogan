@@ -522,6 +522,14 @@ git commit -m "[moebius] <函数> <优化简述>"
   （tree_correct/edit_select 等）传入自建 env，排序不变量无保证，
   正确性风险大于收益。
 - **测试**: 全量 24 测试通过。
+
+### 5.31（第 34 轮）验证轮：s7/object 胶水层评估结论
+- **评估**: `Scheme/S7/s7_tm.cpp`（c_string/s7 薄封装，转换固有）与
+  `Scheme/Scheme/object.cpp`（每个 object 操作一次 tmscm_object_rep
+  的 tm_new，如 as_list_* 每元素两次分配）均为系统性设计——优化需
+  改 object ABI，影响全部 glue 调用方，风险大于收益，不动。
+- **验证**: 全量 24 测试通过；tmu/drd/cursor/curve 四组关键基准
+  读数与既往一致（无回归）。
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
