@@ -127,8 +127,7 @@ correct_node (tree& t) {
   // NOTE: this routine should only modify t and its descendants,
   // but not any ancestors
   if (is_compound (t)) {
-    if (the_drd->contains (as_string (L (t))) &&
-        !the_drd->correct_arity (L (t), N (t)))
+    if (the_drd->contains (L (t)) && !the_drd->correct_arity (L (t), N (t)))
       assign (t, "");
     if (is_concat (t)) correct_concat_node (t, 0);
   }

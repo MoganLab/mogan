@@ -36,6 +36,14 @@ public:
   tree get_locals ();
   bool set_locals (tree t);
   bool contains (string l);
+  /**
+   * @brief 按标签编号查询 DRD 是否已知该标签
+   * @param l 标签编号
+   * @return 已注册返回 true
+   * @note 与 contains (as_string (l)) 等价（标签名与编号一一对应），
+   *       供编辑校正等热路径免去字符串往返
+   */
+  bool contains (tree_label l);
 
   /* Properties of the tag itself */
   void set_type (tree_label tag, int tp);
