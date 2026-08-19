@@ -573,6 +573,20 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `scheme_der_test.cpp` 的 slash/scm_quote 用例；
   全量 24 测试通过。
 - **基准**: `block_bench.cpp` 复用
+
+### 5.35 memcpy 直写回补 tmu/scheme 读路径（2026-08-20）
+- **文件**: `moebius/Data/Convert/tmu.cpp`、`moebius/moebius/data/scheme_der.cpp`
+- **What**: 5.33 验证的 append_run（resize+memcpy）回补三处旧
+  子串追加点：`scm_unquote`（.tm 文本原子解引号）、
+  `tmu_reader::decode`（TMU 词元解码）、`read_next` 的 run 冲洗。
+- **结果**: `tmu_to_tree` 542→479µs（本轮 **1.13x**，相对最初
+  1512µs 累计 **3.16x**）；scheme 加载 394→365µs（1.08x）、
+  421→388µs（1.09x）。
+- **对照**: `unslash` 的同款改造此前实测持平（词元 5–10 字符，
+  memcpy 准备开销抵消收益）——run 长度决定该技术是否有净收益。
+- **测试**: 复用 `tmu_test.cpp`/`scheme_der_test.cpp` 全部用例；
+  全量 24 测试通过。
+- **基准**: `tmu_read_bench.cpp`/`scheme_load_bench.cpp` 复用
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

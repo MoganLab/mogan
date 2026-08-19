@@ -38,6 +38,9 @@ using lolly::data::to_Hex;
 using moebius::drd::STD_CODE;
 using moebius::drd::std_contains;
 
+// 成段 memcpy 直写目标串(定义见 tmu_writer::write 前)
+static void append_run (string& tmp, const char* src, int len);
+
 using namespace moebius;
 
 /******************************************************************************
@@ -285,12 +288,13 @@ tmu_reader::skip_blank () {
 
 string
 tmu_reader::decode (string s) {
-  // 普通字符成段一次追加,转义字符单独处理
-  int    i, n= N (s), run= 0;
-  string r;
+  // 普通字符成段 memcpy 直写,转义字符单独处理
+  int         i, n= N (s), run= 0;
+  string      r;
+  const char* raw= s.begin ();
   for (i= 0; i < n; i++)
     if (((i + 1) < n) && (s[i] == '\\')) {
-      if (i > run) r << s (run, i);
+      append_run (r, raw + run, i - run);
       i++;
       if (s[i] == ';')
         ;
@@ -298,7 +302,7 @@ tmu_reader::decode (string s) {
       else r << s[i];
       run= i + 1;
     }
-  if (n > run) r << s (run, n);
+  append_run (r, raw + run, n - run);
   return r;
 }
 
@@ -366,7 +370,7 @@ tmu_reader::read_next () {
         b == '|' || b == '>')
       break;
     if (b == '\\') {
-      r << buf (run, pos);
+      append_run (r, buf.begin () + run, pos - run);
       // 行续接 "\<newline>" 由 read_char 语义跳过
       if ((pos + 1 < buf_N) && (buf[pos + 1] == '\n')) {
         pos+= 2;
@@ -382,13 +386,13 @@ tmu_reader::read_next () {
       }
       int start= pos;
       decode_from_utf8 (buf, pos);
-      r << buf (start, pos);
+      append_run (r, buf.begin () + start, pos - start);
       run= pos;
       continue;
     }
     decode_from_utf8 (buf, pos);
   }
-  if (pos > run) r << buf (run, pos);
+  append_run (r, buf.begin () + run, pos - run);
   return r;
 }
 

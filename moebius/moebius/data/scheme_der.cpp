@@ -20,21 +20,31 @@ using moebius::TUPLE;
 namespace moebius {
 namespace data {
 
+// 成段 memcpy 直写目标串(resize 后整块拷贝,无子串分配)
+static inline void
+append_run (string& r, const char* src, int len) {
+  if (len <= 0) return;
+  int old_n= N (r);
+  r->resize (old_n + len);
+  memcpy (r.begin () + old_n, src, len);
+}
+
 string
 scm_unquote (string s) {
   if (is_quoted (s)) {
-    // 普通字符成段一次追加,转义字符单独处理
-    int    i, n= N (s), run= 1;
-    string r;
+    // 普通字符成段 memcpy 直写,转义字符单独处理
+    int         i, n= N (s), run= 1;
+    string      r;
+    const char* raw= s.begin ();
     for (i= 1; i < n - 1; i++)
       if (s[i] == '\\' &&
           (s[i + 1] == '\\' || (s[i + 1] == '\"' && i + 2 != n))) {
-        if (i > run) r << s (run, i);
+        append_run (r, raw + run, i - run);
         i++;
         r << s[i];
         run= i + 1;
       }
-    if (n - 1 > run) r << s (run, n - 1);
+    append_run (r, raw + run, n - 1 - run);
     return r;
   }
   else return s;
