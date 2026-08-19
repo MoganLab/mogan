@@ -35,7 +35,7 @@ TestTreeModify::test_label_name_bijection () {
   // 标签名与标签编号一一对应
   array<string> names= get_all_primitives ();
   for (int i= 0; i < N (names); i++) {
-    string      n= names[i];
+    string     n= names[i];
     tree_label l= as_tree_label (n);
     QVERIFY (existing_tree_label (n));
     QVERIFY (l != UNKNOWN);

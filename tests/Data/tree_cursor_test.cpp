@@ -91,7 +91,7 @@ TestTreeCursor::test_next_word () {
   // 词级移动应前进到合法光标位置（到达末尾后停驻）
   tree doc (DOCUMENT, tree (CONCAT, tree ("aaa bbb ccc ddd eee fff")));
   path p (0, 0, 0);
-  int progressed= 0;
+  int  progressed= 0;
   for (int i= 0; i < 10; i++) {
     path q= next_word (doc, p);
     QVERIFY (valid_cursor (doc, q));
@@ -105,7 +105,7 @@ TestTreeCursor::test_next_word () {
   // 含 <#XXXX> 中文字符的文本：词移动不崩溃，前进后停驻于合法位置
   tree cjk (DOCUMENT, tree (CONCAT, tree ("<#4e2d><#6587> abc")));
   path r (0, 0, 0);
-  int cjk_progressed= 0;
+  int  cjk_progressed= 0;
   for (int i= 0; i < 20; i++) {
     path s= next_word (cjk, r);
     QVERIFY (valid_cursor (cjk, s));

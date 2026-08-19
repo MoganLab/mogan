@@ -17,9 +17,9 @@ mk_document () {
     tree par (CONCAT);
     for (int j= 0; j < 10; j++) {
       par << tree ("word" * as_string (j));
-      if (j == 4) par << tree (make_tree_label ("with"),
-                                tree ("color"), tree ("red"),
-                                tree ("inner" * as_string (j)));
+      if (j == 4)
+        par << tree (make_tree_label ("with"), tree ("color"), tree ("red"),
+                     tree ("inner" * as_string (j)));
     }
     doc << par;
   }
@@ -38,13 +38,14 @@ count_empty (tree t) {
 
 int
 main () {
-  tree doc = mk_document ();
-  int  n   = 0;
+  tree                     doc= mk_document ();
+  int                      n  = 0;
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (100).unit ("op");
   bench.run ("is_empty whole doc", [&] { n+= count_empty (doc); });
   bench.run ("is_snippet", [&] { n+= is_snippet (doc) ? 1 : 0; });
-  bench.run ("is_multi_paragraph", [&] { n+= is_multi_paragraph (doc) ? 1 : 0; });
+  bench.run ("is_multi_paragraph",
+             [&] { n+= is_multi_paragraph (doc) ? 1 : 0; });
   ankerl::nanobench::doNotOptimizeAway (n);
   return 0;
 }

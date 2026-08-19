@@ -28,8 +28,8 @@ mk_cjk_doc () {
 
 int
 main () {
-  tree doc= mk_cjk_doc ();
-  path p (0, 0, 0);
+  tree                     doc= mk_cjk_doc ();
+  path                     p (0, 0, 0);
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (1).unit ("op");
   bench.run ("next_word x1000", [&] {

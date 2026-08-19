@@ -28,7 +28,8 @@ ip_attached (path ip) {
 }
 observer
 list_observer (observer o1, observer o2) {
-  (void) o1; (void) o2; // 基准树未挂观察者，不会被调用
+  (void) o1;
+  (void) o2; // 基准树未挂观察者，不会被调用
   return observer ();
 }
 
@@ -41,8 +42,8 @@ mk_document () {
     for (int j= 0; j < 10; j++) {
       par << tree ("word" * as_string (j));
       if (j == 4)
-        par << tree (make_tree_label ("with"), tree ("color"),
-                     tree ("red"), tree ("inner"));
+        par << tree (make_tree_label ("with"), tree ("color"), tree ("red"),
+                     tree ("inner"));
     }
     doc << par;
   }
@@ -51,8 +52,8 @@ mk_document () {
 
 int
 main () {
-  tree doc = mk_document ();
-  tree doc2= mk_document ();
+  tree                     doc = mk_document ();
+  tree                     doc2= mk_document ();
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (100).unit ("op");
   bench.run ("correct_node", [&] {

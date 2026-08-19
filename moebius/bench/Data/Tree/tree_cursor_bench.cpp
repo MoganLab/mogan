@@ -23,9 +23,9 @@ mk_document () {
     tree par (CONCAT);
     for (int j= 0; j < 10; j++) {
       par << tree ("word" * as_string (j));
-      if (j == 4) par << tree (make_tree_label ("with"),
-                                tree ("color"), tree ("red"),
-                                tree ("inner" * as_string (j)));
+      if (j == 4)
+        par << tree (make_tree_label ("with"), tree ("color"), tree ("red"),
+                     tree ("inner" * as_string (j)));
     }
     doc << par;
   }
@@ -47,12 +47,12 @@ mk_paths (tree& doc) {
 
 int
 main () {
-  tree       doc= mk_document ();
+  tree        doc= mk_document ();
   array<path> ps = mk_paths (doc);
-  path       mid= ps[N (ps) >> 1];
+  path        mid= ps[N (ps) >> 1];
 
-  bool b= false;
-  path r= path ();
+  bool                     b= false;
+  path                     r= path ();
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (1000).unit ("op");
   bench.run ("valid_cursor", [&] {
