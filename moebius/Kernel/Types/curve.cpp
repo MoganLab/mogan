@@ -72,6 +72,25 @@ struct less_eq_curvet {
   static inline bool leq (curvet& a, curvet& b) { return a.dist <= b.dist; }
 };
 
+/**
+ * @brief 遍历参数区间 [t1,t2]，收集曲线上到点 p 距离局部极小的参数
+ *
+ * 以自适应步长扫描曲线：每次前进的步长由 c->bound 保证不超过使曲线位移
+ * 超过 eps 的参数偏移（且上限为 max_step），从而不会跳过任何宽度超过
+ * eps 的距离极小区段。扫描中记录当前距离下降段的极小值，距离由降转升
+ * （或到达区间末尾且仍在下降）时，将该极小值作为一个候选点输出。
+ *
+ * 距离比较使用 norm2_diff 的平方距离，避免每次迭代构造差向量临时
+ * point；候选点的 dist 直接复用已算得的极小距离，不再重算 norm。
+ *
+ * @param c   被考察的曲线
+ * @param t1,t2 参数区间端点；t1 > t2 时按曲线自身环绕方向拆成
+ *              [0,t2] 与 [t1,1] 两段分别处理（闭曲线情形）
+ * @param p   目标点
+ * @param eps 距离精度，决定扫描步长的自适应收缩
+ * @return    候选点列表（未排序），按 find_closest_points 的距离序
+ *            调用方负责排序
+ */
 static array<curvet>
 curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
   array<curvet> res;
@@ -83,38 +102,42 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
   }
   else {
     double t;
-    double closest= -1;
-    point  pclosest;
-    double n0        = tm_infinity;
+    double closest   = -1;
+    double n0        = tm_infinity; // 当前下降段的极小距离
+    double n02       = tm_infinity; // n0 的平方，用于免开方比较
     bool   stored    = true;
     double nprec     = n0;
     bool   decreasing= false;
     double max_step  = 0.5 / max (c->nr_components (), 1);
     for (t= t1; t <= t2;) {
       point  pt= c->evaluate (t);
-      double n = norm (pt - p);
-      if (n < n0) {
-        n0      = n;
-        closest = t;
-        pclosest= pt;
-        stored  = false;
+      double n2= norm2_diff (pt, p);
+      double n = sqrt (n2);
+      if (n2 < n02) {
+        n0     = n;
+        n02    = n2;
+        closest= t;
+        stored = false;
       }
       decreasing= n < nprec;
       if (!stored && !decreasing) {
         curvet ct;
-        ct.dist= norm (pclosest - p);
+        ct.dist= n0;
         ct.t   = closest;
         res << ct;
         stored= true;
       }
-      if (stored && decreasing) n0= tm_infinity;
+      if (stored && decreasing) {
+        n0 = tm_infinity;
+        n02= tm_infinity;
+      }
       double delta= (n - eps) / 2;
       t+= min (max_step, max (0.00001, c->bound (t, max (eps, delta))));
       nprec= n;
     }
     if (!stored && decreasing) {
       curvet ct;
-      ct.dist= norm (pclosest - p);
+      ct.dist= n0;
       ct.t   = closest;
       res << ct;
     }

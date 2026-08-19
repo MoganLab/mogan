@@ -77,3 +77,50 @@ TEST_CASE ("bound 契约: |t'-t|<=delta 时 |c(t')-c(t)|<=eps") {
     }
   }
 }
+
+TEST_CASE ("find_closest_points: 直线段内部最近点") {
+  // (0,0)-(10,0)，p 在正上方，最近点为 (5,0)，即 t=0.5；
+  // 容差取自适应步长的分辨率（eps/段长量级）
+  curve         c  = segment (mkp (0, 0), mkp (10, 0));
+  array<double> res= c->find_closest_points (0.0, 1.0, mkp (5, 3), 0.01);
+  CHECK (N (res) == 1);
+  CHECK (fabs (res[0] - 0.5) < 0.05);
+}
+
+TEST_CASE ("find_closest_points: 最近点被钳制到端点") {
+  // p 在线段延长线之外，最近点为端点 t=0
+  curve         c  = segment (mkp (0, 0), mkp (10, 0));
+  array<double> res= c->find_closest_points (0.0, 1.0, mkp (-3, 0), 0.01);
+  CHECK (N (res) == 1);
+  CHECK (fabs (res[0] - 0.0) < 1e-6);
+}
+
+TEST_CASE ("find_closest_points: V 形折线返回两个局部极小") {
+  // 两条腿关于 x=5 对称，p=(5,10) 到两条腿各有局部最近点
+  array<point> a;
+  a << mkp (0, 10) << mkp (5, 0) << mkp (10, 10);
+  curve         c  = poly_segment (a, array<path> ());
+  point         p  = mkp (5, 10);
+  array<double> res= c->find_closest_points (0.0, 1.0, p, 0.01);
+  CHECK (N (res) == 2);
+  // 结果按距离升序，且两个候选点到 p 的距离相等（对称）
+  double d0= norm (c->evaluate (res[0]) - p);
+  double d1= norm (c->evaluate (res[1]) - p);
+  CHECK (d0 <= d1);
+  CHECK (fabs (d0 - d1) < 0.1);
+  CHECK (fabs (d0 - sqrt (20.0)) < 0.1); // 最近点 (1,8)，距 p 为 sqrt(20)
+}
+
+TEST_CASE ("find_closest_points: 圆上最近点") {
+  // 两焦点重合于原点、过 (1,0) 的单位圆，p=(3,0)，最近点为 (1,0)
+  array<point> a;
+  a << mkp (0, 0) << mkp (0, 0) << mkp (1, 0);
+  curve  c    = ellipse (a, array<path> (), true);
+  point  p    = mkp (3, 0);
+  bool   found= false;
+  double t    = c->find_closest_point (0.0, 1.0, p, 0.01, found);
+  CHECK (found);
+  point q= c->evaluate (t);
+  CHECK (fabs (q[0] - 1.0) < 1e-2);
+  CHECK (fabs (q[1] - 0.0) < 1e-2);
+}
