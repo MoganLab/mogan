@@ -420,6 +420,18 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `tmu_test.cpp` 全部 6 用例（转义往返覆盖 decode
   路径），通过。
 - **基准**: `tmu_read_bench.cpp` 复用
+
+### 5.24 end(t,p) 免去第二次全树下探（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_cursor.cpp`
+- **What**: `end(tree, path)` 原来 `parent_subtree(t,p)` 与
+  `subtree(t,p)` 各做一次全树下探；父节点的第 `last_item(p)` 个孩子
+  即 p 所指节点，复用父引用省一趟。`start` 本就单趟未动。
+- **结果**: 浅路径基准（depth-1）持平（25.9→25.5µs，correct_cursor
+  占主导）；深路径场景省 O(depth) 一次下探，为结构性改进。
+  语义严格等价（subtree(t,p) ≡ parent_subtree(t,p)[last_item(p)]）。
+- **测试**: 复用 `tree_traverse_test`（end(doc) 全扫收敛于不动点）与
+  `tree_observer_test`，全部通过。
+- **基准**: `tree_cursor_bench.cpp` 追加 end per para 场景
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

@@ -528,8 +528,12 @@ start (tree t, path p) {
 path
 end (tree t, path p) {
   // cout << "End " << p << " in " << t << "\n";
-  if ((!is_nil (p)) && (arity (parent_subtree (t, p)) == 0)) return p;
-  return correct_cursor (t, p * right_index (subtree (t, p)));
+  if (is_nil (p)) return correct_cursor (t, path (right_index (t)));
+  // 父节点已下探取得,其第 last_item(p) 个孩子即 p 所指节点,
+  // 免去 subtree 的第二次全树下探
+  tree& par= parent_subtree (t, p);
+  if (N (par) == 0) return p;
+  return correct_cursor (t, p * right_index (par[last_item (p)]));
 }
 
 path

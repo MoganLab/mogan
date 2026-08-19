@@ -166,5 +166,14 @@ main () {
     }
     ankerl::nanobench::doNotOptimizeAway (n);
   });
+  // end(t,p):对每段取末光标
+  cbench2.run ("end per para x100", [&] {
+    int n= 0;
+    for (int i= 0; i < N (doc); i++) {
+      path e= end (doc, path (i));
+      n+= e->item;
+    }
+    ankerl::nanobench::doNotOptimizeAway (n);
+  });
   return 0;
 }
