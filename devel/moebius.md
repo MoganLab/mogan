@@ -158,6 +158,24 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: 新建 `bench/moebius/drd/drd_env_bench.cpp`（含优化前实现
   的同二进制 A/B 对比）
 
+### 5.8 can_* 适用性检查单趟下探（2026-08-20）
+- **文件**: `moebius/Kernel/Types/modification.cpp`
+- **What**: `can_insert/can_remove/can_split/can_join/can_assign_node/
+  can_set_cursor` 原来先 `has_subtree(t,p)` 再 `subtree(t,p)`——同一条
+  路径走两遍树。新增内部 `descend` 助手单趟下探返回指针（越界/命中
+  原子返回空），一次遍历完成存在性检查与取子树。
+- **Why**: `apply()` 每次树修改前都调 `is_applicable`；编辑路径上
+  深路径的检查是纯开销。
+- **结果**: 深度 9 路径：can_insert 95.6ns→41.9ns（**2.3x**），
+  can_remove 76.8ns→42.3ns（1.8x）；失败路径原本就单趟（has_subtree
+  提前返回），持平。
+- **测试**: `modification_test.cpp` 追加 5 用例（insert 原子/复合/
+  越界/pos 越界、原子内插、remove、join 原子+复合混合、assign/节点
+  操作）
+- **基准**: 新建 `bench/Kernel/Types/modification_bench.cpp`（A/B 对比）
+- **注**: `mod_insert(p,pos,t)` 等会把 pos 追加到 p 尾部，测试里
+  顶层操作应传 `path()` 而非 `path(0)`（踩坑记录）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

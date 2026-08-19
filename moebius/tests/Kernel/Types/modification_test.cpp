@@ -2,6 +2,11 @@
 #include "moe_doctests.hpp"
 #include "tree.hpp"
 
+#include <moebius/tree_label.hpp>
+
+using moebius::CONCAT;
+using moebius::DOCUMENT;
+
 TEST_CASE ("test construct func") {
   modification m1 (MOD_ASSIGN, path (), tree ());
   modification m2 (MOD_ASSIGN, path (), tree ());
@@ -281,4 +286,48 @@ TEST_CASE ("test is_applicable") {
   CHECK_EQ (is_applicable (tree (1, 2), m1), true);
   CHECK_EQ (is_applicable (tree (1, 2), m2), true);
   CHECK_EQ (is_applicable (tree (1, 2), m3), false);
+}
+TEST_CASE ("test is_applicable insert") {
+  tree doc (DOCUMENT, tree ("a"), tree ("b"));
+  CHECK (is_applicable (doc,
+                        mod_insert (path (), 0, tree (DOCUMENT, tree ("x")))));
+  CHECK (!is_applicable (
+      doc, mod_insert (path (), 0, tree ("x")))); // 复合位置插原子
+  CHECK (!is_applicable (
+      doc, mod_insert (path (5), 0, tree (DOCUMENT, tree ("x"))))); // 越界
+  CHECK (!is_applicable (
+      doc, mod_insert (path (), 9, tree (DOCUMENT, tree ("x"))))); // pos 越界
+}
+
+TEST_CASE ("test is_applicable atomic insert") {
+  tree doc (DOCUMENT, tree ("abc"));
+  CHECK (is_applicable (doc, mod_insert (path (0), 1, tree ("xy"))));
+  CHECK (!is_applicable (
+      doc, mod_insert (path (0), 1, tree (DOCUMENT, tree ("x")))));
+}
+
+TEST_CASE ("test is_applicable remove") {
+  tree doc (DOCUMENT, tree ("a"), tree ("b"));
+  CHECK (is_applicable (doc, mod_remove (path (), 1, 1)));
+  CHECK (!is_applicable (doc, mod_remove (path (), 1, 2)));
+  CHECK (!is_applicable (doc, mod_remove (path (3), 0, 1)));
+}
+
+TEST_CASE ("test is_applicable join") {
+  tree doc (DOCUMENT, tree ("a"), tree ("b"));
+  CHECK (is_applicable (doc, mod_join (path (), 0)));
+  CHECK (!is_applicable (doc, mod_join (path (), 1))); // pos+1 越界
+  tree mixed (DOCUMENT, tree ("a"), tree (CONCAT, tree ("b")));
+  CHECK (!is_applicable (mixed, mod_join (path (), 0))); // 原子+复合
+}
+
+TEST_CASE ("test is_applicable assign and node ops") {
+  tree doc (DOCUMENT, tree ("a"));
+  CHECK (is_applicable (doc, mod_assign (path (0), tree ("z"))));
+  CHECK (!is_applicable (doc, mod_assign (path (2), tree ("z"))));
+  CHECK (is_applicable (doc, mod_assign_node (path (), CONCAT)));
+  CHECK (is_applicable (doc, mod_insert_node (path (0), 0, tree (CONCAT))));
+  // remove_node 需要目标是复合节点的孩子
+  tree nested (DOCUMENT, tree (CONCAT, tree ("a")));
+  CHECK (is_applicable (nested, mod_remove_node (path (0), 0)));
 }

@@ -13,9 +13,9 @@
 #include <moebius/tree_label.hpp>
 
 using namespace moebius;
+using moebius::drd::drd_decode;
 using moebius::drd::drd_env_merge;
 using moebius::drd::drd_env_read;
-using moebius::drd::drd_decode;
 using moebius::drd::init_std_drd;
 using moebius::drd::the_drd;
 
@@ -41,14 +41,14 @@ old_get_env_child (tree t, int i, string var, tree val) {
   if (L (t) == WITH && i == N (t) - 1)
     env= drd_env_merge (env, t (0, N (t) - 1));
   else {
-    drd::tag_info ti  = the_drd->info[L (t)];
+    drd::tag_info ti   = the_drd->info[L (t)];
     int           index= ti->get_index (i, N (t));
     if ((index < 0) || (index >= N (ti->ci))) return val;
     tree cenv= drd_decode (ti->ci[index].env);
     for (int k= 1; k < N (cenv); k+= 2)
       if (is_func (cenv[k], ARG, 1) && is_int (cenv[k][0])) {
-        cenv    = copy (cenv);
-        int j2  = as_int (cenv[k][0]);
+        cenv  = copy (cenv);
+        int j2= as_int (cenv[k][0]);
         if (j2 >= 0 && j2 < N (t)) cenv[k]= copy (t[j2]);
       }
     env= drd_env_merge (env, cenv);
