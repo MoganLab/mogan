@@ -704,12 +704,35 @@ drd_info_rep::get_child_long_name (tree t, int i) {
 
 tree
 drd_env_write (tree env, string var, tree val) {
-  for (int i= 0; i <= N (env); i+= 2)
-    if (i == N (env)) return env * tree (ATTR, var, val);
+  // 单次分配重建结果(追加/插入/替换三种情形),
+  // 原实现要两次切片 + 元组构造 + 两次拼接共约五次分配
+  int i, n= N (env);
+  for (i= 0; i <= n; i+= 2)
+    if (i == n) {
+      tree r (ATTR, n + 2);
+      for (int k= 0; k < n; k++)
+        r[k]= env[k];
+      r[n]    = tree (var);
+      r[n + 1]= val;
+      return r;
+    }
     else if (var <= env[i]->label) {
-      if (var == env[i]->label)
-        return env (0, i) * tree (ATTR, var, val) * env (i + 2, N (env));
-      return env (0, i) * tree (ATTR, var, val) * env (i, N (env));
+      bool replace= (var == env[i]->label);
+      tree r (ATTR, replace ? n : n + 2);
+      for (int k= 0; k < i; k++)
+        r[k]= env[k];
+      r[i]    = tree (var);
+      r[i + 1]= val;
+      if (replace) {
+        for (int k= i + 2; k < n; k++)
+          r[k]= env[k];
+      }
+      else {
+        // 插入:旧 [i, n) 整体右移两格
+        for (int k= i; k < n; k++)
+          r[k + 2]= env[k];
+      }
+      return r;
     }
   return env;
 }

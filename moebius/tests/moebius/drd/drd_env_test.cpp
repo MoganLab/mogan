@@ -94,3 +94,28 @@ TEST_CASE ("get_env_child WITH duplicate var last wins") {
   CHECK (the_drd->get_env_child (w2, 2, "mode", tree ("text")) ==
          tree ("text"));
 }
+
+TEST_CASE ("drd_env_write sorted insert replace append") {
+  using moebius::drd::drd_env_read;
+  using moebius::drd::drd_env_write;
+  tree env (ATTR);
+  // 追加
+  env= drd_env_write (env, string ("mode"), tree ("src"));
+  CHECK (drd_env_read (env, "mode", tree ("")) == tree ("src"));
+  // 插入(排序在 mode 之前)
+  env= drd_env_write (env, string ("color"), tree ("red"));
+  CHECK (drd_env_read (env, "color", tree ("")) == tree ("red"));
+  CHECK (drd_env_read (env, "mode", tree ("")) == tree ("src"));
+  CHECK_EQ (N (env), 4);
+  // env 保持按变量名排序
+  CHECK (env[0]->label == "color");
+  CHECK (env[2]->label == "mode");
+  // 替换(同变量名覆盖,长度不变)
+  env= drd_env_write (env, string ("mode"), tree ("text"));
+  CHECK_EQ (N (env), 4);
+  CHECK (drd_env_read (env, "mode", tree ("")) == tree ("text"));
+  // 末尾追加更大的变量名
+  env= drd_env_write (env, string ("zvar"), tree ("z"));
+  CHECK_EQ (N (env), 6);
+  CHECK (env[4]->label == "zvar");
+}

@@ -491,6 +491,23 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `drd_env_test.cpp`（env 变体合并透传用例覆盖）；
   全量 24 测试通过。
 - **基准**: `drd_env_bench.cpp` 追加 WITH chain24（env 变体）
+
+### 5.29 drd_env_write 单次分配重建（2026-08-20）
+- **文件**: `moebius/moebius/drd/drd_info.cpp`
+- **What**: `drd_env_write` 的追加/插入/替换三种情形原来都要
+  两次切片 + 元组构造 + 两次拼接（约五次树分配）；改为按情形
+  单次分配结果 ATTR、前缀/后缀直拷。
+- **Why**: `drd_env_merge`（WITH 环境合并、DRD 环境链）逐对调用；
+  深环境链原来是 O(k) 次五连分配。
+- **结果**: 24 层 WITH 链 get_env_descendant(env 变体)：
+  同变量（替换路径）4.94µs→2.17µs（**2.28x**）、不同变量
+  （插入/追加路径）26.9µs→11.8µs（**2.28x**）。
+- **踩坑记录**: 首版插入分支的后缀拷贝从 i+2 起步（应为 i 起步
+  右移两格），导致插入后旧孩子丢失——被新增的排序/覆盖语义测试
+  当场抓住。单测先行的价值再次体现。
+- **测试**: `drd_env_test.cpp` 追加 1 用例（追加、排序插入、
+  同名替换长度不变、末尾追加）；全量 24 测试通过。
+- **基准**: `drd_env_bench.cpp` 追加 distinct vars chain24
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

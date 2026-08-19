@@ -130,5 +130,19 @@ main () {
     ankerl::nanobench::doNotOptimizeAway (
         the_drd->get_env_descendant (wdoc2, dp, tree (ATTR)));
   });
+  // 不同变量链:env 逐层增长,走插入/追加路径
+  tree deep2= tree ("leaf");
+  for (int i= 0; i < 24; i++)
+    deep2=
+        tree (WITH, tree ("v" * as_string ((i * 7) % 24)), tree ("src"), deep2);
+  tree wdoc3 (DOCUMENT, deep2);
+  path dp2= path (1);
+  for (int i= 0; i < 24; i++)
+    dp2= path (2, dp2);
+  dp2= path (0, dp2);
+  bench.run ("get_env_descendant distinct vars chain24", [&] {
+    ankerl::nanobench::doNotOptimizeAway (
+        the_drd->get_env_descendant (wdoc3, dp2, tree (ATTR)));
+  });
   return 0;
 }
