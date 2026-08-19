@@ -323,10 +323,14 @@ raw_split (tree& ref, int pos, int at) {
     t1= ref[pos](0, at);
     t2= ref[pos](at, N (ref[pos]));
   }
-  int i, n= N (ref);
+  int n= N (ref);
+  // 块移动代替逐元素赋值：孩子句柄的引用计数随位移动转移，
+  // 洞里的 stale 位用 placement-new 默认句柄覆盖（不减计数），
+  // 随后被 t1/t2 的赋值语句正常接管
   AR (ref)->resize (n + 1);
-  for (i= n; i > (pos + 1); i--)
-    ref[i]= ref[i - 1];
+  tree* a= A (AR (ref));
+  memmove (a + pos + 2, a + pos + 1, (size_t) (n - pos - 1) * sizeof (tree));
+  new ((void*) (a + pos + 1)) tree ();
   ref[pos]    = t1;
   ref[pos + 1]= t2;
 
@@ -370,9 +374,12 @@ raw_join (tree& ref, int pos) {
   }
   ref[pos]= t;
 
-  int i, n= N (ref) - 1;
-  for (i= pos + 1; i < n; i++)
-    ref[i]= ref[i + 1];
+  // 块移动代替逐元素赋值：[pos+2, n0) 下移一格，句柄所有权随位移动
+  // 转移；尾部 stale 重复位由 resize 截断直接丢弃（与 raw_remove 同法），
+  // 原 t1/t2 槽位的所有权由局部句柄 t1/t2 析构时释放
+  int   n0= N (ref), n= n0 - 1;
+  tree* a= A (AR (ref));
+  memmove (a + pos + 1, a + pos + 2, (size_t) (n0 - pos - 2) * sizeof (tree));
   AR (ref)->resize (n);
   if (!is_nil (ref->data)) ref->data->done (ref, mod);
   // stretched_print (ref, true, 1);

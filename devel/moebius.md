@@ -125,6 +125,22 @@ git commit -m "[moebius] <函数> <优化简述>"
   一致性、rectify 首末点、grad/bound 契约）
 - **基准**: `curve_bench.cpp` 追加 spline 求值扫（单调/震荡）与 rectify
 
+### 5.6 raw_split/raw_join 逐元素搬移改 memmove 块移动（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_observer.cpp`
+- **What**: `raw_split` 的孩子右移与 `raw_join` 的孩子左移原为逐元素
+  `ref[i]=ref[i-1]` 循环（每次引用计数加减），改为 memmove 整块搬移
+  （句柄所有权随位移动转移），洞/尾部 stale 位分别用 placement-new
+  覆盖与 resize 截断丢弃——与已合入 4398（raw_insert/raw_remove）同法。
+- **Why**: 编辑器里每个回车/删段落/文本切分合并都走 split/join；
+  宽文档中部操作要搬移数百个孩子句柄。
+- **结果**: 1000 孩子文档中部 split+join x500：1.92ms→0.26ms（**7.4x**）。
+- **测试**: 新建 `moebius/tests/Data/Tree/tree_observer_test.cpp`
+  （8 用例：split 兄弟保持/尾边界/原子文本、join 原子合并/复合孩子
+  合并/尾边界、split+join 往返、insert+remove 往返）
+- **基准**: `tree_observer_bench.cpp` 追加 split+join A/B 对比
+- **注**: raw_split/raw_join/raw_remove 未在 hpp 声明，测试与基准中
+  补 extern 原型
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。
