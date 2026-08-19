@@ -168,7 +168,6 @@
 (lazy-define (utils plugins plugin-cmd) pre-serialize utf8raw-serialize)
 (use-modules (utils library smart-table))
 (use-modules (utils misc markup-funcs))
-(use-modules (utils handwriting handwriting))
 (lazy-tmfs-handler (utils automate auto-tmfs) automate)
 (lazy-define (utils automate auto-tmfs) auto-load-help)
 (lazy-define (utils misc gui-keyboard) get-keyboard)
@@ -417,14 +416,8 @@
   sector
   sector-counterclockwise
 ) ;lazy-define
-(define-secure-symbols arrow-with-text
-  arrow-with-text*
-  circle
-  three-points-circle
-  std-arc
-  std-arc-counterclockwise
-  three-points-arc
-  sector
+(define-secure-symbols arrow-with-text arrow-with-text* circle
+  three-points-circle std-arc std-arc-counterclockwise three-points-arc sector
   sector-counterclockwise
 ) ;define-secure-symbols
 

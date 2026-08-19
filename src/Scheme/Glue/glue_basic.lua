@@ -489,23 +489,6 @@ function main()
                 ret_type = "double"
             },
             {
-                scm_name = "glyph-register",
-                cpp_name = "register_glyph",
-                ret_type = "void",
-                arg_list = {
-                    "string",
-                    "array_array_array_double"
-                }
-            },
-            {
-                scm_name = "glyph-recognize",
-                cpp_name = "recognize_glyph",
-                ret_type = "string",
-                arg_list = {
-                    "array_array_array_double"
-                }
-            },
-            {
                 scm_name = "tmtm-eqnumber->nonumber",
                 cpp_name = "eqnumber_to_nonumber",
                 ret_type = "tree",

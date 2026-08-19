@@ -238,9 +238,6 @@ tmscm_to_array_widget (tmscm p) {
   return a;
 }
 
-void   register_glyph (string s, array_array_array_double gl);
-string recognize_glyph (array_array_array_double gl);
-
 inline void
 protected_call (object cmd) {
   try {
