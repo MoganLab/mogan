@@ -508,6 +508,20 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: `drd_env_test.cpp` 追加 1 用例（追加、排序插入、
   同名替换长度不变、末尾追加）；全量 24 测试通过。
 - **基准**: `drd_env_bench.cpp` 追加 distinct vars chain24
+
+### 5.30 移除已禁用的 next_without_border 死调用（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_cursor.cpp`
+- **What**: `next_without_border` 上游已禁用（函数体首行 `return
+  false;`，逻辑被注释），但 `is_accessible_cursor`/`valid_cursor`/
+  `closest_accessible` 三个热光标例程仍每步调用它。移除三处调用
+  与函数体（原始逻辑保留在 git 历史）。
+- **结果**: 各光标基准持平（预期内——每次省一个恒假调用）；
+  本项为死代码清理而非性能项。复测中曾出现一次 3x 假回归
+  （75.9µs vs 26µs），重跑确认为机器扰动，已排除。
+- **同轮放弃**: `drd_env_read` 改二分搜索——外部调用者
+  （tree_correct/edit_select 等）传入自建 env，排序不变量无保证，
+  正确性风险大于收益。
+- **测试**: 全量 24 测试通过。
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
