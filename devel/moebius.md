@@ -420,6 +420,9 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `tmu_test.cpp` 全部 6 用例（转义往返覆盖 decode
   路径），通过。
 - **基准**: `tmu_read_bench.cpp` 复用
+- **追加（第 29 轮）**: `read_apply` 同款双查表（先 make_tree_label
+  构造再被 codes 覆盖）同法修复；538→532µs（噪声级，严格少一次
+  标签查表，累计相对最初 1512µs = **2.84x**）。
 
 ### 5.24 end(t,p) 免去第二次全树下探（2026-08-20）
 - **文件**: `moebius/Data/Tree/tree_cursor.cpp`

@@ -417,12 +417,10 @@ get_collection (tree& u, tree t) {
 tree
 tmu_reader::read_apply (string name, bool skip_flag) {
   // cout << "Read apply " << name << INDENT << LF;
-  tree t (make_tree_label (name));
-  if (codes->contains (name)) {
-    // cout << "  " << name << " -> " << as_string ((tree_label) codes [name])
-    // << "\n";
-    t= tree ((tree_label) codes[name]);
-  }
+  // codes 命中时免去 make_tree_label 的构造与查表(与 read 同法)
+  tree t;
+  if (codes->contains (name)) t= tree ((tree_label) codes[name]);
+  else t= tree (make_tree_label (name));
 
   bool closed= !skip_flag;
   int  buf_N = N (buf);
