@@ -589,7 +589,7 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: `tmu_read_bench.cpp`/`scheme_load_bench.cpp` 复用
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
-## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
+## 6 成绩单（2026-08-20 两次全量复测，24/24 测试通过；第 39 轮更新至 5.35）
 
 | # | 函数/路径 | 提速 | 场景 |
 |---|---|---|---|
@@ -614,6 +614,19 @@ git commit -m "[moebius] <函数> <优化简述>"
 | 5.19 | bezier 求值/取直 | 3.4–4.1x | 平滑路径 |
 | 5.20 | hyperbola/parabola | 2.4–3.2x | 求值采样 |
 | 5.21 | keep_positive | 1.16x | 光标校正 |
+| 5.22 | EXTERN 派生标签备忘 | 2.1x | 可执行标记可达性 |
+| 5.23+29 | tmu decode/read_apply | 累计 2.84x→见 5.35 | TMU 词元解码 |
+| 5.24 | end(t,p) 免二趟 | 结构性 | 深路径省 O(depth) |
+| 5.25 | frame::enclose 插值 | 1.60x | 图形包围盒 |
+| 5.26 | inside_contiguous_document | 5.7x | 图形光标钩子 O(d²)→O(d) |
+| 5.27 | get_env_child WITH 直扫 | 5.2x | 源码模式 mode 读 |
+| 5.28 | get_env_child(env) 免拷贝 | 1.34x | 环境链下探 |
+| 5.29 | drd_env_write 单次分配 | 2.28x | 环境链写入 |
+| 5.30 | next_without_border 死调用 | 中性 | 死代码清理 |
+| 5.32 | 原子文本编辑 memcpy | 2.03x | 打字模拟 |
+| 5.33 | tmu_writer::write memcpy | 1.43x | TMU 保存 |
+| 5.34 | slash/scm_quote memcpy | 1.13–1.22x | scheme 序列化 |
+| 5.35 | 读路径 memcpy 回补 | 1.08–1.13x | tmu 读累计 3.16x |
 
 负结果（已回退并记录）：linear_2D 展开、is_compound 标签比较、
 tmu write 成段追加、make_tree_label 备忘缓存、simplify_correct
