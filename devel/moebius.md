@@ -373,10 +373,14 @@ git commit -m "[moebius] <函数> <优化简述>"
   改单次分配逐分量直写，双曲线两支用 sign 合并分支。
 - **结果**: 512 点求值扫：hyperbola 30.3µs→12.8µs（**2.4x**）、
   parabola 21.2µs→6.6µs（**3.2x**）。A/B 用 git stash 实测。
-- **测试**: `curve_test.cpp` 追加 1 用例（双曲线到两焦点距离差恒定）
-- **发现未修**: `parabola` 构造对 d1=(-4,0) d2=(4,0) f=(0,3) 的
-  fixture 在新旧实现中均 SIGSEGV（既有 bug，非本轮改动引入），
-  已从测试移除，待单独排查
+- **测试**: `curve_test.cpp` 追加 2 用例（双曲线到两焦点距离差恒定、
+  抛物线顶点闭式值与对称性）
+- **更正 5.20 初判**: 上轮记录的 "parabola 对某 fixture SIGSEGV"
+  排查后确认**不是 parabola 的 bug**——是测试 fixture 写
+  `point (-4, 0)` 时 int 字面量解析到 `array (n, ...)` 长度构造器
+  （负长度）导致崩溃。构造点必须用 `point (2)`+赋值或 double 字面量
+  `point (-4.0, 0.0)`（踩坑：与 5.9 轮 point (1.0) 同源，
+  int/double 重载解析陷阱）。parabola 行为正常，测试已补回。
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 Why（总体）

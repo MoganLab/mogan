@@ -324,3 +324,16 @@ TEST_CASE ("hyperbola evaluate keeps distance difference") {
     CHECK (fabs (dd - ref) < 1e-9);
   }
 }
+
+TEST_CASE ("parabola evaluate vertex at midpoint") {
+  // d1=(-4,0) d2=(4,0) f=(0,3):ortho(j,i) 后 i=(0,1),
+  // d=inner(f-d1,i)=3,vertex=f-(d/2)*i=(0,1.5)
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve c= parabola (a, array<path> (), false);
+  point v= c->evaluate (0.5);
+  CHECK (v == mkp (0, 1.5));
+  // 关于对称轴对称:0.5±x 两点 y 相同
+  point l= c->evaluate (0.4), r= c->evaluate (0.6);
+  CHECK (fabs (l[1] - r[1]) < 1e-9);
+}
