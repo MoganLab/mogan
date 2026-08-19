@@ -68,6 +68,25 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **基准**: `moebius/bench/Data/Tree/tree_modify_bench.cpp`（含优化前
   实现的同二进制 A/B 对比；隔离 sweep 场景避免 copy 稀释）
 
+### 5.3 scaling/an_scaling 直变换消除中间 point 临时（2026-08-20）
+- **文件**: `moebius/Kernel/Types/frame.cpp`
+- **What**: `scaling_rep`/`an_scaling_rep` 的 `direct_transform`/
+  `inverse_transform` 原写作 `shift + magnify * p`，每次调用产生两个
+  中间 point（`array<double>`，各一次堆分配）。改为逐分量直写唯一
+  结果数组。
+- **Why**: scaling 是图形系统的标准坐标系框架（设备变换），曲线/边框
+  的每个采样点渲染时都要过 `operator()`；`frame::enclose` 求包围盒
+  每个矩形 4 条边 × 采样点同样密集调用。
+- **How**: 循环内直接 `q[i]= shift[i] + magnify * p[i]`（按轴版用
+  `magnify[i]`），任意维度通用。linear_2D 的 2x2 展开尝试过无收益
+  （通用矩阵乘本就单次分配），已回退。
+- **结果**: x1024 点循环：scaling 39.4µs→17.1µs（**2.3x**），
+  an_scaling 53.7µs→17.6µs（**3.0x**）。
+- **测试**: `moebius/tests/Kernel/Types/frame_test.cpp` 追加 3 用例
+  （3 分量 scaling 往返、按轴 scaling 逆变换、内存泄漏检查沿用）
+- **基准**: `moebius/bench/Kernel/Types/frame_bench.cpp`（含优化前
+  实现的同二进制 A/B 对比 + linear_2D 基线 + enclose 包围盒场景）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

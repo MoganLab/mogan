@@ -124,5 +124,29 @@ TEST_CASE ("test bounds") {
   CHECK (fabs (f->inverse_bound (mkp (0.0, 0.0), 2.0) - 4.0) < 1e-9);
 }
 
+TEST_CASE ("test scaling 3 components") {
+  // 逐分量直写路径需对任意维度成立
+  frame f= scaling (2.0, point (1.0, 2.0, 3.0));
+  point r= f (point (1.0, 1.0, 1.0));
+  CHECK_EQ (N (r), 3);
+  CHECK_EQ (r[0], 3.0);
+  CHECK_EQ (r[1], 4.0);
+  CHECK_EQ (r[2], 5.0);
+  point b= f[r];
+  CHECK (fabs (b[0] - 1.0) < 1e-9);
+  CHECK (fabs (b[1] - 1.0) < 1e-9);
+  CHECK (fabs (b[2] - 1.0) < 1e-9);
+}
+
+TEST_CASE ("test an_scaling per-axis inverse") {
+  frame f= scaling (mkp (2.0, 4.0), mkp (0.0, 0.0));
+  point r= f (mkp (3.0, 3.0));
+  CHECK_EQ (r[0], 6.0);
+  CHECK_EQ (r[1], 12.0);
+  point b= f[r];
+  CHECK (fabs (b[0] - 3.0) < 1e-9);
+  CHECK (fabs (b[1] - 3.0) < 1e-9);
+}
+
 TEST_MEMORY_LEAK_INIT
 TEST_MEMORY_LEAK_ALL

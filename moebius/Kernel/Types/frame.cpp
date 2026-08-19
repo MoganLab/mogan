@@ -102,8 +102,21 @@ struct scaling_rep : public frame_rep {
   operator tree () {
     return tuple ("scale", as_string (magnify), as_tree (shift));
   }
-  point direct_transform (point p) { return shift + magnify * p; }
-  point inverse_transform (point p) { return (p - shift) / magnify; }
+  // 逐分量直写结果,避免 magnify*p 与 +shift 两个中间 point 临时分配
+  point direct_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= shift[i] + magnify * p[i];
+    return q;
+  }
+  point inverse_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= (p[i] - shift[i]) / magnify;
+    return q;
+  }
   point jacobian (point p, point v, bool& error) {
     (void) p;
     error= false;
@@ -136,8 +149,21 @@ struct an_scaling_rep : public frame_rep {
   operator tree () {
     return tuple ("scale", as_string (as_tree (magnify)), as_tree (shift));
   }
-  point direct_transform (point p) { return shift + magnify * p; }
-  point inverse_transform (point p) { return (p - shift) / magnify; }
+  // 逐分量直写结果,避免 magnify*p 与 +shift 两个中间 point 临时分配
+  point direct_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= shift[i] + magnify[i] * p[i];
+    return q;
+  }
+  point inverse_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= (p[i] - shift[i]) / magnify[i];
+    return q;
+  }
   point jacobian (point p, point v, bool& error) {
     (void) p;
     error= false;
