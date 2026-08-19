@@ -93,6 +93,18 @@ old_move_any (tree t, path p, bool forward) {
 // 生产代码导出但未写入 hpp,基准中补声明
 path next_any (tree t, path p);
 
+/** 构造单词移动基准文档:100 段含普通词/连字符词/数字词 */
+static tree
+mk_word_doc () {
+  tree doc (DOCUMENT);
+  for (int i= 0; i < 100; i++) {
+    tree par (CONCAT);
+    par << tree ("alpha beta") << tree ("gamma-delta. ") << tree ("x1 x2 y3");
+    doc << par;
+  }
+  return doc;
+}
+
 int
 main () {
   init_std_drd ();
@@ -119,6 +131,22 @@ main () {
     int  n= 0;
     while (true) {
       path r= next_any (doc, p);
+      if (r == p) break;
+      p= r;
+      n++;
+    }
+    ankerl::nanobench::doNotOptimizeAway (n);
+  });
+  // Ctrl+Right:逐词扫全文档
+  ankerl::nanobench::Bench wbench;
+  wbench.minEpochIterations (20).unit ("sweep");
+  tree wdoc= mk_word_doc ();
+  path wp0 = start (wdoc);
+  wbench.run ("next_word full sweep", [&] {
+    path p= wp0;
+    int  n= 0;
+    while (true) {
+      path r= next_word (wdoc, p);
       if (r == p) break;
       p= r;
       n++;

@@ -147,3 +147,58 @@ TEST_CASE ("next_any steps into first paragraph") {
   CHECK (r1 != p);            // 第一步必有推进
   CHECK (!is_nil (r1->next)); // 深入文档内部而非停在顶层
 }
+
+TEST_CASE ("next_word skips whole words") {
+  init_std_drd ();
+  tree doc (DOCUMENT);
+  tree par (CONCAT);
+  par << tree ("hello world") << tree ("x");
+  doc << par;
+  path p= start (doc);
+  path q= next_word (doc, p);
+  CHECK (q != p);
+  // 再前进若干步应收敛到文档尾
+  int steps= 0;
+  while (steps < 100) {
+    path r= next_word (doc, q);
+    if (r == q) break;
+    q= r;
+    steps++;
+  }
+  CHECK (steps < 100);
+  CHECK (next_word (doc, q) == q);
+}
+
+TEST_CASE ("next_word previous_word roundtrip") {
+  init_std_drd ();
+  tree doc (DOCUMENT);
+  tree par (CONCAT);
+  par << tree ("alpha beta") << tree ("gamma delta");
+  doc << par;
+  path p  = start (doc);
+  path mid= p;
+  for (int i= 0; i < 6; i++)
+    mid= next_word (doc, mid);
+  path back= mid;
+  for (int i= 0; i < 6; i++)
+    back= previous_word (doc, back);
+  CHECK (back == p);
+}
+
+TEST_CASE ("word boundary respects punctuation and hex escapes") {
+  init_std_drd ();
+  // <#4E2D> 形式的非 ASCII 字符按词分隔符块处理,不崩溃即可
+  tree doc (DOCUMENT);
+  tree par (CONCAT);
+  par << tree ("a <#4E2D> b");
+  doc << par;
+  path p    = start (doc);
+  int  steps= 0;
+  while (steps < 100) {
+    path r= next_word (doc, p);
+    if (r == p) break;
+    p= r;
+    steps++;
+  }
+  CHECK (steps < 100);
+}

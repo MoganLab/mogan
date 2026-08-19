@@ -267,6 +267,21 @@ git commit -m "[moebius] <函数> <优化简述>"
   链接错误（第 2 轮 tree_modify_test 的同类 flaky 报错同源）。
 - **基准**: `block_bench.cpp`
 
+### 5.14 move_word 与 tm_codepoint_at 消除子串分配（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_traverse.cpp`
+- **What**:
+  1. `tm_codepoint_at`（词边界判定的逐字符内层）原来每个字符取子串
+     `s(pos,i)` 并做 `starts/ends` 字符串比较——改为直接在原串上按
+     字节解析（ASCII 单字节、`<#....>` 十六进制形式、其余记未知）；
+  2. `move_word` 循环内 `subtree(t, path_up(q))` 每步全树下探——
+     改为 `tt_descend` 单趟下探。
+- **Why**: Ctrl+Left/Right 词移动、双击选词走 move_word；每步对光标
+  前后两个字符各调一次 tm_codepoint_at。
+- **结果**: 100 段词文档逐词全扫：1.49ms→1.33ms（**1.12x**）。
+- **测试**: `tree_traverse_test.cpp` 追加 3 用例（逐词推进收敛、
+  next/previous 往返、标点与 `<#XXXX>` 十六进制转义边界不崩溃）
+- **基准**: `tree_cursor_bench.cpp` 追加 next_word 全扫场景
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

@@ -376,22 +376,22 @@ tm_codepoint_at (string s, int pos, unsigned int& code) {
 
   int i= pos;
   tm_char_forwards (s, i);
-  string c= s (pos, i);
-  if (c == "") return false;
+  int len= i - pos;
+  if (len == 0) return false;
 
   // Plain ASCII
-  if (N (c) == 1) {
-    code= (unsigned int) (unsigned char) c[0];
+  if (len == 1) {
+    code= (unsigned int) (unsigned char) s[pos];
     return true;
   }
 
   // TeXmacs internal hexadecimal form: <#....>
-  // Only parse leading hex digits for block-level checks.
-  if (starts (c, "<#") && ends (c, ">")) {
+  // 直接在原串上解析,免去取子串与 starts/ends 字符串比较
+  if (len > 2 && s[pos] == '<' && s[pos + 1] == '#' && s[i - 1] == '>') {
     unsigned int v= 0;
-    int          k= 2, cnt= 0;
-    for (; k < N (c) - 1 && cnt < 4; k++, cnt++) {
-      char         ch= c[k];
+    int          k= pos + 2, cnt= 0;
+    for (; k < i - 1 && cnt < 4; k++, cnt++) {
+      char         ch= s[k];
       unsigned int d;
       if (ch >= '0' && ch <= '9') d= (unsigned int) (ch - '0');
       else if (ch >= 'a' && ch <= 'f') d= 10u + (unsigned int) (ch - 'a');
@@ -451,13 +451,27 @@ next_is_word (tree t, path p) {
   return st[l + 1] != "" && is_iso_alphanum (st[l + 1]->label[0]);
 }
 
+// 单趟下探到 path 所指节点(调用方保证路径合法),免去 subtree 全树重下探
+static tree*
+tt_descend (tree& t, path p) {
+  tree* r= &t;
+  for (path q= p; !is_nil (q); q= q->next) {
+    int i= q->item;
+    if (!is_compound (*r) || i < 0 || i >= N (*r)) return nullptr;
+    r= &(*r)[i];
+  }
+  return r;
+}
+
 static path
 move_word (tree t, path p, bool forward) {
   while (true) {
     path q= move_accessible (t, p, forward);
     int  l= last_item (q);
     if (q == p) return p;
-    tree st= subtree (t, path_up (q));
+    tree* stp= tt_descend (t, path_up (q));
+    if (stp == nullptr) return q; // 防御:无效路径按不动点处理
+    tree& st= *stp;
     if (is_atomic (st)) {
       string s= st->label;
       int    n= N (s);
