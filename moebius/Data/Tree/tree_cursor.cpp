@@ -29,6 +29,22 @@ using moebius::drd::with_drd;
  * Finding a closest cursor inside a tree
  ******************************************************************************/
 
+/**
+ * @brief 光标热路径上频繁按名字匹配的标签，缓存为 tree_label 后可用整数比较
+ * @note 避免每次 as_string(L(t)) 的哈希查找与字符串比较；
+ *       make_tree_label 幂等，首次调用后仅做静态读取
+ */
+static tree_label
+cursor_label_input () {
+  static tree_label l= make_tree_label ("input");
+  return l;
+}
+static tree_label
+cursor_label_math () {
+  static tree_label l= make_tree_label ("math");
+  return l;
+}
+
 bool
 is_inside (tree t, path p) {
   if (is_nil (p)) return false;
@@ -322,8 +338,8 @@ valid_cursor (tree t, path p, bool start_flag) {
   if (is_mod_active_once (t)) return is_atomic (t[0]) || (!is_atom (p->next));
   if (is_prime (t)) return false;
   // FIXME: hack for treating VAR_EXPAND "math"
-  if (is_compound (t, "input", 2) && (N (p) == 2) &&
-      is_compound (t[1], "math", 1) && (p->item == 1))
+  if (is_func (t, cursor_label_input (), 2) && (N (p) == 2) &&
+      is_func (t[1], cursor_label_math (), 1) && (p->item == 1))
     return false;
   if (is_func (t, BIG_AROUND) && p->item == 1) {
     if (p == path (1, 0) && is_right_script_prime (t[1])) return false;
@@ -385,8 +401,8 @@ pre_correct (tree t, path p) {
     else return path (1);
   }
   // FIXME: hack for treating VAR_EXPAND "math"
-  if (is_compound (t, "input", 2) && (N (p) == 2) &&
-      is_compound (t[1], "math", 1) && (p->item == 1)) {
+  if (is_func (t, cursor_label_input (), 2) && (N (p) == 2) &&
+      is_func (t[1], cursor_label_math (), 1) && (p->item == 1)) {
     int i= (p->next->item == 0 ? 0 : right_index (t[1][0]));
     return path (1, 0, pre_correct (t[1][0], path (i)));
   }
@@ -410,7 +426,9 @@ left_most (tree t, path p) {
 
   int i= p->item;
   if (is_atom (p)) return i == 0;
-  if (is_concat (as_tree (p))) return (i == 0) && left_most (t[0], p->next);
+  // 历史遗留死分支：is_concat (as_tree (p)) 恒为假（as_tree(list<int>)
+  // 构造的树标签是 TUPLE，永不等于 CONCAT），原实现每次递归都要为
+  // 该判断分配一棵临时树，直接省去
   return false;
 }
 
@@ -445,8 +463,7 @@ right_most (tree t, path p) {
 
   int i= p->item;
   if (is_atom (p)) return i == right_index (t);
-  if (is_concat (as_tree (p)))
-    return (i == 1) && right_most (t[N (t) - 1], p->next);
+  // 同 left_most：is_concat (as_tree (p)) 恒为假，死分支省去临时树分配
   return false;
 }
 

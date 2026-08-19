@@ -20,6 +20,17 @@ void remove_node (path p);
 void set_cursor (path p, tree data);
 void touch (path p);
 
+/**
+ * @brief 在 ref 的 pos 处直接插入 t 的孩子，绕过 apply 的调度与观察者协议
+ * @note 仅由 raw_apply 及测试/基准使用
+ */
+void raw_insert (tree& ref, int pos, tree t);
+/**
+ * @brief 在 ref 的 pos 处直接删除 nr 个孩子，绕过 apply 的调度与观察者协议
+ * @note 仅由 raw_apply 及测试/基准使用
+ */
+void raw_remove (tree& ref, int pos, int nr);
+
 void assign (tree& ref, tree t);
 void insert (tree& ref, int pos, tree t);
 void remove (tree& ref, int pos, int nr);
