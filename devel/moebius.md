@@ -381,6 +381,17 @@ git commit -m "[moebius] <函数> <优化简述>"
   （负长度）导致崩溃。构造点必须用 `point (2)`+赋值或 double 字面量
   `point (-4.0, 0.0)`（踩坑：与 5.9 轮 point (1.0) 同源，
   int/double 重载解析陷阱）。parabola 行为正常，测试已补回。
+
+### 5.21 keep_positive 无负索引快路径（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_cursor.cpp`
+- **What**: `keep_positive` 原来无条件逐层递归重建整条 path；先线性
+  扫描，全为非负索引（常见情况）时原样返回，仅含负索引时走原重建。
+- **Why**: `correct_cursor`（每次按键后的光标校正）以 keep_positive
+  开头。
+- **结果**: correct_cursor 100 步扫：25.7µs→22.2µs（**1.16x**）。
+- **测试**: `tree_traverse_test.cpp` 追加 2 用例（负索引路径截断
+  校正、合法路径校正稳定）；并全量回归 moebius 24 个测试全部通过。
+- **基准**: `tree_cursor_bench.cpp` 追加 correct_cursor 扫描
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 Why（总体）

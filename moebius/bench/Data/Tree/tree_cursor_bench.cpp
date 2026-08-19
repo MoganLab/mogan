@@ -153,5 +153,18 @@ main () {
     }
     ankerl::nanobench::doNotOptimizeAway (n);
   });
+  // 光标校正:keep_positive + pre_correct + left/right_correct
+  ankerl::nanobench::Bench cbench2;
+  cbench2.minEpochIterations (200).unit ("sweep");
+  cbench2.run ("correct_cursor sweep100", [&] {
+    path pp= wp0;
+    int  n = 0;
+    for (int i= 0; i < 100; i++) {
+      path r= correct_cursor (wdoc, pp, true);
+      if (r != pp) n++;
+      pp= r;
+    }
+    ankerl::nanobench::doNotOptimizeAway (n);
+  });
   return 0;
 }

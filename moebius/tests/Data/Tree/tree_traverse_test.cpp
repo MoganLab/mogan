@@ -202,3 +202,28 @@ TEST_CASE ("word boundary respects punctuation and hex escapes") {
   }
   CHECK (steps < 100);
 }
+
+TEST_CASE ("correct_cursor drops negative prefix path") {
+  init_std_drd ();
+  tree doc (DOCUMENT);
+  tree par (CONCAT);
+  par << tree ("ab") << tree ("cd");
+  doc << par;
+  // 含负索引的路径被 keep_positive 截断后再校正
+  path bad = path (-1, path (0, path (0)));
+  path good= correct_cursor (doc, bad, true);
+  CHECK (!is_nil (good));
+  // 校正结果应是文档内的合法光标(首元素非负)
+  CHECK (good->item >= 0);
+}
+
+TEST_CASE ("correct_cursor keeps valid path stable") {
+  init_std_drd ();
+  tree doc (DOCUMENT);
+  tree par (CONCAT);
+  par << tree ("ab") << tree ("cd");
+  doc << par;
+  path p    = start (doc);
+  path fixed= correct_cursor (doc, p, true);
+  CHECK (fixed == p); // 起点已是合法前向光标
+}

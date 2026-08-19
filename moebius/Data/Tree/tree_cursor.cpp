@@ -492,6 +492,14 @@ right_correct (tree t, path p) {
 
 static path
 keep_positive (path p) {
+  // 常见情况全为非负索引:原样返回,免去逐层递归重建
+  bool has_neg= false;
+  for (path q= p; !is_nil (q); q= q->next)
+    if (q->item < 0) {
+      has_neg= true;
+      break;
+    }
+  if (!has_neg) return p;
   if (is_nil (p)) return p;
   if (p->item < 0) return path ();
   return path (p->item, keep_positive (p->next));
