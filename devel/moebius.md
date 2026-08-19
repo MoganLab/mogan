@@ -407,6 +407,19 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: `drd_env_test.cpp` 追加 1 用例（同名宏重复出现时备忘
   命中/未命中结果一致，不同宏名备忘失效正常）；全量 24 测试通过。
 - **基准**: `drd_env_bench.cpp` 追加 EXTERN 场景
+
+### 5.23 tmu_reader::decode 成段追加 + 标签分支单查表（2026-08-20）
+- **文件**: `moebius/Data/Convert/tmu.cpp`
+- **What**:
+  1. `decode`（每个词元解码）原来逐字符 `r << s[i]`——即使无转义
+     也逐字符 append，改为普通字符成段一次追加；
+  2. `read` 的标签分支先 `tree (make_tree_label (name))` 构造再被
+     codes 命中覆盖——改为 codes 命中直接构造，免去一次标签查表。
+- **结果**: `tmu_to_tree` 500 段文档：602µs→538µs（本轮 **1.12x**，
+  相对最初实现累计 1512µs→538µs = **2.81x**）。
+- **测试**: 复用 `tmu_test.cpp` 全部 6 用例（转义往返覆盖 decode
+  路径），通过。
+- **基准**: `tmu_read_bench.cpp` 复用
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

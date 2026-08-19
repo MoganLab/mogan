@@ -285,17 +285,20 @@ tmu_reader::skip_blank () {
 
 string
 tmu_reader::decode (string s) {
-  int    i, n= N (s);
+  // 普通字符成段一次追加,转义字符单独处理
+  int    i, n= N (s), run= 0;
   string r;
   for (i= 0; i < n; i++)
     if (((i + 1) < n) && (s[i] == '\\')) {
+      if (i > run) r << s (run, i);
       i++;
       if (s[i] == ';')
         ;
       else if (s[i] == '\\') r << '\\';
       else r << s[i];
+      run= i + 1;
     }
-    else r << s[i];
+  if (n > run) r << s (run, n);
   return r;
 }
 
@@ -523,12 +526,10 @@ tmu_reader::read (bool skip_flag) {
           C << read_apply (name, false);
         }
         else {
-          tree t (make_tree_label (name));
-          if (codes->contains (name)) {
-            // cout << name << " -> " << as_string ((tree_label) codes [name])
-            // << "\n";
-            t= tree ((tree_label) codes[name]);
-          }
+          // codes 命中时免去 make_tree_label 的构造与查表
+          tree t;
+          if (codes->contains (name)) t= tree ((tree_label) codes[name]);
+          else t= tree (make_tree_label (name));
           C << t;
         }
       }
