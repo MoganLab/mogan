@@ -271,9 +271,38 @@ tree_to_verbatim (tree t, bool wrap, string enc) {
 #endif
 }
 
+// 插件 I/O 输入树来自编辑器，< > 以 <less>/<gtr>
+// 转义存储；序列化须还原为字面字符。 仅处理这两个命名转义：<#XXXX>
+// 字面须原样保留，不能用 tm_decode。
+static string
+un_escape_angle (string s) {
+  int i, n= N (s);
+  for (i= 0; i < n; i++)
+    if (s[i] == '<') {
+      // 慢路径：遇到 '<' 才开始逐字重建，无转义的常见情形零拷贝
+      string r= s (0, i);
+      while (i < n) {
+        if (s[i] == '<' && i + 5 < n && s (i, i + 6) == "<less>") {
+          r << '<';
+          i+= 6;
+        }
+        else if (s[i] == '<' && i + 4 < n && s (i, i + 5) == "<gtr>") {
+          r << '>';
+          i+= 5;
+        }
+        else {
+          r << s[i];
+          i++;
+        }
+      }
+      return r;
+    }
+  return s;
+}
+
 string
 tree_to_utf8raw (tree t) {
-  string buf= as_verbatim (t, false);
+  string buf= un_escape_angle (as_verbatim (t, false));
 #ifdef OS_WIN
   return unix_to_dos (buf);
 #else
