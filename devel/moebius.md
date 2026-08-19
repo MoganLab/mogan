@@ -477,6 +477,20 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: `drd_env_test.cpp` 追加 1 用例（同名绑定对后者覆盖、
   无匹配返回缺省）；全量 24 测试通过。
 - **基准**: `drd_env_bench.cpp` 追加 WITH mode sweep
+
+### 5.28 get_env_child(env 变体) WITH 分支免子树拷贝（2026-08-20）
+- **文件**: `moebius/moebius/drd/drd_info.cpp`
+- **What**: `(t,i,env)` 重载的 WITH 分支原来 `drd_env_merge (env,
+  t (0, N (t) - 1))`——先做一次子树拷贝再逐对合并；改为直接在
+  原树 [0, N-1) 上迭代绑定对调用 `drd_env_write`（与 merge 逐对
+  语义严格一致），免去每次一棵孩子数组的分配。
+- **Why**: `get_env_descendant (t, p, env)` 沿路径逐层调用此重载
+  （排版环境求值/光标环境链）。
+- **结果**: 24 层 WITH 嵌套链 get_env_descendant(env 变体)：
+  6.69µs→5.00µs（**1.34x**）；字符串变体链（走 5.27 快路径）持平。
+- **测试**: 复用 `drd_env_test.cpp`（env 变体合并透传用例覆盖）；
+  全量 24 测试通过。
+- **基准**: `drd_env_bench.cpp` 追加 WITH chain24（env 变体）
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

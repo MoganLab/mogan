@@ -117,5 +117,18 @@ main () {
     wacc= r;
     ankerl::nanobench::doNotOptimizeAway (wacc);
   });
+  // 环境链下探:深层 WITH 嵌套求 mode(get_env_descendant env 变体)
+  tree deep= tree ("leaf");
+  for (int i= 0; i < 24; i++)
+    deep= tree (WITH, tree ("mode"), tree ("src"), deep);
+  tree wdoc2 (DOCUMENT, deep);
+  path dp= path (1);
+  for (int i= 0; i < 24; i++)
+    dp= path (2, dp);
+  dp= path (0, dp);
+  bench.run ("get_env_descendant WITH chain24", [&] {
+    ankerl::nanobench::doNotOptimizeAway (
+        the_drd->get_env_descendant (wdoc2, dp, tree (ATTR)));
+  });
   return 0;
 }

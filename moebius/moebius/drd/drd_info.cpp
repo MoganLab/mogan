@@ -761,8 +761,12 @@ drd_info_rep::freeze_env (tree_label l, int nr) {
 
 tree
 drd_info_rep::get_env_child (tree t, int i, tree env) {
-  if (L (t) == WITH && i == N (t) - 1)
-    return drd_env_merge (env, t (0, N (t) - 1));
+  if (L (t) == WITH && i == N (t) - 1) {
+    // 直接在原树上迭代绑定对,免去 t(0,N-1) 子树拷贝
+    for (int k= 0; (k + 1) < N (t); k+= 2)
+      if (is_atomic (t[k])) env= drd_env_write (env, t[k]->label, t[k + 1]);
+    return env;
+  }
   else {
     /* makes cursor movement (is_accessible_cursor) slow for large preambles
     if (L(t) == DOCUMENT && N(t) > 0 &&
