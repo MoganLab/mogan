@@ -587,6 +587,15 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `tmu_test.cpp`/`scheme_der_test.cpp` 全部用例；
   全量 24 测试通过。
 - **基准**: `tmu_read_bench.cpp`/`scheme_load_bench.cpp` 复用
+
+### 5.36（第 40 轮）负结果：named_color 双重小写化
+- **评估**: `named_color` 先 `locase_all` 再进 `color_from_name`，
+  表访问器（tm_color 等）内部又 `locase_all` + 重查表——尝试把
+  小写化合并到表阶段一次并用直接读表替换访问器。
+- **结果**: 实测持平偏差（7.41→7.77µs/x100，噪声内）——小写化
+  次数相同只是位置移动，节省的第二次查表被 contains(low) 的
+  重新哈希抵消。已回退代码，保留 `colors_bench.cpp` 作为该路径
+  的基线基准。
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 两次全量复测，24/24 测试通过；第 39 轮更新至 5.35）
