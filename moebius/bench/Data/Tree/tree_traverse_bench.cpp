@@ -62,7 +62,7 @@ main () {
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (10).unit ("doc");
 
-  tree doc= mk_document ();
+  tree doc     = mk_document ();
   tree herk_doc= tree_utf8_to_herk (doc);
 
   bench.run ("old utf8->herk doc1000x10", [&] {
