@@ -426,7 +426,9 @@ left_most (tree t, path p) {
 
   int i= p->item;
   if (is_atom (p)) return i == 0;
-  if (is_concat (as_tree (p))) return (i == 0) && left_most (t[0], p->next);
+  // 历史遗留死分支：is_concat (as_tree (p)) 恒为假（as_tree(list<int>)
+  // 构造的树标签是 TUPLE，永不等于 CONCAT），原实现每次递归都要为
+  // 该判断分配一棵临时树，直接省去
   return false;
 }
 
@@ -461,8 +463,7 @@ right_most (tree t, path p) {
 
   int i= p->item;
   if (is_atom (p)) return i == right_index (t);
-  if (is_concat (as_tree (p)))
-    return (i == 1) && right_most (t[N (t) - 1], p->next);
+  // 同 left_most：is_concat (as_tree (p)) 恒为假，死分支省去临时树分配
   return false;
 }
 
