@@ -141,6 +141,23 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **注**: raw_split/raw_join/raw_remove 未在 hpp 声明，测试与基准中
   补 extern 原型
 
+### 5.7 get_env_child 空 cenv 快路径（2026-08-20）
+- **文件**: `moebius/moebius/drd/drd_info.cpp`
+- **What**: `get_env_child` 两个重载加空环境快路径：
+  1. `(t,i,env)` 重载：`drd_decode(ci[index].env)` 为空时直接透传 env，
+    免去逐对 `drd_env_write` 重建 env 树；
+  2. `(t,i,var,val)` 重载：非 WITH 且子节点无绑定时直接返回缺省值，
+    免去 ATTR 构造、合并与读取扫描。
+- **Why**: `is_accessible_cursor`（光标可达性校验，每次光标移动逐节点
+  调用）里 `get_env_child(t,i,MODE,"")=="src"` 是 default 分支的必经
+  路径；绝大多数标签的子节点没有任何环境绑定，全走无用功。
+- **结果**: 500 段×8 词文档逐节点读 mode：306µs→217µs（**1.41x**）。
+- **测试**: 新建 `tests/moebius/drd/drd_env_test.cpp`（5 用例：空绑定
+  返回缺省、越界索引、WITH 绑定读取/非最后孩子、env 重载合并透传、
+  get_env_descendant）
+- **基准**: 新建 `bench/moebius/drd/drd_env_bench.cpp`（含优化前实现
+  的同二进制 A/B 对比）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

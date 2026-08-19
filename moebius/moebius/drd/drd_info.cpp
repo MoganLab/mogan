@@ -770,6 +770,9 @@ drd_info_rep::get_env_child (tree t, int i, tree env) {
     int      index= ti->get_index (i, N (t));
     if ((index < 0) || (index >= N (ti->ci))) return "";
     tree cenv= drd_decode (ti->ci[index].env);
+    // 绝大多数标签的子节点没有环境绑定,空 cenv 直接透传,
+    // 免去逐对 drd_env_write 重建 env 树
+    if (N (cenv) == 0) return env;
     for (int i= 1; i < N (cenv); i+= 2)
       if (is_func (cenv[i], ARG, 1) && is_int (cenv[i][0])) {
         cenv = copy (cenv);
@@ -782,6 +785,14 @@ drd_info_rep::get_env_child (tree t, int i, tree env) {
 
 tree
 drd_info_rep::get_env_child (tree t, int i, string var, tree val) {
+  // 快路径:非 WITH 且子节点无环境绑定时直接返回缺省值,
+  // 免去 ATTR 构造、合并与读取扫描(is_accessible_cursor 每步都走这里)
+  if (!(L (t) == WITH && i == N (t) - 1)) {
+    tag_info ti   = info[L (t)];
+    int      index= ti->get_index (i, N (t));
+    if ((index < 0) || (index >= N (ti->ci))) return val;
+    if (N (drd_decode (ti->ci[index].env)) == 0) return val;
+  }
   tree env= get_env_child (t, i, tree (ATTR));
   return drd_env_read (env, var, val);
 }
