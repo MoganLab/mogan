@@ -64,8 +64,8 @@ legacy_access_pl (poly_line pl, double t) {
 /// 点积经由 p1-p / p2-p 的临时 point 分配
 static array<double>
 legacy_vertices_pl (poly_line pl) {
-  double l         = length (pl);
-  pl               = (1.0 / l) * pl;
+  double l= length (pl);
+  pl      = (1.0 / l) * pl;
   array<double> r;
   double        t = 0.0;
   double        dt= 0.025;
@@ -123,8 +123,7 @@ main () {
   bench.run ("legacy sup(poly_line)", [&] { legacy_sup_pl (pl); });
   bench.run ("length(poly_line)", [&] { length (pl); });
   bench.run ("access(poly_line)", [&] { access (pl, 60.0); });
-  bench.run ("legacy access(poly_line)",
-             [&] { legacy_access_pl (pl, 60.0); });
+  bench.run ("legacy access(poly_line)", [&] { legacy_access_pl (pl, 60.0); });
   // 沿折线均匀取 21 点：模拟 invariants 采样对 access 的批量调用形态
   {
     double l= length (pl);
@@ -143,8 +142,7 @@ main () {
   }
   bench.run ("normalize(poly_line)", [&] { normalize (pl); });
   bench.run ("vertices(poly_line)", [&] { vertices (pl); });
-  bench.run ("legacy vertices(poly_line)",
-             [&] { legacy_vertices_pl (pl); });
+  bench.run ("legacy vertices(poly_line)", [&] { legacy_vertices_pl (pl); });
 
   contours gl;
   gl << mk_zigzag (50, 100.0, 10.0);
@@ -166,18 +164,18 @@ main () {
   });
   bench.run ("legacy invariants(level=1)", [&] {
     // 旧版：21 个采样点各调一次全折线扫描 access + vertices 两次 access/顶点
-    contours        ng= normalize (gl);
-    array<tree>     disc;
-    array<double>   cont;
+    contours         ng= normalize (gl);
+    array<tree>      disc;
+    array<double>    cont;
     array<poly_line> ngl (ng);
     for (int j= 0; j < N (ngl); j++) {
       double l= length (ngl[j]);
       for (int k= 0; k <= 20; k++)
-        cont<< legacy_access_pl (ngl[j], (0.999999999 * k / 20) * l);
+        cont << legacy_access_pl (ngl[j], (0.999999999 * k / 20) * l);
       array<double> ts= legacy_vertices_pl (ngl[j]);
-      disc<< tree (as_string (N (ts)));
+      disc << tree (as_string (N (ts)));
       for (int k= 0; k < N (ts); k++)
-        cont<< 2.5 * ts[k];
+        cont << 2.5 * ts[k];
     }
     ankerl::nanobench::doNotOptimizeAway (cont);
   });

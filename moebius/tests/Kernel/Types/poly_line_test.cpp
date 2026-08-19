@@ -143,16 +143,14 @@ TEST_CASE ("test vertices normalized arc-length semantics") {
   if (N (vs) == 3) {
     CHECK (almost_eq (vs[1], 0.5));
     // 乘回总长应取回拐点坐标（与 access 的配套契约）
-    CHECK (almost_eq (access (bend, vs[1] * length (bend)),
-                      point (1.0, 0.0)));
+    CHECK (almost_eq (access (bend, vs[1] * length (bend)), point (1.0, 0.0)));
   }
 
   // 非对称 L：总长 1+3=4，拐点在弧长 1 处 → 参数 0.25
   poly_line     bend2= mk_pl (0.0, 0.0, 1.0, 0.0, 1.0, 3.0);
   array<double> vs2  = vertices (bend2);
   CHECK (N (vs2) == 3);
-  if (N (vs2) == 3)
-    CHECK (almost_eq (vs2[1], 0.25));
+  if (N (vs2) == 3) CHECK (almost_eq (vs2[1], 0.25));
 
   // 密采样同一 L 形（拐点前后各插 10 个共线点）：参数不应随采样密度漂移
   poly_line dense;
@@ -162,8 +160,7 @@ TEST_CASE ("test vertices normalized arc-length semantics") {
     dense << point (1.0, 0.3 * i);
   array<double> vsd= vertices (dense);
   CHECK (N (vsd) == 3);
-  if (N (vsd) == 3)
-    CHECK (almost_eq (vsd[1], 0.25));
+  if (N (vsd) == 3) CHECK (almost_eq (vsd[1], 0.25));
 }
 
 TEST_CASE ("test vertices on multi-corner zigzag") {
@@ -179,7 +176,7 @@ TEST_CASE ("test vertices on multi-corner zigzag") {
   }
 
   // 通用性质：严格递增，首 0 末 1，相邻间距 >= 0.025
-  poly_line     dense;
+  poly_line dense;
   for (int i= 0; i < 40; i++)
     dense << point (i % 2 ? 1.0 : 0.0, 0.25 * i);
   array<double> vdz= vertices (dense);
