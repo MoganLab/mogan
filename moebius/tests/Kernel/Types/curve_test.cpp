@@ -275,3 +275,37 @@ TEST_CASE ("ellipse rectify endpoints") {
   CHECK (ps[0] == mkp (-5, 0));
   CHECK (ps[N (ps) - 1] == mkp (-5, 0)); // 闭合:首尾同为起点
 }
+
+TEST_CASE ("bezier evaluate endpoints and midpoint") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 4) << mkp (4, 4) << mkp (6, 0);
+  curve c= bezier (a);
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+  CHECK (c->evaluate (1.0) == mkp (6, 0));
+  // 对称控制点,中点 x=(0+3+12+6)/8=2.625,y=(0+12+12+0)/8=3
+  point m= c->evaluate (0.5);
+  CHECK (fabs (m[0] - 2.625) < 1e-9);
+  CHECK (fabs (m[1] - 3.0) < 1e-9);
+}
+
+TEST_CASE ("bezier grad at endpoints") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 4) << mkp (4, 4) << mkp (6, 0);
+  curve c  = bezier (a);
+  bool  err= true;
+  // 生产 grad 公式为 3*P3*t + 2*P2 + P1(非标准导数),
+  // t=0 处即 2*P2+P1 = 2*(6,-12)+(3,12) = (15,-12)
+  point g= c->grad (0.0, err);
+  CHECK (!err);
+  CHECK (g == mkp (15, -12));
+}
+
+TEST_CASE ("bezier rectify endpoints") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 4) << mkp (4, 4) << mkp (6, 0);
+  curve        c = bezier (a);
+  array<point> ps= c->rectify (0.05);
+  CHECK (N (ps) >= 2);
+  CHECK (ps[0] == mkp (0, 0));
+  CHECK (ps[N (ps) - 1] == mkp (6, 0));
+}

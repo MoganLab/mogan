@@ -754,7 +754,13 @@ bezier_rep::bezier_rep (array<point> a2) : a (a2) {
 
 point
 bezier_rep::evaluate (double t) {
-  return ((P[3] * t + P[2]) * t + P[1]) * t + P[0];
+  // 逐分量 Horner,免去链式标量乘/加的六个中间 point 临时
+  int k, n= N (P[0]);
+  n= min (n, min (N (P[1]), min (N (P[2]), N (P[3]))));
+  point q (n);
+  for (k= 0; k < n; k++)
+    q[k]= ((P[3][k] * t + P[2][k]) * t + P[1][k]) * t + P[0][k];
+  return q;
 }
 
 void
@@ -762,12 +768,20 @@ bezier_rep::rectify_cumul (array<point>& cum, double t0, double t1, double e) {
   point p0= evaluate (t0);
   point p1= evaluate (t1);
   // if (bound ((t0 + t1) / 2.0, e / 4.0) < (t1 - t0))
+  double lim= square (e / 10.0);
   for (int k= 1; k <= 4; k++) {
     double x= ((double) k) / 5.0;
     double t= (1.0 - x) * t0 + x * t1;
     point  q= evaluate (t);
-    point  r= (1.0 - x) * p0 + x * p1;
-    if (norm (q - r) >= (e / 10.0)) {
+    // 弦上插值点逐分量直写 + 平方距离比较,免去差向量与插值临时
+    int    m, d= min (N (q), min (N (p0), N (p1)));
+    double dd= 0;
+    for (m= 0; m < d; m++) {
+      double r   = (1.0 - x) * p0[m] + x * p1[m];
+      double diff= q[m] - r;
+      dd+= diff * diff;
+    }
+    if (dd >= lim) {
       rectify_cumul (cum, t0, (t0 + t1) / 2.0, e);
       rectify_cumul (cum, (t0 + t1) / 2.0, t1, e);
       return;
@@ -790,8 +804,13 @@ bezier_rep::bound (double t, double eps) {
 
 point
 bezier_rep::grad (double t, bool& error) {
+  // 逐分量直写,免去链式中间 point 临时
   error= false;
-  return ((3.0 * P[3] * t) + 2.0 * P[2]) + P[1];
+  int   k, n= min (N (P[1]), min (N (P[2]), N (P[3])));
+  point q (n);
+  for (k= 0; k < n; k++)
+    q[k]= 3.0 * P[3][k] * t + 2.0 * P[2][k] + P[1][k];
+  return q;
 }
 
 double

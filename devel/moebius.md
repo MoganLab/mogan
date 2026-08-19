@@ -348,6 +348,24 @@ git commit -m "[moebius] <函数> <优化简述>"
   方向端点而非 (+r1,0)
 - **基准**: `curve_closest_bench.cpp` 追加 conic 场景
 
+### 5.19 bezier 求值/取直逐分量直写（2026-08-20）
+- **文件**: `moebius/Kernel/Types/curve.cpp`（bezier_rep）
+- **What**:
+  1. `evaluate`（链式 Horner，6 个中间 point 临时）改逐分量 Horner；
+  2. `grad` 同改；
+  3. `rectify_cumul` 的弦插值点与 `norm(q-r)>=e/10` 改逐分量插值 +
+     平方距离比较。
+- **Why**: 贝塞尔是图形平滑路径的通用表示，poly_bezier 包装后
+  渲染/取直高频调用 evaluate。
+- **结果**: 512 点求值扫 35.7µs→10.6µs（**3.4x**）；rectify
+  eps=0.1 29.7µs→7.3µs（**4.1x**）。A/B 用 git stash 实测。
+- **测试**: `curve_test.cpp` 追加 3 用例（端点/中点闭式值、grad、
+  rectify 首尾端点）
+- **踩坑记录**: 生产 `bezier_rep::grad` 公式为 `3*P3*t + 2*P2 + P1`
+  （2*P2 项缺 t，非标准导数）——保持原语义，测试按代码行为断言；
+  三次贝塞尔中点 x=(P0+3P1+3P2+P3)/8。
+- **基准**: `curve_closest_bench.cpp` 追加 bezier 场景
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

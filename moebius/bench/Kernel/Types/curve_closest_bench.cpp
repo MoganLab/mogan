@@ -102,5 +102,18 @@ main () {
   cbench.run ("ellipse rectify eps=0.1", [&] {
     ankerl::nanobench::doNotOptimizeAway (el->rectify (0.1));
   });
+  // 贝塞尔曲线:图形里平滑路径的通用表示
+  array<point> ba;
+  ba << point (0.0, 0.0) << point (1.0, 4.0) << point (4.0, 4.0)
+     << point (6.0, 0.0);
+  curve bz= bezier (ba);
+  cbench.run ("bezier evaluate sweep512", [&] {
+    for (int i= 0; i <= 512; i++)
+      acc+= bz->evaluate (i / 512.0)[0];
+    ankerl::nanobench::doNotOptimizeAway (acc);
+  });
+  cbench.run ("bezier rectify eps=0.1", [&] {
+    ankerl::nanobench::doNotOptimizeAway (bz->rectify (0.1));
+  });
   return 0;
 }
