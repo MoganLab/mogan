@@ -250,6 +250,23 @@ git commit -m "[moebius] <函数> <优化简述>"
   quote 糖、CR 剔除、block 多表达式）
 - **基准**: `block_bench.cpp`（路径修复后可正常运行）
 
+### 5.13 slash/scm_quote 成段追加（2026-08-20）
+- **文件**: `moebius/moebius/data/scheme_ser.cpp`
+- **What**: 序列化转义 `slash`/`scm_quote` 原来逐字符 `r << s[i]`
+  （每次一次 resize 调用），改为普通字符成段（run）一次子串追加、
+  特殊字符单独转义。
+- **Why**: scheme 序列化是保存 .scm/样式文件与 block 协议的写路径。
+- **结果**: block_bench：简单元素序列化 12.15→10.97 ns/char（**1.11x**）；
+  复杂树/单树持平（base64 长原子场景逐字符 append 本已摊销良好）。
+  A/B 用 git stash 实测。
+- **测试**: `scheme_der_test.cpp` 追加 3 用例（scm_quote 引号/反斜杠
+  转义、slash 特殊字符/控制字符/已引号串豁免、slash→解析器往返）
+- **踩坑记录**: 测试中给未导出的 `slash` 补 extern 原型时必须写全
+  命名空间 `moebius::data::slash`——声明成全局 `::slash` 会让链接器
+  解析到库中同名符号、拉入错误成员，报出误导性的 tbox MSIL/LTCG
+  链接错误（第 2 轮 tree_modify_test 的同类 flaky 报错同源）。
+- **基准**: `block_bench.cpp`
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

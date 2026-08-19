@@ -19,18 +19,17 @@ namespace data {
 string
 scm_quote (string s) {
   // R5RS compliant external string representation.
-  int    i, n= N (s);
+  // 普通字符成段一次追加,转义字符单独处理
+  int    i, n= N (s), run= 0;
   string r;
   r << '"';
   for (i= 0; i < n; i++)
-    switch (s[i]) {
-    case '\"':
-    case '\\':
+    if (s[i] == '\"' || s[i] == '\\') {
+      if (i > run) r << s (run, i);
       r << '\\' << s[i];
-      break;
-    default:
-      r << s[i];
+      run= i + 1;
     }
+  if (n > run) r << s (run, n);
   r << '"';
   return r;
 }
@@ -41,7 +40,8 @@ scm_quote (string s) {
 
 string
 slash (string s) {
-  int    i, n= N (s);
+  // 普通字符成段一次追加,特殊字符单独转义
+  int    i, n= N (s), run= 0;
   string r;
   for (i= 0; i < n; i++)
     switch (s[i]) {
@@ -49,30 +49,46 @@ slash (string s) {
     case ')':
     case ' ':
     case '\'':
+      if (i > run) r << s (run, i);
       if ((n < 2) || (s[0] != '\042') || (s[n - 1] != '\042')) r << "\\";
       r << s[i];
+      run= i + 1;
       break;
     case '\\':
+      if (i > run) r << s (run, i);
       r << '\\' << s[i];
+      run= i + 1;
       break;
     case '\042':
       if (((i == 0) && (s[n - 1] == '\042')) ||
-          ((i == (n - 1)) && (s[0] == '\042')))
-        r << s[i];
-      else r << "\\" << s[i];
+          ((i == (n - 1)) && (s[0] == '\042'))) {
+        ; // 首尾引号原样保留,并入当前 run
+      }
+      else {
+        if (i > run) r << s (run, i);
+        r << "\\" << s[i];
+        run= i + 1;
+      }
       break;
     case ((char) 0):
+      if (i > run) r << s (run, i);
       r << "\\0";
+      run= i + 1;
       break;
     case '\t':
+      if (i > run) r << s (run, i);
       r << "\\t";
+      run= i + 1;
       break;
     case '\n':
+      if (i > run) r << s (run, i);
       r << "\\n";
+      run= i + 1;
       break;
     default:
-      r << s[i];
+      break;
     }
+  if (n > run) r << s (run, n);
   return r;
 }
 
