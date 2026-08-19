@@ -69,6 +69,38 @@ norm (const point& p) {
   return sqrt (r);
 }
 
+/**
+ * @brief 计算两点差向量的范数平方（欧氏距离平方）
+ *
+ * 即 |p1 - p0|^2 = sum((p1[i] - p0[i])^2)。与 `norm (p1 - p0)` 的
+ * 数学关系为相差一次开方，但不构造差向量临时 `point`（免去一次堆
+ * 分配与 `array` 引用计数的原子加减），也省去开方。只需比较距离
+ * 大小、而不需要距离本身时（如 `norm(a-b) <= eps` 改写为
+ * `norm2_diff(a,b) <= eps*eps`），应优先使用本函数。
+ * 实现内联于头文件：与 norm 同为几何计算热点路径上的基础操作。
+ *
+ * @param p1 终点
+ * @param p0 起点
+ * @return  p1 与 p0 差向量的范数平方；两点维度不同时仅前
+ *          min(N(p1), N(p0)) 个分量参与计算，任一空点返回 0
+ * @note 与 norm 一样，坐标绝对值过大（约 1e154 以上）时平方会
+ *       上溢为 inf
+ */
+inline double
+norm2_diff (const point& p1, const point& p0) {
+  int n= min (N (p1), N (p0));
+  if (n == 2) {
+    double dx= p1[0] - p0[0], dy= p1[1] - p0[1];
+    return dx * dx + dy * dy;
+  }
+  double r= 0;
+  for (int i= 0; i < n; i++) {
+    double d= p1[i] - p0[i];
+    r+= d * d;
+  }
+  return r;
+}
+
 double arg (point p);
 bool   collinear (const point& p1, const point& p2);
 bool   linearly_dependent (const point& p1, const point& p2, const point& p3);

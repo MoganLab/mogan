@@ -40,8 +40,24 @@ public:
   can reliably compute the intersections between curves
   One might for instance take the following:
   */
+  /**
+   * @brief 求参数偏移量上界 delta，使 |t' - t| < delta 时 |c(t') - c(t)| < eps
+   *
+   * 即曲线在参数 t 处的「位移-参数」连续性界：参数扰动不超过 delta 时，
+   * 曲线上对应点的位移不超过 eps。find_closest_points 等遍历算法用它
+   * 决定参数步长：步长不超过 bound 即可保证不会跳过位移超过 eps 的区段。
+   *
+   * 基类默认实现先以梯度估计 delta = eps / |c'(t)|，再二分验证
+   * c(t±delta)（钳制到参数域 [0,1] 端点）与 c(t) 的距离确实不超过
+   * eps（含 1e-6 容差），不满足则将 delta 减半重试，下限为 1e-6。
+   * 梯度为零（|c'(t)| <= 1e-12）时无法给出有效界，返回 tm_infinity。
+   * 子类可按曲线类型给出更紧或更便宜的实现（如 spline_rep、bezier_rep）。
+   *
+   * @param t   曲线参数，取值范围 [0,1]
+   * @param eps 允许的位移上界（正数）
+   * @return  满足条件的参数偏移量 delta；梯度为零时返回 tm_infinity
+   */
   virtual double bound (double t, double eps)= 0;
-  // return delta such that |t' - t| < delta => |c(t') - c(t)| < eps.
 
   virtual point grad (double t, bool& error)= 0;
   // compute the first derivative at t.

@@ -173,18 +173,6 @@ inner_ddiff (const point& a1, const point& a0, const point& b1,
   return r;
 }
 
-/** @brief 计算 (p1-p0) 的范数平方 */
-static inline double
-norm2_diff (const point& p1, const point& p0) {
-  int    i, n= min (N (p1), N (p0));
-  double r= 0;
-  for (i= 0; i < n; i++) {
-    double d= p1[i] - p0[i];
-    r+= d * d;
-  }
-  return r;
-}
-
 static point
 mult (double re, double im, point p) {
   if (N (p) == 0) p= point (0.0, 0.0);

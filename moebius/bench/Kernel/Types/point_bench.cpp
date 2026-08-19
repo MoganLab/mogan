@@ -30,6 +30,8 @@ main () {
   bench.run ("operator==", [&] { a == b; });
   bench.run ("inner", [&] { inner (a, b); });
   bench.run ("norm", [&] { norm (a); });
+  bench.run ("norm (a - b)", [&] { norm (a - b); });
+  bench.run ("norm2_diff", [&] { norm2_diff (a, b); });
 
   axis ax;
   ax.p0= mkp (0, 0);

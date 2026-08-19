@@ -37,14 +37,19 @@ curve_rep::bound (double t, double eps) {
   bool   b;
   double ng= norm (grad (t, b));
   if (ng <= 1.0e-12) return tm_infinity;
+  // 二分验证中 val1 与 tol 不变，平方距离比较避免构造差向量临时 point
+  point  val1 = evaluate (t);
+  double tol  = eps + 1.0e-6;
+  double lim  = tol < 0 ? -1.0 : tol * tol;
   double delta= eps / ng;
   while (delta >= 1.0e-6) {
-    point val1= evaluate (t);
     point val2= evaluate (max (t - delta, 0.0));
+    if (norm2_diff (val2, val1) > lim) {
+      delta/= 2.0;
+      continue;
+    }
     point val3= evaluate (min (t + delta, 1.0));
-    if (norm (val2 - val1) <= eps + 1.0e-6 &&
-        norm (val3 - val1) <= eps + 1.0e-6)
-      return delta;
+    if (norm2_diff (val3, val1) <= lim) return delta;
     delta/= 2.0;
   }
   return delta;

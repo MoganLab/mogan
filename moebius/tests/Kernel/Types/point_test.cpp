@@ -310,3 +310,33 @@ TEST_CASE ("test arg") {
   CHECK (fabs (arg (mkp (0, 1)) - tm_PI / 2) < 1e-6);
   CHECK (fabs (arg (mkp (0, -1)) - 3 * tm_PI / 2) < 1e-6);
 }
+
+TEST_CASE ("test norm2_diff") {
+  // 与 norm (p1 - p0) 的关系：相差一次开方
+  CHECK_EQ (norm2_diff (mkp (1, 2), mkp (4, 6)), 25.0);
+  CHECK (fnull (norm2_diff (mkp (1, 2), mkp (4, 6)) -
+                    norm (mkp (1, 2) - mkp (4, 6)) *
+                        norm (mkp (1, 2) - mkp (4, 6)),
+                1e-12));
+  // 分量符号与参数顺序不影响结果
+  CHECK_EQ (norm2_diff (mkp (-1, -2), mkp (-4, -6)), 25.0);
+  CHECK_EQ (norm2_diff (mkp (4, 6), mkp (1, 2)), 25.0);
+  // 相同点距离平方为 0
+  CHECK_EQ (norm2_diff (mkp (1, 2), mkp (1, 2)), 0.0);
+  // 三维及更高维走通用累加路径
+  point p3a (3), p3b (3);
+  p3a[0]= 1;
+  p3a[1]= 2;
+  p3a[2]= 2;
+  p3b[0]= 0;
+  p3b[1]= 0;
+  p3b[2]= 0;
+  CHECK_EQ (norm2_diff (p3a, p3b), 9.0);
+  // 空点返回 0
+  CHECK_EQ (norm2_diff (point (), point ()), 0.0);
+  CHECK_EQ (norm2_diff (mkp (1, 2), point ()), 0.0);
+  // 维度不同时仅前 min 个分量参与计算
+  point p1d (1);
+  p1d[0]= 3;
+  CHECK_EQ (norm2_diff (p1d, mkp (0, 100)), 9.0);
+}
