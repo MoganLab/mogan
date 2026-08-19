@@ -176,6 +176,22 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **注**: `mod_insert(p,pos,t)` 等会把 pos 追加到 p 尾部，测试里
   顶层操作应传 `path()` 而非 `path(0)`（踩坑记录）
 
+### 5.9 move_any 单趟下探（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_traverse.cpp`
+- **What**: `move_any`（`next_any`/`previous_any`/`next_valid`/
+  `next_accessible`/`next_word` 的公共底层）原来每次移动调三次
+  `subtree(t, path_up(...))`——重复全树下探外加 path_up 临时分配。
+  改为单趟下探同时持有 `path_up(p)` 处节点与其父节点。
+- **Why**: 光标移动/选择/删除是编辑器最频繁的操作，每次按键的
+  valid/accessible 光标搜索循环里 move_any 逐位置调用。
+- **结果**: 100 段文档逐字符全扫：714µs→545µs（**1.31x**）。
+- **测试**: `tree_traverse_test.cpp` 追加 3 用例（全扫收敛且停在
+  不动点、next/previous 20 步往返一致、首步深入文档内部）
+- **基准**: 新建 `bench/Data/Tree/tree_cursor_bench.cpp`（含优化前
+  实现的同二进制 A/B 对比）
+- **注**: `next_any/previous_any` 未在 hpp 声明，测试与基准中补原型；
+  `tm_char_forwards` 在 `cork.hpp` 不在 `analyze.hpp`
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

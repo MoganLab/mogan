@@ -181,15 +181,22 @@ get_env_descendant (tree t, path p, string var, tree val) {
 
 static path
 move_any (tree t, path p, bool forward) {
-  path q = path_up (p);
-  int  l = last_item (p);
-  tree st= subtree (t, q);
-  if (!is_nil (q) && is_func (subtree (t, path_up (q)), RAW_DATA)) {
+  path q= path_up (p);
+  int  l= last_item (p);
+  // 单趟下探:st 为 path_up(p) 处节点,par 为其父节点,
+  // 免去原实现对 subtree 的三次重复全树下探
+  tree* st = &t;
+  tree* par= nullptr;
+  for (path r= p; !is_nil (r->next); r= r->next) {
+    par= st;
+    st = &(*st)[r->item];
+  }
+  if (par != nullptr && is_func (*par, RAW_DATA)) {
     if (forward) return path_up (q) * 1;
     else return path_up (q) * 0;
   }
-  if (is_atomic (st)) {
-    string s= st->label;
+  if (is_atomic (*st)) {
+    string s= (*st)->label;
 #ifdef SANITY_CHECKS
     ASSERT (l >= 0 && l <= N (s), "out of range");
 #else
@@ -209,32 +216,32 @@ move_any (tree t, path p, bool forward) {
     }
   }
   else if ((forward && l == 0) || (!forward && l == 1)) {
-    int i, n= N (st);
+    int i, n= N (*st);
     if (forward) {
       for (i= 0; i < n; i++)
-        if (the_drd->is_accessible_child (st, i)) return q * path (i, 0);
+        if (the_drd->is_accessible_child (*st, i)) return q * path (i, 0);
     }
     else {
       for (i= n - 1; i >= 0; i--)
-        if (the_drd->is_accessible_child (st, i))
-          return q * path (i, right_index (st[i]));
+        if (the_drd->is_accessible_child (*st, i))
+          return q * path (i, right_index ((*st)[i]));
     }
     return q * (1 - l);
   }
   else if (is_nil (q)) return p;
 
-  l = last_item (q);
-  q = path_up (q);
-  st= subtree (t, q);
-  int i, n= N (st);
+  tree& parent= *par; // q 非空,par 必为 path_up(q) 处节点
+  l           = last_item (q);
+  q           = path_up (q);
+  int i, n= N (parent);
   if (forward) {
     for (i= l + 1; i < n; i++)
-      if (the_drd->is_accessible_child (st, i)) return q * path (i, 0);
+      if (the_drd->is_accessible_child (parent, i)) return q * path (i, 0);
   }
   else {
     for (i= l - 1; i >= 0; i--)
-      if (the_drd->is_accessible_child (st, i)) {
-        return q * path (i, right_index (st[i]));
+      if (the_drd->is_accessible_child (parent, i)) {
+        return q * path (i, right_index (parent[i]));
       }
   }
   return q * (forward ? 1 : 0);

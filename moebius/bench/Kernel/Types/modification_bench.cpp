@@ -26,7 +26,7 @@ mk_deep_doc () {
     for (int j= 0; j < 10; j++)
       outer << tree ("filler" * as_string (j));
     outer[9]= t;
-    t= outer;
+    t       = outer;
   }
   return t;
 }
@@ -61,11 +61,11 @@ main () {
   ankerl::nanobench::Bench bench;
   bench.minEpochIterations (10000).unit ("op");
 
-  tree doc= mk_deep_doc ();
+  tree doc = mk_deep_doc ();
   path deep= mk_deep_path (9);
-  tree  atomic_ins ("xyz");
-  tree  compound_ins (DOCUMENT, tree ("x"));
-  int   acc        = 0;
+  tree atomic_ins ("xyz");
+  tree compound_ins (DOCUMENT, tree ("x"));
+  int  acc= 0;
 
   bench.run ("old can_insert depth9", [&] {
     acc+= old_can_insert (doc, deep, 0, compound_ins) ? 1 : 0;

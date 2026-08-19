@@ -86,3 +86,64 @@ TEST_SUITE ("tree_traverse") {
   }
 
 } // TEST_SUITE
+
+// 光标移动测试需要 drd 与 tree_cursor 声明
+#include "tree_cursor.hpp"
+#include <moebius/drd/drd_std.hpp>
+
+using moebius::drd::init_std_drd;
+
+// 生产代码导出但未写入 hpp,测试中补声明
+path next_any (tree t, path p);
+path previous_any (tree t, path p);
+
+static tree
+mk_cursor_doc () {
+  tree doc (DOCUMENT);
+  for (int i= 0; i < 10; i++) {
+    tree par (CONCAT);
+    par << tree ("ab") << tree ("cd");
+    doc << par;
+  }
+  return doc;
+}
+
+TEST_CASE ("next_any sweep reaches end and terminates") {
+  init_std_drd ();
+  tree doc  = mk_cursor_doc ();
+  path p    = start (doc);
+  int  steps= 0;
+  while (steps < 1000) {
+    path r= next_any (doc, p);
+    if (r == p) break;
+    p= r;
+    steps++;
+  }
+  CHECK (steps < 1000);           // 必须收敛
+  CHECK (steps > 10);             // 确实逐字符推进了
+  CHECK (next_any (doc, p) == p); // 停在不动点
+}
+
+TEST_CASE ("next_any then previous_any roundtrip") {
+  init_std_drd ();
+  tree doc= mk_cursor_doc ();
+  path p  = start (doc);
+  path mid= p;
+  for (int i= 0; i < 20; i++)
+    mid= next_any (doc, mid);
+  // 从中途倒退相同步数,应回到起点
+  path back= mid;
+  for (int i= 0; i < 20; i++)
+    back= previous_any (doc, back);
+  CHECK (back == p);
+}
+
+TEST_CASE ("next_any steps into first paragraph") {
+  init_std_drd ();
+  tree doc= mk_cursor_doc ();
+  path p  = start (doc);
+  path r1 = next_any (doc, p);
+  CHECK (!is_nil (r1));
+  CHECK (r1 != p);            // 第一步必有推进
+  CHECK (!is_nil (r1->next)); // 深入文档内部而非停在顶层
+}
