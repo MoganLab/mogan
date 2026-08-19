@@ -227,3 +227,31 @@ TEST_CASE ("correct_cursor keeps valid path stable") {
   path fixed= correct_cursor (doc, p, true);
   CHECK (fixed == p); // 起点已是合法前向光标
 }
+
+TEST_CASE ("inside_contiguous_document same paragraph") {
+  init_std_drd ();
+  tree inner (CONCAT, tree ("aaa"), tree ("bbb"));
+  for (int i= 0; i < 6; i++)
+    inner= tree (WITH, tree ("v"), tree ("1"), inner);
+  tree doc (DOCUMENT, inner);
+  // doc 0 号 → 6 层 WITH 沿 2 号孩子 → concat 0/1 号原子内位置 1
+  path pa= path (0, path (1));
+  path pb= path (1, path (1));
+  for (int i= 0; i < 6; i++) {
+    pa= path (2, pa);
+    pb= path (2, pb);
+  }
+  pa= path (0, pa);
+  pb= path (0, pb);
+  CHECK (inside_same (doc, pa, pb, DOCUMENT));
+  CHECK (inside_contiguous_document (doc, pa, pb));
+}
+
+TEST_CASE ("inside_contiguous_document cross paragraph") {
+  init_std_drd ();
+  tree doc (DOCUMENT, tree (CONCAT, tree ("aaa")), tree (CONCAT, tree ("bbb")));
+  // 两个不同段落里的光标:inside_same 为假
+  path pa= path (0, path (0, path (1)));
+  path pb= path (1, path (0, path (1)));
+  CHECK (!inside_contiguous_document (doc, pa, pb));
+}

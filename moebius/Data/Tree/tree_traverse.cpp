@@ -760,14 +760,28 @@ is_boundary (tree t, path p) {
   return false;
 }
 
+// 沿 p 自根单趟下探,返回 p 的最深 DOCUMENT/GRAPHICS 祖先路径
+// (无边界祖先时为 nil)。原逐层 is_boundary 各做一次全树下探,
+// 深路径下为 O(depth^2)
+static path
+closest_boundary_ancestor (tree& t, path p) {
+  path  cur= path (), best= path ();
+  tree* node= &t;
+  for (path r= p; !is_nil (r); r= r->next) {
+    int i= r->item;
+    if (!is_compound (*node) || i < 0 || i >= N (*node)) return best;
+    if (is_func (*node, DOCUMENT) || is_func (*node, GRAPHICS)) best= cur;
+    cur = path (i, cur);
+    node= &(*node)[i];
+  }
+  return best;
+}
+
 bool
 inside_contiguous_document (tree t, path op, path oq) {
   if (!inside_same (t, op, oq, DOCUMENT)) return false;
-  path p= path_up (op), q= path_up (oq);
-  while (!is_nil (p) && !is_boundary (t, p))
-    p= path_up (p);
-  while (!is_nil (q) && !is_boundary (t, q))
-    q= path_up (q);
+  path p= closest_boundary_ancestor (t, path_up (op));
+  path q= closest_boundary_ancestor (t, path_up (oq));
   if (p == q) return true;
   if (q <= p) return inside_contiguous_document (t, oq, op);
   if (!(p <= q)) return false;

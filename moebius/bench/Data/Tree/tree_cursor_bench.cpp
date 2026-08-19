@@ -175,5 +175,29 @@ main () {
     }
     ankerl::nanobench::doNotOptimizeAway (n);
   });
+  // inside_contiguous_document:图形文档光标移动钩子,
+  // 深嵌套下原实现逐层 is_boundary 全树下探。
+  // 两光标需处于同一 DOCUMENT 孩子内,inside_same 才为真
+  {
+    tree inner (CONCAT, tree ("aaa"), tree ("bbb"));
+    for (int i= 0; i < 24; i++)
+      inner= tree (WITH, tree ("v" * as_string (i)), tree ("1"), inner);
+    tree gdoc (DOCUMENT, inner);
+    // doc 0 号 → 24 层 WITH 沿 2 号孩子 → concat 0/1 号原子内位置 1
+    path pa= path (0, path (1));
+    path pb= path (1, path (1));
+    for (int i= 0; i < 24; i++) {
+      pa= path (2, pa);
+      pb= path (2, pb);
+    }
+    pa= path (0, pa);
+    pb= path (0, pb);
+    cbench2.run ("inside_contiguous deep24", [&] {
+      int n= 0;
+      for (int i= 0; i < 100; i++)
+        n+= inside_contiguous_document (gdoc, pa, pb) ? 1 : 0;
+      ankerl::nanobench::doNotOptimizeAway (n);
+    });
+  }
   return 0;
 }

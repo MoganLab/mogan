@@ -443,6 +443,24 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: `frame_test.cpp` 追加 2 用例（线性框架包围盒恰为四角
   变换极值、逆向 enclose 除以放大率）
 - **基准**: `frame_bench.cpp` 复用 enclose 场景
+
+### 5.26 inside_contiguous_document 边界祖先单趟下探（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_traverse.cpp`
+- **What**: 原来对 op/oq 各自逐层 `path_up` + `is_boundary(t,p)`
+  （每次 is_boundary 两次 subtree 全树下探），深路径 O(depth²)；
+  新增 `closest_boundary_ancestor`：沿路径自根单趟下探，途经
+  DOCUMENT/GRAPHICS 节点时记录最深边界前缀路径，O(depth)。
+- **Why**: `inside_contiguous_document` 是图形文档中每次光标移动
+  （move_valid 的 graphics 钩子）的必经检查。
+- **结果**: 24 层 WITH 嵌套同段两光标 ×100 次调用：
+  1498µs→262µs（**5.7x**）。
+- **测试**: `tree_traverse_test.cpp` 追加 2 用例（同段两光标为真、
+  跨段为假）
+- **踩坑记录**: 首版 fixture 路径多了一层 0 前缀，inside_same 早退
+  假 → 基准测的是无效路径的垃圾行为（旧实现还会打印
+  "The required path does not exist" 诊断）；修正后才是真实 5.7x。
+  inside_same 要求两光标处于最近 DOCUMENT 祖先的同一个孩子内。
+- **基准**: `tree_cursor_bench.cpp` 追加 inside_contiguous deep24
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
