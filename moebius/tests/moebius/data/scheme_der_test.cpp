@@ -9,7 +9,10 @@
 #include "tree_helper.hpp"
 
 #include <moebius/data/scheme.hpp>
+#include <moebius/drd/drd_std.hpp>
 #include <moebius/tree_label.hpp>
+
+using moebius::drd::init_std_drd;
 
 using namespace moebius;
 
@@ -123,4 +126,33 @@ TEST_CASE ("slash roundtrip with unslash via parser") {
   string      escaped= moebius::data::slash ("hello world");
   scheme_tree t1     = string_to_scheme_tree (escaped);
   CHECK (atom_of (t1) == "hello world");
+}
+
+TEST_CASE ("scm_unquote strips quotes and unescapes") {
+  CHECK (scm_unquote ("\"plain\"") == "plain");
+  CHECK (scm_unquote ("\"a\\\\b\"") == "a\\b");
+  CHECK (scm_unquote ("\"a\\\"b\"") == "a\"b");
+  CHECK (scm_unquote ("plain") == "plain");
+}
+
+TEST_CASE ("tm document load roundtrip") {
+  init_std_drd (); // 注册内置标签名,document/concat 才映射到内置编号
+  // .tm 文本 → 树:结构与转义还原
+  tree doc=
+      scheme_to_tree ("(document (concat \"hello \" \"world\" (rigid \"r\")))");
+  CHECK (is_document (doc));
+  REQUIRE (N (doc) == 1);
+  tree par= doc[0];
+  CHECK (is_compound (par, "concat"));
+  REQUIRE (N (par) == 3);
+  CHECK (par[0] == tree ("hello "));
+  CHECK (par[1] == tree ("world"));
+  CHECK (par[2] == tree (make_tree_label ("rigid"), tree ("r")));
+}
+
+TEST_CASE ("tm document with header comment") {
+  init_std_drd ();
+  tree doc= scheme_document_to_tree (
+      "; copyright header\n(document (TeXmacs \"2.1.2\"))");
+  CHECK (is_document (doc));
 }

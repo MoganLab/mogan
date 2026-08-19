@@ -23,13 +23,18 @@ namespace data {
 string
 scm_unquote (string s) {
   if (is_quoted (s)) {
-    int    i, n= N (s);
+    // 普通字符成段一次追加,转义字符单独处理
+    int    i, n= N (s), run= 1;
     string r;
     for (i= 1; i < n - 1; i++)
       if (s[i] == '\\' &&
-          (s[i + 1] == '\\' || (s[i + 1] == '\"' && i + 2 != n)))
-        r << s[++i];
-      else r << s[i];
+          (s[i + 1] == '\\' || (s[i + 1] == '\"' && i + 2 != n))) {
+        if (i > run) r << s (run, i);
+        i++;
+        r << s[i];
+        run= i + 1;
+      }
+    if (n - 1 > run) r << s (run, n - 1);
     return r;
   }
   else return s;
@@ -239,9 +244,10 @@ scheme_tree_to_tree (scheme_tree t, hashmap<string, int> codes, bool flag) {
         "errput", concat ("The tree was ", as_string (L (t)), ": ", tree (t)));
   }
   else {
-    int        i, n= N (t);
-    tree_label code= (tree_label) codes[t[0]->label];
-    if (flag) code= make_tree_label (t[0]->label);
+    int i, n= N (t);
+    // flag 路径下 codes 查表结果会被覆盖,跳过这次全串哈希查表
+    tree_label code=
+        flag ? make_tree_label (t[0]->label) : (tree_label) codes[t[0]->label];
     if (code == UNKNOWN) {
       tree u (EXPAND, n);
       u[0]= copy (t[0]);

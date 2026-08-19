@@ -298,6 +298,24 @@ git commit -m "[moebius] <函数> <优化简述>"
   解包、嵌套 document 展平 + concat 合并、空 concat 收敛）
 - **基准**: `tree_modify_bench.cpp` 追加 simplify_correct 全树扫
 
+### 5.16 .tm 加载：codes 查表跳过 + scm_unquote 成段追加（2026-08-20）
+- **文件**: `moebius/moebius/data/scheme_der.cpp`
+- **What**:
+  1. `scheme_tree_to_tree` 在 flag=true（默认加载路径）时先做
+     `codes[t[0]->label]` 查表再被 make_tree_label 覆盖——纯浪费，
+     改为按 flag 只查一次；
+  2. `scm_unquote`（每个文本原子解引号）逐字符 append 改为成段
+     追加（与 5.13 slash 同法）。
+- **Why**: .tm 文档打开 = 解析 + scheme_tree_to_tree 全树转换；
+  每个节点一次多余的字符串哈希查表、每个文本原子一次逐字符循环。
+- **结果**: 500 段 .tm 加载：405→388µs（**1.04x**），其中 codes 跳过
+  ~2%、scm_unquote ~2%。尝试过 make_tree_label 单条备忘缓存——
+  短串哈希本就便宜，备忘串比较无净收益，已回退。
+- **测试**: `scheme_der_test.cpp` 追加 3 用例（scm_unquote 解引号/
+  反转义、.tm 全链路往返结构与转义、带版权头注释的文档）
+- **基准**: 新建 `bench/moebius/data/scheme_load_bench.cpp`
+  （scheme_document_to_tree / scheme_to_tree 全链路）
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。
