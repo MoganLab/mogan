@@ -150,3 +150,25 @@ TEST_CASE ("test an_scaling per-axis inverse") {
 
 TEST_MEMORY_LEAK_INIT
 TEST_MEMORY_LEAK_ALL
+
+TEST_CASE ("enclose rect matches corners for linear frame") {
+  // 线性框架包围盒应恰为四角变换后的极值
+  frame     f= scaling (2.0, mkp (1.0, 1.0));
+  rectangle r (0, 0, 10, 10);
+  rectangle e= f (r);
+  // 四角 (0,0),(10,0),(10,10),(0,10) 变换为 (1,1),(21,1),(21,21),(1,21)
+  CHECK_EQ (e->x1, 1);
+  CHECK_EQ (e->y1, 1);
+  CHECK_EQ (e->x2, 21);
+  CHECK_EQ (e->y2, 21);
+}
+
+TEST_CASE ("enclose rect inverse direction") {
+  frame     f= scaling (2.0, mkp (0.0, 0.0));
+  rectangle r (2, 2, 4, 4);
+  rectangle e= f[r]; // 逆向:除以 2
+  CHECK_EQ (e->x1, 1);
+  CHECK_EQ (e->y1, 1);
+  CHECK_EQ (e->x2, 2);
+  CHECK_EQ (e->y2, 2);
+}

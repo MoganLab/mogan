@@ -432,6 +432,17 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `tree_traverse_test`（end(doc) 全扫收敛于不动点）与
   `tree_observer_test`，全部通过。
 - **基准**: `tree_cursor_bench.cpp` 追加 end per para 场景
+
+### 5.25 frame::enclose 采样插值逐分量直写（2026-08-20）
+- **文件**: `moebius/Kernel/Types/frame.cpp`
+- **What**: `enclose` 每个采样点的 `p1 + a*(p2-p1)` 产生差向量/
+  标量乘/加法三个中间 point 临时，改为逐分量插值直写唯一采样点。
+- **Why**: `frame::enclose(rectangle)` 是图形包围盒计算入口
+  （失效区域/边框），非线性框架每边 20 个采样点。
+- **结果**: scaling 框架矩形 enclose：244ns→152ns（**1.60x**）。
+- **测试**: `frame_test.cpp` 追加 2 用例（线性框架包围盒恰为四角
+  变换极值、逆向 enclose 除以放大率）
+- **基准**: `frame_bench.cpp` 复用 enclose 场景
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

@@ -21,8 +21,13 @@ frame::enclose (double& x1, double& y1, double& x2, double& y2, point p1,
                 point p2, bool direct) {
   int n= 1;
   if (!rep->linear) n= 20;
+  // 逐分量插值直写采样点,免去差向量/标量乘/加法三个中间 point 临时
+  int d= min (N (p1), N (p2));
   for (int i= 0; i < n; i++) {
-    point p= p1 + (((double) i) / ((double) n)) * (p2 - p1);
+    double a= ((double) i) / ((double) n);
+    point  p (d);
+    for (int k= 0; k < d; k++)
+      p[k]= p1[k] + a * (p2[k] - p1[k]);
     point q= (direct ? operator() (p) : operator[] (p));
     x1     = min (x1, q[0]);
     y1     = min (y1, q[1]);
