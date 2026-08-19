@@ -464,6 +464,19 @@ git commit -m "[moebius] <函数> <优化简述>"
   "The required path does not exist" 诊断）；修正后才是真实 5.7x。
   inside_same 要求两光标处于最近 DOCUMENT 祖先的同一个孩子内。
 - **基准**: `tree_cursor_bench.cpp` 追加 inside_contiguous deep24
+
+### 5.27 get_env_child WITH 快路径直扫绑定对（2026-08-20）
+- **文件**: `moebius/moebius/drd/drd_info.cpp`
+- **What**: `(t,i,var,val)` 重载遇到 WITH 末孩子时，原来走
+  `get_env_child(t,i,ATTR)` —— `t(0,N-1)` 子树拷贝 + 逐对
+  `drd_env_write` 重建 env 树 + 线性读取。改为直接扫描绑定对取
+  **末次匹配**（与 merge 的覆盖语义一致），零分配。
+- **Why**: 源码模式文档充满 `with "mode" "src"` 包裹，
+  `is_accessible_cursor` 逐节点读 mode 环境全走此路径。
+- **结果**: 500 个 WITH 节点读 mode：112µs→21µs（**5.2x**）。
+- **测试**: `drd_env_test.cpp` 追加 1 用例（同名绑定对后者覆盖、
+  无匹配返回缺省）；全量 24 测试通过。
+- **基准**: `drd_env_bench.cpp` 追加 WITH mode sweep
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

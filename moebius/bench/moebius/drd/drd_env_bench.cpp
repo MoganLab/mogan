@@ -102,5 +102,20 @@ main () {
         n+= the_drd->is_accessible_child (xdoc[i], j) ? 1 : 0;
     ankerl::nanobench::doNotOptimizeAway (n);
   });
+  // 源码模式文档:大量 with "mode" "src" 包裹,
+  // is_accessible_cursor 逐节点读 mode 环境
+  tree wdoc (DOCUMENT);
+  for (int i= 0; i < 500; i++) {
+    tree w (WITH, tree ("mode"), tree ("src"), tree ("body" * as_string (i)));
+    wdoc << w;
+  }
+  tree wacc ("");
+  bench.run ("get_env_child WITH mode sweep", [&] {
+    tree r ("");
+    for (int i= 0; i < N (wdoc); i++)
+      r= the_drd->get_env_child (wdoc[i], 2, "mode", tree ("text"));
+    wacc= r;
+    ankerl::nanobench::doNotOptimizeAway (wacc);
+  });
   return 0;
 }

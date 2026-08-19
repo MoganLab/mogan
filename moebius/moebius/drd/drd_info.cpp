@@ -798,14 +798,25 @@ drd_info_rep::get_env_child (tree t, int i, tree env) {
 
 tree
 drd_info_rep::get_env_child (tree t, int i, string var, tree val) {
-  // 快路径:非 WITH 且子节点无环境绑定时直接返回缺省值,
-  // 免去 ATTR 构造、合并与读取扫描(is_accessible_cursor 每步都走这里)
-  if (!(L (t) == WITH && i == N (t) - 1)) {
-    tag_info ti   = info[L (t)];
-    int      index= ti->get_index (i, N (t));
-    if ((index < 0) || (index >= N (ti->ci))) return val;
-    if (N (drd_decode (ti->ci[index].env)) == 0) return val;
+  // WITH 快路径:直接扫描绑定对取末次匹配,
+  // 免去 t(0,N-1) 子树拷贝与 env 树逐对合并重建
+  if (L (t) == WITH && i == N (t) - 1) {
+    tree r    = val;
+    bool found= false;
+    for (int k= 0; (k + 1) < N (t); k+= 2)
+      if (is_atomic (t[k]) && t[k]->label == var) {
+        r    = t[k + 1];
+        found= true;
+      }
+    if (found) return r;
+    return val;
   }
+  // 快路径:子节点无环境绑定时直接返回缺省值,
+  // 免去 ATTR 构造、合并与读取扫描(is_accessible_cursor 每步都走这里)
+  tag_info ti   = info[L (t)];
+  int      index= ti->get_index (i, N (t));
+  if ((index < 0) || (index >= N (ti->ci))) return val;
+  if (N (drd_decode (ti->ci[index].env)) == 0) return val;
   tree env= get_env_child (t, i, tree (ATTR));
   return drd_env_read (env, var, val);
 }

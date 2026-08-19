@@ -82,3 +82,15 @@ TEST_CASE ("extern derived label memoized consistently") {
   // 不同宏名(备忘失效)也返回确定的布尔值
   bool r3= the_drd->is_accessible_child (ex3, 0);
 }
+
+TEST_CASE ("get_env_child WITH duplicate var last wins") {
+  init_std_drd ();
+  // 同名绑定对后者覆盖前者(与 drd_env_merge 语义一致)
+  tree w (WITH, tree ("mode"), tree ("src"), tree ("mode"), tree ("text"),
+          tree ("body"));
+  CHECK (the_drd->get_env_child (w, 4, "mode", tree ("d")) == tree ("text"));
+  // 无匹配变量返回缺省
+  tree w2 (WITH, tree ("color"), tree ("red"), tree ("body"));
+  CHECK (the_drd->get_env_child (w2, 2, "mode", tree ("text")) ==
+         tree ("text"));
+}
