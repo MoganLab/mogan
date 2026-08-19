@@ -541,12 +541,37 @@ spline_rep::spline (int i, double u, int o) {
   return res;
 }
 
+/**
+ * @brief 给定曲线上的参数 u，查出 u 落在哪一段样条区间（详见 curve.hpp）
+ *
+ * 语义与原先的线性扫描完全一致：返回满足 U[i] <= u < U[i+1] 的 i，
+ * u 在 [U[0], U[N(U)-1]) 之外时返回 -1。
+ * @param U 从小到大排列的节点向量（N(U) >= 2）
+ * @param u 曲线参数值
+ * @return u 所在段的编号 i；越界返回 -1
+ */
+int
+spline_interval_no (array<double> U, double u) {
+  int n= N (U);
+  if (n < 2 || u < U[0] || u >= U[n - 1]) return -1;
+  int lo= 0, hi= n - 1;
+  // 循环不变式：U[lo] <= u < U[hi]，区间收缩到相邻时 lo 即为所求
+  while (hi - lo > 1) {
+    int mid= (lo + hi) / 2;
+    if (U[mid] <= u) lo= mid;
+    else hi= mid;
+  }
+  return lo;
+}
+
+/**
+ * @brief 定位参数 u 所在的样条节点区间编号（委托 spline_interval_no）
+ * @param u 样条参数
+ * @return 区间编号，越界返回 -1
+ */
 int
 spline_rep::interval_no (double u) {
-  int i;
-  for (i= 0; i < N (U); i++)
-    if (u >= U[i] && u < U[i + 1]) return i;
-  return -1;
+  return spline_interval_no (U, u);
 }
 
 static double

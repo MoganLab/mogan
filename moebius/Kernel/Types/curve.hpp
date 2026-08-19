@@ -194,6 +194,22 @@ curve segment (point p1, point p2);
  * @return 折线曲线对象
  */
 curve poly_segment (array<point> a, array<path> cip);
+/**
+ * @brief 给定曲线上的参数 u，查出 u 落在哪一段样条区间
+ *
+ * 样条曲线由若干段曲线拼接而成：曲线参数（0 到 1 归一化后映射为 U 的取值
+ * 范围）取不同的值时，点落在不同的段上。每个段的范围由相邻两个节点
+ * U[i]、U[i+1] 界定。想在参数 u 处求值（求曲线上的点、切向等），就要先
+ * 用本函数确定 u 属于哪一段，再用该段对应的多项式计算。
+ *
+ * 返回满足 U[i] <= u < U[i+1] 的编号 i；若 u 比 U 的最小值还小，或不小于
+ * 最大值（曲线之外），返回 -1。用二分查找实现，复杂度 O(log n)。
+ * @param U 节点向量，从小到大排列（至少 2 个元素）
+ * @param u 曲线参数值
+ * @return u 所在段的编号 i；u 在取值范围外时返回 -1
+ */
+int spline_interval_no (array<double> U, double u);
+
 curve spline (array<point> a, array<path> cip, bool close= false,
               bool interpol= true);
 curve bezier (array<point> a);
