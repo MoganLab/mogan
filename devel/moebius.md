@@ -546,6 +546,21 @@ git commit -m "[moebius] <函数> <优化简述>"
 - **测试**: 复用 `tree_observer_test.cpp`（原子文本 split/join/
   insert/remove 往返覆盖三处改动）；全量 24 测试通过。
 - **基准**: `tree_observer_bench.cpp` 追加打字模拟与原子 join 场景
+
+### 5.33 tmu_writer::write 成段 memcpy 直写（2026-08-20）
+- **文件**: `moebius/Data/Convert/tmu.cpp`
+- **What**: 转义写循环原来逐字符 `tmp << c`（每字符一次调用
+  开销）；改为普通字符成段 `resize + memcpy` 直写（新增
+  `append_run` 助手，无子串分配），转义对单独写入。spc/ret
+  标志按"是否写入实际字符"置位（纯空格串语义保持）。
+- **结果**: `tree_to_tmu` 500 段文档：234µs→164µs（**1.43x**）。
+  此前 5.11 轮的 run 子串方案因每次 substring 分配反而变慢，
+  本次 resize+memcpy 直写成功——方法差异决定成败。
+- **同轮放弃**: `unslash` 同款 run-memcpy 改造实测持平（词元
+  仅 5–10 字符，memcpy 准备开销抵消收益），已回退。
+- **测试**: 复用 `tmu_test.cpp` 全部用例（词内空格/转义往返覆盖
+  write 路径）；全量 24 测试通过。
+- **基准**: `tmu_read_bench.cpp` 复用 tree_to_tmu 场景
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）

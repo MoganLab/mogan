@@ -654,23 +654,44 @@ tmu_writer::write_return () {
   ret_flag= true;
 }
 
+// 普通字符成段直写 tmp(resize + memcpy,无子串分配),
+// 转义字符单独写入——逐字符 << 与逐字符下标写都有每次调用的额外开销
+static void
+append_run (string& tmp, const char* src, int len) {
+  if (len <= 0) return;
+  int old_n= N (tmp);
+  tmp->resize (old_n + len);
+  memcpy (tmp.begin () + old_n, src, len);
+}
+
 void
 tmu_writer::write (string s, bool flag, bool encode_space) {
   if (flag) {
-    int i, n= N (s);
+    int         i, n= N (s), run= 0;
+    bool        any= false; // 是否写入了实际字符(决定 spc/ret 标志)
+    const char* raw= s.begin ();
     for (i= 0; i < n; i++) {
       char c= s[i];
-      if ((c == ' ') && (!encode_space)) write_space ();
-      else {
-        if (c == ' ') tmp << "\\ ";
-        else if (c == '\\') tmp << "\\\\";
-        else if (c == '<') tmp << "\\<";
-        else if (c == '|') tmp << "\\|";
-        else if (c == '>') tmp << "\\>";
-        else tmp << c;
-        spc_flag= false;
-        ret_flag= false;
+      if ((c == ' ') && (!encode_space)) {
+        if (i > run) any= true;
+        append_run (tmp, raw + run, i - run);
+        run= i + 1;
+        write_space ();
       }
+      else if (c == ' ' || c == '\\' || c == '<' || c == '|' || c == '>') {
+        if (i > run) any= true;
+        append_run (tmp, raw + run, i - run);
+        tmp << "\\";
+        tmp << c;
+        any= true;
+        run= i + 1;
+      }
+    }
+    if (n > run) any= true;
+    append_run (tmp, raw + run, n - run);
+    if (any) {
+      spc_flag= false;
+      ret_flag= false;
     }
   }
   else {
