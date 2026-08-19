@@ -108,5 +108,9 @@ main () {
     }
     ankerl::nanobench::doNotOptimizeAway (corrected);
   });
+  // simplify_correct 全树往返(排版热路径):无变化的子树直接共享原节点
+  bench.run ("simplify_correct sweep", [&] {
+    ankerl::nanobench::doNotOptimizeAway (simplify_correct (doc));
+  });
   return 0;
 }

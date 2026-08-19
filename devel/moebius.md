@@ -282,6 +282,22 @@ git commit -m "[moebius] <函数> <优化简述>"
   next/previous 往返、标点与 `<#XXXX>` 十六进制转义边界不崩溃）
 - **基准**: `tree_cursor_bench.cpp` 追加 next_word 全扫场景
 
+### 5.15 simplify_correct 未变子树共享原节点（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_modify.cpp`
+- **What**: 非 concat/document 的复合节点，递归结果先暂存，全部孩子
+  共享原 rep（strong_equal 判定）时直接返回原节点，免去新节点分配；
+  concat/document 维持原有重建逻辑（需要合并/展平）。
+- **Why**: `simplify_correct` 在每次排版（edit_typeset）与文档加载
+  （input.cpp）对全树递归，原实现无条件重建每个复合节点。
+- **结果**: 典型文档（document→concat→原子）持平——中间节点全是
+  concat/document，快路径不触发；标记密集文档（rigid/with 等非
+  format 节点）免去未变子树的节点重建，为结构性改进而非基准提速。
+  第一版"先建 r 再判定"反而多付一次比较（442µs vs 401µs），改为
+  暂存数组后持平（406µs）。
+- **测试**: `tree_modify_test.cpp` 追加 4 用例（普通标记保持、QUOTE
+  解包、嵌套 document 展平 + concat 合并、空 concat 收敛）
+- **基准**: `tree_modify_bench.cpp` 追加 simplify_correct 全树扫
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

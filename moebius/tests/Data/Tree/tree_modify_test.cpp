@@ -105,3 +105,33 @@ TEST_SUITE ("tree_modify") {
   }
 
 } // TEST_SUITE
+
+TEST_CASE ("simplify_correct keeps plain markup") {
+  init_std_drd ();
+  tree doc (DOCUMENT);
+  doc << tree (RIGID, tree ("a"));
+  doc << tree (WITH, tree ("color"), tree ("red"), tree ("b"));
+  tree r= simplify_correct (doc);
+  CHECK (r == doc);
+}
+
+TEST_CASE ("simplify_correct unwraps quoted atom") {
+  tree q (QUOTE, tree ("str"));
+  CHECK (simplify_correct (q) == tree ("str"));
+}
+
+TEST_CASE ("simplify_correct merges concat and flattens document") {
+  tree doc (DOCUMENT);
+  tree inner (DOCUMENT, tree (CONCAT, tree ("x"), tree ("y")));
+  doc << inner << tree ("z");
+  tree r= simplify_correct (doc);
+  // 嵌套 document 展平,concat 中原子合并
+  CHECK (r == tree (DOCUMENT, tree ("xy"), tree ("z")));
+}
+
+TEST_CASE ("simplify_correct empty concat collapses") {
+  tree doc (DOCUMENT, tree (CONCAT, tree (""), tree ("")));
+  tree r= simplify_correct (doc);
+  CHECK_EQ (N (r), 1);
+  CHECK (r[0] == tree (""));
+}
