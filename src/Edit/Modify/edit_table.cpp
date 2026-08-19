@@ -61,24 +61,18 @@ table_needs_document_wrap (string hyphen, string block, string mode) {
   return (hyphen == "y" || block == "yes") && mode != "math";
 }
 
-bool
-table_default_hyphen_enabled (string mode) {
-  return mode != "math";
-}
-
 //! 行数超过该阈值时,默认开启表格分页
 static const int TABLE_HYPHEN_ROW_THRESHOLD= 10;
 
 /**
- * @brief 行数超过阈值时默认开启表格分页
+ * @brief 非 math 模式且行数超过阈值时,默认开启表格分页
  * @param mode 编辑模式
  * @param nr_rows 表格总行数
  * @return 是否默认开启 table-hyphen
  */
 static bool
 table_default_hyphen (string mode, int nr_rows) {
-  return table_default_hyphen_enabled (mode) &&
-         nr_rows > TABLE_HYPHEN_ROW_THRESHOLD;
+  return mode != "math" && nr_rows > TABLE_HYPHEN_ROW_THRESHOLD;
 }
 
 tree
@@ -1086,9 +1080,9 @@ edit_table_rep::table_ver_decorate (path fp, int row, int rbef, int raft) {
 void
 edit_table_rep::make_table (int nr_rows, int nr_cols) {
   // cout << "make_table " << nr_rows << ", " << nr_cols << "\n";
-  string mode               = get_env_string (MODE);
-  bool   enable_table_hyphen= table_default_hyphen (mode, nr_rows);
-  tree   format_T= default_table_tree (nr_rows, nr_cols, enable_table_hyphen);
+  string mode    = get_env_string (MODE);
+  tree   format_T= default_table_tree (nr_rows, nr_cols,
+                                       table_default_hyphen (mode, nr_rows));
   path   p (0, 0, 0, 0);
   insert_tree (format_T, path (N (format_T) - 1, p));
 
@@ -1204,9 +1198,8 @@ edit_table_rep::table_insert_row (bool forward) {
   table_get_limits (fp, i1, j1, i2, j2);
   if (nr_rows + 1 > i2) return;
   // 行数超过阈值时自动开启表格分页
-  if (nr_rows + 1 > TABLE_HYPHEN_ROW_THRESHOLD &&
-      as_string (table_get_format (fp, TABLE_HYPHEN)) != "y" &&
-      get_env_string (MODE) != "math")
+  if (table_default_hyphen (get_env_string (MODE), nr_rows + 1) &&
+      as_string (table_get_format (fp, TABLE_HYPHEN)) != "y")
     table_set_format (fp, TABLE_HYPHEN, string ("y"));
   table_insert (fp, row + (forward ? 1 : 0), col, 1, 0);
   table_go_to (fp, row + (forward ? 1 : 0), col);
