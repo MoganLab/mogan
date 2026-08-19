@@ -158,6 +158,29 @@ main () {
     invariants (gl, 1, disc, cont);
     ankerl::nanobench::doNotOptimizeAway (cont);
   });
+  bench.run ("invariants(level=2)", [&] {
+    array<tree>   disc;
+    array<double> cont;
+    invariants (gl, 2, disc, cont);
+    ankerl::nanobench::doNotOptimizeAway (cont);
+  });
+  bench.run ("legacy invariants(level=1)", [&] {
+    // 旧版：21 个采样点各调一次全折线扫描 access + vertices 两次 access/顶点
+    contours        ng= normalize (gl);
+    array<tree>     disc;
+    array<double>   cont;
+    array<poly_line> ngl (ng);
+    for (int j= 0; j < N (ngl); j++) {
+      double l= length (ngl[j]);
+      for (int k= 0; k <= 20; k++)
+        cont<< legacy_access_pl (ngl[j], (0.999999999 * k / 20) * l);
+      array<double> ts= legacy_vertices_pl (ngl[j]);
+      disc<< tree (as_string (N (ts)));
+      for (int k= 0; k < N (ts); k++)
+        cont<< 2.5 * ts[k];
+    }
+    ankerl::nanobench::doNotOptimizeAway (cont);
+  });
 
   ankerl::nanobench::doNotOptimizeAway (pl);
   return 0;

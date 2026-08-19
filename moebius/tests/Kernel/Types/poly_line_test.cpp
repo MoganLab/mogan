@@ -233,3 +233,56 @@ TEST_CASE ("test invariants") {
   CHECK_EQ (cont[1], 0.0);
   CHECK (cont[N (cont) - 1] <= 2.5 + 1e-9);
 }
+
+TEST_CASE ("test invariants level 2 shape") {
+  // level 2：无顶点信息，disc 仅轮廓条数，cont 仅坐标采样
+  contours gl;
+  gl << mk_pl (0.0, 0.0, 2.0, 2.0);
+  array<tree>   disc;
+  array<double> cont;
+  invariants (gl, 2, disc, cont);
+  CHECK (N (disc) == 1);
+  if (N (disc) == 1) CHECK (disc[0] == tree ("1"));
+  CHECK (N (cont) == 21 * 2);
+}
+
+TEST_CASE ("test invariants translation and scale invariance") {
+  // 同一 L 形折线平移 + 整体放大：cont 应逐点一致（内部 normalize）
+  contours base;
+  base << mk_pl (0.0, 0.0, 1.0, 0.0, 1.0, 3.0);
+  contours moved;
+  moved << mk_pl (5.0, 7.0, 9.0, 7.0, 9.0, 23.0);
+  array<tree>   d1, d2;
+  array<double> c1, c2;
+  invariants (base, 1, d1, c1);
+  invariants (moved, 1, d2, c2);
+  CHECK (N (c1) == N (c2));
+  bool same= true;
+  for (int i= 0; i < min (N (c1), N (c2)); i++)
+    if (!almost_eq (c1[i], c2[i])) same= false;
+  CHECK (same);
+  CHECK (N (d1) == N (d2));
+}
+
+TEST_CASE ("test invariants multi-contour and append semantics") {
+  // 多轮廓：disc 首项为条数，随后每条折线一个顶点数
+  contours gl;
+  gl << mk_pl (0.0, 0.0, 1.0, 0.0, 1.0, 1.0);
+  gl << mk_pl (3.0, 0.0, 5.0, 0.0);
+  array<tree>   disc;
+  array<double> cont;
+  invariants (gl, 1, disc, cont);
+  CHECK (N (disc) == 3);
+  if (N (disc) == 3) {
+    CHECK (disc[0] == tree ("2"));
+    CHECK (disc[1] == tree ("3"));
+    CHECK (disc[2] == tree ("2"));
+  }
+  // cont 等长性：两条折线各 21 点坐标 + 各自顶点参数（3 个与 2 个）
+  CHECK (N (cont) == 2 * (21 * 2) + 3 + 2);
+
+  // out 参数为追加写入：再调一次 disc/cont 翻倍
+  invariants (gl, 1, disc, cont);
+  CHECK (N (disc) == 6);
+  CHECK (N (cont) == 2 * (2 * (21 * 2) + 3 + 2));
+}

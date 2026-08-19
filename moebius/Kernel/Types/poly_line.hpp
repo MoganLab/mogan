@@ -247,11 +247,34 @@ contours normalize (contours gl);
 
 /**
  * @brief 提取轮廓的不变量特征（手写识别用）。
- * @param gl 轮廓集合
- * @param level 不变量级别；level <= 1 时额外附上顶点信息
- * @param disc [out] 离散特征（轮廓条数、每条折线的顶点数）
- * @param cont [out] 连续特征（沿每条折线均匀采样的坐标，以及顶点参数）
- * @note 输入 gl 会先做归一化再采样。
+ *
+ * 用途：把一条或多条笔画（轮廓）压缩成「离散 + 连续」两份特征，供
+ * learn_handwriting（注册字形时缓存）与 recognize_handwriting（识别时
+ * 现算并比对）使用。特征设计目标是尽量平移/缩放无关：
+ *
+ * - 离散特征 disc（array<tree>，可哈希、可深度比较）：
+ *   - 轮廓条数（笔画数）；
+ *   - level <= 1 时，每条折线的顶点（转折）个数。
+ *   两份 disc 相同是候选字形通过初筛的必要条件（识别时先比哈希再深比较）。
+ *
+ * - 连续特征 cont（array<double>，等长向量，欧氏距离度量相似度）：
+ *   - 每条折线沿归一化弧长均匀采样 21 个点的坐标（x,y 依次展平），
+ *     采样前轮廓已整体 normalize，故对平移和整体缩放不变；
+ *   - level <= 1 时，额外附上顶点的归一化弧长参数（乘 2.5 加权，
+ *     与坐标采样同量级）。顶点参数是折线结构的高判别力特征。
+ *
+ * 两级识别策略（recognize_glyph_one）：level 1 带顶点信息、判别力强，
+ * 先用一级特征精确匹配；无命中时退回 level 2（仅坐标采样，容忍顶点
+ * 检测差异），故注册时对两个字形各缓存一份 level 1 / level 2 特征。
+ *
+ * @param gl 轮廓集合（一笔一条折线；内部会先 normalize，不改调用方数据）
+ * @param level 不变量级别：<= 1 附上顶点个数与顶点参数；>= 2 仅坐标采样
+ * @param disc [out] 离散特征，追加写入（不清空）
+ * @param cont [out] 连续特征，追加写入（不清空）
+ * @note 采样密度固定 21 点/折线（pieces=20），保证同轮廓数、同顶点数的
+ *       字形 cont 向量等长，可直接算欧氏距离；识别侧的相似度为
+ *       1 - dist/sqrt(N(cont))。
+ * @see normalize, vertices, access
  */
 void invariants (contours gl, int level, array<tree>& disc,
                  array<double>& cont);
