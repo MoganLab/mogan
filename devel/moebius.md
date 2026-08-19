@@ -332,6 +332,22 @@ git commit -m "[moebius] <函数> <优化简述>"
   起点 t=0（既有算法局限，新旧一致）——测试用曲线上的点作查询。
 - **基准**: 新建 `bench/Kernel/Types/curve_closest_bench.cpp`
 
+### 5.18 arc/ellipse 求值逐分量直写（2026-08-20）
+- **文件**: `moebius/Kernel/Types/curve.cpp`（arc_rep/ellipse_rep）
+- **What**: `evaluate`（`center + r1*cos*i + r2*sin*j`）与 `grad`
+  原写法每次产生 2–4 个中间 point 临时，改为单次分配逐分量直写；
+  维度取原表达式 min 链，数值逐位一致。
+- **Why**: 圆弧/椭圆是图形里最常见的曲线，取直（渲染采样）以固定
+  步长全参数域扫 evaluate。
+- **结果**: 512 点求值扫：ellipse 26.6µs→9.9µs（**2.7x**）、
+  arc 28.0µs→11.1µs（**2.5x**）；rectify eps=0.1：1.53ms→0.60ms
+  （**2.55x**）。A/B 用 git stash 实测。
+- **测试**: `curve_test.cpp` 追加 4 用例（椭圆上点到焦点距离和恒定、
+  长短轴端点、grad 正交性、圆弧落圆、闭合 rectify 首尾相接）
+- **踩坑记录**: ellipse 的 i 轴从圆心指向第一焦点，t=0 是 (-r1,0)
+  方向端点而非 (+r1,0)
+- **基准**: `curve_closest_bench.cpp` 追加 conic 场景
+
 ## 6 Why（总体）
 moebius 是 Mogan 的 C++ 内核库，排版/编辑热路径大量经过其中函数；
 逐个函数做可度量（bench 前后对比）、可回归（单元测试）的优化。

@@ -216,3 +216,62 @@ TEST_CASE ("intersection of crossing segments") {
   CHECK (fabs (pf[0] - 5.0) < 1e-6);
   CHECK (fabs (pf[1] - 5.0) < 1e-6);
 }
+
+TEST_CASE ("ellipse evaluate lies on the ellipse") {
+  // 两焦点 (-4,0),(4,0) 与椭圆上一点 (0,3):r1=5, r2=3
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve c= ellipse (a, array<path> (), true);
+  // i 轴从圆心指向第一焦点 (-4,0):t=0 是长轴端点 (-5,0),
+  // t=1/4 是短轴端点 (0,±3)
+  CHECK (c->evaluate (0.0) == mkp (-5, 0));
+  point qe= c->evaluate (0.25);
+  CHECK (fabs (qe[0]) < 1e-9);
+  CHECK (fabs (fabs (qe[1]) - 3.0) < 1e-9);
+  // 到两焦点距离之和恒为 2*r1=10
+  for (int i= 0; i <= 20; i++) {
+    point  q= c->evaluate (i / 20.0);
+    double d=
+        sqrt (norm2_diff (q, mkp (-4, 0))) + sqrt (norm2_diff (q, mkp (4, 0)));
+    CHECK (fabs (d - 10.0) < 1e-9);
+  }
+}
+
+TEST_CASE ("ellipse grad is orthogonal to evaluate") {
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve c  = ellipse (a, array<path> (), true);
+  bool  err= true;
+  point g  = c->grad (0.3, err);
+  CHECK (!err);
+  CHECK_EQ (N (g), 2);
+  // t=0 处切向沿 y 轴
+  point g0= c->grad (0.0, err);
+  CHECK (fabs (g0[0]) < 1e-9);
+  CHECK (g0[1] > 0);
+}
+
+TEST_CASE ("arc evaluate lies on its circle") {
+  // 过 (0,0),(10,0),(0,10) 三点,圆心 (5,5),半径 sqrt(50)
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (0, 10);
+  curve  c = arc (a, array<path> (), true);
+  double r2= 50.0;
+  for (int i= 0; i <= 20; i++) {
+    point  q= c->evaluate (i / 20.0);
+    double d= norm2_diff (q, mkp (5, 5));
+    CHECK (fabs (d - r2) < 1e-6);
+  }
+  // 端点经过首控制点
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+}
+
+TEST_CASE ("ellipse rectify endpoints") {
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve        c = ellipse (a, array<path> (), true);
+  array<point> ps= c->rectify (0.05);
+  CHECK (N (ps) >= 2);
+  CHECK (ps[0] == mkp (-5, 0));
+  CHECK (ps[N (ps) - 1] == mkp (-5, 0)); // 闭合:首尾同为起点
+}

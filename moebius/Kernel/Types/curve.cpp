@@ -1028,8 +1028,14 @@ arc_rep::arc_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 arc_rep::evaluate (double t) {
-  t= e1 + t * (e2 - e1);
-  return center + r1 * cos (2 * tm_PI * t) * i + r2 * sin (2 * tm_PI * t) * j;
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  t        = e1 + t * (e2 - e1);
+  double co= r1 * cos (2 * tm_PI * t), si= r2 * sin (2 * tm_PI * t);
+  int    k, n                            = min (N (center), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= center[k] + co * i[k] + si * j[k];
+  return q;
 }
 
 void
@@ -1048,10 +1054,16 @@ arc_rep::bound (double t, double eps) {
 
 point
 arc_rep::grad (double t, bool& error) {
-  error= false;
-  t    = e1 + t * (e2 - e1);
-  return -2 * tm_PI * r1 * sin (2 * tm_PI * t) * i +
-         2 * tm_PI * r2 * cos (2 * tm_PI * t) * j;
+  // 逐分量直写,免去两个中间 point 临时
+  error    = false;
+  t        = e1 + t * (e2 - e1);
+  double si= -2 * tm_PI * r1 * sin (2 * tm_PI * t);
+  double co= 2 * tm_PI * r2 * cos (2 * tm_PI * t);
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= si * i[k] + co * j[k];
+  return q;
 }
 
 double
@@ -1119,7 +1131,13 @@ ellipse_rep::ellipse_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 ellipse_rep::evaluate (double t) {
-  return center + r1 * cos (2 * tm_PI * t) * i + r2 * sin (2 * tm_PI * t) * j;
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  double co= r1 * cos (2 * tm_PI * t), si= r2 * sin (2 * tm_PI * t);
+  int    k, n                            = min (N (center), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= center[k] + co * i[k] + si * j[k];
+  return q;
 }
 
 void
@@ -1138,9 +1156,15 @@ ellipse_rep::bound (double t, double eps) {
 
 point
 ellipse_rep::grad (double t, bool& error) {
-  error= false;
-  return -2 * tm_PI * r1 * sin (2 * tm_PI * t) * i +
-         2 * tm_PI * r2 * cos (2 * tm_PI * t) * j;
+  // 逐分量直写,免去两个中间 point 临时
+  error    = false;
+  double si= -2 * tm_PI * r1 * sin (2 * tm_PI * t);
+  double co= 2 * tm_PI * r2 * cos (2 * tm_PI * t);
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= si * i[k] + co * j[k];
+  return q;
 }
 
 double

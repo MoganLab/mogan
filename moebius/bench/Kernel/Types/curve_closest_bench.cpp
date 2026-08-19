@@ -58,9 +58,9 @@ main () {
   array<point> sa;
   sa << point (0.0, 0.0) << point (1.0, 3.0) << point (3.0, 2.0)
      << point (5.0, 5.0) << point (7.0, 1.0);
-  curve spl = spline (sa, array<path> (), false, true);
-  point pin = point (6.0, 0.3);
-  int   acc = 0;
+  curve spl= spline (sa, array<path> (), false, true);
+  point pin= point (6.0, 0.3);
+  int   acc= 0;
 
   bench.run ("old find_closest poly128", [&] {
     acc+= N (old_find_closest (poly, 0.0, 1.0, pin, 0.01));
@@ -77,6 +77,30 @@ main () {
   bench.run ("closest point poly128", [&] {
     acc+= (int) closest (poly, pin)[0];
     ankerl::nanobench::doNotOptimizeAway (acc);
+  });
+
+  // 圆弧/椭圆求值与取直:图形渲染的采样内层循环
+  ankerl::nanobench::Bench cbench;
+  cbench.minEpochIterations (200).unit ("sweep");
+  array<point> ea;
+  // 两焦点与椭圆上一点:r1=5, r2=3
+  ea << point (-4.0, 0.0) << point (4.0, 0.0) << point (0.0, 3.0);
+  curve        el= ellipse (ea, array<path> (), true);
+  array<point> aa;
+  aa << point (0.0, 0.0) << point (10.0, 0.0) << point (0.0, 10.0);
+  curve ac= arc (aa, array<path> (), true);
+  cbench.run ("ellipse evaluate sweep512", [&] {
+    for (int i= 0; i <= 512; i++)
+      acc+= el->evaluate (i / 512.0)[0];
+    ankerl::nanobench::doNotOptimizeAway (acc);
+  });
+  cbench.run ("arc evaluate sweep512", [&] {
+    for (int i= 0; i <= 512; i++)
+      acc+= ac->evaluate (i / 512.0)[0];
+    ankerl::nanobench::doNotOptimizeAway (acc);
+  });
+  cbench.run ("ellipse rectify eps=0.1", [&] {
+    ankerl::nanobench::doNotOptimizeAway (el->rectify (0.1));
   });
   return 0;
 }
