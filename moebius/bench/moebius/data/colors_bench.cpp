@@ -16,9 +16,9 @@ main () {
   bench.minEpochIterations (1000).unit ("x100");
 
   // 常用命名颜色轮询:渲染期重复解析同一批颜色
-  const char* names[]= {"red",   "blue",  "green",  "black",
-                        "white", "gray",  "orange", "pastel"};
-  color       acc      = 0;
+  const char* names[]= {"red",   "blue", "green",  "black",
+                        "white", "gray", "orange", "pastel"};
+  color       acc    = 0;
   bench.run ("named_color x100", [&] {
     for (int i= 0; i < 100; i++)
       acc+= named_color (names[i % 8]);
