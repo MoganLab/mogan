@@ -60,6 +60,47 @@ legacy_access_pl (poly_line pl, double t) {
   return pl[N (pl) - 1];
 }
 
+/// 旧版 vertices：对每个采样顶点调两次 access（各自全折线扫描），
+/// 点积经由 p1-p / p2-p 的临时 point 分配
+static array<double>
+legacy_vertices_pl (poly_line pl) {
+  double l         = length (pl);
+  pl               = (1.0 / l) * pl;
+  array<double> r;
+  double        t = 0.0;
+  double        dt= 0.025;
+  r << 0.0;
+  int    todo_i= -1;
+  double todo_t= 0.0;
+  double todo_p= 0.0;
+  for (int i= 0; i + 1 < N (pl); i++) {
+    if (t >= r[N (r) - 1] + dt && t <= 1.0 - dt) {
+      double t1= max (t - dt, 0.000000001);
+      double t2= min (t + dt, 0.999999999);
+      point  p = pl[i];
+      point  p1= legacy_access_pl (pl, t1);
+      point  p2= legacy_access_pl (pl, t2);
+      point  d1= p1 - p;
+      point  d2= p2 - p;
+      double pr= 0.0;
+      for (int k= 0; k < N (p); k++)
+        pr+= d1[k] * d2[k];
+      if (pr >= 0 && (todo_i < 0 || pr > todo_p)) {
+        todo_i= i;
+        todo_t= t;
+        todo_p= pr;
+      }
+    }
+    t+= l2_norm (pl[i + 1] - pl[i]);
+    if (todo_i >= 0 && t >= todo_t + dt) {
+      r << todo_t;
+      todo_i= -1;
+    }
+  }
+  r << 1.0;
+  return r;
+}
+
 int
 main () {
   ankerl::nanobench::Bench bench;
@@ -102,6 +143,8 @@ main () {
   }
   bench.run ("normalize(poly_line)", [&] { normalize (pl); });
   bench.run ("vertices(poly_line)", [&] { vertices (pl); });
+  bench.run ("legacy vertices(poly_line)",
+             [&] { legacy_vertices_pl (pl); });
 
   contours gl;
   gl << mk_zigzag (50, 100.0, 10.0);
