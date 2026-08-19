@@ -108,5 +108,22 @@ main () {
     for (int i= 0; i < 500; i++)
       raw_join (t, 500);
   });
+  // 打字模拟:在长原子文本尾部逐字插入再逐字删除(原子字符串路径),
+  // 单个 op 内插删配平避免无界增长
+  bench.run ("typing atomic insert+remove x2000", [&] {
+    tree txt= tree ("seed text for typing benchmark");
+    for (int i= 0; i < 2000; i++)
+      raw_insert (txt, N (txt->label) / 2, tree ("x"));
+    for (int i= 0; i < 2000; i++)
+      raw_remove (txt, N (txt->label) / 2, 1);
+  });
+  // 原子文本 join(如删段落边界合并)
+  bench.run ("atomic join pairs x500", [&] {
+    tree d (DOCUMENT);
+    for (int i= 0; i < 1000; i++)
+      d << tree ("fragment" * as_string (i % 7));
+    for (int i= 0; i < 500; i++)
+      raw_join (d, 0);
+  });
   return 0;
 }

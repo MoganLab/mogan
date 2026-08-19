@@ -246,9 +246,19 @@ raw_insert (tree& ref, int pos, tree t) {
   // cout << "Insert " << ref << " += " << t << " at " << pos << "\n";
   modification mod= mod_insert (path (), pos, t);
   if (!is_nil (ref->data)) ref->data->announce (ref, mod);
-  if (is_atomic (ref) && is_atomic (t))
-    ref->label=
-        ref->label (0, pos) * t->label * ref->label (pos, N (ref->label));
+  if (is_atomic (ref) && is_atomic (t)) {
+    // 单次分配拼接三段(memcpy 整段拷贝),免去两次切片
+    // 与两次拼接共四次字符串分配
+    string s  = ref->label;
+    string ins= t->label;
+    int    n= N (s), m= N (ins);
+    string r (pos + m + (n - pos));
+    char*  p= r.begin ();
+    memcpy (p, s.begin (), pos);
+    memcpy (p + pos, ins.begin (), m);
+    memcpy (p + pos + m, s.begin () + pos, n - pos);
+    ref->label= r;
+  }
   else {
     int n= N (ref), nr= N (t);
     // 块移动代替逐元素赋值：每个被移动孩子的引用计数加减一次都省去。
@@ -292,8 +302,16 @@ raw_remove (tree& ref, int pos, int nr) {
       else detach (ref[i], ref[pos + nr], false);
   }
 
-  if (is_atomic (ref))
-    ref->label= ref->label (0, pos) * ref->label (pos + nr, N (ref->label));
+  if (is_atomic (ref)) {
+    // 单次分配拼接保留段(memcpy 整段拷贝),免去两次切片与一次拼接
+    string s= ref->label;
+    int    n= N (s);
+    string r (pos + (n - pos - nr));
+    char*  p= r.begin ();
+    memcpy (p, s.begin (), pos);
+    memcpy (p + pos, s.begin () + pos + nr, n - pos - nr);
+    ref->label= r;
+  }
   else {
     int n= N (ref) - nr;
     // 先把被删孩子拷出（引用计数 +1，接管数组的所有权），memmove 尾部
@@ -361,7 +379,16 @@ raw_join (tree& ref, int pos) {
   if (!is_nil (ref->data)) ref->data->announce (ref, mod);
   tree t1= ref[pos], t2= ref[pos + 1], t;
   int  offset= is_atomic (ref) ? N (t1->label) : N (t1);
-  if (is_atomic (t1) && is_atomic (t2)) t= t1->label * t2->label;
+  if (is_atomic (t1) && is_atomic (t2)) {
+    // 单次分配拼接两段(memcpy 整段拷贝),免去一次切片与一次拼接
+    string s1= t1->label, s2= t2->label;
+    int    n1= N (s1), n2= N (s2);
+    string r (n1 + n2);
+    char*  p= r.begin ();
+    memcpy (p, s1.begin (), n1);
+    memcpy (p + n1, s2.begin (), n2);
+    t= tree (r);
+  }
   else t= t1 * t2;
   if (!is_nil (ref->data)) ref->data->notify_join (ref, pos, t);
   if (!is_nil (t1->data)) {

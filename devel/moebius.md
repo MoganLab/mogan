@@ -530,6 +530,22 @@ git commit -m "[moebius] <函数> <优化简述>"
   改 object ABI，影响全部 glue 调用方，风险大于收益，不动。
 - **验证**: 全量 24 测试通过；tmu/drd/cursor/curve 四组关键基准
   读数与既往一致（无回归）。
+
+### 5.32 原子文本编辑单次分配拼接（2026-08-20）
+- **文件**: `moebius/Data/Tree/tree_observer.cpp`
+- **What**: `raw_insert`/`raw_remove`/`raw_join` 的原子字符串分支
+  原来做 2 次切片 + 1–2 次拼接（每次一片新分配），改为单次分配
+  目标串 + memcpy 整段拷贝。
+- **Why**: 打字/退格的每次按键都走 raw_insert/raw_remove 原子分支。
+- **结果**: 打字模拟（2000 插 + 2000 删）：789µs→389µs（**2.03x**）；
+  原子 join 500 对：205µs→194µs（1.06x）。
+- **踩坑记录**: 第一版用逐字符 `r[k]=s[i]` 写入——lolly string 的
+  非 const operator[] 逐写开销使打字场景反而慢 2.2x（789→1716µs），
+  被 bench 当场抓住；改 memcpy 后才达标。教训：字符串搬运必须
+  走 memcpy，不能用下标循环。
+- **测试**: 复用 `tree_observer_test.cpp`（原子文本 split/join/
+  insert/remove 往返覆盖三处改动）；全量 24 测试通过。
+- **基准**: `tree_observer_bench.cpp` 追加打字模拟与原子 join 场景
 - **基准**: `curve_closest_bench.cpp` 追加 hyperbola/parabola 场景
 
 ## 6 成绩单（2026-08-20 全量复测，24/24 测试通过）
