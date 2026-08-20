@@ -420,13 +420,15 @@ TestQmlLoad::test_version_escape_fallback_without_focus () {
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/Version.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
-  qw->installEventFilter (new QmlDialogEscFilter (&host, qw, &host));
+  // 过滤器装在宿主 QDialog 上：Windows 下 ESC 常先到达宿主而非 QQuickWidget
+  host.installEventFilter (new QmlDialogEscFilter (&host, qw, &host));
   host.show ();
   // 强制 QML 场景无焦点项，模拟 ESC 被吞的真实缺陷态
   qw->rootObject ()->setFocus (false);
   QTRY_VERIFY (!qw->rootObject ()->hasActiveFocus ());
   QSignalSpy rejectedSpy (&host, &QDialog::rejected);
-  QTest::keyClick (qw, Qt::Key_Escape);
+  // 直接向宿主发送 ESC，覆盖 Windows 焦点落在宿主的场景
+  QTest::keyClick (&host, Qt::Key_Escape);
   QTRY_COMPARE (rejectedSpy.count (), 1);
   QVERIFY (!host.isVisible ());
   QCOMPARE (close->cancelCount, 0);

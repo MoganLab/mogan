@@ -207,10 +207,13 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
 
   // 焦点落在 QML 视图：弹窗激活时离屏 QML 场景随之激活，DialogShell 的
   // focus:true 生效，ESC/Enter 走 QML 正常链路
+  qw->setFocusPolicy (Qt::StrongFocus);
   qw->setFocus ();
   // QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉（不投递、
-  // 不传播给 QDialog::reject），装兜底过滤器保证 ESC 总能关闭弹窗（0925）
-  qw->installEventFilter (new QmlDialogEscFilter (&d, qw, &d));
+  // 不传播给 QDialog::reject），装兜底过滤器保证 ESC 总能关闭弹窗（0925）。
+  // Windows 下无边框 Qt::Tool 焦点常落到宿主 QDialog 而非 QQuickWidget，故
+  // 过滤器装在宿主上，确保无论事件先到达哪个对象都能兜底。
+  d.installEventFilter (new QmlDialogEscFilter (&d, qw, &d));
 
   return d.exec ();
 }
