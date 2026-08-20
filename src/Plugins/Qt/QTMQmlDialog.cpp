@@ -205,6 +205,13 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
   if (autofit_height) lock_autofit_height (qw, vl, d, logic_w, logic_h);
   else lock_fixed_size (qw, vl, d, logic_w, logic_h);
 
+  // 焦点落在 QML 视图：弹窗激活时离屏 QML 场景随之激活，DialogShell 的
+  // focus:true 生效，ESC/Enter 走 QML 正常链路
+  qw->setFocus ();
+  // QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉（不投递、
+  // 不传播给 QDialog::reject），装兜底过滤器保证 ESC 总能关闭弹窗（0925）
+  qw->installEventFilter (new QmlDialogEscFilter (&d, qw, &d));
+
   return d.exec ();
 }
 

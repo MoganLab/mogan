@@ -1,7 +1,7 @@
 /******************************************************************************
  * MODULE      : QTMQmlDialogBridge.hpp
- * DESCRIPTION : 暴露给 QML 的桥对象，承担两类弹窗的交互回流：
- *               确认型 choose(index) / 表单型 submit({key:value})。
+ * DESCRIPTION : QML 弹窗的宿主侧辅助：暴露给 QML 的桥对象（choose/submit/
+ *               cancel 交互回流）与 ESC 兜底事件过滤器（QmlDialogEscFilter）。
  * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
@@ -14,7 +14,10 @@
 #include "boot.hpp"
 
 #include <QDialog>
+#include <QKeyEvent>
 #include <QObject>
+#include <QQuickWidget>
+#include <QQuickWindow>
 #include <QString>
 #include <QVariantMap>
 #include <QWindow>
@@ -87,6 +90,53 @@ signals:
 private:
   QDialog*    m_host;
   QVariantMap m_results;
+};
+
+/*! @class QmlDialogEscFilter
+ *  @brief ESC 被 QQuickWidget 静默吞掉时的兜底关闭过滤器（任务 0925）。
+ *
+ * @par 背景
+ * QML 弹窗的 ESC 正常链路：DialogShell（focus:true）→ Keys.onEscapePressed →
+ * closeBridge.cancel() → 宿主 done(Rejected)。该链路依赖 QML 场景存在
+ * activeFocusItem：QQuickDeliveryAgent 只向 activeFocusItem 投递按键；场景无
+ * 焦点项时按键事件不被投递、保持 accepted，也不再沿 QWidget 链传播给宿主
+ * QDialog::reject()——ESC 被静默吞掉，弹窗无法关闭。
+ *
+ * @par 语义
+ * 仅在「ESC 到达 QQuickWidget 且 QML 场景无 activeFocusItem」时 reject() 宿主
+ * ——此刻 QML 链路必然不会处理，兜底不抢占任何弹窗自身的取消语义；其余情况
+ * 一律放行。仅用于 run_qml_dialog（exec 引擎）：其弹窗的取消语义即 Rejected。
+ * live 写回弹窗（run_modal_qml_dialog）的取消须走 scheme 快照撤销，不得用
+ * 本过滤器兜底（done() 不触发 WA_DeleteOnClose，且会跳过快照恢复）。
+ */
+class QmlDialogEscFilter : public QObject {
+public:
+  /**
+   * @brief 构造 ESC 兜底过滤器。
+   * @param host 宿主 QDialog（兜底时 reject），生命期须覆盖过滤器。
+   * @param view 内嵌的 QQuickWidget（读取其 QML 场景焦点态）。
+   * @param parent QObject 父对象，过滤器随其析构。
+   */
+  QmlDialogEscFilter (QDialog* host, QQuickWidget* view, QObject* parent)
+      : QObject (parent), m_host (host), m_view (view) {}
+
+protected:
+  bool eventFilter (QObject* obj, QEvent* ev) override {
+    if (ev->type () == QEvent::KeyPress) {
+      QKeyEvent* ke= static_cast<QKeyEvent*> (ev);
+      if (ke->key () == Qt::Key_Escape && ke->modifiers () == Qt::NoModifier &&
+          m_view->quickWindow () &&
+          !m_view->quickWindow ()->activeFocusItem ()) {
+        m_host->reject ();
+        return true;
+      }
+    }
+    return QObject::eventFilter (obj, ev);
+  }
+
+private:
+  QDialog*      m_host;
+  QQuickWidget* m_view;
 };
 
 #endif // defined QTM_QML_DIALOG_BRIDGE_H

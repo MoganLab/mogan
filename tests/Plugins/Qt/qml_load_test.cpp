@@ -15,6 +15,8 @@
 
 #include "base.hpp"
 
+#include "Qt/QTMQmlDialogBridge.hpp" // QmlDialogEscFilter
+
 #include <QDialog>
 #include <QObject>
 #include <QQmlContext>
@@ -207,6 +209,7 @@ private slots:
   void test_preferences_loads ();
   void test_version_loads ();
   void test_version_escape_cancels ();
+  void test_version_escape_fallback_without_focus ();
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
 };
@@ -399,6 +402,34 @@ TestQmlLoad::test_version_escape_cancels () {
   QTRY_VERIFY (qw->rootObject ()->hasActiveFocus ());
   QTest::keyClick (qw, Qt::Key_Escape);
   QCOMPARE (close->cancelCount, 1);
+}
+
+void
+TestQmlLoad::test_version_escape_fallback_without_focus () {
+  // 0925：QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉
+  // （不投递、不传播给 QDialog::reject），引擎侧的 QmlDialogEscFilter 须兜底
+  // reject 宿主弹窗，且不走 QML cancel
+  QDialog            host;
+  QQuickWidget*      qw    = new QQuickWidget (&host);
+  StubBridge*        close = new StubBridge (qw);
+  VersionStubBridge* bridge= new VersionStubBridge (qw);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("versionBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/Version.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  qw->installEventFilter (new QmlDialogEscFilter (&host, qw, &host));
+  host.show ();
+  // 强制 QML 场景无焦点项，模拟 ESC 被吞的真实缺陷态
+  qw->rootObject ()->setFocus (false);
+  QTRY_VERIFY (!qw->rootObject ()->hasActiveFocus ());
+  QSignalSpy rejectedSpy (&host, &QDialog::rejected);
+  QTest::keyClick (qw, Qt::Key_Escape);
+  QTRY_COMPARE (rejectedSpy.count (), 1);
+  QVERIFY (!host.isVisible ());
+  QCOMPARE (close->cancelCount, 0);
 }
 
 void
