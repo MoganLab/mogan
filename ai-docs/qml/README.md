@@ -96,6 +96,7 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 | 对话框 | 模态引擎 | 模型 |
 |--------|---------|------|
 | `ConfirmClose` | `run_qml_dialog`（exec） | 点按钮返回结果 |
+| `ConfirmQuestion` | `run_qml_dialog`（exec） | 默认按钮居右的确认弹窗（替换 question-no-cancel 的 QMessageBox），返回语义按钮下标 |
 | `ConfirmRestart` | `run_qml_dialog`（exec） | 三按钮（立即重启/稍后/取消），返回 `"restart"/"later"/"cancel"` |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit |
 | `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |

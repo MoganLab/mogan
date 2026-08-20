@@ -135,6 +135,18 @@ string cpp_confirm_close (string message, bool scratch);
 string cpp_confirm_restart (string title, string message);
 
 /**
+ * @brief 「问题」确认弹窗的 glue 入口（QML 版，替换 question-no-cancel 的
+ * QMessageBox，如 PDF 导出完成询问是否打开文件）。
+ * @param message 已翻译的正文。
+ * @param buttons 已翻译的按钮文案，buttons[0] 为默认（肯定）按钮。
+ * @return 用户点选按钮在 buttons 中的下标（≥0）；Esc / QML 加载失败返回 -1。
+ * @details 注入 QML 时按钮显示顺序与 buttons 相反——默认按钮居右并 primary
+ * 高亮（与原 QMessageBox 的左右位置互换），Enter 触发默认按钮。测试钩子
+ * MOGAN_TEST_CONFIRM_QUESTION=<下标|cancel> 命中时不弹窗直接返回。
+ */
+int cpp_confirm_question (string message, array<string> buttons);
+
+/**
  * @brief 通用 form 弹窗引擎的 glue 入口。
  * @param fields scm 构造的字段表，@b 须经 stree->tree 转换（glue 不自动转
  * pair）。 结构见顶部 @par 数据协议：(form (enum <label> <key> (<opt>...)

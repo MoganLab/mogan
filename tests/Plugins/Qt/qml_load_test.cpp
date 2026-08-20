@@ -202,6 +202,7 @@ private slots:
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
   void test_confirm_close_loads ();
+  void test_confirm_question_loads ();
   void test_confirm_restart_loads ();
   void test_form_dialog_loads ();
   void test_font_selector_loads ();
@@ -232,6 +233,29 @@ load_qml (const QString& qrcUrl) {
 void
 TestQmlLoad::test_confirm_close_loads () {
   QCOMPARE (load_qml ("qrc:/qml/ConfirmClose.qml"), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_confirm_question_loads () {
+  // ConfirmQuestion 复用 ConfirmClose 的 dialogMessage/dialogButtons，多一个
+  // dialogPrimary（默认按钮下标）。按钮按显示顺序注入（左「否」右「是」）。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage", QString ("PDF导出完成，是否要打开文件？"));
+  QStringList buttons;
+  buttons << "否" << "是";
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->rootContext ()->setContextProperty ("dialogPrimary", 1);
+  qw->setSource (QUrl ("qrc:/qml/ConfirmQuestion.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  // dialogPrimary 透传：QML 侧 primaryIndex 应与注入一致。
+  QCOMPARE (qw->rootObject ()->property ("primaryIndex").toInt (), 1);
 }
 
 void

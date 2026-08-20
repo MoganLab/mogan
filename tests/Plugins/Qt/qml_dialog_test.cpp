@@ -71,6 +71,7 @@ private slots:
   void test_field_tree_to_qml_malformed ();
   void test_translate_buttons ();
   void test_confirm_close_hook ();
+  void test_confirm_question_hook ();
   void test_form_dialog_hook ();
 };
 
@@ -212,6 +213,26 @@ TestQmlDialog::test_confirm_close_hook () {
   {
     EnvHook hook ("MOGAN_TEST_CONFIRM_CLOSE", "Cancel");
     QCOMPARE (cpp_confirm_close ("msg", false), string ("Cancel"));
+  }
+}
+
+// MOGAN_TEST_CONFIRM_QUESTION 钩子：<下标> 命中时返回 buttons 语义下标、
+// cancel 时返回 -1（Esc / 加载失败语义），均不弹窗。
+void
+TestQmlDialog::test_confirm_question_hook () {
+  array<string> buttons;
+  buttons << string ("yes") << string ("no");
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "0");
+    QCOMPARE (cpp_confirm_question ("msg", buttons), 0); // 默认按钮
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "1");
+    QCOMPARE (cpp_confirm_question ("msg", buttons), 1);
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "cancel");
+    QCOMPARE (cpp_confirm_question ("msg", buttons), -1);
   }
 }
 

@@ -12,6 +12,7 @@
 #include "qt_dialogues.hpp"
 #include "QTMGuiHelper.hpp"
 #include "QTMMenuHelper.hpp"
+#include "QTMQmlDialog.hpp" // cpp_confirm_question
 #include "analyze.hpp"
 #include "converter.hpp"
 #include "message.hpp"
@@ -270,8 +271,24 @@ qt_inputs_list_widget_rep::field (int i) {
 
 void
 qt_inputs_list_widget_rep::perform_dialog () {
-  if ((N (children) == 1) && (field (0)->type == "question" ||
-                              field (0)->type == "question-no-cancel")) {
+  if ((N (children) == 1) && field (0)->type == "question-no-cancel") {
+    // QML 确认弹窗（ConfirmQuestion）：按钮显示顺序与 proposals 相反，
+    // 默认按钮（proposals[0]）居右并高亮；返回值已映射回 proposals 下标。
+    int choices= N (field (0)->proposals);
+    if (choices > 0) {
+      array<string> buttons (choices);
+      for (int i= 0; i < choices; i++)
+        buttons[i]= upcase_first (field (0)->proposals[i]);
+      int picked= cpp_confirm_question (field (0)->prompt, buttons);
+      if (picked >= 0 && picked < choices)
+        field (0)->input= scm_quote (field (0)->proposals[picked]);
+      else field (0)->input= "#f"; // Esc / 加载失败，按「否」处理
+    }
+    else {
+      field (0)->input= "#f";
+    }
+  }
+  else if ((N (children) == 1) && field (0)->type == "question") {
     // then use Qt messagebox for smoother, more standard UI
     QWidget* mainwindow= QApplication::activeWindow ();
     // main texmacs window. There are probably better ways...
@@ -281,10 +298,7 @@ qt_inputs_list_widget_rep::perform_dialog () {
     QMessageBox msgBox (mainwindow);
     // sets parent widget, so that it appears at the proper location
     msgBox.setText (to_qstring (field (0)->prompt));
-    /// 对于 question-no-cancel，不添加取消按钮，避免出现三选项对话框。
-    bool add_cancel= (field (0)->type == "question");
-    if (add_cancel)
-      msgBox.addButton (qt_translate ("Cancel"), QMessageBox::RejectRole);
+    msgBox.addButton (qt_translate ("Cancel"), QMessageBox::RejectRole);
 
     // Allow any number of choices. The first one is the default.
     int                   choices= N (field (0)->proposals);
@@ -299,8 +313,7 @@ qt_inputs_list_widget_rep::perform_dialog () {
       msgBox.setDefaultButton (buttonlist[0]);
       for (int i= 0; i < choices - 1; ++i)
         QWidget::setTabOrder (buttonlist[i], buttonlist[i + 1]);
-      if (add_cancel)
-        QWidget::setTabOrder (buttonlist[choices - 1], msgBox.escapeButton ());
+      QWidget::setTabOrder (buttonlist[choices - 1], msgBox.escapeButton ());
     }
     msgBox.setWindowTitle (qt_translate ("Question"));
     msgBox.setIcon (QMessageBox::Question);

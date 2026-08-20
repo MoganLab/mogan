@@ -332,8 +332,43 @@ cpp_confirm_restart (string title, string message) {
   }
 }
 
-// ---- form 引擎 --------------------------------------------------------------
+/**
+ * @brief 「问题」确认弹窗的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details buttons 为语义顺序（buttons[0] 默认）；注入 QML 的 dialogButtons 按
+ * 相反显示顺序（默认按钮居右），dialogPrimary 指向显示序的最后一个。QML 返回
+ * 的 choose 值为显示下标 +1，映射回语义下标为 N - choice。按钮文案已在 scm
+ * 侧翻译，此处纯透传、不再过 translate_buttons。测试钩子
+ * MOGAN_TEST_CONFIRM_QUESTION=<下标|cancel> 命中时不弹窗。
+ */
+int
+cpp_confirm_question (string message, array<string> buttons) {
+  string preset= get_env ("MOGAN_TEST_CONFIRM_QUESTION");
+  if (preset == "cancel") return -1;
+  if (is_int (preset)) return as_int (preset);
+  const int n= N (buttons);
+  if (n <= 0) return -1;
+  QStringList qmlButtons;
+  for (int i= 0; i < n; i++)
+    qmlButtons << to_qstring (buttons[n - 1 - i]);
+  QmlDialogBridge* bridge= nullptr;
+  int              choice= run_qml_dialog (
+      "qrc:/qml/ConfirmQuestion.qml", "question dialog",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("dialogMessage",
+                                                             to_qstring (message));
+        qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
+        qw->rootContext ()->setContextProperty ("dialogPrimary", n - 1);
+      },
+      400, 150);
+  delete bridge;
+  // choose(0) = Esc / X；加载失败为 -1；二者均按取消处理。
+  if (choice <= 0 || choice > n) return -1;
+  return n - choice;
+}
 
+// ---- form 引擎 --------------------------------------------------------------
 // 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：
 // (<type> <label> <key> (<options>...) <value> <live?>)
 // label/key/value 的位置在 form 引擎多处使用，集中在此避免魔法下标散落。

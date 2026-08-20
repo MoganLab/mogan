@@ -987,6 +987,7 @@
         <p>左侧切换组件，右侧查看 HTML 还原效果。</p>
       </div>
       <button class="nav-btn active" data-target="confirm">ConfirmClose.qml</button>
+      <button class="nav-btn" data-target="confirmQuestion">ConfirmQuestion.qml</button>
       <button class="nav-btn" data-target="form">FormDialog.qml</button>
       <button class="nav-btn" data-target="font">FontSelector.qml</button>
       <button class="nav-btn" data-target="paragraph">ParagraphFormat.qml</button>
@@ -1027,6 +1028,32 @@
           对应 QML: <code>message: dialogMessage</code>
           <code>buttonLabels: dialogButtons</code>
           <code>onClicked -> closeBridge.choose(index + 1)</code>
+        </p>
+      </section>
+
+      <section class="panel" id="panel-confirmQuestion">
+        <div class="cards">
+          <article class="dialog">
+            <h3>PDF导出完成，是否要打开文件？</h3>
+            <div class="btn-row">
+              <button class="btn" data-log="ConfirmQuestion Light: 选择 否 (index=0)">否</button>
+              <button class="btn primary" data-log="ConfirmQuestion Light: 选择 是 (index=1)">是</button>
+            </div>
+          </article>
+
+          <article class="dialog dark">
+            <h3>PDF导出完成，是否要打开文件？</h3>
+            <div class="btn-row">
+              <button class="btn" data-log="ConfirmQuestion Dark: 选择 否 (index=0)">否</button>
+              <button class="btn primary" data-log="ConfirmQuestion Dark: 选择 是 (index=1)">是</button>
+            </div>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>message: dialogMessage</code>
+          <code>buttonLabels: dialogButtons</code>（显示序与语义序相反，默认按钮居右）
+          <code>dialogPrimary</code> 指向默认按钮
+          <code>onActivate -> choose(primaryIndex + 1)</code>（Enter = 是）
         </p>
       </section>
 
