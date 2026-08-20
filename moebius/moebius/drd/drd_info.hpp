@@ -36,6 +36,7 @@ public:
   tree get_locals ();
   bool set_locals (tree t);
   bool contains (string l);
+  bool contains (tree_label l);
 
   /* Properties of the tag itself */
   void set_type (tree_label tag, int tp);

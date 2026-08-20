@@ -60,6 +60,12 @@ drd_info_rep::contains (string l) {
   return existing_tree_label (l) && info->contains (as_tree_label (l));
 }
 
+bool
+drd_info_rep::contains (tree_label l) {
+  // 树节点上 L(t) 已是 interned 标签,无需经字符串名绕行两次查表
+  return info->contains (l);
+}
+
 tm_ostream&
 operator<< (tm_ostream& out, drd_info drd) {
   return out << "drd [" << drd->name << "]";
@@ -465,11 +471,24 @@ drd_info_rep::freeze_type (tree_label l, int nr) {
   ci.freeze_type= true;
 }
 
+// EXTERN 节点的派生标签按宏名高频重复(同一宏多次出现),
+// 单条备忘缓存免去每次 "extern:" 字符串拼接与标签查表
+static tree_label
+extern_label (string s) {
+  static string     memo_s;
+  static tree_label memo_l= UNKNOWN;
+  if (memo_l != UNKNOWN && N (memo_s) == N (s) && memo_s == s) return memo_l;
+  tree_label l= make_tree_label ("extern:" * s);
+  memo_s      = s;
+  memo_l      = l;
+  return l;
+}
+
 int
 drd_info_rep::get_type_child (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -536,7 +555,7 @@ drd_info_rep::is_accessible_child (tree t, int i) {
   // cout << "l= " << as_string (L(t)) << "\n";
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -603,7 +622,7 @@ int
 drd_info_rep::get_writability_child (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -645,7 +664,7 @@ string
 drd_info_rep::get_child_name (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -663,7 +682,7 @@ string
 drd_info_rep::get_child_long_name (tree t, int i) {
   tag_info ti= info[L (t)];
   if (is_func (t, EXTERN) && N (t) > 0 && is_atomic (t[0])) {
-    tree_label lab= make_tree_label ("extern:" * t[0]->label);
+    tree_label lab= extern_label (t[0]->label);
     if (info->contains (lab)) {
       ti= info[lab];
     }
@@ -685,12 +704,35 @@ drd_info_rep::get_child_long_name (tree t, int i) {
 
 tree
 drd_env_write (tree env, string var, tree val) {
-  for (int i= 0; i <= N (env); i+= 2)
-    if (i == N (env)) return env * tree (ATTR, var, val);
+  // 单次分配重建结果(追加/插入/替换三种情形),
+  // 原实现要两次切片 + 元组构造 + 两次拼接共约五次分配
+  int i, n= N (env);
+  for (i= 0; i <= n; i+= 2)
+    if (i == n) {
+      tree r (ATTR, n + 2);
+      for (int k= 0; k < n; k++)
+        r[k]= env[k];
+      r[n]    = tree (var);
+      r[n + 1]= val;
+      return r;
+    }
     else if (var <= env[i]->label) {
-      if (var == env[i]->label)
-        return env (0, i) * tree (ATTR, var, val) * env (i + 2, N (env));
-      return env (0, i) * tree (ATTR, var, val) * env (i, N (env));
+      bool replace= (var == env[i]->label);
+      tree r (ATTR, replace ? n : n + 2);
+      for (int k= 0; k < i; k++)
+        r[k]= env[k];
+      r[i]    = tree (var);
+      r[i + 1]= val;
+      if (replace) {
+        for (int k= i + 2; k < n; k++)
+          r[k]= env[k];
+      }
+      else {
+        // 插入:旧 [i, n) 整体右移两格
+        for (int k= i; k < n; k++)
+          r[k + 2]= env[k];
+      }
+      return r;
     }
   return env;
 }
@@ -742,8 +784,12 @@ drd_info_rep::freeze_env (tree_label l, int nr) {
 
 tree
 drd_info_rep::get_env_child (tree t, int i, tree env) {
-  if (L (t) == WITH && i == N (t) - 1)
-    return drd_env_merge (env, t (0, N (t) - 1));
+  if (L (t) == WITH && i == N (t) - 1) {
+    // 直接在原树上迭代绑定对,免去 t(0,N-1) 子树拷贝
+    for (int k= 0; (k + 1) < N (t); k+= 2)
+      if (is_atomic (t[k])) env= drd_env_write (env, t[k]->label, t[k + 1]);
+    return env;
+  }
   else {
     /* makes cursor movement (is_accessible_cursor) slow for large preambles
     if (L(t) == DOCUMENT && N(t) > 0 &&
@@ -764,6 +810,9 @@ drd_info_rep::get_env_child (tree t, int i, tree env) {
     int      index= ti->get_index (i, N (t));
     if ((index < 0) || (index >= N (ti->ci))) return "";
     tree cenv= drd_decode (ti->ci[index].env);
+    // 绝大多数标签的子节点没有环境绑定,空 cenv 直接透传,
+    // 免去逐对 drd_env_write 重建 env 树
+    if (N (cenv) == 0) return env;
     for (int i= 1; i < N (cenv); i+= 2)
       if (is_func (cenv[i], ARG, 1) && is_int (cenv[i][0])) {
         cenv = copy (cenv);
@@ -776,6 +825,25 @@ drd_info_rep::get_env_child (tree t, int i, tree env) {
 
 tree
 drd_info_rep::get_env_child (tree t, int i, string var, tree val) {
+  // WITH 快路径:直接扫描绑定对取末次匹配,
+  // 免去 t(0,N-1) 子树拷贝与 env 树逐对合并重建
+  if (L (t) == WITH && i == N (t) - 1) {
+    tree r    = val;
+    bool found= false;
+    for (int k= 0; (k + 1) < N (t); k+= 2)
+      if (is_atomic (t[k]) && t[k]->label == var) {
+        r    = t[k + 1];
+        found= true;
+      }
+    if (found) return r;
+    return val;
+  }
+  // 快路径:子节点无环境绑定时直接返回缺省值,
+  // 免去 ATTR 构造、合并与读取扫描(is_accessible_cursor 每步都走这里)
+  tag_info ti   = info[L (t)];
+  int      index= ti->get_index (i, N (t));
+  if ((index < 0) || (index >= N (ti->ci))) return val;
+  if (N (drd_decode (ti->ci[index].env)) == 0) return val;
   tree env= get_env_child (t, i, tree (ATTR));
   return drd_env_read (env, var, val);
 }

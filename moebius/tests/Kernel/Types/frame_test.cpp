@@ -124,5 +124,51 @@ TEST_CASE ("test bounds") {
   CHECK (fabs (f->inverse_bound (mkp (0.0, 0.0), 2.0) - 4.0) < 1e-9);
 }
 
+TEST_CASE ("test scaling 3 components") {
+  // 逐分量直写路径需对任意维度成立
+  frame f= scaling (2.0, point (1.0, 2.0, 3.0));
+  point r= f (point (1.0, 1.0, 1.0));
+  CHECK_EQ (N (r), 3);
+  CHECK_EQ (r[0], 3.0);
+  CHECK_EQ (r[1], 4.0);
+  CHECK_EQ (r[2], 5.0);
+  point b= f[r];
+  CHECK (fabs (b[0] - 1.0) < 1e-9);
+  CHECK (fabs (b[1] - 1.0) < 1e-9);
+  CHECK (fabs (b[2] - 1.0) < 1e-9);
+}
+
+TEST_CASE ("test an_scaling per-axis inverse") {
+  frame f= scaling (mkp (2.0, 4.0), mkp (0.0, 0.0));
+  point r= f (mkp (3.0, 3.0));
+  CHECK_EQ (r[0], 6.0);
+  CHECK_EQ (r[1], 12.0);
+  point b= f[r];
+  CHECK (fabs (b[0] - 3.0) < 1e-9);
+  CHECK (fabs (b[1] - 3.0) < 1e-9);
+}
+
 TEST_MEMORY_LEAK_INIT
 TEST_MEMORY_LEAK_ALL
+
+TEST_CASE ("enclose rect matches corners for linear frame") {
+  // 线性框架包围盒应恰为四角变换后的极值
+  frame     f= scaling (2.0, mkp (1.0, 1.0));
+  rectangle r (0, 0, 10, 10);
+  rectangle e= f (r);
+  // 四角 (0,0),(10,0),(10,10),(0,10) 变换为 (1,1),(21,1),(21,21),(1,21)
+  CHECK_EQ (e->x1, 1);
+  CHECK_EQ (e->y1, 1);
+  CHECK_EQ (e->x2, 21);
+  CHECK_EQ (e->y2, 21);
+}
+
+TEST_CASE ("enclose rect inverse direction") {
+  frame     f= scaling (2.0, mkp (0.0, 0.0));
+  rectangle r (2, 2, 4, 4);
+  rectangle e= f[r]; // 逆向:除以 2
+  CHECK_EQ (e->x1, 1);
+  CHECK_EQ (e->y1, 1);
+  CHECK_EQ (e->x2, 2);
+  CHECK_EQ (e->y2, 2);
+}

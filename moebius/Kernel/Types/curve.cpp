@@ -91,8 +91,10 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
     bool   decreasing= false;
     double max_step  = 0.5 / max (c->nr_components (), 1);
     for (t= t1; t <= t2;) {
-      point  pt= c->evaluate (t);
-      double n = norm (pt - p);
+      point pt= c->evaluate (t);
+      // 平方距离比较避免每步构造差向量临时 point
+      double n2= norm2_diff (pt, p);
+      double n = sqrt (n2);
       if (n < n0) {
         n0      = n;
         closest = t;
@@ -102,7 +104,7 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
       decreasing= n < nprec;
       if (!stored && !decreasing) {
         curvet ct;
-        ct.dist= norm (pclosest - p);
+        ct.dist= sqrt (norm2_diff (pclosest, p));
         ct.t   = closest;
         res << ct;
         stored= true;
@@ -114,7 +116,7 @@ curvet_closest_points (curve c, double t1, double t2, point p, double eps) {
     }
     if (!stored && decreasing) {
       curvet ct;
-      ct.dist= norm (pclosest - p);
+      ct.dist= sqrt (norm2_diff (pclosest, p));
       ct.t   = closest;
       res << ct;
     }
@@ -152,13 +154,14 @@ closest (curve f, point p) {
   double t1  = abs[0];
   double t2  = abs[N (abs) - 1];
   double best= 0;
-  double eps = norm (f (0) - p);
+  double eps = sqrt (norm2_diff (f (0), p));
   for (int i= 0; i < 10; i++) {
     bool   found= false;
     double t    = f->find_closest_point (t1, t2, p, eps, found);
     if (found) best= t;
     else break;
-    double eps2= norm (f (t) - p);
+    // 平方距离比较避免构造差向量临时 point
+    double eps2= sqrt (norm2_diff (f (t), p));
     if (eps2 >= 0.9 * eps) break;
     eps= eps2;
   }
@@ -200,7 +203,7 @@ straight_edge_midpoints (curve c, point p, double tol) {
   if (abs[0] != 0.0 || abs[np - 1] != 1.0) ne++;
   for (int e= 0; e < ne; e++) {
     int j= (e + 1) % np;
-    if (norm (pts[j] - pts[e]) < 1e-6) continue;
+    if (norm2_diff (pts[j], pts[e]) < 1e-12) continue;
     if (seg_dist (pts[e], pts[j], p) > tol) continue;
     res << c->evaluate ((abs[e] + abs[j]) / 2.0);
   }
@@ -210,7 +213,7 @@ straight_edge_midpoints (curve c, point p, double tol) {
 bool
 intersection (curve f, curve g, double& t, double& u) {
   // for two dimensional curves only
-  double d= norm (f (t) - g (u));
+  double d= sqrt (norm2_diff (f (t), g (u)));
   while (!fnull (d, 1.0e-9)) {
     point  ft = f (t);
     point  gu = g (u);
@@ -223,7 +226,7 @@ intersection (curve f, curve g, double& t, double& u) {
     double T = t + dt;
     double U = u + du;
     if (T < 0.0 || T > 1.0 || U < 0.0 || U > 1.0) break;
-    double D= norm (f (T) - g (U));
+    double D= sqrt (norm2_diff (f (T), g (U)));
     if (D > 0.9 * d) break;
     t= T;
     u= U;
@@ -265,8 +268,16 @@ struct segment_rep : public curve_rep {
   point p1, p2;
   path  cip1, cip2;
   segment_rep (point p1b, point p2b) : p1 (p1b), p2 (p2b) {}
-  point evaluate (double t) { return (1.0 - t) * p1 + t * p2; }
-  void  rectify_cumul (array<point>& a, double eps) {
+  // 逐分量线性插值,避免两个标量乘临时与加法临时共三次分配
+  point evaluate (double t) {
+    double u= 1.0 - t;
+    int    i, n= min (N (p1), N (p2));
+    point  r (n);
+    for (i= 0; i < n; i++)
+      r[i]= u * p1[i] + t * p2[i];
+    return r;
+  }
+  void rectify_cumul (array<point>& a, double eps) {
     (void) eps;
     a << p2;
   }
@@ -317,10 +328,16 @@ struct poly_segment_rep : public curve_rep {
   int          n;
   poly_segment_rep (array<point> a2, array<path> cip2)
       : a (a2), cip (cip2), n (N (a) - 1) {}
-  int   nr_components () { return n; }
+  int nr_components () { return n; }
+  // 逐分量线性插值,避免两个标量乘临时与加法临时共三次分配
   point evaluate (double t) {
-    int i= max (min ((int) (n * t), n - 1), 0);
-    return (i + 1 - n * t) * a[i] + (n * t - i) * a[i + 1];
+    int    i= max (min ((int) (n * t), n - 1), 0);
+    double u= n * t - i;
+    int    k, m= min (N (a[i]), N (a[i + 1]));
+    point  r (m);
+    for (k= 0; k < m; k++)
+      r[k]= (1.0 - u) * a[i][k] + u * a[i + 1][k];
+    return r;
   }
   void rectify_cumul (array<point>& cum, double eps) {
     (void) eps;
@@ -336,7 +353,12 @@ struct poly_segment_rep : public curve_rep {
   point grad (double t, bool& error) {
     error= false;
     int i= min ((int) (n * t), n - 1);
-    return n * (a[i + 1] - a[i]);
+    // 差向量逐分量放大,避免差向量临时
+    int   k, m= min (N (a[i]), N (a[i + 1]));
+    point r (m);
+    for (k= 0; k < m; k++)
+      r[k]= n * (a[i + 1][k] - a[i][k]);
+    return r;
   }
   int get_control_points (array<double>& abs, array<point>& pts,
                           array<path>& cip);
@@ -375,6 +397,8 @@ struct spline_rep : public curve_rep {
   array<double> U;
   array<dpols>  p;
   bool          close, interpol;
+  // interval_no 的上次命中缓存:求值常按 t 单调推进(取直/渲染),先验上次区间
+  int last_interval= -1;
 
   spline_rep (array<point> a, array<path> cip, bool close= false,
               bool interpol= true);
@@ -543,9 +567,15 @@ spline_rep::spline (int i, double u, int o) {
 
 int
 spline_rep::interval_no (double u) {
+  if (last_interval >= 0 && last_interval + 1 < N (U) &&
+      u >= U[last_interval] && u < U[last_interval + 1])
+    return last_interval;
   int i;
   for (i= 0; i < N (U); i++)
-    if (u >= U[i] && u < U[i + 1]) return i;
+    if (u >= U[i] && u < U[i + 1]) {
+      last_interval= i;
+      return i;
+    }
   return -1;
 }
 
@@ -570,6 +600,8 @@ spline_rep::evaluate (double t, int o) {
   if (no < 2) res= spline (2, U[2], o);
   else if (no > n) res= spline (n, U[n + 1], o);
   else res= spline (no, t, o);
+  // o=0 时 prod(k,0)==1,免去一次标量乘的整点分配
+  if (o == 0) return res;
   return prod (k, o) * res;
 }
 
@@ -596,7 +628,9 @@ spline_rep::approx (int i, double u1, double u2, double eps) {
   point  p1, p2;
   p1= spline (i, u1);
   p2= spline (i, u2);
-  l = norm (p1 - p2);
+  // 平方距离比较避免构造差向量临时 point
+  double l2= norm2_diff (p1, p2);
+  l        = sqrt (l2);
   // When l and R are very small, the test l<=R
   // can fail forever. So we set l to exactly 0
   if (l != 0 && fnull (l, 1.0e-6)) l= 0;
@@ -720,7 +754,13 @@ bezier_rep::bezier_rep (array<point> a2) : a (a2) {
 
 point
 bezier_rep::evaluate (double t) {
-  return ((P[3] * t + P[2]) * t + P[1]) * t + P[0];
+  // 逐分量 Horner,免去链式标量乘/加的六个中间 point 临时
+  int k, n= N (P[0]);
+  n= min (n, min (N (P[1]), min (N (P[2]), N (P[3]))));
+  point q (n);
+  for (k= 0; k < n; k++)
+    q[k]= ((P[3][k] * t + P[2][k]) * t + P[1][k]) * t + P[0][k];
+  return q;
 }
 
 void
@@ -728,12 +768,20 @@ bezier_rep::rectify_cumul (array<point>& cum, double t0, double t1, double e) {
   point p0= evaluate (t0);
   point p1= evaluate (t1);
   // if (bound ((t0 + t1) / 2.0, e / 4.0) < (t1 - t0))
+  double lim= square (e / 10.0);
   for (int k= 1; k <= 4; k++) {
     double x= ((double) k) / 5.0;
     double t= (1.0 - x) * t0 + x * t1;
     point  q= evaluate (t);
-    point  r= (1.0 - x) * p0 + x * p1;
-    if (norm (q - r) >= (e / 10.0)) {
+    // 弦上插值点逐分量直写 + 平方距离比较,免去差向量与插值临时
+    int    m, d= min (N (q), min (N (p0), N (p1)));
+    double dd= 0;
+    for (m= 0; m < d; m++) {
+      double r   = (1.0 - x) * p0[m] + x * p1[m];
+      double diff= q[m] - r;
+      dd+= diff * diff;
+    }
+    if (dd >= lim) {
       rectify_cumul (cum, t0, (t0 + t1) / 2.0, e);
       rectify_cumul (cum, (t0 + t1) / 2.0, t1, e);
       return;
@@ -756,8 +804,13 @@ bezier_rep::bound (double t, double eps) {
 
 point
 bezier_rep::grad (double t, bool& error) {
+  // 逐分量直写,免去链式中间 point 临时
   error= false;
-  return ((3.0 * P[3] * t) + 2.0 * P[2]) + P[1];
+  int   k, n= min (N (P[1]), min (N (P[2]), N (P[3])));
+  point q (n);
+  for (k= 0; k < n; k++)
+    q[k]= 3.0 * P[3][k] * t + 2.0 * P[2][k] + P[1][k];
+  return q;
 }
 
 double
@@ -994,8 +1047,14 @@ arc_rep::arc_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 arc_rep::evaluate (double t) {
-  t= e1 + t * (e2 - e1);
-  return center + r1 * cos (2 * tm_PI * t) * i + r2 * sin (2 * tm_PI * t) * j;
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  t        = e1 + t * (e2 - e1);
+  double co= r1 * cos (2 * tm_PI * t), si= r2 * sin (2 * tm_PI * t);
+  int    k, n                            = min (N (center), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= center[k] + co * i[k] + si * j[k];
+  return q;
 }
 
 void
@@ -1014,10 +1073,16 @@ arc_rep::bound (double t, double eps) {
 
 point
 arc_rep::grad (double t, bool& error) {
-  error= false;
-  t    = e1 + t * (e2 - e1);
-  return -2 * tm_PI * r1 * sin (2 * tm_PI * t) * i +
-         2 * tm_PI * r2 * cos (2 * tm_PI * t) * j;
+  // 逐分量直写,免去两个中间 point 临时
+  error    = false;
+  t        = e1 + t * (e2 - e1);
+  double si= -2 * tm_PI * r1 * sin (2 * tm_PI * t);
+  double co= 2 * tm_PI * r2 * cos (2 * tm_PI * t);
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= si * i[k] + co * j[k];
+  return q;
 }
 
 double
@@ -1085,7 +1150,13 @@ ellipse_rep::ellipse_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 ellipse_rep::evaluate (double t) {
-  return center + r1 * cos (2 * tm_PI * t) * i + r2 * sin (2 * tm_PI * t) * j;
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  double co= r1 * cos (2 * tm_PI * t), si= r2 * sin (2 * tm_PI * t);
+  int    k, n                            = min (N (center), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= center[k] + co * i[k] + si * j[k];
+  return q;
 }
 
 void
@@ -1104,9 +1175,15 @@ ellipse_rep::bound (double t, double eps) {
 
 point
 ellipse_rep::grad (double t, bool& error) {
-  error= false;
-  return -2 * tm_PI * r1 * sin (2 * tm_PI * t) * i +
-         2 * tm_PI * r2 * cos (2 * tm_PI * t) * j;
+  // 逐分量直写,免去两个中间 point 临时
+  error    = false;
+  double si= -2 * tm_PI * r1 * sin (2 * tm_PI * t);
+  double co= 2 * tm_PI * r2 * cos (2 * tm_PI * t);
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= si * i[k] + co * j[k];
+  return q;
 }
 
 double
@@ -1187,14 +1264,23 @@ hyperbola_rep::hyperbola_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 hyperbola_rep::evaluate (double t) {
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  double u;
+  double sign;
   if (t < 0.5) {
-    double u= (4.0 * t - 1.0) * u_max;
-    return center + r1 * cosh (u) * i + r2 * sinh (u) * j;
+    u   = (4.0 * t - 1.0) * u_max;
+    sign= 1.0;
   }
   else {
-    double u= (4.0 * t - 3.0) * u_max;
-    return center - r1 * cosh (u) * i + r2 * sinh (u) * j;
+    u   = (4.0 * t - 3.0) * u_max;
+    sign= -1.0;
   }
+  double co= r1 * cosh (u), si= r2 * sinh (u);
+  int    k, n                 = min (N (center), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= center[k] + sign * co * i[k] + si * j[k];
+  return q;
 }
 
 void
@@ -1221,15 +1307,24 @@ hyperbola_rep::bound (double t, double eps) {
 
 point
 hyperbola_rep::grad (double t, bool& error) {
+  // 逐分量直写,免去链式中间 point 临时
   error= false;
+  double u, sign;
   if (t < 0.5) {
-    double u= (4.0 * t - 1.0) * u_max;
-    return 4.0 * u_max * (r1 * sinh (u) * i + r2 * cosh (u) * j);
+    u   = (4.0 * t - 1.0) * u_max;
+    sign= 1.0;
   }
   else {
-    double u= (4.0 * t - 3.0) * u_max;
-    return 4.0 * u_max * (-r1 * sinh (u) * i + r2 * cosh (u) * j);
+    u   = (4.0 * t - 3.0) * u_max;
+    sign= -1.0;
   }
+  double si= 4.0 * u_max * r1 * sinh (u);
+  double co= 4.0 * u_max * r2 * cosh (u);
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= sign * si * i[k] + co * j[k];
+  return q;
 }
 
 double
@@ -1288,8 +1383,14 @@ parabola_rep::parabola_rep (array<point> a2, array<path> cip2, bool close)
 
 point
 parabola_rep::evaluate (double t) {
-  double u= (2 * t - 1) * u_max;
-  return vertex + (square (u) / (2 * d)) * i + u * j;
+  // 逐分量直写,免去标量乘与两次加法共四个中间 point 临时
+  double u = (2 * t - 1) * u_max;
+  double ui= square (u) / (2 * d);
+  int    k, n= min (N (vertex), min (N (i), N (j)));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= vertex[k] + ui * i[k] + u * j[k];
+  return q;
 }
 
 void
@@ -1308,9 +1409,16 @@ parabola_rep::bound (double t, double eps) {
 
 point
 parabola_rep::grad (double t, bool& error) {
-  error   = false;
-  double u= (2 * t - 1) * u_max;
-  return 2 * u_max * ((u / d) * i + j);
+  // 逐分量直写,免去链式中间 point 临时
+  error    = false;
+  double u = (2 * t - 1) * u_max;
+  double f = 2 * u_max;
+  double ui= f * u / d;
+  int    k, n= min (N (i), N (j));
+  point  q (n);
+  for (k= 0; k < n; k++)
+    q[k]= ui * i[k] + f * j[k];
+  return q;
 }
 
 double

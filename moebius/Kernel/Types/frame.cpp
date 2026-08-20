@@ -21,8 +21,13 @@ frame::enclose (double& x1, double& y1, double& x2, double& y2, point p1,
                 point p2, bool direct) {
   int n= 1;
   if (!rep->linear) n= 20;
+  // 逐分量插值直写采样点,免去差向量/标量乘/加法三个中间 point 临时
+  int d= min (N (p1), N (p2));
   for (int i= 0; i < n; i++) {
-    point p= p1 + (((double) i) / ((double) n)) * (p2 - p1);
+    double a= ((double) i) / ((double) n);
+    point  p (d);
+    for (int k= 0; k < d; k++)
+      p[k]= p1[k] + a * (p2[k] - p1[k]);
     point q= (direct ? operator() (p) : operator[] (p));
     x1     = min (x1, q[0]);
     y1     = min (y1, q[1]);
@@ -102,8 +107,21 @@ struct scaling_rep : public frame_rep {
   operator tree () {
     return tuple ("scale", as_string (magnify), as_tree (shift));
   }
-  point direct_transform (point p) { return shift + magnify * p; }
-  point inverse_transform (point p) { return (p - shift) / magnify; }
+  // 逐分量直写结果,避免 magnify*p 与 +shift 两个中间 point 临时分配
+  point direct_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= shift[i] + magnify * p[i];
+    return q;
+  }
+  point inverse_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= (p[i] - shift[i]) / magnify;
+    return q;
+  }
   point jacobian (point p, point v, bool& error) {
     (void) p;
     error= false;
@@ -136,8 +154,21 @@ struct an_scaling_rep : public frame_rep {
   operator tree () {
     return tuple ("scale", as_string (as_tree (magnify)), as_tree (shift));
   }
-  point direct_transform (point p) { return shift + magnify * p; }
-  point inverse_transform (point p) { return (p - shift) / magnify; }
+  // 逐分量直写结果,避免 magnify*p 与 +shift 两个中间 point 临时分配
+  point direct_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= shift[i] + magnify[i] * p[i];
+    return q;
+  }
+  point inverse_transform (point p) {
+    int   n= N (p);
+    point q (n);
+    for (int i= 0; i < n; i++)
+      q[i]= (p[i] - shift[i]) / magnify[i];
+    return q;
+  }
   point jacobian (point p, point v, bool& error) {
     (void) p;
     error= false;

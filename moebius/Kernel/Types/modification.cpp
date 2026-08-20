@@ -185,67 +185,86 @@ get_tree (modification mod) {
  * Test applicability of modifications
  ******************************************************************************/
 
+// 单趟下探:p 越界或命中原子节点时返回空指针,免去 has_subtree+
+// subtree 的两趟树遍历(is_applicable 在每次 apply 时调用)
+static tree*
+descend (tree& t, path p) {
+  tree* r= &t;
+  path  q= p;
+  while (!is_nil (q)) {
+    int i= q->item;
+    if (!is_compound (*r) || i < 0 || i >= N (*r)) return nullptr;
+    r= &(*r)[i];
+    q= q->next;
+  }
+  return r;
+}
+
 bool
 can_assign (tree t, path p, tree u) {
   (void) u;
-  return has_subtree (t, p);
+  return descend (t, p) != nullptr;
 }
 
 bool
 can_insert (tree t, path p, int pos, tree u) {
-  if (!has_subtree (t, p)) return false;
-  tree st= subtree (t, p);
-  if (is_atomic (st)) return pos >= 0 && pos <= N (st->label) && is_atomic (u);
-  else return pos >= 0 && pos <= N (st) && is_compound (u);
+  tree* st= descend (t, p);
+  if (st == nullptr) return false;
+  if (is_atomic (*st))
+    return pos >= 0 && pos <= N ((*st)->label) && is_atomic (u);
+  else return pos >= 0 && pos <= N (*st) && is_compound (u);
 }
 
 bool
 can_remove (tree t, path p, int pos, int nr) {
-  if (!has_subtree (t, p)) return false;
-  tree st= subtree (t, p);
-  if (is_atomic (st)) return pos >= 0 && pos + nr <= N (st->label);
-  else return pos >= 0 && pos + nr <= N (st);
+  tree* st= descend (t, p);
+  if (st == nullptr) return false;
+  if (is_atomic (*st)) return pos >= 0 && pos + nr <= N ((*st)->label);
+  else return pos >= 0 && pos + nr <= N (*st);
 }
 
 bool
 can_split (tree t, path p, int pos, int at) {
-  if (!has_subtree (t, p * pos)) return false;
-  tree st= subtree (t, p * pos);
-  if (is_atomic (st)) return at >= 0 && at <= N (st->label);
-  else return at >= 0 && at <= N (st);
+  tree* st= descend (t, p * pos);
+  if (st == nullptr) return false;
+  if (is_atomic (*st)) return at >= 0 && at <= N ((*st)->label);
+  else return at >= 0 && at <= N (*st);
 }
 
 bool
 can_join (tree t, path p, int pos) {
-  if (!has_subtree (t, p)) return false;
-  tree st= subtree (t, p);
-  if (pos < 0 || pos + 1 >= N (st)) return false;
-  if (is_atomic (st[pos]) && is_atomic (st[pos + 1])) return true;
-  if (is_compound (st[pos]) && is_compound (st[pos + 1])) return true;
+  tree* st= descend (t, p);
+  if (st == nullptr) return false;
+  if (pos < 0 || pos + 1 >= N (*st)) return false;
+  if (is_atomic ((*st)[pos]) && is_atomic ((*st)[pos + 1])) return true;
+  if (is_compound ((*st)[pos]) && is_compound ((*st)[pos + 1])) return true;
   return false;
 }
 
 bool
 can_assign_node (tree t, path p, int op) {
   (void) op;
-  return has_subtree (t, p) && is_compound (subtree (t, p));
+  tree* st= descend (t, p);
+  return st != nullptr && is_compound (*st);
 }
 
 bool
 can_insert_node (tree t, path p, int pos, tree u) {
-  return has_subtree (t, p) && is_compound (u) && pos >= 0 && pos <= N (u);
+  return descend (t, p) != nullptr && is_compound (u) && pos >= 0 &&
+         pos <= N (u);
 }
 
 bool
 can_remove_node (tree t, path p, int pos) {
-  return has_subtree (t, p * pos);
+  return descend (t, p * pos) != nullptr;
 }
 
 bool
 can_set_cursor (tree t, path p, int pos, tree data) {
   (void) data;
-  if (!has_subtree (t, p)) return false;
-  return pos >= 0 && pos <= right_index (subtree (t, p));
+  tree* st= descend (t, p);
+  if (st == nullptr) return false;
+  return pos >= 0 && pos <= right_index (*st);
 }
 
 bool

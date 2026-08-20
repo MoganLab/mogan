@@ -198,3 +198,63 @@ TEST_CASE ("is_applicable for birth patch") {
   patch  p (a, true);
   CHECK (is_applicable (p, t));
 }
+
+/******************************************************************************
+ * Commutation of modifications (swap semantics)
+ ******************************************************************************/
+
+// swap 声明在 patch.hpp,验证换位后的索引调整
+
+TEST_CASE ("commute inserts after range shifts back") {
+  // 先插 "abc"@5,再插 "xy"@9:可换位,换位后
+  // m1*=insert xy@6 (回退 3),m2*=insert abc@5 (不变)
+  modification a= mod_insert (path (0, 3), 5, tree ("abc"));
+  modification b= mod_insert (path (0, 3), 9, tree ("xy"));
+  CHECK (commute (a, b));
+  modification s1= mod_insert (path (0, 3), 5, tree ("abc"));
+  modification s2= mod_insert (path (0, 3), 9, tree ("xy"));
+  CHECK (swap (s1, s2));
+  CHECK (index (s1) == 6); // xy 后移到 abc 之后
+  CHECK (index (s2) == 5); // abc 保持在 5
+}
+
+TEST_CASE ("commute inserts before range shifts forward") {
+  // 先插 "abc"@5,再插 "xy"@2(在前):换位后 abc 前移 2
+  modification s1= mod_insert (path (0, 3), 5, tree ("abc"));
+  modification s2= mod_insert (path (0, 3), 2, tree ("xy"));
+  CHECK (swap (s1, s2));
+  CHECK (index (s1) == 2); // xy 不动
+  CHECK (index (s2) == 7); // abc 前面多了 "xy",插点后移 2
+}
+
+TEST_CASE ("commute insert inside range fails") {
+  // 后插落在前插区间内部且非同点:不可换位
+  modification s1= mod_insert (path (0, 3), 5, tree ("abc"));
+  modification s2= mod_insert (path (0, 3), 6, tree ("xy"));
+  CHECK (!commute (s1, s2));
+}
+
+TEST_CASE ("commute disjoint paths is basic swap") {
+  modification s1= mod_insert (path (0, 3), 5, tree ("abc"));
+  modification s2= mod_insert (path (1, 7), 2, tree ("xy"));
+  CHECK (swap (s1, s2));
+  // 互换后内容对调,索引不变
+  CHECK (s1->t == tree ("xy"));
+  CHECK (s2->t == tree ("abc"));
+  CHECK (index (s1) == 2);
+  CHECK (index (s2) == 5);
+}
+
+TEST_CASE ("commute remove overlapping fails") {
+  // 后 remove 的区间覆盖前 remove 起点(非同点):不可换位
+  modification s1= mod_remove (path (0, 3), 6, 1);
+  modification s2= mod_remove (path (0, 3), 5, 3);
+  CHECK (!commute (s1, s2));
+}
+
+TEST_CASE ("commute join adjacent fails") {
+  // join@i-1 与前序操作冲突
+  modification s1= mod_insert (path (0, 3), 5, tree ("abc"));
+  modification s2= mod_join (path (0, 3), 4);
+  CHECK (!commute (s1, s2));
+}

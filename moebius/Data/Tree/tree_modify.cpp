@@ -74,12 +74,27 @@ tree
 simplify_correct (tree t) {
   if (is_atomic (t)) return t;
   if (is_func (t, QUOTE, 1) && (is_atomic (t[0]))) return t[0];
-  int  i, n= N (t);
+  int i, n= N (t);
+  if (is_concat (t) || is_document (t)) {
+    // concat/document 需要合并/展平,维持原有重建逻辑
+    tree r (t, n);
+    for (i= 0; i < n; i++)
+      r[i]= simplify_correct (t[i]);
+    if (is_concat (r)) r= simplify_concat (r);
+    if (is_document (r)) r= simplify_document (r);
+    return r;
+  }
+  // 其他复合节点:递归结果暂存,全部孩子共享原 rep 时免去新节点分配
+  array<tree> tmp (n);
+  bool        changed= false;
+  for (i= 0; i < n; i++) {
+    tmp[i]= simplify_correct (t[i]);
+    if (!strong_equal (tmp[i], t[i])) changed= true;
+  }
+  if (!changed) return t;
   tree r (t, n);
   for (i= 0; i < n; i++)
-    r[i]= simplify_correct (t[i]);
-  if (is_concat (r)) r= simplify_concat (r);
-  if (is_document (r)) r= simplify_document (r);
+    r[i]= tmp[i];
   return r;
 }
 
@@ -127,8 +142,7 @@ correct_node (tree& t) {
   // NOTE: this routine should only modify t and its descendants,
   // but not any ancestors
   if (is_compound (t)) {
-    if (the_drd->contains (as_string (L (t))) &&
-        !the_drd->correct_arity (L (t), N (t)))
+    if (the_drd->contains (L (t)) && !the_drd->correct_arity (L (t), N (t)))
       assign (t, "");
     if (is_concat (t)) correct_concat_node (t, 0);
   }

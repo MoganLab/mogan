@@ -181,15 +181,22 @@ get_env_descendant (tree t, path p, string var, tree val) {
 
 static path
 move_any (tree t, path p, bool forward) {
-  path q = path_up (p);
-  int  l = last_item (p);
-  tree st= subtree (t, q);
-  if (!is_nil (q) && is_func (subtree (t, path_up (q)), RAW_DATA)) {
+  path q= path_up (p);
+  int  l= last_item (p);
+  // 单趟下探:st 为 path_up(p) 处节点,par 为其父节点,
+  // 免去原实现对 subtree 的三次重复全树下探
+  tree* st = &t;
+  tree* par= nullptr;
+  for (path r= p; !is_nil (r->next); r= r->next) {
+    par= st;
+    st = &(*st)[r->item];
+  }
+  if (par != nullptr && is_func (*par, RAW_DATA)) {
     if (forward) return path_up (q) * 1;
     else return path_up (q) * 0;
   }
-  if (is_atomic (st)) {
-    string s= st->label;
+  if (is_atomic (*st)) {
+    string s= (*st)->label;
 #ifdef SANITY_CHECKS
     ASSERT (l >= 0 && l <= N (s), "out of range");
 #else
@@ -209,32 +216,32 @@ move_any (tree t, path p, bool forward) {
     }
   }
   else if ((forward && l == 0) || (!forward && l == 1)) {
-    int i, n= N (st);
+    int i, n= N (*st);
     if (forward) {
       for (i= 0; i < n; i++)
-        if (the_drd->is_accessible_child (st, i)) return q * path (i, 0);
+        if (the_drd->is_accessible_child (*st, i)) return q * path (i, 0);
     }
     else {
       for (i= n - 1; i >= 0; i--)
-        if (the_drd->is_accessible_child (st, i))
-          return q * path (i, right_index (st[i]));
+        if (the_drd->is_accessible_child (*st, i))
+          return q * path (i, right_index ((*st)[i]));
     }
     return q * (1 - l);
   }
   else if (is_nil (q)) return p;
 
-  l = last_item (q);
-  q = path_up (q);
-  st= subtree (t, q);
-  int i, n= N (st);
+  tree& parent= *par; // q 非空,par 必为 path_up(q) 处节点
+  l           = last_item (q);
+  q           = path_up (q);
+  int i, n= N (parent);
   if (forward) {
     for (i= l + 1; i < n; i++)
-      if (the_drd->is_accessible_child (st, i)) return q * path (i, 0);
+      if (the_drd->is_accessible_child (parent, i)) return q * path (i, 0);
   }
   else {
     for (i= l - 1; i >= 0; i--)
-      if (the_drd->is_accessible_child (st, i)) {
-        return q * path (i, right_index (st[i]));
+      if (the_drd->is_accessible_child (parent, i)) {
+        return q * path (i, right_index (parent[i]));
       }
   }
   return q * (forward ? 1 : 0);
@@ -369,22 +376,22 @@ tm_codepoint_at (string s, int pos, unsigned int& code) {
 
   int i= pos;
   tm_char_forwards (s, i);
-  string c= s (pos, i);
-  if (c == "") return false;
+  int len= i - pos;
+  if (len == 0) return false;
 
   // Plain ASCII
-  if (N (c) == 1) {
-    code= (unsigned int) (unsigned char) c[0];
+  if (len == 1) {
+    code= (unsigned int) (unsigned char) s[pos];
     return true;
   }
 
   // TeXmacs internal hexadecimal form: <#....>
-  // Only parse leading hex digits for block-level checks.
-  if (starts (c, "<#") && ends (c, ">")) {
+  // 直接在原串上解析,免去取子串与 starts/ends 字符串比较
+  if (len > 2 && s[pos] == '<' && s[pos + 1] == '#' && s[i - 1] == '>') {
     unsigned int v= 0;
-    int          k= 2, cnt= 0;
-    for (; k < N (c) - 1 && cnt < 4; k++, cnt++) {
-      char         ch= c[k];
+    int          k= pos + 2, cnt= 0;
+    for (; k < i - 1 && cnt < 4; k++, cnt++) {
+      char         ch= s[k];
       unsigned int d;
       if (ch >= '0' && ch <= '9') d= (unsigned int) (ch - '0');
       else if (ch >= 'a' && ch <= 'f') d= 10u + (unsigned int) (ch - 'a');
@@ -444,13 +451,27 @@ next_is_word (tree t, path p) {
   return st[l + 1] != "" && is_iso_alphanum (st[l + 1]->label[0]);
 }
 
+// 单趟下探到 path 所指节点(调用方保证路径合法),免去 subtree 全树重下探
+static tree*
+tt_descend (tree& t, path p) {
+  tree* r= &t;
+  for (path q= p; !is_nil (q); q= q->next) {
+    int i= q->item;
+    if (!is_compound (*r) || i < 0 || i >= N (*r)) return nullptr;
+    r= &(*r)[i];
+  }
+  return r;
+}
+
 static path
 move_word (tree t, path p, bool forward) {
   while (true) {
     path q= move_accessible (t, p, forward);
     int  l= last_item (q);
     if (q == p) return p;
-    tree st= subtree (t, path_up (q));
+    tree* stp= tt_descend (t, path_up (q));
+    if (stp == nullptr) return q; // 防御:无效路径按不动点处理
+    tree& st= *stp;
     if (is_atomic (st)) {
       string s= st->label;
       int    n= N (s);
@@ -739,14 +760,28 @@ is_boundary (tree t, path p) {
   return false;
 }
 
+// 沿 p 自根单趟下探,返回 p 的最深 DOCUMENT/GRAPHICS 祖先路径
+// (无边界祖先时为 nil)。原逐层 is_boundary 各做一次全树下探,
+// 深路径下为 O(depth^2)
+static path
+closest_boundary_ancestor (tree& t, path p) {
+  path  cur= path (), best= path ();
+  tree* node= &t;
+  for (path r= p; !is_nil (r); r= r->next) {
+    int i= r->item;
+    if (!is_compound (*node) || i < 0 || i >= N (*node)) return best;
+    if (is_func (*node, DOCUMENT) || is_func (*node, GRAPHICS)) best= cur;
+    cur = path (i, cur);
+    node= &(*node)[i];
+  }
+  return best;
+}
+
 bool
 inside_contiguous_document (tree t, path op, path oq) {
   if (!inside_same (t, op, oq, DOCUMENT)) return false;
-  path p= path_up (op), q= path_up (oq);
-  while (!is_nil (p) && !is_boundary (t, p))
-    p= path_up (p);
-  while (!is_nil (q) && !is_boundary (t, q))
-    q= path_up (q);
+  path p= closest_boundary_ancestor (t, path_up (op));
+  path q= closest_boundary_ancestor (t, path_up (oq));
   if (p == q) return true;
   if (q <= p) return inside_contiguous_document (t, oq, op);
   if (!(p <= q)) return false;
@@ -833,9 +868,33 @@ search_sections (tree t) {
   return a;
 }
 
+// herk 双向映射表里,字节 32..126 除 0x60(反引号,映到 0)外均恒等;
+// 纯此类字节的字符串 utf8->herk 结果与输入相同,可跳过逐字符解码重排
+static bool
+utf8_herk_identity (string s) {
+  for (int i= 0; i < N (s); i++) {
+    unsigned char c= (unsigned char) s[i];
+    if (c < 32 || c > 126 || c == 96) return false;
+  }
+  return true;
+}
+
+// herk->utf8 同样在 32..126(除 0x60,映到 U+2018)恒等,
+// 但 "<#" 会被解析为十六进制转义,需一并排除
+static bool
+herk_utf8_identity (string s) {
+  for (int i= 0; i < N (s); i++) {
+    unsigned char c= (unsigned char) s[i];
+    if (c < 32 || c > 126 || c == 96) return false;
+    if (c == '<' && i + 1 < N (s) && s[i + 1] == '#') return false;
+  }
+  return true;
+}
+
 tree
 tree_utf8_to_herk (tree_u8 t) {
   if (is_atomic (t)) {
+    if (utf8_herk_identity (t->label)) return tree (t->label);
     return tree (lolly::data::utf8_to_herk (t->label));
   }
   else if (!is_func (t, RAW_DATA)) {
@@ -853,6 +912,7 @@ tree_utf8_to_herk (tree_u8 t) {
 tree_u8
 tree_herk_to_utf8 (tree t) {
   if (is_atomic (t)) {
+    if (herk_utf8_identity (t->label)) return tree_u8 (t->label);
     return tree (lolly::data::herk_to_utf8 (t->label));
   }
   else if (!is_func (t, RAW_DATA)) {

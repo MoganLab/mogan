@@ -77,3 +77,263 @@ TEST_CASE ("bound 契约: |t'-t|<=delta 时 |c(t')-c(t)|<=eps") {
     }
   }
 }
+
+TEST_CASE ("segment evaluate 端点与中点") {
+  curve c = segment (mkp (0, 0), mkp (3, 4));
+  point e0= c->evaluate (0.0);
+  point e1= c->evaluate (1.0);
+  point em= c->evaluate (0.5);
+  CHECK (e0 == mkp (0, 0));
+  CHECK (e1 == mkp (3, 4));
+  CHECK (em == mkp (1.5, 2.0));
+  // 三维点插值维度保持
+  point q0 (3), q1 (3);
+  q0[0]   = 0;
+  q0[1]   = 0;
+  q0[2]   = 0;
+  q1[0]   = 3;
+  q1[1]   = 4;
+  q1[2]   = 5;
+  curve c3= segment (q0, q1);
+  point m3= c3->evaluate (0.5);
+  CHECK_EQ (N (m3), 3);
+  CHECK (fabs (m3[0] - 1.5) < 1e-9);
+  CHECK (fabs (m3[1] - 2.0) < 1e-9);
+  CHECK (fabs (m3[2] - 2.5) < 1e-9);
+}
+
+TEST_CASE ("poly_segment evaluate 分段边界") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c= poly_segment (a, array<path> ());
+  // n=2,每段占 t 的一半
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+  CHECK (c->evaluate (0.25) == mkp (5, 0));
+  CHECK (c->evaluate (0.5) == mkp (10, 0));
+  CHECK (c->evaluate (0.75) == mkp (10, 50));
+  CHECK (c->evaluate (1.0) == mkp (10, 100));
+}
+
+TEST_CASE ("poly_segment grad 方向与倍率") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c  = poly_segment (a, array<path> ());
+  bool  err= true;
+  point g  = c->grad (0.5, err);
+  CHECK (!err);
+  // n=2,第二段方向 (0,100),grad = 2*(0,100)
+  CHECK (g == mkp (0, 200));
+}
+
+TEST_CASE ("spline evaluate 端点与缓存一致性") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 3) << mkp (3, 2) << mkp (5, 5) << mkp (7, 1);
+  curve c= spline (a, array<path> (), false, true);
+  // 端点插值:开样条经过首末控制点
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+  CHECK (c->evaluate (1.0) == mkp (7, 1));
+  // 同一 t 反复求值(interval_no 缓存命中路径)结果一致
+  point p1= c->evaluate (0.37);
+  point p2= c->evaluate (0.37);
+  point p3= c->evaluate (0.37);
+  CHECK (p1 == p2);
+  CHECK (p1 == p3);
+  // t 跳跃后回到原区间,结果仍一致(缓存失效重扫路径)
+  point p4= c->evaluate (0.9);
+  point p5= c->evaluate (0.37);
+  CHECK (p1 == p5);
+  CHECK (!(p1 == p4));
+}
+
+TEST_CASE ("spline rectify 首末点") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 3) << mkp (3, 2) << mkp (5, 5) << mkp (7, 1);
+  curve        c = spline (a, array<path> (), false, true);
+  array<point> ps= c->rectify (0.05);
+  CHECK (N (ps) >= 2);
+  CHECK (ps[0] == mkp (0, 0));
+  CHECK (ps[N (ps) - 1] == mkp (7, 1));
+}
+
+TEST_CASE ("spline grad 与 bound 契约") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 3) << mkp (3, 2) << mkp (5, 5) << mkp (7, 1);
+  curve c  = spline (a, array<path> (), false, true);
+  bool  err= true;
+  point g  = c->grad (0.5, err);
+  CHECK (!err);
+  CHECK_EQ (N (g), 2);
+  double eps  = 0.5;
+  double delta= c->bound (0.5, eps);
+  point  v1   = c->evaluate (0.5);
+  point  v2   = c->evaluate (max (0.5 - delta, 0.0));
+  CHECK (norm2_diff (v2, v1) <= (eps + 1e-6) * (eps + 1e-6));
+}
+
+TEST_CASE ("find_closest_point on segment") {
+  curve c  = segment (mkp (0, 0), mkp (10, 0));
+  bool  err= true;
+  // 查询点取在曲线上,内点即为精确最近点
+  double t= c->find_closest_point (0.0, 1.0, mkp (4, 0), 0.01, err);
+  CHECK (err);
+  point q= c->evaluate (t);
+  CHECK (fabs (q[0] - 4.0) < 0.1);
+  CHECK (fabs (q[1]) < 1e-9);
+}
+
+TEST_CASE ("find_closest_point on poly_segment") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c  = poly_segment (a, array<path> ());
+  bool  err= true;
+  // 距离第二段更近的查询点
+  double t= c->find_closest_point (0.0, 1.0, mkp (9, 60), 0.01, err);
+  CHECK (err);
+  point q= c->evaluate (t);
+  CHECK (fabs (q[0] - 10.0) < 0.5);
+  CHECK (fabs (q[1] - 60.0) < 1.0);
+}
+
+TEST_CASE ("closest returns near-minimum distance") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (10, 100);
+  curve c= poly_segment (a, array<path> ());
+  // 查询点取在曲线上,最近距离应为 0
+  point  q= closest (c, mkp (5, 0));
+  double d= sqrt (norm2_diff (q, mkp (5, 0)));
+  CHECK (d < 0.1);
+}
+
+TEST_CASE ("intersection of crossing segments") {
+  // (curve,curve,double&,double&) 未导出到 hpp,补声明
+  bool   intersection (curve f, curve g, double& t, double& u);
+  curve  f= segment (mkp (0, 0), mkp (10, 10));
+  curve  g= segment (mkp (0, 10), mkp (10, 0));
+  double t= 0.2, u= 0.2;
+  bool   ok= intersection (f, g, t, u);
+  CHECK (ok);
+  point pf= f->evaluate (t);
+  CHECK (fabs (pf[0] - 5.0) < 1e-6);
+  CHECK (fabs (pf[1] - 5.0) < 1e-6);
+}
+
+TEST_CASE ("ellipse evaluate lies on the ellipse") {
+  // 两焦点 (-4,0),(4,0) 与椭圆上一点 (0,3):r1=5, r2=3
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve c= ellipse (a, array<path> (), true);
+  // i 轴从圆心指向第一焦点 (-4,0):t=0 是长轴端点 (-5,0),
+  // t=1/4 是短轴端点 (0,±3)
+  CHECK (c->evaluate (0.0) == mkp (-5, 0));
+  point qe= c->evaluate (0.25);
+  CHECK (fabs (qe[0]) < 1e-9);
+  CHECK (fabs (fabs (qe[1]) - 3.0) < 1e-9);
+  // 到两焦点距离之和恒为 2*r1=10
+  for (int i= 0; i <= 20; i++) {
+    point  q= c->evaluate (i / 20.0);
+    double d=
+        sqrt (norm2_diff (q, mkp (-4, 0))) + sqrt (norm2_diff (q, mkp (4, 0)));
+    CHECK (fabs (d - 10.0) < 1e-9);
+  }
+}
+
+TEST_CASE ("ellipse grad is orthogonal to evaluate") {
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve c  = ellipse (a, array<path> (), true);
+  bool  err= true;
+  point g  = c->grad (0.3, err);
+  CHECK (!err);
+  CHECK_EQ (N (g), 2);
+  // t=0 处切向沿 y 轴
+  point g0= c->grad (0.0, err);
+  CHECK (fabs (g0[0]) < 1e-9);
+  CHECK (g0[1] > 0);
+}
+
+TEST_CASE ("arc evaluate lies on its circle") {
+  // 过 (0,0),(10,0),(0,10) 三点,圆心 (5,5),半径 sqrt(50)
+  array<point> a;
+  a << mkp (0, 0) << mkp (10, 0) << mkp (0, 10);
+  curve  c = arc (a, array<path> (), true);
+  double r2= 50.0;
+  for (int i= 0; i <= 20; i++) {
+    point  q= c->evaluate (i / 20.0);
+    double d= norm2_diff (q, mkp (5, 5));
+    CHECK (fabs (d - r2) < 1e-6);
+  }
+  // 端点经过首控制点
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+}
+
+TEST_CASE ("ellipse rectify endpoints") {
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve        c = ellipse (a, array<path> (), true);
+  array<point> ps= c->rectify (0.05);
+  CHECK (N (ps) >= 2);
+  CHECK (ps[0] == mkp (-5, 0));
+  CHECK (ps[N (ps) - 1] == mkp (-5, 0)); // 闭合:首尾同为起点
+}
+
+TEST_CASE ("bezier evaluate endpoints and midpoint") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 4) << mkp (4, 4) << mkp (6, 0);
+  curve c= bezier (a);
+  CHECK (c->evaluate (0.0) == mkp (0, 0));
+  CHECK (c->evaluate (1.0) == mkp (6, 0));
+  // 对称控制点,中点 x=(0+3+12+6)/8=2.625,y=(0+12+12+0)/8=3
+  point m= c->evaluate (0.5);
+  CHECK (fabs (m[0] - 2.625) < 1e-9);
+  CHECK (fabs (m[1] - 3.0) < 1e-9);
+}
+
+TEST_CASE ("bezier grad at endpoints") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 4) << mkp (4, 4) << mkp (6, 0);
+  curve c  = bezier (a);
+  bool  err= true;
+  // 生产 grad 公式为 3*P3*t + 2*P2 + P1(非标准导数),
+  // t=0 处即 2*P2+P1 = 2*(6,-12)+(3,12) = (15,-12)
+  point g= c->grad (0.0, err);
+  CHECK (!err);
+  CHECK (g == mkp (15, -12));
+}
+
+TEST_CASE ("bezier rectify endpoints") {
+  array<point> a;
+  a << mkp (0, 0) << mkp (1, 4) << mkp (4, 4) << mkp (6, 0);
+  curve        c = bezier (a);
+  array<point> ps= c->rectify (0.05);
+  CHECK (N (ps) >= 2);
+  CHECK (ps[0] == mkp (0, 0));
+  CHECK (ps[N (ps) - 1] == mkp (6, 0));
+}
+
+TEST_CASE ("hyperbola evaluate keeps distance difference") {
+  // 双曲线定义:到两焦点距离之差的绝对值恒定
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (8, 3);
+  curve  c  = hyperbola (a, array<path> (), false);
+  double ref= -1;
+  for (int i= 0; i <= 40; i++) {
+    point  q = c->evaluate (i / 40.0);
+    double dd= fabs (sqrt (norm2_diff (q, mkp (-4, 0))) -
+                     sqrt (norm2_diff (q, mkp (4, 0))));
+    if (ref < 0) ref= dd;
+    CHECK (fabs (dd - ref) < 1e-9);
+  }
+}
+
+TEST_CASE ("parabola evaluate vertex at midpoint") {
+  // d1=(-4,0) d2=(4,0) f=(0,3):ortho(j,i) 后 i=(0,1),
+  // d=inner(f-d1,i)=3,vertex=f-(d/2)*i=(0,1.5)
+  array<point> a;
+  a << mkp (-4, 0) << mkp (4, 0) << mkp (0, 3);
+  curve c= parabola (a, array<path> (), false);
+  point v= c->evaluate (0.5);
+  CHECK (v == mkp (0, 1.5));
+  // 关于对称轴对称:0.5±x 两点 y 相同
+  point l= c->evaluate (0.4), r= c->evaluate (0.6);
+  CHECK (fabs (l[1] - r[1]) < 1e-9);
+}

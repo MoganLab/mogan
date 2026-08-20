@@ -104,17 +104,8 @@ is_modified_accessible (tree t, path p, bool activate, bool persistent) {
   }
 }
 
-static bool
-next_without_border (tree t, path p) {
-  return false;
-  // Assuming that t is a concat, check whether p does not correspond
-  // to an inaccessible border position
-  int i= p->item + 1;
-  if (i >= N (t)) return false;
-  if (is_compound (t[i]) && the_drd->is_child_enforcing (t[i]))
-    return p->next == end (t[p->item]);
-  return false;
-}
+// next_without_border 已被上游禁用(恒 false 的桩),其三处调用与
+// 函数体已一并移除;原始逻辑见 git 历史与本任务 devel/moebius.md
 
 static int
 lowest_accessible_child (tree t) {
@@ -162,8 +153,8 @@ is_accessible_cursor (tree t, path p) {
     return false;
   else switch (L (t)) {
     case CONCAT:
-      if (!is_accessible_cursor (t[p->item], p->next)) return false;
-      else return !next_without_border (t, p);
+      // next_without_border 已被上游禁用(恒 false),调用移除
+      return is_accessible_cursor (t[p->item], p->next);
     case ACTIVE:
       return is_modified_accessible (t, p, true, false);
     case VAR_ACTIVE:
@@ -248,7 +239,7 @@ closest_accessible (tree t, path p, int dir) {
         path r   = closest_accessible (t[j], sp2, sdir);
         if (!is_nil (r)) {
           r= path (j, r);
-          if (!is_concat (t) || !next_without_border (t, r)) {
+          if (!is_concat (t)) {
             if (the_drd->is_parent_enforcing (t) && !graphics_in_path (t, p) &&
                 !is_accessible_cursor (t, p)) {
               if (r->item == lowest_accessible_child (t)) return path (0);
@@ -336,7 +327,7 @@ valid_cursor (tree t, path p, bool start_flag) {
         p->next == end (t[p->item]))))
     return false;
   if (is_concat (t)) {
-    if (next_without_border (t, p)) return false;
+    // next_without_border 已被上游禁用(恒 false),调用移除
     return valid_cursor (t[p->item], p->next, start_flag || (p->item != 0));
   }
   if (is_mod_active_once (t)) return is_atomic (t[0]) || (!is_atom (p->next));
@@ -492,6 +483,14 @@ right_correct (tree t, path p) {
 
 static path
 keep_positive (path p) {
+  // 常见情况全为非负索引:原样返回,免去逐层递归重建
+  bool has_neg= false;
+  for (path q= p; !is_nil (q); q= q->next)
+    if (q->item < 0) {
+      has_neg= true;
+      break;
+    }
+  if (!has_neg) return p;
   if (is_nil (p)) return p;
   if (p->item < 0) return path ();
   return path (p->item, keep_positive (p->next));
@@ -520,8 +519,12 @@ start (tree t, path p) {
 path
 end (tree t, path p) {
   // cout << "End " << p << " in " << t << "\n";
-  if ((!is_nil (p)) && (arity (parent_subtree (t, p)) == 0)) return p;
-  return correct_cursor (t, p * right_index (subtree (t, p)));
+  if (is_nil (p)) return correct_cursor (t, path (right_index (t)));
+  // 父节点已下探取得,其第 last_item(p) 个孩子即 p 所指节点,
+  // 免去 subtree 的第二次全树下探
+  tree& par= parent_subtree (t, p);
+  if (N (par) == 0) return p;
+  return correct_cursor (t, p * right_index (par[last_item (p)]));
 }
 
 path

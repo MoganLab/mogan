@@ -38,6 +38,9 @@ using lolly::data::to_Hex;
 using moebius::drd::STD_CODE;
 using moebius::drd::std_contains;
 
+// 成段 memcpy 直写目标串(定义见 tmu_writer::write 前)
+static void append_run (string& tmp, const char* src, int len);
+
 using namespace moebius;
 
 /******************************************************************************
@@ -285,17 +288,21 @@ tmu_reader::skip_blank () {
 
 string
 tmu_reader::decode (string s) {
-  int    i, n= N (s);
-  string r;
+  // 普通字符成段 memcpy 直写,转义字符单独处理
+  int         i, n= N (s), run= 0;
+  string      r;
+  const char* raw= s.begin ();
   for (i= 0; i < n; i++)
     if (((i + 1) < n) && (s[i] == '\\')) {
+      append_run (r, raw + run, i - run);
       i++;
       if (s[i] == ';')
         ;
       else if (s[i] == '\\') r << '\\';
       else r << s[i];
+      run= i + 1;
     }
-    else r << s[i];
+  append_run (r, raw + run, n - run);
   return r;
 }
 
@@ -352,28 +359,40 @@ tmu_reader::read_next () {
   }
 
   string r;
-  pos= old_pos;
-  while (true) {
-    old_pos= pos;
-    c      = read_char ();
-    if (c == "") return r;
-    else if (c == "\\") {
-      if ((pos < buf_N) && (buf[pos] == '\\')) {
-        r << c << "\\";
-        pos++;
+  // 字节级扫描代替逐字符 read_char:普通字符成段一次追加,
+  // 转义 '\\' 逐字保留并连同后续一个 utf8 序列一起复制,
+  // 免去原文档加载热路径上每字符一次的子串分配
+  pos    = old_pos;
+  int run= pos;
+  while (pos < buf_N) {
+    char b= buf[pos];
+    if (b == '\t' || b == '\r' || b == '\n' || b == ' ' || b == '<' ||
+        b == '|' || b == '>')
+      break;
+    if (b == '\\') {
+      append_run (r, buf.begin () + run, pos - run);
+      // 行续接 "\<newline>" 由 read_char 语义跳过
+      if ((pos + 1 < buf_N) && (buf[pos + 1] == '\n')) {
+        pos+= 2;
+        skip_spaces (buf, pos);
+        run= pos;
+        continue;
       }
-      else r << c << read_char ();
+      r << b;
+      pos++;
+      if (pos >= buf_N) {
+        run= pos;
+        break;
+      }
+      int start= pos;
+      decode_from_utf8 (buf, pos);
+      append_run (r, buf.begin () + start, pos - start);
+      run= pos;
+      continue;
     }
-    else if (c == "\t") break;
-    else if (c == "\r") break;
-    else if (c == "\n") break;
-    else if (c == " ") break;
-    else if (c == "<") break;
-    else if (c == "|") break;
-    else if (c == ">") break;
-    else r << c;
+    decode_from_utf8 (buf, pos);
   }
-  pos= old_pos;
+  append_run (r, buf.begin () + run, pos - run);
   return r;
 }
 
@@ -402,12 +421,10 @@ get_collection (tree& u, tree t) {
 tree
 tmu_reader::read_apply (string name, bool skip_flag) {
   // cout << "Read apply " << name << INDENT << LF;
-  tree t (make_tree_label (name));
-  if (codes->contains (name)) {
-    // cout << "  " << name << " -> " << as_string ((tree_label) codes [name])
-    // << "\n";
-    t= tree ((tree_label) codes[name]);
-  }
+  // codes 命中时免去 make_tree_label 的构造与查表(与 read 同法)
+  tree t;
+  if (codes->contains (name)) t= tree ((tree_label) codes[name]);
+  else t= tree (make_tree_label (name));
 
   bool closed= !skip_flag;
   int  buf_N = N (buf);
@@ -511,12 +528,10 @@ tmu_reader::read (bool skip_flag) {
           C << read_apply (name, false);
         }
         else {
-          tree t (make_tree_label (name));
-          if (codes->contains (name)) {
-            // cout << name << " -> " << as_string ((tree_label) codes [name])
-            // << "\n";
-            t= tree ((tree_label) codes[name]);
-          }
+          // codes 命中时免去 make_tree_label 的构造与查表
+          tree t;
+          if (codes->contains (name)) t= tree ((tree_label) codes[name]);
+          else t= tree (make_tree_label (name));
           C << t;
         }
       }
@@ -593,8 +608,9 @@ tmu_writer::cr () {
   for (i= n - 1; i >= 0; i--)
     if ((buf[i] != ' ') || ((i > 0) && (buf[i - 1] == '\\'))) break;
   if (i < n - 1) {
-    buf= buf (0, i + 1);
-    n  = n - N (buf);
+    // 原地截断代替整段前缀拷贝:buf 由 writer 独占,rep 引用计数为 1
+    buf->resize (i + 1);
+    n= n - N (buf);
     for (i= 0; i < n; i++)
       buf << "\\ ";
   }
@@ -642,23 +658,44 @@ tmu_writer::write_return () {
   ret_flag= true;
 }
 
+// 普通字符成段直写 tmp(resize + memcpy,无子串分配),
+// 转义字符单独写入——逐字符 << 与逐字符下标写都有每次调用的额外开销
+static void
+append_run (string& tmp, const char* src, int len) {
+  if (len <= 0) return;
+  int old_n= N (tmp);
+  tmp->resize (old_n + len);
+  memcpy (tmp.begin () + old_n, src, len);
+}
+
 void
 tmu_writer::write (string s, bool flag, bool encode_space) {
   if (flag) {
-    int i, n= N (s);
+    int         i, n= N (s), run= 0;
+    bool        any= false; // 是否写入了实际字符(决定 spc/ret 标志)
+    const char* raw= s.begin ();
     for (i= 0; i < n; i++) {
       char c= s[i];
-      if ((c == ' ') && (!encode_space)) write_space ();
-      else {
-        if (c == ' ') tmp << "\\ ";
-        else if (c == '\\') tmp << "\\\\";
-        else if (c == '<') tmp << "\\<";
-        else if (c == '|') tmp << "\\|";
-        else if (c == '>') tmp << "\\>";
-        else tmp << c;
-        spc_flag= false;
-        ret_flag= false;
+      if ((c == ' ') && (!encode_space)) {
+        if (i > run) any= true;
+        append_run (tmp, raw + run, i - run);
+        run= i + 1;
+        write_space ();
       }
+      else if (c == ' ' || c == '\\' || c == '<' || c == '|' || c == '>') {
+        if (i > run) any= true;
+        append_run (tmp, raw + run, i - run);
+        tmp << "\\";
+        tmp << c;
+        any= true;
+        run= i + 1;
+      }
+    }
+    if (n > run) any= true;
+    append_run (tmp, raw + run, n - run);
+    if (any) {
+      spc_flag= false;
+      ret_flag= false;
     }
   }
   else {

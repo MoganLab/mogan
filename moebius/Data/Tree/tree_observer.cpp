@@ -246,9 +246,19 @@ raw_insert (tree& ref, int pos, tree t) {
   // cout << "Insert " << ref << " += " << t << " at " << pos << "\n";
   modification mod= mod_insert (path (), pos, t);
   if (!is_nil (ref->data)) ref->data->announce (ref, mod);
-  if (is_atomic (ref) && is_atomic (t))
-    ref->label=
-        ref->label (0, pos) * t->label * ref->label (pos, N (ref->label));
+  if (is_atomic (ref) && is_atomic (t)) {
+    // 单次分配拼接三段(memcpy 整段拷贝),免去两次切片
+    // 与两次拼接共四次字符串分配
+    string s  = ref->label;
+    string ins= t->label;
+    int    n= N (s), m= N (ins);
+    string r (pos + m + (n - pos));
+    char*  p= r.begin ();
+    memcpy (p, s.begin (), pos);
+    memcpy (p + pos, ins.begin (), m);
+    memcpy (p + pos + m, s.begin () + pos, n - pos);
+    ref->label= r;
+  }
   else {
     int n= N (ref), nr= N (t);
     // 块移动代替逐元素赋值：每个被移动孩子的引用计数加减一次都省去。
@@ -292,8 +302,16 @@ raw_remove (tree& ref, int pos, int nr) {
       else detach (ref[i], ref[pos + nr], false);
   }
 
-  if (is_atomic (ref))
-    ref->label= ref->label (0, pos) * ref->label (pos + nr, N (ref->label));
+  if (is_atomic (ref)) {
+    // 单次分配拼接保留段(memcpy 整段拷贝),免去两次切片与一次拼接
+    string s= ref->label;
+    int    n= N (s);
+    string r (pos + (n - pos - nr));
+    char*  p= r.begin ();
+    memcpy (p, s.begin (), pos);
+    memcpy (p + pos, s.begin () + pos + nr, n - pos - nr);
+    ref->label= r;
+  }
   else {
     int n= N (ref) - nr;
     // 先把被删孩子拷出（引用计数 +1，接管数组的所有权），memmove 尾部
@@ -323,10 +341,14 @@ raw_split (tree& ref, int pos, int at) {
     t1= ref[pos](0, at);
     t2= ref[pos](at, N (ref[pos]));
   }
-  int i, n= N (ref);
+  int n= N (ref);
+  // 块移动代替逐元素赋值：孩子句柄的引用计数随位移动转移，
+  // 洞里的 stale 位用 placement-new 默认句柄覆盖（不减计数），
+  // 随后被 t1/t2 的赋值语句正常接管
   AR (ref)->resize (n + 1);
-  for (i= n; i > (pos + 1); i--)
-    ref[i]= ref[i - 1];
+  tree* a= A (AR (ref));
+  memmove (a + pos + 2, a + pos + 1, (size_t) (n - pos - 1) * sizeof (tree));
+  new ((void*) (a + pos + 1)) tree ();
   ref[pos]    = t1;
   ref[pos + 1]= t2;
 
@@ -357,7 +379,16 @@ raw_join (tree& ref, int pos) {
   if (!is_nil (ref->data)) ref->data->announce (ref, mod);
   tree t1= ref[pos], t2= ref[pos + 1], t;
   int  offset= is_atomic (ref) ? N (t1->label) : N (t1);
-  if (is_atomic (t1) && is_atomic (t2)) t= t1->label * t2->label;
+  if (is_atomic (t1) && is_atomic (t2)) {
+    // 单次分配拼接两段(memcpy 整段拷贝),免去一次切片与一次拼接
+    string s1= t1->label, s2= t2->label;
+    int    n1= N (s1), n2= N (s2);
+    string r (n1 + n2);
+    char*  p= r.begin ();
+    memcpy (p, s1.begin (), n1);
+    memcpy (p + n1, s2.begin (), n2);
+    t= tree (r);
+  }
   else t= t1 * t2;
   if (!is_nil (ref->data)) ref->data->notify_join (ref, pos, t);
   if (!is_nil (t1->data)) {
@@ -370,9 +401,12 @@ raw_join (tree& ref, int pos) {
   }
   ref[pos]= t;
 
-  int i, n= N (ref) - 1;
-  for (i= pos + 1; i < n; i++)
-    ref[i]= ref[i + 1];
+  // 块移动代替逐元素赋值：[pos+2, n0) 下移一格，句柄所有权随位移动
+  // 转移；尾部 stale 重复位由 resize 截断直接丢弃（与 raw_remove 同法），
+  // 原 t1/t2 槽位的所有权由局部句柄 t1/t2 析构时释放
+  int   n0= N (ref), n= n0 - 1;
+  tree* a= A (AR (ref));
+  memmove (a + pos + 1, a + pos + 2, (size_t) (n0 - pos - 2) * sizeof (tree));
   AR (ref)->resize (n);
   if (!is_nil (ref->data)) ref->data->done (ref, mod);
   // stretched_print (ref, true, 1);
