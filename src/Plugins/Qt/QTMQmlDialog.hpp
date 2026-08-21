@@ -249,4 +249,23 @@ void cpp_updater_dialog_open (string message);
  */
 void cpp_updater_dialog_close ();
 
+/**
+ * @brief QML 调色板弹窗的 glue 入口。
+ * @param title 弹窗标题（已翻译）。
+ * @param proposals 预设颜色列表，每项为颜色字符串 tree（如 "#ff0000"
+ * 或命名颜色）。
+ * @param pickPattern 是否用于选择图案/背景（当前保留参数，与旧 widget
+ * 语义一致）。
+ * @return 用户确认返回 `(tuple "#rrggbb")`；取消 / 关闭 / 加载失败返回空
+ * tuple。
+ * @details 走 run_qml_dialog（exec 阻塞模态，无需 live 写回）。ColorPicker.qml
+ * 提供 色相/饱和度/明度面板、HSV/RGB/HEX 数值输入、基础色块、自定义颜色
+ * （16 格增删，OK 时经 preference 跨会话持久化）与屏幕取色，对齐原生
+ * QColorDialog 的功能集。调用方（qt_color_picker_widget）取 sel[0] 作颜色
+ * 字符串回调 scheme。
+ * @note 测试钩子 MOGAN_TEST_COLOR_PICKER=<hex>|cancel 命中时不弹窗。
+ */
+tree cpp_color_picker_dialog (string title, array<tree> proposals,
+                              bool pickPattern);
+
 #endif // defined QTM_QML_DIALOG_H

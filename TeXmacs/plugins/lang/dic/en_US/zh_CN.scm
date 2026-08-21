@@ -283,6 +283,7 @@
 ("add style package" "增加宏包")
 ("add switch after" "")
 ("add switch before" "")
+("add to custom colors" "添加到自定义颜色")
 ("add" "新增")
 ("address block" "地址栏")
 ("address" "地址")
@@ -413,6 +414,7 @@
 ("base" "基线")
 ("baseline" "基线")
 ("bashkirian" "巴什基尔语")
+("basic colors" "基本颜色")
 ("basic communication using pipes" "基本管道通信")
 ("basic data types" "基本数据类型")
 ("basic types" "基本型态")
@@ -672,6 +674,10 @@
 ("curve points" "曲线点")
 ("curve" "曲线")
 ("custom" "自定义")
+("custom colors" "自定义颜色")
+("custom colors are full, delete one first"
+  "自定义颜色已满，请先删除一个颜色"
+) ;
 ("custom tab" "自定义制表符")
 ("custom tab" "自定义制表符")
 ("customizations" "定制")
@@ -723,6 +729,7 @@
 ("definition" "定义")
 ("delete column" "删除此行")
 ("delete documentation cache" "删除文档缓存")
+("delete custom color" "删除自定义颜色")
 ("delete row" "删除此列")
 ("delete" "删除")
 ("deleted" "删除")
@@ -1996,6 +2003,7 @@
 ("philosophy" "哲学")
 ("phoenician" "")
 ("phonetic" "")
+("pick screen color" "拾取屏幕颜色")
 ("picture" "图片")
 ("pictures" "图片")
 ("pink" "粉红")
