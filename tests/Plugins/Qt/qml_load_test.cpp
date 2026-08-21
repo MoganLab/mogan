@@ -15,8 +15,10 @@
 
 #include "base.hpp"
 
+#include "Qt/QTMQmlDialog.hpp"       // cpp_version_dialog
 #include "Qt/QTMQmlDialogBridge.hpp" // QmlDialogEscFilter
 
+#include <QApplication>
 #include <QDialog>
 #include <QObject>
 #include <QQmlContext>
@@ -413,25 +415,34 @@ TestQmlLoad::test_version_loads () {
 
 void
 TestQmlLoad::test_version_dialog_focuses_on_open () {
-  // 0927：帮助->版本弹窗打开后须自动聚焦到 QML 场景，ESC/Enter 才能走 QML
-  // 正常链路（DialogShell.focus/Keys.onEscapePressed）。这里用与实际引擎
-  // 相同的无边框 Qt::Tool 宿主，并延迟到窗口显示后再 setFocus，模拟修复后
-  // 的真实路径。
-  QDialog       host (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
-  QQuickWidget* qw         = new QQuickWidget (&host);
-  StubBridge*   close      = new StubBridge (qw);
-  VersionStubBridge* bridge= new VersionStubBridge (qw);
-  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  qw->rootContext ()->setContextProperty ("closeBridge", close);
-  qw->rootContext ()->setContextProperty ("versionBridge", bridge);
-  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-  qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->setSource (QUrl ("qrc:/qml/Version.qml"));
-  QCOMPARE (qw->status (), QQuickWidget::Ready);
-  qw->setFocusPolicy (Qt::StrongFocus);
-  QTimer::singleShot (0, qw, [qw] () { qw->setFocus (); });
-  host.show ();
-  QTRY_VERIFY (qw->rootObject ()->hasActiveFocus ());
+  // 0927：必须经真实 run_qml_dialog + exec() 路径验证。弹窗显示后检查 QML
+  // 场景焦点并发 ESC，确认正常 QML 取消链路生效。
+  bool sawDialog= false;
+  bool hadFocus = false;
+  bool sentEscape= false;
+  QTimer::singleShot (200, [&] () {
+    for (QWidget* topLevel : QApplication::topLevelWidgets ())
+      if (topLevel->objectName () == "QTMQmlDialog") {
+        sawDialog= true;
+        QQuickWidget* qw= topLevel->findChild<QQuickWidget*> ();
+        hadFocus        = qw && qw->rootObject ()->hasActiveFocus ();
+        if (qw) {
+          QTest::keyClick (qw, Qt::Key_Escape);
+          sentEscape= true;
+        }
+        return;
+      }
+  });
+  // 运行时加载失败等异常不能让测试遗留一个阻塞模态窗口。
+  QTimer::singleShot (2000, [] () {
+    for (QWidget* topLevel : QApplication::topLevelWidgets ())
+      if (topLevel->objectName () == "QTMQmlDialog")
+        static_cast<QDialog*> (topLevel)->reject ();
+  });
+  QVERIFY (!cpp_version_dialog ("Version", "Version information"));
+  QVERIFY (sawDialog);
+  QVERIFY (hadFocus);
+  QVERIFY (sentEscape);
 }
 
 void
