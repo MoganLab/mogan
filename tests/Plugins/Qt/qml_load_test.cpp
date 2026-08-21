@@ -417,13 +417,13 @@ void
 TestQmlLoad::test_version_dialog_focuses_on_open () {
   // 0927：必须经真实 run_qml_dialog + exec() 路径验证。弹窗显示后检查 QML
   // 场景焦点并发 ESC，确认正常 QML 取消链路生效。
-  bool sawDialog= false;
-  bool hadFocus = false;
+  bool sawDialog = false;
+  bool hadFocus  = false;
   bool sentEscape= false;
   QTimer::singleShot (200, [&] () {
     for (QWidget* topLevel : QApplication::topLevelWidgets ())
       if (topLevel->objectName () == "QTMQmlDialog") {
-        sawDialog= true;
+        sawDialog       = true;
         QQuickWidget* qw= topLevel->findChild<QQuickWidget*> ();
         hadFocus        = qw && qw->rootObject ()->hasActiveFocus ();
         if (qw) {
