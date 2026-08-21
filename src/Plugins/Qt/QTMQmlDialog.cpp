@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "QTMQmlDialog.hpp"
+#include "ColorPickerBridge.hpp"
 #include "FontSelectorBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
 #include "PreferencesBridge.hpp"
@@ -15,8 +16,9 @@
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
 
-#include "analyze.hpp" // occurs
-#include "gui.hpp"     // tm_style_sheet
+#include "analyze.hpp"     // occurs
+#include "gui.hpp"         // tm_style_sheet
+#include "preferences.hpp" // get_preference / set_preference
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"     // eval_scheme
 #include "sys_utils.hpp" // lolly: get_env
@@ -689,4 +691,90 @@ cpp_preferences_dialog () {
       620, 600);
   delete bridge;
   return tree (TUPLE);
+}
+
+/**
+ * @brief QML 调色板弹窗的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，无需 live 写回）。ColorPicker.qml
+ * 提供色相/饱和度/明度面板、HSV/RGB/HEX 数值输入、基础色块、自定义颜色
+ * （跨会话持久化）与屏幕取色。自定义颜色经 preference "color picker custom
+ * colors"（空格分隔 hex 列表）读写。测试钩子 MOGAN_TEST_COLOR_PICKER=
+ * <hex>|cancel 命中时不弹窗。
+ */
+tree
+cpp_color_picker_dialog (string title, array<tree> proposals,
+                         bool pickPattern) {
+  string preset= get_env ("MOGAN_TEST_COLOR_PICKER");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset != "") {
+    // 测试钩子：与真实路径同构，返回 (tuple "#rrggbb")；支持无 # 前缀的 hex。
+    string hex= preset;
+    if (hex[0] != '#') hex= string ("#") * hex;
+    tree r (TUPLE);
+    r << tree (hex);
+    return r;
+  }
+
+  QStringList qmlProposals;
+  QString     initColor ("#ffffff");
+  for (int i= 0; i < N (proposals); i++) {
+    if (is_atomic (proposals[i])) {
+      QString col= to_qstring (get_label (proposals[i]));
+      qmlProposals << col;
+      if (i == 0) initColor= col;
+    }
+  }
+
+  // 自定义颜色跨会话持久化：空格分隔 hex 列表存于 preference。
+  const string CUSTOM_PREF = "color picker custom colors";
+  QStringList  customColors= to_qstring (get_preference (CUSTOM_PREF, ""))
+                                .split (' ', Qt::SkipEmptyParts);
+
+  // 段标题与按钮文案在 cpp 侧 qt_translate（同 translate_buttons 惯例）。
+  QVariantMap labels;
+  labels["basicColors"] = qt_translate ("Basic colors");
+  labels["customColors"]= qt_translate ("Custom colors");
+  labels["addToCustom"] = qt_translate ("Add to custom colors");
+  labels["deleteCustom"]= qt_translate ("Delete custom color");
+  labels["customFull"]=
+      qt_translate ("Custom colors are full, delete one first");
+  labels["pickScreenColor"]= qt_translate ("Pick screen color");
+
+  array<string>    buttons= {string ("OK"), string ("Cancel")};
+  QmlDialogBridge* bridge = nullptr;
+  run_qml_dialog (
+      "qrc:/qml/ColorPicker.qml", "ColorPicker.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge                     = inject_common_context (qw, host);
+        ColorPickerBridge* cpBridge= new ColorPickerBridge ();
+        qw->rootContext ()->setContextProperty ("colorBridge", cpBridge);
+        QObject::connect (&host, &QDialog::destroyed, cpBridge,
+                          &QObject::deleteLater);
+        qw->rootContext ()->setContextProperty ("pickerTitleProp",
+                                                to_qstring (title));
+        qw->rootContext ()->setContextProperty ("proposalsProp", qmlProposals);
+        qw->rootContext ()->setContextProperty ("pickPatternProp", pickPattern);
+        qw->rootContext ()->setContextProperty ("initialColorProp", initColor);
+        qw->rootContext ()->setContextProperty ("customColorsProp",
+                                                customColors);
+        qw->rootContext ()->setContextProperty ("labelsProp", labels);
+        qw->rootContext ()->setContextProperty ("dialogButtonsProp",
+                                                translate_buttons (buttons));
+      },
+      560, 720);
+
+  tree               r (TUPLE);
+  const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();
+  delete bridge;
+  if (res.contains ("color")) {
+    QString col= res.value ("color").toString ();
+    if (col.length () > 0) r << tree (from_qstring (col));
+    // OK 时把自定义颜色写回 preference；Cancel 不持久化。
+    if (res.contains ("customColors")) {
+      QString joined= res.value ("customColors").toStringList ().join (' ');
+      set_preference (CUSTOM_PREF, from_qstring (joined));
+    }
+  }
+  return r;
 }

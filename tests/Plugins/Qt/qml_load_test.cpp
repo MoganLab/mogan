@@ -40,6 +40,14 @@ public:
   Q_INVOKABLE void startMove () {}
 };
 
+// ColorPicker 的 colorBridge 占位：pickScreenColor 返回空串（不取色）。
+class ColorStubBridge : public QObject {
+  Q_OBJECT
+public:
+  explicit ColorStubBridge (QObject* p= nullptr) : QObject (p) {}
+  Q_INVOKABLE QString pickScreenColor () { return QString (); }
+};
+
 class VersionStubBridge : public QObject {
   Q_OBJECT
   Q_PROPERTY (QString title READ title CONSTANT)
@@ -213,6 +221,7 @@ private slots:
   void test_version_escape_fallback_without_focus ();
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
+  void test_color_picker_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -486,6 +495,41 @@ TestQmlLoad::test_version_long_line_wraps () {
     }
   QVERIFY (line);
   QTRY_VERIFY (line->height () > 40.0); // 单行 14*1.35≈19，换行后显著更高
+}
+
+void
+TestQmlLoad::test_color_picker_loads () {
+  // ColorPicker 顶层读取 pickerTitleProp / proposalsProp / pickPatternProp /
+  // initialColorProp / customColorsProp / labelsProp / dialogButtonsProp /
+  // colorBridge，注入最小占位保证文档实例化。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge*      bridge  = new StubBridge (qw);
+  ColorStubBridge* cpBridge= new ColorStubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("colorBridge", cpBridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("pickerTitleProp",
+                                          QString ("Choose color"));
+  qw->rootContext ()->setContextProperty (
+      "proposalsProp", QStringList ({"#ff0000", "#00ff00", "#0000ff"}));
+  qw->rootContext ()->setContextProperty ("pickPatternProp", false);
+  qw->rootContext ()->setContextProperty ("initialColorProp",
+                                          QString ("#ff0000"));
+  qw->rootContext ()->setContextProperty ("customColorsProp",
+                                          QStringList ({"#123456"}));
+  QVariantMap labels;
+  labels["basicColors"]    = QString ("Basic colors");
+  labels["customColors"]   = QString ("Custom colors");
+  labels["addToCustom"]    = QString ("Add to custom colors");
+  labels["pickScreenColor"]= QString ("Pick screen color");
+  qw->rootContext ()->setContextProperty ("labelsProp", labels);
+  qw->rootContext ()->setContextProperty ("dialogButtonsProp",
+                                          QStringList ({"OK", "Cancel"}));
+  qw->setSource (QUrl ("qrc:/qml/ColorPicker.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 QTEST_MAIN (TestQmlLoad)

@@ -995,6 +995,7 @@
       <button class="nav-btn" data-target="version">Version.qml</button>
       <button class="nav-btn" data-target="preferences">Preferences.qml</button>
       <button class="nav-btn" data-target="confirmRestart">ConfirmRestart.qml</button>
+      <button class="nav-btn" data-target="colorPicker">ColorPicker.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
 
@@ -1624,6 +1625,58 @@
         </p>
       </section>
 
+      <section class="panel" id="panel-colorpicker">
+        <div class="cards">
+          <article class="confirm-shell" style="width:520px; text-align:left;">
+            <h3 style="margin-top:0;">Choose color</h3>
+            <div style="display:flex; gap:14px;">
+              <div style="flex:1;">
+                <div style="height:170px; border-radius:6px; background:linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, #f0f);"></div>
+                <div style="height:16px; margin-top:10px; border-radius:4px; background:linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);"></div>
+              </div>
+              <div style="width:120px; display:flex; flex-direction:column; gap:6px; font-size:11px; color:#666;">
+                <div style="height:32px; border-radius:6px; background:#b420b4;"></div>
+                HEX <input value="#b420b4" style="width:100%; box-sizing:border-box;">
+                R <input value="180" style="width:100%; box-sizing:border-box;">
+                G <input value="32" style="width:100%; box-sizing:border-box;">
+                B <input value="180" style="width:100%; box-sizing:border-box;">
+                H <input value="299" style="width:100%; box-sizing:border-box;">
+                S <input value="82" style="width:100%; box-sizing:border-box;">
+                V <input value="71" style="width:100%; box-sizing:border-box;">
+              </div>
+            </div>
+            <p style="font-size:11px; color:#666; margin:12px 0 4px;">基本颜色</p>
+            <div style="display:grid; grid-template-columns:repeat(10, 1fr); gap:5px;">
+              <div style="aspect-ratio:1; border-radius:3px; background:#000;"></div><div style="aspect-ratio:1; border-radius:3px; background:#434343;"></div><div style="aspect-ratio:1; border-radius:3px; background:#666;"></div><div style="aspect-ratio:1; border-radius:3px; background:#999;"></div><div style="aspect-ratio:1; border-radius:3px; background:#b7b7b7;"></div><div style="aspect-ratio:1; border-radius:3px; background:#980000;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f00;"></div><div style="aspect-ratio:1; border-radius:3px; background:#ff9900;"></div><div style="aspect-ratio:1; border-radius:3px; background:#ff0;"></div><div style="aspect-ratio:1; border-radius:3px; background:#0f0;"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:#0ff;"></div><div style="aspect-ratio:1; border-radius:3px; background:#4a86e8;"></div><div style="aspect-ratio:1; border-radius:3px; background:#00f;"></div><div style="aspect-ratio:1; border-radius:3px; background:#9900ff;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f0f;"></div><div style="aspect-ratio:1; border-radius:3px; background:#e6b8af;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f4cccc;"></div><div style="aspect-ratio:1; border-radius:3px; background:#fce5cd;"></div><div style="aspect-ratio:1; border-radius:3px; background:#fff2cc;"></div><div style="aspect-ratio:1; border-radius:3px; background:#d9ead3;"></div>
+            </div>
+            <p style="font-size:11px; color:#666; margin:12px 0 4px;">自定义颜色</p>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div style="flex:1; display:grid; grid-template-columns:repeat(8, 1fr); gap:5px;">
+                <div style="aspect-ratio:1; border-radius:3px; background:#b420b4;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <button class="btn" data-log="ColorPicker: 添加到自定义颜色（满 16 格拒绝并提示）">添加到自定义颜色</button>
+                <button class="btn" data-log="ColorPicker: 删除选中的自定义颜色">删除自定义颜色</button>
+              </div>
+            </div>
+            <div style="margin-top:10px;">
+              <button class="btn" data-log="ColorPicker: 屏幕取色（colorBridge.pickScreenColor）">拾取屏幕颜色</button>
+            </div>
+            <div class="btn-row" style="margin-top:14px;">
+              <button class="btn primary" data-log="ColorPicker: OK -> submit({color, customColors})">确定</button>
+              <button class="btn" data-log="ColorPicker: Cancel -> closeBridge.cancel()">取消</button>
+            </div>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>pickerTitleProp + proposalsProp + customColorsProp + labelsProp</code>
+          <code>OK -> closeBridge.submit({color: "#rrggbb", customColors})</code>
+          <code>屏幕取色走 ColorPickerBridge（抓屏 overlay 点选，Esc 取消）</code>
+          自定义颜色 16 格，OK 时经 preference 持久化；满格拒绝添加并显示提示行。
+        </p>
+      </section>
+
 
     </main>
   </div>
@@ -1639,7 +1692,8 @@
         statistics: document.getElementById('panel-statistics'),
         version: document.getElementById('panel-version'),
         preferences: document.getElementById('panel-preferences'),
-        confirmRestart: document.getElementById('panel-confirm-restart')
+        confirmRestart: document.getElementById('panel-confirm-restart'),
+        colorPicker: document.getElementById('panel-colorpicker')
       };
 
       const titleMap = {
@@ -1650,7 +1704,8 @@
         paragraph: 'ParagraphFormat.qml 模拟',
         statistics: 'Statistics.qml 模拟',
         preferences: 'Preferences.qml 模拟',
-        confirmRestart: 'ConfirmRestart.qml 模拟'
+        confirmRestart: 'ConfirmRestart.qml 模拟',
+        colorPicker: 'ColorPicker.qml 模拟'
       };
 
       const codeMap = {
@@ -1661,7 +1716,8 @@
         paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回',
         statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
         preferences: 'prefTabs(5) + subTabs(6) + EnumCombo + Toggle + 纯 OK 提交',
-        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)'
+        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)',
+        colorPicker: 'pickerTitleProp + proposals + customColors + submit({color, customColors})'
       };
 
       const viewTitle = document.getElementById('view-title');
