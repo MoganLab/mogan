@@ -244,10 +244,24 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
   qw->setFocusPolicy (Qt::StrongFocus);
   d.setFocusProxy (qw);
   d.installEventFilter (new QmlDialogFocusFilter (&d, qw, &d));
-  QTimer::singleShot (0, &d, [&d, qw] () {
-    d.activateWindow ();
-    focus_qml_dialog (d, qw);
-  });
+  // 各平台窗口激活时机不同：macOS 首次弹无边框 Qt::Tool 时 key window 切换
+  // 可能晚于事件循环首个节拍，单次 setFocus 落空后焦点留在主窗口，ESC 被
+  // 主窗口吞掉（0927）。每 50ms 重试，QML 根项拿到 activeFocus 即停，上限
+  // 20 次（1s）防极端环境下空转。
+  QTimer* focusRetry= new QTimer (&d);
+  focusRetry->setInterval (50);
+  QObject::connect (focusRetry, &QTimer::timeout, &d,
+                    [&d, qw, focusRetry, attempts= 0] () mutable {
+                      if (qw->rootObject () &&
+                          qw->rootObject ()->hasActiveFocus ()) {
+                        focusRetry->stop ();
+                        return;
+                      }
+                      d.activateWindow ();
+                      focus_qml_dialog (d, qw);
+                      if (++attempts >= 20) focusRetry->stop ();
+                    });
+  focusRetry->start ();
   // QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉（不投递、
   // 不传播给 QDialog::reject），装兜底过滤器保证 ESC 总能关闭弹窗（0925）。
   // Windows 下无边框 Qt::Tool 焦点常落到宿主 QDialog 而非 QQuickWidget，故
