@@ -497,13 +497,17 @@ DialogShell {
                 anchors.verticalCenter: parent.verticalCenter
 
                 MiniButton {
+                    id: addBtn
                     size: "normal"
+                    width: Math.max(addBtn.implicitWidth, delBtn.implicitWidth)
                     text: root.labels.addToCustom !== undefined ? root.labels.addToCustom : "Add to custom colors"
                     onClicked: root.addToCustomColors()
                 }
 
                 MiniButton {
+                    id: delBtn
                     size: "normal"
+                    width: Math.max(addBtn.implicitWidth, delBtn.implicitWidth)
                     text: root.labels.deleteCustom !== undefined ? root.labels.deleteCustom : "Delete custom color"
                     opacity: root.selectedCustomIndex >= 0 ? 1.0 : 0.5
                     onClicked: root.deleteCustomColor()

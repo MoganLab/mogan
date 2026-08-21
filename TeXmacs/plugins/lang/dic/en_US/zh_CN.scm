@@ -541,6 +541,8 @@
 ("chinese character" "中文字符")
 ("chinese" "中文")
 ("choice" "选择")
+("choose background" "选择背景")
+("choose color" "选择颜色")
 ("Choose source directory" "选择源目录")
 ("Choose destination directory" "选择目标目录")
 ("Choose binary file" "选择可执行文件")
