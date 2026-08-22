@@ -744,7 +744,7 @@
 ("div" "")
 ("do not remap" "")
 ("Do not show me in 1 day" "1 天内不再显示")
-("Do not show me in 3 days" "3 天内不再显示")
+("Do not show me in 7 days" "7 天内不再显示")
 ("document font selector" "文档字体选择器")
 ("document format" "文档格式")
 ("document language" "文档语言")

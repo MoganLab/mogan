@@ -425,7 +425,7 @@
   (with item
     notification-bar-last-rendered-item
     (cond ((== item "membership-renew-soon") (translate "Do not show me in 1 day"))
-          ((== item "membership") (translate "Do not show me in 3 days"))
+          ((== item "membership") (translate "Do not show me in 7 days"))
           (else "")
     ) ;cond
   ) ;with
