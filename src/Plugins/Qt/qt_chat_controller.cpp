@@ -217,6 +217,12 @@ ChatController::onSendRequested (const string& sessionId) {
     }
   }
 
+  // 必须在 scheme 发送之前创建消息编辑器：texmacs_input_widget 对已存在
+  // buffer 会 set_buffer_tree 整体覆盖，若放在 chat-tab-send 之后，scheme
+  // 侧记录的输出节点指针会指向被替换的旧树，导致首轮 %chat 回显漏出到
+  // session 文档末尾（devel/1230.md）
+  panel->ensureMessageWidget ();
+
   if (!as_bool (
           call ("chat-tab-send", sessionId, session->model,
                 session->thinking ? string ("enabled") : string ("disabled"),
