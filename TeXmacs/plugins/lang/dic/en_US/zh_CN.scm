@@ -2165,7 +2165,7 @@
 ("remove" "删除")
 ("rename" "重命名")
 ("rendering options for tag" "局部设置")
-("Register now and receive a 7-day membership." "注册即送7天会员")
+("Register now and receive a 3-day membership." "注册即送3天会员")
 ("Renew" "续费")
 ("Renew Early" "提前续费")
 ("Renew Now" "续费会员")
