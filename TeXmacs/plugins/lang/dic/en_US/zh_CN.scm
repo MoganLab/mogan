@@ -744,7 +744,7 @@
 ("div" "")
 ("do not remap" "")
 ("Do not show me in 1 day" "1 天内不再显示")
-("Do not show me in 7 days" "7 天内不再显示")
+("Do not show me in 3 days" "3 天内不再显示")
 ("document font selector" "文档字体选择器")
 ("document format" "文档格式")
 ("document language" "文档语言")
@@ -2617,8 +2617,8 @@
 ("Sign In" "去登录")
 ("Sign in to start using OCR." "登录后即可开始使用 OCR 识别。")
 ("Sign in to use OCR" "登录后即可使用 OCR 识别")
-("Sign up now and get 7 days of membership for free!"
-  "现在注册还送7天会员资格！"
+("Sign up now and get 3 days of membership for free!"
+  "现在注册还送3天会员资格！"
 ) ;
 ("The OCR feature requires an internet connection to use..."
   "OCR功能需要连接网络才能使用..."
@@ -2948,8 +2948,8 @@
 ("Your membership has expired. Renew to continue using AI, MathOCR, and other member features"
   "会员已到期，续费后可继续使用 AI、MathOCR 等会员功能"
 ) ;
-("Your membership will expire within 7 days. Renew early for more savings"
-  "会员将在 7 天内到期，提前续费享更多优惠"
+("Your membership will expire within 3 days. Renew early for more savings"
+  "会员将在 3 天内到期，提前续费享更多优惠"
 ) ;
 ("zigzag" "之字形")
 ("zoom factor" "缩放比例")

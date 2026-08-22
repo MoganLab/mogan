@@ -411,7 +411,7 @@
 ) ;tm-define
 
 (tm-define (notification-bar-membership-renew-soon-message)
-  (translate "Your membership will expire within 7 days. Renew early for more savings"
+  (translate "Your membership will expire within 3 days. Renew early for more savings"
   ) ;translate
 ) ;tm-define
 
@@ -425,7 +425,7 @@
   (with item
     notification-bar-last-rendered-item
     (cond ((== item "membership-renew-soon") (translate "Do not show me in 1 day"))
-          ((== item "membership") (translate "Do not show me in 7 days"))
+          ((== item "membership") (translate "Do not show me in 3 days"))
           (else "")
     ) ;cond
   ) ;with
