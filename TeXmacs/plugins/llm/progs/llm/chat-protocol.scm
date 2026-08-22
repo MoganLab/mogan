@@ -408,6 +408,15 @@
             ) ;
         ;; 延迟初始化：首次发送时设置 session body 并加载样式包
         (let ((plugin-ses (string-append "chat-tab:" session-id)))
+          ;; 消息编辑器懒创建（#4258）后，新会话首次发送时 message buffer
+          ;; 既不存在也无 view：with-buffer 经 buffer-focus 切视图，任一
+          ;; 不满足都会短路返回 #f，初始化代码因此永不执行。
+          ;; 先 buffer-set-body 直接建 buffer（不得用 view-passive 单独建，
+          ;; 其内部 buffer_load 对 tmfs://chat/* 会产出 Invalid tmfs
+          ;; document 错误文档），再 view-passive 补挂 passive view。
+          (when (not (buffer-exists? msg-buf))
+            (buffer-set-body msg-buf '(document "")))
+          (view-passive msg-buf)
           (with-buffer msg-buf
             (let ((msg-body (buffer-get-body msg-buf)))
               (when (chat-tab-buffer-empty? msg-body)
