@@ -415,7 +415,8 @@
           ;; 其内部 buffer_load 对 tmfs://chat/* 会产出 Invalid tmfs
           ;; document 错误文档），再 view-passive 补挂 passive view。
           (when (not (buffer-exists? msg-buf))
-            (buffer-set-body msg-buf '(document "")))
+            (buffer-set-body msg-buf '(document ""))
+          ) ;when
           (view-passive msg-buf)
           (with-buffer msg-buf
             (let ((msg-body (buffer-get-body msg-buf)))
