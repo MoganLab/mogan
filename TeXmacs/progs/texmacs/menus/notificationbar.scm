@@ -411,7 +411,7 @@
 ) ;tm-define
 
 (tm-define (notification-bar-membership-renew-soon-message)
-  (translate "Your membership will expire within 3 days. Renew early for more savings"
+  (translate "Your membership will expire within 7 days. Renew early for more savings"
   ) ;translate
 ) ;tm-define
 
