@@ -466,40 +466,19 @@
 ) ;tm-define
 
 ;; 只看上方：最近的同级标题是无编号变体时插无编号变体，否则插有编号的
-
-(define (heading-tier-tree? tags t)
-  (tree-in? t tags)
-) ;define
-
-(define (nearest-above-path p heading-paths)
-  ;; 光标就在某个标题块内部时其路径是光标路径的前缀，自然归入上方
-  (let ((above (filter (cut path-less? <> p) heading-paths)))
-    (if (null? above)
-      #f
-      (let loop
-        ((best (car above)) (rest (cdr above)))
-        (if (null? rest)
-          best
-          (loop (if (path-less? best (car rest)) (car rest) best) (cdr rest))
-        ) ;if
-      ) ;let
-    ) ;if
-  ) ;let
-) ;define
+;; 查找复用结构化跳转的 path-previous-tag，不用 path-less?（其长度不等时的
+;; atom 特例使它不是全序，会挑错"最近"）；move_tag 找不到时返回原路径，故
+;; 直接比较 label，不是 star 就按有编号处理
 
 (tm-define (smart-insert-heading l)
   (:require (not (selection-active-non-small?)))
-  (with p
-    (cursor-path)
-    (let* ((star (string->symbol (string-append (symbol->string l) "*")))
-           (tags (list l star))
-           (heading-paths (map tree->path (tree-search (root-tree) (cut heading-tier-tree? tags <>)))
-           ) ;heading-paths
-           (above (nearest-above-path p heading-paths))
-           (lab (and above (tree-label (path->tree above))))
-          ) ;
+  (with star
+    (string->symbol (string-append (symbol->string l) "*"))
+    (with lab
+      (tree-label (path->tree (path-previous-tag (root-tree) (cursor-path) (list l star)))
+      ) ;tree-label
       (make-section (if (== lab star) star l))
-    ) ;let*
+    ) ;with
   ) ;with
 ) ;tm-define
 
