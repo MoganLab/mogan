@@ -30,9 +30,10 @@ package("libcurl")
     -- we init all configurations in on_load, because package("curl") need it.
     on_load(function (package)
         if package:is_plat("linux", "android", "cross") then
-            -- if no TLS backend has been enabled nor disabled, enable openssl by default
+            -- curl 8.21 起要求 OpenSSL >= 3.0（lib/vtls/openssl.c 硬 #error），
+            -- 默认启用 openssl3，不要回退到 openssl（xmake-repo 的 openssl 是 1.1.1-w）
             if package:config("openssl") == nil and package:config("openssl3") == nil and package:config("mbedtls") == nil then
-                package:config_set("openssl", true)
+                package:config_set("openssl3", true)
             end
         end
 

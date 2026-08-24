@@ -74,7 +74,9 @@ elseif is_config("malloc", "jemalloc") then
 end
 
 if not is_plat("wasm") then
-    add_requires("cpr")
+    -- 必须与 mogan xmake/requires.lua 的 cpr 声明完全一致（同名 require 会合并），
+    -- 裸声明会把 ssl 重置回默认值 false，HTTPS 不可用（见 devel/2092.md）
+    add_requires("cpr", {system=false, configs={ssl=true}})
 end
 
 

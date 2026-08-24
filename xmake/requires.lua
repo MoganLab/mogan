@@ -15,18 +15,20 @@ if is_plat ("windows") then
 end
 
 add_requires("libjpeg")
--- apt系统用系统包，其他发行版用源码构建
+-- libpng：apt系统用系统包，其他发行版用源码构建
 if is_plat("linux") and (linuxos.name() == "ubuntu" or linuxos.name() == "debian" or linuxos.name() == "uos") then
     add_requires("apt::libpng-dev", {alias="libpng"})
-    add_requires("apt::libcurl4-openssl-dev", {alias="libcurl"})
 elseif is_plat("linux") and (linuxos.name() == "fedora" or linuxos.name() == "rhel" or linuxos.name() == "centos" or linuxos.name() == "rocky" or linuxos.name() == "almalinux" or linuxos.name() == "ol") then
     add_requires("libpng", {system=true})
-    add_requires("libcurl", {system=true})
 else
     add_requires("libpng", {system=false})
-    if not is_plat("wasm") then
-        add_requires("libcurl", {system=false})
-    end
+end
+-- libcurl：全平台统一用仓库内 3rdparty/curl-8.21.0 源码构建（xmake/packages/l/libcurl）。
+-- 不能用系统 libcurl：cpr(ssl=true) 会同时链入 xmake 的静态 openssl 1.1.1，其导出
+-- 符号被系统 libcurl 依赖的动态 OpenSSL 3 调用时 ABI 不匹配，HTTPS 直接段错误
+-- （见 devel/2092.md）。
+if not is_plat("wasm") then
+    add_requires("libcurl", {system=false})
 end
 if not is_plat("wasm") then
     -- cpr 默认 ssl=false，会导致 goldfish 的 libcurl 完全无法发起 HTTPS 请求
