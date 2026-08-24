@@ -465,6 +465,48 @@
   (make-section-aux l #f)
 ) ;tm-define
 
+(define (section-tier-label? l)
+  (in? l '(section section*))
+) ;define
+
+;; 从 idx 沿 step 方向扫描文档顶层，返回最近同级 section 标签，找不到返回 #f
+
+(define (scan-section-tier root idx step)
+  (cond ((< idx 0) #f)
+        ((>= idx (tree-arity root)) #f)
+        ((section-tier-label? (tree-label (tree-ref root idx)))
+         (tree-label (tree-ref root idx))
+        ) ;
+        (else (scan-section-tier root (+ idx step) step))
+  ) ;cond
+) ;define
+
+;; 上下最近同级标题（缺省的一侧跳过）都无编号时，插入 section*
+(tm-define (smart-insert-section)
+  (:require (not (selection-active-non-small?)))
+  (with p
+    (cursor-path)
+    (let* ((root (root-tree))
+           (i (if (null? p) 0 (car p)))
+           ;; 光标就在某个 section 块内部时，该块本身算作上方最近的同级标题
+           (inside (and (> (length p) 1)
+                     (< i (tree-arity root))
+                     (section-tier-label? (tree-label (tree-ref root i)))
+                   ) ;and
+           ) ;inside
+           (up (scan-section-tier root (if inside i (- i 1)) -1))
+           (down (scan-section-tier root (+ i 1) 1))
+           (labels (if up (if down (list up down) (list up)) (if down (list down) (list))))
+          ) ;
+      (make-section (if (and (nnull? labels) (list-and (map (cut == <> 'section*) labels)))
+                      'section*
+                      'section
+                    ) ;if
+      ) ;make-section
+    ) ;let*
+  ) ;with
+) ;tm-define
+
 (tm-define (make-unnamed-section l) (make-section-aux l #t))
 
 (tm-define (kbd-enter t shift?)
