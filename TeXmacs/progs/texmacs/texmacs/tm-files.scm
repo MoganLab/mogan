@@ -1256,28 +1256,34 @@
   (substring stamp 0 8)
 ) ;define
 
-;; YYYYMMDD → julian day 数值,用于跨月比较
+;; YYYYMMDD → 整数 julian day。date->julian-day 返回带 .5 的有理数
+;; (历元从正午起算),须 +0.5 取整,否则周界偏移一天
 
 (define (day-number day)
-  (inexact->exact (date->julian-day (make-date 0
-                                      0
-                                      0
-                                      0
-                                      (string->number (substring day 6 8))
-                                      (string->number (substring day 4 6))
-                                      (string->number (substring day 0 4))
-                                      0
-                                    ) ;make-date
-                  ) ;date->julian-day
+  (inexact->exact (floor (+ (date->julian-day (make-date 0
+                                                0
+                                                0
+                                                0
+                                                (string->number (substring day 6 8))
+                                                (string->number (substring day 4 6))
+                                                (string->number (substring day 0 4))
+                                                0
+                                              ) ;make-date
+                            ) ;date->julian-day
+                           0.5
+                         ) ;+
+                  ) ;floor
   ) ;inexact->exact
 ) ;define
 
-;; 与今天是否同一自然周(周一起算)
+;; 与今天是否同一自然周(周一起算)。该历元下周一恰为 jd ≡ 0 (mod 7),
+;; 故周索引直接取 quotient jd 7;先前 (jd-1)/7 的周界未对齐周一,会把上周三
+;; 误判进本周
 
 (define (draft-this-week? day)
   (with today
     (date->string (current-date) "~Y~m~d")
-    (== (quotient (- (day-number today) 1) 7) (quotient (- (day-number day) 1) 7))
+    (== (quotient (day-number today) 7) (quotient (day-number day) 7))
   ) ;with
 ) ;define
 
@@ -1288,9 +1294,9 @@
 ) ;define
 
 ;; scratch buffer 标题:
-;; - 本周内且当天唯一:"Draft Monday" / 「草稿（周一）」
-;; - 本周内当天多个:"Draft Monday 21:27" / 「草稿（周一21:27）」
-;; - 更早:"Draft 08/02 22:43" / 「草稿（08/02 22:43）」
+;; - 本周:"Draft Monday 21:27:35" / 「草稿（周一21:27:35）」(统一时分秒)
+;; - 今年非本周:"Draft 08/02 22:43" / 「草稿（08/02 22:43）」
+;; - 去年及更早:"Draft 2025/08/02" / 「草稿（2025/08/02）」(只显示日期)
 (tm-define (scratch-buffer-title u)
   (with stamp
     (draft-stamp u)
@@ -1327,13 +1333,19 @@
                   ) ;if
              ) ;hms
              (hm (string-append (substring stamp 8 10) ":" (substring stamp 10 12)))
-             ;; 非本周草稿统一用 MM/DD,时间恒带(不含年份,更早自然能区分)
-             (date-str (string-append (substring day 4 6) "/" (substring day 6 8)))
-             ;; 展示粒度:本周统一 周一HH:MM:SS;非本周 MM/DD HH:MM
-             (core (cond ((draft-this-week? day) (string-append weekday hms))
-                         (else (string-append date-str hm))
-                   ) ;cond
-             ) ;core
+             ;; 今年非本周:MM/DD HH:MM;去年及更早:只显示 YYYY/MM/DD,不带时间
+             (date-str (if (== (substring day 0 4) (substring (date->string (current-date) "~Y~m~d") 0 4))
+                         (string-append (substring day 4 6) "/" (substring day 6 8) " " hm)
+                         (string-append (substring day 0 4)
+                           "/"
+                           (substring day 4 6)
+                           "/"
+                           (substring day 6 8)
+                         ) ;string-append
+                       ) ;if
+             ) ;date-str
+             ;; 展示粒度:本周统一 周一HH:MM:SS
+             (core (if (draft-this-week? day) (string-append weekday hms) date-str))
             ) ;
         ;; 全部按 utf8 拼接(含字面量全角括号),最后统一转回内部 herk 编码,
         ;; 由 Qt 侧 set_text 的 herk_to_utf8 负责显示转换
