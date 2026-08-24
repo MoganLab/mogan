@@ -18,7 +18,9 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
+#include <QPointer>
 #include <QScreen>
+#include <QWidget>
 
 namespace {
 
@@ -30,11 +32,13 @@ namespace {
  */
 class ScreenPickOverlay : public QDialog {
 public:
-  explicit ScreenPickOverlay (const QPixmap& snapshot, QWidget* parent= nullptr)
-      : QDialog (parent,
+  explicit ScreenPickOverlay (const QPixmap& snapshot)
+      : QDialog (nullptr,
                  Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool),
         m_snapshot (snapshot) {
     setCursor (Qt::CrossCursor);
+    setAttribute (Qt::WA_DeleteOnClose);
+    setWindowModality (Qt::ApplicationModal);
   }
 
   QColor pickedColor () const { return m_picked; }
@@ -67,18 +71,57 @@ private:
 
 } // namespace
 
-QString
+ColorPickerBridge::ColorPickerBridge (QWidget* host, QObject* parent)
+    : QObject (parent), m_host (host) {}
+
+ColorPickerBridge::~ColorPickerBridge () {
+  // 直接 delete 不触发 finished，finished 连接的 context（本对象）此时仍有效。
+  delete m_overlay;
+}
+
+bool
+ColorPickerBridge::canPickScreen () const {
+  // Wayland 不允许应用任意抓屏：grabWindow 返回空图或全黑快照，取色不可用。
+  return !QGuiApplication::platformName ().startsWith ("wayland",
+                                                       Qt::CaseInsensitive);
+}
+
+void
 ColorPickerBridge::pickScreenColor () {
+  if (!canPickScreen ()) {
+    emit screenColorPicked (QString ());
+    return;
+  }
   QScreen* screen= QGuiApplication::screenAt (QCursor::pos ());
   if (screen == nullptr) screen= QGuiApplication::primaryScreen ();
-  if (screen == nullptr) return QString ();
+  if (screen == nullptr) {
+    emit screenColorPicked (QString ());
+    return;
+  }
   const QPixmap snapshot= screen->grabWindow (0);
   // macOS 未授「屏幕录制」权限时快照为空，取色不可用。
-  if (snapshot.isNull ()) return QString ();
+  if (snapshot.isNull ()) {
+    emit screenColorPicked (QString ());
+    return;
+  }
 
-  ScreenPickOverlay overlay (snapshot);
-  overlay.setGeometry (screen->geometry ());
-  if (overlay.exec () != QDialog::Accepted) return QString ();
-  const QColor c= overlay.pickedColor ();
-  return c.isValid () ? c.name () : QString ();
+  // 隐藏宿主须在抓快照之后：否则 hide 触发的重绘来不及完成，快照可能
+  // 残留弹窗残影；先抓则快照含弹窗自身（与 QColorDialog 行为一致）。
+  ScreenPickOverlay* overlay= new ScreenPickOverlay (snapshot);
+  overlay->setGeometry (screen->geometry ());
+  QPointer<QWidget> host= m_host;
+  if (host != nullptr) host->hide ();
+  connect (overlay, &QDialog::finished, this, [this, host, overlay] (int res) {
+    if (host != nullptr) host->show ();
+    QString hex;
+    if (res == QDialog::Accepted) {
+      const QColor c= overlay->pickedColor ();
+      if (c.isValid ()) hex= c.name ();
+    }
+    emit screenColorPicked (hex);
+  });
+  // 记录到成员：bridge 先毁（宿主弹窗被关）时由析构负责销毁 overlay，
+  // 避免遗留全屏无父浮层。
+  m_overlay= overlay;
+  overlay->open ();
 }

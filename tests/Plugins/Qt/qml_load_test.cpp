@@ -45,12 +45,16 @@ public:
   Q_INVOKABLE void startMove () {}
 };
 
-// ColorPicker 的 colorBridge 占位：pickScreenColor 返回空串（不取色）。
+// ColorPicker 的 colorBridge 占位：不真取色（pickScreenColor 为 no-op）。
 class ColorStubBridge : public QObject {
   Q_OBJECT
+  Q_PROPERTY (bool canPickScreen READ canPickScreen CONSTANT)
 public:
   explicit ColorStubBridge (QObject* p= nullptr) : QObject (p) {}
-  Q_INVOKABLE QString pickScreenColor () { return QString (); }
+  bool             canPickScreen () const { return true; }
+  Q_INVOKABLE void pickScreenColor () {}
+signals:
+  void screenColorPicked (const QString& hex);
 };
 
 class VersionStubBridge : public QObject {

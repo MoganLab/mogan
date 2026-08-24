@@ -124,6 +124,14 @@ DialogShell {
 
     onCancel: closeBridge.cancel()
 
+    // 屏幕取色结果异步回流（bridge 隐藏宿主弹窗后全屏取色，结束经信号回传）。
+    Connections {
+        target: root.bridge
+        function onScreenColorPicked(hex) {
+            if (hex !== "") root.setColorFromHex(hex);
+        }
+    }
+
     content: Column {
         spacing: 12 * Theme.scaleFactor
         anchors.fill: parent
@@ -515,15 +523,12 @@ DialogShell {
             }
         }
 
-        // 屏幕取色
+        // 屏幕取色（Wayland 不支持抓屏，bridge 的 canPickScreen 为 false，隐藏按钮）
         MiniButton {
             size: "normal"
             text: root.labels.pickScreenColor !== undefined ? root.labels.pickScreenColor : "Pick screen color"
-            visible: root.bridge !== null
-            onClicked: {
-                var hex = root.bridge.pickScreenColor();
-                if (hex !== "") root.setColorFromHex(hex);
-            }
+            visible: root.bridge !== null && root.bridge.canPickScreen === true
+            onClicked: root.bridge.pickScreenColor()
         }
 
         // 按钮
