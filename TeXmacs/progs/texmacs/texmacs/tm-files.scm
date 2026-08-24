@@ -1217,7 +1217,7 @@
   ) ;let
 ) ;define
 
-;; 新 scratch buffer 的名字:最小精确到分钟,冲突时精确到秒,仍冲突加 -N
+;; 新 scratch buffer 的名字:精确到秒(标题需统一显示时分秒),冲突加 -N
 ;; 返回系统路径字符串(供 C++ make_new_buffer 使用)
 (tm-define (scratch-buffer-name)
   (with dir
@@ -1225,13 +1225,10 @@
     (when (not (url-exists? dir))
       (system-mkdir dir)
     ) ;when
-    (let* ((full (date->string (current-date) "~Y~m~d~H~M~S"))
-           (stamps (list (substring full 0 12) full))
-           (stamp (find (lambda (s) (scratch-name-free? (scratch-candidate dir s))) stamps)
-           ) ;stamp
-          ) ;
-      (url->system (scratch-unique-name dir (or stamp full) 0))
-    ) ;let*
+    (with full
+      (date->string (current-date) "~Y~m~d~H~M~S")
+      (url->system (scratch-unique-name dir full 0))
+    ) ;with
   ) ;with
 ) ;tm-define
 
@@ -1257,32 +1254,6 @@
 
 (define (draft-date stamp)
   (substring stamp 0 8)
-) ;define
-
-;; 当天打开的 draft 个数(含自身),用于标题消歧
-
-(define (draft-count-of-day day)
-  (length (filter (lambda (u) (with s (draft-stamp u) (and s (== (draft-date s) day))))
-            (buffer-list)
-          ) ;filter
-  ) ;length
-) ;define
-
-;; 同一 YYYYMMDDHHMM 前缀的 draft 个数(含自身),用于标题秒级消歧
-
-(define (draft-count-of-minute stamp)
-  (with minute
-    (substring stamp 0 12)
-    (length (filter (lambda (u)
-                      (with s
-                        (draft-stamp u)
-                        (and s (>= (string-length s) 12) (== (substring s 0 12) minute))
-                      ) ;with
-                    ) ;lambda
-              (buffer-list)
-            ) ;filter
-    ) ;length
-  ) ;with
 ) ;define
 
 ;; YYYYMMDD → julian day 数值,用于跨月比较
@@ -1343,24 +1314,23 @@
                                   ) ;translate
                       ) ;herk->utf8
              ) ;weekday
-             (multi (> (draft-count-of-day day) 1))
-             ;; 同 HH:MM 仍有重复(文件名已升到秒级)时,展示也精确到秒;
-             ;; 自身是分钟级命名(12 位)时无秒可取,保持 HH:MM
-             (hm (if (and (> (string-length stamp) 12) (> (draft-count-of-minute stamp) 1))
-                   (string-append (substring stamp 8 10)
-                     ":"
-                     (substring stamp 10 12)
-                     ":"
-                     (substring stamp 12 14)
-                   ) ;string-append
-                   (string-append (substring stamp 8 10) ":" (substring stamp 10 12))
-                 ) ;if
-             ) ;hm
+             ;; 本周草稿统一显示时分秒;命名已是秒级,仅旧的分钟级(12 位)
+             ;; 时间戳无秒可显,退化为时分
+             (hms (if (> (string-length stamp) 12)
+                    (string-append (substring stamp 8 10)
+                      ":"
+                      (substring stamp 10 12)
+                      ":"
+                      (substring stamp 12 14)
+                    ) ;string-append
+                    (string-append (substring stamp 8 10) ":" (substring stamp 10 12))
+                  ) ;if
+             ) ;hms
+             (hm (string-append (substring stamp 8 10) ":" (substring stamp 10 12)))
              ;; 非本周草稿统一用 MM/DD,时间恒带(不含年份,更早自然能区分)
              (date-str (string-append (substring day 4 6) "/" (substring day 6 8)))
-             ;; 展示粒度:本周当天唯一不带时间;其余带 HH:MM(:SS)
-             (core (cond ((and (draft-this-week? day) (not multi)) weekday)
-                         ((draft-this-week? day) (string-append weekday hm))
+             ;; 展示粒度:本周统一 周一HH:MM:SS;非本周 MM/DD HH:MM
+             (core (cond ((draft-this-week? day) (string-append weekday hms))
                          (else (string-append date-str hm))
                    ) ;cond
              ) ;core
