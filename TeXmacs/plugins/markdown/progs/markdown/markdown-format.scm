@@ -16,7 +16,4 @@
 ;; Markdown
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format markdown
-  (:name "Markdown")
-  (:suffix "md" "markdown")
-) ;define-format
+(define-format markdown (:name "Markdown") (:suffix "md" "markdown"))

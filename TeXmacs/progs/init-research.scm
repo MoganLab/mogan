@@ -523,7 +523,9 @@
 (lazy-format (docx docx-format) docx)
 (lazy-format (html html-format) html)
 ;; markdown 转换仅在非社区版提供
-(when (not (community-stem?)) (lazy-format (markdown markdown-format) markdown))
+(when (not (community-stem?))
+  (lazy-format (markdown markdown-format) markdown)
+) ;when
 (lazy-define (convert images tmimage)
   export-selection-as-graphics
   clipboard-copy-image
