@@ -88,6 +88,8 @@ ColorPickerBridge::canPickScreen () const {
 
 void
 ColorPickerBridge::pickScreenColor () {
+  // 上一次取色的 overlay 未关闭时忽略重复触发，避免 m_overlay 覆盖泄漏。
+  if (m_overlay != nullptr) return;
   if (!canPickScreen ()) {
     emit screenColorPicked (QString ());
     return;

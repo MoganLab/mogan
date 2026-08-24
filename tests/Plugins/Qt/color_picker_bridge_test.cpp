@@ -28,7 +28,7 @@ private slots:
   // Wayland 不允许任意抓屏：canPickScreen 为 false，取色立即回空串。
   void test_canPickScreen_platform_gate () {
     ColorPickerBridge bridge;
-    const bool isWayland= QGuiApplication::platformName ().startsWith (
+    const bool        isWayland= QGuiApplication::platformName ().startsWith (
         "wayland", Qt::CaseInsensitive);
     QCOMPARE (bridge.canPickScreen (), !isWayland);
   }
