@@ -637,6 +637,23 @@
   ) ;let*
 ) ;define
 
+;; ChatGPT 行间公式判定：style 含 display:block，或首个子节点为 katex-display
+;;
+;; ChatGPT 新版前端（KaTeX 客户端布局）不再输出 katex-mathml / MathML，
+;; LaTeX 源码改放在 role="math" 节点的 data-math-source 属性（aria-label 兜底）；
+;; 源码不含定界符，htmltm-span 按行内/行间包上 \( \) 或 \[ \] 后走标准 LaTeX 导入
+
+(define (htmltm-chatgpt-display? a c)
+  (let ((style (string-replace (or (shtml-attr-non-null a 'style) "") " " "")))
+    (or (string-contains? style "display:block")
+      (and (pair? c)
+        (func? (car c) 'h:span)
+        (== (shtml-attr-non-null (sxml-attr-list (car c)) 'class) "katex-display")
+      ) ;and
+    ) ;or
+  ) ;let
+) ;define
+
 (define (htmltm-span env a c)
   (with class-value
     (shtml-attr-non-null a 'class)
@@ -657,6 +674,25 @@
            (begin
              (htmltm env (first c))
            ) ;begin
+          ) ;
+
+          ((and (== (shtml-attr-non-null a 'role) "math")
+             (or (shtml-attr-non-null a 'data-math-source)
+               (shtml-attr-non-null a 'aria-label)
+             ) ;or
+           ) ;and
+           (let* ((latex-src (or (shtml-attr-non-null a 'data-math-source)
+                               (shtml-attr-non-null a 'aria-label)
+                             ) ;or
+                  ) ;latex-src
+                  (wrapped (if (htmltm-chatgpt-display? a c)
+                             (string-append "\\[ " latex-src " \\]")
+                             (string-append "\\( " latex-src " \\)")
+                           ) ;if
+                  ) ;wrapped
+                 ) ;
+             (list (tm->stree (latex->texmacs (parse-latex wrapped))))
+           ) ;let*
           ) ;
 
           ((and (== class-value "ztext-math"))
