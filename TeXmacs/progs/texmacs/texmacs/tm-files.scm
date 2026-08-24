@@ -437,9 +437,11 @@
       ) ;begin
       (begin
         (if (== (url-suffix name) "ts") (style-clear-cache))
-        (buffer-notify-recent name)
-        ;; Remember directory for file dialog
-        (remember-file-dialog-directory name)
+        (when (not (url-scratch? name))
+          (buffer-notify-recent name)
+          ;; Remember directory for file dialog
+          (remember-file-dialog-directory name)
+        ) ;when
         (set-message `(concat ,"Saved " ,vname) "Save file")
         (when (defined? 'auto-backup-trig)
           (auto-backup-trig name kind)

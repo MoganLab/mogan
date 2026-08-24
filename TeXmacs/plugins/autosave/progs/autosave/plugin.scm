@@ -306,9 +306,11 @@
   (auto-backup-trig (current-buffer-url) "visit-cloud-backup")
 ) ;tm-define
 
+;; scratch buffer 在磁盘上有真实路径（no_name .tmu），与普通文档一样原地自动保存；
+;; 手动 Ctrl+S 的 save-as 弹窗走 save-buffer-check-permissions，不受影响。
 (tm-define (autosave-all)
   (for-each (lambda (name)
-              (when (and (buffer-modified? name) (not (url-scratch? name)))
+              (when (buffer-modified? name)
                 (save-buffer-save name (list) "auto")
               ) ;when
             ) ;lambda
@@ -319,7 +321,7 @@
 (tm-define (autosave-now)
   (when (autosave-enabled?)
     (let ((name (current-buffer)))
-      (when (and (buffer-modified? name) (not (url-scratch? name)))
+      (when (buffer-modified? name)
         (save-buffer-save name (list) "auto")
       ) ;when
     ) ;let
