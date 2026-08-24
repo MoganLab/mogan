@@ -52,6 +52,8 @@
  ("\\ var var" "<setminus>")
  ("$" (make 'math))
  ("$ var" "$")
+ ("$ $" (make 'equation*))
+ ("$ $ var" "$$")
 
  ("-" "-")
  ("space" (kbd-space))

@@ -79,7 +79,8 @@
 ## 代码推送规则
 
 1. 如果 remote 是 GitHub，使用 `gh` 命令推送代码并创建 PR
-2. 如果 remote 是 Gitee，直接使用 `git push` 推送代码
+2. 如果有 MoganLab/mogan 的分支推送权限，直接推送到 MoganLab/mogan 并创建 PR，**不要 fork**
+3. 如果 remote 是 Gitee，直接使用 `git push` 推送代码
 3. 推送前确保代码已通过本地测试
 4. 保持提交信息清晰、简洁
 
