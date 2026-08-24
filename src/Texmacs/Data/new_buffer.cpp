@@ -242,7 +242,7 @@ propose_title (string old_title, url u, tree doc) {
     try {
       name= as_string (call ("scratch-buffer-title", object (u)));
     } catch (...) {
-      name= "Draft";
+      name= translate ("Draft");
     }
   }
   if ((name == "") || (name == ".")) name= as_string (tail (u * url_parent ()));
