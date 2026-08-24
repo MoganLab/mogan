@@ -21,7 +21,16 @@
   ) ;:use
 ) ;texmacs-module
 
-(import (only (liii string) string-contains string-split string-join))
+(import (only (liii string) string-contains string-split string-join string-index)
+) ;import
+(import (only (liii time)
+          current-date
+          date->string
+          make-date
+          date-week-day
+          date->julian-day
+        ) ;only
+) ;import
 (import (only (srfi srfi-1) find))
 (import (only (srfi srfi-1) remove take))
 
@@ -1175,3 +1184,195 @@
 ) ;define
 
 (tm-define (linked-file-list) (linked-files-inside (buffer-tree)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Scratch buffers (draft_YYYYMMDDHH[MM][SS].tmu)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; scratch buffer 所在目录
+
+(define (scratch-buffer-dir)
+  (url-append (get-documents-path) "LiiiSTEM/no_name")
+) ;define
+
+;; 该名字是否可用:无同名 buffer 且磁盘上无同名文件
+
+(define (scratch-name-free? u)
+  (and (not (buffer-exists? u)) (not (url-exists? u)))
+) ;define
+
+(define (scratch-candidate dir stamp)
+  (url-append dir (string-append "draft_" stamp ".tmu"))
+) ;define
+
+;; 秒级名字仍冲突时,追加 -2、-3 …… 保证唯一
+
+(define (scratch-unique-name dir stamp i)
+  (let ((u (scratch-candidate dir
+             (if (= i 0) stamp (string-append stamp "-" (number->string i)))
+           ) ;scratch-candidate
+        ) ;u
+       ) ;
+    (if (scratch-name-free? u) u (scratch-unique-name dir stamp (+ i 1)))
+  ) ;let
+) ;define
+
+;; 新 scratch buffer 的名字:最小精确到分钟,冲突时精确到秒,仍冲突加 -N
+;; 返回系统路径字符串(供 C++ make_new_buffer 使用)
+(tm-define (scratch-buffer-name)
+  (with dir
+    (scratch-buffer-dir)
+    (when (not (url-exists? dir))
+      (system-mkdir dir)
+    ) ;when
+    (let* ((full (date->string (current-date) "~Y~m~d~H~M~S"))
+           (stamps (list (substring full 0 12) full))
+           (stamp (find (lambda (s) (scratch-name-free? (scratch-candidate dir s))) stamps)
+           ) ;stamp
+          ) ;
+      (url->system (scratch-unique-name dir (or stamp full) 0))
+    ) ;let*
+  ) ;with
+) ;tm-define
+
+;; draft 文件名 → 时间戳数字串("draft_202608242127-2.tmu" → "202608242127"),
+;; 非 draft 名返回 #f
+
+(define (draft-stamp u)
+  (with name
+    (url->string (url-tail u))
+    (and (string-starts? name "draft_")
+      (string-ends? name ".tmu")
+      (let* ((body (substring name 6 (- (string-length name) 4)))
+             (cut (or (string-index body #\-) (string-length body)))
+             (digits (substring body 0 cut))
+            ) ;
+        (and (>= (string-length digits) 12) digits)
+      ) ;let*
+    ) ;and
+  ) ;with
+) ;define
+
+;; 时间戳里的日期部分(YYYYMMDD)
+
+(define (draft-date stamp)
+  (substring stamp 0 8)
+) ;define
+
+;; 当天打开的 draft 个数(含自身),用于标题消歧
+
+(define (draft-count-of-day day)
+  (length (filter (lambda (u) (with s (draft-stamp u) (and s (== (draft-date s) day))))
+            (buffer-list)
+          ) ;filter
+  ) ;length
+) ;define
+
+;; 同一 YYYYMMDDHHMM 前缀的 draft 个数(含自身),用于标题秒级消歧
+
+(define (draft-count-of-minute stamp)
+  (with minute
+    (substring stamp 0 12)
+    (length (filter (lambda (u)
+                      (with s
+                        (draft-stamp u)
+                        (and s (>= (string-length s) 12) (== (substring s 0 12) minute))
+                      ) ;with
+                    ) ;lambda
+              (buffer-list)
+            ) ;filter
+    ) ;length
+  ) ;with
+) ;define
+
+;; YYYYMMDD → julian day 数值,用于跨月比较
+
+(define (day-number day)
+  (inexact->exact (date->julian-day (make-date 0
+                                      0
+                                      0
+                                      0
+                                      (string->number (substring day 6 8))
+                                      (string->number (substring day 4 6))
+                                      (string->number (substring day 0 4))
+                                      0
+                                    ) ;make-date
+                  ) ;date->julian-day
+  ) ;inexact->exact
+) ;define
+
+;; 与今天是否同一自然周(周一起算)
+
+(define (draft-this-week? day)
+  (with today
+    (date->string (current-date) "~Y~m~d")
+    (== (quotient (- (day-number today) 1) 7) (quotient (- (day-number day) 1) 7))
+  ) ;with
+) ;define
+
+;; 中文界面标志:决定「草稿（周一21:00）」与 "Draft Monday 21:00" 两种格式
+
+(define (chinese-ui?)
+  (== (string-take (language-to-locale (get-output-language)) 2) "zh")
+) ;define
+
+;; scratch buffer 标题:
+;; - 本周内且当天唯一:"Draft Monday" / 「草稿（周一）」
+;; - 本周内当天多个:"Draft Monday 21:27" / 「草稿（周一21:27）」
+;; - 更早:"Draft 08/02 22:43" / 「草稿（08/02 22:43）」
+(tm-define (scratch-buffer-title u)
+  (with stamp
+    (draft-stamp u)
+    (if (not stamp)
+      (translate "no name")
+      (let* ((day (draft-date stamp))
+             (weekdays (vector "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday")
+             ) ;weekdays
+             (weekday (herk->utf8 (translate (vector-ref weekdays
+                                               (date-week-day (make-date 0
+                                                                0
+                                                                0
+                                                                0
+                                                                (string->number (substring day 6 8))
+                                                                (string->number (substring day 4 6))
+                                                                (string->number (substring day 0 4))
+                                                                0
+                                                              ) ;make-date
+                                               ) ;date-week-day
+                                             ) ;vector-ref
+                                  ) ;translate
+                      ) ;herk->utf8
+             ) ;weekday
+             (multi (> (draft-count-of-day day) 1))
+             ;; 同 HH:MM 仍有重复(文件名已升到秒级)时,展示也精确到秒;
+             ;; 自身是分钟级命名(12 位)时无秒可取,保持 HH:MM
+             (hm (if (and (> (string-length stamp) 12) (> (draft-count-of-minute stamp) 1))
+                   (string-append (substring stamp 8 10)
+                     ":"
+                     (substring stamp 10 12)
+                     ":"
+                     (substring stamp 12 14)
+                   ) ;string-append
+                   (string-append (substring stamp 8 10) ":" (substring stamp 10 12))
+                 ) ;if
+             ) ;hm
+             ;; 非本周草稿统一用 MM/DD,时间恒带(不含年份,更早自然能区分)
+             (date-str (string-append (substring day 4 6) "/" (substring day 6 8)))
+             ;; 展示粒度:本周当天唯一不带时间;其余带 HH:MM(:SS)
+             (core (cond ((and (draft-this-week? day) (not multi)) weekday)
+                         ((draft-this-week? day) (string-append weekday hm))
+                         (else (string-append date-str hm))
+                   ) ;cond
+             ) ;core
+            ) ;
+        ;; 全部按 utf8 拼接(含字面量全角括号),最后统一转回内部 herk 编码,
+        ;; 由 Qt 侧 set_text 的 herk_to_utf8 负责显示转换
+        (utf8->herk (if (chinese-ui?)
+                      (string-append (herk->utf8 (translate "Draft")) "（" core "）")
+                      (string-append (herk->utf8 (translate "Draft")) " " core)
+                    ) ;if
+        ) ;utf8->herk
+      ) ;let*
+    ) ;if
+  ) ;with
+) ;tm-define

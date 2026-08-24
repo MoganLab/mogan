@@ -24,7 +24,9 @@
 #include <QSize>
 
 // Base tab widths
-constexpr int MAX_TAB_PAGE_WIDTH_BASE= 150;
+// 上限需容纳中文标题(如「草稿（08/02 22:43）」,文字约 140px,再加左右
+// padding 与关闭按钮约 40px),故取 190
+constexpr int MAX_TAB_PAGE_WIDTH_BASE= 190;
 constexpr int MIN_TAB_PAGE_WIDTH_BASE= 25;
 // Padding used when calculating content-based width for startup/chat tabs
 constexpr int SPECIAL_TAB_HORIZONTAL_PADDING= 10;

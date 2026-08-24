@@ -12,6 +12,9 @@ build
 __pycache__/
 3rdparty/loro/target
 3rdparty/mogan-loro-ffi/target
+# curl 源码包构建产物(目录名带构建哈希)与构建期改写的 CMakeLists
+3rdparty/curl-*/build-*/
+3rdparty/curl-*/CMakeLists.txt
 
 # editor files
 *.sln

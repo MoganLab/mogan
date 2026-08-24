@@ -22,6 +22,7 @@ function main()
             "scheme.hpp",
             "file.hpp",
             "tm_file.hpp",
+            "tm_sys_utils.hpp",
             "tm_url.hpp",
         },
         glues = {
@@ -44,14 +45,9 @@ function main()
                 }
             },
             {
-                scm_name = "url-scratch",
-                cpp_name = "url_scratch",
-                ret_type = "url",
-                arg_list = {
-                    "string",
-                    "string",
-                    "int"
-                }
+                scm_name = "get-documents-path",
+                cpp_name = "get_documents_path",
+                ret_type = "url"
             },
             {
                 scm_name = "url-scratch?",

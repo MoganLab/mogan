@@ -192,7 +192,7 @@ tm_failure (const char* msg) {
   cerr << "TeXmacs] Dumping report below\n\n" << report << "\n";
 #else
   url dir ("$TEXMACS_HOME_PATH/system/crash");
-  url err= url_numbered (dir, "crash_report_", "");
+  url err= dir * ("crash_report_" * as_string (texmacs_time ()));
   if (!save_string (err, report))
     cerr << "TeXmacs] Crash report saved in " << err << "\n";
   else

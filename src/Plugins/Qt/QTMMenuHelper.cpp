@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
+#include "lolly/data/herk.hpp"
 #include "object_l5.hpp"
 #include "preferences.hpp"
 
@@ -88,7 +89,7 @@ QTMAction::set_text (string s) {
       s= s * " ";
     s  = replace (s, "&", "&&");
     str= s;
-    setText (to_qstring (s));
+    setText (utf8_to_qstring (lolly::data::herk_to_utf8 (s)));
   }
 }
 

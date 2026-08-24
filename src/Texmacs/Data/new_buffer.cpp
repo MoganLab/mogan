@@ -21,6 +21,7 @@
 #include "tm_data.hpp"
 #include "tm_file.hpp"
 #include "tm_link.hpp"
+#include "tm_sys_utils.hpp"
 #include "tmfs_url.hpp"
 #include "tree_observer.hpp"
 #include "web_files.hpp"
@@ -209,15 +210,19 @@ make_welcome_buffer () {
 
 url
 make_new_buffer () {
-  int i= 1;
-  while (true) {
-    url name= url_scratch ("no_name_", ".tmu", i);
-    if (is_nil (concrete_buffer (name))) {
-      set_buffer_tree (name, tree (DOCUMENT));
-      return name;
-    }
-    else i++;
+  url name;
+  try {
+    string s= as_string (call ("scratch-buffer-name"));
+    if (N (s) > 0) name= url_system (s);
+  } catch (...) {
   }
+  if (is_none (name) || !is_nil (concrete_buffer (name))) {
+    // scheme 未就绪或返回名字已被占用时的兜底:毫秒时间戳保证唯一
+    url dir= get_documents_path () * "LiiiSTEM/no_name";
+    name   = dir * ("draft_" * as_string (texmacs_time ()) * ".tmu");
+  }
+  set_buffer_tree (name, tree (DOCUMENT));
+  return name;
 }
 
 bool
@@ -232,14 +237,13 @@ buffer_has_name (url name) {
 string
 propose_title (string old_title, url u, tree doc) {
   string name= as_string (tail (u));
-  if (starts (name, "no_name_") && ends (name, ".tmu")) {
-    string no_name= translate ("No name");
-    for (int i= 0; i < N (no_name); i++)
-      if (((unsigned char) (no_name[i])) >= (unsigned char) 128) {
-        no_name= "No name";
-        break;
-      }
-    name= no_name * " [" * name (8, N (name) - 4) * "]";
+  if (starts (name, "draft_") && ends (name, ".tmu")) {
+    // 标题规则(Draft Monday / 草稿（周一21:27）等)由 scheme 侧实现
+    try {
+      name= as_string (call ("scratch-buffer-title", object (u)));
+    } catch (...) {
+      name= "Draft";
+    }
   }
   if ((name == "") || (name == ".")) name= as_string (tail (u * url_parent ()));
   if ((name == "") || (name == ".")) name= as_string (u);
