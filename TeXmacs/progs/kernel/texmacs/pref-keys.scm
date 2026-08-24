@@ -227,6 +227,7 @@
 (define-public (pref-experimental-encryption) "experimental encryption")
 (define-public (pref-experimental-use-native-menubar) "use native menubar")
 (define-public (pref-experimental-use-unified-toolbar) "use unified toolbar")
+(define-public (pref-experimental-ghost-text) "ghost text")
 (define-public (pref-prog-highlight-brackets) "prog:highlight brackets")
 (define-public (pref-prog-automatic-brackets) "prog:automatic brackets")
 (define-public (pref-prog-select-brackets) "prog:select brackets")
