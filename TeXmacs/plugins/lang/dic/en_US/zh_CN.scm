@@ -1072,6 +1072,7 @@
 ("graphical effects" "图形效果")
 ("graphical interface" "图形界面")
 ("ghost lines" "智能标尺")
+("Ghost text" "幽灵文本补全")
 ("graphics geometry" "画布设置")
 ("graphics grids" "网格设置")
 ("graphics overlay" "图形图层")

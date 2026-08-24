@@ -40,7 +40,10 @@
 
 (tm-define (is-ghost-active?) ghost-active?)
 
-(tm-define (ghost-enable?) (defined? 'ghost-cloud-predict))
+;; 实验选项「Ghost text」（仅非社区版展示，默认关闭）
+(tm-define (ghost-enable?)
+  (and (defined? 'ghost-cloud-predict) (get-boolean-preference "ghost text"))
+) ;tm-define
 
 ;; =============================================================================
 ;; Context collection
