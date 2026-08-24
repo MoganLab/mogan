@@ -2165,7 +2165,7 @@
 ("remove" "删除")
 ("rename" "重命名")
 ("rendering options for tag" "局部设置")
-("Register now and receive a 7-day membership." "注册即送7天会员")
+("Register now and receive a 3-day membership." "注册即送3天会员")
 ("Renew" "续费")
 ("Renew Early" "提前续费")
 ("Renew Now" "续费会员")
@@ -2617,8 +2617,8 @@
 ("Sign In" "去登录")
 ("Sign in to start using OCR." "登录后即可开始使用 OCR 识别。")
 ("Sign in to use OCR" "登录后即可使用 OCR 识别")
-("Sign up now and get 7 days of membership for free!"
-  "现在注册还送7天会员资格！"
+("Sign up now and get 3 days of membership for free!"
+  "现在注册还送3天会员资格！"
 ) ;
 ("The OCR feature requires an internet connection to use..."
   "OCR功能需要连接网络才能使用..."
