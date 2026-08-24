@@ -503,6 +503,12 @@
       (display* "smart-insert-section: i=" i ", inside=" inside ", up=" up
         ", down=" down ", labels=" labels "\n"
       ) ;display*
+      (display* "smart-insert-section: root arity="
+        (tree-arity root)
+        ", top labels="
+        (map tree-label (tree-children root))
+        "\n"
+      ) ;display*
       (make-section (if (and (nnull? labels) (list-and (map (cut == <> 'section*) labels)))
                       'section*
                       'section
