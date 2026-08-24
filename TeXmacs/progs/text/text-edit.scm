@@ -465,15 +465,15 @@
   (make-section-aux l #f)
 ) ;tm-define
 
-(define (section-tier-tree? t)
-  (tree-in? t '(section section*))
+;; 只看上方：最近的同级标题是无编号变体时插无编号变体，否则插有编号的
+
+(define (heading-tier-tree? tags t)
+  (tree-in? t tags)
 ) ;define
 
-;; 只看上方：最近的同级 section 是 section* 时插 section*，否则插 section
-
-(define (nearest-above-path p sec-paths)
-  ;; 光标就在某个 section 块内部时其路径是光标路径的前缀，自然归入上方
-  (let ((above (filter (cut path-less? <> p) sec-paths)))
+(define (nearest-above-path p heading-paths)
+  ;; 光标就在某个标题块内部时其路径是光标路径的前缀，自然归入上方
+  (let ((above (filter (cut path-less? <> p) heading-paths)))
     (if (null? above)
       #f
       (let loop
@@ -487,16 +487,18 @@
   ) ;let
 ) ;define
 
-(tm-define (smart-insert-section)
+(tm-define (smart-insert-heading l)
   (:require (not (selection-active-non-small?)))
   (with p
     (cursor-path)
-    (let* ((root (root-tree))
-           (sec-paths (map tree->path (tree-search root section-tier-tree?)))
-           (above (nearest-above-path p sec-paths))
+    (let* ((star (string->symbol (string-append (symbol->string l) "*")))
+           (tags (list l star))
+           (heading-paths (map tree->path (tree-search (root-tree) (cut heading-tier-tree? tags <>)))
+           ) ;heading-paths
+           (above (nearest-above-path p heading-paths))
            (lab (and above (tree-label (path->tree above))))
           ) ;
-      (make-section (if (== lab 'section*) 'section* 'section))
+      (make-section (if (== lab star) star l))
     ) ;let*
   ) ;with
 ) ;tm-define
