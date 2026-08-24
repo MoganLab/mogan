@@ -438,6 +438,7 @@
 ) ;define
 
 (define (make-section-aux l flag)
+  (display* "make-section-aux: l=" l ", flag=" flag "\n")
   (if (selection-active-any?)
     (let ((cp (cursor-path)) (selstart (selection-get-start)))
       (selection-trim-ending)
@@ -484,6 +485,7 @@
 ;; 上下最近同级标题（缺省的一侧跳过）都无编号时，插入 section*
 (tm-define (smart-insert-section)
   (:require (not (selection-active-non-small?)))
+  (display* "smart-insert-section: invoked\n")
   (with p
     (cursor-path)
     (let* ((root (root-tree))
@@ -498,6 +500,9 @@
            (down (scan-section-tier root (+ i 1) 1))
            (labels (if up (if down (list up down) (list up)) (if down (list down) (list))))
           ) ;
+      (display* "smart-insert-section: i=" i ", inside=" inside ", up=" up
+        ", down=" down ", labels=" labels "\n"
+      ) ;display*
       (make-section (if (and (nnull? labels) (list-and (map (cut == <> 'section*) labels)))
                       'section*
                       'section
