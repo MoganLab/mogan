@@ -438,7 +438,6 @@
 ) ;define
 
 (define (make-section-aux l flag)
-  (display* "make-section-aux: l=" l ", flag=" flag "\n")
   (if (selection-active-any?)
     (let ((cp (cursor-path)) (selstart (selection-get-start)))
       (selection-trim-ending)
@@ -497,9 +496,6 @@
            (above (nearest-above-path p sec-paths))
            (lab (and above (tree-label (path->tree above))))
           ) ;
-      (display* "smart-insert-section: p=" p ", sec-paths=" sec-paths ", above="
-        above ", lab=" lab "\n"
-      ) ;display*
       (make-section (if (== lab 'section*) 'section* 'section))
     ) ;let*
   ) ;with
