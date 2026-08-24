@@ -67,7 +67,8 @@
 
 (tm-define (remember-file-dialog-directory name)
   "Remember the directory from a file operation"
-  (when (url? name)
+  ;; scratch 的 no_name 目录是暂存区,不作为对话框默认目录记忆
+  (when (and (url? name) (not (url-scratch? name)))
     (let ((dir (url->system (url-head name))))
       (set-last-file-dialog-directory dir)
     ) ;let
