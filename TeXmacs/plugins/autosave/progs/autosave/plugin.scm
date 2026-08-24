@@ -65,7 +65,7 @@
 ) ;define
 
 (define (auto-backup-format name)
-  (if (url-scratch? name) "texmacs" (url-format name))
+  (url-format name)
 ) ;define
 
 ;; auto-backup-buffer-eligible?

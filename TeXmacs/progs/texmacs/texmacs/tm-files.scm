@@ -438,10 +438,7 @@
       (begin
         (if (== (url-suffix name) "ts") (style-clear-cache))
         (buffer-notify-recent name)
-        ;; scratch 的 no_name 目录不作为文件对话框默认目录
-        (when (not (url-scratch? name))
-          (remember-file-dialog-directory name)
-        ) ;when
+        (remember-file-dialog-directory name)
         (set-message `(concat ,"Saved " ,vname) "Save file")
         (when (defined? 'auto-backup-trig)
           (auto-backup-trig name kind)
