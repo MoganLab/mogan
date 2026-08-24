@@ -45,37 +45,39 @@
 
 (define (test-chatgpt-inline-math)
   (check (convert gpt-inline "html-snippet" "texmacs-stree")
-    => '(concat "inline "
-          (math (concat "f" (rprime "'") (around "(" "x" ")")))
-          " end"
-        ) ;concat
+    =>
+    '(concat "inline "
+       (math (concat "f" (rprime "'") (around "(" "x" ")")))
+       " end")
   ) ;check
 ) ;define
 
 (define (test-chatgpt-display-math)
   (check (convert gpt-display "html-snippet" "texmacs-stree")
-    => '(document "before"
-          (equation*
-           (concat (big "int") (rsub "0") (rsup "1") "x" (rsup "2") "*"
-             (space "0.17em") "d*x"
-           ) ;concat
-          ) ;equation*
-          "after"
-        ) ;document
+    =>
+    '(document "before"
+       (equation* (concat (big "int")
+                    (rsub "0")
+                    (rsup "1")
+                    "x"
+                    (rsup "2")
+                    "*"
+                    (space "0.17em")
+                    "d*x"))
+       "after")
   ) ;check
 ) ;define
 
 (define (test-chatgpt-display-multiline)
   (check (convert gpt-display-multiline "html-snippet" "texmacs-stree")
-    => '(equation* (concat "a=b" (next-line) "c=d"))
+    =>
+    '(equation* (concat "a=b" (next-line) "c=d"))
   ) ;check
 ) ;define
 
 (define (test-chatgpt-aria-label-fallback)
   ;; 缺 data-math-source 时用 aria-label 兜底
-  (check (convert gpt-aria-only "html-snippet" "texmacs-stree")
-    => '(math "y=x")
-  ) ;check
+  (check (convert gpt-aria-only "html-snippet" "texmacs-stree") => '(math "y=x"))
 ) ;define
 
 (define (test-legacy-katex-unchanged)
@@ -85,7 +87,10 @@
 
 (define (test-role-math-without-source-unchanged)
   ;; role="math" 但无源码属性时仍走通用 MathML 路径
-  (check (convert gpt-no-source-mathml "html-snippet" "texmacs-stree") => '(math "z"))
+  (check (convert gpt-no-source-mathml "html-snippet" "texmacs-stree")
+    =>
+    '(math "z")
+  ) ;check
 ) ;define
 
 (tm-define (test_0930)
