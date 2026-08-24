@@ -175,7 +175,12 @@ package("libcurl")
         handledependency("mbedtls", "mbedtls", "MBEDTLS_INCLUDE_DIRS", {MBEDTLS_LIBRARY = "mbedtls", MBEDX509_LIBRARY = "mbedx509", MBEDCRYPTO_LIBRARY = "mbedcrypto"})
         handledependency("zlib", "zlib", "ZLIB_INCLUDE_DIR", "ZLIB_LIBRARY")
         handledependency("zstd", "zstd", "Zstd_INCLUDE_DIR", "Zstd_LIBRARY")
-        import("package.tools.cmake").install(package, configs, {buildir = "build"})
+        -- 不同 config 的 libcurl 实例（顶层无 zlib + cpr ssl 的 zlib=true）若共享
+        -- buildir="build" 会复用同一 cmake 状态，构建产物可能引用已不存在的包路径
+        -- （如 zlib v1.3.1）导致 ninja 报 missing and no known rule（见 devel/2092.md）。
+        -- 按 package 实例（installdir 尾段 hash）拆分构建目录。
+        local builddir = "build-" .. (package:installdir():match("([^\\/]+)$") or "0")
+        import("package.tools.cmake").install(package, configs, {buildir = builddir})
     end)
 
     on_test(function (package)

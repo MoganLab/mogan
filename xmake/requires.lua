@@ -29,7 +29,9 @@ else
     end
 end
 if not is_plat("wasm") then
-    add_requires("cpr", {system=false})
+    -- cpr 默认 ssl=false，会导致 goldfish 的 libcurl 完全无法发起 HTTPS 请求
+    -- （LLM 等 HTTPS 接口全部报 HTTP状态码为0），必须显式开启 ssl
+    add_requires("cpr", {system=false, configs={ssl=true}})
 end
 
 if has_config("loro") then
