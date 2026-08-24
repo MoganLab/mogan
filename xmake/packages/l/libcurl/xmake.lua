@@ -29,9 +29,11 @@ package("libcurl")
 
     -- we init all configurations in on_load, because package("curl") need it.
     on_load(function (package)
-        if package:is_plat("linux", "android", "cross") then
-            -- curl 8.21 起要求 OpenSSL >= 3.0（lib/vtls/openssl.c 硬 #error），
-            -- 默认启用 openssl3，不要回退到 openssl（xmake-repo 的 openssl 是 1.1.1-w）
+        -- curl 8.21 已删除 SecureTransport 后端（CURL_USE_SECTRANSP 选项不复存在，
+        -- 传了也是空操作，会编出无 TLS 的 curl），macOS 同样必须走 OpenSSL；
+        -- 且 curl 8.21 起要求 OpenSSL >= 3.0（lib/vtls/openssl.c 硬 #error），
+        -- 默认启用 openssl3，不要回退 openssl（xmake-repo 的 openssl 是 1.1.1-w）
+        if package:is_plat("linux", "android", "cross", "macosx", "iphoneos") then
             if package:config("openssl") == nil and package:config("openssl3") == nil and package:config("mbedtls") == nil then
                 package:config_set("openssl3", true)
             end
@@ -126,9 +128,6 @@ package("libcurl")
         end
         if package:is_plat("windows", "mingw") then
             table.insert(configs, "-DCURL_USE_SCHANNEL=ON")
-        end
-        if package:is_plat("macosx", "iphoneos") then
-            table.insert(configs, "-DCURL_USE_SECTRANSP=ON")
         end
         if package:is_plat("windows") then
             table.insert(configs, "-DCURL_STATIC_CRT=" .. (package:config("vs_runtime"):startswith("MT") and "ON" or "OFF"))
