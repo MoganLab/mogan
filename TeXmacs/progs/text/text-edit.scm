@@ -465,6 +465,42 @@
   (make-section-aux l #f)
 ) ;tm-define
 
+(define (section-tier-tree? t)
+  (tree-in? t '(section section*))
+) ;define
+
+;; 只看上方：最近的同级 section 是 section* 时插 section*，否则插 section
+
+(define (nearest-above-path p sec-paths)
+  ;; 光标就在某个 section 块内部时其路径是光标路径的前缀，自然归入上方
+  (let ((above (filter (cut path-less? <> p) sec-paths)))
+    (if (null? above)
+      #f
+      (let loop
+        ((best (car above)) (rest (cdr above)))
+        (if (null? rest)
+          best
+          (loop (if (path-less? best (car rest)) (car rest) best) (cdr rest))
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
+) ;define
+
+(tm-define (smart-insert-section)
+  (:require (not (selection-active-non-small?)))
+  (with p
+    (cursor-path)
+    (let* ((root (root-tree))
+           (sec-paths (map tree->path (tree-search root section-tier-tree?)))
+           (above (nearest-above-path p sec-paths))
+           (lab (and above (tree-label (path->tree above))))
+          ) ;
+      (make-section (if (== lab 'section*) 'section* 'section))
+    ) ;let*
+  ) ;with
+) ;tm-define
+
 (tm-define (make-unnamed-section l) (make-section-aux l #t))
 
 (tm-define (kbd-enter t shift?)

@@ -419,7 +419,7 @@
   ("text s" (make 'strong))
   ("text v" (make 'verbatim))
   ("text 0" (make-section 'chapter))
-  ("text 1" (make-section 'section))
+  ("text 1" (smart-insert-section))
   ("text 2" (make-section 'subsection))
   ("text 3" (make-section 'subsubsection))
   ("text 4" (make-section 'paragraph))
