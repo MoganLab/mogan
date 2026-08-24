@@ -470,48 +470,37 @@
   (tree-in? t '(section section*))
 ) ;define
 
-;; 路径序取最近：cmp 取 path-less? 时返回 paths 中最大的（最近的上方），反之亦然
+;; 只看上方：最近的同级 section 是 section* 时插 section*，否则插 section
 
-(define (nearest-path paths cmp)
-  (if (null? paths)
-    #f
-    (let loop
-      ((best (car paths)) (rest (cdr paths)))
-      (if (null? rest)
-        best
-        (loop (if (cmp best (car rest)) (car rest) best) (cdr rest))
-      ) ;if
-    ) ;let
-  ) ;if
+(define (nearest-above-path p sec-paths)
+  ;; 光标就在某个 section 块内部时其路径是光标路径的前缀，自然归入上方
+  (let ((above (filter (cut path-less? <> p) sec-paths)))
+    (if (null? above)
+      #f
+      (let loop
+        ((best (car above)) (rest (cdr above)))
+        (if (null? rest)
+          best
+          (loop (if (path-less? best (car rest)) (car rest) best) (cdr rest))
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
 ) ;define
 
-;; 上下最近同级标题（缺省的一侧跳过）都无编号时，插入 section*
 (tm-define (smart-insert-section)
   (:require (not (selection-active-non-small?)))
   (with p
     (cursor-path)
     (let* ((root (root-tree))
-           ;; 全局收集 section/section*，按路径序与光标路径比较，
-           ;; 光标就在某个 section 块内部时其路径是光标路径的前缀，自然归入上方
            (sec-paths (map tree->path (tree-search root section-tier-tree?)))
-           (above (nearest-path (filter (cut path-less? <> p) sec-paths) path-less?))
-           (below (nearest-path (filter (cut path-less? p <>) sec-paths)
-                    (lambda (a b) (not (path-less? a b)))
-                  ) ;nearest-path
-           ) ;below
-           (labels (filter identity
-                     (map (lambda (sp) (and sp (tree-label (path->tree sp)))) (list above below))
-                   ) ;filter
-           ) ;labels
+           (above (nearest-above-path p sec-paths))
+           (lab (and above (tree-label (path->tree above))))
           ) ;
       (display* "smart-insert-section: p=" p ", sec-paths=" sec-paths ", above="
-        above ", below=" below ", labels=" labels "\n"
+        above ", lab=" lab "\n"
       ) ;display*
-      (make-section (if (and (nnull? labels) (list-and (map (cut == <> 'section*) labels)))
-                      'section*
-                      'section
-                    ) ;if
-      ) ;make-section
+      (make-section (if (== lab 'section*) 'section* 'section))
     ) ;let*
   ) ;with
 ) ;tm-define
