@@ -466,48 +466,46 @@
   (make-section-aux l #f)
 ) ;tm-define
 
-(define (section-tier-label? l)
-  (in? l '(section section*))
+(define (section-tier-tree? t)
+  (tree-in? t '(section section*))
 ) ;define
 
-;; 从 idx 沿 step 方向扫描文档顶层，返回最近同级 section 标签，找不到返回 #f
+;; 路径序取最近：cmp 取 path-less? 时返回 paths 中最大的（最近的上方），反之亦然
 
-(define (scan-section-tier root idx step)
-  (cond ((< idx 0) #f)
-        ((>= idx (tree-arity root)) #f)
-        ((section-tier-label? (tree-label (tree-ref root idx)))
-         (tree-label (tree-ref root idx))
-        ) ;
-        (else (scan-section-tier root (+ idx step) step))
-  ) ;cond
+(define (nearest-path paths cmp)
+  (if (null? paths)
+    #f
+    (let loop
+      ((best (car paths)) (rest (cdr paths)))
+      (if (null? rest)
+        best
+        (loop (if (cmp best (car rest)) (car rest) best) (cdr rest))
+      ) ;if
+    ) ;let
+  ) ;if
 ) ;define
 
 ;; 上下最近同级标题（缺省的一侧跳过）都无编号时，插入 section*
 (tm-define (smart-insert-section)
   (:require (not (selection-active-non-small?)))
-  (display* "smart-insert-section: invoked\n")
   (with p
     (cursor-path)
     (let* ((root (root-tree))
-           (i (if (null? p) 0 (car p)))
-           ;; 光标就在某个 section 块内部时，该块本身算作上方最近的同级标题
-           (inside (and (> (length p) 1)
-                     (< i (tree-arity root))
-                     (section-tier-label? (tree-label (tree-ref root i)))
-                   ) ;and
-           ) ;inside
-           (up (scan-section-tier root (if inside i (- i 1)) -1))
-           (down (scan-section-tier root (+ i 1) 1))
-           (labels (if up (if down (list up down) (list up)) (if down (list down) (list))))
+           ;; 全局收集 section/section*，按路径序与光标路径比较，
+           ;; 光标就在某个 section 块内部时其路径是光标路径的前缀，自然归入上方
+           (sec-paths (map tree->path (tree-search root section-tier-tree?)))
+           (above (nearest-path (filter (cut path-less? <> p) sec-paths) path-less?))
+           (below (nearest-path (filter (cut path-less? p <>) sec-paths)
+                    (lambda (a b) (not (path-less? a b)))
+                  ) ;nearest-path
+           ) ;below
+           (labels (filter identity
+                     (map (lambda (sp) (and sp (tree-label (path->tree sp)))) (list above below))
+                   ) ;filter
+           ) ;labels
           ) ;
-      (display* "smart-insert-section: i=" i ", inside=" inside ", up=" up
-        ", down=" down ", labels=" labels "\n"
-      ) ;display*
-      (display* "smart-insert-section: root arity="
-        (tree-arity root)
-        ", top labels="
-        (map tree-label (tree-children root))
-        "\n"
+      (display* "smart-insert-section: p=" p ", sec-paths=" sec-paths ", above="
+        above ", below=" below ", labels=" labels "\n"
       ) ;display*
       (make-section (if (and (nnull? labels) (list-and (map (cut == <> 'section*) labels)))
                       'section*
