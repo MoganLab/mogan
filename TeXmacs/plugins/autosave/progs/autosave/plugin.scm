@@ -64,10 +64,6 @@
   (system->url (path->string p))
 ) ;define
 
-(define (auto-backup-format name)
-  (url-format name)
-) ;define
-
 ;; auto-backup-buffer-eligible?
 ;; 判断指定 buffer 是否允许进入自动备份。
 ;;
@@ -99,7 +95,7 @@
     (not (url-rooted-web? name))
     (not (url-rooted-tmfs? name))
     (not (auto-backup-texmacs-path-buffer? name))
-    (in? (auto-backup-format name) '("texmacs" "stm" "tmu" "stem"))
+    (in? (url-format name) '("texmacs" "stm" "tmu" "stem"))
   ) ;and
 ) ;tm-define
 

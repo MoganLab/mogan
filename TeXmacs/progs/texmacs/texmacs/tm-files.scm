@@ -1276,12 +1276,28 @@
   (inexact->exact (floor (+ (date->julian-day (day->date day)) 0.5)))
 ) ;define
 
-;; 与今天(YYYYMMDD)是否同一自然周(周一起算)。该历元下周一恰为
-;; jd ≡ 0 (mod 7),故周索引直接取 quotient jd 7;先前 (jd-1)/7 的周界
-;; 未对齐周一,会把上周三误判进本周
+;; 今天的日期串与 day-number,整天不变故缓存,避免每次算标题重复历法换算
 
-(define (draft-this-week? day today)
-  (== (quotient (day-number today) 7) (quotient (day-number day) 7))
+(define scratch-today-info #f)
+
+(define (scratch-today)
+  (let ((today (date->string (current-date) "~Y~m~d")))
+    (if (and scratch-today-info (== (car scratch-today-info) today))
+      scratch-today-info
+      (begin
+        (set! scratch-today-info (cons today (day-number today)))
+        scratch-today-info
+      ) ;begin
+    ) ;if
+  ) ;let
+) ;define
+
+;; 与今天是否同一自然周(周一起算)。该历元下周一恰为 jd ≡ 0 (mod 7),
+;; 故周索引直接取 quotient jd 7;先前 (jd-1)/7 的周界未对齐周一,
+;; 会把上周三误判进本周
+
+(define (draft-this-week? day)
+  (== (quotient (cdr (scratch-today)) 7) (quotient (day-number day) 7))
 ) ;define
 
 ;; 星期名,顺序对应 srfi-19 date-week-day(周日为 0)
@@ -1306,18 +1322,11 @@
     (if (not stamp)
       (translate "no name")
       (let* ((day (draft-date stamp))
-             (today (date->string (current-date) "~Y~m~d"))
+             (today (car (scratch-today)))
              (weekday (herk->utf8 (translate (vector-ref scratch-weekdays (date-week-day (day->date day))))
                       ) ;herk->utf8
              ) ;weekday
              (hm (string-append (substring stamp 8 10) ":" (substring stamp 10 12)))
-             ;; 本周草稿统一显示时分秒;命名已是秒级,仅旧的分钟级(12 位)
-             ;; 时间戳无秒可显,退化为时分
-             (hms (if (> (string-length stamp) 12)
-                    (string-append hm ":" (substring stamp 12 14))
-                    hm
-                  ) ;if
-             ) ;hms
              ;; 今年非本周:MM/DD HH:MM;去年及更早:只显示 YYYY/MM/DD,不带时间
              (date-str (if (== (substring day 0 4) (substring today 0 4))
                          (string-append (substring day 4 6) "/" (substring day 6 8) " " hm)
@@ -1329,8 +1338,18 @@
                          ) ;string-append
                        ) ;if
              ) ;date-str
-             ;; 展示粒度:本周统一 周一HH:MM:SS
-             (core (if (draft-this-week? day today) (string-append weekday hms) date-str))
+             ;; 展示粒度:本周统一 周一HH:MM:SS;命名已是秒级,仅旧的分钟级
+             ;; (12 位)时间戳无秒可显,退化为时分
+             (core (if (draft-this-week? day)
+                     (string-append weekday
+                       (if (> (string-length stamp) 12)
+                         (string-append hm ":" (substring stamp 12 14))
+                         hm
+                       ) ;if
+                     ) ;string-append
+                     date-str
+                   ) ;if
+             ) ;core
              (draft (herk->utf8 (translate "Draft")))
             ) ;
         ;; 全部按 utf8 拼接(含字面量全角括号),最后统一转回内部 herk 编码,

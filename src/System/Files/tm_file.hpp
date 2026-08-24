@@ -46,6 +46,7 @@ eval_system (string which, url u1, url u2) {
                       escape_sh (concretize (u2)));
 }
 
+url    scratch_dir ();
 bool   is_scratch (url u);
 string file_format (url u);
 

@@ -231,6 +231,10 @@
       (cond ((and last-dir (string? last-dir) (not (string-null? last-dir)))
              (set! opts (list (car opts) (system->url last-dir)))
             ) ;
+            ((url-scratch? master)
+             ;; 草稿另存默认目录:LiiiSTEM,而非 no_name 暂存目录
+             (set! opts (list (car opts) (url-append (get-documents-path) "LiiiSTEM")))
+            ) ;
             ((url-rooted-tmfs? master)
              ;; tmfs buffer（协作云文档等）master 是 tmfs URL，非本地路径；
              ;; 默认落到系统下载目录，buffer 标题作默认文件名

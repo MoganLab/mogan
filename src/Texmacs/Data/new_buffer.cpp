@@ -210,18 +210,9 @@ make_welcome_buffer () {
 
 url
 make_new_buffer () {
-  url name;
-  try {
-    string s= as_string (call ("scratch-buffer-name"));
-    if (N (s) > 0) name= url_system (s);
-  } catch (...) {
-  }
-  if (is_none (name) || !is_nil (concrete_buffer (name))) {
-    // scheme 未就绪或返回名字已被占用时的兜底:毫秒时间戳保证唯一
-    url dir= get_documents_path () * "LiiiSTEM/no_name";
-    // time_t 在 macOS 上是 long,int64_t 是 long long,不显式转换会重载二义
-    name= dir * ("draft_" * as_string ((int64_t) texmacs_time ()) * ".tmu");
-  }
+  // 新建标签页时 tm-files 必已加载,scratch-buffer-name 保证返回唯一名
+  string s   = as_string (call ("scratch-buffer-name"));
+  url    name= url_system (s);
   set_buffer_tree (name, tree (DOCUMENT));
   return name;
 }
