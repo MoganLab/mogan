@@ -15,14 +15,17 @@
 
 #include "base.hpp"
 
+#include "Qt/QTMQmlDialog.hpp"       // cpp_version_dialog
 #include "Qt/QTMQmlDialogBridge.hpp" // QmlDialogEscFilter
 
+#include <QApplication>
 #include <QDialog>
 #include <QObject>
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QStringList>
+#include <QTimer>
 #include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
@@ -209,6 +212,7 @@ private slots:
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
   void test_version_loads ();
+  void test_version_dialog_focuses_on_open ();
   void test_version_escape_cancels ();
   void test_version_escape_fallback_without_focus ();
   void test_version_long_line_wraps ();
@@ -410,6 +414,38 @@ TestQmlLoad::test_version_loads () {
 }
 
 void
+TestQmlLoad::test_version_dialog_focuses_on_open () {
+  // 0927：必须经真实 run_qml_dialog + exec() 路径验证。弹窗显示后检查 QML
+  // 场景焦点并发 ESC，确认正常 QML 取消链路生效。
+  bool sawDialog = false;
+  bool hadFocus  = false;
+  bool sentEscape= false;
+  QTimer::singleShot (200, [&] () {
+    for (QWidget* topLevel : QApplication::topLevelWidgets ())
+      if (topLevel->objectName () == "QTMQmlDialog") {
+        sawDialog       = true;
+        QQuickWidget* qw= topLevel->findChild<QQuickWidget*> ();
+        hadFocus        = qw && qw->rootObject ()->hasActiveFocus ();
+        if (qw) {
+          QTest::keyClick (qw, Qt::Key_Escape);
+          sentEscape= true;
+        }
+        return;
+      }
+  });
+  // 运行时加载失败等异常不能让测试遗留一个阻塞模态窗口。
+  QTimer::singleShot (2000, [] () {
+    for (QWidget* topLevel : QApplication::topLevelWidgets ())
+      if (topLevel->objectName () == "QTMQmlDialog")
+        static_cast<QDialog*> (topLevel)->reject ();
+  });
+  QVERIFY (!cpp_version_dialog ("Version", "Version information"));
+  QVERIFY (sawDialog);
+  QVERIFY (hadFocus);
+  QVERIFY (sentEscape);
+}
+
+void
 TestQmlLoad::test_version_escape_cancels () {
   QDialog            host;
   QQuickWidget*      qw    = new QQuickWidget (&host);
@@ -430,9 +466,10 @@ TestQmlLoad::test_version_escape_cancels () {
 
 void
 TestQmlLoad::test_version_escape_fallback_without_focus () {
-  // 0925：QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉
+  // 0925/0927：QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉
   // （不投递、不传播给 QDialog::reject），引擎侧的 QmlDialogEscFilter 须兜底
-  // reject 宿主弹窗，且不走 QML cancel
+  // reject 宿主弹窗，且不走 QML cancel。Windows 下 ESC 常先到达宿主 QDialog，
+  // 故过滤器装在宿主上并向宿主发 ESC，覆盖该场景。
   QDialog            host;
   QQuickWidget*      qw    = new QQuickWidget (&host);
   StubBridge*        close = new StubBridge (qw);
@@ -444,13 +481,15 @@ TestQmlLoad::test_version_escape_fallback_without_focus () {
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/Version.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
-  qw->installEventFilter (new QmlDialogEscFilter (&host, qw, &host));
+  // 过滤器装在宿主 QDialog 上：Windows 下 ESC 常先到达宿主而非 QQuickWidget
+  host.installEventFilter (new QmlDialogEscFilter (&host, qw, &host));
   host.show ();
   // 强制 QML 场景无焦点项，模拟 ESC 被吞的真实缺陷态
   qw->rootObject ()->setFocus (false);
   QTRY_VERIFY (!qw->rootObject ()->hasActiveFocus ());
   QSignalSpy rejectedSpy (&host, &QDialog::rejected);
-  QTest::keyClick (qw, Qt::Key_Escape);
+  // 直接向宿主发送 ESC，覆盖 Windows 焦点落在宿主的场景
+  QTest::keyClick (&host, Qt::Key_Escape);
   QTRY_COMPARE (rejectedSpy.count (), 1);
   QVERIFY (!host.isVisible ());
   QCOMPARE (close->cancelCount, 0);

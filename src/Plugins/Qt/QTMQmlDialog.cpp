@@ -33,6 +33,7 @@ using moebius::data::tree_to_scheme_tree;
 #include <QQuickWidget>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QVariantList>
 #include <QVariantMap>
@@ -159,6 +160,37 @@ lock_autofit_height (QQuickWidget* qw, QVBoxLayout* vl, QDialog& d, int logic_w,
 }
 
 /**
+ * @brief 在宿主窗口真正激活后，把 QWidget 和 QML 两层焦点交给弹窗根项。
+ *
+ * Windows 的无边框 Qt::Tool 会在 show 后异步激活；若只在 exec 前或首个
+ * 事件循环中请求焦点，QQuickWidget 虽可获得 QWidget 焦点，QML 场景仍可能没有
+ * activeFocusItem。WindowActivate 到达时再同步一次两层焦点。
+ */
+static void
+focus_qml_dialog (QDialog& host, QQuickWidget* view) {
+  host.setFocus (Qt::OtherFocusReason);
+  view->setFocus (Qt::OtherFocusReason);
+  if (view->rootObject ()) view->rootObject ()->forceActiveFocus ();
+}
+
+class QmlDialogFocusFilter : public QObject {
+public:
+  QmlDialogFocusFilter (QDialog* host, QQuickWidget* view, QObject* parent)
+      : QObject (parent), m_host (host), m_view (view) {}
+
+protected:
+  bool eventFilter (QObject*, QEvent* ev) override {
+    if (ev->type () == QEvent::WindowActivate)
+      focus_qml_dialog (*m_host, m_view);
+    return false;
+  }
+
+private:
+  QDialog*      m_host;
+  QQuickWidget* m_view;
+};
+
+/**
  * @brief 通用 QML 模态弹窗引擎。
  *
  * 把两类弹窗（确认型 / form 型）共用的 QDialog 拼装 + setSource + 加载检查 +
@@ -206,11 +238,35 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
   else lock_fixed_size (qw, vl, d, logic_w, logic_h);
 
   // 焦点落在 QML 视图：弹窗激活时离屏 QML 场景随之激活，DialogShell 的
-  // focus:true 生效，ESC/Enter 走 QML 正常链路
-  qw->setFocus ();
+  // focus:true 生效，ESC/Enter 走 QML 正常链路。
+  // exec() 前窗口尚未真正显示，直接 setFocus() 在某些平台不生效。焦点代理让
+  // Qt 在宿主得焦点时转交给 QQuickWidget；WindowActivate 再同步 QML 根项。
+  qw->setFocusPolicy (Qt::StrongFocus);
+  d.setFocusProxy (qw);
+  d.installEventFilter (new QmlDialogFocusFilter (&d, qw, &d));
+  // 各平台窗口激活时机不同：macOS 首次弹无边框 Qt::Tool 时 key window 切换
+  // 可能晚于事件循环首个节拍，单次 setFocus 落空后焦点留在主窗口，ESC 被
+  // 主窗口吞掉（0927）。每 50ms 重试，QML 根项拿到 activeFocus 即停，上限
+  // 20 次（1s）防极端环境下空转。
+  QTimer* focusRetry= new QTimer (&d);
+  focusRetry->setInterval (50);
+  QObject::connect (focusRetry, &QTimer::timeout, &d,
+                    [&d, qw, focusRetry, attempts= 0] () mutable {
+                      if (qw->rootObject () &&
+                          qw->rootObject ()->hasActiveFocus ()) {
+                        focusRetry->stop ();
+                        return;
+                      }
+                      d.activateWindow ();
+                      focus_qml_dialog (d, qw);
+                      if (++attempts >= 20) focusRetry->stop ();
+                    });
+  focusRetry->start ();
   // QML 场景无 activeFocusItem 时 ESC 会被 QQuickWidget 静默吞掉（不投递、
-  // 不传播给 QDialog::reject），装兜底过滤器保证 ESC 总能关闭弹窗（0925）
-  qw->installEventFilter (new QmlDialogEscFilter (&d, qw, &d));
+  // 不传播给 QDialog::reject），装兜底过滤器保证 ESC 总能关闭弹窗（0925）。
+  // Windows 下无边框 Qt::Tool 焦点常落到宿主 QDialog 而非 QQuickWidget，故
+  // 过滤器装在宿主上，确保无论事件先到达哪个对象都能兜底。
+  d.installEventFilter (new QmlDialogEscFilter (&d, qw, &d));
 
   return d.exec ();
 }
