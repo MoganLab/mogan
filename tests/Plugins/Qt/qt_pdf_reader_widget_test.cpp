@@ -300,16 +300,19 @@ private slots:
     QLabel* hint= widget->findChild<QLabel*> ("rectSelectHint");
     QVERIFY (hint != nullptr);
     QVERIFY (hint->isVisible ());
-    QVERIFY (hint->text ().contains ("Draw a rectangle"));
+    QVERIFY (hint->text ().contains ("Click two corners"));
 
-    // 模拟拖拽选择
+    // 模拟点击-移动-点击选择
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
     QPoint start (50, 50);
     QPoint end (150, 150);
-    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove (vp, end);
-    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseClick (vp, Qt::LeftButton, Qt::NoModifier, start);
+    // 无按键的 mouseMove 需显式投递(QTest::mouseMove 不会送达)
+    QMouseEvent moveEvent (QEvent::MouseMove, end, vp->mapToGlobal (end),
+                           Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QApplication::sendEvent (vp, &moveEvent);
+    QTest::mouseClick (vp, Qt::LeftButton, Qt::NoModifier, end);
     QApplication::processEvents ();
 
     // 选择完成后提示变为 Copied to Clipboard!
@@ -347,12 +350,14 @@ private slots:
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
 
-    // 模拟拖拽选择
+    // 模拟点击-移动-点击选择
     QPoint start (50, 50);
     QPoint end (150, 150);
-    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove (vp, end);
-    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseClick (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QMouseEvent moveEvent (QEvent::MouseMove, end, vp->mapToGlobal (end),
+                           Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QApplication::sendEvent (vp, &moveEvent);
+    QTest::mouseClick (vp, Qt::LeftButton, Qt::NoModifier, end);
     QApplication::processEvents ();
 
     // 验证剪贴板有图片
