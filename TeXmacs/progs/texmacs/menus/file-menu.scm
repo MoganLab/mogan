@@ -30,8 +30,11 @@
     (let* ((abbr (buffer-get-title name))
            (abbr* (if (== abbr "") (url->system (url-tail name)) abbr))
            (mod? (buffer-modified? name))
-           (short-name `(verbatim ,(string-append abbr* (if mod? " *" ""))))
-           (long-name `(verbatim ,(url->system name)))
+           ;; 菜单条目同样经 set_text 按 herk 解码,中文文件名须先 utf8->herk
+           ;; (幂等:已是 herk 的草稿标题不变)
+           (short-name `(verbatim ,(utf8->herk (string-append abbr*
+                                                 (if mod? " *" "")))))
+           (long-name `(verbatim ,(utf8->herk (url->system name))))
           ) ;
       ((check (balloon (eval short-name) (eval long-name))
          "v"
@@ -97,20 +100,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (short-menu-name u)
-  (cond ((collab-buffer? u)
-         ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
-         (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
-        ) ;
-        ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
-        ((url-rooted-web? u)
-         (string-append (url->system (url-tail u)) " @ " (url-host u))
-        ) ;
-        (else (url->system (url-tail u)))
-  ) ;cond
+  ;; 菜单条目经 set_text 按 herk 解码,文件名须先 utf8->herk(幂等)
+  (utf8->herk (cond ((collab-buffer? u)
+                     ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
+                     (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
+                    ) ;
+                    ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
+                    ((url-rooted-web? u)
+                     (string-append (url->system (url-tail u)) " @ " (url-host u))
+                    ) ;
+                    (else (url->system (url-tail u)))
+              ) ;cond
+  ) ;utf8->herk
 ) ;define
 
 (define (long-menu-name u)
-  (url->system u)
+  (utf8->herk (url->system u))
 ) ;define
 
 (tm-menu (file-list-menu l win?)
