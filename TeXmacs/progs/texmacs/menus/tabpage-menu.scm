@@ -40,7 +40,9 @@
          (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
          (mod? (buffer-modified? buf))
         ) ;
-    (string-append title* (if mod? " *" ""))
+    ;; Qt 侧 set_text 统一按 herk 解码:中文文件名是原始 UTF-8 字节,须先
+    ;; utf8->herk;已是 herk 的标题(draft 的 <#..>)经 utf8->herk 不变
+    (utf8->herk (string-append title* (if mod? " *" "")))
   ) ;let*
 ) ;define
 
