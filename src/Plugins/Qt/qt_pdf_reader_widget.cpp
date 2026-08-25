@@ -36,6 +36,7 @@
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_chat_tab_widget.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_gui.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 #include "tm_sys_utils.hpp"
@@ -482,8 +483,9 @@ PDFReaderWidget::setRectSelectMode (bool checked) {
 #else
     QString shortcut= "Ctrl+Shift+v";
 #endif
-    hintLabel_->setText (
-        QString ("Draw a rectangle and use %1 to magic paste!").arg (shortcut));
+    hintLabel_->setText (QString ("Click two corners to select, then use %1 to "
+                                  "magic paste!")
+                             .arg (shortcut));
     hintLabel_->adjustSize ();
     hintLabel_->move (PAGE_MARGIN, PAGE_MARGIN);
     hintLabel_->show ();
@@ -519,7 +521,8 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
   if (clipboard) {
     clipboard->setPixmap (selected);
     // Trigger silent OCR to populate cache; the result is not inserted here.
-    if (!is_community_stem ()) {
+    // the_gui 在单元测试等未启动完整 GUI 的场景下为 NULL
+    if (!is_community_stem () && the_gui != NULL) {
       exec_delayed (scheme_cmd (
           "(when (defined? 'ocr-recognize-silent) (ocr-recognize-silent))"));
     }
@@ -1647,13 +1650,27 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
               event->type () == QEvent::MouseButtonDblClick)) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
       if (mouseEvent->button () == Qt::LeftButton) {
-        rectSelectDragging_= true;
-        rectSelectStart_   = contentPos;
-        if (!rubberBand_) {
-          rubberBand_= new QRubberBand (QRubberBand::Rectangle, contentWidget_);
+        if (rectSelectDragging_) {
+          // 第二次点击:确定第二个点,完成截图;同点重复点击(如双击,QRect
+          // 两点构造宽高至少为 1)不结束选区
+          QRect rect (rectSelectStart_, contentPos);
+          rect= rect.normalized ();
+          if (rect.width () > 1 && rect.height () > 1) {
+            rectSelectDragging_= false;
+            finishRectSelect (mouseEvent->pos ());
+          }
         }
-        rubberBand_->setGeometry (QRect (rectSelectStart_, QSize ()));
-        rubberBand_->show ();
+        else {
+          // 第一次点击:确定第一个点,移动鼠标即可出现选框
+          rectSelectDragging_= true;
+          rectSelectStart_   = contentPos;
+          if (!rubberBand_) {
+            rubberBand_=
+                new QRubberBand (QRubberBand::Rectangle, contentWidget_);
+          }
+          rubberBand_->setGeometry (QRect (rectSelectStart_, QSize ()));
+          rubberBand_->show ();
+        }
         mouseEvent->accept ();
         return true;
       }
@@ -1665,16 +1682,6 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       rubberBand_->setGeometry (rect);
       static_cast<QMouseEvent*> (event)->accept ();
       return true;
-    }
-    else if (rectSelectMode_ && rectSelectDragging_ &&
-             event->type () == QEvent::MouseButtonRelease) {
-      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      if (mouseEvent->button () == Qt::LeftButton) {
-        rectSelectDragging_= false;
-        finishRectSelect (mouseEvent->pos ());
-        mouseEvent->accept ();
-        return true;
-      }
     }
   }
   return QWidget::eventFilter (watched, event);
