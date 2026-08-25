@@ -192,7 +192,8 @@ tm_failure (const char* msg) {
   cerr << "TeXmacs] Dumping report below\n\n" << report << "\n";
 #else
   url dir ("$TEXMACS_HOME_PATH/system/crash");
-  url err= dir * ("crash_report_" * as_string (texmacs_time ()));
+  // time_t 在 macOS 上是 long,int64_t 是 long long,不显式转换会重载二义
+  url err= dir * ("crash_report_" * as_string ((int64_t) texmacs_time ()));
   if (!save_string (err, report))
     cerr << "TeXmacs] Crash report saved in " << err << "\n";
   else
