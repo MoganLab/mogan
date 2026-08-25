@@ -1606,6 +1606,13 @@ qt_tm_widget_rep::update_visibility () {
     new_pdfOutlineVisibility=
         outlineEnabled && pdfOutlineDock && pdfOutlineDock->hasContent ();
   }
+  // 全屏时菜单栏/标题栏已由 set_full_screen 隐藏，这里不得重新显示：
+  // 光标移入特殊格式会触发本函数，重新显示会重建原生窗口样式并退出全屏
+  if (full_screen) {
+    new_menuVisibility = false;
+    new_titleVisibility= false;
+  }
+
   if (XOR (old_mainVisibility, new_mainVisibility)) {
     mainToolBar->setVisible (new_mainVisibility);
   }
