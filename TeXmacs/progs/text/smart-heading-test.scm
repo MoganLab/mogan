@@ -16,6 +16,7 @@
 
 ;; path-before? 是纯字典序，长度不等时前缀更小（path-less? 在此情形走
 ;; start/end 特例返回 #f，本测试钉死这个差异）
+
 (define (test-path-before)
   (check (path-before? '(0) '(1)) => #t)
   (check (path-before? '(1) '(0)) => #f)
