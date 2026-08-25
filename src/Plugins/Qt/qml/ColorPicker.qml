@@ -124,7 +124,7 @@ DialogShell {
 
     onCancel: closeBridge.cancel()
 
-    // 屏幕取色结果异步回流（bridge 隐藏宿主弹窗后全屏取色，结束经信号回传）。
+    // 屏幕取色结果异步回流（bridge 打开全屏取色 overlay，结束经信号回传）。
     Connections {
         target: root.bridge
         function onScreenColorPicked(hex) {

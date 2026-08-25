@@ -856,7 +856,7 @@ cpp_color_picker_dialog (string title, array<tree> proposals,
       "qrc:/qml/ColorPicker.qml", "ColorPicker.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
         bridge                     = inject_common_context (qw, host);
-        ColorPickerBridge* cpBridge= new ColorPickerBridge (&host);
+        ColorPickerBridge* cpBridge= new ColorPickerBridge ();
         qw->rootContext ()->setContextProperty ("colorBridge", cpBridge);
         QObject::connect (&host, &QDialog::destroyed, cpBridge,
                           &QObject::deleteLater);

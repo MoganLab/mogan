@@ -25,17 +25,20 @@
 namespace {
 
 /**
- * @brief 全屏取色浮层：铺满屏幕显示快照，十字光标点击取色，Esc 取消。
+ * @brief 全屏取色浮层：显示快照，十字光标点击取色，Esc 取消。
  *
- * 快照 QPixmap 带 devicePixelRatio，绘制时铺满逻辑坐标窗口即可；取色时把
- * 点击逻辑坐标乘 DPR 换算回图像像素。
+ * 绘制与取色都按全局屏幕坐标对齐，不按窗口 rect() 拉伸：WM 可能把窗口
+ * 约束进工作区（KWin 对「整屏大小」的窗口会压到 availableGeometry），
+ * 拉伸会让快照错位/压缩（面板区域与真实面板叠成「双重任务栏」）。
+ * 对齐后未被窗口覆盖的区域（如面板）露出真实内容，与快照自然衔接。
  */
 class ScreenPickOverlay : public QDialog {
 public:
-  explicit ScreenPickOverlay (const QPixmap& snapshot)
+  explicit ScreenPickOverlay (const QPixmap& snapshot,
+                              const QPoint&  screenOrigin)
       : QDialog (nullptr,
                  Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool),
-        m_snapshot (snapshot) {
+        m_snapshot (snapshot), m_screenOrigin (screenOrigin) {
     setCursor (Qt::CrossCursor);
     setAttribute (Qt::WA_DeleteOnClose);
     setWindowModality (Qt::ApplicationModal);
@@ -45,15 +48,19 @@ public:
 
 protected:
   void paintEvent (QPaintEvent*) override {
-    QPainter p (this);
-    p.drawPixmap (rect (), m_snapshot);
+    QPainter      p (this);
+    const QPointF off= geometry ().topLeft () - m_screenOrigin;
+    p.drawPixmap (-off, m_snapshot);
   }
 
   void mousePressEvent (QMouseEvent* ev) override {
     const qreal  dpr= m_snapshot.devicePixelRatio ();
     const QImage img= m_snapshot.toImage ();
-    const int    px = qRound (ev->position ().x () * dpr);
-    const int    py = qRound (ev->position ().y () * dpr);
+    // 窗口逻辑坐标 → 屏幕全局逻辑坐标 → 乘 DPR 换算图像像素
+    const QPointF globalPos=
+        geometry ().topLeft () + ev->position () - m_screenOrigin;
+    const int px= qRound (globalPos.x () * dpr);
+    const int py= qRound (globalPos.y () * dpr);
     if (px >= 0 && py >= 0 && px < img.width () && py < img.height ())
       m_picked= img.pixelColor (px, py);
     accept ();
@@ -66,13 +73,11 @@ protected:
 
 private:
   QPixmap m_snapshot;
+  QPoint  m_screenOrigin;
   QColor  m_picked;
 };
 
 } // namespace
-
-ColorPickerBridge::ColorPickerBridge (QWidget* host, QObject* parent)
-    : QObject (parent), m_host (host) {}
 
 ColorPickerBridge::~ColorPickerBridge () {
   // 直接 delete 不触发 finished，finished 连接的 context（本对象）此时仍有效。
@@ -81,9 +86,14 @@ ColorPickerBridge::~ColorPickerBridge () {
 
 bool
 ColorPickerBridge::canPickScreen () const {
-  // Wayland 不允许应用任意抓屏：grabWindow 返回空图或全黑快照，取色不可用。
-  return !QGuiApplication::platformName ().startsWith ("wayland",
-                                                       Qt::CaseInsensitive);
+  // Wayland 会话抓不到真实屏幕：qtwayland 平台不支持 grabWindow；mogan
+  // 强制 QT_QPA_PLATFORM=xcb（research.cpp），Wayland 下实际跑在 XWayland，
+  // platformName 恒为 "xcb"、grabWindow 只能抓到 XWayland 的黑色根窗口，
+  // 故须看 WAYLAND_DISPLAY 而非 platformName。
+  if (QGuiApplication::platformName ().startsWith ("wayland",
+                                                   Qt::CaseInsensitive))
+    return false;
+  return !qEnvironmentVariableIsSet ("WAYLAND_DISPLAY");
 }
 
 void
@@ -107,14 +117,13 @@ ColorPickerBridge::pickScreenColor () {
     return;
   }
 
-  // 隐藏宿主须在抓快照之后：否则 hide 触发的重绘来不及完成，快照可能
-  // 残留弹窗残影；先抓则快照含弹窗自身（与 QColorDialog 行为一致）。
-  ScreenPickOverlay* overlay= new ScreenPickOverlay (snapshot);
+  // 不 hide 宿主弹窗：hide 会退出 exec() 中对话框的事件循环
+  // （QDialog::setVisible 的隐藏分支 exit 其 eventLoop），整个弹窗随之销毁。
+  // overlay 全屏置顶，已足够盖住弹窗。
+  ScreenPickOverlay* overlay=
+      new ScreenPickOverlay (snapshot, screen->geometry ().topLeft ());
   overlay->setGeometry (screen->geometry ());
-  QPointer<QWidget> host= m_host;
-  if (host != nullptr) host->hide ();
-  connect (overlay, &QDialog::finished, this, [this, host, overlay] (int res) {
-    if (host != nullptr) host->show ();
+  connect (overlay, &QDialog::finished, this, [this, overlay] (int res) {
     QString hex;
     if (res == QDialog::Accepted) {
       const QColor c= overlay->pickedColor ();
