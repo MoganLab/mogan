@@ -67,6 +67,16 @@
   ) ;check
 ) ;define
 
+(define (test-explicit-shortcut)
+  ;; 显式 shortcut 标签应覆盖动作反向查找结果，避免多重绑定导致快捷键为空。
+  (let ((attrs (menu-entry-attributes "Zoom in" '(menu-entry-test-plain) 0 "C-S-=" #f #f)
+        ) ;attrs
+       ) ;
+    (check (caddr attrs) => "Zoom in")
+    (check (!= (cadddr attrs) "") => #t)
+  ) ;let
+) ;define
+
 (define (test-inapplicable-greys)
   ;; 不适用条目叠加 widget-style-inert + widget-style-grey
   (check (menu-entry-attributes "Opt" '(menu-entry-test-inapplicable) 0 #f #f #f)
@@ -107,6 +117,7 @@
 (tm-define (regtest-menu-entry)
   (test-plain-entry)
   (test-check-mark)
+  (test-explicit-shortcut)
   (test-inapplicable-greys)
   (test-interactive-adds-dots)
   (test-balloon-help)
