@@ -219,7 +219,8 @@ make_new_buffer () {
   if (is_none (name) || !is_nil (concrete_buffer (name))) {
     // scheme 未就绪或返回名字已被占用时的兜底:毫秒时间戳保证唯一
     url dir= get_documents_path () * "LiiiSTEM/no_name";
-    name   = dir * ("draft_" * as_string (texmacs_time ()) * ".tmu");
+    // time_t 在 macOS 上是 long,int64_t 是 long long,不显式转换会重载二义
+    name= dir * ("draft_" * as_string ((int64_t) texmacs_time ()) * ".tmu");
   }
   set_buffer_tree (name, tree (DOCUMENT));
   return name;
