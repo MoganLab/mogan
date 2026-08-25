@@ -93,10 +93,12 @@ TEST_SUITE ("scheme_der") {
     scheme_tree t= block_to_scheme_tree (s);
     CHECK (is_tuple (t));
     CHECK_EQ (N (t), 2);
-    CHECK (is_tuple (t[0]) && N (t[0]) == 2);
+    CHECK (is_tuple (t[0]));
+    CHECK_EQ (N (t[0]), 2);
     CHECK (atom_of (t[0][0]) == "\"key one\"");
     CHECK (atom_of (t[0][1]) == "\"value one\"");
-    CHECK (is_tuple (t[1]) && N (t[1]) == 2);
+    CHECK (is_tuple (t[1]));
+    CHECK_EQ (N (t[1]), 2);
   }
 
 } // TEST_SUITE
