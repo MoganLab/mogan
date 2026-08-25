@@ -465,6 +465,52 @@
   (make-section-aux l #f)
 ) ;tm-define
 
+;; 只看上方：最近的同级标题（l / l*）是无编号变体时插无编号变体，否则插有编号的
+;; 路径比较用纯字典序（前缀视为更小）：path-less? 在两条路径长度不等时会走
+;; start/end 标记特例（moebius path_less_eq），不是全序，曾因此挑错「最近」
+
+(define (path-before? a b)
+  (cond ((null? a) (nnull? b))
+        ((null? b) #f)
+        ((< (car a) (car b)) #t)
+        ((> (car a) (car b)) #f)
+        (else (path-before? (cdr a) (cdr b)))
+  ) ;cond
+) ;define
+
+(define (nearest-above-path p heading-paths)
+  ;; 光标在标题块内部时该标题路径是光标路径的前缀，自然归入上方
+  (with above
+    (filter (cut path-before? <> p) heading-paths)
+    (and (nnull? above)
+      (let loop
+        ((best (car above)) (rest (cdr above)))
+        (if (null? rest)
+          best
+          (loop (if (path-before? best (car rest)) (car rest) best) (cdr rest))
+        ) ;if
+      ) ;let
+    ) ;and
+  ) ;with
+) ;define
+
+(tm-define (smart-insert-heading l)
+  (:require (not (selection-active-non-small?)))
+  (with star
+    (string->symbol (string-append (symbol->string l) "*"))
+    (let* ((tags (list l star))
+           (bp (buffer-path))
+           (paths (map tree->path (tree-search (root-tree) (cut tree-in? <> tags))))
+           ;; tree->path 返回相对 root-tree 的绝对路径，多 buffer 时须过滤到当前 buffer
+           (mine (filter (cut list-starts? <> bp) paths))
+           (above (nearest-above-path (cursor-path) mine))
+           (lab (and above (tree-label (path->tree above))))
+          ) ;
+      (make-section (if (== lab star) star l))
+    ) ;let*
+  ) ;with
+) ;tm-define
+
 (tm-define (make-unnamed-section l) (make-section-aux l #t))
 
 (tm-define (kbd-enter t shift?)

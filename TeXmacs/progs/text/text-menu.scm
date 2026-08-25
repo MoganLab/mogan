@@ -130,9 +130,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind section-menu
- ("Section" (make-section 'section))
- ("Subsection" (make-section 'subsection))
- ("Subsubsection" (make-section 'subsubsection))
+ ("Section" (smart-insert-heading 'section))
+ ("Subsection" (smart-insert-heading 'subsection))
+ ("Subsubsection" (smart-insert-heading 'subsubsection))
  ---
  ("Paragraph::section" (make-section 'paragraph))
  ("Subparagraph" (make-section 'subparagraph))
@@ -146,11 +146,11 @@
   (when (and (not (inside? 'doc-data)) (not (inside? 'abstract-data)))
     ("Abstract" (make-abstract-data))
   ) ;when
-  ("Chapter" (make-section 'chapter))
+  ("Chapter" (smart-insert-heading 'chapter))
   ---
-  ("Section" (make-section 'section))
-  ("Subsection" (make-section 'subsection))
-  ("Subsubsection" (make-section 'subsubsection))
+  ("Section" (smart-insert-heading 'section))
+  ("Subsection" (smart-insert-heading 'subsection))
+  ("Subsubsection" (smart-insert-heading 'subsubsection))
   ---
   ("Paragraph::section" (make-section 'paragraph))
   ("Subparagraph" (make-section 'subparagraph))
