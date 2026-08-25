@@ -175,6 +175,7 @@ void
 edit_interface_rep::mouse_drag (SI x, SI y) {
   if (inside_graphics () && is_in_graphics_mode) return;
   if (mouse_message ("drag", x, y)) return;
+  path last_tp= tp; // 拖选期间光标应保持在按下左键时的位置
   go_to (x, y);
   end_x= x;
   end_y= y;
@@ -188,6 +189,7 @@ edit_interface_rep::mouse_drag (SI x, SI y) {
     p2       = temp;
   }
   set_selection (p1, p2);
+  go_to (last_tp);
   notify_change (THE_SELECTION);
 }
 
@@ -211,6 +213,7 @@ edit_interface_rep::mouse_select (SI x, SI y, int mods, bool drag) {
   bool b0= inside_graphics (false);
   bool b = inside_graphics ();
   if (b) g= get_graphics ();
+  path last_tp= tp; // 拖选结束时, 光标保持在按下左键时的位置
   go_to (x, y);
   if ((!b0 && inside_graphics (false)) || (b0 && !inside_graphics (false)))
     drag= false;
@@ -226,6 +229,7 @@ edit_interface_rep::mouse_select (SI x, SI y, int mods, bool drag) {
     set_selection (p0, p0);
     notify_change (THE_SELECTION);
   }
+  else go_to (last_tp);
   if (selection_active_any ()) selection_set ("mouse", selection_get (), true);
 }
 
