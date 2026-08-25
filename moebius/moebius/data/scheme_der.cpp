@@ -216,6 +216,15 @@ string_to_scheme_tree (string s) {
 scheme_tree
 block_to_scheme_tree (string s) {
   if (!char_type_init) init_char_type ();
+  // 同 string_to_scheme_tree: 先剥离 CR,否则 CRLF 文件中元组内的换行
+  // 会被当作普通 token,导致跨行条目(如翻译字典)解析失败
+  bool has_cr= false;
+  for (int k= 0; k < N (s); k++)
+    if (s[k] == '\015') {
+      has_cr= true;
+      break;
+    }
+  if (has_cr) s= replace (s, "\015", "");
   scheme_tree p (TUPLE);
   int         i     = 0;
   const int   length= N (s);

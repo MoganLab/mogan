@@ -86,4 +86,19 @@ TEST_SUITE ("scheme_der") {
     CHECK (atom_of (t[1][0]) == "b");
   }
 
+  TEST_CASE ("block parse with CRLF line breaks") {
+    // Windows(CRLF)字典文件里跨行条目不应因 CR 产生多余词元
+    string s=
+        "(\"key one\"\015\n  \"value one\"\015\n) ;\015\n(\"k2\" \"v2\")\015\n";
+    scheme_tree t= block_to_scheme_tree (s);
+    CHECK (is_tuple (t));
+    CHECK_EQ (N (t), 2);
+    CHECK (is_tuple (t[0]));
+    CHECK_EQ (N (t[0]), 2);
+    CHECK (atom_of (t[0][0]) == "\"key one\"");
+    CHECK (atom_of (t[0][1]) == "\"value one\"");
+    CHECK (is_tuple (t[1]));
+    CHECK_EQ (N (t[1]), 2);
+  }
+
 } // TEST_SUITE
