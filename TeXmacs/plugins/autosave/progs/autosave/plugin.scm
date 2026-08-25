@@ -64,10 +64,6 @@
   (system->url (path->string p))
 ) ;define
 
-(define (auto-backup-format name)
-  (if (url-scratch? name) "texmacs" (url-format name))
-) ;define
-
 ;; auto-backup-buffer-eligible?
 ;; 判断指定 buffer 是否允许进入自动备份。
 ;;
@@ -99,7 +95,7 @@
     (not (url-rooted-web? name))
     (not (url-rooted-tmfs? name))
     (not (auto-backup-texmacs-path-buffer? name))
-    (in? (auto-backup-format name) '("texmacs" "stm" "tmu" "stem"))
+    (in? (url-format name) '("texmacs" "stm" "tmu" "stem"))
   ) ;and
 ) ;tm-define
 
@@ -306,9 +302,11 @@
   (auto-backup-trig (current-buffer-url) "visit-cloud-backup")
 ) ;tm-define
 
+;; scratch buffer 在磁盘上有真实路径（no_name .tmu），与普通文档一样原地自动保存；
+;; 手动 Ctrl+S 的 save-as 弹窗走 save-buffer-check-permissions，不受影响。
 (tm-define (autosave-all)
   (for-each (lambda (name)
-              (when (and (buffer-modified? name) (not (url-scratch? name)))
+              (when (buffer-modified? name)
                 (save-buffer-save name (list) "auto")
               ) ;when
             ) ;lambda
@@ -319,7 +317,7 @@
 (tm-define (autosave-now)
   (when (autosave-enabled?)
     (let ((name (current-buffer)))
-      (when (and (buffer-modified? name) (not (url-scratch? name)))
+      (when (buffer-modified? name)
         (save-buffer-save name (list) "auto")
       ) ;when
     ) ;let

@@ -161,7 +161,7 @@ tm_frame_rep::choose_file (object fun, string title, string type, string prompt,
   }
   else {
     // scratch buffer 无真实路径，默认打开其宿主目录 Documents/LiiiSTEM
-    // （url_scratch 创建 scratch 文件时已确保该目录存在）
+    // （scheme scratch-buffer-name 创建 scratch 文件时已确保该目录存在）
     set_directory (wid, as_system_string (get_documents_path () * "LiiiSTEM"));
   }
 #ifdef __EMSCRIPTEN__

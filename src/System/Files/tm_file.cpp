@@ -93,9 +93,14 @@ system (string which, url u1, const char* sep, url u2) {
 /******************************************************************************
  * Getting attributes of a file
  ******************************************************************************/
+url
+scratch_dir () {
+  return get_documents_path () * "LiiiSTEM/no_name";
+}
+
 bool
 is_scratch (url u) {
-  return head (u) == get_documents_path () * "LiiiSTEM/no_name";
+  return head (u) == scratch_dir ();
 }
 
 string

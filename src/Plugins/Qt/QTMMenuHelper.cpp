@@ -83,7 +83,8 @@ QTMAction::~QTMAction () {
 
 void
 QTMAction::set_text (string s) {
-  if (N (s)) {
+  // 菜单刷新会重设同样文本,未变化时跳过替换 && 与编码转换
+  if (N (s) && s != str) {
     // FIXME: this will only work if the system language is English!
     if (s == "Help" || s == "Edit" || s == "View" || s == "Preferences...")
       s= s * " ";
