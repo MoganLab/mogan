@@ -1307,14 +1307,14 @@
   (vector "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday")
 ) ;define
 
-;; 中文界面标志:决定「草稿（周一21:00）」与 "Draft Monday 21:00" 两种格式
+;; 中文界面标志:决定「草稿（周一 21:00）」与 "Draft Monday 21:00" 两种格式
 
 (define (chinese-ui?)
   (== (string-take (language-to-locale (get-output-language)) 2) "zh")
 ) ;define
 
 ;; scratch buffer 标题:
-;; - 本周:"Draft Monday 21:27:35" / 「草稿（周一21:27:35）」(统一时分秒)
+;; - 本周:"Draft Monday 21:27:35" / 「草稿（周一 21:27:35）」(统一时分秒)
 ;; - 今年非本周:"Draft 08/02 22:43" / 「草稿（08/02 22:43）」
 ;; - 去年及更早:"Draft 2025/08/02" / 「草稿（2025/08/02）」(只显示日期)
 (tm-define (scratch-buffer-title u)
@@ -1343,6 +1343,7 @@
              ;; (12 位)时间戳无秒可显,退化为时分
              (core (if (draft-this-week? day)
                      (string-append weekday
+                       " "
                        (if (> (string-length stamp) 12)
                          (string-append hm ":" (substring stamp 12 14))
                          hm
