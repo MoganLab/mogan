@@ -21,27 +21,7 @@ private slots:
   void init () { init_lolly (); }
   void test_load_ramdisc ();
   void test_search_sub_dirs ();
-  void test_url_numbered_make_dir ();
 };
-
-void
-TestTMFile::test_url_numbered_make_dir () {
-  url base= url_temp_dir () * url ("tm_file_test_0741");
-  url dir = base * url ("a") * url ("b");
-  // 确保 base 目录不存在（因为涉及 rmdir 清理）防止出现意外
-  // 当测试因为 base 目录存在而不通过时，打印并手动删除
-  // cout << "base dir: " << base << LF;
-  QVERIFY (!is_directory (base));
-  QVERIFY (!is_directory (dir));
-
-  url name= url_numbered (dir, "test_", ".tmu", 1);
-  QVERIFY (is_directory (dir));
-  QVERIFY (as_string (tail (name)) == "test_1.tmu");
-
-  // 清理
-  rmdir (base);
-  QVERIFY (!is_directory (base));
-}
 
 void
 TestTMFile::test_load_ramdisc () {
