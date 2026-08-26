@@ -1213,12 +1213,24 @@
 ;; ----
 ;; (ocr-paste source-format)
 
-(define (clipboard-tree-image? data)
+(tm-define (clipboard-tree-image? data)
   (or (tree-is? data 'image)
     (and (tree? data) (tree-compound? data) (tree-is? (tree-ref data 0) 'image))
     (and (tree-is? data 'with) (tree-is? (tree-ref data 2) 'image))
   ) ;or
-) ;define
+) ;tm-define
+
+;; 外部程序复制的图像经 (clipboard-get "primary") 得到 (extern "<texmacs-snippet>")，
+;; 真正内容在下标 1；内部复制时直接返回存储的 tree
+(tm-define (clipboard-get-data)
+  (with t
+    (clipboard-get "primary")
+    (if (and (tree? t) (tree-compound? t) (tree-is? (tree-ref t 0) 'extern))
+      (parse-texmacs-snippet (tree->string (tree-ref t 1)))
+      t
+    ) ;if
+  ) ;with
+) ;tm-define
 
 ;; 0-arg wrapper: keep backward compatibility with callers that call (ocr-paste)
 (tm-define (ocr-paste) (ocr-paste "image"))
@@ -1228,10 +1240,7 @@
     (use-modules (ocr liii-ocr))
   ) ;when
   (with data
-    (if (string=? source-format "texmacs-snippet")
-      (tree-ref (clipboard-get "primary") 0)
-      (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
-    ) ;if
+    (clipboard-get-data)
     (when (clipboard-tree-image? data)
       (ocr-to-latex-by-cursor data)
     ) ;when
@@ -1246,8 +1255,8 @@
 ;; (image-and-ocr-paste)
 (tm-define (image-and-ocr-paste)
   (with data
-    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
-    (when (tree-is? (tree-ref data 0) 'image)
+    (clipboard-get-data)
+    (when (clipboard-tree-image? data)
       (kbd-paste)
       (kbd-return)
       (when (not (defined? 'ocr-to-latex-by-cursor))
@@ -1301,12 +1310,10 @@
     (use-modules (ocr liii-ocr))
   ) ;when
   (with img-tree
-    (tree-ref (clipboard-get "primary") 0)
-    (cond ((tree-is? img-tree 'image) (ocr-to-latex-by-cursor img-tree))
-          ((and (tree-is? img-tree 'with) (tree-is? (tree-ref img-tree 2) 'image))
-           (ocr-to-latex-by-cursor img-tree)
-          ) ;
-    ) ;cond
+    (clipboard-get-data)
+    (when (clipboard-tree-image? img-tree)
+      (ocr-to-latex-by-cursor img-tree)
+    ) ;when
   ) ;with
 ) ;tm-define
 
@@ -1432,7 +1439,7 @@
           ) ;
           ((string=? source-format "texmacs-snippet")
            (with data
-             (tree-ref (clipboard-get "primary") 0)
+             (clipboard-get-data)
              (if (clipboard-tree-image? data)
                (begin
                  (ocr-paste "texmacs-snippet")

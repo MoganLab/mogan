@@ -111,10 +111,7 @@
 ) ;define
 
 (tm-define (is-clipboard-image?)
-  (with data
-    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
-    (if (tree-is? (tree-ref data 0) 'image) #t #f)
-  ) ;with
+  (with data (clipboard-get-data) (clipboard-tree-image? data))
 ) ;tm-define
 
 (tm-widget (clipboard-paste-from-widget cmd)
