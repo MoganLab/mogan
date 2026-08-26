@@ -148,6 +148,25 @@
 ("Restart TeXmacs in order to let changes take effect"
   "重启TeXmacs以使您的更改生效"
 ) ;
+("Restart" "重启")
+("Beta" "测试版")
+("Stable" "稳定版")
+("Channel switched; the next release on this channel will be offered"
+  "已切换更新通道，该通道发布新版本后将自动提供更新"
+) ;
+("Switch to the Beta update channel? Beta releases may be unstable."
+  "切换到测试版（Beta）更新通道？测试版本可能不稳定。"
+) ;
+("Switch back to the Stable update channel? The latest stable version may be older than the current one."
+  "切回稳定版（Stable）更新通道？稳定版最新版本可能低于当前版本。"
+) ;
+("The application will check for updates on the new channel and restart to apply. Continue?"
+  "应用将在新通道检查更新并重启以应用。是否继续？"
+) ;
+("Timed out waiting for the update check" "等待更新检查超时")
+("Timed out waiting for the previous update task"
+  "等待上一个更新任务超时"
+) ;
 ("Restore" "恢复")
 ("Return::keyboard" "Return")
 ("Save change to" "保存文档到")
@@ -2789,6 +2808,8 @@
 ("up" "")
 ("up" "上")
 ("Update buffer" "更新缓冲区")
+("Update channel" "更新通道")
+("Update check failed: " "更新检查失败：")
 ("Update now" "立即更新")
 ("update from web" "")
 ("update image links" "")
