@@ -417,7 +417,9 @@ cpp_confirm_question (string message, array<string> buttons) {
         qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
         qw->rootContext ()->setContextProperty ("dialogPrimary", n - 1);
       },
-      400, 150);
+      // 正文支持换行（ConfirmQuestion.qml WordWrap），长文案（如更新通道切换
+      // 确认）需更高正文区。
+      400, 200);
   delete bridge;
   // choose(0) = Esc / X；加载失败为 -1；二者均按取消处理。
   if (choice <= 0 || choice > n) return -1;

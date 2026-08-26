@@ -149,8 +149,6 @@
   "重启TeXmacs以使您的更改生效"
 ) ;
 ("Restart" "重启")
-("Beta" "测试版")
-("Stable" "稳定版")
 ("Channel switched; the next release on this channel will be offered"
   "已切换更新通道，该通道发布新版本后将自动提供更新"
 ) ;
