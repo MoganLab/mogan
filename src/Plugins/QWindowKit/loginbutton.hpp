@@ -44,6 +44,10 @@ public:
   bool badgeVisible () const;
   void setBadgeVisible (bool visible);
 
+Q_SIGNALS:
+  void hovered ();
+  void unhovered ();
+
 protected:
   void enterEvent (QEnterEvent* event) override;
   void leaveEvent (QEvent* event) override;
