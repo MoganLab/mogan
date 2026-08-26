@@ -1400,6 +1400,7 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
   if (!layout) return;
 
   if (chatSidebarMode) {
+    bool wasVisible= chatSideDock->isVisible ();
     // 确保不与全屏聊天模式同时存在
     if (chatTabMode) {
       chatTabMode= false;
@@ -1449,6 +1450,13 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
 
     chatSideDock->show ();
     chatContentWidget->show ();
+    // 侧边栏由隐藏转为显示时，若输入区为空则预填文档选区内容。
+    // 必须在 focusInput 之前调用：此时 current editor 仍是文档编辑器，
+    // scheme 侧的 selection-tree 才能取到选区
+    if (!wasVisible && chatWidget && chatWidget->activeConversation ()) {
+      call ("chat-tab-prefill-from-selection!",
+            chatWidget->activeConversation ()->sessionId ());
+    }
     // 焦点切到聊天输入框
     if (chatWidget && chatWidget->activeConversation ()) {
       chatWidget->activeConversation ()->focusInput ();
