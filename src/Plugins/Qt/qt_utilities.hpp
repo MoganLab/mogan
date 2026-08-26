@@ -71,7 +71,6 @@ array<string> from_qstringlist (const QStringList& l);
 ///// String conversion: Assumes UTF8 encodings both in QT and TeXmacs.
 
 QString to_qstring (const string& s);
-QString herk_or_utf8_to_qstring (const string& s);
 string  from_qstring (const QString& s);
 QString utf8_to_qstring (const string& s);
 QString latin1_to_qstring (const string& s);

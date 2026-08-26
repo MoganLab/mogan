@@ -33,7 +33,6 @@
 #include <QImageReader>
 #include <QMimeData>
 
-#include <lolly/data/herk.hpp>
 #include <moebius/data/colors.hpp>
 using namespace moebius::data;
 
@@ -450,18 +449,6 @@ to_qstring (const string& s) {
   if (looks_utf8 (s) && !(looks_ascii (s) || looks_universal (s)))
     return utf8_to_qstring (s);
   else return utf8_to_qstring (cork_to_utf8 (s));
-}
-
-/*! 菜单标签的编码判别版转换:scheme 侧约定标签以 herk(<#XXXX> 转义,纯
- ASCII)传入,但部分标签(中文文件名、含原始 UTF-8 的拼接文本)是裸 UTF-8
- 字节。整体是合法 UTF-8 且非纯 ASCII/universal 时直接透传,否则按 herk
- 单字节表解码——裸 UTF-8 若走 herk 解码,每个 >=0x80 字节都会被映射成
- 拉丁字符,显示为乱码(见 devel/0939.md、devel/1240.md 第 9 节)。 */
-QString
-herk_or_utf8_to_qstring (const string& s) {
-  if (looks_utf8 (s) && !(looks_ascii (s) || looks_universal (s)))
-    return utf8_to_qstring (s);
-  else return utf8_to_qstring (lolly::data::herk_to_utf8 (s));
 }
 
 string

@@ -24,7 +24,6 @@ private slots:
   void test_to_qstring_utf8 ();
   void test_from_qstring_utf8_roundtrip ();
   void test_title_encoding_roundtrip ();
-  void test_herk_or_utf8_to_qstring ();
 };
 
 void
@@ -186,25 +185,4 @@ TestQtUtilities::test_title_encoding_roundtrip () {
     QString displayed= to_qstring (stored);
     QCOMPARE (displayed, QString ("Hello World"));
   }
-}
-
-/*
- * [0939] Menu label encoding: QTMAction::set_text receives labels either as
- * herk (<#XXXX> escapes, pure ASCII) or raw UTF-8. Raw UTF-8 must pass
- * through unchanged; herk and ASCII labels must decode as before.
- */
-void
-TestQtUtilities::test_herk_or_utf8_to_qstring () {
-  // Raw UTF-8 (可编辑PDF): passthrough, no herk byte-mapping mojibake
-  string raw_utf8= "\xE5\x8F\xAF\xE7\xBC\x96\xE8\xBE\x91PDF";
-  QCOMPARE (herk_or_utf8_to_qstring (raw_utf8),
-            QString::fromUtf8 ("\xE5\x8F\xAF\xE7\xBC\x96\xE8\xBE\x91PDF"));
-
-  // herk escapes (中文): decoded via herk single-byte/escape table
-  string herk= "<#4E2D><#6587>";
-  QCOMPARE (herk_or_utf8_to_qstring (herk),
-            QString::fromUtf8 ("\xE4\xB8\xAD\xE6\x96\x87"));
-
-  // ASCII label: passthrough
-  QCOMPARE (herk_or_utf8_to_qstring (string ("LaTeX")), QString ("LaTeX"));
 }

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
+#include "lolly/data/herk.hpp"
 #include "object_l5.hpp"
 #include "preferences.hpp"
 
@@ -89,9 +90,7 @@ QTMAction::set_text (string s) {
       s= s * " ";
     s  = replace (s, "&", "&&");
     str= s;
-    // herk 标签照旧解码;裸 UTF-8 标签(如含中文的拼接文本)直接透传,
-    // 避免逐字节走 herk 单字节表显示成拉丁乱码
-    setText (herk_or_utf8_to_qstring (s));
+    setText (utf8_to_qstring (lolly::data::herk_to_utf8 (s)));
   }
 }
 
