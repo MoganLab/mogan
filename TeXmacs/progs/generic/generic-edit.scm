@@ -1247,7 +1247,8 @@
 ;; (image-and-ocr-paste)
 (tm-define (image-and-ocr-paste)
   (with data
-    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
+    ;; 外部剪贴板树为 (extern <snippet-string>)，内容在 child 1
+    (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
     (when (tree-is? (tree-ref data 0) 'image)
       (kbd-paste)
       (kbd-return)
