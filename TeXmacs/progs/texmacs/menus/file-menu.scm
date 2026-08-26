@@ -476,8 +476,8 @@
      ) ;
      (when (selection-active-any?)
        ;; 子菜单标题走 widget-pulldown-button,标签经 set_text 按 herk 解码,
-       ;; 译文是裸 UTF-8,须先 utf8->herk(同上方 recent 文件名条目的处理)
-       (=> `(verbatim ,(utf8->herk (translate "Export selection as image")))
+       ;; 译文是裸 UTF-8,须先 utf8->herk(translate 对 herk 串是恒等,二次翻译无害)
+       (=> (eval (utf8->herk (translate "Export selection as image")))
          (link export-as-image-menu)
        ) ;=>
      ) ;when
