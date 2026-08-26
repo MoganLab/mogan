@@ -267,11 +267,16 @@
 
 (tm-define (focus-tree-modified t) (noop))
 
+;; 变体切换后焦点树路径不变，光标驱动的菜单刷新判等不会触发，
+;; 需显式请求重建焦点工具栏（ICONS_FOCUS）
+(tm-define (variant-menu-categories) '(icons-focus))
+
 (tm-define (variant-set t by)
   (with-focus-after t
     (with i
       (tree-down-index t)
       (tree-assign-node! t by)
+      (apply update-menus (variant-menu-categories))
       (focus-tree-modified t)
       (when (and i (not (tree-accessible-child? t i)))
         (with ac
