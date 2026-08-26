@@ -72,10 +72,13 @@ jobs:
       # beta full；stable 仅无 -rc 的 tag 打，基线向前找最近非 rc release 的
       # stable full。所有发布都标了 prerelease，releases/latest 接口拿不到，
       # 这里列出最近 100 个 release，排除 draft 和当前 tag（重跑同一 tag 时
-      # 避免把自己当基线），按通道各自向后遍历，wget 下载 mogan-release-*.zip
-      # 解压拣出对应通道的 full 包（stable 需逐个 release 尝试：rc tag 的 zip
-      # 里没有 stable 包，自然跳过）。某通道首次发布或 GitHub 上尚无压缩包时
-      # 跳过属正常（没有基线时 pack 只出 full 包，是合法状态）。
+      # 避免把自己当基线），按通道各自向后遍历，wget 下载对应通道的 zip。
+      # 压缩包分两种：新版每通道各一个 zip（mogan-release-<ver>-win-x64-
+      # <channel>.zip，按通道名只下载目标通道的归档）；旧版是全部通道合并的
+      # 单一 zip（无通道后缀，兼容回退）。解压拣出对应通道的 full 包
+      # （stable 需逐个 release 尝试：rc tag 的 zip 里没有 stable 包，自然
+      # 跳过）。某通道首次发布或 GitHub 上尚无压缩包时跳过属正常（没有基线
+      # 时 pack 只出 full 包，是合法状态）。
       # GITHUB_TOKEN 不会自动注入为环境变量，必须显式传入 secrets.GITHUB_TOKEN；
       # 为空时回退为公开仓库的匿名访问。
       - name: Fetch delta baselines from GitHub Release
@@ -113,9 +116,18 @@ jobs:
               }
               Remove-Item build/velopack_baseline -Recurse -Force -ErrorAction SilentlyContinue
               New-Item -ItemType Directory -Path build/velopack_baseline -Force | Out-Null
+              # 优先按通道名匹配 zip（分开上传的新格式，名带通道后缀，
+              # 只下载目标通道的归档，避免拉取无关通道的 1.5GB 包）；找不到
+              # 再回退旧合并 zip（无通道后缀，内含全部通道的包）。
+              $zipPattern = if ($channel -eq "beta") { '*beta*.zip' } else { '*stable*.zip' }
               $zip = $release.assets |
-                Where-Object { $_.name -like 'mogan-release-*.zip' } |
+                Where-Object { $_.name -like $zipPattern } |
                 Select-Object -First 1
+              if (-not $zip) {
+                $zip = $release.assets |
+                  Where-Object { $_.name -like 'mogan-release-*.zip' } |
+                  Select-Object -First 1
+              }
               if ($zip) {
                 wget -q "$($zip.browser_download_url)" -O build/velopack_baseline.zip
                 Expand-Archive -Path build/velopack_baseline.zip `
@@ -161,11 +173,9 @@ jobs:
           VPK_CHANNEL: stable
           VPK_OUTPUT_DIR: build/velopack_release_stable
         run: xmake l tools/release/pack_velopack.lua
-      # 把所有通道的发布目录（Setup、Portable、full/delta nupkg、feed json）
-      # 打成单一 zip，作为 GitHub Release 的唯一资产。下游（delta 基线、OSS
-      # 手动上传）下载后自行解压拣选所需文件。文件名带平台架构（win-x64），
-      # 与 vpk pack 的 --runtime win-x64 保持一致；各通道文件名带 channel
-      # 后缀，合并无冲突。
+      # 每个通道各自打一个 zip（Release 资产与下游 delta 基线按通道取用）：
+      # 文件名带通道后缀 mogan-release-<ver>-win-x64-<channel>.zip。此前是
+      # 全部通道合并成单一 zip，现改为分开上传，便于只下载目标通道的包。
       - name: Create release archive
         shell: pwsh
         run: |
@@ -173,12 +183,13 @@ jobs:
           $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
           $dirs = Get-ChildItem build -Directory -Filter 'velopack_release_*' |
             Sort-Object Name
-          $payload = @()
-          foreach ($d in $dirs) { $payload += "$($d.FullName)/*" }
-          $archive = "build/mogan-release-$ver-win-x64.zip"
-          Compress-Archive -Path $payload -DestinationPath $archive `
-            -CompressionLevel Optimal -Force
-          Get-Item $archive | Select-Object Name, Length
+          foreach ($d in $dirs) {
+            $channel = $d.Name -replace '^velopack_release_', ''
+            $archive = "build/mogan-release-$ver-win-x64-$channel.zip"
+            Compress-Archive -Path "$($d.FullName)/*" -DestinationPath $archive `
+              -CompressionLevel Optimal -Force
+            Get-Item $archive | Select-Object Name, Length
+          }
       - name: Upload
         uses: actions/upload-artifact@v4
         # 临时:0518 测试 tag(v2026.99.*)也上传 artifacts,便于核实双通道产物;
