@@ -50,6 +50,9 @@ TestLoginButton::leave_emits_unhovered () {
 #ifdef QTTEXMACS
 QTEST_MAIN (TestLoginButton)
 #else
-int main () { return 0; }
+int
+main () {
+  return 0;
+}
 #endif
 #include "login_button_test.moc"
