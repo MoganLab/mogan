@@ -7,7 +7,7 @@
     (liii base)
     (scheme char)
   ) ;import
-  (export goldfish-welcome goldfish-repl is-sicp-mode?)
+  (export goldfish-welcome goldfish-repl)
   (begin
 
     (define (goldfish-welcome)
