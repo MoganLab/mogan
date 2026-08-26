@@ -235,6 +235,7 @@
  ("、 var" (kbd-dunhao-tab))
  ("￥" (make 'math))
  ("￥ var" "<#FFE5>")
+ ("￥ $" (make 'equation*))
 ) ;utf8-kbd-map
 
 (kbd-map (:require (list-structured-insert-context?))
