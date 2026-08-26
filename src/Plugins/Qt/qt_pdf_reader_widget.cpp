@@ -478,19 +478,21 @@ PDFReaderWidget::setRectSelectMode (bool checked) {
 }
 
 /**
- * @brief 在视口中央显示临时提示（如"已复制到剪贴板"）
+ * @brief 在视口顶部水平居中处显示临时提示（如"已复制到剪贴板"）
  *
- * 提示相对视口居中，任何后续用户操作会通过 dismissHintToast 立即清除。
+ * 垂直位置与选区模式提示一致，水平相对视口居中；任何后续用户操作会通过
+ * dismissHintToast 立即清除。
  */
 void
 PDFReaderWidget::showHintToast (const QString& text) {
   if (!hintLabel_ || !scrollArea_ || !scrollArea_->viewport ()) return;
   hintLabel_->setText (text);
   hintLabel_->adjustSize ();
-  QWidget* vp    = scrollArea_->viewport ();
-  QPoint   center= QPoint ((vp->width () - hintLabel_->width ()) / 2,
-                           (vp->height () - hintLabel_->height ()) / 2);
-  hintLabel_->move (contentWidget_->mapFrom (vp, center));
+  // 垂直位置保持原左上角提示位,仅水平相对视口居中
+  QWidget* vp= scrollArea_->viewport ();
+  QPoint   anchor=
+      QPoint ((vp->width () - hintLabel_->width ()) / 2, PAGE_MARGIN);
+  hintLabel_->move (contentWidget_->mapFrom (vp, anchor));
   hintLabel_->show ();
   hintLabel_->raise ();
   hintToastActive_= true;
