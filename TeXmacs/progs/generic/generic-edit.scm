@@ -1230,7 +1230,8 @@
   (with data
     (if (string=? source-format "texmacs-snippet")
       (tree-ref (clipboard-get "primary") 0)
-      (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 0)))
+      ;; 剪贴板树为 (clipboard <label> <snippet-string>)，内容在 child 1
+      (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
     ) ;if
     (when (clipboard-tree-image? data)
       (ocr-to-latex-by-cursor data)
