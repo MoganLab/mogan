@@ -940,7 +940,7 @@
       field-input-context?
       (with u
         (tree-ref t :previous 0)
-        (if (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append lan ".ts")))
+        (if (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append lan ".stem")))
           (add-style-package lan)
         ) ;if
         (if (not (has-style-package? "framed-session"))
