@@ -186,8 +186,8 @@ tm_velopack::ensure_mgr () {
   if (!rep->mgr || rep->mgr_base != rep->feed_base ||
       rep->mgr_channel != rep->feed_channel) {
     Velopack::UpdateOptions opts;
-    opts.AllowVersionDowngrade= true;
-    opts.ExplicitChannel= rep->feed_channel;
+    opts.AllowVersionDowngrade      = true;
+    opts.ExplicitChannel            = rep->feed_channel;
     opts.MaximumDeltasBeforeFallback= 10;
     rep->mgr= std::make_unique<Velopack::UpdateManager> (
         feed_url (rep->feed_base), &opts);
@@ -260,7 +260,7 @@ tm_velopack::do_check () {
       if (rep->info_channel != rep->feed_channel) {
         // 例外：跨通道检查无更新——旧通道的缓存 info 与「待应用」就绪状态
         // 作废（用户已切换通道，旧通道的包不应再被应用）。
-        rep->st          = UPDATER_IDLE;
+        rep->st= UPDATER_IDLE;
         rep->info.reset ();
         rep->info_channel.clear ();
         rep->version.clear ();
@@ -325,9 +325,9 @@ tm_velopack::downloadUpdate () {
   // 本次下载。
   rep->feed_base   = feed_base_url ();
   rep->feed_channel= update_channel ();
-  rep->st       = UPDATER_DOWNLOADING;
-  rep->running  = true;
-  rep->worker   = std::thread ([this] { do_download (); });
+  rep->st          = UPDATER_DOWNLOADING;
+  rep->running     = true;
+  rep->worker      = std::thread ([this] { do_download (); });
   return true;
 }
 
