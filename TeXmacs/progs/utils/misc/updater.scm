@@ -108,7 +108,12 @@
            (updater-download-update)
            (delayed (:pause 1000) (updater-switch-chain-poll ticks))
           ) ;
-          ((== st 4) (updater-apply-update))
+          ;; apply 成功后 safely-quit-TeXmacs 退出进程,delayed 不再执行;apply
+          ;; 失败时 state→FAILED,delayed 让 poll 读到 FAILED 报错,不静默失败。
+          ((== st 4)
+           (updater-apply-update)
+           (delayed (:pause 1000) (updater-switch-chain-poll ticks))
+          ) ;
           ((== st 0)
            (set-message "Channel switched; the next release on this channel will be offered"
              "Update channel"
@@ -118,6 +123,13 @@
            (set-message (string-append "Update check failed: " (updater-error-code))
              "Update channel"
            ) ;set-message
+          ) ;
+          ;; 检查(1)/下载(3)是进行中状态,不消耗 ticks:下载全量包(266MB)可能远超
+          ;; 10 分钟,若按常规递增会在下载完成前超时退出,poll 失去 READY 后触发
+          ;; apply 的机会(表现为点 Restart 后不退出不重启)。ticks 只防御状态异常
+          ;; 卡死(停在 0/2/4/6 之外且不前进)。
+          ((or (== st 1) (== st 3))
+           (delayed (:pause 1000) (updater-switch-chain-poll ticks))
           ) ;
           ((< ticks 600) (delayed (:pause 1000) (updater-switch-chain-poll (+ ticks 1))))
           (else (set-message "Timed out waiting for the update check" "Update channel"))
