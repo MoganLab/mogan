@@ -188,7 +188,9 @@ jobs:
             build/mogan-release-*.zip
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        # 临时:0518 双通道打包测试用的 v2026.99.* tag 不创建 release,
+        # 避免测试产物污染后续真实发布的 delta 基线查找。测试完恢复。
+        if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v2026.99.')
         with:
           prerelease: true
           files: |

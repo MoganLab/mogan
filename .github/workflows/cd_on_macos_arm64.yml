@@ -2,9 +2,9 @@ name: CD for Mogan STEM on macOS arm64
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - '*'
+  # push:
+  #   tags:
+  #     - '*'   # 临时注释(0518 双通道打包测试),测试完恢复
 
 permissions:
   contents: write
