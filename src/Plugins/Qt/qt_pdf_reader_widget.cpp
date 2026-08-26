@@ -70,15 +70,15 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
     : QWidget (parent), scrollArea_ (nullptr), contentWidget_ (nullptr),
       pageLayout_ (nullptr), mainLayout_ (nullptr), rubberBand_ (nullptr),
       rectSelectMode_ (false), rectSelectDragging_ (false),
-      hintLabel_ (nullptr), browseDragging_ (false), browseDragActive_ (false),
-      scroller_ (nullptr), pageCount_ (0), hasError_ (false),
-      targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0), pageAspectRatio_ (0.0),
-      pageBaseWidthPts_ (0.0), overLink_ (false), zoomDebounceTimer_ (nullptr),
-      resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
-      inPinchGesture_ (false), blockRender_ (false), autoFitApplied_ (false),
-      pinchStartZoom_ (1.0), zoomAnchorContentY_ (0.0),
-      zoomAnchorViewportY_ (0.0), zoomAnchorOldZoom_ (1.0),
-      hasZoomAnchor_ (false), renderCallCount_ (0) {
+      hintLabel_ (nullptr), hintToastActive_ (false), browseDragging_ (false),
+      browseDragActive_ (false), scroller_ (nullptr), pageCount_ (0),
+      hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
+      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0), overLink_ (false),
+      zoomDebounceTimer_ (nullptr), resizeDebounceTimer_ (nullptr),
+      gestureSafetyTimer_ (nullptr), inPinchGesture_ (false),
+      blockRender_ (false), autoFitApplied_ (false), pinchStartZoom_ (1.0),
+      zoomAnchorContentY_ (0.0), zoomAnchorViewportY_ (0.0),
+      zoomAnchorOldZoom_ (1.0), hasZoomAnchor_ (false), renderCallCount_ (0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -470,31 +470,69 @@ PDFReaderWidget::setRectSelectMode (bool checked) {
   }
   rectSelectDragging_= false;
 
-  if (rectSelectMode_) {
-    if (!hintLabel_) {
-      hintLabel_= new QLabel (contentWidget_);
-      hintLabel_->setObjectName ("rectSelectHint");
-      hintLabel_->setStyleSheet (
-          "QLabel { background-color: rgba(0, 0, 0, 180); color: white; "
-          "padding: 4px 8px; border-radius: 4px; font-size: 12px; }");
-    }
-#ifdef Q_OS_MACOS
-    QString shortcut= "Cmd+Shift+v";
-#else
-    QString shortcut= "Ctrl+Shift+v";
-#endif
-    hintLabel_->setText (QString ("Click two corners to select, then use %1 to "
-                                  "magic paste!")
-                             .arg (shortcut));
-    hintLabel_->adjustSize ();
-    hintLabel_->move (PAGE_MARGIN, PAGE_MARGIN);
-    hintLabel_->show ();
-  }
-  else if (hintLabel_) {
-    hintLabel_->hide ();
-  }
+  if (rectSelectMode_) restoreSelectHint ();
+  else if (hintLabel_) hintLabel_->hide ();
+  hintToastActive_= false;
 
   Q_EMIT rectSelectModeChanged (checked);
+}
+
+/**
+ * @brief 在视口中央显示临时提示（如"已复制到剪贴板"）
+ *
+ * 提示相对视口居中，任何后续用户操作会通过 dismissHintToast 立即清除。
+ */
+void
+PDFReaderWidget::showHintToast (const QString& text) {
+  if (!hintLabel_ || !scrollArea_ || !scrollArea_->viewport ()) return;
+  hintLabel_->setText (text);
+  hintLabel_->adjustSize ();
+  QWidget* vp    = scrollArea_->viewport ();
+  QPoint   center= QPoint ((vp->width () - hintLabel_->width ()) / 2,
+                           (vp->height () - hintLabel_->height ()) / 2);
+  hintLabel_->move (contentWidget_->mapFrom (vp, center));
+  hintLabel_->show ();
+  hintLabel_->raise ();
+  hintToastActive_= true;
+}
+
+/**
+ * @brief 恢复截图选区模式的左上角操作提示
+ */
+void
+PDFReaderWidget::restoreSelectHint () {
+  if (!hintLabel_) {
+    hintLabel_= new QLabel (contentWidget_);
+    hintLabel_->setObjectName ("rectSelectHint");
+    hintLabel_->setStyleSheet (
+        "QLabel { background-color: rgba(0, 0, 0, 180); color: white; "
+        "padding: 4px 8px; border-radius: 4px; font-size: 12px; }");
+  }
+#ifdef Q_OS_MACOS
+  QString shortcut= "Cmd+Shift+v";
+#else
+  QString shortcut= "Ctrl+Shift+v";
+#endif
+  hintLabel_->setText (QString ("Click two corners to select, then use %1 to "
+                                "magic paste!")
+                           .arg (shortcut));
+  hintLabel_->adjustSize ();
+  hintLabel_->move (PAGE_MARGIN, PAGE_MARGIN);
+  hintLabel_->show ();
+  hintToastActive_= false;
+}
+
+/**
+ * @brief 清除居中的临时提示；若仍处于截图选区模式则恢复操作提示
+ */
+void
+PDFReaderWidget::dismissHintToast () {
+  if (!hintToastActive_) return;
+  if (rectSelectMode_) restoreSelectHint ();
+  else if (hintLabel_) {
+    hintLabel_->hide ();
+    hintToastActive_= false;
+  }
 }
 
 void
@@ -528,10 +566,7 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
     }
   }
 
-  if (hintLabel_) {
-    hintLabel_->setText ("Copied to Clipboard!");
-    hintLabel_->adjustSize ();
-  }
+  if (hintLabel_) showHintToast ("Copied to Clipboard!");
 }
 
 QLabel*
@@ -1427,6 +1462,12 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
 
 bool
 PDFReaderWidget::event (QEvent* event) {
+  if (hintToastActive_ &&
+      (event->type () == QEvent::Gesture ||
+       event->type () == QEvent::NativeGesture ||
+       event->type () == QEvent::Wheel || event->type () == QEvent::KeyPress)) {
+    dismissHintToast ();
+  }
   if (event->type () == QEvent::Gesture) {
     QGestureEvent* gestureEvent= static_cast<QGestureEvent*> (event);
     if (QPinchGesture* pinch= qobject_cast<QPinchGesture*> (
@@ -1500,6 +1541,13 @@ PDFReaderWidget::event (QEvent* event) {
 bool
 PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
   if (watched == scrollArea_->viewport ()) {
+    // 居中的截图结果提示:任何后续用户操作立即清除
+    if (hintToastActive_ && (event->type () == QEvent::MouseButtonPress ||
+                             event->type () == QEvent::MouseButtonDblClick ||
+                             event->type () == QEvent::Wheel ||
+                             event->type () == QEvent::KeyPress)) {
+      dismissHintToast ();
+    }
     // Pre-compute viewport and content coordinates for mouse events.
     QPoint viewportPos, contentPos;
     bool   isMouseEvent= (event->type () == QEvent::MouseMove ||
