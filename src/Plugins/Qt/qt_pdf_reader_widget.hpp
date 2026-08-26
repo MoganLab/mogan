@@ -136,6 +136,9 @@ private:
   int     pageWidth () const;
   void    applyZoomToLabels ();
   void    finishRectSelect (const QPoint& viewportPos);
+  void    showHintToast (const QString& text);
+  void    restoreSelectHint ();
+  void    dismissHintToast ();
   QLabel* findPageLabelAt (const QPoint& contentPos) const;
   QPixmap extractSelectionPixmap (QLabel*      label,
                                   const QRect& contentRect) const;
@@ -161,6 +164,7 @@ private:
   QPoint       rectSelectStart_;
   bool         rectSelectDragging_;
   QLabel*      hintLabel_;
+  bool         hintToastActive_;
 
   // Browse (hand) tool state
   bool       browseDragging_;
