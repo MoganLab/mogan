@@ -181,7 +181,9 @@ jobs:
           Get-Item $archive | Select-Object Name, Length
       - name: Upload
         uses: actions/upload-artifact@v4
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        # 临时:0518 测试 tag(v2026.99.*)也上传 artifacts,便于核实双通道产物;
+        # 正式 tag 仍走 Release 不上传 artifacts。测试完恢复。
+        if: ${{ !startsWith(github.ref, 'refs/tags/') || startsWith(github.ref_name, 'v2026.99.') }}
         with:
           path: |
             build/velopack_release_*/*
