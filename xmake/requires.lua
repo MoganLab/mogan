@@ -30,6 +30,13 @@ end
 if not is_plat("wasm") then
     add_requires("libcurl", {system=false})
 end
+-- macOS：openssl3 默认会被 xmake 解析为 Homebrew 系统包（pkg-config 命中
+-- brew 的 openssl@3），goldfish 因此动态链接 /opt/homebrew 下的
+-- libssl/libcrypto.dylib，未装 brew 的用户机器无法启动。强制源码静态构建。
+if is_plat("macosx") then
+    add_requireconfs("libcurl.openssl3", {system = false, override = true})
+    add_requireconfs("cpr.libcurl.openssl3", {system = false, override = true})
+end
 if not is_plat("wasm") then
     -- cpr 默认 ssl=false，会导致 goldfish 的 libcurl 完全无法发起 HTTPS 请求
     -- （LLM 等 HTTPS 接口全部报 HTTP状态码为0），必须显式开启 ssl
