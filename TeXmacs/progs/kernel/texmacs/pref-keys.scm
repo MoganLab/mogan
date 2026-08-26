@@ -218,6 +218,14 @@
 (define-public (pref-scripting-language) "scripting language")
 (define-public (pref-document-update-times) "document update times")
 
+;; 更新通道(单值 "stable"/"beta",缺省 stable;权威存储,tm_velopack 直接读)。
+;; stable/beta 两个是首选项 radio 组的展示用伪键——非真实 preference,读值
+;; 按 update-channel 换算,写值路由到 updater-switch-channel(见
+;; preferences-widgets.scm / devel/0518.md)。
+(define-public (pref-update-channel) "update-channel")
+(define-public (pref-update-channel-stable) "update-channel:stable")
+(define-public (pref-update-channel-beta) "update-channel:beta")
+
 ;; ---- Other / Experimental toggles ----
 (define-public (pref-experimental-fast-environments) "fast environments")
 (define-public (pref-experimental-alpha) "experimental alpha")

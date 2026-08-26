@@ -185,6 +185,11 @@
   '("texmacs->html:mathjax" "texmacs->html:mathml" "texmacs->html:images")
 ) ;tm-define
 
+;; 更新通道 radio 组的展示用伪键（真实存储是单值 update-channel）。
+(tm-define (preferences-qml-update-channel-keys)
+  (list (pref-update-channel-stable) (pref-update-channel-beta))
+) ;tm-define
+
 (tm-define (preferences-qml-set-html-formula-export key val)
   (let ((on? (== val "on")))
     (set-boolean-preference key on?)
@@ -279,6 +284,13 @@
         ((== key "latex:conservative") (if (get-latex-conservative) "on" "off"))
         ((== key "latex:transparent-source-tracking")
          (if (get-latex-transparent-source-tracking) "on" "off")
+        ) ;
+        ;; 更新通道 radio 组的展示用伪键：按真实偏好 update-channel 换算 on/off。
+        ((== key (pref-update-channel-stable))
+         (if (== (get-preference (pref-update-channel)) "beta") "off" "on")
+        ) ;
+        ((== key (pref-update-channel-beta))
+         (if (== (get-preference (pref-update-channel)) "beta") "on" "off")
         ) ;
         ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
         (else "")

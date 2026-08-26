@@ -15,6 +15,7 @@
   (:use (kernel texmacs pref-keys)
     (texmacs menus preferences-menu)
     (texmacs menus preferences-tools)
+    (utils misc updater)
     (language locale)
   ) ;:use
 ) ;texmacs-module
@@ -883,38 +884,66 @@
 ;; ---- Other / Misc fields ----
 
 (define preferences-qml-other-misc-fields
-  (list (list (pref-autosave)
-          "Automatically save"
-          '("120" "0")
-          '("On" "Off")
+  (append (list (list (pref-autosave)
+                  "Automatically save"
+                  '("120" "0")
+                  '("On" "Off")
+                  #f
+                  'group
+                  "Miscellaneous preferences"
+                ) ;list
+            (list (pref-autobackup)
+              "Auto backup"
+              '("on" "off")
+              '("On" "Off")
+              #f
+              'action-button
+              'open-auto-backup-location
+            ) ;list
+            (list (pref-security)
+              "Security"
+              '("accept no scripts" "prompt on scripts" "accept all scripts")
+              '("Accept no scripts" "Prompt on scripts" "Accept all scripts")
+              #f
+            ) ;list
+            ;; scripting language 的 options 动态按 scripts-list（lazy-plugin-force 副作用）。
+            ;; field->descriptor 在调用时拉取 options / options-pretty。
+            (list (pref-scripting-language) "Scripting language" '() '() #f)
+            (list (pref-document-update-times)
+              "Document updates run"
+              '("1" "2" "3")
+              '("Once" "Twice" "Three times")
+              #f
+            ) ;list
+          ) ;list
+    ;; 更新通道 radio 组（Stable/Beta 互斥 toggle）：真实存储是单值
+    ;; update-channel,伪键读值/写值由 current-value 与 set-field 特例路由。
+    ;; 仅 Velopack 更新器平台（Windows 安装版）显示。
+    (if (use-plugin-updater?)
+      (list (list (pref-update-channel-stable)
+              "Stable channel"
+              '()
+              '()
+              #f
+              'group
+              "Update channel"
+              'radio-group
+              "update-channel"
+            ) ;list
+        (list (pref-update-channel-beta)
+          "Beta channel (early access)"
+          '()
+          '()
           #f
-          'group
-          "Miscellaneous preferences"
+          'hint
+          "Beta releases may be unstable"
+          'radio-group
+          "update-channel"
         ) ;list
-    (list (pref-autobackup)
-      "Auto backup"
-      '("on" "off")
-      '("On" "Off")
-      #f
-      'action-button
-      'open-auto-backup-location
-    ) ;list
-    (list (pref-security)
-      "Security"
-      '("accept no scripts" "prompt on scripts" "accept all scripts")
-      '("Accept no scripts" "Prompt on scripts" "Accept all scripts")
-      #f
-    ) ;list
-    ;; scripting language 的 options 动态按 scripts-list（lazy-plugin-force 副作用）。
-    ;; field->descriptor 在调用时拉取 options / options-pretty。
-    (list (pref-scripting-language) "Scripting language" '() '() #f)
-    (list (pref-document-update-times)
-      "Document updates run"
-      '("1" "2" "3")
-      '("Once" "Twice" "Three times")
-      #f
-    ) ;list
-  ) ;list
+      ) ;list
+      '()
+    ) ;if
+  ) ;append
 ) ;define
 
 ;; ---- Other / Experimental fields（双栏 toggles，带平台条件过滤） ----
@@ -1250,6 +1279,15 @@
       ((== key "latex:transparent-source-tracking")
        (set-latex-transparent-source-tracking (== val "on"))
       ) ;
+      ;; 更新通道 radio 组：勾选（on）即走 updater-switch-channel 的两次确认
+      ;; + download+apply 切换链；取消勾选（off）不动作（互斥由单值存储保证）。
+      ;; 用户在确认弹窗点取消时首选项不写，什么都不动。
+      ((member key (preferences-qml-update-channel-keys))
+       (when (== val "on")
+         (updater-switch-channel (if (== key (pref-update-channel-beta)) "beta" "stable")
+         ) ;updater-switch-channel
+       ) ;when
+      ) ;
       ;; HTML formula-export 互斥组：任意一个开则关另外两个。
       ((member key (preferences-qml-html-formula-export-keys))
        (preferences-qml-set-html-formula-export key val)
@@ -1295,6 +1333,13 @@
           ;; buffer management 走 silent：仅写偏好，不做 show-icon-bar 副作用（下次启动自然生效）。
           ((== key (pref-general-buffer-management))
            (set-pretty-preference-silent (pref-general-buffer-management) val)
+          ) ;
+          ;; 更新通道伪键走 silent：仅写单值偏好（当前会话不触发切换链）。
+          ((member key (preferences-qml-update-channel-keys))
+           (set-preference (pref-update-channel)
+             (if (== key (pref-update-channel-beta)) "beta" "stable")
+           ) ;set-preference
+           (save-preferences)
           ) ;
           ;; 普通 key：按 kind 分流。
           ((== kind "combo") (set-pretty-preference-silent key val))

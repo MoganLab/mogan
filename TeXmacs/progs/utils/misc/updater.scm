@@ -69,3 +69,86 @@
     (delayed (:pause 1000) (updater-auto-download-loop))
   ) ;when
 ) ;tm-define
+
+;; ---- 更新通道(stable/beta)切换 ----
+;; 首选项 update-channel:单值 "stable"/"beta"(缺省 stable),C++ 侧 tm_velopack
+;; 以 ExplicitChannel 显式跟随该值(见 devel/0518.md)。切换走两次确认:
+;; 第一次确认切换方向,第二次确认强制重启走 download+apply;任一步取消则
+;; 什么都不动(首选项不写)。
+
+(tm-define (updater-current-channel)
+  (if (== (get-preference "update-channel") "beta") "beta" "stable")
+) ;tm-define
+
+;; 两按钮确认弹窗:确认返回 #t,取消(含 Esc/关闭)返回 #f。
+
+(define (updater-question message ok-label)
+  (== (cpp-confirm-question message (list (translate "Cancel") ok-label)) 1)
+) ;define
+
+(define (updater-channel-name channel)
+  (if (== channel "beta") (translate "Beta") (translate "Stable"))
+) ;define
+
+;; 切换链轮询:检查(1)/下载(3)继续等;可用(2)自动触发下载;就绪(4)apply
+;; (updater-apply-update 内部 safely-quit-TeXmacs 退出,更新器接管重启);空闲(0)
+;; 即目标通道暂无可用版本;失败(6)报错。ticks 上限防御轮询空转。
+
+(define (updater-switch-chain-poll ticks)
+  (with st
+    (updater-state)
+    (cond ((== st 2)
+           (updater-download-update)
+           (delayed (:pause 1000) (updater-switch-chain-poll ticks))
+          ) ;
+          ((== st 4) (updater-apply-update))
+          ((== st 0)
+           (set-message "Channel switched; the next release on this channel will be offered"
+             "Update channel"
+           ) ;set-message
+          ) ;
+          ((== st 6)
+           (set-message (string-append "Update check failed: " (updater-error-code))
+             "Update channel"
+           ) ;set-message
+          ) ;
+          ((< ticks 600) (delayed (:pause 1000) (updater-switch-chain-poll (+ ticks 1))))
+          (else (set-message "Timed out waiting for the update check" "Update channel"))
+    ) ;cond
+  ) ;with
+) ;define
+
+;; 启动切换链:checkInBackground 返回 #f 说明已有检查/下载在进行(其快照
+;; 可能仍是旧通道),等它结束再重新触发,保证链上的检查用的是新通道快照。
+
+(define (updater-switch-chain-start ticks)
+  (if (updater-check-background)
+    (updater-switch-chain-poll 0)
+    (if (< ticks 600)
+      (delayed (:pause 1000) (updater-switch-chain-start (+ ticks 1)))
+      (set-message "Timed out waiting for the previous update task" "Update channel")
+    ) ;if
+  ) ;if
+) ;define
+
+(tm-define (updater-switch-channel target)
+  (when (and (use-plugin-updater?) (!= target (updater-current-channel)))
+    (with prompt
+      (if (== target "beta")
+        (translate "Switch to the Beta update channel? Beta releases may be unstable.")
+        (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
+        ) ;translate
+      ) ;if
+      (when (updater-question prompt (updater-channel-name target))
+        (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
+                                ) ;translate
+                (translate "Restart")
+              ) ;updater-question
+          (set-preference "update-channel" target)
+          (save-preferences)
+          (updater-switch-chain-start 0)
+        ) ;when
+      ) ;when
+    ) ;with
+  ) ;when
+) ;tm-define
