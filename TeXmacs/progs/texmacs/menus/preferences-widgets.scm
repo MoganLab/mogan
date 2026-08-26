@@ -211,6 +211,8 @@
 
 (define-preference-names "scripting language" ("none" "None"))
 
+(define-preference-names "update-channel" ("stable" "Stable") ("beta" "Beta"))
+
 (tm-define (open-preferences) (:interactive #t) (cpp-preferences-dialog))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -916,30 +918,16 @@
               #f
             ) ;list
           ) ;list
-    ;; 更新通道 radio 组（Stable/Beta 互斥 toggle）：真实存储是单值
-    ;; update-channel,伪键读值/写值由 current-value 与 set-field 特例路由。
+    ;; 更新通道（Stable/Beta 单选 combo）：真实存储单值 update-channel,
+    ;; 写值经 set-field 特例路由到 updater-switch-channel 的两次确认。
     ;; 仅 Velopack 更新器平台（Windows 安装版）显示。
     (if (use-plugin-updater?)
-      (list (list (pref-update-channel-stable)
-              "Stable channel"
-              '()
-              '()
-              #f
-              'group
+      (list (list (pref-update-channel)
               "Update channel"
-              'radio-group
-              "update-channel"
+              '("stable" "beta")
+              '("Stable" "Beta")
+              #f
             ) ;list
-        (list (pref-update-channel-beta)
-          "Beta channel (early access)"
-          '()
-          '()
-          #f
-          'hint
-          "Beta releases may be unstable"
-          'radio-group
-          "update-channel"
-        ) ;list
       ) ;list
       '()
     ) ;if
@@ -1279,15 +1267,10 @@
       ((== key "latex:transparent-source-tracking")
        (set-latex-transparent-source-tracking (== val "on"))
       ) ;
-      ;; 更新通道 radio 组：勾选（on）即走 updater-switch-channel 的两次确认
-      ;; + download+apply 切换链；取消勾选（off）不动作（互斥由单值存储保证）。
-      ;; 用户在确认弹窗点取消时首选项不写，什么都不动。
-      ((member key (preferences-qml-update-channel-keys))
-       (when (== val "on")
-         (updater-switch-channel (if (== key (pref-update-channel-beta)) "beta" "stable")
-         ) ;updater-switch-channel
-       ) ;when
-      ) ;
+      ;; 更新通道：选中另一通道即走 updater-switch-channel 的两次确认
+      ;; + download+apply 切换链。用户在确认弹窗点取消时首选项不写，什么都不动；
+      ;; 选回当前通道（val 与现值相同）时 updater-switch-channel 自行 no-op。
+      ((== key (pref-update-channel)) (updater-switch-channel val))
       ;; HTML formula-export 互斥组：任意一个开则关另外两个。
       ((member key (preferences-qml-html-formula-export-keys))
        (preferences-qml-set-html-formula-export key val)
@@ -1334,11 +1317,9 @@
           ((== key (pref-general-buffer-management))
            (set-pretty-preference-silent (pref-general-buffer-management) val)
           ) ;
-          ;; 更新通道伪键走 silent：仅写单值偏好（当前会话不触发切换链）。
-          ((member key (preferences-qml-update-channel-keys))
-           (set-preference (pref-update-channel)
-             (if (== key (pref-update-channel-beta)) "beta" "stable")
-           ) ;set-preference
+          ;; 更新通道走 silent：仅写偏好（当前会话不触发切换链，下次启动生效）。
+          ((== key (pref-update-channel))
+           (set-preference (pref-update-channel) val)
            (save-preferences)
           ) ;
           ;; 普通 key：按 kind 分流。

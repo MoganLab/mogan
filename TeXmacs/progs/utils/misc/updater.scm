@@ -15,6 +15,13 @@
 
 (texmacs-module (utils misc updater))
 
+;; update-channel 的缺省值注册(不经 define-preferences 的 notify 机制,纯默认表)。
+;; 首选项 combo 经 get-pretty-preference 读值,未注册缺省时未写值会显示
+;; "default" 而非 "stable"。
+(when (not (ahash-ref preferences-default "update-channel"))
+  (ahash-set! preferences-default "update-channel" "stable")
+) ;when
+
 (tm-define (updater-initialize)
   (when (use-plugin-updater?)
     (updater-check-background)
