@@ -21,7 +21,4 @@
   (check (variant-menu-categories) => '(icons-focus))
 ) ;define
 
-(tm-define (regtest-variants)
-  (test-variant-menu-categories)
-  (check-report)
-) ;tm-define
+(tm-define (regtest-variants) (test-variant-menu-categories) (check-report))

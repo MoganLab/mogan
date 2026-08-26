@@ -25,7 +25,8 @@
 (define (ancestor-with-label t lab)
   (cond ((not t) #f)
         ((== (tree-label t) lab) t)
-        (else (ancestor-with-label (tree-outer t) lab)))
+        (else (ancestor-with-label (tree-outer t) lab))
+  ) ;cond
 ) ;define
 
 (define (run-chain steps)
@@ -57,25 +58,26 @@
 ) ;define
 
 (tm-define (test_1242)
-  (run-chain (list
-    (cons "new document"
-      (lambda ()
-        (new-document)))
-    (cons "insert section"
-      (lambda ()
-        (init-env "style" "article")
-        (set! section-tree (tree 'section "x"))
-        (insert section-tree)
-        ;; 从光标位置取回 buffer 内的 section（insert 可能复制树）
-        (set! section-tree (ancestor-with-label (cursor-tree) 'section))
-        (check (not (not section-tree)) => #t)))
-    (cons "circulate variant like structured:cmd tab"
-      (lambda ()
-        ;; 与快捷键 (variant-circulate (focus-tree) #t) 相同入口；
-        ;; 修复后 variant-set 内部会请求重建焦点工具栏（ICONS_FOCUS）
-        (variant-circulate section-tree #t)
-        (check (tree-label section-tree) => 'subsection)))
-    (cons "report + quit"
-      (lambda () (check-report) (quit-TeXmacs)))
-  ))
+  (run-chain (list (cons "new document" (lambda () (new-document)))
+               (cons "insert section"
+                 (lambda ()
+                   (init-env "style" "article")
+                   (set! section-tree (tree 'section "x"))
+                   (insert section-tree)
+                   ;; 从光标位置取回 buffer 内的 section（insert 可能复制树）
+                   (set! section-tree (ancestor-with-label (cursor-tree) 'section))
+                   (check (not (not section-tree)) => #t)
+                 ) ;lambda
+               ) ;cons
+               (cons "circulate variant like structured:cmd tab"
+                 (lambda ()
+                   ;; 与快捷键 (variant-circulate (focus-tree) #t) 相同入口；
+                   ;; 修复后 variant-set 内部会请求重建焦点工具栏（ICONS_FOCUS）
+                   (variant-circulate section-tree #t)
+                   (check (tree-label section-tree) => 'subsection)
+                 ) ;lambda
+               ) ;cons
+               (cons "report + quit" (lambda () (check-report) (quit-TeXmacs)))
+             ) ;list
+  ) ;run-chain
 ) ;tm-define
