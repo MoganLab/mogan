@@ -277,7 +277,7 @@ QTMGhostTextPopup::onBadClicked () {
 // =============================================================================
 QTMDiffTextPopup::QTMDiffTextPopup (QWidget*              parent,
                                     qt_simple_widget_rep* owner)
-    : QTMUserPromptPopup (parent, owner, "接受  Enter", "拒绝  Backspace") {
+    : QTMUserPromptPopup (parent, owner, "接受  Enter", "拒绝  ESC") {
   setObjectName ("diff_text_popup");
 }
 
