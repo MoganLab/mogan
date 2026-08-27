@@ -228,4 +228,24 @@ bool cpp_version_dialog (string title, string message);
  */
 tree cpp_preferences_dialog ();
 
+// ---- 更新下载中间态弹窗 -------------------------------------------------------
+
+/**
+ * @brief 打开更新下载中间态弹窗（非阻塞模态，run_modal_qml_dialog）。
+ * @param message 已翻译的正文（如「正在下载更新，请稍候...」）。
+ * @details 切换通道的下载走 scheme 轮询链（updater-switch-chain-poll），故弹窗
+ * 必须用 setModal+show（非 exec）：exec 的嵌套事件循环会冻结 delayed 轮询，下载
+ * 全量包超 10 分钟时丢失 READY 触发重启的机会。下载期间不可 ESC/X 取消（QML 侧
+ * onCancel 覆盖为 no-op）。弹窗只显示无限转圈 + 文案，无进度条：出现时机由
+ * scheme 在触发下载时决定，不依赖 Velopack 是否报出 DOWNLOADING 状态。弹窗已
+ * 打开时重复调用 no-op。
+ */
+void cpp_updater_dialog_open (string message);
+
+/**
+ * @brief 关闭更新下载中间态弹窗（host->close() → WA_DeleteOnClose 析构宿主）；
+ * 未打开时 no-op。
+ */
+void cpp_updater_dialog_close ();
+
 #endif // defined QTM_QML_DIALOG_H

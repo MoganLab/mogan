@@ -30,4 +30,20 @@
   (check (updater-apply) => #f)
 ) ;define
 
-(tm-define (regtest-updater) (test-updater-idle) (check-report))
+;; update-channel 缺省 stable；仅 "beta" 视为 beta，其余（含未设/脏值）归一
+;; stable（与 C++ 侧 update_channel () 一致）。
+
+(define (test-updater-channel)
+  (set-preference "update-channel" "default")
+  (check (updater-current-channel) => "stable")
+  (set-preference "update-channel" "beta")
+  (check (updater-current-channel) => "beta")
+  (set-preference "update-channel" "stable")
+  (check (updater-current-channel) => "stable")
+) ;define
+
+(tm-define (regtest-updater)
+  (test-updater-idle)
+  (test-updater-channel)
+  (check-report)
+) ;tm-define

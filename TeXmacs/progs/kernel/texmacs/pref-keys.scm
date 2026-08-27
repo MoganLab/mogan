@@ -218,6 +218,10 @@
 (define-public (pref-scripting-language) "scripting language")
 (define-public (pref-document-update-times) "document update times")
 
+;; 更新通道(单值 "stable"/"beta",缺省 stable;权威存储,tm_velopack 直接读;
+;; 首选项 Other 页 combo 展示,写值经 updater-switch-channel 两次确认)。
+(define-public (pref-update-channel) "update-channel")
+
 ;; ---- Other / Experimental toggles ----
 (define-public (pref-experimental-fast-environments) "fast environments")
 (define-public (pref-experimental-alpha) "experimental alpha")

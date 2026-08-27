@@ -51,6 +51,15 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-confirm-question",
+                cpp_name = "cpp_confirm_question",
+                ret_type = "int",
+                arg_list = {
+                    "string",
+                    "array_string"
+                }
+            },
+            {
                 scm_name = "cpp-form-dialog",
                 cpp_name = "cpp_form_dialog",
                 ret_type = "tree",
@@ -96,6 +105,20 @@ function main()
                 scm_name = "cpp-preferences-dialog",
                 cpp_name = "cpp_preferences_dialog",
                 ret_type = "tree",
+                arg_list = {}
+            },
+            {
+                scm_name = "cpp-updater-dialog-open",
+                cpp_name = "cpp_updater_dialog_open",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                scm_name = "cpp-updater-dialog-close",
+                cpp_name = "cpp_updater_dialog_close",
+                ret_type = "void",
                 arg_list = {}
             },
             {

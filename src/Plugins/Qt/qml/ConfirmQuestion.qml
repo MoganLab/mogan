@@ -40,11 +40,10 @@ DialogShell {
                 text: root.message
                 color: Theme.fg
                 horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
                 font.pixelSize: 17 * Theme.scaleFactor
                 font.weight: Font.Bold
                 font.letterSpacing: 0.2 * Theme.scaleFactor
-                // 单行。文案过长时 ElideMiddle 中间省略（保留首尾）。
-                elide: Text.ElideMiddle
             }
 
             DialogButtons {
