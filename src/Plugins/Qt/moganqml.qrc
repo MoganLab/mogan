@@ -23,5 +23,6 @@
         <file>qml/Statistics.qml</file>
         <file>qml/Preferences.qml</file>
         <file>qml/Version.qml</file>
+        <file>qml/UpdaterProgress.qml</file>
     </qresource>
 </RCC>

@@ -38,7 +38,18 @@ using moebius::data::tree_to_scheme_tree;
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <QPointer>
+
 #include <functional>
+
+/**
+ * @brief 当前更新中间态弹窗的宿主引用。
+ * @details QPointer 在宿主 QDialog 析构（WA_DeleteOnClose）后自动置空，故
+ * cpp_updater_dialog_close 在弹窗已关闭后调用天然安全，不悬垂。更新器不设取消
+ * 路径，此引用只在切换通道下载链（scheme）内被 open/close 使用，scheme 侧单链
+ * 串行，无并发竞争。
+ */
+static QPointer<QDialog> g_updater_dialog_host;
 
 /**
  * @brief QML 加载失败时输出诊断（status / warnings），避免线上 qrc 路径或 QML
@@ -702,6 +713,46 @@ cpp_version_dialog (string title, string message) {
   delete closeBridge;
   delete bridge;
   return choice == 1;
+}
+
+// ---- 更新下载中间态弹窗 -------------------------------------------------------
+
+/**
+ * @brief 打开更新下载中间态弹窗（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_modal_qml_dialog（setModal + show，非阻塞模态）——切换通道的
+ * 下载链由 scheme 轮询驱动（delayed），exec() 的嵌套事件循环会阻塞 poll 的
+ * delayed 回调，下载期间弹窗会冻死轮询。弹窗只显示无限转圈 + 已翻译文案，无
+ * 进度条：出现时机由 scheme 在触发下载时决定（不依赖 Velopack 是否报出
+ * DOWNLOADING 状态），也不读 updater-progress。
+ */
+void
+cpp_updater_dialog_open (string message) {
+  if (g_updater_dialog_host) return; // 已打开不重复弹
+  run_modal_qml_dialog (
+      "qrc:/qml/UpdaterProgress.qml", "updater progress dialog",
+      [&] (QQuickWidget* qw, QDialog* host) {
+        QmlDialogBridge* closeBridge= inject_common_context (qw, *host);
+        g_updater_dialog_host       = host;
+        qw->rootContext ()->setContextProperty ("dialogMessage",
+                                                to_qstring (message));
+        QObject::connect (host, &QDialog::destroyed, closeBridge,
+                          &QObject::deleteLater);
+      },
+      420, 180);
+}
+
+/**
+ * @brief 关闭更新中间态弹窗（close → WA_DeleteOnClose 析构宿主）。
+ * @details 必须走 host->close() 而非 closeBridge->cancel()：后者 QDialog::done
+ * 只 hide()，不触发 show() 型弹窗的 WA_DeleteOnClose 析构，会泄漏宿主并使
+ * QPointer 悬垂。close() 同步析构宿主，QPointer 自动置空；此处再显式置空。
+ */
+void
+cpp_updater_dialog_close () {
+  if (g_updater_dialog_host)
+    g_updater_dialog_host->close ();
+  g_updater_dialog_host= nullptr;
 }
 
 /**

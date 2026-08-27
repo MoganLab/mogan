@@ -108,6 +108,20 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "cpp-updater-dialog-open",
+                cpp_name = "cpp_updater_dialog_open",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                scm_name = "cpp-updater-dialog-close",
+                cpp_name = "cpp_updater_dialog_close",
+                ret_type = "void",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-rasterize-widget",
                 cpp_name = "cpp_rasterize_widget",
                 ret_type = "string",
