@@ -453,11 +453,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     // 惰性到首次使用（ensureLoginDialog）时再创建
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
                       [this] () { checkLocalTokenAndLogin (); });
-    // 悬浮直接显示用户中心；离开按钮后重置，允许下一次悬浮再次触发
-    QObject::connect (loginButton, &QWK::LoginButton::hovered,
-                      [this] () { showUserCenterOnHover (); });
-    QObject::connect (loginButton, &QWK::LoginButton::unhovered,
-                      [this] () { m_userCenterHoverPending= false; });
   }
 
   // 邀请好友按钮 - 放在登录按钮左侧（商业版已登录时显示）
@@ -3176,21 +3171,6 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
     // 没有token，显示登录对话框（用户需要手动点击登录按钮）
     show_login_dialog_at_button (ensureLoginDialog (), loginButton);
   }
-}
-
-/**
- * @brief 悬浮显示用户中心（商业版）
- *
- * 与点击路径的差异：已可见时不做 toggle 隐藏；同一次悬浮内只触发一次，
- * 避免网络请求在途时重复 Enter 导致并发拉取用户信息。
- */
-void
-qt_tm_widget_rep::showUserCenterOnHover () {
-  if (is_community_stem ()) return;
-  if (m_loginDialog && m_loginDialog->isVisible ()) return;
-  if (m_userCenterHoverPending) return;
-  m_userCenterHoverPending= true;
-  checkLocalTokenAndLogin ();
 }
 
 void
