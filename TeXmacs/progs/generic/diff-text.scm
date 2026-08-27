@@ -19,12 +19,16 @@
 ;; =============================================================================
 
 (define (diff-check-popup)
-  ;; 先隐藏弹窗，避免位置错乱
+  ;; 先隐藏弹窗，避免位置错乱；弹窗函数由插件提供，社区版未定义时仅跟踪不显示
   (set! diff-active? #f)
-  (hide-diff-popup)
+  (when (defined? 'hide-diff-popup)
+    (hide-diff-popup)
+  ) ;when
   (when (tree-innermost 'version-both)
     (set! diff-active? #t)
-    (show-diff-popup)
+    (when (defined? 'show-diff-popup)
+      (show-diff-popup)
+    ) ;when
   ) ;when
 ) ;define
 
@@ -188,13 +192,11 @@
 ) ;tm-define
 
 (tm-define (keyboard-press key time)
-  (:require (diff-enable?))
   (former key time)
   (delayed (:idle 0) (diff-check-popup))
 ) ;tm-define
 
 (tm-define (mouse-event key x y mods time data)
-  (:require (diff-enable?))
   (former key x y mods time data)
   (when (not (== key "move"))
     (delayed (:idle 0) (diff-check-popup))
