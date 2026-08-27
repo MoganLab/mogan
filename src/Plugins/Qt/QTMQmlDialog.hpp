@@ -228,7 +228,8 @@ bool cpp_version_dialog (string title, string message);
  */
 tree cpp_preferences_dialog ();
 
-// ---- 更新下载中间态弹窗 -------------------------------------------------------
+// ---- 更新下载中间态弹窗
+// -------------------------------------------------------
 
 /**
  * @brief 打开更新下载中间态弹窗（非阻塞模态，run_modal_qml_dialog）。
