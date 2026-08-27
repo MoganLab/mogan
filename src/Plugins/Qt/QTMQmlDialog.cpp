@@ -715,7 +715,8 @@ cpp_version_dialog (string title, string message) {
   return choice == 1;
 }
 
-// ---- 更新下载中间态弹窗 -------------------------------------------------------
+// ---- 更新下载中间态弹窗
+// -------------------------------------------------------
 
 /**
  * @brief 打开更新下载中间态弹窗（声明/语义见 QTMQmlDialog.hpp）。
@@ -750,8 +751,7 @@ cpp_updater_dialog_open (string message) {
  */
 void
 cpp_updater_dialog_close () {
-  if (g_updater_dialog_host)
-    g_updater_dialog_host->close ();
+  if (g_updater_dialog_host) g_updater_dialog_host->close ();
   g_updater_dialog_host= nullptr;
 }
 
