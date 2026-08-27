@@ -140,7 +140,6 @@ LoginButton::enterEvent (QEnterEvent* event) {
   Q_D (LoginButton);
   d->hovered= true;
   d->reloadIcon ();
-  emit hovered ();
   QPushButton::enterEvent (event);
 }
 
@@ -149,7 +148,6 @@ LoginButton::leaveEvent (QEvent* event) {
   Q_D (LoginButton);
   d->hovered= false;
   d->reloadIcon ();
-  emit unhovered ();
   QPushButton::leaveEvent (event);
 }
 
