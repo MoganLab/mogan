@@ -181,8 +181,8 @@
 
 (tm-define (keyboard-press key time)
   (:require (is-diff-active?))
-  (cond ((== key "return") (accept-diff))
-        ((== key "backspace") (reject-diff))
+  (cond ((== key "right") (accept-diff))
+        ((== key "escape") (reject-diff))
         (else (former key time))
   ) ;cond
 ) ;tm-define
