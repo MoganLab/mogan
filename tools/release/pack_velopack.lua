@@ -1,7 +1,8 @@
 -------------------------------------------------------------------------------
 --
 -- MODULE      : pack_velopack.lua
--- DESCRIPTION : 调用 vpk pack 生成 Velopack 发布（Setup.exe / releases.*.json / packages/）
+-- DESCRIPTION : 调用 vpk pack 生成 Velopack 发布（Windows: Setup.exe / Portable.zip；
+--               macOS: .pkg / Portable.zip；均含 releases.*.json 与 packages/）
 -- COPYRIGHT   : (C) 2026 Xmacs Labs
 --
 -- This software falls under the GNU general public license version 3 or later.
@@ -15,8 +16,25 @@
 -- vpk pack 把 --packDir 的扁平目录打成安装包与全量/增量包，并生成
 -- releases.<channel>.json 供客户端查询更新。
 --
--- 关于签名：CI/本地默认不签名（VPK_SIGN_PARAMS 为空）。正式签名在 SafeNet
--- 签名机上通过环境变量 VPK_SIGN_PARAMS 注入 signtool 参数完成。SafeNet
+-- macOS 分支（os.host() == "macosx"）：
+--   - --packDir 直接指向 stage 产出的 MoganSTEM.app（vpk 原样使用现成 bundle，
+--     无需 --icon/--bundleId/--plist——那些仅用于让 vpk 自己生成 bundle）；
+--   - --channel 必须显式传：vpk 在 macOS 的默认 channel 是 "osx"，漏传会把
+--     feed 悄悄拆到 osx 渠道；
+--   - --runtime osx-arm64 与客户端 feed 平台段（tm_velopack.cpp 的
+--     UPDATER_FEED_PLATFORM）对应，服务端按平台目录分发；
+--   - 签名默认关闭（本地验证）：不传任何 --sign* 参数时 vpk 不做 Developer ID
+--     签名/公证。正式发布经环境变量注入：
+--       VPK_SIGN_APP_IDENTITY     → --signAppIdentity（Developer ID Application）
+--       VPK_SIGN_INSTALL_IDENTITY → --signInstallIdentity（Developer ID Installer）
+--       VPK_SIGN_ENTITLEMENTS     → --signEntitlements（hardened runtime 权利文件）
+--       VPK_NOTARY_PROFILE        → --notaryProfile（notarytool 凭据 profile）
+--       VPK_KEYCHAIN              → --keychain
+--   - vpk 的 macOS 产物文件名上游文档未写明，改名逻辑从 assets.<channel>.json
+--     的 Assets 里按扩展名（.pkg/.zip）发现原文件名，不硬编码猜测。
+--
+-- 关于签名（Windows）：CI/本地默认不签名（VPK_SIGN_PARAMS 为空）。正式签名在
+-- SafeNet 签名机上通过环境变量 VPK_SIGN_PARAMS 注入 signtool 参数完成。SafeNet
 -- 交互式令牌（interactive token）不允许并发签名，签名机上须固定
 -- --signParallel 1；该参数与 --signParams 一起由签名机脚本传入，这里只
 -- 注释说明，不写死进默认命令。
@@ -38,21 +56,31 @@
 --
 -- 环境变量覆盖：
 --   VPK_PATH         vpk 可执行文件；默认自动定位
---   VPK_PACK_DIR     默认 build/velopack_staging
+--   VPK_PACK_DIR     默认 Windows: build/velopack_staging
+--                             macOS: build/velopack_staging/MoganSTEM.app
 --   VPK_OUTPUT_DIR   默认 build/velopack_release
 --   VPK_CHANNEL      默认 stable
 --   VPK_VERSION      默认从 xmake/vars.lua 解析 XMACS_VERSION
---   VPK_SIGN_PARAMS  默认空字符串；签名机注入 signtool 参数
+--   VPK_SIGN_PARAMS  Windows signtool 参数；默认空字符串，签名机注入
 --   VPK_PRUNE_ONLY   只跑后处理（清理历史 full 包 + manifest），不重新 pack
 -------------------------------------------------------------------------------
 
--- 定位 vpk：显式环境变量优先，其次常见安装路径，最后回退到 PATH 上的 vpk
+-- 定位 vpk：显式环境变量优先，其次按宿主平台的常见安装路径，最后回退到 PATH
 local vpk = os.getenv ("VPK_PATH")
 if vpk == nil or vpk == "" then
-    local candidates = {
-        path.join (os.getenv ("USERPROFILE") or "", ".dotnet/tools/vpk.exe"),
-        path.join ("C:/Program Files/dotnet/tools/vpk.exe"),
-    }
+    local candidates
+    if os.host () == "macosx" then
+        candidates = {
+            path.join (os.getenv ("HOME") or "", ".dotnet/tools/vpk"),
+            "/opt/homebrew/share/dotnet/tools/vpk",
+            "/usr/local/share/dotnet/tools/vpk",
+        }
+    else
+        candidates = {
+            path.join (os.getenv ("USERPROFILE") or "", ".dotnet/tools/vpk.exe"),
+            path.join ("C:/Program Files/dotnet/tools/vpk.exe"),
+        }
+    end
     for _, c in ipairs (candidates) do
         if os.isfile (c) then
             vpk = c
@@ -81,8 +109,13 @@ if version == nil or version == "" then
     end
 end
 
+local is_mac = os.host () == "macosx"
+
 local pack_dir = os.getenv ("VPK_PACK_DIR")
-if pack_dir == nil or pack_dir == "" then pack_dir = "build/velopack_staging" end
+if pack_dir == nil or pack_dir == "" then
+    pack_dir = is_mac and "build/velopack_staging/MoganSTEM.app"
+                        or  "build/velopack_staging"
+end
 local out_dir = os.getenv ("VPK_OUTPUT_DIR")
 if out_dir == nil or out_dir == "" then out_dir = "build/velopack_release" end
 local channel = os.getenv ("VPK_CHANNEL")
@@ -92,10 +125,202 @@ local prune_only  = os.getenv ("VPK_PRUNE_ONLY") == "1"
 
 pack_dir = path.absolute (path.join (os.projectdir (), pack_dir))
 out_dir = path.absolute (path.join (os.projectdir (), out_dir))
+
+-- 发布物改名：沿用既有命名 MoganSTEM-v<版本>-<平台>-<渠道>-Setup/Portable。
+-- vpk 默认名是 <packId>-<channel>-*；改名后同步更新 assets.<channel>.json 里的
+-- 引用，避免下载链接失效。
+local function rename_asset (old_name, new_name)
+    local old_path= path.join (out_dir, old_name)
+    local new_path= path.join (out_dir, new_name)
+    if os.isfile (old_path) then
+        if os.isfile (new_path) then
+            os.rm (new_path) -- 同名残留先清掉，避免 os.mv 目标已存在失败
+        end
+        os.mv (old_path, new_path)
+        cprint ("${green}已改名: " .. new_name .. "${clear}")
+        return true
+    end
+    return false
+end
+
+local function swap_name_in_assets (assets_file, old_name, new_name)
+    local content = io.readfile (assets_file) or ""
+    -- Lua 模式中 - . 是 magic 字符，先转义再替换
+    local escaped = old_name:gsub ("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+    content = content:gsub (escaped, function () return new_name end)
+    io.writefile (assets_file, content)
+end
+
+-------------------------------------------------------------------------------
+-- 后处理：清理发布目录中的历史 full 包，release 只留当前版本产物。
+-- vpk pack 把 outputDir 当作 channel 累积目录：上一版本 full 会留在 outputDir
+-- 并被写进 releases.<channel>.json。那份旧 full 只是算 delta 的基线，客户端
+-- 走 delta 用的是本地 packages 目录里的旧 full（见联调日志），feed 上的旧 full
+-- 不会被拉取，纯属冗余（回滚另走 OSS 保留策略）。这里删掉旧 full 文件并在
+-- manifest 中去掉对应条目，只保留当前版本 full 与历史 delta。outputDir 仍
+-- 保留当前版本 full，作为下一次 pack 的 delta 基线，不受影响。
+-------------------------------------------------------------------------------
+local function prune_old_full (out_dir, channel, version)
+    local json = import ("core.base.json")
+    local current_full = "Mogan-" .. version .. "-" .. channel .. "-full.nupkg"
+
+    -- 1) 删除旧版本 full 包文件（当前版本 full 保留，作下次 delta 基线）
+    for _, f in ipairs (os.files (path.join (out_dir, "Mogan-*-" .. channel .. "-full.nupkg"))) do
+        if path.filename (f) ~= current_full then
+            os.rm (f)
+            cprint ("${yellow}已清理历史 full: " .. path.filename (f) .. "${clear}")
+        end
+    end
+
+    -- 2) releases.<channel>.json 去掉旧 full 条目，保留当前 full 与全部 delta。
+    -- 注意 xmake lua 沙箱无 pcall / try-catch（见本文件 git 历史），防御靠
+    -- 内容结构检查：缺 "Assets" 就跳过，vpk 生成的 manifest 正常情况必然合法。
+    local rel_file= path.join (out_dir, "releases." .. channel .. ".json")
+    if os.isfile (rel_file) then
+        local content = io.readfile (rel_file) or ""
+        if content:find ('"Assets"') then
+            local data= json.decode (content)
+            if type (data) == "table" and type (data.Assets) == "table" then
+                local kept= {}
+                for _, a in ipairs (data.Assets) do
+                    if a.Type ~= "Full" or a.Version == version then
+                        table.insert (kept, a)
+                    end
+                end
+                data.Assets= kept
+                io.writefile (rel_file, json.encode (data))
+                cprint ("${green}releases." .. channel .. ".json 已去除历史 full 条目${clear}")
+            end
+        else
+            cprint ("${yellow}warning: " .. path.filename (rel_file) .. " 缺少 Assets 结构，跳过 manifest 清理${clear}")
+        end
+    end
+end
+
+-- 打包完成后做后处理；VPK_PRUNE_ONLY=1 时独立重跑清理
+local function postprocess ()
+    prune_old_full (out_dir, channel, version)
+end
+
+if prune_only then
+    postprocess ()
+    return
+end
+
+-------------------------------------------------------------------------------
+-- macOS 打包
+-------------------------------------------------------------------------------
+if is_mac then
+    -- 先决条件：staging .app 结构齐备
+    if not os.isdir (pack_dir) then
+        cprint ("${bright red}error: 暂存 .app 不存在: " .. pack_dir .. "${clear}")
+        cprint ("${yellow}请先运行 xmake l tools/release/stage_velopack.lua${clear}")
+        os.exit (1)
+    end
+    if not os.isfile (path.join (pack_dir, "Contents/MacOS/MoganSTEM")) then
+        cprint ("${bright red}error: 暂存 .app 缺 Contents/MacOS/MoganSTEM: " .. pack_dir .. "${clear}")
+        os.exit (1)
+    end
+    if not os.isfile (path.join (pack_dir, "Contents/Info.plist")) then
+        cprint ("${bright red}error: 暂存 .app 缺 Contents/Info.plist: " .. pack_dir .. "${clear}")
+        os.exit (1)
+    end
+
+    os.mkdir (out_dir)
+
+    -- 命令参数固定为 Velopack 锁定集；签名参数仅在环境变量非空时追加。
+    -- macOS 上 vpk 的默认 channel 是 "osx"，必须显式传 --channel 保持 stable/beta。
+    local args = {
+        "pack",
+        "--packId", "Mogan",
+        "--packVersion", version,
+        "--packDir", pack_dir,
+        "--mainExe", "MoganSTEM",
+        "--channel", channel,
+        "--outputDir", out_dir,
+        "--runtime", "osx-arm64",
+        "--packTitle", "Mogan STEM",
+        "--packAuthors", "Xmacs Labs",
+    }
+    local mac_sign_env = {
+        {"VPK_SIGN_APP_IDENTITY",     "--signAppIdentity"},
+        {"VPK_SIGN_INSTALL_IDENTITY", "--signInstallIdentity"},
+        {"VPK_SIGN_ENTITLEMENTS",     "--signEntitlements"},
+        {"VPK_NOTARY_PROFILE",        "--notaryProfile"},
+        {"VPK_KEYCHAIN",              "--keychain"},
+    }
+    for _, pair in ipairs (mac_sign_env) do
+        local val = os.getenv (pair[1]) or ""
+        if val ~= "" then
+            table.insert (args, pair[2])
+            table.insert (args, val)
+        end
+    end
+
+    cprint ("${cyan}vpk pack 调用:${clear}")
+    for _, a in ipairs (args) do
+        print ("  " .. a)
+    end
+    print ("")
+
+    -- try=true：非零退出不抛异常，由本脚本统一报错退出
+    local code = os.execv (vpk, args, {try = true})
+    if code ~= 0 then
+        cprint ("${bright red}error: vpk pack 失败，退出码 " .. code .. "${clear}")
+        os.exit (1)
+    end
+    cprint ("${green}vpk pack 完成: " .. out_dir .. "${clear}")
+
+    -- 产物改名：vpk 的 macOS 原始文件名（实测 1.2.0 为 Mogan-<channel>-Setup.pkg /
+    -- -Portable.zip，与 Windows 同约定）从 assets.<channel>.json 发现——它是顶层数组，
+    -- 每项 {RelativeFileName, Type}；按 Type + 扩展名匹配，不依赖上游文件名猜测。
+    local assets_file = path.join (out_dir, "assets." .. channel .. ".json")
+    if not os.isfile (assets_file) then
+        cprint ("${bright red}error: 未找到 " .. assets_file .. "，无法定位 vpk 产物文件名${clear}")
+        for _, f in ipairs (os.files (path.join (out_dir, "*"))) do
+            cprint ("  " .. path.filename (f))
+        end
+        os.exit (1)
+    end
+    local json = import ("core.base.json")
+    local entries = json.decode (io.readfile (assets_file) or "")
+    if type (entries) ~= "table" then
+        cprint ("${bright red}error: " .. assets_file .. " 不是合法 JSON 数组${clear}")
+        os.exit (1)
+    end
+    local pkg_old, zip_old
+    for _, a in ipairs (entries) do
+        local fn = path.filename (tostring (a.RelativeFileName or ""))
+        if a.Type == "Installer" and fn:match ("%.pkg$") then pkg_old = fn end
+        if a.Type == "Portable" and fn:match ("%.zip$") then zip_old = fn end
+    end
+    local suffix = "-arm64-" .. channel
+    local pkg_new = "MoganSTEM-v" .. version .. suffix .. "-Setup.pkg"
+    local zip_new = "MoganSTEM-v" .. version .. suffix .. "-Portable.zip"
+    if not pkg_old or not rename_asset (pkg_old, pkg_new) then
+        cprint ("${bright red}error: 未在 assets 中找到 .pkg 安装器（原名为 " ..
+                tostring (pkg_old) .. "）${clear}")
+        os.exit (1)
+    end
+    if not zip_old or not rename_asset (zip_old, zip_new) then
+        cprint ("${bright red}error: 未在 assets 中找到 .zip 便携包（原名为 " ..
+                tostring (zip_old) .. "）${clear}")
+        os.exit (1)
+    end
+    swap_name_in_assets (assets_file, pkg_old, pkg_new)
+    swap_name_in_assets (assets_file, zip_old, zip_new)
+
+    postprocess ()
+    return
+end
+
+-------------------------------------------------------------------------------
+-- Windows 打包
+-------------------------------------------------------------------------------
+
 local icon = path.absolute (path.join (os.projectdir (), "packages/windows/Xmacs.ico"))
 
--- 先决条件：暂存根与图标必须存在（prune-only 模式跳过，只依赖 outputDir）
-if not prune_only then
+-- 先决条件：暂存根与图标必须存在
 if not os.isdir (pack_dir) then
     cprint ("${bright red}error: 暂存目录不存在: " .. pack_dir .. "${clear}")
     cprint ("${yellow}请先运行 xmake l tools/release/stage_velopack.lua${clear}")
@@ -150,20 +375,6 @@ cprint ("${green}vpk pack 完成: " .. out_dir .. "${clear}")
 -- 发布物改名：沿用旧 NSIS 命名 MoganSTEM-v<版本>-64bit-<渠道>-Setup/Portable。
 -- vpk 默认名是 <packId>-<channel>-Setup.exe / -Portable.zip；改名后同步更新
 -- assets.<channel>.json 里的 Installer/Portable 引用，避免下载链接失效。
-local function rename_asset (old_name, new_name)
-    local old_path= path.join (out_dir, old_name)
-    local new_path= path.join (out_dir, new_name)
-    if os.isfile (old_path) then
-        if os.isfile (new_path) then
-            os.rm (new_path) -- 同名残留先清掉，避免 os.mv 目标已存在失败
-        end
-        os.mv (old_path, new_path)
-        cprint ("${green}已改名: " .. new_name .. "${clear}")
-        return true
-    end
-    return false
-end
-
 local setup_old   = "Mogan-" .. channel .. "-Setup.exe"
 local setup_new   = "MoganSTEM-v" .. version .. "-64bit-" .. channel .. "-Setup.exe"
 local portable_old= "Mogan-" .. channel .. "-Portable.zip"
@@ -181,63 +392,8 @@ end
 -- 同步 assets.<channel>.json 中的文件名引用
 local assets_file= path.join (out_dir, "assets." .. channel .. ".json")
 if os.isfile (assets_file) then
-    local content= io.readfile (assets_file) or ""
-    local function swap_name (old_name, new_name)
-        -- Lua 模式中 - . 是 magic 字符，先转义再替换
-        local escaped= old_name:gsub ("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
-        content= content:gsub (escaped, function () return new_name end)
-    end
-    swap_name (setup_old, setup_new)
-    swap_name (portable_old, portable_new)
-    io.writefile (assets_file, content)
-end
-end -- if not prune_only
-
--------------------------------------------------------------------------------
--- 后处理：清理发布目录中的历史 full 包，release 只留当前版本产物。
--- vpk pack 把 outputDir 当作 channel 累积目录：上一版本 full 会留在 outputDir
--- 并被写进 releases.<channel>.json。那份旧 full 只是算 delta 的基线，客户端
--- 走 delta 用的是本地 packages 目录里的旧 full（见联调日志），feed 上的旧 full
--- 不会被拉取，纯属冗余（回滚另走 OSS 保留策略）。这里删掉旧 full 文件并在
--- manifest 中去掉对应条目，只保留当前版本 full 与历史 delta。outputDir 仍
--- 保留当前版本 full，作为下一次 pack 的 delta 基线，不受影响。
--------------------------------------------------------------------------------
-local function prune_old_full (out_dir, channel, version)
-    local json = import ("core.base.json")
-    local current_full = "Mogan-" .. version .. "-" .. channel .. "-full.nupkg"
-
-    -- 1) 删除旧版本 full 包文件（当前版本 full 保留，作下次 delta 基线）
-    for _, f in ipairs (os.files (path.join (out_dir, "Mogan-*-" .. channel .. "-full.nupkg"))) do
-        if path.filename (f) ~= current_full then
-            os.rm (f)
-            cprint ("${yellow}已清理历史 full: " .. path.filename (f) .. "${clear}")
-        end
-    end
-
-    -- 2) releases.<channel>.json 去掉旧 full 条目，保留当前 full 与全部 delta。
-    -- 注意 xmake lua 沙箱无 pcall / try-catch（见本文件 git 历史），防御靠
-    -- 内容结构检查：缺 "Assets" 就跳过，vpk 生成的 manifest 正常情况必然合法。
-    local rel_file= path.join (out_dir, "releases." .. channel .. ".json")
-    if os.isfile (rel_file) then
-        local content= io.readfile (rel_file) or ""
-        if content:find ('"Assets"') then
-            local data= json.decode (content)
-            if type (data) == "table" and type (data.Assets) == "table" then
-                local kept= {}
-                for _, a in ipairs (data.Assets) do
-                    if a.Type ~= "Full" or a.Version == version then
-                        table.insert (kept, a)
-                    end
-                end
-                data.Assets= kept
-                io.writefile (rel_file, json.encode (data))
-                cprint ("${green}releases." .. channel .. ".json 已去除历史 full 条目${clear}")
-            end
-        else
-            cprint ("${yellow}warning: " .. path.filename (rel_file) .. " 缺少 Assets 结构，跳过 manifest 清理${clear}")
-        end
-    end
+    swap_name_in_assets (assets_file, setup_old, setup_new)
+    swap_name_in_assets (assets_file, portable_old, portable_new)
 end
 
--- 打包完成后做后处理；VPK_PRUNE_ONLY=1 时独立重跑清理
-prune_old_full (out_dir, channel, version)
+postprocess ()
