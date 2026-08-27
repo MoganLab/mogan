@@ -589,7 +589,6 @@
 (define-secure-symbols preview-reference)
 
 ;; (display "Booting versioning facilities\n")
-(lazy-menu (version version-menu) version-menu)
 (lazy-define (version version-tmfs) update-buffer commit-buffer)
 
 ;; (display "Booting debugging and developer facilities\n")
