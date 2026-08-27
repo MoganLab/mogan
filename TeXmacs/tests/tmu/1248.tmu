@@ -3,9 +3,9 @@
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
-  新
+  <version-both|旧|新>
 
-  ddddddd
+  <version-both|old|new>
 </body>
 
 <\initial>
