@@ -1,8 +1,10 @@
 /******************************************************************************
  * MODULE     : qml_load_test.cpp
  * DESCRIPTION: 加载真实 QML 弹窗文档，断言 setSource 后 status()==Ready。
- *              安全网：改造四个成品弹窗（ConfirmClose / FormDialog /
- *              FontSelector / ParagraphFormat）与 atoms/ 原子板块后，确保 QML
+ *              安全网：改造成品弹窗（ConfirmClose / ConfirmQuestion /
+ *              ConfirmRestart / FormDialog / FontSelector / ParagraphFormat /
+ *              Statistics / Version / Preferences / UpdaterProgress）与 atoms/
+ *              原子板块后，确保 QML
  *              仍能解析、实例化。不验证交互（需可见窗口 + 人工），只验证
  *              「文档加载不失败」——import 缺失、语法错、id 悬空、context
  *              property 误用的第一道关。新增弹窗在此加一个 test_xxx_loads
@@ -217,6 +219,7 @@ private slots:
   void test_version_escape_fallback_without_focus ();
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
+  void test_updater_progress_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -386,6 +389,25 @@ TestQmlLoad::test_statistics_loads () {
   qw->rootContext ()->setContextProperty ("statsItems", model);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/Statistics.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_updater_progress_loads () {
+  // UpdaterProgress 只需 dialogMessage（closeBridge/dpScale/isDark
+  // 为共用注入）； 无专用 bridge、无按钮（下载不可中断，ESC 经 DialogShell
+  // onCancel 覆盖为 no-op 禁用——加载层面只验证文档实例化，含 RotationAnimation
+  // 转圈）。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage", QString ("Downloading the update..."));
+  qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
