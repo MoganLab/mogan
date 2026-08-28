@@ -63,6 +63,10 @@
 --   VPK_VERSION      默认从 xmake/vars.lua 解析 XMACS_VERSION
 --   VPK_SIGN_PARAMS  Windows signtool 参数；默认空字符串，签名机注入
 --   VPK_PRUNE_ONLY   只跑后处理（清理历史 full 包 + manifest），不重新 pack
+--
+-- macOS 注意：brew 安装的 dotnet 不在 vpk apphost 的默认 runtime 搜索路径，
+-- 未设 DOTNET_ROOT 时本脚本自动探测 brew 路径注入（/opt/homebrew/opt/dotnet/
+-- libexec 等）；官方 pkg 安装的 dotnet 在默认路径 /usr/local/share/dotnet，无需处理。
 -------------------------------------------------------------------------------
 
 -- 定位 vpk：显式环境变量优先，其次按宿主平台的常见安装路径，最后回退到 PATH
@@ -263,8 +267,21 @@ if is_mac then
     end
     print ("")
 
+    -- brew dotnet 需要 DOTNET_ROOT 才能找到 runtime；已设则不覆盖
+    local exec_envs = nil
+    if (os.getenv ("DOTNET_ROOT") or "") == "" then
+        for _, root in ipairs ({"/opt/homebrew/opt/dotnet/libexec",
+                                "/usr/local/opt/dotnet/libexec"}) do
+            if os.isdir (root) then
+                exec_envs = {DOTNET_ROOT = root}
+                cprint ("${yellow}DOTNET_ROOT 未设置，注入: " .. root .. "${clear}")
+                break
+            end
+        end
+    end
+
     -- try=true：非零退出不抛异常，由本脚本统一报错退出
-    local code = os.execv (vpk, args, {try = true})
+    local code = os.execv (vpk, args, {try = true, envs = exec_envs})
     if code ~= 0 then
         cprint ("${bright red}error: vpk pack 失败，退出码 " .. code .. "${clear}")
         os.exit (1)
