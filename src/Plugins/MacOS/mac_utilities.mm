@@ -504,6 +504,23 @@ mac_fix_yosemite_bug() {
 }
 
 
+static NSMenu* savedMainMenu= nil;
+
+void
+mac_save_and_clear_menu () {
+  savedMainMenu= [[NSApp mainMenu] retain];
+  [NSApp setMainMenu:nil];
+}
+
+void
+mac_restore_menu () {
+  if (savedMainMenu) {
+    [NSApp setMainMenu:savedMainMenu];
+    [savedMainMenu release];
+    savedMainMenu= nil;
+  }
+}
+
 static id background_activity= nil;
 
 void
