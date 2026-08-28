@@ -7,9 +7,10 @@ on:
         description: 'Set version manually (e.g. 1.2.3)'
         required: false
         default: ''
-  push:
-    tags:
-      - '*'
+  # 测试期注释：velopack CD 联调的测试 tag 不触发 Fedora 打包，恢复时取消注释
+  # push:
+  #   tags:
+  #     - '*'
 
 jobs:
   fedora-build:
