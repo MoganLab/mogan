@@ -960,6 +960,46 @@
       font-weight: 700;
     }
 
+    /* 更新下载中间态弹窗（UpdaterProgress.qml）：无限转圈 + 文案，无按钮、Esc 禁用 */
+    .updater-shell {
+      width: min(420px, 100%);
+      background: #ffffff;
+      border: 1px solid #d6dfdf;
+      border-radius: var(--radius);
+      padding: 28px 24px 22px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid #e3eaea;
+      border-top-color: #1d2629;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 18px;
+    }
+
+    .updater-shell .updater-message {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1d2629;
+      line-height: 1.6;
+    }
+
+    .updater-shell .updater-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #8aa0a6;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     @media (max-width: 760px) {
       .workspace {
         padding: 16px;
@@ -995,6 +1035,7 @@
       <button class="nav-btn" data-target="version">Version.qml</button>
       <button class="nav-btn" data-target="preferences">Preferences.qml</button>
       <button class="nav-btn" data-target="confirmRestart">ConfirmRestart.qml</button>
+      <button class="nav-btn" data-target="updater">UpdaterProgress.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
 
@@ -1624,6 +1665,24 @@
         </p>
       </section>
 
+      <!-- 更新下载中间态弹窗（UpdaterProgress.qml）：无限转圈 + 已翻译文案，无进度条；
+           下载中不可关闭（Esc 经 DialogShell onCancel 覆盖为 no-op 禁用） -->
+      <section class="panel" id="panel-updater">
+        <div class="cards">
+          <article class="updater-shell">
+            <div class="spinner"></div>
+            <p class="updater-message">正在下载更新…</p>
+            <p class="updater-note">无按钮、Esc 已禁用；下载完成后由 scheme 调 cpp-updater-dialog-close 关窗，再弹重启确认</p>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>dialogMessage + dpScale/isDark/closeBridge</code>
+          <code>onCancel 覆盖为 no-op（禁 Esc）</code>
+          run_modal_qml_dialog(setModal+show)——选非阻塞模态非为 live 重绘，而是 exec 嵌套事件循环会阻塞 scheme 的 delayed 轮询链；
+          全局单例宿主（QPointer，重复 open 不重弹）+ <code>cpp-updater-dialog-open/close</code> 成对 glue
+        </p>
+      </section>
+
 
     </main>
   </div>
@@ -1639,7 +1698,8 @@
         statistics: document.getElementById('panel-statistics'),
         version: document.getElementById('panel-version'),
         preferences: document.getElementById('panel-preferences'),
-        confirmRestart: document.getElementById('panel-confirm-restart')
+        confirmRestart: document.getElementById('panel-confirm-restart'),
+        updater: document.getElementById('panel-updater')
       };
 
       const titleMap = {
@@ -1650,7 +1710,8 @@
         paragraph: 'ParagraphFormat.qml 模拟',
         statistics: 'Statistics.qml 模拟',
         preferences: 'Preferences.qml 模拟',
-        confirmRestart: 'ConfirmRestart.qml 模拟'
+        confirmRestart: 'ConfirmRestart.qml 模拟',
+        updater: 'UpdaterProgress.qml 模拟'
       };
 
       const codeMap = {
@@ -1661,7 +1722,8 @@
         paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回',
         statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
         preferences: 'prefTabs(5) + subTabs(6) + EnumCombo + Toggle + 纯 OK 提交',
-        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)'
+        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)',
+        updater: 'dialogMessage + onCancel no-op + open/close 成对 glue'
       };
 
       const viewTitle = document.getElementById('view-title');
