@@ -45,6 +45,10 @@ qt_get_pretty_os_name () {
 
 bool
 qt_has_network_connection () {
+#ifdef OS_WASM
+  // 虽然 QNetworkInterface 可以被 inlcude，但其在 WASM 下不工作
+  return false;
+#else
   QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();
   for (int i= 0; i < interfaces.size (); ++i) {
     const QNetworkInterface& iface= interfaces.at (i);
@@ -56,6 +60,7 @@ qt_has_network_connection () {
     if (!iface.addressEntries ().isEmpty ()) return true;
   }
   return false;
+#endif
 }
 
 #ifdef Q_OS_WINDOWS
@@ -223,6 +228,8 @@ qt_stem_device_id () {
   return from_qstring (get_linux_or_macos_device_id ());
 #elif defined(Q_OS_WINDOWS)
   return from_qstring (get_windows_device_id ());
+#else // OS_WASM
+  return "";
 #endif
 }
 
