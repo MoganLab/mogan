@@ -45,11 +45,17 @@ jobs:
         run: xmake build -vD stem
       - name: install
         run: xmake install -vD stem
+      # vpk 1.2.0 的 apphost 需要 .NET 10 runtime；macos-14 arm64 镜像自带的
+      # dotnet 版本较旧且不在 apphost 默认搜索路径（首跑实测 You must install
+      # .NET）。setup-dotnet 显式装 .NET 10 并设置 DOTNET_ROOT。
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
       - name: Install vpk
         shell: pwsh
         run: |
           dotnet tool install -g vpk --version 1.2.0
-          # mac runner 自带 dotnet SDK；pwsh 在 Unix 无 USERPROFILE，用 HOME
+          # pwsh 在 Unix 无 USERPROFILE，用 HOME
           Add-Content -Path $env:GITHUB_PATH -Value "$($env:HOME)/.dotnet/tools"
       # Apple 签名/公证 setup（mac 独有；Windows 的正式签名在 SafeNet 签名机
       # 事后完成，mac 未签名 pkg 会被 Gatekeeper 直接拦截，故在 CI 内完成）。
