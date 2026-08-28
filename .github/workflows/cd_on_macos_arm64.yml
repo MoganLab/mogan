@@ -16,9 +16,11 @@ jobs:
         os: [macos-14]
         arch: [arm64]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    # Windows CD 为 45 分钟；mac 侧多出 vpk 签名 + notarytool 公证等待
+    # （package.scm 时代公证单独给了 60 分钟超时），放宽到 60。
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 1
       - uses: xmake-io/github-action-setup-xmake@v1
@@ -27,30 +29,212 @@ jobs:
           actions-cache-folder: '.xmake-cache'
       - name: xmake repo --update
         run: xmake repo --update
-      - name: Config and build goldfish
+      # Noto 字体（与 Windows CD 相同来源）：原由 package.scm 内部下载，
+      # DMG 流程移除后必须在此落位，install 才会收进 .app 的 Resources。
+      - name: Noto fonts
         run: |
-          xmake config -m release -a ${{ matrix.arch }} -vD --loro=yes --yes
-          xmake build goldfish-bin
-          ls -la TeXmacs/plugins/goldfish/bin/ || echo "goldfish bin dir not found"
-      - name: Package with Goldfish
+          mkdir -p TeXmacs/fonts/opentype/noto
+          cd TeXmacs/fonts/opentype/noto
+          curl -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Bold.ttc
+          curl -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Regular.ttc
+          curl -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Bold.ttc
+          curl -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Regular.ttc
+      - name: config
+        run: xmake config -m release -a ${{ matrix.arch }} -vD --loro=yes --yes
+      - name: build
+        run: xmake build -vD stem
+      - name: install
+        run: xmake install -vD stem
+      - name: Install vpk
+        shell: pwsh
+        run: |
+          dotnet tool install -g vpk --version 1.2.0
+          # mac runner 自带 dotnet SDK；pwsh 在 Unix 无 USERPROFILE，用 HOME
+          Add-Content -Path $env:GITHUB_PATH -Value "$($env:HOME)/.dotnet/tools"
+      # Apple 签名/公证 setup（mac 独有；Windows 的正式签名在 SafeNet 签名机
+      # 事后完成，mac 未签名 pkg 会被 Gatekeeper 直接拦截，故在 CI 内完成）。
+      # keychain 命令序列照搬 packages/macos/package.scm 的 setup-keychain；
+      # 身份名动态解析后经 VPK_SIGN_* 环境变量注入 pack_velopack.lua（见
+      # tools/release/pack_velopack.lua 的 mac 签名参数透传），stage 侧检测到
+      # VPK_SIGN_APP_IDENTITY 即跳过 ad-hoc、交给 vpk 深签。
+      - name: Setup Apple signing
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          chmod +x TeXmacs/plugins/goldfish/bin/goldfish
-          TeXmacs/plugins/goldfish/bin/goldfish packages/macos/package.scm
-      - name: Upload 
+          set -e
+          KEYCHAIN="$HOME/Library/Keychains/mogan-signing.keychain-db"
+          KEYCHAIN_PASS="$(openssl rand -base64 32)"
+          CERT=/tmp/mogan_cert.p12
+          printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 -D -o "$CERT"
+          security delete-keychain "$KEYCHAIN" 2>/dev/null || true
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
+          security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN" -T /usr/bin/codesign ||
+            security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN"
+          curl -fsSL -o /tmp/apple_devid_ca.cer https://www.apple.com/certificateauthority/DeveloperIDCA.cer
+          curl -fsSL -o /tmp/apple_devid_ca_g2.cer https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security add-certificates -k "$KEYCHAIN" /tmp/apple_devid_ca.cer /tmp/apple_devid_ca_g2.cer
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN"
+          LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
+          if [ -f "$LOGIN_KC" ]; then
+            security list-keychains -d user -s "$KEYCHAIN" "$LOGIN_KC" /Library/Keychains/System.keychain
+          else
+            security list-keychains -d user -s "$KEYCHAIN" /Library/Keychains/System.keychain
+          fi
+          security default-keychain -s "$KEYCHAIN"
+          # notarytool 凭据 profile（App Store Connect API key，同 package.scm）
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$KEY_DIR"
+          API_KEY="$KEY_DIR/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s' "$APPLE_API_KEY_P8" | base64 -D -o "$API_KEY"
+          chmod 600 "$API_KEY"
+          xcrun notarytool store-credentials mogan-notary \
+            --key "$API_KEY" --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER_ID" --keychain "$KEYCHAIN"
+          # 身份名动态解析（P12 里证书的完整主题名因续期而变，不硬编码）
+          APP_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" |
+            sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' | head -1)"
+          INSTALL_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" |
+            sed -n 's/.*"\(Developer ID Installer:[^"]*\)".*/\1/p' | head -1)"
+          if [ -n "$APP_IDENTITY" ]; then
+            echo "VPK_SIGN_APP_IDENTITY=$APP_IDENTITY" >> "$GITHUB_ENV"
+          else
+            echo "::error::keychain 中未找到 Developer ID Application 证书"
+            exit 1
+          fi
+          # P12 可能只含 Application 证书；缺 Installer 时 vpk 跳过 .pkg 签名并
+          # 告警（app 仍签名），属可接受降级
+          if [ -n "$INSTALL_IDENTITY" ]; then
+            echo "VPK_SIGN_INSTALL_IDENTITY=$INSTALL_IDENTITY" >> "$GITHUB_ENV"
+            echo "INSTALL_IDENTITY=$INSTALL_IDENTITY"
+          else
+            echo "INSTALL_IDENTITY=（未找到 Developer ID Installer，pkg 将不签名）"
+          fi
+          echo "VPK_NOTARY_PROFILE=mogan-notary" >> "$GITHUB_ENV"
+          echo "VPK_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+          echo "APP_IDENTITY=$APP_IDENTITY"
+      - name: Stage Velopack
+        run: xmake l tools/release/stage_velopack.lua
+      # 从 GitHub Release 拉取上一版本的发布压缩包作为各通道的 delta 基线：
+      # 逻辑与 Windows CD 一致（列 100 个 release、排除 draft 与当前 tag、
+      # beta 必查 + 无 -rc 才查 stable、stable 只认非 rc release、同版本跳过、
+      # 解 zip 取该通道 full 包拷入 build/velopack_release_<channel>/）。
+      # 与 Windows 的两处差异：
+      #   1) zip 匹配模式带 -osx-arm64 平台段——同一 release 上还有 Windows 的
+      #      mogan-release-*-win-x64-<channel>.zip，nupkg 是平台专属的，不带
+      #      平台段会抓错平台基线；
+      #   2) 不做裸 nupkg 回退——Windows 的该回退对应其过渡期历史，mac 沿用
+      #      会抓到 Windows 的旧 full 包。
+      # 某通道首次发布（GitHub 上尚无 mac 归档 zip）时跳过属正常：没有基线
+      # 时 pack 只出 full 包，是合法状态。
+      # GITHUB_TOKEN 不会自动注入为环境变量，必须显式传入 secrets.GITHUB_TOKEN；
+      # 为空时回退为公开仓库的匿名访问。
+      - name: Fetch delta baselines from GitHub Release
+        shell: pwsh
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $headers = @{
+            Accept        = "application/vnd.github+json"
+            "User-Agent"  = "mogan-cd"
+          }
+          if ($env:GITHUB_TOKEN) {
+            $headers["Authorization"] = "Bearer $($env:GITHUB_TOKEN)"
+          }
+          $releases = Invoke-RestMethod -Headers $headers `
+            -Uri "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100"
+          $releases = $releases |
+            Where-Object { -not $_.draft -and $_.tag_name -ne $env:GITHUB_REF_NAME }
+          # 本次要打的通道：beta 必打；stable 仅 tag 不含 -rc 时打
+          # （tag 名由 bump-version 流水线产生，-rc 与否即通道信息，无需透传）。
+          $tag = "${{ github.ref_name }}"
+          $channels = @("beta")
+          if ($tag -notmatch '-rc') { $channels += "stable" }
+          $vars = Get-Content xmake/vars.lua -Raw
+          $currentVer = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          foreach ($channel in $channels) {
+            Write-Host "== 通道 $channel：查找 delta 基线 =="
+            foreach ($release in $releases) {
+              # stable 基线只认非 rc tag 的 release（rc release 无 stable 包）
+              if ($channel -eq "stable" -and $release.tag_name -match '-rc') {
+                continue
+              }
+              Remove-Item build/velopack_baseline -Recurse -Force -ErrorAction SilentlyContinue
+              New-Item -ItemType Directory -Path build/velopack_baseline -Force | Out-Null
+              # 按平台 + 通道名匹配 zip（分开上传的格式，名带平台与通道后缀，
+              # 只下载目标通道的归档，避免拉取无关平台的 1.5GB 包）
+              $zipPattern = "mogan-release-*-osx-arm64-$channel.zip"
+              $zip = $release.assets |
+                Where-Object { $_.name -like $zipPattern } |
+                Select-Object -First 1
+              if (-not $zip) { continue }
+              /usr/bin/curl -fsSL "$($zip.browser_download_url)" -o build/velopack_baseline.zip
+              Expand-Archive -Path build/velopack_baseline.zip `
+                -DestinationPath build/velopack_baseline -Force
+              $full = Get-ChildItem build/velopack_baseline -Filter "*-$channel-full.nupkg" |
+                Select-Object -First 1
+              if (-not $full) { continue }
+              $baselineVer = $full.Name -replace '^Mogan-', '' `
+                -replace "-$channel-full\.nupkg$", ''
+              if ($baselineVer -eq $currentVer) {
+                Write-Host "基线版本与当前版本相同（$baselineVer），跳过（重跑同一版本）"
+                break
+              }
+              $outDir = "build/velopack_release_$channel"
+              New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+              Copy-Item $full.FullName $outDir/
+              Write-Host "已就位 $channel delta 基线: $($full.Name)"
+              break
+            }
+          }
+      # vpk pack 在 outputDir 存在上一版本（上一步拉取的 full 包）时自动生成
+      # delta 增量包；首次发布无上一版本，只有全量包。beta/stable 各用独立
+      # 输出目录（vpk 把 outputDir 当 channel 累积目录，混用会互相干扰），
+      # 产物文件名带 channel 后缀，最后合并进同一 release 归档。
+      - name: Pack Velopack (beta)
+        env:
+          VPK_CHANNEL: beta
+          VPK_OUTPUT_DIR: build/velopack_release_beta
+        run: xmake l tools/release/pack_velopack.lua
+      - name: Pack Velopack (stable)
+        if: ${{ !contains(github.ref_name, '-rc') }}
+        env:
+          VPK_CHANNEL: stable
+          VPK_OUTPUT_DIR: build/velopack_release_stable
+        run: xmake l tools/release/pack_velopack.lua
+      # 每个通道各自打一个 zip（Release 资产与下游 delta 基线按通道取用）：
+      # 文件名带平台与通道后缀 mogan-release-<ver>-osx-arm64-<channel>.zip，
+      # 命名规则与 Windows CD 的 win-x64 归档一致。
+      - name: Create release archive
+        shell: pwsh
+        run: |
+          $vars = Get-Content xmake/vars.lua -Raw
+          $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          $dirs = Get-ChildItem build -Directory -Filter 'velopack_release_*' |
+            Sort-Object Name
+          foreach ($d in $dirs) {
+            $channel = $d.Name -replace '^velopack_release_', ''
+            $archive = "build/mogan-release-$ver-osx-arm64-$channel.zip"
+            Compress-Archive -Path "$($d.FullName)/*" -DestinationPath $archive `
+              -CompressionLevel Optimal -Force
+            Get-Item $archive | Select-Object Name, Length
+          }
+      - name: Upload
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
-          path: build/*.dmg
+          path: |
+            build/velopack_release_*/*
+            build/mogan-release-*.zip
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           prerelease: true
-          files: build/*.dmg
+          files: build/mogan-release-*.zip
