@@ -73,9 +73,11 @@ jobs:
       # stable full。所有发布都标了 prerelease，releases/latest 接口拿不到，
       # 这里列出最近 100 个 release，排除 draft 和当前 tag（重跑同一 tag 时
       # 避免把自己当基线），按通道各自向后遍历，wget 下载对应通道的 zip。
-      # 压缩包分两种：新版每通道各一个 zip（mogan-release-<ver>-win-x64-
-      # <channel>.zip，按通道名只下载目标通道的归档）；旧版是全部通道合并的
-      # 单一 zip（无通道后缀，兼容回退）。解压拣出对应通道的 full 包
+      # 压缩包分两种：新版每平台每通道各一个 zip（mogan-release-<ver>-
+      # <platform>-<channel>.zip，按平台与通道名匹配归档——mac CD 会向同一
+      # release 上传 osx-arm64 归档，nupkg 是平台专属的，不带平台段会抓错
+      # 基线）；旧版是全部通道合并的单一 zip（无通道后缀，仅 Windows 时代
+      # 存在，兼容回退）。解压拣出对应通道的 full 包
       # （stable 需逐个 release 尝试：rc tag 的 zip 里没有 stable 包，自然
       # 跳过）。某通道首次发布或 GitHub 上尚无压缩包时跳过属正常（没有基线
       # 时 pack 只出 full 包，是合法状态）。
@@ -116,16 +118,17 @@ jobs:
               }
               Remove-Item build/velopack_baseline -Recurse -Force -ErrorAction SilentlyContinue
               New-Item -ItemType Directory -Path build/velopack_baseline -Force | Out-Null
-              # 优先按通道名匹配 zip（分开上传的新格式，名带通道后缀，
-              # 只下载目标通道的归档，避免拉取无关通道的 1.5GB 包）；找不到
-              # 再回退旧合并 zip（无通道后缀，内含全部通道的包）。
-              $zipPattern = if ($channel -eq "beta") { '*beta*.zip' } else { '*stable*.zip' }
+              # 按平台 + 通道名匹配 zip（分开上传的新格式，名带平台与通道
+              # 后缀，只下载目标通道的归档，避免拉取无关通道/平台的 1.5GB
+              # 包）；找不到再回退旧合并 zip（无通道后缀、仅 Windows 时代
+              # 存在，内含全部通道的包）。
+              $zipPattern = "mogan-release-*-win-x64-$channel.zip"
               $zip = $release.assets |
                 Where-Object { $_.name -like $zipPattern } |
                 Select-Object -First 1
               if (-not $zip) {
                 $zip = $release.assets |
-                  Where-Object { $_.name -like 'mogan-release-*.zip' } |
+                  Where-Object { $_.name -like 'mogan-release-*-win-x64.zip' } |
                   Select-Object -First 1
               }
               if ($zip) {
