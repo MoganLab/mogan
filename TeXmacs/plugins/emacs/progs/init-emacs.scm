@@ -143,9 +143,9 @@
     ("S-F3" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
     ("F4" (preview-buffer))
     ("S-F4" (print-buffer))
-    ("C-F4" (interactive print-to-file))
+    ("C-F4" (open-print-to-file))
     ("M-F4" (interactive print-pages))
-    ("M-S-F4" (interactive print-pages-to-file))
+    ("M-S-F4" (open-page-selection-to-file))
 
     ("emacs =" (interactive-replace))
     ("emacs:meta g" (kbd-cancel))

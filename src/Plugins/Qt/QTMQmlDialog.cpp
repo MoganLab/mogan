@@ -11,6 +11,7 @@
 #include "FontSelectorBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
 #include "PreferencesBridge.hpp"
+#include "PrintToFileBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
@@ -39,6 +40,8 @@ using moebius::data::tree_to_scheme_tree;
 #include <QVariantMap>
 
 #include <QPointer>
+
+#include <algorithm>
 
 #include <functional>
 
@@ -565,6 +568,90 @@ cpp_form_dialog (tree fields) {
     tree kv (TUPLE);
     kv << tree (from_qstring (it.key ()));
     kv << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
+}
+
+/**
+ * @brief 选择打印为文件 QML 弹窗（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，一次性提交型）。defaults 经
+ * printDefaults 注入初始值，标签文案经 qt_translate 注入；原生保存对话框属
+ * 打印领域交互，由独立 PrintToFileBridge 承载，通用 QmlDialogBridge 只承担
+ * submit / cancel / Esc / 拖动。结果 QVariantMap 转 (tuple (tuple key
+ * value)...)；file 是系统路径，须保留 UTF-8（匹配 scheme 侧 system->url），
+ * 其余字段走常规转换。
+ *
+ * 测试钩子 MOGAN_TEST_PRINT_TO_FILE：cancel 返回空 tuple；ok 返回 defaults
+ * 组成的 tuple，均不弹窗（供 headless 自动化）。
+ */
+tree
+cpp_print_to_file_dialog (string filename, int page_count, bool page_range) {
+  string preset= get_env ("MOGAN_TEST_PRINT_TO_FILE");
+  if (preset == "cancel") return tree (TUPLE);
+
+  QVariantMap defaults;
+  defaults["file"]  = to_qstring (filename);
+  defaults["format"]= "postscript";
+  defaults["range"] = page_range ? "range" : "all";
+  defaults["first"] = "1";
+  defaults["last"]  = QString::number (std::max (1, page_count));
+
+  if (preset == "ok") {
+    tree r (TUPLE);
+    for (auto it= defaults.begin (); it != defaults.end (); ++it) {
+      tree kv (TUPLE);
+      kv << tree (from_qstring (it.key ()))
+         << tree (from_qstring (it.value ().toString ()));
+      r << kv;
+    }
+    return r;
+  }
+
+  QmlDialogBridge* bridge = nullptr;
+  array<string>    buttons= {string ("Print"), string ("Cancel")};
+  run_qml_dialog (
+      "qrc:/qml/PrintToFile.qml", "PrintToFile.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge                        = inject_common_context (qw, host);
+        PrintToFileBridge* printBridge= new PrintToFileBridge (&host);
+        qw->rootContext ()->setContextProperty ("printBridge", printBridge);
+        QObject::connect (&host, &QDialog::destroyed, printBridge,
+                          &QObject::deleteLater);
+        qw->rootContext ()->setContextProperty ("printDefaults", defaults);
+        qw->rootContext ()->setContextProperty ("printTitle",
+                                                qt_translate ("Print to file"));
+        qw->rootContext ()->setContextProperty ("fileLabel",
+                                                qt_translate ("File:"));
+        qw->rootContext ()->setContextProperty ("formatLabel",
+                                                qt_translate ("Format:"));
+        qw->rootContext ()->setContextProperty ("pagesLabel",
+                                                qt_translate ("Pages:"));
+        qw->rootContext ()->setContextProperty ("allPagesLabel",
+                                                qt_translate ("All pages"));
+        qw->rootContext ()->setContextProperty ("pageRangeLabel",
+                                                qt_translate ("Page range"));
+        qw->rootContext ()->setContextProperty ("fromLabel",
+                                                qt_translate ("From"));
+        qw->rootContext ()->setContextProperty ("toLabel", qt_translate ("To"));
+        qw->rootContext ()->setContextProperty ("browseLabel",
+                                                qt_translate ("Browse"));
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      500, 430);
+
+  tree               r (TUPLE);
+  const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();
+  delete bridge;
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    // 路径须保留 UTF-8，匹配 choose-file 的 system->url 转换。
+    const string value= it.key () == "file"
+                            ? from_qstring_utf8 (it.value ().toString ())
+                            : from_qstring (it.value ().toString ());
+    kv << tree (from_qstring (it.key ())) << tree (value);
     r << kv;
   }
   return r;

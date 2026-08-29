@@ -285,3 +285,52 @@
     "postscript"
   ) ;choose-file
 ) ;tm-define
+
+(define (print-to-file-dialog-value values key fallback)
+  (let loop
+    ((remaining values))
+    (if (null? remaining)
+      fallback
+      (let* ((entry (car remaining))
+             ;; 兼容 tree->stree 的 tuple 形状及测试直接传入的 pair。
+             (pair (if (and (pair? entry) (eq? (car entry) 'tuple)) (cdr entry) entry))
+            ) ;
+        (if (and (pair? pair) (pair? (cdr pair)) (string=? (car pair) key))
+          (cadr pair)
+          (loop (cdr remaining))
+        ) ;if
+      ) ;let*
+    ) ;if
+  ) ;let
+) ;define
+
+(define (dispatch-print-to-file-result result page-count print-all print-range)
+  (let* ((values (cdr (tree->stree result)))
+         (name (print-to-file-dialog-value values "file" ""))
+         (range (print-to-file-dialog-value values "range" "all"))
+         (first (print-to-file-dialog-value values "first" "1"))
+         (last (print-to-file-dialog-value values "last" (number->string page-count)))
+        ) ;
+    (when (not (string=? name ""))
+      (if (string=? range "range") (print-range name first last) (print-all name))
+    ) ;when
+  ) ;let*
+) ;define
+
+(define (open-print-to-file* page-range?)
+  (let ((page-count (get-page-count)))
+    (dispatch-print-to-file-result (cpp-print-to-file-dialog (propose-postscript-name) page-count page-range?)
+      page-count
+      ;; 与 choose-file 一致，将系统路径转换为 Mogan url。
+      (lambda (name) (print-to-file (system->url name)))
+      (lambda (name first last) (print-pages-to-file (system->url name) first last))
+    ) ;dispatch-print-to-file-result
+  ) ;let
+) ;define
+
+(tm-define (open-print-to-file) (:interactive #t) (open-print-to-file* #f))
+
+(tm-define (open-page-selection-to-file)
+  (:interactive #t)
+  (open-print-to-file* #t)
+) ;tm-define

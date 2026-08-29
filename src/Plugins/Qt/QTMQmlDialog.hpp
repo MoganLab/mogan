@@ -160,6 +160,20 @@ int cpp_confirm_question (string message, array<string> buttons);
 tree cpp_form_dialog (tree fields);
 
 /**
+ * @brief 选择打印为文件 QML 弹窗的 glue 入口。
+ * @param filename 建议的输出路径（propose-postscript-name 给出的系统路径）。
+ * @param page_count 当前文档页数，用于页面范围默认值与校验上界。
+ * @param page_range 弹窗初始是否选中「页面范围」。
+ * @return 用户点 Print 返回 (tuple (tuple "file" <路径>) (tuple "format"
+ * <pdf|postscript>) (tuple "range" <all|range>) (tuple "first" ...)
+ * (tuple "last" ...))；file 为 UTF-8 系统路径。Cancel / 关闭 / 加载失败返回
+ * 空 tuple。
+ * @note 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok|cancel 命中时不弹窗。
+ */
+tree cpp_print_to_file_dialog (string filename, int page_count,
+                               bool page_range);
+
+/**
  * @brief 字体选择器 QML 对话框的 glue 入口。
  * @param specs_key scheme specs-registry 的 int 句柄
  *（font-selector-register-specs 返回值）。

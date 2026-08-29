@@ -68,6 +68,16 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-print-to-file-dialog",
+                cpp_name = "cpp_print_to_file_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "string",
+                    "int",
+                    "bool"
+                }
+            },
+            {
                 scm_name = "cpp-font-selector-dialog",
                 cpp_name = "cpp_font_selector_dialog",
                 ret_type = "tree",
