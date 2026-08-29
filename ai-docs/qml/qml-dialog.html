@@ -1029,6 +1029,7 @@
       <button class="nav-btn active" data-target="confirm">ConfirmClose.qml</button>
       <button class="nav-btn" data-target="confirmQuestion">ConfirmQuestion.qml</button>
       <button class="nav-btn" data-target="form">FormDialog.qml</button>
+      <button class="nav-btn" data-target="printToFile">PrintToFile.qml</button>
       <button class="nav-btn" data-target="font">FontSelector.qml</button>
       <button class="nav-btn" data-target="paragraph">ParagraphFormat.qml</button>
       <button class="nav-btn" data-target="statistics">Statistics.qml</button>
@@ -1136,6 +1137,47 @@
           对应 QML: <code>fields: formFields</code>
           <code>values[key] = selectedValue</code>
           <code>submit -> closeBridge.submit(values)</code>
+        </p>
+      </section>
+
+      <section class="panel" id="panel-print-to-file">
+        <article class="form-shell">
+          <div class="field">
+            <label for="print-file-name">文件</label>
+            <input id="print-file-name" value="document.ps" />
+            <button class="btn" id="print-browse">浏览</button>
+          </div>
+          <div class="field">
+            <label for="print-format">格式</label>
+            <select id="print-format">
+              <option value="postscript">PostScript</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>页面</label>
+            <div class="btn-row" style="justify-content: flex-start;">
+              <button class="btn primary" data-print-range="all">全部页面</button>
+              <button class="btn" data-print-range="range">页面范围</button>
+            </div>
+          </div>
+          <div class="field" id="print-range-fields" style="display: none;">
+            <label>范围</label>
+            <div class="btn-row" style="justify-content: flex-start;">
+              <input id="print-first-page" type="number" min="1" value="1" style="width: 72px;" />
+              <span>至</span>
+              <input id="print-last-page" type="number" min="1" value="3" style="width: 72px;" />
+            </div>
+          </div>
+          <div class="btn-row" style="justify-content: flex-end; margin-top: 8px;">
+            <button class="btn primary" id="print-submit">打印</button>
+            <button class="btn" data-log="PrintToFile: cancel">取消</button>
+          </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>printBridge.chooseSaveFile()</code>
+          <code>TabBar: all/range</code>
+          <code>closeBridge.submit(values)</code>
         </p>
       </section>
 
@@ -1693,6 +1735,7 @@
       const panels = {
         confirm: document.getElementById('panel-confirm'),
         form: document.getElementById('panel-form'),
+        printToFile: document.getElementById('panel-print-to-file'),
         font: document.getElementById('panel-font'),
         paragraph: document.getElementById('panel-paragraph'),
         statistics: document.getElementById('panel-statistics'),
@@ -1706,6 +1749,7 @@
         version: 'Version.qml preview',
         confirm: 'ConfirmClose.qml 模拟',
         form: 'FormDialog.qml 模拟',
+        printToFile: 'PrintToFile.qml 模拟',
         font: 'FontSelector.qml 模拟',
         paragraph: 'ParagraphFormat.qml 模拟',
         statistics: 'Statistics.qml 模拟',
@@ -1718,6 +1762,7 @@
         version: 'versionTitle + versionLines + closeBridge.choose(1)',
         confirm: 'dialogMessage + dialogButtons + closeBridge.choose()',
         form: 'formFields + values 收集 + closeBridge.submit(values)',
+        printToFile: 'printBridge.chooseSaveFile() + TabBar + closeBridge.submit(values)',
         font: 'fontBridge 联动: family/style/filter/customize/preview',
         paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回',
         statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
@@ -1750,6 +1795,29 @@
           viewCode.textContent = codeMap[target];
           log(`切换组件 -> ${titleMap[target]}`);
         });
+      });
+
+      let printRange = 'all';
+      const printRangeFields = document.getElementById('print-range-fields');
+      document.querySelectorAll('[data-print-range]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          printRange = btn.getAttribute('data-print-range');
+          document.querySelectorAll('[data-print-range]').forEach((b) => b.classList.toggle('primary', b === btn));
+          printRangeFields.style.display = printRange === 'range' ? '' : 'none';
+          log('PrintToFile: page range -> ' + printRange);
+        });
+      });
+      document.getElementById('print-browse').addEventListener('click', () => {
+        log('PrintToFile: printBridge.chooseSaveFile()');
+      });
+      document.getElementById('print-submit').addEventListener('click', () => {
+        log('PrintToFile: closeBridge.submit(' + JSON.stringify({
+          file: document.getElementById('print-file-name').value,
+          format: document.getElementById('print-format').value,
+          range: printRange,
+          first: document.getElementById('print-first-page').value,
+          last: document.getElementById('print-last-page').value
+        }) + ')');
       });
 
       document.querySelectorAll('[data-log]').forEach((el) => {

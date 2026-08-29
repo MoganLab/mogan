@@ -65,6 +65,19 @@ private:
                       "The latest stable version is v2026.2.6."};
 };
 
+// 打印为文件 bridge 占位：chooseSaveFile 桩（加载测试不打开原生文件框）。
+class PrintToFileStubBridge : public QObject {
+  Q_OBJECT
+
+public:
+  explicit PrintToFileStubBridge (QObject* p= nullptr) : QObject (p) {}
+
+  Q_INVOKABLE QString chooseSaveFile (const QString&, const QString&,
+                                      const QString&) {
+    return QString ();
+  }
+};
+
 // live 弹窗（FontSelector / ParagraphFormat）bridge 占位：加载阶段 QML 顶层会调
 // 一批 uiLabels/meta/currentXxx/requestXxx 取初始值，桩统一返回空（空串/空
 // list/空 map）， 仅保证文档能实例化、不验证交互语义。
@@ -220,6 +233,7 @@ private slots:
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
   void test_updater_progress_loads ();
+  void test_print_to_file_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -284,9 +298,7 @@ TestQmlLoad::test_confirm_restart_loads () {
       QString (
           "This change requires restarting Mogan STEM to take full effect."));
   QStringList buttons;
-  buttons << "Restart"
-          << "Later"
-          << "Cancel";
+  buttons << "Restart" << "Later" << "Cancel";
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/ConfirmRestart.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
@@ -297,8 +309,7 @@ TestQmlLoad::test_form_dialog_loads () {
   // FormDialog 还需 formFields/dialogButtons；注入最小占位（空表 + 默认按钮）。
   QVariantList fields;
   QStringList  buttons;
-  buttons << "OK"
-          << "Cancel";
+  buttons << "OK" << "Cancel";
   // 重新走一遍，多注入两个 context property。
   QDialog       host;
   QQuickWidget* qw= new QQuickWidget (&host);
@@ -409,6 +420,54 @@ TestQmlLoad::test_updater_progress_loads () {
       "dialogMessage", QString ("Downloading the update..."));
   qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_print_to_file_loads () {
+  // PrintToFile 需要 closeBridge + printBridge + printDefaults +
+  // dialogButtons + 各标签文案；加载层面验证文档实例化与默认值透传。
+  QVariantMap defaults;
+  defaults["file"]  = QString ("document.ps");
+  defaults["format"]= QString ("postscript");
+  defaults["range"] = QString ("all");
+  defaults["first"] = QString ("1");
+  defaults["last"]  = QString ("4");
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* closeBridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", closeBridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  PrintToFileStubBridge* printBridge= new PrintToFileStubBridge (qw);
+  qw->rootContext ()->setContextProperty ("printBridge", printBridge);
+  qw->rootContext ()->setContextProperty ("printDefaults", defaults);
+  qw->rootContext ()->setContextProperty ("printTitle",
+                                          QString ("Print to file"));
+  qw->rootContext ()->setContextProperty ("fileLabel", QString ("File:"));
+  qw->rootContext ()->setContextProperty ("formatLabel", QString ("Format:"));
+  qw->rootContext ()->setContextProperty ("pagesLabel", QString ("Pages:"));
+  qw->rootContext ()->setContextProperty ("allPagesLabel",
+                                          QString ("All pages"));
+  qw->rootContext ()->setContextProperty ("pageRangeLabel",
+                                          QString ("Page range"));
+  qw->rootContext ()->setContextProperty ("fromLabel", QString ("From"));
+  qw->rootContext ()->setContextProperty ("toLabel", QString ("To"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
+  qw->rootContext ()->setContextProperty ("dialogButtons",
+                                          QStringList{"Print", "Cancel"});
+  qw->setSource (QUrl ("qrc:/qml/PrintToFile.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->rootObject ()->property ("fileName").toString (),
+            QString ("document.ps"));
+  QCOMPARE (qw->rootObject ()->property ("pageCount").toInt (), 4);
+  QCOMPARE (qw->rootObject ()->property ("range").toString (), QString ("all"));
+  const QVariantList buttonLabels=
+      qw->rootObject ()->property ("buttonLabels").toList ();
+  QCOMPARE (buttonLabels.size (), 2);
+  QCOMPARE (buttonLabels[0].toString (), QString ("Print"));
+  QCOMPARE (buttonLabels[1].toString (), QString ("Cancel"));
 }
 
 void

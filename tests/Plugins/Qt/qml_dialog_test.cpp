@@ -73,6 +73,7 @@ private slots:
   void test_confirm_close_hook ();
   void test_confirm_question_hook ();
   void test_form_dialog_hook ();
+  void test_print_to_file_dialog_hook ();
 };
 
 // 字段下标协议常量与协议文档一致。
@@ -261,6 +262,45 @@ TestQmlDialog::test_form_dialog_hook () {
   {
     EnvHook hook ("MOGAN_TEST_FORM_DIALOG", "cancel");
     tree    r= cpp_form_dialog (form);
+    QVERIFY (is_compound (r));
+    QCOMPARE (N (r), 0);
+  }
+}
+
+// MOGAN_TEST_PRINT_TO_FILE 钩子：ok 时返回 defaults 组成的 tuple（键序不依赖
+// QVariantMap 迭代顺序，逐 key 查找）；cancel 时返回空 tuple，均不弹窗。
+void
+TestQmlDialog::test_print_to_file_dialog_hook () {
+  {
+    EnvHook hook ("MOGAN_TEST_PRINT_TO_FILE", "ok");
+    tree    r= cpp_print_to_file_dialog ("out.ps", 4, false);
+    QVERIFY (is_compound (r));
+    QCOMPARE (N (r), 5);
+    bool sawFile= false, sawFormat= false, sawRange= false, sawLast= false;
+    for (int i= 0; i < N (r); i++) {
+      QVERIFY (is_compound (r[i]) && N (r[i]) == 2);
+      if (r[i][0]->label == "file") {
+        QCOMPARE (r[i][1]->label, string ("out.ps"));
+        sawFile= true;
+      }
+      else if (r[i][0]->label == "format") {
+        QCOMPARE (r[i][1]->label, string ("postscript"));
+        sawFormat= true;
+      }
+      else if (r[i][0]->label == "range") {
+        QCOMPARE (r[i][1]->label, string ("all"));
+        sawRange= true;
+      }
+      else if (r[i][0]->label == "last") {
+        QCOMPARE (r[i][1]->label, string ("4"));
+        sawLast= true;
+      }
+    }
+    QVERIFY (sawFile && sawFormat && sawRange && sawLast);
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_PRINT_TO_FILE", "cancel");
+    tree    r= cpp_print_to_file_dialog ("out.ps", 4, false);
     QVERIFY (is_compound (r));
     QCOMPARE (N (r), 0);
   }
