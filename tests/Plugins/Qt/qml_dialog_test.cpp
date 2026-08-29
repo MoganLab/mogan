@@ -73,6 +73,7 @@ private slots:
   void test_confirm_close_hook ();
   void test_confirm_question_hook ();
   void test_form_dialog_hook ();
+  void test_search_recent_documents_hook ();
 };
 
 // 字段下标协议常量与协议文档一致。
@@ -263,6 +264,21 @@ TestQmlDialog::test_form_dialog_hook () {
     tree    r= cpp_form_dialog (form);
     QVERIFY (is_compound (r));
     QCOMPARE (N (r), 0);
+  }
+}
+
+// MOGAN_TEST_SEARCH_RECENT_DOCUMENTS 钩子：设为路径时直接返回该路径（UTF-8
+// 系统路径，中文不破坏）、设为 cancel 时返回空串，均不弹窗。
+void
+TestQmlDialog::test_search_recent_documents_hook () {
+  {
+    string  path= "C:/文档/报告.tm";
+    EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", path);
+    QCOMPARE (cpp_search_recent_documents_dialog (), path);
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS", "cancel");
+    QCOMPARE (cpp_search_recent_documents_dialog (), string (""));
   }
 }
 

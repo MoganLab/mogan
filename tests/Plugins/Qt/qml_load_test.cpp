@@ -65,6 +65,30 @@ private:
                       "The latest stable version is v2026.2.6."};
 };
 
+// 最近文档搜索 bridge 占位：只读模型 + open 动作桩，加载层面验证文档实例化。
+class RecentDocumentsSearchStubBridge : public QObject {
+  Q_OBJECT
+  Q_PROPERTY (QVariantList documents READ documents CONSTANT)
+  Q_PROPERTY (QString title READ title CONSTANT)
+  Q_PROPERTY (QString placeholder READ placeholder CONSTANT)
+  Q_PROPERTY (QString emptyText READ emptyText CONSTANT)
+
+public:
+  explicit RecentDocumentsSearchStubBridge (QVariantList documents,
+                                            QObject*     p= nullptr)
+      : QObject (p), m_documents (documents) {}
+
+  QVariantList documents () const { return m_documents; }
+  QString      title () const { return "Search recent documents"; }
+  QString      placeholder () const { return "Search"; }
+  QString      emptyText () const { return "No matching recent documents"; }
+
+  Q_INVOKABLE void open (const QString&) {}
+
+private:
+  QVariantList m_documents;
+};
+
 // live 弹窗（FontSelector / ParagraphFormat）bridge 占位：加载阶段 QML 顶层会调
 // 一批 uiLabels/meta/currentXxx/requestXxx 取初始值，桩统一返回空（空串/空
 // list/空 map）， 仅保证文档能实例化、不验证交互语义。
@@ -220,6 +244,7 @@ private slots:
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
   void test_updater_progress_loads ();
+  void test_search_recent_documents_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -284,9 +309,7 @@ TestQmlLoad::test_confirm_restart_loads () {
       QString (
           "This change requires restarting Mogan STEM to take full effect."));
   QStringList buttons;
-  buttons << "Restart"
-          << "Later"
-          << "Cancel";
+  buttons << "Restart" << "Later" << "Cancel";
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/ConfirmRestart.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
@@ -297,8 +320,7 @@ TestQmlLoad::test_form_dialog_loads () {
   // FormDialog 还需 formFields/dialogButtons；注入最小占位（空表 + 默认按钮）。
   QVariantList fields;
   QStringList  buttons;
-  buttons << "OK"
-          << "Cancel";
+  buttons << "OK" << "Cancel";
   // 重新走一遍，多注入两个 context property。
   QDialog       host;
   QQuickWidget* qw= new QQuickWidget (&host);
@@ -409,6 +431,39 @@ TestQmlLoad::test_updater_progress_loads () {
       "dialogMessage", QString ("Downloading the update..."));
   qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_search_recent_documents_loads () {
+  // SearchRecentDocuments 需要 closeBridge + recentSearchBridge +
+  // dialogButtons；加载层面验证文档实例化、初始不选中（selectedIndex==-1）与
+  // 按钮文案注入形状。
+  QVariantMap document;
+  document["name"]= QString ("notes.tm");
+  document["path"]= QString ("C:/docs/notes.tm");
+  QVariantList documents;
+  documents << document;
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* closeBridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", closeBridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  RecentDocumentsSearchStubBridge* searchBridge=
+      new RecentDocumentsSearchStubBridge (documents, qw);
+  qw->rootContext ()->setContextProperty ("recentSearchBridge", searchBridge);
+  qw->rootContext ()->setContextProperty ("dialogButtons",
+                                          QStringList{"Open", "Cancel"});
+  qw->setSource (QUrl ("qrc:/qml/SearchRecentDocuments.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->rootObject ()->property ("selectedIndex").toInt (), -1);
+  const QVariantList buttonLabels=
+      qw->rootObject ()->property ("buttonLabels").toList ();
+  QCOMPARE (buttonLabels.size (), 2);
+  QCOMPARE (buttonLabels[0].toString (), QString ("Open"));
+  QCOMPARE (buttonLabels[1].toString (), QString ("Cancel"));
 }
 
 void

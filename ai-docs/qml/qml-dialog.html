@@ -299,6 +299,76 @@
       box-shadow: var(--shadow);
     }
 
+    .recent-search-shell {
+      width: min(620px, 100%);
+      background: #ffffff;
+      border: 1px solid #d6dfdf;
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .recent-search-shell h3 {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 18px;
+    }
+
+    .recent-search-input {
+      width: 100%;
+      height: 38px;
+      border: 1px solid #9fcac7;
+      border-radius: 10px;
+      padding: 0 12px;
+      background: #f9fcfc;
+      color: #25353a;
+      font: inherit;
+    }
+
+    .recent-results {
+      list-style: none;
+      margin-top: 14px;
+      border: 1px solid #cad7d7;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .recent-result {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e4eeee;
+      cursor: pointer;
+    }
+
+    .recent-result:last-child {
+      border-bottom: 0;
+    }
+
+    .recent-result.active {
+      background: #dff3f1;
+      color: #194f53;
+    }
+
+    .recent-result strong,
+    .recent-result span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .recent-result span {
+      margin-top: 3px;
+      color: #60787e;
+      font-size: 12px;
+    }
+
+    .recent-empty {
+      display: none;
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
     .field {
       display: grid;
       grid-template-columns: 120px 1fr;
@@ -1035,6 +1105,7 @@
       <button class="nav-btn" data-target="version">Version.qml</button>
       <button class="nav-btn" data-target="preferences">Preferences.qml</button>
       <button class="nav-btn" data-target="confirmRestart">ConfirmRestart.qml</button>
+      <button class="nav-btn" data-target="recentSearch">SearchRecentDocuments.qml</button>
       <button class="nav-btn" data-target="updater">UpdaterProgress.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
@@ -1683,6 +1754,38 @@
         </p>
       </section>
 
+      <!-- 最近文档搜索（SearchRecentDocuments.qml）：模糊筛选 + 显式选择后打开 -->
+      <section class="panel" id="panel-recent-search">
+        <article class="recent-search-shell">
+          <h3>Search recent documents</h3>
+          <input class="recent-search-input" id="recent-search-input" type="text" placeholder="Search">
+          <ul class="recent-results" id="recent-results">
+            <li class="recent-result" data-name="National Natural Science Foundation proposal" data-path="C:\\Users\\Mogan\\Documents\\National Natural Science Foundation proposal.tmu">
+              <strong>National Natural Science Foundation proposal</strong>
+              <span>C:\\Users\\Mogan\\Documents\\National Natural Science Foundation proposal.tmu</span>
+            </li>
+            <li class="recent-result" data-name="Research notes" data-path="C:\\Users\\Mogan\\Documents\\Research notes.tm">
+              <strong>Research notes</strong>
+              <span>C:\\Users\\Mogan\\Documents\\Research notes.tm</span>
+            </li>
+            <li class="recent-result" data-name="Thesis outline" data-path="D:\\Writing\\Thesis outline.tmu">
+              <strong>Thesis outline</strong>
+              <span>D:\\Writing\\Thesis outline.tmu</span>
+            </li>
+            <li class="recent-empty" id="recent-empty">No matching recent documents</li>
+          </ul>
+          <div class="btn-row" style="justify-content: flex-end; margin-top: 14px;">
+            <button class="btn primary" id="recent-open">Open</button>
+            <button class="btn" data-log="SearchRecentDocuments: cancel()">Cancel</button>
+          </div>
+        </article>
+        <p class="legend">
+          QML: <code>recentDocuments + fuzzyScore()</code>
+          <code>onTextChanged -> updateMatches()</code>
+          <code>Open -> recentSearchBridge.open(path)</code>
+        </p>
+      </section>
+
 
     </main>
   </div>
@@ -1699,7 +1802,8 @@
         version: document.getElementById('panel-version'),
         preferences: document.getElementById('panel-preferences'),
         confirmRestart: document.getElementById('panel-confirm-restart'),
-        updater: document.getElementById('panel-updater')
+        updater: document.getElementById('panel-updater'),
+        recentSearch: document.getElementById('panel-recent-search')
       };
 
       const titleMap = {
@@ -1711,7 +1815,8 @@
         statistics: 'Statistics.qml 模拟',
         preferences: 'Preferences.qml 模拟',
         confirmRestart: 'ConfirmRestart.qml 模拟',
-        updater: 'UpdaterProgress.qml 模拟'
+        updater: 'UpdaterProgress.qml 模拟',
+        recentSearch: 'SearchRecentDocuments.qml 模拟'
       };
 
       const codeMap = {
@@ -1723,7 +1828,8 @@
         statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
         preferences: 'prefTabs(5) + subTabs(6) + EnumCombo + Toggle + 纯 OK 提交',
         confirmRestart: 'message + buttonLabels + closeBridge.choose(index)',
-        updater: 'dialogMessage + onCancel no-op + open/close 成对 glue'
+        updater: 'dialogMessage + onCancel no-op + open/close 成对 glue',
+        recentSearch: 'recentDocuments + fuzzyScore() + recentSearchBridge.open(path)'
       };
 
       const viewTitle = document.getElementById('view-title');
@@ -1750,6 +1856,46 @@
           viewCode.textContent = codeMap[target];
           log(`切换组件 -> ${titleMap[target]}`);
         });
+      });
+
+      const recentSearchInput = document.getElementById('recent-search-input');
+      const recentResults = document.querySelectorAll('.recent-result');
+      const recentEmpty = document.getElementById('recent-empty');
+      let recentSelected = null;
+
+      function fuzzyMatch(text, query) {
+        let cursor = 0;
+        const haystack = text.toLowerCase();
+        for (const character of query.toLowerCase()) {
+          cursor = haystack.indexOf(character, cursor);
+          if (cursor < 0) return false;
+          cursor += 1;
+        }
+        return true;
+      }
+
+      recentSearchInput.addEventListener('input', () => {
+        const query = recentSearchInput.value.trim();
+        let visibleCount = 0;
+        recentResults.forEach((row) => {
+          const matched = !query || fuzzyMatch(row.dataset.name, query) || fuzzyMatch(row.dataset.path, query);
+          row.style.display = matched ? '' : 'none';
+          if (matched) visibleCount += 1;
+        });
+        recentEmpty.style.display = visibleCount ? 'none' : 'block';
+        recentSelected = null;
+        recentResults.forEach((row) => row.classList.remove('active'));
+      });
+
+      recentResults.forEach((row) => {
+        row.addEventListener('click', () => {
+          recentSelected = row;
+          recentResults.forEach((item) => item.classList.toggle('active', item === row));
+        });
+      });
+
+      document.getElementById('recent-open').addEventListener('click', () => {
+        if (recentSelected) log('SearchRecentDocuments: open("' + recentSelected.dataset.path + '")');
       });
 
       document.querySelectorAll('[data-log]').forEach((el) => {
