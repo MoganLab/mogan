@@ -24,5 +24,6 @@
         <file>qml/Preferences.qml</file>
         <file>qml/Version.qml</file>
         <file>qml/UpdaterProgress.qml</file>
+        <file>qml/PrintToFile.qml</file>
     </qresource>
 </RCC>
