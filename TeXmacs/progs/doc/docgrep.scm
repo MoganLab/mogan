@@ -243,3 +243,15 @@
     (load-document (string-append "tmfs://grep/" query))
   ) ;with
 ) ;tm-define
+
+(tm-define (recent-documents-for-qml) (map url->system (recent-file-list 25)))
+
+(tm-define (open-search-recent-documents)
+  (:interactive #t)
+  (with path
+    (cpp-search-recent-documents-dialog)
+    (when (!= path "")
+      (load-document (system->url path))
+    ) ;when
+  ) ;with
+) ;tm-define

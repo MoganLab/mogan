@@ -228,6 +228,16 @@ bool cpp_version_dialog (string title, string message);
  */
 tree cpp_preferences_dialog ();
 
+/**
+ * @brief 打开最近文档搜索 QML 对话框。
+ * @return 用户显式选中的 UTF-8 系统路径；取消 / 关闭 / 加载失败返回空串。
+ * @note 候选模型由 RecentDocumentsSearchBridge 构造时经 scheme
+ *       recent-documents-for-qml 拉取；筛选与选择状态留在 QML 本地。
+ * @note 测试钩子 MOGAN_TEST_SEARCH_RECENT_DOCUMENTS：设为路径时直接返回该路径
+ *       、设为 "cancel" 返回空串，均不弹窗。
+ */
+string cpp_search_recent_documents_dialog ();
+
 // ---- 更新下载中间态弹窗
 // -------------------------------------------------------
 

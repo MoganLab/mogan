@@ -13,6 +13,7 @@
 #include "PreferencesBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
+#include "RecentDocumentsSearchBridge.hpp"
 #include "VersionDialogBridge.hpp"
 
 #include "analyze.hpp" // occurs
@@ -798,4 +799,42 @@ cpp_preferences_dialog () {
       620, 600);
   delete bridge;
   return tree (TUPLE);
+}
+
+/**
+ * @brief 最近文档搜索 QML 对话框的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，一次性提交型）。独立
+ * RecentDocumentsSearchBridge 构造时经 eval_scheme 拉取最近文档并去重，QML
+ * 筛选/选择状态留在本地，open() 记录所选路径后结束模态；closeBridge 只承担
+ * 取消 / Esc / 拖动。路径全程 UTF-8（同 qt_scheme_quote_utf8 惯例）。
+ *
+ * 测试钩子 MOGAN_TEST_SEARCH_RECENT_DOCUMENTS：设为路径时直接返回该路径、设为
+ * "cancel" 返回空串，均不弹窗（供 headless 自动化）。
+ */
+string
+cpp_search_recent_documents_dialog () {
+  string preset= get_env ("MOGAN_TEST_SEARCH_RECENT_DOCUMENTS");
+  if (preset != "") return preset == "cancel" ? string ("") : preset;
+
+  array<string>                buttons= {string ("Open"), string ("Cancel")};
+  QmlDialogBridge*             closeBridge = nullptr;
+  RecentDocumentsSearchBridge* searchBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/SearchRecentDocuments.qml", "SearchRecentDocuments.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge = inject_common_context (qw, host);
+        searchBridge= new RecentDocumentsSearchBridge (&host);
+        qw->rootContext ()->setContextProperty ("recentSearchBridge",
+                                                searchBridge);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      520, 450);
+
+  QString path;
+  if (searchBridge) path= searchBridge->selectedPath ();
+  delete closeBridge;
+  delete searchBridge;
+  return from_qstring_utf8 (path);
 }

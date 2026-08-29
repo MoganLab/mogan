@@ -108,6 +108,12 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "cpp-search-recent-documents-dialog",
+                cpp_name = "cpp_search_recent_documents_dialog",
+                ret_type = "string",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-updater-dialog-open",
                 cpp_name = "cpp_updater_dialog_open",
                 ret_type = "void",
