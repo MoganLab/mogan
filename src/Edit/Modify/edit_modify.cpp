@@ -22,6 +22,7 @@
  * Loro related externs and statics
  ******************************************************************************/
 
+#ifdef LORO_ENABLED
 extern void (*g_loro_broadcast_update) (string bytes);
 
 static void
@@ -39,6 +40,7 @@ local_update_cb (void* user_data, const uint8_t* bytes, size_t len) {
                  << "registered.\n";
   }
 }
+#endif // LORO_ENABLED
 
 /******************************************************************************
  * Constructors and destructors
