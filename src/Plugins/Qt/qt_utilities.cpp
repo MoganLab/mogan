@@ -1202,8 +1202,8 @@ from_key_press_event (const QKeyEvent* event) {
     mods&= ~Qt::ControlModifier;
   }
 
-  // Qt may report the main keyboard plus/minus keys as Key_unknown while Ctrl
-  // is held. Use the Windows virtual keys to preserve zoom shortcuts.
+  // 按住 Ctrl 时 Qt 可能将主键盘加减号报告为 Key_unknown，故使用 Windows
+  // 原生虚拟键码保留缩放快捷键。
   if ((mods & Qt::ControlModifier) != 0 &&
       event->nativeVirtualKey () == WindowsVirtualKeyOemMinus)
     key= Qt::Key_Minus;
