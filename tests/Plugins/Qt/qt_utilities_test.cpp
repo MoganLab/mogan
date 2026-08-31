@@ -81,6 +81,15 @@ TestQtUtilities::test_from_key_press_event () {
   auto ctrl_minus= QKeyEvent (QEvent::KeyPress, Qt::Key_unknown,
                               Qt::ControlModifier, 0, 0xBD, 0, "");
   qcompare (from_key_press_event (&ctrl_minus), "C--");
+
+  auto ctrl_equal= QKeyEvent (QEvent::KeyPress, Qt::Key_unknown,
+                              Qt::ControlModifier, 0, 0xBB, 0, "");
+  qcompare (from_key_press_event (&ctrl_equal), "C-=");
+
+  auto ctrl_plus=
+      QKeyEvent (QEvent::KeyPress, Qt::Key_unknown,
+                 Qt::ControlModifier | Qt::ShiftModifier, 0, 0xBB, 0, "");
+  qcompare (from_key_press_event (&ctrl_plus), "C-+");
 #endif
 
   if (os_macos ()) {

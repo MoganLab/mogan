@@ -187,6 +187,7 @@ enum WindowsNativeModifiers {
 
 enum WindowsVirtualKeys {
   WindowsVirtualKeyOemMinus= 0xBD,
+  WindowsVirtualKeyOemPlus = 0xBB,
 };
 #endif
 
@@ -1201,11 +1202,14 @@ from_key_press_event (const QKeyEvent* event) {
     mods&= ~Qt::ControlModifier;
   }
 
-  // Qt may report the main keyboard minus key as Key_unknown while Ctrl is
-  // held.  Use the Windows virtual key to preserve the C-- shortcut.
+  // Qt may report the main keyboard plus/minus keys as Key_unknown while Ctrl
+  // is held. Use the Windows virtual keys to preserve zoom shortcuts.
   if ((mods & Qt::ControlModifier) != 0 &&
       event->nativeVirtualKey () == WindowsVirtualKeyOemMinus)
     key= Qt::Key_Minus;
+  if ((mods & Qt::ControlModifier) != 0 &&
+      event->nativeVirtualKey () == WindowsVirtualKeyOemPlus)
+    key= (mods & Qt::ShiftModifier) != 0 ? Qt::Key_Plus : Qt::Key_Equal;
 #endif
 
   string mods_text= from_modifiers (mods);
