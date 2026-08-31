@@ -4,7 +4,9 @@
  *               覆盖异步取色流程：overlay 打开、点击取色回传 hex、Esc 取消，
  *               以及平台门控。宿主弹窗刻意用 exec() 驱动（复刻 run_qml_dialog
  *               真实路径），用退出码证明取色过程不会意外终止 exec。
- *               会话不支持抓屏（Wayland / offscreen）时跳过交互用例。
+ *               会话不支持抓屏（Wayland / offscreen）时跳过交互用例；交互
+ *               用例经 MOGAN_TEST_PICK_FAKE_SNAPSHOT 合成纯色快照——macOS
+ *               无「屏幕录制」权限时真实抓屏为空图，overlay 路径须可离线覆盖。
  * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
@@ -15,7 +17,6 @@
 #include "base.hpp"
 
 #include <QDialog>
-#include <QRegularExpression>
 #include <QScreen>
 #include <QTimer>
 #include <QtTest/QtTest>
@@ -81,16 +82,17 @@ private slots:
 
   // 点击 overlay：回传合法 "#rrggbb"；exec 不被取色打断（退出码 42）；
   // xcb 下 overlay 帧几何须为整屏或工作区且贴屏幕原点（其他平台只要求可见）。
+  // 用合成快照钩子：macOS 无「屏幕录制」权限时 grabWindow 返回空图，
+  // 真实抓屏在 CI 与本地都无法覆盖 overlay 交互路径。
   void test_pick_click_delivers_hex () {
     ColorPickerBridge bridge;
     if (!bridge.canPickScreen ()) QSKIP ("当前会话不支持屏幕取色");
+    qputenv ("MOGAN_TEST_PICK_FAKE_SNAPSHOT", "#336699");
 
     QCOMPARE (exec_pick_round (bridge, false), 42);
+    qunsetenv ("MOGAN_TEST_PICK_FAKE_SNAPSHOT");
     QCOMPARE (m_results.size (), 1);
-    const QString hex= m_results.first ();
-    if (hex.isEmpty ()) QSKIP ("当前平台抓屏不可用（grabWindow 返回空图）");
-    QVERIFY2 (QRegularExpression ("^#[0-9a-f]{6}$").match (hex).hasMatch (),
-              qPrintable (hex));
+    QCOMPARE (m_results.first (), QStringLiteral ("#336699"));
     QScreen* scr= QGuiApplication::screenAt (m_overlayFrame.center ());
     QVERIFY (scr != nullptr);
     // 严格几何断言仅针对 xcb：KWin 曾把整屏窗口压进工作区导致快照错位，
@@ -122,8 +124,10 @@ private slots:
   void test_pick_escape_cancels () {
     ColorPickerBridge bridge;
     if (!bridge.canPickScreen ()) QSKIP ("当前会话不支持屏幕取色");
+    qputenv ("MOGAN_TEST_PICK_FAKE_SNAPSHOT", "#336699");
 
     QCOMPARE (exec_pick_round (bridge, true), 42);
+    qunsetenv ("MOGAN_TEST_PICK_FAKE_SNAPSHOT");
     QCOMPARE (m_results.size (), 1);
     QCOMPARE (m_results.first (), QString ());
   }

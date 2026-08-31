@@ -22,6 +22,12 @@
 #include <QScreen>
 #include <QWidget>
 
+#if defined(Q_OS_MAC)
+// macOS 10.15+ 抓屏需「屏幕录制」权限：CGWindowListCreateImage 未授权时
+// 静默返回空（不弹系统提示），须主动预检并请求授权（同 WPS 取色行为）。
+#include <CoreGraphics/CGDisplayConfiguration.h>
+#endif
+
 namespace {
 
 /**
@@ -40,7 +46,8 @@ public:
                  Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool),
         m_snapshot (snapshot), m_screenOrigin (screenOrigin) {
     setCursor (Qt::CrossCursor);
-    setAttribute (Qt::WA_DeleteOnClose);
+    // 不设 WA_DeleteOnClose：与 QDialog::open 组合是 Qt 文档明示的未定义
+    // 行为，生命周期改走 finished -> deleteLater。
     setWindowModality (Qt::ApplicationModal);
   }
 
@@ -101,20 +108,46 @@ ColorPickerBridge::pickScreenColor () {
   // 上一次取色的 overlay 未关闭时忽略重复触发，避免 m_overlay 覆盖泄漏。
   if (m_overlay != nullptr) return;
   if (!canPickScreen ()) {
-    emit screenColorPicked (QString ());
+    emit screenPickUnavailable ();
     return;
   }
   QScreen* screen= QGuiApplication::screenAt (QCursor::pos ());
   if (screen == nullptr) screen= QGuiApplication::primaryScreen ();
   if (screen == nullptr) {
-    emit screenColorPicked (QString ());
+    emit screenPickUnavailable ();
     return;
   }
-  const QPixmap snapshot= screen->grabWindow (0);
-  // macOS 未授「屏幕录制」权限时快照为空，取色不可用。
-  if (snapshot.isNull ()) {
-    emit screenColorPicked (QString ());
-    return;
+  const QString fakeHex= qEnvironmentVariable ("MOGAN_TEST_PICK_FAKE_SNAPSHOT");
+  QPixmap       snapshot;
+  if (!fakeHex.isEmpty ()) {
+    // 测试钩子：合成纯色快照替代真实抓屏——macOS 无「屏幕录制」权限时
+    // grabWindow 返回空图，overlay 交互路径在 CI 与本地都可用本钩子覆盖。
+    const qreal  dpr= screen->devicePixelRatio ();
+    QImage       img (qRound (screen->geometry ().width () * dpr),
+                      qRound (screen->geometry ().height () * dpr),
+                      QImage::Format_RGB32);
+    const QColor fake (fakeHex);
+    img.fill (fake.isValid () ? fake : Qt::black);
+    snapshot= QPixmap::fromImage (img);
+    snapshot.setDevicePixelRatio (dpr);
+  }
+  else {
+#if defined(Q_OS_MAC)
+    // 未授权时 grabWindow 静默返回空图（无任何系统提示），用户点击取色
+    // 毫无反应。先预检，未授权即请求系统弹「屏幕录制」授权引导（同 WPS
+    // 取色行为）；授权需在系统设置中完成且重启应用后生效，本次以
+    // screenPickUnavailable 通知 QML 显示提示而非静默失败。
+    if (!CGPreflightScreenCaptureAccess ()) {
+      CGRequestScreenCaptureAccess ();
+      emit screenPickUnavailable ();
+      return;
+    }
+#endif
+    snapshot= screen->grabWindow (0);
+    if (snapshot.isNull ()) {
+      emit screenPickUnavailable ();
+      return;
+    }
   }
 
   // 不 hide 宿主弹窗：hide 会退出 exec() 中对话框的事件循环
@@ -129,10 +162,11 @@ ColorPickerBridge::pickScreenColor () {
       const QColor c= overlay->pickedColor ();
       if (c.isValid ()) hex= c.name ();
     }
+    overlay->deleteLater ();
     emit screenColorPicked (hex);
   });
   // 记录到成员：bridge 先毁（宿主弹窗被关）时由析构负责销毁 overlay，
   // 避免遗留全屏无父浮层。
   m_overlay= overlay;
-  overlay->open ();
+  overlay->show ();
 }

@@ -283,7 +283,7 @@
 ("add style package" "增加宏包")
 ("add switch after" "")
 ("add switch before" "")
-("add to custom colors" "添加到自定义颜色")
+("add color" "添加颜色")
 ("add" "新增")
 ("address block" "地址栏")
 ("address" "地址")
@@ -730,8 +730,8 @@
 ("definition of" "查看定义:")
 ("definition" "定义")
 ("delete column" "删除此行")
+("delete color" "删除颜色")
 ("delete documentation cache" "删除文档缓存")
-("delete custom color" "删除自定义颜色")
 ("delete row" "删除此列")
 ("delete" "删除")
 ("deleted" "删除")
@@ -2311,6 +2311,12 @@
 ("scheme developers guide" "Scheme 开发指南")
 ("scheme extensions" "扩展语言")
 ("scheme interface for the graphical mode" "图形模式的 Scheme 接口")
+("screen color picking is unavailable in this session"
+  "当前会话不支持屏幕取色"
+) ;
+("screen color picking requires the screen recording permission: allow it in System Settings and restart the app"
+  "屏幕取色需要「屏幕录制」权限：请在系统设置中允许后重启应用"
+) ;
 ("screen layout" "")
 ("screen margins" "")
 ("screen" "屏幕")

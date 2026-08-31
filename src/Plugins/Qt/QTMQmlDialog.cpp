@@ -844,11 +844,22 @@ cpp_color_picker_dialog (string title, array<tree> proposals,
   QVariantMap labels;
   labels["basicColors"] = qt_translate ("Basic colors");
   labels["customColors"]= qt_translate ("Custom colors");
-  labels["addToCustom"] = qt_translate ("Add to custom colors");
-  labels["deleteCustom"]= qt_translate ("Delete custom color");
+  // 按钮文案取短形：自定义格子须与基础格子同尺寸，余宽只容得下短文案
+  // （长文案会把 8 列格子挤压到明显小于基础颜色格子）。
+  labels["addToCustom"] = qt_translate ("Add color");
+  labels["deleteCustom"]= qt_translate ("Delete color");
   labels["customFull"]=
       qt_translate ("Custom colors are full, delete one first");
   labels["pickScreenColor"]= qt_translate ("Pick screen color");
+  // 取色不可用的提示按平台给不同文案（macOS 是授权引导，其余平台为不可用）。
+#if defined(Q_OS_MAC)
+  labels["screenPickUnavailable"]= qt_translate (
+      "Screen color picking requires the screen recording permission: allow "
+      "it in System Settings and restart the app");
+#else
+  labels["screenPickUnavailable"]=
+      qt_translate ("Screen color picking is unavailable in this session");
+#endif
 
   array<string>    buttons= {string ("OK"), string ("Cancel")};
   QmlDialogBridge* bridge = nullptr;
@@ -871,7 +882,7 @@ cpp_color_picker_dialog (string title, array<tree> proposals,
         qw->rootContext ()->setContextProperty ("dialogButtonsProp",
                                                 translate_buttons (buttons));
       },
-      560, 720);
+      560, 750);
 
   tree               r (TUPLE);
   const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();

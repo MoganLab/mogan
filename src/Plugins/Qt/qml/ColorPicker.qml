@@ -12,7 +12,7 @@ import "atoms"
 DialogShell {
     id: root
     implicitWidth: 560 * Theme.scaleFactor
-    implicitHeight: 720 * Theme.scaleFactor
+    implicitHeight: 750 * Theme.scaleFactor
     implicitMargins: 20 * Theme.scaleFactor
 
     // 由 C++ 注入的初始颜色（#rrggbb 字符串）与预设列表。
@@ -90,6 +90,8 @@ DialogShell {
     property int selectedCustomIndex: -1
     // 色格已满仍点添加时显示提示行。
     property bool customFullHint: false
+    // 屏幕取色不可用（macOS 未授权屏幕录制等）时显示提示行。
+    property bool pickUnavailable: false
 
     function addToCustomColors() {
         var arr = root.customColors.slice();
@@ -128,8 +130,13 @@ DialogShell {
     Connections {
         target: root.bridge
         function onScreenColorPicked(hex) {
-            if (hex !== "") root.setColorFromHex(hex);
+            if (hex !== "") {
+                root.setColorFromHex(hex);
+                root.pickUnavailable = false;
+            }
         }
+        // 取色不可用（macOS 未授权屏幕录制等）：显示提示，避免点击毫无反应。
+        function onScreenPickUnavailable() { root.pickUnavailable = true; }
     }
 
     content: Column {
@@ -147,7 +154,7 @@ DialogShell {
         // 主编辑区
         Row {
             width: parent.width
-            height: 280 * Theme.scaleFactor
+            height: 292 * Theme.scaleFactor
             spacing: 16 * Theme.scaleFactor
 
             // 左侧：饱和度/明度面板 + 色相条
@@ -252,11 +259,11 @@ DialogShell {
                 }
             }
 
-            // 右侧：预览 + HEX + RGB + HSV
+            // 右侧：预览 + 屏幕取色 + HEX + RGB + HSV
             Column {
                 width: 132 * Theme.scaleFactor
                 height: parent.height
-                spacing: 8 * Theme.scaleFactor
+                spacing: 6 * Theme.scaleFactor
 
                 // 颜色预览
                 Rectangle {
@@ -266,6 +273,19 @@ DialogShell {
                     color: root.currentColor
                     border.width: Theme.borderW
                     border.color: Theme.borderClr
+                }
+
+                // 屏幕取色（放最上面区域：颜色预览的下一行；Wayland 不支持
+                // 抓屏时 bridge 的 canPickScreen 为 false，隐藏按钮）
+                MiniButton {
+                    size: "mini"
+                    width: parent.width
+                    text: root.labels.pickScreenColor !== undefined ? root.labels.pickScreenColor : "Pick screen color"
+                    visible: root.bridge !== null && root.bridge.canPickScreen === true
+                    onClicked: {
+                        root.pickUnavailable = false;
+                        root.bridge.pickScreenColor();
+                    }
                 }
 
                 // HEX 输入
@@ -281,7 +301,7 @@ DialogShell {
 
                     Rectangle {
                         width: parent.width
-                        height: 30 * Theme.scaleFactor
+                        height: 28 * Theme.scaleFactor
                         radius: Theme.radius
                         color: Theme.fieldBg
                         border.width: Theme.borderW
@@ -320,12 +340,12 @@ DialogShell {
                                 color: Theme.muted
                                 font.pixelSize: Theme.fontTiny
                                 verticalAlignment: Text.AlignVCenter
-                                height: 26 * Theme.scaleFactor
+                                height: 24 * Theme.scaleFactor
                             }
 
                             Rectangle {
                                 width: parent.width - 19 * Theme.scaleFactor
-                                height: 26 * Theme.scaleFactor
+                                height: 24 * Theme.scaleFactor
                                 radius: Theme.radius
                                 color: Theme.fieldBg
                                 border.width: Theme.borderW
@@ -377,12 +397,12 @@ DialogShell {
                                 color: Theme.muted
                                 font.pixelSize: Theme.fontTiny
                                 verticalAlignment: Text.AlignVCenter
-                                height: 26 * Theme.scaleFactor
+                                height: 24 * Theme.scaleFactor
                             }
 
                             Rectangle {
                                 width: parent.width - 19 * Theme.scaleFactor
-                                height: 26 * Theme.scaleFactor
+                                height: 24 * Theme.scaleFactor
                                 radius: Theme.radius
                                 color: Theme.fieldBg
                                 border.width: Theme.borderW
@@ -412,6 +432,17 @@ DialogShell {
             }
         }
 
+        // 取色不可用提示（macOS 未授权屏幕录制：提示在系统设置允许并重启）。
+        // 放主编辑区正下方：紧邻右上角的取色按钮，整行宽度足够单行放下。
+        Text {
+            width: parent.width
+            visible: root.pickUnavailable
+            text: root.labels.screenPickUnavailable !== undefined ? root.labels.screenPickUnavailable : "Screen color picking is unavailable"
+            color: Theme.muted
+            font.pixelSize: Theme.fontTiny
+            elide: Text.ElideRight
+        }
+
         // 基础颜色
         Text {
             text: root.labels.basicColors !== undefined ? root.labels.basicColors : "Basic colors"
@@ -420,14 +451,18 @@ DialogShell {
         }
 
         Grid {
+            id: basicGrid
             width: parent.width
             columns: 10
             spacing: 5 * Theme.scaleFactor
+            // 单格边长，供自定义颜色格子取同尺寸（跟基础颜色格子一致）。
+            readonly property real cellW:
+                (width - (columns - 1) * spacing) / columns
 
             Repeater {
                 model: root.presetColors
                 delegate: Rectangle {
-                    width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
+                    width: basicGrid.cellW
                     height: width
                     radius: 3 * Theme.scaleFactor
                     color: modelData
@@ -443,92 +478,92 @@ DialogShell {
             }
         }
 
-        // 自定义颜色
+        // 自定义颜色：标签独占一行（同基础颜色），格子与基础颜色格子同尺寸，
+        // 2 行分别与右侧「添加/删除」两个按钮对齐。
+        Text {
+            text: root.labels.customColors !== undefined ? root.labels.customColors : "Custom colors"
+            color: Theme.muted
+            font.pixelSize: Theme.fontTiny
+        }
+
         Row {
             width: parent.width
-            spacing: Theme.gapM
+            spacing: 12 * Theme.scaleFactor
 
-            Text {
-                text: root.labels.customColors !== undefined ? root.labels.customColors : "Custom colors"
-                color: Theme.muted
-                font.pixelSize: Theme.fontTiny
-                verticalAlignment: Text.AlignVCenter
-                height: parent.height
-                width: 92 * Theme.scaleFactor
-            }
+            Grid {
+                id: customGrid
+                columns: 8
+                spacing: 5 * Theme.scaleFactor
+                // 8 列 × 基础格子边长，宽度由格子尺寸决定而非占满余宽。
+                width: columns * basicGrid.cellW + (columns - 1) * spacing
 
-            Column {
-                width: parent.width - 92 * Theme.scaleFactor - customBtns.width - 2 * Theme.gapM
-                spacing: 4 * Theme.scaleFactor
+                Repeater {
+                    model: root.customColors
+                    delegate: Rectangle {
+                        width: basicGrid.cellW
+                        height: width
+                        radius: 3 * Theme.scaleFactor
+                        color: modelData !== "" ? modelData : Theme.fieldBg
+                        border.width: index === root.selectedCustomIndex ? 2 * Theme.scaleFactor : Theme.borderW
+                        border.color: index === root.selectedCustomIndex ? Theme.selectBorder : (root.hexValue === String(modelData).replace("#", "") ? Theme.selectBorder : Theme.borderClr)
 
-                Grid {
-                    width: parent.width
-                    columns: 8
-                    spacing: 5 * Theme.scaleFactor
-
-                    Repeater {
-                        model: root.customColors
-                        delegate: Rectangle {
-                            width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
-                            height: width
-                            radius: 3 * Theme.scaleFactor
-                            color: modelData !== "" ? modelData : Theme.fieldBg
-                            border.width: index === root.selectedCustomIndex ? 2 * Theme.scaleFactor : Theme.borderW
-                            border.color: index === root.selectedCustomIndex ? Theme.selectBorder : (root.hexValue === String(modelData).replace("#", "") ? Theme.selectBorder : Theme.borderClr)
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: modelData !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: {
-                                    if (modelData !== "") {
-                                        root.setColorFromHex(modelData);
-                                        root.selectedCustomIndex = index;
-                                    }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: modelData !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: {
+                                if (modelData !== "") {
+                                    root.setColorFromHex(modelData);
+                                    root.selectedCustomIndex = index;
                                 }
                             }
                         }
                     }
                 }
-
-                // 满员拒绝提示
-                Text {
-                    visible: root.customFullHint
-                    text: root.labels.customFull !== undefined ? root.labels.customFull : "Custom colors are full, delete one first"
-                    color: Theme.muted
-                    font.pixelSize: Theme.fontTiny
-                }
             }
 
+            // 两个按钮各占格子半高并居中，即分别对齐上/下两行格子的行中心。
             Column {
-                id: customBtns
-                spacing: 8 * Theme.scaleFactor
-                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - parent.spacing - customGrid.width
+                height: customGrid.height
 
-                MiniButton {
-                    id: addBtn
-                    size: "normal"
-                    width: Math.max(addBtn.implicitWidth, delBtn.implicitWidth)
-                    text: root.labels.addToCustom !== undefined ? root.labels.addToCustom : "Add to custom colors"
-                    onClicked: root.addToCustomColors()
+                Item {
+                    width: parent.width
+                    height: customGrid.height / 2
+
+                    MiniButton {
+                        id: addBtn
+                        size: "normal"
+                        width: parent.width
+                        anchors.centerIn: parent
+                        text: root.labels.addToCustom !== undefined ? root.labels.addToCustom : "Add color"
+                        onClicked: root.addToCustomColors()
+                    }
                 }
 
-                MiniButton {
-                    id: delBtn
-                    size: "normal"
-                    width: Math.max(addBtn.implicitWidth, delBtn.implicitWidth)
-                    text: root.labels.deleteCustom !== undefined ? root.labels.deleteCustom : "Delete custom color"
-                    opacity: root.selectedCustomIndex >= 0 ? 1.0 : 0.5
-                    onClicked: root.deleteCustomColor()
+                Item {
+                    width: parent.width
+                    height: customGrid.height / 2
+
+                    MiniButton {
+                        id: delBtn
+                        size: "normal"
+                        width: parent.width
+                        anchors.centerIn: parent
+                        text: root.labels.deleteCustom !== undefined ? root.labels.deleteCustom : "Delete color"
+                        opacity: root.selectedCustomIndex >= 0 ? 1.0 : 0.5
+                        onClicked: root.deleteCustomColor()
+                    }
                 }
             }
         }
 
-        // 屏幕取色（Wayland 不支持抓屏，bridge 的 canPickScreen 为 false，隐藏按钮）
-        MiniButton {
-            size: "normal"
-            text: root.labels.pickScreenColor !== undefined ? root.labels.pickScreenColor : "Pick screen color"
-            visible: root.bridge !== null && root.bridge.canPickScreen === true
-            onClicked: root.bridge.pickScreenColor()
+        // 满员拒绝提示
+        Text {
+            width: parent.width
+            visible: root.customFullHint
+            text: root.labels.customFull !== undefined ? root.labels.customFull : "Custom colors are full, delete one first"
+            color: Theme.muted
+            font.pixelSize: Theme.fontTiny
         }
 
         // 按钮

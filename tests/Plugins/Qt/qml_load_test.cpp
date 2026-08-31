@@ -55,6 +55,7 @@ public:
   Q_INVOKABLE void pickScreenColor () {}
 signals:
   void screenColorPicked (const QString& hex);
+  void screenPickUnavailable ();
 };
 
 class VersionStubBridge : public QObject {
