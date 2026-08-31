@@ -184,6 +184,10 @@ enum WindowsNativeModifiers {
   ScrollLock  = 0x00000400,
   ExtendedKey = 0x01000000,
 };
+
+enum WindowsVirtualKeys {
+  WindowsVirtualKeyOemMinus= 0xBD,
+};
 #endif
 
 /******************************************************************************
@@ -1196,6 +1200,12 @@ from_key_press_event (const QKeyEvent* event) {
     mods&= ~Qt::AltModifier;
     mods&= ~Qt::ControlModifier;
   }
+
+  // Qt may report the main keyboard minus key as Key_unknown while Ctrl is
+  // held.  Use the Windows virtual key to preserve the C-- shortcut.
+  if ((mods & Qt::ControlModifier) != 0 &&
+      event->nativeVirtualKey () == WindowsVirtualKeyOemMinus)
+    key= Qt::Key_Minus;
 #endif
 
   string mods_text= from_modifiers (mods);

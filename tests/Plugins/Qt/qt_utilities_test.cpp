@@ -77,6 +77,12 @@ TestQtUtilities::test_from_modifiers () {
 
 void
 TestQtUtilities::test_from_key_press_event () {
+#if defined(OS_MINGW) || defined(OS_WIN)
+  auto ctrl_minus= QKeyEvent (QEvent::KeyPress, Qt::Key_unknown,
+                              Qt::ControlModifier, 0, 0xBD, 0, "");
+  qcompare (from_key_press_event (&ctrl_minus), "C--");
+#endif
+
   if (os_macos ()) {
     auto ctrl_plus= QKeyEvent (QEvent::KeyPress, (int) '=',
                                Qt::ControlModifier | Qt::ShiftModifier, "=");
