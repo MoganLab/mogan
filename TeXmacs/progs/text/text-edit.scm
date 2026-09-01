@@ -494,8 +494,29 @@
   ) ;with
 ) ;define
 
+(define (section-heading-tree? t)
+  (or (section-context? t)
+    (and (tree-is? t 'concat)
+      (> (tree-arity t) 0)
+      (section-context? (tree-ref t 0))
+    ) ;and
+  ) ;or
+) ;define
+
+(define (current-section-node)
+  (let ((ft (focus-tree)))
+    (cond ((and ft (section-context? ft))
+           (if (and (tree-outer ft) (tree-is? (tree-outer ft) 'concat)) (tree-outer ft) ft)
+          ) ;
+          ((tree-innermost section-heading-tree?) => (lambda (t) t))
+          (else #f)
+    ) ;cond
+  ) ;let
+) ;define
+
 (tm-define (smart-insert-heading l)
   (:require (not (selection-active-non-small?)))
+  (and-with t (current-section-node) (tree-go-to t :end) (insert-return))
   (with star
     (string->symbol (string-append (symbol->string l) "*"))
     (let* ((tags (list l star))
