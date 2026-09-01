@@ -1,7 +1,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : init-telemetry.scm
+;; MODULE      : telemetry-init.scm
 ;; DESCRIPTION : Telemetry initialization and periodic flush
 ;; COPYRIGHT   : (C) 2026 Yuki Lu
 ;;
@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (telemetry init-telemetry)
+(texmacs-module (telemetry telemetry-init)
   (:use (telemetry telemetry-track) (telemetry telemetry-utils))
 ) ;texmacs-module
 
