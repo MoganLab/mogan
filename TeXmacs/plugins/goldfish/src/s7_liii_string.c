@@ -16,6 +16,9 @@
 /* Externally defined in s7.c - character cache */
 extern s7_pointer *chars;
 
+/* Externally defined in s7.c - permanent error description strings */
+extern s7_pointer it_is_negative_string, it_is_too_large_string, it_is_too_small_string;
+
 /* Helper function for out-of-range errors */
 static s7_pointer string_ref_out_of_range(s7_scheme *sc, s7_int index, bool is_negative)
 {
@@ -453,6 +456,154 @@ s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
 }
 
 #if !WITH_PURE_S7
+/* -------- optimizer typed-arg (p_p) functions, migrated from s7.c -------- */
+
+/* the optimizer compares these function pointers directly
+   (e.g. q_func(opc).p_pi_f == string_ref_p_pi_unchecked), so each must
+   have a single extern definition in this compilation unit */
+
+s7_pointer string_ref_p_pi(s7_scheme *sc, s7_pointer str, s7_int index)
+{
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust(sc, str, "string-ref", s7i_set_plist_2(sc, str, s7_make_integer(sc, index)), "string", 1));
+  if ((index < 0) || (index >= s7_string_length(str)))
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string-ref"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index),
+                          (index < 0) ? it_is_negative_string : it_is_too_large_string);
+  return(chars[((uint8_t *)s7_string(str))[index]]);
+}
+
+s7_pointer string_ref_p_pp(s7_scheme *sc, s7_pointer str, s7_pointer index)
+{
+  s7_int ind;
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust_pp(sc, str, "string-ref", str, index, "string", 1));
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust_pp(sc, index, "string-ref", str, index, "integer", 2));
+  ind = s7i_integer_clamped_if_gmp(sc, index);
+  if (ind < 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string-ref"), s7i_wrap_integer(sc, 2), index, it_is_negative_string);
+  if (ind >= s7_string_length(str))
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string-ref"), s7i_wrap_integer(sc, 2), index, it_is_too_large_string);
+  return(chars[((uint8_t *)s7_string(str))[ind]]);
+}
+
+s7_pointer string_ref_p_p0(s7_scheme *sc, s7_pointer str, s7_pointer unused_index)
+{
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust_pp(sc, str, "string-ref", str, s7i_wrap_integer(sc, 0), "string", 1));
+  if (s7_string_length(str) <= 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string-ref"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, 0), it_is_too_large_string);
+  return(chars[((uint8_t *)s7_string(str))[0]]);
+}
+
+static s7_pointer string_plast_via_method(s7_scheme *sc, s7_pointer str) /* tmock */
+{
+  s7_pointer len = s7i_method_or_bust_p(sc, str, "length", "string");
+  return(s7i_method_or_bust_pp(sc, str, "string-ref", str, s7_make_integer(sc, s7_integer(len) - 1), "string", 1));
+}
+
+s7_pointer string_ref_p_plast(s7_scheme *sc, s7_pointer str, s7_pointer unused_index)
+{
+  if (!s7_is_string(str))
+    return(string_plast_via_method(sc, str));
+  if (s7_string_length(str) <= 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string-ref"), s7i_wrap_integer(sc, 2),
+                          s7i_wrap_integer(sc, s7_string_length(str) - 1), it_is_too_large_string);
+  return(chars[((uint8_t *)s7_string(str))[s7_string_length(str) - 1]]);
+}
+
+s7_pointer string_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer str, s7_int index)
+{
+  if ((index < 0) || (index >= s7_string_length(str)))
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string-ref"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index),
+                          (index < 0) ? it_is_negative_string : it_is_too_large_string);
+  return(chars[((uint8_t *)s7_string(str))[index]]);
+}
+
+s7_pointer string_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer str, s7_int index)
+{
+  return(chars[((uint8_t *)s7_string(str))[index]]);
+}
+
+s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr)
+{
+  if (!s7_is_string(str))
+    s7i_wrong_type_error_nr(sc, s7_make_symbol(sc, "string-set!"), 1, str, s7i_string_type_name(sc));
+  if (!s7_is_character(chr))
+    s7i_wrong_type_error_nr(sc, s7_make_symbol(sc, "string-set!"), 2, chr, s7i_character_type_name(sc));
+  if (s7_character(chr) > 0xFF)
+    {
+      const char *hint = "string-set! only accepts characters in range #x00..#xFF; use utf8-string-set! for Unicode characters";
+      out_of_range_error_nr(sc, s7_make_symbol(sc, "string-set!"), s7i_wrap_integer(sc, 2), chr,
+                            s7i_wrap_string(sc, hint, (s7_int)strlen(hint)));
+    }
+  if ((index >= 0) && (index < s7_string_length(str)))
+    ((char *)s7_string(str))[index] = (char)s7_character(chr);
+  else out_of_range_error_nr(sc, s7_make_symbol(sc, "string-set!"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index),
+                             (index < 0) ? it_is_negative_string : it_is_too_large_string);
+  return(chr);
+}
+
+s7_pointer string_set_p_pip_unchecked(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr)
+{
+  if ((index >= 0) && (index < s7_string_length(str)))
+    ((char *)s7_string(str))[index] = (char)s7_character(chr);
+  else out_of_range_error_nr(sc, s7_make_symbol(sc, "string-set!"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index),
+                             (index < 0) ? it_is_negative_string : it_is_too_large_string);
+  return(chr);
+}
+
+s7_pointer string_set_p_pip_direct(s7_scheme *unused_sc, s7_pointer str, s7_int index, s7_pointer chr)
+{
+  ((char *)s7_string(str))[index] = (char)s7_character(chr);
+  return(chr);
+}
+
+s7_pointer substring_uncopied_p_pii(s7_scheme *sc, s7_pointer str, s7_int start, s7_int end)
+{
+  /* is_string(arg1) already checked in opt */
+  if ((end < start) || (end > s7_string_length(str)))
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "substring-uncopied"), s7i_wrap_integer(sc, 3), s7i_wrap_integer(sc, end),
+                          (end < start) ? it_is_too_small_string : it_is_too_large_string);
+  if (start < 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "substring-uncopied"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, start), it_is_negative_string);
+  return(s7i_wrap_string(sc, s7_string(str) + start, end - start));
+}
+
+s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
+{
+  s7_pointer str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
+  if (!s7_is_character(c)) return(s7i_string_1(sc, s7i_set_plist_1(sc, c), s7_make_symbol(sc, "string")));
+  if (s7_character(c) > 0xFF)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "string"), s7i_wrap_integer(sc, 1), c,
+                          s7i_wrap_string(sc, unicode_string_hint, (s7_int)strlen(unicode_string_hint)));
+  str = s7i_make_empty_string(sc, 1, '\0');
+  s7i_string_value_ptr(str)[0] = (char)s7_character(c);
+  return(str);
+}
+
+s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str)
+{
+  s7_int len;
+  const uint8_t *val;
+  if (!s7_is_string(str))
+    return(s7i_sole_arg_method_or_bust(sc, str, "string->list", s7i_set_plist_1(sc, str), "string"));
+  len = s7_string_length(str);
+  if (len == 0) return(s7_nil(sc));
+  if (len > s7i_max_list_length(sc))
+    s7i_error_nr(sc, s7_make_symbol(sc, "out-of-range"),
+                 s7i_set_elist_3(sc, s7i_wrap_string(sc, "string->list length, ~D, is greater than (*s7* 'max-list-length), ~D", 68),
+                                 s7i_wrap_integer(sc, len), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
+  s7i_check_free_heap_size(sc, len);
+  val = (const uint8_t *)s7_string(str);
+  {
+    s7_pointer result = s7_nil(sc);
+    for (s7_int i = len - 1; i >= 0; i--) result = cons_unchecked(sc, chars[val[i]], result);
+    return(result);
+  }
+}
+
 s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args)
 {
   if (s7_is_null(sc, s7_car(args)))

@@ -5,7 +5,7 @@
     string->keyword symbol->keyword keyword->symbol loose-car loose-cdr compose
     identity any? typed-lambda make-hook hook-functions with-output-to-string
     with-input-from-string call-with-input-string call-with-output-string
-    reverse! sort! format
+    reverse! sort! format cyclic-sequences
   ) ;export
   (begin
 
