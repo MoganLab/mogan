@@ -27,14 +27,6 @@
     ("kde S-home" (kbd-select go-start))
     ("kde S-end" (kbd-select go-end))
 
-    ("F14" (undo 0))
-    ("F16" (kbd-copy))
-    ("F18" (kbd-paste))
-    ("F20" (kbd-cut))
-    ("C-insert" (kbd-copy))
-    ("S-insert" (kbd-paste))
-    ("S-delete" (kbd-cut))
-
     ("search F3" (search-next-match #t))
     ("search S-F3" (search-next-match #f))
 
