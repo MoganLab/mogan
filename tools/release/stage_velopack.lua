@@ -180,6 +180,11 @@ if os.host () == "macosx" then
     end
     need (os.isfile (path.join (dst_app, "Contents/Frameworks/libvelopack_libc.dylib")),
           "缺 Contents/Frameworks/libvelopack_libc.dylib（velopack_libc shared 目标应随构建部署）")
+    if os.isfile (path.join (dst_app, "Contents/Resources/lib/libvelopack_libc.dylib")) then
+        cprint ("${bright red}error: dylib 错位出现在 Contents/Resources/lib/（应在 Frameworks），" ..
+                "stem 的 after_install 应已清理${clear}")
+        ok = false
+    end
     if os.isfile (path.join (dst_app, "Contents/Resources/bin/MoganSTEM")) then
         cprint ("${bright red}error: Resources/bin/MoganSTEM 重复主程序未清除${clear}")
         ok = false
@@ -189,9 +194,39 @@ if os.host () == "macosx" then
     end
     if not ok then os.exit (1) end
 
-    -- 6) ad-hoc 签 staging 副本：无正式签名配置时保证 bundle 可加载；
-    --    配了 VPK_SIGN_APP_IDENTITY 则跳过，交给 vpk 深签
-    if (os.getenv ("VPK_SIGN_APP_IDENTITY") or "") == "" then
+    -- 6) 签名。正式身份（VPK_SIGN_APP_IDENTITY）时只预签 vpk --deep 覆盖不到的
+    --    Contents/Resources 裸 Mach-O（helper 可执行文件/dylib，如 goldfish）：
+    --    codesign --deep 只遍历 bundle/framework/PlugIns 这类结构，Resources 里
+    --    的裸二进制对它不可见，未签名会被公证判 Invalid；bundle 本体交给 vpk
+    --    深签。.dSYM 里的 DWARF 虽是 Mach-O，按旧 DMG 流程先例不签（可过公证）。
+    --    无正式身份时 ad-hoc 签整个 bundle，保证本地验证可加载。
+    local sign_identity = os.getenv ("VPK_SIGN_APP_IDENTITY") or ""
+    if sign_identity ~= "" then
+        local macho = {}
+        local function collect (d)
+            for _, sub in ipairs (os.dirs (path.join (d, "*"))) do
+                if not path.filename (sub):match ("%.dSYM$") then collect (sub) end
+            end
+            for _, f in ipairs (os.files (path.join (d, "*"))) do
+                local out = os.iorunv ("/usr/bin/file", {"-b", f})
+                if out and tostring (out):match ("^Mach%-O") then
+                    table.insert (macho, f)
+                end
+            end
+        end
+        collect (path.join (dst_app, "Contents", "Resources"))
+        for _, f in ipairs (macho) do
+            cprint ("预签 Resources 裸 Mach-O: " .. path.relative (f, dst_app))
+            code = os.execv ("codesign",
+                {"--force", "--options", "runtime", "--timestamp",
+                 "--sign", sign_identity, f}, {try = true})
+            if code ~= 0 then
+                cprint ("${bright red}error: 预签失败，退出码 " .. code .. ": " .. f .. "${clear}")
+                os.exit (1)
+            end
+        end
+        cprint ("${green}已预签 " .. #macho .. " 个 Resources 裸 Mach-O（bundle 交给 vpk 深签）${clear}")
+    else
         code = os.execv ("codesign", {"--force", "--deep", "--sign", "-", dst_app}, {try = true})
         if code ~= 0 then
             cprint ("${bright red}error: ad-hoc 签名失败，退出码 " .. code .. "${clear}")
