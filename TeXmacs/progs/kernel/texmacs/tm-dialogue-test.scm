@@ -30,20 +30,29 @@
 (define (test-canonical-path-win-separators)
   (when (os-windows?)
     (check (recent-files-canonical-path "C:/Users/a b/x.tmu")
-      => "C:\\Users\\a b\\x.tmu")
+      =>
+      "C:\\Users\\a b\\x.tmu"
+    ) ;check
     (check (recent-files-canonical-path "C:\\Users\\a b\\x.tmu")
-      => "C:\\Users\\a b\\x.tmu")
+      =>
+      "C:\\Users\\a b\\x.tmu"
+    ) ;check
     ;; 含中文与空格的真实路径
     (check (recent-files-canonical-path "C:/Users/测试 文件/x.tmu")
-      => "C:\\Users\\测试 文件\\x.tmu")
+      =>
+      "C:\\Users\\测试 文件\\x.tmu"
+    ) ;check
   ) ;when
 ) ;define
 
 ;; tmfs://（云端文档等虚拟路径）无盘符归一，往返后须原样保持。
 
 (define (test-canonical-path-tmfs)
-  (check (recent-files-canonical-path "tmfs://collab/8fc7bec4-f069-458f-8578-8fabcd4696a2")
-    => "tmfs://collab/8fc7bec4-f069-458f-8578-8fabcd4696a2")
+  (check (recent-files-canonical-path "tmfs://collab/8fc7bec4-f069-458f-8578-8fabcd4696a2"
+         ) ;recent-files-canonical-path
+    =>
+    "tmfs://collab/8fc7bec4-f069-458f-8578-8fabcd4696a2"
+  ) ;check
   (check (recent-files-canonical-path "tmfs://aux/test") => "tmfs://aux/test")
 ) ;define
 
