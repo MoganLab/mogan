@@ -1208,13 +1208,19 @@ filter_style (tree t) {
 }
 
 /**
- * @brief 在指定根目录下按相对路径定位包文件，优先 .stem 后 .ts
- * @param root 包根目录
- * @param pi   带路径的包名（如 a/b/c），可显式带 .ts/.stem 后缀
- * @return 解析到的文件 url，未找到返回 url_none
+ * @brief 在根目录下定位包文件，优先 .stem 后 .ts
+ * @param root 包根目录，可以是 or-url，按先后顺序逐个尝试
+ * @param pi   带路径的包名，可显式带 .ts/.stem 后缀
  */
 static url
 resolve_pack_in (url root, string pi) {
+  // 逐根尝试而不是把 or-url 整个交给 resolve，让「.stem 优先 .ts」只在同一个
+  // 根内生效，靠前的根里的 .ts 才能覆盖靠后的根里的同名 .stem
+  if (is_or (root)) {
+    url name= resolve_pack_in (root[1], pi);
+    if (!is_none (name)) return name;
+    return resolve_pack_in (root[2], pi);
+  }
   if (ends (pi, ".ts") || ends (pi, ".stem")) return resolve (root * pi);
   url name= resolve (root * (pi * string (".stem")));
   if (is_none (name)) name= resolve (root * (pi * string (".ts")));
@@ -1222,18 +1228,26 @@ resolve_pack_in (url root, string pi) {
 }
 
 /**
- * @brief 带路径包名（含 /）的直查解析，避免 resolve 对 $TEXMACS_STYLE_PATH
- * 全部子目录逐一扫描
- * @note 依次尝试 $TEXMACS_PATH/packages 与
- * $TEXMACS_PATH/plugins/<首段>/packages
+ * @brief 带路径包名的搜索根：package 根、style 根、文档所在目录
+ * @note 两个根变量由 init_env_vars 设置，条目数是「2 + 插件个数」量级，
+ * 不是 $TEXMACS_STYLE_PATH 那种递归展开出全部子目录的路径
  */
 static url
-resolve_dotted_package (string pi) {
-  url name= resolve_pack_in (url ("$TEXMACS_PATH/packages"), pi);
-  if (!is_none (name)) return name;
-  int pos= search_forwards ("/", 0, pi);
-  return resolve_pack_in (
-      url ("$TEXMACS_PATH/plugins") * pi (0, pos) * "packages", pi);
+package_search_roots (url base_file_name) {
+  url roots= url ("$TEXMACS_PACKAGE_ROOT") | url ("$TEXMACS_STYLE_ROOT");
+  if (is_none (base_file_name)) return roots;
+  // 本地文档沿祖先目录上溯，与不带路径包名的分支一致
+  if (is_rooted (base_file_name, "default"))
+    return roots | ::expand (head (base_file_name) * url_ancestor ());
+  return roots | head (base_file_name);
+}
+
+/**
+ * @brief 带路径包名（含 /）的直查解析，避免逐一扫描 $TEXMACS_STYLE_PATH
+ */
+static url
+resolve_dotted_package (string pi, url base_file_name) {
+  return resolve_pack_in (package_search_roots (base_file_name), pi);
 }
 
 tree
@@ -1245,7 +1259,7 @@ edit_env_rep::exec_use_package (tree t) {
     string pi  = as_string (t[i]);
     string task= "use-package " * pi;
     bench_start (task);
-    if (occurs ("/", pi)) name= resolve_dotted_package (pi);
+    if (occurs ("/", pi)) name= resolve_dotted_package (pi, base_file_name);
     else {
       if (is_rooted (base_file_name, "default"))
         styp= styp | ::expand (head (base_file_name) * url_ancestor ());
