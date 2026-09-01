@@ -1,0 +1,21 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  Remark 2.1.1 Given a space V with a basis <math|B = {\|a <rsub|i>⟩} <rsub|i=1><rsup|n>>, the span of any m vectors <math|(m \< n)> of B is an m-dimensional subspace of V.
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-height|auto>
+    <associate|page-orientation|portrait>
+    <associate|page-screen-margin|false>
+    <associate|page-type|a4>
+    <associate|page-width|auto>
+    <associate|preamble|false>
+    <associate|stem-doc-id|5530CADA-D8FA-4470-8FC3-871ACE43B090>
+  </collection>
+</initial>
