@@ -393,16 +393,27 @@
 
 
 
+;; 路径归一为 url->system 规范形后再比较。Windows 下写入方分隔符不统一：
+;; scheme 侧 url->system 记录 '\'，C++ 启动页 QDir::fromNativeSeparators 传入
+;; '/'，裸字符串 equal? 会失配（如按路径移除失效）。经 system->url →
+;; url->system 往返统一分隔符；tmfs:// 等非 default 根的 URL 往返后原样保持。
+(define-public (recent-files-canonical-path p) (url->system (system->url p)))
+
 (define (recent-files-index-by-path recent-files path)
-  (let-njson ((files (njson-ref recent-files "files")))
-    (let loop
-      ((i 0))
-      (if (>= i (njson-size files))
-        #f
-        (if (equal? (njson-ref files i "path") path) i (loop (+ i 1)))
-      ) ;if
-    ) ;let
-  ) ;let-njson
+  (let* ((key (recent-files-canonical-path path)))
+    (let-njson ((files (njson-ref recent-files "files")))
+      (let loop
+        ((i 0))
+        (if (>= i (njson-size files))
+          #f
+          (if (equal? (recent-files-canonical-path (njson-ref files i "path")) key)
+            i
+            (loop (+ i 1))
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;let-njson
+  ) ;let*
 ) ;define
 
 (define (recent-files-paths recent-files)
