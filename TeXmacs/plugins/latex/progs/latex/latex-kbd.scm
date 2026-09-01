@@ -410,6 +410,8 @@
   "gtrdot"
   "ltimes"
   "rtimes"
+  "join"
+  "Bowtie"
   "shortmid"
   "shortparallel"
   "smallsetminus"
@@ -537,6 +539,8 @@
  ("TH" "Insert Þ" (insert "<#00DE>"))
  ("hookleftarrow" "insert ↩" (insert "<#21A9>"))
  ("hookrightarrow" "insert ↪" (insert "<#21AA>"))
+ ("bowtie" "Insert <join>" (kbd-insert "<join>"))
+ ("Join" "Insert <Join>" (kbd-insert "<Join>"))
 
  ("arccos" "Insert arccos" (insert "arccos"))
  ("arcsin" "Insert arcsin" (insert "arcsin"))
