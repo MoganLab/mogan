@@ -63,6 +63,17 @@
     ("structured:cmd right" (kbd-select-if-active traverse-right))
   ) ;kbd-map
 
+  ;; C-insert/S-insert/S-delete/F16/F18/F20 等传统备用键注册晚于 generic-kbd 的
+  ;; std 主键，而菜单快捷键反查（kbd-find-inv-binding）按后注册先出取键，会把
+  ;; 复制/剪切/粘贴显示成 Ctrl+Ins/Shift+Del/Shift+Ins（或 F16/F18/F20）。这里
+  ;; 重绑 std 主键把 C-c/C-x/C-v 顶回队首；std v/std V 的偏好分支须与
+  ;; generic-kbd.scm 的 kbd-apply-magic-paste-shortcut 保持一致。
+  (kbd-map (:profile kde) ("std c" (kbd-copy)) ("std x" (kbd-cut)))
+  (if (== (get-preference "magic-paste-shortcut") "ctrl+v")
+    (kbd-map ("std v" (kbd-magic-paste)) ("std V" (kbd-paste)))
+    (kbd-map ("std v" (kbd-paste)) ("std V" (kbd-magic-paste)))
+  ) ;if
+
   (kbd-map (:profile kde)
     (:require (and (not (in-prog?)) (not (in-verbatim?))))
     ("M-space" (make-space "0.2spc"))
