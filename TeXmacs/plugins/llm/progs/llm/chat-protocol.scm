@@ -77,14 +77,19 @@
   (and buf (not (string-starts? (url->system buf) "tmfs://chat")))
 ) ;tm-define
 
+(tm-define (chat-tab-prefill-session-input! session-id sel)
+  (:synopsis "Prefill the chat input for SESSION-ID with selection tree SEL")
+  (:argument session-id "Session UUID")
+  (:argument sel "Selection tree")
+  (chat-tab-prefill-input! (chat-tab-session->input-buffer session-id) sel)
+) ;tm-define
+
 (tm-define (chat-tab-prefill-from-selection! session-id)
   (:synopsis "Prefill the chat input with the current document selection")
   (:argument session-id "Session UUID")
   ;; 须在焦点离开文档编辑器之前调用，selection-tree 取自 current editor
   (when (and (chat-tab-prefillable-source? (current-buffer)) (selection-active-any?))
-    (chat-tab-prefill-input! (chat-tab-session->input-buffer session-id)
-      (selection-tree)
-    ) ;chat-tab-prefill-input!
+    (chat-tab-prefill-session-input! session-id (selection-tree))
   ) ;when
 ) ;tm-define
 

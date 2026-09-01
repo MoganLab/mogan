@@ -366,6 +366,7 @@
   (with-buffer input-buffer
     (buffer-set-body input-buffer (chat-tab-normalize-document body))
     (buffer-pretend-saved input-buffer)
+    (go-end)
   ) ;with-buffer
 ) ;tm-define
 

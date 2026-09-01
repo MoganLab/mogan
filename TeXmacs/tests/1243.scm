@@ -21,9 +21,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (texmacs tests 1243)
-  (:use (utils library cursor))
-) ;texmacs-module
+(texmacs-module (texmacs tests 1243) (:use (utils library cursor)))
 
 (import (liii check))
 
@@ -42,26 +40,31 @@
 ;;; ---------- chat-tab-should-prefill?（纯判定，headless） ----------
 
 ;; 输入区为空 + 选区非空 => 预填
+
 (define (test-should-prefill-empty-input)
   (let ((sid "test1243a"))
     (reset-input! sid)
-    (check (chat-tab-should-prefill? (in-buf sid)
-             (stree->tree '(document "hello")))
-      => #t)
+    (check (chat-tab-should-prefill? (in-buf sid) (stree->tree '(document "hello")))
+      =>
+      #t
+    ) ;check
   ) ;let
 ) ;define
 
 ;; 输入区已有内容 => 不覆盖
+
 (define (test-should-prefill-nonempty-input)
   (let ((sid "test1243b"))
     (buffer-set-body (in-buf sid) '(document "typed"))
-    (check (chat-tab-should-prefill? (in-buf sid)
-             (stree->tree '(document "hello")))
-      => #f)
+    (check (chat-tab-should-prefill? (in-buf sid) (stree->tree '(document "hello")))
+      =>
+      #f
+    ) ;check
   ) ;let
 ) ;define
 
 ;; 选区为 #f（无选区）=> 不预填
+
 (define (test-should-prefill-false-selection)
   (let ((sid "test1243c"))
     (reset-input! sid)
@@ -70,29 +73,40 @@
 ) ;define
 
 ;; 选区为纯空白 => 不预填
+
 (define (test-should-prefill-blank-selection)
   (let ((sid "test1243d"))
     (reset-input! sid)
-    (check (chat-tab-should-prefill? (in-buf sid)
-             (stree->tree '(document "  ")))
-      => #f)
+    (check (chat-tab-should-prefill? (in-buf sid) (stree->tree '(document "  ")))
+      =>
+      #f
+    ) ;check
   ) ;let
 ) ;define
 
 ;; 选区为原子串（selection-tree 对单行选区的实际返回形态）=> 预填
+
 (define (test-should-prefill-atomic-selection)
   (let ((sid "test1243e"))
     (reset-input! sid)
     (check (chat-tab-should-prefill? (in-buf sid) (string->tree "plain text"))
-      => #t)
+      =>
+      #t
+    ) ;check
   ) ;let
 ) ;define
 
 ;;; ---------- chat-tab-prefillable-source?（来源 buffer 守卫） ----------
 
 (define (test-prefillable-source)
-  (check (chat-tab-prefillable-source? (string->url "tmfs://chat/abc/input")) => #f)
-  (check (chat-tab-prefillable-source? (string->url "tmfs://chat/abc/message")) => #f)
+  (check (chat-tab-prefillable-source? (string->url "tmfs://chat/abc/input"))
+    =>
+    #f
+  ) ;check
+  (check (chat-tab-prefillable-source? (string->url "tmfs://chat/abc/message"))
+    =>
+    #f
+  ) ;check
   (check (chat-tab-prefillable-source? (string->url "tmfs://chat-tab")) => #f)
   (check (chat-tab-prefillable-source? (string->url "tmfs://startup-tab")) => #t)
   (check (chat-tab-prefillable-source? (string->url "/tmp/test1243.tm")) => #t)
@@ -103,6 +117,7 @@
 ;; 写入函数 chat-tab-set-input-body! 内部走 with-buffer + buffer-focus，
 ;; 仅对已有嵌入式视图的生产输入 buffer 有效；测试中以间谍替换，
 ;; 验证包装函数正确捕获选区并以正确参数触发写入
+
 (define prefill-spy '())
 
 (define (test-prefill-from-selection-e2e)
@@ -124,6 +139,7 @@
 ) ;define
 
 ;; 无选区时包装函数不触发写入
+
 (define (test-prefill-from-selection-no-selection)
   (let ((sid "test1243e2f"))
     (reset-input! sid)
@@ -150,5 +166,7 @@
   (test-prefill-from-selection-e2e)
   (test-prefill-from-selection-no-selection)
   (check-report)
-  (when (getenv "MOGAN_TEST_GUI") (quit-TeXmacs))
+  (when (getenv "MOGAN_TEST_GUI")
+    (quit-TeXmacs)
+  ) ;when
 ) ;tm-define
