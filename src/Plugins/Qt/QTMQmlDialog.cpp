@@ -882,7 +882,9 @@ cpp_color_picker_dialog (string title, array<tree> proposals,
         qw->rootContext ()->setContextProperty ("dialogButtonsProp",
                                                 translate_buttons (buttons));
       },
-      560, 750);
+      // 高度随 QML 正文自适应（Version 弹窗同机制）；649 仅为 implicitHeight
+      // 读取失败时的回退值（≈正文常态高度）。
+      430, 649, true);
 
   tree               r (TUPLE);
   const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();

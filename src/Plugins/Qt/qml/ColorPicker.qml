@@ -11,9 +11,16 @@ import "atoms"
 
 DialogShell {
     id: root
-    implicitWidth: 560 * Theme.scaleFactor
-    implicitHeight: 750 * Theme.scaleFactor
+    implicitWidth: 430 * Theme.scaleFactor
+    // 高度随正文自适应（同 Version.qml 惯例）：C++ 侧 run_qml_dialog 以
+    // autofit 定宽后读 implicitHeight 锁高。正文各项宽度须绑 contentW 而
+    // 非实际父宽——定高时布局宽度尚未就位，绑实际宽度会量出错误结果。
+    implicitHeight: Math.max(560 * Theme.scaleFactor,
+                             mainCol.implicitHeight + 2 * implicitMargins)
     implicitMargins: 20 * Theme.scaleFactor
+
+    // 定宽弹窗的正文内容宽（QML 像素）
+    readonly property real contentW: implicitWidth - 2 * implicitMargins
 
     // 由 C++ 注入的初始颜色（#rrggbb 字符串）与预设列表。
     property string initialColor: typeof initialColorProp !== "undefined" ? initialColorProp : "#ffffff"
@@ -29,6 +36,9 @@ DialogShell {
     property real hue: 0
     property real saturation: 0
     property real value: 1
+
+    // 无彩色（白/黑/灰）的 hsvHue 为 -1：显示与色相旋钮按 0 处理，避免出现 H=-359。
+    readonly property real safeHue: root.hue < 0 ? 0 : root.hue
 
     // 解析 initialColor 到 HSV。
     Component.onCompleted: {
@@ -62,7 +72,7 @@ DialogShell {
 
     property var hsvValue: {
         return {
-            h: Math.round(root.hue * 359),
+            h: Math.round(root.safeHue * 359),
             s: Math.round(root.saturation * 100),
             v: Math.round(root.value * 100)
         };
@@ -140,6 +150,7 @@ DialogShell {
     }
 
     content: Column {
+        id: mainCol
         spacing: 12 * Theme.scaleFactor
         anchors.fill: parent
 
@@ -153,13 +164,13 @@ DialogShell {
 
         // 主编辑区
         Row {
-            width: parent.width
-            height: 292 * Theme.scaleFactor
+            width: root.contentW
+            height: 298 * Theme.scaleFactor
             spacing: 16 * Theme.scaleFactor
 
             // 左侧：饱和度/明度面板 + 色相条
             Column {
-                width: parent.width - 148 * Theme.scaleFactor
+                width: parent.width - 136 * Theme.scaleFactor
                 height: parent.height
                 spacing: 10 * Theme.scaleFactor
 
@@ -244,7 +255,7 @@ DialogShell {
                         color: "#ffffff"
                         border.width: 1 * Theme.scaleFactor
                         border.color: "#000000"
-                        x: root.hue * huePanel.width - width / 2
+                        x: root.safeHue * huePanel.width - width / 2
                         y: -2 * Theme.scaleFactor
                     }
 
@@ -261,7 +272,7 @@ DialogShell {
 
             // 右侧：预览 + 屏幕取色 + HEX + RGB + HSV
             Column {
-                width: 132 * Theme.scaleFactor
+                width: 120 * Theme.scaleFactor
                 height: parent.height
                 spacing: 6 * Theme.scaleFactor
 
@@ -278,7 +289,7 @@ DialogShell {
                 // 屏幕取色（放最上面区域：颜色预览的下一行；Wayland 不支持
                 // 抓屏时 bridge 的 canPickScreen 为 false，隐藏按钮）
                 MiniButton {
-                    size: "mini"
+                    size: "small"
                     width: parent.width
                     text: root.labels.pickScreenColor !== undefined ? root.labels.pickScreenColor : "Pick screen color"
                     visible: root.bridge !== null && root.bridge.canPickScreen === true
@@ -432,27 +443,16 @@ DialogShell {
             }
         }
 
-        // 取色不可用提示（macOS 未授权屏幕录制：提示在系统设置允许并重启）。
-        // 放主编辑区正下方：紧邻右上角的取色按钮，整行宽度足够单行放下。
-        Text {
-            width: parent.width
-            visible: root.pickUnavailable
-            text: root.labels.screenPickUnavailable !== undefined ? root.labels.screenPickUnavailable : "Screen color picking is unavailable"
-            color: Theme.muted
-            font.pixelSize: Theme.fontTiny
-            elide: Text.ElideRight
-        }
-
-        // 基础颜色
+        // 基础颜色（段标题用正文字号，比提示行醒目）
         Text {
             text: root.labels.basicColors !== undefined ? root.labels.basicColors : "Basic colors"
             color: Theme.muted
-            font.pixelSize: Theme.fontTiny
+            font.pixelSize: Theme.fontBody
         }
 
         Grid {
             id: basicGrid
-            width: parent.width
+            width: root.contentW
             columns: 10
             spacing: 5 * Theme.scaleFactor
             // 单格边长，供自定义颜色格子取同尺寸（跟基础颜色格子一致）。
@@ -483,12 +483,12 @@ DialogShell {
         Text {
             text: root.labels.customColors !== undefined ? root.labels.customColors : "Custom colors"
             color: Theme.muted
-            font.pixelSize: Theme.fontTiny
+            font.pixelSize: Theme.fontBody
         }
 
         Row {
-            width: parent.width
-            spacing: 12 * Theme.scaleFactor
+            width: root.contentW
+            spacing: 8 * Theme.scaleFactor
 
             Grid {
                 id: customGrid
@@ -522,6 +522,7 @@ DialogShell {
             }
 
             // 两个按钮各占格子半高并居中，即分别对齐上/下两行格子的行中心。
+            // 尺寸与右栏「拾取屏幕颜色」一致（small 档），统一小于底部 OK/Cancel。
             Column {
                 width: parent.width - parent.spacing - customGrid.width
                 height: customGrid.height
@@ -532,7 +533,7 @@ DialogShell {
 
                     MiniButton {
                         id: addBtn
-                        size: "normal"
+                        size: "small"
                         width: parent.width
                         anchors.centerIn: parent
                         text: root.labels.addToCustom !== undefined ? root.labels.addToCustom : "Add color"
@@ -546,7 +547,7 @@ DialogShell {
 
                     MiniButton {
                         id: delBtn
-                        size: "normal"
+                        size: "small"
                         width: parent.width
                         anchors.centerIn: parent
                         text: root.labels.deleteCustom !== undefined ? root.labels.deleteCustom : "Delete color"
@@ -557,27 +558,54 @@ DialogShell {
             }
         }
 
-        // 满员拒绝提示
-        Text {
-            width: parent.width
-            visible: root.customFullHint
-            text: root.labels.customFull !== undefined ? root.labels.customFull : "Custom colors are full, delete one first"
-            color: Theme.muted
-            font.pixelSize: Theme.fontTiny
-        }
+        // 底部一行：OK/Cancel 右对齐，左侧为提示区（取色不可用 / 满员拒绝）。
+        // 提示与按钮同行、不占额外行高——弹窗高度随正文自适应后，运行中
+        // 冒出的提示不能再撑高弹窗（C++ 只在打开时按 implicitHeight 锁高）。
+        Item {
+            width: root.contentW
+            height: dlgBtns.height
 
-        // 按钮
-        DialogButtons {
-            anchors.horizontalCenter: parent.horizontalCenter
-            buttonLabels: typeof dialogButtonsProp !== "undefined" ? dialogButtonsProp : [qsTr("OK"), qsTr("Cancel")]
-            onClicked: function (index) {
-                if (index === 0) {
-                    var customs = [];
-                    for (var i = 0; i < root.customColors.length; i++)
-                        if (root.customColors[i] !== "") customs.push(root.customColors[i]);
-                    closeBridge.submit({ color: "#" + root.hexValue, customColors: customs });
-                } else {
-                    closeBridge.cancel();
+            Column {
+                anchors.left: parent.left
+                anchors.right: dlgBtns.left
+                anchors.rightMargin: 12 * Theme.scaleFactor
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2 * Theme.scaleFactor
+
+                // 取色不可用提示（macOS 未授权屏幕录制：提示在系统设置允许并重启）
+                Text {
+                    width: parent.width
+                    visible: root.pickUnavailable
+                    text: root.labels.screenPickUnavailable !== undefined ? root.labels.screenPickUnavailable : "Screen color picking is unavailable"
+                    color: Theme.muted
+                    font.pixelSize: Theme.fontTiny
+                    elide: Text.ElideRight
+                }
+
+                // 满员拒绝提示
+                Text {
+                    width: parent.width
+                    visible: root.customFullHint
+                    text: root.labels.customFull !== undefined ? root.labels.customFull : "Custom colors are full, delete one first"
+                    color: Theme.muted
+                    font.pixelSize: Theme.fontTiny
+                    elide: Text.ElideRight
+                }
+            }
+
+            DialogButtons {
+                id: dlgBtns
+                anchors.right: parent.right
+                buttonLabels: typeof dialogButtonsProp !== "undefined" ? dialogButtonsProp : [qsTr("OK"), qsTr("Cancel")]
+                onClicked: function (index) {
+                    if (index === 0) {
+                        var customs = [];
+                        for (var i = 0; i < root.customColors.length; i++)
+                            if (root.customColors[i] !== "") customs.push(root.customColors[i]);
+                        closeBridge.submit({ color: "#" + root.hexValue, customColors: customs });
+                    } else {
+                        closeBridge.cancel();
+                    }
                 }
             }
         }

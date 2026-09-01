@@ -1,9 +1,11 @@
 // MiniButton.qml — 通用按钮原子（对话框正文内的辅助按钮）。
 // 与 DialogButtons 同风格（hover 变色 + 点击缩放 + 配色走 Theme），但无主按钮配色。
 //
-// size 两档：
+// size 三档：
 //   "mini"   —— 紧凑小按钮（行间距预设等内联按钮组）：fontMini 字号、miniBtnH 高、
 //              miniBtnR 圆角。宽度默认 miniBtnW，也可由调用方传 width 覆盖。
+//   "small"  —— 正文辅助按钮的中间档（如调色板「拾取/添加/删除」）：fontSmall 字号、
+//              smallBtnH 高（明显小于 DialogButtons 主按钮的 btnH）。宽度按文案自适应。
 //   "normal" —— 与 EnumCombo 行等高的按钮（行内 action，如 Auto backup 打开备份目录）：
 //              fontBody 字号、rowH 高、radius 圆角。宽度按文案自适应（文案 + 左右 padding）。
 //
@@ -23,10 +25,13 @@ Rectangle {
     property string text: ""
     property string size: "mini"
     readonly property bool isNormal: size === "normal"
-    // normal：宽度按文案自适应（隐式 Text 宽 + 左右 padding）；mini：默认 miniBtnW，可覆盖。
-    implicitWidth: isNormal ? (btnText.implicitWidth + 2 * Theme.comboPad) : Theme.miniBtnW
+    readonly property bool isSmall: size === "small"
+    // normal/small：宽度按文案自适应（隐式 Text 宽 + 左右 padding）；mini：默认 miniBtnW，可覆盖。
+    implicitWidth: (isNormal || isSmall)
+        ? (btnText.implicitWidth + 2 * Theme.comboPad)
+        : Theme.miniBtnW
     width: implicitWidth
-    height: isNormal ? Theme.rowH : Theme.miniBtnH
+    height: isNormal ? Theme.rowH : (isSmall ? Theme.smallBtnH : Theme.miniBtnH)
     radius: isNormal ? Theme.radius : Theme.miniBtnR
     color: ma.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
     border.width: Theme.borderW
@@ -39,7 +44,8 @@ Rectangle {
         anchors.centerIn: parent
         text: btn.text
         color: Theme.fg
-        font.pixelSize: btn.isNormal ? Theme.fontBody : Theme.fontMini
+        font.pixelSize: btn.isNormal ? Theme.fontBody
+            : (btn.isSmall ? Theme.fontSmall : Theme.fontMini)
     }
 
     MouseArea {
