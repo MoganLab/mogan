@@ -113,7 +113,6 @@
     ;; further shortcuts for Windows look and feel
     ("windows g" (selection-cancel))
     ("windows l" (refresh-window))
-    ("windows =" (change-zoom-factor 1.0))
 
     ("cmd q" (make 'symbol))
     ("altcmd g" (kbd-cancel))
