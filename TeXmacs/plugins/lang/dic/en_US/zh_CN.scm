@@ -283,6 +283,7 @@
 ("add style package" "增加宏包")
 ("add switch after" "")
 ("add switch before" "")
+("add color" "添加颜色")
 ("add" "新增")
 ("address block" "地址栏")
 ("address" "地址")
@@ -413,6 +414,7 @@
 ("base" "基线")
 ("baseline" "基线")
 ("bashkirian" "巴什基尔语")
+("basic colors" "基本颜色")
 ("basic communication using pipes" "基本管道通信")
 ("basic data types" "基本数据类型")
 ("basic types" "基本型态")
@@ -539,6 +541,8 @@
 ("chinese character" "中文字符")
 ("chinese" "中文")
 ("choice" "选择")
+("choose background" "选择背景")
+("choose color" "选择颜色")
 ("Choose source directory" "选择源目录")
 ("Choose destination directory" "选择目标目录")
 ("Choose binary file" "选择可执行文件")
@@ -672,6 +676,10 @@
 ("curve points" "曲线点")
 ("curve" "曲线")
 ("custom" "自定义")
+("custom colors" "自定义颜色")
+("custom colors are full, delete one first"
+  "自定义颜色已满，请先删除一个颜色"
+) ;
 ("custom tab" "自定义制表符")
 ("custom tab" "自定义制表符")
 ("customizations" "定制")
@@ -722,6 +730,7 @@
 ("definition of" "查看定义:")
 ("definition" "定义")
 ("delete column" "删除此行")
+("delete color" "删除颜色")
 ("delete documentation cache" "删除文档缓存")
 ("delete row" "删除此列")
 ("delete" "删除")
@@ -1996,6 +2005,7 @@
 ("philosophy" "哲学")
 ("phoenician" "")
 ("phonetic" "")
+("pick screen color" "拾取屏幕颜色")
 ("picture" "图片")
 ("pictures" "图片")
 ("pink" "粉红")
@@ -2301,6 +2311,12 @@
 ("scheme developers guide" "Scheme 开发指南")
 ("scheme extensions" "扩展语言")
 ("scheme interface for the graphical mode" "图形模式的 Scheme 接口")
+("screen color picking is unavailable in this session"
+  "当前会话不支持屏幕取色"
+) ;
+("screen color picking requires the screen recording permission: allow it in System Settings and restart the app"
+  "屏幕取色需要「屏幕录制」权限：请在系统设置中允许后重启应用"
+) ;
 ("screen layout" "")
 ("screen margins" "")
 ("screen" "屏幕")
