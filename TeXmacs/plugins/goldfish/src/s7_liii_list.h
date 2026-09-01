@@ -73,6 +73,35 @@ s7_pointer g_list_set(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num);
 
+/* optimizer typed-arg (p_p) functions, migrated from s7.c;
+   the optimizer compares these pointers, so each has a single
+   extern definition in s7_liii_list.c */
+s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree);
+s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
+s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg);
+s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init);
+s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index);
+s7_pointer list_ref_p_pi(s7_scheme *sc, s7_pointer lst, s7_int index);
+s7_pointer list_ref_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer index);
+s7_pointer list_set_p_pip(s7_scheme *sc, s7_pointer lst, s7_int index, s7_pointer value);
+s7_pointer list_set_p_pip_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index, s7_pointer value);
+void list_set_index_check_nr(s7_scheme *sc, s7_int index);
+s7_pointer list_tail_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer ind);
+s7_pointer cons_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2);
+s7_pointer car_p_p(s7_scheme *sc, s7_pointer lst);
+s7_pointer set_car_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value);
+s7_pointer cdr_p_p(s7_scheme *sc, s7_pointer lst);
+s7_pointer set_cdr_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value);
+s7_pointer assq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer assv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer assoc_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer p);
+s7_pointer memq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer memq_3_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer memv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer member_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+
 #ifdef __cplusplus
 }
 #endif

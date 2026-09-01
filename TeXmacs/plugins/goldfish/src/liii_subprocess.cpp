@@ -21,6 +21,10 @@
 #include <tbox/tbox.h>
 #include <vector>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #if !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
 #include <wordexp.h>
 #endif
@@ -180,7 +184,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       (stdout_mode == redirect_mode::tee || stdout_mode == redirect_mode::capture) ||
       (stderr_to_stdout && stdout_mode != redirect_mode::file && stdout_mode != redirect_mode::discard);
 
+#ifdef _WIN32
+  HANDLE              h_out_read= NULL, h_out_write= NULL;
+  HANDLE              h_err_read= NULL, h_err_write= NULL;
+  HANDLE              h_in_read= NULL, h_in_write= NULL;
+  SECURITY_ATTRIBUTES sa= {sizeof (SECURITY_ATTRIBUTES), NULL, TRUE};
+#else
   tb_pipe_file_ref_t out_pipe[2]= {tb_null};
+#endif
+
   if (stdout_mode == redirect_mode::file) {
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.out.path= stdout_path;
@@ -196,13 +208,22 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.outmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (need_stdout_pipe) {
+#ifdef _WIN32
+    CreatePipe (&h_out_read, &h_out_write, &sa, 0);
+    SetHandleInformation (h_out_read, HANDLE_FLAG_INHERIT, 0);
+    attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILE;
+    attr.out.file= (tb_file_ref_t) h_out_write;
+#else
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (out_pipe, mode, 0);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.out.pipe= out_pipe[1];
+#endif
   }
 
+#ifndef _WIN32
   tb_pipe_file_ref_t err_pipe[2]= {tb_null};
+#endif
   if (stderr_mode == redirect_mode::file) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.err.path= stderr_path;
@@ -217,6 +238,18 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
+#ifdef _WIN32
+  else if (stderr_to_stdout && h_out_write) {
+    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
+    attr.err.file= (tb_file_ref_t) h_out_write;
+  }
+  else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
+    CreatePipe (&h_err_read, &h_err_write, &sa, 0);
+    SetHandleInformation (h_err_read, HANDLE_FLAG_INHERIT, 0);
+    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
+    attr.err.file= (tb_file_ref_t) h_err_write;
+  }
+#else
   else if (stderr_to_stdout && out_pipe[1]) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= out_pipe[1];
@@ -227,13 +260,36 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= err_pipe[1];
   }
+#endif
 
+#ifndef _WIN32
   tb_pipe_file_ref_t in_pipe[2]= {tb_null};
+#endif
   if (stdin_path) {
     attr.intype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.in.path= stdin_path;
     attr.inmode = TB_FILE_MODE_RO;
   }
+#ifdef _WIN32
+  else if (stdin_null) {
+    CreatePipe (&h_in_read, &h_in_write, &sa, 0);
+    SetHandleInformation (h_in_write, HANDLE_FLAG_INHERIT, 0);
+    attr.intype = TB_PROCESS_REDIRECT_TYPE_FILE;
+    attr.in.file= (tb_file_ref_t) h_in_read;
+    CloseHandle (h_in_write);
+    h_in_write= NULL;
+  }
+  else if (input) {
+    CreatePipe (&h_in_read, &h_in_write, &sa, 0);
+    SetHandleInformation (h_in_write, HANDLE_FLAG_INHERIT, 0);
+    attr.intype  = TB_PROCESS_REDIRECT_TYPE_FILE;
+    attr.in.file = (tb_file_ref_t) h_in_read;
+    DWORD written= 0;
+    WriteFile (h_in_write, input, (DWORD) input_len, &written, NULL);
+    CloseHandle (h_in_write);
+    h_in_write= NULL;
+  }
+#else
   else if (stdin_null) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
@@ -249,6 +305,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     tb_pipe_file_write (in_pipe[1], (tb_byte_t*) input, input_len);
     tb_pipe_file_exit (in_pipe[1]);
   }
+#endif
 
   tb_process_ref_t process= tb_null;
   if (s7_is_string (cmd_arg)) {
@@ -282,8 +339,23 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
   }
 
+#ifdef _WIN32
+  if (h_out_write) {
+    CloseHandle (h_out_write);
+    h_out_write= NULL;
+  }
+  if (h_err_write) {
+    CloseHandle (h_err_write);
+    h_err_write= NULL;
+  }
+  if (h_in_read) {
+    CloseHandle (h_in_read);
+    h_in_read= NULL;
+  }
+#else
   if (out_pipe[1]) tb_pipe_file_exit (out_pipe[1]);
   if (err_pipe[1]) tb_pipe_file_exit (err_pipe[1]);
+#endif
 
   string    stdout_str;
   string    stderr_str;
@@ -298,6 +370,37 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       status= -1;
     }
 
+#ifdef _WIN32
+    if (h_out_read) {
+      char  buf[4096];
+      DWORD n= 0;
+      while (ReadFile (h_out_read, buf, sizeof (buf) - 1, &n, NULL) && n > 0) {
+        buf[n]= '\0';
+        stdout_str.append (buf, n);
+        if (stdout_mode == redirect_mode::tee) {
+          fwrite (buf, 1, n, stdout);
+          fflush (stdout);
+        }
+      }
+      CloseHandle (h_out_read);
+      h_out_read= NULL;
+    }
+
+    if (h_err_read) {
+      char  buf[4096];
+      DWORD n= 0;
+      while (ReadFile (h_err_read, buf, sizeof (buf) - 1, &n, NULL) && n > 0) {
+        buf[n]= '\0';
+        stderr_str.append (buf, n);
+        if (stderr_mode == redirect_mode::tee) {
+          fwrite (buf, 1, n, stderr);
+          fflush (stderr);
+        }
+      }
+      CloseHandle (h_err_read);
+      h_err_read= NULL;
+    }
+#else
     if (out_pipe[0]) {
       char      buf[4096];
       tb_long_t n;
@@ -325,9 +428,14 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       }
       tb_pipe_file_exit (err_pipe[0]);
     }
+#endif
 
     tb_process_exit (process);
   }
+#ifdef _WIN32
+  if (h_out_read) CloseHandle (h_out_read);
+  if (h_err_read) CloseHandle (h_err_read);
+#endif
 
   s7_pointer out_s7 = s7_make_string (sc, stdout_str.c_str ());
   s7_pointer err_s7 = s7_make_string (sc, stderr_str.c_str ());

@@ -34,6 +34,22 @@ s7_pointer string_append_p_pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2);
 s7_pointer g_string(s7_scheme *sc, s7_pointer args);
 s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args);
 
+/* optimizer typed-arg (p_p) functions, migrated from s7.c;
+   the optimizer compares these pointers, so each has a single
+   extern definition in s7_liii_string.c */
+s7_pointer string_ref_p_pi(s7_scheme *sc, s7_pointer str, s7_int index);
+s7_pointer string_ref_p_pp(s7_scheme *sc, s7_pointer str, s7_pointer index);
+s7_pointer string_ref_p_p0(s7_scheme *sc, s7_pointer str, s7_pointer unused_index);
+s7_pointer string_ref_p_plast(s7_scheme *sc, s7_pointer str, s7_pointer unused_index);
+s7_pointer string_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer str, s7_int index);
+s7_pointer string_ref_p_pi_direct(s7_scheme *sc, s7_pointer str, s7_int index);
+s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr);
+s7_pointer string_set_p_pip_unchecked(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr);
+s7_pointer string_set_p_pip_direct(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr);
+s7_pointer substring_uncopied_p_pii(s7_scheme *sc, s7_pointer str, s7_int start, s7_int end);
+s7_pointer string_p_p(s7_scheme *sc, s7_pointer c);
+s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str);
+
 s7_pointer g_is_string(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_char_position(s7_scheme *sc, s7_pointer args);
