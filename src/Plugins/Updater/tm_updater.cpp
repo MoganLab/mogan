@@ -13,7 +13,7 @@
 #include "config.h"
 #include "scheme.hpp"
 
-#if defined(OS_WIN) && defined(USE_PLUGIN_VELOPACK)
+#if defined(USE_PLUGIN_VELOPACK) && (defined(OS_WIN) || defined(OS_MACOS))
 #include "tm_velopack.hpp"
 #endif
 
@@ -22,7 +22,7 @@ tm_updater::instance () {
   static tm_updater* _instance= NULL;
 
   if (!_instance) {
-#if defined(OS_WIN) && defined(USE_PLUGIN_VELOPACK)
+#if defined(USE_PLUGIN_VELOPACK) && (defined(OS_WIN) || defined(OS_MACOS))
     _instance= new tm_velopack ();
 #else
     _instance= new tm_updater ();
