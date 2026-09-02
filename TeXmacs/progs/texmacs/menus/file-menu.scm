@@ -320,9 +320,7 @@
   ("Print buffer to file"
     (choose-file print-to-file "Print all to file" "postscript")
   ) ;
-  ("Print page selection to file"
-    (interactive choose-file-and-print-page-selection)
-  ) ;
+  ("Print page selection to file" (print-page-selection-to-file))
 ) ;menu-bind
 
 (menu-bind print-menu

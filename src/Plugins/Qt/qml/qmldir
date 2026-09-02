@@ -2,6 +2,7 @@ ConfirmClose 1.0 ConfirmClose.qml
 ConfirmQuestion 1.0 ConfirmQuestion.qml
 ConfirmRestart 1.0 ConfirmRestart.qml
 FormDialog 1.0 FormDialog.qml
+PrintToFile 1.0 PrintToFile.qml
 FontSelector 1.0 FontSelector.qml
 ParagraphFormat 1.0 ParagraphFormat.qml
 Statistics 1.0 Statistics.qml

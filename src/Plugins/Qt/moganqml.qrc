@@ -14,6 +14,7 @@
         <file>qml/atoms/MiniButton.qml</file>
         <file>qml/atoms/Toggle.qml</file>
         <file>qml/atoms/GroupHeader.qml</file>
+        <file>qml/atoms/InputField.qml</file>
         <file>qml/FontSelector.qml</file>
         <file>qml/ConfirmClose.qml</file>
         <file>qml/ConfirmQuestion.qml</file>
@@ -22,6 +23,7 @@
         <file>qml/ParagraphFormat.qml</file>
         <file>qml/Statistics.qml</file>
         <file>qml/Preferences.qml</file>
+        <file>qml/PrintToFile.qml</file>
         <file>qml/Version.qml</file>
         <file>qml/UpdaterProgress.qml</file>
     </qresource>
