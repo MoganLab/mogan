@@ -422,9 +422,9 @@
   ("text 1" (smart-insert-heading 'section))
   ("text 2" (smart-insert-heading 'subsection))
   ("text 3" (smart-insert-heading 'subsubsection))
-  ("text 4" (make-section 'paragraph))
-  ("text 5" (make-section 'subparagraph))
-  ("text 6" (make-section 'appendix))
+  ("text 4" (smart-insert-heading 'paragraph))
+  ("text 5" (smart-insert-heading 'subparagraph))
+  ("text 6" (smart-insert-heading 'appendix))
 
   ("F5" (make 'em))
   ("F6" (make 'strong))
