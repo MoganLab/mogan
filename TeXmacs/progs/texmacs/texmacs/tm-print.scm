@@ -225,10 +225,10 @@
 (define (propose-postscript-name)
   (with name
     (propose-name-buffer)
-    (if (string-ends? name ".tm")
-      (string-append (string-drop-right name 3) ".ps")
-      name
-    ) ;if
+    (cond ((string-ends? name ".tm") (string-append (string-drop-right name 3) ".ps"))
+          ((string-ends? name ".tmu") (string-append (string-drop-right name 4) ".ps"))
+          (else name)
+    ) ;cond
   ) ;with
 ) ;define
 
@@ -275,13 +275,48 @@
   ) ;with-default-view
 ) ;tm-define
 
-(tm-define (choose-file-and-print-page-selection start end)
-  (:argument start "First page")
-  (:proposals start (list "1" ""))
-  (:argument end "Last page")
-  (:proposals end (list (number->string (get-page-count)) ""))
-  (choose-file (lambda (name) (print-pages-to-file name start end))
-    "Print page selection to file"
-    "postscript"
-  ) ;choose-file
+(tm-define (print-page-selection-to-file)
+  (:synopsis "Print page selection to file")
+  ;; QML 对话框收集路径 + 页码范围，一次提交；用户 OK 时 cpp-print-to-file-dialog
+  ;; 返回 (tuple (tuple "name" <n>) (tuple "first" <f>) (tuple "last" <l>))，Cancel
+  ;; / 关闭返回空树。字段初值在此侧取好（propose-postscript-name 建议文件名、
+  ;; 页码范围默认 1..总页数），label 已翻译。
+  (with result
+    (cpp-print-to-file-dialog (stree->tree `(print-to-file-form (path ,(translate "File name:")
+                                                                  ,"name"
+                                                                  ,(propose-postscript-name))
+                                              (number ,(translate "First page:")
+                                                ,"first"
+                                                ,"1")
+                                              (number ,(translate "Last page:")
+                                                ,"last"
+                                                ,(number->string (get-page-count))))
+                              ) ;stree->tree
+    ) ;cpp-print-to-file-dialog
+    ;; tree->stree 后每个 kv 为 (tuple key value)：cadr=key、caddr=value。
+    (with r
+      (cdr (tree->stree result))
+      (if (null? r)
+        (noop)
+        (with name
+          ""
+          first
+          ""
+          last
+          ""
+          (for-each (lambda (kv)
+                      (let ((k (cadr kv)) (v (caddr kv)))
+                        (cond ((== k "name") (set! name v))
+                              ((== k "first") (set! first v))
+                              ((== k "last") (set! last v))
+                        ) ;cond
+                      ) ;let
+                    ) ;lambda
+            r
+          ) ;for-each
+          (print-pages-to-file name first last)
+        ) ;with
+      ) ;if
+    ) ;with
+  ) ;with
 ) ;tm-define

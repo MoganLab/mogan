@@ -38,11 +38,15 @@ class StubBridge : public QObject {
   Q_OBJECT
 public:
   explicit StubBridge (QObject* p= nullptr) : QObject (p) {}
-  int              cancelCount= 0;
-  Q_INVOKABLE void choose (int) {}
-  Q_INVOKABLE void cancel () { ++cancelCount; }
-  Q_INVOKABLE void submit (const QVariantMap&) {}
-  Q_INVOKABLE void startMove () {}
+  int                 cancelCount= 0;
+  Q_INVOKABLE void    choose (int) {}
+  Q_INVOKABLE void    cancel () { ++cancelCount; }
+  Q_INVOKABLE void    submit (const QVariantMap&) {}
+  Q_INVOKABLE void    startMove () {}
+  Q_INVOKABLE QString pickSaveFile (const QString&, const QString&) {
+    return QString ();
+  }
+  Q_INVOKABLE QString browse (const QString&) { return QString (); }
 };
 
 // ColorPicker 的 colorBridge 占位：不真取色（pickScreenColor 为 no-op）。
@@ -233,6 +237,7 @@ private slots:
   void test_version_escape_fallback_without_focus ();
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
+  void test_print_to_file_loads ();
   void test_updater_progress_loads ();
   void test_color_picker_loads ();
 };
@@ -424,6 +429,49 @@ TestQmlLoad::test_statistics_loads () {
   qw->rootContext ()->setContextProperty ("statsItems", model);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/Statistics.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_print_to_file_loads () {
+  // PrintToFile 需 formFields（含 path/number 两型字段）+ dialogButtons +
+  // browseLabel + printBridge（Browse 生效用）。注入最小占位，断言能实例化。
+  QVariantList fields;
+  QVariantMap  f0;
+  f0["type"] = QString ("path");
+  f0["label"]= QString ("File name:");
+  f0["key"]  = QString ("name");
+  f0["value"]= QString ("doc.ps");
+  fields << f0;
+  QVariantMap f1;
+  f1["type"] = QString ("number");
+  f1["label"]= QString ("First page:");
+  f1["key"]  = QString ("first");
+  f1["value"]= QString ("1");
+  fields << f1;
+  QVariantMap f2;
+  f2["type"] = QString ("number");
+  f2["label"]= QString ("Last page:");
+  f2["key"]  = QString ("last");
+  f2["value"]= QString ("3");
+  fields << f2;
+  QStringList buttons;
+  buttons << "OK"
+          << "Cancel";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* close= new StubBridge (qw);
+  StubBridge* print= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("printBridge", print);
+  qw->rootContext ()->setContextProperty ("formFields", fields);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/PrintToFile.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 

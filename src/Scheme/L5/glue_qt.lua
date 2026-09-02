@@ -114,6 +114,14 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "cpp-print-to-file-dialog",
+                cpp_name = "cpp_print_to_file_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "tree"
+                }
+            },
+            {
                 scm_name = "cpp-updater-dialog-open",
                 cpp_name = "cpp_updater_dialog_open",
                 ret_type = "void",

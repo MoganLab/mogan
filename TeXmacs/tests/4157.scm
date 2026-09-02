@@ -25,7 +25,8 @@
 (define (check-what-ok)
   (check (recent-grep-what (stree->tree '(tuple (tuple "what" "parsing"))))
     =>
-    "parsing")
+    "parsing"
+  ) ;check
 ) ;define
 
 (define (check-what-cancel)

@@ -222,6 +222,24 @@ void cpp_statistics_dialog (string title, tree items);
 bool cpp_version_dialog (string title, string message);
 
 /**
+ * @brief 「打印页面选择到文件」QML 对话框的 glue 入口（一次性提交）。
+ * @param form scm 构造的字段表（tree）：
+ *   (print-to-file-form (path <label> <key> <value>) (number <label> <key>
+ * <value>) ...) label 已翻译；key 为 "name"/"first"/"last"；value
+ * 为初值（建议文件名 / 页码）。 path 型字段带 Browse
+ * 按钮（弹原生保存文件对话框）。
+ * @return 用户点 OK 返回 mogan tree，tree->stree 后形如 (tuple (tuple <key>
+ *   <value>) ...)；Cancel / 关闭 / 加载失败返回空 tree。
+ * @details 走 run_qml_dialog（exec 阻塞模态，同
+ * FormDialog——一次性提交，无需 live
+ * 写回文档）。字段由 QML 本地暂存，OK 整包交回；绑定在 scheme
+ * facade，由调用方解构后 调 print-pages-to-file。
+ * @note 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok/cancel 命中时不弹窗（ok
+ * 返回字段初值 供自动化验证）。
+ */
+tree cpp_print_to_file_dialog (tree form);
+
+/**
  * @brief 首选项 QML 对话框的 glue 入口（本地暂存 + OK 一次性提交）。
  * @return 非阻塞 show 路径立即返回空 tree；测试钩子命中时返回 `(tuple "ok")` 供
  * 自动化区分。本地暂存模型：打开时拉一次 meta 建 QML 本地 values 快照、改动只改
