@@ -64,12 +64,12 @@ constexpr int kSectionTitleFontPx   = 16;  // 分区标题字号
 constexpr int kStyleIconFontPx      = 48;  // 样式图标字母字号
 constexpr int kStyleNameFontPx      = 14;  // 样式名称字号
 constexpr int kRecentListRadius     = 8;   // Recent 列表圆角
-constexpr int kRecentItemHeight     = 40;  // Recent 列表项高度
+constexpr int kRecentItemHeight     = 36;  // Recent 列表项高度
 constexpr int kRecentItemRadius     = 4;   // Recent 列表项圆角
 constexpr int kRecentItemMarginX    = 4;   // Recent 列表项横向边距
-constexpr int kRecentItemMarginY    = 2;   // Recent 列表项纵向边距
+constexpr int kRecentItemMarginY    = 0;   // Recent 列表项纵向边距
 constexpr int kRecentItemPaddingX   = 8;   // Recent 列表项横向内边距
-constexpr int kRecentItemPaddingY   = 6;   // Recent 列表项纵向内边距
+constexpr int kRecentItemPaddingY   = 0;   // Recent 列表项纵向内边距
 constexpr int kRecentItemSpacing    = 3;   // Recent 名称与时间标签间距
 constexpr int kRecentNameFontPx     = 15;  // Recent 文件名字号
 constexpr int kRecentTimeFontPx     = 11;  // Recent 时间字号
@@ -622,6 +622,9 @@ QTMHomePage::renderRecentDocs () {
         DpiUtils::scaledFont (nameLabel->font (), kRecentNameFontPx);
     nameFont.setBold (true);
     nameLabel->setFont (nameFont);
+    // Microsoft YaHei UI 的下划线墨迹远低于字体 descent，超出 sizeHint
+    // 高度的部分会被 QLabel 自身矩形裁掉；拉伸到整行高度，文本内部居中
+    nameLabel->setAlignment (Qt::AlignLeft | Qt::AlignVCenter);
 
     // 云文档名后追加「云端」小标签（objectName 供主题 CSS
     // 定制，内联样式作兜底）。
@@ -647,10 +650,10 @@ QTMHomePage::renderRecentDocs () {
 
     // 标题与「云端」标签按内容宽度依次排列，弹性空间留给中间 stretch，
     // 使标签紧跟标题而非被顶到行尾
-    rowLayout->addWidget (nameLabel, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    rowLayout->addWidget (nameLabel, 0);
     if (cloudLabel) rowLayout->addWidget (cloudLabel, 0, Qt::AlignVCenter);
     rowLayout->addStretch (1);
-    rowLayout->addWidget (timeLabel, 0, Qt::AlignRight | Qt::AlignVCenter);
+    rowLayout->addWidget (timeLabel, 0);
     recentList_->setItemWidget (item, rowWidget);
   }
 
