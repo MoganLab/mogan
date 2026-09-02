@@ -78,6 +78,7 @@ bool s7i_has_active_methods(s7_scheme *sc, s7_pointer obj);
 /* boolean method dispatch for type predicate migration */
 s7_pointer s7i_apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer method);
 void s7i_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
+void sole_arg_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ);
 s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
 s7_pointer s7i_copy_proper_list(s7_scheme *sc, s7_pointer lst);
 s7_int s7i_position_of(const s7_pointer p, s7_pointer args);
@@ -107,6 +108,44 @@ bool s7i_is_string_via_method(s7_scheme *sc, s7_pointer obj);
 s7_pointer s7i_method_or_bust_sym(s7_scheme *sc, s7_pointer obj, s7_pointer method_sym, s7_pointer args, s7_pointer typ, s7_int arg_pos);
 s7_pointer s7i_set_plist_1(s7_scheme *sc, s7_pointer x1);
 s7_pointer s7i_string_type_name(s7_scheme *sc);
+s7_pointer s7i_character_type_name(s7_scheme *sc);
+no_return void out_of_range_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg_n, s7_pointer arg, s7_pointer descr);
+void s7i_check_free_heap_size(s7_scheme *sc, s7_int size);
+s7_pointer cons_unchecked(s7_scheme *sc, s7_pointer a, s7_pointer b);
+no_return void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
+
+/* vector bridges for s7_liii_vector.c migration */
+bool s7i_is_any_vector(s7_pointer p);
+bool s7i_is_t_vector(s7_pointer p);
+bool s7i_is_typed_vector(s7_pointer p);
+bool s7i_is_immutable_vector(s7_pointer p);
+s7_pointer s7i_vector_element(s7_pointer p, s7_int i);
+void s7i_vector_element_set(s7_pointer p, s7_int i, s7_pointer v);
+s7_pointer s7i_vector_getter_ref(s7_scheme *sc, s7_pointer p, s7_int i);
+s7_pointer s7i_vector_setter_set(s7_scheme *sc, s7_pointer p, s7_int i, s7_pointer v);
+s7_pointer s7i_typed_vector_setter(s7_scheme *sc, s7_pointer p, s7_int i, s7_pointer v);
+s7_int s7i_vector_offset(s7_pointer p, s7_int i);
+s7_pointer s7i_small_int(s7_int val);
+uint8_t s7i_byte_vector_element(s7_pointer p, s7_int i);
+void s7i_byte_vector_element_set(s7_pointer p, s7_int i, uint8_t v);
+s7_pointer s7i_g_vector_set(s7_scheme *sc, s7_pointer plist);
+s7_pointer s7i_set_plist_4(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4);
+s7_pointer s7i_vector_append_2(s7_scheme *sc, s7_pointer v1, s7_pointer v2);
+s7_pointer s7i_vector_append_3(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_pointer v3);
+
+/* list bridges for s7_liii_list.c migration */
+s7_pointer s7i_cons_safe(s7_scheme *sc, s7_pointer p1, s7_pointer p2);
+s7_pointer s7i_inline_set_car(s7_scheme *sc, s7_pointer lst, s7_pointer value);
+s7_pointer s7i_inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointer value);
+bool s7i_is_simple(s7_pointer p);
+bool s7i_scheme_version_is_s7(s7_scheme *sc);
+s7_pointer s7i_methods_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name1, const char *method_name2,
+                                  s7_pointer x1, s7_pointer x2, s7_pointer typ, s7_int num);
+s7_pointer s7i_assoc_1(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer s7i_memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer s7i_member(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_int s7i_tree_len(s7_scheme *sc, s7_pointer p);
+bool s7i_tree_is_cyclic_checked(s7_scheme *sc, s7_pointer tree);
 s7_pointer s7i_string_eq_symbol(s7_scheme *sc);
 s7_pointer s7i_string_lt_symbol(s7_scheme *sc);
 s7_pointer s7i_string_gt_symbol(s7_scheme *sc);
@@ -354,6 +393,22 @@ s7_pointer s7i_multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_poin
 s7_pointer s7i_multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
 s7_pointer s7i_invert_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer s7i_divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge functions for s7_scheme_read.c (reader migration) */
+int32_t s7i_token(s7_scheme *sc);
+s7_pointer s7i_make_sharp_constant(s7_scheme *sc, const char *name, bool with_error, s7_pointer port, bool error_if_bad_number);
+void s7i_resize_strbuf(s7_scheme *sc, s7_int needed_size);
+void s7i_backchar(char c, s7_pointer port);
+bool s7i_is_loader_port(s7_pointer p);
+s7_pointer s7i_an_input_port_string_obj(void);
+s7_pointer s7i_an_open_input_port_string_obj(void);
+s7_pointer s7i_eval(s7_scheme *sc, s7_int op);
+block_t *s7i_mallocate_port(s7_scheme *sc);
+void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_int len);
+void push_input_port(s7_scheme *sc, s7_pointer new_port);
+bool hash_keys_not_cyclic(s7_scheme *sc, s7_pointer hash);
+/* method_or_bust/_p/_pp take s7_pointer symbols; declared in s7_scheme_read.c only
+ * (s7_liii_string.c has its own same-named static helpers, so they can't live in a shared header) */
 
 #ifdef __cplusplus
 }

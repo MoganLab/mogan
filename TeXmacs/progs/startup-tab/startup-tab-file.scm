@@ -48,9 +48,10 @@
 (tm-define (startup-tab-get-recent-docs)
   ;; Get recent document paths with the same filtering and ordering
   ;; as File -> Recent used
+  ;; 条数上限对齐 C++ 侧 QTMHomePage.cpp 的 MAX_RECENT_DOCS = 50，超出无效
   (let* ((raw (string->number (get-preference "startup-tab:max-recent")))
-         (nr (if (number? raw) raw 10))
-         (nr (max 1 nr))
+         (nr (if (number? raw) raw 50))
+         (nr (min 50 (max 1 nr)))
         ) ;
     (map url->system (recent-file-list nr))
   ) ;let*

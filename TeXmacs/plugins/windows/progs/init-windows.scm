@@ -38,9 +38,6 @@
     ("windows y" (redo 0))
 
     ("F2" (interactive-replace))
-    ("S-delete" (kbd-cut))
-    ("S-insert" (kbd-paste))
-    ("C-insert" (kbd-copy))
     ("A-F4" (close-document))
     ("A-S-F4" (close-document*))
 
@@ -116,7 +113,6 @@
     ;; further shortcuts for Windows look and feel
     ("windows g" (selection-cancel))
     ("windows l" (refresh-window))
-    ("windows =" (change-zoom-factor 1.0))
 
     ("cmd q" (make 'symbol))
     ("altcmd g" (kbd-cancel))

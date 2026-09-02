@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "QTMQmlDialog.hpp"
+#include "ColorPickerBridge.hpp"
 #include "FontSelectorBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
 #include "PreferencesBridge.hpp"
@@ -16,8 +17,9 @@
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
 
-#include "analyze.hpp" // occurs
-#include "gui.hpp"     // tm_style_sheet
+#include "analyze.hpp"     // occurs
+#include "gui.hpp"         // tm_style_sheet
+#include "preferences.hpp" // get_preference / set_preference
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"     // eval_scheme
 #include "sys_utils.hpp" // lolly: get_env
@@ -838,14 +840,16 @@ print_field_to_qml (tree f) {
 }
 
 /**
- * @brief 「打印页面选择到文件」QML 对话框 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ * @brief 「打印页面选择到文件」QML 对话框 glue 入口（声明/语义见
+ * QTMQmlDialog.hpp）。
  *
  * @details 走 run_qml_dialog（exec 阻塞模态，同
  * FormDialog——一次性提交，不需 live 重绘 文档）。字段由 QML 本地暂存，OK 整包
  * 交回（closeBridge.submit），Cancel 放弃。\n
- * path 字段的 Browse 按钮由 PrintToFileBridge::browse 弹原生保存文件对话框取路径。
- * 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok|cancel 命中时不弹窗：ok 按字段初值构造返回
- * tree（供自动化验证数据契约），cancel 返回空 tree。
+ * path 字段的 Browse 按钮由 PrintToFileBridge::browse
+ * 弹原生保存文件对话框取路径。 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok|cancel
+ * 命中时不弹窗：ok 按字段初值构造返回 tree（供自动化验证数据契约），cancel
+ * 返回空 tree。
  */
 tree
 cpp_print_to_file_dialog (tree form) {
@@ -882,8 +886,8 @@ cpp_print_to_file_dialog (tree form) {
 
   // closeBridge 须在注入回调里创建并捕获，供事后 results() 取值；printBridge 供
   // QML 点 Browse 时弹原生文件对话框，二者都不挂 parent，exec 后 delete。
-  QmlDialogBridge*   closeBridge = nullptr;
-  PrintToFileBridge* printBridge = nullptr;
+  QmlDialogBridge*   closeBridge= nullptr;
+  PrintToFileBridge* printBridge= nullptr;
   run_qml_dialog (
       "qrc:/qml/PrintToFile.qml", "PrintToFile.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
@@ -900,8 +904,8 @@ cpp_print_to_file_dialog (tree form) {
 
   // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
   tree               r (TUPLE);
-  const QVariantMap& res= closeBridge ? closeBridge->results ()
-                                      : QVariantMap ();
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
   delete closeBridge;
   delete printBridge;
   for (auto it= res.begin (); it != res.end (); ++it) {
@@ -909,6 +913,105 @@ cpp_print_to_file_dialog (tree form) {
     kv << tree (from_qstring (it.key ()))
        << tree (from_qstring (it.value ().toString ()));
     r << kv;
+  }
+  return r;
+}
+
+/**
+ * @brief QML 调色板弹窗的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，无需 live 写回）。ColorPicker.qml
+ * 提供色相/饱和度/明度面板、HSV/RGB/HEX 数值输入、基础色块、自定义颜色
+ * （跨会话持久化）与屏幕取色。自定义颜色经 preference "color picker custom
+ * colors"（空格分隔 hex 列表）读写。测试钩子 MOGAN_TEST_COLOR_PICKER=
+ * <hex>|cancel 命中时不弹窗。
+ */
+tree
+cpp_color_picker_dialog (string title, array<tree> proposals,
+                         bool pickPattern) {
+  string preset= get_env ("MOGAN_TEST_COLOR_PICKER");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset != "") {
+    // 测试钩子：与真实路径同构，返回 (tuple "#rrggbb")；支持无 # 前缀的 hex。
+    string hex= preset;
+    if (hex[0] != '#') hex= string ("#") * hex;
+    tree r (TUPLE);
+    r << tree (hex);
+    return r;
+  }
+
+  QStringList qmlProposals;
+  QString     initColor ("#ffffff");
+  for (int i= 0; i < N (proposals); i++) {
+    if (is_atomic (proposals[i])) {
+      QString col= to_qstring (get_label (proposals[i]));
+      qmlProposals << col;
+      if (i == 0) initColor= col;
+    }
+  }
+
+  // 自定义颜色跨会话持久化：空格分隔 hex 列表存于 preference。
+  const string CUSTOM_PREF = "color picker custom colors";
+  QStringList  customColors= to_qstring (get_preference (CUSTOM_PREF, ""))
+                                .split (' ', Qt::SkipEmptyParts);
+
+  // 段标题与按钮文案在 cpp 侧 qt_translate（同 translate_buttons 惯例）。
+  QVariantMap labels;
+  labels["basicColors"] = qt_translate ("Basic colors");
+  labels["customColors"]= qt_translate ("Custom colors");
+  // 按钮文案取短形：自定义格子须与基础格子同尺寸，余宽只容得下短文案
+  // （长文案会把 8 列格子挤压到明显小于基础颜色格子）。
+  labels["addToCustom"] = qt_translate ("Add color");
+  labels["deleteCustom"]= qt_translate ("Delete color");
+  labels["customFull"]=
+      qt_translate ("Custom colors are full, delete one first");
+  labels["pickScreenColor"]= qt_translate ("Pick screen color");
+  // 取色不可用的提示按平台给不同文案（macOS 是授权引导，其余平台为不可用）。
+#if defined(Q_OS_MAC)
+  labels["screenPickUnavailable"]= qt_translate (
+      "Screen color picking requires the screen recording permission: allow "
+      "it in System Settings and restart the app");
+#else
+  labels["screenPickUnavailable"]=
+      qt_translate ("Screen color picking is unavailable in this session");
+#endif
+
+  array<string>    buttons= {string ("OK"), string ("Cancel")};
+  QmlDialogBridge* bridge = nullptr;
+  run_qml_dialog (
+      "qrc:/qml/ColorPicker.qml", "ColorPicker.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge                     = inject_common_context (qw, host);
+        ColorPickerBridge* cpBridge= new ColorPickerBridge ();
+        qw->rootContext ()->setContextProperty ("colorBridge", cpBridge);
+        QObject::connect (&host, &QDialog::destroyed, cpBridge,
+                          &QObject::deleteLater);
+        qw->rootContext ()->setContextProperty ("pickerTitleProp",
+                                                to_qstring (title));
+        qw->rootContext ()->setContextProperty ("proposalsProp", qmlProposals);
+        qw->rootContext ()->setContextProperty ("pickPatternProp", pickPattern);
+        qw->rootContext ()->setContextProperty ("initialColorProp", initColor);
+        qw->rootContext ()->setContextProperty ("customColorsProp",
+                                                customColors);
+        qw->rootContext ()->setContextProperty ("labelsProp", labels);
+        qw->rootContext ()->setContextProperty ("dialogButtonsProp",
+                                                translate_buttons (buttons));
+      },
+      // 高度随 QML 正文自适应（Version 弹窗同机制）；649 仅为 implicitHeight
+      // 读取失败时的回退值（≈正文常态高度）。
+      430, 649, true);
+
+  tree               r (TUPLE);
+  const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();
+  delete bridge;
+  if (res.contains ("color")) {
+    QString col= res.value ("color").toString ();
+    if (col.length () > 0) r << tree (from_qstring (col));
+    // OK 时把自定义颜色写回 preference；Cancel 不持久化。
+    if (res.contains ("customColors")) {
+      QString joined= res.value ("customColors").toStringList ().join (' ');
+      set_preference (CUSTOM_PREF, from_qstring (joined));
+    }
   }
   return r;
 }

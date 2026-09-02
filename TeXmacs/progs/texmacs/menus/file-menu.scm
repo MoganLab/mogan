@@ -147,7 +147,7 @@
 (tm-define (recent-file-list nr)
   (let* ((l1 (map cdar (learned-interactive "recent-buffer")))
          (l2 (map system->url l1))
-         (l3 (list-filter l2 buffer-in-recent-menu?))
+         (l3 (list-filter (list-remove-duplicates l2) buffer-in-recent-menu?))
         ) ;
     (sublist l3 0 (min (length l3) nr))
   ) ;let*
@@ -156,7 +156,7 @@
 (tm-define (recent-unloaded-file-list nr)
   (let* ((l1 (map cdar (learned-interactive "recent-buffer")))
          (l2 (map system->url l1))
-         (l3 (list-filter l2 buffer-in-recent-menu?))
+         (l3 (list-filter (list-remove-duplicates l2) buffer-in-recent-menu?))
          (dl (list-difference l3 (buffer-list)))
         ) ;
     (sublist dl 0 (min (length dl) nr))

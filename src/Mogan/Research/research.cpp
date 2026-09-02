@@ -39,7 +39,7 @@
 #include "tm_url.hpp"
 #include "tm_window.hpp"
 
-#if defined(OS_WIN)
+#if defined(OS_WIN) || defined(OS_MACOS)
 #include "Velopack.hpp"
 #endif
 
@@ -165,8 +165,8 @@ int
 main (int argc, char** argv) {
 
   // Velopack 启动钩子：处理待安装的更新（无安装时为空操作）。
-  // 必须早于任何系统初始化与参数解析，且仅限 Windows。
-#if defined(OS_WIN)
+  // 必须早于任何系统初始化与参数解析（Windows 与 macOS 安装版均需要）。
+#if defined(OS_WIN) || defined(OS_MACOS)
   Velopack::VelopackApp::Build ().Run ();
 #endif
 

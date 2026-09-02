@@ -51,6 +51,30 @@ s7_pointer g_make_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_fill(s7_scheme *sc, s7_pointer args);
 s7_int vector_length_i_7p(s7_scheme *sc, s7_pointer vec);
 s7_pointer vector_length_p_p(s7_scheme *sc, s7_pointer vec);
+
+/* optimizer typed-arg (p_p) functions, migrated from s7.c;
+   the optimizer compares these pointers, so each has a single
+   extern definition in s7_liii_vector.c */
+s7_pointer vector_append_p_pp(s7_scheme *sc, s7_pointer v1, s7_pointer v2);
+s7_pointer vector_append_p_ppp(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_pointer v3);
+s7_pointer vector_to_list_p_p(s7_scheme *sc, s7_pointer vec);
+s7_pointer vector_ref_p_pi(s7_scheme *sc, s7_pointer vec, s7_int index);
+s7_pointer vector_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index);
+s7_pointer t_vector_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index);
+s7_pointer vector_ref_p_pii(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2);
+s7_pointer vector_ref_p_pii_direct(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2);
+s7_pointer t_vector_ref_p_pi_direct(s7_scheme *sc, s7_pointer vec, s7_int index);
+s7_pointer vector_set_p_pip(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value);
+s7_pointer vector_set_p_pip_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value);
+s7_pointer vector_set_p_piip(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2, s7_pointer value);
+s7_pointer vector_set_p_piip_direct(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2, s7_pointer value);
+s7_pointer typed_vector_set_p_pip_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value);
+s7_pointer typed_vector_set_p_piip_direct(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2, s7_pointer value);
+s7_pointer t_vector_set_p_pip_direct(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value);
+s7_pointer typed_t_vector_set_p_pip_direct(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value);
+s7_pointer vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer ind, s7_pointer val);
+s7_pointer byte_vector_ref_p_pi_direct(s7_scheme *sc, s7_pointer vec, s7_int index);
+s7_pointer byte_vector_set_p_pip_direct(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer byte);
 #endif
 
 #ifdef __cplusplus

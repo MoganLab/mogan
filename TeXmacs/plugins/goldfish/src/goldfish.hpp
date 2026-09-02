@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "18.11.29"
+#define GOLDFISH_VERSION "18.11.31"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -121,6 +121,7 @@ void glue_liii_os (s7_scheme* sc);
 void glue_liii_path (s7_scheme* sc);
 void glue_liii_sort (s7_scheme* sc);
 void glue_liii_string (s7_scheme* sc);
+void glue_liii_string_cursor (s7_scheme* sc);
 void glue_subprocess_run_values (s7_scheme* sc);
 
 inline s7_pointer
@@ -707,6 +708,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_sort (sc);
   glue_liii_list (sc);
   glue_liii_string (sc);
+  glue_liii_string_cursor (sc);
   glue_liii_time (sc);
   glue_liii_datetime (sc);
   glue_liii_uuid (sc);

@@ -61,7 +61,7 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 | `value-table-clean entry-keys` | cleanup（关窗） | 清整组防泄漏 |
 
 **不变量**：凡写文档树的路径（set/reset/cancel）都必须同步 `set!` 本表，否则表值与文档真相背离。
-当前两个使用者：
+使用者（凡带 reset 的 live 写回对话框必接入）：
 
 - **FontSelector**（`fonts/font-new-widgets.scm`）：entry-key = `(specs var buffer)`，fallback
   为字体专用 `initial-font-data`/`initial-customize-get`；Cancel 经 `font-selector-revert-to-snapshot`
@@ -70,6 +70,47 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 - **ParagraphFormat**（`generic/paragraph-format-widgets.scm`）：entry-key = `(key var)`（key 为 register 返回的实例句柄），
   fallback 为 scope 路由的 `get-env`/`get-init`；register 填表、set 同步写、reset 段落级写快照值/
   文档级 init-default 后写 `get-init` 默认值、Cancel restore-snapshot 写快照值、cleanup 清表。
+
+## Preferences 契约（preferences-qml-meta / PreferencesBridge）
+
+Preferences（首选项）是 FormDialog 模式的变体：**本地暂存 + OK 一次性 diff 提交**。
+打开时 `prefBridge.meta()` 一次性拉全部 tab/字段描述符树（打开快照 `initialValues`）；
+用户改动只改 QML 本地 `values`（条件锁定 / radio 互斥纯 QML 本地，不往 facade 写）；
+OK 时算与快照的 diff → `prefBridge.submit(diff)` 一次性应用；Cancel 丢弃
+（`prefBridge.cancel()` 只关窗，scm 侧 no-op）。Preferences.qml 头注释引用本节。
+
+**prefBridge 契约**（`PreferencesBridge`，无状态透传——preferences 是全局的，bridge 不持有偏好数据）：
+
+| 方法 | 返回 / 语义 |
+|------|------------|
+| `meta()` | `{tabs: [{key, label, fields, subTabs?}]}`（subTabs 与 tab 同构） |
+| `submit(changed)` | `"applied"` / `"restart"` / `"later"` / `"cancel"` 四态：scm 先应用 diff；含需重启字段时先弹 `cpp-confirm-restart`，三选一映射 restart / later(保存稍后) / cancel(回退该字段) |
+| `cancel()` | 关窗，本地丢弃 |
+| `callAction(name)` | 行内按钮动作路由（如 `open-auto-backup-location`，label 与实现由插件注入） |
+
+**field-descriptor 字段**（scm 侧 `preferences-qml-field->descriptor` 产出，assoc-list）：
+
+| 字段 | 说明 |
+|------|------|
+| `kind` | `combo` / `toggle` / `info`（scm 按 options 非空 / key 空自动分流） |
+| `key` | preference 内部键（combo/toggle 必有；info 无、不入可编辑 map） |
+| `label` / `hint` / `group` | 已翻译文案（编码注意见下） |
+| `value` | wire 格式统一字符串：toggle 为 `"on"/"off"`，combo 为 options 内部键 |
+| `options` / `optionsTr` | 内部键 × 翻译显示，等长同序；动态字段（language、scripting language、image format）在 meta 构建期拉取，look and feel 按平台裁剪 |
+| `editable` | combo 双击可键入（透传 EnumCombo） |
+| `restart` | 改动需重启生效 |
+| `radioGroup` | 互斥组：开一则同组其它置 off（QML 本地） |
+| `enabledWhenKey` / `enabledWhenVal` | 条件锁定：依赖键等于值才可勾，否则 Toggle 锁定灰显（QML 本地） |
+| `layout` / `column` | `"two-col"` 双栏段与 0/1 列号（Mathematics / Experimental） |
+| `groupSpan` | 分组标题横跨整行（统领双栏两列，如 IR 遥控组） |
+| `buttonLabel` / `buttonAction` | combo 旁行内按钮，点击经 `callAction(buttonAction)` 路由 |
+
+编码注意：scm 字面量是 UTF-8，label/hint/group/buttonLabel 先 `utf8->cork` 再
+`translate`，bridge 侧 `cork_to_utf8` 还原——跳过归一化会让含非 ASCII 的文案
+（如 `TeXmacs → Html` 的箭头）被二次解码成乱码。偏好键一律走
+`pref-keys.scm` 的 `pref-*` 访问器。字段定义与 descriptor 构建在
+`TeXmacs/progs/texmacs/menus/preferences-tools.scm`，tab 组织与 submit 在
+`preferences-widgets.scm`；契约测试 `TeXmacs/tests/2044.scm`。
 
 ## 板块
 
@@ -80,29 +121,48 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 - **`qml/`**（本目录）— 成品弹窗，`qml/qmldir` 登记。
 
 **原子**（`atoms/`，拼装用，勿自造外壳/配色）：
-- `DialogShell` — 外壳：圆角、无边框拖动、Esc、`content` 正文槽、共享下拉浮层
-- `DialogButtons` — 按钮行，只发 `clicked(index)`，语义由调用方映射
-- `MiniButton` — 紧凑小按钮（正文内辅助按钮组，如行间距预设），只发 `clicked()`
-- `EnumCombo` — 下拉 combo 行（浮层由 DialogShell 管），支持 optionsTr 翻译分离
-- `EnumComboList` — 可滚动的 EnumCombo 竖列（Filter/Advanced 选项卡内容）
+- `DialogShell` — 外壳：圆角、无边框拖动、Esc、`content` 正文槽、共享下拉浮层。
+  `onCancel`/`onActivate` 是可覆盖回调（默认 Esc → `closeBridge.cancel()`；FontSelector
+  覆盖转调 `fontBridge.cancel()`，UpdaterProgress 覆盖为 no-op 禁 Esc）
+- `DialogButtons` — 按钮行，只发 `clicked(index)`，`primaryIndex` 定主按钮配色，
+  语义由调用方映射
+- `MiniButton` — 正文内辅助按钮，`size` 两档：`"mini"` 紧凑小按钮（行间距预设组）、
+  `"normal"` 与 EnumCombo 行等高的行内 action 按钮（宽度按文案自适应），只发 `clicked()`
+- `EnumCombo` — 下拉 combo 行（浮层由 DialogShell 管），key/显示分离（`options` 英文键 ×
+  `optionsTr` 翻译显示）；`editable: true` 双击进可编辑输入态（Enter/失焦落定、Esc 撤销），
+  供数值类字段键入预设外的自定义值；`isNarrow` 双栏半宽列自适应；`actionLabel` 行内按钮
+  （发 `actionClicked`，如「打开备份目录」）
+- `EnumComboList` — 可滚动的 EnumCombo 竖列，两种取值模式：默认 meta 自带 value
+  （FontSelector）；`valueSource` 外部真相源 map 模式——改动只外发 `itemChanged`、由
+  调用方更新 map（live 写回且 get-env 重读有延迟的场景用，如段落格式，避免显示滞后一拍）
 - `SelectableList` — 常驻单选列表（family/style/size 三栏用），自带 `refreshTick`
-  驱动 currentValue 重算
+  驱动 currentValue 重算；值未变仅发信号时需调用方显式 `syncActiveValue()`
 - `PreviewPane` — 预览图区（显示 bridge 光栅化的 PNG data URL）
 - `TabBar` — 胶囊选项卡行
-- `TabPanel` — 带选项卡的容器面板（TabBar + content 槽）
-- `Theme` — 主题单例（scaleFactor / 暗色 / 配色 / 结构尺寸常量 `rowH`·`btnH`）
+- `TabPanel` — 带选项卡的容器面板（TabBar + content 槽；content 与 DialogShell 同样
+  由组件 reparent 锚定，调用方勿自行 anchors.fill）
+- `GroupHeader` — 分组小标题（加粗 + 对称间距，不画分隔线；`isFirst` 首组不加上间距）
+- `Toggle` — 布尔开关行（label + 可选 hint + 右侧 on/off 胶囊，切换滑动动画）；
+  `isNarrow` 双栏半宽列缩小字体加大 label 占比；`enabled: false` 锁定灰显
+  （enabledWhen 条件锁定用）
+- `Theme` — 主题单例（scaleFactor / 暗色 / 配色 / 尺寸与字号阶梯常量，分类规则见
+  「编码规矩」）
 - `InputField` — 自由输入行（路径/页码/搜索词；可选行内按钮）
 
 **成品**：
 | 对话框 | 模态引擎 | 模型 |
 |--------|---------|------|
 | `ConfirmClose` | `run_qml_dialog`（exec） | 点按钮返回结果 |
-| `ConfirmQuestion` | `run_qml_dialog`（exec） | 默认按钮居右的确认弹窗（替换 question-no-cancel 的 QMessageBox），返回语义按钮下标 |
+| `ConfirmQuestion` | `run_qml_dialog`（exec） | 默认按钮居右的确认弹窗（替换 question-no-cancel 的 QMessageBox），返回语义按钮下标（按钮反序协议见「编码规矩」） |
 | `ConfirmRestart` | `run_qml_dialog`（exec） | 三按钮（立即重启/稍后/取消），返回 `"restart"/"later"/"cancel"` |
-| `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit |
+| `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit（页面设置走此弹窗） |
 | `PrintToFile` | `run_qml_dialog`（exec） | 路径 + 页码一次提交；Browse 走原生保存框 |
 | `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |
+| `Statistics` | `run_qml_dialog`（exec） | 纯展示统计行（`statsItems` 注入 `{label,value}`），Close 即关，无返回值 |
+| `Version` | `run_qml_dialog`（exec + 自适应高度） | `VersionDialogBridge` 只读（title/lines/buttonLabels）+ `confirm()`；单行超宽自动换行，定宽后读 implicitHeight 锁高（见「模态引擎」） |
+| `Preferences` | `run_qml_dialog`（exec） | 本地暂存 + OK 一次性 diff 提交（契约见上节）；含需重启字段时先弹 ConfirmRestart |
+| `UpdaterProgress` | `run_modal_qml_dialog`（setModal+show） | 更新下载中间态：无进度条只转圈；全局单例宿主（重复 open 不重弹）+ `cpp-updater-dialog-open/close` 成对 glue；Esc 禁用（onCancel 覆盖 no-op）。选 show 模态非为 live 重绘，而是 exec 嵌套循环会阻塞 scheme 的 delayed 轮询链 |
 
 ## 编码规矩
 
@@ -117,12 +177,14 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
   可保留字面量。
 - **cancel 走语义化入口**：`QmlDialogBridge.cancel()`（= `done(Rejected)`），勿散落
   `choose(-1)` 魔法值。`choose(n>=0)` 仍用于「选第 n 个按钮」（ConfirmClose）。
+- **ConfirmQuestion 按钮反序协议**：scm 传语义序 buttons（`buttons[0]` 为默认）；
+  C++ 注入 QML 前反序（默认按钮居右），`dialogPrimary` 指显示序最后一个；QML 回传
+  `choose` 为显示下标 +1，C++ 映射回语义下标 `N - choice`。动按钮顺序前先过一遍这条链。
 - **偏好键统一走 `pref-keys.scm`**：弹窗读写 preference 的 key 字符串一律在
   `TeXmacs/progs/kernel/texmacs/pref-keys.scm`（单一可信源）声明 `(define-public (pref-...) "...")`，
   调用方在 quasiquote 里用 `,(pref-...)` 引用而非裸字符串（key 改名会断 notify 回调链路）。
-  新增弹窗的字段键须补 pref-keys 声明——Page setup / Font selector 已覆盖，
-  ParagraphFormat 的 19 个 `par-*`（见 #2045）与 Preferences 的 ~85 个 key（见 #2044）
-  是近期补齐的两组。
+  新增弹窗的字段键须补 pref-keys 声明——现有 117 个访问器已覆盖 Page setup / Font
+  selector / ParagraphFormat（`pref-par-*`）/ Preferences 各组。
 - **绑定到无参 bridge 函数的属性不会自动重算**：bridge 内部状态变化 QML 感知不到，需靠
   外部计数器注入依赖。`SelectableList.refreshTick` 已封装此模式——调用方 currentValue 绑定
   读 `<listId>.refreshTick`，refresh 时 `<listId>.refreshTick++` 即可，勿手写假读样板。
@@ -134,6 +196,8 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
    在 scm 构造数据时即用 `translate` 包裹，不要硬编码英文。值（数字、内部 key）不翻译。
   字典条目按最小粒度登记（如 `"character count"` / `"with spaces"`），系统自动拼接
   （`"Character count (with spaces)"` → `"字符数（计空格）"`），不要为每种组合加整条字典。
+  三方分工：文案翻译收敛在 scm 构造侧，C++ 仅 `translate_buttons` 对注入的按钮文案兜底，
+  QML 内不硬编码用户可见文案（回退文案用 `qsTr`）。
 - **`translate` 的三条自动归一化**（实现在 `src/System/Language/dictionary.cpp` 的
   `dictionary_rep::translate`，`qt_translate` 同源）：
   1. **首字母大写折叠**：查表前把首字符转小写再查，命中后把结果首字母大写回。故字典
@@ -147,9 +211,12 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 - **字典条目按字母序排列**：`TeXmacs/plugins/lang/dic/en_US/zh_CN.scm` 等字典文件，
   新增条目按首字母段插入（大小写混排时以小写为准），保持可检索。
 - **跨弹窗复用的布局常量收进 `Theme.qml`**：行高、间距等可能被多个弹窗共用的数字，统一加在
-  `atoms/Theme.qml` 的结构尺寸/间距阶梯段。优先用已有常量组合（如 `Theme.btnH + Theme.padS * 2`
+  `atoms/Theme.qml`。优先用已有常量组合（如 `Theme.btnH + Theme.padS * 2`
   表示按钮区高度），避免为单一用途加新常量。成品弹窗只保留本弹窗专属的布局参数（如列宽比
   `labelW`），引用 Theme 常量（`Theme.pad`/`Theme.gapS`/`Theme.inlineGap`/`Theme.textRowH` 等）。
+  `Theme.qml` 内常量按段分类：配色 → 结构尺寸 → 圆角 → 字号阶梯 → 间距/边距阶梯 →
+  原子级布局常量（combo/toggle/tab/list/mini 各段，某原子专用）→ 双栏布局（`twoCol*`）。
+  新常量按类别归段，不另起散段。
 - **跨 parent 链查找的 property 不能喂给 binding**：如 EnumCombo 的 `dialogShell`（沿
   parent 链按 objectName 查找）是命令式 property，parent 变化不触发其重算，binding 会在
   创建瞬间读到 null 永久卡住。依赖它的几何（comboX/Y/W）须在展开时用 `updateGeometry()`
@@ -159,7 +226,25 @@ API 速查（`utils/library/dialog-value-table`，entry-key 由调用方自定�
 
 两个引擎都收敛了 QDialog 拼装 + setSource + 加载检查 + 定尺寸流程，差异只在 exec vs
 setModal+show（见上表）。新增模态对话框写 context 注入回调 + 解读返回值即可，不重抄
-宿主拼装。
+宿主拼装。共用 context property 由 `inject_common_context` 注入：`closeBridge`
+（`QmlDialogBridge`：choose/cancel/submit/startMove）、`dpScale`（DPI 缩放）、`isDark`
+（跟随 tm_style_sheet）。
+
+**选 show 模态（setModal+show）的两种理由**：① live 重绘文档（FontSelector /
+ParagraphFormat）；② 弹窗存续期间 scheme 的 `delayed` 轮询链必须继续跑——exec 的嵌套
+事件循环会阻塞它（UpdaterProgress：下载链由 scheme 轮询驱动）。除这两种外一律用 exec。
+
+**bridge 生命周期两式**：exec 型在 `exec()` 返回后手动 `delete bridge`（ConfirmClose /
+FormDialog / Preferences / Version 等）；show 型 bridge 不挂 parent，靠
+`connect(host, destroyed, bridge, deleteLater)` 自清（见开头「生命期」）。需跨函数持有
+show 型宿主的（UpdaterProgress 的 open/close 成对 glue），用 `QPointer<QDialog>` 全局
+引用防悬垂，关窗走 `host->close()` 而非 `done()`（不触发 WA_DeleteOnClose 析构）。
+
+**自适应高度（autofit_height）**：正文行数不定时（Version 长文案换行），引擎先按
+logic_w 锁宽、让 QML 完成换行布局，再读根 `implicitHeight` 锁高（logic_h 仅回退）。
+配套坑：QML 里文本宽度须绑「定宽逻辑值」（如 Version 的 `contentW` = implicitWidth ×
+scaleFactor − 2×margin），不能绑实际父宽——show 前 C++ 就要读 implicitHeight，此刻布局
+宽度尚未就位，绑父宽会量出错误的换行结果。
 
 ## 开发工作流（新增弹窗/原子）
 
@@ -171,9 +256,12 @@ setModal+show（见上表）。新增模态对话框写 context 注入回调 + �
    不可靠）。尺寸/字号尽量复用 `Theme` 常量；拼接布局数字（列宽/间距）可留字面量。
 3. **登记**：`qml/qmldir` 加 `Foo 1.0 Foo.qml`；`moganqml.qrc` 加 `<file>qml/Foo.qml</file>`
    （无 glob，漏登则运行期找不到）。新增原子同理放 `atoms/` 并登 `atoms/qmldir`。
-4. **bridge + glue**：若需 live 写回，仿 `FontSelectorBridge` 写 C++ bridge（注入 context
-   property）；在 `QTMQmlDialog.cpp` 加 glue 入口（选 `run_qml_dialog` exec 或
-   `run_modal_qml_dialog` setModal+show，按是否需 live 重绘文档决定）。**若带 reset/Cancel**，
+4. **bridge + glue**：若需 live 写回或行内动作，仿 `FontSelectorBridge` 写 C++ bridge
+   （独立 QObject + `Q_INVOKABLE` 透传 `eval_scheme`，**不继承 `QmlDialogBridge`**，注入为
+   context property）。引擎入口写在 `QTMQmlDialog.cpp`（选 `run_qml_dialog` exec 或
+   `run_modal_qml_dialog` setModal+show，理由见「模态引擎」节）；**glue 声明登记在
+   `src/Scheme/L5/glue_qt.lua`**（C++ 声明侧 `src/Scheme/L5/glue_l5_extra.hpp`）——不在
+   `src/Scheme/Glue/` 目录，编辑器方法 glue 才在那里。**若带 reset/Cancel**，
    scheme facade 接入 `utils/library/dialog-value-table` 做本地真相表（见「Cancel/重置撤销」节），
    否则 reset 会滞后一拍。
 5. **加载测试**：在 `tests/Plugins/Qt/qml_load_test.cpp` 加 `test_foo_loads()`，注入对应
@@ -190,12 +278,29 @@ setModal+show（见上表）。新增模态对话框写 context 注入回调 + �
 1. **QML 加载测试**（`tests/Plugins/Qt/qml_load_test.cpp`，`xmake b qml_load_test && xmake r
    qml_load_test`）：`setSource` 后断言 `status()==Ready`。不验交互，只挡 import 缺失、语法
    错、id 悬空、context property 误用——改 atoms/弹窗后跑一遍即可回归。新弹窗加一个
-   `test_xxx_loads` 用例。
+   `test_xxx_loads` 用例。桩类四种：`StubBridge`（closeBridge 占位）、`StubLiveBridge`
+   （FontSelector+ParagraphFormat 全空桩）、`PrefStubBridge`（Preferences 最小字段树，
+   覆盖 group/two-col/column/sub-tab 渲染分支）、`VersionStubBridge`（只读属性）。
+   原子无独立加载用例——经成品弹窗间接覆盖是有意策略，新原子至少要被一个成品的加载
+   路径触达。Version 另有 4 个行为用例（打开聚焦、ESC 取消、ESC 无焦点兜底、长行换行）。
 2. **数据契约测试**（scheme 集成，`TeXmacs/tests/<编号>.scm`，`xmake b stem && xmake r <编号>`）：
    模态弹窗 C++ 单测无法 exec 阻塞跑，用环境变量钩子绕弹窗、直接走 facade 验 meta 形状 /
-   live 写回 / 快照撤销（字体：`MOGAN_TEST_FONT_SELECTOR=ok|cancel`，表单：
-   `MOGAN_TEST_FORM_DIALOG`，段落/确认关闭同理）。`MOGAN_TEST_GUI=1` 去 headless 在真实
-   GUI 跑交互链。
+   live 写回 / 快照撤销。钩子全表（实现在 `QTMQmlDialog.cpp` 各入口的 `get_env`）：
+
+   | 钩子 | 对话框 | 消费 |
+   |------|--------|------|
+   | `MOGAN_TEST_CONFIRM_CLOSE` | ConfirmClose | 2021.scm、qt_qml_dialog_test、qml_dialog_test |
+   | `MOGAN_TEST_CONFIRM_RESTART` | ConfirmRestart | 2040.scm、2044.scm、preferences-widgets-test.scm |
+   | `MOGAN_TEST_CONFIRM_QUESTION` | ConfirmQuestion | qml_dialog_test（C++ 侧） |
+   | `MOGAN_TEST_FORM_DIALOG` | FormDialog（页面设置） | 2023.scm、qml_dialog_test |
+   | `MOGAN_TEST_FONT_SELECTOR` | FontSelector | 2028.scm、font_selector_bridge_test |
+   | `MOGAN_TEST_PARAGRAPH_FORMAT` | ParagraphFormat | 2029.scm |
+   | `MOGAN_TEST_VERSION_DIALOG` | Version | 2080.scm |
+   | `MOGAN_TEST_PREFERENCES` | Preferences | preferences_bridge_test（C++ 侧；scheme 契约由 2044.scm 直调 facade 覆盖） |
+
+   Statistics / UpdaterProgress 无钩子（纯展示、无返回值分支）。另有 2036.scm
+   （ParagraphFormat 重置即时性 + value-table 缓存，facade 直调）。
+   `MOGAN_TEST_GUI=1` 去 headless 在真实 GUI 跑交互链。
 3. **手动 GUI 验证**：真实点选/双击/Esc/Cancel 等交互无法在 scheme 测试触及，靠打开弹窗
    观察确认。
 
@@ -203,11 +308,20 @@ setModal+show（见上表）。新增模态对话框写 context 注入回调 + �
 
 ## 相关
 
-- `src/Plugins/Qt/qml/atoms/` — 原子板块
-- `src/Plugins/Qt/qml/` — 成品弹窗（ConfirmClose/FormDialog/FontSelector/ParagraphFormat）
+- `src/Plugins/Qt/qml/atoms/` — 原子板块（12 个）
+- `src/Plugins/Qt/qml/` — 成品弹窗（ConfirmClose / ConfirmQuestion / ConfirmRestart /
+  FormDialog / FontSelector / ParagraphFormat / Statistics / Version / Preferences /
+  UpdaterProgress）
 - `src/Plugins/Qt/moganqml.qrc` — 逐文件登记 qml（无 glob，新增/移动须同步）
 - `src/Plugins/Qt/QTMQmlDialog.cpp` — 模态引擎 + 各对话框 glue 入口
 - `src/Plugins/Qt/QTMQmlDialogBridge.hpp` — `QmlDialogBridge`（choose/submit/cancel 回流）
-- `src/Plugins/Qt/FontSelectorBridge.*` — live + 快照撤销 bridge 样板
+  与 `QmlDialogEscFilter`（ESC 兜底）
+- `src/Plugins/Qt/FontSelectorBridge.*` / `ParagraphFormatBridge.*` / `PreferencesBridge.*` /
+  `VersionDialogBridge.*` — 各专用 bridge（独立 QObject 透传样板）
+- `src/Scheme/L5/glue_qt.lua` — QML 对话框 glue 声明（cpp-confirm-close 等 11 个入口）
+- scheme facade：`fonts/font-new-widgets.scm`（字体）、`generic/paragraph-format-widgets.scm`
+  （段落）、`texmacs/menus/preferences-widgets.scm` + `preferences-tools.scm`（首选项）、
+  `texmacs/menus/print-widgets.scm`（页面设置 → FormDialog）、`texmacs/texmacs/tm-tools.scm`
+  （统计）、`utils/misc/updater.scm`（更新下载 / ConfirmQuestion）、`doc/help-funcs.scm`（版本）
 - `tests/Plugins/Qt/qml_load_test.cpp` — QML 加载测试（新增弹窗在此加用例）
 - `ai-docs/qml/qml-dialog.html` — 设计稿

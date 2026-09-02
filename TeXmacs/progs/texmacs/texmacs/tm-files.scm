@@ -1186,7 +1186,7 @@
 (tm-define (linked-file-list) (linked-files-inside (buffer-tree)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Scratch buffers (draft_YYYYMMDDHH[MM][SS].tmu)
+;; Scratch buffers (draft_YYYYMMDD_HHMMSS.tmu; 旧稿无 _ 仍可解析)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; scratch buffer 所在目录
@@ -1217,7 +1217,8 @@
   ) ;let
 ) ;define
 
-;; 新 scratch buffer 的名字:精确到秒(标题需统一显示时分秒),冲突加 -N
+;; 新 scratch buffer 的名字:日期与时刻用 _ 分开,精确到秒,冲突加 -N
+;; 例: draft_20260901_194700.tmu / draft_20260901_194700-1.tmu
 ;; 返回系统路径字符串(供 C++ make_new_buffer 使用)
 (tm-define (scratch-buffer-name)
   (with dir
@@ -1226,13 +1227,15 @@
       (system-mkdir dir)
     ) ;when
     (with full
-      (date->string (current-date) "~Y~m~d~H~M~S")
+      (date->string (current-date) "~Y~m~d_~H~M~S")
       (url->system (scratch-unique-name dir full 0))
     ) ;with
   ) ;with
 ) ;tm-define
 
-;; draft 文件名 → 时间戳数字串("draft_202608242127-2.tmu" → "202608242127"),
+;; draft 文件名 → 纯数字时间戳,供标题按位切分(YYYYMMDDHH[MM][SS])。
+;; 新格式 "draft_20260901_194700.tmu" → "20260901194700";
+;; 旧格式 "draft_202608242127-2.tmu" → "202608242127";
 ;; 非 draft 名返回 #f
 
 (define (draft-stamp u)
@@ -1242,7 +1245,9 @@
       (string-ends? name ".tmu")
       (let* ((body (substring name 6 (- (string-length name) 4)))
              (cut (or (string-index body #\-) (string-length body)))
-             (digits (substring body 0 cut))
+             (raw (substring body 0 cut))
+             ;; 去掉日期与时刻之间的 _,标题逻辑仍按连续数字下标切
+             (digits (string-join (string-split raw "_") ""))
             ) ;
         (and (>= (string-length digits) 12) digits)
       ) ;let*

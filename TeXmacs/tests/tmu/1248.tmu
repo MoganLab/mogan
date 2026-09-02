@@ -1,0 +1,18 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <version-both|旧|新>
+
+  <version-both|old|new>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|preamble|false>
+    <associate|stem-doc-id|B58D94E4-FE68-4140-81D4-87300049BBB0>
+  </collection>
+</initial>

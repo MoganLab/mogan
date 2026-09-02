@@ -1,8 +1,10 @@
 /******************************************************************************
  * MODULE     : qml_load_test.cpp
  * DESCRIPTION: 加载真实 QML 弹窗文档，断言 setSource 后 status()==Ready。
- *              安全网：改造四个成品弹窗（ConfirmClose / FormDialog /
- *              FontSelector / ParagraphFormat）与 atoms/ 原子板块后，确保 QML
+ *              安全网：改造成品弹窗（ConfirmClose / ConfirmQuestion /
+ *              ConfirmRestart / FormDialog / FontSelector / ParagraphFormat /
+ *              Statistics / Version / Preferences / UpdaterProgress）与 atoms/
+ *              原子板块后，确保 QML
  *              仍能解析、实例化。不验证交互（需可见窗口 + 人工），只验证
  *              「文档加载不失败」——import 缺失、语法错、id 悬空、context
  *              property 误用的第一道关。新增弹窗在此加一个 test_xxx_loads
@@ -36,15 +38,28 @@ class StubBridge : public QObject {
   Q_OBJECT
 public:
   explicit StubBridge (QObject* p= nullptr) : QObject (p) {}
-  int              cancelCount= 0;
-  Q_INVOKABLE void choose (int) {}
-  Q_INVOKABLE void cancel () { ++cancelCount; }
-  Q_INVOKABLE void submit (const QVariantMap&) {}
-  Q_INVOKABLE void startMove () {}
+  int                 cancelCount= 0;
+  Q_INVOKABLE void    choose (int) {}
+  Q_INVOKABLE void    cancel () { ++cancelCount; }
+  Q_INVOKABLE void    submit (const QVariantMap&) {}
+  Q_INVOKABLE void    startMove () {}
   Q_INVOKABLE QString pickSaveFile (const QString&, const QString&) {
     return QString ();
   }
   Q_INVOKABLE QString browse (const QString&) { return QString (); }
+};
+
+// ColorPicker 的 colorBridge 占位：不真取色（pickScreenColor 为 no-op）。
+class ColorStubBridge : public QObject {
+  Q_OBJECT
+  Q_PROPERTY (bool canPickScreen READ canPickScreen CONSTANT)
+public:
+  explicit ColorStubBridge (QObject* p= nullptr) : QObject (p) {}
+  bool             canPickScreen () const { return true; }
+  Q_INVOKABLE void pickScreenColor () {}
+signals:
+  void screenColorPicked (const QString& hex);
+  void screenPickUnavailable ();
 };
 
 class VersionStubBridge : public QObject {
@@ -222,6 +237,8 @@ private slots:
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
   void test_print_to_file_loads ();
+  void test_updater_progress_loads ();
+  void test_color_picker_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -401,19 +418,19 @@ TestQmlLoad::test_print_to_file_loads () {
   QVariantList fields;
   QVariantMap  f0;
   f0["type"] = QString ("path");
-  f0["label"] = QString ("File name:");
+  f0["label"]= QString ("File name:");
   f0["key"]  = QString ("name");
   f0["value"]= QString ("doc.ps");
   fields << f0;
-  QVariantMap  f1;
+  QVariantMap f1;
   f1["type"] = QString ("number");
-  f1["label"] = QString ("First page:");
+  f1["label"]= QString ("First page:");
   f1["key"]  = QString ("first");
   f1["value"]= QString ("1");
   fields << f1;
-  QVariantMap  f2;
+  QVariantMap f2;
   f2["type"] = QString ("number");
-  f2["label"] = QString ("Last page:");
+  f2["label"]= QString ("Last page:");
   f2["key"]  = QString ("last");
   f2["value"]= QString ("3");
   fields << f2;
@@ -430,11 +447,29 @@ TestQmlLoad::test_print_to_file_loads () {
   qw->rootContext ()->setContextProperty ("printBridge", print);
   qw->rootContext ()->setContextProperty ("formFields", fields);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
-  qw->rootContext ()->setContextProperty ("browseLabel",
-                                          QString ("Browse"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/PrintToFile.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_updater_progress_loads () {
+  // UpdaterProgress 只需 dialogMessage（closeBridge/dpScale/isDark
+  // 为共用注入）； 无专用 bridge、无按钮（下载不可中断，ESC 经 DialogShell
+  // onCancel 覆盖为 no-op 禁用——加载层面只验证文档实例化，含 RotationAnimation
+  // 转圈）。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage", QString ("Downloading the update..."));
+  qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
@@ -574,6 +609,41 @@ TestQmlLoad::test_version_long_line_wraps () {
     }
   QVERIFY (line);
   QTRY_VERIFY (line->height () > 40.0); // 单行 14*1.35≈19，换行后显著更高
+}
+
+void
+TestQmlLoad::test_color_picker_loads () {
+  // ColorPicker 顶层读取 pickerTitleProp / proposalsProp / pickPatternProp /
+  // initialColorProp / customColorsProp / labelsProp / dialogButtonsProp /
+  // colorBridge，注入最小占位保证文档实例化。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge*      bridge  = new StubBridge (qw);
+  ColorStubBridge* cpBridge= new ColorStubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("colorBridge", cpBridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("pickerTitleProp",
+                                          QString ("Choose color"));
+  qw->rootContext ()->setContextProperty (
+      "proposalsProp", QStringList ({"#ff0000", "#00ff00", "#0000ff"}));
+  qw->rootContext ()->setContextProperty ("pickPatternProp", false);
+  qw->rootContext ()->setContextProperty ("initialColorProp",
+                                          QString ("#ff0000"));
+  qw->rootContext ()->setContextProperty ("customColorsProp",
+                                          QStringList ({"#123456"}));
+  QVariantMap labels;
+  labels["basicColors"]    = QString ("Basic colors");
+  labels["customColors"]   = QString ("Custom colors");
+  labels["addToCustom"]    = QString ("Add to custom colors");
+  labels["pickScreenColor"]= QString ("Pick screen color");
+  qw->rootContext ()->setContextProperty ("labelsProp", labels);
+  qw->rootContext ()->setContextProperty ("dialogButtonsProp",
+                                          QStringList ({"OK", "Cancel"}));
+  qw->setSource (QUrl ("qrc:/qml/ColorPicker.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 QTEST_MAIN (TestQmlLoad)

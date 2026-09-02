@@ -920,7 +920,7 @@
           ) ;list
     ;; 更新通道（Stable/Beta 单选 combo）：真实存储单值 update-channel,
     ;; 写值经 set-field 特例路由到 updater-switch-channel 的两次确认。
-    ;; 仅 Velopack 更新器平台（Windows 安装版）显示。
+    ;; 仅 Velopack 更新器平台（Windows / macOS arm64 安装版）显示。
     (if (use-plugin-updater?)
       (list (list (pref-update-channel)
               "Update channel"

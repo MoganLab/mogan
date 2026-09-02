@@ -134,8 +134,8 @@
  ("Subsection" (smart-insert-heading 'subsection))
  ("Subsubsection" (smart-insert-heading 'subsubsection))
  ---
- ("Paragraph::section" (make-section 'paragraph))
- ("Subparagraph" (make-section 'subparagraph))
+ ("Paragraph::section" (smart-insert-heading 'paragraph))
+ ("Subparagraph" (smart-insert-heading 'subparagraph))
 ) ;menu-bind
 
 
@@ -152,10 +152,10 @@
   ("Subsection" (smart-insert-heading 'subsection))
   ("Subsubsection" (smart-insert-heading 'subsubsection))
   ---
-  ("Paragraph::section" (make-section 'paragraph))
-  ("Subparagraph" (make-section 'subparagraph))
+  ("Paragraph::section" (smart-insert-heading 'paragraph))
+  ("Subparagraph" (smart-insert-heading 'subparagraph))
   ---
-  ("Appendix" (make-section 'appendix))
+  ("Appendix" (smart-insert-heading 'appendix))
   ("Prologue::menu" (begin (make-unnamed-section 'prologue) (insert-return)))
   ("Epilogue" (begin (make-unnamed-section 'epilogue) (insert-return)))
   ("List of abbreviations" (make-unnamed-section 'list-of-abbreviations))

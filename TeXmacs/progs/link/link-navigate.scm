@@ -702,6 +702,7 @@
       (begin
         (if (nnull? opt-from) (cursor-history-add (car opt-from)))
         (tree-go-to (car l) :end)
+        (with u (current-view) (when u (delayed (:idle 1) (make-cursor-visible u))))
         (if (nnull? opt-from) (cursor-history-add (cursor-path)))
       ) ;begin
       (and (resolve-id id) (delayed (:idle 25) (apply go-to-id (cons id opt-from))))

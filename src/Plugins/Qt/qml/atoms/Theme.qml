@@ -49,6 +49,7 @@ QtObject {
     readonly property real fontBtn: 15 * scaleFactor  // 主按钮（DialogButtons）字号
     readonly property real fontTab: 13 * scaleFactor  // 选项卡（TabBar）字号
     readonly property real fontMini: 11 * scaleFactor // 紧凑按钮（MiniButton）字号
+    readonly property real fontSmall: 12 * scaleFactor // small 档按钮字号（fontMini 与 fontBody 之间）
     readonly property real fontTiny: 10 * scaleFactor // 箭头/角标等微型字号
 
     // 间距/边距阶梯（跨原子共用）。
@@ -72,6 +73,7 @@ QtObject {
     readonly property real listTextPadR: 18 * scaleFactor // SelectableList 列表项文本右内边距
     readonly property real miniBtnW: 48 * scaleFactor // MiniButton 默认宽
     readonly property real miniBtnH: 28 * scaleFactor // MiniButton 默认高
+    readonly property real smallBtnH: 32 * scaleFactor // MiniButton small 档高（介于 mini 与主按钮 btnH 之间）
     readonly property real miniBtnR: 7 * scaleFactor  // MiniButton 圆角
 
     // Toggle 原子常量（胶囊开关 + 滑块）。

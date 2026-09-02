@@ -12,18 +12,21 @@
  *
  * @par 职责
  * 本对话框是一次性提交（exec 模态，OK 整包提交给 cpp_print_to_file_dialog），
- * 本身无 live 写回、无 scheme facade 往返。唯一需要 C++ 参与的交互是「文件路径」
- * 字段的 **Browse** 按钮——弹原生保存文件对话框（QFileDialog::getSaveFileName），
+ * 本身无 live 写回、无 scheme facade 往返。唯一需要 C++
+ *参与的交互是「文件路径」 字段的 **Browse**
+ *按钮——弹原生保存文件对话框（QFileDialog::getSaveFileName），
  * 让用户导航文件系统选存储位置后再回填 QML 字段。
  *
  * @par browse 语义
- * QML 点 Browse 时调用 browse(current)：以 current（当前字段里的路径）为初值打开
- * 原生保存对话框，返回用户选中的路径（QString）；用户取消返回空串，QML 不改字段。
- * file 过滤按对话框语义（打印目标为 PostScript 时建议 ``*.ps``/``*.pdf``）。
+ * QML 点 Browse 时调用 browse(current)：以
+ *current（当前字段里的路径）为初值打开
+ * 原生保存对话框，返回用户选中的路径（QString）；用户取消返回空串，QML
+ *不改字段。 file 过滤按对话框语义（打印目标为 PostScript 时建议
+ *``*.ps``/``*.pdf``）。
  *
- * @note 生命期：run_qml_dialog（exec）内桥对象在注入回调里 new、exec 结束后 delete
- *（同 cpp_form_dialog 的 bridge 处理）。不挂 QObject parent，避免随宿主析构提前
- * 释放。
+ * @note 生命期：run_qml_dialog（exec）内桥对象在注入回调里 new、exec 结束后
+ *delete （同 cpp_form_dialog 的 bridge 处理）。不挂 QObject
+ *parent，避免随宿主析构提前 释放。
  */
 
 #ifndef PRINT_TO_FILE_BRIDGE_HPP

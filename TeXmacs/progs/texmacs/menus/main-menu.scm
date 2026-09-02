@@ -66,7 +66,6 @@
     (=> "Part" (link document-part-menu))
   ) ;if
   (if (project-attached?) (=> "Project" (link project-menu)))
-  (if (with-versioning-tool?) (=> "Version" (link version-menu)))
   (=> "View::menu" (link view-menu))
   (if (qt-gui?) (=> "Go" (link go-menu)))
   (if (qt-gui?) (if (detailed-menus?) (=> "Tools" (link tools-menu))))
@@ -165,7 +164,6 @@
     (-> "Part" (link document-part-menu))
   ) ;if
   (if (project-attached?) (=> "Project" (link project-menu)))
-  (if (with-versioning-tool?) (-> "Version" (link version-menu)))
   (-> "View::menu" (link view-menu))
   (-> "Go" (link go-menu))
   (if (detailed-menus?) (-> "Tools" (link tools-menu)))

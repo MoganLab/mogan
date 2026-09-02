@@ -1072,3 +1072,282 @@ s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args)
     return(val);
   }
 }
+
+/* -------- optimizer typed-arg (p_p) functions, migrated from s7.c -------- */
+
+/* the optimizer compares these function pointers directly
+   (e.g. q_func1(opc).p_p_f == car_p_p), so each must have a single
+   extern definition in this compilation unit */
+
+/* Externally defined in s7.c - permanent type/error description strings */
+extern s7_pointer a_list_string, an_association_list_string, a_proper_list_string;
+extern s7_pointer it_is_negative_string, it_is_too_large_string;
+
+s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
+{
+  if (s7_is_list(sc, tree))
+    {
+      if (s7i_tree_is_cyclic_checked(sc, tree))
+	s7i_error_nr(sc, s7_make_symbol(sc, "wrong-type-arg"),
+		     s7i_set_elist_2(sc, s7i_wrap_string(sc, "tree-leaves: tree is cyclic: ~S", 31), tree));
+      return(s7_make_integer(sc, s7i_tree_len(sc, tree)));
+    }
+  return(s7i_method_or_bust_p(sc, tree, "tree-leaves", "a list"));
+}
+
+s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
+{
+  return(s7_make_boolean(sc, s7i_tree_set_memq_b_7pp(sc, syms, tree)));
+}
+
+s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg) {return(s7_make_boolean(sc, s7_is_proper_list(sc, arg)));}
+
+s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
+{
+  s7_int len;
+  if (!s7_is_integer(n))
+    return(s7i_method_or_bust(sc, n, "make-list", s7i_set_plist_2(sc, n, init), "integer", 1));
+
+  len = s7i_integer_clamped_if_gmp(sc, n);
+  if (len == 0) return(s7_nil(sc));          /* what about (make-list 0 123)? */
+  if (len < 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "make-list"), s7i_wrap_integer(sc, 1), n, it_is_negative_string);
+  if (len > s7i_max_list_length(sc))
+    s7i_error_nr(sc, s7_make_symbol(sc, "out-of-range"),
+		 s7i_set_elist_3(sc, s7i_wrap_string(sc, "make-list length argument ~D is greater than (*s7* 'max-list-length), ~D", 72),
+				 s7i_wrap_integer(sc, len), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
+  return(s7_make_list(sc, len, init));
+}
+
+s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index)
+{
+  s7_pointer p = lst;
+  if (index < 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "list-ref"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), it_is_negative_string);
+  if (index > s7i_max_list_length(sc))
+    s7i_error_nr(sc, s7_make_symbol(sc, "out-of-range"),
+		 s7i_set_elist_3(sc, s7i_wrap_string(sc, "list-ref index ~D is too large, (*s7* 'max-list-length) is ~D", 61),
+				 s7i_wrap_integer(sc, index), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
+  for (s7_int i = 0; ((s7_is_pair(p)) && (i < index)); i++, p = s7_cdr(p));
+  if (!s7_is_pair(p))
+    {
+      if (s7_is_null(sc, p))
+	out_of_range_error_nr(sc, s7_make_symbol(sc, "list-ref"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), it_is_too_large_string);
+      sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "list-ref"), lst, a_proper_list_string);
+    }
+  return(s7_car(p));
+}
+
+s7_pointer list_ref_p_pi(s7_scheme *sc, s7_pointer lst, s7_int index)
+{
+  if (!s7_is_pair(lst))
+    sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "list-ref"), lst, s7i_wrap_string(sc, "pair", 4));
+  return(list_ref_p_pi_unchecked(sc, lst, index));
+}
+
+s7_pointer list_ref_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer index)
+{
+  if (!s7_is_pair(lst))
+    return(g_list_ref(sc, s7i_set_plist_2(sc, lst, index)));
+  if (!s7_is_integer(index))
+    sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "list-ref"), index, s7i_wrap_string(sc, "integer", 7));
+  return(list_ref_p_pi_unchecked(sc, lst, s7i_integer_clamped_if_gmp(sc, index)));
+}
+
+no_return void list_set_index_check_nr(s7_scheme *sc, s7_int index)
+{
+  if (index < 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "list-set!"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), it_is_negative_string);
+  s7i_error_nr(sc, s7_make_symbol(sc, "out-of-range"),
+	       s7i_set_elist_3(sc, s7i_wrap_string(sc, "list-set! index ~D is too large, (*s7* 'max-list-length) is ~D", 62),
+			       s7i_wrap_integer(sc, index), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
+}
+
+s7_pointer list_set_p_pip_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index, s7_pointer value)
+{
+  s7_pointer p = lst;
+  if ((index < 0) || (index > s7i_max_list_length(sc))) list_set_index_check_nr(sc, index);
+  for (s7_int i = 0; ((s7_is_pair(p)) && (i < index)); i++, p = s7_cdr(p));
+  if (!s7_is_pair(p))
+    {
+      if (s7_is_null(sc, p))
+	out_of_range_error_nr(sc, s7_make_symbol(sc, "list-set!"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), it_is_too_large_string);
+      sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "list-set!"), lst, a_proper_list_string);
+    }
+  s7_set_car(p, value);
+  return(value);
+}
+
+s7_pointer list_set_p_pip(s7_scheme *sc, s7_pointer lst, s7_int index, s7_pointer value) /* called in t101-12|14... */
+{
+  if (!s7_is_pair(lst))
+    sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "list-set!"), lst, s7i_wrap_string(sc, "pair", 4));
+  return(list_set_p_pip_unchecked(sc, lst, index, value));
+}
+
+s7_pointer list_tail_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer ind)
+{
+  s7_int i, index;
+  if (!s7_is_integer(ind))
+    return(s7i_method_or_bust_pp(sc, ind, "list-tail", lst, ind, "integer", 2));
+  index = s7i_integer_clamped_if_gmp(sc, ind);
+
+  if (!s7_is_list(sc, lst)) /* (list-tail () 0) -> () */
+    return(s7i_method_or_bust_pp(sc, lst, "list-tail", lst, ind, "a list", 1));
+  if (index < 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "list-tail"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), it_is_negative_string);
+  if (index > s7i_max_list_length(sc))
+    s7i_error_nr(sc, s7_make_symbol(sc, "out-of-range"),
+		 s7i_set_elist_3(sc, s7i_wrap_string(sc, "list-tail index ~D is too large, (*s7* 'max-list-length) is ~D", 62),
+				 s7i_wrap_integer(sc, index), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
+
+  for (i = 0; (i < index) && (s7_is_pair(lst)); i++, lst = s7_cdr(lst)) {}
+  if (i < index)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "list-tail"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), it_is_too_large_string);
+  return(lst);
+}
+
+s7_pointer cons_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
+{
+  return(s7i_cons_safe(sc, p1, p2));
+}
+
+s7_pointer car_p_p(s7_scheme *sc, s7_pointer lst)
+{
+  if (s7_is_pair(lst))
+    return(s7_car(lst));
+  return(s7i_sole_arg_method_or_bust(sc, lst, "car", s7i_set_plist_1(sc, lst), "pair"));
+}
+
+s7_pointer set_car_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) {return(s7i_inline_set_car(sc, lst, value));}
+
+s7_pointer cdr_p_p(s7_scheme *sc, s7_pointer lst)
+{
+  if (s7_is_pair(lst))
+    return(s7_cdr(lst));
+  return(s7i_sole_arg_method_or_bust(sc, lst, "cdr", s7i_set_plist_1(sc, lst), "pair"));
+}
+
+s7_pointer set_cdr_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) {return(s7i_inline_set_cdr(sc, lst, value));}
+
+s7_pointer assq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  return((s7_is_pair(lst)) ? s7_assq(sc, obj, lst) :
+	 ((s7_is_null(sc, lst)) ? s7_f(sc) :
+	  s7i_method_or_bust_pp(sc, lst, "assq", obj, lst, "an association list", 2)));
+}
+
+s7_pointer assv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  s7_pointer slow;
+  if (!s7_is_pair(lst))
+    {
+      if (s7_is_null(sc, lst)) return(s7_f(sc));
+      if (s7i_scheme_version_is_s7(sc))
+	return(s7i_method_or_bust_pp(sc, lst, "assv", obj, lst, "an association list", 2));
+      return(s7i_methods_or_bust_pp(sc, lst, "assv", "assq", obj, lst, an_association_list_string, 2));
+    }
+  if (s7i_is_simple(obj))
+    return(s7_assq(sc, obj, lst));
+
+  slow = lst;
+  while (true)
+    {
+      /* here we can't play the assq == game because s7_is_eqv thinks it's getting a legit s7 object */
+      if ((s7_is_pair(s7_car(lst))) && (s7_is_eqv(sc, obj, s7_caar(lst)))) return(s7_car(lst));
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+
+      if ((s7_is_pair(s7_car(lst))) && (s7_is_eqv(sc, obj, s7_caar(lst)))) return(s7_car(lst));
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+
+      slow = s7_cdr(slow);
+      if (slow == lst) return(s7_f(sc));
+    }
+  return(s7_f(sc)); /* not reached */
+}
+
+s7_pointer assoc_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer p)
+{
+  if (!s7_is_pair(p))
+    {
+      if (s7_is_null(sc, p)) return(s7_f(sc));
+      return(s7i_method_or_bust(sc, p, "assoc", s7i_set_plist_2(sc, obj, p), "an association list", 2));
+    }
+  if (!s7_is_pair(s7_car(p))) sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "assoc"), p, an_association_list_string);
+  if (s7i_is_simple(obj)) return(s7_assq(sc, obj, p));
+  return(s7i_assoc_1(sc, obj, p));
+}
+
+s7_pointer memq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  return((s7_is_pair(lst)) ? s7_memq(sc, obj, lst) :
+	 ((s7_is_null(sc, lst)) ? s7_f(sc) : s7i_method_or_bust_pp(sc, lst, "memq", obj, lst, "a list", 2)));
+}
+
+s7_pointer memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  if (obj == s7_car(lst)) return(lst);
+  return((obj == s7_cadr(lst)) ? s7_cdr(lst) : s7_f(sc));
+}
+
+s7_pointer memq_3_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  if (obj == s7_car(lst)) return(lst);
+  if (obj == s7_cadr(lst)) return(s7_cdr(lst));
+  return((obj == s7_caddr(lst)) ? s7_cddr(lst) : s7_f(sc));
+}
+
+s7_pointer memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+	{
+	  if (obj == s7_car(lst)) return(lst);
+	  lst = s7_cdr(lst);
+	}
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+    }
+  return(s7_f(sc)); /* not reached */
+}
+
+s7_pointer memv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  s7_pointer p;
+  if (!s7_is_pair(lst))
+    {
+      if (s7_is_null(sc, lst)) return(s7_f(sc));
+      if (s7i_scheme_version_is_s7(sc))
+	return(s7i_method_or_bust_pp(sc, lst, "memv", obj, lst, "a list", 2));
+      return(s7i_methods_or_bust_pp(sc, lst, "memv", "memq", obj, lst, a_list_string, 2));
+    }
+  if (s7i_is_simple(obj)) return(s7_memq(sc, obj, lst));
+  if (s7_is_number(obj)) return(s7i_memv_number(sc, obj, lst));
+
+  p = lst;
+  while (true)
+    {
+      if (s7_is_eqv(sc, obj, s7_car(lst))) return(lst);
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+
+      if (s7_is_eqv(sc, obj, s7_car(lst))) return(lst);
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+
+      p = s7_cdr(p);
+      if (p == lst) return(s7_f(sc));
+    }
+  return(s7_f(sc)); /* not reached */
+}
+
+s7_pointer member_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  if (s7_is_null(sc, lst)) return(s7_f(sc));
+  if (!s7_is_pair(lst)) return(s7i_method_or_bust(sc, lst, "member", s7i_set_plist_2(sc, obj, lst), "a list", 2));
+  if (s7i_is_simple(obj)) return(s7_memq(sc, obj, lst));
+  if (s7_is_number(obj)) return(s7i_memv_number(sc, obj, lst));
+  return(s7i_member(sc, obj, lst));
+}

@@ -213,17 +213,18 @@ bool cpp_version_dialog (string title, string message);
 /**
  * @brief 「打印页面选择到文件」QML 对话框的 glue 入口（一次性提交）。
  * @param form scm 构造的字段表（tree）：
- *   (print-to-file-form (path <label> <key> <value>) (number <label> <key> <value>) ...)
- *   label 已翻译；key 为 "name"/"first"/"last"；value 为初值（建议文件名 / 页码）。
- *   path 型字段带 Browse 按钮（弹原生保存文件对话框）。
+ *   (print-to-file-form (path <label> <key> <value>) (number <label> <key>
+ * <value>) ...) label 已翻译；key 为 "name"/"first"/"last"；value
+ * 为初值（建议文件名 / 页码）。 path 型字段带 Browse
+ * 按钮（弹原生保存文件对话框）。
  * @return 用户点 OK 返回 mogan tree，tree->stree 后形如 (tuple (tuple <key>
  *   <value>) ...)；Cancel / 关闭 / 加载失败返回空 tree。
  * @details 走 run_qml_dialog（exec 阻塞模态，同
  * FormDialog——一次性提交，无需 live
  * 写回文档）。字段由 QML 本地暂存，OK 整包交回；绑定在 scheme
  * facade，由调用方解构后 调 print-pages-to-file。
- * @note 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok/cancel 命中时不弹窗（ok 返回字段初值
- * 供自动化验证）。
+ * @note 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok/cancel 命中时不弹窗（ok
+ * 返回字段初值 供自动化验证）。
  */
 tree cpp_print_to_file_dialog (tree form);
 
@@ -265,5 +266,24 @@ void cpp_updater_dialog_open (string message);
  * 未打开时 no-op。
  */
 void cpp_updater_dialog_close ();
+
+/**
+ * @brief QML 调色板弹窗的 glue 入口。
+ * @param title 弹窗标题（已翻译）。
+ * @param proposals 预设颜色列表，每项为颜色字符串 tree（如 "#ff0000"
+ * 或命名颜色）。
+ * @param pickPattern 是否用于选择图案/背景（当前保留参数，与旧 widget
+ * 语义一致）。
+ * @return 用户确认返回 `(tuple "#rrggbb")`；取消 / 关闭 / 加载失败返回空
+ * tuple。
+ * @details 走 run_qml_dialog（exec 阻塞模态，无需 live 写回）。ColorPicker.qml
+ * 提供 色相/饱和度/明度面板、HSV/RGB/HEX 数值输入、基础色块、自定义颜色
+ * （16 格增删，OK 时经 preference 跨会话持久化）与屏幕取色，对齐原生
+ * QColorDialog 的功能集。调用方（qt_color_picker_widget）取 sel[0] 作颜色
+ * 字符串回调 scheme。
+ * @note 测试钩子 MOGAN_TEST_COLOR_PICKER=<hex>|cancel 命中时不弹窗。
+ */
+tree cpp_color_picker_dialog (string title, array<tree> proposals,
+                              bool pickPattern);
 
 #endif // defined QTM_QML_DIALOG_H
