@@ -10,7 +10,7 @@
 
 #include "tm_configure.hpp"
 
-#if defined(USE_PLUGIN_VELOPACK) && defined(OS_WIN)
+#if defined(USE_PLUGIN_VELOPACK) && (defined(OS_WIN) || defined(OS_MACOS))
 
 #include "preferences.hpp"
 #include "string.hpp"
@@ -45,13 +45,25 @@ feed_base_url () {
   return "https://liiistem.cn";
 }
 
+// feed 平台段：与 vpk pack 的 --runtime 一致，服务端按平台目录分发各自的
+// releases.<channel>.json 与 nupkg。只在本编译单元消费，不走 config.h。
+#if defined(OS_WIN)
+#define UPDATER_FEED_PLATFORM "win-x64"
+#elif defined(OS_MACOS) && defined(__aarch64__)
+#define UPDATER_FEED_PLATFORM "osx-arm64"
+#elif defined(OS_MACOS) && defined(__x86_64__)
+#define UPDATER_FEED_PLATFORM "osx-x64"
+#else
+#error "unsupported velopack feed platform"
+#endif
+
 // 完整 feed URL = base URL + 按社区版/商业版（IS_COMMUNITY 宏）选定的路径段
 static std::string
 feed_url (const std::string& base) {
 #ifdef IS_COMMUNITY
-  return base + "/api/v1/public/update/win-x64";
+  return base + "/api/v1/public/update/" UPDATER_FEED_PLATFORM;
 #else
-  return base + "/api/v1/public/commercial/update/win-x64";
+  return base + "/api/v1/public/commercial/update/" UPDATER_FEED_PLATFORM;
 #endif
 }
 
@@ -389,4 +401,5 @@ tm_velopack::applyUpdate () {
   return true;
 }
 
-#endif // defined (USE_PLUGIN_VELOPACK) && defined (OS_WIN)
+#endif // defined (USE_PLUGIN_VELOPACK) && (defined (OS_WIN) || defined
+       // (OS_MACOS))

@@ -960,6 +960,46 @@
       font-weight: 700;
     }
 
+    /* 更新下载中间态弹窗（UpdaterProgress.qml）：无限转圈 + 文案，无按钮、Esc 禁用 */
+    .updater-shell {
+      width: min(420px, 100%);
+      background: #ffffff;
+      border: 1px solid #d6dfdf;
+      border-radius: var(--radius);
+      padding: 28px 24px 22px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid #e3eaea;
+      border-top-color: #1d2629;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 18px;
+    }
+
+    .updater-shell .updater-message {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1d2629;
+      line-height: 1.6;
+    }
+
+    .updater-shell .updater-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #8aa0a6;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     @media (max-width: 760px) {
       .workspace {
         padding: 16px;
@@ -995,6 +1035,8 @@
       <button class="nav-btn" data-target="version">Version.qml</button>
       <button class="nav-btn" data-target="preferences">Preferences.qml</button>
       <button class="nav-btn" data-target="confirmRestart">ConfirmRestart.qml</button>
+      <button class="nav-btn" data-target="updater">UpdaterProgress.qml</button>
+      <button class="nav-btn" data-target="colorPicker">ColorPicker.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
 
@@ -1624,6 +1666,75 @@
         </p>
       </section>
 
+      <!-- 更新下载中间态弹窗（UpdaterProgress.qml）：无限转圈 + 已翻译文案，无进度条；
+           下载中不可关闭（Esc 经 DialogShell onCancel 覆盖为 no-op 禁用） -->
+      <section class="panel" id="panel-updater">
+        <div class="cards">
+          <article class="updater-shell">
+            <div class="spinner"></div>
+            <p class="updater-message">正在下载更新…</p>
+            <p class="updater-note">无按钮、Esc 已禁用；下载完成后由 scheme 调 cpp-updater-dialog-close 关窗，再弹重启确认</p>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>dialogMessage + dpScale/isDark/closeBridge</code>
+          <code>onCancel 覆盖为 no-op（禁 Esc）</code>
+          run_modal_qml_dialog(setModal+show)——选非阻塞模态非为 live 重绘，而是 exec 嵌套事件循环会阻塞 scheme 的 delayed 轮询链；
+          全局单例宿主（QPointer，重复 open 不重弹）+ <code>cpp-updater-dialog-open/close</code> 成对 glue
+        </p>
+      </section>
+
+      <section class="panel" id="panel-colorpicker">
+        <div class="cards">
+          <article class="confirm-shell" style="width:390px; text-align:left;">
+            <h3 style="margin-top:0;">Choose color</h3>
+            <div style="display:flex; gap:14px;">
+              <div style="flex:1;">
+                <div style="height:170px; border-radius:6px; background:linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, #f0f);"></div>
+                <div style="height:16px; margin-top:10px; border-radius:4px; background:linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);"></div>
+              </div>
+              <div style="width:120px; display:flex; flex-direction:column; gap:6px; font-size:11px; color:#666;">
+                <div style="height:32px; border-radius:6px; background:#b420b4;"></div>
+                <button class="btn" style="height:26px;" data-log="ColorPicker: 拾取屏幕颜色（colorBridge.pickScreenColor，macOS 未授权屏幕录制时提示去系统设置授权并重启）">拾取屏幕颜色</button>
+                HEX <input value="#b420b4" style="width:100%; box-sizing:border-box;">
+                R <input value="180" style="width:100%; box-sizing:border-box;">
+                G <input value="32" style="width:100%; box-sizing:border-box;">
+                B <input value="180" style="width:100%; box-sizing:border-box;">
+                H <input value="299" style="width:100%; box-sizing:border-box;">
+                S <input value="82" style="width:100%; box-sizing:border-box;">
+                V <input value="71" style="width:100%; box-sizing:border-box;">
+              </div>
+            </div>
+            <p style="font-size:13px; color:#666; margin:12px 0 4px;">基本颜色</p>
+            <div style="display:grid; grid-template-columns:repeat(10, 1fr); gap:5px;">
+              <div style="aspect-ratio:1; border-radius:3px; background:#000;"></div><div style="aspect-ratio:1; border-radius:3px; background:#434343;"></div><div style="aspect-ratio:1; border-radius:3px; background:#666;"></div><div style="aspect-ratio:1; border-radius:3px; background:#999;"></div><div style="aspect-ratio:1; border-radius:3px; background:#b7b7b7;"></div><div style="aspect-ratio:1; border-radius:3px; background:#980000;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f00;"></div><div style="aspect-ratio:1; border-radius:3px; background:#ff9900;"></div><div style="aspect-ratio:1; border-radius:3px; background:#ff0;"></div><div style="aspect-ratio:1; border-radius:3px; background:#0f0;"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:#0ff;"></div><div style="aspect-ratio:1; border-radius:3px; background:#4a86e8;"></div><div style="aspect-ratio:1; border-radius:3px; background:#00f;"></div><div style="aspect-ratio:1; border-radius:3px; background:#9900ff;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f0f;"></div><div style="aspect-ratio:1; border-radius:3px; background:#e6b8af;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f4cccc;"></div><div style="aspect-ratio:1; border-radius:3px; background:#fce5cd;"></div><div style="aspect-ratio:1; border-radius:3px; background:#fff2cc;"></div><div style="aspect-ratio:1; border-radius:3px; background:#d9ead3;"></div>
+            </div>
+            <p style="font-size:13px; color:#666; margin:12px 0 4px;">自定义颜色</p>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div style="display:grid; grid-template-columns:repeat(8, 34px); gap:5px;">
+                <div style="aspect-ratio:1; border-radius:3px; background:#b420b4;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div>
+                <div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div><div style="aspect-ratio:1; border-radius:3px; background:#f1f3f4; border:1px solid #d0d4da;"></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <button class="btn" data-log="ColorPicker: 添加颜色（满 16 格拒绝并提示）">添加颜色</button>
+                <button class="btn" data-log="ColorPicker: 删除选中的自定义颜色">删除颜色</button>
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top:14px;">
+              <button class="btn primary" data-log="ColorPicker: OK -> submit({color, customColors})">确定</button>
+              <button class="btn" data-log="ColorPicker: Cancel -> closeBridge.cancel()">取消</button>
+            </div>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>pickerTitleProp + proposalsProp + customColorsProp + labelsProp</code>
+          <code>OK -> closeBridge.submit({color: "#rrggbb", customColors})</code>
+          <code>屏幕取色走 ColorPickerBridge（抓屏 overlay 点选，Esc 取消）</code>
+          自定义颜色 16 格，OK 时经 preference 持久化；满格拒绝添加并显示提示行。
+        </p>
+      </section>
+
 
     </main>
   </div>
@@ -1639,7 +1750,9 @@
         statistics: document.getElementById('panel-statistics'),
         version: document.getElementById('panel-version'),
         preferences: document.getElementById('panel-preferences'),
-        confirmRestart: document.getElementById('panel-confirm-restart')
+        confirmRestart: document.getElementById('panel-confirm-restart'),
+        updater: document.getElementById('panel-updater'),
+        colorPicker: document.getElementById('panel-colorpicker')
       };
 
       const titleMap = {
@@ -1650,7 +1763,9 @@
         paragraph: 'ParagraphFormat.qml 模拟',
         statistics: 'Statistics.qml 模拟',
         preferences: 'Preferences.qml 模拟',
-        confirmRestart: 'ConfirmRestart.qml 模拟'
+        confirmRestart: 'ConfirmRestart.qml 模拟',
+        updater: 'UpdaterProgress.qml 模拟',
+        colorPicker: 'ColorPicker.qml 模拟'
       };
 
       const codeMap = {
@@ -1661,7 +1776,9 @@
         paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回',
         statistics: 'statsModel: [{label, value}, ...] + closeBridge.choose(0) 关闭',
         preferences: 'prefTabs(5) + subTabs(6) + EnumCombo + Toggle + 纯 OK 提交',
-        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)'
+        confirmRestart: 'message + buttonLabels + closeBridge.choose(index)',
+        updater: 'dialogMessage + onCancel no-op + open/close 成对 glue',
+        colorPicker: 'pickerTitleProp + proposals + customColors + submit({color, customColors})'
       };
 
       const viewTitle = document.getElementById('view-title');

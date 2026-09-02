@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
 -- MODULE      : stage_velopack.lua
--- DESCRIPTION : 将 stem 安装树装配为 Velopack 扁平暂存根
+-- DESCRIPTION : 装配 Velopack 暂存目录（Windows 扁平暂存根 / macOS .app 副本）
 -- COPYRIGHT   : (C) 2026 Xmacs Labs
 --
 -- This software falls under the GNU general public license version 3 or later.
@@ -20,7 +20,7 @@
 -- 辅助二进制（pandoc.exe 等）保留在暂存根 bin/ 子目录；vc_redist.x64.exe
 -- 只作为运行库提取源使用、不随包携带：Qt DLL 为 /MD，依赖 VC++ 14.3 运行库，
 -- 本脚本从官方 vc_redist.x64.exe 提取 vcruntime140/msvcp140 等 DLL 放进暂存根
--- 做 app-local 部署（见步骤 4），安装期无需联网。该文件由 Qt 部署
+-- 做 app-local 部署（见 Windows 流程步骤 4），安装期无需联网。该文件由 Qt 部署
 -- （windeployqt）在 xmake install 时从构建机 VS 的 VC\Redist 目录自动拷入
 -- 安装树 bin/（与旧 NSIS 流程一致）。find-binary 与 pandoc 等按
 -- $TEXMACS_PATH/bin 查找；.pdb 调试符号不发布。
@@ -35,21 +35,227 @@
 --      实际产物，见 xmake/targets/stem.lua 的 add_installfiles 前缀捕获）
 -- 判断依据：src/TeXmacs 是否为目录；否则按已知条目清单从 src 根收集。
 --
+-- macOS 流程（os.host() == "macosx"）：vpk pack 的 --packDir 直接吃 .app bundle，
+-- 暂存只需把 release 构建出的 .app 完整复制一份供 vpk 改写/签名（不动构建树）：
+--   1) 拷贝用 ditto：Qt framework 内含符号链接（QtCore -> Versions/Current/QtCore），
+--      xmake os.cp 默认解引用会悄悄打坏 bundle；
+--   2) build 目录里的 Info.plist 是 qt.widgetapp 占位符（org.example.*），真 plist
+--      由本脚本从 packages/macos/Info.plist.in 生成——不依赖 stem_packager（它
+--      release-only、依赖 create-dmg、还会顺手产 DMG）；
+--   3) ad-hoc 重签 staging 副本，保证无签名配置（VPK_SIGN_APP_IDENTITY 为空）时
+--      bundle 也可加载；正式签名交给 vpk（CI 注入环境变量）。
+-- macOS 的 $TEXMACS_PATH 解析是 exedir * "../Resources/share/moganlab"
+-- （init_texmacs.cpp macOS 分支），bundle 布局天然满足，无需摊平。
+--
 -- 本脚本只做装配与校验，不打包；打包见 pack_velopack.lua。
 --
 -- 环境变量覆盖：
---   VPK_STAGING_SRC  默认 build/packages/stem/data（xmake install stem 产物）
+--   VPK_STAGING_SRC  默认 Windows: build/packages/stem/data（xmake install stem 产物）
+--                             macOS: build/macosx/<arch>/release/MoganSTEM.app
 --   VPK_STAGING_OUT  默认 build/velopack_staging
 -------------------------------------------------------------------------------
 
+-- 解析版本号：从 xmake/vars.lua 的 XMACS_VERSION 取值（与 pack_velopack.lua 同源）
+local function xmacs_version ()
+    local f = io.open (path.join (os.projectdir (), "xmake/vars.lua"), "r")
+    if f == nil then
+        cprint ("${bright red}error: 无法读取 xmake/vars.lua${clear}")
+        os.exit (1)
+    end
+    local content = f:read ("*a")
+    f:close ()
+    local version = content:match ('XMACS_VERSION%s*=%s*"(.-)"')
+    if version == nil then
+        cprint ("${bright red}error: xmake/vars.lua 中未找到 XMACS_VERSION${clear}")
+        os.exit (1)
+    end
+    return version
+end
+
+-- 全树扫描：运行期日志/构建中间产物不得发布。逐目录递归而不是 **/* 批量 glob：
+-- 实测 xmake 的 **/* 会漏掉深层大文件（如 fonts/opentype/noto 下的 CJK 字体），
+-- 逐目录扫描才是可靠全集。返回 {文件列表, 总字节数, 禁发命中列表}。
+local function scan_tree (root)
+    local all_files = {}
+    local forbidden = {}
+    local total_bytes = 0
+    local function scan (d)
+        for _, f in ipairs (os.files (path.join (d, "*"))) do
+            table.insert (all_files, f)
+            total_bytes = total_bytes + (os.filesize (f) or 0)
+            local name = path.filename (f)
+            if name:match ("%.log$") or name:match ("%.tmp$") or name:match ("%.pdb$")
+               or name:match ("~$") then
+                table.insert (forbidden, f)
+            end
+        end
+        for _, sub in ipairs (os.dirs (path.join (d, "*"))) do
+            -- .git 是版本库元数据目录，绝对不允许进入发布树
+            if path.filename (sub) == ".git" then
+                table.insert (forbidden, sub)
+            end
+            scan (sub)
+        end
+    end
+    scan (root)
+    return all_files, total_bytes, forbidden
+end
+
 local src = os.getenv ("VPK_STAGING_SRC")
-if src == nil or src == "" then src = "build/packages/stem/data" end
 local out = os.getenv ("VPK_STAGING_OUT")
 if out == nil or out == "" then out = "build/velopack_staging" end
+local out_dir = path.absolute (path.join (os.projectdir (), out))
+
+-------------------------------------------------------------------------------
+-- macOS 流程
+-------------------------------------------------------------------------------
+if os.host () == "macosx" then
+    -- 1) 定位源 .app：默认 release 构建产物（arch 唯一，多个即歧义硬失败）
+    local app
+    if src ~= nil and src ~= "" then
+        app = path.absolute (path.join (os.projectdir (), src))
+        if not os.isdir (app) then
+            cprint ("${bright red}error: 源 .app 不存在: " .. app .. "${clear}")
+            os.exit (1)
+        end
+    else
+        local found = os.dirs (path.join (os.projectdir (), "build/macosx/*/release/MoganSTEM.app"))
+        if #found == 0 then
+            cprint ("${bright red}error: 未找到 release 构建的 MoganSTEM.app${clear}")
+            cprint ("${yellow}请先执行 xmake f -m release && xmake b stem && xmake i stem${clear}")
+            os.exit (1)
+        elseif #found > 1 then
+            cprint ("${bright red}error: 多个架构的 MoganSTEM.app，请用 VPK_STAGING_SRC 指定其一:${clear}")
+            for _, a in ipairs (found) do cprint ("  " .. a) end
+            os.exit (1)
+        end
+        app = found[1]
+    end
+
+    -- 2) 清空重建暂存根：保证可重复执行，且不含上次残留
+    if os.exists (out_dir) then os.rm (out_dir) end
+    os.mkdir (out_dir)
+    local dst_app = path.join (out_dir, "MoganSTEM.app")
+
+    -- 3) ditto 拷贝：保留 Qt framework 符号链接与签名元数据（os.cp 会解引用打坏）
+    local code = os.execv ("ditto", {app, dst_app}, {try = true})
+    if code ~= 0 then
+        cprint ("${bright red}error: ditto 拷贝失败，退出码 " .. code .. "${clear}")
+        os.exit (1)
+    end
+
+    -- 4) 生成真 Info.plist（覆盖 qt.widgetapp 占位符）：与 stem_packager 同一模板，
+    --    同样的 @(.-)@ 替换语义，占位符残留即失败
+    local version = xmacs_version ()
+    local plist_in = path.join (os.projectdir (), "packages/macos/Info.plist.in")
+    local content = io.readfile (plist_in)
+    if content == nil then
+        cprint ("${bright red}error: 无法读取 " .. plist_in .. "${clear}")
+        os.exit (1)
+    end
+    local vars = {STEM_NAME = "MoganSTEM", XMACS_VERSION = version, OSXVERMIN = ""}
+    content = content:gsub ("@([%u_]+)@", function (k)
+        return assert (vars[k], "Info.plist.in 出现未知占位符 @" .. k .. "@")
+    end)
+    io.writefile (path.join (dst_app, "Contents", "Info.plist"), content)
+
+    -- 5) 结构校验（硬失败）：主程序、plist 三键、扁平数据、velopack dylib、
+    --    无重复主程序残留
+    local ok = true
+    local function need (cond, msg)
+        if not cond then
+            cprint ("${bright red}error: " .. msg .. "${clear}")
+            ok = false
+        end
+    end
+    need (os.isfile (path.join (dst_app, "Contents/MacOS/MoganSTEM")),
+          "缺 Contents/MacOS/MoganSTEM（是否执行过 xmake b stem？）")
+    need (content:find ("app.mogan", 1, true) ~= nil, "Info.plist 缺 CFBundleIdentifier app.mogan")
+    need (content:find ("<string>MoganSTEM</string>", 1, true) ~= nil,
+          "Info.plist 缺 CFBundleExecutable MoganSTEM")
+    need (content:find (version, 1, true) ~= nil, "Info.plist 缺版本号 " .. version)
+    for _, sub in ipairs ({"progs", "fonts", "doc", "plugins"}) do
+        need (os.isdir (path.join (dst_app, "Contents/Resources/share/moganlab", sub)),
+              "缺 Contents/Resources/share/moganlab/" .. sub .. "（是否执行过 xmake i stem？）")
+    end
+    need (os.isfile (path.join (dst_app, "Contents/Frameworks/libvelopack_libc.dylib")),
+          "缺 Contents/Frameworks/libvelopack_libc.dylib（velopack_libc shared 目标应随构建部署）")
+    if os.isfile (path.join (dst_app, "Contents/Resources/lib/libvelopack_libc.dylib")) then
+        cprint ("${bright red}error: dylib 错位出现在 Contents/Resources/lib/（应在 Frameworks），" ..
+                "stem 的 after_install 应已清理${clear}")
+        ok = false
+    end
+    if os.isfile (path.join (dst_app, "Contents/Resources/bin/MoganSTEM")) then
+        cprint ("${bright red}error: Resources/bin/MoganSTEM 重复主程序未清除${clear}")
+        ok = false
+    end
+    if os.isdir (path.join (dst_app, "Contents/Resources/share/moganlab/tests")) then
+        cprint ("${yellow}warn: 含 tests/ 回归样例目录，请确认是否应随包发布${clear}")
+    end
+    if not ok then os.exit (1) end
+
+    -- 6) 签名。正式身份（VPK_SIGN_APP_IDENTITY）时只预签 vpk --deep 覆盖不到的
+    --    Contents/Resources 裸 Mach-O（helper 可执行文件/dylib，如 goldfish）：
+    --    codesign --deep 只遍历 bundle/framework/PlugIns 这类结构，Resources 里
+    --    的裸二进制对它不可见，未签名会被公证判 Invalid；bundle 本体交给 vpk
+    --    深签。.dSYM 里的 DWARF 虽是 Mach-O，按旧 DMG 流程先例不签（可过公证）。
+    --    无正式身份时 ad-hoc 签整个 bundle，保证本地验证可加载。
+    local sign_identity = os.getenv ("VPK_SIGN_APP_IDENTITY") or ""
+    if sign_identity ~= "" then
+        local macho = {}
+        local function collect (d)
+            for _, sub in ipairs (os.dirs (path.join (d, "*"))) do
+                if not path.filename (sub):match ("%.dSYM$") then collect (sub) end
+            end
+            for _, f in ipairs (os.files (path.join (d, "*"))) do
+                local out = os.iorunv ("/usr/bin/file", {"-b", f})
+                if out and tostring (out):match ("^Mach%-O") then
+                    table.insert (macho, f)
+                end
+            end
+        end
+        collect (path.join (dst_app, "Contents", "Resources"))
+        for _, f in ipairs (macho) do
+            cprint ("预签 Resources 裸 Mach-O: " .. path.relative (f, dst_app))
+            code = os.execv ("codesign",
+                {"--force", "--options", "runtime", "--timestamp",
+                 "--sign", sign_identity, f}, {try = true})
+            if code ~= 0 then
+                cprint ("${bright red}error: 预签失败，退出码 " .. code .. ": " .. f .. "${clear}")
+                os.exit (1)
+            end
+        end
+        cprint ("${green}已预签 " .. #macho .. " 个 Resources 裸 Mach-O（bundle 交给 vpk 深签）${clear}")
+    else
+        code = os.execv ("codesign", {"--force", "--deep", "--sign", "-", dst_app}, {try = true})
+        if code ~= 0 then
+            cprint ("${bright red}error: ad-hoc 签名失败，退出码 " .. code .. "${clear}")
+            os.exit (1)
+        end
+    end
+
+    -- 7) 禁发文件扫描 + 汇总
+    local all_files, total_bytes, forbidden = scan_tree (dst_app)
+    if #forbidden > 0 then
+        for _, f in ipairs (forbidden) do
+            cprint ("${bright red}error: 含禁止发布内容: " .. f .. "${clear}")
+        end
+        os.exit (1)
+    end
+    cprint ("${green}staging 完成: " .. dst_app .. "${clear}")
+    cprint ("  文件数: " .. #all_files)
+    cprint (string.format ("  总大小: %.1f MB", total_bytes / 1048576))
+    os.exit (0)
+end
+
+-------------------------------------------------------------------------------
+-- Windows 流程
+-------------------------------------------------------------------------------
+
+if src == nil or src == "" then src = "build/packages/stem/data" end
 
 -- xmake l 的工作目录即项目根，但显式求绝对路径更稳妥
 local src_dir = path.absolute (path.join (os.projectdir (), src))
-local out_dir = path.absolute (path.join (os.projectdir (), out))
 
 -- 源安装树必须存在（xmake install stem 的产物），否则无从装配
 if not os.isdir (src_dir) then
@@ -228,27 +434,7 @@ end
 --    出现即说明拷贝逻辑有漏洞。用逐目录递归而不是 **/* 批量 glob：实测 xmake 的
 --    **/* 会漏掉深层大文件（如 fonts/opentype/noto 下的 CJK 字体），逐目录扫描才是
 --    可靠全集。
-local all_files = {}
-local forbidden = {}
-local total_bytes = 0
-local function scan (d)
-    for _, f in ipairs (os.files (path.join (d, "*"))) do
-        table.insert (all_files, f)
-        total_bytes = total_bytes + (os.filesize (f) or 0)
-        local name = path.filename (f)
-        if name:match ("%.log$") or name:match ("%.tmp$") or name:match ("%.pdb$") or name:match ("~$") then
-            table.insert (forbidden, f)
-        end
-    end
-    for _, sub in ipairs (os.dirs (path.join (d, "*"))) do
-        -- .git 是版本库元数据目录，绝对不允许进入安装树
-        if path.filename (sub) == ".git" then
-            table.insert (forbidden, sub)
-        end
-        scan (sub)
-    end
-end
-scan (out_dir)
+local all_files, total_bytes, forbidden = scan_tree (out_dir)
 if #forbidden > 0 then
     for _, f in ipairs (forbidden) do
         cprint ("${bright red}error: 含禁止发布内容: " .. f .. "${clear}")

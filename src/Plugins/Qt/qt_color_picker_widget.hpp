@@ -36,9 +36,10 @@ public:
   void showDialog ();
 
 protected:
-  string  _windowTitle;
-  command _commandAfterExecution;
-  bool    _pickPattern;
+  string      _windowTitle;
+  command     _commandAfterExecution;
+  bool        _pickPattern;
+  array<tree> _proposals;
 };
 
 #endif // QT_COLOR_PICKER_WIDGET_HPP

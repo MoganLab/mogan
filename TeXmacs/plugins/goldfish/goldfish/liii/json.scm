@@ -1,15 +1,5 @@
 (define-library (liii json)
-  (import (liii base)
-    (liii list)
-    (rename (guenchi json)
-      (json-push g:json-push)
-      (json-push* g:json-push*)
-      (json-drop g:json-drop)
-      (json-drop* g:json-drop*)
-      (json-reduce g:json-reduce)
-      (json-reduce* g:json-reduce*)
-    ) ;rename
-  ) ;import
+  (import (liii base) (liii list))
   (export json-string-escape
     string->json
     json->string
@@ -46,6 +36,9 @@
     ;; ; 0. 统一接口
     ;; ; ---------------------------------------------------------
 
+    ;; json-string-escape 由 C++ 实现（src/liii_json.cpp 中的 g_json_string_escape）
+    (define json-string-escape g_json_string_escape)
+
     ;; json->string 由 C++ 实现（src/liii_json.cpp 中的 g_json->string）
     (define json->string g_json->string)
 
@@ -58,61 +51,22 @@
     ;; json-set 由 C++ 实现（src/liii_json.cpp 中的 g_json_set）
     (define json-set g_json_set)
 
+    ;; json-push 由 C++ 实现（src/liii_json.cpp 中的 g_json_push，含变参多键路径，
+    ;; 语义覆盖历史上的 json-push 与 json-push*）
+    (define json-push g_json_push)
+
+    ;; json-drop 由 C++ 实现（src/liii_json.cpp 中的 g_json_drop，含变参多键路径，
+    ;; 语义覆盖历史上的 json-drop 与 json-drop*）
+    (define json-drop g_json_drop)
+
+    ;; json-reduce 由 C++ 实现（src/liii_json.cpp 中的 g_json_reduce，含变参多键路径，
+    ;; 语义覆盖历史上的 json-reduce 多层路径模式）
+    (define json-reduce g_json_reduce)
+
     (define (ensure-json-structure x)
       (unless (or (json-object? x) (json-array? x))
         (type-error "Value is not a JSON object or array" x)
       ) ;unless
-    ) ;define
-
-    (define (json-push json key val . args)
-      (ensure-json-structure json)
-      (if (null? args)
-        (if (and (json-object? json) (equal? json '(())))
-          (g:json-push '() key val)
-          (g:json-push json key val)
-        ) ;if
-        (json-set json key (lambda (x) (apply json-push (cons x (cons val args)))))
-      ) ;if
-    ) ;define
-
-    (define (json-drop json key . args)
-      (ensure-json-structure json)
-      (if (null? args)
-        (if (and (json-object? json) (equal? json '(()))) json (g:json-drop json key))
-        (json-set json key (lambda (x) (apply json-drop (cons x args))))
-      ) ;if
-    ) ;define
-
-    (define (json-reduce json key . args)
-      (if (null? json)
-        '()
-        (begin
-          (ensure-json-structure json)
-          (if (null? args)
-            (value-error "json-reduce: missing arguments")
-            (if (null? (cdr args))
-              ;; Single level: (json-reduce json key proc)
-              (let ((proc (car args)))
-                (if (and (json-object? json) (equal? json '(())))
-                  json
-                  (g:json-reduce json key proc)
-                ) ;if
-              ) ;let
-              ;; Multi level
-              (let* ((keys (cons key (drop-right args 1)))
-                     (proc (last args))
-                     (top-key (car keys))
-                     (rest-keys (cdr keys))
-                    ) ;
-                (json-reduce json
-                  top-key
-                  (lambda (k v) (apply json-reduce (append (list v) rest-keys (list proc))))
-                ) ;json-reduce
-              ) ;let*
-            ) ;if
-          ) ;if
-        ) ;begin
-      ) ;if
     ) ;define
 
     ;; ; ---------------------------------------------------------

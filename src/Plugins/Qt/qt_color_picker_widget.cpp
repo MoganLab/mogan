@@ -10,12 +10,13 @@
  ******************************************************************************/
 
 #include "qt_color_picker_widget.hpp"
+#include "QTMQmlDialog.hpp"
 #include "qt_utilities.hpp"
 
 #include "message.hpp"
 #include "scheme.hpp"
 
-#include <QColorDialog>
+#include <QColor>
 
 /**
  * Needed for whitebox_rep::display
@@ -28,9 +29,8 @@ operator<< (tm_ostream& out, const QColor& col) {
 qt_color_picker_widget_rep::qt_color_picker_widget_rep (command     call_back,
                                                         bool        pickPattern,
                                                         array<tree> proposals)
-    : _commandAfterExecution (call_back), _pickPattern (pickPattern) {
-  (void) proposals;
-}
+    : _commandAfterExecution (call_back), _pickPattern (pickPattern),
+      _proposals (proposals) {}
 
 qt_color_picker_widget_rep::~qt_color_picker_widget_rep () {}
 
@@ -65,16 +65,12 @@ qt_color_picker_widget_rep::plain_window_widget (string name, command q,
 void
 qt_color_picker_widget_rep::showDialog () {
   if (_pickPattern) {
-    // do stuff
+    // TODO: pattern picking is currently unsupported.
   }
   else {
-#if 0 //(QT_VERSION >= 0x040500)
-    QColor _sel = QColorDialog::getColor(Qt::white, 0, to_qstring(_windowTitle));
-#else
-    QColor _sel= QColorDialog::getColor (Qt::white);
-#endif
-    if (_sel.isValid ()) {
-      _commandAfterExecution (list_object (object (tree (from_qcolor (_sel)))));
+    tree sel= cpp_color_picker_dialog (_windowTitle, _proposals, _pickPattern);
+    if (is_compound (sel) && N (sel) > 0) {
+      _commandAfterExecution (list_object (object (sel[0])));
     }
   }
 }

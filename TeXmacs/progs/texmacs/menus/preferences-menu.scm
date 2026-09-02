@@ -327,8 +327,7 @@
       (toggle ("Database tool" "database tool"))
       (toggle ("Debugging tool" "debugging tool"))
       (toggle ("Linking tool" "linking tool"))
-      (toggle ("Source macros tool" "source tool"))
-      (toggle ("Versioning tool" "versioning tool")))
+      (toggle ("Source macros tool" "source tool")))
     ---
     (enum ("Autosave" "autosave") ("On" "120") ("Off" "0"))
     (enum ("Bibtex command" "bibtex command")

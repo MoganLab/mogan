@@ -133,8 +133,6 @@ private:
   void              setupLoginDialog (QWK::LoginDialog* loginDialog);
   QWK::LoginDialog* ensureLoginDialog ();
   void              checkLocalTokenAndLogin ();
-  void              showUserCenterOnHover ();
-  bool              m_userCenterHoverPending= false;
   void              fetchUserInfo (const QString& token, bool showDialog= true);
   void              refreshLoginDialogPlacement ();
   bool              shouldShowLoginDialogUpdateSection ();

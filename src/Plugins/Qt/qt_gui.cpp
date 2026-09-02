@@ -959,53 +959,65 @@ qt_gui_rep::update () {
   // 2.
   // Manage delayed commands
 
-  if (delayed_commands.must_wait (now)) {
-    if (bench_chat_init) bench_start ("chat_init: update/delayed");
-    process_delayed_commands ();
-    if (bench_chat_init) bench_end ("chat_init: update/delayed", 10);
-  }
+  // 事件处理/延时命令/排版中抛出的 C++ 异常（如 bad path）若逃出本函数，
+  // updating 将永远为 true 且定时器不再重启，事件泵与排版引擎永久停摆。
+  // 这里统一兜底，保证末尾的定时器重启与 updating 复位必然执行。
+  bool postpone_treatment= false;
+  try {
+    if (delayed_commands.must_wait (now)) {
+      if (bench_chat_init) bench_start ("chat_init: update/delayed");
+      process_delayed_commands ();
+      if (bench_chat_init) bench_end ("chat_init: update/delayed", 10);
+    }
 
-  // 3.
-  // If there are pending events in the private queue process them until the
-  // limit in processed events is reached.
-  // If there are no events or the limit is reached then proceed to a redraw.
+    // 3.
+    // If there are pending events in the private queue process them until the
+    // limit in processed events is reached.
+    // If there are no events or the limit is reached then proceed to a redraw.
 
-  if (waiting_events.size () == 0) {
-    // If there are no waiting events call the interpose handler at least once
-    // if (the_interpose_handler) the_interpose_handler();
-  }
-  else
-    while (waiting_events.size () > 0 && count_events < max_proc_events) {
-      if (bench_chat_init) bench_start ("chat_init: update/queued");
-      process_queued_events (1);
-      if (bench_chat_init) bench_end ("chat_init: update/queued", 10);
-      count_events++;
+    if (waiting_events.size () == 0) {
+      // If there are no waiting events call the interpose handler at least once
       // if (the_interpose_handler) the_interpose_handler();
     }
-  // Repaint invalid regions and redraw
-  bool postpone_treatment= (keyboard_events > 0 && keyboard_special == 0);
-  keyboard_events        = 0;
-  keyboard_special       = 0;
-  count_events           = 0;
+    else
+      while (waiting_events.size () > 0 && count_events < max_proc_events) {
+        if (bench_chat_init) bench_start ("chat_init: update/queued");
+        process_queued_events (1);
+        if (bench_chat_init) bench_end ("chat_init: update/queued", 10);
+        count_events++;
+        // if (the_interpose_handler) the_interpose_handler();
+      }
+    // Repaint invalid regions and redraw
+    postpone_treatment= (keyboard_events > 0 && keyboard_special == 0);
+    keyboard_events   = 0;
+    keyboard_special  = 0;
+    count_events      = 0;
 
-  interrupted = false;
-  timeout_time= texmacs_time () + time_credit;
+    interrupted = false;
+    timeout_time= texmacs_time () + time_credit;
 
-  if (!postpone_treatment) {
-    if (bench_chat_init) bench_start ("chat_init: update/interpose");
-    if (the_interpose_handler) the_interpose_handler ();
-    if (bench_chat_init) bench_end ("chat_init: update/interpose", 10);
+    if (!postpone_treatment) {
+      if (bench_chat_init) bench_start ("chat_init: update/interpose");
+      if (the_interpose_handler) the_interpose_handler ();
+      if (bench_chat_init) bench_end ("chat_init: update/interpose", 10);
 #ifdef LORO_ENABLED
-    static time_t last_loro_poll_time= 0;
-    if (now - last_loro_poll_time >= 1000 / 6) {
-      loro_collab_poll ();
-      loro_collab_apply ();
-      last_loro_poll_time= now;
-    }
+      static time_t last_loro_poll_time= 0;
+      if (now - last_loro_poll_time >= 1000 / 6) {
+        loro_collab_poll ();
+        loro_collab_apply ();
+        last_loro_poll_time= now;
+      }
 #endif
-    if (bench_chat_init) bench_start ("chat_init: update/repaint_all");
-    qt_simple_widget_rep::repaint_all ();
-    if (bench_chat_init) bench_end ("chat_init: update/repaint_all", 10);
+      if (bench_chat_init) bench_start ("chat_init: update/repaint_all");
+      qt_simple_widget_rep::repaint_all ();
+      if (bench_chat_init) bench_end ("chat_init: update/repaint_all", 10);
+    }
+  } catch (string msg) {
+    cout << "qt_gui: exception during update: " << msg << "\n";
+    keyboard_events = 0;
+    keyboard_special= 0;
+    count_events    = 0;
+    handle_exceptions ();
   }
   if (bench_chat_init) {
     bench_end ("chat_init: gui update", gui_update_logged ? 10 : 0);
@@ -1289,7 +1301,17 @@ command_queue::exec_pending () {
   for (i= 0; i < n; i++) {
     time_t now= texmacs_time ();
     if ((now - b[i]) >= 0) {
-      object obj= call (a[i]);
+      // 逐条捕获：单条延时命令抛出的 C++ 异常（如 bad path）不应中断
+      // 整个队列，否则异常逃出 update() 会使事件泵永久停摆
+      object obj;
+      try {
+        obj= call (a[i]);
+      } catch (string msg) {
+        cout << "exec_pending: discarding failed delayed command: " << msg
+             << "\n";
+        handle_exceptions ();
+        continue;
+      }
       if (is_int (obj) && (now - b[i] < 1000000000)) {
         time_t pause= as_int (obj);
         // cout << "pause = " << obj << "\n";

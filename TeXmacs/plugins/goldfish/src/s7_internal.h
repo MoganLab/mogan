@@ -149,7 +149,11 @@
 /* ---------------- initial sizes ---------------- */
 
 #ifndef INITIAL_HEAP_SIZE
-  #define INITIAL_HEAP_SIZE 64000         /* 29-Jul-21 -- seems faster */
+  #ifdef __EMSCRIPTEN__
+    #define INITIAL_HEAP_SIZE 64000       /* wasm 内存受限，保持小堆 */
+  #else
+    #define INITIAL_HEAP_SIZE 256000      /* [0137] 更大的初始堆减少 GC 频率，read 密集负载约快 12% */
+  #endif
 #endif
 /* the heap grows as needed, this is its initial size. If the initial heap is small, s7 can run in about 2.5 Mbytes of memory.
  * There are many cases where a bigger heap is faster (but hardware cache size probably matters more).
@@ -1086,7 +1090,7 @@ typedef struct heap_block_t {
   struct heap_block_t *next;
 } heap_block_t;
 
-typedef struct {
+typedef struct shared_info {
   s7_pointer *objs;
   int32_t size, top, ref, size2;
   bool has_hits;
@@ -2029,6 +2033,50 @@ s7_pointer lookup_1(s7_scheme *sc, const s7_pointer symbol);
 
 /* type predicates tables (decls) */
 extern bool t_procedure_p[NUM_TYPES];
+extern bool t_structure_p[NUM_TYPES];
+extern bool t_sequence_p[NUM_TYPES];
+extern bool t_vector_p[NUM_TYPES];
+
+void memclr(void *s, size_t n);
+
+/* function decls for s7_scheme_write.c (object->port), definitions live in s7.c */
+extern inline void liberate(s7_scheme *sc, block_t *blk);
+char *pos_int_to_str(s7_scheme *sc, s7_int num, s7_int *len, char endc);
+char *pos_int_to_str_direct(s7_scheme *sc, s7_int num);
+char *pos_int_to_str_direct_1(s7_scheme *sc, s7_int num);
+void print_debugging_state(s7_scheme *sc, s7_pointer obj, s7_pointer port);
+s7_pointer wrap_real(s7_scheme *sc, s7_double x);
+s7_pointer set_dlist_1(s7_scheme *sc, s7_pointer x1);
+const char *type_name(s7_scheme *sc, s7_pointer arg, article_t article);
+bool tree_is_cyclic(s7_scheme *sc, s7_pointer tree);
+const char *integer_to_string(s7_scheme *sc, s7_int num, s7_int *nlen);
+const char *integer_to_string_no_length(s7_scheme *sc, s7_int num);
+char *floatify(char *str, s7_int *nlen);
+void insert_spaces(s7_scheme *sc, const char *src, s7_int width, s7_int len);
+char *number_to_string_base_10(s7_scheme *sc, s7_pointer obj, s7_int width, s7_int precision, char float_choice, s7_int *nlen, use_write_t choice);
+void resize_port_data(s7_scheme *sc, s7_pointer port, s7_int new_size);
+void string_write_string_resized(s7_scheme *sc, const char *str, s7_int len, s7_pointer port);
+void port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port);
+s7_pointer hash_table_iterate(s7_scheme *sc, s7_pointer iterator);
+void port_write_vector_typer(s7_scheme *sc, s7_pointer vect, s7_pointer port);
+const char *hash_table_checker_name(s7_scheme *sc, s7_pointer table);
+
+/* more decls for the object->port printer */
+extern const char dignum[];
+extern s7_pointer *chars;
+extern bool t_number_p[NUM_TYPES];
+block_t *callocate(s7_scheme *sc, s7_int bytes);
+s7_pointer pair_append(s7_scheme *sc, s7_pointer a, s7_pointer b);
+#if !DISABLE_DEPRECATED
+  #define c_object_print(Sc, p)        c_object_info(Sc, p)->print
+#endif
+#if S7_DEBUGGING
+  #define T_Itr_Pos(p)                 titr_pos(sc, T_Itr(p), __func__, __LINE__)
+  #define T_Itr_Let(p)                 titr_let(sc, T_Itr(p), __func__, __LINE__)
+#else
+  #define T_Itr_Pos(p)                 p
+  #define T_Itr_Let(p)                 p
+#endif
 extern bool t_any_closure_p[NUM_TYPES];
 extern s7_pointer a_procedure_string;
 
@@ -2540,5 +2588,180 @@ void symbol_set_id(s7_pointer sym, s7_int id);
 void slot_set_value_with_hook_1(s7_scheme *sc, s7_pointer slot, s7_pointer value);
 no_return void wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
 void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
+
+/* macros mirrored from s7.c for split-out modules */
+#define Calloc(N, Size)    calloc(N, Size)
+#define Malloc(Size)       malloc(Size)
+#define NO_SYMBOLS false
+#define OPT1_ANY                       (1 << 11)  /* anything -- deliberate unchecked case */
+#define Realloc(Ptr, Size) realloc(Ptr, Size)
+#define T_ALLOW_OTHER_KEYS             (1 << 9)
+#define T_CLEAN_SYMBOL                 T_MID_UNSAFE
+#define T_COLLECTED                    (1 << (16 + 1))
+#define T_CYCLIC                       (1LL << (48 + 5))
+#define T_CYCLIC_SET                   (1LL << (48 + 6))
+#define T_DEFINER                      (1 << 2)
+#define T_EXPANSION                    (1 << (8 + 6))
+#define T_HASH_CHOSEN                  T_MID_GENSYM
+#define T_INITIAL_VALUE                T_MID_LOW_COUNT
+#define T_MACLET                       T_DEFINER
+#define T_MID_COLLECTED                (1 << 1)
+#define T_MID_FUNCLET                  T_MID_GENSYM
+#define T_MID_GENSYM                   (1 << 13)
+#define T_MID_LOW_COUNT                (1 << 4)
+#define T_MID_SHARED                   (1 << 3)
+#define T_MID_UNSAFE                   (1 << 7)
+#define T_PAIR_MACRO                   T_MID_SAFE_STEPPER
+#define T_SHARED                       (1 << (16 + 3))
+#define T_SHORT_CYCLIC                 (1 << 5)
+#define T_SHORT_CYCLIC_SET             (1 << 6)
+#define T_SIMPLE_ELEMENTS              (1 << 8)
+#define T_TYPED_HASH_TABLE             T_HAS_LET_FILE
+#define T_TYPED_VECTOR                 T_HAS_LET_FILE
+#define T_WEAK_HASH                    T_MID_SAFE_STEPPER
+#define WITHOUT_OVERFLOW_ERROR false
+#if S7_DEBUGGING
+void *Malloc(size_t bytes);
+void *Calloc(size_t nmemb, size_t size);
+void *Realloc(void *ptr, size_t size);
+#else
+#define Calloc(N, Size)    calloc(N, Size)
+#define Malloc(Size)       malloc(Size)
+#define Realloc(Ptr, Size) realloc(Ptr, Size)
+#endif
+#define allows_other_keys(p)           has_mid_type_bit(T_Pair(p), T_ALLOW_OTHER_KEYS)
+#define byte_vector(p, i)              ((T_BVc(p))->object.vector.elements.bytes[i])
+#define byte_vector_bytes(p)           (T_BVc(p))->object.vector.elements.bytes
+#define c_function_data(f)             (T_Fnc(f))->object.fnc.c_proc               /* not T_CFn -- this also applies to T_C_MACROs */
+#define c_function_name(f)             c_function_data(f)->name                    /* const char* */
+#define c_function_name_length(f)      c_function_data(f)->name_length             /* int32_t */
+#define c_macro_data(f)                (T_CMac(f))->object.fnc.c_proc
+#define c_macro_name(f)                c_macro_data(f)->name
+#define c_macro_name_length(f)         c_macro_data(f)->name_length
+#define c_object_info(Sc, p)           Sc->c_object_types[c_object_type(T_Obj(p))]
+#define c_object_scheme_name(Sc, p)    T_Str(c_object_info(Sc, p)->scheme_name)
+#define c_object_set(Sc, p)            c_object_info(Sc, p)->set
+#define c_object_to_list(Sc, p)        c_object_info(Sc, p)->to_list
+#define c_object_to_string(Sc, p)      c_object_info(Sc, p)->to_string
+#define c_object_type(p)               (T_Obj(p))->object.c_obj.type
+#define c_object_value(p)              (T_Obj(p))->object.c_obj.value
+#define c_pointer(p)                   (T_Ptr(p))->object.cptr.c_pointer
+#define c_pointer_info(p)              (T_Ptr(p))->object.cptr.info
+#define c_pointer_type(p)              (T_Ptr(p))->object.cptr.c_type
+#define catch_tag(p)                   (T_Cat(p))->object.rcatch.tag
+#define character(p)                   (T_Chr(p))->object.chr.c
+#define character_name(p)              (T_Chr(p))->object.chr.c_name
+#define character_name_length(p)       (T_Chr(p))->object.chr.length
+#define check_stack_size(Sc) do {if (Sc->stack_end >= Sc->stack_resize_trigger) resize_stack(Sc);} while (0)
+#define clamp_length(NLen, Len) (((NLen) < (Len)) ? (NLen) : (Len))
+#define clear_collected_and_shared(p)  clear_mid_type_bit(T_Seq(p), T_MID_COLLECTED | T_MID_SHARED) /* this can clear free cells = calloc */
+#define clear_cyclic_bits(p)           clear_type_bit(p, T_COLLECTED | T_SHARED | T_CYCLIC | T_CYCLIC_SET) /* not T_Seq, p can be free(!) */
+#define closure_body(p)                (T_Pair((T_Clo(p))->object.func.body))
+#define closure_setter(p)              (T_Prc((T_Clo(p))->object.func.setter))
+#define complex_vector_complexes(p)    (T_Cvc(p))->object.vector.elements.complexes
+#define current_code(Sc)               car(Sc->cur_code)
+#define eof_name(p)                    (T_Eof(p))->object.eof.name
+#define eof_name_length(p)             (T_Eof(p))->object.eof.len
+#define float_vector_floats(p)         (T_Fvc(p))->object.vector.elements.floats
+#define gc_protected_at(Sc, Loc) vector_element(Sc->protected_objects, Loc)
+#define has_pair_macro(p)              has_mid_type_bit(T_Mac(p), T_PAIR_MACRO)
+#define has_simple_elements(p)         has_high_type_bit(T_Nvc(p), T_SIMPLE_ELEMENTS)
+#define has_structure(P)               ((t_structure_p[type(P)]) && ((!is_t_vector(P)) || (!has_simple_elements(P))))
+#define hash_chosen(p)                 has_mid_type_bit(T_Hsh(p), T_HASH_CHOSEN)
+#define hash_table_block(p)            (T_Hsh(p))->object.hasher.block
+#define hash_table_elements(p)         (T_Hsh(p))->object.hasher.elements /* block data (dx) */
+#define hash_table_entries(p)          hash_table_block(p)->nx.nx_uint
+#define hash_table_key_typer(p)                 T_Prc(opt1_any(hash_table_procedures(p)))
+#define hash_table_procedures(p)       T_Lst(hash_table_block(p)->ex.ex_ptr)
+#define hash_table_procedures_checker(p)        T_Prc(car(hash_table_procedures(p)))
+#define hash_table_procedures_mapper(p)         T_Prc(cdr(hash_table_procedures(p)))
+#define hash_table_size(p)             ((T_Hsh(p))->object.hasher.mask + 1)
+#define hash_table_value_typer(p)               T_Prc(opt2_any(hash_table_procedures(p)))
+#define int_vector(p, i)               ((T_Ivc(p))->object.vector.elements.ints[i])
+#define int_vector_ints(p)             (T_Ivc(p))->object.vector.elements.ints
+#define is_any_vector(p)               t_vector_p[type(p)]
+#define is_bacro_star(p)               (type(p) == T_BACRO_STAR)
+#define is_byte_vector(p)              (type(p) == T_BYTE_VECTOR)
+#define is_c_pointer(p)                (type(p) == T_C_POINTER)
+#define is_clean_symbol(p)             has_mid_type_bit(T_Sym(p), T_CLEAN_SYMBOL)
+#define is_collected(p)                has_mid_type_bit(T_Seq(p), T_MID_COLLECTED)
+#define is_collected_or_shared(p)      has_mid_type_bit(T_Seq(p), T_MID_COLLECTED | T_MID_SHARED)
+#define is_collected_unchecked(p)      has_mid_type_bit(p, T_MID_COLLECTED)
+#define is_complex_vector(p)           (type(p) == T_COMPLEX_VECTOR)
+#define is_cyclic(p)                   has_high_type_bit(T_Seq(p), T_SHORT_CYCLIC)
+#define is_cyclic_set(p)               has_high_type_bit(T_Seq(p), T_SHORT_CYCLIC_SET)
+#define is_either_macro(p)             ((is_macro(p)) || (is_macro_star(p)))
+#define is_expansion(p)                has_low_type_bit(T_Ext(p), T_EXPANSION)
+#define is_file_port(p)                (port_type(p) == file_port)
+#define is_float_vector(p)             (type(p) == T_FLOAT_VECTOR)
+#define is_free(p)                     (type_unchecked(p) == T_FREE)
+#define is_funclet(p)                  has_mid_type_bit(T_Let(p), T_MID_FUNCLET)
+#define is_function_port(p)            (port_type(p) == function_port)
+#define is_hash_table(p)               (type(p) == T_HASH_TABLE)
+#define is_immutable_hash_table(p)     has_mid_type_bit(T_Hsh(p), T_MID_IMMUTABLE)
+#define is_immutable_pair(p)           has_mid_type_bit(T_Pair(p), T_MID_IMMUTABLE)
+#define is_immutable_string(p)         has_mid_type_bit(T_Str(p), T_MID_IMMUTABLE)
+#define is_immutable_vector(p)         has_mid_type_bit(T_Vec(p), T_MID_IMMUTABLE)
+#define is_initial_value(p)            has_mid_type_bit(p, T_INITIAL_VALUE)
+#define is_int_vector(p)               (type(p) == T_INT_VECTOR)
+#define is_iterator(p)                 (type(p) == T_ITERATOR)
+#define is_maclet(p)                   has_high_type_bit(T_Let(p), T_MACLET)
+#define is_macro(p)                    (type(p) == T_MACRO)
+#define is_macro_star(p)               (type(p) == T_MACRO_STAR)
+#define is_multiple_value(p)           has_low_type_bit(T_Exs(p), T_MULTIPLE_VALUE) /* not T_Ext -- can be a slot */
+#define is_normal_symbol(p)            ((is_symbol(p)) && (!is_keyword(p)))  /* ((full_type(p) & (0xff | T_KEYWORD)) == T_SYMBOL) is exactly the same speed */
+#define is_not_null(p)                 ((T_Exs(p)) != sc->nil)
+#define is_number(P)                   t_number_p[type(P)]
+#define is_sequence(P)                 ((t_sequence_p[type(P)]) || (has_methods(P)))
+#define is_shared(p)                   has_mid_type_bit(T_Seq(p), T_MID_SHARED)
+#define is_string_port(p)              (port_type(p) == string_port)
+#define is_t_vector(p)                 (type(p) == T_VECTOR)
+#define is_typed_hash_table(p)         has_high_type_bit(T_Hsh(p), T_TYPED_HASH_TABLE)
+#define is_typed_vector(p)             has_high_type_bit(T_Nvc(p), T_TYPED_VECTOR)
+#define is_unquoted_pair(Sc, p)        ((is_pair(p)) && (!is_quote(Sc, car(p))))
+#define is_weak_hash_table(p)          has_mid_type_bit(T_Hsh(p), T_WEAK_HASH)
+#define iterator_current(p)            (T_Itr(p))->object.iter.cur
+#define iterator_position(p)           (T_Itr_Pos(p))->object.iter.lc.loc
+#define iterator_sequence(p)           (T_Itr(p))->object.iter.seq
+#define let_iterator_slot(p)           T_Sln((T_Itr_Let(p))->object.iter.lc.slot)  /* applies only to lets */
+#define opt1(p, r)                     ((p)->object.cons.opt1)
+#define opt1_any(P)                    opt1(P,                      OPT1_ANY)    /* can be free in closure_is_ok */
+#define opt2_any(P)                    opt2(P,                      OPT2_KEY)
+#define opt2_sym(P)                    T_Sym(opt2(P,                OPT2_SYM))
+#define pair_macro(P)                  opt2_sym(P)
+#define port_data(p)                   (T_Prt(p))->object.prt.data
+#define port_data_size(p)              (T_Prt(p))->object.prt.size
+#define port_display(p)                port_port(p)->pf->displayer
+#define port_filename(p)               port_port(p)->filename
+#define port_filename_length(p)        port_port(p)->filename_length
+#define port_is_closed(p)              port_port(p)->is_closed
+#define port_position(p)               (T_Prt(p))->object.prt.point
+#define port_type(p)                   port_port(p)->ptype
+#define random_carry(p)                (T_Ran(p))->object.rng.carry
+#define random_seed(p)                 (T_Ran(p))->object.rng.seed
+#if S7_DEBUGGING
+  #define resize_stack(Sc) resize_stack_1(Sc, __func__, __LINE__)
+  void resize_stack_1(s7_scheme *sc, const char *func, int line);
+#else
+  void resize_stack(s7_scheme *sc);
+#endif
+#define return_with_end_temp(Temp)      do {s7_pointer Result = Temp; end_temp(Temp); return(Result);} while (0)
+#define set_clean_symbol(p)            set_mid_type_bit(T_Sym(p), T_CLEAN_SYMBOL)
+#define set_collected(p)               set_mid_type_bit(T_Seq(p), T_MID_COLLECTED)
+#define set_cyclic(p)                  set_high_type_bit(T_Seq(p), T_SHORT_CYCLIC)
+#define set_cyclic_set(p)              set_high_type_bit(T_Seq(p), T_SHORT_CYCLIC_SET)
+#define set_shared(p)                  set_mid_type_bit(T_Seq(p), T_MID_SHARED)
+#define symbol_name_length(p)          string_length(symbol_name_cell(p))
+#define syntax_symbol(p)               T_Sym((T_Syn(p))->object.syn.symbol)
+#define undefined_name(p)              (T_Undf(p))->object.undef.name
+#define undefined_name_length(p)       (T_Undf(p))->object.undef.len
+#define unique_name(p)                 (p)->object.unq.name /* not T_Uniq(p) here -- see make_unique */
+#define unique_name_length(p)          (p)->object.unq.len
+#define vector_dimension(p, i)         vdims_dims(vector_dimension_info(p))[i]
+#define vector_dimension_info(p)       ((vdims_t *)(T_Vec(p))->object.vector.block->ex.ex_info)
+#define vector_element(p, i)           ((T_Nvc(p))->object.vector.elements.objects[i])
+#define vector_getter(p)               (T_Vec(p))->object.vector.vget
+#define vector_ndims(p)                vdims_rank(vector_dimension_info(p))
+#define vector_rank(p)                 ((vector_dimension_info(p)) ? vector_ndims(p) : 1)
 
 #endif /* S7_INTERNAL_H */

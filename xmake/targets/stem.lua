@@ -183,12 +183,16 @@ target("stem") do
     add_includedirs("$(builddir)", {public = true})
     add_files("$(projectdir)/src/Mogan/Research/research.cpp")
 
-    -- Velopack C++ runtime：启动钩子编译/链接 + 动态库随 bin/ 发布
-    if is_plat("windows") and is_arch("x64") then
+    -- Velopack C++ runtime：启动钩子编译/链接 + 动态库随包发布
+    if (is_plat("windows") and is_arch("x64")) or (is_plat("macosx") and is_arch("arm64")) then
         add_velopack_runtime ()
-        -- 导入库内嵌 DLL 名为 velopack_libc.dll，发布时改名，exe 才能加载
-        add_installfiles ("$(projectdir)/3rdparty/velopack/lib/velopack_libc_win_x64_msvc.dll",
-                          {prefixdir = "bin", filename = "velopack_libc.dll"})
+        if is_plat("windows") then
+            -- 导入库内嵌 DLL 名为 velopack_libc.dll，发布时改名，exe 才能加载
+            add_installfiles ("$(projectdir)/3rdparty/velopack/lib/velopack_libc_win_x64_msvc.dll",
+                              {prefixdir = "bin", filename = "velopack_libc.dll"})
+        end
+        -- macOS 的 dylib 部署见下方 after_build：构建目录的 .app 即 dev 运行/CI 测试/
+        -- 打包共用物，须进 Contents/Frameworks，而非安装树
     end
 
     -- install tm files for testing purpose
@@ -363,6 +367,30 @@ target("stem") do
                 -- shipping two app binaries inside the bundle.
                 os.rm(duplicate_binary)
                 print("Removed duplicate app binary: " .. duplicate_binary)
+            end
+            if is_arch("arm64") then
+                -- xmake 安装 stem 时会把 shared 依赖（velopack_libc）的产物额外装进
+                -- installdir/lib（即 Contents/Resources/lib），dep 上的空 on_install
+                -- 拦不住。该 dylib 的正式位置是 Contents/Frameworks（构建期由 qt
+                -- 部署规则落位），Resources/lib 下的副本会让公证失败（vpk 的
+                -- --deep 签不到 Resources 里的裸 dylib）。
+                local stray = path.join(target:installdir(), "lib", "libvelopack_libc.dylib")
+                if os.isfile(stray) then
+                    os.rm(stray)
+                    os.rmdir(path.join(target:installdir(), "lib"))
+                    print("Removed stray velopack dylib: " .. stray)
+                end
+            end
+            -- 幂等保险：只 install 不 rebuild 的场景下补拷 Velopack dylib
+            -- （正常路径由构建期 velopack_libc shared 依赖经 qt 部署规则落位）
+            if is_arch("arm64") and has_config("qt_frontend") then
+                local frameworks = path.join(target:installdir(), "..", "Frameworks")
+                if os.isdir(frameworks) and
+                   not os.isfile(path.join(frameworks, "libvelopack_libc.dylib")) then
+                    os.cp(path.join(os.projectdir(), "3rdparty/velopack/lib/libvelopack_libc.dylib"),
+                          path.join(frameworks, "libvelopack_libc.dylib"))
+                    print("Deployed libvelopack_libc.dylib (after_install)")
+                end
             end
         end
     end)

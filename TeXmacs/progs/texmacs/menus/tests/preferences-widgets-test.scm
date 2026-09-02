@@ -57,7 +57,12 @@
     (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 15 14))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
-    (check (length (caddr (tab-ref meta "other"))) => (if (os-macos?) 17 15))
+    ;; other: 平台基础字段 + Velopack 更新器开启时多 1 个 Update channel 字段。
+    ;; 用 use-plugin-updater? 而非硬编码,osx-x64 未接入 velopack 时仍正确。
+    (check (length (caddr (tab-ref meta "other")))
+      =>
+      (+ (if (os-macos?) 17 15) (if (use-plugin-updater?) 1 0))
+    ) ;check
   ) ;let
 ) ;define
 

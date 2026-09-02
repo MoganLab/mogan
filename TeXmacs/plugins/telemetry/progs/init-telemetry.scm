@@ -12,7 +12,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-modules (binary goldfish))
-(use-modules (telemetry telemetry))
+(use-modules (telemetry telemetry-utils)
+  (telemetry telemetry-track)
+  (telemetry telemetry-init)
+) ;use-modules
 (import (liii path))
 
 (define (telemetry-serialize lan t)
@@ -56,7 +59,7 @@
           ) ;msg
          ) ;
       (display msg (current-error-port))
-      (force-output (current-error-port))
+      (flush-output-port (current-error-port))
     ) ;let
   ) ;lambda
 ) ;catch
