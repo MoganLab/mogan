@@ -165,7 +165,8 @@ tree cpp_form_dialog (tree fields);
  *   加载失败返回空 tree。
  * @details 走 run_qml_dialog。scheme 侧把 what 交给 docgrep-in-recent（内容
  *   grep，不是按文件名模糊打开）。
- * @note 测试钩子 MOGAN_TEST_SEARCH_RECENT=ok|cancel 命中时不弹窗。ok 返回空搜索词。
+ * @note 测试钩子 MOGAN_TEST_SEARCH_RECENT=ok|cancel 命中时不弹窗。ok
+ * 返回空搜索词。
  */
 tree cpp_search_recent_dialog ();
 

@@ -340,8 +340,8 @@ TestQmlLoad::test_search_recent_loads () {
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->rootContext ()->setContextProperty ("searchLabel",
-                                          QString ("Search words in recent documents:"));
+  qw->rootContext ()->setContextProperty (
+      "searchLabel", QString ("Search words in recent documents:"));
   qw->rootContext ()->setContextProperty ("searchValue", QString ());
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/SearchRecent.qml"));

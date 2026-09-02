@@ -601,8 +601,7 @@ cpp_search_recent_dialog () {
       [&] (QQuickWidget* qw, QDialog& host) {
         closeBridge= inject_common_context (qw, host);
         qw->rootContext ()->setContextProperty (
-            "searchLabel",
-            qt_translate ("Search words in recent documents:"));
+            "searchLabel", qt_translate ("Search words in recent documents:"));
         qw->rootContext ()->setContextProperty ("searchValue", QString ());
         qw->rootContext ()->setContextProperty ("dialogButtons",
                                                 translate_buttons (buttons));
@@ -610,8 +609,8 @@ cpp_search_recent_dialog () {
       460, logicH);
 
   tree               r (TUPLE);
-  const QVariantMap& res= closeBridge ? closeBridge->results ()
-                                      : QVariantMap ();
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
   delete closeBridge;
   for (auto it= res.begin (); it != res.end (); ++it) {
     tree kv (TUPLE);
