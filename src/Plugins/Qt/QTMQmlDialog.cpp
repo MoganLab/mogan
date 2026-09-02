@@ -585,6 +585,55 @@ cpp_form_dialog (tree fields) {
   return r;
 }
 
+// ---- 搜索最近打开的文档
+// --------------------------------------------------------
+
+/**
+ * @brief 「搜索最近打开的文档」QML 对话框（声明见 QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，一次性提交）。测试钩子
+ * MOGAN_TEST_SEARCH_RECENT=ok|cancel 命中时不弹窗。
+ */
+tree
+cpp_search_recent_dialog () {
+  string preset= get_env ("MOGAN_TEST_SEARCH_RECENT");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    tree r (TUPLE);
+    tree kv (TUPLE);
+    kv << tree ("what") << tree ("");
+    r << kv;
+    return r;
+  }
+  array<string> buttons= {string ("OK"), string ("Cancel")};
+  const int     logicH = 24 * 2 + (44 + 12) + 64;
+
+  QmlDialogBridge* closeBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/SearchRecent.qml", "SearchRecent.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty (
+            "searchLabel", qt_translate ("Search words in recent documents:"));
+        qw->rootContext ()->setContextProperty ("searchValue", QString ());
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      460, logicH);
+
+  tree               r (TUPLE);
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
+  delete closeBridge;
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    kv << tree (from_qstring (it.key ()))
+       << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
+}
+
 // ---- 字体选择器 ------------------------------------------------------------
 
 /**

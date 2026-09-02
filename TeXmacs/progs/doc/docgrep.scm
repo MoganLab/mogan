@@ -243,3 +243,25 @@
     (load-document (string-append "tmfs://grep/" query))
   ) ;with
 ) ;tm-define
+
+;; 从 cpp-search-recent-dialog 的返回 tree 里取搜索词。OK 返回
+;; (tuple (tuple "what" <term>))，Cancel / 关闭返回空 tuple。#f 表示没有有效搜索词。
+
+(define (recent-grep-what result)
+  (with kvs (cdr (tree->stree result)) (if (nnull? kvs) (caddr (car kvs)) #f))
+) ;define
+
+;; 编辑 → 搜索最近打开的文档：专用 QML 弹窗（DialogShell + InputField，
+;; run_qml_dialog）。OK 走 docgrep-in-recent 对最近文档内容做 grep（保持原语义：
+;; 内容搜索，非按文件名模糊打开）。空串 / Cancel / 关闭不触发搜索。
+
+(tm-define (docgrep-in-recent-dialog)
+  (:interactive #t)
+  (with result
+    (cpp-search-recent-dialog)
+    (with what
+      (recent-grep-what result)
+      (if (and (string? what) (!= what "")) (docgrep-in-recent what))
+    ) ;with
+  ) ;with
+) ;tm-define

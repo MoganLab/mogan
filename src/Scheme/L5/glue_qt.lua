@@ -68,6 +68,12 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-search-recent-dialog",
+                cpp_name = "cpp_search_recent_dialog",
+                ret_type = "tree",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-font-selector-dialog",
                 cpp_name = "cpp_font_selector_dialog",
                 ret_type = "tree",
