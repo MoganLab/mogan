@@ -324,6 +324,10 @@ pager_rep::make_pages () {
           if (env->get_string (PAGE_BORDER) != "none") {
             l= 10 * pixel, r= 10 * pixel;
             b= 10 * pixel, t= 10 * pixel;
+            // 文档首行不加上衬边、末行不加下衬边，避免画布首尾露出
+            // 背景色空隙（与 automatic/papyrus 介质行为一致，issue 1260）
+            if (j == 0) t= 0;
+            if (j == ny - 1) b= 0;
             if (env->get_string (PAGE_BORDER) == "attached") {
               if (i > 0) l= pixel / 2;
               if (i < nx - 1) r= 0;

@@ -94,10 +94,6 @@ QTMScrollView::setOrigin (QPoint newOrigin) {
 
 void
 QTMScrollView::setExtents (QRect newExtents) {
-  // QWidget *_viewport = QAbstractScrollArea::viewport();
-  // cout << "Inside  " << _viewport->width() << ", " << _viewport->height() <<
-  // "\n"; cout << "Extents " << newExtents.width() << ", " <<
-  // newExtents.height() << "\n";
   if (newExtents.width () < 0) newExtents.setWidth (0);
   if (newExtents.height () < 0) newExtents.setHeight (0);
   if (p_extents != newExtents) {
@@ -199,7 +195,8 @@ bool
 QTMScrollView::viewportEvent (QEvent* e) {
   switch (e->type ()) {
   case QEvent::Resize:
-  case QEvent::Paint:
+    updateScrollBars ();
+    return false;
   case QEvent::MouseButtonPress:
   case QEvent::MouseButtonRelease:
   case QEvent::MouseButtonDblClick:
