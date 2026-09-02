@@ -49,7 +49,9 @@ static const int MAX_RECENT_DOCS       = 50;
 static const int MAX_GLOBAL_RECENT_DOCS= 100;
 
 namespace {
-constexpr int kMainMargin           = 32;  // 主内容区外边距
+constexpr int kMainMargin= 32; // 主内容区外边距
+constexpr int kMainMarginBottom=
+    16; // 主内容区底部外边距（让最近文档框多向下延伸）
 constexpr int kMainSpacing          = 24;  // 主纵向布局间距
 constexpr int kStyleCardWidth       = 160; // 样式卡片宽度
 constexpr int kStyleCardHeight      = 256; // 样式卡片高度
@@ -269,7 +271,7 @@ QTMHomePage::setupUI () {
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
   mainLayout->setContentsMargins (
       DpiUtils::scaled (kMainMargin), DpiUtils::scaled (kMainMargin),
-      DpiUtils::scaled (kMainMargin), DpiUtils::scaled (kMainMargin));
+      DpiUtils::scaled (kMainMargin), DpiUtils::scaled (kMainMarginBottom));
   mainLayout->setSpacing (DpiUtils::scaled (kMainSpacing));
 
   // 1. 样式选择区
