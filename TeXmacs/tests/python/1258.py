@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-| Tester                  | Platform    | Status |
-| ----------------------- | ----------- | ------ |
-| Darcy Shen <da@liii.pro>| Linux (X11) | Passed |
+| Tester                           | Platform      | Status |
+| -------------------------------- | ------------- | ------ |
+| Darcy Shen <da@liii.pro>         | Linux (X11)   | Passed |
+| ShuLi Zheng <2831850183@qq.com>  | macOS (arm64) | Passed |
 
 Automated end-to-end UI test for issue 1258:
 Verify that the underscore in 'draft_YYYYMMDDHHMMSS.tmu' is visible in
@@ -46,7 +47,11 @@ def find_mogan_binary(repo_root):
         os.path.join(repo_root, "build/linux/x86_64/releasedbg/moganstem"),
         os.path.join(repo_root, "build/packages/stem/data/bin/MoganSTEM.exe"),
         os.path.join(repo_root, "build/macosx/arm64/release/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
+        os.path.join(repo_root, "build/macosx/arm64/releasedbg/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
+        os.path.join(repo_root, "build/macosx/arm64/debug/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
         os.path.join(repo_root, "build/macosx/x86_64/release/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
+        os.path.join(repo_root, "build/macosx/x86_64/releasedbg/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
+        os.path.join(repo_root, "build/macosx/x86_64/debug/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
     ]
     for c in candidates:
         if os.path.exists(c):
@@ -55,7 +60,22 @@ def find_mogan_binary(repo_root):
 
 
 def focus_mogan_window():
-    """Ensure Mogan window is raised and focused on X11 platform."""
+    """Ensure Mogan window is raised and focused across platforms."""
+    if sys.platform == "darwin":
+        try:
+            import AppKit
+            for app in AppKit.NSWorkspace.sharedWorkspace().runningApplications():
+                if "Mogan" in (app.localizedName() or ""):
+                    app.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
+                    return
+        except Exception:
+            pass
+        subprocess.run(
+            ["osascript", "-e", 'tell application "System Events" to set frontmost of first process whose name contains "Mogan" to true'],
+            capture_output=True,
+        )
+        return
+
     try:
         import Xlib.display
         import Xlib.X
@@ -140,13 +160,17 @@ def check_underscore_visible(screenshot_path):
     print(f"[1258] Detected {len(lines)} line clusters in recent documents area")
 
     # Check for the underscore stroke rendered below the baseline of 'draft'
+    scale = 2 if w > 2000 else 1
+    max_stroke_h = 6 * scale
+    max_gap = 6 * scale
+
     for idx, (r1, r2) in enumerate(lines):
         cluster_h = r2 - r1
-        # The underscore stroke has a small height (1-6px) directly under the main text line
-        if cluster_h <= 6 and idx > 0:
+        # The underscore stroke has a small height directly under the main text line
+        if cluster_h <= max_stroke_h and idx > 0:
             prev_r1, prev_r2 = lines[idx - 1]
             gap = r1 - prev_r2
-            if gap <= 6:
+            if gap <= max_gap:
                 line_binary = binary[r1:r2, :]
                 cols = np.where(line_binary.sum(axis=0) > 0)[0]
                 if len(cols) > 0:
@@ -162,6 +186,12 @@ def run_test():
     bin_path = find_mogan_binary(repo_root)
     print(f"[1258] Using Mogan binary: {bin_path}")
 
+    # On macOS, ensure .app bundle is ad-hoc signed so AMFI allows execution
+    if sys.platform == "darwin":
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(bin_path)))
+        if app_dir.endswith(".app"):
+            subprocess.run(["codesign", "--force", "--deep", "--sign", "-", app_dir], capture_output=True)
+
     env = os.environ.copy()
     env["TEXMACS_PATH"] = os.path.join(repo_root, "TeXmacs")
 
@@ -169,6 +199,7 @@ def run_test():
     proc = subprocess.Popen([bin_path], env=env)
     keyboard = KeyboardController()
     mouse = MouseController()
+    mod_key = Key.cmd if sys.platform == "darwin" else Key.ctrl
 
     try:
         # 1. Wait for Mogan window to open and raise to front
@@ -182,34 +213,38 @@ def run_test():
         mouse.click(Button.left)
         time.sleep(0.5)
 
-        # 3. Create a new document / tab (Ctrl+T)
-        print("[1258] Creating new tab (Ctrl+T)...")
-        with keyboard.pressed(Key.ctrl):
+        # 3. Create a new document / tab (Cmd+T / Ctrl+T)
+        print("[1258] Creating new tab...")
+        with keyboard.pressed(mod_key):
             keyboard.press("t")
             keyboard.release("t")
         time.sleep(2.0)
 
-        # 4. Type 'hello'
+        # 4. Type 'hello' and commit (Enter avoids IME composition on macOS)
         print("[1258] Typing 'hello'...")
         keyboard.type("hello")
+        time.sleep(0.3)
+        keyboard.press(Key.enter)
+        keyboard.release(Key.enter)
         time.sleep(1.0)
 
-        # 5. Preview document (Ctrl+P) -> triggers auto-save draft and opens PDF tab
-        print("[1258] Triggering preview (Ctrl+P)...")
-        with keyboard.pressed(Key.ctrl):
+        # 5. Preview document (Cmd+P / Ctrl+P) -> triggers auto-save draft and opens PDF tab
+        print("[1258] Triggering preview...")
+        with keyboard.pressed(mod_key):
             keyboard.press("p")
             keyboard.release("p")
         time.sleep(3.5)
 
-        # 6. Return to Home page: click first tab / press Ctrl+1
-        print("[1258] Returning to Home page (Ctrl+1 / click first tab)...")
+        # 6. Return to Home page: click first tab / press Cmd+1 or Ctrl+1
+        print("[1258] Returning to Home page...")
         focus_mogan_window()
         time.sleep(0.2)
-        mouse.position = (80, 40)
+        tab_click_pos = (130, 42) if sys.platform == "darwin" else (80, 40)
+        mouse.position = tab_click_pos
         time.sleep(0.3)
         mouse.click(Button.left)
         time.sleep(0.3)
-        with keyboard.pressed(Key.ctrl):
+        with keyboard.pressed(mod_key):
             keyboard.press("1")
             keyboard.release("1")
         time.sleep(2.0)
