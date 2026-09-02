@@ -17,7 +17,9 @@
 
 (import (liii check))
 (import (only (liii path) path-join path->string))
-(import (only (liii string) string-starts? string-ends? string-index))
+(import (only (liii string) string-starts? string-ends? string-index string-contains?)
+) ;import
+(import (only (liii time) current-date date->string))
 
 (check-set-mode! 'report-failed)
 
@@ -53,7 +55,9 @@
 ;; Tests for draft_YYYYMMDD_HHMMSS naming (1257)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (draft-test-url name) (system->url name))
+(define (draft-test-url name)
+  (system->url name)
+) ;define
 
 (define (draft-name-stamp-part name)
   (let* ((body (substring name 6 (- (string-length name) 4)))
@@ -87,6 +91,29 @@
   ) ;let
 ) ;define
 
+(define (test-scratch-buffer-title-legacy-one-underscore-this-week)
+  ;; 本周旧名只有 draft_ 一个下划线;标题须含文件名里的 HH:MM:SS
+  (let* ((now (date->string (current-date) "~Y~m~d~H~M~S"))
+         (day (substring now 0 8))
+         (hms (substring now 8 14))
+         (clock (string-append (substring hms 0 2)
+                  ":"
+                  (substring hms 2 4)
+                  ":"
+                  (substring hms 4 6)
+                ) ;string-append
+         ) ;clock
+         (old (scratch-buffer-title (draft-test-url (string-append "draft_" now ".tmu")))
+         ) ;old
+         (new (scratch-buffer-title (draft-test-url (string-append "draft_" day "_" hms ".tmu"))
+              ) ;scratch-buffer-title
+         ) ;new
+        ) ;
+    (check old => new)
+    (check (string-contains? old clock) => #t)
+  ) ;let*
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,5 +123,6 @@
   (test-auto-backup-texmacs-path-buffer?)
   (test-scratch-buffer-name-has-date-time-underscore)
   (test-scratch-buffer-title-old-and-new-stamp)
+  (test-scratch-buffer-title-legacy-one-underscore-this-week)
   (check-report)
 ) ;tm-define
