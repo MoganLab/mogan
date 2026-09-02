@@ -13,7 +13,27 @@ Capture screenshots at distinct stages of AI chat sidebar workflow for agent/hum
 import os
 import sys
 import time
+import tempfile
 import subprocess
+
+# Ensure UTF-8 and unbuffered stdout
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(line_buffering=True, encoding="utf-8")
+
+# Set DPI awareness on Windows as early as possible so all coordinates and grabs align
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+    except Exception:
+        try:
+            import ctypes
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
 from PIL import ImageGrab
 
 # Fallback: import pynput from ~/git/pynput/lib if not installed system-wide
@@ -54,7 +74,25 @@ class ClipboardManager:
                 self.root.update()
                 return self.root.clipboard_get()
             except Exception:
-                return ""
+                pass
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                import ctypes.wintypes
+                user32 = ctypes.windll.user32
+                kernel32 = ctypes.windll.kernel32
+                if user32.OpenClipboard(0):
+                    CF_UNICODETEXT = 13
+                    h_mem = user32.GetClipboardData(CF_UNICODETEXT)
+                    text = ""
+                    if h_mem:
+                        ptr = kernel32.GlobalLock(h_mem)
+                        text = ctypes.c_wchar_p(ptr).value or ""
+                        kernel32.GlobalUnlock(h_mem)
+                    user32.CloseClipboard()
+                    return text
+            except Exception:
+                pass
         return ""
 
     def set(self, text):
@@ -81,6 +119,62 @@ class ClipboardManager:
                 pass
 
 
+def ensure_english_ime(hwnd=None):
+    """
+    On Windows, ensure Chinese IME is turned off / switched to US English layout
+    so that simulated keyboard strokes and hotkeys are not intercepted.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        import ctypes.wintypes
+        user32 = ctypes.windll.user32
+        imm32 = ctypes.windll.imm32
+        kernel32 = ctypes.windll.kernel32
+
+        # 1. Activate US English (00000409) in the current test runner thread
+        hkl_us = user32.LoadKeyboardLayoutW("00000409", 1)
+        user32.ActivateKeyboardLayout(ctypes.c_void_p(hkl_us), 0)
+
+        # 2. Check and turn off Caps Lock if it's currently on
+        VK_CAPITAL = 0x14
+        if user32.GetKeyState(VK_CAPITAL) & 1:
+            user32.keybd_event(VK_CAPITAL, 0x45, 1, 0)
+            user32.keybd_event(VK_CAPITAL, 0x45, 3, 0)
+
+        # 3. For target Mogan window / thread, switch layout & close IME
+        if hwnd:
+            tid_target = user32.GetWindowThreadProcessId(hwnd, None)
+            current_tid = kernel32.GetCurrentThreadId()
+            if tid_target and tid_target != current_tid:
+                user32.AttachThreadInput(current_tid, tid_target, True)
+                user32.ActivateKeyboardLayout(ctypes.c_void_p(hkl_us), 0)
+                user32.AttachThreadInput(current_tid, tid_target, False)
+
+            # Request input language change
+            WM_INPUTLANGCHANGEREQUEST = 0x0050
+            user32.PostMessageW(hwnd, WM_INPUTLANGCHANGEREQUEST, 1, hkl_us)
+
+            # Set conversion mode to alphanumeric & turn off IME via Imm context
+            himc = imm32.ImmGetContext(hwnd)
+            if himc:
+                imm32.ImmSetOpenStatus(himc, 0)
+                imm32.ImmSetConversionStatus(himc, 0, 0)
+                imm32.ImmReleaseContext(hwnd, himc)
+
+            # Send IME control commands to default IME window
+            ime_hwnd = imm32.ImmGetDefaultIMEWnd(hwnd)
+            if ime_hwnd:
+                WM_IME_CONTROL = 0x0283
+                IMC_SETOPENSTATUS = 0x0006
+                IMC_SETCONVERSIONMODE = 0x0002
+                user32.SendMessageW(ime_hwnd, WM_IME_CONTROL, IMC_SETOPENSTATUS, 0)
+                user32.SendMessageW(ime_hwnd, WM_IME_CONTROL, IMC_SETCONVERSIONMODE, 0)
+    except Exception as e:
+        print(f"[1243] Note: ensure_english_ime warning: {e}")
+
+
 def find_repo_root():
     cur = os.path.abspath(os.path.dirname(__file__))
     while cur != "/" and cur != os.path.dirname(cur):
@@ -92,10 +186,13 @@ def find_repo_root():
 
 def find_mogan_binary(repo_root):
     candidates = [
+        os.path.join(repo_root, "build", "packages", "stem", "data", "bin", "MoganSTEM.exe"),
+        os.path.join(repo_root, "build", "windows", "x64", "releasedbg", "MoganSTEM.exe"),
+        os.path.join(repo_root, "build", "windows", "x64", "release", "MoganSTEM.exe"),
+        os.path.join(repo_root, "build", "windows", "x64", "debug", "MoganSTEM.exe"),
         os.path.join(repo_root, "build/linux/x86_64/release/moganstem"),
         os.path.join(repo_root, "build/linux/x86_64/debug/moganstem"),
         os.path.join(repo_root, "build/linux/x86_64/releasedbg/moganstem"),
-        os.path.join(repo_root, "build/packages/stem/data/bin/MoganSTEM.exe"),
         os.path.join(repo_root, "build/macosx/arm64/release/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
         os.path.join(repo_root, "build/macosx/arm64/releasedbg/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
         os.path.join(repo_root, "build/macosx/arm64/debug/MoganSTEM.app/Contents/MacOS/MoganSTEM"),
@@ -106,10 +203,63 @@ def find_mogan_binary(repo_root):
     for c in candidates:
         if os.path.exists(c):
             return c
-    raise FileNotFoundError("Mogan binary not found. Please build stem first (xmake b stem).")
+    raise FileNotFoundError("Mogan binary not found. Please build stem first (xmake b stem && xmake i stem).")
 
 
-def focus_mogan_window():
+def kill_existing_mogan():
+    """Ensure no stale Mogan processes interfere with the test."""
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["taskkill", "/F", "/IM", "MoganSTEM.exe"], capture_output=True)
+        elif sys.platform == "darwin":
+            subprocess.run(["pkill", "-9", "-f", "MoganSTEM"], capture_output=True)
+        else:
+            subprocess.run(["pkill", "-9", "-f", "moganstem"], capture_output=True)
+    except Exception:
+        pass
+
+
+def find_mogan_hwnd(proc_pid=None):
+    """Find Mogan top-level HWND on Windows."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        import ctypes.wintypes
+        user32 = ctypes.windll.user32
+
+        matched_hwnds = []
+
+        def enum_cb(hwnd, lparam):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length > 0:
+                buff = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, buff, length + 1)
+                title = buff.value
+                lpdw_process_id = ctypes.wintypes.DWORD()
+                user32.GetWindowThreadProcessId(hwnd, ctypes.byref(lpdw_process_id))
+                if proc_pid and lpdw_process_id.value == proc_pid:
+                    matched_hwnds.append((hwnd, title, True))
+                elif any(k in title for k in ["Liii STEM", "Mogan", "TeXmacs"]):
+                    matched_hwnds.append((hwnd, title, False))
+            return True
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+        user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+
+        for hwnd, title, is_pid in matched_hwnds:
+            if is_pid:
+                return hwnd
+        if matched_hwnds:
+            return matched_hwnds[0][0]
+    except Exception:
+        pass
+    return None
+
+
+def focus_mogan_window(proc=None):
     """Ensure Mogan window is raised and focused across platforms."""
     if sys.platform == "darwin":
         try:
@@ -117,14 +267,44 @@ def focus_mogan_window():
             for app in AppKit.NSWorkspace.sharedWorkspace().runningApplications():
                 if "Mogan" in (app.localizedName() or ""):
                     app.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
-                    return
+                    return None
         except Exception:
             pass
         subprocess.run(
             ["osascript", "-e", 'tell application "System Events" to set frontmost of first process whose name contains "Mogan" to true'],
             capture_output=True,
         )
-        return
+        return None
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            import ctypes.wintypes
+            user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
+
+            pid = proc.pid if proc else None
+            hwnd = find_mogan_hwnd(pid)
+            if hwnd:
+                user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                fg_hwnd = user32.GetForegroundWindow()
+                fg_tid = user32.GetWindowThreadProcessId(fg_hwnd, None)
+                cur_tid = kernel32.GetCurrentThreadId()
+                if fg_tid and fg_tid != cur_tid:
+                    user32.AttachThreadInput(cur_tid, fg_tid, True)
+                    user32.SetForegroundWindow(hwnd)
+                    user32.BringWindowToTop(hwnd)
+                    user32.SetFocus(hwnd)
+                    user32.AttachThreadInput(cur_tid, fg_tid, False)
+                else:
+                    user32.SetForegroundWindow(hwnd)
+                    user32.BringWindowToTop(hwnd)
+                    user32.SetFocus(hwnd)
+                ensure_english_ime(hwnd)
+                return hwnd
+        except Exception as e:
+            print(f"[1243] Note: focus_mogan_window warning: {e}")
+        return None
 
     try:
         import Xlib.display
@@ -164,6 +344,119 @@ def focus_mogan_window():
             d.sync()
     except Exception:
         pass
+    return None
+
+
+def find_plus_icon_in_image(im):
+    """Detect the '+' new-tab icon (a symmetric cross) in a title bar crop."""
+    gray = im.convert("L")
+    w, h = gray.size
+    best_score = 0
+    best_pos = None
+    for y in range(15, h - 15):
+        for x in range(30, min(w - 30, 1500)):
+            if gray.getpixel((x, y)) < 100:
+                arm_u = sum(1 for dy in range(1, 8) if gray.getpixel((x, y - dy)) < 130)
+                arm_d = sum(1 for dy in range(1, 8) if gray.getpixel((x, y + dy)) < 130)
+                arm_l = sum(1 for dx in range(1, 8) if gray.getpixel((x - dx, y)) < 130)
+                arm_r = sum(1 for dx in range(1, 8) if gray.getpixel((x + dx, y)) < 130)
+                corners_light = sum(
+                    1
+                    for dx, dy in [(-5, -5), (5, -5), (-5, 5), (5, 5)]
+                    if gray.getpixel((x + dx, y + dy)) > 170
+                )
+                if arm_u >= 3 and arm_d >= 3 and arm_l >= 3 and arm_r >= 3 and corners_light >= 3:
+                    score = arm_u + arm_d + arm_l + arm_r
+                    if score > best_score:
+                        best_score = score
+                        best_pos = (x, y)
+    return best_pos
+
+
+def get_plus_button_coords(hwnd):
+    """Find absolute screen coordinates of the '+' new-tab button."""
+    if sys.platform == "win32" and hwnd:
+        try:
+            import ctypes
+            import ctypes.wintypes
+            user32 = ctypes.windll.user32
+            rect = ctypes.wintypes.RECT()
+            if user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+                bar_h = 90
+                w = max(100, rect.right - rect.left)
+                im = ImageGrab.grab(
+                    bbox=(rect.left, rect.top, min(rect.right, rect.left + min(1600, w)), rect.top + bar_h)
+                )
+                rel_pos = find_plus_icon_in_image(im)
+                if rel_pos:
+                    return (rect.left + rel_pos[0], rect.top + rel_pos[1])
+        except Exception as e:
+            print(f"[1243] Note: get_plus_button_coords exception: {e}")
+    return None
+
+
+def wait_and_get_plus_button_coords(hwnd, timeout=10.0):
+    """Poll and wait until the '+' new-tab button is confirmed in the title bar."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        coords = get_plus_button_coords(hwnd)
+        if coords:
+            return coords
+        time.sleep(0.5)
+    return None
+
+
+def get_window_document_coords(hwnd):
+    """Compute document clicking coordinates inside the window."""
+    if sys.platform == "win32" and hwnd:
+        try:
+            import ctypes
+            import ctypes.wintypes
+            user32 = ctypes.windll.user32
+            rect = ctypes.wintypes.RECT()
+            if user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+                # Pick a point squarely inside the document editor area (1/3 from left, 1/3 from top)
+                w = max(100, rect.right - rect.left)
+                h = max(100, rect.bottom - rect.top)
+                x = rect.left + w // 3
+                y = rect.top + h // 3
+                return (x, y)
+        except Exception:
+            pass
+    return (500, 400)
+
+
+def insert_doc_text(keyboard, clipboard, text, mod_key):
+    """Insert text into the active document or input widget reliably."""
+    clipboard.set(text)
+    time.sleep(0.15)
+    with keyboard.pressed(mod_key):
+        keyboard.press("v")
+        keyboard.release("v")
+    time.sleep(0.4)
+
+
+def get_screenshot_dir():
+    env_dir = os.environ.get("MOGAN_SCREENSHOT_DIR")
+    if env_dir:
+        os.makedirs(env_dir, exist_ok=True)
+        return env_dir
+
+    if sys.platform == "win32":
+        candidates = [
+            "C:\\tmp",
+            os.path.join(tempfile.gettempdir(), "mogan_1243"),
+        ]
+        for c in candidates:
+            try:
+                os.makedirs(c, exist_ok=True)
+                return c
+            except Exception:
+                continue
+        return tempfile.gettempdir()
+    else:
+        os.makedirs("/tmp", exist_ok=True)
+        return "/tmp"
 
 
 def terminate_process(proc):
@@ -175,9 +468,11 @@ def terminate_process(proc):
             proc.kill()
 
 
-def capture_stage_screenshot(filename, description, stage_list):
+def capture_stage_screenshot(filename, description, stage_list, out_dir=None):
     """Capture full screen for agent visual verification and record stage info."""
-    path = os.path.join("/tmp", filename)
+    if not out_dir:
+        out_dir = get_screenshot_dir()
+    path = os.path.join(out_dir, filename)
     ImageGrab.grab().save(path)
     stage_list.append((len(stage_list) + 1, description, path))
     print(f"[1243] Screenshot captured: {path} ({description})")
@@ -195,6 +490,9 @@ def run_test():
         if app_dir.endswith(".app"):
             subprocess.run(["codesign", "--force", "--deep", "--sign", "-", app_dir], capture_output=True)
 
+    out_dir = get_screenshot_dir()
+    print(f"[1243] Screenshot output directory: {out_dir}")
+
     env = os.environ.copy()
     env["TEXMACS_PATH"] = os.path.join(repo_root, "TeXmacs")
 
@@ -204,27 +502,42 @@ def run_test():
     mod_key = Key.cmd if sys.platform == "darwin" else Key.ctrl
     captured_screenshots = []
 
+    kill_existing_mogan()
+    time.sleep(0.5)
+
     print("[1243] Launching Mogan...")
     proc = subprocess.Popen([bin_path], env=env)
 
+    hwnd = None
     try:
-        time.sleep(3.5)
-        focus_mogan_window()
-        time.sleep(0.5)
+        # Wait for Mogan window to appear and focus it without clicking inside
+        for _ in range(20):
+            time.sleep(0.5)
+            hwnd = focus_mogan_window(proc)
+            if hwnd or sys.platform != "win32":
+                break
+        time.sleep(1.0)
+        ensure_english_ime(hwnd)
 
-        # Click inside the window to guarantee focus
-        mouse.position = (500, 500)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(0.5)
+        doc_pos = get_window_document_coords(hwnd)
+        print(f"[1243] Document click coordinates: {doc_pos}")
 
         # =========================================================================
-        # Setup: Create a new document tab
+        # Setup: Create a new document tab by waiting for and clicking '+'
         # =========================================================================
-        print("\n[1243] --- Setup: Creating new tab ---")
-        with keyboard.pressed(mod_key):
-            keyboard.press("t")
-            keyboard.release("t")
+        print("\n[1243] --- Setup: Waiting for '+' button to appear in tab bar ---")
+        ensure_english_ime(hwnd)
+        plus_pos = wait_and_get_plus_button_coords(hwnd, timeout=10.0)
+        if plus_pos:
+            print(f"[1243] Confirmed '+' button at {plus_pos}, clicking...")
+            mouse.position = plus_pos
+            time.sleep(0.3)
+            mouse.click(Button.left)
+        else:
+            print("[1243] Fallback: Creating tab via shortcut...")
+            with keyboard.pressed(mod_key):
+                keyboard.press("t")
+                keyboard.release("t")
         time.sleep(2.0)
 
         # =========================================================================
@@ -232,8 +545,9 @@ def run_test():
         # =========================================================================
         print("\n[1243] --- Stage 1: Initial state prefill ---")
         stage1_text = "Stage1SelectionInitial"
-        print(f"[1243] Typing document text: '{stage1_text}'...")
-        keyboard.type(stage1_text)
+        print(f"[1243] Inserting document text: '{stage1_text}'...")
+        ensure_english_ime(hwnd)
+        insert_doc_text(keyboard, clipboard, stage1_text, mod_key)
         time.sleep(0.5)
 
         print("[1243] Selecting document text...")
@@ -252,9 +566,11 @@ def run_test():
             "1243_stage1_initial_prefill.png",
             "初始状态：文档选区自动预填入聊天输入区",
             captured_screenshots,
+            out_dir,
         )
 
         # Copy input to check clipboard
+        ensure_english_ime(hwnd)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
             keyboard.release("a")
@@ -272,7 +588,8 @@ def run_test():
         keyboard.press(Key.right)
         keyboard.release(Key.right)
         time.sleep(0.3)
-        keyboard.type("_PreservedDraft")
+        ensure_english_ime(hwnd)
+        insert_doc_text(keyboard, clipboard, "_PreservedDraft", mod_key)
         time.sleep(0.5)
 
         print("[1243] Closing sidebar (mod+J)...")
@@ -282,14 +599,15 @@ def run_test():
         time.sleep(2.0)
 
         # Modify document selection
-        mouse.position = (350, 350)
+        mouse.position = doc_pos
         mouse.click(Button.left)
         time.sleep(0.5)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
             keyboard.release("a")
         time.sleep(0.3)
-        keyboard.type("OtherDocumentSelection")
+        ensure_english_ime(hwnd)
+        insert_doc_text(keyboard, clipboard, "OtherDocumentSelection", mod_key)
         time.sleep(0.5)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
@@ -307,8 +625,10 @@ def run_test():
             "1243_stage2_nonempty_preserved.png",
             "非空保护：输入区已有草稿时重新打开侧边栏不被覆盖",
             captured_screenshots,
+            out_dir,
         )
 
+        ensure_english_ime(hwnd)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
             keyboard.release("a")
@@ -324,6 +644,7 @@ def run_test():
         # =========================================================================
         print("\n[1243] --- Stage 3: No selection empty input ---")
         # Clear chat input
+        ensure_english_ime(hwnd)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
             keyboard.release("a")
@@ -339,7 +660,7 @@ def run_test():
         time.sleep(2.0)
 
         # Deselect in document
-        mouse.position = (350, 350)
+        mouse.position = doc_pos
         mouse.click(Button.left)
         time.sleep(0.3)
         keyboard.press(Key.right)
@@ -357,14 +678,16 @@ def run_test():
             "1243_stage3_empty_selection.png",
             "无选区：文档无选区时打开侧边栏输入区保持为空",
             captured_screenshots,
+            out_dir,
         )
 
         # =========================================================================
         # Stage 4: Dialogue round 1 sent -> Prefill round 2 selection
         # =========================================================================
         print("\n[1243] --- Stage 4: Prefill after Round 1 AI dialogue ---")
-        # In chat input, type Round 1 question and press Enter to send
-        keyboard.type("What is Mogan STEM?")
+        # In chat input, insert Round 1 question and press Enter to send
+        ensure_english_ime(hwnd)
+        insert_doc_text(keyboard, clipboard, "What is Mogan STEM?", mod_key)
         time.sleep(0.5)
         print("[1243] Sending Round 1 message via Enter...")
         keyboard.press(Key.enter)
@@ -379,7 +702,7 @@ def run_test():
         time.sleep(2.0)
 
         # In document, select Round 2 text
-        mouse.position = (350, 350)
+        mouse.position = doc_pos
         mouse.click(Button.left)
         time.sleep(0.5)
         round2_doc_text = "Stage4SelectionRound2"
@@ -387,7 +710,8 @@ def run_test():
             keyboard.press("a")
             keyboard.release("a")
         time.sleep(0.3)
-        keyboard.type(round2_doc_text)
+        ensure_english_ime(hwnd)
+        insert_doc_text(keyboard, clipboard, round2_doc_text, mod_key)
         time.sleep(0.5)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
@@ -405,8 +729,10 @@ def run_test():
             "1243_stage4_after_round1_prefill.png",
             "1 轮对话后预填：侧边栏已有 1 轮历史对话，新选区成功预填",
             captured_screenshots,
+            out_dir,
         )
 
+        ensure_english_ime(hwnd)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
             keyboard.release("a")
@@ -435,7 +761,7 @@ def run_test():
         time.sleep(2.0)
 
         # In document, select Round 3 text
-        mouse.position = (350, 350)
+        mouse.position = doc_pos
         mouse.click(Button.left)
         time.sleep(0.5)
         round3_doc_text = "Stage5SelectionRound3"
@@ -443,7 +769,8 @@ def run_test():
             keyboard.press("a")
             keyboard.release("a")
         time.sleep(0.3)
-        keyboard.type(round3_doc_text)
+        ensure_english_ime(hwnd)
+        insert_doc_text(keyboard, clipboard, round3_doc_text, mod_key)
         time.sleep(0.5)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
@@ -461,8 +788,10 @@ def run_test():
             "1243_stage5_after_round2_prefill.png",
             "2 轮对话后预填：侧边栏已有 2 轮历史对话，新选区成功预填",
             captured_screenshots,
+            out_dir,
         )
 
+        ensure_english_ime(hwnd)
         with keyboard.pressed(mod_key):
             keyboard.press("a")
             keyboard.release("a")
