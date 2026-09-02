@@ -1400,6 +1400,22 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
   if (!layout) return;
 
   if (chatSidebarMode) {
+    bool wasVisible= chatSideDock->isVisible ();
+    // 侧边栏由隐藏转为显示时，在任何 widget/view/focus 切换之前捕获文档选区。
+    // 必须在最开头捕获：后续 createView / show 等会改变当前焦点与活动视图。
+    tree prefill_tree;
+    bool has_prefill= false;
+    if (!wasVisible) {
+      url cur_buf= get_current_buffer_safe ();
+      if (!is_none (cur_buf) && !starts (as_string (cur_buf), "tmfs://chat") &&
+          !is_none (get_current_view_safe ())) {
+        editor ed= get_current_editor ();
+        if (!is_nil (ed) && ed->selection_active_any ()) {
+          prefill_tree= ed->selection_get ();
+          has_prefill = true;
+        }
+      }
+    }
     // 确保不与全屏聊天模式同时存在
     if (chatTabMode) {
       chatTabMode= false;
@@ -1449,6 +1465,11 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
 
     chatSideDock->show ();
     chatContentWidget->show ();
+    // 侧边栏由隐藏转为显示时，若输入区为空则预填文档选区内容
+    if (has_prefill && chatWidget && chatWidget->activeConversation ()) {
+      call ("chat-tab-prefill-session-input!",
+            chatWidget->activeConversation ()->sessionId (), prefill_tree);
+    }
     // 焦点切到聊天输入框
     if (chatWidget && chatWidget->activeConversation ()) {
       chatWidget->activeConversation ()->focusInput ();

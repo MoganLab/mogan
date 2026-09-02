@@ -70,6 +70,29 @@
   ) ;with
 ) ;tm-define
 
+(tm-define (chat-tab-prefillable-source? buf)
+  (:synopsis "Whether BUF is a valid source for chat input prefill")
+  ;; chat 相关 buffer（含 tmfs://chat-tab 与 tmfs://chat/<sid>/*）不作为来源，
+  ;; 避免把聊天输入区自身的内容填回自身
+  (and buf (not (string-starts? (url->system buf) "tmfs://chat")))
+) ;tm-define
+
+(tm-define (chat-tab-prefill-session-input! session-id sel)
+  (:synopsis "Prefill the chat input for SESSION-ID with selection tree SEL")
+  (:argument session-id "Session UUID")
+  (:argument sel "Selection tree")
+  (chat-tab-prefill-input! (chat-tab-session->input-buffer session-id) sel)
+) ;tm-define
+
+(tm-define (chat-tab-prefill-from-selection! session-id)
+  (:synopsis "Prefill the chat input with the current document selection")
+  (:argument session-id "Session UUID")
+  ;; 须在焦点离开文档编辑器之前调用，selection-tree 取自 current editor
+  (when (and (chat-tab-prefillable-source? (current-buffer)) (selection-active-any?))
+    (chat-tab-prefill-session-input! session-id (selection-tree))
+  ) ;when
+) ;tm-define
+
 ;;; ---------- 会话初始化 ----------
 
 (tm-define (chat-tab-init-session! session-id model)

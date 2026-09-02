@@ -366,7 +366,24 @@
   (with-buffer input-buffer
     (buffer-set-body input-buffer (chat-tab-normalize-document body))
     (buffer-pretend-saved input-buffer)
+    (go-end)
   ) ;with-buffer
+) ;tm-define
+
+(tm-define (chat-tab-should-prefill? input-buffer sel)
+  (:synopsis "Whether SEL should be prefilled into INPUT-BUFFER")
+  ;; 仅在输入区为空且选区内容非空白时预填，避免覆盖用户已输入内容
+  (and sel
+    (not (chat-tab-empty-body? sel))
+    (chat-tab-buffer-empty? (buffer-get-body input-buffer))
+  ) ;and
+) ;tm-define
+
+(tm-define (chat-tab-prefill-input! input-buffer sel)
+  (:synopsis "Prefill the chat input buffer with the selected content")
+  (when (chat-tab-should-prefill? input-buffer sel)
+    (chat-tab-set-input-body! input-buffer sel)
+  ) ;when
 ) ;tm-define
 
 ;;; ---------- 追加对话轮次 ----------
