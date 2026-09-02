@@ -151,6 +151,30 @@
   ) ;let
 ) ;define
 
+;;; ---------- 多轮对话后预填 ----------
+
+;; 模拟 1~2 轮对话完成后，输入区清空，再次打开侧边栏仍能正常预填
+
+(define (test-should-prefill-after-multi-round-chat)
+  (let* ((sid "test1243rounds")
+         (in-b (in-buf sid))
+         (msg-b (chat-tab-session->message-buffer sid))
+        ) ;
+    ;; 模拟第 1 轮
+    (buffer-set-body msg-b '(document))
+    (chat-tab-append-round! msg-b (stree->tree '(document "Q1")) "dummy-model")
+    (buffer-set-body in-b '(document ""))
+    ;; 验证第 1 轮后清空的输入区能够预填
+    (check (chat-tab-should-prefill? in-b (string->tree "Q2 selection")) => #t)
+
+    ;; 模拟第 2 轮
+    (chat-tab-append-round! msg-b (stree->tree '(document "Q2")) "dummy-model")
+    (buffer-set-body in-b '(document ""))
+    ;; 验证第 2 轮后清空的输入区同样能够预填
+    (check (chat-tab-should-prefill? in-b (string->tree "Q3 selection")) => #t)
+  ) ;let*
+) ;define
+
 ;;; ---------- 入口 ----------
 
 (tm-define (test_1243)
@@ -161,6 +185,7 @@
   (test-should-prefill-false-selection)
   (test-should-prefill-blank-selection)
   (test-should-prefill-atomic-selection)
+  (test-should-prefill-after-multi-round-chat)
   (test-prefillable-source)
   ;; e2e 会修改当前 buffer 内容并重定义写入函数，须最后执行
   (test-prefill-from-selection-e2e)
