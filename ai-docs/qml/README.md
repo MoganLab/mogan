@@ -147,6 +147,7 @@ OK 时算与快照的 diff → `prefBridge.submit(diff)` 一次性应用；Cance
   （enabledWhen 条件锁定用）
 - `Theme` — 主题单例（scaleFactor / 暗色 / 配色 / 尺寸与字号阶梯常量，分类规则见
   「编码规矩」）
+- `InputField` — 自由输入行（路径/页码/搜索词；可选行内按钮）
 
 **成品**：
 | 对话框 | 模态引擎 | 模型 |
@@ -155,6 +156,7 @@ OK 时算与快照的 diff → `prefBridge.submit(diff)` 一次性应用；Cance
 | `ConfirmQuestion` | `run_qml_dialog`（exec） | 默认按钮居右的确认弹窗（替换 question-no-cancel 的 QMessageBox），返回语义按钮下标（按钮反序协议见「编码规矩」） |
 | `ConfirmRestart` | `run_qml_dialog`（exec） | 三按钮（立即重启/稍后/取消），返回 `"restart"/"later"/"cancel"` |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit（页面设置走此弹窗） |
+| `PrintToFile` | `run_qml_dialog`（exec） | 路径 + 页码一次提交；Browse 走原生保存框 |
 | `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |
 | `Statistics` | `run_qml_dialog`（exec） | 纯展示统计行（`statsItems` 注入 `{label,value}`），Close 即关，无返回值 |

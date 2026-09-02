@@ -12,6 +12,7 @@
 #include "FontSelectorBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
 #include "PreferencesBridge.hpp"
+#include "PrintToFileBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
@@ -79,6 +80,18 @@ translate_buttons (array<string> buttons) {
   for (int i= 0; i < N (buttons); i++)
     out << qt_translate (buttons[i]);
   return out;
+}
+
+static tree
+kv_map_to_tree (const QVariantMap& res) {
+  tree r (TUPLE);
+  for (auto it= res.constBegin (); it != res.constEnd (); ++it) {
+    tree kv (TUPLE);
+    kv << tree (from_qstring (it.key ()))
+       << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
 }
 
 /**
@@ -800,6 +813,108 @@ cpp_preferences_dialog () {
       620, 600);
   delete bridge;
   return tree (TUPLE);
+}
+
+// ---- 打印页面选择到文件
+// --------------------------------------------------------
+
+/**
+ * @brief 字段节点 -> QML 可消费的 QVariantMap。
+ * @param f 字段节点，形如 (path <label> <key> <value>) 或
+ *          (number <label> <key> <value>)。
+ * @return 含 type/label/key/value 的 map；形状不符返回空。
+ *
+ * label/key/value 纯透传，不做翻译或类型转换（value 在 scm 侧已 string 化）。
+ */
+static QVariantMap
+print_field_to_qml (tree f) {
+  QVariantMap m;
+  // (path|number <label> <key> <value>)：compound 三个孩子，下标从 0。
+  if (!is_compound (f) || N (f) < 3) return m;
+  // 用 get_label 而非 ->label：compound 的 ->label 是被 children 占用的乱码。
+  m["type"] = to_qstring (get_label (f));
+  m["label"]= to_qstring (get_label (f[0]));
+  m["key"]  = to_qstring (get_label (f[1]));
+  m["value"]= to_qstring (get_label (f[2]));
+  return m;
+}
+
+/**
+ * @brief 「打印页面选择到文件」QML 对话框 glue 入口（声明/语义见
+ * QTMQmlDialog.hpp）。
+ *
+ * @details 走 run_qml_dialog（exec 阻塞模态，同
+ * FormDialog——一次性提交，不需 live 重绘 文档）。字段由 QML 本地暂存，OK 整包
+ * 交回（closeBridge.submit），Cancel 放弃。\n
+ * path 字段的 Browse 按钮由 PrintToFileBridge::browse
+ * 弹原生保存文件对话框取路径。 测试钩子 MOGAN_TEST_PRINT_TO_FILE=ok|cancel
+ * 命中时不弹窗：ok 按字段初值构造返回 tree（供自动化验证数据契约），cancel
+ * 返回空 tree。
+ */
+tree
+cpp_print_to_file_dialog (tree form) {
+  string preset= get_env ("MOGAN_TEST_PRINT_TO_FILE");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    // 与真实路径同源判定合法字段，返回字段初值（key value 二元组）。
+    tree r (TUPLE);
+    if (is_compound (form)) {
+      for (int i= 0; i < N (form); i++) {
+        QVariantMap m= print_field_to_qml (form[i]);
+        if (m.isEmpty ()) continue;
+        tree kv (TUPLE);
+        kv << tree (from_qstring (m.value ("key").toString ()))
+           << tree (from_qstring (m.value ("value").toString ()));
+        r << kv;
+      }
+    }
+    return r;
+  }
+  QVariantList qmlFields;
+  if (is_compound (form)) {
+    for (int i= 0; i < N (form); i++) {
+      if (is_compound (form[i]) && N (form[i]) >= 3) {
+        QVariantMap m= print_field_to_qml (form[i]);
+        if (!m.isEmpty ()) qmlFields << m;
+      }
+    }
+  }
+  array<string> buttons= {string ("OK"), string ("Cancel")};
+  // 与 PrintToFile.qml 的 implicitHeight 同源；引擎内部统一 × DPI。
+  const int fieldCount= qmlFields.size ();
+  const int logicH    = 24 * 2 + fieldCount * (44 + 12) + 64;
+
+  // closeBridge 须在注入回调里创建并捕获，供事后 results() 取值；printBridge 供
+  // QML 点 Browse 时弹原生文件对话框，二者都不挂 parent，exec 后 delete。
+  QmlDialogBridge*   closeBridge= nullptr;
+  PrintToFileBridge* printBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/PrintToFile.qml", "PrintToFile.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        printBridge= new PrintToFileBridge (&host);
+        qw->rootContext ()->setContextProperty ("formFields", qmlFields);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        qw->rootContext ()->setContextProperty ("browseLabel",
+                                                qt_translate ("Browse"));
+        qw->rootContext ()->setContextProperty ("printBridge", printBridge);
+      },
+      460, logicH);
+
+  // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
+  tree               r (TUPLE);
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
+  delete closeBridge;
+  delete printBridge;
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    kv << tree (from_qstring (it.key ()))
+       << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
 }
 
 /**
