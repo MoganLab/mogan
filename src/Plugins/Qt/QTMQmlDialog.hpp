@@ -160,6 +160,16 @@ int cpp_confirm_question (string message, array<string> buttons);
 tree cpp_form_dialog (tree fields);
 
 /**
+ * @brief 「搜索最近打开的文档」QML 对话框 glue 入口（一次性提交）。
+ * @return 用户点 OK / 回车返回 (tuple (tuple "what" <term>))；Cancel / 关闭 /
+ *   加载失败返回空 tree。
+ * @details 走 run_qml_dialog。scheme 侧把 what 交给 docgrep-in-recent（内容
+ *   grep，不是按文件名模糊打开）。
+ * @note 测试钩子 MOGAN_TEST_SEARCH_RECENT=ok|cancel 命中时不弹窗。ok 返回空搜索词。
+ */
+tree cpp_search_recent_dialog ();
+
+/**
  * @brief 字体选择器 QML 对话框的 glue 入口。
  * @param specs_key scheme specs-registry 的 int 句柄
  *（font-selector-register-specs 返回值）。

@@ -208,6 +208,7 @@ private slots:
   void test_confirm_question_loads ();
   void test_confirm_restart_loads ();
   void test_form_dialog_loads ();
+  void test_search_recent_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
@@ -307,6 +308,26 @@ TestQmlLoad::test_form_dialog_loads () {
   qw->rootContext ()->setContextProperty ("formFields", fields);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/FormDialog.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_search_recent_loads () {
+  QStringList buttons;
+  buttons << "OK"
+          << "Cancel";
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("searchLabel",
+                                          QString ("Search words in recent documents:"));
+  qw->rootContext ()->setContextProperty ("searchValue", QString ());
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/SearchRecent.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
