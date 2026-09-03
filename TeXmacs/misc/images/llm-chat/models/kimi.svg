@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder icon for the Kimi model, to be replaced by product artwork. -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <rect x="1" y="1" width="22" height="22" rx="5" fill="#1f1f1f"/>
+  <path d="M8.5 6.5 V17.5 M8.5 12 L15 6.5 M10.3 10.8 L15.8 17.5"
+        stroke="#ffffff" stroke-width="2" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
