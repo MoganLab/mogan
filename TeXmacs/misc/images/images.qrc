@@ -66,8 +66,6 @@
         <file>llm-chat/cancel-dark.svg</file>
         <file>llm-chat/thinking-dark.svg</file>
         <file>llm-chat/search-dark.svg</file>
-        <file>llm-chat/models/kimi-dark.svg</file>
-        <file>llm-chat/models/deepseek-dark.svg</file>
 
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>
