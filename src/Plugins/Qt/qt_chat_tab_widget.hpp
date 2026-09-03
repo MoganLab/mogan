@@ -94,6 +94,7 @@ public:
   QToolButton*  sendButton () const { return sendButton_; }
   QToolButton*  thinkingButton () const { return thinkingButton_; }
   QToolButton*  searchButton () const { return searchButton_; }
+  QToolButton*  modelButton () const { return modelButton_; }
   QLabel*       sessionTitle () const { return sessionTitle_; }
   const string& sessionId () const { return sessionId_; }
   bool          conversationMode () const { return conversationMode_; }
@@ -138,6 +139,8 @@ signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
   void searchToggled (const string& sessionId, bool enabled);
+  /// 请求弹出模型选择菜单；globalPos 为建议弹出位置
+  void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
   void inputHeightChanged ();
   void closeSidebarInDockModeRequested ();
 
@@ -157,22 +160,23 @@ private:
   /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
-  string       sessionId_;                     ///< 所属会话 ID
-  url          msgBufferUrl_;                  ///< 消息缓冲区 URL（外部注入）
-  url          inputBufferUrl_;                ///< 输入缓冲区 URL（外部注入）
-  bool         conversationMode_ = false;      ///< 是否已进入对话模式
-  QLabel*      welcomeTitle_     = nullptr;    ///< 欢迎页标题
-  QLabel*      sessionTitle_     = nullptr;    ///< 会话标题标签
-  QWidget*     messageFrame_     = nullptr;    ///< 消息区域容器
-  QWidget*     inputEditorWidget_= nullptr;    ///< 输入编辑器容器
-  QTMWidget*   inputQTMWidget_   = nullptr;    ///< 输入区 QTMWidget
-  QToolButton* sendButton_       = nullptr;    ///< 发送/停止按钮
-  QToolButton* thinkingButton_   = nullptr;    ///< 推理模式开关
-  QToolButton* searchButton_     = nullptr;    ///< 网络搜索开关
-  QSpacerItem* topSpacer_        = nullptr;    ///< 欢迎页顶部弹性空间
-  widget       messageWidget_;                 ///< 消息区 TeXmacs widget
-  widget       inputWidget;                    ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_           = 0; ///< 输入框额外高度（边框等）
+  string       sessionId_;                  ///< 所属会话 ID
+  url          msgBufferUrl_;               ///< 消息缓冲区 URL（外部注入）
+  url          inputBufferUrl_;             ///< 输入缓冲区 URL（外部注入）
+  bool         conversationMode_ = false;   ///< 是否已进入对话模式
+  QLabel*      welcomeTitle_     = nullptr; ///< 欢迎页标题
+  QLabel*      sessionTitle_     = nullptr; ///< 会话标题标签
+  QWidget*     messageFrame_     = nullptr; ///< 消息区域容器
+  QWidget*     inputEditorWidget_= nullptr; ///< 输入编辑器容器
+  QTMWidget*   inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
+  QToolButton* sendButton_       = nullptr; ///< 发送/停止按钮
+  QToolButton* thinkingButton_   = nullptr; ///< 推理模式开关
+  QToolButton* searchButton_     = nullptr; ///< 网络搜索开关
+  QToolButton* modelButton_      = nullptr; ///< 模型选择按钮（文字固定 Model）
+  QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
+  widget       messageWidget_;              ///< 消息区 TeXmacs widget
+  widget       inputWidget;                 ///< 输入区 TeXmacs widget
+  int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
   bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
 
