@@ -262,15 +262,6 @@ ChatConversationPanel::setup_ui () {
     }
   }
   QHBoxLayout* btnLayout= new QHBoxLayout ();
-  btnLayout->addStretch ();
-
-  // Search toggle button
-  searchButton_= make_toggle_btn (inputFrame, "chat-tab-search-btn",
-                                  qt_translate ("Internet Search"));
-  connect (searchButton_, &QToolButton::toggled, this,
-           [this] (bool checked) { emit searchToggled (sessionId_, checked); });
-  btnLayout->addWidget (searchButton_);
-  btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   // Thinking toggle button
   thinkingButton_= make_toggle_btn (inputFrame, "chat-tab-thinking-btn",
@@ -279,6 +270,29 @@ ChatConversationPanel::setup_ui () {
     emit thinkingToggled (sessionId_, checked);
   });
   btnLayout->addWidget (thinkingButton_);
+  btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
+
+  // Search toggle button
+  searchButton_= make_toggle_btn (inputFrame, "chat-tab-search-btn",
+                                  qt_translate ("Internet Search"));
+  connect (searchButton_, &QToolButton::toggled, this,
+           [this] (bool checked) { emit searchToggled (sessionId_, checked); });
+  btnLayout->addWidget (searchButton_);
+  btnLayout->addStretch ();
+
+  // Model button（占位：弹出只读菜单，不含切换逻辑）
+  modelButton_= new QToolButton (inputFrame);
+  modelButton_->setObjectName ("chat-tab-model-btn");
+  modelButton_->setText (qt_translate ("Model"));
+  modelButton_->setFocusPolicy (Qt::NoFocus);
+  modelButton_->setCursor (Qt::PointingHandCursor);
+  modelButton_->setFixedHeight (DpiUtils::scaled (kSendButtonSize));
+  connect (modelButton_, &QToolButton::clicked, this, [this] () {
+    // 菜单向上弹出：携带按钮左上角上方的全局坐标
+    emit modelMenuRequested (sessionId_, modelButton_->mapToGlobal (QPoint (
+                                             0, -modelButton_->height ())));
+  });
+  btnLayout->addWidget (modelButton_);
   btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   // Send button

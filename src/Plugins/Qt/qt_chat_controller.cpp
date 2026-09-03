@@ -25,6 +25,7 @@
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QLabel>
+#include <QMenu>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyle>
@@ -254,6 +255,19 @@ void
 ChatController::onSearchToggled (const string& sessionId, bool enabled) {
   sessionManager_.setSearch (sessionId, enabled);
   updateManifest (sessionId);
+}
+
+void
+ChatController::onModelMenuRequested (const string& sessionId,
+                                      const QPoint& globalPos) {
+  string model= sessionManager_.getModel (sessionId);
+  if (is_empty (model)) model= "Kimi-VLM";
+
+  // 占位菜单：仅展示当前模型名，不可切换（模型清单在后续任务接入）
+  QMenu    menu;
+  QAction* current= menu.addAction (to_qstring (model));
+  current->setEnabled (false);
+  menu.exec (globalPos);
 }
 
 void
@@ -579,6 +593,8 @@ ChatController::connectPanelSignals (ChatConversationPanel* panel) {
            &ChatController::onThinkingToggled);
   connect (panel, &ChatConversationPanel::searchToggled, this,
            &ChatController::onSearchToggled);
+  connect (panel, &ChatConversationPanel::modelMenuRequested, this,
+           &ChatController::onModelMenuRequested);
   connect (panel, &ChatConversationPanel::closeSidebarInDockModeRequested, this,
            [this] () {
              if (!view_) return;

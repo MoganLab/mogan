@@ -122,6 +122,13 @@ public:
   void onSearchToggled (const string& sessionId, bool enabled);
 
   /**
+   * @brief Model 按钮点击时触发：弹出只读占位菜单（仅显示当前模型名）。
+   * @param sessionId 目标会话 ID
+   * @param globalPos 菜单弹出位置（全局坐标）
+   */
+  void onModelMenuRequested (const string& sessionId, const QPoint& globalPos);
+
+  /**
    * @brief Scheme→C++ 回调：通知状态变更。
    */
   void notifyStateChanged (const string& sessionId, const string& stateStr);
