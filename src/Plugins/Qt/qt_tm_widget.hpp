@@ -45,6 +45,7 @@ class QTMInteractivePrompt;
 class PDFReaderWidget;
 class PdfToolBar;
 class OutlineWidget;
+class LoginDialogHoverWatcher;
 
 /*! Models one main window with toolbars, an associated view, etc.
 
@@ -91,14 +92,16 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QWK::LoginButton*       loginButton;
   QPushButton*      inviteButton; ///< 标题栏「领取会员」按钮，已登录时显示
   QWK::LoginDialog* m_loginDialog;
-  QLabel*           avatarLabel;
-  QLabel*           nameLabel;
-  QLabel*           accountIdLabel;
-  QLabel*           membershipPeriodLabel;
-  QLabel*           membershipTitleLabel;
-  QPushButton*      loginActionButton;
-  QPushButton*      logoutButton;
-  QPushButton*      chatSidebarToggleBtn; ///< 文档区域右上角的新建对话浮动按钮
+  LoginDialogHoverWatcher* loginHoverWatcher=
+      nullptr; ///< 悬浮显示个人页的事件看护
+  QLabel*      avatarLabel;
+  QLabel*      nameLabel;
+  QLabel*      accountIdLabel;
+  QLabel*      membershipPeriodLabel;
+  QLabel*      membershipTitleLabel;
+  QPushButton* loginActionButton;
+  QPushButton* logoutButton;
+  QPushButton* chatSidebarToggleBtn; ///< 文档区域右上角的新建对话浮动按钮
 
   // 更新提示区域控件
   QWidget*     m_updateSection     = nullptr;
@@ -133,6 +136,7 @@ private:
   void              setupLoginDialog (QWK::LoginDialog* loginDialog);
   QWK::LoginDialog* ensureLoginDialog ();
   void              checkLocalTokenAndLogin ();
+  void              showLoginDialogOnHover ();
   void              fetchUserInfo (const QString& token, bool showDialog= true);
   void              refreshLoginDialogPlacement ();
   bool              shouldShowLoginDialogUpdateSection ();
@@ -283,6 +287,7 @@ public:
   void sync_chat_tab_mode ();
 
   friend class QTMInteractiveInputHelper;
+  friend class LoginDialogHoverWatcher;
 
 protected:
   ////// Convenience methods to access our QWidgets

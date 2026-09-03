@@ -12,6 +12,7 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QCryptographicHash>
+#include <QCursor>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDialog>
@@ -151,6 +152,64 @@ show_login_dialog_at_button (QWK::LoginDialog* dialog, QWidget* loginButton) {
   const QRect anchorRect= login_dialog_anchor_rect (loginButton);
   dialog->showAtRect (anchorRect, DpiUtils::scaled (6));
 }
+
+/**
+ * @brief 头像按钮悬浮显示个人页的事件看护。
+ *
+ * 鼠标进入标题栏头像按钮即弹出个人页。弹窗为 Qt::Popup，显示后会抓取
+ * 鼠标，按钮与弹窗的 Enter/Leave 事件此后均不可靠，故隐藏判定改为
+ * 轮询全局光标位置：连续两轮（400ms）都不在按钮与弹窗范围内才隐藏，
+ * 避免鼠标穿过两者之间空隙时被误关。
+ */
+class LoginDialogHoverWatcher : public QObject {
+public:
+  LoginDialogHoverWatcher (QWidget* button, qt_tm_widget_rep* w)
+      : QObject (button), widget_ (w), button_ (button) {
+    pollTimer_= new QTimer (this);
+    pollTimer_->setInterval (200);
+    QObject::connect (pollTimer_, &QTimer::timeout,
+                      [this] () { pollCursor (); });
+    button->installEventFilter (this);
+  }
+
+  /** 个人页弹窗惰性创建后登记。 */
+  void setDialog (QWidget* dialog) { dialog_= dialog; }
+
+  /** 个人页弹窗显示后启动光标轮询。 */
+  void startPolling () {
+    if (dialog_ && dialog_->isVisible ()) pollTimer_->start ();
+  }
+
+protected:
+  bool eventFilter (QObject* obj, QEvent* event) override {
+    if (obj == button_ && event->type () == QEvent::Enter &&
+        !(dialog_ && dialog_->isVisible ())) {
+      widget_->showLoginDialogOnHover ();
+    }
+    return QObject::eventFilter (obj, event);
+  }
+
+private:
+  void pollCursor () {
+    if (!dialog_ || !dialog_->isVisible ()) {
+      pollTimer_->stop ();
+      return;
+    }
+    const QPoint cursor= QCursor::pos ();
+    const QRect  buttonRect=
+        QRect (button_->mapToGlobal (QPoint (0, 0)), button_->size ());
+    const QRect dialogRect= QRect (dialog_->pos (), dialog_->size ());
+    if (buttonRect.contains (cursor) || dialogRect.contains (cursor))
+      outsideStreak_= 0;
+    else if (++outsideStreak_ >= 2) dialog_->hide ();
+  }
+
+  qt_tm_widget_rep* widget_;
+  QWidget*          button_;
+  QWidget*          dialog_       = nullptr;
+  QTimer*           pollTimer_    = nullptr;
+  int               outsideStreak_= 0;
+};
 
 static void
 replaceActions (QWidget* dest, QList<QAction*>* src) {
@@ -453,6 +512,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     // 惰性到首次使用（ensureLoginDialog）时再创建
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
                       [this] () { checkLocalTokenAndLogin (); });
+    // 悬浮头像即显示个人页（社区版无个人页，保持点击跳官网）
+    loginHoverWatcher= new LoginDialogHoverWatcher (loginButton, this);
   }
 
   // 邀请好友按钮 - 放在登录按钮左侧（商业版已登录时显示）
@@ -2820,6 +2881,7 @@ qt_tm_widget_rep::ensureLoginDialog () {
   if (!m_loginDialog) {
     m_loginDialog= new QWK::LoginDialog (mainwindow ());
     setupLoginDialog (m_loginDialog);
+    if (loginHoverWatcher) loginHoverWatcher->setDialog (m_loginDialog);
   }
   return m_loginDialog;
 }
@@ -3153,6 +3215,27 @@ qt_tm_widget_rep::refreshMembershipInfoInBackground () {
   }
 
   fetchUserInfo (token, false);
+}
+
+/**
+ * @brief 鼠标悬浮头像按钮时显示个人页。
+ *
+ * 与点击路径的差异：不切换显隐、不隐藏小红点。悬浮要求即时响应，
+ * 有缓存 token 时先按已有内容立即显示，用户信息由后台拉取后原位更新。
+ */
+void
+qt_tm_widget_rep::showLoginDialogOnHover () {
+  if (is_community_stem ()) return;
+  if (m_loginDialog && m_loginDialog->isVisible ()) return;
+  setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
+  eval ("(use-modules (account liii))");
+  string  token  = as_string (call ("account-load-token"));
+  QString q_token= to_qstring (token);
+  if (!q_token.isEmpty ()) {
+    fetchUserInfo (q_token, false);
+  }
+  show_login_dialog_at_button (ensureLoginDialog (), loginButton);
+  if (loginHoverWatcher) loginHoverWatcher->startPolling ();
 }
 
 void
