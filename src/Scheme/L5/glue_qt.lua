@@ -122,6 +122,28 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-export-pdf-dialog",
+                cpp_name = "cpp_export_pdf_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "tree"
+                }
+            },
+            {
+                scm_name = "qt-pdf-scratch-path",
+                cpp_name = "qt_pdf_scratch_path",
+                ret_type = "string"
+            },
+            {
+                scm_name = "qt-copy-file",
+                cpp_name = "qt_copy_file",
+                ret_type = "bool",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
                 scm_name = "cpp-updater-dialog-open",
                 cpp_name = "cpp_updater_dialog_open",
                 ret_type = "void",

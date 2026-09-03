@@ -58,6 +58,20 @@ public:
    */
   Q_INVOKABLE QString browse (const QString& current);
 
+  /**
+   * @brief 弹仅 PDF 过滤器的原生保存对话框。
+   * @param current 当前字段路径（预填）。
+   * @return 用户选中的路径；取消返回空串。
+   */
+  Q_INVOKABLE QString browsePdf (const QString& current);
+
+  /**
+   * @brief 弹选文件夹对话框（WPS 式「位置」），不创建文件。
+   * @param current 当前目录（预填）。
+   * @return 用户选中的目录；取消返回空串。
+   */
+  Q_INVOKABLE QString browseFolder (const QString& current);
+
 private:
   QDialog* m_host;
 };

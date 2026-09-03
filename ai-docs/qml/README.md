@@ -160,6 +160,7 @@ OK 时算与快照的 diff → `prefBridge.submit(diff)` 一次性应用；Cance
 | `ConfirmRestart` | `run_qml_dialog`（exec） | 三按钮（立即重启/稍后/取消），返回 `"restart"/"later"/"cancel"` |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit（页面设置走此弹窗） |
 | `PrintToFile` | `run_qml_dialog`（exec） | 路径 + 页码一次提交；Browse 走原生保存框 |
+| `ExportPdf` | `run_qml_dialog`（exec） | WPS 式：文件名 + 位置（只选文件夹）+ 页码 + 嵌入 tmu |
 | `SearchRecent` | `run_qml_dialog`（exec） | 搜索词一次提交，scheme 走 `docgrep-in-recent` |
 | `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |

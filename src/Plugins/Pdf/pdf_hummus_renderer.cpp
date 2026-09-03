@@ -45,6 +45,11 @@ using moebius::data::block_to_scheme_tree;
 #ifdef QTTEXMACS
 #include "Qt/qt_picture.hpp"
 #include "Qt/qt_utilities.hpp"
+#include <QCoreApplication>
+#include <QDateTime>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #endif
 
@@ -82,9 +87,11 @@ class pdf_pattern;
 class pdf_hummus_renderer_rep : public renderer_rep {
 
   static const int default_dpi=
-      72;         // PDF initial coordinate system corresponds to 72 dpi
-  bool   started; // initialisation is OK
-  url    pdf_file_name;
+      72;       // PDF initial coordinate system corresponds to 72 dpi
+  bool started; // initialisation is OK
+  url  pdf_file_name;
+  url  pdf_write_name; // Hummus 实际写入路径；含非 ASCII 时先写到
+                       // C:\Windows\Temp
   int    dpi;
   int    nr_pages;
   string page_type;
@@ -302,17 +309,67 @@ write_indirect_obj (ObjectsContext& objectsContext, ObjectIDType destId,
  * constructors and destructors
  ******************************************************************************/
 
+/**
+ * Hummus StartPDF / fopen 走窄字符路径，Windows 下中文用户名目录会失败。
+ * 纯 ASCII 路径直接写；否则先写到 C:/Users/Public/MoganSTEM，结束后用 Qt
+ * 拷到目标。
+ */
+static bool
+hummus_path_ascii (string s) {
+  for (int i= 0; i < N (s); i++)
+    if (((unsigned char) s[i]) >= 128) return false;
+  return true;
+}
+
+static url
+hummus_start_path (url dest) {
+  string c= concretize (dest);
+  if (hummus_path_ascii (c)) return dest;
+#ifdef QTTEXMACS
+  QDir ().mkpath (QStringLiteral ("C:/Users/Public/MoganSTEM"));
+  QString tmp=
+      QDir::toNativeSeparators (QStringLiteral ("C:/Users/Public/MoganSTEM")) +
+      QStringLiteral ("/mogan-pdf-") +
+      QString::number (QCoreApplication::applicationPid ()) +
+      QStringLiteral ("-") +
+      QString::number (QDateTime::currentMSecsSinceEpoch ()) +
+      QStringLiteral (".pdf");
+  return url_system (from_qstring_utf8 (tmp));
+#else
+  return dest;
+#endif
+}
+
+static void
+hummus_commit_unicode_dest (url written, url dest) {
+  if (written == dest) return;
+#ifdef QTTEXMACS
+  QString   from= utf8_to_qstring (concretize (written));
+  QString   to  = utf8_to_qstring (concretize (dest));
+  QFileInfo fi (to);
+  QDir ().mkpath (fi.absolutePath ());
+  QFile::remove (to);
+  if (!QFile::copy (from, to)) {
+    convert_error << "failed to copy PDF to destination\n";
+    return;
+  }
+  QFile::remove (from);
+#endif
+}
+
 pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
     url pdf_file_name2, int dpi2, int nr_pages2, string page_type2,
     bool landscape2, double paper_w2, double paper_h2)
-    : renderer_rep (false), pdf_file_name (pdf_file_name2), dpi (dpi2),
-      nr_pages (nr_pages2), page_type (page_type2), landscape (landscape2),
-      paper_w (paper_w2), paper_h (paper_h2), page_num (0), inText (false),
-      fg (-1), bg (-1), lw (-1), pen (black), bgb (white), fgb (black),
-      cfn (""), cfid (NULL), native_fonts (NULL), t3font_registry_id (-1),
-      destId (0), label_count (0), outlineId (0) {
-  width = default_dpi * paper_w / 2.54;
-  height= default_dpi * paper_h / 2.54;
+    : renderer_rep (false), pdf_file_name (pdf_file_name2),
+      pdf_write_name (url_none ()), dpi (dpi2), nr_pages (nr_pages2),
+      page_type (page_type2), landscape (landscape2), paper_w (paper_w2),
+      paper_h (paper_h2), page_num (0), inText (false), fg (-1), bg (-1),
+      lw (-1), pen (black), bgb (white), fgb (black), cfn (""), cfid (NULL),
+      native_fonts (NULL), t3font_registry_id (-1), destId (0), label_count (0),
+      outlineId (0) {
+  width         = default_dpi * paper_w / 2.54;
+  height        = default_dpi * paper_h / 2.54;
+  pdf_write_name= hummus_start_path (pdf_file_name);
 
   // setup library
 
@@ -327,7 +384,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
   bool                compress= true;
   PDFCreationSettings settings (
       compress, true); //, EncryptionOptions("user", 4, "owner"));
-  status= pdfWriter.StartPDF (as_charp (concretize (pdf_file_name)),
+  status= pdfWriter.StartPDF (as_charp (concretize (pdf_write_name)),
                               ePDFVersion, log, settings);
   if (status != PDFHummus::eSuccess) {
     convert_error << "failed to start PDF\n";
@@ -419,6 +476,7 @@ pdf_hummus_renderer_rep::~pdf_hummus_renderer_rep () {
   if (status != PDFHummus::eSuccess) {
     convert_error << "Failed in end PDF\n";
   }
+  else hummus_commit_unicode_dest (pdf_write_name, pdf_file_name);
 
   // remove temporary pictures
   for (int i= 0; i < N (temp_images); i++)

@@ -114,6 +114,11 @@ bool qt_pretty_image_size (url image, string& w, string& h);
 void qt_convert_image (url image, url dest, int w= 0, int h= 0);
 void qt_image_to_pdf (url image, url pdf, int w_pt= 0, int h_pt= 0, int dpi= 0);
 
+/** 纯 ASCII 暂存 PDF 路径（Hummus fopen 不能写中文用户目录）。 */
+string qt_pdf_scratch_path ();
+/** 用 Qt UTF-16 拷贝文件；from/to 为系统路径字符串（UTF-8）。 */
+bool qt_copy_file (string from, string to);
+
 string qt_application_directory ();
 
 bool qt_print (bool&, bool&, string&, url&, string&, string&, string&, string&);

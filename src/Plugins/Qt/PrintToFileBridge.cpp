@@ -20,3 +20,19 @@ PrintToFileBridge::browse (const QString& current) {
       QStringLiteral ("PostScript (*.ps);;PDF (*.pdf);;All files (*)"));
   return path;
 }
+
+QString
+PrintToFileBridge::browsePdf (const QString& current) {
+  QString start= current;
+  QString path = QFileDialog::getSaveFileName (
+      m_host, QString (), start, QStringLiteral ("PDF (*.pdf);;All files (*)"));
+  return path;
+}
+
+QString
+PrintToFileBridge::browseFolder (const QString& current) {
+  QString start= current;
+  return QFileDialog::getExistingDirectory (
+      m_host, QString (), start,
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+}

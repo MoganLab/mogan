@@ -188,9 +188,146 @@
   (user-confirm-open-pdf fname)
 ) ;tm-define
 
+(define (propose-pdf-folder)
+  (url->system (url-head (current-buffer)))
+) ;define
+
+(define (propose-pdf-filename)
+  (with t
+    (url->system (url-tail (current-buffer)))
+    (cond ((string-ends? t ".tmu") (string-append (string-drop-right t 4) ".pdf"))
+          ((string-ends? t ".tm") (string-append (string-drop-right t 3) ".pdf"))
+          ((string-ends? t ".pdf") t)
+          ((== t "") "untitled.pdf")
+          (else (string-append t ".pdf"))
+    ) ;cond
+  ) ;with
+) ;define
+
+(tm-define (wrapped-export-pdf fname first last embed?)
+  (system-wait "Exporting, " (translate "please wait"))
+  (let* ((dest-str (if (string? fname) fname (url->system fname)))
+         (scratch (qt-pdf-scratch-path))
+         (dest (system->url dest-str))
+        ) ;
+    ;; Hummus fopen 不能写中文用户目录：先写 ASCII 暂存，再用 Qt 拷到目标。
+    (print-pages-to-file (system->url scratch) first last)
+    (let ((ok (qt-copy-file scratch dest-str)))
+      (when (and embed? ok)
+        (unless (attach-doc-to-exported-pdf dest)
+          (notify-now "Fail to attach tmu to pdf")
+        ) ;unless
+      ) ;when
+      (system-wait "" "")
+      (if ok
+        (begin
+          (notify-now (string-append "Exported " dest-str))
+          (catch #t
+            (lambda ()
+              (unless (string-starts? (url->string (current-buffer)) "tmfs://")
+                (save-buffer-save (current-buffer)
+                  (list)
+                  (if embed? "tmu_pdf_export" "pdf_export")
+                ) ;save-buffer-save
+              ) ;unless
+            ) ;lambda
+            (lambda err (noop))
+          ) ;catch
+          (user-confirm-open-pdf dest)
+        ) ;begin
+        (notify-now (string-append "PDF export failed: " dest-str))
+      ) ;if
+    ) ;let
+  ) ;let*
+) ;tm-define
+
+(tm-define (export-as-pdf)
+  (:synopsis "Export as PDF")
+  (with result
+    (cpp-export-pdf-dialog (stree->tree `(export-pdf-form (path ,(translate "File name:")
+                                                            ,"filename"
+                                                            ,(propose-pdf-filename))
+                                           (path ,(translate "Location:")
+                                             ,"folder"
+                                             ,(propose-pdf-folder))
+                                           (number ,(translate "First page:")
+                                             ,"first"
+                                             ,"1")
+                                           (number ,(translate "Last page:")
+                                             ,"last"
+                                             ,(number->string (get-page-count)))
+                                           (toggle ,(translate "Embed TMU source")
+                                             ,"embed"
+                                             ,"false"))
+                           ) ;stree->tree
+    ) ;cpp-export-pdf-dialog
+    (with r
+      (cdr (tree->stree result))
+      (catch #t
+        (lambda ()
+          (string-save (object->string (tree->stree result))
+            "C:/Users/Public/MoganSTEM/dialog-result.txt"
+          ) ;string-save
+        ) ;lambda
+        (lambda err (noop))
+      ) ;catch
+      (if (null? r)
+        (notify-now "PDF export cancelled or form empty")
+        (with filename
+          ""
+          folder
+          ""
+          first
+          "1"
+          last
+          ""
+          embed
+          "false"
+          name
+          ""
+          (for-each (lambda (kv)
+                      (let ((k (cadr kv)) (v (caddr kv)))
+                        (cond ((== k "filename") (set! filename v))
+                              ((== k "folder") (set! folder v))
+                              ((== k "first") (set! first v))
+                              ((== k "last") (set! last v))
+                              ((== k "embed") (set! embed v))
+                              ((== k "name") (set! name v))
+                        ) ;cond
+                      ) ;let
+                    ) ;lambda
+            r
+          ) ;for-each
+          (when (or (and (string? name) (!= name ""))
+                  (and (string? filename) (!= filename "") (string? folder) (!= folder ""))
+                ) ;or
+            (if (== last "") (set! last (number->string (get-page-count))))
+            (if (== first "") (set! first "1"))
+            (unless (string-ends? (locase-all filename) ".pdf")
+              (set! filename (string-append filename ".pdf"))
+            ) ;unless
+            (when (or (not (string? name)) (== name ""))
+              (set! name (url->system (url-append (system->url folder) filename)))
+            ) ;when
+            (wrapped-export-pdf name first last (== embed "true"))
+          ) ;when
+          (when (and (or (not (string? name)) (== name ""))
+                  (or (not (string? filename)) (== filename ""))
+                ) ;and
+            (notify-now "PDF export failed: empty file name")
+          ) ;when
+        ) ;with
+      ) ;if
+    ) ;with
+  ) ;with
+) ;tm-define
+
 (tm-define (attach-doc-to-exported-pdf fname)
   (let* ((tem-url (buffer-new))
-         (new-url (url-relative tem-url (url-basename fname)))
+         (new-url (url-append (system->url "C:/Users/Public/MoganSTEM")
+                    (string-append (url-basename fname) "-" (uuid4) ".tmu")
+                  ) ;url-append
+         ) ;new-url
          (cur-url (current-buffer-url))
          (cur-tree (buffer-get cur-url))
          (linked-file (pdf-get-linked-file-paths cur-tree cur-url))
@@ -213,7 +350,10 @@
       ) ;let*
     ) ;with-buffer
     (buffer-save new-url)
-    (pdf-make-attachments fname linked-file-with-main fname)
+    (pdf-make-attachments (if (string? fname) (system->url fname) fname)
+      linked-file-with-main
+      (if (string? fname) (system->url fname) fname)
+    ) ;pdf-make-attachments
     (buffer-close new-url)
   ) ;let*
 ) ;tm-define

@@ -240,6 +240,16 @@ bool cpp_version_dialog (string title, string message);
 tree cpp_print_to_file_dialog (tree form);
 
 /**
+ * @brief 「导出为 PDF」QML 对话框 glue 入口（一次性提交）。
+ * @param form (export-pdf-form (path filename) (path folder) (number first)
+ *   (number last) (toggle embed))。位置用选文件夹，不用另存为。
+ * @return OK 返回 (tuple (tuple key value) …)；Cancel / 关闭 / 加载失败空
+ * tree。
+ * @note 测试钩子 MOGAN_TEST_EXPORT_PDF=ok|cancel。
+ */
+tree cpp_export_pdf_dialog (tree form);
+
+/**
  * @brief 首选项 QML 对话框的 glue 入口（本地暂存 + OK 一次性提交）。
  * @return 非阻塞 show 路径立即返回空 tree；测试钩子命中时返回 `(tuple "ok")` 供
  * 自动化区分。本地暂存模型：打开时拉一次 meta 建 QML 本地 values 快照、改动只改

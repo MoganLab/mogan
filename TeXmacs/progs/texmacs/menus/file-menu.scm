@@ -16,6 +16,7 @@
     (network url)
     (texmacs texmacs tm-server)
     (texmacs texmacs tm-files)
+    (texmacs texmacs tm-print)
     (texmacs texmacs tm-collab)
     (texmacs menus print-widgets)
   ) ;:use
@@ -236,6 +237,7 @@
                 (and (not (string=? x "tmu"))
                   (not (string=? x "latex"))
                   (not (string=? x "latex-class"))
+                  (not (string=? x "pdf"))
                   (or (with-developer-tool?)
                     (and (not (string=? x "stm")) (not (string=? x "stem")))
                   ) ;or
@@ -301,9 +303,6 @@
  ---
  (link export-top-menu)
  ---
- ((eval '(concat "Export as " "Pdf"))
-  (choose-file wrapped-print-to-file "Save pdf file" "pdf")
- ) ;
  ((eval '(concat "Export as " "PostScript"))
   (choose-file wrapped-print-to-file "Save postscript file" "postscript")
  ) ;
@@ -446,7 +445,8 @@
  ) ;if
  (if (qt-gui?)
    ---
-   (link print-menu)
+   ("Preview" (preview-buffer))
+   ("Export as PDF" (export-as-pdf))
    ---
    (-> "Import"
      (link import-import-menu)
@@ -462,13 +462,6 @@
        ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex"))
      ) ;when
      ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
-     ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
-     ("Pdf with embedded document"
-       (choose-file wrapped-print-to-pdf-embeded-with-tmu
-         "Save tmu.pdf file"
-         "tmu.pdf"
-       ) ;choose-file
-     ) ;
      ("Postscript"
        (choose-file wrapped-print-to-file "Save postscript file" "postscript")
      ) ;

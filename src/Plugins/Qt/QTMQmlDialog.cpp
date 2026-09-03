@@ -30,6 +30,8 @@ using moebius::data::scm_unquote;
 using moebius::data::tree_to_scheme_tree;
 
 #include <QDialog>
+#include <QDir>
+#include <QFile>
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickItem>
@@ -869,8 +871,7 @@ cpp_preferences_dialog () {
 
 /**
  * @brief 字段节点 -> QML 可消费的 QVariantMap。
- * @param f 字段节点，形如 (path <label> <key> <value>) 或
- *          (number <label> <key> <value>)。
+ * @param f 字段节点，形如 (path|number|toggle <label> <key> <value>)。
  * @return 含 type/label/key/value 的 map；形状不符返回空。
  *
  * label/key/value 纯透传，不做翻译或类型转换（value 在 scm 侧已 string 化）。
@@ -961,6 +962,94 @@ cpp_print_to_file_dialog (tree form) {
     tree kv (TUPLE);
     kv << tree (from_qstring (it.key ()))
        << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
+}
+
+/**
+ * @brief 「导出为 PDF」QML 对话框 glue（声明见 QTMQmlDialog.hpp）。
+ *
+ * @details 与 cpp_print_to_file_dialog 同构：run_qml_dialog + PrintToFileBridge
+ * 的 browseFolder（只选目录）。测试钩子 MOGAN_TEST_EXPORT_PDF=ok|cancel。
+ */
+tree
+cpp_export_pdf_dialog (tree form) {
+  string preset= get_env ("MOGAN_TEST_EXPORT_PDF");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    tree r (TUPLE);
+    if (is_compound (form)) {
+      for (int i= 0; i < N (form); i++) {
+        QVariantMap m= print_field_to_qml (form[i]);
+        if (m.isEmpty ()) continue;
+        tree kv (TUPLE);
+        kv << tree (from_qstring (m.value ("key").toString ()))
+           << tree (from_qstring (m.value ("value").toString ()));
+        r << kv;
+      }
+    }
+    return r;
+  }
+  QVariantList qmlFields;
+  if (is_compound (form)) {
+    for (int i= 0; i < N (form); i++) {
+      if (is_compound (form[i]) && N (form[i]) >= 3) {
+        QVariantMap m= print_field_to_qml (form[i]);
+        if (!m.isEmpty ()) qmlFields << m;
+      }
+    }
+  }
+  array<string> buttons= {string ("Export"), string ("Cancel")};
+  // 与 ExportPdf.qml implicitHeight 同源（标题 + 文件名/位置/页码/开关 +
+  // 按钮）。
+  const int logicH= 24 * 2 + 28 + 12 + 4 * (44 + 12) + 44 + 72;
+
+  QmlDialogBridge*   closeBridge= nullptr;
+  PrintToFileBridge* printBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/ExportPdf.qml", "ExportPdf.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        printBridge= new PrintToFileBridge (&host);
+        qw->rootContext ()->setContextProperty ("formFields", qmlFields);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        qw->rootContext ()->setContextProperty ("browseLabel",
+                                                qt_translate ("Browse"));
+        qw->rootContext ()->setContextProperty ("dialogTitle",
+                                                qt_translate ("Export as PDF"));
+        qw->rootContext ()->setContextProperty ("pagesLabel",
+                                                qt_translate ("Pages:"));
+        qw->rootContext ()->setContextProperty ("printBridge", printBridge);
+      },
+      520, logicH);
+
+  tree               r (TUPLE);
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
+  {
+    QDir ().mkpath (QStringLiteral ("C:/Users/Public/MoganSTEM"));
+    QFile log (QStringLiteral ("C:/Users/Public/MoganSTEM/dialog-submit.txt"));
+    if (log.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+      QByteArray line= "n=";
+      line+= QByteArray::number (res.size ());
+      line+= "\n";
+      for (auto it= res.begin (); it != res.end (); ++it) {
+        line+= it.key ().toUtf8 ();
+        line+= "=";
+        line+= it.value ().toString ().toUtf8 ();
+        line+= "\n";
+      }
+      log.write (line);
+    }
+  }
+  delete closeBridge;
+  delete printBridge;
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    kv << tree (from_qstring_utf8 (it.key ()))
+       << tree (from_qstring_utf8 (it.value ().toString ()));
     r << kv;
   }
   return r;

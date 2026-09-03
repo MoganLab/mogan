@@ -14,6 +14,7 @@
 #include "boot.hpp"
 
 #include <QDialog>
+#include <QJSValue>
 #include <QKeyEvent>
 #include <QObject>
 #include <QQuickWidget>
@@ -65,11 +66,11 @@ public:
 
   /**
    * @brief 表单型弹窗：暂存整张表单的最终值并以 Accepted 结束宿主 QDialog。
-   * @param values {key: value, ...}，value 均为 string（见 QTMQmlDialog.hpp 的
-   *   value 约定）。cpp 侧随后用 results() 取出，遍历构造返回 tree。
+   * @param values QML 传来的 JS 对象。须用 QJSValue，QVariantMap 在
+   * QQuickWidget 下经常收成空 map，点「导出」后窗关了但 scheme 拿不到路径。
    */
-  Q_INVOKABLE void submit (QVariantMap values) {
-    m_results= values;
+  Q_INVOKABLE void submit (const QJSValue& values) {
+    m_results= values.toVariant ().toMap ();
     m_host->done (QDialog::Accepted);
   }
 

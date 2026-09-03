@@ -30,6 +30,9 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QImageReader>
 #include <QMimeData>
 
@@ -1509,4 +1512,46 @@ qt_clipboard_set_html (string html) {
 bool
 is_pdf_tab_file (string file) {
   return suffix (file) == "pdf";
+}
+
+static QString
+pdf_scratch_dir () {
+  return QStringLiteral ("C:/Users/Public/MoganSTEM");
+}
+
+string
+qt_pdf_scratch_path () {
+  QDir ().mkpath (pdf_scratch_dir ());
+  QString p= pdf_scratch_dir () + QStringLiteral ("/export-") +
+             QString::number (QCoreApplication::applicationPid ()) +
+             QStringLiteral (".pdf");
+  QFile::remove (p);
+  return from_qstring_utf8 (QDir::toNativeSeparators (p));
+}
+
+bool
+qt_copy_file (string from, string to) {
+  QString src= utf8_to_qstring (from);
+  QString dst= utf8_to_qstring (to);
+  QDir ().mkpath (QFileInfo (dst).absolutePath ());
+  QFile::remove (dst);
+  bool ok= QFile::copy (src, dst) && QFile::exists (dst);
+  QDir ().mkpath (pdf_scratch_dir ());
+  QFile log (pdf_scratch_dir () + QStringLiteral ("/last-export.txt"));
+  if (log.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+    QByteArray line;
+    line+= "from=";
+    line+= src.toUtf8 ();
+    line+= "\nto=";
+    line+= dst.toUtf8 ();
+    line+= "\nok=";
+    line+= ok ? "1" : "0";
+    line+= "\nsrcExists=";
+    line+= QFile::exists (src) ? "1" : "0";
+    line+= "\ndstExists=";
+    line+= QFile::exists (dst) ? "1" : "0";
+    line+= "\n";
+    log.write (line);
+  }
+  return ok;
 }
