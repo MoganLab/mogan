@@ -12,6 +12,7 @@
 #ifndef QT_CHAT_CONTROLLER_HPP
 #define QT_CHAT_CONTROLLER_HPP
 
+#include "qt_chat_model.hpp"
 #include "qt_chat_tab_widget.hpp"
 #include <QObject>
 
@@ -122,11 +123,20 @@ public:
   void onSearchToggled (const string& sessionId, bool enabled);
 
   /**
-   * @brief Model 按钮点击时触发：弹出只读占位菜单（仅显示当前模型名）。
+   * @brief Model 按钮点击时触发：弹出模型选择菜单。
    * @param sessionId 目标会话 ID
    * @param globalPos 菜单弹出位置（全局坐标）
    */
   void onModelMenuRequested (const string& sessionId, const QPoint& globalPos);
+
+  /**
+   * @brief 模型菜单项被选中时触发：会话级切换模型并落 manifest。
+   *
+   * key 不在 Provider 清单内时忽略；不触碰 thinking/search 开关。
+   * @param sessionId 目标会话 ID
+   * @param key       选中的模型键名
+   */
+  void onModelSelected (const string& sessionId, const string& key);
 
   /**
    * @brief Scheme→C++ 回调：通知状态变更。
@@ -153,10 +163,10 @@ public:
   static QString sanitizeExportFileName (const QString& rawName);
 
 private:
-  QTChatTabWidget*   view_= nullptr;   ///< View 指针，由 createView 创建
-  ChatSessionManager sessionManager_;  ///< 会话管理器
-  bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
-  string             currentModel_= "Kimi-VLM"; ///< 当前选择的模型（C++ 管理）
+  QTChatTabWidget*     view_= nullptr;   ///< View 指针，由 createView 创建
+  ChatSessionManager   sessionManager_;  ///< 会话管理器
+  bool                 firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
+  BuiltinModelProvider modelProvider_;   ///< 模型清单来源（含调试通道）
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。

@@ -25,7 +25,6 @@
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QLabel>
-#include <QMenu>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyle>
@@ -56,6 +55,10 @@ ChatController::destroyView () {
 
 QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
+  // 每次创建 View 时重建 Provider：调试通道（MOGAN_LLM_MODELS_FILE）
+  // 修改后重开 Chat 标签页即可生效
+  modelProvider_= BuiltinModelProvider ();
+
   // 1. Load session metadata
   // llm 插件按 idle 延迟初始化，新建 Chat 标签页时其 scheme 模块可能尚未加载
   bool benching= QTChatTabWidget::isInitBenchPending ();
@@ -142,15 +145,7 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   }
   if (benching) bench_end ("chat_init: activate session");
 
-  // 5. 恢复当前模型（使用激活的会话）
-  if (!is_empty (initialId)) {
-    ChatSession* s= sessionManager_.getSession (initialId);
-    if (s && !is_empty (s->model)) {
-      currentModel_= s->model;
-    }
-  }
-
-  // 6. 注册浮动搜索栏的 parent provider
+  // 5. 注册浮动搜索栏的 parent provider
   qt_floating_search_set_parent_provider ([this] () -> QWidget* {
     if (!view_) return nullptr;
     return view_->contentWidget ();
@@ -260,14 +255,21 @@ ChatController::onSearchToggled (const string& sessionId, bool enabled) {
 void
 ChatController::onModelMenuRequested (const string& sessionId,
                                       const QPoint& globalPos) {
-  string model= sessionManager_.getModel (sessionId);
-  if (is_empty (model)) model= "Kimi-VLM";
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s || !s->panel) return;
+  ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (s->panel);
 
-  // 占位菜单：仅展示当前模型名，不可切换（模型清单在后续任务接入）
-  QMenu    menu;
-  QAction* current= menu.addAction (to_qstring (model));
-  current->setEnabled (false);
-  menu.exec (globalPos);
+  string current= s->model;
+  if (!modelProvider_.contains (current))
+    current= modelProvider_.defaultModelKey ();
+  panel->showModelMenu (modelProvider_.models (), current, globalPos);
+}
+
+void
+ChatController::onModelSelected (const string& sessionId, const string& key) {
+  if (!modelProvider_.contains (key)) return;
+  sessionManager_.setModel (sessionId, key);
+  updateManifest (sessionId);
 }
 
 void
@@ -478,6 +480,13 @@ void
 ChatController::activateSession (const string& sessionId) {
   if (!view_) return;
 
+  // 清单外模型（如清单更新后恢复的旧会话）：内存回退为默认模型，
+  // 不写 manifest，下次发送经既有路径自然落盘
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (session && !modelProvider_.contains (session->model)) {
+    sessionManager_.setModel (sessionId, modelProvider_.defaultModelKey ());
+  }
+
   // 切换 session 时隐藏悬浮搜索栏
   qt_floating_search_bar_show (view_->contentWidget (), false);
 
@@ -595,6 +604,8 @@ ChatController::connectPanelSignals (ChatConversationPanel* panel) {
            &ChatController::onSearchToggled);
   connect (panel, &ChatConversationPanel::modelMenuRequested, this,
            &ChatController::onModelMenuRequested);
+  connect (panel, &ChatConversationPanel::modelSelected, this,
+           &ChatController::onModelSelected);
   connect (panel, &ChatConversationPanel::closeSidebarInDockModeRequested, this,
            [this] () {
              if (!view_) return;
@@ -611,7 +622,7 @@ ChatController::ensureNewConversation () {
   // 复用无标题的空白会话（面板和输入内容保持不变）
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
-    sessionManager_.setModel (reusable, currentModel_);
+    sessionManager_.setModel (reusable, modelProvider_.defaultModelKey ());
     ChatSession* s= sessionManager_.getSession (reusable);
     if (s && s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
@@ -628,7 +639,7 @@ ChatController::ensureNewConversation () {
   if (!panel) return;
 
   sessionManager_.setPanel (sid, panel);
-  sessionManager_.setModel (sid, currentModel_);
+  sessionManager_.setModel (sid, modelProvider_.defaultModelKey ());
 
   eval ("(use-modules (llm chat-style))");
   call ("chat-tab-sync-dark-style!", sid);

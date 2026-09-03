@@ -14,6 +14,8 @@
 #include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
+#include "analyze.hpp"
+#include "gui.hpp" // tm_style_sheet
 #include "new_buffer.hpp"
 #include "new_view.hpp"
 #include "qt_dpi_utils.hpp"
@@ -37,6 +39,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPainter>
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -47,6 +50,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
+#include <QWidgetAction>
 
 using namespace moebius;
 
@@ -120,6 +124,26 @@ constexpr int kSendIconSize          = 30;
 constexpr int kSendButtonSize        = 36;
 constexpr int kSendButtonRadius      = 18;
 constexpr int kConversationBtnRadius = 6;
+
+// ---- 模型菜单常量 ----
+constexpr int kModelMenuIconSize   = 18; ///< 模型 logo 边长
+constexpr int kModelMenuRadius     = 8;  ///< 菜单圆角
+constexpr int kModelMenuItemRadius = 6;  ///< 菜单项圆角
+constexpr int kModelMenuPad        = 4;  ///< 菜单内边距
+constexpr int kModelMenuItemPadX   = 10; ///< 菜单项水平内边距
+constexpr int kModelMenuItemPadY   = 6;  ///< 菜单项垂直内边距
+constexpr int kModelMenuItemSpacing= 8;  ///< 菜单项内元素间距
+constexpr int kModelMenuFontPx     = 13; ///< 模型名字号
+constexpr int kModelBadgeFontPx    = 10; ///< 描述徽标字号
+constexpr int kModelBadgeRadius    = 8;  ///< 描述徽标圆角
+constexpr int kModelDotSize        = 8;  ///< 占位圆点直径
+
+/// 暗色判定与 QML 弹窗一致：liii-night / *-dark 视为深色
+static bool
+chat_is_dark_mode () {
+  return occurs ("dark", tm_style_sheet) ||
+         occurs ("liii-night", tm_style_sheet);
+}
 
 //---- dock 模式 常量 ----
 constexpr int kCloseSidebarBtnMarginY= 12;
@@ -280,7 +304,7 @@ ChatConversationPanel::setup_ui () {
   btnLayout->addWidget (searchButton_);
   btnLayout->addStretch ();
 
-  // Model button（占位：弹出只读菜单，不含切换逻辑）
+  // Model button（点击弹出模型选择菜单）
   modelButton_= new QToolButton (inputFrame);
   modelButton_->setObjectName ("chat-tab-model-btn");
   modelButton_->setText (qt_translate ("Model"));
@@ -672,6 +696,108 @@ ChatConversationPanel::adjust_input_height () {
     frame->setFixedHeight (targetFrameH);
     emit inputHeightChanged ();
   }
+}
+
+void
+ChatConversationPanel::showModelMenu (const QList<ChatModelInfo>& models,
+                                      const string&               currentKey,
+                                      const QPoint&               globalPos) {
+  bool isDark= chat_is_dark_mode ();
+
+  // 配色沿用会话项的 hover/选中色值（liii.css / liii-night.css）
+  const QString menuBg    = isDark ? "#404040" : "#ffffff";
+  const QString menuBorder= isDark ? "#4c4c4c" : "#e0e0e0";
+  const QString itemHover = isDark ? "#444444" : "#f0f0f0";
+  const QString itemSel   = isDark ? "#1a3a5a" : "#e8eefc";
+  const QString nameFg    = isDark ? "#ffffff" : "#000000";
+
+  QMenu menu (this);
+  menu.setObjectName ("chat-model-menu");
+  // 透明背景使圆角生效；item 行通过 objectName 选择器着色
+  menu.setAttribute (Qt::WA_TranslucentBackground);
+  menu.setStyleSheet (
+      QString ("QMenu#chat-model-menu { background-color: %1; border: 1px "
+               "solid %2; border-radius: %3px; padding: %4px; }"
+               "QWidget#chat-model-menu-item { background: transparent; "
+               "border-radius: %5px; }"
+               "QWidget#chat-model-menu-item:hover { background: %6; }"
+               "QWidget#chat-model-menu-item[selected=\"true\"] { "
+               "background: %7; }"
+               "QWidget#chat-model-menu-item QLabel#chat-model-name { "
+               "background: transparent; color: %8; }")
+          .arg (menuBg, menuBorder)
+          .arg (DpiUtils::scaled (kModelMenuRadius))
+          .arg (DpiUtils::scaled (kModelMenuPad))
+          .arg (DpiUtils::scaled (kModelMenuItemRadius))
+          .arg (itemHover, itemSel, nameFg));
+
+  const int iconPx= DpiUtils::scaled (kModelMenuIconSize);
+  for (int i= 0; i < models.size (); ++i) {
+    const ChatModelInfo& info= models[i];
+
+    QWidget* row= new QWidget ();
+    row->setObjectName ("chat-model-menu-item");
+    row->setAttribute (Qt::WA_Hover);
+    row->setCursor (Qt::PointingHandCursor);
+    if (info.key == currentKey) row->setProperty ("selected", true);
+
+    QHBoxLayout* rowLayout= new QHBoxLayout (row);
+    rowLayout->setContentsMargins (DpiUtils::scaled (kModelMenuItemPadX),
+                                   DpiUtils::scaled (kModelMenuItemPadY),
+                                   DpiUtils::scaled (kModelMenuItemPadX),
+                                   DpiUtils::scaled (kModelMenuItemPadY));
+    rowLayout->setSpacing (DpiUtils::scaled (kModelMenuItemSpacing));
+
+    QLabel* iconLabel= new QLabel (row);
+    iconLabel->setFixedSize (iconPx, iconPx);
+    QIcon icon;
+    if (!is_empty (info.icon))
+      icon= QIcon (":llm-chat/models/" + to_qstring (info.icon) + ".svg");
+    if (icon.isNull ()) {
+      // 图标缺失时画占位圆点，不留错位
+      QPixmap pm (iconPx, iconPx);
+      pm.fill (Qt::transparent);
+      QPainter p (&pm);
+      p.setRenderHint (QPainter::Antialiasing);
+      p.setPen (Qt::NoPen);
+      p.setBrush (QColor (isDark ? "#7a7a7a" : "#c8c8c8"));
+      int d= DpiUtils::scaled (kModelDotSize);
+      p.drawEllipse ((iconPx - d) / 2, (iconPx - d) / 2, d, d);
+      iconLabel->setPixmap (pm);
+    }
+    else {
+      iconLabel->setPixmap (icon.pixmap (iconPx, iconPx));
+    }
+    rowLayout->addWidget (iconLabel);
+
+    QLabel* nameLabel= new QLabel (utf8_to_qstring (info.name), row);
+    nameLabel->setObjectName ("chat-model-name");
+    DpiUtils::applyScaledFont (nameLabel, kModelMenuFontPx);
+    rowLayout->addWidget (nameLabel, 1);
+
+    if (!is_empty (info.description)) {
+      QLabel* badge= new QLabel (utf8_to_qstring (info.description), row);
+      // 未知 dscColor 已在解析期归一为 red/orange
+      QString badgeBg= (info.dscColor == "red") ? "#e05d5d" : "#f2994a";
+      badge->setStyleSheet (
+          QString ("QLabel { background: %1; color: #ffffff; border-radius: "
+                   "%2px; padding: 1px %3px; font-size: %4px; }")
+              .arg (badgeBg)
+              .arg (DpiUtils::scaled (kModelBadgeRadius))
+              .arg (DpiUtils::scaled (6))
+              .arg (DpiUtils::scaled (kModelBadgeFontPx)));
+      rowLayout->addWidget (badge);
+    }
+
+    QWidgetAction* act= new QWidgetAction (&menu);
+    act->setDefaultWidget (row);
+    string key= info.key;
+    connect (act, &QAction::triggered, this,
+             [this, key] () { emit modelSelected (sessionId_, key); });
+    menu.addAction (act);
+  }
+
+  menu.exec (globalPos);
 }
 
 /******************************************************************************

@@ -12,6 +12,7 @@
 #ifndef QT_CHAT_TAB_WIDGET_HPP
 #define QT_CHAT_TAB_WIDGET_HPP
 
+#include "qt_chat_model.hpp"
 #include "qt_chat_session.hpp"
 #include <QList>
 #include <QMap>
@@ -135,12 +136,26 @@ public:
                                        bool hasActiveCompletionPopup,
                                        bool isInHybrid= false);
 
+  /**
+   * @brief 弹出模型选择菜单（每次打开重建，按当前会话刷新选中态）。
+   *
+   * 每行为自定义 widget：logo 图标 + 名称 + 描述徽标，选中项背景加深。
+   * 点击后发射 modelSelected 信号。
+   * @param models     模型清单（展示顺序即列表顺序）
+   * @param currentKey 当前会话的模型键名（用于选中态）
+   * @param globalPos  菜单弹出位置（全局坐标）
+   */
+  void showModelMenu (const QList<ChatModelInfo>& models,
+                      const string& currentKey, const QPoint& globalPos);
+
 signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
   void searchToggled (const string& sessionId, bool enabled);
   /// 请求弹出模型选择菜单；globalPos 为建议弹出位置
   void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
+  /// 模型菜单项被选中；key 为模型键名
+  void modelSelected (const string& sessionId, const string& key);
   void inputHeightChanged ();
   void closeSidebarInDockModeRequested ();
 
