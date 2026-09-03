@@ -117,7 +117,9 @@
             (buffer-pretend-saved msg-buf)
           ) ;when
         ) ;let
-        (chat-tab-add-default-style-packages! chat-tab-session-name)
+        (when chat-tab-focus-ok?
+          (chat-tab-add-default-style-packages! chat-tab-session-name)
+        ) ;when
       ) ;chat-tab-with-buffer
       (with-buffer in-buf
         (chat-tab-add-default-style-packages! chat-tab-session-name)
@@ -487,7 +489,11 @@
                   `(session ,chat-tab-session-name ,plugin-ses (document))
                 ) ;buffer-set-body
                 (buffer-pretend-saved msg-buf)
-                (chat-tab-add-default-style-packages! chat-tab-session-name)
+                ;; 样式包操作依赖当前 buffer；无视图时跳过，
+                ;; C++ 侧 ensureMessageWidget 会以嵌入样式初始化
+                (when chat-tab-focus-ok?
+                  (chat-tab-add-default-style-packages! chat-tab-session-name)
+                ) ;when
               ) ;when
             ) ;let
           ) ;chat-tab-with-buffer

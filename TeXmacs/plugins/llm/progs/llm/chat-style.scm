@@ -67,7 +67,7 @@
           (in-buf (chat-tab-session->input-buffer session-id))
          ) ;
       (chat-tab-with-buffer msg-buf
-        (when (not (has-style-package? "dark"))
+        (when (and chat-tab-focus-ok? (not (has-style-package? "dark")))
           (add-style-package "dark")
         ) ;when
       ) ;chat-tab-with-buffer
