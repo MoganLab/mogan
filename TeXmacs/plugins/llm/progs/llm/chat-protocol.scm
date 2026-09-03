@@ -108,7 +108,7 @@
     (let* ((msg-buf (chat-tab-session->message-buffer session-id))
            (in-buf (chat-tab-session->input-buffer session-id))
           ) ;
-      (with-buffer msg-buf
+      (chat-tab-with-buffer msg-buf
         (let ((body (buffer-get-body msg-buf)))
           (when (chat-tab-buffer-empty? body)
             (buffer-set-body msg-buf
@@ -118,7 +118,7 @@
           ) ;when
         ) ;let
         (chat-tab-add-default-style-packages! chat-tab-session-name)
-      ) ;with-buffer
+      ) ;chat-tab-with-buffer
       (with-buffer in-buf
         (chat-tab-add-default-style-packages! chat-tab-session-name)
       ) ;with-buffer
@@ -174,7 +174,7 @@
       (with (input session-id out opts)
         (chat-tab-session-decode (car l))
         (let ((msg-buf (chat-tab-session->message-buffer session-id)))
-          (with-buffer msg-buf
+          (chat-tab-with-buffer msg-buf
             (when (and (tm-func? out 'document)
                     (> (tree-arity out) 0)
                     (tm-func? (tree-ref out :last) 'script-busy)
@@ -182,7 +182,7 @@
               (tree-remove! out (- (tree-arity out) 1) 1)
             ) ;when
             (buffer-pretend-saved msg-buf)
-          ) ;with-buffer
+          ) ;chat-tab-with-buffer
         ) ;let
         (chat-tab-session-detach (car l))
         ;; 通知 C++ 生成结束
@@ -206,7 +206,7 @@
                    ;; t 包含 reasoning-delta → 提取并追加到 unfolded-explain
                    ;; 注意：t 可能同时包含 fold-explain-reasoning，需要一并处理
                    ((tree-contains-label? t 'reasoning-delta)
-                    (with-buffer msg-buf
+                    (chat-tab-with-buffer msg-buf
                       (let* ((text (tree-extract-reasoning-delta! t))
                              (has-fold? (tree-contains-label? t 'fold-explain-reasoning))
                             ) ;
@@ -225,28 +225,34 @@
                         ) ;when
                       ) ;let*
                       (buffer-pretend-saved msg-buf)
-                    ) ;with-buffer
+                    ) ;chat-tab-with-buffer
                    ) ;
                    ;; t 仅包含 fold-explain-reasoning → 直接折叠
                    ((tree-contains-label? t 'fold-explain-reasoning)
-                    (with-buffer msg-buf
+                    (chat-tab-with-buffer msg-buf
                       (chat-tab-fold-last-explain! out)
                       (buffer-pretend-saved msg-buf)
-                    ) ;with-buffer
+                    ) ;chat-tab-with-buffer
                    ) ;
                    ;; 正常输出
-                   (else (with-buffer msg-buf (chat-tab-output out t) (buffer-pretend-saved msg-buf))
+                   (else (chat-tab-with-buffer msg-buf
+                           (chat-tab-output out t)
+                           (buffer-pretend-saved msg-buf)
+                         ) ;chat-tab-with-buffer
                    ) ;else
                  ) ;cond
                 ) ;
                 ((== ch "error")
-                 (with-buffer msg-buf (chat-tab-errput out t) (buffer-pretend-saved msg-buf))
+                 (chat-tab-with-buffer msg-buf
+                   (chat-tab-errput out t)
+                   (buffer-pretend-saved msg-buf)
+                 ) ;chat-tab-with-buffer
                 ) ;
                 ((== ch "prompt")
-                 (with-buffer msg-buf
+                 (chat-tab-with-buffer msg-buf
                    (tree-set out :up 0 (tree-copy t))
                    (buffer-pretend-saved msg-buf)
-                 ) ;with-buffer
+                 ) ;chat-tab-with-buffer
                 ) ;
                 ((and (== ch "input") (null? (cdr l))) (chat-tab-set-input-body! in-buf t))
           ) ;cond
@@ -256,6 +262,38 @@
   ) ;with
 ) ;define
 
+(tm-define (chat-tab-busy-message msg)
+  (:synopsis "Update script-busy node for pending chat-tab rounds")
+  ;; goldfish 会话经 flush-command 在 message buffer 上下文中调用。
+  ;; 不能用通用 session-busy-message：它以 generic session-decode 解码
+  ;; pending 队列，而 chat-tab 条目第三位是 session-id 字符串，
+  ;; 会被误当作 tree-pointer 求值导致 "is a string" 错误。
+  (let* ((lan (get-env "prog-language")) (ses (get-env "prog-session")))
+    (when (and (== lan chat-tab-session-name)
+            (>= (string-length ses) 9)
+            (== (substring ses 0 9) "chat-tab:")
+          ) ;and
+      (let ((l (pending-ref lan ses)))
+        (for-each (lambda (entry)
+                    (with (input entry-session-id out opts)
+                      (chat-tab-session-decode entry)
+                      (chat-tab-with-buffer (chat-tab-session->message-buffer entry-session-id)
+                        (when (and (tm-func? out 'document)
+                                (> (tree-arity out) 0)
+                                (tm-func? (tree-ref out :last) 'script-busy)
+                              ) ;and
+                          (tree-assign (tree-ref out :last) `(script-busy ,msg))
+                        ) ;when
+                      ) ;chat-tab-with-buffer
+                    ) ;with
+                  ) ;lambda
+          l
+        ) ;for-each
+      ) ;let
+    ) ;when
+  ) ;let*
+) ;tm-define
+
 (define (chat-tab-session-cancel lan ses dead?)
   (with l
     (pending-ref lan ses)
@@ -263,7 +301,7 @@
       (with (input session-id out opts)
         (chat-tab-session-decode (car l))
         (let ((msg-buf (chat-tab-session->message-buffer session-id)))
-          (with-buffer msg-buf
+          (chat-tab-with-buffer msg-buf
             (when (and (tm-func? out 'document)
                     (> (tree-arity out) 0)
                     (tm-func? (tree-ref out :last) 'script-busy)
@@ -271,7 +309,7 @@
               (tree-assign (tree-ref out :last) '(script-interrupted))
             ) ;when
             (buffer-pretend-saved msg-buf)
-          ) ;with-buffer
+          ) ;chat-tab-with-buffer
         ) ;let
         (chat-tab-session-detach (car l))
         ;; 通知 C++ 生成结束
@@ -401,9 +439,9 @@
         (session-id (chat-input-session-id ctx))
        ) ;
     (set! input (plugin-preprocess lan ses input opts))
-    (with-buffer (chat-tab-session->message-buffer session-id)
+    (chat-tab-with-buffer (chat-tab-session->message-buffer session-id)
       (tree-assign! out '(document (script-busy)))
-    ) ;with-buffer
+    ) ;chat-tab-with-buffer
     ;; 通知 C++ 进入 Generating 状态，切换按钮为 Stop
     (chat-tab-notify-state session-id "generating")
     (with x
@@ -441,7 +479,7 @@
             (buffer-set-body msg-buf '(document ""))
           ) ;when
           (view-passive msg-buf)
-          (with-buffer msg-buf
+          (chat-tab-with-buffer msg-buf
             (let ((msg-body (buffer-get-body msg-buf)))
               (when (chat-tab-buffer-empty? msg-body)
                 (session-enable-text-input chat-tab-session-name plugin-ses)
@@ -452,7 +490,7 @@
                 (chat-tab-add-default-style-packages! chat-tab-session-name)
               ) ;when
             ) ;let
-          ) ;with-buffer
+          ) ;chat-tab-with-buffer
           (let* ((out (chat-tab-append-round! msg-buf input model)))
             (if (not out)
               #f
@@ -460,7 +498,10 @@
                 (chat-tab-clear-input! in-buf)
                 (if (not (connection-defined? chat-tab-session-name))
                   (begin
-                    (with-buffer msg-buf (chat-tab-output out input) (buffer-pretend-saved msg-buf))
+                    (chat-tab-with-buffer msg-buf
+                      (chat-tab-output out input)
+                      (buffer-pretend-saved msg-buf)
+                    ) ;chat-tab-with-buffer
                     #t
                   ) ;begin
                   (begin

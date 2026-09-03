@@ -66,11 +66,11 @@
     (let ((msg-buf (chat-tab-session->message-buffer session-id))
           (in-buf (chat-tab-session->input-buffer session-id))
          ) ;
-      (with-buffer msg-buf
+      (chat-tab-with-buffer msg-buf
         (when (not (has-style-package? "dark"))
           (add-style-package "dark")
         ) ;when
-      ) ;with-buffer
+      ) ;chat-tab-with-buffer
       (with-buffer in-buf
         (when (not (has-style-package? "dark"))
           (add-style-package "dark")
