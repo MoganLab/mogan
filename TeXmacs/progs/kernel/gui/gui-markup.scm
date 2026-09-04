@@ -317,12 +317,12 @@
   ;; 按 herk 解码);ASCII/已是 herk 者不变,verbatim 标签取内层串转换,
   ;; 其余形态(balloon 等)原样透传
   `(list 'check
-    (let ((l ,text))
-      (cond ((string? l) (utf8->herk l))
-            ((func? l 'verbatim 1)
-             (list 'verbatim (utf8->herk (cadr l))))
-            (else l)))
-    ,check (lambda ,() ,pred?))
+     (let ((l ,text))
+       (cond ((string? l) (utf8->herk l))
+             ((func? l 'verbatim 1) (list 'verbatim (utf8->herk (cadr l))))
+             (else l)))
+     ,check
+     (lambda ,() ,pred?))
 ) ;tm-define-macro
 
 (tm-define-macro ($shortcut* text sh)

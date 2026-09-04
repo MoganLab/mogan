@@ -1170,7 +1170,10 @@
       ((check "Arabic (1, 2, 3)" "v" (== (safe-init-env num-var) "arabic"))
        (init-env num-var "arabic")
       ) ;
-      ((check (verbatim "Hanzi (一, 二, 三)") "v" (== (safe-init-env num-var) "hanzi"))
+      ((check (verbatim "Hanzi (一, 二, 三)")
+         "v"
+         (== (safe-init-env num-var) "hanzi")
+       ) ;check
        (init-env num-var "hanzi")
       ) ;
       ((check "Roman (I, II, III)" "v" (== (safe-init-env num-var) "Roman"))
