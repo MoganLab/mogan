@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (llm chat-style)
-  (:use (utils library cursor) (generic document-style))
+  (:use (utils library cursor) (generic document-style) (llm chat-tree-ops))
 ) ;texmacs-module
 
 ;;; ---------- 全局常量 ----------
@@ -41,8 +41,12 @@
         (set! packs (append packs (list "table-captions-above")))
       ) ;when
     ) ;when
-    ;; 插件样式包：动态检测，参考 session-edit 的 make-session
-    (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append session-name ".ts"))
+    ;; 插件样式包：动态检测
+    (when (url-exists? (url-append (get-texmacs-path)
+                         (string-append "plugins/" session-name
+                           "/packages/session/" session-name ".stem"
+                         ) ;string-append
+                       ) ;url-append
           ) ;url-exists?
       (set! packs (append packs (list session-name)))
     ) ;when
