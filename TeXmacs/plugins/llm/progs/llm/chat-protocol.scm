@@ -1,4 +1,3 @@
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : chat-protocol.scm
@@ -104,7 +103,11 @@
   (let ((plugin-ses (string-append "chat-tab:" session-id)))
     ;; Step 1: 注册 text-input 模式
     (session-enable-text-input chat-tab-session-name plugin-ses)
-    ;; Step 2: 初始化 buffer
+    ;; Step 2: 初始化 buffer（message buffer 可能尚未创建，
+    ;; with-buffer 对不存在的 buffer 静默返回 #f，需先创建）
+    (when (not (buffer-exists? (chat-tab-session->message-buffer session-id)))
+      (buffer-set (chat-tab-session->message-buffer session-id) '(document ""))
+    ) ;when
     (let* ((msg-buf (chat-tab-session->message-buffer session-id))
            (in-buf (chat-tab-session->input-buffer session-id))
           ) ;
@@ -428,7 +431,9 @@
     (let ((json-str (njson->string obj)))
       (njson-free params)
       (njson-free obj)
-      (stree->tree `(document ,(string-append "%chat " json-str)))
+      (let ((cork-json (utf8->cork json-str)))
+        (stree->tree `(document ,(string-append "%chat " cork-json)))
+      ) ;let
     ) ;let
   ) ;let*
 ) ;define
@@ -471,16 +476,11 @@
             ) ;
         ;; 延迟初始化：首次发送时设置 session body 并加载样式包
         (let ((plugin-ses (string-append "chat-tab:" session-id)))
-          ;; 消息编辑器懒创建（#4258）后，新会话首次发送时 message buffer
-          ;; 既不存在也无 view：with-buffer 经 buffer-focus 切视图，任一
-          ;; 不满足都会短路返回 #f，初始化代码因此永不执行。
-          ;; 先 buffer-set-body 直接建 buffer（不得用 view-passive 单独建，
-          ;; 其内部 buffer_load 对 tmfs://chat/* 会产出 Invalid tmfs
-          ;; document 错误文档），再 view-passive 补挂 passive view。
+          ;; 新会话的 message buffer 尚不存在（with-buffer 对不存在的
+          ;; buffer 静默返回 #f），必须先创建
           (when (not (buffer-exists? msg-buf))
-            (buffer-set-body msg-buf '(document ""))
+            (buffer-set msg-buf '(document ""))
           ) ;when
-          (view-passive msg-buf)
           (chat-tab-with-buffer msg-buf
             (let ((msg-body (buffer-get-body msg-buf)))
               (when (chat-tab-buffer-empty? msg-body)
