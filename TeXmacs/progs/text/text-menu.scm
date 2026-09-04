@@ -1170,7 +1170,10 @@
       ((check "Arabic (1, 2, 3)" "v" (== (safe-init-env num-var) "arabic"))
        (init-env num-var "arabic")
       ) ;
-      ((check "Hanzi (一, 二, 三)" "v" (== (safe-init-env num-var) "hanzi"))
+      ((check (verbatim "Hanzi (一, 二, 三)")
+         "v"
+         (== (safe-init-env num-var) "hanzi")
+       ) ;check
        (init-env num-var "hanzi")
       ) ;
       ((check "Roman (I, II, III)" "v" (== (safe-init-env num-var) "Roman"))
@@ -1200,7 +1203,7 @@
     (section-sep-var (focus-tree))
     (when sep-var
       ((check "." "v" (== (safe-init-env sep-var) ".")) (init-env sep-var "."))
-      ((check "、" "v" (== (safe-init-env sep-var) "<#3001>"))
+      ((check (verbatim "、") "v" (== (safe-init-env sep-var) "<#3001>"))
        (init-env sep-var "<#3001>")
       ) ;
       ((check "-" "v" (== (safe-init-env sep-var) "-")) (init-env sep-var "-"))
@@ -1216,7 +1219,7 @@
       ((check "." "v" (== (safe-init-env prefix-sep-var) "."))
        (init-env prefix-sep-var ".")
       ) ;
-      ((check "、" "v" (== (safe-init-env prefix-sep-var) "<#3001>"))
+      ((check (verbatim "、") "v" (== (safe-init-env prefix-sep-var) "<#3001>"))
        (init-env prefix-sep-var "<#3001>")
       ) ;
       ((check "-" "v" (== (safe-init-env prefix-sep-var) "-"))
