@@ -19,6 +19,34 @@
   ) ;:use
 ) ;texmacs-module
 
+
+;;; ---------- 视图无关的 with-buffer 变体 ----------
+
+;; 社区版 with-buffer（cursor.scm）要求目标 buffer 有关联视图：
+;; (buffer-focus name #f) 返回 #f 时整个 and 链短路，body 被静默跳过。
+;; 新会话的 message buffer 嵌入编辑器由 C++ 侧懒创建（首次发送成功后
+;; enterConversationMode 才建立视图），发送时必然无视图。
+;; 此变体在 focus 失败时仍执行 body；body 内可通过 chat-tab-focus-ok?
+;; 判断是否需要执行依赖当前视图的操作（如 tree-go-to、add-style-package）。
+
+(define chat-tab-focus-ok? #f)
+
+(define-public-macro (chat-tab-with-buffer name . body)
+  (let* ((old (gensym)) (res (gensym)))
+    `(if (== ,name (current-buffer))
+       (begin ,@body)
+       (let* ((,old (current-buffer)))
+         (with chat-tab-focus-ok?
+           (and (or (url? ,name) (string? ,name))
+             (buffer-exists? ,name)
+             (buffer-focus ,name ,#f))
+           (with ,res
+             (begin ,@body)
+             (when chat-tab-focus-ok? (buffer-focus ,old ,#f))
+             ,res))))
+  ) ;let*
+) ;define-public-macro
+
 ;;; ---------- 文档处理工具 ----------
 
 (tm-define (chat-tab-normalize-document body)
@@ -279,7 +307,9 @@
       (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
       (when (tm-func? u 'document)
         (tree-insert! t i (var-tree-children u))
-        (tree-go-to t :end)
+        (when chat-tab-focus-ok?
+          (tree-go-to t :end)
+        ) ;when
       ) ;when
     ) ;with
   ) ;when
@@ -333,7 +363,7 @@
 ) ;define
 
 (tm-define (chat-tab-message-document message-buffer)
-  (with-buffer message-buffer
+  (chat-tab-with-buffer message-buffer
     (let ((doc (buffer-get-body message-buffer)))
       (cond ((tree-is? doc 'session)
              (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
@@ -350,7 +380,7 @@
             ) ;else
       ) ;cond
     ) ;let
-  ) ;with-buffer
+  ) ;chat-tab-with-buffer
 ) ;tm-define
 
 ;;; ---------- 输入操作 ----------
@@ -389,7 +419,7 @@
 ;;; ---------- 追加对话轮次 ----------
 
 (tm-define (chat-tab-append-round! message-buffer body model)
-  (with-buffer message-buffer
+  (chat-tab-with-buffer message-buffer
     (let* ((doc (chat-tab-message-document message-buffer))
            (prompt (chat-tab-model-prompt model))
            (input-children (chat-tab-body-children body))
@@ -401,11 +431,13 @@
            ) ;io-node
           ) ;
       (tree-insert! doc (tree-arity doc) (list io-node))
-      (tree-go-to doc :end)
+      (when chat-tab-focus-ok?
+        (tree-go-to doc :end)
+      ) ;when
       (buffer-pretend-saved message-buffer)
       (let ((last-node (tree-ref doc :last)))
         (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2))
       ) ;let
     ) ;let*
-  ) ;with-buffer
+  ) ;chat-tab-with-buffer
 ) ;tm-define
