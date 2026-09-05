@@ -1453,12 +1453,26 @@ QToolButton#chat-tab-send-btn:pressed {
   background-color: #d3d3d3;
 }
 
-/* 选择复选框 */
+/* 选择复选框（多选模式）：浅色侧边栏上未勾选需靠边框辨认，勾选需有勾选图形 */
+QCheckBox#chat-tab-select-checkbox {
+  background: transparent;
+}
+QCheckBox#chat-tab-select-checkbox::indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
 QCheckBox#chat-tab-select-checkbox::indicator:checked {
-  background-color: #4a90d9;
+  background-color: #215a6a;
+  border: 1px solid #215a6a;
+  image: url(":/llm-chat/check-white.svg");
 }
 QCheckBox#chat-tab-select-checkbox::indicator:unchecked {
   background-color: #ffffff;
+  border: 1px solid #cccccc;
+}
+QCheckBox#chat-tab-select-checkbox::indicator:unchecked:hover {
+  border: 1px solid #215a6a;
 }
 
 /* 会话项容器 */
