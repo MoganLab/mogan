@@ -270,7 +270,9 @@ orthogonalize (point& i, point& j, const point& p1, const point& p2,
   i         = point (n);
   for (int k= 0; k < n; k++)
     i[k]= (p2[k] - p1[k]) * inv;
-  int    m= min (N (p3), N (p1));
+  // j 的维度须取三者最小（原 (p3-p1)-c*i 逐分量 min 的语义），
+  // 否则混维度输入 m>n 时 i[k] 越界读
+  int    m= min (n, N (p3));
   point  d (m);
   double c= 0;
   for (int k= 0; k < m; k++) {
@@ -299,11 +301,13 @@ midperp (const point& p1, const point& p2, const point& p3) {
     orthogonalize (i, j, p1, p2, p3);
     int n= min (N (p1), N (p2));
     a.p0 = point (n);
-    a.p1 = point (n);
-    for (int k= 0; k < n; k++) {
+    for (int k= 0; k < n; k++)
       a.p0[k]= (p1[k] + p2[k]) / 2;
+    // a.p1 = a.p0 + j 逐分量取 min：混维度输入 N(j)<n 时 j[k] 越界读
+    int m= min (n, N (j));
+    a.p1 = point (m);
+    for (int k= 0; k < m; k++)
       a.p1[k]= a.p0[k] + j[k];
-    }
   }
   return a;
 }

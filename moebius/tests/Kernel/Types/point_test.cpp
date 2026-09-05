@@ -278,6 +278,20 @@ TEST_CASE ("test orthogonalize") {
   CHECK (j == mkp (0, 1));
   // 三点共线时失败
   CHECK (!orthogonalize (i, j, mkp (0, 0), mkp (1, 1), mkp (2, 2)));
+  // [1265] 混维度输入：n= min(N(p2),N(p1)) 分配 i，m= min(N(p3),N(p1))
+  // 驱动循环，m>n 时 i[k] 越界读（[1212] 9deb90253c 引入）。
+  // 修复后 j 的维度恢复为优化前 (p3-p1)-c*i 逐分量 min 的语义，
+  // 即三者最小。ASan 下可检出的越界读复现见 devel/1265_3.cpp
+  // （N(p1)=100, N(p2)=34, N(p3)=100，i 容量 64、循环跑到 100）。
+  // 排版路径不产生混维度点，故为理论触发。
+  point p1 (100), p2 (34), p3 (100);
+  p2[0]= 1.0;
+  p3[1]= 1.0;
+  CHECK (orthogonalize (i, j, p1, p2, p3));
+  CHECK (N (i) == 34);
+  CHECK (N (j) == 34);
+  CHECK (fabs (i[0] - 1.0) < 1e-6);
+  CHECK (fabs (j[1] - 1.0) < 1e-6);
 }
 
 TEST_CASE ("test midperp") {
@@ -289,6 +303,17 @@ TEST_CASE ("test midperp") {
   axis b= midperp (mkp (0, 0), mkp (1, 1), mkp (2, 2));
   CHECK (N (b.p0) == 0);
   CHECK (N (b.p1) == 0);
+  // [1265] 混维度输入（N(p3) < min(N(p1),N(p2))）：j 维度小于 n，
+  // 循环按 n 跑时 j[k] 越界读（[1212] 9deb90253c 引入）。
+  // 修复后 a.p1 = a.p0 + j 逐分量取 min。
+  point p1 (100), p2 (100), p3 (34);
+  p2[0] = 1.0;
+  p3[1] = 1.0;
+  axis c= midperp (p1, p2, p3);
+  CHECK (N (c.p0) == 100);
+  CHECK (N (c.p1) == 34);
+  CHECK (fabs (c.p1[0] - 0.5) < 1e-6);
+  CHECK (fabs (c.p1[1] - 1.0) < 1e-6);
 }
 
 TEST_CASE ("test intersection") {
