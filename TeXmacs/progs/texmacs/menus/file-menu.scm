@@ -323,16 +323,7 @@
   ("Print page selection to file" (print-page-selection-to-file))
 ) ;menu-bind
 
-(menu-bind print-menu
- ("Preview" (preview-buffer))
- (if (use-print-dialog?)
-   (if (has-printing-cmd?) ("Print" (print-buffer)))
-   ("Print to file" (choose-file print-to-file "Print all to file" "postscript"))
- ) ;if
- (if (not (use-print-dialog?)) (-> "Print" (link print-menu-sub)))
- (if (use-menus?) (-> "Page setup" (link page-setup-menu)))
- (if (use-popups?) ("Page setup" (open-page-setup)))
-) ;menu-bind
+(menu-bind print-menu ("Preview" (preview-buffer)))
 
 (menu-bind print-menu-inline
  ("Preview" (preview-buffer))
