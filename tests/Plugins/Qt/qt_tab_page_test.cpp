@@ -8,8 +8,10 @@
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
 #include <QApplication>
+#include <QCursor>
 #include <QList>
 #include <QMouseEvent>
+#include <QScreen>
 #include <QtTest/QtTest>
 
 namespace {
@@ -26,6 +28,28 @@ makeCarrierList (const QList<QPair<QString, QString>>& urlTitlePairs) {
     list->append (new QTMTabPageAction (tab));
   }
   return list;
+}
+
+// 断言「未悬停」状态前调用。QT_QPA_PLATFORM=offscreen（Debian CI）下虚拟
+// 光标恒在 (0,0)，顶层窗口也映射在 (0,0)，show() 的合成 Enter 事件会把
+// m_hoverOnTab 置 true，导致未悬停断言随环境翻转；macOS runner 的窗口默认
+// 位置同样可能压在真实光标下。把窗口挪到不含光标的屏幕角落并补一个 Leave
+// 事件，使 hover 状态归零且后续不再受真实/合成光标影响。
+void
+moveAwayFromCursor (QWidget& w) {
+  const QRect         avail= w.screen ()->availableGeometry ();
+  const QList<QPoint> corners{
+      {avail.left () + 16, avail.top () + 16},
+      {avail.right () - w.width () - 16, avail.top () + 16},
+      {avail.left () + 16, avail.bottom () - w.height () - 16},
+      {avail.right () - w.width () - 16, avail.bottom () - w.height () - 16}};
+  for (const QPoint& c : corners)
+    if (!QRect (c, w.size ()).contains (QCursor::pos ())) {
+      w.move (c);
+      break;
+    }
+  QEvent leave (QEvent::Leave);
+  QApplication::sendEvent (&w, &leave);
 }
 } // namespace
 
@@ -54,6 +78,7 @@ private slots:
 
     auto* closeBtn= tab.findChild<QWK::WindowButton*> ("tabpage-close-button");
     QVERIFY (closeBtn != nullptr);
+    moveAwayFromCursor (tab);
     QVERIFY (!closeBtn->isVisible ());
 
     // macOS (Cocoa) 的 QTest::mouseMove 不会向未 grab 鼠标的 widget 派发
@@ -131,6 +156,7 @@ private slots:
     // 活动 + 脏 + 未悬停：关闭按钮隐藏，显示的是脏圆点而非 ×（1266）。
     auto* closeBtn= tab.findChild<QWK::WindowButton*> ("tabpage-close-button");
     QVERIFY (closeBtn != nullptr);
+    moveAwayFromCursor (tab);
     QVERIFY (!closeBtn->isVisible ());
 
     tab.setChecked (false); // 切走后再切回，回写路径重复触发仍需保持干净
