@@ -293,6 +293,8 @@ xmake test lolly_tests/hashmap_test   # 单个测试
 
 如果构建失败（例如配置缓存陈旧、依赖路径错乱），执行 `xmake f -c --yes` 清理配置缓存后重新构建。
 
+如果只是修改 Scheme 文件（`.scm`），不需要使用 xmake 重新编译，但在 Windows 下需要执行一下 `xmake i stem`（同步资源文件到运行目录）。
+
 ### Scheme Glue（C++ ↔ scheme 绑定）
 
 - **glue 声明在 `.lua` 不在 `.scm`**：mogan 的 glue 由 xmake 规则 `xmake/rules/glue.lua`
