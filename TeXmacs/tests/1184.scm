@@ -15,6 +15,7 @@
 (check-set-mode! 'report)
 
 ;;; 旧实现（逐包 add-style-package），作为等价性基准
+
 (define (ref-add-default-style-packages! session-name)
   (add-style-package "number-europe")
   (add-style-package "preview-ref")
@@ -28,18 +29,25 @@
       ) ;when
     ) ;when
   ) ;with
-  (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append session-name ".ts"))
+  ;; 插件样式包检测与 chat-style.scm 保持一致（.stem 布局）
+  (when (url-exists? (url-append (get-texmacs-path)
+                       (string-append "plugins/" session-name
+                         "/packages/session/" session-name ".stem"
+                       ) ;string-append
+                     ) ;url-append
         ) ;url-exists?
     (add-style-package session-name)
+  ) ;when
+  ;; 深色主题下自动带上 dark 样式包（1272）
+  (when (== (get-preference "gui theme") "liii-night")
+    (add-style-package "dark")
   ) ;when
 ) ;define
 
 (define (with-bench-buffer tag thunk)
   ;; buffer-new 无参返回新 buffer，rename 到 tmfs 测试 url；
   ;; 测试加载环境无 with-buffer 宏，用 buffer-focus 显式切换
-  (let ((buf (buffer-new))
-        (u   (string->url (string-append "tmfs://bench-1184-" tag))
-        )) ;
+  (let ((buf (buffer-new)) (u (string->url (string-append "tmfs://bench-1184-" tag))))
     (buffer-rename buf u)
     (let ((old (current-buffer)) (res #f))
       (buffer-focus u #f)
@@ -53,7 +61,8 @@
 
 (define (bench-style-impl f n)
   (let ((start (texmacs-time)))
-    (do ((i 0 (+ i 1))) ((= i n))
+    (do ((i 0 (+ i 1)))
+      ((= i n))
       (with-bench-buffer (number->string i) (lambda () (f "llm")))
     ) ;do
     (- (texmacs-time) start)

@@ -50,6 +50,10 @@
           ) ;url-exists?
       (set! packs (append packs (list session-name)))
     ) ;when
+    ;; 深色主题下自动带上 dark 样式包，新建对话的输入/消息区跟随主题
+    (when (== (get-preference "gui theme") "liii-night")
+      (set! packs (append packs (list "dark")))
+    ) ;when
     (set-style-list (append (get-style-list) packs))
   ) ;let
 ) ;tm-define
