@@ -416,6 +416,21 @@ highlight_box_rep::display_rounded (renderer& ren, int style) {
  * Putting titles by superposing several highlight boxes
  ******************************************************************************/
 
+// The title and the body of a titled ornament are sibling boxes which
+// overlap.  The title must always be painted last, otherwise the body
+// background covers the lower half of the title.  box_rep::redraw however
+// paints the child containing the cursor last, so that editing the title
+// would hide it behind the body.
+struct title_composite_box_rep : public concrete_composite_box_rep {
+  title_composite_box_rep (path ip2, array<box> bs2, array<SI> x2, array<SI> y2)
+      : concrete_composite_box_rep (ip2, bs2, x2, y2, false) {}
+  operator tree () { return tree (TUPLE, "title", (tree) bs[0]); }
+  void redraw (renderer ren, path p, rectangles& l) {
+    (void) p;
+    box_rep::redraw (ren, path (), l);
+  }
+};
+
 box
 title_box (path ip, box b, box xb, ornament_parameters ps) {
   string tst      = ps->tst->label;
@@ -448,9 +463,7 @@ title_box (path ip, box b, box xb, ornament_parameters ps) {
   bs << bb << tit;
   x << 0 << tx;
   y << 0 << ty;
-  return composite_box (ip, bs, x, y, false);
-  // FIXME: we should force redrawing the title box,
-  // whenever redrawing the body box.
+  return tm_new<title_composite_box_rep> (ip, bs, x, y);
 }
 
 /******************************************************************************
