@@ -520,6 +520,11 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
       ChatSessionManager::messageBufferUrl (panel->sessionId ()));
   if (!ChatConversationPanel::is_empty_document_body (msgBody)) {
     panel->enterConversationMode ();
+    // ensureMessageWidget 里 texmacs_input_widget 会 set_buffer_tree 整体
+    // 覆盖消息 buffer 样式，而此前的 scheme 样式操作发生在无视图阶段、
+    // 已被 with-buffer 静默跳过；须在视图就绪后补齐默认样式包，
+    // 历史会话恢复才能带上 llm 等插件包
+    call ("chat-tab-sync-session-styles!", panel->sessionId ());
     QTimer::singleShot (3000, this, [this, sid= panel->sessionId ()] () {
       if (!sessionManager_.getSession (sid)) return;
       call ("chat-scroll-message-to-end", sid);
@@ -631,7 +636,7 @@ ChatController::ensureNewConversation () {
   sessionManager_.setModel (sid, currentModel_);
 
   eval ("(use-modules (llm chat-style))");
-  call ("chat-tab-sync-dark-style!", sid);
+  call ("chat-tab-sync-session-styles!", sid);
   call ("chat-tab-load-input-styles!", sid);
 
   if (panel->sessionTitle ()) panel->sessionTitle ()->hide ();
@@ -664,7 +669,7 @@ ChatController::getOrCreatePanel (const string& sessionId) {
   sessionManager_.setPanel (sessionId, panel);
 
   eval ("(use-modules (llm chat-style) (llm chat-protocol))");
-  call ("chat-tab-sync-dark-style!", sessionId);
+  call ("chat-tab-sync-session-styles!", sessionId);
   call ("chat-tab-init-session!", sessionId, s->model);
 
   // 连接 Panel 的信号

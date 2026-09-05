@@ -68,22 +68,22 @@
   ) ;let
 ) ;tm-define
 
-(tm-define (chat-tab-sync-dark-style! session-id)
-  ;; C++ 侧创建 panel 后调用，同步暗色样式包
-  (when (== (get-preference "gui theme") "liii-night")
-    (let ((msg-buf (chat-tab-session->message-buffer session-id))
-          (in-buf (chat-tab-session->input-buffer session-id))
-         ) ;
-      (chat-tab-with-buffer msg-buf
-        (when (and chat-tab-focus-ok? (not (has-style-package? "dark")))
-          (add-style-package "dark")
-        ) ;when
-      ) ;chat-tab-with-buffer
-      (with-buffer in-buf
-        (when (not (has-style-package? "dark"))
-          (add-style-package "dark")
-        ) ;when
-      ) ;with-buffer
-    ) ;let
-  ) ;when
+(tm-define (chat-tab-sync-session-styles! session-id)
+  ;; C++ 侧在消息嵌入编辑器建立（含 set_buffer_tree 覆盖）后调用。
+  ;; 无视图阶段 with-buffer 会静默跳过样式操作，而 texmacs_input_widget
+  ;; 对已有 buffer 会整体覆盖样式，故须在视图就绪后按当前 buffer 补齐
+  ;; 默认样式包，点击历史会话恢复后 llm 等插件包才不缺失。
+  ;; set-style-list 归一化去重，包已齐时重复调用不触发样式树重建。
+  (let ((msg-buf (chat-tab-session->message-buffer session-id))
+        (in-buf (chat-tab-session->input-buffer session-id))
+       ) ;
+    (chat-tab-with-buffer msg-buf
+      (when chat-tab-focus-ok?
+        (chat-tab-add-default-style-packages! chat-tab-session-name)
+      ) ;when
+    ) ;chat-tab-with-buffer
+    (with-buffer in-buf
+      (chat-tab-add-default-style-packages! chat-tab-session-name)
+    ) ;with-buffer
+  ) ;let
 ) ;tm-define
