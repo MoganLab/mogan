@@ -981,8 +981,9 @@ cpp_print_to_file_dialog (tree form) {
  * @brief 「导出为PDF」QML 对话框 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
  *
  * @details 与 cpp_print_to_file_dialog 同构：run_qml_dialog + 一次性提交。
- * 选项均为本地布尔开关，无 Browse 等原生交互，故不注入 printBridge。
- * 测试钩子 MOGAN_TEST_EXPORT_PDF=ok|cancel 命中时不弹窗：ok 按选项初值构造
+ * 选项为本地布尔开关，目的地（完整路径含文件名）为只读展示 + Browse 弹原生
+ * 保存对话框换路径——Browse 复用 PrintToFileBridge（过滤串限定 PDF）。
+ * 测试钩子 MOGAN_TEST_EXPORT_PDF=ok|cancel 命中时不弹窗：ok 按字段初值构造
  * 返回 tree（供自动化验证数据契约），cancel 返回空 tree。
  */
 tree
@@ -1018,18 +1019,25 @@ cpp_export_pdf_dialog (tree form) {
   // 统一 × DPI。
   const int logicH= 24 * 2 + 28 + 12 + qmlFields.size () * (44 + 12) + 8 + 72;
 
-  // closeBridge 须在注入回调里创建并捕获，供事后 results() 取值；不挂 parent，
+  // closeBridge 须在注入回调里创建并捕获，供事后 results() 取值；browseBridge
+  // 供 QML 点 Browse 时弹原生保存对话框（过滤串限定 PDF），二者不挂 parent，
   // exec 后 delete。
-  QmlDialogBridge* closeBridge= nullptr;
+  QmlDialogBridge*   closeBridge = nullptr;
+  PrintToFileBridge* browseBridge= nullptr;
   run_qml_dialog (
       "qrc:/qml/ExportPdf.qml", "ExportPdf.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
         closeBridge= inject_common_context (qw, host);
+        browseBridge=
+            new PrintToFileBridge (&host, QStringLiteral ("PDF (*.pdf)"));
         qw->rootContext ()->setContextProperty ("formFields", qmlFields);
         qw->rootContext ()->setContextProperty ("dialogButtons",
                                                 translate_buttons (buttons));
         qw->rootContext ()->setContextProperty ("dialogTitle",
                                                 qt_translate ("Export as PDF"));
+        qw->rootContext ()->setContextProperty ("browseLabel",
+                                                qt_translate ("Browse"));
+        qw->rootContext ()->setContextProperty ("browseBridge", browseBridge);
       },
       460, logicH);
 
@@ -1038,6 +1046,7 @@ cpp_export_pdf_dialog (tree form) {
   const QVariantMap& res=
       closeBridge ? closeBridge->results () : QVariantMap ();
   delete closeBridge;
+  delete browseBridge;
   for (auto it= res.begin (); it != res.end (); ++it) {
     tree kv (TUPLE);
     kv << tree (from_qstring (it.key ()))

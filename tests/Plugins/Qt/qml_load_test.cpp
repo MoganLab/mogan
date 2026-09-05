@@ -478,8 +478,9 @@ TestQmlLoad::test_print_to_file_loads () {
 
 void
 TestQmlLoad::test_export_pdf_loads () {
-  // ExportPdf 需 formFields（toggle 型选项）+ dialogButtons + dialogTitle；
-  // 无 path 型字段，不注入 printBridge。注入最小占位，断言能实例化。
+  // ExportPdf 需 formFields（toggle 型选项 + path 型目的地）+ dialogButtons +
+  // dialogTitle + browseLabel + browseBridge（Browse 生效用）。注入最小占位，
+  // 断言能实例化。
   QVariantList fields;
   QVariantMap  f0;
   f0["type"] = QString ("toggle");
@@ -487,6 +488,12 @@ TestQmlLoad::test_export_pdf_loads () {
   f0["key"]  = QString ("embed");
   f0["value"]= QString ("false");
   fields << f0;
+  QVariantMap f1;
+  f1["type"] = QString ("path");
+  f1["label"]= QString ("Export to");
+  f1["key"]  = QString ("path");
+  f1["value"]= QString ("/tmp/1271/untitled.pdf");
+  fields << f1;
   QStringList buttons;
   buttons << "Export"
           << "Cancel";
@@ -494,16 +501,24 @@ TestQmlLoad::test_export_pdf_loads () {
   QDialog       host;
   QQuickWidget* qw= new QQuickWidget (&host);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  StubBridge* close= new StubBridge (qw);
+  StubBridge* close = new StubBridge (qw);
+  StubBridge* browse= new StubBridge (qw);
   qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("browseBridge", browse);
   qw->rootContext ()->setContextProperty ("formFields", fields);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->rootContext ()->setContextProperty ("dialogTitle",
                                           QString ("Export as PDF"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/ExportPdf.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+  // path 字段透传：QML 侧 pathKey/pathValue 应取到目的地初值。
+  QCOMPARE (qw->rootObject ()->property ("pathKey").toString (),
+            QString ("path"));
+  QCOMPARE (qw->rootObject ()->property ("pathValue").toString (),
+            QString ("/tmp/1271/untitled.pdf"));
 }
 
 void

@@ -224,38 +224,58 @@
   ) ;let
 ) ;tm-define
 
+(define (export-pdf-ensure-suffix fname)
+  ;; 目的地兜底带 .pdf 后缀：对话框 Browse 允许选任意文件名（原生保存对话框
+  ;; 不强制类型），对齐旧 choose-file 按类型补后缀的语义。
+  (if (== (url-suffix (system->url fname)) "pdf")
+    fname
+    (string-append fname ".pdf")
+  ) ;if
+) ;define
+
 (tm-define (export-as-pdf)
   (:synopsis "Export as PDF, optionally embedding the source document")
-  ;; QML 对话框只收集一个选项：是否把源文档作为附件嵌入 PDF。确认时
-  ;; cpp-export-pdf-dialog 返回 (tuple (tuple "embed" "true"/"false"))，Cancel
-  ;; / 关闭返回空树。选项初值与 label 在此侧取好（label 已翻译）。
+  ;; QML 对话框收集导出目的地（完整路径含文件名，Browse 可改）与是否把源文档
+  ;; 作为附件嵌入 PDF。确认时 cpp-export-pdf-dialog 返回 (tuple (tuple "embed"
+  ;; ...) (tuple "path" ...))，Cancel / 关闭返回空树。字段初值与 label 在此侧
+  ;; 取好（label 已翻译）。
   (with result
-    (cpp-export-pdf-dialog (stree->tree `(export-pdf-form (toggle ,(translate "Embed source document")
-                                                            ,"embed"
-                                                            ,"false"))
-                           ) ;stree->tree
-    ) ;cpp-export-pdf-dialog
+    (with default-path
+      ;; 缺省目的地：缺省目录 + 建议文件名。
+      (url->system (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
+                     (system->url (propose-export-pdf-name #f))
+                   ) ;url-append
+      ) ;url->system
+      (cpp-export-pdf-dialog (stree->tree `(export-pdf-form (toggle ,(translate "Embed source document")
+                                                              ,"embed"
+                                                              ,"false")
+                                             (path ,(translate "Export to")
+                                               ,"path"
+                                               ,default-path))
+                             ) ;stree->tree
+      ) ;cpp-export-pdf-dialog
+    ) ;with
     ;; tree->stree 后每个 kv 为 (tuple key value)：cadr=key、caddr=value。
     (with r
       (cdr (tree->stree result))
       (if (null? r)
         (noop)
-        (with embed
-          #f
-          (for-each (lambda (kv) (when (== (cadr kv) "embed") (set! embed (== (caddr kv) "true"))))
+        ;; with 是单绑定宏（var val . body），两个绑定用 let*；扁平写法会把
+        ;; 后续绑定名当 body 表达式求值（unbound variable）。
+        (let* ((embed #f) (fname ""))
+          (for-each (lambda (kv)
+                      (cond ((== (cadr kv) "embed") (set! embed (== (caddr kv) "true")))
+                            ((== (cadr kv) "path") (set! fname (caddr kv)))
+                      ) ;cond
+                    ) ;lambda
             r
           ) ;for-each
-          ;; 目的地走通用文件选择，默认文件名随「嵌入源文档」联动：
-          ;; xxx.tmu.pdf / xxx.pdf。
-          (choose-file (if embed wrapped-print-to-pdf-embeded-with-tmu wrapped-print-to-file)
-            "Save pdf file"
-            "pdf"
-            "Save as:"
-            (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
-              (system->url (propose-export-pdf-name embed))
-            ) ;url-append
-          ) ;choose-file
-        ) ;with
+          (set! fname (export-pdf-ensure-suffix fname))
+          (if embed
+            (wrapped-print-to-pdf-embeded-with-tmu fname)
+            (wrapped-print-to-file fname)
+          ) ;if
+        ) ;let*
       ) ;if
     ) ;with
   ) ;with

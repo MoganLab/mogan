@@ -46,8 +46,13 @@ public:
    * @brief 构造桥对象。
    * @param host 宿主 QDialog（exec 模态窗口；作原生文件对话框的 parent），不挂
    * parent。
+   * @param filter 原生文件对话框的文件类型过滤串；缺省为打印到文件的
+   * ps/pdf 过滤，「导出为PDF」等单一类型对话框传自己的过滤串复用本桥。
    */
-  explicit PrintToFileBridge (QDialog* host) : QObject (), m_host (host) {
+  explicit PrintToFileBridge (
+      QDialog* host, QString filter= QStringLiteral (
+                         "PostScript (*.ps);;PDF (*.pdf);;All files (*)"))
+      : QObject (), m_host (host), m_filter (filter) {
     ASSERT (host != NULL, "PrintToFileBridge expects a valid QDialog host");
   }
 
@@ -60,6 +65,7 @@ public:
 
 private:
   QDialog* m_host;
+  QString  m_filter;
 };
 
 #endif // defined PRINT_TO_FILE_BRIDGE_HPP
