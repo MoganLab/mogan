@@ -122,6 +122,14 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-export-pdf-dialog",
+                cpp_name = "cpp_export_pdf_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "tree"
+                }
+            },
+            {
                 scm_name = "cpp-updater-dialog-open",
                 cpp_name = "cpp_updater_dialog_open",
                 ret_type = "void",

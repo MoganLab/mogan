@@ -4,6 +4,7 @@ ConfirmRestart 1.0 ConfirmRestart.qml
 ColorPicker 1.0 ColorPicker.qml
 FormDialog 1.0 FormDialog.qml
 PrintToFile 1.0 PrintToFile.qml
+ExportPdf 1.0 ExportPdf.qml
 SearchRecent 1.0 SearchRecent.qml
 FontSelector 1.0 FontSelector.qml
 ParagraphFormat 1.0 ParagraphFormat.qml

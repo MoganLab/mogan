@@ -83,6 +83,9 @@
 ) ;
 ("expired" "到期")
 ("Expired" "已过期")
+("Export" "导出")
+("Export as PDF" "导出为PDF")
+("Export as PDF..." "导出为PDF...")
 ("Export mathematical formulas as MathJax" "将数学公式导出为 MathJax")
 ("Export mathematical formulas as MathML" "将数学公式导出为MathML")
 ("Exporting" "导出中")
@@ -846,6 +849,7 @@
 ("elsevier" "爱思唯尔")
 ("email" "电子邮件")
 ("Email not set" "未绑定邮箱")
+("Embed source document" "将源文档作为附件嵌入PDF")
 ("emoji shortcuts" "Emoji 快捷键")
 ("emphasize text" "强调文本")
 ("emphasize" "强调")

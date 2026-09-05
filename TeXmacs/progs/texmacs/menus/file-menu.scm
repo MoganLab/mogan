@@ -323,7 +323,10 @@
   ("Print page selection to file" (print-page-selection-to-file))
 ) ;menu-bind
 
-(menu-bind print-menu ("Preview" (preview-buffer)))
+(menu-bind print-menu
+ ("Preview" (preview-buffer))
+ ("Export as PDF..." (export-as-pdf))
+) ;menu-bind
 
 (menu-bind print-menu-inline
  ("Preview" (preview-buffer))
@@ -453,13 +456,6 @@
        ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex"))
      ) ;when
      ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
-     ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
-     ("Pdf with embedded document"
-       (choose-file wrapped-print-to-pdf-embeded-with-tmu
-         "Save tmu.pdf file"
-         "tmu.pdf"
-       ) ;choose-file
-     ) ;
      ("Postscript"
        (choose-file wrapped-print-to-file "Save postscript file" "postscript")
      ) ;
