@@ -991,15 +991,17 @@ cpp_export_pdf_dialog (tree form) {
   string preset= get_env ("MOGAN_TEST_EXPORT_PDF");
   if (preset == "cancel") return tree (TUPLE);
   if (preset == "ok") {
-    // 与真实路径同源判定合法字段，返回字段初值（key value 二元组）。
+    // 与真实路径同源判定合法字段，返回字段初值（key value 二元组）。value
+    // 走 from_qstring_utf8：本弹窗 value 是布尔与文件系统路径（UTF-8 字节），
+    // from_qstring 的 utf8_to_cork 会把中文名变成 <#XXXX> 逃逸串。
     tree r (TUPLE);
     if (is_compound (form)) {
       for (int i= 0; i < N (form); i++) {
         QVariantMap m= print_field_to_qml (form[i]);
         if (m.isEmpty ()) continue;
         tree kv (TUPLE);
-        kv << tree (from_qstring (m.value ("key").toString ()))
-           << tree (from_qstring (m.value ("value").toString ()));
+        kv << tree (from_qstring_utf8 (m.value ("key").toString ()))
+           << tree (from_qstring_utf8 (m.value ("value").toString ()));
         r << kv;
       }
     }
@@ -1010,7 +1012,12 @@ cpp_export_pdf_dialog (tree form) {
     for (int i= 0; i < N (form); i++) {
       if (is_compound (form[i]) && N (form[i]) >= 3) {
         QVariantMap m= print_field_to_qml (form[i]);
-        if (!m.isEmpty ()) qmlFields << m;
+        if (m.isEmpty ()) continue;
+        // path 字段值是文件系统路径（scheme 侧为 UTF-8 字节），显式按 UTF-8
+        // 转 QString，不走 to_qstring 的 looks_utf8 启发式。
+        if (get_label (form[i]) == "path")
+          m["value"]= utf8_to_qstring (get_label (form[i][2]));
+        qmlFields << m;
       }
     }
   }
@@ -1041,7 +1048,8 @@ cpp_export_pdf_dialog (tree form) {
       },
       460, logicH);
 
-  // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
+  // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。value 走
+  // from_qstring_utf8（布尔与路径均为 UTF-8/ASCII，见 "ok" 分支注释）。
   tree               r (TUPLE);
   const QVariantMap& res=
       closeBridge ? closeBridge->results () : QVariantMap ();
@@ -1049,8 +1057,8 @@ cpp_export_pdf_dialog (tree form) {
   delete browseBridge;
   for (auto it= res.begin (); it != res.end (); ++it) {
     tree kv (TUPLE);
-    kv << tree (from_qstring (it.key ()))
-       << tree (from_qstring (it.value ().toString ()));
+    kv << tree (from_qstring_utf8 (it.key ()))
+       << tree (from_qstring_utf8 (it.value ().toString ()));
     r << kv;
   }
   return r;
