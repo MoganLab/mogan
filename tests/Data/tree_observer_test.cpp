@@ -25,6 +25,7 @@ private slots:
   void test_raw_insert ();
   void test_raw_remove ();
   void test_insert_remove_refcount ();
+  void test_raw_remove_releases_ownership ();
 };
 
 void
@@ -97,6 +98,24 @@ TestTreeObserver::test_insert_remove_refcount () {
   raw_remove (big, 500, 40);
   QVERIFY (N (big) == 1000);
   QVERIFY (big[500] == tree ("p500"));
+}
+
+void
+TestTreeObserver::test_raw_remove_releases_ownership () {
+  // [1265] 复现 [1228] 2e628771e3 引入的引用计数泄漏：
+  // raw_remove 用 memmove 位搬移代替逐元素赋值后，数组槽位里持有的
+  // 「被删孩子所有权句柄」被按位覆盖，没有经过 operator= 的减计数路径，
+  // 数组对被删子树的引用被静默遗弃——若无其他持有者，整棵子树泄漏。
+  tree victim (CONCAT, tree ("s1"), tree ("s2"));
+  tree doc (DOCUMENT, victim, tree ("a"), tree ("b"));
+  // rep/ref_count 因私有继承不可直接访问，C 风格上转绕过访问控制
+  const int rc0= ((concrete_struct*) (victim.operator->()))->ref_count;
+  raw_remove (doc, 0, 1);
+  // 正确记账：doc 数组放弃所有权（-1），只剩局部句柄 → rc0 - 1。
+  // 当前实现：计数遗弃 → 保持 rc0，此断言失败即为泄漏复现。
+  QVERIFY2 (((concrete_struct*) (victim.operator->()))->ref_count == rc0 - 1,
+            "raw_remove did not release the array's ownership reference "
+            "to the removed child (memory leak, [1228] 2e628771e3)");
 }
 
 #ifdef QTTEXMACS
