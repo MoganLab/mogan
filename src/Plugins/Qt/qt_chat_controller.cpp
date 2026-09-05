@@ -519,7 +519,9 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
   tree msgBody= get_buffer_body (
       ChatSessionManager::messageBufferUrl (panel->sessionId ()));
   if (!ChatConversationPanel::is_empty_document_body (msgBody)) {
-    panel->enterConversationMode ();
+    // 历史会话恢复时面板尚未上屏，无需欢迎页→消息区的渐隐过渡，
+    // 直接切换避免欢迎页先闪现（1275）
+    panel->enterConversationMode (false);
     // ensureMessageWidget 里 texmacs_input_widget 会 set_buffer_tree 整体
     // 覆盖消息 buffer 样式，而此前的 scheme 样式操作发生在无视图阶段、
     // 已被 with-buffer 静默跳过；须在视图就绪后补齐默认样式包，
@@ -621,6 +623,7 @@ ChatController::ensureNewConversation () {
     if (s && s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
       if (p->sessionTitle ()) p->sessionTitle ()->hide ();
+      p->showWelcomePage ();
     }
     activateSession (reusable);
     view_->sidebar ()->setActiveItem (""); // 未注册会话不在 sidebar，清除高亮
@@ -640,6 +643,7 @@ ChatController::ensureNewConversation () {
   call ("chat-tab-load-input-styles!", sid);
 
   if (panel->sessionTitle ()) panel->sessionTitle ()->hide ();
+  panel->showWelcomePage ();
 
   // 连接 Panel 的信号
   connectPanelSignals (panel);

@@ -207,6 +207,10 @@ ChatConversationPanel::setup_ui () {
   welcomeTitle_->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (welcomeTitle_, kWelcomeFontPx);
   topLayout->addWidget (welcomeTitle_);
+  // 欢迎页默认隐藏，仅新建会话经 showWelcomePage 显式打开：
+  // 历史会话恢复的面板可能在内容加载完成前上屏（如 conversationStack
+  // 为空时 addWidget 立即置为当前页），默认可见会先画出一帧欢迎页
+  welcomeTitle_->hide ();
 
   // Session title label
   sessionTitle_= new QLabel ("", topPanel);
@@ -387,7 +391,7 @@ ChatConversationPanel::ensureMessageWidget () {
 }
 
 void
-ChatConversationPanel::enterConversationMode () {
+ChatConversationPanel::enterConversationMode (bool animate) {
   if (conversationMode_) return;
 
   ensureMessageWidget ();
@@ -395,35 +399,43 @@ ChatConversationPanel::enterConversationMode () {
   const int endOffset= DpiUtils::scaled (kConversationTopOffsetY);
 
   if (messageFrame_) {
-    QGraphicsOpacityEffect* messageEffect=
-        new QGraphicsOpacityEffect (messageFrame_);
-    messageEffect->setOpacity (0.0);
-    messageFrame_->setGraphicsEffect (messageEffect);
-    messageFrame_->show ();
+    if (animate) {
+      QGraphicsOpacityEffect* messageEffect=
+          new QGraphicsOpacityEffect (messageFrame_);
+      messageEffect->setOpacity (0.0);
+      messageFrame_->setGraphicsEffect (messageEffect);
 
-    QPropertyAnimation* fadeIn=
-        new QPropertyAnimation (messageEffect, "opacity", messageFrame_);
-    fadeIn->setDuration (kTransitionDurationMs);
-    fadeIn->setStartValue (0.0);
-    fadeIn->setEndValue (1.0);
-    fadeIn->start (QAbstractAnimation::DeleteWhenStopped);
+      QPropertyAnimation* fadeIn=
+          new QPropertyAnimation (messageEffect, "opacity", messageFrame_);
+      fadeIn->setDuration (kTransitionDurationMs);
+      fadeIn->setStartValue (0.0);
+      fadeIn->setEndValue (1.0);
+      fadeIn->start (QAbstractAnimation::DeleteWhenStopped);
+    }
+    // 无动画路径（历史会话恢复）：欢迎页从未上屏，直接显示消息区
+    messageFrame_->show ();
   }
 
   if (welcomeTitle_) {
-    QGraphicsOpacityEffect* titleEffect=
-        new QGraphicsOpacityEffect (welcomeTitle_);
-    titleEffect->setOpacity (1.0);
-    welcomeTitle_->setGraphicsEffect (titleEffect);
+    if (animate) {
+      QGraphicsOpacityEffect* titleEffect=
+          new QGraphicsOpacityEffect (welcomeTitle_);
+      titleEffect->setOpacity (1.0);
+      welcomeTitle_->setGraphicsEffect (titleEffect);
 
-    QPropertyAnimation* fadeOut=
-        new QPropertyAnimation (titleEffect, "opacity", welcomeTitle_);
-    fadeOut->setDuration (kTransitionDurationMs);
-    fadeOut->setStartValue (1.0);
-    fadeOut->setEndValue (0.0);
-    connect (fadeOut, &QPropertyAnimation::finished, this, [this] () {
-      if (welcomeTitle_) welcomeTitle_->hide ();
-    });
-    fadeOut->start (QAbstractAnimation::DeleteWhenStopped);
+      QPropertyAnimation* fadeOut=
+          new QPropertyAnimation (titleEffect, "opacity", welcomeTitle_);
+      fadeOut->setDuration (kTransitionDurationMs);
+      fadeOut->setStartValue (1.0);
+      fadeOut->setEndValue (0.0);
+      connect (fadeOut, &QPropertyAnimation::finished, this, [this] () {
+        if (welcomeTitle_) welcomeTitle_->hide ();
+      });
+      fadeOut->start (QAbstractAnimation::DeleteWhenStopped);
+    }
+    else {
+      welcomeTitle_->hide ();
+    }
   }
 
   if (topSpacer_ && layout ()) {
@@ -441,6 +453,13 @@ ChatConversationPanel::enterConversationMode () {
     // 通知父级布局链重新计算
     updateGeometry ();
   }
+}
+
+void
+ChatConversationPanel::showWelcomePage () {
+  // 历史会话恢复路径不调用本函数，欢迎页对恢复面板不可见
+  if (conversationMode_) return;
+  if (welcomeTitle_) welcomeTitle_->show ();
 }
 
 void
