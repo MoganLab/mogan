@@ -1565,12 +1565,31 @@ QWidget#centralWidget QToolButton#chat-tab-send-btn:pressed {
   background-color: #8e8e8e;
 }
 
-/* 选择复选框 */
-QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:checked {
-  background-color: #4a90d9;
+/* 选择复选框（多选模式）：深色侧边栏上未勾选需靠边框辨认，勾选需有勾选图形 */
+QWidget#centralWidget QCheckBox#chat-tab-select-checkbox,
+QCheckBox#chat-tab-select-checkbox {
+  background: transparent;
 }
-QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:unchecked {
+QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator,
+QCheckBox#chat-tab-select-checkbox::indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:checked,
+QCheckBox#chat-tab-select-checkbox::indicator:checked {
+  background-color: #2791ad;
+  border: 1px solid #2791ad;
+  image: url(":/llm-chat/check-white.svg");
+}
+QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:unchecked,
+QCheckBox#chat-tab-select-checkbox::indicator:unchecked {
   background-color: #2c2c2c;
+  border: 1px solid #7a7a7a;
+}
+QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:unchecked:hover,
+QCheckBox#chat-tab-select-checkbox::indicator:unchecked:hover {
+  border: 1px solid #2791ad;
 }
 
 /* 会话项容器 */

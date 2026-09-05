@@ -1145,12 +1145,8 @@ ChatSidebar::createItem (const string& sessionId) {
   item.selectCheckBox= new QCheckBox (item.itemWidget);
   item.selectCheckBox->setObjectName ("chat-tab-select-checkbox");
   item.selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  item.selectCheckBox->setStyleSheet ("QCheckBox::indicator:checked { "
-                                      "  border: none; "
-                                      "  border-radius: 3px; }"
-                                      "QCheckBox::indicator:unchecked { "
-                                      "  border: none; "
-                                      "  border-radius: 3px; }");
+  // 勾选框外观（勾选图形/边框/配色）统一由 liii.css / liii-night.css 提供，
+  // 此处不再设置局部 stylesheet，避免覆盖主题规则导致选中态看不清
   item.selectCheckBox->hide ();
   itemLayout->addWidget (item.selectCheckBox);
 
