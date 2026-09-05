@@ -37,7 +37,9 @@ private slots:
 
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
-  void test_dirty_title_moves_star_to_close_slot () {
+  // 回归（1266）：脏标签悬停任意位置（含远离关闭按钮的文本区）即显示 ×，
+  // × 取代关闭按钮位置的脏圆点；离开后 × 隐藏，回落为脏圆点。
+  void test_dirty_title_shows_close_button_on_hover () {
     QAction    titleAction (QString::fromUtf8 ("very-long-file-name.tm *"),
                             nullptr);
     QAction    closeAction ("Close", nullptr);
@@ -54,15 +56,18 @@ private slots:
     QVERIFY (closeBtn != nullptr);
     QVERIFY (!closeBtn->isVisible ());
 
-    QPoint closeCenter= closeBtn->geometry ().center ();
     // macOS (Cocoa) 的 QTest::mouseMove 不会向未 grab 鼠标的 widget 派发
-    // mouseMoveEvent，因此直接合成一个 MouseMove 事件投递给 tab，触发其
-    // hover 检测逻辑（等价于 Windows 上鼠标移入关闭按钮区域）。
-    QMouseEvent moveEvent (QEvent::MouseMove, closeCenter,
-                           tab.mapToGlobal (closeCenter), Qt::NoButton,
-                           Qt::NoButton, Qt::NoModifier);
-    QApplication::sendEvent (&tab, &moveEvent);
+    // 事件，因此直接合成 Enter/Leave 事件投递给 tab，触发其 hover 检测
+    // 逻辑（等价于 Windows 上鼠标移入/移出标签页）。
+    QPoint      textArea (20, tab.height () / 2);
+    QEnterEvent enterEvent (QPointF (textArea), QPointF (textArea),
+                            tab.mapToGlobal (textArea));
+    QApplication::sendEvent (&tab, &enterEvent);
     QTRY_VERIFY (closeBtn->isVisible ());
+
+    QEvent leaveEvent (QEvent::Leave);
+    QApplication::sendEvent (&tab, &leaveEvent);
+    QTRY_VERIFY (!closeBtn->isVisible ());
   }
 
   void test_clean_title_keeps_close_button_hidden_without_hover () {
@@ -123,6 +128,10 @@ private slots:
     QVERIFY (tab.isDirty ());
     QCOMPARE (tab.text (), QString::fromUtf8 ("no_name_1.tmu"));
     QCOMPARE (titleAction.text (), QString::fromUtf8 ("no_name_1.tmu"));
+    // 活动 + 脏 + 未悬停：关闭按钮隐藏，显示的是脏圆点而非 ×（1266）。
+    auto* closeBtn= tab.findChild<QWK::WindowButton*> ("tabpage-close-button");
+    QVERIFY (closeBtn != nullptr);
+    QVERIFY (!closeBtn->isVisible ());
 
     tab.setChecked (false); // 切走后再切回，回写路径重复触发仍需保持干净
     tab.setChecked (true);

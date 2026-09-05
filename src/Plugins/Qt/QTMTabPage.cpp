@@ -231,7 +231,7 @@ QTMTabPage::syncActionText (const QString& cleanTitle) {
 
 void
 QTMTabPage::syncDisplay (const QString& cleanTitle, bool dirty) {
-  // dirty 变化或标题变化都需要重画：前者改关闭按钮位置的 `*`，后者改文本。
+  // dirty 变化或标题变化都需要重画：前者改关闭按钮位置的脏圆点，后者改文本。
   bool changed= (m_isDirty != dirty) || (text () != cleanTitle);
   m_isDirty   = dirty;
   setText (cleanTitle);
@@ -254,48 +254,24 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
   int closeBtnRadius= DpiUtils::scaled (6);
   m_closeBtn->setStyleSheet (
       QString ("border-radius: %1px; padding: 0px;").arg (closeBtnRadius));
-  m_closeBtn->installEventFilter (this);
   if (closeAction) {
     QPointer<QAction> safeAction (closeAction);
     connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
       if (!safeAction) return;
-      // 弹窗期间先隐藏关闭按钮高亮；取消后按鼠标位置恢复。
-      m_hoverOnCloseArea= false;
+      // 弹窗期间先隐藏关闭按钮；弹窗关闭后按光标实际位置恢复 hover 态。
+      m_suppressCloseBtn= true;
       updateCloseButtonVisibility ();
       QPointer<QTMTabPage> guard (this);
       safeAction->trigger ();
       if (guard) {
         QPoint pos               = guard->mapFromGlobal (QCursor::pos ());
-        guard->m_hoverOnCloseArea= guard->isPointerOnCloseArea (pos);
+        guard->m_hoverOnTab      = guard->rect ().contains (pos);
+        guard->m_suppressCloseBtn= false;
         guard->updateCloseButtonVisibility ();
       }
     });
   }
   updateCloseButtonVisibility ();
-}
-
-bool
-QTMTabPage::isPointerOnCloseArea (const QPoint& pos) const {
-  if (!m_closeBtn) return false;
-  return m_closeBtn->geometry ().contains (pos);
-}
-
-bool
-QTMTabPage::eventFilter (QObject* watched, QEvent* event) {
-  if (watched == m_closeBtn) {
-    if (event->type () == QEvent::Enter) {
-      m_hoverOnCloseArea= true;
-      updateCloseButtonVisibility ();
-      return false;
-    }
-    if (event->type () == QEvent::Leave) {
-      QPoint pos        = mapFromGlobal (QCursor::pos ());
-      m_hoverOnCloseArea= isPointerOnCloseArea (pos);
-      updateCloseButtonVisibility ();
-      return false;
-    }
-  }
-  return QToolButton::eventFilter (watched, event);
 }
 
 /* We can't align the text to the left of the button by QSS or other methods,
@@ -350,9 +326,15 @@ QTMTabPage::paintEvent (QPaintEvent*) {
                     isEnabled (), elidedText, QPalette::ButtonText);
 
     if (m_isDirty && m_closeBtn && !m_closeBtn->isVisible ()) {
-      QRect dirtyRect= m_closeBtn->geometry ();
-      p.drawItemText (dirtyRect, Qt::AlignCenter, palette (), isEnabled (), "*",
-                      QPalette::ButtonText);
+      // 未保存的文档在关闭按钮位置画小圆点，悬停时被 × 取代。
+      QColor dotColor= palette ().color (QPalette::ButtonText);
+      dotColor.setAlpha (150);
+      p.setRenderHint (QPainter::Antialiasing, true);
+      p.setPen (Qt::NoPen);
+      p.setBrush (dotColor);
+      qreal dotSize= DpiUtils::scaled (6);
+      p.drawEllipse (QRectF (m_closeBtn->geometry ()).center (), dotSize / 2,
+                     dotSize / 2);
     }
   }
 }
@@ -403,8 +385,6 @@ QTMTabPage::mouseReleaseEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
-  m_hoverOnCloseArea= isPointerOnCloseArea (e->pos ());
-  updateCloseButtonVisibility ();
   if (is_startup_tab_view (m_viewUrl) || is_chat_tab_view (m_viewUrl)) {
     return QToolButton::mouseMoveEvent (e);
   }
@@ -445,14 +425,14 @@ QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::enterEvent (QEnterEvent* e) {
-  m_hoverOnCloseArea= isPointerOnCloseArea (e->position ().toPoint ());
+  m_hoverOnTab= true;
   updateCloseButtonVisibility ();
   QToolButton::enterEvent (e);
 }
 
 void
 QTMTabPage::leaveEvent (QEvent* e) {
-  m_hoverOnCloseArea= false;
+  m_hoverOnTab= false;
   updateCloseButtonVisibility ();
   QToolButton::leaveEvent (e);
 }
@@ -461,10 +441,11 @@ void
 QTMTabPage::updateCloseButtonVisibility () {
   if (!m_closeBtn) return;
   // TODO: 聊天标签页当前不可关闭，后续需支持可删除
+  // 悬停标签页任意位置即显示 ×（脏圆点随之被取代）；未悬停的干净活动标签
+  // 也常驻 ×，脏标签则回落到画圆点。
   bool shouldShow= !is_startup_tab_view (m_viewUrl) &&
-                   !is_chat_tab_view (m_viewUrl) &&
-                   ((!m_isDirty && (underMouse () || isChecked ())) ||
-                    (m_isDirty && m_hoverOnCloseArea));
+                   !is_chat_tab_view (m_viewUrl) && !m_suppressCloseBtn &&
+                   (m_hoverOnTab || (!m_isDirty && isChecked ()));
   bool wasVisible= m_closeBtn->isVisible ();
   m_closeBtn->setVisible (shouldShow);
 
