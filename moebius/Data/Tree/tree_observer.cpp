@@ -252,16 +252,18 @@ raw_insert (tree& ref, int pos, tree t) {
   else {
     int n= N (ref), nr= N (t);
     // 块移动代替逐元素赋值：每个被移动孩子的引用计数加减一次都省去。
-    // 记账：memmove 把 [pos, n) 的句柄位原样搬到 [pos+nr, n+nr)，
-    // 数组对其所有权引用随位移动转移；洞里的 stale 位用 placement-new
-    // 默认句柄覆盖（不减计数），随后被赋值语句正常接管
+    // 记账：容量内每个槽位恒为持有一份所有权的有效句柄
+    // （tm_delete_array 会析构整个容量）。memmove 将按位覆盖 [n, n+nr)
+    // 的默认句柄，故先显式析构释放；[pos, n) 的所有权随位移动转移到
+    // [pos+nr, n+nr)；洞内 stale 位（无所有权）用 placement-new 拷贝
+    // 构造直接接管插入孩子（+1）
     AR (ref)->resize (n + nr);
     tree* a= A (AR (ref));
+    for (int i= n; i < n + nr; i++)
+      a[i].~tree ();
     memmove (a + pos + nr, a + pos, (size_t) (n - pos) * sizeof (tree));
     for (int i= 0; i < nr; i++)
-      new ((void*) (a + pos + i)) tree ();
-    for (int i= 0; i < nr; i++)
-      a[pos + i]= t[i];
+      new ((void*) (a + pos + i)) tree (t[i]);
   }
   if (!is_nil (ref->data)) {
     ref->data->notify_insert (ref, pos, is_atomic (t) ? N (t->label) : N (t));
@@ -296,12 +298,16 @@ raw_remove (tree& ref, int pos, int nr) {
     ref->label= ref->label (0, pos) * ref->label (pos + nr, N (ref->label));
   else {
     int n= N (ref) - nr;
-    // 先把被删孩子拷出（引用计数 +1，接管数组的所有权），memmove 尾部
-    // 下移（计数随位移动转移，超出新长度的重复位直接丢弃），
-    // 最后 tmp 析构时统一释放被删孩子的所有权
-    array<tree> tmp (A (AR (ref)) + pos, nr);
-    tree*       a= A (AR (ref));
+    // 记账：容量内每个槽位恒为持有一份所有权的有效句柄
+    // （tm_delete_array 会析构整个容量）。先显式析构被删槽位，释放数组
+    // 对它们的唯一所有权；memmove 尾部下移后 [n, n+nr) 为无所有权的
+    // stale 位，用 placement-new 默认句柄覆盖恢复有效性
+    tree* a= A (AR (ref));
+    for (int i= 0; i < nr; i++)
+      a[pos + i].~tree ();
     memmove (a + pos, a + pos + nr, (size_t) (n - pos) * sizeof (tree));
+    for (int i= n; i < n + nr; i++)
+      new ((void*) (a + i)) tree ();
     AR (ref)->resize (n);
   }
   if (!is_nil (ref->data)) ref->data->done (ref, mod);
