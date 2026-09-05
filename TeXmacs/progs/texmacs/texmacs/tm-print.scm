@@ -207,26 +207,22 @@
   ) ;with
 ) ;define
 
-(define (export-pdf-default-dir)
-  ;; 与 choose-file 缺省目录逻辑同源（Issue #327）：scratch 优先用上次文件
-  ;; 对话框目录，其次文档目录下的 LiiiSTEM；tmfs（云/帮助文档）落系统下载
-  ;; 目录；本地文档用其所在目录。
-  (let* ((master (buffer-get-master (current-buffer)))
-         (last-dir (and (url-scratch? master)
-                     (defined? 'get-last-file-dialog-directory)
-                     (get-last-file-dialog-directory)
-                   ) ;and
-         ) ;last-dir
-        ) ;
-    (cond ((and last-dir (string? last-dir) (not (string-null? last-dir)))
-           (system->url last-dir)
+(tm-define (export-pdf-default-dir master)
+  ;; 缺省导出目录（Issue #1269）：buffer 对应的 tmu 位于 texmacs_path 与
+  ;; texmacs_home_path 之外时，导出到 tmu 所在目录；否则——内置/帮助文档
+  ;; （位于安装或用户目录下），以及 scratch 草稿、tmfs 云文档（无本地
+  ;; tmu 位置，草稿不落 no_name 暂存目录）——统一落 Documents/LiiiSTEM。
+  (let ((doc-dir (url-append (get-documents-path) "LiiiSTEM")))
+    (cond ((or (url-scratch? master) (url-rooted-tmfs? master)) doc-dir)
+          ((or (url-descends? master (get-texmacs-path))
+             (url-descends? master (get-texmacs-home-path))
+           ) ;or
+           doc-dir
           ) ;
-          ((url-scratch? master) (url-append (get-documents-path) "LiiiSTEM"))
-          ((url-rooted-tmfs? master) (get-downloads-path))
           (else (url-head master))
     ) ;cond
-  ) ;let*
-) ;define
+  ) ;let
+) ;tm-define
 
 (tm-define (export-as-pdf)
   (:synopsis "Export as PDF, optionally embedding the source document")
@@ -255,7 +251,7 @@
             "Save pdf file"
             "pdf"
             "Save as:"
-            (url-append (export-pdf-default-dir)
+            (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
               (system->url (propose-export-pdf-name embed))
             ) ;url-append
           ) ;choose-file
