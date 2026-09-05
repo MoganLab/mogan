@@ -1,6 +1,10 @@
 /******************************************************************************
- * MODULE     : cork_test.cpp
- * DESCRIPTION: tests for the Cork encoding
+ * MODULE     : tm_cork_test.cpp
+ * DESCRIPTION: tests for the TeXmacs-encoding helpers in Data/String/cork.cpp
+ *              (tm_encode / tm_decode / tm_search_forwards / ...)
+ * NOTE       : 原名 cork_test.cpp，与 lolly/tests/lolly/data/cork_test.cpp
+ *              同名，xmake add_tests 按 basename 注册时互相覆盖，导致本文件
+ *              的用例从不运行；改名以解除遮蔽。
  * COPYRIGHT  : (C) 2024    Darcy Shen
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
