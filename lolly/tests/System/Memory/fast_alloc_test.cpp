@@ -97,4 +97,37 @@ TEST_CASE ("test large bunch of tm_*_array with class") {
   }
 }
 
+namespace {
+// 存活计数类型：构造 +1、析构 -1，用于断言槽位析构是否发生
+struct CountedSlot {
+  static int live;
+  int        dummy;
+  CountedSlot () : dummy (0) { live++; }
+  CountedSlot (const CountedSlot& other) : dummy (other.dummy) { live++; }
+  ~CountedSlot () { live--; }
+};
+int CountedSlot::live= 0;
+} // namespace
+
+TEST_CASE ("tm_resize_array: grow constructs new slots") {
+  CountedSlot::live= 0;
+  CountedSlot* a   = tm_new_array<CountedSlot> (4);
+  CHECK_EQ (CountedSlot::live, 4);
+  a= tm_resize_array<CountedSlot> (8, a);
+  CHECK_EQ (CountedSlot::live, 8);
+  tm_delete_array (a);
+  CHECK_EQ (CountedSlot::live, 0);
+}
+
+TEST_CASE ("tm_resize_array: shrink destructs truncated slots") {
+  CountedSlot::live= 0;
+  CountedSlot* a   = tm_new_array<CountedSlot> (8);
+  CHECK_EQ (CountedSlot::live, 8);
+  a= tm_resize_array<CountedSlot> (3, a);
+  // [3, 8) 被截断的槽位必须析构，否则引用计数句柄在此泄漏
+  CHECK_EQ (CountedSlot::live, 3);
+  tm_delete_array (a);
+  CHECK_EQ (CountedSlot::live, 0);
+}
+
 TEST_MEMORY_LEAK_ALL
