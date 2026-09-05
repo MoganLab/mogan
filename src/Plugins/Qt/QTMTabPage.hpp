@@ -37,7 +37,8 @@ class QTMTabPage : public QToolButton {
   QWK::WindowButton* m_closeBtn= nullptr;
   QPoint             m_dragStartPos;
   bool               m_isDirty         = false;
-  bool               m_hoverOnCloseArea= false;
+  bool               m_hoverOnTab      = false;
+  bool               m_suppressCloseBtn= false;
 
 public:
   const url m_viewUrl;
@@ -58,7 +59,7 @@ public:
    * replaceTabPages 复用既有 tab 时调用：srcTab 构造时已 applyDisplayTitle
    * 解析过尾部 `*`，其 text() 是干净标题、isDirty() 是最新脏状态。复用的
    * tab 必须同步这两者，否则 m_isDirty 停留在首次构造的旧值，编辑标脏 /
-   * 保存去脏都不会反映到关闭按钮位置的 `*` 上。
+   * 保存去脏都不会反映到关闭按钮位置的脏圆点上。
    */
   void syncDisplay (const QString& cleanTitle, bool dirty);
 
@@ -66,7 +67,6 @@ public slots:
   void setChecked (bool checked);
 
 protected:
-  virtual bool eventFilter (QObject* watched, QEvent* event) override;
   virtual void resizeEvent (QResizeEvent* e) override;
   virtual void mousePressEvent (QMouseEvent* e) override;
   virtual void mouseReleaseEvent (QMouseEvent* e) override;
@@ -77,7 +77,6 @@ protected:
 private:
   void applyDisplayTitle (const QString& rawTitle);
   void syncActionText (const QString& cleanTitle);
-  bool isPointerOnCloseArea (const QPoint& pos) const;
   void updateCloseButtonVisibility ();
   void initializeCloseButton (QAction* closeAction= nullptr);
 };
