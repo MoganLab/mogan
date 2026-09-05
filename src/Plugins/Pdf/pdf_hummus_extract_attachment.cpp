@@ -31,6 +31,7 @@
 #include "PDFWriter/PDFWriter.h"
 #include "PDFWriter/SafeBufferMacrosDefs.h"
 #include "PDFWriter/Trace.h"
+#include "lolly/data/unicode.hpp"
 #include "url.hpp"
 using namespace PDFHummus;
 using namespace IOBasicTypes;
@@ -137,8 +138,16 @@ extract_attachments_from_pdf (url pdf_path, list<url>& names) {
         break;
       }
 
-      url attachment_path=
-          relative (pdf_path, url (string (name->GetValue ().c_str ())));
+      // 写侧按 PDF text string 规则以 UTF-16BE + BOM 写文件名，读回时还原
+      // 成 UTF-8；无 BOM 的旧 PDF（历史版本导出）保持原字节，不受影响。
+      std::string raw_name= name->GetValue ();
+      string      attachment_name (raw_name.data (), (int) raw_name.length ());
+      if (N (attachment_name) > 2 &&
+          (unsigned char) attachment_name[0] == 0xFE &&
+          (unsigned char) attachment_name[1] == 0xFF)
+        attachment_name= lolly::data::utf16_to_utf8 (
+            attachment_name (2, N (attachment_name)));
+      url        attachment_path= relative (pdf_path, url (attachment_name));
       OutputFile attachment_file;
       status= attachment_file.OpenFile (
           std::string (as_charp (as_string (attachment_path))));

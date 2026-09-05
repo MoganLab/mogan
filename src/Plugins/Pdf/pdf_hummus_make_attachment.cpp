@@ -19,12 +19,20 @@
 #include "PDFWriter/SafeBufferMacrosDefs.h"
 #include "PDFWriter/Trace.h"
 #include "file.hpp"
+#include "lolly/data/unicode.hpp"
 #include "tm_debug.hpp"
 #include "tmfs_url.hpp"
 #include "tree_helper.hpp"
 
 using namespace PDFHummus;
 using namespace IOBasicTypes;
+
+// PDFHummus 的字符串写入接口收 std::string；UTF-16BE 名字含 NUL 字节，
+// as_charp 隐式转 std::string 走 strlen 会在首个 NUL 截断，须带长度构造。
+static std::string
+as_pdf_string (string s) {
+  return std::string (as_charp (s), N (s));
+}
 
 class PDFAttachment {
 public:
@@ -118,7 +126,11 @@ pdf_hummus_make_attachments (url pdf_path, array<url> attachment_paths,
       Byte* file_content= new Byte[file_size + 16];
       tm_file_stream.Read (file_content, file_size);
 
-      string attachment_name= as_string (tail (attachment_paths[i]));
+      // PDF text string 不带 UTF-16BE BOM 时按 PDFDocEncoding 解码，中文
+      // 文件名须转成 BOM'ed UTF-16BE，否则 okular 等阅读器显示乱码。
+      string attachment_name=
+          string ("\xfe\xff") *
+          lolly::data::utf8_to_utf16 (as_string (tail (attachment_paths[i])));
 
       PDFAttachment* aAttachment=
           new PDFAttachment (file_content, file_size, attachment_name);
@@ -238,7 +250,8 @@ PDFAttachmentWriter::OnCatalogWrite (
     }
   }
   if (the_main_tm != NULL) {
-    inPDFWriterObjectContext->WriteLiteralString (as_charp (the_main_tm->name));
+    inPDFWriterObjectContext->WriteLiteralString (
+        as_pdf_string (the_main_tm->name));
     DictionaryContext* dictionaryContext_2=
         inPDFWriterObjectContext->StartDictionary ();
     dictionaryContext_2->WriteKey ("EF");
@@ -249,7 +262,8 @@ PDFAttachmentWriter::OnCatalogWrite (
         mAttachment[the_main_tm]);
     inPDFWriterObjectContext->EndDictionary (dictionaryContext_3);
     dictionaryContext_2->WriteKey ("F");
-    dictionaryContext_2->WriteLiteralStringValue (as_charp (the_main_tm->name));
+    dictionaryContext_2->WriteLiteralStringValue (
+        as_pdf_string (the_main_tm->name));
     dictionaryContext_2->WriteKey ("Type");
     dictionaryContext_2->WriteNameValue ("F");
     inPDFWriterObjectContext->EndDictionary (dictionaryContext_2);
@@ -260,7 +274,7 @@ PDFAttachmentWriter::OnCatalogWrite (
     PDFAttachment* cur_attachment= it->next ();
     if (cur_attachment == the_main_tm) continue;
     inPDFWriterObjectContext->WriteLiteralString (
-        as_charp (cur_attachment->name));
+        as_pdf_string (cur_attachment->name));
     DictionaryContext* dictionaryContext_2=
         inPDFWriterObjectContext->StartDictionary ();
     dictionaryContext_2->WriteKey ("EF");
@@ -272,7 +286,7 @@ PDFAttachmentWriter::OnCatalogWrite (
     inPDFWriterObjectContext->EndDictionary (dictionaryContext_3);
     dictionaryContext_2->WriteKey ("F");
     dictionaryContext_2->WriteLiteralStringValue (
-        as_charp (cur_attachment->name));
+        as_pdf_string (cur_attachment->name));
     dictionaryContext_2->WriteKey ("Type");
     dictionaryContext_2->WriteNameValue ("F");
     inPDFWriterObjectContext->EndDictionary (dictionaryContext_2);
