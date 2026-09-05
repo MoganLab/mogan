@@ -240,6 +240,24 @@ bool cpp_version_dialog (string title, string message);
 tree cpp_print_to_file_dialog (tree form);
 
 /**
+ * @brief 「导出为PDF」QML 对话框的 glue 入口（一次性提交）。
+ * @param form scm 构造的选项表（tree）：
+ *   (export-pdf-form (toggle <label> <key> <value>) ...)
+ *   label 已翻译；当前仅一项 embed（是否把源文档作为附件嵌入 PDF），
+ *   value 为 "true"/"false"。
+ * @return 用户点确认返回 mogan tree，tree->stree 后形如 (tuple (tuple <key>
+ *   <value>) ...)；Cancel / 关闭 / 加载失败返回空 tree。cpp 对 key/value
+ *   纯透传。
+ * @details 走 run_qml_dialog（exec 阻塞模态，同 PrintToFile——一次性提交，
+ *   无需 live 写回）。选项值由 QML 本地暂存，确认整包交回；绑定在 scheme
+ *   facade（export-as-pdf），由调用方决定走可编辑 PDF 导出还是普通导出。
+ *   无 path 型字段，不注入 printBridge。
+ * @note 测试钩子 MOGAN_TEST_EXPORT_PDF=ok/cancel 命中时不弹窗（ok 返回选项
+ *   初值，供自动化验证数据契约）。
+ */
+tree cpp_export_pdf_dialog (tree form);
+
+/**
  * @brief 首选项 QML 对话框的 glue 入口（本地暂存 + OK 一次性提交）。
  * @return 非阻塞 show 路径立即返回空 tree；测试钩子命中时返回 `(tuple "ok")` 供
  * 自动化区分。本地暂存模型：打开时拉一次 meta 建 QML 本地 values 快照、改动只改

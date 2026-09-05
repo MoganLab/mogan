@@ -238,6 +238,7 @@ private slots:
   void test_version_long_line_wraps ();
   void test_statistics_loads ();
   void test_print_to_file_loads ();
+  void test_export_pdf_loads ();
   void test_updater_progress_loads ();
   void test_color_picker_loads ();
 };
@@ -472,6 +473,36 @@ TestQmlLoad::test_print_to_file_loads () {
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/PrintToFile.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_export_pdf_loads () {
+  // ExportPdf 需 formFields（toggle 型选项）+ dialogButtons + dialogTitle；
+  // 无 path 型字段，不注入 printBridge。注入最小占位，断言能实例化。
+  QVariantList fields;
+  QVariantMap  f0;
+  f0["type"] = QString ("toggle");
+  f0["label"]= QString ("Embed source document");
+  f0["key"]  = QString ("embed");
+  f0["value"]= QString ("false");
+  fields << f0;
+  QStringList buttons;
+  buttons << "Export"
+          << "Cancel";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* close= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("formFields", fields);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->rootContext ()->setContextProperty ("dialogTitle",
+                                          QString ("Export as PDF"));
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/ExportPdf.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 

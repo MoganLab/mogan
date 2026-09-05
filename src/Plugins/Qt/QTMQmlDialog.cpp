@@ -967,6 +967,76 @@ cpp_print_to_file_dialog (tree form) {
 }
 
 /**
+ * @brief 「导出为PDF」QML 对话框 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
+ *
+ * @details 与 cpp_print_to_file_dialog 同构：run_qml_dialog + 一次性提交。
+ * 选项均为本地布尔开关，无 Browse 等原生交互，故不注入 printBridge。
+ * 测试钩子 MOGAN_TEST_EXPORT_PDF=ok|cancel 命中时不弹窗：ok 按选项初值构造
+ * 返回 tree（供自动化验证数据契约），cancel 返回空 tree。
+ */
+tree
+cpp_export_pdf_dialog (tree form) {
+  string preset= get_env ("MOGAN_TEST_EXPORT_PDF");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    // 与真实路径同源判定合法字段，返回字段初值（key value 二元组）。
+    tree r (TUPLE);
+    if (is_compound (form)) {
+      for (int i= 0; i < N (form); i++) {
+        QVariantMap m= print_field_to_qml (form[i]);
+        if (m.isEmpty ()) continue;
+        tree kv (TUPLE);
+        kv << tree (from_qstring (m.value ("key").toString ()))
+           << tree (from_qstring (m.value ("value").toString ()));
+        r << kv;
+      }
+    }
+    return r;
+  }
+  QVariantList qmlFields;
+  if (is_compound (form)) {
+    for (int i= 0; i < N (form); i++) {
+      if (is_compound (form[i]) && N (form[i]) >= 3) {
+        QVariantMap m= print_field_to_qml (form[i]);
+        if (!m.isEmpty ()) qmlFields << m;
+      }
+    }
+  }
+  array<string> buttons= {string ("Export"), string ("Cancel")};
+  // 与 ExportPdf.qml 的 implicitHeight 同源（标题 + 选项行 + 按钮）；引擎内部
+  // 统一 × DPI。
+  const int logicH= 24 * 2 + 28 + 12 + qmlFields.size () * (44 + 12) + 8 + 72;
+
+  // closeBridge 须在注入回调里创建并捕获，供事后 results() 取值；不挂 parent，
+  // exec 后 delete。
+  QmlDialogBridge* closeBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/ExportPdf.qml", "ExportPdf.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("formFields", qmlFields);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        qw->rootContext ()->setContextProperty ("dialogTitle",
+                                                qt_translate ("Export as PDF"));
+      },
+      460, logicH);
+
+  // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
+  tree               r (TUPLE);
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
+  delete closeBridge;
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    kv << tree (from_qstring (it.key ()))
+       << tree (from_qstring (it.value ().toString ()));
+    r << kv;
+  }
+  return r;
+}
+
+/**
  * @brief QML 调色板弹窗的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
  *
  * @details 走 run_qml_dialog（exec 阻塞模态，无需 live 写回）。ColorPicker.qml

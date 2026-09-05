@@ -188,6 +188,83 @@
   (user-confirm-open-pdf fname)
 ) ;tm-define
 
+(define (propose-export-pdf-name embedded?)
+  ;; 导出 PDF 默认名：xxx.pdf；勾选嵌入源文档（tmu 附件）时为 xxx.tmu.pdf
+  ;; （对齐旧「可编辑PDF」入口的 tmu.pdf 命名）。
+  (with name
+    (propose-name-buffer)
+    (with t
+      (url->system (url-tail (system->url name)))
+      (string-append (cond ((== t "") "untitled")
+                           ((string-ends? t ".tmu") (string-drop-right t 4))
+                           ((string-ends? t ".tm") (string-drop-right t 3))
+                           ((string-ends? t ".pdf") (string-drop-right t 4))
+                           (else t)
+                     ) ;cond
+        (if embedded? ".tmu.pdf" ".pdf")
+      ) ;string-append
+    ) ;with
+  ) ;with
+) ;define
+
+(define (export-pdf-default-dir)
+  ;; 与 choose-file 缺省目录逻辑同源（Issue #327）：scratch 优先用上次文件
+  ;; 对话框目录，其次文档目录下的 LiiiSTEM；tmfs（云/帮助文档）落系统下载
+  ;; 目录；本地文档用其所在目录。
+  (let* ((master (buffer-get-master (current-buffer)))
+         (last-dir (and (url-scratch? master)
+                     (defined? 'get-last-file-dialog-directory)
+                     (get-last-file-dialog-directory)
+                   ) ;and
+         ) ;last-dir
+        ) ;
+    (cond ((and last-dir (string? last-dir) (not (string-null? last-dir)))
+           (system->url last-dir)
+          ) ;
+          ((url-scratch? master) (url-append (get-documents-path) "LiiiSTEM"))
+          ((url-rooted-tmfs? master) (get-downloads-path))
+          (else (url-head master))
+    ) ;cond
+  ) ;let*
+) ;define
+
+(tm-define (export-as-pdf)
+  (:synopsis "Export as PDF, optionally embedding the source document")
+  ;; QML 对话框只收集一个选项：是否把源文档作为附件嵌入 PDF。确认时
+  ;; cpp-export-pdf-dialog 返回 (tuple (tuple "embed" "true"/"false"))，Cancel
+  ;; / 关闭返回空树。选项初值与 label 在此侧取好（label 已翻译）。
+  (with result
+    (cpp-export-pdf-dialog (stree->tree `(export-pdf-form (toggle ,(translate "Embed source document")
+                                                            ,"embed"
+                                                            ,"false"))
+                           ) ;stree->tree
+    ) ;cpp-export-pdf-dialog
+    ;; tree->stree 后每个 kv 为 (tuple key value)：cadr=key、caddr=value。
+    (with r
+      (cdr (tree->stree result))
+      (if (null? r)
+        (noop)
+        (with embed
+          #f
+          (for-each (lambda (kv) (when (== (cadr kv) "embed") (set! embed (== (caddr kv) "true"))))
+            r
+          ) ;for-each
+          ;; 目的地走通用文件选择，默认文件名随「嵌入源文档」联动：
+          ;; xxx.tmu.pdf / xxx.pdf。
+          (choose-file (if embed wrapped-print-to-pdf-embeded-with-tmu wrapped-print-to-file)
+            "Save pdf file"
+            "pdf"
+            "Save as:"
+            (url-append (export-pdf-default-dir)
+              (system->url (propose-export-pdf-name embed))
+            ) ;url-append
+          ) ;choose-file
+        ) ;with
+      ) ;if
+    ) ;with
+  ) ;with
+) ;tm-define
+
 (tm-define (attach-doc-to-exported-pdf fname)
   (let* ((tem-url (buffer-new))
          (new-url (url-relative tem-url (url-basename fname)))
