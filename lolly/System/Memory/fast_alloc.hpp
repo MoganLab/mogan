@@ -417,9 +417,15 @@ tm_new_array (int n) {
 template <typename C>
 inline C*
 tm_resize_array (int new_num, C* Ptr) {
-  void* old_arr    = (void*) Ptr;
-  old_arr          = (void*) (((char*) old_arr) - WORD_LENGTH);
-  int   old_num    = *((int*) old_arr);
+  void* old_arr= (void*) Ptr;
+  old_arr      = (void*) (((char*) old_arr) - WORD_LENGTH);
+  int old_num  = *((int*) old_arr);
+  // 收缩时先析构被截断的槽位释放其所有权，realloc 后这些槽位不再可达
+  if (new_num < old_num) {
+    C* ctr= Ptr + new_num;
+    for (int i= new_num; i < old_num; i++, ctr++)
+      ctr->~C ();
+  }
   void* new_arr    = fast_realloc (old_arr, old_num * sizeof (C) + WORD_LENGTH,
                                    new_num * sizeof (C) + WORD_LENGTH);
   *((int*) new_arr)= new_num;
