@@ -68,8 +68,18 @@ public:
 
   /**
    * @brief 进入对话模式（隐藏欢迎页，显示消息区域）。
+   * @param animate 是否带渐隐过渡。历史会话恢复时消息区尚未上屏，
+   *                无需过渡，直接切换以免欢迎页先闪现一帧
    */
-  void enterConversationMode ();
+  void enterConversationMode (bool animate= true);
+
+  /**
+   * @brief 显示欢迎页（仅新建会话调用）。
+   *
+   * 欢迎页默认隐藏：历史会话恢复的面板可能在消息内容加载完成前上屏，
+   * 默认可见会让恢复路径先画出一帧欢迎页再切到消息区。
+   */
+  void showWelcomePage ();
 
   /**
    * @brief 按需创建消息区嵌入编辑器（幂等）。
