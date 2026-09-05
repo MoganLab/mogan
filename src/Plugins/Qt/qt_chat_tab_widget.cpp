@@ -16,6 +16,7 @@
 #include "QTMWidget.hpp"
 #include "new_buffer.hpp"
 #include "new_view.hpp"
+#include "preferences.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_gui.hpp"
 #include "qt_utilities.hpp"
@@ -126,6 +127,22 @@ constexpr int kCloseSidebarBtnMarginY= 12;
 
 constexpr char kChatEmbeddedStyle[]= "style";
 
+/**
+ * @brief 聊天嵌入编辑器的文档样式。
+ *
+ * 深色主题（liii-night/dark）下需带 dark 样式包：texmacs_input_widget 对
+ * 已有 buffer 会 set_buffer_tree 整体覆盖，仅 generic 会把输入/消息区重置
+ * 回浅色画布（1272）。
+ */
+tree
+chat_embedded_style () {
+  tree packs (TUPLE);
+  packs << "generic";
+  string theme= get_preference ("gui theme", "default");
+  if (theme == "liii-night" || theme == "dark") packs << "dark";
+  return compound (kChatEmbeddedStyle, packs);
+}
+
 } // namespace
 
 /******************************************************************************
@@ -223,7 +240,7 @@ ChatConversationPanel::setup_ui () {
   inputWidget= texmacs_input_widget (
       tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese", "zoom-factor",
             as_string (chatZoom), tree (DOCUMENT, "")),
-      compound (kChatEmbeddedStyle, tuple ("generic")), inputBufferUrl_);
+      chat_embedded_style (), inputBufferUrl_);
   set_zoom_factor (inputWidget, chatZoom);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
@@ -342,10 +359,10 @@ ChatConversationPanel::ensureMessageWidget () {
   if (contains (msgBufferUrl_, get_all_buffers ()))
     body= get_buffer_body (msgBufferUrl_);
   qreal chatZoom= DpiUtils::scaled (100) / 100.0;
-  messageWidget_= texmacs_input_widget (
-      tree (WITH, "font", "sys-chinese", "zoom-factor", as_string (chatZoom),
-            body),
-      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufferUrl_);
+  messageWidget_=
+      texmacs_input_widget (tree (WITH, "font", "sys-chinese", "zoom-factor",
+                                  as_string (chatZoom), body),
+                            chat_embedded_style (), msgBufferUrl_);
   set_zoom_factor (messageWidget_, chatZoom);
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
