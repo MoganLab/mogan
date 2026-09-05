@@ -34,6 +34,8 @@ using moebius::data::tree_to_scheme_tree;
 #include <QQmlError>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -104,12 +106,21 @@ kv_map_to_tree (const QVariantMap& res) {
  * - setClearColor（QQuickWidget 专属）而非 WA_TranslucentBackground（对它不完全
  *   生效，默认白色 clear color 会盖住透明、露方角）。
  * - objectName + 样式反制 liii.css 的通用 QDialog 规则，避免圆角外露方块。
+ * - scene graph 固定走 software 后端：弹窗均为简单静态 UI，软件渲染开销可忽略，
+ *   却不再依赖 GL/Vulkan/Metal 驱动，规避 X11+NVIDIA 下 QRhi::endOffscreenFrame
+ *   崩溃一类驱动问题。Qt 6 起该后端与 QQuickWidget 兼容；图形 API 是进程级全局
+ *   选择，须赶在首个 QQuickWidget 构造前设定，故在本函数（唯一构造卡点）声明。
  *
  * @param d 由调用方栈分配、生命期覆盖 exec() 的宿主 QDialog。
  * @return 挂到 d 上、待 setSource / 注入 context property 的 QQuickWidget。
  */
 static QQuickWidget*
 setup_frameless_qml_host (QDialog& d) {
+  static const bool sgApiInitialized= [] () {
+    QQuickWindow::setGraphicsApi (QSGRendererInterface::Software);
+    return true;
+  }();
+  (void) sgApiInitialized;
   d.setAttribute (Qt::WA_TranslucentBackground);
   d.setAttribute (Qt::WA_NativeWindow);
   d.setObjectName ("QTMQmlDialog");
