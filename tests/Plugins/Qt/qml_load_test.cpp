@@ -19,6 +19,7 @@
 
 #include "Qt/QTMQmlDialog.hpp"       // cpp_version_dialog
 #include "Qt/QTMQmlDialogBridge.hpp" // QmlDialogEscFilter
+#include "tree_helper.hpp"           // TUPLE / make_tree_label / get_label
 
 #include <QApplication>
 #include <QDialog>
@@ -239,6 +240,7 @@ private slots:
   void test_statistics_loads ();
   void test_print_to_file_loads ();
   void test_export_pdf_loads ();
+  void test_export_pdf_path_utf8_roundtrip ();
   void test_updater_progress_loads ();
   void test_color_picker_loads ();
 };
@@ -478,8 +480,9 @@ TestQmlLoad::test_print_to_file_loads () {
 
 void
 TestQmlLoad::test_export_pdf_loads () {
-  // ExportPdf 需 formFields（toggle 型选项）+ dialogButtons + dialogTitle；
-  // 无 path 型字段，不注入 printBridge。注入最小占位，断言能实例化。
+  // ExportPdf 需 formFields（toggle 型选项 + path 型目的地）+ dialogButtons +
+  // dialogTitle + browseLabel + browseBridge（Browse 生效用）。注入最小占位，
+  // 断言能实例化。
   QVariantList fields;
   QVariantMap  f0;
   f0["type"] = QString ("toggle");
@@ -487,6 +490,12 @@ TestQmlLoad::test_export_pdf_loads () {
   f0["key"]  = QString ("embed");
   f0["value"]= QString ("false");
   fields << f0;
+  QVariantMap f1;
+  f1["type"] = QString ("path");
+  f1["label"]= QString ("Export to");
+  f1["key"]  = QString ("path");
+  f1["value"]= QString ("/tmp/1271/untitled.pdf");
+  fields << f1;
   QStringList buttons;
   buttons << "Export"
           << "Cancel";
@@ -494,16 +503,45 @@ TestQmlLoad::test_export_pdf_loads () {
   QDialog       host;
   QQuickWidget* qw= new QQuickWidget (&host);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  StubBridge* close= new StubBridge (qw);
+  StubBridge* close = new StubBridge (qw);
+  StubBridge* browse= new StubBridge (qw);
   qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("browseBridge", browse);
   qw->rootContext ()->setContextProperty ("formFields", fields);
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->rootContext ()->setContextProperty ("dialogTitle",
                                           QString ("Export as PDF"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/ExportPdf.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+  // path 字段透传：QML 侧 pathKey/pathValue 应取到目的地初值。
+  QCOMPARE (qw->rootObject ()->property ("pathKey").toString (),
+            QString ("path"));
+  QCOMPARE (qw->rootObject ()->property ("pathValue").toString (),
+            QString ("/tmp/1271/untitled.pdf"));
+}
+
+void
+TestQmlLoad::test_export_pdf_path_utf8_roundtrip () {
+  // 1271: path 字段值是文件系统路径（scheme 侧为 UTF-8 字节）。往返不得走
+  // to_qstring / from_qstring 的 cork 启发式——utf8_to_cork 会把中文名变成
+  // <#XXXX> 逃逸串，导出落盘路径无效。走 "ok" 测试钩子验证往返保真。
+  qputenv ("MOGAN_TEST_EXPORT_PDF", "ok");
+  // scheme 侧等价表单：
+  //   (export-pdf-form (path "Export to" "path" "/tmp/导出/演示.pdf"))
+  const string chinesePath= string ("/tmp/导出/演示") * ".pdf";
+  tree         form (moebius::TUPLE);
+  form << tree (moebius::make_tree_label ("path"), tree ("Export to"),
+                tree ("path"), tree (chinesePath));
+  tree r= cpp_export_pdf_dialog (form);
+  qunsetenv ("MOGAN_TEST_EXPORT_PDF");
+
+  QVERIFY (is_compound (r));
+  QCOMPARE (N (r), 1);
+  QVERIFY (get_label (r[0][0]) == string ("path"));
+  QVERIFY (get_label (r[0][1]) == chinesePath);
 }
 
 void

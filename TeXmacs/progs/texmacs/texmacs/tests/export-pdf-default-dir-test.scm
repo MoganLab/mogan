@@ -4,7 +4,9 @@
 ;; DESCRIPTION : 纯逻辑单元测试：导出 PDF 缺省目录策略（Issue #1268）——
 ;;               tmu 位于 texmacs_path / texmacs_home_path 之外时用 tmu 所在
 ;;               目录，其余（内置/帮助文档、scratch 草稿、tmfs 云文档）落
-;;               Documents/LiiiSTEM。不弹任何 GUI，headless 可跑。
+;;               Documents/LiiiSTEM；目的地后缀兜底（Issue #1271）——
+;;               Browse 选中的文件名不带 pdf 后缀时补 .pdf。
+;;               不弹任何 GUI，headless 可跑。
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; USAGE
@@ -70,11 +72,31 @@
   ) ;let
 ) ;define
 
+;; 目的地后缀兜底（Issue #1271）：不带 pdf 后缀补 .pdf，已带则原样保留。
+
+(define (test-ensure-suffix-appends-when-missing)
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo") => "/tmp/1268/demo.pdf")
+) ;define
+
+(define (test-ensure-suffix-keeps-pdf)
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf") => "/tmp/1268/demo.pdf")
+) ;define
+
+(define (test-ensure-suffix-appends-after-other-suffix)
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak")
+    =>
+    "/tmp/1268/demo.bak.pdf"
+  ) ;check
+) ;define
+
 (tm-define (regtest-export-pdf-default-dir)
   (test-local-tmu-uses-own-dir)
   (test-below-texmacs-path-goes-to-documents)
   (test-below-texmacs-home-path-goes-to-documents)
   (test-scratch-goes-to-documents)
   (test-tmfs-goes-to-documents)
+  (test-ensure-suffix-appends-when-missing)
+  (test-ensure-suffix-keeps-pdf)
+  (test-ensure-suffix-appends-after-other-suffix)
   (check-report)
 ) ;tm-define

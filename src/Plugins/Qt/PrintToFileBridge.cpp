@@ -15,8 +15,7 @@ QString
 PrintToFileBridge::browse (const QString& current) {
   // 有路径则预填完整文件名（目录 + 建议名）；空则走系统默认目录。
   QString start= current;
-  QString path = QFileDialog::getSaveFileName (
-      m_host, QString (), start,
-      QStringLiteral ("PostScript (*.ps);;PDF (*.pdf);;All files (*)"));
+  QString path=
+      QFileDialog::getSaveFileName (m_host, QString (), start, m_filter);
   return path;
 }
