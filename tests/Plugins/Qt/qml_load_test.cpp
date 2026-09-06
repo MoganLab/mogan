@@ -591,29 +591,36 @@ void
 TestQmlLoad::test_version_dialog_focuses_on_open () {
   // 0927：必须经真实 run_qml_dialog + exec() 路径验证。弹窗显示后检查 QML
   // 场景焦点并发 ESC，确认正常 QML 取消链路生效。
-  bool sawDialog = false;
-  bool hadFocus  = false;
-  bool sentEscape= false;
-  QTimer::singleShot (200, [&] () {
+  // CI（offscreen、高负载）下焦点事件可能晚到，固定时刻检查一次会误报，
+  // 故轮询等待焦点到达后再发 ESC。
+  bool   sawDialog = false;
+  bool   hadFocus  = false;
+  bool   sentEscape= false;
+  QTimer focusPoll;
+  focusPoll.setInterval (50);
+  QObject::connect (&focusPoll, &QTimer::timeout, [&] () {
     for (QWidget* topLevel : QApplication::topLevelWidgets ())
       if (topLevel->objectName () == "QTMQmlDialog") {
         sawDialog       = true;
         QQuickWidget* qw= topLevel->findChild<QQuickWidget*> ();
-        hadFocus        = qw && qw->rootObject ()->hasActiveFocus ();
-        if (qw) {
+        if (qw && qw->rootObject () && qw->rootObject ()->hasActiveFocus ()) {
+          hadFocus= true;
           QTest::keyClick (qw, Qt::Key_Escape);
           sentEscape= true;
+          focusPoll.stop ();
         }
         return;
       }
   });
-  // 运行时加载失败等异常不能让测试遗留一个阻塞模态窗口。
-  QTimer::singleShot (2000, [] () {
+  // 运行时加载失败或焦点始终未到达，都不能让测试遗留一个阻塞模态窗口。
+  QTimer::singleShot (8000, [] () {
     for (QWidget* topLevel : QApplication::topLevelWidgets ())
       if (topLevel->objectName () == "QTMQmlDialog")
         static_cast<QDialog*> (topLevel)->reject ();
   });
+  focusPoll.start ();
   QVERIFY (!cpp_version_dialog ("Version", "Version information"));
+  focusPoll.stop ();
   QVERIFY (sawDialog);
   QVERIFY (hadFocus);
   QVERIFY (sentEscape);
