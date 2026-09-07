@@ -246,6 +246,16 @@ private:
    */
   void connectPanelSignals (ChatConversationPanel* panel);
 
+  /**
+   * @brief 刷新指定会话面板的 Model 按钮显示（logo+名称+箭头）。
+   *
+   * 会话模型不在清单内时按默认模型显示（与 activateSession 的内存
+   * 回退一致）；会话无面板时忽略。
+   * @param sessionId 目标会话 ID
+   * @param menuOpen  模型菜单是否打开（箭头朝上/下）
+   */
+  void updateModelButtonDisplay (const string& sessionId, bool menuOpen= false);
+
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,

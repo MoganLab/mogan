@@ -129,7 +129,30 @@ constexpr int kConversationBtnRadius = 6;
 //---- dock 模式 常量 ----
 constexpr int kCloseSidebarBtnMarginY= 12;
 
+// ---- 模型菜单/Model 按钮共用常量 ----
+constexpr int kModelLogoSize= 18;
+
 constexpr char kChatEmbeddedStyle[]= "style";
+
+/**
+ * @brief 构造模型 logo 图标；图标缺失时画占位圆点。
+ */
+QIcon
+make_model_icon (const string& icon) {
+  int   size= DpiUtils::scaled (kModelLogoSize);
+  QIcon qIcon (":llm-chat/models/" + to_qstring (icon) + ".svg");
+  if (is_empty (icon) || qIcon.isNull ()) {
+    QPixmap dot (size, size);
+    dot.fill (Qt::transparent);
+    QPainter p (&dot);
+    p.setRenderHint (QPainter::Antialiasing);
+    p.setPen (Qt::NoPen);
+    p.setBrush (QColor (0xc8, 0xc8, 0xc8));
+    p.drawEllipse (0, 0, size - 1, size - 1);
+    return QIcon (dot);
+  }
+  return qIcon;
+}
 
 /**
  * @brief 聊天嵌入编辑器的文档样式。
@@ -305,17 +328,21 @@ ChatConversationPanel::setup_ui () {
   btnLayout->addWidget (searchButton_);
   btnLayout->addStretch ();
 
-  // Model button：点击发 modelMenuRequested，由 Controller 弹出模型选择菜单
+  // Model button：显示当前模型 logo+名称+开合箭头，点击发 modelMenuRequested，
+  // 由 Controller 在按钮上方弹出模型选择菜单
   modelButton_= new QToolButton (inputFrame);
   modelButton_->setObjectName ("chat-tab-model-btn");
   modelButton_->setText (qt_translate ("Model"));
+  modelButton_->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
+  modelButton_->setIconSize (QSize (DpiUtils::scaled (kModelLogoSize),
+                                    DpiUtils::scaled (kModelLogoSize)));
   modelButton_->setFocusPolicy (Qt::NoFocus);
   modelButton_->setCursor (Qt::PointingHandCursor);
   modelButton_->setFixedHeight (DpiUtils::scaled (kSendButtonSize));
   connect (modelButton_, &QToolButton::clicked, this, [this] () {
-    // 菜单向上弹出：携带按钮左上角上方的全局坐标
-    emit modelMenuRequested (sessionId_, modelButton_->mapToGlobal (QPoint (
-                                             0, -modelButton_->height ())));
+    // 携带按钮左上角全局坐标，菜单由 Controller 定位到按钮上方
+    emit modelMenuRequested (sessionId_,
+                             modelButton_->mapToGlobal (QPoint (0, 0)));
   });
   btnLayout->addWidget (modelButton_);
   btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
@@ -486,6 +513,17 @@ ChatConversationPanel::focusInput () {
     inputQTMWidget_->clearFocus ();
     inputQTMWidget_->setFocus (Qt::OtherFocusReason);
   }
+}
+
+void
+ChatConversationPanel::setModelDisplay (const string& name, const string& icon,
+                                        bool menuOpen) {
+  if (!modelButton_) return;
+  modelButton_->setIcon (make_model_icon (icon));
+  // 菜单在按钮上方弹出：打开时箭头朝上，关闭朝下
+  modelButton_->setText (to_qstring (name) + (menuOpen
+                                                  ? QString (" \xe2\x96\xb4")
+                                                  : QString (" \xe2\x96\xbe")));
 }
 
 tree
@@ -720,7 +758,6 @@ ChatConversationPanel::adjust_input_height () {
 
 namespace {
 
-constexpr int kModelMenuLogoSize   = 18;
 constexpr int kModelMenuPadX       = 10;
 constexpr int kModelMenuPadY       = 8;
 constexpr int kModelMenuRowHeight  = 34;
@@ -744,8 +781,8 @@ class ChatModelMenuRow : public QToolButton {
 public:
   ChatModelMenuRow (QWidget* parent) : QToolButton (parent) {
     setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
-    setIconSize (QSize (DpiUtils::scaled (kModelMenuLogoSize),
-                        DpiUtils::scaled (kModelMenuLogoSize)));
+    setIconSize (QSize (DpiUtils::scaled (kModelLogoSize),
+                        DpiUtils::scaled (kModelLogoSize)));
     setFocusPolicy (Qt::NoFocus);
     setCursor (Qt::PointingHandCursor);
     setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -803,26 +840,6 @@ private:
   QLabel* badge_     = nullptr; ///< 右侧描述徽标
   int     badgeWidth_= 0;       ///< 徽标宽度（sizeHint 计入用）
 };
-
-/**
- * @brief 构造模型 logo 图标；图标缺失时画占位圆点。
- */
-QIcon
-make_model_icon (const string& icon) {
-  int   size= DpiUtils::scaled (kModelMenuLogoSize);
-  QIcon qIcon (":llm-chat/models/" + to_qstring (icon) + ".svg");
-  if (is_empty (icon) || qIcon.isNull ()) {
-    QPixmap dot (size, size);
-    dot.fill (Qt::transparent);
-    QPainter p (&dot);
-    p.setRenderHint (QPainter::Antialiasing);
-    p.setPen (Qt::NoPen);
-    p.setBrush (QColor (0xc8, 0xc8, 0xc8));
-    p.drawEllipse (0, 0, size - 1, size - 1);
-    return QIcon (dot);
-  }
-  return qIcon;
-}
 
 /**
  * @brief 构造描述徽标：圆角小标签，dscColor 红/橙两种预设背景。

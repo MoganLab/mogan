@@ -98,6 +98,15 @@ public:
   void focusInput ();
 
   /**
+   * @brief 更新 Model 按钮显示：logo + 模型名 + 菜单开合箭头。
+   *
+   * @param name     模型显示名
+   * @param icon     模型图标名（缺失显示占位圆点）
+   * @param menuOpen 菜单是否打开（箭头朝上/下）
+   */
+  void setModelDisplay (const string& name, const string& icon, bool menuOpen);
+
+  /**
    * @brief 读取输入区域的文档内容。
    * @return 输入内容的 tree 表示
    */
@@ -151,7 +160,8 @@ signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
   void searchToggled (const string& sessionId, bool enabled);
-  /// 请求弹出模型选择菜单；globalPos 为建议弹出位置
+  /// 请求弹出模型选择菜单；globalPos 为 Model 按钮左上角全局坐标，
+  /// 菜单由 Controller 在按钮上方完整弹出（不遮挡按钮）
   void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
   void inputHeightChanged ();
   void closeSidebarInDockModeRequested ();

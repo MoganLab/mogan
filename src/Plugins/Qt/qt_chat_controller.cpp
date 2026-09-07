@@ -258,6 +258,11 @@ ChatController::onModelMenuRequested (const string& sessionId,
   // 菜单每次打开重建，选中态按当前会话模型刷新
   QMenu menu;
   chat_model_menu_populate (&menu, modelStore_.models (), current);
+
+  // 菜单在 Model 按钮上方完整弹出（按钮底边贴菜单顶边），不遮挡按钮
+  QPoint pos (globalPos.x (), globalPos.y () - menu.sizeHint ().height ());
+
+  updateModelButtonDisplay (sessionId, true); // 打开：箭头朝上
   // QWidgetAction 内控件经 released 手动 trigger 时，Qt 只发 triggered
   // 信号并关菜单、不写 exec 的 syncAction（exec 会返回 null），故选择
   // 结果从 triggered 信号捕获，不依赖 exec 返回值
@@ -265,7 +270,8 @@ ChatController::onModelMenuRequested (const string& sessionId,
   connect (&menu, &QMenu::triggered, &menu, [&chosenKey] (QAction* a) {
     chosenKey= from_qstring_utf8 (a->data ().toString ());
   });
-  menu.exec (globalPos);
+  menu.exec (pos);
+  updateModelButtonDisplay (sessionId); // 关闭：箭头朝下（选择后模型已变）
   if (!is_empty (chosenKey)) onModelSelected (sessionId, chosenKey);
 }
 
@@ -274,6 +280,7 @@ ChatController::onModelSelected (const string& sessionId, const string& key) {
   if (!modelStore_.contains (key)) return;
   sessionManager_.setModel (sessionId, key);
   updateManifest (sessionId); // 仅元数据变更，不导出 buffer
+  updateModelButtonDisplay (sessionId);
 }
 
 void
@@ -507,6 +514,20 @@ ChatController::activateSession (const string& sessionId) {
 
   view_->activatePanel (panel);
   view_->sidebar ()->setActiveItem (sessionId);
+
+  updateModelButtonDisplay (sessionId);
+}
+
+void
+ChatController::updateModelButtonDisplay (const string& sessionId,
+                                          bool          menuOpen) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s || !s->panel) return;
+  string key= s->model;
+  if (!modelStore_.contains (key)) key= modelStore_.defaultKey ();
+  ChatModelInfo info= modelStore_.find (key);
+  static_cast<ChatConversationPanel*> (s->panel)->setModelDisplay (
+      info.name, info.icon, menuOpen);
 }
 
 /**
@@ -663,6 +684,8 @@ ChatController::ensureNewConversation () {
 
   view_->activatePanel (panel);
   view_->sidebar ()->setActiveItem ("");
+
+  updateModelButtonDisplay (sid);
 }
 
 /**
