@@ -15,6 +15,7 @@
 #include "qt_floating_toast.hpp"
 #include "qt_utilities.hpp"
 
+#include "analyze.hpp"
 #include "new_buffer.hpp"
 #include "s7_tm.hpp"
 #include "scheme.hpp"
@@ -216,11 +217,17 @@ ChatController::onSendRequested (const string& sessionId) {
   // session 文档末尾（devel/1230.md）
   panel->ensureMessageWidget ();
 
-  if (!as_bool (
-          call ("chat-tab-send", sessionId, session->model,
-                session->thinking ? string ("enabled") : string ("disabled"),
-                session->search ? string ("enabled") : string ("disabled"))))
-    return;
+  // 协议下发参数取自模型清单：baseUrl 拼成绝对 URL；defaultSystem 仅
+  // 新会话首轮非空（首轮口径见 isFirstRound）
+  ChatModelInfo info   = modelStore_.find (session->model);
+  string        baseUrl= resolveBaseUrl (info.baseUrl, currentStemSite ());
+  string defSys= isFirstRound (sessionId) ? info.defaultSystem : string ("");
+  array<object> args;
+  args << object (sessionId) << object (info.key) << object (baseUrl)
+       << object (session->thinking ? string ("enabled") : string ("disabled"))
+       << object (session->search ? string ("enabled") : string ("disabled"))
+       << object (defSys);
+  if (!as_bool (call ("chat-tab-send", args))) return;
 
   sessionManager_.setState (sessionId, ChatState::Generating);
   sessionManager_.touchSession (sessionId);
@@ -768,6 +775,44 @@ ChatController::getOrCreatePanel (const string& sessionId) {
 /******************************************************************************
  * ChatController 辅助方法
  ******************************************************************************/
+
+string
+ChatController::resolveBaseUrl (const string& baseUrl, const string& site) {
+  if (starts (baseUrl, "http")) return baseUrl;
+  if (is_empty (baseUrl)) return "";
+  return site * baseUrl;
+}
+
+string
+ChatController::currentStemSite () {
+  // 复用 account 模块既有的 current-stem-site（O1），不新增配置项；
+  // 模块缺失或求值失败时回退空串，相对 base_url 原样下传由子进程兜底
+  return as_string (
+      eval ("(catch #t (lambda () (when (not (defined? 'current-stem-site)) "
+            "(use-modules (account liii))) (current-stem-site)) (lambda args "
+            "\"\"))"));
+}
+
+bool
+ChatController::isFirstRound (const string& sessionId) {
+  // 首轮口径：message buffer 尚无对话轮次。body 形如
+  // (document (session llm "chat-tab:<sid>" (document ...轮次...)))，
+  // 与 scheme 侧 chat-tab-buffer-empty? 的空判语义一致：buffer 不存在、
+  // 无 session 外壳或 session 内层 document 为空均视为首轮。
+  // 本轮消息在判定之后的 chat-tab-send 才写入，判定点不受影响
+  tree body= get_buffer_body (ChatSessionManager::messageBufferUrl (sessionId));
+  if (is_atomic (body)) return is_empty (body->label);
+  if (!is_func (body, DOCUMENT)) return false;
+  bool hasRounds= false;
+  for (int i= 0; i < N (body); i++) {
+    tree child= body[i];
+    if (is_compound (child, "session", 3) && is_func (child[2], DOCUMENT))
+      hasRounds= hasRounds || N (child[2]) > 0;
+    else if (!(is_atomic (child) && is_empty (child->label)))
+      hasRounds= true; // 非空的非 session 内容按已有轮次处理
+  }
+  return !hasRounds;
+}
 
 QList<SessionDisplayInfo>
 ChatController::buildDisplayInfos () {

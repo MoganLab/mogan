@@ -167,6 +167,16 @@ public:
    */
   static QString sanitizeExportFileName (const QString& rawName);
 
+  /**
+   * @brief 解析模型清单的 base_url 为下发协议用的绝对 URL。
+   *
+   * 以 http 开头 → 原样；为空 → 空串（子进程兜底）；否则拼接 site。
+   * @param baseUrl 模型清单条目的 base_url 字段（可为相对路径）
+   * @param site    当前 stem site（如 https://liiistem.cn）
+   * @return 绝对 URL、原样相对路径或空串
+   */
+  static string resolveBaseUrl (const string& baseUrl, const string& site);
+
 private:
   QTChatTabWidget*   view_= nullptr;  ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_; ///< 会话管理器
@@ -266,6 +276,26 @@ private:
    * @param sessionId 目标会话 ID
    */
   void applyModelCapabilities (const string& sessionId);
+
+  /**
+   * @brief 获取当前 stem site（复用 account 模块既有的 current-stem-site）。
+   *
+   * 模块缺失或求值失败时返回空串，此时相对 base_url 原样下传，
+   * 由子进程兜底拼接 site；不为此引入新配置项。
+   * @return site 前缀（如 https://liiistem.cn），失败时为空串
+   */
+  static string currentStemSite ();
+
+  /**
+   * @brief 判断本轮发送是否为新会话首轮。
+   *
+   * 口径：message buffer 尚无消息内容（buffer 不存在或 body 为空文档）。
+   * 历史会话在激活加载后非空；本轮消息在本函数之后的 chat-tab-send
+   * 才写入，判定不受影响。
+   * @param sessionId 目标会话 ID
+   * @return 首轮返回 true
+   */
+  bool isFirstRound (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,

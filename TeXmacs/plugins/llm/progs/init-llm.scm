@@ -13,7 +13,18 @@
 (import (liii path))
 
 (define (llm-serialize lan t)
-  (string-append (object->string t) "\n<EOF>\n")
+  ;; connection-write 调用前已做 tree_herk_to_utf8，传入的 stree 字符串是
+  ;; UTF-8。% 开头的单字符串文档（%chat 协议行）须原样透传：object->string
+  ;; 会给字符串加引号/转义并包 (document ...) 外壳，子进程将无法识别协议行
+  (if (and (pair? t)
+        (>= (length t) 2)
+        (eq? (car t) 'document)
+        (string? (cadr t))
+        (string-starts? (cadr t) "%")
+      ) ;and
+    (string-append (cadr t) "\n<EOF>\n")
+    (string-append (object->string t) "\n<EOF>\n")
+  ) ;if
 ) ;define
 
 (define (llm-launcher)

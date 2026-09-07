@@ -18,7 +18,7 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (texmacs protocol) (liii path) (liii uuid))
+(import (texmacs protocol) (liii path) (liii uuid) (liii json) (liii string))
 
 (define (welcome)
   (flush-prompt "llm> ")
@@ -37,10 +37,44 @@
   ) ;let*
 ) ;define
 
+;; 假插件不联网：把收到的 "%chat {json}" 协议行原样回传——content 换成
+;; 假回复文本，params/sessionId 原样保留，供无网络环境验证协议字段
+;; 双向链路；解析失败返回 #f，由调用方回退原文回显
+
+(define (fake-llm-chat-reply data)
+  (let* ((payload (string-trim (string-drop data (string-length "%chat "))))
+         (j (catch #t (lambda () (string->json payload)) (lambda args #f)))
+        ) ;
+    (if (not (json-object? j))
+      #f
+      (let ((content (json-ref-string j "content" ""))
+            (params (catch #t (lambda () (json-ref j "params")) (lambda args #f)))
+           ) ;
+        (if (not (json-object? params))
+          #f
+          (string-append "%chat "
+            (json->string (json-set j
+                            "content"
+                            (string-append "[fake-llm] 我收到了你的消息：" content)
+                          ) ;json-set
+            ) ;json->string
+          ) ;string-append
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let*
+) ;define
+
 (define (eval-and-print data)
+  ;; 文本回显一律走 utf8: 通道：scheme: 通道要求负载是表示树的 scheme
+  ;; 代码，自由文本会被解析成「首词作树标签」的畸形树，渲染只剩标签且
+  ;; 打断本轮完成（超时）。旧 echo 侥幸可用是因为旧协议行恰好形如
+  ;; (document "...")，本身即是合法树代码
   (if (> (string-length data) *large-data-threshold*)
     (flush-verbatim (llm-write-temp-file data))
-    (flush-scheme data)
+    (let ((reply (and (string-starts? data "%chat ") (fake-llm-chat-reply data))))
+      (flush-verbatim (or reply data))
+    ) ;let
   ) ;if
 ) ;define
 

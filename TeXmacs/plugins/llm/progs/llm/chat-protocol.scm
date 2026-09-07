@@ -30,13 +30,15 @@
 ;;; ---------- Record Type ----------
 
 (define-record-type <chat-input>
-  (make-chat-input input session-id model thinking search)
+  (make-chat-input input session-id model base-url thinking search default-system)
   chat-input?
   (input chat-input-input)
   (session-id chat-input-session-id)
   (model chat-input-model)
+  (base-url chat-input-base-url)
   (thinking chat-input-thinking)
   (search chat-input-search)
+  (default-system chat-input-default-system)
 ) ;define-record-type
 
 ;;; ---------- Buffer 类型检测 ----------
@@ -326,108 +328,30 @@
 
 ;;; ---------- 上下文构建 ----------
 
-(define (chat-tab-suffix->mime suffix)
-  (cond ((== suffix "png") "image/png")
-        ((or (== suffix "jpg") (== suffix "jpeg")) "image/jpeg")
-        ((== suffix "gif") "image/gif")
-        ((== suffix "webp") "image/webp")
-        (else #f)
-  ) ;cond
-) ;define
-
-(define (chat-tab-image-node->pair img-stree)
-  ;; img-stree = (image <name> ...)
-  ;; Returns (mime . base64-data) or #f
-  (if (< (length img-stree) 2)
-    #f
-    (let ((name (cadr img-stree)))
-      (cond
-        ;; Embedded: (tuple (raw-data <base64>) <filename>)
-        ((and (pair? name) (eq? (car name) 'tuple) (>= (length name) 3))
-         (let ((data-node (cadr name)) (suffix-str (caddr name)))
-           (let ((suffix (url-suffix suffix-str))
-                 (mime (chat-tab-suffix->mime (url-suffix suffix-str)))
-                ) ;
-             (if (not mime)
-               #f
-               (cond
-                 ;; raw-data format: data already base64
-                 ((and (pair? data-node)
-                    (>= (length data-node) 2)
-                    (eq? (car data-node) 'raw-data)
-                  ) ;and
-                  (cons mime (cadr data-node))
-                 ) ;
-                 (else #f)
-               ) ;cond
-             ) ;if
-           ) ;let
-         ) ;let
-        ) ;
-        ;; Linked: string path — 需要读文件并 base64 编码
-        ((string? name)
-         ;; TODO: 需要加载 (liii base64) 后支持链接图片的 base64 编码
-         #f
-        ) ;
-        (else #f)
-      ) ;cond
-    ) ;let
-  ) ;if
-) ;define
-
-(define (chat-tab-collect-images s acc)
-  (cond ((string? s) acc)
-        ((not (pair? s)) acc)
-        ((eq? (car s) 'image)
-         (let ((img (chat-tab-image-node->pair s)))
-           (if img (cons img acc) acc)
-         ) ;let
-        ) ;
-        (else (let loop
-                ((rest (cdr s)) (a acc))
-                (if (null? rest) a (loop (cdr rest) (chat-tab-collect-images (car rest) a)))
-              ) ;let
-        ) ;else
-  ) ;cond
-) ;define
-
 (define (chat-tab-build-context-input ctx)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
+  ;; images 数组已随协议移除：图片上传属第二阶段，输入区图片暂按纯文本
+  ;; 参与 content（含图片时 C++ 侧已提前拦截提示不支持）
   (let* ((input (chat-input-input ctx))
          (session-id (chat-input-session-id ctx))
          (model (chat-input-model ctx))
+         (base-url (chat-input-base-url ctx))
          (thinking (chat-input-thinking ctx))
          (search (chat-input-search ctx))
+         (default-system (chat-input-default-system ctx))
          (content (chat-tab-tree->plain-text input))
          (obj (string->njson "{}"))
          (params (string->njson "{}"))
-         (stree-input (if (tree? input) (tree->stree input) input))
-         (images (chat-tab-collect-images stree-input '()))
         ) ;
     (njson-set! obj "sessionId" session-id)
     (njson-set! params "model" model)
+    (njson-set! params "baseUrl" base-url)
     (njson-set! params "thinking" thinking)
     (njson-set! params "search" search)
+    (njson-set! params "default_system" default-system)
     (njson-set! obj "params" params)
     (njson-set! obj "content" content)
-    ;; 可选：有图片时加入 images 数组
-    (when (pair? images)
-      (let ((img-arr (string->njson "[]")))
-        (for-each (lambda (img-pair)
-                    (let ((img-obj (string->njson "{}")))
-                      (njson-set! img-obj "mime" (car img-pair))
-                      (njson-set! img-obj "data" (cdr img-pair))
-                      (njson-append! img-arr img-obj)
-                      (njson-free img-obj)
-                    ) ;let
-                  ) ;lambda
-          images
-        ) ;for-each
-        (njson-set! obj "images" img-arr)
-        (njson-free img-arr)
-      ) ;let
-    ) ;when
     (let ((json-str (njson->string obj)))
       (njson-free params)
       (njson-free obj)
@@ -460,12 +384,16 @@
 
 ;;; ---------- 发送 ----------
 
-(tm-define (chat-tab-session-send session-id model thinking search)
+(tm-define (chat-tab-session-send session-id model base-url thinking search default-system)
   (:synopsis "Send user message through chat tab session")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
+  (:argument base-url "Resolved service endpoint URL")
   (:argument thinking "Thinking mode: enabled or disabled")
   (:argument search "Search mode: enabled or disabled")
+  (:argument default-system
+    "Model default system prompt, non-empty on first round only"
+  ) ;:argument
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
@@ -511,7 +439,9 @@
                     #t
                   ) ;begin
                   (begin
-                    (let ((ctx (make-chat-input input session-id model thinking search)))
+                    (let ((ctx (make-chat-input input session-id model base-url thinking search default-system)
+                          ) ;ctx
+                         ) ;
                       (chat-tab-session-feed chat-tab-session-name plugin-ses ctx out '())
                     ) ;let
                     #t
@@ -552,13 +482,15 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (chat-tab-send session-id model thinking search)
+(tm-define (chat-tab-send session-id model base-url thinking search default-system)
   (:synopsis "Adapter send entry for a chat tab")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
+  (:argument base-url "Resolved service endpoint URL")
   (:argument thinking "Thinking mode")
   (:argument search "Search mode")
-  (chat-tab-session-send session-id model thinking search)
+  (:argument default-system "Model default system prompt, first round only")
+  (chat-tab-session-send session-id model base-url thinking search default-system)
 ) ;tm-define
 
 (tm-define (chat-tab-cancel session-id)
