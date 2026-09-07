@@ -13,8 +13,7 @@
       "allow_search": true,
       "icon": "kimi",
       "description": "订阅优先",
-      "dsc_color": "orange",
-      "max_completion_tokens": 8192
+      "dsc_color": "orange"
     },
     {
       "model": "deepseek-v4-pro",
@@ -28,8 +27,7 @@
       "allow_search": false,
       "icon": "deepseek",
       "description": "订阅优先",
-      "dsc_color": "orange",
-      "max_completion_tokens": 8192
+      "dsc_color": "orange"
     },
     {
       "model": "deepseek-v4-flash",
@@ -43,8 +41,7 @@
       "allow_search": false,
       "icon": "deepseek",
       "description": "订阅优先",
-      "dsc_color": "orange",
-      "max_completion_tokens": 8192
+      "dsc_color": "orange"
     }
   ]
 }
