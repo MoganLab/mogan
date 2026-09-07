@@ -728,6 +728,7 @@ constexpr int kModelMenuNameFontPx = 13;
 constexpr int kModelMenuBadgeFontPx= 10;
 constexpr int kModelMenuBadgePadX  = 6;
 constexpr int kModelMenuBadgeRadius= 4;
+constexpr int kModelMenuBadgeGap   = 16;
 constexpr int kModelMenuRowRadius  = 6;
 
 /**
@@ -760,8 +761,19 @@ public:
     badge_->setParent (this);
     badge_->setAttribute (Qt::WA_TransparentForMouseEvents, true);
     badge_->adjustSize ();
+    badgeWidth_= badge_->width ();
     badge_->show ();
     positionBadge ();
+  }
+
+  /**
+   * @brief 徽标宽度计入 sizeHint，菜单据此加宽，避免徽标压住文本。
+   */
+  QSize sizeHint () const override {
+    QSize hint= QToolButton::sizeHint ();
+    if (badgeWidth_ > 0)
+      hint.rwidth ()+= badgeWidth_ + DpiUtils::scaled (kModelMenuBadgeGap);
+    return hint;
   }
 
 protected:
@@ -788,7 +800,8 @@ private:
     badge_->move (x, y);
   }
 
-  QLabel* badge_= nullptr; ///< 右侧描述徽标
+  QLabel* badge_     = nullptr; ///< 右侧描述徽标
+  int     badgeWidth_= 0;       ///< 徽标宽度（sizeHint 计入用）
 };
 
 /**
