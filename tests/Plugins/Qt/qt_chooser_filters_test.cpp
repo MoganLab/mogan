@@ -16,14 +16,10 @@ class TestQtChooserFilters : public QObject {
   Q_OBJECT
 
 private slots:
-  void
-  init () {
-    init_lolly ();
-  }
+  void init () { init_lolly (); }
 
   // .ts 另存为改写为 .stem（继任格式）
-  void
-  test_rewrite_ts () {
+  void test_rewrite_ts () {
     string f= "foo.ts";
     QVERIFY (chooser_save_as_rewrite (f));
     QVERIFY (f == "foo.stem");
@@ -33,16 +29,14 @@ private slots:
   }
 
   // .stem 本就是默认格式：保持不变但属于引导场景
-  void
-  test_rewrite_stem () {
+  void test_rewrite_stem () {
     string f= "foo.stem";
     QVERIFY (chooser_save_as_rewrite (f));
     QVERIFY (f == "foo.stem");
   }
 
   // .tm 另存为改写为 .tmu；.stm/.tmu 不得误伤
-  void
-  test_rewrite_tm () {
+  void test_rewrite_tm () {
     string f= "foo.tm";
     QVERIFY (chooser_save_as_rewrite (f));
     QVERIFY (f == "foo.tmu");
@@ -54,8 +48,7 @@ private slots:
   }
 
   // 其余后缀与无后缀（草稿）不触发改写
-  void
-  test_rewrite_no_match () {
+  void test_rewrite_no_match () {
     string empty= "";
     QVERIFY (!chooser_save_as_rewrite (empty));
     string bar= "bar";
@@ -67,8 +60,7 @@ private slots:
   }
 
   // 样式另存的成对过滤器：stem（默认）在前，ts 在后，无其他格式
-  void
-  test_style_filters () {
+  void test_style_filters () {
     QStringList filters= chooser_style_filters ();
     QCOMPARE (filters.size (), 2);
     QVERIFY (filters[0].contains ("*.stem"));
@@ -78,23 +70,21 @@ private slots:
   }
 
   // 从过滤器括号内容解析首个后缀；非法形状返回空串
-  void
-  test_filter_first_suffix () {
+  void test_filter_first_suffix () {
     QCOMPARE (chooser_filter_first_suffix ("STEM files (*.stem)"),
-        QString ("stem"));
+              QString ("stem"));
     QCOMPARE (chooser_filter_first_suffix ("TM files (*.tm)"), QString ("tm"));
     QCOMPARE (chooser_filter_first_suffix ("TMU files (*.tmu)"),
-        QString ("tmu"));
+              QString ("tmu"));
     QCOMPARE (chooser_filter_first_suffix ("X (*.tmu *.stem)"),
-        QString ("tmu"));
+              QString ("tmu"));
     QCOMPARE (chooser_filter_first_suffix ("All (*)"), QString (""));
     QCOMPARE (chooser_filter_first_suffix ("no parens"), QString (""));
     QCOMPARE (chooser_filter_first_suffix ("X (foo)"), QString (""));
   }
 
   // 完整 token 匹配：*.tm 不得命中 *.tmu，多后缀过滤器逐项命中
-  void
-  test_filter_matches_suffix () {
+  void test_filter_matches_suffix () {
     QVERIFY (chooser_filter_matches_suffix ("TM files (*.tm)", "tm"));
     QVERIFY (chooser_filter_matches_suffix ("STEM files (*.tmu)", "tmu"));
     QVERIFY (!chooser_filter_matches_suffix ("STEM files (*.tmu)", "tm"));
@@ -105,21 +95,20 @@ private slots:
   }
 
   // 最终文件名规范：去旧后缀再接所选后缀；非文件路径原样返回
-  void
-  test_normalize_suffix () {
+  void test_normalize_suffix () {
     QCOMPARE (chooser_normalize_suffix ("/tmp/foo.ts", "stem"),
-        QString ("/tmp/foo.stem"));
+              QString ("/tmp/foo.stem"));
     QCOMPARE (chooser_normalize_suffix ("/tmp/foo.stem", "tm"),
-        QString ("/tmp/foo.tm"));
+              QString ("/tmp/foo.tm"));
     QCOMPARE (chooser_normalize_suffix ("/tmp/bar", "tmu"),
-        QString ("/tmp/bar.tmu"));
+              QString ("/tmp/bar.tmu"));
     QCOMPARE (chooser_normalize_suffix ("/tmp/a.b/foo.md", "stem"),
-        QString ("/tmp/a.b/foo.stem"));
+              QString ("/tmp/a.b/foo.stem"));
     QCOMPARE (chooser_normalize_suffix ("/tmp/foo.ts", ""),
-        QString ("/tmp/foo.ts"));
+              QString ("/tmp/foo.ts"));
     QCOMPARE (chooser_normalize_suffix ("foo.ts", "stem"), QString ("foo.ts"));
     QCOMPARE (chooser_normalize_suffix ("/tmp/x/", "stem"),
-        QString ("/tmp/x/"));
+              QString ("/tmp/x/"));
   }
 };
 
