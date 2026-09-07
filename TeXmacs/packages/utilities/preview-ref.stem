@@ -1,0 +1,48 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : preview-ref.stem
+;; COPYRIGHT   : (C) 2020  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style (tuple "source"))
+  (body (document (active* (src-title (document (src-package "preview-ref" "1.0")
+                                        (src-purpose (document "Show preview of link destination for references and citations")
+                                        ) ;src-purpose
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(link ref-edit)")
+          (assign "reference"
+            (macro "Id"
+              (locus (id (hard-id (arg "Id")))
+                (link "hyperlink" (id (hard-id (arg "Id"))) (url (merge "#" (arg "Id"))))
+                (link "mouse-over"
+                  (id (hard-id (arg "Id")))
+                  (script "preview-reference" (quote-arg "Id") (arg "Id"))
+                ) ;link
+                (get-binding (arg "Id"))
+              ) ;locus
+            ) ;macro
+          ) ;assign
+          (assign "pageref"
+            (macro "Id"
+              (locus (id (hard-id (arg "Id")))
+                (link "hyperlink" (id (hard-id (arg "Id"))) (url (merge "#" (arg "Id"))))
+                (link "mouse-over"
+                  (id (hard-id (arg "Id")))
+                  (script "preview-reference" (quote-arg "Id") (arg "Id"))
+                ) ;link
+                (get-binding (arg "Id") "1")
+              ) ;locus
+            ) ;macro
+          ) ;assign
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

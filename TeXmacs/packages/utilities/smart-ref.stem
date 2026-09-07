@@ -1,0 +1,297 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : smart-ref.stem
+;; COPYRIGHT   : (C) 2020  Joris van der Hoeven
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(document (TeXmacs "2.1.4")
+  (style (tuple "source"))
+  (body (document (active* (src-title (document (src-package "smart-ref" "1.0")
+                                        (src-purpose (document "Smart references"))
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(link ref-markup)")
+          (active* (document (src-comment (document "Main ‘‘smart-ref'' macro."))))
+          (assign "unknown-ref"
+            (xmacro "args" (extern "ext-typed-ref" "" (quote-arg "args")))
+          ) ;assign
+          (assign "smart-ref" (xmacro "args" (extern "ext-smart-ref" (quote-arg "args"))))
+          (drd-props "smart-ref"
+            "arity"
+            (tuple "repeat" "1" "1")
+            "accessible"
+            "none"
+            "identifier"
+            "all"
+          ) ;drd-props
+          (active* (document (src-comment (document "Enunciations."))))
+          (assign "t-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Theorem" (quote-arg "args")))
+          ) ;assign
+          (assign "th-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Theorem" (quote-arg "args")))
+          ) ;assign
+          (assign "thm-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Theorem" (quote-arg "args")))
+          ) ;assign
+          (assign "theorem-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Theorem" (quote-arg "args")))
+          ) ;assign
+          (assign "p-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Proposition" (quote-arg "args")))
+          ) ;assign
+          (assign "pr-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Proposition" (quote-arg "args")))
+          ) ;assign
+          (assign "prop-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Proposition" (quote-arg "args")))
+          ) ;assign
+          (assign "proposition-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Proposition" (quote-arg "args")))
+          ) ;assign
+          (assign "l-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Lemma" (quote-arg "args")))
+          ) ;assign
+          (assign "lm-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Lemma" (quote-arg "args")))
+          ) ;assign
+          (assign "lem-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Lemma" (quote-arg "args")))
+          ) ;assign
+          (assign "lemma-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Lemma" (quote-arg "args")))
+          ) ;assign
+          (assign "co-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Corollary" (quote-arg "args")))
+          ) ;assign
+          (assign "cor-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Corollary" (quote-arg "args")))
+          ) ;assign
+          (assign "corr-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Corollary" (quote-arg "args")))
+          ) ;assign
+          (assign "corollary-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Corollary" (quote-arg "args")))
+          ) ;assign
+          (assign "corrolary-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Corollary" (quote-arg "args")))
+          ) ;assign
+          (assign "def-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Definition" (quote-arg "args")))
+          ) ;assign
+          (assign "dfn-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Definition" (quote-arg "args")))
+          ) ;assign
+          (assign "defn-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Definition" (quote-arg "args")))
+          ) ;assign
+          (assign "definition-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Definition" (quote-arg "args")))
+          ) ;assign
+          (assign "not-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Notation" (quote-arg "args")))
+          ) ;assign
+          (assign "nota-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Notation" (quote-arg "args")))
+          ) ;assign
+          (assign "notation-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Notation" (quote-arg "args")))
+          ) ;assign
+          (assign "ax-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Axiom" (quote-arg "args")))
+          ) ;assign
+          (assign "axiom-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Axiom" (quote-arg "args")))
+          ) ;assign
+          (assign "fac-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Fact" (quote-arg "args")))
+          ) ;assign
+          (assign "fact-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Fact" (quote-arg "args")))
+          ) ;assign
+          (assign "ass-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Assumption" (quote-arg "args")))
+          ) ;assign
+          (assign "assumption-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Assumption" (quote-arg "args")))
+          ) ;assign
+          (assign "conv-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Convention" (quote-arg "args")))
+          ) ;assign
+          (assign "convention-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Convention" (quote-arg "args")))
+          ) ;assign
+          (assign "conj-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Conjecture" (quote-arg "args")))
+          ) ;assign
+          (assign "conjecture-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Conjecture" (quote-arg "args")))
+          ) ;assign
+          (assign "rem-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Remark" (quote-arg "args")))
+          ) ;assign
+          (assign "remark-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Remark" (quote-arg "args")))
+          ) ;assign
+          (assign "note-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Note" (quote-arg "args")))
+          ) ;assign
+          (assign "war-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Warning" (quote-arg "args")))
+          ) ;assign
+          (assign "warning-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Warning" (quote-arg "args")))
+          ) ;assign
+          (assign "ex-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Example" (quote-arg "args")))
+          ) ;assign
+          (assign "example-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Example" (quote-arg "args")))
+          ) ;assign
+          (assign "exc-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Exercise" (quote-arg "args")))
+          ) ;assign
+          (assign "exe-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Exercise" (quote-arg "args")))
+          ) ;assign
+          (assign "exer-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Exercise" (quote-arg "args")))
+          ) ;assign
+          (assign "exercise-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Exercise" (quote-arg "args")))
+          ) ;assign
+          (assign "prb-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Problem" (quote-arg "args")))
+          ) ;assign
+          (assign "prob-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Problem" (quote-arg "args")))
+          ) ;assign
+          (assign "problem-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Problem" (quote-arg "args")))
+          ) ;assign
+          (assign "sol-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Solution" (quote-arg "args")))
+          ) ;assign
+          (assign "solution-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Solution" (quote-arg "args")))
+          ) ;assign
+          (active* (document (src-comment (document "Sectional."))))
+          (assign "part-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Part" (quote-arg "args")))
+          ) ;assign
+          (assign "c-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Chapter" (quote-arg "args")))
+          ) ;assign
+          (assign "ch-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Chapter" (quote-arg "args")))
+          ) ;assign
+          (assign "chp-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Chapter" (quote-arg "args")))
+          ) ;assign
+          (assign "chap-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Chapter" (quote-arg "args")))
+          ) ;assign
+          (assign "chapter-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Chapter" (quote-arg "args")))
+          ) ;assign
+          (assign "s-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Section" (quote-arg "args")))
+          ) ;assign
+          (assign "sec-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Section" (quote-arg "args")))
+          ) ;assign
+          (assign "section-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Section" (quote-arg "args")))
+          ) ;assign
+          (assign "ss-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Subsection" (quote-arg "args")))
+          ) ;assign
+          (assign "ssec-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Subsection" (quote-arg "args")))
+          ) ;assign
+          (assign "subs-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Subsection" (quote-arg "args")))
+          ) ;assign
+          (assign "subsec-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Subsection" (quote-arg "args")))
+          ) ;assign
+          (assign "subsection-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Section" (quote-arg "args")))
+          ) ;assign
+          (assign "ap-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Appendix" (quote-arg "args")))
+          ) ;assign
+          (assign "app-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Appendix" (quote-arg "args")))
+          ) ;assign
+          (assign "appendix-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Appendix" (quote-arg "args")))
+          ) ;assign
+          (assign "par-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Paragraph" (quote-arg "args")))
+          ) ;assign
+          (assign "para-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Paragraph" (quote-arg "args")))
+          ) ;assign
+          (assign "paragraph-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Paragraph" (quote-arg "args")))
+          ) ;assign
+          (active* (document (src-comment (document "Equations."))))
+          (assign "add-brackets" (macro "body" (concat "(" (arg "body") ")")))
+          (assign "e-ref"
+            (xmacro "args" (extern "ext-typed-ref*" "" "add-brackets" (quote-arg "args")))
+          ) ;assign
+          (assign "eq-ref"
+            (xmacro "args" (extern "ext-typed-ref*" "" "add-brackets" (quote-arg "args")))
+          ) ;assign
+          (assign "eqn-ref"
+            (xmacro "args" (extern "ext-typed-ref*" "" "add-brackets" (quote-arg "args")))
+          ) ;assign
+          (assign "equa-ref"
+            (xmacro "args" (extern "ext-typed-ref*" "" "add-brackets" (quote-arg "args")))
+          ) ;assign
+          (assign "equation-ref"
+            (xmacro "args" (extern "ext-typed-ref*" "" "add-brackets" (quote-arg "args")))
+          ) ;assign
+          (active* (document (src-comment (document "Figures, tables, and algorithms."))))
+          (assign "fig-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Figure" (quote-arg "args")))
+          ) ;assign
+          (assign "figure-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Figure" (quote-arg "args")))
+          ) ;assign
+          (assign "tab-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Table" (quote-arg "args")))
+          ) ;assign
+          (assign "table-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Table" (quote-arg "args")))
+          ) ;assign
+          (assign "a-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Algorithm" (quote-arg "args")))
+          ) ;assign
+          (assign "al-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Algorithm" (quote-arg "args")))
+          ) ;assign
+          (assign "alg-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Algorithm" (quote-arg "args")))
+          ) ;assign
+          (assign "algo-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Algorithm" (quote-arg "args")))
+          ) ;assign
+          (assign "algorithm-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Algorithm" (quote-arg "args")))
+          ) ;assign
+          (assign "step-ref"
+            (xmacro "args" (extern "ext-typed-ref" "Step" (quote-arg "args")))
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document
