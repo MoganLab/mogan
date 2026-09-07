@@ -141,6 +141,12 @@ immediate_options (int argc, char** argv) {
     else if ((s == "-d") || (s == "-debug")) {
       enale_logging= false;
     }
+    // -h/-v/-p/-bp 打印到 cout 后立即退出，输出需留在终端
+    else if ((s == "-h") || (s == "-help") || (s == "-v") ||
+             (s == "-version") || (s == "-p") || (s == "-path") ||
+             (s == "-bp") || (s == "-binpath")) {
+      enale_logging= false;
+    }
   }
 
   url u= url_system (string ("$TEXMACS_HOME_PATH/system/") *
