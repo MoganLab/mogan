@@ -130,17 +130,18 @@
 ;; 假 OCR 也走真实的等待弹窗，以便在 mogan 中直接验证弹窗生命周期和取消
 ;; 行为。这里用 delayed 模拟商业版的上传/识别耗时；不能在同一个调用栈中
 ;; open 后立即 close，否则 Qt 没有机会处理绘制事件，弹窗看不见。
+
 (define fake-ocr-delay 5000)
 
 (define (run-fake-ocr thunk)
   (let ((cancelled? #f))
-    (wait-dialog-open
-      "Processing, please wait..."
-      (lambda () (set! cancelled? #t)))
+    (wait-dialog-open "Processing, please wait..." (lambda () (set! cancelled? #t)))
     (delayed (:pause fake-ocr-delay)
       (when (not cancelled?)
         (wait-dialog-close)
-        (thunk)))
+        (thunk)
+      ) ;when
+    ) ;delayed
   ) ;let
 ) ;define
 

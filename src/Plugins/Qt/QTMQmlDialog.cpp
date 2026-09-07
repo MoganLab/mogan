@@ -857,10 +857,11 @@ cpp_wait_dialog_open (string message) {
   run_modal_qml_dialog (
       "qrc:/qml/WaitProgressDialog.qml", "wait progress dialog",
       [&] (QQuickWidget* qw, QDialog* host) {
-        QmlDialogBridge* closeBridge = inject_common_context (qw, *host);
+        QmlDialogBridge*  closeBridge = inject_common_context (qw, *host);
         WaitDialogBridge* cancelBridge= new WaitDialogBridge (host);
-        g_wait_dialog_host= host;
-        qw->rootContext ()->setContextProperty ("waitCancelBridge", cancelBridge);
+        g_wait_dialog_host            = host;
+        qw->rootContext ()->setContextProperty ("waitCancelBridge",
+                                                cancelBridge);
         qw->rootContext ()->setContextProperty ("dialogMessage",
                                                 to_qstring (message));
         array<string> buttons;

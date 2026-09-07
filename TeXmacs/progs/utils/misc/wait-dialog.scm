@@ -20,6 +20,7 @@
 ;; 当前注册的取消回调（弹窗全局单例 -> 同时仅一个在飞任务，单 thunk 足够；
 ;; 下次打开覆盖注册，任务正常完成后残留无害——弹窗已关，不会再有取消事
 ;; 件）。默认 no-op，未注册时回流调用不报错。
+
 (define current-cancel-thunk (lambda () #f))
 
 ;; wait-dialog-open
@@ -42,15 +43,11 @@
 
 ;; 关闭等待弹窗（程序性关闭：不触发取消回流；幂等，未打开时 no-op）。
 
-(tm-define (wait-dialog-close)
-  (cpp-wait-dialog-close)
-) ;tm-define
+(tm-define (wait-dialog-close) (cpp-wait-dialog-close))
 
 ;; C++ 取消回流入口：用户 ESC/点取消时，Qt 侧 WaitDialogBridge 经
 ;; eval_scheme 按名调用本函数（模式同 paragraph-format-commit），转发到
 ;; 当前注册的 on-cancel；回调属主是编排层（如 goldfish (liii ocr-impl) 的
 ;; per-task 闭包），置位后由各异步回调入口守卫拦截后续动作。
 
-(tm-define (wait-dialog-cancelled)
-  (current-cancel-thunk)
-) ;tm-define
+(tm-define (wait-dialog-cancelled) (current-cancel-thunk))
