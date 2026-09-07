@@ -25,7 +25,9 @@
   ) ;:use
 ) ;texmacs-module
 
-(import (liii njson))
+(import (liii json))
+
+(use-modules (account liii))
 
 ;;; ---------- Record Type ----------
 
@@ -327,26 +329,12 @@
 
 ;;; ---------- 上下文构建 ----------
 
-(define (chat-tab-current-stem-site)
-  ;; 复用 account 模块既有的 current-stem-site，不新增配置项；
-  ;; 模块缺失或求值失败时回退空串，相对 base-url 原样下传由子进程兜底
-  (catch #t
-    (lambda ()
-      (when (not (defined? 'current-stem-site))
-        (use-modules (account liii))
-      ) ;when
-      (current-stem-site)
-    ) ;lambda
-    (lambda args "")
-  ) ;catch
-) ;define
-
 (define (chat-tab-resolve-base-url base-url)
   ;; http 开头视为绝对 URL 原样下发；空串原样（子进程兜底）；
-  ;; 相对路径在 scheme 侧拼接当前 stem site，C++ 只透传清单原值
+  ;; 相对路径在 scheme 侧拼接 current-stem-site，C++ 只透传清单原值
   (cond ((string=? base-url "") "")
         ((string-starts? base-url "http") base-url)
-        (else (string-append (chat-tab-current-stem-site) base-url))
+        (else (string-append (current-stem-site) base-url))
   ) ;cond
 ) ;define
 
@@ -363,22 +351,18 @@
          (thinking (chat-input-thinking ctx))
          (search (chat-input-search ctx))
          (content (chat-tab-tree->plain-text input))
-         (obj (string->njson "{}"))
-         (params (string->njson "{}"))
+         (json-str (json->string `((,"sessionId" . ,session-id)
+                                   (,"params"
+                                    (,"model" . ,model)
+                                    (,"baseUrl" . ,base-url)
+                                    (,"thinking" . ,thinking)
+                                    (,"search" . ,search))
+                                   (,"content" . ,content))
+                   ) ;json->string
+         ) ;json-str
         ) ;
-    (njson-set! obj "sessionId" session-id)
-    (njson-set! params "model" model)
-    (njson-set! params "baseUrl" base-url)
-    (njson-set! params "thinking" thinking)
-    (njson-set! params "search" search)
-    (njson-set! obj "params" params)
-    (njson-set! obj "content" content)
-    (let ((json-str (njson->string obj)))
-      (njson-free params)
-      (njson-free obj)
-      (let ((cork-json (utf8->cork json-str)))
-        (stree->tree `(document ,(string-append "%chat " cork-json)))
-      ) ;let
+    (let ((cork-json (utf8->cork json-str)))
+      (stree->tree `(document ,(string-append "%chat " cork-json)))
     ) ;let
   ) ;let*
 ) ;define
