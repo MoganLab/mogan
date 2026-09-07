@@ -178,7 +178,7 @@ qt_chooser_widget_rep::set_type (const string& _type) {
     mainNameFilter= to_qstring (translate ("STEM files"));
   }
   else if (_type == "action_save_as") {
-    mainNameFilter= to_qstring (translate ("STEM files"));
+    mainNameFilter= to_qstring (translate ("TMU files"));
   }
   else if (_type == "action_include") {
     mainNameFilter= to_qstring (translate ("STEM files for include"));
@@ -248,6 +248,8 @@ qt_chooser_widget_rep::set_type (const string& _type) {
     mainNameFilter+= " (*.tmu)";
     nameFilters << mainNameFilter;
     nameFilters << to_qstring (translate ("TM files") * " (*.tm)");
+    nameFilters << to_qstring (translate ("TS files") * " (*.ts)");
+    defaultSuffix= "tmu";
   }
   else if (_type == "action_include") {
     mainNameFilter+= " (*.tmu *.tm)";
@@ -271,6 +273,30 @@ qt_chooser_widget_rep::set_type (const string& _type) {
 
   type= _type;
   return true;
+}
+
+/*!
+ @brief 从名称过滤器（如 "TS files (*.ts)"）的括号内容解析首个后缀，无则返回空串
+ */
+static QString
+filter_first_suffix (const QString& filter) {
+  int lt= filter.indexOf (QLatin1Char ('('));
+  int rt= filter.lastIndexOf (QLatin1Char (')'));
+  if (lt < 0 || rt <= lt) return QString ();
+  QStringList parts= filter.mid (lt + 1, rt - lt - 1).split (QLatin1Char (' '));
+  for (int i= 0; i < parts.size (); ++i)
+    if (parts[i].startsWith (QLatin1String ("*."))) return parts[i].mid (2);
+  return QString ();
+}
+
+/*!
+ @brief 判断过滤器是否包含指定后缀。须完整 token 匹配，避免 "*.tm" 误配 "*.tmu"
+ */
+static bool
+filter_matches_suffix (const QString& filter, const QString& suffix) {
+  QString token= QLatin1String ("*.") + suffix;
+  return filter.contains (token + QLatin1Char (')')) ||
+         filter.contains (token + QLatin1Char (' '));
 }
 
 /*! Actually displays the dialog with all the options set.
@@ -311,11 +337,23 @@ qt_chooser_widget_rep::perform_dialog () {
 
 #if (QT_VERSION >= 0x040400)
   if (type != "directory") {
-    // QStringList filters;
-    // if (nameFilter != "") filters << nameFilter;
-    // filters << to_qstring (translate ("All files (*)"));
-    // nameFilters << to_qstring (translate ("All files (*)"));
     dialog->setNameFilters (nameFilters);
+    // 另存为时默认格式跟随当前文件的后缀（如打开 .ts 另存默认仍为 .ts），
+    // 无后缀或无匹配过滤器时保持首项 TMU files (*.tmu)
+    if (type == "action_save_as") {
+      QString qname   = to_qstring (file);
+      int     last_dot= qname.lastIndexOf (QLatin1Char ('.'));
+      int     last_sep= qname.lastIndexOf (QLatin1Char ('/'));
+      if (last_dot > last_sep + 1) {
+        QString suffix= qname.mid (last_dot + 1);
+        for (int i= 0; i < nameFilters.size (); ++i) {
+          if (!filter_matches_suffix (nameFilters[i], suffix)) continue;
+          dialog->selectNameFilter (nameFilters[i]);
+          defaultSuffix= suffix;
+          break;
+        }
+      }
+    }
   }
 #endif
 
@@ -346,12 +384,12 @@ qt_chooser_widget_rep::perform_dialog () {
   QStringList fileNames;
   file= "#f";
   if (dialog->exec ()) {
-    QString selectedFilter= dialog->selectedNameFilter ();
-    if (selectedFilter.contains ("TMU files")) {
-      defaultSuffix= "tmu";
-    }
-    else if (selectedFilter.contains ("TM files")) {
-      defaultSuffix= "tm";
+    // 保存模式下按所选过滤器重设默认后缀：从过滤器的括号内容解析，
+    // 不依赖过滤器的翻译文本；供下方无后缀文件名补全使用
+    if (prompt != "") {
+      QString selectedSuffix=
+          filter_first_suffix (dialog->selectedNameFilter ());
+      if (!selectedSuffix.isEmpty ()) defaultSuffix= selectedSuffix;
     }
     fileNames= dialog->selectedFiles ();
     if (fileNames.count () > 0) {
