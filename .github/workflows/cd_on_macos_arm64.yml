@@ -52,11 +52,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Install vpk
-        shell: pwsh
         run: |
           dotnet tool install -g vpk --version 1.2.0
-          # pwsh 在 Unix 无 USERPROFILE，用 HOME
-          Add-Content -Path $env:GITHUB_PATH -Value "$($env:HOME)/.dotnet/tools"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
       # Apple 签名/公证 setup（mac 独有；Windows 的正式签名在 SafeNet 签名机
       # 事后完成，mac 未签名 pkg 会被 Gatekeeper 直接拦截，故在 CI 内完成）。
       # keychain 命令序列照搬 packages/macos/package.scm 的 setup-keychain；
@@ -141,64 +139,72 @@ jobs:
       # GITHUB_TOKEN 不会自动注入为环境变量，必须显式传入 secrets.GITHUB_TOKEN；
       # 为空时回退为公开仓库的匿名访问。
       - name: Fetch delta baselines from GitHub Release
-        shell: pwsh
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $headers = @{
-            Accept        = "application/vnd.github+json"
-            "User-Agent"  = "mogan-cd"
-          }
-          if ($env:GITHUB_TOKEN) {
-            $headers["Authorization"] = "Bearer $($env:GITHUB_TOKEN)"
-          }
-          $releases = Invoke-RestMethod -Headers $headers `
-            -Uri "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100"
-          $releases = $releases |
-            Where-Object { -not $_.draft -and $_.tag_name -ne $env:GITHUB_REF_NAME }
-          # 本次要打的通道：beta 必打；stable 仅 tag 不含 -rc 时打
-          # （tag 名由 bump-version 流水线产生，-rc 与否即通道信息，无需透传）。
-          $tag = "${{ github.ref_name }}"
-          $channels = @("beta")
-          if ($tag -notmatch '-rc') { $channels += "stable" }
-          $vars = Get-Content xmake/vars.lua -Raw
-          $currentVer = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
-          foreach ($channel in $channels) {
-            Write-Host "== 通道 $channel：查找 delta 基线 =="
-            foreach ($release in $releases) {
-              # stable 基线只认非 rc tag 的 release（rc release 无 stable 包）
-              if ($channel -eq "stable" -and $release.tag_name -match '-rc') {
+          VERSION=$(sed -n 's/^[[:space:]]*XMACS_VERSION[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' xmake/vars.lua)
+          REF_NAME="${{ github.ref_name }}"
+          CHANNELS=("beta")
+          if [[ "$REF_NAME" != *-rc* ]]; then
+            CHANNELS+=("stable")
+          fi
+
+          AUTH_HEADER=()
+          if [ -n "$GITHUB_TOKEN" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer $GITHUB_TOKEN")
+          fi
+
+          RELEASES_JSON=$(curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "User-Agent: mogan-cd" \
+            "${AUTH_HEADER[@]}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100" || echo "[]")
+
+          for channel in "${CHANNELS[@]}"; do
+            echo "== 通道 $channel：查找 delta 基线 =="
+            URLS=$(echo "$RELEASES_JSON" | jq -r --arg tag "$REF_NAME" --arg ch "$channel" '
+              .[]
+              | select(.draft == false and .tag_name != $tag)
+              | select($ch != "stable" or (.tag_name | contains("-rc") | not))
+              | .assets[]?
+              | select(.name | test("^mogan-release-.*-osx-arm64-" + $ch + "\\.zip$"))
+              | .browser_download_url
+            ')
+
+            for download_url in $URLS; do
+              [ -n "$download_url" ] || continue
+              rm -rf build/velopack_baseline
+              mkdir -p build/velopack_baseline
+
+              if ! curl -fsSL "$download_url" -o build/velopack_baseline.zip; then
                 continue
-              }
-              Remove-Item build/velopack_baseline -Recurse -Force -ErrorAction SilentlyContinue
-              New-Item -ItemType Directory -Path build/velopack_baseline -Force | Out-Null
-              # 按平台 + 通道名匹配 zip（分开上传的格式，名带平台与通道后缀，
-              # 只下载目标通道的归档，避免拉取无关平台的 1.5GB 包）
-              $zipPattern = "mogan-release-*-osx-arm64-$channel.zip"
-              $zip = $release.assets |
-                Where-Object { $_.name -like $zipPattern } |
-                Select-Object -First 1
-              if (-not $zip) { continue }
-              /usr/bin/curl -fsSL "$($zip.browser_download_url)" -o build/velopack_baseline.zip
-              Expand-Archive -Path build/velopack_baseline.zip `
-                -DestinationPath build/velopack_baseline -Force
-              $full = Get-ChildItem build/velopack_baseline -Filter "*-$channel-full.nupkg" |
-                Select-Object -First 1
-              if (-not $full) { continue }
-              $baselineVer = $full.Name -replace '^Mogan-', '' `
-                -replace "-$channel-full\.nupkg$", ''
-              if ($baselineVer -eq $currentVer) {
-                Write-Host "基线版本与当前版本相同（$baselineVer），跳过（重跑同一版本）"
+              fi
+              if ! unzip -q -o build/velopack_baseline.zip -d build/velopack_baseline; then
+                continue
+              fi
+
+              FULL_FILE=$(find build/velopack_baseline -name "*-$channel-full.nupkg" | head -n 1)
+              if [ -z "$FULL_FILE" ]; then
+                continue
+              fi
+
+              FULL_NAME=$(basename "$FULL_FILE")
+              BASELINE_VER="${FULL_NAME#Mogan-}"
+              BASELINE_VER="${BASELINE_VER%-$channel-full.nupkg}"
+
+              if [ "$BASELINE_VER" = "$VERSION" ]; then
+                echo "基线版本与当前版本相同（$BASELINE_VER），跳过（重跑同一版本）"
                 break
-              }
-              $outDir = "build/velopack_release_$channel"
-              New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-              Copy-Item $full.FullName $outDir/
-              Write-Host "已就位 $channel delta 基线: $($full.Name)"
+              fi
+
+              OUT_DIR="build/velopack_release_$channel"
+              mkdir -p "$OUT_DIR"
+              cp "$FULL_FILE" "$OUT_DIR/"
+              echo "已就位 $channel delta 基线: $FULL_NAME"
               break
-            }
-          }
+            done
+          done
       # vpk pack 在 outputDir 存在上一版本（上一步拉取的 full 包）时自动生成
       # delta 增量包；首次发布无上一版本，只有全量包。beta/stable 各用独立
       # 输出目录（vpk 把 outputDir 当 channel 累积目录，混用会互相干扰），
@@ -218,19 +224,15 @@ jobs:
       # 文件名带平台与通道后缀 mogan-release-<ver>-osx-arm64-<channel>.zip，
       # 命名规则与 Windows CD 的 win-x64 归档一致。
       - name: Create release archive
-        shell: pwsh
         run: |
-          $vars = Get-Content xmake/vars.lua -Raw
-          $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
-          $dirs = Get-ChildItem build -Directory -Filter 'velopack_release_*' |
-            Sort-Object Name
-          foreach ($d in $dirs) {
-            $channel = $d.Name -replace '^velopack_release_', ''
-            $archive = "build/mogan-release-$ver-osx-arm64-$channel.zip"
-            Compress-Archive -Path "$($d.FullName)/*" -DestinationPath $archive `
-              -CompressionLevel Optimal -Force
-            Get-Item $archive | Select-Object Name, Length
-          }
+          VERSION=$(sed -n 's/^[[:space:]]*XMACS_VERSION[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' xmake/vars.lua)
+          for d in build/velopack_release_*; do
+            [ -d "$d" ] || continue
+            channel="${d#build/velopack_release_}"
+            archive="$(pwd)/build/mogan-release-${VERSION}-osx-arm64-${channel}.zip"
+            (cd "$d" && zip -r -9 "$archive" .)
+            ls -lh "$archive"
+          done
       - name: Upload
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
