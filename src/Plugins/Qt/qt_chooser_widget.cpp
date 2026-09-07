@@ -304,16 +304,25 @@ filter_matches_suffix (const QString& filter, const QString& suffix) {
  */
 void
 qt_chooser_widget_rep::perform_dialog () {
-  // .ts/.stem 样式文件另存为：.stem 是 .ts 的继任格式（任务 1131/1279），
-  // 默认存为 .stem 且仅提供 stem/ts 两种格式；普通保存仍写回原 .ts 文件。
-  // 建议文件名同步改为 .stem，让默认目标在弹窗时即可见
-  bool style_save_as= false;
+  // 另存为引导到继任格式：.ts 默认 .stem（仅提供 stem/ts，任务 1131/1279），
+  // .tm 默认 .tmu（过滤器保持 tmu/tm）；建议文件名同步改为默认后缀，让默认
+  // 目标在弹窗时即可见；普通保存仍写回原文件
+  bool style_save_as= false; // .ts/.stem：stem/ts 成对过滤器
+  bool norm_suffix  = false; // 最终文件名规范为所选过滤器的后缀
   if (type == "action_save_as") {
     if (ends (file, ".ts")) {
       style_save_as= true;
+      norm_suffix  = true;
       file         = file (0, N (file) - 2) * "stem";
     }
-    else if (ends (file, ".stem")) style_save_as= true;
+    else if (ends (file, ".stem")) {
+      style_save_as= true;
+      norm_suffix  = true;
+    }
+    else if (ends (file, ".tm")) {
+      norm_suffix= true;
+      file       = file (0, N (file) - 2) * "tmu";
+    }
   }
 
   QString  caption= to_qstring (win_title);
@@ -348,8 +357,8 @@ qt_chooser_widget_rep::perform_dialog () {
 
 #if (QT_VERSION >= 0x040400)
   if (type != "directory") {
-    // 样式文件另存为仅提供 stem/ts 两项，默认 .stem；其余情形（如 .tmu/.tm/
-    // 草稿）保持 TMU/TM 列表，并按当前文件后缀预选匹配的过滤器
+    // .ts/.stem 另存为仅提供 stem/ts 两项，默认 .stem；其余情形（.tm 另存为
+    // tmu/tm 默认 tmu；.tmu/草稿保持首项 TMU files (*.tmu)）见下
     if (style_save_as) {
       nameFilters= QStringList ()
                    << to_qstring (translate ("STEM files") * " (*.stem)")
@@ -357,7 +366,7 @@ qt_chooser_widget_rep::perform_dialog () {
       defaultSuffix= "stem";
     }
     dialog->setNameFilters (nameFilters);
-    if (type == "action_save_as" && !style_save_as) {
+    if (type == "action_save_as" && !norm_suffix) {
       // 无后缀或无匹配过滤器时保持首项 TMU files (*.tmu)
       QString qname   = to_qstring (file);
       int     last_dot= qname.lastIndexOf (QLatin1Char ('.'));
@@ -412,9 +421,9 @@ qt_chooser_widget_rep::perform_dialog () {
     fileNames= dialog->selectedFiles ();
     if (fileNames.count () > 0) {
       QString imqstring= fileNames.first ();
-      // 样式另存为：最终文件名统一为所选过滤器的后缀（用户只改 base 名也能
-      // 存成默认的 .stem；切到 TS files 则存为 .ts）
-      if (style_save_as && !defaultSuffix.isEmpty () &&
+      // 继任格式另存为：最终文件名统一为所选过滤器的后缀（用户只改 base 名
+      // 也能存成默认的 .stem/.tmu；切到旧格式过滤器则存 .ts/.tm）
+      if (norm_suffix && !defaultSuffix.isEmpty () &&
           imqstring.contains (QLatin1Char ('/')) &&
           !imqstring.endsWith (QLatin1Char ('/'))) {
         int name_dot= imqstring.lastIndexOf (QLatin1Char ('.'));
