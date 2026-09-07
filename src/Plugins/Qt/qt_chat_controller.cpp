@@ -258,10 +258,15 @@ ChatController::onModelMenuRequested (const string& sessionId,
   // 菜单每次打开重建，选中态按当前会话模型刷新
   QMenu menu;
   chat_model_menu_populate (&menu, modelStore_.models (), current);
-  QAction* chosen= menu.exec (globalPos);
-  if (chosen)
-    onModelSelected (sessionId,
-                     from_qstring_utf8 (chosen->data ().toString ()));
+  // QWidgetAction 内控件经 released 手动 trigger 时，Qt 只发 triggered
+  // 信号并关菜单、不写 exec 的 syncAction（exec 会返回 null），故选择
+  // 结果从 triggered 信号捕获，不依赖 exec 返回值
+  string chosenKey;
+  connect (&menu, &QMenu::triggered, &menu, [&chosenKey] (QAction* a) {
+    chosenKey= from_qstring_utf8 (a->data ().toString ());
+  });
+  menu.exec (globalPos);
+  if (!is_empty (chosenKey)) onModelSelected (sessionId, chosenKey);
 }
 
 void
