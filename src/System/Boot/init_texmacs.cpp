@@ -828,6 +828,8 @@ TeXmacs_main (int argc, char** argv) {
                           scm_quote (as_string (in)) * " :strict) " *
                           "(export-buffer " * scm_quote (as_string (out)) * ")";
           }
+          // -c 默认隐含 -q：转换完成后自动退出
+          my_init_cmds= my_init_cmds * " (quit-TeXmacs)";
         }
       }
       else if ((s == "-x") || (s == "-execute")) {
@@ -851,7 +853,7 @@ TeXmacs_main (int argc, char** argv) {
         cout << "\n";
         cout << "Options for TeXmacs:\n\n";
         cout << "  -b [file]  Specify scheme buffers initialization file\n";
-        cout << "  -c [i] [o] Convert file 'i' into file 'o'\n";
+        cout << "  -c [i] [o] Convert file 'i' into file 'o' and quit\n";
         cout << "  -d         For debugging purposes\n";
         cout << "  -fn [font] Set the default TeX font\n";
         cout << "  -g [geom]  Set geometry of window in pixels\n";
