@@ -9,7 +9,6 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "Qt/qt_chat_controller.hpp"
 #include "Qt/qt_chat_model.hpp"
 #include "base.hpp"
 #include <QtTest/QtTest>
@@ -49,12 +48,6 @@ private slots:
   void test_find ();
   void test_find_missing_returns_key_fallback ();
   void test_find_empty_key ();
-
-  // === ChatController::resolveBaseUrl（协议下发前拼接） ===
-  void test_resolve_base_url_absolute ();
-  void test_resolve_base_url_empty ();
-  void test_resolve_base_url_relative ();
-  void test_resolve_base_url_relative_empty_site ();
 
 private:
   /// 在 rootDir 下写一份模型清单 JSON，返回是否成功
@@ -108,7 +101,6 @@ TestChatModel::test_parse_new_format_full_fields () {
       " \"models\": ["
       "  { \"model\": \"kimi-k3\", \"name\": \"K3\","
       "    \"base_url\": \"/api/v1/ai/siliconflow/chat\","
-      "    \"default_system\": \"You are helpful.\","
       "    \"thinking\": true, \"search\": true, \"enable\": true,"
       "    \"allow_thinking\": false, \"allow_search\": false,"
       "    \"icon\": \"kimi\", \"description\": \"Vision\","
@@ -126,7 +118,6 @@ TestChatModel::test_parse_new_format_full_fields () {
   QVERIFY (!m.allowThinking);
   QVERIFY (!m.allowSearch);
   QVERIFY (m.baseUrl == string ("/api/v1/ai/siliconflow/chat"));
-  QVERIFY (m.defaultSystem == string ("You are helpful."));
   QVERIFY (defaultKey == string ("kimi-k3"));
 }
 
@@ -160,7 +151,6 @@ TestChatModel::test_parse_new_format_defaults () {
   QVERIFY (m.allowThinking);
   QVERIFY (m.allowSearch);
   QVERIFY (m.baseUrl == string (""));
-  QVERIFY (m.defaultSystem == string (""));
 }
 
 void
@@ -340,42 +330,6 @@ TestChatModel::test_find_empty_key () {
   ChatModelInfo  m= store.find ("");
   QVERIFY (m.key == string (""));
   QVERIFY (m.name == string (""));
-}
-
-// === ChatController::resolveBaseUrl（协议下发前拼接） ===
-
-void
-TestChatModel::test_resolve_base_url_absolute () {
-  // 以 http 开头的 base_url 视为绝对 URL，原样下发
-  QVERIFY (
-      ChatController::resolveBaseUrl ("https://custom.example.com/api/v1/chat",
-                                      "https://liiistem.cn") ==
-      string ("https://custom.example.com/api/v1/chat"));
-  QVERIFY (ChatController::resolveBaseUrl ("http://insecure.example.com/chat",
-                                           "https://liiistem.cn") ==
-           string ("http://insecure.example.com/chat"));
-}
-
-void
-TestChatModel::test_resolve_base_url_empty () {
-  // 清单未提供 base_url → 空串，由子进程兜底
-  QVERIFY (ChatController::resolveBaseUrl ("", "https://liiistem.cn") ==
-           string (""));
-}
-
-void
-TestChatModel::test_resolve_base_url_relative () {
-  // 相对路径拼接当前 stem site
-  QVERIFY (ChatController::resolveBaseUrl ("/api/v1/ai/siliconflow/chat",
-                                           "https://liiistem.cn") ==
-           string ("https://liiistem.cn/api/v1/ai/siliconflow/chat"));
-}
-
-void
-TestChatModel::test_resolve_base_url_relative_empty_site () {
-  // site 获取失败（account 模块缺失）时相对路径原样下传，子进程兜底拼 site
-  QVERIFY (ChatController::resolveBaseUrl ("/api/v1/ai/siliconflow/chat", "") ==
-           string ("/api/v1/ai/siliconflow/chat"));
 }
 
 QTEST_MAIN (TestChatModel)

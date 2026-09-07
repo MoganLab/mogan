@@ -27,7 +27,6 @@ struct ChatModelInfo {
   bool   allowThinking= true; ///< 是否允许推理模式，缺省 true
   bool   allowSearch  = true; ///< 是否允许网络搜索，缺省 true
   string baseUrl;             ///< 服务端接口（可为相对路径；PR-M5 发送时使用）
-  string defaultSystem;       ///< 模型默认系统提示（PR-M5 发送时使用）
 };
 
 /**

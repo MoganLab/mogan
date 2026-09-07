@@ -64,7 +64,6 @@ info_from_entry (const string& key, const QJsonObject& entry) {
   info.allowThinking= json_bool_field (entry, "allow_thinking", true);
   info.allowSearch  = json_bool_field (entry, "allow_search", true);
   info.baseUrl      = json_string_field (entry, "base_url", "");
-  info.defaultSystem= json_string_field (entry, "default_system", "");
   return info;
 }
 

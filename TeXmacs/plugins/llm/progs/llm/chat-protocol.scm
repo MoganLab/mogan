@@ -30,7 +30,7 @@
 ;;; ---------- Record Type ----------
 
 (define-record-type <chat-input>
-  (make-chat-input input session-id model base-url thinking search default-system)
+  (make-chat-input input session-id model base-url thinking search)
   chat-input?
   (input chat-input-input)
   (session-id chat-input-session-id)
@@ -38,7 +38,6 @@
   (base-url chat-input-base-url)
   (thinking chat-input-thinking)
   (search chat-input-search)
-  (default-system chat-input-default-system)
 ) ;define-record-type
 
 ;;; ---------- Buffer 类型检测 ----------
@@ -328,18 +327,41 @@
 
 ;;; ---------- 上下文构建 ----------
 
+(define (chat-tab-current-stem-site)
+  ;; 复用 account 模块既有的 current-stem-site，不新增配置项；
+  ;; 模块缺失或求值失败时回退空串，相对 base-url 原样下传由子进程兜底
+  (catch #t
+    (lambda ()
+      (when (not (defined? 'current-stem-site))
+        (use-modules (account liii))
+      ) ;when
+      (current-stem-site)
+    ) ;lambda
+    (lambda args "")
+  ) ;catch
+) ;define
+
+(define (chat-tab-resolve-base-url base-url)
+  ;; http 开头视为绝对 URL 原样下发；空串原样（子进程兜底）；
+  ;; 相对路径在 scheme 侧拼接当前 stem site，C++ 只透传清单原值
+  (cond ((string=? base-url "") "")
+        ((string-starts? base-url "http") base-url)
+        (else (string-append (chat-tab-current-stem-site) base-url))
+  ) ;cond
+) ;define
+
 (define (chat-tab-build-context-input ctx)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
   ;; images 数组已随协议移除：图片上传属第二阶段，输入区图片暂按纯文本
-  ;; 参与 content（含图片时 C++ 侧已提前拦截提示不支持）
+  ;; 参与 content（含图片时 C++ 侧已提前拦截提示不支持）；
+  ;; 系统提示词不下发：由服务端或子进程插件配置
   (let* ((input (chat-input-input ctx))
          (session-id (chat-input-session-id ctx))
          (model (chat-input-model ctx))
-         (base-url (chat-input-base-url ctx))
+         (base-url (chat-tab-resolve-base-url (chat-input-base-url ctx)))
          (thinking (chat-input-thinking ctx))
          (search (chat-input-search ctx))
-         (default-system (chat-input-default-system ctx))
          (content (chat-tab-tree->plain-text input))
          (obj (string->njson "{}"))
          (params (string->njson "{}"))
@@ -349,7 +371,6 @@
     (njson-set! params "baseUrl" base-url)
     (njson-set! params "thinking" thinking)
     (njson-set! params "search" search)
-    (njson-set! params "default_system" default-system)
     (njson-set! obj "params" params)
     (njson-set! obj "content" content)
     (let ((json-str (njson->string obj)))
@@ -384,16 +405,13 @@
 
 ;;; ---------- 发送 ----------
 
-(tm-define (chat-tab-session-send session-id model base-url thinking search default-system)
+(tm-define (chat-tab-session-send session-id model base-url thinking search)
   (:synopsis "Send user message through chat tab session")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
-  (:argument base-url "Resolved service endpoint URL")
+  (:argument base-url "Raw base_url from model manifest, may be relative")
   (:argument thinking "Thinking mode: enabled or disabled")
   (:argument search "Search mode: enabled or disabled")
-  (:argument default-system
-    "Model default system prompt, non-empty on first round only"
-  ) ;:argument
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
@@ -439,9 +457,7 @@
                     #t
                   ) ;begin
                   (begin
-                    (let ((ctx (make-chat-input input session-id model base-url thinking search default-system)
-                          ) ;ctx
-                         ) ;
+                    (let ((ctx (make-chat-input input session-id model base-url thinking search)))
                       (chat-tab-session-feed chat-tab-session-name plugin-ses ctx out '())
                     ) ;let
                     #t
@@ -482,15 +498,14 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (chat-tab-send session-id model base-url thinking search default-system)
+(tm-define (chat-tab-send session-id model base-url thinking search)
   (:synopsis "Adapter send entry for a chat tab")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
-  (:argument base-url "Resolved service endpoint URL")
+  (:argument base-url "Raw base_url from model manifest, may be relative")
   (:argument thinking "Thinking mode")
   (:argument search "Search mode")
-  (:argument default-system "Model default system prompt, first round only")
-  (chat-tab-session-send session-id model base-url thinking search default-system)
+  (chat-tab-session-send session-id model base-url thinking search)
 ) ;tm-define
 
 (tm-define (chat-tab-cancel session-id)
