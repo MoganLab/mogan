@@ -84,8 +84,8 @@ TestChatModel::cleanup () {
 bool
 TestChatModel::write_menu_file (const QString& rootDir, const char* content) {
   QDir dir (rootDir);
-  if (!dir.mkpath ("plugins/llm/goldfish/data")) return false;
-  QFile f (dir.filePath ("plugins/llm/goldfish/data/liii_llm_menu.json"));
+  if (!dir.mkpath ("plugins/llm/data")) return false;
+  QFile f (dir.filePath ("plugins/llm/data/liii_llm_menu.json"));
   if (!f.open (QIODevice::WriteOnly)) return false;
   f.write (content);
   f.close ();

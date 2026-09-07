@@ -34,8 +34,8 @@ struct ChatModelInfo {
  * @brief 模型清单：从固定路径 JSON 加载（HOME 优先、PATH
  * 兜底），失败回退内置清单。
  *
- * 路径规则：$TEXMACS_HOME_PATH/plugins/llm/goldfish/data/liii_llm_menu.json
- * 优先，否则 $TEXMACS_PATH/plugins/llm/goldfish/data/liii_llm_menu.json。
+ * 路径规则：$TEXMACS_HOME_PATH/plugins/llm/data/liii_llm_menu.json
+ * 优先，否则 $TEXMACS_PATH/plugins/llm/data/liii_llm_menu.json。
  * 文件不存在或解析失败时使用内置兜底清单（Kimi-VLM 单条目）。
  */
 class ChatModelStore {

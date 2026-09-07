@@ -82,8 +82,7 @@ resolve_default_key (const QList<ChatModelInfo>& models,
 }
 
 /// 清单文件在安装树中的相对路径（HOME/PATH 根目录之后的部分）
-constexpr const char* kMenuRelPath=
-    "plugins/llm/goldfish/data/liii_llm_menu.json";
+constexpr const char* kMenuRelPath= "plugins/llm/data/liii_llm_menu.json";
 
 } // namespace
 
