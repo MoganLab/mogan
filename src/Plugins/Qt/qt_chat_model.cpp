@@ -73,7 +73,7 @@ info_from_entry (const string& key, const QJsonObject& entry) {
  */
 string
 resolve_default_key (const QList<ChatModelInfo>& models,
-                     const string& explicitDefault) {
+                     const string&               explicitDefault) {
   // string::operator== 非 const，按值迭代才能比较（lolly 既有行为）
   for (ChatModelInfo info : models) {
     if (info.key == explicitDefault) return explicitDefault;
@@ -88,16 +88,17 @@ constexpr const char* kMenuRelPath=
 } // namespace
 
 bool
-chat_model_parse_list (const string& jsonText,
-                       QList<ChatModelInfo>& outModels, string& outDefaultKey) {
-  string text= jsonText; // string::begin() 非 const，拷贝后使用（lolly 既有行为）
+chat_model_parse_list (const string& jsonText, QList<ChatModelInfo>& outModels,
+                       string& outDefaultKey) {
+  string text=
+      jsonText; // string::begin() 非 const，拷贝后使用（lolly 既有行为）
   QJsonParseError parseError;
-  QJsonDocument   doc = QJsonDocument::fromJson (
+  QJsonDocument   doc= QJsonDocument::fromJson (
       QByteArray (text.begin (), N (text)), &parseError);
   if (parseError.error != QJsonParseError::NoError || !doc.isObject ())
     return false;
 
-  QJsonObject          root    = doc.object ();
+  QJsonObject          root= doc.object ();
   QList<ChatModelInfo> models;
   string               explicitDefault;
 
@@ -141,7 +142,7 @@ ChatModelStore::ChatModelStore () {
   for (const char* envVar : roots) {
     string root= get_env (envVar);
     if (is_empty (root)) continue;
-    url    u    = url_system (root, kMenuRelPath);
+    url    u= url_system (root, kMenuRelPath);
     string content;
     // load_string 对缺失文件也会打日志，先挡一层
     if (!exists (u) || load_string (u, content, false)) continue;
@@ -151,11 +152,11 @@ ChatModelStore::ChatModelStore () {
   // 兜底清单：与 main 既有行为一致（模型名 Kimi-VLM），无清单文件时
   // 菜单仅此一项且选中，发送/持久化/恢复不受影响
   ChatModelInfo fallback;
-  fallback.key     = "Kimi-VLM";
-  fallback.name    = "K3";
-  fallback.icon    = "kimi";
+  fallback.key = "Kimi-VLM";
+  fallback.name= "K3";
+  fallback.icon= "kimi";
   models_.append (fallback);
-  defaultKey_      = fallback.key;
+  defaultKey_= fallback.key;
 }
 
 bool
@@ -172,7 +173,7 @@ ChatModelStore::find (const string& key) const {
     if (info.key == key) return info;
   }
   ChatModelInfo fallback; // 找不到：以 key 兜底构造的 Info
-  fallback.key  = key;
-  fallback.name = key;
+  fallback.key = key;
+  fallback.name= key;
   return fallback;
 }

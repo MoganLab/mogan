@@ -53,10 +53,10 @@ private:
   /// 在 rootDir 下写一份模型清单 JSON，返回是否成功
   static bool write_menu_file (const QString& rootDir, const char* content);
 
-  bool      homeWasSet_= false; ///< TEXMACS_HOME_PATH 原本是否设置
-  bool      pathWasSet_= false; ///< TEXMACS_PATH 原本是否设置
-  QByteArray savedHome_;        ///< TEXMACS_HOME_PATH 原值
-  QByteArray savedPath_;        ///< TEXMACS_PATH 原值
+  bool       homeWasSet_= false; ///< TEXMACS_HOME_PATH 原本是否设置
+  bool       pathWasSet_= false; ///< TEXMACS_PATH 原本是否设置
+  QByteArray savedHome_;         ///< TEXMACS_HOME_PATH 原值
+  QByteArray savedPath_;         ///< TEXMACS_PATH 原值
 };
 
 void
@@ -125,11 +125,10 @@ TestChatModel::test_parse_new_format_full_fields () {
 
 void
 TestChatModel::test_parse_new_format_preserves_order () {
-  const char* json=
-      "{ \"models\": ["
-      "  { \"model\": \"deepseek-v4-pro\" },"
-      "  { \"model\": \"kimi-k3\" },"
-      "  { \"model\": \"deepseek-v4-flash\" } ] }";
+  const char*          json= "{ \"models\": ["
+                             "  { \"model\": \"deepseek-v4-pro\" },"
+                             "  { \"model\": \"kimi-k3\" },"
+                             "  { \"model\": \"deepseek-v4-flash\" } ] }";
   QList<ChatModelInfo> models;
   string               defaultKey;
   QVERIFY (chat_model_parse_list (json, models, defaultKey));
@@ -141,8 +140,7 @@ TestChatModel::test_parse_new_format_preserves_order () {
 
 void
 TestChatModel::test_parse_new_format_defaults () {
-  const char* json=
-      "{ \"models\": [ { \"model\": \"kimi-k3\" } ] }";
+  const char*          json= "{ \"models\": [ { \"model\": \"kimi-k3\" } ] }";
   QList<ChatModelInfo> models;
   string               defaultKey;
   QVERIFY (chat_model_parse_list (json, models, defaultKey));
@@ -161,13 +159,12 @@ TestChatModel::test_parse_new_format_defaults () {
 void
 TestChatModel::test_parse_filters_disabled () {
   // enable 为 false 与 0 两种形态均过滤；缺省 enable 视为 true
-  const char* json=
-      "{ \"default\": \"off-bool\","
-      " \"models\": ["
-      "  { \"model\": \"off-bool\", \"enable\": false },"
-      "  { \"model\": \"off-num\", \"enable\": 0 },"
-      "  { \"model\": \"on-num\", \"enable\": 1 },"
-      "  { \"model\": \"on-default\" } ] }";
+  const char*          json= "{ \"default\": \"off-bool\","
+                             " \"models\": ["
+                             "  { \"model\": \"off-bool\", \"enable\": false },"
+                             "  { \"model\": \"off-num\", \"enable\": 0 },"
+                             "  { \"model\": \"on-num\", \"enable\": 1 },"
+                             "  { \"model\": \"on-default\" } ] }";
   QList<ChatModelInfo> models;
   string               defaultKey;
   QVERIFY (chat_model_parse_list (json, models, defaultKey));
@@ -200,7 +197,7 @@ TestChatModel::test_parse_invalid_json () {
 
 void
 TestChatModel::test_parse_empty_models () {
-  const char* json= "{ \"default\": \"x\", \"models\": [] }";
+  const char*          json= "{ \"default\": \"x\", \"models\": [] }";
   QList<ChatModelInfo> models;
   string               defaultKey;
   QVERIFY (!chat_model_parse_list (json, models, defaultKey));
@@ -208,7 +205,7 @@ TestChatModel::test_parse_empty_models () {
 
 void
 TestChatModel::test_parse_models_not_array () {
-  const char* json= "{ \"models\": { \"model\": \"x\" } }";
+  const char*          json= "{ \"models\": { \"model\": \"x\" } }";
   QList<ChatModelInfo> models;
   string               defaultKey;
   QVERIFY (!chat_model_parse_list (json, models, defaultKey));
@@ -219,12 +216,11 @@ TestChatModel::test_parse_models_not_array () {
 void
 TestChatModel::test_parse_old_format () {
   // 旧格式：顶层键即条目 key，名为 default 的条目指定默认 key
-  const char* json=
-      "{ \"Kimi-VLM\": { \"name\": \"K3\", \"icon\": \"kimi\","
-      "                 \"enable\": 1 },"
-      "  \"deepseek-v4\": { \"name\": \"DeepSeek\" },"
-      "  \"disabled-x\": { \"enable\": false },"
-      "  \"default\": { \"model\": \"deepseek-v4\" } }";
+  const char* json= "{ \"Kimi-VLM\": { \"name\": \"K3\", \"icon\": \"kimi\","
+                    "                 \"enable\": 1 },"
+                    "  \"deepseek-v4\": { \"name\": \"DeepSeek\" },"
+                    "  \"disabled-x\": { \"enable\": false },"
+                    "  \"default\": { \"model\": \"deepseek-v4\" } }";
   QList<ChatModelInfo> models;
   string               defaultKey;
   QVERIFY (chat_model_parse_list (json, models, defaultKey));
@@ -261,9 +257,9 @@ void
 TestChatModel::test_store_loads_home_menu () {
   QTemporaryDir home;
   QVERIFY (home.isValid ());
-  QVERIFY (write_menu_file (
-      home.path (), "{ \"models\": [ { \"model\": \"home-model\","
-                    " \"name\": \"Home\" } ] }"));
+  QVERIFY (write_menu_file (home.path (),
+                            "{ \"models\": [ { \"model\": \"home-model\","
+                            " \"name\": \"Home\" } ] }"));
   qputenv ("TEXMACS_HOME_PATH", home.path ().toUtf8 ());
   qunsetenv ("TEXMACS_PATH");
 
@@ -277,10 +273,10 @@ TestChatModel::test_store_home_takes_priority () {
   // HOME 与 PATH 均有清单时取 HOME 的
   QTemporaryDir home, path;
   QVERIFY (home.isValid () && path.isValid ());
-  QVERIFY (write_menu_file (home.path (),
-                            "{ \"models\": [ { \"model\": \"from-home\" } ] }"));
-  QVERIFY (write_menu_file (path.path (),
-                            "{ \"models\": [ { \"model\": \"from-path\" } ] }"));
+  QVERIFY (write_menu_file (
+      home.path (), "{ \"models\": [ { \"model\": \"from-home\" } ] }"));
+  QVERIFY (write_menu_file (
+      path.path (), "{ \"models\": [ { \"model\": \"from-path\" } ] }"));
   qputenv ("TEXMACS_HOME_PATH", home.path ().toUtf8 ());
   qputenv ("TEXMACS_PATH", path.path ().toUtf8 ());
 
@@ -294,8 +290,8 @@ TestChatModel::test_store_falls_back_to_path_menu () {
   // HOME 无清单时取 PATH 的
   QTemporaryDir home, path;
   QVERIFY (home.isValid () && path.isValid ());
-  QVERIFY (write_menu_file (path.path (),
-                            "{ \"models\": [ { \"model\": \"from-path\" } ] }"));
+  QVERIFY (write_menu_file (
+      path.path (), "{ \"models\": [ { \"model\": \"from-path\" } ] }"));
   qputenv ("TEXMACS_HOME_PATH", home.path ().toUtf8 ());
   qputenv ("TEXMACS_PATH", path.path ().toUtf8 ());
 
