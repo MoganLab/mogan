@@ -279,8 +279,28 @@ void
 ChatController::onModelSelected (const string& sessionId, const string& key) {
   if (!modelStore_.contains (key)) return;
   sessionManager_.setModel (sessionId, key);
-  updateManifest (sessionId); // 仅元数据变更，不导出 buffer
+
+  // 切到不允许某能力的模型时重置对应开关为关：隐藏的开会泄漏到下一轮请求
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (s) {
+    ChatModelInfo          info= modelStore_.find (key);
+    ChatConversationPanel* panel=
+        static_cast<ChatConversationPanel*> (s->panel);
+    if (!info.allowThinking && s->thinking) {
+      sessionManager_.setThinking (sessionId, false);
+      if (panel && panel->thinkingButton ())
+        panel->thinkingButton ()->setChecked (false);
+    }
+    if (!info.allowSearch && s->search) {
+      sessionManager_.setSearch (sessionId, false);
+      if (panel && panel->searchButton ())
+        panel->searchButton ()->setChecked (false);
+    }
+  }
+
+  updateManifest (sessionId); // 仅元数据变更，不导出 buffer（含重置后的开关）
   updateModelButtonDisplay (sessionId);
+  applyModelCapabilities (sessionId);
 }
 
 void
@@ -530,6 +550,18 @@ ChatController::updateModelButtonDisplay (const string& sessionId,
       info.name, info.icon, menuOpen);
 }
 
+void
+ChatController::applyModelCapabilities (const string& sessionId) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s || !s->panel) return;
+  ChatModelInfo info= modelStore_.find (s->model); // find 自带 key 兜底
+  ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (s->panel);
+  if (panel->thinkingButton ())
+    panel->thinkingButton ()->setVisible (info.allowThinking);
+  if (panel->searchButton ())
+    panel->searchButton ()->setVisible (info.allowSearch);
+}
+
 /**
  * @brief 按需加载会话的消息内容到面板。
  *
@@ -686,6 +718,8 @@ ChatController::ensureNewConversation () {
   view_->sidebar ()->setActiveItem ("");
 
   updateModelButtonDisplay (sid);
+  // 此路径不经 getOrCreatePanel，默认模型可能不允许某能力，需单独应用
+  applyModelCapabilities (sid);
 }
 
 /**
@@ -724,6 +758,9 @@ ChatController::getOrCreatePanel (const string& sessionId) {
   if (panel->searchButton () && s->search) {
     panel->searchButton ()->setChecked (true);
   }
+
+  // 恢复的会话模型可能不允许推理/搜索，按能力隐藏对应按钮
+  applyModelCapabilities (sessionId);
 
   return panel;
 }

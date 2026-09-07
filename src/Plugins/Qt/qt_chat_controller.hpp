@@ -135,8 +135,9 @@ public:
   /**
    * @brief 模型菜单项被选择时触发。
    *
-   * key 不在清单内忽略；写回 ChatSession.model 并落 manifest，
-   * 不触碰 thinking/search。
+   * key 不在清单内忽略；写回 ChatSession.model 并落 manifest。
+   * 切换到不允许推理/搜索的模型时，对应开关重置为关（会话状态 +
+   * manifest + 按钮取消勾选），避免隐藏的开泄漏到下一轮请求。
    * @param sessionId 目标会话 ID
    * @param key       模型 key（清单条目的 model 字段）
    */
@@ -255,6 +256,16 @@ private:
    * @param menuOpen  模型菜单是否打开（箭头朝上/下）
    */
   void updateModelButtonDisplay (const string& sessionId, bool menuOpen= false);
+
+  /**
+   * @brief 按当前会话模型的能力（allowThinking/allowSearch）刷新深度
+   * 思考、联网搜索按钮的显隐。
+   *
+   * 模型不允许的能力对应按钮隐藏；模型不在清单内时按 find 的 key 兜底
+   * （允许全部，按钮保持可见）。面板未创建时忽略。
+   * @param sessionId 目标会话 ID
+   */
+  void applyModelCapabilities (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
