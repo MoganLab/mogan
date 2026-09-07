@@ -137,6 +137,8 @@ immediate_options (int argc, char** argv) {
       remove (get_tm_cache_path () * url ("plugin_cache.scm"));
 #ifdef QTTEXMACS
     else if (s == "-headless") headless_mode= true;
+    // -c 命令行转换：自动开启 headless，转换完由隐含的 -q 退出
+    else if ((s == "-c") || (s == "-convert")) headless_mode= true;
 #endif
     else if ((s == "-d") || (s == "-debug")) {
       enale_logging= false;
