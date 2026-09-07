@@ -142,15 +142,7 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
   }
   if (benching) bench_end ("chat_init: activate session");
 
-  // 5. 恢复当前模型（使用激活的会话）
-  if (!is_empty (initialId)) {
-    ChatSession* s= sessionManager_.getSession (initialId);
-    if (s && !is_empty (s->model)) {
-      currentModel_= s->model;
-    }
-  }
-
-  // 6. 注册浮动搜索栏的 parent provider
+  // 5. 注册浮动搜索栏的 parent provider
   qt_floating_search_set_parent_provider ([this] () -> QWidget* {
     if (!view_) return nullptr;
     return view_->contentWidget ();
@@ -260,14 +252,23 @@ ChatController::onSearchToggled (const string& sessionId, bool enabled) {
 void
 ChatController::onModelMenuRequested (const string& sessionId,
                                       const QPoint& globalPos) {
-  string model= sessionManager_.getModel (sessionId);
-  if (is_empty (model)) model= "Kimi-VLM";
+  string current= sessionManager_.getModel (sessionId);
+  if (!modelStore_.contains (current)) current= modelStore_.defaultKey ();
 
-  // 占位菜单：仅展示当前模型名，不可切换（模型清单在后续任务接入）
-  QMenu    menu;
-  QAction* current= menu.addAction (to_qstring (model));
-  current->setEnabled (false);
-  menu.exec (globalPos);
+  // 菜单每次打开重建，选中态按当前会话模型刷新
+  QMenu menu;
+  chat_model_menu_populate (&menu, modelStore_.models (), current);
+  QAction* chosen= menu.exec (globalPos);
+  if (chosen)
+    onModelSelected (sessionId,
+                     from_qstring_utf8 (chosen->data ().toString ()));
+}
+
+void
+ChatController::onModelSelected (const string& sessionId, const string& key) {
+  if (!modelStore_.contains (key)) return;
+  sessionManager_.setModel (sessionId, key);
+  updateManifest (sessionId); // 仅元数据变更，不导出 buffer
 }
 
 void
@@ -478,6 +479,12 @@ void
 ChatController::activateSession (const string& sessionId) {
   if (!view_) return;
 
+  // 模型不在清单内（manifest 旧值或空值）时内存回退默认模型，不回写 manifest
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (s && !modelStore_.contains (s->model)) {
+    sessionManager_.setModel (sessionId, modelStore_.defaultKey ());
+  }
+
   // 切换 session 时隐藏悬浮搜索栏
   qt_floating_search_bar_show (view_->contentWidget (), false);
 
@@ -618,7 +625,8 @@ ChatController::ensureNewConversation () {
   // 复用无标题的空白会话（面板和输入内容保持不变）
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
-    sessionManager_.setModel (reusable, currentModel_);
+    // 新会话（含复用）固定为清单默认模型，不继承最近激活会话
+    sessionManager_.setModel (reusable, modelStore_.defaultKey ());
     ChatSession* s= sessionManager_.getSession (reusable);
     if (s && s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
@@ -636,7 +644,7 @@ ChatController::ensureNewConversation () {
   if (!panel) return;
 
   sessionManager_.setPanel (sid, panel);
-  sessionManager_.setModel (sid, currentModel_);
+  sessionManager_.setModel (sid, modelStore_.defaultKey ());
 
   eval ("(use-modules (llm chat-style))");
   call ("chat-tab-sync-session-styles!", sid);

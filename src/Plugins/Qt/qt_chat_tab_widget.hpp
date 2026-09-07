@@ -12,6 +12,7 @@
 #ifndef QT_CHAT_TAB_WIDGET_HPP
 #define QT_CHAT_TAB_WIDGET_HPP
 
+#include "qt_chat_model.hpp"
 #include "qt_chat_session.hpp"
 #include <QList>
 #include <QMap>
@@ -24,6 +25,7 @@ class QFrame;
 class QHBoxLayout;
 class QLabel;
 class QLineEdit;
+class QMenu;
 class QPushButton;
 class QScrollArea;
 class QSpacerItem;
@@ -189,6 +191,18 @@ private:
   int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
   bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
+
+/**
+ * @brief 为 QMenu 填充模型选择菜单项（[logo][名称][徽标] 自定义行）。
+ *
+ * 菜单每次打开重建，故每次调用前应使用新的 QMenu；本函数按 models 顺序
+ * 逐项构造 QWidgetAction 行，选中项（key == currentKey）背景加深。
+ * @param menu       目标菜单
+ * @param models     模型条目，顺序即展示顺序
+ * @param currentKey 当前会话模型 key（不在清单内时无选中项）
+ */
+void chat_model_menu_populate (QMenu* menu, const QList<ChatModelInfo>& models,
+                               const string& currentKey);
 
 /**
  * @brief 聊天侧边栏控件（纯 UI，自管理 items）。

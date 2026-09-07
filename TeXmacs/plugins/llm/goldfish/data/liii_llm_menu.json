@@ -1,0 +1,19 @@
+{
+  "default": "kimi-k3",
+  "models": [
+    {
+      "model": "kimi-k3",
+      "name": "K3",
+      "base_url": "",
+      "default_system": "",
+      "thinking": true,
+      "search": true,
+      "enable": true,
+      "allow_thinking": true,
+      "allow_search": true,
+      "icon": "kimi",
+      "description": "",
+      "dsc_color": "orange"
+    }
+  ]
+}
