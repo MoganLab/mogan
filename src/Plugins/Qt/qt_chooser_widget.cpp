@@ -274,11 +274,8 @@ qt_chooser_widget_rep::set_type (const string& _type) {
   return true;
 }
 
-/*!
- @brief 从名称过滤器（如 "TS files (*.ts)"）的括号内容解析首个后缀，无则返回空串
- */
-static QString
-filter_first_suffix (const QString& filter) {
+QString
+chooser_filter_first_suffix (const QString& filter) {
   int lt= filter.indexOf (QLatin1Char ('('));
   int rt= filter.lastIndexOf (QLatin1Char (')'));
   if (lt < 0 || rt <= lt) return QString ();
@@ -288,14 +285,42 @@ filter_first_suffix (const QString& filter) {
   return QString ();
 }
 
-/*!
- @brief 判断过滤器是否包含指定后缀。须完整 token 匹配，避免 "*.tm" 误配 "*.tmu"
- */
-static bool
-filter_matches_suffix (const QString& filter, const QString& suffix) {
+bool
+chooser_filter_matches_suffix (const QString& filter, const QString& suffix) {
   QString token= QLatin1String ("*.") + suffix;
   return filter.contains (token + QLatin1Char (')')) ||
          filter.contains (token + QLatin1Char (' '));
+}
+
+bool
+chooser_save_as_rewrite (string& file) {
+  if (ends (file, ".ts")) {
+    file= file (0, N (file) - 2) * "stem";
+    return true;
+  }
+  if (ends (file, ".stem")) return true;
+  if (ends (file, ".tm")) {
+    file= file (0, N (file) - 2) * "tmu";
+    return true;
+  }
+  return false;
+}
+
+QStringList
+chooser_style_filters () {
+  return QStringList () << to_qstring (translate ("STEM files") * " (*.stem)")
+                        << to_qstring (translate ("TS files") * " (*.ts)");
+}
+
+QString
+chooser_normalize_suffix (const QString& path, const QString& suffix) {
+  if (suffix.isEmpty ()) return path;
+  if (!path.contains (QLatin1Char ('/'))) return path;
+  if (path.endsWith (QLatin1Char ('/'))) return path;
+  int     name_dot= path.lastIndexOf (QLatin1Char ('.'));
+  int     name_sep= path.lastIndexOf (QLatin1Char ('/'));
+  QString base    = (name_dot > name_sep + 1) ? path.left (name_dot) : path;
+  return base + QLatin1Char ('.') + suffix;
 }
 
 /*! Actually displays the dialog with all the options set.
@@ -310,19 +335,8 @@ qt_chooser_widget_rep::perform_dialog () {
   bool style_save_as= false; // .ts/.stem：stem/ts 成对过滤器
   bool norm_suffix  = false; // 最终文件名规范为所选过滤器的后缀
   if (type == "action_save_as") {
-    if (ends (file, ".ts")) {
-      style_save_as= true;
-      norm_suffix  = true;
-      file         = file (0, N (file) - 2) * "stem";
-    }
-    else if (ends (file, ".stem")) {
-      style_save_as= true;
-      norm_suffix  = true;
-    }
-    else if (ends (file, ".tm")) {
-      norm_suffix= true;
-      file       = file (0, N (file) - 2) * "tmu";
-    }
+    norm_suffix  = chooser_save_as_rewrite (file);
+    style_save_as= norm_suffix && ends (file, ".stem");
   }
 
   QString  caption= to_qstring (win_title);
@@ -360,9 +374,7 @@ qt_chooser_widget_rep::perform_dialog () {
     // .ts/.stem 另存为仅提供 stem/ts 两项，默认 .stem；其余情形（.tm 另存为
     // tmu/tm 默认 tmu；.tmu/草稿保持首项 TMU files (*.tmu)）见下
     if (style_save_as) {
-      nameFilters= QStringList ()
-                   << to_qstring (translate ("STEM files") * " (*.stem)")
-                   << to_qstring (translate ("TS files") * " (*.ts)");
+      nameFilters  = chooser_style_filters ();
       defaultSuffix= "stem";
     }
     dialog->setNameFilters (nameFilters);
@@ -374,7 +386,7 @@ qt_chooser_widget_rep::perform_dialog () {
       if (last_dot > last_sep + 1) {
         QString suffix= qname.mid (last_dot + 1);
         for (int i= 0; i < nameFilters.size (); ++i) {
-          if (!filter_matches_suffix (nameFilters[i], suffix)) continue;
+          if (!chooser_filter_matches_suffix (nameFilters[i], suffix)) continue;
           dialog->selectNameFilter (nameFilters[i]);
           defaultSuffix= suffix;
           break;
@@ -415,7 +427,7 @@ qt_chooser_widget_rep::perform_dialog () {
     // 不依赖过滤器的翻译文本；供下方无后缀文件名补全使用
     if (prompt != "") {
       QString selectedSuffix=
-          filter_first_suffix (dialog->selectedNameFilter ());
+          chooser_filter_first_suffix (dialog->selectedNameFilter ());
       if (!selectedSuffix.isEmpty ()) defaultSuffix= selectedSuffix;
     }
     fileNames= dialog->selectedFiles ();
@@ -423,13 +435,8 @@ qt_chooser_widget_rep::perform_dialog () {
       QString imqstring= fileNames.first ();
       // 继任格式另存为：最终文件名统一为所选过滤器的后缀（用户只改 base 名
       // 也能存成默认的 .stem/.tmu；切到旧格式过滤器则存 .ts/.tm）
-      if (norm_suffix && !defaultSuffix.isEmpty () &&
-          imqstring.contains (QLatin1Char ('/')) &&
-          !imqstring.endsWith (QLatin1Char ('/'))) {
-        int name_dot= imqstring.lastIndexOf (QLatin1Char ('.'));
-        int name_sep= imqstring.lastIndexOf (QLatin1Char ('/'));
-        if (name_dot > name_sep + 1) imqstring= imqstring.left (name_dot);
-        imqstring+= QLatin1Char ('.') + defaultSuffix;
+      if (norm_suffix) {
+        imqstring= chooser_normalize_suffix (imqstring, defaultSuffix);
       }
       // QTBUG-59401: QFileDialog::setDefaultSuffix doesn't work when file path
       // contains a dot
