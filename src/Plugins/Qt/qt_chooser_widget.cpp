@@ -248,7 +248,6 @@ qt_chooser_widget_rep::set_type (const string& _type) {
     mainNameFilter+= " (*.tmu)";
     nameFilters << mainNameFilter;
     nameFilters << to_qstring (translate ("TM files") * " (*.tm)");
-    nameFilters << to_qstring (translate ("TS files") * " (*.ts)");
     defaultSuffix= "tmu";
   }
   else if (_type == "action_include") {
@@ -305,6 +304,18 @@ filter_matches_suffix (const QString& filter, const QString& suffix) {
  */
 void
 qt_chooser_widget_rep::perform_dialog () {
+  // .ts/.stem 样式文件另存为：.stem 是 .ts 的继任格式（任务 1131/1279），
+  // 默认存为 .stem 且仅提供 stem/ts 两种格式；普通保存仍写回原 .ts 文件。
+  // 建议文件名同步改为 .stem，让默认目标在弹窗时即可见
+  bool style_save_as= false;
+  if (type == "action_save_as") {
+    if (ends (file, ".ts")) {
+      style_save_as= true;
+      file         = file (0, N (file) - 2) * "stem";
+    }
+    else if (ends (file, ".stem")) style_save_as= true;
+  }
+
   QString  caption= to_qstring (win_title);
   c_string tmp (directory * "/" * file);
   QString  path= QString::fromUtf8 (&tmp[0]);
@@ -337,10 +348,17 @@ qt_chooser_widget_rep::perform_dialog () {
 
 #if (QT_VERSION >= 0x040400)
   if (type != "directory") {
+    // 样式文件另存为仅提供 stem/ts 两项，默认 .stem；其余情形（如 .tmu/.tm/
+    // 草稿）保持 TMU/TM 列表，并按当前文件后缀预选匹配的过滤器
+    if (style_save_as) {
+      nameFilters= QStringList ()
+                   << to_qstring (translate ("STEM files") * " (*.stem)")
+                   << to_qstring (translate ("TS files") * " (*.ts)");
+      defaultSuffix= "stem";
+    }
     dialog->setNameFilters (nameFilters);
-    // 另存为时默认格式跟随当前文件的后缀（如打开 .ts 另存默认仍为 .ts），
-    // 无后缀或无匹配过滤器时保持首项 TMU files (*.tmu)
-    if (type == "action_save_as") {
+    if (type == "action_save_as" && !style_save_as) {
+      // 无后缀或无匹配过滤器时保持首项 TMU files (*.tmu)
       QString qname   = to_qstring (file);
       int     last_dot= qname.lastIndexOf (QLatin1Char ('.'));
       int     last_sep= qname.lastIndexOf (QLatin1Char ('/'));
@@ -394,12 +412,24 @@ qt_chooser_widget_rep::perform_dialog () {
     fileNames= dialog->selectedFiles ();
     if (fileNames.count () > 0) {
       QString imqstring= fileNames.first ();
+      // 样式另存为：最终文件名统一为所选过滤器的后缀（用户只改 base 名也能
+      // 存成默认的 .stem；切到 TS files 则存为 .ts）
+      if (style_save_as && !defaultSuffix.isEmpty () &&
+          imqstring.contains (QLatin1Char ('/')) &&
+          !imqstring.endsWith (QLatin1Char ('/'))) {
+        int name_dot= imqstring.lastIndexOf (QLatin1Char ('.'));
+        int name_sep= imqstring.lastIndexOf (QLatin1Char ('/'));
+        if (name_dot > name_sep + 1) imqstring= imqstring.left (name_dot);
+        imqstring+= QLatin1Char ('.') + defaultSuffix;
+      }
       // QTBUG-59401: QFileDialog::setDefaultSuffix doesn't work when file path
       // contains a dot
-      if (!defaultSuffix.isEmpty () && imqstring.contains (QLatin1Char ('/')) &&
-          !imqstring.endsWith (QLatin1Char ('/')) &&
-          imqstring.indexOf (QLatin1Char ('.'),
-                             imqstring.lastIndexOf (QLatin1Char ('/'))) == -1) {
+      else if (!defaultSuffix.isEmpty () &&
+               imqstring.contains (QLatin1Char ('/')) &&
+               !imqstring.endsWith (QLatin1Char ('/')) &&
+               imqstring.indexOf (QLatin1Char ('.'),
+                                  imqstring.lastIndexOf (QLatin1Char ('/'))) ==
+                   -1) {
         imqstring= imqstring + QLatin1Char ('.') + defaultSuffix;
       }
       if (!defaultSuffix.isEmpty () &&
