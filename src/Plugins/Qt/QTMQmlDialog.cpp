@@ -830,6 +830,61 @@ cpp_updater_dialog_close () {
   g_updater_dialog_host= nullptr;
 }
 
+// ---- 通用等待中间态弹窗 ---------------------------------------------------
+
+/**
+ * @brief 通用等待弹窗的宿主引用（同 g_updater_dialog_host 模式）。
+ * @details QPointer 在宿主 QDialog 析构（WA_DeleteOnClose）后自动置空，故
+ * cpp_wait_dialog_close 在弹窗已关闭后调用天然安全，不悬垂。弹窗开/关由
+ * scheme 侧（异步任务链）串行调度，无并发竞争；宿主独立于更新器弹窗，两者
+ * 互不干扰。
+ */
+static QPointer<QDialog> g_wait_dialog_host;
+
+/**
+ * @brief 打开通用等待弹窗（声明/语义见 QTMQmlDialog.hpp）。
+ * @details 走 run_modal_qml_dialog（setModal + show，非阻塞模态）——任务链由
+ * scheme 轮询驱动（delayed → g_http-poll），exec() 的嵌套事件循环会阻塞轮询的
+ * delayed 回调，任务期间弹窗会冻死轮询与转圈动画。弹窗只显示无限转圈 + 已翻译
+ * 文案 + Cancel 按钮，无进度条；文案由调用方传入，出现/关闭时机由 scheme 侧
+ * （任务发起前/结果插入前/错误通知前）决定。用户取消（ESC/按钮）经
+ * WaitDialogBridge 回流 scheme 取消回调（wait-dialog-cancelled），宿主 close
+ * 同步析构。弹窗已打开时重复调用 no-op（保留首个文案与回调）。
+ */
+void
+cpp_wait_dialog_open (string message) {
+  if (g_wait_dialog_host) return; // 已打开不重复弹
+  run_modal_qml_dialog (
+      "qrc:/qml/WaitProgressDialog.qml", "wait progress dialog",
+      [&] (QQuickWidget* qw, QDialog* host) {
+        QmlDialogBridge* closeBridge = inject_common_context (qw, *host);
+        WaitDialogBridge* cancelBridge= new WaitDialogBridge (host);
+        g_wait_dialog_host= host;
+        qw->rootContext ()->setContextProperty ("waitCancelBridge", cancelBridge);
+        qw->rootContext ()->setContextProperty ("dialogMessage",
+                                                to_qstring (message));
+        array<string> buttons;
+        buttons << string ("Cancel");
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        QObject::connect (host, &QDialog::destroyed, closeBridge,
+                          &QObject::deleteLater);
+        QObject::connect (host, &QDialog::destroyed, cancelBridge,
+                          &QObject::deleteLater);
+      },
+      420, 240);
+}
+
+/**
+ * @brief 关闭通用等待弹窗（同 cpp_updater_dialog_close：close 同步析构宿主，
+ * QPointer 自动置空，此处再显式置空）。
+ */
+void
+cpp_wait_dialog_close () {
+  if (g_wait_dialog_host) g_wait_dialog_host->close ();
+  g_wait_dialog_host= nullptr;
+}
+
 /**
  * @brief 首选项 QML 对话框的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
  *

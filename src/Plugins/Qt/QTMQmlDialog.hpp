@@ -298,6 +298,27 @@ void cpp_updater_dialog_open (string message);
  */
 void cpp_updater_dialog_close ();
 
+// ---- 通用等待中间态弹窗 --------------------------------------------------
+
+/**
+ * @brief 打开通用等待中间态弹窗（非阻塞模态，run_modal_qml_dialog）。
+ * @param message 已翻译的正文（如「正在处理，请稍候...」）。
+ * @details 与更新器同构：异步任务链由 scheme 轮询驱动
+ * （delayed → g_http-poll），弹窗必须用 setModal+show（非 exec），主线程回到
+ * 事件循环，转圈动画才转得动、轮询回调才执行得了。通用组件：OCR 识别、其他
+ * 魔法粘贴等异步任务共用，文案由调用方传入。等待期间可 ESC/Cancel 取消：
+ * 宿主 close 同步析构 + eval_scheme 回流 (wait-dialog-cancelled)（GPL 层路由
+ * 到当前任务的取消回调）。弹窗只显示无限转圈 + 文案，无进度条。弹窗已打开时
+ * 重复调用 no-op（保留首个文案与回调）。
+ */
+void cpp_wait_dialog_open (string message);
+
+/**
+ * @brief 关闭通用等待中间态弹窗（host->close() → WA_DeleteOnClose 析构宿主）；
+ * 未打开时 no-op。任务成功（结果插入前）与失败（错误通知前）均需调用。
+ */
+void cpp_wait_dialog_close ();
+
 /**
  * @brief QML 调色板弹窗的 glue 入口。
  * @param title 弹窗标题（已翻译）。

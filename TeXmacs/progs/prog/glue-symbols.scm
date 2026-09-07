@@ -220,6 +220,7 @@
     "cpp-paragraph-format-dialog" "cpp-preferences-dialog"
     "cpp-print-to-file-dialog" "cpp-statistics-dialog" "cpp-version-dialog"
     "cpp-export-pdf-dialog" "cpp-updater-dialog-open" "cpp-updater-dialog-close"
+    "cpp-wait-dialog-open" "cpp-wait-dialog-close"
     "cpp-rasterize-widget" "kill-window" "kill-current-window-and-buffer"
     "project-attach" "project-detach" "project-attached?" "project-get"
     "alt-window-handle" "alt-window-create-quit" "alt-window-create-plain"

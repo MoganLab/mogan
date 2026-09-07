@@ -29,5 +29,6 @@
         <file>qml/ExportPdf.qml</file>
         <file>qml/Version.qml</file>
         <file>qml/UpdaterProgress.qml</file>
+        <file>qml/WaitProgressDialog.qml</file>
     </qresource>
 </RCC>

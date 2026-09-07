@@ -13,9 +13,12 @@
 
 #include "boot.hpp"
 
+#include "s7_tm.hpp" // eval_scheme
+
 #include <QDialog>
 #include <QKeyEvent>
 #include <QObject>
+#include <QPointer>
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QString>
@@ -90,6 +93,46 @@ signals:
 private:
   QDialog*    m_host;
   QVariantMap m_results;
+};
+
+/*! @class WaitDialogBridge
+ *  @brief 通用等待弹窗（WaitProgressDialog）的取消回流桥。
+ *
+ * @par 语义
+ * QML 侧 ESC（DialogShell onCancel 覆盖）与 Cancel 按钮均调 cancel()：
+ *   ① m_host->close()：同步析构宿主（WA_DeleteOnClose）——不走 closeBridge
+ *   的 done(Rejected)，后者对 show 型弹窗只 hide 不析构，会泄漏宿主（见
+ *   cpp_updater_dialog_close 的注释）；
+ *   ② eval_scheme("(wait-dialog-cancelled)")：经全局函数回流 GPL 层路由到
+ *   当前任务的 on-cancel 回调（模式同 ParagraphFormatBridge 的
+ *   paragraph-format-commit），goldfish 编排层据此置 per-task 取消标志，
+ *   拦截后续插入/识别动作。
+ *
+ * @par 生命期
+ * 不挂宿主 parent（同 QmlDialogBridge 惯例），宿主 destroyed → 调用方
+ * deleteLater；close() 同步析构宿主后 cancel() 体继续执行 eval_scheme 安全
+ * （deleteLater 是排队删除）。m_host 用 QPointer 防悬垂双重保险。
+ */
+class WaitDialogBridge : public QObject {
+  Q_OBJECT
+public:
+  explicit WaitDialogBridge (QDialog* host) : QObject (), m_host (host) {
+    ASSERT (host != NULL, "WaitDialogBridge expects a valid QDialog host");
+  }
+
+  /**
+   * @brief 用户取消：关闭并析构宿主弹窗，再回流 scheme 取消回调。
+   * @details 先 close() 后 eval_scheme：弹窗立即消失（UI 即时反馈），
+   * scheme 侧置取消标志；顺序上先析构宿主也不影响后续 eval（本对象靠
+   * deleteLater 存活到事件循环下一轮）。
+   */
+  Q_INVOKABLE void cancel () {
+    if (m_host) m_host->close ();
+    eval_scheme ("(wait-dialog-cancelled)");
+  }
+
+private:
+  QPointer<QDialog> m_host;
 };
 
 /*! @class QmlDialogEscFilter
