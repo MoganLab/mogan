@@ -53,9 +53,10 @@
         (cdar the-result)
         ($description-aligned ($for (x the-result)
                                 ($describe-item ($inline (quotient (* (cdr x) 100) highest-score) "%")
+                                  ;; 无标题节点时 text 回退为 UTF-8 原始路径，须转 cork 否则中文乱码
                                   (let* ((path (car x))
                                          (title (help-file-title path))
-                                         (text (if (null? title) (car x) title))
+                                         (text (if (null? title) (utf8->cork (car x)) title))
                                         ) ;
                                     ($link path text)
                                   ) ;let*
