@@ -324,6 +324,7 @@ path
 find_innermost_scroll (box b, path p) {
   // Given a box b and a logical path p, this routine returns
   // the longest box path sp such that b[sp] is a scroll node
+  if (is_nil (b)) return path ();
   path bp;
   while (true) {
     bool found= false;

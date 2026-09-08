@@ -19,8 +19,10 @@
 #include <QButtonGroup>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
 #include <QPushButton>
+#include <QShortcut>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
@@ -93,6 +95,8 @@ QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
   stackedWidget->setObjectName ("startup-tab-content"); // 样式在主题CSS中定义
   setup_right_content (stackedWidget);
   mainLayout->addWidget (stackedWidget, 1);
+
+  setup_shortcuts ();
 }
 
 QTMStartupTabWidget::Entry
@@ -361,19 +365,16 @@ QTMStartupTabWidget::on_app_quit () {
 }
 
 void
-QTMStartupTabWidget::keyPressEvent (QKeyEvent* event) {
-  string key= from_key_press_event (event);
-  if (is_empty (key)) return QWidget::keyPressEvent (event);
+QTMStartupTabWidget::setup_shortcuts () {
+  QShortcut* scNewTab= new QShortcut (QKeySequence::AddTab, this);
+  connect (scNewTab, &QShortcut::activated, this,
+           [] () { eval_scheme ("(new-document)"); });
 
-  eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
-  event->accept ();
-}
-
-void
-QTMStartupTabWidget::keyReleaseEvent (QKeyEvent* event) {
-  string key= from_key_release_event (event);
-  if (is_empty (key)) return QWidget::keyReleaseEvent (event);
-
-  eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
-  event->accept ();
+  for (int i= 0; i < 9; ++i) {
+    QShortcut* scTab=
+        new QShortcut (QKeySequence (Qt::CTRL | (Qt::Key_1 + i)), this);
+    connect (scTab, &QShortcut::activated, this, [i] () {
+      eval_scheme ("(switch-to-view-index " * as_string (i) * ")");
+    });
+  }
 }

@@ -47,10 +47,6 @@ private slots:
   void onCategoryClicked ();
   void onCategoriesLoaded ();
 
-protected:
-  void keyPressEvent (QKeyEvent* event) override;
-  void keyReleaseEvent (QKeyEvent* event) override;
-
 private:
   // 界面构建辅助函数
   void         setup_left_sidebar (QVBoxLayout* sidebarLayout);
@@ -66,6 +62,7 @@ private:
   // 导航按钮状态管理
   void set_active_nav_button (Entry entry);
   void refresh_recent_docs_on_file_entry (Entry entry);
+  void setup_shortcuts ();
 
 private:
   Entry   currentEntry_;
