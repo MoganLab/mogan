@@ -15,7 +15,7 @@
 
 (import (scheme base)
   (liii base)
-  (liii njson)
+  (liii json)
   (liii path)
   (liii string)
   (liii uuid)
@@ -205,7 +205,7 @@
 ) ;define-public
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Meta file helpers (using njson for reliability)
+;; Meta file helpers (using (liii json) for reliability)
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (telemetry-read-meta)
@@ -213,8 +213,8 @@
     (lambda ()
       (let ((path (telemetry-meta-path)))
         (if (path-exists? path)
-          (let ((njson-data (file->njson path)))
-            (vector->list (njson->json njson-data))
+          (let ((data (string->json (path-read-text path))))
+            (if (vector? data) (vector->list data) '())
           ) ;let
           '()
         ) ;if
@@ -229,7 +229,7 @@
          (tmp-path (path->string (path-with-suffix path ".json.tmp")))
         ) ;
     (define (try-write)
-      (njson->file tmp-path (json->njson (list->vector entries)))
+      (path-write-text tmp-path (json->string (list->vector entries)))
       (when (path-exists? path)
         (path-unlink path)
       ) ;when
