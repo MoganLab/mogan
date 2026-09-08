@@ -15,6 +15,22 @@
 
 (check-set-mode! 'report-failed)
 
+;;; ---------- qt-chat-tab-restore-session 间谍 ----------
+;; 必须先于 chat-list.scm 加载定义间谍：s7 会把模块内对 C++ glue 函数的引用
+;; 静态绑定到 glue 本身，模块加载后再 tm-define 同名间谍无法被模块内调用看到
+
+(define restored-sessions '())
+
+(tm-define (qt-chat-tab-restore-session sid title model archived createdAt
+             updateAt expandCount thinking search
+           ) ;qt-chat-tab-restore-session
+  (set! restored-sessions
+    (cons (list sid title model archived createdAt updateAt expandCount thinking search)
+      restored-sessions
+    ) ;cons
+  ) ;set!
+) ;tm-define
+
 (load "./TeXmacs/plugins/llm/progs/llm/chat-list.scm")
 
 ;;; ---------- 测试环境隔离（沙箱目录） ----------
@@ -168,18 +184,6 @@
 ) ;define
 
 ;;; ---------- 3. 会话恢复与读取测试 ----------
-
-(define restored-sessions '())
-
-(tm-define (qt-chat-tab-restore-session sid title model archived createdAt
-             updateAt expandCount thinking search
-           ) ;qt-chat-tab-restore-session
-  (set! restored-sessions
-    (cons (list sid title model archived createdAt updateAt expandCount thinking search)
-      restored-sessions
-    ) ;cons
-  ) ;set!
-) ;tm-define
 
 (define (test-load-all-normal)
   (clean-test-sandbox!)
