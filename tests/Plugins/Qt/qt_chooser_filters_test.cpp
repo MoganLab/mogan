@@ -18,45 +18,45 @@ class TestQtChooserFilters : public QObject {
 private slots:
   void init () { init_lolly (); }
 
-  // .ts 另存为改写为 .stem（继任格式）
+  // .ts 另存为改写为 .stem（继任格式），目标后缀 stem
   void test_rewrite_ts () {
     string f= "foo.ts";
-    QVERIFY (chooser_save_as_rewrite (f));
+    QVERIFY (chooser_save_as_target (f) == "stem");
     QVERIFY (f == "foo.stem");
     string g= "a.dir/foo.ts";
-    QVERIFY (chooser_save_as_rewrite (g));
+    QVERIFY (chooser_save_as_target (g) == "stem");
     QVERIFY (g == "a.dir/foo.stem");
   }
 
   // .stem 本就是默认格式：保持不变但属于引导场景
   void test_rewrite_stem () {
     string f= "foo.stem";
-    QVERIFY (chooser_save_as_rewrite (f));
+    QVERIFY (chooser_save_as_target (f) == "stem");
     QVERIFY (f == "foo.stem");
   }
 
   // .tm 另存为改写为 .tmu；.stm/.tmu 不得误伤
   void test_rewrite_tm () {
     string f= "foo.tm";
-    QVERIFY (chooser_save_as_rewrite (f));
+    QVERIFY (chooser_save_as_target (f) == "tmu");
     QVERIFY (f == "foo.tmu");
     string g= "foo.stm";
-    QVERIFY (!chooser_save_as_rewrite (g));
+    QVERIFY (chooser_save_as_target (g) == "");
     QVERIFY (g == "foo.stm");
     string h= "foo.tmu";
-    QVERIFY (!chooser_save_as_rewrite (h));
+    QVERIFY (chooser_save_as_target (h) == "");
   }
 
   // 其余后缀与无后缀（草稿）不触发改写
   void test_rewrite_no_match () {
     string empty= "";
-    QVERIFY (!chooser_save_as_rewrite (empty));
+    QVERIFY (chooser_save_as_target (empty) == "");
     string bar= "bar";
-    QVERIFY (!chooser_save_as_rewrite (bar));
+    QVERIFY (chooser_save_as_target (bar) == "");
     string tex= "foo.tex";
-    QVERIFY (!chooser_save_as_rewrite (tex));
+    QVERIFY (chooser_save_as_target (tex) == "");
     string tp= "foo.tp";
-    QVERIFY (!chooser_save_as_rewrite (tp));
+    QVERIFY (chooser_save_as_target (tp) == "");
   }
 
   // 样式另存的成对过滤器：stem（默认）在前，ts 在后，无其他格式
@@ -81,17 +81,6 @@ private slots:
     QCOMPARE (chooser_filter_first_suffix ("All (*)"), QString (""));
     QCOMPARE (chooser_filter_first_suffix ("no parens"), QString (""));
     QCOMPARE (chooser_filter_first_suffix ("X (foo)"), QString (""));
-  }
-
-  // 完整 token 匹配：*.tm 不得命中 *.tmu，多后缀过滤器逐项命中
-  void test_filter_matches_suffix () {
-    QVERIFY (chooser_filter_matches_suffix ("TM files (*.tm)", "tm"));
-    QVERIFY (chooser_filter_matches_suffix ("STEM files (*.tmu)", "tmu"));
-    QVERIFY (!chooser_filter_matches_suffix ("STEM files (*.tmu)", "tm"));
-    QVERIFY (chooser_filter_matches_suffix ("X (*.ts *.stem)", "ts"));
-    QVERIFY (chooser_filter_matches_suffix ("X (*.ts *.stem)", "stem"));
-    QVERIFY (!chooser_filter_matches_suffix ("X (*.ts *.stem)", "st"));
-    QVERIFY (!chooser_filter_matches_suffix ("X (*.ts *.stem)", "te"));
   }
 
   // 最终文件名规范：去旧后缀再接所选后缀；非文件路径原样返回
