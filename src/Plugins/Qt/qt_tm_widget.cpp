@@ -3241,10 +3241,12 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
           manager->deleteLater ();
           return;
         }
-        // 定义统一的错误处理逻辑
+        // 定义统一的错误处理逻辑。弹窗为惰性创建，须先 ensureLoginDialog
+        // 生成标签，showNotLoggedInDialog 才能把错误信息写进 accountIdLabel
         auto handleError= [this] (const QString& errorMessage) {
+          ensureLoginDialog ();
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
-          show_login_dialog_at_button (ensureLoginDialog (), loginButton);
+          show_login_dialog_at_button (m_loginDialog, loginButton);
         };
 
         if (reply->error () == QNetworkReply::NoError) {
@@ -3270,6 +3272,12 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
             QString productType=
                 userData["productType"].toString ("Subscribe Now");
 
+            // 首次点击时弹窗尚未创建（惰性创建），标签为空会导致
+            // updateDialogContent 写不进用户信息，须先创建弹窗再更新内容
+            if (showDialog) {
+              ensureLoginDialog ();
+            }
+
             // 更新弹窗内容
             updateDialogContent (true, userName, accountEmail, avatarText,
                                  memberType, periodLabel, periodLabelColor,
@@ -3280,7 +3288,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
                                            periodLabelColor, productType);
 
             if (showDialog) {
-              show_login_dialog_at_button (ensureLoginDialog (), loginButton);
+              show_login_dialog_at_button (m_loginDialog, loginButton);
             }
           }
           else {
