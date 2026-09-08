@@ -123,7 +123,7 @@
     ) ;define
 
     (define (not-null-list? l)
-      (cond ((pair? l) (or (null? (cdr l)) (pair? (cdr l))))
+      (cond ((pair? l) (proper-list? l))
             ((null? l) #f)
             (else (error 'type-error "type mismatch"))
       ) ;cond
@@ -134,7 +134,7 @@
     ) ;define
 
     (define (list-not-null? l)
-      (and (pair? l) (or (null? (cdr l)) (pair? (cdr l))))
+      (and (pair? l) (proper-list? l))
     ) ;define
 
     (define* (flatten lst (depth 1))

@@ -1399,7 +1399,7 @@ struct s7_scheme {
   s7_pointer add_1x, add_2, add_3, add_4, add_i_random, add_x1, append_2, ash_ic, ash_ii, bv_ref_2, bv_ref_3, bv_set_3,
              cdr_let_ref, cdr_let_set, char_equal_2, char_greater_2, char_less_2, char_position_csi, complex_wrapped, curlet_ref, cv_ref_2, cv_set_3,
              display_2, display_f, dynamic_wind_body, dynamic_wind_init, dynamic_wind_unchecked,
-             format_as_objstr, format_f, format_just_control_string, format_no_column, fv_ref_2, fv_ref_3, fv_set_3, fv_set_unchecked, geq_2,
+             format_as_objstr, format_f, format_just_control_string, format_no_column, fv_ref_2, fv_ref_3, fv_set_3, geq_2,
              get_output_string_uncopied, hash_table_2, hash_table_ref_2, int_log2, is_defined_in_rootlet, is_defined_in_unlet, iv_ref_2, iv_ref_3, iv_set_3,
              list_0, list_1, list_2, list_3, list_4, list_ref_at_0, list_ref_at_1, list_ref_at_2, list_set_i,
              logand_2, logand_ii, logior_ii, logior_2, logxor_2, memq_2, memq_3, memq_4, memq_any, multiply_3,
@@ -25480,48 +25480,9 @@ static s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args)
   }
 }
 
-static s7_pointer g_fv_set_unchecked(s7_scheme *sc, s7_pointer args)
+static s7_pointer float_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
-  const s7_pointer fv = car(args), value = caddr(args);
-  s7_int ind;
-  if (!is_real(value))
-    wrong_type_error_nr(sc, sc->float_vector_set_symbol, 3, value, sc->type_names[T_REAL]);
-  if (is_immutable_vector(fv))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->float_vector_set_symbol, fv));
-  ind = s7_integer_clamped_if_gmp(sc, cadr(args));
-  float_vector(fv, ind) = s7_real(value);
-  return(value);
-}
-
-static bool find_matching_ref(s7_scheme *sc, const s7_pointer getter, s7_pointer expr)
-{
-  /* expr: (*set! v i val), val exists (i.e. args=3, so cddddr is null) */
-  const s7_pointer sym = cadr(expr), ind = caddr(expr);
-  if ((is_symbol(sym)) && (!is_pair(ind)))
-    {
-      const s7_pointer val = cadddr(expr);
-      if (is_optimized(val)) /* includes is_pair */
-	for (s7_pointer p = val; is_pair(p); p = cdr(p))
-	  if (is_pair(car(p)))
-	    {
-	      const s7_pointer ref = car(p);
-	      if (((car(ref) == getter) &&             /* (getter sym ind) */
-		   (is_proper_list_2(sc, cdr(ref))) &&
-		   (cadr(ref) == sym) &&
-		   (caddr(ref) == ind)) ||
-		  ((car(ref) == sym) &&                /* (sym ind) */
-		   (is_proper_list_1(sc, cdr(ref))) &&
-		   (cadr(ref) == ind)))
-		return(true);                          /* else keep looking */
-	    }}
-  return(false);
-}
-
-static s7_pointer float_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
-{
-  if (args == 3)
-    return((find_matching_ref(sc, sc->float_vector_ref_symbol, expr)) ? sc->fv_set_unchecked : sc->fv_set_3);
-  return(func);
+  return((args == 3) ? sc->fv_set_3 : func);
 }
 
 static s7_double float_vector_set_d_7pid_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index, s7_double x) {float_vector(vec, index) = x; return(x);}
@@ -27398,15 +27359,12 @@ static s7_uint hash_map_vector(s7_scheme *sc, s7_pointer table, s7_pointer key)
 static s7_uint hash_map_closure(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
   const s7_pointer f = hash_table_procedures_mapper(table);
-  if (f == sc->unused)
-    error_nr(sc, make_symbol(sc, "hash-map-recursion", 18),
-	     set_elist_1(sc, wrap_string(sc, "hash-table map function called recursively", 42)));
-  /* check_stack_size(sc); -- perhaps clear typers as well here or save/restore hash-table-procedures */
+  if ((!is_any_c_function(f)) && (!is_any_closure(f)))
+    error_nr(sc, sc->wrong_type_arg_symbol,
+	     set_elist_2(sc, wrap_string(sc, "hash-table map function is not a procedure: ~S", 46), f));
   gc_protect_via_stack(sc, f);
-  hash_table_set_procedures_mapper(table, sc->F);
   sc->value = s7_call(sc, f, set_plist_1(sc, key));
   unstack_gc_protect(sc);
-  hash_table_set_procedures_mapper(table, f);
   if (!s7_is_integer(sc->value))
     error_nr(sc, sc->wrong_type_arg_symbol,
 	     set_elist_2(sc, wrap_string(sc, "hash-table map function should return an integer: ~S", 52), sc->value));
@@ -53823,7 +53781,6 @@ static void init_choosers(s7_scheme *sc)
   /* float-vector-set */
   func = set_function_chooser(sc->float_vector_set_symbol, float_vector_set_chooser);
   sc->fv_set_3 = make_function_with_class(sc, func, "float-vector-set!", g_fv_set_3, 3, 0, false);
-  sc->fv_set_unchecked = make_function_with_class(sc, func, "float-vector-set!", g_fv_set_unchecked, 3, 0, false);
 
   /* int-vector-ref */
   func = set_function_chooser(sc->int_vector_ref_symbol, int_vector_ref_chooser);

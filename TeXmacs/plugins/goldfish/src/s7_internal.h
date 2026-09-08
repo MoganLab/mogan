@@ -1415,7 +1415,7 @@ struct s7_scheme {
   s7_pointer add_1x, add_2, add_3, add_4, add_i_random, add_x1, append_2, ash_ic, ash_ii, bv_ref_2, bv_ref_3, bv_set_3,
              cdr_let_ref, cdr_let_set, char_equal_2, char_greater_2, char_less_2, char_position_csi, complex_wrapped, curlet_ref, cv_ref_2, cv_set_3,
              display_2, display_f, dynamic_wind_body, dynamic_wind_init, dynamic_wind_unchecked,
-             format_as_objstr, format_f, format_just_control_string, format_no_column, fv_ref_2, fv_ref_3, fv_set_3, fv_set_unchecked, geq_2,
+             format_as_objstr, format_f, format_just_control_string, format_no_column, fv_ref_2, fv_ref_3, fv_set_3, geq_2,
              get_output_string_uncopied, hash_table_2, hash_table_ref_2, int_log2, is_defined_in_rootlet, is_defined_in_unlet, iv_ref_2, iv_ref_3, iv_set_3,
              list_0, list_1, list_2, list_3, list_4, list_ref_at_0, list_ref_at_1, list_ref_at_2, list_set_i,
              logand_2, logand_ii, logior_ii, logior_2, logxor_2, memq_2, memq_3, memq_4, memq_any, multiply_3,
@@ -1681,7 +1681,7 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info);
   }
 
 /* inline_make_let_with_slot (decl) */
-extern inline s7_pointer inline_make_let_with_slot(s7_scheme *sc, s7_pointer old_let, s7_pointer symbol, s7_pointer value);
+s7_pointer inline_make_let_with_slot(s7_scheme *sc, s7_pointer old_let, s7_pointer symbol, s7_pointer value);
 
 /* is_any_closure (macro) */
 #define is_any_closure(P)              t_any_closure_p[type(P)]
@@ -1755,10 +1755,10 @@ s7_pointer lookup(s7_scheme *sc, const s7_pointer symbol);
 s7_pointer make_let(s7_scheme *sc, s7_pointer old_let);
 
 /* make_simple_vector (decl) */
-extern inline s7_pointer make_simple_vector(s7_scheme *sc, s7_int len);
+s7_pointer make_simple_vector(s7_scheme *sc, s7_int len);
 
 /* mallocate_block (decl) */
-extern inline block_t *mallocate_block(s7_scheme *sc);
+block_t *mallocate_block(s7_scheme *sc);
 
 /* mark_stack_1 (decl) */
 void mark_stack_1(s7_pointer stack, s7_int top);
@@ -2040,7 +2040,7 @@ extern bool t_vector_p[NUM_TYPES];
 void memclr(void *s, size_t n);
 
 /* function decls for s7_scheme_write.c (object->port), definitions live in s7.c */
-extern inline void liberate(s7_scheme *sc, block_t *blk);
+void liberate(s7_scheme *sc, block_t *blk);
 char *pos_int_to_str(s7_scheme *sc, s7_int num, s7_int *len, char endc);
 char *pos_int_to_str_direct(s7_scheme *sc, s7_int num);
 char *pos_int_to_str_direct_1(s7_scheme *sc, s7_int num);

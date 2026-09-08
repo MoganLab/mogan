@@ -78,7 +78,7 @@
     ) ;define
 
     (define (json-object? x)
-      (and (list? x) (not (null? x)) (or (equal? x '(())) (every pair? x)))
+      (and (proper-list? x) (not (null? x)) (or (equal? x '(())) (every pair? x)))
     ) ;define
 
     (define (json-array? x)

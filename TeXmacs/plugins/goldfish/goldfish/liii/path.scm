@@ -924,7 +924,10 @@
 
     ;; ; 追加文本到文件末尾。
     (define (path-append-text p content)
-      (g_path-append-text (path->string p) content)
+      (if (not (string? content))
+        (type-error "path-append-text: content must be string")
+        (g_path-append-text (path->string p) content)
+      ) ;if
     ) ;define
 
     ;; ; 创建空文件(若不存在),已存在则更新访问时间。

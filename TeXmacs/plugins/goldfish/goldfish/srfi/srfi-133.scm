@@ -404,7 +404,30 @@
       ) ;let
     ) ;define
 
-    (define* (reverse-vector->list vec (start 0) (end (vector-length vec)))
+    (define* (reverse-vector->list vec
+               (start 0)
+               (end (if (vector? vec) (vector-length vec) 0))
+             ) ;reverse-vector->list
+      (unless (vector? vec)
+        (error 'type-error "reverse-vector->list: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? start)
+        (error 'type-error "reverse-vector->list: start must be an integer" start)
+      ) ;unless
+      (unless (integer? end)
+        (error 'type-error "reverse-vector->list: end must be an integer" end)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (when (or (< start 0) (> start len))
+          (error 'out-of-range "reverse-vector->list: start out of range" start)
+        ) ;when
+        (when (or (< end 0) (> end len))
+          (error 'out-of-range "reverse-vector->list: end out of range" end)
+        ) ;when
+        (when (> start end)
+          (error 'out-of-range "reverse-vector->list: start > end" start end)
+        ) ;when
+      ) ;let
       (let loop
         ((i start) (acc '()))
         (if (= i end) acc (loop (+ i 1) (cons (vector-ref vec i) acc)))

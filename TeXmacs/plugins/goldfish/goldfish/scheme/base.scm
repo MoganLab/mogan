@@ -640,6 +640,7 @@
 
     (define* (vector-copy! to at from (start 0) (end (vector-length from)))
       (if (or (< at 0)
+            (< start 0)
             (> start (vector-length from))
             (< end 0)
             (> end (vector-length from))

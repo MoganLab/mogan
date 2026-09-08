@@ -72,9 +72,11 @@ g_char_position (s7_scheme* sc, s7_pointer args) {
   if (start >= len) return s7_f (sc);
 
   if (s7_is_character (arg1)) {
-    const char  c= (char) s7_character (arg1);
-    const char* p= strchr ((const char*) (porig + start), (int) c);
-    return p ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
+    const uint32_t cp= s7_character (arg1);
+    if (cp > 0xFF) return s7_f (sc);
+    const char  c= (char) (uint8_t) cp;
+    const char* p= strchr ((const char*) (porig + start), (int) (uint8_t) c);
+    return (p && ((s7_int) (p - porig) < len)) ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
   }
 
   if (s7_string_length (arg1) == 0) return s7_f (sc);
@@ -96,9 +98,11 @@ char_position_p_ppi (s7_scheme* sc, s7_pointer chr, s7_pointer str, s7_int start
   const s7_int len  = s7_string_length (str);
   if (start >= len) return s7_f (sc);
 
-  const char  c= (char) s7_character (chr);
-  const char* p= strchr ((const char*) (porig + start), (int) c);
-  return p ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
+  const uint32_t cp= s7_character (chr);
+  if (cp > 0xFF) return s7_f (sc);
+  const char  c= (char) (uint8_t) cp;
+  const char* p= strchr ((const char*) (porig + start), (int) (uint8_t) c);
+  return (p && ((s7_int) (p - porig) < len)) ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
 }
 
 s7_pointer
@@ -119,10 +123,12 @@ g_char_position_csi (s7_scheme* sc, s7_pointer args) {
 
   if (len == 0) return s7_f (sc);
 
+  const uint32_t cp= s7_character (s7_car (args));
+  if (cp > 0xFF) return s7_f (sc);
   const char* porig= s7_string (arg2);
-  const char  c    = (char) s7_character (s7_car (args));
-  const char* p    = strchr ((const char*) (porig + start), (int) c);
-  return p ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
+  const char  c    = (char) (uint8_t) cp;
+  const char* p    = strchr ((const char*) (porig + start), (int) (uint8_t) c);
+  return (p && ((s7_int) (p - porig) < len)) ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
 }
 
 /* -------------------------------- string-position -------------------------------- */

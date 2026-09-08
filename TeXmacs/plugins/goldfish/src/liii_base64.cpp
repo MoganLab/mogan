@@ -33,7 +33,7 @@ f_bytevector_base64_decode (s7_scheme* sc, s7_pointer args) {
                          "bytevector-base64-decode: input must be bytevector", arg);
   }
 
-  s7_int   in_len= s7_integer (s7_cadr (args));
+  s7_int   in_len= s7_vector_length (arg);
   uint8_t* in    = (uint8_t*) s7_byte_vector_elements (arg);
 
   if (in_len % 4 != 0) {
@@ -112,7 +112,7 @@ f_bytevector_base64_encode (s7_scheme* sc, s7_pointer args) {
                          "bytevector-base64-encode: input must be bytevector", arg);
   }
 
-  s7_int   in_len= s7_integer (s7_cadr (args));
+  s7_int   in_len= s7_vector_length (arg);
   uint8_t* in    = (uint8_t*) s7_byte_vector_elements (arg);
 
   static const uint8_t encode_table[64]= {
@@ -161,15 +161,15 @@ f_bytevector_base64_encode (s7_scheme* sc, s7_pointer args) {
 static void
 glue_bytevector_base64_decode (s7_scheme* sc) {
   const char* name= "g_bytevector-base64-decode";
-  const char* desc= "(g_bytevector-base64-decode bv len) => bytevector";
-  s7_define_function (sc, name, f_bytevector_base64_decode, 2, 0, false, desc);
+  const char* desc= "(g_bytevector-base64-decode bv) => bytevector";
+  s7_define_function (sc, name, f_bytevector_base64_decode, 1, 0, false, desc);
 }
 
 static void
 glue_bytevector_base64_encode (s7_scheme* sc) {
   const char* name= "g_bytevector-base64-encode";
-  const char* desc= "(g_bytevector-base64-encode bv len) => bytevector";
-  s7_define_function (sc, name, f_bytevector_base64_encode, 2, 0, false, desc);
+  const char* desc= "(g_bytevector-base64-encode bv) => bytevector";
+  s7_define_function (sc, name, f_bytevector_base64_encode, 1, 0, false, desc);
 }
 
 void

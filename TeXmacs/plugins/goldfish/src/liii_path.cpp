@@ -26,6 +26,12 @@ namespace goldfish {
 
 using std::string;
 
+// 抛出 (liii error) 约定的 type-error，irritant 为出错的参数
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
   s7_pointer cur_env= s7_curlet (sc);
@@ -35,7 +41,11 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
 
 static s7_pointer
 f_isdir (s7_scheme* sc, s7_pointer args) {
-  const char*    dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "isdir: path must be a string", dir_arg);
+  }
+  const char*    dir_c= s7_string (dir_arg);
   tb_file_info_t info;
   bool           ret= false;
   if (tb_file_info (dir_c, &info)) {
@@ -58,7 +68,11 @@ glue_isdir (s7_scheme* sc) {
 
 static s7_pointer
 f_isfile (s7_scheme* sc, s7_pointer args) {
-  const char*    dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "isfile: path must be a string", dir_arg);
+  }
+  const char*    dir_c= s7_string (dir_arg);
   tb_file_info_t info;
   bool           ret= false;
   if (tb_file_info (dir_c, &info)) {
@@ -79,7 +93,11 @@ glue_isfile (s7_scheme* sc) {
 
 static s7_pointer
 f_path_getsize (s7_scheme* sc, s7_pointer args) {
-  const char*    path_c= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-getsize: path must be a string", path_arg);
+  }
+  const char*    path_c= s7_string (path_arg);
   tb_file_info_t info;
   if (tb_file_info (path_c, &info)) {
     return s7_make_integer (sc, (int) info.size);
@@ -98,7 +116,11 @@ glue_path_getsize (s7_scheme* sc) {
 
 static s7_pointer
 f_path_read_text (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-read-text: path must be a string", path_arg);
+  }
+  const char* path= s7_string (path_arg);
   if (!path) {
     return s7_make_boolean (sc, false);
   }
@@ -151,7 +173,11 @@ glue_path_read_text (s7_scheme* sc) {
 
 static s7_pointer
 f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-read-bytes: path must be a string", path_arg);
+  }
+  const char* path= s7_string (path_arg);
   if (!path) {
     return s7_make_boolean (sc, false);
   }
@@ -195,12 +221,20 @@ glue_path_read_bytes (s7_scheme* sc) {
 
 static s7_pointer
 f_path_write_text (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-write-text: path must be a string", path_arg);
+  }
+  s7_pointer content_arg= s7_cadr (args);
+  if (!s7_is_string (content_arg)) {
+    return string_type_error (sc, "path-write-text: content must be a string", content_arg);
+  }
+  const char* path= s7_string (path_arg);
   if (!path) {
     return s7_make_integer (sc, -1);
   }
 
-  const char* content= s7_string (s7_cadr (args));
+  const char* content= s7_string (content_arg);
   if (!content) {
     return s7_make_integer (sc, -1);
   }
@@ -242,13 +276,16 @@ write content to the file at the given path and return the number of bytes writt
 
 static s7_pointer
 f_path_write_bytes (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  if (!path) {
-    return s7_make_integer (sc, -1);
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-write-bytes: path must be a string", path_arg);
   }
-
   s7_pointer bv= s7_cadr (args);
   if (!s7_is_byte_vector (bv)) {
+    return string_type_error (sc, "path-write-bytes: content must be a bytevector", bv);
+  }
+  const char* path= s7_string (path_arg);
+  if (!path) {
     return s7_make_integer (sc, -1);
   }
 
@@ -290,12 +327,20 @@ write bytevector to the file at the given path in binary mode and return the num
 
 static s7_pointer
 f_path_append_text (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-append-text: path must be a string", path_arg);
+  }
+  s7_pointer content_arg= s7_cadr (args);
+  if (!s7_is_string (content_arg)) {
+    return string_type_error (sc, "path-append-text: content must be a string", content_arg);
+  }
+  const char* path= s7_string (path_arg);
   if (!path) {
     return s7_make_integer (sc, -1);
   }
 
-  const char* content= s7_string (s7_cadr (args));
+  const char* content= s7_string (content_arg);
   if (!content) {
     return s7_make_integer (sc, -1);
   }
@@ -337,7 +382,11 @@ append content to the file at the given path and return the number of bytes writ
 
 static s7_pointer
 f_path_touch (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-touch: path must be a string", path_arg);
+  }
+  const char* path= s7_string (path_arg);
   if (!path) {
     return s7_make_boolean (sc, false);
   }
@@ -361,8 +410,16 @@ glue_path_touch (s7_scheme* sc) {
 
 static s7_pointer
 f_path_copy (s7_scheme* sc, s7_pointer args) {
-  const char* source= s7_string (s7_car (args));
-  const char* target= s7_string (s7_cadr (args));
+  s7_pointer src_arg= s7_car (args);
+  if (!s7_is_string (src_arg)) {
+    return string_type_error (sc, "path-copy: src must be a string", src_arg);
+  }
+  s7_pointer dst_arg= s7_cadr (args);
+  if (!s7_is_string (dst_arg)) {
+    return string_type_error (sc, "path-copy: dst must be a string", dst_arg);
+  }
+  const char* source= s7_string (src_arg);
+  const char* target= s7_string (dst_arg);
 
   if (!source || !target) {
     return s7_make_boolean (sc, false);

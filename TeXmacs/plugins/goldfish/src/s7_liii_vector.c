@@ -382,12 +382,16 @@ s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args)
           count++;
         }
     }
-  s7_gc_unprotect_via_stack(sc, anchor);
-  if (count == len) return(result);
+  if (count == len)
+    {
+      s7_gc_unprotect_via_stack(sc, anchor);
+      return(result);
+    }
   {
     s7_pointer exact = s7_make_vector(sc, count);
     for (s7_int i = 0; i < count; i++)
       s7_vector_set(sc, exact, i, s7_vector_ref(sc, result, i));
+    s7_gc_unprotect_via_stack(sc, anchor);
     return(exact);
   }
 }

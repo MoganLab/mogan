@@ -37,6 +37,11 @@ liii_string_cursor_value_error (s7_scheme* sc, const char* msg) {
   return s7_error (sc, s7_make_symbol (sc, "value-error"), s7_list (sc, 1, s7_make_string (sc, msg)));
 }
 
+static s7_pointer
+liii_string_cursor_out_of_range_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "out-of-range"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 // 返回 UTF-8 首字节 b 对应的码点字节宽度（1~4）；非法首字节返回 1
 static inline s7_int
 utf8_seq_len (uint8_t b) {
@@ -128,6 +133,9 @@ f_string_cursor_next (s7_scheme* sc, s7_pointer args) {
     return s7_make_integer (sc, cur + 1);
   }
   s7_int off= cursor_to_offset (s7_car (s7_cdr (args)));
+  if (off < 0 || off > len)
+    return liii_string_cursor_out_of_range_error (sc, "string-cursor-next: cursor out of range",
+                                                  s7_car (s7_cdr (args)));
   if (off >= len) return liii_string_cursor_value_error (sc, "string-cursor-next: already at end cursor");
   return offset_to_cursor (sc, utf8_advance (s, off));
 }
@@ -141,8 +149,11 @@ f_string_cursor_prev (s7_scheme* sc, s7_pointer args) {
   s7_int     cur;
   bool       is_cursor=
       parse_cursor_arg (sc, cur_arg, "string-cursor-prev: second parameter must be integer or cursor", &cur);
+  s7_int len= (s7_int) s7_string_length (str);
   if (is_cursor) {
     s7_int off= cursor_to_offset (cur_arg);
+    if (off < 0 || off > len)
+      return liii_string_cursor_out_of_range_error (sc, "string-cursor-prev: cursor out of range", cur_arg);
     if (off <= 0) return liii_string_cursor_value_error (sc, "string-cursor-prev: already at start cursor");
     return offset_to_cursor (sc, utf8_retreat (s, off));
   }
@@ -169,6 +180,7 @@ string_cursor_move (s7_scheme* sc, s7_pointer args, bool forward, const char* wh
   if (!is_cursor) return s7_make_integer (sc, cur + nchars);
 
   s7_int off= cursor_to_offset (cur_arg);
+  if (off < 0 || off > len) return liii_string_cursor_out_of_range_error (sc, "cursor out of range", cur_arg);
   if (nchars >= 0) {
     for (s7_int i= 0; i < nchars; i++) {
       if (off >= len)
@@ -276,7 +288,11 @@ f_string_cursor_diff (s7_scheme* sc, s7_pointer args) {
 
   if (!ca) return s7_make_integer (sc, ib - ia);
 
+  s7_int len = (s7_int) s7_string_length (str);
   s7_int off1= cursor_to_offset (a), off2= cursor_to_offset (b);
+  if (off1 < 0 || off1 > len || off2 < 0 || off2 > len)
+    return liii_string_cursor_out_of_range_error (sc, "string-cursor-diff: cursor out of range",
+                                                  off1 < 0 || off1 > len ? a : b);
   s7_int count= 0;
   while (off1 < off2) {
     off1= utf8_advance (s, off1);
@@ -300,7 +316,8 @@ f_string_cursor_to_index (s7_scheme* sc, s7_pointer args) {
 
   s7_int off= cursor_to_offset (cur_arg);
   s7_int len= (s7_int) s7_string_length (str);
-  if (off > len) return liii_string_cursor_value_error (sc, "string-cursor->index: cursor out of range");
+  if (off < 0 || off > len)
+    return liii_string_cursor_out_of_range_error (sc, "string-cursor->index: cursor out of range", cur_arg);
   s7_int count= 0;
   while (off > 0) {
     off= utf8_retreat (s, off);
@@ -346,6 +363,8 @@ f_string_ref_cursor (s7_scheme* sc, s7_pointer args) {
   s7_int off;
   if (is_cursor) {
     off= cursor_to_offset (cur_arg);
+    if (off < 0 || off > len)
+      return liii_string_cursor_out_of_range_error (sc, "string-ref/cursor: cursor out of range", cur_arg);
     if (off >= len) return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
   }
   else {
@@ -386,19 +405,28 @@ f_substring_cursors (s7_scheme* sc, s7_pointer args) {
   if (ca) {
     byte_start= cursor_to_offset (a);
     byte_end  = cursor_to_offset (b);
+    if (byte_start < 0 || byte_start > len)
+      return liii_string_cursor_out_of_range_error (sc, "substring/cursors: start cursor out of range", a);
+    if (byte_end < 0 || byte_end > len)
+      return liii_string_cursor_out_of_range_error (sc, "substring/cursors: end cursor out of range", b);
   }
   else {
-    byte_end= 0;
-    for (s7_int i= 0; i < ib; i++) {
-      if (byte_end >= len) return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
+    if (ia > ib) return liii_string_cursor_value_error (sc, "substring/cursors: start must be <= end");
+    byte_start= 0;
+    for (s7_int i= 0; i < ia; i++) {
+      if (byte_start >= len)
+        return liii_string_cursor_out_of_range_error (sc, "substring/cursors: start index out of range", a);
+      byte_start= utf8_advance (s, byte_start);
+    }
+    byte_end= byte_start;
+    for (s7_int i= ia; i < ib; i++) {
+      if (byte_end >= len)
+        return liii_string_cursor_out_of_range_error (sc, "substring/cursors: end index out of range", b);
       byte_end= utf8_advance (s, byte_end);
     }
-    byte_start= 0;
-    for (s7_int i= 0; i < ia; i++)
-      byte_start= utf8_advance (s, byte_start);
   }
-  if (byte_start > byte_end || byte_end > len)
-    return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
+  if (byte_start > byte_end) return liii_string_cursor_value_error (sc, "substring/cursors: start must be <= end");
+  if (byte_end > len) return liii_string_cursor_out_of_range_error (sc, "substring/cursors: end index out of range", b);
 
   s7_pointer result= s7_make_string_with_length (sc, "", byte_end - byte_start);
   memcpy ((char*) s7_string (result), s + byte_start, byte_end - byte_start);

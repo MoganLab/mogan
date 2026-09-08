@@ -69,6 +69,12 @@ string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
   return ret;
 }
 
+// 抛出 (liii error) 约定的 type-error，irritant 为出错的参数
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static s7_pointer
 f_os_arch (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, TB_ARCH_STRING);
@@ -104,7 +110,11 @@ glue_os_type (s7_scheme* sc) {
 
 static s7_pointer
 f_os_call (s7_scheme* sc, s7_pointer args) {
-  const char*       cmd_c= s7_string (s7_car (args));
+  s7_pointer cmd_arg= s7_car (args);
+  if (!s7_is_string (cmd_arg)) {
+    return string_type_error (sc, "os-call: command must be a string", cmd_arg);
+  }
+  const char*       cmd_c= s7_string (cmd_arg);
   tb_process_attr_t attr = {tb_null};
   attr.flags             = TB_PROCESS_FLAG_NO_WINDOW;
   int ret;
@@ -141,7 +151,11 @@ glue_os_call (s7_scheme* sc) {
 
 static s7_pointer
 f_system (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c= s7_string (s7_car (args));
+  s7_pointer cmd_arg= s7_car (args);
+  if (!s7_is_string (cmd_arg)) {
+    return string_type_error (sc, "system: command must be a string", cmd_arg);
+  }
+  const char* cmd_c= s7_string (cmd_arg);
   int         ret  = (int) std::system (cmd_c);
   return s7_make_integer (sc, ret);
 }
@@ -155,8 +169,16 @@ glue_system (s7_scheme* sc) {
 
 static s7_pointer
 f_access (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
-  int         mode  = s7_integer ((s7_cadr (args)));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "access: path must be a string", path_arg);
+  }
+  s7_pointer mode_arg= s7_cadr (args);
+  if (!s7_is_integer (mode_arg)) {
+    return string_type_error (sc, "access: mode must be an integer", mode_arg);
+  }
+  const char* path_c= s7_string (path_arg);
+  int         mode  = s7_integer (mode_arg);
   bool        ret   = false;
   if (mode == 0) {
     tb_file_info_t info;
@@ -178,8 +200,16 @@ glue_access (s7_scheme* sc) {
 
 static s7_pointer
 f_set_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* key  = s7_string (s7_car (args));
-  const char* value= s7_string (s7_cadr (args));
+  s7_pointer key_arg= s7_car (args);
+  if (!s7_is_string (key_arg)) {
+    return string_type_error (sc, "setenv: key must be a string", key_arg);
+  }
+  s7_pointer value_arg= s7_cadr (args);
+  if (!s7_is_string (value_arg)) {
+    return string_type_error (sc, "setenv: value must be a string", value_arg);
+  }
+  const char* key  = s7_string (key_arg);
+  const char* value= s7_string (value_arg);
   return s7_make_boolean (sc, tb_environment_set (key, value));
 }
 
@@ -192,7 +222,11 @@ glue_setenv (s7_scheme* sc) {
 
 static s7_pointer
 f_unset_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* env_name= s7_string (s7_car (args));
+  s7_pointer env_arg= s7_car (args);
+  if (!s7_is_string (env_arg)) {
+    return string_type_error (sc, "unsetenv: key must be a string", env_arg);
+  }
+  const char* env_name= s7_string (env_arg);
   return s7_make_boolean (sc, tb_environment_remove (env_name));
 }
 
@@ -219,7 +253,11 @@ glue_os_temp_dir (s7_scheme* sc) {
 
 static s7_pointer
 f_mkdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "mkdir: path must be a string", dir_arg);
+  }
+  const char* dir_c= s7_string (dir_arg);
   return s7_make_boolean (sc, tb_directory_create (dir_c));
 }
 
@@ -232,7 +270,11 @@ glue_mkdir (s7_scheme* sc) {
 
 static s7_pointer
 f_rmdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "rmdir: path must be a string", dir_arg);
+  }
+  const char* dir_c= s7_string (dir_arg);
   return s7_make_boolean (sc, tb_directory_remove (dir_c));
 }
 
@@ -245,7 +287,11 @@ glue_rmdir (s7_scheme* sc) {
 
 static s7_pointer
 f_remove_file (s7_scheme* sc, s7_pointer args) {
-  const char* path   = s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "remove-file: path must be a string", path_arg);
+  }
+  const char* path   = s7_string (path_arg);
   bool        success= tb_file_remove (path);
   return s7_make_boolean (sc, success);
 }
@@ -259,8 +305,16 @@ glue_remove_file (s7_scheme* sc) {
 
 static s7_pointer
 f_rename (s7_scheme* sc, s7_pointer args) {
-  const char* src= s7_string (s7_car (args));
-  const char* dst= s7_string (s7_cadr (args));
+  s7_pointer src_arg= s7_car (args);
+  if (!s7_is_string (src_arg)) {
+    return string_type_error (sc, "rename: src must be a string", src_arg);
+  }
+  s7_pointer dst_arg= s7_cadr (args);
+  if (!s7_is_string (dst_arg)) {
+    return string_type_error (sc, "rename: dst must be a string", dst_arg);
+  }
+  const char* src= s7_string (src_arg);
+  const char* dst= s7_string (dst_arg);
   try {
     fs::rename (src, dst);
     return s7_make_boolean (sc, true);
@@ -278,7 +332,11 @@ glue_rename (s7_scheme* sc) {
 
 static s7_pointer
 f_chdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "chdir: path must be a string", dir_arg);
+  }
+  const char* dir_c= s7_string (dir_arg);
   return s7_make_boolean (sc, tb_directory_current_set (dir_c));
 }
 
@@ -300,7 +358,11 @@ tb_directory_walk_func (tb_char_t const* path, tb_file_info_t const* info, tb_cp
 
 static s7_pointer
 f_listdir (s7_scheme* sc, s7_pointer args) {
-  const char*    path_c= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "listdir: path must be a string", path_arg);
+  }
+  const char*    path_c= s7_string (path_arg);
   vector<string> entries;
   s7_pointer     ret= s7_make_vector (sc, 0);
   tb_directory_walk (path_c, 0, tb_false, tb_directory_walk_func, &entries);
@@ -309,7 +371,7 @@ f_listdir (s7_scheme* sc, s7_pointer args) {
   string path_s      = string (path_c);
   int    path_N      = path_s.size ();
   int    path_slash_N= path_N;
-  char   last_ch     = path_s[path_N - 1];
+  char   last_ch     = (path_N > 0) ? path_s[path_N - 1] : '\0';
 #if defined(TB_CONFIG_OS_WINDOWS)
   if (last_ch != '/' && last_ch != '\\') {
     path_slash_N= path_slash_N + 1;

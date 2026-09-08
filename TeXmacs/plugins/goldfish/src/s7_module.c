@@ -12,18 +12,23 @@
 /* -------- *load-path* setter -------- */
 s7_pointer g_load_path_set(s7_scheme *sc, s7_pointer args)
 {
-  s7_pointer strs;
-  if (s7_is_null(sc, s7_cadr(args))) return s7_cadr(args);
-  if (!s7_is_pair(s7_cadr(args)))
-    return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
-                    s7_list(sc, 2, s7_make_string(sc, "can't set *load-path* to ~S"), s7_cadr(args)));
-  for (strs = s7_cadr(args); s7_is_pair(strs); strs = s7_cdr(strs))
+  const s7_pointer new_load_path = s7_cadr(args);
+  if (s7_is_null(sc, new_load_path)) return new_load_path;
+  if (!s7_is_pair(new_load_path))
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
+                    s7_list(sc, 2, s7_make_string(sc, "can't set *load-path* to ~S"), new_load_path));
+  if (s7_list_length(sc, new_load_path) <= 0)
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
+                    s7_list(sc, 2,
+                            s7_make_string(sc, "can't set *load-path* to an improper or circular list ~S"),
+                            new_load_path));
+  for (s7_pointer strs = new_load_path; s7_is_pair(strs); strs = s7_cdr(strs))
     if (!s7_is_string(s7_car(strs)))
-      return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+      return s7_error(sc, s7_make_symbol(sc, "type-error"),
                       s7_list(sc, 3,
                               s7_make_string(sc, "can't set *load-path* to ~S, ~S is not a string"),
-                              s7_cadr(args), s7_car(strs)));
-  return s7_cadr(args);
+                              new_load_path, s7_car(strs)));
+  return new_load_path;
 }
 
 /* -------- *features* setter -------- */

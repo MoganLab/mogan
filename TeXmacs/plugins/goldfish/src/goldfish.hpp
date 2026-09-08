@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "18.11.31"
+#define GOLDFISH_VERSION "18.11.32"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -107,7 +107,6 @@ static string find_goldfish_library ();
 
 static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
 
-void glue_njson (s7_scheme* sc);
 #ifdef GOLDFISH_ENABLE_HTTP
 void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
@@ -141,6 +140,12 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
 }
 
+// 抛出 (liii error) 约定的 type-error，irritant 为出错的参数
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static s7_pointer
 f_version (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, GOLDFISH_VERSION);
@@ -148,7 +153,11 @@ f_version (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_delete_file (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "delete-file: path must be a string", path_arg);
+  }
+  const char* path_c= s7_string (path_arg);
   return s7_make_boolean (sc, tb_file_remove (path_c));
 }
 
@@ -251,9 +260,13 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
 #else
   std::string path_sep= ":";
 #endif
-  std::string          ret;
-  tb_size_t            size       = 0;
-  const char*          key        = s7_string (s7_car (args));
+  std::string ret;
+  tb_size_t   size   = 0;
+  s7_pointer  key_arg= s7_car (args);
+  if (!s7_is_string (key_arg)) {
+    return string_type_error (sc, "get-environment-variable: key must be a string", key_arg);
+  }
+  const char*          key        = s7_string (key_arg);
   tb_environment_ref_t environment= tb_environment_init ();
   if (environment) {
     size= tb_environment_load (environment, key);
@@ -379,12 +392,20 @@ which_access_check (const char* path) {
 
 static s7_pointer
 f_which (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c        = s7_string (s7_car (args));
+  s7_pointer cmd_arg= s7_car (args);
+  if (!s7_is_string (cmd_arg)) {
+    return string_type_error (sc, "which: cmd must be a string", cmd_arg);
+  }
+  const char* cmd_c        = s7_string (cmd_arg);
   s7_pointer  path_arg     = s7_cdr (args);
   const char* path_override= nullptr;
 
   if (s7_is_pair (path_arg)) {
-    path_override= s7_string (s7_car (path_arg));
+    s7_pointer path= s7_car (path_arg);
+    if (!s7_is_string (path)) {
+      return string_type_error (sc, "which: path must be a string", path);
+    }
+    path_override= s7_string (path);
   }
 
   string         cmd_str (cmd_c);
@@ -638,12 +659,63 @@ glue_liii_datetime (s7_scheme* sc) {
 }
 
 // -------------------------------- iota --------------------------------
+#ifndef S7_INT64_MAX
+#define S7_INT64_MAX 9223372036854775807LL
+#endif
+#ifndef S7_INT64_MIN
+#define S7_INT64_MIN (int64_t) (-S7_INT64_MAX - 1LL)
+#endif
+
+static inline bool
+safe_multiply (s7_int a, s7_int b, s7_int* res) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_mul_overflow (a, b, res);
+#else
+  if (a == 0 || b == 0) {
+    *res= 0;
+    return false;
+  }
+  if (a > 0) {
+    if (b > 0) {
+      if (a > S7_INT64_MAX / b) return true;
+    }
+    else {
+      if (b < S7_INT64_MIN / a) return true;
+    }
+  }
+  else {
+    if (b > 0) {
+      if (a < S7_INT64_MIN / b) return true;
+    }
+    else {
+      if (a == S7_INT64_MIN || b == S7_INT64_MIN) return true;
+      if (-a > S7_INT64_MAX / (-b)) return true;
+    }
+  }
+  *res= a * b;
+  return false;
+#endif
+}
+
+static inline bool
+safe_add (s7_int a, s7_int b, s7_int* res) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_add_overflow (a, b, res);
+#else
+  if (b > 0 && a > S7_INT64_MAX - b) return true;
+  if (b < 0 && a < S7_INT64_MIN - b) return true;
+  *res= a + b;
+  return false;
+#endif
+}
+
 static inline s7_pointer
-iota_list (s7_scheme* sc, s7_int count, s7_pointer start, s7_int step) {
+iota_list (s7_scheme* sc, s7_int count, s7_int last_val, s7_int step) {
   s7_pointer res= s7_nil (sc);
-  s7_int     val;
-  for (val= s7_integer (start) + step * (count - 1); count > 0; count--) {
+  s7_int     val= last_val;
+  while (true) {
     res= s7_cons (sc, s7_make_integer (sc, val), res);
+    if (--count == 0) break;
     val-= step;
   }
   return res;
@@ -668,9 +740,18 @@ iota_list_p_ppp (s7_scheme* sc, s7_pointer count, s7_pointer start, s7_pointer s
     return s7_error (sc, s7_make_symbol (sc, "value-error"),
                      s7_list (sc, 2, s7_make_string (sc, "iota: count is negative"), count));
   }
+  if (cnt == 0) {
+    return s7_nil (sc);
+  }
   s7_int st = s7_integer (start);
   s7_int stp= s7_integer (step);
-  return iota_list (sc, cnt, start, stp);
+  s7_int mul_res;
+  s7_int last_val;
+  if (safe_multiply (stp, cnt - 1, &mul_res) || safe_add (st, mul_res, &last_val)) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "iota: integer overflow"), count));
+  }
+  return iota_list (sc, cnt, last_val, stp);
 }
 
 static s7_pointer
@@ -678,7 +759,7 @@ g_iota_list (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg1 = s7_car (args); // count
   s7_pointer rest1= s7_cdr (args);
   s7_pointer arg2 = (s7_is_pair (rest1)) ? s7_car (rest1) : s7_make_integer (sc, 0); // start value, default 0
-  s7_pointer rest2= s7_cdr (rest1);
+  s7_pointer rest2= (s7_is_pair (rest1)) ? s7_cdr (rest1) : s7_nil (sc);
   s7_pointer arg3 = (s7_is_pair (rest2)) ? s7_car (rest2) : s7_make_integer (sc, 1); // step size, default 1
   return iota_list_p_ppp (sc, arg1, arg2, arg3);
 }
@@ -719,7 +800,6 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_scheme_char (sc);
   glue_r7rs_library (sc);
   glue_liii_record (sc);
-  glue_njson (sc);
 #ifdef GOLDFISH_ENABLE_HTTP
   glue_http (sc);
   glue_http_async (sc);

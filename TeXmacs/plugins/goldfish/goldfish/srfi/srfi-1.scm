@@ -268,10 +268,12 @@
       ) ;let
     ) ;define
 
+    (define %hash-table-supported-eq-funcs
+      (list eq? eqv? equal? equivalent? = string=? char=?)
+    ) ;define
+
     (define (%can-use-hash-table? eq-func)
-      (memq eq-func
-        '(eq? eqv? equal? equivalent? = string=? string-ci=? char=? char-ci=?)
-      ) ;memq
+      (memq eq-func %hash-table-supported-eq-funcs)
     ) ;define
 
     (define (%delete-duplicates-hash lis eq-func)

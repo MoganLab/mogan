@@ -23,6 +23,9 @@
 
 namespace goldfish {
 
+// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite 最深合法用例为 500 层）
+#define JSON_MAX_DEPTH 1000
+
 // json->string 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme 实现完全一致：
 //   - vector   => JSON 数组
 //   - 序对列表  => JSON 对象（键为符号时输出宽松格式，即不带引号）
@@ -122,18 +125,28 @@ json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
 // 统计序对链的长度；链以非空原子结尾（非真列表）时返回 -1
 static s7_int
 json_pair_chain_length (s7_scheme* sc, s7_pointer x) {
-  s7_int     len= 0;
-  s7_pointer p  = x;
-  while (s7_is_pair (p)) {
+  s7_int     len = 0;
+  s7_pointer slow= x, fast= x;
+  while (s7_is_pair (fast)) {
     len++;
-    p= s7_cdr (p);
+    fast= s7_cdr (fast);
+    if (s7_is_pair (fast)) {
+      len++;
+      fast= s7_cdr (fast);
+      slow= s7_cdr (slow);
+      if (fast == slow) return -2; // cycle detected
+    }
   }
-  if (!s7_is_null (sc, p)) return -1;
+  if (!s7_is_null (sc, fast)) return -1;
   return len;
 }
 
+static s7_int json_proper_list_length (s7_scheme* sc, s7_pointer x);
+
+static void json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors);
+
 static void
-json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out) {
+json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vector<s7_pointer>& ancestors) {
   if (s7_is_null (sc, d)) {
     out+= "{}";
     return;
@@ -157,7 +170,7 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out) {
     out+= "{}";
   }
   else if ((s7_is_pair (v) && json_pair_chain_length (sc, v) != -1) || s7_is_vector (v)) {
-    json_write_value (sc, v, out);
+    json_write_value_rec (sc, v, out, ancestors);
   }
   else {
     json_write_scalar (sc, v, out);
@@ -165,12 +178,28 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out) {
 }
 
 static void
-json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
+json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors) {
   if (json_is_null_object (sc, x)) {
     out+= "{}";
     return;
   }
+  if (ancestors.size () >= JSON_MAX_DEPTH) {
+    s7_error (sc, s7_make_symbol (sc, "value-error"),
+              s7_list (sc, 2, x, s7_make_string (sc, "JSON nesting depth exceeds maximum limit")));
+    return;
+  }
+  if (s7_is_vector (x) || s7_is_pair (x)) {
+    for (s7_pointer anc : ancestors) {
+      if (anc == x) {
+        s7_error (sc, s7_make_symbol (sc, "value-error"),
+                  s7_list (sc, 2, x, s7_make_string (sc, "Circular reference detected in JSON data")));
+        return;
+      }
+    }
+  }
+
   if (s7_is_vector (x)) {
+    ancestors.push_back (x);
     out.push_back ('[');
     s7_int      len  = s7_vector_length (x);
     s7_pointer* elems= s7_vector_elements (x);
@@ -178,34 +207,44 @@ json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
       if (i > 0) out.push_back (',');
       s7_pointer k= elems[i];
       if (s7_is_vector (k) || s7_is_pair (k)) {
-        json_write_value (sc, k, out);
+        json_write_value_rec (sc, k, out, ancestors);
       }
       else {
         json_write_scalar (sc, k, out);
       }
     }
     out.push_back (']');
+    ancestors.pop_back ();
   }
   else if (s7_is_pair (x)) {
+    if (json_proper_list_length (sc, x) < 0) {
+      s7_error (sc, s7_make_symbol (sc, "value-error"),
+                s7_list (sc, 2, x, s7_make_string (sc, " must be a proper list of object entries")));
+      return;
+    }
+    ancestors.push_back (x);
     out.push_back ('{');
     s7_pointer lst= x;
     s7_int     i  = 0;
     while (s7_is_pair (lst)) {
       if (i > 0) out.push_back (',');
-      json_write_object_entry (sc, s7_car (lst), out);
+      json_write_object_entry (sc, s7_car (lst), out, ancestors);
       lst= s7_cdr (lst);
       i++;
     }
-    if (!s7_is_null (sc, lst)) {
-      s7_error (sc, s7_make_symbol (sc, "value-error"),
-                s7_list (sc, 2, lst, s7_make_string (sc, " must be null, pair, or list with at least 2 elements")));
-      return;
-    }
     out.push_back ('}');
+    ancestors.pop_back ();
   }
   else {
     json_write_scalar (sc, x, out);
   }
+}
+
+static void
+json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
+  std::vector<s7_pointer> ancestors;
+  ancestors.reserve (16);
+  json_write_value_rec (sc, x, out, ancestors);
 }
 
 static s7_pointer
@@ -350,9 +389,6 @@ struct json_parser {
   s7_int      depth; // 当前容器嵌套深度
 };
 
-// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite 最深合法用例为 500 层）
-#define JSON_MAX_DEPTH 10000
-
 static void
 json_skip_ws (json_parser* p) {
   while (p->pos < p->len) {
@@ -494,35 +530,27 @@ json_parse_number (json_parser* p) {
     while (json_peek (p) >= '0' && json_peek (p) <= '9')
       p->pos++;
   }
-  // 文本已在原文缓冲区内且后续必为分隔符，可安全临时 NUL 终止
-  const char* text= p->s + bgn;
-  size_t      tlen= (size_t) (p->pos - bgn);
+  std::string num_str (p->s + bgn, (size_t) (p->pos - bgn));
+  char*       endp= NULL;
   if (!is_real) {
-    errno                 = 0;
-    char* endp            = NULL;
-    char  saved           = p->s[p->pos];
-    ((char*) p->s)[p->pos]= '\0';
-    long long v           = strtoll (text, &endp, 10);
-    ((char*) p->s)[p->pos]= saved;
-    if (errno != ERANGE && endp == text + tlen) {
+    errno      = 0;
+    long long v= strtoll (num_str.c_str (), &endp, 10);
+    if (errno != ERANGE && endp == num_str.c_str () + num_str.size ()) {
       return s7_make_integer (sc, (s7_int) v);
     }
   }
   else {
-    char* endp            = NULL;
-    char  saved           = p->s[p->pos];
-    ((char*) p->s)[p->pos]= '\0';
-    double d              = strtod (text, &endp);
-    ((char*) p->s)[p->pos]= saved;
-    if (endp == text + tlen) {
+    double d= strtod (num_str.c_str (), &endp);
+    if (endp == num_str.c_str () + num_str.size ()) {
       return s7_make_real (sc, d);
     }
   }
-  // 回退：超大整数等罕见情形（需要构造临时 std::string）
-  s7_pointer txt= s7_make_string_with_length (sc, text, (s7_int) tlen);
+  // 回退：超大整数等罕见情形
+  s7_pointer txt= s7_make_string_with_length (sc, num_str.data (), (s7_int) num_str.size ());
   s7_gc_protect_via_stack (sc, txt);
   s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
   s7_gc_unprotect_via_stack (sc, txt);
+  if (!s7_is_number (num)) return NULL;
   return num;
 }
 
@@ -546,15 +574,6 @@ json_parse_symbol_key (json_parser* p) {
       (n == 5 && strncmp (p->s + bgn, "false", 5) == 0)) {
     return NULL;
   }
-  // s7 无 make_symbol_with_length：pos < len 时临时 NUL 终止构造（随即恢复），
-  // 否则（键后直接 EOF）走 std::string
-  if (p->pos < p->len) {
-    char saved            = p->s[p->pos];
-    ((char*) p->s)[p->pos]= '\0';
-    s7_pointer sym        = s7_make_symbol (p->sc, p->s + bgn);
-    ((char*) p->s)[p->pos]= saved;
-    return sym;
-  }
   std::string name (p->s + bgn, n);
   return s7_make_symbol (p->sc, name.c_str ());
 }
@@ -562,7 +581,10 @@ json_parse_symbol_key (json_parser* p) {
 static s7_pointer
 json_parse_object (json_parser* p) {
   s7_scheme* sc= p->sc;
-  if (++p->depth > JSON_MAX_DEPTH) return NULL;
+  if (++p->depth > JSON_MAX_DEPTH) {
+    p->depth--;
+    return NULL;
+  }
   p->pos++; // 跳过 '{'
   json_skip_ws (p);
   if (json_peek (p) == '}') {
@@ -625,7 +647,10 @@ json_parse_object (json_parser* p) {
 static s7_pointer
 json_parse_array (json_parser* p) {
   s7_scheme* sc= p->sc;
-  if (++p->depth > JSON_MAX_DEPTH) return NULL;
+  if (++p->depth > JSON_MAX_DEPTH) {
+    p->depth--;
+    return NULL;
+  }
   p->pos++; // 跳过 '['
   json_skip_ws (p);
   if (json_peek (p) == ']') {
@@ -723,7 +748,7 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
     // 空输入/纯空白输入：保持历史行为返回 eof-object
     return s7_eof_object (sc);
   }
-  // 解析+构造期间关闭 GC（参考 njson 的做法）：解析过程不中断、不回调 Scheme，
+  // 解析+构造期间关闭 GC：解析过程不中断、不回调 Scheme，
   // 中间对象以裸指针暂存于 C++ 容器中安全；结束后恢复
   s7_gc_on (sc, false);
   s7_pointer result= json_parse_value (&p);
@@ -964,7 +989,7 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
   }
   s7_pointer p= x;
   tail        = head;
-  while (s7_is_pair (p)) {
+  while (s7_is_pair (p) && s7_is_pair (tail)) {
     s7_pointer entry= s7_car (p);
     bool       replace;
     if (map_all) replace= true;
@@ -985,6 +1010,10 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
     p   = s7_cdr (p);
   }
   s7_gc_unprotect_via_stack (sc, head);
+  if (s7_is_pair (tail)) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "JSON object modified during iteration"), x));
+  }
   return head;
 }
 
@@ -1128,7 +1157,7 @@ glue_json_push (s7_scheme* sc) {
 // guenchi json-drop 的单层语义：x 已校验为 JSON 对象或数组
 // v 为过程时按键（数组为索引）谓词筛选，否则按 equal? 匹配键（数组为索引）
 static s7_pointer
-json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
+json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len) {
   bool use_pred= s7_is_procedure (v);
   if (s7_is_vector (x)) {
     s7_int      n    = s7_vector_length (x);
@@ -1154,18 +1183,22 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
   }
   // 对象（alist）：删除键命中的条目，未命中的条目复用原序对；命中后从尾向头 cons
   std::vector<s7_pointer> kept;
-  kept.reserve (16);
-  s7_pointer p= x;
-  while (s7_is_pair (p)) {
+  kept.reserve (len > 0 ? len : 16);
+  s7_pointer p   = x;
+  s7_int     step= 0;
+  while (s7_is_pair (p) && step < len) {
     s7_pointer entry= s7_car (p);
     bool       hit  = use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc))
                                : s7_is_equal (sc, s7_car (entry), v);
     if (!hit) kept.push_back (entry);
     p= s7_cdr (p);
+    step++;
   }
   s7_pointer lst= s7_nil (sc);
+  s7_gc_on (sc, false);
   for (size_t i= kept.size (); i > 0; i--)
     lst= s7_cons (sc, kept[i - 1], lst);
+  s7_gc_on (sc, true);
   return lst;
 }
 
@@ -1181,7 +1214,7 @@ json_drop_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer keys) {
   if (json_is_null_object (sc, x)) return x;
   if (s7_is_null (sc, s7_cdr (keys))) {
     // 单键
-    return json_guenchi_drop (sc, x, s7_car (keys));
+    return json_guenchi_drop (sc, x, s7_car (keys), len);
   }
   // 多键：经 json-set 的单层语义逐层下钻，叶层对旧值在 C++ 内递归 drop
   json_setter st;
@@ -1273,7 +1306,7 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
   }
   s7_pointer p= x;
   tail        = head;
-  while (s7_is_pair (p)) {
+  while (s7_is_pair (p) && s7_is_pair (tail)) {
     s7_pointer entry= s7_car (p);
     s7_pointer k    = s7_car (entry);
     bool hit= truthy ? true : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, k)) != s7_f (sc)) : s7_is_equal (sc, k, v));
@@ -1288,6 +1321,10 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
     p   = s7_cdr (p);
   }
   s7_gc_unprotect_via_stack (sc, head);
+  if (s7_is_pair (tail)) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "JSON object modified during iteration"), x));
+  }
   return head;
 }
 

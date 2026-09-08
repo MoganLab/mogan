@@ -18,6 +18,11 @@
 
 namespace goldfish {
 
+static s7_pointer
+sort_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 // (g_list-sorted? less-p lis) => boolean
 // 判定标准与 SRFI-132 参考实现一致：对所有相邻元素对，
 // (less-p next prev) 为真（非 #f）即视为逆序。
@@ -27,11 +32,13 @@ f_list_sorted_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer lis   = s7_cadr (args);
 
   if (!s7_is_procedure (less_p)) {
-    return s7_wrong_type_arg_error (sc, "list-sorted?", 1, less_p, "a procedure");
+    return sort_type_error (sc, "list-sorted?: first parameter must be a procedure", less_p);
   }
-  if (!s7_is_pair (lis)) {
-    if (s7_is_null (sc, lis)) return s7_t (sc);
-    return s7_wrong_type_arg_error (sc, "list-sorted?", 2, lis, "a proper list");
+  if (!s7_is_proper_list (sc, lis)) {
+    return sort_type_error (sc, "list-sorted?: second parameter must be a proper list", lis);
+  }
+  if (s7_is_null (sc, lis) || s7_is_null (sc, s7_cdr (lis))) {
+    return s7_t (sc);
   }
 
   /* args 的 cons 单元在 less_p 回调期间可能被求值器复用，
@@ -58,11 +65,7 @@ f_list_sorted_p (s7_scheme* sc, s7_pointer args) {
   }
   s7_gc_unprotect_via_stack (sc, anchor);
 
-  if (!sorted) return s7_f (sc);
-  if (!s7_is_null (sc, p)) {
-    return s7_wrong_type_arg_error (sc, "list-sorted?", 2, lis, "a proper list");
-  }
-  return s7_t (sc);
+  return sorted ? s7_t (sc) : s7_f (sc);
 }
 
 static void

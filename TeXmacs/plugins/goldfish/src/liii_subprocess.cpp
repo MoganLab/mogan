@@ -36,10 +36,19 @@ using std::vector;
 
 enum class redirect_mode { tee, capture, inherit, discard, file };
 
+inline s7_pointer
+subprocess_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 s7_pointer
 f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   s7_pointer cmd_arg= s7_car (args);
   args              = s7_cdr (args);
+
+  if (!s7_is_string (cmd_arg) && !s7_is_proper_list (sc, cmd_arg)) {
+    return subprocess_type_error (sc, "g_subprocess-run-values: command must be a proper list or a string", cmd_arg);
+  }
 
   const char* cwd= nullptr;
   if (s7_is_pair (args) && s7_is_string (s7_car (args))) {
@@ -52,17 +61,33 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 
   vector<string>      env_storage;
   vector<const char*> envp;
-  if (s7_is_pair (args) && s7_is_pair (s7_car (args))) {
-    s7_pointer env_alist= s7_car (args);
+  if (s7_is_pair (args) && !s7_is_null (sc, s7_car (args)) && s7_car (args) != s7_f (sc)) {
+    s7_pointer env_arg= s7_car (args);
+    if (!s7_is_pair (env_arg)) {
+      return subprocess_type_error (sc, "g_subprocess-run-values: env must be an alist", env_arg);
+    }
+    if (!s7_is_proper_list (sc, env_arg)) {
+      return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
+    }
+    s7_pointer env_alist= env_arg;
     while (s7_is_pair (env_alist)) {
       s7_pointer item= s7_car (env_alist);
-      if (s7_is_pair (item)) {
-        const char* key  = s7_string (s7_car (item));
-        s7_pointer  val  = s7_cdr (item);
-        const char* val_c= s7_is_string (val) ? s7_string (val) : "";
-        env_storage.push_back (string (key) + "=" + val_c);
+      if (!s7_is_pair (item)) {
+        return subprocess_type_error (sc, "g_subprocess-run-values: env element must be a pair", item);
       }
+      s7_pointer key_arg= s7_car (item);
+      if (!s7_is_string (key_arg)) {
+        return subprocess_type_error (sc, "g_subprocess-run-values: env key must be a string", key_arg);
+      }
+      s7_pointer val_arg= s7_cdr (item);
+      if (!s7_is_string (val_arg)) {
+        return subprocess_type_error (sc, "g_subprocess-run-values: env value must be a string", val_arg);
+      }
+      env_storage.push_back (string (s7_string (key_arg)) + "=" + s7_string (val_arg));
       env_alist= s7_cdr (env_alist);
+    }
+    if (!s7_is_null (sc, env_alist)) {
+      return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
     }
     for (auto& s : env_storage) {
       envp.push_back (s.c_str ());
@@ -333,8 +358,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       }
       p= s7_cdr (p);
     }
-    argv.push_back (nullptr);
     if (!argv.empty ()) {
+      argv.push_back (nullptr);
       process= tb_process_init (argv[0], argv.data (), &attr);
     }
   }

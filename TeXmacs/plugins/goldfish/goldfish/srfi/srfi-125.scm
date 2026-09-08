@@ -66,10 +66,12 @@
     ) ;define
 
     (define (hash-table-contains? ht key)
+      (assert-hash-table-type ht hash-table-contains?)
       (not (not (hash-table-ref ht key)))
     ) ;define
 
     (define (hash-table-empty? ht)
+      (assert-hash-table-type ht hash-table-empty?)
       (zero? (hash-table-size ht))
     ) ;define
 
@@ -78,7 +80,10 @@
     ) ;define
 
     (define (hash-table-ref/default ht key default)
-      (or (hash-table-ref ht key) (if (procedure? default) (default) default))
+      (assert-hash-table-type ht hash-table-ref/default)
+      (or (hash-table-ref ht key)
+        (if (and (procedure? default) (aritable? default 0)) (default) default)
+      ) ;or
     ) ;define
 
     (define (hash-table-set! ht . rest)
@@ -107,22 +112,33 @@
     ) ;define
 
     (define (hash-table-update! ht key value)
+      (assert-hash-table-type ht hash-table-update!)
       (hash-table-set! ht key value)
     ) ;define
 
     (define (hash-table-update!/default ht key updater default)
+      (assert-hash-table-type ht hash-table-update!/default)
+      (when (not (procedure? updater))
+        (error 'type-error
+          hash-table-update!/default
+          "this parameter must be typed as procedure"
+        ) ;error
+      ) ;when
       (hash-table-set! ht key (updater (hash-table-ref/default ht key default)))
     ) ;define
 
     (define (hash-table-clear! ht)
+      (assert-hash-table-type ht hash-table-clear!)
       (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht))
     ) ;define
 
     (define (hash-table-keys ht)
+      (assert-hash-table-type ht hash-table-keys)
       (map car ht)
     ) ;define
 
     (define (hash-table-values ht)
+      (assert-hash-table-type ht hash-table-values)
       (map cdr ht)
     ) ;define
 
@@ -135,6 +151,10 @@
     ) ;define
 
     (define (hash-table-find proc ht failure)
+      (when (not (procedure? proc))
+        (error 'type-error hash-table-find "this parameter must be typed as procedure")
+      ) ;when
+      (assert-hash-table-type ht hash-table-find)
       (let ((keys (hash-table-keys ht)))
         (let loop
           ((keys keys))
@@ -155,6 +175,9 @@
     ) ;define
 
     (define (hash-table-fold proc seed ht)
+      (when (not (procedure? proc))
+        (error 'type-error hash-table-fold "this parameter must be typed as procedure")
+      ) ;when
       (assert-hash-table-type ht hash-table-fold)
       (let ((result seed))
         (hash-table-for-each (lambda (k v) (set! result (proc k v result))) ht)
@@ -164,13 +187,13 @@
 
     (define hash-table-for-each
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (for-each (lambda (x) (proc (car x) (cdr x))) ht)
+        (for-each (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
       ) ;typed-lambda
     ) ;define
 
     (define hash-table-map->list
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (map (lambda (x) (proc (car x) (cdr x))) ht)
+        (map (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
       ) ;typed-lambda
     ) ;define
 

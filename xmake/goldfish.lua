@@ -78,21 +78,12 @@ target ("goldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_json.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_string.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_string_cursor.cpp",
-        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_njson.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_subprocess.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_sort.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_base.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_char.cpp",
-    })
-    add_files({
-        "$(projectdir)/3rdparty/json-schema-validator/src/smtp-address-validator.cpp",
-        "$(projectdir)/3rdparty/json-schema-validator/src/json-schema-draft7.json.cpp",
-        "$(projectdir)/3rdparty/json-schema-validator/src/json-uri.cpp",
-        "$(projectdir)/3rdparty/json-schema-validator/src/json-validator.cpp",
-        "$(projectdir)/3rdparty/json-schema-validator/src/json-patch.cpp",
-        "$(projectdir)/3rdparty/json-schema-validator/src/string-format-check.cpp",
     })
     if not is_plat("wasm") then
         add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp")
@@ -101,7 +92,6 @@ target ("goldfish") do
     add_includedirs({
         "$(projectdir)/TeXmacs/plugins/goldfish/src",
         "$(projectdir)/3rdparty/nlohmann_json/include",
-        "$(projectdir)/3rdparty/json-schema-validator/src",
     }, {public = true})
 
     -- 同 libgoldfish：隐藏 goldfish 内部符号，避免与 GLib 的 g_log 等同名符号

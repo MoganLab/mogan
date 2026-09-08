@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (import (liii check))
-(import (liii njson))
+(import (liii json))
 (import (liii os))
 
 (check-set-mode! 'report)
@@ -44,11 +44,14 @@
   (let ((manifest-path (chat-persist-manifest-path)))
     (if (not (file-exists? manifest-path))
       0
-      (let* ((manifest (file->njson manifest-path))
-             (sessions (njson-ref manifest "sessions"))
-             (entries (njson-array->list sessions))
+      (let* ((manifest (string->json (string-load (system->url manifest-path))))
+             (sessions (json-ref manifest "sessions"))
+             (entries (if (vector? sessions)
+                        (vector->list sessions)
+                        (if (list? sessions) sessions '())
+                      ) ;if
+             ) ;entries
             ) ;
-        (njson-free manifest)
         (length entries)
       ) ;let*
     ) ;if
@@ -56,14 +59,18 @@
 ) ;define
 
 ;; 在 manifest 中查找指定 sessionId 的条目，返回其字段值
-;; njson-array->list 返回的元素是 alist，如:
+;; entries 是 alist 的列表，如:
 ;;   (("sessionId" . "xxx") ("title" . "yyy") ...)
 
 (define (manifest-find-session sid field)
   (let* ((manifest-path (chat-persist-manifest-path))
-         (manifest (file->njson manifest-path))
-         (sessions (njson-ref manifest "sessions"))
-         (entries (njson-array->list sessions))
+         (manifest (string->json (string-load (system->url manifest-path))))
+         (sessions (json-ref manifest "sessions"))
+         (entries (if (vector? sessions)
+                    (vector->list sessions)
+                    (if (list? sessions) sessions '())
+                  ) ;if
+         ) ;entries
          (result #f)
         ) ;
     (for-each (lambda (e)
@@ -81,7 +88,6 @@
               ) ;lambda
       entries
     ) ;for-each
-    (njson-free manifest)
     result
   ) ;let*
 ) ;define
@@ -176,22 +182,19 @@
 (define (test-chat-persist-make-entry)
   ;; archived=#f 时 archived 字段为 "false"
   (let ((entry (chat-persist-make-entry "sid-1" "Hello" "Kimi" #f)))
-    (check (njson-ref entry "sessionId") => "sid-1")
-    (check (njson-ref entry "title") => "Hello")
-    (check (njson-ref entry "model") => "Kimi")
-    (check (njson-ref entry "archived") => "false")
-    (njson-free entry)
+    (check (json-ref entry "sessionId") => "sid-1")
+    (check (json-ref entry "title") => "Hello")
+    (check (json-ref entry "model") => "Kimi")
+    (check (json-ref entry "archived") => "false")
   ) ;let
   ;; archived=#t 时 archived 字段为 "true"
   (let ((entry (chat-persist-make-entry "sid-2" "World" "GPT" #t)))
-    (check (njson-ref entry "archived") => "true")
-    (njson-free entry)
+    (check (json-ref entry "archived") => "true")
   ) ;let
   ;; 空标题和空模型
   (let ((entry (chat-persist-make-entry "sid-3" "" "" #f)))
-    (check (njson-ref entry "title") => "")
-    (check (njson-ref entry "model") => "")
-    (njson-free entry)
+    (check (json-ref entry "title") => "")
+    (check (json-ref entry "model") => "")
   ) ;let
 ) ;define
 
@@ -200,33 +203,25 @@
 (define (test-chat-persist-make-entry-updateAt-default)
   ;; 不传 updateAt 时，回退到 createdAt（传入 "1700000000"）
   (let ((entry (chat-persist-make-entry "sid-ua1" "Title" "Model" #f "1700000000")))
-    (check (njson-ref entry "updateAt") => "1700000000")
-    (njson-free entry)
+    (check (json-ref entry "updateAt") => "1700000000")
   ) ;let
 ) ;define
 
 (define (test-chat-persist-make-entry-updateAt-explicit)
   ;; 显式传 updateAt
-  (let ((entry (chat-persist-make-entry "sid-ua2"
-                 "Title"
-                 "Model"
-                 #f
-                 "1700000000"
-                 "enabled"
-                 "1800000000"
+  (let ((entry (chat-persist-make-entry "sid-ua2" "Title" "Model" #f
+                 "1700000000" "enabled" "1800000000"
                ) ;chat-persist-make-entry
         ) ;entry
        ) ;
-    (check (njson-ref entry "updateAt") => "1800000000")
-    (njson-free entry)
+    (check (json-ref entry "updateAt") => "1800000000")
   ) ;let
 ) ;define
 
 (define (test-chat-persist-make-entry-updateAt-no-createdAt)
   ;; 不传 updateAt 时，updateAt 回退到 createdAt
   (let ((entry (chat-persist-make-entry "sid-ua3" "Title" "Model" #f "1000")))
-    (check (njson-ref entry "updateAt") => "1000")
-    (njson-free entry)
+    (check (json-ref entry "updateAt") => "1000")
   ) ;let
 ) ;define
 
@@ -491,13 +486,11 @@
 (define (test-chat-persist-make-entry-string-archived)
   ;; archived="false"（字符串）时 archived 字段应为 "false"
   (let ((entry (chat-persist-make-entry "sid-str1" "Title" "Model" "false")))
-    (check (njson-ref entry "archived") => "false")
-    (njson-free entry)
+    (check (json-ref entry "archived") => "false")
   ) ;let
   ;; archived="true"（字符串）时 archived 字段应为 "true"
   (let ((entry (chat-persist-make-entry "sid-str2" "Title" "Model" "true")))
-    (check (njson-ref entry "archived") => "true")
-    (njson-free entry)
+    (check (json-ref entry "archived") => "true")
   ) ;let
 ) ;define
 
@@ -524,13 +517,8 @@
                                     ) ;
                                 (setup-test-session sid model "Content")
                                 ;; update-manifest 带 updateAt 参数
-                                (chat-persist-update-manifest sid
-                                  "Title"
-                                  model
-                                  #f
-                                  "1700000000"
-                                  "disabled"
-                                  "1800000000"
+                                (chat-persist-update-manifest sid "Title" model
+                                  #f "1700000000" "disabled" "1800000000"
                                 ) ;chat-persist-update-manifest
                                 (check (manifest-find-session sid "updateAt") => "1800000000")
                                 (check (manifest-find-session sid "createdAt") => "1700000000")
@@ -560,13 +548,8 @@
                                     ) ;
                                 (setup-test-session sid model "Content")
                                 ;; save-one 带 updateAt
-                                (chat-persist-save-one sid
-                                  "Title"
-                                  model
-                                  #f
-                                  "1700000000"
-                                  "disabled"
-                                  "1900000000"
+                                (chat-persist-save-one sid "Title" model #f
+                                  "1700000000" "disabled" "1900000000"
                                 ) ;chat-persist-save-one
                                 (check (manifest-find-session sid "updateAt") => "1900000000")
                               ) ;let*
@@ -604,23 +587,13 @@
                                     ) ;
                                 (setup-test-session sid model "Content")
                                 ;; 第一次保存，updateAt = 1700000000
-                                (chat-persist-update-manifest sid
-                                  "Title"
-                                  model
-                                  #f
-                                  "1700000000"
-                                  "disabled"
-                                  "1700000000"
+                                (chat-persist-update-manifest sid "Title" model
+                                  #f "1700000000" "disabled" "1700000000"
                                 ) ;chat-persist-update-manifest
                                 (check (manifest-find-session sid "updateAt") => "1700000000")
                                 ;; 第二次保存，updateAt 更新为 1800000000
-                                (chat-persist-update-manifest sid
-                                  "Title"
-                                  model
-                                  #f
-                                  "1700000000"
-                                  "disabled"
-                                  "1800000000"
+                                (chat-persist-update-manifest sid "Title" model
+                                  #f "1700000000" "disabled" "1800000000"
                                 ) ;chat-persist-update-manifest
                                 (check (manifest-find-session sid "updateAt") => "1800000000")
                                 ;; createdAt 不应被改变

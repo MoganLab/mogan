@@ -657,12 +657,26 @@ s7_pointer g_count(s7_scheme *sc, s7_pointer args)
       s7_pointer keep = s7_cons(sc, pred, s7_cons(sc, lst, s7_nil(sc)));
       s7_gc_protect_via_stack(sc, keep);
       s7_pointer p = lst;
+      s7_pointer fast = lst;
       s7_int i = 0;
       while (s7_is_pair(p))
         {
           if (s7i_is_true(sc, s7_apply_function(sc, s7_car(keep), s7i_set_plist_1(sc, s7_car(p)))))
             i++;
           p = s7_cdr(p);
+          if (s7_is_pair(fast))
+            {
+              fast = s7_cdr(fast);
+              if (s7_is_pair(fast))
+                {
+                  fast = s7_cdr(fast);
+                  if (fast == p)
+                    {
+                      s7_gc_unprotect_via_stack(sc, keep);
+                      return(s7_wrong_type_arg_error(sc, "count", 2, lst, "a proper list"));
+                    }
+                }
+            }
         }
       s7_gc_unprotect_via_stack(sc, keep);
       if (!s7_is_null(sc, p))
@@ -747,6 +761,7 @@ s7_pointer g_list_index(s7_scheme *sc, s7_pointer args)
       s7_pointer keep = s7_cons(sc, pred, s7_cons(sc, lst, s7_nil(sc)));
       s7_gc_protect_via_stack(sc, keep);
       s7_pointer p = lst;
+      s7_pointer fast = lst;
       s7_int i = 0;
       while (s7_is_pair(p))
         {
@@ -757,6 +772,19 @@ s7_pointer g_list_index(s7_scheme *sc, s7_pointer args)
             }
           i++;
           p = s7_cdr(p);
+          if (s7_is_pair(fast))
+            {
+              fast = s7_cdr(fast);
+              if (s7_is_pair(fast))
+                {
+                  fast = s7_cdr(fast);
+                  if (fast == p)
+                    {
+                      s7_gc_unprotect_via_stack(sc, keep);
+                      return(s7_wrong_type_arg_error(sc, "list-index", 2, lst, "a proper list"));
+                    }
+                }
+            }
         }
       s7_gc_unprotect_via_stack(sc, keep);
       if (!s7_is_null(sc, p))
