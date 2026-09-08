@@ -12,17 +12,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (source shortcut-edit) (:use (source macro-edit)))
-(import (liii njson))
+(import (liii json))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Management of the list of user keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.json")
-
-(define user-shortcuts-file-system
-  (url->system (string->url user-shortcuts-file))
-) ;define
 
 (define legacy-user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.scm")
 
@@ -37,52 +33,51 @@
 ) ;define
 
 (define (shortcut-entry-shortcut entry)
-  (assoc-ref entry "shortcut")
+  (and (json-object? entry) (json-ref-string entry "shortcut" #f))
 ) ;define
 
 (define (shortcut-entry-command entry)
-  (assoc-ref entry "command")
+  (and (json-object? entry) (json-ref-string entry "command" #f))
 ) ;define
 
 (define (shortcut-entry-valid? entry)
-  (and (pair? entry)
+  (and (json-object? entry)
     (string? (shortcut-entry-shortcut entry))
     (string? (shortcut-entry-command entry))
   ) ;and
 ) ;define
 
-(define user-shortcuts-schema-v1
-  (string->njson "{\"type\":\"object\",\"required\":[\"meta\",\"shortcuts\"],\"properties\":{\"meta\":{\"type\":\"object\",\"required\":[\"version\",\"total\"],\"properties\":{\"version\":{\"type\":\"integer\"},\"total\":{\"type\":\"integer\",\"minimum\":0}}},\"shortcuts\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"shortcut\",\"command\"],\"properties\":{\"shortcut\":{\"type\":\"string\"},\"command\":{\"type\":\"string\"}}}}}}"
-  ) ;string->njson
-) ;define
-
-(define (njson-schema-valid? schema instance)
-  (catch #t
-    (lambda ()
-      (let ((report (njson-schema-report schema instance)))
-        (hash-table-ref report 'valid?)
-      ) ;let
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
+(define (shortcut-entries-valid? entries)
+  (or (null? entries)
+    (and (shortcut-entry-valid? (car entries))
+      (shortcut-entries-valid? (cdr entries))
+    ) ;and
+  ) ;or
 ) ;define
 
 (define (user-shortcuts-json-valid? data)
-  (and (njson-schema-valid? user-shortcuts-schema-v1 data)
-    (let-njson ((shortcuts (njson-ref data "shortcuts"))
-                (total (njson-ref data "meta" "total"))
-               ) ;
-      (and (integer? total) (== total (njson-size shortcuts)))
-    ) ;let-njson
+  (and (json-object? data)
+    (let ((meta (json-ref data "meta")) (shortcuts (json-ref data "shortcuts")))
+      (and (json-object? meta)
+        (integer? (json-ref meta "version"))
+        (let ((total (json-ref meta "total")))
+          (and (integer? total)
+            (>= total 0)
+            (vector? shortcuts)
+            (== total (vector-length shortcuts))
+            (shortcut-entries-valid? (vector->list shortcuts))
+          ) ;and
+        ) ;let
+      ) ;and
+    ) ;let
   ) ;and
 ) ;define
 
 (define (make-user-shortcuts-json entries)
-  (json->njson `((,"meta"
-                  (,"version" . ,user-shortcuts-version)
-                  (,"total" . ,(length entries)))
-                 (,"shortcuts" . ,(list->vector entries)))
-  ) ;json->njson
+  `((,"meta"
+     (,"version" . ,user-shortcuts-version)
+     (,"total" . ,(length entries)))
+    (,"shortcuts" . ,(list->vector entries)))
 ) ;define
 
 (define (make-empty-user-shortcuts-json)
@@ -92,16 +87,15 @@
 (define current-user-shortcuts (make-empty-user-shortcuts-json))
 
 (define (replace-current-user-shortcuts! next)
-  (njson-free current-user-shortcuts)
   (set! current-user-shortcuts next)
 ) ;define
 
 (define (current-user-shortcuts-vector)
   (catch #t
     (lambda ()
-      (let-njson ((shortcuts (njson-ref current-user-shortcuts "shortcuts")))
-        (if (njson-array? shortcuts) (njson->json shortcuts) #())
-      ) ;let-njson
+      (let ((shortcuts (json-ref current-user-shortcuts "shortcuts")))
+        (if (vector? shortcuts) shortcuts #())
+      ) ;let
     ) ;lambda
     (lambda args #())
   ) ;catch
@@ -216,15 +210,15 @@
 (define (load-user-shortcuts)
   (replace-current-user-shortcuts! (make-empty-user-shortcuts-json))
   (when (url-exists? user-shortcuts-file)
-    (let ((loaded (catch #t (lambda () (file->njson user-shortcuts-file-system)) (lambda args #f))
+    (let ((loaded (catch #t
+                    (lambda () (string->json (string-load user-shortcuts-file)))
+                    (lambda args #f)
+                  ) ;catch
           ) ;loaded
          ) ;
       (if (user-shortcuts-json-valid? loaded)
         (replace-current-user-shortcuts! loaded)
-        (begin
-          (catch #t (lambda () (njson-free loaded)) (lambda args #f))
-          (reset-user-shortcuts)
-        ) ;begin
+        (reset-user-shortcuts)
       ) ;if
     ) ;let
   ) ;when
@@ -237,7 +231,7 @@
 ) ;define
 
 (define (save-user-shortcuts)
-  (njson->file user-shortcuts-file-system current-user-shortcuts)
+  (string-save (json->string current-user-shortcuts) user-shortcuts-file)
 ) ;define
 
 (tm-define (init-user-shortcuts) (load-user-shortcuts))
