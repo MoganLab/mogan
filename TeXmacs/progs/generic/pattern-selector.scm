@@ -58,7 +58,6 @@
 
 (define (set-color col)
   (set! global-pattern-color col)
-  (refresh-now "pattern-sample")
   (refresh-now "pattern-options")
 ) ;define
 
@@ -442,38 +441,7 @@
 ) ;tm-widget
 
 (tm-widget ((pattern-selector u) cmd)
-  (padded (hlist (vlist (refreshable "pattern-sample"
-                          (resize "600px"
-                            "450px"
-                            (texmacs-output `(document (block (tformat (cwith
-                                                                         "1" "1"
-                                                                         "1" "1"
-                                                                         "cell-width"
-                                                                         "596guipx")
-                                                                (cwith "1" "1"
-                                                                  "1" "1"
-                                                                  "cell-height"
-                                                                  "446guipx")
-                                                                (cwith "1" "1"
-                                                                  "1" "1"
-                                                                  "cell-vmode"
-                                                                  "exact")
-                                                                (cwith ,"1"
-                                                                  ,"1"
-                                                                  ,"1"
-                                                                  ,"1"
-                                                                  ,"cell-background"
-                                                                  ,(get-color))
-                                                                (table (row (cell ""))))))
-                              '(style (tuple "generic"))
-                            ) ;texmacs-output
-                          ) ;resize
-                        ) ;refreshable
-                 ) ;vlist
-            //
-            //
-            //
-            (explicit-buttons (vlist (refreshable "pattern-options"
+  (padded (hlist (explicit-buttons (vlist (refreshable "pattern-options"
                                        (assuming (and (not global-picture?) (not global-gradient?))
                                          (aligned (item (text "Name:") (link pattern-name-selector))
                                            (item (text "Width:")
