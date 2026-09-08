@@ -338,33 +338,31 @@
   ) ;cond
 ) ;define
 
+(define (chat-input->json ctx)
+  ;; 协议 JSON：content 为当前输入的纯文本，params 为 per-round 参数
+  ;; （baseUrl 在此解析为绝对 URL）
+  (json->string (list (cons "sessionId" (chat-input-session-id ctx))
+                  (cons "params"
+                    (list (cons "model" (chat-input-model ctx))
+                      (cons "baseUrl" (chat-tab-resolve-base-url (chat-input-base-url ctx)))
+                      (cons "thinking" (chat-input-thinking ctx))
+                      (cons "search" (chat-input-search ctx))
+                    ) ;list
+                  ) ;cons
+                  (cons "content" (chat-tab-tree->plain-text (chat-input-input ctx)))
+                ) ;list
+  ) ;json->string
+) ;define
+
 (define (chat-tab-build-context-input ctx)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
   ;; images 数组已随协议移除：图片上传属第二阶段，输入区图片暂按纯文本
   ;; 参与 content（含图片时 C++ 侧已提前拦截提示不支持）；
   ;; 系统提示词不下发：由服务端或子进程插件配置
-  (let* ((input (chat-input-input ctx))
-         (session-id (chat-input-session-id ctx))
-         (model (chat-input-model ctx))
-         (base-url (chat-tab-resolve-base-url (chat-input-base-url ctx)))
-         (thinking (chat-input-thinking ctx))
-         (search (chat-input-search ctx))
-         (content (chat-tab-tree->plain-text input))
-         (json-str (json->string `((,"sessionId" . ,session-id)
-                                   (,"params"
-                                    (,"model" . ,model)
-                                    (,"baseUrl" . ,base-url)
-                                    (,"thinking" . ,thinking)
-                                    (,"search" . ,search))
-                                   (,"content" . ,content))
-                   ) ;json->string
-         ) ;json-str
-        ) ;
-    (let ((cork-json (utf8->cork json-str)))
-      (stree->tree `(document ,(string-append "%chat " cork-json)))
-    ) ;let
-  ) ;let*
+  (let ((cork-json (utf8->cork (chat-input->json ctx))))
+    (stree->tree `(document ,(string-append "%chat " cork-json)))
+  ) ;let
 ) ;define
 
 ;;; ---------- Feed ----------
