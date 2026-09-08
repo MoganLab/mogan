@@ -143,6 +143,10 @@ if has_config("qt_frontend") then
         add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
     end
 
+    for _, filepath in ipairs(os.files("TeXmacs/plugins/llm/**/*-test.scm")) do
+        add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
+    end
+
     -- Integration tests
     for _, filepath in ipairs(os.files("TeXmacs/tests/*.scm")) do
         add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)

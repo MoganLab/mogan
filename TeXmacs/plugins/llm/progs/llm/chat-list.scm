@@ -12,7 +12,7 @@
 
 (texmacs-module (llm chat-list))
 
-(import (liii njson))
+(import (liii json))
 
 ;;; ---------- 路径工具 ----------
 
@@ -56,22 +56,19 @@
          (search (if (and (pair? opts2) (car opts2)) (car opts2) "disabled"))
          (updated-at (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
-         (entry (string->njson "{}"))
+         (archived-str (if (or (not archived) (== archived "false")) "false" "true"))
+         (actual-created-at (or created-at ""))
+         (actual-updated-at (or updated-at created-at ""))
         ) ;
-    (njson-set! entry "sessionId" sid)
-    (njson-set! entry "title" title)
-    (njson-set! entry "model" model)
-    (njson-set! entry
-      "archived"
-      (if (or (not archived) (== archived "false")) "false" "true")
-    ) ;njson-set!
-    (njson-set! entry "createdAt" (or created-at ""))
-    (njson-set! entry "defaultExpandCount" 5)
-    (njson-set! entry "thinking" thinking)
-    (njson-set! entry "search" search)
-    ;; updateAt: 最近活跃时间戳，用于排序索引；缺失时回退到 createdAt
-    (njson-set! entry "updateAt" (or updated-at created-at ""))
-    entry
+    `((,"sessionId" . ,sid)
+      (,"title" . ,title)
+      (,"model" . ,model)
+      (,"archived" . ,archived-str)
+      (,"createdAt" . ,actual-created-at)
+      (,"defaultExpandCount" . ,5)
+      (,"thinking" . ,thinking)
+      (,"search" . ,search)
+      (,"updateAt" . ,actual-updated-at))
   ) ;let*
 ) ;tm-define
 
@@ -79,29 +76,26 @@
 
 (tm-define (chat-persist-load-all)
   (let ((manifest-path (chat-persist-manifest-path)))
-    (if (not (file-exists? manifest-path))
-      (noop)
-      (let* ((manifest (file->njson manifest-path))
-             (sessions-json (njson-ref manifest "sessions"))
-             (entries (njson-array->list sessions-json))
+    (when (file-exists? manifest-path)
+      (let* ((manifest (catch #t
+                         (lambda () (string->json (string-load (system->url manifest-path))))
+                         (lambda args #f)
+                       ) ;catch
+             ) ;manifest
+             (sessions-vec (and (json-object? manifest) (json-ref manifest "sessions")))
+             (entries (if (vector? sessions-vec) (vector->list sessions-vec) '()))
             ) ;
         (for-each (lambda (entry)
-                    ;; njson-array->list 返回 alist，用 assoc 访问字段
-                    (let* ((sid (cdr (assoc "sessionId" entry)))
-                           (title (cdr (assoc "title" entry)))
-                           (model (cdr (assoc "model" entry)))
-                           (archived-str (cdr (assoc "archived" entry)))
-                           (created-at-pair (assoc "createdAt" entry))
-                           (created-at (if created-at-pair (cdr created-at-pair) ""))
-                           (updated-at-pair (assoc "updateAt" entry))
+                    (let* ((sid (json-ref-string entry "sessionId" ""))
+                           (title (json-ref-string entry "title" ""))
+                           (model (json-ref-string entry "model" ""))
+                           (archived-str (json-ref-string entry "archived" "false"))
+                           (created-at (json-ref-string entry "createdAt" ""))
                            ;; updateAt 缺失时回退到 createdAt（兼容旧 manifest）
-                           (updated-at (if updated-at-pair (cdr updated-at-pair) created-at))
-                           (expand-count-pair (assoc "defaultExpandCount" entry))
-                           (expand-count (if expand-count-pair (cdr expand-count-pair) 5))
-                           (thinking-pair (assoc "thinking" entry))
-                           (thinking (if thinking-pair (cdr thinking-pair) "disabled"))
-                           (search-pair (assoc "search" entry))
-                           (search (if search-pair (cdr search-pair) "disabled"))
+                           (updated-at (json-ref-string entry "updateAt" created-at))
+                           (expand-count (json-ref-integer entry "defaultExpandCount" 5))
+                           (thinking (json-ref-string entry "thinking" "disabled"))
+                           (search (json-ref-string entry "search" "disabled"))
                           ) ;
                       ;; 只传元数据给 C++，不加载 buffer 内容
                       (qt-chat-tab-restore-session sid title model archived-str
@@ -111,9 +105,8 @@
                   ) ;lambda
           entries
         ) ;for-each
-        (njson-free manifest)
       ) ;let*
-    ) ;if
+    ) ;when
   ) ;let
 ) ;tm-define
 
@@ -135,48 +128,37 @@
          ) ;entry
         ) ;
     (chat-persist-ensure-dir! (chat-persist-base-dir))
-    (if (not (file-exists? manifest-path))
-      ;; manifest 不存在：创建新的，直接构建包含 entry 的数组
-      (let* ((manifest (string->njson "{\"version\":1,\"sessions\":[]}"))
-             (new-arr (string->njson "[]"))
-            ) ;
-        (njson-append! new-arr entry)
-        (njson-set! manifest "sessions" new-arr)
-        (njson->file manifest-path manifest)
-        (njson-free new-arr)
-        (njson-free manifest)
-      ) ;let*
-      ;; manifest 存在：读取，查找并更新或追加
-      (let* ((manifest (file->njson manifest-path))
-             (sessions-arr (njson-ref manifest "sessions"))
-             (entries (njson-array->list sessions-arr))
-            ) ;
-        (let ((new-arr (string->njson "[]")) (found #f))
-          (for-each (lambda (e)
-                      (let ((sid-pair (assoc "sessionId" e)))
-                        (if (and sid-pair (== (cdr sid-pair) session-id))
-                          (begin
-                            (njson-append! new-arr entry)
-                            (set! found #t)
-                          ) ;begin
-                          (njson-append! new-arr (json->njson e))
-                        ) ;if
-                      ) ;let
-                    ) ;lambda
-            entries
-          ) ;for-each
-          (when (not found)
-            (njson-append! new-arr entry)
-          ) ;when
-          (njson-drop! manifest "sessions")
-          (njson-set! manifest "sessions" new-arr)
-          (njson->file manifest-path manifest)
-          (njson-free new-arr)
-          (njson-free manifest)
-        ) ;let
-      ) ;let*
-    ) ;if
-    (njson-free entry)
+    (let* ((manifest (if (file-exists? manifest-path)
+                       (catch #t
+                         (lambda () (string->json (string-load (system->url manifest-path))))
+                         (lambda args #f)
+                       ) ;catch
+                       #f
+                     ) ;if
+           ) ;manifest
+           (version (if (json-object? manifest) (json-ref-integer manifest "version" 1) 1))
+           (sessions-vec (and (json-object? manifest) (json-ref manifest "sessions")))
+           (entries (if (vector? sessions-vec) (vector->list sessions-vec) '()))
+           (found #f)
+           (updated-entries (map (lambda (e)
+                                   (if (equal? (json-ref-string e "sessionId" "") session-id)
+                                     (begin
+                                       (set! found #t)
+                                       entry
+                                     ) ;begin
+                                     e
+                                   ) ;if
+                                 ) ;lambda
+                              entries
+                            ) ;map
+           ) ;updated-entries
+           (final-entries (if found updated-entries (append updated-entries (list entry))))
+           (new-manifest `((,"version" . ,version)
+                           (,"sessions" . ,(list->vector final-entries)))
+           ) ;new-manifest
+          ) ;
+      (string-save (json->string new-manifest) (system->url manifest-path))
+    ) ;let*
   ) ;let*
 ) ;tm-define
 
@@ -199,26 +181,23 @@
   ;; 2. 从 manifest 中移除条目
   (let ((manifest-path (chat-persist-manifest-path)))
     (when (file-exists? manifest-path)
-      (let* ((manifest (file->njson manifest-path))
-             (sessions-arr (njson-ref manifest "sessions"))
-             (entries (njson-array->list sessions-arr))
+      (let* ((manifest (catch #t
+                         (lambda () (string->json (string-load (system->url manifest-path))))
+                         (lambda args #f)
+                       ) ;catch
+             ) ;manifest
+             (version (if (json-object? manifest) (json-ref-integer manifest "version" 1) 1))
+             (sessions-vec (and (json-object? manifest) (json-ref manifest "sessions")))
+             (entries (if (vector? sessions-vec) (vector->list sessions-vec) '()))
+             (remaining (filter (lambda (e) (not (equal? (json-ref-string e "sessionId" "") session-id)))
+                          entries
+                        ) ;filter
+             ) ;remaining
+             (new-manifest `((,"version" . ,version)
+                             (,"sessions" . ,(list->vector remaining)))
+             ) ;new-manifest
             ) ;
-        (let ((new-arr (string->njson "[]")))
-          (for-each (lambda (e)
-                      (let ((sid-pair (assoc "sessionId" e)))
-                        (when (not (and sid-pair (== (cdr sid-pair) session-id)))
-                          (njson-append! new-arr (json->njson e))
-                        ) ;when
-                      ) ;let
-                    ) ;lambda
-            entries
-          ) ;for-each
-          (njson-drop! manifest "sessions")
-          (njson-set! manifest "sessions" new-arr)
-          (njson->file manifest-path manifest)
-          (njson-free new-arr)
-          (njson-free manifest)
-        ) ;let
+        (string-save (json->string new-manifest) (system->url manifest-path))
       ) ;let*
     ) ;when
   ) ;let
