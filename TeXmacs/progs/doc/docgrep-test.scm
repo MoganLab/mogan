@@ -24,9 +24,9 @@
 
 (define (stree-any-string pred x)
   (cond ((string? x) (pred x))
-        ((pair? x)
-         (or (stree-any-string pred (car x)) (stree-any-string pred (cdr x))))
-        (else #f))
+        ((pair? x) (or (stree-any-string pred (car x)) (stree-any-string pred (cdr x))))
+        (else #f)
+  ) ;cond
 ) ;define
 
 ;; 中文文件名、无标题节点的文档：链接文本应为 cork 转义串，不含原始 UTF-8 中文。
@@ -36,16 +36,16 @@
          (u (url-append (url-temp-dir) (system->url cn-name)))
          (path (url->system u))
         ) ;
-    (string-save "<\\TeXmacs|2.1>\n\n<style|generic>\n\n<\\body>\n  hello\n</body>" u)
+    (string-save "<\\TeXmacs|2.1>\n\n<style|generic>\n\n<\\body>\n  hello\n</body>"
+      u
+    ) ;string-save
     (with st
       (tm->stree (build-doc-search-results "hello" (list (cons path 1))))
-      (check-true (stree-any-string (cut string-contains? <> (utf8->cork cn-name)) st))
+      (check-true (stree-any-string (cut string-contains? <> (utf8->cork cn-name)) st)
+      ) ;check-true
       (check-false (stree-any-string (cut string-contains? <> cn-name) st))
     ) ;with
   ) ;let*
 ) ;define
 
-(tm-define (regtest-docgrep)
-  (test-link-text-cork-encoded)
-  (check-report)
-) ;tm-define
+(tm-define (regtest-docgrep) (test-link-text-cork-encoded) (check-report))
