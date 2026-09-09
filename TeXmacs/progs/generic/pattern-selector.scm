@@ -442,78 +442,78 @@
 
 (tm-widget ((pattern-selector u) cmd)
   (padded (hlist (explicit-buttons (vlist (refreshable "pattern-options"
-                                       (assuming (and (not global-picture?) (not global-gradient?))
-                                         (aligned (item (text "Name:") (link pattern-name-selector))
-                                           (item (text "Width:")
-                                             (hlist (enum (set-width answer)
-                                                      (list (get-width) "100%" "100@" "1cm" "")
-                                                      (get-width)
-                                                      "15em"
-                                                    ) ;enum
-                                               >>
-                                             ) ;hlist
-                                           ) ;item
-                                           (item (text "Height:")
-                                             (hlist (enum (set-height answer)
-                                                      (list (get-height) "100%" "100@" "1cm" "")
-                                                      (get-height)
-                                                      "15em"
-                                                    ) ;enum
-                                               >>
-                                             ) ;hlist
-                                           ) ;item
-                                           (item (text "Recolor:") (link pattern-recolor-options))
-                                           (item (text "Skin:") (link pattern-skin-options))
-                                           ;; TODO: the blur effect changes the image size;
-                                           ;; one needs a blur that wraps around torically
-                                           ;; (item (text "Blur:")
-                                           ;;  (link pattern-blur-options))
-                                         ) ;aligned
-                                       ) ;assuming
-                                       (assuming global-gradient?
-                                         (aligned (item (text "Name:") (link pattern-name-selector))
-                                           (item (text "Width:")
-                                             (hlist (enum (set-width answer)
-                                                      (list (get-width) "100%" "100@" "1cm" "")
-                                                      (get-width)
-                                                      "15em"
-                                                    ) ;enum
-                                               >>
-                                             ) ;hlist
-                                           ) ;item
-                                           (item (text "Height:")
-                                             (hlist (enum (set-height answer)
-                                                      (list (get-height) "100%" "100@" "1cm" "")
-                                                      (get-height)
-                                                      "15em"
-                                                    ) ;enum
-                                               >>
-                                             ) ;hlist
-                                           ) ;item
-                                           (item (text "Foreground:") (link pattern-foreground-options))
-                                           (item (text "Background:") (link pattern-background-options))
-                                         ) ;aligned
-                                       ) ;assuming
-                                       (assuming global-picture?
-                                         (aligned (item (text "Name:") (link pattern-name-selector))
-                                           (item (text "Size:")
-                                             (hlist (enum (set-size answer)
-                                                      (list "Fit" "Fit to width" "Fit to height")
-                                                      (get-size)
-                                                      "15em"
-                                                    ) ;enum
-                                               >>
-                                             ) ;hlist
-                                           ) ;item
-                                           (item (text "Recolor:") (link pattern-recolor-options))
-                                           (item (text "Skin:") (link pattern-skin-options))
-                                         ) ;aligned
-                                       ) ;assuming
-                                     ) ;refreshable
-                                ======
-                                (glue #f #t 0 0)
-                              ) ;vlist
-            ) ;explicit-buttons
+                                            (assuming (and (not global-picture?) (not global-gradient?))
+                                              (aligned (item (text "Name:") (link pattern-name-selector))
+                                                (item (text "Width:")
+                                                  (hlist (enum (set-width answer)
+                                                           (list (get-width) "100%" "100@" "1cm" "")
+                                                           (get-width)
+                                                           "15em"
+                                                         ) ;enum
+                                                    >>
+                                                  ) ;hlist
+                                                ) ;item
+                                                (item (text "Height:")
+                                                  (hlist (enum (set-height answer)
+                                                           (list (get-height) "100%" "100@" "1cm" "")
+                                                           (get-height)
+                                                           "15em"
+                                                         ) ;enum
+                                                    >>
+                                                  ) ;hlist
+                                                ) ;item
+                                                (item (text "Recolor:") (link pattern-recolor-options))
+                                                (item (text "Skin:") (link pattern-skin-options))
+                                                ;; TODO: the blur effect changes the image size;
+                                                ;; one needs a blur that wraps around torically
+                                                ;; (item (text "Blur:")
+                                                ;;  (link pattern-blur-options))
+                                              ) ;aligned
+                                            ) ;assuming
+                                            (assuming global-gradient?
+                                              (aligned (item (text "Name:") (link pattern-name-selector))
+                                                (item (text "Width:")
+                                                  (hlist (enum (set-width answer)
+                                                           (list (get-width) "100%" "100@" "1cm" "")
+                                                           (get-width)
+                                                           "15em"
+                                                         ) ;enum
+                                                    >>
+                                                  ) ;hlist
+                                                ) ;item
+                                                (item (text "Height:")
+                                                  (hlist (enum (set-height answer)
+                                                           (list (get-height) "100%" "100@" "1cm" "")
+                                                           (get-height)
+                                                           "15em"
+                                                         ) ;enum
+                                                    >>
+                                                  ) ;hlist
+                                                ) ;item
+                                                (item (text "Foreground:") (link pattern-foreground-options))
+                                                (item (text "Background:") (link pattern-background-options))
+                                              ) ;aligned
+                                            ) ;assuming
+                                            (assuming global-picture?
+                                              (aligned (item (text "Name:") (link pattern-name-selector))
+                                                (item (text "Size:")
+                                                  (hlist (enum (set-size answer)
+                                                           (list "Fit" "Fit to width" "Fit to height")
+                                                           (get-size)
+                                                           "15em"
+                                                         ) ;enum
+                                                    >>
+                                                  ) ;hlist
+                                                ) ;item
+                                                (item (text "Recolor:") (link pattern-recolor-options))
+                                                (item (text "Skin:") (link pattern-skin-options))
+                                              ) ;aligned
+                                            ) ;assuming
+                                          ) ;refreshable
+                                     ======
+                                     (glue #f #t 0 0)
+                                   ) ;vlist
+                 ) ;explicit-buttons
           ) ;hlist
     ======
     (explicit-buttons (hlist >>>
