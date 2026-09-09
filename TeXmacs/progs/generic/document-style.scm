@@ -173,6 +173,35 @@
   (set-style-list (append (get-style-list) (list pack)))
 ) ;tm-define
 
+;; 从 cpp-add-package-dialog 的返回 tree 里取宏包名。
+;; OK 返回 (tuple (tuple "package" <name>))，Cancel / 关闭返回空 tuple。#f 表示无有效输入。
+(define-public (add-package-result result)
+  (with kvs (cdr (tree->stree result)) (if (nnull? kvs) (caddr (car kvs)) #f))
+) ;define-public
+
+;; 焦点 / 文档 → 增加宏包 → 其他宏包：专用 QML 弹窗（DialogShell + InputField，run_qml_dialog）。
+;; OK 时检查宏包是否存在：存在则 add-style-package 追加；不存在则弹 QML 确认弹窗提示并不予添加。空串 / Cancel / 关闭不追加。
+(tm-define (open-add-package-dialog)
+  (:interactive #t)
+  (with result
+    (cpp-add-package-dialog)
+    (with pack
+      (add-package-result result)
+      (when (and (string? pack) (!= pack ""))
+        (if (package-exists? pack)
+          (begin
+            (add-style-package pack)
+            (set-message (string-append (translate "Package added: ") pack) "Package")
+          ) ;begin
+          (cpp-confirm-question (string-append (translate "Package does not exist: ") pack)
+            (list (translate "OK"))
+          ) ;cpp-confirm-question
+        ) ;if
+      ) ;when
+    ) ;with
+  ) ;with
+) ;tm-define
+
 (tm-define (remove-style-package pack)
   (:argument pack "Remove package")
   (:proposals pack (with l (get-style-list) (if (null? l) l (cdr l))))
@@ -196,23 +225,32 @@
   ) ;if
 ) ;tm-define
 
-(define (url-resolve-package name)
+(define-public (url-resolve-package name)
   (let* ((stem-name (string-append name ".stem"))
          (ts-name (string-append name ".ts"))
          (stem-url (url-append "$TEXMACS_STYLE_PATH" stem-name))
-         (stem-local (url-relative (current-buffer) stem-name))
+         (buf (current-buffer))
+         (has-local? (and (url? buf) (not (url-scratch? buf)) (not (url-rooted-tmfs? buf)))
+         ) ;has-local?
+         (stem-local (if has-local? (url-relative buf stem-name) (url-none)))
+         (stem-pkg (url-append "$TEXMACS_PATH/packages" stem-name))
          (ts-url (url-append "$TEXMACS_STYLE_PATH" ts-name))
-         (ts-local (url-relative (current-buffer) ts-name))
+         (ts-local (if has-local? (url-relative buf ts-name) (url-none)))
+         (ts-pkg (url-append "$TEXMACS_PATH/packages" ts-name))
         ) ;
     (with stem-resolved
-      (url-resolve (url-or stem-url stem-local) "r")
+      (url-resolve (url-or stem-url (url-or stem-local stem-pkg)) "r")
       (if (url-none? stem-resolved)
-        (url-resolve (url-or ts-url ts-local) "r")
+        (url-resolve (url-or ts-url (url-or ts-local ts-pkg)) "r")
         stem-resolved
       ) ;if
     ) ;with
   ) ;let*
-) ;define
+) ;define-public
+
+(define-public (package-exists? name)
+  (and (string? name) (!= name "") (not (url-none? (url-resolve-package name))))
+) ;define-public
 
 (tm-define (edit-package-source name)
   (with file-name

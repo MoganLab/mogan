@@ -171,6 +171,15 @@ tree cpp_form_dialog (tree fields);
 tree cpp_search_recent_dialog ();
 
 /**
+ * @brief 「增加宏包」QML 对话框 glue 入口（一次性提交）。
+ * @return 用户点 OK / 回车返回 (tuple (tuple "package" <name>))；Cancel / 关闭
+ * / 加载失败返回空 tree。
+ * @details 走 run_qml_dialog。scheme 侧把 package 交给 add-style-package。
+ * @note 测试钩子 MOGAN_TEST_ADD_PACKAGE=ok|cancel|<name> 命中时不弹窗。
+ */
+tree cpp_add_package_dialog ();
+
+/**
  * @brief 字体选择器 QML 对话框的 glue 入口。
  * @param specs_key scheme specs-registry 的 int 句柄
  *（font-selector-register-specs 返回值）。

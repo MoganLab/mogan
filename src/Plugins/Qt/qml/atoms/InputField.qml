@@ -45,16 +45,21 @@ Row {
     signal actionClicked
     signal accepted
 
+    function forceFocus() {
+        inputTxt.forceActiveFocus();
+    }
+
     readonly property bool hasAction: actionLabel.length > 0
     readonly property real labelRatio: isNarrow ? Theme.comboLabelRatioNarrow : 0.35
     // 用自身 width（由调用方设成父列宽），不要读 parent.width：Column 宽度依赖子项时
     // parent.width 会是 0，标签宽变成 0，「文件名」和长路径叠在一起。
     property real labelWidth: inputRow.width * labelRatio
+    readonly property real labelImplicitWidth: labelTxt.implicitWidth
+    readonly property bool isComposing: inputTxt.inputMethodComposing
     readonly property real actionWidth: hasAction ? actionBtn.width : 0
     property real inputWidth: Math.max(0, inputRow.width - labelWidth - actionWidth
                               - (hasAction ? 2 * spacing : spacing))
     height: rowHeight
-    clip: true
 
     onValueChanged: {
         if (inputTxt.text !== inputRow.value)
@@ -62,6 +67,7 @@ Row {
     }
 
     Text {
+        id: labelTxt
         width: inputRow.labelWidth
         anchors.verticalCenter: parent.verticalCenter
         text: inputRow.label
@@ -84,7 +90,6 @@ Row {
         height: inputRow.rowHeight
         anchors.verticalCenter: parent.verticalCenter
         radius: Theme.radius
-        clip: true
         color: inputTxt.activeFocus ? Theme.fieldBgHover : Theme.fieldBg
         border.width: Theme.borderW
         border.color: inputTxt.activeFocus ? Theme.accent : Theme.borderClr
@@ -121,7 +126,8 @@ Row {
             }
             onAccepted: inputRow.accepted()
             onActiveFocusChanged: {
-                if (inputTxt.activeFocus) inputTxt.selectAll();
+                if (inputTxt.activeFocus)
+                    inputTxt.selectAll();
             }
 
             RegularExpressionValidator {

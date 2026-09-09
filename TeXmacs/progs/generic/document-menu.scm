@@ -79,7 +79,7 @@
   (-> "Add package"
     (link toggle-package-menu)
     ---
-    ("Add other package" (interactive add-style-package))
+    ("Add other package" (open-add-package-dialog))
   ) ;->
 ) ;menu-bind
 
@@ -1137,7 +1137,7 @@
   (-> "Add style package"
     (link add-package-menu)
     ---
-    ("Other package" (interactive add-style-package))
+    ("Other package" (open-add-package-dialog))
   ) ;->
 ) ;tm-menu
 
@@ -1225,7 +1225,7 @@
     (=> (balloon (icon "tm_add.xpm") "Add style package")
       (link add-package-menu)
       ---
-      ("Other package" (interactive add-style-package))
+      ("Other package" (open-add-package-dialog))
     ) ;=>
     (assuming (tree-is-buffer? t)
      ((balloon (icon "tm_focus_help.xpm") "Describe tag") (focus-help))

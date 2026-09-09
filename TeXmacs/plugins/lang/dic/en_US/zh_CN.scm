@@ -1946,6 +1946,8 @@
 ("overline" "上划线")
 ("overlined block" "上划线块")
 ("overview of the scheme extension language" "Scheme 扩展语言概览")
+("package added: " "宏包已添加: ")
+("package does not exist: " "宏包不存在: ")
 ("padded block" "补白块")
 ("padding" "补白")
 ("page bottom margin" "")

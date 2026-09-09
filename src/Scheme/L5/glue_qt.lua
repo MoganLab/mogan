@@ -74,6 +74,12 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "cpp-add-package-dialog",
+                cpp_name = "cpp_add_package_dialog",
+                ret_type = "tree",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-font-selector-dialog",
                 cpp_name = "cpp_font_selector_dialog",
                 ret_type = "tree",

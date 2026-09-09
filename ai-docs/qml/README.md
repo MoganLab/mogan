@@ -161,6 +161,7 @@ OK 时算与快照的 diff → `prefBridge.submit(diff)` 一次性应用；Cance
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit（页面设置走此弹窗） |
 | `PrintToFile` | `run_qml_dialog`（exec） | 路径 + 页码一次提交；Browse 走原生保存框 |
 | `SearchRecent` | `run_qml_dialog`（exec） | 搜索词一次提交，scheme 走 `docgrep-in-recent` |
+| `AddPackage` | `run_qml_dialog`（exec） | 宏包名称一次提交，校验存在性后走 `add-style-package` |
 | `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 快照撤销 / Reset 按 global? 分流（文档级系统默认、段落级回快照） |
 | `ParagraphFormat` | `run_modal_qml_dialog`（setModal+show） | live 写回（段落 with / 文档 initial），按 scope 撤销 |
 | `Statistics` | `run_qml_dialog`（exec） | 纯展示统计行（`statsItems` 注入 `{label,value}`），Close 即关，无返回值 |

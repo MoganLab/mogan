@@ -39,10 +39,15 @@ class StubBridge : public QObject {
   Q_OBJECT
 public:
   explicit StubBridge (QObject* p= nullptr) : QObject (p) {}
-  int                 cancelCount= 0;
-  Q_INVOKABLE void    choose (int) {}
-  Q_INVOKABLE void    cancel () { ++cancelCount; }
-  Q_INVOKABLE void    submit (const QVariantMap&) {}
+  int              cancelCount= 0;
+  int              submitCount= 0;
+  QVariantMap      lastSubmitted;
+  Q_INVOKABLE void choose (int) {}
+  Q_INVOKABLE void cancel () { ++cancelCount; }
+  Q_INVOKABLE void submit (const QVariantMap& m) {
+    ++submitCount;
+    lastSubmitted= m;
+  }
   Q_INVOKABLE void    startMove () {}
   Q_INVOKABLE QString pickSaveFile (const QString&, const QString&) {
     return QString ();
@@ -229,6 +234,7 @@ private slots:
   void test_confirm_restart_loads ();
   void test_form_dialog_loads ();
   void test_search_recent_loads ();
+  void test_add_package_loads ();
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
@@ -354,6 +360,37 @@ TestQmlLoad::test_search_recent_loads () {
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/SearchRecent.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_add_package_loads () {
+  QStringList buttons;
+  buttons << "OK"
+          << "Cancel";
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("packageLabel",
+                                          QString ("Add style package:"));
+  qw->rootContext ()->setContextProperty ("packageName", QString ());
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/AddPackage.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+
+  host.show ();
+  (void) QTest::qWaitForWindowExposed (&host);
+  host.activateWindow ();
+  qw->setFocus ();
+  QTRY_VERIFY (qw->quickWindow () && qw->quickWindow ()->activeFocusItem ());
+  QTest::keyClicks (qw, "d");
+  QCOMPARE (bridge->submitCount, 0);
+  QTest::keyClick (qw, Qt::Key_Return);
+  QTRY_COMPARE (bridge->submitCount, 1);
+  QCOMPARE (bridge->lastSubmitted.value ("package").toString (), QString ("d"));
 }
 
 void
