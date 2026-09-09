@@ -585,15 +585,8 @@ cpp_form_dialog (tree fields) {
       420, logicH);
 
   // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
-  tree               r (TUPLE);
-  const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();
+  tree r= bridge ? kv_map_to_tree (bridge->results ()) : tree (TUPLE);
   delete bridge;
-  for (auto it= res.begin (); it != res.end (); ++it) {
-    tree kv (TUPLE);
-    kv << tree (from_qstring (it.key ()));
-    kv << tree (from_qstring (it.value ().toString ()));
-    r << kv;
-  }
   return r;
 }
 
@@ -633,16 +626,8 @@ cpp_search_recent_dialog () {
       },
       460, logicH);
 
-  tree               r (TUPLE);
-  const QVariantMap& res=
-      closeBridge ? closeBridge->results () : QVariantMap ();
+  tree r= closeBridge ? kv_map_to_tree (closeBridge->results ()) : tree (TUPLE);
   delete closeBridge;
-  for (auto it= res.begin (); it != res.end (); ++it) {
-    tree kv (TUPLE);
-    kv << tree (from_qstring (it.key ()))
-       << tree (from_qstring (it.value ().toString ()));
-    r << kv;
-  }
   return r;
 }
 
@@ -659,17 +644,10 @@ tree
 cpp_add_package_dialog () {
   string preset= get_env ("MOGAN_TEST_ADD_PACKAGE");
   if (preset == "cancel") return tree (TUPLE);
-  if (preset == "ok") {
-    tree r (TUPLE);
-    tree kv (TUPLE);
-    kv << tree ("package") << tree ("");
-    r << kv;
-    return r;
-  }
   if (preset != "") {
     tree r (TUPLE);
     tree kv (TUPLE);
-    kv << tree ("package") << tree (preset);
+    kv << tree ("package") << tree (preset == "ok" ? string ("") : preset);
     r << kv;
     return r;
   }
@@ -689,16 +667,8 @@ cpp_add_package_dialog () {
       },
       360, logicH);
 
-  tree               r (TUPLE);
-  const QVariantMap& res=
-      closeBridge ? closeBridge->results () : QVariantMap ();
+  tree r= closeBridge ? kv_map_to_tree (closeBridge->results ()) : tree (TUPLE);
   delete closeBridge;
-  for (auto it= res.begin (); it != res.end (); ++it) {
-    tree kv (TUPLE);
-    kv << tree (from_qstring (it.key ()))
-       << tree (from_qstring (it.value ().toString ()));
-    r << kv;
-  }
   return r;
 }
 
@@ -1076,17 +1046,9 @@ cpp_print_to_file_dialog (tree form) {
       460, logicH);
 
   // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
-  tree               r (TUPLE);
-  const QVariantMap& res=
-      closeBridge ? closeBridge->results () : QVariantMap ();
+  tree r= closeBridge ? kv_map_to_tree (closeBridge->results ()) : tree (TUPLE);
   delete closeBridge;
   delete printBridge;
-  for (auto it= res.begin (); it != res.end (); ++it) {
-    tree kv (TUPLE);
-    kv << tree (from_qstring (it.key ()))
-       << tree (from_qstring (it.value ().toString ()));
-    r << kv;
-  }
   return r;
 }
 

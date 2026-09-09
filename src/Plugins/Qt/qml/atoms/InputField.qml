@@ -55,7 +55,6 @@ Row {
     // parent.width 会是 0，标签宽变成 0，「文件名」和长路径叠在一起。
     property real labelWidth: inputRow.width * labelRatio
     readonly property real labelImplicitWidth: labelTxt.implicitWidth
-    readonly property bool isComposing: inputTxt.inputMethodComposing
     readonly property real actionWidth: hasAction ? actionBtn.width : 0
     property real inputWidth: Math.max(0, inputRow.width - labelWidth - actionWidth
                               - (hasAction ? 2 * spacing : spacing))

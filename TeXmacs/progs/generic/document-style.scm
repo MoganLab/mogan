@@ -183,22 +183,19 @@
 ;; OK 时检查宏包是否存在：存在则 add-style-package 追加；不存在则弹 QML 确认弹窗提示并不予添加。空串 / Cancel / 关闭不追加。
 (tm-define (open-add-package-dialog)
   (:interactive #t)
-  (with result
-    (cpp-add-package-dialog)
-    (with pack
-      (add-package-result result)
-      (when (and (string? pack) (!= pack ""))
-        (if (package-exists? pack)
-          (begin
-            (add-style-package pack)
-            (set-message (string-append (translate "Package added: ") pack) "Package")
-          ) ;begin
-          (cpp-confirm-question (string-append (translate "Package does not exist: ") pack)
-            (list (translate "OK"))
-          ) ;cpp-confirm-question
-        ) ;if
-      ) ;when
-    ) ;with
+  (with pack
+    (add-package-result (cpp-add-package-dialog))
+    (when (and (string? pack) (!= pack ""))
+      (if (package-exists? pack)
+        (begin
+          (add-style-package pack)
+          (set-message (string-append (translate "Package added: ") pack) "Package")
+        ) ;begin
+        (cpp-confirm-question (string-append (translate "Package does not exist: ") pack)
+          (list (translate "OK"))
+        ) ;cpp-confirm-question
+      ) ;if
+    ) ;when
   ) ;with
 ) ;tm-define
 
