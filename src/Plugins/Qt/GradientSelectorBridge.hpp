@@ -55,20 +55,20 @@ public:
 
   ~GradientSelectorBridge () override= default;
 
-  QString patternName () const { return m_patternName; }
-  void    setPatternName (const QString& name);
+  QString          patternName () const { return m_patternName; }
+  Q_INVOKABLE void setPatternName (const QString& name);
 
-  QString width () const { return m_width; }
-  void    setWidth (const QString& w);
+  QString          width () const { return m_width; }
+  Q_INVOKABLE void setWidth (const QString& w);
 
-  QString height () const { return m_height; }
-  void    setHeight (const QString& h);
+  QString          height () const { return m_height; }
+  Q_INVOKABLE void setHeight (const QString& h);
 
-  QString foregroundColor () const { return m_fgColor; }
-  void    setForegroundColor (const QString& c);
+  QString          foregroundColor () const { return m_fgColor; }
+  Q_INVOKABLE void setForegroundColor (const QString& c);
 
-  QString backgroundColor () const { return m_bgColor; }
-  void    setBackgroundColor (const QString& c);
+  QString          backgroundColor () const { return m_bgColor; }
+  Q_INVOKABLE void setBackgroundColor (const QString& c);
 
   QString previewUrl () const { return m_previewUrl; }
   bool    isSubmitted () const { return m_submitted; }

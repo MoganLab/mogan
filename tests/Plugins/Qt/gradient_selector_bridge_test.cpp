@@ -71,6 +71,15 @@ TestGradientSelectorBridge::test_bridge_properties_and_preview () {
   // Modifying properties must update the preview
   bridge.setForegroundColor ("green");
   QCOMPARE (bridge.foregroundColor (), QString ("green"));
+  bridge.setBackgroundColor ("yellow");
+  QCOMPARE (bridge.backgroundColor (), QString ("yellow"));
+  bridge.setPatternName ("horizontal-white-black.png");
+  QCOMPARE (bridge.patternName (), QString ("horizontal-white-black.png"));
+  bridge.setWidth ("50%");
+  QCOMPARE (bridge.width (), QString ("50%"));
+  bridge.setHeight ("50%");
+  QCOMPARE (bridge.height (), QString ("50%"));
+
   QString newPUrl= bridge.previewUrl ();
   QVERIFY (newPUrl.startsWith ("data:image/png;base64,"));
   QVERIFY (newPUrl != pUrl);

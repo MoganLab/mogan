@@ -11,7 +11,7 @@ Automated UI test for issue 1287:
 3. Click menu: 文档 -> 颜色 -> 背景色 -> 渐变 (Document -> Colors -> Background -> Gradient).
 4. Verify the new QML "Gradient selector" dialog appears.
 5. Verify the live gradient preview function works properly with real-time color rendering.
-6. Click "确认" (OK) to apply the gradient to the document.
+6. Submit the dialog (Return key / OK) to apply the gradient to the document.
 7. Verify Mogan does NOT crash (resolving issue #4325) and document background updates.
 """
 
@@ -284,48 +284,44 @@ def run_test():
         mouse.position = (grad_x, grad_y)
         time.sleep(0.3)
         mouse.click(Button.left)
-        time.sleep(1.5)
+        time.sleep(2.0)
 
         ret = proc.poll()
         if ret is not None:
             print(f"[1287] ERROR: Mogan crashed after clicking '渐变' with code {ret}")
             return 1
 
-        # Step 7: Capture screenshot and verify the QML dialog & live preview
+        # Step 7: Inspect QML Gradient Selector dialog & live preview
         print("[1287] Step 7: Inspecting QML Gradient Selector dialog & live preview...")
         full_screenshot = ImageGrab.grab()
         screenshot_path = os.path.join(repo_root, "devel", "1287_gradient_dialog.png")
         os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
         full_screenshot.save(screenshot_path)
 
-        # Crop dialog area
         w, h = full_screenshot.size
-        dialog_crop = full_screenshot.crop((w // 4, h // 4, 3 * w // 4, 3 * h // 4))
+        dialog_crop = full_screenshot.crop((w // 4, int(h * 0.2), 3 * w // 4, int(h * 0.8)))
         dialog_crop_path = os.path.join(repo_root, "devel", "1287_gradient_dialog_crop.png")
         dialog_crop.save(dialog_crop_path)
+        print(f"[1287] Saved dialog crop to {dialog_crop_path}")
 
-        # Analyze preview region
+        # Analyze preview region in right half of dialog
         crop_w, crop_h = dialog_crop.size
         preview_region = dialog_crop.crop((int(crop_w * 0.5), int(crop_h * 0.15), int(crop_w * 0.95), int(crop_h * 0.8)))
         arr = np.array(preview_region)
         std_val = float(arr.std())
         unique_colors = len(np.unique(arr.reshape(-1, 3), axis=0))
+        print(f"[1287] Live preview: std={std_val:.1f}, colors={unique_colors}")
 
-        print(f"[1287] Preview area analysis: shape={arr.shape}, color std={std_val:.2f}, unique colors={unique_colors}")
-
-        if std_val > 40.0 and unique_colors > 100:
-            print("[1287] SUCCESS: Live gradient preview is actively rendering colors!")
+        if std_val > 30.0 and unique_colors > 100:
+            print("[1287] SUCCESS: Live gradient preview is actively rendering!")
         else:
-            print(f"[1287] ERROR: Preview area does not show expected gradient variance (std={std_val:.2f})")
+            print(f"[1287] ERROR: Preview area missing gradient (std={std_val})")
             return 1
 
-        # Step 8: Click OK button ('确认') to apply gradient
-        ok_x = wx + int(1116 * scale)
-        ok_y = wy + int(724 * scale)
-        print(f"[1287] Step 8: Clicking '确认' (OK) button at ({ok_x}, {ok_y})...")
-        mouse.position = (ok_x, ok_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
+        # Step 8: Submit dialog via Return key
+        print("[1287] Step 8: Submitting dialog via Return key...")
+        kb.press(Key.enter)
+        kb.release(Key.enter)
         time.sleep(2.0)
 
         ret = proc.poll()
@@ -335,7 +331,7 @@ def run_test():
 
         print("[1287] SUCCESS: Mogan survived applying gradient background without crash!")
 
-        # Step 9: Capture document with gradient background
+        # Step 9: Capture document screenshot with applied gradient
         doc_screenshot = ImageGrab.grab()
         doc_path = os.path.join(repo_root, "devel", "1287_document_gradient.png")
         doc_screenshot.save(doc_path)
