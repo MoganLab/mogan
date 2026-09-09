@@ -17,12 +17,6 @@
 
 #include <QtTest/QtTest>
 
-struct EnvHook {
-  string key;
-  EnvHook (string k, string v) : key (k) { set_env (k, v); }
-  ~EnvHook () { set_env (key, ""); }
-};
-
 class TestGradientSelectorBridge : public QObject {
   Q_OBJECT
 

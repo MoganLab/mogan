@@ -11,6 +11,7 @@
 #define GRADIENT_SELECTOR_BRIDGE_H
 
 #include <QDialog>
+#include <QImage>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -42,16 +43,18 @@ private:
   QString  m_fgColor;
   QString  m_bgColor;
   QString  m_previewUrl;
-  bool     m_submitted;
+  QImage   m_source;
 
+  void reloadSource ();
   void updatePreview ();
+  void pickColor (const QString& cur,
+                  void (GradientSelectorBridge::*setter) (const QString&));
 
 public:
-  explicit GradientSelectorBridge (
-      QDialog* host, const QString& name= "vertical-white-black.png",
-      const QString& width= "100%", const QString& height= "100%",
-      const QString& fg= "black", const QString& bg= "white",
-      QObject* parent= nullptr);
+  explicit GradientSelectorBridge (QDialog* host, const QString& name,
+                                   const QString& width, const QString& height,
+                                   const QString& fg, const QString& bg,
+                                   QObject* parent= nullptr);
 
   ~GradientSelectorBridge () override= default;
 
@@ -71,7 +74,6 @@ public:
   Q_INVOKABLE void setBackgroundColor (const QString& c);
 
   QString previewUrl () const { return m_previewUrl; }
-  bool    isSubmitted () const { return m_submitted; }
 
   QStringList patternOptions () const;
   QStringList patternOptionsTr () const;

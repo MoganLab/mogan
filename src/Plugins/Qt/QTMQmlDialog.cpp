@@ -1221,6 +1221,25 @@ cpp_color_picker_dialog (string title, array<tree> proposals,
 }
 
 /**
+ * @brief 拼装渐变选择器的返回树 (tuple (pattern name w h (eff-gradient "0" fg
+ * bg)))。
+ */
+static tree
+gradient_result (const string& name, const string& w, const string& h,
+                 const string& fg, const string& bg) {
+  using moebius::EFF_GRADIENT;
+  using moebius::PATTERN;
+
+  tree eff (EFF_GRADIENT);
+  eff << tree ("0") << tree (fg) << tree (bg);
+  tree res (PATTERN);
+  res << tree (name) << tree (w) << tree (h) << eff;
+  tree r (TUPLE);
+  r << res;
+  return r;
+}
+
+/**
  * @brief QML 渐变选择器对话框的 glue 入口。
  */
 tree
@@ -1231,14 +1250,8 @@ cpp_gradient_selector_dialog (tree old_col) {
   string preset= get_env ("MOGAN_TEST_GRADIENT_SELECTOR");
   if (preset == "cancel") return tree (TUPLE);
   if (preset == "ok") {
-    tree eff (EFF_GRADIENT);
-    eff << tree ("0") << tree ("black") << tree ("white");
-    tree res (PATTERN);
-    res << tree ("vertical-white-black.png") << tree ("100%") << tree ("100%")
-        << eff;
-    tree r (TUPLE);
-    r << res;
-    return r;
+    return gradient_result ("vertical-white-black.png", "100%", "100%", "black",
+                            "white");
   }
 
   string init_name= "vertical-white-black.png";
@@ -1265,7 +1278,7 @@ cpp_gradient_selector_dialog (tree old_col) {
   GradientSelectorBridge* gradBridge= nullptr;
   QmlDialogBridge*        bridge    = nullptr;
 
-  run_qml_dialog (
+  int rc= run_qml_dialog (
       "qrc:/qml/GradientSelector.qml", "GradientSelector.qml",
       [&] (QQuickWidget* qw, QDialog& host) {
         bridge    = inject_common_context (qw, host);
@@ -1273,25 +1286,19 @@ cpp_gradient_selector_dialog (tree old_col) {
             &host, to_qstring (init_name), to_qstring (init_w),
             to_qstring (init_h), to_qstring (init_fg), to_qstring (init_bg));
         qw->rootContext ()->setContextProperty ("gradBridge", gradBridge);
-        QObject::connect (&host, &QDialog::destroyed, gradBridge,
-                          &QObject::deleteLater);
       },
       700, 460);
 
   delete bridge;
 
-  if (gradBridge && gradBridge->isSubmitted ()) {
-    tree eff (EFF_GRADIENT);
-    eff << tree ("0") << tree (from_qstring (gradBridge->foregroundColor ()))
-        << tree (from_qstring (gradBridge->backgroundColor ()));
-    tree res (PATTERN);
-    res << tree (from_qstring (gradBridge->patternName ()))
-        << tree (from_qstring (gradBridge->width ()))
-        << tree (from_qstring (gradBridge->height ())) << eff;
-    tree r (TUPLE);
-    r << res;
-    return r;
+  tree r (TUPLE);
+  if (rc == QDialog::Accepted && gradBridge) {
+    r= gradient_result (from_qstring (gradBridge->patternName ()),
+                        from_qstring (gradBridge->width ()),
+                        from_qstring (gradBridge->height ()),
+                        from_qstring (gradBridge->foregroundColor ()),
+                        from_qstring (gradBridge->backgroundColor ()));
   }
-
-  return tree (TUPLE);
+  delete gradBridge;
+  return r;
 }

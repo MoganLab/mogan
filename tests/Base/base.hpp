@@ -18,6 +18,13 @@
 void qcompare (string actual, string expected);
 void init_lolly ();
 
+// RAII：构造时设置环境变量，析构时清空。用于 MOGAN_TEST_* 之类的环境钩子。
+struct EnvHook {
+  string key;
+  EnvHook (string k, string v) : key (k) { set_env (k, v); }
+  ~EnvHook () { set_env (key, ""); }
+};
+
 // 隐藏并清理所有可见的顶层 Qt 窗口。
 // 用在 QtTest 的 cleanup() 槽里，避免断言失败导致 widget 泄漏、窗口持续显示
 // 而卡住整个测试套件（Windows 上表现为 0xC000013A DLL 初始化失败）。

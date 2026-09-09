@@ -19,13 +19,6 @@
 
 #include <QtTest/QtTest>
 
-// 测试钩子环境变量的 RAII 守卫：构造时设值，析构时还原为空。
-struct EnvHook {
-  string key;
-  EnvHook (string k, string v) : key (k) { set_env (k, v); }
-  ~EnvHook () { set_env (key, ""); }
-};
-
 class TestPreferencesBridge : public QObject {
   Q_OBJECT
 

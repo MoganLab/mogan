@@ -47,14 +47,6 @@ make_field (const char* type, const char* label, const char* key, tree opts,
                    tree (live));
 }
 
-// 测试钩子环境变量的 RAII 守卫：构造时设值，析构时还原为空（不命中弹窗路径），
-// 避免进程内多条用例互相串扰。
-struct EnvHook {
-  string key;
-  EnvHook (string k, string v) : key (k) { set_env (k, v); }
-  ~EnvHook () { set_env (key, ""); }
-};
-
 class TestQmlDialog : public QObject {
   Q_OBJECT
 
