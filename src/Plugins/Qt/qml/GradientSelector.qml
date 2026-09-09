@@ -123,14 +123,11 @@ DialogShell {
                 anchors.bottom: parent.bottom
                 radius: Theme.radius
                 color: Theme.fieldBg
-                border.width: Theme.borderW
-                border.color: Theme.borderClr
                 clip: true
 
                 Image {
                     id: previewImg
                     anchors.fill: parent
-                    anchors.margins: 6 * Theme.scaleFactor
                     source: gradBridge.previewUrl
                     fillMode: (gradBridge.width === "100%" && gradBridge.height === "100%") 
                               ? Image.Stretch : Image.PreserveAspectFit

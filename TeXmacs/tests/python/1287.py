@@ -256,31 +256,31 @@ def run_test():
             return 1
 
         # Step 3: Click 文档 (Document) menu
-        doc_x = wx + int(312 * scale)
-        doc_y = wy + int(66 * scale)
+        doc_x = wx + int(315 * scale)
+        doc_y = wy + int(73 * scale)
         print(f"[1287] Step 3: Clicking '文档' menu at ({doc_x}, {doc_y})...")
         mouse.position = (doc_x, doc_y)
         time.sleep(0.3)
         mouse.click(Button.left)
-        time.sleep(0.8)
+        time.sleep(0.5)
 
         # Step 4: Hover 颜色 (Colors) submenu
-        color_x = wx + int(350 * scale)
-        color_y = wy + int(495 * scale)
+        color_x = wx + int(316 * scale)
+        color_y = wy + int(492 * scale)
         print(f"[1287] Step 4: Hovering '颜色' submenu at ({color_x}, {color_y})...")
         mouse.position = (color_x, color_y)
-        time.sleep(0.8)
+        time.sleep(0.5)
 
         # Step 5: Hover 背景色 (Background) submenu
-        bg_x = wx + int(408 * scale)
-        bg_y = wy + int(500 * scale)
+        bg_x = wx + int(410 * scale)
+        bg_y = wy + int(505 * scale)
         print(f"[1287] Step 5: Hovering '背景色' submenu at ({bg_x}, {bg_y})...")
         mouse.position = (bg_x, bg_y)
-        time.sleep(0.8)
+        time.sleep(0.5)
 
         # Step 6: Click 渐变 (Gradient) menu item
-        grad_x = wx + int(484 * scale)
-        grad_y = wy + int(783 * scale)
+        grad_x = wx + int(480 * scale)
+        grad_y = wy + int(774 * scale)
         print(f"[1287] Step 6: Clicking '渐变...' at ({grad_x}, {grad_y})...")
         mouse.position = (grad_x, grad_y)
         time.sleep(0.3)
