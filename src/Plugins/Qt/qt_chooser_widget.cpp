@@ -16,6 +16,7 @@
 #include "editor.hpp"
 #include "image_files.hpp"
 #include "message.hpp"
+#include "new_buffer.hpp"
 #include "new_view.hpp" // get_current_editor()
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
@@ -325,7 +326,15 @@ qt_chooser_widget_rep::perform_dialog () {
   // .tm 默认 .tmu（过滤器保持 tmu/tm）；建议文件名同步改为默认后缀，让默认
   // 目标在弹窗时即可见；普通保存仍写回原文件
   string save_as_target; // 非空时最终文件名规范为所选过滤器的后缀
-  if (type == "action_save_as") save_as_target= chooser_save_as_target (file);
+  if (type == "action_save_as") {
+    save_as_target= chooser_save_as_target (file);
+    if (save_as_target == "") {
+      url cur_buf= get_current_buffer_safe ();
+      if (!is_none (cur_buf) && ends (as_string (tail (cur_buf)), ".stem")) {
+        save_as_target= "stem";
+      }
+    }
+  }
 
   QString  caption= to_qstring (win_title);
   c_string tmp (directory * "/" * file);

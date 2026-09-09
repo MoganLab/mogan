@@ -573,7 +573,7 @@
              (save-buffer-check-faithful name opts)
              (choose-file (lambda (x) (apply save-buffer-as-main (cons x opts)))
                "Save TeXmacs file"
-               "tmu"
+               "action_save_as"
              ) ;choose-file
            ) ;if
           ) ;
@@ -1201,57 +1201,80 @@
   (and (not (buffer-exists? u)) (not (url-exists? u)))
 ) ;define
 
-(define (scratch-candidate dir stamp)
-  (url-append dir (string-append "draft_" stamp ".tmu"))
+(define (normalize-draft-ext ext)
+  (cond ((or (eq? ext 'stem) (equal? ext "stem") (equal? ext ".stem")) ".stem")
+        (else ".tmu")
+  ) ;cond
+) ;define
+
+(define (scratch-candidate dir stamp ext)
+  (url-append dir (string-append "draft_" stamp ext))
 ) ;define
 
 ;; 秒级名字仍冲突时,追加 -2、-3 …… 保证唯一
 
-(define (scratch-unique-name dir stamp i)
+(define (scratch-unique-name dir stamp i ext)
   (let ((u (scratch-candidate dir
              (if (= i 0) stamp (string-append stamp "-" (number->string i)))
+             ext
            ) ;scratch-candidate
         ) ;u
        ) ;
-    (if (scratch-name-free? u) u (scratch-unique-name dir stamp (+ i 1)))
+    (if (scratch-name-free? u) u (scratch-unique-name dir stamp (+ i 1) ext))
   ) ;let
 ) ;define
 
 ;; 新 scratch buffer 的名字:日期与时刻用 _ 分开,精确到秒,冲突加 -N
-;; 例: draft_20260901_194700.tmu / draft_20260901_194700-1.tmu
+;; 例: draft_20260901_194700.tmu / draft_20260901_194700-1.tmu / .stem
 ;; 返回系统路径字符串(供 C++ make_new_buffer 使用)
-(tm-define (scratch-buffer-name)
+(tm-define (scratch-buffer-name . opt-ext)
   (with dir
     (scratch-buffer-dir)
     (when (not (url-exists? dir))
       (system-mkdir dir)
     ) ;when
-    (with full
-      (date->string (current-date) "~Y~m~d_~H~M~S")
-      (url->system (scratch-unique-name dir full 0))
-    ) ;with
+    (let* ((ext (if (null? opt-ext) ".tmu" (normalize-draft-ext (car opt-ext))))
+           (full (date->string (current-date) "~Y~m~d_~H~M~S"))
+          ) ;
+      (url->system (scratch-unique-name dir full 0 ext))
+    ) ;let*
   ) ;with
+) ;tm-define
+
+(tm-define (new-buffer . opt-ext)
+  (if (null? opt-ext)
+    (cpp-new-buffer)
+    (cpp-new-buffer-with-ext (normalize-draft-ext (car opt-ext)))
+  ) ;if
 ) ;tm-define
 
 ;; draft 文件名 → 纯数字时间戳,供标题按位切分(YYYYMMDDHH[MM][SS])。
 ;; 新格式 "draft_20260901_194700.tmu" → "20260901194700";
+;; ".stem" 格式 "draft_20260901_194700.stem" → "20260901194700";
 ;; 旧格式 "draft_202608242127-2.tmu" → "202608242127";
 ;; 非 draft 名返回 #f
 
 (define (draft-stamp u)
   (with name
     (url->string (url-tail u))
-    (and (string-starts? name "draft_")
-      (string-ends? name ".tmu")
-      (let* ((body (substring name 6 (- (string-length name) 4)))
-             (cut (or (string-index body #\-) (string-length body)))
-             (raw (substring body 0 cut))
-             ;; 去掉日期与时刻之间的 _,标题逻辑仍按连续数字下标切
-             (digits (string-join (string-split raw "_") ""))
-            ) ;
-        (and (>= (string-length digits) 12) digits)
-      ) ;let*
-    ) ;and
+    (let ((ext-len (cond ((string-ends? name ".tmu") 4)
+                         ((string-ends? name ".stem") 5)
+                         (else #f)
+                   ) ;cond
+          ) ;ext-len
+         ) ;
+      (and ext-len
+        (string-starts? name "draft_")
+        (let* ((body (substring name 6 (- (string-length name) ext-len)))
+               (cut (or (string-index body #\-) (string-length body)))
+               (raw (substring body 0 cut))
+               ;; 去掉日期与时刻之间的 _,标题逻辑仍按连续数字下标切
+               (digits (string-join (string-split raw "_") ""))
+              ) ;
+          (and (>= (string-length digits) 12) digits)
+        ) ;let*
+      ) ;and
+    ) ;let
   ) ;with
 ) ;define
 

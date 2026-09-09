@@ -209,12 +209,17 @@ make_welcome_buffer () {
 }
 
 url
-make_new_buffer () {
+make_new_buffer (string ext) {
   // 新建标签页时 tm-files 必已加载,scratch-buffer-name 保证返回唯一名
-  string s   = as_string (call ("scratch-buffer-name"));
+  string s   = as_string (call ("scratch-buffer-name", ext));
   url    name= url_system (s);
   set_buffer_tree (name, tree (DOCUMENT));
   return name;
+}
+
+url
+make_new_buffer () {
+  return make_new_buffer (".tmu");
 }
 
 bool
@@ -229,7 +234,8 @@ buffer_has_name (url name) {
 string
 propose_title (string old_title, url u, tree doc) {
   string name= as_string (tail (u));
-  if (starts (name, "draft_") && ends (name, ".tmu")) {
+  if (starts (name, "draft_") &&
+      (ends (name, ".tmu") || ends (name, ".stem"))) {
     // 标题规则(Draft Monday / 草稿（周一21:27）等)由 scheme 侧实现
     try {
       name= as_string (call ("scratch-buffer-title", object (u)));

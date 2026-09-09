@@ -175,8 +175,7 @@
  ("Edit macros" (open-macros-editor :global))
  ("Edit preamble" (toggle-preamble-mode))
  ---
- ("Extract style file" (extract-style-file #t))
- ("Extract style package" (extract-style-file #f))
+ ("Extract style package" (extract-style-package))
 ) ;menu-bind
 
 (menu-bind source-menu

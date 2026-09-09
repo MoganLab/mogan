@@ -293,10 +293,15 @@ new_buffer_in_new_window (url name, tree doc, tree geom) {
  ******************************************************************************/
 
 url
-create_buffer () {
-  url name= make_new_buffer ();
+create_buffer (string ext) {
+  url name= make_new_buffer (ext);
   switch_to_buffer (name);
   return name;
+}
+
+url
+create_buffer () {
+  return create_buffer (".tmu");
 }
 
 url

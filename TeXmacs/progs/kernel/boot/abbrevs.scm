@@ -222,13 +222,19 @@
   (when (null? (cdr opts))
     ;; Issue #327: Use last file dialog directory if current buffer is scratch
     (let* ((master (buffer-get-master (current-buffer)))
+           (style-target (and (defined? 'style-package-target-url)
+                           (style-package-target-url (current-buffer))
+                         ) ;and
+           ) ;style-target
            (last-dir (and (url-scratch? master)
+                       (not style-target)
                        (defined? 'get-last-file-dialog-directory)
                        (get-last-file-dialog-directory)
                      ) ;and
            ) ;last-dir
           ) ;
-      (cond ((and last-dir (string? last-dir) (not (string-null? last-dir)))
+      (cond (style-target (set! opts (list (car opts) style-target)))
+            ((and last-dir (string? last-dir) (not (string-null? last-dir)))
              (set! opts (list (car opts) (system->url last-dir)))
             ) ;
             ((url-scratch? master)

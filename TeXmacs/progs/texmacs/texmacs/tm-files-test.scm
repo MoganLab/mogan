@@ -80,6 +80,30 @@
   ) ;let*
 ) ;define
 
+(define (test-scratch-buffer-name-stem)
+  (let* ((path (scratch-buffer-name ".stem"))
+         (name (url->string (url-tail (system->url path))))
+         (stamp (substring name 6 (- (string-length name) 5)))
+        ) ;
+    (check (string-starts? name "draft_") => #t)
+    (check (string-ends? name ".stem") => #t)
+    (check (string-length stamp) => 15)
+    (check (substring stamp 8 9) => "_")
+  ) ;let*
+) ;define
+
+(define (test-scratch-buffer-title-stem)
+  (let ((tmu-title (scratch-buffer-title (draft-test-url "draft_20250802_153000.tmu")))
+        (stem-title (scratch-buffer-title (draft-test-url "draft_20250802_153000.stem"))
+        ) ;stem-title
+        (stem-n-title (scratch-buffer-title (draft-test-url "draft_20250802_153000-1.stem"))
+        ) ;stem-n-title
+       ) ;
+    (check stem-title => tmu-title)
+    (check stem-n-title => tmu-title)
+  ) ;let
+) ;define
+
 (define (test-scratch-buffer-title-old-and-new-stamp)
   ;; 往年草稿不显示时刻,新旧文件名必须得到同一标题
   (let ((old (scratch-buffer-title (draft-test-url "draft_20250802153000.tmu")))
@@ -122,6 +146,8 @@
   (test-auto-backup-official-url)
   (test-auto-backup-texmacs-path-buffer?)
   (test-scratch-buffer-name-has-date-time-underscore)
+  (test-scratch-buffer-name-stem)
+  (test-scratch-buffer-title-stem)
   (test-scratch-buffer-title-old-and-new-stamp)
   (test-scratch-buffer-title-legacy-one-underscore-this-week)
   (check-report)
