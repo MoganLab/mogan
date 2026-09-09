@@ -1,0 +1,52 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|doc-tmu>>
+
+<\body>
+  <doc-data|<doc-title|引用块样式测试（Issue 1290）>>
+
+  <section|引用块样式展示>
+
+  在技术文档和日常写作中，引用块常用于标注引用文本、重要提示或引言。修改后的 <markup|quote-env> 环境呈现具有现代感的左侧装饰竖条风格。
+
+  这是引用块外部的第一段普通正文。下面是一个使用美化后的 <markup|quote-env> 环境的单段引用示例：
+
+  <\quote-env>
+    千里之行，始于足下。不积跬步，无以至千里；不积小流，无以成江海。——《荀子·劝学》
+  </quote-env>
+
+  接下来测试包含多个段落的引用块，以检验内部段间距（<markup|quote-interparagraph>）和首行缩进（<markup|par-first> 为 0fn）的效果：
+
+  <\quote-env>
+    学而时习之，不亦说乎？有朋自远方来，不亦乐乎？人不知而不愠，不亦君子乎？
+
+    知之为知之，不知为不知，是知也。温故而知新，可以为师矣。——《论语》
+  </quote-env>
+
+  这是引用块外部的正文段落，用于验证引用块结束后的排版、边距与正文字体颜色正常恢复。
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-height|auto>
+    <associate|page-orientation|portrait>
+    <associate|page-screen-margin|false>
+    <associate|page-type|a4>
+    <associate|page-width|auto>
+    <associate|preamble|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>引用块样式展示><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>

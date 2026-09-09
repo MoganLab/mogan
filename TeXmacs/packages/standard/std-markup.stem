@@ -320,25 +320,48 @@
           (assign "tab-length" (macro "1.5fn"))
           (assign "quote-left-indentation" "2tab")
           (assign "quote-right-indentation" "2tab")
-          (assign "quote-interparagraph" "0.25fn")
+          (assign "quote-interparagraph" "0.5fn")
+          (assign "quote-bar-color" "#d0d9e0")
+          (assign "quote-text-color" "#5d6065")
+          (assign "quote-bar-width" "2pt")
+          (assign "quote-hpadding" "1.2em")
+          (assign "quote-vpadding" "0.5em")
           (assign "verse-hangover" "1tab")
           (assign "jump-in-hangover" "1tab")
           ""
           (assign "quote-env"
             (macro "body"
-              (document (padded (document (indent-both (value "quote-left-indentation")
-                                            (value "quote-right-indentation")
-                                            (document (with "par-first"
-                                                        "0fn"
-                                                        "par-par-sep"
-                                                        (value "quote-interparagraph")
-                                                        (arg "body")
-                                                      ) ;with
-                                            ) ;document
-                                          ) ;indent-both
-                                ) ;document
-                        ) ;padded
-              ) ;document
+              (with "par-first"
+                "0fn"
+                (padded (with "par-left"
+                          (plus (value "par-left") (value "quote-bar-width"))
+                          "ornament-shape"
+                          "classic"
+                          "ornament-color"
+                          ""
+                          "ornament-border"
+                          (tuple (value "quote-bar-width") "0pt" "0pt" "0pt")
+                          "ornament-sunny-color"
+                          (value "quote-bar-color")
+                          "ornament-shadow-color"
+                          (value "quote-bar-color")
+                          "ornament-hpadding"
+                          (tuple (value "quote-hpadding") "0em")
+                          "ornament-vpadding"
+                          (tuple (value "quote-vpadding") (value "quote-vpadding"))
+                          (ornament (wide-normal (with "par-first"
+                                                   "0fn"
+                                                   "par-par-sep"
+                                                   (value "quote-interparagraph")
+                                                   "color"
+                                                   (value "quote-text-color")
+                                                   (arg "body")
+                                                 ) ;with
+                                    ) ;wide-normal
+                          ) ;ornament
+                        ) ;with
+                ) ;padded
+              ) ;with
             ) ;macro
           ) ;assign
           (assign "quotation"
