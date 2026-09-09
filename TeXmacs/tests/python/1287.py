@@ -18,6 +18,7 @@ Automated UI test for issue 1287:
 import os
 import sys
 import time
+import tempfile
 import subprocess
 from PIL import ImageGrab, Image
 import numpy as np
@@ -294,13 +295,12 @@ def run_test():
         # Step 7: Inspect QML Gradient Selector dialog & live preview
         print("[1287] Step 7: Inspecting QML Gradient Selector dialog & live preview...")
         full_screenshot = ImageGrab.grab()
-        screenshot_path = os.path.join(repo_root, "devel", "1287_gradient_dialog.png")
-        os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
+        screenshot_path = os.path.join(tempfile.gettempdir(), "1287_gradient_dialog.png")
         full_screenshot.save(screenshot_path)
 
         w, h = full_screenshot.size
         dialog_crop = full_screenshot.crop((w // 4, int(h * 0.2), 3 * w // 4, int(h * 0.8)))
-        dialog_crop_path = os.path.join(repo_root, "devel", "1287_gradient_dialog_crop.png")
+        dialog_crop_path = os.path.join(tempfile.gettempdir(), "1287_gradient_dialog_crop.png")
         dialog_crop.save(dialog_crop_path)
         print(f"[1287] Saved dialog crop to {dialog_crop_path}")
 
@@ -333,7 +333,7 @@ def run_test():
 
         # Step 9: Capture document screenshot with applied gradient
         doc_screenshot = ImageGrab.grab()
-        doc_path = os.path.join(repo_root, "devel", "1287_document_gradient.png")
+        doc_path = os.path.join(tempfile.gettempdir(), "1287_document_gradient.png")
         doc_screenshot.save(doc_path)
         print(f"[1287] Saved document screenshot to {doc_path}")
 
