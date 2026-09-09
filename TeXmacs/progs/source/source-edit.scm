@@ -120,7 +120,7 @@
   (let* ((tag (if style? 'src-style-file 'src-package))
          (what (if style? "style file" "style package"))
          (purpose (string-append "Automatically generated " what "."))
-         (name (url-basename (current-buffer)))
+         (name (utf8->herk (url-basename (current-buffer))))
         ) ;
     `(active* (document (src-title (document (,tag
                                               ,(string-append name "-macros")
