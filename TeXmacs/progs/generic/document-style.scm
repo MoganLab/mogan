@@ -339,8 +339,6 @@
  ("old-seminar" "Former style for overhead projector presentations")
 
  ("bibliography" "Style for editing bibliographic data files")
- ("email" "Style for writing and reading emails")
- ("mailbox" "Style for displaying mailboxes")
 ) ;define-table
 
 (define-table style-synopsis
