@@ -20,65 +20,56 @@
 (define (menu-contains-label? m label)
   (cond ((null? m) #f)
         ((pair? m)
-         (or (menu-contains-label? (car m) label)
-             (menu-contains-label? (cdr m) label)))
+         (or (menu-contains-label? (car m) label) (menu-contains-label? (cdr m) label))
+        ) ;
         ((string? m) (string=? m label))
-        (else #f)))
+        (else #f)
+  ) ;cond
+) ;define
 
 (define (test-source-macros-menu-items)
   (let ((menu (source-macros-menu)))
     ;; 验证已移除 "Extract style file"，仅保留 "Extract style package"
     (check (menu-contains-label? menu "Extract style file") => #f)
-    (check (menu-contains-label? menu "Extract style package") => #t)))
+    (check (menu-contains-label? menu "Extract style package") => #t)
+  ) ;let
+) ;define
 
 (define (test-extract-style-package-stem-buffer)
   (let ((orig-buf (current-buffer)))
     (extract-style-package)
-    (let* ((new-buf (current-buffer))
-           (name (url->string (url-tail new-buf))))
+    (let* ((new-buf (current-buffer)) (name (url->string (url-tail new-buf))))
       ;; 验证新创建的 buffer 是 .stem 后缀的草稿文件
       (check (string-starts? name "draft_") => #t)
       (check (string-ends? name ".stem") => #t)
       (check (url-scratch? new-buf) => #t)
-      ;; 验证记录了原文档关联
-      (check (style-package-get-origin new-buf) => orig-buf))
+      ;; 验证记录了目标保存路径
+      (check (url? (style-package-target-url new-buf)) => #t)
+    ) ;let*
     ;; 切回原 buffer 并关闭测试草稿 buffer
     (buffer-close (current-buffer))
-    (switch-to-buffer orig-buf)))
-
-(define (test-style-package-target-url)
-  (let ((fake-buf (system->url "/home/da/docs/draft_demo.stem"))
-        (orig-tmu (system->url "/home/da/docs/paper.tmu"))
-        (orig-tm (system->url "/home/da/projects/report.tm"))
-        (orig-cjk (system->url "/home/da/文档/测试.tmu"))
-       ) ;
-    (style-package-set-origin! fake-buf orig-tmu)
-    (check (url->system (style-package-target-url fake-buf))
-      => "/home/da/docs/paper.stem")
-
-    (style-package-set-origin! fake-buf orig-tm)
-    (check (url->system (style-package-target-url fake-buf))
-      => "/home/da/projects/report.stem")
-
-    (style-package-set-origin! fake-buf orig-cjk)
-    (check (url->system (style-package-target-url fake-buf))
-      => "/home/da/文档/测试.stem")
+    (switch-to-buffer orig-buf)
   ) ;let
 ) ;define
 
-(define (test-extract-style-package-target-resolution)
-  (let* ((orig-buf (system->url "/tmp/my_paper.tmu"))
-         (new-buf (system->url "/home/da/Documents/LiiiSTEM/no_name/draft_20260909_120000.stem"))
-        ) ;
-    (style-package-set-origin! new-buf orig-buf)
-    (check (url->system (style-package-target-url new-buf))
-      => "/tmp/my_paper.stem")
-  ) ;let*
+(define (test-style-package-compute-target)
+  (for-each (lambda (case
+                    ) ;case
+              (check (url->system (style-package-compute-target (system->url (car case))))
+                =>
+                (cdr case)
+              ) ;check
+            ) ;lambda
+    '(("/home/da/docs/paper.tmu" . "/home/da/docs/paper.stem")
+      ("/home/da/projects/report.tm" . "/home/da/projects/report.stem")
+      ("/home/da/文档/测试.tmu" . "/home/da/文档/测试.stem")
+      ("/tmp/my_paper.tmu" . "/tmp/my_paper.stem"))
+  ) ;for-each
 ) ;define
 
 (tm-define (regtest-extract-style-package)
   (test-source-macros-menu-items)
   (test-extract-style-package-stem-buffer)
-  (test-style-package-target-url)
-  (test-extract-style-package-target-resolution)
-  (check-report))
+  (test-style-package-compute-target)
+  (check-report)
+) ;tm-define

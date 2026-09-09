@@ -330,7 +330,7 @@ qt_chooser_widget_rep::perform_dialog () {
     save_as_target= chooser_save_as_target (file);
     if (save_as_target == "") {
       url cur_buf= get_current_buffer_safe ();
-      if (!is_none (cur_buf) && ends (as_string (tail (cur_buf)), ".stem")) {
+      if (!is_none (cur_buf) && suffix (cur_buf) == "stem") {
         save_as_target= "stem";
       }
     }

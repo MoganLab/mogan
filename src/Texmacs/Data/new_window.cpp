@@ -300,11 +300,6 @@ create_buffer (string ext) {
 }
 
 url
-create_buffer () {
-  return create_buffer (".tmu");
-}
-
-url
 open_window (tree geom) {
   url name= make_new_buffer ();
   return new_buffer_in_new_window (name, tree (DOCUMENT), geom);

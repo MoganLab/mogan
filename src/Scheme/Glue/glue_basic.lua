@@ -1758,11 +1758,6 @@ function main()
             },
             
             {
-                scm_name = "cpp-new-buffer",
-                cpp_name = "create_buffer",
-                ret_type = "url"
-            },
-            {
                 scm_name = "cpp-new-buffer-with-ext",
                 cpp_name = "create_buffer",
                 ret_type = "url",

@@ -60,7 +60,8 @@
 ) ;define
 
 (define (draft-name-stamp-part name)
-  (let* ((body (substring name 6 (- (string-length name) 4)))
+  (let* ((dot (string-rindex name #\.))
+         (body (substring name 6 dot))
          (cut (or (string-index body #\-) (string-length body)))
         ) ;
     (substring body 0 cut)
@@ -68,7 +69,7 @@
 ) ;define
 
 (define (test-scratch-buffer-name-has-date-time-underscore)
-  (let* ((path (scratch-buffer-name))
+  (let* ((path (scratch-buffer-name ".tmu"))
          (name (url->string (url-tail (system->url path))))
          (stamp (draft-name-stamp-part name))
         ) ;
@@ -83,7 +84,7 @@
 (define (test-scratch-buffer-name-stem)
   (let* ((path (scratch-buffer-name ".stem"))
          (name (url->string (url-tail (system->url path))))
-         (stamp (substring name 6 (- (string-length name) 5)))
+         (stamp (draft-name-stamp-part name))
         ) ;
     (check (string-starts? name "draft_") => #t)
     (check (string-ends? name ".stem") => #t)

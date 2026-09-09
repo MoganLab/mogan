@@ -192,26 +192,19 @@
   ) ;with
 ) ;define
 
-(define style-package-origins (make-ahash-table))
+(define style-package-targets (make-ahash-table))
 
-(tm-define (style-package-set-origin! buf orig)
-  (ahash-set! style-package-origins buf orig)
-) ;tm-define
+(tm-define (style-package-target-url buf) (ahash-ref style-package-targets buf))
 
-(tm-define (style-package-get-origin buf) (ahash-ref style-package-origins buf))
-
-(tm-define (style-package-target-url buf)
-  (and-with orig
-    (style-package-get-origin buf)
-    (cond ((or (url-scratch? orig) (url-rooted-tmfs? orig))
-           (url-append (get-documents-path)
-             (string-append "LiiiSTEM/" (url-basename orig) ".stem")
-           ) ;url-append
-          ) ;
-          (else (url-append (url-head orig) (string-append (url-basename orig) ".stem")))
-    ) ;cond
-  ) ;and-with
-) ;tm-define
+(define (style-package-compute-target orig)
+  (cond ((or (url-scratch? orig) (url-rooted-tmfs? orig))
+         (url-append (get-documents-path)
+           (string-append "LiiiSTEM/" (url-basename orig) ".stem")
+         ) ;url-append
+        ) ;
+        (else (url-append (url-head orig) (string-append (url-basename orig) ".stem")))
+  ) ;cond
+) ;define
 
 (tm-define (extract-style-package)
   (let* ((orig (current-buffer))
@@ -226,11 +219,10 @@
          ) ;doc
         ) ;
     (new-buffer ".stem")
-    (let ((new-buf (current-buffer)))
-      (style-package-set-origin! new-buf orig)
-      (delayed (:idle 1) (buffer-set (current-buffer) doc))
-    ) ;let
+    (ahash-set! style-package-targets
+      (current-buffer)
+      (style-package-compute-target orig)
+    ) ;ahash-set!
+    (delayed (:idle 1) (buffer-set (current-buffer) doc))
   ) ;let*
 ) ;tm-define
-
-(tm-define (extract-style-file style?) (extract-style-package))
