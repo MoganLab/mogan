@@ -7,6 +7,7 @@ PrintToFile 1.0 PrintToFile.qml
 ExportPdf 1.0 ExportPdf.qml
 SearchRecent 1.0 SearchRecent.qml
 FontSelector 1.0 FontSelector.qml
+GradientSelector 1.0 GradientSelector.qml
 ParagraphFormat 1.0 ParagraphFormat.qml
 Statistics 1.0 Statistics.qml
 Preferences 1.0 Preferences.qml

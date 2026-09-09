@@ -547,22 +547,22 @@
 
 (tm-define (open-gradient-selector cmd . opt-old)
   (:interactive #t)
-  (when (or global-picture?
-          (not global-gradient?)
-          (== (get-name) "neutral-pattern.png")
-        ) ;or
-    (set! global-picture? #f)
-    (set! global-gradient? #t)
-    (set! global-pattern-color '(pattern "vertical-white-black.png" "100%"
-                                  "100%"))
-  ) ;when
-  (when (nnull? opt-old)
-    (set! global-pattern-color (car opt-old))
-  ) ;when
-  (with u
-    (current-buffer)
-    (dialogue-window (pattern-selector u) cmd "Gradient selector")
-  ) ;with
+  (let* ((old-col (if (nnull? opt-old)
+                    (car opt-old)
+                    '(pattern "vertical-white-black.png" "100%" "100%")
+                  ) ;if
+         ) ;old-col
+         (tree-col (if (tree? old-col) old-col (stree->tree old-col)))
+         (res (cpp-gradient-selector-dialog tree-col))
+         (s-res (tree->stree res))
+        ) ;
+    (when (and (pair? s-res) (== (car s-res) 'tuple) (nnull? (cdr s-res)))
+      (let ((col (cadr s-res)))
+        (insert-preferred-list "my patterns" col 16)
+        (cmd col)
+      ) ;let
+    ) ;when
+  ) ;let*
 ) ;tm-define
 
 (tm-define (open-background-picture-selector cmd . opt-old)

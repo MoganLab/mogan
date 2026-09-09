@@ -459,6 +459,7 @@ mupdf_load_pixmap (url u, int w, int h, tree eff, SI pixel) {
     picture            dest= as_mupdf_picture (pic);
     mupdf_picture_rep* rep = (mupdf_picture_rep*) dest->get_handle ();
     fz_pixmap*         tpix= rep->pix;
+    fz_keep_pixmap (ctx, tpix);
     fz_drop_pixmap (ctx, pix);
     pix= tpix;
   }

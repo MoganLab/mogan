@@ -338,4 +338,13 @@ void cpp_wait_dialog_close ();
 tree cpp_color_picker_dialog (string title, array<tree> proposals,
                               bool pickPattern);
 
+/**
+ * @brief QML 渐变选择器对话框的 glue 入口。
+ * @param old_col 原有渐变 pattern tree（若存在）。
+ * @return 选中确认时返回包含 (pattern ...) 的 (tuple
+ * <pattern_tree>)；取消返回空 (tuple)。
+ * @note 测试钩子 MOGAN_TEST_GRADIENT_SELECTOR=ok|cancel 命中时不弹窗。
+ */
+tree cpp_gradient_selector_dialog (tree old_col);
+
 #endif // defined QTM_QML_DIALOG_H
