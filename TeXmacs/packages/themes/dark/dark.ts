@@ -138,6 +138,9 @@
 
   <assign|script-status-font-color|#cfe0ff>
 
+  <assign|quote-bar-color|#8b949e>
+
+  <assign|quote-text-color|#9198a1>
   \;
 </body>
 
