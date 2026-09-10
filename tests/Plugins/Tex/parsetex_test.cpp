@@ -31,6 +31,7 @@ private slots:
   void cleanupTestCase ();
   void test_crash_case_249 ();
   void test_crash_case_289 ();
+  void test_crash_case_1294_3 ();
 };
 
 void
@@ -74,6 +75,17 @@ TestParseTex::test_crash_case_289 () {
   QVERIFY2 (
       !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_2.tex"), s, true),
       "cannot load 1294_2.tex");
+  tree doc= latex_document_to_tree (s);
+  QVERIFY (is_func (doc, moebius::DOCUMENT));
+}
+
+void
+TestParseTex::test_crash_case_1294_3 () {
+  // 相互递归宏定义用例 (crash_pattern_c)，复现代码 TeXmacs/tests/tex/1294_3.tex
+  string s;
+  QVERIFY2 (
+      !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_3.tex"), s, true),
+      "cannot load 1294_3.tex");
   tree doc= latex_document_to_tree (s);
   QVERIFY (is_func (doc, moebius::DOCUMENT));
 }

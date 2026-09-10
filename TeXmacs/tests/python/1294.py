@@ -5,10 +5,11 @@
 支持用例:
   - 1294_1.tex: 无参自递归宏 (用例 249)
   - 1294_2.tex: 带参自递归宏 (用例 289)
+  - 1294_3.tex: 相互递归宏 (crash_pattern_c)
 
 启动命令: xmake r stem -d
 用法:
-  python3 1294.py               # 默认依序测试 1294_1.tex 和 1294_2.tex
+  python3 1294.py               # 默认依序测试 1294_1.tex, 1294_2.tex, 1294_3.tex
   python3 1294.py [path/to.tex] # 测试指定文件
 """
 
@@ -24,7 +25,12 @@ from Xlib.protocol import event
 from pynput.keyboard import Controller as Kbd, Key
 from pynput.mouse import Controller as Mouse, Button
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# 定位工程根目录
+_cur = os.path.dirname(os.path.abspath(__file__))
+while _cur and _cur != "/" and not os.path.isdir(os.path.join(_cur, "TeXmacs")):
+    _cur = os.path.dirname(_cur)
+ROOT_DIR = _cur if _cur else os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT_DIR
 
 # 4K (3840x2312) 实测坐标
 POS_DOC = (960, 900)
@@ -38,8 +44,9 @@ DRAFT_DIRS = [
 ]
 
 DEFAULT_CASES = [
-    os.path.join(HERE, "TeXmacs", "tests", "tex", "1294_1.tex"),
-    os.path.join(HERE, "TeXmacs", "tests", "tex", "1294_2.tex"),
+    os.path.join(ROOT_DIR, "TeXmacs", "tests", "tex", "1294_1.tex"),
+    os.path.join(ROOT_DIR, "TeXmacs", "tests", "tex", "1294_2.tex"),
+    os.path.join(ROOT_DIR, "TeXmacs", "tests", "tex", "1294_3.tex"),
 ]
 
 
