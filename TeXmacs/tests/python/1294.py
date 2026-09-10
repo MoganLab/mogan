@@ -165,6 +165,25 @@ def activate_window():
     except Exception:
         pass
 
+    try:
+        d = display.Display()
+        root = d.screen().root
+        NET_ACTIVE_WINDOW = d.intern_atom('_NET_ACTIVE_WINDOW')
+        NET_CLIENT_LIST = d.intern_atom('_NET_CLIENT_LIST')
+        prop = root.get_full_property(NET_CLIENT_LIST, Xatom.WINDOW)
+        if prop:
+            for wid in prop.value:
+                win = d.create_resource_object('window', wid)
+                c = str(win.get_wm_class() or "").lower()
+                if "stem" in c or "mogan" in c:
+                    data = [2, X.CurrentTime, 0, 0, 0]
+                    ev = event.ClientMessage(window=wid, client_type=NET_ACTIVE_WINDOW, data=(32, data))
+                    root.send_event(ev, event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
+                    d.flush()
+                    break
+    except Exception:
+        pass
+
 
 def is_window_ready():
     try:
@@ -276,16 +295,58 @@ class TestRunner:
                 print("  [!] Crashed during paste!")
                 break
 
+        # 处理可能的错误弹窗并关闭
         if not crashed:
-            print("  -> Pressing Enter...")
+            time.sleep(0.5)
+            print("  -> Closing possible error popup (Enter)...")
             self.kbd.tap(Key.enter)
+            time.sleep(0.5)
+            if not self.is_alive():
+                crashed = True
+                print("  [!] Crashed after dismissing popup!")
+
+        # 关闭弹窗后，继续编辑测试（防止损坏状态下继续操作引起崩溃）
+        if not crashed:
+            print("  -> Testing continue editing after paste...")
+            activate_window()
+            time.sleep(0.3)
+            self.mouse.position = POS_DOC
+            time.sleep(0.2)
+            self.mouse.click(Button.left)
+            time.sleep(0.3)
+
+            # 键入文本
+            self.kbd.type("testing edit after paste ")
+            time.sleep(0.3)
+            # 回车触发分段排版
+            self.kbd.tap(Key.enter)
+            time.sleep(0.3)
+            # 键入更多内容
+            self.kbd.type("continue typing 12345")
+            time.sleep(0.3)
+            # 回车
+            self.kbd.tap(Key.enter)
+            time.sleep(0.3)
+            # 退格删除
+            for _ in range(8):
+                self.kbd.tap(Key.backspace)
+                time.sleep(0.05)
+            # 光标移动
+            self.kbd.tap(Key.up)
+            time.sleep(0.1)
+            self.kbd.tap(Key.down)
+            time.sleep(0.1)
+            self.kbd.type(" finished")
+            time.sleep(0.5)
+
+            # 等待排版和可能的后台处理
             t_wait = 0.0
-            while t_wait < 3.5:
+            while t_wait < 2.5:
                 time.sleep(0.2)
                 t_wait += 0.2
                 if not self.is_alive():
                     crashed = True
-                    print("  [!] Crashed after Enter!")
+                    print("  [!] Crashed during continue editing!")
                     break
 
         status = "CRASH" if crashed else "PASS"

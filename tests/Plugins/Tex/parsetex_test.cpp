@@ -34,6 +34,7 @@ private slots:
   void test_crash_case_249 ();
   void test_crash_case_289 ();
   void test_crash_case_1294_3 ();
+  void test_has_macro_cycle ();
 };
 
 void
@@ -79,6 +80,36 @@ void
 TestParseTex::test_crash_case_1294_3 () {
   // 相互递归宏定义 (crash_pattern_c)
   check_crash_case ("1294_3.tex");
+}
+
+void
+TestParseTex::test_has_macro_cycle () {
+  // 1. 无参自递归: \def\foo{\foo} -> <assign|foo|<macro|<foo>>>
+  tree self_rec=
+      tuple (compound ("assign", "foo", compound ("macro", compound ("foo"))));
+  QVERIFY (has_macro_cycle (self_rec));
+
+  // 2. 带参自递归: \def\foo#1{\foo{#1}} -> <assign|foo|<macro|x|<foo|<arg|x>>>>
+  tree param_rec= tuple (compound (
+      "assign", "foo",
+      compound ("macro", "x", compound ("foo", compound ("arg", "x")))));
+  QVERIFY (has_macro_cycle (param_rec));
+
+  // 3. 相互递归: foo 调 bar, bar 调 foo
+  tree mutual_rec=
+      tuple (compound ("assign", "foo", compound ("macro", compound ("bar"))),
+             compound ("assign", "bar", compound ("macro", compound ("foo"))));
+  QVERIFY (has_macro_cycle (mutual_rec));
+
+  // 4. 非递归正常宏: foo 调内置命令，无环
+  tree normal_macro= tuple (compound (
+      "assign", "foo",
+      compound ("macro", "x", compound ("bold", compound ("arg", "x")))));
+  QVERIFY (!has_macro_cycle (normal_macro));
+
+  // 5. 普通文档无宏定义
+  tree no_macro= compound ("document", "Hello world");
+  QVERIFY (!has_macro_cycle (no_macro));
 }
 
 QTEST_MAIN (TestParseTex)

@@ -21,6 +21,7 @@ tree   parse_latex_document (string s, bool change= false, bool as_pic= false);
 tree   latex_to_tree (tree t);
 tree   latex_document_to_tree (string s, bool as_pic= false);
 tree   latex_class_document_to_tree (string s);
+bool   has_macro_cycle (tree t);
 string latex_verbarg_to_string (tree t);
 string get_latex_style (tree t);
 string string_arg (tree t, bool u= false);
