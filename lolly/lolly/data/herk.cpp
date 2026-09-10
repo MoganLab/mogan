@@ -118,8 +118,16 @@ append_utf8_code (string& r, int code) {
     r << (char) (0xC0 | (code >> 6));
     r << (char) (0x80 | (code & 0x3F));
   }
-  else {
+  else if (code < 0x10000) {
     r << (char) (0xE0 | (code >> 12));
+    r << (char) (0x80 | ((code >> 6) & 0x3F));
+    r << (char) (0x80 | (code & 0x3F));
+  }
+  else if (code <= 0x1FFFFF) {
+    // 4 字节形式（U+10000 以上，含 emoji）；缺失此分支会把 17+ 位码点
+    // 截成 3 字节非法 UTF-8（如 U+1F60A 曾输出 FF 98 8A 即 LLM emoji 乱码）
+    r << (char) (0xF0 | (code >> 18));
+    r << (char) (0x80 | ((code >> 12) & 0x3F));
     r << (char) (0x80 | ((code >> 6) & 0x3F));
     r << (char) (0x80 | (code & 0x3F));
   }

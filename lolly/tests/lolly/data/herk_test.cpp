@@ -746,6 +746,23 @@ TEST_CASE ("herk_escapes") {
   string_eq (utf8_to_herk ("<#00FF>"), "<#00FF>");
 }
 
+TEST_CASE ("herk_4byte_codepoints") {
+  // 辅助平面码点（emoji 等）往返：herk 侧逃逸为 <#XXXX>，还原须是 4 字节
+  // UTF-8 而非截断的 3 字节（U+1F60A 曾被截成 FF 98 8A）
+  string_eq (herk_to_utf8 ("<#1F60A>"), "\xF0\x9F\x98\x8A"); // U+1F60A 😊
+  string_eq (utf8_to_herk ("\xF0\x9F\x98\x8A"), "<#1F60A>"); // U+1F60A
+  string_eq (herk_to_utf8 ("<#1F642>"), "\xF0\x9F\x99\x82"); // U+1F642 🙂
+  string_eq (utf8_to_herk ("\xF0\x9F\x99\x82"), "<#1F642>"); // U+1F642
+  string_eq (herk_to_utf8 ("<#20000>"),
+             "\xF0\xA0\x80\x80");                            // U+20000 𠀀
+  string_eq (utf8_to_herk ("\xF0\xA0\x80\x80"), "<#20000>"); // U+20000
+  string_eq (herk_to_utf8 ("<#10FFFF>"),
+             "\xF4\x8F\xBF\xBF");                             // U+10FFFF
+  string_eq (utf8_to_herk ("\xF4\x8F\xBF\xBF"), "<#10FFFF>"); // U+10FFFF
+  string_eq (herk_to_utf8 ("A<#1F60A>B"), "A\xF0\x9F\x98\x8A"
+                                          "B");
+}
+
 TEST_CASE ("herk_named_escapes") {
   string_eq (utf8_to_herk ("<less>"), "<less>");
   string_eq (herk_to_utf8 ("<less>"), "<less>");
