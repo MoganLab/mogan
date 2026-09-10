@@ -2443,8 +2443,8 @@ guess_missing (tree t) {
  * Interface
  ******************************************************************************/
 
-tree
-latex_to_tree (tree t0) {
+static tree
+latex_to_tree_body (tree t0) {
   // cout << "\n\nt0= " << t0 << "\n\n";
   tree   t1= kill_space_invaders (t0);
   string style, lan= "";
@@ -2537,6 +2537,19 @@ latex_to_tree (tree t0) {
     return r;
   }
   else return t15;
+}
+
+tree
+latex_to_tree (tree t0) {
+  // 转换过程中会触发样式环境求值与字体解析，环境缺字体时底层以异常上报
+  // （TM_FAILED 抛 string），异常穿过 scheme 边界会直接终止进程，
+  // 因此在转换入口兜底，降级为空文档
+  try {
+    return latex_to_tree_body (t0);
+  } catch (string msg) {
+    failed_error << "latex_to_tree failure: " << msg << "\n";
+    return tree (DOCUMENT, "");
+  }
 }
 
 tree
