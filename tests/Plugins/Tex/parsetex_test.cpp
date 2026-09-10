@@ -40,7 +40,7 @@ TestParseTex::initTestCase () {
   char* argv[]= {(char*) "parsetex_test", nullptr};
   gui_open (argc, argv);
   if (!tm_s7) {
-    tm_s7= s7_init ();
+    tm_s7   = s7_init ();
     user_env= s7_inlet (tm_s7, s7_nil (tm_s7));
     s7_gc_protect (tm_s7, user_env);
   }
@@ -55,9 +55,13 @@ TestParseTex::cleanupTestCase () {
 void
 TestParseTex::test_crash_case_249 () {
   // 自递归宏定义用例，GUI「粘贴自 LaTeX」触发进程崩溃，
+  // 复现代码与手动测试共用 TeXmacs/tests/tex/1294_1.tex
+  string s;
+  QVERIFY2 (
+      !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_1.tex"), s, true),
+      "cannot load 1294_1.tex");
   // latex_document_to_tree 是粘贴路径的完整转换入口
-  string s= "\\def\\crashMacro24{\\crashMacro24} \\crashMacro24\n";
-  tree   doc= latex_document_to_tree (s);
+  tree doc= latex_document_to_tree (s);
   QVERIFY (is_func (doc, moebius::DOCUMENT));
 }
 
