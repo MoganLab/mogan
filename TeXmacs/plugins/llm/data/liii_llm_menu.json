@@ -1,5 +1,5 @@
 {
-  "default": "kimi-k3",
+  "default": "deepseek-v4-flash",
   "models": [
     {
       "model": "kimi-k3",
