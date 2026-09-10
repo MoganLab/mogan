@@ -2541,17 +2541,8 @@ latex_to_tree_body (tree t0) {
 
 static bool
 tree_calls_macro (tree t, string name) {
-  if (is_atomic (t)) {
-    return t->label == name;
-  }
-  string l= as_string (L (t));
-  if (l == name) return true;
-  if (is_func (t, COMPOUND) && N (t) > 0 && is_atomic (t[0]) &&
-      t[0]->label == name)
-    return true;
-  if (is_func (t, APPLY) && N (t) > 0 && is_atomic (t[0]) &&
-      t[0]->label == name)
-    return true;
+  // 宏调用在树中即同名原子叶（compound/apply 的头也是原子子节点，由递归覆盖）
+  if (is_atomic (t)) return t->label == name;
   for (int i= 0; i < N (t); i++)
     if (tree_calls_macro (t[i], name)) return true;
   return false;

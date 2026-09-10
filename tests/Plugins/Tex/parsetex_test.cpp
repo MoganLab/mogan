@@ -25,10 +25,12 @@ class TestParseTex : public QObject {
 
 private:
   server* sv;
+  // latex_document_to_tree 是粘贴路径的完整转换入口；
+  // 复现代码与手动测试共用 TeXmacs/tests/tex/ 下的样本
+  void check_crash_case (const char* file);
 
 private slots:
   void initTestCase ();
-  void cleanupTestCase ();
   void test_crash_case_249 ();
   void test_crash_case_289 ();
   void test_crash_case_1294_3 ();
@@ -51,43 +53,32 @@ TestParseTex::initTestCase () {
 }
 
 void
-TestParseTex::cleanupTestCase () {
-  // server rep is managed
+TestParseTex::check_crash_case (const char* file) {
+  string s;
+  QVERIFY2 (!load_string (url_system (string ("$TEXMACS_PATH/tests/tex/") *
+                                      string (file)),
+                          s, true),
+            "cannot load crash case tex file");
+  tree doc= latex_document_to_tree (s);
+  QVERIFY (is_func (doc, moebius::DOCUMENT));
 }
 
 void
 TestParseTex::test_crash_case_249 () {
-  // 自递归宏定义用例，GUI「粘贴自 LaTeX」触发进程崩溃，
-  // 复现代码与手动测试共用 TeXmacs/tests/tex/1294_1.tex
-  string s;
-  QVERIFY2 (
-      !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_1.tex"), s, true),
-      "cannot load 1294_1.tex");
-  // latex_document_to_tree 是粘贴路径的完整转换入口
-  tree doc= latex_document_to_tree (s);
-  QVERIFY (is_func (doc, moebius::DOCUMENT));
+  // 无参自递归宏定义
+  check_crash_case ("1294_1.tex");
 }
 
 void
 TestParseTex::test_crash_case_289 () {
-  // 带参递归宏定义用例，复现代码 TeXmacs/tests/tex/1294_2.tex
-  string s;
-  QVERIFY2 (
-      !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_2.tex"), s, true),
-      "cannot load 1294_2.tex");
-  tree doc= latex_document_to_tree (s);
-  QVERIFY (is_func (doc, moebius::DOCUMENT));
+  // 带参自递归宏定义
+  check_crash_case ("1294_2.tex");
 }
 
 void
 TestParseTex::test_crash_case_1294_3 () {
-  // 相互递归宏定义用例 (crash_pattern_c)，复现代码 TeXmacs/tests/tex/1294_3.tex
-  string s;
-  QVERIFY2 (
-      !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_3.tex"), s, true),
-      "cannot load 1294_3.tex");
-  tree doc= latex_document_to_tree (s);
-  QVERIFY (is_func (doc, moebius::DOCUMENT));
+  // 相互递归宏定义 (crash_pattern_c)
+  check_crash_case ("1294_3.tex");
 }
 
 QTEST_MAIN (TestParseTex)

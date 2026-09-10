@@ -198,6 +198,16 @@ find_font_bis (tree t) {
   return font ();
 }
 
+// 析构时回退递归计数并结算计时，异常路径（底层字体加载抛异常）同样生效
+struct find_font_guard {
+  int& level;
+  find_font_guard (int& l) : level (l) { level++; }
+  ~find_font_guard () {
+    level--;
+    bench_cumul ("find font");
+  }
+};
+
 font
 find_font (tree t) {
   static int find_font_level= 0;
@@ -209,18 +219,8 @@ find_font (tree t) {
     return font ();
   }
   bench_start ("find font");
-  find_font_level++;
-  try {
-    font fn= find_font_bis (t);
-    find_font_level--;
-    bench_cumul ("find font");
-    return fn;
-  } catch (...) {
-    // 底层字体加载失败会抛异常，计数必须回退，否则后续查找全部误判为过深
-    find_font_level--;
-    bench_cumul ("find font");
-    throw;
-  }
+  find_font_guard guard (find_font_level);
+  return find_font_bis (t);
 }
 
 font

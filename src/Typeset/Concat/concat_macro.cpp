@@ -94,22 +94,27 @@ concater_rep::typeset_with (tree t, path ip) {
   STACK_DELETE_ARRAY (newv);
 }
 
+// \def\a{\a} 之类的自递归宏在宏展开处无限递归直至栈溢出，
+// 限制宏展开嵌套深度，超限按占位标记降级渲染
+static const int max_macro_depth= 100;
+
 struct macro_depth_guard {
   int& depth;
   macro_depth_guard (int& d) : depth (d) { depth++; }
   ~macro_depth_guard () { depth--; }
 };
 
+bool
+concater_rep::macro_depth_exceeded (tree t, path ip) {
+  if (env->macro_depth < max_macro_depth) return false;
+  failed_error << "macro expansion too deep: " << as_string (L (t)) << "\n";
+  print (test_box (ip));
+  return true;
+}
+
 void
 concater_rep::typeset_compound (tree t, path ip) {
-  // \def\a{\a} 之类的自递归宏在这里无限展开直至栈溢出，
-  // 限制宏展开嵌套深度，超限按占位标记降级渲染，防止栈溢出
-  static const int max_macro_depth= 100;
-  if (env->macro_depth >= max_macro_depth) {
-    failed_error << "macro expansion too deep: " << as_string (L (t)) << "\n";
-    print (test_box (ip));
-    return;
-  }
+  if (macro_depth_exceeded (t, ip)) return;
   macro_depth_guard guard (env->macro_depth);
   int               d;
   tree              f;
@@ -184,11 +189,7 @@ concater_rep::typeset_compound (tree t, path ip) {
 
 void
 concater_rep::typeset_auto (tree t, path ip, tree f) {
-  static const int max_macro_depth= 100;
-  if (env->macro_depth >= max_macro_depth) {
-    print (test_box (ip));
-    return;
-  }
+  if (macro_depth_exceeded (t, ip)) return;
   macro_depth_guard guard (env->macro_depth);
   env->macro_arg= list<hashmap<string, tree>> (hashmap<string, tree> (UNINIT),
                                                env->macro_arg);

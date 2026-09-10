@@ -107,6 +107,7 @@ class concater_rep {
   void typeset_error (tree t, path ip);
 
   // active macro mechanisms
+  bool macro_depth_exceeded (tree t, path ip);
   void typeset_assign (tree t, path ip);
   void typeset_provide (tree t, path ip);
   void typeset_with (tree t, path ip);

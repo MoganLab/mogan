@@ -9,8 +9,8 @@
 
 启动命令: xmake r stem -d
 用法:
-  python3 1294.py               # 默认依序测试 1294_1.tex, 1294_2.tex, 1294_3.tex
-  python3 1294.py [path/to.tex] # 测试指定文件
+  python3 TeXmacs/tests/python/1294.py               # 默认依序测试 1294_1.tex, 1294_2.tex, 1294_3.tex
+  python3 TeXmacs/tests/python/1294.py [path/to.tex] # 测试指定文件
 """
 
 import os
