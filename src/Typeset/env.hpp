@@ -189,6 +189,7 @@ public:
   int      spacing_policy;
   tree     math_font_sizes;
   int      nesting_level;
+  int      macro_depth;
 
   int    info_level;
   int    src_style;

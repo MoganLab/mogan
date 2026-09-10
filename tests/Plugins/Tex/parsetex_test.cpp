@@ -13,6 +13,7 @@
 #include "Tex/tex.hpp"
 #include "base.hpp"
 #include "boot.hpp"
+#include "file.hpp"
 #include "server.hpp"
 #include "tm_sys_utils.hpp"
 #include <s7_tm.hpp>
@@ -29,6 +30,7 @@ private slots:
   void initTestCase ();
   void cleanupTestCase ();
   void test_crash_case_249 ();
+  void test_crash_case_289 ();
 };
 
 void
@@ -61,6 +63,17 @@ TestParseTex::test_crash_case_249 () {
       !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_1.tex"), s, true),
       "cannot load 1294_1.tex");
   // latex_document_to_tree 是粘贴路径的完整转换入口
+  tree doc= latex_document_to_tree (s);
+  QVERIFY (is_func (doc, moebius::DOCUMENT));
+}
+
+void
+TestParseTex::test_crash_case_289 () {
+  // 带参递归宏定义用例，复现代码 TeXmacs/tests/tex/1294_2.tex
+  string s;
+  QVERIFY2 (
+      !load_string (url_system ("$TEXMACS_PATH/tests/tex/1294_2.tex"), s, true),
+      "cannot load 1294_2.tex");
   tree doc= latex_document_to_tree (s);
   QVERIFY (is_func (doc, moebius::DOCUMENT));
 }

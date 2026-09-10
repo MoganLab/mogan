@@ -2539,13 +2539,89 @@ latex_to_tree_body (tree t0) {
   else return t15;
 }
 
+static bool
+tree_calls_macro (tree t, string name) {
+  if (is_atomic (t)) {
+    return t->label == name;
+  }
+  string l= as_string (L (t));
+  if (l == name) return true;
+  if (is_func (t, COMPOUND) && N (t) > 0 && is_atomic (t[0]) &&
+      t[0]->label == name)
+    return true;
+  if (is_func (t, APPLY) && N (t) > 0 && is_atomic (t[0]) &&
+      t[0]->label == name)
+    return true;
+  for (int i= 0; i < N (t); i++)
+    if (tree_calls_macro (t[i], name)) return true;
+  return false;
+}
+
+static void
+find_macro_definitions (tree t, array<string>& names, array<tree>& bodies) {
+  if (is_atomic (t)) return;
+  if (is_func (t, ASSIGN, 2)) {
+    tree   var = t[0];
+    tree   val = t[1];
+    string name= is_atomic (var) ? var->label : as_string (var);
+    if (N (name) > 0 && !is_atomic (val)) {
+      names << name;
+      bodies << val;
+    }
+  }
+  for (int i= 0; i < N (t); i++)
+    find_macro_definitions (t[i], names, bodies);
+}
+
+static bool
+dfs_macro_cycle (int u, const array<array<int>>& adj, array<int>& state) {
+  state[u]= 1;
+  for (int k= 0; k < N (adj[u]); k++) {
+    int v= adj[u][k];
+    if (state[v] == 1) return true;
+    if (state[v] == 0 && dfs_macro_cycle (v, adj, state)) return true;
+  }
+  state[u]= 2;
+  return false;
+}
+
+static bool
+has_macro_cycle (tree t) {
+  array<string> names;
+  array<tree>   bodies;
+  find_macro_definitions (t, names, bodies);
+  int n= N (names);
+  if (n == 0) return false;
+
+  array<array<int>> adj (n);
+  for (int i= 0; i < n; i++) {
+    adj[i]= array<int> ();
+    for (int j= 0; j < n; j++)
+      if (tree_calls_macro (bodies[i], names[j])) adj[i] << j;
+  }
+
+  array<int> state (n);
+  for (int i= 0; i < n; i++)
+    state[i]= 0;
+  for (int i= 0; i < n; i++)
+    if (state[i] == 0 && dfs_macro_cycle (i, adj, state)) return true;
+  return false;
+}
+
 tree
 latex_to_tree (tree t0) {
   // 转换过程中会触发样式环境求值与字体解析，环境缺字体时底层以异常上报
   // （TM_FAILED 抛 string），异常穿过 scheme 边界会直接终止进程，
-  // 因此在转换入口兜底，降级为空文档
+  // 因此在转换入口兜底，降级为空文档。
+  // 同时检测自递归/循环宏定义，存在环路时直接降级返回空，避免向文档插入死循环内容。
   try {
-    return latex_to_tree_body (t0);
+    tree r= latex_to_tree_body (t0);
+    if (has_macro_cycle (r)) {
+      failed_error << "latex_to_tree: recursive macro definition detected, "
+                      "returning empty\n";
+      return tree (DOCUMENT, "");
+    }
+    return r;
   } catch (string msg) {
     failed_error << "latex_to_tree failure: " << msg << "\n";
     return tree (DOCUMENT, "");
