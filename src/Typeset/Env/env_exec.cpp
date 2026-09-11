@@ -1244,13 +1244,11 @@ edit_env_rep::exec_use_package (tree t) {
     string pi  = as_string (t[i]);
     string task= "use-package " * pi;
     bench_start (task);
-    // 本地优先：文档 buffer（base_file_name）或当前执行文件（cur_file_name，
-    // 样式包体/include 执行窗口内指向它）所在目录树，模板常引用同目录的包
-    // （如 beamer/daxue_beamer）；未命中再查全局目录
-    url local= base_file_name;
-    if (is_rooted (cur_file_name, "default")) local= cur_file_name;
-    if (is_rooted (local, "default"))
-      name= resolve_pack_in (::expand (head (local) * url_ancestor ()), pi);
+    // 本地优先：仅从文档 buffer（base_file_name）所在目录树解析，
+    // 模板常引用同目录的包（如 beamer/daxue_beamer）；未命中再查全局目录
+    if (is_rooted (base_file_name, "default"))
+      name= resolve_pack_in (::expand (head (base_file_name) * url_ancestor ()),
+                             pi);
     // 带路径包名直查全局包目录，避免 $TEXMACS_STYLE_PATH 全子目录扫描（#1200）
     if (is_none (name)) {
       if (occurs ("/", pi)) name= resolve_dotted_package (pi);
@@ -1268,15 +1266,8 @@ edit_env_rep::exec_use_package (tree t) {
       else {
         doc= texmacs_document_to_tree (doc_s);
       }
-      // 包体执行期间记录包文件位置，供嵌套 use-package 相对解析（同
-      // bridge_rewrite.cpp 的 save/restore 惯用法）
       if (is_compound (doc)) {
-        url save_name= cur_file_name;
-        cur_file_name= name;
-        secure       = is_secure (cur_file_name);
         exec (filter_style (extract (doc, "body")));
-        cur_file_name= save_name;
-        secure       = is_secure (cur_file_name);
       }
     }
     bench_end (task, 10);
