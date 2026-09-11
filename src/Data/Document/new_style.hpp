@@ -26,9 +26,9 @@ void style_invalidate_cache ();
 void style_set_cache (tree style, hashmap<string, tree> H, tree t);
 void style_get_cache (tree style, hashmap<string, tree>& H, tree& t, bool& f);
 
-bool                  compute_env_and_drd (tree style);
-hashmap<string, tree> get_style_env (tree style);
-drd_info              get_style_drd (tree style);
+bool                  compute_env_and_drd (tree style, url master);
+hashmap<string, tree> get_style_env (tree style, url master);
+drd_info              get_style_drd (tree style, url master);
 tree                  get_document_preamble (tree t);
 drd_info              get_document_drd (tree doc);
 

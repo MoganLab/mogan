@@ -60,8 +60,8 @@ initialize_environment (edit_env& env, tree doc, drd_info& drd) {
   }
   if (!ok) {
     if (!is_tuple (style)) TM_FAILED ("tuple expected as style");
-    H  = get_style_env (style);
-    drd= get_style_drd (style);
+    H  = get_style_env (style, url_none ());
+    drd= get_style_drd (style, url_none ());
     style_set_cache (style, H, drd->get_locals ());
     env->patch_env (H);
     drd->set_environment (H);

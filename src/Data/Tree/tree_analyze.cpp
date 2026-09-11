@@ -16,8 +16,6 @@
 using namespace moebius;
 using moebius::drd::the_drd;
 
-drd_info get_style_drd (tree style);
-
 /******************************************************************************
  * Tokenize mathematical concats and recomposition
  ******************************************************************************/

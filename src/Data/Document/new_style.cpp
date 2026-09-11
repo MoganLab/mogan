@@ -242,7 +242,7 @@ style_get_cache (tree style, hashmap<string, tree>& H, tree& t, bool& f) {
  ******************************************************************************/
 
 bool
-compute_env_and_drd (tree style) {
+compute_env_and_drd (tree style, url master) {
   init_style_data ();
   ASSERT (is_tuple (style), "style tuple expected");
   bool busy= false;
@@ -255,14 +255,16 @@ compute_env_and_drd (tree style) {
   // cout << "Get environment of " << style << INDENT << LF;
   hashmap<string, tree> H;
   drd_info              drd ("none", std_drd);
-  url                   none= url ("$PWD/none");
+  // 样式环境计算脱离具体 buffer，base 取文档 master（缺省 $PWD/none），
+  // 使样式包内嵌套的 use-package 仍能按文档目录相对解析
+  url                   base= is_none (master) ? url ("$PWD/none") : master;
   hashmap<string, tree> lref;
   hashmap<string, tree> gref;
   hashmap<string, tree> laux;
   hashmap<string, tree> gaux;
   hashmap<string, tree> latt;
   hashmap<string, tree> gatt;
-  edit_env              env (drd, none, lref, gref, laux, gaux, latt, gatt);
+  edit_env              env (drd, base, lref, gref, laux, gaux, latt, gatt);
   if (!busy) {
     tree t;
     bool ok;
@@ -287,11 +289,11 @@ compute_env_and_drd (tree style) {
 }
 
 hashmap<string, tree>
-get_style_env (tree style) {
+get_style_env (tree style, url master) {
   // cout << "get_style_env " << style << "\n";
   init_style_data ();
   if (sd->style_cached->contains (style)) return sd->style_cached[style];
-  else if (compute_env_and_drd (style)) return sd->style_cached[style];
+  else if (compute_env_and_drd (style, master)) return sd->style_cached[style];
   else {
     // cout << "Busy style: " << style << "\n";
     return hashmap<string, tree> ();
@@ -299,12 +301,12 @@ get_style_env (tree style) {
 }
 
 drd_info
-get_style_drd (tree style) {
+get_style_drd (tree style, url master) {
   // cout << "get_style_drd " << style << "\n";
   init_style_data ();
   init_std_drd ();
   if (sd->drd_cached->contains (style)) return sd->drd_cached[style];
-  else if (compute_env_and_drd (style)) return sd->drd_cached[style];
+  else if (compute_env_and_drd (style, master)) return sd->drd_cached[style];
   else {
     // cout << "Busy drd: " << style << "\n";
     return std_drd;
@@ -337,7 +339,7 @@ get_document_drd (tree doc) {
     style= tree (TUPLE, "generic");
   }
   // cout << "style= " << style << "\n";
-  drd_info drd= get_style_drd (style);
+  drd_info drd= get_style_drd (style, url_none ());
   tree     p  = get_document_preamble (doc);
   if (p != "") {
     drd                       = drd_info ("preamble", drd);
