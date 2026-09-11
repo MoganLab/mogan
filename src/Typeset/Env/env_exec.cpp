@@ -1241,23 +1241,19 @@ edit_env_rep::exec_use_package (tree t) {
   int i, n= N (t);
   for (i= 0; i < n; i++) {
     url    name= url_none ();
-    url    styp= "$TEXMACS_STYLE_PATH";
     string pi  = as_string (t[i]);
     string task= "use-package " * pi;
     bench_start (task);
-    if (occurs ("/", pi)) name= resolve_dotted_package (pi);
-    else {
-      if (is_rooted (base_file_name, "default"))
-        styp= styp | ::expand (head (base_file_name) * url_ancestor ());
-      else styp= styp | head (base_file_name);
-      if (ends (pi, ".ts") || ends (pi, ".stem")) name= url_system (pi);
-      else {
-        url stem_name= styp * (pi * string (".stem"));
-        name         = resolve (stem_name);
-        if (is_none (name)) name= styp * (pi * string (".ts"));
-      }
-      name= resolve (name);
-    }
+    // 本地优先：文档 buffer（base_file_name）或引用方样式包文件
+    // （cur_file_name，包体执行窗口内指向包文件）所在目录树，模板常引用
+    // 同目录的包（如 beamer/daxue_beamer）；未命中再查全局目录
+    url local= base_file_name;
+    if (cur_file_name != base_file_name && is_rooted (cur_file_name, "default"))
+      local= cur_file_name;
+    if (is_rooted (local, "default"))
+      name= resolve_pack_in (::expand (head (local) * url_ancestor ()), pi);
+    if (is_none (name)) name= resolve_pack_in (url ("$TEXMACS_STYLE_PATH"), pi);
+    if (is_none (name)) name= resolve_dotted_package (pi);
     if (is_none (name)) {
       debug_io << "use-package: package not found: " << pi << LF;
     }
@@ -1270,7 +1266,14 @@ edit_env_rep::exec_use_package (tree t) {
       else {
         doc= texmacs_document_to_tree (doc_s);
       }
-      if (is_compound (doc)) exec (filter_style (extract (doc, "body")));
+      // 包体执行期间记录包文件位置，供嵌套 use-package 相对解析（同
+      // bridge_rewrite.cpp 的 save/restore 惯用法）
+      if (is_compound (doc)) {
+        url save_name= cur_file_name;
+        cur_file_name= name;
+        exec (filter_style (extract (doc, "body")));
+        cur_file_name= save_name;
+      }
     }
     bench_end (task, 10);
   }
