@@ -200,16 +200,16 @@ make_toggle_btn (QWidget* parent, const char* objName, const QString& text) {
   btn->setCursor (Qt::PointingHandCursor);
   btn->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
                            DpiUtils::scaled (kSendIconSize)));
+  // 纯图标按钮：文字仅作 tooltip，不随按钮显示
   btn->setText (text);
-  btn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
+  btn->setToolTip (text);
+  btn->setToolButtonStyle (Qt::ToolButtonIconOnly);
   btn->setFixedHeight (btnH);
   btn->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-  int fontPx= DpiUtils::scaled (12);
   btn->setStyleSheet (
-      QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px 6px; "
-               "margin: 0px; font-size: %2px; }")
-          .arg (btnH / 2)
-          .arg (fontPx));
+      QString ("QToolButton { border-radius: %1px; padding: 2px; "
+               "margin: 0px; }")
+          .arg (btnH / 2));
   return btn;
 }
 

@@ -1517,7 +1517,6 @@ QWidget#centralWidget QWidget#chat-tab-input-frame[hasFocus="true"] {
 QToolButton#chat-tab-thinking-btn,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
   color: #ffffff;
-  border: 1px solid #7a7a7a;
   background: transparent;
   qproperty-iconNormal: url(":/llm-chat/thinking-white.svg");
   qproperty-iconChecked: url(":/llm-chat/thinking-dark.svg");
@@ -1525,7 +1524,6 @@ QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
 QToolButton#chat-tab-thinking-btn:checked,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
   background: #215a6a33;
-  border: 1px solid #2791ad;
   color: #2791ad;
 }
 
@@ -1533,7 +1531,6 @@ QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
 QToolButton#chat-tab-search-btn,
 QWidget#centralWidget QToolButton#chat-tab-search-btn {
   color: #ffffff;
-  border: 1px solid #7a7a7a;
   background: transparent;
   qproperty-iconNormal: url(":/llm-chat/search-white.svg");
   qproperty-iconChecked: url(":/llm-chat/search-dark.svg");
@@ -1541,7 +1538,6 @@ QWidget#centralWidget QToolButton#chat-tab-search-btn {
 QToolButton#chat-tab-search-btn:checked,
 QWidget#centralWidget QToolButton#chat-tab-search-btn:checked {
   background: #215a6a33;
-  border: 1px solid #2791ad;
   color: #2791ad;
 }
 
