@@ -112,6 +112,14 @@ public:
    */
   tree readInputMessage () const;
 
+  /**
+   * @brief 切换思考/搜索按钮为纯图标样式（无边框、无文字）。
+   *
+   * dock 侧边栏模式为纯图标；Chat 标签页模式恢复主题边框 + 图标 + 文字。
+   * @param iconOnly 是否纯图标
+   */
+  void setToggleButtonsIconOnly (bool iconOnly);
+
   QToolButton*  sendButton () const { return sendButton_; }
   QToolButton*  thinkingButton () const { return thinkingButton_; }
   QToolButton*  searchButton () const { return searchButton_; }
@@ -445,6 +453,15 @@ public:
   void setSidebarVisible (bool visible);
   void setCloseSidebarButtonVisible (bool visible);
 
+  /**
+   * @brief 设置 dock 侧边栏模式。
+   *
+   * dock 模式下思考/搜索按钮为纯图标（无边框、无文字）；标签页模式
+   * 恢复主题边框 + 文字。对已有面板立即生效，后续 createPanel 沿用。
+   * @param dock 是否 dock 侧边栏模式
+   */
+  void setDockMode (bool dock);
+
   // ---- 供外部组件访问 ----
   QWidget* contentWidget () const { return contentWidget_; }
 
@@ -497,7 +514,8 @@ private:
   QList<ChatConversationPanel*> conversations_;          ///< 所有会话面板
   ChatConversationPanel* activeConversation_  = nullptr; ///< 当前激活的面板
   bool                   sidebarCollapsed_    = false;   ///< 侧边栏是否折叠
-  int                    sidebarExpandedWidth_= 0;       ///< 侧边栏展开时宽度
+  bool                   dockMode_            = false; ///< 是否 dock 侧边栏模式
+  int                    sidebarExpandedWidth_= 0;     ///< 侧边栏展开时宽度
   qt_tm_widget_rep*      parentTmWidget_= nullptr; ///< 关联的 TeXmacs widget
 
   static bool globalSidebarCollapsed_; ///< 全局记忆的侧边栏折叠状态

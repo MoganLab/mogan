@@ -1324,6 +1324,7 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
           chatWidget->setSidebarCollapsed (
               QTChatTabWidget::globalSidebarCollapsed ());
           chatWidget->setCloseSidebarButtonVisible (false);
+          chatWidget->setDockMode (false);
         }
       }
       if (chatSideDock) chatSideDock->hide ();
@@ -1452,6 +1453,7 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
     if (chatWidget) {
       chatWidget->setSidebarVisible (false);
       chatWidget->setCloseSidebarButtonVisible (true);
+      chatWidget->setDockMode (true);
       // 连接关闭按钮信号（先断开所有旧连接，避免重复触发）
       QObject::disconnect (chatWidget, &QTChatTabWidget::closeSidebarRequested,
                            nullptr, nullptr);
@@ -1521,6 +1523,7 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
         chatWidget->setSidebarCollapsed (
             QTChatTabWidget::globalSidebarCollapsed ());
         chatWidget->setCloseSidebarButtonVisible (false);
+        chatWidget->setDockMode (false);
       }
     }
 

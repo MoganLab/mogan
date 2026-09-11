@@ -189,6 +189,26 @@ ChatConversationPanel::ChatConversationPanel (const string& sessionId,
   setup_ui ();
 }
 
+/**
+ * @brief 思考/搜索开关按钮的内联样式。
+ *
+ * 纯图标模式（dock 侧边栏）需显式 border: none 覆盖主题 CSS 中的边框；
+ * 文字模式（Chat 标签页）不声明 border，由主题 CSS 提供。
+ */
+static QString
+toggle_btn_qss (bool iconOnly, int btnH) {
+  if (iconOnly) {
+    return QString ("QToolButton { border: none; border-radius: %1px; "
+                    "padding: 2px; margin: 0px; }")
+        .arg (btnH / 2);
+  }
+  int fontPx= DpiUtils::scaled (12);
+  return QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px "
+                  "6px; margin: 0px; font-size: %2px; }")
+      .arg (btnH / 2)
+      .arg (fontPx);
+}
+
 QTMStateToolButton*
 make_toggle_btn (QWidget* parent, const char* objName, const QString& text) {
   int   btnH= DpiUtils::scaled (kSendButtonSize);
@@ -200,17 +220,25 @@ make_toggle_btn (QWidget* parent, const char* objName, const QString& text) {
   btn->setCursor (Qt::PointingHandCursor);
   btn->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
                            DpiUtils::scaled (kSendIconSize)));
-  // 纯图标按钮：文字仅作 tooltip，不随按钮显示
   btn->setText (text);
+  // 纯图标模式（dock 侧边栏）下文字不显示，靠 tooltip 辨认按钮含义
   btn->setToolTip (text);
-  btn->setToolButtonStyle (Qt::ToolButtonIconOnly);
+  btn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
   btn->setFixedHeight (btnH);
   btn->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-  btn->setStyleSheet (
-      QString ("QToolButton { border-radius: %1px; padding: 2px; "
-               "margin: 0px; }")
-          .arg (btnH / 2));
+  btn->setStyleSheet (toggle_btn_qss (false, btnH));
   return btn;
+}
+
+void
+ChatConversationPanel::setToggleButtonsIconOnly (bool iconOnly) {
+  Qt::ToolButtonStyle style=
+      iconOnly ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextBesideIcon;
+  int btnH= DpiUtils::scaled (kSendButtonSize);
+  thinkingButton_->setToolButtonStyle (style);
+  thinkingButton_->setStyleSheet (toggle_btn_qss (iconOnly, btnH));
+  searchButton_->setToolButtonStyle (style);
+  searchButton_->setStyleSheet (toggle_btn_qss (iconOnly, btnH));
 }
 
 void
@@ -1667,6 +1695,7 @@ QTChatTabWidget::createPanel (const string& sessionId) {
       sessionId, msgBufUrl, inBufUrl, conversationStack_);
   conversationStack_->addWidget (panel);
   conversations_.append (panel);
+  panel->setToggleButtonsIconOnly (dockMode_);
   return panel;
 }
 
@@ -1913,6 +1942,13 @@ QTChatTabWidget::setSidebarVisible (bool visible) {
   sidebarCollapsed_= !visible;
   // dock 模式下不需要浮动按钮，始终隐藏
   if (floatingBtnContainer_) floatingBtnContainer_->hide ();
+}
+
+void
+QTChatTabWidget::setDockMode (bool dock) {
+  dockMode_= dock;
+  for (int i= 0; i < conversations_.size (); i++)
+    conversations_[i]->setToggleButtonsIconOnly (dock);
 }
 
 void
