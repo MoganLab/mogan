@@ -18,6 +18,7 @@
 // 例外，工作在全局设施就绪之前）。
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -99,6 +100,23 @@ exe_name_of (const std::wstring& normalized_path) {
   return normalized_path.substr (pos == std::wstring::npos ? 0 : pos + 1);
 }
 
+// 检测过程写 stderr：velopack 自身日志（velopack_<app>.log）不记录本进程
+// 内的守卫判定，且守卫运行于 lolly 初始化之前（无法使用项目 cout）。GUI
+// 启动时不可见，终端启动（测试场景，见 devel/0523.md）下直接可见。
+#ifdef OS_WIN
+// wchar 路径转 UTF-8 供日志输出（安装路径可能含非 ASCII 字符）
+static std::string
+to_utf8 (const std::wstring& w) {
+  int n= WideCharToMultiByte (CP_UTF8, 0, w.c_str (), (int) w.size (), nullptr,
+                              0, nullptr, nullptr);
+  if (n <= 0) return std::string ();
+  std::string s (n, '\0');
+  WideCharToMultiByte (CP_UTF8, 0, w.c_str (), (int) w.size (), &s[0], n,
+                       nullptr, nullptr);
+  return s;
+}
+#endif
+
 bool
 has_other_mogan_instances () {
 #ifdef OS_WIN
@@ -109,6 +127,8 @@ has_other_mogan_instances () {
   const std::wstring self_norm= normalize (self_path, n);
   const std::wstring my_key   = install_key (self_norm);
   const std::wstring my_name  = exe_name_of (self_norm);
+  fprintf (stderr, "process_guard: checking, install key \"%s\"\n",
+           to_utf8 (my_key).c_str ());
 
   HANDLE snap= CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
   if (snap == INVALID_HANDLE_VALUE) return false;
@@ -123,11 +143,27 @@ has_other_mogan_instances () {
       HANDLE  proc= OpenProcess (PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
                                  entry.th32ProcessID);
       wchar_t path[1024];
-      DWORD   len= sizeof (path) / sizeof (path[0]);
+      DWORD   len  = sizeof (path) / sizeof (path[0]);
+      bool readable= proc && QueryFullProcessImageNameW (proc, 0, path, &len);
+      std::wstring other;
+      bool         same_key= false;
+      if (readable) {
+        other   = normalize (path, len);
+        same_key= install_key (other) == my_key;
+      }
       // 同名但读不到完整路径（权限不足，如另一实例以管理员运行）时按存在
       // 处理：漏检会损坏安装，误报只是推迟本次更新到下次单实例启动。
-      if (!proc || !QueryFullProcessImageNameW (proc, 0, path, &len) ||
-          install_key (normalize (path, len)) == my_key) {
+      if (!readable || same_key) {
+        if (readable)
+          fprintf (stderr,
+                   "process_guard: other instance pid=%lu, exe \"%s\"\n",
+                   static_cast<unsigned long> (entry.th32ProcessID),
+                   to_utf8 (other).c_str ());
+        else
+          fprintf (stderr,
+                   "process_guard: same-name pid=%lu, path unreadable, "
+                   "treated as other instance\n",
+                   static_cast<unsigned long> (entry.th32ProcessID));
         if (proc) CloseHandle (proc);
         CloseHandle (snap);
         return true;
@@ -137,12 +173,15 @@ has_other_mogan_instances () {
     ok= Process32NextW (snap, &entry);
   }
   CloseHandle (snap);
+  fprintf (stderr, "process_guard: no other instances\n");
   return false;
 #else // OS_MACOS
   char self_path[PROC_PIDPATHINFO_MAXSIZE];
   int  n= proc_pidpath (getpid (), self_path, sizeof (self_path));
   if (n <= 0) return false;
   const std::string my_key= install_key (normalize (self_path, n));
+  fprintf (stderr, "process_guard: checking, install key \"%s\"\n",
+           my_key.c_str ());
 
   int count= proc_listallpids (nullptr, 0);
   if (count <= 0) return false;
@@ -154,8 +193,14 @@ has_other_mogan_instances () {
     char path[PROC_PIDPATHINFO_MAXSIZE];
     int  m= proc_pidpath (pids[i], path, sizeof (path));
     if (m <= 0) continue; // 系统进程/无权限，跳过不误判
-    if (install_key (normalize (path, m)) == my_key) return true;
+    const std::string other= normalize (path, m);
+    if (install_key (other) == my_key) {
+      fprintf (stderr, "process_guard: other instance pid=%ld, exe \"%s\"\n",
+               static_cast<long> (pids[i]), other.c_str ());
+      return true;
+    }
   }
+  fprintf (stderr, "process_guard: no other instances\n");
   return false;
 #endif
 }
