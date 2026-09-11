@@ -524,8 +524,12 @@ kill_tabpage (url win_u, url u) {
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
   if (win == NULL) win= win_tabpage;
-  url  current_u                     = get_current_view_safe ();
-  bool is_current                    = (!is_none (current_u) && current_u == u);
+  // 「当前标签页」以是否附着在窗口上（即正在窗口中显示）为准，而非全局焦点
+  // 视图：AI 侧边栏打开时焦点在聊天输入框（tmfs://chat/<sid>/input 嵌入视
+  // 图），get_current_view_safe() 并非窗口中显示的文档视图，按焦点判定会
+  // 把正在显示的标签误判成非当前标签，跳过 detach/attach，导致关闭后 tab
+  // 栏不刷新、窗口仍显示已删除的视图（需点击其他标签才消失）。
+  bool is_current                    = (vw->win != NULL);
   bool refresh_tabbar_for_non_current= !is_current;
 
   // 第一步: 设定 win_tabpage
@@ -598,15 +602,18 @@ kill_tabpage (url win_u, url u) {
   }
 
   // 关闭非当前标签页时，可能不会立即触发标签栏刷新。
-  // 对同一 tabpage 窗口中的当前编辑器执行 suspend/resume，
-  // 以强制触发一次 UI 更新。
+  // 对该 tabpage 窗口中正在显示的编辑器执行 suspend/resume，
+  // 以强制触发一次 UI 更新。这里取窗口实际显示的视图而非全局焦点视图：
+  // AI 侧边栏打开时焦点在聊天输入框的嵌入视图（win_tabpage 为空），
+  // 按焦点视图取会跳过刷新，tab 栏同样不更新。
   if (refresh_tabbar_for_non_current) {
-    tm_view current_vw= concrete_view (get_current_view_safe ());
-    if (current_vw != NULL && current_vw->win_tabpage == win_tabpage) {
-      editor current_ed= current_vw->ed;
-      if (current_ed != NULL) {
-        current_ed->suspend ();
-        current_ed->resume ();
+    tm_view shown_vw=
+        concrete_view (window_to_view (abstract_window (win_tabpage)));
+    if (shown_vw != NULL) {
+      editor shown_ed= shown_vw->ed;
+      if (shown_ed != NULL) {
+        shown_ed->suspend ();
+        shown_ed->resume ();
       }
     }
   }
