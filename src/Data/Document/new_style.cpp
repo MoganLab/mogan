@@ -241,6 +241,12 @@ style_get_cache (tree style, hashmap<string, tree>& H, tree& t, bool& f) {
  * Get environment and drd of style files
  ******************************************************************************/
 
+// 样式环境计算脱离具体 buffer 时的兜底 base
+static url
+dummy_base_url () {
+  return url ("$PWD/none");
+}
+
 bool
 compute_env_and_drd (tree style, url master) {
   init_style_data ();
@@ -255,9 +261,9 @@ compute_env_and_drd (tree style, url master) {
   // cout << "Get environment of " << style << INDENT << LF;
   hashmap<string, tree> H;
   drd_info              drd ("none", std_drd);
-  // 样式环境计算脱离具体 buffer，base 取文档 master（缺省 $PWD/none），
+  // base 取文档 master（缺省 $PWD/none），
   // 使样式包内嵌套的 use-package 仍能按文档目录相对解析
-  url                   base= is_none (master) ? url ("$PWD/none") : master;
+  url                   base= is_none (master) ? dummy_base_url () : master;
   hashmap<string, tree> lref;
   hashmap<string, tree> gref;
   hashmap<string, tree> laux;
@@ -339,11 +345,11 @@ get_document_drd (tree doc) {
     style= tree (TUPLE, "generic");
   }
   // cout << "style= " << style << "\n";
-  drd_info drd= get_style_drd (style, url_none ());
+  drd_info drd= get_style_drd (style);
   tree     p  = get_document_preamble (doc);
   if (p != "") {
     drd                       = drd_info ("preamble", drd);
-    url                   none= url ("$PWD/none");
+    url                   none= dummy_base_url ();
     hashmap<string, tree> lref;
     hashmap<string, tree> gref;
     hashmap<string, tree> laux;
