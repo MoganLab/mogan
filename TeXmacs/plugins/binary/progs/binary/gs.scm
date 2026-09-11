@@ -113,7 +113,7 @@
                 " -sDEVICE=pdfwrite "
                 " -dAutoRotatePages=/None "
                 " -dCompatibilityLevel=1.4 "
-                (string-append " -sOutputFile=" (url->system to) " ")
+                (string-append " -sOutputFile=" (string-quote (url->system to)) " ")
                 (string-append " -c " (string-quote gs-inline))
                 (string-append " -f " (url-sys-concretize from) " ")
                 (string-append " -c " (string-quote " grestore "))
@@ -159,7 +159,7 @@
                                " -dGraphicsAlphaBits=4 "
                                " -dTextAlphaBits=4 "
                                page_size_in_px
-                               (string-append " -sOutputFile=" (url->system to) " ")
+                               (string-append " -sOutputFile=" (string-quote (url->system to)) " ")
                                resolution_in_px
                                (string-append " -c " (string-quote gs-inline))
                                (string-append " -f " (url-sys-concretize from) " ")
@@ -200,7 +200,7 @@
                                " -dGraphicsAlphaBits=4 "
                                " -dTextAlphaBits=4 "
                                " -dUseCropBox "
-                               (string-append " -sOutputFile=" (url->system to) " ")
+                               (string-append " -sOutputFile=" (string-quote (url->system to)) " ")
                                page_size_in_px
                                resolution_in_px
                                (url-sys-concretize from)
