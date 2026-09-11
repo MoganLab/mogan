@@ -11,7 +11,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (autosave plugin)
-  (:use (utils library cursor) (texmacs texmacs tm-collab))
+  (:use (utils library cursor)
+    (texmacs texmacs tm-collab)
+    (texmacs texmacs tm-files)
+  ) ;:use
 ) ;texmacs-module
 
 (import (liii uuid))
@@ -96,7 +99,7 @@
     (not (url-rooted-tmfs? name))
     (not (auto-backup-texmacs-path-buffer? name))
     (in? (url-format name) '("texmacs" "stm" "tmu" "stem"))
-    (not (and (defined? 'style-buffer?) (style-buffer? name)))
+    (not (style-buffer? name))
   ) ;and
 ) ;tm-define
 
@@ -107,7 +110,7 @@
 (tm-define (auto-backup-buffer-doc-id name)
   (catch #t
     (lambda ()
-      (and (not (and (defined? 'style-buffer?) (style-buffer? name)))
+      (and (not (style-buffer? name))
         ;; First try to get from init-env (memory), then from document tree (file)
         (with-buffer name
           (let* ((from-env (get-init-env "stem-doc-id"))
@@ -188,6 +191,15 @@
     (lambda () (with-buffer name (init-default "stem-doc-id")))
     (lambda args #f)
   ) ;catch
+) ;tm-define
+
+;; 「样式 buffer 清除、文档 buffer 补齐」的 doc id 策略统一收口在这里，
+;; 各保存路径只需无条件调用本函数。
+(tm-define (auto-backup-sync-buffer-doc-id! name)
+  (if (style-buffer? name)
+    (auto-backup-clear-buffer-doc-id! name)
+    (auto-backup-ensure-buffer-doc-id! name)
+  ) ;if
 ) ;tm-define
 
 (tm-define (auto-backup-trig-payload name kind)
@@ -348,10 +360,7 @@
 (tm-define (save-all-buffers)
   (for-each (lambda (buf)
               (when (buffer-modified? buf)
-                (if (and (defined? 'style-buffer?) (style-buffer? buf))
-                  (auto-backup-clear-buffer-doc-id! buf)
-                  (auto-backup-ensure-buffer-doc-id! buf)
-                ) ;if
+                (auto-backup-sync-buffer-doc-id! buf)
                 (buffer-save buf)
               ) ;when
             ) ;lambda

@@ -215,33 +215,31 @@
   ) ;with
 ) ;tm-define
 
+(define (source-markup-tag? t)
+  (and (pair? t) (in? (car t) '(src-title src-package src-style-file)))
+) ;define
+
 (define (body-has-source-markup? doc)
   (let ((body (and doc (tmfile-extract doc 'body))))
     (and (pair? body)
       (== (car body) 'document)
       (pair? (cdr body))
-      (let ((first (cadr body)))
-        (or (and (pair? first) (in? (car first) '(src-title src-package
-                                                   src-style-file)))
-          (and (pair? first)
-            (== (car first) 'active*)
-            (pair? (cdr first))
-            (let ((inner (cadr first)))
-              (or (and (pair? inner) (in? (car inner) '(src-title src-package
-                                                         src-style-file)))
-                (and (pair? inner)
-                  (== (car inner) 'document)
-                  (pair? (cdr inner))
-                  (let ((sub (cadr inner)))
-                    (and (pair? sub) (in? (car sub) '(src-title src-package
-                                                       src-style-file)))
-                  ) ;let
-                ) ;and
-              ) ;or
-            ) ;let
+      ;; 导出样式包的草稿把 src-* 标记包在 active* 里，其内还可能再套一层 document
+      (let* ((first (cadr body))
+             (inner (if (and (pair? first) (== (car first) 'active*) (pair? (cdr first)))
+                      (cadr first)
+                      first
+                    ) ;if
+             ) ;inner
+            ) ;
+        (or (source-markup-tag? inner)
+          (and (pair? inner)
+            (== (car inner) 'document)
+            (pair? (cdr inner))
+            (source-markup-tag? (cadr inner))
           ) ;and
         ) ;or
-      ) ;let
+      ) ;let*
     ) ;and
   ) ;let
 ) ;define
@@ -255,26 +253,13 @@
           (and (defined? 'style-package-target-url)
             (url? (style-package-target-url name))
           ) ;and
-          (with-buffer name
-            (or (and (defined? 'has-style-package?) (has-style-package? "source"))
-              (and (defined? 'in-source?) (in-source?))
-            ) ;or
-          ) ;with-buffer
-          (let* ((doc (buffer-get name)) (st (and doc (tmfile-extract doc 'style))))
-            (or (equal? st "source")
-              (and (pair? st) (== (car st) 'tuple) (in? "source" (cdr st)))
-              (body-has-source-markup? doc)
-            ) ;or
-          ) ;let*
+          (with-buffer name (has-style-package? "source"))
+          (body-has-source-markup? (buffer-get name))
         ) ;or
       ) ;and
     ) ;lambda
     (lambda args #f)
   ) ;catch
-) ;tm-define
-
-(tm-define (document-buffer? name)
-  (and (url? name) (buffer-exists? name) (not (style-buffer? name)))
 ) ;tm-define
 
 (tm-define (buffer-set-default-style)
@@ -490,14 +475,9 @@
   ;; (display* "save-buffer-save " name "\n")
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (if (style-buffer? name)
-      (when (defined? 'auto-backup-clear-buffer-doc-id!)
-        (auto-backup-clear-buffer-doc-id! name)
-      ) ;when
-      (when (defined? 'auto-backup-ensure-buffer-doc-id!)
-        (auto-backup-ensure-buffer-doc-id! name)
-      ) ;when
-    ) ;if
+    (when (defined? 'auto-backup-sync-buffer-doc-id!)
+      (auto-backup-sync-buffer-doc-id! name)
+    ) ;when
     (if (buffer-save name)
       (begin
         (buffer-pretend-modified name)

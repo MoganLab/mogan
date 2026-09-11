@@ -151,7 +151,6 @@
         ) ;
     (buffer-rename buf ts-url)
     (check (style-buffer? ts-url) => #t)
-    (check (document-buffer? ts-url) => #f)
     (check (auto-backup-buffer-eligible? ts-url) => #f)
     (check (auto-backup-ensure-buffer-doc-id! ts-url) => #f)
     (buffer-close ts-url)
@@ -169,7 +168,6 @@
         ) ;
     (buffer-set stem-style-buf style-doc)
     (check (style-buffer? stem-style-buf) => #t)
-    (check (document-buffer? stem-style-buf) => #f)
     (check (auto-backup-buffer-eligible? stem-style-buf) => #f)
     (check (auto-backup-ensure-buffer-doc-id! stem-style-buf) => #f)
     ;; 验证若环境中已存在 doc-id，clear 会将其清除
@@ -181,55 +179,36 @@
     (switch-to-buffer orig)
   ) ;let*
 
-  ;; 3. 普通文档 .stem buffer（style 为 generic）属于文档 buffer，生成 stem-doc-id
-  (let* ((orig (current-buffer))
-         (stem-doc-buf (new-buffer ".stem"))
-         (doc '(document (TeXmacs "2.1.4")
-                 (style (tuple "generic"))
-                 (body (document "Hello STEM document")))
-         ) ;doc
-        ) ;
-    (buffer-set stem-doc-buf doc)
-    (check (style-buffer? stem-doc-buf) => #f)
-    (check (document-buffer? stem-doc-buf) => #t)
-    (check (auto-backup-buffer-eligible? stem-doc-buf) => #t)
-    (let ((doc-id (auto-backup-ensure-buffer-doc-id! stem-doc-buf)))
-      (check (string? doc-id) => #t)
-      (check (!= doc-id "") => #t)
-      (check (auto-backup-buffer-doc-id stem-doc-buf) => doc-id)
-    ) ;let
-    (buffer-close stem-doc-buf)
-    (switch-to-buffer orig)
-  ) ;let*
+  ;; 3. 普通文档 buffer（.stem / .tmu，style 为 generic）生成 stem-doc-id
+  (for-each (lambda (suffix)
+              (let* ((orig (current-buffer))
+                     (buf (new-buffer suffix))
+                     (doc '(document (TeXmacs "2.1.4")
+                             (style (tuple "generic"))
+                             (body (document "Hello document")))
+                     ) ;doc
+                    ) ;
+                (buffer-set buf doc)
+                (check (style-buffer? buf) => #f)
+                (check (auto-backup-buffer-eligible? buf) => #t)
+                (let ((doc-id (auto-backup-ensure-buffer-doc-id! buf)))
+                  (check (string? doc-id) => #t)
+                  (check (!= doc-id "") => #t)
+                  (check (auto-backup-buffer-doc-id buf) => doc-id)
+                ) ;let
+                (buffer-close buf)
+                (switch-to-buffer orig)
+              ) ;let*
+            ) ;lambda
+    '(".stem" ".tmu")
+  ) ;for-each
 
-  ;; 4. 普通文档 .tmu 属于文档 buffer，生成 stem-doc-id
-  (let* ((orig (current-buffer))
-         (tmu-buf (new-buffer ".tmu"))
-         (doc '(document (TeXmacs "2.1.4")
-                 (style (tuple "generic"))
-                 (body (document "Hello TMU document")))
-         ) ;doc
-        ) ;
-    (buffer-set tmu-buf doc)
-    (check (style-buffer? tmu-buf) => #f)
-    (check (document-buffer? tmu-buf) => #t)
-    (check (auto-backup-buffer-eligible? tmu-buf) => #t)
-    (let ((doc-id (auto-backup-ensure-buffer-doc-id! tmu-buf)))
-      (check (string? doc-id) => #t)
-      (check (!= doc-id "") => #t)
-      (check (auto-backup-buffer-doc-id tmu-buf) => doc-id)
-    ) ;let
-    (buffer-close tmu-buf)
-    (switch-to-buffer orig)
-  ) ;let*
-
-  ;; 5. 导出样式包生成的草稿 buffer 属于样式 buffer，不生成 stem-doc-id
+  ;; 4. 导出样式包生成的草稿 buffer 属于样式 buffer，不生成 stem-doc-id
   (let ((orig-buf (current-buffer)))
     (when (defined? 'extract-style-package)
       (extract-style-package)
       (let ((style-draft (current-buffer)))
         (check (style-buffer? style-draft) => #t)
-        (check (document-buffer? style-draft) => #f)
         (check (auto-backup-buffer-eligible? style-draft) => #f)
         (check (auto-backup-ensure-buffer-doc-id! style-draft) => #f)
         (buffer-close style-draft)
