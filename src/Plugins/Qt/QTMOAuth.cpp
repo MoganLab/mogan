@@ -31,7 +31,6 @@
 #include <QtCore/qurlquery.h>
 
 #include <QtNetwork/qhostaddress.h>
-#include <QtNetwork/qtcpserver.h>
 
 QTMOAuth::QTMOAuth (QObject* parent) {
   // 加载 OAuth2 配置
@@ -42,52 +41,11 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   // c_string clientSecret (
   //     as_string (call ("account-oauth2-config", "client-secret")));
   c_string scope (as_string (call ("account-oauth2-config", "scope")));
-  c_string portListStr (
-      as_string (call ("account-oauth2-config", "port-list")));
 
-  // 解析端口列表字符串，格式如
-  // "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895"
-  QString    portListQStr= QString ((char*) portListStr).trimmed ();
-  QList<int> portList;
-
-  if (!portListQStr.isEmpty ()) {
-    QStringList portStrs= portListQStr.split (',', Qt::SkipEmptyParts);
-    for (const QString& portStr : portStrs) {
-      bool ok;
-      int  port= portStr.toInt (&ok);
-      if (ok && port > 0 && port <= 65535) {
-        portList.append (port);
-      }
-    }
-  }
-
-  // 如果解析失败，使用默认端口
-  if (portList.isEmpty ()) {
-    portList.append (6029);
-  }
-
-  // 找到第一个未被占用的端口
-  m_port= -1;
-  for (int port : portList) {
-    QTcpServer testServer;
-    if (testServer.listen (QHostAddress::LocalHost, port)) {
-      m_port= port;
-      testServer.close ();
-      break;
-    }
-  }
-
-  // 如果所有端口都被占用，使用第一个端口
-  if (m_port == -1) {
-    m_port= portList.first ();
-    if (DEBUG_IO) debug_io << "All ports occupied, using:" << m_port << "\n";
-  }
-  else {
-    if (DEBUG_IO) debug_io << "Using available port:" << m_port << "\n";
-  }
-
+  // 回调服务器监听端口 0：由系统分配临时端口（RFC 8252 §7.3），多实例天然互不
+  // 冲突，实际端口经 m_reply->callback () 反映到 redirect_uri
   m_reply= new QOAuthHttpServerReplyHandler (
-      QHostAddress (QString::fromUtf8 ("127.0.0.1")), m_port, this);
+      QHostAddress (QString::fromUtf8 ("127.0.0.1")), 0, this);
   m_reply->setCallbackPath ("/callback");
 
   // 生成PKCE参数
@@ -142,8 +100,7 @@ QTMOAuth::login () {
     QUrlQuery query;
     query.addQueryItem ("response_type", "code");
     query.addQueryItem ("client_id", oauth2.clientIdentifier ());
-    query.addQueryItem ("redirect_uri",
-                        QString ("http://127.0.0.1:%1/callback").arg (m_port));
+    query.addQueryItem ("redirect_uri", getRedirectUri ());
     query.addQueryItem ("scope", oauth2.scope ());
     query.addQueryItem ("code_challenge", m_codeChallenge);
     query.addQueryItem ("code_challenge_method", "S256");
@@ -166,8 +123,7 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
   QUrlQuery query;
   query.addQueryItem ("grant_type", "authorization_code");
   query.addQueryItem ("code", code);
-  query.addQueryItem ("redirect_uri",
-                      QString ("http://127.0.0.1:%1/callback").arg (m_port));
+  query.addQueryItem ("redirect_uri", getRedirectUri ());
   query.addQueryItem ("client_id", oauth2.clientIdentifier ());
   query.addQueryItem ("code_verifier", m_codeVerifier);
 
@@ -453,6 +409,15 @@ QTMOAuth::getAccessTokenUrl () {
   c_string accessTokenUrl (
       as_string (call ("account-oauth2-config", "access-token-url")));
   return QUrl ((char*) accessTokenUrl);
+}
+
+// redirect_uri：授权请求与令牌交换两处必须使用完全一致的值（OAuth 2.0 规范）。
+// 直接取回调服务器实际监听的地址（端口 0
+// 由系统分配），构造上不可能与监听不一致； 未监听时 callback () 返回空串，由
+// login () 开头的 isListening () 守卫兜住
+QString
+QTMOAuth::getRedirectUri () {
+  return m_reply->callback ();
 }
 
 QString

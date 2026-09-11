@@ -47,6 +47,7 @@ private:
   QString    generateCodeChallenge (const QString& verifier);
   QUrl       getAuthorizationUrl ();
   QUrl       getAccessTokenUrl ();
+  QString    getRedirectUri ();
   QString    getGrowthUrl ();
   QByteArray getPreviewCookieHeader ();
   void       refreshCallbackHtml ();
@@ -64,7 +65,6 @@ public:
   qint64                        m_tokenExpiryTime= 0;
   QString                       m_codeVerifier;
   QString                       m_codeChallenge;
-  int                           m_port;
 };
 
 #endif

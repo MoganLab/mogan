@@ -123,9 +123,6 @@
           ((== key "client-identifier") "public-client")
           ((== key "scope") "user+llm")
           ((== key "preview-cookie-header") (stem-preview-cookie-header))
-          ((== key "port-list")
-           "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895"
-          ) ;
           ((== key "user-info-url")
            (string-append base-url "/api/v1/oauth2/membershipInfo")
           ) ;
@@ -153,7 +150,6 @@
 ;;     ((== key "client-identifier") "public-client")
 ;;     ((== key "client-secret") "secret")
 ;;     ((== key "scope") "user+llm")
-;;     ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
 ;;     ((== key "user-info-url") "http://127.0.0.1:8081/api/v1/oauth2/membershipInfo") ;init:api/oauthUser/membershipInfo -> api/v1/oauth2/membershipInfo
 ;;     ((== key "pricing-url") "http://127.0.0.1:3000/pricing.html")
 ;;     ((== key "invitation-url") "http://127.0.0.1:3000/personal-center/invitation")
