@@ -194,7 +194,7 @@ im_chooser_widget_rep::set_type (const string& _type) {
 
   if (_type == "action_save_as") {
     type= _type;
-    extensions << string ("tmu");
+    extensions << string ("tmu") << string ("stem");
     def_ext= "tmu";
     return true;
   }
