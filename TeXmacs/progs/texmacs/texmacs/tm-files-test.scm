@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs texmacs tm-files-test)
-  (:use (texmacs texmacs tm-files) (autosave plugin))
+  (:use (texmacs texmacs tm-files) (autosave plugin) (utils library cursor))
 ) ;texmacs-module
 
 (import (liii check))
@@ -140,6 +140,106 @@
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for style-buffer? and stem-doc-id eligibility
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-style-buffer-and-doc-id)
+  ;; 1. .ts 后缀 buffer 属于样式 buffer，不生成 stem-doc-id
+  (let* ((orig (current-buffer))
+         (buf (new-buffer ".tmu"))
+         (ts-url (system->url "/tmp/test_custom_style.ts"))
+        ) ;
+    (buffer-rename buf ts-url)
+    (check (style-buffer? ts-url) => #t)
+    (check (document-buffer? ts-url) => #f)
+    (check (auto-backup-buffer-eligible? ts-url) => #f)
+    (check (auto-backup-ensure-buffer-doc-id! ts-url) => #f)
+    (buffer-close ts-url)
+    (switch-to-buffer orig)
+  ) ;let*
+
+  ;; 2. 实际为样式的 .stem buffer（style 为 source）不生成 stem-doc-id
+  (let* ((orig (current-buffer))
+         (stem-style-buf (new-buffer ".stem"))
+         (style-doc '(document (TeXmacs "2.1.4")
+                       (style (tuple "source"))
+                       (body (document (active* (src-title (document (src-package "my-pkg"
+                                                                       "1.0")))))))
+         ) ;style-doc
+        ) ;
+    (buffer-set stem-style-buf style-doc)
+    (check (style-buffer? stem-style-buf) => #t)
+    (check (document-buffer? stem-style-buf) => #f)
+    (check (auto-backup-buffer-eligible? stem-style-buf) => #f)
+    (check (auto-backup-ensure-buffer-doc-id! stem-style-buf) => #f)
+    ;; 验证若环境中已存在 doc-id，clear 会将其清除
+    (with-buffer stem-style-buf (init-env "stem-doc-id" "test-uuid"))
+    (auto-backup-clear-buffer-doc-id! stem-style-buf)
+    (with-buffer stem-style-buf (check (get-init-env "stem-doc-id") => #f))
+    (check (auto-backup-buffer-doc-id stem-style-buf) => #f)
+    (buffer-close stem-style-buf)
+    (switch-to-buffer orig)
+  ) ;let*
+
+  ;; 3. 普通文档 .stem buffer（style 为 generic）属于文档 buffer，生成 stem-doc-id
+  (let* ((orig (current-buffer))
+         (stem-doc-buf (new-buffer ".stem"))
+         (doc '(document (TeXmacs "2.1.4")
+                 (style (tuple "generic"))
+                 (body (document "Hello STEM document")))
+         ) ;doc
+        ) ;
+    (buffer-set stem-doc-buf doc)
+    (check (style-buffer? stem-doc-buf) => #f)
+    (check (document-buffer? stem-doc-buf) => #t)
+    (check (auto-backup-buffer-eligible? stem-doc-buf) => #t)
+    (let ((doc-id (auto-backup-ensure-buffer-doc-id! stem-doc-buf)))
+      (check (string? doc-id) => #t)
+      (check (!= doc-id "") => #t)
+      (check (auto-backup-buffer-doc-id stem-doc-buf) => doc-id)
+    ) ;let
+    (buffer-close stem-doc-buf)
+    (switch-to-buffer orig)
+  ) ;let*
+
+  ;; 4. 普通文档 .tmu 属于文档 buffer，生成 stem-doc-id
+  (let* ((orig (current-buffer))
+         (tmu-buf (new-buffer ".tmu"))
+         (doc '(document (TeXmacs "2.1.4")
+                 (style (tuple "generic"))
+                 (body (document "Hello TMU document")))
+         ) ;doc
+        ) ;
+    (buffer-set tmu-buf doc)
+    (check (style-buffer? tmu-buf) => #f)
+    (check (document-buffer? tmu-buf) => #t)
+    (check (auto-backup-buffer-eligible? tmu-buf) => #t)
+    (let ((doc-id (auto-backup-ensure-buffer-doc-id! tmu-buf)))
+      (check (string? doc-id) => #t)
+      (check (!= doc-id "") => #t)
+      (check (auto-backup-buffer-doc-id tmu-buf) => doc-id)
+    ) ;let
+    (buffer-close tmu-buf)
+    (switch-to-buffer orig)
+  ) ;let*
+
+  ;; 5. 导出样式包生成的草稿 buffer 属于样式 buffer，不生成 stem-doc-id
+  (let ((orig-buf (current-buffer)))
+    (when (defined? 'extract-style-package)
+      (extract-style-package)
+      (let ((style-draft (current-buffer)))
+        (check (style-buffer? style-draft) => #t)
+        (check (document-buffer? style-draft) => #f)
+        (check (auto-backup-buffer-eligible? style-draft) => #f)
+        (check (auto-backup-ensure-buffer-doc-id! style-draft) => #f)
+        (buffer-close style-draft)
+        (switch-to-buffer orig-buf)
+      ) ;let
+    ) ;when
+  ) ;let
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -151,5 +251,6 @@
   (test-scratch-buffer-title-stem)
   (test-scratch-buffer-title-old-and-new-stamp)
   (test-scratch-buffer-title-legacy-one-underscore-this-week)
+  (test-style-buffer-and-doc-id)
   (check-report)
 ) ;tm-define

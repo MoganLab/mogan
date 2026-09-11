@@ -96,6 +96,7 @@
     (not (url-rooted-tmfs? name))
     (not (auto-backup-texmacs-path-buffer? name))
     (in? (url-format name) '("texmacs" "stm" "tmu" "stem"))
+    (not (and (defined? 'style-buffer?) (style-buffer? name)))
   ) ;and
 ) ;tm-define
 
@@ -106,20 +107,22 @@
 (tm-define (auto-backup-buffer-doc-id name)
   (catch #t
     (lambda ()
-      ;; First try to get from init-env (memory), then from document tree (file)
-      (with-buffer name
-        (let* ((from-env (get-init-env "stem-doc-id"))
-               (doc-id (if (and (string? from-env) (!= from-env ""))
-                         from-env
-                         (let* ((doc (buffer-get name)) (initial (tmfile-extract doc 'initial)))
-                           (and initial (collection-ref initial "stem-doc-id"))
-                         ) ;let*
-                       ) ;if
-               ) ;doc-id
-              ) ;
-          doc-id
-        ) ;let*
-      ) ;with-buffer
+      (and (not (and (defined? 'style-buffer?) (style-buffer? name)))
+        ;; First try to get from init-env (memory), then from document tree (file)
+        (with-buffer name
+          (let* ((from-env (get-init-env "stem-doc-id"))
+                 (doc-id (if (and (string? from-env) (!= from-env ""))
+                           from-env
+                           (let* ((doc (buffer-get name)) (initial (tmfile-extract doc 'initial)))
+                             (and initial (collection-ref initial "stem-doc-id"))
+                           ) ;let*
+                         ) ;if
+                 ) ;doc-id
+                ) ;
+            doc-id
+          ) ;let*
+        ) ;with-buffer
+      ) ;and
     ) ;lambda
     (lambda args #f)
   ) ;catch
@@ -176,6 +179,13 @@
         ) ;with-buffer
       ) ;and
     ) ;lambda
+    (lambda args #f)
+  ) ;catch
+) ;tm-define
+
+(tm-define (auto-backup-clear-buffer-doc-id! name)
+  (catch #t
+    (lambda () (with-buffer name (init-default "stem-doc-id")))
     (lambda args #f)
   ) ;catch
 ) ;tm-define
@@ -338,7 +348,10 @@
 (tm-define (save-all-buffers)
   (for-each (lambda (buf)
               (when (buffer-modified? buf)
-                (auto-backup-ensure-buffer-doc-id! buf)
+                (if (and (defined? 'style-buffer?) (style-buffer? buf))
+                  (auto-backup-clear-buffer-doc-id! buf)
+                  (auto-backup-ensure-buffer-doc-id! buf)
+                ) ;if
                 (buffer-save buf)
               ) ;when
             ) ;lambda

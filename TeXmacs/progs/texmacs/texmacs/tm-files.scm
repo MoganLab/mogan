@@ -215,6 +215,68 @@
   ) ;with
 ) ;tm-define
 
+(define (body-has-source-markup? doc)
+  (let ((body (and doc (tmfile-extract doc 'body))))
+    (and (pair? body)
+      (== (car body) 'document)
+      (pair? (cdr body))
+      (let ((first (cadr body)))
+        (or (and (pair? first) (in? (car first) '(src-title src-package
+                                                   src-style-file)))
+          (and (pair? first)
+            (== (car first) 'active*)
+            (pair? (cdr first))
+            (let ((inner (cadr first)))
+              (or (and (pair? inner) (in? (car inner) '(src-title src-package
+                                                         src-style-file)))
+                (and (pair? inner)
+                  (== (car inner) 'document)
+                  (pair? (cdr inner))
+                  (let ((sub (cadr inner)))
+                    (and (pair? sub) (in? (car sub) '(src-title src-package
+                                                       src-style-file)))
+                  ) ;let
+                ) ;and
+              ) ;or
+            ) ;let
+          ) ;and
+        ) ;or
+      ) ;let
+    ) ;and
+  ) ;let
+) ;define
+
+(tm-define (style-buffer? name)
+  (catch #t
+    (lambda ()
+      (and (url? name)
+        (buffer-exists? name)
+        (or (== (url-suffix name) "ts")
+          (and (defined? 'style-package-target-url)
+            (url? (style-package-target-url name))
+          ) ;and
+          (with-buffer name
+            (or (and (defined? 'has-style-package?) (has-style-package? "source"))
+              (and (defined? 'in-source?) (in-source?))
+            ) ;or
+          ) ;with-buffer
+          (let* ((doc (buffer-get name)) (st (and doc (tmfile-extract doc 'style))))
+            (or (equal? st "source")
+              (and (pair? st) (== (car st) 'tuple) (in? "source" (cdr st)))
+              (body-has-source-markup? doc)
+            ) ;or
+          ) ;let*
+        ) ;or
+      ) ;and
+    ) ;lambda
+    (lambda args #f)
+  ) ;catch
+) ;tm-define
+
+(tm-define (document-buffer? name)
+  (and (url? name) (buffer-exists? name) (not (style-buffer? name)))
+) ;tm-define
+
 (tm-define (buffer-set-default-style)
   (init-style "generic")
   (with lan
@@ -428,9 +490,14 @@
   ;; (display* "save-buffer-save " name "\n")
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (when (defined? 'auto-backup-ensure-buffer-doc-id!)
-      (auto-backup-ensure-buffer-doc-id! name)
-    ) ;when
+    (if (style-buffer? name)
+      (when (defined? 'auto-backup-clear-buffer-doc-id!)
+        (auto-backup-clear-buffer-doc-id! name)
+      ) ;when
+      (when (defined? 'auto-backup-ensure-buffer-doc-id!)
+        (auto-backup-ensure-buffer-doc-id! name)
+      ) ;when
+    ) ;if
     (if (buffer-save name)
       (begin
         (buffer-pretend-modified name)
