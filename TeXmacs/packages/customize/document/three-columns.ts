@@ -54,6 +54,5 @@
 <\initial>
   <\collection>
     <associate|preamble|true>
-    <associate|stem-doc-id|1BBE8D65-51A6-4730-888B-09E3E033E540>
   </collection>
 </initial>

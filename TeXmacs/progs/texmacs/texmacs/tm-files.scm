@@ -215,6 +215,53 @@
   ) ;with
 ) ;tm-define
 
+(define (source-markup-tag? t)
+  (and (pair? t) (in? (car t) '(src-title src-package src-style-file)))
+) ;define
+
+(define (body-has-source-markup? doc)
+  (let ((body (and doc (tmfile-extract doc 'body))))
+    (and (pair? body)
+      (== (car body) 'document)
+      (pair? (cdr body))
+      ;; 导出样式包的草稿把 src-* 标记包在 active* 里，其内还可能再套一层 document
+      (let* ((first (cadr body))
+             (inner (if (and (pair? first) (== (car first) 'active*) (pair? (cdr first)))
+                      (cadr first)
+                      first
+                    ) ;if
+             ) ;inner
+            ) ;
+        (or (source-markup-tag? inner)
+          (and (pair? inner)
+            (== (car inner) 'document)
+            (pair? (cdr inner))
+            (source-markup-tag? (cadr inner))
+          ) ;and
+        ) ;or
+      ) ;let*
+    ) ;and
+  ) ;let
+) ;define
+
+(tm-define (style-buffer? name)
+  (catch #t
+    (lambda ()
+      (and (url? name)
+        (buffer-exists? name)
+        (or (== (url-suffix name) "ts")
+          (and (defined? 'style-package-target-url)
+            (url? (style-package-target-url name))
+          ) ;and
+          (with-buffer name (has-style-package? "source"))
+          (body-has-source-markup? (buffer-get name))
+        ) ;or
+      ) ;and
+    ) ;lambda
+    (lambda args #f)
+  ) ;catch
+) ;tm-define
+
 (tm-define (buffer-set-default-style)
   (init-style "generic")
   (with lan
@@ -428,8 +475,8 @@
   ;; (display* "save-buffer-save " name "\n")
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (when (defined? 'auto-backup-ensure-buffer-doc-id!)
-      (auto-backup-ensure-buffer-doc-id! name)
+    (when (defined? 'auto-backup-sync-buffer-doc-id!)
+      (auto-backup-sync-buffer-doc-id! name)
     ) ;when
     (if (buffer-save name)
       (begin
