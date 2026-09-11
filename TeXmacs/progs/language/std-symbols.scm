@@ -681,7 +681,7 @@
     "<btimes>"
     "<ttimes>"
     "<exterior>"
-    "<join>"
+    "<bowtie>"
     "<ast>"
     "<star>"
     "<oast>"
