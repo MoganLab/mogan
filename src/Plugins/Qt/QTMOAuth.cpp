@@ -412,8 +412,9 @@ QTMOAuth::getAccessTokenUrl () {
 }
 
 // redirect_uri：授权请求与令牌交换两处必须使用完全一致的值（OAuth 2.0 规范）。
-// 直接取回调服务器实际监听的地址（端口 0 由系统分配），构造上不可能与监听不一致；
-// 未监听时 callback () 返回空串，由 login () 开头的 isListening () 守卫兜住
+// 直接取回调服务器实际监听的地址（端口 0
+// 由系统分配），构造上不可能与监听不一致； 未监听时 callback () 返回空串，由
+// login () 开头的 isListening () 守卫兜住
 QString
 QTMOAuth::getRedirectUri () {
   return m_reply->callback ();
