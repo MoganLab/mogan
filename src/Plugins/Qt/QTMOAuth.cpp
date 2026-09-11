@@ -140,7 +140,7 @@ QTMOAuth::login () {
     query.addQueryItem ("code_challenge", m_codeChallenge);
     query.addQueryItem ("code_challenge_method", "S256");
     // 每次登录重新生成 state：实例标识 + 一次性随机数。随机数做 CSRF 防护
-    //（回调必须原样带回，见 handleCallback），实例标识供后续 liiistem://
+    // （回调必须原样带回，见 handleCallback），实例标识供后续 liiistem://
     // 深链把回调路由回发起登录的那个实例
     m_state= m_instanceId + "." + generateRandomString (32);
     query.addQueryItem ("state", m_state);
