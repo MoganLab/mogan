@@ -15,6 +15,7 @@
 #include <unistd.h>
 #endif
 #include "locale.hpp"
+#include <cstdio>
 #include <locale.h> // for setlocale
 #include <lolly/system/args.hpp>
 #include <lolly/system/timer.hpp>
@@ -40,6 +41,7 @@
 #include "tm_window.hpp"
 
 #if defined(OS_WIN) || defined(OS_MACOS)
+#include "Updater/process_guard.hpp"
 #include "Velopack.hpp"
 #endif
 
@@ -167,15 +169,22 @@ immediate_options (int argc, char** argv) {
   }
 }
 
-#include <cstdio>
-
 int
 main (int argc, char** argv) {
 
   // Velopack 启动钩子：处理待安装的更新（无安装时为空操作）。
   // 必须早于任何系统初始化与参数解析（Windows 与 macOS 安装版均需要）。
 #if defined(OS_WIN) || defined(OS_MACOS)
-  Velopack::VelopackApp::Build ().Run ();
+  // 多实例保护：更新器只等待本进程退出即替换安装目录，其他在跑实例的文件
+  // 仍被占用，替换会损坏安装。检测到其他实例时只禁用本次自动应用（Run 的
+  // 其余钩子照常），下次单实例启动时再应用（见 devel/0523.md）。检测细节
+  // 由 process_guard 写 stderr，此处只记录拦截动作。
+  Velopack::VelopackApp velopack_app= Velopack::VelopackApp::Build ();
+  if (has_other_mogan_instances ()) {
+    fprintf (stderr, "process_guard: auto-apply disabled for this session\n");
+    velopack_app.SetAutoApplyOnStartup (false);
+  }
+  velopack_app.Run ();
 #endif
 
   // 1.系统初始化
