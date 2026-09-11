@@ -249,6 +249,7 @@ qt_chooser_widget_rep::set_type (const string& _type) {
     mainNameFilter+= " (*.tmu)";
     nameFilters << mainNameFilter;
     nameFilters << to_qstring (translate ("TM files") * " (*.tm)");
+    nameFilters << to_qstring (translate ("STEM files") * " (*.stem)");
     defaultSuffix= "tmu";
   }
   else if (_type == "action_include") {
@@ -297,13 +298,15 @@ chooser_save_as_target (string& file) {
     file= remove_suffix (file, ".tm") * ".tmu";
     return "tmu";
   }
+  if (ends (file, ".tmu")) return "tmu";
   return "";
 }
 
 QStringList
-chooser_style_filters () {
+chooser_stem_save_as_filters () {
   return QStringList () << to_qstring (translate ("STEM files") * " (*.stem)")
-                        << to_qstring (translate ("TS files") * " (*.ts)");
+                        << to_qstring (translate ("TS files") * " (*.ts)")
+                        << to_qstring (translate ("TMU files") * " (*.tmu)");
 }
 
 QString
@@ -322,16 +325,19 @@ chooser_normalize_suffix (const QString& path, const QString& suffix) {
  */
 void
 qt_chooser_widget_rep::perform_dialog () {
-  // 另存为引导到继任格式：.ts 默认 .stem（仅提供 stem/ts，任务 1131/1279），
-  // .tm 默认 .tmu（过滤器保持 tmu/tm）；建议文件名同步改为默认后缀，让默认
-  // 目标在弹窗时即可见；普通保存仍写回原文件
+  // 另存为引导到继任格式：.ts 默认 .stem（过滤器 stem/ts/tmu），.tm 默认
+  // .tmu（过滤器 tmu/tm/stem）（任务 1131/1279/1297）；建议文件名同步改为
+  // 默认后缀，让默认目标在弹窗时即可见；普通保存仍写回原文件
   string save_as_target; // 非空时最终文件名规范为所选过滤器的后缀
   if (type == "action_save_as") {
     save_as_target= chooser_save_as_target (file);
     if (save_as_target == "") {
       url cur_buf= get_current_buffer_safe ();
-      if (!is_none (cur_buf) && suffix (cur_buf) == "stem") {
-        save_as_target= "stem";
+      if (!is_none (cur_buf)) {
+        string buf_suffix= suffix (cur_buf);
+        if (buf_suffix == "stem" || buf_suffix == "tmu") {
+          save_as_target= buf_suffix;
+        }
       }
     }
   }
@@ -368,10 +374,11 @@ qt_chooser_widget_rep::perform_dialog () {
 
 #if (QT_VERSION >= 0x040400)
   if (type != "directory") {
-    // .ts/.stem 另存为仅提供 stem/ts 两项，默认 .stem；其余情形（.tm 另存为
-    // tmu/tm 默认 tmu；.tmu/草稿保持首项 TMU files (*.tmu)）
+    // .ts/.stem 另存为提供 stem/ts/tmu 三项，默认 .stem（任务 1297 追加 tmu
+    // 互转）；其余情形（.tm 另存为 tmu/tm/stem 默认 tmu；.tmu/草稿保持首项
+    // TMU files (*.tmu)）
     if (save_as_target == "stem") {
-      nameFilters  = chooser_style_filters ();
+      nameFilters  = chooser_stem_save_as_filters ();
       defaultSuffix= "stem";
     }
     dialog->setNameFilters (nameFilters);

@@ -35,7 +35,7 @@ private slots:
     QVERIFY (f == "foo.stem");
   }
 
-  // .tm 另存为改写为 .tmu；.stm/.tmu 不得误伤
+  // .tm 另存为改写为 .tmu；.stm 不得误伤
   void test_rewrite_tm () {
     string f= "foo.tm";
     QVERIFY (chooser_save_as_target (f) == "tmu");
@@ -43,8 +43,13 @@ private slots:
     string g= "foo.stm";
     QVERIFY (chooser_save_as_target (g) == "");
     QVERIFY (g == "foo.stm");
-    string h= "foo.tmu";
-    QVERIFY (chooser_save_as_target (h) == "");
+  }
+
+  // .tmu 本就是默认格式：保持不变但属于引导场景（与 stem 方向对称，1297）
+  void test_rewrite_tmu () {
+    string f= "foo.tmu";
+    QVERIFY (chooser_save_as_target (f) == "tmu");
+    QVERIFY (f == "foo.tmu");
   }
 
   // 其余后缀与无后缀（草稿）不触发改写
@@ -59,14 +64,15 @@ private slots:
     QVERIFY (chooser_save_as_target (tp) == "");
   }
 
-  // 样式另存的成对过滤器：stem（默认）在前，ts 在后，无其他格式
-  void test_style_filters () {
-    QStringList filters= chooser_style_filters ();
-    QCOMPARE (filters.size (), 2);
+  // stem 另存的过滤器：stem（默认）在前，ts 居中，tmu（1297 互转）在后
+  void test_stem_save_as_filters () {
+    QStringList filters= chooser_stem_save_as_filters ();
+    QCOMPARE (filters.size (), 3);
     QVERIFY (filters[0].contains ("*.stem"));
     QVERIFY (filters[0].contains ("STEM"));
     QVERIFY (!filters[0].contains ("*.tmu"));
-    QVERIFY (filters[1].contains ("*.ts"));
+    QVERIFY (filters[1].contains ("TS files"));
+    QVERIFY (filters[2].contains ("*.tmu"));
   }
 
   // 从过滤器括号内容解析首个后缀；非法形状返回空串
