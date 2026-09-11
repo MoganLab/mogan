@@ -94,6 +94,10 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   m_codeVerifier = generateCodeVerifier ();
   m_codeChallenge= generateCodeChallenge (m_codeVerifier);
 
+  // 本进程的唯一标识：随 state 发给授权服务器并由回调原样带回，用于把回调
+  // 路由回发起登录的那个实例（多实例场景，见 handleCallback）
+  m_instanceId= generateRandomString (16);
+
   // 登录回调的 HTML 内容由 refreshCallbackHtml() 生成，会在登录时按需读取
   // account.scm 的 growth-url，跟随 stem-profile 在 production/staging/local
   // 之间切换。这里首次生成一份作为启动默认值。
@@ -108,19 +112,7 @@ QTMOAuth::QTMOAuth (QObject* parent) {
 
   // 连接回调URL捕获信号
   connect (m_reply, &QOAuthHttpServerReplyHandler::callbackReceived, this,
-           [this] (const QVariantMap& values) {
-             // 提取授权码
-             if (values.contains ("code")) {
-               QString code= values["code"].toString ();
-
-               // 手动处理授权码交换
-               handleAuthorizationCode (code);
-             }
-             else {
-               //  debug_boot << "No authorization code found in callback" <<
-               //  "\n";
-             }
-           });
+           [this] (const QVariantMap& values) { handleCallback (values); });
 
   // 初始化定时器用于定期检查token状态
   m_tokenCheckTimer= new QTimer (this);
@@ -147,6 +139,11 @@ QTMOAuth::login () {
     query.addQueryItem ("scope", oauth2.scope ());
     query.addQueryItem ("code_challenge", m_codeChallenge);
     query.addQueryItem ("code_challenge_method", "S256");
+    // 每次登录重新生成 state：实例标识 + 一次性随机数。随机数做 CSRF 防护
+    // （回调必须原样带回，见 handleCallback），实例标识供后续 liiistem://
+    // 深链把回调路由回发起登录的那个实例
+    m_state= m_instanceId + "." + generateRandomString (32);
+    query.addQueryItem ("state", m_state);
 
     authUrl.setQuery (query);
     // 手动打开浏览器进行授权
@@ -157,6 +154,24 @@ QTMOAuth::login () {
 bool
 QTMOAuth::isLoggedIn () {
   return m_isLoggedIn;
+}
+
+// 回调的唯一入口：环回回调与（后续的）liiistem:// 深链都走这里。
+// 先校验 state 再取 code：回调带回的 state 与本次登录发出的不一致，说明这个
+// 回调不是本次登录发起的（CSRF 或重放），直接丢弃
+void
+QTMOAuth::handleCallback (const QVariantMap& values) {
+  QString state= values.value ("state").toString ();
+  if (m_state.isEmpty () || state != m_state) {
+    debug_boot << "OAuth callback rejected: state mismatch" << "\n";
+    return;
+  }
+  m_state.clear (); // 一次性：同一个 state 只接受一次回调
+
+  if (values.contains ("code")) {
+    // 手动处理授权码交换
+    handleAuthorizationCode (values["code"].toString ());
+  }
 }
 
 void
@@ -405,6 +420,23 @@ QTMOAuth::clearInvalidTokens () {
 
   // 发出登录状态变化信号
   emit loginStateChanged (false);
+}
+
+// 字母数字随机串（URL 安全）。刻意不含 "."：state 用
+// "<实例标识>.<一次性随机数>" 拼接，"." 可无歧义地拆回两段
+QString
+QTMOAuth::generateRandomString (int length) {
+  static const QString possibleCharacters (
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+
+  QString result;
+  for (int i= 0; i < length; ++i) {
+    int index=
+        QRandomGenerator::global ()->bounded (possibleCharacters.length ());
+    result.append (possibleCharacters.at (index));
+  }
+
+  return result;
 }
 
 QString
