@@ -513,8 +513,11 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     if (!is_nil (focus_ids) && got_focus)
       call ("link-follow-ids", object (focus_ids), object ("focus"));
     notify_change (THE_DECORATIONS);
+    // Esc 关闭 AI 翻译悬浮按钮（本次选区内不再弹出，选区变化后复位）
+    if (gkey == "escape") dismiss_translate_popup ();
     // 键盘事件后更新文本工具栏显示状态
     update_text_popup ();
+    update_translate_popup ();
     end_editing ();
     // time_t t2= texmacs_time ();
     // if (t2 - t1 >= 10) cout << "handle_keypress took " << t2-t1 << "ms\n";

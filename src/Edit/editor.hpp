@@ -233,6 +233,9 @@ public:
   virtual void      set_user_active (bool b)                               = 0;
   virtual bool      get_user_active ()                                     = 0;
   virtual bool      is_pre_editing () { return false; }
+  // 0986: 供 Scheme 集成测试读取选区几何（最小文字高度、最末矩形 x1 y1 x2 y2）
+  virtual SI         get_selection_min_height () { return 0; }
+  virtual array<int> selection_last_rect_array () { return array<int> (); }
 
   /* public routines from edit_cursor */
   virtual path make_cursor_accessible (path p, bool forwards)= 0;

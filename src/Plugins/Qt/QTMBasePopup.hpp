@@ -62,6 +62,9 @@ protected:
   // 检查选区是否在视口内
   virtual bool selectionInView () const;
 
+  // 视口高于画布表面时顶部的居中留白（popup 坐标需补偿）
+  double blank_top_offset () const;
+
   // 初始化共同的UI元素（阴影效果等）
   void initCommonUI ();
 };

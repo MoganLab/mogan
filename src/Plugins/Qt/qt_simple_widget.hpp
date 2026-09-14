@@ -27,6 +27,7 @@ class QTMImagePopup;
 class QTMTextPopup;
 class QTMGhostTextPopup;
 class QTMDiffTextPopup;
+class QTMAiTranslatePopup;
 
 /*! A widget containing a TeXmacs canvas.
 
@@ -142,6 +143,15 @@ public:
   void scroll_text_popup_by (SI x, SI y);
   bool is_point_in_text_popup (SI x, SI y);
 
+  ////////////////////// AI translate popup support
+  void ensure_translate_popup ();
+  void show_translate_popup (rectangle selr, SI sel_h, double magf,
+                             int scroll_x, int scroll_y, int canvas_x,
+                             int canvas_y);
+  void hide_translate_popup ();
+  void scroll_translate_popup_by (SI x, SI y);
+  bool is_point_in_translate_popup (SI x, SI y);
+
   ////////////////////// Ghost text popup support
   void ensure_ghost_popup ();
   void show_ghost_popup ();
@@ -165,6 +175,7 @@ protected:
   QPointer<QTMMathCompletionPopup> mathCompletionPopUp;
   QPointer<QTMImagePopup>          imagePopUp;
   QPointer<QTMTextPopup>           textPopup;
+  QPointer<QTMAiTranslatePopup>    translatePopup;
   QPointer<QTMGhostTextPopup>      ghostTextPopup;
   QPointer<QTMDiffTextPopup>       diffTextPopup;
 #ifdef USE_MUPDF_RENDERER

@@ -951,6 +951,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     hide_image_popup ();
 #endif
     update_text_popup ();
+    update_translate_popup ();
   }
   else if (over_handles) {
     if (handle_cursor != "") set_cursor_style (handle_cursor);
@@ -987,6 +988,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
 
     // 检查是否应该显示文本工具栏
     update_text_popup ();
+    update_translate_popup ();
   }
 
   if (type == "move") mouse_message ("move", x, y);
@@ -1111,6 +1113,9 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     // 当用户点击其他地方（不在文本工具栏内）时，隐藏文本工具栏
     if (!is_point_in_text_popup (x, y)) {
       hide_text_popup ();
+    }
+    if (!is_point_in_translate_popup (x, y)) {
+      hide_translate_popup ();
     }
     notify_change (THE_DECORATIONS);
   }
@@ -1423,5 +1428,158 @@ edit_interface_rep::update_text_popup () {
   }
   else {
     hide_text_popup ();
+  }
+}
+
+/******************************************************************************
+ * AI translate popup support
+ ******************************************************************************/
+
+bool
+edit_interface_rep::should_show_translate_popup () {
+#ifdef QTTEXMACS
+  // 缓存结果100ms，避免过多的Scheme调用
+  time_t now= texmacs_time ();
+  if (now - translate_popup_last_check < 100) {
+    return translate_popup_last_result;
+  }
+  translate_popup_last_check = now;
+  translate_popup_last_result= false;
+
+  // 聊天输入框等 tmfs 内嵌页面不弹翻译按钮
+  if (!is_nil (buf) && starts (as_string (buf->buf->name), "tmfs://")) {
+    return false;
+  }
+
+  if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
+      as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
+    return false;
+  }
+  if (!selection_active_any ()) return false;
+
+  tree sel_tree= selection_get ();
+  if (is_atomic (sel_tree) && as_string (sel_tree) == "") return false;
+
+  translate_popup_last_result= true;
+  return true;
+#else
+  return false;
+#endif
+}
+
+void
+edit_interface_rep::get_selection_geometry (rectangle& last, SI& min_h) {
+  // 单次 search_selection 遍历同时取：选区最末（屏幕最下方、同行最右）矩形
+  // 与最小矩形高度（近似最小文字渲染高度）。无选区时 last 为无效矩形、min_h 为
+  // 0
+  last = rectangle ();
+  min_h= 0;
+  path p1, p2;
+  selection_get (p1, p2);
+  if (p1 == p2) return;
+  selection sel= search_selection (p1, p2);
+  if (is_nil (sel->rs)) return;
+  last= sel->rs->item;
+  for (rectangles rs= sel->rs; !is_nil (rs); rs= rs->next) {
+    rectangle r= rs->item;
+    // 屏幕下方对应逻辑 y 更小
+    if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
+    SI h= r->y2 - r->y1;
+    if (h > 0 && (min_h == 0 || h < min_h)) min_h= h;
+  }
+}
+
+rectangle
+edit_interface_rep::get_selection_last_rect () {
+  rectangle last;
+  SI        min_h;
+  get_selection_geometry (last, min_h);
+  if (last->x1 >= last->x2 || last->y1 >= last->y2)
+    return get_text_selection_rect ();
+  return last;
+}
+
+SI
+edit_interface_rep::get_selection_min_height () {
+  // 用未加厚的选区矩形高度近似文字渲染高度，取最小值（对应最小字号）
+  rectangle last;
+  SI        min_h;
+  get_selection_geometry (last, min_h);
+  return min_h;
+}
+
+array<int>
+edit_interface_rep::selection_last_rect_array () {
+  // 打包成 int 数组供 glue 返回（rectangle 类型无法直接绑定到 Scheme）
+  array<int> r;
+  rectangle  lr= get_selection_last_rect ();
+  r << (int) lr->x1 << (int) lr->y1 << (int) lr->x2 << (int) lr->y2;
+  return r;
+}
+
+void
+edit_interface_rep::show_translate_popup (rectangle selr, SI sel_h, double magf,
+                                          int scroll_x, int scroll_y,
+                                          int canvas_x, int canvas_y) {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->show_translate_popup (selr, sel_h, magf, scroll_x, scroll_y, canvas_x,
+                               canvas_y);
+  }
+#endif
+}
+
+void
+edit_interface_rep::hide_translate_popup () {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->hide_translate_popup ();
+  }
+#endif
+}
+
+bool
+edit_interface_rep::is_point_in_translate_popup (SI x, SI y) {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    return qsw->is_point_in_translate_popup (x, y);
+  }
+#endif
+  return false;
+}
+
+void
+edit_interface_rep::dismiss_translate_popup () {
+  // 点击按钮后记住「本次选区不再弹出」，选区变化时由缓存失效复位
+  translate_popup_dismissed= true;
+  hide_translate_popup ();
+}
+
+void
+edit_interface_rep::invalidate_translate_popup_cache () {
+  translate_popup_last_check= 0;
+  translate_popup_dismissed = false;
+}
+
+void
+edit_interface_rep::update_translate_popup () {
+  if (left_dragging || translate_popup_dismissed) {
+    hide_translate_popup ();
+    return;
+  }
+  if (should_show_translate_popup ()) {
+    rectangle selr;
+    SI        sel_h;
+    get_selection_geometry (selr, sel_h);
+    if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
+      hide_translate_popup ();
+      return;
+    }
+    // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
+    show_translate_popup (selr, sel_h, magf, get_scroll_x (), get_scroll_y (),
+                          get_canvas_x (), get_canvas_y ());
+  }
+  else {
+    hide_translate_popup ();
   }
 }
