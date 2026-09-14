@@ -298,6 +298,8 @@
 ("advanced layout features" "高级布局特性")
 ("advanced" "高级")
 ("after" "之后")
+("ai chat" "AI对话")
+("ai polish" "AI润色")
 ("ai translate" "AI翻译")
 ("albanian" "阿尔巴尼亚语")
 ("algorithm" "算法")

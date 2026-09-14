@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE     : QTMAiTranslatePopup.hpp
- * DESCRIPTION: AI translate button popup shown next to the text selection
+ * DESCRIPTION: AI action bar (translate/polish/chat) shown below the selection
  * COPYRIGHT  : (C) 2026 Mogan STEM
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -16,6 +16,7 @@
 
 class QPushButton;
 
+// 选区下方的一行 AI 操作栏：AI翻译 / AI润色 / AI对话
 class QTMAiTranslatePopup : public QTMBasePopup {
 public:
   QTMAiTranslatePopup (QWidget* parent, qt_simple_widget_rep* owner);
@@ -32,11 +33,13 @@ public:
   void setTextHeight (SI h) { sel_text_height= h; }
 
 protected:
-  // 定位到选区最末文字的右方（垂直居中），越界时退到左侧并裁剪到视口内
+  // 定位到选区最末行的下一行（左缘对齐），下方放不下时退到选区上方
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
 private:
   QPushButton* translateButton;
+  QPushButton* polishButton;
+  QPushButton* chatButton;
   SI           sel_text_height= 0;
 };
 

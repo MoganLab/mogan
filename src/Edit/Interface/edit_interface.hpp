@@ -288,6 +288,8 @@ public:
   void invalidate_text_popup_cache (); // 重置工具栏缓存
 
   bool should_show_translate_popup ();
+  void get_selection_geometry (rectangle& last,
+                               SI&        min_h); // 单次遍历取最末矩形+最小高度
   SI get_selection_min_height () override; // 选区内最小文字渲染高度（逻辑单位）
   rectangle  get_selection_last_rect ();   // 选区最末（屏幕最下方）矩形
   array<int> selection_last_rect_array () override; // 供 glue 暴露给测试

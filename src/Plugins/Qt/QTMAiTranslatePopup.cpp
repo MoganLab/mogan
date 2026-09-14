@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE     : QTMAiTranslatePopup.cpp
- * DESCRIPTION: AI translate button popup shown next to the text selection
+ * DESCRIPTION: AI action bar (translate/polish/chat) shown below the selection
  * COPYRIGHT  : (C) 2026 Mogan STEM
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -23,16 +23,20 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
     : QTMBasePopup (parent, owner) {
   // translate 只折叠首字符，"Ai translate" 折叠后为词典键 "ai translate"
   translateButton= new QPushButton (qt_translate ("Ai translate"), this);
-  translateButton->setFocusPolicy (Qt::NoFocus);
-  layout->setContentsMargins (2, 2, 2, 2);
-  layout->addWidget (translateButton);
-  // 第一步仅挂接显隐，点击后的翻译流程在后续任务接入
-  connect (translateButton, &QPushButton::clicked, this, [this] () {
-    if (edit_interface_rep* ed=
-            dynamic_cast<edit_interface_rep*> (this->owner)) {
-      ed->dismiss_translate_popup ();
-    }
-  });
+  polishButton   = new QPushButton (qt_translate ("Ai polish"), this);
+  chatButton     = new QPushButton (qt_translate ("Ai chat"), this);
+  layout->setSpacing (6);
+  // 第一步仅挂接显隐，点击后的翻译/润色/对话流程在后续任务接入
+  for (QPushButton* btn : {translateButton, polishButton, chatButton}) {
+    btn->setFocusPolicy (Qt::NoFocus);
+    layout->addWidget (btn);
+    connect (btn, &QPushButton::clicked, this, [this] () {
+      if (edit_interface_rep* ed=
+              dynamic_cast<edit_interface_rep*> (this->owner)) {
+        ed->dismiss_translate_popup ();
+      }
+    });
+  }
 }
 
 void
@@ -42,14 +46,16 @@ QTMAiTranslatePopup::autoSize () {
   double inv_unit= 1.0 / 256.0;
   double text_px=
       sel_text_height > 0 ? sel_text_height * cached_magf * inv_unit : 0;
-  QFont f= translateButton->font ();
-  if (text_px > 0) {
-    f.setPixelSize (std::max (8, int (std::round (text_px * 0.75))));
+  for (QPushButton* btn : {translateButton, polishButton, chatButton}) {
+    QFont f= btn->font ();
+    if (text_px > 0) {
+      f.setPixelSize (std::max (8, int (std::round (text_px * 0.75))));
+    }
+    else {
+      f.setPointSize (qt_zoom (QTM_MINI_FONTSIZE));
+    }
+    btn->setFont (f);
   }
-  else {
-    f.setPointSize (qt_zoom (QTM_MINI_FONTSIZE));
-  }
-  translateButton->setFont (f);
   int m= text_px > 0 ? std::max (2, int (std::round (text_px * 0.2))) : 2;
   layout->setContentsMargins (m, m, m, m);
   QSize popup_size= layout->sizeHint ();
@@ -61,15 +67,14 @@ QTMAiTranslatePopup::autoSize () {
 void
 QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   (void) ren;
-  rectangle selr            = cached_rect;
-  double    inv_unit        = 1.0 / 256.0;
-  double    sel_top_logic   = std::max (selr->y1, selr->y2);
-  double    sel_bottom_logic= std::min (selr->y1, selr->y2);
+  rectangle selr    = cached_rect;
+  double    inv_unit= 1.0 / 256.0;
+  // 选区矩形不变式 y1 < y2：y2 为上缘、y1 为下缘（逻辑坐标 y 向上）
+  double sel_top_logic   = selr->y2;
+  double sel_bottom_logic= selr->y1;
 
   double left_px=
       ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double right_px=
-      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
   double top_px= -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
   double bottom_px=
       -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
@@ -80,17 +85,17 @@ QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   bottom_px+= blank_top;
 
   const int gap= 4;
-  // 始终显示在最后一个选中文字的右方（垂直居中）
-  x= int (std::round (right_px + gap));
-  y= int (std::round ((top_px + bottom_px - cached_height) * 0.5));
+  // 始终显示在选中文字的下一行：与最末选区行左缘对齐、位于其下方
+  x= int (std::round (left_px));
+  y= int (std::round (bottom_px + gap));
 
   if (owner && owner->scrollarea () && owner->scrollarea ()->viewport ()) {
     int vp_w= owner->scrollarea ()->viewport ()->width ();
     int vp_h= owner->scrollarea ()->viewport ()->height ();
 
-    // 右侧放不下时退到选区左侧
-    if (x + cached_width > vp_w) {
-      x= int (std::round (left_px - cached_width - gap));
+    // 下方放不下时退到选区上方，最终裁剪到视口内
+    if (y + cached_height > vp_h) {
+      y= int (std::round (top_px - cached_height - gap));
     }
     if (x < 0) x= 0;
     if (x + cached_width > vp_w) x= vp_w - cached_width;

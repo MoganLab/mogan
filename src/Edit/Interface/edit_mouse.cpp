@@ -1467,38 +1467,44 @@ edit_interface_rep::should_show_translate_popup () {
 #endif
 }
 
-rectangle
-edit_interface_rep::get_selection_last_rect () {
-  // 选区最末（屏幕最下方、同行最右）的矩形，即最后一个选中文字所在行
+void
+edit_interface_rep::get_selection_geometry (rectangle& last, SI& min_h) {
+  // 单次 search_selection 遍历同时取：选区最末（屏幕最下方、同行最右）矩形
+  // 与最小矩形高度（近似最小文字渲染高度）。无选区时 last 为无效矩形、min_h 为
+  // 0
+  last = rectangle ();
+  min_h= 0;
   path p1, p2;
   selection_get (p1, p2);
-  if (p1 == p2) return get_text_selection_rect ();
+  if (p1 == p2) return;
   selection sel= search_selection (p1, p2);
-  if (is_nil (sel->rs)) return get_text_selection_rect ();
-  // 屏幕下方对应逻辑 y 更小
-  rectangle lastr= sel->rs->item;
-  for (rectangles rs= sel->rs->next; !is_nil (rs); rs= rs->next) {
+  if (is_nil (sel->rs)) return;
+  last= sel->rs->item;
+  for (rectangles rs= sel->rs; !is_nil (rs); rs= rs->next) {
     rectangle r= rs->item;
-    if (r->y2 < lastr->y2 || (r->y2 == lastr->y2 && r->x2 > lastr->x2)) {
-      lastr= r;
-    }
+    // 屏幕下方对应逻辑 y 更小
+    if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
+    SI h= r->y2 - r->y1;
+    if (h > 0 && (min_h == 0 || h < min_h)) min_h= h;
   }
-  return lastr;
+}
+
+rectangle
+edit_interface_rep::get_selection_last_rect () {
+  rectangle last;
+  SI        min_h;
+  get_selection_geometry (last, min_h);
+  if (last->x1 >= last->x2 || last->y1 >= last->y2)
+    return get_text_selection_rect ();
+  return last;
 }
 
 SI
 edit_interface_rep::get_selection_min_height () {
   // 用未加厚的选区矩形高度近似文字渲染高度，取最小值（对应最小字号）
-  path p1, p2;
-  selection_get (p1, p2);
-  if (p1 == p2) return 0;
-  selection sel= search_selection (p1, p2);
-  if (is_nil (sel->rs)) return 0;
-  SI min_h= 0;
-  for (rectangles rs= sel->rs; !is_nil (rs); rs= rs->next) {
-    SI h= rs->item->y1 - rs->item->y2;
-    if (h > 0 && (min_h == 0 || h < min_h)) min_h= h;
-  }
+  rectangle last;
+  SI        min_h;
+  get_selection_geometry (last, min_h);
   return min_h;
 }
 
@@ -1562,15 +1568,16 @@ edit_interface_rep::update_translate_popup () {
     return;
   }
   if (should_show_translate_popup ()) {
-    rectangle selr= get_selection_last_rect ();
+    rectangle selr;
+    SI        sel_h;
+    get_selection_geometry (selr, sel_h);
     if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
       hide_translate_popup ();
       return;
     }
     // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
-    show_translate_popup (selr, get_selection_min_height (), magf,
-                          get_scroll_x (), get_scroll_y (), get_canvas_x (),
-                          get_canvas_y ());
+    show_translate_popup (selr, sel_h, magf, get_scroll_x (), get_scroll_y (),
+                          get_canvas_x (), get_canvas_y ());
   }
   else {
     hide_translate_popup ();
