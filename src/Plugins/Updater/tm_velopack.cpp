@@ -16,6 +16,8 @@
 #include "string.hpp"
 #include "tm_velopack.hpp"
 
+#include "process_guard.hpp"
+
 #include <Velopack.hpp>
 
 // Velopack 桥接层使用 C++ 标准库线程原语与容器，工作线程不触碰 lolly 类型
@@ -23,6 +25,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <memory>
@@ -381,6 +384,18 @@ tm_velopack::applyUpdate () {
   {
     std::lock_guard<std::mutex> lk (rep->mtx);
     if (rep->st != UPDATER_READY || !rep->info) return false;
+    // 多实例保护：更新器只等待本进程退出即替换安装目录，其他在跑实例的
+    // 文件仍被占用，替换会损坏安装。检测到其他实例时拒绝应用，由 scheme
+    // 侧 FAILED 链路提示用户（见 devel/0523.md）。velopack 自身日志不记录
+    // 本判定，写 stderr 供测试观测。
+    if (has_other_mogan_instances ()) {
+      fprintf (stderr, "process_guard: apply rejected, another instance is "
+                       "running\n");
+      rep->st   = UPDATER_FAILED;
+      rep->error= "Another Mogan instance is running, close it before "
+                  "applying the update";
+      return false;
+    }
     info   = *rep->info; // 锁内快照，锁外不再读共享 info
     rep->st= UPDATER_APPLYING;
   }
