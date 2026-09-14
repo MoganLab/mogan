@@ -820,7 +820,10 @@ edit_interface_rep::notify_change (int change) {
     manual_focus_set (path (), (change & THE_TREE) != 0);
   // 选区变化时，使文本工具栏缓存失效
   // 输入字符时选区变化会触发 THE_SELECTION，进而使工具栏缓存失效并隐藏
-  if ((change & THE_SELECTION) != 0) invalidate_text_popup_cache ();
+  if ((change & THE_SELECTION) != 0) {
+    invalidate_text_popup_cache ();
+    invalidate_translate_popup_cache ();
+  }
   if ((change & (THE_SELECTION | THE_CURSOR)) != 0) collab_cursor_moved_hook ();
 }
 
@@ -1301,6 +1304,7 @@ edit_interface_rep::apply_changes () {
     }
     // 选区改变后更新文本工具栏
     update_text_popup ();
+    update_translate_popup ();
   }
 
   // cout << "Handling alternative selection\n";

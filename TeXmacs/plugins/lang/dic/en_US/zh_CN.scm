@@ -298,6 +298,7 @@
 ("advanced layout features" "高级布局特性")
 ("advanced" "高级")
 ("after" "之后")
+("ai translate" "AI翻译")
 ("albanian" "阿尔巴尼亚语")
 ("algorithm" "算法")
 ("align cell to the bottom" "单元格向下对齐")

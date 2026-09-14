@@ -515,6 +515,7 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     notify_change (THE_DECORATIONS);
     // 键盘事件后更新文本工具栏显示状态
     update_text_popup ();
+    update_translate_popup ();
     end_editing ();
     // time_t t2= texmacs_time ();
     // if (t2 - t1 >= 10) cout << "handle_keypress took " << t2-t1 << "ms\n";

@@ -16,6 +16,7 @@
 #include "qt_utilities.hpp"
 #include "qt_window_widget.hpp"
 
+#include "QTMAiTranslatePopup.hpp"
 #include "QTMCompletionPopup.hpp"
 #include "QTMImagePopup.hpp"
 #include "QTMMathCompletionPopup.hpp"
@@ -910,6 +911,66 @@ qt_simple_widget_rep::is_point_in_text_popup (SI x, SI y) {
 
   // 检查点是否在工具栏内
   return toolbarRect.contains (px, py);
+}
+
+/******************************************************************************
+ * AI translate popup support
+ ******************************************************************************/
+
+void
+qt_simple_widget_rep::ensure_translate_popup () {
+  if (!canvas ()) return;
+  if (translatePopup) {
+    if (translatePopup->parent () != canvas ()) {
+      translatePopup->setParent (canvas ());
+    }
+    return;
+  }
+  translatePopup= new QTMAiTranslatePopup (canvas (), this);
+  if (is_empty (tm_style_sheet)) {
+    translatePopup->setStyle (qtmstyle ());
+  }
+}
+
+void
+qt_simple_widget_rep::show_translate_popup (rectangle selr, SI sel_h,
+                                            double magf, int scroll_x,
+                                            int scroll_y, int canvas_x,
+                                            int canvas_y) {
+  ensure_translate_popup ();
+  translatePopup->setTextHeight (sel_h);
+  qt_renderer_rep* ren= the_qt_renderer ();
+  translatePopup->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                             canvas_y);
+}
+
+void
+qt_simple_widget_rep::hide_translate_popup () {
+  if (translatePopup) {
+    translatePopup->hide ();
+  }
+}
+
+void
+qt_simple_widget_rep::scroll_translate_popup_by (SI x, SI y) {
+  if (translatePopup) {
+    QPoint qp (x, y);
+    coord2 p= from_qpoint (qp);
+    translatePopup->scrollBy (p.x1, p.x2);
+    qt_renderer_rep* ren= the_qt_renderer ();
+    translatePopup->updatePosition (ren);
+  }
+}
+
+bool
+qt_simple_widget_rep::is_point_in_translate_popup (SI x, SI y) {
+  if (!translatePopup) return false;
+
+  double inv_unit= 1.0 / 256.0;
+  int    px      = int (std::round (x * inv_unit));
+  int    py      = int (std::round (y * inv_unit));
+
+  return translatePopup->geometry ().contains (px, py);
 }
 
 void
