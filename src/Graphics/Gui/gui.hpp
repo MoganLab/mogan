@@ -84,6 +84,7 @@ void gui_refresh ();
 
 bool   gui_is_x ();
 bool   gui_is_qt ();
+bool   gui_is_headless ();
 string gui_version ();
 // retrieve the type of GUI that is being used
 

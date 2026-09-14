@@ -36,6 +36,7 @@
 #include "qt_floating_search_bar.hpp"
 #include "qt_widget_rasterize.hpp"
 #endif
+#include "gui.hpp"
 #include "tm_debug.hpp"
 #include "tree_observer.hpp"
 #include "universal.hpp"
