@@ -17,6 +17,7 @@
     (utils library cursor)
     (generic generic-edit)
     (generic document-style)
+    (texmacs texmacs tm-tools)
   ) ;:use
 ) ;texmacs-module
 
