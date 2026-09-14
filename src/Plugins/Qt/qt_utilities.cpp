@@ -21,6 +21,10 @@
 #include <QKeySequence>
 #include <QLocale>
 #include <QPainter>
+#include <QQmlContext>
+#include <QQuickWidget>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QStringList>
 
 #ifdef USE_QT_PRINTER
@@ -795,8 +799,7 @@ parse_tm_style (int style) {
   if (style & WIDGET_STYLE_BOLD) sheet+= "font-weight: bold;";
   if (DEBUG_QT_WIDGETS) sheet+= "border:1px solid rgb(255, 0, 0);";
 
-  if (occurs ("dark", tm_style_sheet) ||
-      occurs ("liii-night", tm_style_sheet)) {
+  if (qt_is_dark_theme ()) {
     if (style & WIDGET_STYLE_GREY) sheet+= "color: #a0a0a0;";
     if (style & WIDGET_STYLE_INERT) sheet+= "color: #a0a0a0;";
   }
@@ -815,8 +818,7 @@ qt_apply_tm_style (QWidget* qwid, int style, color c) {
   int r, g, b, a;
   get_rgb_color (c, r, g, b, a);
   a= a * 100 / 255;
-  if (occurs ("dark", tm_style_sheet) ||
-      occurs ("liii-night", tm_style_sheet)) {
+  if (qt_is_dark_theme ()) {
     r= g= b= 224;
     a      = 100;
   }
@@ -837,6 +839,41 @@ qt_apply_tm_style (QWidget* qwid, int style, color c) {
 #endif
   qwid->setEnabled (!(style & WIDGET_STYLE_INERT));
   qwid->setStyleSheet (sheet);
+}
+
+/**
+ * @brief 把 Quick 场景图固定为 software 后端（幂等）。
+ *
+ * 图形 API 是进程级全局选择，须赶在首个 QQuickWidget 构造前设定；各
+ * QQuickWidget 宿主（QTMQmlDialog、QTMAiTranslatePopup 等）构造时统一调用。
+ */
+void
+qt_use_software_scene_graph () {
+  static const bool initialized= [] () {
+    QQuickWindow::setGraphicsApi (QSGRendererInterface::Software);
+    return true;
+  }();
+  (void) initialized;
+}
+
+/**
+ * @brief 当前 tm_style_sheet 是否为深色主题（liii-night / *-dark 视为深色）。
+ */
+bool
+qt_is_dark_theme () {
+  return occurs ("dark", tm_style_sheet) ||
+         occurs ("liii-night", tm_style_sheet);
+}
+
+/**
+ * @brief 注入 QML 主题共用的 context property（dpScale / isDark）。
+ *
+ * Theme 单例读取这两项；各 QQuickWidget 宿主在注入自身特有属性前调用。
+ */
+void
+qt_inject_theme_context (QQuickWidget* qw) {
+  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
+  qw->rootContext ()->setContextProperty ("isDark", qt_is_dark_theme ());
 }
 
 QString
@@ -1036,8 +1073,7 @@ static string current_style_sheet;
 
 void
 init_palette (QApplication* app) {
-  if (occurs ("dark", tm_style_sheet) ||
-      occurs ("liii-night", tm_style_sheet)) {
+  if (qt_is_dark_theme ()) {
     QPalette pal= app->style ()->standardPalette ();
     pal.setColor (QPalette::Window, QColor (64, 64, 64));
     pal.setColor (QPalette::WindowText, QColor (224, 224, 224));
@@ -1068,8 +1104,7 @@ init_palette (QApplication* app) {
     app->setPalette (pal);
   }
 
-  if (occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet))
-    tm_background= rgb_color (32, 32, 32);
+  if (qt_is_dark_theme ()) tm_background= rgb_color (32, 32, 32);
   else if (occurs ("native", tm_style_sheet)) {
     QPalette pal = app->palette ();
     QColor   col = pal.color (QPalette::Mid);
