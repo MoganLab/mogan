@@ -13,55 +13,113 @@
 #include "edit_interface.hpp"
 #include "qt_utilities.hpp"
 
-#include <QFont>
-#include <QPushButton>
+#include <QCoreApplication>
+#include <QCursor>
+#include <QEvent>
+#include <QHoverEvent>
+#include <QQmlContext>
+#include <QQmlProperty>
+#include <QQuickItem>
+#include <QQuickWidget>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <algorithm>
 #include <cmath>
 
 QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
                                           qt_simple_widget_rep* owner)
     : QTMBasePopup (parent, owner) {
-  // translate 只折叠首字符，"Ai translate" 折叠后为词典键 "ai translate"
-  translateButton= new QPushButton (qt_translate ("Ai translate"), this);
-  polishButton   = new QPushButton (qt_translate ("Ai polish"), this);
-  chatButton     = new QPushButton (qt_translate ("Ai chat"), this);
-  layout->setSpacing (6);
+  // QML 自绘圆角底板与假阴影，宿主窗口需透明（子 widget 经顶层 backing
+  // store 合成即可，勿设 WA_NativeWindow：macOS 上原生子窗口收不到无按键
+  // mouseMoved，按钮 hover 会失效）；基类的 widget 阴影对 QQuickWidget
+  // 离屏渲染不生效，关掉
+  setAttribute (Qt::WA_TranslucentBackground);
+  effect->setEnabled (false);
+
+  // scene graph 固定 software 后端：与 QTMQmlDialog 一致——Metal/RHI 后端下
+  // 透明 clear color 会被合成成黑色方块；图形 API 是进程级全局选择，须赶在
+  // 首个 QQuickWidget 构造前设定（本类与 QTMQmlDialog 是仅有的两个构造点，
+  // 两处都设、值相同，谁先生效都一样）
+  static const bool sgApiInitialized= [] () {
+    QQuickWindow::setGraphicsApi (QSGRendererInterface::Software);
+    return true;
+  }();
+  (void) sgApiInitialized;
+
+  quick= new QQuickWidget (this);
+  quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  quick->setClearColor (Qt::transparent);
+  quick->setStyleSheet ("background: transparent;");
+  // 无按键 move 到达子 widget 需 mouse tracking；QQuickWidget 构造时已自带，
+  // 显式设置以免依赖其内部实现
+  quick->setMouseTracking (true);
+  // 与模态弹窗一致的主题上下文（Theme 单例读取 dpScale/isDark）
+  quick->rootContext ()->setContextProperty ("dpScale",
+                                             DpiUtils::scaleFactor ());
+  bool isDark=
+      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
+  quick->rootContext ()->setContextProperty ("isDark", isDark);
+  // 按钮文案（translate 只折叠首字符，"Ai translate" 命中词典键 "ai
+  // translate"）
+  quick->rootContext ()->setContextProperty ("labelTranslate",
+                                             qt_translate ("Ai translate"));
+  quick->rootContext ()->setContextProperty ("labelPolish",
+                                             qt_translate ("Ai polish"));
+  quick->rootContext ()->setContextProperty ("labelChat",
+                                             qt_translate ("Ai chat"));
+  quick->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
+
+  layout->setContentsMargins (0, 0, 0, 0);
+  layout->addWidget (quick);
+
   // 第一步仅挂接显隐，点击后的翻译/润色/对话流程在后续任务接入
-  for (QPushButton* btn : {translateButton, polishButton, chatButton}) {
-    btn->setFocusPolicy (Qt::NoFocus);
-    layout->addWidget (btn);
-    connect (btn, &QPushButton::clicked, this, [this] () {
-      if (edit_interface_rep* ed=
-              dynamic_cast<edit_interface_rep*> (this->owner)) {
-        ed->dismiss_translate_popup ();
-      }
-    });
+  if (QQuickItem* root= quick->rootObject ()) {
+    QObject::connect (root, SIGNAL (triggered (QString)), this,
+                      SLOT (onActionTriggered (QString)));
   }
 }
 
 void
+QTMAiTranslatePopup::onActionTriggered (const QString& action) {
+  (void) action;
+  if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
+    ed->dismiss_translate_popup ();
+  }
+}
+
+void
+QTMAiTranslatePopup::syncHover () {
+  // QQuickWidget 不为无按键的 move 合成 hover：hover 上下文需先由一次显式
+  // HoverMove 激活（见 qml_load_test 的 test_ai_actions_bar_hover）。每次
+  // 显示/重定位后按当前光标位置同步一次——光标在栏外时即为清空，顺带纠正
+  // 上次会话残留的 hover 态
+  QQuickWindow* w= quick->quickWindow ();
+  if (!w) return;
+  QPointF     pos (quick->mapFromGlobal (QCursor::pos ()));
+  QHoverEvent hover (QEvent::HoverMove, pos, pos);
+  QCoreApplication::sendEvent (w, &hover);
+}
+
+void
 QTMAiTranslatePopup::autoSize () {
-  // 按钮字号与内边距跟随选区内最小文字的渲染高度（含文档缩放因子）；
-  // 取不到时退回 mini 控件字号
+  // 按钮字号略大于选区内最小文字的渲染高度（含文档缩放因子），整体尺寸随
+  // QML 内边距/图标比例自适应；取不到时退回 mini 控件字号
+  QObject* root= quick->rootObject ();
+  if (!root) return;
   double inv_unit= 1.0 / 256.0;
   double text_px=
       sel_text_height > 0 ? sel_text_height * cached_magf * inv_unit : 0;
-  for (QPushButton* btn : {translateButton, polishButton, chatButton}) {
-    QFont f= btn->font ();
-    if (text_px > 0) {
-      f.setPixelSize (std::max (8, int (std::round (text_px * 0.75))));
-    }
-    else {
-      f.setPointSize (qt_zoom (QTM_MINI_FONTSIZE));
-    }
-    btn->setFont (f);
-  }
-  int m= text_px > 0 ? std::max (2, int (std::round (text_px * 0.2))) : 2;
-  layout->setContentsMargins (m, m, m, m);
-  QSize popup_size= layout->sizeHint ();
-  setFixedSize (popup_size);
-  cached_width = popup_size.width ();
-  cached_height= popup_size.height ();
+  int font_px= text_px > 0 ? std::max (9, int (std::round (text_px * 1.05)))
+                           : std::max (10, qt_zoom (QTM_MINI_FONTSIZE) * 4 / 3);
+  root->setProperty ("fontPixelSize", font_px);
+  int w=
+      int (std::round (QQmlProperty::read (root, "implicitWidth").toReal ()));
+  int h=
+      int (std::round (QQmlProperty::read (root, "implicitHeight").toReal ()));
+  quick->setFixedSize (w, h);
+  setFixedSize (w, h);
+  cached_width = w;
+  cached_height= h;
 }
 
 void
@@ -117,4 +175,5 @@ QTMAiTranslatePopup::showPopup (qt_renderer_rep* ren, rectangle selr,
   updatePosition (ren);
   show ();
   raise ();
+  syncHover ();
 }

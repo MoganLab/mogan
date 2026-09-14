@@ -14,10 +14,12 @@
 #include "QTMBasePopup.hpp"
 #include "rectangles.hpp"
 
-class QPushButton;
+class QQuickWidget;
 
-// 选区下方的一行 AI 操作栏：AI翻译 / AI润色 / AI对话
+// 选区下方的一行 AI 操作栏：🦞 标识 + 翻译 / 润色 / 对话（QML 渲染）
 class QTMAiTranslatePopup : public QTMBasePopup {
+  Q_OBJECT
+
 public:
   QTMAiTranslatePopup (QWidget* parent, qt_simple_widget_rep* owner);
 
@@ -36,11 +38,17 @@ protected:
   // 定位到选区最末行的下一行（左缘对齐），下方放不下时退到选区上方
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
+private slots:
+  // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
+  void onActionTriggered (const QString& action);
+
 private:
-  QPushButton* translateButton;
-  QPushButton* polishButton;
-  QPushButton* chatButton;
-  SI           sel_text_height= 0;
+  // 显示/重定位后按当前光标位置向离屏 scene 发 HoverMove：激活 hover 上下文
+  // 并纠正残留态（QQuickWidget 不为无按键 move 合成 hover，见 cpp）
+  void syncHover ();
+
+  QQuickWidget* quick;
+  SI            sel_text_height= 0;
 };
 
 #endif // QT_AI_TRANSLATE_POPUP_HPP

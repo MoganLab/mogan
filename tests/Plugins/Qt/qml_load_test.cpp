@@ -23,6 +23,8 @@
 
 #include <QApplication>
 #include <QDialog>
+#include <QHoverEvent>
+#include <QMouseEvent>
 #include <QObject>
 #include <QQmlContext>
 #include <QQuickItem>
@@ -33,6 +35,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtTest/QtTest>
+#include <functional>
 
 // closeBridge 占位：加载测试不点按钮，invokable 桩避免 QML 调用时 TypeError。
 class StubBridge : public QObject {
@@ -249,6 +252,8 @@ private slots:
   void test_export_pdf_path_utf8_roundtrip ();
   void test_updater_progress_loads ();
   void test_color_picker_loads ();
+  void test_ai_actions_bar_loads ();
+  void test_ai_actions_bar_hover ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -778,6 +783,74 @@ TestQmlLoad::test_color_picker_loads () {
                                           QStringList ({"OK", "Cancel"}));
   qw->setSource (QUrl ("qrc:/qml/ColorPicker.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_loads () {
+  // AiActionsBar 是 QTMAiTranslatePopup 内嵌的非模态操作栏（无 closeBridge），
+  // 注入三个按钮文案占位 + dpScale/isDark（Theme 单例读取），断言能实例化。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("labelTranslate",
+                                          QString ("Translate"));
+  qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
+  qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
+  qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_hover () {
+  // 无按键 mouseMove 必须驱动 QML hover：Quick 由转发到离屏窗口的 move 事件
+  // 合成 hover（MouseArea.containsMouse 翻转）。若此处失败说明 QQuickWidget 的
+  // hover 链路本身断了，而不是宿主窗口的事件投递问题。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("labelTranslate",
+                                          QString ("Translate"));
+  qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
+  qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
+  qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  // Repeater delegate 只挂视觉父子（childItems），QObject 父链不保证在根下，
+  // 需沿视觉树递归找
+  std::function<QList<QQuickItem*> (QQuickItem*)> collect=
+      [&] (QQuickItem* item) -> QList<QQuickItem*> {
+    QList<QQuickItem*> out;
+    if (item->objectName () == "aiActionHoverArea") out << item;
+    for (QQuickItem* child : item->childItems ())
+      out << collect (child);
+    return out;
+  };
+  QList<QQuickItem*> areas= collect (qw->rootObject ());
+  QCOMPARE (areas.size (), 3);
+  QQuickItem* ma= areas.first ();
+  // SizeViewToRootObject 下 scene 坐标 == widget 坐标
+  QPointF center=
+      ma->mapToScene (QPointF (ma->width () / 2, ma->height () / 2));
+
+  // 无按键 move 必须直接驱动 QML hover（QQuickWidget 把 move 转发离屏窗口，
+  // Quick 侧合成 hover）。若此处失败说明按钮纯悬浮点亮链路断裂
+  auto sendMove= [qw] (const QPointF& p) {
+    QMouseEvent me (QEvent::MouseMove, p, p,
+                    QPointF (qw->mapToGlobal (p.toPoint ())), Qt::NoButton,
+                    Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent (qw, &me);
+  };
+  sendMove (center); // 悬停到按钮点亮
+  QVERIFY (ma->property ("containsMouse").toBool ());
+  sendMove (QPointF (1, 1)); // 空白处熄灭
+  QVERIFY (!ma->property ("containsMouse").toBool ());
+  sendMove (center); // 移回按钮重新点亮
+  QVERIFY (ma->property ("containsMouse").toBool ());
 }
 
 QTEST_MAIN (TestQmlLoad)
