@@ -344,8 +344,8 @@ edit_typeset_rep::typeset_style_use_cache (tree styles_orig) {
   if (!ok) {
     // cout << "Typeset without cache " << style << LF;
     if (!is_tuple (styles)) TM_FAILED ("tuple expected as style");
-    H  = get_style_env (styles);
-    drd= get_style_drd (styles);
+    H  = get_style_env (styles, buf->buf->master);
+    drd= get_style_drd (styles, buf->buf->master);
     style_set_cache (styles, H, drd->get_locals ());
     env->patch_env (H);
     drd->set_environment (H);

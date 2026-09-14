@@ -49,6 +49,7 @@ private:
   QString    generateRandomString (int length);
   QUrl       getAuthorizationUrl ();
   QUrl       getAccessTokenUrl ();
+  QString    getRedirectUri ();
   QString    getGrowthUrl ();
   QByteArray getPreviewCookieHeader ();
   void       refreshCallbackHtml ();
@@ -69,7 +70,6 @@ public:
   QString                       m_codeChallenge;
   QString                       m_instanceId;
   QString                       m_state;
-  int                           m_port;
 };
 
 #endif

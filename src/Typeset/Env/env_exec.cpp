@@ -1241,22 +1241,18 @@ edit_env_rep::exec_use_package (tree t) {
   int i, n= N (t);
   for (i= 0; i < n; i++) {
     url    name= url_none ();
-    url    styp= "$TEXMACS_STYLE_PATH";
     string pi  = as_string (t[i]);
     string task= "use-package " * pi;
     bench_start (task);
-    if (occurs ("/", pi)) name= resolve_dotted_package (pi);
-    else {
-      if (is_rooted (base_file_name, "default"))
-        styp= styp | ::expand (head (base_file_name) * url_ancestor ());
-      else styp= styp | head (base_file_name);
-      if (ends (pi, ".ts") || ends (pi, ".stem")) name= url_system (pi);
-      else {
-        url stem_name= styp * (pi * string (".stem"));
-        name         = resolve (stem_name);
-        if (is_none (name)) name= styp * (pi * string (".ts"));
-      }
-      name= resolve (name);
+    // 本地优先：仅从文档 buffer（base_file_name）所在目录树解析，
+    // 模板常引用同目录的包（如 beamer/daxue_beamer）；未命中再查全局目录
+    if (is_rooted (base_file_name, "default"))
+      name= resolve_pack_in (::expand (head (base_file_name) * url_ancestor ()),
+                             pi);
+    // 带路径包名直查全局包目录，避免 $TEXMACS_STYLE_PATH 全子目录扫描（#1200）
+    if (is_none (name)) {
+      if (occurs ("/", pi)) name= resolve_dotted_package (pi);
+      else name= resolve_pack_in (url ("$TEXMACS_STYLE_PATH"), pi);
     }
     if (is_none (name)) {
       debug_io << "use-package: package not found: " << pi << LF;
@@ -1270,7 +1266,9 @@ edit_env_rep::exec_use_package (tree t) {
       else {
         doc= texmacs_document_to_tree (doc_s);
       }
-      if (is_compound (doc)) exec (filter_style (extract (doc, "body")));
+      if (is_compound (doc)) {
+        exec (filter_style (extract (doc, "body")));
+      }
     }
     bench_end (task, 10);
   }
