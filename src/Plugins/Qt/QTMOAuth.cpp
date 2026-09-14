@@ -142,8 +142,7 @@ QTMOAuth::login () {
     QUrlQuery query;
     query.addQueryItem ("response_type", "code");
     query.addQueryItem ("client_id", oauth2.clientIdentifier ());
-    query.addQueryItem ("redirect_uri",
-                        QString ("http://127.0.0.1:%1/callback").arg (m_port));
+    query.addQueryItem ("redirect_uri", getRedirectUri ());
     query.addQueryItem ("scope", oauth2.scope ());
     query.addQueryItem ("code_challenge", m_codeChallenge);
     query.addQueryItem ("code_challenge_method", "S256");
@@ -166,8 +165,7 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
   QUrlQuery query;
   query.addQueryItem ("grant_type", "authorization_code");
   query.addQueryItem ("code", code);
-  query.addQueryItem ("redirect_uri",
-                      QString ("http://127.0.0.1:%1/callback").arg (m_port));
+  query.addQueryItem ("redirect_uri", getRedirectUri ());
   query.addQueryItem ("client_id", oauth2.clientIdentifier ());
   query.addQueryItem ("code_verifier", m_codeVerifier);
 
@@ -453,6 +451,13 @@ QTMOAuth::getAccessTokenUrl () {
   c_string accessTokenUrl (
       as_string (call ("account-oauth2-config", "access-token-url")));
   return QUrl ((char*) accessTokenUrl);
+}
+
+// redirect_uri：授权请求与令牌交换两处必须使用完全一致的值（OAuth 2.0 规范），
+// 统一从这里取，后续切换自定义协议时只改这一处
+QString
+QTMOAuth::getRedirectUri () {
+  return QString ("http://127.0.0.1:%1/callback").arg (m_port);
 }
 
 QString

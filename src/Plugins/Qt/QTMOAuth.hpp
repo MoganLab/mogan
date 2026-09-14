@@ -47,6 +47,7 @@ private:
   QString    generateCodeChallenge (const QString& verifier);
   QUrl       getAuthorizationUrl ();
   QUrl       getAccessTokenUrl ();
+  QString    getRedirectUri ();
   QString    getGrowthUrl ();
   QByteArray getPreviewCookieHeader ();
   void       refreshCallbackHtml ();
