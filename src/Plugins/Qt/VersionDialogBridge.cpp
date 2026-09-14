@@ -33,9 +33,11 @@ message_lines (const string& message) {
 
 VersionDialogBridge::VersionDialogBridge (QDialog* host, string title,
                                           string             message,
-                                          const QStringList& button_labels)
+                                          const QStringList& button_labels,
+                                          bool               primary_enabled)
     : m_host (host), m_title (utf8_to_qstring (cork_to_utf8 (title))),
-      m_lines (message_lines (message)), m_buttonLabels (button_labels) {
+      m_lines (message_lines (message)), m_buttonLabels (button_labels),
+      m_primaryEnabled (primary_enabled) {
   ASSERT (host != NULL, "VersionDialogBridge expects a valid QDialog host");
 }
 

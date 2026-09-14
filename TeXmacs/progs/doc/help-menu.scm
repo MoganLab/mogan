@@ -42,7 +42,7 @@
 
 (menu-bind help-menu
  ("Welcome" (mogan-welcome))
- ("Version" (mogan-version))
+ ("Check for updates" (check-for-updates))
  (-> "Manual" (link help-manual-menu))
  (-> "Plugins" (link help-plugins-menu))
 ) ;menu-bind

@@ -76,19 +76,23 @@ class VersionStubBridge : public QObject {
   Q_PROPERTY (QString title READ title CONSTANT)
   Q_PROPERTY (QStringList lines READ lines CONSTANT)
   Q_PROPERTY (QStringList buttonLabels READ buttonLabels CONSTANT)
+  Q_PROPERTY (bool primaryEnabled READ primaryEnabled CONSTANT)
 
 public:
   explicit VersionStubBridge (QObject* p= nullptr) : QObject (p) {}
   QString     title () const { return QString ("Version"); }
   QStringList lines () const { return m_lines; }
   QStringList buttonLabels () const { return {"OK"}; }
+  bool        primaryEnabled () const { return m_primaryEnabled; }
   void        setLines (const QStringList& lines) { m_lines= lines; }
+  void        setPrimaryEnabled (bool v) { m_primaryEnabled= v; }
 
   Q_INVOKABLE void confirm () {}
 
 private:
   QStringList m_lines{"You are using v2026.2.6.",
                       "The latest stable version is v2026.2.6."};
+  bool        m_primaryEnabled{true};
 };
 
 // live 弹窗（FontSelector / ParagraphFormat）bridge 占位：加载阶段 QML 顶层会调
@@ -627,6 +631,7 @@ TestQmlLoad::test_version_loads () {
   for (QQuickItem* item : messageLines->childItems ())
     if (item->objectName () == "versionMessageLine") ++messageLineCount;
   QCOMPARE (messageLineCount, bridge->lines ().size ());
+  QCOMPARE (qw->rootObject ()->property ("primaryEnabled").toBool (), true);
 }
 
 void
