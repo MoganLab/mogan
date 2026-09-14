@@ -65,7 +65,6 @@ public:
   qint64                        m_tokenExpiryTime= 0;
   QString                       m_codeVerifier;
   QString                       m_codeChallenge;
-  int                           m_port;
 };
 
 #endif
