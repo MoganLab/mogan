@@ -1469,6 +1469,16 @@ function main()
                 ret_type = "path"
             },
             {
+                scm_name = "selection-min-height",
+                cpp_name = "get_selection_min_height",
+                ret_type = "int"
+            },
+            {
+                scm_name = "selection-last-rect",
+                cpp_name = "selection_last_rect_array",
+                ret_type = "array_int"
+            },
+            {
                 scm_name = "selection-path",
                 cpp_name = "selection_get_path",
                 ret_type = "path"

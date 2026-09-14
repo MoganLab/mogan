@@ -89,27 +89,17 @@ QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   bottom_px+= blank_top;
 
   const int gap= 4;
-  if (tail_free) {
-    // 末尾右侧空闲：显示在最后一个选中文字的右方（垂直居中）
-    x= int (std::round (right_px + gap));
-    y= int (std::round ((top_px + bottom_px - cached_height) * 0.5));
-  }
-  else {
-    // 末尾右侧被后续文字占用：显示在选区右下方，右缘与选区右缘对齐
-    x= int (std::round (right_px - cached_width));
-    y= int (std::round (bottom_px + gap));
-  }
+  // 始终显示在最后一个选中文字的右方（垂直居中）
+  x= int (std::round (right_px + gap));
+  y= int (std::round ((top_px + bottom_px - cached_height) * 0.5));
 
   if (owner && owner->scrollarea () && owner->scrollarea ()->viewport ()) {
     int vp_w= owner->scrollarea ()->viewport ()->width ();
     int vp_h= owner->scrollarea ()->viewport ()->height ();
 
-    // 右侧放不下时退到选区左侧；下方放不下时退到选区上方
-    if (tail_free && x + cached_width > vp_w) {
+    // 右侧放不下时退到选区左侧
+    if (x + cached_width > vp_w) {
       x= int (std::round (left_px - cached_width - gap));
-    }
-    if (!tail_free && y + cached_height > vp_h) {
-      y= int (std::round (top_px - cached_height - gap));
     }
     if (x < 0) x= 0;
     if (x + cached_width > vp_w) x= vp_w - cached_width;

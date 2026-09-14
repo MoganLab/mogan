@@ -31,20 +31,13 @@ public:
    */
   void setTextHeight (SI h) { sel_text_height= h; }
 
-  /**
-   * @brief 设置选区末尾右侧是否空闲：空闲时按钮显示在最后一个选中文字
-   * 右方（垂直居中），否则显示在选区右下方
-   */
-  void setTailFree (bool free_) { tail_free= free_; }
-
 protected:
-  // 定位到选区最末文字的右方或选区右下方（视 tail_free），越界时裁剪到视口内
+  // 定位到选区最末文字的右方（垂直居中），越界时退到左侧并裁剪到视口内
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
 private:
   QPushButton* translateButton;
   SI           sel_text_height= 0;
-  bool         tail_free      = true;
 };
 
 #endif // QT_AI_TRANSLATE_POPUP_HPP
