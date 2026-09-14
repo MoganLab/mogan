@@ -31,6 +31,9 @@ QT_PLUGIN="linuxdeploy-plugin-qt-x86_64.AppImage"
 
 set -e
 
+# 确保在无 FUSE 环境（如 Docker/CI 容器）下也能正常解包运行 AppImage 工具
+export APPIMAGE_EXTRACT_AND_RUN=1
+
 # ================= 1. 收集文件 =================
 echo "📂 [1/6] 运行 xmake install 收集文件..."
 cd "$APP_HOME"
@@ -176,7 +179,16 @@ fi
 
 # 运行 linuxdeploy
 # 它会扫描我们刚才复制进去的 .so 文件，并把它们依赖的 fcitx 库也打包进去
-./"$DEPLOY_TOOL" --appdir "$APP_DIR" --plugin qt --executable "$APP_DIR/usr/bin/$BINARY_NAME" --icon-file "$ICON_SRC"
+rm -f "$APP_HOME"/Mogan*.AppImage
+./"$DEPLOY_TOOL" --appdir "$APP_DIR" --plugin qt --executable "$APP_DIR/usr/bin/$BINARY_NAME" --icon-file "$ICON_SRC" --icon-filename "$APP_NAME" --output appimage
+
+# 处理生成的 AppImage 产物
+OUTPUT_APPIMAGE="${APP_HOME}/../${APP_NAME}_${VERSION}_${ARCH}.AppImage"
+GENERATED_APPIMAGE=$(ls -t "$APP_HOME"/Mogan*.AppImage 2>/dev/null | head -n 1)
+if [ -n "$GENERATED_APPIMAGE" ] && [ -f "$GENERATED_APPIMAGE" ]; then
+    mv "$GENERATED_APPIMAGE" "$OUTPUT_APPIMAGE"
+    chmod 755 "$OUTPUT_APPIMAGE"
+fi
 
 # ================= 6. 构建 /opt 包结构 =================
 echo "📦 [6/6] 组装并生成 Deb..."
@@ -347,5 +359,10 @@ dpkg-deb --build "$DEB_BUILD_DIR" "$OUTPUT_DEB"
 # 设置适当的权限，避免安装时出现 _apt 用户权限警告
 chmod 644 "$OUTPUT_DEB"
 
-echo "✅ 打包完成: $OUTPUT_DEB"
+echo "✅ Deb 打包完成: $OUTPUT_DEB"
 echo "💡 安装命令: sudo dpkg -i \"$OUTPUT_DEB\""
+
+if [ -f "$OUTPUT_APPIMAGE" ]; then
+    echo "✅ AppImage 打包完成: $OUTPUT_APPIMAGE"
+    echo "💡 运行命令: \"$OUTPUT_APPIMAGE\""
+fi
