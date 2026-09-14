@@ -36,6 +36,11 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "headless?",
+                cpp_name = "gui_is_headless",
+                ret_type = "bool"
+            },
+            {
                 scm_name = "gui-version",
                 cpp_name = "gui_version",
                 ret_type = "string"

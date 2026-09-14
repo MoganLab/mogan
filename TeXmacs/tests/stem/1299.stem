@@ -1,0 +1,10 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")
+  ) ;style
+  (body (document (equation* (document (concat "E=m*c" (rsup "2"))))))
+  (initial (collection (associate "page-medium" "paper")
+             (associate "page-screen-margin" "false")
+             (associate "stem-doc-id" "474FCB1A-8CF5-4850-8CED-23BBD2C016C0")
+           ) ;collection
+  ) ;initial
+) ;document

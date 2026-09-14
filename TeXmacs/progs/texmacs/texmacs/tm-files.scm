@@ -726,9 +726,11 @@
       (set-message `(concat ,"Could not save " ,vto) "Export file")
       (begin
         (set-message `(concat ,"Exported to " ,vto) "Export file")
-        (let ((export-kind (string-append fm "_export")))
-          (save-buffer-save name opts export-kind)
-        ) ;let
+        (when (not (headless?))
+          (let ((export-kind (string-append fm "_export")))
+            (save-buffer-save name opts export-kind)
+          ) ;let
+        ) ;when
       ) ;begin
     ) ;if
   ) ;with

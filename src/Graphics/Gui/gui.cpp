@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "gui.hpp"
+#include "boot.hpp"
 
 bool
 gui_is_x () {
@@ -27,4 +28,9 @@ gui_is_qt () {
 #else
   return false;
 #endif
+}
+
+bool
+gui_is_headless () {
+  return headless_mode;
 }
