@@ -785,11 +785,12 @@ TestQmlLoad::test_color_picker_loads () {
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
-// AiActionsBar 用例共用：按生产环境注入主题（dpScale/isDark，Theme 单例
-// 读取）与三个按钮文案占位，加载 qrc 内的操作栏
-static QQuickWidget*
-make_ai_actions_bar (QWidget* host) {
-  QQuickWidget* qw= new QQuickWidget (host);
+void
+TestQmlLoad::test_ai_actions_bar_loads () {
+  // AiActionsBar 是 QTMAiTranslatePopup 内嵌的非模态操作栏（无 closeBridge），
+  // 注入三个按钮文案占位 + dpScale/isDark（Theme 单例读取），断言能实例化。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
   qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
@@ -798,15 +799,7 @@ make_ai_actions_bar (QWidget* host) {
   qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
   qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
   qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
-  return qw;
-}
-
-void
-TestQmlLoad::test_ai_actions_bar_loads () {
-  // AiActionsBar 是 QTMAiTranslatePopup 内嵌的非模态操作栏（无 closeBridge），
-  // 断言能实例化。
-  QDialog host;
-  QCOMPARE (make_ai_actions_bar (&host)->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 void
@@ -815,7 +808,15 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   // 合成 hover（MouseArea.containsMouse 翻转）。若此处失败说明 QQuickWidget 的
   // hover 链路本身断了，而不是宿主窗口的事件投递问题。
   QDialog       host;
-  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("labelTranslate",
+                                          QString ("Translate"));
+  qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
+  qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
+  qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   host.show ();
 

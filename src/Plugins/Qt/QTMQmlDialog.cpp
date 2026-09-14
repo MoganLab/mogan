@@ -35,6 +35,8 @@ using moebius::data::tree_to_scheme_tree;
 #include <QQmlError>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -105,18 +107,21 @@ kv_map_to_tree (const QVariantMap& res) {
  * - setClearColor（QQuickWidget 专属）而非 WA_TranslucentBackground（对它不完全
  *   生效，默认白色 clear color 会盖住透明、露方角）。
  * - objectName + 样式反制 liii.css 的通用 QDialog 规则，避免圆角外露方块。
- * - scene graph 固定走 software 后端（qt_use_software_scene_graph，各
- *   QQuickWidget 宿主共用）：弹窗均为简单静态 UI，软件渲染开销可忽略，
+ * - scene graph 固定走 software 后端：弹窗均为简单静态 UI，软件渲染开销可忽略，
  *   却不再依赖 GL/Vulkan/Metal 驱动，规避 X11+NVIDIA 下 QRhi::endOffscreenFrame
- *   崩溃一类驱动问题。Qt 6 起该后端与 QQuickWidget 兼容；图形 API 是进程级
- *   全局选择，须赶在首个 QQuickWidget 构造前设定。
+ *   崩溃一类驱动问题。Qt 6 起该后端与 QQuickWidget 兼容；图形 API 是进程级全局
+ *   选择，须赶在首个 QQuickWidget 构造前设定，故在本函数（唯一构造卡点）声明。
  *
  * @param d 由调用方栈分配、生命期覆盖 exec() 的宿主 QDialog。
  * @return 挂到 d 上、待 setSource / 注入 context property 的 QQuickWidget。
  */
 static QQuickWidget*
 setup_frameless_qml_host (QDialog& d) {
-  qt_use_software_scene_graph ();
+  static const bool sgApiInitialized= [] () {
+    QQuickWindow::setGraphicsApi (QSGRendererInterface::Software);
+    return true;
+  }();
+  (void) sgApiInitialized;
   d.setAttribute (Qt::WA_TranslucentBackground);
   d.setAttribute (Qt::WA_NativeWindow);
   d.setObjectName ("QTMQmlDialog");
@@ -136,10 +141,10 @@ setup_frameless_qml_host (QDialog& d) {
 /**
  * @brief 注入两类弹窗共用的 context property 并返回 bridge。
  *
- * 共用项：closeBridge（按钮 / submit 回流）+ dpScale/isDark（经
- * qt_inject_theme_context 注入，跟随 tm_style_sheet）。各弹窗特有的 context
- * property（确认型的 dialogMessage/dialogButtons、form 型的 formFields）由
- * 调用方在 run_qml_dialog 的注入回调里，调用本函数之后自行注入。
+ * 共用项：closeBridge（按钮 / submit 回流）、dpScale（DPI 缩放）、isDark（跟随
+ * tm_style_sheet，liii-night / *-dark 视为深色）。各弹窗特有的 context property
+ * （确认型的 dialogMessage/dialogButtons、form 型的 formFields）由调用方在
+ * run_qml_dialog 的注入回调里，调用本函数之后自行注入。
  *
  * @return 挂到 QML 的 bridge；调用方持有所有权并负责 delete（bridge 不挂
  * QObject parent，不会被宿主 QDialog 析构带走，以便 form 型 exec 后取
@@ -147,9 +152,12 @@ setup_frameless_qml_host (QDialog& d) {
  */
 static QmlDialogBridge*
 inject_common_context (QQuickWidget* qw, QDialog& host) {
+  bool isDark=
+      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   QmlDialogBridge* bridge= new QmlDialogBridge (&host);
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
-  qt_inject_theme_context (qw);
+  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
+  qw->rootContext ()->setContextProperty ("isDark", isDark);
   return bridge;
 }
 

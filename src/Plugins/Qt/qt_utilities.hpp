@@ -190,18 +190,6 @@ string qt_clipboard_text ();
 void   qt_clipboard_set_html (string html);
 
 /******************************************************************************
- * QML 宿主共用（QQuickWidget 场景图后端 / 主题上下文）
- ******************************************************************************/
-class QQuickWidget;
-// scene graph 固定 software 后端（幂等；图形 API 是进程级全局选择，须在
-// 首个 QQuickWidget 构造前调用，各 QQuickWidget 宿主构造点统一走这里）
-void qt_use_software_scene_graph ();
-// tm_style_sheet 是否为深色主题（liii-night / *-dark 视为深色）
-bool qt_is_dark_theme ();
-// 注入 QML 主题共用 context property（dpScale / isDark，Theme 单例读取）
-void qt_inject_theme_context (QQuickWidget* qw);
-
-/******************************************************************************
  * PDF tab URL utilities
  ******************************************************************************/
 
