@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <cmath>
 
-QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*            parent,
+QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
                                           qt_simple_widget_rep* owner)
     : QTMBasePopup (parent, owner) {
   // translate 只折叠首字符，"Ai translate" 折叠后为词典键 "ai translate"
@@ -28,7 +28,8 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*            parent,
   layout->addWidget (translateButton);
   // 第一步仅挂接显隐，点击后的翻译流程在后续任务接入
   connect (translateButton, &QPushButton::clicked, this, [this] () {
-    if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
+    if (edit_interface_rep* ed=
+            dynamic_cast<edit_interface_rep*> (this->owner)) {
       ed->dismiss_translate_popup ();
     }
     else {
@@ -42,7 +43,7 @@ QTMAiTranslatePopup::autoSize () {
   // 按钮字号与内边距跟随选区内最小文字的渲染高度（含文档缩放因子）；
   // 取不到时退回 mini 控件字号
   double inv_unit= 1.0 / 256.0;
-  double text_px =
+  double text_px=
       sel_text_height > 0 ? sel_text_height * cached_magf * inv_unit : 0;
   QFont f= translateButton->font ();
   if (text_px > 0) {
@@ -63,8 +64,8 @@ QTMAiTranslatePopup::autoSize () {
 void
 QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   (void) ren;
-  rectangle selr    = cached_rect;
-  double    inv_unit= 1.0 / 256.0;
+  rectangle selr            = cached_rect;
+  double    inv_unit        = 1.0 / 256.0;
   double    sel_top_logic   = std::max (selr->y1, selr->y2);
   double    sel_bottom_logic= std::min (selr->y1, selr->y2);
 
@@ -88,16 +89,27 @@ QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   bottom_px+= blank_top;
 
   const int gap= 4;
-  x= int (std::round (right_px + gap));
-  y= int (std::round ((top_px + bottom_px - cached_height) * 0.5));
+  if (tail_free) {
+    // 末尾右侧空闲：显示在最后一个选中文字的右方（垂直居中）
+    x= int (std::round (right_px + gap));
+    y= int (std::round ((top_px + bottom_px - cached_height) * 0.5));
+  }
+  else {
+    // 末尾右侧被后续文字占用：显示在选区右下方，右缘与选区右缘对齐
+    x= int (std::round (right_px - cached_width));
+    y= int (std::round (bottom_px + gap));
+  }
 
   if (owner && owner->scrollarea () && owner->scrollarea ()->viewport ()) {
     int vp_w= owner->scrollarea ()->viewport ()->width ();
     int vp_h= owner->scrollarea ()->viewport ()->height ();
 
-    // 右侧放不下时退到选区左侧
-    if (x + cached_width > vp_w) {
+    // 右侧放不下时退到选区左侧；下方放不下时退到选区上方
+    if (tail_free && x + cached_width > vp_w) {
       x= int (std::round (left_px - cached_width - gap));
+    }
+    if (!tail_free && y + cached_height > vp_h) {
+      y= int (std::round (top_px - cached_height - gap));
     }
     if (x < 0) x= 0;
     if (x + cached_width > vp_w) x= vp_w - cached_width;

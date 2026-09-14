@@ -1460,11 +1460,81 @@ edit_interface_rep::should_show_translate_popup () {
   tree sel_tree= selection_get ();
   if (is_atomic (sel_tree) && as_string (sel_tree) == "") return false;
 
+  translate_popup_tail_free  = selection_tail_free ();
   translate_popup_last_result= true;
   return true;
 #else
   return false;
 #endif
+}
+
+rectangle
+edit_interface_rep::get_selection_last_rect () {
+  // 选区最末（屏幕最下方、同行最右）的矩形，即最后一个选中文字所在行
+  path p1, p2;
+  selection_get (p1, p2);
+  if (p1 == p2) return get_text_selection_rect ();
+  selection sel= search_selection (p1, p2);
+  if (is_nil (sel->rs)) return get_text_selection_rect ();
+  // 屏幕下方对应逻辑 y 更小
+  rectangle lastr= sel->rs->item;
+  for (rectangles rs= sel->rs->next; !is_nil (rs); rs= rs->next) {
+    rectangle r= rs->item;
+    if (r->y2 < lastr->y2 || (r->y2 == lastr->y2 && r->x2 > lastr->x2)) {
+      lastr= r;
+    }
+  }
+  return lastr;
+}
+
+// 子树最右端位置（字符串取末尾字符偏移，复合树取最右子树递归）
+static path
+rightmost_path (tree t) {
+  if (is_atomic (t)) return path (N (t->label));
+  if (N (t) == 0) return path (0);
+  return path (N (t) - 1) * rightmost_path (t[N (t) - 1]);
+}
+
+bool
+edit_interface_rep::selection_tail_free () {
+  // 选区只有一行时直接显示在最后文字右方（允许挡住后面跟随的文字）；
+  // 多行时若选区末尾到段落结束之间还有同行文字，则末尾右侧被占用
+  path p1, p2;
+  selection_get (p1, p2);
+  if (p1 == p2) return true;
+  selection sel= search_selection (p1, p2);
+  if (is_nil (sel->rs)) return true;
+  // 屏幕下方对应逻辑 y 更小
+  rectangle lastr= sel->rs->item;
+  for (rectangles rs= sel->rs->next; !is_nil (rs); rs= rs->next) {
+    rectangle r= rs->item;
+    if (r->y2 < lastr->y2 || (r->y2 == lastr->y2 && r->x2 > lastr->x2)) {
+      lastr= r;
+    }
+  }
+  bool multiline= false;
+  for (rectangles rs= sel->rs; !is_nil (rs); rs= rs->next) {
+    rectangle r= rs->item;
+    if (!(r->y2 < lastr->y1 && r->y1 > lastr->y2)) {
+      multiline= true;
+      break;
+    }
+  }
+  if (!multiline) return true;
+  path dp= p2;
+  while (!is_nil (path_up (dp)) && !is_document (subtree (et, path_up (dp))))
+    dp= path_up (dp);
+  if (is_nil (path_up (dp))) return true;
+  tree doc = subtree (et, path_up (dp));
+  path pend= path_up (dp) * path (dp->item) * rightmost_path (doc[dp->item]);
+  if (pend == p2) return true;
+  selection rest= search_selection (p2, pend);
+  if (is_nil (rest->rs)) return true;
+  for (rectangles rs= rest->rs; !is_nil (rs); rs= rs->next) {
+    rectangle r= rs->item;
+    if (r->y2 < lastr->y1 && r->y1 > lastr->y2) return false;
+  }
+  return true;
 }
 
 SI
@@ -1484,13 +1554,14 @@ edit_interface_rep::get_selection_min_height () {
 }
 
 void
-edit_interface_rep::show_translate_popup (rectangle selr, SI sel_h, double magf,
-                                          int scroll_x, int scroll_y,
-                                          int canvas_x, int canvas_y) {
+edit_interface_rep::show_translate_popup (rectangle selr, bool tail_free,
+                                          SI sel_h, double magf, int scroll_x,
+                                          int scroll_y, int canvas_x,
+                                          int canvas_y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_translate_popup (selr, sel_h, magf, scroll_x, scroll_y, canvas_x,
-                               canvas_y);
+    qsw->show_translate_popup (selr, tail_free, sel_h, magf, scroll_x, scroll_y,
+                               canvas_x, canvas_y);
   }
 #endif
 }
@@ -1534,7 +1605,7 @@ edit_interface_rep::update_translate_popup () {
     return;
   }
   if (should_show_translate_popup ()) {
-    rectangle selr= get_text_selection_rect ();
+    rectangle selr= get_selection_last_rect ();
     if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
       hide_translate_popup ();
       return;
@@ -1547,9 +1618,9 @@ edit_interface_rep::update_translate_popup () {
       hide_translate_popup ();
       return;
     }
-    show_translate_popup (selr, get_selection_min_height (), magf,
-                          get_scroll_x (), get_scroll_y (), get_canvas_x (),
-                          get_canvas_y ());
+    show_translate_popup (selr, translate_popup_tail_free,
+                          get_selection_min_height (), magf, get_scroll_x (),
+                          get_scroll_y (), get_canvas_x (), get_canvas_y ());
   }
   else {
     hide_translate_popup ();
