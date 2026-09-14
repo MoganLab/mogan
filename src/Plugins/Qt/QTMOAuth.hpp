@@ -22,6 +22,7 @@
 #include <QtCore/qjsonobject.h>
 #include <QtCore/qpointer.h>
 #include <QtCore/qtimer.h>
+#include <QtCore/qvariant.h>
 
 QT_FORWARD_DECLARE_CLASS (QRestAccessManager)
 
@@ -45,12 +46,14 @@ private:
   void       loadExistingToken ();
   QString    generateCodeVerifier ();
   QString    generateCodeChallenge (const QString& verifier);
+  QString    generateRandomString (int length);
   QUrl       getAuthorizationUrl ();
   QUrl       getAccessTokenUrl ();
   QString    getRedirectUri ();
   QString    getGrowthUrl ();
   QByteArray getPreviewCookieHeader ();
   void       refreshCallbackHtml ();
+  void       handleCallback (const QVariantMap& values);
 
   bool m_isLoggedIn= false;
 
@@ -65,6 +68,8 @@ public:
   qint64                        m_tokenExpiryTime= 0;
   QString                       m_codeVerifier;
   QString                       m_codeChallenge;
+  QString                       m_instanceId;
+  QString                       m_state;
 };
 
 #endif
