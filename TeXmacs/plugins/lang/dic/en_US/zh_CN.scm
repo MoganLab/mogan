@@ -3059,3 +3059,5 @@
 ("Magic paste shortcut" "魔法粘贴快捷键")
 ("Login" "登录")
 ("Upgrade" "升级")
+("Current version is up to date." "当前已是最新版本。")
+("Timed out waiting for the update task" "等待更新超时")

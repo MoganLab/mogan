@@ -238,3 +238,75 @@
     ) ;with
   ) ;when
 ) ;tm-define
+
+;; ---- 帮助菜单手动检查更新后触发更新流程 ----
+
+(define (updater-manual-update-poll ticks)
+  (with st
+    (updater-state)
+    (cond ((== st 2)
+           (updater-switch-dialog-open)
+           (updater-download-update)
+           (delayed (:pause 1000) (updater-manual-update-poll ticks))
+          ) ;
+          ((== st 3)
+           (updater-switch-dialog-open)
+           (delayed (:pause 1000) (updater-manual-update-poll ticks))
+          ) ;
+          ((== st 4)
+           (updater-switch-dialog-cleanup)
+           (if (updater-question (translate "The update is ready. Restart now to apply it?")
+                 (translate "Restart")
+               ) ;updater-question
+             (begin
+               (updater-apply-update)
+               (delayed (:pause 1000) (updater-manual-update-poll ticks))
+             ) ;begin
+             (set-message "The update will be applied the next time you start the application"
+               "Check for updates"
+             ) ;set-message
+           ) ;if
+          ) ;
+          ((== st 0)
+           (updater-switch-dialog-cleanup)
+           (set-message "Current version is up to date." "Check for updates")
+          ) ;
+          ((== st 6) (updater-switch-dialog-cleanup) (updater-notify-failure))
+          ((or (== st 1) (== st 5))
+           (delayed (:pause 1000) (updater-manual-update-poll ticks))
+          ) ;
+          ((< ticks 600) (delayed (:pause 1000) (updater-manual-update-poll (+ ticks 1))))
+          (else (updater-switch-dialog-cleanup)
+            (set-message "Timed out waiting for the update task" "Check for updates")
+          ) ;else
+    ) ;cond
+  ) ;with
+) ;define
+
+(tm-define (updater-trigger-manual-update)
+  (when (use-plugin-updater?)
+    (with st
+      (updater-state)
+      (if (== st 4)
+        (if (updater-question (translate "The update is ready. Restart now to apply it?")
+              (translate "Restart")
+            ) ;updater-question
+          (updater-apply-update)
+          (set-message "The update will be applied the next time you start the application"
+            "Check for updates"
+          ) ;set-message
+        ) ;if
+        (begin
+          (updater-switch-dialog-open)
+          (when (or (== st 0) (== st 6))
+            (updater-check-background)
+          ) ;when
+          (when (== st 2)
+            (updater-download-update)
+          ) ;when
+          (updater-manual-update-poll 0)
+        ) ;begin
+      ) ;if
+    ) ;with
+  ) ;when
+) ;tm-define
