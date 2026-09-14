@@ -62,7 +62,8 @@
 
   ;; 3 最小高度取选区内最小字号：混排 == 小字单选，且 < 大字单选。
   (buffer-set-body (current-buffer)
-    '(document (with "font-size" "2" "Big") "small"))
+    '(document (with "font-size" "2" "Big") "small")
+  ) ;buffer-set-body
   (select-range (path 0 1 0) (path 0 1 5))
   (let ((h-small (selection-min-height)))
     (check-true (> h-small 0))

@@ -32,9 +32,6 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
             dynamic_cast<edit_interface_rep*> (this->owner)) {
       ed->dismiss_translate_popup ();
     }
-    else {
-      hide ();
-    }
   });
 }
 
@@ -55,7 +52,7 @@ QTMAiTranslatePopup::autoSize () {
   translateButton->setFont (f);
   int m= text_px > 0 ? std::max (2, int (std::round (text_px * 0.2))) : 2;
   layout->setContentsMargins (m, m, m, m);
-  QSize popup_size= layout ? layout->sizeHint () : sizeHint ();
+  QSize popup_size= layout->sizeHint ();
   setFixedSize (popup_size);
   cached_width = popup_size.width ();
   cached_height= popup_size.height ();
@@ -78,13 +75,7 @@ QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
       -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
 
   // 视口大于画布表面时顶部存在居中留白，需补偿（同基类算法）
-  double blank_top= 0.0;
-  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport () &&
-      owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
-  }
+  double blank_top= blank_top_offset ();
   top_px+= blank_top;
   bottom_px+= blank_top;
 

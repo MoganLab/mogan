@@ -1567,14 +1567,7 @@ edit_interface_rep::update_translate_popup () {
       hide_translate_popup ();
       return;
     }
-
-    update_visible ();
-    bool sel_in_view=
-        !(selr->x2 < vx1 || selr->x1 > vx2 || selr->y2 < vy1 || selr->y1 > vy2);
-    if (!sel_in_view) {
-      hide_translate_popup ();
-      return;
-    }
+    // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
     show_translate_popup (selr, get_selection_min_height (), magf,
                           get_scroll_x (), get_scroll_y (), get_canvas_x (),
                           get_canvas_y ());

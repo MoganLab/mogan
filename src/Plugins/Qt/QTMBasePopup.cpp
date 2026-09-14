@@ -91,13 +91,7 @@ QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
       -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
 
   // 修正：视口 > 表面：存在空白顶部
-  double blank_top= 0.0;
-  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport () &&
-      owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
-  }
+  double blank_top= blank_top_offset ();
   top_px+= blank_top;
   bottom_px+= blank_top;
 
@@ -134,6 +128,17 @@ QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   }
 }
 
+double
+QTMBasePopup::blank_top_offset () const {
+  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport () &&
+      owner->scrollarea ()->surface ()) {
+    int vp_h  = owner->scrollarea ()->viewport ()->height ();
+    int surf_h= owner->scrollarea ()->surface ()->height ();
+    if (vp_h > surf_h) return (vp_h - surf_h) * 0.5;
+  }
+  return 0.0;
+}
+
 bool
 QTMBasePopup::selectionInView () const {
   if (!owner || !owner->scrollarea () || !owner->scrollarea ()->viewport ())
@@ -149,12 +154,7 @@ QTMBasePopup::selectionInView () const {
   double y1_px= -(selr->y1 - cached_scroll_y) * cached_magf * inv_unit;
   double y2_px= -(selr->y2 - cached_scroll_y) * cached_magf * inv_unit;
 
-  double blank_top= 0.0;
-  if (owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
-  }
+  double blank_top= blank_top_offset ();
   y1_px+= blank_top;
   y2_px+= blank_top;
 
