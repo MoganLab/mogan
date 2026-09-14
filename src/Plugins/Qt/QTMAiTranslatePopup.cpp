@@ -18,11 +18,9 @@
 #include <QEvent>
 #include <QHoverEvent>
 #include <QQmlContext>
-#include <QQmlProperty>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
-#include <QSGRendererInterface>
 #include <algorithm>
 #include <cmath>
 
@@ -36,29 +34,14 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   setAttribute (Qt::WA_TranslucentBackground);
   effect->setEnabled (false);
 
-  // scene graph 固定 software 后端：与 QTMQmlDialog 一致——Metal/RHI 后端下
-  // 透明 clear color 会被合成成黑色方块；图形 API 是进程级全局选择，须赶在
-  // 首个 QQuickWidget 构造前设定（本类与 QTMQmlDialog 是仅有的两个构造点，
-  // 两处都设、值相同，谁先生效都一样）
-  static const bool sgApiInitialized= [] () {
-    QQuickWindow::setGraphicsApi (QSGRendererInterface::Software);
-    return true;
-  }();
-  (void) sgApiInitialized;
+  // software 场景图后端与主题上下文（dpScale/isDark）与 QTMQmlDialog 同源，
+  // 收敛在 qt_utilities 共享助手
+  qt_use_software_scene_graph ();
 
   quick= new QQuickWidget (this);
   quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
   quick->setClearColor (Qt::transparent);
-  quick->setStyleSheet ("background: transparent;");
-  // 无按键 move 到达子 widget 需 mouse tracking；QQuickWidget 构造时已自带，
-  // 显式设置以免依赖其内部实现
-  quick->setMouseTracking (true);
-  // 与模态弹窗一致的主题上下文（Theme 单例读取 dpScale/isDark）
-  quick->rootContext ()->setContextProperty ("dpScale",
-                                             DpiUtils::scaleFactor ());
-  bool isDark=
-      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  quick->rootContext ()->setContextProperty ("isDark", isDark);
+  qt_inject_theme_context (quick);
   // 按钮文案（translate 只折叠首字符，"Ai translate" 命中词典键 "ai
   // translate"）
   quick->rootContext ()->setContextProperty ("labelTranslate",
@@ -75,13 +58,12 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   // 第一步仅挂接显隐，点击后的翻译/润色/对话流程在后续任务接入
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
-                      SLOT (onActionTriggered (QString)));
+                      SLOT (onActionTriggered ()));
   }
 }
 
 void
-QTMAiTranslatePopup::onActionTriggered (const QString& action) {
-  (void) action;
+QTMAiTranslatePopup::onActionTriggered () {
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
     ed->dismiss_translate_popup ();
   }
@@ -89,10 +71,9 @@ QTMAiTranslatePopup::onActionTriggered (const QString& action) {
 
 void
 QTMAiTranslatePopup::syncHover () {
-  // QQuickWidget 不为无按键的 move 合成 hover：hover 上下文需先由一次显式
-  // HoverMove 激活（见 qml_load_test 的 test_ai_actions_bar_hover）。每次
-  // 显示/重定位后按当前光标位置同步一次——光标在栏外时即为清空，顺带纠正
-  // 上次会话残留的 hover 态
+  // 弹窗可能在静止光标正下方弹出/重定位（滚动跟随选区时尤甚），这不会有
+  // 任何鼠标事件到来，按当前光标位置向离屏 scene 发一次 HoverMove 同步
+  // hover 态——光标在栏外时即为清空，顺带纠正上次隐藏前残留的 hover 态
   QQuickWindow* w= quick->quickWindow ();
   if (!w) return;
   QPointF     pos (quick->mapFromGlobal (QCursor::pos ()));
@@ -103,7 +84,9 @@ QTMAiTranslatePopup::syncHover () {
 void
 QTMAiTranslatePopup::autoSize () {
   // 按钮字号略大于选区内最小文字的渲染高度（含文档缩放因子），整体尺寸随
-  // QML 内边距/图标比例自适应；取不到时退回 mini 控件字号
+  // QML 内边距/图标比例自适应；取不到时退回 mini 控件字号。showPopup 在
+  // 选区存续期间被高频触发（apply_changes/鼠标移动/滚动），字号未变时直接
+  // 跳过整套 QML 重排与定尺寸
   QObject* root= quick->rootObject ();
   if (!root) return;
   double inv_unit= 1.0 / 256.0;
@@ -111,11 +94,11 @@ QTMAiTranslatePopup::autoSize () {
       sel_text_height > 0 ? sel_text_height * cached_magf * inv_unit : 0;
   int font_px= text_px > 0 ? std::max (9, int (std::round (text_px * 1.05)))
                            : std::max (10, qt_zoom (QTM_MINI_FONTSIZE) * 4 / 3);
+  if (font_px == cached_font_px) return;
+  cached_font_px= font_px;
   root->setProperty ("fontPixelSize", font_px);
-  int w=
-      int (std::round (QQmlProperty::read (root, "implicitWidth").toReal ()));
-  int h=
-      int (std::round (QQmlProperty::read (root, "implicitHeight").toReal ()));
+  int w= int (std::round (root->property ("implicitWidth").toReal ()));
+  int h= int (std::round (root->property ("implicitHeight").toReal ()));
   quick->setFixedSize (w, h);
   setFixedSize (w, h);
   cached_width = w;

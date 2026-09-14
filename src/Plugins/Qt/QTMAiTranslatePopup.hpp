@@ -39,16 +39,19 @@ protected:
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
 private slots:
-  // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
-  void onActionTriggered (const QString& action);
+  // QML 根信号 triggered(action) 的接收槽（translate/polish/chat；字符串式
+  // connect 允许槽省略信号参数，后续接动作流程时再带上）
+  void onActionTriggered ();
 
 private:
-  // 显示/重定位后按当前光标位置向离屏 scene 发 HoverMove：激活 hover 上下文
-  // 并纠正残留态（QQuickWidget 不为无按键 move 合成 hover，见 cpp）
+  // 显示/重定位后按当前光标位置向离屏 scene 发 HoverMove：弹窗可能在静止
+  // 光标正下方出现（滚动跟随选区时尤甚），不会有鼠标事件到来，须主动同步
+  // （在栏外即为清空，顺带纠正上次隐藏前残留的 hover 态）
   void syncHover ();
 
   QQuickWidget* quick;
   SI            sel_text_height= 0;
+  int           cached_font_px = -1;
 };
 
 #endif // QT_AI_TRANSLATE_POPUP_HPP
