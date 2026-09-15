@@ -30,14 +30,17 @@
   (check (updater-apply) => #f)
 ) ;define
 
-;; update-channel 缺省 stable；仅 "beta" 视为 beta，其余（含未设/脏值）归一
-;; stable（与 C++ 侧 update_channel () 一致）。
+;; update-channel 缺省 stable；"beta"→beta、"disabled"→disabled，其余（含未设/
+;; 脏值）归一 stable。scheme 侧特判 "disabled" 供 init-research.scm 的链路 gate
+;; 与首选项切回使用；C++ 侧 update_channel () 在 disabled 时因链路未启动不会被调用。
 
 (define (test-updater-channel)
   (set-preference "update-channel" "default")
   (check (updater-current-channel) => "stable")
   (set-preference "update-channel" "beta")
   (check (updater-current-channel) => "beta")
+  (set-preference "update-channel" "disabled")
+  (check (updater-current-channel) => "disabled")
   (set-preference "update-channel" "stable")
   (check (updater-current-channel) => "stable")
 ) ;define

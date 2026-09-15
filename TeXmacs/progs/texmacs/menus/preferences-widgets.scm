@@ -225,7 +225,11 @@
 
 (define-preference-names "scripting language" ("none" "None"))
 
-(define-preference-names "update-channel" ("stable" "Stable") ("beta" "Beta"))
+(define-preference-names "update-channel"
+ ("stable" "Stable")
+ ("beta" "Beta")
+ ("disabled" "Disabled")
+) ;define-preference-names
 
 (tm-define (open-preferences) (:interactive #t) (cpp-preferences-dialog))
 
@@ -950,14 +954,15 @@
               #f
             ) ;list
           ) ;list
-    ;; 更新通道（Stable/Beta 单选 combo）：真实存储单值 update-channel,
-    ;; 写值经 set-field 特例路由到 updater-switch-channel 的两次确认。
-    ;; 仅 Velopack 更新器平台（Windows / macOS arm64 安装版）显示。
+    ;; 更新通道（Stable/Beta/Disabled 单选 combo）：真实存储单值 update-channel,
+    ;; 写值经 set-field 特例路由到 updater-switch-channel 的确认/切换链。
+    ;; "disabled"（禁用自动更新）只写首选项、下次启动不启动更新链路；stable/beta
+    ;; 切换走两次确认 + download+apply。仅 Velopack 更新器平台显示。
     (if (use-plugin-updater?)
       (list (list (pref-update-channel)
               "Update channel"
-              '("stable" "beta")
-              '("Stable" "Beta")
+              '("stable" "beta" "disabled")
+              '("Stable" "Beta" "Disabled")
               #f
             ) ;list
       ) ;list

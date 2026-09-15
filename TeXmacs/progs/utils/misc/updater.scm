@@ -77,14 +77,19 @@
   ) ;when
 ) ;tm-define
 
-;; ---- 更新通道(stable/beta)切换 ----
-;; 首选项 update-channel:单值 "stable"/"beta"(缺省 stable),C++ 侧 tm_velopack
-;; 以 ExplicitChannel 显式跟随该值(见 devel/0518.md)。切换走两次确认:
+;; ---- 更新通道(stable/beta/disabled)切换 ----
+;; 首选项 update-channel:单值 "stable"/"beta"/"disabled"(缺省 stable),stable/beta
+;; 时 C++ 侧 tm_velopack 以 ExplicitChannel 显式跟随该值(见 devel/0518.md);切到
+;; "disabled"(禁用自动更新)只写首选项,下次启动 init-research.scm 不再启动
+;; 更新链路,单次确认即可,无需检查/下载/重启;stable/beta 切换走两次确认:
 ;; 第一次确认切换方向,第二次确认强制重启走 download+apply;任一步取消则
 ;; 什么都不动(首选项不写)。
 
 (tm-define (updater-current-channel)
-  (if (== (get-preference "update-channel") "beta") "beta" "stable")
+  (cond ((== (get-preference "update-channel") "beta") "beta")
+        ((== (get-preference "update-channel") "disabled") "disabled")
+        (else "stable")
+  ) ;cond
 ) ;tm-define
 
 ;; 两按钮确认弹窗:确认返回 #t,取消(含 Esc/关闭)返回 #f。
@@ -94,7 +99,10 @@
 ) ;define
 
 (define (updater-channel-name channel)
-  (if (== channel "beta") (translate "Beta") (translate "Stable"))
+  (cond ((== channel "beta") (translate "Beta"))
+        ((== channel "disabled") (translate "Disabled"))
+        (else (translate "Stable"))
+  ) ;cond
 ) ;define
 
 ;; ---- 下载中间态弹窗 ----
@@ -216,25 +224,40 @@
 
 (tm-define (updater-switch-channel target)
   (when (and (use-plugin-updater?) (!= target (updater-current-channel)))
-    (with prompt
-      (if (== target "beta")
-        (translate "Switch to the Beta update channel? Beta releases may be unstable.")
-        (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
-        ) ;translate
-      ) ;if
-      (when (updater-question prompt (updater-channel-name target))
-        (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
-                                ) ;translate
-                (translate "Restart")
-              ) ;updater-question
-          (set-preference "update-channel" target)
-          (save-preferences)
-          ;; 确认后立即无条件打开中间态弹窗:第二次切换时 auto-download-loop 可能
-          ;; 已抢先触发下载,链 poll 只看到 READY 就开不了窗,固定在此打开最可靠。
-          (updater-switch-dialog-open)
-          (updater-switch-chain-start 0)
-        ) ;when
-      ) ;when
-    ) ;with
+    (cond ((== target "disabled")
+           ;; 禁用自动更新：仅写首选项，无需检查/下载/重启。生效于下次启动
+           ;; （init-research.scm 不再启动更新链路）；任一步取消则首选项不写。
+           (when (updater-question (translate "Disable automatic updates? The application will no longer check for or apply updates."
+                                   ) ;translate
+                   (updater-channel-name target)
+                 ) ;updater-question
+             (set-preference "update-channel" "disabled")
+             (save-preferences)
+           ) ;when
+          ) ;
+          (else
+            ;; stable/beta 切换：两次确认，第二次确认后强制走 download+apply 重启。
+            (with prompt
+              (if (== target "beta")
+                (translate "Switch to the Beta update channel? Beta releases may be unstable.")
+                (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
+                ) ;translate
+              ) ;if
+              (when (updater-question prompt (updater-channel-name target))
+                (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
+                                        ) ;translate
+                        (translate "Restart")
+                      ) ;updater-question
+                  (set-preference "update-channel" target)
+                  (save-preferences)
+                  ;; 确认后立即无条件打开中间态弹窗:第二次切换时 auto-download-loop 可能
+                  ;; 已抢先触发下载,链 poll 只看到 READY 就开不了窗,固定在此打开最可靠。
+                  (updater-switch-dialog-open)
+                  (updater-switch-chain-start 0)
+                ) ;when
+              ) ;when
+            ) ;with
+          ) ;else
+    ) ;cond
   ) ;when
 ) ;tm-define
