@@ -167,6 +167,18 @@ public:
    */
   static QString sanitizeExportFileName (const QString& rawName);
 
+  /**
+   * @brief 把文档选区组成 AI 聊天输入体。
+   *
+   * 选区整体包成「引用」外观块（插入 → 外观块 → 引用，quote-env）；
+   * translate 动作在其后追加固定提示词（cork 编码）；chat 追加空段，
+   * 使光标落在引用块的下一行。
+   * @param sel    文档选区树
+   * @param action AI 动作：translate 或 chat
+   * @return document 形态的输入体
+   */
+  static tree composeAiInputBody (tree sel, string action);
+
 private:
   QTChatTabWidget*   view_= nullptr;  ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_; ///< 会话管理器
@@ -275,6 +287,7 @@ private:
                                            int    defaultExpandCount,
                                            string thinking, string search);
   friend void qt_chat_notify_input_height ();
+  friend void qt_chat_ai_send_selection (tree sel, string action);
 };
 
 /**
@@ -286,6 +299,17 @@ ChatController* get_chat_controller ();
  * @brief Scheme→C++ 回调：通知 Chat Tab 的会话状态变更。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
+
+/**
+ * @brief 引用文档选区到 AI 聊天输入区；翻译动作追加提示词并自动发送。
+ *
+ * AI 操作栏（翻译/对话）的共用入口：打开 AI 侧边栏，把选区内容写入当前
+ * 会话输入区。translate 在引用内容下方追加固定提示词并走与发送按钮相同的
+ * onSendRequested 管线自动发送；chat 只填入输入区，留给用户补写后手动发送。
+ * @param sel    文档选区树（调用方须在焦点/视图切换前捕获）
+ * @param action AI 动作：translate 或 chat
+ */
+void qt_chat_ai_send_selection (tree sel, string action);
 
 /**
  * @brief Scheme→C++ 回调：恢复单个聊天会话。

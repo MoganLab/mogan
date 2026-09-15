@@ -12,6 +12,10 @@
 #include "base.hpp"
 #include <QtTest/QtTest>
 
+#include "converter.hpp"
+
+using namespace moebius;
+
 class TestChatController : public QObject {
   Q_OBJECT
 
@@ -106,6 +110,51 @@ private slots:
   void test_sanitize_leading_trailing_spaces () {
     QCOMPARE (ChatController::sanitizeExportFileName ("  hello  "),
               QString ("__hello__"));
+  }
+
+  // === composeAiInputBody ===
+
+  void test_compose_atomic_selection_translate_appends_prompt () {
+    // 单行选区（selection_get 的原子串形态）：包成引用块并追加提示词；
+    // 提示词须为 cork 编码，不能是 UTF-8 原始字节
+    tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
+    QVERIFY (is_func (body, DOCUMENT));
+    QCOMPARE (int (N (body)), 2);
+    QVERIFY (body[0] ==
+             compound ("quote-env", tree (DOCUMENT, tree ("hello"))));
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为中文"));
+    QVERIFY (!(body[1] == tree ("请翻译上述文字为中文")));
+  }
+
+  void test_compose_atomic_selection_chat_keeps_selection_only () {
+    // 对话：引用块后留空段，光标落在引用块的下一行
+    tree body= ChatController::composeAiInputBody (tree ("hello"), "chat");
+    QVERIFY (is_func (body, DOCUMENT));
+    QCOMPARE (int (N (body)), 2);
+    QVERIFY (body[0] ==
+             compound ("quote-env", tree (DOCUMENT, tree ("hello"))));
+    QVERIFY (body[1] == tree (""));
+  }
+
+  void test_compose_document_selection_spreads_children () {
+    // 多段选区：document 子节点在引用块内依次展开，提示词追加为末段
+    tree sel = tree (DOCUMENT, tree ("para 1"), tree ("para 2"));
+    tree body= ChatController::composeAiInputBody (sel, "translate");
+    QVERIFY (is_func (body, DOCUMENT));
+    QCOMPARE (int (N (body)), 2);
+    QVERIFY (body[0] == compound ("quote-env", tree (DOCUMENT, tree ("para 1"),
+                                                     tree ("para 2"))));
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为中文"));
+  }
+
+  void test_compose_document_selection_chat_no_prompt () {
+    tree sel = tree (DOCUMENT, tree ("para 1"), tree ("para 2"));
+    tree body= ChatController::composeAiInputBody (sel, "chat");
+    QVERIFY (is_func (body, DOCUMENT));
+    QCOMPARE (int (N (body)), 2);
+    QVERIFY (body[0] == compound ("quote-env", tree (DOCUMENT, tree ("para 1"),
+                                                     tree ("para 2"))));
+    QVERIFY (body[1] == tree (""));
   }
 };
 

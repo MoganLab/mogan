@@ -10,6 +10,7 @@
 
 #include "QTMAiTranslatePopup.hpp"
 #include "edit_interface.hpp"
+#include "qt_chat_controller.hpp"
 #include "qt_utilities.hpp"
 
 #include <QCoreApplication>
@@ -70,7 +71,7 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   layout->setContentsMargins (0, 0, 0, 0);
   layout->addWidget (quick);
 
-  // 第一步仅挂接显隐，点击后的翻译/润色/对话流程在后续任务接入
+  // 翻译/对话经根信号回传后引用选区到 AI 侧边栏（翻译自动发送），润色后续接入
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
                       SLOT (onActionTriggered (QString)));
@@ -79,8 +80,12 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
 
 void
 QTMAiTranslatePopup::onActionTriggered (const QString& action) {
-  (void) action;
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
+    // 选区须在打开侧边栏（焦点/视图切换）之前捕获；无选区时忽视操作。
+    // 翻译引用选区并自动发送，对话只填入输入区；润色后续接入，暂仅关闭操作栏
+    string act= from_qstring_utf8 (action);
+    if ((act == "translate" || act == "chat") && ed->selection_active_any ())
+      qt_chat_ai_send_selection (ed->selection_get (), act);
     ed->dismiss_translate_popup ();
   }
 }
