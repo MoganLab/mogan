@@ -11,12 +11,12 @@
 #include "QTMAiTranslatePopup.hpp"
 #include "edit_interface.hpp"
 #include "qt_chat_controller.hpp"
+#include "qt_renderer.hpp"
 #include "qt_utilities.hpp"
 
 #include <QCoreApplication>
 #include <QCursor>
 #include <QEvent>
-#include <QHideEvent>
 #include <QHoverEvent>
 #include <QQmlContext>
 #include <QQmlProperty>
@@ -72,15 +72,15 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   layout->setContentsMargins (0, 0, 0, 0);
   layout->addWidget (quick);
 
-  // 悬浮唯一驱动：无按键 move 可能断在 QPA 层（macOS 上 s_windowUnderMouse
-  // 陈旧等会话态会让 QNSView 整体吞掉 move，事件不会成为 QMouseEvent，
-  // qApp 过滤器同样看不到）。轮询读系统级光标位置，不依赖事件投递，
-  // 任何会话下都能点亮/熄灭
+  // 光标跟踪轮询（显隐与悬浮的唯一驱动）：无按键 move 可能断在 QPA 层
+  // （macOS 上 s_windowUnderMouse 陈旧等会话态会让 QNSView 整体吞掉 move，
+  // 事件不会成为 QMouseEvent，qApp 过滤器同样看不到）。轮询读系统级光标
+  // 位置，不依赖事件投递，任何会话下都能正常工作
   hover_timer= new QTimer (this);
-  // 16ms ≈ 60Hz 一帧：悬浮点亮延迟上界，低于感知阈值，再快无收益
+  // 16ms ≈ 60Hz 一帧：响应延迟上界，低于感知阈值，再快无收益
   hover_timer->setInterval (16);
   QObject::connect (hover_timer, SIGNAL (timeout ()), this,
-                    SLOT (syncHoverFromCursor ()));
+                    SLOT (pollCursor ()));
 
   // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（引用选区
   // 到 AI 侧边栏，翻译自动发送），润色后续接入
@@ -113,12 +113,20 @@ QTMAiTranslatePopup::syncHover (QPointF pos) {
 }
 
 void
-QTMAiTranslatePopup::syncHoverFromCursor () {
-  // 三态（进入/栏内/刚离开）叠加坐标未变跳过：静止悬停与栏外远处都不
-  // 触发 Quick 场景命中测试
-  if (!isVisible ()) return;
+QTMAiTranslatePopup::pollCursor () {
+  // 一轮双责：显隐（光标离选区过远即隐藏，靠近重新显示）与悬浮同步。
+  // 隐藏但仍在跟踪（光标过远）时只判显隐
   QPoint g (QCursor::pos ());
-  bool   inside= rect ().contains (mapFromGlobal (g));
+  if (!isVisible ()) {
+    if (cursorNearSelection (g)) present ();
+    return;
+  }
+  if (!cursorNearSelection (g)) {
+    hide ();
+    return;
+  }
+  // 三态（进入/栏内/刚离开）叠加坐标未变跳过：静止悬停不重发
+  bool inside= rect ().contains (mapFromGlobal (g));
   if (inside || hover_inside) {
     QPointF pos (quick->mapFromGlobal (g));
     if (pos != last_sync_pos) syncHover (pos);
@@ -126,17 +134,46 @@ QTMAiTranslatePopup::syncHoverFromCursor () {
   hover_inside= inside;
 }
 
+bool
+QTMAiTranslatePopup::cursorNearSelection (const QPoint& global) const {
+  // 邻近区 = 锚行矩形（最后选中文字所在行）∪ 操作栏自身矩形（画布像素），
+  // 四周外扩 80px：操作栏可能宽于锚行，悬浮在栏上不算「离选中文字过远」。
+  // 注意锚行只是选区的一行，高于约两个 margin 的选区中部会被判远——
+  // 如需全选区邻近再从编辑器侧传入包围盒
+  if (!parentWidget ()) return true;
+  double x1, x2, top, bottom;
+  selectionRectPixels (x1, x2, top, bottom);
+  const double margin= 80;
+  QRectF       sel (QPointF (x1, top), QPointF (x2, bottom));
+  return sel.united (geometry ())
+      .adjusted (-margin, -margin, margin, margin)
+      .contains (parentWidget ()->mapFromGlobal (global));
+}
+
+void
+QTMAiTranslatePopup::present () {
+  // 统一显示闸门：光标远离锚行（保持跟踪，靠近后由轮询拉起）或选区移出
+  // 视口（updatePosition 已隐藏）都不显示
+  if (!cursorNearSelection (QCursor::pos ())) {
+    hide ();
+    return;
+  }
+  if (!updatePosition (the_qt_renderer ())) return;
+  show ();
+  raise ();
+  syncHover (quick->mapFromGlobal (QCursor::pos ()));
+}
+
+void
+QTMAiTranslatePopup::disarm () {
+  hover_timer->stop ();
+  hide ();
+}
+
 void
 QTMAiTranslatePopup::showEvent (QShowEvent* ev) {
   QTMBasePopup::showEvent (ev);
   hover_inside= false;
-  hover_timer->start ();
-}
-
-void
-QTMAiTranslatePopup::hideEvent (QHideEvent* ev) {
-  QTMBasePopup::hideEvent (ev);
-  hover_timer->stop ();
 }
 
 void
@@ -188,14 +225,12 @@ void
 QTMAiTranslatePopup::showPopup (qt_renderer_rep* ren, rectangle selr,
                                 double magf, int scroll_x, int scroll_y,
                                 int canvas_x, int canvas_y) {
+  (void) ren;
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   autoSize ();
-  if (!selectionInView ()) {
-    hide ();
-    return;
-  }
-  updatePosition (ren);
-  show ();
-  raise ();
-  syncHover (quick->mapFromGlobal (QCursor::pos ()));
+  // 编辑器 show 调用即开始光标跟踪；仅未运行时启动——update 随鼠标移动
+  // 高频重入，反复 start() 会重置间隔把轮询饿死。显示闸门（光标远近/
+  // 选区出视口）统一在 present
+  if (!hover_timer->isActive ()) hover_timer->start ();
+  present ();
 }

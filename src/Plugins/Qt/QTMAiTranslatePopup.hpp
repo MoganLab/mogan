@@ -29,6 +29,11 @@ public:
                   int canvas_y) override;
   void autoSize () override;
 
+  // 停止光标跟踪并隐藏：编辑器侧所有「不想显示」路径（选区取消/点击
+  // 外部/dismiss/偏好关闭等）都经 hide_translate_popup 汇入此处；
+  // showPopup 会重新开始跟踪
+  void disarm ();
+
   // 选择方向（由下往上为 true）：与锚行同时由编辑器侧算出，须在 showPopup
   // 前调用——定位只读缓存，不回查编辑器活态
   void setUpward (bool upward) { cached_upward= upward; }
@@ -38,24 +43,33 @@ protected:
   // 首选侧放不下时退到另一侧
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
-  // 悬停轮询仅在显示期间运行，隐藏即停止
+  // 悬停状态在每次显示时复位
   void showEvent (QShowEvent* ev) override;
-  void hideEvent (QHideEvent* ev) override;
 
 private slots:
   // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
   void onActionTriggered (const QString& action);
-  // 三态判定（进入/栏内/刚离开）+ 坐标未变跳过后按需 syncHover
-  void syncHoverFromCursor ();
+  // 光标轮询：驱动显隐（离选区过远即隐藏，靠近重新显示——不依赖事件
+  // 投递，覆盖事件流失效会话）与悬浮高亮同步
+  void pollCursor ();
 
 private:
   // 向离屏 scene 发 HoverMove（quick 本地坐标）：激活 hover 上下文并纠正
   // 残留态；坐标未变时由调用方跳过
   void syncHover (QPointF pos);
 
+  // 光标是否在「锚行矩形（最后选中文字所在行）∪ 操作栏自身矩形」外扩
+  // margin 的邻近区内：悬浮到操作栏上不算远离，避免自隐藏
+  bool cursorNearSelection (const QPoint& global) const;
+
+  // 统一显示闸门：光标远离锚行或选区移出视口时不显示（前者保持跟踪，
+  // 靠近后由轮询拉起）；showPopup 与轮询复现都经此进入
+  void present ();
+
   QQuickWidget* quick;
-  // 悬停轮询（悬浮唯一驱动）：move 事件可能在 QPA 层被整体吞掉，轮询只读
-  // 系统光标位置，不依赖事件投递
+  // 光标跟踪轮询（显隐与悬浮的唯一驱动）：move 事件可能在 QPA 层被整体
+  // 吞掉，轮询只读系统光标位置，不依赖事件投递；showPopup 启动、
+  // disarm 停止，隐藏期间仍运行（靠近需重新显示）
   QTimer* hover_timer;
   // 上次显示时的选择方向：定位输出仅为缓存的函数
   bool cached_upward= false;

@@ -122,15 +122,16 @@ QTMTextPopup::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
   raise ();
 }
 
-void
+bool
 QTMTextPopup::updatePosition (qt_renderer_rep* ren) {
   if (!selectionInView ()) {
     hide ();
-    return;
+    return false;
   }
   int x, y;
   getCachedPosition (ren, x, y);
   move (x, y);
+  return true;
 }
 
 void
