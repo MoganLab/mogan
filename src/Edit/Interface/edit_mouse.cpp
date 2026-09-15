@@ -22,6 +22,7 @@
 #ifdef QTTEXMACS
 #include "qapplication.h"
 #include "qnamespace.h"
+#include "qt_chat_controller.hpp"
 #include "qt_simple_widget.hpp"
 #endif
 #include "scheme.hpp"
@@ -1467,12 +1468,22 @@ edit_interface_rep::should_show_translate_popup () {
 #endif
 }
 
+bool
+edit_interface_rep::selection_made_upward () {
+  // 选区按文档序规范化存储（start ≤ end），选择方向只能由光标位置判
+  // 断：拖拽与 shift+方向键选择结束时，光标 tp 停在「最后选中」的一
+  // 端——停在选区起点一侧即从下往上选择
+  return path_less_eq (tp, selection_get_start ());
+}
+
 rectangle
 edit_interface_rep::get_selection_last_rect () {
   // 优先用 apply_changes 维护的已绘制选区矩形（与屏幕所见一致，且避免在
   // box 树重建的瞬态窗口期重走 find_check_selection）；缓存为空才遍历。
-  // 取屏幕最下方、同行最右的矩形（即最后一个选中文字所在行）
-  rectangles rs= selection_rects;
+  // 取「最后一个选中文字」所在行：向下选择为屏幕最下方、同行最右；向上
+  // 选择为屏幕最上方、同行最左
+  bool       upward= selection_made_upward ();
+  rectangles rs    = selection_rects;
   if (is_nil (rs)) {
     path p1, p2;
     selection_get (p1, p2);
@@ -1482,8 +1493,14 @@ edit_interface_rep::get_selection_last_rect () {
   rectangle last= rs->item;
   for (; !is_nil (rs); rs= rs->next) {
     rectangle r= rs->item;
-    // 屏幕下方对应逻辑 y 更小
-    if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
+    if (upward) {
+      // 屏幕上方对应逻辑 y 更大
+      if (r->y2 > last->y2 || (r->y2 == last->y2 && r->x1 < last->x1)) last= r;
+    }
+    else {
+      // 屏幕下方对应逻辑 y 更小
+      if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
+    }
   }
   return last;
 }
@@ -1530,6 +1547,21 @@ void
 edit_interface_rep::invalidate_translate_popup_cache () {
   translate_popup_last_check= 0;
   translate_popup_dismissed = false;
+}
+
+void
+edit_interface_rep::ai_action (string action) {
+  // AI 操作栏动作统一入口（translate/polish/chat）：操作栏按钮点击与
+  // cmd/ctrl+j 快捷键共用此路径
+#ifdef QTTEXMACS
+  // 选区须在打开侧边栏（焦点/视图切换）之前捕获；无选区时忽视操作。
+  // 翻译引用选区并自动发送，对话只填入输入区；润色后续接入，暂仅关闭操作栏
+  if ((action == "translate" || action == "chat") && selection_active_any ())
+    qt_chat_ai_send_selection (selection_get (), action);
+#else
+  (void) action;
+#endif
+  dismiss_translate_popup ();
 }
 
 void

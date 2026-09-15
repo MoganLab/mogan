@@ -1438,6 +1438,15 @@ function main()
                 cpp_name = "selection_active_enlarging",
                 ret_type = "bool"
             },
+            -- AI 操作栏动作统一入口（操作栏按钮点击与 cmd/ctrl+j 快捷键共用）
+            {
+                scm_name = "ai-action",
+                cpp_name = "ai_action",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
             {
                 scm_name = "selection-set-start",
                 cpp_name = "selection_set_start",

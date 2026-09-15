@@ -287,15 +287,19 @@ public:
   void update_text_popup ();
   void invalidate_text_popup_cache (); // 重置工具栏缓存
 
-  bool      should_show_translate_popup ();
-  rectangle get_selection_last_rect (); // 选区最末（屏幕最下方、同行最右）矩形
-  void      show_translate_popup (rectangle selr, double magf, int scroll_x,
-                                  int scroll_y, int canvas_x, int canvas_y);
-  void      hide_translate_popup ();
-  bool      is_point_in_translate_popup (SI x, SI y);
-  void      update_translate_popup ();
-  void      dismiss_translate_popup (); // 点击按钮后本次选区内不再弹出
-  void      invalidate_translate_popup_cache ();
+  bool should_show_translate_popup ();
+  bool selection_made_upward (); // 从下往上选择（光标停在选区起点一侧）
+  rectangle
+  get_selection_last_rect (); // 「最后选中文字」所在行（按选择方向取顶行/底行）
+  void show_translate_popup (rectangle selr, double magf, int scroll_x,
+                             int scroll_y, int canvas_x, int canvas_y);
+  void hide_translate_popup ();
+  bool is_point_in_translate_popup (SI x, SI y);
+  void update_translate_popup ();
+  void dismiss_translate_popup (); // 点击按钮后本次选区内不再弹出
+  void invalidate_translate_popup_cache ();
+  void
+  ai_action (string action); // 操作栏动作统一入口（按钮点击与 cmd/ctrl+j 共用）
 
   void show_ghost_popup ();
   void hide_ghost_popup ();

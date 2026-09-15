@@ -132,6 +132,12 @@
   ) ;when
 ) ;tm-define
 
+(tm-define (ai-chat-shortcut)
+  (:synopsis "Trigger the AI action bar chat with a selection, toggle the AI chat sidebar otherwise"
+  ) ;:synopsis
+  (if (selection-active-any?) (ai-action "chat") (toggle-chat-sidebar))
+) ;tm-define
+
 (tm-define (toggle-visible-side-tools n)
   (:synopsis "Toggle the visibility of the @n-th side tools")
   (:check-mark "v" has-side-tools?)
@@ -376,10 +382,7 @@
 
 (define (normalize-zoom zoom)
   (with std-zooms
-    (map
-      (lambda (x) (exp (* x (/ (log 2.0) 4.0))))
-      (.. -10 10)
-    ) ;map
+    (map (lambda (x) (exp (* x (/ (log 2.0) 4.0)))) (.. -10 10))
     (normalize-zoom-sub zoom std-zooms)
   ) ;with
 ) ;define

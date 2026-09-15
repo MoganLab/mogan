@@ -228,7 +228,7 @@
  ("cmd t var var var" (make 'block))
  ("cmd t var var var var" (make 'block*))
  ("cmd t var var var var var" (make 'wide-block))
- ("std j" (toggle-chat-sidebar))
+ ("std j" (ai-chat-shortcut))
 ) ;kbd-map
 
 (utf8-kbd-map ("、" "<#3001>")

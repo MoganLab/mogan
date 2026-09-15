@@ -257,7 +257,8 @@ QTMWidget::keyPressEvent (QKeyEvent* event) {
   cout << "[QTMWidget::keyPressEvent] key=" << event->key ()
        << " modifiers=" << event->modifiers () << "\n";
 
-  // Ctrl/Cmd+J：切换 AI 聊天侧边栏（绕过 Scheme slot 链路）
+  // Ctrl/Cmd+J：有选区时直接触发操作栏「对话」（与按钮同路径，选区引用进
+  // AI 侧边栏）；无选区时切换 AI 聊天侧边栏（绕过 Scheme slot 链路）
   if (event->key () == Qt::Key_J &&
       (event->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
     // 检查是否在 chat tab 模式（非 dock 的 QTChatTabWidget 内）
@@ -273,6 +274,15 @@ QTMWidget::keyPressEvent (QKeyEvent* event) {
       p= p->parentWidget ();
     }
     if (!inChatTab) {
+      // 与操作栏「对话」按钮同路径；选区在 ai_action 内部先于侧边栏打开
+      // 捕获
+      if (edit_interface_rep* ed=
+              dynamic_cast<edit_interface_rep*> (tm_widget ())) {
+        if (ed->selection_active_any ()) {
+          ed->ai_action ("chat");
+          return;
+        }
+      }
       QMainWindow* mw= qobject_cast<QMainWindow*> (window ());
       if (mw) {
         QDockWidget* dock= mw->findChild<QDockWidget*> ("chatSideDock");

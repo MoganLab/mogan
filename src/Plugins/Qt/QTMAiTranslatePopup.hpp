@@ -29,7 +29,8 @@ public:
   void autoSize () override;
 
 protected:
-  // 定位到选区最末行的下一行（左缘对齐），下方放不下时退到选区上方
+  // 水平居中于「最后选中文字」所在行，纵向按选择方向取该行下方/上方，
+  // 首选侧放不下时退到另一侧
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
   // qApp 级截获无按键 move，持续同步 hover（见 cpp，悬浮可靠性关键）
