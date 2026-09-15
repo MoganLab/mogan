@@ -45,6 +45,7 @@
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSpacerItem>
 #include <QStackedWidget>
 #include <QTimer>
@@ -541,6 +542,28 @@ ChatConversationPanel::focusInput () {
     inputQTMWidget_->clearFocus ();
     inputQTMWidget_->setFocus (Qt::OtherFocusReason);
   }
+}
+
+void
+ChatConversationPanel::revealInputCursor () {
+  focusInput ();
+  if (!inputQTMWidget_) return;
+  auto scroll_to_bottom= [this] () {
+    if (inputQTMWidget_) {
+      QScrollBar* sb= inputQTMWidget_->verticalScrollBar ();
+      sb->setValue (sb->maximum ());
+    }
+  };
+  scroll_to_bottom ();
+  // 首次打开侧边栏时同步聚焦先于 dock 显示事件处理，晚到的焦点分配会
+  // 覆盖它；帧高调整（0 延时）与排版定型后滚动条范围也会变大。250ms 拍
+  // 补滚动并挽回被覆盖的聚焦；700ms 拍只补滚动（长文排版慢，此时用户
+  // 可能已主动点走焦点，不再抢回）
+  QTimer::singleShot (250, this, [this, scroll_to_bottom] () {
+    scroll_to_bottom ();
+    if (inputQTMWidget_ && !inputQTMWidget_->hasFocus ()) focusInput ();
+  });
+  QTimer::singleShot (700, this, scroll_to_bottom);
 }
 
 void

@@ -20,6 +20,8 @@
 #include "scheme.hpp"
 #include "tm_debug.hpp"
 
+#include "converter.hpp"
+
 #include <QApplication>
 #include <QDir>
 #include <QDockWidget>
@@ -772,6 +774,24 @@ ChatController::getOrCreatePanel (const string& sessionId) {
  * ChatController 辅助方法
  ******************************************************************************/
 
+tree
+ChatController::composeAiInputBody (tree sel, string action) {
+  // 引用选区组成输入体：选区整体包成「引用」外观块（插入 → 外观块 → 引用
+  // 即 quote-env，generic 样式链的 std-markup 提供），提示词追加为末段
+  tree quoted (DOCUMENT);
+  if (is_func (sel, DOCUMENT)) {
+    for (int i= 0; i < N (sel); i++)
+      quoted << sel[i];
+  }
+  else quoted << sel;
+  tree body (DOCUMENT);
+  body << compound ("quote-env", quoted);
+  // 未知动作不追加尾段（调用方白名单 translate/chat）
+  if (action == "translate") body << utf8_to_cork ("请翻译上述文字为中文");
+  else if (action == "chat") body << ""; // 空段使 go-end 光标落在引用块下一行
+  return body;
+}
+
 QList<SessionDisplayInfo>
 ChatController::buildDisplayInfos () {
   QList<SessionDisplayInfo> infos;
@@ -815,6 +835,27 @@ get_chat_controller () {
 void
 qt_chat_tab_set_state (string sessionId, string stateStr) {
   get_chat_controller ()->notifyStateChanged (sessionId, stateStr);
+}
+
+void
+qt_chat_ai_send_selection (tree sel, string action) {
+  ChatController* ctrl= get_chat_controller ();
+  // 打开 AI 侧边栏：同步创建聊天部件并确保活动会话。已打开时跳过，避免
+  // sync_chat_sidebar_mode 重复 dock 重排；社区版无聊天部件，调用静默无效
+  if (!ctrl->view_ || !ctrl->view_->isVisible ())
+    call ("show-chat-sidebar", object (true));
+  if (!ctrl->view_) return;
+  ChatConversationPanel* panel= ctrl->view_->activeConversation ();
+  if (!panel) return;
+  string sid= panel->sessionId ();
+  // 面板存在即保证 llm 模块已加载（会话创建路径 eval 过 use-modules，
+  // chat-loader 亦在启动 idle 阶段整体加载），写入函数可直接调用
+  call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
+        ChatController::composeAiInputBody (sel, action));
+  // 仅翻译自动发送；对话只填入输入区，聚焦并滚动到光标（引用块下方）
+  // 留给用户补写后手动发送
+  if (action == "translate") ctrl->onSendRequested (sid);
+  else if (action == "chat") panel->revealInputCursor ();
 }
 
 void
