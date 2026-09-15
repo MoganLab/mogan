@@ -92,17 +92,14 @@
   ) ;cond
 ) ;tm-define
 
-;; 两按钮确认弹窗:确认返回 #t,取消(含 Esc/关闭)返回 #f。
+;; 两按钮确认弹窗:确认返回 #t,取消(含 Esc/关闭)返回 #f。按钮固定为「取消/
+;; 确认」,不随场景动态变化(如切换通道时把确认键填成通道名)——场景信息已由
+;; 消息文案表达,确认键语义统一。
 
-(define (updater-question message ok-label)
-  (== (cpp-confirm-question message (list (translate "Cancel") ok-label)) 1)
-) ;define
-
-(define (updater-channel-name channel)
-  (cond ((== channel "beta") (translate "Beta"))
-        ((== channel "disabled") (translate "Disabled"))
-        (else (translate "Stable"))
-  ) ;cond
+(define (updater-question message)
+  (== (cpp-confirm-question message (list (translate "Cancel") (translate "OK")))
+    1
+  ) ;==
 ) ;define
 
 ;; ---- 下载中间态弹窗 ----
@@ -170,22 +167,20 @@
           ;; 不会自动前进,继续轮询会每秒重弹确认;下次启动由 VelopackApp 自动应用。
           ((== st 4)
            (updater-switch-dialog-cleanup)
-           (if (updater-question (translate "The update is ready. Restart now to apply it?")
-                 (translate "Restart")
-               ) ;updater-question
+           (if (updater-question (translate "The update is ready. Restart now to apply it?"))
              (begin
                (updater-apply-update)
                (delayed (:pause 1000) (updater-switch-chain-poll ticks))
              ) ;begin
-             (set-message "The update will be applied the next time you start the application"
-               "Update channel"
+             (set-message (translate "The update will be applied the next time you start the application")
+               (translate "Update channel")
              ) ;set-message
            ) ;if
           ) ;
           ((== st 0)
            (updater-switch-dialog-cleanup)
-           (set-message "Channel switched; the next release on this channel will be offered"
-             "Update channel"
+           (set-message (translate "Channel switched; the next release on this channel will be offered")
+             (translate "Update channel")
            ) ;set-message
           ) ;
           ;; 失败:关中间态弹窗,再弹阻塞确认提示失败(带错误码)。下载已结束、链路
@@ -198,7 +193,9 @@
           ) ;
           ((< ticks 600) (delayed (:pause 1000) (updater-switch-chain-poll (+ ticks 1))))
           (else (updater-switch-dialog-cleanup)
-            (set-message "Timed out waiting for the update check" "Update channel")
+            (set-message (translate "Timed out waiting for the update check")
+              (translate "Update channel")
+            ) ;set-message
           ) ;else
     ) ;cond
   ) ;with
@@ -216,7 +213,9 @@
       (delayed (:pause 1000) (updater-switch-chain-start (+ ticks 1)))
       (begin
         (updater-switch-dialog-cleanup)
-        (set-message "Timed out waiting for the previous update task" "Update channel")
+        (set-message (translate "Timed out waiting for the previous update task")
+          (translate "Update channel")
+        ) ;set-message
       ) ;begin
     ) ;if
   ) ;if
@@ -229,7 +228,6 @@
            ;; （init-research.scm 不再启动更新链路）；任一步取消则首选项不写。
            (when (updater-question (translate "Disable automatic updates? The application will no longer check for or apply updates."
                                    ) ;translate
-                   (updater-channel-name target)
                  ) ;updater-question
              (set-preference "update-channel" "disabled")
              (save-preferences)
@@ -243,10 +241,9 @@
                 (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
                 ) ;translate
               ) ;if
-              (when (updater-question prompt (updater-channel-name target))
+              (when (updater-question prompt)
                 (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
                                         ) ;translate
-                        (translate "Restart")
                       ) ;updater-question
                   (set-preference "update-channel" target)
                   (save-preferences)

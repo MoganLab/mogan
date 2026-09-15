@@ -68,6 +68,7 @@
 ("Delete selected" "删除所选")
 ("Delete selected (%1)" "删除所选 (%1)")
 ("Determine margins from text width" "按文本宽度自动确定边距")
+("Disabled" "禁用")
 ("Delete::keyboard" "Delete")
 ("Double brackets ⟦ ⟧" "双括号 ⟦ ⟧")
 ("Double vertical bars ‖ ‖" "双竖线 ‖ ‖")
@@ -153,6 +154,9 @@
   "重启TeXmacs以使您的更改生效"
 ) ;
 ("Restart" "重启")
+("Disable automatic updates? The application will no longer check for or apply updates."
+  "禁用自动更新？应用将不再检查或应用更新。"
+) ;
 ("Channel switched; the next release on this channel will be offered"
   "已切换更新通道，该通道发布新版本后将自动提供更新"
 ) ;
