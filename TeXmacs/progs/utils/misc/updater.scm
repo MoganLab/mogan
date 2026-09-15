@@ -77,24 +77,29 @@
   ) ;when
 ) ;tm-define
 
-;; ---- 更新通道(stable/beta)切换 ----
-;; 首选项 update-channel:单值 "stable"/"beta"(缺省 stable),C++ 侧 tm_velopack
-;; 以 ExplicitChannel 显式跟随该值(见 devel/0518.md)。切换走两次确认:
+;; ---- 更新通道(stable/beta/disabled)切换 ----
+;; 首选项 update-channel:单值 "stable"/"beta"/"disabled"(缺省 stable),stable/beta
+;; 时 C++ 侧 tm_velopack 以 ExplicitChannel 显式跟随该值(见 devel/0518.md);切到
+;; "disabled"(禁用自动更新)只写首选项,下次启动 init-research.scm 不再启动
+;; 更新链路,单次确认即可,无需检查/下载/重启;stable/beta 切换走两次确认:
 ;; 第一次确认切换方向,第二次确认强制重启走 download+apply;任一步取消则
 ;; 什么都不动(首选项不写)。
 
 (tm-define (updater-current-channel)
-  (if (== (get-preference "update-channel") "beta") "beta" "stable")
+  (cond ((== (get-preference "update-channel") "beta") "beta")
+        ((== (get-preference "update-channel") "disabled") "disabled")
+        (else "stable")
+  ) ;cond
 ) ;tm-define
 
-;; 两按钮确认弹窗:确认返回 #t,取消(含 Esc/关闭)返回 #f。
+;; 两按钮确认弹窗:确认返回 #t,取消(含 Esc/关闭)返回 #f。按钮固定为「取消/
+;; 确认」,不随场景动态变化(如切换通道时把确认键填成通道名)——场景信息已由
+;; 消息文案表达,确认键语义统一。
 
-(define (updater-question message ok-label)
-  (== (cpp-confirm-question message (list (translate "Cancel") ok-label)) 1)
-) ;define
-
-(define (updater-channel-name channel)
-  (if (== channel "beta") (translate "Beta") (translate "Stable"))
+(define (updater-question message)
+  (== (cpp-confirm-question message (list (translate "Cancel") (translate "OK")))
+    1
+  ) ;==
 ) ;define
 
 ;; ---- 下载中间态弹窗 ----
@@ -162,22 +167,20 @@
           ;; 不会自动前进,继续轮询会每秒重弹确认;下次启动由 VelopackApp 自动应用。
           ((== st 4)
            (updater-switch-dialog-cleanup)
-           (if (updater-question (translate "The update is ready. Restart now to apply it?")
-                 (translate "Restart")
-               ) ;updater-question
+           (if (updater-question (translate "The update is ready. Restart now to apply it?"))
              (begin
                (updater-apply-update)
                (delayed (:pause 1000) (updater-switch-chain-poll ticks))
              ) ;begin
-             (set-message "The update will be applied the next time you start the application"
-               "Update channel"
+             (set-message (translate "The update will be applied the next time you start the application")
+               (translate "Update channel")
              ) ;set-message
            ) ;if
           ) ;
           ((== st 0)
            (updater-switch-dialog-cleanup)
-           (set-message "Channel switched; the next release on this channel will be offered"
-             "Update channel"
+           (set-message (translate "Channel switched; the next release on this channel will be offered")
+             (translate "Update channel")
            ) ;set-message
           ) ;
           ;; 失败:关中间态弹窗,再弹阻塞确认提示失败(带错误码)。下载已结束、链路
@@ -190,7 +193,9 @@
           ) ;
           ((< ticks 600) (delayed (:pause 1000) (updater-switch-chain-poll (+ ticks 1))))
           (else (updater-switch-dialog-cleanup)
-            (set-message "Timed out waiting for the update check" "Update channel")
+            (set-message (translate "Timed out waiting for the update check")
+              (translate "Update channel")
+            ) ;set-message
           ) ;else
     ) ;cond
   ) ;with
@@ -208,7 +213,9 @@
       (delayed (:pause 1000) (updater-switch-chain-start (+ ticks 1)))
       (begin
         (updater-switch-dialog-cleanup)
-        (set-message "Timed out waiting for the previous update task" "Update channel")
+        (set-message (translate "Timed out waiting for the previous update task")
+          (translate "Update channel")
+        ) ;set-message
       ) ;begin
     ) ;if
   ) ;if
@@ -216,25 +223,39 @@
 
 (tm-define (updater-switch-channel target)
   (when (and (use-plugin-updater?) (!= target (updater-current-channel)))
-    (with prompt
-      (if (== target "beta")
-        (translate "Switch to the Beta update channel? Beta releases may be unstable.")
-        (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
-        ) ;translate
-      ) ;if
-      (when (updater-question prompt (updater-channel-name target))
-        (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
-                                ) ;translate
-                (translate "Restart")
-              ) ;updater-question
-          (set-preference "update-channel" target)
-          (save-preferences)
-          ;; 确认后立即无条件打开中间态弹窗:第二次切换时 auto-download-loop 可能
-          ;; 已抢先触发下载,链 poll 只看到 READY 就开不了窗,固定在此打开最可靠。
-          (updater-switch-dialog-open)
-          (updater-switch-chain-start 0)
-        ) ;when
+    (cond
+     ((== target "disabled")
+      ;; 禁用自动更新：仅写首选项，无需检查/下载/重启。生效于下次启动
+      ;; （init-research.scm 不再启动更新链路）；任一步取消则首选项不写。
+      (when (updater-question (translate "Disable automatic updates? The application will no longer check for or apply updates."
+                              ) ;translate
+            ) ;updater-question
+        (set-preference "update-channel" "disabled")
+        (save-preferences)
       ) ;when
-    ) ;with
+     ) ;
+     (else
+       ;; stable/beta 切换：两次确认，第二次确认后强制走 download+apply 重启。
+       (with prompt
+         (if (== target "beta")
+           (translate "Switch to the Beta update channel? Beta releases may be unstable.")
+           (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
+           ) ;translate
+         ) ;if
+         (when (updater-question prompt)
+           (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
+                                   ) ;translate
+                 ) ;updater-question
+             (set-preference "update-channel" target)
+             (save-preferences)
+             ;; 确认后立即无条件打开中间态弹窗:第二次切换时 auto-download-loop 可能
+             ;; 已抢先触发下载,链 poll 只看到 READY 就开不了窗,固定在此打开最可靠。
+             (updater-switch-dialog-open)
+             (updater-switch-chain-start 0)
+           ) ;when
+         ) ;when
+       ) ;with
+     ) ;else
+    ) ;cond
   ) ;when
 ) ;tm-define

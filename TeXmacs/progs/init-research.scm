@@ -639,9 +639,14 @@
 ;; (display "Booting regression testing\n")
 
 ;; (display "Booting autoupdater\n")
+;; 更新通道为 "disabled"（禁用自动更新）时不启动更新链路：不再检查/下载/应用
+;; 更新。模块仍加载（首选项 combo 需 updater-switch-channel 才能切回），
+;; 只挡链路启动；C++ 侧 Velopack 钩子保留作启动兜底（此时为无害空操作）。
 (when (use-plugin-updater?)
   (use-modules (utils misc updater))
-  (delayed (:pause 2000) (updater-initialize))
+  (when (!= (get-preference "update-channel") "disabled")
+    (delayed (:pause 2000) (updater-initialize))
+  ) ;when
 ) ;when
 (debug-message "debug-std"
   (string-append "time: "
