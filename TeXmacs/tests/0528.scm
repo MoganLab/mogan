@@ -27,6 +27,19 @@
   ) ;check
 ) ;define
 
+(define (test-semver-update-logic)
+  ;; 验证 2026.3.2-rc.1 绝不比 2026.3.5 新 (failed? is-latest? primary-enabled?)
+  (check (calc-update-status "2026.3.5" "2026.3.2-rc.1") => '(#f #t #f))
+  (check (calc-update-status "2026.3.2-rc.1" "2026.3.5") => '(#f #f #t))
+  (check (calc-update-status "2026.3.5" "2026.3.5") => '(#f #t #f))
+  (check (calc-update-status "2026.3.5" "v2026.3.5") => '(#f #t #f))
+  (check (calc-update-status "2026.3.5" "2026.3.6") => '(#f #f #t))
+  (check (calc-update-status "2026.3.2-rc.1" "2026.3.2-rc.2") => '(#f #f #t))
+  (check (calc-update-status "2026.3.2-rc.2" "2026.3.2-rc.1") => '(#f #t #f))
+  (check (calc-update-status "2026.3.5" "") => '(#t #f #f))
+  (check (calc-update-status "2026.3.5" "bad-ver") => '(#t #f #f))
+) ;define
+
 (define (test-version-dialog-smoke)
   ;; 测试钩子模拟确认
   (system-setenv "MOGAN_TEST_VERSION_DIALOG" "cancel")
@@ -37,6 +50,7 @@
 
 (tm-define (test_0528)
   (test-update-urls)
+  (test-semver-update-logic)
   (test-version-dialog-smoke)
   (check-report)
 ) ;tm-define

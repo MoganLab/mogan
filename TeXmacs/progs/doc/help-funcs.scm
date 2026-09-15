@@ -14,7 +14,7 @@
   (:use (texmacs texmacs tm-files) (utils misc updater))
 ) ;texmacs-module
 
-(import (liii json))
+(import (liii json) (liii semver))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loading help buffers
@@ -233,7 +233,7 @@
           (let* ((json-obj (string->json content)) (data-obj (json-ref json-obj "data")))
             (if (json-object? data-obj)
               (let ((ver (json-ref data-obj "version")))
-                (if (string? ver) ver "")
+                (if (string? ver) (semver-clean ver) "")
               ) ;let
               ""
             ) ;if
@@ -246,6 +246,22 @@
   ) ;with
 ) ;define
 
+;; 计算更新状态三元组: (list failed? is-latest? primary-enabled?)
+(tm-define (calc-update-status cur-ver latest-ver)
+  (let* ((failed? (or (not (string? latest-ver))
+                    (== latest-ver "")
+                    (not (semver-valid? latest-ver))
+                    (not (semver-valid? cur-ver))
+                  ) ;or
+         ) ;failed?
+         (has-new? (and (not failed?) (semver>? latest-ver cur-ver)))
+         (is-latest? (and (not failed?) (not has-new?)))
+         (primary-enabled? has-new?)
+        ) ;
+    (list failed? is-latest? primary-enabled?)
+  ) ;let*
+) ;tm-define
+
 ;; 检查更新并显示弹窗
 (tm-define (check-for-updates)
   (let* ((community? (community-stem?))
@@ -256,9 +272,10 @@
                 "https://liiistem.cn?utm_source=mogan-commercial&utm_medium=referral&utm_campaign=version-check"
               ) ;if
          ) ;url
-         (failed? (or (== latest-ver "") (not (string? latest-ver))))
-         (is-latest? (and (not failed?) (== cur-ver latest-ver)))
-         (primary-enabled? (and (not failed?) (not is-latest?)))
+         (status (calc-update-status cur-ver latest-ver))
+         (failed? (car status))
+         (is-latest? (cadr status))
+         (primary-enabled? (caddr status))
          (primary-btn-label (if (use-plugin-updater?) "Update Now" "Go to Download"))
          (cancel-btn-label "Close")
          (title (translate "Check for updates"))
@@ -272,18 +289,19 @@
                      (replace (translate "Liii STEM latest stable version: v%1") latest-ver)
                    ) ;if
          ) ;ver-line
-         (msg (if failed?
-                (string-append (replace (translate "Current version: v%1") cur-ver)
-                  "\n"
-                  status-line
-                ) ;string-append
-                (string-append (replace (translate "Current version: v%1") cur-ver)
-                  "\n"
-                  ver-line
-                  "\n"
-                  status-line
-                ) ;string-append
-              ) ;if
+         (msg
+           (if failed?
+             (string-append (replace (translate "Current version: v%1") cur-ver)
+               "\n"
+               status-line
+             ) ;string-append
+             (string-append (replace (translate "Current version: v%1") cur-ver)
+               "\n"
+               ver-line
+               "\n"
+               status-line
+             ) ;string-append
+           ) ;if
          ) ;msg
         ) ;
     (when (cpp-version-dialog title
