@@ -76,24 +76,41 @@ QTMBasePopup::cachePosition (rectangle selr, double magf, int scroll_x,
 }
 
 void
-QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
+QTMBasePopup::selectionEdgePixels (double& cx_px, double& top_px,
+                                   double& bottom_px) const {
   rectangle selr            = cached_rect;
   double    inv_unit        = 1.0 / 256.0;
   double    cx_logic        = (selr->x1 + selr->x2) * 0.5;
   double    sel_top_logic   = (selr->y1 > selr->y2) ? selr->y1 : selr->y2;
   double    sel_bottom_logic= (selr->y1 > selr->y2) ? selr->y2 : selr->y1;
 
-  // 使用公式计算QT坐标
-  double cx_px=
+  cx_px=
       ((cx_logic - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double top_px= -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
-  double bottom_px=
-      -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
+  top_px   = -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
+  bottom_px= -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
 
   // 修正：视口 > 表面：存在空白顶部
   double blank_top= blank_top_offset ();
   top_px+= blank_top;
   bottom_px+= blank_top;
+}
+
+void
+QTMBasePopup::clampToViewport (int& x, int& y) const {
+  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport ()) {
+    int vp_w= owner->scrollarea ()->viewport ()->width ();
+    int vp_h= owner->scrollarea ()->viewport ()->height ();
+    if (x < 0) x= 0;
+    if (x + cached_width > vp_w) x= vp_w - cached_width;
+    if (y < 0) y= 0;
+    if (y + cached_height > vp_h) y= vp_h - cached_height;
+  }
+}
+
+void
+QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
+  double cx_px, top_px, bottom_px;
+  selectionEdgePixels (cx_px, top_px, bottom_px);
 
   const int above_y=
       int (std::round (top_px - cached_height - 10)); // 在选区顶部上方显示
@@ -118,10 +135,7 @@ QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
       y= std::max (0, (vp_h - cached_height) / 2);
     }
 
-    if (x < 0) x= 0;
-    if (x + cached_width > vp_w) x= vp_w - cached_width;
-    if (y < 0) y= 0;
-    if (y + cached_height > vp_h) y= vp_h - cached_height;
+    clampToViewport (x, y);
   }
   else {
     if (y < 0) y= below_y;

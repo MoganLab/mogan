@@ -22,6 +22,7 @@
 #ifdef QTTEXMACS
 #include "qapplication.h"
 #include "qnamespace.h"
+#include "qt_chat_controller.hpp"
 #include "qt_simple_widget.hpp"
 #endif
 #include "scheme.hpp"
@@ -1467,11 +1468,20 @@ edit_interface_rep::should_show_translate_popup () {
 #endif
 }
 
+bool
+edit_interface_rep::selection_made_upward () {
+  // 选区按文档序规范化存储（start ≤ end），选择方向只能由光标位置判
+  // 断：拖拽与 shift+方向键选择结束时，光标 tp 停在「最后选中」的一
+  // 端——停在选区起点一侧即从下往上选择
+  return path_less_eq (tp, selection_get_start ());
+}
+
 rectangle
-edit_interface_rep::get_selection_last_rect () {
+edit_interface_rep::get_selection_last_rect (bool upward) {
   // 优先用 apply_changes 维护的已绘制选区矩形（与屏幕所见一致，且避免在
   // box 树重建的瞬态窗口期重走 find_check_selection）；缓存为空才遍历。
-  // 取屏幕最下方、同行最右的矩形（即最后一个选中文字所在行）
+  // 取「最后一个选中文字」所在行：向下选择为屏幕最下方、同行最右；向上
+  // 选择为屏幕最上方、同行最左
   rectangles rs= selection_rects;
   if (is_nil (rs)) {
     path p1, p2;
@@ -1482,19 +1492,26 @@ edit_interface_rep::get_selection_last_rect () {
   rectangle last= rs->item;
   for (; !is_nil (rs); rs= rs->next) {
     rectangle r= rs->item;
-    // 屏幕下方对应逻辑 y 更小
-    if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
+    if (upward) {
+      // 屏幕上方对应逻辑 y 更大
+      if (r->y2 > last->y2 || (r->y2 == last->y2 && r->x1 < last->x1)) last= r;
+    }
+    else {
+      // 屏幕下方对应逻辑 y 更小
+      if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
+    }
   }
   return last;
 }
 
 void
-edit_interface_rep::show_translate_popup (rectangle selr, double magf,
-                                          int scroll_x, int scroll_y,
-                                          int canvas_x, int canvas_y) {
+edit_interface_rep::show_translate_popup (rectangle selr, bool upward,
+                                          double magf, int scroll_x,
+                                          int scroll_y, int canvas_x,
+                                          int canvas_y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_translate_popup (selr, magf, scroll_x, scroll_y, canvas_x,
+    qsw->show_translate_popup (selr, upward, magf, scroll_x, scroll_y, canvas_x,
                                canvas_y);
   }
 #endif
@@ -1533,19 +1550,37 @@ edit_interface_rep::invalidate_translate_popup_cache () {
 }
 
 void
+edit_interface_rep::ai_action (string action) {
+  // AI 操作栏动作统一入口（translate/polish/chat）：操作栏按钮点击与
+  // cmd/ctrl+j 快捷键共用此路径
+#ifdef QTTEXMACS
+  // 选区须在打开侧边栏（焦点/视图切换）之前捕获；无选区时忽视操作。
+  // 翻译引用选区并自动发送，对话只填入输入区；润色后续接入，暂仅关闭操作栏
+  if ((action == "translate" || action == "chat") && selection_active_any ())
+    qt_chat_ai_send_selection (selection_get (), action);
+#else
+  (void) action;
+#endif
+  dismiss_translate_popup ();
+}
+
+void
 edit_interface_rep::update_translate_popup () {
   if (left_dragging || translate_popup_dismissed) {
     hide_translate_popup ();
     return;
   }
   if (should_show_translate_popup ()) {
-    rectangle selr= get_selection_last_rect ();
+    // 方向与锚行在同一时刻确定，随锚行一路传入 popup 缓存——定位时不再
+    // 回查编辑器活态，避免选区变化后位置与锚行失配
+    bool      upward= selection_made_upward ();
+    rectangle selr  = get_selection_last_rect (upward);
     if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
       hide_translate_popup ();
       return;
     }
     // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
-    show_translate_popup (selr, magf, get_scroll_x (), get_scroll_y (),
+    show_translate_popup (selr, upward, magf, get_scroll_x (), get_scroll_y (),
                           get_canvas_x (), get_canvas_y ());
   }
   else {

@@ -28,8 +28,13 @@ public:
                   int canvas_y) override;
   void autoSize () override;
 
+  // 选择方向（由下往上为 true）：与锚行同时由编辑器侧算出，须在 showPopup
+  // 前调用——定位只读缓存，不回查编辑器活态
+  void setUpward (bool upward) { cached_upward= upward; }
+
 protected:
-  // 定位到选区最末行的下一行（左缘对齐），下方放不下时退到选区上方
+  // 水平居中于「最后选中文字」所在行，纵向按选择方向取该行下方/上方，
+  // 首选侧放不下时退到另一侧
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
   // qApp 级截获无按键 move，持续同步 hover（见 cpp，悬浮可靠性关键）
@@ -47,6 +52,8 @@ private:
   void syncHover ();
 
   QQuickWidget* quick;
+  // 上次显示时的选择方向：定位输出仅为缓存的函数
+  bool cached_upward= false;
   // 上次同步时光标是否在栏内：决定「进入/栏内移动/首次离开」三态是否需要
   // 同步，栏外远处的 move 不再触发 Quick 场景命中测试
   bool hover_inside= false;

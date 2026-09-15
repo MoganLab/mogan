@@ -71,7 +71,8 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   layout->setContentsMargins (0, 0, 0, 0);
   layout->addWidget (quick);
 
-  // 翻译/对话经根信号回传后引用选区到 AI 侧边栏（翻译自动发送），润色后续接入
+  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（引用选区
+  // 到 AI 侧边栏，翻译自动发送），润色后续接入
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
                       SLOT (onActionTriggered (QString)));
@@ -81,12 +82,9 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
 void
 QTMAiTranslatePopup::onActionTriggered (const QString& action) {
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
-    // 选区须在打开侧边栏（焦点/视图切换）之前捕获；无选区时忽视操作。
-    // 翻译引用选区并自动发送，对话只填入输入区；润色后续接入，暂仅关闭操作栏
-    string act= from_qstring_utf8 (action);
-    if ((act == "translate" || act == "chat") && ed->selection_active_any ())
-      qt_chat_ai_send_selection (ed->selection_get (), act);
-    ed->dismiss_translate_popup ();
+    // 动作统一入口（引用选区到 AI 侧边栏的流程与快捷键共用），见
+    // edit_interface_rep::ai_action
+    ed->ai_action (from_qstring_utf8 (action));
   }
 }
 
@@ -156,41 +154,25 @@ QTMAiTranslatePopup::autoSize () {
 void
 QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   (void) ren;
-  rectangle selr    = cached_rect;
-  double    inv_unit= 1.0 / 256.0;
-  // 选区矩形不变式 y1 < y2：y2 为上缘、y1 为下缘（逻辑坐标 y 向上）
-  double sel_top_logic   = selr->y2;
-  double sel_bottom_logic= selr->y1;
-
-  double left_px=
-      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double top_px= -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
-  double bottom_px=
-      -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
-
-  // 视口大于画布表面时顶部存在居中留白，需补偿（同基类算法）
-  double blank_top= blank_top_offset ();
-  top_px+= blank_top;
-  bottom_px+= blank_top;
+  double center_px, top_px, bottom_px;
+  selectionEdgePixels (center_px, top_px, bottom_px);
 
   const int gap= 4;
-  // 始终显示在选中文字的下一行：与最末选区行左缘对齐、位于其下方
-  x= int (std::round (left_px));
-  y= int (std::round (bottom_px + gap));
+  // 水平居中于「最后选中文字」所在行
+  x= int (std::round (center_px - cached_width * 0.5));
 
+  // 向下选择显示在锚行下方、向上选择显示在锚行上方；首选侧放不下退到
+  // 另一侧（两侧均放不下时由 clampToViewport 收敛到视口内，结果一致）
+  int first = cached_upward ? int (std::round (top_px - cached_height - gap))
+                            : int (std::round (bottom_px + gap));
+  int backup= cached_upward ? int (std::round (bottom_px + gap))
+                            : int (std::round (top_px - cached_height - gap));
+  y         = first;
   if (owner && owner->scrollarea () && owner->scrollarea ()->viewport ()) {
-    int vp_w= owner->scrollarea ()->viewport ()->width ();
     int vp_h= owner->scrollarea ()->viewport ()->height ();
-
-    // 下方放不下时退到选区上方，最终裁剪到视口内
-    if (y + cached_height > vp_h) {
-      y= int (std::round (top_px - cached_height - gap));
-    }
-    if (x < 0) x= 0;
-    if (x + cached_width > vp_w) x= vp_w - cached_width;
-    if (y < 0) y= 0;
-    if (y + cached_height > vp_h) y= vp_h - cached_height;
+    if (y < 0 || y + cached_height > vp_h) y= backup;
   }
+  clampToViewport (x, y);
 }
 
 void
