@@ -37,30 +37,33 @@
         ((i 0) (slash-pos #f) (question-pos #f) (hash-pos #f))
         (if (>= i (string-length str))
           (let ((netloc (if slash-pos (substring str 0 slash-pos) str))
-                (path (if slash-pos
-                        (substring str slash-pos (or question-pos hash-pos (string-length str)))
-                        ""
-                      ) ;if
+                (path
+                  (if slash-pos
+                    (substring str slash-pos (or question-pos hash-pos (string-length str)))
+                    ""
+                  ) ;if
                 ) ;path
-                (query (if question-pos
-                         (substring str (+ question-pos 1) (or hash-pos (string-length str)))
-                         ""
-                       ) ;if
+                (query
+                  (if question-pos
+                    (substring str (+ question-pos 1) (or hash-pos (string-length str)))
+                    ""
+                  ) ;if
                 ) ;query
                 (fragment (if hash-pos (substring str (+ hash-pos 1) (string-length str)) #f))
                ) ;
             (list netloc path query fragment)
           ) ;let
           (let ((c (string-ref str i)))
-            (cond ((char=? c #\/)
-                   (if slash-pos
-                     (loop (+ i 1) slash-pos question-pos hash-pos)
-                     (loop (+ i 1) i question-pos hash-pos)
-                   ) ;if
-                  ) ;
-                  ((char=? c #\?) (loop (+ i 1) (or slash-pos i) i hash-pos))
-                  ((char=? c #\#) (loop (+ i 1) (or slash-pos i) question-pos i))
-                  (else (loop (+ i 1) slash-pos question-pos hash-pos))
+            (cond
+             ((char=? c #\/)
+              (if slash-pos
+                (loop (+ i 1) slash-pos question-pos hash-pos)
+                (loop (+ i 1) i question-pos hash-pos)
+              ) ;if
+             ) ;
+             ((char=? c #\?) (loop (+ i 1) (or slash-pos i) i hash-pos))
+             ((char=? c #\#) (loop (+ i 1) (or slash-pos i) question-pos i))
+             (else (loop (+ i 1) slash-pos question-pos hash-pos))
             ) ;cond
           ) ;let
         ) ;if
@@ -85,14 +88,15 @@
       (if (not (string? str))
         (type-error "make-uri: expected string")
         ;; 检查是否是 Git SSH 格式：git@host:path
-        (if (and (string-index str #\@)
-              (not (string-starts? str "http://"))
-              (not (string-starts? str "https://"))
-              (not (string-starts? str "ssh://"))
-              (let ((colon-pos (string-index str #\:)))
-                (and colon-pos (> colon-pos (string-index str #\@)))
-              ) ;let
-            ) ;and
+        (if
+          (and (string-index str #\@)
+            (not (string-starts? str "http://"))
+            (not (string-starts? str "https://"))
+            (not (string-starts? str "ssh://"))
+            (let ((colon-pos (string-index str #\:)))
+              (and colon-pos (> colon-pos (string-index str #\@)))
+            ) ;let
+          ) ;and
           ;; Git SSH 格式: git@host:path
           (let* ((at-pos (string-index str #\@))
                  (colon-pos (string-index str #\:))
@@ -106,10 +110,11 @@
           (let* ((scheme+rest (split-scheme str))
                  (scheme (car scheme+rest))
                  (rest (cdr scheme+rest))
-                 (authority+path+query+frag (if (string-starts? rest "//")
-                                              (split-authority (substring rest 2 (string-length rest)))
-                                              (list "" rest "" "")
-                                            ) ;if
+                 (authority+path+query+frag
+                   (if (string-starts? rest "//")
+                     (split-authority (substring rest 2 (string-length rest)))
+                     (list "" rest "" "")
+                   ) ;if
                  ) ;authority+path+query+frag
                  (netloc (list-ref authority+path+query+frag 0))
                  (path (list-ref authority+path+query+frag 1))

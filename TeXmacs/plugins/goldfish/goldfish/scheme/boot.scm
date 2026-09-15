@@ -53,18 +53,20 @@
       (let ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))
             ) ;lib
            ) ;
-        (when (not (defined? (symbol (object->string lib))))
-          (load (let loop
-                  ((parts lib) (name ""))
-                  (set! name (string-append name (symbol->string (car parts))))
-                  (if (null? (cdr parts))
-                    (string-append name ".scm")
-                    (begin
-                      (set! name (string-append name "/"))
-                      (loop (cdr parts) name)
-                    ) ;begin
-                  ) ;if
-                ) ;let
+        (when
+          (not (defined? (symbol (object->string lib))))
+          (load
+            (let loop
+              ((parts lib) (name ""))
+              (set! name (string-append name (symbol->string (car parts))))
+              (if (null? (cdr parts))
+                (string-append name ".scm")
+                (begin
+                  (set! name (string-append name "/"))
+                  (loop (cdr parts) name)
+                ) ;begin
+              ) ;if
+            ) ;let
           ) ;load
         ) ;when
         (r7rs-import-library-filename (cdr libs))

@@ -33,11 +33,12 @@
        ) ;
     (let loop
       ((i 0) (start 0) (result '()))
-      (cond ((>= i len) (reverse (cons (substring s start i) result)))
-            ((char=? (string-ref s i) #\newline)
-             (loop (+ i 1) (+ i 1) (cons (substring s start i) result))
-            ) ;
-            (else (loop (+ i 1) start result))
+      (cond
+       ((>= i len) (reverse (cons (substring s start i) result)))
+       ((char=? (string-ref s i) #\newline)
+        (loop (+ i 1) (+ i 1) (cons (substring s start i) result))
+       ) ;
+       (else (loop (+ i 1) start result))
       ) ;cond
     ) ;let
   ) ;let
@@ -231,20 +232,21 @@
 
 (define (determine-short-html-string s)
   (let* ((len (string-length s)))
-    (cond ((or (and (> (character-from-string s #\<) 0)
-                 (> (character-from-string s #\>) 0)
-                 (> (html-string-count-substring s "</") 0)
-               ) ;and
-             (> (html-string-count-substring (safe-ascii-string-downcase s) "class=") 0)
-             (> (html-string-count-substring (safe-ascii-string-downcase s) "id=") 0)
-             (> (html-string-count-substring (safe-ascii-string-downcase s) "style=") 0)
-             (> (html-string-count-substring (safe-ascii-string-downcase s) "href=") 0)
-             (> (html-string-count-substring (safe-ascii-string-downcase s) "src=") 0)
-           ) ;or
-           #t
-          ) ;
-          ((>= (html-angle-bracket-density s) 0.03) #t)
-          (else #f)
+    (cond
+     ((or (and (> (character-from-string s #\<) 0)
+            (> (character-from-string s #\>) 0)
+            (> (html-string-count-substring s "</") 0)
+          ) ;and
+        (> (html-string-count-substring (safe-ascii-string-downcase s) "class=") 0)
+        (> (html-string-count-substring (safe-ascii-string-downcase s) "id=") 0)
+        (> (html-string-count-substring (safe-ascii-string-downcase s) "style=") 0)
+        (> (html-string-count-substring (safe-ascii-string-downcase s) "href=") 0)
+        (> (html-string-count-substring (safe-ascii-string-downcase s) "src=") 0)
+      ) ;or
+      #t
+     ) ;
+     ((>= (html-angle-bracket-density s) 0.03) #t)
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define

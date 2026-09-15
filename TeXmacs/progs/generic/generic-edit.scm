@@ -130,18 +130,20 @@
   "Find the nearest algo-macro ancestor of t, or t itself"
   (cond ((not t) #f)
         ((tree-in? t algo-macro-tags) t)
-        (else (let ((p (tree-outer t)))
-                (cond ((not p) #f)
-                      ((tree-in? p algo-macro-tags) p)
-                      (else (let ((gp (tree-outer p)))
-                              (cond ((not gp) #f)
-                                    ((tree-in? gp algo-macro-tags) gp)
-                                    (else #f)
-                              ) ;cond
-                            ) ;let
-                      ) ;else
-                ) ;cond
-              ) ;let
+        (else
+          (let ((p (tree-outer t)))
+            (cond ((not p) #f)
+                  ((tree-in? p algo-macro-tags) p)
+                  (else
+                    (let ((gp (tree-outer p)))
+                      (cond ((not gp) #f)
+                            ((tree-in? gp algo-macro-tags) gp)
+                            (else #f)
+                      ) ;cond
+                    ) ;let
+                  ) ;else
+            ) ;cond
+          ) ;let
         ) ;else
   ) ;cond
 ) ;define
@@ -437,40 +439,41 @@
               (or (cursor-in-algo-macro-body-end? t) (cursor-in-algo-macro-condition-end? t))
             ) ;and
   ) ;:require
-  (cond ((cursor-in-algo-macro-body-end? t)
-         (with t-path
-           (tree->path t)
-           (and t-path
-             (with parent
-               (tree-up t)
-               (let* ((parent-path (cDr t-path)) (t-index (cAr t-path)))
-                 (if (< (+ 1 t-index) (tree-arity parent))
-                   (let ((sibling (tm-ref parent (+ 1 t-index))))
-                     (if (and sibling (tree-in? sibling algo-macro-tags))
-                       (begin
-                         (display* "kbd-h body-end -> go-to sibling body\n")
-                         (tree-go-to sibling 0)
-                       ) ;begin
-                       (begin
-                         (display* "kbd-h body-end -> go-to sibling paragraph\n")
-                         (go-to (tree->path sibling))
-                       ) ;begin
-                     ) ;if
-                   ) ;let
-                   (begin
-                     (display* "kbd-h body-end -> go-to end of parent\n")
-                     (go-to (rcons parent-path (+ 1 t-index)))
-                   ) ;begin
-                 ) ;if
-               ) ;let*
-             ) ;with
-           ) ;and
-         ) ;with
-        ) ;
-        ((cursor-in-algo-macro-condition-end? t)
-         (display* "kbd-h cond-end -> go-to body\n")
-         (tree-go-to t 1)
-        ) ;
+  (cond
+   ((cursor-in-algo-macro-body-end? t)
+    (with t-path
+      (tree->path t)
+      (and t-path
+        (with parent
+          (tree-up t)
+          (let* ((parent-path (cDr t-path)) (t-index (cAr t-path)))
+            (if (< (+ 1 t-index) (tree-arity parent))
+              (let ((sibling (tm-ref parent (+ 1 t-index))))
+                (if (and sibling (tree-in? sibling algo-macro-tags))
+                  (begin
+                    (display* "kbd-h body-end -> go-to sibling body\n")
+                    (tree-go-to sibling 0)
+                  ) ;begin
+                  (begin
+                    (display* "kbd-h body-end -> go-to sibling paragraph\n")
+                    (go-to (tree->path sibling))
+                  ) ;begin
+                ) ;if
+              ) ;let
+              (begin
+                (display* "kbd-h body-end -> go-to end of parent\n")
+                (go-to (rcons parent-path (+ 1 t-index)))
+              ) ;begin
+            ) ;if
+          ) ;let*
+        ) ;with
+      ) ;and
+    ) ;with
+   ) ;
+   ((cursor-in-algo-macro-condition-end? t)
+    (display* "kbd-h cond-end -> go-to body\n")
+    (tree-go-to t 1)
+   ) ;
   ) ;cond
 ) ;tm-define
 
@@ -480,13 +483,14 @@
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
-  (:require (and (not shift?)
-              (in-listing-context? t)
-              (with macro
-                (find-algo-macro-ancestor t)
-                (and macro (cursor-in-algo-macro-body-empty-end? macro))
-              ) ;with
-            ) ;and
+  (:require
+    (and (not shift?)
+      (in-listing-context? t)
+      (with macro
+        (find-algo-macro-ancestor t)
+        (and macro (cursor-in-algo-macro-body-empty-end? macro))
+      ) ;with
+    ) ;and
   ) ;:require
   (with macro
     (find-algo-macro-ancestor t)
@@ -608,30 +612,36 @@
 ;; 辅助函数：检查是否在有序列表环境中
 
 (define (in-enumerate-context?)
-  (not (not (tree-search-upwards (focus-tree)
-              (lambda (node) (tree-in? node (enumerate-tag-list)))
-            ) ;tree-search-upwards
-       ) ;not
+  (not
+    (not
+      (tree-search-upwards (focus-tree)
+        (lambda (node) (tree-in? node (enumerate-tag-list)))
+      ) ;tree-search-upwards
+    ) ;not
   ) ;not
 ) ;define
 
 ;; 辅助函数：检查是否在无序列表环境中
 
 (define (in-itemize-context?)
-  (not (not (tree-search-upwards (focus-tree)
-              (lambda (node) (tree-in? node (itemize-tag-list)))
-            ) ;tree-search-upwards
-       ) ;not
+  (not
+    (not
+      (tree-search-upwards (focus-tree)
+        (lambda (node) (tree-in? node (itemize-tag-list)))
+      ) ;tree-search-upwards
+    ) ;not
   ) ;not
 ) ;define
 
 ;; 辅助函数：检查是否在描述列表环境中
 
 (define (in-description-context?)
-  (not (not (tree-search-upwards (focus-tree)
-              (lambda (node) (tree-in? node (description-tag-list)))
-            ) ;tree-search-upwards
-       ) ;not
+  (not
+    (not
+      (tree-search-upwards (focus-tree)
+        (lambda (node) (tree-in? node (description-tag-list)))
+      ) ;tree-search-upwards
+    ) ;not
   ) ;not
 ) ;define
 
@@ -778,11 +788,12 @@
          (enum? (in-enumerate-context?))
          (itemize? (in-itemize-context?))
          (description? (in-description-context?))
-         (match? (and item
-                   (or (and (or enum? itemize?) (tree-is? item 'item))
-                     (and description? (tree-is? item 'item*))
-                   ) ;or
-                 ) ;and
+         (match?
+           (and item
+             (or (and (or enum? itemize?) (tree-is? item 'item))
+               (and description? (tree-is? item 'item*))
+             ) ;or
+           ) ;and
          ) ;match?
         ) ;
     match?
@@ -815,14 +826,15 @@
 (define (go-to-moved-list-item moved-item cursor-state parent pos)
   (let* ((cursor-target (car cursor-state)) (relative-path (cadr cursor-state)))
     (or (go-to-list-item-relative-path moved-item relative-path)
-      (cond ((and (== cursor-target 'content)
-               (tree-is? moved-item 'concat)
-               (> (tree-arity moved-item) 1)
-             ) ;and
-             (tree-go-to moved-item 1 :end)
-            ) ;
-            ((tree-is? moved-item 'concat) (tree-go-to moved-item 0 :end))
-            (else (tree-go-to parent pos :end))
+      (cond
+       ((and (== cursor-target 'content)
+          (tree-is? moved-item 'concat)
+          (> (tree-arity moved-item) 1)
+        ) ;and
+        (tree-go-to moved-item 1 :end)
+       ) ;
+       ((tree-is? moved-item 'concat) (tree-go-to moved-item 0 :end))
+       (else (tree-go-to parent pos :end))
       ) ;cond
     ) ;or
   ) ;let*
@@ -944,15 +956,16 @@
                  (list-type (list-family (or (get-current-list-label item) 'enumerate)))
                  (item-stree (tree->stree (if wrapper wrapper item)))
                  (next-index (+ item-index 1))
-                 (attached-sublist-idx (and (< next-index (tree-arity item-list))
-                                         (let ((next-node (tree-ref item-list next-index)))
-                                           ;; 当前 item 后面如果紧跟同一大类的子列表，缩进时一并并入目标子列表。
-                                           (and (list-node? next-node)
-                                             (same-list-family? (tree-label next-node) list-type)
-                                             next-index
-                                           ) ;and
-                                         ) ;let
-                                       ) ;and
+                 (attached-sublist-idx
+                   (and (< next-index (tree-arity item-list))
+                     (let ((next-node (tree-ref item-list next-index)))
+                       ;; 当前 item 后面如果紧跟同一大类的子列表，缩进时一并并入目标子列表。
+                       (and (list-node? next-node)
+                         (same-list-family? (tree-label next-node) list-type)
+                         next-index
+                       ) ;and
+                     ) ;let
+                   ) ;and
                  ) ;attached-sublist-idx
                 ) ;
             (if (> item-index 0)
@@ -979,15 +992,18 @@
                   (let* ((target-sublist (tree-ref item-list target-sublist-idx))
                          (target-doc (tree-ref target-sublist 0))
                          (target-pos (tree-arity target-doc))
-                         (attached-items (if attached-sublist-idx
-                                           (map (lambda (i)
-                                                  (tree->stree (tree-copy (tree-ref (tree-ref (tree-ref item-list attached-sublist-idx) 0) i))
-                                                  ) ;tree->stree
-                                                ) ;lambda
-                                             (iota (tree-arity (tree-ref (tree-ref item-list attached-sublist-idx) 0)))
-                                           ) ;map
-                                           '()
-                                         ) ;if
+                         (attached-items
+                           (if attached-sublist-idx
+                             (map
+                               (lambda (i)
+                                 (tree->stree
+                                   (tree-copy (tree-ref (tree-ref (tree-ref item-list attached-sublist-idx) 0) i))
+                                 ) ;tree->stree
+                               ) ;lambda
+                               (iota (tree-arity (tree-ref (tree-ref item-list attached-sublist-idx) 0)))
+                             ) ;map
+                             '()
+                           ) ;if
                          ) ;attached-items
                         ) ;
                     ;; 目标子列表依次接收：当前 item，以及它后面原来挂着的同类型子列表内容。
@@ -1071,7 +1087,8 @@
             ;; 先保存当前 item 后面的所有兄弟节点，后面需要重建 trailing sublist。
             (with items-after-stree
               (if (> items-after-count 0)
-                (map (lambda (i) (tree->stree (tree-copy (tree-ref doc (+ item-idx 1 i)))))
+                (map
+                  (lambda (i) (tree->stree (tree-copy (tree-ref doc (+ item-idx 1 i)))))
                   (iota items-after-count)
                 ) ;map
                 '()
@@ -1119,8 +1136,10 @@
 
                 ;; 如有后续 items，则在当前 item 后面重建一个同类型 sublist。
                 (when (> (length items-after-stree) 0)
-                  (let ((new-sublist-stree `(,(tree-label sublist)
-                                             (document ,@items-after-stree)))
+                  (let ((new-sublist-stree
+                          `(,(tree-label sublist)
+                            (document ,@items-after-stree))
+                        ) ;new-sublist-stree
                         (sublist-pos (+ item-insert-pos 1))
                        ) ;
                     (set! current-parent
@@ -1321,17 +1340,18 @@
 (tm-define (smart-format-paste)
   (with source-format
     (qt-clipboard-format)
-    (cond ((or (string=? source-format "verbatim") (string=? source-format "html"))
-           (let* ((fm (format-determine (qt-clipboard-text) "verbatim")))
-             (cond ((string=? fm "html") (clipboard-paste-import "html" "primary"))
-                   ((string=? fm "latex") (clipboard-paste-import "latex" "primary"))
-                   ((string=? fm "verbatim") (kbd-paste))
-                   ((string=? fm "markdown") (paste-as-markdown))
-             ) ;cond
-           ) ;let*
-          ) ;
-          ((string=? source-format "texmacs-snippet") (paste-as-texmacs))
-          (else (kbd-paste-verbatim))
+    (cond
+     ((or (string=? source-format "verbatim") (string=? source-format "html"))
+      (let* ((fm (format-determine (qt-clipboard-text) "verbatim")))
+        (cond ((string=? fm "html") (clipboard-paste-import "html" "primary"))
+              ((string=? fm "latex") (clipboard-paste-import "latex" "primary"))
+              ((string=? fm "verbatim") (kbd-paste))
+              ((string=? fm "markdown") (paste-as-markdown))
+        ) ;cond
+      ) ;let*
+     ) ;
+     ((string=? source-format "texmacs-snippet") (paste-as-texmacs))
+     (else (kbd-paste-verbatim))
     ) ;cond
   ) ;with
 ) ;tm-define
@@ -1359,11 +1379,12 @@
   (let* ((token (account-load-token))
          (base-url (current-stem-site))
          (check-url (string-append base-url "/api/v1/oauth2/magicPaste/check"))
-         (headers (stem-preview-request-headers check-url
-                    (list (cons "Authorization" (string-append "Bearer " token))
-                      (cons "Content-Type" "application/json")
-                    ) ;list
-                  ) ;stem-preview-request-headers
+         (headers
+           (stem-preview-request-headers check-url
+             (list (cons "Authorization" (string-append "Bearer " token))
+               (cons "Content-Type" "application/json")
+             ) ;list
+           ) ;stem-preview-request-headers
          ) ;headers
         ) ;
     (if (string=? token "")
@@ -1426,59 +1447,60 @@
 
 (tm-define (kbd-magic-paste)
   (let ((source-format (qt-clipboard-format)))
-    (cond ((string-starts? source-format "image")
-           (ocr-paste "image")
-           (when (defined? 'track-event)
-             (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
-           ) ;when
-          ) ;
-          ((string=? source-format "texmacs-snippet")
-           (with data
-             (tree-ref (clipboard-get "primary") 0)
-             (if (clipboard-tree-image? data)
-               (begin
-                 (ocr-paste "texmacs-snippet")
-                 (when (defined? 'track-event)
-                   (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
-                 ) ;when
-               ) ;begin
-               (begin
-                 (kbd-paste)
-                 (when (defined? 'track-event)
-                   (track-event "MAGIC_PASTE" '(("mode" . "internal")))
-                 ) ;when
-               ) ;begin
-             ) ;if
+    (cond
+     ((string-starts? source-format "image")
+      (ocr-paste "image")
+      (when (defined? 'track-event)
+        (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
+      ) ;when
+     ) ;
+     ((string=? source-format "texmacs-snippet")
+      (with data
+        (tree-ref (clipboard-get "primary") 0)
+        (if (clipboard-tree-image? data)
+          (begin
+            (ocr-paste "texmacs-snippet")
+            (when (defined? 'track-event)
+              (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
+            ) ;when
+          ) ;begin
+          (begin
+            (kbd-paste)
+            (when (defined? 'track-event)
+              (track-event "MAGIC_PASTE" '(("mode" . "internal")))
+            ) ;when
+          ) ;begin
+        ) ;if
+      ) ;with
+     ) ;
+     (else
+       (with-magic-paste-check
+         (lambda ()
+           (with mode
+             (get-env "mode")
+             (cond
+              ((== mode "prog")
+               (clipboard-paste-import "code" "primary")
+               (when (defined? 'track-event)
+                 (track-event "MAGIC_PASTE" '(("mode" . "prog")))
+               ) ;when
+              ) ;
+              ((== mode "math")
+               (clipboard-paste-import "latex" "primary")
+               (when (defined? 'track-event)
+                 (track-event "MAGIC_PASTE" '(("mode" . "math")))
+               ) ;when
+              ) ;
+              (else (smart-format-paste)
+                (when (defined? 'track-event)
+                  (track-event "MAGIC_PASTE" '(("mode" . "text")))
+                ) ;when
+              ) ;else
+             ) ;cond
            ) ;with
-          ) ;
-          (else (with-magic-paste-check (lambda ()
-                                          (with mode
-                                            (get-env "mode")
-                                            (cond ((== mode "prog")
-                                                   (clipboard-paste-import "code" "primary")
-                                                   (when (defined? 'track-event)
-                                                     (track-event "MAGIC_PASTE" '(("mode"
-                                                                                   . "prog")))
-                                                   ) ;when
-                                                  ) ;
-                                                  ((== mode "math")
-                                                   (clipboard-paste-import "latex" "primary")
-                                                   (when (defined? 'track-event)
-                                                     (track-event "MAGIC_PASTE" '(("mode"
-                                                                                   . "math")))
-                                                   ) ;when
-                                                  ) ;
-                                                  (else (smart-format-paste)
-                                                    (when (defined? 'track-event)
-                                                      (track-event "MAGIC_PASTE" '(("mode"
-                                                                                    . "text")))
-                                                    ) ;when
-                                                  ) ;else
-                                            ) ;cond
-                                          ) ;with
-                                        ) ;lambda
-                ) ;with-magic-paste-check
-          ) ;else
+         ) ;lambda
+       ) ;with-magic-paste-check
+     ) ;else
     ) ;cond
   ) ;let
   (when (and (defined? 'chat-input-buffer?) (chat-input-buffer? (current-buffer-url)))
@@ -2052,11 +2074,12 @@
   (if (== (tm-car t) 'tree)
     (with pos
       (tree-down-index t)
-      (cond (forwards? (tree-remove! t pos 1)
-              (if (== pos (tree-arity t)) (tree-go-to t :end) (tree-go-to t pos :start))
-            ) ;forwards?
-            ((== pos 1) (tree-go-to t 0 :end))
-            (else (tree-remove! t (- pos 1) 1))
+      (cond
+        (forwards? (tree-remove! t pos 1)
+          (if (== pos (tree-arity t)) (tree-go-to t :end) (tree-go-to t pos :start))
+        ) ;forwards?
+        ((== pos 1) (tree-go-to t 0 :end))
+        (else (tree-remove! t (- pos 1) 1))
       ) ;cond
     ) ;with
   ) ;if
@@ -2273,17 +2296,23 @@
 (tm-define (make-specific s)
   (if (or (== s "texmacs") (in-source?))
     (insert-go-to `(specific ,s ,"") '(1 0))
-    (insert-go-to `(inactive (specific ,s ,"")) '(0 1 0))
+    (insert-go-to
+      `(inactive (specific ,s ,""))
+      '(0 1 0)
+    ) ;insert-go-to
   ) ;if
 ) ;tm-define
 
 (tm-define (make-include u)
   (let ((delta-unix (url->delta-unix u)))
     (if delta-unix
-      (insert `(include ,(utf8->cork delta-unix)))
-      (set-message `(concat ,(translate "Unable to include file from another drive: ")
-                      (verbatim ,(url->string u))
-                      ,"")
+      (insert
+        `(include ,(utf8->cork delta-unix))
+      ) ;insert
+      (set-message
+        `(concat ,(translate "Unable to include file from another drive: ")
+           (verbatim ,(url->string u))
+           ,"")
         (translate "include file")
       ) ;set-message
     ) ;if
@@ -2298,9 +2327,10 @@
   (let ((delta-unix (url->delta-unix (car l))))
     (if delta-unix
       (apply make-image (cons* delta-unix #t (cdr l)))
-      (set-message `(concat ,(translate "Unable to link images from another drive: ")
-                      (verbatim ,(url->string (car l)))
-                      ,"")
+      (set-message
+        `(concat ,(translate "Unable to link images from another drive: ")
+           (verbatim ,(url->string (car l)))
+           ,"")
         (translate "link image")
       ) ;set-message
     ) ;if
@@ -2389,15 +2419,24 @@
 (tm-define (make-note-ref) (insert `(note-ref ,(propose-note-id #t))))
 
 (tm-define (make-note-inline)
-  (insert-go-to `(note-inline ,"" ,(propose-note-id #f)) '(0 0))
+  (insert-go-to
+    `(note-inline ,"" ,(propose-note-id #f))
+    '(0 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-note-wide)
-  (insert-go-to `(note-wide (document "") ,(propose-note-id #f)) '(0 0 0))
+  (insert-go-to
+    `(note-wide (document "") ,(propose-note-id #f))
+    '(0 0 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-note-footnote)
-  (insert-go-to `(note-footnote (document "") ,(propose-note-id #f)) '(0 0 0))
+  (insert-go-to
+    `(note-footnote (document "") ,(propose-note-id #f))
+    '(0 0 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2425,25 +2464,35 @@
 ) ;define
 
 (define (make-thumbnails-sub l nr)
-  (let* ((w (string-append (number->string (- (/ 1.0 nr) 0.02)) "par"))
-         (mapper (lambda (x)
-                   (and-let* ((delta-unix (url->delta-unix x)))
-                     `(image ,delta-unix ,w ,"" ,"" ,"")
-                   ) ;and-let*
-                 ) ;lambda
+  (let* ((w
+           (string-append (number->string (- (/ 1.0 nr) 0.02)) "par")
+         ) ;w
+         (mapper
+           (lambda (x)
+             (and-let* ((delta-unix (url->delta-unix x)))
+               `(image ,delta-unix ,w ,"" ,"" ,"")
+             ) ;and-let*
+           ) ;lambda
          ) ;mapper
          (l1 (map mapper l))
          (l2 (make-rows l1 nr))
-         (l3 (map (lambda (r) `(row ,@(map (lambda (c) `(cell ,c)) r))) l2))
+         (l3
+           (map
+             (lambda (r) `(row ,@(map (lambda (c) `(cell ,c)) r)))
+             l2
+           ) ;map
+         ) ;l3
         ) ;
     (if l1
-      (insert `(tabular* (tformat (twith "table-width" "1par")
-                           (twith "table-hyphen" "yes")
-                           (table ,@l3)))
+      (insert
+        `(tabular* (tformat (twith "table-width" "1par")
+                     (twith "table-hyphen" "yes")
+                     (table ,@l3)))
       ) ;insert
-      (set-message `(concat ,(translate "Unable to make thumbnail from another drive: ")
-                      (verbatim ,(url->string (car l)))
-                      ,"")
+      (set-message
+        `(concat ,(translate "Unable to make thumbnail from another drive: ")
+           (verbatim ,(url->string (car l)))
+           ,"")
         (translate "make thumbnail")
       ) ;set-message
     ) ;if
@@ -2601,21 +2650,26 @@
 
 (tm-define (make-sound u)
   (let ((delta-unix (url->delta-unix u)))
-    (cond ((url-none? u)
-           (set-message `(concat ,(translate "Unable to make sound which url is none: ")
-                           (verbatim ,(url->string u))
-                           ,"")
-             (translate "make sound")
-           ) ;set-message
-          ) ;
-          ((not delta-unix)
-           (set-message `(concat ,(translate "Unable to make sound from another drive: ")
-                           (verbatim ,(url->string u))
-                           ,"")
-             (translate "make sound")
-           ) ;set-message
-          ) ;
-          (else (insert `(sound ,delta-unix)))
+    (cond
+     ((url-none? u)
+      (set-message
+        `(concat ,(translate "Unable to make sound which url is none: ")
+           (verbatim ,(url->string u))
+           ,"")
+        (translate "make sound")
+      ) ;set-message
+     ) ;
+     ((not delta-unix)
+      (set-message
+        `(concat ,(translate "Unable to make sound from another drive: ")
+           (verbatim ,(url->string u))
+           ,"")
+        (translate "make sound")
+      ) ;set-message
+     ) ;
+     (else
+       (insert `(sound ,delta-unix))
+     ) ;else
     ) ;cond
   ) ;let
 ) ;tm-define
@@ -2623,18 +2677,20 @@
 (tm-define (make-animation u)
   (let ((delta-unix (url->delta-unix u)))
     (if delta-unix
-      (interactive (lambda (w h len rep)
-                     (if (== rep "no") (set! rep "false"))
-                     (insert `(video ,delta-unix ,w ,h ,len ,rep))
-                   ) ;lambda
+      (interactive
+        (lambda (w h len rep)
+          (if (== rep "no") (set! rep "false"))
+          (insert `(video ,delta-unix ,w ,h ,len ,rep))
+        ) ;lambda
         "Width"
         "Height"
         "Length"
         "Repeat?"
       ) ;interactive
-      (set-message `(concat ,(translate "Unable to make animation from another drive: ")
-                      (verbatim ,(url->string u))
-                      ,"")
+      (set-message
+        `(concat ,(translate "Unable to make animation from another drive: ")
+           (verbatim ,(url->string u))
+           ,"")
         (translate "make animation")
       ) ;set-message
     ) ;if

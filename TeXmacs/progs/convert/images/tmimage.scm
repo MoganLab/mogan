@@ -135,19 +135,20 @@
           (svgroot (car (select buftree '(:* svg))))
           ;; the <svg > node
           (groups (select svgroot '(g)))
-          (maingroup (if (list>1? groups)
-                       (begin
-                         (tree-insert-node! svgroot 0 '(svg))
-                         (with oldroot
-                           (tree-ref svgroot 'svg)
-                           (move-node! (tree-ref oldroot '@) svgroot 0)
-                           (tree-insert! oldroot 0 (list '(@)))
-                           (tree-assign-node! oldroot 'g)
-                           oldroot
-                         ) ;with
-                       ) ;begin
-                       (car groups)
-                     ) ;if
+          (maingroup
+            (if (list>1? groups)
+              (begin
+                (tree-insert-node! svgroot 0 '(svg))
+                (with oldroot
+                  (tree-ref svgroot 'svg)
+                  (move-node! (tree-ref oldroot '@) svgroot 0)
+                  (tree-insert! oldroot 0 (list '(@)))
+                  (tree-assign-node! oldroot 'g)
+                  oldroot
+                ) ;with
+              ) ;begin
+              (car groups)
+            ) ;if
           ) ;maingroup
           ;; the main group in the svg, containing the drawing layout
           ;; (if more than one group, we group everything in a new group)
@@ -166,15 +167,17 @@
           (tm-inits (tm-encode (get-all-inits)))
           (tm-style (tm-encode (get-style-tree)))
           ;;; define new attributes containing latex and texmacs code:
-          (extra-latex-attrib `((xmlns:ns0 "http://www.iki.fi/pav/software/textext/")
-                                (ns0:text ,latex-code)
-                                (ns0:preamble "texmacs_latex.sty"))
+          (extra-latex-attrib
+            `((xmlns:ns0 "http://www.iki.fi/pav/software/textext/")
+              (ns0:text ,latex-code)
+              (ns0:preamble "texmacs_latex.sty"))
           ) ;extra-latex-attrib
-          (extra-tm-attrib `((xmlns:ns1 "https://www.texmacs.org/")
-                             (ns1:texmacscode ,tm-code)
-                             (ns1:texmacsstyle ,tm-inits)
-                             (ns1:texmacsstyle2 ,tm-style)
-                             (ns1:texmacsbaseline ,relbaseline))
+          (extra-tm-attrib
+            `((xmlns:ns1 "https://www.texmacs.org/")
+              (ns1:texmacscode ,tm-code)
+              (ns1:texmacsstyle ,tm-inits)
+              (ns1:texmacsstyle2 ,tm-style)
+              (ns1:texmacsbaseline ,relbaseline))
           ) ;extra-tm-attrib
           ;; OK, the texmacs namespace maybe not correctly described at that url ...
         ) ;
@@ -306,38 +309,47 @@
       (let* ((suffix (url-suffix myurl))
              ;; step 1 prepare and typeset selection
              ;; if selection is inside inline or display math preserve inline/display style
-             (issomemath (nnot (match? (tree->stree (selection-tree))
-                                 '(:or (equation* :*)
-                                    (equation :*)
-                                    (eqnarray :*)
-                                    (eqnarray* :*)
-                                    (math :*)
-                                    (align :*)
-                                    (align* :*))
-                               ) ;match?
-                         ) ;nnot
+             (issomemath
+               (nnot (match? (tree->stree (selection-tree))
+                       '(:or (equation* :*)
+                          (equation :*)
+                          (eqnarray :*)
+                          (eqnarray* :*)
+                          (math :*)
+                          (align :*)
+                          (align* :*))
+                     ) ;match?
+               ) ;nnot
              ) ;issomemath
-             (inmath (== (tree->string (get-env-tree-at "mode" (selection-get-start))) "math")
+             (inmath
+               (== (tree->string (get-env-tree-at "mode" (selection-get-start))) "math")
              ) ;inmath
-             (indisplaymath (== (tree->string (get-env-tree-at "math-display" (selection-get-start)))
-                              "true"
-                            ) ;==
+             (indisplaymath
+               (== (tree->string (get-env-tree-at "math-display" (selection-get-start)))
+                 "true"
+               ) ;==
              ) ;indisplaymath
 
-             (tm-fragment (cond (issomemath (debug "selection tree is a math tag \n") (selection-tree))
-                                (inmath (if indisplaymath
-                                          (begin
-                                            (debug "selection tree is in display math \n")
-                                            (stree->tree `(equation* ,(selection-tree)))
-                                          ) ;begin
-                                          (begin
-                                            (debug "selection tree is in inline math \n")
-                                            (stree->tree `(math ,(selection-tree)))
-                                          ) ;begin
-                                        ) ;if
-                                ) ;inmath
-                                (else (debug "selection not purely math \n") (selection-tree))
-                          ) ;cond
+             (tm-fragment
+               (cond (issomemath (debug "selection tree is a math tag \n") (selection-tree))
+                     (inmath
+                       (if indisplaymath
+                         (begin
+                           (debug "selection tree is in display math \n")
+                           (stree->tree
+                             `(equation* ,(selection-tree))
+                           ) ;stree->tree
+                         ) ;begin
+                         (begin
+                           (debug "selection tree is in inline math \n")
+                           (stree->tree
+                             `(math ,(selection-tree))
+                           ) ;stree->tree
+                         ) ;begin
+                       ) ;if
+                     ) ;inmath
+                     (else (debug "selection not purely math \n") (selection-tree))
+               ) ;cond
              ) ;tm-fragment
              ;; is selection wider than 1par (and needs linebreaks and or hyphenation)?
              (maxwidth (length-decode "1par"))
@@ -350,25 +362,29 @@
              ;; (this excludes selections begining with 'document)
              ;; If the selection is eqnarray or similar compute it only if the table
              ;; has a single row
-             (iseqnarray (nnot (match? (tree->stree tm-fragment)
-                                 '(:or (eqnarray :*)
-                                    (eqnarray* :*)
-                                    (align :*)
-                                    (align* :*))
-                               ) ;match?
-                         ) ;nnot
+             (iseqnarray
+               (nnot (match? (tree->stree tm-fragment)
+                       '(:or (eqnarray :*)
+                          (eqnarray* :*)
+                          (align :*)
+                          (align* :*))
+                     ) ;match?
+               ) ;nnot
              ) ;iseqnarray
              (table-t (if iseqnarray (tree-ref (selection-tree) :* 'table) #f))
-             (eqarraynrows (if table-t (length (select table-t '(:%0 row))) #f))
+             (eqarraynrows
+               (if table-t (length (select table-t '(:%0 row))) #f)
+             ) ;eqarraynrows
              (simpleeqnarray (and iseqnarray (== 1 eqarraynrows)))
              (tmppng (url-temp-ext "png"))
              (extents (print-snippet tmppng (selection-tree) #t))
              (rawwidth (- (third extents) (first extents)))
              (rawwidthOK (< rawwidth maxwidth))
-             (needbaseline (if (match? (tree->stree tm-fragment) '(document :*))
-                             #f
-                             (if iseqnarray (if (and simpleeqnarray rawwidthOK) #t #f) rawwidthOK)
-                           ) ;if
+             (needbaseline
+               (if (match? (tree->stree tm-fragment) '(document :*))
+                 #f
+                 (if iseqnarray (if (and simpleeqnarray rawwidthOK) #t #f) rawwidthOK)
+               ) ;if
              ) ;needbaseline
 
              ;; the baseline calculation is relative to the size of the background frame
@@ -377,65 +393,60 @@
              (fillcolor (if (and needbaseline (== suffix "svg")) "#ffffff02" "#ffffffff"))
 
              ;; if selection is an equation array, make table width minimal to avoid wide white frame
-             (tm-fragment1 (if iseqnarray
-                             (with tfmt
-                               (tree-ref tm-fragment :* 'tformat)
-                               (tree-insert tfmt 0 '((twith "table-hmode" "min")))
-                               tm-fragment
-                             ) ;with
-                             tm-fragment
-                           ) ;if
+             (tm-fragment1
+               (if iseqnarray
+                 (with tfmt
+                   (tree-ref tm-fragment :* 'tformat)
+                   (tree-insert tfmt 0 '((twith "table-hmode" "min")))
+                   tm-fragment
+                 ) ;with
+                 tm-fragment
+               ) ;if
              ) ;tm-fragment1
 
-             (tm-fragment-formated (if needbaseline
-                                     ;; if needbaseline insert fragment in table having a background
+             (tm-fragment-formated
+               (if needbaseline
+                 ;; if needbaseline insert fragment in table having a background
 
-                                     `(with (tabular (tformat (twith ,"table-width"
-                                                                ,parcm)
-                                                       (twith "table-hmode"
-                                                         "min")
-                                                       (twith "table-valign"
-                                                         "B")
-                                                       ;; =baseline of top line
-                                                       (cwith ,"1"
-                                                         ,"1"
-                                                         ,"1"
-                                                         ,"1"
-                                                         ,"cell-background"
-                                                         ,fillcolor)
-                                                       (cwith "1" "1" "1" "1"
-                                                         "cell-lsep" "0spc")
-                                                       (cwith "1" "1" "1" "1"
-                                                         "cell-tsep" "0sep")
-                                                       (cwith "1" "1" "1" "1"
-                                                         "cell-rsep" "0spc")
-                                                       (cwith "1" "1" "1" "1"
-                                                         "cell-bsep" "0sep")
-                                                       (table (row (cell ,tm-fragment1))))))
-                                     ;; otherwise (multiline selection) use doc-at to get proper pagewidth
-                                     `(with ,"fill-color"
-                                        ,fillcolor
-                                        ,"doc-at-width"
-                                        ,parcm
-                                        ,"doc-at-hmode"
-                                        ,(if (or iseqnarray indisplaymath inmath)
-                                           "min"
-                                           "exact")
-                                        ,"doc-at-padding"
-                                        ,"0spc"
-                                        (document-at (document ,tm-fragment1)
-                                          (point "0par" "0")))
-                                   ) ;if
+                 `(with (tabular (tformat (twith ,"table-width" ,parcm)
+                                   (twith "table-hmode" "min")
+                                   (twith "table-valign" "B")
+                                   ;; =baseline of top line
+                                   (cwith ,"1"
+                                     ,"1"
+                                     ,"1"
+                                     ,"1"
+                                     ,"cell-background"
+                                     ,fillcolor)
+                                   (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
+                                   (cwith "1" "1" "1" "1" "cell-tsep" "0sep")
+                                   (cwith "1" "1" "1" "1" "cell-rsep" "0spc")
+                                   (cwith "1" "1" "1" "1" "cell-bsep" "0sep")
+                                   (table (row (cell ,tm-fragment1))))))
+                 ;; otherwise (multiline selection) use doc-at to get proper pagewidth
+                 `(with ,"fill-color"
+                    ,fillcolor
+                    ,"doc-at-width"
+                    ,parcm
+                    ,"doc-at-hmode"
+                    ,(if (or iseqnarray indisplaymath inmath) "min" "exact")
+                    ,"doc-at-padding"
+                    ,"0spc"
+                    (document-at (document ,tm-fragment1) (point "0par" "0")))
+               ) ;if
              ) ;tm-fragment-formated
 
              ;; step 2 generate output according to desired output format
              (extents (print-snippet myurl (stree->tree tm-fragment-formated) #t))
              ;; compute relative position of baseline from returned box dimensions  see tmhtml.scm
              (height (- (fourth extents) (second extents)))
-             (relbaseline (if needbaseline
-                            (number->string (exact->inexact (/ (- (sixth extents)) height)))
-                            "0.0"
-                          ) ;if
+             (relbaseline
+               (if needbaseline
+                 (number->string
+                   (exact->inexact (/ (- (sixth extents)) height))
+                 ) ;number->string
+                 "0.0"
+               ) ;if
              ) ;relbaseline
             ) ;
 

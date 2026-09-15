@@ -167,12 +167,13 @@
     (if (null? chars)
       (list->string (reverse result))
       (let ((c (car chars)))
-        (cond ((char=? c #\\) (loop (cdr chars) (cons #\\ (cons #\\ result))))
-              ((char=? c #\") (loop (cdr chars) (cons #\" (cons #\\ result))))
-              ((char=? c #\newline) (loop (cdr chars) (cons #\n (cons #\\ result))))
-              ((char=? c #\return) (loop (cdr chars) (cons #\r (cons #\\ result))))
-              ((char=? c #\tab) (loop (cdr chars) (cons #\t (cons #\\ result))))
-              (else (loop (cdr chars) (cons c result)))
+        (cond
+         ((char=? c #\\) (loop (cdr chars) (cons #\\ (cons #\\ result))))
+         ((char=? c #\") (loop (cdr chars) (cons #\" (cons #\\ result))))
+         ((char=? c #\newline) (loop (cdr chars) (cons #\n (cons #\\ result))))
+         ((char=? c #\return) (loop (cdr chars) (cons #\r (cons #\\ result))))
+         ((char=? c #\tab) (loop (cdr chars) (cons #\t (cons #\\ result))))
+         (else (loop (cdr chars) (cons c result)))
         ) ;cond
       ) ;let
     ) ;if
@@ -188,9 +189,11 @@
         ((telemetry-alist? v)
          ;; alist -> JSON object
          (string-append "{"
-           (string-join (map (lambda (p) (string-append "\"" (car p) "\":" (telemetry->json (cdr p))))
-                          v
-                        ) ;map
+           (string-join
+             (map
+               (lambda (p) (string-append "\"" (car p) "\":" (telemetry->json (cdr p))))
+               v
+             ) ;map
              ","
            ) ;string-join
            "}"
@@ -265,24 +268,26 @@
 
 (define-public (telemetry-meta-add-entry filename)
   (let* ((entries (telemetry-read-meta))
-         (new-entry `((,"filename" . ,filename)
-                      (,"timestamp" . ,(telemetry-now))))
+         (new-entry
+           `((,"filename" . ,filename) (,"timestamp" . ,(telemetry-now)))
+         ) ;new-entry
          (updated (cons new-entry entries))
         ) ;
     (if (> (length updated) telemetry-meta-max-entries)
       (let ((dropped (list-tail updated telemetry-meta-max-entries)))
         ;; 删除被滚出的旧 jsonl（失败静默跳过，如被 goldfish 占用）
-        (for-each (lambda (entry)
-                    (let ((f (assoc-ref entry "filename")))
-                      (when f
-                        (let ((p (telemetry-full-path f)))
-                          (when (path-exists? p)
-                            (catch #t (lambda () (path-unlink p)) (lambda args #f))
-                          ) ;when
-                        ) ;let
-                      ) ;when
-                    ) ;let
-                  ) ;lambda
+        (for-each
+          (lambda (entry)
+            (let ((f (assoc-ref entry "filename")))
+              (when f
+                (let ((p (telemetry-full-path f)))
+                  (when (path-exists? p)
+                    (catch #t (lambda () (path-unlink p)) (lambda args #f))
+                  ) ;when
+                ) ;let
+              ) ;when
+            ) ;let
+          ) ;lambda
           dropped
         ) ;for-each
         (set! updated (list-head updated telemetry-meta-max-entries))

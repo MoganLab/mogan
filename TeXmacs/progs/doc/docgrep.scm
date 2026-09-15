@@ -30,8 +30,12 @@
 
 (define (get-score-list keyword-list file-list)
   (let* ((l1 (map (cut get-score-sub <> keyword-list) file-list))
-         (l2 (list-filter l1 (lambda (x) (!= (cdr x) 0))))
-         (l3 (list-sort l2 (lambda (x y) (>= (cdr x) (cdr y)))))
+         (l2
+           (list-filter l1 (lambda (x) (!= (cdr x) 0)))
+         ) ;l2
+         (l3
+           (list-sort l2 (lambda (x y) (>= (cdr x) (cdr y))))
+         ) ;l3
         ) ;
     l3
   ) ;let*
@@ -44,29 +48,36 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (build-doc-search-results keyword the-result)
-  ($tmdoc ($tmdoc-title (replace "Search results for \x10;%1\x11;" `(verbatim ,keyword)))
+  ($tmdoc
+    ($tmdoc-title
+      (replace "Search results for \x10;%1\x11;" `(verbatim ,keyword))
+    ) ;$tmdoc-title
     ($when (null? the-result)
       (replace "No matches found for \x10;%1\x11;." keyword)
     ) ;$when
     ($when (nnull? the-result)
       ($with highest-score
         (cdar the-result)
-        ($description-aligned ($for (x the-result)
-                                ($describe-item ($inline (quotient (* (cdr x) 100) highest-score) "%")
-                                  ;; 无标题节点时 text 回退为 UTF-8 原始路径，须转 cork 否则中文乱码
-                                  (let* ((path (car x))
-                                         (title (help-file-title path))
-                                         (text (if (null? title) (utf8->cork (car x)) title))
-                                        ) ;
-                                    ($link path text)
-                                  ) ;let*
-                                  '(htab "")
-                                  ($ismall ($verbatim (string-append " (" (utf8->cork (cAr (string-tokenize-by-char (car x) #\/))))
-                                             ")"
-                                           ) ;$verbatim
-                                  ) ;$ismall
-                                ) ;$describe-item
-                              ) ;$for
+        ($description-aligned
+          ($for (x the-result)
+            ($describe-item
+              ($inline (quotient (* (cdr x) 100) highest-score) "%")
+              ;; 无标题节点时 text 回退为 UTF-8 原始路径，须转 cork 否则中文乱码
+              (let* ((path (car x))
+                     (title (help-file-title path))
+                     (text (if (null? title) (utf8->cork (car x)) title))
+                    ) ;
+                ($link path text)
+              ) ;let*
+              '(htab "")
+              ($ismall
+                ($verbatim
+                  (string-append " (" (utf8->cork (cAr (string-tokenize-by-char (car x) #\/))))
+                  ")"
+                ) ;$verbatim
+              ) ;$ismall
+            ) ;$describe-item
+          ) ;$for
         ) ;$description-aligned
       ) ;$with
     ) ;$when
@@ -95,18 +106,23 @@
 ) ;define
 
 (define (build-src-search-results keyword the-result)
-  ($tmdoc ($tmdoc-title (replace "Search results for \x10;%1\x11;" `(verbatim ,keyword)))
+  ($tmdoc
+    ($tmdoc-title
+      (replace "Search results for \x10;%1\x11;" `(verbatim ,keyword))
+    ) ;$tmdoc-title
     ($when (null? the-result)
       (replace "No matches found for \x10;%1\x11;." keyword)
     ) ;$when
     ($when (nnull? the-result)
       ($with highest-score
         (cdar the-result)
-        ($description-aligned ($for (x the-result)
-                                ($describe-item ($inline (quotient (* (cdr x) 100) highest-score) "%")
-                                  ($link (car x) (src-file-short-name (car x)))
-                                ) ;$describe-item
-                              ) ;$for
+        ($description-aligned
+          ($for (x the-result)
+            ($describe-item
+              ($inline (quotient (* (cdr x) 100) highest-score) "%")
+              ($link (car x) (src-file-short-name (car x)))
+            ) ;$describe-item
+          ) ;$for
         ) ;$description-aligned
       ) ;$with
     ) ;$when

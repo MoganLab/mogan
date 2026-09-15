@@ -38,9 +38,10 @@
   (check (collab-valid-doc-name? "") => #f)
   (check (collab-valid-doc-name? (make-string 65 #\a)) => #f)
   (check (collab-valid-doc-name? (utf8-make-string 65 #\中)) => #f)
-  (for-each (lambda (bad)
-              (check (collab-valid-doc-name? (string-append "a" bad "b")) => #f)
-            ) ;lambda
+  (for-each
+    (lambda (bad)
+      (check (collab-valid-doc-name? (string-append "a" bad "b")) => #f)
+    ) ;lambda
     (list "\\" "/" ":" "*" "?" "\"" "<" ">" "|" "\t" (string (integer->char 127)))
   ) ;for-each
   (check (collab-valid-doc-name? 42) => #f)

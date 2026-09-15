@@ -91,21 +91,28 @@
               ((or (not (pair? fields)) (not (pair? (cdr fields))))
                (error "short field list" plist)
               ) ;
-              (else (let ((k (car fields)) (v (cadr fields)))
-                      (if (not v)
-                        (f (cddr fields))
-                        (let ((k^ (cond ((symbol? k) k) (else (error "invalid key" k plist))))
-                              (v^ (cond ((string? v) v)
-                                        ((and (integer? v) (exact? v)) v)
-                                        ((bytevector? v) v)
-                                        (else (let ((p (open-output-string))) (write v p) (get-output-string p)))
-                                  ) ;cond
-                              ) ;v^
-                             ) ;
-                          (cons (cons k^ v^) (f (cddr fields)))
-                        ) ;let
-                      ) ;if
+              (else
+                (let ((k (car fields)) (v (cadr fields)))
+                  (if (not v)
+                    (f (cddr fields))
+                    (let ((k^ (cond ((symbol? k) k) (else (error "invalid key" k plist))))
+                          (v^
+                            (cond ((string? v) v)
+                                  ((and (integer? v) (exact? v)) v)
+                                  ((bytevector? v) v)
+                                  (else
+                                    (let ((p (open-output-string)))
+                                      (write v p)
+                                      (get-output-string p)
+                                    ) ;let
+                                  ) ;else
+                            ) ;cond
+                          ) ;v^
+                         ) ;
+                      (cons (cons k^ v^) (f (cddr fields)))
                     ) ;let
+                  ) ;if
+                ) ;let
               ) ;else
         ) ;cond
       ) ;let

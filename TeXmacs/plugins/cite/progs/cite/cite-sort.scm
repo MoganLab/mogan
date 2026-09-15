@@ -40,25 +40,29 @@
 
 (define (expand-references k)
   (with key
-    (stree->tree `(get-binding ,(cadr k)))
+    (stree->tree
+      `(get-binding ,(cadr k))
+    ) ;stree->tree
     (with ret (tree->stree (texmacs-exec key)) (if (!= ret '(uninit)) ret ""))
   ) ;with
 ) ;define
 
 (define (merge-contiguous new old present)
   (let* ((get-write (lambda (item) (car (cdadr item))))
-         (flush (lambda ()
-                  (if (> (length present) 2)
-                    (list (list (caar present)
-                            `(concat ,@(map get-write present)
-                               ,@(cddar (cdar present))
-                               ,"-"
-                               ,@(cddar (cdAr present)))
-                          ) ;list
-                    ) ;list
-                    present
-                  ) ;if
-                ) ;lambda
+         (flush
+           (lambda ()
+             (if (> (length present) 2)
+               (list
+                 (list (caar present)
+                   `(concat ,@(map get-write present)
+                      ,@(cddar (cdar present))
+                      ,"-"
+                      ,@(cddar (cdAr present)))
+                 ) ;list
+               ) ;list
+               present
+             ) ;if
+           ) ;lambda
          ) ;flush
         ) ;
     (if (null? old)
@@ -92,7 +96,9 @@
          (keys (map expand-references (map caddr args)))
          (tup (map list keys args))
          (merged-args (indice-sort tup))
-         (ret `(concat ,@(list-intersperse merged-args '(cite-sep))))
+         (ret
+           `(concat ,@(list-intersperse merged-args '(cite-sep)))
+         ) ;ret
         ) ;
     ret
   ) ;let*

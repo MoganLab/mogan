@@ -23,8 +23,9 @@
 
 (define-public (bindings-add bl var val)
   "Bind variable @var to @val in @bl if possible."
-  (cond ((assoc-ref bl var) (if (== (assoc-ref bl var) val) bl #f))
-        (else (cons (cons var val) bl))
+  (cond
+   ((assoc-ref bl var) (if (== (assoc-ref bl var) val) bl #f))
+   (else (cons (cons var val) bl))
   ) ;cond
 ) ;define-public
 
@@ -67,7 +68,8 @@
   "Matches for @l == @((:not . args) . pat) under bindings @bl."
   ;; WARNING: the behaviour of this routine w.r.t. bindings
   ;; has not been investigated in detail
-  (if (or (null? l) (!= (length args) 1) (nnull? (match l (append args pat) bl)))
+  (if
+    (or (null? l) (!= (length args) 1) (nnull? (match l (append args pat) bl)))
     '()
     (match (cdr l) pat bl)
   ) ;if
@@ -115,46 +117,48 @@
   (if (null? pat)
     (if (== l '()) (list bl) '())
     (let ((fpat (car pat)))
-      (cond ((keyword? fpat)
-             (let* ((symb (keyword->symbol fpat))
-                    (n (string->number (string-tail (symbol->string symb) 1)))
-                   ) ;
-               (cond ((== fpat :*) (list bl))
-                     (n (if (>= (length l) n) (match (list-tail l n) (cdr pat) bl) '()))
-                     ((null? l) '())
-                     ((ahash-ref match-term fpat)
-                      (with upat (ahash-ref match-term fpat) (match l (append upat (cdr pat)) bl))
-                     ) ;
-                     ((not (apply (eval symb) (list (car l)))) '())
-                     (else (match (cdr l) (cdr pat) bl))
-               ) ;cond
-             ) ;let*
-            ) ;
-            ((and (list? fpat) (nnull? fpat))
-             (let ((ffpat (car fpat)))
-               (cond ((and (keyword? ffpat) (ahash-ref match-table ffpat))
-                      (apply (ahash-ref match-table ffpat) (list l (cdr fpat) (cdr pat) bl))
-                     ) ;
-                     ((or (nlist? l) (null? l)) '())
-                     ((== ffpat 'quote)
-                      (let ((new-bl (bindings-add bl (cadr fpat) (car l))))
-                        (if new-bl (match (cdr l) (cdr pat) new-bl) '())
-                      ) ;let
-                     ) ;
-                     ((list? (car l)) (match-any (cdr l) (cdr pat) (match (car l) fpat bl)))
-                     ((compound-tree? (car l))
-                      (match-any (cdr l) (cdr pat) (match (tree->list (car l)) fpat bl))
-                     ) ;
-                     ((string? (car l))
-                      (match-any (cdr l) (cdr pat) (match (string->list (car l)) fpat bl))
-                     ) ;
-                     (else '())
-               ) ;cond
-             ) ;let
-            ) ;
-            ((null? l) '())
-            ((not (tm-equal? (car l) fpat)) '())
-            (else (match (cdr l) (cdr pat) bl))
+      (cond
+       ((keyword? fpat)
+        (let* ((symb (keyword->symbol fpat))
+               (n (string->number (string-tail (symbol->string symb) 1)))
+              ) ;
+          (cond ((== fpat :*) (list bl))
+                (n (if (>= (length l) n) (match (list-tail l n) (cdr pat) bl) '()))
+                ((null? l) '())
+                ((ahash-ref match-term fpat)
+                 (with upat (ahash-ref match-term fpat) (match l (append upat (cdr pat)) bl))
+                ) ;
+                ((not (apply (eval symb) (list (car l)))) '())
+                (else (match (cdr l) (cdr pat) bl))
+          ) ;cond
+        ) ;let*
+       ) ;
+       ((and (list? fpat) (nnull? fpat))
+        (let ((ffpat (car fpat)))
+          (cond
+           ((and (keyword? ffpat) (ahash-ref match-table ffpat))
+            (apply (ahash-ref match-table ffpat) (list l (cdr fpat) (cdr pat) bl))
+           ) ;
+           ((or (nlist? l) (null? l)) '())
+           ((== ffpat 'quote)
+            (let ((new-bl (bindings-add bl (cadr fpat) (car l))))
+              (if new-bl (match (cdr l) (cdr pat) new-bl) '())
+            ) ;let
+           ) ;
+           ((list? (car l)) (match-any (cdr l) (cdr pat) (match (car l) fpat bl)))
+           ((compound-tree? (car l))
+            (match-any (cdr l) (cdr pat) (match (tree->list (car l)) fpat bl))
+           ) ;
+           ((string? (car l))
+            (match-any (cdr l) (cdr pat) (match (string->list (car l)) fpat bl))
+           ) ;
+           (else '())
+          ) ;cond
+        ) ;let
+       ) ;
+       ((null? l) '())
+       ((not (tm-equal? (car l) fpat)) '())
+       (else (match (cdr l) (cdr pat) bl))
       ) ;cond
     ) ;let
   ) ;if

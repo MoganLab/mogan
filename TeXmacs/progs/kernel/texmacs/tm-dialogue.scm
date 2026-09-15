@@ -56,85 +56,78 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (delayed-sub body)
-  (cond ((or (npair? body) (nlist? (car body)) (not (keyword? (caar body))))
-         `(lambda ,() ,@body ,#t)
-        ) ;
-        ((== (caar body) :pause)
-         `(let* ((start (texmacs-time)) (proc ,(delayed-sub (cdr body))))
-            (lambda ,()
-              (with left
-                (- (+ start ,(cadar body)) (texmacs-time))
-                (if (> left 0) left (begin (set! start (texmacs-time)) (proc))))))
-        ) ;
-        ((== (caar body) :every)
-         `(let* ((time (+ (texmacs-time) ,(cadar body)))
-                 (proc ,(delayed-sub (cdr body))))
-            (lambda ,()
-              (with left
-                (- time (texmacs-time))
-                (if (> left 0)
-                  left
-                  (begin (set! time (+ (texmacs-time) ,(cadar body))) (proc))))))
-        ) ;
-        ((== (caar body) :idle)
-         `(with proc
-            ,(delayed-sub (cdr body))
-            (lambda ,()
-              (with left
-                (- ,(cadar body) (idle-time))
-                (if (> left 0) left (proc)))))
-        ) ;
-        ((== (caar body) :refresh)
-         (with sym
-           (gensym)
-           `(let* ((,sym ,#f) (proc ,(delayed-sub (cdr body))))
-              (lambda ,()
-                (if (!= ,sym (change-time))
-                  ,0
-                  (with left
-                    (- ,(cadar body) (idle-time))
-                    (if (> left 0)
-                      left
-                      (begin (set! ,sym (change-time)) (proc)))))))
-         ) ;with
-        ) ;
-        ((== (caar body) :require)
-         `(with proc
-            ,(delayed-sub (cdr body))
-            (lambda ,() (if (not ,(cadar body)) ,0 (proc))))
-        ) ;
-        ((== (caar body) :while)
-         `(with proc
-            ,(delayed-sub (cdr body))
-            (lambda ,()
-              (if (not ,(cadar body))
-                ,#t
-                (with left (proc) (if (== left #t) 0 left)))))
-        ) ;
-        ((== (caar body) :clean)
-         `(with proc
-            ,(delayed-sub (cdr body))
-            (lambda ,()
-              (with left
-                (proc)
-                (if (!= left #t) left (begin ,(cadar body) ,#t)))))
-        ) ;
-        ((== (caar body) :permanent)
-         `(with proc
-            ,(delayed-sub (cdr body))
-            (lambda ,()
-              (with left
-                (proc)
-                (if (!= left #t)
-                  left
-                  (with next ,(cadar body) (if (!= next #t) #t 0))))))
-        ) ;
-        ((== (caar body) :do)
-         `(with proc
-            ,(delayed-sub (cdr body))
-            (lambda ,() ,(cadar body) (proc)))
-        ) ;
-        (else (delayed-sub (cdr body)))
+  (cond
+   ((or (npair? body) (nlist? (car body)) (not (keyword? (caar body))))
+    `(lambda ,() ,@body ,#t)
+   ) ;
+   ((== (caar body) :pause)
+    `(let* ((start (texmacs-time)) (proc ,(delayed-sub (cdr body))))
+       (lambda ,()
+         (with left
+           (- (+ start ,(cadar body)) (texmacs-time))
+           (if (> left 0) left (begin (set! start (texmacs-time)) (proc))))))
+   ) ;
+   ((== (caar body) :every)
+    `(let* ((time (+ (texmacs-time) ,(cadar body)))
+            (proc ,(delayed-sub (cdr body))))
+       (lambda ,()
+         (with left
+           (- time (texmacs-time))
+           (if (> left 0)
+             left
+             (begin (set! time (+ (texmacs-time) ,(cadar body))) (proc))))))
+   ) ;
+   ((== (caar body) :idle)
+    `(with proc
+       ,(delayed-sub (cdr body))
+       (lambda ,()
+         (with left (- ,(cadar body) (idle-time)) (if (> left 0) left (proc)))))
+   ) ;
+   ((== (caar body) :refresh)
+    (with sym
+      (gensym)
+      `(let* ((,sym ,#f) (proc ,(delayed-sub (cdr body))))
+         (lambda ,()
+           (if (!= ,sym (change-time))
+             ,0
+             (with left
+               (- ,(cadar body) (idle-time))
+               (if (> left 0) left (begin (set! ,sym (change-time)) (proc)))))))
+    ) ;with
+   ) ;
+   ((== (caar body) :require)
+    `(with proc
+       ,(delayed-sub (cdr body))
+       (lambda ,() (if (not ,(cadar body)) ,0 (proc))))
+   ) ;
+   ((== (caar body) :while)
+    `(with proc
+       ,(delayed-sub (cdr body))
+       (lambda ,()
+         (if (not ,(cadar body))
+           ,#t
+           (with left (proc) (if (== left #t) 0 left)))))
+   ) ;
+   ((== (caar body) :clean)
+    `(with proc
+       ,(delayed-sub (cdr body))
+       (lambda ,()
+         (with left (proc) (if (!= left #t) left (begin ,(cadar body) ,#t)))))
+   ) ;
+   ((== (caar body) :permanent)
+    `(with proc
+       ,(delayed-sub (cdr body))
+       (lambda ,()
+         (with left
+           (proc)
+           (if (!= left #t)
+             left
+             (with next ,(cadar body) (if (!= next #t) #t 0))))))
+   ) ;
+   ((== (caar body) :do)
+    `(with proc ,(delayed-sub (cdr body)) (lambda ,() ,(cadar body) (proc)))
+   ) ;
+   (else (delayed-sub (cdr body)))
   ) ;cond
 ) ;define-public
 
@@ -237,11 +230,12 @@
         (>= version 1)
         (json-object? commands)
         (every string? (json-keys commands))
-        (every (lambda (cmd)
-                 (let ((items (json-ref commands cmd)))
-                   (and (vector? items) (every interactive-arg-item-valid? (vector->list items)))
-                 ) ;let
-               ) ;lambda
+        (every
+          (lambda (cmd)
+            (let ((items (json-ref commands cmd)))
+              (and (vector? items) (every interactive-arg-item-valid? (vector->list items)))
+            ) ;let
+          ) ;lambda
           (json-keys commands)
         ) ;every
       ) ;and
@@ -274,12 +268,13 @@
 (define (remove-interactive-command-learned command-name)
   (let* ((commands (json-ref interactive-arg-json "commands"))
          (commands (if (or (json-object? commands) (null? commands)) commands '(())))
-         (commands* (if (json-contains-key? commands command-name)
-                      (let ((res (json-drop commands command-name)))
-                        (if (null? res) '(()) res)
-                      ) ;let
-                      commands
-                    ) ;if
+         (commands*
+           (if (json-contains-key? commands command-name)
+             (let ((res (json-drop commands command-name)))
+               (if (null? res) '(()) res)
+             ) ;let
+             commands
+           ) ;if
          ) ;commands*
         ) ;
     (set! interactive-arg-json (json-set interactive-arg-json "commands" commands*))
@@ -358,33 +353,37 @@
 (define (recent-files-apply-lru recent-files limit)
   (let* ((files (json-ref recent-files "files"))
          (n (if (vector? files) (vector-length files) 0))
-         (indexed (let loop
-                    ((i 0) (acc '()))
-                    (if (>= i n)
-                      acc
-                      (let* ((item (vector-ref files i))
-                             (t (json-ref item "last_open"))
-                             (t (if (number? t) t 0))
-                            ) ;
-                        (loop (+ i 1) (cons (cons i t) acc))
-                      ) ;let*
-                    ) ;if
-                  ) ;let
+         (indexed
+           (let loop
+             ((i 0) (acc '()))
+             (if (>= i n)
+               acc
+               (let* ((item (vector-ref files i))
+                      (t (json-ref item "last_open"))
+                      (t (if (number? t) t 0))
+                     ) ;
+                 (loop (+ i 1) (cons (cons i t) acc))
+               ) ;let*
+             ) ;if
+           ) ;let
          ) ;indexed
-         (sorted (sort indexed
-                   (lambda (a b) (if (== (cdr a) (cdr b)) (> (car a) (car b)) (> (cdr a) (cdr b))))
-                 ) ;sort
+         (sorted
+           (sort indexed
+             (lambda (a b) (if (== (cdr a) (cdr b)) (> (car a) (car b)) (> (cdr a) (cdr b))))
+           ) ;sort
          ) ;sorted
-         (new-files (list->vector (let loop
-                                    ((rank 0) (rest sorted))
-                                    (if (null? rest)
-                                      '()
-                                      (let* ((idx (caar rest)) (item (vector-ref files idx)) (show? (< rank limit)))
-                                        (cons (json-set item "show" show?) (loop (+ rank 1) (cdr rest)))
-                                      ) ;let*
-                                    ) ;if
-                                  ) ;let
-                    ) ;list->vector
+         (new-files
+           (list->vector
+             (let loop
+               ((rank 0) (rest sorted))
+               (if (null? rest)
+                 '()
+                 (let* ((idx (caar rest)) (item (vector-ref files idx)) (show? (< rank limit)))
+                   (cons (json-set item "show" show?) (loop (+ rank 1) (cdr rest)))
+                 ) ;let*
+               ) ;if
+             ) ;let
+           ) ;list->vector
          ) ;new-files
         ) ;
     (json-set recent-files "files" new-files)
@@ -394,11 +393,12 @@
 (define (recent-files-add recent-files path name)
   (let* ((files (json-ref recent-files "files"))
          (idx (if (vector? files) (vector-length files) 0))
-         (item `((,"path" . ,path)
-                 (,"name" . ,name)
-                 (,"last_open" . ,(time-second (current-time)))
-                 (,"open_count" . ,1)
-                 (,"show" . ,#t))
+         (item
+           `((,"path" . ,path)
+             (,"name" . ,name)
+             (,"last_open" . ,(time-second (current-time)))
+             (,"open_count" . ,1)
+             (,"show" . ,#t))
          ) ;item
          (total (json-ref recent-files "meta" "total"))
          (total (if (number? total) total 0))
@@ -415,11 +415,12 @@
          (name* (json-ref item "name"))
          (count* (json-ref item "open_count"))
          (count* (if (number? count*) count* 0))
-         (new-item `((,"path" . ,path*)
-                     (,"name" . ,name*)
-                     (,"last_open" . ,(time-second (current-time)))
-                     (,"open_count" . ,(+ count* 1))
-                     (,"show" . ,#t))
+         (new-item
+           `((,"path" . ,path*)
+             (,"name" . ,name*)
+             (,"last_open" . ,(time-second (current-time)))
+             (,"open_count" . ,(+ count* 1))
+             (,"show" . ,#t))
          ) ;new-item
          (r1 (json-set recent-files "files" idx new-item))
         ) ;
@@ -445,9 +446,10 @@
         ((i 0))
         (if (>= i (vector-length files))
           #f
-          (if (equal? (recent-files-canonical-path (json-ref (vector-ref files i) "path"))
-                key
-              ) ;equal?
+          (if
+            (equal? (recent-files-canonical-path (json-ref (vector-ref files i) "path"))
+              key
+            ) ;equal?
             i
             (loop (+ i 1))
           ) ;if
@@ -461,7 +463,8 @@
   (let ((files (json-ref recent-files "files")))
     (if (not (vector? files))
       '()
-      (map (lambda (item) (list (cons "0" (json-ref item "path"))))
+      (map
+        (lambda (item) (list (cons "0" (json-ref item "path"))))
         (vector->list files)
       ) ;map
     ) ;if
@@ -505,9 +508,10 @@
 ) ;define
 
 (define (normalize-interactive-assoc assoc-t)
-  (map (lambda (x)
-         (cons (interactive-key->string (car x)) (interactive-value->string (cdr x)))
-       ) ;lambda
+  (map
+    (lambda (x)
+      (cons (interactive-key->string (car x)) (interactive-value->string (cdr x)))
+    ) ;lambda
     assoc-t
   ) ;map
 ) ;define
@@ -681,10 +685,11 @@
 (define (compute-interactive-arg-type fun which)
   (with arg
     (property fun (list :argument which))
-    (cond ((or (npair? arg) (npair? (cdr arg))) "string")
-          ((string? (car arg)) (car arg))
-          ((symbol? (car arg)) (symbol->string (car arg)))
-          (else "string")
+    (cond
+     ((or (npair? arg) (npair? (cdr arg))) "string")
+     ((string? (car arg)) (car arg))
+     ((symbol? (car arg)) (symbol->string (car arg)))
+     (else "string")
     ) ;cond
   ) ;with
 ) ;define
@@ -756,19 +761,20 @@
         ((string? (car l))
          (build-interactive-args fun (cons (list (car l) "string") (cdr l)) nr learned?)
         ) ;
-        (else (let* ((name (build-interactive-arg (caar l)))
-                     (type (cadar l))
-                     (pl (cddar l))
-                     (ql pl)
-                     ;; (ql (if (null? pl) '("") pl))
-                     (ll (if learned? (learned-interactive-arg fun nr) '()))
-                     (rl (append ql (list-but ll ql)))
-                     (props (if (<= (length ql) 1) rl ql))
-                    ) ;
-                (cons (cons name (cons type props))
-                  (build-interactive-args fun (cdr l) (+ nr 1) learned?)
-                ) ;cons
-              ) ;let*
+        (else
+          (let* ((name (build-interactive-arg (caar l)))
+                 (type (cadar l))
+                 (pl (cddar l))
+                 (ql pl)
+                 ;; (ql (if (null? pl) '("") pl))
+                 (ll (if learned? (learned-interactive-arg fun nr) '()))
+                 (rl (append ql (list-but ll ql)))
+                 (props (if (<= (length ql) 1) rl ql))
+                ) ;
+            (cons (cons name (cons type props))
+              (build-interactive-args fun (cdr l) (+ nr 1) learned?)
+            ) ;cons
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -853,19 +859,22 @@
 ) ;define
 
 (define (normalize-legacy-scm-interactive-items items)
-  (list-filter (map (lambda (assoc-t)
-                      (and (legacy-scm-interactive-assoc-valid? assoc-t)
-                        (normalize-interactive-assoc assoc-t)
-                      ) ;and
-                    ) ;lambda
-                 items
-               ) ;map
+  (list-filter
+    (map (lambda (assoc-t)
+           (and (legacy-scm-interactive-assoc-valid? assoc-t)
+             (normalize-interactive-assoc assoc-t)
+           ) ;and
+         ) ;lambda
+      items
+    ) ;map
     (lambda (x) x)
   ) ;list-filter
 ) ;define
 
 (define (interactive-item-exists? item items)
-  (list-and (map (lambda (existing) (not (equal? existing item))) items))
+  (list-and
+    (map (lambda (existing) (not (equal? existing item))) items)
+  ) ;list-and
 ) ;define
 
 (define (merge-legacy-scm-interactive-items existing-items legacy-items)
@@ -914,8 +923,15 @@
         (cons form '())
         (let* ((len (apply min lengths))
                (truncl (map (cut sublist <> 0 len) l))
-               (sl (sort truncl (lambda (l1 l2) (< (car l1) (car l2)))))
-               (nl (map (lambda (y) (cons (number->string (car y)) (cdr y))) sl))
+               (sl
+                 (sort truncl (lambda (l1 l2) (< (car l1) (car l2))))
+               ) ;sl
+               (nl
+                 (map
+                   (lambda (y) (cons (number->string (car y)) (cdr y)))
+                   sl
+                 ) ;map
+               ) ;nl
                (build (lambda args (map cons (map car nl) args)))
                (r (apply map (cons build (map cdr nl))))
               ) ;
@@ -952,24 +968,25 @@
 ) ;define
 
 (define (import-legacy-scm-interactive-commands! legacy-table)
-  (for-each (lambda (entry)
-              (with (key . items)
-                entry
-                (when (and (not (legacy-scm-recent-buffer-key? key)) (list? items))
-                  (and-with name
-                    (legacy-scm-interactive-command-name key)
-                    (let* ((existing (interactive-command-learned name))
-                           (normalized (normalize-legacy-scm-interactive-items items))
-                           (merged (merge-legacy-scm-interactive-items existing normalized))
-                          ) ;
-                      (when (not (equal? merged existing))
-                        (set-interactive-command-learned name merged)
-                      ) ;when
-                    ) ;let*
-                  ) ;and-with
-                ) ;when
-              ) ;with
-            ) ;lambda
+  (for-each
+    (lambda (entry)
+      (with (key . items)
+        entry
+        (when (and (not (legacy-scm-recent-buffer-key? key)) (list? items))
+          (and-with name
+            (legacy-scm-interactive-command-name key)
+            (let* ((existing (interactive-command-learned name))
+                   (normalized (normalize-legacy-scm-interactive-items items))
+                   (merged (merge-legacy-scm-interactive-items existing normalized))
+                  ) ;
+              (when (not (equal? merged existing))
+                (set-interactive-command-learned name merged)
+              ) ;when
+            ) ;let*
+          ) ;and-with
+        ) ;when
+      ) ;with
+    ) ;lambda
     (ahash-table->list legacy-table)
   ) ;for-each
 ) ;define
@@ -984,9 +1001,10 @@
       #f
       (let loop
         ((i 1)
-         (min-t (let ((t (json-ref (vector-ref files 0) "last_open")))
-                  (if (number? t) t 0)
-                ) ;let
+         (min-t
+           (let ((t (json-ref (vector-ref files 0) "last_open")))
+             (if (number? t) t 0)
+           ) ;let
          ) ;min-t
         ) ;
         (if (>= i (vector-length files))
@@ -1002,11 +1020,12 @@
 
 (define (append-recent-file-entry recent-files path last-open)
   (let* ((name (url->system (url-tail (system->url path))))
-         (item `((,"path" . ,path)
-                 (,"name" . ,name)
-                 (,"last_open" . ,last-open)
-                 (,"open_count" . ,1)
-                 (,"show" . ,#t))
+         (item
+           `((,"path" . ,path)
+             (,"name" . ,name)
+             (,"last_open" . ,last-open)
+             (,"open_count" . ,1)
+             (,"show" . ,#t))
          ) ;item
          (files (json-ref recent-files "files"))
          (idx (if (vector? files) (vector-length files) 0))

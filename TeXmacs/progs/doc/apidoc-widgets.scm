@@ -95,21 +95,22 @@
 ) ;define
 
 (tm-define (doc-widget where key)
-  (cond ((== where "scheme")
-         (menu-dynamic (resize '("300px" "600px" "9999px")
-                         '("200px" "300px" "9999px")
-                         (texmacs-input ($doc-explain-scm key) '(style "tmdoc") #f)
-                       ) ;resize
-         ) ;menu-dynamic
-        ) ;
-        ((== where "macros")
-         (menu-dynamic (resize '("300px" "600px" "9999px")
-                         '("200px" "300px" "9999px")
-                         (texmacs-input ($doc-explain-macro key) '(style "tmdoc") #f)
-                       ) ;resize
-         ) ;menu-dynamic
-        ) ;
-        (else (menu-dynamic ("ERROR: unknown documentation set" (help-win-hide))))
+  (cond
+   ((== where "scheme")
+    (menu-dynamic (resize '("300px" "600px" "9999px")
+                    '("200px" "300px" "9999px")
+                    (texmacs-input ($doc-explain-scm key) '(style "tmdoc") #f)
+                  ) ;resize
+    ) ;menu-dynamic
+   ) ;
+   ((== where "macros")
+    (menu-dynamic (resize '("300px" "600px" "9999px")
+                    '("200px" "300px" "9999px")
+                    (texmacs-input ($doc-explain-macro key) '(style "tmdoc") #f)
+                  ) ;resize
+    ) ;menu-dynamic
+   ) ;
+   (else (menu-dynamic ("ERROR: unknown documentation set" (help-win-hide))))
   ) ;cond
 ) ;tm-define
 

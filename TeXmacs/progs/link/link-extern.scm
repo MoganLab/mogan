@@ -116,8 +116,15 @@
 (define (get-id-locations here t)
   (let* ((l (complete-link-list t #f))
          (l1 (link-list-id-locations l))
-         (l2 (list-filter l1 (lambda (x) (!= (cdr x) here))))
-         (l3 (map (lambda (x) (cons (car x) (url-delta here (cdr x)))) l2))
+         (l2
+           (list-filter l1 (lambda (x) (!= (cdr x) here)))
+         ) ;l2
+         (l3
+           (map
+             (lambda (x) (cons (car x) (url-delta here (cdr x))))
+             l2
+           ) ;map
+         ) ;l3
         ) ;
     (list-remove-duplicates l3)
   ) ;let*
@@ -143,9 +150,10 @@
              (ids (list-remove-duplicates (map cadadr l2)))
              (l3 (map (cut encode-file-correspondance here <>) ids))
             ) ;
-        (tm->tree `(collection (id ,(registry-id (url->unix here)))
-                     ,@(map (cut cons 'target <>) l3)
-                     ,@(map (cut cons 'locator <>) l2))
+        (tm->tree
+          `(collection (id ,(registry-id (url->unix here)))
+             ,@(map (cut cons 'target <>) l3)
+             ,@(map (cut cons 'locator <>) l2))
         ) ;tm->tree
       ) ;let*
     ) ;if

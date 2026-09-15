@@ -70,9 +70,10 @@
 ) ;define-public
 
 (define-public (save-object file value)
-  (string-save (let-temporarily (((*s7* 'print-length) 9223372036854775807))
-                 (object->string value)
-               ) ;let-temporarily
+  (string-save
+    (let-temporarily (((*s7* 'print-length) 9223372036854775807))
+      (object->string value)
+    ) ;let-temporarily
     file
   ) ;string-save
 ) ;define-public
@@ -140,33 +141,34 @@
 
 (define-public-macro (for what . body)
   (let ((n (length what)))
-    (cond ((== n 2)
-           ;; range over values of a list
-           `(for-each (lambda (,(car what)) ,@body) ,(cadr what))
-          ) ;
-          ((== n 3)
-           ;; range over values from start to end with step 1
-           `(do ((,(car what) ,(cadr what) (+ ,(car what) ,1)))
-              ((>= ,(car what) ,(caddr what)) (noop))
-              ,@body)
-          ) ;
-          ((== n 4)
-           ;; range over values from start to end with step
-           `(if (> ,(cadddr what) ,0)
-              (do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
-                ((>= ,(car what) ,(caddr what)) (noop))
-                ,@body)
-              (do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
-                ((<= ,(car what) ,(caddr what)) (noop))
-                ,@body))
-          ) ;
-          ((== n 5)
-           ;; range over values from start to end with step and comparison
-           `(do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
-              ((not (,(car (cddddr what)) ,(car what) ,(caddr what))) (noop))
-              ,@body)
-          ) ;
-          (else '(noop))
+    (cond
+     ((== n 2)
+      ;; range over values of a list
+      `(for-each (lambda (,(car what)) ,@body) ,(cadr what))
+     ) ;
+     ((== n 3)
+      ;; range over values from start to end with step 1
+      `(do ((,(car what) ,(cadr what) (+ ,(car what) ,1)))
+         ((>= ,(car what) ,(caddr what)) (noop))
+         ,@body)
+     ) ;
+     ((== n 4)
+      ;; range over values from start to end with step
+      `(if (> ,(cadddr what) ,0)
+         (do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
+           ((>= ,(car what) ,(caddr what)) (noop))
+           ,@body)
+         (do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
+           ((<= ,(car what) ,(caddr what)) (noop))
+           ,@body))
+     ) ;
+     ((== n 5)
+      ;; range over values from start to end with step and comparison
+      `(do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
+         ((not (,(car (cddddr what)) ,(car what) ,(caddr what))) (noop))
+         ,@body)
+     ) ;
+     (else '(noop))
     ) ;cond
   ) ;let
 ) ;define-public-macro
@@ -200,9 +202,10 @@
 
 (define-public (go-to p)
   (let* ((r (buffer-path)) (lp (length p)) (lr (length r)))
-    (and (or (and (<= lr lp) (== (sublist p 0 lr) r))
-           (and-with buf (path->buffer p) (switch-to-buffer buf) #t)
-         ) ;or
+    (and
+      (or (and (<= lr lp) (== (sublist p 0 lr) r))
+        (and-with buf (path->buffer p) (switch-to-buffer buf) #t)
+      ) ;or
       (go-to-path p)
     ) ;and
   ) ;let*
@@ -233,45 +236,48 @@
                      ) ;and
            ) ;last-dir
           ) ;
-      (cond (style-target (set! opts (list (car opts) style-target)))
-            ((and last-dir (string? last-dir) (not (string-null? last-dir)))
-             (set! opts (list (car opts) (system->url last-dir)))
-            ) ;
-            ((url-scratch? master)
-             ;; 草稿另存默认目录:LiiiSTEM,而非 no_name 暂存目录
-             (set! opts (list (car opts) (url-append (get-documents-path) "LiiiSTEM")))
-            ) ;
-            ((url-rooted-tmfs? master)
-             ;; tmfs buffer（协作云文档等）master 是 tmfs URL，非本地路径；
-             ;; 默认落到系统下载目录，buffer 标题作默认文件名
-             ;; （propose-name-buffer 已转 UTF-8）；裸文件名会退化为 cwd
-             (set! opts
-               (list (car opts)
-                 (url-append (get-downloads-path) (system->url (propose-name-buffer)))
-               ) ;list
-             ) ;set!
-            ) ;
-            (else (set! opts (list (car opts) master)))
+      (cond
+        (style-target (set! opts (list (car opts) style-target)))
+        ((and last-dir (string? last-dir) (not (string-null? last-dir)))
+         (set! opts (list (car opts) (system->url last-dir)))
+        ) ;
+        ((url-scratch? master)
+         ;; 草稿另存默认目录:LiiiSTEM,而非 no_name 暂存目录
+         (set! opts (list (car opts) (url-append (get-documents-path) "LiiiSTEM")))
+        ) ;
+        ((url-rooted-tmfs? master)
+         ;; tmfs buffer（协作云文档等）master 是 tmfs URL，非本地路径；
+         ;; 默认落到系统下载目录，buffer 标题作默认文件名
+         ;; （propose-name-buffer 已转 UTF-8）；裸文件名会退化为 cwd
+         (set! opts
+           (list (car opts)
+             (url-append (get-downloads-path) (system->url (propose-name-buffer)))
+           ) ;list
+         ) ;set!
+        ) ;
+        (else (set! opts (list (car opts) master)))
       ) ;cond
     ) ;let*
   ) ;when
-  (cpp-choose-file (lambda (u)
-                     ;; u is return from tm_frame_rep::choose_file in tm_dialogue.cpp
-                     ;; make sure u is a url, or car of u is a url
-                     ;; and that it does not contain a wildcard
-                     (if (or (url? u) (and (pair? u) (url? (car u))))
-                       (let ((u-url (if (url? u) u (car u))))
-                         (if (and (not (url-none? u-url)) (url-contains-wildcard? u-url))
-                           (dialogue-window (message-widget "File name and path cannot contain ' * '")
-                             (lambda () (choose-file fun title type (car opts) (cadr opts)))
-                             "Invalid file name"
-                           ) ;dialogue-window
-                           (fun u)
-                         ) ;if
-                       ) ;let
-                       (fun u)
-                     ) ;if
-                   ) ;lambda
+  (cpp-choose-file
+    (lambda (u)
+      ;; u is return from tm_frame_rep::choose_file in tm_dialogue.cpp
+      ;; make sure u is a url, or car of u is a url
+      ;; and that it does not contain a wildcard
+      (if
+        (or (url? u) (and (pair? u) (url? (car u))))
+        (let ((u-url (if (url? u) u (car u))))
+          (if (and (not (url-none? u-url)) (url-contains-wildcard? u-url))
+            (dialogue-window (message-widget "File name and path cannot contain ' * '")
+              (lambda () (choose-file fun title type (car opts) (cadr opts)))
+              "Invalid file name"
+            ) ;dialogue-window
+            (fun u)
+          ) ;if
+        ) ;let
+        (fun u)
+      ) ;if
+    ) ;lambda
     title
     type
     (car opts)

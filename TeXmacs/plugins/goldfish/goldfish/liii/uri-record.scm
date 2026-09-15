@@ -131,16 +131,17 @@
     ;; 字符转十六进制数字
     (define (char->hex c)
       (let ((code (char->integer c)))
-        (cond ((and (>= code (char->integer #\0)) (<= code (char->integer #\9)))
-               (- code (char->integer #\0))
-              ) ;
-              ((and (>= code (char->integer #\A)) (<= code (char->integer #\F)))
-               (+ 10 (- code (char->integer #\A)))
-              ) ;
-              ((and (>= code (char->integer #\a)) (<= code (char->integer #\f)))
-               (+ 10 (- code (char->integer #\a)))
-              ) ;
-              (else #f)
+        (cond
+         ((and (>= code (char->integer #\0)) (<= code (char->integer #\9)))
+          (- code (char->integer #\0))
+         ) ;
+         ((and (>= code (char->integer #\A)) (<= code (char->integer #\F)))
+          (+ 10 (- code (char->integer #\A)))
+         ) ;
+         ((and (>= code (char->integer #\a)) (<= code (char->integer #\f)))
+          (+ 10 (- code (char->integer #\a)))
+         ) ;
+         (else #f)
         ) ;cond
       ) ;let
     ) ;define
@@ -186,20 +187,22 @@
           (if (null? chars)
             (list->string (reverse result))
             (let ((c (car chars)))
-              (cond ((char=? c #\%)
-                     (if (and (not (null? (cdr chars)))
-                           (not (null? (cddr chars)))
-                           (char->hex (cadr chars))
-                           (char->hex (caddr chars))
-                         ) ;and
-                       (let ((high (char->hex (cadr chars))) (low (char->hex (caddr chars))))
-                         (loop (cdddr chars) (cons (integer->char (+ (* high 16) low)) result))
-                       ) ;let
-                       (error "uri-decode: invalid percent encoding")
-                     ) ;if
-                    ) ;
-                    ((char=? c #\+) (loop (cdr chars) (cons #\space result)))
-                    (else (loop (cdr chars) (cons c result)))
+              (cond
+               ((char=? c #\%)
+                (if
+                  (and (not (null? (cdr chars)))
+                    (not (null? (cddr chars)))
+                    (char->hex (cadr chars))
+                    (char->hex (caddr chars))
+                  ) ;and
+                  (let ((high (char->hex (cadr chars))) (low (char->hex (caddr chars))))
+                    (loop (cdddr chars) (cons (integer->char (+ (* high 16) low)) result))
+                  ) ;let
+                  (error "uri-decode: invalid percent encoding")
+                ) ;if
+               ) ;
+               ((char=? c #\+) (loop (cdr chars) (cons #\space result)))
+               (else (loop (cdr chars) (cons c result)))
               ) ;cond
             ) ;let
           ) ;if
@@ -219,9 +222,10 @@
                      (cons #\/ result)
                     ) ;
                     ((unreserved-byte? b) (cons (integer->char b) result))
-                    (else (let ((hi (hex-digit (quotient b 16))) (lo (hex-digit (remainder b 16))))
-                            (cons lo (cons hi (cons #\% result)))
-                          ) ;let
+                    (else
+                      (let ((hi (hex-digit (quotient b 16))) (lo (hex-digit (remainder b 16))))
+                        (cons lo (cons hi (cons #\% result)))
+                      ) ;let
                     ) ;else
               ) ;cond
             ) ;lambda
@@ -242,16 +246,17 @@
       (if (or (not (string? qs)) (string=? qs ""))
         '()
         (let ((pairs (string-split qs "&")))
-          (map (lambda (pair)
-                 (let ((eq-pos (string-index pair #\=)))
-                   (if eq-pos
-                     (cons (substring pair 0 eq-pos)
-                       (uri-decode (substring pair (+ eq-pos 1) (string-length pair)))
-                     ) ;cons
-                     (cons pair "")
-                   ) ;if
-                 ) ;let
-               ) ;lambda
+          (map
+            (lambda (pair)
+              (let ((eq-pos (string-index pair #\=)))
+                (if eq-pos
+                  (cons (substring pair 0 eq-pos)
+                    (uri-decode (substring pair (+ eq-pos 1) (string-length pair)))
+                  ) ;cons
+                  (cons pair "")
+                ) ;if
+              ) ;let
+            ) ;lambda
             pairs
           ) ;map
         ) ;let
@@ -262,14 +267,16 @@
     (define (alist->query-string alist)
       (if (null? alist)
         ""
-        (string-join (map (lambda (pair)
-                            (if (cdr pair)
-                              (string-append (car pair) "=" (uri-encode (cdr pair)))
-                              (car pair)
-                            ) ;if
-                          ) ;lambda
-                       alist
-                     ) ;map
+        (string-join
+          (map
+            (lambda (pair)
+              (if (cdr pair)
+                (string-append (car pair) "=" (uri-encode (cdr pair)))
+                (car pair)
+              ) ;if
+            ) ;lambda
+            alist
+          ) ;map
           "&"
         ) ;string-join
       ) ;if

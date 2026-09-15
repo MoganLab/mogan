@@ -106,7 +106,8 @@
 (tm-define (remove-unary-document)
   (with-innermost doc
     'document
-    (when (and (== (tree-arity doc) 1) (> (length (tree->path doc)) 1))
+    (when
+      (and (== (tree-arity doc) 1) (> (length (tree->path doc)) 1))
       (tree-remove-node! doc 0)
     ) ;when
   ) ;with-innermost
@@ -152,15 +153,21 @@
   (if (null? l)
     l
     (let* ((head (car l)) (tail (inits->assignments (cdr l))))
-      (cond ((not (and (tm-func? head 'associate 2) (string? (tm-ref head 0)))) tail)
-            ((in? (tm-ref head 0)
-               (list "zoom-factor" "sfactor" "preamble" "page-screen-width"
-                 "page-screen-height"
-               ) ;list
-             ) ;in?
-             tail
-            ) ;
-            (else (cons `(assign ,(tm-ref head 0) ,(tm-ref head 1)) tail))
+      (cond
+       ((not (and (tm-func? head 'associate 2) (string? (tm-ref head 0)))) tail)
+       ((in? (tm-ref head 0)
+          (list "zoom-factor" "sfactor" "preamble" "page-screen-width"
+            "page-screen-height"
+          ) ;list
+        ) ;in?
+        tail
+       ) ;
+       (else
+         (cons
+           `(assign ,(tm-ref head 0) ,(tm-ref head 1))
+           tail
+         ) ;cons
+       ) ;else
       ) ;cond
     ) ;let*
   ) ;if
@@ -197,12 +204,13 @@
 (tm-define (style-package-target-url buf) (ahash-ref style-package-targets buf))
 
 (define (style-package-compute-target orig)
-  (cond ((or (url-scratch? orig) (url-rooted-tmfs? orig))
-         (url-append (get-documents-path)
-           (string-append "LiiiSTEM/" (url-basename orig) ".stem")
-         ) ;url-append
-        ) ;
-        (else (url-append (url-head orig) (string-append (url-basename orig) ".stem")))
+  (cond
+   ((or (url-scratch? orig) (url-rooted-tmfs? orig))
+    (url-append (get-documents-path)
+      (string-append "LiiiSTEM/" (url-basename orig) ".stem")
+    ) ;url-append
+   ) ;
+   (else (url-append (url-head orig) (string-append (url-basename orig) ".stem")))
   ) ;cond
 ) ;define
 
@@ -213,9 +221,10 @@
          (inits (extract-style-parameters))
          (defs (extract-macro-definitions))
          (body `(document ,tit ,@packs ,@inits ,@defs))
-         (doc `(document (TeXmacs ,(texmacs-version))
-                 (style (tuple "source"))
-                 (body ,body))
+         (doc
+           `(document (TeXmacs ,(texmacs-version))
+              (style (tuple "source"))
+              (body ,body))
          ) ;doc
         ) ;
     (new-buffer ".stem")

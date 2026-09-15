@@ -63,7 +63,8 @@
     >>
     (refreshable "custom-keyboard"
       (invisible (get-the-keyboard))
-      (texmacs-output `(with ,"bg-color" ,"#404040" ,(get-the-keyboard))
+      (texmacs-output
+        `(with ,"bg-color" ,"#404040" ,(get-the-keyboard))
         '(style "new-gui")
       ) ;texmacs-output
     ) ;refreshable
@@ -85,7 +86,8 @@
 (tm-widget (custom-keyboard-widget cmd)
   (refreshable "custom-keyboard"
     (invisible (get-the-keyboard))
-    (texmacs-output `(with ,"bg-color" ,"#404040" ,(get-the-keyboard))
+    (texmacs-output
+      `(with ,"bg-color" ,"#404040" ,(get-the-keyboard))
       '(style "new-gui")
     ) ;texmacs-output
   ) ;refreshable

@@ -136,10 +136,11 @@
 (define (git-history-item alist root)
   (with (date by msg commit blank path)
     alist
-    (list (string-append commit
-            ":"
-            (url->tmfs-string (system->url (string-append root "/" path)))
-          ) ;string-append
+    (list
+      (string-append commit
+        ":"
+        (url->tmfs-string (system->url (string-append root "/" path)))
+      ) ;string-append
       by
       date
       msg
@@ -435,9 +436,10 @@
     ($generic ($when (not s) "Not git status available!")
       ($when s
         ($tmfs-title "Git Status")
-        ($description-long ($describe-item "Changes to be commited"
-                             ($for (x s) ($with (status file) x ($staged-file status file)))
-                           ) ;$describe-item
+        ($description-long
+          ($describe-item "Changes to be commited"
+            ($for (x s) ($with (status file) x ($staged-file status file)))
+          ) ;$describe-item
           ($describe-item "Changes not staged for commit"
             ($for (x s) ($with (status file) x ($unstaged-file status file)))
           ) ;$describe-item
@@ -503,14 +505,15 @@
     ($generic ($tmfs-title "Git Log")
       ($when (not h) "This directory is not under version control.")
       ($when h
-        ($description-long ($for (x h)
-                             ($with (date by msg commit)
-                               x
-                               ($describe-item ($inline "Commit " commit " by " (utf8->cork by) " on " date)
-                                 (utf8->cork msg)
-                               ) ;$describe-item
-                             ) ;$with
-                           ) ;$for
+        ($description-long
+          ($for (x h)
+            ($with (date by msg commit)
+              x
+              ($describe-item ($inline "Commit " commit " by " (utf8->cork by) " on " date)
+                (utf8->cork msg)
+              ) ;$describe-item
+            ) ;$with
+          ) ;$for
         ) ;$description-long
       ) ;$when
     ) ;$generic

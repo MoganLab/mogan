@@ -43,9 +43,12 @@
 
 (define (test-auto-backup-texmacs-path-buffer?)
   ;; TeXmacs 安装路径下的文件被视为只读资源，应当被跳过
-  (check (auto-backup-texmacs-path-buffer? (system->url (path->string (path-join (url->system (get-texmacs-path)) "progs" "test.tmu"))
-                                           ) ;system->url
-         ) ;auto-backup-texmacs-path-buffer?
+  (check
+    (auto-backup-texmacs-path-buffer?
+      (system->url
+        (path->string (path-join (url->system (get-texmacs-path)) "progs" "test.tmu"))
+      ) ;system->url
+    ) ;auto-backup-texmacs-path-buffer?
     =>
     #t
   ) ;check

@@ -192,15 +192,16 @@
 (define (notification-bar-extract-number-tokens s)
   (let loop
     ((chars (string->list s)) (current '()) (tokens '()))
-    (cond ((null? chars)
-           (reverse (if (null? current) tokens (cons (reverse-list->string current) tokens))
-           ) ;reverse
-          ) ;
-          ((notification-bar-digit-char? (car chars))
-           (loop (cdr chars) (cons (car chars) current) tokens)
-          ) ;
-          ((null? current) (loop (cdr chars) '() tokens))
-          (else (loop (cdr chars) '() (cons (reverse-list->string current) tokens)))
+    (cond
+     ((null? chars)
+      (reverse (if (null? current) tokens (cons (reverse-list->string current) tokens))
+      ) ;reverse
+     ) ;
+     ((notification-bar-digit-char? (car chars))
+      (loop (cdr chars) (cons (car chars) current) tokens)
+     ) ;
+     ((null? current) (loop (cdr chars) '() tokens))
+     (else (loop (cdr chars) '() (cons (reverse-list->string current) tokens)))
     ) ;cond
   ) ;let
 ) ;define
@@ -214,7 +215,9 @@
          (era (notification-bar-floor-div y 400))
          (yoe (- y (* era 400)))
          (m (+ month (if (> month 2) -3 9)))
-         (doy (+ (quotient (+ (* 153 m) 2) 5) (- day 1)))
+         (doy
+           (+ (quotient (+ (* 153 m) 2) 5) (- day 1))
+         ) ;doy
          (doe (+ (* yoe 365) (quotient yoe 4) (- (quotient yoe 100)) doy))
         ) ;
     (+ (- (* era 146097) 719468) doe)
@@ -225,14 +228,22 @@
   (let* ((z* (+ z 719468))
          (era (notification-bar-floor-div z* 146097))
          (doe (- z* (* era 146097)))
-         (yoe (quotient (- doe (quotient doe 1460) (- (quotient doe 36524)) (quotient doe 146096))
-                365
-              ) ;quotient
+         (yoe
+           (quotient (- doe (quotient doe 1460) (- (quotient doe 36524)) (quotient doe 146096))
+             365
+           ) ;quotient
          ) ;yoe
          (year (+ yoe (* era 400)))
-         (doy (- doe (+ (* yoe 365) (quotient yoe 4) (- (quotient yoe 100)))))
+         (doy
+           (- doe (+ (* yoe 365) (quotient yoe 4) (- (quotient yoe 100))))
+         ) ;doy
          (mp (quotient (+ (* 5 doy) 2) 153))
-         (day (+ (- doy (quotient (+ (* 153 mp) 2) 5)) 1))
+         (day
+           (+
+             (- doy (quotient (+ (* 153 mp) 2) 5))
+             1
+           ) ;+
+         ) ;day
          (month (+ mp (if (< mp 10) 3 -9)))
          (year* (+ year (if (<= month 2) 1 0)))
         ) ;
@@ -279,30 +290,31 @@
          ) ;tokens
          (count (length tokens))
         ) ;
-    (cond ((== count 3)
-           (let* ((first (or (string->number (list-ref tokens 0)) 0))
-                  (second (or (string->number (list-ref tokens 1)) 0))
-                  (third (or (string->number (list-ref tokens 2)) 0))
-                  (year (if (> first 31) first third))
-                  (month second)
-                  (day (if (> first 31) third first))
-                 ) ;
-             (and (notification-bar-valid-date? year month day)
-               (notification-bar-days-from-civil year month day)
-             ) ;and
-           ) ;let*
-          ) ;
-          ((== count 2)
-           (let* ((month (or (string->number (list-ref tokens 0)) 0))
-                  (day (or (string->number (list-ref tokens 1)) 0))
-                  (year (notification-bar-infer-year-for-month-day month day))
-                 ) ;
-             (and (notification-bar-valid-date? year month day)
-               (notification-bar-days-from-civil year month day)
-             ) ;and
-           ) ;let*
-          ) ;
-          (else #f)
+    (cond
+     ((== count 3)
+      (let* ((first (or (string->number (list-ref tokens 0)) 0))
+             (second (or (string->number (list-ref tokens 1)) 0))
+             (third (or (string->number (list-ref tokens 2)) 0))
+             (year (if (> first 31) first third))
+             (month second)
+             (day (if (> first 31) third first))
+            ) ;
+        (and (notification-bar-valid-date? year month day)
+          (notification-bar-days-from-civil year month day)
+        ) ;and
+      ) ;let*
+     ) ;
+     ((== count 2)
+      (let* ((month (or (string->number (list-ref tokens 0)) 0))
+             (day (or (string->number (list-ref tokens 1)) 0))
+             (year (notification-bar-infer-year-for-month-day month day))
+            ) ;
+        (and (notification-bar-valid-date? year month day)
+          (notification-bar-days-from-civil year month day)
+        ) ;and
+      ) ;let*
+     ) ;
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define

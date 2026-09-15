@@ -403,7 +403,12 @@
             ) ;vector-append
          ) ;v
          (sorted (sort! v string<?))
-         (entries (vector-filter (lambda (s) (not (member s '("." "..")))) sorted))
+         (entries
+           (vector-filter
+             (lambda (s) (not (member s '("." ".."))))
+             sorted
+           ) ;vector-filter
+         ) ;entries
          (n (vector-length entries))
         ) ;
     (let loop
@@ -526,22 +531,24 @@
 ) ;define
 
 (define (add-to-check-dir-table u)
-  (cond ((in? u (list (url-head u) home-dir texmacs-dir)) (noop))
-        ((url-or? u)
-         (add-to-check-dir-table (url-ref u 1))
-         (add-to-check-dir-table (url-ref u 2))
-        ) ;
-        ((url-concat? u)
-         (add-to-check-dir-table (url-head u))
-         (for (v (url->list (url-expand (url-complete u "dr"))))
-           (with s
-             (url->system v)
-             (when (not (ahash-ref check-dir-table s))
-               (ahash-set! check-dir-table s (url-last-modified v))
-             ) ;when
-           ) ;with
-         ) ;for
-        ) ;
+  (cond
+   ((in? u (list (url-head u) home-dir texmacs-dir)) (noop))
+   ((url-or? u)
+    (add-to-check-dir-table (url-ref u 1))
+    (add-to-check-dir-table (url-ref u 2))
+   ) ;
+   ((url-concat? u)
+    (add-to-check-dir-table (url-head u))
+    (for
+      (v (url->list (url-expand (url-complete u "dr"))))
+      (with s
+        (url->system v)
+        (when (not (ahash-ref check-dir-table s))
+          (ahash-set! check-dir-table s (url-last-modified v))
+        ) ;when
+      ) ;with
+    ) ;for
+   ) ;
   ) ;cond
 ) ;define
 
@@ -604,67 +611,67 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (plugin-configure-cmd name cmd)
-  (cond ((func? cmd :require 1)
-         (when reconfigure-flag?
-           (ahash-set! plugin-data-table name ((second cmd)))
-         ) ;when
-        ) ;
-        ((func? cmd :versions 1)
-         (when reconfigure-flag?
-           (ahash-set! plugin-data-table name ((second cmd)))
-         ) ;when
-        ) ;
-        ((func? cmd :setup 1) (if reconfigure-flag? ((second cmd))))
-        ((func? cmd :prioritary 1)
-         (ahash-set! plugin-data-table (list name :prioritary) (cadr cmd))
-        ) ;
-        ((func? cmd :initialize 1) ((second cmd)))
-        ((func? cmd :launch 1) (connection-setup name `(tuple ,"pipe"
-                                                         ,(second cmd))))
-        ((func? cmd :launch 2)
-         (connection-setup name `(tuple ,"pipe" ,(third cmd)) (cadr cmd))
-        ) ;
-        ((func? cmd :socket 2)
-         (connection-setup name `(tuple ,"socket" ,(second cmd) ,(third cmd)))
-        ) ;
-        ((func? cmd :socket 3)
-         (connection-setup name `(tuple ,"socket" ,(third cmd) ,(fourth cmd)) (cadr cmd))
-        ) ;
-        ((func? cmd :link 3)
-         (connection-setup name
-           `(tuple ,"dynlink" ,(second cmd) ,(third cmd) ,(fourth cmd))
-         ) ;connection-setup
-        ) ;
-        ((func? cmd :link 4)
-         (connection-setup name
-           `(tuple ,"dynlink" ,(third cmd) ,(fourth cmd) ,(fifth cmd))
-           (cadr cmd)
-         ) ;connection-setup
-        ) ;
-        ((func? cmd :handler 2)
-         (connection-insert-handler name (second cmd) (symbol->string (third cmd)))
-        ) ;
-        ((func? cmd :winpath 2)
-         (when (os-windows?)
-           (add-windows-program-path (url-append (second cmd) (third cmd)) #t)
-         ) ;when
-        ) ;
-        ((func? cmd :macpath 2)
-         (when (os-macos?)
-           (add-macos-program-path (url-append (second cmd) (third cmd)) #t)
-         ) ;when
-        ) ;
-        ((func? cmd :session 1) (session-setup name (second cmd)))
-        ((func? cmd :scripts 1) (scripts-setup name (second cmd)))
-        ((func? cmd :filter-in 1) (noop))
-        ((func? cmd :serializer 1) (plugin-serializer-set! name (second cmd)))
-        ((func? cmd :commander 1) (plugin-commander-set! name (second cmd)))
-        ((func? cmd :tab-completion 1)
-         (if (second cmd) (plugin-supports-completions-set! name))
-        ) ;
-        ((func? cmd :test-input-done 1)
-         (if (second cmd) (plugin-supports-input-done-set! name))
-        ) ;
+  (cond
+   ((func? cmd :require 1)
+    (when reconfigure-flag?
+      (ahash-set! plugin-data-table name ((second cmd)))
+    ) ;when
+   ) ;
+   ((func? cmd :versions 1)
+    (when reconfigure-flag?
+      (ahash-set! plugin-data-table name ((second cmd)))
+    ) ;when
+   ) ;
+   ((func? cmd :setup 1) (if reconfigure-flag? ((second cmd))))
+   ((func? cmd :prioritary 1)
+    (ahash-set! plugin-data-table (list name :prioritary) (cadr cmd))
+   ) ;
+   ((func? cmd :initialize 1) ((second cmd)))
+   ((func? cmd :launch 1) (connection-setup name `(tuple ,"pipe" ,(second cmd))))
+   ((func? cmd :launch 2)
+    (connection-setup name `(tuple ,"pipe" ,(third cmd)) (cadr cmd))
+   ) ;
+   ((func? cmd :socket 2)
+    (connection-setup name `(tuple ,"socket" ,(second cmd) ,(third cmd)))
+   ) ;
+   ((func? cmd :socket 3)
+    (connection-setup name `(tuple ,"socket" ,(third cmd) ,(fourth cmd)) (cadr cmd))
+   ) ;
+   ((func? cmd :link 3)
+    (connection-setup name
+      `(tuple ,"dynlink" ,(second cmd) ,(third cmd) ,(fourth cmd))
+    ) ;connection-setup
+   ) ;
+   ((func? cmd :link 4)
+    (connection-setup name
+      `(tuple ,"dynlink" ,(third cmd) ,(fourth cmd) ,(fifth cmd))
+      (cadr cmd)
+    ) ;connection-setup
+   ) ;
+   ((func? cmd :handler 2)
+    (connection-insert-handler name (second cmd) (symbol->string (third cmd)))
+   ) ;
+   ((func? cmd :winpath 2)
+    (when (os-windows?)
+      (add-windows-program-path (url-append (second cmd) (third cmd)) #t)
+    ) ;when
+   ) ;
+   ((func? cmd :macpath 2)
+    (when (os-macos?)
+      (add-macos-program-path (url-append (second cmd) (third cmd)) #t)
+    ) ;when
+   ) ;
+   ((func? cmd :session 1) (session-setup name (second cmd)))
+   ((func? cmd :scripts 1) (scripts-setup name (second cmd)))
+   ((func? cmd :filter-in 1) (noop))
+   ((func? cmd :serializer 1) (plugin-serializer-set! name (second cmd)))
+   ((func? cmd :commander 1) (plugin-commander-set! name (second cmd)))
+   ((func? cmd :tab-completion 1)
+    (if (second cmd) (plugin-supports-completions-set! name))
+   ) ;
+   ((func? cmd :test-input-done 1)
+    (if (second cmd) (plugin-supports-input-done-set! name))
+   ) ;
   ) ;cond
 
   (or (in? (car cmd) '(:macpath :winpath)) (ahash-ref plugin-data-table name))

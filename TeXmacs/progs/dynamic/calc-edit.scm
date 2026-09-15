@@ -47,7 +47,9 @@
         ((tree-is? t 'cell-ref)
          (with name
            (texmacs->string (tree-ref t 0))
-           (tm->tree `(calc-ref ,(string-append prefix name)))
+           (tm->tree
+             `(calc-ref ,(string-append prefix name))
+           ) ;tm->tree
          ) ;with
         ) ;
         (else (tree-map-children (cut calc-prefix-input prefix <>) t))
@@ -186,7 +188,9 @@
            (cond ((not val) t)
                  ((tm-equal? val "") (string->tree "0"))
                  ((== lan "scheme") (tm->tree val))
-                 (else (tm->tree `(concat ,"(" ,val ,")")))
+                 (else
+                   (tm->tree `(concat ,"(" ,val ,")"))
+                 ) ;else
            ) ;cond
          ) ;let*
         ) ;
@@ -246,17 +250,18 @@
 ) ;define
 
 (define (icourse-invalidate t)
-  (cond ((tree-in? t '(calc-generate calc-generate-command calc-suggest))
-         (with var
-           (calc-var t "")
-           (tree-set (tree-ref t 2) "")
-           (ahash-remove! calc-input var)
-           (ahash-remove! calc-output var)
-         ) ;with
-        ) ;
-        ((calc-answer-context? t) (tree-set (tree-ref t 2) ""))
-        ((calc-check-context? t) (tree-set (tree-ref t 2) ""))
-        ((tree-compound? t) (for-each icourse-invalidate (tree-children t)))
+  (cond
+   ((tree-in? t '(calc-generate calc-generate-command calc-suggest))
+    (with var
+      (calc-var t "")
+      (tree-set (tree-ref t 2) "")
+      (ahash-remove! calc-input var)
+      (ahash-remove! calc-output var)
+    ) ;with
+   ) ;
+   ((calc-answer-context? t) (tree-set (tree-ref t 2) ""))
+   ((calc-check-context? t) (tree-set (tree-ref t 2) ""))
+   ((tree-compound? t) (for-each icourse-invalidate (tree-children t)))
   ) ;cond
 ) ;define
 
@@ -276,29 +281,31 @@
 ) ;tm-define
 
 (define (icourse-solutions t flag?)
-  (cond ((calc-answer-context? t)
-         (tree-set (tree-ref t 2) (if flag? (tree->stree (tree-ref t 3)) ""))
-        ) ;
-        ((calc-check-context? t)
-         (tree-set (tree-ref t 2) (if flag? (tree->stree (tm-ref t 4 2)) ""))
-        ) ;
-        ((tree-compound? t)
-         (for-each (cut icourse-solutions <> flag?) (tree-children t))
-        ) ;
+  (cond
+   ((calc-answer-context? t)
+    (tree-set (tree-ref t 2) (if flag? (tree->stree (tree-ref t 3)) ""))
+   ) ;
+   ((calc-check-context? t)
+    (tree-set (tree-ref t 2) (if flag? (tree->stree (tm-ref t 4 2)) ""))
+   ) ;
+   ((tree-compound? t)
+    (for-each (cut icourse-solutions <> flag?) (tree-children t))
+   ) ;
   ) ;cond
 ) ;define
 
 (tm-define (calc-solutions flag?)
-  (cond ((selection-active-any?)
-         (with l (selection-trees) (for-each (cut icourse-solutions <> flag?) l))
-        ) ;
-        ((nnot (tree-innermost exercise-context?))
-         (icourse-solutions (tree-innermost exercise-context?) flag?)
-        ) ;
-        ((nnot (tree-innermost math-context?))
-         (icourse-solutions (tree-innermost math-context?) flag?)
-        ) ;
-        (else (icourse-solutions (buffer-tree) flag?))
+  (cond
+   ((selection-active-any?)
+    (with l (selection-trees) (for-each (cut icourse-solutions <> flag?) l))
+   ) ;
+   ((nnot (tree-innermost exercise-context?))
+    (icourse-solutions (tree-innermost exercise-context?) flag?)
+   ) ;
+   ((nnot (tree-innermost math-context?))
+    (icourse-solutions (tree-innermost math-context?) flag?)
+   ) ;
+   (else (icourse-solutions (buffer-tree) flag?))
   ) ;cond
 ) ;tm-define
 
@@ -422,25 +429,40 @@
 ) ;define
 
 (tm-define (make-calc-inert)
-  (insert-go-to `(calc-inert ,(calc-auto) ,"") '(1 0))
+  (insert-go-to
+    `(calc-inert ,(calc-auto) ,"")
+    '(1 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-input)
-  (insert-go-to `(calc-input ,(calc-auto) ,"" ,"") '(1 0))
+  (insert-go-to
+    `(calc-input ,(calc-auto) ,"" ,"")
+    '(1 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-generate)
-  (insert-go-to `(calc-generate-command ,(calc-auto) ,"" ,"") '(1 0))
+  (insert-go-to
+    `(calc-generate-command ,(calc-auto) ,"" ,"")
+    '(1 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-answer)
-  (insert-go-to `(calc-answer-command ,(calc-auto) ,"" ,"" ,"") '(1 0))
+  (insert-go-to
+    `(calc-answer-command ,(calc-auto) ,"" ,"" ,"")
+    '(1 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-check)
   (with sug
     `(calc-suggest ,(calc-auto) ,"" ,"")
-    (insert-go-to `(calc-check-predicate ,(calc-auto) ,"" ,"" ,"" ,sug) '(1 0))
+    (insert-go-to
+      `(calc-check-predicate ,(calc-auto) ,"" ,"" ,"" ,sug)
+      '(1 0)
+    ) ;insert-go-to
   ) ;with
 ) ;tm-define
 
@@ -463,24 +485,25 @@
 
 (tm-define (variant-circulate t forward?)
   (:require (calc-check-context? t))
-  (cond ((or (and (tree-is? t 'calc-check-predicate) forward?)
-           (and (tree-is? t 'calc-check) (not forward?))
-         ) ;or
-         (tree-assign-node! t 'calc-check-command)
-         (tree-go-to t 4 2 :end)
-        ) ;
-        ((or (and (tree-is? t 'calc-check-command) forward?)
-           (and (tree-is? t 'calc-check-predicate) (not forward?))
-         ) ;or
-         (tree-assign-node! t 'calc-check)
-         (tree-go-to t 2 :end)
-        ) ;
-        ((or (and (tree-is? t 'calc-check) forward?)
-           (and (tree-is? t 'calc-check-command) (not forward?))
-         ) ;or
-         (tree-assign-node! t 'calc-check-predicate)
-         (tree-go-to t 1 :end)
-        ) ;
+  (cond
+   ((or (and (tree-is? t 'calc-check-predicate) forward?)
+      (and (tree-is? t 'calc-check) (not forward?))
+    ) ;or
+    (tree-assign-node! t 'calc-check-command)
+    (tree-go-to t 4 2 :end)
+   ) ;
+   ((or (and (tree-is? t 'calc-check-command) forward?)
+      (and (tree-is? t 'calc-check-predicate) (not forward?))
+    ) ;or
+    (tree-assign-node! t 'calc-check)
+    (tree-go-to t 2 :end)
+   ) ;
+   ((or (and (tree-is? t 'calc-check) forward?)
+      (and (tree-is? t 'calc-check-command) (not forward?))
+    ) ;or
+    (tree-assign-node! t 'calc-check-predicate)
+    (tree-go-to t 1 :end)
+   ) ;
   ) ;cond
 ) ;tm-define
 

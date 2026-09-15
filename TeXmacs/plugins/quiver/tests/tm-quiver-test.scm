@@ -18,34 +18,35 @@
 
 (define (strip-math-delimiters str)
   (let* ((s (string-trim-both str)) (len (string-length s)))
-    (cond ((and (>= len 4) (string-starts? s "\\[") (string-ends? s "\\]"))
-           (strip-math-delimiters (substring s 2 (- len 2)))
-          ) ;
-          ((and (>= len 4) (string-starts? s "$$") (string-ends? s "$$"))
-           (strip-math-delimiters (substring s 2 (- len 2)))
-          ) ;
-          ((and (>= len 2) (string-starts? s "$") (string-ends? s "$"))
-           (strip-math-delimiters (substring s 1 (- len 1)))
-          ) ;
-          ((and (>= len 32)
-             (string-starts? s "\\begin{equation*}")
-             (string-ends? s "\\end{equation*}")
-           ) ;and
-           (strip-math-delimiters (substring s 17 (- len 15)))
-          ) ;
-          ((and (>= len 30)
-             (string-starts? s "\\begin{equation}")
-             (string-ends? s "\\end{equation}")
-           ) ;and
-           (strip-math-delimiters (substring s 16 (- len 14)))
-          ) ;
-          ((and (>= len 36)
-             (string-starts? s "\\begin{displaymath}")
-             (string-ends? s "\\end{displaymath}")
-           ) ;and
-           (strip-math-delimiters (substring s 19 (- len 17)))
-          ) ;
-          (else s)
+    (cond
+     ((and (>= len 4) (string-starts? s "\\[") (string-ends? s "\\]"))
+      (strip-math-delimiters (substring s 2 (- len 2)))
+     ) ;
+     ((and (>= len 4) (string-starts? s "$$") (string-ends? s "$$"))
+      (strip-math-delimiters (substring s 2 (- len 2)))
+     ) ;
+     ((and (>= len 2) (string-starts? s "$") (string-ends? s "$"))
+      (strip-math-delimiters (substring s 1 (- len 1)))
+     ) ;
+     ((and (>= len 32)
+        (string-starts? s "\\begin{equation*}")
+        (string-ends? s "\\end{equation*}")
+      ) ;and
+      (strip-math-delimiters (substring s 17 (- len 15)))
+     ) ;
+     ((and (>= len 30)
+        (string-starts? s "\\begin{equation}")
+        (string-ends? s "\\end{equation}")
+      ) ;and
+      (strip-math-delimiters (substring s 16 (- len 14)))
+     ) ;
+     ((and (>= len 36)
+        (string-starts? s "\\begin{displaymath}")
+        (string-ends? s "\\end{displaymath}")
+      ) ;and
+      (strip-math-delimiters (substring s 19 (- len 17)))
+     ) ;
+     (else s)
     ) ;cond
   ) ;let*
 ) ;define
@@ -55,24 +56,28 @@
     (if (string-starts? trimmed "\\documentclass")
       code
       (let* ((lines (string-split code #\newline))
-             (library-lines (filter (lambda (line) (string-starts? (string-trim-left line) "\\usetikzlibrary"))
-                              lines
-                            ) ;filter
+             (library-lines
+               (filter (lambda (line) (string-starts? (string-trim-left line) "\\usetikzlibrary"))
+                 lines
+               ) ;filter
              ) ;library-lines
-             (package-lines (filter (lambda (line) (string-starts? (string-trim-left line) "\\usepackage"))
-                              lines
-                            ) ;filter
+             (package-lines
+               (filter (lambda (line) (string-starts? (string-trim-left line) "\\usepackage"))
+                 lines
+               ) ;filter
              ) ;package-lines
-             (other-lines (filter (lambda (line)
-                                    (let ((trimmed-line (string-trim-left line)))
-                                      (and (not (string-null? trimmed-line))
-                                        (not (string-starts? trimmed-line "\\usetikzlibrary"))
-                                        (not (string-starts? trimmed-line "\\usepackage"))
-                                      ) ;and
-                                    ) ;let
-                                  ) ;lambda
-                            lines
-                          ) ;filter
+             (other-lines
+               (filter
+                 (lambda (line)
+                   (let ((trimmed-line (string-trim-left line)))
+                     (and (not (string-null? trimmed-line))
+                       (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                       (not (string-starts? trimmed-line "\\usepackage"))
+                     ) ;and
+                   ) ;let
+                 ) ;lambda
+                 lines
+               ) ;filter
              ) ;other-lines
              (body (string-join other-lines "\n"))
              (body-trimmed (string-trim-left body))

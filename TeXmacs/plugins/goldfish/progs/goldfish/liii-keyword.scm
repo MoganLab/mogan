@@ -87,14 +87,34 @@
 
 (tm-define (liii-methods)
   (map symbol->string
-    '(:equals :to-string :is-instance-of :apply :get :get-or-else :or-else
-       :collect :exists :forall :contains :empty? :defined? :map :filter
-       :flat-map :for-each :fold :fold-right :reduce :reduce-right :take
-       :take-right :drop :drop-right :take-while :drop-while :sum :produce :min
-       :max :min-by :max-by :sorted :sort-by :sortWith :union :intersect :diff
-       :distinct :find :count :length :size :group-by :partition :zip
-       :zip-with-index :unzip :par :make-string :to-list :to-vector :to-map
-       :to-set)
+    '(:equals
+       :to-string      :is-instance-of
+       :apply          :get
+       :get-or-else    :or-else
+       :collect        :exists
+       :forall         :contains
+       :empty?         :defined?
+       :map            :filter
+       :flat-map       :for-each
+       :fold           :fold-right
+       :reduce         :reduce-right
+       :take           :take-right
+       :drop           :drop-right
+       :take-while     :drop-while
+       :sum            :produce
+       :min            :max
+       :min-by         :max-by
+       :sorted         :sort-by
+       :sortWith       :union
+       :intersect      :diff
+       :distinct       :find
+       :count          :length
+       :size           :group-by
+       :partition      :zip
+       :zip-with-index :unzip
+       :par            :make-string
+       :to-list        :to-vector
+       :to-map         :to-set)
   ) ;map
 ) ;tm-define
 

@@ -85,7 +85,10 @@
         ($unfolded-documentation "Current document style"
           ($when stdoc stdoc)
           ($when (not stdoc)
-            ($explain `(tmstyle ,(car style)) "No documentation available.")
+            ($explain
+              `(tmstyle ,(car style))
+              "No documentation available."
+            ) ;$explain
           ) ;$when
         ) ;$unfolded-documentation
       ) ;$when

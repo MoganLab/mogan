@@ -50,7 +50,10 @@
 
 (tm-define (conda-env-python-list)
   (let* ((path (if (os-windows?) "envs/*/python.exe" "envs/*/bin/python"))
-         (env-python-list (url->list (url-expand (url-complete (url-append (conda-prefix) path) "fr")))
+         (env-python-list
+           (url->list
+             (url-expand (url-complete (url-append (conda-prefix) path) "fr"))
+           ) ;url->list
          ) ;env-python-list
          (base-python-raw (url-append (conda-prefix) (if (os-windows?) "python.exe" "bin/python"))
          ) ;base-python-raw
@@ -62,14 +65,19 @@
 ) ;tm-define
 
 (define (cond-env-name-on-win u)
-  (if (== (url-tail (url-head (url-head u))) (string->url "envs"))
+  (if
+    (== (url-tail (url-head (url-head u))) (string->url "envs"))
     (url->string (url-tail (url-head u)))
     "base"
   ) ;if
 ) ;define
 
 (define (cond-env-name-on-nix u)
-  (if (== (url-tail (url-head (url-head (url-head u)))) (string->url "envs"))
+  (if
+    (==
+      (url-tail (url-head (url-head (url-head u))))
+      (string->url "envs")
+    ) ;==
     (url->string (url-tail (url-head (url-head u))))
     "base"
   ) ;if

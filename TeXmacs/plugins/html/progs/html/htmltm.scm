@@ -102,7 +102,8 @@
     (if (null? cells)
       '()
       ((cut table-align env a <>)
-       (append (list (tmtable->stm (tmtable (table-formats env a c) cells)))
+       (append
+         (list (tmtable->stm (tmtable (table-formats env a c) cells)))
          (table-label env a)
        ) ;append
       ) ;
@@ -119,17 +120,19 @@
 (define (table-align env a stms)
   ;; (tmhtml-env shtml-attribute-list symbol (list stm) -> (list stm))
   ;; NOTE: may be generalized to support @align for P, DIV and Hn.
-  (let ((m (and-let* ((p (assoc 'align a)) (list-length=2? p))
-             (list-find '("left" "center" "right") (cut string-ci=? (second p) <>))
-           ) ;and-let*
+  (let ((m
+          (and-let* ((p (assoc 'align a)) (list-length=2? p))
+            (list-find '("left" "center" "right") (cut string-ci=? (second p) <>))
+          ) ;and-let*
         ) ;m
        ) ;
     (if (not m)
       stms
-      (list `(document (with ,"par-mode"
-                         ,m
-                         ,(stm-remove-unary-document (htmltm-serial (htmltm-preserve-space? env)
-                                                       stms))))
+      (list
+        `(document (with ,"par-mode"
+                     ,m
+                     ,(stm-remove-unary-document (htmltm-serial (htmltm-preserve-space? env)
+                                                   stms))))
       ) ;list
     ) ;if
   ) ;let
@@ -162,11 +165,12 @@
 ) ;define
 
 (define (table-background env a)
-  (or (and-let* ((html-color (shtml-attr-non-null a 'background))
-                 (tmcolor (html-color->tmcolor html-color))
-                ) ;
-        (list (tmformat-table "cell-background" (html-color->tmcolor color)))
-      ) ;and-let*
+  (or
+    (and-let* ((html-color (shtml-attr-non-null a 'background))
+               (tmcolor (html-color->tmcolor html-color))
+              ) ;
+      (list (tmformat-table "cell-background" (html-color->tmcolor color)))
+    ) ;and-let*
     '()
   ) ;or
 ) ;define
@@ -281,20 +285,21 @@
   ;;   charoff, valign.
   ;; TODO: row and column attributes (beware of alignement inheritance rules).
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (cond ((eq? msg :cell)
-         (let ((attrs (sxml-attr-list kar)))
-           (define (span->format html-name tm-name)
-             (let ((span (shtml-decode-span attrs html-name)))
-               (if (= 1 span) '() (list (tmformat-cell (1+ i) (1+ j) tm-name span)))
-             ) ;let
-           ) ;define
-           (append (span->format 'colspan "cell-col-span")
-             (span->format 'rowspan "cell-row-span")
-             kdr
-           ) ;append
-         ) ;let
-        ) ;
-        (else kdr)
+  (cond
+   ((eq? msg :cell)
+    (let ((attrs (sxml-attr-list kar)))
+      (define (span->format html-name tm-name)
+        (let ((span (shtml-decode-span attrs html-name)))
+          (if (= 1 span) '() (list (tmformat-cell (1+ i) (1+ j) tm-name span)))
+        ) ;let
+      ) ;define
+      (append (span->format 'colspan "cell-col-span")
+        (span->format 'rowspan "cell-row-span")
+        kdr
+      ) ;append
+    ) ;let
+   ) ;
+   (else kdr)
   ) ;cond
 ) ;define
 
@@ -350,32 +355,34 @@
 ) ;define
 
 (define (table-cells/row ncols envs table next-j row msg i j kar)
-  (cond ((eq? msg :out-row)
-         (cut table-cells/row-group
-           ncols
-           (cdr envs)
-           (cons (reverse! (cons-empty-cells (- ncols next-j) row)) table)
-           <...>
-         ) ;cut
-        ) ;
-        ((eq? msg :cell)
-         (cut table-cells/row
-           ncols
-           envs
-           table
-           (1+ j)
-           (cons (xpath-descend (car envs)
-                   kar
-                   (lambda (new-env)
-                     (htmltm-args-serial new-env (htmltm-space-mixed new-env (sxml-content kar)))
-                   ) ;lambda
-                 ) ;xpath-descend
-             (cons-empty-cells (- j next-j) row)
-           ) ;cons
-           <...>
-         ) ;cut
-        ) ;
-        ;; no else clause
+  (cond
+   ((eq? msg :out-row)
+    (cut table-cells/row-group
+      ncols
+      (cdr envs)
+      (cons (reverse! (cons-empty-cells (- ncols next-j) row)) table)
+      <...>
+    ) ;cut
+   ) ;
+   ((eq? msg :cell)
+    (cut table-cells/row
+      ncols
+      envs
+      table
+      (1+ j)
+      (cons
+        (xpath-descend (car envs)
+          kar
+          (lambda (new-env)
+            (htmltm-args-serial new-env (htmltm-space-mixed new-env (sxml-content kar)))
+          ) ;lambda
+        ) ;xpath-descend
+        (cons-empty-cells (- j next-j) row)
+      ) ;cons
+      <...>
+    ) ;cut
+   ) ;
+   ;; no else clause
   ) ;cond
 ) ;define
 
@@ -396,11 +403,15 @@
                 "enumerate"
               ) ;if
          ) ;tag
-         (head `(,(string->symbol tag)))
+         (head
+           `(,(string->symbol tag))
+         ) ;head
          (glued (htmltm-list-glue (htmltm-args-serial env c)))
          (labeled (xmltm-label-decorate a 'id glued))
         ) ;
-    (list `(document ,(rcons head labeled)))
+    (list
+      `(document ,(rcons head labeled))
+    ) ;list
   ) ;let*
 ) ;define
 
@@ -409,11 +420,15 @@
          (class-name (if class-attr (cadr class-attr) #f))
          (tag (if (and class-name (string-starts? class-name "itemize")) class-name "itemize")
          ) ;tag
-         (head `(,(string->symbol tag)))
+         (head
+           `(,(string->symbol tag))
+         ) ;head
          (glued (htmltm-list-glue (htmltm-args-serial env c)))
          (labeled (xmltm-label-decorate a 'id glued))
         ) ;
-    (list `(document ,(rcons head labeled)))
+    (list
+      `(document ,(rcons head labeled))
+    ) ;list
   ) ;let*
 ) ;define
 
@@ -425,44 +440,51 @@
                 "description"
               ) ;if
          ) ;tag
-         (head `(,(string->symbol tag)))
+         (head
+           `(,(string->symbol tag))
+         ) ;head
          (glued (htmltm-list-glue (htmltm-args-serial env c)))
          (labeled (xmltm-label-decorate a 'id glued))
         ) ;
-    (list `(document ,(rcons head labeled)))
+    (list
+      `(document ,(rcons head labeled))
+    ) ;list
   ) ;let*
 ) ;define
 
 (define (htmltm-list-item env a c)
   ;; List markers are glued by the list handler.
-  (list (xmltm-label-decorate a
-          'id
-          (htmltm-serial (htmltm-preserve-space? env)
-            `((document (item)) ,@(htmltm-args env c))
-          ) ;htmltm-serial
-        ) ;xmltm-label-decorate
+  (list
+    (xmltm-label-decorate a
+      'id
+      (htmltm-serial (htmltm-preserve-space? env)
+        `((document (item)) ,@(htmltm-args env c))
+      ) ;htmltm-serial
+    ) ;xmltm-label-decorate
   ) ;list
 ) ;define
 
 (define (htmltm-quote env a c)
   ;; WARNING: this is incomplete. Texmacs should have a macro for inline
   ;; quotation which puts in quotation marks in a language sensitive manner.
-  (list (xmltm-label-decorate a
-          'id
-          (htmltm-serial (htmltm-preserve-space? env)
-            `(,"``" ,@(htmltm-args env c) ,"''")
-          ) ;htmltm-serial
-        ) ;xmltm-label-decorate
+  (list
+    (xmltm-label-decorate a
+      'id
+      (htmltm-serial (htmltm-preserve-space? env)
+        `(,"``" ,@(htmltm-args env c) ,"''")
+      ) ;htmltm-serial
+    ) ;xmltm-label-decorate
   ) ;list
 ) ;define
 
 (define (htmltm-anchor env a c)
-  (list (htmltm-href->hlink a
-          (xmltm-label-decorate a
-            'id
-            (xmltm-label-decorate a 'name (htmltm-args-serial env c))
-          ) ;xmltm-label-decorate
-        ) ;htmltm-href->hlink
+  (list
+    (htmltm-href->hlink a
+      (xmltm-label-decorate a
+        'id
+        (xmltm-label-decorate a 'name (htmltm-args-serial env c))
+      ) ;xmltm-label-decorate
+    ) ;htmltm-href->hlink
   ) ;list
 ) ;define
 
@@ -493,22 +515,24 @@
          (w (tmlength->string (htmltm-dimension a 'width)))
          (h (tmlength->string (htmltm-dimension a 'height)))
         ) ;
-    (list (xmltm-label-decorate a
-            'id
-            (if (not (and (string-null? w) (string-null? h)))
-              `(image ,s ,w ,h ,"" ,"")
-              `(image ,s ,"0.6383w" ,"" ,"" ,"")
-            ) ;if
-          ) ;xmltm-label-decorate
+    (list
+      (xmltm-label-decorate a
+        'id
+        (if (not (and (string-null? w) (string-null? h)))
+          `(image ,s ,w ,h ,"" ,"")
+          `(image ,s ,"0.6383w" ,"" ,"" ,"")
+        ) ;if
+      ) ;xmltm-label-decorate
     ) ;list
   ) ;let*
 ) ;define
 
 (define (htmltm-font env a c)
   ;; WARNING: do as old filter, but is fragile and not conformant
-  (list (htmltm-with-size a
-          (htmltm-with-color a (xmltm-label-decorate a 'id (htmltm-args-serial env c)))
-        ) ;htmltm-with-size
+  (list
+    (htmltm-with-size a
+      (htmltm-with-color a (xmltm-label-decorate a 'id (htmltm-args-serial env c)))
+    ) ;htmltm-with-size
   ) ;list
 ) ;define
 
@@ -533,11 +557,12 @@
 
 (define (htmltm-with-color a x)
   ;; Helper for htmltm-font
-  (or (and-let* ((html-color (shtml-attr-non-null a 'color))
-                 (tmcolor (html-color->tmcolor html-color))
-                ) ;
-        `(with ,"color" ,(tmcolor->stm tmcolor) ,x)
-      ) ;and-let*
+  (or
+    (and-let* ((html-color (shtml-attr-non-null a 'color))
+               (tmcolor (html-color->tmcolor html-color))
+              ) ;
+      `(with ,"color" ,(tmcolor->stm tmcolor) ,x)
+    ) ;and-let*
     x
   ) ;or
 ) ;define
@@ -596,10 +621,11 @@
 ) ;define
 
 (define (split-formula-by-newlines formula)
-  (let* ((formula-list (if (and (list? formula) (eq? (car formula) 'concat))
-                         formula
-                         `(concat ,formula)
-                       ) ;if
+  (let* ((formula-list
+           (if (and (list? formula) (eq? (car formula) 'concat))
+             formula
+             `(concat ,formula)
+           ) ;if
          ) ;formula-list
          (parts (cdr formula-list))
         ) ;
@@ -657,68 +683,71 @@
 (define (htmltm-span env a c)
   (with class-value
     (shtml-attr-non-null a 'class)
-    (cond ((== class-value "mwe-math-element")
-           (if (and (pair? c) (func? (car c) 'h:span))
-             (htmltm env (car c))
-             (htmltm-pass env a c)
-           ) ;if
-          ) ;
-          ((== class-value "texhtml") (list `(math ,(htmltm-args-serial env c))))
+    (cond
+     ((== class-value "mwe-math-element")
+      (if (and (pair? c) (func? (car c) 'h:span))
+        (htmltm env (car c))
+        (htmltm-pass env a c)
+      ) ;if
+     ) ;
+     ((== class-value "texhtml") (list `(math ,(htmltm-args-serial env c))))
 
-          ((and (== class-value "katex")
-             (pair? c)
-             (func? (car c) 'h:span)
-             (sxml-has-attr-list? (car c))
-             (== (shtml-attr-non-null (sxml-attr-list (car c)) 'class) "katex-mathml")
-           ) ;and
-           (begin
-             (htmltm env (first c))
-           ) ;begin
-          ) ;
+     ((and (== class-value "katex")
+        (pair? c)
+        (func? (car c) 'h:span)
+        (sxml-has-attr-list? (car c))
+        (== (shtml-attr-non-null (sxml-attr-list (car c)) 'class) "katex-mathml")
+      ) ;and
+      (begin
+        (htmltm env (first c))
+      ) ;begin
+     ) ;
 
-          ((and (== (shtml-attr-non-null a 'role) "math")
-             (or (shtml-attr-non-null a 'data-math-source)
-               (shtml-attr-non-null a 'aria-label)
-             ) ;or
-           ) ;and
-           (let* ((latex-src (or (shtml-attr-non-null a 'data-math-source)
-                               (shtml-attr-non-null a 'aria-label)
-                             ) ;or
-                  ) ;latex-src
-                  (wrapped (if (htmltm-chatgpt-display? a c)
-                             (string-append "\\[ " latex-src " \\]")
-                             (string-append "\\( " latex-src " \\)")
-                           ) ;if
-                  ) ;wrapped
-                 ) ;
-             (list (tm->stree (latex->texmacs (parse-latex wrapped))))
-           ) ;let*
-          ) ;
+     ((and (== (shtml-attr-non-null a 'role) "math")
+        (or (shtml-attr-non-null a 'data-math-source)
+          (shtml-attr-non-null a 'aria-label)
+        ) ;or
+      ) ;and
+      (let* ((latex-src (or (shtml-attr-non-null a 'data-math-source)
+                          (shtml-attr-non-null a 'aria-label)
+                        ) ;or
+             ) ;latex-src
+             (wrapped (if (htmltm-chatgpt-display? a c)
+                        (string-append "\\[ " latex-src " \\]")
+                        (string-append "\\( " latex-src " \\)")
+                      ) ;if
+             ) ;wrapped
+            ) ;
+        (list (tm->stree (latex->texmacs (parse-latex wrapped))))
+      ) ;let*
+     ) ;
 
-          ((and (== class-value "ztext-math"))
-           (begin
-             (let ((parsed-formula (tm->stree (latex->texmacs (parse-latex (shtml-attr-non-null a 'data-tex))))
-                   ) ;parsed-formula
-                  ) ;
-               (list (split-formula-by-newlines parsed-formula))
-             ) ;let
-           ) ;begin
-          ) ;
+     ((and (== class-value "ztext-math"))
+      (begin
+        (let ((parsed-formula
+                (tm->stree (latex->texmacs (parse-latex (shtml-attr-non-null a 'data-tex))))
+              ) ;parsed-formula
+             ) ;
+          (list (split-formula-by-newlines parsed-formula))
+        ) ;let
+      ) ;begin
+     ) ;
 
-          ((and (string? class-value)
-             (string-starts? class-value "container-")
-             (string-ends? class-value "math-inline")
-           ) ;and
-           (begin
-             (let ((parsed-formula (tm->stree (latex->texmacs (parse-latex (shtml-attr-non-null a 'data-custom-copy-text)))
-                                   ) ;tm->stree
-                   ) ;parsed-formula
-                  ) ;
-               (list (split-formula-by-newlines parsed-formula))
-             ) ;let
-           ) ;begin
-          ) ;
-          (else (begin (htmltm-pass env a c)))
+     ((and (string? class-value)
+        (string-starts? class-value "container-")
+        (string-ends? class-value "math-inline")
+      ) ;and
+      (begin
+        (let ((parsed-formula
+                (tm->stree (latex->texmacs (parse-latex (shtml-attr-non-null a 'data-custom-copy-text)))
+                ) ;tm->stree
+              ) ;parsed-formula
+             ) ;
+          (list (split-formula-by-newlines parsed-formula))
+        ) ;let
+      ) ;begin
+     ) ;
+     (else (begin (htmltm-pass env a c)))
     ) ;cond
   ) ;with
 ) ;define
@@ -729,8 +758,12 @@
 
 (define (htmltm-scilab-pre env a c)
   (if (== (shtml-attr-non-null a 'class) "scilabcode")
-    (list `(scilab-code ,(htmltm-args-serial env c)))
-    (list `(code ,(htmltm-args-serial env c)))
+    (list
+      `(scilab-code ,(htmltm-args-serial env c))
+    ) ;list
+    (list
+      `(code ,(htmltm-args-serial env c))
+    ) ;list
   ) ;if
 ) ;define
 
@@ -946,13 +979,14 @@
 ) ;define
 
 (define (replace-str-by-st-in-stree st from to)
-  (cond ((and (string? st) (string-contains? st from))
-         (let* ((st (string-decompose st from)) (st (list-intersperse st to)))
-           `(concat ,@st)
-         ) ;let*
-        ) ;
-        ((list? st) (map (lambda (x) (replace-str-by-st-in-stree x from to)) st))
-        (else st)
+  (cond
+   ((and (string? st) (string-contains? st from))
+    (let* ((st (string-decompose st from)) (st (list-intersperse st to)))
+      `(concat ,@st)
+    ) ;let*
+   ) ;
+   ((list? st) (map (lambda (x) (replace-str-by-st-in-stree x from to)) st))
+   (else st)
   ) ;cond
 ) ;define
 
@@ -966,12 +1000,13 @@
 ) ;define
 
 (define (replace-nsprefix-in-stree st from to)
-  (cond ((and (nnull? st) (symbol? st) (string-starts? (symbol->string st) from))
-         (string->symbol (string-append to (string-drop (symbol->string st) (string-length from)))
-         ) ;string->symbol
-        ) ;
-        ((list? st) (map (lambda (x) (replace-nsprefix-in-stree x from to)) st))
-        (else st)
+  (cond
+   ((and (nnull? st) (symbol? st) (string-starts? (symbol->string st) from))
+    (string->symbol (string-append to (string-drop (symbol->string st) (string-length from)))
+    ) ;string->symbol
+   ) ;
+   ((list? st) (map (lambda (x) (replace-nsprefix-in-stree x from to)) st))
+   (else st)
   ) ;cond
 ) ;define
 

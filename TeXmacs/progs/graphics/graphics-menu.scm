@@ -761,7 +761,8 @@
 ) ;menu-bind
 
 (menu-bind graphics-focus-menu
-  (-> (eval (upcase-first (gr-mode->string (graphics-mode))))
+  (->
+    (eval (upcase-first (gr-mode->string (graphics-mode))))
     (link graphics-mode-menu)
   ) ;->
   (if (inside-graphical-over-under?) ("Exit graphics" (graphics-exit-right)))
@@ -1301,9 +1302,11 @@
 
 (tm-menu (graphics-focus-icons)
   (mini #t
-    (=> (balloon (eval (upcase-first (gr-mode->string (graphics-mode))))
-          "Current graphical mode"
-        ) ;balloon
+    (=>
+      (balloon
+        (eval (upcase-first (gr-mode->string (graphics-mode))))
+        "Current graphical mode"
+      ) ;balloon
       (link graphics-mode-menu)
     ) ;=>
   ) ;mini

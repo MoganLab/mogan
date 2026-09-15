@@ -81,15 +81,16 @@
     '()
     (with c
       (string-ref s pos)
-      (cond ((== c #\<) (tmconcat-eat s pos 1 (lambda (c) (== c #\>))))
-            ((char-numeric? c) (tmconcat-eat s pos 0 (lambda (c) (not (char-numeric? c)))))
-            ((and (char-alphabetic? c)
-               (< (+ pos 1) (string-length s))
-               (char-alphabetic? (string-ref s (+ pos 1)))
-             ) ;and
-             (tmconcat-eat s pos 0 (lambda (c) (not (char-alphabetic? c))))
-            ) ;
-            (else (cons (substring s pos (+ pos 1)) (tmconcat-math-sub s (+ pos 1))))
+      (cond
+       ((== c #\<) (tmconcat-eat s pos 1 (lambda (c) (== c #\>))))
+       ((char-numeric? c) (tmconcat-eat s pos 0 (lambda (c) (not (char-numeric? c)))))
+       ((and (char-alphabetic? c)
+          (< (+ pos 1) (string-length s))
+          (char-alphabetic? (string-ref s (+ pos 1)))
+        ) ;and
+        (tmconcat-eat s pos 0 (lambda (c) (not (char-alphabetic? c))))
+       ) ;
+       (else (cons (substring s pos (+ pos 1)) (tmconcat-math-sub s (+ pos 1))))
       ) ;cond
     ) ;with
   ) ;if
@@ -192,11 +193,12 @@
 ) ;define
 
 (define (tmconcat-tabs-sub head tail where)
-  (cond ((null? tail) `((,where ,@head)))
-        ((and (== where '!left) (> (length tail) 1))
-         (tmconcat-tabs-make head tail where '!middle)
-        ) ;
-        (else (tmconcat-tabs-make head tail where '!right))
+  (cond
+   ((null? tail) `((,where ,@head)))
+   ((and (== where '!left) (> (length tail) 1))
+    (tmconcat-tabs-make head tail where '!middle)
+   ) ;
+   (else (tmconcat-tabs-make head tail where '!right))
   ) ;cond
 ) ;define
 
@@ -241,10 +243,11 @@
          ) ;receive
         ) ;
         ((tmconcat-closing? (car l)) (values (list (car l)) (cdr l)))
-        (else (receive (r tail)
-                (tmconcat-brackets-sub (cdr l))
-                (values (cons (car l) r) tail)
-              ) ;receive
+        (else
+          (receive (r tail)
+            (tmconcat-brackets-sub (cdr l))
+            (values (cons (car l) r) tail)
+          ) ;receive
         ) ;else
   ) ;cond
 ) ;define
@@ -294,14 +297,15 @@
          (let* ((r (tmconcat-structure-scripts-sub (cdr l)))
                 (s (if (== (caar l) 'lsub) 'lsub! 'lsup!))
                ) ;
-           (cond ((null? r) (list (list s "" (cadar l))))
-                 ((and (== s 'lsub!) (func? (car r) 'lsup!))
-                  (cons (list 'lsubsup! (cadar r) (cadar l) (caddar r)) (cdr r))
-                 ) ;
-                 ((and (== s 'lsup!) (func? (car r) 'lsub!))
-                  (cons (list 'lsubsup! (cadar r) (caddar r) (cadar l)) (cdr r))
-                 ) ;
-                 (else (cons (list s (car r) (cadar l)) (cdr r)))
+           (cond
+            ((null? r) (list (list s "" (cadar l))))
+            ((and (== s 'lsub!) (func? (car r) 'lsup!))
+             (cons (list 'lsubsup! (cadar r) (cadar l) (caddar r)) (cdr r))
+            ) ;
+            ((and (== s 'lsup!) (func? (car r) 'lsub!))
+             (cons (list 'lsubsup! (cadar r) (caddar r) (cadar l)) (cdr r))
+            ) ;
+            (else (cons (list s (car r) (cadar l)) (cdr r)))
            ) ;cond
          ) ;let*
         ) ;
@@ -323,9 +327,8 @@
            (in? (caar l) '(lsub lsup rsub rsup))
            (== (caar l) (caadr l))
          ) ;and
-         (tmconcat-simplify-scripts `((,(caar l)
-                                       (concat ,(cadar l) ,(cadadr l)))
-                                      ,@(cddr l))
+         (tmconcat-simplify-scripts
+           `((,(caar l) (concat ,(cadar l) ,(cadadr l))) ,@(cddr l))
          ) ;tmconcat-simplify-scripts
         ) ;
         (else (cons (car l) (tmconcat-simplify-scripts (cdr l))))

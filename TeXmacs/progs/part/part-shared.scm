@@ -54,14 +54,15 @@
 ) ;define
 
 (define (mirror-list t)
-  (cond ((mirror-body? t)
-         (with other?
-           (lambda (u) (!= (tree->path t) (tree->path u)))
-           (list-filter (id->trees (mirror-id t)) other?)
-         ) ;with
-        ) ;
-        ((mirror-context? t) (mirror-list (tree-ref t (- (tree-arity t) 1))))
-        (else (list))
+  (cond
+   ((mirror-body? t)
+    (with other?
+      (lambda (u) (!= (tree->path t) (tree->path u)))
+      (list-filter (id->trees (mirror-id t)) other?)
+    ) ;with
+   ) ;
+   ((mirror-context? t) (mirror-list (tree-ref t (- (tree-arity t) 1))))
+   (else (list))
   ) ;cond
 ) ;define
 
@@ -188,7 +189,8 @@
         ) ;when
         (ahash-set! mirror-initialized key #t)
       ) ;when
-      (when (>= (length (id->trees (mirror-unique-id t))) 2)
+      (when
+        (>= (length (id->trees (mirror-unique-id t))) 2)
         (mirror-invalidate t)
       ) ;when
     ) ;with

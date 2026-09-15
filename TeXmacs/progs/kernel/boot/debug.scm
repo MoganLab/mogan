@@ -175,7 +175,8 @@
 (define-public (trace-display . args)
   ;; As display but also print trace indentation.
   (display (trace-indent))
-  (for-each (lambda (a) (display (if (string? a) a (object->string a))) (display " "))
+  (for-each
+    (lambda (a) (display (if (string? a) a (object->string a))) (display " "))
     args
   ) ;for-each
   (newline)
@@ -199,17 +200,16 @@
 
 (define-public (wrap-trace name lam)
   (lambda args
-    (trace-display (if (null? args)
-                     (string-append "[" name "]")
-                     (apply string-append
-                       `(,"["
-                         ,name
-                         ,@(map (lambda (x)
-                                  (string-append " " (object->string x)))
-                             args)
-                         ,"]")
-                     ) ;apply
-                   ) ;if
+    (trace-display
+      (if (null? args)
+        (string-append "[" name "]")
+        (apply string-append
+          `(,"["
+            ,name
+            ,@(map (lambda (x) (string-append " " (object->string x))) args)
+            ,"]")
+        ) ;apply
+      ) ;if
     ) ;trace-display
     (set! trace-level (1+ trace-level))
     (lazy-catch #t

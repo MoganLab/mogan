@@ -51,11 +51,12 @@
 ;; 与 string-downcase 不同：不触发 string->utf8 整段校验，
 ;; 因此可安全用于含损坏 UTF-8 的输入做大小写不敏感的 ASCII 标签/关键字匹配。
 (define-public (safe-ascii-string-downcase s)
-  (string-map (lambda (c)
-                (let ((n (char->integer c)))
-                  (if (and (>= n 65) (<= n 90)) (integer->char (+ n 32)) c)
-                ) ;let
-              ) ;lambda
+  (string-map
+    (lambda (c)
+      (let ((n (char->integer c)))
+        (if (and (>= n 65) (<= n 90)) (integer->char (+ n 32)) c)
+      ) ;let
+    ) ;lambda
     s
   ) ;string-map
 ) ;define-public
@@ -321,13 +322,14 @@
 (define-public (func? x f . opts)
   "Is @x a list with first stree @f? Optionally test the length of @x."
   (let ((n (length opts)))
-    (cond ((= n 0) (and (list? x) (nnull? x) (== (car x) f)))
-          ((= n 1)
-           (let ((nn (car opts)))
-             (and (list? x) (nnull? x) (== (car x) f) (= (length x) (+ nn 1)))
-           ) ;let
-          ) ;
-          (else (error "Too many arguments."))
+    (cond
+     ((= n 0) (and (list? x) (nnull? x) (== (car x) f)))
+     ((= n 1)
+      (let ((nn (car opts)))
+        (and (list? x) (nnull? x) (== (car x) f) (= (length x) (+ nn 1)))
+      ) ;let
+     ) ;
+     (else (error "Too many arguments."))
     ) ;cond
   ) ;let
 ) ;define-public
@@ -382,9 +384,10 @@
   (with base
     (buffer-get-master (current-buffer))
     ;; Handle Windows drive letter issues - if different drives, return #f
-    (cond ((and (os-windows?) (!= (url-drive-letter u) (url-drive-letter base))) #f)
-          ((and (url-rooted? u) (not (url-none? base))) (url->unix (url-delta base u)))
-          (else (url->unix u))
+    (cond
+     ((and (os-windows?) (!= (url-drive-letter u) (url-drive-letter base))) #f)
+     ((and (url-rooted? u) (not (url-none? base))) (url->unix (url-delta base u)))
+     (else (url->unix u))
     ) ;cond
   ) ;with
 ) ;define-public

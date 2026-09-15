@@ -45,28 +45,30 @@
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
               ) ;
-              (else (let ((stream-callback (lambda (chunk)
-                                             (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
-                                           ) ;lambda
-                          ) ;stream-callback
-                         ) ;
-                      (if output-file
-                        (let ((port (open-binary-output-file output-file)))
-                          (dynamic-wind (lambda () #f)
-                            (lambda ()
-                              (g_http-get url
-                                params
-                                headers
-                                proxy
-                                (lambda (chunk) (write-string chunk port) (stream-callback chunk))
-                              ) ;g_http-get
-                            ) ;lambda
-                            (lambda () (close-port port))
-                          ) ;dynamic-wind
-                        ) ;let
-                        (g_http-get url params headers proxy stream-callback)
-                      ) ;if
+              (else
+                (let ((stream-callback
+                        (lambda (chunk)
+                          (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
+                        ) ;lambda
+                      ) ;stream-callback
+                     ) ;
+                  (if output-file
+                    (let ((port (open-binary-output-file output-file)))
+                      (dynamic-wind (lambda () #f)
+                        (lambda ()
+                          (g_http-get url
+                            params
+                            headers
+                            proxy
+                            (lambda (chunk) (write-string chunk port) (stream-callback chunk))
+                          ) ;g_http-get
+                        ) ;lambda
+                        (lambda () (close-port port))
+                      ) ;dynamic-wind
                     ) ;let
+                    (g_http-get url params headers proxy stream-callback)
+                  ) ;if
+                ) ;let
               ) ;else
         ) ;cond
       ) ;let*
@@ -96,40 +98,43 @@
                                (http-normalize-post-form-data "http-post" data)
                              ) ;if
                ) ;body-or-data
-               (headers (if (and (null? files) (> (string-length body-or-data) 0) (null? headers))
-                          '(("Content-Type" . "text/plain"))
-                          headers
-                        ) ;if
+               (headers
+                 (if (and (null? files) (> (string-length body-or-data) 0) (null? headers))
+                   '(("Content-Type" . "text/plain"))
+                   headers
+                 ) ;if
                ) ;headers
               ) ;
           (cond ((not stream) (g_http-post url params body-or-data headers proxy files #f))
                 ((and (not output-file) (not callback))
                  (value-error "http-post: stream mode requires output-file or callback")
                 ) ;
-                (else (let ((stream-callback (lambda (chunk)
-                                               (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
-                                             ) ;lambda
-                            ) ;stream-callback
-                           ) ;
-                        (if output-file
-                          (let ((port (open-binary-output-file output-file)))
-                            (dynamic-wind (lambda () #f)
-                              (lambda ()
-                                (g_http-post url
-                                  params
-                                  body-or-data
-                                  headers
-                                  proxy
-                                  files
-                                  (lambda (chunk) (write-string chunk port) (stream-callback chunk))
-                                ) ;g_http-post
-                              ) ;lambda
-                              (lambda () (close-port port))
-                            ) ;dynamic-wind
-                          ) ;let
-                          (g_http-post url params body-or-data headers proxy files stream-callback)
-                        ) ;if
+                (else
+                  (let ((stream-callback
+                          (lambda (chunk)
+                            (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
+                          ) ;lambda
+                        ) ;stream-callback
+                       ) ;
+                    (if output-file
+                      (let ((port (open-binary-output-file output-file)))
+                        (dynamic-wind (lambda () #f)
+                          (lambda ()
+                            (g_http-post url
+                              params
+                              body-or-data
+                              headers
+                              proxy
+                              files
+                              (lambda (chunk) (write-string chunk port) (stream-callback chunk))
+                            ) ;g_http-post
+                          ) ;lambda
+                          (lambda () (close-port port))
+                        ) ;dynamic-wind
                       ) ;let
+                      (g_http-post url params body-or-data headers proxy files stream-callback)
+                    ) ;if
+                  ) ;let
                 ) ;else
           ) ;cond
         ) ;let*

@@ -25,13 +25,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (include-list base t)
-  (cond ((tree-is? t 'document)
-         (apply append (map (cut include-list base <>) (tree-children t)))
-        ) ;
-        ((and (tree-is? t 'include) (tree-atomic? (tree-ref t 0)))
-         (list (url-relative base (tree->string (tree-ref t 0))))
-        ) ;
-        (else (list))
+  (cond
+   ((tree-is? t 'document)
+    (apply append (map (cut include-list base <>) (tree-children t)))
+   ) ;
+   ((and (tree-is? t 'include) (tree-atomic? (tree-ref t 0)))
+    (list (url-relative base (tree->string (tree-ref t 0))))
+   ) ;
+   (else (list))
   ) ;cond
 ) ;tm-define
 
@@ -70,9 +71,10 @@
   (with l
     (get-style-list)
     (for (pack (if (null? l) l (cdr l)))
-      (-> (eval `(verbatim ,pack))
-       ("Edit package" (edit-package-source pack))
-       ("Remove package" (remove-style-package pack))
+      (->
+        (eval `(verbatim ,pack))
+        ("Edit package" (edit-package-source pack))
+        ("Remove package" (remove-style-package pack))
       ) ;->
     ) ;for
   ) ;with
@@ -294,29 +296,36 @@
 
 (tm-define (init-font-base-size-interactive)
   (:interactive #t)
-  (interactive (lambda (s)
-                 (let* ((num (string->number s))
-                        (normalized (if (and num (> num 0)) (/ (floor (+ (* num 2) 0.5)) 2) 10))
-                        (val (if (= normalized (floor normalized))
-                               (number->string (inexact->exact (floor normalized)))
-                               (number->string normalized)
-                             ) ;if
-                        ) ;val
-                       ) ;
-                   (set-init-env "font-base-size" val)
-                 ) ;let*
-               ) ;lambda
+  (interactive
+    (lambda (s)
+      (let* ((num (string->number s))
+             (normalized
+               (if (and num (> num 0)) (/ (floor (+ (* num 2) 0.5)) 2) 10)
+             ) ;normalized
+             (val
+               (if (= normalized (floor normalized))
+                 (number->string (inexact->exact (floor normalized)))
+                 (number->string normalized)
+               ) ;if
+             ) ;val
+            ) ;
+        (set-init-env "font-base-size" val)
+      ) ;let*
+    ) ;lambda
     (list "Font size" "string" (get-init-env "font-base-size"))
   ) ;interactive
 ) ;tm-define
 
 (tm-define (font-base-size-menu-name)
   (let* ((raw (string->number (get-init "font-base-size")))
-         (normalized (if (and raw (> raw 0)) (/ (floor (+ (* raw 2) 0.5)) 2) 10))
-         (sz-str (if (= normalized (floor normalized))
-                   (number->string (inexact->exact (floor normalized)))
-                   (number->string normalized)
-                 ) ;if
+         (normalized
+           (if (and raw (> raw 0)) (/ (floor (+ (* raw 2) 0.5)) 2) 10)
+         ) ;normalized
+         (sz-str
+           (if (= normalized (floor normalized))
+             (number->string (inexact->exact (floor normalized)))
+             (number->string normalized)
+           ) ;if
          ) ;sz-str
         ) ;
     (if (== sz-str "10") "Font size" (string-append sz-str "pt"))
@@ -380,29 +389,30 @@
 ) ;tm-define
 
 (menu-bind document-short-chinese-font-menu
-  (cond ((os-windows?)
-         (if (font-exists-in-tt? "simhei") ("SimHei" (init-font "simhei")))
-         (if (font-exists-in-tt? "simfang") ("SimFang" (init-font "simfang")))
-         (if (font-exists-in-tt? "simkai") ("SimKai" (init-font "simkai")))
-        ) ;
-        ((os-macos?)
-         (if (font-exists-in-tt? "华文黑体") ("STHeiti" (init-font "STHeiti")))
-         (if (font-exists-in-tt? "华文仿宋") ("STFangsong" (init-font "STFangsong")))
-         (if (font-exists-in-tt? "Kaiti") ("Kaiti SC" (init-font "Kaiti SC")))
-        ) ;
-        (else (if (font-exists-in-tt? "FandolSong-Regular")
-               ("FandolSong" (init-font "FandolSong"))
-              ) ;if
-          (if (font-exists-in-tt? "FandolHei-Regular")
-           ("FandolHei" (init-font "FandolHei"))
-          ) ;if
-          (if (font-exists-in-tt? "FandolFang-Regular")
-           ("FandolFang" (init-font "FandolFang"))
-          ) ;if
-          (if (font-exists-in-tt? "FandolKai-Regular")
-           ("FandolKai" (init-font "FandolKai"))
-          ) ;if
-        ) ;else
+  (cond
+   ((os-windows?)
+    (if (font-exists-in-tt? "simhei") ("SimHei" (init-font "simhei")))
+    (if (font-exists-in-tt? "simfang") ("SimFang" (init-font "simfang")))
+    (if (font-exists-in-tt? "simkai") ("SimKai" (init-font "simkai")))
+   ) ;
+   ((os-macos?)
+    (if (font-exists-in-tt? "华文黑体") ("STHeiti" (init-font "STHeiti")))
+    (if (font-exists-in-tt? "华文仿宋") ("STFangsong" (init-font "STFangsong")))
+    (if (font-exists-in-tt? "Kaiti") ("Kaiti SC" (init-font "Kaiti SC")))
+   ) ;
+   (else (if (font-exists-in-tt? "FandolSong-Regular")
+          ("FandolSong" (init-font "FandolSong"))
+         ) ;if
+     (if (font-exists-in-tt? "FandolHei-Regular")
+      ("FandolHei" (init-font "FandolHei"))
+     ) ;if
+     (if (font-exists-in-tt? "FandolFang-Regular")
+      ("FandolFang" (init-font "FandolFang"))
+     ) ;if
+     (if (font-exists-in-tt? "FandolKai-Regular")
+      ("FandolKai" (init-font "FandolKai"))
+     ) ;if
+   ) ;else
   ) ;cond
 ) ;menu-bind
 
@@ -432,26 +442,27 @@
 ) ;menu-bind
 
 (menu-bind document-short-font-menu
-  (cond ((and (supports-chinese?)
-           (or (== (get-init "language") "chinese") (== (get-init "language") "taiwanese"))
-         ) ;and
-         ((eval (string-append "Default: " (font-family->master (default-chinese-font))))
-          (init-default-font)
-         ) ;
-         ---
-         (link document-short-chinese-font-menu)
-        ) ;
-        ((and (supports-japanese?) (== (get-init "language") "japanese"))
-         ("Default" (init-default-font))
-         ---
-         (link document-short-japanese-font-menu)
-        ) ;
-        ((and (supports-korean?) (== (get-init "language") "korean"))
-         ("Default" (init-default-font))
-         ---
-         (link document-short-korean-font-menu)
-        ) ;
-        (else ("Default" (init-default-font)))
+  (cond
+   ((and (supports-chinese?)
+      (or (== (get-init "language") "chinese") (== (get-init "language") "taiwanese"))
+    ) ;and
+    ((eval (string-append "Default: " (font-family->master (default-chinese-font))))
+     (init-default-font)
+    ) ;
+    ---
+    (link document-short-chinese-font-menu)
+   ) ;
+   ((and (supports-japanese?) (== (get-init "language") "japanese"))
+    ("Default" (init-default-font))
+    ---
+    (link document-short-japanese-font-menu)
+   ) ;
+   ((and (supports-korean?) (== (get-init "language") "korean"))
+    ("Default" (init-default-font))
+    ---
+    (link document-short-korean-font-menu)
+   ) ;
+   (else ("Default" (init-default-font)))
   ) ;cond
   ---
   ("Roman" (init-font "roman" "roman"))
@@ -1128,9 +1139,12 @@
     ) ;->
     (dynamic (focus-style-extra-menu t))
     (for (pack (list-filter (cdr st) (negate hidden-package?)))
-      (-> (eval `(verbatim ,(upcase-first pack)))
-       ("Edit package" (edit-package-source pack))
-       ("Remove package" (remove-style-package pack))
+      (->
+        (eval
+          `(verbatim ,(upcase-first pack))
+        ) ;eval
+        ("Edit package" (edit-package-source pack))
+        ("Remove package" (remove-style-package pack))
       ) ;->
     ) ;for
   ) ;let*
@@ -1194,7 +1208,8 @@
 
 (tm-menu (focus-style-extra-icons t)
   (:require (not (or (in-beamer?) (in-poster?))))
-  (=> (balloon (eval (basic-theme-name (current-basic-theme))) "Document theme")
+  (=>
+    (balloon (eval (basic-theme-name (current-basic-theme))) "Document theme")
     (link basic-theme-menu)
   ) ;=>
   (assuming (!= (current-basic-theme) "plain")
@@ -1207,21 +1222,24 @@
 ) ;define
 
 (tm-menu (focus-style-icons t)
-  (minibar (let* ((st* (get-style-list)) (st (if (null? st*) (list "no style") st*)))
-             (=> (balloon (eval (style-menu-name (car st))) "Document style")
-               (link style-menu)
-               ---
-               ("Edit style" (edit-style-source))
-               ("Other style" (interactive set-main-style))
-             ) ;=>
-             (dynamic (focus-style-extra-icons t))
-             (for (pack (list-filter (cdr st) (negate hidden-package?)))
-               (=> (eval `(verbatim ,pack))
-                ("Edit package" (edit-package-source pack))
-                ("Remove package" (remove-style-package pack))
-               ) ;=>
-             ) ;for
-           ) ;let*
+  (minibar
+    (let* ((st* (get-style-list)) (st (if (null? st*) (list "no style") st*)))
+      (=>
+        (balloon (eval (style-menu-name (car st))) "Document style")
+        (link style-menu)
+        ---
+        ("Edit style" (edit-style-source))
+        ("Other style" (interactive set-main-style))
+      ) ;=>
+      (dynamic (focus-style-extra-icons t))
+      (for (pack (list-filter (cdr st) (negate hidden-package?)))
+        (=>
+          (eval `(verbatim ,pack))
+          ("Edit package" (edit-package-source pack))
+          ("Remove package" (remove-style-package pack))
+        ) ;=>
+      ) ;for
+    ) ;let*
     (=> (balloon (icon "tm_add.xpm") "Add style package")
       (link add-package-menu)
       ---
@@ -1267,40 +1285,46 @@
 ) ;tm-menu
 
 (tm-define (current-page-icon)
-  (cond ((test-init? "page-orientation" "landscape")
-         (cond ((test-init? "par-columns" "1") "tm_landscape_1col.xpm")
-               ((test-init? "par-columns" "2") "tm_landscape_2col.xpm")
-               ((test-init? "par-columns" "3") "tm_landscape_2col.xpm")
-               (else "tm_landscape.xpm")
+  (cond
+   ((test-init? "page-orientation" "landscape")
+    (cond ((test-init? "par-columns" "1") "tm_landscape_1col.xpm")
+          ((test-init? "par-columns" "2") "tm_landscape_2col.xpm")
+          ((test-init? "par-columns" "3") "tm_landscape_2col.xpm")
+          (else "tm_landscape.xpm")
+    ) ;cond
+   ) ;
+   (else (cond ((test-init? "par-columns" "1") "tm_portrait_1col.xpm")
+               ((test-init? "par-columns" "2") "tm_portrait_2col.xpm")
+               ((test-init? "par-columns" "3") "tm_portrait_2col.xpm")
+               (else "tm_portrait.xpm")
          ) ;cond
-        ) ;
-        (else (cond ((test-init? "par-columns" "1") "tm_portrait_1col.xpm")
-                    ((test-init? "par-columns" "2") "tm_portrait_2col.xpm")
-                    ((test-init? "par-columns" "3") "tm_portrait_2col.xpm")
-                    (else "tm_portrait.xpm")
-              ) ;cond
-        ) ;else
+   ) ;else
   ) ;cond
 ) ;tm-define
 
 (tm-menu (focus-document-icons t)
-  (minibar (=> (balloon (icon (eval (current-page-icon))) "Page layout")
-            ("Portrait" (init-page-orientation "portrait"))
-            ("Landscape" (init-page-orientation "landscape"))
-            ---
-            (link document-columns-menu)
-            ---
-            (link page-rendering-menu)
-            ---
-            (link page-layout-menu)
-           ) ;=>
-    (=> (balloon (eval (if (string=? (locase-all (get-init "page-type")) "user")
-                         (string-append (get-init "page-width") " x " (get-init "page-height"))
-                         (upcase-first (get-init "page-type"))
-                       ) ;if
-                 ) ;eval
-          "Paper size"
-        ) ;balloon
+  (minibar
+    (=>
+      (balloon (icon (eval (current-page-icon))) "Page layout")
+      ("Portrait" (init-page-orientation "portrait"))
+      ("Landscape" (init-page-orientation "landscape"))
+      ---
+      (link document-columns-menu)
+      ---
+      (link page-rendering-menu)
+      ---
+      (link page-layout-menu)
+    ) ;=>
+    (=>
+      (balloon
+        (eval
+          (if (string=? (locase-all (get-init "page-type")) "user")
+            (string-append (get-init "page-width") " x " (get-init "page-height"))
+            (upcase-first (get-init "page-type"))
+          ) ;if
+        ) ;eval
+        "Paper size"
+      ) ;balloon
       (link document-page-size-menu)
     ) ;=>
     (=> (balloon (eval (current-language-name)) "Document language")

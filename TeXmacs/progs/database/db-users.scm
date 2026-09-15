@@ -58,7 +58,9 @@
 (tm-define (pseudo->user pseudo)
   (with-database users-master
     (with ids
-      (db-search `(("type" "user") (,"pseudo" ,pseudo)))
+      (db-search
+        `(("type" "user") (,"pseudo" ,pseudo))
+      ) ;db-search
       (and (nnull? ids) (car ids))
     ) ;with
   ) ;with-database
@@ -158,9 +160,10 @@
 
 (define (search-preferred-database-id uid kind)
   (with ids
-    (db-search `(("type" "preference")
-                 (,"user" ,uid)
-                 (,"key" ,(string-append "database-" kind)))
+    (db-search
+      `(("type" "preference")
+        (,"user" ,uid)
+        (,"key" ,(string-append "database-" kind)))
     ) ;db-search
     (and (nnull? ids) (car ids))
   ) ;with
@@ -206,7 +209,8 @@
   (with-database users-master
     (with id
       (or (search-preferred-database-id uid kind) (db-create-id))
-      (with-time :always
+      (with-time
+        :always
         (with vals
           (db-get-field id "value")
           (list-remove-duplicates (map system->url (reverse vals)))

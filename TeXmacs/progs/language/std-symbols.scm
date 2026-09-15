@@ -1943,9 +1943,27 @@
     Over-symbol Power-symbol
   ) ;define
 
-  (define Reserved-symbol :<frac :<sqrt :<wide :<table :<row :<around :<around*
-    :<big-around :<left :<mid :<right :<big :<lsub :<lsup :<rsub :<rsup :<lprime
-    :<rprime :<Prefix :<Postfix
+  (define Reserved-symbol
+    :<frac
+    :<sqrt
+    :<wide
+    :<table
+    :<row
+    :<around
+    :<around*
+    :<big-around
+    :<left
+    :<mid
+    :<right
+    :<big
+    :<lsub
+    :<lsup
+    :<rsub
+    :<rsup
+    :<lprime
+    :<rprime
+    :<Prefix
+    :<Postfix
   ) ;define
 
   (attach-macro ("<ldots>" low-dots)

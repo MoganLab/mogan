@@ -27,8 +27,9 @@
          (p* (url-append (unix->url p) "dummy"))
          (a* (url-append (unix->url a) "dummy"))
         ) ;
-    (cond ((string-starts? name p) (url->unix (url-delta p* (unix->url name))))
-          (else u)
+    (cond
+     ((string-starts? name p) (url->unix (url-delta p* (unix->url name))))
+     (else u)
     ) ;cond
   ) ;let*
 ) ;define
@@ -87,7 +88,9 @@
 (define (set-height h)
   (with col
     (get-color)
-    (set-color `(pattern ,(cadr col) ,(caddr col) ,h ,@(cddddr col)))
+    (set-color
+      `(pattern ,(cadr col) ,(caddr col) ,h ,@(cddddr col))
+    ) ;set-color
   ) ;with
 ) ;define
 
@@ -103,17 +106,19 @@
 ) ;define
 
 (define (get-size)
-  (cond ((and (== (get-width) "100%") (== (get-height) "100%")) "Fit")
-        ((== (get-width) "100%") "Fit to width")
-        ((== (get-height) "100%") "Fit to height")
-        (else "Fit")
+  (cond
+   ((and (== (get-width) "100%") (== (get-height) "100%")) "Fit")
+   ((== (get-width) "100%") "Fit to width")
+   ((== (get-height) "100%") "Fit to height")
+   (else "Fit")
   ) ;cond
 ) ;define
 
 (define (reset-effect eff kind)
-  (cond ((or (npair? eff) (npair? (cdr eff))) eff)
-        ((== (car eff) kind) (reset-effect (cadr eff) kind))
-        (else (cons* (car eff) (reset-effect (cadr eff) kind) (cddr eff)))
+  (cond
+   ((or (npair? eff) (npair? (cdr eff))) eff)
+   ((== (car eff) kind) (reset-effect (cadr eff) kind))
+   (else (cons* (car eff) (reset-effect (cadr eff) kind) (cddr eff)))
   ) ;cond
 ) ;define
 
@@ -135,18 +140,20 @@
 (define (set-effect kind apply? . args)
   (with col
     (get-color)
-    (set-color `(pattern ,(cadr col)
-                  ,(caddr col)
-                  ,(cadddr col)
-                  ,@(set-effect* (cddddr col) apply? kind args))
+    (set-color
+      `(pattern ,(cadr col)
+         ,(caddr col)
+         ,(cadddr col)
+         ,@(set-effect* (cddddr col) apply? kind args))
     ) ;set-color
   ) ;with
 ) ;define
 
 (define (get-effect* eff kind)
-  (cond ((or (npair? eff) (npair? (cdr eff))) #f)
-        ((== (car eff) kind) (cddr eff))
-        (else (get-effect* (cadr eff) kind))
+  (cond
+   ((or (npair? eff) (npair? (cdr eff))) #f)
+   ((== (car eff) kind) (cddr eff))
+   (else (get-effect* (cadr eff) kind))
   ) ;cond
 ) ;define
 
@@ -248,18 +255,23 @@
 (tm-widget (pattern-name-selector)
   (let* ((name (unix->url (get-name)))
          (curr (decode-pattern-name (get-name)))
-         (setter (lambda (c)
-                   (when (and (pair? c) (url? (car c)))
-                     (set-name (url->unix (car c)))
-                   ) ;when
-                 ) ;lambda
+         (setter
+           (lambda (c)
+             (when (and (pair? c) (url? (car c)))
+               (set-name (url->unix (car c)))
+             ) ;when
+           ) ;lambda
          ) ;setter
         ) ;
-    (hlist (enum (set-name (url->unix answer))
-             (list `(verbatim ,(url->system name)) "")
-             `(verbatim ,(url->system name))
-             "15em"
-           ) ;enum
+    (hlist
+      (enum (set-name (url->unix answer))
+        (list
+          `(verbatim ,(url->system name))
+          ""
+        ) ;list
+        `(verbatim ,(url->system name))
+        "15em"
+      ) ;enum
       //
       //
       //
@@ -282,26 +294,27 @@
 (tm-widget (pattern-recolor-options)
   (with recol
     (get-recolor)
-    (hlist (when recol
-             (enum (set-recolor answer)
-               (list (or recol "")
-                 "black"
-                 "white"
-                 "grey"
-                 "red"
-                 "green"
-                 "blue"
-                 "yellow"
-                 "cyan"
-                 "magenta"
-                 "orange"
-                 "brown"
-                 ""
-               ) ;list
-               (or recol "")
-               "15em"
-             ) ;enum
-           ) ;when
+    (hlist
+      (when recol
+        (enum (set-recolor answer)
+          (list (or recol "")
+            "black"
+            "white"
+            "grey"
+            "red"
+            "green"
+            "blue"
+            "yellow"
+            "cyan"
+            "magenta"
+            "orange"
+            "brown"
+            ""
+          ) ;list
+          (or recol "")
+          "15em"
+        ) ;enum
+      ) ;when
       //
       //
       //
@@ -318,26 +331,27 @@
 (tm-widget (pattern-skin-options)
   (with skin
     (get-skin)
-    (hlist (when skin
-             (enum (set-skin answer)
-               (list (or skin "")
-                 "black"
-                 "white"
-                 "grey"
-                 "red"
-                 "green"
-                 "blue"
-                 "yellow"
-                 "cyan"
-                 "magenta"
-                 "orange"
-                 "brown"
-                 ""
-               ) ;list
-               (or skin "")
-               "15em"
-             ) ;enum
-           ) ;when
+    (hlist
+      (when skin
+        (enum (set-skin answer)
+          (list (or skin "")
+            "black"
+            "white"
+            "grey"
+            "red"
+            "green"
+            "blue"
+            "yellow"
+            "cyan"
+            "magenta"
+            "orange"
+            "brown"
+            ""
+          ) ;list
+          (or skin "")
+          "15em"
+        ) ;enum
+      ) ;when
       //
       //
       //
@@ -360,13 +374,14 @@
 (tm-widget (pattern-blur-options)
   (with blur
     (get-blur)
-    (hlist (when blur
-             (enum (set-blur answer)
-               (list (or blur "") "0.2pt" "0.5pt" "1pt" "2pt" "5px" "")
-               (or blur "")
-               "15em"
-             ) ;enum
-           ) ;when
+    (hlist
+      (when blur
+        (enum (set-blur answer)
+          (list (or blur "") "0.2pt" "0.5pt" "1pt" "2pt" "5px" "")
+          (or blur "")
+          "15em"
+        ) ;enum
+      ) ;when
       //
       //
       //
@@ -441,93 +456,98 @@
 ) ;tm-widget
 
 (tm-widget ((pattern-selector u) cmd)
-  (padded (hlist (explicit-buttons (vlist (refreshable "pattern-options"
-                                            (assuming (and (not global-picture?) (not global-gradient?))
-                                              (aligned (item (text "Name:") (link pattern-name-selector))
-                                                (item (text "Width:")
-                                                  (hlist (enum (set-width answer)
-                                                           (list (get-width) "100%" "100@" "1cm" "")
-                                                           (get-width)
-                                                           "15em"
-                                                         ) ;enum
-                                                    >>
-                                                  ) ;hlist
-                                                ) ;item
-                                                (item (text "Height:")
-                                                  (hlist (enum (set-height answer)
-                                                           (list (get-height) "100%" "100@" "1cm" "")
-                                                           (get-height)
-                                                           "15em"
-                                                         ) ;enum
-                                                    >>
-                                                  ) ;hlist
-                                                ) ;item
-                                                (item (text "Recolor:") (link pattern-recolor-options))
-                                                (item (text "Skin:") (link pattern-skin-options))
-                                                ;; TODO: the blur effect changes the image size;
-                                                ;; one needs a blur that wraps around torically
-                                                ;; (item (text "Blur:")
-                                                ;;  (link pattern-blur-options))
-                                              ) ;aligned
-                                            ) ;assuming
-                                            (assuming global-gradient?
-                                              (aligned (item (text "Name:") (link pattern-name-selector))
-                                                (item (text "Width:")
-                                                  (hlist (enum (set-width answer)
-                                                           (list (get-width) "100%" "100@" "1cm" "")
-                                                           (get-width)
-                                                           "15em"
-                                                         ) ;enum
-                                                    >>
-                                                  ) ;hlist
-                                                ) ;item
-                                                (item (text "Height:")
-                                                  (hlist (enum (set-height answer)
-                                                           (list (get-height) "100%" "100@" "1cm" "")
-                                                           (get-height)
-                                                           "15em"
-                                                         ) ;enum
-                                                    >>
-                                                  ) ;hlist
-                                                ) ;item
-                                                (item (text "Foreground:") (link pattern-foreground-options))
-                                                (item (text "Background:") (link pattern-background-options))
-                                              ) ;aligned
-                                            ) ;assuming
-                                            (assuming global-picture?
-                                              (aligned (item (text "Name:") (link pattern-name-selector))
-                                                (item (text "Size:")
-                                                  (hlist (enum (set-size answer)
-                                                           (list "Fit" "Fit to width" "Fit to height")
-                                                           (get-size)
-                                                           "15em"
-                                                         ) ;enum
-                                                    >>
-                                                  ) ;hlist
-                                                ) ;item
-                                                (item (text "Recolor:") (link pattern-recolor-options))
-                                                (item (text "Skin:") (link pattern-skin-options))
-                                              ) ;aligned
-                                            ) ;assuming
-                                          ) ;refreshable
-                                     ======
-                                     (glue #f #t 0 0)
-                                   ) ;vlist
-                 ) ;explicit-buttons
-          ) ;hlist
+  (padded
+    (hlist
+      (explicit-buttons
+        (vlist
+          (refreshable "pattern-options"
+            (assuming (and (not global-picture?) (not global-gradient?))
+              (aligned (item (text "Name:") (link pattern-name-selector))
+                (item (text "Width:")
+                  (hlist (enum (set-width answer)
+                           (list (get-width) "100%" "100@" "1cm" "")
+                           (get-width)
+                           "15em"
+                         ) ;enum
+                    >>
+                  ) ;hlist
+                ) ;item
+                (item (text "Height:")
+                  (hlist (enum (set-height answer)
+                           (list (get-height) "100%" "100@" "1cm" "")
+                           (get-height)
+                           "15em"
+                         ) ;enum
+                    >>
+                  ) ;hlist
+                ) ;item
+                (item (text "Recolor:") (link pattern-recolor-options))
+                (item (text "Skin:") (link pattern-skin-options))
+                ;; TODO: the blur effect changes the image size;
+                ;; one needs a blur that wraps around torically
+                ;; (item (text "Blur:")
+                ;;  (link pattern-blur-options))
+              ) ;aligned
+            ) ;assuming
+            (assuming global-gradient?
+              (aligned (item (text "Name:") (link pattern-name-selector))
+                (item (text "Width:")
+                  (hlist (enum (set-width answer)
+                           (list (get-width) "100%" "100@" "1cm" "")
+                           (get-width)
+                           "15em"
+                         ) ;enum
+                    >>
+                  ) ;hlist
+                ) ;item
+                (item (text "Height:")
+                  (hlist (enum (set-height answer)
+                           (list (get-height) "100%" "100@" "1cm" "")
+                           (get-height)
+                           "15em"
+                         ) ;enum
+                    >>
+                  ) ;hlist
+                ) ;item
+                (item (text "Foreground:") (link pattern-foreground-options))
+                (item (text "Background:") (link pattern-background-options))
+              ) ;aligned
+            ) ;assuming
+            (assuming global-picture?
+              (aligned (item (text "Name:") (link pattern-name-selector))
+                (item (text "Size:")
+                  (hlist (enum (set-size answer)
+                           (list "Fit" "Fit to width" "Fit to height")
+                           (get-size)
+                           "15em"
+                         ) ;enum
+                    >>
+                  ) ;hlist
+                ) ;item
+                (item (text "Recolor:") (link pattern-recolor-options))
+                (item (text "Skin:") (link pattern-skin-options))
+              ) ;aligned
+            ) ;assuming
+          ) ;refreshable
+          ======
+          (glue #f #t 0 0)
+        ) ;vlist
+      ) ;explicit-buttons
+    ) ;hlist
     ======
-    (explicit-buttons (hlist >>>
-                       ("Ok"
-                         (with col
-                           (normalize-color (get-color))
-                           (if global-picture?
-                             (insert-preferred-list "my pictures" col 16)
-                             (insert-preferred-list "my patterns" col 16)
-                           ) ;if
-                           (cmd col)
-                         ) ;with
-                       ) ;
-                      ) ;hlist
+    (explicit-buttons
+      (hlist >>>
+       ("Ok"
+         (with col
+           (normalize-color (get-color))
+           (if global-picture?
+             (insert-preferred-list "my pictures" col 16)
+             (insert-preferred-list "my patterns" col 16)
+           ) ;if
+           (cmd col)
+         ) ;with
+       ) ;
+      ) ;hlist
     ) ;explicit-buttons
   ) ;padded
 ) ;tm-widget

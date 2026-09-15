@@ -67,11 +67,11 @@
     (let ((next (car todo)))
       (cond ((npair? next) (logic-add-rule-advance table next (cdr todo) rule))
             ((free-variable? next) (ahash-list-add! table :free rule))
-            (else (logic-add-rule-advance table
-                    :down
-                    (cons (car next) (cons (cdr next) (cdr todo)))
-                    rule
-                  ) ;logic-add-rule-advance
+            (else
+              (logic-add-rule-advance table
+                :down (cons (car next) (cons (cdr next) (cdr todo)))
+                rule
+              ) ;logic-add-rule-advance
             ) ;else
       ) ;cond
     ) ;let
@@ -98,18 +98,19 @@
   (if (null? todo)
     (ahash-list-ref table :all)
     (let ((next (car todo)))
-      (cond ((npair? next)
-             (append (ahash-list-ref table :free)
-               (logic-get-rules-advance table next (cdr todo))
-             ) ;append
-             ;; FIXME: (difficult with present algorithm) messes up order
-            ) ;
-            ((free-variable? next) (ahash-list-ref table :all))
-            (else (logic-get-rules-advance table
-                    :down
-                    (cons (car next) (cons (cdr next) (cdr todo)))
-                  ) ;logic-get-rules-advance
-            ) ;else
+      (cond
+       ((npair? next)
+        (append (ahash-list-ref table :free)
+          (logic-get-rules-advance table next (cdr todo))
+        ) ;append
+        ;; FIXME: (difficult with present algorithm) messes up order
+       ) ;
+       ((free-variable? next) (ahash-list-ref table :all))
+       (else
+         (logic-get-rules-advance table
+           :down (cons (car next) (cons (cdr next) (cdr todo)))
+         ) ;logic-get-rules-advance
+       ) ;else
       ) ;cond
     ) ;let
   ) ;if
@@ -129,7 +130,8 @@
         ((and (pair? (car l)) (== (caar l) 'assume))
          (logic-rules-decls (cdr l) (append (cdar l) extra))
         ) ;
-        (else (logic-add-rule (cons (caar l) (append extra (cdar l))))
+        (else
+          (logic-add-rule (cons (caar l) (append extra (cdar l))))
           (logic-rules-decls (cdr l) extra)
         ) ;else
   ) ;cond

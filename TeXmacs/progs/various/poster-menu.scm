@@ -65,10 +65,12 @@
 
 (tm-menu (focus-style-extra-icons t)
   (:require (in-poster?))
-  (=> (balloon (eval (theme-name (current-poster-theme))) "Poster theme")
+  (=>
+    (balloon (eval (theme-name (current-poster-theme))) "Poster theme")
     (link poster-theme-menu)
   ) ;=>
-  (=> (balloon (eval (theme-name (current-poster-title-style))) "Title style")
+  (=>
+    (balloon (eval (theme-name (current-poster-title-style))) "Title style")
     (link poster-title-style-menu)
   ) ;=>
   (link focus-background-color-icons)

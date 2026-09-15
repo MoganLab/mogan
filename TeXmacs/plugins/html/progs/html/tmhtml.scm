@@ -99,34 +99,35 @@
 ) ;define
 
 (define (tmhtml-math-token s)
-  (cond ((= (string-length s) 1)
-         (cond ((== s "*") " ")
-               ((in? s '("+" "-" "=")) (string-append " " s " "))
-               ((char-alphabetic? (string-ref s 0)) `(h:var ,s))
-               (else s)
-         ) ;cond
-        ) ;
-        ((string-starts? s "<cal-")
-         `(h:font (@ (face "Zapf Chancery")) ,(tmhtml-sub-token s 5))
-        ) ;
-        ((string-starts? s "<b-cal-")
-         `(h:u (h:font (@ (face "Zapf Chancery")) ,(tmhtml-sub-token s 7)))
-        ) ;
-        ((string-starts? s "<frak-") `(h:u ,(tmhtml-sub-token s 6)))
-        ((string-starts? s "<bbb-") `(h:u (h:b ,(tmhtml-sub-token s 5))))
-        ((string-starts? s "<up-") (tmhtml-sub-token s 4))
-        ((string-starts? s "<b-up-") `(h:b ,(tmhtml-sub-token s 6)))
-        ((string-starts? s "<b-") `(h:b (h:var ,(tmhtml-sub-token s 3))))
-        ((string-starts? s "<")
-         (with encoded
-           (cork->utf8 s)
-           (if (== s encoded)
-             (utf8->html (old-tm->xml-cdata s))
-             `(h:var ,(utf8->html encoded))
-           ) ;if
-         ) ;with
-        ) ;
-        (else s)
+  (cond
+   ((= (string-length s) 1)
+    (cond ((== s "*") " ")
+          ((in? s '("+" "-" "=")) (string-append " " s " "))
+          ((char-alphabetic? (string-ref s 0)) `(h:var ,s))
+          (else s)
+    ) ;cond
+   ) ;
+   ((string-starts? s "<cal-")
+    `(h:font (@ (face "Zapf Chancery")) ,(tmhtml-sub-token s 5))
+   ) ;
+   ((string-starts? s "<b-cal-")
+    `(h:u (h:font (@ (face "Zapf Chancery")) ,(tmhtml-sub-token s 7)))
+   ) ;
+   ((string-starts? s "<frak-") `(h:u ,(tmhtml-sub-token s 6)))
+   ((string-starts? s "<bbb-") `(h:u (h:b ,(tmhtml-sub-token s 5))))
+   ((string-starts? s "<up-") (tmhtml-sub-token s 4))
+   ((string-starts? s "<b-up-") `(h:b ,(tmhtml-sub-token s 6)))
+   ((string-starts? s "<b-") `(h:b (h:var ,(tmhtml-sub-token s 3))))
+   ((string-starts? s "<")
+    (with encoded
+      (cork->utf8 s)
+      (if (== s encoded)
+        (utf8->html (old-tm->xml-cdata s))
+        `(h:var ,(utf8->html encoded))
+      ) ;if
+    ) ;with
+   ) ;
+   (else s)
   ) ;cond
 ) ;define
 
@@ -170,10 +171,11 @@
         ((func? doc 'tmdoc-title* 2) (cadr doc))
         ((func? doc 'tmdoc-title** 3) (caddr doc))
         ((func? doc 'hidden-title 1) (cadr doc))
-        (else (with title
-                (tmhtml-find-title (car doc))
-                (if title title (tmhtml-find-title (cdr doc)))
-              ) ;with
+        (else
+          (with title
+            (tmhtml-find-title (car doc))
+            (if title title (tmhtml-find-title (cdr doc)))
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define
@@ -239,18 +241,23 @@
 ) ;tm-define
 
 (define (with-extract-sub w var post)
-  (cond ((and (pair? w)
-           (== (car w) 'with)
-           (pair? (cdr w))
-           (== (cadr w) var)
-           (pair? (cddr w))
-         ) ;and
-         (post (caddr w))
-        ) ;
-        ((and (pair? w) (== (car w) 'with) (pair? (cdr w)) (pair? (cddr w)))
-         (with-extract-sub `(with ,@(cdddr w)) var post)
-        ) ;
-        (else #f)
+  (cond
+   ((and (pair? w)
+      (== (car w) 'with)
+      (pair? (cdr w))
+      (== (cadr w) var)
+      (pair? (cddr w))
+    ) ;and
+    (post (caddr w))
+   ) ;
+   ((and (pair? w) (== (car w) 'with) (pair? (cdr w)) (pair? (cddr w)))
+    (with-extract-sub
+      `(with ,@(cdddr w))
+      var
+      post
+    ) ;with-extract-sub
+   ) ;
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -274,7 +281,9 @@
          (lang (caddr l))
          (tmpath (cadddr l))
          (title (tmhtml-find-title doc))
-         (css `(h:style (@ (type "text/css")) ,(tmhtml-css-header)))
+         (css
+           `(h:style (@ (type "text/css")) ,(tmhtml-css-header))
+         ) ;css
          (xhead '())
          (body (tmhtml doc))
         ) ;
@@ -294,31 +303,38 @@
     ) ;set!
 
     (set! css
-      (cond ((with-extract doc "html-css")
-             `(h:link (@ (rel "stylesheet")
-                        (href ,(with-extract doc "html-css"))
-                        (type "text/css")))
-            ) ;
-            (else css)
+      (cond
+       ((with-extract doc "html-css")
+        `(h:link (@ (rel "stylesheet")
+                   (href ,(with-extract doc "html-css"))
+                   (type "text/css")))
+       ) ;
+       (else css)
       ) ;cond
     ) ;set!
     (if (with-extract doc "html-head-javascript-src")
       (let* ((src (with-extract doc "html-head-javascript-src"))
-             (script `(h:script (@ (language "javascript") (src ,src))))
+             (script
+               `(h:script (@ (language "javascript") (src ,src)))
+             ) ;script
             ) ;
         (set! xhead (append xhead (list script)))
       ) ;let*
     ) ;if
     (if (with-extract doc "html-head-javascript")
       (let* ((code (with-extract doc "html-head-javascript"))
-             (script `(h:script (@ (language "javascript")) ,code))
+             (script
+               `(h:script (@ (language "javascript")) ,code)
+             ) ;script
             ) ;
         (set! xhead (append xhead (list script)))
       ) ;let*
     ) ;if
     (if (with-extract doc "html-head-favicon")
       (let* ((code (with-extract doc "html-head-favicon"))
-             (icon `(h:link (@ (rel "icon") (href ,code))))
+             (icon
+               `(h:link (@ (rel "icon") (href ,code)))
+             ) ;icon
             ) ;
         (set! xhead (append xhead (list icon)))
       ) ;let*
@@ -362,7 +378,9 @@
       (let* ((site "https://cdn.jsdelivr.net/")
              (loc "npm/mathjax@3/es5/tex-mml-chtml.js")
              (src (string-append site loc))
-             (script `(h:script (@ (language "javascript") (src ,src))))
+             (script
+               `(h:script (@ (language "javascript") (src ,src)))
+             ) ;script
             ) ;
         (set! xhead (append xhead (list script)))
       ) ;let*
@@ -410,10 +428,11 @@
 (define (tmhtml-document-elem x)
   ;; NOTE: this should not really be necessary, but it improves
   ;; the layout of verbatim environments with a missing block structure
-  (if (and (list-2? x)
-        (or (== (car x) 'verbatim) (== (car x) 'code))
-        (not (func? (cadr x) 'document))
-      ) ;and
+  (if
+    (and (list-2? x)
+      (or (== (car x) 'verbatim) (== (car x) 'code))
+      (not (func? (cadr x) 'document))
+    ) ;and
     (tmhtml (list (car x) (list 'document (cadr x))))
     (tmhtml x)
   ) ;if
@@ -427,17 +446,18 @@
         (tmhtml-compute-max-vspace (cdr l) after?)
         (cond ((not s1) s2)
               ((not s2) s1)
-              (else (with l1
-                      (string->tmlength s1)
-                      (with l2
-                        (string->tmlength s2)
-                        (if (== (tmlength-unit l1) (tmlength-unit l2))
-                          (if (>= (tmlength-value l1) (tmlength-value l2)) s1 s2)
-                          s1
-                          ;; FIXME: do something more subtle here
-                        ) ;if
-                      ) ;with
-                    ) ;with
+              (else
+                (with l1
+                  (string->tmlength s1)
+                  (with l2
+                    (string->tmlength s2)
+                    (if (== (tmlength-unit l1) (tmlength-unit l2))
+                      (if (>= (tmlength-value l1) (tmlength-value l2)) s1 s2)
+                      s1
+                      ;; FIXME: do something more subtle here
+                    ) ;if
+                  ) ;with
+                ) ;with
               ) ;else
         ) ;cond
       ) ;with
@@ -465,7 +485,9 @@
          (s1 (sxml-attr x1 'style))
          (s2 (sxml-attr x2 'style))
          (s (if (and s1 s2) (css-merge-styles s1 s2) (or s1 s2)))
-         (o? (lambda (x) (or (npair? x) (nin? (car x) '(style class)))))
+         (o?
+           (lambda (x) (or (npair? x) (nin? (car x) '(style class))))
+         ) ;o?
          (other (list-filter (append (sxml-attr-list x1) (sxml-attr-list x2)) o?))
         ) ;
     (append (if c (list (list 'class c)) (list))
@@ -476,21 +498,22 @@
 ) ;define
 
 (define (tmhtml-simplify-div x)
-  (or (and (func? x 'h:div)
-        (with l1
-          (or (sxml-content x) (list))
-          (and (== (length l1) 1)
-            (func? (car l1) 'h:div)
-            (let* ((l2 (or (sxml-content (car l1)) (list)))
-                   (a (tmhtml-div-merged-attrs x (car l1)))
-                   (c1 (sxml-attr x 'class))
-                   (c2 (sxml-attr (car l1) 'class))
-                  ) ;
-              (and (not (and c1 c2)) `(h:div (@ ,@a) ,@l2))
-            ) ;let*
-          ) ;and
-        ) ;with
-      ) ;and
+  (or
+    (and (func? x 'h:div)
+      (with l1
+        (or (sxml-content x) (list))
+        (and (== (length l1) 1)
+          (func? (car l1) 'h:div)
+          (let* ((l2 (or (sxml-content (car l1)) (list)))
+                 (a (tmhtml-div-merged-attrs x (car l1)))
+                 (c1 (sxml-attr x 'class))
+                 (c2 (sxml-attr (car l1) 'class))
+                ) ;
+            (and (not (and c1 c2)) `(h:div (@ ,@a) ,@l2))
+          ) ;let*
+        ) ;and
+      ) ;with
+    ) ;and
     x
   ) ;or
 ) ;define
@@ -504,12 +527,16 @@
 (define (mixed-block l)
   (cond ((null? l) l)
         ((xhtml-block? (car l)) (cons (car l) (mixed-block (cdr l))))
-        (else (let* ((i (or (list-find-index l xhtml-block?) (length l)))
-                     (s (sublist l 0 i))
-                     (r (mixed-block (sublist l i (length l))))
-                    ) ;
-                (cons `(h:div (@ (style "display: inline")) ,@s) r)
-              ) ;let*
+        (else
+          (let* ((i (or (list-find-index l xhtml-block?) (length l)))
+                 (s (sublist l 0 i))
+                 (r (mixed-block (sublist l i (length l))))
+                ) ;
+            (cons
+              `(h:div (@ (style "display: inline")) ,@s)
+              r
+            ) ;cons
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -530,12 +557,12 @@
 ) ;define
 
 (define (force-block? x)
-  (or (and (tm-in? x '(h:p h:div h:pre h:h1 h:h2 h:h3 h:h4 h:ol h:ul h:dl
-                        h:table))
-        (not (and-with style (sxml-attr x 'style) (string-contains? style "display: inline"))
-        ) ;not
-        (not (and-with class (sxml-attr x 'class) (string-contains? class "-license")))
-      ) ;and
+  (or
+    (and (tm-in? x '(h:p h:div h:pre h:h1 h:h2 h:h3 h:h4 h:ol h:ul h:dl h:table))
+      (not (and-with style (sxml-attr x 'style) (string-contains? style "display: inline"))
+      ) ;not
+      (not (and-with class (sxml-attr x 'class) (string-contains? class "-license")))
+    ) ;and
     (and (tm-in? x '(h:i h:b h:u h:var h:font h:class))
       ;; FIXME: we should really restructure this kind of Html output
       ;; such that these tags never contain block content
@@ -552,8 +579,12 @@
                 (l1 (sublist sl 0 i))
                 (x2 (list-ref sl i))
                 (l2 (sublist sl (+ i 1) (length sl)))
-                (h (if (null? l1) (list x2) (list `(h:p ,@l1) x2)))
-                (t (if (null? l2) (cdr l) (cons `(h:p ,@l2) (cdr l))))
+                (h
+                  (if (null? l1) (list x2) (list `(h:p ,@l1) x2))
+                ) ;h
+                (t
+                  (if (null? l2) (cdr l) (cons `(h:p ,@l2) (cdr l)))
+                ) ;t
                ) ;
            (append (map as-block h) (as-blocks t))
          ) ;let*
@@ -573,14 +604,20 @@
            `(,(car x) (@ (style ,s) ,@(sxml-attr-list x)) ,@(sxml-content x))
           ) ;
           ((func? x 'h:p) `(h:p (@ (style ,s)) (h:div ,(cdr x))))
-          (else `(h:div (@ (style ,s)) ,x))
+          (else
+            `(h:div (@ (style ,s)) ,x)
+          ) ;else
     ) ;cond
   ) ;with
 ) ;define
 
 (define (tmhtml-p x)
   (let* ((body (tmhtml-document-elem x))
-         (bl (as-blocks (list `(h:p ,@body))))
+         (bl
+           (as-blocks
+             (list `(h:p ,@body))
+           ) ;as-blocks
+         ) ;bl
          (l1 (tmhtml-compute-vspace x #f))
          (l2 (tmhtml-compute-vspace x #t))
          (h1 (and l1 (tmlength->htmllength l1 #t)))
@@ -592,10 +629,11 @@
     ;; (display* "  >>>>> " bl "\n")
     (cond ((null? bl) bl)
           ((null? (cdr bl)) (list (add-style-attr (car bl) s1 s2)))
-          (else (append (list (add-style-attr (car bl) s1 #f))
-                  (cdr (cDr bl))
-                  (list (add-style-attr (cAr bl) #f s2))
-                ) ;append
+          (else
+            (append (list (add-style-attr (car bl) s1 #f))
+              (cdr (cDr bl))
+              (list (add-style-attr (cAr bl) #f s2))
+            ) ;append
           ) ;else
     ) ;cond
   ) ;let*
@@ -604,7 +642,8 @@
 (define (tmhtml-document l)
   (cond ((null? l) '())
         ((ahash-ref tmhtml-env :preformatted)
-         (tmhtml-post-simplify-nodes (list-concatenate ((cut list-intersperse <> '("\n")) (map tmhtml l)))
+         (tmhtml-post-simplify-nodes
+           (list-concatenate ((cut list-intersperse <> '("\n")) (map tmhtml l)))
          ) ;tmhtml-post-simplify-nodes
         ) ;
         (else (with pars
@@ -654,38 +693,40 @@
 ) ;define
 
 (define (serialize-concat x)
-  (cond ((in? x '("" (document) (concat))) (noop))
-        ((func? x 'document)
-         (for-each serialize-paragraph (cDdr x))
-         (serialize-concat (cAr x))
-        ) ;
-        ((func? x 'concat) (for-each serialize-concat (cdr x)))
-        ((func? x 'surround 3)
-         (serialize-concat (cadr x))
-         (serialize-concat (cadddr x))
-         (serialize-concat (caddr x))
-        ) ;
-        ((func? x 'with 1) (serialize-concat (cadr x)))
-        ((and (func? x 'with) (in? cadr (list "locus-color" "visited-color")))
-         (serialize-concat `(with ,@(cdddr x)))
-        ) ;
-        ((func? x 'with)
-         (let* ((r (simplify-document (cAr x))) (w (lambda (y) `(with ,@(cDdr x)
-                                                                  ,y))))
-           (if (not (func? r 'document))
-             (serialize-print (w r))
-             (let* ((head (cadr r)) (body `(document ,@(cDr (cddr r)))) (tail (cAr r)))
-               (serialize-paragraph (w head))
-               (for (x (cDr (cddr r))) (serialize-paragraph (w x)))
-               ;; (when (nnull? (cdr body))
-               ;;  (set! document-done (cons (w body) document-done)))
-               (serialize-concat (w tail))
-             ) ;let*
-           ) ;if
-         ) ;let*
-        ) ;
-        ((func? x 'locus) (serialize-concat (cAr x)))
-        (else (serialize-print x))
+  (cond
+   ((in? x '("" (document) (concat))) (noop))
+   ((func? x 'document)
+    (for-each serialize-paragraph (cDdr x))
+    (serialize-concat (cAr x))
+   ) ;
+   ((func? x 'concat) (for-each serialize-concat (cdr x)))
+   ((func? x 'surround 3)
+    (serialize-concat (cadr x))
+    (serialize-concat (cadddr x))
+    (serialize-concat (caddr x))
+   ) ;
+   ((func? x 'with 1) (serialize-concat (cadr x)))
+   ((and (func? x 'with) (in? cadr (list "locus-color" "visited-color")))
+    (serialize-concat
+      `(with ,@(cdddr x))
+    ) ;serialize-concat
+   ) ;
+   ((func? x 'with)
+    (let* ((r (simplify-document (cAr x))) (w (lambda (y) `(with ,@(cDdr x) ,y))))
+      (if (not (func? r 'document))
+        (serialize-print (w r))
+        (let* ((head (cadr r)) (body `(document ,@(cDr (cddr r)))) (tail (cAr r)))
+          (serialize-paragraph (w head))
+          (for (x (cDr (cddr r))) (serialize-paragraph (w x)))
+          ;; (when (nnull? (cdr body))
+          ;;  (set! document-done (cons (w body) document-done)))
+          (serialize-concat (w tail))
+        ) ;let*
+      ) ;if
+    ) ;let*
+   ) ;
+   ((func? x 'locus) (serialize-concat (cAr x)))
+   (else (serialize-print x))
   ) ;cond
 ) ;define
 
@@ -734,11 +775,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmhtml-glue-scripts l)
-  (cond ((or (null? l) (null? (cdr l))) l)
-        ((and (func? (car l) 'rsub 1) (func? (cadr l) 'rsup 1))
-         (cons `(rsubsup ,(cadar l) ,(cadadr l)) (tmhtml-glue-scripts (cddr l)))
-        ) ;
-        (else (cons (car l) (tmhtml-glue-scripts (cdr l))))
+  (cond
+   ((or (null? l) (null? (cdr l))) l)
+   ((and (func? (car l) 'rsub 1) (func? (cadr l) 'rsup 1))
+    (cons
+      `(rsubsup ,(cadar l) ,(cadadr l))
+      (tmhtml-glue-scripts (cddr l))
+    ) ;cons
+   ) ;
+   (else (cons (car l) (tmhtml-glue-scripts (cdr l))))
   ) ;cond
 ) ;define
 
@@ -807,21 +852,22 @@
   ;; (display* "l << " l "\n")
   (set! l (tmconcat-structure-tabs l))
   ;; (display* "l >> " l "\n")
-  (tmhtml-post-simplify-nodes (let ((l (tmhtml-list l)))
-                                (cond ((null? l) '())
-                                      ((string? (car l)) l)
-                                      ((heading? l) (tmhtml-post-heading l))
-                                      ((list-any sxhtml-table? l) (tmhtml-post-table l))
-                                      ((and (null? (cdr l))
-                                         (pair? (car l))
-                                         (== (caar l) 'h:div)
-                                         (== (cadar l) '(@ (class "left-tab")))
-                                       ) ;and
-                                       (cddar l)
-                                      ) ;
-                                      (else l)
-                                ) ;cond
-                              ) ;let
+  (tmhtml-post-simplify-nodes
+    (let ((l (tmhtml-list l)))
+      (cond ((null? l) '())
+            ((string? (car l)) l)
+            ((heading? l) (tmhtml-post-heading l))
+            ((list-any sxhtml-table? l) (tmhtml-post-table l))
+            ((and (null? (cdr l))
+               (pair? (car l))
+               (== (caar l) 'h:div)
+               (== (cadar l) '(@ (class "left-tab")))
+             ) ;and
+             (cddar l)
+            ) ;
+            (else l)
+      ) ;cond
+    ) ;let
   ) ;tmhtml-post-simplify-nodes
 ) ;define
 
@@ -964,17 +1010,18 @@
 ) ;define
 
 (define (tmhtml-big l)
-  (cond ((in? (car l) '("sum" "prod" "int" "oint" "amalg"))
-         (tmhtml (string-append "<" (car l) ">"))
-        ) ;
-        ((in? (car l) '("<cap>" "<cup>" "<vee>" "<wedge>"))
-         (with s
-           (substring (car l) 1 (- (string-length (car l)) 1))
-           (tmhtml (string-append "<big" s ">"))
-         ) ;with
-        ) ;
-        ((== (car l) ".") '())
-        (else (tmhtml (car l)))
+  (cond
+   ((in? (car l) '("sum" "prod" "int" "oint" "amalg"))
+    (tmhtml (string-append "<" (car l) ">"))
+   ) ;
+   ((in? (car l) '("<cap>" "<cup>" "<vee>" "<wedge>"))
+    (with s
+      (substring (car l) 1 (- (string-length (car l)) 1))
+      (tmhtml (string-append "<big" s ">"))
+    ) ;with
+   ) ;
+   ((== (car l) ".") '())
+   (else (tmhtml (car l)))
   ) ;cond
 ) ;define
 
@@ -997,8 +1044,12 @@
 (define (tmhtml-subsup l)
   (let* ((sub (tmhtml (car l)))
          (sup (tmhtml (cadr l)))
-         (r1 `(h:tr (h:td ,@sup)))
-         (r2 `(h:tr (h:td ,@sub)))
+         (r1
+           `(h:tr (h:td ,@sup))
+         ) ;r1
+         (r2
+           `(h:tr (h:td ,@sub))
+         ) ;r2
         ) ;
     `((h:sub (h:table (@ (class "subsup")) ,r1 ,r2)))
   ) ;let*
@@ -1012,8 +1063,12 @@
 (define (tmhtml-frac l)
   (let* ((num (tmhtml (car l)))
          (den (tmhtml (cadr l)))
-         (n `(h:tr (h:td (@ (style "border-bottom: solid 1px")) ,@num)))
-         (d `(h:tr (h:td ,@den)))
+         (n
+           `(h:tr (h:td (@ (style "border-bottom: solid 1px")) ,@num))
+         ) ;n
+         (d
+           `(h:tr (h:td ,@den))
+         ) ;d
         ) ;
     `((h:table (@ (class "fraction")) ,n ,d))
   ) ;let*
@@ -1041,7 +1096,9 @@
 (define (tmhtml-wide l)
   (let* ((body (tmhtml (car l)))
          (acc (tmhtml (cadr l)))
-         (class (if (in? acc '(("^") ("~"))) "accent" "wide"))
+         (class
+           (if (in? acc '(("^") ("~"))) "accent" "wide")
+         ) ;class
         ) ;
     (if (tmhtml-short? body)
       `(,@body (h:sup (@ (class ,class)) ,@acc))
@@ -1160,53 +1217,60 @@
 ) ;define
 
 (define (number->htmlstring x)
-  (number->string (if (exact? x)
-                    (if (integer? x) x (exact->inexact x))
-                    (if (and (integer? (inexact->exact x)) (= x (exact->inexact (inexact->exact x))))
-                      (inexact->exact x)
-                      x
-                    ) ;if
-                  ) ;if
+  (number->string
+    (if (exact? x)
+      (if (integer? x) x (exact->inexact x))
+      (if
+        (and (integer? (inexact->exact x)) (= x (exact->inexact (inexact->exact x))))
+        (inexact->exact x)
+        x
+      ) ;if
+    ) ;if
   ) ;number->string
 ) ;define
 
 (define (tmlength->htmllength len . css?)
   (if (list>0? css?) (set! css? (car css?)) (set! css? #t))
-  (and-let* ((s (tmhtml-force-string len))
-             (len-str (if (string->number s) (string-append s "tmpt") s))
-             (tmlen (string->tmlength len-str))
-             (dummy2? (not (tmlength-null? tmlen)))
-             (val (tmlength-value tmlen))
-             (unit (symbol->string (tmlength-unit tmlen)))
-             (incm (ahash-ref tmhtml-length-table unit))
-             (cmpx (/ 1 (ahash-ref tmhtml-length-table "px")))
-            ) ;
-    (cond ((== unit "px") (number->htmlstring val))
-          ((in? unit '("par" "pag"))
-           (string-append (number->htmlstring (/ (round (* val 10000)) 100)) "%")
-          ) ;
-          ((and css? (== unit "tmpt"))
-           (string-append (number->htmlstring (* cmpx val incm)) "px")
-          ) ;
-          ((and css? (== unit "fn")) (string-append (number->htmlstring val) "em"))
-          ((and css? (== unit "spc")) (string-append (number->htmlstring (/ val 2)) "em"))
-          ((and css? (== unit "ln")) (string-append (number->htmlstring val) "px"))
-          ((and css? (== unit "@")) "auto")
-          (css? len)
-          (else (number->htmlstring (* cmpx val incm)))
-    ) ;cond
+  (and-let*
+   ((s (tmhtml-force-string len))
+    (len-str (if (string->number s) (string-append s "tmpt") s))
+    (tmlen (string->tmlength len-str))
+    (dummy2? (not (tmlength-null? tmlen)))
+    (val (tmlength-value tmlen))
+    (unit (symbol->string (tmlength-unit tmlen)))
+    (incm (ahash-ref tmhtml-length-table unit))
+    (cmpx (/ 1 (ahash-ref tmhtml-length-table "px")))
+   ) ;
+   (cond ((== unit "px") (number->htmlstring val))
+         ((in? unit '("par" "pag"))
+          (string-append
+            (number->htmlstring (/ (round (* val 10000)) 100))
+            "%"
+          ) ;string-append
+         ) ;
+         ((and css? (== unit "tmpt"))
+          (string-append (number->htmlstring (* cmpx val incm)) "px")
+         ) ;
+         ((and css? (== unit "fn")) (string-append (number->htmlstring val) "em"))
+         ((and css? (== unit "spc")) (string-append (number->htmlstring (/ val 2)) "em"))
+         ((and css? (== unit "ln")) (string-append (number->htmlstring val) "px"))
+         ((and css? (== unit "@")) "auto")
+         (css? len)
+         (else (number->htmlstring (* cmpx val incm)))
+   ) ;cond
   ) ;and-let*
 ) ;define
 
 (define (tmlength->px len)
-  (and-let* ((tmlen (string->tmlength len))
-             (dummy? (not (tmlength-null? tmlen)))
-             (val (tmlength-value tmlen))
-             (unit (symbol->string (tmlength-unit tmlen)))
-             (incm (ahash-ref tmhtml-length-table unit))
-             (cmpx (/ 1 (ahash-ref tmhtml-length-table "px")))
-            ) ;
-    (* cmpx val incm)
+  (and-let*
+   ((tmlen (string->tmlength len))
+    (dummy? (not (tmlength-null? tmlen)))
+    (val (tmlength-value tmlen))
+    (unit (symbol->string (tmlength-unit tmlen)))
+    (incm (ahash-ref tmhtml-length-table unit))
+    (cmpx (/ 1 (ahash-ref tmhtml-length-table "px")))
+   ) ;
+   (* cmpx val incm)
   ) ;and-let*
 ) ;define
 
@@ -1216,9 +1280,10 @@
 
 (define (tmhtml-with-mode val arg)
   (ahash-with tmhtml-env
-    :math
-    (== val "math")
-    (tmhtml (if (== val "prog") `(verbatim ,arg) arg))
+    :math (== val "math")
+    (tmhtml
+      (if (== val "prog") `(verbatim ,arg) arg)
+    ) ;tmhtml
   ) ;ahash-with
 ) ;define
 
@@ -1245,10 +1310,11 @@
           ;; Convert the input target font size to a number
           (target-font-size (font-size-string->number val))
           ;; Prevent division by zero and ensure the result is a floating-point number
-          (computed-size (if (> font-base-size 0)
-                           (* (/ (exact->inexact target-font-size) (exact->inexact font-base-size)) 100)
-                           100
-                         ) ;if
+          (computed-size
+            (if (> font-base-size 0)
+              (* (/ (exact->inexact target-font-size) (exact->inexact font-base-size)) 100)
+              100
+            ) ;if
           ) ;computed-size
           ;; Generate font-size style string
           (font-size-style (string-append "font-size: " (number->string computed-size) "%;")
@@ -1262,8 +1328,11 @@
 (define (tmhtml-with-block style arg)
   (with r
     (tmhtml (blockify arg))
-    (if (in? r '(() ("") ((h:p)) ((h:p "")))) '() `((h:div (@ (style ,style))
-                                                      ,@r)))
+    (if
+      (in? r '(() ("") ((h:p)) ((h:p ""))))
+      '()
+      `((h:div (@ (style ,style)) ,@r))
+    ) ;if
   ) ;with
 ) ;define
 
@@ -1320,16 +1389,17 @@
 ) ;define
 
 (define (tmhtml-with-one var val arg)
-  (cond ((logic-ref tmhtml-with-cmd% (list var val))
-         =>
-         (lambda (w) (list (append w (tmhtml arg))))
-        ) ;
-        ((logic-ref tmhtml-with-cmd% (list var))
-         =>
-         (lambda (x) (ahash-with tmhtml-env x val (tmhtml arg)))
-        ) ;
-        ((logic-ref tmhtml-with-cmd% var) => (lambda (h) (h val arg)))
-        (else (tmhtml arg))
+  (cond
+   ((logic-ref tmhtml-with-cmd% (list var val))
+    =>
+    (lambda (w) (list (append w (tmhtml arg))))
+   ) ;
+   ((logic-ref tmhtml-with-cmd% (list var))
+    =>
+    (lambda (x) (ahash-with tmhtml-env x val (tmhtml arg)))
+   ) ;
+   ((logic-ref tmhtml-with-cmd% var) => (lambda (h) (h val arg)))
+   (else (tmhtml arg))
   ) ;cond
 ) ;define
 
@@ -1351,12 +1421,13 @@
         ((null? (cdr l)) (tmhtml (car l)))
         ((null? (cddr l)) '())
         ((func? (cAr l) 'graphics) (tmhtml-png (cons 'with l)))
-        (else (let* ((var (tmhtml-force-string (car l)))
-                     (val (tmhtml-force-string (cadr l)))
-                     (next (cddr l))
-                    ) ;
-                (tmhtml-with-one var val `(with ,@next))
-              ) ;let*
+        (else
+          (let* ((var (tmhtml-force-string (car l)))
+                 (val (tmhtml-force-string (cadr l)))
+                 (next (cddr l))
+                ) ;
+            (tmhtml-with-one var val `(with ,@next))
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -1468,10 +1539,11 @@
 ) ;define
 
 (define (tmhtml-specific l)
-  (cond ((== (car l) "html") (list (tmstring->string (force-string (cadr l)))))
-        ((== (car l) "html*") (tmhtml (cadr l)))
-        ((== (car l) "image") (tmhtml-png (cadr l)))
-        (else '())
+  (cond
+   ((== (car l) "html") (list (tmstring->string (force-string (cadr l)))))
+   ((== (car l) "html*") (tmhtml (cadr l)))
+   ((== (car l) "image") (tmhtml-png (cadr l)))
+   (else '())
   ) ;cond
 ) ;define
 
@@ -1538,12 +1610,13 @@
         ((== x '("cell-valign" "b")) "vertical-align: bottom")
         ((== x '("cell-valign" "B")) "vertical-align: baseline")
         ((== (car x) "cell-background")
-         (cond ((not tmhtml-css?) `(bgcolor ,(tmcolor->htmlcolor (cadr x))))
-               ((tm-atomic? (cadr x))
-                (string-append "background-color: " (tmbgcolor->htmlbgcolor (cadr x)))
-               ) ;
-               ((tm-func? (cadr x) 'pattern 3) (html-css-pattern (cadr x)))
-               (else #f)
+         (cond
+          ((not tmhtml-css?) `(bgcolor ,(tmcolor->htmlcolor (cadr x))))
+          ((tm-atomic? (cadr x))
+           (string-append "background-color: " (tmbgcolor->htmlbgcolor (cadr x)))
+          ) ;
+          ((tm-func? (cadr x) 'pattern 3) (html-css-pattern (cadr x)))
+          (else #f)
          ) ;cond
         ) ;
         ((== (car x) "cell-lborder") (border-attr "border-left" (cadr x)))
@@ -1572,8 +1645,7 @@
 (define (tmhtml-make-cell c cellf)
   (if (not (tm-func? c 'cell 1)) (set! c `(cell ,c)))
   (ahash-with tmhtml-env
-    :left-margin
-    0
+    :left-margin 0
     (with make
       (lambda (attr) (tmhtml-make-cell-attr attr cellf))
       `(h:td ,@(html-css-attrs (map* make cellf)) ,@(tmhtml (cadr c)))
@@ -1728,9 +1800,10 @@
 
 (tm-define (tmhtml-write-binary-file file-url data)
   (import (liii path))
-  (let* ((p (cond ((string? file-url) file-url)
-                  (else (url->string (url-concretize file-url)))
-            ) ;cond
+  (let* ((p
+           (cond ((string? file-url) file-url)
+                 (else (url->string (url-concretize file-url)))
+           ) ;cond
          ) ;p
         ) ;
     (cond ((byte-vector? data) (path-write-bytes p data))
@@ -1741,13 +1814,14 @@
 
 (define (tmhtml-png y)
   (let* ((mag (ahash-ref tmhtml-env :mag))
-         (x (if (or tmhtml-css? (nstring? mag) (== mag "1"))
-              y
-              (with nmag
-                `(times (value "magnification") ,mag)
-                `(with ,"magnification" ,nmag ,y)
-              ) ;with
-            ) ;if
+         (x
+           (if (or tmhtml-css? (nstring? mag) (== mag "1"))
+             y
+             (with nmag
+               `(times (value "magnification") ,mag)
+               `(with ,"magnification" ,nmag ,y)
+             ) ;with
+           ) ;if
          ) ;x
          (l1 (tmhtml-collect-labels y))
          (l2 (if (null? l1) l1 (list (car l1))))
@@ -1791,32 +1865,33 @@
                           valign "em; " "height: " height "em"
                         ) ;string-append
                  ) ;style
-                 (attrs (if tmhtml-base64?
-                          (let* ((png-bytes (tmhtml-read-binary-file name-url))
-                                 (b64-str (begin
-                                            (import (liii base64))
-                                            (utf8->string (bytevector-base64-encode png-bytes))
-                                          ) ;begin
-                                 ) ;b64-str
-                                 (src-uri (string-append "data:image/png;base64," b64-str))
-                                ) ;
-                            (when (url-exists? name-url)
-                              (url-remove name-url)
-                            ) ;when
-                            (if tmhtml-css? `((src ,src-uri)
-                                              (style ,style)
-                                              ,@l2) `((src ,src-uri) ,@l2))
-                          ) ;let*
-                          (if tmhtml-css?
-                            `((src ,name-string) (style ,style) ,@l2)
-                            `((src ,name-string) ,@l2)
-                          ) ;if
-                        ) ;if
+                 (attrs
+                   (if tmhtml-base64?
+                     (let* ((png-bytes (tmhtml-read-binary-file name-url))
+                            (b64-str (begin
+                                       (import (liii base64))
+                                       (utf8->string (bytevector-base64-encode png-bytes))
+                                     ) ;begin
+                            ) ;b64-str
+                            (src-uri (string-append "data:image/png;base64," b64-str))
+                           ) ;
+                       (when (url-exists? name-url)
+                         (url-remove name-url)
+                       ) ;when
+                       (if tmhtml-css? `((src ,src-uri) (style ,style) ,@l2) `((src ,src-uri)
+                                                                               ,@l2))
+                     ) ;let*
+                     (if tmhtml-css?
+                       `((src ,name-string) (style ,style) ,@l2)
+                       `((src ,name-string) ,@l2)
+                     ) ;if
+                   ) ;if
                  ) ;attrs
-                 (img (if tmhtml-base64?
-                        `((h:img (@ ,@attrs)))
-                        (if (url-exists? name-url) `((h:img (@ ,@attrs))) ())
-                      ) ;if
+                 (img
+                   (if tmhtml-base64?
+                     `((h:img (@ ,@attrs)))
+                     (if (url-exists? name-url) `((h:img (@ ,@attrs))) ())
+                   ) ;if
                  ) ;img
                 ) ;
             ;; (display* x " -> " extents "\n")
@@ -1911,11 +1986,12 @@
 
 (define (tmhtml-symbol-hex->byte-vector sym)
   (let* ((s (symbol->string sym)) (len (string-length s)))
-    (if (and (>= len 3)
-          (char=? (string-ref s 0) #\<)
-          (char=? (string-ref s 1) #\#)
-          (char=? (string-ref s (- len 1)) #\>)
-        ) ;and
+    (if
+      (and (>= len 3)
+        (char=? (string-ref s 0) #\<)
+        (char=? (string-ref s 1) #\#)
+        (char=? (string-ref s (- len 1)) #\>)
+      ) ;and
       (hex-string->byte-vector (substring s 2 (- len 1)))
       #u8()
     ) ;if
@@ -1931,16 +2007,19 @@
   ;; name is (car l), which is (tuple data suffix)
   (if (and (func? name 'tuple 2) (string? (caddr name)))
     (let* ((raw (cadr name))
-           (data (if (and (list? raw) (== (car raw) 'raw-data)) (cadr raw) raw))
+           (data
+             (if (and (list? raw) (== (car raw) 'raw-data)) (cadr raw) raw)
+           ) ;data
            (suffix (caddr name))
           ) ;
       (cond ((symbol? data) (cons (tmhtml-symbol-hex->byte-vector data) suffix))
             ((string? data)
-             (if (and (>= (string-length data) 3)
-                   (char=? (string-ref data 0) #\<)
-                   (char=? (string-ref data 1) #\#)
-                   (char=? (string-ref data (- (string-length data) 1)) #\>)
-                 ) ;and
+             (if
+               (and (>= (string-length data) 3)
+                 (char=? (string-ref data 0) #\<)
+                 (char=? (string-ref data 1) #\#)
+                 (char=? (string-ref data (- (string-length data) 1)) #\>)
+               ) ;and
                (cons (tmhtml-symbol-hex->byte-vector (string->symbol data)) suffix)
                (cons (tmhtml-decode-base64-string data) suffix)
              ) ;if
@@ -1955,81 +2034,84 @@
 (tm-define (tmhtml-image l)
   ;; FIXME: Should also test that width and height are not magnifications.
   ;; Currently, magnifications make tmlength->htmllength return #f.
-  (cond ((and (string? (car l))
-           (in? (tmhtml-image-suffix (car l)) (list "ps" "eps" "pdf" "tif"))
-         ) ;and
-         (tmhtml-png (cons 'image l))
-        ) ;
-        ((tmhtml-extract-embedded (car l))
-         (with embedded
-           (tmhtml-extract-embedded (car l))
-           (let* ((data (car embedded))
-                  (ext (let ((raw (cdr embedded)))
-                         (if (string? raw)
-                           (let ((s (url-suffix raw)))
-                             (if (== s "")
-                               (if (or (string-contains? raw "/") (string-contains? raw "\\")) "png" raw)
-                               s
-                             ) ;if
-                           ) ;let
-                           ""
-                         ) ;if
-                       ) ;let
-                  ) ;ext
-                 ) ;
-             (if tmhtml-base64?
-               (if (in? ext (list "ps" "eps" "pdf" "tif"))
-                 ;; Convert to PNG first, then inline as Base64
-                 (receive (name-url name-string)
-                   (tmhtml-image-names ext)
-                   (let* ((abs-url (url-concretize name-url)) (abs-string abs-url))
-                     (tmhtml-write-binary-file abs-url data)
-                     (let ((res (tmhtml-png (cons 'image (cons abs-string (cdr l))))))
-                       (when (url-exists? abs-url)
-                         (url-remove abs-url)
-                       ) ;when
-                       res
-                     ) ;let
-                   ) ;let*
-                 ) ;receive
-                 ;; Direct Base64 inline for native image formats
-                 (let* ((b64-str (begin
-                                   (import (liii base64))
-                                   (utf8->string (bytevector-base64-encode data))
-                                 ) ;begin
-                        ) ;b64-str
-                        (src-uri (string-append "data:image/" ext ";base64," b64-str))
-                        (w (if (>= (length l) 2) (tmlength->htmllength (second l) #f) #f))
-                        (h (if (>= (length l) 3) (tmlength->htmllength (third l) #f) #f))
-                       ) ;
-                   `((h:img (@ (class "image")
-                              (src ,src-uri)
-                              ,@(if w `((width ,w)) '())
-                              ,@(if h `((height ,h)) '()))))
-                 ) ;let*
-               ) ;if
-               (receive (name-url name-string)
-                 (tmhtml-image-names ext)
-                 (let* ((abs-url (url-concretize name-url)) (abs-string (url->unix abs-url)))
-                   (tmhtml-write-binary-file abs-url data)
-                   (with res (tmhtml-image (cons abs-string (cdr l))) res)
-                 ) ;let*
-               ) ;receive
-             ) ;if
-           ) ;let*
-         ) ;with
-        ) ;
-        ((nstring? (first l)) (tmhtml-png (cons 'image l)))
-        (else (let* ((s (tmhtml-image-name (first l)))
-                     (w (tmlength->htmllength (second l) #f))
-                     (h (tmlength->htmllength (third l) #f))
-                    ) ;
-                `((h:img (@ (class "image")
-                           (src ,s)
-                           ,@(if w `((width ,w)) '())
-                           ,@(if h `((height ,h)) '()))))
+  (cond
+   ((and (string? (car l))
+      (in? (tmhtml-image-suffix (car l)) (list "ps" "eps" "pdf" "tif"))
+    ) ;and
+    (tmhtml-png (cons 'image l))
+   ) ;
+   ((tmhtml-extract-embedded (car l))
+    (with embedded
+      (tmhtml-extract-embedded (car l))
+      (let* ((data (car embedded))
+             (ext
+               (let ((raw (cdr embedded)))
+                 (if (string? raw)
+                   (let ((s (url-suffix raw)))
+                     (if (== s "")
+                       (if (or (string-contains? raw "/") (string-contains? raw "\\")) "png" raw)
+                       s
+                     ) ;if
+                   ) ;let
+                   ""
+                 ) ;if
+               ) ;let
+             ) ;ext
+            ) ;
+        (if tmhtml-base64?
+          (if (in? ext (list "ps" "eps" "pdf" "tif"))
+            ;; Convert to PNG first, then inline as Base64
+            (receive (name-url name-string)
+              (tmhtml-image-names ext)
+              (let* ((abs-url (url-concretize name-url)) (abs-string abs-url))
+                (tmhtml-write-binary-file abs-url data)
+                (let ((res (tmhtml-png (cons 'image (cons abs-string (cdr l))))))
+                  (when (url-exists? abs-url)
+                    (url-remove abs-url)
+                  ) ;when
+                  res
+                ) ;let
               ) ;let*
-        ) ;else
+            ) ;receive
+            ;; Direct Base64 inline for native image formats
+            (let* ((b64-str (begin
+                              (import (liii base64))
+                              (utf8->string (bytevector-base64-encode data))
+                            ) ;begin
+                   ) ;b64-str
+                   (src-uri (string-append "data:image/" ext ";base64," b64-str))
+                   (w (if (>= (length l) 2) (tmlength->htmllength (second l) #f) #f))
+                   (h (if (>= (length l) 3) (tmlength->htmllength (third l) #f) #f))
+                  ) ;
+              `((h:img (@ (class "image")
+                         (src ,src-uri)
+                         ,@(if w `((width ,w)) '())
+                         ,@(if h `((height ,h)) '()))))
+            ) ;let*
+          ) ;if
+          (receive (name-url name-string)
+            (tmhtml-image-names ext)
+            (let* ((abs-url (url-concretize name-url)) (abs-string (url->unix abs-url)))
+              (tmhtml-write-binary-file abs-url data)
+              (with res (tmhtml-image (cons abs-string (cdr l))) res)
+            ) ;let*
+          ) ;receive
+        ) ;if
+      ) ;let*
+    ) ;with
+   ) ;
+   ((nstring? (first l)) (tmhtml-png (cons 'image l)))
+   (else
+     (let* ((s (tmhtml-image-name (first l)))
+            (w (tmlength->htmllength (second l) #f))
+            (h (tmlength->htmllength (third l) #f))
+           ) ;
+       `((h:img (@ (class "image")
+                  (src ,s)
+                  ,@(if w `((width ,w)) '())
+                  ,@(if h `((height ,h)) '()))))
+     ) ;let*
+   ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -2039,42 +2121,56 @@
 
 (define (tmhtml-ornament-get-env-style)
   (let* ((l0 (hash-map->list tmhtml-env))
-         (l1 (filter (lambda (x)
-                       (and (list>0? (car x))
-                         (cadr x)
-                         (string-starts? (object->string (caar x)) ":ornament-")
-                       ) ;and
-                     ) ;lambda
-               l0
-             ) ;filter
+         (l1
+           (filter
+             (lambda (x)
+               (and (list>0? (car x))
+                 (cadr x)
+                 (string-starts? (object->string (caar x)) ":ornament-")
+               ) ;and
+             ) ;lambda
+             l0
+           ) ;filter
          ) ;l1
          (l2 (map car l1))
          (args (map cadr l1))
          (funs (map last l2))
-         (stys (map (lambda (x) (reverse (cdr (reverse (cdr x))))) l2))
+         (stys
+           (map
+             (lambda (x) (reverse (cdr (reverse (cdr x)))))
+             l2
+           ) ;map
+         ) ;stys
         ) ;
     (apply string-append
-      (list-intersperse (map (lambda (f arg sty)
-                               (with args
-                                 (string-tokenize-by-char arg #\;)
-                                 (apply string-append
-                                   (list-intersperse (cond ((== (length args) (length sty))
-                                                            (map (lambda (x y) (string-append x ":" (f y))) sty args)
-                                                           ) ;
-                                                           ((>= 1 (length args))
-                                                            (map (lambda (x) (string-append x ":" (f (car args)))) sty)
-                                                           ) ;
-                                                           (else '())
-                                                     ) ;cond
-                                     ";"
-                                   ) ;list-intersperse
-                                 ) ;apply
-                               ) ;with
-                             ) ;lambda
-                          funs
-                          args
-                          stys
-                        ) ;map
+      (list-intersperse
+        (map
+          (lambda (f arg sty)
+            (with args
+              (string-tokenize-by-char arg #\;)
+              (apply string-append
+                (list-intersperse
+                  (cond
+                   ((== (length args) (length sty))
+                    (map (lambda (x y) (string-append x ":" (f y))) sty args)
+                   ) ;
+                   ((>= 1 (length args))
+                    (map
+                      (lambda (x) (string-append x ":" (f (car args))))
+                      sty
+                    ) ;map
+                   ) ;
+                   (else '())
+                  ) ;cond
+                  ";"
+                ) ;list-intersperse
+              ) ;apply
+            ) ;with
+          ) ;lambda
+          funs
+          args
+          stys
+        ) ;map
         ";"
       ) ;list-intersperse
     ) ;apply
@@ -2084,7 +2180,8 @@
 (define (contains-surround? l)
   (cond ((nlist? l) #f)
         ((func? l 'surround 3) #t)
-        (else (with r #f (for-each (lambda (x) (set! r (or r (contains-surround? x)))) l) r)
+        (else
+          (with r #f (for-each (lambda (x) (set! r (or r (contains-surround? x)))) l) r)
         ) ;else
   ) ;cond
 ) ;define
@@ -2093,7 +2190,9 @@
   (let* ((body (tmhtml (car l)))
          (styl (tmhtml-ornament-get-env-style))
          (styl (if (contains-surround? l) (string-append styl ";display:block;") styl))
-         (args (if (== styl "") '() `((style ,styl))))
+         (args
+           (if (== styl "") '() `((style ,styl)))
+         ) ;args
          (tag (if (stm-block-structure? (car l)) 'h:div 'h:span))
         ) ;
     `((,tag (@ (class "ornament") ,@args) ,@body))
@@ -2129,29 +2228,30 @@
 ) ;define
 
 (define (transform-items x)
-  (cond ((and (tm-is? x 'concat) (nnull? (cdr x)) (item? (cadr x)))
-         `(!item ,(cadr x) (concat ,@(cddr x)))
-        ) ;
-        ((and (tm-is? x 'concat)
-           (nnull? (cdr x))
-           (nnull? (cddr x))
-           (tm-is? (cadr x) 'assign)
-           (item? (caddr x))
-         ) ;and
-         `(!item ,(caddr x) (concat ,@(cdddr x)))
-        ) ;
-        ((item? x) `(!item ,x (hspace "1pt")))
-        ((tm-is? x 'with) `(,@(cDr x) ,(transform-items (cAr x))))
-        ((tm-is? x 'document)
-         (let* ((r (map transform-items (cdr x)))
-                (p? (lambda (i) (tm-is? i '!item)))
-                (sr (list-scatter r p? #t))
-                (fr (list-filter sr nnull?))
-               ) ;
-           `(document ,@(map transform-item-post fr))
-         ) ;let*
-        ) ;
-        (else x)
+  (cond
+   ((and (tm-is? x 'concat) (nnull? (cdr x)) (item? (cadr x)))
+    `(!item ,(cadr x) (concat ,@(cddr x)))
+   ) ;
+   ((and (tm-is? x 'concat)
+      (nnull? (cdr x))
+      (nnull? (cddr x))
+      (tm-is? (cadr x) 'assign)
+      (item? (caddr x))
+    ) ;and
+    `(!item ,(caddr x) (concat ,@(cdddr x)))
+   ) ;
+   ((item? x) `(!item ,x (hspace "1pt")))
+   ((tm-is? x 'with) `(,@(cDr x) ,(transform-items (cAr x))))
+   ((tm-is? x 'document)
+    (let* ((r (map transform-items (cdr x)))
+           (p? (lambda (i) (tm-is? i '!item)))
+           (sr (list-scatter r p? #t))
+           (fr (list-filter sr nnull?))
+          ) ;
+      `(document ,@(map transform-item-post fr))
+    ) ;let*
+   ) ;
+   (else x)
   ) ;cond
 ) ;define
 
@@ -2276,8 +2376,7 @@
     (with x
       `(with ,"mode" ,"math" (with ,"math-display" ,"true" ,first))
       (ahash-with tmhtml-env
-        :math-display
-        #t
+        :math-display #t
         `((h:table (@ (width "100%"))
             (h:tr (h:td (@ (align "center") (width "100%")) ,@(tmhtml x))
               (h:td (@ (align "right")) ,"(" ,@(tmhtml (cadr l)) ,")"))))
@@ -2358,26 +2457,37 @@
   (:secure #t)
   (if (tm-func? body 'document 1)
     `(document ,(ext-tmhtml-eqnarray* (tm-ref body 0)))
-    (cond ((null? (tm-search body (lambda (x) (tm-func? x 'htab))))
-           `(equation* (rcl-table ,body))
-          ) ;
-          ((and (tm-func? body 'tformat)
-             (tm-func? (tm-ref body :last) 'table 1)
-             (tm-func? (tm-ref body :last 0) 'row 3)
-           ) ;and
-           (let* ((row (tm-ref body :last 0))
-                  (l (tm-ref row 0 0))
-                  (c (tm-ref row 1 0))
-                  (r (split-htab (tm-ref row 2 0)))
-                  (row1 `(row (cell ,l) (cell ,c) (cell ,(car r))))
-                  (rcl `(rcl-table (tformat (table ,row1))))
-                  (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                  (res `(cx-table (tformat (table ,row2))))
-                 ) ;
-             res
-           ) ;let*
-          ) ;
-          (else `(rclx-table ,(rewrite-eqnarray* body)))
+    (cond
+     ((null? (tm-search body (lambda (x) (tm-func? x 'htab))))
+      `(equation* (rcl-table ,body))
+     ) ;
+     ((and (tm-func? body 'tformat)
+        (tm-func? (tm-ref body :last) 'table 1)
+        (tm-func? (tm-ref body :last 0) 'row 3)
+      ) ;and
+      (let* ((row (tm-ref body :last 0))
+             (l (tm-ref row 0 0))
+             (c (tm-ref row 1 0))
+             (r (split-htab (tm-ref row 2 0)))
+             (row1
+               `(row (cell ,l) (cell ,c) (cell ,(car r)))
+             ) ;row1
+             (rcl
+               `(rcl-table (tformat (table ,row1)))
+             ) ;rcl
+             (row2
+               `(row (cell (big-math ,rcl)) (cell ,(cadr r)))
+             ) ;row2
+             (res
+               `(cx-table (tformat (table ,row2)))
+             ) ;res
+            ) ;
+        res
+      ) ;let*
+     ) ;
+     (else
+       `(rclx-table ,(rewrite-eqnarray* body))
+     ) ;else
     ) ;cond
   ) ;if
 ) ;tm-define
@@ -2396,31 +2506,36 @@
 ) ;define
 
 (define (tmhtml-append-attribute t var val)
-  (cond ((and (func? t 'h:img) (== var 'style)) `(class (@ (,var ,val)) ,t))
-        ((and (func? t 'h:p 1) (func? (cadr t) 'h:p))
-         (tmhtml-append-attribute (cadr t) var val)
-        ) ;
-        ((and (pair? t)
-           (pair? (cdr t))
-           (list? t)
-           (pair? (cadr t))
-           (== (caadr t) '@)
-           (list? (cadr t))
-         ) ;and
-         (with l
-           (tmhtml-append-attribute-sub (cdadr t) var val)
-           `(,(car t) (@ ,@l) ,@(cddr t))
-         ) ;with
-        ) ;
-        ((and (pair? t) (list? t)) `(,(car t) (@ (,var ,val)) ,@(cdr t)))
-        ((== var 'class) `(font (@ (,var ,val)) ,t))
-        (else `(class (@ (,var ,val)) ,t))
+  (cond
+   ((and (func? t 'h:img) (== var 'style)) `(class (@ (,var ,val)) ,t))
+   ((and (func? t 'h:p 1) (func? (cadr t) 'h:p))
+    (tmhtml-append-attribute (cadr t) var val)
+   ) ;
+   ((and (pair? t)
+      (pair? (cdr t))
+      (list? t)
+      (pair? (cadr t))
+      (== (caadr t) '@)
+      (list? (cadr t))
+    ) ;and
+    (with l
+      (tmhtml-append-attribute-sub (cdadr t) var val)
+      `(,(car t) (@ ,@l) ,@(cddr t))
+    ) ;with
+   ) ;
+   ((and (pair? t) (list? t)) `(,(car t) (@ (,var ,val)) ,@(cdr t)))
+   ((== var 'class) `(font (@ (,var ,val)) ,t))
+   (else
+     `(class (@ (,var ,val)) ,t)
+   ) ;else
   ) ;cond
 ) ;define
 
 (define (tmhtml-html-tag l)
   (let* ((s (tmhtml-force-string (car l))) (r (tmhtml (cadr l))))
-    (list `(,(string->symbol s) ,@r))
+    (list
+      `(,(string->symbol s) ,@r)
+    ) ;list
   ) ;let*
 ) ;define
 
@@ -2446,20 +2561,26 @@
 ) ;define
 
 (define (tmhtml-html-div-style l)
-  (list `(h:div (@ (style ,(tmhtml-force-string (car l)))) ,@(tmhtml (cadr l))))
+  (list
+    `(h:div (@ (style ,(tmhtml-force-string (car l)))) ,@(tmhtml (cadr l)))
+  ) ;list
 ) ;define
 
 (define (tmhtml-html-div-class l)
-  (list `(h:div (@ (class ,(tmhtml-force-string (car l)))) ,@(tmhtml (cadr l))))
+  (list
+    `(h:div (@ (class ,(tmhtml-force-string (car l)))) ,@(tmhtml (cadr l)))
+  ) ;list
 ) ;define
 
 (define (tmhtml-html-javascript l)
-  (list `(h:script (@ (language "javascript")) ,(tmhtml-force-string (car l))))
+  (list
+    `(h:script (@ (language "javascript")) ,(tmhtml-force-string (car l)))
+  ) ;list
 ) ;define
 
 (define (tmhtml-html-javascript-src l)
-  (list `(h:script (@ (language "javascript")
-                     (src ,(tmhtml-force-string (car l)))))
+  (list
+    `(h:script (@ (language "javascript") (src ,(tmhtml-force-string (car l)))))
   ) ;list
 ) ;define
 
@@ -2472,12 +2593,13 @@
          (width (force-string (cadr l)))
          (height (force-string (caddr l)))
         ) ;
-    (list `(h:video (@ (width ,width) (height ,height) (controls "controls"))
-             (h:source (@ (src ,mp4) (type "video/mp4")))
-             (h:source (@ (src ,ogg) (type "video/ogg")))
-             (h:source (@ (src ,webm) (type "video/webm")))
-             (h:object (@ (data ,mp4) (width ,width) (height ,height))
-               (h:embed (@ (src ,swf) (width ,width) (height ,height)))))
+    (list
+      `(h:video (@ (width ,width) (height ,height) (controls "controls"))
+         (h:source (@ (src ,mp4) (type "video/mp4")))
+         (h:source (@ (src ,ogg) (type "video/ogg")))
+         (h:source (@ (src ,webm) (type "video/webm")))
+         (h:object (@ (data ,mp4) (width ,width) (height ,height))
+           (h:embed (@ (src ,swf) (width ,width) (height ,height)))))
     ) ;list
   ) ;let*
 ) ;define
@@ -2487,12 +2609,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmhtml-make-block content)
-  (let* ((l '(h:td (@ (align "left"))
-               (h:img (@ (src "https://www.texmacs.org/Images/tm_gnu1b.png"))))
+  (let* ((l
+           '(h:td (@ (align "left"))
+              (h:img (@ (src "https://www.texmacs.org/Images/tm_gnu1b.png"))))
          ) ;l
-         (c `(h:td (@ (align "center") (width "100%")) ,@(tmhtml content)))
-         (r '(h:td (@ (align "right"))
-               (h:img (@ (src "https://www.texmacs.org/Images/tm_gnu2b.png"))))
+         (c
+           `(h:td (@ (align "center") (width "100%")) ,@(tmhtml content))
+         ) ;c
+         (r
+           '(h:td (@ (align "right"))
+              (h:img (@ (src "https://www.texmacs.org/Images/tm_gnu2b.png"))))
          ) ;r
          (row `(h:tr ,l ,c ,r))
         ) ;
@@ -2501,24 +2627,30 @@
 ) ;define
 
 (define (tmhtml-tmdoc-title l)
-  (list `(h:div (@ (class "tmdoc-title-1")) ,(tmhtml-make-block (car l))))
+  (list
+    `(h:div (@ (class "tmdoc-title-1")) ,(tmhtml-make-block (car l)))
+  ) ;list
 ) ;define
 
 (define (tmhtml-tmdoc-title* l)
-  (list `(h:div (@ (class "tmdoc-title-2")) ,(tmhtml-make-block (car l)))
+  (list
+    `(h:div (@ (class "tmdoc-title-2")) ,(tmhtml-make-block (car l)))
     `(h:div (@ (class "tmdoc-navbar")) ,@(tmhtml (cadr l)))
   ) ;list
 ) ;define
 
 (define (tmhtml-tmdoc-title** l)
-  (list `(h:div (@ (class "tmdoc-navbar")) ,@(tmhtml (car l)))
+  (list
+    `(h:div (@ (class "tmdoc-navbar")) ,@(tmhtml (car l)))
     `(h:div (@ (class "tmdoc-title-3")) ,(tmhtml-make-block (cadr l)))
     `(h:div (@ (class "tmdoc-navbar")) ,@(tmhtml (caddr l)))
   ) ;list
 ) ;define
 
 (define (tmhtml-tmdoc-flag l)
-  (list `(h:div (@ (class "tmdoc-flag")) ,@(tmhtml (car l))))
+  (list
+    `(h:div (@ (class "tmdoc-flag")) ,@(tmhtml (car l)))
+  ) ;list
 ) ;define
 
 (define (tmhtml-tmdoc-copyright* l)
@@ -2535,12 +2667,16 @@
       ," "
       ,@(tmhtml (cadr l))
       ,@(tmhtml-tmdoc-copyright* (cddr l)))
-    (list `(h:div (@ (class "tmdoc-copyright")) ,@content))
+    (list
+      `(h:div (@ (class "tmdoc-copyright")) ,@content)
+    ) ;list
   ) ;with
 ) ;define
 
 (define (tmhtml-tmdoc-license l)
-  (list `(h:div (@ (class "tmdoc-license")) ,@(tmhtml (car l))))
+  (list
+    `(h:div (@ (class "tmdoc-license")) ,@(tmhtml (car l)))
+  ) ;list
 ) ;define
 
 (define (tmhtml-key l)
@@ -2563,14 +2699,15 @@
 (define (tmhtml-tmdoc-post-sub x)
   ;; FIXME: these rewritings are quite hacky;
   ;; better simplification would be nice...
-  (cond ((and (func? x 'h:p) (list-find (cdr x) tmhtml-tmdoc-bar?)) (cdr x))
-        ((func? x 'h:p)
-         (with r
-           (append-map tmhtml-tmdoc-post-sub (cdr x))
-           (if (== (cdr x) r) (list x) r)
-         ) ;with
-        ) ;
-        (else (list x))
+  (cond
+   ((and (func? x 'h:p) (list-find (cdr x) tmhtml-tmdoc-bar?)) (cdr x))
+   ((func? x 'h:p)
+    (with r
+      (append-map tmhtml-tmdoc-post-sub (cdr x))
+      (if (== (cdr x) r) (list x) r)
+    ) ;with
+   ) ;
+   (else (list x))
   ) ;cond
 ) ;define
 
@@ -2586,22 +2723,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmhtml-breaks-post l)
-  (cond ((or (null? l) (null? (cdr l))) l)
-        ((and (func? (car l) 'h:img)
-           (string? (cadr l))
-           (not (string-starts? (cadr l) " "))
-         ) ;and
-         (let* ((s (cadr l))
-                (i (string-index s #\space))
-                (s1 (if i (substring s 0 i) s))
-                (s2 (and i (substring s i (string-length s))))
-                (nb `(h:span (@ (class "no-breaks")) ,(car l) ,s1))
-                (t (if s2 (cons s2 (cddr l)) (cddr l)))
-               ) ;
-           (cons nb (tmhtml-breaks-post t))
-         ) ;let*
-        ) ;
-        (else (cons (car l) (tmhtml-breaks-post (cdr l))))
+  (cond
+   ((or (null? l) (null? (cdr l))) l)
+   ((and (func? (car l) 'h:img)
+      (string? (cadr l))
+      (not (string-starts? (cadr l) " "))
+    ) ;and
+    (let* ((s (cadr l))
+           (i (string-index s #\space))
+           (s1 (if i (substring s 0 i) s))
+           (s2 (and i (substring s i (string-length s))))
+           (nb
+             `(h:span (@ (class "no-breaks")) ,(car l) ,s1)
+           ) ;nb
+           (t (if s2 (cons s2 (cddr l)) (cddr l)))
+          ) ;
+      (cons nb (tmhtml-breaks-post t))
+    ) ;let*
+   ) ;
+   (else (cons (car l) (tmhtml-breaks-post (cdr l))))
   ) ;cond
 ) ;define
 
@@ -2648,7 +2788,9 @@
              res
            ) ;let*
           ) ;
-          (else (tmhtml-post-simplify-element (append x (tmhtml-list (cdr l)))))
+          (else
+            (tmhtml-post-simplify-element (append x (tmhtml-list (cdr l))))
+          ) ;else
     ) ;cond
   ) ;let
 ) ;define
@@ -2662,20 +2804,15 @@
 
 (tm-define (tmhtml-root x)
   (ahash-with tmhtml-env
-    :mag
-    "1"
+    :mag "1"
     (ahash-with tmhtml-env
-      :math
-      #f
+      :math #f
       (ahash-with tmhtml-env
-        :math-display
-        #f
+        :math-display #f
         (ahash-with tmhtml-env
-          :preformatted
-          #f
+          :preformatted #f
           (ahash-with tmhtml-env
-            :left-margin
-            0
+            :left-margin 0
             (ahash-with tmhtml-env :right-margin 0 (tmhtml x))
           ) ;ahash-with
         ) ;ahash-with
@@ -3033,16 +3170,17 @@
   (cond ((null? t) 0)
         ((npair? t) 0)
         ((in? (car t) '(image graphics draw-over draw-under)) 1)
-        (else (let loop
-                ((lst t) (sum 0))
-                (if (null? lst)
-                  sum
-                  (if (pair? lst)
-                    (loop (cdr lst) (+ sum (tmhtml-count-images (car lst))))
-                    (+ sum (tmhtml-count-images lst))
-                  ) ;if
-                ) ;if
-              ) ;let
+        (else
+          (let loop
+            ((lst t) (sum 0))
+            (if (null? lst)
+              sum
+              (if (pair? lst)
+                (loop (cdr lst) (+ sum (tmhtml-count-images (car lst))))
+                (+ sum (tmhtml-count-images lst))
+              ) ;if
+            ) ;if
+          ) ;let
         ) ;else
   ) ;cond
 ) ;define

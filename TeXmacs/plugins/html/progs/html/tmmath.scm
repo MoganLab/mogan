@@ -45,45 +45,48 @@
   (if (string? x)
     (with type
       (math-symbol-type x)
-      (cond ((string-number? x) `(m:mn ,x))
-            ((logic-ref tm->mathml-constant% x) => (lambda (y) `(m:mn ,y)))
-            ((logic-ref tm->mathml-operator% x) => (lambda (y) `(m:mo ,y)))
-            ((and (string-starts? x "<up-") (== (string-length x) 6))
-             `(m:mo ,(substring x 4 5))
-            ) ;
-            ((and (or (string-starts? x "<cal-") (string-starts? x "<cal*-"))
-               (string-ends? x ">")
-             ) ;and
-             (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
-               `(m:mi (@ (mathvariant "script")) ,char)
-             ) ;let*
-            ) ;
-            ((and (or (string-starts? x "<b-cal-") (string-starts? x "<b-cal*-"))
-               (string-ends? x ">")
-             ) ;and
-             (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
-               `(m:mi (@ (mathvariant "bold-script")) ,char)
-             ) ;let*
-            ) ;
-            ((and (string-starts? x "<frak-") (string-ends? x ">"))
-             (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
-               `(m:mi (@ (mathvariant "fraktur")) ,char)
-             ) ;let*
-            ) ;
-            ((and (string-starts? x "<b-frak-") (string-ends? x ">"))
-             (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
-               `(m:mi (@ (mathvariant "bold-fraktur")) ,char)
-             ) ;let*
-            ) ;
-            ((and (or (string-starts? x "<bbb-") (string-starts? x "<b-bbb-"))
-               (string-ends? x ">")
-             ) ;and
-             (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
-               `(m:mi (@ (mathvariant "double-struck")) ,char)
-             ) ;let*
-            ) ;
-            ((in? type '("unknown" "symbol")) `(m:mi ,(cork->utf8* x)))
-            (else `(m:mo ,(cork->utf8* x)))
+      (cond
+       ((string-number? x) `(m:mn ,x))
+       ((logic-ref tm->mathml-constant% x) => (lambda (y) `(m:mn ,y)))
+       ((logic-ref tm->mathml-operator% x) => (lambda (y) `(m:mo ,y)))
+       ((and (string-starts? x "<up-") (== (string-length x) 6))
+        `(m:mo ,(substring x 4 5))
+       ) ;
+       ((and (or (string-starts? x "<cal-") (string-starts? x "<cal*-"))
+          (string-ends? x ">")
+        ) ;and
+        (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
+          `(m:mi (@ (mathvariant "script")) ,char)
+        ) ;let*
+       ) ;
+       ((and (or (string-starts? x "<b-cal-") (string-starts? x "<b-cal*-"))
+          (string-ends? x ">")
+        ) ;and
+        (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
+          `(m:mi (@ (mathvariant "bold-script")) ,char)
+        ) ;let*
+       ) ;
+       ((and (string-starts? x "<frak-") (string-ends? x ">"))
+        (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
+          `(m:mi (@ (mathvariant "fraktur")) ,char)
+        ) ;let*
+       ) ;
+       ((and (string-starts? x "<b-frak-") (string-ends? x ">"))
+        (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
+          `(m:mi (@ (mathvariant "bold-fraktur")) ,char)
+        ) ;let*
+       ) ;
+       ((and (or (string-starts? x "<bbb-") (string-starts? x "<b-bbb-"))
+          (string-ends? x ">")
+        ) ;and
+        (let* ((n (string-length x)) (char (substring x (- n 2) (- n 1))))
+          `(m:mi (@ (mathvariant "double-struck")) ,char)
+        ) ;let*
+       ) ;
+       ((in? type '("unknown" "symbol")) `(m:mi ,(cork->utf8* x)))
+       (else
+         `(m:mo ,(cork->utf8* x))
+       ) ;else
       ) ;cond
     ) ;with
     (tmmath x)
@@ -144,24 +147,34 @@
 (define (tmmath-big l)
   (cond ((== (car l) ".") "")
         ((logic-ref tm->mathml-big% (car l)) => (lambda (y) `(m:mo ,y)))
-        (else `(m:mo ,(car l)))
+        (else
+          `(m:mo ,(car l))
+        ) ;else
   ) ;cond
 ) ;define
 
 (define (tmmath-lsub l)
-  (tmmath-concat `((lsub ,(car l))))
+  (tmmath-concat
+    `((lsub ,(car l)))
+  ) ;tmmath-concat
 ) ;define
 
 (define (tmmath-lsup l)
-  (tmmath-concat `((lsup ,(car l))))
+  (tmmath-concat
+    `((lsup ,(car l)))
+  ) ;tmmath-concat
 ) ;define
 
 (define (tmmath-rsub l)
-  (tmmath-concat `((rsub ,(car l))))
+  (tmmath-concat
+    `((rsub ,(car l)))
+  ) ;tmmath-concat
 ) ;define
 
 (define (tmmath-rsup l)
-  (tmmath-concat `((rsup ,(car l))))
+  (tmmath-concat
+    `((rsup ,(car l)))
+  ) ;tmmath-concat
 ) ;define
 
 (define (tmmath-lscript base sub sup)
@@ -248,11 +261,16 @@
       (set! a (string-append "<" (substring a 8 (string-length a))))
     ) ;when
     (let* ((mo (tmmath a))
-           (mo* (if (func? mo 'm:mo) `(m:mo (@ (stretchy "true")) ,@(cdr mo)) mo))
+           (mo*
+             (if (func? mo 'm:mo) `(m:mo (@ (stretchy "true")) ,@(cdr mo)) mo)
+           ) ;mo*
           ) ;
-      (cond ((and (!= above "") (== below "")) `(m:mover ,mo* ,(tmmath above)))
-            ((and (== above "") (!= below "")) `(m:munder ,mo* ,(tmmath below)))
-            (else `(m:munderover ,mo* ,(tmmath below) ,(tmmath above)))
+      (cond
+       ((and (!= above "") (== below "")) `(m:mover ,mo* ,(tmmath above)))
+       ((and (== above "") (!= below "")) `(m:munder ,mo* ,(tmmath below)))
+       (else
+         `(m:munderover ,mo* ,(tmmath below) ,(tmmath above))
+       ) ;else
       ) ;cond
     ) ;let*
   ) ;let*
@@ -348,7 +366,9 @@
   (let* ((l1 (list-filter (map tmmath-make-table-attr tablef) identity))
          (l2 (map tmmath-make-column-attr (map reverse colf)))
          (cs (apply string-append (list-intersperse l2 " ")))
-         (l3 (cons `(columnalign ,cs) l1))
+         (l3
+           (cons `(columnalign ,cs) l1)
+         ) ;l3
         ) ;
     `(m:mtable (@ ,@l3) ,@(tmmath-make-rows (cdr t) rowf cellf))
   ) ;let*
@@ -440,15 +460,17 @@
   ;; which are otherwise stripped by the MathML processor from <mtext> tags
   ;; see https://www.xmlmind.com/tutorials/MathML/
   (let* ((s (texmacs->code x "utf-8"))
-         (s (if (string-starts? s " ")
-              (string-append "&#xA0; " (substring s 1 (string-length s)))
-              s
-            ) ;if
+         (s
+           (if (string-starts? s " ")
+             (string-append "&#xA0; " (substring s 1 (string-length s)))
+             s
+           ) ;if
          ) ;s
-         (s (if (string-ends? s " ")
-              (string-append (substring s 0 (- (string-length s) 1)) " &#xA0;")
-              s
-            ) ;if
+         (s
+           (if (string-ends? s " ")
+             (string-append (substring s 0 (- (string-length s) 1)) " &#xA0;")
+             s
+           ) ;if
          ) ;s
         ) ;
     `(m:mtext ,s)
@@ -469,7 +491,9 @@
   (if (!= (ahash-ref tmmath-env "mode") "math")
     (cond ((string? x) (tmmath-text x))
           ((== (car x) 'with) (tmmath-with (cdr x)))
-          (else `(m:mrow ,@(map tmmath (cdr x))))
+          (else
+            `(m:mrow ,@(map tmmath (cdr x)))
+          ) ;else
     ) ;cond
     (cond ((string? x) (tmmath-concat (list x)))
           (else (or (tmmath-dispatch 'tmmath-primitives% x) ""))

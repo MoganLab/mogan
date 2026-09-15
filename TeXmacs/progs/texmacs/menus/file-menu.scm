@@ -32,9 +32,12 @@
            (mod? (buffer-modified? name))
            ;; 菜单条目同样经 set_text 按 herk 解码,中文文件名须先 utf8->herk
            ;; (幂等:已是 herk 的草稿标题不变)
-           (short-name `(verbatim ,(utf8->herk (string-append abbr*
-                                                 (if mod? " *" "")))))
-           (long-name `(verbatim ,(utf8->herk (url->system name))))
+           (short-name
+             `(verbatim ,(utf8->herk (string-append abbr* (if mod? " *" ""))))
+           ) ;short-name
+           (long-name
+             `(verbatim ,(utf8->herk (url->system name)))
+           ) ;long-name
           ) ;
       ((check (balloon (eval short-name) (eval long-name))
          "v"
@@ -101,16 +104,18 @@
 
 (define (short-menu-name u)
   ;; 菜单条目经 set_text 按 herk 解码,文件名须先 utf8->herk(幂等)
-  (utf8->herk (cond ((collab-buffer? u)
-                     ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
-                     (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
-                    ) ;
-                    ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
-                    ((url-rooted-web? u)
-                     (string-append (url->system (url-tail u)) " @ " (url-host u))
-                    ) ;
-                    (else (url->system (url-tail u)))
-              ) ;cond
+  (utf8->herk
+    (cond
+     ((collab-buffer? u)
+      ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
+      (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
+     ) ;
+     ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
+     ((url-rooted-web? u)
+      (string-append (url->system (url-tail u)) " @ " (url-host u))
+     ) ;
+     (else (url->system (url-tail u)))
+    ) ;cond
   ) ;utf8->herk
 ) ;define
 
@@ -120,8 +125,12 @@
 
 (tm-menu (file-list-menu l win?)
   (for (name l)
-    (let* ((short-name `(verbatim ,(short-menu-name name)))
-           (long-name `(verbatim ,(long-menu-name name)))
+    (let* ((short-name
+             `(verbatim ,(short-menu-name name))
+           ) ;short-name
+           (long-name
+             `(verbatim ,(long-menu-name name))
+           ) ;long-name
           ) ;
       ((balloon (eval short-name) (eval long-name))
        (begin
@@ -135,7 +144,8 @@
            (if win? (load-document name) (load-buffer name))
          ) ;if
          ;; 缺失清理仅对本地文件：云 URL 非磁盘路径，url-exists? 必假，不可据此误删。
-         (when (and (not (collab-buffer? name)) (not (url-exists? (url->system name))))
+         (when
+           (and (not (collab-buffer? name)) (not (url-exists? (url->system name))))
            (recent-files-remove-by-path (url->system name))
          ) ;when
        ) ;begin
@@ -191,13 +201,14 @@
 
 (tm-menu (import-menu flag?)
   (with l
-    (filter (lambda (x)
-              (and (not (in? x (image-formats)))
-                (or (with-developer-tool?)
-                  (and (not (string=? x "stm")) (not (string=? x "stem")))
-                ) ;or
-              ) ;and
-            ) ;lambda
+    (filter
+      (lambda (x)
+        (and (not (in? x (image-formats)))
+          (or (with-developer-tool?)
+            (and (not (string=? x "stm")) (not (string=? x "stem")))
+          ) ;or
+        ) ;and
+      ) ;lambda
       (converters-to-special "texmacs-file" "-file" #f)
     ) ;filter
     (for (fm l)
@@ -223,7 +234,10 @@
       (texmacs->latex-document (buffer-get (current-buffer)) opts)
       (string-save s dest)
       (save-buffer-save (current-buffer) (list) "latex_export")
-      (set-message `(concat ,"Exported " ,(url->system dest)) "Export LaTeX")
+      (set-message
+        `(concat ,"Exported " ,(url->system dest))
+        "Export LaTeX"
+      ) ;set-message
     ) ;with
   ) ;with
 ) ;define
@@ -232,15 +246,16 @@
   (with l
     (converters-from-special "texmacs-file" "-file" #f)
     (with l2
-      (filter (lambda (x)
-                (and (not (string=? x "tmu"))
-                  (not (string=? x "latex"))
-                  (not (string=? x "latex-class"))
-                  (or (with-developer-tool?)
-                    (and (not (string=? x "stm")) (not (string=? x "stem")))
-                  ) ;or
-                ) ;and
-              ) ;lambda
+      (filter
+        (lambda (x)
+          (and (not (string=? x "tmu"))
+            (not (string=? x "latex"))
+            (not (string=? x "latex-class"))
+            (or (with-developer-tool?)
+              (and (not (string=? x "stm")) (not (string=? x "stem")))
+            ) ;or
+          ) ;and
+        ) ;lambda
         l
       ) ;filter
       (for (fm l2)
@@ -283,13 +298,15 @@
 ) ;menu-bind
 
 (menu-bind export-as-image-menu
-  (for (fm (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." x)))
-             (image-formats)
-           ) ;filter
-       ) ;fm
-   ((eval (upcase-first fm))
-    (choose-file export-selection-as-graphics "Export selection as image" fm)
-   ) ;
+  (for
+    (fm
+      (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." x)))
+        (image-formats)
+      ) ;filter
+    ) ;fm
+    ((eval (upcase-first fm))
+     (choose-file export-selection-as-graphics "Export selection as image" fm)
+    ) ;
   ) ;for
 ) ;menu-bind
 
@@ -359,10 +376,12 @@
         ) ;
     (if (extract-attachments tem-pdf)
       (begin
-        (string-save (serialize-texmacs (pdf-replace-linked-path (tree-import (url-relative tem-tm (pdf-get-attached-main-tm tem-pdf)) "texmacs")
-                                          tem-pdf
-                                        ) ;pdf-replace-linked-path
-                     ) ;serialize-texmacs
+        (string-save
+          (serialize-texmacs
+            (pdf-replace-linked-path (tree-import (url-relative tem-tm (pdf-get-attached-main-tm tem-pdf)) "texmacs")
+              tem-pdf
+            ) ;pdf-replace-linked-path
+          ) ;serialize-texmacs
           tem-tm2
         ) ;string-save
         (load-buffer tem-tm2)
@@ -382,10 +401,12 @@
         ) ;
     (if (extract-attachments tem-pdf)
       (begin
-        (string-save (serialize-tmu (pdf-replace-linked-path (tree-import (url-relative tem-tmu (pdf-get-attached-main-tm tem-pdf)) "tmu")
-                                      tem-pdf
-                                    ) ;pdf-replace-linked-path
-                     ) ;serialize-tmu
+        (string-save
+          (serialize-tmu
+            (pdf-replace-linked-path (tree-import (url-relative tem-tmu (pdf-get-attached-main-tm tem-pdf)) "tmu")
+              tem-pdf
+            ) ;pdf-replace-linked-path
+          ) ;serialize-tmu
           tem-tmu2
         ) ;string-save
         (load-buffer tem-tmu2)

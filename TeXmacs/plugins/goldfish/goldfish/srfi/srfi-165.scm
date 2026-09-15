@@ -166,29 +166,31 @@
     ) ;define
 
     (define-macro (define-computation-type make-environment run . vars)
-      (letrec ((process-vars (lambda (vars n acc)
-                               (if (null? vars)
-                                 (reverse acc)
-                                 (let ((v (car vars)) (rest (cdr vars)))
-                                   (cond ((and (pair? v)
-                                            (pair? (cdr v))
-                                            (pair? (cddr v))
-                                            (string=? (caddr v) "immutable")
-                                          ) ;and
-                                          (let ((var (car v)) (default (cadr v)))
-                                            (process-vars rest (+ n 1) (cons (list var default #t n) acc))
-                                          ) ;let
-                                         ) ;
-                                         ((and (pair? v) (pair? (cdr v)))
-                                          (let ((var (car v)) (default (cadr v)))
-                                            (process-vars rest (+ n 1) (cons (list var default #f n) acc))
-                                          ) ;let
-                                         ) ;
-                                         (else (process-vars rest (+ n 1) (cons (list v #f #f n) acc)))
-                                   ) ;cond
-                                 ) ;let
-                               ) ;if
-                             ) ;lambda
+      (letrec ((process-vars
+                 (lambda (vars n acc)
+                   (if (null? vars)
+                     (reverse acc)
+                     (let ((v (car vars)) (rest (cdr vars)))
+                       (cond
+                        ((and (pair? v)
+                           (pair? (cdr v))
+                           (pair? (cddr v))
+                           (string=? (caddr v) "immutable")
+                         ) ;and
+                         (let ((var (car v)) (default (cadr v)))
+                           (process-vars rest (+ n 1) (cons (list var default #t n) acc))
+                         ) ;let
+                        ) ;
+                        ((and (pair? v) (pair? (cdr v)))
+                         (let ((var (car v)) (default (cadr v)))
+                           (process-vars rest (+ n 1) (cons (list var default #f n) acc))
+                         ) ;let
+                        ) ;
+                        (else (process-vars rest (+ n 1) (cons (list v #f #f n) acc)))
+                       ) ;cond
+                     ) ;let
+                   ) ;if
+                 ) ;lambda
                ) ;process-vars
               ) ;
         (let* ((processed (process-vars vars 0 '()))
@@ -285,7 +287,8 @@
         (let ((new-env (make-vector (vector-length env))))
           (environment-set-global! new-env global)
           (environment-set-local! new-env '())
-          (do ((i (- (vector-length env) 1) (- i 1)))
+          (do
+            ((i (- (vector-length env) 1) (- i 1)))
             ((< i 2) new-env)
             (vector-set! new-env i (box (unbox (vector-ref env i))))
           ) ;do
@@ -319,25 +322,27 @@
     ) ;define
 
     (define (computation-each-in-list a*)
-      (make-computation (lambda (compute)
-                          (let loop
-                            ((a (car a*)) (a* (cdr a*)))
-                            (if (null? a*) (compute a) (begin (compute a) (loop (car a*) (cdr a*))))
-                          ) ;let
-                        ) ;lambda
+      (make-computation
+        (lambda (compute)
+          (let loop
+            ((a (car a*)) (a* (cdr a*)))
+            (if (null? a*) (compute a) (begin (compute a) (loop (car a*) (cdr a*))))
+          ) ;let
+        ) ;lambda
       ) ;make-computation
     ) ;define
 
     (define (computation-bind a . f*)
-      (make-computation (lambda (compute)
-                          (let loop
-                            ((a a) (f* f*))
-                            (if (null? f*)
-                              (compute a)
-                              (loop (call-with-values (lambda () (compute a)) (car f*)) (cdr f*))
-                            ) ;if
-                          ) ;let
-                        ) ;lambda
+      (make-computation
+        (lambda (compute)
+          (let loop
+            ((a a) (f* f*))
+            (if (null? f*)
+              (compute a)
+              (loop (call-with-values (lambda () (compute a)) (car f*)) (cdr f*))
+            ) ;if
+          ) ;let
+        ) ;lambda
       ) ;make-computation
     ) ;define
 
@@ -352,16 +357,17 @@
     (define-macro (computation-fn . args)
       (let ((clauses (car args)) (body (cdr args)))
         (define (parse-clauses clauses)
-          (map (lambda (c)
-                 (if (pair? c)
-                   (let ((id (car c)) (var (cadr c)))
-                     (list id var (gensym "tmp"))
-                   ) ;let
-                   (let ((id c))
-                     (list id id (gensym "tmp"))
-                   ) ;let
-                 ) ;if
-               ) ;lambda
+          (map
+            (lambda (c)
+              (if (pair? c)
+                (let ((id (car c)) (var (cadr c)))
+                  (list id var (gensym "tmp"))
+                ) ;let
+                (let ((id c))
+                  (list id id (gensym "tmp"))
+                ) ;let
+              ) ;if
+            ) ;lambda
             clauses
           ) ;map
         ) ;define
@@ -419,19 +425,20 @@
     ) ;define-macro
 
     (define (computation-forked a . a*)
-      (make-computation (lambda (compute)
-                          (let loop
-                            ((a a) (a* a*))
-                            (if (null? a*)
-                              (compute a)
-                              (begin
-                                (compute (computation-local (lambda (env) (computation-environment-copy env)) a)
-                                ) ;compute
-                                (loop (car a*) (cdr a*))
-                              ) ;begin
-                            ) ;if
-                          ) ;let
-                        ) ;lambda
+      (make-computation
+        (lambda (compute)
+          (let loop
+            ((a a) (a* a*))
+            (if (null? a*)
+              (compute a)
+              (begin
+                (compute (computation-local (lambda (env) (computation-environment-copy env)) a)
+                ) ;compute
+                (loop (car a*) (cdr a*))
+              ) ;begin
+            ) ;if
+          ) ;let
+        ) ;lambda
       ) ;make-computation
     ) ;define
 
@@ -443,13 +450,14 @@
     ) ;define
 
     (define (computation-sequence fmt*)
-      (fold-right (lambda (fmt res)
-                    (computation-bind res
-                      (lambda (vals)
-                        (computation-bind fmt (lambda (val) (computation-pure (cons val vals))))
-                      ) ;lambda
-                    ) ;computation-bind
-                  ) ;lambda
+      (fold-right
+        (lambda (fmt res)
+          (computation-bind res
+            (lambda (vals)
+              (computation-bind fmt (lambda (val) (computation-pure (cons val vals))))
+            ) ;lambda
+          ) ;computation-bind
+        ) ;lambda
         (computation-pure '())
         fmt*
       ) ;fold-right

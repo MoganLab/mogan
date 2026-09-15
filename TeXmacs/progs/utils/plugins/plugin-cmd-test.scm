@@ -34,7 +34,11 @@
 
 (define (test-pre-serialize-math)
   (check (pre-serialize "python" '(math (frac "1" "2"))) => "(1/2)")
-  (check (pre-serialize "python" '(math (concat "x" (rsup "2")))) => "x^2")
+  (check
+    (pre-serialize "python" '(math (concat "x" (rsup "2"))))
+    =>
+    "x^2"
+  ) ;check
   (check (pre-serialize "python" '(math "<alpha>")) => "alpha")
   (check (pre-serialize "python" '(math "<mathpi>")) => "(4*atan(1))")
 ) ;define
@@ -43,7 +47,11 @@
 ;; document 剥壳后递归进入 math 分支
 
 (define (test-pre-serialize-document-math)
-  (check (pre-serialize "python" '(document (math (frac "1" "2")))) => "(1/2)")
+  (check
+    (pre-serialize "python" '(document (math (frac "1" "2"))))
+    =>
+    "(1/2)"
+  ) ;check
 ) ;define
 
 ;; test-pre-serialize-math-maxima

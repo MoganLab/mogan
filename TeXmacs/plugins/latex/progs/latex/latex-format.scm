@@ -21,11 +21,12 @@
   (let ((len (if (>= (string-length s) 1000) 1000 (string-length s))))
     (let loop
       ((i 0) (start 0) (result '()))
-      (cond ((>= i len) (reverse (cons (substring s start i) result)))
-            ((char=? (string-ref s i) #\newline)
-             (loop (+ i 1) (+ i 1) (cons (substring s start i) result))
-            ) ;
-            (else (loop (+ i 1) start result))
+      (cond
+       ((>= i len) (reverse (cons (substring s start i) result)))
+       ((char=? (string-ref s i) #\newline)
+        (loop (+ i 1) (+ i 1) (cons (substring s start i) result))
+       ) ;
+       (else (loop (+ i 1) start result))
       ) ;cond
     ) ;let
   ) ;let
@@ -90,14 +91,15 @@
 
 (define (determine-short-string s)
   (let* ((len (string-length s)))
-    (cond ((and (> len 2)
-             (char=? (string-ref s 0) #\$)
-             (char=? (string-ref s (- len 1)) #\$)
-           ) ;and
-           #t
-          ) ;
-          ((>= (backslash-from-string s) 0.02) #t)
-          (else #f)
+    (cond
+     ((and (> len 2)
+        (char=? (string-ref s 0) #\$)
+        (char=? (string-ref s (- len 1)) #\$)
+      ) ;and
+      #t
+     ) ;
+     ((>= (backslash-from-string s) 0.02) #t)
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define
@@ -294,111 +296,112 @@
 
 (define (match-math-index-combination s i)
   (let ((rest (substring s i (string-length s))))
-    (cond ((or (string-starts? rest "i*j*k") (string-starts? rest "ijk"))
-           (let ((len (if (string-starts? rest "i*j*k") 5 3)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("i" " " "j" " " "k"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "x*y*z") (string-starts? rest "xyz"))
-           (let ((len (if (string-starts? rest "x*y*z") 5 3)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("x" " " "y" " " "z"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "i*j") (string-starts? rest "ij"))
-           (let ((len (if (string-starts? rest "i*j") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("i" " " "j"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "j*k") (string-starts? rest "jk"))
-           (let ((len (if (string-starts? rest "j*k") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("j" " " "k"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "k*l") (string-starts? rest "kl"))
-           (let ((len (if (string-starts? rest "k*l") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("k" " " "l"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "l*m") (string-starts? rest "lm"))
-           (let ((len (if (string-starts? rest "l*m") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("l" " " "m"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "m*n") (string-starts? rest "mn"))
-           (let ((len (if (string-starts? rest "m*n") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("m" " " "n"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "p*q") (string-starts? rest "pq"))
-           (let ((len (if (string-starts? rest "p*q") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("p" " " "q"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "r*s") (string-starts? rest "rs"))
-           (let ((len (if (string-starts? rest "r*s") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("r" " " "s"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "x*y") (string-starts? rest "xy"))
-           (let ((len (if (string-starts? rest "x*y") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("x" " " "y"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "a*b") (string-starts? rest "ab"))
-           (let ((len (if (string-starts? rest "a*b") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("a" " " "b"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "c*d") (string-starts? rest "cd"))
-           (let ((len (if (string-starts? rest "c*d") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("c" " " "d"))
-             ) ;and
-           ) ;let
-          ) ;
-          ((or (string-starts? rest "u*v") (string-starts? rest "uv"))
-           (let ((len (if (string-starts? rest "u*v") 3 2)))
-             (and (is-word-boundary-before? s i)
-               (is-word-boundary-after? s (+ i (- len 1)))
-               (cons len '("u" " " "v"))
-             ) ;and
-           ) ;let
-          ) ;
-          (else #f)
+    (cond
+     ((or (string-starts? rest "i*j*k") (string-starts? rest "ijk"))
+      (let ((len (if (string-starts? rest "i*j*k") 5 3)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("i" " " "j" " " "k"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "x*y*z") (string-starts? rest "xyz"))
+      (let ((len (if (string-starts? rest "x*y*z") 5 3)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("x" " " "y" " " "z"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "i*j") (string-starts? rest "ij"))
+      (let ((len (if (string-starts? rest "i*j") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("i" " " "j"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "j*k") (string-starts? rest "jk"))
+      (let ((len (if (string-starts? rest "j*k") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("j" " " "k"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "k*l") (string-starts? rest "kl"))
+      (let ((len (if (string-starts? rest "k*l") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("k" " " "l"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "l*m") (string-starts? rest "lm"))
+      (let ((len (if (string-starts? rest "l*m") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("l" " " "m"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "m*n") (string-starts? rest "mn"))
+      (let ((len (if (string-starts? rest "m*n") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("m" " " "n"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "p*q") (string-starts? rest "pq"))
+      (let ((len (if (string-starts? rest "p*q") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("p" " " "q"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "r*s") (string-starts? rest "rs"))
+      (let ((len (if (string-starts? rest "r*s") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("r" " " "s"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "x*y") (string-starts? rest "xy"))
+      (let ((len (if (string-starts? rest "x*y") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("x" " " "y"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "a*b") (string-starts? rest "ab"))
+      (let ((len (if (string-starts? rest "a*b") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("a" " " "b"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "c*d") (string-starts? rest "cd"))
+      (let ((len (if (string-starts? rest "c*d") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("c" " " "d"))
+        ) ;and
+      ) ;let
+     ) ;
+     ((or (string-starts? rest "u*v") (string-starts? rest "uv"))
+      (let ((len (if (string-starts? rest "u*v") 3 2)))
+        (and (is-word-boundary-before? s i)
+          (is-word-boundary-after? s (+ i (- len 1)))
+          (cons len '("u" " " "v"))
+        ) ;and
+      ) ;let
+     ) ;
+     (else #f)
     ) ;cond
   ) ;let
 ) ;define
@@ -407,38 +410,41 @@
   (let* ((n (string-length s)) (res '()))
     (let loop
       ((i 0) (last-idx 0))
-      (cond ((>= i n)
-             (if (null? res)
-               s
-               (begin
-                 (if (< last-idx n) (set! res (append res (list (substring s last-idx n)))))
-                 (cons 'concat res)
-               ) ;begin
-             ) ;if
-            ) ;
-            (else (let ((idx-match (match-math-index-combination s i)))
-                    (if idx-match
-                      (let* ((match-len (car idx-match)) (chars (cdr idx-match)))
-                        (if (> i last-idx) (set! res (append res (list (substring s last-idx i)))))
-                        (set! res (append res chars))
-                        (loop (+ i match-len) (+ i match-len))
-                      ) ;let*
-                      (let ((diff-match (match-differential s i)))
-                        (if (and diff-match
-                              (is-word-boundary-before? s i)
-                              (is-word-boundary-after? s (+ i 1 (car diff-match)))
-                            ) ;and
-                          (let* ((match-len (car diff-match)) (var (cdr diff-match)))
-                            (if (> i last-idx) (set! res (append res (list (substring s last-idx i)))))
-                            (set! res (append res (list "d" " " var)))
-                            (loop (+ i 2 match-len) (+ i 2 match-len))
-                          ) ;let*
-                          (loop (+ i 1) last-idx)
-                        ) ;if
-                      ) ;let
-                    ) ;if
-                  ) ;let
-            ) ;else
+      (cond
+       ((>= i n)
+        (if (null? res)
+          s
+          (begin
+            (if (< last-idx n) (set! res (append res (list (substring s last-idx n)))))
+            (cons 'concat res)
+          ) ;begin
+        ) ;if
+       ) ;
+       (else
+         (let ((idx-match (match-math-index-combination s i)))
+           (if idx-match
+             (let* ((match-len (car idx-match)) (chars (cdr idx-match)))
+               (if (> i last-idx) (set! res (append res (list (substring s last-idx i)))))
+               (set! res (append res chars))
+               (loop (+ i match-len) (+ i match-len))
+             ) ;let*
+             (let ((diff-match (match-differential s i)))
+               (if
+                 (and diff-match
+                   (is-word-boundary-before? s i)
+                   (is-word-boundary-after? s (+ i 1 (car diff-match)))
+                 ) ;and
+                 (let* ((match-len (car diff-match)) (var (cdr diff-match)))
+                   (if (> i last-idx) (set! res (append res (list (substring s last-idx i)))))
+                   (set! res (append res (list "d" " " var)))
+                   (loop (+ i 2 match-len) (+ i 2 match-len))
+                 ) ;let*
+                 (loop (+ i 1) last-idx)
+               ) ;if
+             ) ;let
+           ) ;if
+         ) ;let
+       ) ;else
       ) ;cond
     ) ;let
   ) ;let*
@@ -448,25 +454,26 @@
   (cond ((null? children) '())
         ((and (pair? children) (pair? (cdr children)))
          (let* ((c1 (car children)) (c2 (cadr children)))
-           (if (and (string? c1)
-                 (string? c2)
-                 (or (string=? c2 "<rho>")
-                   (string=? c2 "<varrho>")
-                   (string=? c2 "<theta>")
-                   (string=? c2 "<vartheta>")
-                   (string=? c2 "<tau>")
-                   (string=? c2 "<upsilon>")
-                   (string=? c2 "<phi>")
-                   (string=? c2 "<varphi>")
-                   (string=? c2 "<omega>")
-                 ) ;or
-                 (let ((len (string-length c1)))
-                   (and (> len 0)
-                     (char=? (string-ref c1 (- len 1)) #\d)
-                     (or (= len 1) (not (is-letter-char? (string-ref c1 (- len 2)))))
-                   ) ;and
-                 ) ;let
-               ) ;and
+           (if
+             (and (string? c1)
+               (string? c2)
+               (or (string=? c2 "<rho>")
+                 (string=? c2 "<varrho>")
+                 (string=? c2 "<theta>")
+                 (string=? c2 "<vartheta>")
+                 (string=? c2 "<tau>")
+                 (string=? c2 "<upsilon>")
+                 (string=? c2 "<phi>")
+                 (string=? c2 "<varphi>")
+                 (string=? c2 "<omega>")
+               ) ;or
+               (let ((len (string-length c1)))
+                 (and (> len 0)
+                   (char=? (string-ref c1 (- len 1)) #\d)
+                   (or (= len 1) (not (is-letter-char? (string-ref c1 (- len 2)))))
+                 ) ;and
+               ) ;let
+             ) ;and
              (let* ((len (string-length c1))
                     (prefix (if (> len 1) (substring c1 0 (- len 1)) #f))
                     (spaced-part (if prefix (list prefix "d" " " c2) (list "d" " " c2)))
@@ -563,41 +570,45 @@
   (if (and (pair? x) (eq? (car x) 'tformat))
     (let* ((options (cdr x)) (num-rows (find-table-num-rows options)))
       (if (> num-rows 0)
-        (let* ((has-top? (has-cwith-property? options
-                           "1"
-                           "1"
-                           #f
-                           #f
-                           "cell-tborder"
-                           (lambda (v) (not (equal? v "0ln")))
-                         ) ;has-cwith-property?
+        (let* ((has-top?
+                 (has-cwith-property? options
+                   "1"
+                   "1"
+                   #f
+                   #f
+                   "cell-tborder"
+                   (lambda (v) (not (equal? v "0ln")))
+                 ) ;has-cwith-property?
                ) ;has-top?
-               (has-bottom? (has-cwith-property? options
-                              (number->string num-rows)
-                              (number->string num-rows)
-                              #f
-                              #f
-                              "cell-bborder"
-                              (lambda (v) (not (equal? v "0ln")))
-                            ) ;has-cwith-property?
+               (has-bottom?
+                 (has-cwith-property? options
+                   (number->string num-rows)
+                   (number->string num-rows)
+                   #f
+                   #f
+                   "cell-bborder"
+                   (lambda (v) (not (equal? v "0ln")))
+                 ) ;has-cwith-property?
                ) ;has-bottom?
-               (has-vertical? (has-cwith-property? options
-                                #f
-                                #f
-                                #f
-                                #f
-                                "cell-lborder"
-                                (lambda (v) (not (equal? v "0ln")))
-                              ) ;has-cwith-property?
+               (has-vertical?
+                 (has-cwith-property? options
+                   #f
+                   #f
+                   #f
+                   #f
+                   "cell-lborder"
+                   (lambda (v) (not (equal? v "0ln")))
+                 ) ;has-cwith-property?
                ) ;has-vertical?
-               (has-vertical-r? (has-cwith-property? options
-                                  #f
-                                  #f
-                                  #f
-                                  #f
-                                  "cell-rborder"
-                                  (lambda (v) (not (equal? v "0ln")))
-                                ) ;has-cwith-property?
+               (has-vertical-r?
+                 (has-cwith-property? options
+                   #f
+                   #f
+                   #f
+                   #f
+                   "cell-rborder"
+                   (lambda (v) (not (equal? v "0ln")))
+                 ) ;has-cwith-property?
                ) ;has-vertical-r?
               ) ;
           (and has-top? has-bottom? (not has-vertical?) (not has-vertical-r?))
@@ -642,9 +653,10 @@
         ) ;
         ((pair? t)
          (let* ((res-car (clean-multirow (car t))) (res-cdr (clean-multirow (cdr t))))
-           (cond ((cdr res-car) (cons (cons (car res-car) (car res-cdr)) (cdr res-car)))
-                 ((cdr res-cdr) (cons (cons (car res-car) (car res-cdr)) (cdr res-cdr)))
-                 (else (cons (cons (car res-car) (car res-cdr)) #f))
+           (cond
+            ((cdr res-car) (cons (cons (car res-car) (car res-cdr)) (cdr res-car)))
+            ((cdr res-cdr) (cons (cons (car res-car) (car res-cdr)) (cdr res-cdr)))
+            (else (cons (cons (car res-car) (car res-cdr)) #f))
            ) ;cond
          ) ;let*
         ) ;
@@ -654,44 +666,46 @@
 
 (define (process-row-cells cells r c options-acc new-cells-acc)
   (cond ((null? cells) (cons (reverse new-cells-acc) options-acc))
-        (else (let* ((cell (car cells))
-                     (cleaned-res (clean-multirow cell))
-                     (new-cell (car cleaned-res))
-                     (info (cdr cleaned-res))
+        (else
+          (let* ((cell (car cells))
+                 (cleaned-res (clean-multirow cell))
+                 (new-cell (car cleaned-res))
+                 (info (cdr cleaned-res))
+                ) ;
+            (if info
+              (let* ((n (car info))
+                     (row-str (number->string r))
+                     (col-str (number->string c))
+                     (new-opt1 (list 'cwith row-str row-str col-str col-str "cell-row-span" n))
+                     (new-opt2 (list 'cwith row-str row-str col-str col-str "cell-valign" "c"))
                     ) ;
-                (if info
-                  (let* ((n (car info))
-                         (row-str (number->string r))
-                         (col-str (number->string c))
-                         (new-opt1 (list 'cwith row-str row-str col-str col-str "cell-row-span" n))
-                         (new-opt2 (list 'cwith row-str row-str col-str col-str "cell-valign" "c"))
-                        ) ;
-                    (process-row-cells (cdr cells)
-                      r
-                      (+ c 1)
-                      (cons new-opt1 (cons new-opt2 options-acc))
-                      (cons new-cell new-cells-acc)
-                    ) ;process-row-cells
-                  ) ;let*
-                  (process-row-cells (cdr cells) r (+ c 1) options-acc (cons cell new-cells-acc))
-                ) ;if
+                (process-row-cells (cdr cells)
+                  r
+                  (+ c 1)
+                  (cons new-opt1 (cons new-opt2 options-acc))
+                  (cons new-cell new-cells-acc)
+                ) ;process-row-cells
               ) ;let*
+              (process-row-cells (cdr cells) r (+ c 1) options-acc (cons cell new-cells-acc))
+            ) ;if
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
 
 (define (process-table-rows rows r options-acc new-rows-acc)
   (cond ((null? rows) (cons (reverse new-rows-acc) options-acc))
-        (else (let* ((row (car rows))
-                     (cells (cdr row))
-                     (res-cells (process-row-cells cells r 1 '() '()))
-                    ) ;
-                (process-table-rows (cdr rows)
-                  (+ r 1)
-                  (append options-acc (cdr res-cells))
-                  (cons (cons 'row (car res-cells)) new-rows-acc)
-                ) ;process-table-rows
-              ) ;let*
+        (else
+          (let* ((row (car rows))
+                 (cells (cdr row))
+                 (res-cells (process-row-cells cells r 1 '() '()))
+                ) ;
+            (process-table-rows (cdr rows)
+              (+ r 1)
+              (append options-acc (cdr res-cells))
+              (cons (cons 'row (car res-cells)) new-rows-acc)
+            ) ;process-table-rows
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -711,51 +725,54 @@
     (if (> r num-rows)
       regions
       (let* ((r-str (number->string r))
-             (row-regions (let loop-c
-                            ((c 1) (c-acc '()))
-                            (if (> c 50)
-                              c-acc
-                              (let* ((c-str (number->string c))
-                                     (h-val (let loop-opt
-                                              ((lst options))
-                                              (cond ((null? lst) #f)
-                                                    ((and (pair? (car lst))
-                                                       (eq? (caar lst) 'cwith)
-                                                       (equal? (list-ref (car lst) 1) r-str)
-                                                       (equal? (list-ref (car lst) 3) c-str)
-                                                       (equal? (list-ref (car lst) 5) "cell-row-span")
-                                                     ) ;and
-                                                     (list-ref (car lst) 6)
-                                                    ) ;
-                                                    (else (loop-opt (cdr lst)))
-                                              ) ;cond
-                                            ) ;let
-                                     ) ;h-val
-                                     (w-val (let loop-opt
-                                              ((lst options))
-                                              (cond ((null? lst) #f)
-                                                    ((and (pair? (car lst))
-                                                       (eq? (caar lst) 'cwith)
-                                                       (equal? (list-ref (car lst) 1) r-str)
-                                                       (equal? (list-ref (car lst) 3) c-str)
-                                                       (equal? (list-ref (car lst) 5) "cell-col-span")
-                                                     ) ;and
-                                                     (list-ref (car lst) 6)
-                                                    ) ;
-                                                    (else (loop-opt (cdr lst)))
-                                              ) ;cond
-                                            ) ;let
-                                     ) ;w-val
-                                     (h (if h-val (string->number h-val) 1))
-                                     (w (if w-val (string->number w-val) 1))
+             (row-regions
+               (let loop-c
+                 ((c 1) (c-acc '()))
+                 (if (> c 50)
+                   c-acc
+                   (let* ((c-str (number->string c))
+                          (h-val
+                            (let loop-opt
+                              ((lst options))
+                              (cond ((null? lst) #f)
+                                    ((and (pair? (car lst))
+                                       (eq? (caar lst) 'cwith)
+                                       (equal? (list-ref (car lst) 1) r-str)
+                                       (equal? (list-ref (car lst) 3) c-str)
+                                       (equal? (list-ref (car lst) 5) "cell-row-span")
+                                     ) ;and
+                                     (list-ref (car lst) 6)
                                     ) ;
-                                (if (or (> h 1) (> w 1))
-                                  (loop-c (+ c 1) (cons (list r c h w) c-acc))
-                                  (loop-c (+ c 1) c-acc)
-                                ) ;if
-                              ) ;let*
-                            ) ;if
-                          ) ;let
+                                    (else (loop-opt (cdr lst)))
+                              ) ;cond
+                            ) ;let
+                          ) ;h-val
+                          (w-val
+                            (let loop-opt
+                              ((lst options))
+                              (cond ((null? lst) #f)
+                                    ((and (pair? (car lst))
+                                       (eq? (caar lst) 'cwith)
+                                       (equal? (list-ref (car lst) 1) r-str)
+                                       (equal? (list-ref (car lst) 3) c-str)
+                                       (equal? (list-ref (car lst) 5) "cell-col-span")
+                                     ) ;and
+                                     (list-ref (car lst) 6)
+                                    ) ;
+                                    (else (loop-opt (cdr lst)))
+                              ) ;cond
+                            ) ;let
+                          ) ;w-val
+                          (h (if h-val (string->number h-val) 1))
+                          (w (if w-val (string->number w-val) 1))
+                         ) ;
+                     (if (or (> h 1) (> w 1))
+                       (loop-c (+ c 1) (cons (list r c h w) c-acc))
+                       (loop-c (+ c 1) c-acc)
+                     ) ;if
+                   ) ;let*
+                 ) ;if
+               ) ;let
              ) ;row-regions
             ) ;
         (loop-r (+ r 1) (append regions row-regions))
@@ -766,55 +783,59 @@
 
 (define (is-cell-covered? ri ci regions)
   (cond ((null? regions) #f)
-        (else (let* ((reg (car regions))
-                     (r (list-ref reg 0))
-                     (c (list-ref reg 1))
-                     (h (list-ref reg 2))
-                     (w (list-ref reg 3))
-                    ) ;
-                (if (and (>= ri r)
-                      (< ri (+ r h))
-                      (>= ci c)
-                      (< ci (+ c w))
-                      (not (and (= ri r) (= ci c)))
-                    ) ;and
-                  #t
-                  (is-cell-covered? ri ci (cdr regions))
-                ) ;if
-              ) ;let*
+        (else
+          (let* ((reg (car regions))
+                 (r (list-ref reg 0))
+                 (c (list-ref reg 1))
+                 (h (list-ref reg 2))
+                 (w (list-ref reg 3))
+                ) ;
+            (if
+              (and (>= ri r)
+                (< ri (+ r h))
+                (>= ci c)
+                (< ci (+ c w))
+                (not (and (= ri r) (= ci c)))
+              ) ;and
+              #t
+              (is-cell-covered? ri ci (cdr regions))
+            ) ;if
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
 
 (define (clean-covered-cells-in-row cells r c regions new-cells-acc)
   (cond ((null? cells) (reverse new-cells-acc))
-        (else (let* ((cell (car cells))
-                     (new-cell (if (is-cell-covered? r c regions) '(cell "") cell))
-                    ) ;
-                (clean-covered-cells-in-row (cdr cells)
-                  r
-                  (+ c 1)
-                  regions
-                  (cons new-cell new-cells-acc)
-                ) ;clean-covered-cells-in-row
-              ) ;let*
+        (else
+          (let* ((cell (car cells))
+                 (new-cell (if (is-cell-covered? r c regions) '(cell "") cell))
+                ) ;
+            (clean-covered-cells-in-row (cdr cells)
+              r
+              (+ c 1)
+              regions
+              (cons new-cell new-cells-acc)
+            ) ;clean-covered-cells-in-row
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
 
 (define (clean-covered-cells-in-rows rows r regions new-rows-acc)
   (cond ((null? rows) (reverse new-rows-acc))
-        (else (let* ((row (car rows))
-                     (cells (cdr row))
-                     (new-cells (clean-covered-cells-in-row cells r 1 regions '()))
-                     (new-row (cons 'row new-cells))
-                    ) ;
-                (clean-covered-cells-in-rows (cdr rows)
-                  (+ r 1)
-                  regions
-                  (cons new-row new-rows-acc)
-                ) ;clean-covered-cells-in-rows
-              ) ;let*
+        (else
+          (let* ((row (car rows))
+                 (cells (cdr row))
+                 (new-cells (clean-covered-cells-in-row cells r 1 regions '()))
+                 (new-row (cons 'row new-cells))
+                ) ;
+            (clean-covered-cells-in-rows (cdr rows)
+              (+ r 1)
+              regions
+              (cons new-row new-rows-acc)
+            ) ;clean-covered-cells-in-rows
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -822,13 +843,14 @@
 (define (transform-multirow-tformat x)
   (if (and (pair? x) (eq? (car x) 'tformat))
     (let* ((options (cdr x))
-           (table-cell-pair (let loop
-                              ((lst options))
-                              (cond ((null? lst) #f)
-                                    ((and (pair? (car lst)) (eq? (caar lst) 'table)) (car lst))
-                                    (else (loop (cdr lst)))
-                              ) ;cond
-                            ) ;let
+           (table-cell-pair
+             (let loop
+               ((lst options))
+               (cond ((null? lst) #f)
+                     ((and (pair? (car lst)) (eq? (caar lst) 'table)) (car lst))
+                     (else (loop (cdr lst)))
+               ) ;cond
+             ) ;let
            ) ;table-cell-pair
           ) ;
       (if table-cell-pair

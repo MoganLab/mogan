@@ -115,13 +115,14 @@
          (dir (url-expand (url-append u2 (url-parent))))
          (dir-name (url->system (url-tail dir)))
         ) ;
-    (when (and (!= dir-name "CVS")
-            (!= dir-name "prop-base")
-            (!= dir-name "text-base")
-            (not (string-occurs? "/." (url->system u2)))
-            (not (string-ends? name "~"))
-            (not (string-ends? name "#"))
-          ) ;and
+    (when
+      (and (!= dir-name "CVS")
+        (!= dir-name "prop-base")
+        (!= dir-name "text-base")
+        (not (string-occurs? "/." (url->system u2)))
+        (not (string-ends? name "~"))
+        (not (string-ends? name "#"))
+      ) ;and
       (tmweb-make-dir dir (url-expand html-dir))
       (when (needs-update? file u2 update?)
         (system-wait "Copying" (url->system u1))

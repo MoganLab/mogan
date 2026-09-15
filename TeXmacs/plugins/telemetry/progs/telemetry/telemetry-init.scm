@@ -38,15 +38,16 @@
          (pattern (url-append dir-url (url-wildcard "*.jsonl")))
          (files (url->list (url-expand (url-complete pattern "fr"))))
         ) ;
-    (for-each (lambda (f)
-                (let ((fname (url->string (url-tail f))))
-                  (when (and (string-starts? fname "detail-telemetry-")
-                          (not (member fname valid-files))
-                        ) ;and
-                    (catch #t (lambda () (path-unlink (url->system f))) (lambda args #f))
-                  ) ;when
-                ) ;let
-              ) ;lambda
+    (for-each
+      (lambda (f)
+        (let ((fname (url->string (url-tail f))))
+          (when (and (string-starts? fname "detail-telemetry-")
+                  (not (member fname valid-files))
+                ) ;and
+            (catch #t (lambda () (path-unlink (url->system f))) (lambda args #f))
+          ) ;when
+        ) ;let
+      ) ;lambda
       files
     ) ;for-each
   ) ;let*
@@ -72,17 +73,18 @@
             "ms\n"
           ) ;string-append
         ) ;debug-message
-        (on-exit (catch #t
-                   (lambda () (track-event "CLOSE" '()) (telemetry-flush-if-needed))
-                   (lambda args
-                     (debug-message "debug-events"
-                       (string-append "[telemetry] error: exit flush failed: "
-                         (object->string args)
-                         "\n"
-                       ) ;string-append
-                     ) ;debug-message
-                   ) ;lambda
-                 ) ;catch
+        (on-exit
+          (catch #t
+            (lambda () (track-event "CLOSE" '()) (telemetry-flush-if-needed))
+            (lambda args
+              (debug-message "debug-events"
+                (string-append "[telemetry] error: exit flush failed: "
+                  (object->string args)
+                  "\n"
+                ) ;string-append
+              ) ;debug-message
+            ) ;lambda
+          ) ;catch
         ) ;on-exit
         (telemetry-delayed)
       ) ;begin

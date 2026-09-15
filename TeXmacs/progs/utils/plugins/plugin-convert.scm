@@ -29,14 +29,15 @@
 (tm-define (plugin-output s) (display s plugin-input-port))
 
 (define (call-with-plugin-output-string thunk)
-  (call-with-output-string (lambda (p)
-                             (let ((saved plugin-input-port))
-                               (dynamic-wind (lambda () (set! plugin-input-port p))
-                                 thunk
-                                 (lambda () (set! plugin-input-port saved))
-                               ) ;dynamic-wind
-                             ) ;let
-                           ) ;lambda
+  (call-with-output-string
+    (lambda (p)
+      (let ((saved plugin-input-port))
+        (dynamic-wind (lambda () (set! plugin-input-port p))
+          thunk
+          (lambda () (set! plugin-input-port saved))
+        ) ;dynamic-wind
+      ) ;let
+    ) ;lambda
   ) ;call-with-output-string
 ) ;define
 
@@ -53,19 +54,22 @@
 ) ;define
 
 (tm-define (plugin-input t)
-  (cond ((string? t) (plugin-input-tmtokens (string->tmtokens t 0 (string-length t))))
-        ((tree? t) (plugin-input (tree->stree t)))
-        (else (let* ((f (car t)) (args (cdr t)) (im (plugin-input-ref f)))
-                (cond ((!= im #f) (im args))
-                      (else (noop))
-                ) ;cond
-              ) ;let*
-        ) ;else
+  (cond
+   ((string? t) (plugin-input-tmtokens (string->tmtokens t 0 (string-length t))))
+   ((tree? t) (plugin-input (tree->stree t)))
+   (else
+     (let* ((f (car t)) (args (cdr t)) (im (plugin-input-ref f)))
+       (cond ((!= im #f) (im args))
+             (else (noop))
+       ) ;cond
+     ) ;let*
+   ) ;else
   ) ;cond
 ) ;tm-define
 
 (tm-define (plugin-input-arg t)
-  (if (and (string? t) (= (length (string->tmtokens t 0 (string-length t))) 1))
+  (if
+    (and (string? t) (= (length (string->tmtokens t 0 (string-length t))) 1))
     (plugin-input t)
     (begin
       (plugin-output "(")
@@ -144,10 +148,14 @@
 ) ;define
 
 (define (plugin-input-concat-big op args)
-  (let* ((i (list-find-index args (lambda (x) (== x '(big ".")))))
+  (let* ((i
+           (list-find-index args (lambda (x) (== x '(big "."))))
+         ) ;i
          (head (if i (sublist args 0 i) args))
          (tail (if i (sublist args (+ i 1) (length args)) '()))
-         (bigop `(big-around ,(small-bracket op) (concat ,@head)))
+         (bigop
+           `(big-around ,(small-bracket op) (concat ,@head))
+         ) ;bigop
         ) ;
     (plugin-input `(concat ,bigop ,@tail))
   ) ;let*
@@ -338,9 +346,10 @@
 (define (plugin-input-converters-rules name l)
   (if (null? l)
     '()
-    (cons (let* ((rule (car l)) (key (car rule)) (im (list 'unquote (cadr rule))))
-            (list (list 'plugin-input-converter% (list name key) im))
-          ) ;let*
+    (cons
+      (let* ((rule (car l)) (key (car rule)) (im (list 'unquote (cadr rule))))
+        (list (list 'plugin-input-converter% (list name key) im))
+      ) ;let*
       (plugin-input-converters-rules name (cdr l))
     ) ;cons
   ) ;if

@@ -65,7 +65,8 @@
     (list)
     (with p
       (string-index s #\<)
-      (if (or (not p) (== p (- (string-length s) 1)) (!= (string-ref s (+ p 1)) #\#))
+      (if
+        (or (not p) (== p (- (string-length s) 1)) (!= (string-ref s (+ p 1)) #\#))
         (denormalize-words s)
         (with q
           (string-index (substring s p (string-length s)) #\>)
@@ -93,10 +94,11 @@
 ) ;define
 
 (define (denormalize t)
-  (cond ((string? t) `(concat ,@(denormalize-concat (list t))))
-        ((tm-is? t 'concat) `(concat ,@(denormalize-concat (cdr t))))
-        ((tm-is? t 'document) `(document ,@(map denormalize (cdr t))))
-        (else t)
+  (cond
+   ((string? t) `(concat ,@(denormalize-concat (list t))))
+   ((tm-is? t 'concat) `(concat ,@(denormalize-concat (cdr t))))
+   ((tm-is? t 'document) `(document ,@(map denormalize (cdr t))))
+   (else t)
   ) ;cond
 ) ;define
 
@@ -138,17 +140,18 @@
 
 (define (diff t1 t2)
   ;; (display* "diff " t1 ", " t2 "\n")
-  (cond ((and (or (string? t1) (!= (car t1) 'document))
-           (tree-multi-paragraph? (tm->tree t2))
-         ) ;and
-         (diff `(document ,t1) t2)
-        ) ;
-        ((and (or (string? t2) (!= (car t2) 'document))
-           (tree-multi-paragraph? (tm->tree t1))
-         ) ;and
-         (diff t1 `(document ,t2))
-        ) ;
-        (else `(version-both ,t1 ,t2))
+  (cond
+   ((and (or (string? t1) (!= (car t1) 'document))
+      (tree-multi-paragraph? (tm->tree t2))
+    ) ;and
+    (diff `(document ,t1) t2)
+   ) ;
+   ((and (or (string? t2) (!= (car t2) 'document))
+      (tree-multi-paragraph? (tm->tree t1))
+    ) ;and
+    (diff t1 `(document ,t2))
+   ) ;
+   (else `(version-both ,t1 ,t2))
   ) ;cond
 ) ;define
 
@@ -168,11 +171,14 @@
 ) ;define
 
 (define (longest-common-bis l1 l2)
-  (let* ((i (list-find-index l2 (lambda (x) (== x (car l1)))))
+  (let* ((i
+           (list-find-index l2 (lambda (x) (== x (car l1))))
+         ) ;i
          (r2 (list-tail l2 i))
          (n (common l1 r2))
         ) ;
-    (if (or (>= n 25) (not (in? (car l1) (cdr r2))))
+    (if
+      (or (>= n 25) (not (in? (car l1) (cdr r2))))
       (values 0 i n)
       ;; NOTE: truncate for efficiency reasons
       (receive (i1 i2 nn)
@@ -237,15 +243,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (similar-tables? t1 t2)
-  (cond ((or (nlist? t1) (nlist? t2) (!= (car t1) (car t2)) (!= (length t1) (length t2)))
-         #f
-        ) ;
-        ((in? (car t1) '(tformat))
-         (and (== (cDr (cdr t1)) (cDr (cdr t2))) (similar-tables? (cAr t1) (cAr t2)))
-        ) ;
-        ((in? (car t1) '(table row)) (list-and (map similar-tables? (cdr t1) (cdr t2))))
-        ((in? (car t1) '(cell)) #t)
-        (else (== t1 t2))
+  (cond
+   ((or (nlist? t1) (nlist? t2) (!= (car t1) (car t2)) (!= (length t1) (length t2)))
+    #f
+   ) ;
+   ((in? (car t1) '(tformat))
+    (and (== (cDr (cdr t1)) (cDr (cdr t2))) (similar-tables? (cAr t1) (cAr t2)))
+   ) ;
+   ((in? (car t1) '(table row)) (list-and (map similar-tables? (cdr t1) (cdr t2))))
+   ((in? (car t1) '(cell)) #t)
+   (else (== t1 t2))
   ) ;cond
 ) ;define
 
@@ -287,51 +294,56 @@
          (cons (car l1) (compare-versions-list tag (cdr l1) (cdr l2)))
         ) ;
         ((or (tm-func? (car l1) 'hide-preamble 1) (tm-func? (car l2) 'hide-preamble 1))
-         (cond ((not (tm-is? (car l1) 'hide-preamble))
-                (compare-versions-list tag (cons '(hide-preamble (document "")) l1) l2)
-               ) ;
-               ((not (tm-is? (car l2) 'hide-preamble))
-                (compare-versions-list tag l1 (cons '(hide-preamble (document "")) l2))
-               ) ;
-               (else (cons `(hide-preamble ,(compare-versions (cadar l1)
-                                              (cadar l2)))
-                       (compare-versions-list tag (cdr l1) (cdr l2))
-                     ) ;cons
-               ) ;else
+         (cond
+          ((not (tm-is? (car l1) 'hide-preamble))
+           (compare-versions-list tag (cons '(hide-preamble (document "")) l1) l2)
+          ) ;
+          ((not (tm-is? (car l2) 'hide-preamble))
+           (compare-versions-list tag l1 (cons '(hide-preamble (document "")) l2))
+          ) ;
+          (else
+            (cons
+              `(hide-preamble ,(compare-versions (cadar l1) (cadar l2)))
+              (compare-versions-list tag (cdr l1) (cdr l2))
+            ) ;cons
+          ) ;else
          ) ;cond
         ) ;
-        (else (receive (i1 i2 n)
-                (var-longest-common l1 l2)
-                ;; (display* "  common " (sublist l1 i1 (+ i1 n)) "\n")
-                ;; (display* "  break at " i1 ", " i2 ", " n "\n\n")
-                (cond ((and (== n 0)
-                         (== tag 'document)
-                         (== (length l1) 1)
-                         (== (length l2) 1)
-                         (tm-is? (car l1) 'concat)
-                         (tm-is? (car l2) 'concat)
-                         (long-common? (cdar l1) (cdar l2))
-                       ) ;and
-                       (map compare-versions l1 l2)
-                      ) ;
-                      ((== n 0) (list-diff (normalize `(,tag ,@l1)) (normalize `(,tag
-                                                                                 ,@l2))))
-                      ((and (== n (length l1)) (== n (length l2))) (map compare-versions l1 l2))
-                      (else (let* ((ll1 (sublist l1 0 i1))
-                                   (ll2 (sublist l2 0 i2))
-                                   (mm1 (sublist l1 i1 (+ i1 n)))
-                                   (mm2 (sublist l2 i2 (+ i2 n)))
-                                   (rr1 (sublist l1 (+ i1 n) (length l1)))
-                                   (rr2 (sublist l2 (+ i2 n) (length l2)))
-                                  ) ;
-                              (append (compare-versions-list tag ll1 ll2)
-                                (compare-versions-list tag mm1 mm2)
-                                (compare-versions-list tag rr1 rr2)
-                              ) ;append
-                            ) ;let*
-                      ) ;else
-                ) ;cond
-              ) ;receive
+        (else
+          (receive (i1 i2 n)
+            (var-longest-common l1 l2)
+            ;; (display* "  common " (sublist l1 i1 (+ i1 n)) "\n")
+            ;; (display* "  break at " i1 ", " i2 ", " n "\n\n")
+            (cond
+             ((and (== n 0)
+                (== tag 'document)
+                (== (length l1) 1)
+                (== (length l2) 1)
+                (tm-is? (car l1) 'concat)
+                (tm-is? (car l2) 'concat)
+                (long-common? (cdar l1) (cdar l2))
+              ) ;and
+              (map compare-versions l1 l2)
+             ) ;
+             ((== n 0) (list-diff (normalize `(,tag ,@l1)) (normalize `(,tag
+                                                                        ,@l2))))
+             ((and (== n (length l1)) (== n (length l2))) (map compare-versions l1 l2))
+             (else
+               (let* ((ll1 (sublist l1 0 i1))
+                      (ll2 (sublist l2 0 i2))
+                      (mm1 (sublist l1 i1 (+ i1 n)))
+                      (mm2 (sublist l2 i2 (+ i2 n)))
+                      (rr1 (sublist l1 (+ i1 n) (length l1)))
+                      (rr2 (sublist l2 (+ i2 n) (length l2)))
+                     ) ;
+                 (append (compare-versions-list tag ll1 ll2)
+                   (compare-versions-list tag mm1 mm2)
+                   (compare-versions-list tag rr1 rr2)
+                 ) ;append
+               ) ;let*
+             ) ;else
+            ) ;cond
+          ) ;receive
         ) ;else
   ) ;cond
 ) ;define
@@ -344,7 +356,8 @@
            (not (tree-multi-paragraph? (tm->tree t1)))
            (not (tree-multi-paragraph? (tm->tree t2)))
          ) ;and
-         (diff (if (tree-multi-paragraph? (tm->tree t1)) t1 `(document ,t1))
+         (diff
+           (if (tree-multi-paragraph? (tm->tree t1)) t1 `(document ,t1))
            (if (tree-multi-paragraph? (tm->tree t2)) t2 `(document ,t2))
          ) ;diff
         ) ;
@@ -356,46 +369,49 @@
          (compare-versions t1 `(concat ,t2))
         ) ;
         ((and (list? t1) (list? t2) (== (car t1) (car t2)))
-         (cond ((tm-in? t1 '(document concat))
-                (let* ((l1 (cdr (denormalize t1)))
-                       (l2 (cdr (denormalize t2)))
-                       (m (compare-versions-list (car t1) l1 l2))
-                      ) ;
-                  (normalize (cons (car t1) m))
-                ) ;let*
-               ) ;
-               ((!= (length t1) (length t2)) (diff t1 t2))
-               ((in? (car t1) '(graphics)) (diff t1 t2))
-               ((and (in? (car t1) '(table tformat)) (not (similar-tables? t1 t2)))
-                (diff t1 t2)
-               ) ;
-               ((in? (car t1) '(shared mirror))
-                (rcons (cDr t2) (compare-versions (cAr t1) (cAr t2)))
-               ) ;
-               ((and (in? (car t1) '(bib-list))
-                  (= (length t1) 3)
-                  (tm-func? (caddr t1) 'document)
-                  (tm-func? (caddr t2) 'document)
-                ) ;and
-                (let* ((d2 (caddr t2)) (d1 (bib-list-adjust (caddr t1) d2)))
-                  (list (car t1) (cadr t1) (compare-versions d1 d2))
-                ) ;let*
-               ) ;
-               (else (let* ((tt1 (tm->tree t1)) (tt2 (tm->tree t2)))
-                       (with wrong?
-                         (lambda (i)
-                           (and (!= (tree-ref tt1 i) (tree-ref tt2 i))
-                             (not (tree-accessible-child? tt1 i))
-                             (not (tree-accessible-child? tt2 i))
-                           ) ;and
-                         ) ;lambda
-                         (if (list-or (map wrong? (.. 0 (tree-arity tt1))))
-                           (diff t1 t2)
-                           (cons (car t1) (map compare-versions (cdr t1) (cdr t2)))
-                         ) ;if
-                       ) ;with
-                     ) ;let*
-               ) ;else
+         (cond
+          ((tm-in? t1 '(document concat))
+           (let* ((l1 (cdr (denormalize t1)))
+                  (l2 (cdr (denormalize t2)))
+                  (m (compare-versions-list (car t1) l1 l2))
+                 ) ;
+             (normalize (cons (car t1) m))
+           ) ;let*
+          ) ;
+          ((!= (length t1) (length t2)) (diff t1 t2))
+          ((in? (car t1) '(graphics)) (diff t1 t2))
+          ((and (in? (car t1) '(table tformat)) (not (similar-tables? t1 t2)))
+           (diff t1 t2)
+          ) ;
+          ((in? (car t1) '(shared mirror))
+           (rcons (cDr t2) (compare-versions (cAr t1) (cAr t2)))
+          ) ;
+          ((and (in? (car t1) '(bib-list))
+             (= (length t1) 3)
+             (tm-func? (caddr t1) 'document)
+             (tm-func? (caddr t2) 'document)
+           ) ;and
+           (let* ((d2 (caddr t2)) (d1 (bib-list-adjust (caddr t1) d2)))
+             (list (car t1) (cadr t1) (compare-versions d1 d2))
+           ) ;let*
+          ) ;
+          (else
+            (let* ((tt1 (tm->tree t1)) (tt2 (tm->tree t2)))
+              (with wrong?
+                (lambda (i)
+                  (and (!= (tree-ref tt1 i) (tree-ref tt2 i))
+                    (not (tree-accessible-child? tt1 i))
+                    (not (tree-accessible-child? tt2 i))
+                  ) ;and
+                ) ;lambda
+                (if
+                  (list-or (map wrong? (.. 0 (tree-arity tt1))))
+                  (diff t1 t2)
+                  (cons (car t1) (map compare-versions (cdr t1) (cdr t2)))
+                ) ;if
+              ) ;with
+            ) ;let*
+          ) ;else
          ) ;cond
         ) ;
         (else (diff t1 t2))
@@ -461,10 +477,11 @@
         ((tm-in? t '(version-old version-new version-both))
          (normalize (version-get (tm-ref t which) which))
         ) ;
-        (else (with args
-                (map (lambda (x) (version-get x which)) (cdr t))
-                (normalize (cons (car t) args))
-              ) ;with
+        (else
+          (with args
+            (map (lambda (x) (version-get x which)) (cdr t))
+            (normalize (cons (car t) args))
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define

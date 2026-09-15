@@ -56,7 +56,8 @@
 
 (define (links-to-modules-of cmd)
   "Builds links to all texmacs-modules where @cmd is defined"
-  ($para ($strong `(scm ,cmd))
+  ($para
+    ($strong `(scm ,cmd))
     " is defined in "
     $lf
     `(indent ,($para ($for (mod (ahash-ref tm-defined-module
@@ -83,9 +84,10 @@
 (tm-define-macro ($tmapidoc . l)
   (with lan
     (get-output-language)
-    ($quote `(document (TeXmacs ,(texmacs-version))
-               (style (tuple ,"tmdoc" ,"scheme-api" ,lan))
-               (body ($unquote ($block ,@l))))
+    ($quote
+      `(document (TeXmacs ,(texmacs-version))
+         (style (tuple ,"tmdoc" ,"scheme-api" ,lan))
+         (body ($unquote ($block ,@l))))
     ) ;$quote
   ) ;with
 ) ;tm-define-macro
@@ -144,14 +146,15 @@
 
 (tmfs-load-handler (apidoc query)
   (let* ((type (query-ref query "type")) (what (query-ref query "what")))
-    (tm->stree (cond ((== type "symbol")
-                      (if (== what "") ($doc-all-symbols-buffer) ($doc-symbol-buffer what))
-                     ) ;
-                     ((== type "module")
-                      (if (== what "") ($doc-all-modules-buffer) ($doc-module-buffer what))
-                     ) ;
-                     (else ($query-not-implemented query))
-               ) ;cond
+    (tm->stree
+      (cond ((== type "symbol")
+             (if (== what "") ($doc-all-symbols-buffer) ($doc-symbol-buffer what))
+            ) ;
+            ((== type "module")
+             (if (== what "") ($doc-all-modules-buffer) ($doc-module-buffer what))
+            ) ;
+            (else ($query-not-implemented query))
+      ) ;cond
     ) ;tm->stree
   ) ;let*
 ) ;tmfs-load-handler

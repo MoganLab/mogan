@@ -257,11 +257,12 @@
 ;; 关闭后已注册绑定当次会话仍在，需重启才不再生效。
 
 (define (preferences-qml-restart-relevant? key changed-assoc)
-  (if (or (member key preferences-qml-restart-keys)
-        (and (== key (pref-keyboard-emoji-keyboard))
-          (== (cdr (assoc key changed-assoc)) "off")
-        ) ;and
-      ) ;or
+  (if
+    (or (member key preferences-qml-restart-keys)
+      (and (== key (pref-keyboard-emoji-keyboard))
+        (== (cdr (assoc key changed-assoc)) "off")
+      ) ;and
+    ) ;or
     #t
     #f
   ) ;if
@@ -1108,59 +1109,61 @@
 ;; Convert tab 额外携带子 tab（sub-tabs）：sub-tabs 为 list of (sub-key sub-label sub-fields)。
 
 (tm-define (preferences-qml-meta)
-  (let ((meta (list (list "general"
-                      (translate "General")
-                      (preferences-qml-build-tab preferences-qml-general-fields)
+  (let ((meta
+          (list (list "general"
+                  (translate "General")
+                  (preferences-qml-build-tab preferences-qml-general-fields)
+                ) ;list
+            (list "keyboard"
+              (translate "Keyboard")
+              (preferences-qml-build-tab preferences-qml-keyboard-fields)
+            ) ;list
+            (list "mathematics"
+              (translate "Mathematics")
+              (preferences-qml-build-tab preferences-qml-math-fields)
+            ) ;list
+            (list "convert"
+              (translate "Convert")
+              '()
+              (list-filter
+                (list (list "html"
+                        (translate "Html")
+                        (preferences-qml-build-tab preferences-qml-convert-html-fields)
+                      ) ;list
+                  (list "latex"
+                    (translate "LaTeX")
+                    (preferences-qml-build-tab preferences-qml-convert-latex-fields)
+                  ) ;list
+                  (list "bibtex"
+                    (translate "BibTeX")
+                    (preferences-qml-build-tab preferences-qml-convert-bibtex-fields)
+                  ) ;list
+                  (list "verbatim"
+                    (translate "Verbatim")
+                    (preferences-qml-build-tab preferences-qml-convert-verbatim-fields)
+                  ) ;list
+                  (if (or (supports-native-pdf?) (supports-ghostscript?))
+                    (list "pdf"
+                      (translate "Pdf")
+                      (preferences-qml-build-tab preferences-qml-convert-pdf-fields)
                     ) ;list
-                (list "keyboard"
-                  (translate "Keyboard")
-                  (preferences-qml-build-tab preferences-qml-keyboard-fields)
+                    #f
+                  ) ;if
+                  (list "image"
+                    (translate "Image")
+                    (preferences-qml-build-tab preferences-qml-convert-image-fields)
+                  ) ;list
                 ) ;list
-                (list "mathematics"
-                  (translate "Mathematics")
-                  (preferences-qml-build-tab preferences-qml-math-fields)
-                ) ;list
-                (list "convert"
-                  (translate "Convert")
-                  '()
-                  (list-filter (list (list "html"
-                                       (translate "Html")
-                                       (preferences-qml-build-tab preferences-qml-convert-html-fields)
-                                     ) ;list
-                                 (list "latex"
-                                   (translate "LaTeX")
-                                   (preferences-qml-build-tab preferences-qml-convert-latex-fields)
-                                 ) ;list
-                                 (list "bibtex"
-                                   (translate "BibTeX")
-                                   (preferences-qml-build-tab preferences-qml-convert-bibtex-fields)
-                                 ) ;list
-                                 (list "verbatim"
-                                   (translate "Verbatim")
-                                   (preferences-qml-build-tab preferences-qml-convert-verbatim-fields)
-                                 ) ;list
-                                 (if (or (supports-native-pdf?) (supports-ghostscript?))
-                                   (list "pdf"
-                                     (translate "Pdf")
-                                     (preferences-qml-build-tab preferences-qml-convert-pdf-fields)
-                                   ) ;list
-                                   #f
-                                 ) ;if
-                                 (list "image"
-                                   (translate "Image")
-                                   (preferences-qml-build-tab preferences-qml-convert-image-fields)
-                                 ) ;list
-                               ) ;list
-                    identity
-                  ) ;list-filter
-                ) ;list
-                (list "other"
-                  (translate "Other")
-                  (append (preferences-qml-build-tab preferences-qml-other-misc-fields)
-                    (preferences-qml-build-tab preferences-qml-other-experimental-fields)
-                  ) ;append
-                ) ;list
-              ) ;list
+                identity
+              ) ;list-filter
+            ) ;list
+            (list "other"
+              (translate "Other")
+              (append (preferences-qml-build-tab preferences-qml-other-misc-fields)
+                (preferences-qml-build-tab preferences-qml-other-experimental-fields)
+              ) ;append
+            ) ;list
+          ) ;list
         ) ;meta
        ) ;
     (when (not preferences-qml-field-kind-table-initialized?)
@@ -1209,38 +1212,39 @@
             (restart-preference-title (car restart-changed))
             (with choice
               (cpp-confirm-restart title (restart-effect-message))
-              (cond ((== choice "restart")
-                     ;; 非重启键实时 apply；重启键走 silent（不实时切）——实时切 language
-                     ;; 等会立即触发 Qt 输入法/菜单重建，在 restart-TeXmacs 真正执行前
-                     ;; SIGSEGV。既然紧接着重启，silent 写值后重启加载新值，效果等价。
-                     (for (key non-restart-changed)
-                       (preferences-qml-set-field key (cdr (assoc key changed-assoc)))
-                     ) ;for
-                     (for (key restart-changed)
-                       (preferences-qml-set-field-silent key (cdr (assoc key changed-assoc)))
-                     ) ;for
-                     (when (not (defined? 'save-all-buffers))
-                       (use-modules (autosave plugin))
-                     ) ;when
-                     (save-all-buffers)
-                     (restart-TeXmacs)
-                     "restart"
-                    ) ;
-                    ((== choice "later")
-                     ;; 非重启字段：普通 setter 实时生效；重启字段：silent 写值（下次启动生效）。
-                     (for (key non-restart-changed)
-                       (preferences-qml-set-field key (cdr (assoc key changed-assoc)))
-                     ) ;for
-                     (for (key restart-changed)
-                       (preferences-qml-set-field-silent key (cdr (assoc key changed-assoc)))
-                     ) ;for
-                     "later"
-                    ) ;
-                    (else
-                      ;; cancel：什么都不 apply。先确认再 apply 的好处——重启字段改动尚未 apply，
-                      ;; 故无需回滚；非重启字段也未 apply（与「先确认再 apply」的语义一致）。
-                      "cancel"
-                    ) ;else
+              (cond
+               ((== choice "restart")
+                ;; 非重启键实时 apply；重启键走 silent（不实时切）——实时切 language
+                ;; 等会立即触发 Qt 输入法/菜单重建，在 restart-TeXmacs 真正执行前
+                ;; SIGSEGV。既然紧接着重启，silent 写值后重启加载新值，效果等价。
+                (for (key non-restart-changed)
+                  (preferences-qml-set-field key (cdr (assoc key changed-assoc)))
+                ) ;for
+                (for (key restart-changed)
+                  (preferences-qml-set-field-silent key (cdr (assoc key changed-assoc)))
+                ) ;for
+                (when (not (defined? 'save-all-buffers))
+                  (use-modules (autosave plugin))
+                ) ;when
+                (save-all-buffers)
+                (restart-TeXmacs)
+                "restart"
+               ) ;
+               ((== choice "later")
+                ;; 非重启字段：普通 setter 实时生效；重启字段：silent 写值（下次启动生效）。
+                (for (key non-restart-changed)
+                  (preferences-qml-set-field key (cdr (assoc key changed-assoc)))
+                ) ;for
+                (for (key restart-changed)
+                  (preferences-qml-set-field-silent key (cdr (assoc key changed-assoc)))
+                ) ;for
+                "later"
+               ) ;
+               (else
+                 ;; cancel：什么都不 apply。先确认再 apply 的好处——重启字段改动尚未 apply，
+                 ;; 故无需回滚；非重启字段也未 apply（与「先确认再 apply」的语义一致）。
+                 "cancel"
+               ) ;else
               ) ;cond
             ) ;with
           ) ;with
@@ -1337,13 +1341,14 @@
 ;; bridge callAction(name) 透传到本模块的 preferences-qml-call-action 执行。
 
 (tm-define (preferences-qml-call-action name)
-  (cond ((== name "open-auto-backup-location")
-         (when (not (defined? 'open-auto-backup-location))
-           (use-modules (autosave plugin))
-         ) ;when
-         (when (defined? 'open-auto-backup-location)
-           (open-auto-backup-location)
-         ) ;when
-        ) ;
+  (cond
+   ((== name "open-auto-backup-location")
+    (when (not (defined? 'open-auto-backup-location))
+      (use-modules (autosave plugin))
+    ) ;when
+    (when (defined? 'open-auto-backup-location)
+      (open-auto-backup-location)
+    ) ;when
+   ) ;
   ) ;cond
 ) ;tm-define

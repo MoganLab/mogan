@@ -37,22 +37,23 @@
 
 (define (maxima-output-simplify t)
   ;; (display* "Simplify " t "\n")
-  (cond ((and (func? t 'concat) (> (length t) 2) (maxima-prompt? (cadr t)))
-         (plugin-output-std-simplify "maxima" (cons 'concat (cddr t)))
-        ) ;
-        ((match? t '(with "math-display" "true" :%1)) (maxima-output-simplify (cAr t)))
-        ((match? t '(with "mode" "math" "math-display" "true" :%1))
-         `(math ,(maxima-output-simplify (cAr t)))
-        ) ;
-        ((func? t 'text 1) `(text ,(maxima-output-simplify (cAr t))))
-        ((func? t 'math 1) `(math ,(maxima-output-simplify (cAr t))))
-        ((func? t 'with 1) (maxima-output-simplify (cAr t)))
-        ((func? t 'with) (rcons (cDr t) (maxima-output-simplify (cAr t))))
-        ((and (func? t 'concat) (pair? (cdr t)) (maxima-spaces? (cadr t)))
-         (maxima-output-simplify (cons (car t) (cddr t)))
-        ) ;
-        ((func? t 'concat) (apply tmconcat (map maxima-output-simplify (cdr t))))
-        (else (plugin-output-std-simplify "maxima" t))
+  (cond
+   ((and (func? t 'concat) (> (length t) 2) (maxima-prompt? (cadr t)))
+    (plugin-output-std-simplify "maxima" (cons 'concat (cddr t)))
+   ) ;
+   ((match? t '(with "math-display" "true" :%1)) (maxima-output-simplify (cAr t)))
+   ((match? t '(with "mode" "math" "math-display" "true" :%1))
+    `(math ,(maxima-output-simplify (cAr t)))
+   ) ;
+   ((func? t 'text 1) `(text ,(maxima-output-simplify (cAr t))))
+   ((func? t 'math 1) `(math ,(maxima-output-simplify (cAr t))))
+   ((func? t 'with 1) (maxima-output-simplify (cAr t)))
+   ((func? t 'with) (rcons (cDr t) (maxima-output-simplify (cAr t))))
+   ((and (func? t 'concat) (pair? (cdr t)) (maxima-spaces? (cadr t)))
+    (maxima-output-simplify (cons (car t) (cddr t)))
+   ) ;
+   ((func? t 'concat) (apply tmconcat (map maxima-output-simplify (cdr t))))
+   (else (plugin-output-std-simplify "maxima" t))
   ) ;cond
 ) ;define
 

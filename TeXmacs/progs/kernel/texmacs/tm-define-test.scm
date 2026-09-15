@@ -22,8 +22,7 @@
 ) ;define
 
 (tm-define (test-tm-define-procedure)
-  :synopsis
-  "Test procedure defined via tm-define"
+  :synopsis "Test procedure defined via tm-define"
   (display "This is a test procedure defined with tm-define\n")
 ) ;tm-define
 

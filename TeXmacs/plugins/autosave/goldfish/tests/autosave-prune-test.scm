@@ -52,7 +52,8 @@
 ;; 辅助:清空 dir 下所有 .tmu,然后 rmdir
 
 (define (wipe dir)
-  (for-each (lambda (n) (when (string-suffix? ".tmu" n) (path-unlink (path-join dir n) #t)))
+  (for-each
+    (lambda (n) (when (string-suffix? ".tmu" n) (path-unlink (path-join dir n) #t)))
     (vector->list (path-list dir))
   ) ;for-each
   (path-rmdir dir)
@@ -64,9 +65,10 @@
     (wipe base)
   ) ;when
   (mkdir (path->string base))
-  (for-each (lambda (n)
-              (touch-tmu base (string-append "2026010" (number->string n) "_120000"))
-            ) ;lambda
+  (for-each
+    (lambda (n)
+      (touch-tmu base (string-append "2026010" (number->string n) "_120000"))
+    ) ;lambda
     (list 0 1 2 3 4 5 6 7 8 9 10)
   ) ;for-each
   (check (count-tmu base) => 11)
@@ -83,9 +85,10 @@
     (wipe base)
   ) ;when
   (mkdir (path->string base))
-  (for-each (lambda (n)
-              (touch-tmu base (string-append "2026010" (number->string n) "_120000"))
-            ) ;lambda
+  (for-each
+    (lambda (n)
+      (touch-tmu base (string-append "2026010" (number->string n) "_120000"))
+    ) ;lambda
     (list 0 1 2 3 4 5 6 7 8 9)
   ) ;for-each
   (check (count-tmu base) => autosave-keep-max)
@@ -102,9 +105,10 @@
     (wipe base)
   ) ;when
   (mkdir (path->string base))
-  (for-each (lambda (n)
-              (touch-tmu base (string-append "2026010" (number->string n) "_120000"))
-            ) ;lambda
+  (for-each
+    (lambda (n)
+      (touch-tmu base (string-append "2026010" (number->string n) "_120000"))
+    ) ;lambda
     (list 0 1 2)
   ) ;for-each
   (check (count-tmu base) => 3)
@@ -121,15 +125,16 @@
     (wipe base)
   ) ;when
   (mkdir (path->string base))
-  (for-each (lambda (n)
-              (touch-tmu base
-                (string-append "20260"
-                  (if (< n 10) "10" "11")
-                  (if (< n 10) (number->string n) (number->string (- n 10)))
-                  "_120000"
-                ) ;string-append
-              ) ;touch-tmu
-            ) ;lambda
+  (for-each
+    (lambda (n)
+      (touch-tmu base
+        (string-append "20260"
+          (if (< n 10) "10" "11")
+          (if (< n 10) (number->string n) (number->string (- n 10)))
+          "_120000"
+        ) ;string-append
+      ) ;touch-tmu
+    ) ;lambda
     (list 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19)
   ) ;for-each
   (check (count-tmu base) => 20)

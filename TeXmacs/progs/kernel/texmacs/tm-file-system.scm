@@ -217,19 +217,20 @@
   (with (class name)
     (tmfs-decompose-name u)
     (lazy-tmfs-force class)
-    (cond ((ahash-ref tmfs-handler-table (cons class 'load))
-           =>
-           (lambda (handler)
-             (with r (handler name) (if (string? r) r (object->tmstring r)))
-           ) ;lambda
-          ) ;
-          ((ahash-ref tmfs-handler-table (cons #t 'load))
-           =>
-           (lambda (handler)
-             (with r (handler name) (if (string? r) r (object->tmstring r)))
-           ) ;lambda
-          ) ;
-          (else "")
+    (cond
+     ((ahash-ref tmfs-handler-table (cons class 'load))
+      =>
+      (lambda (handler)
+        (with r (handler name) (if (string? r) r (object->tmstring r)))
+      ) ;lambda
+     ) ;
+     ((ahash-ref tmfs-handler-table (cons #t 'load))
+      =>
+      (lambda (handler)
+        (with r (handler name) (if (string? r) r (object->tmstring r)))
+      ) ;lambda
+     ) ;
+     (else "")
     ) ;cond
   ) ;with
 ) ;define-public
@@ -258,11 +259,12 @@
   (with (class name)
     (tmfs-decompose-name u)
     (lazy-tmfs-force class)
-    (cond ((ahash-ref tmfs-handler-table (cons class 'save))
-           =>
-           (lambda (handler) (handler name (tmstring->object what)))
-          ) ;
-          (else ((ahash-ref tmfs-handler-table (cons #t 'save)) u what))
+    (cond
+     ((ahash-ref tmfs-handler-table (cons class 'save))
+      =>
+      (lambda (handler) (handler name (tmstring->object what)))
+     ) ;
+     (else ((ahash-ref tmfs-handler-table (cons #t 'save)) u what))
     ) ;cond
   ) ;with
 ) ;define-public
@@ -473,23 +475,24 @@
   (with (class name)
     (tmfs-decompose-name u)
     (lazy-tmfs-force class)
-    (cond ((and (string-ends? (url->unix u) "~")
-             (not (tmfs-autosave (url-unglue u 1) "~"))
-           ) ;and
-           #f
-          ) ;
-          ((and (string-ends? (url->unix u) "#")
-             (not (tmfs-autosave (url-unglue u 1) "#"))
-           ) ;and
-           #f
-          ) ;
-          ((ahash-ref tmfs-handler-table (cons class 'permission?))
-           =>
-           (lambda (handler) (handler name type))
-          ) ;
-          ((tmfs-wrap u) ((ahash-ref tmfs-handler-table (cons #t 'permission?)) u type))
-          ((ahash-ref tmfs-handler-table (cons class 'load)) (== type "read"))
-          (else ((ahash-ref tmfs-handler-table (cons #t 'permission?)) u type))
+    (cond
+     ((and (string-ends? (url->unix u) "~")
+        (not (tmfs-autosave (url-unglue u 1) "~"))
+      ) ;and
+      #f
+     ) ;
+     ((and (string-ends? (url->unix u) "#")
+        (not (tmfs-autosave (url-unglue u 1) "#"))
+      ) ;and
+      #f
+     ) ;
+     ((ahash-ref tmfs-handler-table (cons class 'permission?))
+      =>
+      (lambda (handler) (handler name type))
+     ) ;
+     ((tmfs-wrap u) ((ahash-ref tmfs-handler-table (cons #t 'permission?)) u type))
+     ((ahash-ref tmfs-handler-table (cons class 'load)) (== type "read"))
+     (else ((ahash-ref tmfs-handler-table (cons #t 'permission?)) u type))
     ) ;cond
   ) ;with
 ) ;define-public
@@ -1210,7 +1213,8 @@
 (define-public (tmfs-document t)
   (with doc
     (tm->stree t)
-    (if (and (tm-func? doc 'document) (not (tm-func? (tm-ref doc 0) 'TeXmacs)))
+    (if
+      (and (tm-func? doc 'document) (not (tm-func? (tm-ref doc 0) 'TeXmacs)))
       `(document (TeXmacs ,(texmacs-version)) ,@(cdr doc))
       doc
     ) ;if

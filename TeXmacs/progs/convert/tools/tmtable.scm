@@ -21,18 +21,19 @@
 
 (tm-define (tmtable-normalize t)
   (:synopsis "Normalization of the table @t")
-  (cond ((func? t 'tformat)
-         (with u
-           (tmtable-normalize (cAr t))
-           (if (func? u 'tformat)
-             (append (cDr t) (cDdr u) (list (cAr u)))
-             (rcons (cDr t) u)
-           ) ;if
-         ) ;with
-        ) ;
-        ((func? t 'document 1) (tmtable-normalize (cadr t)))
-        ((func? t 'table) t)
-        (else (texmacs-error "tmtable-normalize" "~S is not a table" t))
+  (cond
+   ((func? t 'tformat)
+    (with u
+      (tmtable-normalize (cAr t))
+      (if (func? u 'tformat)
+        (append (cDr t) (cDdr u) (list (cAr u)))
+        (rcons (cDr t) u)
+      ) ;if
+    ) ;with
+   ) ;
+   ((func? t 'document 1) (tmtable-normalize (cadr t)))
+   ((func? t 'table) t)
+   (else (texmacs-error "tmtable-normalize" "~S is not a table" t))
   ) ;cond
 ) ;tm-define
 
@@ -68,28 +69,30 @@
 
 (define (tmrow-complete r n)
   "Complete the row @r with empty strings to become at least @n columns wide"
-  (cond ((func? r 'tformat) (rcons (cDr r) (tmrow-complete (cAr r) n)))
-        ((== r '(row)) (cons 'row (make-list (max n 0) '(cell ""))))
-        ((func? r 'row)
-         (with next
-           (tmrow-complete (cons 'row (cddr r)) (- n 1))
-           (cons* 'row (cadr r) (cdr next))
-         ) ;with
-        ) ;
-        (else (texmacs-error "tmrow-complete" "~S is not a row" r))
+  (cond
+   ((func? r 'tformat) (rcons (cDr r) (tmrow-complete (cAr r) n)))
+   ((== r '(row)) (cons 'row (make-list (max n 0) '(cell ""))))
+   ((func? r 'row)
+    (with next
+      (tmrow-complete (cons 'row (cddr r)) (- n 1))
+      (cons* 'row (cadr r) (cdr next))
+    ) ;with
+   ) ;
+   (else (texmacs-error "tmrow-complete" "~S is not a row" r))
   ) ;cond
 ) ;define
 
 (tm-define (tmtable-complete t)
   (:synopsis "Completes missing cells on rows of @t with empty strings")
-  (cond ((func? t 'tformat) (rcons (cDr t) (tmtable-complete (cAr t))))
-        ((func? t 'table)
-         (with cols
-           (apply max (map tmrow-cols (cdr t)))
-           (cons 'table (map (cut tmrow-complete <> cols) (cdr t)))
-         ) ;with
-        ) ;
-        (else (texmacs-error "tmtable-complete" "~S is not a table" t))
+  (cond
+   ((func? t 'tformat) (rcons (cDr t) (tmtable-complete (cAr t))))
+   ((func? t 'table)
+    (with cols
+      (apply max (map tmrow-cols (cdr t)))
+      (cons 'table (map (cut tmrow-complete <> cols) (cdr t)))
+    ) ;with
+   ) ;
+   (else (texmacs-error "tmtable-complete" "~S is not a table" t))
   ) ;cond
 ) ;tm-define
 
@@ -113,8 +116,12 @@
     '(tmformat (row))
     (let* ((cell (tmcell-format-up (car l)))
            (snr (number->string nr))
-           (fun (lambda (x) `(cwith ,snr ,snr ,@(cdr x))))
-           (head `(tformat ,@(map fun (cDdr cell)) (row ,(cAr cell))))
+           (fun
+             (lambda (x) `(cwith ,snr ,snr ,@(cdr x)))
+           ) ;fun
+           (head
+             `(tformat ,@(map fun (cDdr cell)) (row ,(cAr cell)))
+           ) ;head
           ) ;
       (tmrow-append head (tmrow-format-up-sub (cdr l) (+ nr 1)))
     ) ;let*
@@ -123,9 +130,10 @@
 
 (define (tmrow-format-up r)
   "Raise tformat tags in cells and cells of @r to the upmost level"
-  (cond ((func? r 'tformat) (with s (tmrow-format-up (cAr r)) (append (cDr r) (cdr s))))
-        ((func? r 'row) (tmrow-format-up-sub (cdr r) 1))
-        (else (texmacs-error "tmrow-format-up" "~S is not a row" r))
+  (cond
+   ((func? r 'tformat) (with s (tmrow-format-up (cAr r)) (append (cDr r) (cdr s))))
+   ((func? r 'row) (tmrow-format-up-sub (cdr r) 1))
+   (else (texmacs-error "tmrow-format-up" "~S is not a row" r))
   ) ;cond
 ) ;define
 
@@ -138,8 +146,12 @@
     '(tmformat (table))
     (let* ((row (tmrow-format-up (car l)))
            (snr (number->string nr))
-           (fun (lambda (x) `(cwith ,snr ,snr ,@(cdr x))))
-           (head `(tformat ,@(map fun (cDdr row)) (table ,(cAr row))))
+           (fun
+             (lambda (x) `(cwith ,snr ,snr ,@(cdr x)))
+           ) ;fun
+           (head
+             `(tformat ,@(map fun (cDdr row)) (table ,(cAr row)))
+           ) ;head
           ) ;
       (tmtable-append head (tmtable-format-up-sub (cdr l) (+ nr 1)))
     ) ;let*
@@ -148,11 +160,12 @@
 
 (tm-define (tmtable-format-up t)
   (:synopsis "Raise tformat tags in rows and cells of @t to the upmost level")
-  (cond ((func? t 'tformat)
-         (with u (tmtable-format-up (cAr t)) (append (cDr t) (cdr u)))
-        ) ;
-        ((func? t 'table) (tmtable-format-up-sub (cdr t) 1))
-        (else (texmacs-error "tmtable-format-up" "~S is not a table" t))
+  (cond
+   ((func? t 'tformat)
+    (with u (tmtable-format-up (cAr t)) (append (cDr t) (cdr u)))
+   ) ;
+   ((func? t 'table) (tmtable-format-up-sub (cdr t) 1))
+   (else (texmacs-error "tmtable-format-up" "~S is not a table" t))
   ) ;cond
 ) ;tm-define
 
@@ -173,18 +186,19 @@
         ((not (func? l 'cwith 6))
          (cons (car l) (tmtformat-positive (cdr l) nrrows nrcols))
         ) ;
-        (else (with c
-                (car l)
-                (cons (cons* 'cwith
-                        (tmindex-positive (second c) nrrows)
-                        (tmindex-positive (third c) nrrows)
-                        (tmindex-positive (fourth c) nrcols)
-                        (tmindex-positive (fifth c) nrcols)
-                        (cddddr (cdr c))
-                      ) ;cons*
-                  (tmtformat-positive (cdr l) nrrows nrcols)
-                ) ;cons
-              ) ;with
+        (else
+          (with c
+            (car l)
+            (cons (cons* 'cwith
+                    (tmindex-positive (second c) nrrows)
+                    (tmindex-positive (third c) nrrows)
+                    (tmindex-positive (fourth c) nrcols)
+                    (tmindex-positive (fifth c) nrcols)
+                    (cddddr (cdr c))
+                  ) ;cons*
+              (tmtformat-positive (cdr l) nrrows nrcols)
+            ) ;cons
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define
@@ -192,13 +206,14 @@
 (tm-define (tmtable-positive t)
   (:synopsis "Transform negative indices in table format into positive ones")
   ;; NOTE: assumes format of t to be raised upwards
-  (cond ((func? t 'tformat)
-         (let* ((rows (tmtable-rows t)) (cols (tmtable-cols t)))
-           (rcons (tmformat-positive (cDr t) rows cols) (tmtable-positive (cAr t)))
-         ) ;let*
-        ) ;
-        ((func? t 'table) t)
-        (else (texmacs-error "tmtable-positive" "~S is not a table" t))
+  (cond
+   ((func? t 'tformat)
+    (let* ((rows (tmtable-rows t)) (cols (tmtable-cols t)))
+      (rcons (tmformat-positive (cDr t) rows cols) (tmtable-positive (cAr t)))
+    ) ;let*
+   ) ;
+   ((func? t 'table) t)
+   (else (texmacs-error "tmtable-positive" "~S is not a table" t))
   ) ;cond
 ) ;tm-define
 
@@ -258,13 +273,14 @@
 (tm-define (tmtable-formats t)
   (:synopsis "Find table-, column-, row- and cell- format lists of @t")
   ;; NOTE: assumes format of t to be raised upwards
-  (cond ((func? t 'tformat)
-         (let* ((rows (tmtable-rows t)) (cols (tmtable-cols t)))
-           (tmtformat-formats (cDdr t) rows cols)
-         ) ;let*
-        ) ;
-        ((func? t 'table) (values '() '() '() '()))
-        (else (texmacs-error "tmtable-formats" "~S is not a table" t))
+  (cond
+   ((func? t 'tformat)
+    (let* ((rows (tmtable-rows t)) (cols (tmtable-cols t)))
+      (tmtformat-formats (cDdr t) rows cols)
+    ) ;let*
+   ) ;
+   ((func? t 'table) (values '() '() '() '()))
+   (else (texmacs-error "tmtable-formats" "~S is not a table" t))
   ) ;cond
 ) ;tm-define
 
@@ -309,7 +325,10 @@
   "Extract list of column property lists from column format list"
   ;; The column format list is the second result of a call to tmtformat-formats
   (with r
-    (map (lambda (x) (and (func? x 'cwith 6) (cons 'cwith (cdddr x)))) l)
+    (map
+      (lambda (x) (and (func? x 'cwith 6) (cons 'cwith (cdddr x))))
+      l
+    ) ;map
     (tmtformat-props-list r 1 nr-cols)
   ) ;with
 ) ;define

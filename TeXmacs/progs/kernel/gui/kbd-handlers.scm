@@ -42,20 +42,21 @@
 
 (tm-define (delayed-keyboard-press x t)
   (set! delayed-keyboard-time t)
-  (exec-delayed-pause (lambda ()
-                        (or (!= delayed-keyboard-time t)
-                          (with left
-                            (- 100 (idle-time))
-                            (if (> left 0)
-                              left
-                              (begin
-                                (set! delayed-keyboard-time #f)
-                                (keyboard-press x t)
-                                #t
-                              ) ;begin
-                            ) ;if
-                          ) ;with
-                        ) ;or
-                      ) ;lambda
+  (exec-delayed-pause
+    (lambda ()
+      (or (!= delayed-keyboard-time t)
+        (with left
+          (- 100 (idle-time))
+          (if (> left 0)
+            left
+            (begin
+              (set! delayed-keyboard-time #f)
+              (keyboard-press x t)
+              #t
+            ) ;begin
+          ) ;if
+        ) ;with
+      ) ;or
+    ) ;lambda
   ) ;exec-delayed-pause
 ) ;tm-define

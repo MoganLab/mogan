@@ -49,26 +49,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tree-common-left t1 t2)
-  (cond ((and (tm-compound? t1) (tm-compound? t2))
-         (list-common-left (cdr (tm->list t1)) (cdr (tm->list t2)))
-        ) ;
-        ((and (tm-atomic? t1) (tm-atomic? t2))
-         (list-common-left (string->list (tm->string t1)) (string->list (tm->string t2)))
-        ) ;
-        (else 0)
+  (cond
+   ((and (tm-compound? t1) (tm-compound? t2))
+    (list-common-left (cdr (tm->list t1)) (cdr (tm->list t2)))
+   ) ;
+   ((and (tm-atomic? t1) (tm-atomic? t2))
+    (list-common-left (string->list (tm->string t1)) (string->list (tm->string t2)))
+   ) ;
+   (else 0)
   ) ;cond
 ) ;define
 
 (define (tree-common-right t1 t2)
-  (cond ((and (tm-compound? t1) (tm-compound? t2))
-         (list-common-right (cdr (tm->list t1)) (cdr (tm->list t2)))
-        ) ;
-        ((and (tm-atomic? t1) (tm-atomic? t2))
-         (list-common-right (string->list (tm->string t1))
-           (string->list (tm->string t2))
-         ) ;list-common-right
-        ) ;
-        (else 0)
+  (cond
+   ((and (tm-compound? t1) (tm-compound? t2))
+    (list-common-right (cdr (tm->list t1)) (cdr (tm->list t2)))
+   ) ;
+   ((and (tm-atomic? t1) (tm-atomic? t2))
+    (list-common-right (string->list (tm->string t1))
+      (string->list (tm->string t2))
+    ) ;list-common-right
+   ) ;
+   (else 0)
   ) ;cond
 ) ;define
 
@@ -142,21 +144,22 @@
            (tree-remove! ref l (- (- (tm-arity ref) r) l))
            (if (== (tm-car ref) (tm-car t)) ref (tree-assign-node! ref (tm-car t)))
           ) ;
-          (else (with pos
-                  (tree-focus-index ref (tm-cdr t))
-                  (if (or (not pos) (tree-is-buffer? ref))
-                    (tree-assign! ref t)
-                    (let* ((tl (tm->list t))
-                           (head (list-head tl (+ pos 1)))
-                           (mid (list-ref tl (+ pos 1)))
-                           (tail (list-tail tl (+ pos 2)))
-                           (merged (append head tail))
-                          ) ;
-                      (set! ref (tree-set-diff ref mid))
-                      (tree-insert-node! ref pos merged)
-                    ) ;let*
-                  ) ;if
-                ) ;with
+          (else
+            (with pos
+              (tree-focus-index ref (tm-cdr t))
+              (if (or (not pos) (tree-is-buffer? ref))
+                (tree-assign! ref t)
+                (let* ((tl (tm->list t))
+                       (head (list-head tl (+ pos 1)))
+                       (mid (list-ref tl (+ pos 1)))
+                       (tail (list-tail tl (+ pos 2)))
+                       (merged (append head tail))
+                      ) ;
+                  (set! ref (tree-set-diff ref mid))
+                  (tree-insert-node! ref pos merged)
+                ) ;let*
+              ) ;if
+            ) ;with
           ) ;else
     ) ;cond
   ) ;let*
@@ -265,11 +268,15 @@
 ) ;tm-define-macro
 
 (tm-define (tree-start t . l)
-  (path->tree (cDr (apply tree->path (rcons (cons t l) :start))))
+  (path->tree
+    (cDr (apply tree->path (rcons (cons t l) :start)))
+  ) ;path->tree
 ) ;tm-define
 
 (tm-define (tree-end t . l)
-  (path->tree (cDr (apply tree->path (rcons (cons t l) :end))))
+  (path->tree
+    (cDr (apply tree->path (rcons (cons t l) :end)))
+  ) ;path->tree
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -278,11 +285,12 @@
 
 (tm-define (tree-search-upwards t what)
   (:synopsis "Find ancestor of @t which matches @what")
-  (cond ((list? what) (tree-search-upwards t (lambda (x) (in? (tree-label x) what))))
-        ((symbol? what) (tree-search-upwards t (lambda (x) (== (tree-label x) what))))
-        ((and (procedure? what) (what t)) t)
-        ((or (tree-is-buffer? t) (not (tree-up t))) #f)
-        (else (tree-search-upwards (tree-up t) what))
+  (cond
+   ((list? what) (tree-search-upwards t (lambda (x) (in? (tree-label x) what))))
+   ((symbol? what) (tree-search-upwards t (lambda (x) (== (tree-label x) what))))
+   ((and (procedure? what) (what t)) t)
+   ((or (tree-is-buffer? t) (not (tree-up t))) #f)
+   (else (tree-search-upwards (tree-up t) what))
   ) ;cond
 ) ;tm-define
 
@@ -310,28 +318,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (tree-replace t what by)
-  (cond ((and (procedure? what) (procedure? by))
-         (if (what t)
-           (by t)
-           (if (tree-compound? t)
-             (for-each (lambda (u) (tree-replace u what by)) (tree-children t))
-           ) ;if
-         ) ;if
-        ) ;
-        ((symbol? what) (tree-replace t (lambda (u) (tree-is? u what)) by))
-        ((symbol? by)
-         (tree-replace t
-           what
-           (lambda (u) (if (tree-compound? u) (tree-assign-node u by)))
-         ) ;tree-replace
-        ) ;
-        (else (let* ((w (tm->tree what)) (b (tm->tree by)))
-                (tree-replace t
-                  (lambda (u) (== u w))
-                  (lambda (u) (tree-assign u (tree-copy b)))
-                ) ;tree-replace
-              ) ;let*
-        ) ;else
+  (cond
+   ((and (procedure? what) (procedure? by))
+    (if (what t)
+      (by t)
+      (if (tree-compound? t)
+        (for-each (lambda (u) (tree-replace u what by)) (tree-children t))
+      ) ;if
+    ) ;if
+   ) ;
+   ((symbol? what) (tree-replace t (lambda (u) (tree-is? u what)) by))
+   ((symbol? by)
+    (tree-replace t
+      what
+      (lambda (u) (if (tree-compound? u) (tree-assign-node u by)))
+    ) ;tree-replace
+   ) ;
+   (else
+     (let* ((w (tm->tree what)) (b (tm->tree by)))
+       (tree-replace t
+         (lambda (u) (== u w))
+         (lambda (u) (tree-assign u (tree-copy b)))
+       ) ;tree-replace
+     ) ;let*
+   ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -441,7 +451,10 @@
 
 (tm-define (update-tree t . l)
   (:synopsis "Re-typeset and render the tree @(tree-ref t . l)")
-  (and-let* ((u (apply tree-ref (cons t l))) (p (tree->path u))) (update-path p))
+  (and-let*
+   ((u (apply tree-ref (cons t l))) (p (tree->path u)))
+   (update-path p)
+  ) ;and-let*
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

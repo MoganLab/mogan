@@ -50,14 +50,19 @@
 ;;; ---------- 文档处理工具 ----------
 
 (tm-define (chat-tab-normalize-document body)
-  (cond ((tree? body)
-         (if (tree-is? body 'document)
-           body
-           (stree->tree `(document ,(tree->stree body)))
-         ) ;if
-        ) ;
-        ((and (pair? body) (eq? (car body) 'document)) (stree->tree body))
-        (else (stree->tree `(document ,body)))
+  (cond
+   ((tree? body)
+    (if (tree-is? body 'document)
+      body
+      (stree->tree
+        `(document ,(tree->stree body))
+      ) ;stree->tree
+    ) ;if
+   ) ;
+   ((and (pair? body) (eq? (car body) 'document)) (stree->tree body))
+   (else
+     (stree->tree `(document ,body))
+   ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -69,8 +74,9 @@
 ) ;define
 
 (tm-define (chat-tab-empty-body? body)
-  (== (string-trim-spaces (chat-tab-flatten-stree (tree->stree (chat-tab-normalize-document body)))
-      ) ;string-trim-spaces
+  (==
+    (string-trim-spaces (chat-tab-flatten-stree (tree->stree (chat-tab-normalize-document body)))
+    ) ;string-trim-spaces
     ""
   ) ;==
 ) ;tm-define
@@ -119,13 +125,14 @@
     (cond ((string? s) #f)
           ((not (pair? s)) #f)
           ((eq? (car s) 'image) #t)
-          (else (let loop
-                  ((rest (cdr s)))
-                  (if (null? rest)
-                    #f
-                    (or (chat-tab-tree-has-image? (car rest)) (loop (cdr rest)))
-                  ) ;if
-                ) ;let
+          (else
+            (let loop
+              ((rest (cdr s)))
+              (if (null? rest)
+                #f
+                (or (chat-tab-tree-has-image? (car rest)) (loop (cdr rest)))
+              ) ;if
+            ) ;let
           ) ;else
     ) ;cond
   ) ;let
@@ -136,13 +143,14 @@
 (tm-define (tree-contains-label? t label)
   (cond ((not (tree? t)) #f)
         ((eq? (tree-label t) label) #t)
-        (else (let loop
-                ((i 0) (n (tree-arity t)))
-                (if (>= i n)
-                  #f
-                  (or (tree-contains-label? (tree-ref t i) label) (loop (+ i 1) n))
-                ) ;if
-              ) ;let
+        (else
+          (let loop
+            ((i 0) (n (tree-arity t)))
+            (if (>= i n)
+              #f
+              (or (tree-contains-label? (tree-ref t i) label) (loop (+ i 1) n))
+            ) ;if
+          ) ;let
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -181,13 +189,14 @@
           ((eq? (tree-label node) 'reasoning-delta)
            (if (> (tree-arity node) 0) (or (tree->stree (tree-ref node 0)) "") "")
           ) ;
-          (else (let loop
-                  ((i 0) (n (tree-arity node)) (acc '()))
-                  (if (>= i n)
-                    (apply string-append (reverse acc))
-                    (loop (+ i 1) n (cons (collect (tree-ref node i)) acc))
-                  ) ;if
-                ) ;let
+          (else
+            (let loop
+              ((i 0) (n (tree-arity node)) (acc '()))
+              (if (>= i n)
+                (apply string-append (reverse acc))
+                (loop (+ i 1) n (cons (collect (tree-ref node i)) acc))
+              ) ;if
+            ) ;let
           ) ;else
     ) ;cond
   ) ;define
@@ -229,7 +238,8 @@
     (with i
       (tree-arity out)
       ;; 跳过 script-busy
-      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+      (if
+        (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
         (set! i (- i 1))
       ) ;if
       ;; 找到 unfolded-explain（直接子节点或在 concat 内）
@@ -283,7 +293,8 @@
     (with i
       (tree-arity out)
       ;; 跳过 script-busy
-      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+      (if
+        (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
         (set! i (- i 1))
       ) ;if
       ;; 找到并折叠 unfolded-explain（直接子节点或在 concat 内）
@@ -303,8 +314,14 @@
   (when (tm-func? t 'document)
     (with i
       (tree-arity t)
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
+        (set! i (- i 1))
+      ) ;if
       (when (tm-func? u 'document)
         (tree-insert! t i (var-tree-children u))
         (when chat-tab-focus-ok?
@@ -319,8 +336,12 @@
   (when (tm-func? t 'document)
     (with i
       (tree-arity t)
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
         (set! i (- i 1))
         (tree-insert! t i '((errput (document))))
       ) ;if
@@ -365,19 +386,20 @@
 (tm-define (chat-tab-message-document message-buffer)
   (chat-tab-with-buffer message-buffer
     (let ((doc (buffer-get-body message-buffer)))
-      (cond ((tree-is? doc 'session)
-             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
-            ) ;
-            ((tree-is? doc 'document)
-             ;; body 为 document 时，查找其中的 session 节点
-             (let ((sess (chat-tab-find-session doc)))
-               (if sess (let ((d (tree-ref sess 2))) (if (tree-is? d 'document) d doc)) doc)
-             ) ;let
-            ) ;
-            (else (buffer-set-body message-buffer '(document ""))
-              (buffer-pretend-saved message-buffer)
-              (buffer-get-body message-buffer)
-            ) ;else
+      (cond
+       ((tree-is? doc 'session)
+        (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
+       ) ;
+       ((tree-is? doc 'document)
+        ;; body 为 document 时，查找其中的 session 节点
+        (let ((sess (chat-tab-find-session doc)))
+          (if sess (let ((d (tree-ref sess 2))) (if (tree-is? d 'document) d doc)) doc)
+        ) ;let
+       ) ;
+       (else (buffer-set-body message-buffer '(document ""))
+         (buffer-pretend-saved message-buffer)
+         (buffer-get-body message-buffer)
+       ) ;else
       ) ;cond
     ) ;let
   ) ;chat-tab-with-buffer
@@ -424,10 +446,12 @@
            (prompt (chat-tab-model-prompt model))
            (input-children (chat-tab-body-children body))
            (input-stree (map tree->stree input-children))
-           (io-node (stree->tree `(unfolded-io-text (document ,prompt)
-                                    (document ,@input-stree)
-                                    (document ""))
-                    ) ;stree->tree
+           (io-node
+             (stree->tree
+               `(unfolded-io-text (document ,prompt)
+                  (document ,@input-stree)
+                  (document ""))
+             ) ;stree->tree
            ) ;io-node
           ) ;
       (tree-insert! doc (tree-arity doc) (list io-node))

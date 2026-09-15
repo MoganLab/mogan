@@ -186,13 +186,14 @@
 ;; 4 清除所有token数据
 (tm-define (account-clear-tokens)
   (ensure-data-dir-exists)
-  (for-each (lambda (filename)
-              (let ((data-file (get-account-data-file filename)))
-                (when (url-exists? data-file)
-                  (system-remove data-file)
-                ) ;when
-              ) ;let
-            ) ;lambda
+  (for-each
+    (lambda (filename)
+      (let ((data-file (get-account-data-file filename)))
+        (when (url-exists? data-file)
+          (system-remove data-file)
+        ) ;when
+      ) ;let
+    ) ;lambda
     ACCOUNT_DATA_FILENAME_LIST
   ) ;for-each
 ) ;tm-define

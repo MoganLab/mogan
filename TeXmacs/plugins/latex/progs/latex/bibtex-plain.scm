@@ -31,15 +31,16 @@
 (tm-define (bib-preprocessing t) (:mode bib-plain?) ())
 
 (define (bib-non-breaking x)
-  (cond ((tm-func? x 'concat)
-         (with l (map bib-non-breaking (tm-children x)) (apply tmconcat l))
-        ) ;
-        ((string? x)
-         (let* ((l (string-tokenize-by-char x #\space)) (r (list-intersperse l '(nbsp))))
-           (apply tmconcat r)
-         ) ;let*
-        ) ;
-        (else x)
+  (cond
+   ((tm-func? x 'concat)
+    (with l (map bib-non-breaking (tm-children x)) (apply tmconcat l))
+   ) ;
+   ((string? x)
+    (let* ((l (string-tokenize-by-char x #\space)) (r (list-intersperse l '(nbsp))))
+      (apply tmconcat r)
+    ) ;let*
+   ) ;
+   (else x)
   ) ;cond
 ) ;define
 
@@ -63,9 +64,13 @@
 (tm-define (bib-format-name x)
   ;; (:mode bib-plain?)
   (let* ((ff (bib-format-first-name x))
-         (vv (if (bib-null? (list-ref x 2)) "" `(concat ,(list-ref x 2) (nbsp))))
+         (vv
+           (if (bib-null? (list-ref x 2)) "" `(concat ,(list-ref x 2) (nbsp)))
+         ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
-         (jj (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4))))
+         (jj
+           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+         ) ;jj
         ) ;
     `(concat ,ff ,vv ,ll ,jj)
   ) ;let*
@@ -94,13 +99,16 @@
         (bib-format-name (list-ref a 1))
         (let* ((b (bib-format-name (list-ref a 1)))
                (m (bib-format-names-rec 2 (- n 1) a))
-               (e (if (or (== (list-ref (list-ref a (- n 1)) 3) "others")
-                        (== (list-ref (list-ref a (- n 1)) 4) "others")
-                      ) ;or
-                    '(concat " et" (nbsp) "al")
-                    `(concat ,(bib-last-name-sep a)
-                       ,(bib-format-name (list-ref a (- n 1))))
-                  ) ;if
+               (e
+                 (if
+                   (or
+                     (== (list-ref (list-ref a (- n 1)) 3) "others")
+                     (== (list-ref (list-ref a (- n 1)) 4) "others")
+                   ) ;or
+                   '(concat " et" (nbsp) "al")
+                   `(concat ,(bib-last-name-sep a)
+                      ,(bib-format-name (list-ref a (- n 1))))
+                 ) ;if
                ) ;e
               ) ;
           `(concat ,b ,m ,e)
@@ -150,11 +158,12 @@
   (let* ((v (bib-field x "volume")) (s (bib-default-field x "series")))
     (if (bib-null? v)
       ""
-      (let ((series (if (bib-null? s)
-                      ""
-                      `(concat ,(bib-translate " of ")
-                         (with ,"font-shape" ,"italic" ,s))
-                    ) ;if
+      (let ((series
+              (if (bib-null? s)
+                ""
+                `(concat ,(bib-translate " of ")
+                   (with ,"font-shape" ,"italic" ,s))
+              ) ;if
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
@@ -173,7 +182,9 @@
     (if (bib-null? v)
       (if (bib-null? n)
         (if (bib-null? s) "" s)
-        (let ((series (if (bib-null? s) "" `(concat ,(bib-translate " in ") ,s)))
+        (let ((series
+                (if (bib-null? s) "" `(concat ,(bib-translate " in ") ,s))
+              ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
           `(concat ,(bib-translate "number") ,sep ,n ,series)
@@ -191,10 +202,11 @@
     (cond ((or (bib-null? p) (nlist? p)) "")
           ((== (length p) 1) "")
           ((== (length p) 2) `(concat ,(bib-translate "page ") ,(list-ref p 1)))
-          (else `(concat ,(bib-translate "pages ")
-                   ,(list-ref p 1)
-                   ,bib-range-symbol
-                   ,(list-ref p 2))
+          (else
+            `(concat ,(bib-translate "pages ")
+               ,(list-ref p 1)
+               ,bib-range-symbol
+               ,(list-ref p 2))
           ) ;else
     ) ;cond
   ) ;with
@@ -206,7 +218,9 @@
     (if (bib-null? c)
       (bib-format-pages x)
       (let ((type (if (bib-null? t) (bib-translate "chapter") (bib-locase t)))
-            (pages `(concat ,", " ,(bib-format-pages x)))
+            (pages
+              `(concat ,", " ,(bib-format-pages x))
+            ) ;pages
            ) ;
         `(concat ,type ," " ,c ,pages)
       ) ;let
@@ -220,17 +234,22 @@
          (n (bib-field x "number"))
          (p (bib-field x "pages"))
          (vol (if (bib-null? v) "" v))
-         (num (if (bib-null? n) "" `(concat ,"(" ,n ,")")))
-         (pag (if (or (bib-null? p) (nlist? p))
-                ""
-                (cond ((equal? 1 (length p)) "")
-                      ((equal? 2 (length p)) `(concat ,":" ,(list-ref p 1)))
-                      (else `(concat ,":"
-                               ,(list-ref p 1)
-                               ,bib-range-symbol
-                               ,(list-ref p 2)))
-                ) ;cond
-              ) ;if
+         (num
+           (if (bib-null? n) "" `(concat ,"(" ,n ,")"))
+         ) ;num
+         (pag
+           (if (or (bib-null? p) (nlist? p))
+             ""
+             (cond ((equal? 1 (length p)) "")
+                   ((equal? 2 (length p)) `(concat ,":" ,(list-ref p 1)))
+                   (else
+                     `(concat ,":"
+                        ,(list-ref p 1)
+                        ,bib-range-symbol
+                        ,(list-ref p 2))
+                   ) ;else
+             ) ;cond
+           ) ;if
          ) ;pag
         ) ;
     (if (and (== vol "") (== num "")) (bib-format-pages x) `(concat ,vol
@@ -588,25 +607,29 @@
     ""
     (with name
       (let* ((x (car a))
-             (ff (if (equal? (list-ref x 1) "")
-                   ""
-                   (string-append (bib-purify (list-ref x 1)) " ")
-                 ) ;if
+             (ff
+               (if (equal? (list-ref x 1) "")
+                 ""
+                 (string-append (bib-purify (list-ref x 1)) " ")
+               ) ;if
              ) ;ff
-             (vv (if (equal? (list-ref x 2) "")
-                   ""
-                   (string-append (bib-purify (list-ref x 2)) " ")
-                 ) ;if
+             (vv
+               (if (equal? (list-ref x 2) "")
+                 ""
+                 (string-append (bib-purify (list-ref x 2)) " ")
+               ) ;if
              ) ;vv
-             (ll (if (equal? (list-ref x 3) "")
-                   ""
-                   (string-append (bib-purify (list-ref x 3)) " ")
-                 ) ;if
+             (ll
+               (if (equal? (list-ref x 3) "")
+                 ""
+                 (string-append (bib-purify (list-ref x 3)) " ")
+               ) ;if
              ) ;ll
-             (jj (if (equal? (list-ref x 4) "")
-                   ""
-                   (string-append (bib-purify (list-ref x 4)) " ")
-                 ) ;if
+             (jj
+               (if (equal? (list-ref x 4) "")
+                 ""
+                 (string-append (bib-purify (list-ref x 4)) " ")
+               ) ;if
              ) ;jj
             ) ;
         (string-append vv ll ff jj)
@@ -637,12 +660,13 @@
 (tm-define (bib-sort-key x)
   ;; (:mode bib-plain?)
   (let* ((doctype (list-ref x 1))
-         (pre (cond ((or (equal? doctype "inbook") (equal? doctype "book"))
-                     (author-editor-sort-key x)
-                    ) ;
-                    ((equal? doctype "proceedings") (author-sort-key x "editor"))
-                    (else (author-sort-key x "author"))
-              ) ;cond
+         (pre
+           (cond ((or (equal? doctype "inbook") (equal? doctype "book"))
+                  (author-editor-sort-key x)
+                 ) ;
+                 ((equal? doctype "proceedings") (author-sort-key x "editor"))
+                 (else (author-sort-key x "author"))
+           ) ;cond
          ) ;pre
         ) ;
     (string-append pre

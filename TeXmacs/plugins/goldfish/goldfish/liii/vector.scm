@@ -19,7 +19,9 @@
 
     (define (vector-contains? vec elem . args)
       (let ((cmp (if (null? args) equal? (car args))))
-        (not (not (vector-index (lambda (x) (cmp x elem)) vec)))
+        (not
+          (not (vector-index (lambda (x) (cmp x elem)) vec))
+        ) ;not
       ) ;let
     ) ;define
 

@@ -64,7 +64,9 @@
   (:mode ieee-conf-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
          (result `(,@names ,@urls ,@notes ,@miscs))
-         (result (if (null? result) '() `((!concat ,@result))))
+         (result
+           (if (null? result) '() `((!concat ,@result)))
+         ) ;result
          (result `(,@result ,@affiliations ,@emails))
         ) ;
     (if (null? result) '() `(author (!paragraph ,@result)))
@@ -129,18 +131,24 @@
   (let* ((names (tmtex-concat-Sep (map cadr names)))
          (affs (if clustered? affs (map cadr affs)))
          (authorblockN `(,@names ,@affs* ,@emails* ,@urls ,@notes ,@miscs))
-         (authorblockN (if (null? authorblockN) '() `((IEEEauthorblockN (!concat ,@authorblockN))))
+         (authorblockN
+           (if (null? authorblockN) '() `((IEEEauthorblockN (!concat ,@authorblockN))))
          ) ;authorblockN
          (authorblockA `(,@affs ,@emails))
-         (authorblockA (if clustered?
-                         (map (lambda (x) `(IEEEauthorblockA ,x)) authorblockA)
-                         (list-intersperse authorblockA '(!nextline))
-                       ) ;if
+         (authorblockA
+           (if clustered?
+             (map
+               (lambda (x) `(IEEEauthorblockA ,x))
+               authorblockA
+             ) ;map
+             (list-intersperse authorblockA '(!nextline))
+           ) ;if
          ) ;authorblockA
-         (authorblockA (if (and (not clustered?) (nnull? authorblockA))
-                         `((IEEEauthorblockA (!concat ,@authorblockA)))
-                         authorblockA
-                       ) ;if
+         (authorblockA
+           (if (and (not clustered?) (nnull? authorblockA))
+             `((IEEEauthorblockA (!concat ,@authorblockA)))
+             authorblockA
+           ) ;if
          ) ;authorblockA
         ) ;
     (if (and (null? authorblockN) (null? authorblockA))
@@ -173,15 +181,25 @@
   (if (null? l)
     ()
     (let* ((sep '(!concat (!linefeed)))
-           (names (map (lambda (au) (filter (lambda (x) (== (car x) 'IEEEauthorblockN)) au)) l)
+           (names
+             (map
+               (lambda (au) (filter (lambda (x) (== (car x) 'IEEEauthorblockN)) au))
+               l
+             ) ;map
            ) ;names
            (names (map car (filter nnull? names)))
            (names (tmtex-concat-sep (map cadr names)))
-           (l* (map (lambda (au) (filter (lambda (x) (!= (car x) 'IEEEauthorblockN)) au)) l)
+           (l*
+             (map
+               (lambda (au) (filter (lambda (x) (!= (car x) 'IEEEauthorblockN)) au))
+               l
+             ) ;map
            ) ;l*
            (l* (filter nnull? l*))
            (l* (apply append l*))
-           (names (if (null? names) '() `((IEEEauthorblockN ,@names))))
+           (names
+             (if (null? names) '() `((IEEEauthorblockN ,@names)))
+           ) ;names
            (r `(,@names ,@l*))
           ) ;
       `((author (!indent (!concat ,@(list-intersperse r sep)))))
@@ -255,11 +273,22 @@
 (smart-table latex-texmacs-macro
   (ieeehbar (not "h"))
   (ieeejmath "j")
-  (ieeecoprod (!group (mathop (mbox (reflectbox (rotatebox (!option "origin=c") "180" (!math (prod)))))
-                      ) ;mathop
-              ) ;!group
+  (ieeecoprod
+    (!group
+      (mathop
+        (mbox
+          (reflectbox (rotatebox (!option "origin=c") "180" (!math (prod))))
+        ) ;mbox
+      ) ;mathop
+    ) ;!group
   ) ;ieeecoprod
-  (ieeeamalg (!group (mathop (mbox (reflectbox (rotatebox (!option "origin=c") "180" (!math (Pi))))))
-             ) ;!group
+  (ieeeamalg
+    (!group
+      (mathop
+        (mbox
+          (reflectbox (rotatebox (!option "origin=c") "180" (!math (Pi))))
+        ) ;mbox
+      ) ;mathop
+    ) ;!group
   ) ;ieeeamalg
 ) ;smart-table

@@ -30,20 +30,27 @@
         ((and (func? (car x) 'concat) (== (cAr (car x)) "''") (== s ", "))
          `(concat ,@(cdr (cDr (car x))) ,",'' " ,(new-list-rec s (cdr x)))
         ) ;
-        (else `(concat ,(car x) ,s ,(new-list-rec s (cdr x))))
+        (else
+          `(concat ,(car x) ,s ,(new-list-rec s (cdr x)))
+        ) ;else
   ) ;cond
 ) ;tm-define
 
 (tm-define (bib-format-name x)
   (:mode bib-ieeetr?)
-  (let* ((f (if (bib-null? (list-ref x 1))
-              ""
-              `(concat ,(bib-abbreviate (list-ref x 1) "." '(nbsp)) (nbsp))
-            ) ;if
+  (let* ((f
+           (if (bib-null? (list-ref x 1))
+             ""
+             `(concat ,(bib-abbreviate (list-ref x 1) "." '(nbsp)) (nbsp))
+           ) ;if
          ) ;f
-         (vv (if (bib-null? (list-ref x 2)) "" `(concat ,(list-ref x 2) (nbsp))))
+         (vv
+           (if (bib-null? (list-ref x 2)) "" `(concat ,(list-ref x 2) (nbsp)))
+         ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
-         (jj (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4))))
+         (jj
+           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+         ) ;jj
         ) ;
     `(concat ,f ,vv ,ll ,jj)
   ) ;let*
@@ -73,11 +80,12 @@
   (let* ((v (bib-field x "volume")) (s (bib-field x "series")))
     (if (bib-null? v)
       ""
-      (let ((series (if (bib-null? s)
-                      ""
-                      `(concat ,(bib-translate " of ")
-                         (with ,"font-shape" ,"italic" ,s))
-                    ) ;if
+      (let ((series
+              (if (bib-null? s)
+                ""
+                `(concat ,(bib-translate " of ")
+                   (with ,"font-shape" ,"italic" ,s))
+              ) ;if
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
@@ -96,7 +104,9 @@
     (if (bib-null? v)
       (if (bib-null? n)
         (if (bib-null? s) "" s)
-        (let ((series (if (bib-null? s) "" `(concat ,(bib-translate " in ") ,s)))
+        (let ((series
+                (if (bib-null? s) "" `(concat ,(bib-translate " in ") ,s))
+              ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
           `(concat ,"no." ,sep ,n ,series)
@@ -141,11 +151,13 @@
     (cond ((or (bib-null? p) (nlist? p)) "")
           ((== (length p) 1) "")
           ((== (length p) 2) `(concat ,"p." (nbsp) ,(list-ref p 1)))
-          (else `(concat ,"pp."
-                   (nbsp)
-                   ,(list-ref p 1)
-                   ,bib-range-symbol
-                   ,(list-ref p 2)))
+          (else
+            `(concat ,"pp."
+               (nbsp)
+               ,(list-ref p 1)
+               ,bib-range-symbol
+               ,(list-ref p 2))
+          ) ;else
     ) ;cond
   ) ;with
 ) ;tm-define

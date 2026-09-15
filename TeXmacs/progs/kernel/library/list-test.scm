@@ -155,7 +155,11 @@
   (check (exists? even? '(1 3 4 5)) => #t)
   (check (exists? even? '(1 3 5)) => #f)
   (check (exists? even? '()) => #f)
-  (check (exists? (lambda (x) (and (> x 2) "hit")) '(1 2 3)) => #t)
+  (check
+    (exists? (lambda (x) (and (> x 2) "hit")) '(1 2 3))
+    =>
+    #t
+  ) ;check
 ) ;define
 
 (define (test-exists-errors)

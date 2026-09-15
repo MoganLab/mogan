@@ -109,12 +109,13 @@
       ;; First try to get from init-env (memory), then from document tree (file)
       (with-buffer name
         (let* ((from-env (get-init-env "stem-doc-id"))
-               (doc-id (if (and (string? from-env) (!= from-env ""))
-                         from-env
-                         (let* ((doc (buffer-get name)) (initial (tmfile-extract doc 'initial)))
-                           (and initial (collection-ref initial "stem-doc-id"))
-                         ) ;let*
-                       ) ;if
+               (doc-id
+                 (if (and (string? from-env) (!= from-env ""))
+                   from-env
+                   (let* ((doc (buffer-get name)) (initial (tmfile-extract doc 'initial)))
+                     (and initial (collection-ref initial "stem-doc-id"))
+                   ) ;let*
+                 ) ;if
                ) ;doc-id
               ) ;
           doc-id
@@ -184,10 +185,11 @@
   (let* ((collab? (collab-buffer? name))
          ;; 协作文档：path 指向本地不可见备份文件（collab-silent-backup 已在 save-buffer-save
          ;; 里同步写盘）；id 用 tmfs URL 的 doc_id 段（非 stem-doc-id，后者对 tmfs 返 #f）。
-         (path (if collab?
-                 (url->system (collab-backup-url (collab-url->doc-id name)))
-                 (url->system name)
-               ) ;if
+         (path
+           (if collab?
+             (url->system (collab-backup-url (collab-url->doc-id name)))
+             (url->system name)
+           ) ;if
          ) ;path
          (doc-id (if collab? (collab-url->doc-id name) (auto-backup-ensure-buffer-doc-id! name))
          ) ;doc-id
@@ -305,11 +307,12 @@
 ;; scratch buffer 在磁盘上有真实路径（no_name .tmu），与普通文档一样原地自动保存；
 ;; 手动 Ctrl+S 的 save-as 弹窗走 save-buffer-check-permissions，不受影响。
 (tm-define (autosave-all)
-  (for-each (lambda (name)
-              (when (buffer-modified? name)
-                (save-buffer-save name (list) "auto")
-              ) ;when
-            ) ;lambda
+  (for-each
+    (lambda (name)
+      (when (buffer-modified? name)
+        (save-buffer-save name (list) "auto")
+      ) ;when
+    ) ;lambda
     (buffer-list)
   ) ;for-each
 ) ;tm-define
@@ -324,11 +327,12 @@
     ;; 协作文档恒不 buffer-modified?（need_save(true) 短路）；用 buffer-modified-since-autosave?
     ;; 捕获本端编辑（远端 apply_remote 不 require_save，故只跟本端）。扫所有 collab buffer，
     ;; save-buffer-save 写备份时已清脏，下一 tick 无新编辑即跳过。
-    (for-each (lambda (name)
-                (when (and (collab-buffer? name) (buffer-modified-since-autosave? name))
-                  (save-buffer-save name (list) "auto")
-                ) ;when
-              ) ;lambda
+    (for-each
+      (lambda (name)
+        (when (and (collab-buffer? name) (buffer-modified-since-autosave? name))
+          (save-buffer-save name (list) "auto")
+        ) ;when
+      ) ;lambda
       (buffer-list)
     ) ;for-each
     (autosave-delayed)

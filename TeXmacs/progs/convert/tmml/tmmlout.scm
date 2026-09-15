@@ -41,7 +41,8 @@
 (define (tmmlout-preserve? l first? last?)
   (if (null? l)
     #f
-    (or (tmmlout-preserve-one? (car l) first? (and last? (null? (cdr l))))
+    (or
+      (tmmlout-preserve-one? (car l) first? (and last? (null? (cdr l))))
       (tmmlout-preserve? (cdr l) #f last?)
     ) ;or
   ) ;if

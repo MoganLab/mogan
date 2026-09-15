@@ -71,8 +71,9 @@
   ;; Get an HTML attribute or false if the attribute is absent, is not set, or
   ;; is set to the empty string.
   ;; FIXME: this is ugly
-  (and-let* ((l (assoc att as)) ((list-length=2? l)) ((not (string-null? (second l)))))
-    (second l)
+  (and-let*
+   ((l (assoc att as)) ((list-length=2? l)) ((not (string-null? (second l)))))
+   (second l)
   ) ;and-let*
 ) ;tm-define
 
@@ -136,11 +137,12 @@
 
 (tm-define (sxml-name->ncname sxml-name)
   (let* ((name (as-string sxml-name)) (len (string-length name)))
-    (cond ((sxml-find-name-separator len)
-           =>
-           (lambda (pos) (substring name (+ pos 1) len))
-          ) ;
-          (else name)
+    (cond
+     ((sxml-find-name-separator len)
+      =>
+      (lambda (pos) (substring name (+ pos 1) len))
+     ) ;
+     (else name)
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -160,11 +162,12 @@
 
 (tm-define (sxml-split-name sxml-name)
   (let* ((name (as-string sxml-name)) (len (string-length name)))
-    (cond ((sxml-find-name-separator len)
-           =>
-           (lambda (pos) (values (substring name 0 pos) (substring name (+ pos 1) len)))
-          ) ;
-          (else (values #f name))
+    (cond
+     ((sxml-find-name-separator len)
+      =>
+      (lambda (pos) (values (substring name 0 pos) (substring name (+ pos 1) len)))
+     ) ;
+     (else (values #f name))
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -176,10 +179,11 @@
     ((x x))
     (if (string? x)
       x
-      (sxml-set-content (if (== prefix (sxml-name->ns-id (sxml-name x)))
-                          (sxml-set-name x (sxml-ncname x))
-                          x
-                        ) ;if
+      (sxml-set-content
+        (if (== prefix (sxml-name->ns-id (sxml-name x)))
+          (sxml-set-name x (sxml-ncname x))
+          x
+        ) ;if
         (map rec (sxml-content x))
       ) ;sxml-set-content
     ) ;if

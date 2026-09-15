@@ -14,12 +14,13 @@
 (texmacs-module (kernel boot compat))
 
 (define cout-port
-  (make-soft-port (vector (lambda (c) (win32-display (char->string c)))
-                    (lambda (s) (win32-display s))
-                    (lambda () (noop))
-                    (lambda () #\?)
-                    (lambda () (noop))
-                  ) ;vector
+  (make-soft-port
+    (vector (lambda (c) (win32-display (char->string c)))
+      (lambda (s) (win32-display s))
+      (lambda () (noop))
+      (lambda () #\?)
+      (lambda () (noop))
+    ) ;vector
     "w"
   ) ;make-soft-port
 ) ;define

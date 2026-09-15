@@ -193,33 +193,41 @@
 
 (tm-define (latex-catcode-defs doc)
   (:synopsis "Return necessary catcode definitions for @doc")
-  (string-append (if tmtex-use-catcodes?
-                   (begin
-                     (set! latex-catcode-table (make-ahash-table))
-                     (latex-catcode-defs-sub doc)
-                     (let* ((l1 (ahash-table->list latex-catcode-table))
-                            (l2 (list-sort l1 (lambda (x y) (string<=? (car x) (car y)))))
-                            (l3 (map (lambda (x) (latex-catcode-def (car x) (cdr x))) l2))
-                           ) ;
-                       (apply string-append l3)
-                     ) ;let*
-                   ) ;begin
-                   ""
-                 ) ;if
+  (string-append
+    (if tmtex-use-catcodes?
+      (begin
+        (set! latex-catcode-table (make-ahash-table))
+        (latex-catcode-defs-sub doc)
+        (let* ((l1 (ahash-table->list latex-catcode-table))
+               (l2
+                 (list-sort l1 (lambda (x y) (string<=? (car x) (car y))))
+               ) ;l2
+               (l3
+                 (map (lambda (x) (latex-catcode-def (car x) (cdr x))) l2)
+               ) ;l3
+              ) ;
+          (apply string-append l3)
+        ) ;let*
+      ) ;begin
+      ""
+    ) ;if
     (begin
       (set! latex-catcode-table (make-ahash-table))
       (latex-catcode-defs-sub* doc #t)
       (let* ((l1 (ahash-table->list latex-catcode-table))
-             (l2 (list-sort l1 (lambda (x y) (string<=? (car x) (car y)))))
+             (l2
+               (list-sort l1 (lambda (x y) (string<=? (car x) (car y))))
+             ) ;l2
              (keys (map car l2))
-             (ims (map (lambda (x)
-                         (string-append "\n\\fontencoding{T1}\\selectfont\\symbol{"
-                           (cdr x)
-                           "}\\fontencoding{\\encodingdefault}"
-                         ) ;string-append
-                       ) ;lambda
-                    l2
-                  ) ;map
+             (ims
+               (map (lambda (x)
+                      (string-append "\n\\fontencoding{T1}\\selectfont\\symbol{"
+                        (cdr x)
+                        "}\\fontencoding{\\encodingdefault}"
+                      ) ;string-append
+                    ) ;lambda
+                 l2
+               ) ;map
              ) ;ims
              (l3 (map latex-catcode-def keys ims))
             ) ;
@@ -239,7 +247,8 @@
 
 (define (latex-texmacs-arity x)
   (if (env-begin? x)
-    (latex-texmacs-arity (string->symbol (string-append "begin-" (tex-env-name (cadr x))))
+    (latex-texmacs-arity
+      (string->symbol (string-append "begin-" (tex-env-name (cadr x))))
     ) ;latex-texmacs-arity
     (logic-ref latex-texmacs-arity% x)
   ) ;if
@@ -247,14 +256,17 @@
 
 (define (latex-needs? x)
   (if (env-begin? x)
-    (latex-needs? (string->symbol (string-append "begin-" (tex-env-name (cadr x)))))
+    (latex-needs?
+      (string->symbol (string-append "begin-" (tex-env-name (cadr x))))
+    ) ;latex-needs?
     (logic-ref latex-needs% x)
   ) ;if
 ) ;define
 
 (define (latex-texmacs-option? x)
   (if (env-begin? x)
-    (latex-texmacs-option? (string->symbol (string-append "begin-" (tex-env-name (cadr x))))
+    (latex-texmacs-option?
+      (string->symbol (string-append "begin-" (tex-env-name (cadr x))))
     ) ;latex-texmacs-option?
     (logic-ref latex-texmacs-option% x)
   ) ;if
@@ -293,15 +305,16 @@
            (env (and (env-begin? head) (latex-texmacs-environment-body (cadr head))))
            (envar (and env (latex-texmacs-arity head)))
           ) ;
-      (cond ((and body (== (length tail) arity))
-             ;; (latex-substitute body t)
-             (latex-substitute body (cons head tail))
-            ) ;
-            ((and env (== (length tail) 1) (== (length (cddr head)) envar))
-             ;; (latex-substitute env (append (cdr t) (cddr head)))
-             (latex-substitute env (append tail (cddr head)))
-            ) ;
-            (else (cons head tail))
+      (cond
+       ((and body (== (length tail) arity))
+        ;; (latex-substitute body t)
+        (latex-substitute body (cons head tail))
+       ) ;
+       ((and env (== (length tail) 1) (== (length (cddr head)) envar))
+        ;; (latex-substitute env (append (cdr t) (cddr head)))
+        (latex-substitute env (append tail (cddr head)))
+       ) ;
+       (else (cons head tail))
       ) ;cond
     ) ;let*
   ) ;if
@@ -312,8 +325,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (latex-expand-def t protect?)
-  (cond ((and protect? (number? t)) (set! t `(!group ,t)) (set! protect? #f))
-        ((and (not protect?) (func? t '!option) (set! protect? #t)))
+  (cond
+   ((and protect? (number? t)) (set! t `(!group ,t)) (set! protect? #f))
+   ((and (not protect?) (func? t '!option) (set! protect? #t)))
   ) ;cond
   (cond ((== t '---) "#-#-#")
         ((number? t) (string-append "#" (number->string t)))
@@ -332,13 +346,19 @@
       (for-each latex-macro-defs-sub (cddr t))
       (for-each latex-macro-defs-sub (cdr t))
     ) ;if
-    (let* ((body (and (not (latex-needs? (car t))) (latex-texmacs-macro-body (car t))))
+    (let* ((body
+             (and (not (latex-needs? (car t))) (latex-texmacs-macro-body (car t)))
+           ) ;body
            (arity (and body (latex-texmacs-arity (car t))))
            (option (and body (latex-texmacs-option? (car t))))
-           (args (if option
-                   (filter (lambda (x) (not (and (list? x) (== (car x) '!option)))) (cdr t))
-                   (cdr t)
-                 ) ;if
+           (args
+             (if option
+               (filter
+                 (lambda (x) (not (and (list? x) (== (car x) '!option))))
+                 (cdr t)
+               ) ;filter
+               (cdr t)
+             ) ;if
            ) ;args
           ) ;
       (when (and body (== (length args) arity))
@@ -347,19 +367,24 @@
         (latex-macro-defs-sub body)
       ) ;when
     ) ;let*
-    (let* ((body (and (env-begin? (car t))
-                   (not (latex-needs? (car t)))
-                   (latex-texmacs-environment-body (cadar t))
-                 ) ;and
+    (let* ((body
+             (and (env-begin? (car t))
+               (not (latex-needs? (car t)))
+               (latex-texmacs-environment-body (cadar t))
+             ) ;and
            ) ;body
            (arity (and body (latex-texmacs-arity (car t))))
            (option (and body (latex-texmacs-option? (car t))))
-           (args (and body
-                   (if option
-                     (filter (lambda (x) (not (and (list? x) (== (car x) '!option)))) (car t))
-                     (car t)
-                   ) ;if
-                 ) ;and
+           (args
+             (and body
+               (if option
+                 (filter
+                   (lambda (x) (not (and (list? x) (== (car x) '!option))))
+                   (car t)
+                 ) ;filter
+                 (car t)
+               ) ;if
+             ) ;and
            ) ;args
           ) ;
       (when (and body (== (length args) (+ arity 2)))
@@ -369,7 +394,8 @@
       ) ;when
     ) ;let*
     (with body
-      (or (and (not (latex-needs? (car t))) (smart-ref latex-texmacs-preamble (car t)))
+      (or
+        (and (not (latex-needs? (car t))) (smart-ref latex-texmacs-preamble (car t)))
         (and (env-begin? (car t))
           (not (latex-needs? (car t)))
           (smart-ref latex-texmacs-env-preamble (cadar t))
@@ -401,13 +427,19 @@
   (set! latex-preamble-table (make-ahash-table))
   (latex-macro-defs-sub t)
   (let* ((c1 (ahash-table->list latex-macro-table))
-         (c2 (list-sort c1 (lambda (x y) (latex<=? (car x) (car y)))))
+         (c2
+           (list-sort c1 (lambda (x y) (latex<=? (car x) (car y))))
+         ) ;c2
          (c3 (map (cut cons '!newcommand <>) c2))
          (e1 (ahash-table->list latex-env-table))
-         (e2 (list-sort e1 (lambda (x y) (latex<=? (car x) (car y)))))
+         (e2
+           (list-sort e1 (lambda (x y) (latex<=? (car x) (car y))))
+         ) ;e2
          (e3 (map (cut cons '!newenvironment <>) e2))
          (p1 (ahash-table->list latex-preamble-table))
-         (p2 (list-sort p1 (lambda (x y) (latex<=? (car x) (car y)))))
+         (p2
+           (list-sort p1 (lambda (x y) (latex<=? (car x) (car y))))
+         ) ;p2
          (p3 (map cdr (map (cut latex-expand-def <> #f) p2)))
         ) ;
     (cons '!append (append c3 e3 p3))
@@ -545,13 +577,14 @@
       (when (symbol? x)
         (with s
           (symbol->string x)
-          (cond ((string-starts? s "left\\")
-                 (latex-command-uses (string->symbol (string-drop s 5)))
-                ) ;
-                ((string-starts? s "right\\")
-                 (latex-command-uses (string->symbol (string-drop s 6)))
-                ) ;
-                (else (latex-command-uses x))
+          (cond
+           ((string-starts? s "left\\")
+            (latex-command-uses (string->symbol (string-drop s 5)))
+           ) ;
+           ((string-starts? s "right\\")
+            (latex-command-uses (string->symbol (string-drop s 6)))
+           ) ;
+           (else (latex-command-uses x))
           ) ;cond
         ) ;with
       ) ;when
@@ -603,15 +636,18 @@
 
 (tm-define (latex-as-use-package l1)
   (let* ((l2 (sort l1 latex-use-package-compare))
-         (l3 (filter (lambda (x) (and (string? x) (not (ahash-ref latex-packages-option x))))
-               l2
-             ) ;filter
+         (l3
+           (filter
+             (lambda (x) (and (string? x) (not (ahash-ref latex-packages-option x))))
+             l2
+           ) ;filter
          ) ;l3
-         (l3* (map (lambda (x) (map force-string x))
-                (filter list>0?
-                  (map (lambda (x) (if (ahash-ref latex-packages-option x) (list x) x)) l2)
-                ) ;filter
-              ) ;map
+         (l3*
+           (map (lambda (x) (map force-string x))
+             (filter list>0?
+               (map (lambda (x) (if (ahash-ref latex-packages-option x) (list x) x)) l2)
+             ) ;filter
+           ) ;map
          ) ;l3*
          (l4 (filter-packages l3))
          (l4* (filter-packages* l3*))
@@ -648,19 +684,21 @@
          (l1 (map car l0))
          (l2 (map cdr l0))
          (l3 (map (cut logic-ref latex-paper-opts% <>) l1))
-         (l4 (map (lambda (key val)
-                    (cond ((not val) #f)
-                          ((== key "page-type") (or (logic-ref latex-paper-type% val) '()))
-                          ((== key "page-orientation") val)
-                          ((and (string? key) (!= val "auto"))
-                           (string-append key "=" (tmtex-decode-length val))
-                          ) ;
-                          (else #f)
-                    ) ;cond
-                  ) ;lambda
-               l3
-               l2
-             ) ;map
+         (l4
+           (map
+             (lambda (key val)
+               (cond ((not val) #f)
+                     ((== key "page-type") (or (logic-ref latex-paper-type% val) '()))
+                     ((== key "page-orientation") val)
+                     ((and (string? key) (!= val "auto"))
+                      (string-append key "=" (tmtex-decode-length val))
+                     ) ;
+                     (else #f)
+               ) ;cond
+             ) ;lambda
+             l3
+             l2
+           ) ;map
          ) ;l4
          (l5 (filter string? l4))
          (page-opts (list-intersperse l5 ","))
@@ -675,30 +713,32 @@
 
 (tm-define (html-color->latex-xcolor s)
   "Take an hexa html color string and return an hex triplet string"
-  (upcase-all (cond ((string-starts? s "#") (html-color->latex-xcolor (string-tail s 1)))
-                    ((== 3 (string-length s))
-                     (let ((r (substring s 0 1)) (g (substring s 1 2)) (b (substring s 2 3)))
-                       (string-append r r g g b b)
-                     ) ;let
-                    ) ;
-                    ((== 4 (string-length s)) (html-color->latex-xcolor (string-take s 3)))
-                    ((== 6 (string-length s)) s)
-                    ((== 8 (string-length s)) (string-take s 6))
-                    (else s)
-              ) ;cond
+  (upcase-all
+    (cond ((string-starts? s "#") (html-color->latex-xcolor (string-tail s 1)))
+          ((== 3 (string-length s))
+           (let ((r (substring s 0 1)) (g (substring s 1 2)) (b (substring s 2 3)))
+             (string-append r r g g b b)
+           ) ;let
+          ) ;
+          ((== 4 (string-length s)) (html-color->latex-xcolor (string-take s 3)))
+          ((== 6 (string-length s)) s)
+          ((== 8 (string-length s)) (string-take s 6))
+          (else s)
+    ) ;cond
   ) ;upcase-all
 ) ;tm-define
 
 (define (latex-colors-defs colors)
   (apply string-append
-    (map (lambda (x)
-           (string-append "\\definecolor{"
-             (string-replace x " " "")
-             "}{HTML}{"
-             (html-color->latex-xcolor (get-hex-color x))
-             "}\n"
-           ) ;string-append
-         ) ;lambda
+    (map
+      (lambda (x)
+        (string-append "\\definecolor{"
+          (string-replace x " " "")
+          "}{HTML}{"
+          (html-color->latex-xcolor (get-hex-color x))
+          "}\n"
+        ) ;string-append
+      ) ;lambda
       colors
     ) ;map
   ) ;apply
@@ -737,10 +777,11 @@
            (pre-uses (latex-use-package-command Text))
            (pre-extra (latex-extra-preamble))
           ) ;
-      (values (cond ((and (in? "amsthm" latex-all-packages) (== style "amsart")) "[amsthm]")
-                    ((list? style) (latex-make-option (cDr style)))
-                    (else "")
-              ) ;cond
+      (values
+        (cond ((and (in? "amsthm" latex-all-packages) (== style "amsart")) "[amsthm]")
+              ((list? style) (latex-make-option (cDr style)))
+              (else "")
+        ) ;cond
         (string-append pre-uses pre-extra)
         (string-append pre-page)
         (string-append pre-catcode pre-macro pre-colors)
@@ -756,14 +797,15 @@
 (define (latex-mathjax-text l arg)
   (with x
     (latex-mathjax-pre arg)
-    (cond ((or (npair? x) (nlist? x)) `(,l ,x))
-          ((func? x 'tmtextsf 1) (latex-mathjax-text 'textsf (cadr x)))
-          ((func? x 'tmtexttt 1) (latex-mathjax-text 'texttt (cadr x)))
-          ((func? x 'tmtextit 1) (latex-mathjax-text 'textit (cadr x)))
-          ((func? x 'tmtextbf 1) (latex-mathjax-text 'textbf (cadr x)))
-          ((func? x 'tmtextrm 1) (latex-mathjax-text l (cadr x)))
-          ((func? x 'tmtextup 1) (latex-mathjax-text l (cadr x)))
-          (else `(,l ,x))
+    (cond
+     ((or (npair? x) (nlist? x)) `(,l ,x))
+     ((func? x 'tmtextsf 1) (latex-mathjax-text 'textsf (cadr x)))
+     ((func? x 'tmtexttt 1) (latex-mathjax-text 'texttt (cadr x)))
+     ((func? x 'tmtextit 1) (latex-mathjax-text 'textit (cadr x)))
+     ((func? x 'tmtextbf 1) (latex-mathjax-text 'textbf (cadr x)))
+     ((func? x 'tmtextrm 1) (latex-mathjax-text l (cadr x)))
+     ((func? x 'tmtextup 1) (latex-mathjax-text l (cadr x)))
+     (else `(,l ,x))
     ) ;cond
   ) ;with
 ) ;define

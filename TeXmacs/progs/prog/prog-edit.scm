@@ -98,15 +98,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (string-bracket-find* s pos inc br ibr level)
-  (cond ((or (< pos 0) (>= pos (string-length s))) (- level 1000))
-        ((and (== level 0) (== (string-ref s pos) br)) pos)
-        ((== (string-ref s pos) br)
-         (string-bracket-find* s (+ pos inc) inc br ibr (- level 1))
-        ) ;
-        ((== (string-ref s pos) ibr)
-         (string-bracket-find* s (+ pos inc) inc br ibr (+ level 1))
-        ) ;
-        (else (string-bracket-find* s (+ pos inc) inc br ibr level))
+  (cond
+   ((or (< pos 0) (>= pos (string-length s))) (- level 1000))
+   ((and (== level 0) (== (string-ref s pos) br)) pos)
+   ((== (string-ref s pos) br)
+    (string-bracket-find* s (+ pos inc) inc br ibr (- level 1))
+   ) ;
+   ((== (string-ref s pos) ibr)
+    (string-bracket-find* s (+ pos inc) inc br ibr (+ level 1))
+   ) ;
+   (else (string-bracket-find* s (+ pos inc) inc br ibr level))
   ) ;cond
 ) ;define
 
@@ -300,7 +301,8 @@
     (get-preference "editor:verbatim:tabstop")
     (cond ((and (string? tabstop*) (string->number tabstop*)) (string->number tabstop*))
           ((and (number? tabstop*) (> tabstop* 0)) tabstop*)
-          (else (set-message `(replace ,"Wrong tabstop: %1" ,tabstop*) "User preferences")
+          (else
+            (set-message `(replace ,"Wrong tabstop: %1" ,tabstop*) "User preferences")
             8
           ) ;else
     ) ;cond

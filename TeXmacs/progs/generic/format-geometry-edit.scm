@@ -70,11 +70,14 @@
 (define (change-step unit plus)
   (let* ((step (get-step unit))
          (i (list-find-index step-list (lambda (x) (== x step))))
-         (j (and i (max 0 (min (+ i plus) (- (length step-list) 1)))))
+         (j
+           (and i (max 0 (min (+ i plus) (- (length step-list) 1))))
+         ) ;j
          (next (if j (list-ref step-list j) 0.1))
         ) ;
     (set-step unit next)
-    (set-message `(concat ,"Current step-size: " ,(number->string next) ,unit)
+    (set-message
+      `(concat ,"Current step-size: " ,(number->string next) ,unit)
       "Change step-size"
     ) ;set-message
   ) ;let*
@@ -192,7 +195,9 @@
                 (v (tm-length-value l))
                 (u (tm-length-unit l))
                 (a (* (get-step u) step-mult))
-                (new-v (* (round (/ (* sc v) a)) a))
+                (new-v
+                  (* (round (/ (* sc v) a)) a)
+                ) ;new-v
                 (new-l (tm-make-length new-v u))
                ) ;
            (when (> (* v new-v) 0.0)
@@ -428,7 +433,8 @@
 (tm-define (make-move hor ver)
   (:argument hor "Horizontal")
   (:argument ver "Vertical")
-  (wrap-selection-small (insert-go-to `(move ,"" ,hor ,ver) '(0 0))
+  (wrap-selection-small
+    (insert-go-to `(move ,"" ,hor ,ver) '(0 0))
     (set-adjust-message "Adjust position" "move")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -436,7 +442,8 @@
 (tm-define (make-shift hor ver)
   (:argument hor "Horizontal")
   (:argument ver "Vertical")
-  (wrap-selection-small (insert-go-to `(shift ,"" ,hor ,ver) '(0 0))
+  (wrap-selection-small
+    (insert-go-to `(shift ,"" ,hor ,ver) '(0 0))
     (set-adjust-message "Adjust position" "shift")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -492,7 +499,8 @@
   (:argument b "Bottom")
   (:argument r "Right")
   (:argument t "Top")
-  (wrap-selection-small (insert-go-to `(resize ,"" ,l ,b ,r ,t) '(0 0))
+  (wrap-selection-small
+    (insert-go-to `(resize ,"" ,l ,b ,r ,t) '(0 0))
     (set-adjust-message "Adjust extents" "resize")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -502,7 +510,8 @@
   (:argument b "Bottom")
   (:argument r "Right")
   (:argument t "Top")
-  (wrap-selection-small (insert-go-to `(extend ,"" ,l ,b ,r ,t) '(0 0))
+  (wrap-selection-small
+    (insert-go-to `(extend ,"" ,l ,b ,r ,t) '(0 0))
     (set-adjust-message "Adjust extension" "extend")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -512,14 +521,16 @@
   (:argument b "Bottom")
   (:argument r "Right")
   (:argument t "Top")
-  (wrap-selection-small (insert-go-to `(clipped ,"" ,l ,b ,r ,t) '(0 0))
+  (wrap-selection-small
+    (insert-go-to `(clipped ,"" ,l ,b ,r ,t) '(0 0))
     (set-adjust-message "Adjust clipping" "clipped")
   ) ;wrap-selection-small
 ) ;tm-define
 
 (tm-define (make-reduce-by by)
   (:argument by "Reduce by")
-  (wrap-selection-small (insert-go-to `(reduce-by ,"" ,by) '(0 0))
+  (wrap-selection-small
+    (insert-go-to `(reduce-by ,"" ,by) '(0 0))
     (set-adjust-message "Reduce vertical size" "reduce-by")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -708,15 +719,18 @@
            (midx (/ (+ x1 x2) 2))
            (midy (/ (+ y1 y2) 2))
            (hs (px->tmpt 10))
-           (near? (lambda (a b) (< (abs (- a b)) hs)))
-           (handles `((nw ,x1 ,y2)
-                      (n ,midx ,y2)
-                      (ne ,x2 ,y2)
-                      (e ,x2 ,midy)
-                      (se ,x2 ,y1)
-                      (s ,midx ,y1)
-                      (sw ,x1 ,y1)
-                      (w ,x1 ,midy))
+           (near?
+             (lambda (a b) (< (abs (- a b)) hs))
+           ) ;near?
+           (handles
+             `((nw ,x1 ,y2)
+               (n ,midx ,y2)
+               (ne ,x2 ,y2)
+               (e ,x2 ,midy)
+               (se ,x2 ,y1)
+               (s ,midx ,y1)
+               (sw ,x1 ,y1)
+               (w ,x1 ,midy))
            ) ;handles
           ) ;
       (let loop
@@ -775,22 +789,23 @@
            (sy (tmpt->cm dy))
            (nw (- ow sx))
            (nh (- oh sy))
-           (uniform-scale (lambda (scale-x scale-y)
-                            (let* ((ow2 (* ow ow))
-                                   (oh2 (* oh oh))
-                                   (scale (/ (+ (* scale-x ow2) (* scale-y oh2)) (+ ow2 oh2)))
-                                  ) ;
-                              (let* ((nw (* ow scale)) (nh (* oh scale)))
-                                (when (> nw 0.1)
-                                  (tree-set! t 1 (cm->str nw))
-                                ) ;when
-                                (when (> nh 0.1)
-                                  (tree-set! t 2 (cm->str nh))
-                                ) ;when
-                                (refresh-window)
-                              ) ;let*
-                            ) ;let*
-                          ) ;lambda
+           (uniform-scale
+             (lambda (scale-x scale-y)
+               (let* ((ow2 (* ow ow))
+                      (oh2 (* oh oh))
+                      (scale (/ (+ (* scale-x ow2) (* scale-y oh2)) (+ ow2 oh2)))
+                     ) ;
+                 (let* ((nw (* ow scale)) (nh (* oh scale)))
+                   (when (> nw 0.1)
+                     (tree-set! t 1 (cm->str nw))
+                   ) ;when
+                   (when (> nh 0.1)
+                     (tree-set! t 2 (cm->str nh))
+                   ) ;when
+                   (refresh-window)
+                 ) ;let*
+               ) ;let*
+             ) ;lambda
            ) ;uniform-scale
           ) ;
       (case handle
@@ -844,43 +859,44 @@
   ) ;:require
   (and-with t
     (tree-innermost image-context? #t)
-    (cond ((== key "start-drag-left")
-           (image-reset-drag-state!)
-           (let ((handle (image-point-on-handle? t)))
-             (when handle
-               (let ((dims (image-get-dimensions t)))
-                 (set! image-resize-handle handle)
-                 (set! image-resize-start-x x)
-                 (set! image-resize-start-y y)
-                 (set! image-resize-orig-w (if dims (car dims) (cm->tmpt 1)))
-                 (set! image-resize-orig-h (if dims (cadr dims) (cm->tmpt 1)))
-                 (set! image-resize-mark (mark-new))
-                 (mark-start image-resize-mark)
-               ) ;let
-             ) ;when
-           ) ;let
-           (former key x y mods time data)
-          ) ;
-          ((== key "dragging-left")
-           (if image-resize-handle
-             (when (and image-resize-start-x image-resize-start-y)
-               (image-apply-resize t
-                 image-resize-handle
-                 (- x image-resize-start-x)
-                 (- y image-resize-start-y)
-               ) ;image-apply-resize
-             ) ;when
-             (former key x y mods time data)
-           ) ;if
-          ) ;
-          ((== key "end-drag-left")
-           (when image-resize-mark
-             (mark-end image-resize-mark)
-             (set! image-resize-mark #f)
-           ) ;when
-           (image-reset-drag-state!)
-           (former key x y mods time data)
-          ) ;
+    (cond
+     ((== key "start-drag-left")
+      (image-reset-drag-state!)
+      (let ((handle (image-point-on-handle? t)))
+        (when handle
+          (let ((dims (image-get-dimensions t)))
+            (set! image-resize-handle handle)
+            (set! image-resize-start-x x)
+            (set! image-resize-start-y y)
+            (set! image-resize-orig-w (if dims (car dims) (cm->tmpt 1)))
+            (set! image-resize-orig-h (if dims (cadr dims) (cm->tmpt 1)))
+            (set! image-resize-mark (mark-new))
+            (mark-start image-resize-mark)
+          ) ;let
+        ) ;when
+      ) ;let
+      (former key x y mods time data)
+     ) ;
+     ((== key "dragging-left")
+      (if image-resize-handle
+        (when (and image-resize-start-x image-resize-start-y)
+          (image-apply-resize t
+            image-resize-handle
+            (- x image-resize-start-x)
+            (- y image-resize-start-y)
+          ) ;image-apply-resize
+        ) ;when
+        (former key x y mods time data)
+      ) ;if
+     ) ;
+     ((== key "end-drag-left")
+      (when image-resize-mark
+        (mark-end image-resize-mark)
+        (set! image-resize-mark #f)
+      ) ;when
+      (image-reset-drag-state!)
+      (former key x y mods time data)
+     ) ;
     ) ;cond
   ) ;and-with
 ) ;tm-define

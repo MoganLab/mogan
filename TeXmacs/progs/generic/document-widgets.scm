@@ -71,37 +71,38 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget ((source-tree-preferences-editor u) quit)
-  (padded (refreshable "source-tree-preferences"
-            (aligned (item (text "Main presentation style:")
-                       (enum (initial-set u "src-style" answer)
-                         '("angular" "scheme" "functional" "latex")
-                         (initial-get u "src-style")
-                         "10em"
-                       ) ;enum
-                     ) ;item
-              (item (text "Tags with special rendering:")
-                (enum (initial-set u "src-special" answer)
-                  '("raw" "format" "normal" "maximal")
-                  (initial-get u "src-special")
-                  "10em"
-                ) ;enum
-              ) ;item
-              (item (text "Compactification:")
-                (enum (initial-set u "src-compact" answer)
-                  '("none" "inline" "normal" "inline args" "all")
-                  (initial-get u "src-compact")
-                  "10em"
-                ) ;enum
-              ) ;item
-              (item (text "Closing style:")
-                (enum (initial-set u "src-close" answer)
-                  '("repeat" "long" "compact" "minimal")
-                  (initial-get u "src-close")
-                  "10em"
-                ) ;enum
-              ) ;item
-            ) ;aligned
-          ) ;refreshable
+  (padded
+    (refreshable "source-tree-preferences"
+      (aligned (item (text "Main presentation style:")
+                 (enum (initial-set u "src-style" answer)
+                   '("angular" "scheme" "functional" "latex")
+                   (initial-get u "src-style")
+                   "10em"
+                 ) ;enum
+               ) ;item
+        (item (text "Tags with special rendering:")
+          (enum (initial-set u "src-special" answer)
+            '("raw" "format" "normal" "maximal")
+            (initial-get u "src-special")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Compactification:")
+          (enum (initial-set u "src-compact" answer)
+            '("none" "inline" "normal" "inline args" "all")
+            (initial-get u "src-compact")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Closing style:")
+          (enum (initial-set u "src-close" answer)
+            '("repeat" "long" "compact" "minimal")
+            (initial-get u "src-close")
+            "10em"
+          ) ;enum
+        ) ;item
+      ) ;aligned
+    ) ;refreshable
     ======
     (explicit-buttons (hlist >>>
                        ("Reset"
@@ -317,68 +318,73 @@
 
 (tm-widget ((page-number-style-editor u) quit)
   (let* ((range "Whole document") (rfrom "") (rto "") (nt ""))
-    (centered (refreshable "pn-editor"
-                (aligned (item (text "Applying to:")
-                           (enum (begin
-                                   (set! range answer)
-                                   (refresh-now "pn-editor")
-                                 ) ;begin
-                             '("Whole document" "Custom")
-                             range
-                             "10em"
-                           ) ;enum
-                         ) ;item
-                ) ;aligned
-                (when (== range "Custom")
-                  (aligned (item (text "Range:")
-                             (hlist (input (set! rfrom answer) "string" (list rfrom) "2em")
-                               //
-                               //
-                               (text "~")
-                               //
-                               //
-                               (input (set! rto answer) "string" (list rto) "2em")
-                             ) ;hlist
-                           ) ;item
-                  ) ;aligned
-                ) ;when
-                (aligned (item (text "Number style:")
-                           (enum (set! nt (assoc-ref pn-style-alist answer))
-                             (map car pn-style-alist)
-                             (or (assoc-ref pn-text-alist nt) "(Please pick one style)")
-                             "10em"
-                           ) ;enum
-                         ) ;item
-                  (item (text "Page mapping:")
-                    (resize "5em"
-                      "10em"
-                      (scrollable (texmacs-output (get-pn-mapping u) '(style "generic")))
-                    ) ;resize
-                  ) ;item
-                ) ;aligned
-              ) ;refreshable
+    (centered
+      (refreshable "pn-editor"
+        (aligned
+          (item (text "Applying to:")
+            (enum (begin
+                    (set! range answer)
+                    (refresh-now "pn-editor")
+                  ) ;begin
+              '("Whole document" "Custom")
+              range
+              "10em"
+            ) ;enum
+          ) ;item
+        ) ;aligned
+        (when (== range "Custom")
+          (aligned
+            (item (text "Range:")
+              (hlist (input (set! rfrom answer) "string" (list rfrom) "2em")
+                //
+                //
+                (text "~")
+                //
+                //
+                (input (set! rto answer) "string" (list rto) "2em")
+              ) ;hlist
+            ) ;item
+          ) ;aligned
+        ) ;when
+        (aligned
+          (item (text "Number style:")
+            (enum (set! nt (assoc-ref pn-style-alist answer))
+              (map car pn-style-alist)
+              (or (assoc-ref pn-text-alist nt) "(Please pick one style)")
+              "10em"
+            ) ;enum
+          ) ;item
+          (item (text "Page mapping:")
+            (resize "5em"
+              "10em"
+              (scrollable (texmacs-output (get-pn-mapping u) '(style "generic")))
+            ) ;resize
+          ) ;item
+        ) ;aligned
+      ) ;refreshable
     ) ;centered
     ======
-    (explicit-buttons (hlist >>>
-                       ("Refresh" (refresh-now "pn-editor"))
-                       //
-                       //
-                       ("Cancel" (quit))
-                       //
-                       //
-                       ("Apply"
-                         (let* ((ps (if (== range "Whole document") "1" rfrom))
-                                (pe (if (== range "Whole document") '(page-the-total) rto))
-                                (filled? (lambda (s) (or (pair? s) (!= s ""))))
-                               ) ;
-                           (when (and (filled? ps) (filled? pe) (filled? nt))
-                             (assign-page-number u ps pe nt)
-                             (set! nt "")
-                             (delayed (:pause 100) (refresh-now "pn-editor"))
-                           ) ;when
-                         ) ;let*
-                       ) ;
-                      ) ;hlist
+    (explicit-buttons
+      (hlist >>>
+       ("Refresh" (refresh-now "pn-editor"))
+       //
+       //
+       ("Cancel" (quit))
+       //
+       //
+       ("Apply"
+         (let* ((ps (if (== range "Whole document") "1" rfrom))
+                (pe (if (== range "Whole document") '(page-the-total) rto))
+                (filled? (lambda (s) (or (pair? s) (!= s ""))))
+               ) ;
+           (when (and (filled? ps) (filled? pe) (filled? nt))
+             (assign-page-number u ps pe nt)
+             (set! nt "")
+             (delayed (:pause 100) (refresh-now "pn-editor"))
+           ) ;when
+         ) ;let*
+       ) ;
+      ) ;hlist
     ) ;explicit-buttons
   ) ;let*
 ) ;tm-widget
@@ -401,82 +407,87 @@
 ) ;register-auxiliary-widget-type
 
 (tm-widget (page-formatter-format u quit)
-  (centered (refreshable "page-format-settings"
-              (aligned (item (text "Page rendering:")
-                         (enum (initial-set-page-rendering u (encode-rendering answer))
-                           (page-rendering-options)
-                           (decode-rendering (initial-get-page-rendering u))
-                           "10em"
-                         ) ;enum
-                       ) ;item
-                (item (text "Page type:")
-                  (enum (begin
-                          (initial-set u "page-type" (page-type-raw answer))
-                          (when (!= (page-type-raw answer) "user")
-                            (initial-set u "page-width" "auto")
-                            (initial-set u "page-height" "auto")
-                          ) ;when
-                          (refresh-now "page-user-format-settings")
-                          (refresh-now "page-format-settings")
-                        ) ;begin
-                    (if (== (initial-get u "page-type") "user")
-                      (cons-new (string-append (get-init "page-width") " x " (get-init "page-height"))
-                        (page-size-list u)
-                      ) ;cons-new
-                      (page-size-list u)
-                    ) ;if
-                    (if (== (initial-get u "page-type") "user")
-                      (string-append (get-init "page-width") " x " (get-init "page-height"))
-                      (page-type-pretty (initial-get u "page-type"))
-                    ) ;if
-                    "10em"
-                  ) ;enum
-                ) ;item
-                (item (text "Orientation:")
-                  (enum (initial-set u "page-orientation" answer)
-                    '("portrait" "landscape")
-                    (initial-get u "page-orientation")
-                    "10em"
-                  ) ;enum
-                ) ;item
-                (item (text "Crop marks:")
-                  (enum (initial-set u "page-crop-marks" (encode-crop-marks answer))
-                    '("none" "a3" "a4" "letter")
-                    (decode-crop-marks (initial-get u "page-crop-marks"))
-                    "10em"
-                  ) ;enum
-                ) ;item
-              ) ;aligned
-            ) ;refreshable
+  (centered
+    (refreshable "page-format-settings"
+      (aligned
+        (item (text "Page rendering:")
+          (enum (initial-set-page-rendering u (encode-rendering answer))
+            (page-rendering-options)
+            (decode-rendering (initial-get-page-rendering u))
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Page type:")
+          (enum
+            (begin
+              (initial-set u "page-type" (page-type-raw answer))
+              (when (!= (page-type-raw answer) "user")
+                (initial-set u "page-width" "auto")
+                (initial-set u "page-height" "auto")
+              ) ;when
+              (refresh-now "page-user-format-settings")
+              (refresh-now "page-format-settings")
+            ) ;begin
+            (if (== (initial-get u "page-type") "user")
+              (cons-new (string-append (get-init "page-width") " x " (get-init "page-height"))
+                (page-size-list u)
+              ) ;cons-new
+              (page-size-list u)
+            ) ;if
+            (if (== (initial-get u "page-type") "user")
+              (string-append (get-init "page-width") " x " (get-init "page-height"))
+              (page-type-pretty (initial-get u "page-type"))
+            ) ;if
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Orientation:")
+          (enum (initial-set u "page-orientation" answer)
+            '("portrait" "landscape")
+            (initial-get u "page-orientation")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Crop marks:")
+          (enum (initial-set u "page-crop-marks" (encode-crop-marks answer))
+            '("none" "a3" "a4" "letter")
+            (decode-crop-marks (initial-get u "page-crop-marks"))
+            "10em"
+          ) ;enum
+        ) ;item
+      ) ;aligned
+    ) ;refreshable
   ) ;centered
   ===
-  (centered (refreshable "page-user-format-settings"
-              (when (== (initial-get u "page-type") "user")
-                (aligned (item (when (user-page-size? u)
-                                 (text "Page width:")
-                               ) ;when
-                           (when (user-page-size? u)
-                             (enum (initial-set u "page-width" answer)
-                               (list (initial-get u "page-width") "")
-                               (initial-get u "page-width")
-                               "10em"
-                             ) ;enum
-                           ) ;when
-                         ) ;item
-                  (item (when (user-page-size? u)
-                          (text "Page height:")
-                        ) ;when
-                    (when (user-page-size? u)
-                      (enum (initial-set u "page-height" answer)
-                        (list (initial-get u "page-height") "")
-                        (initial-get u "page-height")
-                        "10em"
-                      ) ;enum
-                    ) ;when
-                  ) ;item
-                ) ;aligned
-              ) ;when
-            ) ;refreshable
+  (centered
+    (refreshable "page-user-format-settings"
+      (when (== (initial-get u "page-type") "user")
+        (aligned
+          (item (when (user-page-size? u)
+                  (text "Page width:")
+                ) ;when
+            (when (user-page-size? u)
+              (enum (initial-set u "page-width" answer)
+                (list (initial-get u "page-width") "")
+                (initial-get u "page-width")
+                "10em"
+              ) ;enum
+            ) ;when
+          ) ;item
+          (item (when (user-page-size? u)
+                  (text "Page height:")
+                ) ;when
+            (when (user-page-size? u)
+              (enum (initial-set u "page-height" answer)
+                (list (initial-get u "page-height") "")
+                (initial-get u "page-height")
+                "10em"
+              ) ;enum
+            ) ;when
+          ) ;item
+        ) ;aligned
+      ) ;when
+    ) ;refreshable
   ) ;centered
   ======
   (explicit-buttons (hlist >>>
@@ -519,121 +530,127 @@
 ) ;define
 
 (tm-widget (page-formatter-margins u quit)
-  (padded (refreshable "page-margin-toggles"
-            (centered (aligned (meti (hlist // (text "Determine margins from text width"))
-                                 (toggle (begin
-                                           (initial-set u "page-width-margin" (if answer "true" "false"))
-                                           (refresh-now "page-margin-settings")
-                                         ) ;begin
-                                   (== (initial-get u "page-width-margin") "true")
-                                 ) ;toggle
-                               ) ;meti
-                        (meti (hlist // (text "Same screen margins as on paper"))
-                          (toggle (begin
-                                    (initial-set u "page-screen-margin" (if answer "false" "true"))
-                                    (refresh-now "page-screen-margin-settings")
-                                  ) ;begin
-                            (!= (initial-get u "page-screen-margin") "true")
-                          ) ;toggle
-                        ) ;meti
-                      ) ;aligned
-            ) ;centered
-          ) ;refreshable
+  (padded
+    (refreshable "page-margin-toggles"
+      (centered
+        (aligned
+          (meti (hlist // (text "Determine margins from text width"))
+            (toggle (begin
+                      (initial-set u "page-width-margin" (if answer "true" "false"))
+                      (refresh-now "page-margin-settings")
+                    ) ;begin
+              (== (initial-get u "page-width-margin") "true")
+            ) ;toggle
+          ) ;meti
+          (meti (hlist // (text "Same screen margins as on paper"))
+            (toggle (begin
+                      (initial-set u "page-screen-margin" (if answer "false" "true"))
+                      (refresh-now "page-screen-margin-settings")
+                    ) ;begin
+              (!= (initial-get u "page-screen-margin") "true")
+            ) ;toggle
+          ) ;meti
+        ) ;aligned
+      ) ;centered
+    ) ;refreshable
     ======
-    (hlist (refreshable "page-margin-settings"
-             (hlist (bold (text "Margins on paper")))
-             ===
-             ===
-             (if (!= (initial-get u "page-width-margin") "true")
-               (aligned (item (text "(Odd page) Left:")
-                          (hlist (numeric-input (page-margin-set-mm-initial u "page-odd" answer)
-                                   "4em"
-                                   "mm"
-                                   0
-                                   500
-                                   1
-                                   (page-margin-get-mm-initial u "page-odd")
-                                 ) ;numeric-input
-                          ) ;hlist
-                        ) ;item
-                 (item (text "(Even page) Left:")
-                   (hlist (numeric-input (page-margin-set-mm-initial u "page-even" answer)
-                            "4em"
-                            "mm"
-                            0
-                            500
-                            1
-                            (page-margin-get-mm-initial u "page-even")
-                          ) ;numeric-input
-                   ) ;hlist
-                 ) ;item
-                 (item (text "(Odd page) Right:")
-                   (hlist (numeric-input (page-margin-set-mm-initial u "page-right" answer)
-                            "4em"
-                            "mm"
-                            0
-                            500
-                            1
-                            (page-margin-get-mm-initial u "page-right")
-                          ) ;numeric-input
-                   ) ;hlist
-                 ) ;item
-                 (item (text "Top:")
-                   (input (initial-set u "page-top" answer)
-                     "string"
-                     (list (initial-get u "page-top"))
-                     "6em"
-                   ) ;input
-                 ) ;item
-                 (item (text "Bottom:")
-                   (input (initial-set u "page-bot" answer)
-                     "string"
-                     (list (initial-get u "page-bot"))
-                     "6em"
-                   ) ;input
-                 ) ;item
-               ) ;aligned
-             ) ;if
-             (if (== (initial-get u "page-width-margin") "true")
-               (aligned (item (text "Text width:")
-                          (input (initial-set u "par-width" answer)
-                            "string"
-                            (list (initial-get u "par-width"))
-                            "6em"
-                          ) ;input
-                        ) ;item
-                 (item (text "Odd page shift:")
-                   (input (initial-set u "page-odd-shift" answer)
-                     "string"
-                     (list (initial-get u "page-odd-shift"))
-                     "6em"
-                   ) ;input
-                 ) ;item
-                 (item (text "Even page shift:")
-                   (input (initial-set u "page-even-shift" answer)
-                     "string"
-                     (list (initial-get u "page-even-shift"))
-                     "6em"
-                   ) ;input
-                 ) ;item
-                 (item (text "Top:")
-                   (input (initial-set u "page-top" answer)
-                     "string"
-                     (list (initial-get u "page-top"))
-                     "6em"
-                   ) ;input
-                 ) ;item
-                 (item (text "Bottom:")
-                   (input (initial-set u "page-bot" answer)
-                     "string"
-                     (list (initial-get u "page-bot"))
-                     "6em"
-                   ) ;input
-                 ) ;item
-               ) ;aligned
-             ) ;if
-             (glue #f #t 0 0)
-           ) ;refreshable
+    (hlist
+      (refreshable "page-margin-settings"
+        (hlist (bold (text "Margins on paper")))
+        ===
+        ===
+        (if (!= (initial-get u "page-width-margin") "true")
+          (aligned
+            (item (text "(Odd page) Left:")
+              (hlist (numeric-input (page-margin-set-mm-initial u "page-odd" answer)
+                       "4em"
+                       "mm"
+                       0
+                       500
+                       1
+                       (page-margin-get-mm-initial u "page-odd")
+                     ) ;numeric-input
+              ) ;hlist
+            ) ;item
+            (item (text "(Even page) Left:")
+              (hlist (numeric-input (page-margin-set-mm-initial u "page-even" answer)
+                       "4em"
+                       "mm"
+                       0
+                       500
+                       1
+                       (page-margin-get-mm-initial u "page-even")
+                     ) ;numeric-input
+              ) ;hlist
+            ) ;item
+            (item (text "(Odd page) Right:")
+              (hlist (numeric-input (page-margin-set-mm-initial u "page-right" answer)
+                       "4em"
+                       "mm"
+                       0
+                       500
+                       1
+                       (page-margin-get-mm-initial u "page-right")
+                     ) ;numeric-input
+              ) ;hlist
+            ) ;item
+            (item (text "Top:")
+              (input (initial-set u "page-top" answer)
+                "string"
+                (list (initial-get u "page-top"))
+                "6em"
+              ) ;input
+            ) ;item
+            (item (text "Bottom:")
+              (input (initial-set u "page-bot" answer)
+                "string"
+                (list (initial-get u "page-bot"))
+                "6em"
+              ) ;input
+            ) ;item
+          ) ;aligned
+        ) ;if
+        (if (== (initial-get u "page-width-margin") "true")
+          (aligned
+            (item (text "Text width:")
+              (input (initial-set u "par-width" answer)
+                "string"
+                (list (initial-get u "par-width"))
+                "6em"
+              ) ;input
+            ) ;item
+            (item (text "Odd page shift:")
+              (input (initial-set u "page-odd-shift" answer)
+                "string"
+                (list (initial-get u "page-odd-shift"))
+                "6em"
+              ) ;input
+            ) ;item
+            (item (text "Even page shift:")
+              (input (initial-set u "page-even-shift" answer)
+                "string"
+                (list (initial-get u "page-even-shift"))
+                "6em"
+              ) ;input
+            ) ;item
+            (item (text "Top:")
+              (input (initial-set u "page-top" answer)
+                "string"
+                (list (initial-get u "page-top"))
+                "6em"
+              ) ;input
+            ) ;item
+            (item (text "Bottom:")
+              (input (initial-set u "page-bot" answer)
+                "string"
+                (list (initial-get u "page-bot"))
+                "6em"
+              ) ;input
+            ) ;item
+          ) ;aligned
+        ) ;if
+        (glue #f #t 0 0)
+      ) ;refreshable
       ///
       ///
       (refreshable "page-screen-margin-settings"
@@ -641,13 +658,14 @@
           (hlist (bold (text "Margins on screen")))
           ===
           ===
-          (aligned (item (text "Left:")
-                     (input (initial-set u "page-screen-left" answer)
-                       "string"
-                       (list (initial-get u "page-screen-left"))
-                       "6em"
-                     ) ;input
-                   ) ;item
+          (aligned
+            (item (text "Left:")
+              (input (initial-set u "page-screen-left" answer)
+                "string"
+                (list (initial-get u "page-screen-left"))
+                "6em"
+              ) ;input
+            ) ;item
             (item (text "Right:")
               (input (initial-set u "page-screen-right" answer)
                 "string"
@@ -700,73 +718,78 @@
   (padded (centered (text "This style specifies page margins in the TeX way"))
     ===
     (refreshable "page-margin-toggles"
-      (centered (aligned (meti (hlist // (text "Same screen margins as on paper"))
-                           (toggle (begin
-                                     (initial-set u "page-screen-margin" (if answer "false" "true"))
-                                     (refresh-now "page-screen-margin-settings")
-                                   ) ;begin
-                             (!= (initial-get u "page-screen-margin") "true")
-                           ) ;toggle
-                         ) ;meti
-                ) ;aligned
+      (centered
+        (aligned
+          (meti (hlist // (text "Same screen margins as on paper"))
+            (toggle (begin
+                      (initial-set u "page-screen-margin" (if answer "false" "true"))
+                      (refresh-now "page-screen-margin-settings")
+                    ) ;begin
+              (!= (initial-get u "page-screen-margin") "true")
+            ) ;toggle
+          ) ;meti
+        ) ;aligned
       ) ;centered
     ) ;refreshable
     ======
-    (hlist (refreshable "page-tex-hor-margins"
-             (hlist (bold (text "Horizontal margins")))
-             ===
-             ===
-             (aligned (item (text "oddsidemargin:")
-                        (input (initial-set u "tex-odd-side-margin" answer)
-                          "string"
-                          (list (initial-get u "tex-odd-side-margin"))
-                          "6em"
-                        ) ;input
-                      ) ;item
-               (item (text "evensidemargin:")
-                 (input (initial-set u "tex-even-side-margin" answer)
-                   "string"
-                   (list (initial-get u "tex-even-side-margin"))
-                   "6em"
-                 ) ;input
-               ) ;item
-               (item (text "textwidth:")
-                 (input (initial-set u "tex-text-width" answer)
-                   "string"
-                   (list (initial-get u "tex-text-width"))
-                   "6em"
-                 ) ;input
-               ) ;item
-               (item (text "linewidth:")
-                 (input (initial-set u "tex-line-width" answer)
-                   "string"
-                   (list (initial-get u "tex-line-width"))
-                   "6em"
-                 ) ;input
-               ) ;item
-               (item (text "columnwidth:")
-                 (input (initial-set u "tex-column-width" answer)
-                   "string"
-                   (list (initial-get u "tex-column-width"))
-                   "6em"
-                 ) ;input
-               ) ;item
-             ) ;aligned
-             (glue #f #t 0 0)
-           ) ;refreshable
+    (hlist
+      (refreshable "page-tex-hor-margins"
+        (hlist (bold (text "Horizontal margins")))
+        ===
+        ===
+        (aligned
+          (item (text "oddsidemargin:")
+            (input (initial-set u "tex-odd-side-margin" answer)
+              "string"
+              (list (initial-get u "tex-odd-side-margin"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "evensidemargin:")
+            (input (initial-set u "tex-even-side-margin" answer)
+              "string"
+              (list (initial-get u "tex-even-side-margin"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "textwidth:")
+            (input (initial-set u "tex-text-width" answer)
+              "string"
+              (list (initial-get u "tex-text-width"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "linewidth:")
+            (input (initial-set u "tex-line-width" answer)
+              "string"
+              (list (initial-get u "tex-line-width"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "columnwidth:")
+            (input (initial-set u "tex-column-width" answer)
+              "string"
+              (list (initial-get u "tex-column-width"))
+              "6em"
+            ) ;input
+          ) ;item
+        ) ;aligned
+        (glue #f #t 0 0)
+      ) ;refreshable
       ///
       ///
       (refreshable "page-tex-ver-margins"
         (hlist (bold (text "Vertical margins")))
         ===
         ===
-        (aligned (item (text "topmargin:")
-                   (input (initial-set u "tex-top-margin" answer)
-                     "string"
-                     (list (initial-get u "tex-top-margin"))
-                     "6em"
-                   ) ;input
-                 ) ;item
+        (aligned
+          (item (text "topmargin:")
+            (input (initial-set u "tex-top-margin" answer)
+              "string"
+              (list (initial-get u "tex-top-margin"))
+              "6em"
+            ) ;input
+          ) ;item
           (item (text "headheight:")
             (input (initial-set u "tex-head-height" answer)
               "string"
@@ -805,13 +828,14 @@
           (hlist (bold (text "Margins on screen")))
           ===
           ===
-          (aligned (item (text "Left:")
-                     (input (initial-set u "page-screen-left" answer)
-                       "string"
-                       (list (initial-get u "page-screen-left"))
-                       "6em"
-                     ) ;input
-                   ) ;item
+          (aligned
+            (item (text "Left:")
+              (input (initial-set u "page-screen-left" answer)
+                "string"
+                (list (initial-get u "page-screen-left"))
+                "6em"
+              ) ;input
+            ) ;item
             (item (text "Right:")
               (input (initial-set u "page-screen-right" answer)
                 "string"
@@ -867,41 +891,39 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget (page-formatter-breaking u quit)
-  (padded (refreshable "page-breaking-settings"
-            (aligned (item (text "Page breaking algorithm:")
-                       (enum (initial-set u "page-breaking" answer)
-                         '("sloppy" "professional")
-                         (initial-get u "page-breaking")
-                         "10em"
-                       ) ;enum
-                     ) ;item
-              (item (text "Allowed page height reduction:")
-                (enum (initial-set u "page-shrink" answer)
-                  (cons-new (initial-get u "page-shrink") '("0cm" "0.5cm" "1cm"
-                                                            ""))
-                  (initial-get u "page-shrink")
-                  "10em"
-                ) ;enum
-              ) ;item
-              (item (text "Allowed page height extension:")
-                (enum (initial-set u "page-extend" answer)
-                  (cons-new (initial-get u "page-extend") '("0cm" "0.5cm" "1cm"
-                                                            ""))
-                  (initial-get u "page-extend")
-                  "10em"
-                ) ;enum
-              ) ;item
-              (item (text "Vertical space stretchability:")
-                (enum (initial-set u "page-flexibility" answer)
-                  (cons-new (initial-get u "page-flexibility") '("0" "0.25"
-                                                                 "0.5" "0.75"
-                                                                 "1" ""))
-                  (initial-get u "page-flexibility")
-                  "10em"
-                ) ;enum
-              ) ;item
-            ) ;aligned
-          ) ;refreshable
+  (padded
+    (refreshable "page-breaking-settings"
+      (aligned (item (text "Page breaking algorithm:")
+                 (enum (initial-set u "page-breaking" answer)
+                   '("sloppy" "professional")
+                   (initial-get u "page-breaking")
+                   "10em"
+                 ) ;enum
+               ) ;item
+        (item (text "Allowed page height reduction:")
+          (enum (initial-set u "page-shrink" answer)
+            (cons-new (initial-get u "page-shrink") '("0cm" "0.5cm" "1cm" ""))
+            (initial-get u "page-shrink")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Allowed page height extension:")
+          (enum (initial-set u "page-extend" answer)
+            (cons-new (initial-get u "page-extend") '("0cm" "0.5cm" "1cm" ""))
+            (initial-get u "page-extend")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Vertical space stretchability:")
+          (enum (initial-set u "page-flexibility" answer)
+            (cons-new (initial-get u "page-flexibility") '("0" "0.25" "0.5"
+                                                           "0.75" "1" ""))
+            (initial-get u "page-flexibility")
+            "10em"
+          ) ;enum
+        ) ;item
+      ) ;aligned
+    ) ;refreshable
   ) ;padded
   ===
   ===
@@ -928,11 +950,12 @@
 ) ;define
 
 (define (header-buffer var)
-  (string->url (string-append "tmfs://aux/"
-                 var
-                 "/"
-                 (url->string (url-tail (get-auxiliary-widget-parent-url)))
-               ) ;string-append
+  (string->url
+    (string-append "tmfs://aux/"
+      var
+      "/"
+      (url->string (url-tail (get-auxiliary-widget-parent-url)))
+    ) ;string-append
   ) ;string->url
 ) ;define
 
@@ -973,54 +996,57 @@
 ) ;define
 
 (tm-widget (page-formatter-headers u style quit)
-  (padded (refreshable "page-header-settings"
-            (for (var header-parameters)
-              (bold (text (eval (parameter-name var))))
-              ===
-              (resize "480px"
-                "100px"
-                (texmacs-input `(document ,(initial-get-tree u var))
-                  `(style (tuple ,@style ,"gui-base"))
-                  (header-buffer var)
-                ) ;texmacs-input
-              ) ;resize
-              ===
-            ) ;for
-          ) ;refreshable
+  (padded
+    (refreshable "page-header-settings"
+      (for (var header-parameters)
+        (bold (text (eval (parameter-name var))))
+        ===
+        (resize "480px"
+          "100px"
+          (texmacs-input
+            `(document ,(initial-get-tree u var))
+            `(style (tuple ,@style ,"gui-base"))
+            (header-buffer var)
+          ) ;texmacs-input
+        ) ;resize
+        ===
+      ) ;for
+    ) ;refreshable
   ) ;padded
   ===
   ===
-  (explicit-buttons (hlist //
-                      //
-                      //
-                      //
-                      //
-                      (text "Insert:")
-                      //
-                      //
-                      ("Tab" (when (editing-headers?) (make-htab "5mm")))
-                      //
-                      //
-                      ("Page number" (when (editing-headers?) (make 'page-the-page)))
-                      //
-                      //
-                      ("Total pages" (when (editing-headers?) (make 'page-the-total)))
-                      //
-                      //
-                      >>>
-                      //
-                      //
-                      ;; ("Reset"
-                      ;; (initial-default u header-parameters)
-                      ;; (refresh-now "page-header-settings"))
-                      ;; // //
-                      ("Ok" (apply-headers-settings u) (begin (quit) (buffer-focus u #t)))
-                      //
-                      //
-                      //
-                      //
-                      //
-                    ) ;hlist
+  (explicit-buttons
+    (hlist //
+      //
+      //
+      //
+      //
+      (text "Insert:")
+      //
+      //
+      ("Tab" (when (editing-headers?) (make-htab "5mm")))
+      //
+      //
+      ("Page number" (when (editing-headers?) (make 'page-the-page)))
+      //
+      //
+      ("Total pages" (when (editing-headers?) (make 'page-the-total)))
+      //
+      //
+      >>>
+      //
+      //
+      ;; ("Reset"
+      ;; (initial-default u header-parameters)
+      ;; (refresh-now "page-header-settings"))
+      ;; // //
+      ("Ok" (apply-headers-settings u) (begin (quit) (buffer-focus u #t)))
+      //
+      //
+      //
+      //
+      //
+    ) ;hlist
   ) ;explicit-buttons
 ) ;tm-widget
 
@@ -1031,7 +1057,9 @@
 
 (define (make-header-condition start end parity content)
   (let* ((page-nr (list 'value "page-nr"))
-         (range-test `(not (or (less ,page-nr ,start) (greater ,page-nr ,end))))
+         (range-test
+           `(not (or (less ,page-nr ,start) (greater ,page-nr ,end)))
+         ) ;range-test
         ) ;
     `(if ,range-test ,content ,"")
   ) ;let*
@@ -1046,8 +1074,9 @@
 
     ;; 将条件树解析为 (cond content) 对的列表
     (define (tree->pairs stree)
-      (cond ((not (tm-func? stree 'if 3)) (if (== stree "") '() (list (cons #t stree))))
-            (else (cons (cons (cadr stree) (caddr stree)) (tree->pairs (cadddr stree))))
+      (cond
+       ((not (tm-func? stree 'if 3)) (if (== stree "") '() (list (cons #t stree))))
+       (else (cons (cons (cadr stree) (caddr stree)) (tree->pairs (cadddr stree))))
       ) ;cond
     ) ;define
 
@@ -1074,7 +1103,8 @@
         (if (null? pairs)
           (if found (reverse new-pairs) (cons (cons cond then) (reverse new-pairs)))
           (let ((pair (car pairs)))
-            (if (and (not (eq? (car pair) #t)) (tm-equal? (car pair) cond))
+            (if
+              (and (not (eq? (car pair) #t)) (tm-equal? (car pair) cond))
               (process-pairs (cdr pairs) #t (cons (cons cond then) new-pairs))
               (process-pairs (cdr pairs) found (cons pair new-pairs))
             ) ;if
@@ -1093,35 +1123,37 @@
       ) ;let*
     ) ;define
 
-    (cond ((or (== parity "odd") (== parity "odd page"))
-           (let ((old-tree (initial-get-tree u "page-odd-header")))
-             (initial-set-tree u
-               "page-odd-header"
-               (merge-condition-tree (tm->stree old-tree))
-             ) ;initial-set-tree
-           ) ;let
-          ) ;
-          ((or (== parity "even") (== parity "even page"))
-           (let ((old-tree (initial-get-tree u "page-even-header")))
-             (initial-set-tree u
-               "page-even-header"
-               (merge-condition-tree (tm->stree old-tree))
-             ) ;initial-set-tree
-           ) ;let
-          ) ;
-          (else (let ((old-odd (initial-get-tree u "page-odd-header"))
-                      (old-even (initial-get-tree u "page-even-header"))
-                     ) ;
-                  (initial-set-tree u
-                    "page-odd-header"
-                    (merge-condition-tree (tm->stree old-odd))
-                  ) ;initial-set-tree
-                  (initial-set-tree u
-                    "page-even-header"
-                    (merge-condition-tree (tm->stree old-even))
-                  ) ;initial-set-tree
-                ) ;let
-          ) ;else
+    (cond
+     ((or (== parity "odd") (== parity "odd page"))
+      (let ((old-tree (initial-get-tree u "page-odd-header")))
+        (initial-set-tree u
+          "page-odd-header"
+          (merge-condition-tree (tm->stree old-tree))
+        ) ;initial-set-tree
+      ) ;let
+     ) ;
+     ((or (== parity "even") (== parity "even page"))
+      (let ((old-tree (initial-get-tree u "page-even-header")))
+        (initial-set-tree u
+          "page-even-header"
+          (merge-condition-tree (tm->stree old-tree))
+        ) ;initial-set-tree
+      ) ;let
+     ) ;
+     (else
+       (let ((old-odd (initial-get-tree u "page-odd-header"))
+             (old-even (initial-get-tree u "page-even-header"))
+            ) ;
+         (initial-set-tree u
+           "page-odd-header"
+           (merge-condition-tree (tm->stree old-odd))
+         ) ;initial-set-tree
+         (initial-set-tree u
+           "page-even-header"
+           (merge-condition-tree (tm->stree old-even))
+         ) ;initial-set-tree
+       ) ;let
+     ) ;else
     ) ;cond
   ) ;let*
   (refresh-window)
@@ -1136,41 +1168,41 @@
          (parity "any")
          (content "")
         ) ;
-    (centered (refreshable "advanced-header-settings"
-                (aligned (item (text "Applying from:")
-                           (input (set! start answer) "string" (list start) "6em")
-                         ) ;item
-                  (item (text "Applying to:") (input (set! end answer) "string" (list end) "6em"))
-                  (item (text "Parity:")
-                    (enum (begin (set! parity answer)) '("odd page"
-                                                         "even page"
-                                                         "any") "any" "10em")
-                  ) ;item
-                  (item (text "Content:")
-                    (resize "480px"
-                      "100px"
-                      (texmacs-input `(document ,content-tree)
-                        `(style (tuple ,@style ,"gui-base"))
-                        (string->url "tmfs://aux/advanced-header")
-                      ) ;texmacs-input
-                    ) ;resize
-                  ) ;item
-                ) ;aligned
-              ) ;refreshable
+    (centered
+      (refreshable "advanced-header-settings"
+        (aligned (item (text "Applying from:")
+                   (input (set! start answer) "string" (list start) "6em")
+                 ) ;item
+          (item (text "Applying to:") (input (set! end answer) "string" (list end) "6em"))
+          (item (text "Parity:")
+            (enum (begin (set! parity answer)) '("odd page" "even page" "any") "any" "10em")
+          ) ;item
+          (item (text "Content:")
+            (resize "480px"
+              "100px"
+              (texmacs-input `(document ,content-tree)
+                `(style (tuple ,@style ,"gui-base"))
+                (string->url "tmfs://aux/advanced-header")
+              ) ;texmacs-input
+            ) ;resize
+          ) ;item
+        ) ;aligned
+      ) ;refreshable
     ) ;centered
     ===
-    (explicit-buttons (hlist >>>
-                       ("Ok"
-                         (with content
-                           (get-field-contents (string->url "tmfs://aux/advanced-header"))
-                           (assign-advanced-header u start end parity content)
-                         ) ;with
-                         (quit)
-                       ) ;
-                       //
-                       //
-                       ("Cancel" (quit))
-                      ) ;hlist
+    (explicit-buttons
+      (hlist >>>
+       ("Ok"
+         (with content
+           (get-field-contents (string->url "tmfs://aux/advanced-header"))
+           (assign-advanced-header u start end parity content)
+         ) ;with
+         (quit)
+       ) ;
+       //
+       //
+       ("Cancel" (quit))
+      ) ;hlist
     ) ;explicit-buttons
   ) ;let*
 ) ;tm-widget
@@ -1182,7 +1214,9 @@
 
 (define (make-footer-condition start end parity content)
   (let* ((page-nr (list 'value "page-nr"))
-         (range-test `(not (or (less ,page-nr ,start) (greater ,page-nr ,end))))
+         (range-test
+           `(not (or (less ,page-nr ,start) (greater ,page-nr ,end)))
+         ) ;range-test
         ) ;
     `(if ,range-test ,content ,"")
   ) ;let*
@@ -1197,8 +1231,9 @@
 
     ;; 将条件树解析为 (cond content) 对的列表
     (define (tree->pairs stree)
-      (cond ((not (tm-func? stree 'if 3)) (if (== stree "") '() (list (cons #t stree))))
-            (else (cons (cons (cadr stree) (caddr stree)) (tree->pairs (cadddr stree))))
+      (cond
+       ((not (tm-func? stree 'if 3)) (if (== stree "") '() (list (cons #t stree))))
+       (else (cons (cons (cadr stree) (caddr stree)) (tree->pairs (cadddr stree))))
       ) ;cond
     ) ;define
 
@@ -1225,7 +1260,8 @@
         (if (null? pairs)
           (if found (reverse new-pairs) (cons (cons cond then) (reverse new-pairs)))
           (let ((pair (car pairs)))
-            (if (and (not (eq? (car pair) #t)) (tm-equal? (car pair) cond))
+            (if
+              (and (not (eq? (car pair) #t)) (tm-equal? (car pair) cond))
               (process-pairs (cdr pairs) #t (cons (cons cond then) new-pairs))
               (process-pairs (cdr pairs) found (cons pair new-pairs))
             ) ;if
@@ -1244,35 +1280,37 @@
       ) ;let*
     ) ;define
 
-    (cond ((or (== parity "odd") (== parity "odd page"))
-           (let ((old-tree (initial-get-tree u "page-odd-footer")))
-             (initial-set-tree u
-               "page-odd-footer"
-               (merge-condition-tree (tm->stree old-tree))
-             ) ;initial-set-tree
-           ) ;let
-          ) ;
-          ((or (== parity "even") (== parity "even page"))
-           (let ((old-tree (initial-get-tree u "page-even-footer")))
-             (initial-set-tree u
-               "page-even-footer"
-               (merge-condition-tree (tm->stree old-tree))
-             ) ;initial-set-tree
-           ) ;let
-          ) ;
-          (else (let ((old-odd (initial-get-tree u "page-odd-footer"))
-                      (old-even (initial-get-tree u "page-even-footer"))
-                     ) ;
-                  (initial-set-tree u
-                    "page-odd-footer"
-                    (merge-condition-tree (tm->stree old-odd))
-                  ) ;initial-set-tree
-                  (initial-set-tree u
-                    "page-even-footer"
-                    (merge-condition-tree (tm->stree old-even))
-                  ) ;initial-set-tree
-                ) ;let
-          ) ;else
+    (cond
+     ((or (== parity "odd") (== parity "odd page"))
+      (let ((old-tree (initial-get-tree u "page-odd-footer")))
+        (initial-set-tree u
+          "page-odd-footer"
+          (merge-condition-tree (tm->stree old-tree))
+        ) ;initial-set-tree
+      ) ;let
+     ) ;
+     ((or (== parity "even") (== parity "even page"))
+      (let ((old-tree (initial-get-tree u "page-even-footer")))
+        (initial-set-tree u
+          "page-even-footer"
+          (merge-condition-tree (tm->stree old-tree))
+        ) ;initial-set-tree
+      ) ;let
+     ) ;
+     (else
+       (let ((old-odd (initial-get-tree u "page-odd-footer"))
+             (old-even (initial-get-tree u "page-even-footer"))
+            ) ;
+         (initial-set-tree u
+           "page-odd-footer"
+           (merge-condition-tree (tm->stree old-odd))
+         ) ;initial-set-tree
+         (initial-set-tree u
+           "page-even-footer"
+           (merge-condition-tree (tm->stree old-even))
+         ) ;initial-set-tree
+       ) ;let
+     ) ;else
     ) ;cond
   ) ;let*
   (refresh-window)
@@ -1287,41 +1325,41 @@
          (parity "any")
          (content "")
         ) ;
-    (centered (refreshable "advanced-footer-settings"
-                (aligned (item (text "Applying from:")
-                           (input (set! start answer) "string" (list start) "6em")
-                         ) ;item
-                  (item (text "Applying to:") (input (set! end answer) "string" (list end) "6em"))
-                  (item (text "Parity:")
-                    (enum (begin (set! parity answer)) '("odd page"
-                                                         "even page"
-                                                         "any") "any" "10em")
-                  ) ;item
-                  (item (text "Content:")
-                    (resize "480px"
-                      "100px"
-                      (texmacs-input `(document ,content-tree)
-                        `(style (tuple ,@style ,"gui-base"))
-                        (string->url "tmfs://aux/advanced-footer")
-                      ) ;texmacs-input
-                    ) ;resize
-                  ) ;item
-                ) ;aligned
-              ) ;refreshable
+    (centered
+      (refreshable "advanced-footer-settings"
+        (aligned (item (text "Applying from:")
+                   (input (set! start answer) "string" (list start) "6em")
+                 ) ;item
+          (item (text "Applying to:") (input (set! end answer) "string" (list end) "6em"))
+          (item (text "Parity:")
+            (enum (begin (set! parity answer)) '("odd page" "even page" "any") "any" "10em")
+          ) ;item
+          (item (text "Content:")
+            (resize "480px"
+              "100px"
+              (texmacs-input `(document ,content-tree)
+                `(style (tuple ,@style ,"gui-base"))
+                (string->url "tmfs://aux/advanced-footer")
+              ) ;texmacs-input
+            ) ;resize
+          ) ;item
+        ) ;aligned
+      ) ;refreshable
     ) ;centered
     ===
-    (explicit-buttons (hlist >>>
-                       ("Ok"
-                         (with content
-                           (get-field-contents (string->url "tmfs://aux/advanced-footer"))
-                           (assign-advanced-footer u start end parity content)
-                         ) ;with
-                         (quit)
-                       ) ;
-                       //
-                       //
-                       ("Cancel" (quit))
-                      ) ;hlist
+    (explicit-buttons
+      (hlist >>>
+       ("Ok"
+         (with content
+           (get-field-contents (string->url "tmfs://aux/advanced-footer"))
+           (assign-advanced-footer u start end parity content)
+         ) ;with
+         (quit)
+       ) ;
+       //
+       //
+       ("Cancel" (quit))
+      ) ;hlist
     ) ;explicit-buttons
   ) ;let*
 ) ;tm-widget
@@ -1331,16 +1369,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget ((document-page-formatter u style) quit)
-  (padded (tabs (tab (text "Format") (padded (dynamic (page-formatter-format u quit))))
-            (tab (text "Margins") (padded (dynamic (page-formatter-margins u quit))))
-            (tab (text "Breaking") (padded (dynamic (page-formatter-breaking u quit))))
-            (tab (text "Advanced header")
-              (padded (dynamic (page-formatter-advanced-header u style quit)))
-            ) ;tab
-            (tab (text "Advanced footer")
-              (padded (dynamic (page-formatter-advanced-footer u style quit)))
-            ) ;tab
-          ) ;tabs
+  (padded
+    (tabs
+      (tab (text "Format") (padded (dynamic (page-formatter-format u quit))))
+      (tab (text "Margins") (padded (dynamic (page-formatter-margins u quit))))
+      (tab (text "Breaking") (padded (dynamic (page-formatter-breaking u quit))))
+      (tab (text "Advanced header")
+        (padded (dynamic (page-formatter-advanced-header u style quit)))
+      ) ;tab
+      (tab (text "Advanced footer")
+        (padded (dynamic (page-formatter-advanced-footer u style quit)))
+      ) ;tab
+    ) ;tabs
   ) ;padded
 ) ;tm-widget
 
@@ -1390,30 +1430,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget ((document-metadata-editor u) quit)
-  (padded (refreshable "document-metadata"
-            (aligned (item (text "Title:")
-                       (input (initial-set u "global-title" answer)
-                         "string"
-                         (list (buffer-get-metadata u "title"))
-                         "24em"
-                       ) ;input
-                     ) ;item
-              (item (text "Author:")
-                (input (initial-set u "global-author" answer)
-                  "string"
-                  (list (buffer-get-metadata u "author"))
-                  "24em"
-                ) ;input
-              ) ;item
-              (item (text "Subject:")
-                (input (initial-set u "global-subject" answer)
-                  "string"
-                  (list (buffer-get-metadata u "subject"))
-                  "24em"
-                ) ;input
-              ) ;item
-            ) ;aligned
-          ) ;refreshable
+  (padded
+    (refreshable "document-metadata"
+      (aligned
+        (item (text "Title:")
+          (input (initial-set u "global-title" answer)
+            "string"
+            (list (buffer-get-metadata u "title"))
+            "24em"
+          ) ;input
+        ) ;item
+        (item (text "Author:")
+          (input (initial-set u "global-author" answer)
+            "string"
+            (list (buffer-get-metadata u "author"))
+            "24em"
+          ) ;input
+        ) ;item
+        (item (text "Subject:")
+          (input (initial-set u "global-subject" answer)
+            "string"
+            (list (buffer-get-metadata u "subject"))
+            "24em"
+          ) ;input
+        ) ;item
+      ) ;aligned
+    ) ;refreshable
     ======
     (explicit-buttons (hlist >>>
                        ("Reset"
@@ -1456,11 +1498,13 @@
 ) ;tm-widget
 
 (tm-widget ((document-colors-picker u) quit)
-  (padded (refreshable "page-colors"
-            (tabs (tab (text "Background") (padded (dynamic (page-colors-background u))))
-              (tab (text "Foreground") (padded (dynamic (page-colors-foreground u))))
-            ) ;tabs
-          ) ;refreshable
+  (padded
+    (refreshable "page-colors"
+      (tabs
+        (tab (text "Background") (padded (dynamic (page-colors-background u))))
+        (tab (text "Foreground") (padded (dynamic (page-colors-foreground u))))
+      ) ;tabs
+    ) ;refreshable
     ======
     (explicit-buttons (hlist >>>
                        ("Reset" (initial-default u "bg-color" "color") (refresh-now "page-colors"))

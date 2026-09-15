@@ -22,13 +22,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (window-get-env win var mode)
-  (or (with-window win
-        (cond ((== mode :here) (get-env var))
-              ((== mode :paragraph) (get-env var))
-              ((== mode :global) (get-init var))
-              (else "?")
-        ) ;cond
-      ) ;with-window
+  (or
+    (with-window win
+      (cond ((== mode :here) (get-env var))
+            ((== mode :paragraph) (get-env var))
+            ((== mode :global) (get-init var))
+            (else "?")
+      ) ;cond
+    ) ;with-window
     "?"
   ) ;or
 ) ;tm-define
@@ -239,9 +240,10 @@
     ) ;aligned
     ======
     (division "discrete"
-      (hlist (assuming (== mode :global)
-              ("Restore defaults" (apply window-reset-init (cons win paragraph-parameters)))
-             ) ;assuming
+      (hlist
+        (assuming (== mode :global)
+         ("Restore defaults" (apply window-reset-init (cons win paragraph-parameters)))
+        ) ;assuming
         >>
         (assuming (not (global-ref win mode :advanced))
          ("Show advanced settings"
@@ -347,22 +349,24 @@
 (tm-widget (page-format-tool win)
   (refreshable "page format tool"
     ===
-    (aligned (item (text "Page rendering:")
-               (enum (window-set-page-rendering win (encode-rendering answer))
-                 (page-rendering-options)
-                 (decode-rendering (window-get-page-rendering win))
-                 "10em"
-               ) ;enum
-             ) ;item
+    (aligned
+      (item (text "Page rendering:")
+        (enum (window-set-page-rendering win (encode-rendering answer))
+          (page-rendering-options)
+          (decode-rendering (window-get-page-rendering win))
+          "10em"
+        ) ;enum
+      ) ;item
       (item (text "Page type:")
-        (enum (begin
-                (window-set-init win "page-type" (page-type-raw answer))
-                (when (!= (page-type-raw answer) "user")
-                  (window-set-init win "page-width" "auto")
-                  (window-set-init win "page-height" "auto")
-                ) ;when
-                (refresh-now "page format tool")
-              ) ;begin
+        (enum
+          (begin
+            (window-set-init win "page-type" (page-type-raw answer))
+            (when (!= (page-type-raw answer) "user")
+              (window-set-init win "page-width" "auto")
+              (window-set-init win "page-height" "auto")
+            ) ;when
+            (refresh-now "page format tool")
+          ) ;begin
           (cons-new (page-type-pretty (window-get-init win "page-type"))
             (window-page-size-list win)
           ) ;cons-new
@@ -451,99 +455,104 @@
 ) ;define
 
 (tm-widget (page-margins-tool win)
-  (padded (aligned (meti (hlist // (text "Determine margins from text width"))
-                     (toggle (begin
-                               (window-set-init win "page-width-margin" (if answer "true" "false"))
-                               (refresh-now "page-margin-settings")
-                             ) ;begin
-                       (== (window-get-init win "page-width-margin") "true")
-                     ) ;toggle
-                   ) ;meti
-            (meti (hlist // (text "Same screen margins as on paper"))
-              (toggle (begin
-                        (window-set-init win "page-screen-margin" (if answer "false" "true"))
-                        (refresh-now "page-screen-margin-settings")
-                      ) ;begin
-                (!= (window-get-init win "page-screen-margin") "true")
-              ) ;toggle
-            ) ;meti
-          ) ;aligned
+  (padded
+    (aligned
+      (meti (hlist // (text "Determine margins from text width"))
+        (toggle (begin
+                  (window-set-init win "page-width-margin" (if answer "true" "false"))
+                  (refresh-now "page-margin-settings")
+                ) ;begin
+          (== (window-get-init win "page-width-margin") "true")
+        ) ;toggle
+      ) ;meti
+      (meti (hlist // (text "Same screen margins as on paper"))
+        (toggle (begin
+                  (window-set-init win "page-screen-margin" (if answer "false" "true"))
+                  (refresh-now "page-screen-margin-settings")
+                ) ;begin
+          (!= (window-get-init win "page-screen-margin") "true")
+        ) ;toggle
+      ) ;meti
+    ) ;aligned
   ) ;padded
   (refreshable "page-margin-settings"
     ===
     (division "subtitle" (text "Margins on paper"))
-    (padded (if (!= (window-get-init win "page-width-margin") "true")
-              (aligned (item (text "Left:")
-                         (hlist (numeric-input (page-margin-set-mm win "page-odd" answer)
-                                  "4em"
-                                  "mm"
-                                  0
-                                  500
-                                  1
-                                  (page-margin-get-mm win "page-odd")
-                                ) ;numeric-input
-                           //
-                           //
-                           (text "(odd pages)")
-                           //
-                           >>>
-                         ) ;hlist
-                       ) ;item
-                (item (text "")
-                  (hlist (numeric-input (page-margin-set-mm win "page-even" answer)
-                           "4em"
-                           "mm"
-                           0
-                           500
-                           1
-                           (page-margin-get-mm win "page-even")
-                         ) ;numeric-input
-                    //
-                    //
-                    (text "(even pages)")
-                    >>>
-                  ) ;hlist
-                ) ;item
-                (item (text "Right:")
-                  (hlist (numeric-input (page-margin-set-mm win "page-right" answer)
-                           "4em"
-                           "mm"
-                           0
-                           500
-                           1
-                           (page-margin-get-mm win "page-right")
-                         ) ;numeric-input
-                    //
-                    //
-                    (text "(odd pages)")
-                    //
-                    >>>
-                  ) ;hlist
-                ) ;item
-                (item (text "Top:")
-                  (input (window-set-init win "page-top" answer)
-                    "string"
-                    (list (window-get-init win "page-top"))
-                    "6em"
-                  ) ;input
-                ) ;item
-                (item (text "Bottom:")
-                  (input (window-set-init win "page-bot" answer)
-                    "string"
-                    (list (window-get-init win "page-bot"))
-                    "6em"
-                  ) ;input
-                ) ;item
-              ) ;aligned
-            ) ;if
+    (padded
+      (if (!= (window-get-init win "page-width-margin") "true")
+        (aligned
+          (item (text "Left:")
+            (hlist (numeric-input (page-margin-set-mm win "page-odd" answer)
+                     "4em"
+                     "mm"
+                     0
+                     500
+                     1
+                     (page-margin-get-mm win "page-odd")
+                   ) ;numeric-input
+              //
+              //
+              (text "(odd pages)")
+              //
+              >>>
+            ) ;hlist
+          ) ;item
+          (item (text "")
+            (hlist (numeric-input (page-margin-set-mm win "page-even" answer)
+                     "4em"
+                     "mm"
+                     0
+                     500
+                     1
+                     (page-margin-get-mm win "page-even")
+                   ) ;numeric-input
+              //
+              //
+              (text "(even pages)")
+              >>>
+            ) ;hlist
+          ) ;item
+          (item (text "Right:")
+            (hlist (numeric-input (page-margin-set-mm win "page-right" answer)
+                     "4em"
+                     "mm"
+                     0
+                     500
+                     1
+                     (page-margin-get-mm win "page-right")
+                   ) ;numeric-input
+              //
+              //
+              (text "(odd pages)")
+              //
+              >>>
+            ) ;hlist
+          ) ;item
+          (item (text "Top:")
+            (input (window-set-init win "page-top" answer)
+              "string"
+              (list (window-get-init win "page-top"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Bottom:")
+            (input (window-set-init win "page-bot" answer)
+              "string"
+              (list (window-get-init win "page-bot"))
+              "6em"
+            ) ;input
+          ) ;item
+        ) ;aligned
+      ) ;if
       (if (== (window-get-init win "page-width-margin") "true")
-        (aligned (item (text "Text width:")
-                   (input (window-set-init win "par-width" answer)
-                     "string"
-                     (list (window-get-init win "par-width"))
-                     "6em"
-                   ) ;input
-                 ) ;item
+        (aligned
+          (item (text "Text width:")
+            (input (window-set-init win "par-width" answer)
+              "string"
+              (list (window-get-init win "par-width"))
+              "6em"
+            ) ;input
+          ) ;item
           (item (text "Odd page shift:")
             (input (window-set-init win "page-odd-shift" answer)
               "string"
@@ -580,35 +589,37 @@
     (assuming (== (window-get-init win "page-screen-margin") "true")
       ===
       (division "subtitle" (text "Margins on screen"))
-      (padded (aligned (item (text "Left:")
-                         (input (window-set-init win "page-screen-left" answer)
-                           "string"
-                           (list (window-get-init win "page-screen-left"))
-                           "6em"
-                         ) ;input
-                       ) ;item
-                (item (text "Right:")
-                  (input (window-set-init win "page-screen-right" answer)
-                    "string"
-                    (list (window-get-init win "page-screen-right"))
-                    "6em"
-                  ) ;input
-                ) ;item
-                (item (text "Top:")
-                  (input (window-set-init win "page-screen-top" answer)
-                    "string"
-                    (list (window-get-init win "page-screen-top"))
-                    "6em"
-                  ) ;input
-                ) ;item
-                (item (text "Bottom:")
-                  (input (window-set-init win "page-screen-bot" answer)
-                    "string"
-                    (list (window-get-init win "page-screen-bot"))
-                    "6em"
-                  ) ;input
-                ) ;item
-              ) ;aligned
+      (padded
+        (aligned
+          (item (text "Left:")
+            (input (window-set-init win "page-screen-left" answer)
+              "string"
+              (list (window-get-init win "page-screen-left"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Right:")
+            (input (window-set-init win "page-screen-right" answer)
+              "string"
+              (list (window-get-init win "page-screen-right"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Top:")
+            (input (window-set-init win "page-screen-top" answer)
+              "string"
+              (list (window-get-init win "page-screen-top"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Bottom:")
+            (input (window-set-init win "page-screen-bot" answer)
+              "string"
+              (list (window-get-init win "page-screen-bot"))
+              "6em"
+            ) ;input
+          ) ;item
+        ) ;aligned
       ) ;padded
     ) ;assuming
   ) ;refreshable
@@ -632,132 +643,140 @@
   (:require (style-has? "std-latex-dtd"))
   (padded (text "This style specifies page margins in the TeX way"))
   (refreshable "page-margin-toggles"
-    (padded (aligned (meti (hlist // (text "Same screen margins as on paper"))
-                       (toggle (begin
-                                 (window-set-init win "page-screen-margin" (if answer "false" "true"))
-                                 (refresh-now "page-screen-margin-settings")
-                               ) ;begin
-                         (!= (window-get-init win "page-screen-margin") "true")
-                       ) ;toggle
-                     ) ;meti
-            ) ;aligned
+    (padded
+      (aligned
+        (meti (hlist // (text "Same screen margins as on paper"))
+          (toggle (begin
+                    (window-set-init win "page-screen-margin" (if answer "false" "true"))
+                    (refresh-now "page-screen-margin-settings")
+                  ) ;begin
+            (!= (window-get-init win "page-screen-margin") "true")
+          ) ;toggle
+        ) ;meti
+      ) ;aligned
     ) ;padded
   ) ;refreshable
   (refreshable "page-tex-hor-margins"
     ===
     (division "subtitle" (text "Horizontal margins"))
-    (padded (aligned (item (text "oddsidemargin:")
-                       (input (window-set-init win "tex-odd-side-margin" answer)
-                         "string"
-                         (list (window-get-init win "tex-odd-side-margin"))
-                         "6em"
-                       ) ;input
-                     ) ;item
-              (item (text "evensidemargin:")
-                (input (window-set-init win "tex-even-side-margin" answer)
-                  "string"
-                  (list (window-get-init win "tex-even-side-margin"))
-                  "6em"
-                ) ;input
-              ) ;item
-              (item (text "textwidth:")
-                (input (window-set-init win "tex-text-width" answer)
-                  "string"
-                  (list (window-get-init win "tex-text-width"))
-                  "6em"
-                ) ;input
-              ) ;item
-              (item (text "linewidth:")
-                (input (window-set-init win "tex-line-width" answer)
-                  "string"
-                  (list (window-get-init win "tex-line-width"))
-                  "6em"
-                ) ;input
-              ) ;item
-              (item (text "columnwidth:")
-                (input (window-set-init win "tex-column-width" answer)
-                  "string"
-                  (list (window-get-init win "tex-column-width"))
-                  "6em"
-                ) ;input
-              ) ;item
-            ) ;aligned
+    (padded
+      (aligned
+        (item (text "oddsidemargin:")
+          (input (window-set-init win "tex-odd-side-margin" answer)
+            "string"
+            (list (window-get-init win "tex-odd-side-margin"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "evensidemargin:")
+          (input (window-set-init win "tex-even-side-margin" answer)
+            "string"
+            (list (window-get-init win "tex-even-side-margin"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "textwidth:")
+          (input (window-set-init win "tex-text-width" answer)
+            "string"
+            (list (window-get-init win "tex-text-width"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "linewidth:")
+          (input (window-set-init win "tex-line-width" answer)
+            "string"
+            (list (window-get-init win "tex-line-width"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "columnwidth:")
+          (input (window-set-init win "tex-column-width" answer)
+            "string"
+            (list (window-get-init win "tex-column-width"))
+            "6em"
+          ) ;input
+        ) ;item
+      ) ;aligned
     ) ;padded
   ) ;refreshable
   (refreshable "page-tex-ver-margins"
     ===
     (division "subtitle" (text "Vertical margins"))
-    (padded (aligned (item (text "topmargin:")
-                       (input (window-set-init win "tex-top-margin" answer)
-                         "string"
-                         (list (window-get-init win "tex-top-margin"))
-                         "6em"
-                       ) ;input
-                     ) ;item
-              (item (text "headheight:")
-                (input (window-set-init win "tex-head-height" answer)
-                  "string"
-                  (list (window-get-init win "tex-head-height"))
-                  "6em"
-                ) ;input
-              ) ;item
-              (item (text "headsep:")
-                (input (window-set-init win "tex-head-sep" answer)
-                  "string"
-                  (list (window-get-init win "tex-head-sep"))
-                  "6em"
-                ) ;input
-              ) ;item
-              (item (text "textheight:")
-                (input (window-set-init win "tex-text-height" answer)
-                  "string"
-                  (list (window-get-init win "tex-text-height"))
-                  "6em"
-                ) ;input
-              ) ;item
-              (item (text "footskip:")
-                (input (window-set-init win "tex-foot-skip" answer)
-                  "string"
-                  (list (window-get-init win "tex-foot-skip"))
-                  "6em"
-                ) ;input
-              ) ;item
-            ) ;aligned
+    (padded
+      (aligned
+        (item (text "topmargin:")
+          (input (window-set-init win "tex-top-margin" answer)
+            "string"
+            (list (window-get-init win "tex-top-margin"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "headheight:")
+          (input (window-set-init win "tex-head-height" answer)
+            "string"
+            (list (window-get-init win "tex-head-height"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "headsep:")
+          (input (window-set-init win "tex-head-sep" answer)
+            "string"
+            (list (window-get-init win "tex-head-sep"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "textheight:")
+          (input (window-set-init win "tex-text-height" answer)
+            "string"
+            (list (window-get-init win "tex-text-height"))
+            "6em"
+          ) ;input
+        ) ;item
+        (item (text "footskip:")
+          (input (window-set-init win "tex-foot-skip" answer)
+            "string"
+            (list (window-get-init win "tex-foot-skip"))
+            "6em"
+          ) ;input
+        ) ;item
+      ) ;aligned
     ) ;padded
   ) ;refreshable
   (refreshable "page-screen-margin-settings"
     (assuming (== (window-get-init win "page-screen-margin") "true")
       ===
       (division "subtitle" (text "Margins on screen"))
-      (padded (aligned (item (text "Left:")
-                         (input (window-set-init win "page-screen-left" answer)
-                           "string"
-                           (list (window-get-init win "page-screen-left"))
-                           "6em"
-                         ) ;input
-                       ) ;item
-                (item (text "Right:")
-                  (input (window-set-init win "page-screen-right" answer)
-                    "string"
-                    (list (window-get-init win "page-screen-right"))
-                    "6em"
-                  ) ;input
-                ) ;item
-                (item (text "Top:")
-                  (input (window-set-init win "page-screen-top" answer)
-                    "string"
-                    (list (window-get-init win "page-screen-top"))
-                    "6em"
-                  ) ;input
-                ) ;item
-                (item (text "Bottom:")
-                  (input (window-set-init win "page-screen-bot" answer)
-                    "string"
-                    (list (window-get-init win "page-screen-bot"))
-                    "6em"
-                  ) ;input
-                ) ;item
-              ) ;aligned
+      (padded
+        (aligned
+          (item (text "Left:")
+            (input (window-set-init win "page-screen-left" answer)
+              "string"
+              (list (window-get-init win "page-screen-left"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Right:")
+            (input (window-set-init win "page-screen-right" answer)
+              "string"
+              (list (window-get-init win "page-screen-right"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Top:")
+            (input (window-set-init win "page-screen-top" answer)
+              "string"
+              (list (window-get-init win "page-screen-top"))
+              "6em"
+            ) ;input
+          ) ;item
+          (item (text "Bottom:")
+            (input (window-set-init win "page-screen-bot" answer)
+              "string"
+              (list (window-get-init win "page-screen-bot"))
+              "6em"
+            ) ;input
+          ) ;item
+        ) ;aligned
       ) ;padded
     ) ;assuming
   ) ;refreshable
@@ -904,7 +923,8 @@
         (synchronize win var)
         (resize "330px"
           "60px"
-          (texmacs-input `(document ,(initial-get-tree u var))
+          (texmacs-input
+            `(document ,(initial-get-tree u var))
             `(style (tuple ,@style ,"gui-base"))
             (header-buffer win var)
           ) ;texmacs-input

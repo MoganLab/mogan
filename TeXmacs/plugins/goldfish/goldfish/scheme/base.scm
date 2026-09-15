@@ -363,10 +363,11 @@
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "lcm: parameters must be reals")
       ) ;when
-      (cond ((and (inexact? x) (exact? y)) (inexact (s7-lcm (exact x) y)))
-            ((and (exact? x) (inexact? y)) (inexact (s7-lcm x (exact y))))
-            ((and (inexact? x) (inexact? y)) (inexact (s7-lcm (exact x) (exact y))))
-            (else (s7-lcm x y))
+      (cond
+       ((and (inexact? x) (exact? y)) (inexact (s7-lcm (exact x) y)))
+       ((and (exact? x) (inexact? y)) (inexact (s7-lcm x (exact y))))
+       ((and (inexact? x) (inexact? y)) (inexact (s7-lcm (exact x) (exact y))))
+       (else (s7-lcm x y))
       ) ;cond
     ) ;define
 
@@ -374,7 +375,9 @@
       (cond ((null? args) 1)
             ((null? (cdr args)) (lcm2 (car args) 1))
             ((null? (cddr args)) (lcm2 (car args) (cadr args)))
-            (else (apply lcm (cons (lcm (car args) (cadr args)) (cddr args))))
+            (else
+              (apply lcm (cons (lcm (car args) (cadr args)) (cddr args)))
+            ) ;else
       ) ;cond
     ) ;define
 
@@ -473,7 +476,8 @@
              (if (>= (+ index 2) end)
                index
                (let ((next-byte1 (bv (+ index 1))) (next-byte2 (bv (+ index 2))))
-                 (if (or (not (= (logand next-byte1 192) 128)) (not (= (logand next-byte2 192) 128)))
+                 (if
+                   (or (not (= (logand next-byte1 192) 128)) (not (= (logand next-byte2 192) 128)))
                    index
                    (+ index 3)
                  ) ;if
@@ -489,10 +493,11 @@
                      (next-byte2 (bv (+ index 2)))
                      (next-byte3 (bv (+ index 3)))
                     ) ;
-                 (if (or (not (= (logand next-byte1 192) 128))
-                       (not (= (logand next-byte2 192) 128))
-                       (not (= (logand next-byte3 192) 128))
-                     ) ;or
+                 (if
+                   (or (not (= (logand next-byte1 192) 128))
+                     (not (= (logand next-byte2 192) 128))
+                     (not (= (logand next-byte3 192) 128))
+                   ) ;or
                    index
                    (+ index 4)
                  ) ;if
@@ -528,9 +533,10 @@
         (let loop
           ((pos start))
           (let ((next-pos (bytevector-advance-utf8 bv pos end)))
-            (cond ((= next-pos end) (copy bv (make-string (- end start)) start end))
-                  ((= next-pos pos) (error 'value-error "Invalid UTF-8 sequence at index: " pos))
-                  (else (loop next-pos))
+            (cond
+             ((= next-pos end) (copy bv (make-string (- end start)) start end))
+             ((= next-pos pos) (error 'value-error "Invalid UTF-8 sequence at index: " pos))
+             (else (loop next-pos))
             ) ;cond
           ) ;let
         ) ;let
@@ -639,14 +645,15 @@
     (define vector-fill! fill!)
 
     (define* (vector-copy! to at from (start 0) (end (vector-length from)))
-      (if (or (< at 0)
-            (< start 0)
-            (> start (vector-length from))
-            (< end 0)
-            (> end (vector-length from))
-            (> start end)
-            (> (+ at (- end start)) (vector-length to))
-          ) ;or
+      (if
+        (or (< at 0)
+          (< start 0)
+          (> start (vector-length from))
+          (< end 0)
+          (> end (vector-length from))
+          (> start end)
+          (> (+ at (- end start)) (vector-length to))
+        ) ;or
         (error 'out-of-range "vector-copy!")
         (let loop
           ((to-i at) (from-i start))

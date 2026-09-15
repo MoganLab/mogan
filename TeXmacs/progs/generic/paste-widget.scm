@@ -79,14 +79,15 @@
 
 (define (get-clipboard-format)
   (let* ((fm1 (qt-clipboard-format)))
-    (cond ((== fm1 "verbatim")
-           (let* ((raw-text (qt-clipboard-text)) (fm2 (format-determine raw-text "verbatim")))
-             fm2
-           ) ;let*
-          ) ;
-          ((== fm1 "texmacs-snippet") "internal")
-          ((string-starts? fm1 "image") "image")
-          (else fm1)
+    (cond
+     ((== fm1 "verbatim")
+      (let* ((raw-text (qt-clipboard-text)) (fm2 (format-determine raw-text "verbatim")))
+        fm2
+      ) ;let*
+     ) ;
+     ((== fm1 "texmacs-snippet") "internal")
+     ((string-starts? fm1 "image") "image")
+     (else fm1)
     ) ;cond
   ) ;let*
 ) ;define
@@ -150,47 +151,52 @@
     (invisible (set! tips2 (translate "ENTER to confirm, ESC to cancel")))
     (resize "320px"
       "310px"
-      (padded (vertical (horizontal (vertical (bold (text "From: "))
-                                      (text (convert-symbol-to-format-string source-format))
-                                      (glue #f #t 0 0)
-                                      (bold (text "Mode"))
-                                      (text (get-mode))
-                                      (glue #f #t 0 0)
-                                    ) ;vertical
-                          ///
-                          (refreshable "format-selection"
-                            (resize "200px"
-                              "190px"
-                              (bold (text "As: "))
-                              ===
-                              (scrollable (choice (begin
-                                                    (set! selected-format (convert-format-string-to-symbol (translate answer)))
-                                                    (set! tips1 (translate (get-tips selected-format)))
-                                                    (refresh-now "format-explanation")
-                                                    (refresh-now "paste-shortcut")
-                                                  ) ;begin
-                                            l
-                                            (car l)
-                                          ) ;choice
-                              ) ;scrollable
-                            ) ;resize
-                          ) ;refreshable
-                        ) ;horizontal
+      (padded
+        (vertical
+          (horizontal (vertical (bold (text "From: "))
+                        (text (convert-symbol-to-format-string source-format))
+                        (glue #f #t 0 0)
+                        (bold (text "Mode"))
+                        (text (get-mode))
+                        (glue #f #t 0 0)
+                      ) ;vertical
+            ///
+            (refreshable "format-selection"
+              (resize "200px"
+                "190px"
+                (bold (text "As: "))
                 ===
-                (refreshable "format-explanation"
-                  (bold (text "Tips"))
-                  (resize "320px"
-                    "110px"
-                    (texmacs-output `(with ,"bg-color"
-                                       ,"white"
-                                       ,"font-base-size"
-                                       ,"18"
-                                       (document ,tips1 ,tips2 ,tips3 ,tips4))
-                      '(style "generic")
-                    ) ;texmacs-output
-                  ) ;resize
-                ) ;refreshable
-              ) ;vertical
+                (scrollable
+                  (choice
+                    (begin
+                      (set! selected-format (convert-format-string-to-symbol (translate answer)))
+                      (set! tips1 (translate (get-tips selected-format)))
+                      (refresh-now "format-explanation")
+                      (refresh-now "paste-shortcut")
+                    ) ;begin
+                    l
+                    (car l)
+                  ) ;choice
+                ) ;scrollable
+              ) ;resize
+            ) ;refreshable
+          ) ;horizontal
+          ===
+          (refreshable "format-explanation"
+            (bold (text "Tips"))
+            (resize "320px"
+              "110px"
+              (texmacs-output
+                `(with ,"bg-color"
+                   ,"white"
+                   ,"font-base-size"
+                   ,"18"
+                   (document ,tips1 ,tips2 ,tips3 ,tips4))
+                '(style "generic")
+              ) ;texmacs-output
+            ) ;resize
+          ) ;refreshable
+        ) ;vertical
       ) ;padded
     ) ;resize
     (bottom-buttons >> ("ok" (cmd selected-format)) // ("cancel" (cmd #f)))

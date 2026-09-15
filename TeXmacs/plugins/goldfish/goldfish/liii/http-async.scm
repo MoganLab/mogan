@@ -40,16 +40,17 @@
              (headers (http-normalize-string-alist "http-async-post" "headers" headers))
              (proxy (http-normalize-string-alist "http-async-post" "proxy" proxy))
             ) ;
-        (cond ((and (> (string-length data) 0) (null? headers))
-               (g_http-async-post url
-                 params
-                 data
-                 '(("Content-Type" . "text/plain"))
-                 proxy
-                 callback
-               ) ;g_http-async-post
-              ) ;
-              (else (g_http-async-post url params data headers proxy callback))
+        (cond
+         ((and (> (string-length data) 0) (null? headers))
+          (g_http-async-post url
+            params
+            data
+            '(("Content-Type" . "text/plain"))
+            proxy
+            callback
+          ) ;g_http-async-post
+         ) ;
+         (else (g_http-async-post url params data headers proxy callback))
         ) ;cond
       ) ;let*
     ) ;define*

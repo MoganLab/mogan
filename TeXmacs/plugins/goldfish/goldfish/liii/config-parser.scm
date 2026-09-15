@@ -108,10 +108,11 @@
 
     (define (parse-section-header line)
       (let* ((trimmed (ini-string-trim line)) (len (string-length trimmed)))
-        (if (and (> len 1)
-              (char=? (string-ref trimmed 0) #\[)
-              (char=? (string-ref trimmed (- len 1)) #\])
-            ) ;and
+        (if
+          (and (> len 1)
+            (char=? (string-ref trimmed 0) #\[)
+            (char=? (string-ref trimmed (- len 1)) #\])
+          ) ;and
           (ini-string-trim (substring trimmed 1 (- len 1)))
           #f
         ) ;if
@@ -140,30 +141,31 @@
         ((current-section #f))
         (let ((line (read-line inport)))
           (cond ((eof-object? line) config)
-                (else (let* ((no-comment (remove-comment line)) (trimmed (ini-string-trim no-comment)))
-                        (if (string=? trimmed "")
-                          (loop current-section)
-                          (let ((section-name (parse-section-header trimmed)))
-                            (cond (section-name (ensure-section config section-name) (loop section-name))
-                                  (else (let ((kv (split-at-first-sep trimmed '(#\=
-                                                                                #\:))))
-                                          (when kv
-                                            (let ((key (ini-string-trim (car kv))) (val (ini-string-trim (cdr kv))))
-                                              (when current-section
-                                                (hash-table-set! (ensure-section config current-section)
-                                                  (string-downcase key)
-                                                  val
-                                                ) ;hash-table-set!
-                                              ) ;when
-                                            ) ;let
-                                          ) ;when
-                                          (loop current-section)
-                                        ) ;let
-                                  ) ;else
-                            ) ;cond
-                          ) ;let
-                        ) ;if
-                      ) ;let*
+                (else
+                  (let* ((no-comment (remove-comment line)) (trimmed (ini-string-trim no-comment)))
+                    (if (string=? trimmed "")
+                      (loop current-section)
+                      (let ((section-name (parse-section-header trimmed)))
+                        (cond (section-name (ensure-section config section-name) (loop section-name))
+                              (else
+                                (let ((kv (split-at-first-sep trimmed '(#\= #\:))))
+                                  (when kv
+                                    (let ((key (ini-string-trim (car kv))) (val (ini-string-trim (cdr kv))))
+                                      (when current-section
+                                        (hash-table-set! (ensure-section config current-section)
+                                          (string-downcase key)
+                                          val
+                                        ) ;hash-table-set!
+                                      ) ;when
+                                    ) ;let
+                                  ) ;when
+                                  (loop current-section)
+                                ) ;let
+                              ) ;else
+                        ) ;cond
+                      ) ;let
+                    ) ;if
+                  ) ;let*
                 ) ;else
           ) ;cond
         ) ;let
@@ -221,16 +223,18 @@
         (let ((sec (hash-table-ref/default (config-parser-sections config) section #f)))
           (cond ((not sec) (config-error (string-append "No section: " section)))
                 ((hash-table-contains? sec opt) (hash-table-ref/default sec opt #f))
-                (else (let ((defaults (get-default-section config)))
-                        (cond ((and defaults (hash-table-contains? defaults opt))
-                               (hash-table-ref/default defaults opt #f)
-                              ) ;
-                              (else (let ((err-msg (string-append "No option '" option "' in section '" section "'")))
-                                      (config-error err-msg)
-                                    ) ;let
-                              ) ;else
-                        ) ;cond
-                      ) ;let
+                (else
+                  (let ((defaults (get-default-section config)))
+                    (cond ((and defaults (hash-table-contains? defaults opt))
+                           (hash-table-ref/default defaults opt #f)
+                          ) ;
+                          (else
+                            (let ((err-msg (string-append "No option '" option "' in section '" section "'")))
+                              (config-error err-msg)
+                            ) ;let
+                          ) ;else
+                    ) ;cond
+                  ) ;let
                 ) ;else
           ) ;cond
         ) ;let
@@ -257,11 +261,12 @@
           (let ((defaults (get-default-section config)))
             (if defaults
               (let ((all-keys (hash-table-keys defaults)))
-                (hash-table-for-each (lambda (k v)
-                                       (when (not (member k all-keys))
-                                         (set! all-keys (cons k all-keys))
-                                       ) ;when
-                                     ) ;lambda
+                (hash-table-for-each
+                  (lambda (k v)
+                    (when (not (member k all-keys))
+                      (set! all-keys (cons k all-keys))
+                    ) ;when
+                  ) ;lambda
                   sec
                 ) ;hash-table-for-each
                 all-keys
@@ -280,15 +285,17 @@
           (let ((defaults (get-default-section config)))
             (let ((result '()))
               (when defaults
-                (hash-table-for-each (lambda (k v) (set! result (cons (cons k v) result)))
+                (hash-table-for-each
+                  (lambda (k v) (set! result (cons (cons k v) result)))
                   defaults
                 ) ;hash-table-for-each
               ) ;when
-              (hash-table-for-each (lambda (k v)
-                                     (let ((existing (assoc k result)))
-                                       (if existing (set-cdr! existing v) (set! result (cons (cons k v) result)))
-                                     ) ;let
-                                   ) ;lambda
+              (hash-table-for-each
+                (lambda (k v)
+                  (let ((existing (assoc k result)))
+                    (if existing (set-cdr! existing v) (set! result (cons (cons k v) result)))
+                  ) ;let
+                ) ;lambda
                 sec
               ) ;hash-table-for-each
               result
@@ -363,23 +370,24 @@
             (newline port)
           ) ;when
         ) ;let
-        (hash-table-for-each (lambda (section-name options)
-                               (unless (string=? section-name "DEFAULT")
-                                 (display "[" port)
-                                 (display section-name port)
-                                 (display "]" port)
-                                 (newline port)
-                                 (hash-table-for-each (lambda (k v)
-                                                        (display k port)
-                                                        (display " = " port)
-                                                        (display v port)
-                                                        (newline port)
-                                                      ) ;lambda
-                                   options
-                                 ) ;hash-table-for-each
-                                 (newline port)
-                               ) ;unless
-                             ) ;lambda
+        (hash-table-for-each
+          (lambda (section-name options)
+            (unless (string=? section-name "DEFAULT")
+              (display "[" port)
+              (display section-name port)
+              (display "]" port)
+              (newline port)
+              (hash-table-for-each (lambda (k v)
+                                     (display k port)
+                                     (display " = " port)
+                                     (display v port)
+                                     (newline port)
+                                   ) ;lambda
+                options
+              ) ;hash-table-for-each
+              (newline port)
+            ) ;unless
+          ) ;lambda
           sections
         ) ;hash-table-for-each
       ) ;let

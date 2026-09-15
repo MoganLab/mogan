@@ -97,7 +97,8 @@
   ;; 反转义测试
   (check (query->list "a=b%3Ac") => '(("a" . "b:c")))
   ;; 互逆测试
-  (check (query->list (list->query '(("x" . "1") ("y" . "2"))))
+  (check
+    (query->list (list->query '(("x" . "1") ("y" . "2"))))
     =>
     '(("x" . "1") ("y" . "2"))
   ) ;check

@@ -49,7 +49,8 @@
 
 (define (notify-language var val)
   (set-output-language val)
-  (if (and (current-view) (== (buffer-tree) (stree->tree '(document ""))))
+  (if
+    (and (current-view) (== (buffer-tree) (stree->tree '(document ""))))
     (set-document-language val)
   ) ;if
   (cond ((or (== val "bulgarian") (== val "russian") (== val "ukrainian"))
@@ -189,35 +190,37 @@
   (let* ((buffer (if (null? opt-buffer) (current-buffer) (car opt-buffer)))
          ;; scratch / tmfs buffer 无文件标题，对话框退化为「保存草稿」并允许另存为。
          (scratch? (or (url-scratch? buffer) (url-rooted-tmfs? buffer)))
-         (msg (if scratch?
-                (string-append (cork->utf8 (translate "Save scratch buffer")) "?")
-                (string-append (cork->utf8 (translate "Save change to"))
-                  "「 "
-                  (buffer-get-title buffer)
-                  " 」?"
-                ) ;string-append
-              ) ;if
+         (msg
+           (if scratch?
+             (string-append (cork->utf8 (translate "Save scratch buffer")) "?")
+             (string-append (cork->utf8 (translate "Save change to"))
+               "「 "
+               (buffer-get-title buffer)
+               " 」?"
+             ) ;string-append
+           ) ;if
          ) ;msg
          ;; C++ 侧 QML 模态对话框（cpp-confirm-close）；exec() 阻塞，天然串行化
          ;; 连点关闭请求，根治重复弹窗与 X 关闭后无法二次弹的问题。
          ;; 文案在 scheme 侧算好传入，i18n 走既有 translate 机制。
          (ans (cpp-confirm-close msg scratch?))
         ) ;
-    (cond ((== ans "Save")
-           (if scratch?
-             ;; scratch / tmfs：弹另存为对话框。
-             (choose-file (lambda (x) (save-buffer-as-simple x buffer (list :overwrite)) (on-save))
-               "Save TeXmacs file"
-               "tmu"
-             ) ;choose-file
-             ;; 普通文档：存盘；失败才执行 on-save（关闭）。
-             (unless (buffer-save buffer)
-               (on-save)
-             ) ;unless
-           ) ;if
-          ) ;
-          ((== ans "Don't save") (on-dont-save))
-          (else #f)
+    (cond
+     ((== ans "Save")
+      (if scratch?
+        ;; scratch / tmfs：弹另存为对话框。
+        (choose-file (lambda (x) (save-buffer-as-simple x buffer (list :overwrite)) (on-save))
+          "Save TeXmacs file"
+          "tmu"
+        ) ;choose-file
+        ;; 普通文档：存盘；失败才执行 on-save（关闭）。
+        (unless (buffer-save buffer)
+          (on-save)
+        ) ;unless
+      ) ;if
+     ) ;
+     ((== ans "Don't save") (on-dont-save))
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define
@@ -227,16 +230,17 @@
 (tm-define (buffers-modified?) (list-or (map buffer-modified? (buffer-list))))
 
 (tm-define (safely-kill-buffer)
-  (cond ((buffer-embedded? (current-buffer))
-         (alt-windows-delete (alt-window-search (current-buffer)))
-        ) ;
-        ((buffer-modified? (current-buffer))
-         (confirm-close-dialog "The document has not been saved. Really close it?"
-           (lambda () (buffer-close (current-buffer)))
-           (lambda () (buffer-close (current-buffer)))
-         ) ;confirm-close-dialog
-        ) ;
-        (else (buffer-close (current-buffer)))
+  (cond
+   ((buffer-embedded? (current-buffer))
+    (alt-windows-delete (alt-window-search (current-buffer)))
+   ) ;
+   ((buffer-modified? (current-buffer))
+    (confirm-close-dialog "The document has not been saved. Really close it?"
+      (lambda () (buffer-close (current-buffer)))
+      (lambda () (buffer-close (current-buffer)))
+    ) ;confirm-close-dialog
+   ) ;
+   (else (buffer-close (current-buffer)))
   ) ;cond
 ) ;tm-define
 
@@ -245,39 +249,41 @@
          (tgt-win (current-window))
          (tgt-buffer (view->buffer tgt-view))
         ) ;
-    (cond ((and (auxiliary-widget-visible?) (not (buffer-embedded? tgt-buffer)))
-           (show-message "Please close the auxiliary window first" "Notification")
-          ) ;
-          ((buffer-embedded? tgt-buffer)
-           (alt-windows-delete (alt-window-search tgt-buffer))
-          ) ;
-          ((buffer-modified? tgt-buffer)
-           (confirm-close-dialog "The document has not been saved. Really close it?"
-             (lambda () (cpp-kill-tabpage tgt-win tgt-view))
-             (lambda () (cpp-kill-tabpage tgt-win tgt-view))
-             tgt-buffer
-           ) ;confirm-close-dialog
-          ) ;
-          (else (cpp-kill-tabpage tgt-win tgt-view))
+    (cond
+     ((and (auxiliary-widget-visible?) (not (buffer-embedded? tgt-buffer)))
+      (show-message "Please close the auxiliary window first" "Notification")
+     ) ;
+     ((buffer-embedded? tgt-buffer)
+      (alt-windows-delete (alt-window-search tgt-buffer))
+     ) ;
+     ((buffer-modified? tgt-buffer)
+      (confirm-close-dialog "The document has not been saved. Really close it?"
+        (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+        (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+        tgt-buffer
+      ) ;confirm-close-dialog
+     ) ;
+     (else (cpp-kill-tabpage tgt-win tgt-view))
     ) ;cond
   ) ;let*
 ) ;tm-define
 
 (tm-define (safely-kill-tabpage-by-url tgt-win tgt-view tgt-buffer)
-  (cond ((and (auxiliary-widget-visible?) (not (buffer-embedded? tgt-buffer)))
-         (show-message "Please close the auxiliary window first" "Notification")
-        ) ;
-        ((buffer-embedded? tgt-buffer)
-         (alt-windows-delete (alt-window-search tgt-buffer))
-        ) ;
-        ((buffer-modified? tgt-buffer)
-         (confirm-close-dialog "The document has not been saved. Really close it?"
-           (lambda () (cpp-kill-tabpage tgt-win tgt-view))
-           (lambda () (cpp-kill-tabpage tgt-win tgt-view))
-           tgt-buffer
-         ) ;confirm-close-dialog
-        ) ;
-        (else (cpp-kill-tabpage tgt-win tgt-view))
+  (cond
+   ((and (auxiliary-widget-visible?) (not (buffer-embedded? tgt-buffer)))
+    (show-message "Please close the auxiliary window first" "Notification")
+   ) ;
+   ((buffer-embedded? tgt-buffer)
+    (alt-windows-delete (alt-window-search tgt-buffer))
+   ) ;
+   ((buffer-modified? tgt-buffer)
+    (confirm-close-dialog "The document has not been saved. Really close it?"
+      (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+      (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+      tgt-buffer
+    ) ;confirm-close-dialog
+   ) ;
+   (else (cpp-kill-tabpage tgt-win tgt-view))
   ) ;cond
 ) ;tm-define
 
@@ -298,27 +304,28 @@
 ) ;define
 
 (tm-define (safely-kill-window . opt-name)
-  (cond ((and (buffer-embedded? (current-buffer)) (null? opt-name))
-         (alt-windows-delete (alt-window-search (current-buffer)))
-        ) ;
-        ((<= (windows-number) 1) (safely-quit-TeXmacs))
-        ((nnull? opt-name)
-         (if (buffer-modified? (window->buffer (car opt-name)))
-           (confirm-close-dialog "The document has not been saved. Really close it?"
-             (lambda () (do-kill-window* (car opt-name)))
-             (lambda () (do-kill-window* (car opt-name)))
-             (window->buffer (car opt-name))
-           ) ;confirm-close-dialog
-           (do-kill-window* (car opt-name))
-         ) ;if
-        ) ;
-        ((buffer-modified? (current-buffer))
-         (confirm-close-dialog "The document has not been saved. Really close it?"
-           (lambda () (do-kill-window))
-           (lambda () (do-kill-window))
-         ) ;confirm-close-dialog
-        ) ;
-        (else (do-kill-window))
+  (cond
+   ((and (buffer-embedded? (current-buffer)) (null? opt-name))
+    (alt-windows-delete (alt-window-search (current-buffer)))
+   ) ;
+   ((<= (windows-number) 1) (safely-quit-TeXmacs))
+   ((nnull? opt-name)
+    (if (buffer-modified? (window->buffer (car opt-name)))
+      (confirm-close-dialog "The document has not been saved. Really close it?"
+        (lambda () (do-kill-window* (car opt-name)))
+        (lambda () (do-kill-window* (car opt-name)))
+        (window->buffer (car opt-name))
+      ) ;confirm-close-dialog
+      (do-kill-window* (car opt-name))
+    ) ;if
+   ) ;
+   ((buffer-modified? (current-buffer))
+    (confirm-close-dialog "The document has not been saved. Really close it?"
+      (lambda () (do-kill-window))
+      (lambda () (do-kill-window))
+    ) ;confirm-close-dialog
+   ) ;
+   (else (do-kill-window))
   ) ;cond
 ) ;tm-define
 
@@ -418,21 +425,22 @@
 (define (cannot-write? name action)
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (cond ((and (not (url-test? name "f")) (url-exists? name))
-           (with msg
-             "The file cannot be created:"
-             (notify-now `(concat ,msg ,"<br>" ,vname))
-           ) ;with
-           #t
-          ) ;
-          ((and (url-test? name "f") (not (url-test? name "w")))
-           (with msg
-             "You do not have write access for:"
-             (notify-now `(concat ,msg ,"<br>" ,vname))
-           ) ;with
-           #t
-          ) ;
-          (else #f)
+    (cond
+     ((and (not (url-test? name "f")) (url-exists? name))
+      (with msg
+        "The file cannot be created:"
+        (notify-now `(concat ,msg ,"<br>" ,vname))
+      ) ;with
+      #t
+     ) ;
+     ((and (url-test? name "f") (not (url-test? name "w")))
+      (with msg
+        "You do not have write access for:"
+        (notify-now `(concat ,msg ,"<br>" ,vname))
+      ) ;with
+      #t
+     ) ;
+     (else #f)
     ) ;cond
   ) ;with
 ) ;define
@@ -485,19 +493,20 @@
 ) ;define
 
 (define (save-buffer-as-simple-continue new-name name opts)
-  (cond ((buffer-exists? new-name)
-         (with s
-           (string-append "The file "
-             (url->system new-name)
-             " is being edited. Discard edits?"
-           ) ;string-append
-           (user-confirm s
-             #f
-             (lambda (answ) (when answ (save-buffer-as-simple-save new-name name opts)))
-           ) ;user-confirm
-         ) ;with
-        ) ;
-        (else (save-buffer-as-simple-save new-name name opts))
+  (cond
+   ((buffer-exists? new-name)
+    (with s
+      (string-append "The file "
+        (url->system new-name)
+        " is being edited. Discard edits?"
+      ) ;string-append
+      (user-confirm s
+        #f
+        (lambda (answ) (when answ (save-buffer-as-simple-save new-name name opts)))
+      ) ;user-confirm
+    ) ;with
+   ) ;
+   (else (save-buffer-as-simple-save new-name name opts))
   ) ;cond
 ) ;define
 

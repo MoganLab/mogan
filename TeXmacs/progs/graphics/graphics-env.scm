@@ -45,30 +45,33 @@
           (layer-of-last-removed-object #f)
          ) ;
   ) ;slots
-  (props ((current-x (f2s (get-graphical-x)))
-          (current-y (f2s (get-graphical-y)))
-          (sel (if sticky-point #f (select-choose (s2f current-x) (s2f current-y))))
-          (pxy (if sel (car sel) '()))
-          (current-path (if sticky-point (cDr (cursor-path)) (graphics-path pxy)))
-          (current-obj (with gm
-                         (graphics-group-mode? (graphics-mode))
-                         (if gm
-                           '(point)
-                           (if sticky-point
-                             (with o (graphical-object #t) (if (and (pair? o) (nnull? (cdr o))) (cadr o) #f))
-                             (graphics-object pxy)
-                           ) ;if
-                         ) ;if
-                       ) ;with
-          ) ;current-obj
-          (other-inits (if (not sticky-point)
-                         (begin
-                           (set! current-point-no (if sel (cAr (car sel)) #f))
-                           (set! current-edge-sel? (and sel (== (length sel) 2)))
-                         ) ;begin
-                       ) ;if
-          ) ;other-inits
-         ) ;
+  (props
+   ((current-x (f2s (get-graphical-x)))
+    (current-y (f2s (get-graphical-y)))
+    (sel (if sticky-point #f (select-choose (s2f current-x) (s2f current-y))))
+    (pxy (if sel (car sel) '()))
+    (current-path (if sticky-point (cDr (cursor-path)) (graphics-path pxy)))
+    (current-obj
+      (with gm
+        (graphics-group-mode? (graphics-mode))
+        (if gm
+          '(point)
+          (if sticky-point
+            (with o (graphical-object #t) (if (and (pair? o) (nnull? (cdr o))) (cadr o) #f))
+            (graphics-object pxy)
+          ) ;if
+        ) ;if
+      ) ;with
+    ) ;current-obj
+    (other-inits
+      (if (not sticky-point)
+        (begin
+          (set! current-point-no (if sel (cAr (car sel)) #f))
+          (set! current-edge-sel? (and sel (== (length sel) 2)))
+        ) ;begin
+      ) ;if
+    ) ;other-inits
+   ) ;
   ) ;props
 ) ;define-state
 
@@ -278,25 +281,32 @@
       (map filter-path (cdr e))
       ;; FIXME: Hack to workaround the bad results of (graphical-select) for
       ;;   custom objects (sends back paths with negative elements).
-      (if (and (>= (length e2) 1) (pair? (car e2)) (< (cAr (car e2)) 0))
+      (if
+        (and (>= (length e2) 1) (pair? (car e2)) (< (cAr (car e2)) 0))
         (set-car! e2 (rcons (cDr (car e2)) 0))
       ) ;if
-      (if (and (>= (length e2) 2) (pair? (cadr e2)) (< (cAr (cadr e2)) 0))
+      (if
+        (and (>= (length e2) 2) (pair? (cadr e2)) (< (cAr (cadr e2)) 0))
         (set-car! (cdr e2) (rcons (cDr (cadr e2)) 0))
       ) ;if
       (if (and (>= (length e2) 2) (== (car e2) (cadr e2))) (set-cdr! e2 '()))
       (if (car e2)
         (let* ((p (graphics-path (car e2))) (o (if p (path->tree p) #f)))
-          (if (and (compound-tree? o)
-                (eq? (tree-label o) 'with)
-                (eq? (tree-label (tree-ref o (- (tree-arity o) 1))) 'graphics)
-              ) ;and
+          (if
+            (and (compound-tree? o)
+              (eq? (tree-label o) 'with)
+              (eq?
+                (tree-label (tree-ref o (- (tree-arity o) 1)))
+                'graphics
+              ) ;eq?
+            ) ;and
             (begin
               (set! o #f)
               (set-car! e2 #f)
             ) ;begin
           ) ;if
-          (if (and o (or (not (in? (tree-label o) gr-tags-all)) (tree-in? o '(circle))))
+          (if
+            (and o (or (not (in? (tree-label o) gr-tags-all)) (tree-in? o '(circle))))
             ;; circle（源 2 点 vs 渲染展开 carc 3 点，索引错位）
             ;; 也需要按源对象重算控制点序号，才能与椭圆操作逻辑对齐
             (set-car! e2
@@ -463,103 +473,104 @@
   ;; cmd in { begin, exit, undo }
   ;; (display* "Graphics] Reset-context " cmd "\n")
   (if (in? cmd '(begin exit)) (set! current-path #f))
-  (cond ((== cmd 'text-cursor)
-         (if (not (== current-cursor 'text-cursor))
-           (begin
-             (set! current-cursor 'text-cursor)
-             (set-texmacs-pointer 'text-arrow)
-           ) ;begin
-         ) ;if
-        ) ;
-        ((== cmd 'graphics-cursor)
-         (if (not (== current-cursor 'graphics-cursor))
-           (begin
-             (set! current-cursor 'graphics-cursor)
-             (set-texmacs-pointer 'graphics-cross)
-           ) ;begin
-         ) ;if
-        ) ;
-        ((and (in? cmd '(begin exit)) (or (== cmd 'begin) (not sticky-point)))
-         (graphics-init-state)
-         (graphics-forget-states)
-         (with p
-           (graphics-active-path)
-           (if p
-             (begin
-               (set! current-path p)
-               (set! current-obj (graphics-active-object))
-               (set! current-point-no #f)
-               (graphics-decorations-update)
-             ) ;begin
-           ) ;if
-         ) ;with
-        ) ;
-        ((and (== cmd 'exit) sticky-point)
-         (set! graphics-undo-enabled #t)
-         (set! remove-undo-mark? #f)
-         (if graphics-first-state
-           (begin
-             (if (== (state-ref graphics-first-state 'graphics-action) 'start-move)
-               (with p
-                 (cursor-path)
-                 (unredoable-undo)
-                 ;; FIXME: Should rely on remove-undo-mark?
-                 (go-to p)
-               ) ;with
-             ) ;if
-           ) ;begin
-         ) ;if
-         (graphics-init-state)
-         (graphics-forget-states)
-        ) ;
-        ((== cmd 'undo)
-         (if (and sticky-point
-               (not graphics-undo-enabled)
-               (in? (state-ref graphics-first-state 'graphics-action)
-                 '(start-move start-operation)
-               ) ;in?
-             ) ;and
-           (begin
-             (set! graphics-undo-enabled #t)
-             (set! remove-undo-mark? #f)
-             (unredoable-undo)
-           ) ;begin
-           (begin
-             (set! the-sketch '())
-             (invalidate-graphical-object)
-             (if (and graphics-undo-enabled (not sticky-point))
-               (with p
-                 (graphics-active-path)
-                 (if p
-                   (begin
-                     (set! current-path p)
-                     (set! current-obj (graphics-active-object))
-                     (set! current-point-no #f)
-                     (graphics-decorations-update)
-                   ) ;begin
-                   (graphics-decorations-reset)
-                 ) ;if
-               ) ;with
-             ) ;if
-             (if (and (not graphics-undo-enabled) sticky-point) (graphics-decorations-reset))
-             (set! choosing #f)
-             (set-sticky-point-false)
-             (set! dragging-create? #f)
-             (set! dragging-busy? #f)
-             (set! current-point-no #f)
-             (set! selected-point-no #f)
-             (set! graphics-undo-enabled #t)
-             (set! remove-undo-mark? #f)
-             (set! multiselecting #f)
-             (set! preselected #f)
-             (if graphics-first-state (graphics-back-first))
-             (graphics-forget-states)
-             (invalidate-graphical-object)
-           ) ;begin
-         ) ;if
-         (graphics-group-start)
-        ) ;
-        (else (display* "Uncaptured reset-context " cmd "\n"))
+  (cond
+   ((== cmd 'text-cursor)
+    (if (not (== current-cursor 'text-cursor))
+      (begin
+        (set! current-cursor 'text-cursor)
+        (set-texmacs-pointer 'text-arrow)
+      ) ;begin
+    ) ;if
+   ) ;
+   ((== cmd 'graphics-cursor)
+    (if (not (== current-cursor 'graphics-cursor))
+      (begin
+        (set! current-cursor 'graphics-cursor)
+        (set-texmacs-pointer 'graphics-cross)
+      ) ;begin
+    ) ;if
+   ) ;
+   ((and (in? cmd '(begin exit)) (or (== cmd 'begin) (not sticky-point)))
+    (graphics-init-state)
+    (graphics-forget-states)
+    (with p
+      (graphics-active-path)
+      (if p
+        (begin
+          (set! current-path p)
+          (set! current-obj (graphics-active-object))
+          (set! current-point-no #f)
+          (graphics-decorations-update)
+        ) ;begin
+      ) ;if
+    ) ;with
+   ) ;
+   ((and (== cmd 'exit) sticky-point)
+    (set! graphics-undo-enabled #t)
+    (set! remove-undo-mark? #f)
+    (if graphics-first-state
+      (begin
+        (if (== (state-ref graphics-first-state 'graphics-action) 'start-move)
+          (with p
+            (cursor-path)
+            (unredoable-undo)
+            ;; FIXME: Should rely on remove-undo-mark?
+            (go-to p)
+          ) ;with
+        ) ;if
+      ) ;begin
+    ) ;if
+    (graphics-init-state)
+    (graphics-forget-states)
+   ) ;
+   ((== cmd 'undo)
+    (if (and sticky-point
+          (not graphics-undo-enabled)
+          (in? (state-ref graphics-first-state 'graphics-action)
+            '(start-move start-operation)
+          ) ;in?
+        ) ;and
+      (begin
+        (set! graphics-undo-enabled #t)
+        (set! remove-undo-mark? #f)
+        (unredoable-undo)
+      ) ;begin
+      (begin
+        (set! the-sketch '())
+        (invalidate-graphical-object)
+        (if (and graphics-undo-enabled (not sticky-point))
+          (with p
+            (graphics-active-path)
+            (if p
+              (begin
+                (set! current-path p)
+                (set! current-obj (graphics-active-object))
+                (set! current-point-no #f)
+                (graphics-decorations-update)
+              ) ;begin
+              (graphics-decorations-reset)
+            ) ;if
+          ) ;with
+        ) ;if
+        (if (and (not graphics-undo-enabled) sticky-point) (graphics-decorations-reset))
+        (set! choosing #f)
+        (set-sticky-point-false)
+        (set! dragging-create? #f)
+        (set! dragging-busy? #f)
+        (set! current-point-no #f)
+        (set! selected-point-no #f)
+        (set! graphics-undo-enabled #t)
+        (set! remove-undo-mark? #f)
+        (set! multiselecting #f)
+        (set! preselected #f)
+        (if graphics-first-state (graphics-back-first))
+        (graphics-forget-states)
+        (invalidate-graphical-object)
+      ) ;begin
+    ) ;if
+    (graphics-group-start)
+   ) ;
+   (else (display* "Uncaptured reset-context " cmd "\n"))
   ) ;cond
 ) ;tm-define
 
@@ -589,7 +600,8 @@
 ) ;tm-define
 
 (tm-define (set-cursor-style-if-in-hand-modes style)
-  (if (not (eq? (member (graphics-get-property "gr-mode") hand-modes) #f))
+  (if
+    (not (eq? (member (graphics-get-property "gr-mode") hand-modes) #f))
     (set-cursor-style style)
   ) ;if
 ) ;tm-define

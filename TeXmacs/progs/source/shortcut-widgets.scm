@@ -48,154 +48,166 @@
 ) ;define
 
 (tm-widget ((shortcuts-editor u) quit)
-  (padded (horizontal (resize "125px"
-                        "200px"
-                        (refreshable "shortcuts-list"
-                          (scrollable (choice (and-let* ((sh (decode-shortcut answer)) (cmd (get-user-shortcut sh)))
-                                                (global-set u :sh sh)
-                                                (global-set u :cmd cmd)
-                                                (set-shortcut u sh)
-                                                (refresh-now "current-shortcut")
-                                              ) ;and-let*
-                                        (map encode-shortcut (user-shortcuts-list))
-                                        (encode-shortcut (global-ref u :sh))
-                                      ) ;choice
-                          ) ;scrollable
-                        ) ;refreshable
-                      ) ;resize
+  (padded
+    (horizontal
+      (resize "125px"
+        "200px"
+        (refreshable "shortcuts-list"
+          (scrollable
+            (choice
+              (and-let* ((sh (decode-shortcut answer)) (cmd (get-user-shortcut sh)))
+                (global-set u :sh sh)
+                (global-set u :cmd cmd)
+                (set-shortcut u sh)
+                (refresh-now "current-shortcut")
+              ) ;and-let*
+              (map encode-shortcut (user-shortcuts-list))
+              (encode-shortcut (global-ref u :sh))
+            ) ;choice
+          ) ;scrollable
+        ) ;refreshable
+      ) ;resize
+      //
+      //
+      (vertical
+        (aligned
+          (item (text "Shortcut")
+            (resize "350px"
+              "30px"
+              (texmacs-input
+                `(document (preview-shortcut ,(global-ref u :sh)))
+                (shortcut-editor-style)
+                u
+              ) ;texmacs-input
+            ) ;resize
+          ) ;item
+          (item (text "Command")
+            (refreshable "current-shortcut"
+              (input (global-set u :cmd answer)
+                "string"
+                (list (global-ref u :cmd) "")
+                "350px"
+              ) ;input
+            ) ;refreshable
+          ) ;item
+        ) ;aligned
+        (glue #f #t 0 0)
+        (hlist >>
+          (explicit-buttons ("Remove"
+                              (and-with sh
+                                (get-shortcut u)
+                                (global-set u :sh "")
+                                (global-set u :cmd "")
+                                (set-shortcut u "")
+                                (remove-user-shortcut sh)
+                                (refresh-now "shortcuts-list")
+                                (refresh-now "current-shortcut")
+                              ) ;and-with
+                            ) ;
             //
             //
-            (vertical (aligned (item (text "Shortcut")
-                                 (resize "350px"
-                                   "30px"
-                                   (texmacs-input `(document (preview-shortcut ,(global-ref u
-                                                                                  :sh)))
-                                     (shortcut-editor-style)
-                                     u
-                                   ) ;texmacs-input
-                                 ) ;resize
-                               ) ;item
-                        (item (text "Command")
-                          (refreshable "current-shortcut"
-                            (input (global-set u :cmd answer)
-                              "string"
-                              (list (global-ref u :cmd) "")
-                              "350px"
-                            ) ;input
-                          ) ;refreshable
-                        ) ;item
-                      ) ;aligned
-              (glue #f #t 0 0)
-              (hlist >>
-                (explicit-buttons ("Remove"
-                                    (and-with sh
-                                      (get-shortcut u)
-                                      (global-set u :sh "")
-                                      (global-set u :cmd "")
-                                      (set-shortcut u "")
-                                      (remove-user-shortcut sh)
-                                      (refresh-now "shortcuts-list")
-                                      (refresh-now "current-shortcut")
-                                    ) ;and-with
-                                  ) ;
-                  //
-                  //
-                  ("Clear" (set-shortcut u ""))
-                  //
-                  //
-                  ("Apply"
-                    (and-with sh
-                      (get-shortcut u)
-                      (global-set u :sh sh)
-                      (set-user-shortcut sh (global-ref u :cmd))
-                      (refresh-now "shortcuts-list")
-                    ) ;and-with
-                  ) ;
-                  //
-                  //
-                  ("Ok"
-                    (begin
-                      (and-with sh (get-shortcut u) (set-user-shortcut sh (global-ref u :cmd)))
-                      (quit)
-                    ) ;begin
-                  ) ;
-                ) ;explicit-buttons
-              ) ;hlist
-            ) ;vertical
-          ) ;horizontal
+            ("Clear" (set-shortcut u ""))
+            //
+            //
+            ("Apply"
+              (and-with sh
+                (get-shortcut u)
+                (global-set u :sh sh)
+                (set-user-shortcut sh (global-ref u :cmd))
+                (refresh-now "shortcuts-list")
+              ) ;and-with
+            ) ;
+            //
+            //
+            ("Ok"
+              (begin
+                (and-with sh (get-shortcut u) (set-user-shortcut sh (global-ref u :cmd)))
+                (quit)
+              ) ;begin
+            ) ;
+          ) ;explicit-buttons
+        ) ;hlist
+      ) ;vertical
+    ) ;horizontal
   ) ;padded
 ) ;tm-widget
 
 (tm-tool* (shortcuts-tool win u)
   (:name "Edit keyboard shortcut")
-  (padded (vertical (aligned (item (text "Shortcut")
-                               (resize "250px"
-                                 "30px"
-                                 (texmacs-input `(document (preview-shortcut ,(global-ref u
-                                                                                :sh)))
-                                   (shortcut-editor-style)
-                                   u
-                                 ) ;texmacs-input
-                               ) ;resize
-                             ) ;item
-                      (item (text "Command")
-                        (refreshable "current-shortcut"
-                          (input (global-set u :cmd answer)
-                            "string"
-                            (list (global-ref u :cmd) "")
-                            "250px"
-                          ) ;input
-                        ) ;refreshable
-                      ) ;item
-                    ) ;aligned
-            ======
-            (division "plain"
-              (hlist >>
-               ("Remove"
-                 (and-with sh
-                   (get-shortcut u)
-                   (global-set u :sh "")
-                   (global-set u :cmd "")
-                   (set-shortcut u "")
-                   (remove-user-shortcut sh)
-                   (refresh-now* win "shortcuts-list")
-                   (refresh-now* win "current-shortcut")
-                 ) ;and-with
-               ) ;
-               //
-               //
-               ("Clear" (set-shortcut u ""))
-               //
-               //
-               ("Apply"
-                 (and-with sh
-                   (get-shortcut u)
-                   (global-set u :sh sh)
-                   (set-user-shortcut sh (global-ref u :cmd))
-                   (refresh-now* win "shortcuts-list")
-                 ) ;and-with
-               ) ;
-              ) ;hlist
-            ) ;division
-          ) ;vertical
+  (padded
+    (vertical
+      (aligned
+        (item (text "Shortcut")
+          (resize "250px"
+            "30px"
+            (texmacs-input
+              `(document (preview-shortcut ,(global-ref u :sh)))
+              (shortcut-editor-style)
+              u
+            ) ;texmacs-input
+          ) ;resize
+        ) ;item
+        (item (text "Command")
+          (refreshable "current-shortcut"
+            (input (global-set u :cmd answer)
+              "string"
+              (list (global-ref u :cmd) "")
+              "250px"
+            ) ;input
+          ) ;refreshable
+        ) ;item
+      ) ;aligned
+      ======
+      (division "plain"
+        (hlist >>
+         ("Remove"
+           (and-with sh
+             (get-shortcut u)
+             (global-set u :sh "")
+             (global-set u :cmd "")
+             (set-shortcut u "")
+             (remove-user-shortcut sh)
+             (refresh-now* win "shortcuts-list")
+             (refresh-now* win "current-shortcut")
+           ) ;and-with
+         ) ;
+         //
+         //
+         ("Clear" (set-shortcut u ""))
+         //
+         //
+         ("Apply"
+           (and-with sh
+             (get-shortcut u)
+             (global-set u :sh sh)
+             (set-user-shortcut sh (global-ref u :cmd))
+             (refresh-now* win "shortcuts-list")
+           ) ;and-with
+         ) ;
+        ) ;hlist
+      ) ;division
+    ) ;vertical
   ) ;padded
   ===
   (division "plain" (division "title" (text "List of keyboard shortcuts")))
-  (centered (resize "200px"
-              "200px"
-              (refreshable "shortcuts-list"
-                (scrollable (choice (and-let* ((sh (decode-shortcut answer)) (cmd (get-user-shortcut sh)))
-                                      (global-set u :sh sh)
-                                      (global-set u :cmd cmd)
-                                      (set-shortcut u sh)
-                                      (refresh-now* win "current-shortcut")
-                                    ) ;and-let*
-                              (map encode-shortcut (user-shortcuts-list))
-                              (encode-shortcut (global-ref u :sh))
-                            ) ;choice
-                ) ;scrollable
-              ) ;refreshable
-            ) ;resize
+  (centered
+    (resize "200px"
+      "200px"
+      (refreshable "shortcuts-list"
+        (scrollable
+          (choice
+            (and-let* ((sh (decode-shortcut answer)) (cmd (get-user-shortcut sh)))
+              (global-set u :sh sh)
+              (global-set u :cmd cmd)
+              (set-shortcut u sh)
+              (refresh-now* win "current-shortcut")
+            ) ;and-let*
+            (map encode-shortcut (user-shortcuts-list))
+            (encode-shortcut (global-ref u :sh))
+          ) ;choice
+        ) ;scrollable
+      ) ;refreshable
+    ) ;resize
   ) ;centered
 ) ;tm-tool*
 
@@ -204,7 +216,9 @@
   (let* ((b (current-buffer))
          (u (string-append "tmfs://aux/edit-shortcuts"))
          (sh (if (null? opt) "" (car opt)))
-         (cmd (if (or (null? opt) (null? (cdr opt))) "" (cadr opt)))
+         (cmd
+           (if (or (null? opt) (null? (cdr opt))) "" (cadr opt))
+         ) ;cmd
          (tool (list 'shortcuts-tool u))
         ) ;
     (buffer-set-master u b)

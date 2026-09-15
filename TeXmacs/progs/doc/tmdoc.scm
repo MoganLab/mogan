@@ -73,63 +73,66 @@
 ) ;define
 
 (define (tmdoc-substitute x root cur)
-  (cond ((or (match? x '(hlink :%2)) (match? x '(hyper-link :%2)))
-         (let* ((u1 (url-relative cur (caddr x))) (u2 (url-delta root u1)))
-           ;; (display* root ", " cur ", " (caddr x) " -> " u2 "\n")
-           (list (car x) (cadr x) (url->unix u2))
-         ) ;let*
-        ) ;
-        ((tm-func? x 'if-ref*) (cons 'if-ref (tmdoc-substitute-sub (cdr x) root cur)))
-        ((tm-func? x 'if-nref*) (cons 'if-nref (tmdoc-substitute-sub (cdr x) root cur)))
-        ((tm-func? x 'tmdoc-link*)
-         (cons 'tmdoc-link (tmdoc-substitute-sub (cdr x) root cur))
-        ) ;
-        ((and (tm-in? x '(bibliography bibliography*)) (tm-atomic? (tm-ref x 2)))
-         (let* ((name (tm->string (tm-ref x 2)))
-                (rel (if (== name "") "" (url-relative cur name)))
-               ) ;
-           `(,(tm-label x)
-             ,(tm-ref x 0)
-             ,(tm-ref x 1)
-             ,(url->string rel)
-             ,@(cdddr (cDr (tm-children x)))
-             ,(tmdoc-substitute (cAr x) root cur))
-         ) ;let*
-        ) ;
-        ((list? x) (cons (car x) (tmdoc-substitute-sub (cdr x) root cur)))
-        (else x)
+  (cond
+   ((or (match? x '(hlink :%2)) (match? x '(hyper-link :%2)))
+    (let* ((u1 (url-relative cur (caddr x))) (u2 (url-delta root u1)))
+      ;; (display* root ", " cur ", " (caddr x) " -> " u2 "\n")
+      (list (car x) (cadr x) (url->unix u2))
+    ) ;let*
+   ) ;
+   ((tm-func? x 'if-ref*) (cons 'if-ref (tmdoc-substitute-sub (cdr x) root cur)))
+   ((tm-func? x 'if-nref*) (cons 'if-nref (tmdoc-substitute-sub (cdr x) root cur)))
+   ((tm-func? x 'tmdoc-link*)
+    (cons 'tmdoc-link (tmdoc-substitute-sub (cdr x) root cur))
+   ) ;
+   ((and (tm-in? x '(bibliography bibliography*)) (tm-atomic? (tm-ref x 2)))
+    (let* ((name (tm->string (tm-ref x 2)))
+           (rel (if (== name "") "" (url-relative cur name)))
+          ) ;
+      `(,(tm-label x)
+        ,(tm-ref x 0)
+        ,(tm-ref x 1)
+        ,(url->string rel)
+        ,@(cdddr (cDr (tm-children x)))
+        ,(tmdoc-substitute (cAr x) root cur))
+    ) ;let*
+   ) ;
+   ((list? x) (cons (car x) (tmdoc-substitute-sub (cdr x) root cur)))
+   (else x)
   ) ;cond
 ) ;define
 
 (define (tmdoc-rewrite-one x root cur the-level done)
   (let* ((omit? (list? the-level)) (level (if omit? (car the-level) the-level)))
-    (cond ((or (func? x 'tmdoc-title) (func? x 'tmdoc-title*))
-           (cond (omit? '(document))
-                 ((== level 'title) (cons level (cdr x)))
-                 (else (let* ((name (url-basename (url-basename cur)))
-                              (lab (string-append "sec-" (url->string name)))
-                             ) ;
-                         `(concat ,(cons level (cdr x)) (label ,lab))
-                       ) ;let*
-                 ) ;else
-           ) ;cond
-          ) ;
-          ((and (func? x 'concat)
-             (or (func? (tm-ref x 0) 'tmdoc-title) (func? (tm-ref x 0) 'tmdoc-title*))
-           ) ;and
-           `(concat ,@(map (cut tmdoc-rewrite-one <> root cur the-level done)
-                        (tm-children x)))
-          ) ;
-          ((func? x 'tmdoc-license) '(document))
-          ((func? x 'traverse)
-           (cons 'document (tmdoc-rewrite (cdadr x) root cur level done))
-          ) ;
-          ((match? x '(branch :%2)) (tmdoc-branch x root cur (tmdoc-down level) done))
-          ((match? x '(continue :%2)) (tmdoc-branch x root cur (list level) done))
-          ((match? x '(extra-branch :%2)) (tmdoc-branch x root cur 'appendix done))
-          ((match? x '(optional-branch :%2)) '(document))
-          ((match? x '(tmdoc-copyright :*)) '(document))
-          (else (tmdoc-substitute x root cur))
+    (cond
+     ((or (func? x 'tmdoc-title) (func? x 'tmdoc-title*))
+      (cond (omit? '(document))
+            ((== level 'title) (cons level (cdr x)))
+            (else
+              (let* ((name (url-basename (url-basename cur)))
+                     (lab (string-append "sec-" (url->string name)))
+                    ) ;
+                `(concat ,(cons level (cdr x)) (label ,lab))
+              ) ;let*
+            ) ;else
+      ) ;cond
+     ) ;
+     ((and (func? x 'concat)
+        (or (func? (tm-ref x 0) 'tmdoc-title) (func? (tm-ref x 0) 'tmdoc-title*))
+      ) ;and
+      `(concat ,@(map (cut tmdoc-rewrite-one <> root cur the-level done)
+                   (tm-children x)))
+     ) ;
+     ((func? x 'tmdoc-license) '(document))
+     ((func? x 'traverse)
+      (cons 'document (tmdoc-rewrite (cdadr x) root cur level done))
+     ) ;
+     ((match? x '(branch :%2)) (tmdoc-branch x root cur (tmdoc-down level) done))
+     ((match? x '(continue :%2)) (tmdoc-branch x root cur (list level) done))
+     ((match? x '(extra-branch :%2)) (tmdoc-branch x root cur 'appendix done))
+     ((match? x '(optional-branch :%2)) '(document))
+     ((match? x '(tmdoc-copyright :*)) '(document))
+     (else (tmdoc-substitute x root cur))
     ) ;cond
   ) ;let*
 ) ;define
@@ -155,7 +158,8 @@
       '(document "")
       (with t
         (tree->stree (tree-import cur "texmacs"))
-        (if (not (and (pair? t) (list? (cdr t)) (forall? pair? (cdr t))))
+        (if
+          (not (and (pair? t) (list? (cdr t)) (forall? pair? (cdr t))))
           (begin
             (display* "TeXmacs] bad link or file " cur "\n")
             '(document "")
@@ -249,7 +253,9 @@
          (i (list-find-index l0 (lambda (x) (func? x 'title))))
          (l1 (if i (sublist l0 0 (+ i 1)) '()))
          (l2 (if i (sublist l0 (+ i 1) (length l0)) l0))
-         (bib? (has-bib? `(document ,@l2)))
+         (bib?
+           (has-bib? `(document ,@l2))
+         ) ;bib?
         ) ;
     `(document ,@l1
        (table-of-contents "toc" (document ""))
@@ -281,40 +287,43 @@
          (file (or (tmfs-cdr name) ""))
          (root (tmfs-string->url file))
         ) ;
-    (cond ((or (== file "") (not (url-exists? root)))
+    (cond
+     ((or (== file "") (not (url-exists? root)))
+      `(document (TeXmacs ,(texmacs-version))
+         (style "tmdoc")
+         (body (document ,"Broken link."
+                 (concat ,"File " (tt ,root) ," does not exist"))))
+     ) ;
+     ((== (url-suffix root) "html")
+      (with doc
+        (tm->stree (tree-import root "html"))
+        `(document (TeXmacs ,(texmacs-version)) ,@(cdr doc))
+      ) ;with
+     ) ;
+     ((!= (url-suffix root) "tm") (string-load root))
+     ((== type "normal") (tm->stree (tree-import root "texmacs")))
+     ((== type "book")
+      (let* ((body* (tmdoc-expand root root 'title))
+             (body (tmdoc-internalize body*))
+             (lan (tmdoc-language root))
+            ) ;
+        (tm->stree
+          `(document (TeXmacs ,(texmacs-version))
+             (style (tuple ,(get-preference "manual style") ,lan))
+             (body ,(tmdoc-add-aux body))
+             (initial (collection (associate "page-medium" "paper"))))
+        ) ;tm->stree
+      ) ;let*
+     ) ;
+     (else
+       (let* ((body (tmdoc-expand root root 'tmdoc-title)) (lan (tmdoc-language root)))
+         (tm->stree
            `(document (TeXmacs ,(texmacs-version))
-              (style "tmdoc")
-              (body (document ,"Broken link."
-                      (concat ,"File " (tt ,root) ," does not exist"))))
-          ) ;
-          ((== (url-suffix root) "html")
-           (with doc
-             (tm->stree (tree-import root "html"))
-             `(document (TeXmacs ,(texmacs-version)) ,@(cdr doc))
-           ) ;with
-          ) ;
-          ((!= (url-suffix root) "tm") (string-load root))
-          ((== type "normal") (tm->stree (tree-import root "texmacs")))
-          ((== type "book")
-           (let* ((body* (tmdoc-expand root root 'title))
-                  (body (tmdoc-internalize body*))
-                  (lan (tmdoc-language root))
-                 ) ;
-             (tm->stree `(document (TeXmacs ,(texmacs-version))
-                           (style (tuple ,(get-preference "manual style") ,lan))
-                           (body ,(tmdoc-add-aux body))
-                           (initial (collection (associate "page-medium"
-                                                  "paper"))))
-             ) ;tm->stree
-           ) ;let*
-          ) ;
-          (else (let* ((body (tmdoc-expand root root 'tmdoc-title)) (lan (tmdoc-language root)))
-                  (tm->stree `(document (TeXmacs ,(texmacs-version))
-                                (style (tuple ,"tmdoc" ,lan))
-                                (body ,body))
-                  ) ;tm->stree
-                ) ;let*
-          ) ;else
+              (style (tuple ,"tmdoc" ,lan))
+              (body ,body))
+         ) ;tm->stree
+       ) ;let*
+     ) ;else
     ) ;cond
   ) ;let*
 ) ;tmfs-load-handler
@@ -364,19 +373,20 @@
 (tm-define (tmdoc-expand-help-manual* root next)
   (system-wait "Generating manual" "(can be long)")
   (tmdoc-expand-help root "book")
-  (user-delayed (lambda ()
-                  (delayed-update "(pass 1/3)"
-                    (lambda ()
-                      (delayed-update "(pass 2/3)"
-                        (lambda ()
-                          (delayed-update "(pass 3/3)"
-                            (lambda () (buffer-pretend-saved (current-buffer)) (next))
-                          ) ;delayed-update
-                        ) ;lambda
-                      ) ;delayed-update
-                    ) ;lambda
-                  ) ;delayed-update
-                ) ;lambda
+  (user-delayed
+    (lambda ()
+      (delayed-update "(pass 1/3)"
+        (lambda ()
+          (delayed-update "(pass 2/3)"
+            (lambda ()
+              (delayed-update "(pass 3/3)"
+                (lambda () (buffer-pretend-saved (current-buffer)) (next))
+              ) ;delayed-update
+            ) ;lambda
+          ) ;delayed-update
+        ) ;lambda
+      ) ;delayed-update
+    ) ;lambda
   ) ;user-delayed
 ) ;tm-define
 
@@ -392,19 +402,20 @@
     (style-has? "mmxdoc-style")
     (tmdoc-expand-help (current-buffer) type)
     (if mmx? (set-main-style "mmxmanual"))
-    (user-delayed (lambda ()
-                    (delayed-update "(pass 1/3)"
-                      (lambda ()
-                        (delayed-update "(pass 2/3)"
-                          (lambda ()
-                            (delayed-update "(pass 3/3)"
-                              (lambda () (buffer-pretend-saved (current-buffer)) (next))
-                            ) ;delayed-update
-                          ) ;lambda
-                        ) ;delayed-update
-                      ) ;lambda
-                    ) ;delayed-update
-                  ) ;lambda
+    (user-delayed
+      (lambda ()
+        (delayed-update "(pass 1/3)"
+          (lambda ()
+            (delayed-update "(pass 2/3)"
+              (lambda ()
+                (delayed-update "(pass 3/3)"
+                  (lambda () (buffer-pretend-saved (current-buffer)) (next))
+                ) ;delayed-update
+              ) ;lambda
+            ) ;delayed-update
+          ) ;lambda
+        ) ;delayed-update
+      ) ;lambda
     ) ;user-delayed
   ) ;with
 ) ;tm-define
@@ -426,7 +437,9 @@
 (tm-define (tmdoc-include incl)
   (let* ((root (tree->string incl))
          (body (tmdoc-expand root root 'chapter))
-         (filt (list-filter body (lambda (x) (not (func? x 'chapter)))))
+         (filt
+           (list-filter body (lambda (x) (not (func? x 'chapter))))
+         ) ;filt
         ) ;
     (stree->tree (tmdoc-remove-hyper-links filt))
   ) ;let*

@@ -43,11 +43,12 @@
            ) ;if
          ) ;let
         ) ;
-        (else (let* ((head (logic-closure (car expr) bl))
-                     (tail (logic-closure (cdr expr) (cdr head)))
-                    ) ;
-                (cons (cons (car head) (car tail)) (cdr tail))
-              ) ;let*
+        (else
+          (let* ((head (logic-closure (car expr) bl))
+                 (tail (logic-closure (cdr expr) (cdr head)))
+                ) ;
+            (cons (cons (car head) (car tail)) (cdr tail))
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define

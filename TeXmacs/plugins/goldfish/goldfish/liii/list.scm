@@ -54,13 +54,14 @@
       ) ;unless
       (cond ((< n 0) '())
             ((= n 0) '())
-            (else (let loop
-                    ((rest lst) (count 0) (result '()))
-                    (cond ((null? rest) lst)
-                          ((>= count n) (reverse result))
-                          (else (loop (cdr rest) (+ count 1) (cons (car rest) result)))
-                    ) ;cond
-                  ) ;let
+            (else
+              (let loop
+                ((rest lst) (count 0) (result '()))
+                (cond ((null? rest) lst)
+                      ((>= count n) (reverse result))
+                      (else (loop (cdr rest) (+ count 1) (cons (car rest) result)))
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -74,13 +75,14 @@
       ) ;unless
       (cond ((< n 0) lst)
             ((= n 0) lst)
-            (else (let loop
-                    ((rest lst) (count 0))
-                    (cond ((null? rest) '())
-                          ((>= count n) rest)
-                          (else (loop (cdr rest) (+ count 1)))
-                    ) ;cond
-                  ) ;let
+            (else
+              (let loop
+                ((rest lst) (count 0))
+                (cond ((null? rest) '())
+                      ((>= count n) rest)
+                      (else (loop (cdr rest) (+ count 1)))
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -93,18 +95,19 @@
         (type-error "list-take-right: second argument must be an integer" n)
       ) ;unless
       (cond ((<= n 0) '())
-            (else (let advance
-                    ((lead lst) (count 0))
-                    (cond ((null? lead) lst)
-                          ((>= count n)
-                           (let scan
-                             ((lead lead) (lag lst))
-                             (if (null? lead) lag (scan (cdr lead) (cdr lag)))
-                           ) ;let
-                          ) ;
-                          (else (advance (cdr lead) (+ count 1)))
-                    ) ;cond
-                  ) ;let
+            (else
+              (let advance
+                ((lead lst) (count 0))
+                (cond ((null? lead) lst)
+                      ((>= count n)
+                       (let scan
+                         ((lead lead) (lag lst))
+                         (if (null? lead) lag (scan (cdr lead) (cdr lag)))
+                       ) ;let
+                      ) ;
+                      (else (advance (cdr lead) (+ count 1)))
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -142,13 +145,14 @@
         (if (null? rest)
           res-node
           (let ((first (car rest)) (tail (cdr rest)))
-            (cond ((and (null? first) (not (= 0 depth))) (flatten-depth-iter tail depth res-node))
-                  ((or (= depth 0) (not (pair? first)))
-                   (set-cdr! res-node (cons first '()))
-                   (flatten-depth-iter tail depth (cdr res-node))
-                  ) ;
-                  (else (flatten-depth-iter tail depth (flatten-depth-iter first (- depth 1) res-node))
-                  ) ;else
+            (cond
+             ((and (null? first) (not (= 0 depth))) (flatten-depth-iter tail depth res-node))
+             ((or (= depth 0) (not (pair? first)))
+              (set-cdr! res-node (cons first '()))
+              (flatten-depth-iter tail depth (cdr res-node))
+             ) ;
+             (else (flatten-depth-iter tail depth (flatten-depth-iter first (- depth 1) res-node))
+             ) ;else
             ) ;cond
           ) ;let
         ) ;if

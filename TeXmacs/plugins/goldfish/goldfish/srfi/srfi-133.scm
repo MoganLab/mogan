@@ -404,10 +404,11 @@
       ) ;let
     ) ;define
 
-    (define* (reverse-vector->list vec
-               (start 0)
-               (end (if (vector? vec) (vector-length vec) 0))
-             ) ;reverse-vector->list
+    (define*
+      (reverse-vector->list vec
+        (start 0)
+        (end (if (vector? vec) (vector-length vec) 0))
+      ) ;reverse-vector->list
       (unless (vector? vec)
         (error 'type-error "reverse-vector->list: first argument must be a vector" vec)
       ) ;unless

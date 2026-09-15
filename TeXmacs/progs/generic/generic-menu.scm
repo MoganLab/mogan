@@ -167,21 +167,23 @@
            (s (string-append (upcase-first name) ":"))
            (active? (inputter-active? (tree-ref t i) type))
            (props (child-proposals t i))
-           (show-verbatim? (and props
-                             (list-find props (lambda (x) (and (list? x) (== (car x) 'verbatim))))
-                           ) ;and
+           (show-verbatim?
+             (and props
+               (list-find props (lambda (x) (and (list? x) (== (car x) 'verbatim))))
+             ) ;and
            ) ;show-verbatim?
            (in (if active? (inputter-decode (tree-ref t i) type) "n.a."))
            (fm (type->format type))
            (w (type->width type))
-           (setter (lambda (x)
-                     (pull-focus t
-                       (when x
-                         (tree-set t i (inputter-encode x type))
-                         (focus-tree-modified t)
-                       ) ;when
-                     ) ;pull-focus
-                   ) ;lambda
+           (setter
+             (lambda (x)
+               (pull-focus t
+                 (when x
+                   (tree-set t i (inputter-encode x type))
+                   (focus-tree-modified t)
+                 ) ;when
+               ) ;pull-focus
+             ) ;lambda
            ) ;setter
           ) ;
       (dynamic (string-input-name t i))
@@ -189,22 +191,23 @@
         (mini #t
           (=> (eval (if show-verbatim? (list 'verbatim in) in))
             (for (prop props)
-              (cond ((string? prop)
-                     (let ((eval-result (eval prop)))
-                       ;; 处理verbatim表达式
-                       (if (and (list? eval-result) (== (car eval-result) 'verbatim))
-                         (eval-result (setter (cadr eval-result)))
-                         (eval-result (setter prop))
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    ((and (list? prop) (== (car prop) 'verbatim))
-                     ((eval prop) (setter (cadr prop)))
-                    ) ;
-                    ((== prop :other)
-                     ---
-                     ("Other" (interactive setter (list (upcase-first name) fm in)))
-                    ) ;
+              (cond
+               ((string? prop)
+                (let ((eval-result (eval prop)))
+                  ;; 处理verbatim表达式
+                  (if (and (list? eval-result) (== (car eval-result) 'verbatim))
+                    (eval-result (setter (cadr eval-result)))
+                    (eval-result (setter prop))
+                  ) ;if
+                ) ;let
+               ) ;
+               ((and (list? prop) (== (car prop) 'verbatim))
+                ((eval prop) (setter (cadr prop)))
+               ) ;
+               ((== prop :other)
+                ---
+                ("Other" (interactive setter (list (upcase-first name) fm in)))
+               ) ;
               ) ;cond
             ) ;for
           ) ;=>
@@ -226,14 +229,15 @@
            (s (string-append (upcase-first name) ":"))
            (active? (inputter-active? (tree-ref t i) "color"))
            (in (if active? (inputter-decode (tree-ref t i) "color") ""))
-           (setter (lambda (x)
-                     (pull-focus t
-                       (when x
-                         (tree-set t i (inputter-encode x "color"))
-                         (focus-tree-modified t)
-                       ) ;when
-                     ) ;pull-focus
-                   ) ;lambda
+           (setter
+             (lambda (x)
+               (pull-focus t
+                 (when x
+                   (tree-set t i (inputter-encode x "color"))
+                   (focus-tree-modified t)
+                 ) ;when
+               ) ;pull-focus
+             ) ;lambda
            ) ;setter
           ) ;
       (dynamic (string-input-name t i))
@@ -264,41 +268,44 @@
            (fm (type->format type))
            (active? (inputter-active? (tree-ref t i) type))
            (props (child-proposals t i))
-           (show-verbatim? (and props
-                             (list-find props (lambda (x) (and (list? x) (== (car x) 'verbatim))))
-                           ) ;and
+           (show-verbatim?
+             (and props
+               (list-find props (lambda (x) (and (list? x) (== (car x) 'verbatim))))
+             ) ;and
            ) ;show-verbatim?
            (in (if active? (inputter-decode (tree-ref t i) type) "n.a."))
-           (setter (lambda (x)
-                     (pull-focus t
-                       (when x
-                         (tree-set t i (inputter-encode x type))
-                         (focus-tree-modified t)
-                       ) ;when
-                     ) ;pull-focus
-                   ) ;lambda
+           (setter
+             (lambda (x)
+               (pull-focus t
+                 (when x
+                   (tree-set t i (inputter-encode x type))
+                   (focus-tree-modified t)
+                 ) ;when
+               ) ;pull-focus
+             ) ;lambda
            ) ;setter
           ) ;
       (assuming (!= name "")
         (assuming props
           (=> (eval (if show-verbatim? (list 'verbatim s) s))
             (for (prop props)
-              (cond ((string? prop)
-                     (let ((eval-result (eval prop)))
-                       ;; 处理verbatim表达式
-                       (if (and (list? eval-result) (== (car eval-result) 'verbatim))
-                         (eval-result (setter (cadr eval-result)))
-                         (eval-result (setter prop))
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    ((and (list? prop) (== (car prop) 'verbatim))
-                     ((eval prop) (setter (cadr prop)))
-                    ) ;
-                    ((== prop :other)
-                     ---
-                     ("Other" (interactive setter (list (upcase-first name) fm in)))
-                    ) ;
+              (cond
+               ((string? prop)
+                (let ((eval-result (eval prop)))
+                  ;; 处理verbatim表达式
+                  (if (and (list? eval-result) (== (car eval-result) 'verbatim))
+                    (eval-result (setter (cadr eval-result)))
+                    (eval-result (setter prop))
+                  ) ;if
+                ) ;let
+               ) ;
+               ((and (list? prop) (== (car prop) 'verbatim))
+                ((eval prop) (setter (cadr prop)))
+               ) ;
+               ((== prop :other)
+                ---
+                ("Other" (interactive setter (list (upcase-first name) fm in)))
+               ) ;
               ) ;cond
             ) ;for
           ) ;=>
@@ -359,9 +366,10 @@
 ) ;tm-define
 
 (tm-define (parameter-interactive-set l mode)
-  (:require (and (tree-label-macro? (string->symbol l))
-              (not (tm-atomic? (parameter-get l mode)))
-            ) ;and
+  (:require
+    (and (tree-label-macro? (string->symbol l))
+      (not (tm-atomic? (parameter-get l mode)))
+    ) ;and
   ) ;:require
   (open-macro-editor l mode)
 ) ;tm-define
@@ -535,7 +543,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (parameter-name l)
-  (focus-tag-name (string->symbol (tree-name (list (string->symbol l)))))
+  (focus-tag-name
+    (string->symbol (tree-name (list (string->symbol l))))
+  ) ;focus-tag-name
 ) ;tm-define
 
 (tm-menu (focus-parameter-menu-item l mode)
@@ -543,10 +553,11 @@
 ) ;tm-menu
 
 (tm-menu (focus-parameter-menu-item l mode)
-  (:require (and (tree-label-parameter? (string->symbol l))
-              (string? (parameter-get l mode))
-              (nin? (tree-label-type (string->symbol l)) (list "unknown" "regular" "adhoc"))
-            ) ;and
+  (:require
+    (and (tree-label-parameter? (string->symbol l))
+      (string? (parameter-get l mode))
+      (nin? (tree-label-type (string->symbol l)) (list "unknown" "regular" "adhoc"))
+    ) ;and
   ) ;:require
   (-> (eval (focus-tag-name (string->symbol l)))
     (dynamic (parameter-choice-menu l (list :other) mode))
@@ -554,10 +565,11 @@
 ) ;tm-menu
 
 (tm-menu (focus-parameter-menu-item l mode)
-  (:require (and (tree-label-parameter? (string->symbol l))
-              (string? (parameter-get l mode))
-              (== (tree-label-type (string->symbol l)) "boolean")
-            ) ;and
+  (:require
+    (and (tree-label-parameter? (string->symbol l))
+      (string? (parameter-get l mode))
+      (== (tree-label-type (string->symbol l)) "boolean")
+    ) ;and
   ) ;:require
   ((check (eval (focus-tag-name (string->symbol l)))
      "v"
@@ -568,13 +580,14 @@
 ) ;tm-menu
 
 (tm-menu (focus-parameter-menu-item l mode)
-  (:require (and (tree-label-parameter? (string->symbol l))
-              (or (== (tree-label-type (string->symbol l)) "color")
-                ;; (== (tree-label-type (string->symbol l)) "font")
-                (string-ends? l "-font")
-                (== (tree-label-type (string->symbol l)) "font-size")
-              ) ;or
-            ) ;and
+  (:require
+    (and (tree-label-parameter? (string->symbol l))
+      (or (== (tree-label-type (string->symbol l)) "color")
+        ;; (== (tree-label-type (string->symbol l)) "font")
+        (string-ends? l "-font")
+        (== (tree-label-type (string->symbol l)) "font-size")
+      ) ;or
+    ) ;and
   ) ;:require
   (-> (eval (focus-tag-name (string->symbol l)))
     (dynamic (parameter-submenu l mode))
@@ -764,7 +777,9 @@
   (with l
     (focus-variants-of t)
     (assuming (<= (length l) 1)
-      (inert ((eval (focus-tag-name (tree-label t))) (noop) (noop)))
+      (inert
+       ((eval (focus-tag-name (tree-label t))) (noop) (noop))
+      ) ;inert
     ) ;assuming
     (assuming (> (length l) 1)
       (-> (eval (focus-tag-name (tree-label t))) (dynamic (focus-variant-menu t)))
@@ -831,15 +846,16 @@
 (tm-menu (focus-extra-menu t))
 
 (tm-define (hidden-inputter-children t)
-  (append-map (lambda (c)
-                (if (and-with i
-                      (tree-index c)
-                      (with type (tree-child-type t i) (inputter-active? c type))
-                    ) ;and-with
-                  (list c)
-                  (list)
-                ) ;if
-              ) ;lambda
+  (append-map
+    (lambda (c)
+      (if (and-with i
+            (tree-index c)
+            (with type (tree-child-type t i) (inputter-active? c type))
+          ) ;and-with
+        (list c)
+        (list)
+      ) ;if
+    ) ;lambda
     (hidden-children t)
   ) ;append-map
 ) ;tm-define
@@ -896,9 +912,10 @@
      ) ;
     ) ;assuming
     (assuming (alternate-first? t)
-     ((check (balloon (icon (eval (alternate-first-icon t)))
-               (eval (pull-focus t (alternate-second-name t)))
-             ) ;balloon
+     ((check
+        (balloon (icon (eval (alternate-first-icon t)))
+          (eval (pull-focus t (alternate-second-name t)))
+        ) ;balloon
         "v"
         #f
       ) ;check
@@ -906,9 +923,10 @@
      ) ;
     ) ;assuming
     (assuming (alternate-second? t)
-     ((check (balloon (icon (eval (alternate-second-icon t)))
-               (eval (pull-focus t (alternate-second-name t)))
-             ) ;balloon
+     ((check
+        (balloon (icon (eval (alternate-second-icon t)))
+          (eval (pull-focus t (alternate-second-name t)))
+        ) ;balloon
         "v"
         #t
       ) ;check
@@ -940,19 +958,26 @@
     (with l
       (focus-variants-of t)
       (assuming (<= (length l) 1)
-        (inert ((eval `(verbatim ,(focus-tag-name (tree-label t)))) (noop)))
+        (inert
+         ((eval `(verbatim ,(focus-tag-name (tree-label t)))) (noop))
+        ) ;inert
       ) ;assuming
       (assuming (> (length l) 1)
-        (=> (balloon (eval `(verbatim ,(focus-tag-name (tree-label t))))
-              (eval (string-append "Structured variant ("
-                      (string-append (translate (kbd-system-rewrite "A-S-up"))
-                        (string-append "/"
-                          (string-append (translate (kbd-system-rewrite "A-S-down")) (string-append ")"))
-                        ) ;string-append
-                      ) ;string-append
-                    ) ;string-append
-              ) ;eval
-            ) ;balloon
+        (=>
+          (balloon
+            (eval
+              `(verbatim ,(focus-tag-name (tree-label t)))
+            ) ;eval
+            (eval
+              (string-append "Structured variant ("
+                (string-append (translate (kbd-system-rewrite "A-S-up"))
+                  (string-append "/"
+                    (string-append (translate (kbd-system-rewrite "A-S-down")) (string-append ")"))
+                  ) ;string-append
+                ) ;string-append
+              ) ;string-append
+            ) ;eval
+          ) ;balloon
           (dynamic (focus-variant-menu t))
         ) ;=>
       ) ;assuming
@@ -1230,77 +1255,73 @@
 
 (tm-tool (interactive-tool win fun args)
   (:name (interactive-title fun))
-  (dynamic (eval (let* ((side? (tool-side? `(interactive-tool ,fun ,args) win))
-                        (width (if side? "12em" "24em"))
-                       ) ;
-                   (for (i (.. 0 (length args)))
-                     (with (var type . vals)
-                       (list-ref args i)
-                       (with default
-                         (if (null? vals) "" (car vals))
-                         (set-interactive-tool-arg win fun i default)
-                       ) ;with
-                     ) ;with
-                   ) ;for
-                   (cond ((list-1? args)
-                          (with (var type . vals)
-                            (list-ref args 0)
-                            `(menu-dynamic (hlist (text ,var)
-                                             //
-                                             //
-                                             (input (begin
-                                                      (set-interactive-tool-arg (quote
-                                                                                  ,win)
-                                                        (quote ,fun)
-                                                        ,0
-                                                        answer)
-                                                      (when answer
-                                                        (interactive-ok (quote
-                                                                          ,win)
-                                                          (quote ,fun)
-                                                          (quote ,args))))
-                                               ,(interactive-retype type 0)
-                                               (quote ,(rcons vals ""))
-                                               ,width)
-                                             >>>))
-                          ) ;with
-                         ) ;
-                         (side? `(menu-dynamic ===
-                                   (aligned ,@(map (cut interactive-tool-arg win
-                                                     fun args <> width)
-                                                (.. 0 (length args))))
-                                   ===
-                                   (hlist >>>
-                                     (division ,"plain"
-                                       (,"Ok"
+  (dynamic
+    (eval
+      (let* ((side?
+               (tool-side? `(interactive-tool ,fun ,args) win)
+             ) ;side?
+             (width (if side? "12em" "24em"))
+            ) ;
+        (for (i (.. 0 (length args)))
+          (with (var type . vals)
+            (list-ref args i)
+            (with default
+              (if (null? vals) "" (car vals))
+              (set-interactive-tool-arg win fun i default)
+            ) ;with
+          ) ;with
+        ) ;for
+        (cond
+         ((list-1? args)
+          (with (var type . vals)
+            (list-ref args 0)
+            `(menu-dynamic (hlist (text ,var)
+                             //
+                             //
+                             (input (begin
+                                      (set-interactive-tool-arg (quote ,win)
+                                        (quote ,fun)
+                                        ,0
+                                        answer)
+                                      (when answer
                                         (interactive-ok (quote ,win)
                                           (quote ,fun)
-                                          (quote ,args))))))
-                         ) ;side?
-                         (else `(menu-dynamic (hlist (vlist (aligned ,@(map (cut
-                                                                              interactive-tool-arg
-                                                                              win
-                                                                              fun
-                                                                              args
-                                                                              <>
-                                                                              width)
-                                                                         (.. 0
-                                                                           (length args)))))
-                                                //
-                                                //
-                                                //
-                                                (vlist (glue #f #t 0 0)
-                                                  (division ,"plain"
-                                                    (hlist (,"Ok"
-                                                            (interactive-ok (quote
-                                                                              ,win)
-                                                              (quote ,fun)
-                                                              (quote ,args)))
-                                                      >>>)))))
-                         ) ;else
-                   ) ;cond
-                 ) ;let*
-           ) ;eval
+                                          (quote ,args))))
+                               ,(interactive-retype type 0)
+                               (quote ,(rcons vals ""))
+                               ,width)
+                             >>>))
+          ) ;with
+         ) ;
+         (side?
+           `(menu-dynamic ===
+              (aligned ,@(map (cut interactive-tool-arg win fun args <> width)
+                           (.. 0 (length args))))
+              ===
+              (hlist >>>
+                (division ,"plain"
+                  (,"Ok"
+                   (interactive-ok (quote ,win) (quote ,fun) (quote ,args))))))
+         ) ;side?
+         (else
+           `(menu-dynamic (hlist (vlist (aligned ,@(map (cut
+                                                          interactive-tool-arg
+                                                          win fun args <> width)
+                                                     (.. 0 (length args)))))
+                            //
+                            //
+                            //
+                            (vlist (glue #f #t 0 0)
+                              (division ,"plain"
+                                (hlist (,"Ok"
+                                        (interactive-ok (quote ,win)
+                                          (quote ,fun)
+                                          (quote ,args)))
+                                  >>>)))))
+         ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;eval
   ) ;dynamic
 ) ;tm-tool
 
@@ -1331,11 +1352,12 @@
     (focus-tree)
     (let* ((same? (tree-is? focus (cadr mode)))
            (item-node (tree-search-upwards focus '(item item*)))
-           (list-node (and item-node
-                        (or (tree-search-upwards item-node (enumerate-tag-list))
-                          (tree-search-upwards item-node (list-tag-list))
-                        ) ;or
-                      ) ;and
+           (list-node
+             (and item-node
+               (or (tree-search-upwards item-node (enumerate-tag-list))
+                 (tree-search-upwards item-node (list-tag-list))
+               ) ;or
+             ) ;and
            ) ;list-node
            (target (cond (list-node list-node)
                          (same? focus)
@@ -1351,16 +1373,18 @@
           (when (and item-node list-node)
             (with wrapper
               (tree-up item-node)
-              (when (and wrapper
-                      (tree-is? wrapper 'with)
-                      (let loop
-                        ((i 0))
-                        (cond ((>= i (- (tree-arity wrapper) 1)) #f)
-                              ((tm-equal? (tree-ref wrapper i) l) #t)
-                              (else (loop (+ i 2)))
-                        ) ;cond
-                      ) ;let
-                    ) ;and
+              (when
+                (and wrapper
+                  (tree-is? wrapper 'with)
+                  (let loop
+                    ((i 0))
+                    (cond
+                     ((>= i (- (tree-arity wrapper) 1)) #f)
+                     ((tm-equal? (tree-ref wrapper i) l) #t)
+                     (else (loop (+ i 2)))
+                    ) ;cond
+                  ) ;let
+                ) ;and
                 (tree-with-reset wrapper l)
                 (set! done? #t)
               ) ;when

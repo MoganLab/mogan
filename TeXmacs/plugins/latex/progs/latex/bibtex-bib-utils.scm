@@ -41,7 +41,10 @@
 (define (bib-with-sort-key t)
   (if (null? t)
     ()
-    (cons `(,(bib-sort-key (car t)) ,(car t)) (bib-with-sort-key (cdr t)))
+    (cons
+      `(,(bib-sort-key (car t)) ,(car t))
+      (bib-with-sort-key (cdr t))
+    ) ;cons
   ) ;if
 ) ;define
 
@@ -74,8 +77,9 @@
   (if (and (list? t) (func? t 'document))
     (with ts
       (bib-sorted-entries (cdr t))
-      (bib-simplify `(bib-list ,(number->string (length ts))
-                       (document ,@(format-entries 1 ts)))
+      (bib-simplify
+        `(bib-list ,(number->string (length ts))
+           (document ,@(format-entries 1 ts)))
       ) ;bib-simplify
     ) ;with
   ) ;if
@@ -158,7 +162,9 @@
         ((and (tm-func? (car x) 'concat) (== (cAr (car x)) '(newblock)))
          `(concat ,(cDr (car x)) ,s (newblock) ,(new-list-rec s (cdr x)))
         ) ;
-        (else `(concat ,(car x) ,s ,(new-list-rec s (cdr x))))
+        (else
+          `(concat ,(car x) ,s ,(new-list-rec s (cdr x)))
+        ) ;else
   ) ;cond
 ) ;tm-define
 

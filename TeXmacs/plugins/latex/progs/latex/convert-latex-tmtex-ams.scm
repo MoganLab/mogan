@@ -27,9 +27,10 @@
   (cond ((== t u) #t)
         ((nlist? t) #f)
         ((null? t) #f)
-        (else (or (stree-contains? (car t) u)
-                (in? #t (map (lambda (x) (stree-contains? x u)) (cdr t)))
-              ) ;or
+        (else
+          (or (stree-contains? (car t) u)
+            (in? #t (map (lambda (x) (stree-contains? x u)) (cdr t)))
+          ) ;or
         ) ;else
   ) ;cond
 ) ;define
@@ -37,8 +38,9 @@
 (define (insert-maketitle-after t u)
   (cond ((nlist? t) t)
         ((== (car t) u) `(!document ,t (maketitle)))
-        (else `(,(car t)
-                ,@(map (lambda (x) (insert-maketitle-after x u)) (cdr t))))
+        (else
+          `(,(car t) ,@(map (lambda (x) (insert-maketitle-after x u)) (cdr t)))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -60,7 +62,11 @@
              emails-l urls-l miscs-l notes-l
            ) ;tmtex-make-author
   (:mode ams-style?)
-  (let* ((names (map (lambda (x) `(author ,x)) (list-intersperse (map cadr names) '(tmSep)))
+  (let* ((names
+           (map
+             (lambda (x) `(author ,x))
+             (list-intersperse (map cadr names) '(tmSep))
+           ) ;map
          ) ;names
          (result `(,@names ,@affiliations ,@emails ,@urls ,@notes ,@miscs))
         ) ;
@@ -72,11 +78,17 @@
              subtits-l dates-l miscs-l notes-l tr ar
            ) ;tmtex-make-doc-data
   (:mode ams-style?)
-  (let* ((title-opt (if (null? tr) '() `((!option ,@(tmtex-concat-Sep tr)))))
+  (let* ((title-opt
+           (if (null? tr) '() `((!option ,@(tmtex-concat-Sep tr))))
+         ) ;title-opt
          (titles (tmtex-concat-Sep (map cadr titles)))
-         (titles (if (null? titles) '() `((title ,@title-opt ,@titles))))
+         (titles
+           (if (null? titles) '() `((title ,@title-opt ,@titles)))
+         ) ;titles
          (title-data `(,@titles ,@subtitles ,@notes ,@miscs))
-         (title-data (if (null? title-data) '() `((!paragraph ,@title-data))))
+         (title-data
+           (if (null? title-data) '() `((!paragraph ,@title-data)))
+         ) ;title-data
          (authors* (filter pair? authors))
         ) ;
     (if (and (null? title-data) (null? authors*) (null? dates))

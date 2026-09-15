@@ -45,10 +45,11 @@
 ;; event 仅供日志，worker 不消费。
 
 (define (build-upload-payload event)
-  (let ((payload `((,"event" . ,event)
-                   (,"main-dir" . ,(telemetry-main-dir))
-                   (,"api-url" . ,(telemetry-api-url))
-                   (,"api-key" . ,(telemetry-current-token)))
+  (let ((payload
+          `((,"event" . ,event)
+            (,"main-dir" . ,(telemetry-main-dir))
+            (,"api-url" . ,(telemetry-api-url))
+            (,"api-key" . ,(telemetry-current-token)))
         ) ;payload
        ) ;
     (telemetry->json payload)

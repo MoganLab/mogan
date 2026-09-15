@@ -20,23 +20,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (build-character-cells r c1 c2 c)
-  (cond ((== c -1)
-         (cons `(cell ,(integer->hexadecimal r)) (build-character-cells r c1 c2 0))
-        ) ;
-        ((>= c 16) (list))
-        ((or (< c c1) (> c c2))
-         (cons '(cell "") (build-character-cells r c1 c2 (+ c 1)))
-        ) ;
-        (else (let* ((i (+ (* 16 r) c))
-                     (hex (integer->hexadecimal i))
-                     (s (string-append "<#" hex ">"))
-                    ) ;
-                (when (< i 128)
-                  (set! s (utf8->cork (cork->utf8 s)))
-                ) ;when
-                (cons `(cell ,s) (build-character-cells r c1 c2 (+ c 1)))
-              ) ;let*
-        ) ;else
+  (cond
+   ((== c -1)
+    (cons
+      `(cell ,(integer->hexadecimal r))
+      (build-character-cells r c1 c2 0)
+    ) ;cons
+   ) ;
+   ((>= c 16) (list))
+   ((or (< c c1) (> c c2))
+    (cons '(cell "") (build-character-cells r c1 c2 (+ c 1)))
+   ) ;
+   (else
+     (let* ((i (+ (* 16 r) c))
+            (hex (integer->hexadecimal i))
+            (s (string-append "<#" hex ">"))
+           ) ;
+       (when (< i 128)
+         (set! s (utf8->cork (cork->utf8 s)))
+       ) ;when
+       (cons `(cell ,s) (build-character-cells r c1 c2 (+ c 1)))
+     ) ;let*
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -49,8 +54,12 @@
          (r2 (quotient i2 16))
          (c1 (remainder i1 16))
          (c2 (remainder i2 16))
-         (hc (lambda (i) `(cell ,(integer->hexadecimal i))))
-         (fr `(row (cell "") ,@(map hc (.. 0 16))))
+         (hc
+           (lambda (i) `(cell ,(integer->hexadecimal i)))
+         ) ;hc
+         (fr
+           `(row (cell "") ,@(map hc (.. 0 16)))
+         ) ;fr
         ) ;
     (if (== r1 r2)
       `(block (tformat (table ,fr ,(build-character-row r1 c1 c2))))
@@ -69,7 +78,9 @@
 
 (tm-define (new-local-fonts)
   (let* ((fams (font-database-delta-families))
-         (xp (lambda (f) (map (lambda (s) (list f s)) (font-database-styles f))))
+         (xp
+           (lambda (f) (map (lambda (s) (list f s)) (font-database-styles f)))
+         ) ;xp
         ) ;
     (append-map xp fams)
   ) ;let*
@@ -129,8 +140,12 @@
   (let* ((fn2 (cadr kind))
          (val1 (get-characteristic fn1 attr))
          (val2 (get-characteristic fn2 attr))
-         (x1 (if (== val1 "") 1000.0 (+ 1.0 (abs (string->number val1)))))
-         (x2 (if (== val2 "") 10000.0 (+ 1.0 (abs (string->number val2)))))
+         (x1
+           (if (== val1 "") 1000.0 (+ 1.0 (abs (string->number val1))))
+         ) ;x1
+         (x2
+           (if (== val2 "") 10000.0 (+ 1.0 (abs (string->number val2))))
+         ) ;x2
          (dx (abs (- (log x1) (log x2))))
          (r (/ dx (log base)))
         ) ;
@@ -171,7 +186,9 @@
       (let* ((x1 (* 1.0 (string->number val1)))
              (x2 (* 1.0 (string->number val2)))
              (mag (/ x2 x1))
-             (txt `(with ,"magnification" ,(number->string mag) ,s))
+             (txt
+               `(with ,"magnification" ,(number->string mag) ,s)
+             ) ;txt
             ) ;
         (build-with-font fn1 txt)
       ) ;let*
@@ -343,8 +360,16 @@
     (new-local-fonts)
     ;; '(("Arial" "Italic") ("Fava" "Regular"))
     (with kinds
-      (list :name :thin :light :bold :black :oblique :italic :condensed :wide
-        :smallcaps :mono :sansserif :typewriter "abc" "ABC" "123"
+      (list
+        :name       :thin
+        :light      :bold
+        :black      :oblique
+        :italic     :condensed
+        :wide       :smallcaps
+        :mono       :sansserif
+        :typewriter "abc"
+        "ABC"
+        "123"
       ) ;list
       (tm->tree (build-font-table fns kinds))
     ) ;with
@@ -371,7 +396,9 @@
 
 (define (get-all-fonts)
   (let* ((fams (font-database-families))
-         (xp (lambda (f) (map (lambda (s) (list f s)) (font-database-styles f))))
+         (xp
+           (lambda (f) (map (lambda (s) (list f s)) (font-database-styles f)))
+         ) ;xp
         ) ;
     (append-map xp fams)
   ) ;let*
@@ -393,7 +420,9 @@
   (let* ((dist (lambda (fn2) (font-distance fn fn2)))
          (make (lambda (fn2) (list (dist fn2) fn2)))
          (l (map make (get-all-fonts)))
-         (sl (sort l (lambda (x y) (<= (car x) (car y)))))
+         (sl
+           (sort l (lambda (x y) (<= (car x) (car y))))
+         ) ;sl
         ) ;
     sl
   ) ;let*
@@ -403,8 +432,8 @@
   (with fns
     (sublist (map cadr (closest-fonts fn)) 0 25)
     (with kinds
-      (list :name
-        (list :dist fn)
+      (list
+        :name (list :dist fn)
         (list :dist* fn)
         (list :slant fn)
         (list :ex fn)

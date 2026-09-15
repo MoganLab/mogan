@@ -15,31 +15,38 @@
 
 (tm-define (tmdoc-render-keys s)
   (:secure #t)
-  (cond ((string? s)
-         (let* ((l1 (string-tokenize-by-char s #\space))
-                (l2 (map (lambda (x) `(render-key ,x)) l1))
-               ) ;
-           (cond ((null? l2) '(render-key ""))
-                 ((list-1? l2) (car l2))
-                 (else `(concat ,@l2))
-           ) ;cond
-         ) ;let*
-        ) ;
-        ((tree? s) (tmdoc-render-keys (tree->stree s)))
-        (else '(render-render-keys (with "color" "red" "?")))
+  (cond
+   ((string? s)
+    (let* ((l1 (string-tokenize-by-char s #\space))
+           (l2
+             (map
+               (lambda (x) `(render-key ,x))
+               l1
+             ) ;map
+           ) ;l2
+          ) ;
+      (cond ((null? l2) '(render-key ""))
+            ((list-1? l2) (car l2))
+            (else `(concat ,@l2))
+      ) ;cond
+    ) ;let*
+   ) ;
+   ((tree? s) (tmdoc-render-keys (tree->stree s)))
+   (else '(render-render-keys (with "color" "red" "?")))
   ) ;cond
 ) ;tm-define
 
 (tm-define (tmdoc-key s)
   (:secure #t)
   (lazy-keyboard-force #t)
-  (cond ((string? s)
-         (let* ((s2 (kbd-pre-rewrite s)) (s3 (kbd-post-rewrite s2 #f)))
-           (kbd-system-rewrite s3)
-         ) ;let*
-        ) ;
-        ((tree? s) (tmdoc-key (tree->stree s)))
-        (else '(render-key (with "color" "red" "?")))
+  (cond
+   ((string? s)
+    (let* ((s2 (kbd-pre-rewrite s)) (s3 (kbd-post-rewrite s2 #f)))
+      (kbd-system-rewrite s3)
+    ) ;let*
+   ) ;
+   ((tree? s) (tmdoc-key (tree->stree s)))
+   (else '(render-key (with "color" "red" "?")))
   ) ;cond
 ) ;tm-define
 

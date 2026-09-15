@@ -95,12 +95,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (version-show tag)
-  (cond ((selection-active-any?)
-         (for-each (lambda (u) (tree-replace u version-context? tag)) (selection-trees))
-        ) ;
-        ((inside-version?)
-         (with t (tree-innermost version-context?) (variant-set t tag))
-        ) ;
+  (cond
+   ((selection-active-any?)
+    (for-each (lambda (u) (tree-replace u version-context? tag)) (selection-trees))
+   ) ;
+   ((inside-version?)
+    (with t (tree-innermost version-context?) (variant-set t tag))
+   ) ;
   ) ;cond
 ) ;tm-define
 
@@ -126,9 +127,12 @@
         (with c
           (apply append (map fun (tree-children t)))
           (when (!= c (tree-children t))
-            (cond ((null? c) (tree-assign t (if (tree-is? t 'concat) "" '(document ""))))
-                  ((and (tree-is? t 'concat) (null? (cdr c))) (tree-assign t (car c)))
-                  (else (tree-assign t `(,(tree-label t) ,@c)))
+            (cond
+             ((null? c) (tree-assign t (if (tree-is? t 'concat) "" '(document ""))))
+             ((and (tree-is? t 'concat) (null? (cdr c))) (tree-assign t (car c)))
+             (else
+               (tree-assign t `(,(tree-label t) ,@c))
+             ) ;else
             ) ;cond
           ) ;when
         ) ;with
@@ -138,9 +142,10 @@
 ) ;define
 
 (define (retain-version t new)
-  (if (or (== new (tm->tree '(version-suppressed)))
-        (== new (tm->tree '(document (version-suppressed))))
-      ) ;or
+  (if
+    (or (== new (tm->tree '(version-suppressed)))
+      (== new (tm->tree '(document (version-suppressed))))
+    ) ;or
     (let* ((p (tree-up t)) (i (tree-index t)))
       (cond ((and p i) (tree-remove p i 1))
             ((== new (tm->tree '(version-suppressed))) (tree-set t ""))
@@ -175,27 +180,28 @@
 ) ;define
 
 (tm-define (version-retain which)
-  (cond ((selection-active-any?)
-         (for-each (lambda (u) (version-retain-version u which)) (selection-trees))
-        ) ;
-        ((inside-version?)
-         (with-innermost t
-           version-context?
-           (with p
-             (tree->path t)
-             (tree-go-to t (if (tree-is? t 'version-old) 0 1) :end)
-             (version-next-difference)
-             (version-retain-version t which)
-             (when (not (inside-version?))
-               (tree-go-to-start (root-tree) p)
-               (version-next-difference)
-               (when (not (inside-version?))
-                 (version-previous-difference)
-               ) ;when
-             ) ;when
-           ) ;with
-         ) ;with-innermost
-        ) ;
+  (cond
+   ((selection-active-any?)
+    (for-each (lambda (u) (version-retain-version u which)) (selection-trees))
+   ) ;
+   ((inside-version?)
+    (with-innermost t
+      version-context?
+      (with p
+        (tree->path t)
+        (tree-go-to t (if (tree-is? t 'version-old) 0 1) :end)
+        (version-next-difference)
+        (version-retain-version t which)
+        (when (not (inside-version?))
+          (tree-go-to-start (root-tree) p)
+          (version-next-difference)
+          (when (not (inside-version?))
+            (version-previous-difference)
+          ) ;when
+        ) ;when
+      ) ;with
+    ) ;with-innermost
+   ) ;
   ) ;cond
 ) ;tm-define
 

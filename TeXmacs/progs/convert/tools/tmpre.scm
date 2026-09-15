@@ -59,8 +59,9 @@
 ) ;define
 
 (define (tmpre-para x l)
-  (cond ((func? (car l) 'para) (cons (cons* 'para x (cdar l)) (cdr l)))
-        (else (cons (list 'para x (car l)) (cdr l)))
+  (cond
+   ((func? (car l) 'para) (cons (cons* 'para x (cdar l)) (cdr l)))
+   (else (cons (list 'para x (car l)) (cdr l)))
   ) ;cond
 ) ;define
 

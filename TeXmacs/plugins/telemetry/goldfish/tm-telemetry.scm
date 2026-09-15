@@ -47,9 +47,10 @@
 ;; 统一提取为字符串；无法识别时返回空字符串。
 
 (define (document->string doc)
-  (cond ((and (pair? doc) (eq? (car doc) 'document) (= (length doc) 2)) (cadr doc))
-        ((string? doc) doc)
-        (else "")
+  (cond
+   ((and (pair? doc) (eq? (car doc) 'document) (= (length doc) 2)) (cadr doc))
+   ((string? doc) doc)
+   (else "")
   ) ;cond
 ) ;define
 
@@ -89,21 +90,23 @@
     (if (not (path-exists? meta-path))
       0
       (let ((entries (vector->list (string->json (path-read-text meta-path)))) (count 0))
-        (for-each (lambda (entry)
-                    (let ((file-path (path->string (path-join main-dir (json-ref entry "filename")))))
-                      (when (path-exists? file-path)
-                        (for-each (lambda (line)
-                                    (when (not (string=? line ""))
-                                      (set! count (+ count 1))
-                                      (telemetry-log (format-event-line line))
-                                    ) ;when
-                                  ) ;lambda
-                          (string-split (path-read-text file-path) #\newline)
-                        ) ;for-each
-                        (path-unlink file-path)
-                      ) ;when
-                    ) ;let
+        (for-each
+          (lambda (entry)
+            (let ((file-path (path->string (path-join main-dir (json-ref entry "filename")))))
+              (when (path-exists? file-path)
+                (for-each
+                  (lambda (line)
+                    (when (not (string=? line ""))
+                      (set! count (+ count 1))
+                      (telemetry-log (format-event-line line))
+                    ) ;when
                   ) ;lambda
+                  (string-split (path-read-text file-path) #\newline)
+                ) ;for-each
+                (path-unlink file-path)
+              ) ;when
+            ) ;let
+          ) ;lambda
           entries
         ) ;for-each
         (path-write-text meta-path "[]")
@@ -123,10 +126,11 @@
         ) ;
     (cond ((string=? s "") (flush-verbatim "telemetry skipped: empty payload"))
           ((and (pair? json) (string? (json-ref json "main-dir")))
-           (let ((n (catch #t
-                      (lambda () (process-events (json-ref json "main-dir")))
-                      (lambda args -1)
-                    ) ;catch
+           (let ((n
+                   (catch #t
+                     (lambda () (process-events (json-ref json "main-dir")))
+                     (lambda args -1)
+                   ) ;catch
                  ) ;n
                  (trigger (json-ref json "event"))
                 ) ;

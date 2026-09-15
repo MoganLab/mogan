@@ -27,9 +27,10 @@
 
 (define (natbib-author* s)
   (let* ((i (string-index s #\()) (j (string-index s #\))) (n (string-length s)))
-    (cond ((not (and i j (< i j))) s)
-          ((< (+ j 1) n) (substring s (+ j 1) n))
-          (else (substring s 0 i))
+    (cond
+     ((not (and i j (< i j))) s)
+     ((< (+ j 1) n) (substring s (+ j 1) n))
+     (else (substring s 0 i))
     ) ;cond
   ) ;let*
 ) ;define

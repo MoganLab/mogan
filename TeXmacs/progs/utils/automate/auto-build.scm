@@ -18,47 +18,52 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (consume as t)
-  (cond ((== as :any)
-         (cond ((func? t :block) `(document ,@(cdr t)))
-               ((func? t :inline) (apply tmconcat (cdr t)))
-               ((func? t 'document) t)
-               ((func? t 'concat) t)
-               (else t)
-         ) ;cond
-        ) ;
-        ((== as :block)
-         (cond ((func? t :block) t)
-               ((func? t :inline) (cons :block (apply tmconcat (cdr t))))
-               ((func? t 'document) (cons :block (cdr t)))
-               ((func? t 'inline) (list :block t))
-               (else (list :block t))
-         ) ;cond
-        ) ;
-        ((== as :inline)
-         (cond ((func? t :block) (cons :inline `(document ,@(cdr t))))
-               ((func? t :inline) t)
-               ((func? t 'document) (cons :inline `(document ,@(cdr t))))
-               ((func? t 'concat) (cons :inline (cdr t)))
-               (else (list :inline t))
-         ) ;cond
-        ) ;
-        ((== as 'document)
-         (cond ((func? t :block) `(document ,@(cdr t)))
-               ((func? t :inline) `(document ,(apply tmconcat (cdr t))))
-               ((func? t 'document) t)
-               ((func? t 'inline) `(document ,t))
-               (else `(document ,t))
-         ) ;cond
-        ) ;
-        ((== as 'concat)
-         (cond ((func? t :block) `(document ,@(cdr t)))
-               ((func? t :inline) (apply tmconcat (cdr t)))
-               ((func? t 'document) t)
-               ((func? t 'concat) t)
-               (else t)
-         ) ;cond
-        ) ;
-        (else (texmacs-error "consume" "~S incorrect format" as))
+  (cond
+   ((== as :any)
+    (cond
+     ((func? t :block) `(document ,@(cdr t)))
+     ((func? t :inline) (apply tmconcat (cdr t)))
+     ((func? t 'document) t)
+     ((func? t 'concat) t)
+     (else t)
+    ) ;cond
+   ) ;
+   ((== as :block)
+    (cond ((func? t :block) t)
+          ((func? t :inline) (cons :block (apply tmconcat (cdr t))))
+          ((func? t 'document) (cons :block (cdr t)))
+          ((func? t 'inline) (list :block t))
+          (else (list :block t))
+    ) ;cond
+   ) ;
+   ((== as :inline)
+    (cond
+     ((func? t :block) (cons :inline `(document ,@(cdr t))))
+     ((func? t :inline) t)
+     ((func? t 'document) (cons :inline `(document ,@(cdr t))))
+     ((func? t 'concat) (cons :inline (cdr t)))
+     (else (list :inline t))
+    ) ;cond
+   ) ;
+   ((== as 'document)
+    (cond
+     ((func? t :block) `(document ,@(cdr t)))
+     ((func? t :inline) `(document ,(apply tmconcat (cdr t))))
+     ((func? t 'document) t)
+     ((func? t 'inline) `(document ,t))
+     (else `(document ,t))
+    ) ;cond
+   ) ;
+   ((== as 'concat)
+    (cond
+     ((func? t :block) `(document ,@(cdr t)))
+     ((func? t :inline) (apply tmconcat (cdr t)))
+     ((func? t 'document) t)
+     ((func? t 'concat) t)
+     (else t)
+    ) ;cond
+   ) ;
+   (else (texmacs-error "consume" "~S incorrect format" as))
   ) ;cond
 ) ;define
 
@@ -79,7 +84,11 @@
 
 (define (build-scheme* t)
   (let* ((expr (string->object (texmacs->code t "iso-8859-1")))
-         (decls (map (lambda (p) (list (car p) (list 'quote (cdr p)))) current-variables)
+         (decls
+           (map
+             (lambda (p) (list (car p) (list 'quote (cdr p))))
+             current-variables
+           ) ;map
          ) ;decls
          (expr* `(let ,decls ,expr))
         ) ;
@@ -180,14 +189,20 @@
 
 (define (build-tag as tag . args)
   (let* ((f (cadr (build* :inline tag)))
-         (a (map (lambda (x) (cadr (build* :inline x))) (cDr args)))
+         (a
+           (map (lambda (x) (cadr (build* :inline x))) (cDr args))
+         ) ;a
          (b (build* as (cAr args)))
-         (l (cond ((== as :block) `(document ,@(cdr b)))
-                  ((== as :inline) (apply tmconcat (cdr b)))
-                  (else b)
-            ) ;cond
+         (l
+           (cond
+            ((== as :block) `(document ,@(cdr b)))
+            ((== as :inline) (apply tmconcat (cdr b)))
+            (else b)
+           ) ;cond
          ) ;l
-         (r (if (string? f) `(,(string->symbol f) ,@a ,l) `(compound ,f ,@a ,l)))
+         (r
+           (if (string? f) `(,(string->symbol f) ,@a ,l) `(compound ,f ,@a ,l))
+         ) ;r
         ) ;
     (cons as (list r))
   ) ;let*

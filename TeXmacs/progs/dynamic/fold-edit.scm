@@ -209,18 +209,19 @@
 (define (switch-set t i on?)
   (if (== i :last) (set! i (- (tree-arity t) 1)))
   (when (and (>= i 0) (< i (tree-arity t)))
-    (cond ((and on? (hidden-context? (tree-ref t i)))
-           (tree-assign-node (tree-ref t i) 'shown)
-          ) ;
-          ((and (not on?) (tree-is? t i 'shown))
-           (tree-assign-node (tree-ref t i) (get-hidden-tag t))
-          ) ;
-          ((and on? (not (tree-is? t i 'shown)))
-           (tree-insert-node (tree-ref t i) 0 '(shown))
-          ) ;
-          ((and (not on?) (not (hidden-context? (tree-ref t i))))
-           (tree-insert-node (tree-ref t i) 0 (list (get-hidden-tag t)))
-          ) ;
+    (cond
+     ((and on? (hidden-context? (tree-ref t i)))
+      (tree-assign-node (tree-ref t i) 'shown)
+     ) ;
+     ((and (not on?) (tree-is? t i 'shown))
+      (tree-assign-node (tree-ref t i) (get-hidden-tag t))
+     ) ;
+     ((and on? (not (tree-is? t i 'shown)))
+      (tree-insert-node (tree-ref t i) 0 '(shown))
+     ) ;
+     ((and (not on?) (not (hidden-context? (tree-ref t i))))
+      (tree-insert-node (tree-ref t i) 0 (list (get-hidden-tag t)))
+     ) ;
     ) ;cond
   ) ;when
 ) ;define
@@ -247,25 +248,26 @@
 (tm-define (switch-valid-child? t i) (and t i (>= i 0) (< i (tree-arity t))))
 
 (tm-define (switch-index t . args)
-  (and-let* ((o (switch-context? t))
-             (i (if (null? args) :current (car args)))
-             (c (tree-down-index t))
-             (l (- (tree-arity t) 1))
-             (v (switch-last-visible t))
-            ) ;
-    (cond ((< v 0) #f)
-          ((== i :visible) v)
-          ((== i :current) c)
-          ((== i :previous) (max 0 (- c 1)))
-          ((== i :next) (min l (+ c 1)))
-          ((== i :var-previous) (- c 1))
-          ((== i :var-next) (+ c 1))
-          ((== i :rotate-backward) (if (= c 0) l (- c 1)))
-          ((== i :rotate-forward) (if (= c l) 0 (+ c 1)))
-          ((== i :first) 0)
-          ((== i :last) l)
-          (else i)
-    ) ;cond
+  (and-let*
+   ((o (switch-context? t))
+    (i (if (null? args) :current (car args)))
+    (c (tree-down-index t))
+    (l (- (tree-arity t) 1))
+    (v (switch-last-visible t))
+   ) ;
+   (cond ((< v 0) #f)
+         ((== i :visible) v)
+         ((== i :current) c)
+         ((== i :previous) (max 0 (- c 1)))
+         ((== i :next) (min l (+ c 1)))
+         ((== i :var-previous) (- c 1))
+         ((== i :var-next) (+ c 1))
+         ((== i :rotate-backward) (if (= c 0) l (- c 1)))
+         ((== i :rotate-forward) (if (= c l) 0 (+ c 1)))
+         ((== i :first) 0)
+         ((== i :last) l)
+         (else i)
+   ) ;cond
   ) ;and-let*
 ) ;tm-define
 
@@ -356,7 +358,10 @@
 
 (tm-define (make-switch tag)
   (if (in? tag (big-switch-tag-list))
-    (insert-go-to `(,tag (shown (document ""))) '(0 0 0 0))
+    (insert-go-to
+      `(,tag (shown (document "")))
+      '(0 0 0 0)
+    ) ;insert-go-to
     (insert-go-to `(,tag (shown "")) '(0 0 0))
   ) ;if
 ) ;tm-define
@@ -453,8 +458,14 @@
   (with-innermost t
     overlays-context?
     (if (unary-overlay-tag? (tree-label t))
-      (insert-go-to `(,l ,(tree-copy (tree-ref t 0)) ,"") '(1 0))
-      (insert-go-to `(,l ,(tree-copy (tree-ref t 0)) ,"" ,"") '(1 0))
+      (insert-go-to
+        `(,l ,(tree-copy (tree-ref t 0)) ,"")
+        '(1 0)
+      ) ;insert-go-to
+      (insert-go-to
+        `(,l ,(tree-copy (tree-ref t 0)) ,"" ,"")
+        '(1 0)
+      ) ;insert-go-to
     ) ;if
   ) ;with-innermost
 ) ;tm-define
@@ -514,28 +525,29 @@
 ) ;tm-define
 
 (define (overlay-satisfies-proviso? t i pos)
-  (cond ((>= pos (- (tree-arity t) 1)) #f)
-        ((tm-equal? (tree-ref t pos) "proviso")
-         (and-with c
-           (tree-ref t (+ pos 1))
-           (and (tree-in? c (nullary-overlay-tag-list))
-             (== (tree-arity c) 1)
-             (and-with ref
-               (tree->number (tree-ref c 0))
-               (and (integer? ref)
-                 (cond ((tree-is? c 'show-always) #t)
-                       ((tree-is? c 'show-from) (>= i ref))
-                       ((tree-is? c 'show-until) (<= i ref))
-                       ((tree-is? c 'show-this) (== i ref))
-                       ((tree-is? c 'show-other) (!= i ref))
-                       (else #f)
-                 ) ;cond
-               ) ;and
-             ) ;and-with
-           ) ;and
-         ) ;and-with
-        ) ;
-        (else (overlay-satisfies-proviso? t i (+ pos 2)))
+  (cond
+   ((>= pos (- (tree-arity t) 1)) #f)
+   ((tm-equal? (tree-ref t pos) "proviso")
+    (and-with c
+      (tree-ref t (+ pos 1))
+      (and (tree-in? c (nullary-overlay-tag-list))
+        (== (tree-arity c) 1)
+        (and-with ref
+          (tree->number (tree-ref c 0))
+          (and (integer? ref)
+            (cond ((tree-is? c 'show-always) #t)
+                  ((tree-is? c 'show-from) (>= i ref))
+                  ((tree-is? c 'show-until) (<= i ref))
+                  ((tree-is? c 'show-this) (== i ref))
+                  ((tree-is? c 'show-other) (!= i ref))
+                  (else #f)
+            ) ;cond
+          ) ;and
+        ) ;and-with
+      ) ;and
+    ) ;and-with
+   ) ;
+   (else (overlay-satisfies-proviso? t i (+ pos 2)))
   ) ;cond
 ) ;define
 
@@ -553,27 +565,28 @@
 ) ;define
 
 (tm-define (overlay-visible? t i)
-  (or (and (overlay-context? t)
-        (with ref
-          (tree->number (tree-ref t 0))
-          (cond ((not (integer? ref)) #f)
-                ((tree-is? t 'show-always) #t)
-                ((tree-is? t 'show-from) (>= i ref))
-                ((tree-is? t 'show-until) (<= i ref))
-                ((tree-is? t 'show-this) (== i ref))
-                ((tree-is? t 'show-other) (!= i ref))
-                ((tree-is? t 'overlay-from) (>= i ref))
-                ((tree-is? t 'overlay-until) (<= i ref))
-                ((tree-is? t 'overlay-this) (== i ref))
-                ((tree-is? t 'overlay-other) (!= i ref))
-                ((tree-is? t 'alternate-from) (>= i ref))
-                ((tree-is? t 'alternate-until) (<= i ref))
-                ((tree-is? t 'alternate-this) (== i ref))
-                ((tree-is? t 'alternate-other) (!= i ref))
-                (else #f)
-          ) ;cond
-        ) ;with
-      ) ;and
+  (or
+    (and (overlay-context? t)
+      (with ref
+        (tree->number (tree-ref t 0))
+        (cond ((not (integer? ref)) #f)
+              ((tree-is? t 'show-always) #t)
+              ((tree-is? t 'show-from) (>= i ref))
+              ((tree-is? t 'show-until) (<= i ref))
+              ((tree-is? t 'show-this) (== i ref))
+              ((tree-is? t 'show-other) (!= i ref))
+              ((tree-is? t 'overlay-from) (>= i ref))
+              ((tree-is? t 'overlay-until) (<= i ref))
+              ((tree-is? t 'overlay-this) (== i ref))
+              ((tree-is? t 'overlay-other) (!= i ref))
+              ((tree-is? t 'alternate-from) (>= i ref))
+              ((tree-is? t 'alternate-until) (<= i ref))
+              ((tree-is? t 'alternate-this) (== i ref))
+              ((tree-is? t 'alternate-other) (!= i ref))
+              (else #f)
+        ) ;cond
+      ) ;with
+    ) ;and
     (and (tree-is? t 'with) (overlay-satisfies-proviso? t i 0))
     (and (tree-in? t '(anim-static anim-dynamic))
       (tree-is? t 0 'morph)
@@ -687,24 +700,26 @@
 (define fold-environments-second (make-ahash-table))
 
 (define (fold-add-environment t first?)
-  (cond ((and (toggle-first-context? t) (not (tree-is? t 'summarized-algorithm)))
-         (fold-add-environment (tree-ref t 1) #t)
-        ) ;
-        ((and (toggle-second-context? t) (not (tree-is? t 'detailed-algorithm)))
-         (fold-add-environment (tree-ref t 1) #f)
-        ) ;
-        ((tm-func? t 'document 1) (fold-add-environment (tree-ref t 0) first?))
-        (else (with tag
-                'text
-                (if (tree-compound? t) (set! tag (tree-label t)))
-                (if (== tag 'concat) (set! tag 'text))
-                (if (== tag 'document) (set! tag 'text))
-                (if (== tag 'render-proof) (set! tag 'proof))
-                (if (in? tag '(summarized-algorithm detailed-algorithm)) (set! tag 'algorithm))
-                (ahash-set! fold-environments tag #t)
-                (ahash-set! (if first? fold-environments-first fold-environments-second) tag #t)
-              ) ;with
-        ) ;else
+  (cond
+   ((and (toggle-first-context? t) (not (tree-is? t 'summarized-algorithm)))
+    (fold-add-environment (tree-ref t 1) #t)
+   ) ;
+   ((and (toggle-second-context? t) (not (tree-is? t 'detailed-algorithm)))
+    (fold-add-environment (tree-ref t 1) #f)
+   ) ;
+   ((tm-func? t 'document 1) (fold-add-environment (tree-ref t 0) first?))
+   (else
+     (with tag
+       'text
+       (if (tree-compound? t) (set! tag (tree-label t)))
+       (if (== tag 'concat) (set! tag 'text))
+       (if (== tag 'document) (set! tag 'text))
+       (if (== tag 'render-proof) (set! tag 'proof))
+       (if (in? tag '(summarized-algorithm detailed-algorithm)) (set! tag 'algorithm))
+       (ahash-set! fold-environments tag #t)
+       (ahash-set! (if first? fold-environments-first fold-environments-second) tag #t)
+     ) ;with
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -814,21 +829,22 @@
 
 (tm-define (dynamic-operate t mode)
   (when (tree-compound? t)
-    (cond ((tree-is? t 'traversed)
-           (when (!= mode :var-last)
-             (dynamic-operate (tree-ref t 0) mode)
-             (if (in? mode '(:unfold :expand :var-expand :first)) (tree-remove-node! t 0))
-           ) ;when
-          ) ;
-          ((tree-is? t 'fold-back)
-           (if (== mode :last) (set! mode :var-last))
-           (dynamic-operate (tree-ref t 0) mode)
-          ) ;
-          ((tree-is? t 'keep-folded)
-           (if (== mode :var-last) (set! mode :last))
-           (dynamic-operate (tree-ref t 0) mode)
-          ) ;
-          (else (dynamic-operate-sub t mode))
+    (cond
+     ((tree-is? t 'traversed)
+      (when (!= mode :var-last)
+        (dynamic-operate (tree-ref t 0) mode)
+        (if (in? mode '(:unfold :expand :var-expand :first)) (tree-remove-node! t 0))
+      ) ;when
+     ) ;
+     ((tree-is? t 'fold-back)
+      (if (== mode :last) (set! mode :var-last))
+      (dynamic-operate (tree-ref t 0) mode)
+     ) ;
+     ((tree-is? t 'keep-folded)
+      (if (== mode :var-last) (set! mode :last))
+      (dynamic-operate (tree-ref t 0) mode)
+     ) ;
+     (else (dynamic-operate-sub t mode))
     ) ;cond
   ) ;when
 ) ;tm-define
@@ -863,27 +879,29 @@
 ) ;define
 
 (define (dynamic-first-alternative t)
-  (cond ((and (alternative-context? t) (> (tm-arity t) 1)) t)
-        ((overlays-context? t)
-         (tree-set! t 0 "1")
-         (tree-assign-node! t 'overlays-range)
-         t
-        ) ;
-        ((and (tree-is? t 'overlays-range)
-           (< (tree->number (tree-ref t 0)) (tree->number (tree-ref t 1)))
-         ) ;and
-         t
-        ) ;
-        ((not (tm-compound? t)) #f)
-        (else (dynamic-first-alternative-list (tm-children t)))
+  (cond
+   ((and (alternative-context? t) (> (tm-arity t) 1)) t)
+   ((overlays-context? t)
+    (tree-set! t 0 "1")
+    (tree-assign-node! t 'overlays-range)
+    t
+   ) ;
+   ((and (tree-is? t 'overlays-range)
+      (< (tree->number (tree-ref t 0)) (tree->number (tree-ref t 1)))
+    ) ;and
+    t
+   ) ;
+   ((not (tm-compound? t)) #f)
+   (else (dynamic-first-alternative-list (tm-children t)))
   ) ;cond
 ) ;define
 
 (define (dynamic-alternative-keep-first slide)
   (and-with t
     (dynamic-first-alternative slide)
-    (cond ((alternative-context? t) (tree-remove t 1 (- (tree-arity t) 1)))
-          ((tree-is? t 'overlays-range) (tree-set t 1 (tree-copy (tree-ref t 0))))
+    (cond
+     ((alternative-context? t) (tree-remove t 1 (- (tree-arity t) 1)))
+     ((tree-is? t 'overlays-range) (tree-set t 1 (tree-copy (tree-ref t 0))))
     ) ;cond
     (dynamic-alternative-keep-first slide)
   ) ;and-with
@@ -1011,37 +1029,38 @@
 
 (define (dynamic-filter-remove? t mode)
   (and (tree-is? t :up 'document)
-    (cond ((toggle-first-context? t)
-           (cond ((== mode :remove-folded) #t)
-                 ((== mode :keep-unfolded) #t)
-                 (else #f)
-           ) ;cond
-          ) ;
-          ((toggle-second-context? t)
-           (cond ((== mode :remove-unfolded) #t)
-                 ((== mode :keep-folded) #t)
-                 (else #f)
-           ) ;cond
-          ) ;
-          ((and (or (switch-context? t) (alternative-context? t) (unroll-context? t))
-             (== (switch-last-visible t) 0)
-           ) ;and
-           (cond ((== mode :remove-folded) #t)
-                 ((== mode :keep-unfolded) #t)
-                 (else #f)
-           ) ;cond
-          ) ;
-          ((and (or (switch-context? t) (alternative-context? t) (unroll-context? t))
-             (!= (switch-last-visible t) 0)
-           ) ;and
-           (cond ((== mode :remove-unfolded) #t)
-                 ((== mode :keep-folded) #t)
-                 (else #f)
-           ) ;cond
-          ) ;
-          ((in? mode (list :remove-folded :remove-unfolded)) #f)
-          ((in? mode (list :keep-folded :keep-unfolded)) #t)
-          (else #f)
+    (cond
+     ((toggle-first-context? t)
+      (cond ((== mode :remove-folded) #t)
+            ((== mode :keep-unfolded) #t)
+            (else #f)
+      ) ;cond
+     ) ;
+     ((toggle-second-context? t)
+      (cond ((== mode :remove-unfolded) #t)
+            ((== mode :keep-folded) #t)
+            (else #f)
+      ) ;cond
+     ) ;
+     ((and (or (switch-context? t) (alternative-context? t) (unroll-context? t))
+        (== (switch-last-visible t) 0)
+      ) ;and
+      (cond ((== mode :remove-folded) #t)
+            ((== mode :keep-unfolded) #t)
+            (else #f)
+      ) ;cond
+     ) ;
+     ((and (or (switch-context? t) (alternative-context? t) (unroll-context? t))
+        (!= (switch-last-visible t) 0)
+      ) ;and
+      (cond ((== mode :remove-unfolded) #t)
+            ((== mode :keep-folded) #t)
+            (else #f)
+      ) ;cond
+     ) ;
+     ((in? mode (list :remove-folded :remove-unfolded)) #f)
+     ((in? mode (list :keep-folded :keep-unfolded)) #t)
+     (else #f)
     ) ;cond
   ) ;and
 ) ;define
@@ -1052,11 +1071,12 @@
       (tree-up t)
       (if (== (tree-arity p) 1) (tree-assign! t "") (tree-remove! p (tree-index t) 1))
     ) ;with
-    (if (and (tree-compound? t)
-          (or (not (tree-is? t :up 'document))
-            (in? mode (list :remove-folded :remove-unfolded))
-          ) ;or
-        ) ;and
+    (if
+      (and (tree-compound? t)
+        (or (not (tree-is? t :up 'document))
+          (in? mode (list :remove-folded :remove-unfolded))
+        ) ;or
+      ) ;and
       (for-each (lambda (x) (dynamic-filter x mode)) (tree-children t))
     ) ;if
   ) ;if
@@ -1195,12 +1215,13 @@
          ) ;let*
         ) ;
         ((overlays-context? t) (dynamic-traverse-overlays t mode))
-        (else (let* ((c (tree-accessible-children t))
-                     (forward? (in? mode '(:next :var-next)))
-                     (l (if forward? c (reverse c)))
-                    ) ;
-                (dynamic-traverse-list l mode)
-              ) ;let*
+        (else
+          (let* ((c (tree-accessible-children t))
+                 (forward? (in? mode '(:next :var-next)))
+                 (l (if forward? c (reverse c)))
+                ) ;
+            (dynamic-traverse-list l mode)
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -1232,9 +1253,15 @@
     (let* ((sel (selection-tree))
            (list-tag (tree-label sel))
            (items (tree-children (tree-ref sel 0)))
-           (fun (lambda (c) `(shown (document ,c))))
-           (unroll `(,switch-tag ,@(map fun items)))
-           (new-list `(,list-tag (document ,unroll)))
+           (fun
+             (lambda (c) `(shown (document ,c)))
+           ) ;fun
+           (unroll
+             `(,switch-tag ,@(map fun items))
+           ) ;unroll
+           (new-list
+             `(,list-tag (document ,unroll))
+           ) ;new-list
           ) ;
       (clipboard-cut "dummy")
       (insert new-list)
@@ -1586,34 +1613,35 @@
   (when (or (tree-func? t 'shown 1) (tree-func? t 'hidden 1))
     (set! t (tree-ref t 0))
   ) ;when
-  (cond ((tree-func? t 'document 1)
-         `(document ,(extract-slide-template (tree-ref t 0)))
-        ) ;
-        ((and (tree-func? t 'document)
-           (>= (tree-arity t) 2)
-           (tree-func? (tree-ref t 0) 'tit)
-         ) ;and
-         `(document ,(extract-slide-template (tree-ref t 0))
-            ,(extract-slide-template (tree-ref t 1)))
-        ) ;
-        ((and (tree-func? t 'document) (>= (tree-arity t) 1))
-         `(document ,(extract-slide-template (tree-ref t 0)))
-        ) ;
-        ((tree-is? t 'tit) (cons 'tit (make-list (tree-arity t) "")))
-        ((tree-func? t 'gr-screen 1)
-         `(gr-screen ,(extract-slide-template (tree-ref t 0)))
-        ) ;
-        ((tree-func? t 'gr-overlays 3)
-         `(gr-overlays ,"1" ,"1" ,(extract-slide-template (tree-ref t 2)))
-        ) ;
-        ((tree-in? t '(with with-screen-color))
-         (with l
-           (tree-children t)
-           `(,(tree-label t) ,@(cDr l) ,(extract-slide-template (cAr l)))
-         ) ;with
-        ) ;
-        ((tree-is? t 'graphics) '(graphics ""))
-        (else "")
+  (cond
+   ((tree-func? t 'document 1)
+    `(document ,(extract-slide-template (tree-ref t 0)))
+   ) ;
+   ((and (tree-func? t 'document)
+      (>= (tree-arity t) 2)
+      (tree-func? (tree-ref t 0) 'tit)
+    ) ;and
+    `(document ,(extract-slide-template (tree-ref t 0))
+       ,(extract-slide-template (tree-ref t 1)))
+   ) ;
+   ((and (tree-func? t 'document) (>= (tree-arity t) 1))
+    `(document ,(extract-slide-template (tree-ref t 0)))
+   ) ;
+   ((tree-is? t 'tit) (cons 'tit (make-list (tree-arity t) "")))
+   ((tree-func? t 'gr-screen 1)
+    `(gr-screen ,(extract-slide-template (tree-ref t 0)))
+   ) ;
+   ((tree-func? t 'gr-overlays 3)
+    `(gr-overlays ,"1" ,"1" ,(extract-slide-template (tree-ref t 2)))
+   ) ;
+   ((tree-in? t '(with with-screen-color))
+    (with l
+      (tree-children t)
+      `(,(tree-label t) ,@(cDr l) ,(extract-slide-template (cAr l)))
+    ) ;with
+   ) ;
+   ((tree-is? t 'graphics) '(graphics ""))
+   (else "")
   ) ;cond
 ) ;define
 
@@ -1630,18 +1658,19 @@
       (when (or (tree-func? s 'shown 1) (tree-func? s 'hidden 1))
         (set! s (tree-ref s 0))
       ) ;when
-      (cond ((and (tree-is? s 'document)
-               (>= (tree-arity s) 2)
-               (tree-func? (tree-ref s 0) 'tit 1)
-             ) ;and
-             (tree-go-to s 0 0 :start)
-            ) ;
-            ((and (tree-is? s 'document)
-               (>= (tree-arity s) 1)
-               (tree-func? (tree-ref s 0) 'gr-screen 1)
-             ) ;and
-             (go-to-graphics)
-            ) ;
+      (cond
+       ((and (tree-is? s 'document)
+          (>= (tree-arity s) 2)
+          (tree-func? (tree-ref s 0) 'tit 1)
+        ) ;and
+        (tree-go-to s 0 0 :start)
+       ) ;
+       ((and (tree-is? s 'document)
+          (>= (tree-arity s) 1)
+          (tree-func? (tree-ref s 0) 'gr-screen 1)
+        ) ;and
+        (go-to-graphics)
+       ) ;
       ) ;cond
     ) ;and-with
   ) ;with

@@ -141,7 +141,9 @@
 (define-public (logic-group-rules name l)
   (cond ((null? l) '())
         ((is-assume? (car l)) (cons (car l) (logic-group-rules name (cdr l))))
-        (else (cons (list (list name (car l))) (logic-group-rules name (cdr l))))
+        (else
+          (cons (list (list name (car l))) (logic-group-rules name (cdr l)))
+        ) ;else
   ) ;cond
 ) ;define-public
 

@@ -63,7 +63,9 @@
 ) ;tm-define
 
 (tm-define (make lab . opt-arity)
-  (:require (with-like? `(,lab ,"")))
+  (:require
+    (with-like? `(,lab ,""))
+  ) ;:require
   (if (selection-active-any?)
     (let* ((selection (selection-tree))
            (ins `(,lab ,selection))

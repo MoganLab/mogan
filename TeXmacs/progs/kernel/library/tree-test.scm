@@ -97,7 +97,11 @@
   (with t
     (tm->tree '(document))
     (check (tree-search t frac?) => '())
-    (check (length (tree-search t (lambda (x) (tree-func? x 'document)))) => 1)
+    (check
+      (length (tree-search t (lambda (x) (tree-func? x 'document))))
+      =>
+      1
+    ) ;check
   ) ;with
 ) ;define
 
@@ -122,13 +126,18 @@
 ) ;define
 
 (define (make-wide-doc n)
-  (tm->tree (cons 'document (map (lambda (i) (list 'frac (number->string i) "y")) (.. 0 n)))
+  (tm->tree
+    (cons 'document (map (lambda (i) (list 'frac (number->string i) "y")) (.. 0 n)))
   ) ;tm->tree
 ) ;define
 
 (define (bench-tree-search)
   (let ((deep (make-deep-tree 200)) (wide (make-wide-doc 500)) (start 0))
-    (check (length (tree-search deep (lambda (t) (tree-func? t 'emph)))) => 200)
+    (check
+      (length (tree-search deep (lambda (t) (tree-func? t 'emph))))
+      =>
+      200
+    ) ;check
     (check (length (tree-search wide frac?)) => 500)
     (set! start (texmacs-time))
     (do ((i 0 (+ i 1)))
