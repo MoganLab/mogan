@@ -59,6 +59,14 @@ protected:
   // 计算显示位置（虚函数，子类可重写不同位置算法）
   virtual void getCachedPosition (qt_renderer_rep* ren, int& x, int& y);
 
+  // 选区矩形中心/上下缘的逻辑→像素换算（含滚动/画布偏移与顶部留白补偿），
+  // 各子类定位算法共用
+  void selectionEdgePixels (double& cx_px, double& top_px,
+                            double& bottom_px) const;
+
+  // 把位置裁剪到视口内，各子类定位算法共用
+  void clampToViewport (int& x, int& y) const;
+
   // 检查选区是否在视口内
   virtual bool selectionInView () const;
 

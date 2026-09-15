@@ -132,12 +132,6 @@
   ) ;when
 ) ;tm-define
 
-(tm-define (ai-chat-shortcut)
-  (:synopsis "Trigger the AI action bar chat with a selection, toggle the AI chat sidebar otherwise"
-  ) ;:synopsis
-  (if (selection-active-any?) (ai-action "chat") (toggle-chat-sidebar))
-) ;tm-define
-
 (tm-define (toggle-visible-side-tools n)
   (:synopsis "Toggle the visibility of the @n-th side tools")
   (:check-mark "v" has-side-tools?)

@@ -933,11 +933,13 @@ qt_simple_widget_rep::ensure_translate_popup () {
 }
 
 void
-qt_simple_widget_rep::show_translate_popup (rectangle selr, double magf,
-                                            int scroll_x, int scroll_y,
-                                            int canvas_x, int canvas_y) {
+qt_simple_widget_rep::show_translate_popup (rectangle selr, bool upward,
+                                            double magf, int scroll_x,
+                                            int scroll_y, int canvas_x,
+                                            int canvas_y) {
   ensure_translate_popup ();
   qt_renderer_rep* ren= the_qt_renderer ();
+  translatePopup->setUpward (upward);
   translatePopup->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
                              canvas_y);
 }

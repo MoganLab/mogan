@@ -233,9 +233,6 @@ public:
   virtual void      set_user_active (bool b)                               = 0;
   virtual bool      get_user_active ()                                     = 0;
   virtual bool      is_pre_editing () { return false; }
-  // AI 操作栏动作统一入口（glue 只能绑 editor_rep 上的方法，故虚函数带
-  // 默认空实现，edit_interface_rep 覆写实际逻辑）
-  virtual void ai_action (string action) { (void) action; }
 
   /* public routines from edit_cursor */
   virtual path make_cursor_accessible (path p, bool forwards)= 0;

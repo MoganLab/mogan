@@ -1477,13 +1477,12 @@ edit_interface_rep::selection_made_upward () {
 }
 
 rectangle
-edit_interface_rep::get_selection_last_rect () {
+edit_interface_rep::get_selection_last_rect (bool upward) {
   // 优先用 apply_changes 维护的已绘制选区矩形（与屏幕所见一致，且避免在
   // box 树重建的瞬态窗口期重走 find_check_selection）；缓存为空才遍历。
   // 取「最后一个选中文字」所在行：向下选择为屏幕最下方、同行最右；向上
   // 选择为屏幕最上方、同行最左
-  bool       upward= selection_made_upward ();
-  rectangles rs    = selection_rects;
+  rectangles rs= selection_rects;
   if (is_nil (rs)) {
     path p1, p2;
     selection_get (p1, p2);
@@ -1506,12 +1505,13 @@ edit_interface_rep::get_selection_last_rect () {
 }
 
 void
-edit_interface_rep::show_translate_popup (rectangle selr, double magf,
-                                          int scroll_x, int scroll_y,
-                                          int canvas_x, int canvas_y) {
+edit_interface_rep::show_translate_popup (rectangle selr, bool upward,
+                                          double magf, int scroll_x,
+                                          int scroll_y, int canvas_x,
+                                          int canvas_y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_translate_popup (selr, magf, scroll_x, scroll_y, canvas_x,
+    qsw->show_translate_popup (selr, upward, magf, scroll_x, scroll_y, canvas_x,
                                canvas_y);
   }
 #endif
@@ -1571,13 +1571,16 @@ edit_interface_rep::update_translate_popup () {
     return;
   }
   if (should_show_translate_popup ()) {
-    rectangle selr= get_selection_last_rect ();
+    // 方向与锚行在同一时刻确定，随锚行一路传入 popup 缓存——定位时不再
+    // 回查编辑器活态，避免选区变化后位置与锚行失配
+    bool      upward= selection_made_upward ();
+    rectangle selr  = get_selection_last_rect (upward);
     if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
       hide_translate_popup ();
       return;
     }
     // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
-    show_translate_popup (selr, magf, get_scroll_x (), get_scroll_y (),
+    show_translate_popup (selr, upward, magf, get_scroll_x (), get_scroll_y (),
                           get_canvas_x (), get_canvas_y ());
   }
   else {
