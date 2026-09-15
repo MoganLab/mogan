@@ -18,9 +18,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind insert-animation-menu
-  (when (or (selection-active-small?)
-          (and (selection-active-any?) (tm-func? (selection-tree) 'gr-screen))
-        ) ;or
+  (when
+    (or (selection-active-small?)
+      (and (selection-active-any?) (tm-func? (selection-tree) 'gr-screen))
+    ) ;or
     ("Animate" (interactive animate-selection))
     ---
   ) ;when
@@ -131,7 +132,8 @@
   (:require (anim-get-accelerate t))
   (with type
     (accelerate-get-type t)
-    (=> (balloon (icon (eval (accelerate-icon type))) "Time evolution")
+    (=>
+      (balloon (icon (eval (accelerate-icon type))) "Time evolution")
       (dynamic (anim-acceleration-menu t))
     ) ;=>
   ) ;with
@@ -193,7 +195,8 @@
   (let* ((x (string->number (get-env "translate-start-x")))
          (y (string->number (get-env "translate-start-y")))
         ) ;
-    (=> (balloon (icon (eval (translate-icon x y))) "Direction of translation")
+    (=>
+      (balloon (icon (eval (translate-icon x y))) "Direction of translation")
       (dynamic (anim-translation-menu t #f))
     ) ;=>
   ) ;let*
@@ -204,7 +207,11 @@
   (let* ((x (string->number (get-env "translate-end-x")))
          (y (string->number (get-env "translate-end-y")))
         ) ;
-    (=> (balloon (icon (eval (translate-icon (- x) (- y)))) "Direction of translation")
+    (=>
+      (balloon
+        (icon (eval (translate-icon (- x) (- y))))
+        "Direction of translation"
+      ) ;balloon
       (dynamic (anim-translation-menu t #t))
     ) ;=>
   ) ;let*
@@ -237,7 +244,8 @@
          (rr (get-env (if inv? "progressive-end-r" "progressive-start-r")))
          (tt (get-env (if inv? "progressive-end-t" "progressive-start-t")))
         ) ;
-    (and (= (if inv? (min (- 1 l) (- 1 r)) l) (string->number ll))
+    (and
+      (= (if inv? (min (- 1 l) (- 1 r)) l) (string->number ll))
       (= (if inv? (min (- 1 b) (- 1 t)) b) (string->number bb))
       (= (if inv? (max (- 1 l) (- 1 r)) r) (string->number rr))
       (= (if inv? (max (- 1 b) (- 1 t)) t) (string->number tt))
@@ -247,10 +255,18 @@
 
 (tm-define (progressive-set ft l b r t inv?)
   (:check-mark "*" progressive-test?)
-  (let* ((ll (number->string (if inv? (min (- 1 l) (- 1 r)) l)))
-         (bb (number->string (if inv? (min (- 1 b) (- 1 t)) b)))
-         (rr (number->string (if inv? (max (- 1 l) (- 1 r)) r)))
-         (tt (number->string (if inv? (max (- 1 b) (- 1 t)) t)))
+  (let* ((ll
+           (number->string (if inv? (min (- 1 l) (- 1 r)) l))
+         ) ;ll
+         (bb
+           (number->string (if inv? (min (- 1 b) (- 1 t)) b))
+         ) ;bb
+         (rr
+           (number->string (if inv? (max (- 1 l) (- 1 r)) r))
+         ) ;rr
+         (tt
+           (number->string (if inv? (max (- 1 b) (- 1 t)) t))
+         ) ;tt
          (ln (if inv? "progressive-end-l" "progressive-start-l"))
          (bn (if inv? "progressive-end-b" "progressive-start-b"))
          (rn (if inv? "progressive-end-r" "progressive-start-r"))
@@ -281,7 +297,8 @@
          (r (string->number (get-env "progressive-start-r")))
          (t (string->number (get-env "progressive-start-t")))
         ) ;
-    (=> (balloon (icon (eval (progressive-icon l b r t #f))) "Direction of progression")
+    (=>
+      (balloon (icon (eval (progressive-icon l b r t #f))) "Direction of progression")
       (dynamic (anim-progressive-menu ft #f))
     ) ;=>
   ) ;let*
@@ -298,9 +315,10 @@
          (cb (min (- 1 b) (- 1 t)))
          (ct (max (- 1 b) (- 1 t)))
         ) ;
-    (=> (balloon (icon (eval (progressive-icon cl cb cr ct #t)))
-          "Direction of progression"
-        ) ;balloon
+    (=>
+      (balloon (icon (eval (progressive-icon cl cb cr ct #t)))
+        "Direction of progression"
+      ) ;balloon
       (dynamic (anim-progressive-menu ft #t))
     ) ;=>
   ) ;let*
@@ -408,15 +426,16 @@
 (tm-menu (animate-toolbar)
   (with t
     (tree-innermost user-anim-context? #t)
-    (hlist (assuming (not t)
-            ((balloon (icon "tm_search_next.xpm") "Play all animations")
-             (reset-players (buffer-tree))
-            ) ;
-            //
-            //
-            //
-            (text "No animation")
-           ) ;assuming
+    (hlist
+      (assuming (not t)
+       ((balloon (icon "tm_search_next.xpm") "Play all animations")
+        (reset-players (buffer-tree))
+       ) ;
+       //
+       //
+       //
+       (text "No animation")
+      ) ;assuming
       (assuming (tree-in? t '(anim-static anim-dynamic))
        ((balloon (icon "tm_search_next.xpm") "Play animation") (current-anim-play))
        ((balloon (icon "tm_show_hidden.xpm") "Edit animation")

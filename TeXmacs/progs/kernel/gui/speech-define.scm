@@ -259,32 +259,35 @@
 ) ;tm-define
 
 (tm-define (spaced-quotes s)
-  (cond ((string-starts? s "'") (string-append "'" (spaced-quotes (string-drop s 1))))
-        ((string-ends? s "'")
-         (string-append (spaced-quotes (string-drop-right s 1)) "'")
-        ) ;
-        (else (string-replace (string-replace s "'" "' ") "'  " "' "))
+  (cond
+   ((string-starts? s "'") (string-append "'" (spaced-quotes (string-drop s 1))))
+   ((string-ends? s "'")
+    (string-append (spaced-quotes (string-drop-right s 1)) "'")
+   ) ;
+   (else (string-replace (string-replace s "'" "' ") "'  " "' "))
   ) ;cond
 ) ;tm-define
 
 (tm-define (clean-letter-digit l)
-  (cond ((or (null? l) (null? (cdr l))) l)
-        ((and (string-alpha? (car l)) (string-number? (cadr l)))
-         (cons* (car l) " " (clean-letter-digit (cdr l)))
-        ) ;
-        ((and (string-number? (car l)) (string-alpha? (cadr l)))
-         (cons* (car l) " " (clean-letter-digit (cdr l)))
-        ) ;
-        ((and (string-locase? (car l)) (string-upcase? (cadr l)))
-         (cons* (car l) " " (clean-letter-digit (cdr l)))
-        ) ;
-        (else (cons (car l) (clean-letter-digit (cdr l))))
+  (cond
+   ((or (null? l) (null? (cdr l))) l)
+   ((and (string-alpha? (car l)) (string-number? (cadr l)))
+    (cons* (car l) " " (clean-letter-digit (cdr l)))
+   ) ;
+   ((and (string-number? (car l)) (string-alpha? (cadr l)))
+    (cons* (car l) " " (clean-letter-digit (cdr l)))
+   ) ;
+   ((and (string-locase? (car l)) (string-upcase? (cadr l)))
+    (cons* (car l) " " (clean-letter-digit (cdr l)))
+   ) ;
+   (else (cons (car l) (clean-letter-digit (cdr l))))
   ) ;cond
 ) ;tm-define
 
 (define (string-replace-trailing-one s what by)
   (let* ((l (string-length what)) (n (string-length s)))
-    (if (and (>= n l) (>= n 2) (not (string-occurs? what (substring s 1 (- n 1)))))
+    (if
+      (and (>= n l) (>= n 2) (not (string-occurs? what (substring s 1 (- n 1)))))
       (string-replace s what by)
       s
     ) ;if
@@ -398,12 +401,13 @@
     (locase-all (string-join h " "))
     (if (null? h)
       (null? t)
-      (or (and (or (string->number key)
-                 (ahash-ref speech-recognizes-table (list lan mode key))
-                 (ahash-ref speech-recognizes-table (list lan 'any key))
-               ) ;or
-            (speech-recognizes-list? lan mode t (list))
-          ) ;and
+      (or
+        (and (or (string->number key)
+               (ahash-ref speech-recognizes-table (list lan mode key))
+               (ahash-ref speech-recognizes-table (list lan 'any key))
+             ) ;or
+          (speech-recognizes-list? lan mode t (list))
+        ) ;and
         (speech-recognizes-list? lan mode (cDr h) (cons (cAr h) t))
       ) ;or
     ) ;if
@@ -549,14 +553,15 @@
       (speech-cleanup)
       (for (s (cDr l)) (kbd-speech s) (speech-pause))
       (kbd-speech (cAr l))
-      (exec-delayed-pause (lambda ()
-                            (with left
-                              (- 1000 (idle-time))
-                              (or (!= last-speech-time t)
-                                (if (> left 0) left (begin (set! last-speech-time #f) (speech-pause) #t))
-                              ) ;or
-                            ) ;with
-                          ) ;lambda
+      (exec-delayed-pause
+        (lambda ()
+          (with left
+            (- 1000 (idle-time))
+            (or (!= last-speech-time t)
+              (if (> left 0) left (begin (set! last-speech-time #f) (speech-pause) #t))
+            ) ;or
+          ) ;with
+        ) ;lambda
       ) ;exec-delayed-pause
     ) ;with
   ) ;when

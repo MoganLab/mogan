@@ -31,12 +31,14 @@
 
 (tm-define (ext-highlight t st)
   (:secure #t)
-  (cond ((tm-equal? t st) `(marked ,t))
-        ((tree-atomic? t) t)
-        (else (let* ((m (lambda (u) (ext-highlight u st))) (l (map m (tree-children t))))
-                (if (forall? tree? l) t `(,(tree-label t) ,@l))
-              ) ;let*
-        ) ;else
+  (cond
+   ((tm-equal? t st) `(marked ,t))
+   ((tree-atomic? t) t)
+   (else
+     (let* ((m (lambda (u) (ext-highlight u st))) (l (map m (tree-children t))))
+       (if (forall? tree? l) t `(,(tree-label t) ,@l))
+     ) ;let*
+   ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -49,7 +51,12 @@
          (h (sublist l (- n i) n))
          (t (sublist l 0 (- n i)))
          (m (append h t))
-         (r (map (lambda (x) `(cell ,x)) m))
+         (r
+           (map
+             (lambda (x) `(cell ,x))
+             m
+           ) ;map
+         ) ;r
         ) ;
     `(row ,@r)
   ) ;let*

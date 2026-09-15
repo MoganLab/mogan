@@ -34,12 +34,13 @@
 ) ;define-public
 
 (define-public (tm-equal? x y)
-  (cond ((tree? x) (if (tree? y) (== x y) (tm-equal? (tree-explode x) y)))
-        ((tree? y) (tm-equal? x (tree-explode y)))
-        ((and (pair? x) (pair? y))
-         (and (tm-equal? (car x) (car y)) (tm-equal? (cdr x) (cdr y)))
-        ) ;
-        (else (== x y))
+  (cond
+   ((tree? x) (if (tree? y) (== x y) (tm-equal? (tree-explode x) y)))
+   ((tree? y) (tm-equal? x (tree-explode y)))
+   ((and (pair? x) (pair? y))
+    (and (tm-equal? (car x) (car y)) (tm-equal? (cdr x) (cdr y)))
+   ) ;
+   (else (== x y))
   ) ;cond
 ) ;define-public
 
@@ -130,14 +131,17 @@
 (define (tm-replace-sub t what? by)
   (cond ((what? t) (by t))
         ((tm-atomic? t) t)
-        (else `(,(tm-car t) ,@(map (cut tm-replace-sub <> what? by) (tm-cdr t))))
+        (else
+          `(,(tm-car t) ,@(map (cut tm-replace-sub <> what? by) (tm-cdr t)))
+        ) ;else
   ) ;cond
 ) ;define
 
 (define-public (tm-replace t what by)
-  (cond ((not (procedure? what)) (tm-replace t (lambda (x) (tm-equal? x what)) by))
-        ((not (procedure? by)) (tm-replace t what (lambda (x) by)))
-        (else (tm-replace-sub t what by))
+  (cond
+   ((not (procedure? what)) (tm-replace t (lambda (x) (tm-equal? x what)) by))
+   ((not (procedure? by)) (tm-replace t what (lambda (x) by)))
+   (else (tm-replace-sub t what by))
   ) ;cond
 ) ;define-public
 

@@ -24,7 +24,9 @@
   ;; lst is the reversed buffer list of cpp buffer array
   (let* ((lst (buffer-menu-unsorted-list 99))
          ;; so we need to transform the index to true index in cpp buffer array
-         (from (transform lst (list-index (lambda (x) (== x buf)) lst)))
+         (from
+           (transform lst (list-index (lambda (x) (== x buf)) lst))
+         ) ;from
          (to (transform lst j))
         ) ;
     (move-buffer-index from to)

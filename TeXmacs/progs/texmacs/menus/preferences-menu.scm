@@ -59,16 +59,17 @@
     (restart-effect-message)
     (with choice
       (cpp-confirm-restart title msg)
-      (cond ((== choice "restart")
-             (apply-proc)
-             (when (not (defined? 'save-all-buffers))
-               (use-modules (autosave plugin))
-             ) ;when
-             (save-all-buffers)
-             (restart-TeXmacs)
-            ) ;
-            ((== choice "later") (later-proc))
-            (else (rollback-proc))
+      (cond
+       ((== choice "restart")
+        (apply-proc)
+        (when (not (defined? 'save-all-buffers))
+          (use-modules (autosave plugin))
+        ) ;when
+        (save-all-buffers)
+        (restart-TeXmacs)
+       ) ;
+       ((== choice "later") (later-proc))
+       (else (rollback-proc))
       ) ;cond
     ) ;with
   ) ;with
@@ -358,10 +359,11 @@
   (cond ((null? l) l)
         ((== (car l) '*) (list '--- (list "Other" (compute-preferences-entry s))))
         ((== (car l) '---) (cons '--- (compute-preferences-enum s (cdr l))))
-        (else (cons (list (id-or-car (car l)) `(set-preference ,s
-                                                 ,(id-or-cadr (car l))))
-                (compute-preferences-enum s (cdr l))
-              ) ;cons
+        (else
+          (cons
+            (list (id-or-car (car l)) `(set-preference ,s ,(id-or-cadr (car l))))
+            (compute-preferences-enum s (cdr l))
+          ) ;cons
         ) ;else
   ) ;cond
 ) ;define

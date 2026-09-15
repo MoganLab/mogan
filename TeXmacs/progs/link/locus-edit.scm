@@ -73,7 +73,10 @@
   (with t
     (if (selection-active-any?) (selection-tree) "")
     (if (selection-active-any?) (clipboard-cut "null"))
-    (insert-go-to `(locus (id ,(create-unique-id)) ,t) (cons 1 (path-end t '())))
+    (insert-go-to
+      `(locus (id ,(create-unique-id)) ,t)
+      (cons 1 (path-end t '()))
+    ) ;insert-go-to
   ) ;with
 ) ;tm-define
 

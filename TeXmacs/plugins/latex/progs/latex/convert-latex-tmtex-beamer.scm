@@ -116,9 +116,10 @@
 (define (beamer-clear-aff aff a filter?)
   (with datas
     (cdadr a)
-    (if (and filter?
-          (== `(,aff) (filter (lambda (x) (== 'author-affiliation (car x))) datas))
-        ) ;and
+    (if
+      (and filter?
+        (== `(,aff) (filter (lambda (x) (== 'author-affiliation (car x))) datas))
+      ) ;and
       '()
       `(doc-author (author-data ,@(filter (lambda (x) (!= aff x)) datas)))
     ) ;if
@@ -140,18 +141,22 @@
   (if (nlist? l)
     l
     (let* ((aff (next-affiliation l))
-           (hasaff (filter (lambda (x)
-                             (or (not aff)
-                               (and (list? x) (list? (cdr x)) (list? (cadr x)) (in? aff (cdadr x)))
-                             ) ;or
-                           ) ;lambda
-                     l
-                   ) ;filter
+           (hasaff
+             (filter
+               (lambda (x)
+                 (or (not aff)
+                   (and (list? x) (list? (cdr x)) (list? (cadr x)) (in? aff (cdadr x)))
+                 ) ;or
+               ) ;lambda
+               l
+             ) ;filter
            ) ;hasaff
            (hasaff* (map (lambda (x) (beamer-clear-aff aff x #f)) hasaff))
            (l* (map (lambda (x) (beamer-clear-aff aff x #t)) l))
            (l* (filter nnull? l*))
-           (aff* `(affiliation-group ,(if aff (cadr aff) '()) ,@hasaff*))
+           (aff*
+             `(affiliation-group ,(if aff (cadr aff) '()) ,@hasaff*)
+           ) ;aff*
           ) ;
       (if aff (append `(,aff*) (cluster-by-affiliations l*)) `(,aff*))
     ) ;let*
@@ -175,10 +180,11 @@
       ) ;lambda
     ) ;set!
     (let* ((affs (cadr t))
-           (affs (if (null? affs) '() `((!concat (!linefeed)
-                                          (at)
-                                          (!linefeed)
-                                          ,(tmtex affs))))
+           (affs
+             (if (null? affs) '() `((!concat (!linefeed)
+                                      (at)
+                                      (!linefeed)
+                                      ,(tmtex affs))))
            ) ;affs
            (auth-sep '(!concat " " (and) " "))
            (authors (map tmtex-doc-author (cddr t)))

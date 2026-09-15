@@ -101,7 +101,13 @@
 
 (define (test-make-menu-items-smoke)
   ;; 组合路径冒烟：真实条目经 make-menu-items 产出 widget 列表
-  (check (pair? (make-menu-items (list "Open" (lambda () (noop))) 0 #f)) => #t)
+  (check
+    (pair?
+      (make-menu-items (list "Open" (lambda () (noop))) 0 #f)
+    ) ;pair?
+    =>
+    #t
+  ) ;check
 ) ;define
 
 (tm-define (regtest-menu-entry)

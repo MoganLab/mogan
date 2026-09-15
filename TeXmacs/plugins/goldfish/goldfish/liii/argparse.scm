@@ -203,15 +203,17 @@
                  (set-arg-current! found #f)
                  (loop (cdr args) positionals)
                 ) ;
-                (else (let ((value (if inline-value
-                                     inline-value
-                                     (if (null? (cdr args)) (error "Missing value for argument" name) (cadr args))
-                                   ) ;if
-                            ) ;value
-                           ) ;
-                        (set-arg-current! found (convert-value value (cadr found)))
-                        (loop (if inline-value (cdr args) (cddr args)) positionals)
-                      ) ;let
+                (else
+                  (let ((value
+                          (if inline-value
+                            inline-value
+                            (if (null? (cdr args)) (error "Missing value for argument" name) (cadr args))
+                          ) ;if
+                        ) ;value
+                       ) ;
+                    (set-arg-current! found (convert-value value (cadr found)))
+                    (loop (if inline-value (cdr args) (cddr args)) positionals)
+                  ) ;let
                 ) ;else
           ) ;case
           (loop (cdr args) (handle-unknown-option options arg positionals))
@@ -268,10 +270,11 @@
            ((:parse-argv) (set! positionals (%parse-argv args-ht options args)) args-ht)
            ((:positionals) positionals)
            ((:get-positionals) positionals)
-           (else (if (and (null? args) (symbol? command))
-                   (%get-argument args-ht (list (symbol->string command)))
-                   (error "Unknown parser command" command)
-                 ) ;if
+           (else
+             (if (and (null? args) (symbol? command))
+               (%get-argument args-ht (list (symbol->string command)))
+               (error "Unknown parser command" command)
+             ) ;if
            ) ;else
           ) ;case
         ) ;lambda

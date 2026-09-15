@@ -197,22 +197,24 @@
 
     (define (results->result results key fn)
       (let ((results-map (parse-results-map results)))
-        (cond ((assv key results-map)
-               =>
-               (lambda (entry)
-                 ;; (write `(cache-hit ,key ,(parse-position->string (parse-results-position results))))(newline)
-                 (if (not (cdr entry)) (error "Recursive parse rule" key) (cdr entry))
-               ) ;lambda
-              ) ;
-              (else (let ((cell (cons key #f)))
-                      ;; (write `(cache-miss ,key ,(parse-position->string (parse-results-position results))))(newline)
-                      (set-parse-results-map! results (cons cell results-map))
-                      (let ((result (fn)))
-                        (set-cdr! cell result)
-                        result
-                      ) ;let
-                    ) ;let
-              ) ;else
+        (cond
+         ((assv key results-map)
+          =>
+          (lambda (entry)
+            ;; (write `(cache-hit ,key ,(parse-position->string (parse-results-position results))))(newline)
+            (if (not (cdr entry)) (error "Recursive parse rule" key) (cdr entry))
+          ) ;lambda
+         ) ;
+         (else
+           (let ((cell (cons key #f)))
+             ;; (write `(cache-miss ,key ,(parse-position->string (parse-results-position results))))(newline)
+             (set-parse-results-map! results (cons cell results-map))
+             (let ((result (fn)))
+               (set-cdr! cell result)
+               result
+             ) ;let
+           ) ;let
+         ) ;else
         ) ;cond
       ) ;let
     ) ;define
@@ -220,11 +222,12 @@
     (define (parse-position>? a b)
       (cond ((not a) #f)
             ((not b) #t)
-            (else (let ((la (parse-position-line a)) (lb (parse-position-line b)))
-                    (or (> la lb)
-                      (and (= la lb) (> (parse-position-column a) (parse-position-column b)))
-                    ) ;or
-                  ) ;let
+            (else
+              (let ((la (parse-position-line a)) (lb (parse-position-line b)))
+                (or (> la lb)
+                  (and (= la lb) (> (parse-position-column a) (parse-position-column b)))
+                ) ;or
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -236,16 +239,17 @@
     (define (merge-parse-errors e1 e2)
       (cond ((not e1) e2)
             ((not e2) e1)
-            (else (let ((p1 (parse-error-position e1)) (p2 (parse-error-position e2)))
-                    (cond ((or (parse-position>? p1 p2) (parse-error-empty? e2)) e1)
-                          ((or (parse-position>? p2 p1) (parse-error-empty? e1)) e2)
-                          (else (make-parse-error p1
-                                  (lset-union equal? (parse-error-expected e1) (parse-error-expected e2))
-                                  (lset-union equal? (parse-error-messages e1) (parse-error-messages e2))
-                                ) ;make-parse-error
-                          ) ;else
-                    ) ;cond
-                  ) ;let
+            (else
+              (let ((p1 (parse-error-position e1)) (p2 (parse-error-position e2)))
+                (cond ((or (parse-position>? p1 p2) (parse-error-empty? e2)) e1)
+                      ((or (parse-position>? p2 p1) (parse-error-empty? e1)) e2)
+                      (else (make-parse-error p1
+                              (lset-union equal? (parse-error-expected e1) (parse-error-expected e2))
+                              (lset-union equal? (parse-error-messages e1) (parse-error-messages e2))
+                            ) ;make-parse-error
+                      ) ;else
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -352,101 +356,98 @@
     ) ;define
 
     (define (lset-union = . lists)
-      (reduce (lambda (lis ans)
-                (cond ((null? lis) ans)
-                      ((null? ans) lis)
-                      ((eq? lis ans) ans)
-                      (else (fold (lambda (elt ans) (if (any (lambda (x) (= x elt)) ans) ans (cons elt ans)))
-                              ans
-                              lis
-                            ) ;fold
-                      ) ;else
-                ) ;cond
-              ) ;lambda
+      (reduce
+        (lambda (lis ans)
+          (cond ((null? lis) ans)
+                ((null? ans) lis)
+                ((eq? lis ans) ans)
+                (else
+                  (fold
+                    (lambda (elt ans) (if (any (lambda (x) (= x elt)) ans) ans (cons elt ans)))
+                    ans
+                    lis
+                  ) ;fold
+                ) ;else
+          ) ;cond
+        ) ;lambda
         '()
         lists
       ) ;reduce
     ) ;define
 
     (define-macro (packrat-parser start-nt . nonterminal-defs)
-      (letrec ((parse-nonterminal (lambda (nt-def)
-                                    (let ((nt (car nt-def)))
-                                      `(define ,nt
-                                         (lambda (results)
-                                           (results->result results
-                                             (quote ,nt)
-                                             (lambda ,()
-                                               (,(parse-alternatives nt
-                                                   (cdr nt-def))
-                                                results)))))
-                                    ) ;let
-                                  ) ;lambda
+      (letrec ((parse-nonterminal
+                 (lambda (nt-def)
+                   (let ((nt (car nt-def)))
+                     `(define ,nt
+                        (lambda (results)
+                          (results->result results
+                            (quote ,nt)
+                            (lambda ,()
+                              (,(parse-alternatives nt (cdr nt-def)) results)))))
+                   ) ;let
+                 ) ;lambda
                ) ;parse-nonterminal
-               (parse-alternatives (lambda (nt alts)
-                                     (if (null? (cdr alts))
-                                       (parse-alternative nt (car alts))
-                                       `(packrat-or ,(parse-alternative nt
-                                                       (car alts))
-                                          ,(parse-alternatives nt (cdr alts)))
-                                     ) ;if
-                                   ) ;lambda
+               (parse-alternatives
+                 (lambda (nt alts)
+                   (if (null? (cdr alts))
+                     (parse-alternative nt (car alts))
+                     `(packrat-or ,(parse-alternative nt (car alts))
+                        ,(parse-alternatives nt (cdr alts)))
+                   ) ;if
+                 ) ;lambda
                ) ;parse-alternatives
-               (parse-alternative (lambda (nt alt)
-                                    (let ((pattern (car alt)) (body (cadr alt)))
-                                      (parse-pattern nt body pattern)
-                                    ) ;let
-                                  ) ;lambda
+               (parse-alternative
+                 (lambda (nt alt)
+                   (let ((pattern (car alt)) (body (cadr alt)))
+                     (parse-pattern nt body pattern)
+                   ) ;let
+                 ) ;lambda
                ) ;parse-alternative
-               (parse-pattern (lambda (nt body pattern)
-                                ;; TODO(jinser): inline alternatives, e.g.
-                                ;;   (packrat-parser expr
-                                ;;     (expr (((/ ('a) ('b) ('c))) 'ok)))
-                                ;; <=>
-                                ;;   (packrat-parser expr
-                                ;;     (expr (('a) 'ok)
-                                ;;           (('b) 'ok)
-                                ;;           (('c) 'ok)))
-                                (case* pattern
-                                 ((((! #<fails:...>) #<rest:...>))
-                                  `(packrat-unless (string-append ,"Nonterminal "
-                                                     (symbol->string (quote ,nt))
-                                                     ," expected to fail "
-                                                     (object->external-representation #<fails>))
-                                     ,(parse-pattern nt #t #<fails>)
-                                     ,(parse-pattern nt body #<rest>))
-                                 ) ;
-                                 (((#<var:> <- #<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car '(#<val>))
-                                     (lambda (#<var>)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 (((#<var:> <- ^ #<rest:...>))
-                                  `(lambda (results)
-                                     (let ((#<var>
-                                            (parse-results-position results)))
-                                       (,(parse-pattern nt body #<rest>)
-                                        results)))
-                                 ) ;
-                                 (((#<var:> <- #<val:> #<rest:...>))
-                                  `(packrat-check ,(car '(#<val>))
-                                     (lambda (#<var>)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 (((#<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car '(#<val>))
-                                     (lambda (dummy)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 (((#<val:> #<rest:...>))
-                                  `(packrat-check ,(car '(#<val>))
-                                     (lambda (dummy)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 ((() #<>) `(lambda (results)
-                                              (make-result ,body results)))
-                                 (else (type-error? 'wrong-type-arg))
-                                ) ;case*
-                              ) ;lambda
+               (parse-pattern
+                 (lambda (nt body pattern)
+                   ;; TODO(jinser): inline alternatives, e.g.
+                   ;;   (packrat-parser expr
+                   ;;     (expr (((/ ('a) ('b) ('c))) 'ok)))
+                   ;; <=>
+                   ;;   (packrat-parser expr
+                   ;;     (expr (('a) 'ok)
+                   ;;           (('b) 'ok)
+                   ;;           (('c) 'ok)))
+                   (case* pattern
+                    ((((! #<fails:...>) #<rest:...>))
+                     `(packrat-unless (string-append ,"Nonterminal "
+                                        (symbol->string (quote ,nt))
+                                        ," expected to fail "
+                                        (object->external-representation #<fails>))
+                        ,(parse-pattern nt #t #<fails>)
+                        ,(parse-pattern nt body #<rest>))
+                    ) ;
+                    (((#<var:> <- #<val:quote?> #<rest:...>))
+                     `(packrat-check-base ,(car '(#<val>))
+                        (lambda (#<var>) ,(parse-pattern nt body #<rest>)))
+                    ) ;
+                    (((#<var:> <- ^ #<rest:...>))
+                     `(lambda (results)
+                        (let ((#<var> (parse-results-position results)))
+                          (,(parse-pattern nt body #<rest>) results)))
+                    ) ;
+                    (((#<var:> <- #<val:> #<rest:...>))
+                     `(packrat-check ,(car '(#<val>))
+                        (lambda (#<var>) ,(parse-pattern nt body #<rest>)))
+                    ) ;
+                    (((#<val:quote?> #<rest:...>))
+                     `(packrat-check-base ,(car '(#<val>))
+                        (lambda (dummy) ,(parse-pattern nt body #<rest>)))
+                    ) ;
+                    (((#<val:> #<rest:...>))
+                     `(packrat-check ,(car '(#<val>))
+                        (lambda (dummy) ,(parse-pattern nt body #<rest>)))
+                    ) ;
+                    ((() #<>) `(lambda (results) (make-result ,body results)))
+                    (else (type-error? 'wrong-type-arg))
+                   ) ;case*
+                 ) ;lambda
                ) ;parse-pattern
               ) ;
         `(let ,() ,@(map parse-nonterminal nonterminal-defs) ,start-nt)
@@ -510,30 +511,32 @@
       ) ;define
 
       (define (parse-alternatives alts0)
-        (cond ((null? alts0)
-               (make-packrat-parse-pattern '() (lambda (bindings results ks kf) (kf #f)))
-              ) ;
-              ((null? (cdr alts0)) (parse-simple (car alts0)))
-              (else (let ((alts (map parse-simple alts0)))
-                      (make-packrat-parse-pattern (all-binding-names alts)
-                        ;; should be a union rather than a product, technically
-                        (lambda (bindings results ks kf)
-                          (let try
-                            ((err #f) (alts alts))
-                            (if (null? alts)
-                              (kf err)
-                              (try-packrat-parse-pattern (car alts)
-                                bindings
-                                results
-                                (merge-success-with-errors err ks)
-                                (lambda (err1) (try (merge-parse-errors err1 err) (cdr alts)))
-                              ) ;try-packrat-parse-pattern
-                            ) ;if
-                          ) ;let
-                        ) ;lambda
-                      ) ;make-packrat-parse-pattern
-                    ) ;let
-              ) ;else
+        (cond
+         ((null? alts0)
+          (make-packrat-parse-pattern '() (lambda (bindings results ks kf) (kf #f)))
+         ) ;
+         ((null? (cdr alts0)) (parse-simple (car alts0)))
+         (else
+           (let ((alts (map parse-simple alts0)))
+             (make-packrat-parse-pattern (all-binding-names alts)
+               ;; should be a union rather than a product, technically
+               (lambda (bindings results ks kf)
+                 (let try
+                   ((err #f) (alts alts))
+                   (if (null? alts)
+                     (kf err)
+                     (try-packrat-parse-pattern (car alts)
+                       bindings
+                       results
+                       (merge-success-with-errors err ks)
+                       (lambda (err1) (try (merge-parse-errors err1 err) (cdr alts)))
+                     ) ;try-packrat-parse-pattern
+                   ) ;if
+                 ) ;let
+               ) ;lambda
+             ) ;make-packrat-parse-pattern
+           ) ;let
+         ) ;else
         ) ;cond
       ) ;define
 
@@ -567,30 +570,32 @@
             (lambda (bindings results ks kf)
               (let continue
                 ((bindings bindings) (results results) (err #f) (parsers parsers))
-                (cond ((null? parsers)
-                       (ks bindings (merge-result-errors (make-nsv-result results) err))
-                      ) ;
-                      ((null? (cdr parsers))
-                       (try-packrat-parse-pattern (car parsers)
-                         bindings
-                         results
-                         (merge-success-with-errors err ks)
-                         (merge-failure-with-errors err kf)
-                       ) ;try-packrat-parse-pattern
-                      ) ;
-                      (else (try-packrat-parse-pattern (car parsers)
-                              bindings
-                              results
-                              (lambda (new-bindings result)
-                                (continue new-bindings
-                                  (parse-result-next result)
-                                  (merge-parse-errors err (parse-result-error result))
-                                  (cdr parsers)
-                                ) ;continue
-                              ) ;lambda
-                              (merge-failure-with-errors err kf)
-                            ) ;try-packrat-parse-pattern
-                      ) ;else
+                (cond
+                 ((null? parsers)
+                  (ks bindings (merge-result-errors (make-nsv-result results) err))
+                 ) ;
+                 ((null? (cdr parsers))
+                  (try-packrat-parse-pattern (car parsers)
+                    bindings
+                    results
+                    (merge-success-with-errors err ks)
+                    (merge-failure-with-errors err kf)
+                  ) ;try-packrat-parse-pattern
+                 ) ;
+                 (else
+                   (try-packrat-parse-pattern (car parsers)
+                     bindings
+                     results
+                     (lambda (new-bindings result)
+                       (continue new-bindings
+                         (parse-result-next result)
+                         (merge-parse-errors err (parse-result-error result))
+                         (cdr parsers)
+                       ) ;continue
+                     ) ;lambda
+                     (merge-failure-with-errors err kf)
+                   ) ;try-packrat-parse-pattern
+                 ) ;else
                 ) ;cond
               ) ;let
             ) ;lambda
@@ -633,17 +638,18 @@
       ) ;define
 
       (define (parse-char-set set-spec optional-arg)
-        (cond ((string? set-spec)
-               (let ((chars (string->list set-spec)))
-                 (parse-char-set* (lambda (ch) (memv ch chars))
-                   (or optional-arg `(one-of ,set-spec))
-                 ) ;parse-char-set*
-               ) ;let
-              ) ;
-              ((procedure? set-spec)
-               (parse-char-set* set-spec (or optional-arg `(char-predicate ,set-spec)))
-              ) ;
-              (else (error "Bad char set specification" set-spec))
+        (cond
+         ((string? set-spec)
+          (let ((chars (string->list set-spec)))
+            (parse-char-set* (lambda (ch) (memv ch chars))
+              (or optional-arg `(one-of ,set-spec))
+            ) ;parse-char-set*
+          ) ;let
+         ) ;
+         ((procedure? set-spec)
+          (parse-char-set* set-spec (or optional-arg `(char-predicate ,set-spec)))
+         ) ;
+         (else (error "Bad char set specification" set-spec))
         ) ;cond
       ) ;define
 
@@ -734,19 +740,23 @@
       ) ;define
 
       (define (rotate-bindings binding-names child-bindings)
-        (let ((seed (fold (lambda (bindings seed)
-                            (map (lambda (name val)
-                                   (cond ((assq name bindings) => (lambda (entry) (cons (cdr entry) val)))
-                                         (else val)
-                                   ) ;cond
-                                 ) ;lambda
-                              binding-names
-                              seed
-                            ) ;map
-                          ) ;lambda
-                      (map (lambda (name) '()) binding-names)
-                      child-bindings
-                    ) ;fold
+        (let ((seed
+                (fold
+                  (lambda (bindings seed)
+                    (map
+                      (lambda (name val)
+                        (cond
+                         ((assq name bindings) => (lambda (entry) (cons (cdr entry) val)))
+                         (else val)
+                        ) ;cond
+                      ) ;lambda
+                      binding-names
+                      seed
+                    ) ;map
+                  ) ;lambda
+                  (map (lambda (name) '()) binding-names)
+                  child-bindings
+                ) ;fold
               ) ;seed
              ) ;
           (map cons binding-names seed)
@@ -797,20 +807,21 @@
               ) ;try-packrat-parse-pattern
             ) ;define
             ;; (begin (write `(repeat ,simple ,counter ,nested-bindings))(newline))
-            (cond ((< counter minrep)
-                   (consume-one (lambda (err1) (parse-error->parse-result (merge-parse-errors err1 err0)))
-                   ) ;consume-one
-                  ) ;
-                  ((or (not maxrep) (< counter maxrep))
-                   (consume-one (prepare-bindings repeated-names nested-bindings results err0))
-                  ) ;
-                  (else (try-packrat-parse-pattern parser
-                          '()
-                          results
-                          (explain-too-many results counter maxrep simple)
-                          (prepare-bindings repeated-names nested-bindings results err0)
-                        ) ;try-packrat-parse-pattern
-                  ) ;else
+            (cond
+             ((< counter minrep)
+              (consume-one (lambda (err1) (parse-error->parse-result (merge-parse-errors err1 err0)))
+              ) ;consume-one
+             ) ;
+             ((or (not maxrep) (< counter maxrep))
+              (consume-one (prepare-bindings repeated-names nested-bindings results err0))
+             ) ;
+             (else (try-packrat-parse-pattern parser
+                     '()
+                     results
+                     (explain-too-many results counter maxrep simple)
+                     (prepare-bindings repeated-names nested-bindings results err0)
+                   ) ;try-packrat-parse-pattern
+             ) ;else
             ) ;cond
           ) ;define
 
@@ -857,22 +868,26 @@
       ) ;define
 
       (define parse-goal
-        (let ((compiled-table (delay (map (lambda (entry)
-                                            (if (not (= (length entry) 2)) (error "Ill-formed rule entry" entry))
-                                            (cons (car entry) (parse-simple (cadr entry)))
-                                          ) ;lambda
-                                       table
-                                     ) ;map
-                              ) ;delay
+        (let ((compiled-table
+                (delay
+                  (map
+                    (lambda (entry)
+                      (if (not (= (length entry) 2)) (error "Ill-formed rule entry" entry))
+                      (cons (car entry) (parse-simple (cadr entry)))
+                    ) ;lambda
+                    table
+                  ) ;map
+                ) ;delay
               ) ;compiled-table
              ) ;
           (lambda (goal)
             (if (not (assq goal table)) (error "Unknown rule name" goal))
             (make-packrat-parse-pattern '()
               (lambda (bindings results ks kf)
-                (let ((rule (cond ((assq goal (force compiled-table)) => cdr)
-                                  (else (error "Unknown rule name" goal))
-                            ) ;cond
+                (let ((rule
+                        (cond ((assq goal (force compiled-table)) => cdr)
+                              (else (error "Unknown rule name" goal))
+                        ) ;cond
                       ) ;rule
                      ) ;
                   (results->result/k bindings
@@ -900,56 +915,59 @@
     ) ;define
 
     (define (packrat-port-results filename p)
-      (base-generator->results (let ((ateof #f) (pos (top-parse-position filename)))
-                                 (lambda ()
-                                   (if ateof
-                                     (values pos #f)
-                                     (let ((x (read-char p)))
-                                       (if (eof-object? x)
-                                         (begin
-                                           (set! ateof #t)
-                                           (values pos #f)
-                                         ) ;begin
-                                         (let ((old-pos pos))
-                                           (set! pos (update-parse-position pos x))
-                                           (values old-pos (cons x x))
-                                         ) ;let
-                                       ) ;if
-                                     ) ;let
-                                   ) ;if
-                                 ) ;lambda
-                               ) ;let
+      (base-generator->results
+        (let ((ateof #f) (pos (top-parse-position filename)))
+          (lambda ()
+            (if ateof
+              (values pos #f)
+              (let ((x (read-char p)))
+                (if (eof-object? x)
+                  (begin
+                    (set! ateof #t)
+                    (values pos #f)
+                  ) ;begin
+                  (let ((old-pos pos))
+                    (set! pos (update-parse-position pos x))
+                    (values old-pos (cons x x))
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;lambda
+        ) ;let
       ) ;base-generator->results
     ) ;define
 
     (define (packrat-string-results filename s)
-      (base-generator->results (let ((idx 0) (len (string-length s)) (pos (top-parse-position filename)))
-                                 (lambda ()
-                                   (if (= idx len)
-                                     (values pos #f)
-                                     (let ((x (string-ref s idx)) (old-pos pos))
-                                       (set! pos (update-parse-position pos x))
-                                       (set! idx (+ idx 1))
-                                       (values old-pos (cons x x))
-                                     ) ;let
-                                   ) ;if
-                                 ) ;lambda
-                               ) ;let
+      (base-generator->results
+        (let ((idx 0) (len (string-length s)) (pos (top-parse-position filename)))
+          (lambda ()
+            (if (= idx len)
+              (values pos #f)
+              (let ((x (string-ref s idx)) (old-pos pos))
+                (set! pos (update-parse-position pos x))
+                (set! idx (+ idx 1))
+                (values old-pos (cons x x))
+              ) ;let
+            ) ;if
+          ) ;lambda
+        ) ;let
       ) ;base-generator->results
     ) ;define
 
     (define (packrat-list-results tokens)
-      (base-generator->results (let ((stream tokens))
-                                 (lambda ()
-                                   (if (null? stream)
-                                     (values #f #f)
-                                     (let ((base-token (car stream)))
-                                       (set! stream (cdr stream))
-                                       (values #f base-token)
-                                     ) ;let
-                                   ) ;if
-                                 ) ;lambda
-                               ) ;let
+      (base-generator->results
+        (let ((stream tokens))
+          (lambda ()
+            (if (null? stream)
+              (values #f #f)
+              (let ((base-token (car stream)))
+                (set! stream (cdr stream))
+                (values #f base-token)
+              ) ;let
+            ) ;if
+          ) ;lambda
+        ) ;let
       ) ;base-generator->results
     ) ;define
   ) ;begin

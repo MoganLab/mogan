@@ -107,17 +107,19 @@
 
 (define-public (string-split str ch)
   (let ((len (string-length str)))
-    (letrec ((split (lambda (a b)
-                      (cond ((>= b len) (if (= a b) '() (cons (substring str a b) '())))
-                            ((char=? ch (string-ref str b))
-                             (cond ((!= a b) (cons (substring str a b) (split b b)))
-                                   ((and (= a b) (or (= b 0) (= b (- len 1)))) (cons "" (split (+ 1 b) (+ 1 b))))
-                                   (else (split (+ 1 b) (+ 1 b)))
-                             ) ;cond
-                            ) ;
-                            (else (split a (+ 1 b)))
-                      ) ;cond
-                    ) ;lambda
+    (letrec ((split
+               (lambda (a b)
+                 (cond
+                  ((>= b len) (if (= a b) '() (cons (substring str a b) '())))
+                  ((char=? ch (string-ref str b))
+                   (cond ((!= a b) (cons (substring str a b) (split b b)))
+                         ((and (= a b) (or (= b 0) (= b (- len 1)))) (cons "" (split (+ 1 b) (+ 1 b))))
+                         (else (split (+ 1 b) (+ 1 b)))
+                   ) ;cond
+                  ) ;
+                  (else (split a (+ 1 b)))
+                 ) ;cond
+               ) ;lambda
              ) ;split
             ) ;
       (split 0 0)
@@ -132,10 +134,11 @@
 (define-public (make-record-type type fields) (inlet 'type type 'fields fields))
 
 (define-public (record-constructor rec-type)
-  (eval `(lambda ,(rec-type 'fields)
-           (inlet 'type
-             ,(rec-type 'type)
-             ,@(map (lambda (f) (values (list 'quote f) f)) (rec-type 'fields))))
+  (eval
+    `(lambda ,(rec-type 'fields)
+       (inlet 'type
+         ,(rec-type 'type)
+         ,@(map (lambda (f) (values (list 'quote f) f)) (rec-type 'fields))))
   ) ;eval
 ) ;define-public
 
@@ -224,7 +227,8 @@
 
 (define-public (string-rindex str cs)
   (let ((chr (if (char? cs) (lambda (c) (char=? c cs)) cs)))
-    (do ((pos (+ -1 (string-length str)) (+ -1 pos)))
+    (do
+      ((pos (+ -1 (string-length str)) (+ -1 pos)))
       ((or (negative? pos) (chr (string-ref str pos)))
        (and (not (negative? pos)) pos)
       ) ;

@@ -273,19 +273,20 @@
       specs
       (with fields
         (paragraph-fields-for scope which)
-        (map (lambda (f)
-               (with (var label options editable)
-                 f
-                 (list (cons 'label (translate label))
-                   (cons 'options options)
-                   (cons 'var var)
-                   (cons 'value
-                     (value-table-ref (paragraph-entry-key key var) (lambda () (getter var)))
-                   ) ;cons
-                   (cons 'editable editable)
-                 ) ;list
-               ) ;with
-             ) ;lambda
+        (map
+          (lambda (f)
+            (with (var label options editable)
+              f
+              (list (cons 'label (translate label))
+                (cons 'options options)
+                (cons 'var var)
+                (cons 'value
+                  (value-table-ref (paragraph-entry-key key var) (lambda () (getter var)))
+                ) ;cons
+                (cons 'editable editable)
+              ) ;list
+            ) ;with
+          ) ;lambda
           fields
         ) ;map
       ) ;with
@@ -425,9 +426,10 @@
     (cons 'cancel (translate "Cancel"))
     (cons 'sepPresetLabel (translate "Line spacing presets"))
     (cons 'sepPresets
-      (map (lambda (p)
-             (list (cons 'label (car p)) (cons 'sep (cadr p)) (cons 'parSep (caddr p)))
-           ) ;lambda
+      (map
+        (lambda (p)
+          (list (cons 'label (car p)) (cons 'sep (cadr p)) (cons 'parSep (caddr p)))
+        ) ;lambda
         paragraph-sep-presets
       ) ;map
     ) ;cons

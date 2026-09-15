@@ -109,27 +109,35 @@
 ) ;tm-define
 
 (tm-define (plot-insert u gt name)
-  (and-let* ((p (and (plot-ready? gt) (plot-get u)))
-             (new (tree-copy (tm->tree `(plot-script-output ,@(tm-children p)))))
-            ) ;
-    (with old
-      (plot-search gt name)
-      (if old
-        (tree-set (tm-ref old 3) (tm-ref new 3))
-        (tree-insert gt (max (- (tree-arity gt) 1) 0) (list new))
-      ) ;if
-    ) ;with
+  (and-let*
+   ((p (and (plot-ready? gt) (plot-get u)))
+    (new
+      (tree-copy
+        (tm->tree
+          `(plot-script-output ,@(tm-children p))
+        ) ;tm->tree
+      ) ;tree-copy
+    ) ;new
+   ) ;
+   (with old
+     (plot-search gt name)
+     (if old
+       (tree-set (tm-ref old 3) (tm-ref new 3))
+       (tree-insert gt (max (- (tree-arity gt) 1) 0) (list new))
+     ) ;if
+   ) ;with
   ) ;and-let*
 ) ;tm-define
 
 (tm-define (plot-refresh gt name)
-  (and-let* ((p (plot-search gt name))
-             (lan (tm->string (tm-ref p 0)))
-             (ses (tm->string (tm-ref p 1)))
-             (in (tm-ref p 3))
-             (out (tm-ref p 4))
-            ) ;
-    (script-eval-at out lan ses in :simplify-output :replace)
+  (and-let*
+   ((p (plot-search gt name))
+    (lan (tm->string (tm-ref p 0)))
+    (ses (tm->string (tm-ref p 1)))
+    (in (tm-ref p 3))
+    (out (tm-ref p 4))
+   ) ;
+   (script-eval-at out lan ses in :simplify-output :replace)
   ) ;and-let*
 ) ;tm-define
 
@@ -225,71 +233,76 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget ((plots-editor u packs lan ses gt name) quit)
-  (padded (horizontal (vertical (refreshable "plots-list"
-                                  (resize '("100px" "100px" "100px")
-                                    '("400px" "400px" "400px")
-                                    (choice (when (string? answer)
-                                              (set! name answer)
-                                              (set-plot-name u lan ses gt name)
-                                              (refresh-now "plot-name")
-                                            ) ;when
-                                      (get-plot-names gt)
-                                      name
-                                    ) ;choice
-                                  ) ;resize
-                                ) ;refreshable
-                        (glue #f #t 0 0)
-                      ) ;vertical
+  (padded
+    (horizontal
+      (vertical
+        (refreshable "plots-list"
+          (resize '("100px" "100px" "100px")
+            '("400px" "400px" "400px")
+            (choice (when (string? answer)
+                      (set! name answer)
+                      (set-plot-name u lan ses gt name)
+                      (refresh-now "plot-name")
+                    ) ;when
+              (get-plot-names gt)
+              name
+            ) ;choice
+          ) ;resize
+        ) ;refreshable
+        (glue #f #t 0 0)
+      ) ;vertical
+      ///
+      (vertical
+        (refreshable "plot-name"
+          (horizontal (text "Name:")
             ///
-            (vertical (refreshable "plot-name"
-                        (horizontal (text "Name:")
-                          ///
-                          (input (when (string? answer)
-                                   (set! name answer)
-                                   (set-plot-name u lan ses gt name)
-                                   (refresh-now "plots-list")
-                                 ) ;when
-                            "string"
-                            (list name)
-                            "15em"
-                          ) ;input
-                          ///
-                          ((icon "tm_add.xpm")
-                           (set! name (new-plot-name gt))
-                           (set-plot-name u lan ses gt name :new)
-                           (refresh-now "plot-name")
-                           (refresh-now "plots-list")
-                          ) ;
-                          //
-                          ((icon "tm_remove.xpm")
-                           (plot-delete u gt)
-                           (refresh-now "plot-name")
-                           (refresh-now "plots-list")
-                          ) ;
-                        ) ;horizontal
-                      ) ;refreshable
-              ======
-              (resize "800px"
-                "365px"
-                (texmacs-input (build-plot-document lan ses gt name) `(style (tuple ,@packs)) u)
-              ) ;resize
-              (glue #f #t 0 0)
-            ) ;vertical
+            (input (when (string? answer)
+                     (set! name answer)
+                     (set-plot-name u lan ses gt name)
+                     (refresh-now "plots-list")
+                   ) ;when
+              "string"
+              (list name)
+              "15em"
+            ) ;input
+            ///
+            ((icon "tm_add.xpm")
+             (set! name (new-plot-name gt))
+             (set-plot-name u lan ses gt name :new)
+             (refresh-now "plot-name")
+             (refresh-now "plots-list")
+            ) ;
+            //
+            ((icon "tm_remove.xpm")
+             (plot-delete u gt)
+             (refresh-now "plot-name")
+             (refresh-now "plots-list")
+            ) ;
           ) ;horizontal
+        ) ;refreshable
+        ======
+        (resize "800px"
+          "365px"
+          (texmacs-input (build-plot-document lan ses gt name) `(style (tuple ,@packs)) u)
+        ) ;resize
+        (glue #f #t 0 0)
+      ) ;vertical
+    ) ;horizontal
     ======
-    (hlist (explicit-buttons (=> "Examples"
-                              ("Sine" (plot-example u gt "sine"))
-                              ("Sine and cosine" (plot-example u gt "sine-cosine"))
-                              ("Lissajous" (plot-example u gt "lissajous"))
-                              ("Animation 1" (plot-example u gt "animation-1"))
-                              ("Animation 2" (plot-example u gt "animation-2"))
-                             ) ;=>
-             >>
-             ("Apply" (begin (plot-apply u gt name) (refresh-now "plots-list")))
-             //
-             //
-             ("Ok" (plot-apply u gt name) (quit))
-           ) ;explicit-buttons
+    (hlist
+      (explicit-buttons (=> "Examples"
+                         ("Sine" (plot-example u gt "sine"))
+                         ("Sine and cosine" (plot-example u gt "sine-cosine"))
+                         ("Lissajous" (plot-example u gt "lissajous"))
+                         ("Animation 1" (plot-example u gt "animation-1"))
+                         ("Animation 2" (plot-example u gt "animation-2"))
+                        ) ;=>
+        >>
+        ("Apply" (begin (plot-apply u gt name) (refresh-now "plots-list")))
+        //
+        //
+        ("Ok" (plot-apply u gt name) (quit))
+      ) ;explicit-buttons
     ) ;hlist
   ) ;padded
 ) ;tm-widget
@@ -304,7 +317,9 @@
          (u (string->url "tmfs://aux/plot-source"))
          (packs (embedded-style-list "plot-editor"))
          (gt (tree-innermost 'graphics #t))
-         (wt (if (and gt (tree-is? (tree-up gt) 'with)) (tree-up gt) gt))
+         (wt
+           (if (and gt (tree-is? (tree-up gt) 'with)) (tree-up gt) gt)
+         ) ;wt
         ) ;
     (when (== name "")
       (set! name (new-plot-name gt))

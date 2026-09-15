@@ -52,11 +52,12 @@
 (define (cas->tmsymbol x)
   (with s
     (symbol->string x)
-    (cond ((string-starts? s "%")
-           (string-append "<" (substring s 1 (string-length s)) ">")
-          ) ;
-          ((ahash-ref cas-symbol-table s) => identity)
-          (else s)
+    (cond
+     ((string-starts? s "%")
+      (string-append "<" (substring s 1 (string-length s)) ">")
+     ) ;
+     ((ahash-ref cas-symbol-table s) => identity)
+     (else s)
     ) ;cond
   ) ;with
 ) ;define
@@ -79,8 +80,12 @@
 
 (define (tmsymbol->cas s)
   (let* ((l1 (ahash-table->list cas-symbol-table))
-         (l2 (map (lambda (x) (cons (cdr x) (car x))) l1))
-         (l3 (list-filter l2 (lambda (x) (== (car x) s))))
+         (l2
+           (map (lambda (x) (cons (cdr x) (car x))) l1)
+         ) ;l2
+         (l3
+           (list-filter l2 (lambda (x) (== (car x) s)))
+         ) ;l3
          (l4 (map cdr l3))
         ) ;
     (if (string-starts? s "<")
@@ -165,12 +170,13 @@
 
 (define (cas-out-associative x op? this next)
   (define (r y)
-    (if (and (pair? y)
-          (with l
-            (ahash-ref cas-related-table (car x))
-            (if l (in? (car y) l) (== (car y) (car x)))
-          ) ;with
-        ) ;and
+    (if
+      (and (pair? y)
+        (with l
+          (ahash-ref cas-related-table (car x))
+          (if l (in? (car y) l) (== (car y) (car x)))
+        ) ;with
+      ) ;and
       (this y)
       (next y)
     ) ;if
@@ -239,7 +245,8 @@
 ) ;define
 
 (define (cas-out-times x)
-  (or (and (func? x '/ 1) `(frac ,"1" ,(cas-out (cadr x))))
+  (or
+    (and (func? x '/ 1) `(frac ,"1" ,(cas-out (cadr x))))
     (and (func? x '/ 2) `(frac ,(cas-out (cadr x)) ,(cas-out (caddr x))))
     (and (func? x 'div 2)
       `(concat ,(cas-out-times (cadr x)) ," div " ,(cas-out-prefix (caddr x)))
@@ -254,10 +261,11 @@
 ) ;define
 
 (define (cas-out-prefix x)
-  (or (and (list-2? x)
-        (or (cas-minus-op? (car x)) (cas-prefix-op? (car x)))
-        `(concat ,(cas->umsymbol (car x)) ,(cas-out-prefix (cadr x)))
-      ) ;and
+  (or
+    (and (list-2? x)
+      (or (cas-minus-op? (car x)) (cas-prefix-op? (car x)))
+      `(concat ,(cas->umsymbol (car x)) ,(cas-out-prefix (cadr x)))
+    ) ;and
     (cas-out-postfix x)
   ) ;or
 ) ;define
@@ -279,55 +287,56 @@
 ) ;define
 
 (define (cas-out-postfix x)
-  (cond ((func? x '%prime 1)
-         (receive (radical prime)
-           (cas-out-decompose-prime x)
-           `(concat ,(cas-out-postfix radical) (rprime ,prime))
-         ) ;receive
-        ) ;
-        ((func? x 'factorial 1) `(concat ,(cas-out-postfix (cadr x)) ,"!"))
-        ((func? x '_)
-         (with radical
-           (cas-out-postfix (cadr x))
-           (with args
-             (cas-out-several (cddr x))
-             `(concat ,radical (rsub ,(apply tmconcat args)))
-           ) ;with
-         ) ;with
-        ) ;
-        ((and (func? x '^) (not (cas-is-root? x)))
-         (with radical
-           (cas-out-postfix (cadr x))
-           (with args
-             (cas-out-several (cddr x))
-             `(concat ,radical (rsup ,(apply tmconcat args)))
-           ) ;with
-         ) ;with
-        ) ;
-        ((func? x '%dotaccess 2)
-         `(concat ,(cas-out-postfix (cadr x)) ,"." ,(cas-out-atom (caddr x)))
-        ) ;
-        ((func? x '%sqaccess)
-         (with radical
-           (cas-out-postfix (cadr x))
-           (with args
-             (cas-out-several (cddr x))
-             `(concat ,radical (left "[") ,@args (right "]"))
-           ) ;with
-         ) ;with
-        ) ;
-        ((list-1? x) `(concat ,(cas-out-postfix (car x)) ,"()"))
-        ((and (pair? x) (keyword? (car x)))
-         (cons (keyword->symbol (car x)) (map cas-out (cdr x)))
-        ) ;
-        ((and (pair? x) (not (cas-special-op? (car x))))
-         ;; FIXME: also check arities
-         (with args
-           (cas-out-several (cdr x))
-           `(concat ,(cas-out-postfix (car x)) (left "(") ,@args (right ")"))
-         ) ;with
-        ) ;
-        (else (cas-out-atom x))
+  (cond
+   ((func? x '%prime 1)
+    (receive (radical prime)
+      (cas-out-decompose-prime x)
+      `(concat ,(cas-out-postfix radical) (rprime ,prime))
+    ) ;receive
+   ) ;
+   ((func? x 'factorial 1) `(concat ,(cas-out-postfix (cadr x)) ,"!"))
+   ((func? x '_)
+    (with radical
+      (cas-out-postfix (cadr x))
+      (with args
+        (cas-out-several (cddr x))
+        `(concat ,radical (rsub ,(apply tmconcat args)))
+      ) ;with
+    ) ;with
+   ) ;
+   ((and (func? x '^) (not (cas-is-root? x)))
+    (with radical
+      (cas-out-postfix (cadr x))
+      (with args
+        (cas-out-several (cddr x))
+        `(concat ,radical (rsup ,(apply tmconcat args)))
+      ) ;with
+    ) ;with
+   ) ;
+   ((func? x '%dotaccess 2)
+    `(concat ,(cas-out-postfix (cadr x)) ,"." ,(cas-out-atom (caddr x)))
+   ) ;
+   ((func? x '%sqaccess)
+    (with radical
+      (cas-out-postfix (cadr x))
+      (with args
+        (cas-out-several (cddr x))
+        `(concat ,radical (left "[") ,@args (right "]"))
+      ) ;with
+    ) ;with
+   ) ;
+   ((list-1? x) `(concat ,(cas-out-postfix (car x)) ,"()"))
+   ((and (pair? x) (keyword? (car x)))
+    (cons (keyword->symbol (car x)) (map cas-out (cdr x)))
+   ) ;
+   ((and (pair? x) (not (cas-special-op? (car x))))
+    ;; FIXME: also check arities
+    (with args
+      (cas-out-several (cdr x))
+      `(concat ,(cas-out-postfix (car x)) (left "(") ,@args (right ")"))
+    ) ;with
+   ) ;
+   (else (cas-out-atom x))
   ) ;cond
 ) ;define
 
@@ -388,7 +397,9 @@
         ((func? x 'conj 1) `(wide ,(cas-out (cadr x)) ,"<bar>"))
         ((func? x 'choose 2) `(choose ,(cas-out (cadr x)) ,(cas-out (caddr x))))
         ((nlist? x) x)
-        (else `(concat (left "(") ,@(cas-out-several (list x)) (right ")")))
+        (else
+          `(concat (left "(") ,@(cas-out-several (list x)) (right ")"))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -397,11 +408,12 @@
         ((list-1? l)
          (with x
            (car l)
-           (cond ((func? x '|) (cons* (cas-out (cadr x)) '(mid "|") (cas-out-several (cddr x))))
-                 ((func? x '||)
-                  (cons* (cas-out (cadr x)) '(mid "||") (cas-out-several (cddr x)))
-                 ) ;
-                 (else (list (cas-out x)))
+           (cond
+            ((func? x '|) (cons* (cas-out (cadr x)) '(mid "|") (cas-out-several (cddr x))))
+            ((func? x '||)
+             (cons* (cas-out (cadr x)) '(mid "||") (cas-out-several (cddr x)))
+            ) ;
+            (else (list (cas-out x)))
            ) ;cond
          ) ;with
         ) ;
@@ -425,14 +437,15 @@
   "Linear time concat simplification of @x"
   ;; This is needed because sums are written like (+ (+ (+ a b) c) d)
   ;; so serialization may become quadratic in time for naive algorithms
-  (cond ((func? x 'concat)
-         (with-global cas-concat-buffer
-           '()
-           (for-each cas-build-concat (cdr x))
-           (apply tmconcat* (tmconcat-simplify (reverse cas-concat-buffer)))
-         ) ;with-global
-        ) ;
-        (else (cas-map cas-concat-simplify x))
+  (cond
+   ((func? x 'concat)
+    (with-global cas-concat-buffer
+      '()
+      (for-each cas-build-concat (cdr x))
+      (apply tmconcat* (tmconcat-simplify (reverse cas-concat-buffer)))
+    ) ;with-global
+   ) ;
+   (else (cas-map cas-concat-simplify x))
   ) ;cond
 ) ;define
 

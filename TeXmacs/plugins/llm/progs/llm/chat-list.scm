@@ -54,7 +54,8 @@
          (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
          (opts2 (if (pair? opts) (cdr opts) '()))
          (search (if (and (pair? opts2) (car opts2)) (car opts2) "disabled"))
-         (updated-at (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
+         (updated-at
+           (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
          (archived-str (if (or (not archived) (== archived "false")) "false" "true"))
          (actual-created-at (or created-at ""))
@@ -77,32 +78,34 @@
 (tm-define (chat-persist-load-all)
   (let ((manifest-path (chat-persist-manifest-path)))
     (when (file-exists? manifest-path)
-      (let* ((manifest (catch #t
-                         (lambda () (string->json (string-load (system->url manifest-path))))
-                         (lambda args #f)
-                       ) ;catch
+      (let* ((manifest
+               (catch #t
+                 (lambda () (string->json (string-load (system->url manifest-path))))
+                 (lambda args #f)
+               ) ;catch
              ) ;manifest
              (sessions-vec (and (json-object? manifest) (json-ref manifest "sessions")))
              (entries (if (vector? sessions-vec) (vector->list sessions-vec) '()))
             ) ;
-        (for-each (lambda (entry)
-                    (let* ((sid (json-ref-string entry "sessionId" ""))
-                           (title (json-ref-string entry "title" ""))
-                           (model (json-ref-string entry "model" ""))
-                           (archived-str (json-ref-string entry "archived" "false"))
-                           (created-at (json-ref-string entry "createdAt" ""))
-                           ;; updateAt 缺失时回退到 createdAt（兼容旧 manifest）
-                           (updated-at (json-ref-string entry "updateAt" created-at))
-                           (expand-count (json-ref-integer entry "defaultExpandCount" 5))
-                           (thinking (json-ref-string entry "thinking" "disabled"))
-                           (search (json-ref-string entry "search" "disabled"))
-                          ) ;
-                      ;; 只传元数据给 C++，不加载 buffer 内容
-                      (qt-chat-tab-restore-session sid title model archived-str
-                        created-at updated-at expand-count thinking search
-                      ) ;qt-chat-tab-restore-session
-                    ) ;let*
-                  ) ;lambda
+        (for-each
+          (lambda (entry)
+            (let* ((sid (json-ref-string entry "sessionId" ""))
+                   (title (json-ref-string entry "title" ""))
+                   (model (json-ref-string entry "model" ""))
+                   (archived-str (json-ref-string entry "archived" "false"))
+                   (created-at (json-ref-string entry "createdAt" ""))
+                   ;; updateAt 缺失时回退到 createdAt（兼容旧 manifest）
+                   (updated-at (json-ref-string entry "updateAt" created-at))
+                   (expand-count (json-ref-integer entry "defaultExpandCount" 5))
+                   (thinking (json-ref-string entry "thinking" "disabled"))
+                   (search (json-ref-string entry "search" "disabled"))
+                  ) ;
+              ;; 只传元数据给 C++，不加载 buffer 内容
+              (qt-chat-tab-restore-session sid title model archived-str
+                created-at updated-at expand-count thinking search
+              ) ;qt-chat-tab-restore-session
+            ) ;let*
+          ) ;lambda
           entries
         ) ;for-each
       ) ;let*
@@ -119,7 +122,8 @@
          (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
          (opts2 (if (pair? opts) (cdr opts) '()))
          (search (if (and (pair? opts2) (car opts2)) (car opts2) "disabled"))
-         (updated-at (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
+         (updated-at
+           (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
          (manifest-path (chat-persist-manifest-path))
          (entry (chat-persist-make-entry session-id title model archived
@@ -128,33 +132,37 @@
          ) ;entry
         ) ;
     (chat-persist-ensure-dir! (chat-persist-base-dir))
-    (let* ((manifest (if (file-exists? manifest-path)
-                       (catch #t
-                         (lambda () (string->json (string-load (system->url manifest-path))))
-                         (lambda args #f)
-                       ) ;catch
-                       #f
-                     ) ;if
+    (let* ((manifest
+             (if (file-exists? manifest-path)
+               (catch #t
+                 (lambda () (string->json (string-load (system->url manifest-path))))
+                 (lambda args #f)
+               ) ;catch
+               #f
+             ) ;if
            ) ;manifest
            (version (if (json-object? manifest) (json-ref-integer manifest "version" 1) 1))
            (sessions-vec (and (json-object? manifest) (json-ref manifest "sessions")))
            (entries (if (vector? sessions-vec) (vector->list sessions-vec) '()))
            (found #f)
-           (updated-entries (map (lambda (e)
-                                   (if (equal? (json-ref-string e "sessionId" "") session-id)
-                                     (begin
-                                       (set! found #t)
-                                       entry
-                                     ) ;begin
-                                     e
-                                   ) ;if
-                                 ) ;lambda
-                              entries
-                            ) ;map
+           (updated-entries
+             (map
+               (lambda (e)
+                 (if (equal? (json-ref-string e "sessionId" "") session-id)
+                   (begin
+                     (set! found #t)
+                     entry
+                   ) ;begin
+                   e
+                 ) ;if
+               ) ;lambda
+               entries
+             ) ;map
            ) ;updated-entries
            (final-entries (if found updated-entries (append updated-entries (list entry))))
-           (new-manifest `((,"version" . ,version)
-                           (,"sessions" . ,(list->vector final-entries)))
+           (new-manifest
+             `((,"version" . ,version)
+               (,"sessions" . ,(list->vector final-entries)))
            ) ;new-manifest
           ) ;
       (string-save (json->string new-manifest) (system->url manifest-path))
@@ -181,20 +189,24 @@
   ;; 2. 从 manifest 中移除条目
   (let ((manifest-path (chat-persist-manifest-path)))
     (when (file-exists? manifest-path)
-      (let* ((manifest (catch #t
-                         (lambda () (string->json (string-load (system->url manifest-path))))
-                         (lambda args #f)
-                       ) ;catch
+      (let* ((manifest
+               (catch #t
+                 (lambda () (string->json (string-load (system->url manifest-path))))
+                 (lambda args #f)
+               ) ;catch
              ) ;manifest
              (version (if (json-object? manifest) (json-ref-integer manifest "version" 1) 1))
              (sessions-vec (and (json-object? manifest) (json-ref manifest "sessions")))
              (entries (if (vector? sessions-vec) (vector->list sessions-vec) '()))
-             (remaining (filter (lambda (e) (not (equal? (json-ref-string e "sessionId" "") session-id)))
-                          entries
-                        ) ;filter
+             (remaining
+               (filter
+                 (lambda (e) (not (equal? (json-ref-string e "sessionId" "") session-id)))
+                 entries
+               ) ;filter
              ) ;remaining
-             (new-manifest `((,"version" . ,version)
-                             (,"sessions" . ,(list->vector remaining)))
+             (new-manifest
+               `((,"version" . ,version)
+                 (,"sessions" . ,(list->vector remaining)))
              ) ;new-manifest
             ) ;
         (string-save (json->string new-manifest) (system->url manifest-path))

@@ -38,12 +38,13 @@
 (define (test-meta-tab-count-and-shape)
   (let ((meta (preferences-qml-meta)))
     (check (length meta) => 5)
-    (for-each (lambda (tab)
-                (check-true (>= (length tab) 3))
-                (check-true (string? (car tab)))
-                (check-true (string? (cadr tab)))
-                (check-true (list? (caddr tab)))
-              ) ;lambda
+    (for-each
+      (lambda (tab)
+        (check-true (>= (length tab) 3))
+        (check-true (string? (car tab)))
+        (check-true (string? (cadr tab)))
+        (check-true (list? (caddr tab)))
+      ) ;lambda
       meta
     ) ;for-each
   ) ;let
@@ -85,24 +86,26 @@
 
 (define (test-combo-structure)
   (let* ((meta (preferences-qml-meta))
-         (all-combos (append-map (lambda (tab) (fields-of-kind (caddr tab) "combo")) meta)
+         (all-combos
+           (append-map (lambda (tab) (fields-of-kind (caddr tab) "combo")) meta)
          ) ;all-combos
         ) ;
     (check-true (pair? all-combos))
     ;; 至少一个 combo
-    (for-each (lambda (c)
-                (check (field-ref c 'kind) => "combo")
-                (check-true (string? (field-ref c 'key)))
-                (check-true (string? (field-ref c 'label)))
-                (check-true (list? (field-ref c 'options)))
-                (check-true (list? (field-ref c 'optionsTr)))
-                (check (== (length (field-ref c 'options)) (length (field-ref c 'optionsTr)))
-                  =>
-                  #t
-                ) ;check
-                (check-true (boolean? (field-ref c 'editable)))
-                (check-true (string? (field-ref c 'value)))
-              ) ;lambda
+    (for-each
+      (lambda (c)
+        (check (field-ref c 'kind) => "combo")
+        (check-true (string? (field-ref c 'key)))
+        (check-true (string? (field-ref c 'label)))
+        (check-true (list? (field-ref c 'options)))
+        (check-true (list? (field-ref c 'optionsTr)))
+        (check (== (length (field-ref c 'options)) (length (field-ref c 'optionsTr)))
+          =>
+          #t
+        ) ;check
+        (check-true (boolean? (field-ref c 'editable)))
+        (check-true (string? (field-ref c 'value)))
+      ) ;lambda
       all-combos
     ) ;for-each
   ) ;let*
@@ -112,18 +115,20 @@
 
 (define (test-toggle-structure)
   (let* ((meta (preferences-qml-meta))
-         (all-toggles (append-map (lambda (tab) (fields-of-kind (caddr tab) "toggle")) meta)
+         (all-toggles
+           (append-map (lambda (tab) (fields-of-kind (caddr tab) "toggle")) meta)
          ) ;all-toggles
         ) ;
     (check-true (pair? all-toggles))
-    (for-each (lambda (t)
-                (check (field-ref t 'kind) => "toggle")
-                (check-true (string? (field-ref t 'key)))
-                (check-true (string? (field-ref t 'label)))
-                (let ((v (field-ref t 'value)))
-                  (check-true (or (== v "on") (== v "off")))
-                ) ;let
-              ) ;lambda
+    (for-each
+      (lambda (t)
+        (check (field-ref t 'kind) => "toggle")
+        (check-true (string? (field-ref t 'key)))
+        (check-true (string? (field-ref t 'label)))
+        (let ((v (field-ref t 'value)))
+          (check-true (or (== v "on") (== v "off")))
+        ) ;let
+      ) ;lambda
       all-toggles
     ) ;for-each
   ) ;let*
@@ -133,18 +138,21 @@
 
 (define (test-info-structure)
   (let* ((meta (preferences-qml-meta))
-         (all-infos (append-map (lambda (tab)
-                                  (list-filter (caddr tab) (lambda (f) (== (field-ref f 'kind) "info")))
-                                ) ;lambda
-                      meta
-                    ) ;append-map
+         (all-infos
+           (append-map
+             (lambda (tab)
+               (list-filter (caddr tab) (lambda (f) (== (field-ref f 'kind) "info")))
+             ) ;lambda
+             meta
+           ) ;append-map
          ) ;all-infos
         ) ;
-    (for-each (lambda (f)
-                (check (field-ref f 'kind) => "info")
-                (check-true (string? (field-ref f 'label)))
-                (check-true (string? (field-ref f 'value)))
-              ) ;lambda
+    (for-each
+      (lambda (f)
+        (check (field-ref f 'kind) => "info")
+        (check-true (string? (field-ref f 'label)))
+        (check-true (string? (field-ref f 'value)))
+      ) ;lambda
       all-infos
     ) ;for-each
   ) ;let*
@@ -160,7 +168,8 @@
     ((tabs meta))
     (and (pair? tabs)
       (let ((tab (car tabs)))
-        (or (list-find (caddr tab) (lambda (x) (== (field-ref x 'key) key)))
+        (or
+          (list-find (caddr tab) (lambda (x) (== (field-ref x 'key) key)))
           ;; sub-tabs 仅存在于 Convert tab（长度 > 3）。
           (if (> (length tab) 3)
             (let ((subs (list-ref tab 3)))
@@ -182,32 +191,35 @@
 
 (define (test-encoding-consistency)
   (let* ((meta (preferences-qml-meta))
-         (all-combos (append-map (lambda (tab)
-                                   (append (fields-of-kind (caddr tab) "combo")
-                                     (let ((maybe-subs (if (> (length tab) 3) (list-ref tab 3) '())))
-                                       (append-map (lambda (sub) (fields-of-kind (caddr sub) "combo")) maybe-subs)
-                                     ) ;let
-                                   ) ;append
-                                 ) ;lambda
-                       meta
-                     ) ;append-map
+         (all-combos
+           (append-map
+             (lambda (tab)
+               (append (fields-of-kind (caddr tab) "combo")
+                 (let ((maybe-subs (if (> (length tab) 3) (list-ref tab 3) '())))
+                   (append-map (lambda (sub) (fields-of-kind (caddr sub) "combo")) maybe-subs)
+                 ) ;let
+               ) ;append
+             ) ;lambda
+             meta
+           ) ;append-map
          ) ;all-combos
         ) ;
-    (for-each (lambda (c)
-                (let* ((opts (field-ref c 'options)) (val (field-ref c 'value)))
-                  (if (not (member val opts))
-                    (begin
-                      (display "[ENC-DIAG] key=")
-                      (display (field-ref c 'key))
-                      (display " val=")
-                      (display val)
-                      (display " opts=")
-                      (display opts)
-                      (newline)
-                    ) ;begin
-                  ) ;if
-                ) ;let*
-              ) ;lambda
+    (for-each
+      (lambda (c)
+        (let* ((opts (field-ref c 'options)) (val (field-ref c 'value)))
+          (if (not (member val opts))
+            (begin
+              (display "[ENC-DIAG] key=")
+              (display (field-ref c 'key))
+              (display " val=")
+              (display val)
+              (display " opts=")
+              (display opts)
+              (newline)
+            ) ;begin
+          ) ;if
+        ) ;let*
+      ) ;lambda
       all-combos
     ) ;for-each
   ) ;let*
@@ -380,16 +392,20 @@
 
 (define (test-latex-unified-keys-in-meta)
   (let* ((meta (preferences-qml-meta))
-         (latex-tab (list-find (cadddr (tab-ref meta "convert")) (lambda (t) (== (car t) "latex")))
+         (latex-tab
+           (list-find (cadddr (tab-ref meta "convert")) (lambda (t) (== (car t) "latex")))
          ) ;latex-tab
          (fields (caddr latex-tab))
-         (st (list-find fields (lambda (f) (== (field-ref f 'key) "latex:source-tracking")))
+         (st
+           (list-find fields (lambda (f) (== (field-ref f 'key) "latex:source-tracking")))
          ) ;st
-         (ct (list-find fields (lambda (f) (== (field-ref f 'key) "latex:conservative")))
+         (ct
+           (list-find fields (lambda (f) (== (field-ref f 'key) "latex:conservative")))
          ) ;ct
-         (tt (list-find fields
-               (lambda (f) (== (field-ref f 'key) "latex:transparent-source-tracking"))
-             ) ;list-find
+         (tt
+           (list-find fields
+             (lambda (f) (== (field-ref f 'key) "latex:transparent-source-tracking"))
+           ) ;list-find
          ) ;tt
         ) ;
     (check-true (pair? st))
@@ -459,7 +475,8 @@
   (let* ((meta (preferences-qml-meta))
          (other (tab-ref meta "other"))
          (fields (caddr other))
-         (sl (list-find fields (lambda (f) (== (field-ref f 'key) "scripting language")))
+         (sl
+           (list-find fields (lambda (f) (== (field-ref f 'key) "scripting language")))
          ) ;sl
         ) ;
     (check-true (pair? sl))
@@ -475,19 +492,22 @@
 
 (define (test-restart-keys-set)
   (let* ((meta (preferences-qml-meta))
-         (all-fields (append-map (lambda (tab)
-                                   (append (caddr tab)
-                                     (let ((subs (if (> (length tab) 3) (list-ref tab 3) '())))
-                                       (apply append (map caddr subs))
-                                     ) ;let
-                                   ) ;append
-                                 ) ;lambda
-                       meta
-                     ) ;append-map
+         (all-fields
+           (append-map
+             (lambda (tab)
+               (append (caddr tab)
+                 (let ((subs (if (> (length tab) 3) (list-ref tab 3) '())))
+                   (apply append (map caddr subs))
+                 ) ;let
+               ) ;append
+             ) ;lambda
+             meta
+           ) ;append-map
          ) ;all-fields
-         (restart-keys (map (lambda (f) (field-ref f 'key))
-                         (list-filter all-fields (lambda (f) (field-ref f 'restart?)))
-                       ) ;map
+         (restart-keys
+           (map (lambda (f) (field-ref f 'key))
+             (list-filter all-fields (lambda (f) (field-ref f 'restart?)))
+           ) ;map
          ) ;restart-keys
          (expected (append (list "look and feel" "gui theme" "language")
                      (if (os-macos?) (list "keyboard shortcut style") '())
@@ -495,7 +515,10 @@
          ) ;expected
         ) ;
     (check (length restart-keys) => (length expected))
-    (for-each (lambda (k) (check-true (pair? (member k restart-keys)))) expected)
+    (for-each
+      (lambda (k) (check-true (pair? (member k restart-keys))))
+      expected
+    ) ;for-each
   ) ;let*
 ) ;define
 

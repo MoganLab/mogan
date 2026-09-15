@@ -64,11 +64,12 @@
 
 (define (test-filter-options-coverage)
   (check (length font-filter-options) => 9)
-  (for-each (lambda (cell)
-              (check (string? (font-filter-label (car cell))) => #t)
-              (check (and (pair? (cdr cell)) (list? (cdr cell))) => #t)
-              (check (member "Any" (cdr cell)) => (cdr cell))
-            ) ;lambda
+  (for-each
+    (lambda (cell)
+      (check (string? (font-filter-label (car cell))) => #t)
+      (check (and (pair? (cdr cell)) (list? (cdr cell))) => #t)
+      (check (member "Any" (cdr cell)) => (cdr cell))
+    ) ;lambda
     font-filter-options
   ) ;for-each
 ) ;define
@@ -79,7 +80,8 @@
 (define (test-customize-meta-shape)
   (let ((meta (append font-effect-meta font-variant-meta font-math-meta)))
     (check (length meta) => 16)
-    (for-each (lambda (m) (check (length m) => 3) (check (string? (car m)) => #t))
+    (for-each
+      (lambda (m) (check (length m) => 3) (check (string? (car m)) => #t))
       meta
     ) ;for-each
   ) ;let

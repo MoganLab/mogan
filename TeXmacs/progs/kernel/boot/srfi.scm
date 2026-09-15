@@ -46,23 +46,23 @@
     (if (not (list? claws))
       (syntax-error "and-let*" "Bindings are not a list: ~A" claws)
     ) ;if
-    (for-each (lambda (claw)
-                (cond ((symbol? claw) (andjoin! claw))
-                      ((and (pair? claw) (null? (cdr claw))) (andjoin! (car claw)))
-                      ((and (pair? claw) (symbol? (car claw)) (pair? (cdr claw)) (null? (cddr claw)))
-                       (let* ((var (car claw)) (var-cell (cons var '())))
-                         (if (memq var new-vars)
-                           (syntax-error "and-let*" "Duplicate variable in bindings: ~A" var)
-                         ) ;if
-                         (set! new-vars (cons var new-vars))
-                         (set-cdr! growth-point `((let (,claw)
-                                                    (and . ,var-cell))))
-                         (set! growth-point var-cell)
-                       ) ;let*
-                      ) ;
-                      (else (syntax-error "and-let*" "Ill-formed binding: ~A" claw))
-                ) ;cond
-              ) ;lambda
+    (for-each
+      (lambda (claw)
+        (cond ((symbol? claw) (andjoin! claw))
+              ((and (pair? claw) (null? (cdr claw))) (andjoin! (car claw)))
+              ((and (pair? claw) (symbol? (car claw)) (pair? (cdr claw)) (null? (cddr claw)))
+               (let* ((var (car claw)) (var-cell (cons var '())))
+                 (if (memq var new-vars)
+                   (syntax-error "and-let*" "Duplicate variable in bindings: ~A" var)
+                 ) ;if
+                 (set! new-vars (cons var new-vars))
+                 (set-cdr! growth-point `((let (,claw) (and . ,var-cell))))
+                 (set! growth-point var-cell)
+               ) ;let*
+              ) ;
+              (else (syntax-error "and-let*" "Ill-formed binding: ~A" claw))
+        ) ;cond
+      ) ;lambda
       claws
     ) ;for-each
     (if (not (null? body))
@@ -136,7 +136,9 @@
       ((v vars) (i 0))
       (cond ((null? v) '())
             ((pair? v) (cons `(,(car v) ,(accessor args-name i #f)) (lp (cdr v) (+ i 1))))
-            (else `((,v ,(accessor args-name i #t))))
+            (else
+              `((,v ,(accessor args-name i #t)))
+            ) ;else
       ) ;cond
     ) ;let
   ) ;define
@@ -145,21 +147,23 @@
   ;; including the parameter count check, binding of the parameters and the
   ;; code of the corresponding body.
   (define (gen-clauses l length-name args-name)
-    (cond ((null? l) (list '(else (error "too few arguments"))))
-          (else (cons `((,(if (dotted? (caar l)) '>= '=)
-                         ,length-name
-                         ,(alength (caar l)))
-                        (let ,(gen-temps (caar l) args-name) ,@(cdar l)))
-                  (gen-clauses (cdr l) length-name args-name)
-                ) ;cons
-          ) ;else
+    (cond
+     ((null? l) (list '(else (error "too few arguments"))))
+     (else
+       (cons
+         `((,(if (dotted? (caar l)) '>= '=) ,length-name ,(alength (caar l)))
+           (let ,(gen-temps (caar l) args-name) ,@(cdar l)))
+         (gen-clauses (cdr l) length-name args-name)
+       ) ;cons
+     ) ;else
     ) ;cond
   ) ;define
 
   (let ((args-name (gensym)) (length-name (gensym)))
-    (let ((proc `(lambda ,args-name
-                   (let ((,length-name (length ,args-name)))
-                     (cond ,@(gen-clauses clauses length-name args-name))))
+    (let ((proc
+            `(lambda ,args-name
+               (let ((,length-name (length ,args-name)))
+                 (cond ,@(gen-clauses clauses length-name args-name))))
           ) ;proc
          ) ;
       proc

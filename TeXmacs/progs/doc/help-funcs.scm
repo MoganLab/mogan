@@ -77,7 +77,8 @@
     ;; 如果已有缓存结果则直接返回，否则进行实际检查并缓存结果
     (if (list? entry)
       (car entry)
-      (car (ahash-set! help-url-cache s (list (url-exists? (url-unix help-file-path s))))
+      (car
+        (ahash-set! help-url-cache s (list (url-exists? (url-unix help-file-path s))))
       ) ;car
     ) ;if
   ) ;with
@@ -124,7 +125,8 @@
     (cond
       ;; 如果找不到文档，显示错误消息
       ((url-none? name)
-       (set-message `(concat ,"Error: help file " (verbatim ,s) ," not found")
+       (set-message
+         `(concat ,"Error: help file " (verbatim ,s) ," not found")
          "load help file"
        ) ;set-message
       ) ;
@@ -257,48 +259,50 @@
         ) ;
     (if community?
       ;; 社区版：同时展示社区版和商业版的最新稳定版
-      (let ((msg (if community-latest?
-                   (replace (translate (string-append "You are using v%1.\n"
-                                         "The latest stable version of Mogan STEM is v%2, "
-                                         "and the latest stable version of Liii STEM is v%3."
-                                       ) ;string-append
-                            ) ;translate
-                     cur-ver
-                     community-ver
-                     commercial-ver
-                   ) ;replace
-                   (replace (translate (string-append "You are using v%1.\n"
-                                         "The latest stable version of Mogan STEM is v%2, "
-                                         "and the latest stable version of Liii STEM is v%3.\n"
-                                         "Please click OK to visit the official website "
-                                         "to download the latest stable version."
-                                       ) ;string-append
-                            ) ;translate
-                     cur-ver
-                     community-ver
-                     commercial-ver
-                   ) ;replace
-                 ) ;if
+      (let ((msg
+              (if community-latest?
+                (replace (translate (string-append "You are using v%1.\n"
+                                      "The latest stable version of Mogan STEM is v%2, "
+                                      "and the latest stable version of Liii STEM is v%3."
+                                    ) ;string-append
+                         ) ;translate
+                  cur-ver
+                  community-ver
+                  commercial-ver
+                ) ;replace
+                (replace (translate (string-append "You are using v%1.\n"
+                                      "The latest stable version of Mogan STEM is v%2, "
+                                      "and the latest stable version of Liii STEM is v%3.\n"
+                                      "Please click OK to visit the official website "
+                                      "to download the latest stable version."
+                                    ) ;string-append
+                         ) ;translate
+                  cur-ver
+                  community-ver
+                  commercial-ver
+                ) ;replace
+              ) ;if
             ) ;msg
            ) ;
         (show-version-dialog msg url (not community-latest?))
       ) ;let
       ;; 商业版：只展示商业版的最新稳定版
-      (let ((msg (if commercial-latest?
-                   (replace (translate "You are using v%1, and the latest stable version of Liii STEM is v%2."
-                            ) ;translate
-                     cur-ver
-                     commercial-ver
-                   ) ;replace
-                   (replace (translate (string-append "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
-                                         "Please click OK to visit the official website "
-                                         "to download the latest stable version."
-                                       ) ;string-append
-                            ) ;translate
-                     cur-ver
-                     commercial-ver
-                   ) ;replace
-                 ) ;if
+      (let ((msg
+              (if commercial-latest?
+                (replace (translate "You are using v%1, and the latest stable version of Liii STEM is v%2."
+                         ) ;translate
+                  cur-ver
+                  commercial-ver
+                ) ;replace
+                (replace (translate (string-append "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
+                                      "Please click OK to visit the official website "
+                                      "to download the latest stable version."
+                                    ) ;string-append
+                         ) ;translate
+                  cur-ver
+                  commercial-ver
+                ) ;replace
+              ) ;if
             ) ;msg
            ) ;
         (show-version-dialog msg url (not commercial-latest?))

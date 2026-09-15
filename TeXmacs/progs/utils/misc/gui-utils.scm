@@ -138,31 +138,35 @@
 (define subtable-format (subtable-format*))
 
 (define (gui-hlist-pair t pos)
-  (cond ((tm-func? t 'glue 4)
-         (let* ((col (number->string (+ pos 1)))
-                (cw (list 'cwith "1" "1" col col))
-                (ext? (tm-equal? (tm-ref t 0) "true"))
-                (w (tm->stree (tm-ref t 2)))
-                (h (tm->stree (tm-ref t 3)))
-                (mode (if ext? "auto" "exact"))
-               ) ;
-           (cons `((,@cw ,"cell-valign" ,"t")
-                   (,@cw ,"cell-width" ,w)
-                   (,@cw ,"cell-height" ,h)
-                   (,@cw ,"cell-hmode" ,mode)
-                   (,@cw ,"cell-vmode" ,mode)
-                   ,@(if ext? (list `(,@cw ,"cell-hpart" ,"1")) (list)))
-             ""
-           ) ;cons
-         ) ;let*
-        ) ;
-        ((tm-func? t 'vlist)
-         (with rew
-           (gui-vlist-table* "raw-table" t)
-           (cons (list) `(cell (subtable (tformat ,@subtable-format ,@(cdr rew)))))
-         ) ;with
-        ) ;
-        (else (cons (list) `(cell (document ,t))))
+  (cond
+   ((tm-func? t 'glue 4)
+    (let* ((col (number->string (+ pos 1)))
+           (cw (list 'cwith "1" "1" col col))
+           (ext? (tm-equal? (tm-ref t 0) "true"))
+           (w (tm->stree (tm-ref t 2)))
+           (h (tm->stree (tm-ref t 3)))
+           (mode (if ext? "auto" "exact"))
+          ) ;
+      (cons
+        `((,@cw ,"cell-valign" ,"t")
+          (,@cw ,"cell-width" ,w)
+          (,@cw ,"cell-height" ,h)
+          (,@cw ,"cell-hmode" ,mode)
+          (,@cw ,"cell-vmode" ,mode)
+          ,@(if ext? (list `(,@cw ,"cell-hpart" ,"1")) (list)))
+        ""
+      ) ;cons
+    ) ;let*
+   ) ;
+   ((tm-func? t 'vlist)
+    (with rew
+      (gui-vlist-table* "raw-table" t)
+      (cons (list) `(cell (subtable (tformat ,@subtable-format ,@(cdr rew)))))
+    ) ;with
+   ) ;
+   (else
+     (cons (list) `(cell (document ,t)))
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -186,13 +190,17 @@
 
 (tm-define (gui-hlist-table tag* t)
   (:secure #t)
-  (let* ((stretch? (lambda (cw)
-                     (and (tm-func? cw 'cwith 6) (tm-equal? (tm-ref cw 4) "cell-hpart"))
-                   ) ;lambda
+  (let* ((stretch?
+           (lambda (cw)
+             (and (tm-func? cw 'cwith 6) (tm-equal? (tm-ref cw 4) "cell-hpart"))
+           ) ;lambda
          ) ;stretch?
          (r (gui-hlist-table* tag* t))
         ) ;
-    (if (list-or (map stretch? (cDr (tm-children (tm-ref r 0)))))
+    (if
+      (list-or
+        (map stretch? (cDr (tm-children (tm-ref r 0))))
+      ) ;list-or
       `(,(tm-label r)
         (tformat (twith "table-width" "1par")
           (twith "table-hmode" "exact")
@@ -203,32 +211,35 @@
 ) ;tm-define
 
 (define (gui-vlist-pair t pos)
-  (cond ((tm-func? t 'glue 4)
-         (let* ((row (number->string (+ pos 1)))
-                (cw (list 'cwith row row "1" "1"))
-                (ext? (tm-equal? (tm-ref t 1) "true"))
-                (w (tm->stree (tm-ref t 2)))
-                (h (tm->stree (tm-ref t 3)))
-                (mode (if ext? "auto" "exact"))
-               ) ;
-           (cons `((,@cw ,"cell-valign" ,"t")
-                   (,@cw ,"cell-width" ,w)
-                   (,@cw ,"cell-height" ,h)
-                   (,@cw ,"cell-hmode" ,mode)
-                   (,@cw ,"cell-vmode" ,mode)
-                   ,@(if ext? (list `(,@cw ,"cell-vpart" ,"1")) (list)))
-             '(row "")
-           ) ;cons
-         ) ;let*
-        ) ;
-        ((tm-func? t 'hlist)
-         (with rew
-           (gui-hlist-table* "raw-table" t)
-           (cons (list) `(row (cell (subtable (tformat ,@subtable-format
-                                                ,@(cdr rew))))))
-         ) ;with
-        ) ;
-        (else (cons (list) `(row (cell (document ,t)))))
+  (cond
+   ((tm-func? t 'glue 4)
+    (let* ((row (number->string (+ pos 1)))
+           (cw (list 'cwith row row "1" "1"))
+           (ext? (tm-equal? (tm-ref t 1) "true"))
+           (w (tm->stree (tm-ref t 2)))
+           (h (tm->stree (tm-ref t 3)))
+           (mode (if ext? "auto" "exact"))
+          ) ;
+      (cons
+        `((,@cw ,"cell-valign" ,"t")
+          (,@cw ,"cell-width" ,w)
+          (,@cw ,"cell-height" ,h)
+          (,@cw ,"cell-hmode" ,mode)
+          (,@cw ,"cell-vmode" ,mode)
+          ,@(if ext? (list `(,@cw ,"cell-vpart" ,"1")) (list)))
+        '(row "")
+      ) ;cons
+    ) ;let*
+   ) ;
+   ((tm-func? t 'hlist)
+    (with rew
+      (gui-hlist-table* "raw-table" t)
+      (cons (list) `(row (cell (subtable (tformat ,@subtable-format ,@(cdr rew))))))
+    ) ;with
+   ) ;
+   (else
+     (cons (list) `(row (cell (document ,t))))
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -287,7 +298,12 @@
   (:secure #t)
   (let* ((tag (as-symbol tag* 'stack))
          (c (tree-children t))
-         (cols (or (and (nnull? c) (string->number (tree->string (car c)))) 8))
+         (cols
+           (or
+             (and (nnull? c) (string->number (tree->string (car c))))
+             8
+           ) ;or
+         ) ;cols
          (args (if (null? c) c (cdr c)))
         ) ;
     `(,tag (table ,@(gui-tiled-rows args cols)))
@@ -410,13 +426,14 @@
                (cmd (as-string (tree->stree (tree-ref t 1)) "(noop)"))
                (val (object->string (tree->stree (tree-ref t 3))))
                (cmd* (string-append "(with answer '" val " " cmd ")"))
-               (fun (lambda ()
-                      (delayed (:idle 1)
-                        ;; (display* "keyboard-press: " cmd* "\n")
-                        (secure-eval (string->object cmd*))
-                        (delayed (:pause 25) (close-tooltip) (update-menus 'all))
-                      ) ;delayed
-                    ) ;lambda
+               (fun
+                 (lambda ()
+                   (delayed (:idle 1)
+                     ;; (display* "keyboard-press: " cmd* "\n")
+                     (secure-eval (string->object cmd*))
+                     (delayed (:pause 25) (close-tooltip) (update-menus 'all))
+                   ) ;delayed
+                 ) ;lambda
                ) ;fun
               ) ;
           (gui-input-relay type fun key time)

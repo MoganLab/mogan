@@ -198,17 +198,18 @@
       (define resume #f)
       (define yield (lambda (v) (call/cc (lambda (r) (set! resume r) (return v)))))
       (lambda ()
-        (call/cc (lambda (cc)
-                   (set! return cc)
-                   (if resume
-                     (resume (if #f #f))
-                     (begin
-                       (proc yield)
-                       (set! resume (lambda (v) (return (eof-object))))
-                       (return (eof-object))
-                     ) ;begin
-                   ) ;if
-                 ) ;lambda
+        (call/cc
+          (lambda (cc)
+            (set! return cc)
+            (if resume
+              (resume (if #f #f))
+              (begin
+                (proc yield)
+                (set! resume (lambda (v) (return (eof-object))))
+                (return (eof-object))
+              ) ;begin
+            ) ;if
+          ) ;lambda
         ) ;call/cc
       ) ;lambda
     ) ;define
@@ -303,12 +304,13 @@
 
     ;; make-unfold-generator
     (define (make-unfold-generator stop? mapper successor seed)
-      (make-coroutine-generator (lambda (yield)
-                                  (let loop
-                                    ((s seed))
-                                    (if (stop? s) (if #f #f) (begin (yield (mapper s)) (loop (successor s))))
-                                  ) ;let
-                                ) ;lambda
+      (make-coroutine-generator
+        (lambda (yield)
+          (let loop
+            ((s seed))
+            (if (stop? s) (if #f #f) (begin (yield (mapper s)) (loop (successor s))))
+          ) ;let
+        ) ;lambda
       ) ;make-coroutine-generator
     ) ;define
 
@@ -423,7 +425,9 @@
             ((gens gens) (gs '()))
             (cond ((null? gens) (reverse gs))
                   ((null? (cdr gens)) (reverse (cons (car gens) gs)))
-                  (else (loop (cddr gens) (cons (gmerge < (car gens) (cadr gens)) gs)))
+                  (else
+                    (loop (cddr gens) (cons (gmerge < (car gens) (cadr gens)) gs))
+                  ) ;else
             ) ;cond
           ) ;let
         ) ;apply
@@ -505,18 +509,19 @@
       (case-lambda
        ((gen k) (gtake gen k (eof-object)))
        ((gen k padding)
-        (make-coroutine-generator (lambda (yield)
-                                    (if (> k 0)
-                                      (let loop
-                                        ((i 0) (v (gen)))
-                                        (begin
-                                          (if (eof-object? v) (yield padding) (yield v))
-                                          (if (< (+ 1 i) k) (loop (+ 1 i) (gen)) (eof-object))
-                                        ) ;begin
-                                      ) ;let
-                                      (eof-object)
-                                    ) ;if
-                                  ) ;lambda
+        (make-coroutine-generator
+          (lambda (yield)
+            (if (> k 0)
+              (let loop
+                ((i 0) (v (gen)))
+                (begin
+                  (if (eof-object? v) (yield padding) (yield v))
+                  (if (< (+ 1 i) k) (loop (+ 1 i) (gen)) (eof-object))
+                ) ;begin
+              ) ;let
+              (eof-object)
+            ) ;if
+          ) ;lambda
         ) ;make-coroutine-generator
        ) ;
       ) ;case-lambda

@@ -20,14 +20,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (title-prefix pre tit)
-  (cond ((tm-is? tit 'doc-make-rich-title)
-         (with l
-           (tm-children tit)
-           `(doc-make-rich-title ,@(cDr l) ,(title-prefix pre (cAr l)))
-         ) ;with
-        ) ;
-        ((tm-is? tit 'document) `(document ,pre ,@(tm-children tit)))
-        (else tit)
+  (cond
+   ((tm-is? tit 'doc-make-rich-title)
+    (with l
+      (tm-children tit)
+      `(doc-make-rich-title ,@(cDr l) ,(title-prefix pre (cAr l)))
+    ) ;with
+   ) ;
+   ((tm-is? tit 'document) `(document ,pre ,@(tm-children tit)))
+   (else tit)
   ) ;cond
 ) ;define
 
@@ -39,13 +40,22 @@
         ) ;
     (cond ((and (null? class) (null? date)) doc)
           ((and (nnull? class) (null? date))
-           (title-prefix `(doc-exam-class ,(car class)) doc)
+           (title-prefix
+             `(doc-exam-class ,(car class))
+             doc
+           ) ;title-prefix
           ) ;
           ((and (null? class) (nnull? date))
-           (title-prefix `(doc-exam-date ,(car date)) doc)
+           (title-prefix
+             `(doc-exam-date ,(car date))
+             doc
+           ) ;title-prefix
           ) ;
           ((and (nnull? class) (nnull? date))
-           (title-prefix `(doc-exam-class-date ,(car class) ,(car date)) doc)
+           (title-prefix
+             `(doc-exam-class-date ,(car class) ,(car date))
+             doc
+           ) ;title-prefix
           ) ;
     ) ;cond
   ) ;let*
@@ -136,10 +146,12 @@
   (let* ((ch (tm-children t))
          (first (mc-popup-first ch))
          (sel (mc-popup-selected ch))
-         (text (or (and sel `(mc-selected-field ,sel))
-                 (and first `(mc-selected-none ,first))
-                 '(mc-selected-none "---")
-               ) ;or
+         (text
+           (or
+             (and sel `(mc-selected-field ,sel))
+             (and first `(mc-selected-none ,first))
+             '(mc-selected-none "---")
+           ) ;or
          ) ;text
          (text* (or sel first "---"))
         ) ;

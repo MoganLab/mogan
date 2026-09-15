@@ -31,12 +31,15 @@
 ) ;tm-define
 (tm-define (list-split lst what)
   (:synopsis "Return a list of lists splitting @lst by items equal? to @what")
-  (letrec ((loop (lambda (lst what acc)
-                   (cond ((null? lst) (list acc))
-                         ((equal? what (car lst)) (cons acc (loop (cdr lst) what '())))
-                         (else (loop (cdr lst) what (append acc (list (car lst)))))
-                   ) ;cond
-                 ) ;lambda
+  (letrec ((loop
+             (lambda (lst what acc)
+               (cond ((null? lst) (list acc))
+                     ((equal? what (car lst)) (cons acc (loop (cdr lst) what '())))
+                     (else
+                       (loop (cdr lst) what (append acc (list (car lst))))
+                     ) ;else
+               ) ;cond
+             ) ;lambda
            ) ;loop
           ) ;
     (loop lst what '())
@@ -85,9 +88,16 @@
   (let* ((str (string-load-clean file))
          (lst (list-split (string-split str #\newline) ""))
          (lst2 (list-filter lst (lambda (x) (nnull? x))))
-         (inputs (map-in-order (lambda (x) `(input ,"Scheme] " (document ,@x))) lst2))
+         (inputs
+           (map-in-order
+             (lambda (x) `(input ,"Scheme] " (document ,@x)))
+             lst2
+           ) ;map-in-order
+         ) ;inputs
         ) ;
-    (insert `(session ,"scheme" ,"default" (document ,@inputs)))
+    (insert
+      `(session ,"scheme" ,"default" (document ,@inputs))
+    ) ;insert
   ) ;let*
 ) ;tm-define
 (tm-define (word-at str pos)
@@ -171,11 +181,15 @@
       (lambda (save?)
         (if save? (buffer-save u))
         (load s)
-        (set-message `(replace ,"File %1 was executed" (verbatim ,s)) "")
+        (set-message
+          `(replace ,"File %1 was executed" (verbatim ,s))
+          ""
+        ) ;set-message
       ) ;lambda
       (if (and (buffer-exists? u) (buffer-modified? u))
-        (user-confirm `(replace ,"File %1 is currently open and modified. Save before running?"
-                         (verbatim ,s))
+        (user-confirm
+          `(replace ,"File %1 is currently open and modified. Save before running?"
+             (verbatim ,s))
           #t
           run
         ) ;user-confirm
@@ -198,15 +212,16 @@
   (:require (and developer-mode? (opt-click? mods) (in-prog-scheme?)))
   (with short
     (string-take key 4)
-    (cond ((== short "pres")
-           (mouse-any "release-left" x y 1 (+ time 0.0) data)
-           (set! cw (cursor-word))
-           (select-word cw (cursor-tree) (cAr (cursor-path)))
-          ) ;
-          ((== short "rele")
-           (with cw2 (cursor-word) (if (== cw cw2) (help-window "scheme" cw)))
-          ) ;
-          (else (mouse-any key x y mods (+ time 0.0) data))
+    (cond
+     ((== short "pres")
+      (mouse-any "release-left" x y 1 (+ time 0.0) data)
+      (set! cw (cursor-word))
+      (select-word cw (cursor-tree) (cAr (cursor-path)))
+     ) ;
+     ((== short "rele")
+      (with cw2 (cursor-word) (if (== cw cw2) (help-window "scheme" cw)))
+     ) ;
+     (else (mouse-any key x y mods (+ time 0.0) data))
     ) ;cond
   ) ;with
 ) ;tm-define
@@ -214,15 +229,16 @@
   (:require (and developer-mode? (cmd-click? mods) (in-prog-scheme?)))
   (with short
     (string-take key 4)
-    (cond ((== short "pres")
-           (mouse-any "release-left" x y 1 (+ time 0.0) data)
-           (set! cw (cursor-word))
-           (select-word cw (cursor-tree) (cAr (cursor-path)))
-          ) ;
-          ((== short "rele")
-           (with cw2 (cursor-word) (if (== cw cw2) (scheme-go-to-definition cw)))
-          ) ;
-          (else (mouse-any key x y mods (+ time 0.0) data))
+    (cond
+     ((== short "pres")
+      (mouse-any "release-left" x y 1 (+ time 0.0) data)
+      (set! cw (cursor-word))
+      (select-word cw (cursor-tree) (cAr (cursor-path)))
+     ) ;
+     ((== short "rele")
+      (with cw2 (cursor-word) (if (== cw cw2) (scheme-go-to-definition cw)))
+     ) ;
+     (else (mouse-any key x y mods (+ time 0.0) data))
     ) ;cond
   ) ;with
 ) ;tm-define

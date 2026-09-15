@@ -27,8 +27,9 @@
          (p* (url-append (unix->url p) "dummy"))
          (a* (url-append (unix->url a) "dummy"))
         ) ;
-    (cond ((string-starts? name p) (url->unix (url-delta p* (unix->url name))))
-          (else u)
+    (cond
+     ((string-starts? name p) (url->unix (url-delta p* (unix->url name))))
+     (else u)
     ) ;cond
   ) ;let*
 ) ;define
@@ -122,17 +123,19 @@
 ) ;define
 
 (define (get-size key)
-  (cond ((and (== (get-width key) "100%") (== (get-height key) "100%")) "Fit")
-        ((== (get-width key) "100%") "Fit to width")
-        ((== (get-height key) "100%") "Fit to height")
-        (else "Fit")
+  (cond
+   ((and (== (get-width key) "100%") (== (get-height key) "100%")) "Fit")
+   ((== (get-width key) "100%") "Fit to width")
+   ((== (get-height key) "100%") "Fit to height")
+   (else "Fit")
   ) ;cond
 ) ;define
 
 (define (reset-effect key eff kind)
-  (cond ((or (npair? eff) (npair? (cdr eff))) eff)
-        ((== (car eff) kind) (reset-effect key (cadr eff) kind))
-        (else (cons* (car eff) (reset-effect key (cadr eff) kind) (cddr eff)))
+  (cond
+   ((or (npair? eff) (npair? (cdr eff))) eff)
+   ((== (car eff) kind) (reset-effect key (cadr eff) kind))
+   (else (cons* (car eff) (reset-effect key (cadr eff) kind) (cddr eff)))
   ) ;cond
 ) ;define
 
@@ -164,9 +167,10 @@
 ) ;define
 
 (define (get-effect* key eff kind)
-  (cond ((or (npair? eff) (npair? (cdr eff))) #f)
-        ((== (car eff) kind) (cddr eff))
-        (else (get-effect* key (cadr eff) kind))
+  (cond
+   ((or (npair? eff) (npair? (cdr eff))) #f)
+   ((== (car eff) kind) (cddr eff))
+   (else (get-effect* key (cadr eff) kind))
   ) ;cond
 ) ;define
 
@@ -271,18 +275,23 @@
 (tm-widget (pattern-name-selector key)
   (let* ((name (unix->url (get-name key)))
          (curr (decode-pattern-name key (get-name key)))
-         (setter (lambda (c)
-                   (when (and (pair? c) (url? (car c)))
-                     (set-name key (url->unix (car c)))
-                   ) ;when
-                 ) ;lambda
+         (setter
+           (lambda (c)
+             (when (and (pair? c) (url? (car c)))
+               (set-name key (url->unix (car c)))
+             ) ;when
+           ) ;lambda
          ) ;setter
         ) ;
-    (hlist (enum (set-name key (url->unix answer))
-             (list `(verbatim ,(url->system name)) "")
-             `(verbatim ,(url->system name))
-             "15em"
-           ) ;enum
+    (hlist
+      (enum (set-name key (url->unix answer))
+        (list
+          `(verbatim ,(url->system name))
+          ""
+        ) ;list
+        `(verbatim ,(url->system name))
+        "15em"
+      ) ;enum
       //
       //
       //
@@ -301,26 +310,27 @@
 ) ;tm-widget
 
 (tm-widget (pattern-recolor-options key)
-  (hlist (when (get-recolor key)
-           (enum (set-recolor key answer)
-             (list (or (get-recolor key) "")
-               "black"
-               "white"
-               "grey"
-               "red"
-               "green"
-               "blue"
-               "yellow"
-               "cyan"
-               "magenta"
-               "orange"
-               "brown"
-               ""
-             ) ;list
-             (or (get-recolor key) "")
-             "15em"
-           ) ;enum
-         ) ;when
+  (hlist
+    (when (get-recolor key)
+      (enum (set-recolor key answer)
+        (list (or (get-recolor key) "")
+          "black"
+          "white"
+          "grey"
+          "red"
+          "green"
+          "blue"
+          "yellow"
+          "cyan"
+          "magenta"
+          "orange"
+          "brown"
+          ""
+        ) ;list
+        (or (get-recolor key) "")
+        "15em"
+      ) ;enum
+    ) ;when
     //
     //
     //
@@ -336,26 +346,27 @@
 ) ;tm-widget
 
 (tm-widget (pattern-skin-options key)
-  (hlist (when (get-skin key)
-           (enum (set-skin key answer)
-             (list (or (get-skin key) "")
-               "black"
-               "white"
-               "grey"
-               "red"
-               "green"
-               "blue"
-               "yellow"
-               "cyan"
-               "magenta"
-               "orange"
-               "brown"
-               ""
-             ) ;list
-             (or (get-skin key) "")
-             "15em"
-           ) ;enum
-         ) ;when
+  (hlist
+    (when (get-skin key)
+      (enum (set-skin key answer)
+        (list (or (get-skin key) "")
+          "black"
+          "white"
+          "grey"
+          "red"
+          "green"
+          "blue"
+          "yellow"
+          "cyan"
+          "magenta"
+          "orange"
+          "brown"
+          ""
+        ) ;list
+        (or (get-skin key) "")
+        "15em"
+      ) ;enum
+    ) ;when
     //
     //
     //
@@ -377,13 +388,14 @@
 ) ;tm-widget
 
 (tm-widget (pattern-blur-options key)
-  (hlist (when (get-blur key)
-           (enum (set-blur key answer)
-             (list (or (get-blur key) "") "0.2pt" "0.5pt" "1pt" "2pt" "5px" "")
-             (or (get-blur key) "")
-             "15em"
-           ) ;enum
-         ) ;when
+  (hlist
+    (when (get-blur key)
+      (enum (set-blur key answer)
+        (list (or (get-blur key) "") "0.2pt" "0.5pt" "1pt" "2pt" "5px" "")
+        (or (get-blur key) "")
+        "15em"
+      ) ;enum
+    ) ;when
     //
     //
     //
@@ -393,24 +405,25 @@
 ) ;tm-widget
 
 (tm-widget (pattern-background-options key)
-  (hlist (enum (set-gradient-background key answer)
-           (list (or (get-gradient-background key) "")
-             "black"
-             "white"
-             "grey"
-             "red"
-             "green"
-             "blue"
-             "yellow"
-             "cyan"
-             "magenta"
-             "orange"
-             "brown"
-             ""
-           ) ;list
-           (or (get-gradient-background key) "white")
-           "15em"
-         ) ;enum
+  (hlist
+    (enum (set-gradient-background key answer)
+      (list (or (get-gradient-background key) "")
+        "black"
+        "white"
+        "grey"
+        "red"
+        "green"
+        "blue"
+        "yellow"
+        "cyan"
+        "magenta"
+        "orange"
+        "brown"
+        ""
+      ) ;list
+      (or (get-gradient-background key) "white")
+      "15em"
+    ) ;enum
     //
     //
     //
@@ -424,24 +437,25 @@
 ) ;tm-widget
 
 (tm-widget (pattern-foreground-options key)
-  (hlist (enum (set-gradient-foreground key answer)
-           (list (or (get-gradient-foreground key) "")
-             "black"
-             "white"
-             "grey"
-             "red"
-             "green"
-             "blue"
-             "yellow"
-             "cyan"
-             "magenta"
-             "orange"
-             "brown"
-             ""
-           ) ;list
-           (or (get-gradient-foreground key) "black")
-           "15em"
-         ) ;enum
+  (hlist
+    (enum (set-gradient-foreground key answer)
+      (list (or (get-gradient-foreground key) "")
+        "black"
+        "white"
+        "grey"
+        "red"
+        "green"
+        "blue"
+        "yellow"
+        "cyan"
+        "magenta"
+        "orange"
+        "brown"
+        ""
+      ) ;list
+      (or (get-gradient-foreground key) "black")
+      "15em"
+    ) ;enum
     //
     //
     //
@@ -458,19 +472,18 @@
   (refreshable "pattern-sample"
     (resize "400px"
       "250px"
-      (texmacs-output `(document (block (tformat (cwith "1" "1" "1" "1"
-                                                   "cell-width" "396guipx")
-                                          (cwith "1" "1" "1" "1" "cell-height"
-                                            "246guipx")
-                                          (cwith "1" "1" "1" "1" "cell-vmode"
-                                            "exact")
-                                          (cwith ,"1"
-                                            ,"1"
-                                            ,"1"
-                                            ,"1"
-                                            ,"cell-background"
-                                            ,(get-color key))
-                                          (table (row (cell ""))))))
+      (texmacs-output
+        `(document (block (tformat (cwith "1" "1" "1" "1" "cell-width"
+                                     "396guipx")
+                            (cwith "1" "1" "1" "1" "cell-height" "246guipx")
+                            (cwith "1" "1" "1" "1" "cell-vmode" "exact")
+                            (cwith ,"1"
+                              ,"1"
+                              ,"1"
+                              ,"1"
+                              ,"cell-background"
+                              ,(get-color key))
+                            (table (row (cell ""))))))
         '(style (tuple "generic"))
       ) ;texmacs-output
     ) ;resize
@@ -554,26 +567,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget ((pattern-selector key u) cmd)
-  (padded (hlist (vlist (dynamic (pattern-sample key u)))
-            //
-            //
-            //
-            (explicit-buttons (vlist (dynamic (pattern-options key u)) ====== (glue #f #t 0 0))
-            ) ;explicit-buttons
-          ) ;hlist
+  (padded
+    (hlist (vlist (dynamic (pattern-sample key u)))
+      //
+      //
+      //
+      (explicit-buttons (vlist (dynamic (pattern-options key u)) ====== (glue #f #t 0 0))
+      ) ;explicit-buttons
+    ) ;hlist
     ======
-    (explicit-buttons (hlist >>>
-                       ("Ok"
-                         (with col
-                           (normalize-color (get-color key))
-                           (if (picture? key)
-                             (insert-preferred-list "my pictures" col 16)
-                             (insert-preferred-list "my patterns" col 16)
-                           ) ;if
-                           (cmd col)
-                         ) ;with
-                       ) ;
-                      ) ;hlist
+    (explicit-buttons
+      (hlist >>>
+       ("Ok"
+         (with col
+           (normalize-color (get-color key))
+           (if (picture? key)
+             (insert-preferred-list "my pictures" col 16)
+             (insert-preferred-list "my patterns" col 16)
+           ) ;if
+           (cmd col)
+         ) ;with
+       ) ;
+      ) ;hlist
     ) ;explicit-buttons
   ) ;padded
 ) ;tm-widget

@@ -218,21 +218,23 @@
 (define (stm-table-formats x)
   (cond ((func? x 'table) '())
         ((func? x 'tformat)
-         (append (map (lambda (f)
-                        (with (sym i1 i2 j1 j2 name value)
-                          f
-                          (list sym
-                            (string->number i1)
-                            (string->number i2)
-                            (string->number j1)
-                            (string->number j2)
-                            name
-                            (stm-table-decode-format name value)
-                          ) ;list
-                        ) ;with
-                      ) ;lambda
-                   (list-filter (cDdr x) (lambda (l) (and (list? l) (= (length l) 7))))
-                 ) ;map
+         (append
+           (map
+             (lambda (f)
+               (with (sym i1 i2 j1 j2 name value)
+                 f
+                 (list sym
+                   (string->number i1)
+                   (string->number i2)
+                   (string->number j1)
+                   (string->number j2)
+                   name
+                   (stm-table-decode-format name value)
+                 ) ;list
+               ) ;with
+             ) ;lambda
+             (list-filter (cDdr x) (lambda (l) (and (list? l) (= (length l) 7))))
+           ) ;map
            (stm-table-formats (cAr x))
          ) ;append
         ) ;
@@ -380,20 +382,22 @@
     ) ;define
 
     (define (format-by axis name default)
-      (map (lambda (fs)
-             (if (or (null? fs) (null? (last fs)) (null? (last (car fs))))
-               default
-               (tmformat-cell-value (first fs))
-             ) ;if
-           ) ;lambda
-       ((cond ((eq? axis :row) tmtable-format-partition-by-row)
-              ((eq? axis :column) tmtable-format-partition-by-column)
-        ) ;cond
-        this
-        (list-filter (tmtable-formats this)
-          (lambda (f) (and (tmformat-cell? f) (== name (tmformat-cell-name f))))
-        ) ;list-filter
-       ) ;
+      (map
+        (lambda (fs)
+          (if
+            (or (null? fs) (null? (last fs)) (null? (last (car fs))))
+            default
+            (tmformat-cell-value (first fs))
+          ) ;if
+        ) ;lambda
+        ((cond ((eq? axis :row) tmtable-format-partition-by-row)
+               ((eq? axis :column) tmtable-format-partition-by-column)
+         ) ;cond
+         this
+         (list-filter (tmtable-formats this)
+           (lambda (f) (and (tmformat-cell? f) (== name (tmformat-cell-name f))))
+         ) ;list-filter
+        ) ;
       ) ;map
     ) ;define
 

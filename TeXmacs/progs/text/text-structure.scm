@@ -21,13 +21,14 @@
   "Split @l into as many sublists as possible starting with matching items"
   (cond ((null? l) l)
         ((null? (cdr l)) (list l))
-        (else (with parts
-                (list-split (cdr l) pred?)
-                (if (pred? (caar parts))
-                  (cons (list (car l)) parts)
-                  (cons (cons (car l) (car parts)) (cdr parts))
-                ) ;if
-              ) ;with
+        (else
+          (with parts
+            (list-split (cdr l) pred?)
+            (if (pred? (caar parts))
+              (cons (list (car l)) parts)
+              (cons (cons (car l) (car parts)) (cdr parts))
+            ) ;if
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define

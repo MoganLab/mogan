@@ -21,9 +21,10 @@
 (define bib-styles-cache (make-ahash-table))
 
 (define (get-citekeys-list l)
-  (list-fold (lambda (entry rest)
-               (if (tm-func? entry 'bib-entry) (cons (caddr entry) rest) rest)
-             ) ;lambda
+  (list-fold
+    (lambda (entry rest)
+      (if (tm-func? entry 'bib-entry) (cons (caddr entry) rest) rest)
+    ) ;lambda
     '()
     l
   ) ;list-fold

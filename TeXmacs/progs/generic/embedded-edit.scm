@@ -193,8 +193,10 @@
           ) ;
       (when (url-exists? u)
         (let* ((data (string-load u))
-               (raw `(tuple (raw-data ,data)
-                       ,(utf8->cork (url->string (url-tail f)))))
+               (raw
+                 `(tuple (raw-data ,data)
+                    ,(utf8->cork (url->string (url-tail f))))
+               ) ;raw
               ) ;
           (tree-set t 0 raw)
         ) ;let*

@@ -310,13 +310,14 @@
              (end-c (as-cursor s end))
             ) ;
         ;; Non-recursive implementation using iteration
-        (let ((chars (let collect
-                       ((cur start-c) (result '()))
-                       (if (string-cursor>=? cur end-c)
-                         result
-                         (collect (string-cursor-next s cur) (cons (string-ref/cursor s cur) result))
-                       ) ;if
-                     ) ;let
+        (let ((chars
+                (let collect
+                  ((cur start-c) (result '()))
+                  (if (string-cursor>=? cur end-c)
+                    result
+                    (collect (string-cursor-next s cur) (cons (string-ref/cursor s cur) result))
+                  ) ;if
+                ) ;let
               ) ;chars
              ) ;
           ;; chars is reversed: '(cn ... c2 c1)
@@ -815,16 +816,17 @@
              (end-c (as-cursor s end))
              (slen (string-cursor-diff s start-c end-c))
              (anslen (- to from))
-             (source-chars (let loop
-                             ((cur start-c) (n 0) (result '()))
-                             (if (>= n slen)
-                               (list->vector (reverse result))
-                               (loop (string-cursor-next s cur)
-                                 (+ n 1)
-                                 (cons (string-ref/cursor s cur) result)
-                               ) ;loop
-                             ) ;if
-                           ) ;let
+             (source-chars
+               (let loop
+                 ((cur start-c) (n 0) (result '()))
+                 (if (>= n slen)
+                   (list->vector (reverse result))
+                   (loop (string-cursor-next s cur)
+                     (+ n 1)
+                     (cons (string-ref/cursor s cur) result)
+                   ) ;loop
+                 ) ;if
+               ) ;let
              ) ;source-chars
             ) ;
         (when (> from to)
@@ -832,15 +834,16 @@
         ) ;when
         (cond ((zero? anslen) "")
               ((zero? slen) (error 'value-error "Cannot replicate empty substring"))
-              (else (let loop
-                      ((i 0) (result '()))
-                      (if (>= i anslen)
-                        (list->utf8-string (reverse result))
-                        (let ((ch (vector-ref source-chars (modulo (+ from i) slen))))
-                          (loop (+ i 1) (cons ch result))
-                        ) ;let
-                      ) ;if
+              (else
+                (let loop
+                  ((i 0) (result '()))
+                  (if (>= i anslen)
+                    (list->utf8-string (reverse result))
+                    (let ((ch (vector-ref source-chars (modulo (+ from i) slen))))
+                      (loop (+ i 1) (cons ch result))
                     ) ;let
+                  ) ;if
+                ) ;let
               ) ;else
         ) ;cond
       ) ;let*
@@ -888,41 +891,43 @@
                        ((and limit (>= n limit))
                         (reverse (cons (substring/cursors s cur end-c) result))
                        ) ;
-                       (else (loop (string-cursor-next s cur)
-                               (cons (string (string-ref/cursor s cur)) result)
-                               (+ n 1)
-                             ) ;loop
+                       (else
+                         (loop (string-cursor-next s cur)
+                           (cons (string (string-ref/cursor s cur)) result)
+                           (+ n 1)
+                         ) ;loop
                        ) ;else
                  ) ;cond
                ) ;let
               ) ;
-              (else (let ((dlen (string-cursor->index delimiter (string-cursor-end delimiter))))
-                      (define (finish r c)
-                        (let ((rest-str (substring/cursors s c end-c)))
-                          (if (and (eq? grammar 'suffix) (string-null? rest-str))
-                            (reverse r)
-                            (reverse (cons rest-str r))
-                          ) ;if
-                        ) ;let
-                      ) ;define
-                      (define (scan r c n)
-                        (if (and limit (>= n limit))
-                          (finish r c)
-                          (let ((i (string-contains s delimiter c end-c)))
-                            (if i
-                              (let ((fragment (substring/cursors s c i)))
-                                (if (and (= n 0) (eq? grammar 'prefix) (string-null? fragment))
-                                  (scan r (string-cursor-forward s i dlen) (+ n 1))
-                                  (scan (cons fragment r) (string-cursor-forward s i dlen) (+ n 1))
-                                ) ;if
-                              ) ;let
-                              (finish r c)
+              (else
+                (let ((dlen (string-cursor->index delimiter (string-cursor-end delimiter))))
+                  (define (finish r c)
+                    (let ((rest-str (substring/cursors s c end-c)))
+                      (if (and (eq? grammar 'suffix) (string-null? rest-str))
+                        (reverse r)
+                        (reverse (cons rest-str r))
+                      ) ;if
+                    ) ;let
+                  ) ;define
+                  (define (scan r c n)
+                    (if (and limit (>= n limit))
+                      (finish r c)
+                      (let ((i (string-contains s delimiter c end-c)))
+                        (if i
+                          (let ((fragment (substring/cursors s c i)))
+                            (if (and (= n 0) (eq? grammar 'prefix) (string-null? fragment))
+                              (scan r (string-cursor-forward s i dlen) (+ n 1))
+                              (scan (cons fragment r) (string-cursor-forward s i dlen) (+ n 1))
                             ) ;if
                           ) ;let
+                          (finish r c)
                         ) ;if
-                      ) ;define
-                      (scan '() start-c 0)
-                    ) ;let
+                      ) ;let
+                    ) ;if
+                  ) ;define
+                  (scan '() start-c 0)
+                ) ;let
               ) ;else
         ) ;cond
       ) ;let*
@@ -1057,27 +1062,28 @@
             ((not (memq grammar '(infix strict-infix suffix prefix)))
              (error 'value-error "string-join: invalid grammar")
             ) ;
-            (else (let ((del-bv (string->utf8 delimiter)) (str-bvs (map string->utf8 string-list)))
-                    (define (interleave bvs)
-                      (let loop
-                        ((lst bvs))
-                        (if (null? lst)
-                          '()
-                          (if (or (eq? grammar 'infix) (eq? grammar 'strict-infix))
-                            (if (null? (cdr lst))
-                              (list (car lst))
-                              (cons (car lst) (cons del-bv (loop (cdr lst))))
-                            ) ;if
-                            (if (eq? grammar 'suffix)
-                              (cons (car lst) (cons del-bv (loop (cdr lst))))
-                              (if (eq? grammar 'prefix) (cons del-bv (cons (car lst) (loop (cdr lst)))) '())
-                            ) ;if
-                          ) ;if
+            (else
+              (let ((del-bv (string->utf8 delimiter)) (str-bvs (map string->utf8 string-list)))
+                (define (interleave bvs)
+                  (let loop
+                    ((lst bvs))
+                    (if (null? lst)
+                      '()
+                      (if (or (eq? grammar 'infix) (eq? grammar 'strict-infix))
+                        (if (null? (cdr lst))
+                          (list (car lst))
+                          (cons (car lst) (cons del-bv (loop (cdr lst))))
                         ) ;if
-                      ) ;let
-                    ) ;define
-                    (utf8->string (apply bytevector-append (interleave str-bvs)))
+                        (if (eq? grammar 'suffix)
+                          (cons (car lst) (cons del-bv (loop (cdr lst))))
+                          (if (eq? grammar 'prefix) (cons del-bv (cons (car lst) (loop (cdr lst)))) '())
+                        ) ;if
+                      ) ;if
+                    ) ;if
                   ) ;let
+                ) ;define
+                (utf8->string (apply bytevector-append (interleave str-bvs)))
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define*

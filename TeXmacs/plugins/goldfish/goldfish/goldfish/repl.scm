@@ -29,14 +29,16 @@
     ) ;define
 
     (define (escape-string str)
-      (string-join (map (lambda (char)
-                          (if (char=? char #\")
-                            (string #\\ #\")
-                            (if (char=? char #\\) (string #\\ #\\) (string char))
-                          ) ;if
-                        ) ;lambda
-                     (string->list str)
-                   ) ;map
+      (string-join
+        (map
+          (lambda (char)
+            (if (char=? char #\")
+              (string #\\ #\")
+              (if (char=? char #\\) (string #\\ #\\) (string char))
+            ) ;if
+          ) ;lambda
+          (string->list str)
+        ) ;map
       ) ;string-join
     ) ;define
     (define (goldfish-quote s)
@@ -66,14 +68,16 @@
         (lambda () (goldfish-print (eval-string code (rootlet))))
         (lambda args
           (begin
-            (flush-scheme (string-append "(errput (document "
-                            (goldfish-quote (symbol->string (car args)))
-                            (if (and (>= (length args) 2) (not (null? (cadr args))))
-                              (goldfish-quote (object->string (cadr args)))
-                              ""
-                            ) ;if
-                            "))"
-                          ) ;string-append
+            (flush-scheme
+              (string-append "(errput (document "
+                (goldfish-quote (symbol->string (car args)))
+                (if
+                  (and (>= (length args) 2) (not (null? (cadr args))))
+                  (goldfish-quote (object->string (cadr args)))
+                  ""
+                ) ;if
+                "))"
+              ) ;string-append
             ) ;flush-scheme
           ) ;begin
         ) ;lambda

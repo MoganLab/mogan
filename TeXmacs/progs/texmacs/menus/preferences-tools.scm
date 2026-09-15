@@ -31,10 +31,11 @@
   ;; val 由 preferences-qml-set-field 传入，是 internal key（"shared"/"separate"）。
   ;; 保留 pretty 显示串（"Multiple documents share window"）经 decode 表反查的兜底，
   ;; 防御未来接入 pretty 串的调用方。统一按 internal key 判断 shared。
-  (let* ((internal (if (== val "shared")
-                     val
-                     (or (ahash-ref preference-decode-table (cons "buffer management" val)) val)
-                   ) ;if
+  (let* ((internal
+           (if (== val "shared")
+             val
+             (or (ahash-ref preference-decode-table (cons "buffer management" val)) val)
+           ) ;if
          ) ;internal
          (can-use-tabbar? (== internal "shared"))
         ) ;
@@ -112,9 +113,11 @@
                                       ("jpg" "Jpeg")
                                       ("pdf" "Pdf"))
          ) ;desired-image-format-list
-         (valid-image-format-list (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "x." (car x))))
-                                    desired-image-format-list
-                                  ) ;filter
+         (valid-image-format-list
+           (filter
+             (lambda (x) (file-converter-exists? "x.pdf" (string-append "x." (car x))))
+             desired-image-format-list
+           ) ;filter
          ) ;valid-image-format-list
         ) ;
     (eval `(define-preference-names ,"texmacs->image:format"
@@ -147,11 +150,12 @@
 ;; 用 car/cdr 直接取、递归 cddr——不用 with（mogan 的 with 对 dotted-pair 解构不稳）。
 
 (define (preferences-qml-plist->alist plist)
-  (cond ((or (null? plist) (null? (cdr plist))) '())
-        (else (cons (cons (car plist) (cadr plist))
-                (preferences-qml-plist->alist (cddr plist))
-              ) ;cons
-        ) ;else
+  (cond
+   ((or (null? plist) (null? (cdr plist))) '())
+   (else (cons (cons (car plist) (cadr plist))
+           (preferences-qml-plist->alist (cddr plist))
+         ) ;cons
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -161,13 +165,14 @@
 ;; preferences-qml-call-action。
 
 (define (preferences-qml-action-button-label action)
-  (cond ((== action 'open-auto-backup-location)
-         (when (not (defined? 'auto-backup-button-label))
-           (use-modules (autosave plugin))
-         ) ;when
-         (if (defined? 'auto-backup-button-label) (auto-backup-button-label) "")
-        ) ;
-        (else "")
+  (cond
+   ((== action 'open-auto-backup-location)
+    (when (not (defined? 'auto-backup-button-label))
+      (use-modules (autosave plugin))
+    ) ;when
+    (if (defined? 'auto-backup-button-label) (auto-backup-button-label) "")
+   ) ;
+   (else "")
   ) ;cond
 ) ;define
 
@@ -201,38 +206,39 @@
 
 (define (preferences-qml-flags->assoc flags)
   (apply append
-    (map (lambda (pair)
-           (let ((kw (car pair)) (val (cdr pair)))
-             (cond ((== kw 'restart?) (list (cons 'restart? val)))
-                   ((== kw 'radio-group) (list (cons 'radioGroup val)))
-                   ;; enabled-when：字段始终显示，但仅当某 key 等于 val 时可勾（否则锁定灰显）。
-                   ;; 用于 latex transparent / Store tracking、Math semantic：依赖键开才解锁。
-                   ((== kw 'enabled-when-key) (list (cons 'enabledWhenKey val)))
-                   ((== kw 'enabled-when-val) (list (cons 'enabledWhenVal val)))
-                   ;; group / hint 文案：.scm 源码字面量是 UTF-8 字节（reader 不转 Cork），
-                   ;; 先 utf8->cork 归一化，再 translate 查翻译表。否则含非 ASCII 的文案
-                   ;; （如 "TeXmacs → Html" 的 → 箭头）被当 Cork 字节二次解码 → 乱码。
-                   ;; bridge cork_to_utf8 再把 Cork 还原成 UTF-8 给 QML。
-                   ((== kw 'group) (list (cons 'group (preferences-qml-translate-label val))))
-                   ;; group-span：该 group 标题横跨整行（统领下方左右两列），如 IR 的
-                   ;; "Remote controllers with keyboard simulation"。未标的 group 在列内各自渲染。
-                   ((== kw 'group-span) (list (cons 'groupSpan val)))
-                   ((== kw 'hint) (list (cons 'hint (preferences-qml-translate-label val))))
-                   ((== kw 'column) (list (cons 'column val)))
-                   ((== kw 'layout) (list (cons 'layout val)))
-                   ;; action-button：combo 旁的行内按钮。val = action-name（symbol）。
-                   ;; buttonAction 透传 action 名，QML 点击经 bridge callAction -> facade 路由。
-                   ((== kw 'action-button)
-                    (list (cons 'buttonAction val)
-                      (cons 'buttonLabel
-                        (preferences-qml-translate-label (preferences-qml-action-button-label val))
-                      ) ;cons
-                    ) ;list
-                   ) ;
-                   (else '())
-             ) ;cond
-           ) ;let
-         ) ;lambda
+    (map
+      (lambda (pair)
+        (let ((kw (car pair)) (val (cdr pair)))
+          (cond ((== kw 'restart?) (list (cons 'restart? val)))
+                ((== kw 'radio-group) (list (cons 'radioGroup val)))
+                ;; enabled-when：字段始终显示，但仅当某 key 等于 val 时可勾（否则锁定灰显）。
+                ;; 用于 latex transparent / Store tracking、Math semantic：依赖键开才解锁。
+                ((== kw 'enabled-when-key) (list (cons 'enabledWhenKey val)))
+                ((== kw 'enabled-when-val) (list (cons 'enabledWhenVal val)))
+                ;; group / hint 文案：.scm 源码字面量是 UTF-8 字节（reader 不转 Cork），
+                ;; 先 utf8->cork 归一化，再 translate 查翻译表。否则含非 ASCII 的文案
+                ;; （如 "TeXmacs → Html" 的 → 箭头）被当 Cork 字节二次解码 → 乱码。
+                ;; bridge cork_to_utf8 再把 Cork 还原成 UTF-8 给 QML。
+                ((== kw 'group) (list (cons 'group (preferences-qml-translate-label val))))
+                ;; group-span：该 group 标题横跨整行（统领下方左右两列），如 IR 的
+                ;; "Remote controllers with keyboard simulation"。未标的 group 在列内各自渲染。
+                ((== kw 'group-span) (list (cons 'groupSpan val)))
+                ((== kw 'hint) (list (cons 'hint (preferences-qml-translate-label val))))
+                ((== kw 'column) (list (cons 'column val)))
+                ((== kw 'layout) (list (cons 'layout val)))
+                ;; action-button：combo 旁的行内按钮。val = action-name（symbol）。
+                ;; buttonAction 透传 action 名，QML 点击经 bridge callAction -> facade 路由。
+                ((== kw 'action-button)
+                 (list (cons 'buttonAction val)
+                   (cons 'buttonLabel
+                     (preferences-qml-translate-label (preferences-qml-action-button-label val))
+                   ) ;cons
+                 ) ;list
+                ) ;
+                (else '())
+          ) ;cond
+        ) ;let
+      ) ;lambda
       (preferences-qml-plist->alist flags)
     ) ;map
   ) ;apply
@@ -261,27 +267,28 @@
 ;; 取字段的当前值（内部键 / on/off / 翻译显示串）。
 
 (define (preferences-qml-current-value key kind options options-pretty)
-  (cond ((== kind "combo")
-         (let* ((pretty (get-pretty-preference key))
-                (internal (get-preference key))
-                (idx (list-find-index options-pretty (lambda (p) (== p pretty))))
-               ) ;
-           (cond (idx (list-ref options idx))
-                 ((list-find-index options (lambda (ik) (== ik internal))) internal)
-                 ((string? pretty) pretty)
-                 (else "")
-           ) ;cond
-         ) ;let*
-        ) ;
-        ;; latex 双向偏好用统一展示键（latex:source-tracking / conservative /
-        ;; transparent-source-tracking），非真实 preference key，读用 OR/AND helper。
-        ((== key "latex:source-tracking") (if (get-latex-source-tracking) "on" "off"))
-        ((== key "latex:conservative") (if (get-latex-conservative) "on" "off"))
-        ((== key "latex:transparent-source-tracking")
-         (if (get-latex-transparent-source-tracking) "on" "off")
-        ) ;
-        ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
-        (else "")
+  (cond
+   ((== kind "combo")
+    (let* ((pretty (get-pretty-preference key))
+           (internal (get-preference key))
+           (idx (list-find-index options-pretty (lambda (p) (== p pretty))))
+          ) ;
+      (cond (idx (list-ref options idx))
+            ((list-find-index options (lambda (ik) (== ik internal))) internal)
+            ((string? pretty) pretty)
+            (else "")
+      ) ;cond
+    ) ;let*
+   ) ;
+   ;; latex 双向偏好用统一展示键（latex:source-tracking / conservative /
+   ;; transparent-source-tracking），非真实 preference key，读用 OR/AND helper。
+   ((== key "latex:source-tracking") (if (get-latex-source-tracking) "on" "off"))
+   ((== key "latex:conservative") (if (get-latex-conservative) "on" "off"))
+   ((== key "latex:transparent-source-tracking")
+    (if (get-latex-transparent-source-tracking) "on" "off")
+   ) ;
+   ((== kind "toggle") (if (get-boolean-preference key) "on" "off"))
+   (else "")
   ) ;cond
 ) ;define
 
@@ -319,11 +326,13 @@
     ;; look and feel：按平台裁剪 options（options 静态含全部平台、options-pretty 同步裁剪）。
     ((== key (pref-general-look-and-feel))
      (let* ((laf-allowed (preferences-qml-general-look-and-feel-allowed))
-            (laf-pairs (list-filter (map (lambda (ik) (cons ik (preferences-qml-general-look-and-feel-pretty ik)))
-                                      options
-                                    ) ;map
-                         (lambda (pair) (member (car pair) laf-allowed))
-                       ) ;list-filter
+            (laf-pairs
+              (list-filter
+                (map (lambda (ik) (cons ik (preferences-qml-general-look-and-feel-pretty ik)))
+                  options
+                ) ;map
+                (lambda (pair) (member (car pair) laf-allowed))
+              ) ;list-filter
             ) ;laf-pairs
            ) ;
        (list (map car laf-pairs) (map cdr laf-pairs))
@@ -377,28 +386,31 @@
          (opt-pairs (preferences-qml-resolve-options key options options-pretty))
          (final-options (car opt-pairs))
          (final-options-pretty (cadr opt-pairs))
-         (kind (cond ((list-find flags (lambda (x) (== x 'info))) "info")
-                     ((or (nlist? final-options) (null? final-options))
-                      (if (== key "") "info" "toggle")
-                     ) ;
-                     (else "combo")
-               ) ;cond
+         (kind
+           (cond
+            ((list-find flags (lambda (x) (== x 'info))) "info")
+            ((or (nlist? final-options) (null? final-options))
+             (if (== key "") "info" "toggle")
+            ) ;
+            (else "combo")
+           ) ;cond
          ) ;kind
          (base (list (cons 'kind kind)
                  (cons 'key key)
                  (cons 'label (preferences-qml-translate-label label))
                ) ;list
          ) ;base
-         (value-pairs (if (== kind "combo")
-                        (list (cons 'options final-options)
-                          (cons 'optionsTr (map preferences-qml-translate-label final-options-pretty))
-                          (cons 'editable editable?)
-                          (cons 'value
-                            (preferences-qml-current-value key kind final-options final-options-pretty)
-                          ) ;cons
-                        ) ;list
-                        (list (cons 'value (preferences-qml-current-value key kind '() '())))
-                      ) ;if
+         (value-pairs
+           (if (== kind "combo")
+             (list (cons 'options final-options)
+               (cons 'optionsTr (map preferences-qml-translate-label final-options-pretty))
+               (cons 'editable editable?)
+               (cons 'value
+                 (preferences-qml-current-value key kind final-options final-options-pretty)
+               ) ;cons
+             ) ;list
+             (list (cons 'value (preferences-qml-current-value key kind '() '())))
+           ) ;if
          ) ;value-pairs
          (flag-pairs (preferences-qml-flags->assoc flags))
         ) ;
@@ -419,29 +431,33 @@
 
 (tm-define (preferences-qml-collect-field-kinds meta)
   (let ((table (make-ahash-table)))
-    (let ((register (lambda (fields)
-                      (for-each (lambda (field)
-                                  (let* ((vp (assoc 'key field)) (kp (assoc 'kind field)))
-                                    (when (and vp kp)
-                                      (ahash-set! table (cdr vp) (cdr kp))
-                                    ) ;when
-                                  ) ;let*
-                                ) ;lambda
-                        fields
-                      ) ;for-each
-                    ) ;lambda
+    (let ((register
+            (lambda (fields)
+              (for-each
+                (lambda (field)
+                  (let* ((vp (assoc 'key field)) (kp (assoc 'kind field)))
+                    (when (and vp kp)
+                      (ahash-set! table (cdr vp) (cdr kp))
+                    ) ;when
+                  ) ;let*
+                ) ;lambda
+                fields
+              ) ;for-each
+            ) ;lambda
           ) ;register
          ) ;
-      (for-each (lambda (tab)
-                  (let ((fields (if (>= (length tab) 3) (caddr tab) '()))
-                        (sub-tabs (if (>= (length tab) 4) (cadddr tab) '()))
-                       ) ;
-                    (register fields)
-                    (for-each (lambda (sub) (register (if (>= (length sub) 3) (caddr sub) '())))
-                      sub-tabs
-                    ) ;for-each
-                  ) ;let
-                ) ;lambda
+      (for-each
+        (lambda (tab)
+          (let ((fields (if (>= (length tab) 3) (caddr tab) '()))
+                (sub-tabs (if (>= (length tab) 4) (cadddr tab) '()))
+               ) ;
+            (register fields)
+            (for-each
+              (lambda (sub) (register (if (>= (length sub) 3) (caddr sub) '())))
+              sub-tabs
+            ) ;for-each
+          ) ;let
+        ) ;lambda
         meta
       ) ;for-each
     ) ;let

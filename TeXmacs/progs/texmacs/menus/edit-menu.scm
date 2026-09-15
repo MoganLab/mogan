@@ -21,11 +21,12 @@
 
 (tm-menu (clipboard-extern-menu cvs fun)
   (with l
-    (filter (lambda (x)
-              (or (with-developer-tool?)
-                (and (not (string=? x "stm")) (not (string=? x "stem")))
-              ) ;or
-            ) ;lambda
+    (filter
+      (lambda (x)
+        (or (with-developer-tool?)
+          (and (not (string=? x "stm")) (not (string=? x "stem")))
+        ) ;or
+      ) ;lambda
       (cvs "texmacs-snippet" "-snippet" #t)
     ) ;filter
     (for (fm l) (with name (format-get-name fm) ((eval name) (fun fm "primary"))))

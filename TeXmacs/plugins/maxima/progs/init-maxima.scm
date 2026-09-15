@@ -43,15 +43,17 @@
   ) ;if
 ) ;define
 
-(when (and (has-binary-maxima?)
-        (string-starts? (url->system (find-binary-maxima)) "/opt/homebrew/bin")
-      ) ;and
+(when
+  (and (has-binary-maxima?)
+    (string-starts? (url->system (find-binary-maxima)) "/opt/homebrew/bin")
+  ) ;and
   (plugin-add-macos-path "gnuplot" "/opt/homebrew/bin" #t)
 ) ;when
 
-(when (and (has-binary-maxima?)
-        (string-starts? (url->system (find-binary-maxima)) "/usr/local/bin")
-      ) ;and
+(when
+  (and (has-binary-maxima?)
+    (string-starts? (url->system (find-binary-maxima)) "/usr/local/bin")
+  ) ;and
   (plugin-add-macos-path "gnuplot" "/usr/local/bin" #t)
 ) ;when
 

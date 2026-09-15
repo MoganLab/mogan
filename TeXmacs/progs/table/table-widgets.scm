@@ -166,29 +166,30 @@
 
 (tm-widget (cell-size-color-widget)
   (refreshable "cell-properties"
-    (aligned (item (text "Width:")
-               (horizontal (enum (cell-set-format* "cell-hmode" (encode-mode answer))
-                             '("Auto" "Exact" "Minimal" "Maximal")
-                             (decode-mode (cell-get-format "cell-hmode"))
-                             "7em"
-                           ) ;enum
-                 ///
-                 (input (cell-set-format* "cell-width" answer)
-                   "string"
-                   (list (cell-get-format "cell-width"))
-                   "6em"
-                 ) ;input
-                 ///
-                 //
-                 (text "Stretch:")
-                 //
-                 (input (cell-set-format* "cell-hpart" answer)
-                   "string"
-                   (list (cell-get-format "cell-hpart"))
-                   "6em"
-                 ) ;input
-               ) ;horizontal
-             ) ;item
+    (aligned
+      (item (text "Width:")
+        (horizontal (enum (cell-set-format* "cell-hmode" (encode-mode answer))
+                      '("Auto" "Exact" "Minimal" "Maximal")
+                      (decode-mode (cell-get-format "cell-hmode"))
+                      "7em"
+                    ) ;enum
+          ///
+          (input (cell-set-format* "cell-width" answer)
+            "string"
+            (list (cell-get-format "cell-width"))
+            "6em"
+          ) ;input
+          ///
+          //
+          (text "Stretch:")
+          //
+          (input (cell-set-format* "cell-hpart" answer)
+            "string"
+            (list (cell-get-format "cell-hpart"))
+            "6em"
+          ) ;input
+        ) ;horizontal
+      ) ;item
       (item (text "Height:")
         (horizontal (enum (cell-set-format* "cell-vmode" (encode-mode answer))
                       '("Auto" "Exact" "Minimal" "Maximal")
@@ -236,13 +237,14 @@
   (horizontal >>> (bold (text "Border")) >>>)
   ===
   (refreshable "cell-properties"
-    (aligned (item (text "Left:")
-               (input (cell-set-format* "cell-lborder" answer)
-                 "string"
-                 (list (cell-get-format "cell-lborder") "0ln" "1ln")
-                 "6em"
-               ) ;input
-             ) ;item
+    (aligned
+      (item (text "Left:")
+        (input (cell-set-format* "cell-lborder" answer)
+          "string"
+          (list (cell-get-format "cell-lborder") "0ln" "1ln")
+          "6em"
+        ) ;input
+      ) ;item
       (item (text "Right:")
         (input (cell-set-format* "cell-rborder" answer)
           "string"
@@ -293,13 +295,14 @@
   (horizontal >>> (bold (text "Padding")) >>>)
   ===
   (refreshable "cell-properties"
-    (aligned (item (text "Left:")
-               (input (cell-set-format* "cell-lsep" answer)
-                 "string"
-                 (list (cell-get-format "cell-lsep") "1spc")
-                 "6em"
-               ) ;input
-             ) ;item
+    (aligned
+      (item (text "Left:")
+        (input (cell-set-format* "cell-lsep" answer)
+          "string"
+          (list (cell-get-format "cell-lsep") "1spc")
+          "6em"
+        ) ;input
+      ) ;item
       (item (text "Right:")
         (input (cell-set-format* "cell-rsep" answer)
           "string"
@@ -329,13 +332,14 @@
   (horizontal >>> (bold (text "Alignment")) >>>)
   ===
   (refreshable "cell-properties"
-    (aligned (item (text "Horizontal:")
-               (enum (cell-set-format* "cell-halign" (encode-halign answer))
-                 '("Left" "Center" "Right" "Decimal dot" "Decimal comma")
-                 (decode-halign (cell-get-format "cell-halign"))
-                 "7em"
-               ) ;enum
-             ) ;item
+    (aligned
+      (item (text "Horizontal:")
+        (enum (cell-set-format* "cell-halign" (encode-halign answer))
+          '("Left" "Center" "Right" "Decimal dot" "Decimal comma")
+          (decode-halign (cell-get-format "cell-halign"))
+          "7em"
+        ) ;enum
+      ) ;item
       (item (text "Vertical:")
         (enum (cell-set-format* "cell-valign" (encode-valign answer))
           '("Top" "Center" "Bottom" "Baseline")
@@ -351,13 +355,14 @@
   (horizontal >>> (bold (text "Large cells")) >>>)
   ===
   (refreshable "cell-properties"
-    (aligned (item (text "Line wrapping:")
-               (enum (cell-set-format* "cell-hyphen" (encode-hyphen answer))
-                 '("Off" "Top" "Center" "Bottom")
-                 (decode-hyphen (cell-get-format "cell-hyphen"))
-                 "11em"
-               ) ;enum
-             ) ;item
+    (aligned
+      (item (text "Line wrapping:")
+        (enum (cell-set-format* "cell-hyphen" (encode-hyphen answer))
+          '("Off" "Top" "Center" "Bottom")
+          (decode-hyphen (cell-get-format "cell-hyphen"))
+          "11em"
+        ) ;enum
+      ) ;item
       (item (text "Block content:")
         (enum (cell-set-format* "cell-block" (encode-block answer))
           '("Never" "When wrapping" "Always")
@@ -370,7 +375,8 @@
 ) ;tm-widget
 
 (tm-widget (cell-properties-widget quit)
-  (padded (horizontal (vertical (dynamic (cell-size-color-widget))) >>>)
+  (padded
+    (horizontal (vertical (dynamic (cell-size-color-widget))) >>>)
     ======
     ======
     (horizontal >>>
@@ -399,42 +405,45 @@
 
 (tm-widget (table-size-widget)
   (refreshable "table-properties"
-    (aligned (item (text "Rows:")
-               (horizontal (enum (when answer
-                                   (table-set-extents (string->number answer) (table-nr-columns))
-                                 ) ;when
-                             (list (number->string (table-nr-rows)) "1" "2" "3" "4" "5" "6" "7" "8" "")
-                             (number->string (table-nr-rows))
-                             "3em"
-                           ) ;enum
-                 ///
-                 ///
-                 (text "Minimum:")
-                 ///
-                 (enum (table-set-format* "table-min-rows" answer)
-                   (list (table-get-format "table-min-rows") "1" "2" "3" "4" "5" "6" "7" "8" "")
-                   (table-get-format "table-min-rows")
-                   "3em"
-                 ) ;enum
-                 ///
-                 ///
-                 (text "Maximum:")
-                 ///
-                 (enum (table-set-format* "table-max-rows" answer)
-                   (list (table-get-format "table-max-rows") "1" "2" "3" "4" "5" "6" "7" "8" "")
-                   (table-get-format "table-max-rows")
-                   "3em"
-                 ) ;enum
-               ) ;horizontal
-             ) ;item
+    (aligned
+      (item (text "Rows:")
+        (horizontal
+          (enum (when answer
+                  (table-set-extents (string->number answer) (table-nr-columns))
+                ) ;when
+            (list (number->string (table-nr-rows)) "1" "2" "3" "4" "5" "6" "7" "8" "")
+            (number->string (table-nr-rows))
+            "3em"
+          ) ;enum
+          ///
+          ///
+          (text "Minimum:")
+          ///
+          (enum (table-set-format* "table-min-rows" answer)
+            (list (table-get-format "table-min-rows") "1" "2" "3" "4" "5" "6" "7" "8" "")
+            (table-get-format "table-min-rows")
+            "3em"
+          ) ;enum
+          ///
+          ///
+          (text "Maximum:")
+          ///
+          (enum (table-set-format* "table-max-rows" answer)
+            (list (table-get-format "table-max-rows") "1" "2" "3" "4" "5" "6" "7" "8" "")
+            (table-get-format "table-max-rows")
+            "3em"
+          ) ;enum
+        ) ;horizontal
+      ) ;item
       (item (text "Columns:")
-        (horizontal (enum (when answer
-                            (table-set-extents (table-nr-rows) (string->number answer))
-                          ) ;when
-                      (list (number->string (table-nr-columns)) "1" "2" "3" "4" "5" "6" "7" "8" "")
-                      (number->string (table-nr-columns))
-                      "3em"
-                    ) ;enum
+        (horizontal
+          (enum (when answer
+                  (table-set-extents (table-nr-rows) (string->number answer))
+                ) ;when
+            (list (number->string (table-nr-columns)) "1" "2" "3" "4" "5" "6" "7" "8" "")
+            (number->string (table-nr-columns))
+            "3em"
+          ) ;enum
           ///
           ///
           (text "Minimum:")
@@ -496,13 +505,14 @@
   (horizontal >>> (bold (text "Border")) >>>)
   ===
   (refreshable "table-properties"
-    (aligned (item (text "Left:")
-               (input (table-set-format* "table-lborder" answer)
-                 "string"
-                 (list (table-get-format "table-lborder") "0ln" "1ln")
-                 "6em"
-               ) ;input
-             ) ;item
+    (aligned
+      (item (text "Left:")
+        (input (table-set-format* "table-lborder" answer)
+          "string"
+          (list (table-get-format "table-lborder") "0ln" "1ln")
+          "6em"
+        ) ;input
+      ) ;item
       (item (text "Right:")
         (input (table-set-format* "table-rborder" answer)
           "string"
@@ -539,13 +549,14 @@
   (horizontal >>> (bold (text "Padding")) >>>)
   ===
   (refreshable "table-properties"
-    (aligned (item (text "Left:")
-               (input (table-set-format* "table-lsep" answer)
-                 "string"
-                 (list (table-get-format "table-lsep") "0fn")
-                 "6em"
-               ) ;input
-             ) ;item
+    (aligned
+      (item (text "Left:")
+        (input (table-set-format* "table-lsep" answer)
+          "string"
+          (list (table-get-format "table-lsep") "0fn")
+          "6em"
+        ) ;input
+      ) ;item
       (item (text "Right:")
         (input (table-set-format* "table-rsep" answer)
           "string"
@@ -575,13 +586,14 @@
   (horizontal >>> (bold (text "Alignment")) >>>)
   ===
   (refreshable "table-properties"
-    (aligned (item (text "Horizontal:")
-               (enum (table-set-format* "table-halign" (encode-halign answer))
-                 '("Left" "Center" "Right")
-                 (decode-halign (table-get-format "table-halign"))
-                 "10em"
-               ) ;enum
-             ) ;item
+    (aligned
+      (item (text "Horizontal:")
+        (enum (table-set-format* "table-halign" (encode-halign answer))
+          '("Left" "Center" "Right")
+          (decode-halign (table-get-format "table-halign"))
+          "10em"
+        ) ;enum
+      ) ;item
       (item (text "Vertical:")
         (enum (table-set-format* "table-valign" (encode-valign* answer))
           '("Axis" "Top" "Center" "Bottom" "Top baseline" "Center baseline"
@@ -598,18 +610,20 @@
   (horizontal >>> (bold (text "Large tables")) >>>)
   ===
   (refreshable "table-properties"
-    (aligned (meti (horizontal // (text "Enable page breaking"))
-               (toggle (table-set-format* "table-hyphen" (if answer "y" "n"))
-                 (== (table-get-format "table-hyphen") "y")
-               ) ;toggle
-             ) ;meti
+    (aligned
+      (meti (horizontal // (text "Enable page breaking"))
+        (toggle (table-set-format* "table-hyphen" (if answer "y" "n"))
+          (== (table-get-format "table-hyphen") "y")
+        ) ;toggle
+      ) ;meti
     ) ;aligned
     (glue #f #t 0 0)
   ) ;refreshable
 ) ;tm-widget
 
 (tm-widget (table-properties-widget quit)
-  (padded (horizontal (vertical (dynamic (table-size-widget))) >>>)
+  (padded
+    (horizontal (vertical (dynamic (table-size-widget))) >>>)
     ======
     ======
     (horizontal >>>

@@ -18,43 +18,45 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (generate-keys k)
-  (cond ((func? k 'key 3)
-         (with (w x c)
-           (cdr k)
-           (with cmd
-             (if (string? c)
-               (string-append "(emu-key " (string-quote c) ")")
-               (object->string c)
-             ) ;if
-             ;; (display* "cmd= " cmd "\n")
-             `((extended-key ,x ,cmd ,(number->string w)))
-           ) ;with
-         ) ;with
-        ) ;
-        ((func? k 'modifier 3)
-         (with (w x c)
-           (cdr k)
-           (let* ((c* (symbol->string (keyword->symbol c)))
-                  (c** (string-quote c*))
-                  (cmd (string-append "(emu-toggle-modifier " c** ")"))
-                  (on? (if (emu-active-modifier? c*) "true" "false"))
-                 ) ;
-             ;; (display* "cmd= " cmd "\n")
-             `((modifier-key ,x ,cmd ,(number->string w) ,on?))
-           ) ;let*
-         ) ;with
-        ) ;
-        ((func? k 'keys)
-         (map (lambda (x)
-                (with cmd
-                  (string-append "(emu-key " (string-quote x) ")")
-                  ;; (display* "cmd= " cmd "\n")
-                  `(std-key ,x ,cmd)
-                ) ;with
-              ) ;lambda
-           (cdr k)
-         ) ;map
-        ) ;
+  (cond
+   ((func? k 'key 3)
+    (with (w x c)
+      (cdr k)
+      (with cmd
+        (if (string? c)
+          (string-append "(emu-key " (string-quote c) ")")
+          (object->string c)
+        ) ;if
+        ;; (display* "cmd= " cmd "\n")
+        `((extended-key ,x ,cmd ,(number->string w)))
+      ) ;with
+    ) ;with
+   ) ;
+   ((func? k 'modifier 3)
+    (with (w x c)
+      (cdr k)
+      (let* ((c* (symbol->string (keyword->symbol c)))
+             (c** (string-quote c*))
+             (cmd (string-append "(emu-toggle-modifier " c** ")"))
+             (on? (if (emu-active-modifier? c*) "true" "false"))
+            ) ;
+        ;; (display* "cmd= " cmd "\n")
+        `((modifier-key ,x ,cmd ,(number->string w) ,on?))
+      ) ;let*
+    ) ;with
+   ) ;
+   ((func? k 'keys)
+    (map
+      (lambda (x)
+        (with cmd
+          (string-append "(emu-key " (string-quote x) ")")
+          ;; (display* "cmd= " cmd "\n")
+          `(std-key ,x ,cmd)
+        ) ;with
+      ) ;lambda
+      (cdr k)
+    ) ;map
+   ) ;
   ) ;cond
 ) ;define
 
@@ -168,18 +170,19 @@
 ) ;tm-define
 
 (tm-define (narrow-us-keyboard)
-  (cond ((and (not (emu-active-modifier? "Shift")) (not (emu-active-modifier? "Fn")))
-         (narrow-us-lowercase-keyboard)
-        ) ;
-        ((and (emu-active-modifier? "Shift") (not (emu-active-modifier? "Fn")))
-         (narrow-us-uppercase-keyboard)
-        ) ;
-        ((and (not (emu-active-modifier? "Shift")) (emu-active-modifier? "Fn"))
-         (narrow-us-lowercase-fn-keyboard)
-        ) ;
-        ((and (emu-active-modifier? "Shift") (emu-active-modifier? "Fn"))
-         (narrow-us-uppercase-fn-keyboard)
-        ) ;
+  (cond
+   ((and (not (emu-active-modifier? "Shift")) (not (emu-active-modifier? "Fn")))
+    (narrow-us-lowercase-keyboard)
+   ) ;
+   ((and (emu-active-modifier? "Shift") (not (emu-active-modifier? "Fn")))
+    (narrow-us-uppercase-keyboard)
+   ) ;
+   ((and (not (emu-active-modifier? "Shift")) (emu-active-modifier? "Fn"))
+    (narrow-us-lowercase-fn-keyboard)
+   ) ;
+   ((and (emu-active-modifier? "Shift") (emu-active-modifier? "Fn"))
+    (narrow-us-uppercase-fn-keyboard)
+   ) ;
   ) ;cond
 ) ;tm-define
 

@@ -31,7 +31,8 @@
     ) ;define
 
     (define (f-deindent str)
-      (when (or (string-null? str) (not (char=? #\newline (string-ref str 0))))
+      (when
+        (or (string-null? str) (not (char=? #\newline (string-ref str 0))))
         (value-error "Raw string must start on a new line after the opening delimiter")
       ) ;when
 
@@ -46,24 +47,26 @@
             ) ;
 
         ;; check indentation
-        (for-each (lambda (line idx)
-                    (unless (string-null? line)
-                      (let ((indent (or (string-skip line #\space) 0)))
-                        (when (< indent ref-indent)
-                          (value-error "Line ~a does not start with the same whitespace as the closing line of the raw string"
-                            (+ idx 1)
-                          ) ;value-error
-                        ) ;when
-                      ) ;let
-                    ) ;unless
-                  ) ;lambda
+        (for-each
+          (lambda (line idx)
+            (unless (string-null? line)
+              (let ((indent (or (string-skip line #\space) 0)))
+                (when (< indent ref-indent)
+                  (value-error "Line ~a does not start with the same whitespace as the closing line of the raw string"
+                    (+ idx 1)
+                  ) ;value-error
+                ) ;when
+              ) ;let
+            ) ;unless
+          ) ;lambda
           content-lines
           (iota (length content-lines))
         ) ;for-each
 
-        (string-join (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
-                       content-lines
-                     ) ;map
+        (string-join
+          (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
+            content-lines
+          ) ;map
           "\n"
         ) ;string-join
       ) ;let*

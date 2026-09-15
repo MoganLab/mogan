@@ -38,7 +38,9 @@
     (with-ref t var)
     (cond (old-val (tree-set! old-val val))
           ((tree-is? t 'with) (tree-insert! t (- (tree-arity t) 1) (list var val)))
-          (else (tree-set! t `(with ,var ,val ,t)))
+          (else
+            (tree-set! t `(with ,var ,val ,t))
+          ) ;else
     ) ;cond
     t
   ) ;with
@@ -52,7 +54,10 @@
   (cond ((tree-is-buffer? t) (noop))
         ((tree-func? t 'document 1) (with-simplify-sub (tree-up t) var))
         ((tree-func? t 'with)
-         (for (i (reverse (.. 0 (quotient (tree-arity t) 2))))
+         (for
+           (i
+             (reverse (.. 0 (quotient (tree-arity t) 2)))
+           ) ;i
            (when (== (tree-ref t (* 2 i)) var)
              (tree-remove! t (* 2 i) 2)
            ) ;when
@@ -76,7 +81,10 @@
   (when (and (not (tree-is-buffer? t)) (tree->path t))
     (with-simplify (tree-up t))
     (when (tree-is? t 'with)
-      (for (var (map car (list->assoc (cDr (tree-children t)))))
+      (for
+        (var
+          (map car (list->assoc (cDr (tree-children t))))
+        ) ;var
         (with-simplify-sub (tree-up t) var)
       ) ;for
     ) ;when
@@ -109,7 +117,8 @@
 
 (tm-define (make-interactive-with-opacity)
   (:interactive #t)
-  (interactive (lambda (s) (make-with-like `(with-opacity ,s ,"")))
+  (interactive
+    (lambda (s) (make-with-like `(with-opacity ,s ,"")))
     (list "opacity" "string" '())
   ) ;interactive
 ) ;tm-define
@@ -138,21 +147,23 @@
 
 (tm-define (make-multi-with l)
   (when (nnull? l)
-    (cond ((selection-active-table?)
-           (keep-table-selection (for-each cell-set-format (get-cars l) (get-cadrs l)))
-          ) ;
-          ((selection-active-any?)
-           (with t
-             (selection-tree)
-             (clipboard-cut "null")
-             (insert-go-to (add-with l t) (add-with-path l t))
-             (with-simplify (cursor-tree))
-             (and-with w (tree-innermost 'with #t) (tree-select w))
-           ) ;with
-          ) ;
-          (else (insert-go-to `(with ,@l ,"") (list (length l) 0))
-            (with-simplify (cursor-tree))
-          ) ;else
+    (cond
+     ((selection-active-table?)
+      (keep-table-selection (for-each cell-set-format (get-cars l) (get-cadrs l)))
+     ) ;
+     ((selection-active-any?)
+      (with t
+        (selection-tree)
+        (clipboard-cut "null")
+        (insert-go-to (add-with l t) (add-with-path l t))
+        (with-simplify (cursor-tree))
+        (and-with w (tree-innermost 'with #t) (tree-select w))
+      ) ;with
+     ) ;
+     (else
+       (insert-go-to `(with ,@l ,"") (list (length l) 0))
+       (with-simplify (cursor-tree))
+     ) ;else
     ) ;cond
   ) ;when
 ) ;tm-define
@@ -207,22 +218,24 @@
 ) ;tm-define
 
 (tm-define (set-image-alignment t align)
-  (if (and (tree-is? t 'with)
-        (tree-is? (tree-ref t 0) 'string)
-        (string=? (tree->string (tree-ref t 0)) "par-mode")
-        (>= (tree-arity t) 3)
-      ) ;and
+  (if
+    (and (tree-is? t 'with)
+      (tree-is? (tree-ref t 0) 'string)
+      (string=? (tree->string (tree-ref t 0)) "par-mode")
+      (>= (tree-arity t) 3)
+    ) ;and
     (tree-set! t 1 align)
     (debug-message "std-warning" "Invalid tree structure for set-image-alignment\n")
   ) ;if
 ) ;tm-define
 
 (tm-define (get-image-alignment t)
-  (if (and (tree-is? t 'with)
-        (tree-is? (tree-ref t 0) 'string)
-        (string=? (tree->string (tree-ref t 0)) "par-mode")
-        (>= (tree-arity t) 3)
-      ) ;and
+  (if
+    (and (tree-is? t 'with)
+      (tree-is? (tree-ref t 0) 'string)
+      (string=? (tree->string (tree-ref t 0)) "par-mode")
+      (>= (tree-arity t) 3)
+    ) ;and
     (tree->string (tree-ref t 1))
     (debug-message "std-warning" "Invalid tree structure for get-image-alignment\n")
   ) ;if
@@ -242,26 +255,27 @@
 ) ;define
 
 (tm-define (with-like-check-insert t)
-  (cond ((with u (cursor-tree) (and (with-like? u) (with-same-type? t u)))
-         (with u
-           (cursor-tree)
-           (tree-go-to u :last (if (== (cAr (cursor-path)) 0) :start :end))
-           #t
-         ) ;with
-        ) ;
-        ((with u (cursor-tree*) (and (with-like? u) (with-same-type? t u)))
-         (with u (cursor-tree*) (tree-go-to u :last :start) #t)
-        ) ;
-        ((and-with u (with-like-search (cursor-tree)) (with-same-type? t u))
-         (with sym
-           (symbol->string (tree-label t))
-           (set-message `(concat ,"Warning: already inside '" ,sym ,"'")
-             `(concat ,"make '" ,sym ,"'")
-           ) ;set-message
-           #t
-         ) ;with
-        ) ;
-        (else #f)
+  (cond
+   ((with u (cursor-tree) (and (with-like? u) (with-same-type? t u)))
+    (with u
+      (cursor-tree)
+      (tree-go-to u :last (if (== (cAr (cursor-path)) 0) :start :end))
+      #t
+    ) ;with
+   ) ;
+   ((with u (cursor-tree*) (and (with-like? u) (with-same-type? t u)))
+    (with u (cursor-tree*) (tree-go-to u :last :start) #t)
+   ) ;
+   ((and-with u (with-like-search (cursor-tree)) (with-same-type? t u))
+    (with sym
+      (symbol->string (tree-label t))
+      (set-message `(concat ,"Warning: already inside '" ,sym ,"'")
+        `(concat ,"make '" ,sym ,"'")
+      ) ;set-message
+      #t
+    ) ;with
+   ) ;
+   (else #f)
   ) ;cond
 ) ;tm-define
 
@@ -270,14 +284,18 @@
         ((and (tm-compound? w) (== (tm-arity w) 1)) (make (car w)))
         ((selection-active-any?)
          (let* ((selection (selection-tree))
-                (ins `(,@(cDr w) ,selection))
+                (ins
+                  `(,@(cDr w) ,selection)
+                ) ;ins
                 (end (path-end selection '()))
                ) ;
            (clipboard-cut "nowhere")
            (insert-go-to ins (cons (- (tm-arity ins) 1) end))
          ) ;let*
         ) ;
-        (else (insert-go-to w (list (- (tm-arity w) 1) 0)))
+        (else
+          (insert-go-to w (list (- (tm-arity w) 1) 0))
+        ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -335,7 +353,9 @@
     ((attrs (with-like-attrs t)) (r '()))
     (cond ((null? attrs) (with-like-build-body (reverse r) body))
           ((tm-equal? (car attrs) var) (loop (cddr attrs) r))
-          (else (loop (cddr attrs) (cons (cadr attrs) (cons (car attrs) r))))
+          (else
+            (loop (cddr attrs) (cons (cadr attrs) (cons (car attrs) r)))
+          ) ;else
     ) ;cond
   ) ;let
 ) ;define
@@ -349,10 +369,11 @@
            (mid (substring s start* end*))
            (right (substring s end* (string-length s)))
            (mid-index (if (!= left "") 1 0))
-           (parts (list (and (!= left "") (with-like-build-body (with-like-attrs t) left))
-                    (with-like-build-body-without t var mid)
-                    (and (!= right "") (with-like-build-body (with-like-attrs t) right))
-                  ) ;list
+           (parts
+             (list (and (!= left "") (with-like-build-body (with-like-attrs t) left))
+               (with-like-build-body-without t var mid)
+               (and (!= right "") (with-like-build-body (with-like-attrs t) right))
+             ) ;list
            ) ;parts
            (parts* (with-like-compact parts))
           ) ;
@@ -441,30 +462,33 @@
          (all? (with-like-all-have-target? l w))
          (label (tree-label t))
         ) ;
-    (cond (all? (let ((r (map (lambda (u) (with-like-strip-target-from-node u w)) l)))
-                  (cond ((null? r) "")
-                        ((null? (cdr r)) (car r))
-                        (else `(,label ,@r))
-                  ) ;cond
-                ) ;let
-          ) ;all?
-          ((== label 'concat)
-           (with-like-wrap-node w
-             `(concat ,@(map (lambda (u) (with-like-strip-target-from-node u w))
-                          l))
-           ) ;with-like-wrap-node
-          ) ;
-          (else (let ((r (map (lambda (u) (if (with-like-node-has-target? u w) u (with-like-wrap-node w u)))
-                           l
-                         ) ;map
-                      ) ;r
-                     ) ;
-                  (cond ((null? r) "")
-                        ((null? (cdr r)) (car r))
-                        (else `(,label ,@r))
-                  ) ;cond
-                ) ;let
-          ) ;else
+    (cond
+      (all?
+        (let ((r (map (lambda (u) (with-like-strip-target-from-node u w)) l)))
+          (cond ((null? r) "")
+                ((null? (cdr r)) (car r))
+                (else `(,label ,@r))
+          ) ;cond
+        ) ;let
+      ) ;all?
+      ((== label 'concat)
+       (with-like-wrap-node w
+         `(concat ,@(map (lambda (u) (with-like-strip-target-from-node u w)) l))
+       ) ;with-like-wrap-node
+      ) ;
+      (else
+        (let ((r
+                (map (lambda (u) (if (with-like-node-has-target? u w) u (with-like-wrap-node w u)))
+                  l
+                ) ;map
+              ) ;r
+             ) ;
+          (cond ((null? r) "")
+                ((null? (cdr r)) (car r))
+                (else `(,label ,@r))
+          ) ;cond
+        ) ;let
+      ) ;else
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -528,13 +552,14 @@
 ) ;tm-define
 
 (tm-define (with-like-toggle-target w)
-  (cond ((and (selection-active-any?)
-           (== (selection-tree) (path->tree (selection-path)))
-         ) ;and
-         (with-like-selection-target (path->tree (selection-path)) w)
-        ) ;
-        ((with-like-focus-target w))
-        (else (with-like-search (tree-ref (cursor-tree) :up)))
+  (cond
+   ((and (selection-active-any?)
+      (== (selection-tree) (path->tree (selection-path)))
+    ) ;and
+    (with-like-selection-target (path->tree (selection-path)) w)
+   ) ;
+   ((with-like-focus-target w))
+   (else (with-like-search (tree-ref (cursor-tree) :up)))
   ) ;cond
 ) ;tm-define
 
@@ -545,19 +570,21 @@
 
 (tm-define (toggle-with-like w back)
   (cond ((with-like-uniform-toggle? w) (toggle-with-like-uniform-selection w))
-        (else (with t
-                (with-like-toggle-target w)
-                ;; (display* "t= " t "\n")
-                (cond ((not (and t (with-like? t) (with-same-type? t w))) (make-with-like w))
-                      ((and (not back) (with-like-partial-toggle? t))
-                       (toggle-with-like-partial-remove t w)
-                      ) ;
-                      ((or (not back) (tree-empty? (tm-ref t :last))) (remove-with-like-target t))
-                      ((tree-at-start? (tm-ref t :last)) (tree-go-to t 0))
-                      ((tree-at-end? (tm-ref t :last)) (tree-go-to t 1))
-                      (else (make-with-like back))
-                ) ;cond
-              ) ;with
+        (else
+          (with t
+            (with-like-toggle-target w)
+            ;; (display* "t= " t "\n")
+            (cond
+             ((not (and t (with-like? t) (with-same-type? t w))) (make-with-like w))
+             ((and (not back) (with-like-partial-toggle? t))
+              (toggle-with-like-partial-remove t w)
+             ) ;
+             ((or (not back) (tree-empty? (tm-ref t :last))) (remove-with-like-target t))
+             ((tree-at-start? (tm-ref t :last)) (tree-go-to t 0))
+             ((tree-at-end? (tm-ref t :last)) (tree-go-to t 1))
+             (else (make-with-like back))
+            ) ;cond
+          ) ;with
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -608,7 +635,8 @@
 
 (tm-define (make-alternate prompt default-val tag)
   (:interactive #t)
-  (interactive (lambda (x) (make-with-like `(,tag ,x ,"")))
+  (interactive
+    (lambda (x) (make-with-like `(,tag ,x ,"")))
     (list prompt "string" default-val)
   ) ;interactive
 ) ;tm-define
@@ -645,7 +673,8 @@
     (with hit
       #f
       (when (tree-is? t 'with)
-        (for (i (.. 0 (- (tree-arity t) 1) 2))
+        (for
+          (i (.. 0 (- (tree-arity t) 1) 2))
           (when (tm-equal? (tree-ref t i) var)
             (set! hit i)
           ) ;when
@@ -663,14 +692,16 @@
   (with hit
     #f
     (when (tree-is? t 'with)
-      (for (i (.. 0 (- (tree-arity t) 1) 2))
+      (for
+        (i (.. 0 (- (tree-arity t) 1) 2))
         (when (tm-equal? (tree-ref t i) var)
           (set! hit i)
         ) ;when
       ) ;for
     ) ;when
-    (cond (hit (tree-remove! t hit 2) (when (== (tree-arity t) 1) (tree-remove-node t 0)))
-          ((and (tree-up t) (tree-up (tree-up t))) (tree-with-reset* (tree-up t) var))
+    (cond
+      (hit (tree-remove! t hit 2) (when (== (tree-arity t) 1) (tree-remove-node t 0)))
+      ((and (tree-up t) (tree-up (tree-up t))) (tree-with-reset* (tree-up t) var))
     ) ;cond
   ) ;with
 ) ;define
@@ -760,8 +791,21 @@
 
 (tm-define (parameter-choice-list var)
   (:require (in? var (list "slanted-slope")))
-  (list "-1" "-0.5" "-0.33" "-0.25" "-0.2" "-0.15" "-0.1" "0.1" "0.15" "0.2"
-    "0.25" "0.33" "0.5" "1" :other
+  (list "-1"
+    "-0.5"
+    "-0.33"
+    "-0.25"
+    "-0.2"
+    "-0.15"
+    "-0.1"
+    "0.1"
+    "0.15"
+    "0.2"
+    "0.25"
+    "0.33"
+    "0.5"
+    "1"
+    :other
   ) ;list
 ) ;tm-define
 
@@ -930,8 +974,18 @@
               (list "shadow-dx" "shadow-dy" "engrave-dx" "engrave-dy" "emboss-dx" "emboss-dy")
             ) ;in?
   ) ;:require
-  (list "-2.5ln" "-2ln" "-1.5ln" "-1ln" "-0.5ln" "0ln" "0.5ln" "1ln" "1.5ln"
-    "2ln" "2.5ln" :other
+  (list "-2.5ln"
+    "-2ln"
+    "-1.5ln"
+    "-1ln"
+    "-0.5ln"
+    "0ln"
+    "0.5ln"
+    "1ln"
+    "1.5ln"
+    "2ln"
+    "2.5ln"
+    :other
   ) ;list
 ) ;tm-define
 

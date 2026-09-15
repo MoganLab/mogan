@@ -24,14 +24,19 @@
 
 (tm-define (bib-format-name x)
   (:mode bib-elsart-num?)
-  (let* ((f (if (bib-null? (list-ref x 1))
-              ""
-              `(concat ,(bib-abbreviate (list-ref x 1) "." '(nbsp)) (nbsp))
-            ) ;if
+  (let* ((f
+           (if (bib-null? (list-ref x 1))
+             ""
+             `(concat ,(bib-abbreviate (list-ref x 1) "." '(nbsp)) (nbsp))
+           ) ;if
          ) ;f
-         (vv (if (bib-null? (list-ref x 2)) "" `(concat ,(list-ref x 2) (nbsp))))
+         (vv
+           (if (bib-null? (list-ref x 2)) "" `(concat ,(list-ref x 2) (nbsp)))
+         ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
-         (jj (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4))))
+         (jj
+           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+         ) ;jj
         ) ;
     `(concat ,f ,vv ,ll ,jj)
   ) ;let*
@@ -66,13 +71,17 @@
     (if (bib-null? v)
       (if (bib-null? n)
         (if (bib-null? s) "" s)
-        (let ((series (if (bib-null? s) "" `(concat ,(bib-translate " in ") ,s)))
+        (let ((series
+                (if (bib-null? s) "" `(concat ,(bib-translate " in ") ,s))
+              ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
           `(concat ,"No." ,sep ,n ,series)
         ) ;let
       ) ;if
-      (let ((series (if (bib-null? s) "" `(concat ,(bib-translate " of ") ,s)))
+      (let ((series
+              (if (bib-null? s) "" `(concat ,(bib-translate " of ") ,s))
+            ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
         `(concat ,"Vol." ,sep ,v ,series)
@@ -89,11 +98,12 @@
           ((== (length p) 2) `(concat ,(bib-translate "p.")
                                 (nbsp)
                                 ,(list-ref p 1)))
-          (else `(concat ,(bib-translate "pp.")
-                   (nbsp)
-                   ,(list-ref p 1)
-                   ,bib-range-symbol
-                   ,(list-ref p 2))
+          (else
+            `(concat ,(bib-translate "pp.")
+               (nbsp)
+               ,(list-ref p 1)
+               ,bib-range-symbol
+               ,(list-ref p 2))
           ) ;else
     ) ;cond
   ) ;let*
@@ -104,16 +114,21 @@
   (let* ((j (bib-field x "journal"))
          (v (bib-field x "volume"))
          (n (bib-field x "number"))
-         (y `(concat ,"(" ,(bib-field x "year") ,")"))
-         (p (let* ((pp (bib-field x "pages")))
-              (cond ((or (bib-null? pp) (nlist? pp)) "")
-                    ((equal? 1 (length pp)) "")
-                    ((equal? 2 (length pp)) (list-ref pp 1))
-                    (else `(concat ,(list-ref pp 1)
-                             ,bib-range-symbol
-                             ,(list-ref pp 2)))
-              ) ;cond
-            ) ;let*
+         (y
+           `(concat ,"(" ,(bib-field x "year") ,")")
+         ) ;y
+         (p
+           (let* ((pp (bib-field x "pages")))
+             (cond ((or (bib-null? pp) (nlist? pp)) "")
+                   ((equal? 1 (length pp)) "")
+                   ((equal? 2 (length pp)) (list-ref pp 1))
+                   (else
+                     `(concat ,(list-ref pp 1)
+                        ,bib-range-symbol
+                        ,(list-ref pp 2))
+                   ) ;else
+             ) ;cond
+           ) ;let*
          ) ;p
         ) ;
     (when (not (bib-null? n))

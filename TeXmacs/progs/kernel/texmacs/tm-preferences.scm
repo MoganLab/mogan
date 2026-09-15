@@ -239,7 +239,9 @@
         ((and (string? t) (string-starts? t "no-"))
          (not (test-look-and-feel (substring t 3 (string-length t))))
         ) ;
-        (else (with s (look-and-feel) (or (== t s) (and (== t "std") (!= s "emacs")))))
+        (else
+          (with s (look-and-feel) (or (== t s) (and (== t "std") (!= s "emacs"))))
+        ) ;else
   ) ;cond
 ) ;define
 

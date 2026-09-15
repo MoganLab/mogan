@@ -20,13 +20,14 @@
 (tm-define (get-retina-preference which)
   (if (cpp-has-preference? which)
     (get-preference which)
-    (cond ((== which "retina-scale")
-           (cond ((== (get-retina-scale) 1.0) "1")
-                 ((== (get-retina-scale) 2.0) "2")
-                 (else (number->string (get-retina-scale)))
-           ) ;cond
-          ) ;
-          (else "")
+    (cond
+     ((== which "retina-scale")
+      (cond ((== (get-retina-scale) 1.0) "1")
+            ((== (get-retina-scale) 2.0) "2")
+            (else (number->string (get-retina-scale)))
+      ) ;cond
+     ) ;
+     (else "")
     ) ;cond
   ) ;if
 ) ;tm-define
@@ -56,45 +57,48 @@
 ) ;tm-define
 
 (tm-widget (retina-settings-widget cmd)
-  (centered (assuming (and (os-macos?) (qt-gui?))
-              (centered (aligned (item (text "Use retina fonts:")
-                                   (toggle (set-retina-boolean-preference "retina-factor" answer)
-                                     (get-retina-boolean-preference "retina-factor")
-                                   ) ;toggle
-                                 ) ;item
-                          (assuming (!= (get-preference "gui theme") "")
-                            (item (text "Scale graphical interface:")
-                              (enum (set-retina-preference "retina-scale" answer)
-                                '("1" "1.2" "1.5" "2" "")
-                                (get-retina-preference "retina-scale")
-                                "5em"
-                              ) ;enum
-                            ) ;item
-                          ) ;assuming
-                        ) ;aligned
-              ) ;centered
-            ) ;assuming
+  (centered
+    (assuming (and (os-macos?) (qt-gui?))
+      (centered
+        (aligned (item (text "Use retina fonts:")
+                   (toggle (set-retina-boolean-preference "retina-factor" answer)
+                     (get-retina-boolean-preference "retina-factor")
+                   ) ;toggle
+                 ) ;item
+          (assuming (!= (get-preference "gui theme") "")
+            (item (text "Scale graphical interface:")
+              (enum (set-retina-preference "retina-scale" answer)
+                '("1" "1.2" "1.5" "2" "")
+                (get-retina-preference "retina-scale")
+                "5em"
+              ) ;enum
+            ) ;item
+          ) ;assuming
+        ) ;aligned
+      ) ;centered
+    ) ;assuming
     (assuming (not (os-macos?))
-      (centered (aligned (item (text "Double the zoom factor for TeXmacs documents:")
-                           (toggle (set-retina-boolean-preference "retina-zoom" answer)
-                             (get-retina-boolean-preference "retina-zoom")
-                           ) ;toggle
-                         ) ;item
-                  (item (text "Use high resolution icons:")
-                    (toggle (set-retina-boolean-preference "retina-icons" answer)
-                      (get-retina-boolean-preference "retina-icons")
-                    ) ;toggle
-                  ) ;item
-                  (assuming (!= (get-preference "gui theme") "")
-                    (item (text "Scale of the graphical user interface:")
-                      (enum (set-retina-preference "retina-scale" answer)
-                        '("1" "1.2" "1.5" "2" "")
-                        (get-retina-preference "retina-scale")
-                        "5em"
-                      ) ;enum
-                    ) ;item
-                  ) ;assuming
-                ) ;aligned
+      (centered
+        (aligned (item (text "Double the zoom factor for TeXmacs documents:")
+                   (toggle (set-retina-boolean-preference "retina-zoom" answer)
+                     (get-retina-boolean-preference "retina-zoom")
+                   ) ;toggle
+                 ) ;item
+          (item (text "Use high resolution icons:")
+            (toggle (set-retina-boolean-preference "retina-icons" answer)
+              (get-retina-boolean-preference "retina-icons")
+            ) ;toggle
+          ) ;item
+          (assuming (!= (get-preference "gui theme") "")
+            (item (text "Scale of the graphical user interface:")
+              (enum (set-retina-preference "retina-scale" answer)
+                '("1" "1.2" "1.5" "2" "")
+                (get-retina-preference "retina-scale")
+                "5em"
+              ) ;enum
+            ) ;item
+          ) ;assuming
+        ) ;aligned
       ) ;centered
     ) ;assuming
     ===

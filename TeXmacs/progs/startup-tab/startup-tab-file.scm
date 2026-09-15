@@ -25,10 +25,11 @@
   ;; Create a new document with the specified style
   ;; style-id: "generic", "beamer", "book", "exam", "letter", "article"
   ;; Use with-buffer to ensure we're working in the correct buffer context
-  (with-default-view (let ((buf (if (window-per-buffer?) (open-window) (new-buffer))))
-                       ;; Schedule style initialization after buffer is fully set up
-                       (delayed (:idle 100) (with-buffer buf (init-style style-id)))
-                     ) ;let
+  (with-default-view
+    (let ((buf (if (window-per-buffer?) (open-window) (new-buffer))))
+      ;; Schedule style initialization after buffer is fully set up
+      (delayed (:idle 100) (with-buffer buf (init-style style-id)))
+    ) ;let
   ) ;with-default-view
 ) ;tm-define
 

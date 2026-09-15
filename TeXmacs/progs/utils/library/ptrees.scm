@@ -75,9 +75,10 @@
   (cond ((or (null? pt) (== #f pt)) '())
         ((pt-terminal? pt) (list step))
         ((== "" (caar pt)) (append (list step) (pt-words-below-sub (cdr pt) step)))
-        (else (append (pt-words-below-sub (cdar pt) (string-append step (caar pt)))
-                (pt-words-below-sub (cdr pt) step)
-              ) ;append
+        (else
+          (append (pt-words-below-sub (cdar pt) (string-append step (caar pt)))
+            (pt-words-below-sub (cdr pt) step)
+          ) ;append
         ) ;else
   ) ;cond
 ) ;define

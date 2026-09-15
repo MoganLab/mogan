@@ -119,7 +119,9 @@
   (:argument w "Width of the graphics")
   (let* ((geo (graphics-geometry))
          (align (if (>= (length geo) 5) (cAr geo) "center"))
-         (new-geo `(tuple ,"geometry" ,w ,(cadddr geo) ,align))
+         (new-geo
+           `(tuple ,"geometry" ,w ,(cadddr geo) ,align)
+         ) ;new-geo
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
   ) ;let*
@@ -129,7 +131,9 @@
   (:argument h "Height of the graphics")
   (let* ((geo (graphics-geometry))
          (align (if (>= (length geo) 5) (cAr geo) "center"))
-         (new-geo `(tuple ,"geometry" ,(caddr geo) ,h ,align))
+         (new-geo
+           `(tuple ,"geometry" ,(caddr geo) ,h ,align)
+         ) ;new-geo
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
   ) ;let*
@@ -145,7 +149,9 @@
   (:argument a "Alignment of the graphics")
   (:check-mark "*" geo-valign-has-value?)
   (let* ((geo (graphics-geometry))
-         (new-geo `(tuple ,"geometry" ,(caddr geo) ,(cadddr geo) ,a))
+         (new-geo
+           `(tuple ,"geometry" ,(caddr geo) ,(cadddr geo) ,a)
+         ) ;new-geo
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
   ) ;let*
@@ -221,7 +227,10 @@
   ) ;define
   (traverse l)
   (set! l (reverse l))
-  (if (and (pair? l) (not (char-alphabetic? (car l)))) (set! l (cdr l)))
+  (if
+    (and (pair? l) (not (char-alphabetic? (car l))))
+    (set! l (cdr l))
+  ) ;if
   (list->string l)
 ) ;tm-define
 ;; TODO: Move this in the utils (?)
@@ -279,7 +288,9 @@
          (y4 (length-add "0.5gh" y3))
          (x5 (if (and (string? x4) (string-ends? x4 "gw")) x4 x1))
          (y5 (if (and (string? y4) (string-ends? y4 "gh")) y4 y1))
-         (newfr `(tuple ,"scale" ,newu (tuple ,x4 ,y4)))
+         (newfr
+           `(tuple ,"scale" ,newu (tuple ,x4 ,y4))
+         ) ;newfr
         ) ;
     ;; (display* "old fr= " fr "\n")
     ;; (display* "new fr= " newfr "\n")
@@ -319,7 +330,9 @@
     (let* ((fr (graphics-cartesian-frame))
            (x (cadr (cadddr fr)))
            (y (caddr (cadddr fr)))
-           (newfr `(tuple ,"scale" ,(caddr fr) (tuple ,(add x dx) ,(add y dy))))
+           (newfr
+             `(tuple ,"scale" ,(caddr fr) (tuple ,(add x dx) ,(add y dy)))
+           ) ;newfr
           ) ;
       (graphics-decorations-reset)
       (graphics-set-property "gr-frame" newfr)
@@ -371,18 +384,19 @@
 
 (tm-define (graphics-change-geo-valign down?)
   (let* ((geo (graphics-geometry)) (a (car (cddddr geo))))
-    (graphics-set-geo-valign (if down?
-                               (cond ((== a "top") "center")
-                                     ((== a "center") "bottom")
-                                     ((== a "bottom") "top")
-                                     (else "default")
-                               ) ;cond
-                               (cond ((== a "top") "bottom")
-                                     ((== a "center") "top")
-                                     ((== a "bottom") "center")
-                                     (else "default")
-                               ) ;cond
-                             ) ;if
+    (graphics-set-geo-valign
+      (if down?
+        (cond ((== a "top") "center")
+              ((== a "center") "bottom")
+              ((== a "bottom") "top")
+              (else "default")
+        ) ;cond
+        (cond ((== a "top") "bottom")
+              ((== a "center") "top")
+              ((== a "bottom") "center")
+              (else "default")
+        ) ;cond
+      ) ;if
     ) ;graphics-set-geo-valign
   ) ;let*
 ) ;tm-define
@@ -709,28 +723,31 @@
 
 (tm-define (graphics-set-edit-grid type)
   (:check-mark "*" edit-type-has-value?)
-  (cond ((or (== type 'default) (== type 'grid-change))
-         (let* ((aspect (graphics-grid-aspect-props))
-                (nsubds0 (cadr (list-ref aspect (- (length aspect) 1))))
-                (nsubds (if (number? nsubds0)
-                          nsubds0
-                          (if (string? nsubds0) (string->number nsubds0) #f)
-                        ) ;if
-                ) ;nsubds
-               ) ;
-           (if (or (== nsubds #f) (not (grid-aspect-show-subunits?))) (set! nsubds 1))
-           (if (== type 'default) (graphics-fetch-grid-vars 'cartesian #t))
-           (if (!= graphics-current-type "logarithmic")
-             (graphics-set-grid-aspect 'update nsubds #f)
-           ) ;if
-           (graphics-set-grid #f)
-         ) ;let*
-        ) ;
-        (else (grid-as-visual-grid! #f)
-          (graphics-fetch-grid-vars type #f)
-          (set! graphics-current-type (symbol->string type))
-          (graphics-set-grid #f)
-        ) ;else
+  (cond
+   ((or (== type 'default) (== type 'grid-change))
+    (let* ((aspect (graphics-grid-aspect-props))
+           (nsubds0
+             (cadr (list-ref aspect (- (length aspect) 1)))
+           ) ;nsubds0
+           (nsubds (if (number? nsubds0)
+                     nsubds0
+                     (if (string? nsubds0) (string->number nsubds0) #f)
+                   ) ;if
+           ) ;nsubds
+          ) ;
+      (if (or (== nsubds #f) (not (grid-aspect-show-subunits?))) (set! nsubds 1))
+      (if (== type 'default) (graphics-fetch-grid-vars 'cartesian #t))
+      (if (!= graphics-current-type "logarithmic")
+        (graphics-set-grid-aspect 'update nsubds #f)
+      ) ;if
+      (graphics-set-grid #f)
+    ) ;let*
+   ) ;
+   (else (grid-as-visual-grid! #f)
+     (graphics-fetch-grid-vars type #f)
+     (set! graphics-current-type (symbol->string type))
+     (graphics-set-grid #f)
+   ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -865,7 +882,8 @@
     (if visual? "gr-grid-aspect" "gr-edit-grid-aspect")
     (with aspect
       (tree->stree (get-env-tree gr))
-      (if (not (match? aspect '(tuple (tuple :%2) (tuple :%2) :*)))
+      (if
+        (not (match? aspect '(tuple (tuple :%2) (tuple :%2) :*)))
         (set! res (get-default-val gr))
       ) ;if
       (cons 'tuple (sort (cdr aspect) cmp-aspect-items))
@@ -1112,16 +1130,17 @@
          r
        ) ;if
      ) ;lambda
-     (cond ((string? m) `(edit ,(string->symbol m)))
-           ((== m '(uninit)) '(edit none))
-           ((and (pair? m) (== (car m) 'concat))
-            ;; Handle concat structure, find tuple element
-            (with tuple-elem
-              (list-find (cdr m) (lambda (x) (and (pair? x) (== (car x) 'tuple))))
-              (if tuple-elem (map string->symbol (cdr tuple-elem)) '(edit none))
-            ) ;with
-           ) ;
-           ((pair? m) (map string->symbol (cdr m)))
+     (cond
+      ((string? m) `(edit ,(string->symbol m)))
+      ((== m '(uninit)) '(edit none))
+      ((and (pair? m) (== (car m) 'concat))
+       ;; Handle concat structure, find tuple element
+       (with tuple-elem
+         (list-find (cdr m) (lambda (x) (and (pair? x) (== (car x) 'tuple))))
+         (if tuple-elem (map string->symbol (cdr tuple-elem)) '(edit none))
+       ) ;with
+      ) ;
+      ((pair? m) (map string->symbol (cdr m)))
      ) ;cond
     ) ;
   ) ;with
@@ -1134,9 +1153,10 @@
 
 (tm-define (graphics-set-mode val)
   (:check-mark "v" graphics-mode-has-value?)
-  (if (and (equal? (graphics-mode) val)
-        (not (equal? (graphics-mode) '(group-edit edit-props)))
-      ) ;and
+  (if
+    (and (equal? (graphics-mode) val)
+      (not (equal? (graphics-mode) '(group-edit edit-props)))
+    ) ;and
     (graphics-set-mode '(group-edit edit-props))
     (begin
       (graphics-group-start)
@@ -1177,11 +1197,12 @@
 
 (define (update-proviso-sub l val)
   (when (and (nnull? l) (nnull? (cdr l)))
-    (when (and (tm-equal? (car l) "gr-proviso")
-            (tree-compound? (cadr l))
-            (== (tree-arity (cadr l)) 1)
-            (tree-atomic? (tree-ref (cadr l) 0))
-          ) ;and
+    (when
+      (and (tm-equal? (car l) "gr-proviso")
+        (tree-compound? (cadr l))
+        (== (tree-arity (cadr l)) 1)
+        (tree-atomic? (tree-ref (cadr l) 0))
+      ) ;and
       (tree-set (tree-ref (cadr l) 0) val)
     ) ;when
     (update-proviso-sub (cddr l) val)
@@ -1471,7 +1492,8 @@
 ) ;define
 
 (tm-define (graphics-get-snap-mode)
-  (tm->tree (if (== (car (graphics-mode)) 'hand-edit) '(tuple) `(tuple ,@(get-snap)))
+  (tm->tree
+    (if (== (car (graphics-mode)) 'hand-edit) '(tuple) `(tuple ,@(get-snap)))
   ) ;tm->tree
 ) ;tm-define
 
@@ -1536,18 +1558,19 @@
 ) ;define
 
 (define (with-set t var val i)
-  (cond ((>= i (- (tree-arity t) 1))
-         (when (!= val "default")
-           (tree-insert! t i (list var val))
-         ) ;when
-        ) ;
-        ((tm-equal? (tree-ref t i) var)
-         (if (!= val "default")
-           (tree-assign (tree-ref t (+ i 1)) val)
-           (tree-remove t i 2)
-         ) ;if
-        ) ;
-        (else (with-set t var val (+ i 2)))
+  (cond
+   ((>= i (- (tree-arity t) 1))
+    (when (!= val "default")
+      (tree-insert! t i (list var val))
+    ) ;when
+   ) ;
+   ((tm-equal? (tree-ref t i) var)
+    (if (!= val "default")
+      (tree-assign (tree-ref t (+ i 1)) val)
+      (tree-remove t i 2)
+    ) ;if
+   ) ;
+   (else (with-set t var val (+ i 2)))
   ) ;cond
 ) ;define
 

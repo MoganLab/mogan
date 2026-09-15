@@ -26,7 +26,9 @@
       (if (ahash-ref data item)
         (let* ((nr (ahash-ref data item))
                (num (if (== where :notes) "alpha" "Alpha"))
-               (sym* `(number ,(number->string nr) ,num))
+               (sym*
+                 `(number ,(number->string nr) ,num)
+               ) ;sym*
                (sym `(with ,"font-shape" ,"italic" ,sym*))
                (id (string-append "authref-" (number->string nr)))
                (nname `(doc-note-ref ,sym (noteref-sep) ,id ,name))
@@ -36,12 +38,16 @@
         (let* ((fields (ahash-ref data where))
                (nr (+ 1 (length (ahash-ref data :notes)) (length (ahash-ref data :footnotes))))
                (num (if (== where :notes) "alpha" "Alpha"))
-               (sym* `(number ,(number->string nr) ,num))
+               (sym*
+                 `(number ,(number->string nr) ,num)
+               ) ;sym*
                (sym `(with ,"font-shape" ,"italic" ,sym*))
                (id (string-append "authref-" (number->string nr)))
                (lab* (symbol-append (tm-label item) '-note))
                (lab (if (== where :notes) lab* 'doc-footnote-text))
-               (fld `(,lab ,sym ,id ,(tm-ref item 0)))
+               (fld
+                 `(,lab ,sym ,id ,(tm-ref item 0))
+               ) ;fld
                (nfields (cons fld fields))
                (nname `(doc-note-ref ,sym (noteref-sep) ,id ,name))
               ) ;
@@ -100,8 +106,12 @@
           (let* ((names (build-authors-refs authors data))
                  (notes (reverse (ahash-ref data :notes)))
                  (fnotes (reverse (ahash-ref data :footnotes)))
-                 (uname `(concat ,@(list-intersperse names ", ")))
-                 (adata `(author-data (author-name ,uname) ,@notes))
+                 (uname
+                   `(concat ,@(list-intersperse names ", "))
+                 ) ;uname
+                 (adata
+                   `(author-data (author-name ,uname) ,@notes)
+                 ) ;adata
                  (uauthor `(doc-author ,adata))
                 ) ;
             `(,(tm-label t) ,@other ,uauthor ,@fnotes)
@@ -123,7 +133,10 @@
 (tm-define (list-group l fun)
   (with t
     '()
-    (for-each (lambda (x) (set! t (assoc-add-to-group t (fun x) x))) l)
+    (for-each
+      (lambda (x) (set! t (assoc-add-to-group t (fun x) x)))
+      l
+    ) ;for-each
     (map reverse (map cdr (reverse t)))
   ) ;with
 ) ;tm-define
@@ -145,8 +158,12 @@
          (clean-authors (map remove-affiliations group))
          (names (build-authors-refs clean-authors data))
          (notes (reverse (ahash-ref data :notes)))
-         (uname `(concat ,@(list-intersperse names ", ")))
-         (adata `(author-data (author-name ,uname) ,@affs ,@notes))
+         (uname
+           `(concat ,@(list-intersperse names ", "))
+         ) ;uname
+         (adata
+           `(author-data (author-name ,uname) ,@affs ,@notes)
+         ) ;adata
          (uauthor `(doc-author ,adata))
         ) ;
     uauthor
@@ -157,9 +174,13 @@
   (if (null? (cdr group))
     (let* ((f (car group))
            (l '(author-email author-homepage author-misc))
-           (notes (select f `((,:or ,@l))))
+           (notes
+             (select f `((,:or ,@l)))
+           ) ;notes
            (nnotes (select f '((:exclude author-email))))
-           (nf `(,(tm-label f) ,@nnotes))
+           (nf
+             `(,(tm-label f) ,@nnotes)
+           ) ;nf
            (rewr (rewrite-by-affiliation-bis (list nf) data))
           ) ;
       `(doc-author (author-data ,@(cdadr rewr) ,@notes))
@@ -235,11 +256,12 @@
 (define (abbreviate-author-bis t)
   (let* ((name (select t '(author-name 0)))
          (affiliation (select t '(author-affiliation document :%1)))
-         (new-name (if (null? affiliation)
-                     `(author-name ,(make-single name))
-                     `(author-name-affiliation ,(make-single name)
-                        ,(make-single affiliation))
-                   ) ;if
+         (new-name
+           (if (null? affiliation)
+             `(author-name ,(make-single name))
+             `(author-name-affiliation ,(make-single name)
+                ,(make-single affiliation))
+           ) ;if
          ) ;new-name
          (other (select t '((:exclude author-name author-affiliation))))
         ) ;

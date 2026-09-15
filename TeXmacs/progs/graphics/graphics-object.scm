@@ -175,19 +175,20 @@
   ;; (display* "create-graphical-props " mode ", " ps0 "\n")
   (let ((tab (make-ahash-table)) (l (graphics-all-attributes)))
     (set! l (list-difference l '("gid" "anim-id")))
-    (cond ((== mode 'active)
-           (for (var l) (ahash-set! tab var (ahash-ref graphical-attrs var)))
-          ) ;
-          ((list? mode)
-           (for (var l) (ahash-set! tab var (graphics-path-property mode var)))
-           (ahash-set! tab "magnify" (graphics-eval-magnify-at (rcons mode 0)))
-          ) ;
-          ((== mode 'new)
-           (for (var l) (ahash-set! tab var (graphics-get-property (gr-prefix var))))
-          ) ;
-          ((== mode 'default)
-           (for (var l) (ahash-set! tab var (graphics-attribute-default var)))
-          ) ;
+    (cond
+     ((== mode 'active)
+      (for (var l) (ahash-set! tab var (ahash-ref graphical-attrs var)))
+     ) ;
+     ((list? mode)
+      (for (var l) (ahash-set! tab var (graphics-path-property mode var)))
+      (ahash-set! tab "magnify" (graphics-eval-magnify-at (rcons mode 0)))
+     ) ;
+     ((== mode 'new)
+      (for (var l) (ahash-set! tab var (graphics-get-property (gr-prefix var))))
+     ) ;
+     ((== mode 'default)
+      (for (var l) (ahash-set! tab var (graphics-attribute-default var)))
+     ) ;
     ) ;cond
     (with ps
       (ahash-ref tab "point-style")
@@ -197,7 +198,12 @@
       ) ;ahash-set!
     ) ;with
     (let* ((l1 (ahash-table->list tab))
-           (l2 (map (lambda (x) (list (car x) (dv (car x) (cdr x)))) l1))
+           (l2
+             (map
+               (lambda (x) (list (car x) (dv (car x) (cdr x))))
+               l1
+             ) ;map
+           ) ;l2
            (l3 (apply append l2))
           ) ;
       (cons 'with l3)
@@ -224,34 +230,51 @@
       (set! mag gm)
     ) ;when
   ) ;with
-  (let* ((o1 (with res
-               (if (or (graphical-text-at-context? o) (== (car o) 'gr-group))
-                 `(with ,"text-at-halign"
-                    ,ha0
-                    ,(graphics-valign-var o)
-                    ,va0
-                    ,"doc-at-width"
-                    ,w
-                    ,"doc-at-hmode"
-                    ,hm
-                    ,"doc-at-ppsep"
-                    ,pp
-                    ,o)
-                 o
-               ) ;if
-               `(with ,"magnify" ,(if (== mag "default") "1" mag) ,res)
-             ) ;with
+  (let* ((o1
+           (with res
+             (if (or (graphical-text-at-context? o) (== (car o) 'gr-group))
+               `(with ,"text-at-halign"
+                  ,ha0
+                  ,(graphics-valign-var o)
+                  ,va0
+                  ,"doc-at-width"
+                  ,w
+                  ,"doc-at-hmode"
+                  ,hm
+                  ,"doc-at-ppsep"
+                  ,pp
+                  ,o)
+               o
+             ) ;if
+             `(with ,"magnify" ,(if (== mag "default") "1" mag) ,res)
+           ) ;with
          ) ;o1
          (info0 (cdr (box-info o1 "lbLB")))
          (info1 (cdr (box-info o1 "rtRT")))
-         (l (f2s (min (s2f (car info0)) (s2f (caddr info0)))))
-         (b (f2s (min (s2f (cadr info0)) (s2f (cadddr info0)))))
-         (r (f2s (max (s2f (car info1)) (s2f (caddr info1)))))
-         (t (f2s (max (s2f (cadr info1)) (s2f (cadddr info1)))))
-         (p0 (frame-inverse `(tuple ,l ,b)))
-         (p1 (frame-inverse `(tuple ,r ,b)))
-         (p2 (frame-inverse `(tuple ,r ,t)))
-         (p3 (frame-inverse `(tuple ,l ,t)))
+         (l
+           (f2s (min (s2f (car info0)) (s2f (caddr info0))))
+         ) ;l
+         (b
+           (f2s (min (s2f (cadr info0)) (s2f (cadddr info0))))
+         ) ;b
+         (r
+           (f2s (max (s2f (car info1)) (s2f (caddr info1))))
+         ) ;r
+         (t
+           (f2s (max (s2f (cadr info1)) (s2f (cadddr info1))))
+         ) ;t
+         (p0
+           (frame-inverse `(tuple ,l ,b))
+         ) ;p0
+         (p1
+           (frame-inverse `(tuple ,r ,b))
+         ) ;p1
+         (p2
+           (frame-inverse `(tuple ,r ,t))
+         ) ;p2
+         (p3
+           (frame-inverse `(tuple ,l ,t))
+         ) ;p3
         ) ;
     ;; (display* "o= " o1 "\n")
     ;; (display* "p= " (cursor-path) ", " (cursor-tree) "\n")
@@ -276,10 +299,11 @@
   (set! eps (length-decode eps))
   (let* ((ha (get-graphical-prop 'basic "text-at-halign"))
          (va (get-graphical-prop 'basic (graphics-valign-var o)))
-         (o1 (if (graphical-text-at-context? o)
-               `(with ,"text-at-halign" ,ha ,(graphics-valign-var o) ,va ,o)
-               o
-             ) ;if
+         (o1
+           (if (graphical-text-at-context? o)
+             `(with ,"text-at-halign" ,ha ,(graphics-valign-var o) ,va ,o)
+             o
+           ) ;if
          ) ;o1
          (info0 (cdr (box-info o1 "lbLB")))
          (info1 (cdr (box-info o1 "rtRT")))
@@ -287,7 +311,9 @@
          (b (min (s2f (cadr info0)) (s2f (cadddr info0))))
          (r (max (s2f (car info1)) (s2f (caddr info1))))
          (t (max (s2f (cadr info1)) (s2f (cadddr info1))))
-         (p (frame-direct `(tuple ,x ,y)))
+         (p
+           (frame-direct `(tuple ,x ,y))
+         ) ;p
         ) ;
     (set! x (s2f (cadr p)))
     (set! y (s2f (caddr p)))
@@ -342,46 +368,54 @@
          (let* ((a (or (graphics-anim-frames o) (list (cadr o))))
                 (c (map (lambda (x) (create-graphical-contour* x 0 #f)) a))
                ) ;
-           (map (lambda (x) `(concat ,@x)) c)
+           (map
+             (lambda (x) `(concat ,@x))
+             c
+           ) ;map
          ) ;let*
         ) ;
         ((== (car o) 'with) (create-graphical-contour* (cAr o) 0 #f))
         ((integer? no)
          (let* ((l (list-tail (cdr o) no)) (ll (length l)))
-           (append (with h
-                     (list-head (cdr o) no)
-                     (if (and edge
-                           (in? (car o) (graphical-closed-curve-tag-list))
-                           (== (+ no 1) (length (cdr o)))
-                         ) ;and
-                       (cons `(with ,"point-style"
-                                ,(if sticky-point "square" "disk")
-                                ,(car h))
-                         (cdr h)
+           (append
+             (with h
+               (list-head (cdr o) no)
+               (if
+                 (and edge
+                   (in? (car o) (graphical-closed-curve-tag-list))
+                   (== (+ no 1) (length (cdr o)))
+                 ) ;and
+                 (cons
+                   `(with ,"point-style"
+                      ,(if sticky-point "square" "disk")
+                      ,(car h))
+                   (cdr h)
+                 ) ;cons
+                 h
+               ) ;if
+             ) ;with
+             (cons
+               (list 'with
+                 "point-style"
+                 "disk"
+                 (cons 'concat
+                   (if (< ll 2)
+                     (if sticky-point '() (if edge (list-head l 1) (curp (list-head l 1))))
+                     (if edge
+                       (with l2
+                         (list-head l 2)
+                         (if sticky-point `(with ,"point-style"
+                                             ,"square"
+                                             (concat ,@(cdr l2))) l2)
+                       ) ;with
+                       (cons
+                         `(with ,"point-style" ,"square" ,(list-ref l 1))
+                         (curp (list-head l 1))
                        ) ;cons
-                       h
                      ) ;if
-                   ) ;with
-             (cons (list 'with
-                     "point-style"
-                     "disk"
-                     (cons 'concat
-                       (if (< ll 2)
-                         (if sticky-point '() (if edge (list-head l 1) (curp (list-head l 1))))
-                         (if edge
-                           (with l2
-                             (list-head l 2)
-                             (if sticky-point `(with ,"point-style"
-                                                 ,"square"
-                                                 (concat ,@(cdr l2))) l2)
-                           ) ;with
-                           (cons `(with ,"point-style"
-                                    ,"square"
-                                    ,(list-ref l 1)) (curp (list-head l 1)))
-                         ) ;if
-                       ) ;if
-                     ) ;cons
-                   ) ;list
+                   ) ;if
+                 ) ;cons
+               ) ;list
                '()
              ) ;cons
              (if (> ll 2) (list-tail l 2) '())
@@ -393,9 +427,10 @@
 ) ;define
 
 (define (compress l)
-  (cond ((or (null? l) (null? (cdr l))) l)
-        ((null? (cddr l)) (cdr l))
-        (else (cons (car l) (compress (cddr l))))
+  (cond
+   ((or (null? l) (null? (cdr l))) l)
+   ((null? (cddr l)) (cdr l))
+   (else (cons (car l) (compress (cddr l))))
   ) ;cond
 ) ;define
 
@@ -462,7 +497,10 @@
   (if (and (== pts 'points) ptr) (begin (set! l (cons (path->tree ptr) l))))
   (set! l (append-map (lambda (x) (or (graphics-anim-radicals x) (list x))) l))
   (for (o l)
-    (if (not (and (tree? o) (< (cAr (tree-ip o)) 0)))
+    (if
+      (not
+        (and (tree? o) (< (cAr (tree-ip o)) 0))
+      ) ;not
       (let* ((props #f) (t #f) (path0 #f))
         (set! curscol #f)
         (set! on-aobj #f)
@@ -488,64 +526,67 @@
         (if (and (== (car o) 'gr-group) (!= pts 'object))
           (set! props (create-graphical-props 'default #f))
         ) ;if
-        (cond ((== (car o) 'point)
-               (if (not curscol) (set! curscol default-color-selected-points))
-               (set! t (if (== pts 'object) `(,o) (asc curscol #f `(,o))))
-              ) ;
-              ((graphical-text-at-context? o)
-               (if (not curscol) (set! curscol default-color-selected-points))
-               (set! t
-                 (let* ((valign-var (graphics-valign-var o))
-                        (ha (get-graphical-prop path0 "text-at-halign"))
-                        (va (get-graphical-prop path0 valign-var))
-                        (w (get-graphical-prop path0 "doc-at-width"))
-                        (hm (get-graphical-prop path0 "doc-at-hmode"))
-                        (pp (get-graphical-prop path0 "doc-at-ppsep"))
-                        (mag (get-graphical-prop path0 "magnify"))
-                        (gc (asc curscol #f (create-graphical-embedding-box o ha va ha va w hm pp mag)))
-                       ) ;
-                   (if (== pts 'object-and-points) (cons o gc) (if (== pts 'object) `(,o) gc))
-                 ) ;let*
-               ) ;set!
-              ) ;
-              ((== (car o) 'gr-group)
-               (if (not curscol) (set! curscol default-color-selected-points))
-               (set! t
-                 (with gc
-                   (asc curscol
-                     #f
-                     (let* ((ha (get-graphical-prop path0 "text-at-halign"))
-                            (va (get-graphical-prop path0 "text-at-valign"))
-                            (mag (get-graphical-prop path0 "magnify"))
-                           ) ;
-                       (create-graphical-embedding-box o ha va "center" "center"
-                         "1par" "min" "0fn" mag
-                       ) ;create-graphical-embedding-box
-                     ) ;let*
-                   ) ;asc
-                   (if (== pts 'object-and-points) (cons o gc) (if (== pts 'object) `(,o) gc))
-                 ) ;with
-               ) ;set!
-              ) ;
-              (else (with contour
-                      (if (and selected-point-no path0 (sketch-in? (path->tree path0)))
-                        (append (asc curscol #f (compress* (list-remove (cdr o) selected-point-no)))
-                          `((with ,"fill-color"
-                              ,default-color-selected-points
-                              ,"point-style"
-                              ,"square"
-                              (concat ,(list-ref (cdr o) selected-point-no))))
-                        ) ;append
-                        (asc curscol default-color-selected-points (compress* (cdr o)))
-                      ) ;if
-                      (set! t
-                        (if (== pts 'object-and-points)
-                          (cons o contour)
-                          (if (== pts 'object) `(,o) contour)
-                        ) ;if
-                      ) ;set!
-                    ) ;with
-              ) ;else
+        (cond
+         ((== (car o) 'point)
+          (if (not curscol) (set! curscol default-color-selected-points))
+          (set! t (if (== pts 'object) `(,o) (asc curscol #f `(,o))))
+         ) ;
+         ((graphical-text-at-context? o)
+          (if (not curscol) (set! curscol default-color-selected-points))
+          (set! t
+            (let* ((valign-var (graphics-valign-var o))
+                   (ha (get-graphical-prop path0 "text-at-halign"))
+                   (va (get-graphical-prop path0 valign-var))
+                   (w (get-graphical-prop path0 "doc-at-width"))
+                   (hm (get-graphical-prop path0 "doc-at-hmode"))
+                   (pp (get-graphical-prop path0 "doc-at-ppsep"))
+                   (mag (get-graphical-prop path0 "magnify"))
+                   (gc (asc curscol #f (create-graphical-embedding-box o ha va ha va w hm pp mag)))
+                  ) ;
+              (if (== pts 'object-and-points) (cons o gc) (if (== pts 'object) `(,o) gc))
+            ) ;let*
+          ) ;set!
+         ) ;
+         ((== (car o) 'gr-group)
+          (if (not curscol) (set! curscol default-color-selected-points))
+          (set! t
+            (with gc
+              (asc curscol
+                #f
+                (let* ((ha (get-graphical-prop path0 "text-at-halign"))
+                       (va (get-graphical-prop path0 "text-at-valign"))
+                       (mag (get-graphical-prop path0 "magnify"))
+                      ) ;
+                  (create-graphical-embedding-box o ha va "center" "center"
+                    "1par" "min" "0fn" mag
+                  ) ;create-graphical-embedding-box
+                ) ;let*
+              ) ;asc
+              (if (== pts 'object-and-points) (cons o gc) (if (== pts 'object) `(,o) gc))
+            ) ;with
+          ) ;set!
+         ) ;
+         (else
+           (with contour
+             (if (and selected-point-no path0 (sketch-in? (path->tree path0)))
+               (append
+                 (asc curscol #f (compress* (list-remove (cdr o) selected-point-no)))
+                 `((with ,"fill-color"
+                     ,default-color-selected-points
+                     ,"point-style"
+                     ,"square"
+                     (concat ,(list-ref (cdr o) selected-point-no))))
+               ) ;append
+               (asc curscol default-color-selected-points (compress* (cdr o)))
+             ) ;if
+             (set! t
+               (if (== pts 'object-and-points)
+                 (cons o contour)
+                 (if (== pts 'object) `(,o) contour)
+               ) ;if
+             ) ;set!
+           ) ;with
+         ) ;else
         ) ;cond
         (set! res (append res (if props `(,(append props `(,(cons* 'concat t)))) t)))
       ) ;let*
@@ -586,7 +627,9 @@
                     (create-graphical-props 'default #f)
                   ) ;if
            ) ;props
-           (mag-o `(with ,"magnify" ,(get-local-magnify) ,o))
+           (mag-o
+             `(with ,"magnify" ,(get-local-magnify) ,o)
+           ) ;mag-o
           ) ;
       ;; (display* "-------\n")
       ;; (display* "o= " o ", mode= " mode ", pts= " pts ", op= " op "\n")
@@ -594,31 +637,32 @@
       (when (== (car (graphics-mode)) 'hand-edit)
         (set! op (list '(concat)))
       ) ;when
-      (graphical-object! (if (or (== no 'group)
-                               (and (!= no 'no-group) (graphics-group-mode? (graphics-mode)))
-                             ) ;or
-                           ;; group 模式（如绘制完成后自动进入的 edit-props
-                           ;; 选择态）悬停线段时也显示中点绿点；标尺等绘制
-                           ;; 辅助装饰不在此渲染
-                           `(with ,"magnify"
-                              ,(number->string (magnify->number (graphics-get-property "magnify")))
-                              (concat ,@(create-graphical-contours (map (lambda (x)
-                                                                          (if (tree? x)
-                                                                            (enhanced-tree->radical x)
-                                                                            x))
-                                                                     the-sketch)
-                                          current-path
-                                          pts)
-                                ,@(graphics-get-decorations-midpoint)))
-                           (append props
-                             `((concat
-                                 . ,(append (cond ((== pts 'points) op)
-                                                  ((== pts 'object) `(,mag-o))
-                                                  ((== pts 'object-and-points)
-                                                   (cons mag-o op)))
-                                      (graphics-extra-decorations))))
-                           ) ;append
-                         ) ;if
+      (graphical-object!
+        (if
+          (or (== no 'group)
+            (and (!= no 'no-group) (graphics-group-mode? (graphics-mode)))
+          ) ;or
+          ;; group 模式（如绘制完成后自动进入的 edit-props
+          ;; 选择态）悬停线段时也显示中点绿点；标尺等绘制
+          ;; 辅助装饰不在此渲染
+          `(with ,"magnify"
+             ,(number->string (magnify->number (graphics-get-property "magnify")))
+             (concat ,@(create-graphical-contours (map (lambda (x)
+                                                         (if (tree? x)
+                                                           (enhanced-tree->radical x)
+                                                           x))
+                                                    the-sketch)
+                         current-path
+                         pts)
+               ,@(graphics-get-decorations-midpoint)))
+          (append props
+            `((concat
+                . ,(append (cond ((== pts 'points) op)
+                                 ((== pts 'object) `(,mag-o))
+                                 ((== pts 'object-and-points) (cons mag-o op)))
+                     (graphics-extra-decorations))))
+          ) ;append
+        ) ;if
       ) ;graphical-object!
     ) ;let*
     ;; 无当前对象时仍保留中点绿点预览，与 edit_move 各模式的行为一致
@@ -649,13 +693,15 @@
       (let* ((mode (if (null? parms) (if sticky-point 'active current-path) (car parms)))
              (tag (if current-obj (car current-obj) #f))
             ) ;
-        (if (and sticky-point (== 1 (length (sketch-get))))
+        (if
+          (and sticky-point (== 1 (length (sketch-get))))
           (set! current-obj (car (sketch-get)))
         ) ;if
         (if (tree? current-obj) (set! current-obj (tree->stree current-obj)))
         (if (and (== mode 'active) (pair? current-obj))
           (begin
-            (graphical-fetch-props (if (== (car current-obj) 'with) current-obj `(with ,current-obj))
+            (graphical-fetch-props
+              (if (== (car current-obj) 'with) current-obj `(with ,current-obj))
             ) ;graphical-fetch-props
             (set! current-obj (stree-radical* current-obj #f))
           ) ;begin
@@ -666,11 +712,12 @@
           (if (graphical-text-tag? tag)
             1
             (cond ((or (not tag) (== tag 'gr-group)) #f)
-                  (else (if current-point-no
-                          (if current-edge-sel? current-point-no `(,current-edge-sel?
-                                                                   ,current-point-no))
-                          #f
-                        ) ;if
+                  (else
+                    (if current-point-no
+                      (if current-edge-sel? current-point-no `(,current-edge-sel?
+                                                               ,current-point-no))
+                      #f
+                    ) ;if
                   ) ;else
             ) ;cond
           ) ;if
@@ -774,7 +821,8 @@
       ) ;if
     ) ;set!
     (set! current-path
-      (if (and (== 1 (length (sketch-get))) (tree? (car (sketch-get))))
+      (if
+        (and (== 1 (length (sketch-get))) (tree? (car (sketch-get))))
         (tree->path (car (sketch-get)))
         #f
       ) ;if

@@ -45,12 +45,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (parameter-choice-list var)
-  (:require (and (!= var "")
-              (with s
-                (string-drop-right var 1)
-                (or (string-ends? s "-start-") (string-ends? s "-end-"))
-              ) ;with
-            ) ;and
+  (:require
+    (and (!= var "")
+      (with s
+        (string-drop-right var 1)
+        (or (string-ends? s "-start-") (string-ends? s "-end-"))
+      ) ;with
+    ) ;and
   ) ;:require
   (list "-2" "-1" "-0.5" "0" "0.5" "1" "2" :other)
 ) ;tm-define
@@ -145,7 +146,17 @@
 (tm-define (parameter-choice-list var)
   (:require (or (string-starts? var "emboss-start-") (string-starts? var "emboss-end-"))
   ) ;:require
-  (list "-5ln" "-4ln" "-3ln" "-2ln" "-1ln" "0ln" "1ln" "2ln" "3ln" "4ln" "5ln"
+  (list "-5ln"
+    "-4ln"
+    "-3ln"
+    "-2ln"
+    "-1ln"
+    "0ln"
+    "1ln"
+    "2ln"
+    "3ln"
+    "4ln"
+    "5ln"
     :other
   ) ;list
 ) ;tm-define
@@ -387,23 +398,25 @@
 ) ;tm-define
 
 (define (checkout-animation t len)
-  (cond ((tm-func? t 'gr-screen 1)
-         (with (r p)
-           (checkout-animation (tm-ref t 0) len)
-           (list `(gr-screen ,r) (cons 0 p))
-         ) ;with
-        ) ;
-        ((not (tm-func? t 'morph))
-         (checkout-animation `(morph (tuple ,"0" ,(tm->stree t))
-                                (tuple ,"1" ,(tm->stree t)))
-           len
-         ) ;checkout-animation
-        ) ;
-        (else (with r
-                (animate-checkout `(anim-static ,t ,len ,"0.1s" ,"0s"))
-                (list r (cons 1 (path-start (tm-ref r 1) '())))
-              ) ;with
-        ) ;else
+  (cond
+   ((tm-func? t 'gr-screen 1)
+    (with (r p)
+      (checkout-animation (tm-ref t 0) len)
+      (list `(gr-screen ,r) (cons 0 p))
+    ) ;with
+   ) ;
+   ((not (tm-func? t 'morph))
+    (checkout-animation
+      `(morph (tuple ,"0" ,(tm->stree t)) (tuple ,"1" ,(tm->stree t)))
+      len
+    ) ;checkout-animation
+   ) ;
+   (else
+     (with r
+       (animate-checkout `(anim-static ,t ,len ,"0.1s" ,"0s"))
+       (list r (cons 1 (path-start (tm-ref r 1) '())))
+     ) ;with
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -490,11 +503,13 @@
 ) ;define
 
 (define (label-list t p)
-  (cond ((or (not p) (not (tree? t)) (null? p)) #f)
-        ((tree-atomic? t) (and (null? (cdr p)) (list (tree->string t))))
-        ((null? (cdr p)) (list (tree-label t)))
-        (else (and-with l (label-list (tree-ref t (car p)) (cdr p)) (cons (tree-label t) l))
-        ) ;else
+  (cond
+   ((or (not p) (not (tree? t)) (null? p)) #f)
+   ((tree-atomic? t) (and (null? (cdr p)) (list (tree->string t))))
+   ((null? (cdr p)) (list (tree-label t)))
+   (else
+     (and-with l (label-list (tree-ref t (car p)) (cdr p)) (cons (tree-label t) l))
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -504,8 +519,9 @@
          (let* ((p (cursor-path-in (tree-ref t 1))) (l (label-list (tree-ref t 1) p)))
            (with r (commit-animation t) (tree-set! t 0 (tree-ref r 0)) (tree-set! t 4 now))
            (with r
-             (animate-checkout `(anim-static ,(tree-ref t 0)
-                                  ,@(cddr (tm-children t))))
+             (animate-checkout
+               `(anim-static ,(tree-ref t 0) ,@(cddr (tm-children t)))
+             ) ;animate-checkout
              (tree-set! t 0 (tree-ref r 0))
              (tree-set! t 1 (tree-ref r 1))
              (with l*
@@ -570,9 +586,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (remove-var l var)
-  (cond ((or (null? l) (null? (cdr l))) (list))
-        ((tm-equal? (car l) var) (remove-var (cddr l) var))
-        (else (cons* (car l) (cadr l) (remove-var (cddr l) var)))
+  (cond
+   ((or (null? l) (null? (cdr l))) (list))
+   ((tm-equal? (car l) var) (remove-var (cddr l) var))
+   (else (cons* (car l) (cadr l) (remove-var (cddr l) var)))
   ) ;cond
 ) ;define
 
@@ -623,8 +640,9 @@
   (cond ((tree-atomic? t) t)
         ((user-anim-context? t) t)
         ((tree-is? t 'morph) `(morph ,@(morph-remove (tree-children t) x)))
-        (else `(,(tree-label t)
-                ,@(map (cut anim-remove-frame-sub <> x) (tree-children t)))
+        (else
+          `(,(tree-label t)
+            ,@(map (cut anim-remove-frame-sub <> x) (tree-children t)))
         ) ;else
   ) ;cond
 ) ;define

@@ -24,24 +24,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (test-environment-base)
-  (check (let ((env (environment)))
-           (with-environment env
-            ((foo "bar") (spam (string-append "eg" "gs")))
-            (list (environment-ref env foo) (environment-ref env spam))
-           ) ;with-environment
-         ) ;let
+  (check
+    (let ((env (environment)))
+      (with-environment env
+       ((foo "bar") (spam (string-append "eg" "gs")))
+       (list (environment-ref env foo) (environment-ref env spam))
+      ) ;with-environment
+    ) ;let
     =>
     '("bar" "eggs")
   ) ;check
-  (check (let ((env (environment)) (out '()))
-           (with-environment env
-            ((foo "bar"))
-            (set-rcons! out (environment-ref env foo))
-            (with-environment env ((foo "baz")) (set-rcons! out (environment-ref env foo)))
-            (set-rcons! out (environment-ref env foo))
-           ) ;with-environment
-           out
-         ) ;let
+  (check
+    (let ((env (environment)) (out '()))
+      (with-environment env
+       ((foo "bar"))
+       (set-rcons! out (environment-ref env foo))
+       (with-environment env ((foo "baz")) (set-rcons! out (environment-ref env foo)))
+       (set-rcons! out (environment-ref env foo))
+      ) ;with-environment
+      out
+    ) ;let
     =>
     '("bar" "baz" "bar")
   ) ;check

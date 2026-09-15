@@ -84,11 +84,12 @@
   ;; Correct all TABLEs in postorder in the sxml tree @x.
   (let sub
     ((x x))
-    (cond ((sxhtml-table? x)
-           (correct-table (sxml-set-content x (map sub (sxml-content x))))
-          ) ;
-          ((sxml-element? x) (sxml-set-content x (map sub (sxml-content x))))
-          (else x)
+    (cond
+     ((sxhtml-table? x)
+      (correct-table (sxml-set-content x (map sub (sxml-content x))))
+     ) ;
+     ((sxml-element? x) (sxml-set-content x (map sub (sxml-content x))))
+     (else x)
     ) ;cond
   ) ;let
 ) ;tm-define
@@ -145,24 +146,28 @@
   (define (flush-tbody curry-kdr)
     ;; curry-kdr: (proc kdr -> state)
     ;; curries @proc like (cut proc <> kdr) with an updated @kdr.
-    (flush-tr (lambda (proc tbody)
-                (curry-kdr (cut proc <> '() <>) (if (null? tbody) kdr (cons-tbody tbody kdr)))
-              ) ;lambda
+    (flush-tr
+      (lambda (proc tbody)
+        (curry-kdr (cut proc <> '() <>) (if (null? tbody) kdr (cons-tbody tbody kdr)))
+      ) ;lambda
     ) ;flush-tr
   ) ;define
-  (cond ((not kar) (flush-tbody (lambda (proc kdr) kdr)))
-        ((not (accept? kar)) (cut state <> tr tbody kdr))
-        ((cell? kar) (cut state <> (cons kar tr) tbody kdr))
-        ((row? kar)
-         (flush-tr (lambda (proc tbody) (cut proc <> (cons (correct-row kar) tbody) kdr))
-         ) ;flush-tr
-        ) ;
-        ((row-group? kar)
-         (flush-tbody (lambda (proc kdr) (cut proc <> (cons (correct-row-group kar) kdr)))
-         ) ;flush-tbody
-        ) ;
-        ((col-data? kar) (flush-tbody (lambda (proc kdr) (cut proc <> (cons kar kdr)))))
-        ;; no "else" clause needed (assuming @accept is correct)
+  (cond
+   ((not kar) (flush-tbody (lambda (proc kdr) kdr)))
+   ((not (accept? kar)) (cut state <> tr tbody kdr))
+   ((cell? kar) (cut state <> (cons kar tr) tbody kdr))
+   ((row? kar)
+    (flush-tr
+      (lambda (proc tbody) (cut proc <> (cons (correct-row kar) tbody) kdr))
+    ) ;flush-tr
+   ) ;
+   ((row-group? kar)
+    (flush-tbody
+      (lambda (proc kdr) (cut proc <> (cons (correct-row-group kar) kdr)))
+    ) ;flush-tbody
+   ) ;
+   ((col-data? kar) (flush-tbody (lambda (proc kdr) (cut proc <> (cons kar kdr)))))
+   ;; no "else" clause needed (assuming @accept is correct)
   ) ;cond
 ) ;define
 
@@ -207,98 +212,101 @@
 
 (define (table-fold/table kar i rowspans footers kons kdr)
   ;; @kar is a child element of the TABLE element.
-  (cond ((not kar)
-         (if (not footers)
-           kdr
-           ((cut <> #f)
-            (list-fold (lambda (kar kdr) (kdr kar))
-              (cut table-fold/table <> i rowspans #f kons kdr)
-              (reverse! footers)
-            ) ;list-fold
-           ) ;
-         ) ;if
-        ) ;
-        ((and footers (tfoot? kar))
-         (cut table-fold/table <> i rowspans (cons kar footers) kons kdr)
-        ) ;
-        ((row-group? kar)
-         ((cut <> #f)
-          (list-fold (lambda (kar kdr) (kdr kar))
-            (cut table-fold/group
-              <>
-              i
-              i
-              rowspans
-              footers
-              kons
-              (kons :in-row-group i #f kar kdr)
-            ) ;cut
-            (sxml-content kar)
-          ) ;list-fold
-         ) ;
-        ) ;
-        ;; ELSE clause for col-data elements.
-        ;; NOTE: could be extended to support parsing of col-data
-        (else (cut table-fold/table <> i rowspans footers kons kdr))
+  (cond
+   ((not kar)
+    (if (not footers)
+      kdr
+      ((cut <> #f)
+       (list-fold (lambda (kar kdr) (kdr kar))
+         (cut table-fold/table <> i rowspans #f kons kdr)
+         (reverse! footers)
+       ) ;list-fold
+      ) ;
+    ) ;if
+   ) ;
+   ((and footers (tfoot? kar))
+    (cut table-fold/table <> i rowspans (cons kar footers) kons kdr)
+   ) ;
+   ((row-group? kar)
+    ((cut <> #f)
+     (list-fold (lambda (kar kdr) (kdr kar))
+       (cut table-fold/group
+         <>
+         i
+         i
+         rowspans
+         footers
+         kons
+         (kons :in-row-group i #f kar kdr)
+       ) ;cut
+       (sxml-content kar)
+     ) ;list-fold
+    ) ;
+   ) ;
+   ;; ELSE clause for col-data elements.
+   ;; NOTE: could be extended to support parsing of col-data
+   (else (cut table-fold/table <> i rowspans footers kons kdr))
   ) ;cond
 ) ;define
 
 (define (table-fold/group kar i0 i rowspans footers kons kdr)
   ;; @kar is a child element of a THEAD, TBODY or TFOOT element.
-  (cond ((not kar)
-         (cut table-fold/table
-           <>
-           i
-           rowspans
-           footers
-           kons
-           (kons :out-row-group (- i i0) #f #f kdr)
-         ) ;cut
-        ) ;
-        ((row? kar)
-         ((cut <> #f)
-          (list-fold (lambda (kar kdr) (kdr kar))
-            (cut table-fold/row <> i0 i 0 rowspans footers kons (kons :in-row i #f kar kdr))
-            (sxml-content kar)
-          ) ;list-fold
-         ) ;
-        ) ;
-        ;; ELSE clause should never be reached (the table is corrected).
-        (else (cut table-fold/group <> i0 i rowspans footers kons kdr))
+  (cond
+   ((not kar)
+    (cut table-fold/table
+      <>
+      i
+      rowspans
+      footers
+      kons
+      (kons :out-row-group (- i i0) #f #f kdr)
+    ) ;cut
+   ) ;
+   ((row? kar)
+    ((cut <> #f)
+     (list-fold (lambda (kar kdr) (kdr kar))
+       (cut table-fold/row <> i0 i 0 rowspans footers kons (kons :in-row i #f kar kdr))
+       (sxml-content kar)
+     ) ;list-fold
+    ) ;
+   ) ;
+   ;; ELSE clause should never be reached (the table is corrected).
+   (else (cut table-fold/group <> i0 i rowspans footers kons kdr))
   ) ;cond
 ) ;define
 
 (define (table-fold/row kar i0 i j rowspans footers kons kdr)
   ;; @kar is a child element of a TR element.
-  (cond ((not kar)
-         (cut table-fold/group
-           <>
-           i0
-           (1+ i)
-           (next-rowspans rowspans)
-           footers
-           kons
-           (kons :out-row #f (skip-spanned-cols j rowspans) #f kdr)
-         ) ;cut
-        ) ;
-        ((cell? kar)
-         (let ((j (skip-spanned-cols j rowspans)) (a (sxml-attr-list kar)))
-           (let ((rspan (shtml-decode-span a 'rowspan)) (cspan (shtml-decode-span a 'colspan)))
-             (cut table-fold/row
-               <>
-               i0
-               i
-               (+ j cspan)
-               (if (= 1 rspan) rowspans (add-rowspan rowspans j rspan cspan))
-               footers
-               kons
-               (kons :cell i j kar kdr)
-             ) ;cut
-           ) ;let
-         ) ;let
-        ) ;
-        ;; ELSE clause should never be reached (the table is corrected).
-        (else (cut table-fold/row <> i0 i j rowspans footers kons kdr))
+  (cond
+   ((not kar)
+    (cut table-fold/group
+      <>
+      i0
+      (1+ i)
+      (next-rowspans rowspans)
+      footers
+      kons
+      (kons :out-row #f (skip-spanned-cols j rowspans) #f kdr)
+    ) ;cut
+   ) ;
+   ((cell? kar)
+    (let ((j (skip-spanned-cols j rowspans)) (a (sxml-attr-list kar)))
+      (let ((rspan (shtml-decode-span a 'rowspan)) (cspan (shtml-decode-span a 'colspan)))
+        (cut table-fold/row
+          <>
+          i0
+          i
+          (+ j cspan)
+          (if (= 1 rspan) rowspans (add-rowspan rowspans j rspan cspan))
+          footers
+          kons
+          (kons :cell i j kar kdr)
+        ) ;cut
+      ) ;let
+    ) ;let
+   ) ;
+   ;; ELSE clause should never be reached (the table is corrected).
+   (else (cut table-fold/row <> i0 i j rowspans footers kons kdr))
   ) ;cond
 ) ;define
 
@@ -330,7 +338,8 @@
           ) ;
           ((= j (first (car rowspans)))
            ;; This can only happen with some very vicious incorrect HTML.
-           (cons (list j (max rspan (second (car rowspans))))
+           (cons
+             (list j (max rspan (second (car rowspans))))
              (next (cdr rowspans) (1+ j) (1- cspan))
            ) ;cons
           ) ;
@@ -340,17 +349,19 @@
 ) ;define
 
 (define (next-rowspans rowspans)
-  (reverse! (list-fold (lambda (kar kdr)
-                         (with (col old-span)
-                           kar
-                           (let ((span (1- old-span)))
-                             (if (zero? span) kdr (cons (list col span) kdr))
-                           ) ;let
-                         ) ;with
-                       ) ;lambda
-              '()
-              rowspans
-            ) ;list-fold
+  (reverse!
+    (list-fold
+      (lambda (kar kdr)
+        (with (col old-span)
+          kar
+          (let ((span (1- old-span)))
+            (if (zero? span) kdr (cons (list col span) kdr))
+          ) ;let
+        ) ;with
+      ) ;lambda
+      '()
+      rowspans
+    ) ;list-fold
   ) ;reverse!
 ) ;define
 
@@ -360,14 +371,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (sxhtml-table-dimension table)
-  (sxhtml-table-fold (lambda (msg i j kar kdr)
-                       (with (nrows ncols)
-                         kdr
-                         (list (if (eq? msg :out-row-group) (+ nrows i) nrows)
-                           (if (eq? msg :out-row) (max ncols j) ncols)
-                         ) ;list
-                       ) ;with
-                     ) ;lambda
+  (sxhtml-table-fold
+    (lambda (msg i j kar kdr)
+      (with (nrows ncols)
+        kdr
+        (list (if (eq? msg :out-row-group) (+ nrows i) nrows)
+          (if (eq? msg :out-row) (max ncols j) ncols)
+        ) ;list
+      ) ;with
+    ) ;lambda
     '(0 0)
     table
   ) ;sxhtml-table-fold

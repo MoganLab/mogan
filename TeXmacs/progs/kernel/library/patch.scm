@@ -84,27 +84,29 @@
 ) ;define-public
 
 (define-public (patch->scheme p)
-  (cond ((patch-pair? p)
-         `(pair ,(modification->scheme (patch-direct p))
-            ,(modification->scheme (patch-inverse p)))
-        ) ;
-        ((patch-compound? p) `(compound ,@(map patch->scheme (patch-children p))))
-        ((patch-branch? p) `(branch ,@(map patch->scheme (patch-children p))))
-        ((patch-birth? p) `(birth ,(patch-get-birth p) ,(patch-get-author p)))
-        ((patch-author? p) `(author ,(patch-get-author p) ,(patch-ref p 0)))
-        (else #f)
+  (cond
+   ((patch-pair? p)
+    `(pair ,(modification->scheme (patch-direct p))
+       ,(modification->scheme (patch-inverse p)))
+   ) ;
+   ((patch-compound? p) `(compound ,@(map patch->scheme (patch-children p))))
+   ((patch-branch? p) `(branch ,@(map patch->scheme (patch-children p))))
+   ((patch-birth? p) `(birth ,(patch-get-birth p) ,(patch-get-author p)))
+   ((patch-author? p) `(author ,(patch-get-author p) ,(patch-ref p 0)))
+   (else #f)
   ) ;cond
 ) ;define-public
 
 (define-public (scheme->patch p)
-  (cond ((func? p 'pair)
-         (patch-pair (scheme->modification (cadr p)) (scheme->modification (caddr p)))
-        ) ;
-        ((func? p 'compound) (patch-compound (map scheme->patch (cdr p))))
-        ((func? p 'branch) (patch-branch (map scheme->patch (cdr p))))
-        ((func? p 'birth) (patch-birth (cadr p) (caddr p)))
-        ((func? p 'author) (patch-birth (cadr p) (scheme->patch (caddr p))))
-        (else #f)
+  (cond
+   ((func? p 'pair)
+    (patch-pair (scheme->modification (cadr p)) (scheme->modification (caddr p)))
+   ) ;
+   ((func? p 'compound) (patch-compound (map scheme->patch (cdr p))))
+   ((func? p 'branch) (patch-branch (map scheme->patch (cdr p))))
+   ((func? p 'birth) (patch-birth (cadr p) (caddr p)))
+   ((func? p 'author) (patch-birth (cadr p) (scheme->patch (caddr p))))
+   (else #f)
   ) ;cond
 ) ;define-public
 

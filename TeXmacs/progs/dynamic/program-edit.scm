@@ -96,7 +96,9 @@
 
 (define (program-node->session-node u)
   (with r
-    (query `(session-program% 'x ,(tree-label u)))
+    (query
+      `(session-program% 'x ,(tree-label u))
+    ) ;query
     (if (nnull? r) (cdaar r) #f)
   ) ;with
 ) ;define
@@ -301,10 +303,11 @@
               (tm-func? (tree-ref out :last) 'script-busy)
             ) ;and
         (let* ((dt (plugin-timing lan ses))
-               (ts (if (< dt 1000)
-                     (string-append (number->string dt) " msec")
-                     (string-append (number->string (/ dt 1000.0)) " sec")
-                   ) ;if
+               (ts
+                 (if (< dt 1000)
+                   (string-append (number->string dt) " msec")
+                   (string-append (number->string (/ dt 1000.0)) " sec")
+                 ) ;if
                ) ;ts
               ) ;
           (if (and (in? :timings opts) (>= dt 1))
@@ -329,8 +332,14 @@
   (when (tm-func? t 'document)
     (with i
       (tree-arity t)
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
+        (set! i (- i 1))
+      ) ;if
       (if (tm-func? u 'document) (tree-insert! t i (var-tree-children u)))
     ) ;with
   ) ;when
@@ -340,8 +349,12 @@
   (when (tm-func? t 'document)
     (with i
       (tree-arity t)
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
         (set! i (- i 1))
         (tree-insert! t i '((errput (document))))
       ) ;if
@@ -533,14 +546,15 @@
   (let* ((lan (get-env "prog-language")) (ses (get-env "prog-program")))
     (with l
       (pending-ref lan ses)
-      (for-each (lambda (x)
-                  (with (in out next opts)
-                    (program-decode x)
-                    (when (and (tm-func? out 'document) (tm-func? (tree-ref out :last) 'script-busy))
-                      (tree-assign (tree-ref out :last) `(script-busy ,msg))
-                    ) ;when
-                  ) ;with
-                ) ;lambda
+      (for-each
+        (lambda (x)
+          (with (in out next opts)
+            (program-decode x)
+            (when (and (tm-func? out 'document) (tm-func? (tree-ref out :last) 'script-busy))
+              (tree-assign (tree-ref out :last) `(script-busy ,msg))
+            ) ;when
+          ) ;with
+        ) ;lambda
         l
       ) ;for-each
     ) ;with
@@ -582,14 +596,15 @@
 ) ;define
 
 (define (prog-field-insert-output t)
-  (cond ((tm-func? t 'input)
-         (tree-insert! t 2 (list '(document) ""))
-         (tree-assign-node! t 'unfolded-prog-io)
-        ) ;
-        ((tm-func? t 'input-math)
-         (tree-insert! t 2 (list '(document) ""))
-         (tree-assign-node! t 'unfolded-prog-io-math)
-        ) ;
+  (cond
+   ((tm-func? t 'input)
+    (tree-insert! t 2 (list '(document) ""))
+    (tree-assign-node! t 'unfolded-prog-io)
+   ) ;
+   ((tm-func? t 'input-math)
+    (tree-insert! t 2 (list '(document) ""))
+    (tree-assign-node! t 'unfolded-prog-io-math)
+   ) ;
   ) ;cond
 ) ;define
 
@@ -670,8 +685,12 @@
   (let* ((ban '(output (document "")))
          (l (if (program-math-input?) 'input-math 'input))
          (p (plugin-prompt lan ses))
-         (in `(,l (document ,p) (document "")))
-         (s `(program ,lan ,ses (document ,ban ,in)))
+         (in
+           `(,l (document ,p) (document ""))
+         ) ;in
+         (s
+           `(program ,lan ,ses (document ,ban ,in))
+         ) ;s
         ) ;
     (insert-go-to s '(2 1 1 0 0))
     (ahash-set! program-session-mode (program-key) #t)
@@ -757,24 +776,26 @@
 ) ;tm-define
 
 (tm-define (program-evaluate-all)
-  (program-forall (lambda (t)
-                    (when (not (tree-empty? (tree-ref t 1)))
-                      (prog-field-process-input t)
-                    ) ;when
-                  ) ;lambda
+  (program-forall
+    (lambda (t)
+      (when (not (tree-empty? (tree-ref t 1)))
+        (prog-field-process-input t)
+      ) ;when
+    ) ;lambda
   ) ;program-forall
 ) ;tm-define
 
 (tm-define (program-evaluate-above)
   (with-innermost me
     prog-field-input-context?
-    (program-forall (lambda (t)
-                      (when (not (tree-empty? (tree-ref t 1)))
-                        (when (path-inf? (tree->path t) (tree->path me))
-                          (prog-field-process-input t)
-                        ) ;when
-                      ) ;when
-                    ) ;lambda
+    (program-forall
+      (lambda (t)
+        (when (not (tree-empty? (tree-ref t 1)))
+          (when (path-inf? (tree->path t) (tree->path me))
+            (prog-field-process-input t)
+          ) ;when
+        ) ;when
+      ) ;lambda
     ) ;program-forall
   ) ;with-innermost
 ) ;tm-define
@@ -782,13 +803,14 @@
 (tm-define (program-evaluate-below)
   (with-innermost me
     prog-field-input-context?
-    (program-forall (lambda (t)
-                      (when (not (tree-empty? (tree-ref t 1)))
-                        (when (path-inf-eq? (tree->path me) (tree->path t))
-                          (prog-field-process-input t)
-                        ) ;when
-                      ) ;when
-                    ) ;lambda
+    (program-forall
+      (lambda (t)
+        (when (not (tree-empty? (tree-ref t 1)))
+          (when (path-inf-eq? (tree->path me) (tree->path t))
+            (prog-field-process-input t)
+          ) ;when
+        ) ;when
+      ) ;lambda
     ) ;program-forall
   ) ;with-innermost
 ) ;tm-define
@@ -897,7 +919,9 @@
   (let* ((lan (get-env "prog-language"))
          (ses (get-env "prog-program"))
          (cmd (session-complete-command t))
-         (ret (lambda (x) (when x (custom-complete (tm->tree x)))))
+         (ret
+           (lambda (x) (when x (custom-complete (tm->tree x))))
+         ) ;ret
         ) ;
     (when (!= cmd "")
       (plugin-command lan ses cmd ret '())

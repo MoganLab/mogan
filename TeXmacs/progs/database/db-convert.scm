@@ -38,9 +38,11 @@
 (define (db-load-fields l)
   (cond ((null? l) l)
         ((or (nlist? (car l)) (<= (length (car l)) 1)) (db-load-fields (cdr l)))
-        (else (cons `(db-field ,(caar l) ,(cadar l))
-                (db-load-fields (cons (cons (caar l) (cddar l)) (cdr l)))
-              ) ;cons
+        (else
+          (cons
+            `(db-field ,(caar l) ,(cadar l))
+            (db-load-fields (cons (cons (caar l) (cddar l)) (cdr l)))
+          ) ;cons
         ) ;else
   ) ;cond
 ) ;define
@@ -59,7 +61,9 @@
     (set! l (db-load-fields l))
     (receive (l1 l2)
       (list-partition l db-meta-field?)
-      (db-load-post `(db-entry ,id ,type ,name (document ,@l1) (document ,@l2)))
+      (db-load-post
+        `(db-entry ,id ,type ,name (document ,@l1) (document ,@l2))
+      ) ;db-load-post
     ) ;receive
   ) ;let*
 ) ;tm-define
@@ -231,12 +235,14 @@
   ) ;when
   (db-force-kinds)
   (let* ((types (or (smart-ref db-kind-table kind) #t)) (ids '()))
-    (with-time :always
+    (with-time
+      :always
       (with-user #t
         (set! ids
-          (db-search `(,@(if (== uid #t) (list) `((,"owner" ,uid)))
-                       ,@(if (== types #t) (list) `((,"type" ,@types)))
-                       (,:modified ,t ,"10675199165"))
+          (db-search
+            `(,@(if (== uid #t) (list) `((,"owner" ,uid)))
+              ,@(if (== types #t) (list) `((,"type" ,@types)))
+              (,:modified ,t ,"10675199165"))
           ) ;db-search
         ) ;set!
       ) ;with-user

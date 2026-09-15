@@ -30,9 +30,14 @@
 (define (query->assoc q)
   (let* ((l (string-decompose q ","))
          (ls (map (cut string-decompose <> "=") l))
-         (fls (list-filter ls (lambda (x) (== (length x) 2))))
+         (fls
+           (list-filter ls (lambda (x) (== (length x) 2)))
+         ) ;fls
         ) ;
-    (map (lambda (x) (cons (string->symbol (car x)) (cadr x))) fls)
+    (map
+      (lambda (x) (cons (string->symbol (car x)) (cadr x)))
+      fls
+    ) ;map
   ) ;let*
 ) ;define
 

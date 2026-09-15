@@ -75,9 +75,10 @@
   ) ;if
   (set! group-first-x (s2f current-x))
   (set! group-first-y (s2f current-y))
-  (> (point-norm (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x
-                                                               ,group-bary-y))
-     ) ;point-norm
+  (>
+    (point-norm
+      (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x ,group-bary-y))
+    ) ;point-norm
     0.001
   ) ;>
 ) ;define
@@ -128,14 +129,19 @@
 
 (define (group-zoom x y)
   (with denom
-    (point-norm (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x
-                                                              ,group-bary-y))
+    (point-norm
+      (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x ,group-bary-y))
     ) ;point-norm
     ;; 首点与重心重合时缩放比例无定义（如单锚点 text-at），保持原大小避免除零
     (with h
       (if (< denom 1e-9)
         1.0
-        (/ (point-norm (sub-point `(,x ,y) `(,group-bary-x ,group-bary-y))) denom)
+        (/
+          (point-norm
+            (sub-point `(,x ,y) `(,group-bary-x ,group-bary-y))
+          ) ;point-norm
+          denom
+        ) ;/
       ) ;if
       (lambda (o) (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
     ) ;with
@@ -185,10 +191,11 @@
 ) ;tm-define
 
 (tm-define (ungroup-current-object)
-  (if (and (not sticky-point)
-        (== (length (sketch-get)) 1)
-        (== (tree-label (car (sketch-get))) 'gr-group)
-      ) ;and
+  (if
+    (and (not sticky-point)
+      (== (length (sketch-get)) 1)
+      (== (tree-label (car (sketch-get))) 'gr-group)
+    ) ;and
     ;; TODO: Add support for ungrouping <with|...props...|<gr-group|...>>
     (with obj
       (car (sketch-get))
@@ -366,19 +373,21 @@
 ) ;tm-define
 
 (define (property-remove t var i)
-  (cond ((>= i (- (tree-arity t) 1)) t)
-        ((tm-equal? (tree-ref t i) var)
-         (if (== (tree-arity t) 3) (tree-remove-node! t 2) (tree-remove! t i 2))
-         t
-        ) ;
-        (else (property-remove t var (+ i 2)))
+  (cond
+   ((>= i (- (tree-arity t) 1)) t)
+   ((tm-equal? (tree-ref t i) var)
+    (if (== (tree-arity t) 3) (tree-remove-node! t 2) (tree-remove! t i 2))
+    t
+   ) ;
+   (else (property-remove t var (+ i 2)))
   ) ;cond
 ) ;define
 
 (define (property-set-sub t var val i)
-  (cond ((>= i (- (tree-arity t) 1)) (tree-insert! t i (list var val)) t)
-        ((tm-equal? (tree-ref t i) var) (tree-set (tree-ref t (+ i 1)) val) t)
-        (else (property-set-sub t var val (+ i 2)))
+  (cond
+   ((>= i (- (tree-arity t) 1)) (tree-insert! t i (list var val)) t)
+   ((tm-equal? (tree-ref t i) var) (tree-set (tree-ref t (+ i 1)) val) t)
+   (else (property-set-sub t var val (+ i 2)))
   ) ;cond
 ) ;define
 
@@ -396,7 +405,10 @@
          (if (== val "default") (property-remove t var 0) (property-set-sub t var val 0))
         ) ;
         ((== val "default") t)
-        (else (tree-set! t `(with ,var ,val ,t)) t)
+        (else
+          (tree-set! t `(with ,var ,val ,t))
+          t
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -449,17 +461,21 @@
     ) ;sticky-point
     ;; Start operation
     ((and (not multiselecting) (eq? (cadr (graphics-mode)) 'group-ungroup))
-     (if (and p
-           (not sticky-point)
-           (null? (sketch-get))
-           (== (tree-label (path->tree p)) 'gr-group)
-         ) ;and
-       (sketch-set! `(,(path->tree p)))
+     (if
+       (and p
+         (not sticky-point)
+         (null? (sketch-get))
+         (== (tree-label (path->tree p)) 'gr-group)
+       ) ;and
+       (sketch-set!
+         `(,(path->tree p))
+       ) ;sketch-set!
      ) ;if
-     (if (and (not sticky-point)
-           (== (length (sketch-get)) 1)
-           (== (tree-label (car (sketch-get))) 'gr-group)
-         ) ;and
+     (if
+       (and (not sticky-point)
+         (== (length (sketch-get)) 1)
+         (== (tree-label (car (sketch-get))) 'gr-group)
+       ) ;and
        (ungroup-current-object)
        (group-selected-objects)
      ) ;if
@@ -549,52 +565,55 @@
 (tm-define (edit_move mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
-  (cond (sticky-point (set! x (s2f x))
-          (set! y (s2f y))
-          (with mode
-            (graphics-mode)
-            (cond (selected-point-no (object_set-point selected-point-no (f2s x) (f2s y))
-                    (graphics-decorations-update)
-                  ) ;selected-point-no
-                  ((== (cadr mode) 'edit-props)
-                   (sketch-transform (group-translate (- x group-old-x) (- y group-old-y)))
-                  ) ;
-                  ((== (cadr mode) 'zoom)
-                   (sketch-set! group-first-go)
-                   (sketch-transform (group-zoom x y))
-                  ) ;
-                  ((== (cadr mode) 'rotate)
-                   (sketch-set! group-first-go)
-                   (sketch-transform (group-rotate x y))
-                  ) ;
-            ) ;cond
-          ) ;with
-          (set! group-old-x x)
-          (set! group-old-y y)
-        ) ;sticky-point
-        (multiselecting (graphical-object! (append (create-graphical-props 'default #f)
-                                             `((with color
-                                                 red
-                                                 (cline (point ,selecting-x0
-                                                          ,selecting-y0)
-                                                   (point ,x ,selecting-y0)
-                                                   (point ,x ,y)
-                                                   (point ,selecting-x0 ,y))))
-                                           ) ;append
-                        ) ;graphical-object!
-        ) ;multiselecting
-        (else (cond (current-path (set-message (string-append "Left click: operate; "
-                                                 "Shift+Left click or Right click: select/unselect"
-                                               ) ;string-append
-                                    "Group of objects"
-                                  ) ;set-message
-                    ) ;current-path
-                    ((nnull? (sketch-get)) (set-message "Left click: operate" "Group of objects"))
-                    (else (set-message "Move over object on which to operate" "Edit groups of objects")
-                    ) ;else
-              ) ;cond
-          (graphics-decorations-update)
-        ) ;else
+  (cond
+    (sticky-point (set! x (s2f x))
+      (set! y (s2f y))
+      (with mode
+        (graphics-mode)
+        (cond (selected-point-no (object_set-point selected-point-no (f2s x) (f2s y))
+                (graphics-decorations-update)
+              ) ;selected-point-no
+              ((== (cadr mode) 'edit-props)
+               (sketch-transform (group-translate (- x group-old-x) (- y group-old-y)))
+              ) ;
+              ((== (cadr mode) 'zoom)
+               (sketch-set! group-first-go)
+               (sketch-transform (group-zoom x y))
+              ) ;
+              ((== (cadr mode) 'rotate)
+               (sketch-set! group-first-go)
+               (sketch-transform (group-rotate x y))
+              ) ;
+        ) ;cond
+      ) ;with
+      (set! group-old-x x)
+      (set! group-old-y y)
+    ) ;sticky-point
+    (multiselecting
+      (graphical-object!
+        (append (create-graphical-props 'default #f)
+          `((with color
+              red
+              (cline (point ,selecting-x0 ,selecting-y0)
+                (point ,x ,selecting-y0)
+                (point ,x ,y)
+                (point ,selecting-x0 ,y))))
+        ) ;append
+      ) ;graphical-object!
+    ) ;multiselecting
+    (else
+      (cond (current-path (set-message (string-append "Left click: operate; "
+                                         "Shift+Left click or Right click: select/unselect"
+                                       ) ;string-append
+                            "Group of objects"
+                          ) ;set-message
+            ) ;current-path
+            ((nnull? (sketch-get)) (set-message "Left click: operate" "Group of objects"))
+            (else (set-message "Move over object on which to operate" "Edit groups of objects")
+            ) ;else
+      ) ;cond
+      (graphics-decorations-update)
+    ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -634,20 +653,21 @@
 (tm-define (edit_right-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
-  (cond (current-path
-          ;; 计算并直接选中最近的控制点
-          (set! selected-point-no
-            (object-closest-point-pos (tree->stree (path->tree current-path)) x y)
-          ) ;set!
-          ;; 选中该对象
-          (sketch-reset)
-          (any_toggle-select x y current-path current-obj)
-        ) ;current-path
-        (else
-          ;; 点击空白：清除控制点选择，并取消全选
-          (set! selected-point-no #f)
-          (unselect-all current-path current-obj)
-        ) ;else
+  (cond
+    (current-path
+      ;; 计算并直接选中最近的控制点
+      (set! selected-point-no
+        (object-closest-point-pos (tree->stree (path->tree current-path)) x y)
+      ) ;set!
+      ;; 选中该对象
+      (sketch-reset)
+      (any_toggle-select x y current-path current-obj)
+    ) ;current-path
+    (else
+      ;; 点击空白：清除控制点选择，并取消全选
+      (set! selected-point-no #f)
+      (unselect-all current-path current-obj)
+    ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -796,18 +816,19 @@
                                 ) ;if
          ) ;paste-offset-constant
         ) ;
-    (cond ((and (>= (point-get-x spt) 0) (>= (point-get-y spt) 0))
-           (list (- paste-offset-constant) (- paste-offset-constant))
-          ) ;
-          ((and (>= (point-get-x spt) 0) (< (point-get-y spt) 0))
-           (list (- paste-offset-constant) paste-offset-constant)
-          ) ;
-          ((and (< (point-get-x spt) 0) (>= (point-get-y spt) 0))
-           (list paste-offset-constant (- paste-offset-constant))
-          ) ;
-          ((and (< (point-get-x spt) 0) (< (point-get-y spt) 0))
-           (list paste-offset-constant paste-offset-constant)
-          ) ;
+    (cond
+     ((and (>= (point-get-x spt) 0) (>= (point-get-y spt) 0))
+      (list (- paste-offset-constant) (- paste-offset-constant))
+     ) ;
+     ((and (>= (point-get-x spt) 0) (< (point-get-y spt) 0))
+      (list (- paste-offset-constant) paste-offset-constant)
+     ) ;
+     ((and (< (point-get-x spt) 0) (>= (point-get-y spt) 0))
+      (list paste-offset-constant (- paste-offset-constant))
+     ) ;
+     ((and (< (point-get-x spt) 0) (< (point-get-y spt) 0))
+      (list paste-offset-constant paste-offset-constant)
+     ) ;
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -817,19 +838,21 @@
   (:state graphics-state)
   (define new-sel
     (let ((tmp (tree->stree sel)))
-      (stree->tree ((apply group-translate
-                      (map (lambda (x) (* (+ paste-times 1) x)) (get-paste-offset-by-pos tmp))
-                    ) ;apply
-                    tmp
-                   ) ;
+      (stree->tree
+       ((apply group-translate
+          (map (lambda (x) (* (+ paste-times 1) x)) (get-paste-offset-by-pos tmp))
+        ) ;apply
+        tmp
+       ) ;
       ) ;stree->tree
     ) ;let
   ) ;define
-  (if (and (== (car (graphics-mode)) 'group-edit)
-        (tree-compound? new-sel)
-        (== (tree-label new-sel) 'graphics)
-        (> (tree-arity new-sel) 0)
-      ) ;and
+  (if
+    (and (== (car (graphics-mode)) 'group-edit)
+      (tree-compound? new-sel)
+      (== (tree-label new-sel) 'graphics)
+      (> (tree-arity new-sel) 0)
+    ) ;and
     (begin
       (sketch-reset)
       (sketch-checkout)

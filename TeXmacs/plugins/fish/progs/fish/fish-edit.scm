@@ -52,7 +52,8 @@
 (define (fish-trim-left s)
   (let loop
     ((i 0) (n (string-length s)))
-    (if (or (>= i n) (not (char-whitespace? (string-ref s i))))
+    (if
+      (or (>= i n) (not (char-whitespace? (string-ref s i))))
       (substring s i n)
       (loop (+ i 1) n)
     ) ;if
@@ -81,7 +82,8 @@
   (let* ((t (fish-trim-left s)) (n (string-length t)))
     (let loop
       ((i 0))
-      (if (or (>= i n) (not (fish-word-char? (string-ref t i))))
+      (if
+        (or (>= i n) (not (fish-word-char? (string-ref t i))))
         (if (<= i 0) "" (substring t 0 i))
         (loop (+ i 1))
       ) ;if
@@ -92,7 +94,8 @@
 (define (fish-line-continues? line)
   (let* ((t (fish-trim-right line)) (n (string-length t)))
     (and (> n 0)
-      (or (and (>= n 3) (== (substring t (- n 3) n) "..."))
+      (or
+        (and (>= n 3) (== (substring t (- n 3) n) "..."))
         (== (string-ref t (- n 1)) #\&)
       ) ;or
     ) ;and

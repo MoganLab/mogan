@@ -314,7 +314,9 @@
 ;; make-multi-with 插 with 块），故必须在改动前快照。
 
 (define (font-document-default-data)
-  (let* ((fam (font-family-main (or (get-init (pref-font)) "roman")))
+  (let* ((fam
+           (font-family-main (or (get-init (pref-font)) "roman"))
+         ) ;fam
          (var (or (get-init (pref-font-family)) "rm"))
          (ser (or (get-init (pref-font-series)) "medium"))
          (sh (or (get-init (pref-font-shape)) "right"))
@@ -773,19 +775,20 @@
 ) ;tm-widget
 
 (tm-widget (font-effects-selector specs)
-  (vertical (aligned (item (text "Slant:") (dynamic (font-effect-selector specs "slant")))
-              (item (text "Embold:") (dynamic (font-effect-selector specs "embold")))
-              (item (text "Double stroke:") (dynamic (font-effect-selector specs "embbb")))
-              (item (text "Extended:") (dynamic (font-effect-selector specs "hextended")))
-              ;; (item (text "Extend vertically:")
-              ;;  (dynamic (font-effect-selector specs "vextended")))
-              (item (text "Magnify horizontally:")
-                (dynamic (font-effect-selector specs "hmagnify"))
-              ) ;item
-              (item (text "Magnify vertically:")
-                (dynamic (font-effect-selector specs "vmagnify"))
-              ) ;item
-            ) ;aligned
+  (vertical
+    (aligned (item (text "Slant:") (dynamic (font-effect-selector specs "slant")))
+      (item (text "Embold:") (dynamic (font-effect-selector specs "embold")))
+      (item (text "Double stroke:") (dynamic (font-effect-selector specs "embbb")))
+      (item (text "Extended:") (dynamic (font-effect-selector specs "hextended")))
+      ;; (item (text "Extend vertically:")
+      ;;  (dynamic (font-effect-selector specs "vextended")))
+      (item (text "Magnify horizontally:")
+        (dynamic (font-effect-selector specs "hmagnify"))
+      ) ;item
+      (item (text "Magnify vertically:")
+        (dynamic (font-effect-selector specs "vmagnify"))
+      ) ;item
+    ) ;aligned
     (horizontal (glue #f #t 0 0))
   ) ;vertical
 ) ;tm-widget
@@ -811,23 +814,25 @@
 ) ;tm-widget
 
 (tm-widget (font-variant-selector specs)
-  (vertical (aligned (item (text "Bold:") (dynamic (subfont-selector specs "bold")))
-              (item (text "Italic:") (dynamic (subfont-selector specs "italic")))
-              (item (text "Small capitals:") (dynamic (subfont-selector specs "smallcaps")))
-              (item (text "Sans serif:") (dynamic (subfont-selector specs "sansserif")))
-              (item (text "Typewriter:") (dynamic (subfont-selector specs "typewriter")))
-            ) ;aligned
+  (vertical
+    (aligned (item (text "Bold:") (dynamic (subfont-selector specs "bold")))
+      (item (text "Italic:") (dynamic (subfont-selector specs "italic")))
+      (item (text "Small capitals:") (dynamic (subfont-selector specs "smallcaps")))
+      (item (text "Sans serif:") (dynamic (subfont-selector specs "sansserif")))
+      (item (text "Typewriter:") (dynamic (subfont-selector specs "typewriter")))
+    ) ;aligned
     (horizontal (glue #f #t 0 0))
   ) ;vertical
 ) ;tm-widget
 
 (tm-widget (font-math-selector specs)
-  (vertical (aligned (item (text "Mathematics:") (dynamic (subfont-selector specs "math")))
-              (item (text "Greek:") (dynamic (subfont-selector specs "greek")))
-              (item (text "Blackboard bold:") (dynamic (subfont-selector specs "bbb")))
-              (item (text "Calligraphic:") (dynamic (subfont-selector specs "cal")))
-              (item (text "Fraktur:") (dynamic (subfont-selector specs "frak")))
-            ) ;aligned
+  (vertical
+    (aligned (item (text "Mathematics:") (dynamic (subfont-selector specs "math")))
+      (item (text "Greek:") (dynamic (subfont-selector specs "greek")))
+      (item (text "Blackboard bold:") (dynamic (subfont-selector specs "bbb")))
+      (item (text "Calligraphic:") (dynamic (subfont-selector specs "cal")))
+      (item (text "Fraktur:") (dynamic (subfont-selector specs "frak")))
+    ) ;aligned
     (horizontal (glue #f #t 0 0))
   ) ;vertical
 ) ;tm-widget
@@ -852,14 +857,15 @@
       (list getter setter global? win)
       (with wide?
         (tool-bottom? tool win)
-        (centered (vertical ===
-                    (refreshable "font-family-selector" (dynamic (font-family-selector* specs)))
-                    ===
-                    (horizontal (refreshable "font-style-selector" (dynamic (font-style-selector* specs)))
-                      >>>
-                      (refreshable "font-size-selector" (dynamic (font-size-selector* specs)))
-                    ) ;horizontal
-                  ) ;vertical
+        (centered
+          (vertical ===
+            (refreshable "font-family-selector" (dynamic (font-family-selector* specs)))
+            ===
+            (horizontal (refreshable "font-style-selector" (dynamic (font-style-selector* specs)))
+              >>>
+              (refreshable "font-size-selector" (dynamic (font-size-selector* specs)))
+            ) ;horizontal
+          ) ;vertical
         ) ;centered
         (assuming global?
           (division "discrete"
@@ -1107,14 +1113,15 @@
 (tm-define (font-selector-filter-meta key)
   (with specs
     (font-selector-lookup-specs key)
-    (map (lambda (cell)
-           (list (translate (font-filter-label (car cell)))
-             (car cell)
-             (cdr cell)
-             (map translate (cdr cell))
-             (selector-get specs (string->keyword (car cell)))
-           ) ;list
-         ) ;lambda
+    (map
+      (lambda (cell)
+        (list (translate (font-filter-label (car cell)))
+          (car cell)
+          (cdr cell)
+          (map translate (cdr cell))
+          (selector-get specs (string->keyword (car cell)))
+        ) ;list
+      ) ;lambda
       font-filter-options
     ) ;map
   ) ;with
@@ -1133,15 +1140,17 @@
 (tm-define (font-selector-preview key)
   (with specs
     (font-selector-lookup-specs key)
-    (cpp-rasterize-widget (widget-texmacs-output `(with ,"bg-color"
-                                                    ,(font-sample-bg-color)
-                                                    ,"color"
-                                                    ,(font-sample-fg-color)
-                                                    ,"magnification"
-                                                    ,"1.6"
-                                                    ,(selector-font-demo-text specs))
-                            '(style "generic")
-                          ) ;widget-texmacs-output
+    (cpp-rasterize-widget
+      (widget-texmacs-output
+        `(with ,"bg-color"
+           ,(font-sample-bg-color)
+           ,"color"
+           ,(font-sample-fg-color)
+           ,"magnification"
+           ,"1.6"
+           ,(selector-font-demo-text specs))
+        '(style "generic")
+      ) ;widget-texmacs-output
     ) ;cpp-rasterize-widget
   ) ;with
 ) ;tm-define

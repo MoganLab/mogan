@@ -52,11 +52,12 @@
 
 (tm-define-macro ($if pred? . l)
   (:synopsis "When primitive for content generation")
-  (cond ((== (length l) 1) `(cons* 'list (if ,pred? ($list ,(car l)) '())))
-        ((== (length l) 2)
-         `(cons* 'list (if ,pred? ($list ,(car l)) ($list ,(cadr l))))
-        ) ;
-        (else (texmacs-error "$if" "invalid number of arguments"))
+  (cond
+   ((== (length l) 1) `(cons* 'list (if ,pred? ($list ,(car l)) '())))
+   ((== (length l) 2)
+    `(cons* 'list (if ,pred? ($list ,(car l)) ($list ,(cadr l))))
+   ) ;
+   (else (texmacs-error "$if" "invalid number of arguments"))
   ) ;cond
 ) ;tm-define-macro
 
@@ -76,7 +77,12 @@
   (cond ((null? l) (list '(else '())))
         ((npair? (car l)) (texmacs-error "cond$sub" "syntax error ~S" l))
         ((== (caar l) 'else) (list `(else ($list ,@(cdar l)))))
-        (else (cons `(,(caar l) ($list ,@(cdar l))) (cond$sub (cdr l))))
+        (else
+          (cons
+            `(,(caar l) ($list ,@(cdar l)))
+            (cond$sub (cdr l))
+          ) ;cons
+        ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -98,7 +104,9 @@
 (tm-define-macro ($with var val . l)
   (:synopsis "With primitive for content generation")
   (if (string? var)
-    ($quote `(with ,var ,val ($unquote ($inline ,@l))))
+    ($quote
+      `(with ,var ,val ($unquote ($inline ,@l)))
+    ) ;$quote
     `(with ,var ,val (cons* 'list ($list ,@l)))
   ) ;if
 ) ;tm-define-macro
@@ -630,23 +638,33 @@
 (tm-define-macro ($para . l) ($quote `(document ($unquote ($block ,@l)))))
 
 (tm-define-macro ($itemize . l)
-  ($quote `(document (itemize ($unquote ($block ,@l)))))
+  ($quote
+    `(document (itemize ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($enumerate . l)
-  ($quote `(document (enumerate ($unquote ($block ,@l)))))
+  ($quote
+    `(document (enumerate ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($description . l)
-  ($quote `(document (description ($unquote ($block ,@l)))))
+  ($quote
+    `(document (description ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($description-aligned . l)
-  ($quote `(document (description-aligned ($unquote ($block ,@l)))))
+  ($quote
+    `(document (description-aligned ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($description-long . l)
-  ($quote `(document (description-long ($unquote ($block ,@l)))))
+  ($quote
+    `(document (description-long ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($item) ($quote '(item)))
@@ -660,19 +678,23 @@
 (tm-define-macro ($strong . l) ($quote `(strong ($unquote ($inline ,@l)))))
 
 (tm-define-macro ($ismall . l)
-  ($quote `(small (with ,"font-shape" ,"italic" ($unquote ($inline ,@l)))))
+  ($quote
+    `(small (with ,"font-shape" ,"italic" ($unquote ($inline ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($verbatim . l) ($quote `(verbatim ($unquote ($inline ,@l)))))
 
 (tm-define-macro ($link dest . l)
-  ($quote `(hlink ($unquote ($inline ,@l))
-             ($unquote ($textual (utf8->cork ,dest))))
+  ($quote
+    `(hlink ($unquote ($inline ,@l)) ($unquote ($textual (utf8->cork ,dest))))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($color col . l)
-  ($quote `(with ,"color" ,col ($unquote ($inline ,@l))))
+  ($quote
+    `(with ,"color" ,col ($unquote ($inline ,@l)))
+  ) ;$quote
 ) ;tm-define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -680,18 +702,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define-macro ($generic . l)
-  ($quote `(document (TeXmacs ,(texmacs-version))
-             (style (tuple "generic"))
-             (body ($unquote ($block ,@l))))
+  ($quote
+    `(document (TeXmacs ,(texmacs-version))
+       (style (tuple "generic"))
+       (body ($unquote ($block ,@l))))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($tmdoc . l)
   (with lan
     (get-output-language)
-    ($quote `(document (TeXmacs ,(texmacs-version))
-               (style (tuple ,"tmdoc" ,lan))
-               (body ($unquote ($block ,@l))))
+    ($quote
+      `(document (TeXmacs ,(texmacs-version))
+         (style (tuple ,"tmdoc" ,lan))
+         (body ($unquote ($block ,@l))))
     ) ;$quote
   ) ;with
 ) ;tm-define-macro
@@ -699,41 +723,53 @@
 (tm-define-macro ($localize . l) `(tree-translate ($inline ,@l)))
 
 (tm-define-macro ($tmdoc-title . l)
-  ($quote `(document (tmdoc-title ($unquote ($inline ,@l)))))
+  ($quote
+    `(document (tmdoc-title ($unquote ($inline ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($tmfs-title . l)
-  ($quote `(document (tmfs-title ($unquote ($inline ,@l)))))
+  ($quote
+    `(document (tmfs-title ($unquote ($inline ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($folded key . l)
-  ($quote `(document (folded ($unquote ($inline ,key)) ($unquote ($block ,@l)))))
+  ($quote
+    `(document (folded ($unquote ($inline ,key)) ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($unfolded key . l)
-  ($quote `(document (unfolded ($unquote ($inline ,key))
-                       ($unquote ($block ,@l))))
+  ($quote
+    `(document (unfolded ($unquote ($inline ,key)) ($unquote ($block ,@l))))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($folded-documentation key . l)
-  ($quote `(document (folded-documentation ($unquote ($inline ,key))
-                       ($unquote ($block ,@l))))
+  ($quote
+    `(document (folded-documentation ($unquote ($inline ,key))
+                 ($unquote ($block ,@l))))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($unfolded-documentation key . l)
-  ($quote `(document (unfolded-documentation ($unquote ($inline ,key))
-                       ($unquote ($block ,@l))))
+  ($quote
+    `(document (unfolded-documentation ($unquote ($inline ,key))
+                 ($unquote ($block ,@l))))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($explain key . l)
-  ($quote `(document (explain ($unquote ($inline ,key)) ($unquote ($block ,@l)))))
+  ($quote
+    `(document (explain ($unquote ($inline ,key)) ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($tm-fragment . l)
-  ($quote `(document (tm-fragment ($unquote ($block ,@l)))))
+  ($quote
+    `(document (tm-fragment ($unquote ($block ,@l))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($markup . l) ($quote `(markup ($unquote ($inline ,@l)))))
@@ -741,7 +777,9 @@
 (tm-define-macro ($tmstyle . l) ($quote `(tmstyle ($unquote ($inline ,@l)))))
 
 (tm-define-macro ($shortcut cmd)
-  ($quote `(shortcut ($unquote (object->string (quote ,cmd)))))
+  ($quote
+    `(shortcut ($unquote (object->string (quote ,cmd))))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($tmdoc-link dest . l)
@@ -751,7 +789,9 @@
 (tm-define-macro ($menu . l) `(list 'menu ,@l))
 
 (tm-define-macro ($tmdoc-icon dest)
-  ($quote `(icon ($unquote ($textual ,dest))))
+  ($quote
+    `(icon ($unquote ($textual ,dest)))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($src-arg s) ($quote `(src-arg ($unquote ($textual ,s)))))
@@ -855,11 +895,15 @@
 (tm-define-macro ($parabola . l) `(cons 'parabola ($list ,@l)))
 
 (tm-define-macro ($text-at p . l)
-  ($quote `(text-at ($unquote ($inline ,@l)) ($unquote ($inline ,p))))
+  ($quote
+    `(text-at ($unquote ($inline ,@l)) ($unquote ($inline ,p)))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($math-at p . l)
-  ($quote `(math-at ($unquote ($inline ,@l)) ($unquote ($inline ,p))))
+  ($quote
+    `(math-at ($unquote ($inline ,@l)) ($unquote ($inline ,p)))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define (markup-build-graphical l)
@@ -872,23 +916,26 @@
 (tm-define-macro ($graphical . l) `(markup-build-graphical ($list ,@l)))
 
 (tm-define-macro ($line-width w . l)
-  ($quote `(with ,"line-width" ,w ($unquote ($graphical ,@l))))
+  ($quote
+    `(with ,"line-width" ,w ($unquote ($graphical ,@l)))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($pen-color col . l)
-  ($quote `(with ,"color" ,col ($unquote ($graphical ,@l))))
+  ($quote
+    `(with ,"color" ,col ($unquote ($graphical ,@l)))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($fill-color col . l)
-  ($quote `(with ,"fill-color" ,col ($unquote ($graphical ,@l))))
+  ($quote
+    `(with ,"fill-color" ,col ($unquote ($graphical ,@l)))
+  ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($text-align h v . l)
-  ($quote `(with ,"text-at-halign"
-             ,h
-             ,"text-at-valign"
-             ,v
-             ($unquote ($inline ,@l)))
+  ($quote
+    `(with ,"text-at-halign" ,h ,"text-at-valign" ,v ($unquote ($inline ,@l)))
   ) ;$quote
 ) ;tm-define-macro
 

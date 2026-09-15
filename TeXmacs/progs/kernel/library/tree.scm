@@ -58,7 +58,9 @@
 ) ;define-public
 
 (define-public (tree-map-children fun t)
-  (tm->tree `(,(tree-label t) ,@(map fun (tree-children t))))
+  (tm->tree
+    `(,(tree-label t) ,@(map fun (tree-children t)))
+  ) ;tm->tree
 ) ;define-public
 
 (define-public (tree-map-accessible-children fun t)
@@ -66,7 +68,9 @@
     (lambda (i)
       (if (tree-accessible-child? t i) (fun (tree-ref t i)) (tree-ref t i))
     ) ;lambda
-    (tm->tree `(,(tree-label t) ,@(map rew (.. 0 (tree-arity t)))))
+    (tm->tree
+      `(,(tree-label t) ,@(map rew (.. 0 (tree-arity t))))
+    ) ;tm->tree
   ) ;with
 ) ;define-public
 
@@ -169,12 +173,13 @@
 
 (define-public (before-cursor)
   (let* ((t (cursor-tree)) (i (cAr (cursor-path))))
-    (cond ((and (tree-atomic? t) (> i 0))
-           (with s (tree->string t) (with j (string-previous s i) (substring s j i)))
-          ) ;
-          ((tree-atomic? t) #f)
-          ((> i 0) t)
-          (else #f)
+    (cond
+     ((and (tree-atomic? t) (> i 0))
+      (with s (tree->string t) (with j (string-previous s i) (substring s j i)))
+     ) ;
+     ((tree-atomic? t) #f)
+     ((> i 0) t)
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define-public
@@ -196,12 +201,13 @@
 
 (define-public (after-cursor)
   (let* ((t (cursor-tree*)) (i (cAr (cursor-path*))))
-    (cond ((and (tree-atomic? t) (< i (string-length (tree->string t))))
-           (with s (tree->string t) (with j (string-next s i) (substring s i j)))
-          ) ;
-          ((tree-atomic? t) #f)
-          ((== i 0) t)
-          (else #f)
+    (cond
+     ((and (tree-atomic? t) (< i (string-length (tree->string t))))
+      (with s (tree->string t) (with j (string-next s i) (substring s i j)))
+     ) ;
+     ((tree-atomic? t) #f)
+     ((== i 0) t)
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define-public

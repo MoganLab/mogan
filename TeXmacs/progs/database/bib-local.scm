@@ -28,9 +28,10 @@
     (bib-attachments #f)
     (with t
       (tree-innermost biblio-context?)
-      (cond ((and t (tm-atomic? (tm-ref t 0))) (tm->stree (tm-ref t 0)))
-            ((or (null? l) (in? "bib-bibliography" l)) "bib")
-            (else (string-drop-right (car l) 13))
+      (cond
+       ((and t (tm-atomic? (tm-ref t 0))) (tm->stree (tm-ref t 0)))
+       ((or (null? l) (in? "bib-bibliography" l)) "bib")
+       (else (string-drop-right (car l) 13))
       ) ;cond
     ) ;with
   ) ;with
@@ -86,21 +87,22 @@
 
 (define (biblio-diffs old new)
   (let* ((old-t (biblio-as-table old)) (new-t (make-ahash-table)))
-    (for-each (lambda (new-e)
-                (and-with id
-                  (db-entry-ref new-e "name")
-                  (with old-e
-                    (ahash-ref old-t id)
-                    (when (and old-e
-                            (db-entry-any? old-e)
-                            (db-entry-any? new-e)
-                            (!= (tm-ref new-e 4) (tm-ref old-e 4))
-                          ) ;and
-                      (ahash-set! new-t id new-e)
-                    ) ;when
-                  ) ;with
-                ) ;and-with
-              ) ;lambda
+    (for-each
+      (lambda (new-e)
+        (and-with id
+          (db-entry-ref new-e "name")
+          (with old-e
+            (ahash-ref old-t id)
+            (when (and old-e
+                    (db-entry-any? old-e)
+                    (db-entry-any? new-e)
+                    (!= (tm-ref new-e 4) (tm-ref old-e 4))
+                  ) ;and
+              (ahash-set! new-t id new-e)
+            ) ;when
+          ) ;with
+        ) ;and-with
+      ) ;lambda
       new
     ) ;for-each
     (biblio-as-list new-t)

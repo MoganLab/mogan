@@ -99,7 +99,11 @@
 (define (string-get-indent s)
   (let loop
     ((i 0) (n (string-length s)))
-    (if (or (>= i n) (not (char-whitespace? (string-ref s i)))) i (loop (+ i 1) n))
+    (if
+      (or (>= i n) (not (char-whitespace? (string-ref s i))))
+      i
+      (loop (+ i 1) n)
+    ) ;if
   ) ;let
 ) ;define
 

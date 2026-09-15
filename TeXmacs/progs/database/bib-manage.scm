@@ -109,9 +109,10 @@
            ;;   (display* "---------------------------\n")))
            (new-body (conservative-bib-import old-s old-body new-s))
            ;; (d2 (display* "new-body= " (tm->stree new-body) "\n"))
-           (new-t `(document (TeXmacs ,(texmacs-version))
-                     (style "database-bib")
-                     (body ,new-body))
+           (new-t
+             `(document (TeXmacs ,(texmacs-version))
+                (style "database-bib")
+                (body ,new-body))
            ) ;new-t
            (new-doc (convert new-t "texmacs-stree" "texmacs-document"))
           ) ;
@@ -146,7 +147,9 @@
              (body (if (tm-compound? body*) body* '(document)))
              (db (url->url (string-append bib-cache-dir "/" id ".tmdb")))
              (h (list->ahash-set names))
-             (ok? (lambda (e) (and (ahash-ref h (tm-ref e 2)) (db-entry? e))))
+             (ok?
+               (lambda (e) (and (ahash-ref h (tm-ref e 2)) (db-entry? e)))
+             ) ;ok?
              (l (list-filter (tm-children body) ok?))
             ) ;
         (with-database db (bib-save `(document ,@l)))
@@ -210,7 +213,8 @@
 ) ;tm-define
 
 (tm-define (bib-import-current-buffer)
-  (when (and (in-bib?) (not (db-url? (current-buffer))))
+  (when
+    (and (in-bib?) (not (db-url? (current-buffer))))
     (bib-import-tree (buffer-tree))
   ) ;when
 ) ;tm-define
@@ -234,7 +238,9 @@
     (with all
       (bib-load)
       (when (and all (tm-func? all 'document))
-        (let* ((doc `(document ,@(map db->bib (cdr all))))
+        (let* ((doc
+                 `(document ,@(map db->bib (cdr all)))
+               ) ;doc
                (bibtex-doc (convert doc "texmacs-stree" "bibtex-document"))
               ) ;
           (string-save bibtex-doc f)
@@ -246,16 +252,17 @@
 
 (define (bib-export-save new-body f)
   (with s
-    (or (and (url-exists? f)
-          (let* ((imported (bib-cache-bibtex f))
-                 (old-s (string-load f))
-                 (doc (string-load imported))
-                 (t (convert doc "texmacs-document" "texmacs-stree"))
-                 (body (tmfile-extract t 'body))
-                ) ;
-            (and body (conservative-bib-export body old-s new-body))
-          ) ;let*
-        ) ;and
+    (or
+      (and (url-exists? f)
+        (let* ((imported (bib-cache-bibtex f))
+               (old-s (string-load f))
+               (doc (string-load imported))
+               (t (convert doc "texmacs-document" "texmacs-stree"))
+               (body (tmfile-extract t 'body))
+              ) ;
+          (and body (conservative-bib-export body old-s new-body))
+        ) ;let*
+      ) ;and
       (convert new-body "texmacs-stree" "bibtex-document")
     ) ;or
     (string-save s f)
@@ -267,7 +274,9 @@
   (when (tm-func? t 'document)
     (let* ((l1 (list-filter (tm-children t) bib-entry?))
            (l2 (map tm->stree l1))
-           (l3 (map (lambda (x) (if (tm-func? x 'bib-entry 3) x (db->bib x))) l2))
+           (l3
+             (map (lambda (x) (if (tm-func? x 'bib-entry 3) x (db->bib x))) l2)
+           ) ;l3
            (doc `(document ,@l3))
           ) ;
       (bib-export-save doc f)
@@ -299,12 +308,13 @@
 ) ;tm-define
 
 (tm-define (bib-export-bibtex f)
-  (cond ((selection-active-any?) (bib-export-tree f (tm->stree (selection-tree))))
-        ((and (in-bib?) (db-url? (current-buffer))) (bib-export-all f))
-        ((and (in-bib?) (not (db-url? (current-buffer))))
-         (bib-export-tree f (tm->stree (buffer-tree)))
-        ) ;
-        ((nnull? (bib-attachments #f)) (bib-export-attachments f))
+  (cond
+   ((selection-active-any?) (bib-export-tree f (tm->stree (selection-tree))))
+   ((and (in-bib?) (db-url? (current-buffer))) (bib-export-all f))
+   ((and (in-bib?) (not (db-url? (current-buffer))))
+    (bib-export-tree f (tm->stree (buffer-tree)))
+   ) ;
+   ((nnull? (bib-attachments #f)) (bib-export-attachments f))
   ) ;cond
 ) ;tm-define
 
@@ -460,22 +470,25 @@
     (set! names (tm-children (tm->stree names)))
   ) ;when
   ;; (display* "Compile " style ", " names ", " bib-files "\n")
-  (cond ((and (not (supports-db?))
-           (not (and (list-1? bib-files)
-                  (== (url->string (url-tail (car bib-files))) "texmacs.bib")
-                ) ;and
-           ) ;not
-         ) ;and
-         (tree "Error: database tool not activated")
-        ) ;
-        ((not (and (list? names) (list-and (map string? names))))
-         (tree "Error: invalid bibliographic key list")
-        ) ;
-        (else (with t
-                (apply bib-compile-sub (cons* prefix style names bib-files))
-                (if (not (tm? t)) (tree "Error: failed to produce bibliography") (tm->tree t))
-              ) ;with
-        ) ;else
+  (cond
+   ((and (not (supports-db?))
+      (not
+        (and (list-1? bib-files)
+          (== (url->string (url-tail (car bib-files))) "texmacs.bib")
+        ) ;and
+      ) ;not
+    ) ;and
+    (tree "Error: database tool not activated")
+   ) ;
+   ((not (and (list? names) (list-and (map string? names))))
+    (tree "Error: invalid bibliographic key list")
+   ) ;
+   (else
+     (with t
+       (apply bib-compile-sub (cons* prefix style names bib-files))
+       (if (not (tm? t)) (tree "Error: failed to produce bibliography") (tm->tree t))
+     ) ;with
+   ) ;else
   ) ;cond
 ) ;tm-define
 
@@ -537,7 +550,9 @@
       (set! names (list-remove-duplicates names))
       (let* ((all-files `(,:local ,@bib-files ,:default ,:attached))
              (l (apply bib-retrieve-entries (cons names all-files)))
-             (doc `(document ,@(map cdr l)))
+             (doc
+               `(document ,@(map cdr l))
+             ) ;doc
             ) ;
         (set-attachment (string-append prefix "-bibliography") doc)
       ) ;let*
@@ -560,7 +575,9 @@
 
 (tm-define (bib-export-attachments f)
   (let* ((b (bib-attached-entries #f))
-         (doc `(document ,@(map db->bib b)))
+         (doc
+           `(document ,@(map db->bib b))
+         ) ;doc
          (bibtex-doc (convert doc "texmacs-stree" "bibtex-document"))
         ) ;
     (string-save bibtex-doc f)

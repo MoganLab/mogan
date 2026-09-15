@@ -100,10 +100,11 @@
   (case-lambda
    ((l) (stm-concat l stm-list->concat))
    ((l make-concat)
-    (make-concat (receive (strs line)
-                   (car+cdr (list-fold-right concat/kons '(()) (append-map stm-concat->list l)))
-                   (concat/flush strs line)
-                 ) ;receive
+    (make-concat
+      (receive (strs line)
+        (car+cdr (list-fold-right concat/kons '(()) (append-map stm-concat->list l)))
+        (concat/flush strs line)
+      ) ;receive
     ) ;make-concat
    ) ;
   ) ;case-lambda
@@ -332,23 +333,25 @@
     (let rec
       ((doc-body (cdr doc-body))
        (mark (if (marked? (car doc-body)) (stm-first-data (car doc-body)) #f))
-       (accum (list (if (marked? (car doc-body))
-                      (stm-remove-first-data (car doc-body))
-                      (car doc-body)
-                    ) ;if
-              ) ;list
+       (accum
+         (list (if (marked? (car doc-body))
+                 (stm-remove-first-data (car doc-body))
+                 (car doc-body)
+               ) ;if
+         ) ;list
        ) ;accum
       ) ;
-      (cond ((null? doc-body) (list (proc mark (reverse accum))))
-            ((marked? (car doc-body))
-             (cons (proc mark (reverse accum))
-               (rec (cdr doc-body)
-                 (stm-first-data (car doc-body))
-                 (list (stm-remove-first-data (car doc-body)))
-               ) ;rec
-             ) ;cons
-            ) ;
-            (else (rec (cdr doc-body) mark (cons (car doc-body) accum)))
+      (cond
+       ((null? doc-body) (list (proc mark (reverse accum))))
+       ((marked? (car doc-body))
+        (cons (proc mark (reverse accum))
+          (rec (cdr doc-body)
+            (stm-first-data (car doc-body))
+            (list (stm-remove-first-data (car doc-body)))
+          ) ;rec
+        ) ;cons
+       ) ;
+       (else (rec (cdr doc-body) mark (cons (car doc-body) accum)))
       ) ;cond
     ) ;let
   ) ;if

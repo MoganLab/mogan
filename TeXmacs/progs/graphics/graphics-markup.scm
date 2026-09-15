@@ -78,8 +78,12 @@
          (py (tm-y p))
          (dx `(minus ,px ,cx))
          (dy `(minus ,py ,cy))
-         (q1 `(point (minus ,cx ,dx) (minus ,cy ,dy)))
-         (q2 `(point (minus ,cx ,dy) (plus ,cy ,dx)))
+         (q1
+           `(point (minus ,cx ,dx) (minus ,cy ,dy))
+         ) ;q1
+         (q2
+           `(point (minus ,cx ,dy) (plus ,cy ,dx))
+         ) ;q2
         ) ;
     `(carc ,p ,q1 ,q2)
   ) ;let*
@@ -100,36 +104,38 @@
          (q (if (tm-point? Q) (tree->stree Q) p))
          (r (points-distance c p))
          (r1 (points-distance c q))
-         (x (if (zero? r)
-              c
-              (if (zero? r1)
-                p
-                (points-add (point-times (point-get-unit (points-sub q c)) r) c)
-              ) ;if
-            ) ;if
+         (x
+           (if (zero? r)
+             c
+             (if (zero? r1)
+               p
+               (points-add (point-times (point-get-unit (points-sub q c)) r) c)
+             ) ;if
+           ) ;if
          ) ;x
          (mid-p-x (points-mid p x))
          (vec-c-p (points-sub p c))
          (vec-c-q (points-sub q c))
-         (m (if (or (zero? r) (zero? r1))
-              x
-              (if (clockwise (points-cross-product-k vec-c-p vec-c-q) 0)
-                (points-add (point-times (point-get-unit (points-sub mid-p-x c)) (- r)) c)
-                (if (= (points-cross-product-k vec-c-p vec-c-q) 0)
-                  ;; If cross product == 0, then the angle between vec-c-p and vec-c-q is 0 or 180.
-                  ;; We should find out whether it's 0 or 180.
-                  ;; And we should determine whether it's clockwise or counterclockwise.
-                  (if (equal? (point-get-unit vec-c-p) (point-get-unit vec-c-q))
-                    x
-                    (if (eq? clockwise >)
-                      (points-add (point-rotate-90 (point-rotate-90 (point-rotate-90 vec-c-p))) c)
-                      (points-add (point-rotate-90 vec-c-p) c)
-                    ) ;if
-                  ) ;if
-                  (points-add (point-times (point-get-unit (points-sub mid-p-x c)) r) c)
-                ) ;if
-              ) ;if
-            ) ;if
+         (m
+           (if (or (zero? r) (zero? r1))
+             x
+             (if (clockwise (points-cross-product-k vec-c-p vec-c-q) 0)
+               (points-add (point-times (point-get-unit (points-sub mid-p-x c)) (- r)) c)
+               (if (= (points-cross-product-k vec-c-p vec-c-q) 0)
+                 ;; If cross product == 0, then the angle between vec-c-p and vec-c-q is 0 or 180.
+                 ;; We should find out whether it's 0 or 180.
+                 ;; And we should determine whether it's clockwise or counterclockwise.
+                 (if (equal? (point-get-unit vec-c-p) (point-get-unit vec-c-q))
+                   x
+                   (if (eq? clockwise >)
+                     (points-add (point-rotate-90 (point-rotate-90 (point-rotate-90 vec-c-p))) c)
+                     (points-add (point-rotate-90 vec-c-p) c)
+                   ) ;if
+                 ) ;if
+                 (points-add (point-times (point-get-unit (points-sub mid-p-x c)) r) c)
+               ) ;if
+             ) ;if
+           ) ;if
          ) ;m
         ) ;
     `(arc ,p ,m ,x)
@@ -148,24 +154,26 @@
          (p (if (tm-point? P) (tree->stree P) c))
          (q (if (tm-point? Q) (tree->stree Q) p))
          (r (points-distance c p))
-         (x (if (equal? r 0.0)
-              c
-              (points-add (point-times (point-get-unit (points-sub q c)) r) c)
-            ) ;if
+         (x
+           (if (equal? r 0.0)
+             c
+             (points-add (point-times (point-get-unit (points-sub q c)) r) c)
+           ) ;if
          ) ;x
          (mid-p-x (points-mid p x))
          (vec-c-p (points-sub p c))
          (vec-c-q (points-sub q c))
-         (m (if (equal? r 0.0)
-              c
-              (if (clockwise (points-cross-product-k vec-c-p vec-c-q) 0)
-                (points-add (point-times (point-get-unit (points-sub mid-p-x c)) (- r)) c)
-                (if (= (points-cross-product-k vec-c-p vec-c-q) 0)
-                  x
-                  (points-add (point-times (point-get-unit (points-sub mid-p-x c)) r) c)
-                ) ;if
-              ) ;if
-            ) ;if
+         (m
+           (if (equal? r 0.0)
+             c
+             (if (clockwise (points-cross-product-k vec-c-p vec-c-q) 0)
+               (points-add (point-times (point-get-unit (points-sub mid-p-x c)) (- r)) c)
+               (if (= (points-cross-product-k vec-c-p vec-c-q) 0)
+                 x
+                 (points-add (point-times (point-get-unit (points-sub mid-p-x c)) r) c)
+               ) ;if
+             ) ;if
+           ) ;if
          ) ;m
         ) ;
     (if (clockwise (points-cross-product-k vec-c-p vec-c-q) 0)
@@ -218,7 +226,9 @@
          (z3 (if (tm-point? p3) (point->complex p3) z2))
          (dz (- z2 z1))
          (l (magnitude dz))
-         (d1 (if (= dz 0) 0 (abs (* l (imag-part (/ (- z3 z1) dz))))))
+         (d1
+           (if (= dz 0) 0 (abs (* l (imag-part (/ (- z3 z1) dz)))))
+         ) ;d1
          (d2 (/ (min l (/ d1 scale)) 2))
          (u (if (= dz 0) 0 (* d2 (/ dz l))))
          (vm (/ (+ z1 z2) 2))
@@ -356,16 +366,18 @@
 ) ;tm-define
 
 (define (directional-halign u)
-  (cond ((> (real-part u) (* 0.333 (abs (imag-part u)))) "left")
-        ((< (real-part u) (* -0.333 (abs (imag-part u)))) "right")
-        (else "center")
+  (cond
+   ((> (real-part u) (* 0.333 (abs (imag-part u)))) "left")
+   ((< (real-part u) (* -0.333 (abs (imag-part u)))) "right")
+   (else "center")
   ) ;cond
 ) ;define
 
 (define (directional-valign u)
-  (cond ((> (imag-part u) (* 0.666 (abs (real-part u)))) "bottom")
-        ((< (imag-part u) (* -0.666 (abs (real-part u)))) "top")
-        (else "center")
+  (cond
+   ((> (imag-part u) (* 0.666 (abs (real-part u)))) "bottom")
+   ((< (imag-part u) (* -0.666 (abs (real-part u)))) "top")
+   (else "center")
   ) ;cond
 ) ;define
 
@@ -394,12 +406,13 @@
 ) ;define
 
 (tm-define (kbd-remove t forwards?)
-  (:require (and (tree-in? t '(arrow-with-text arrow-with-text*))
-              (tree-down t)
-              (== (tree-index (tree-down t)) 2)
-              (tree-func? (tree-down t) 'math-at 1)
-              (tree-empty? (tree-ref t 2 0))
-            ) ;and
+  (:require
+    (and (tree-in? t '(arrow-with-text arrow-with-text*))
+      (tree-down t)
+      (== (tree-index (tree-down t)) 2)
+      (tree-func? (tree-down t) 'math-at 1)
+      (tree-empty? (tree-ref t 2 0))
+    ) ;and
   ) ;:require
   (tree-set t `(line ,(tree-ref t 0) ,(tree-ref t 1)))
 ) ;tm-define

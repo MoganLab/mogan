@@ -25,27 +25,28 @@
 
     (define (http-ok? r)
       (let ((status-code (r 'status-code)) (reason (r 'reason)) (url (r 'url)))
-        (cond ((and (>= status-code 400) (< status-code 500))
-               (error 'http-error
-                 (string-append (number->string status-code)
-                   " Client Error: "
-                   reason
-                   " for url: "
-                   url
-                 ) ;string-append
-               ) ;error
-              ) ;
-              ((and (>= status-code 500) (< status-code 600))
-               (error 'http-error
-                 (string-append (number->string status-code)
-                   " Server Error: "
-                   reason
-                   " for url: "
-                   url
-                 ) ;string-append
-               ) ;error
-              ) ;
-              (else #t)
+        (cond
+         ((and (>= status-code 400) (< status-code 500))
+          (error 'http-error
+            (string-append (number->string status-code)
+              " Client Error: "
+              reason
+              " for url: "
+              url
+            ) ;string-append
+          ) ;error
+         ) ;
+         ((and (>= status-code 500) (< status-code 600))
+          (error 'http-error
+            (string-append (number->string status-code)
+              " Server Error: "
+              reason
+              " for url: "
+              url
+            ) ;string-append
+          ) ;error
+         ) ;
+         (else #t)
         ) ;cond
       ) ;let
     ) ;define
@@ -158,35 +159,36 @@
         (type-error (string-append who ": files must be an association list") entry)
       ) ;when
       (let* ((name (http-scalar->string who "files key" (car entry))) (spec (cdr entry)))
-        (cond ((string? spec)
-               (when (not (file-exists? spec))
-                 (value-error (string-append who ": file does not exist") spec)
-               ) ;when
-               `((name . ,name) (file . ,spec))
-              ) ;
-              ((alist? spec)
-               (let* ((normalized-spec (map (lambda (item) (http-normalize-file-spec-entry who item)) spec)
-                      ) ;normalized-spec
-                      (file (http-part-ref normalized-spec "file"))
-                      (filename (http-part-ref normalized-spec "filename"))
-                      (content-type (http-part-ref normalized-spec "content-type"))
-                     ) ;
-                 (when (not file)
-                   (value-error (string-append who ": file spec requires a file path") spec)
-                 ) ;when
-                 (when (not (file-exists? file))
-                   (value-error (string-append who ": file does not exist") file)
-                 ) ;when
-                 (append `((name . ,name) (file . ,file))
-                   (if filename `((filename . ,filename)) '())
-                   (if content-type `((content-type . ,content-type)) '())
-                 ) ;append
-               ) ;let*
-              ) ;
-              (else (type-error (string-append who ": files value must be a path string or file spec alist")
-                      spec
-                    ) ;type-error
-              ) ;else
+        (cond
+         ((string? spec)
+          (when (not (file-exists? spec))
+            (value-error (string-append who ": file does not exist") spec)
+          ) ;when
+          `((name . ,name) (file . ,spec))
+         ) ;
+         ((alist? spec)
+          (let* ((normalized-spec (map (lambda (item) (http-normalize-file-spec-entry who item)) spec)
+                 ) ;normalized-spec
+                 (file (http-part-ref normalized-spec "file"))
+                 (filename (http-part-ref normalized-spec "filename"))
+                 (content-type (http-part-ref normalized-spec "content-type"))
+                ) ;
+            (when (not file)
+              (value-error (string-append who ": file spec requires a file path") spec)
+            ) ;when
+            (when (not (file-exists? file))
+              (value-error (string-append who ": file does not exist") file)
+            ) ;when
+            (append `((name . ,name) (file . ,file))
+              (if filename `((filename . ,filename)) '())
+              (if content-type `((content-type . ,content-type)) '())
+            ) ;append
+          ) ;let*
+         ) ;
+         (else (type-error (string-append who ": files value must be a path string or file spec alist")
+                 spec
+               ) ;type-error
+         ) ;else
         ) ;cond
       ) ;let*
     ) ;define

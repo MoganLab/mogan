@@ -261,14 +261,15 @@
     ) ;define
 
     (define (trie-min trie)
-      (letrec ((search (lambda (t)
-                         (and t
-                           (if (leaf? t)
-                             (+ (leaf-prefix t) (first-set-bit (leaf-bitmap t)))
-                             (search (branch-left t))
-                           ) ;if
-                         ) ;and
-                       ) ;lambda
+      (letrec ((search
+                 (lambda (t)
+                   (and t
+                     (if (leaf? t)
+                       (+ (leaf-prefix t) (first-set-bit (leaf-bitmap t)))
+                       (search (branch-left t))
+                     ) ;if
+                   ) ;and
+                 ) ;lambda
                ) ;search
               ) ;
         (if (branch? trie)
@@ -282,14 +283,15 @@
     ) ;define
 
     (define (trie-max trie)
-      (letrec ((search (lambda (t)
-                         (and t
-                           (if (leaf? t)
-                             (+ (leaf-prefix t) (highest-set-bit (leaf-bitmap t)))
-                             (search (branch-right t))
-                           ) ;if
-                         ) ;and
-                       ) ;lambda
+      (letrec ((search
+                 (lambda (t)
+                   (and t
+                     (if (leaf? t)
+                       (+ (leaf-prefix t) (highest-set-bit (leaf-bitmap t)))
+                       (search (branch-right t))
+                     ) ;if
+                   ) ;and
+                 ) ;lambda
                ) ;search
               ) ;
         (if (branch? trie)
@@ -305,29 +307,31 @@
     ;; ;; Insert
 
     (define (%trie-insert-parts trie prefix bitmap)
-      (letrec ((ins (lambda (t)
-                      (cond ((not t) (raw-leaf prefix bitmap))
-                            ((leaf? t)
-                             (let ((p (leaf-prefix t)) (b (leaf-bitmap t)))
-                               (if (= prefix p)
-                                 (raw-leaf prefix (logior b bitmap))
-                                 (%trie-join prefix 0 (raw-leaf prefix bitmap) p 0 t)
-                               ) ;if
-                             ) ;let
-                            ) ;
-                            (else (let ((p (branch-prefix t))
-                                        (m (branch-branching-bit t))
-                                        (l (branch-left t))
-                                        (r (branch-right t))
-                                       ) ;
-                                    (if (match-prefix? prefix p m)
-                                      (if (zero-bit? prefix m) (branch p m (ins l) r) (branch p m l (ins r)))
-                                      (%trie-join prefix 0 (raw-leaf prefix bitmap) p m t)
-                                    ) ;if
-                                  ) ;let
-                            ) ;else
-                      ) ;cond
-                    ) ;lambda
+      (letrec ((ins
+                 (lambda (t)
+                   (cond ((not t) (raw-leaf prefix bitmap))
+                         ((leaf? t)
+                          (let ((p (leaf-prefix t)) (b (leaf-bitmap t)))
+                            (if (= prefix p)
+                              (raw-leaf prefix (logior b bitmap))
+                              (%trie-join prefix 0 (raw-leaf prefix bitmap) p 0 t)
+                            ) ;if
+                          ) ;let
+                         ) ;
+                         (else
+                           (let ((p (branch-prefix t))
+                                 (m (branch-branching-bit t))
+                                 (l (branch-left t))
+                                 (r (branch-right t))
+                                ) ;
+                             (if (match-prefix? prefix p m)
+                               (if (zero-bit? prefix m) (branch p m (ins l) r) (branch p m l (ins r)))
+                               (%trie-join prefix 0 (raw-leaf prefix bitmap) p m t)
+                             ) ;if
+                           ) ;let
+                         ) ;else
+                   ) ;cond
+                 ) ;lambda
                ) ;ins
               ) ;
         (ins trie)
@@ -341,12 +345,13 @@
     ;; ;; Iterators and filters
 
     (define (trie-fold proc nil trie)
-      (letrec ((cata (lambda (b t)
-                       (cond ((not t) b)
-                             ((leaf? t) (fold-left-bits (leaf-prefix t) proc b (leaf-bitmap t)))
-                             (else (cata (cata b (branch-left t)) (branch-right t)))
-                       ) ;cond
-                     ) ;lambda
+      (letrec ((cata
+                 (lambda (b t)
+                   (cond ((not t) b)
+                         ((leaf? t) (fold-left-bits (leaf-prefix t) proc b (leaf-bitmap t)))
+                         (else (cata (cata b (branch-left t)) (branch-right t)))
+                   ) ;cond
+                 ) ;lambda
                ) ;cata
               ) ;
         (if (branch? trie)
@@ -375,12 +380,13 @@
     ) ;define
 
     (define (trie-fold-right proc nil trie)
-      (letrec ((cata (lambda (b t)
-                       (cond ((not t) b)
-                             ((leaf? t) (fold-right-bits (leaf-prefix t) proc b (leaf-bitmap t)))
-                             (else (cata (cata b (branch-right t)) (branch-left t)))
-                       ) ;cond
-                     ) ;lambda
+      (letrec ((cata
+                 (lambda (b t)
+                   (cond ((not t) b)
+                         ((leaf? t) (fold-right-bits (leaf-prefix t) proc b (leaf-bitmap t)))
+                         (else (cata (cata b (branch-right t)) (branch-left t)))
+                   ) ;cond
+                 ) ;lambda
                ) ;cata
               ) ;
         (if (branch? trie)
@@ -426,27 +432,29 @@
     ) ;define
 
     (define (trie-partition pred trie)
-      (letrec ((part (lambda (t)
-                       (cond ((not t) (values #f #f))
-                             ((leaf? t)
-                              (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                                (let-values (((in out) (bitmap-partition pred p bm)))
-                                  (values (leaf p in) (leaf p out))
-                                ) ;let-values
-                              ) ;let
-                             ) ;
-                             (else (let ((p (branch-prefix t))
-                                         (m (branch-branching-bit t))
-                                         (l (branch-left t))
-                                         (r (branch-right t))
-                                        ) ;
-                                     (let-values (((il ol) (part l)) ((ir or) (part r)))
-                                       (values (branch p m il ir) (branch p m ol or))
-                                     ) ;let-values
-                                   ) ;let
-                             ) ;else
-                       ) ;cond
-                     ) ;lambda
+      (letrec ((part
+                 (lambda (t)
+                   (cond ((not t) (values #f #f))
+                         ((leaf? t)
+                          (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                            (let-values (((in out) (bitmap-partition pred p bm)))
+                              (values (leaf p in) (leaf p out))
+                            ) ;let-values
+                          ) ;let
+                         ) ;
+                         (else
+                           (let ((p (branch-prefix t))
+                                 (m (branch-branching-bit t))
+                                 (l (branch-left t))
+                                 (r (branch-right t))
+                                ) ;
+                             (let-values (((il ol) (part l)) ((ir or) (part r)))
+                               (values (branch p m il ir) (branch p m ol or))
+                             ) ;let-values
+                           ) ;let
+                         ) ;else
+                   ) ;cond
+                 ) ;lambda
                ) ;part
               ) ;
         (part trie)
@@ -485,26 +493,28 @@
 
     (define (trie-delete trie key)
       (letrec* ((prefix (iprefix key))
-                (update (lambda (t)
-                          (cond ((not t) #f)
-                                ((leaf? t)
-                                 (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                                   (if (= p prefix) (leaf p (bitmap-delete bm key)) t)
-                                 ) ;let
-                                ) ;
-                                (else (let ((p (branch-prefix t))
-                                            (m (branch-branching-bit t))
-                                            (l (branch-left t))
-                                            (r (branch-right t))
-                                           ) ;
-                                        (if (match-prefix? prefix p m)
-                                          (if (zero-bit? prefix m) (branch p m (update l) r) (branch p m l (update r)))
-                                          t
-                                        ) ;if
-                                      ) ;let
-                                ) ;else
-                          ) ;cond
-                        ) ;lambda
+                (update
+                  (lambda (t)
+                    (cond ((not t) #f)
+                          ((leaf? t)
+                           (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                             (if (= p prefix) (leaf p (bitmap-delete bm key)) t)
+                           ) ;let
+                          ) ;
+                          (else
+                            (let ((p (branch-prefix t))
+                                  (m (branch-branching-bit t))
+                                  (l (branch-left t))
+                                  (r (branch-right t))
+                                 ) ;
+                              (if (match-prefix? prefix p m)
+                                (if (zero-bit? prefix m) (branch p m (update l) r) (branch p m l (update r)))
+                                t
+                              ) ;if
+                            ) ;let
+                          ) ;else
+                    ) ;cond
+                  ) ;lambda
                 ) ;update
                ) ;
         (update trie)
@@ -513,25 +523,27 @@
   ) ;begin
 
   (define (trie-delete-min trie)
-    (letrec ((update/min (lambda (t)
-                           (cond ((not t) (error "Empty set"))
-                                 ((leaf? t)
-                                  (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                                    (values (+ p (first-set-bit bm)) (leaf p (bitmap-delete-min bm)))
-                                  ) ;let
-                                 ) ;
-                                 (else (let ((p (branch-prefix t))
-                                             (m (branch-branching-bit t))
-                                             (l (branch-left t))
-                                             (r (branch-right t))
-                                            ) ;
-                                         (let-values (((n l*) (update/min l)))
-                                           (values n (branch p m l* r))
-                                         ) ;let-values
-                                       ) ;let
-                                 ) ;else
-                           ) ;cond
-                         ) ;lambda
+    (letrec ((update/min
+               (lambda (t)
+                 (cond ((not t) (error "Empty set"))
+                       ((leaf? t)
+                        (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                          (values (+ p (first-set-bit bm)) (leaf p (bitmap-delete-min bm)))
+                        ) ;let
+                       ) ;
+                       (else
+                         (let ((p (branch-prefix t))
+                               (m (branch-branching-bit t))
+                               (l (branch-left t))
+                               (r (branch-right t))
+                              ) ;
+                           (let-values (((n l*) (update/min l)))
+                             (values n (branch p m l* r))
+                           ) ;let-values
+                         ) ;let
+                       ) ;else
+                 ) ;cond
+               ) ;lambda
              ) ;update/min
             ) ;
       (if (branch? trie)
@@ -555,25 +567,27 @@
   ) ;define
 
   (define (trie-delete-max trie)
-    (letrec ((update/max (lambda (t)
-                           (cond ((not t) (error "Empty set"))
-                                 ((leaf? t)
-                                  (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                                    (values (+ p (highest-set-bit bm)) (leaf p (bitmap-delete-max bm)))
-                                  ) ;let
-                                 ) ;
-                                 (else (let ((p (branch-prefix t))
-                                             (m (branch-branching-bit t))
-                                             (l (branch-left t))
-                                             (r (branch-right t))
-                                            ) ;
-                                         (let-values (((n r*) (update/max r)))
-                                           (values n (branch p m l r*))
-                                         ) ;let-values
-                                       ) ;let
-                                 ) ;else
-                           ) ;cond
-                         ) ;lambda
+    (letrec ((update/max
+               (lambda (t)
+                 (cond ((not t) (error "Empty set"))
+                       ((leaf? t)
+                        (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                          (values (+ p (highest-set-bit bm)) (leaf p (bitmap-delete-max bm)))
+                        ) ;let
+                       ) ;
+                       (else
+                         (let ((p (branch-prefix t))
+                               (m (branch-branching-bit t))
+                               (l (branch-left t))
+                               (r (branch-right t))
+                              ) ;
+                           (let-values (((n r*) (update/max r)))
+                             (values n (branch p m l r*))
+                           ) ;let-values
+                         ) ;let
+                       ) ;else
+                 ) ;cond
+               ) ;lambda
              ) ;update/max
             ) ;
       (if (branch? trie)
@@ -598,29 +612,32 @@
 
   (define (trie-search trie key failure success)
     (let* ((kp (iprefix key)) (key-leaf (raw-leaf kp (ibitmap key))))
-      (letrec ((search (lambda (t build)
-                         (cond ((not t)
-                                (failure (lambda (obj) (build key-leaf obj)) (lambda (obj) (build #f obj)))
-                               ) ;
-                               ((leaf? t) (leaf-search t key failure success build))
-                               (else (let ((p (branch-prefix t))
-                                           (m (branch-branching-bit t))
-                                           (l (branch-left t))
-                                           (r (branch-right t))
-                                          ) ;
-                                       (if (match-prefix? key p m)
-                                         (if (zero-bit? key m)
-                                           (search l (lambda (l* obj) (build (branch p m l* r) obj)))
-                                           (search r (lambda (r* obj) (build (branch p m l r*) obj)))
-                                         ) ;if
-                                         (failure (lambda (obj) (build (%trie-join kp 0 key-leaf p m t) obj))
-                                           (lambda (obj) (build t obj))
-                                         ) ;failure
-                                       ) ;if
-                                     ) ;let
-                               ) ;else
-                         ) ;cond
-                       ) ;lambda
+      (letrec ((search
+                 (lambda (t build)
+                   (cond
+                    ((not t)
+                     (failure (lambda (obj) (build key-leaf obj)) (lambda (obj) (build #f obj)))
+                    ) ;
+                    ((leaf? t) (leaf-search t key failure success build))
+                    (else
+                      (let ((p (branch-prefix t))
+                            (m (branch-branching-bit t))
+                            (l (branch-left t))
+                            (r (branch-right t))
+                           ) ;
+                        (if (match-prefix? key p m)
+                          (if (zero-bit? key m)
+                            (search l (lambda (l* obj) (build (branch p m l* r) obj)))
+                            (search r (lambda (r* obj) (build (branch p m l r*) obj)))
+                          ) ;if
+                          (failure (lambda (obj) (build (%trie-join kp 0 key-leaf p m t) obj))
+                            (lambda (obj) (build t obj))
+                          ) ;failure
+                        ) ;if
+                      ) ;let
+                    ) ;else
+                   ) ;cond
+                 ) ;lambda
                ) ;search
               ) ;
         (if (branch? trie)
@@ -652,7 +669,8 @@
       (let ((p (leaf-prefix lf)) (bm (leaf-bitmap lf)))
         (if (= kp p)
           (if (zero? (logand kb bm))
-            (failure (lambda (obj) (build (raw-leaf p (logior kb bm)) obj))
+            (failure
+              (lambda (obj) (build (raw-leaf p (logior kb bm)) obj))
               (lambda (obj) (build lf obj))
             ) ;failure
             (success key
@@ -660,7 +678,8 @@
               (lambda (obj) (build (leaf p (bitmap-delete bm key)) obj))
             ) ;success
           ) ;if
-          (failure (lambda (obj) (build (%trie-join kp 0 (raw-leaf kp kb) p 0 lf) obj))
+          (failure
+            (lambda (obj) (build (%trie-join kp 0 (raw-leaf kp kb) p 0 lf) obj))
             (lambda (obj) (build lf obj))
           ) ;failure
         ) ;if
@@ -684,36 +703,38 @@
   ) ;define
 
   (define (%trie-merge insert-leaf trie1 trie2)
-    (letrec ((merge (lambda (s t)
-                      (cond ((not s) t)
-                            ((not t) s)
-                            ((leaf? s) (insert-leaf t s))
-                            ((leaf? t) (insert-leaf s t))
-                            (else (merge-branches s t))
-                      ) ;cond
-                    ) ;lambda
+    (letrec ((merge
+               (lambda (s t)
+                 (cond ((not s) t)
+                       ((not t) s)
+                       ((leaf? s) (insert-leaf t s))
+                       ((leaf? t) (insert-leaf s t))
+                       (else (merge-branches s t))
+                 ) ;cond
+               ) ;lambda
              ) ;merge
-             (merge-branches (lambda (s t)
-                               (let ((p (branch-prefix s))
-                                     (m (branch-branching-bit s))
-                                     (s1 (branch-left s))
-                                     (s2 (branch-right s))
-                                     (q (branch-prefix t))
-                                     (n (branch-branching-bit t))
-                                     (t1 (branch-left t))
-                                     (t2 (branch-right t))
-                                    ) ;
-                                 (cond ((and (= m n) (= p q)) (branch p m (merge s1 t1) (merge s2 t2)))
-                                       ((and (branching-bit-higher? m n) (match-prefix? q p m))
-                                        (if (zero-bit? q m) (branch p m (merge s1 t) s2) (branch p m s1 (merge s2 t)))
-                                       ) ;
-                                       ((and (branching-bit-higher? n m) (match-prefix? p q n))
-                                        (if (zero-bit? p n) (branch q n (merge s t1) t2) (branch q n t1 (merge s t2)))
-                                       ) ;
-                                       (else (%trie-join p m s q n t))
-                                 ) ;cond
-                               ) ;let
-                             ) ;lambda
+             (merge-branches
+               (lambda (s t)
+                 (let ((p (branch-prefix s))
+                       (m (branch-branching-bit s))
+                       (s1 (branch-left s))
+                       (s2 (branch-right s))
+                       (q (branch-prefix t))
+                       (n (branch-branching-bit t))
+                       (t1 (branch-left t))
+                       (t2 (branch-right t))
+                      ) ;
+                   (cond ((and (= m n) (= p q)) (branch p m (merge s1 t1) (merge s2 t2)))
+                         ((and (branching-bit-higher? m n) (match-prefix? q p m))
+                          (if (zero-bit? q m) (branch p m (merge s1 t) s2) (branch p m s1 (merge s2 t)))
+                         ) ;
+                         ((and (branching-bit-higher? n m) (match-prefix? p q n))
+                          (if (zero-bit? p n) (branch q n (merge s t1) t2) (branch q n t1 (merge s t2)))
+                         ) ;
+                         (else (%trie-join p m s q n t))
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
              ) ;merge-branches
             ) ;
       (merge trie1 trie2)
@@ -730,26 +751,28 @@
 
   (define (insert-leaf/proc fxcombine trie lf)
     (let ((p (leaf-prefix lf)) (bm (leaf-bitmap lf)))
-      (letrec ((ins (lambda (t)
-                      (cond ((not t) lf)
-                            ((leaf? t)
-                             (let ((q (leaf-prefix t)) (bm* (leaf-bitmap t)))
-                               (if (= p q) (leaf p (fxcombine bm bm*)) (%trie-join p 0 lf q 0 t))
-                             ) ;let
-                            ) ;
-                            (else (let ((q (branch-prefix t))
-                                        (m (branch-branching-bit t))
-                                        (l (branch-left t))
-                                        (r (branch-right t))
-                                       ) ;
-                                    (if (match-prefix? p q m)
-                                      (if (zero-bit? p m) (raw-branch q m (ins l) r) (raw-branch q m l (ins r)))
-                                      (%trie-join p 0 lf q 0 t)
-                                    ) ;if
-                                  ) ;let
-                            ) ;else
-                      ) ;cond
-                    ) ;lambda
+      (letrec ((ins
+                 (lambda (t)
+                   (cond ((not t) lf)
+                         ((leaf? t)
+                          (let ((q (leaf-prefix t)) (bm* (leaf-bitmap t)))
+                            (if (= p q) (leaf p (fxcombine bm bm*)) (%trie-join p 0 lf q 0 t))
+                          ) ;let
+                         ) ;
+                         (else
+                           (let ((q (branch-prefix t))
+                                 (m (branch-branching-bit t))
+                                 (l (branch-left t))
+                                 (r (branch-right t))
+                                ) ;
+                             (if (match-prefix? p q m)
+                               (if (zero-bit? p m) (raw-branch q m (ins l) r) (raw-branch q m l (ins r)))
+                               (%trie-join p 0 lf q 0 t)
+                             ) ;if
+                           ) ;let
+                         ) ;else
+                   ) ;cond
+                 ) ;lambda
                ) ;ins
               ) ;
         (ins trie)
@@ -758,58 +781,63 @@
   ) ;define
 
   (define (trie-intersection trie1 trie2)
-    (letrec ((intersect (lambda (s t)
-                          (cond ((or (not s) (not t)) #f)
-                                ((leaf? s) (intersect/leaf s t))
-                                ((leaf? t) (intersect/leaf t s))
-                                (else (intersect-branches s t))
-                          ) ;cond
-                        ) ;lambda
+    (letrec ((intersect
+               (lambda (s t)
+                 (cond ((or (not s) (not t)) #f)
+                       ((leaf? s) (intersect/leaf s t))
+                       ((leaf? t) (intersect/leaf t s))
+                       (else (intersect-branches s t))
+                 ) ;cond
+               ) ;lambda
              ) ;intersect
-             (intersect/leaf (lambda (l t)
-                               (let ((p (leaf-prefix l)) (bm (leaf-bitmap l)))
-                                 (let lp
-                                   ((t t))
-                                   (cond ((not t) #f)
-                                         ((leaf? t) (if (= p (leaf-prefix t)) (leaf p (logand bm (leaf-bitmap t))) #f))
-                                         (else (let ((q (branch-prefix t))
-                                                     (m (branch-branching-bit t))
-                                                     (l (branch-left t))
-                                                     (r (branch-right t))
-                                                    ) ;
-                                                 (if (match-prefix? p q m) (if (zero-bit? p m) (lp l) (lp r)) #f)
-                                               ) ;let
-                                         ) ;else
-                                   ) ;cond
-                                 ) ;let
-                               ) ;let
-                             ) ;lambda
+             (intersect/leaf
+               (lambda (l t)
+                 (let ((p (leaf-prefix l)) (bm (leaf-bitmap l)))
+                   (let lp
+                     ((t t))
+                     (cond ((not t) #f)
+                           ((leaf? t) (if (= p (leaf-prefix t)) (leaf p (logand bm (leaf-bitmap t))) #f))
+                           (else
+                             (let ((q (branch-prefix t))
+                                   (m (branch-branching-bit t))
+                                   (l (branch-left t))
+                                   (r (branch-right t))
+                                  ) ;
+                               (if (match-prefix? p q m) (if (zero-bit? p m) (lp l) (lp r)) #f)
+                             ) ;let
+                           ) ;else
+                     ) ;cond
+                   ) ;let
+                 ) ;let
+               ) ;lambda
              ) ;intersect/leaf
-             (intersect-branches (lambda (s t)
-                                   (let ((p (branch-prefix s))
-                                         (m (branch-branching-bit s))
-                                         (sl (branch-left s))
-                                         (sr (branch-right s))
-                                         (q (branch-prefix t))
-                                         (n (branch-branching-bit t))
-                                         (tl (branch-left t))
-                                         (tr (branch-right t))
-                                        ) ;
-                                     (cond ((branching-bit-higher? m n)
-                                            (and (match-prefix? q p m)
-                                              (if (zero-bit? q m) (intersect sl t) (intersect sr t))
-                                            ) ;and
-                                           ) ;
-                                           ((branching-bit-higher? n m)
-                                            (and (match-prefix? p q n)
-                                              (if (zero-bit? p n) (intersect s tl) (intersect s tr))
-                                            ) ;and
-                                           ) ;
-                                           ((= p q) (branch p m (intersect sl tl) (intersect sr tr)))
-                                           (else #f)
-                                     ) ;cond
-                                   ) ;let
-                                 ) ;lambda
+             (intersect-branches
+               (lambda (s t)
+                 (let ((p (branch-prefix s))
+                       (m (branch-branching-bit s))
+                       (sl (branch-left s))
+                       (sr (branch-right s))
+                       (q (branch-prefix t))
+                       (n (branch-branching-bit t))
+                       (tl (branch-left t))
+                       (tr (branch-right t))
+                      ) ;
+                   (cond
+                    ((branching-bit-higher? m n)
+                     (and (match-prefix? q p m)
+                       (if (zero-bit? q m) (intersect sl t) (intersect sr t))
+                     ) ;and
+                    ) ;
+                    ((branching-bit-higher? n m)
+                     (and (match-prefix? p q n)
+                       (if (zero-bit? p n) (intersect s tl) (intersect s tr))
+                     ) ;and
+                    ) ;
+                    ((= p q) (branch p m (intersect sl tl) (intersect sr tr)))
+                    (else #f)
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
              ) ;intersect-branches
             ) ;
       (intersect trie1 trie2)
@@ -817,62 +845,66 @@
   ) ;define
 
   (define (trie-difference trie1 trie2)
-    (letrec ((difference (lambda (s t)
-                           (cond ((not s) #f)
-                                 ((not t) s)
-                                 ((leaf? s) (diff/leaf s t))
-                                 ((leaf? t) (%trie-delete-bitmap s (leaf-prefix t) (leaf-bitmap t)))
-                                 (else (branch-difference s t))
-                           ) ;cond
-                         ) ;lambda
+    (letrec ((difference
+               (lambda (s t)
+                 (cond ((not s) #f)
+                       ((not t) s)
+                       ((leaf? s) (diff/leaf s t))
+                       ((leaf? t) (%trie-delete-bitmap s (leaf-prefix t) (leaf-bitmap t)))
+                       (else (branch-difference s t))
+                 ) ;cond
+               ) ;lambda
              ) ;difference
-             (diff/leaf (lambda (lf t)
-                          (let ((p (leaf-prefix lf)) (bm (leaf-bitmap lf)))
-                            (let lp
-                              ((t t))
-                              (cond ((not t) lf)
-                                    ((leaf? t)
-                                     (let ((q (leaf-prefix t)) (c (leaf-bitmap t)))
-                                       (if (= p q) (leaf p (logand bm (lognot c))) lf)
-                                     ) ;let
-                                    ) ;
-                                    (else (let ((q (branch-prefix t))
-                                                (m (branch-branching-bit t))
-                                                (l (branch-left t))
-                                                (r (branch-right t))
-                                               ) ;
-                                            (if (match-prefix? p q m) (if (zero-bit? p m) (lp l) (lp r)) lf)
-                                          ) ;let
-                                    ) ;else
-                              ) ;cond
+             (diff/leaf
+               (lambda (lf t)
+                 (let ((p (leaf-prefix lf)) (bm (leaf-bitmap lf)))
+                   (let lp
+                     ((t t))
+                     (cond ((not t) lf)
+                           ((leaf? t)
+                            (let ((q (leaf-prefix t)) (c (leaf-bitmap t)))
+                              (if (= p q) (leaf p (logand bm (lognot c))) lf)
                             ) ;let
-                          ) ;let
-                        ) ;lambda
+                           ) ;
+                           (else
+                             (let ((q (branch-prefix t))
+                                   (m (branch-branching-bit t))
+                                   (l (branch-left t))
+                                   (r (branch-right t))
+                                  ) ;
+                               (if (match-prefix? p q m) (if (zero-bit? p m) (lp l) (lp r)) lf)
+                             ) ;let
+                           ) ;else
+                     ) ;cond
+                   ) ;let
+                 ) ;let
+               ) ;lambda
              ) ;diff/leaf
-             (branch-difference (lambda (s t)
-                                  (let ((p (branch-prefix s))
-                                        (m (branch-branching-bit s))
-                                        (sl (branch-left s))
-                                        (sr (branch-right s))
-                                        (q (branch-prefix t))
-                                        (n (branch-branching-bit t))
-                                        (tl (branch-left t))
-                                        (tr (branch-right t))
-                                       ) ;
-                                    (cond ((and (= m n) (= p q)) (branch p m (difference sl tl) (difference sr tr)))
-                                          ((and (branching-bit-higher? m n) (match-prefix? q p m))
-                                           (if (zero-bit? q m)
-                                             (branch p m (difference sl t) sr)
-                                             (branch p m sl (difference sr t))
-                                           ) ;if
-                                          ) ;
-                                          ((and (branching-bit-higher? n m) (match-prefix? p q n))
-                                           (if (zero-bit? p n) (difference s tl) (difference s tr))
-                                          ) ;
-                                          (else s)
-                                    ) ;cond
-                                  ) ;let
-                                ) ;lambda
+             (branch-difference
+               (lambda (s t)
+                 (let ((p (branch-prefix s))
+                       (m (branch-branching-bit s))
+                       (sl (branch-left s))
+                       (sr (branch-right s))
+                       (q (branch-prefix t))
+                       (n (branch-branching-bit t))
+                       (tl (branch-left t))
+                       (tr (branch-right t))
+                      ) ;
+                   (cond ((and (= m n) (= p q)) (branch p m (difference sl tl) (difference sr tr)))
+                         ((and (branching-bit-higher? m n) (match-prefix? q p m))
+                          (if (zero-bit? q m)
+                            (branch p m (difference sl t) sr)
+                            (branch p m sl (difference sr t))
+                          ) ;if
+                         ) ;
+                         ((and (branching-bit-higher? n m) (match-prefix? p q n))
+                          (if (zero-bit? p n) (difference s tl) (difference s tr))
+                         ) ;
+                         (else s)
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
              ) ;branch-difference
             ) ;
       (difference trie1 trie2)
@@ -887,19 +919,20 @@
              trie
            ) ;if
           ) ;
-          (else (let ((p (branch-prefix trie))
-                      (m (branch-branching-bit trie))
-                      (l (branch-left trie))
-                      (r (branch-right trie))
-                     ) ;
-                  (if (match-prefix? prefix p m)
-                    (if (zero-bit? prefix m)
-                      (branch p m (%trie-delete-bitmap l prefix bitmap) r)
-                      (branch p m l (%trie-delete-bitmap r prefix bitmap))
-                    ) ;if
-                    trie
-                  ) ;if
-                ) ;let
+          (else
+            (let ((p (branch-prefix trie))
+                  (m (branch-branching-bit trie))
+                  (l (branch-left trie))
+                  (r (branch-right trie))
+                 ) ;
+              (if (match-prefix? prefix p m)
+                (if (zero-bit? prefix m)
+                  (branch p m (%trie-delete-bitmap l prefix bitmap) r)
+                  (branch p m l (%trie-delete-bitmap r prefix bitmap))
+                ) ;if
+                trie
+              ) ;if
+            ) ;let
           ) ;else
     ) ;cond
   ) ;define
@@ -970,64 +1003,66 @@
   ) ;define
 
   (define (trie-subset-compare trie1 trie2)
-    (letrec ((compare (lambda (s t)
-                        (cond ((eqv? s t) 'equal)
-                              ((not s) 'less)
-                              ((not t) 'greater)
-                              ((and (leaf? s) (leaf? t)) (subset-compare-leaves s t))
-                              ((leaf? s)
-                               (let ((p (leaf-prefix s)))
-                                 (let ((q (branch-prefix t))
-                                       (m (branch-branching-bit t))
-                                       (l (branch-left t))
-                                       (r (branch-right t))
-                                      ) ;
-                                   (if (match-prefix? p q m)
-                                     (case (compare s (if (zero-bit? p m) l r))
-                                           ((greater) 'greater)
-                                           (else 'less)
-                                     ) ;case
-                                     'greater
-                                   ) ;if
-                                 ) ;let
-                               ) ;let
-                              ) ;
-                              ((leaf? t) 'greater)
-                              (else (compare-branches s t))
-                        ) ;cond
-                      ) ;lambda
+    (letrec ((compare
+               (lambda (s t)
+                 (cond ((eqv? s t) 'equal)
+                       ((not s) 'less)
+                       ((not t) 'greater)
+                       ((and (leaf? s) (leaf? t)) (subset-compare-leaves s t))
+                       ((leaf? s)
+                        (let ((p (leaf-prefix s)))
+                          (let ((q (branch-prefix t))
+                                (m (branch-branching-bit t))
+                                (l (branch-left t))
+                                (r (branch-right t))
+                               ) ;
+                            (if (match-prefix? p q m)
+                              (case (compare s (if (zero-bit? p m) l r))
+                                    ((greater) 'greater)
+                                    (else 'less)
+                              ) ;case
+                              'greater
+                            ) ;if
+                          ) ;let
+                        ) ;let
+                       ) ;
+                       ((leaf? t) 'greater)
+                       (else (compare-branches s t))
+                 ) ;cond
+               ) ;lambda
              ) ;compare
-             (compare-branches (lambda (s t)
-                                 (let ((p (branch-prefix s))
-                                       (m (branch-branching-bit s))
-                                       (sl (branch-left s))
-                                       (sr (branch-right s))
-                                       (q (branch-prefix t))
-                                       (n (branch-branching-bit t))
-                                       (tl (branch-left t))
-                                       (tr (branch-right t))
-                                      ) ;
-                                   (cond ((branching-bit-higher? m n) 'greater)
-                                         ((branching-bit-higher? n m)
-                                          (if (match-prefix? p q n)
-                                            (let ((comp (if (zero-bit? p n) (compare s tl) (compare s tr))))
-                                              (if (eqv? comp 'greater) comp 'less)
-                                            ) ;let
-                                            'greater
-                                          ) ;if
-                                         ) ;
-                                         ((= p q)
-                                          (let ((cl (compare sl tl)) (cr (compare sr tr)))
-                                            (cond ((or (eqv? cl 'greater) (eqv? cr 'greater)) 'greater)
-                                                  ((and (eqv? cl 'equal) (eqv? cr 'equal)) 'equal)
-                                                  (else 'less)
-                                            ) ;cond
-                                          ) ;let
-                                         ) ;
-                                         (else 'greater)
-                                   ) ;cond
-                                 ) ;let
-                               ) ;lambda
+             (compare-branches
+               (lambda (s t)
+                 (let ((p (branch-prefix s))
+                       (m (branch-branching-bit s))
+                       (sl (branch-left s))
+                       (sr (branch-right s))
+                       (q (branch-prefix t))
+                       (n (branch-branching-bit t))
+                       (tl (branch-left t))
+                       (tr (branch-right t))
+                      ) ;
+                   (cond ((branching-bit-higher? m n) 'greater)
+                         ((branching-bit-higher? n m)
+                          (if (match-prefix? p q n)
+                            (let ((comp (if (zero-bit? p n) (compare s tl) (compare s tr))))
+                              (if (eqv? comp 'greater) comp 'less)
+                            ) ;let
+                            'greater
+                          ) ;if
+                         ) ;
+                         ((= p q)
+                          (let ((cl (compare sl tl)) (cr (compare sr tr)))
+                            (cond ((or (eqv? cl 'greater) (eqv? cr 'greater)) 'greater)
+                                  ((and (eqv? cl 'equal) (eqv? cr 'equal)) 'equal)
+                                  (else 'less)
+                            ) ;cond
+                          ) ;let
+                         ) ;
+                         (else 'greater)
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
              ) ;compare-branches
             ) ;
       (compare trie1 trie2)
@@ -1039,56 +1074,59 @@
   ) ;define
 
   (define (trie-disjoint? trie1 trie2)
-    (letrec ((disjoint? (lambda (s t)
-                          (or (not s)
-                            (not t)
-                            (cond ((and (leaf? s) (leaf? t)) (disjoint/leaf? s t))
-                                  ((leaf? s) (disjoint/leaf? s t))
-                                  ((leaf? t) (disjoint/leaf? t s))
-                                  (else (branches-disjoint? s t))
-                            ) ;cond
-                          ) ;or
-                        ) ;lambda
+    (letrec ((disjoint?
+               (lambda (s t)
+                 (or (not s)
+                   (not t)
+                   (cond ((and (leaf? s) (leaf? t)) (disjoint/leaf? s t))
+                         ((leaf? s) (disjoint/leaf? s t))
+                         ((leaf? t) (disjoint/leaf? t s))
+                         (else (branches-disjoint? s t))
+                   ) ;cond
+                 ) ;or
+               ) ;lambda
              ) ;disjoint?
-             (disjoint/leaf? (lambda (lf t)
-                               (let ((p (leaf-prefix lf)) (bm (leaf-bitmap lf)))
-                                 (let lp
-                                   ((t t))
-                                   (if (leaf? t)
-                                     (if (= p (leaf-prefix t)) (zero? (logand bm (leaf-bitmap t))) #t)
-                                     (let ((q (branch-prefix t))
-                                           (m (branch-branching-bit t))
-                                           (l (branch-left t))
-                                           (r (branch-right t))
-                                          ) ;
-                                       (if (match-prefix? p q m) (if (zero-bit? p m) (lp l) (lp r)) #t)
-                                     ) ;let
-                                   ) ;if
-                                 ) ;let
-                               ) ;let
-                             ) ;lambda
+             (disjoint/leaf?
+               (lambda (lf t)
+                 (let ((p (leaf-prefix lf)) (bm (leaf-bitmap lf)))
+                   (let lp
+                     ((t t))
+                     (if (leaf? t)
+                       (if (= p (leaf-prefix t)) (zero? (logand bm (leaf-bitmap t))) #t)
+                       (let ((q (branch-prefix t))
+                             (m (branch-branching-bit t))
+                             (l (branch-left t))
+                             (r (branch-right t))
+                            ) ;
+                         (if (match-prefix? p q m) (if (zero-bit? p m) (lp l) (lp r)) #t)
+                       ) ;let
+                     ) ;if
+                   ) ;let
+                 ) ;let
+               ) ;lambda
              ) ;disjoint/leaf?
-             (branches-disjoint? (lambda (s t)
-                                   (let ((p (branch-prefix s))
-                                         (m (branch-branching-bit s))
-                                         (sl (branch-left s))
-                                         (sr (branch-right s))
-                                         (q (branch-prefix t))
-                                         (n (branch-branching-bit t))
-                                         (tl (branch-left t))
-                                         (tr (branch-right t))
-                                        ) ;
-                                     (cond ((and (= m n) (= p q)) (and (disjoint? sl tl) (disjoint? sr tr)))
-                                           ((and (branching-bit-higher? m n) (match-prefix? q p m))
-                                            (if (zero-bit? q m) (disjoint? sl t) (disjoint? sr t))
-                                           ) ;
-                                           ((and (branching-bit-higher? n m) (match-prefix? p q n))
-                                            (if (zero-bit? p n) (disjoint? s tl) (disjoint? s tr))
-                                           ) ;
-                                           (else #t)
-                                     ) ;cond
-                                   ) ;let
-                                 ) ;lambda
+             (branches-disjoint?
+               (lambda (s t)
+                 (let ((p (branch-prefix s))
+                       (m (branch-branching-bit s))
+                       (sl (branch-left s))
+                       (sr (branch-right s))
+                       (q (branch-prefix t))
+                       (n (branch-branching-bit t))
+                       (tl (branch-left t))
+                       (tr (branch-right t))
+                      ) ;
+                   (cond ((and (= m n) (= p q)) (and (disjoint? sl tl) (disjoint? sr tr)))
+                         ((and (branching-bit-higher? m n) (match-prefix? q p m))
+                          (if (zero-bit? q m) (disjoint? sl t) (disjoint? sr t))
+                         ) ;
+                         ((and (branching-bit-higher? n m) (match-prefix? p q n))
+                          (if (zero-bit? p n) (disjoint? s tl) (disjoint? s tr))
+                         ) ;
+                         (else #t)
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
              ) ;branches-disjoint?
             ) ;
       (disjoint? trie1 trie2)
@@ -1098,26 +1136,28 @@
   ;; ;; Subtrie operations
 
   (define (subtrie< trie k inclusive)
-    (letrec ((split (lambda (t)
-                      (cond ((not t) #f)
-                            ((leaf? t)
-                             (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                               (leaf p (bitmap-split< k inclusive p bm))
-                             ) ;let
-                            ) ;
-                            (else (let ((p (branch-prefix t))
-                                        (m (branch-branching-bit t))
-                                        (l (branch-left t))
-                                        (r (branch-right t))
-                                       ) ;
-                                    (if (match-prefix? k p m)
-                                      (if (zero-bit? k m) (split l) (trie-union l (split r)))
-                                      (and (< p k) t)
-                                    ) ;if
-                                  ) ;let
-                            ) ;else
-                      ) ;cond
-                    ) ;lambda
+    (letrec ((split
+               (lambda (t)
+                 (cond ((not t) #f)
+                       ((leaf? t)
+                        (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                          (leaf p (bitmap-split< k inclusive p bm))
+                        ) ;let
+                       ) ;
+                       (else
+                         (let ((p (branch-prefix t))
+                               (m (branch-branching-bit t))
+                               (l (branch-left t))
+                               (r (branch-right t))
+                              ) ;
+                           (if (match-prefix? k p m)
+                             (if (zero-bit? k m) (split l) (trie-union l (split r)))
+                             (and (< p k) t)
+                           ) ;if
+                         ) ;let
+                       ) ;else
+                 ) ;cond
+               ) ;lambda
              ) ;split
             ) ;
       (if (and (branch? trie) (negative? (branch-branching-bit trie)))
@@ -1140,26 +1180,28 @@
   ) ;define
 
   (define (subtrie> trie k inclusive)
-    (letrec ((split (lambda (t)
-                      (cond ((not t) #f)
-                            ((leaf? t)
-                             (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                               (leaf p (bitmap-split> k inclusive p bm))
-                             ) ;let
-                            ) ;
-                            (else (let ((p (branch-prefix t))
-                                        (m (branch-branching-bit t))
-                                        (l (branch-left t))
-                                        (r (branch-right t))
-                                       ) ;
-                                    (if (match-prefix? k p m)
-                                      (if (zero-bit? k m) (trie-union (split l) r) (split r))
-                                      (and (> p k) t)
-                                    ) ;if
-                                  ) ;let
-                            ) ;else
-                      ) ;cond
-                    ) ;lambda
+    (letrec ((split
+               (lambda (t)
+                 (cond ((not t) #f)
+                       ((leaf? t)
+                        (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                          (leaf p (bitmap-split> k inclusive p bm))
+                        ) ;let
+                       ) ;
+                       (else
+                         (let ((p (branch-prefix t))
+                               (m (branch-branching-bit t))
+                               (l (branch-left t))
+                               (r (branch-right t))
+                              ) ;
+                           (if (match-prefix? k p m)
+                             (if (zero-bit? k m) (trie-union (split l) r) (split r))
+                             (and (> p k) t)
+                           ) ;if
+                         ) ;let
+                       ) ;else
+                 ) ;cond
+               ) ;lambda
              ) ;split
             ) ;
       (if (and (branch? trie) (negative? (branch-branching-bit trie)))
@@ -1182,38 +1224,40 @@
   ) ;define
 
   (define (subtrie-interval trie a b low-inclusive high-inclusive)
-    (letrec ((interval (lambda (t)
-                         (cond ((not t) #f)
-                               ((leaf? t)
-                                (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
-                                  (leaf p (bitmap-interval p bm a b low-inclusive high-inclusive))
-                                ) ;let
-                               ) ;
-                               (else (branch-interval t))
-                         ) ;cond
-                       ) ;lambda
+    (letrec ((interval
+               (lambda (t)
+                 (cond ((not t) #f)
+                       ((leaf? t)
+                        (let ((p (leaf-prefix t)) (bm (leaf-bitmap t)))
+                          (leaf p (bitmap-interval p bm a b low-inclusive high-inclusive))
+                        ) ;let
+                       ) ;
+                       (else (branch-interval t))
+                 ) ;cond
+               ) ;lambda
              ) ;interval
-             (branch-interval (lambda (t)
-                                (let ((p (branch-prefix t))
-                                      (m (branch-branching-bit t))
-                                      (l (branch-left t))
-                                      (r (branch-right t))
-                                     ) ;
-                                  (if (match-prefix? a p m)
-                                    (if (zero-bit? a m)
-                                      (if (match-prefix? b p m)
-                                        (if (zero-bit? b m)
-                                          (interval l)
-                                          (trie-union (subtrie> l a low-inclusive) (subtrie< r b high-inclusive))
-                                        ) ;if
-                                        (and (< b p) (trie-union (subtrie> l a low-inclusive) r))
-                                      ) ;if
-                                      (interval r)
-                                    ) ;if
-                                    (and (> p a) (subtrie< t b high-inclusive))
-                                  ) ;if
-                                ) ;let
-                              ) ;lambda
+             (branch-interval
+               (lambda (t)
+                 (let ((p (branch-prefix t))
+                       (m (branch-branching-bit t))
+                       (l (branch-left t))
+                       (r (branch-right t))
+                      ) ;
+                   (if (match-prefix? a p m)
+                     (if (zero-bit? a m)
+                       (if (match-prefix? b p m)
+                         (if (zero-bit? b m)
+                           (interval l)
+                           (trie-union (subtrie> l a low-inclusive) (subtrie< r b high-inclusive))
+                         ) ;if
+                         (and (< b p) (trie-union (subtrie> l a low-inclusive) r))
+                       ) ;if
+                       (interval r)
+                     ) ;if
+                     (and (> p a) (subtrie< t b high-inclusive))
+                   ) ;if
+                 ) ;let
+               ) ;lambda
              ) ;branch-interval
             ) ;
       (if (and (branch? trie) (negative? (branch-branching-bit trie)))
@@ -1234,14 +1278,15 @@
       (let ((low-mask (- (if low-inclusive lb (arithmetic-shift lb 1))))
             (high-mask (- (if high-inclusive (arithmetic-shift hb 1) hb) 1))
            ) ;
-        (cond ((< prefix hp)
-               (cond ((< prefix lp) 0)
-                     ((> prefix lp) bitmap)
-                     (else (logand low-mask bitmap))
-               ) ;cond
-              ) ;
-              ((> prefix hp) 0)
-              (else (logand (logand low-mask high-mask) bitmap))
+        (cond
+         ((< prefix hp)
+          (cond ((< prefix lp) 0)
+                ((> prefix lp) bitmap)
+                (else (logand low-mask bitmap))
+          ) ;cond
+         ) ;
+         ((> prefix hp) 0)
+         (else (logand (logand low-mask high-mask) bitmap))
         ) ;cond
       ) ;let
     ) ;let
@@ -1267,17 +1312,19 @@
 
   (define (list->iset ns)
     (assume (pair-or-null? ns))
-    (raw-iset (fold (lambda (n t) (assume (valid-integer? n)) (trie-insert t n)) #f ns)
+    (raw-iset
+      (fold (lambda (n t) (assume (valid-integer? n)) (trie-insert t n)) #f ns)
     ) ;raw-iset
   ) ;define
 
   (define (list->iset! set ns)
     (assume (iset? set))
     (assume (pair-or-null? ns))
-    (raw-iset (fold (lambda (n t) (assume (valid-integer? n)) (trie-insert t n))
-                (iset-trie set)
-                ns
-              ) ;fold
+    (raw-iset
+      (fold (lambda (n t) (assume (valid-integer? n)) (trie-insert t n))
+        (iset-trie set)
+        ns
+      ) ;fold
     ) ;raw-iset
   ) ;define
 
@@ -1359,10 +1406,11 @@
       (raw-iset (trie-insert (iset-trie set) n))
      ) ;
      ((set . ns)
-      (raw-iset (fold (lambda (n t) (assume (valid-integer? n)) (trie-insert t n))
-                  (iset-trie set)
-                  ns
-                ) ;fold
+      (raw-iset
+        (fold (lambda (n t) (assume (valid-integer? n)) (trie-insert t n))
+          (iset-trie set)
+          ns
+        ) ;fold
       ) ;raw-iset
      ) ;
     ) ;case-lambda
@@ -1402,29 +1450,30 @@
     (assume (valid-integer? elt))
     (assume (procedure? failure))
     (assume (procedure? success))
-    (call-with-current-continuation (lambda (return)
-                                      (let-values (((trie obj)
-                                                    (trie-search (iset-trie set)
-                                                      elt
-                                                      (lambda (insert ignore) (failure insert (lambda (obj) (return set obj))))
-                                                      (lambda (key update remove)
-                                                        (success key
-                                                          (lambda (new obj)
-                                                            (assume (valid-integer? new))
-                                                            (if (= key new)
-                                                              (update new obj)
-                                                              (return (iset-adjoin (iset-delete set key) new) obj)
-                                                            ) ;if
-                                                          ) ;lambda
-                                                          remove
-                                                        ) ;success
-                                                      ) ;lambda
-                                                    ) ;trie-search
-                                                   ) ;
-                                                  ) ;
-                                        (values (raw-iset trie) obj)
-                                      ) ;let-values
-                                    ) ;lambda
+    (call-with-current-continuation
+      (lambda (return)
+        (let-values (((trie obj)
+                      (trie-search (iset-trie set)
+                        elt
+                        (lambda (insert ignore) (failure insert (lambda (obj) (return set obj))))
+                        (lambda (key update remove)
+                          (success key
+                            (lambda (new obj)
+                              (assume (valid-integer? new))
+                              (if (= key new)
+                                (update new obj)
+                                (return (iset-adjoin (iset-delete set key) new) obj)
+                              ) ;if
+                            ) ;lambda
+                            remove
+                          ) ;success
+                        ) ;lambda
+                      ) ;trie-search
+                     ) ;
+                    ) ;
+          (values (raw-iset trie) obj)
+        ) ;let-values
+      ) ;lambda
     ) ;call-with-current-continuation
   ) ;define
 
@@ -1466,9 +1515,13 @@
 
   (define (iset-find pred set failure)
     (assume (procedure? failure))
-    (call-with-current-continuation (lambda (return)
-                                      (or (iset-fold (lambda (n _) (and (pred n) (return n))) #f set) (failure))
-                                    ) ;lambda
+    (call-with-current-continuation
+      (lambda (return)
+        (or
+          (iset-fold (lambda (n _) (and (pred n) (return n))) #f set)
+          (failure)
+        ) ;or
+      ) ;lambda
     ) ;call-with-current-continuation
   ) ;define
 
@@ -1479,13 +1532,15 @@
 
   (define (iset-any? pred set)
     (assume (procedure? pred))
-    (call-with-current-continuation (lambda (return) (iset-fold (lambda (n _) (and (pred n) (return #t))) #f set))
+    (call-with-current-continuation
+      (lambda (return) (iset-fold (lambda (n _) (and (pred n) (return #t))) #f set))
     ) ;call-with-current-continuation
   ) ;define
 
   (define (iset-every? pred set)
     (assume (procedure? pred))
-    (call-with-current-continuation (lambda (return) (iset-fold (lambda (n _) (if (pred n) #t (return #f))) #t set))
+    (call-with-current-continuation
+      (lambda (return) (iset-fold (lambda (n _) (if (pred n) #t (return #f))) #t set))
     ) ;call-with-current-continuation
   ) ;define
 
@@ -1493,15 +1548,17 @@
 
   (define (iset-map proc set)
     (assume (procedure? proc))
-    (raw-iset (iset-fold (lambda (n t)
-                           (let ((n* (proc n)))
-                             (assume (valid-integer? n*))
-                             (trie-insert t (proc n))
-                           ) ;let
-                         ) ;lambda
-                #f
-                set
-              ) ;iset-fold
+    (raw-iset
+      (iset-fold
+        (lambda (n t)
+          (let ((n* (proc n)))
+            (assume (valid-integer? n*))
+            (trie-insert t (proc n))
+          ) ;let
+        ) ;lambda
+        #f
+        set
+      ) ;iset-fold
     ) ;raw-iset
   ) ;define
 
@@ -1535,7 +1592,9 @@
   (define (iset-remove pred set)
     (assume (procedure? pred))
     (assume (iset? set))
-    (raw-iset (trie-filter (lambda (n) (not (pred n))) (iset-trie set)))
+    (raw-iset
+      (trie-filter (lambda (n) (not (pred n))) (iset-trie set))
+    ) ;raw-iset
   ) ;define
 
   (define (iset-partition pred set)
@@ -1573,10 +1632,11 @@
 
   (define (iset=? set1 set2 . sets)
     (assume (iset? set1))
-    (let ((iset-eq1 (lambda (set)
-                      (assume (iset? set))
-                      (or (eqv? set1 set) (trie=? (iset-trie set1) (iset-trie set)))
-                    ) ;lambda
+    (let ((iset-eq1
+            (lambda (set)
+              (assume (iset? set))
+              (or (eqv? set1 set) (trie=? (iset-trie set1) (iset-trie set)))
+            ) ;lambda
           ) ;iset-eq1
          ) ;
       (and (iset-eq1 set2) (or (null? sets) (every iset-eq1 sets)))
@@ -1637,10 +1697,11 @@
       (raw-iset (trie-union (iset-trie set1) (iset-trie set2)))
      ) ;
      ((set . rest)
-      (raw-iset (fold (lambda (s t) (assume (iset? s)) (trie-union (iset-trie s) t))
-                  (iset-trie set)
-                  rest
-                ) ;fold
+      (raw-iset
+        (fold (lambda (s t) (assume (iset? s)) (trie-union (iset-trie s) t))
+          (iset-trie set)
+          rest
+        ) ;fold
       ) ;raw-iset
      ) ;
     ) ;case-lambda
@@ -1659,10 +1720,11 @@
      ) ;
      ((set . rest)
       (assume (iset? set))
-      (raw-iset (fold (lambda (s t) (assume (iset? s)) (trie-intersection (iset-trie s) t))
-                  (iset-trie set)
-                  rest
-                ) ;fold
+      (raw-iset
+        (fold (lambda (s t) (assume (iset? s)) (trie-intersection (iset-trie s) t))
+          (iset-trie set)
+          rest
+        ) ;fold
       ) ;raw-iset
      ) ;
     ) ;case-lambda

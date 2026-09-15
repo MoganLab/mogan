@@ -42,7 +42,10 @@
 
 (define-public (list->frequencies l)
   (let ((t (make-ahash-table)))
-    (for-each (lambda (x) (ahash-set! t x (+ 1 (or (ahash-ref t x) 0)))) l)
+    (for-each
+      (lambda (x) (ahash-set! t x (+ 1 (or (ahash-ref t x) 0))))
+      l
+    ) ;for-each
     t
   ) ;let
 ) ;define-public
@@ -79,7 +82,12 @@
 
 (define-public (ahash-table-map fun t)
   (let* ((l (ahash-table->list t))
-         (r (map (lambda (x) (cons (car x) (fun (cdr x)))) l))
+         (r
+           (map
+             (lambda (x) (cons (car x) (fun (cdr x))))
+             l
+           ) ;map
+         ) ;r
         ) ;
     (list->ahash-table r)
   ) ;let*
@@ -89,7 +97,10 @@
 
 (define-public (ahash-table-select t l)
   (let ((r (make-ahash-table)))
-    (for-each (lambda (x) (if (ahash-ref t x) (ahash-set! r x (ahash-ref t x)))) l)
+    (for-each
+      (lambda (x) (if (ahash-ref t x) (ahash-set! r x (ahash-ref t x))))
+      l
+    ) ;for-each
     r
   ) ;let
 ) ;define-public

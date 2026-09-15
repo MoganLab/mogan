@@ -76,9 +76,10 @@
   ) ;llm-log
   ;; 末尾空段：C++ 输入累积会把相邻非空节点并入同一 concat，
   ;; 留空段让后续输出（%chat 回显）另起一段
-  (flush-scheme `(document (unfolded-explain ,(reasoning-title-tree)
-                             ,(reasoning-body-tree text))
-                   ,"")
+  (flush-scheme
+    `(document (unfolded-explain ,(reasoning-title-tree)
+                 ,(reasoning-body-tree text))
+       ,"")
   ) ;flush-scheme
 ) ;define
 

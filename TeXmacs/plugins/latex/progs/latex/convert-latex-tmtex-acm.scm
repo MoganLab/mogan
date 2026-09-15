@@ -43,7 +43,12 @@
 (define (rewrite-author a)
   (cond ((not (func? a 'author 1)) (list a))
         ((not (func? (cadr a) '!paragraph)) (list a))
-        (else (cons `(author ,(cadr (cadr a))) (cddr (cadr a))))
+        (else
+          (cons
+            `(author ,(cadr (cadr a)))
+            (cddr (cadr a))
+          ) ;cons
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -227,7 +232,8 @@
   (:mode acm-conf-style?)
   (with aff-lines
     (if (list>0? (cadr t))
-      (map (lambda (x) (if (== x '(next-line)) '(!nextline) `(affaddr ,(tmtex x))))
+      (map
+        (lambda (x) (if (== x '(next-line)) '(!nextline) `(affaddr ,(tmtex x))))
         (cdadr t)
       ) ;map
       (if (null? (cdr t)) '() `((affaddr ,(tmtex (cadr t)))))
@@ -239,7 +245,9 @@
 (tm-define (tmtex-author-email t)
   (:mode acm-conf-style?)
   (set! t (tmtex-remove-line-feeds t))
-  (acm-line-break `(email ,(tmtex (cadr t))))
+  (acm-line-break
+    `(email ,(tmtex (cadr t)))
+  ) ;acm-line-break
 ) ;tm-define
 
 (tm-define (tmtex-author-homepage t)
@@ -283,15 +291,17 @@
 (tm-define (tmtex-abstract-acm t)
   (:mode acm-style?)
   (with l
-    (cond ((== (length (cdr t)) 0) '("" "" ""))
-          ((== (length (cdr t)) 1) (append (cdr t) '("" "")))
-          ((== (length (cdr t)) 2) (append (cdr t) '("")))
-          ((== (length (cdr t)) 3) (cdr t))
-          (else (append (sublist (cdr t) 0 3)
-                  `((!option ,(fourth (cdr t))))
-                  (sublist (cdr t) 4 (length (cdr t)))
-                ) ;append
-          ) ;else
+    (cond
+     ((== (length (cdr t)) 0) '("" "" ""))
+     ((== (length (cdr t)) 1) (append (cdr t) '("" "")))
+     ((== (length (cdr t)) 2) (append (cdr t) '("")))
+     ((== (length (cdr t)) 3) (cdr t))
+     (else
+       (append (sublist (cdr t) 0 3)
+         `((!option ,(fourth (cdr t))))
+         (sublist (cdr t) 4 (length (cdr t)))
+       ) ;append
+     ) ;else
     ) ;cond
     `(category ,@(map tmtex l))
   ) ;with

@@ -177,12 +177,13 @@
        ((list-queue-remove-front! kbd-pending))
        (set! n (+ n 1))
       ) ;while
-      (kbd-pump-log (string-append "kbd-flush: drained "
-                      (number->string n)
-                      " bindings in "
-                      (number->string (- (texmacs-time) start))
-                      " ms"
-                    ) ;string-append
+      (kbd-pump-log
+        (string-append "kbd-flush: drained "
+          (number->string n)
+          " bindings in "
+          (number->string (- (texmacs-time) start))
+          " ms"
+        ) ;string-append
       ) ;kbd-pump-log
     ) ;let
     (set! kbd-pumping? #f)
@@ -366,21 +367,27 @@
 (tm-define (kbd-find-prefix-tab-inner prefix)
   ;; 直读 kbd-map-table 绕过 getter，需显式 drain
   (kbd-flush-pending)
-  (let* ((pairs (filter (lambda (pair)
-                          (let* ((key (car pair)) (val (cdr pair)))
-                            (and (string? key)
-                              (string-ends? key " tab")
-                              (let* ((base (kbd-base-sequence key)) (resolved (ctx-resolve val #f)))
-                                (and (string=? base prefix) resolved)
-                              ) ;let*
-                            ) ;and
-                          ) ;let*
-                        ) ;lambda
-                  (ahash-table->list kbd-map-table)
-                ) ;filter
+  (let* ((pairs
+           (filter
+             (lambda (pair)
+               (let* ((key (car pair)) (val (cdr pair)))
+                 (and (string? key)
+                   (string-ends? key " tab")
+                   (let* ((base (kbd-base-sequence key)) (resolved (ctx-resolve val #f)))
+                     (and (string=? base prefix) resolved)
+                   ) ;let*
+                 ) ;and
+               ) ;let*
+             ) ;lambda
+             (ahash-table->list kbd-map-table)
+           ) ;filter
          ) ;pairs
          ;; 将 (key . context-map) 转换为 (key . resolved-value)
-         (resolved-pairs (map (lambda (pair) (cons (car pair) (ctx-resolve (cdr pair) #f))) pairs)
+         (resolved-pairs
+           (map
+             (lambda (pair) (cons (car pair) (ctx-resolve (cdr pair) #f)))
+             pairs
+           ) ;map
          ) ;resolved-pairs
         ) ;
     (sort resolved-pairs
@@ -479,7 +486,8 @@
 ) ;define
 
 (define (kbd-map-one conds l)
-  (if (not (and (pair? l) (string? (car l)) (pair? (cdr l))))
+  (if
+    (not (and (pair? l) (string? (car l)) (pair? (cdr l))))
     (texmacs-error "kbd-map-pre-one" "Bad keymap in: ~S" l)
   ) ;if
   (with (key action . opt)
@@ -522,7 +530,8 @@
 ) ;tm-define
 
 (define (utf8-kbd-map-one conds l)
-  (if (not (and (pair? l) (string? (car l)) (pair? (cdr l))))
+  (if
+    (not (and (pair? l) (string? (car l)) (pair? (cdr l))))
     (texmacs-error "utf8-kbd-map-pre-one" "Bad keymap in: ~S" l)
   ) ;if
   (with (key action . opt)
@@ -670,10 +679,11 @@
 
 (define (extract-code-str proc)
   (let* ((src (if (procedure? proc) (procedure-source proc) proc))
-         (code (if (and (pair? src) (eq? (car src) 'lambda) (pair? (cddr src)))
-                 (caddr src)
-                 src
-               ) ;if
+         (code
+           (if (and (pair? src) (eq? (car src) 'lambda) (pair? (cddr src)))
+             (caddr src)
+             src
+           ) ;if
          ) ;code
         ) ;
     code
@@ -722,11 +732,12 @@
   (let ((raw-map (kbd-get-map key-str)))
     (if (not raw-map)
       (list 'not-bound)
-      (map (lambda (item)
-             (let ((conds (car item)) (cmd (cadr item)) (help (caddr item)))
-               (list (map extract-code-str conds) (extract-code-str cmd) help)
-             ) ;let
-           ) ;lambda
+      (map
+        (lambda (item)
+          (let ((conds (car item)) (cmd (cadr item)) (help (caddr item)))
+            (list (map extract-code-str conds) (extract-code-str cmd) help)
+          ) ;let
+        ) ;lambda
         raw-map
       ) ;map
     ) ;if
@@ -762,25 +773,27 @@
 ;; 4. 收集：如果匹配，将 `(Key Conditions)` 加入结果列表。
 (tm-define (get-bindings-by-command target-cmd)
   (let ((all-entries (ahash-table->list kbd-map-table)) (matches '()))
-    (for-each (lambda (map-entry)
-                (let ((key (car map-entry)) (ctx-list (cdr map-entry)))
-                  (for-each (lambda (ctx-item)
-                              (let* ((cmd-proc (cadr ctx-item))
-                                     ;; 核心步骤：提取命令的源码进行比对
-                                     (cmd-code (extract-code-str cmd-proc))
-                                    ) ;
-                                (when (equal? cmd-code target-cmd)
-                                  (let ((cond-codes (map extract-code-str (car ctx-item))))
-                                    ;; 收集结果：(按键 (条件...))
-                                    (set! matches (cons (list key cond-codes) matches))
-                                  ) ;let
-                                ) ;when
-                              ) ;let*
-                            ) ;lambda
-                    ctx-list
-                  ) ;for-each
-                ) ;let
-              ) ;lambda
+    (for-each
+      (lambda (map-entry)
+        (let ((key (car map-entry)) (ctx-list (cdr map-entry)))
+          (for-each
+            (lambda (ctx-item)
+              (let* ((cmd-proc (cadr ctx-item))
+                     ;; 核心步骤：提取命令的源码进行比对
+                     (cmd-code (extract-code-str cmd-proc))
+                    ) ;
+                (when (equal? cmd-code target-cmd)
+                  (let ((cond-codes (map extract-code-str (car ctx-item))))
+                    ;; 收集结果：(按键 (条件...))
+                    (set! matches (cons (list key cond-codes) matches))
+                  ) ;let
+                ) ;when
+              ) ;let*
+            ) ;lambda
+            ctx-list
+          ) ;for-each
+        ) ;let
+      ) ;lambda
       all-entries
     ) ;for-each
     (reverse matches)
@@ -825,27 +838,29 @@
 ;;   - 如果匹配成功，提取对应的命令源码，并将 `(Key Command)` 组合加入结果列表。
 (tm-define (get-bindings-by-condition target-conds)
   (let ((all-entries (ahash-table->list kbd-map-table)) (matches '()))
-    (for-each (lambda (map-entry)
-                (let ((key (car map-entry)) (ctx-list (cdr map-entry)))
-                  ;; 遍历该按键的所有重载定义
-                  (for-each (lambda (ctx-item)
-                              (let* ((cond-funcs (car ctx-item))
-                                     ;; 提取源码用于比对
-                                     (cond-codes (map extract-code-str cond-funcs))
-                                    ) ;
-                                ;; 深度比对条件结构
-                                (when (equal? cond-codes target-conds)
-                                  (let ((cmd-code (extract-code-str (cadr ctx-item))))
-                                    ;; 收集结果：(按键 命令)
-                                    (set! matches (cons (list key cmd-code) matches))
-                                  ) ;let
-                                ) ;when
-                              ) ;let*
-                            ) ;lambda
-                    ctx-list
-                  ) ;for-each
-                ) ;let
-              ) ;lambda
+    (for-each
+      (lambda (map-entry)
+        (let ((key (car map-entry)) (ctx-list (cdr map-entry)))
+          ;; 遍历该按键的所有重载定义
+          (for-each
+            (lambda (ctx-item)
+              (let* ((cond-funcs (car ctx-item))
+                     ;; 提取源码用于比对
+                     (cond-codes (map extract-code-str cond-funcs))
+                    ) ;
+                ;; 深度比对条件结构
+                (when (equal? cond-codes target-conds)
+                  (let ((cmd-code (extract-code-str (cadr ctx-item))))
+                    ;; 收集结果：(按键 命令)
+                    (set! matches (cons (list key cmd-code) matches))
+                  ) ;let
+                ) ;when
+              ) ;let*
+            ) ;lambda
+            ctx-list
+          ) ;for-each
+        ) ;let
+      ) ;lambda
       all-entries
     ) ;for-each
     ;; 返回结果（反转以保持发现顺序，虽不强求）
@@ -934,20 +949,21 @@
   (when (and (string? old-key) (> (string-length old-key) 0))
     (let ((raw-map (kbd-get-map old-key)))
       (when raw-map
-        (for-each (lambda (entry)
-                    (let* ((entry-conds (car entry))
-                           (entry-conds-src (map extract-code-str entry-conds))
-                           (entry-cmd-src (extract-code-str (cadr entry)))
-                          ) ;
+        (for-each
+          (lambda (entry)
+            (let* ((entry-conds (car entry))
+                   (entry-conds-src (map extract-code-str entry-conds))
+                   (entry-cmd-src (extract-code-str (cadr entry)))
+                  ) ;
 
-                      ;; 只有当 (条件匹配) 且 (命令也匹配) 时，才认为是同一个绑定进行删除
-                      ;; 这样可以防止在交换快捷键时，误删刚刚绑定上去的新命令
-                      (when (and (equal? entry-conds-src conds) (equal? entry-cmd-src cmd))
-                        ;; 使用原始的条件闭包列表进行删除
-                        (kbd-delete-key-binding2 entry-conds old-key)
-                      ) ;when
-                    ) ;let*
-                  ) ;lambda
+              ;; 只有当 (条件匹配) 且 (命令也匹配) 时，才认为是同一个绑定进行删除
+              ;; 这样可以防止在交换快捷键时，误删刚刚绑定上去的新命令
+              (when (and (equal? entry-conds-src conds) (equal? entry-cmd-src cmd))
+                ;; 使用原始的条件闭包列表进行删除
+                (kbd-delete-key-binding2 entry-conds old-key)
+              ) ;when
+            ) ;let*
+          ) ;lambda
           raw-map
         ) ;for-each
       ) ;when
@@ -957,8 +973,15 @@
   ;; 2. 如果提供了新按键，则插入新绑定
   (when (and (string? new-key) (> (string-length new-key) 0))
     ;; 将数据层面的源码 (S-Expression) 转换为可执行的闭包 (Procedure)
-    (let ((cond-funcs (map (lambda (c) (eval `(lambda ,() ,c) (current-module))) conds))
-          (cmd-func (eval `(lambda ,() ,cmd) (current-module)))
+    (let ((cond-funcs
+            (map
+              (lambda (c) (eval `(lambda ,() ,c) (current-module)))
+              conds
+            ) ;map
+          ) ;cond-funcs
+          (cmd-func
+            (eval `(lambda ,() ,cmd) (current-module))
+          ) ;cmd-func
          ) ;
       ;; 插入新绑定，帮助文档暂留空字符串
       (kbd-insert-key-binding cond-funcs new-key (list cmd-func ""))

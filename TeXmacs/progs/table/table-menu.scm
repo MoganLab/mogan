@@ -646,13 +646,14 @@
 
 (tm-menu (focus-tag-extra-icons t)
   (:require (table-markup-context? t))
-  (if (and (document-like? (tree-up t)) (not (tree-in? t '(wide-tabular wide-block))))
-   ((check (balloon (icon "tm_table_parwidth.xpm") "Extend table to full paragraph width")
-      "v"
-      (table-test-parwidth?)
-    ) ;check
-    (table-toggle-parwidth)
-   ) ;
+  (if
+    (and (document-like? (tree-up t)) (not (tree-in? t '(wide-tabular wide-block))))
+    ((check (balloon (icon "tm_table_parwidth.xpm") "Extend table to full paragraph width")
+       "v"
+       (table-test-parwidth?)
+     ) ;check
+     (table-toggle-parwidth)
+    ) ;
   ) ;if
   (=> (balloon (icon "tm_set_properties.xpm") "Table properties")
     (mini #f (link table-menu) --- ("Table properties" (open-table-properties)))
@@ -708,11 +709,12 @@
 (tm-menu (focus-extra-icons t)
   (:require (table-markup-context? t))
   (glue #f #f 10 0)
-  (minibar (if (== (get-cell-mode) "cell")
-             (=> (balloon "Cell" "Change cell operation mode")
-               (mini #f (link cell-mode-menu) --- ("Cell properties" (open-cell-properties)))
-             ) ;=>
-           ) ;if
+  (minibar
+    (if (== (get-cell-mode) "cell")
+      (=> (balloon "Cell" "Change cell operation mode")
+        (mini #f (link cell-mode-menu) --- ("Cell properties" (open-cell-properties)))
+      ) ;=>
+    ) ;if
     (if (== (get-cell-mode) "row")
       (=> (balloon "Row" "Change cell operation mode")
         (mini #f (link cell-mode-menu) --- ("Cell properties" (open-cell-properties)))
@@ -754,7 +756,8 @@
         (-> (balloon "Padding" "Set cell padding") (link cell-padding-menu))
       ) ;mini
     ) ;=>
-    (=> (balloon (icon (eval (cell-halign-icon))) "Modify cell alignment")
+    (=>
+      (balloon (icon (eval (cell-halign-icon))) "Modify cell alignment")
       (mini #f
         (group "Horizontal alignment")
         (link cell-halign-menu)
@@ -772,13 +775,14 @@
      ) ;check
      (cell-toggle-wrap)
     ) ;
-    (if (and (not (cell-spans-more?))
-          (not (selection-active-table?))
-          (> (* (table-nr-rows) (table-nr-columns)) 1)
-        ) ;and
-     ((balloon (icon "tm_cell_subtable.xpm") "Transform cell into subtable")
-      (make-subtable)
-     ) ;
+    (if
+      (and (not (cell-spans-more?))
+        (not (selection-active-table?))
+        (> (* (table-nr-rows) (table-nr-columns)) 1)
+      ) ;and
+      ((balloon (icon "tm_cell_subtable.xpm") "Transform cell into subtable")
+       (make-subtable)
+      ) ;
     ) ;if
     (if (and (cell-spans-more?) (not (selection-active-table?)))
      ((balloon (icon "tm_cell_var_subtable.xpm") "Transform cell into subtable")

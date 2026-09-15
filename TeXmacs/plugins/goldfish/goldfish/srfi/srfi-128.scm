@@ -294,19 +294,20 @@
       (lambda (a b)
         (cond ((< (length a) (length b)) #t)
               ((> (length a) (length b)) #f)
-              (else (let ((elem=? (comparator-equality-predicate element-comparator))
-                          (elem<? (comparator-ordering-predicate element-comparator))
-                          (len (length a))
-                         ) ;
-                      (let loop
-                        ((n 0))
-                        (cond ((= n len) #f)
-                              ((elem=? (ref a n) (ref b n)) (loop (+ n 1)))
-                              ((elem<? (ref a n) (ref b n)) #t)
-                              (else #f)
-                        ) ;cond
-                      ) ;let
-                    ) ;let
+              (else
+                (let ((elem=? (comparator-equality-predicate element-comparator))
+                      (elem<? (comparator-ordering-predicate element-comparator))
+                      (len (length a))
+                     ) ;
+                  (let loop
+                    ((n 0))
+                    (cond ((= n len) #f)
+                          ((elem=? (ref a n) (ref b n)) (loop (+ n 1)))
+                          ((elem<? (ref a n) (ref b n)) #t)
+                          (else #f)
+                    ) ;cond
+                  ) ;let
+                ) ;let
               ) ;else
         ) ;cond
       ) ;lambda

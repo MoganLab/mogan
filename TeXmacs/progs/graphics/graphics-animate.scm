@@ -28,11 +28,15 @@
            (tm-func? (tm-ref t 1 1) 'with)
          ) ;and
          (let* ((c1 (tm-children (tm-ref t 0 1))) (c2 (tm-children (tm-ref t 1 1))))
-           (if (and (>= (length c1) 3)
-                 (>= (length c2) 3)
-                 (tm-equal? `(concat ,@(cDDr c1)) `(concat ,@(cDDr c2)))
-                 (tm-equal? (cAr c1) (cAr c2))
-               ) ;and
+           (if
+             (and (>= (length c1) 3)
+               (>= (length c2) 3)
+               (tm-equal?
+                 `(concat ,@(cDDr c1))
+                 `(concat ,@(cDDr c2))
+               ) ;tm-equal?
+               (tm-equal? (cAr c1) (cAr c2))
+             ) ;and
              (let* ((var (tm->stree (cAr (cDDr c1))))
                     (val1 (tm->stree (cAr (cDr c1))))
                     (val2 (tm->stree (cAr (cDr c2))))
@@ -78,39 +82,41 @@
 ) ;define
 
 (define (anim-type-set t val)
-  (cond ((and (tm-in? t '(anim-static anim-dynamic)) (== val "inanimated"))
-         (tree-set! t (anim-principal t))
-         t
-        ) ;
-        ((and (tm-in? t '(anim-edit)) (== val "inanimated")) (tree-remove-node! t 1) t)
-        ((and (not (tm-in? t '(anim-static anim-dynamic anim-edit))) (== val "animated"))
-         (with t*
-           (tm->stree t)
+  (cond
+   ((and (tm-in? t '(anim-static anim-dynamic)) (== val "inanimated"))
+    (tree-set! t (anim-principal t))
+    t
+   ) ;
+   ((and (tm-in? t '(anim-edit)) (== val "inanimated")) (tree-remove-node! t 1) t)
+   ((and (not (tm-in? t '(anim-static anim-dynamic anim-edit))) (== val "animated"))
+    (with t*
+      (tm->stree t)
+      (tree-set! t
+        `(anim-edit (morph (tuple ,"0" ,t*) (tuple ,"1" ,t*))
+           ,t*
+           ,"1s"
+           ,"0.1s"
+           ,"0s")
+      ) ;tree-set!
+      t
+    ) ;with
+   ) ;
+   ((== val "animated") t)
+   (else
+     (with t*
+       (tm->stree (anim-principal t))
+       (with (var val1 val2)
+         (decode-anim-type val)
+         (let* ((t1 (add-with var val1 t*)) (t2 (add-with var val2 t*)))
            (tree-set! t
-             `(anim-edit (morph (tuple ,"0" ,t*) (tuple ,"1" ,t*))
-                ,t*
-                ,"1s"
-                ,"0.1s"
-                ,"0s")
+             `(anim-static (morph (tuple ,"0" ,t1) (tuple ,"1" ,t2))
+                ,@(anim-parameters (tm->stree t)))
            ) ;tree-set!
            t
-         ) ;with
-        ) ;
-        ((== val "animated") t)
-        (else (with t*
-                (tm->stree (anim-principal t))
-                (with (var val1 val2)
-                  (decode-anim-type val)
-                  (let* ((t1 (add-with var val1 t*)) (t2 (add-with var val2 t*)))
-                    (tree-set! t
-                      `(anim-static (morph (tuple ,"0" ,t1) (tuple ,"1" ,t2))
-                         ,@(anim-parameters (tm->stree t)))
-                    ) ;tree-set!
-                    t
-                  ) ;let*
-                ) ;with
-              ) ;with
-        ) ;else
+         ) ;let*
+       ) ;with
+     ) ;with
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -263,7 +269,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (anim-show-new-mode?)
-  (:require (and (inside? 'graphics) (!= (car (graphics-mode)) 'group-edit)))
+  (:require
+    (and (inside? 'graphics) (!= (car (graphics-mode)) 'group-edit))
+  ) ;:require
   #t
 ) ;tm-define
 

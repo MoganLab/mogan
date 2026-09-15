@@ -27,17 +27,18 @@
 ) ;define
 
 (define (get-definition** l t)
-  (cond ((and (tree-func? t 'assign 2)
-           (tree-atomic? (tree-ref t 0))
-           (== (tree->string (tree-ref t 0)) l)
-         ) ;and
-         t
-        ) ;
-        ((tree-atomic? t) #f)
-        ((tree-in? t '(document concat surround with))
-         (first-match (reverse (tree-children t)) (cut get-definition** l <>))
-        ) ;
-        (else #f)
+  (cond
+   ((and (tree-func? t 'assign 2)
+      (tree-atomic? (tree-ref t 0))
+      (== (tree->string (tree-ref t 0)) l)
+    ) ;and
+    t
+   ) ;
+   ((tree-atomic? t) #f)
+   ((tree-in? t '(document concat surround with))
+    (first-match (reverse (tree-children t)) (cut get-definition** l <>))
+   ) ;
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -65,22 +66,27 @@
   (:secure #t)
   (let* ((c (tree-children a))
          (name (car c))
-         (name* (if (not (tm-equal? name ""))
-                  name
-                  `(concat (with "color" "red" "font-shape" "italic"
-                             "enter-name")
-                     ,name)
-                ) ;if
+         (name*
+           (if (not (tm-equal? name ""))
+             name
+             `(concat (with "color" "red" "font-shape" "italic" "enter-name")
+                ,name)
+           ) ;if
          ) ;name*
          (args (cDr (cdr c)))
-         (args* (map (lambda (x) `(src-arg ,x)) args))
+         (args*
+           (map
+             (lambda (x) `(src-arg ,x))
+             args
+           ) ;map
+         ) ;args*
          (body (cAr c))
-         (body* (if (not (and (tm-equal? name "") (tm-equal? body "")))
-                  body
-                  `(concat (with "color" "red" "font-shape" "italic"
-                             "enter-body")
-                     ,body)
-                ) ;if
+         (body*
+           (if (not (and (tm-equal? name "") (tm-equal? body "")))
+             body
+             `(concat (with "color" "red" "font-shape" "italic" "enter-body")
+                ,body)
+           ) ;if
          ) ;body*
         ) ;
     `(with ,"par-first"
@@ -148,20 +154,21 @@
 ) ;tm-define
 
 (tm-define (get-macro-list type . opts)
-  (cond ((and (nnull? opts) (== (car opts) :sort))
-         (sort (apply get-macro-list (cons type (cdr opts))) string<=?)
-        ) ;
-        ((and (nnull? opts) (integer? (car opts)))
-         (with l
-           (apply get-macro-list (cons type (cdr opts)))
-           (sublist l 0 (min (length l) (car opts)))
-         ) ;with
-        ) ;
-        ((== type :preamble) (list-macros-in (document-get-preamble (buffer-tree))))
-        ((== type :packages) (append-map get-macro-list (get-public-style-list)))
-        ((== type :all) (append (get-macro-list :preamble) (get-macro-list :packages)))
-        ((string? type) (list-macros-in (tree-load-style* type)))
-        (else (list))
+  (cond
+   ((and (nnull? opts) (== (car opts) :sort))
+    (sort (apply get-macro-list (cons type (cdr opts))) string<=?)
+   ) ;
+   ((and (nnull? opts) (integer? (car opts)))
+    (with l
+      (apply get-macro-list (cons type (cdr opts)))
+      (sublist l 0 (min (length l) (car opts)))
+    ) ;with
+   ) ;
+   ((== type :preamble) (list-macros-in (document-get-preamble (buffer-tree))))
+   ((== type :packages) (append-map get-macro-list (get-public-style-list)))
+   ((== type :all) (append (get-macro-list :preamble) (get-macro-list :packages)))
+   ((string? type) (list-macros-in (tree-load-style* type)))
+   (else (list))
   ) ;cond
 ) ;tm-define
 
@@ -184,22 +191,23 @@
 ) ;define
 
 (define (search-style-definition done l t)
-  (cond ((and (tree-func? t 'assign 2)
-           (tree-atomic? (tree-ref t 0))
-           (== (tree->string (tree-ref t 0)) l)
-         ) ;and
-         (car done)
-        ) ;
-        ((tree-atomic? t) #f)
-        ((tree-is? t 'use-package)
-         (search-style-definition-in-list done l (tree-children t))
-        ) ;
-        ((tree-in? t '(document concat surround with))
-         (first-match (reverse (tree-children t))
-           (cut search-style-definition done l <>)
-         ) ;first-match
-        ) ;
-        (else #f)
+  (cond
+   ((and (tree-func? t 'assign 2)
+      (tree-atomic? (tree-ref t 0))
+      (== (tree->string (tree-ref t 0)) l)
+    ) ;and
+    (car done)
+   ) ;
+   ((tree-atomic? t) #f)
+   ((tree-is? t 'use-package)
+    (search-style-definition-in-list done l (tree-children t))
+   ) ;
+   ((tree-in? t '(document concat surround with))
+    (first-match (reverse (tree-children t))
+      (cut search-style-definition done l <>)
+    ) ;first-match
+   ) ;
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -214,11 +222,13 @@
 
 (tm-define (fuzzy-match-macro-prefix pre)
   (:synopsis "返回所有以 pre 为模糊前缀的宏定义")
-  (let ((matches (map (lambda (x) (cons x (fuzzy-string-match pre x))) (all-defined-macros*))
+  (let ((matches
+          (map (lambda (x) (cons x (fuzzy-string-match pre x))) (all-defined-macros*))
         ) ;matches
        ) ;
     (map car
-      (sort (filter (lambda (p) (> (cdr p) 2)) matches)
+      (sort
+        (filter (lambda (p) (> (cdr p) 2)) matches)
         (lambda (a b)
           (with eq
             (= (cdr a) (cdr b))
@@ -290,28 +300,29 @@
 (tm-define (has-macro-source? l)
   (if (symbol? l) (set! l (symbol->string l)))
   (cond ((ahash-ref macro-source-cache l) => identity)
-        (else (let ((local-def (get-definition* l (buffer-tree))))
-                (if local-def
+        (else
+          (let ((local-def (get-definition* l (buffer-tree))))
+            (if local-def
+              (begin
+                (ahash-set! macro-source-cache l local-def)
+                local-def
+              ) ;begin
+              (let ((common-pkg (assoc-ref common-style-packages l)))
+                (if common-pkg
                   (begin
-                    (ahash-set! macro-source-cache l local-def)
-                    local-def
+                    (ahash-set! macro-source-cache l common-pkg)
+                    common-pkg
                   ) ;begin
-                  (let ((common-pkg (assoc-ref common-style-packages l)))
-                    (if common-pkg
-                      (begin
-                        (ahash-set! macro-source-cache l common-pkg)
-                        common-pkg
-                      ) ;begin
-                      (let ((search-result (search-style-package l)))
-                        (when search-result
-                          (ahash-set! macro-source-cache l search-result)
-                        ) ;when
-                        search-result
-                      ) ;let
-                    ) ;if
+                  (let ((search-result (search-style-package l)))
+                    (when search-result
+                      (ahash-set! macro-source-cache l search-result)
+                    ) ;when
+                    search-result
                   ) ;let
                 ) ;if
               ) ;let
+            ) ;if
+          ) ;let
         ) ;else
   ) ;cond
 ) ;tm-define

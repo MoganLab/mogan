@@ -14,17 +14,19 @@
 (texmacs-module (binary goldfish) (:use (binary common)))
 
 (define (goldfish-binary-candidates)
-  (cond ((os-windows?)
-         (list (string-append (url->system (get-texmacs-path))
-                 "/plugins/goldfish/bin/goldfish.exe"
-               ) ;string-append
-         ) ;list
-        ) ;
-        (else (list (string-append (url->system (get-texmacs-path))
-                      "/plugins/goldfish/bin/goldfish"
-                    ) ;string-append
-              ) ;list
-        ) ;else
+  (cond
+   ((os-windows?)
+    (list (string-append (url->system (get-texmacs-path))
+            "/plugins/goldfish/bin/goldfish.exe"
+          ) ;string-append
+    ) ;list
+   ) ;
+   (else
+     (list (string-append (url->system (get-texmacs-path))
+             "/plugins/goldfish/bin/goldfish"
+           ) ;string-append
+     ) ;list
+   ) ;else
   ) ;cond
 ) ;define
 

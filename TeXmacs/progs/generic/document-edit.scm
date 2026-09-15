@@ -104,13 +104,14 @@
 
 (tm-define (init-multi l)
   (when (and (nnull? l) (nnull? (cdr l)))
-    (cond ((and (== (car l) "font") (== (cadr l) :default))
-           (remove-font-packages)
-           (init-default "font")
-          ) ;
-          ((== (car l) "font") (init-font (cadr l)))
-          ((== (cadr l) :default) (init-default (car l)))
-          (else (init-env (car l) (cadr l)))
+    (cond
+     ((and (== (car l) "font") (== (cadr l) :default))
+      (remove-font-packages)
+      (init-default "font")
+     ) ;
+     ((== (car l) "font") (init-font (cadr l)))
+     ((== (cadr l) :default) (init-default (car l)))
+     (else (init-env (car l) (cadr l)))
     ) ;cond
     (init-multi (cddr l))
   ) ;when
@@ -256,9 +257,10 @@
   (cond ((nlist? t) #f)
         ((null? t) #f)
         ((match? t '(associate "language" :%1)) (caddr t))
-        (else (let ((val (search-env-var (car t) which)))
-                (if val val (search-env-var (cdr t) which))
-              ) ;let
+        (else
+          (let ((val (search-env-var (car t) which)))
+            (if val val (search-env-var (cdr t) which))
+          ) ;let
         ) ;else
   ) ;cond
 ) ;define
@@ -363,7 +365,9 @@
     ) ;for
     (cond ((> best-n 0) best-n)
           ((> nr 10) 10)
-          (else (inexact->exact (ceiling (sqrt (* 1.0 nr)))))
+          (else
+            (inexact->exact (ceiling (sqrt (* 1.0 nr))))
+          ) ;else
     ) ;cond
   ) ;let*
 ) ;define

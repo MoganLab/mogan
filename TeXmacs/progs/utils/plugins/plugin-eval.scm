@@ -203,25 +203,26 @@
     (when (nnull? l)
       (with status
         (plugin-status lan ses)
-        (cond ((and (> (length (car l)) 2) (== (second (car l)) :start))
-               (if (== status 0) (plugin-start lan ses) (plugin-next lan ses))
-              ) ;
-              ((== status 0)
-               (with author
-                 0
-                 (when (and (!= lan "scheme") (!= lan "autosave"))
-                   (set! author (new-author))
-                   (start-slave author)
-                 ) ;when
-                 (with p
-                   (silent-encode :start noop '())
-                   (set! p (cons (rcons (car p) author) (cdr p)))
-                   (pending-set lan ses (cons p l))
-                   (plugin-do lan ses)
-                 ) ;with
-               ) ;with
-              ) ;
-              (#t ((first (caar l)) lan ses))
+        (cond
+         ((and (> (length (car l)) 2) (== (second (car l)) :start))
+          (if (== status 0) (plugin-start lan ses) (plugin-next lan ses))
+         ) ;
+         ((== status 0)
+          (with author
+            0
+            (when (and (!= lan "scheme") (!= lan "autosave"))
+              (set! author (new-author))
+              (start-slave author)
+            ) ;when
+            (with p
+              (silent-encode :start noop '())
+              (set! p (cons (rcons (car p) author) (cdr p)))
+              (pending-set lan ses (cons p l))
+              (plugin-do lan ses)
+            ) ;with
+          ) ;with
+         ) ;
+         (#t ((first (caar l)) lan ses))
         ) ;cond
       ) ;with
     ) ;when
@@ -496,12 +497,13 @@
   (set! in (plugin-preprocess lan ses in opts))
   (with ret
     (lambda (x)
-      (return (if (npair? x)
-                x
-                (cons (plugin-postprocess lan ses (car x) opts)
-                  (plugin-postprocess lan ses (cdr x) opts)
-                ) ;cons
-              ) ;if
+      (return
+        (if (npair? x)
+          x
+          (cons (plugin-postprocess lan ses (car x) opts)
+            (plugin-postprocess lan ses (cdr x) opts)
+          ) ;cons
+        ) ;if
       ) ;return
     ) ;lambda
     (with x
@@ -534,8 +536,12 @@
 ) ;define
 
 (tm-define (plugin-command lan ses in return opts)
-  (let* ((cmd `(command ,(format-command lan in)))
-         (ret (lambda (x) (and (pair? x) (return (plugin-command-answer (car x))))))
+  (let* ((cmd
+           `(command ,(format-command lan in))
+         ) ;cmd
+         (ret
+           (lambda (x) (and (pair? x) (return (plugin-command-answer (car x)))))
+         ) ;ret
          (x (silent-encode cmd ret opts))
         ) ;
     (apply plugin-feed `(,lan ,ses ,@(car x) ,(cdr x)))

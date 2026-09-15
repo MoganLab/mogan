@@ -59,15 +59,16 @@
 ;; y2
 
 (define (gs-image-size u)
-  (let* ((out (check-stderr (string-append (url->system (find-binary-gs))
-                              " -dQUIET "
-                              " -dNOPAUSE "
-                              " -dBATCH "
-                              " -dSAFER "
-                              " -sDEVICE=bbox "
-                              (url-sys-concretize u)
-                            ) ;string-append
-              ) ;check-stderr
+  (let* ((out
+           (check-stderr (string-append (url->system (find-binary-gs))
+                           " -dQUIET "
+                           " -dNOPAUSE "
+                           " -dBATCH "
+                           " -dSAFER "
+                           " -sDEVICE=bbox "
+                           (url-sys-concretize u)
+                         ) ;string-append
+           ) ;check-stderr
          ) ;out
          (l (filter (lambda (x) (string-starts? x "%%BoundingBox: "))
               (string-split out #\newline)
@@ -134,38 +135,41 @@
          (box_h (- (fourth box) (second box)))
          (width (if (and opt_w (!= opt_w 0)) opt_w box_w))
          (height (if (and opt_h (!= opt_h 0)) opt_h box_w))
-         (page_size_in_px (string-append " -g"
-                            (number->string (exact (floor width)))
-                            "x"
-                            (number->string (exact (floor height)))
-                          ) ;string-append
+         (page_size_in_px
+           (string-append " -g"
+             (number->string (exact (floor width)))
+             "x"
+             (number->string (exact (floor height)))
+           ) ;string-append
          ) ;page_size_in_px
-         (resolution_in_px (string-append " -r"
-                             (number->string (round (/ (* width 72.0) box_w)))
-                             "x"
-                             (number->string (round (/ (* height 72.0) box_h)))
-                             " "
-                           ) ;string-append
+         (resolution_in_px
+           (string-append " -r"
+             (number->string (round (/ (* width 72.0) box_w)))
+             "x"
+             (number->string (round (/ (* height 72.0) box_h)))
+             " "
+           ) ;string-append
          ) ;resolution_in_px
          (offset-x (number->string (- (first box))))
          (offset-y (number->string (- (second box))))
          (gs-inline (string-append " " offset-x " " offset-y " translate gsave "))
-         (cmd (string-append (string-append (url->system (find-binary-gs))
-                               " -dQUIET "
-                               " -dNOPAUSE "
-                               " -dBATCH "
-                               " -dSAFER "
-                               " -sDEVICE=pngalpha "
-                               " -dGraphicsAlphaBits=4 "
-                               " -dTextAlphaBits=4 "
-                               page_size_in_px
-                               (string-append " -sOutputFile=" (url->system to) " ")
-                               resolution_in_px
-                               (string-append " -c " (string-quote gs-inline))
-                               (string-append " -f " (url-sys-concretize from) " ")
-                               (string-append " -c " (string-quote " grestore "))
-                             ) ;string-append
-              ) ;string-append
+         (cmd
+           (string-append (string-append (url->system (find-binary-gs))
+                            " -dQUIET "
+                            " -dNOPAUSE "
+                            " -dBATCH "
+                            " -dSAFER "
+                            " -sDEVICE=pngalpha "
+                            " -dGraphicsAlphaBits=4 "
+                            " -dTextAlphaBits=4 "
+                            page_size_in_px
+                            (string-append " -sOutputFile=" (url->system to) " ")
+                            resolution_in_px
+                            (string-append " -c " (string-quote gs-inline))
+                            (string-append " -f " (url-sys-concretize from) " ")
+                            (string-append " -c " (string-quote " grestore "))
+                          ) ;string-append
+           ) ;string-append
          ) ;cmd
         ) ;
     (debug-message "io" (string-append cmd "\n"))
@@ -184,28 +188,30 @@
          (height (if (and opt_h (!= opt_h 0)) opt_h box_w))
          (page_size_in_px (string-append " -g" (number->string width) "x" (number->string height))
          ) ;page_size_in_px
-         (resolution_in_px (string-append " -r"
-                             (number->string (/ (* width 72.0) box_w))
-                             "x"
-                             (number->string (/ (* height 72.0) box_h))
-                             " "
-                           ) ;string-append
+         (resolution_in_px
+           (string-append " -r"
+             (number->string (/ (* width 72.0) box_w))
+             "x"
+             (number->string (/ (* height 72.0) box_h))
+             " "
+           ) ;string-append
          ) ;resolution_in_px
-         (cmd (string-append (string-append (url->system (find-binary-gs))
-                               " -dQUIET "
-                               " -dNOPAUSE "
-                               " -dBATCH "
-                               " -dSAFER "
-                               " -sDEVICE=pngalpha "
-                               " -dGraphicsAlphaBits=4 "
-                               " -dTextAlphaBits=4 "
-                               " -dUseCropBox "
-                               (string-append " -sOutputFile=" (url->system to) " ")
-                               page_size_in_px
-                               resolution_in_px
-                               (url-sys-concretize from)
-                             ) ;string-append
-              ) ;string-append
+         (cmd
+           (string-append (string-append (url->system (find-binary-gs))
+                            " -dQUIET "
+                            " -dNOPAUSE "
+                            " -dBATCH "
+                            " -dSAFER "
+                            " -sDEVICE=pngalpha "
+                            " -dGraphicsAlphaBits=4 "
+                            " -dTextAlphaBits=4 "
+                            " -dUseCropBox "
+                            (string-append " -sOutputFile=" (url->system to) " ")
+                            page_size_in_px
+                            resolution_in_px
+                            (url-sys-concretize from)
+                          ) ;string-append
+           ) ;string-append
          ) ;cmd
         ) ;
     (debug-message "io" (string-append cmd "\n"))

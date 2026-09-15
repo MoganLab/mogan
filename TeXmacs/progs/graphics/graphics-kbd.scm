@@ -214,11 +214,14 @@
 ;; 按下 e：从更改属性模式切换到当前选中对象对应的插入模式
 (tm-define (graphics-resume-last-insert)
   (:mode in-active-graphics?)
-  (when (and (== (graphics-mode) '(group-edit edit-props)) (== (length (sketch-get)) 1))
+  (when
+    (and (== (graphics-mode) '(group-edit edit-props)) (== (length (sketch-get)) 1))
     (with obj
       (stree-radical (tree->stree (car (sketch-get))))
       (when (and (pair? obj) (in? (car obj) graphics-insertable-tags))
-        (graphics-set-mode `(edit ,(car obj)))
+        (graphics-set-mode
+          `(edit ,(car obj))
+        ) ;graphics-set-mode
       ) ;when
     ) ;with
   ) ;when
@@ -262,8 +265,12 @@
 (tm-define (wheel-capture?) (:mode in-active-graphics?) #t)
 
 (tm-define (graphics-wheel dx* dy*)
-  (let* ((dx (/ (round (* (string->number dx*) 100.0)) 100.0))
-         (dy (/ (round (* (string->number dy*) 100.0)) 100.0))
+  (let* ((dx
+           (/ (round (* (string->number dx*) 100.0)) 100.0)
+         ) ;dx
+         (dy
+           (/ (round (* (string->number dy*) 100.0)) 100.0)
+         ) ;dy
         ) ;
     (graphics-move-origin (string-append (number->string dx) "gw")
       (string-append (number->string dy) "gh")
@@ -281,15 +288,16 @@
 ) ;tm-define
 
 (tm-define (graphics-kbd-remove forward?)
-  (cond ((and (with-active-selection?)
-           (with-cursor (rcons (selection-path) 0) (not (in-graphics?)))
-         ) ;and
-         (go-to (rcons (selection-path) 0))
-         (clipboard-cut "primary")
-        ) ;
-        ((inside-graphical-text?) (if forward? (kbd-delete) (kbd-backspace)))
-        ((graphics-selection-active?) (remove-selected-objects))
-        (else (edit_delete))
+  (cond
+   ((and (with-active-selection?)
+      (with-cursor (rcons (selection-path) 0) (not (in-graphics?)))
+    ) ;and
+    (go-to (rcons (selection-path) 0))
+    (clipboard-cut "primary")
+   ) ;
+   ((inside-graphical-text?) (if forward? (kbd-delete) (kbd-backspace)))
+   ((graphics-selection-active?) (remove-selected-objects))
+   (else (edit_delete))
   ) ;cond
 ) ;tm-define
 
@@ -330,14 +338,15 @@
 (tm-define (geometry-horizontal t forwards?)
   (:require (graphical-text-context? t))
   (let* ((old (graphical-get-attribute t "text-at-halign"))
-         (new (if forwards?
-                (cond ((== old "right") "center")
-                      (else "left")
-                ) ;cond
-                (cond ((== old "left") "center")
-                      (else "right")
-                ) ;cond
-              ) ;if
+         (new
+           (if forwards?
+             (cond ((== old "right") "center")
+                   (else "left")
+             ) ;cond
+             (cond ((== old "left") "center")
+                   (else "right")
+             ) ;cond
+           ) ;if
          ) ;new
         ) ;
     (graphical-set-attribute t "text-at-halign" new)
@@ -348,18 +357,19 @@
   (:require (graphical-text-context? t))
   (let* ((valign-var (graphics-valign-var t))
          (old (graphical-get-attribute t valign-var))
-         (new (if down?
-                (cond ((== old "bottom") "base")
-                      ((== old "base") "axis")
-                      ((== old "axis") "center")
-                      (else "top")
-                ) ;cond
-                (cond ((== old "top") "center")
-                      ((== old "center") "axis")
-                      ((== old "axis") "base")
-                      (else "bottom")
-                ) ;cond
-              ) ;if
+         (new
+           (if down?
+             (cond ((== old "bottom") "base")
+                   ((== old "base") "axis")
+                   ((== old "axis") "center")
+                   (else "top")
+             ) ;cond
+             (cond ((== old "top") "center")
+                   ((== old "center") "axis")
+                   ((== old "axis") "base")
+                   (else "bottom")
+             ) ;cond
+           ) ;if
          ) ;new
         ) ;
     (graphical-set-attribute t valign-var new)

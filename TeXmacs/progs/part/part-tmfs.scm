@@ -79,7 +79,10 @@
 (define (unpack-extra-inits l)
   (if (or (null? l) (null? (cdr l)))
     (list)
-    (cons `(associate ,(car l) ,(cadr l)) (unpack-extra-inits (cddr l)))
+    (cons
+      `(associate ,(car l) ,(cadr l))
+      (unpack-extra-inits (cddr l))
+    ) ;cons
   ) ;if
 ) ;define
 
@@ -104,17 +107,20 @@
          (delta (url->unix (url-delta m u)))
          (l (if (tm-func? parts 'document) (tm-children parts) (list)))
          (xinit (append-map (cut get-extra-init <> delta) l))
-         (t (collection-append xt `(collection ,@xinit)))
+         (t
+           (collection-append xt `(collection ,@xinit))
+         ) ;t
          (refs (tmfile-extract mas 'references))
          (lab (string-append "part:" delta))
          (ref (and refs (collection-ref refs lab)))
         ) ;
-    (when (and ref
-            (tm-func? ref 'tuple)
-            (tm-ref ref 1)
-            (tm-atomic? (tm-ref ref 1))
-            (string-number? (tm->string (tm-ref ref 1)))
-          ) ;and
+    (when
+      (and ref
+        (tm-func? ref 'tuple)
+        (tm-ref ref 1)
+        (tm-atomic? (tm-ref ref 1))
+        (string-number? (tm->string (tm-ref ref 1)))
+      ) ;and
       (set! t (collection-set t "page-first" (tm->string (tm-ref ref 1))))
     ) ;when
     t
@@ -151,20 +157,21 @@
 ) ;define
 
 (define (part-expand-body doc u)
-  (cond ((tm-func? doc 'document)
-         (cons (tm-label doc) (map (cut part-expand-body <> u) (tm-children doc)))
-        ) ;
-        ((and (or (tm-func? doc 'include 1) (tm-func? doc 'include* 1))
-           (tm-atomic? (tm-ref doc 0))
-         ) ;and
-         (let* ((su (url-relative u (tm->string (tm-ref doc 0))))
-                (sdoc (tree-import su "texmacs"))
-                (sbody (tmfile-extract sdoc 'body))
-               ) ;
-           (make-shared su sbody)
-         ) ;let*
-        ) ;
-        (else doc)
+  (cond
+   ((tm-func? doc 'document)
+    (cons (tm-label doc) (map (cut part-expand-body <> u) (tm-children doc)))
+   ) ;
+   ((and (or (tm-func? doc 'include 1) (tm-func? doc 'include* 1))
+      (tm-atomic? (tm-ref doc 0))
+    ) ;and
+    (let* ((su (url-relative u (tm->string (tm-ref doc 0))))
+           (sdoc (tree-import su "texmacs"))
+           (sbody (tmfile-extract sdoc 'body))
+          ) ;
+      (make-shared su sbody)
+    ) ;let*
+   ) ;
+   (else doc)
   ) ;cond
 ) ;define
 
@@ -216,15 +223,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (part-compress-body doc u)
-  (cond ((tm-func? doc 'document)
-         (cons (tm-label doc) (map (cut part-compress-body <> u) (tm-children doc)))
-        ) ;
-        ((tm-func? doc 'shared 3)
-         (let* ((name (tm->string (tm-ref doc 1))) (delta (url-delta u name)))
-           `(include ,(url->unix delta))
-         ) ;let*
-        ) ;
-        (else doc)
+  (cond
+   ((tm-func? doc 'document)
+    (cons (tm-label doc) (map (cut part-compress-body <> u) (tm-children doc)))
+   ) ;
+   ((tm-func? doc 'shared 3)
+    (let* ((name (tm->string (tm-ref doc 1))) (delta (url-delta u name)))
+      `(include ,(url->unix delta))
+    ) ;let*
+   ) ;
+   (else doc)
   ) ;cond
 ) ;define
 
@@ -245,9 +253,14 @@
         ((tm-in? doc '(style references auxiliary))
          (with val
            (tmfile-extract ori (tm-label doc))
-           (cond (val `(,(tm-label doc) ,val))
-                 ((tm-is? doc 'style) doc)
-                 (else `(,(tm-label doc) ,(assoc->collection (list))))
+           (cond
+             (val
+               `(,(tm-label doc) ,val)
+             ) ;val
+             ((tm-is? doc 'style) doc)
+             (else
+               `(,(tm-label doc) ,(assoc->collection (list)))
+             ) ;else
            ) ;cond
          ) ;with
         ) ;

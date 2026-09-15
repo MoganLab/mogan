@@ -108,12 +108,15 @@
 (define (select-and x args bl)
   "Select :and patterns"
   (cond ((null? (cdr args)) (select-one x (car args) bl))
-        (else (let* ((l1 (select-one x (car args) bl))
-                     (l2 (select-and x (cdr args) bl))
-                     (f1 (lambda (x1) (with f2 (lambda (x2) (select-cap x1 x2)) (append-map f2 l2))))
-                    ) ;
-                (append-map f1 l1)
-              ) ;let*
+        (else
+          (let* ((l1 (select-one x (car args) bl))
+                 (l2 (select-and x (cdr args) bl))
+                 (f1
+                   (lambda (x1) (with f2 (lambda (x2) (select-cap x1 x2)) (append-map f2 l2)))
+                 ) ;f1
+                ) ;
+            (append-map f1 l1)
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -122,15 +125,16 @@
   "Select :and-not patterns"
   (let* ((l1 (select-one x (car args) bl))
          (l2 (select-or x (cdr args) bl))
-         (f1 (lambda (x1)
-               (let f2
-                 ((l2 l2))
-                 (cond ((null? l2) (list x1))
-                       ((null? (select-cap x1 (car l2))) (f2 (cdr l2)))
-                       (else '())
-                 ) ;cond
-               ) ;let
-             ) ;lambda
+         (f1
+           (lambda (x1)
+             (let f2
+               ((l2 l2))
+               (cond ((null? l2) (list x1))
+                     ((null? (select-cap x1 (car l2))) (f2 (cdr l2)))
+                     (else '())
+               ) ;cond
+             ) ;let
+           ) ;lambda
          ) ;f1
         ) ;
     (append-map f1 l1)
@@ -175,7 +179,11 @@
   (with q
     (cDr (cursor-path))
     (if (and p (list-starts? (cDr q) p))
-      (select-list (path->tree (list-head q (1+ (length p)))) pat bl)
+      (select-list
+        (path->tree (list-head q (1+ (length p))))
+        pat
+        bl
+      ) ;select-list
       '()
     ) ;if
   ) ;with
@@ -241,34 +249,38 @@
 (ahash-set! navigate-table :previous navigate-previous)
 
 (define (select-one x pat bl)
-  (cond ((pair? pat)
-         (with fpat
-           (car pat)
-           (cond ((and (keyword? fpat) (ahash-ref select-table fpat))
-                  (apply (ahash-ref select-table fpat) (list x (cdr pat) bl))
-                 ) ;
-                 ((and (== fpat 'quote) (= (length pat) 2))
-                  (with new-bl
-                    (bindings-add bl (cadr pat) x)
-                    (if new-bl (list (cons* (list) x new-bl)) '())
-                  ) ;with
-                 ) ;
-                 (else '())
-           ) ;cond
-         ) ;with
-        ) ;
-        ((and (keyword? pat) (!= pat :%1)) (select-list x (list pat) bl))
-        ((not (tm-compound? x)) '())
-        ((symbol? pat) (select-symbol (cdr (tm->list x)) 0 pat bl))
-        ((integer? pat) (select-range (cdr (tm->list x)) 0 pat (+ pat 1) bl))
-        ((== pat :%1) (select-range (cdr (tm->list x)) 0 0 (tm-arity x) bl))
-        (else '())
+  (cond
+   ((pair? pat)
+    (with fpat
+      (car pat)
+      (cond
+       ((and (keyword? fpat) (ahash-ref select-table fpat))
+        (apply (ahash-ref select-table fpat) (list x (cdr pat) bl))
+       ) ;
+       ((and (== fpat 'quote) (= (length pat) 2))
+        (with new-bl
+          (bindings-add bl (cadr pat) x)
+          (if new-bl (list (cons* (list) x new-bl)) '())
+        ) ;with
+       ) ;
+       (else '())
+      ) ;cond
+    ) ;with
+   ) ;
+   ((and (keyword? pat) (!= pat :%1)) (select-list x (list pat) bl))
+   ((not (tm-compound? x)) '())
+   ((symbol? pat) (select-symbol (cdr (tm->list x)) 0 pat bl))
+   ((integer? pat) (select-range (cdr (tm->list x)) 0 pat (+ pat 1) bl))
+   ((== pat :%1) (select-range (cdr (tm->list x)) 0 0 (tm-arity x) bl))
+   (else '())
   ) ;cond
 ) ;define
 
 (define (select-continue-sub x pat)
   (let* ((l (select-list (cadr x) pat (cddr x)))
-         (fun (lambda (r) (cons (append (car x) (car r)) (cdr r))))
+         (fun
+           (lambda (r) (cons (append (car x) (car r)) (cdr r)))
+         ) ;fun
         ) ;
     (map fun l)
   ) ;let*
@@ -281,47 +293,48 @@
 (define (select-list x pat bl)
   ;; (display* "select list " x ", " pat ", " bl "\n")
   "Selects subexpressions of @l using the pattern @pat and under bindings @bl."
-  (cond ((null? pat) (list (cons* (list) x bl)))
-        ((npair? pat) '())
-        ((keyword? (car pat))
-         (with fpat
-           (car pat)
-           (cond ((== fpat :%0) (select-list x (cdr pat) bl))
-                 ((== fpat :*)
-                  (let* ((r (select-list x (cdr pat) bl)) (l (select-one x :%1 bl)))
-                    (append r (select-continue l pat))
-                  ) ;let*
-                 ) ;
-                 ((keyword->number fpat)
-                  (let* ((h (number->keyword (- (keyword->number fpat) 1))) (l (select-one x :%1 bl)))
-                    (select-continue l (cons h (cdr pat)))
-                  ) ;let*
-                 ) ;
-                 ((ahash-ref navigate-table fpat)
-                  (with p
-                    (and (tree? x) (tree-get-path x))
-                    (cond (p ((ahash-ref navigate-table fpat) p (cdr pat) bl))
-                          ((and (in? fpat (list :first :last)) (tm-compound? x) (>= (tm-arity x) 1))
-                           (with c
-                             (if (== fpat :first) (tm-ref x 0) (tm-ref x (- (tm-arity x) 1)))
-                             (select-list c (cdr pat) bl)
-                           ) ;with
-                          ) ;
-                          (else (list))
-                    ) ;cond
-                  ) ;with
-                 ) ;
-                 ((ahash-ref match-term fpat)
-                  (with upat
-                    (ahash-ref match-term fpat)
-                    (select-list x (append upat (cdr pat)) bl)
-                  ) ;with
-                 ) ;
-                 (else (with l (select-one x (car pat) bl) (select-continue l (cdr pat))))
-           ) ;cond
-         ) ;with
-        ) ;
-        (else (with l (select-one x (car pat) bl) (select-continue l (cdr pat))))
+  (cond
+   ((null? pat) (list (cons* (list) x bl)))
+   ((npair? pat) '())
+   ((keyword? (car pat))
+    (with fpat
+      (car pat)
+      (cond ((== fpat :%0) (select-list x (cdr pat) bl))
+            ((== fpat :*)
+             (let* ((r (select-list x (cdr pat) bl)) (l (select-one x :%1 bl)))
+               (append r (select-continue l pat))
+             ) ;let*
+            ) ;
+            ((keyword->number fpat)
+             (let* ((h (number->keyword (- (keyword->number fpat) 1))) (l (select-one x :%1 bl)))
+               (select-continue l (cons h (cdr pat)))
+             ) ;let*
+            ) ;
+            ((ahash-ref navigate-table fpat)
+             (with p
+               (and (tree? x) (tree-get-path x))
+               (cond (p ((ahash-ref navigate-table fpat) p (cdr pat) bl))
+                     ((and (in? fpat (list :first :last)) (tm-compound? x) (>= (tm-arity x) 1))
+                      (with c
+                        (if (== fpat :first) (tm-ref x 0) (tm-ref x (- (tm-arity x) 1)))
+                        (select-list c (cdr pat) bl)
+                      ) ;with
+                     ) ;
+                     (else (list))
+               ) ;cond
+             ) ;with
+            ) ;
+            ((ahash-ref match-term fpat)
+             (with upat
+               (ahash-ref match-term fpat)
+               (select-list x (append upat (cdr pat)) bl)
+             ) ;with
+            ) ;
+            (else (with l (select-one x (car pat) bl) (select-continue l (cdr pat))))
+      ) ;cond
+    ) ;with
+   ) ;
+   (else (with l (select-one x (car pat) bl) (select-continue l (cdr pat))))
   ) ;cond
 ) ;define
 

@@ -24,7 +24,8 @@
 
 (define (find-binary-in-candidates-name candidates)
   (with names
-    (list-remove-duplicates (map (lambda (x) (url->string (url-tail x))) candidates)
+    (list-remove-duplicates
+      (map (lambda (x) (url->string (url-tail x))) candidates)
     ) ;list-remove-duplicates
     (with u
       (list-find (map (lambda (x) (find-binary-in-path x)) names) url-exists?)
@@ -64,7 +65,8 @@
   (if (url-none? u)
     ""
     (let* ((msg (check-stdout (string-append (url->system u) " --version")))
-           (msg-l (filter (lambda (x) (not (string-null? x))) (string-split msg #\newline))
+           (msg-l
+             (filter (lambda (x) (not (string-null? x))) (string-split msg #\newline))
            ) ;msg-l
           ) ;
       (if (== (length msg-l) 0) "" (car msg-l))

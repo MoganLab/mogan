@@ -78,18 +78,19 @@
          (s (utf8->cork (tm->stree (tm-ref m 1))))
          (t (tm->stree (tm-ref m 2)))
         ) ;
-    (cond ((and (!= t "") (== (get-preference "console details") "detailed"))
-           `(document ,(build-message `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ,""))
-              (indent (small ,t)))
-          ) ;
-          ((string-ends? k "-error") `(with ,"color"
-                                        ,"#e02020"
-                                        (concat ,"Error: " ,s)))
-          ((string-ends? k "-warning")
-           `(with ,"color" ,"dark magenta" (concat ,"Warning: " ,s))
-          ) ;
-          ((string-ends? k "-bench") `(with ,"color" ,"dark blue" ,s))
-          (else s)
+    (cond
+     ((and (!= t "") (== (get-preference "console details") "detailed"))
+      `(document ,(build-message `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ,""))
+         (indent (small ,t)))
+     ) ;
+     ((string-ends? k "-error") `(with ,"color"
+                                   ,"#e02020"
+                                   (concat ,"Error: " ,s)))
+     ((string-ends? k "-warning")
+      `(with ,"color" ,"dark magenta" (concat ,"Warning: " ,s))
+     ) ;
+     ((string-ends? k "-bench") `(with ,"color" ,"dark blue" ,s))
+     (else s)
     ) ;cond
   ) ;let*
 ) ;define
@@ -99,18 +100,20 @@
          (s (utf8->cork (tm->stree (tm-ref m 1))))
          (t (tm->stree (tm-ref m 2)))
         ) ;
-    (cond ((and (!= t "") (== (get-preference "console details") "detailed"))
-           (string-append (get-message-text `(tuple ,(tm-ref m 0)
-                                               ,(tm-ref m 1)
-                                               ,""))
-             "\n"
-             t
-           ) ;string-append
-          ) ;
-          ((string-ends? k "-error") (string-append "Error: " s))
-          ((string-ends? k "-warning") (string-append "Warning: " s))
-          ((string-ends? k "-bench") s)
-          (else s)
+    (cond
+     ((and (!= t "") (== (get-preference "console details") "detailed"))
+      (string-append
+        (get-message-text
+          `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ,"")
+        ) ;get-message-text
+        "\n"
+        t
+      ) ;string-append
+     ) ;
+     ((string-ends? k "-error") (string-append "Error: " s))
+     ((string-ends? k "-warning") (string-append "Warning: " s))
+     ((string-ends? k "-bench") s)
+     (else s)
     ) ;cond
   ) ;let*
 ) ;define
@@ -150,69 +153,72 @@
 (tm-define console-selected (make-ahash-table))
 
 (tm-widget ((console-widget kind))
-  (padded (horizontal (vertical (bold (text "Categories"))
-                        ===
-                        ===
-                        (resize '("100px" "100px" "100px")
-                          '("300px" "600px" "1000px")
-                          (refreshable "console-widget-categories"
-                            (choices (begin
-                                       (ahash-set! console-selected kind answer)
-                                       (refresh-now "console-widget-messages")
-                                     ) ;begin
-                              (ahash-ref console-categories kind)
-                              (ahash-ref console-selected kind)
-                            ) ;choices
-                          ) ;refreshable
-                        ) ;resize
-                      ) ;vertical
-            ///
-            (vertical (bold (text "Messages"))
-              ===
-              ===
-              (resize '("500px" "800px" "1200px" "left")
-                '("300px" "600px" "1000px" "bottom")
-                (refreshable "console-widget-messages"
-                  (texmacs-output (messages->document kind (ahash-ref console-selected kind))
-                    '(style "generic")
-                  ) ;texmacs-output
-                ) ;refreshable
-              ) ;resize
-            ) ;vertical
-          ) ;horizontal
+  (padded
+    (horizontal
+      (vertical (bold (text "Categories"))
+        ===
+        ===
+        (resize '("100px" "100px" "100px")
+          '("300px" "600px" "1000px")
+          (refreshable "console-widget-categories"
+            (choices (begin
+                       (ahash-set! console-selected kind answer)
+                       (refresh-now "console-widget-messages")
+                     ) ;begin
+              (ahash-ref console-categories kind)
+              (ahash-ref console-selected kind)
+            ) ;choices
+          ) ;refreshable
+        ) ;resize
+      ) ;vertical
+      ///
+      (vertical (bold (text "Messages"))
+        ===
+        ===
+        (resize '("500px" "800px" "1200px" "left")
+          '("300px" "600px" "1000px" "bottom")
+          (refreshable "console-widget-messages"
+            (texmacs-output (messages->document kind (ahash-ref console-selected kind))
+              '(style "generic")
+            ) ;texmacs-output
+          ) ;refreshable
+        ) ;resize
+      ) ;vertical
+    ) ;horizontal
     ======
-    (explicit-buttons (hlist (enum (set-preference "console details" (locase-all answer))
-                               '("Normal" "Detailed")
-                               (upcase-first (get-preference "console details"))
-                               "80px"
-                             ) ;enum
-                        //
-                        //
-                        (enum (set-preference "console size" (encode-size answer))
-                          '("Last 25" "Last 100" "Last 250" "Last 1000" "All")
-                          (decode-size (get-preference "console size"))
-                          "80px"
-                        ) ;enum
-                        >>>
-                        (=> "Preferences"
-                         ("Automatically open this console on errors"
-                           (toggle-preference "open console on errors")
-                         ) ;
-                         ("Automatically open this console on warnings"
-                           (toggle-preference "open console on warnings")
-                         ) ;
-                        ) ;=>
-                        //
-                        //
-                        ("Copy"
-                          (clipboard-set "primary"
-                            (messages->text kind (ahash-ref console-selected kind))
-                          ) ;clipboard-set
-                        ) ;
-                        //
-                        //
-                        ("Clear" (clear-debug-messages) (refresh-console))
-                      ) ;hlist
+    (explicit-buttons
+      (hlist (enum (set-preference "console details" (locase-all answer))
+               '("Normal" "Detailed")
+               (upcase-first (get-preference "console details"))
+               "80px"
+             ) ;enum
+        //
+        //
+        (enum (set-preference "console size" (encode-size answer))
+          '("Last 25" "Last 100" "Last 250" "Last 1000" "All")
+          (decode-size (get-preference "console size"))
+          "80px"
+        ) ;enum
+        >>>
+        (=> "Preferences"
+         ("Automatically open this console on errors"
+           (toggle-preference "open console on errors")
+         ) ;
+         ("Automatically open this console on warnings"
+           (toggle-preference "open console on warnings")
+         ) ;
+        ) ;=>
+        //
+        //
+        ("Copy"
+          (clipboard-set "primary"
+            (messages->text kind (ahash-ref console-selected kind))
+          ) ;clipboard-set
+        ) ;
+        //
+        //
+        ("Clear" (clear-debug-messages) (refresh-console))
+      ) ;hlist
     ) ;explicit-buttons
   ) ;padded
 ) ;tm-widget
@@ -241,11 +247,12 @@
   (when (nnull? (ahash-set->list console-active?))
     (refresh-console)
   ) ;when
-  (when (and (or (and console-errors? (get-boolean-preference "open console on errors"))
-               (and console-warnings? (get-boolean-preference "open console on warnings"))
-             ) ;or
-          (not (ahash-ref console-active? "Error messages"))
-        ) ;and
+  (when
+    (and (or (and console-errors? (get-boolean-preference "open console on errors"))
+           (and console-warnings? (get-boolean-preference "open console on warnings"))
+         ) ;or
+      (not (ahash-ref console-active? "Error messages"))
+    ) ;and
     (delayed (:idle 1) (open-error-messages))
   ) ;when
   (set! console-updating? #f)

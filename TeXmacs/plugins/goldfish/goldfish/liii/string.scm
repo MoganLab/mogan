@@ -58,19 +58,22 @@
           ((p plist) (result '()))
           (cond ((null? p) (reverse result))
                 ((not (pair? (cdr p))) (type-error "pyfmt: plist requires key-value pairs"))
-                (else (let ((key (car p)) (val (cadr p)))
-                        (loop (cddr p)
-                          (cons (cons (cond ((keyword? key) (symbol->string (keyword->symbol key)))
-                                            ((symbol? key) (symbol->string key))
-                                            ((string? key) key)
-                                            (else (type-error "pyfmt: key must be keyword, symbol or string"))
-                                      ) ;cond
-                                  val
-                                ) ;cons
-                            result
-                          ) ;cons
-                        ) ;loop
-                      ) ;let
+                (else
+                  (let ((key (car p)) (val (cadr p)))
+                    (loop (cddr p)
+                      (cons
+                        (cons
+                          (cond ((keyword? key) (symbol->string (keyword->symbol key)))
+                                ((symbol? key) (symbol->string key))
+                                ((string? key) key)
+                                (else (type-error "pyfmt: key must be keyword, symbol or string"))
+                          ) ;cond
+                          val
+                        ) ;cons
+                        result
+                      ) ;cons
+                    ) ;loop
+                  ) ;let
                 ) ;else
           ) ;cond
         ) ;let
@@ -97,15 +100,16 @@
                            (placeholder (substring format-string pos placeholder-end))
                            (pair (lookup-pair key salist))
                            (val (and pair (cdr pair)))
-                           (val-str (cond ((not pair) placeholder)
-                                          ((char=? type-char #\d)
-                                           (if (number? val)
-                                             (number->string val)
-                                             (type-error "pyfmt: %(key)d requires number")
-                                           ) ;if
-                                          ) ;
-                                          (else (if (string? val) val (format #f "~a" val)))
-                                    ) ;cond
+                           (val-str
+                             (cond ((not pair) placeholder)
+                                   ((char=? type-char #\d)
+                                    (if (number? val)
+                                      (number->string val)
+                                      (type-error "pyfmt: %(key)d requires number")
+                                    ) ;if
+                                   ) ;
+                                   (else (if (string? val) val (format #f "~a" val)))
+                             ) ;cond
                            ) ;val-str
                           ) ;
                       (loop placeholder-end

@@ -173,25 +173,28 @@
 ;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
   ;; 悬浮搜索激活时直接返回保存的 aux buffer
-  (if (and floating-search-active?
-        floating-search-aux
-        (buffer-exists? floating-search-aux)
-        (or (== (current-buffer) floating-search-aux)
-          (== (current-buffer) floating-search-target)
-        ) ;or
-      ) ;and
+  (if
+    (and floating-search-active?
+      floating-search-aux
+      (buffer-exists? floating-search-aux)
+      (or (== (current-buffer) floating-search-aux)
+        (== (current-buffer) floating-search-target)
+      ) ;or
+    ) ;and
     floating-search-aux
     (with u
       (current-buffer)
-      (if (and (url-rooted-tmfs? u)
-            (== (url-head (url-head u)) (string->url "tmfs://aux/search"))
-          ) ;and
+      (if
+        (and (url-rooted-tmfs? u)
+          (== (url-head (url-head u)) (string->url "tmfs://aux/search"))
+        ) ;and
         u
-        (string->url (string-append "tmfs://aux/search/"
-                       (md5 (url->string (current-view-url)))
-                       "/"
-                       (url->string (url-tail (current-window)))
-                     ) ;string-append
+        (string->url
+          (string-append "tmfs://aux/search/"
+            (md5 (url->string (current-view-url)))
+            "/"
+            (url->string (url-tail (current-window)))
+          ) ;string-append
         ) ;string->url
       ) ;if
     ) ;with
@@ -228,15 +231,17 @@
 (tm-define (replace-buffer)
   (with u
     (current-buffer)
-    (if (and (url-rooted-tmfs? u)
-          (== (url-head (url-head u)) (string->url "tmfs://aux/replace"))
-        ) ;and
+    (if
+      (and (url-rooted-tmfs? u)
+        (== (url-head (url-head u)) (string->url "tmfs://aux/replace"))
+      ) ;and
       u
-      (string->url (string-append "tmfs://aux/replace/"
-                     (md5 (url->string (current-view-url)))
-                     "/"
-                     (url->string (url-tail (current-window)))
-                   ) ;string-append
+      (string->url
+        (string-append "tmfs://aux/replace/"
+          (md5 (url->string (current-view-url)))
+          "/"
+          (url->string (url-tail (current-window)))
+        ) ;string-append
       ) ;string->url
     ) ;if
   ) ;with
@@ -272,15 +277,16 @@
          (search-pre "tmfs://aux/search/")
          (replace-pre "tmfs://aux/replace/")
         ) ;
-    (cond ((string-starts? s search-pre)
-           (string->url (string-append replace-pre (substring s (string-length search-pre)))
-           ) ;string->url
-          ) ;
-          ((string-starts? s replace-pre)
-           (string->url (string-append search-pre (substring s (string-length replace-pre)))
-           ) ;string->url
-          ) ;
-          (else #f)
+    (cond
+     ((string-starts? s search-pre)
+      (string->url (string-append replace-pre (substring s (string-length search-pre)))
+      ) ;string->url
+     ) ;
+     ((string-starts? s replace-pre)
+      (string->url (string-append search-pre (substring s (string-length replace-pre)))
+      ) ;string->url
+     ) ;
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -354,13 +360,14 @@
 
 (tm-define (master-buffer)
   ;; 悬浮搜索激活时直接返回保存的 target buffer
-  (if (and floating-search-active?
-        floating-search-target
-        (buffer-exists? floating-search-target)
-        (or (== (current-buffer) floating-search-aux)
-          (== (current-buffer) floating-search-target)
-        ) ;or
-      ) ;and
+  (if
+    (and floating-search-active?
+      floating-search-target
+      (buffer-exists? floating-search-target)
+      (or (== (current-buffer) floating-search-aux)
+        (== (current-buffer) floating-search-target)
+      ) ;or
+    ) ;and
     floating-search-target
     (and (buffer-exists? (search-buffer))
       (with mas
@@ -386,11 +393,12 @@
 ) ;tm-define
 
 (tm-define (inside-search-buffer?)
-  (if (and floating-search-active?
-        (or (== (current-buffer) floating-search-aux)
-          (== (current-buffer) floating-search-target)
-        ) ;or
-      ) ;and
+  (if
+    (and floating-search-active?
+      (or (== (current-buffer) floating-search-aux)
+        (== (current-buffer) floating-search-target)
+      ) ;or
+    ) ;and
     (== (current-buffer) floating-search-aux)
     (== (current-buffer) (search-buffer))
   ) ;if
@@ -462,9 +470,10 @@
 ) ;define
 
 (define (check-same-sub? env var val)
-  (cond ((or (null? env) (null? (cdr env))) #f)
-        ((tm-equal? (car env) var) (tm-equal? (cadr env) val))
-        (else (check-same-sub? (cddr env) var val))
+  (cond
+   ((or (null? env) (null? (cdr env))) #f)
+   ((tm-equal? (car env) var) (tm-equal? (cadr env) val))
+   (else (check-same-sub? (cddr env) var val))
   ) ;cond
 ) ;define
 
@@ -535,10 +544,11 @@
   (let* ((source-mode 2)
          (math-mode 1)
          (old-mode (get-access-mode))
-         (new-mode (cond ((== (get-init "mode") "src") source-mode)
-                         ((and floating-search-active? (== floating-search-mode "math")) math-mode)
-                         (else old-mode)
-                   ) ;cond
+         (new-mode
+           (cond ((== (get-init "mode") "src") source-mode)
+                 ((and floating-search-active? (== floating-search-mode "math")) math-mode)
+                 (else old-mode)
+           ) ;cond
          ) ;new-mode
         ) ;
     (set-access-mode new-mode)
@@ -796,7 +806,9 @@
 (define (get-wildcards what match)
   (cond ((tm-equal? what match) (list))
         ((tm-func? what 'wildcard 1)
-         (list `(,:wildcard ,(tm->stree (tm-ref what 0)) ,(tm->stree match)))
+         (list
+           `(,:wildcard ,(tm->stree (tm-ref what 0)) ,(tm->stree match))
+         ) ;list
         ) ;
         ((tm-equal? what "") (list `(,:empty ,(tm->stree match))))
         ((and (tm-compound? what)
@@ -822,7 +834,9 @@
 (define (find-empty wc)
   (cond ((null? wc) (cons "" wc))
         ((tm-func? (car wc) :empty 1) (cons (cadar wc) (cdr wc)))
-        (else (with r (find-empty (cdr wc)) (cons (car r) (cons (car wc) (cdr r)))))
+        (else
+          (with r (find-empty (cdr wc)) (cons (car r) (cons (car wc) (cdr r))))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -844,10 +858,11 @@
         ) ;
         ((tm-equal? by "") (find-empty wc))
         ((tm-atomic? by) (cons by wc))
-        (else (with r
-                (replace-wildcards-list (tm-children by) wc)
-                (cons (cons (tm-label by) (car r)) (cdr r))
-              ) ;with
+        (else
+          (with r
+            (replace-wildcards-list (tm-children by) wc)
+            (cons (cons (tm-label by) (car r)) (cdr r))
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define
@@ -866,7 +881,9 @@
              (< (length lwhat) (length lmatch))
              (tm-equal? what (sublist lmatch 0 (length lwhat)))
            ) ;and
-           (let* ((lby (if (tm-func? by 'concat) (tm->list by) `(concat ,by)))
+           (let* ((lby
+                    (if (tm-func? by 'concat) (tm->list by) `(concat ,by))
+                  ) ;lby
                   (xby (sublist lmatch (length lwhat) (length lmatch)))
                  ) ;
              (append lby xby)
@@ -906,9 +923,10 @@
 (define replace-search-max-limit 1000000)
 
 (define (replace-next-selection-after-start sels cur)
-  (cond ((or (null? sels) (null? (cdr sels))) #f)
-        ((path-less-eq? cur (car sels)) (list (car sels) (cadr sels)))
-        (else (replace-next-selection-after-start (cddr sels) cur))
+  (cond
+   ((or (null? sels) (null? (cdr sels))) #f)
+   ((path-less-eq? cur (car sels)) (list (car sels) (cadr sels)))
+   (else (replace-next-selection-after-start (cddr sels) cur))
   ) ;cond
 ) ;define
 
@@ -1103,10 +1121,15 @@
 ) ;tm-define
 
 (tm-widget ((search-widget u style init aux) quit)
-  (padded (resize "480px"
-            "200px"
-            (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) aux)
-          ) ;resize
+  (padded
+    (resize "480px"
+      "200px"
+      (texmacs-input
+        `(with ,@init ,(search-document))
+        `(style (tuple ,@style))
+        aux
+      ) ;texmacs-input
+    ) ;resize
     ===
     (hlist ((balloon (icon "tm_search_first.xpm") "First occurrence (Home)")
             (search-extreme-match #f u)
@@ -1140,10 +1163,15 @@
   (:quit ((search-cancel u)))
   ===
   (horizontal //
-    (vertical (resize "360px"
-                "60px"
-                (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) aux)
-              ) ;resize
+    (vertical
+      (resize "360px"
+        "60px"
+        (texmacs-input
+          `(with ,@init ,(search-document))
+          `(style (tuple ,@style))
+          aux
+        ) ;texmacs-input
+      ) ;resize
       ===
       (hlist ((balloon (icon "tm_search_first.xpm") "First occurrence")
               (search-extreme-match #f)
@@ -1292,11 +1320,12 @@
     (with-buffer floating-search-target (cancel-alt-selection "alternate"))
     (set-search-window-state #f #f)
     (let* ((msg-url (url->system floating-search-target))
-           (in-url (if (chat-message-buffer? floating-search-target)
-                     (url->system (chat-tab-session->input-buffer (chat-buffer-session-id floating-search-target))
-                     ) ;url->system
-                     ""
-                   ) ;if
+           (in-url
+             (if (chat-message-buffer? floating-search-target)
+               (url->system (chat-tab-session->input-buffer (chat-buffer-session-id floating-search-target))
+               ) ;url->system
+               ""
+             ) ;if
            ) ;in-url
           ) ;
       (when (not (== in-url ""))
@@ -1333,15 +1362,24 @@
 ) ;tm-define
 
 (tm-widget ((replace-widget u style init saux raux) quit)
-  (padded (resize "480px"
-            "100px"
-            (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) saux)
-          ) ;resize
+  (padded
+    (resize "480px"
+      "100px"
+      (texmacs-input
+        `(with ,@init ,(search-document))
+        `(style (tuple ,@style))
+        saux
+      ) ;texmacs-input
+    ) ;resize
     ===
     ===
     (resize "480px"
       "100px"
-      (texmacs-input `(with ,@init ,(replace-document)) `(style (tuple ,@style)) raux)
+      (texmacs-input
+        `(with ,@init ,(replace-document))
+        `(style (tuple ,@style))
+        raux
+      ) ;texmacs-input
     ) ;resize
     ===
     ===
@@ -1392,15 +1430,24 @@
   (:quit ((search-cancel u)))
   ===
   (horizontal //
-    (vertical (resize "360px"
-                "60px"
-                (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) saux)
-              ) ;resize
+    (vertical
+      (resize "360px"
+        "60px"
+        (texmacs-input
+          `(with ,@init ,(search-document))
+          `(style (tuple ,@style))
+          saux
+        ) ;texmacs-input
+      ) ;resize
       ===
       ===
       (resize "360px"
         "60px"
-        (texmacs-input `(with ,@init ,(replace-document)) `(style (tuple ,@style)) raux)
+        (texmacs-input
+          `(with ,@init ,(replace-document))
+          `(style (tuple ,@style))
+          raux
+        ) ;texmacs-input
       ) ;resize
       ===
       ===
@@ -1785,10 +1832,11 @@
           (tree-remove! doc (- (tree-arity doc) 1) 1)
         ) ;when
         (show-only doc what)
-        (when (and (tree-func? doc 'document)
-                (list-and (map (lambda (x) (tree-is? x 'hide-para)) (tree-children doc)))
-                (not (tree-func? (tree-ref doc :last) 'blank-line))
-              ) ;and
+        (when
+          (and (tree-func? doc 'document)
+            (list-and (map (lambda (x) (tree-is? x 'hide-para)) (tree-children doc)))
+            (not (tree-func? (tree-ref doc :last) 'blank-line))
+          ) ;and
           (tree-insert! doc (tree-arity doc) '((blank-line)))
         ) ;when
       ) ;let*
@@ -1845,36 +1893,38 @@
       (current-buffer)
       (with sid
         (chat-buffer-session-id buf)
-        (cond ((string-starts? (url->system buf) "tmfs://chat")
-               ;; chat tab 任何缓冲区：通过 sid 或胶水函数找到消息缓冲区
-               (let* ((msg-url (if sid
-                                 (url->system (chat-tab-session->message-buffer sid))
-                                 (qt-chat-tab-active-message-buffer-url)
-                               ) ;if
-                      ) ;msg-url
-                      (msg-u (and msg-url (not (== msg-url "")) (string->url msg-url)))
-                     ) ;
-                 (if (and msg-u (chat-message-buffer-has-content? msg-u))
-                   (floating-search-init msg-u)
-                   (noop)
-                 ) ;if
-               ) ;let*
-              ) ;
-              ((and (string-starts? (url->system buf) "tmfs:") (not (collab-buffer? buf)))
-               ;; 协作（远程）文档是完整可编辑的 CRDT 文档，可搜索；
-               ;; 其余 tmfs:// 缓冲区（aux / window 等辅助/系统 buffer）保持禁用
-               (noop)
-              ) ;
-              (else (set! search-replace-text
-                      (cond ((in-math?) "Only search in math mode")
-                            ((in-prog?) "Only search in Program mode")
-                            ((in-graphics?) "Graphics mode cannot search")
-                            (else "Only search in text mode")
-                      ) ;cond
-                    ) ;set!
-                (set-boolean-preference "search-and-replace" #f)
-                (open-search)
-              ) ;else
+        (cond
+         ((string-starts? (url->system buf) "tmfs://chat")
+          ;; chat tab 任何缓冲区：通过 sid 或胶水函数找到消息缓冲区
+          (let* ((msg-url (if sid
+                            (url->system (chat-tab-session->message-buffer sid))
+                            (qt-chat-tab-active-message-buffer-url)
+                          ) ;if
+                 ) ;msg-url
+                 (msg-u (and msg-url (not (== msg-url "")) (string->url msg-url)))
+                ) ;
+            (if (and msg-u (chat-message-buffer-has-content? msg-u))
+              (floating-search-init msg-u)
+              (noop)
+            ) ;if
+          ) ;let*
+         ) ;
+         ((and (string-starts? (url->system buf) "tmfs:") (not (collab-buffer? buf)))
+          ;; 协作（远程）文档是完整可编辑的 CRDT 文档，可搜索；
+          ;; 其余 tmfs:// 缓冲区（aux / window 等辅助/系统 buffer）保持禁用
+          (noop)
+         ) ;
+         (else
+           (set! search-replace-text
+             (cond ((in-math?) "Only search in math mode")
+                   ((in-prog?) "Only search in Program mode")
+                   ((in-graphics?) "Graphics mode cannot search")
+                   (else "Only search in text mode")
+             ) ;cond
+           ) ;set!
+           (set-boolean-preference "search-and-replace" #f)
+           (open-search)
+         ) ;else
         ) ;cond
       ) ;with
     ) ;with
@@ -1884,9 +1934,10 @@
 (tm-define (interactive-replace)
   (:interactive #t)
   (with-buffer (search-command-target-buffer (current-buffer))
-    (unless (and (string-starts? (url->system (current-buffer)) "tmfs:")
-              (not (collab-buffer? (current-buffer)))
-            ) ;and
+    (unless
+      (and (string-starts? (url->system (current-buffer)) "tmfs:")
+        (not (collab-buffer? (current-buffer)))
+      ) ;and
       (set! search-replace-text
         (cond ((in-math?) "Only search and replace in math mode")
               ((in-prog?) "Only search and replace in Program mode")

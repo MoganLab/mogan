@@ -54,12 +54,13 @@
 
 (define (module->path module)
   "Returns the full path of the given module, without extension"
-  (url-concretize (string-append "$TEXMACS_PATH/progs/"
-                    (cond ((list? module) (string-join (map symbol->string module) "/"))
-                          ((symbol? module) (symbol->string module))
-                          (else "")
-                    ) ;cond
-                  ) ;string-append
+  (url-concretize
+    (string-append "$TEXMACS_PATH/progs/"
+      (cond ((list? module) (string-join (map symbol->string module) "/"))
+            ((symbol? module) (symbol->string module))
+            (else "")
+      ) ;cond
+    ) ;string-append
   ) ;url-concretize
 ) ;define
 
@@ -143,7 +144,10 @@
       (and (symbol? sym)
         (with old
           (or (symbol-property sym 'defs) '())
-          (if (not (member `(,f ,l ,c) old))
+          (if
+            (not
+              (member `(,f ,l ,c) old)
+            ) ;not
             (set-symbol-property! sym 'defs (cons `(,f ,l ,c) old))
           ) ;if
           sym
@@ -160,12 +164,14 @@
       (let* ((fname (module-source-path module #t))
              (p (open-input-string (string-load fname)))
              (defs '())
-             (add (lambda (f)
-                    (with pf (parse-form f fname) (and (!= pf #f) (set! defs (rcons defs pf))))
-                  ) ;lambda
+             (add
+               (lambda (f)
+                 (with pf (parse-form f fname) (and (!= pf #f) (set! defs (rcons defs pf))))
+               ) ;lambda
              ) ;add
             ) ;
-        (letrec ((r (lambda () (with form (read p) (or (eof-object? form) (begin (add form) (r)))))
+        (letrec ((r
+                   (lambda () (with form (read p) (or (eof-object? form) (begin (add form) (r)))))
                  ) ;r
                 ) ;
           (r)
@@ -183,11 +189,12 @@
   (with l
     (module-exported module)
     (- (length l)
-      (length (list-filter l
-                (lambda (x)
-                  (and (symbol? x) (persistent-has? (doc-scm-cache) (symbol->string x)))
-                ) ;lambda
-              ) ;list-filter
+      (length
+        (list-filter l
+          (lambda (x)
+            (and (symbol? x) (persistent-has? (doc-scm-cache) (symbol->string x)))
+          ) ;lambda
+        ) ;list-filter
       ) ;length
     ) ;-
   ) ;with
@@ -222,18 +229,24 @@
     (module->path module)
     (if (not (dir-with-access? full))
       '()
-      (let* ((list-1 (url->list (url-expand (url-complete (url-append full (url-wildcard "*")) "r")))
+      (let* ((list-1
+               (url->list
+                 (url-expand (url-complete (url-append full (url-wildcard "*")) "r"))
+               ) ;url->list
              ) ;list-1
-             (list-2 (map (lambda (u)
-                            (cond ((string-ends? (url->system u) ".scm")
-                                   (string->symbol (string-drop-right (url->system (url-tail u)) 4))
-                                  ) ;
-                                  ((dir-with-access? (url->system u)) (string->symbol (url->system (url-tail u))))
-                                  (else '())
-                            ) ;cond
-                          ) ;lambda
-                       list-1
-                     ) ;map
+             (list-2
+               (map
+                 (lambda (u)
+                   (cond
+                    ((string-ends? (url->system u) ".scm")
+                     (string->symbol (string-drop-right (url->system (url-tail u)) 4))
+                    ) ;
+                    ((dir-with-access? (url->system u)) (string->symbol (url->system (url-tail u))))
+                    (else '())
+                   ) ;cond
+                 ) ;lambda
+                 list-1
+               ) ;map
              ) ;list-2
              (list-3 (filter (lambda (s) (nnull? s)) list-2))
              (list-4 (map (lambda (s) (rcons module s)) list-3))
@@ -259,12 +272,13 @@
            (list-submodules-recursive (list-submodules (car ml)))
          ) ;if
         ) ;
-        (else (if (is-real-module? (car ml))
-                (cons (car ml) (list-submodules-recursive (cdr ml)))
-                (append (list-submodules-recursive (list-submodules (car ml)))
-                  (list-submodules-recursive (cdr ml))
-                ) ;append
-              ) ;if
+        (else
+          (if (is-real-module? (car ml))
+            (cons (car ml) (list-submodules-recursive (cdr ml)))
+            (append (list-submodules-recursive (list-submodules (car ml)))
+              (list-submodules-recursive (cdr ml))
+            ) ;append
+          ) ;if
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -411,17 +425,19 @@
 ) ;define
 
 (define (doc-explain-sub entries scheme?)
-  (if (or (nlist? entries) (null? entries) (not (func? (car entries) 'entry)))
+  (if
+    (or (nlist? entries) (null? entries) (not (func? (car entries) 'entry)))
     '()
     (with (key lan url doc)
       (cdar entries)
-      (cons (if scheme?
-              `(explain ,(tm-ref doc 0)
-                 (document ,(tm-ref doc 1)
-                   ,($doc-symbol-code (string->symbol key))
-                   ,($doc-symbol-extra (string->symbol key) url)))
-              `(explain ,(tm-ref doc 0) (document ,(tm-ref doc 1)))
-            ) ;if
+      (cons
+        (if scheme?
+          `(explain ,(tm-ref doc 0)
+             (document ,(tm-ref doc 1)
+               ,($doc-symbol-code (string->symbol key))
+               ,($doc-symbol-extra (string->symbol key) url)))
+          `(explain ,(tm-ref doc 0) (document ,(tm-ref doc 1)))
+        ) ;if
         (doc-explain-sub (cdr entries) scheme?)
       ) ;cons
     ) ;with

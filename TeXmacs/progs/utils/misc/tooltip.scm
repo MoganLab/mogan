@@ -93,8 +93,12 @@
   ;; (display* "Mouse event " key ", " x ", " y "; " time "\n")
   (with (x1 y1 x2 y2 mx my sx sy zf type)
     tooltip-settings
-    (let* ((xx (inexact->exact (round (/ (- x sx) (/ 5.0 zf)))))
-           (yy (inexact->exact (round (/ (- y sy) (/ 5.0 zf)))))
+    (let* ((xx
+             (inexact->exact (round (/ (- x sx) (/ 5.0 zf))))
+           ) ;xx
+           (yy
+             (inexact->exact (round (/ (- y sy) (/ 5.0 zf))))
+           ) ;yy
            (dx (quotient (abs (- xx mx)) 256))
            (dy (quotient (abs (- yy my)) 256))
            (d (* 5 256))
@@ -108,13 +112,14 @@
       ;; (display* "  Bottom left " (quotient x1 256) ", " (quotient y1 256) "\n")
       ;; (display* "  Top right   " (quotient x2 256) ", " (quotient y2 256) "\n")
       ;; (display* "  Delta       " dx ", " dy "\n")
-      (when (or (!= key "move")
-              (< xx (- x1 d))
-              (> xx (+ x2 d))
-              (< yy (- y1 d))
-              (> yy (+ y2 d))
-              (and (== type "mouse") (or (> dx 10) (> dy 10)))
-            ) ;or
+      (when
+        (or (!= key "move")
+          (< xx (- x1 d))
+          (> xx (+ x2 d))
+          (< yy (- y1 d))
+          (> yy (+ y2 d))
+          (and (== type "mouse") (or (> dx 10) (> dy 10)))
+        ) ;or
         (when (!= type "keyboard")
           (tooltip-delayed-unmap)
         ) ;when
@@ -131,64 +136,66 @@
 (define (tooltip-x x1 x2 wx bw sw mx ha)
   (with pw
     (* 12 256)
-    (cond ((not (string-starts? ha "raw-"))
-           (with x
-             (tooltip-x x1 x2 wx bw sw mx (string-append "raw-" ha))
-             (max 0 (min (- sw bw) x))
-           ) ;with
-          ) ;
-          ((== ha "raw-Left") (+ wx x1 (- bw)))
-          ((== ha "raw-left") (+ wx x1))
-          ((== ha "raw-center") (+ wx (quotient (- (+ x1 x2) bw) 2)))
-          ((== ha "raw-right") (+ wx x2 (- bw)))
-          ((== ha "raw-Right") (+ wx x2))
-          ((== ha "raw-mouse-Left") (+ wx mx (- bw)))
-          ((== ha "raw-mouse-left") (+ wx mx (- bw) pw))
-          ((== ha "raw-mouse-center") (+ wx mx (quotient (- pw bw) 2)))
-          ((== ha "raw-mouse-right") (+ wx mx))
-          ((== ha "raw-mouse-Right") (+ wx mx pw))
-          (else (+ wx x1))
+    (cond
+     ((not (string-starts? ha "raw-"))
+      (with x
+        (tooltip-x x1 x2 wx bw sw mx (string-append "raw-" ha))
+        (max 0 (min (- sw bw) x))
+      ) ;with
+     ) ;
+     ((== ha "raw-Left") (+ wx x1 (- bw)))
+     ((== ha "raw-left") (+ wx x1))
+     ((== ha "raw-center") (+ wx (quotient (- (+ x1 x2) bw) 2)))
+     ((== ha "raw-right") (+ wx x2 (- bw)))
+     ((== ha "raw-Right") (+ wx x2))
+     ((== ha "raw-mouse-Left") (+ wx mx (- bw)))
+     ((== ha "raw-mouse-left") (+ wx mx (- bw) pw))
+     ((== ha "raw-mouse-center") (+ wx mx (quotient (- pw bw) 2)))
+     ((== ha "raw-mouse-right") (+ wx mx))
+     ((== ha "raw-mouse-Right") (+ wx mx pw))
+     (else (+ wx x1))
     ) ;cond
   ) ;with
 ) ;define
 
 (define (tooltip-y y1 y2 wy bh sh my va)
   (let* ((ph (* 20 256)) (d (* 5 256)))
-    (cond ((string-starts? va "prefer-")
-           (let* ((va* (string-drop va 7))
-                  (vai (cond ((== va* "Bottom") "Top")
-                             ((== va* "Top") "Bottom")
-                             ((== va* "mouse-Bottom") "mouse-Top")
-                             ((== va* "mouse-Top") "mouse-Bottom")
-                             (else va*)
-                       ) ;cond
-                  ) ;vai
-                  (va1 (string-append "raw-" va*))
-                  (va2 (string-append "raw-" vai))
-                 ) ;
-             (with y
-               (tooltip-y y1 y2 wy bh sh my va1)
-               (if (and (>= y (- bh sh)) (<= y 0)) y (tooltip-y y1 y2 wy bh sh my va2))
-             ) ;with
-           ) ;let*
-          ) ;
-          ((not (string-starts? va "raw-"))
-           (with y
-             (tooltip-y y1 y2 wy bh sh my (string-append "raw-" va))
-             (max (- bh sh) (min 0 y))
-           ) ;with
-          ) ;
-          ((== va "raw-Bottom") (+ wy y1 (- d)))
-          ((== va "raw-bottom") (+ wy y1 bh))
-          ((== va "raw-center") (+ wy (quotient (+ (+ y1 y2) bh) 2)))
-          ((== va "raw-top") (+ wy y2))
-          ((== va "raw-Top") (+ wy y2 bh d))
-          ((== va "raw-mouse-Bottom") (+ wy my (- ph)))
-          ((== va "raw-mouse-bottom") (+ wy my))
-          ((== va "raw-mouse-center") (+ wy my (quotient (- bh ph) 2)))
-          ((== va "raw-mouse-top") (+ wy my bh (- ph)))
-          ((== va "raw-mouse-Top") (+ wy my bh))
-          (else (+ wy y1 (- d)))
+    (cond
+     ((string-starts? va "prefer-")
+      (let* ((va* (string-drop va 7))
+             (vai (cond ((== va* "Bottom") "Top")
+                        ((== va* "Top") "Bottom")
+                        ((== va* "mouse-Bottom") "mouse-Top")
+                        ((== va* "mouse-Top") "mouse-Bottom")
+                        (else va*)
+                  ) ;cond
+             ) ;vai
+             (va1 (string-append "raw-" va*))
+             (va2 (string-append "raw-" vai))
+            ) ;
+        (with y
+          (tooltip-y y1 y2 wy bh sh my va1)
+          (if (and (>= y (- bh sh)) (<= y 0)) y (tooltip-y y1 y2 wy bh sh my va2))
+        ) ;with
+      ) ;let*
+     ) ;
+     ((not (string-starts? va "raw-"))
+      (with y
+        (tooltip-y y1 y2 wy bh sh my (string-append "raw-" va))
+        (max (- bh sh) (min 0 y))
+      ) ;with
+     ) ;
+     ((== va "raw-Bottom") (+ wy y1 (- d)))
+     ((== va "raw-bottom") (+ wy y1 bh))
+     ((== va "raw-center") (+ wy (quotient (+ (+ y1 y2) bh) 2)))
+     ((== va "raw-top") (+ wy y2))
+     ((== va "raw-Top") (+ wy y2 bh d))
+     ((== va "raw-mouse-Bottom") (+ wy my (- ph)))
+     ((== va "raw-mouse-bottom") (+ wy my))
+     ((== va "raw-mouse-center") (+ wy my (quotient (- bh ph) 2)))
+     ((== va "raw-mouse-top") (+ wy my bh (- ph)))
+     ((== va "raw-mouse-Top") (+ wy my bh))
+     (else (+ wy y1 (- d)))
     ) ;cond
   ) ;let*
 ) ;define
@@ -265,35 +272,39 @@
                      ) ;list
            ) ;settings
           ) ;
-      (when (or (== type "keyboard")
-              (and (>= mx (- x1 d)) (<= mx (+ x2 d)) (>= my (- y1 d)) (<= my (+ y2 d)))
-            ) ;or
+      (when
+        (or (== type "keyboard")
+          (and (>= mx (- x1 d)) (<= mx (+ x2 d)) (>= my (- y1 d)) (<= my (+ y2 d)))
+        ) ;or
         (if (and tooltip-win id (== id tooltip-id))
           (tooltip-confirm settings)
-          (and-let* ((wx (get-window-x))
-                     (wy (get-window-y))
-                     (packs (get-style-list))
-                     (pre (document-get-preamble (buffer-tree)))
-                     (zf (get-window-zoom-factor))
-                     (mag (number->string (* zf magf)))
-                     (inits* (map cdr (cdr (tm->stree (get-all-inits)))))
-                     (inits (list-filter inits* tooltip-init?))
-                     (env* (apply append inits))
-                     (env (append env* (list "magnification" mag)))
-                     (doc `(surround (hide-preamble ,pre) ,"" ,tip))
-                     (master (url->system (current-buffer)))
-                     (w (widget-texmacs-output `(with ,@env
-                                                  ,"project"
-                                                  ,master
-                                                  ,doc)
-                          `(style (tuple ,@packs))
-                        ) ;widget-texmacs-output
-                     ) ;w
-                     (bsz (texmacs-widget-size w))
-                     (ssz (get-screen-size))
-                     (pos (tooltip-position x1 y1 x2 y2 wx wy bsz ssz mpos ha va type))
-                    ) ;
-            (tooltip-map w (car pos) (cadr pos) id settings)
+          (and-let*
+           ((wx (get-window-x))
+            (wy (get-window-y))
+            (packs (get-style-list))
+            (pre (document-get-preamble (buffer-tree)))
+            (zf (get-window-zoom-factor))
+            (mag (number->string (* zf magf)))
+            (inits*
+              (map cdr (cdr (tm->stree (get-all-inits))))
+            ) ;inits*
+            (inits (list-filter inits* tooltip-init?))
+            (env* (apply append inits))
+            (env (append env* (list "magnification" mag)))
+            (doc
+              `(surround (hide-preamble ,pre) ,"" ,tip)
+            ) ;doc
+            (master (url->system (current-buffer)))
+            (w
+              (widget-texmacs-output `(with ,@env ,"project" ,master ,doc)
+                `(style (tuple ,@packs))
+              ) ;widget-texmacs-output
+            ) ;w
+            (bsz (texmacs-widget-size w))
+            (ssz (get-screen-size))
+            (pos (tooltip-position x1 y1 x2 y2 wx wy bsz ssz mpos ha va type))
+           ) ;
+           (tooltip-map w (car pos) (cadr pos) id settings)
           ) ;and-let*
         ) ;if
       ) ;when

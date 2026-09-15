@@ -76,7 +76,8 @@
            ) ;and
            (add-string (substring s 1 n) t)
           ) ;
-          ((and (not (string-alpha? (substring s (- n 1) n)))
+          ((and
+             (not (string-alpha? (substring s (- n 1) n)))
              (nin? (substring s (- n 1) n) (list ")"))
            ) ;and
            (add-string (substring s 0 (- n 1)) t)
@@ -181,30 +182,31 @@
 
 (define (search-translatable-file x t)
   ;; (when (url? x) (display* "x= " x "\n"))
-  (cond ((and (url? x) (or (url-or? x) (url-none? x)))
-         (for-each (cut search-translatable-file <> t) (url->list x))
-        ) ;
-        ((and (url? x) (url-directory? x))
-         (with u
-           (url-complete (url-append x (url-wildcard "*")) "r")
-           (search-translatable-file (url-expand u) t)
-         ) ;with
-        ) ;
-        ((url? x)
-         (when (and (url-exists? x) (== (url-suffix x) "scm"))
-           (with s
-             (string-load x)
-             (with p
-               (string->object (string-append "(\n" s "\n)"))
-               (search-translatable-file p t)
-             ) ;with
-           ) ;with
-         ) ;when
-        ) ;
-        ((list? x)
-         (for-each (cut search-translatable-file-one <> t) x)
-         (for-each (cut search-translatable-file-bis <> t) x)
-        ) ;
+  (cond
+   ((and (url? x) (or (url-or? x) (url-none? x)))
+    (for-each (cut search-translatable-file <> t) (url->list x))
+   ) ;
+   ((and (url? x) (url-directory? x))
+    (with u
+      (url-complete (url-append x (url-wildcard "*")) "r")
+      (search-translatable-file (url-expand u) t)
+    ) ;with
+   ) ;
+   ((url? x)
+    (when (and (url-exists? x) (== (url-suffix x) "scm"))
+      (with s
+        (string-load x)
+        (with p
+          (string->object (string-append "(\n" s "\n)"))
+          (search-translatable-file p t)
+        ) ;with
+      ) ;with
+    ) ;when
+   ) ;
+   ((list? x)
+    (for-each (cut search-translatable-file-one <> t) x)
+    (for-each (cut search-translatable-file-bis <> t) x)
+   ) ;
   ) ;cond
 ) ;define
 
@@ -273,8 +275,12 @@
 (define (tr-save u t)
   (let* ((vs (map car (ahash-table->list t)))
          (ws (sort vs string<=?))
-         (ps (map (lambda (v) (list v (ahash-ref t v))) ws))
-         (ss (map (lambda (p) (string-append (object-->string p) "\n")) ps))
+         (ps
+           (map (lambda (v) (list v (ahash-ref t v))) ws)
+         ) ;ps
+         (ss
+           (map (lambda (p) (string-append (object-->string p) "\n")) ps)
+         ) ;ss
          (s (apply string-append ss))
         ) ;
     (string-save s u)
@@ -310,8 +316,12 @@
   (let* ((mt (tr-load (tr-miss language)))
          (ft (filter-missing mt ==))
          (ml (sort (map car (ahash-table->list ft)) string<=?))
-         (nl (map (lambda (i) (list (+ i 1) (list-ref ml i))) (.. 0 (length ml))))
-         (ss (map (lambda (p) (string-append (object-->string p) "\n")) nl))
+         (nl
+           (map (lambda (i) (list (+ i 1) (list-ref ml i))) (.. 0 (length ml)))
+         ) ;nl
+         (ss
+           (map (lambda (p) (string-append (object-->string p) "\n")) nl)
+         ) ;ss
          (s (apply string-append ss))
         ) ;
     (string-save s (tr-auto "english"))
@@ -353,7 +363,8 @@
               (lambda ()
                 (with x
                   (string-->object line)
-                  (when (not (and (list-2? x) (string? (car x)) (string? (cadr x))))
+                  (when
+                    (not (and (list-2? x) (string? (car x)) (string? (cadr x))))
                     (display* "Error: " line "\n")
                   ) ;when
                 ) ;with

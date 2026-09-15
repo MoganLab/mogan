@@ -98,24 +98,25 @@
 ) ;define
 
 (define (secure-expr? expr env)
-  (cond ((pair? expr)
-         (let* ((f (car expr)) (m (logic-ref secure-macros% f)))
-           (cond (m (m (cdr expr) env))
-                 ((assoc-ref env f) (secure-args? (cdr expr) env))
-                 ((== f 'quote) #t)
-                 ((== f 'quasiquote) (secure-quasiquote? (cdr expr) env))
-                 ((symbol? f) (and (property f :secure) (secure-args? (cdr expr) env)))
-                 (else (secure-args? expr env))
-           ) ;cond
-         ) ;let*
-        ) ;
-        ((symbol? expr) #t)
-        ((number? expr) #t)
-        ((string? expr) #t)
-        ((tree? expr) #t)
-        ((null? expr) #t)
-        ((boolean? expr) #t)
-        (else #f)
+  (cond
+   ((pair? expr)
+    (let* ((f (car expr)) (m (logic-ref secure-macros% f)))
+      (cond (m (m (cdr expr) env))
+            ((assoc-ref env f) (secure-args? (cdr expr) env))
+            ((== f 'quote) #t)
+            ((== f 'quasiquote) (secure-quasiquote? (cdr expr) env))
+            ((symbol? f) (and (property f :secure) (secure-args? (cdr expr) env)))
+            (else (secure-args? expr env))
+      ) ;cond
+    ) ;let*
+   ) ;
+   ((symbol? expr) #t)
+   ((number? expr) #t)
+   ((string? expr) #t)
+   ((tree? expr) #t)
+   ((null? expr) #t)
+   ((boolean? expr) #t)
+   (else #f)
   ) ;cond
 ) ;define
 

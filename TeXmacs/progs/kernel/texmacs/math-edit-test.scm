@@ -7,50 +7,60 @@
 (check-set-mode! 'report-failed)
 
 (define (test-inside-comment-or-balloon)
-  (let* ((comment-folded (stree->tree '(folded-comment "1"
-                                         "1"
-                                         "comment"
-                                         "author"
-                                         "date"
-                                         ""
-                                         (document (para (equation* "x"))))
-                         ) ;stree->tree
+  (let* ((comment-folded
+           (stree->tree
+             '(folded-comment "1"
+                "1"
+                "comment"
+                "author"
+                "date"
+                ""
+                (document (para (equation* "x"))))
+           ) ;stree->tree
          ) ;comment-folded
-         (comment-unfolded (stree->tree '(unfolded-comment "1"
-                                           "1"
-                                           "comment"
-                                           "author"
-                                           "date"
-                                           ""
-                                           (document (para (equation* "x"))))
-                           ) ;stree->tree
+         (comment-unfolded
+           (stree->tree
+             '(unfolded-comment "1"
+                "1"
+                "comment"
+                "author"
+                "date"
+                ""
+                (document (para (equation* "x"))))
+           ) ;stree->tree
          ) ;comment-unfolded
-         (comment-mirror (stree->tree '(mirror-comment "1"
-                                         "1"
-                                         "comment"
-                                         "author"
-                                         "date"
-                                         ""
-                                         (document (para (equation* "x"))))
-                         ) ;stree->tree
+         (comment-mirror
+           (stree->tree
+             '(mirror-comment "1"
+                "1"
+                "comment"
+                "author"
+                "date"
+                ""
+                (document (para (equation* "x"))))
+           ) ;stree->tree
          ) ;comment-mirror
-         (comment-carbon (stree->tree '(carbon-comment "1"
-                                         "1"
-                                         "comment"
-                                         "author"
-                                         "date"
-                                         ""
-                                         (document (para (equation* "x"))))
-                         ) ;stree->tree
+         (comment-carbon
+           (stree->tree
+             '(carbon-comment "1"
+                "1"
+                "comment"
+                "author"
+                "date"
+                ""
+                (document (para (equation* "x"))))
+           ) ;stree->tree
          ) ;comment-carbon
-         (comment-nested (stree->tree '(nested-comment "1"
-                                         "1"
-                                         "comment"
-                                         "author"
-                                         "date"
-                                         ""
-                                         (document (para (equation* "x"))))
-                         ) ;stree->tree
+         (comment-nested
+           (stree->tree
+             '(nested-comment "1"
+                "1"
+                "comment"
+                "author"
+                "date"
+                ""
+                (document (para (equation* "x"))))
+           ) ;stree->tree
          ) ;comment-nested
          (balloon-hover (stree->tree '(hover-balloon "x" "tooltip")))
          (balloon-hover-star (stree->tree '(hover-balloon* "x" "tooltip")))
@@ -58,7 +68,9 @@
          (balloon-popup-star (stree->tree '(popup-balloon* "x" "tooltip")))
          (balloon-focus (stree->tree '(focus-balloon "x" "tooltip")))
          (balloon-help (stree->tree '(help-balloon "x" "tooltip")))
-         (normal-tree (stree->tree '(document (para (equation* "x")))))
+         (normal-tree
+           (stree->tree '(document (para (equation* "x"))))
+         ) ;normal-tree
         ) ;
     (check (inside-comment-or-balloon? comment-folded) => #t)
     (check (inside-comment-or-balloon? comment-unfolded) => #t)

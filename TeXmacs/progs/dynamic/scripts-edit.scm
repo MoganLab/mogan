@@ -52,7 +52,10 @@
     (get-env "prog-scripts")
     (or (connection-defined? lan)
       (begin
-        (set-message `(concat ,"undefined plugin: " (verbatim ,lan)) "")
+        (set-message
+          `(concat ,"undefined plugin: " (verbatim ,lan))
+          ""
+        ) ;set-message
         #f
       ) ;begin
     ) ;or
@@ -170,14 +173,16 @@
 ) ;tm-define
 
 (tm-define (kbd-enter t forwards?)
-  (:require (or (tree-is? t 'script-output)
-              (and (tree-is? t 'script-input) (not (tree-is? t :up 'inactive)))
-            ) ;or
+  (:require
+    (or (tree-is? t 'script-output)
+      (and (tree-is? t 'script-input) (not (tree-is? t :up 'inactive)))
+    ) ;or
   ) ;:require
   (cond ((tree-is? t 'script-output) (alternate-toggle t))
         ((xor (not forwards?) (tree-is? t 2 'document)) (alternate-toggle t))
-        (else (if (not (tree-is? t 2 'document)) (tree-set t 2 `(document ,(tree-ref t
-                                                                             2))))
+        (else
+          (if (not (tree-is? t 2 'document)) (tree-set t 2 `(document ,(tree-ref t
+                                                                         2))))
           (insert-return)
         ) ;else
   ) ;cond
@@ -189,22 +194,23 @@
 
 (define (script-get-input)
   (let* ((lan (get-env "prog-scripts")) (session (get-env "prog-session")))
-    (cond ((selection-active-any?)
-           (with sel (tree->stree (selection-tree)) (clipboard-cut "primary") sel)
-          ) ;
-          ((tree-innermost script-src-context?)
-           (let* ((t (tree-innermost script-src-context?)) (input (tree->stree (tree-ref t 0))))
-             (tree-cut t)
-             input
-           ) ;let*
-          ) ;
-          ((and (tree-innermost formula-context? #t) script-eval-math-flag?)
-           (let* ((t (tree-innermost formula-context? #t)) (input (tree->stree t)))
-             (tree-cut t)
-             input
-           ) ;let*
-          ) ;
-          (else #f)
+    (cond
+     ((selection-active-any?)
+      (with sel (tree->stree (selection-tree)) (clipboard-cut "primary") sel)
+     ) ;
+     ((tree-innermost script-src-context?)
+      (let* ((t (tree-innermost script-src-context?)) (input (tree->stree (tree-ref t 0))))
+        (tree-cut t)
+        input
+      ) ;let*
+     ) ;
+     ((and (tree-innermost formula-context? #t) script-eval-math-flag?)
+      (let* ((t (tree-innermost formula-context? #t)) (input (tree->stree t)))
+        (tree-cut t)
+        input
+      ) ;let*
+     ) ;
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define
@@ -226,19 +232,20 @@
               ) ;
           ;; (display* "t= " t "\n")
           ;; (display* "cmd= " cmd "\n")
-          (cond ((and (func? input 'concat) (in? '(script-assign) input))
-                 (set! declaration? #t)
-                ) ;
-                ((and (script-keep-input?) (== opts '(:approx)))
-                 (tree-set! t `(script-approx ,input (script-busy)))
-                 (set! t (tree-ref t 1))
-                 (tree-go-to t :end)
-                ) ;
-                ((script-keep-input?)
-                 (tree-set! t `(script-result ,cmd (script-busy)))
-                 (set! t (tree-ref t 1))
-                 (tree-go-to t :end)
-                ) ;
+          (cond
+           ((and (func? input 'concat) (in? '(script-assign) input))
+            (set! declaration? #t)
+           ) ;
+           ((and (script-keep-input?) (== opts '(:approx)))
+            (tree-set! t `(script-approx ,input (script-busy)))
+            (set! t (tree-ref t 1))
+            (tree-go-to t :end)
+           ) ;
+           ((script-keep-input?)
+            (tree-set! t `(script-result ,cmd (script-busy)))
+            (set! t (tree-ref t 1))
+            (tree-go-to t :end)
+           ) ;
           ) ;cond
           (if declaration?
             (script-eval-at t lan session cmd :math-input :declaration)
@@ -276,7 +283,8 @@
 ) ;tm-define
 
 (tm-define (script-apply fun . opts)
-  (if (and (in? opts '(() (1))) (not-in-session?))
+  (if
+    (and (in? opts '(() (1))) (not-in-session?))
     (script-modified-eval (lambda () (insert-function fun)))
     (let* ((n (if (null? opts) 1 (car opts))) (input (script-get-input)))
       ;; (display* "Script apply " fun ", " n "\n")
@@ -343,66 +351,67 @@
 ) ;tm-define
 
 (tm-define (script-plot-command lan t)
-  (cond ((== (car t) 'plot-curve)
-         `(concat ,"set samples 1000 \n"
-            ,"set xrange ["
-            ,(tm-ref t 1)
-            ,":"
-            ,(tm-ref t 2)
-            ,"] \n"
-            ,"plot "
-            ,(tm-ref t 0))
-        ) ;
-        ((== (car t) 'plot-curve*)
-         `(concat ,"set samples 1000 \n"
-            ,"set parametric \n"
-            ,"set trange ["
-            ,(tm-ref t 2)
-            ,":"
-            ,(tm-ref t 3)
-            ,"] \n"
-            ,"plot "
-            ,(tm-ref t 0)
-            ,", "
-            ,(tm-ref t 1))
-        ) ;
-        ((== (car t) 'plot-surface)
-         `(concat ,"set samples 50 \n set isosamples 50 \n set hidden3d \n"
-            ,"set pm3d \n"
-            ,"set xrange ["
-            ,(tm-ref t 1)
-            ,":"
-            ,(tm-ref t 2)
-            ,"] \n"
-            ,"set yrange ["
-            ,(tm-ref t 3)
-            ,":"
-            ,(tm-ref t 4)
-            ,"] \n"
-            ,"splot "
-            ,(tm-ref t 0))
-        ) ;
-        ((== (car t) 'plot-surface*)
-         `(concat ,"set samples 50 \n set isosamples 50 \n set hidden3d \n"
-            ,"set parametric \n"
-            ,"set pm3d \n"
-            ,"set urange ["
-            ,(tm-ref t 3)
-            ,":"
-            ,(tm-ref t 4)
-            ,"] \n"
-            ,"set vrange ["
-            ,(tm-ref t 5)
-            ,":"
-            ,(tm-ref t 6)
-            ,"] \n"
-            ,"splot "
-            ,(tm-ref t 0)
-            ,", "
-            ,(tm-ref t 1)
-            ,", "
-            ,(tm-ref t 2))
-        ) ;
+  (cond
+   ((== (car t) 'plot-curve)
+    `(concat ,"set samples 1000 \n"
+       ,"set xrange ["
+       ,(tm-ref t 1)
+       ,":"
+       ,(tm-ref t 2)
+       ,"] \n"
+       ,"plot "
+       ,(tm-ref t 0))
+   ) ;
+   ((== (car t) 'plot-curve*)
+    `(concat ,"set samples 1000 \n"
+       ,"set parametric \n"
+       ,"set trange ["
+       ,(tm-ref t 2)
+       ,":"
+       ,(tm-ref t 3)
+       ,"] \n"
+       ,"plot "
+       ,(tm-ref t 0)
+       ,", "
+       ,(tm-ref t 1))
+   ) ;
+   ((== (car t) 'plot-surface)
+    `(concat ,"set samples 50 \n set isosamples 50 \n set hidden3d \n"
+       ,"set pm3d \n"
+       ,"set xrange ["
+       ,(tm-ref t 1)
+       ,":"
+       ,(tm-ref t 2)
+       ,"] \n"
+       ,"set yrange ["
+       ,(tm-ref t 3)
+       ,":"
+       ,(tm-ref t 4)
+       ,"] \n"
+       ,"splot "
+       ,(tm-ref t 0))
+   ) ;
+   ((== (car t) 'plot-surface*)
+    `(concat ,"set samples 50 \n set isosamples 50 \n set hidden3d \n"
+       ,"set parametric \n"
+       ,"set pm3d \n"
+       ,"set urange ["
+       ,(tm-ref t 3)
+       ,":"
+       ,(tm-ref t 4)
+       ,"] \n"
+       ,"set vrange ["
+       ,(tm-ref t 5)
+       ,":"
+       ,(tm-ref t 6)
+       ,"] \n"
+       ,"splot "
+       ,(tm-ref t 0)
+       ,", "
+       ,(tm-ref t 1)
+       ,", "
+       ,(tm-ref t 2))
+   ) ;
   ) ;cond
 ) ;tm-define
 
@@ -533,14 +542,16 @@
 ) ;tm-define
 
 (tm-define (kbd-enter t forwards?)
-  (:require (or (tree-is? t 'converter-output)
-              (and (tree-is? t 'converter-input) (not (tree-is? t :up 'inactive)))
-            ) ;or
+  (:require
+    (or (tree-is? t 'converter-output)
+      (and (tree-is? t 'converter-input) (not (tree-is? t :up 'inactive)))
+    ) ;or
   ) ;:require
   (cond ((tree-is? t 'converter-output) (alternate-toggle t))
         ((xor (not forwards?) (tree-is? t 1 'document)) (alternate-toggle t))
-        (else (if (not (tree-is? t 1 'document)) (tree-set t 1 `(document ,(tree-ref t
-                                                                             1))))
+        (else
+          (if (not (tree-is? t 1 'document)) (tree-set t 1 `(document ,(tree-ref t
+                                                                         1))))
           (insert-return)
         ) ;else
   ) ;cond

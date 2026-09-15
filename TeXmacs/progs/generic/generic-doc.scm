@@ -27,10 +27,11 @@
 (define (focus-doc-arg-name t i prev-names)
   (with s
     (tree-child-name t i)
-    (avoid-conflict (cond ((!= s "") s)
-                          ((== (tree-child-type t i) "regular") "body")
-                          (else (tree-child-type t i))
-                    ) ;cond
+    (avoid-conflict
+      (cond ((!= s "") s)
+            ((== (tree-child-type t i) "regular") "body")
+            (else (tree-child-type t i))
+      ) ;cond
       prev-names
       1
     ) ;avoid-conflict
@@ -50,24 +51,28 @@
 (tm-generate (focus-doc-usage-args t)
   ($with l
     (focus-doc-arg-names t 0 '())
-    ($description-aligned ($for (i (.. 0 (tree-arity t)))
-                            ($with s
-                              (list-ref l i)
-                              ($describe-item ($src-arg s)
-                                ($if (== s "body")
-                                  "The main body of the macro."
-                                  ($begin "An argument of type \x10;" (tree-child-type t i) "\x11;.")
-                                ) ;$if
-                              ) ;$describe-item
-                            ) ;$with
-                          ) ;$for
+    ($description-aligned
+      ($for (i (.. 0 (tree-arity t)))
+        ($with s
+          (list-ref l i)
+          ($describe-item ($src-arg s)
+            ($if (== s "body")
+              "The main body of the macro."
+              ($begin "An argument of type \x10;" (tree-child-type t i) "\x11;.")
+            ) ;$if
+          ) ;$describe-item
+        ) ;$with
+      ) ;$for
     ) ;$description-aligned
   ) ;$with
 ) ;tm-generate
 
 (tm-generate (focus-doc-usage t)
   ($let* ((lab (tree-label t)) (l (focus-doc-arg-names t 0 '())))
-    ($explain `(explain-macro ,(symbol->string lab) ,@l) (focus-doc-usage-args t))
+    ($explain
+      `(explain-macro ,(symbol->string lab) ,@l)
+      (focus-doc-usage-args t)
+    ) ;$explain
   ) ;$let*
 ) ;tm-generate
 
@@ -145,21 +150,22 @@
 
 (tm-generate (focus-doc-alternate t)
   ($let* ((lab (tree-label t)) (lab* (symbol-toggle-alternate lab)))
-    ($para ($when (alternate-first? t)
-             "The "
-             ($markup lab)
-             " environment is \x10;olded\x11; "
-             "and has an unfolded variant  "
-             ($markup lab*)
-             ". "
-             "You may unfold the environment using the keyboard shortcut "
-             ($shortcut (alternate-toggle (focus-tree)))
-             ", the menu entry "
-             ($menu "Focus" "Folded")
-             ", or by pressing the "
-             ($tmdoc-icon "tm_alternate_first.xpm")
-             " icon on the focus toolbar. "
-           ) ;$when
+    ($para
+      ($when (alternate-first? t)
+        "The "
+        ($markup lab)
+        " environment is \x10;olded\x11; "
+        "and has an unfolded variant  "
+        ($markup lab*)
+        ". "
+        "You may unfold the environment using the keyboard shortcut "
+        ($shortcut (alternate-toggle (focus-tree)))
+        ", the menu entry "
+        ($menu "Focus" "Folded")
+        ", or by pressing the "
+        ($tmdoc-icon "tm_alternate_first.xpm")
+        " icon on the focus toolbar. "
+      ) ;$when
       ($when (alternate-second? t)
         "The "
         ($markup lab)
@@ -202,7 +208,8 @@
     (tmdoc-search-style opt)
     ($when opt-doc opt-doc)
     ($when (not opt-doc)
-      ($explain ($inline `(tmpackage ,opt) `(explain-synopsis ,(style-get-menu-name opt)))
+      ($explain
+        ($inline `(tmpackage ,opt) `(explain-synopsis ,(style-get-menu-name opt)))
         ($with brief-doc
           (style-get-documentation opt)
           ($when brief-doc brief-doc ".")
@@ -228,75 +235,76 @@
 ) ;tm-generate
 
 (tm-generate (focus-doc-preferences t)
-  ($let* ((lab (tree-label t))
-          (opts (search-tag-options t))
-          (pars (list-filter (search-tag-parameters t) parameter-show-in-menu?))
-          (ths (search-tag-themes t))
-         ) ;
-    ($block ($para "The rendering of the "
-              ($markup lab)
-              " tag can be customized by editing the macro which defines it. "
-              "This can be done by clicking on "
-              ($menu "Edit macro")
-              " button in the "
-              ($menu "Focus" "Preferences")
-              " menu "
-              "(or in the equivalent "
-              ($tmdoc-icon "tm_focus_prefs.xpm")
-              " icon menu on the focus toolbar). "
-              "You may also directly edit the macro in the style file or package "
-              "where it was defined, using "
-              ($menu "Edit source")
-              "."
-            ) ;$para
+  ($let*
+   ((lab (tree-label t))
+    (opts (search-tag-options t))
+    (pars (list-filter (search-tag-parameters t) parameter-show-in-menu?))
+    (ths (search-tag-themes t))
+   ) ;
+   ($block ($para "The rendering of the "
+             ($markup lab)
+             " tag can be customized by editing the macro which defines it. "
+             "This can be done by clicking on "
+             ($menu "Edit macro")
+             " button in the "
+             ($menu "Focus" "Preferences")
+             " menu "
+             "(or in the equivalent "
+             ($tmdoc-icon "tm_focus_prefs.xpm")
+             " icon menu on the focus toolbar). "
+             "You may also directly edit the macro in the style file or package "
+             "where it was defined, using "
+             ($menu "Edit source")
+             "."
+           ) ;$para
 
-      ($when (nnull? (append opts pars ths))
-        ($para "Still using the "
-          ($menu "Focus" "Preferences")
-          " menu, "
-          "you may also specify "
-          ($when (and (nnull? opts) (null? pars)) "style options")
-          ($when (and (null? opts) (nnull? pars)) "style parameters")
-          ($when (and (nnull? opts) (nnull? pars)) "style options and parameters")
-          " that apply to the "
-          ($markup lab)
-          " tag. "
-          "These settings are global, so they will apply to all other "
-          ($markup lab)
-          " tags in your document, and generally also to "
-          "other similar tags."
-        ) ;$para
-      ) ;$when
+     ($when (nnull? (append opts pars ths))
+       ($para "Still using the "
+         ($menu "Focus" "Preferences")
+         " menu, "
+         "you may also specify "
+         ($when (and (nnull? opts) (null? pars)) "style options")
+         ($when (and (null? opts) (nnull? pars)) "style parameters")
+         ($when (and (nnull? opts) (nnull? pars)) "style options and parameters")
+         " that apply to the "
+         ($markup lab)
+         " tag. "
+         "These settings are global, so they will apply to all other "
+         ($markup lab)
+         " tags in your document, and generally also to "
+         "other similar tags."
+       ) ;$para
+     ) ;$when
 
-      ($when (nnull? ths)
-        ($para "The "
-          ($markup lab)
-          " tag uses themes for its rendering. "
-          "These themes come with their own style parameters that "
-          "can be customized via "
-          ($menu "Focus" "Preferences" "Theme parameters")
-          "."
-        ) ;$para
-      ) ;$when
+     ($when (nnull? ths)
+       ($para "The "
+         ($markup lab)
+         " tag uses themes for its rendering. "
+         "These themes come with their own style parameters that "
+         "can be customized via "
+         ($menu "Focus" "Preferences" "Theme parameters")
+         "."
+       ) ;$para
+     ) ;$when
 
-      ($when (nnull? opts)
-        ($folded ($strong "Style options")
-          ($for (opt opts) (focus-doc-style-option opt))
-        ) ;$folded
-      ) ;$when
+     ($when (nnull? opts)
+       ($folded ($strong "Style options")
+         ($for (opt opts) (focus-doc-style-option opt))
+       ) ;$folded
+     ) ;$when
 
-      ($when (nnull? pars)
-        ($folded ($strong "Style parameters")
-          ($for (par pars) (focus-doc-parameter par))
-        ) ;$folded
-      ) ;$when
+     ($when (nnull? pars)
+       ($folded ($strong "Style parameters")
+         ($for (par pars) (focus-doc-parameter par))
+       ) ;$folded
+     ) ;$when
 
-      ($for (th ths)
-        ($folded ($strong "Parameters for the " th " theme")
-          ($for (mem (theme->members th)) (focus-doc-parameter mem))
-        ) ;$folded
-      ) ;$for
-    ) ;$block
+     ($for (th ths)
+       ($folded ($strong "Parameters for the " th " theme")
+         ($for (mem (theme->members th)) (focus-doc-parameter mem))
+       ) ;$folded
+     ) ;$for
+   ) ;$block
   ) ;$let*
 ) ;tm-generate
 
@@ -325,16 +333,17 @@
       "This can be done efficiently using the following keyboard shortcuts, "
       "menu entries, or icons on the focus toolbar: "
     ) ;$para
-    ($description-long ($describe-item ($inline ($shortcut (kbd-select-if-active traverse-first))
-                                         ", "
-                                         ($menu "Focus" "First similar")
-                                         ", "
-                                         ($tmdoc-icon "tm_similar_first.xpm")
-                                       ) ;$inline
-                         "Jump to the first "
-                         (focus-doc-similar t)
-                         "."
-                       ) ;$describe-item
+    ($description-long
+      ($describe-item ($inline ($shortcut (kbd-select-if-active traverse-first))
+                        ", "
+                        ($menu "Focus" "First similar")
+                        ", "
+                        ($tmdoc-icon "tm_similar_first.xpm")
+                      ) ;$inline
+        "Jump to the first "
+        (focus-doc-similar t)
+        "."
+      ) ;$describe-item
       ($describe-item ($inline ($shortcut (traverse-previous))
                         ", "
                         ($menu "Focus" "Previous similar")
@@ -387,24 +396,25 @@
       "New arguments can be inserted using the following keyboard shortcuts, "
       "menu entries, or icons on the focus toolbar: "
     ) ;$para
-    ($description-long ($when (structured-horizontal? t)
-                         ($describe-item ($inline ($shortcut (structured-insert-left))
-                                           ", "
-                                           ($menu "Focus" "Insert left")
-                                           ", "
-                                           ($tmdoc-icon "tm_insert_left.xpm")
-                                         ) ;$inline
-                           "Insert a new argument at the left-hand side of the cursor."
-                         ) ;$describe-item
-                         ($describe-item ($inline ($shortcut (structured-insert-right))
-                                           ", "
-                                           ($menu "Focus" "Insert right")
-                                           ", "
-                                           ($tmdoc-icon "tm_insert_right.xpm")
-                                         ) ;$inline
-                           "Insert a new argument at the right-hand side of the cursor."
-                         ) ;$describe-item
-                       ) ;$when
+    ($description-long
+      ($when (structured-horizontal? t)
+        ($describe-item ($inline ($shortcut (structured-insert-left))
+                          ", "
+                          ($menu "Focus" "Insert left")
+                          ", "
+                          ($tmdoc-icon "tm_insert_left.xpm")
+                        ) ;$inline
+          "Insert a new argument at the left-hand side of the cursor."
+        ) ;$describe-item
+        ($describe-item ($inline ($shortcut (structured-insert-right))
+                          ", "
+                          ($menu "Focus" "Insert right")
+                          ", "
+                          ($tmdoc-icon "tm_insert_right.xpm")
+                        ) ;$inline
+          "Insert a new argument at the right-hand side of the cursor."
+        ) ;$describe-item
+      ) ;$when
       ($when (structured-vertical? t)
         ($describe-item ($inline ($shortcut (structured-insert-up))
                           ", "
@@ -425,24 +435,25 @@
       ) ;$when
     ) ;$description-long
     ($para "Existing arguments can be removed as follows:")
-    ($description-long ($when (structured-horizontal? t)
-                         ($describe-item ($inline ($shortcut (structured-remove-left))
-                                           ", "
-                                           ($menu "Focus" "Remove left")
-                                           ", "
-                                           ($tmdoc-icon "tm_delete_left.xpm")
-                                         ) ;$inline
-                           "Remove the argument at the left-hand side of the cursor."
-                         ) ;$describe-item
-                         ($describe-item ($inline ($shortcut (structured-remove-right))
-                                           ", "
-                                           ($menu "Focus" "Remove right")
-                                           ", "
-                                           ($tmdoc-icon "tm_delete_right.xpm")
-                                         ) ;$inline
-                           "Remove the current argument and move to the next one."
-                         ) ;$describe-item
-                       ) ;$when
+    ($description-long
+      ($when (structured-horizontal? t)
+        ($describe-item ($inline ($shortcut (structured-remove-left))
+                          ", "
+                          ($menu "Focus" "Remove left")
+                          ", "
+                          ($tmdoc-icon "tm_delete_left.xpm")
+                        ) ;$inline
+          "Remove the argument at the left-hand side of the cursor."
+        ) ;$describe-item
+        ($describe-item ($inline ($shortcut (structured-remove-right))
+                          ", "
+                          ($menu "Focus" "Remove right")
+                          ", "
+                          ($tmdoc-icon "tm_delete_right.xpm")
+                        ) ;$inline
+          "Remove the current argument and move to the next one."
+        ) ;$describe-item
+      ) ;$when
       ($when (structured-vertical? t)
         ($describe-item ($inline ($menu "Focus" "Remove above") ", " ($tmdoc-icon "tm_delete_up.xpm"))
           "Remove the argument above the cursor."
@@ -460,36 +471,38 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-generate (focus-doc-hidden t)
-  ($let* ((lab (tree-label t))
-          (l (focus-doc-arg-names t 0 '()))
-          (il (list-filter (.. 0 (length l)) (lambda (i) (not (tree-accessible-child? t i))))
-          ) ;il
-          (sl (map (lambda (i) (list-ref l i)) il))
-         ) ;
-    ($para "When the "
-      ($markup lab)
-      " tag is "
-      ($tmdoc-link "main/text/keyboard/man-dynamic" "activated")
-      ", "
-      "then the following arguments are hidden: "
-      ($src-arg (car sl))
-      ($for (x (cdr sl)) ", " ($src-arg x))
-      ". "
-      "In order to edit the hidden arguments, you should use "
-      ($menu "Focus" "Show hidden")
-      " or push the "
-      ($tmdoc-icon "tm_show_hidden.xpm")
-      " icon on the focus toolbar. "
-      "Deactivated tags can be reactivated by pressing "
-      ($shortcut (kbd-return))
-      "."
-    ) ;$para
-    ($para "Non internal hidden arguments which contain string values "
-      "can also be edited directly in the text fields on the focus toolbar; "
-      "no need to deactivate the "
-      ($markup lab)
-      " tag in this case."
-    ) ;$para
+  ($let*
+   ((lab (tree-label t))
+    (l (focus-doc-arg-names t 0 '()))
+    (il
+      (list-filter (.. 0 (length l)) (lambda (i) (not (tree-accessible-child? t i))))
+    ) ;il
+    (sl (map (lambda (i) (list-ref l i)) il))
+   ) ;
+   ($para "When the "
+     ($markup lab)
+     " tag is "
+     ($tmdoc-link "main/text/keyboard/man-dynamic" "activated")
+     ", "
+     "then the following arguments are hidden: "
+     ($src-arg (car sl))
+     ($for (x (cdr sl)) ", " ($src-arg x))
+     ". "
+     "In order to edit the hidden arguments, you should use "
+     ($menu "Focus" "Show hidden")
+     " or push the "
+     ($tmdoc-icon "tm_show_hidden.xpm")
+     " icon on the focus toolbar. "
+     "Deactivated tags can be reactivated by pressing "
+     ($shortcut (kbd-return))
+     "."
+   ) ;$para
+   ($para "Non internal hidden arguments which contain string values "
+     "can also be edited directly in the text fields on the focus toolbar; "
+     "no need to deactivate the "
+     ($markup lab)
+     " tag in this case."
+   ) ;$para
   ) ;$let*
 ) ;tm-generate
 

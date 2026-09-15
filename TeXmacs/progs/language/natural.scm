@@ -34,8 +34,12 @@
 
 (tm-define (replace origstr . vals)
   (:synopsis "Translate a string with arguments")
-  (tm->stree (translate (stree->tree `(replace ,origstr
-                                        ,@(map reformat-arg vals))))
+  (tm->stree
+    (translate
+      (stree->tree
+        `(replace ,origstr ,@(map reformat-arg vals))
+      ) ;stree->tree
+    ) ;translate
   ) ;tm->stree
 ) ;tm-define
 
@@ -56,9 +60,11 @@
 
 (define (tr-current)
   "Return the translations that have been performed in the gui"
-  (list-sort (list-filter (map (lambda (x) (process (car x))) (ahash-table->list all-translations))
-               string?
-             ) ;list-filter
+  (list-sort
+    (list-filter
+      (map (lambda (x) (process (car x))) (ahash-table->list all-translations))
+      string?
+    ) ;list-filter
     string<?
   ) ;list-sort
 ) ;define
@@ -109,8 +115,10 @@
 (define (tr-all language)
   "Merge the strings from the translations file with those misssing"
   (if (== 0 (ahash-size (tr-hash language))) (tr-parse language))
-  (list-sort (list-remove-duplicates (append (tr-current) (map car (ahash-table->list (tr-hash language))))
-             ) ;list-remove-duplicates
+  (list-sort
+    (list-remove-duplicates
+      (append (tr-current) (map car (ahash-table->list (tr-hash language))))
+    ) ;list-remove-duplicates
     string<?
   ) ;list-sort
 ) ;define
@@ -135,13 +143,14 @@
 
 (define (tr-write l)
   (if (list? l)
-    (map (lambda (x)
-           (with s
-             (string-append "(\"" (car x) "\" \"" (cadr x) "\")")
-             (raw-write-string s)
-             (newline)
-           ) ;with
-         ) ;lambda
+    (map
+      (lambda (x)
+        (with s
+          (string-append "(\"" (car x) "\" \"" (cadr x) "\")")
+          (raw-write-string s)
+          (newline)
+        ) ;with
+      ) ;lambda
       l
     ) ;map
     (original-display l)
@@ -152,9 +161,10 @@
 (tm-define (tr-rebuild language)
   (:synopsis "Rebuild translations file adding the missing ones (up to now)")
   (tr-parse language)
-  (user-confirm `(replace ,"This will overwrite the dictionary %1 with %2 entries. Are you sure?"
-                   (verbatim ,(tr-file language))
-                   ,(ahash-size (tr-hash language)))
+  (user-confirm
+    `(replace ,"This will overwrite the dictionary %1 with %2 entries. Are you sure?"
+       (verbatim ,(tr-file language))
+       ,(ahash-size (tr-hash language)))
     #f
     (lambda (answ)
       (if answ
@@ -164,8 +174,10 @@
               (tr-write (map (lambda (str) (tr-match language str)) (tr-all language)))
             ) ;lambda
           ) ;with-output-to-file
-          (set-message `(replace ,"Wrote file %1"
-                          (verbatim ,(tr-file language))) "")
+          (set-message
+            `(replace ,"Wrote file %1" (verbatim ,(tr-file language)))
+            ""
+          ) ;set-message
         ) ;begin
         (set-message '(replace "Rebuild cancelled") language)
       ) ;if
@@ -176,14 +188,15 @@
 (tm-define (tr-missing language)
   (:synopsis "Translations missing in the dictionary (up to now)")
   (if (== 0 (ahash-size (tr-hash language))) (tr-parse language))
-  (list-fold (lambda (cur res)
-               (if (or (ahash-ref (tr-hash language) cur)
-                     (ahash-ref (tr-hash language) (locase-all cur))
-                   ) ;or
-                 res
-                 (cons cur res)
-               ) ;if
-             ) ;lambda
+  (list-fold
+    (lambda (cur res)
+      (if (or (ahash-ref (tr-hash language) cur)
+            (ahash-ref (tr-hash language) (locase-all cur))
+          ) ;or
+        res
+        (cons cur res)
+      ) ;if
+    ) ;lambda
     '()
     (tr-current)
   ) ;list-fold

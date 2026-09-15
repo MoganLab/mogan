@@ -28,7 +28,11 @@
 (define (safe-tm->string x)
   (cond ((string? x) x)
         ((not x) "")
-        (else (let ((result (tm->string x))) (if result result "")))
+        (else
+          (let ((result (tm->string x)))
+            (if result result "")
+          ) ;let
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -103,70 +107,72 @@
   (set! gbt-year-suffix-table (s7-make-hash-table 100))
   (set! gbt-author-year-count-table (s7-make-hash-table 100))
   ;; 第一遍：统计每个作者-年份组合的文献数量（所有条目）
-  (for-each (lambda (entry)
-              (when (func? entry 'bib-entry)
-                (let* ((author-short (gbt-get-author-key-string entry))
-                       (year-raw (bib-field entry "year"))
-                       (year-expr (cond ((bib-null? year-raw) "?")
-                                        ((string? year-raw) year-raw)
-                                        ((not year-raw) "?")
-                                        (else (safe-tm->string year-raw))
-                                  ) ;cond
-                       ) ;year-expr
-                       (year (cond ((string? year-expr) year-expr)
-                                   ((not year-expr) "?")
-                                   (else (safe-tm->string year-expr))
-                             ) ;cond
-                       ) ;year
-                       (author-year-key (string-append author-short ":" year))
-                      ) ;
-                  (ahash-set! gbt-author-year-count-table
-                    author-year-key
-                    (+ 1 (or (ahash-ref gbt-author-year-count-table author-year-key) 0))
-                  ) ;ahash-set!
-                ) ;let*
-              ) ;when
-            ) ;lambda
+  (for-each
+    (lambda (entry)
+      (when (func? entry 'bib-entry)
+        (let* ((author-short (gbt-get-author-key-string entry))
+               (year-raw (bib-field entry "year"))
+               (year-expr (cond ((bib-null? year-raw) "?")
+                                ((string? year-raw) year-raw)
+                                ((not year-raw) "?")
+                                (else (safe-tm->string year-raw))
+                          ) ;cond
+               ) ;year-expr
+               (year (cond ((string? year-expr) year-expr)
+                           ((not year-expr) "?")
+                           (else (safe-tm->string year-expr))
+                     ) ;cond
+               ) ;year
+               (author-year-key (string-append author-short ":" year))
+              ) ;
+          (ahash-set! gbt-author-year-count-table
+            author-year-key
+            (+ 1 (or (ahash-ref gbt-author-year-count-table author-year-key) 0))
+          ) ;ahash-set!
+        ) ;let*
+      ) ;when
+    ) ;lambda
     t
   ) ;for-each
   ;; 第二遍：按排序顺序分配后缀
   (let ((sorted-entries (bib-sorted-entries t)))
-    (for-each (lambda (entry)
-                (when (func? entry 'bib-entry)
-                  (let* ((key (list-ref entry 2))
-                         (author-short (gbt-get-author-key-string entry))
-                         (year-raw (bib-field entry "year"))
-                         (year-expr (cond ((bib-null? year-raw) "?")
-                                          ((string? year-raw) year-raw)
-                                          ((not year-raw) "?")
-                                          (else (safe-tm->string year-raw))
-                                    ) ;cond
-                         ) ;year-expr
-                         (year (cond ((string? year-expr) year-expr)
-                                     ((not year-expr) "?")
-                                     (else (safe-tm->string year-expr))
-                               ) ;cond
-                         ) ;year
-                         (author-year-key (string-append author-short ":" year))
-                         (count (ahash-ref gbt-author-year-count-table author-year-key))
-                        ) ;
-                    (if (> count 1)
-                      ;; 需要后缀：分配a, b, c...
-                      ;; 使用哈希表记录已分配的后缀索引（按作者-年份组合）
-                      (let* ((suffix-index-key (string-append author-year-key ":index"))
-                             (next-index (or (ahash-ref gbt-year-suffix-table suffix-index-key) 0))
-                             (suffix-char (integer->char (+ 97 next-index)))
-                             (suffix (string suffix-char))
-                            ) ;
-                        (ahash-set! gbt-year-suffix-table key suffix)
-                        (ahash-set! gbt-year-suffix-table suffix-index-key (+ next-index 1))
-                      ) ;let*
-                      ;; 单一文献，无后缀
-                      (ahash-set! gbt-year-suffix-table key "")
-                    ) ;if
-                  ) ;let*
-                ) ;when
-              ) ;lambda
+    (for-each
+      (lambda (entry)
+        (when (func? entry 'bib-entry)
+          (let* ((key (list-ref entry 2))
+                 (author-short (gbt-get-author-key-string entry))
+                 (year-raw (bib-field entry "year"))
+                 (year-expr (cond ((bib-null? year-raw) "?")
+                                  ((string? year-raw) year-raw)
+                                  ((not year-raw) "?")
+                                  (else (safe-tm->string year-raw))
+                            ) ;cond
+                 ) ;year-expr
+                 (year (cond ((string? year-expr) year-expr)
+                             ((not year-expr) "?")
+                             (else (safe-tm->string year-expr))
+                       ) ;cond
+                 ) ;year
+                 (author-year-key (string-append author-short ":" year))
+                 (count (ahash-ref gbt-author-year-count-table author-year-key))
+                ) ;
+            (if (> count 1)
+              ;; 需要后缀：分配a, b, c...
+              ;; 使用哈希表记录已分配的后缀索引（按作者-年份组合）
+              (let* ((suffix-index-key (string-append author-year-key ":index"))
+                     (next-index (or (ahash-ref gbt-year-suffix-table suffix-index-key) 0))
+                     (suffix-char (integer->char (+ 97 next-index)))
+                     (suffix (string suffix-char))
+                    ) ;
+                (ahash-set! gbt-year-suffix-table key suffix)
+                (ahash-set! gbt-year-suffix-table suffix-index-key (+ next-index 1))
+              ) ;let*
+              ;; 单一文献，无后缀
+              (ahash-set! gbt-year-suffix-table key "")
+            ) ;if
+          ) ;let*
+        ) ;when
+      ) ;lambda
       sorted-entries
     ) ;for-each
   ) ;let
@@ -225,13 +231,14 @@
 (define (gbt-get-author-field x)
   ;; editor和author同逻辑：优先使用author，没有author才使用editor
   (let ((author-field (bib-field x "author")) (editor-field (bib-field x "editor")))
-    (cond ((not (or (bib-null? author-field) (nlist? author-field)))
-           (cons 'author author-field)
-          ) ;
-          ((not (or (bib-null? editor-field) (nlist? editor-field)))
-           (cons 'editor editor-field)
-          ) ;
-          (else (cons 'empty '()))
+    (cond
+     ((not (or (bib-null? author-field) (nlist? author-field)))
+      (cons 'author author-field)
+     ) ;
+     ((not (or (bib-null? editor-field) (nlist? editor-field)))
+      (cons 'editor editor-field)
+     ) ;
+     (else (cons 'empty '()))
     ) ;cond
   ) ;let
 ) ;define
@@ -262,56 +269,60 @@
              ;; 分隔符：中文和英文都加空格
              (separator (if chinese? ", " ", "))
             ) ;
-        (cond ((= author-count 1)
-               (let ((author-name (bib-format-name (list-ref field-list 1))))
-                 (gbt-add-suffix author-name field-type chinese? 1)
-               ) ;let
-              ) ;
-              (else (let* ((first (bib-format-name (list-ref field-list 1)))
-                           ;; 收集中间作者
-                           ;; 如果有更多作者（>3）：收集第2到第3个作者（共2个中间作者）
-                           ;; 如果没有更多作者（<=3）：收集第2到第author-count-1个作者
-                           (middle (let loop
-                                     ((i 2) (result ""))
-                                     (if (or (>= i n) (if has-more (> i max-authors) (>= i author-count)))
-                                       result
-                                       (loop (+ i 1)
-                                         (if (equal? result "")
-                                           (bib-format-name (list-ref field-list i))
-                                           `(concat ,result
-                                              ,separator
-                                              ,(bib-format-name (list-ref field-list
-                                                                  i)))
-                                         ) ;if
-                                       ) ;loop
-                                     ) ;if
-                                   ) ;let
-                           ) ;middle
-                           (last-part (if has-more
-                                        (if chinese? "<#7b49>" "et al")
-                                        ;; 等
-                                        (if (>= author-count 2) (bib-format-name (list-ref field-list (- n 1))) "")
-                                      ) ;if
-                           ) ;last-part
-                           ;; 构建作者字符串
-                           (author-str (cond ((and (equal? middle "") (equal? last-part "")) first)
-                                             ((equal? middle "") `(concat ,first
-                                                                    ,separator
-                                                                    ,last-part))
-                                             ((equal? last-part "") `(concat ,first
-                                                                       ,separator
-                                                                       ,middle))
-                                             (else `(concat ,first
-                                                      ,separator
-                                                      ,middle
-                                                      ,separator
-                                                      ,last-part))
-                                       ) ;cond
-                           ) ;author-str
-                          ) ;
-                      (gbt-add-suffix author-str field-type chinese? author-count)
-                    ) ;let*
-              ) ;else
+        (cond
+         ((= author-count 1)
+          (let ((author-name (bib-format-name (list-ref field-list 1))))
+            (gbt-add-suffix author-name field-type chinese? 1)
+          ) ;let
+         ) ;
+         (else
+           (let* ((first (bib-format-name (list-ref field-list 1)))
+                  ;; 收集中间作者
+                  ;; 如果有更多作者（>3）：收集第2到第3个作者（共2个中间作者）
+                  ;; 如果没有更多作者（<=3）：收集第2到第author-count-1个作者
+                  (middle
+                    (let loop
+                      ((i 2) (result ""))
+                      (if (or (>= i n) (if has-more (> i max-authors) (>= i author-count)))
+                        result
+                        (loop (+ i 1)
+                          (if (equal? result "")
+                            (bib-format-name (list-ref field-list i))
+                            `(concat ,result
+                               ,separator
+                               ,(bib-format-name (list-ref field-list i)))
+                          ) ;if
+                        ) ;loop
+                      ) ;if
+                    ) ;let
+                  ) ;middle
+                  (last-part
+                    (if has-more
+                      (if chinese? "<#7b49>" "et al")
+                      ;; 等
+                      (if (>= author-count 2) (bib-format-name (list-ref field-list (- n 1))) "")
+                    ) ;if
+                  ) ;last-part
+                  ;; 构建作者字符串
+                  (author-str
+                    (cond ((and (equal? middle "") (equal? last-part "")) first)
+                          ((equal? middle "") `(concat ,first
+                                                 ,separator
+                                                 ,last-part))
+                          ((equal? last-part "") `(concat ,first
+                                                    ,separator
+                                                    ,middle))
+                          (else `(concat ,first
+                                   ,separator
+                                   ,middle
+                                   ,separator
+                                   ,last-part))
+                    ) ;cond
+                  ) ;author-str
+                 ) ;
+             (gbt-add-suffix author-str field-type chinese? author-count)
+           ) ;let*
+         ) ;else
         ) ;cond
       ) ;let*
       ""
@@ -452,20 +463,21 @@
 ;; 将URL里rsub表达式转换回下划线：将(rsub "x")转换为_x
 
 (define (convert-rsub-to-underscore expr)
-  (cond ((and (list? expr) (= (length expr) 2) (equal? (car expr) 'rsub))
-         (let ((text (cadr expr)))
-           (if (string? text)
-             (string-append "_" text)
-             (string-append "_" (safe-tm->string text))
-           ) ;if
-         ) ;let
-        ) ;
-        ((and (list? expr) (>= (length expr) 1) (equal? (car expr) 'concat))
-         `(concat ,@(map convert-rsub-to-underscore (cdr expr)))
-        ) ;
-        ((list? expr) (map convert-rsub-to-underscore expr))
-        ((string? expr) expr)
-        (else expr)
+  (cond
+   ((and (list? expr) (= (length expr) 2) (equal? (car expr) 'rsub))
+    (let ((text (cadr expr)))
+      (if (string? text)
+        (string-append "_" text)
+        (string-append "_" (safe-tm->string text))
+      ) ;if
+    ) ;let
+   ) ;
+   ((and (list? expr) (>= (length expr) 1) (equal? (car expr) 'concat))
+    `(concat ,@(map convert-rsub-to-underscore (cdr expr)))
+   ) ;
+   ((list? expr) (map convert-rsub-to-underscore expr))
+   ((string? expr) expr)
+   (else expr)
   ) ;cond
 ) ;define
 
@@ -492,13 +504,14 @@
     (let outer
       ((i 0))
       (cond ((> (+ i pat-len) text-len) #f)
-            (else (let inner
-                    ((j 0))
-                    (cond ((>= j pat-len) #t)
-                          ((char=? (string-ref pat j) (string-ref text (+ i j))) (inner (+ j 1)))
-                          (else (outer (+ i 1)))
-                    ) ;cond
-                  ) ;let
+            (else
+              (let inner
+                ((j 0))
+                (cond ((>= j pat-len) #t)
+                      ((char=? (string-ref pat j) (string-ref text (+ i j))) (inner (+ j 1)))
+                      (else (outer (+ i 1)))
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;let
@@ -545,20 +558,21 @@
         (let* ((author-raw (list-ref a i))
                (author (gbt-remove-keepcase author-raw))
                ;; 将作者的所有字符串部分连接成一个字符串，然后检查是否包含中文
-               (author-str (cond ((string? author) author)
-                                 ((list? author)
-                                  (let part-loop
-                                    ((j 1) (m (length author)) (result ""))
-                                    (if (>= j m)
-                                      result
-                                      (let ((part (list-ref author j)))
-                                        (part-loop (+ j 1) m (if (string? part) (string-append result part) result))
-                                      ) ;let
-                                    ) ;if
-                                  ) ;let
-                                 ) ;
-                                 (else "")
-                           ) ;cond
+               (author-str
+                 (cond ((string? author) author)
+                       ((list? author)
+                        (let part-loop
+                          ((j 1) (m (length author)) (result ""))
+                          (if (>= j m)
+                            result
+                            (let ((part (list-ref author j)))
+                              (part-loop (+ j 1) m (if (string? part) (string-append result part) result))
+                            ) ;let
+                          ) ;if
+                        ) ;let
+                       ) ;
+                       (else "")
+                 ) ;cond
                ) ;author-str
               ) ;
           (if (contains-chinese? author-str) #t (loop (+ i 1) n))
@@ -571,17 +585,18 @@
 ;; 移除keepcase标签的辅助函数
 
 (define (gbt-remove-keepcase x)
-  (cond ((list? x)
-         (if (not (null? x))
-           (if (equal? (car x) 'keepcase)
-             (gbt-remove-keepcase (cadr x))
-             (cons (car x) (map gbt-remove-keepcase (cdr x)))
-           ) ;if
-           '()
-         ) ;if
-        ) ;
-        ((string? x) x)
-        (else x)
+  (cond
+   ((list? x)
+    (if (not (null? x))
+      (if (equal? (car x) 'keepcase)
+        (gbt-remove-keepcase (cadr x))
+        (cons (car x) (map gbt-remove-keepcase (cdr x)))
+      ) ;if
+      '()
+    ) ;if
+   ) ;
+   ((string? x) x)
+   (else x)
   ) ;cond
 ) ;define
 
@@ -600,51 +615,50 @@
            (comma-sep (if chinese? ", " ", "))
           ) ;
       (cond ((equal? author-count 1) (bib-format-name (list-ref a 1)))
-            (else (let* ((first (bib-format-name (list-ref a 1)))
-                         (has-more (> author-count max-authors))
-                         ;; 收集中间作者
-                         ;; 如果有更多作者（>3）：收集第2到第3个作者（共2个中间作者）
-                         ;; 如果没有更多作者（<=3）：收集第2到第author-count-1个作者
-                         (middle (let loop
-                                   ((i 2) (result ""))
-                                   (if (or (>= i n) (if has-more (> i max-authors) (>= i author-count)))
-                                     result
-                                     (loop (+ i 1)
-                                       (if (equal? result "")
-                                         (bib-format-name (list-ref a i))
-                                         `(concat ,result
-                                            ,comma-sep
-                                            ,(bib-format-name (list-ref a i)))
-                                       ) ;if
-                                     ) ;loop
-                                   ) ;if
-                                 ) ;let
-                         ) ;middle
-                         (last-part (if has-more
-                                      (if chinese? "<#7b49>" "et al")
-                                      ;; 等
-                                      (if (>= author-count 2) (bib-format-name (list-ref a (- n 1))) "")
-                                    ) ;if
-                         ) ;last-part
-                         ;; 分隔符：无论是否有更多作者，都使用逗号分隔符
-                         ;; 中文：作者1,作者2,作者3,等
-                         ;; 英文：Author1, Author2, Author3, et al
-                         (separator comma-sep)
-                        ) ;
-                    (cond ((and (equal? middle "") (equal? last-part "")) first)
-                          ((equal? middle "") `(concat ,first
-                                                 ,separator
-                                                 ,last-part))
-                          ((equal? last-part "") `(concat ,first
-                                                    ,comma-sep
-                                                    ,middle))
-                          (else `(concat ,first
-                                   ,comma-sep
-                                   ,middle
-                                   ,separator
-                                   ,last-part))
-                    ) ;cond
-                  ) ;let*
+            (else
+              (let* ((first (bib-format-name (list-ref a 1)))
+                     (has-more (> author-count max-authors))
+                     ;; 收集中间作者
+                     ;; 如果有更多作者（>3）：收集第2到第3个作者（共2个中间作者）
+                     ;; 如果没有更多作者（<=3）：收集第2到第author-count-1个作者
+                     (middle
+                       (let loop
+                         ((i 2) (result ""))
+                         (if (or (>= i n) (if has-more (> i max-authors) (>= i author-count)))
+                           result
+                           (loop (+ i 1)
+                             (if (equal? result "")
+                               (bib-format-name (list-ref a i))
+                               `(concat ,result
+                                  ,comma-sep
+                                  ,(bib-format-name (list-ref a i)))
+                             ) ;if
+                           ) ;loop
+                         ) ;if
+                       ) ;let
+                     ) ;middle
+                     (last-part
+                       (if has-more
+                         (if chinese? "<#7b49>" "et al")
+                         ;; 等
+                         (if (>= author-count 2) (bib-format-name (list-ref a (- n 1))) "")
+                       ) ;if
+                     ) ;last-part
+                     ;; 分隔符：无论是否有更多作者，都使用逗号分隔符
+                     ;; 中文：作者1,作者2,作者3,等
+                     ;; 英文：Author1, Author2, Author3, et al
+                     (separator comma-sep)
+                    ) ;
+                (cond ((and (equal? middle "") (equal? last-part "")) first)
+                      ((equal? middle "") `(concat ,first ,separator ,last-part))
+                      ((equal? last-part "") `(concat ,first ,comma-sep ,middle))
+                      (else `(concat ,first
+                               ,comma-sep
+                               ,middle
+                               ,separator
+                               ,last-part))
+                ) ;cond
+              ) ;let*
             ) ;else
       ) ;cond
     ) ;let*
@@ -686,55 +700,56 @@
          (has-doi (not (bib-null? (bib-field x "doi"))))
          (online (or has-url has-doi))
         ) ;
-    (cond ((and (not (bib-null? note)) (not (equal? note ""))) note)
-          ;; 优先使用note字段
-          ((equal? type "article") (if online "[J/OL]" "[J]"))
-          ;; 期刊
-          ((equal? type "book") (if online "[M/OL]" "[M]"))
-          ;; 普通图书
-          ((equal? type "inbook") (if online "[M/OL]" "[M]"))
-          ;; 析出图书
-          ((equal? type "inproceedings") (if online "[C/OL]" "[C]"))
-          ;; 会议录
-          ((equal? type "proceedings") (if online "[C/OL]" "[C]"))
-          ;; 会议录
-          ((equal? type "phdthesis") (if online "[D/OL]" "[D]"))
-          ;; 学位论文-博士
-          ((equal? type "mastersthesis") (if online "[D/OL]" "[D]"))
-          ;; 学位论文-硕士
-          ((equal? type "techreport") (if online "[R/OL]" "[R]"))
-          ;; 报告
-          ((equal? type "collection") (if online "[G/OL]" "[G]"))
-          ;; 汇编
-          ((equal? type "incollection") (if online "[G/OL]" "[G]"))
-          ;; 析出汇编
-          ((equal? type "manual") (if online "[M/OL]" "[M]"))
-          ;; 手册/说明书
-          ((equal? type "standard") (if online "[S/OL]" "[S]"))
-          ;; 标准
-          ((equal? type "patent") (if online "[P/OL]" "[P]"))
-          ;; 专利
-          ((equal? type "database") (if online "[DB/OL]" "[DB]"))
-          ;; 数据库
-          ((equal? type "software") (if online "[CP/OL]" "[CP]"))
-          ;; 计算机程序
-          ((equal? type "program") (if online "[CP/OL]" "[CP]"))
-          ;; 计算机程序
-          ((equal? type "online") (if online "[EB/OL]" "[EB]"))
-          ;; 电子公告
-          ((equal? type "electronic") (if online "[EB/OL]" "[EB]"))
-          ;; 电子公告
-          ((equal? type "archive") (if online "[A/OL]" "[A]"))
-          ;; 档案
-          ((equal? type "map") (if online "[CM/OL]" "[CM]"))
-          ;; 舆图
-          ((equal? type "dataset") (if online "[DS/OL]" "[DS]"))
-          ;; 数据集
-          ((equal? type "newspaper") (if online "[N/OL]" "[N]"))
-          ;; 报纸
-          ((equal? type "misc") (if online "[Z/OL]" "[Z]"))
-          ;; 其他
-          (else "")
+    (cond
+     ((and (not (bib-null? note)) (not (equal? note ""))) note)
+     ;; 优先使用note字段
+     ((equal? type "article") (if online "[J/OL]" "[J]"))
+     ;; 期刊
+     ((equal? type "book") (if online "[M/OL]" "[M]"))
+     ;; 普通图书
+     ((equal? type "inbook") (if online "[M/OL]" "[M]"))
+     ;; 析出图书
+     ((equal? type "inproceedings") (if online "[C/OL]" "[C]"))
+     ;; 会议录
+     ((equal? type "proceedings") (if online "[C/OL]" "[C]"))
+     ;; 会议录
+     ((equal? type "phdthesis") (if online "[D/OL]" "[D]"))
+     ;; 学位论文-博士
+     ((equal? type "mastersthesis") (if online "[D/OL]" "[D]"))
+     ;; 学位论文-硕士
+     ((equal? type "techreport") (if online "[R/OL]" "[R]"))
+     ;; 报告
+     ((equal? type "collection") (if online "[G/OL]" "[G]"))
+     ;; 汇编
+     ((equal? type "incollection") (if online "[G/OL]" "[G]"))
+     ;; 析出汇编
+     ((equal? type "manual") (if online "[M/OL]" "[M]"))
+     ;; 手册/说明书
+     ((equal? type "standard") (if online "[S/OL]" "[S]"))
+     ;; 标准
+     ((equal? type "patent") (if online "[P/OL]" "[P]"))
+     ;; 专利
+     ((equal? type "database") (if online "[DB/OL]" "[DB]"))
+     ;; 数据库
+     ((equal? type "software") (if online "[CP/OL]" "[CP]"))
+     ;; 计算机程序
+     ((equal? type "program") (if online "[CP/OL]" "[CP]"))
+     ;; 计算机程序
+     ((equal? type "online") (if online "[EB/OL]" "[EB]"))
+     ;; 电子公告
+     ((equal? type "electronic") (if online "[EB/OL]" "[EB]"))
+     ;; 电子公告
+     ((equal? type "archive") (if online "[A/OL]" "[A]"))
+     ;; 档案
+     ((equal? type "map") (if online "[CM/OL]" "[CM]"))
+     ;; 舆图
+     ((equal? type "dataset") (if online "[DS/OL]" "[DS]"))
+     ;; 数据集
+     ((equal? type "newspaper") (if online "[N/OL]" "[N]"))
+     ;; 报纸
+     ((equal? type "misc") (if online "[Z/OL]" "[Z]"))
+     ;; 其他
+     (else "")
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -742,26 +757,29 @@
 ;; 地址:机构格式
 (tm-define (bib-format-address-institution x)
   (:mode bib-gbt7714-2015-author-year?)
-  (let* ((addr (cond ((not (bib-empty? x "address")) (bib-field x "address"))
-                     ((not (bib-empty? x "location")) (bib-field x "location"))
-                     (else "")
-               ) ;cond
+  (let* ((addr
+           (cond ((not (bib-empty? x "address")) (bib-field x "address"))
+                 ((not (bib-empty? x "location")) (bib-field x "location"))
+                 (else "")
+           ) ;cond
          ) ;addr
-         (inst-field (cond ((not (bib-empty? x "school")) (bib-field x "school"))
-                           ((not (bib-empty? x "organization")) (bib-field x "organization"))
-                           ((not (bib-empty? x "publisher")) (bib-field x "publisher"))
-                           ((not (bib-empty? x "institution")) (bib-field x "institution"))
-                           (else "")
-                     ) ;cond
+         (inst-field
+           (cond ((not (bib-empty? x "school")) (bib-field x "school"))
+                 ((not (bib-empty? x "organization")) (bib-field x "organization"))
+                 ((not (bib-empty? x "publisher")) (bib-field x "publisher"))
+                 ((not (bib-empty? x "institution")) (bib-field x "institution"))
+                 (else "")
+           ) ;cond
          ) ;inst-field
          (inst-val (if (or (bib-null? inst-field) (equal? inst-field "")) "" inst-field))
         ) ;
-    (cond ((and (not (equal? addr "")) (not (equal? inst-val "")))
-           `(concat ,addr ,": " ,inst-val)
-          ) ;
-          ((not (equal? addr "")) addr)
-          ((not (equal? inst-val "")) inst-val)
-          (else "")
+    (cond
+     ((and (not (equal? addr "")) (not (equal? inst-val "")))
+      `(concat ,addr ,": " ,inst-val)
+     ) ;
+     ((not (equal? addr "")) addr)
+     ((not (equal? inst-val "")) inst-val)
+     (else "")
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -782,13 +800,14 @@
                        (if (bib-null? first-name-raw) "" (bib-abbreviate first-name-raw "" " "))
                      ) ;if
          ) ;first-name
-         (last-name (if (bib-null? last-name-raw)
-                      ""
-                      (if chinese?
-                        (bib-purify last-name-raw)
-                        (string-upcase (bib-purify last-name-raw))
-                      ) ;if
-                    ) ;if
+         (last-name
+           (if (bib-null? last-name-raw)
+             ""
+             (if chinese?
+               (bib-purify last-name-raw)
+               (string-upcase (bib-purify last-name-raw))
+             ) ;if
+           ) ;if
          ) ;last-name
         ) ;
     ;; 西文姓名处理：如果没有逗号分隔，保持原样
@@ -835,17 +854,22 @@
          (n (bib-field x "number"))
          (p (bib-field x "pages"))
          (vol (if (bib-null? v) "" v))
-         (num (if (bib-null? n) "" `(concat ,"(" ,n ,")")))
-         (pag (if (or (bib-null? p) (nlist? p))
-                ""
-                (cond ((equal? 1 (length p)) "")
-                      ((equal? 2 (length p)) `(concat ,": " ,(list-ref p 1)))
-                      (else `(concat ,": "
-                               ,(list-ref p 1)
-                               ,bib-range-symbol
-                               ,(list-ref p 2)))
-                ) ;cond
-              ) ;if
+         (num
+           (if (bib-null? n) "" `(concat ,"(" ,n ,")"))
+         ) ;num
+         (pag
+           (if (or (bib-null? p) (nlist? p))
+             ""
+             (cond ((equal? 1 (length p)) "")
+                   ((equal? 2 (length p)) `(concat ,": " ,(list-ref p 1)))
+                   (else
+                     `(concat ,": "
+                        ,(list-ref p 1)
+                        ,bib-range-symbol
+                        ,(list-ref p 2))
+                   ) ;else
+             ) ;cond
+           ) ;if
          ) ;pag
         ) ;
     `(concat ,vol ,num ,pag)
@@ -865,17 +889,18 @@
          (has-doi (not (bib-null? doi-raw)))
          (has-urldate (not (bib-null? urldate)))
         ) ;
-    (cond (has-doi
-            ;; 有 DOI（优先使用，忽略 URL）：添加https://doi.org/前缀
-            (let ((doi-url `(concat ,"https://doi.org/" ,doi)))
-              (if has-urldate `(concat ,"[" ,urldate ,"]. " ,doi-url) doi-url)
-            ) ;let
-          ) ;has-doi
-          (has-url
-            ;; 只有 URL（没有 DOI）
-            (if has-urldate `(concat ,"[" ,urldate ,"]. " ,url) `(concat ,url))
-          ) ;has-url
-          (else "")
+    (cond
+      (has-doi
+        ;; 有 DOI（优先使用，忽略 URL）：添加https://doi.org/前缀
+        (let ((doi-url `(concat ,"https://doi.org/" ,doi)))
+          (if has-urldate `(concat ,"[" ,urldate ,"]. " ,doi-url) doi-url)
+        ) ;let
+      ) ;has-doi
+      (has-url
+        ;; 只有 URL（没有 DOI）
+        (if has-urldate `(concat ,"[" ,urldate ,"]. " ,url) `(concat ,url))
+      ) ;has-url
+      (else "")
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -1212,20 +1237,22 @@
 (tm-define (bib-format-newspaper n x)
   (:mode bib-gbt7714-2015-author-year?)
   (let* ((p (bib-field x "pages"))
-         (pag (if (or (bib-null? p) (nlist? p))
-                ""
-                (cond ((equal? 1 (length p)) "")
-                      ((equal? 2 (length p)) (list-ref p 1))
-                      (else `(concat ,(list-ref p 1)
-                               ,bib-range-symbol
-                               ,(list-ref p 2)))
-                ) ;cond
-              ) ;if
+         (pag
+           (if (or (bib-null? p) (nlist? p))
+             ""
+             (cond ((equal? 1 (length p)) "")
+                   ((equal? 2 (length p)) (list-ref p 1))
+                   (else
+                     `(concat ,(list-ref p 1) ,bib-range-symbol ,(list-ref p 2))
+                   ) ;else
+             ) ;cond
+           ) ;if
          ) ;pag
-         (journal-info (if (== pag "")
-                         (bib-format-field x "journal")
-                         `(concat ,(bib-format-field x "journal") ,", " ,pag)
-                       ) ;if
+         (journal-info
+           (if (== pag "")
+             (bib-format-field x "journal")
+             `(concat ,(bib-format-field x "journal") ,", " ,pag)
+           ) ;if
          ) ;journal-info
         ) ;
     `(concat ,(bib-format-bibitem n x)

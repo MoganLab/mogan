@@ -107,9 +107,10 @@
   (if (pair? (cadr a))
     (with datas
       (cdadr a)
-      (if (and filter?
-            (== `(,aff) (filter (lambda (x) (func? x 'author-affiliation)) datas))
-          ) ;and
+      (if
+        (and filter?
+          (== `(,aff) (filter (lambda (x) (func? x 'author-affiliation)) datas))
+        ) ;and
         '()
         `(doc-author (author-data ,@(filter (lambda (x) (!= aff x)) datas)))
       ) ;if
@@ -133,18 +134,22 @@
   (if (nlist? l)
     l
     (let* ((aff (next-affiliation l))
-           (hasaff (filter (lambda (x)
-                             (or (not aff)
-                               (and (list? x) (list? (cdr x)) (list? (cadr x)) (in? aff (cdadr x)))
-                             ) ;or
-                           ) ;lambda
-                     l
-                   ) ;filter
+           (hasaff
+             (filter
+               (lambda (x)
+                 (or (not aff)
+                   (and (list? x) (list? (cdr x)) (list? (cadr x)) (in? aff (cdadr x)))
+                 ) ;or
+               ) ;lambda
+               l
+             ) ;filter
            ) ;hasaff
            (hasaff* (map (lambda (x) (springer-clear-aff aff x #f)) hasaff))
            (l* (map (lambda (x) (springer-clear-aff aff x #t)) l))
            (l* (filter nnull? l*))
-           (aff* `(affiliation-group ,(if aff (cadr aff) '()) ,@hasaff*))
+           (aff*
+             `(affiliation-group ,(if aff (cadr aff) '()) ,@hasaff*)
+           ) ;aff*
           ) ;
       (if aff (append `(,aff*) (cluster-by-affiliations l*)) `(,aff*))
     ) ;let*
@@ -168,10 +173,11 @@
       ) ;lambda
     ) ;set!
     (let* ((affs (cadr t))
-           (affs (if (null? affs) '() `((!concat (!linefeed)
-                                          (at)
-                                          (!linefeed)
-                                          ,(tmtex affs))))
+           (affs
+             (if (null? affs) '() `((!concat (!linefeed)
+                                      (at)
+                                      (!linefeed)
+                                      ,(tmtex affs))))
            ) ;affs
            (auth-sep '(!concat " " (and) " "))
            (authors (map tmtex-doc-author (cddr t)))
@@ -355,7 +361,9 @@
     (let* ((aff (next-affiliation l))
            (l* (map (lambda (x) (springer-clear-aff aff x #t)) l))
            (l* (filter nnull? l*))
-           (aff* (if aff `(affiliation-group ,(cadr aff))))
+           (aff*
+             (if aff `(affiliation-group ,(cadr aff)))
+           ) ;aff*
           ) ;
       (if aff (append `(,aff*) (collect-affiliations l*)) '())
     ) ;let*
@@ -374,7 +382,9 @@
     (if (or (nlist? l) (not aff))
       l
       (let* ((n (1+ n))
-             (l* (filter (lambda (x) (pair? (cadr x))) l))
+             (l*
+               (filter (lambda (x) (pair? (cadr x))) l)
+             ) ;l*
              (l** (map (lambda (x) (springer-replace-aff aff x n)) l*))
             ) ;
         (replace-affiliations l** n)
@@ -390,7 +400,8 @@
 (tm-define (tmtex-doc-author t)
   (:mode llncs-style?)
   (set! t (tmtex-replace-documents t))
-  (if (or (npair? t) (npair? (cdr t)) (not (func? (cadr t) 'author-data)))
+  (if
+    (or (npair? t) (npair? (cdr t)) (not (func? (cadr t) 'author-data)))
     '()
     (let* ((datas (cdadr t))
            (miscs (map tmtex-author-misc (tmtex-select-args-by-func 'author-misc datas)))
@@ -416,7 +427,9 @@
   (:mode llncs-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
          (result `(,@names ,@affiliations))
-         (result (if (null? result) '() `((!concat ,@result))))
+         (result
+           (if (null? result) '() `((!concat ,@result)))
+         ) ;result
          (result `(,@result ,@urls ,@notes ,@miscs))
         ) ;
     (if (null? result) '() `(author (!paragraph ,@result)))

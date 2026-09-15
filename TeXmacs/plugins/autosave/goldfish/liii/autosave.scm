@@ -81,9 +81,10 @@
 
     ;; ; 从 (document "...") stree 提取 JSON 字符串;若已是字符串则直接返回
     (define (document->string doc)
-      (cond ((and (pair? doc) (eq? (car doc) 'document) (= (length doc) 2)) (cadr doc))
-            ((string? doc) doc)
-            (else "")
+      (cond
+       ((and (pair? doc) (eq? (car doc) 'document) (= (length doc) 2)) (cadr doc))
+       ((string? doc) doc)
+       (else "")
       ) ;cond
     ) ;define
 
