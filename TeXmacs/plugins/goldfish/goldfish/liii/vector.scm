@@ -11,7 +11,7 @@
     int-vector? make-int-vector int-vector-ref int-vector-set! complex-vector
     complex-vector? make-complex-vector complex-vector-ref complex-vector-set!
     float-vector float-vector? make-float-vector float-vector-ref
-    float-vector-set!
+    float-vector-set! subvector subvector? subvector-position subvector-vector
   ) ;export
   (begin
 

@@ -80,7 +80,7 @@
                                         (error 'unbound-variable "function ~S is undefined\n" func)
                                       ) ;if
                                       (if (not (procedure? func-val))
-                                        (error 'wrong-type-arg "~S is not a function\n" func)
+                                        (error 'type-error "~S is not a function\n" func)
                                       ) ;if
                                       func-val
                                     ) ;let
@@ -184,7 +184,7 @@
                 (define (undefined->function undef e)
                   (let* ((str1 (object->string undef)) (str1-end (- (length str1) 1)))
                     (if (not (char=? (str1 str1-end) #\>))
-                      (error 'wrong-type-arg "pattern descriptor does not end in '>': ~S\n" str1)
+                      (error 'type-error "pattern descriptor does not end in '>': ~S\n" str1)
                     ) ;if
                     (let ((str (substring str1 2 str1-end)))
                       (if (= (length str) 0)
@@ -214,7 +214,7 @@
                                      (if (undefined? func-val)
                                        (error 'unbound-variable "function ~S is undefined\n" func)
                                        (if (not (procedure? func-val))
-                                         (error 'wrong-type-arg "~S is not a function\n" func)
+                                         (error 'type-error "~S is not a function\n" func)
                                          (lambda (x) (set! (labels label) x) (func-val x))
                                        ) ;if
                                      ) ;if
@@ -245,9 +245,7 @@
                       (if (undefined? func)
                         (error 'unbound-variable "function ~S is undefined\n" pat-item)
                       ) ;if
-                      (if (not (procedure? func))
-                        (error 'wrong-type-arg "~S is not a function\n" func)
-                      ) ;if
+                      (if (not (procedure? func)) (error 'type-error "~S is not a function\n" func))
                       (func sel-item)
                     ) ;let
                   ) ;and
@@ -258,7 +256,7 @@
                       (let ((func-ok #t))
                         (when (or (pair? pat) (vector? pat))
                           (if (pair? (cyclic-sequences pat))
-                            (error 'wrong-type-arg "case* pattern is cyclic: ~S~%" pat)
+                            (error 'type-error "case* pattern is cyclic: ~S~%" pat)
                           ) ;if
                           (let ((pos (if (pair? pat)
                                        (ellipsis-pair-position 0 pat)

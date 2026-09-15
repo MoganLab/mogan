@@ -130,6 +130,12 @@
       ) ;if
     ) ;define
     (define (vector-fold f initial vec)
+      (unless (procedure? f)
+        (error 'type-error "vector-fold: first argument must be a procedure")
+      ) ;unless
+      (unless (vector? vec)
+        (error 'type-error "vector-fold: third argument must be a vector")
+      ) ;unless
       (let loop
         ((i 0) (acc initial))
         (if (< i (vector-length vec)) (loop (+ i 1) (f (vector-ref vec i) acc)) acc)
@@ -137,6 +143,12 @@
     ) ;define
 
     (define (vector-fold-right f initial vec)
+      (unless (procedure? f)
+        (error 'type-error "vector-fold-right: first argument must be a procedure")
+      ) ;unless
+      (unless (vector? vec)
+        (error 'type-error "vector-fold-right: third argument must be a vector")
+      ) ;unless
       (let loop
         ((i (- (vector-length vec) 1)) (acc initial))
         (if (>= i 0) (loop (- i 1) (f (vector-ref vec i) acc)) acc)
@@ -144,6 +156,12 @@
     ) ;define
 
     (define (vector-count pred v)
+      (unless (procedure? pred)
+        (error 'type-error "vector-count: first argument must be a procedure")
+      ) ;unless
+      (unless (vector? v)
+        (error 'type-error "vector-count: second argument must be a vector")
+      ) ;unless
       (let loop
         ((i 0) (count 0))
         (cond ((= i (vector-length v)) count)
@@ -172,6 +190,12 @@
       ) ;typed-lambda
     ) ;define
     (define (vector-any pred v)
+      (unless (procedure? pred)
+        (error 'type-error "vector-any: first argument must be a procedure")
+      ) ;unless
+      (unless (vector? v)
+        (error 'type-error "vector-any: second argument must be a vector")
+      ) ;unless
       (let loop
         ((i 0))
         (cond ((= i (vector-length v)) #f)
@@ -182,6 +206,12 @@
     ) ;define
 
     (define (vector-every pred v)
+      (unless (procedure? pred)
+        (error 'type-error "vector-every: first argument must be a procedure")
+      ) ;unless
+      (unless (vector? v)
+        (error 'type-error "vector-every: second argument must be a vector")
+      ) ;unless
       (let loop
         ((i 0))
         (cond ((= i (vector-length v)) #t)
@@ -218,10 +248,16 @@
     ) ;define
 
     (define (vector-skip pred v)
+      (unless (procedure? pred)
+        (error 'type-error "vector-skip: first argument must be a procedure")
+      ) ;unless
       (vector-index (lambda (x) (not (pred x))) v)
     ) ;define
 
     (define (vector-skip-right pred v)
+      (unless (procedure? pred)
+        (error 'type-error "vector-skip-right: first argument must be a procedure")
+      ) ;unless
       (vector-index-right (lambda (x) (not (pred x))) v)
     ) ;define
 

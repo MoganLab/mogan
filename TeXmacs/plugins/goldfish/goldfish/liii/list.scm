@@ -128,7 +128,7 @@
     (define (not-null-list? l)
       (cond ((pair? l) (proper-list? l))
             ((null? l) #f)
-            (else (error 'type-error "type mismatch"))
+            (else (type-error "not-null-list?: argument must be a pair or null" l))
       ) ;cond
     ) ;define
 

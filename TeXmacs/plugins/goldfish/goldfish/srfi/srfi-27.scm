@@ -96,7 +96,7 @@
                       (eq? (car new-state) 'random-source-state)
                       (= (length new-state) 3)
                     ) ;and
-              (error 'wrong-type-arg "invalid random source state" new-state)
+              (error 'type-error "invalid random source state" new-state)
             ) ;unless
             (let ((seed (cadr new-state)) (carry (caddr new-state)))
               (set! state (random-state seed carry))
@@ -116,16 +116,10 @@
           ;; pseudo-randomize!: use i, j indices
           (lambda (i j)
             (unless (and (integer? i) (exact? i) (>= i 0))
-              (error 'wrong-type-arg
-                "pseudo-randomize! i must be a non-negative exact integer"
-                i
-              ) ;error
+              (error 'type-error "pseudo-randomize! i must be a non-negative exact integer" i)
             ) ;unless
             (unless (and (integer? j) (exact? j) (>= j 0))
-              (error 'wrong-type-arg
-                "pseudo-randomize! j must be a non-negative exact integer"
-                j
-              ) ;error
+              (error 'type-error "pseudo-randomize! j must be a non-negative exact integer" j)
             ) ;unless
             ;; Create a deterministic state based on i and j
             ;; Using a simple hash of i and j to create seed and carry
@@ -139,7 +133,7 @@
           (lambda ()
             (lambda (n)
               (unless (and (integer? n) (exact? n) (positive? n))
-                (error 'wrong-type-arg "random-integer: n must be a positive exact integer" n)
+                (error 'type-error "random-integer: n must be a positive exact integer" n)
               ) ;unless
               ;; s7's random returns [0, n), we need [0, n-1] which is the same
               (random n state)
@@ -152,7 +146,7 @@
                 (begin
                   (set! unit (car args))
                   (unless (and (real? unit) (< 0 unit 1))
-                    (error 'wrong-type-arg
+                    (error 'type-error
                       "random-source-make-reals: unit must be a real in (0,1)"
                       unit
                     ) ;error
@@ -193,31 +187,28 @@
 
     (define (random-source-state-ref s)
       (unless (random-source? s)
-        (error 'wrong-type-arg "random-source-state-ref: expected random-source" s)
+        (error 'type-error "random-source-state-ref: expected random-source" s)
       ) ;unless
       ((random-source-state-ref-proc s))
     ) ;define
 
     (define (random-source-state-set! s new-state)
       (unless (random-source? s)
-        (error 'wrong-type-arg "random-source-state-set!: expected random-source" s)
+        (error 'type-error "random-source-state-set!: expected random-source" s)
       ) ;unless
       ((random-source-state-set-proc s) new-state)
     ) ;define
 
     (define (random-source-randomize! s)
       (unless (random-source? s)
-        (error 'wrong-type-arg "random-source-randomize!: expected random-source" s)
+        (error 'type-error "random-source-randomize!: expected random-source" s)
       ) ;unless
       ((random-source-randomize-proc s))
     ) ;define
 
     (define (random-source-pseudo-randomize! s i j)
       (unless (random-source? s)
-        (error 'wrong-type-arg
-          "random-source-pseudo-randomize!: expected random-source"
-          s
-        ) ;error
+        (error 'type-error "random-source-pseudo-randomize!: expected random-source" s)
       ) ;unless
       ((random-source-pseudo-randomize-proc s) i j)
     ) ;define
@@ -228,14 +219,14 @@
 
     (define (random-source-make-integers s)
       (unless (random-source? s)
-        (error 'wrong-type-arg "random-source-make-integers: expected random-source" s)
+        (error 'type-error "random-source-make-integers: expected random-source" s)
       ) ;unless
       ((random-source-make-integers-proc s))
     ) ;define
 
     (define (random-source-make-reals s . unit)
       (unless (random-source? s)
-        (error 'wrong-type-arg "random-source-make-reals: expected random-source" s)
+        (error 'type-error "random-source-make-reals: expected random-source" s)
       ) ;unless
       (apply (random-source-make-reals-proc s) unit)
     ) ;define

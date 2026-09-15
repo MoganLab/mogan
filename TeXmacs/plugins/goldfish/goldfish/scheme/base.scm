@@ -317,7 +317,7 @@
 
     (define (floor/ x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'wrong-type-arg "floor/: parameters must be real numbers")
+        (error 'type-error "floor/: parameters must be real numbers")
       ) ;when
       (when (zero? y)
         (error 'division-by-zero "floor/: division by zero")
@@ -339,7 +339,7 @@
 
     (define (truncate/ x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'wrong-type-arg "truncate/: parameters must be real numbers")
+        (error 'type-error "truncate/: parameters must be real numbers")
       ) ;when
       (when (zero? y)
         (error 'division-by-zero "truncate/: division by zero")
@@ -433,7 +433,14 @@
 
     (define bytevector-u8-set! byte-vector-set!)
 
-    (define* (bytevector-copy v (start 0) (end (bytevector-length v)))
+    (define*
+      (bytevector-copy v (start 0) (end (and (bytevector? v) (bytevector-length v))))
+      (unless (bytevector? v)
+        (error 'type-error "bytevector-copy: parameter must be a bytevector" v)
+      ) ;unless
+      (unless (and (integer? start) (integer? end))
+        (error 'type-error "bytevector-copy: start and end must be integers")
+      ) ;unless
       (if (or (< start 0) (> start end) (> end (bytevector-length v)))
         (error 'out-of-range "bytevector-copy")
       ) ;if
@@ -451,7 +458,16 @@
       ) ;let
     ) ;define*
 
-    (define bytevector-append append)
+    (define (bytevector-append . args)
+      (for-each (lambda (bv)
+                  (unless (bytevector? bv)
+                    (error 'type-error "bytevector-append: argument must be a bytevector" bv)
+                  ) ;unless
+                ) ;lambda
+        args
+      ) ;for-each
+      (apply append args)
+    ) ;define
 
     (define* (bytevector-advance-utf8 bv index (end (length bv)))
       (if (>= index end)
@@ -618,53 +634,123 @@
 
     (define string-for-each for-each)
 
-    (define* (vector-copy v (start 0) (end (vector-length v)))
-      (if (or (> start end) (> end (vector-length v)))
-        (error 'out-of-range "vector-copy")
-        (let ((new-v (make-vector (- end start))))
-          (let loop
-            ((i start) (j 0))
-            (if (>= i end)
-              new-v
-              (begin
-                (vector-set! new-v j (vector-ref v i))
-                (loop (+ i 1) (+ j 1))
-              ) ;begin
-            ) ;if
-          ) ;let
-        ) ;let
+    (define*
+      (vector-copy v (start 0) (end (and (vector? v) (vector-length v))))
+      (if (not (vector? v))
+        (error 'type-error "vector-copy: parameter must be a vector")
+        (if (or (not (integer? start)) (not (integer? end)))
+          (error 'type-error "vector-copy: start and end must be integers")
+          (if (or (< start 0) (> start end) (> end (vector-length v)))
+            (error 'out-of-range "vector-copy")
+            (let ((new-v (make-vector (- end start))))
+              (let loop
+                ((i start) (j 0))
+                (if (>= i end)
+                  new-v
+                  (begin
+                    (vector-set! new-v j (vector-ref v i))
+                    (loop (+ i 1) (+ j 1))
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;if
       ) ;if
     ) ;define*
 
     (define (vector-map p . args)
+      (if (not (procedure? p))
+        (error 'type-error "vector-map: first parameter must be a procedure")
+      ) ;if
+      (if (null? args)
+        (error 'wrong-number-of-args "vector-map: requires at least one vector")
+      ) ;if
+      (for-each
+        (lambda (v)
+          (if (not (vector? v))
+            (error 'type-error "vector-map: parameter must be a vector")
+          ) ;if
+        ) ;lambda
+        args
+      ) ;for-each
       (apply vector (apply map p args))
     ) ;define
 
-    (define vector-for-each for-each)
-
-    (define vector-fill! fill!)
-
-    (define* (vector-copy! to at from (start 0) (end (vector-length from)))
-      (if
-        (or (< at 0)
-          (< start 0)
-          (> start (vector-length from))
-          (< end 0)
-          (> end (vector-length from))
-          (> start end)
-          (> (+ at (- end start)) (vector-length to))
-        ) ;or
-        (error 'out-of-range "vector-copy!")
-        (let loop
-          ((to-i at) (from-i start))
-          (if (>= from-i end)
-            to
-            (begin
-              (vector-set! to to-i (vector-ref from from-i))
-              (loop (+ to-i 1) (+ from-i 1))
-            ) ;begin
+    (define (vector-for-each p . args)
+      (if (not (procedure? p))
+        (error 'type-error "vector-for-each: first parameter must be a procedure")
+      ) ;if
+      (if (null? args)
+        (error 'wrong-number-of-args "vector-for-each: requires at least one vector")
+      ) ;if
+      (for-each
+        (lambda (v)
+          (if (not (vector? v))
+            (error 'type-error "vector-for-each: parameter must be a vector")
           ) ;if
-        ) ;let
+        ) ;lambda
+        args
+      ) ;for-each
+      (apply for-each p args)
+    ) ;define
+
+    (define (vector-fill! vec fill . rest)
+      (unless (vector? vec)
+        (error 'type-error "vector-fill!: first argument must be a vector" vec)
+      ) ;unless
+      (unless (null? rest)
+        (unless (integer? (car rest))
+          (error 'type-error "vector-fill!: start must be an integer" (car rest))
+        ) ;unless
+        (unless (null? (cdr rest))
+          (unless (integer? (cadr rest))
+            (error 'type-error "vector-fill!: end must be an integer" (cadr rest))
+          ) ;unless
+        ) ;unless
+      ) ;unless
+      (apply fill! vec fill rest)
+    ) ;define
+
+    (define*
+      (vector-copy! to
+        at
+        from
+        (start 0)
+        (end (and (vector? from) (vector-length from)))
+      ) ;vector-copy!
+      (if (not (vector? to))
+        (error 'type-error "vector-copy!: 'to' must be a vector")
+        (if (not (integer? at))
+          (error 'type-error "vector-copy!: 'at' must be an integer")
+          (if (not (vector? from))
+            (error 'type-error "vector-copy!: 'from' must be a vector")
+            (if (or (not (integer? start)) (not (integer? end)))
+              (error 'type-error "vector-copy!: 'start' and 'end' must be integers")
+              (if
+                (or (< at 0)
+                  (< start 0)
+                  (> start (vector-length from))
+                  (< end 0)
+                  (> end (vector-length from))
+                  (> start end)
+                  (> (+ at (- end start)) (vector-length to))
+                ) ;or
+                (error 'out-of-range "vector-copy!")
+                (let loop
+                  ((to-i at) (from-i start))
+                  (if (>= from-i end)
+                    to
+                    (begin
+                      (vector-set! to to-i (vector-ref from from-i))
+                      (loop (+ to-i 1) (+ from-i 1))
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;if
+            ) ;if
+          ) ;if
+        ) ;if
       ) ;if
     ) ;define*
 
@@ -672,18 +758,55 @@
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
     (define* (vector->string v (start 0) end)
-      (let ((stop (or end (length v))))
-        (copy v (make-string (- stop start)) start stop)
-      ) ;let
+      (if (null? v)
+        ""
+        (if (not (vector? v))
+          (error 'type-error "vector->string: first argument must be a vector")
+          (let ((stop (or end (vector-length v))))
+            (if (or (not (integer? start)) (not (integer? stop)))
+              (error 'type-error "vector->string: start and end must be integers")
+              (if (or (< start 0) (> start stop) (> stop (vector-length v)))
+                (error 'out-of-range "vector->string: index out of range")
+                (let ((s (make-string (- stop start))))
+                  (let loop
+                    ((i start) (j 0))
+                    (if (>= i stop)
+                      s
+                      (let ((c (vector-ref v i)))
+                        (if (not (char? c))
+                          (error 'type-error "vector->string: elements must be characters")
+                          (begin
+                            (string-set! s j c)
+                            (loop (+ i 1) (+ j 1))
+                          ) ;begin
+                        ) ;if
+                      ) ;let
+                    ) ;if
+                  ) ;let
+                ) ;let
+              ) ;if
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;if
     ) ;define*
 
     ;; 0-clause BSD
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
     (define* (string->vector s (start 0) end)
-      (let ((stop (or end (length s))))
-        (copy s (make-vector (- stop start)) start stop)
-      ) ;let
+      (if (not (or (string? s) (vector? s) (list? s) (bytevector? s)))
+        (error 'type-error "string->vector: first argument must be a sequence")
+        (let ((stop (or end (length s))))
+          (if (or (not (integer? start)) (not (integer? stop)))
+            (error 'type-error "string->vector: start and end must be integers")
+            (if (or (< start 0) (> start stop) (> stop (length s)))
+              (error 'out-of-range "string->vector: index out of range")
+              (copy s (make-vector (- stop start)) start stop)
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define*
 
   ) ;begin

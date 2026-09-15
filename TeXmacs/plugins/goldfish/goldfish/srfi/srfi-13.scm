@@ -36,7 +36,7 @@
     (define (%make-criterion char/pred?)
       (cond ((char? char/pred?) (lambda (x) (char=? x char/pred?)))
             ((procedure? char/pred?) char/pred?)
-            (else (error 'wrong-type-arg "%make-criterion"))
+            (else (error 'type-error "%make-criterion"))
       ) ;cond
     ) ;define
 
@@ -96,10 +96,10 @@
     (define string-drop
       (lambda (str k)
         (unless (string? str)
-          (error 'wrong-type-arg "str is not string?" str)
+          (error 'type-error "str is not string?" str)
         ) ;unless
         (unless (integer? k)
-          (error 'wrong-type-arg "k is not integer?" k)
+          (error 'type-error "k is not integer?" k)
         ) ;unless
         (when (< k 0)
           (error 'out-of-range "k must be non-negative" k)
@@ -113,10 +113,10 @@
     (define string-drop-right
       (lambda (str k)
         (unless (string? str)
-          (error 'wrong-type-arg "str is not string?" str)
+          (error 'type-error "str is not string?" str)
         ) ;unless
         (unless (integer? k)
-          (error 'wrong-type-arg "k is not integer?" k)
+          (error 'type-error "k is not integer?" k)
         ) ;unless
         (when (< k 0)
           (error 'out-of-range "k must be non-negative" k)
@@ -146,7 +146,7 @@
                (car char+start+end)
              ) ;string-pad-sub
             ) ;
-            (else (error 'wrong-type-arg "string-pad"))
+            (else (error 'type-error "string-pad"))
       ) ;cond
     ) ;define
 
@@ -166,7 +166,7 @@
                (car char+start+end)
              ) ;string-pad-right-sub
             ) ;
-            (else (error 'wrong-type-arg "string-pad"))
+            (else (error 'type-error "string-pad-right"))
       ) ;cond
     ) ;define
 
@@ -284,18 +284,18 @@
 
     ;; string-prefix?/string-suffix? 复用 C 实现的 g_string-starts?/g_string-ends?
     ;; （见 src/liii_string.cpp），避免旧实现的 substring 临时分配；
-    ;; 注意参数顺序相反，且错误契约为 wrong-type-arg（区别于 liii 的 type-error）
+    ;; 注意参数顺序相反
     (define (string-prefix? prefix str)
       (if (and (string? prefix) (string? str))
         (g_string-starts? str prefix)
-        (error 'wrong-type-arg "string-prefix?: expected string arguments")
+        (error 'type-error "string-prefix?: expected string arguments")
       ) ;if
     ) ;define
 
     (define (string-suffix? suffix str)
       (if (and (string? suffix) (string? str))
         (g_string-ends? str suffix)
-        (error 'wrong-type-arg "string-suffix?: expected string arguments")
+        (error 'type-error "string-suffix?: expected string arguments")
       ) ;if
     ) ;define
 
@@ -512,7 +512,7 @@
                (car char+start+end)
              ) ;string-tokenize-sub
             ) ;
-            (else (error 'wrong-type-arg "string-tokenize"))
+            (else (error 'type-error "string-tokenize"))
       ) ;cond
     ) ;define
   ) ;begin
