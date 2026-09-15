@@ -305,20 +305,23 @@
   (:synopsis "Check if link list contains inner links (URLs starting with #), or no url vertex at all"
   ) ;:synopsis
   (let* ((link-list (ids->link-list l)) (has-url-vertex? #f))
-    (for-each (lambda (item)
-                (for-each (lambda (vertex) (when (func? vertex 'url 1) (set! has-url-vertex? #t)))
-                  (link-item-vertices item)
-                ) ;for-each
-              ) ;lambda
+    (for-each
+      (lambda (item)
+        (for-each (lambda (vertex) (when (func? vertex 'url 1) (set! has-url-vertex? #t)))
+          (link-item-vertices item)
+        ) ;for-each
+      ) ;lambda
       link-list
     ) ;for-each
     (if (not has-url-vertex?)
       #t
-      (exists? (lambda (item)
-                 (exists? (lambda (vertex) (and (func? vertex 'url 1) (string-starts? (cadr vertex) "#")))
-                   (link-item-vertices item)
-                 ) ;exists?
-               ) ;lambda
+      (exists?
+        (lambda (item)
+          (exists?
+            (lambda (vertex) (and (func? vertex 'url 1) (string-starts? (cadr vertex) "#")))
+            (link-item-vertices item)
+          ) ;exists?
+        ) ;lambda
         link-list
       ) ;exists?
     ) ;if
@@ -393,7 +396,8 @@
 
 (tm-define (navigation-list-filter l type nr jumpable?)
   (cond ((null? l) l)
-        ((and (or (== type #t) (== (navigation-type (car l)) type))
+        ((and
+           (or (== type #t) (== (navigation-type (car l)) type))
            (or (== nr #t) (== (navigation-pos (car l)) nr))
            (or (not jumpable?)
              (func? (navigation-target (car l)) 'id 1)
@@ -452,12 +456,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (automatic-link-text back)
-  (cond ((func? back 'id 1)
-         (with ts (id->trees (vertex->id back)) (and (nnull? ts) (tree->stree (car ts))))
-        ) ;
-        ((func? back 'url 1) `(verbatim ,(vertex->url back)))
-        ((func? back 'script) `(verbatim ,(vertex->script back)))
-        (else #f)
+  (cond
+   ((func? back 'id 1)
+    (with ts (id->trees (vertex->id back)) (and (nnull? ts) (tree->stree (car ts))))
+   ) ;
+   ((func? back 'url 1) `(verbatim ,(vertex->url back)))
+   ((func? back 'script) `(verbatim ,(vertex->script back)))
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -515,7 +520,9 @@
 ) ;define
 
 (tm-define (build-navigation-page l)
-  (let* ((style `(tuple ,@(get-style-list)))
+  (let* ((style
+           `(tuple ,@(get-style-list))
+         ) ;style
          (fun (lambda () (build-navigation-page-sub style l)))
         ) ;
     (resolve-navigation-list l fun)
@@ -543,12 +550,16 @@
 (define (url-list->document l)
   ($tmdoc ($tmdoc-title "Link disambiguation")
     ($para "The link you followed points to several locations:")
-    ($description-aligned (with c
-                            0
-                            ($for (x l)
-                              ($describe-item (number->string (begin (set! c (+ 1 c)) c)) (url->item x))
-                            ) ;$for
-                          ) ;with
+    ($description-aligned
+      (with c
+        0
+        ($for (x l)
+          ($describe-item
+            (number->string (begin (set! c (+ 1 c)) c))
+            (url->item x)
+          ) ;$describe-item
+        ) ;$for
+      ) ;with
     ) ;$description-aligned
   ) ;$tmdoc
 ) ;define
@@ -567,9 +578,10 @@
 (define (default-root-disambiguator u)
   (with l
     (list-filter (url->list u) default-filter-url)
-    (cond ((null? l) (set-message `(verbatim ,(url->system u)) "Not found"))
-          ((== 1 (length l)) (load-browse-buffer (car l)))
-          (else (build-disambiguation-page l))
+    (cond
+     ((null? l) (set-message `(verbatim ,(url->system u)) "Not found"))
+     ((== 1 (length l)) (load-browse-buffer (car l)))
+     (else (build-disambiguation-page l))
     ) ;cond
   ) ;with
 ) ;define
@@ -585,7 +597,8 @@
          (qry (substring s (min m (+ 1 i)) m))
         ) ;
     (if (< i m)
-      (list (system->url (string-drop-right s (+ 1 (string-length qry))))
+      (list
+        (system->url (string-drop-right s (+ 1 (string-length qry))))
         (unescape-link-args qry)
       ) ;list
       (list u "")
@@ -648,15 +661,17 @@
 ) ;define
 
 (define (default-root-handler u)
-  (cond ((and (url-rooted-protocol? u "default") (url-rooted-web? (current-buffer)))
-         (default-root-handler (url-relative (current-buffer) u))
-        ) ;
-        ((url-or? (url-expand u)) (default-root-disambiguator (url-expand u)))
-        (else (with (base qry)
-                (process-url u)
-                (if (!= "" (url->system base)) (load-browse-buffer base))
-              ) ;with
-        ) ;else
+  (cond
+   ((and (url-rooted-protocol? u "default") (url-rooted-web? (current-buffer)))
+    (default-root-handler (url-relative (current-buffer) u))
+   ) ;
+   ((url-or? (url-expand u)) (default-root-disambiguator (url-expand u)))
+   (else
+     (with (base qry)
+       (process-url u)
+       (if (!= "" (url->system base)) (load-browse-buffer base))
+     ) ;with
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -734,36 +749,40 @@
          (cmd-s (string-append "(lambda () " s ")"))
          (cmd (eval (string->object cmd-s)))
         ) ;
-    (cond ((or ok? (== (get-preference "security") "accept all scripts"))
-           (execute-at cmd opt-location)
-          ) ;
-          ((== (get-preference "security") "prompt on scripts")
-           (user-confirm `(concat ,"Execute " ,s ,"?")
-             #f
-             (lambda (answ) (when answ (execute-at cmd opt-location)))
-           ) ;user-confirm
-          ) ;
-          (else (set-message "Unsecure script refused" "Evaluate script"))
+    (cond
+     ((or ok? (== (get-preference "security") "accept all scripts"))
+      (execute-at cmd opt-location)
+     ) ;
+     ((== (get-preference "security") "prompt on scripts")
+      (user-confirm `(concat ,"Execute " ,s ,"?")
+        #f
+        (lambda (answ) (when answ (execute-at cmd opt-location)))
+      ) ;user-confirm
+     ) ;
+     (else (set-message "Unsecure script refused" "Evaluate script"))
     ) ;cond
   ) ;let*
 ) ;tm-define
 
 (tm-define (new-execute-script s secure-origin? args)
   (let* ((sym-fun (eval (string->object (string-append "'" s))))
-         (sym-cmd (cons sym-fun (map (lambda (x) (list 'quote x)) args)))
+         (sym-cmd
+           (cons sym-fun (map (lambda (x) (list 'quote x)) args))
+         ) ;sym-cmd
          (ok? (or secure-origin? (secure? sym-cmd)))
          (cmd (eval (list 'lambda (list) sym-cmd)))
         ) ;
-    (cond ((or ok? (== (get-preference "security") "accept all scripts"))
-           (exec-delayed cmd)
-          ) ;
-          ((== (get-preference "security") "prompt on scripts")
-           (user-confirm `(concat ,"Execute " ,s ,"?")
-             #f
-             (lambda (answ) (when answ (exec-delayed cmd)))
-           ) ;user-confirm
-          ) ;
-          (else (set-message "Unsecure script refused" "Evaluate script"))
+    (cond
+     ((or ok? (== (get-preference "security") "accept all scripts"))
+      (exec-delayed cmd)
+     ) ;
+     ((== (get-preference "security") "prompt on scripts")
+      (user-confirm `(concat ,"Execute " ,s ,"?")
+        #f
+        (lambda (answ) (when answ (exec-delayed cmd)))
+      ) ;user-confirm
+     ) ;
+     (else (set-message "Unsecure script refused" "Evaluate script"))
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -885,9 +904,10 @@
   (when (nnull? ids)
     (let* ((items (ids->link-list ids))
            (anchor-id (link-item-id (car items)))
-           (anchor-tree (or (and-with trees (and anchor-id (id->trees anchor-id)) (car trees))
-                          (cursor-tree)
-                        ) ;or
+           (anchor-tree
+             (or (and-with trees (and anchor-id (id->trees anchor-id)) (car trees))
+               (cursor-tree)
+             ) ;or
            ) ;anchor-tree
            (ver (link-item-vertices (car items)))
            (url (cadr (cadr ver)))
@@ -897,7 +917,9 @@
                  ) ;if
            ) ;base
            (text (string-append (translate base) ": " url))
-           (tip `(preview-balloon ,(verbatim-snippet->texmacs (cork->utf8 text))))
+           (tip
+             `(preview-balloon ,(verbatim-snippet->texmacs (cork->utf8 text)))
+           ) ;tip
           ) ;
       (close-tooltip)
       (delayed (:idle 100)

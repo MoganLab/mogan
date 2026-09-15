@@ -713,9 +713,10 @@
       (let lp
         ((table priv:leap-second-table))
         (cond ((null? table) (- tai-sec 10))
-              (else (let* ((utc-start (caar table)) (delta (cdar table)) (tai-start (+ utc-start delta)))
-                      (if (>= tai-sec tai-start) (- tai-sec delta) (lp (cdr table)))
-                    ) ;let*
+              (else
+                (let* ((utc-start (caar table)) (delta (cdar table)) (tai-start (+ utc-start delta)))
+                  (if (>= tai-sec tai-start) (- tai-sec delta) (lp (cdr table)))
+                ) ;let*
               ) ;else
         ) ;cond
       ) ;let
@@ -796,7 +797,9 @@
              (era (if (>= y 0) (floor-quotient y 400) (floor-quotient (- y 399) 400)))
              (yoe (- y (* era 400)))
              (m (+ month (if (> month 2) -3 9)))
-             (doy (+ (floor-quotient (+ (* 153 m) 2) 5) (- day 1)))
+             (doy
+               (+ (floor-quotient (+ (* 153 m) 2) 5) (- day 1))
+             ) ;doy
              (doe (+ (* yoe 365) (floor-quotient yoe 4) (- (floor-quotient yoe 100)) doy))
             ) ;
         (- (+ (* era 146097) doe) 719468)
@@ -809,19 +812,26 @@
              (era (if (>= z 0) (floor-quotient z 146097) (floor-quotient (- z 146096) 146097))
              ) ;era
              (doe (- z (* era 146097)))
-             (yoe (floor-quotient (- doe
-                                    (floor-quotient doe 1460)
-                                    (- (floor-quotient doe 36524))
-                                    (floor-quotient doe 146096)
-                                  ) ;-
-                    365
-                  ) ;floor-quotient
+             (yoe
+               (floor-quotient (- doe
+                                 (floor-quotient doe 1460)
+                                 (- (floor-quotient doe 36524))
+                                 (floor-quotient doe 146096)
+                               ) ;-
+                 365
+               ) ;floor-quotient
              ) ;yoe
              (y (+ yoe (* era 400)))
-             (doy (- doe (+ (* 365 yoe) (floor-quotient yoe 4) (- (floor-quotient yoe 100))))
+             (doy
+               (- doe (+ (* 365 yoe) (floor-quotient yoe 4) (- (floor-quotient yoe 100))))
              ) ;doy
              (mp (floor-quotient (+ (* 5 doy) 2) 153))
-             (d (+ (- doy (floor-quotient (+ (* 153 mp) 2) 5)) 1))
+             (d
+               (+
+                 (- doy (floor-quotient (+ (* 153 mp) 2) 5))
+                 1
+               ) ;+
+             ) ;d
              (m (+ mp (if (< mp 10) 3 -9)))
              (y (if (<= m 2) (+ y 1) y))
             ) ;
@@ -972,13 +982,14 @@
              (adjusted (+ (date-year-day date) jan1-wday -2))
              (raw-week (+ (floor-quotient adjusted 7) offset))
             ) ;
-        (cond ((zero? raw-week)
-               (priv:date-week-number-iso (make-date 0 0 0 0 31 12 (- year 1) 0))
-              ) ;
+        (cond
+         ((zero? raw-week)
+          (priv:date-week-number-iso (make-date 0 0 0 0 31 12 (- year 1) 0))
+         ) ;
 
-              ((and (= raw-week 53) (<= (priv:week-day 1 1 (+ year 1)) 4)) 1)
+         ((and (= raw-week 53) (<= (priv:week-day 1 1 (+ year 1)) 4)) 1)
 
-              (else raw-week)
+         (else raw-week)
         ) ;cond
       ) ;let*
     ) ;define
@@ -994,7 +1005,9 @@
       ) ;cond
       (unless (zero? offset)
         (let ((hours (abs (quotient offset (* 60 60))))
-              (minutes (abs (quotient (remainder offset (* 60 60)) 60)))
+              (minutes
+                (abs (quotient (remainder offset (* 60 60)) 60))
+              ) ;minutes
              ) ;
           (display (priv:padding hours #\0 2) port)
           (display (priv:padding minutes #\0 2) port)
@@ -1028,14 +1041,26 @@
          ) ;
          ((#\H) (display (priv:padding (date-hour date) pad-with 2) port))
          ((#\I)
-          (display (priv:padding (+ 1 (modulo (- (date-hour date) 1) 12)) pad-with 2)
+          (display
+            (priv:padding
+              (+ 1 (modulo (- (date-hour date) 1) 12))
+              pad-with
+              2
+            ) ;priv:padding
             port
           ) ;display
          ) ;
          ((#\j) (display (priv:padding (date-year-day date) pad-with 3) port))
          ((#\k) (display (priv:padding (date-hour date) #\space 2) port))
          ((#\l)
-          (display (priv:padding (+ 1 (modulo (- (date-hour date) 1) 12)) #\space 2) port)
+          (display
+            (priv:padding
+              (+ 1 (modulo (- (date-hour date) 1) 12))
+              #\space
+              2
+            ) ;priv:padding
+            port
+          ) ;display
          ) ;
          ((#\m) (display (priv:padding (date-month date) pad-with 2) port))
          ((#\M) (display (priv:padding (date-minute date) pad-with 2) port))
@@ -1287,19 +1312,22 @@
 
         (define (priv:read-number pos skip-pred allow-space? allow-sign?)
           (let* ((pos (if skip-pred (priv:skip-to skip-pred input pos) pos))
-                 (pos (if (and allow-space? (< pos len) (char=? (string-ref input pos) #\space))
-                        (+ pos 1)
-                        pos
-                      ) ;if
+                 (pos
+                   (if (and allow-space? (< pos len) (char=? (string-ref input pos) #\space))
+                     (+ pos 1)
+                     pos
+                   ) ;if
                  ) ;pos
                  (start pos)
-                 (pos (if (and allow-sign?
-                            (< pos len)
-                            (or (char=? (string-ref input pos) #\+) (char=? (string-ref input pos) #\-))
-                          ) ;and
-                        (+ pos 1)
-                        pos
-                      ) ;if
+                 (pos
+                   (if
+                     (and allow-sign?
+                       (< pos len)
+                       (or (char=? (string-ref input pos) #\+) (char=? (string-ref input pos) #\-))
+                     ) ;and
+                     (+ pos 1)
+                     pos
+                   ) ;if
                  ) ;pos
                 ) ;
             (receive (digits end)
@@ -1310,28 +1338,30 @@
         ) ;define
 
         (define (priv:parse-tz-offset pos)
-          (cond ((and (< pos len) (char=? (string-ref input pos) #\Z)) (values 0 (+ pos 1)))
-                ((and (< pos len)
-                   (or (char=? (string-ref input pos) #\+) (char=? (string-ref input pos) #\-))
-                 ) ;and
-                 (let* ((sign (if (char=? (string-ref input pos) #\-) -1 1)) (pos (+ pos 1)))
-                   (receive (hh pos1)
-                     (priv:read-fixed-digits input pos 2)
-                     (let ((pos2 pos1))
-                       (if (and (< pos2 len) (char=? (string-ref input pos2) #\:))
-                         (set! pos2 (+ pos2 1))
-                       ) ;if
-                       (receive (mm pos3)
-                         (priv:read-fixed-digits input pos2 2)
-                         (values (* sign (+ (* (string->number hh) 3600) (* (string->number mm) 60)))
-                           pos3
-                         ) ;values
-                       ) ;receive
-                     ) ;let
-                   ) ;receive
-                 ) ;let*
-                ) ;
-                (else (value-error "string->date: invalid time zone offset" input))
+          (cond
+           ((and (< pos len) (char=? (string-ref input pos) #\Z)) (values 0 (+ pos 1)))
+           ((and (< pos len)
+              (or (char=? (string-ref input pos) #\+) (char=? (string-ref input pos) #\-))
+            ) ;and
+            (let* ((sign (if (char=? (string-ref input pos) #\-) -1 1)) (pos (+ pos 1)))
+              (receive (hh pos1)
+                (priv:read-fixed-digits input pos 2)
+                (let ((pos2 pos1))
+                  (if (and (< pos2 len) (char=? (string-ref input pos2) #\:))
+                    (set! pos2 (+ pos2 1))
+                  ) ;if
+                  (receive (mm pos3)
+                    (priv:read-fixed-digits input pos2 2)
+                    (values
+                      (* sign (+ (* (string->number hh) 3600) (* (string->number mm) 60)))
+                      pos3
+                    ) ;values
+                  ) ;receive
+                ) ;let
+              ) ;receive
+            ) ;let*
+           ) ;
+           (else (value-error "string->date: invalid time zone offset" input))
           ) ;cond
         ) ;define
 
@@ -1558,15 +1588,16 @@
                       ) ;when
                       (let* ((next (string-ref tmpl ti1))
                              (pad? (or (char=? next #\-) (char=? next #\_)))
-                             (dir (if pad?
-                                    (begin
-                                      (when (>= (+ ti1 1) tlen)
-                                        (priv:bad-format-error tmpl)
-                                      ) ;when
-                                      (string-ref tmpl (+ ti1 1))
-                                    ) ;begin
-                                    next
-                                  ) ;if
+                             (dir
+                               (if pad?
+                                 (begin
+                                   (when (>= (+ ti1 1) tlen)
+                                     (priv:bad-format-error tmpl)
+                                   ) ;when
+                                   (string-ref tmpl (+ ti1 1))
+                                 ) ;begin
+                                 next
+                               ) ;if
                              ) ;dir
                              (pos2 (priv:parse-directive dir pos))
                              (ti2 (if pad? (+ ti 3) (+ ti 2)))
@@ -1575,7 +1606,8 @@
                       ) ;let*
                     ) ;let*
                     (begin
-                      (when (or (>= pos len) (not (char=? (string-ref input pos) ch)))
+                      (when
+                        (or (>= pos len) (not (char=? (string-ref input pos) ch)))
                         (value-error "string->date: input does not match template"
                           (list input template-string)
                         ) ;value-error
@@ -1633,10 +1665,11 @@
               (let* ((wday-jan1 (priv:week-day 1 1 year*))
                      (offset (modulo (- week-start wday-jan1) 7))
                      (wday (modulo (- week-day week-start) 7))
-                     (yday (if (= week-number 0)
-                             (+ 1 (modulo (- week-day wday-jan1) 7))
-                             (+ 1 offset (* (- week-number 1) 7) wday)
-                           ) ;if
+                     (yday
+                       (if (= week-number 0)
+                         (+ 1 (modulo (- week-day wday-jan1) 7))
+                         (+ 1 offset (* (- week-number 1) 7) wday)
+                       ) ;if
                      ) ;yday
                      (days-in-year (if (priv:leap-year? year*) 366 365))
                     ) ;

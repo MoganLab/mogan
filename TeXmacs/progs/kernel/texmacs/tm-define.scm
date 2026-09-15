@@ -87,10 +87,11 @@
 ) ;define
 
 (define (apply* fun head)
-  (cond ((list? head) `(,(apply* fun (car head)) ,@(cdr head)))
-        ((pair? head) `(apply ,(apply* fun (car head))
-                         (cons* ,@(listify (cdr head)))))
-        (else fun)
+  (cond
+   ((list? head) `(,(apply* fun (car head)) ,@(cdr head)))
+   ((pair? head) `(apply ,(apply* fun (car head))
+                    (cons* ,@(listify (cdr head)))))
+   (else fun)
   ) ;cond
 ) ;define
 
@@ -142,13 +143,18 @@
          ) ;and
          (ctx-add-condition! 3 (car opt))
         ) ;
-        (else (ctx-add-condition! 3 `(lambda args (match? args (quote ,opt)))))
+        (else
+          (ctx-add-condition! 3 `(lambda args (match? args (quote ,opt))))
+        ) ;else
   ) ;cond
   decl
 ) ;define
 
 (define (define-option-require opt decl)
-  (define-option-match `(lambda ,(cdadr decl) ,(car opt)) decl)
+  (define-option-match
+    `(lambda ,(cdadr decl) ,(car opt))
+    decl
+  ) ;define-option-match
 ) ;define
 
 (define (define-option-applicable opt decl)
@@ -172,7 +178,9 @@
   "Remove conditions which depend on arguments from list"
   (cond ((null? l) l)
         ((>= (car l) 2) (filter-conds (cddr l)))
-        (else (cons (car l) (cons (cadr l) (filter-conds (cddr l)))))
+        (else
+          (cons (car l) (cons (cadr l) (filter-conds (cddr l))))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -235,7 +243,10 @@
         ) ;
     (set! cur-props (cons `((quote ,var) ,:arguments (quote ,args)) cur-props))
     (set! cur-props
-      (cons `((quote ,var) (quote ,arg) (quote ,(cdr opt))) cur-props)
+      (cons
+        `((quote ,var) (quote ,arg) (quote ,(cdr opt)))
+        cur-props
+      ) ;cons
     ) ;set!
     decl
   ) ;let*
@@ -244,7 +255,10 @@
 (define (define-option-default opt decl)
   (let* ((var (ca*adr decl)) (arg (list :default (car opt))))
     (set! cur-props
-      (cons `((quote ,var) (quote ,arg) (lambda ,() ,@(cdr opt))) cur-props)
+      (cons
+        `((quote ,var) (quote ,arg) (lambda ,() ,@(cdr opt)))
+        cur-props
+      ) ;cons
     ) ;set!
     decl
   ) ;let*
@@ -253,7 +267,10 @@
 (define (define-option-proposals opt decl)
   (let* ((var (ca*adr decl)) (arg (list :proposals (car opt))))
     (set! cur-props
-      (cons `((quote ,var) (quote ,arg) (lambda ,() ,@(cdr opt))) cur-props)
+      (cons
+        `((quote ,var) (quote ,arg) (lambda ,() ,@(cdr opt)))
+        cur-props
+      ) ;cons
     ) ;set!
     decl
   ) ;let*
@@ -262,8 +279,7 @@
 (ahash-set! define-option-table :type (define-property :type))
 (ahash-set! define-option-table :synopsis (define-property :synopsis))
 (ahash-set! define-option-table
-  :synopsis*
-  (define-property :synopsis :synopsis*)
+  :synopsis* (define-property :synopsis :synopsis*)
 ) ;ahash-set!
 (ahash-set! define-option-table :returns (define-property :returns))
 (ahash-set! define-option-table :note (define-property :note))
@@ -274,8 +290,7 @@
 (ahash-set! define-option-table :check-mark (define-property* :check-mark))
 (ahash-set! define-option-table :interactive (define-property* :interactive))
 (ahash-set! define-option-table
-  :imgui-supported
-  (define-property* :imgui-supported)
+  :imgui-supported (define-property* :imgui-supported)
 ) ;ahash-set!
 (ahash-set! define-option-table :balloon (define-property* :balloon))
 

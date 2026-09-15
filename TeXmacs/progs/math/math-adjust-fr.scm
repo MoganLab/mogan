@@ -27,10 +27,19 @@
              (editing-big-operator?)
            ) ;or
            (cond ((editing-big-operator?) (speech-of))
-                 ((or (stats-role? `(concat ,prev (rsub ,s)))
-                    (stats-role? `(concat ,prev (rsup ,s)))
-                    (stats-role? `(concat ,prev (around ,"(" ,s ,")")))
-                    (stats-role? `(concat ,prev (around* ,"(" ,s ,")")))
+                 ((or
+                    (stats-role?
+                      `(concat ,prev (rsub ,s))
+                    ) ;stats-role?
+                    (stats-role?
+                      `(concat ,prev (rsup ,s))
+                    ) ;stats-role?
+                    (stats-role?
+                      `(concat ,prev (around ,"(" ,s ,")"))
+                    ) ;stats-role?
+                    (stats-role?
+                      `(concat ,prev (around* ,"(" ,s ,")"))
+                    ) ;stats-role?
                   ) ;or
                   (speech-insert-symbol s)
                  ) ;

@@ -22,23 +22,25 @@
 (define-preferences ("auto bib import" "on" ignore))
 
 (tm-widget (db-preferences-widget)
-  (padded (aligned (meti (hlist // (text "Automatically import bibliographies when opening files") >>)
-                     (toggle (set-boolean-preference "auto bib import" answer)
-                       (get-boolean-preference "auto bib import")
-                     ) ;toggle
-                   ) ;meti
-          ) ;aligned
+  (padded
+    (aligned (meti (hlist // (text "Automatically import bibliographies when opening files") >>)
+               (toggle (set-boolean-preference "auto bib import" answer)
+                 (get-boolean-preference "auto bib import")
+               ) ;toggle
+             ) ;meti
+    ) ;aligned
   ) ;padded
 ) ;tm-widget
 
 (tm-tool* (db-preferences-tool win)
   (:name "TeXmacs database preferences")
-  (padded (aligned (meti (hlist // (text "Import bibliographies when opening files"))
-                     (toggle (set-boolean-preference "auto bib import" answer)
-                       (get-boolean-preference "auto bib import")
-                     ) ;toggle
-                   ) ;meti
-          ) ;aligned
+  (padded
+    (aligned (meti (hlist // (text "Import bibliographies when opening files"))
+               (toggle (set-boolean-preference "auto bib import" answer)
+                 (get-boolean-preference "auto bib import")
+               ) ;toggle
+             ) ;meti
+    ) ;aligned
   ) ;padded
 ) ;tm-tool*
 
@@ -177,63 +179,67 @@
 ) ;tm-define
 
 (tm-widget ((db-search-widget db kind) quit)
-  (padded (let* ((dummy (set! db-quit-search quit)) (query ""))
-            (hlist (text "Search:")
-              //
-              //
-              (input (set! query (db-search-keypress db kind answer query))
-                "search-database"
-                (list "")
-                "650px"
-              ) ;input
-            ) ;hlist
-            ===
-            ===
-            (refreshable "db-search-results"
-              (resize "750px"
-                "500px"
-                (texmacs-input `(document ,@(db-search-results db kind query))
-                  `(style (tuple ,(db-get-style kind)))
-                  (db-search-results-buffer)
-                ) ;texmacs-input
-              ) ;resize
-            ) ;refreshable
-          ) ;let*
+  (padded
+    (let* ((dummy (set! db-quit-search quit)) (query ""))
+      (hlist (text "Search:")
+        //
+        //
+        (input (set! query (db-search-keypress db kind answer query))
+          "search-database"
+          (list "")
+          "650px"
+        ) ;input
+      ) ;hlist
+      ===
+      ===
+      (refreshable "db-search-results"
+        (resize "750px"
+          "500px"
+          (texmacs-input
+            `(document ,@(db-search-results db kind query))
+            `(style (tuple ,(db-get-style kind)))
+            (db-search-results-buffer)
+          ) ;texmacs-input
+        ) ;resize
+      ) ;refreshable
+    ) ;let*
   ) ;padded
 ) ;tm-widget
 
 (tm-tool* (db-search-tool win name db kind quit)
   (:name name)
-  (padded (let* ((quit* (lambda (x)
-                          (quit x)
-                          (buffer-focus (window->buffer win) #f)
-                          (tool-close :any 'db-search-tool noop win)
-                        ) ;lambda
-                 ) ;quit*
-                 (dummy (set! db-quit-search quit*))
-                 (query "")
-                ) ;
-            (hlist (text "Search:")
-              //
-              //
-              (input (set! query (db-search-keypress db kind answer query))
-                "search-database"
-                (list "")
-                "300px"
-              ) ;input
-            ) ;hlist
-            ===
-            ===
-            (refreshable "db-search-results"
-              (resize "400px"
-                "600px"
-                (texmacs-input `(document ,@(db-search-results db kind query))
-                  `(style (tuple ,(db-get-style kind) ,"side-tools"))
-                  (db-search-results-buffer)
-                ) ;texmacs-input
-              ) ;resize
-            ) ;refreshable
-          ) ;let*
+  (padded
+    (let* ((quit* (lambda (x)
+                    (quit x)
+                    (buffer-focus (window->buffer win) #f)
+                    (tool-close :any 'db-search-tool noop win)
+                  ) ;lambda
+           ) ;quit*
+           (dummy (set! db-quit-search quit*))
+           (query "")
+          ) ;
+      (hlist (text "Search:")
+        //
+        //
+        (input (set! query (db-search-keypress db kind answer query))
+          "search-database"
+          (list "")
+          "300px"
+        ) ;input
+      ) ;hlist
+      ===
+      ===
+      (refreshable "db-search-results"
+        (resize "400px"
+          "600px"
+          (texmacs-input
+            `(document ,@(db-search-results db kind query))
+            `(style (tuple ,(db-get-style kind) ,"side-tools"))
+            (db-search-results-buffer)
+          ) ;texmacs-input
+        ) ;resize
+      ) ;refreshable
+    ) ;let*
   ) ;padded
 ) ;tm-tool*
 
@@ -319,9 +325,10 @@
   (refreshable "identity-info"
     (glue #f #f 350 0)
     (form "id-info"
-      (aligned (item (text "Pseudo:")
-                 (form-input "pseudo" "string" (list (get-user-info* "pseudo")) "300px")
-               ) ;item
+      (aligned
+        (item (text "Pseudo:")
+          (form-input "pseudo" "string" (list (get-user-info* "pseudo")) "300px")
+        ) ;item
         (item (text "Full name:")
           (form-input "name" "string" (list (get-user-info* "name")) "300px")
         ) ;item
@@ -329,14 +336,15 @@
           (form-input "email" "string" (list (get-user-info* "email")) "300px")
         ) ;item
         (item (text "GnuPG key:")
-          (hlist (when (and (== (get-preference "experimental encryption") "on") (supports-gpg?))
-                   (with key
-                     (get-user-info "gpg-key-fingerprint")
-                     (text (if (== key "") "" (string-take-right key 8)))
-                   ) ;with
-                   >>
-                   ((icon "tm_add.xpm") (open-gpg-key-manager))
-                 ) ;when
+          (hlist
+            (when (and (== (get-preference "experimental encryption") "on") (supports-gpg?))
+              (with key
+                (get-user-info "gpg-key-fingerprint")
+                (text (if (== key "") "" (string-take-right key 8)))
+              ) ;with
+              >>
+              ((icon "tm_add.xpm") (open-gpg-key-manager))
+            ) ;when
           ) ;hlist
         ) ;item
       ) ;aligned
@@ -348,7 +356,8 @@
       ) ;assuming
       (assuming (not win)
         (glue #f #t 0 0)
-        (hlist (explicit-buttons >> ("Save" (set-identity win (form-fields) (form-values))))
+        (hlist
+          (explicit-buttons >> ("Save" (set-identity win (form-fields) (form-values))))
         ) ;hlist
       ) ;assuming
     ) ;form
@@ -357,7 +366,8 @@
 
 (tm-widget (db-identities-widget)
   (padded ======
-    (hlist (resize "150px" "250px" (vlist (dynamic (db-identities-list #f))))
+    (hlist
+      (resize "150px" "250px" (vlist (dynamic (db-identities-list #f))))
       //
       //
       //
@@ -366,16 +376,17 @@
     ===
     (refreshable "identity-buttons"
       (hlist ((icon "tm_add_2.xpm") (set! adding-user? #t) (refresh-identities #f #f))
-        (if (or adding-user? (> (length (get-users-list)) 1))
-         ((icon "tm_close_tool.xpm")
-          (if adding-user?
-            (begin
-              (set! adding-user? #f)
-              (refresh-identities #f #f)
-            ) ;begin
-            (dialogue-window (delete-user-widget #f) noop "Delete user identity")
-          ) ;if
-         ) ;
+        (if
+          (or adding-user? (> (length (get-users-list)) 1))
+          ((icon "tm_close_tool.xpm")
+           (if adding-user?
+             (begin
+               (set! adding-user? #f)
+               (refresh-identities #f #f)
+             ) ;begin
+             (dialogue-window (delete-user-widget #f) noop "Delete user identity")
+           ) ;if
+          ) ;
         ) ;if
         >>
       ) ;hlist
@@ -388,28 +399,30 @@
   (padded (vlist (dynamic (db-identity-info win))))
   ======
   (division "title" (text "Registered identities"))
-  (centered (resize "200px"
-              "150px"
-              (vlist (dynamic (db-identities-list win))
-                ===
-                (refreshable "identity-buttons"
-                  (hlist ((icon "tm_add_2.xpm") (set! adding-user? #t) (refresh-identities win #f))
-                    (if (or adding-user? (> (length (get-users-list)) 1))
-                     ((icon "tm_close_tool.xpm")
-                      (if adding-user?
-                        (begin
-                          (set! adding-user? #f)
-                          (refresh-identities win #f)
-                        ) ;begin
-                        (dialogue-window (delete-user-widget win) noop "Delete user identity")
-                      ) ;if
-                     ) ;
-                    ) ;if
-                    >>
-                  ) ;hlist
-                ) ;refreshable
-              ) ;vlist
-            ) ;resize
+  (centered
+    (resize "200px"
+      "150px"
+      (vlist (dynamic (db-identities-list win))
+        ===
+        (refreshable "identity-buttons"
+          (hlist ((icon "tm_add_2.xpm") (set! adding-user? #t) (refresh-identities win #f))
+            (if
+              (or adding-user? (> (length (get-users-list)) 1))
+              ((icon "tm_close_tool.xpm")
+               (if adding-user?
+                 (begin
+                   (set! adding-user? #f)
+                   (refresh-identities win #f)
+                 ) ;begin
+                 (dialogue-window (delete-user-widget win) noop "Delete user identity")
+               ) ;if
+              ) ;
+            ) ;if
+            >>
+          ) ;hlist
+        ) ;refreshable
+      ) ;vlist
+    ) ;resize
   ) ;centered
 ) ;tm-tool*
 

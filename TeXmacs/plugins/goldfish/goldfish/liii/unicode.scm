@@ -46,13 +46,14 @@
     (define (utf8-string . chars)
       (let loop
         ((rest chars) (chunks '()))
-        (cond ((null? rest)
-               (if (null? chunks) "" (utf8->string (apply bytevector-append (reverse chunks))))
-              ) ;
-              ((char? (car rest))
-               (loop (cdr rest) (cons (codepoint->utf8 (char->integer (car rest))) chunks))
-              ) ;
-              (else (error 'type-error "utf8-string: expected char" (car rest)))
+        (cond
+         ((null? rest)
+          (if (null? chunks) "" (utf8->string (apply bytevector-append (reverse chunks))))
+         ) ;
+         ((char? (car rest))
+          (loop (cdr rest) (cons (codepoint->utf8 (char->integer (car rest))) chunks))
+         ) ;
+         (else (error 'type-error "utf8-string: expected char" (car rest)))
         ) ;cond
       ) ;let
     ) ;define
@@ -311,13 +312,14 @@
              ) ;let
             ) ;
 
-            (else (let ((byte1 (bitwise-ior 240 (bitwise-and (ash codepoint -18) 7)))
-                        (byte2 (bitwise-ior 128 (bitwise-and (ash codepoint -12) 63)))
-                        (byte3 (bitwise-ior 128 (bitwise-and (ash codepoint -6) 63)))
-                        (byte4 (bitwise-ior 128 (bitwise-and codepoint 63)))
-                       ) ;
-                    (bytevector byte1 byte2 byte3 byte4)
-                  ) ;let
+            (else
+              (let ((byte1 (bitwise-ior 240 (bitwise-and (ash codepoint -18) 7)))
+                    (byte2 (bitwise-ior 128 (bitwise-and (ash codepoint -12) 63)))
+                    (byte3 (bitwise-ior 128 (bitwise-and (ash codepoint -6) 63)))
+                    (byte4 (bitwise-ior 128 (bitwise-and codepoint 63)))
+                   ) ;
+                (bytevector byte1 byte2 byte3 byte4)
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -577,28 +579,29 @@
         ) ;error
       ) ;when
 
-      (cond ((<= codepoint 65535)
-             ;; 基本多文种平面字符 - 单个码元
-             (let ((high-byte (ash codepoint -8)) (low-byte (bitwise-and codepoint 255)))
-               (bytevector high-byte low-byte)
-             ) ;let
-            ) ;
+      (cond
+       ((<= codepoint 65535)
+        ;; 基本多文种平面字符 - 单个码元
+        (let ((high-byte (ash codepoint -8)) (low-byte (bitwise-and codepoint 255)))
+          (bytevector high-byte low-byte)
+        ) ;let
+       ) ;
 
-            (else
-              ;; 辅助平面字符 - 代理对
-              (let* ((codepoint-prime (- codepoint 65536))
-                     (high-surrogate (+ 55296 (ash codepoint-prime -10)))
-                     (low-surrogate (+ 56320 (bitwise-and codepoint-prime 1023)))
-                     (high-surrogate-high (ash high-surrogate -8))
-                     (high-surrogate-low (bitwise-and high-surrogate 255))
-                     (low-surrogate-high (ash low-surrogate -8))
-                     (low-surrogate-low (bitwise-and low-surrogate 255))
-                    ) ;
-                (bytevector high-surrogate-high high-surrogate-low
-                  low-surrogate-high low-surrogate-low
-                ) ;bytevector
-              ) ;let*
-            ) ;else
+       (else
+         ;; 辅助平面字符 - 代理对
+         (let* ((codepoint-prime (- codepoint 65536))
+                (high-surrogate (+ 55296 (ash codepoint-prime -10)))
+                (low-surrogate (+ 56320 (bitwise-and codepoint-prime 1023)))
+                (high-surrogate-high (ash high-surrogate -8))
+                (high-surrogate-low (bitwise-and high-surrogate 255))
+                (low-surrogate-high (ash low-surrogate -8))
+                (low-surrogate-low (bitwise-and low-surrogate 255))
+               ) ;
+           (bytevector high-surrogate-high high-surrogate-low low-surrogate-high
+             low-surrogate-low
+           ) ;bytevector
+         ) ;let*
+       ) ;else
       ) ;cond
     ) ;define
 
@@ -621,38 +624,39 @@
                (first-codepoint (+ (ash first-high 8) first-low))
               ) ;
 
-          (cond ((<= 55296 first-codepoint 56319)
-                 ;; 高代理对 - 需要低代理对
-                 (when (< len 4)
-                   (error 'value-error "utf16be->codepoint: incomplete surrogate pair")
-                 ) ;when
+          (cond
+           ((<= 55296 first-codepoint 56319)
+            ;; 高代理对 - 需要低代理对
+            (when (< len 4)
+              (error 'value-error "utf16be->codepoint: incomplete surrogate pair")
+            ) ;when
 
-                 (let* ((second-high (bytevector-u8-ref bv 2))
-                        (second-low (bytevector-u8-ref bv 3))
-                        (second-codepoint (+ (ash second-high 8) second-low))
-                       ) ;
+            (let* ((second-high (bytevector-u8-ref bv 2))
+                   (second-low (bytevector-u8-ref bv 3))
+                   (second-codepoint (+ (ash second-high 8) second-low))
+                  ) ;
 
-                   (unless (<= 56320 second-codepoint 57343)
-                     (error 'value-error "utf16be->codepoint: invalid low surrogate")
-                   ) ;unless
+              (unless (<= 56320 second-codepoint 57343)
+                (error 'value-error "utf16be->codepoint: invalid low surrogate")
+              ) ;unless
 
-                   (let ((codepoint-prime (+ (ash (- first-codepoint 55296) 10) (- second-codepoint 56320))
-                         ) ;codepoint-prime
-                        ) ;
-                     (+ codepoint-prime 65536)
-                   ) ;let
-                 ) ;let*
-                ) ;
+              (let ((codepoint-prime (+ (ash (- first-codepoint 55296) 10) (- second-codepoint 56320))
+                    ) ;codepoint-prime
+                   ) ;
+                (+ codepoint-prime 65536)
+              ) ;let
+            ) ;let*
+           ) ;
 
-                ((<= 56320 first-codepoint 57343)
-                 ;; 低代理对作为第一个码元 - 无效
-                 (error 'value-error "utf16be->codepoint: invalid high surrogate")
-                ) ;
+           ((<= 56320 first-codepoint 57343)
+            ;; 低代理对作为第一个码元 - 无效
+            (error 'value-error "utf16be->codepoint: invalid high surrogate")
+           ) ;
 
-                (else
-                  ;; 基本多文种平面字符 - 单个码元
-                  first-codepoint
-                ) ;else
+           (else
+             ;; 基本多文种平面字符 - 单个码元
+             first-codepoint
+           ) ;else
           ) ;cond
         ) ;let*
       ) ;let
@@ -678,28 +682,29 @@
         ) ;error
       ) ;when
 
-      (cond ((<= codepoint 65535)
-             ;; 基本多文种平面字符 - 单个码元
-             (let ((low-byte (bitwise-and codepoint 255)) (high-byte (ash codepoint -8)))
-               (bytevector low-byte high-byte)
-             ) ;let
-            ) ;
+      (cond
+       ((<= codepoint 65535)
+        ;; 基本多文种平面字符 - 单个码元
+        (let ((low-byte (bitwise-and codepoint 255)) (high-byte (ash codepoint -8)))
+          (bytevector low-byte high-byte)
+        ) ;let
+       ) ;
 
-            (else
-              ;; 辅助平面字符 - 代理对
-              (let* ((codepoint-prime (- codepoint 65536))
-                     (high-surrogate (+ 55296 (ash codepoint-prime -10)))
-                     (low-surrogate (+ 56320 (bitwise-and codepoint-prime 1023)))
-                     (high-surrogate-low (bitwise-and high-surrogate 255))
-                     (high-surrogate-high (ash high-surrogate -8))
-                     (low-surrogate-low (bitwise-and low-surrogate 255))
-                     (low-surrogate-high (ash low-surrogate -8))
-                    ) ;
-                (bytevector high-surrogate-low high-surrogate-high
-                  low-surrogate-low low-surrogate-high
-                ) ;bytevector
-              ) ;let*
-            ) ;else
+       (else
+         ;; 辅助平面字符 - 代理对
+         (let* ((codepoint-prime (- codepoint 65536))
+                (high-surrogate (+ 55296 (ash codepoint-prime -10)))
+                (low-surrogate (+ 56320 (bitwise-and codepoint-prime 1023)))
+                (high-surrogate-low (bitwise-and high-surrogate 255))
+                (high-surrogate-high (ash high-surrogate -8))
+                (low-surrogate-low (bitwise-and low-surrogate 255))
+                (low-surrogate-high (ash low-surrogate -8))
+               ) ;
+           (bytevector high-surrogate-low high-surrogate-high low-surrogate-low
+             low-surrogate-high
+           ) ;bytevector
+         ) ;let*
+       ) ;else
       ) ;cond
     ) ;define
 
@@ -722,38 +727,39 @@
                (first-codepoint (+ (ash first-high 8) first-low))
               ) ;
 
-          (cond ((<= 55296 first-codepoint 56319)
-                 ;; 高代理对 - 需要低代理对
-                 (when (< len 4)
-                   (error 'value-error "utf16le->codepoint: incomplete surrogate pair")
-                 ) ;when
+          (cond
+           ((<= 55296 first-codepoint 56319)
+            ;; 高代理对 - 需要低代理对
+            (when (< len 4)
+              (error 'value-error "utf16le->codepoint: incomplete surrogate pair")
+            ) ;when
 
-                 (let* ((second-low (bytevector-u8-ref bv 2))
-                        (second-high (bytevector-u8-ref bv 3))
-                        (second-codepoint (+ (ash second-high 8) second-low))
-                       ) ;
+            (let* ((second-low (bytevector-u8-ref bv 2))
+                   (second-high (bytevector-u8-ref bv 3))
+                   (second-codepoint (+ (ash second-high 8) second-low))
+                  ) ;
 
-                   (unless (<= 56320 second-codepoint 57343)
-                     (error 'value-error "utf16le->codepoint: invalid low surrogate")
-                   ) ;unless
+              (unless (<= 56320 second-codepoint 57343)
+                (error 'value-error "utf16le->codepoint: invalid low surrogate")
+              ) ;unless
 
-                   (let ((codepoint-prime (+ (ash (- first-codepoint 55296) 10) (- second-codepoint 56320))
-                         ) ;codepoint-prime
-                        ) ;
-                     (+ codepoint-prime 65536)
-                   ) ;let
-                 ) ;let*
-                ) ;
+              (let ((codepoint-prime (+ (ash (- first-codepoint 55296) 10) (- second-codepoint 56320))
+                    ) ;codepoint-prime
+                   ) ;
+                (+ codepoint-prime 65536)
+              ) ;let
+            ) ;let*
+           ) ;
 
-                ((<= 56320 first-codepoint 57343)
-                 ;; 低代理对作为第一个码元 - 无效
-                 (error 'value-error "utf16le->codepoint: invalid high surrogate")
-                ) ;
+           ((<= 56320 first-codepoint 57343)
+            ;; 低代理对作为第一个码元 - 无效
+            (error 'value-error "utf16le->codepoint: invalid high surrogate")
+           ) ;
 
-                (else
-                  ;; 基本多文种平面字符 - 单个码元
-                  first-codepoint
-                ) ;else
+           (else
+             ;; 基本多文种平面字符 - 单个码元
+             first-codepoint
+           ) ;else
           ) ;cond
         ) ;let*
       ) ;let

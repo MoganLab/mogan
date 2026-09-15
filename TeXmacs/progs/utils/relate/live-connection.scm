@@ -20,12 +20,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (patch->modlist p)
-  (cond ((patch-pair? p) (list (modification->scheme (patch-direct p))))
-        ((patch-compound? p) (append-map patch->modlist (patch-children p)))
-        ((patch-branch? p) (patch->modlist (patch-ref p 0)))
-        ((patch-birth? p) (list))
-        ((patch-author? p) (patch->modlist (patch-ref p 0)))
-        (else (list))
+  (cond
+   ((patch-pair? p) (list (modification->scheme (patch-direct p))))
+   ((patch-compound? p) (append-map patch->modlist (patch-children p)))
+   ((patch-branch? p) (patch->modlist (patch-ref p 0)))
+   ((patch-birth? p) (list))
+   ((patch-author? p) (patch->modlist (patch-ref p 0)))
+   (else (list))
   ) ;cond
 ) ;tm-define
 

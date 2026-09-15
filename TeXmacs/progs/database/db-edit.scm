@@ -69,10 +69,11 @@
 
 (tm-define (db-field-find l attr)
   (and (nnull? l)
-    (or (and (db-field-any? (car l))
-          (tm-equal? (tm-ref (car l) 0) attr)
-          (tm-ref (car l) 1)
-        ) ;and
+    (or
+      (and (db-field-any? (car l))
+        (tm-equal? (tm-ref (car l) 0) attr)
+        (tm-ref (car l) 1)
+      ) ;and
       (db-field-find (cdr l) attr)
     ) ;or
   ) ;and
@@ -91,10 +92,12 @@
 (tm-define (db-field-set l attr val)
   (if (null? l)
     l
-    (cons (if (and (db-field-any? (car l)) (tm-equal? (tm-ref (car l) 0) attr))
-            `(db-field ,attr ,val)
-            (car l)
-          ) ;if
+    (cons
+      (if
+        (and (db-field-any? (car l)) (tm-equal? (tm-ref (car l) 0) attr))
+        `(db-field ,attr ,val)
+        (car l)
+      ) ;if
       (db-field-set (cdr l) attr val)
     ) ;cons
   ) ;if
@@ -103,21 +106,18 @@
 (tm-define (db-entry-set t attr val)
   (and (db-entry-any? t)
     (let* ((lab (tm-label t)) (l (tm-children t)))
-      (cond ((== attr "id") `(,lab ,val ,@(cdr l)))
-            ((== attr "type") `(,lab ,(car l) ,val ,@(cddr l)))
-            ((== attr "name") `(,lab ,(car l) ,(cadr l) ,val ,@(cdddr l)))
-            (else (with r
-                    (db-field-set (tm-children (cAr l)) attr val)
-                    (if (not (db-field-find r attr)) (set! r (rcons r `(db-field ,attr
-                                                                         ,val))))
-                    `(,lab
-                      ,(car l)
-                      ,(cadr l)
-                      ,(caddr l)
-                      ,(cadddr l)
-                      (document ,@r))
-                  ) ;with
-            ) ;else
+      (cond
+       ((== attr "id") `(,lab ,val ,@(cdr l)))
+       ((== attr "type") `(,lab ,(car l) ,val ,@(cddr l)))
+       ((== attr "name") `(,lab ,(car l) ,(cadr l) ,val ,@(cdddr l)))
+       (else
+         (with r
+           (db-field-set (tm-children (cAr l)) attr val)
+           (if (not (db-field-find r attr)) (set! r (rcons r `(db-field ,attr
+                                                                ,val))))
+           `(,lab ,(car l) ,(cadr l) ,(caddr l) ,(cadddr l) (document ,@r))
+         ) ;with
+       ) ;else
       ) ;cond
     ) ;let*
   ) ;and
@@ -128,7 +128,8 @@
     l
     (with r
       (db-field-remove (cdr l) attr)
-      (if (and (db-field-any? (car l)) (tm-equal? (tm-ref (car l) 0) attr))
+      (if
+        (and (db-field-any? (car l)) (tm-equal? (tm-ref (car l) 0) attr))
         r
         (cons (car l) r)
       ) ;if
@@ -153,7 +154,8 @@
 ) ;tm-define
 
 (tm-define (db-field-rename t a)
-  (if (not (and (db-field-any? t) (assoc-ref a (tm-ref t 0))))
+  (if
+    (not (and (db-field-any? t) (assoc-ref a (tm-ref t 0))))
     t
     `(db-field ,(assoc-ref a (tm-ref t 0)) ,(tm-ref t 1))
   ) ;if
@@ -180,34 +182,36 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (complete-fields-or l alt all)
-  (cond ((null? alt)
-         (with make (lambda (x) `(db-field-alternative ,x ,"")) (map make all))
-        ) ;
-        ((nin? (db-field-find l (car alt)) (list "" #f))
-         (with val (db-field-find l (car alt)) (list `(db-field ,(car alt) ,val)))
-        ) ;
-        (else (complete-fields-or l (cdr alt) all))
+  (cond
+   ((null? alt)
+    (with make (lambda (x) `(db-field-alternative ,x ,"")) (map make all))
+   ) ;
+   ((nin? (db-field-find l (car alt)) (list "" #f))
+    (with val (db-field-find l (car alt)) (list `(db-field ,(car alt) ,val)))
+   ) ;
+   (else (complete-fields-or l (cdr alt) all))
   ) ;cond
 ) ;define
 
 (define (complete-fields l fm opt?)
-  (cond ((func? fm 'and)
-         (with r (map (cut complete-fields l <> opt?) (cdr fm)) (apply append r))
-        ) ;
-        ((string? fm)
-         (with val (or (db-field-find l fm) "") (list `(db-field ,fm ,val)))
-        ) ;
-        ((and (func? fm 'optional 1) (string? (cadr fm)))
-         (let* ((val (or (db-field-find l (cadr fm)) ""))
-                (tag (if (== val "") 'db-field-optional 'db-field))
-               ) ;
-           (if (or opt? (!= val "")) (list `(,tag ,(cadr fm) ,val)) (list))
-         ) ;let*
-        ) ;
-        ((and (func? fm 'or) (nnull? (cdr fm)) (list-and (map string? (cdr fm))))
-         (complete-fields-or l (cdr fm) (cdr fm))
-        ) ;
-        (else (list))
+  (cond
+   ((func? fm 'and)
+    (with r (map (cut complete-fields l <> opt?) (cdr fm)) (apply append r))
+   ) ;
+   ((string? fm)
+    (with val (or (db-field-find l fm) "") (list `(db-field ,fm ,val)))
+   ) ;
+   ((and (func? fm 'optional 1) (string? (cadr fm)))
+    (let* ((val (or (db-field-find l (cadr fm)) ""))
+           (tag (if (== val "") 'db-field-optional 'db-field))
+          ) ;
+      (if (or opt? (!= val "")) (list `(,tag ,(cadr fm) ,val)) (list))
+    ) ;let*
+   ) ;
+   ((and (func? fm 'or) (nnull? (cdr fm)) (list-and (map string? (cdr fm))))
+    (complete-fields-or l (cdr fm) (cdr fm))
+   ) ;
+   (else (list))
   ) ;cond
 ) ;define
 
@@ -319,20 +323,21 @@
 (define (db-first-empty-field t all?)
   (and-with res
     (tree-search-upwards t db-entry-any?)
-    (cond ((and all? (tree-empty? (tree-ref res 2))) (tree-ref res 2))
-          ((> (tree-arity (tree-ref res :last)) 0)
-           (with e
-             (tree-ref res :last 0)
-             (with f
-               (if (and (db-field-any? e) (tree-empty? (tree-ref e 1)))
-                 e
-                 (db-next-empty-field e)
-               ) ;if
-               (and f (tree-ref f 1))
-             ) ;with
-           ) ;with
-          ) ;
-          (else #f)
+    (cond
+     ((and all? (tree-empty? (tree-ref res 2))) (tree-ref res 2))
+     ((> (tree-arity (tree-ref res :last)) 0)
+      (with e
+        (tree-ref res :last 0)
+        (with f
+          (if (and (db-field-any? e) (tree-empty? (tree-ref e 1)))
+            e
+            (db-next-empty-field e)
+          ) ;if
+          (and f (tree-ref f 1))
+        ) ;with
+      ) ;with
+     ) ;
+     (else #f)
     ) ;cond
   ) ;and-with
 ) ;define
@@ -342,9 +347,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (get-alternatives l attr)
-  (cond ((func? l 'and) (list-or (map (cut get-alternatives <> attr) (cdr l))))
-        ((func? l 'or) (and (in? attr (cdr l)) (cdr l)))
-        (else #f)
+  (cond
+   ((func? l 'and) (list-or (map (cut get-alternatives <> attr) (cdr l))))
+   ((func? l 'or) (and (in? attr (cdr l)) (cdr l)))
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -428,13 +434,14 @@
       (let* ((i (tree-index (tree-down doc)))
              (id (with-database (user-database) (db-create-id)))
              (date (number->string (current-time)))
-             (res `(db-entry ,id
-                     ,type
-                     ,""
-                     (document (db-field ,"contributor" ,(get-default-user))
-                       (db-field "modus" "manual")
-                       (db-field ,"date" ,date))
-                     (document))
+             (res
+               `(db-entry ,id
+                  ,type
+                  ,""
+                  (document (db-field ,"contributor" ,(get-default-user))
+                    (db-field "modus" "manual")
+                    (db-field ,"date" ,date))
+                  (document))
              ) ;res
             ) ;
         (tree-insert! doc (+ i 1) (list res))
@@ -612,7 +619,8 @@
     (tree-go-to t 2 :end)
     (with u
       (tree-ref t :last)
-      (for (i (reverse (.. 0 (tm-arity u))))
+      (for
+        (i (reverse (.. 0 (tm-arity u))))
         (when (db-field-optional? (tree-ref u i))
           (tree-remove! u i 1)
         ) ;when
@@ -743,7 +751,9 @@
 (tm-define (kbd-enter t shift?)
   (:require (db-field-alternative? t))
   (let* ((alts (or (db-alternative-fields t) (list)))
-         (pred? (lambda (f) (not (tree-empty? (tree-ref f 1)))))
+         (pred?
+           (lambda (f) (not (tree-empty? (tree-ref f 1))))
+         ) ;pred?
          (ok (list-filter alts pred?))
         ) ;
     (cond ((null? ok)
@@ -756,17 +766,18 @@
              "db-field-alternative"
            ) ;set-message
           ) ;
-          (else (with a
-                  (car ok)
-                  (tree-go-to a 1 :end)
-                  (tree-assign-node! a 'db-field)
-                  (for (f alts)
-                    (when (db-field-alternative? f)
-                      (tree-remove (tree-ref f :up) (tree-index f) 1)
-                    ) ;when
-                  ) ;for
-                  (with next (db-next-field a) (if next (tree-go-to next 1 :end)))
-                ) ;with
+          (else
+            (with a
+              (car ok)
+              (tree-go-to a 1 :end)
+              (tree-assign-node! a 'db-field)
+              (for (f alts)
+                (when (db-field-alternative? f)
+                  (tree-remove (tree-ref f :up) (tree-index f) 1)
+                ) ;when
+              ) ;for
+              (with next (db-next-field a) (if next (tree-go-to next 1 :end)))
+            ) ;with
           ) ;else
     ) ;cond
   ) ;let*
@@ -790,44 +801,46 @@
 
 (tm-define (kbd-remove t forwards?)
   (:require (and (db-entry? t) (not (selection-active-any?))))
-  (cond ((and (cursor-inside? (tree-ref t 2))
-           (tree-empty? (tree-ref t 2))
-           (tree-empty? (tree-ref t :last))
-         ) ;and
-         (tree-cut t)
-        ) ;
-        ((and (tree-at-start? (tree-ref t 2)) (not forwards?)) (tree-go-to t :start))
-        ((and (tree-at-end? (tree-ref t 2)) forwards?)
-         (with f (db-first-field t #f) (if f (tree-go-to f :start) (tree-go-to t :end)))
-        ) ;
-        ((cursor-inside? (tree-ref t 2)) (former t forwards?))
-        ((and (tree-at-start? (tree-ref t :last)) (not forwards?))
-         (tree-go-to t 2 :end)
-        ) ;
-        ((and (not (db-field-any? (cursor-tree))) (with-innermost u db-field-any? u))
-         (former t forwards?)
-        ) ;
-        ((not forwards?) (kbd-left))
-        (forwards? (kbd-right))
+  (cond
+   ((and (cursor-inside? (tree-ref t 2))
+      (tree-empty? (tree-ref t 2))
+      (tree-empty? (tree-ref t :last))
+    ) ;and
+    (tree-cut t)
+   ) ;
+   ((and (tree-at-start? (tree-ref t 2)) (not forwards?)) (tree-go-to t :start))
+   ((and (tree-at-end? (tree-ref t 2)) forwards?)
+    (with f (db-first-field t #f) (if f (tree-go-to f :start) (tree-go-to t :end)))
+   ) ;
+   ((cursor-inside? (tree-ref t 2)) (former t forwards?))
+   ((and (tree-at-start? (tree-ref t :last)) (not forwards?))
+    (tree-go-to t 2 :end)
+   ) ;
+   ((and (not (db-field-any? (cursor-tree))) (with-innermost u db-field-any? u))
+    (former t forwards?)
+   ) ;
+   ((not forwards?) (kbd-left))
+   (forwards? (kbd-right))
   ) ;cond
 ) ;tm-define
 
 (tm-define (kbd-remove t forwards?)
   (:require (and (db-field-any? t) (not (selection-active-any?))))
-  (cond ((and (cursor-inside? (tree-ref t 1)) (tree-empty? (tree-ref t 1)))
-         (let* ((next (if forwards? (db-next-field t) (db-previous-field t)))
-                (res (tree-search-upwards t 'db-entry))
-               ) ;
-           (cond (next (tree-go-to next 1 (if forwards? :start :end)))
-                 ((and (not forwards?) res) (tree-go-to res 2 :end))
-                 ((and forwards? res) (tree-go-to res 1))
-           ) ;cond
-           (tree-remove (tree-up t) (tree-index t) 1)
-         ) ;let*
-        ) ;
-        ((and (tree-at-start? (tree-ref t 1)) (not forwards?)) (tree-go-to t :start))
-        ((and (tree-at-end? (tree-ref t 1)) forwards?) (tree-go-to t :end))
-        (else (former t forwards?))
+  (cond
+   ((and (cursor-inside? (tree-ref t 1)) (tree-empty? (tree-ref t 1)))
+    (let* ((next (if forwards? (db-next-field t) (db-previous-field t)))
+           (res (tree-search-upwards t 'db-entry))
+          ) ;
+      (cond (next (tree-go-to next 1 (if forwards? :start :end)))
+            ((and (not forwards?) res) (tree-go-to res 2 :end))
+            ((and forwards? res) (tree-go-to res 1))
+      ) ;cond
+      (tree-remove (tree-up t) (tree-index t) 1)
+    ) ;let*
+   ) ;
+   ((and (tree-at-start? (tree-ref t 1)) (not forwards?)) (tree-go-to t :start))
+   ((and (tree-at-end? (tree-ref t 1)) forwards?) (tree-go-to t :end))
+   (else (former t forwards?))
   ) ;cond
 ) ;tm-define
 
@@ -840,11 +853,13 @@
         (tree-arity p)
         (when (and (tm-equal? t "") (tree-is? p 'document) (> n 1))
           (let* ((i (tree-index t))
-                 (j (cond ((and forwards? (< i (- n 1))) (+ i 1))
-                          (forwards? (- i 1))
-                          ((and (not forwards?) (> i 0)) (- i 1))
-                          ((not forwards?) (+ i 1))
-                    ) ;cond
+                 (j
+                   (cond
+                    ((and forwards? (< i (- n 1))) (+ i 1))
+                    (forwards? (- i 1))
+                    ((and (not forwards?) (> i 0)) (- i 1))
+                    ((not forwards?) (+ i 1))
+                   ) ;cond
                  ) ;j
                 ) ;
             (if (db-entry-any? (tree-ref p j))

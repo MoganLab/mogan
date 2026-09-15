@@ -114,23 +114,25 @@
 (define comment-mode :show)
 
 (tm-define (comment-context? t)
-  (and (tm-in? t
-         (cond ((== comment-mode :show) (comment-tag-list))
-               ((== comment-mode :hide) (hidden-comment-tag-list))
-               (else (any-comment-tag-list))
-         ) ;cond
-       ) ;tm-in?
+  (and
+    (tm-in? t
+      (cond ((== comment-mode :show) (comment-tag-list))
+            ((== comment-mode :hide) (hidden-comment-tag-list))
+            (else (any-comment-tag-list))
+      ) ;cond
+    ) ;tm-in?
     (== (tm-arity t) 7)
   ) ;and
 ) ;tm-define
 
 (tm-define (folded-comment-context? t)
-  (and (tree-in? t
-         (cond ((== comment-mode :show) (folded-comment-tag-list))
-               ((== comment-mode :hide) (hidden-folded-comment-tag-list))
-               (else (any-folded-comment-tag-list))
-         ) ;cond
-       ) ;tree-in?
+  (and
+    (tree-in? t
+      (cond ((== comment-mode :show) (folded-comment-tag-list))
+            ((== comment-mode :hide) (hidden-folded-comment-tag-list))
+            (else (any-folded-comment-tag-list))
+      ) ;cond
+    ) ;tree-in?
     (== (tree-arity t) 7)
   ) ;and
 ) ;tm-define
@@ -360,7 +362,9 @@
 (tm-define (comment-toggle-type tp)
   (let* ((new-mode (if (comment-test-type? tp) :hide :show))
          (l (with-global comment-mode :all (comment-list)))
-         (f (list-filter l (lambda (c) (== (comment-type c) tp))))
+         (f
+           (list-filter l (lambda (c) (== (comment-type c) tp)))
+         ) ;f
         ) ;
     (operate-on-comments-in new-mode f)
   ) ;let*
@@ -393,7 +397,9 @@
 (tm-define (comment-toggle-by by)
   (let* ((new-mode (if (comment-test-by? by) :hide :show))
          (l (with-global comment-mode :all (comment-list)))
-         (f (list-filter l (lambda (c) (== (comment-by c) by))))
+         (f
+           (list-filter l (lambda (c) (== (comment-by c) by)))
+         ) ;f
         ) ;
     (operate-on-comments-in new-mode f)
   ) ;let*

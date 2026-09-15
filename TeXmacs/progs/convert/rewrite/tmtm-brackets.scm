@@ -18,13 +18,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (large-bracket l s)
-  (cond ((nstring? s) `(,l ,"."))
-        ((<= (string-length s) 1) `(,l ,s))
-        ((== s "<nobracket>") `(,l ,"."))
-        ((and (string-starts? s "<") (string-ends? s ">"))
-         `(,l ,(substring s 1 (- (string-length s) 1)))
-        ) ;
-        (else `(,l ,"."))
+  (cond
+   ((nstring? s) `(,l ,"."))
+   ((<= (string-length s) 1) `(,l ,s))
+   ((== s "<nobracket>") `(,l ,"."))
+   ((and (string-starts? s "<") (string-ends? s ">"))
+    `(,l ,(substring s 1 (- (string-length s) 1)))
+   ) ;
+   (else `(,l ,"."))
   ) ;cond
 ) ;tm-define
 
@@ -53,11 +54,15 @@
 (define (contains-tags? t l)
   (cond ((or (nlist? t) (null? t)) #f)
         ((in? (car t) l) #t)
-        (else (with found?
-                #f
-                (for-each (lambda (x) (set! found? (or found? (contains-tags? x l)))) t)
-                found?
-              ) ;with
+        (else
+          (with found?
+            #f
+            (for-each
+              (lambda (x) (set! found? (or found? (contains-tags? x l))))
+              t
+            ) ;for-each
+            found?
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define
@@ -68,26 +73,28 @@
   ;;   level : unmatched number of left brackets
   ;;   l'    : completed list
   ;;   level': unmatched number of right brackets
-  (cond ((null? l) (list (make-list level '(right ".")) 0))
-        ((func? (car l) 'left 1)
-         (let ((result (tmtm-match-brackets-sub (cdr l) (+ level 1))))
-           (list (cons (car l) (car result)) (cadr result))
-         ) ;let
-        ) ;
-        ((and (func? (car l) 'right 1) (> level 0))
-         (let ((result (tmtm-match-brackets-sub (cdr l) (- level 1))))
-           (list (cons (car l) (car result)) (cadr result))
-         ) ;let
-        ) ;
-        ((func? (car l) 'right 1)
-         (let ((result (tmtm-match-brackets-sub (cdr l) 0)))
-           (list (cons (car l) (car result)) (+ (cadr result) 1))
-         ) ;let
-        ) ;
-        (else (let ((result (tmtm-match-brackets-sub (cdr l) level)))
-                (list (cons (car l) (car result)) (cadr result))
-              ) ;let
-        ) ;else
+  (cond
+   ((null? l) (list (make-list level '(right ".")) 0))
+   ((func? (car l) 'left 1)
+    (let ((result (tmtm-match-brackets-sub (cdr l) (+ level 1))))
+      (list (cons (car l) (car result)) (cadr result))
+    ) ;let
+   ) ;
+   ((and (func? (car l) 'right 1) (> level 0))
+    (let ((result (tmtm-match-brackets-sub (cdr l) (- level 1))))
+      (list (cons (car l) (car result)) (cadr result))
+    ) ;let
+   ) ;
+   ((func? (car l) 'right 1)
+    (let ((result (tmtm-match-brackets-sub (cdr l) 0)))
+      (list (cons (car l) (car result)) (+ (cadr result) 1))
+    ) ;let
+   ) ;
+   (else
+     (let ((result (tmtm-match-brackets-sub (cdr l) level)))
+       (list (cons (car l) (car result)) (cadr result))
+     ) ;let
+   ) ;else
   ) ;cond
 ) ;define
 

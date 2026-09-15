@@ -41,11 +41,12 @@
 ) ;define
 
 (define (link-flatten-sub t)
-  (cond ((tm-func? t 'script)
-         (cons* 'script (tree->stree (tree-ref t 0)) (cdr (tree-children t)))
-        ) ;
-        ((tm-func? t 'attr) (list->assoc-list (cdr (tree->stree t))))
-        (else (tree->stree t))
+  (cond
+   ((tm-func? t 'script)
+    (cons* 'script (tree->stree (tree-ref t 0)) (cdr (tree-children t)))
+   ) ;
+   ((tm-func? t 'attr) (list->assoc-list (cdr (tree->stree t))))
+   (else (tree->stree t))
   ) ;cond
 ) ;define
 
@@ -180,7 +181,10 @@
           ((observer? p)
            (with t
              (tree-pointer->tree p)
-             (cons `(id ,(locus-id t)) (link-vertices (+ nr 1)))
+             (cons
+               `(id ,(locus-id t))
+               (link-vertices (+ nr 1))
+             ) ;cons
            ) ;with
           ) ;
           (else (cons p (link-vertices (+ nr 1))))
@@ -210,24 +214,27 @@
 (define (link-build type)
   (let* ((ts (link-get-trees 0))
          (vs (link-vertices 0))
-         (ln (tm->tree `(link ,type ,@vs)))
+         (ln
+           (tm->tree `(link ,type ,@vs))
+         ) ;ln
         ) ;
     (when (and (nnull? vs) (list-and (map locus-id ts)))
-      (cond ((== current-link-mode "simple")
-             (and-let* ((tp (ahash-ref link-participants 0))
-                        (d (observer? tp))
-                        (t (tree-pointer->tree tp))
-                       ) ;
-               (locus-insert-link t ln)
-             ) ;and-let*
-            ) ;
-            ((== current-link-mode "bidirectional")
-             (for-each (cut locus-insert-link <> ln) ts)
-            ) ;
-            ((== current-link-mode "external")
-             (with-innermost t 'locus (locus-insert-link t ln))
-            ) ;
-            (else (set-message "Unsupported link mode" "Make link"))
+      (cond
+       ((== current-link-mode "simple")
+        (and-let* ((tp (ahash-ref link-participants 0))
+                   (d (observer? tp))
+                   (t (tree-pointer->tree tp))
+                  ) ;
+          (locus-insert-link t ln)
+        ) ;and-let*
+       ) ;
+       ((== current-link-mode "bidirectional")
+        (for-each (cut locus-insert-link <> ln) ts)
+       ) ;
+       ((== current-link-mode "external")
+        (with-innermost t 'locus (locus-insert-link t ln))
+       ) ;
+       (else (set-message "Unsupported link mode" "Make link"))
       ) ;cond
     ) ;when
   ) ;let*
@@ -249,12 +256,16 @@
 (define (locus-consider-link? ln check-mode?)
   (and (tm-func? ln 'link)
     (or (not check-mode?)
-      (cond ((== current-link-mode "simple")
-             (and-let* ((id1 (locus-id (tree-up ln))) (id2 (link-source ln))) (== id1 id2))
-            ) ;
-            ((== current-link-mode "bidirectional") #t)
-            ((== current-link-mode "external") #t)
-            (else #f)
+      (cond
+       ((== current-link-mode "simple")
+        (and-let*
+         ((id1 (locus-id (tree-up ln))) (id2 (link-source ln)))
+         (== id1 id2)
+        ) ;and-let*
+       ) ;
+       ((== current-link-mode "bidirectional") #t)
+       ((== current-link-mode "external") #t)
+       (else #f)
       ) ;cond
     ) ;or
   ) ;and
@@ -285,7 +296,9 @@
             ((== current-link-mode "bidirectional")
              (let* ((ids (filter-map vertex->id (link-vertices st)))
                     (ts1 (append-map id->loci ids))
-                    (fun (lambda (t) (not (tree-eq? t (tree-up ln)))))
+                    (fun
+                      (lambda (t) (not (tree-eq? t (tree-up ln))))
+                    ) ;fun
                     (ts2 (list-filter ts1 fun))
                    ) ;
                (for-each (cut locus-remove-all-links <> ln) ts2)

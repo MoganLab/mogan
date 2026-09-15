@@ -108,13 +108,14 @@
 (define (macro-retrieve u)
   (and-with t
     (macro-retrieve* u)
-    (cond ((tm-is? (tree-ref t :last) 'inactive*)
-           `(,(tm-label t) ,@(cDr (tm-children t)) ,(tree-ref t :last 0))
-          ) ;
-          ((tm-is? (tree-ref t :last) 'edit-math)
-           `(,(tm-label t) ,@(cDr (tm-children t)) ,(tree-ref t :last 0))
-          ) ;
-          (else t)
+    (cond
+     ((tm-is? (tree-ref t :last) 'inactive*)
+      `(,(tm-label t) ,@(cDr (tm-children t)) ,(tree-ref t :last 0))
+     ) ;
+     ((tm-is? (tree-ref t :last) 'edit-math)
+      `(,(tm-label t) ,@(cDr (tm-children t)) ,(tree-ref t :last 0))
+     ) ;
+     (else t)
     ) ;cond
   ) ;and-with
 ) ;define
@@ -133,11 +134,12 @@
     (macro-retrieve u)
     (with t*
       (macro-retrieve* u)
-      (cond ((== mode "Source") (tree-set t* :last `(inactive* ,(cAr (tm-children t)))))
-            ((== mode "Mathematics")
-             (tree-set t* :last `(edit-math ,(cAr (tm-children t))))
-            ) ;
-            (else (tree-set t* :last (cAr (tm-children t))))
+      (cond
+       ((== mode "Source") (tree-set t* :last `(inactive* ,(cAr (tm-children t)))))
+       ((== mode "Mathematics")
+        (tree-set t* :last `(edit-math ,(cAr (tm-children t))))
+       ) ;
+       (else (tree-set t* :last (cAr (tm-children t))))
       ) ;cond
       (refresh-now "macro-editor-mode")
     ) ;with
@@ -168,18 +170,20 @@
          (old (get-definition* l buf))
          (new `(assign ,l ,mac))
         ) ;
-    (cond ((or (not (buffer-exists? u)) (not (buffer-exists? b))) #f)
-          ((and old (tree->path old)) (tree-set old 1 mac))
-          (else (when (not (document-has-preamble? buf))
-                  (tree-insert! buf 0 '((hide-preamble (document ""))))
-                ) ;when
-            (when (document-has-preamble? buf)
-              (with pre (tree-ref buf 0 0) (preamble-insert pre new))
-            ) ;when
-            (when (!= m b)
-              (macro-set-value l mac b)
-            ) ;when
-          ) ;else
+    (cond
+     ((or (not (buffer-exists? u)) (not (buffer-exists? b))) #f)
+     ((and old (tree->path old)) (tree-set old 1 mac))
+     (else
+       (when (not (document-has-preamble? buf))
+         (tree-insert! buf 0 '((hide-preamble (document ""))))
+       ) ;when
+       (when (document-has-preamble? buf)
+         (with pre (tree-ref buf 0 0) (preamble-insert pre new))
+       ) ;when
+       (when (!= m b)
+         (macro-set-value l mac b)
+       ) ;when
+     ) ;else
     ) ;cond
   ) ;let*
 ) ;define
@@ -206,31 +210,37 @@
         ) ;and
     (set! def `(assign ,(tm-ref def 0) ,(tm-ref def 1 0)))
   ) ;when
-  (let* ((mac (if (tm-func? (tm-ref def 1) 'macro)
-                `(edit-macro ,l ,@(tm-children (tm-ref def 1)))
-                `(edit-tag ,l ,(tm-ref def 1))
-              ) ;if
+  (let* ((mac
+           (if (tm-func? (tm-ref def 1) 'macro)
+             `(edit-macro ,l ,@(tm-children (tm-ref def 1)))
+             `(edit-tag ,l ,(tm-ref def 1))
+           ) ;if
          ) ;mac
-         (mac* (if (!= macro-current-mode "Source") mac `(,@(cDr mac)
-                                                          (inactive* ,(cAr mac))))
+         (mac*
+           (if (!= macro-current-mode "Source") mac `(,@(cDr mac)
+                                                      (inactive* ,(cAr mac))))
          ) ;mac*
-         (mac** (if (!= macro-current-mode "Mathematics")
-                  mac*
-                  `(,@(cDr mac*) (edit-math ,(cAr mac*)))
-                ) ;if
+         (mac**
+           (if (!= macro-current-mode "Mathematics")
+             mac*
+             `(,@(cDr mac*) (edit-math ,(cAr mac*)))
+           ) ;if
          ) ;mac**
          (pre (document-get-preamble (buffer-tree)))
-         (doc `(document (hide-preamble ,pre) ,mac**))
+         (doc
+           `(document (hide-preamble ,pre) ,mac**)
+         ) ;doc
         ) ;
     doc
   ) ;let*
 ) ;define
 
 (define (build-macro-document l)
-  (cond ((and (== l "") (selection-active-any?))
-         (build-macro-document* l `(assign ,l (macro ,(selection-tree))))
-        ) ;
-        (else (and-with def (macro-editor-get l) (build-macro-document* l def)))
+  (cond
+   ((and (== l "") (selection-active-any?))
+    (build-macro-document* l `(assign ,l (macro ,(selection-tree))))
+   ) ;
+   (else (and-with def (macro-editor-get l) (build-macro-document* l def)))
   ) ;cond
 ) ;define
 
@@ -250,23 +260,24 @@
              ) ;enum
            ) ;refreshable
       >>
-      (explicit-buttons ("Shortcut"
-                          (and-with t
-                            (macro-retrieve u)
-                            (let* ((s (tree->string (tm-ref t 0)))
-                                   (sh (string-append "(make '" s ")"))
-                                   (sh* (if (== s "") "" sh))
-                                  ) ;
-                              (open-shortcuts-editor "" sh*)
-                            ) ;let*
-                          ) ;and-with
-                        ) ;
-        //
-        //
-        ("Apply" (macro-apply u))
-        //
-        //
-        ("Ok" (macro-apply u) (quit))
+      (explicit-buttons
+       ("Shortcut"
+         (and-with t
+           (macro-retrieve u)
+           (let* ((s (tree->string (tm-ref t 0)))
+                  (sh (string-append "(make '" s ")"))
+                  (sh* (if (== s "") "" sh))
+                 ) ;
+             (open-shortcuts-editor "" sh*)
+           ) ;let*
+         ) ;and-with
+       ) ;
+       //
+       //
+       ("Apply" (macro-apply u))
+       //
+       //
+       ("Ok" (macro-apply u) (quit))
       ) ;explicit-buttons
     ) ;hlist
     ===
@@ -278,7 +289,8 @@
   (:quit (terminate-macro-editor))
   ===
   (horizontal //
-    (vertical (resize "400px" "200px" (texmacs-input doc `(style (tuple ,@packs)) u))
+    (vertical
+      (resize "400px" "200px" (texmacs-input doc `(style (tuple ,@packs)) u))
       ======
       (division "plain"
         (hlist (refreshable "macro-editor-mode"
@@ -311,12 +323,14 @@
   (if (symbol? l) (set! l (symbol->string l)))
   (initialize-macro-editor l mode)
   (let* ((b (current-buffer-url))
-         (u (string->url (string-append "tmfs://aux/edit-"
-                           l
-                           "-"
-                           (url->string (url-tail (current-window)))
-                         ) ;string-append
-            ) ;string->url
+         (u
+           (string->url
+             (string-append "tmfs://aux/edit-"
+               l
+               "-"
+               (url->string (url-tail (current-window)))
+             ) ;string-append
+           ) ;string->url
          ) ;u
          (styps (embedded-style-list "macro-editor"))
          (macro-mode (if (in-math?) "Mathematics" "Text"))
@@ -405,16 +419,20 @@
     (if (symbol? l) (set! l (symbol->string l)))
     (set! macro-current-mode "Source")
     (let* ((b (current-buffer-url))
-           (u (string->url (string-append "tmfs://aux/edit-"
-                             l
-                             "-"
-                             (url->string (url-tail (current-window)))
-                           ) ;string-append
-              ) ;string->url
+           (u
+             (string->url
+               (string-append "tmfs://aux/edit-"
+                 l
+                 "-"
+                 (url->string (url-tail (current-window)))
+               ) ;string-append
+             ) ;string->url
            ) ;u
            (styps (embedded-style-list "macro-editor"))
            (body (add-context (tree-up (cursor-tree)) '(arg "body")))
-           (def `(assign ,l (inactive* (macro ,"body" ,body))))
+           (def
+             `(assign ,l (inactive* (macro ,"body" ,body)))
+           ) ;def
            (doc (build-macro-document* l def))
            (tool (list 'macro-tool u styps doc "Source"))
           ) ;
@@ -479,22 +497,29 @@
     (if (symbol? l) (set! l (symbol->string l)))
     (set! macro-current-mode "Source")
     (let* ((b (current-buffer-url))
-           (u (string->url (string-append "tmfs://aux/edit-"
-                             l
-                             "-"
-                             (url->string (url-tail (current-window)))
-                           ) ;string-append
-              ) ;string->url
+           (u
+             (string->url
+               (string-append "tmfs://aux/edit-"
+                 l
+                 "-"
+                 (url->string (url-tail (current-window)))
+               ) ;string-append
+             ) ;string->url
            ) ;u
            (styps (embedded-style-list "macro-editor"))
            (fm (table-get-format-all))
-           (tf `(tformat ,@(tree-children fm) (arg "body")))
-           (body (if (selection-active-any?)
-                   (with sel (tm->stree (selection-tree)) (tformat-subst-selection sel tf))
-                   tf
-                 ) ;if
+           (tf
+             `(tformat ,@(tree-children fm) (arg "body"))
+           ) ;tf
+           (body
+             (if (selection-active-any?)
+               (with sel (tm->stree (selection-tree)) (tformat-subst-selection sel tf))
+               tf
+             ) ;if
            ) ;body
-           (def `(assign ,l (inactive* (macro ,"body" ,body))))
+           (def
+             `(assign ,l (inactive* (macro ,"body" ,body)))
+           ) ;def
            (doc (build-macro-document* l def))
            (tool (list 'macro-tool u styps doc "Source"))
           ) ;
@@ -542,49 +567,52 @@
 ) ;tm-define
 
 (tm-widget ((macros-editor u packs l) quit)
-  (padded (horizontal (vertical (bold (text "Macro name"))
-                        ===
-                        ===
-                        (resize "250px"
-                          "500px"
-                          (filtered-choice (macros-editor-select u answer filter)
-                            l
-                            macro-current-macro
-                            macro-current-filter
-                          ) ;filtered-choice
-                        ) ;resize
-                      ) ;vertical
-            ///
-            (vertical (bold (text "Macro definition"))
-              ===
-              ===
-              (resize "500px"
-                "220px"
-                (texmacs-input (build-macro-document macro-current-macro)
-                  `(style (tuple ,@packs))
-                  u
-                ) ;texmacs-input
-              ) ;resize
-              ===
-              (glue #f #t 0 10)
-              ===
-              (bold (text "Documentation"))
-              ===
-              ===
-              (horizontal (glue #t #f 0 0)
-                (refreshable "macros-editor-documentation"
-                  (resize "500px"
-                    "220px"
-                    (texmacs-output `(document (mini-paragraph ,"476guipx"
-                                                 ,(macros-editor-current-help)))
-                      '(style "tmdoc")
-                    ) ;texmacs-output
-                  ) ;resize
-                ) ;refreshable
-                (glue #t #f 0 0)
-              ) ;horizontal
-            ) ;vertical
-          ) ;horizontal
+  (padded
+    (horizontal
+      (vertical (bold (text "Macro name"))
+        ===
+        ===
+        (resize "250px"
+          "500px"
+          (filtered-choice (macros-editor-select u answer filter)
+            l
+            macro-current-macro
+            macro-current-filter
+          ) ;filtered-choice
+        ) ;resize
+      ) ;vertical
+      ///
+      (vertical (bold (text "Macro definition"))
+        ===
+        ===
+        (resize "500px"
+          "220px"
+          (texmacs-input (build-macro-document macro-current-macro)
+            `(style (tuple ,@packs))
+            u
+          ) ;texmacs-input
+        ) ;resize
+        ===
+        (glue #f #t 0 10)
+        ===
+        (bold (text "Documentation"))
+        ===
+        ===
+        (horizontal (glue #t #f 0 0)
+          (refreshable "macros-editor-documentation"
+            (resize "500px"
+              "220px"
+              (texmacs-output
+                `(document (mini-paragraph ,"476guipx"
+                             ,(macros-editor-current-help)))
+                '(style "tmdoc")
+              ) ;texmacs-output
+            ) ;resize
+          ) ;refreshable
+          (glue #t #f 0 0)
+        ) ;horizontal
+      ) ;vertical
+    ) ;horizontal
     ======
     (hlist (refreshable "macro-editor-mode"
              (enum (set-macro-mode u answer)
@@ -594,23 +622,24 @@
              ) ;enum
            ) ;refreshable
       >>
-      (explicit-buttons ("Shortcut"
-                          (and-with t
-                            (macro-retrieve u)
-                            (let* ((s (tree->string (tm-ref t 0)))
-                                   (sh (string-append "(make '" s ")"))
-                                   (sh* (if (== s "") "" sh))
-                                  ) ;
-                              (open-shortcuts-editor "" sh*)
-                            ) ;let*
-                          ) ;and-with
-                        ) ;
-        //
-        //
-        ("Apply" (macro-apply u))
-        //
-        //
-        ("Ok" (macro-apply u) (quit))
+      (explicit-buttons
+       ("Shortcut"
+         (and-with t
+           (macro-retrieve u)
+           (let* ((s (tree->string (tm-ref t 0)))
+                  (sh (string-append "(make '" s ")"))
+                  (sh* (if (== s "") "" sh))
+                 ) ;
+             (open-shortcuts-editor "" sh*)
+           ) ;let*
+         ) ;and-with
+       ) ;
+       //
+       //
+       ("Apply" (macro-apply u))
+       //
+       //
+       ("Ok" (macro-apply u) (quit))
       ) ;explicit-buttons
     ) ;hlist
   ) ;padded
@@ -631,13 +660,14 @@
   ===
   ======
   (division "title" (text "Macro editor"))
-  (centered (resize "400px"
-              "200px"
-              (texmacs-input (build-macro-document macro-current-macro)
-                `(style (tuple ,@packs))
-                u
-              ) ;texmacs-input
-            ) ;resize
+  (centered
+    (resize "400px"
+      "200px"
+      (texmacs-input (build-macro-document macro-current-macro)
+        `(style (tuple ,@packs))
+        u
+      ) ;texmacs-input
+    ) ;resize
     ======
     (division "plain"
       (hlist (refreshable "macro-editor-mode"
@@ -657,13 +687,15 @@
       ======
       ======
       (division "title" (text "Documentation"))
-      (centered (resize "400px"
-                  "300px"
-                  (texmacs-output `(document (mini-paragraph ,"376guipx"
-                                               ,(macros-editor-current-help)))
-                    '(style (tuple "tmdoc" "side-tools"))
-                  ) ;texmacs-output
-                ) ;resize
+      (centered
+        (resize "400px"
+          "300px"
+          (texmacs-output
+            `(document (mini-paragraph ,"376guipx"
+                         ,(macros-editor-current-help)))
+            '(style (tuple "tmdoc" "side-tools"))
+          ) ;texmacs-output
+        ) ;resize
       ) ;centered
     ) ;assuming
   ) ;refreshable
@@ -690,21 +722,20 @@
 (tm-define (all-defined-macros*)
   (with env
     (tm-children (get-full-env))
-    (sort (list-remove-duplicates (append (list-difference (map get-key env)
-                                            (list "atom-decorations"
-                                              "line-decorations"
-                                              "page-decorations"
-                                              "xoff-decorations"
-                                              "yoff-decorations"
-                                              "cell-decoration" "cell-format"
-                                              "wide-framed-colored"
-                                              "wide-std-framed-colored"
-                                            ) ;list
-                                          ) ;list-difference
-                                    (hash-table-keys kbd-command-table)
-                                    (tree-primitives)
-                                  ) ;append
-          ) ;list-remove-duplicates
+    (sort
+      (list-remove-duplicates (append (list-difference (map get-key env)
+                                        (list "atom-decorations"
+                                          "line-decorations" "page-decorations"
+                                          "xoff-decorations" "yoff-decorations"
+                                          "cell-decoration" "cell-format"
+                                          "wide-framed-colored"
+                                          "wide-std-framed-colored"
+                                        ) ;list
+                                      ) ;list-difference
+                                (hash-table-keys kbd-command-table)
+                                (tree-primitives)
+                              ) ;append
+      ) ;list-remove-duplicates
       string<=?
     ) ;sort
   ) ;with

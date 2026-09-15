@@ -27,24 +27,25 @@
       "New rows and columns can be inserted using the following "
       "keyboard shortcuts, menu entries, or icons on the focus toolbar: "
     ) ;$para
-    ($description-long ($when (structured-horizontal? t)
-                         ($describe-item ($inline ($shortcut (structured-insert-left))
-                                           ", "
-                                           ($menu "Focus" "Insert left")
-                                           ", "
-                                           ($tmdoc-icon "tm_insert_left.xpm")
-                                         ) ;$inline
-                           "Insert a new column at the left-hand side of the cursor."
-                         ) ;$describe-item
-                         ($describe-item ($inline ($shortcut (structured-insert-right))
-                                           ", "
-                                           ($menu "Focus" "Insert right")
-                                           ", "
-                                           ($tmdoc-icon "tm_insert_right.xpm")
-                                         ) ;$inline
-                           "Insert a new column at the right-hand side of the cursor."
-                         ) ;$describe-item
-                       ) ;$when
+    ($description-long
+      ($when (structured-horizontal? t)
+        ($describe-item ($inline ($shortcut (structured-insert-left))
+                          ", "
+                          ($menu "Focus" "Insert left")
+                          ", "
+                          ($tmdoc-icon "tm_insert_left.xpm")
+                        ) ;$inline
+          "Insert a new column at the left-hand side of the cursor."
+        ) ;$describe-item
+        ($describe-item ($inline ($shortcut (structured-insert-right))
+                          ", "
+                          ($menu "Focus" "Insert right")
+                          ", "
+                          ($tmdoc-icon "tm_insert_right.xpm")
+                        ) ;$inline
+          "Insert a new column at the right-hand side of the cursor."
+        ) ;$describe-item
+      ) ;$when
       ($when (structured-vertical? t)
         ($describe-item ($inline ($shortcut (structured-insert-up))
                           ", "
@@ -65,24 +66,25 @@
       ) ;$when
     ) ;$description-long
     ($para "Existing rows and columns can be removed as follows:")
-    ($description-long ($when (structured-horizontal? t)
-                         ($describe-item ($inline ($shortcut (structured-remove-left))
-                                           ", "
-                                           ($menu "Focus" "Remove left")
-                                           ", "
-                                           ($tmdoc-icon "tm_delete_left.xpm")
-                                         ) ;$inline
-                           "Remove the column at the left-hand side of the cursor."
-                         ) ;$describe-item
-                         ($describe-item ($inline ($shortcut (structured-remove-right))
-                                           ", "
-                                           ($menu "Focus" "Remove right")
-                                           ", "
-                                           ($tmdoc-icon "tm_delete_right.xpm")
-                                         ) ;$inline
-                           "Remove the current column and move to the next one."
-                         ) ;$describe-item
-                       ) ;$when
+    ($description-long
+      ($when (structured-horizontal? t)
+        ($describe-item ($inline ($shortcut (structured-remove-left))
+                          ", "
+                          ($menu "Focus" "Remove left")
+                          ", "
+                          ($tmdoc-icon "tm_delete_left.xpm")
+                        ) ;$inline
+          "Remove the column at the left-hand side of the cursor."
+        ) ;$describe-item
+        ($describe-item ($inline ($shortcut (structured-remove-right))
+                          ", "
+                          ($menu "Focus" "Remove right")
+                          ", "
+                          ($tmdoc-icon "tm_delete_right.xpm")
+                        ) ;$inline
+          "Remove the current column and move to the next one."
+        ) ;$describe-item
+      ) ;$when
       ($when (structured-horizontal? t)
         ($describe-item ($inline ($menu "Focus" "Remove above") ", " ($tmdoc-icon "tm_delete_up.xpm"))
           "Remove the row above the cursor."

@@ -25,11 +25,12 @@
   (let* ((i (string-find-non-alpha s 0 #t))
          (j (string-find-non-alpha s (string-length s) #f))
         ) ;
-    (cond ((and (>= i 0) (smart-has? (substring s 0 i))) (substring s 0 i))
-          ((and (>= j 0) (smart-has? (substring s (+ j 1) (string-length s))))
-           (substring s (+ j 1) (string-length s))
-          ) ;
-          (else "unknown")
+    (cond
+     ((and (>= i 0) (smart-has? (substring s 0 i))) (substring s 0 i))
+     ((and (>= j 0) (smart-has? (substring s (+ j 1) (string-length s))))
+      (substring s (+ j 1) (string-length s))
+     ) ;
+     (else "unknown")
     ) ;cond
   ) ;let*
 ) ;define
@@ -79,8 +80,12 @@
   (:secure #t)
   (let* ((s (or (tm->string name) ""))
          (l (string->symbol (or (tm->string macro) "identity")))
-         (v (lambda (x) `(reference ,x)))
-         (w (lambda (x) (if (== l 'identity) x `(,l ,x))))
+         (v
+           (lambda (x) `(reference ,x))
+         ) ;v
+         (w
+           (lambda (x) (if (== l 'identity) x `(,l ,x)))
+         ) ;w
          (c (map w (map v (tm-children t))))
          (r (smart-list c))
         ) ;
@@ -91,7 +96,9 @@
           ((and (== s "") (null? (cdr r))) (car r))
           ((== s "") `(concat ,@r))
           ((null? (cdr r)) `(concat (localize ,s) (nbsp) ,(car r)))
-          (else `(concat (localize ,s) (nbsp) ,@r))
+          (else
+            `(concat (localize ,s) (nbsp) ,@r)
+          ) ;else
     ) ;cond
   ) ;let*
 ) ;tm-define

@@ -173,7 +173,10 @@
 (define (statistics-data->stree data)
   ;; (stats (item <label> <value>) ...)
   (cons 'stats
-    (map (lambda (pair) (cons 'item (list (car pair) (cadr pair)))) data)
+    (map
+      (lambda (pair) (cons 'item (list (car pair) (cadr pair))))
+      data
+    ) ;map
   ) ;cons
 ) ;define
 
@@ -198,12 +201,13 @@
 (tm-define (clear-font-cache)
   (:synopsis "Clear font cache under TEXMACS_HOME_PATH and local cache path.")
   (system-remove (url-append (get-tm-cache-path) (string->url "font_cache.scm")))
-  (map (lambda (x)
-         (system-remove (url-append (get-tm-cache-path)
-                          (url-append (string->url "fonts") (string->url x))
-                        ) ;url-append
-         ) ;system-remove
-       ) ;lambda
+  (map
+    (lambda (x)
+      (system-remove (url-append (get-tm-cache-path)
+                       (url-append (string->url "fonts") (string->url x))
+                     ) ;url-append
+      ) ;system-remove
+    ) ;lambda
     (list "font-database.scm" "font-features.scm" "font-characteristics.scm")
   ) ;map
 ) ;tm-define

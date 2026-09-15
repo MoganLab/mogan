@@ -92,7 +92,9 @@
         ((list-find before (cut style-includes? <> (car l)))
          (normalize-style-list** (cdr l) (cons (car l) before))
         ) ;
-        (else (cons (car l) (normalize-style-list** (cdr l) (cons (car l) before))))
+        (else
+          (cons (car l) (normalize-style-list** (cdr l) (cons (car l) before)))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -111,7 +113,9 @@
 (tm-define (set-style-list l)
   (set! l (normalize-style-list l))
   (when (!= l (get-style-list))
-    (set-style-tree (tm->tree `(tuple ,@l)))
+    (set-style-tree
+      (tm->tree `(tuple ,@l))
+    ) ;set-style-tree
   ) ;when
 ) ;tm-define
 

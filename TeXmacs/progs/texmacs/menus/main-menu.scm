@@ -294,9 +294,12 @@
 
 (tm-tool (context-tool win)
   (:name "Context tool")
-  (for (t (reverse (upward-context-trees (cursor-tree))))
+  (for
+    (t (reverse (upward-context-trees (cursor-tree))))
     ===
-    (horizontal ((eval (symbol->string (tree-label t))) (tree-select t)))
+    (horizontal
+     ((eval (symbol->string (tree-label t))) (tree-select t))
+    ) ;horizontal
   ) ;for
 ) ;tm-tool
 

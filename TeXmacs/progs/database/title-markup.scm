@@ -22,10 +22,11 @@
     (tm->stree note)
     (when (not (ahash-ref h n))
       (let* ((nr (+ (ahash-size h) 1))
-             (sym (if (zero? (string-length style))
-                    '(phantom a)
-                    `(number ,(number->string nr) ,style)
-                  ) ;if
+             (sym
+               (if (zero? (string-length style))
+                 '(phantom a)
+                 `(number ,(number->string nr) ,style)
+               ) ;if
              ) ;sym
              (id (string-append "title-note-" (number->string nr)))
             ) ;
@@ -61,7 +62,9 @@
         ((tm-func? (car c) 'author-note 1) (remove-notes (cdr c)))
         ((tm-in? (car c) '(doc-author author-data))
          (let* ((f (car c))
-                (h `(,(tm-label f) ,@(remove-notes (tm-children f))))
+                (h
+                  `(,(tm-label f) ,@(remove-notes (tm-children f)))
+                ) ;h
                 (t (remove-notes (cdr c)))
                ) ;
            (cons h t)
@@ -104,28 +107,28 @@
 ) ;tm-define
 
 (define (annotate c notes)
-  (cond ((tm-func? c 'doc-title 1)
-         (with new-notes
-           (retain-title-notes notes)
-           `(doc-title ,(add-annotations (tm-ref c 0) new-notes))
-         ) ;with
-        ) ;
-        ((tm-func? c 'author-name 1)
-         `(author-name ,(add-annotations (tm-ref c 0) notes))
-        ) ;
-        ((tm-func? c 'doc-author 1)
-         (let* ((sels (map tm->stree (select c '(author-data author-note))))
-                (new-notes (append-map (cut find-note <> notes) sels))
-               ) ;
-           (with ann (cut annotate <> new-notes) `(doc-author ,@(map ann
-                                                                  (tm-children c))))
-         ) ;let*
-        ) ;
-        ((tm-is? c 'author-data)
-         (with ann (cut annotate <> notes) `(author-data ,@(map ann
+  (cond
+   ((tm-func? c 'doc-title 1)
+    (with new-notes
+      (retain-title-notes notes)
+      `(doc-title ,(add-annotations (tm-ref c 0) new-notes))
+    ) ;with
+   ) ;
+   ((tm-func? c 'author-name 1)
+    `(author-name ,(add-annotations (tm-ref c 0) notes))
+   ) ;
+   ((tm-func? c 'doc-author 1)
+    (let* ((sels (map tm->stree (select c '(author-data author-note))))
+           (new-notes (append-map (cut find-note <> notes) sels))
+          ) ;
+      (with ann (cut annotate <> new-notes) `(doc-author ,@(map ann
                                                              (tm-children c))))
-        ) ;
-        (else c)
+    ) ;let*
+   ) ;
+   ((tm-is? c 'author-data)
+    (with ann (cut annotate <> notes) `(author-data ,@(map ann (tm-children c))))
+   ) ;
+   (else c)
   ) ;cond
 ) ;define
 
@@ -311,11 +314,12 @@
 
 (tm-define (abstract-data t)
   (:secure #t)
-  (let ((opts `(document ,@(select t '(abstract-keywords))
-                 ,@(select t '(abstract-acm))
-                 ,@(select t '(abstract-arxiv))
-                 ,@(select t '(abstract-pacs))
-                 ,@(select t '(abstract-msc)))
+  (let ((opts
+          `(document ,@(select t '(abstract-keywords))
+             ,@(select t '(abstract-acm))
+             ,@(select t '(abstract-arxiv))
+             ,@(select t '(abstract-pacs))
+             ,@(select t '(abstract-msc)))
         ) ;opts
         (abst (select t '(:* abstract 0)))
        ) ;

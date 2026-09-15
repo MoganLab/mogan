@@ -84,9 +84,10 @@
       (define (sort l r)
         (cond ((= l r) '())
               ((= (+ l 1) r) (list (list-ref lis l)))
-              (else (let* ((mid (quotient (+ l r) 2)) (l-sorted (sort l mid)) (r-sorted (sort mid r)))
-                      (list-merge less-p l-sorted r-sorted)
-                    ) ;let*
+              (else
+                (let* ((mid (quotient (+ l r) 2)) (l-sorted (sort l mid)) (r-sorted (sort mid r)))
+                  (list-merge less-p l-sorted r-sorted)
+                ) ;let*
               ) ;else
         ) ;cond
       ) ;define
@@ -98,7 +99,9 @@
         lis
         (let ((pivot (car lis)) (rest (cdr lis)))
           (let ((smaller (filter (lambda (x) (less-p x pivot)) rest))
-                (larger (filter (lambda (x) (not (less-p x pivot))) rest))
+                (larger
+                  (filter (lambda (x) (not (less-p x pivot))) rest)
+                ) ;larger
                ) ;
             (append (list-sort less-p smaller) (list pivot) (list-sort less-p larger))
           ) ;let
@@ -194,7 +197,8 @@
     ) ;define
 
     (define (subvector->list v start end)
-      (do ((r '() (cons (vector-ref v p) r)) (p start (+ 1 p)))
+      (do
+        ((r '() (cons (vector-ref v p) r)) (p start (+ 1 p)))
         ((>= p end) (reverse r))
       ) ;do
     ) ;define

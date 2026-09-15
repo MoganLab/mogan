@@ -43,10 +43,11 @@
     (tree->list tup)
     (cond ((null? l) "")
           ((null? (cdr l)) (car l))
-          (else `(concat ,(car l)
-                   ,@(map (lambda (x) (list 'concat sep x)) (cDdr l))
-                   ,(if (tm-equal? fin '(uninit)) sep fin)
-                   ,(cAr l))
+          (else
+            `(concat ,(car l)
+               ,@(map (lambda (x) (list 'concat sep x)) (cDdr l))
+               ,(if (tm-equal? fin '(uninit)) sep fin)
+               ,(cAr l))
           ) ;else
     ) ;cond
   ) ;with
@@ -127,7 +128,8 @@
 (tm-define (ext-tm-last? body args)
   (:secure #t)
   (let* ((a (map decode-tm-arg (tm-children args))) (r (apply tm-ref (cons body a))))
-    (if (and (tree? r) (tree-up r) (== (tree-index r) (- (tree-arity (tree-up r)) 1)))
+    (if
+      (and (tree? r) (tree-up r) (== (tree-index r) (- (tree-arity (tree-up r)) 1)))
       "true"
       "false"
     ) ;if
@@ -164,22 +166,23 @@
 ) ;define
 
 (define (ext-apply-on-paragraphs-sub macro-name t)
-  (cond ((tree-is? t 'document)
-         (with fun
-           (cut ext-apply-on-paragraphs macro-name <>)
-           `(document ,@(map fun (tm-children t)))
-         ) ;with
-        ) ;
-        ((tree-multi-line? t)
-         (with fun
-           (cut ext-apply-on-paragraphs-sub macro-name <>)
-           (with rew
-             (cons (tm-label t) (map fun (tm-children t)))
-             (ext-mark ext-apply-on-paragraphs-root t "body" rew)
-           ) ;with
-         ) ;with
-        ) ;
-        (else t)
+  (cond
+   ((tree-is? t 'document)
+    (with fun
+      (cut ext-apply-on-paragraphs macro-name <>)
+      `(document ,@(map fun (tm-children t)))
+    ) ;with
+   ) ;
+   ((tree-multi-line? t)
+    (with fun
+      (cut ext-apply-on-paragraphs-sub macro-name <>)
+      (with rew
+        (cons (tm-label t) (map fun (tm-children t)))
+        (ext-mark ext-apply-on-paragraphs-root t "body" rew)
+      ) ;with
+    ) ;with
+   ) ;
+   (else t)
   ) ;cond
 ) ;define
 
@@ -220,15 +223,15 @@
 ) ;define
 
 (define (ext-numbered-sub t)
-  (cond ((tree-is? t 'document) `(document ,@(map ext-numbered-line
-                                               (tm-children t))))
-        ((tree-multi-line? t)
-         (with rew
-           (cons (tm-label t) (map ext-numbered-sub (tm-children t)))
-           (ext-mark ext-numbered-root t "body" rew)
-         ) ;with
-        ) ;
-        (else t)
+  (cond
+   ((tree-is? t 'document) `(document ,@(map ext-numbered-line (tm-children t))))
+   ((tree-multi-line? t)
+    (with rew
+      (cons (tm-label t) (map ext-numbered-sub (tm-children t)))
+      (ext-mark ext-numbered-root t "body" rew)
+    ) ;with
+   ) ;
+   (else t)
   ) ;cond
 ) ;define
 
@@ -237,52 +240,59 @@
 ) ;define
 
 (define (wrap-algo-body body lang)
-  (cond ((tm-func? body 'document)
-         (apply append
-           (map (lambda (line) (wrap-algo-body line lang)) (tm-children body))
-         ) ;apply
-        ) ;
-        ((is-algo-macro? body) (wrap-algo-macro body lang))
-        ((tree-multi-line? body) (list (ext-numbered-sub body)))
-        (else (if lang
-                (list `(numbered-line (with ,"mode"
-                                        ,"prog"
-                                        ,"prog-language"
-                                        ,lang
-                                        ,"font-family"
-                                        ,"rm"
-                                        ,body))
-                ) ;list
-                (list `(numbered-line ,body))
-              ) ;if
-        ) ;else
+  (cond
+   ((tm-func? body 'document)
+    (apply append
+      (map (lambda (line) (wrap-algo-body line lang)) (tm-children body))
+    ) ;apply
+   ) ;
+   ((is-algo-macro? body) (wrap-algo-macro body lang))
+   ((tree-multi-line? body) (list (ext-numbered-sub body)))
+   (else
+     (if lang
+       (list
+         `(numbered-line (with ,"mode"
+                           ,"prog"
+                           ,"prog-language"
+                           ,lang
+                           ,"font-family"
+                           ,"rm"
+                           ,body))
+       ) ;list
+       (list `(numbered-line ,body))
+     ) ;if
+   ) ;else
   ) ;cond
 ) ;define
 
 (define (build-else-if args lang)
-  (cond ((null? args) (list '(numbered-line (concat (render-end-if)
-                                              (right-flush)))))
-        ((== (length args) 1)
-         (append (list '(numbered-line (concat (render-else) (no-page-break))))
-           (indent-lines (wrap-algo-body (car args) lang))
-           (list '(numbered-line (concat (render-end-if) (right-flush))))
-         ) ;append
-        ) ;
-        (else (let ((cond (car args)) (body (cadr args)) (rest (cddr args)))
-                (append (list `(numbered-line (concat (render-else)
-                                                ," "
-                                                (render-if)
-                                                ," "
-                                                ,cond
-                                                ," "
-                                                (render-then)
-                                                (no-page-break)))
-                        ) ;list
-                  (indent-lines (wrap-algo-body body lang))
-                  (build-else-if rest lang)
-                ) ;append
-              ) ;let
-        ) ;else
+  (cond
+   ((null? args) (list '(numbered-line (concat (render-end-if) (right-flush)))))
+   ((== (length args) 1)
+    (append
+      (list '(numbered-line (concat (render-else) (no-page-break))))
+      (indent-lines (wrap-algo-body (car args) lang))
+      (list '(numbered-line (concat (render-end-if) (right-flush))))
+    ) ;append
+   ) ;
+   (else
+     (let ((cond (car args)) (body (cadr args)) (rest (cddr args)))
+       (append
+         (list
+           `(numbered-line (concat (render-else)
+                             ," "
+                             (render-if)
+                             ," "
+                             ,cond
+                             ," "
+                             (render-then)
+                             (no-page-break)))
+         ) ;list
+         (indent-lines (wrap-algo-body body lang))
+         (build-else-if rest lang)
+       ) ;append
+     ) ;let
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -290,13 +300,15 @@
   (if (< (length args) 2)
     (list '(numbered-line (concat (render-end-if) (right-flush))))
     (let ((cond (car args)) (body (cadr args)) (rest (cddr args)))
-      (append (list `(numbered-line (concat (render-if)
-                                      ," "
-                                      ,cond
-                                      ," "
-                                      (render-then)
-                                      (no-page-break)))
-              ) ;list
+      (append
+        (list
+          `(numbered-line (concat (render-if)
+                            ," "
+                            ,cond
+                            ," "
+                            (render-then)
+                            (no-page-break)))
+        ) ;list
         (indent-lines (wrap-algo-body body lang))
         (build-else-if rest lang)
       ) ;append
@@ -305,7 +317,10 @@
 ) ;define
 
 (define (indent-lines lines)
-  (map (lambda (x) `(indent* ,x)) lines)
+  (map
+    (lambda (x) `(indent* ,x))
+    lines
+  ) ;map
 ) ;define
 
 (define (wrap-algo-macro line lang)
@@ -325,144 +340,148 @@
                       ,@(if (== suffix "") '() (list suffix))
                       (no-page-break)))
   ) ;define
-  (cond ((tree-is? line 'algo-if)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (cons (algo-header '(render-if) cond-arg '(render-then) "")
-             (indent-lines (wrap-algo-body body-arg lang))
-           ) ;cons
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-else-if)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (cons (algo-header '(render-else) '(render-if) cond-arg '(render-then))
-             (indent-lines (wrap-algo-body body-arg lang))
-           ) ;cons
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-else)
-         (cons '(numbered-line (concat (render-else) (no-page-break)))
-           (indent-lines (wrap-algo-body (arg0 line) lang))
-         ) ;cons
-        ) ;
-        ((tree-is? line 'algo-while)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (append (list (algo-header '(render-while) cond-arg '(render-do) ""))
-             (indent-lines (wrap-algo-body body-arg lang))
-             (list '(numbered-line (concat (render-end-while) (right-flush))))
-           ) ;append
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-for)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (append (list (algo-header '(render-for) cond-arg '(render-do) ""))
-             (indent-lines (wrap-algo-body body-arg lang))
-             (list '(numbered-line (concat (render-end-for) (right-flush))))
-           ) ;append
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-for-all)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (append (list (algo-header '(render-for-all) cond-arg '(render-do) ""))
-             (indent-lines (wrap-algo-body body-arg lang))
-             (list '(numbered-line (concat (render-end-for) (right-flush))))
-           ) ;append
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-for-each)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (append (list (algo-header '(render-for-each) cond-arg '(render-do) ""))
-             (indent-lines (wrap-algo-body body-arg lang))
-             (list '(numbered-line (concat (render-end-for) (right-flush))))
-           ) ;append
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-repeat)
-         (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
-           (append (list '(numbered-line (concat (render-repeat)
-                                           (no-page-break))))
-             (indent-lines (wrap-algo-body body-arg lang))
-             (list `(numbered-line (concat (render-until)
-                                     ," "
-                                     ,cond-arg
-                                     (right-flush))))
-           ) ;append
-         ) ;let
-        ) ;
-        ((tree-is? line 'algo-loop)
-         (append (list '(numbered-line (concat (render-loop) (no-page-break))))
-           (indent-lines (wrap-algo-body (arg0 line) lang))
-           (list '(numbered-line (concat (render-end-loop) (right-flush))))
-         ) ;append
-        ) ;
-        ((tree-is? line 'algo-procedure)
-         (append (list `(numbered-line (concat (render-procedure)
-                                         ," "
-                                         (with ,"font-shape"
-                                           ,"small-caps"
-                                           ,(arg0 line))
-                                         ,"("
-                                         ,(arg1 line)
-                                         ,")"
-                                         (no-page-break)))
-                 ) ;list
-           (indent-lines (wrap-algo-body (arg2 line) lang))
-           (list '(numbered-line (concat (render-end-procedure) (right-flush))))
-         ) ;append
-        ) ;
-        ((tree-is? line 'algo-function)
-         (append (list `(numbered-line (concat (render-function)
-                                         ," "
-                                         (with ,"font-shape"
-                                           ,"small-caps"
-                                           ,(arg0 line))
-                                         ,"("
-                                         ,(arg1 line)
-                                         ,")"
-                                         (no-page-break)))
-                 ) ;list
-           (indent-lines (wrap-algo-body (arg2 line) lang))
-           (list '(numbered-line (concat (render-end-function) (right-flush))))
-         ) ;append
-        ) ;
-        ((tree-is? line 'algo-body)
-         (cons '(numbered-line (concat (render-do) (no-page-break)))
-           (indent-lines (wrap-algo-body (arg0 line) lang))
-         ) ;cons
-        ) ;
-        ((tree-is? line 'algo-begin)
-         (cons '(numbered-line (concat (render-begin) (no-page-break)))
-           (indent-lines (wrap-algo-body (arg0 line) lang))
-         ) ;cons
-        ) ;
-        ((tree-is? line 'algo-inputs)
-         (cons '(numbered-line (concat (render-inputs) (no-page-break)))
-           (indent-lines (wrap-algo-body (arg0 line) lang))
-         ) ;cons
-        ) ;
-        ((tree-is? line 'algo-outputs)
-         (cons '(numbered-line (concat (render-outputs) (no-page-break)))
-           (indent-lines (wrap-algo-body (arg0 line) lang))
-         ) ;cons
-        ) ;
-        ((tree-is? line 'algo-if-else-if)
-         (let* ((raw-args (cond ((== (tm-arity line) 0) '())
-                                ((== (tm-arity line) 1)
-                                 (let ((first (tm-ref line 0)))
-                                   (if (tm-func? first 'document) (tm-children first) (list first))
-                                 ) ;let
-                                ) ;
-                                (else (tm-children line))
-                          ) ;cond
-                ) ;raw-args
-                (args (filter (lambda (x) (not (or (tree-is? x 'next-line) (tree-is? x 'new-line))))
-                        raw-args
-                      ) ;filter
-                ) ;args
-               ) ;
-           (build-if-else-if args lang)
-         ) ;let*
-        ) ;
-        (else (list line))
+  (cond
+   ((tree-is? line 'algo-if)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (cons (algo-header '(render-if) cond-arg '(render-then) "")
+        (indent-lines (wrap-algo-body body-arg lang))
+      ) ;cons
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-else-if)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (cons (algo-header '(render-else) '(render-if) cond-arg '(render-then))
+        (indent-lines (wrap-algo-body body-arg lang))
+      ) ;cons
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-else)
+    (cons '(numbered-line (concat (render-else) (no-page-break)))
+      (indent-lines (wrap-algo-body (arg0 line) lang))
+    ) ;cons
+   ) ;
+   ((tree-is? line 'algo-while)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (append (list (algo-header '(render-while) cond-arg '(render-do) ""))
+        (indent-lines (wrap-algo-body body-arg lang))
+        (list '(numbered-line (concat (render-end-while) (right-flush))))
+      ) ;append
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-for)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (append (list (algo-header '(render-for) cond-arg '(render-do) ""))
+        (indent-lines (wrap-algo-body body-arg lang))
+        (list '(numbered-line (concat (render-end-for) (right-flush))))
+      ) ;append
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-for-all)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (append (list (algo-header '(render-for-all) cond-arg '(render-do) ""))
+        (indent-lines (wrap-algo-body body-arg lang))
+        (list '(numbered-line (concat (render-end-for) (right-flush))))
+      ) ;append
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-for-each)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (append (list (algo-header '(render-for-each) cond-arg '(render-do) ""))
+        (indent-lines (wrap-algo-body body-arg lang))
+        (list '(numbered-line (concat (render-end-for) (right-flush))))
+      ) ;append
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-repeat)
+    (let ((cond-arg (arg0 line)) (body-arg (arg1 line)))
+      (append
+        (list '(numbered-line (concat (render-repeat) (no-page-break))))
+        (indent-lines (wrap-algo-body body-arg lang))
+        (list
+          `(numbered-line (concat (render-until) ," " ,cond-arg (right-flush)))
+        ) ;list
+      ) ;append
+    ) ;let
+   ) ;
+   ((tree-is? line 'algo-loop)
+    (append
+      (list '(numbered-line (concat (render-loop) (no-page-break))))
+      (indent-lines (wrap-algo-body (arg0 line) lang))
+      (list '(numbered-line (concat (render-end-loop) (right-flush))))
+    ) ;append
+   ) ;
+   ((tree-is? line 'algo-procedure)
+    (append
+      (list
+        `(numbered-line (concat (render-procedure)
+                          ," "
+                          (with ,"font-shape" ,"small-caps" ,(arg0 line))
+                          ,"("
+                          ,(arg1 line)
+                          ,")"
+                          (no-page-break)))
+      ) ;list
+      (indent-lines (wrap-algo-body (arg2 line) lang))
+      (list '(numbered-line (concat (render-end-procedure) (right-flush))))
+    ) ;append
+   ) ;
+   ((tree-is? line 'algo-function)
+    (append
+      (list
+        `(numbered-line (concat (render-function)
+                          ," "
+                          (with ,"font-shape" ,"small-caps" ,(arg0 line))
+                          ,"("
+                          ,(arg1 line)
+                          ,")"
+                          (no-page-break)))
+      ) ;list
+      (indent-lines (wrap-algo-body (arg2 line) lang))
+      (list '(numbered-line (concat (render-end-function) (right-flush))))
+    ) ;append
+   ) ;
+   ((tree-is? line 'algo-body)
+    (cons '(numbered-line (concat (render-do) (no-page-break)))
+      (indent-lines (wrap-algo-body (arg0 line) lang))
+    ) ;cons
+   ) ;
+   ((tree-is? line 'algo-begin)
+    (cons '(numbered-line (concat (render-begin) (no-page-break)))
+      (indent-lines (wrap-algo-body (arg0 line) lang))
+    ) ;cons
+   ) ;
+   ((tree-is? line 'algo-inputs)
+    (cons '(numbered-line (concat (render-inputs) (no-page-break)))
+      (indent-lines (wrap-algo-body (arg0 line) lang))
+    ) ;cons
+   ) ;
+   ((tree-is? line 'algo-outputs)
+    (cons '(numbered-line (concat (render-outputs) (no-page-break)))
+      (indent-lines (wrap-algo-body (arg0 line) lang))
+    ) ;cons
+   ) ;
+   ((tree-is? line 'algo-if-else-if)
+    (let* ((raw-args
+             (cond ((== (tm-arity line) 0) '())
+                   ((== (tm-arity line) 1)
+                    (let ((first (tm-ref line 0)))
+                      (if (tm-func? first 'document) (tm-children first) (list first))
+                    ) ;let
+                   ) ;
+                   (else (tm-children line))
+             ) ;cond
+           ) ;raw-args
+           (args
+             (filter
+               (lambda (x) (not (or (tree-is? x 'next-line) (tree-is? x 'new-line))))
+               raw-args
+             ) ;filter
+           ) ;args
+          ) ;
+      (build-if-else-if args lang)
+    ) ;let*
+   ) ;
+   (else (list line))
   ) ;cond
 ) ;define
 

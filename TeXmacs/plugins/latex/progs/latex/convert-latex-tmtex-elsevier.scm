@@ -454,12 +454,18 @@
            ) ;tmtex-make-doc-data
   (:mode elsevier-style?)
   (let* ((authors (filter nnull? authors))
-         (authors (if (null? authors) '() `((!paragraph ,@authors))))
+         (authors
+           (if (null? authors) '() `((!paragraph ,@authors)))
+         ) ;authors
          (titles (tmtex-concat-Sep (map cadr titles)))
          (notes `(,@subtitles ,@dates ,@miscs ,@notes))
-         (notes (if (null? notes) '() `(,(springer-note-ref "" (map cadr notes)))))
+         (notes
+           (if (null? notes) '() `(,(springer-note-ref "" (map cadr notes))))
+         ) ;notes
          (result `(,@titles ,@notes))
-         (result (if (null? result) '() `((title (!concat ,@result)))))
+         (result
+           (if (null? result) '() `((title (!concat ,@result))))
+         ) ;result
          (result `(,@result
                    ,@subtitles-l
                    ,@notes-l
@@ -476,19 +482,24 @@
            ) ;tmtex-make-author
   (:mode elsevier-style?)
   (let* ((names (tmtex-concat-Sep (map cadr names)))
-         (notes* (if (ifac-style?) `(,@emails* ,@urls* ,@miscs* ,@notes*) `(,@miscs*
-                                                                            ,@notes*))
+         (notes*
+           (if (ifac-style?) `(,@emails* ,@urls* ,@miscs* ,@notes*) `(,@miscs*
+                                                                      ,@notes*))
          ) ;notes*
-         (notes* (if (null? notes*) '() `(,(springer-author-note-ref ""
-                                             (map cadr notes*))))
+         (notes*
+           (if (null? notes*) '() `(,(springer-author-note-ref ""
+                                       (map cadr notes*))))
          ) ;notes*
-         (affs* (if (null? affs*)
-                  '()
-                  `((!option (!concat ,@(list-intersperse (map cadr affs*) ","))))
-                ) ;if
+         (affs*
+           (if (null? affs*)
+             '()
+             `((!option (!concat ,@(list-intersperse (map cadr affs*) ","))))
+           ) ;if
          ) ;affs*
          (result `(,@names ,@notes*))
-         (result (if (null? result) '() `((author ,@affs* (!concat ,@result)))))
+         (result
+           (if (null? result) '() `((author ,@affs* (!concat ,@result))))
+         ) ;result
          (result `(,@result ,@affs ,@emails ,@urls ,@miscs ,@notes))
         ) ;
     (if (null? result) '() `(!paragraph ,@result))

@@ -98,7 +98,9 @@
             ) ;
             ((> index 63) (error 'out-of-range "bit-set?: Index cannot exceed 63" index))
             ((= index 63) (negative? n))
-            (else (not (zero? (bitwise-and n (arithmetic-shift 1 index)))))
+            (else
+              (not (zero? (bitwise-and n (arithmetic-shift 1 index))))
+            ) ;else
       ) ;cond
     ) ;define
 
@@ -113,10 +115,11 @@
                (bitwise-and n 9223372036854775807)
              ) ;if
             ) ;
-            (else (if boolean
-                    (bitwise-ior n (arithmetic-shift 1 index))
-                    (bitwise-and n (bitwise-not (arithmetic-shift 1 index)))
-                  ) ;if
+            (else
+              (if boolean
+                (bitwise-ior n (arithmetic-shift 1 index))
+                (bitwise-and n (bitwise-not (arithmetic-shift 1 index)))
+              ) ;if
             ) ;else
       ) ;cond
     ) ;define
@@ -165,24 +168,29 @@
     ) ;define
 
     (define (bit-field-any? i start end)
-      (not (zero? (bitwise-and (arithmetic-shift i (- start))
-                    (- (arithmetic-shift 1 (- end start)) 1)
-                  ) ;bitwise-and
-           ) ;zero?
+      (not
+        (zero?
+          (bitwise-and (arithmetic-shift i (- start))
+            (- (arithmetic-shift 1 (- end start)) 1)
+          ) ;bitwise-and
+        ) ;zero?
       ) ;not
     ) ;define
 
     (define (bit-field-every? i start end)
-      (= (bitwise-and (arithmetic-shift i (- start))
-           (- (arithmetic-shift 1 (- end start)) 1)
-         ) ;bitwise-and
+      (=
+        (bitwise-and (arithmetic-shift i (- start))
+          (- (arithmetic-shift 1 (- end start)) 1)
+        ) ;bitwise-and
         (- (arithmetic-shift 1 (- end start)) 1)
       ) ;=
     ) ;define
 
     (define (bit-field-clear i start end)
       (bitwise-and i
-        (bitwise-not (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1) start))
+        (bitwise-not
+          (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1) start)
+        ) ;bitwise-not
       ) ;bitwise-and
     ) ;define
 

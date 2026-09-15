@@ -27,7 +27,8 @@
   (with history
     (version-history* (current-buffer))
     (assuming (list? history)
-      (for (line (if (< (length history) 25) history (sublist history 0 25)))
+      (for
+        (line (if (< (length history) 25) history (sublist history 0 25)))
         (with (rev by date msg)
           line
           (let* ((cur (current-buffer))
@@ -95,11 +96,12 @@
       (when (== (version-status (current-buffer)) "unknown")
         ("Register" (register-buffer (current-buffer)))
       ) ;when
-      (when (and (!= (version-status (current-buffer)) "unknown")
-              (or (== (version-status (current-buffer)) "modified")
-                (buffer-modified? (current-buffer))
-              ) ;or
-            ) ;and
+      (when
+        (and (!= (version-status (current-buffer)) "unknown")
+          (or (== (version-status (current-buffer)) "modified")
+            (buffer-modified? (current-buffer))
+          ) ;or
+        ) ;and
         ("Commit" (version-interactive-commit (current-buffer)))
       ) ;when
       ---
@@ -130,7 +132,8 @@
       (link version-compare-menu)
     ) ;->
   ) ;assuming
-  (assuming (not (or (versioned? (current-buffer)) (version-revision? (current-buffer))))
+  (assuming
+    (not (or (versioned? (current-buffer)) (version-revision? (current-buffer))))
     (-> "Compare"
      ("With older version"
        (choose-file compare-with-older "Compare with older version" "")

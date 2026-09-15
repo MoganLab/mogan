@@ -129,15 +129,16 @@
       j
       (with i
         (string-previous s j)
-        (cond ((and (string-alpha? (substring s j k))
-                 (or (string-alpha? (substring s i j)) (== (substring s i j) "<mathd>"))
-               ) ;and
-               (string-previous* s j)
-              ) ;
-              ((and (string-number? (substring s j k)) (string-number? (substring s i j)))
-               (string-previous* s j)
-              ) ;
-              (else j)
+        (cond
+         ((and (string-alpha? (substring s j k))
+            (or (string-alpha? (substring s i j)) (== (substring s i j) "<mathd>"))
+          ) ;and
+          (string-previous* s j)
+         ) ;
+         ((and (string-number? (substring s j k)) (string-number? (substring s i j)))
+          (string-previous* s j)
+         ) ;
+         (else j)
         ) ;cond
       ) ;with
     ) ;if
@@ -146,12 +147,13 @@
 
 (tm-define (expr-before-cursor)
   (let* ((t (cursor-tree)) (i (cAr (cursor-path))))
-    (cond ((and (tree-atomic? t) (> i 0))
-           (with s (tree->string t) (with j (string-previous* s i) (substring s j i)))
-          ) ;
-          ((tree-atomic? t) #f)
-          ((> i 0) t)
-          (else #f)
+    (cond
+     ((and (tree-atomic? t) (> i 0))
+      (with s (tree->string t) (with j (string-previous* s i) (substring s j i)))
+     ) ;
+     ((tree-atomic? t) #f)
+     ((> i 0) t)
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -161,9 +163,10 @@
     (expr-before-cursor)
     (cond ((string? t) t)
           ((not (tree? t)) t)
-          (else (while (and (tree? t) (tree-in? t '(rsub rsup)))
-                  (set! t (tree-ref t :previous))
-                ) ;while
+          (else
+            (while (and (tree? t) (tree-in? t '(rsub rsup)))
+              (set! t (tree-ref t :previous))
+            ) ;while
             (while (and (tree? t) (tree-in? t '(wide wide* neg))) (set! t (tree-ref t 0)))
             (cond ((not t) t)
                   ((tree-atomic? t)
@@ -183,21 +186,22 @@
 
 (define (before-cursor-path)
   (let* ((t (cursor-tree)) (p (cDr (cursor-path))) (i (cAr (cursor-path))))
-    (cond ((and (tree-atomic? t) (> i 0))
-           (with s
-             (tree->string t)
-             (with j
-               (string-previous* s i)
-               (cond ((> j 0) (rcons p j))
-                     ((tree-ref t :previous) (tree->path t :previous :end))
-                     (else (rcons p j))
-               ) ;cond
-             ) ;with
-           ) ;with
-          ) ;
-          ((tree-atomic? t) #f)
-          ((> i 0) (rcons p 0))
-          (else #f)
+    (cond
+     ((and (tree-atomic? t) (> i 0))
+      (with s
+        (tree->string t)
+        (with j
+          (string-previous* s i)
+          (cond ((> j 0) (rcons p j))
+                ((tree-ref t :previous) (tree->path t :previous :end))
+                (else (rcons p j))
+          ) ;cond
+        ) ;with
+      ) ;with
+     ) ;
+     ((tree-atomic? t) #f)
+     ((> i 0) (rcons p 0))
+     (else #f)
     ) ;cond
   ) ;let*
 ) ;define
@@ -216,38 +220,41 @@
 
 (tm-define (select-before-cursor)
   (let* ((t (cursor-tree)) (p (cursor-path)) (i (cAr p)))
-    (cond ((and (tree-atomic? t) (> i 0))
-           (with s
-             (tree->string t)
-             (with j (string-previous* s i) (selection-set (rcons (cDr p) j) p))
-           ) ;with
-          ) ;
-          ((or (tree-atomic? t) (<= i 0)) (selection-cancel))
-          ((tree-in? t '(rsub rsup around around*))
-           (let* ((j (cAr (cDr p))) (q (cDr (cDr p))))
-             (while (and (> j 0) (tree-in? (path->tree (rcons q j)) '(rsub rsup
-                                                                       around
-                                                                       around*)))
-               (set! j (- j 1))
-             ) ;while
-             (with u
-               (path->tree (rcons q j))
-               (if (or (not (tree-atomic? u)) (tree-empty? u))
-                 (selection-set (append q (list j 0)) p)
-                 (let* ((s (tree->string u)) (n (string-length s)) (k (string-previous* s n)))
-                   (if (and (tree-in? (path->tree (rcons q (+ j 1))) '(around around*))
-                         (not (math-symbol? (substring s k n)))
-                         (not (math-operator? (substring s k n)))
-                       ) ;and
-                     (selection-set (append q (list (+ j 1) 0)) p)
-                     (selection-set (append q (list j k)) p)
-                   ) ;if
-                 ) ;let*
-               ) ;if
-             ) ;with
-           ) ;let*
-          ) ;
-          (else (selection-set (rcons (cDr p) 0) p))
+    (cond
+     ((and (tree-atomic? t) (> i 0))
+      (with s
+        (tree->string t)
+        (with j (string-previous* s i) (selection-set (rcons (cDr p) j) p))
+      ) ;with
+     ) ;
+     ((or (tree-atomic? t) (<= i 0)) (selection-cancel))
+     ((tree-in? t '(rsub rsup around around*))
+      (let* ((j (cAr (cDr p))) (q (cDr (cDr p))))
+        (while
+          (and (> j 0) (tree-in? (path->tree (rcons q j)) '(rsub rsup around
+                                                             around*)))
+          (set! j (- j 1))
+        ) ;while
+        (with u
+          (path->tree (rcons q j))
+          (if (or (not (tree-atomic? u)) (tree-empty? u))
+            (selection-set (append q (list j 0)) p)
+            (let* ((s (tree->string u)) (n (string-length s)) (k (string-previous* s n)))
+              (if
+                (and
+                  (tree-in? (path->tree (rcons q (+ j 1))) '(around around*))
+                  (not (math-symbol? (substring s k n)))
+                  (not (math-operator? (substring s k n)))
+                ) ;and
+                (selection-set (append q (list (+ j 1) 0)) p)
+                (selection-set (append q (list j k)) p)
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;with
+      ) ;let*
+     ) ;
+     (else (selection-set (rcons (cDr p) 0) p))
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -271,10 +278,18 @@
   (let* ((mul (count (in? :multiply p) (tmconcat l "*" r)))
          (spc (count (in? :space p) (tmconcat l " " r)))
          (com (count (in? :comma p) (tmconcat l "," r)))
-         (app (count (in? :apply p) (tmconcat l `(around ,"(" ,r ,")"))))
-         (bra (count (in? :brackets p) (tmconcat l `(around ,"[" ,r ,"]"))))
-         (sub (count (in? :subscript p) (tmconcat l `(rsub ,r))))
-         (sup (count (in? :superscript p) (tmconcat l `(rsup ,r))))
+         (app
+           (count (in? :apply p) (tmconcat l `(around ,"(" ,r ,")")))
+         ) ;app
+         (bra
+           (count (in? :brackets p) (tmconcat l `(around ,"[" ,r ,"]")))
+         ) ;bra
+         (sub
+           (count (in? :subscript p) (tmconcat l `(rsub ,r)))
+         ) ;sub
+         (sup
+           (count (in? :superscript p) (tmconcat l `(rsup ,r)))
+         ) ;sup
          (m (max mul spc com app bra sub sup))
         ) ;
     (when (== r "")
@@ -389,14 +404,15 @@
     (when (tm-atomic? x)
       (set! x (tm->string x))
     ) ;when
-    (when (if (string? x)
-            (not (or (string-number? x) (math-symbol? x) (math-operator? x)))
-            (not (tree-in? x
-                   '(math-ss math-tt rsub rsup wide wide* frac frac* sqrt around
-                      around*)
-                 ) ;tree-in?
-            ) ;not
-          ) ;if
+    (when
+      (if (string? x)
+        (not (or (string-number? x) (math-symbol? x) (math-operator? x)))
+        (not (tree-in? x
+               '(math-ss math-tt rsub rsup wide wide* frac frac* sqrt around
+                  around*)
+             ) ;tree-in?
+        ) ;not
+      ) ;if
       (set! l (list))
     ) ;when
     l
@@ -560,10 +576,18 @@
   (max (stats-in-role (tmconcat x "*" y))
     (stats-in-role (tmconcat x " " y))
     (stats-in-role (tmconcat x "," y))
-    (stats-in-role (tmconcat x `(around ,"(" ,y ,")")))
-    (stats-in-role (tmconcat x `(around ,"[" ,y ,"]")))
-    (stats-in-role (tmconcat x `(rsub ,y)))
-    (stats-in-role (tmconcat x `(rsup ,y)))
+    (stats-in-role
+      (tmconcat x `(around ,"(" ,y ,")"))
+    ) ;stats-in-role
+    (stats-in-role
+      (tmconcat x `(around ,"[" ,y ,"]"))
+    ) ;stats-in-role
+    (stats-in-role
+      (tmconcat x `(rsub ,y))
+    ) ;stats-in-role
+    (stats-in-role
+      (tmconcat x `(rsup ,y))
+    ) ;stats-in-role
     0
   ) ;max
 ) ;tm-define

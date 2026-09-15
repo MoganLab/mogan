@@ -30,7 +30,11 @@
   (check (gui-normalize '(a b c)) => '(a b c))
   ;; (list ...) 形式的子表达式被拍平进结果
   (check (gui-normalize '((list 1 2) 3)) => '(1 2 3))
-  (check (gui-normalize '((list (list 1) 2) (list 3))) => '(1 2 3))
+  (check
+    (gui-normalize '((list (list 1) 2) (list 3)))
+    =>
+    '(1 2 3)
+  ) ;check
   (check (gui-normalize '(a (list) b)) => '(a b))
 ) ;define
 
@@ -45,7 +49,11 @@
   (check (cache-menu? '(a b)) => #t)
   ;; 树中任何位置出现 input 符号都不可缓存
   (check (cache-menu? '(a input)) => #f)
-  (check (cache-menu? '(a (b (input)))) => #f)
+  (check
+    (cache-menu? '(a (b (input))))
+    =>
+    #f
+  ) ;check
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -82,7 +90,8 @@
     '(when #t (text "a"))
   ) ;check
   ;; 条件为假时条目中的过程仍被源码化（保证可缓存的纯数据结构）
-  (check (menu-expand (list 'when (lambda () #f) (list 'text "a" (lambda () 1))))
+  (check
+    (menu-expand (list 'when (lambda () #f) (list 'text "a" (lambda () 1))))
     =>
     '(when #f (text "a" (lambda () 1)))
   ) ;check
@@ -90,9 +99,10 @@
 
 (define (test-menu-expand-for)
   ;; (for gen-func vals-promise)：gen-func 返回条目列表，对 vals 逐个展开
-  (check (menu-expand (list 'for (lambda (x) (list (list 'text x))) (lambda () '("a"
-                                                                                 "b")))
-         ) ;menu-expand
+  (check
+    (menu-expand
+      (list 'for (lambda (x) (list (list 'text x))) (lambda () '("a" "b")))
+    ) ;menu-expand
     =>
     '((text "a") (text "b"))
   ) ;check
@@ -112,7 +122,8 @@
     '(text "a" (lambda () 1))
   ) ;check
   ;; must-eval-list 成员（toggle）：on-thunk 被求值
-  (check (menu-expand (list 'toggle (lambda (a) a) (lambda () #t)))
+  (check
+    (menu-expand (list 'toggle (lambda (a) a) (lambda () #t)))
     =>
     '(toggle (lambda (a) a) #t)
   ) ;check

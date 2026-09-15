@@ -52,9 +52,10 @@
         ((and (string? t) (string? u)) (string-contains? t (drop-blank u)))
         ((nlist? t) #f)
         ((null? t) #f)
-        (else (or (latex-stree-contains? (car t) u)
-                (in? #t (map (lambda (x) (latex-stree-contains? x u)) (cdr t)))
-              ) ;or
+        (else
+          (or (latex-stree-contains? (car t) u)
+            (in? #t (map (lambda (x) (latex-stree-contains? x u)) (cdr t)))
+          ) ;or
         ) ;else
   ) ;cond
 ) ;define
@@ -265,28 +266,27 @@
 
 (define (texout-want-space x1 x2)
   ;; spacing rules
-  (and (not (or (and (string? x1) (!= x1 "") (in? (string-take-right x1 1) '("("
-                                                                             "[")))
-              (in? x1 '(({) (nobreak)))
-              (and (string? x2) (!= x2 "") (in? (string-take x2 1) '(","
-                                                                     ")"
-                                                                     "]")))
-              (in? x2 '((}) (nobreak)))
-              (== x1 " ")
-              (== x2 " ")
-              (func? x2 '!nextline)
-              (== x2 "'")
-              (func? x2 '!sub)
-              (func? x2 '!sup)
-              (func? x1 '&)
-              (func? x2 '&)
-              (func? x1 '!nbsp)
-              (func? x2 '!nbsp)
-              (func? x1 '!nbhyph)
-              (func? x2 '!nbhyph)
-              (and (== x1 "'") (nlist? x2))
-            ) ;or
-       ) ;not
+  (and
+    (not
+      (or (and (string? x1) (!= x1 "") (in? (string-take-right x1 1) '("(" "[")))
+        (in? x1 '(({) (nobreak)))
+        (and (string? x2) (!= x2 "") (in? (string-take x2 1) '("," ")" "]")))
+        (in? x2 '((}) (nobreak)))
+        (== x1 " ")
+        (== x2 " ")
+        (func? x2 '!nextline)
+        (== x2 "'")
+        (func? x2 '!sub)
+        (func? x2 '!sup)
+        (func? x1 '&)
+        (func? x2 '&)
+        (func? x1 '!nbsp)
+        (func? x2 '!nbsp)
+        (func? x1 '!nbhyph)
+        (func? x2 '!nbhyph)
+        (and (== x1 "'") (nlist? x2))
+      ) ;or
+    ) ;not
     (or (in? x1 '("," ";" ":"))
       (func? x1 'tmop)
       (func? x2 'tmop)
@@ -328,7 +328,8 @@
         ((in? (car x) '(!begin !nextline !newline !linefeed !eqn !table)) #t)
         ((and (in? (car x) '(!document !paragraph)) (> (length (cdr x)) 1)) #t)
         ((npair? (cdr x)) #f)
-        (else (or (texout-multiline? (cadr x)) (texout-multiline? `(!concat ,@(cddr x))))
+        (else
+          (or (texout-multiline? (cadr x)) (texout-multiline? `(!concat ,@(cddr x))))
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -422,7 +423,8 @@
 ) ;define
 
 (define (texout-double-math? x)
-  (or (and (match? x '((:or !document !concat) :%1)) (texout-double-math? (cadr x)))
+  (or
+    (and (match? x '((:or !document !concat) :%1)) (texout-double-math? (cadr x)))
     (and (match? x '((!begin :%1) :%1))
       (in? (cadar x) '("eqnarray" "eqnarray*" "leqnarray*"))
     ) ;and
@@ -515,20 +517,21 @@
 
 (define (texout-script where l)
   (let ((x (car l)))
-    (cond ((and (== x '(prime)) (== where "^")) (output-tex "'"))
-          ((and (func? x '!concat)
-             (== where "^")
-             (pair? (cdr x))
-             (== (cadr x) '(prime))
-             (list-and (map (cut == <> '(prime)) (cdr x)))
-           ) ;and
-           (output-tex (apply string-append (map (lambda a "'") (cdr x))))
-          ) ;
-          ((and (string? x) (= (string-length x) 1) (nin? x (list "<" ">")))
-           (output-tex where)
-           (output-tex x)
-          ) ;
-          (else (output-tex where) (texout-args l))
+    (cond
+     ((and (== x '(prime)) (== where "^")) (output-tex "'"))
+     ((and (func? x '!concat)
+        (== where "^")
+        (pair? (cdr x))
+        (== (cadr x) '(prime))
+        (list-and (map (cut == <> '(prime)) (cdr x)))
+      ) ;and
+      (output-tex (apply string-append (map (lambda a "'") (cdr x))))
+     ) ;
+     ((and (string? x) (= (string-length x) 1) (nin? x (list "<" ">")))
+      (output-tex where)
+      (output-tex x)
+     ) ;
+     (else (output-tex where) (texout-args l))
     ) ;cond
   ) ;let
 ) ;define

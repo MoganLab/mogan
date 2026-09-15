@@ -183,26 +183,28 @@
     ) ;define
 
     (define (ascii-upcase x)
-      (cond ((char? x) (integer->char (ascii-upcase (char->integer x))))
-            ((string? x)
-             (unless (ascii-string? x)
-               (error 'value-error "ascii-upcase: string must be ASCII" x)
-             ) ;unless
-             (string-map (lambda (c) (ascii-upcase c)) x)
-            ) ;
-            (else (or (ascii-lower-case-value x 65 26) x))
+      (cond
+       ((char? x) (integer->char (ascii-upcase (char->integer x))))
+       ((string? x)
+        (unless (ascii-string? x)
+          (error 'value-error "ascii-upcase: string must be ASCII" x)
+        ) ;unless
+        (string-map (lambda (c) (ascii-upcase c)) x)
+       ) ;
+       (else (or (ascii-lower-case-value x 65 26) x))
       ) ;cond
     ) ;define
 
     (define (ascii-downcase x)
-      (cond ((char? x) (integer->char (ascii-downcase (char->integer x))))
-            ((string? x)
-             (unless (ascii-string? x)
-               (error 'value-error "ascii-downcase: string must be ASCII" x)
-             ) ;unless
-             (string-map (lambda (c) (ascii-downcase c)) x)
-            ) ;
-            (else (or (ascii-upper-case-value x 97 26) x))
+      (cond
+       ((char? x) (integer->char (ascii-downcase (char->integer x))))
+       ((string? x)
+        (unless (ascii-string? x)
+          (error 'value-error "ascii-downcase: string must be ASCII" x)
+        ) ;unless
+        (string-map (lambda (c) (ascii-downcase c)) x)
+       ) ;
+       (else (or (ascii-upper-case-value x 97 26) x))
       ) ;cond
     ) ;define
 
@@ -284,18 +286,19 @@
                 (let ((char1 (read-char in1)) (char2 (read-char in2)))
                   (cond ((eof-object? char1) (if (eof-object? char2) 0 -1))
                         ((eof-object? char2) 1)
-                        (else (let ((cc1 (char->integer char1)) (cc2 (char->integer char2)))
-                                (when (<= 65 cc1 90)
-                                  (set! cc1 (+ cc1 32))
-                                ) ;when
-                                (when (<= 65 cc2 90)
-                                  (set! cc2 (+ cc2 32))
-                                ) ;when
-                                (cond ((< cc1 cc2) -1)
-                                      ((> cc1 cc2) 1)
-                                      (else (loop))
-                                ) ;cond
-                              ) ;let
+                        (else
+                          (let ((cc1 (char->integer char1)) (cc2 (char->integer char2)))
+                            (when (<= 65 cc1 90)
+                              (set! cc1 (+ cc1 32))
+                            ) ;when
+                            (when (<= 65 cc2 90)
+                              (set! cc2 (+ cc2 32))
+                            ) ;when
+                            (cond ((< cc1 cc2) -1)
+                                  ((> cc1 cc2) 1)
+                                  (else (loop))
+                            ) ;cond
+                          ) ;let
                         ) ;else
                   ) ;cond
                 ) ;let

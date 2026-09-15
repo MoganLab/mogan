@@ -30,28 +30,31 @@
   (if (or (bib-null? a) (nlist? a))
     ""
     (let* ((n (length a))
-           (pre (cond ((equal? n 2)
-                       (with von
-                         (bib-purify (bib-abbreviate (list-ref (list-ref a 1) 2) "" ""))
-                         (if (bib-null? von)
-                           (bib-prefix (list-ref (list-ref a 1) 3) 3)
-                           (string-append von (bib-prefix (list-ref (list-ref a 1) 3) 1))
-                         ) ;if
-                       ) ;with
-                      ) ;
-                      (else (with lab
-                              ""
-                              (do ((i 1 (+ 1 i)))
-                                ((>= i (min n (if (= 5 n) 5 4))))
-                                (with von
-                                  (bib-purify (bib-abbreviate (list-ref (list-ref a i) 2) "" ""))
-                                  (set! lab (string-append lab von (bib-prefix (list-ref (list-ref a i) 3) 1)))
-                                ) ;with
-                              ) ;do
-                              lab
-                            ) ;with
-                      ) ;else
-                ) ;cond
+           (pre
+             (cond
+              ((equal? n 2)
+               (with von
+                 (bib-purify (bib-abbreviate (list-ref (list-ref a 1) 2) "" ""))
+                 (if (bib-null? von)
+                   (bib-prefix (list-ref (list-ref a 1) 3) 3)
+                   (string-append von (bib-prefix (list-ref (list-ref a 1) 3) 1))
+                 ) ;if
+               ) ;with
+              ) ;
+              (else
+                (with lab
+                  ""
+                  (do ((i 1 (+ 1 i)))
+                    ((>= i (min n (if (= 5 n) 5 4))))
+                    (with von
+                      (bib-purify (bib-abbreviate (list-ref (list-ref a i) 2) "" ""))
+                      (set! lab (string-append lab von (bib-prefix (list-ref (list-ref a i) 3) 1)))
+                    ) ;with
+                  ) ;do
+                  lab
+                ) ;with
+              ) ;else
+             ) ;cond
            ) ;pre
           ) ;
       (if (> n 5) (string-append pre "+") pre)
@@ -84,14 +87,15 @@
 
 (define (bib-format-label-prefix n x)
   (let* ((doctype (list-ref x 1))
-         (pre (cond ((or (equal? doctype "book") (equal? doctype "inbook"))
-                     (bib-format-book-inbook-label n x)
-                    ) ;
-                    ((equal? doctype "proceedings")
-                     (bib-format-proceedings-misc-label "editor" n x)
-                    ) ;
-                    (else (bib-format-proceedings-misc-label "author" n x))
-              ) ;cond
+         (pre
+           (cond ((or (equal? doctype "book") (equal? doctype "inbook"))
+                  (bib-format-book-inbook-label n x)
+                 ) ;
+                 ((equal? doctype "proceedings")
+                  (bib-format-proceedings-misc-label "editor" n x)
+                 ) ;
+                 (else (bib-format-proceedings-misc-label "author" n x))
+           ) ;cond
          ) ;pre
         ) ;
     (string-append pre (bib-format-label-year x))

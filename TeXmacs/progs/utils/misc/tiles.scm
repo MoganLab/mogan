@@ -24,10 +24,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (generate-line-hatch nums perc art?)
-  (let* ((name (cond (art? "lines-artistic")
-                     ((> (car nums) 3) "lines-basic")
-                     (else "lines-default")
-               ) ;cond
+  (let* ((name
+           (cond (art? "lines-artistic")
+                 ((> (car nums) 3) "lines-basic")
+                 (else "lines-default")
+           ) ;cond
          ) ;name
          (num (apply string-append (map number->string nums)))
          (dest (string-append pattern-path "/" name "/" name "-" num "-" perc ".png"))
@@ -43,7 +44,9 @@
          (eff7 `(eff-hatch ,"0" ,"-8" ,"8" ,fill ,art))
          (effl (list eff0 eff1 eff2 eff3 eff4 eff5 eff6 eff7))
          (effs (map (cut list-ref effl <>) nums))
-         (eff (if (= (length nums) 1) (car effs) `(eff-superpose ,@effs)))
+         (eff
+           (if (= (length nums) 1) (car effs) `(eff-superpose ,@effs))
+         ) ;eff
         ) ;
     (display* "Generating " dest "\n")
     (apply-effect eff (list dummy-pattern) dest 360 360)
@@ -70,7 +73,9 @@
          (fps (string-append (if (< fp 10) "0" "") (number->string fp)))
          (dest (string-append pattern-path "/dots-hatches/dots-" name "-" fps ".png"))
          (fact (if (== num 1) 0.6 0.55))
-         (fill (number->string (* fact (sqrt (* 0.01 fp)))))
+         (fill
+           (number->string (* fact (sqrt (* 0.01 fp))))
+         ) ;fill
          (eff1 `(eff-dots ,"0" ,"12" ,"0" ,"6" ,"10" ,fill ,"0"))
          (eff2 `(eff-dots ,"0" ,"12" ,"0" ,"0" ,"12" ,fill ,"0"))
          (eff3 `(eff-dots ,"0" ,"12" ,"0" ,"6" ,"10" ,fill ,"0.15"))

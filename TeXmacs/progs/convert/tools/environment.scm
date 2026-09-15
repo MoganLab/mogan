@@ -73,10 +73,11 @@
 
 (tm-define (with-environment* env bindings proc)
   (let ((saves '()) (result #f))
-    (for-each (lambda (b)
-                (set-cons! saves (environment-binding env (first b)))
-                (environment-set!* env (first b) (second b))
-              ) ;lambda
+    (for-each
+      (lambda (b)
+        (set-cons! saves (environment-binding env (first b)))
+        (environment-set!* env (first b) (second b))
+      ) ;lambda
       bindings
     ) ;for-each
     (set! result (proc env))

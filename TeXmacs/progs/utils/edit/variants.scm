@@ -63,10 +63,11 @@
     (ahash-ref group-table group)
     (cond ((not l) #f)
           ((in? which l) group)
-          (else (with f
-                  (map car (list-filter l (lambda (x) (pair? x))))
-                  (list-any (lambda (x) (group-find which x)) f)
-                ) ;with
+          (else
+            (with f
+              (map car (list-filter l (lambda (x) (pair? x))))
+              (list-any (lambda (x) (group-find which x)) f)
+            ) ;with
           ) ;else
     ) ;cond
   ) ;with
@@ -300,15 +301,16 @@
 (define (variants-of-sub lab type nv?)
   (with numbered?
     (or (in? lab (numbered-tag-list)) (in? lab (numbered-tag-list*)))
-    (cond ((and numbered? (symbol-ends? lab '*))
-           (with l
-             (variants-of-sub (symbol-drop-right lab 1) type nv?)
-             (if nv? l (map (lambda (x) (symbol-append x '*)) l))
-           ) ;with
-          ) ;
-          ((and numbered? nv?) (numbered-unnumbered-append (variants-of-sub lab type #f)))
-          (else (with vg (group-find lab type) (if (not vg) (list lab) (group-resolve vg)))
-          ) ;else
+    (cond
+     ((and numbered? (symbol-ends? lab '*))
+      (with l
+        (variants-of-sub (symbol-drop-right lab 1) type nv?)
+        (if nv? l (map (lambda (x) (symbol-append x '*)) l))
+      ) ;with
+     ) ;
+     ((and numbered? nv?) (numbered-unnumbered-append (variants-of-sub lab type #f)))
+     (else (with vg (group-find lab type) (if (not vg) (list lab) (group-resolve vg)))
+     ) ;else
     ) ;cond
   ) ;with
 ) ;define

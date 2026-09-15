@@ -110,11 +110,13 @@
   (let* ((file (or (assoc-ref a "tmfs") "unknown")) (a* (db-get-current-query file)))
     (set! a (assoc-add a a*))
     (with-database (user-database kind)
-      (with-limit (with limit (assoc-ref a "limit") (or (and limit (string->number limit)) 10))
+      (with-limit
+        (with limit (assoc-ref a "limit") (or (and limit (string->number limit)) 10))
         (let* ((search (or (assoc-ref a "search") ""))
-               (ss (list-filter (string-tokenize-comma search)
-                     (lambda (s) (>= (string-length s) 2))
-                   ) ;list-filter
+               (ss
+                 (list-filter (string-tokenize-comma search)
+                   (lambda (s) (>= (string-length s) 2))
+                 ) ;list-filter
                ) ;ss
                (sq (map (lambda (s) (list :match s)) ss))
                (asc? (!= (assoc-ref a "direction") "descend"))

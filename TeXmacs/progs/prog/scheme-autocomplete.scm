@@ -66,7 +66,8 @@
     (let ((start (texmacs-time)))
       (catch #t
         (lambda ()
-          (let* ((tm-symbols (map (lambda (entry) (symbol->string (car entry))) tm-defined-table)
+          (let* ((tm-symbols
+                   (map (lambda (entry) (symbol->string (car entry))) tm-defined-table)
                  ) ;tm-symbols
                  (all-symbols (append tm-symbols (all-used-symbols)))
                 ) ;
@@ -95,7 +96,11 @@
 ) ;tm-define
 
 (tm-define (scheme-completions-add-list lst)
-  (let ((valid-strings (filter (lambda (s) (and (string? s) (> (string-length s) 0))) lst)
+  (let ((valid-strings
+          (filter
+            (lambda (s) (and (string? s) (> (string-length s) 0)))
+            lst
+          ) ;filter
         ) ;valid-strings
        ) ;
     (for-each (lambda (str) (set! completions (pt-add completions str)))
@@ -147,7 +152,8 @@
       (map symbol->string
         (append (map car tm-defined-table)
           (apply append
-            (map (lambda (m) (let ((e ((cdr m) '*exports*))) (if (undefined? e) '() e)))
+            (map
+              (lambda (m) (let ((e ((cdr m) '*exports*))) (if (undefined? e) '() e)))
               *modules*
             ) ;map
           ) ;apply

@@ -95,10 +95,11 @@
   (:mode in-poster?)
   (former s)
   (let* ((del (poster-size-styles))
-         (ins (if (and (!= s "a0") (in? s (poster-sizes)))
-                (list (string-append s "-poster"))
-                (list)
-              ) ;if
+         (ins
+           (if (and (!= s "a0") (in? s (poster-sizes)))
+             (list (string-append s "-poster"))
+             (list)
+           ) ;if
          ) ;ins
         ) ;
     (set-style-list (append (list-difference (get-style-list) del) ins))
@@ -148,12 +149,16 @@
 
 (tm-define (insert-same-block t below?)
   (tree-go-to t (if below? :end :start))
-  (cond ((== (tree-arity t) 1) (insert-go-to `(,(tree-label t) (document "")) '(0
-                                                                                0
-                                                                                0)))
-        ((== (tree-arity t) 2)
-         (insert-go-to `(,(tree-label t) ,"" (document "")) '(0 0))
-        ) ;
+  (cond
+   ((== (tree-arity t) 1) (insert-go-to `(,(tree-label t) (document "")) '(0
+                                                                           0
+                                                                           0)))
+   ((== (tree-arity t) 2)
+    (insert-go-to
+      `(,(tree-label t) ,"" (document ""))
+      '(0 0)
+    ) ;insert-go-to
+   ) ;
   ) ;cond
 ) ;tm-define
 
@@ -181,16 +186,17 @@
 (tm-define (test-block-titled? . args) (titled-block-context? (focus-tree)))
 (tm-define (block-toggle-titled t)
   (:check-mark "v" test-block-titled?)
-  (cond ((titled-block-context? t)
-         (tree-assign-node! t (toggle-titled (tree-label t)))
-         (tree-remove! t 0 1)
-         (tree-go-to t 0 :start)
-        ) ;
-        ((untitled-block-context? t)
-         (tree-assign-node! t (toggle-titled (tree-label t)))
-         (tree-insert! t 0 '(""))
-         (tree-go-to t 0 0)
-        ) ;
+  (cond
+   ((titled-block-context? t)
+    (tree-assign-node! t (toggle-titled (tree-label t)))
+    (tree-remove! t 0 1)
+    (tree-go-to t 0 :start)
+   ) ;
+   ((untitled-block-context? t)
+    (tree-assign-node! t (toggle-titled (tree-label t)))
+    (tree-insert! t 0 '(""))
+    (tree-go-to t 0 0)
+   ) ;
   ) ;cond
 ) ;tm-define
 

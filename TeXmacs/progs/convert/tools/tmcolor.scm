@@ -158,7 +158,8 @@
 ) ;define
 
 (define (cartesian-distance x1s x2s)
-  (sqrt (list-fold + 0 (map (lambda (x1 x2) (let ((Dx (- x1 x2))) (* Dx Dx))) x1s x2s))
+  (sqrt
+    (list-fold + 0 (map (lambda (x1 x2) (let ((Dx (- x1 x2))) (* Dx Dx))) x1s x2s))
   ) ;sqrt
 ) ;define
 
@@ -193,7 +194,10 @@
 
 (define (cmyk255->cmy255 col)
   (let ((col* (cDr col)) (k (cAr col)))
-    (map (lambda (x) (round (+ k (* x (- 1 (/ k 255)))))) col*)
+    (map
+      (lambda (x) (round (+ k (* x (- 1 (/ k 255))))))
+      col*
+    ) ;map
   ) ;let
 ) ;define
 

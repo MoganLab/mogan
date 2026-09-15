@@ -31,7 +31,11 @@
     ) ;define
 
     (define (option-filter pred opt)
-      (if (or (option-empty? opt) (not (pred (car opt)))) (none) opt)
+      (if
+        (or (option-empty? opt) (not (pred (car opt))))
+        (none)
+        opt
+      ) ;if
     ) ;define
 
     (define (option-flat-map f opt)

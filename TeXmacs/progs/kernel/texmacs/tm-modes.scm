@@ -39,8 +39,12 @@
     (let* ((pred (texmacs-mode-pred mode))
            (deps* (map list (map texmacs-mode-pred deps)))
            (l (if (== action #t) deps* (cons action deps*)))
-           (test (if (null? l) #t (if (null? (cdr l)) (car l) (cons 'and l))))
-           (defn `(varlet *texmacs-module* (quote ,pred) (lambda ,() ,test)))
+           (test
+             (if (null? l) #t (if (null? (cdr l)) (car l) (cons 'and l)))
+           ) ;test
+           (defn
+             `(varlet *texmacs-module* (quote ,pred) (lambda ,() ,test))
+           ) ;defn
            (rules (map (lambda (dep) (list dep mode)) deps))
            (logic-cmd `(logic-rules ,@rules))
            (arch1 `(set-symbol-procedure! (quote ,mode) ,pred))

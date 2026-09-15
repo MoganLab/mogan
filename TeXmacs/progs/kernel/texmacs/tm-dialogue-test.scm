@@ -163,72 +163,73 @@
   (check (recent-files-json-valid? #f) => #f)
 
   ;; interactive-args 版本号需为 >= 1 的整数
-  (check (interactive-args-json-valid? `((,"meta" (,"version" . ,0))
-                                         ("commands" ())))
+  (check
+    (interactive-args-json-valid?
+      `((,"meta" (,"version" . ,0)) ("commands" ()))
+    ) ;interactive-args-json-valid?
     =>
     #f
   ) ;check
-  (check (interactive-args-json-valid? `((,"meta" (,"version" . ,"1"))
-                                         ("commands" ())))
+  (check
+    (interactive-args-json-valid?
+      `((,"meta" (,"version" . ,"1")) ("commands" ()))
+    ) ;interactive-args-json-valid?
     =>
     #f
   ) ;check
 
   ;; interactive-args 包含合法命令条目
-  (check (interactive-args-json-valid? `((,"meta" (,"version" . ,1))
-                                         (,"commands"
-                                          (,"my-cmd"
-                                           . ,#((("key1" . "val1")
-                                                 ("key2" . "val2"))
-                                              ) ;#
-                                          )))
-         ) ;interactive-args-json-valid?
+  (check
+    (interactive-args-json-valid?
+      `((,"meta" (,"version" . ,1))
+        (,"commands" (,"my-cmd" . ,#((("key1" . "val1") ("key2" . "val2"))))))
+    ) ;interactive-args-json-valid?
     =>
     #t
   ) ;check
 
   ;; interactive-args 命令条目不是字符串键值映射时非法
-  (check (interactive-args-json-valid? `((,"meta" (,"version" . ,1))
-                                         (,"commands"
-                                          (,"my-cmd" . ,#((("key1" . 123))))))
-         ) ;interactive-args-json-valid?
+  (check
+    (interactive-args-json-valid?
+      `((,"meta" (,"version" . ,1))
+        (,"commands" (,"my-cmd" . ,#((("key1" . 123))))))
+    ) ;interactive-args-json-valid?
     =>
     #f
   ) ;check
 
   ;; recent-files 包含合法文件记录
-  (check (recent-files-json-valid? `((,"meta" (,"version" . ,1) (,"total" . ,1))
-                                     (,"files"
-                                      . ,#((("path" . "/tmp/doc.tm")
-                                            ("name" . "doc.tm")
-                                            ("last_open" . 1700000000)
-                                            ("open_count" . 3)
-                                            ("show" . #t))
-                                         ) ;#
-                                     ))
-         ) ;recent-files-json-valid?
+  (check
+    (recent-files-json-valid?
+      `((,"meta" (,"version" . ,1) (,"total" . ,1))
+        (,"files"
+         . ,#((("path" . "/tmp/doc.tm")
+               ("name" . "doc.tm")
+               ("last_open" . 1700000000)
+               ("open_count" . 3)
+               ("show" . #t))
+            ) ;#
+        ))
+    ) ;recent-files-json-valid?
     =>
     #t
   ) ;check
 
   ;; recent-files total 不能为负数
-  (check (recent-files-json-valid? `((,"meta"
-                                      (,"version" . ,1)
-                                      (,"total" . ,-1))
-                                     (,"files" . ,#()))
-         ) ;recent-files-json-valid?
+  (check
+    (recent-files-json-valid?
+      `((,"meta" (,"version" . ,1) (,"total" . ,-1)) (,"files" . ,#()))
+    ) ;recent-files-json-valid?
     =>
     #f
   ) ;check
 
   ;; recent-files 缺少必填字段（如缺少 show 或 last_open）
-  (check (recent-files-json-valid? `((,"meta" (,"version" . ,1) (,"total" . ,1))
-                                     (,"files"
-                                      . ,#((("path" . "/tmp/doc.tm")
-                                            ("name" . "doc.tm"))
-                                         ) ;#
-                                     ))
-         ) ;recent-files-json-valid?
+  (check
+    (recent-files-json-valid?
+      `((,"meta" (,"version" . ,1) (,"total" . ,1))
+        (,"files" . ,#((("path" . "/tmp/doc.tm") ("name" . "doc.tm")))))
+    ) ;recent-files-json-valid?
     =>
     #f
   ) ;check

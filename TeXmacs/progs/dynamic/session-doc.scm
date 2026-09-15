@@ -29,14 +29,15 @@
       "New input fields can be inserted using the the following "
       "keyboard shortcuts, menu entries, or icons on the focus toolbar: "
     ) ;$para
-    ($description-long ($describe-item ($inline ($shortcut (structured-insert-up))
-                                         ", "
-                                         ($menu "Focus" "Insert above")
-                                         ", "
-                                         ($tmdoc-icon "tm_insert_up.xpm")
-                                       ) ;$inline
-                         "Insert a new input field above the cursor."
-                       ) ;$describe-item
+    ($description-long
+      ($describe-item ($inline ($shortcut (structured-insert-up))
+                        ", "
+                        ($menu "Focus" "Insert above")
+                        ", "
+                        ($tmdoc-icon "tm_insert_up.xpm")
+                      ) ;$inline
+        "Insert a new input field above the cursor."
+      ) ;$describe-item
       ($describe-item ($inline ($shortcut (structured-insert-down))
                         ", "
                         ($menu "Focus" "Insert down")

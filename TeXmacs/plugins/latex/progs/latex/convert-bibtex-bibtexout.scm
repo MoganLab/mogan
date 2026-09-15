@@ -22,16 +22,17 @@
 
 (define (bibtex-remove-keepcase x)
   ;; (display* "REMOVE KEEPCASE: " x "\n")
-  (cond ((list? x)
-         (if (not (null? x))
-           (if (equal? (car x) 'keepcase)
-             (if (null? (cdr x)) "{}" `(rigid ,(bibtex-remove-keepcase (cadr x))))
-             (cons (car x) (map bibtex-remove-keepcase (cdr x)))
-           ) ;if
-           ()
-         ) ;if
-        ) ;
-        ((string? x) x)
+  (cond
+   ((list? x)
+    (if (not (null? x))
+      (if (equal? (car x) 'keepcase)
+        (if (null? (cdr x)) "{}" `(rigid ,(bibtex-remove-keepcase (cadr x))))
+        (cons (car x) (map bibtex-remove-keepcase (cdr x)))
+      ) ;if
+      ()
+    ) ;if
+   ) ;
+   ((string? x) x)
   ) ;cond
 ) ;define
 
@@ -59,10 +60,11 @@
 ) ;define
 
 (define (bibtex-flat x)
-  (cond ((list? x)
-         (if (not (null? x)) (begin (bibtex-flat (car x)) (bibtex-flat (cdr x))))
-        ) ;
-        ((string? x) (output-verbatim x))
+  (cond
+   ((list? x)
+    (if (not (null? x)) (begin (bibtex-flat (car x)) (bibtex-flat (cdr x))))
+   ) ;
+   ((string? x) (output-verbatim x))
   ) ;cond
 ) ;define
 
@@ -249,20 +251,21 @@
 ) ;define
 
 (define (bibtex-comment x)
-  (cond ((list? x)
-         (if (not (null? x))
-           (begin
-             (cond ((func? (car x) 'document) (bibtex-comment (cdar x)))
-                   ((func? (car x) 'bib-entry) (bibtex-entry "" (car x)))
-                   ((func? (car x) 'bib-latex) (bibtex-preamble "" (cadar x)))
-                   ((func? (car x) 'bib-assign) (bibtex-string "" (cdar x)))
-                   (else (begin (output-verbatim "%") (bibtex-flat (car x)) (output-lf-verbatim)))
-             ) ;cond
-             (bibtex-comment (cdr x))
-           ) ;begin
-         ) ;if
-        ) ;
-        ((string? x) (begin (output-verbatim "%" x) (output-lf-verbatim)))
+  (cond
+   ((list? x)
+    (if (not (null? x))
+      (begin
+        (cond ((func? (car x) 'document) (bibtex-comment (cdar x)))
+              ((func? (car x) 'bib-entry) (bibtex-entry "" (car x)))
+              ((func? (car x) 'bib-latex) (bibtex-preamble "" (cadar x)))
+              ((func? (car x) 'bib-assign) (bibtex-string "" (cdar x)))
+              (else (begin (output-verbatim "%") (bibtex-flat (car x)) (output-lf-verbatim)))
+        ) ;cond
+        (bibtex-comment (cdr x))
+      ) ;begin
+    ) ;if
+   ) ;
+   ((string? x) (begin (output-verbatim "%" x) (output-lf-verbatim)))
   ) ;cond
 ) ;define
 

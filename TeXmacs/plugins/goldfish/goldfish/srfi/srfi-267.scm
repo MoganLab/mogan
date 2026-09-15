@@ -145,9 +145,10 @@
       (when (not (string? prefix-fragment))
         (raise-raw-string-read-error "reader prefix fragment must be string")
       ) ;when
-      (when (or (= (string-length prefix-fragment) 0)
-              (not (char=? #\" (string-ref prefix-fragment 0)))
-            ) ;or
+      (when
+        (or (= (string-length prefix-fragment) 0)
+          (not (char=? #\" (string-ref prefix-fragment 0)))
+        ) ;or
         (raise-raw-string-read-error "raw string prefix must begin with a double quote")
       ) ;when
       (let ((prefix-out (open-output-string)))
@@ -170,10 +171,11 @@
     ) ;define
 
     (define (read-raw-string-after-prefix . maybe-port)
-      (let ((port (cond ((null? maybe-port) (current-input-port))
-                        ((null? (cdr maybe-port)) (car maybe-port))
-                        (else (error 'wrong-number-of-args))
-                  ) ;cond
+      (let ((port
+              (cond ((null? maybe-port) (current-input-port))
+                    ((null? (cdr maybe-port)) (car maybe-port))
+                    (else (error 'wrong-number-of-args))
+              ) ;cond
             ) ;port
            ) ;
         (read-raw-string-after-prefix-fragment "\"" port)
@@ -181,10 +183,11 @@
     ) ;define
 
     (define (read-raw-string . maybe-port)
-      (let ((port (cond ((null? maybe-port) (current-input-port))
-                        ((null? (cdr maybe-port)) (car maybe-port))
-                        (else (error 'wrong-number-of-args))
-                  ) ;cond
+      (let ((port
+              (cond ((null? maybe-port) (current-input-port))
+                    ((null? (cdr maybe-port)) (car maybe-port))
+                    (else (error 'wrong-number-of-args))
+              ) ;cond
             ) ;port
            ) ;
         (let ((hash (read-char port)))
@@ -208,10 +211,11 @@
       (when (not (string? delimiter))
         (error 'type-error "write-raw-string: second parameter must be string")
       ) ;when
-      (let ((port (cond ((null? maybe-port) (current-output-port))
-                        ((null? (cdr maybe-port)) (car maybe-port))
-                        (else (error 'wrong-number-of-args))
-                  ) ;cond
+      (let ((port
+              (cond ((null? maybe-port) (current-output-port))
+                    ((null? (cdr maybe-port)) (car maybe-port))
+                    (else (error 'wrong-number-of-args))
+              ) ;cond
             ) ;port
            ) ;
         (when (not (can-delimit? str delimiter))

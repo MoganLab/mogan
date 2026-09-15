@@ -125,7 +125,10 @@
   "Returns the list of scheme keywords described in an explain tag."
   (with tags
     (select t '(0 :* scm))
-    (map (lambda (x) (first-symbol (tmstring->string (flatten-strings x)))) tags)
+    (map
+      (lambda (x) (first-symbol (tmstring->string (flatten-strings x))))
+      tags
+    ) ;map
   ) ;with
 ) ;define
 
@@ -144,26 +147,32 @@
     (if (eof-object? prev) (set! prev '()))
     (persistent-set cache
       key
-      (object->string (cons `(entry ,key ,lan ,(url->system url) ,t) prev))
+      (object->string
+        (cons
+          `(entry ,key ,lan ,(url->system url) ,t)
+          prev
+        ) ;cons
+      ) ;object->string
     ) ;persistent-set
   ) ;with
 ) ;define
 
 (define (process-explain t lan url)
   "Store an explain macro from a given URL into the cache."
-  (cond ((explain-scm? t)
-         (for-each (lambda (x) (process-explain-sub x _scm_ t lan url))
-           (explain-scm-keywords t)
-         ) ;for-each
-         t
-        ) ;
-        ((explain-macro? t)
-         (for-each (lambda (x) (process-explain-sub x _macro_ t lan url))
-           (explain-macro-keywords t)
-         ) ;for-each
-         t
-        ) ;
-        (else t)
+  (cond
+   ((explain-scm? t)
+    (for-each (lambda (x) (process-explain-sub x _scm_ t lan url))
+      (explain-scm-keywords t)
+    ) ;for-each
+    t
+   ) ;
+   ((explain-macro? t)
+    (for-each (lambda (x) (process-explain-sub x _macro_ t lan url))
+      (explain-macro-keywords t)
+    ) ;for-each
+    t
+   ) ;
+   (else t)
   ) ;cond
 ) ;define
 
@@ -276,13 +285,19 @@
     (url->system (doc-scm-cache))
     (display* "I WOULD HAVE deleted the cache at " s ".\n")
     (reset-preference "doc:doc-scm-cache")
-    (set-message `(replace ,"The cache at %1 was deleted" (verbatim ,s)) "")
+    (set-message
+      `(replace ,"The cache at %1 was deleted" (verbatim ,s))
+      ""
+    ) ;set-message
   ) ;with
   (with s
     (url->system (doc-macro-cache))
     (display* "I WOULD HAVE deleted the cache at " s ".\n")
     (reset-preference "doc:doc-macro-cache")
-    (set-message `(replace ,"The cache at %1 was deleted" (verbatim ,s)) "")
+    (set-message
+      `(replace ,"The cache at %1 was deleted" (verbatim ,s))
+      ""
+    ) ;set-message
   ) ;with
   (reset-preference "doc:collect-timestamp")
   (reset-preference "doc:collect-languages")
@@ -294,9 +309,10 @@
   (:synopsis "Delete the documentation cache")
   (with run
     (lambda (go?) (if go? (doc-delete-cache*) (set-message "Cancelled" "")))
-    (user-confirm `(replace ,"All the files at %1 and %2 will be deleted. Are you sure?"
-                     (verbatim ,(url->system (doc-scm-cache)))
-                     (verbatim ,(url->system (doc-macro-cache))))
+    (user-confirm
+      `(replace ,"All the files at %1 and %2 will be deleted. Are you sure?"
+         (verbatim ,(url->system (doc-scm-cache)))
+         (verbatim ,(url->system (doc-macro-cache))))
       #t
       run
     ) ;user-confirm

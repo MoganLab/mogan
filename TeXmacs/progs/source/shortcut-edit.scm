@@ -161,9 +161,10 @@
 
 (define (shortcut-entry-mergeable? entry existing-entries)
   (let ((sh (shortcut-entry-shortcut entry)))
-    (not (list-find existing-entries
-           (lambda (existing) (== (shortcut-entry-shortcut existing) sh))
-         ) ;list-find
+    (not
+      (list-find existing-entries
+        (lambda (existing) (== (shortcut-entry-shortcut existing) sh))
+      ) ;list-find
     ) ;not
   ) ;let
 ) ;define
@@ -210,10 +211,11 @@
 (define (load-user-shortcuts)
   (replace-current-user-shortcuts! (make-empty-user-shortcuts-json))
   (when (url-exists? user-shortcuts-file)
-    (let ((loaded (catch #t
-                    (lambda () (string->json (string-load user-shortcuts-file)))
-                    (lambda args #f)
-                  ) ;catch
+    (let ((loaded
+            (catch #t
+              (lambda () (string->json (string-load user-shortcuts-file)))
+              (lambda args #f)
+            ) ;catch
           ) ;loaded
          ) ;
       (if (user-shortcuts-json-valid? loaded)
@@ -258,7 +260,8 @@
 
 (tm-define (set-user-shortcut sh cmd)
   (let* ((entries (current-user-shortcuts-list))
-         (others (list-filter entries (lambda (entry) (!= (shortcut-entry-shortcut entry) sh)))
+         (others
+           (list-filter entries (lambda (entry) (!= (shortcut-entry-shortcut entry) sh)))
          ) ;others
          (next (append others (list (make-shortcut-entry sh cmd))))
         ) ;
@@ -273,9 +276,10 @@
 ) ;tm-define
 
 (tm-define (remove-user-shortcut sh)
-  (set-current-user-shortcuts-list (list-filter (current-user-shortcuts-list)
-                                     (lambda (entry) (!= (shortcut-entry-shortcut entry) sh))
-                                   ) ;list-filter
+  (set-current-user-shortcuts-list
+    (list-filter (current-user-shortcuts-list)
+      (lambda (entry) (!= (shortcut-entry-shortcut entry) sh))
+    ) ;list-filter
   ) ;set-current-user-shortcuts-list
   (save-user-shortcuts)
   (unapply-user-shortcut sh)
@@ -301,9 +305,10 @@
 
 (tm-define (decode-shortcut sh)
   (let* ((sh* (normalize-shortcut-string sh))
-         (all (map (lambda (x) (cons (encode-shortcut x) x))
-                (map shortcut-entry-shortcut (current-user-shortcuts-list))
-              ) ;map
+         (all
+           (map (lambda (x) (cons (encode-shortcut x) x))
+             (map shortcut-entry-shortcut (current-user-shortcuts-list))
+           ) ;map
          ) ;all
         ) ;
     (or (assoc-ref all sh) (assoc-ref all sh*) sh*)
@@ -328,7 +333,8 @@
   (if (not (in-shortcut-editor?))
     (former key time)
     (and-let* ((t (cursor-tree)) (sh (tm-ref t 0)) (old (tm->string sh)))
-      (if (or (== (cAr (cursor-path)) 0) (== old ""))
+      (if
+        (or (== (cAr (cursor-path)) 0) (== old ""))
         (tree-set! sh key)
         (tree-set! sh (string-append old " " key))
       ) ;if

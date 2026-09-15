@@ -224,60 +224,61 @@
         (let ((msg-buf (chat-tab-session->message-buffer session-id))
               (in-buf (chat-tab-session->input-buffer session-id))
              ) ;
-          (cond ((== ch "output")
-                 (cond
-                   ;; t 包含 reasoning-delta → 提取并追加到 unfolded-explain
-                   ;; 注意：t 可能同时包含 fold-explain-reasoning，需要一并处理
-                   ((tree-contains-label? t 'reasoning-delta)
-                    (chat-tab-with-buffer msg-buf
-                      (let* ((text (tree-extract-reasoning-delta! t))
-                             (has-fold? (tree-contains-label? t 'fold-explain-reasoning))
-                            ) ;
-                        (when has-fold?
-                          (tree-remove-label-from-children! t 'fold-explain-reasoning)
-                        ) ;when
-                        ;; 输出 t 中剩余的非 reasoning 内容（如 unfolded-explain）
-                        (when (> (tree-arity t) 0)
-                          (chat-tab-output out t)
-                        ) ;when
-                        ;; 追加 reasoning 文本到 out 中的 unfolded-explain
-                        (chat-tab-append-reasoning! out text)
-                        ;; 如果同时有 fold 命令，折叠
-                        (when has-fold?
-                          (chat-tab-fold-last-explain! out)
-                        ) ;when
-                      ) ;let*
+          (cond
+           ((== ch "output")
+            (cond
+              ;; t 包含 reasoning-delta → 提取并追加到 unfolded-explain
+              ;; 注意：t 可能同时包含 fold-explain-reasoning，需要一并处理
+              ((tree-contains-label? t 'reasoning-delta)
+               (chat-tab-with-buffer msg-buf
+                 (let* ((text (tree-extract-reasoning-delta! t))
+                        (has-fold? (tree-contains-label? t 'fold-explain-reasoning))
+                       ) ;
+                   (when has-fold?
+                     (tree-remove-label-from-children! t 'fold-explain-reasoning)
+                   ) ;when
+                   ;; 输出 t 中剩余的非 reasoning 内容（如 unfolded-explain）
+                   (when (> (tree-arity t) 0)
+                     (chat-tab-output out t)
+                   ) ;when
+                   ;; 追加 reasoning 文本到 out 中的 unfolded-explain
+                   (chat-tab-append-reasoning! out text)
+                   ;; 如果同时有 fold 命令，折叠
+                   (when has-fold?
+                     (chat-tab-fold-last-explain! out)
+                   ) ;when
+                 ) ;let*
+                 (buffer-pretend-saved msg-buf)
+               ) ;chat-tab-with-buffer
+              ) ;
+              ;; t 仅包含 fold-explain-reasoning → 直接折叠
+              ((tree-contains-label? t 'fold-explain-reasoning)
+               (chat-tab-with-buffer msg-buf
+                 (chat-tab-fold-last-explain! out)
+                 (buffer-pretend-saved msg-buf)
+               ) ;chat-tab-with-buffer
+              ) ;
+              ;; 正常输出
+              (else (chat-tab-with-buffer msg-buf
+                      (chat-tab-output out t)
                       (buffer-pretend-saved msg-buf)
                     ) ;chat-tab-with-buffer
-                   ) ;
-                   ;; t 仅包含 fold-explain-reasoning → 直接折叠
-                   ((tree-contains-label? t 'fold-explain-reasoning)
-                    (chat-tab-with-buffer msg-buf
-                      (chat-tab-fold-last-explain! out)
-                      (buffer-pretend-saved msg-buf)
-                    ) ;chat-tab-with-buffer
-                   ) ;
-                   ;; 正常输出
-                   (else (chat-tab-with-buffer msg-buf
-                           (chat-tab-output out t)
-                           (buffer-pretend-saved msg-buf)
-                         ) ;chat-tab-with-buffer
-                   ) ;else
-                 ) ;cond
-                ) ;
-                ((== ch "error")
-                 (chat-tab-with-buffer msg-buf
-                   (chat-tab-errput out t)
-                   (buffer-pretend-saved msg-buf)
-                 ) ;chat-tab-with-buffer
-                ) ;
-                ((== ch "prompt")
-                 (chat-tab-with-buffer msg-buf
-                   (tree-set out :up 0 (tree-copy t))
-                   (buffer-pretend-saved msg-buf)
-                 ) ;chat-tab-with-buffer
-                ) ;
-                ((and (== ch "input") (null? (cdr l))) (chat-tab-set-input-body! in-buf t))
+              ) ;else
+            ) ;cond
+           ) ;
+           ((== ch "error")
+            (chat-tab-with-buffer msg-buf
+              (chat-tab-errput out t)
+              (buffer-pretend-saved msg-buf)
+            ) ;chat-tab-with-buffer
+           ) ;
+           ((== ch "prompt")
+            (chat-tab-with-buffer msg-buf
+              (tree-set out :up 0 (tree-copy t))
+              (buffer-pretend-saved msg-buf)
+            ) ;chat-tab-with-buffer
+           ) ;
+           ((and (== ch "input") (null? (cdr l))) (chat-tab-set-input-body! in-buf t))
           ) ;cond
         ) ;let
       ) ;with
@@ -297,19 +298,20 @@
             (== (substring ses 0 9) "chat-tab:")
           ) ;and
       (let ((l (pending-ref lan ses)))
-        (for-each (lambda (entry)
-                    (with (input entry-session-id out opts)
-                      (chat-tab-session-decode entry)
-                      (chat-tab-with-buffer (chat-tab-session->message-buffer entry-session-id)
-                        (when (and (tm-func? out 'document)
-                                (> (tree-arity out) 0)
-                                (tm-func? (tree-ref out :last) 'script-busy)
-                              ) ;and
-                          (tree-assign (tree-ref out :last) `(script-busy ,msg))
-                        ) ;when
-                      ) ;chat-tab-with-buffer
-                    ) ;with
-                  ) ;lambda
+        (for-each
+          (lambda (entry)
+            (with (input entry-session-id out opts)
+              (chat-tab-session-decode entry)
+              (chat-tab-with-buffer (chat-tab-session->message-buffer entry-session-id)
+                (when (and (tm-func? out 'document)
+                        (> (tree-arity out) 0)
+                        (tm-func? (tree-ref out :last) 'script-busy)
+                      ) ;and
+                  (tree-assign (tree-ref out :last) `(script-busy ,msg))
+                ) ;when
+              ) ;chat-tab-with-buffer
+            ) ;with
+          ) ;lambda
           l
         ) ;for-each
       ) ;let
@@ -360,7 +362,9 @@
   ;; 参与 content（含图片时 C++ 侧已提前拦截提示不支持）；
   ;; 系统提示词不下发：由服务端或子进程插件配置
   (let ((cork-json (utf8->cork (json->string (chat-input->json ctx)))))
-    (stree->tree `(document ,(string-append "%chat " cork-json)))
+    (stree->tree
+      `(document ,(string-append "%chat " cork-json))
+    ) ;stree->tree
   ) ;let
 ) ;define
 

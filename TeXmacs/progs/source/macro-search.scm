@@ -47,11 +47,12 @@
            (collect-options-sub u t)
          ) ;let*
         ) ;
-        (else (let* ((head (collect-options (symbol->string (tree-label def)) t))
-                     (tail (map (cut collect-options-sub <> t) (tree-children def)))
-                    ) ;
-                (list-remove-duplicates (apply append (cons head tail)))
-              ) ;let*
+        (else
+          (let* ((head (collect-options (symbol->string (tree-label def)) t))
+                 (tail (map (cut collect-options-sub <> t) (tree-children def)))
+                ) ;
+            (list-remove-duplicates (apply append (cons head tail)))
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -158,9 +159,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (get-with-vars l)
-  (cond ((or (null? l) (null? (cdr l))) '())
-        ((tree-atomic? (car l)) (cons (tree->string (car l)) (get-with-vars (cddr l))))
-        (else (get-with-vars (cddr l)))
+  (cond
+   ((or (null? l) (null? (cdr l))) '())
+   ((tree-atomic? (car l)) (cons (tree->string (car l)) (get-with-vars (cddr l))))
+   (else (get-with-vars (cddr l)))
   ) ;cond
 ) ;define
 
@@ -202,9 +204,10 @@
            ) ;with
          ) ;let*
         ) ;
-        (else (when (tree-parameter? def)
-                (ahash-set! v (symbol->string (tree-label def)) #t)
-              ) ;when
+        (else
+          (when (tree-parameter? def)
+            (ahash-set! v (symbol->string (tree-label def)) #t)
+          ) ;when
           (collect-parameters (symbol->string (tree-label def)) v t)
           (for-each (cut collect-parameters-sub <> v t) (tree-children def))
         ) ;else
@@ -308,12 +311,13 @@
   (with pos
     (string-search-backwards "-" at var)
     (and (>= pos 0)
-      (or (and-with mems
-            (theme->members (substring var 0 pos))
-            (and (in? (substring var (+ pos 1) (string-length var)) mems)
-              (substring var 0 pos)
-            ) ;and
-          ) ;and-with
+      (or
+        (and-with mems
+          (theme->members (substring var 0 pos))
+          (and (in? (substring var (+ pos 1) (string-length var)) mems)
+            (substring var 0 pos)
+          ) ;and
+        ) ;and-with
         (member->theme-at var (- pos 1))
       ) ;or
     ) ;and

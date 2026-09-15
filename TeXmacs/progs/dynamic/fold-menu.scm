@@ -62,17 +62,21 @@
 
 (define (get-extern-converters)
   (let* ((l1 (converters-from "texmacs-snippet"))
-         (l2 (filter (lambda (x)
-                       (and (string? x)
-                         (string-ends? x "-snippet")
-                         (not (string-contains? x "texmacs"))
-                       ) ;and
-                     ) ;lambda
-               l1
-             ) ;filter
+         (l2
+           (filter
+             (lambda (x)
+               (and (string? x)
+                 (string-ends? x "-snippet")
+                 (not (string-contains? x "texmacs"))
+               ) ;and
+             ) ;lambda
+             l1
+           ) ;filter
          ) ;l2
          (l3 (map (cut string-replace <> "-snippet" "") l2))
-         (l4 (sort l3 (lambda (x y) (string<? (format-get-name x) (format-get-name y)))))
+         (l4
+           (sort l3 (lambda (x y) (string<? (format-get-name x) (format-get-name y))))
+         ) ;l4
         ) ;
     l4
   ) ;let*
@@ -281,7 +285,13 @@
   (:require (style-has? "beamer-style"))
   (-> "Beamer theme"
     (for (theme (beamer-themes))
-     ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
+     ((check
+        (eval
+          `(verbatim ,(upcase-first theme))
+        ) ;eval
+        "v"
+        (has-style-package? theme)
+      ) ;check
       (add-style-package theme)
      ) ;
     ) ;for
@@ -292,7 +302,13 @@
   (:require (style-has? "beamer-style"))
   (-> "Beamer theme"
     (for (theme (beamer-themes))
-     ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
+     ((check
+        (eval
+          `(verbatim ,(upcase-first theme))
+        ) ;eval
+        "v"
+        (has-style-package? theme)
+      ) ;check
       (add-style-package theme)
      ) ;
     ) ;for
@@ -302,11 +318,21 @@
 
 (tm-menu (focus-style-extra-icons t)
   (:require (style-has? "beamer-style"))
-  (=> (balloon (eval `(verbatim ,(upcase-first (current-beamer-theme))))
-        "Beamer theme"
-      ) ;balloon
+  (=>
+    (balloon
+      (eval
+        `(verbatim ,(upcase-first (current-beamer-theme)))
+      ) ;eval
+      "Beamer theme"
+    ) ;balloon
     (for (theme (beamer-themes))
-     ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
+     ((check
+        (eval
+          `(verbatim ,(upcase-first theme))
+        ) ;eval
+        "v"
+        (has-style-package? theme)
+      ) ;check
       (add-style-package theme)
      ) ;
     ) ;for
@@ -392,14 +418,15 @@
 
 (tm-define (notify-new-style style)
   (former style)
-  (cond ((style-has? "beamer-style")
-         (when (not (screens-buffer?))
-           (set-init-env "page-medium" "beamer")
-           (make-screens)
-         ) ;when
-        ) ;
-        ((screens-buffer?) (remove-single-screens))
-        ((slideshow-buffer?) (remove-single-slideshow))
+  (cond
+   ((style-has? "beamer-style")
+    (when (not (screens-buffer?))
+      (set-init-env "page-medium" "beamer")
+      (make-screens)
+    ) ;when
+   ) ;
+   ((screens-buffer?) (remove-single-screens))
+   ((slideshow-buffer?) (remove-single-slideshow))
   ) ;cond
 ) ;tm-define
 
@@ -511,36 +538,36 @@
         ) ;
     (padded (bold (text "Background color"))
       ===
-      (hlist (refreshable "slide-color-sample"
-               (resize "150px"
-                 "100px"
-                 (texmacs-output `(document (block (tformat (cwith "1" "1" "1"
-                                                              "1" "cell-width"
-                                                              "140px")
-                                                     (cwith "1" "1" "1" "1"
-                                                       "cell-height" "90px")
-                                                     (cwith "1" "1" "1" "1"
-                                                       "cell-vmode" "exact")
-                                                     (cwith ,"1"
-                                                       ,"1"
-                                                       ,"1"
-                                                       ,"1"
-                                                       ,"cell-background"
-                                                       ,col)
-                                                     (table (row (cell ""))))))
-                   '(style (tuple "generic"))
-                 ) ;texmacs-output
-               ) ;resize
-             ) ;refreshable
+      (hlist
+        (refreshable "slide-color-sample"
+          (resize "150px"
+            "100px"
+            (texmacs-output
+              `(document (block (tformat (cwith "1" "1" "1" "1" "cell-width"
+                                           "140px")
+                                  (cwith "1" "1" "1" "1" "cell-height" "90px")
+                                  (cwith "1" "1" "1" "1" "cell-vmode" "exact")
+                                  (cwith ,"1"
+                                    ,"1"
+                                    ,"1"
+                                    ,"1"
+                                    ,"cell-background"
+                                    ,col)
+                                  (table (row (cell ""))))))
+              '(style (tuple "generic"))
+            ) ;texmacs-output
+          ) ;resize
+        ) ;refreshable
         //
         //
         //
-        (explicit-buttons (vlist ("Color" (interactive-color setter (list)))
-                           ("Pattern" (open-pattern-selector setter "1cm"))
-                           ("Gradient" (open-gradient-selector setter))
-                           ("Picture" (open-background-picture-selector setter))
-                           (glue #f #t 0 0)
-                          ) ;vlist
+        (explicit-buttons
+          (vlist ("Color" (interactive-color setter (list)))
+           ("Pattern" (open-pattern-selector setter "1cm"))
+           ("Gradient" (open-gradient-selector setter))
+           ("Picture" (open-background-picture-selector setter))
+           (glue #f #t 0 0)
+          ) ;vlist
         ) ;explicit-buttons
       ) ;hlist
       ======
@@ -562,7 +589,9 @@
 
 (tm-menu (focus-tag-menu t)
   (:require (screens-context? t))
-  (inert ((eval (focus-tag-name (tree-label t))) (noop) (noop)))
+  (inert
+   ((eval (focus-tag-name (tree-label t))) (noop) (noop))
+  ) ;inert
   (-> (eval (upcase-first (get-init "page-type"))) (link document-page-size-menu))
   (-> (eval (upcase-first (get-init-page-rendering))) (link page-rendering-menu))
   (-> "Preferences" (dynamic (focus-preferences-menu t)))
@@ -585,16 +614,19 @@
 (tm-menu (focus-tag-icons t)
   (:require (screens-context? t))
   (mini #t (inert ((eval (focus-tag-name (tree-label t))) (noop))))
-  (=> (balloon (eval (upcase-first (get-init "page-type"))) "Paper size")
+  (=>
+    (balloon (eval (upcase-first (get-init "page-type"))) "Paper size")
     (link document-page-size-menu)
   ) ;=>
-  (=> (balloon (eval (upcase-first (short-font-menu-name))) "Main document font")
+  (=>
+    (balloon (eval (upcase-first (short-font-menu-name))) "Main document font")
     (link document-short-font-menu)
   ) ;=>
   (=> (balloon (eval (font-base-size-menu-name)) "Font size")
     (link document-font-base-size-menu)
   ) ;=>
-  (=> (balloon (icon (eval (current-page-icon))) "Page layout")
+  (=>
+    (balloon (icon (eval (current-page-icon))) "Page layout")
     (link page-rendering-menu)
   ) ;=>
   ((balloon (icon "tm_focus_help.xpm") "Describe tag") (focus-help))
@@ -613,7 +645,10 @@
     (with i
       (tree-index (tree-down u))
       (mini #t
-        (=> (eval `(verbatim ,(get-slide-name (tree-ref u i) i)))
+        (=>
+          (eval
+            `(verbatim ,(get-slide-name (tree-ref u i) i))
+          ) ;eval
           (dynamic (focus-slides-menu t))
         ) ;=>
       ) ;mini
@@ -656,8 +691,11 @@
 ) ;define
 
 (tm-menu (focus-overlays-menu t)
-  (for (i (.. 1 (or (+ (overlays-arity t) 1) 2)))
-   ((eval (string-append "Overlay " (number->string i))) (overlays-switch-to t i))
+  (for
+    (i
+      (.. 1 (or (+ (overlays-arity t) 1) 2))
+    ) ;i
+    ((eval (string-append "Overlay " (number->string i))) (overlays-switch-to t i))
   ) ;for
 ) ;tm-menu
 
@@ -688,12 +726,19 @@
 ) ;tm-menu
 
 (tm-menu (focus-overlay-icons t)
-  (for (i (.. 1 (or (+ (overlay-arity t) 1) 2)))
+  (for
+    (i
+      (.. 1 (or (+ (overlay-arity t) 1) 2))
+    ) ;i
     (if (overlay-visible? t i)
-      (bold (dynamic (focus-overlay-icon t i (== i (overlay-current t)))))
+      (bold
+        (dynamic (focus-overlay-icon t i (== i (overlay-current t))))
+      ) ;bold
     ) ;if
     (if (not (overlay-visible? t i))
-      (grey (dynamic (focus-overlay-icon t i (== i (overlay-current t)))))
+      (grey
+        (dynamic (focus-overlay-icon t i (== i (overlay-current t))))
+      ) ;grey
     ) ;if
   ) ;for
 ) ;tm-menu

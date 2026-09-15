@@ -41,12 +41,13 @@
         (if (null? key)
           (trie-value-set! node (list val))
           (let* ((ckey (car key))
-                 (child (or (trie-ref* node ckey)
-                          (let ((child (make-trie)))
-                            (add-child! node ckey child)
-                            child
-                          ) ;let
-                        ) ;or
+                 (child
+                   (or (trie-ref* node ckey)
+                     (let ((child (make-trie)))
+                       (add-child! node ckey child)
+                       child
+                     ) ;let
+                   ) ;or
                  ) ;child
                 ) ;
             (loop child (cdr key))
@@ -56,12 +57,14 @@
     ) ;define
 
     (define (trie->list trie)
-      (cons (let loop
-              ((trie trie))
-              (map (lambda (child) (cons (car child) (trie->list (cdr child))))
-                (trie-children trie)
-              ) ;map
-            ) ;let
+      (cons
+        (let loop
+          ((trie trie))
+          (map
+            (lambda (child) (cons (car child) (trie->list (cdr child))))
+            (trie-children trie)
+          ) ;map
+        ) ;let
         (trie-value trie)
       ) ;cons
     ) ;define

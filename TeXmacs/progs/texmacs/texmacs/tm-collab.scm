@@ -54,11 +54,12 @@
 ;; string-contains（只用 string->list / char=?，与 collab-valid-doc-name? 同套）。
 
 (define (collab-url->fields url)
-  (let ((strip (lambda (p)
-                 (and (collab-string-prefix? p url)
-                   (substring url (string-length p) (string-length url))
-                 ) ;and
-               ) ;lambda
+  (let ((strip
+          (lambda (p)
+            (and (collab-string-prefix? p url)
+              (substring url (string-length p) (string-length url))
+            ) ;and
+          ) ;lambda
         ) ;strip
        ) ;
     (let ((rest (or (strip "ws://") (strip "wss://"))))
@@ -66,18 +67,19 @@
         (cons url "")
         (let loop
           ((cs (string->list rest)) (i 0) (colon #f))
-          (cond ((null? cs)
-                 (if (not colon)
-                   (cons rest "")
-                   (cons (substring rest 0 colon)
-                     (substring rest (+ colon 1) (string-length rest))
-                   ) ;cons
-                 ) ;if
-                ) ;
-                ((char=? (car cs) #\/) (cons url ""))
-                ((and (char=? (car cs) #\:) colon) (cons url ""))
-                ((char=? (car cs) #\:) (loop (cdr cs) (+ i 1) i))
-                (else (loop (cdr cs) (+ i 1) colon))
+          (cond
+           ((null? cs)
+            (if (not colon)
+              (cons rest "")
+              (cons (substring rest 0 colon)
+                (substring rest (+ colon 1) (string-length rest))
+              ) ;cons
+            ) ;if
+           ) ;
+           ((char=? (car cs) #\/) (cons url ""))
+           ((and (char=? (car cs) #\:) colon) (cons url ""))
+           ((char=? (car cs) #\:) (loop (cdr cs) (+ i 1) i))
+           (else (loop (cdr cs) (+ i 1) colon))
           ) ;cond
         ) ;let
       ) ;if
@@ -130,15 +132,16 @@
           ((qt-gui?)
            (with cur
              (collab-url->fields (collab-server-url))
-             (interactive (lambda (addr port)
-                            (with url
-                              (collab-fields->url addr port)
-                              (if (== url "")
-                                (reset-preference collab-server-url-key)
-                                (set-preference collab-server-url-key url)
-                              ) ;if
-                            ) ;with
-                          ) ;lambda
+             (interactive
+               (lambda (addr port)
+                 (with url
+                   (collab-fields->url addr port)
+                   (if (== url "")
+                     (reset-preference collab-server-url-key)
+                     (set-preference collab-server-url-key url)
+                   ) ;if
+                 ) ;with
+               ) ;lambda
                (list "Server address" "string" (car cur))
                (list "Server port" "string" (cdr cur))
              ) ;interactive
@@ -188,14 +191,15 @@
   (and (string? name)
     (>= (utf8-string-length name) 1)
     (<= (utf8-string-length name) 64)
-    (not (list-find (string->list name)
-           (lambda (c)
-             (or (in? c collab-doc-name-forbidden-chars)
-               (< (char->integer c) 32)
-               (== (char->integer c) 127)
-             ) ;or
-           ) ;lambda
-         ) ;list-find
+    (not
+      (list-find (string->list name)
+        (lambda (c)
+          (or (in? c collab-doc-name-forbidden-chars)
+            (< (char->integer c) 32)
+            (== (char->integer c) 127)
+          ) ;or
+        ) ;lambda
+      ) ;list-find
     ) ;not
   ) ;and
 ) ;define
@@ -267,51 +271,54 @@
 (tm-define (collab-new-document)
   (:interactive #t)
   (:imgui-supported #t)
-  (cond ((os-wasm?)
-         (let ((ans (wasm-prompt "Document name" "")))
-           (when (not (wasm-prompt-cancelled?))
-             (collab-new-document-named ans)
-           ) ;when
-         ) ;let
-        ) ;
-        ((qt-gui?)
-         (interactive (lambda (name) (collab-new-document-named name)) "Document name")
-        ) ;
-        (else (set-message "Not supported on this frontend" "Collaborative"))
+  (cond
+   ((os-wasm?)
+    (let ((ans (wasm-prompt "Document name" "")))
+      (when (not (wasm-prompt-cancelled?))
+        (collab-new-document-named ans)
+      ) ;when
+    ) ;let
+   ) ;
+   ((qt-gui?)
+    (interactive (lambda (name) (collab-new-document-named name)) "Document name")
+   ) ;
+   (else (set-message "Not supported on this frontend" "Collaborative"))
   ) ;cond
 ) ;tm-define
 (tm-define (collab-new-document-named name)
   (let ((uname (cork->utf8 name)))
-    (cond ((and (string? uname)
-             (> (string-length uname) 0)
-             (not (collab-valid-doc-name? uname))
-           ) ;and
-           (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
-             "Collaborative"
-           ) ;set-message
-          ) ;
-          (else (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
-                  ;; 新建 buffer 改名为 tmfs 占位 URL（成为可识别的 collab buffer）；
-                  ;; C++ become_ready 收到 DOC 后再改名为 tmfs://collab/<真实 doc_id>。
-                  ;; 标题先设为用户输入的显示名（无名文档保持 No Name），再 rename：
-                  ;; rename 的 propose_title 据 old_title 决定，old_title=doc_name 时
-                  ;; keep_old 保留（而非 No name→tmfs URL），避免第一次 tab 重建显示 URL。
-                  (when (> (string-length name) 0)
-                    (buffer-set-title (current-buffer) name)
-                  ) ;when
-                  (buffer-rename (current-buffer)
-                    (collab-buffer-url->tmfs (collab-placeholder-doc-id))
-                  ) ;buffer-rename
-                  (loro-collab-create (collab-server-url) uname)
-                  (collab-schedule-record-on-create)
-                  (set-message (string-append "Creating collaborative document (Server "
-                                 (collab-server-url)
-                                 ")"
-                               ) ;string-append
-                    "Collaborative"
-                  ) ;set-message
-                ) ;with-default-view
-          ) ;else
+    (cond
+     ((and (string? uname)
+        (> (string-length uname) 0)
+        (not (collab-valid-doc-name? uname))
+      ) ;and
+      (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
+        "Collaborative"
+      ) ;set-message
+     ) ;
+     (else
+       (with-default-view (if (window-per-buffer?) (open-window) (new-buffer))
+         ;; 新建 buffer 改名为 tmfs 占位 URL（成为可识别的 collab buffer）；
+         ;; C++ become_ready 收到 DOC 后再改名为 tmfs://collab/<真实 doc_id>。
+         ;; 标题先设为用户输入的显示名（无名文档保持 No Name），再 rename：
+         ;; rename 的 propose_title 据 old_title 决定，old_title=doc_name 时
+         ;; keep_old 保留（而非 No name→tmfs URL），避免第一次 tab 重建显示 URL。
+         (when (> (string-length name) 0)
+           (buffer-set-title (current-buffer) name)
+         ) ;when
+         (buffer-rename (current-buffer)
+           (collab-buffer-url->tmfs (collab-placeholder-doc-id))
+         ) ;buffer-rename
+         (loro-collab-create (collab-server-url) uname)
+         (collab-schedule-record-on-create)
+         (set-message (string-append "Creating collaborative document (Server "
+                        (collab-server-url)
+                        ")"
+                      ) ;string-append
+           "Collaborative"
+         ) ;set-message
+       ) ;with-default-view
+     ) ;else
     ) ;cond
   ) ;let
 ) ;tm-define
@@ -331,19 +338,20 @@
 ;; WASM：window.prompt 单框输入（取消 = 不上传）。
 
 (define (collab-share-file-prompt-name u)
-  (cond ((os-wasm?)
-         (let ((ans (wasm-prompt "Document name" (collab-file->doc-name u))))
-           (when (not (wasm-prompt-cancelled?))
-             (collab-new-document-from-file-named u ans)
-           ) ;when
-         ) ;let
-        ) ;
-        ((qt-gui?)
-         (interactive (lambda (name) (collab-new-document-from-file-named u name))
-           (list "Document name" "string" (collab-file->doc-name u))
-         ) ;interactive
-        ) ;
-        (else (set-message "Not supported on this frontend" "Collaborative"))
+  (cond
+   ((os-wasm?)
+    (let ((ans (wasm-prompt "Document name" (collab-file->doc-name u))))
+      (when (not (wasm-prompt-cancelled?))
+        (collab-new-document-from-file-named u ans)
+      ) ;when
+    ) ;let
+   ) ;
+   ((qt-gui?)
+    (interactive (lambda (name) (collab-new-document-from-file-named u name))
+      (list "Document name" "string" (collab-file->doc-name u))
+    ) ;interactive
+   ) ;
+   (else (set-message "Not supported on this frontend" "Collaborative"))
   ) ;cond
 ) ;define
 
@@ -362,32 +370,33 @@
 (tm-define (collab-new-document-from-file-named u name)
   ;; name 来自 Qt 输入框为 Cork 编码，协作链下游期望 UTF-8（见 collab-new-document-named）。
   (let ((uname (cork->utf8 name)))
-    (cond ((and (string? uname)
-             (> (string-length uname) 0)
-             (not (collab-valid-doc-name? uname))
-           ) ;and
-           (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
-             "Collaborative"
-           ) ;set-message
-          ) ;
-          (else
-            ;; 加载文件到 buffer（window-per-buffer 开新窗口，否则新标签页），
-            ;; current-buffer 随即切到该文件 buffer。
-            (if (window-per-buffer?) (load-buffer-in-new-window u) (load-buffer u))
-            ;; 文件内容已随 buffer 载入；改名成 tmfs 占位 URL（内容不变），
-            ;; become_ready eager-seed 时仍能把文件内容推到服务端。
-            (buffer-rename (current-buffer)
-              (collab-buffer-url->tmfs (collab-placeholder-doc-id))
-            ) ;buffer-rename
-            (loro-collab-create (collab-server-url) uname)
-            (collab-schedule-record-on-create)
-            (set-message (string-append "Uploading file as collaborative document (Server "
-                           (collab-server-url)
-                           ")"
-                         ) ;string-append
-              "Collaborative"
-            ) ;set-message
-          ) ;else
+    (cond
+     ((and (string? uname)
+        (> (string-length uname) 0)
+        (not (collab-valid-doc-name? uname))
+      ) ;and
+      (set-message "Invalid name: 1-64 chars, no \\ / : * ? \" < > | or control chars"
+        "Collaborative"
+      ) ;set-message
+     ) ;
+     (else
+       ;; 加载文件到 buffer（window-per-buffer 开新窗口，否则新标签页），
+       ;; current-buffer 随即切到该文件 buffer。
+       (if (window-per-buffer?) (load-buffer-in-new-window u) (load-buffer u))
+       ;; 文件内容已随 buffer 载入；改名成 tmfs 占位 URL（内容不变），
+       ;; become_ready eager-seed 时仍能把文件内容推到服务端。
+       (buffer-rename (current-buffer)
+         (collab-buffer-url->tmfs (collab-placeholder-doc-id))
+       ) ;buffer-rename
+       (loro-collab-create (collab-server-url) uname)
+       (collab-schedule-record-on-create)
+       (set-message (string-append "Uploading file as collaborative document (Server "
+                      (collab-server-url)
+                      ")"
+                    ) ;string-append
+         "Collaborative"
+       ) ;set-message
+     ) ;else
     ) ;cond
   ) ;let
 ) ;tm-define
@@ -397,7 +406,9 @@
 ;; 建空 buffer 并切到它 → 会话层 JOIN。服务端回 DOC 后补发 snapshot/updates，
 ;; 首帧到达时把内容构建进 buffer。
 (tm-define (collab-join-document doc-id . opt-name)
-  (let ((name (if (and (nnull? opt-name) (string? (car opt-name))) (car opt-name) ""))
+  (let ((name
+          (if (and (nnull? opt-name) (string? (car opt-name))) (car opt-name) "")
+        ) ;name
         (buf-url (collab-buffer-url->tmfs doc-id))
        ) ;
     (when (and (string? doc-id) (> (string-length doc-id) 0))
@@ -414,9 +425,10 @@
           ;; join 的 doc_id 已知，直接改名为最终 tmfs URL（无需 become_ready 再改）。
           (buffer-rename (current-buffer) buf-url)
           (loro-collab-join (collab-server-url) doc-id name)
-          (set-message (string-append "Joining collaborative document "
-                         (if (> (string-length name) 0) name doc-id)
-                       ) ;string-append
+          (set-message
+            (string-append "Joining collaborative document "
+              (if (> (string-length name) 0) name doc-id)
+            ) ;string-append
             "Collaborative"
           ) ;set-message
         ) ;with-default-view
@@ -452,26 +464,27 @@
           ((and (== status "ready") (null? (loro-collab-docs)))
            ("(no documents)" (collab-refresh-docs))
           ) ;
-          (else (with pairs
-                  (collab-docs-pairs (loro-collab-docs))
-                  (with dups
-                    (collab-doc-name-duplicates pairs)
-                    (for (p pairs)
-                      (with uuid
-                        (car p)
-                        (with name
-                          (cdr p)
-                          (with dup?
-                            (let ((cell (assoc name dups)))
-                              (and cell (> (cdr cell) 1))
-                            ) ;let
-                            ((eval (collab-doc-label uuid name dup?)) (collab-join-document uuid name))
-                          ) ;with
-                        ) ;with
+          (else
+            (with pairs
+              (collab-docs-pairs (loro-collab-docs))
+              (with dups
+                (collab-doc-name-duplicates pairs)
+                (for (p pairs)
+                  (with uuid
+                    (car p)
+                    (with name
+                      (cdr p)
+                      (with dup?
+                        (let ((cell (assoc name dups)))
+                          (and cell (> (cdr cell) 1))
+                        ) ;let
+                        ((eval (collab-doc-label uuid name dup?)) (collab-join-document uuid name))
                       ) ;with
-                    ) ;for
+                    ) ;with
                   ) ;with
-                ) ;with
+                ) ;for
+              ) ;with
+            ) ;with
           ) ;else
     ) ;cond
     ---

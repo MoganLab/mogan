@@ -43,23 +43,24 @@
 ) ;tm-define
 
 (tm-define (version-tool name)
-  (or (if (ahash-ref version-tool-table name)
-        (with tool (ahash-ref version-tool-table name) (and (!= tool "") tool))
-        (with tool
-          (cond ((svn-active? name) "svn")
-                ((git-active? name) "git")
-                (else "")
+  (or
+    (if (ahash-ref version-tool-table name)
+      (with tool (ahash-ref version-tool-table name) (and (!= tool "") tool))
+      (with tool
+        (cond ((svn-active? name) "svn")
+              ((git-active? name) "git")
+              (else "")
+        ) ;cond
+        (ahash-set! version-tool-table name tool)
+        (when (and tool (not (ahash-ref version-tool-loaded tool)))
+          (ahash-set! version-tool-loaded tool #t)
+          (cond ((== tool "svn") (module-provide '(version version-svn)))
+                ((== tool "git") (module-provide '(version version-git)))
           ) ;cond
-          (ahash-set! version-tool-table name tool)
-          (when (and tool (not (ahash-ref version-tool-loaded tool)))
-            (ahash-set! version-tool-loaded tool #t)
-            (cond ((== tool "svn") (module-provide '(version version-svn)))
-                  ((== tool "git") (module-provide '(version version-git)))
-            ) ;cond
-          ) ;when
-          (and (!= tool "") tool)
-        ) ;with
-      ) ;if
+        ) ;when
+        (and (!= tool "") tool)
+      ) ;with
+    ) ;if
     (and-with base (url-wrap name) (and (version-tool base) "wrap"))
   ) ;or
 ) ;tm-define
@@ -141,25 +142,27 @@
          (h (version-history u))
          (Version (if (git-active? u) "Commit" "Version"))
         ) ;
-    ($generic ($tmfs-title "History of "
-                ($link (url->system u) ($verbatim (utf8->cork (url->system (url-tail u)))))
-              ) ;$tmfs-title
+    ($generic
+      ($tmfs-title "History of "
+        ($link (url->system u) ($verbatim (utf8->cork (url->system (url-tail u)))))
+      ) ;$tmfs-title
       ($when (not h) "This file is not under version control.")
       ($when h
-        ($description-long ($for (x h)
-                             ($with (rev by date msg)
-                               x
-                               ($with rev*
-                                 (version-beautify-revision u rev)
-                                 ($with dest
-                                   (version-revision-url u rev)
-                                   ($describe-item ($inline Version " " ($link dest rev*) " by " (utf8->cork by) " on " date)
-                                     (utf8->cork msg)
-                                   ) ;$describe-item
-                                 ) ;$with
-                               ) ;$with
-                             ) ;$with
-                           ) ;$for
+        ($description-long
+          ($for (x h)
+            ($with (rev by date msg)
+              x
+              ($with rev*
+                (version-beautify-revision u rev)
+                ($with dest
+                  (version-revision-url u rev)
+                  ($describe-item ($inline Version " " ($link dest rev*) " by " (utf8->cork by) " on " date)
+                    (utf8->cork msg)
+                  ) ;$describe-item
+                ) ;$with
+              ) ;$with
+            ) ;$with
+          ) ;$for
         ) ;$description-long
       ) ;$when
     ) ;$generic

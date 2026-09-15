@@ -33,59 +33,65 @@
                       ) ;when
                     ) ;lambda
          ) ;set-where
-         (key-press (lambda (what)
-                      (when what
-                        (set! where (car what))
-                        (when (== (cadr what) "return")
-                          (set-where where)
-                        ) ;when
-                      ) ;when
-                    ) ;lambda
+         (key-press
+           (lambda (what)
+             (when what
+               (set! where (car what))
+               (when (== (cadr what) "return")
+                 (set-where where)
+               ) ;when
+             ) ;when
+           ) ;lambda
          ) ;key-press
-         (encode (lambda (triple)
-                   (with (p v cmd)
-                     triple
-                     (with s (upcase-first p) (if (== v "default") s (string-append s " (" v ")")))
-                   ) ;with
-                 ) ;lambda
+         (encode
+           (lambda (triple)
+             (with (p v cmd)
+               triple
+               (with s (upcase-first p) (if (== v "default") s (string-append s " (" v ")")))
+             ) ;with
+           ) ;lambda
          ) ;encode
-         (decode (lambda (name)
-                   (and-with l
-                     (list-remote-plugins where)
-                     (with t
-                       (list-find (cadr l) (lambda (u) (== (encode u) name)))
-                       (list (car t) (string-append where "/" (cadr t)))
-                     ) ;with
-                   ) ;and-with
-                 ) ;lambda
+         (decode
+           (lambda (name)
+             (and-with l
+               (list-remote-plugins where)
+               (with t
+                 (list-find (cadr l) (lambda (u) (== (encode u) name)))
+                 (list (car t) (string-append where "/" (cadr t)))
+               ) ;with
+             ) ;and-with
+           ) ;lambda
          ) ;decode
-         (plugin-list (lambda ()
-                        (with l (list-remote-plugins where) (if (not l) (list) (map encode (cadr l))))
-                      ) ;lambda
+         (plugin-list
+           (lambda ()
+             (with l (list-remote-plugins where) (if (not l) (list) (map encode (cadr l))))
+           ) ;lambda
          ) ;plugin-list
         ) ;
-    (padded (hlist (resize "300px"
-                     "400px"
-                     (vlist (bold (text "Remote servers"))
-                       ===
-                       (refreshable "remote-servers"
-                         (choice (set-where answer) (remote-connection-servers) where)
-                       ) ;refreshable
-                     ) ;vlist
-                   ) ;resize
-              //
-              //
-              //
-              (resize "300px"
-                "400px"
-                (vlist (bold (text "Supported plug-ins"))
-                  ===
-                  (refreshable "supported-plugins"
-                    (scrollable (choice (quit (decode answer)) (plugin-list) ""))
-                  ) ;refreshable
-                ) ;vlist
-              ) ;resize
-            ) ;hlist
+    (padded
+      (hlist
+        (resize "300px"
+          "400px"
+          (vlist (bold (text "Remote servers"))
+            ===
+            (refreshable "remote-servers"
+              (choice (set-where answer) (remote-connection-servers) where)
+            ) ;refreshable
+          ) ;vlist
+        ) ;resize
+        //
+        //
+        //
+        (resize "300px"
+          "400px"
+          (vlist (bold (text "Supported plug-ins"))
+            ===
+            (refreshable "supported-plugins"
+              (scrollable (choice (quit (decode answer)) (plugin-list) ""))
+            ) ;refreshable
+          ) ;vlist
+        ) ;resize
+      ) ;hlist
       ===
       ===
       (hlist (text "Server:")
@@ -170,10 +176,11 @@
                      ) ;cond
         ) ;binary-name
        ) ;
-    (if (and (url-exists? url)
-          (url-regular? url)
-          (string-contains? (url->string (url-tail url)) binary-name)
-        ) ;and
+    (if
+      (and (url-exists? url)
+        (url-regular? url)
+        (string-contains? (url->string (url-tail url)) binary-name)
+      ) ;and
       (if (access (url->string url) 'X_OK) #t #f)
       #f
     ) ;if
@@ -212,15 +219,16 @@
         (hlist (text "Select path: ")
           (inert (input "path" "string" (list binary-path) ""))
           //
-          (explicit-buttons ((balloon (icon "tm_find.xpm") "Choose binary file")
-                             (choose-file (lambda (selected-url)
-                                            (set! binary-path (url->system selected-url))
-                                            (refresh-now "input-path-widget")
-                                          ) ;lambda
-                               "Choose binary file"
-                               (if (os-windows?) "windows-executables" "generic")
-                             ) ;choose-file
-                            ) ;
+          (explicit-buttons
+           ((balloon (icon "tm_find.xpm") "Choose binary file")
+            (choose-file (lambda (selected-url)
+                           (set! binary-path (url->system selected-url))
+                           (refresh-now "input-path-widget")
+                         ) ;lambda
+              "Choose binary file"
+              (if (os-windows?) "windows-executables" "generic")
+            ) ;choose-file
+           ) ;
           ) ;explicit-buttons
         ) ;hlist
       ) ;refreshable
@@ -240,7 +248,8 @@
          ((eval `(verbatim ,menu-name)) (make-session name "default"))
         ) ;assuming
         (assuming (!= l (list "default"))
-          (-> (eval `(verbatim ,menu-name))
+          (->
+            (eval `(verbatim ,menu-name))
             (for (variant l) ((eval `(verbatim ,variant)) (make-session name variant)))
           ) ;->
         ) ;assuming

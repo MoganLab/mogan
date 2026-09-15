@@ -143,13 +143,14 @@
         ((tree-func? t 'assign 2)
          (with var
            (tree->stree (tree-ref t 0))
-           (cond ((== var "page-the-page")
-                  (ahash-set! settings var (page-the-page-val (tree-ref t 1)))
-                 ) ;
-                 ((== var "page-this-bg-color")
-                  (ahash-set! settings var (page-this-bg-color-val (tree-ref t 1)))
-                 ) ;
-                 (else (ahash-set! settings var (tree->stree (tree-ref t 1))))
+           (cond
+            ((== var "page-the-page")
+             (ahash-set! settings var (page-the-page-val (tree-ref t 1)))
+            ) ;
+            ((== var "page-this-bg-color")
+             (ahash-set! settings var (page-this-bg-color-val (tree-ref t 1)))
+            ) ;
+            (else (ahash-set! settings var (tree->stree (tree-ref t 1))))
            ) ;cond
          ) ;with
         ) ;
@@ -183,7 +184,9 @@
         (when (!= val "unchanged")
           (if (!= var "page-the-page")
             (insert `(assign ,var ,val))
-            (insert `(assign ,var (macro ,(page-the-page-body val))))
+            (insert
+              `(assign ,var (macro ,(page-the-page-body val)))
+            ) ;insert
           ) ;if
         ) ;when
         (refresh-window)
@@ -206,18 +209,20 @@
 ) ;define
 
 (define (header-buffer)
-  (string->url (string-append "tmfs://aux/this-page-header"
-                 "/"
-                 (url->string (url-tail (get-auxiliary-widget-parent-url)))
-               ) ;string-append
+  (string->url
+    (string-append "tmfs://aux/this-page-header"
+      "/"
+      (url->string (url-tail (get-auxiliary-widget-parent-url)))
+    ) ;string-append
   ) ;string->url
 ) ;define
 
 (define (footer-buffer)
-  (string->url (string-append "tmfs://aux/this-page-footer"
-                 "/"
-                 (url->string (url-tail (get-auxiliary-widget-parent-url)))
-               ) ;string-append
+  (string->url
+    (string-append "tmfs://aux/this-page-footer"
+      "/"
+      (url->string (url-tail (get-auxiliary-widget-parent-url)))
+    ) ;string-append
   ) ;string->url
 ) ;define
 
@@ -288,35 +293,39 @@
 ) ;define
 
 (tm-widget ((page-formatter u style settings flag?) quit)
-  (padded (centered (aligned (item (text "This page number:")
-                               (enum (change-setting "page-nr" answer settings u)
-                                 '("unchanged" "")
-                                 (or (ahash-ref settings "page-nr") "unchanged")
-                                 "10em"
-                               ) ;enum
-                             ) ;item
-                      (item (text "Page number rendering:")
-                        (enum (change-setting "page-the-page" answer settings u)
-                          '("unchanged" "normal" "roman" "Roman")
-                          (or (ahash-ref settings "page-the-page") "unchanged")
-                          "10em"
-                        ) ;enum
-                      ) ;item
-                      (item (text "Page background:")
-                        (enum (change-background settings answer u)
-                          '("unchanged" "color" "pattern" "picture")
-                          (or (ahash-ref settings "page-this-bg-color") "unchanged")
-                          "10em"
-                        ) ;enum
-                      ) ;item
-                    ) ;aligned
-          ) ;centered
+  (padded
+    (centered
+      (aligned
+        (item (text "This page number:")
+          (enum (change-setting "page-nr" answer settings u)
+            '("unchanged" "")
+            (or (ahash-ref settings "page-nr") "unchanged")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Page number rendering:")
+          (enum (change-setting "page-the-page" answer settings u)
+            '("unchanged" "normal" "roman" "Roman")
+            (or (ahash-ref settings "page-the-page") "unchanged")
+            "10em"
+          ) ;enum
+        ) ;item
+        (item (text "Page background:")
+          (enum (change-background settings answer u)
+            '("unchanged" "color" "pattern" "picture")
+            (or (ahash-ref settings "page-this-bg-color") "unchanged")
+            "10em"
+          ) ;enum
+        ) ;item
+      ) ;aligned
+    ) ;centered
     ======
     (bold (text "This page header"))
     ===
     (resize (if flag? "480px" "100px")
       "60px"
-      (texmacs-input `(document ,(get-tag-arg u 'set-this-page-header))
+      (texmacs-input
+        `(document ,(get-tag-arg u 'set-this-page-header))
         `(style (tuple ,@style ,"gui-base"))
         (header-buffer)
       ) ;texmacs-input
@@ -327,22 +336,24 @@
     ===
     (resize (if flag? "480px" "100px")
       "60px"
-      (texmacs-input `(document ,(get-tag-arg u 'set-this-page-footer))
+      (texmacs-input
+        `(document ,(get-tag-arg u 'set-this-page-footer))
         `(style (tuple ,@style ,"gui-base"))
         (footer-buffer)
       ) ;texmacs-input
     ) ;resize
     ======
-    (explicit-buttons (hlist (text "Insert:")
-                        //
-                        //
-                        ("Tab" (when (editing-headers?) (make-htab "5mm")))
-                        //
-                        //
-                        ("Page number" (when (editing-headers?) (insert '(page-number))))
-                        >>>
-                        ("Ok" (apply-page-settings u settings) (begin (quit) (buffer-focus u #t)))
-                      ) ;hlist
+    (explicit-buttons
+      (hlist (text "Insert:")
+        //
+        //
+        ("Tab" (when (editing-headers?) (make-htab "5mm")))
+        //
+        //
+        ("Page number" (when (editing-headers?) (insert '(page-number))))
+        >>>
+        ("Ok" (apply-page-settings u settings) (begin (quit) (buffer-focus u #t)))
+      ) ;hlist
     ) ;explicit-buttons
   ) ;padded
 ) ;tm-widget

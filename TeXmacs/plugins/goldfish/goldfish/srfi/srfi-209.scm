@@ -91,16 +91,17 @@
         (if (null? elts)
           (reverse result)
           (let ((elt (car elts)))
-            (cond ((and (pair? elt) (= 2 (length elt)) (symbol? (car elt)))
-                   (loop (cdr elts)
-                     (+ ord 1)
-                     (cons (make-enum type (car elt) ord (cadr elt)) result)
-                   ) ;loop
-                  ) ;
-                  ((symbol? elt)
-                   (loop (cdr elts) (+ ord 1) (cons (make-enum type elt ord ord) result))
-                  ) ;
-                  (else (error "make-enum-type: invalid argument" elt))
+            (cond
+             ((and (pair? elt) (= 2 (length elt)) (symbol? (car elt)))
+              (loop (cdr elts)
+                (+ ord 1)
+                (cons (make-enum type (car elt) ord (cadr elt)) result)
+              ) ;loop
+             ) ;
+             ((symbol? elt)
+              (loop (cdr elts) (+ ord 1) (cons (make-enum type elt ord ord) result))
+             ) ;
+             (else (error "make-enum-type: invalid argument" elt))
             ) ;cond
           ) ;let
         ) ;if
@@ -119,7 +120,8 @@
     ) ;define
 
     (define (make-enum-comparator type)
-      (make-comparator (lambda (obj) (and (enum? obj) (eq? (enum-type obj) type)))
+      (make-comparator
+        (lambda (obj) (and (enum? obj) (eq? (enum-type obj) type)))
         eq?
         (lambda (enum1 enum2) (< (enum-ordinal enum1) (enum-ordinal enum2)))
         (lambda (enum) (symbol-hash (enum-name enum)))
@@ -429,11 +431,12 @@
     (define (enum-set-projection src eset)
       (let ((type (if (enum-type? src) src (enum-set-type src))))
         (list->enum-set type
-          (enum-set-map->list (lambda (enum)
-                                (let ((name (enum-name enum)))
-                                  (or (enum-name->enum type name) (error "enum name not found in type" name type))
-                                ) ;let
-                              ) ;lambda
+          (enum-set-map->list
+            (lambda (enum)
+              (let ((name (enum-name enum)))
+                (or (enum-name->enum type name) (error "enum name not found in type" name type))
+              ) ;let
+            ) ;lambda
             eset
           ) ;enum-set-map->list
         ) ;list->enum-set
@@ -445,7 +448,9 @@
     ) ;define
 
     (define (make-enumeration names)
-      (enum-type->enum-set (make-enum-type (map (lambda (n) (list n n)) names)))
+      (enum-type->enum-set
+        (make-enum-type (map (lambda (n) (list n n)) names))
+      ) ;enum-type->enum-set
     ) ;define
 
     (define (enum-set-universe eset)
@@ -531,16 +536,18 @@
     ) ;define
 
     (define (enum-set-any? pred eset)
-      (call-with-current-continuation (lambda (return)
-                                        (enum-set-fold (lambda (e _) (and (pred e) (return #t))) #f eset)
-                                      ) ;lambda
+      (call-with-current-continuation
+        (lambda (return)
+          (enum-set-fold (lambda (e _) (and (pred e) (return #t))) #f eset)
+        ) ;lambda
       ) ;call-with-current-continuation
     ) ;define
 
     (define (enum-set-every? pred eset)
-      (call-with-current-continuation (lambda (return)
-                                        (enum-set-fold (lambda (e _) (or (pred e) (return #f))) #t eset)
-                                      ) ;lambda
+      (call-with-current-continuation
+        (lambda (return)
+          (enum-set-fold (lambda (e _) (or (pred e) (return #f))) #t eset)
+        ) ;lambda
       ) ;call-with-current-continuation
     ) ;define
 

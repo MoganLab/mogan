@@ -50,22 +50,24 @@
 
 (define (comment-editor-done u b)
   (buffer-focus u #t)
-  (and-let* ((pc (tree-innermost any-comment-context? #t))
-             (mid (and pc (tm->string (tm-ref pc 1))))
-             (body (and pc (tm-ref pc :last)))
-            ) ;
-    (with-buffer b
-      (let* ((mb (buffer-get-body b))
-             (l (tree-search mb
-                  (lambda (t) (and (any-comment-context? t) (== (tm->string (tm-ref t 1)) mid)))
-                ) ;tree-search
-             ) ;l
-            ) ;
-        (when (nnull? l)
-          (tree-set! (car l) :last (tree-copy body))
-        ) ;when
-      ) ;let*
-    ) ;with-buffer
+  (and-let*
+   ((pc (tree-innermost any-comment-context? #t))
+    (mid (and pc (tm->string (tm-ref pc 1))))
+    (body (and pc (tm-ref pc :last)))
+   ) ;
+   (with-buffer b
+     (let* ((mb (buffer-get-body b))
+            (l
+              (tree-search mb
+                (lambda (t) (and (any-comment-context? t) (== (tm->string (tm-ref t 1)) mid)))
+              ) ;tree-search
+            ) ;l
+           ) ;
+       (when (nnull? l)
+         (tree-set! (car l) :last (tree-copy body))
+       ) ;when
+     ) ;let*
+   ) ;with-buffer
   ) ;and-let*
   (when (defined? 'mirror-treat-pending)
     (mirror-treat-pending)
@@ -80,7 +82,8 @@
 
 ;; 用于auxiliary-widget的comment编辑器widget
 (tm-widget ((comment-aux-widget u packs doc b) quit)
-  (padded (resize "480px" "300px" (texmacs-input doc `(style (tuple ,@packs)) u))
+  (padded
+    (resize "480px" "300px" (texmacs-input doc `(style (tuple ,@packs)) u))
     ===
     (hlist >> (explicit-buttons ("Done" (comment-editor-done u b))))
   ) ;padded
@@ -94,30 +97,37 @@
 ) ;define
 
 (tm-define (open-comment-editor-aux)
-  (and-let* ((c (tm->stree (tree-innermost any-comment-context? #t)))
-             (b (current-buffer-url))
-             (u (string->url (string-append "tmfs://aux/edit-comment"
-                               "/"
-                               (url->string (url-tail (get-auxiliary-widget-parent-url)))
-                             ) ;string-append
-                ) ;string->url
-             ) ;u
-             (packs (embedded-style-list))
-             (pre (document-get-preamble (buffer-tree)))
-             (inits* (map cdr (cdr (tm->stree (get-all-inits)))))
-             (inits (list-filter inits* allow-init?))
-             (env (apply append inits))
-             (com (mirror-comment c 'carbon-comment))
-             (doc `(with ,@env (document (hide-preamble ,pre) ,com)))
-            ) ;
-    (buffer-set-master u b)
-    (auxiliary-widget (comment-aux-widget u packs doc b)
-      (comment-cancel b)
-      (translate comment-text)
-      u
-    ) ;auxiliary-widget
-    (buffer-focus u #t)
-    (go-end)
+  (and-let*
+   ((c (tm->stree (tree-innermost any-comment-context? #t)))
+    (b (current-buffer-url))
+    (u
+      (string->url
+        (string-append "tmfs://aux/edit-comment"
+          "/"
+          (url->string (url-tail (get-auxiliary-widget-parent-url)))
+        ) ;string-append
+      ) ;string->url
+    ) ;u
+    (packs (embedded-style-list))
+    (pre (document-get-preamble (buffer-tree)))
+    (inits*
+      (map cdr (cdr (tm->stree (get-all-inits))))
+    ) ;inits*
+    (inits (list-filter inits* allow-init?))
+    (env (apply append inits))
+    (com (mirror-comment c 'carbon-comment))
+    (doc
+      `(with ,@env (document (hide-preamble ,pre) ,com))
+    ) ;doc
+   ) ;
+   (buffer-set-master u b)
+   (auxiliary-widget (comment-aux-widget u packs doc b)
+     (comment-cancel b)
+     (translate comment-text)
+     u
+   ) ;auxiliary-widget
+   (buffer-focus u #t)
+   (go-end)
   ) ;and-let*
 ) ;tm-define
 
@@ -165,10 +175,11 @@
 ) ;tmfs-title-handler
 
 (define (mirror-comment t . opt-lab)
-  (let* ((uid' (if (tm-atomic? (tm-ref t 0))
-                 (string-append (tm->string (tm-ref t 0)) "-edit")
-                 (create-unique-id)
-               ) ;if
+  (let* ((uid'
+           (if (tm-atomic? (tm-ref t 0))
+             (string-append (tm->string (tm-ref t 0)) "-edit")
+             (create-unique-id)
+           ) ;if
          ) ;uid'
          (mid (tm->string (tm-ref t 1)))
          (typ (tm->string (tm-ref t 2)))
@@ -241,22 +252,23 @@
 ) ;define
 
 (define (sync-master-cursor)
-  (and-let* ((c (tree-innermost 'mirror-comment))
-             (m (buffer-get-master (current-buffer)))
-             (b (buffer-get-body m))
-             (i (comment-id c))
-             (t (search-comment b i))
-             (inv? (not (notified-change? 4)))
-            ) ;
-    (with-buffer m
-      (when inv?
-        (tree-select t)
-      ) ;when
-      (tree-go-to t :end)
-      (when (and (not (cursor-accessible?)) (not (in-source?)))
-        (cursor-show-hidden)
-      ) ;when
-    ) ;with-buffer
+  (and-let*
+   ((c (tree-innermost 'mirror-comment))
+    (m (buffer-get-master (current-buffer)))
+    (b (buffer-get-body m))
+    (i (comment-id c))
+    (t (search-comment b i))
+    (inv? (not (notified-change? 4)))
+   ) ;
+   (with-buffer m
+     (when inv?
+       (tree-select t)
+     ) ;when
+     (tree-go-to t :end)
+     (when (and (not (cursor-accessible?)) (not (in-source?)))
+       (cursor-show-hidden)
+     ) ;when
+   ) ;with-buffer
   ) ;and-let*
 ) ;define
 

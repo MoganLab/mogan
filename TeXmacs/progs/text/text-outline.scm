@@ -62,9 +62,10 @@
   ;; 返回文档大纲：((title path-string) ...)，按文档顺序
   (with raw-sections
     (tree-search-sections (buffer-tree))
-    (let* ((sections (list-filter raw-sections
-                       (lambda (x) (not (equal? (tree-label x) 'subparagraph)))
-                     ) ;list-filter
+    (let* ((sections
+             (list-filter raw-sections
+               (lambda (x) (not (equal? (tree-label x) 'subparagraph)))
+             ) ;list-filter
            ) ;sections
            (nodes (outline-nodes->nested sections))
           ) ;
@@ -81,7 +82,9 @@
   (resize "200px"
     "100%"
     (refreshable "document-outline-refresh"
-      (vertical (for (item (document-outline)) (horizontal ((eval (car item))))))
+      (vertical
+        (for (item (document-outline)) (horizontal ((eval (car item)))))
+      ) ;vertical
     ) ;refreshable
   ) ;resize
 ) ;tm-define

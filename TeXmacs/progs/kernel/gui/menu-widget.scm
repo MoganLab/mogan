@@ -23,23 +23,23 @@
 ;; Menu grammar
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-regexp-grammar (:translatable? (:or :string?
-                                         (concat :*)
+(define-regexp-grammar (:translatable? (:or
+                                         :string? (concat :*)
                                          (verbatim :%1)
                                          (text :tuple? :string?)
                                          (replace :string? :translatable?)
                                        ) ;:or
                        ) ;:translatable?
-  (:menu-label (:or :translatable?
-                 (color :%5)
+  (:menu-label (:or
+                 :translatable? (color :%5)
                  (icon :string?)
                  (extend :menu-label :*)
                  (style :integer? :menu-label)
                  (balloon :menu-label :translatable?)
                ) ;:or
   ) ;:menu-label
-  (:menu-wide-label (:or :menu-label
-                      (check :menu-wide-label :string? :%1)
+  (:menu-wide-label (:or
+                      :menu-label (check :menu-wide-label :string? :%1)
                       (shortcut :menu-wide-label :string?)
                     ) ;:or
   ) ;:menu-wide-label
@@ -89,8 +89,8 @@
                 (refreshable :%1 :menu-item-list)
                 (cached :%1 :%1 :menu-item-list)
                 (if :%1 :menu-item-list)
-                (when :%1
-                  :menu-item-list
+                (when
+                  :%1 :menu-item-list
                 ) ;when
                 (for :%1 :%1)
                 (mini :%1 :menu-item-list)
@@ -203,19 +203,20 @@
 ) ;define
 
 (define (adjust-translation s t)
-  (cond ((not (and (qt-gui?)
-                (os-macos?)
-                (in? (get-preference "language") (list "english" "british"))
-              ) ;and
-         ) ;not
-         t
-        ) ;
-        ((recursive-occurs? "reference" s)
-         (recursive-replace (recursive-replace t "c" "<#441>") "e" "<#435>")
-        ) ;
-        ((recursive-occurs? "onfigur" s) (recursive-replace t "o" "<#43E>"))
-        ((in? s (list "Help" "Edit" "View::menu")) (recursive-replace t "e" "<#435>"))
-        (else t)
+  (cond
+   ((not (and (qt-gui?)
+           (os-macos?)
+           (in? (get-preference "language") (list "english" "british"))
+         ) ;and
+    ) ;not
+    t
+   ) ;
+   ((recursive-occurs? "reference" s)
+    (recursive-replace (recursive-replace t "c" "<#441>") "e" "<#435>")
+   ) ;
+   ((recursive-occurs? "onfigur" s) (recursive-replace t "o" "<#43E>"))
+   ((in? s (list "Help" "Edit" "View::menu")) (recursive-replace t "e" "<#435>"))
+   (else t)
   ) ;cond
 ) ;define
 
@@ -236,34 +237,37 @@
   (let ((tt? (and (nnull? opt) (car opt)))
         (col (color (if (greyed? style) "dark grey" "black")))
        ) ;
-    (cond ((and (list? p) (== (car p) 'verbatim)) (widget-text (cadr p) style col #t))
-          ((translatable? p)
-           (widget-text (adjust-translation p (translate p)) style col #t)
-          ) ;
-          ((tuple? p 'balloon 2) (make-menu-label (cadr p) style tt?))
-          ((tuple? p 'extend)
-           (with l
-             (make-menu-items (cddr p) style tt?)
-             (widget-extend (make-menu-label (cadr p) style tt?) l)
-           ) ;with
-          ) ;
-          ((tuple? p 'style 2)
-           (let* ((x (cadr p))
-                  (new-style (if (> x 0) (logior style x) (logand style (lognot (- x)))))
-                 ) ;
-             (make-menu-label (caddr p) new-style tt?)
-           ) ;let*
-          ) ;
-          ((tuple? p 'text 2) (widget-box (cadr p) (caddr p) col #t #t))
-          ((tuple? p 'icon 1) (widget-xpm (cadr p)))
-          ((tuple? p 'color 5)
-           (widget-color (second p)
-             (third p)
-             (fourth p)
-             (* (fifth p) 256)
-             (* (sixth p) 256)
-           ) ;widget-color
-          ) ;
+    (cond
+     ((and (list? p) (== (car p) 'verbatim)) (widget-text (cadr p) style col #t))
+     ((translatable? p)
+      (widget-text (adjust-translation p (translate p)) style col #t)
+     ) ;
+     ((tuple? p 'balloon 2) (make-menu-label (cadr p) style tt?))
+     ((tuple? p 'extend)
+      (with l
+        (make-menu-items (cddr p) style tt?)
+        (widget-extend (make-menu-label (cadr p) style tt?) l)
+      ) ;with
+     ) ;
+     ((tuple? p 'style 2)
+      (let* ((x (cadr p))
+             (new-style
+               (if (> x 0) (logior style x) (logand style (lognot (- x))))
+             ) ;new-style
+            ) ;
+        (make-menu-label (caddr p) new-style tt?)
+      ) ;let*
+     ) ;
+     ((tuple? p 'text 2) (widget-box (cadr p) (caddr p) col #t #t))
+     ((tuple? p 'icon 1) (widget-xpm (cadr p)))
+     ((tuple? p 'color 5)
+      (widget-color (second p)
+        (third p)
+        (fourth p)
+        (* (fifth p) 256)
+        (* (sixth p) 256)
+      ) ;widget-color
+     ) ;
     ) ;cond
   ) ;let
 ) ;define
@@ -367,16 +371,21 @@
     (let* ((translate* (if (verb? style) identity translate))
            (xval (val))
            (xvals (vals))
-           (nvals (if (and (nnull? xvals) (== (cAr xvals) ""))
-                    `(,@(cDr xvals) ,xval ,"")
-                    `(,@xvals ,xval)
-                  ) ;if
+           (nvals
+             (if (and (nnull? xvals) (== (cAr xvals) ""))
+               `(,@(cDr xvals) ,xval ,"")
+               `(,@xvals ,xval)
+             ) ;if
            ) ;nvals
            (xvals* (list-remove-duplicates nvals))
            (tval (translate* xval))
            (tvals (map translate* xvals*))
-           (dec (map (lambda (v) (cons (translate* v) v)) xvals*))
-           (cmd* (lambda (r) (cmd (or (assoc-ref dec r) r))))
+           (dec
+             (map (lambda (v) (cons (translate* v) v)) xvals*)
+           ) ;dec
+           (cmd*
+             (lambda (r) (cmd (or (assoc-ref dec r) r)))
+           ) ;cmd*
           ) ;
       (widget-enum (object->command (menu-protect cmd*)) tvals tval style width)
     ) ;let*
@@ -447,10 +456,11 @@
 
 (define (search-balloon-help source)
   (and (pair? source)
-    (or (and-with prop
-          (property (car source) :balloon)
-          (with txt (apply (car prop) (cdr source)) (and (string? txt) txt))
-        ) ;and-with
+    (or
+      (and-with prop
+        (property (car source) :balloon)
+        (with txt (apply (car prop) (cdr source)) (and (string? txt) txt))
+      ) ;and-with
       (and-with prop
         (property (car source) :synopsis)
         (and (pair? prop)
@@ -539,7 +549,9 @@
          `(text ,(cadr l) ,(string-append (caddr l) "..."))
         ) ;
         ((match? l '(icon :string?)) l)
-        (else `(,(car l) ,(menu-label-add-dots (cadr l)) ,(caddr l)))
+        (else
+          `(,(car l) ,(menu-label-add-dots (cadr l)) ,(caddr l))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -637,13 +649,14 @@
           ;; 仅气球分支用到快捷键，懒求值避免普通条目做反向键表查找
           (shortcut (lambda () (and source (kbd-find-shortcut source #f))))
          ) ;
-      (cond ((tuple? label 'balloon 2)
-             (widget-balloon but (create-text-widget (caddr label) (shortcut) style))
-            ) ;
-            ((and (tuple? label 'check 3) (tuple? (cadr label) 'balloon 2))
-             (widget-balloon but (create-text-widget (caddr (cadr label)) (shortcut) style))
-            ) ;
-            (else but)
+      (cond
+       ((tuple? label 'balloon 2)
+        (widget-balloon but (create-text-widget (caddr label) (shortcut) style))
+       ) ;
+       ((and (tuple? label 'check 3) (tuple? (cadr label) 'balloon 2))
+        (widget-balloon but (create-text-widget (caddr (cadr label)) (shortcut) style))
+       ) ;
+       (else but)
       ) ;cond
     ) ;let
   ) ;with
@@ -815,7 +828,9 @@
 (define (make-menu-style p style bar?)
   "Make @(extend :integer? :menu-item-list) menu item."
   (let* ((x (cadr p))
-         (new-style (if (> x 0) (logior style x) (logand style (lognot (- x)))))
+         (new-style
+           (if (> x 0) (logior style x) (logand style (lognot (- x))))
+         ) ;new-style
         ) ;
     (make-menu-items-list (cddr p) new-style bar?)
   ) ;let*
@@ -833,13 +848,14 @@
   "Make @((:or -> =>) :menu-label :menu-item-list) menu item."
   (with (tag label . items)
     p
-    (let ((button ((cond ((== tag '=>) widget-pulldown-button)
-                         ((== tag '->) widget-pullright-button)
-                   ) ;cond
-                   (make-menu-label label style)
-                   (object->promise-widget (lambda () (make-menu-widget (list 'vertical items) style))
-                   ) ;object->promise-widget
-                  ) ;
+    (let ((button
+           ((cond ((== tag '=>) widget-pulldown-button)
+                  ((== tag '->) widget-pullright-button)
+            ) ;cond
+            (make-menu-label label style)
+            (object->promise-widget (lambda () (make-menu-widget (list 'vertical items) style))
+            ) ;object->promise-widget
+           ) ;
           ) ;button
          ) ;
       (if (tuple? label 'balloon 2)
@@ -1022,9 +1038,10 @@
   "Make @(refreshable :%1 :menu-item-list) menu items."
   (with (tag kind . items)
     p
-    (list (widget-refreshable (lambda () (widget-vmenu (make-menu-items-list items style bar?)))
-            (kind)
-          ) ;widget-refreshable
+    (list
+      (widget-refreshable (lambda () (widget-vmenu (make-menu-items-list items style bar?)))
+        (kind)
+      ) ;widget-refreshable
     ) ;list
   ) ;with
 ) ;define
@@ -1036,14 +1053,15 @@
   (with (tag kind valid? . items)
     p
     (let* ((kind* (kind))
-           (fun (lambda ()
-                  (or (and (valid?) (ahash-ref cached-widgets kind*))
-                    (let* ((l (make-menu-items-list items style bar?)) (w (widget-vmenu l)))
-                      (ahash-set! cached-widgets kind* w)
-                      w
-                    ) ;let*
-                  ) ;or
-                ) ;lambda
+           (fun
+             (lambda ()
+               (or (and (valid?) (ahash-ref cached-widgets kind*))
+                 (let* ((l (make-menu-items-list items style bar?)) (w (widget-vmenu l)))
+                   (ahash-set! cached-widgets kind* w)
+                   w
+                 ) ;let*
+               ) ;or
+             ) ;lambda
            ) ;fun
           ) ;
       (list (widget-refreshable fun kind*))
@@ -1072,10 +1090,11 @@
     (cond ((match? p '(input :%1 :string? :%1 :string?)) (list (make-menu-input p style)))
           ((translatable? (car p))
            ;; ImGui 前端不支持交互式命令弹出的对话框/新窗口，跳过这类叶子项
-           (if (and (not (qt-gui?))
-                 (menu-action-interactive? (cAr p))
-                 (not (imgui-supported-action? (cAr p)))
-               ) ;and
+           (if
+             (and (not (qt-gui?))
+               (menu-action-interactive? (cAr p))
+               (not (imgui-supported-action? (cAr p)))
+             ) ;and
              (list)
              (list (make-menu-entry p style bar?))
            ) ;if
@@ -1083,17 +1102,19 @@
           ((symbol? (car p))
            (with result
              (ahash-ref make-menu-items-table (car p))
-             (if (or (not result) (not (match? (cdr p) (car result))))
+             (if
+               (or (not result) (not (match? (cdr p) (car result))))
                (make-menu-items-list p style bar?)
                ((cadr result) p style bar?)
              ) ;if
            ) ;with
           ) ;
           ((match? (car p) ':menu-wide-label)
-           (if (and (not (qt-gui?))
-                 (menu-action-interactive? (cAr p))
-                 (not (imgui-supported-action? (cAr p)))
-               ) ;and
+           (if
+             (and (not (qt-gui?))
+               (menu-action-interactive? (cAr p))
+               (not (imgui-supported-action? (cAr p)))
+             ) ;and
              (list)
              (list (make-menu-entry p style bar?))
            ) ;if
@@ -1428,8 +1449,12 @@
 ) ;tm-define
 
 (define-table menu-expand-table
-  (--- ,(lambda (p) `(--- ,@(menu-expand-list (cdr p)))))
-  (| ,(lambda (p) `(| ,@(menu-expand-list (cdr p)))))
+  (---
+    ,(lambda (p) `(--- ,@(menu-expand-list (cdr p))))
+  ) ;---
+  (|
+    ,(lambda (p) `(| ,@(menu-expand-list (cdr p))))
+  ) ;|
   (group ,replace-procedures)
   (text ,replace-procedures)
   (invisible ,replace-procedures)
@@ -1448,28 +1473,64 @@
   (toggle ,menu-expand-toggle)
   (link ,menu-expand-link p)
   (dynamic ,menu-expand-dynamic p)
-  (horizontal ,(lambda (p) `(horizontal ,@(menu-expand-list (cdr p)))))
-  (vertical ,(lambda (p) `(vertical ,@(menu-expand-list (cdr p)))))
-  (hlist ,(lambda (p) `(hlist ,@(menu-expand-list (cdr p)))))
-  (vlist ,(lambda (p) `(vlist ,@(menu-expand-list (cdr p)))))
-  (division ,(lambda (p) `(division ,((cadr p)) ,@(menu-expand-list (cddr p)))))
-  (class ,(lambda (p) `(class ,(cadr p) ,@(menu-expand-list (cddr p)))))
-  (aligned ,(lambda (p) `(aligned ,@(menu-expand-list (cdr p)))))
-  (aligned-item ,(lambda (p) `(aligned-item ,@(menu-expand-list (cdr p)))))
-  (tabs ,(lambda (p) `(tabs ,@(menu-expand-list (cdr p)))))
-  (tab ,(lambda (p) `(tab ,@(menu-expand-list (cdr p)))))
-  (icon-tabs ,(lambda (p) `(icon-tabs ,@(menu-expand-list (cdr p)))))
-  (icon-tab ,(lambda (p) `(icon-tab ,@(menu-expand-list (cdr p)))))
-  (minibar ,(lambda (p) `(minibar ,@(menu-expand-list (cdr p)))))
-  (extend ,(lambda (p) `(extend ,(cadr p) ,@(menu-expand-list (cddr p)))))
-  (style ,(lambda (p) `(style ,(cadr p) ,@(menu-expand-list (cddr p)))))
+  (horizontal
+    ,(lambda (p) `(horizontal ,@(menu-expand-list (cdr p))))
+  ) ;horizontal
+  (vertical
+    ,(lambda (p) `(vertical ,@(menu-expand-list (cdr p))))
+  ) ;vertical
+  (hlist
+    ,(lambda (p) `(hlist ,@(menu-expand-list (cdr p))))
+  ) ;hlist
+  (vlist
+    ,(lambda (p) `(vlist ,@(menu-expand-list (cdr p))))
+  ) ;vlist
+  (division
+    ,(lambda (p) `(division ,((cadr p)) ,@(menu-expand-list (cddr p))))
+  ) ;division
+  (class
+    ,(lambda (p) `(class ,(cadr p) ,@(menu-expand-list (cddr p))))
+  ) ;class
+  (aligned
+    ,(lambda (p) `(aligned ,@(menu-expand-list (cdr p))))
+  ) ;aligned
+  (aligned-item
+    ,(lambda (p) `(aligned-item ,@(menu-expand-list (cdr p))))
+  ) ;aligned-item
+  (tabs
+    ,(lambda (p) `(tabs ,@(menu-expand-list (cdr p))))
+  ) ;tabs
+  (tab
+    ,(lambda (p) `(tab ,@(menu-expand-list (cdr p))))
+  ) ;tab
+  (icon-tabs
+    ,(lambda (p) `(icon-tabs ,@(menu-expand-list (cdr p))))
+  ) ;icon-tabs
+  (icon-tab
+    ,(lambda (p) `(icon-tab ,@(menu-expand-list (cdr p))))
+  ) ;icon-tab
+  (minibar
+    ,(lambda (p) `(minibar ,@(menu-expand-list (cdr p))))
+  ) ;minibar
+  (extend
+    ,(lambda (p) `(extend ,(cadr p) ,@(menu-expand-list (cddr p))))
+  ) ;extend
+  (style
+    ,(lambda (p) `(style ,(cadr p) ,@(menu-expand-list (cddr p))))
+  ) ;style
   (-> ,replace-procedures)
   (=> ,replace-procedures)
   (tile ,replace-procedures)
-  (scrollable ,(lambda (p) `(scrollable ,@(menu-expand-list (cdr p)))))
+  (scrollable
+    ,(lambda (p) `(scrollable ,@(menu-expand-list (cdr p))))
+  ) ;scrollable
   (resize ,menu-expand-resize)
-  (hsplit ,(lambda (p) `(hsplit ,@(menu-expand-list (cdr p)))))
-  (vsplit ,(lambda (p) `(vsplit ,@(menu-expand-list (cdr p)))))
+  (hsplit
+    ,(lambda (p) `(hsplit ,@(menu-expand-list (cdr p))))
+  ) ;hsplit
+  (vsplit
+    ,(lambda (p) `(vsplit ,@(menu-expand-list (cdr p))))
+  ) ;vsplit
   (ink ,replace-procedures)
   (if ,menu-expand-if)
   (when ,menu-expand-when
@@ -1645,19 +1706,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget ((system-error-widget cmd out err) done)
-  (padded (resize '("300px" "600px" "1200px")
-            '("275px" "400px" "600px")
-            (centered (bold (text "Input command")))
-            (scrollable (for (x (string-decompose cmd "\n")) (hlist // (text x) >>)))
-            ===
-            (centered (bold (text "Standard Output")))
-            (scrollable (for (x (string-decompose out "\n")) (hlist // (text x) >>)))
-            ===
-            (centered (bold (text "Error output")))
-            (scrollable (for (x (string-decompose err "\n")) (hlist // (text x) >>)))
-            ===
-            (bottom-buttons >> ("Ok" (done)))
-          ) ;resize
+  (padded
+    (resize '("300px" "600px" "1200px")
+      '("275px" "400px" "600px")
+      (centered (bold (text "Input command")))
+      (scrollable (for (x (string-decompose cmd "\n")) (hlist // (text x) >>)))
+      ===
+      (centered (bold (text "Standard Output")))
+      (scrollable (for (x (string-decompose out "\n")) (hlist // (text x) >>)))
+      ===
+      (centered (bold (text "Error output")))
+      (scrollable (for (x (string-decompose err "\n")) (hlist // (text x) >>)))
+      ===
+      (bottom-buttons >> ("Ok" (done)))
+    ) ;resize
   ) ;padded
 ) ;tm-widget
 
@@ -1673,7 +1735,10 @@
 ) ;tm-define
 
 (tm-widget ((message-widget msg) done)
-  (padded (centered (vlist (for (x (string-decompose msg "\n")) (text x))))
+  (padded
+    (centered
+      (vlist (for (x (string-decompose msg "\n")) (text x)))
+    ) ;centered
     ===
     (centered (explicit-buttons ("Ok" (done))))
   ) ;padded
@@ -1920,15 +1985,20 @@
 
 (tm-define (tool-close pos tool quit . opt-win)
   (if (== pos :any)
-    (for (pos* (list :transient-right :right :bottom-right :transient-left :left
-                 :bottom-left :transient-bottom :bottom
+    (for (pos* (list
+                 :transient-right  :right
+                 :bottom-right     :transient-left
+                 :left             :bottom-left
+                 :transient-bottom :bottom
                ) ;list
          ) ;pos*
       (apply tool-close (cons* pos* tool quit opt-win))
     ) ;for
     (let* ((win (if (null? opt-win) (current-window) (car opt-win)))
            (l (window->tools win pos))
-           (f (list-filter l (lambda (t) (!= (car t) tool))))
+           (f
+             (list-filter l (lambda (t) (!= (car t) tool)))
+           ) ;f
           ) ;
       (when (!= f l)
         (when quit
@@ -2119,14 +2189,15 @@
           ;; 状态为空，隐藏辅助窗口
           ((not (car state)) (show-auxiliary-widget #f))
           ;; 第一个是#f，隐藏辅助窗口
-          (else (let* ((widget-type (cadr state))
-                       (action-list (ahash-ref widget-type->action widget-type))
-                      ) ;
-                  (if (and action-list (pair? action-list))
-                    (with open-action (car action-list) (open-action))
-                    (show-auxiliary-widget #f)
-                  ) ;if
-                ) ;let*
+          (else
+            (let* ((widget-type (cadr state))
+                   (action-list (ahash-ref widget-type->action widget-type))
+                  ) ;
+              (if (and action-list (pair? action-list))
+                (with open-action (car action-list) (open-action))
+                (show-auxiliary-widget #f)
+              ) ;if
+            ) ;let*
           ) ;else
     ) ;cond
   ) ;let

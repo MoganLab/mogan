@@ -194,8 +194,11 @@
 ) ;tm-define
 
 (define 2d-list
-  (list :subscript :short-subscript :superscript :short-superscript :over
-    :short-over :sqrt :wide
+  (list
+    :subscript   :short-subscript
+    :superscript :short-superscript
+    :over        :short-over
+    :sqrt        :wide
   ) ;list
 ) ;define
 
@@ -323,8 +326,9 @@
     (when (> (string-length x) 1)
       (set! x (string-append "<" x ">"))
     ) ;when
-    (cond ((in? :ss mods) (set! x `(math-ss ,x)))
-          ((in? :tt mods) (set! x `(math-tt ,x)))
+    (cond
+     ((in? :ss mods) (set! x `(math-ss ,x)))
+     ((in? :tt mods) (set! x `(math-tt ,x)))
     ) ;cond
     x
   ) ;with
@@ -473,7 +477,8 @@
       ;; (display* "l= " l "\n")
       ;; (display* "c= " c "\n")
       ;; (display* "o= " o "\n")
-      (if (or (null? l) (== (apply max o) 0) (not (exists? (cut != <> :none) i)))
+      (if
+        (or (null? l) (== (apply max o) 0) (not (exists? (cut != <> :none) i)))
         (let* ((v (best-letter-variant x)) (impl (best-implicit prev v)))
           (list impl v)
         ) ;let*
@@ -555,9 +560,10 @@
   (when (nnull? speech-state)
     (with mode
       (car speech-state)
-      (when (or (in? mode weak-quit-list)
-              (and (not (editing-big-operator?)) (in? mode script-list) (expr-before-cursor))
-            ) ;or
+      (when
+        (or (in? mode weak-quit-list)
+          (and (not (editing-big-operator?)) (in? mode script-list) (expr-before-cursor))
+        ) ;or
         (speech-leave)
         (speech-weak-exit)
       ) ;when
@@ -612,9 +618,10 @@
   (with prev*
     (expr-before-cursor)
     (set! speech-letter-mode* (list))
-    (when (and (== speech-operator-mode :on)
-            (not (and (string? prev*) (string-alpha? prev*)))
-          ) ;and
+    (when
+      (and (== speech-operator-mode :on)
+        (not (and (string? prev*) (string-alpha? prev*)))
+      ) ;and
       (set! speech-letter-mode (list))
       (set! speech-operator-mode :off)
     ) ;when
@@ -724,7 +731,10 @@
   (if (== (expr-before-cursor) " ")
     (with p
       (cursor-path)
-      (with-cursor (append (cDr p) (list (- (cAr p) 1))) (math-insert `(rsup ,s)))
+      (with-cursor
+        (append (cDr p) (list (- (cAr p) 1)))
+        (math-insert `(rsup ,s))
+      ) ;with-cursor
     ) ;with
     (begin
       (re-enter-script 'rsup :short-superscript)
@@ -748,7 +758,12 @@
 
 (tm-define (speech-best-accent acc . l)
   (let* ((v (append-map (cut letter-variants <> speech-letter-mode) l))
-         (w (map (lambda (x) `(wide ,x ,acc)) v))
+         (w
+           (map
+             (lambda (x) `(wide ,x ,acc))
+             v
+           ) ;map
+         ) ;w
          (b (apply stats-best w))
         ) ;
     (if (> (stats-occurrences b) 0)
@@ -776,28 +791,38 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (dont-extend-script? x)
-  (and-let* ((root (root-before-cursor))
-             (expr (expr-before-cursor))
-             (ok? (tm-in? expr '(rsub rsup)))
-            ) ;
-    (or (stats-role? (tmconcat root "*" x))
-      (stats-role? (tmconcat root " " x))
-      (stats-role? (tmconcat root "," x))
-      (stats-role? (tmconcat root ";" x))
-      (stats-role? (tmconcat root `(around ,"(" ,x ,")")))
-      (stats-role? (tmconcat root `(around ,"[" ,x ,"]")))
-    ) ;or
+  (and-let*
+   ((root (root-before-cursor))
+    (expr (expr-before-cursor))
+    (ok? (tm-in? expr '(rsub rsup)))
+   ) ;
+   (or (stats-role? (tmconcat root "*" x))
+     (stats-role? (tmconcat root " " x))
+     (stats-role? (tmconcat root "," x))
+     (stats-role? (tmconcat root ";" x))
+     (stats-role?
+       (tmconcat root `(around ,"(" ,x ,")"))
+     ) ;stats-role?
+     (stats-role?
+       (tmconcat root `(around ,"[" ,x ,"]"))
+     ) ;stats-role?
+   ) ;or
   ) ;and-let*
 ) ;define
 
 (define (do-extend-script? x)
-  (and-let* ((root (root-before-cursor))
-             (expr (expr-before-cursor))
-             (ok? (tm-in? expr '(rsub rsup)))
-             (c1 (tmconcat root `(,(tm-label expr) ,(tmconcat "," x))))
-             (c2 (tmconcat root `(,(tm-label expr) ,(tmconcat ";" x))))
-            ) ;
-    (or (and (stats-role? c1) ",") (and (stats-role? c2) ";"))
+  (and-let*
+   ((root (root-before-cursor))
+    (expr (expr-before-cursor))
+    (ok? (tm-in? expr '(rsub rsup)))
+    (c1
+      (tmconcat root `(,(tm-label expr) ,(tmconcat "," x)))
+    ) ;c1
+    (c2
+      (tmconcat root `(,(tm-label expr) ,(tmconcat ";" x)))
+    ) ;c2
+   ) ;
+   (or (and (stats-role? c1) ",") (and (stats-role? c2) ";"))
   ) ;and-let*
 ) ;define
 
@@ -821,40 +846,45 @@
 ) ;define
 
 (define (must-continue-script? x)
-  (and-let* ((prev (expr-before-cursor))
-             (ok1? (in? prev (list "+" "-" "," ";")))
-             (expr (expr-before-before-cursor))
-             (ok2? (tm-in? expr '(rsub rsup)))
-             (op (if (== prev "-") "+" prev))
-             (x* (if (string-number? x) "1" x))
-             (pref (tm->stree (tm-ref expr 0)))
-            ) ;
-    (or (stats-has? (tmconcat pref prev x)) (stats-role? (tmconcat pref op x*)))
+  (and-let*
+   ((prev (expr-before-cursor))
+    (ok1? (in? prev (list "+" "-" "," ";")))
+    (expr (expr-before-before-cursor))
+    (ok2? (tm-in? expr '(rsub rsup)))
+    (op (if (== prev "-") "+" prev))
+    (x* (if (string-number? x) "1" x))
+    (pref (tm->stree (tm-ref expr 0)))
+   ) ;
+   (or (stats-has? (tmconcat pref prev x)) (stats-role? (tmconcat pref op x*)))
   ) ;and-let*
 ) ;define
 
 (define (dont-continue-script? x)
-  (and-let* ((prev (expr-before-cursor))
-             (ok? (in? prev (list "+" "-" "," ";")))
-             (op (if (== prev "-") "+" prev))
-             (x* (if (string-number? x) "1" x))
-             (root (root-before-before-cursor))
-            ) ;
-    (stats-role? (tmconcat root op x*))
+  (and-let*
+   ((prev (expr-before-cursor))
+    (ok? (in? prev (list "+" "-" "," ";")))
+    (op (if (== prev "-") "+" prev))
+    (x* (if (string-number? x) "1" x))
+    (root (root-before-before-cursor))
+   ) ;
+   (stats-role? (tmconcat root op x*))
   ) ;and-let*
 ) ;define
 
 (define (do-continue-script? x)
-  (and-let* ((prev (expr-before-cursor))
-             (ok? (in? prev (list "+" "-" "," ";")))
-             (op (if (== prev "-") "+" prev))
-             (x* (if (string-number? x) "1" x))
-             (app (tmconcat op x*))
-             (root (root-before-before-cursor))
-             (expr (expr-before-before-cursor))
-             (ok2? (tm-in? expr '(rsub rsup)))
-            ) ;
-    (stats-role? (tmconcat root `(,(tm-label expr) ,app)))
+  (and-let*
+   ((prev (expr-before-cursor))
+    (ok? (in? prev (list "+" "-" "," ";")))
+    (op (if (== prev "-") "+" prev))
+    (x* (if (string-number? x) "1" x))
+    (app (tmconcat op x*))
+    (root (root-before-before-cursor))
+    (expr (expr-before-before-cursor))
+    (ok2? (tm-in? expr '(rsub rsup)))
+   ) ;
+   (stats-role?
+     (tmconcat root `(,(tm-label expr) ,app))
+   ) ;stats-role?
   ) ;and-let*
 ) ;define
 
@@ -911,11 +941,12 @@
     (expr-before-cursor)
     (cond ((tm-is? prev 'big) (make 'rsub))
           ((inside? 'frac) (go-to-fraction :denominator) (speech-enter :over))
-          (else (with sel
-                  (cut-before-cursor)
-                  (insert-go-to `(frac ,sel ,"") (list 1 0))
-                  (speech-enter :over)
-                ) ;with
+          (else
+            (with sel
+              (cut-before-cursor)
+              (insert-go-to `(frac ,sel ,"") (list 1 0))
+              (speech-enter :over)
+            ) ;with
           ) ;else
     ) ;cond
   ) ;with
@@ -1016,24 +1047,37 @@
       (stats-role? (tmconcat root " " x))
       (stats-role? (tmconcat root "," x))
       (stats-role? (tmconcat root ";" x))
-      (stats-role? (tmconcat root `(rsub ,x)))
-      (stats-role? (tmconcat root `(rsup ,x)))
+      (stats-role?
+        (tmconcat root `(rsub ,x))
+      ) ;stats-role?
+      (stats-role?
+        (tmconcat root `(rsup ,x))
+      ) ;stats-role?
     ) ;or
   ) ;and-with
 ) ;define
 
 (define (do-extend-brackets? x)
-  (and-let* ((expr (expr-before-cursor))
-             (ok? (tm-in? expr '(around around*)))
-             (root (root-before-brackets))
-             (l (tm->stree (tm-ref expr 0)))
-             (r (tm->stree (tm-ref expr 2)))
-             (c1 (tmconcat root `(around ,l ,(tmconcat "," x) ,r)))
-             (c2 (tmconcat root `(around ,l ,(tmconcat ";" x) ,r)))
-             (c3 (tmconcat root `(around* ,l ,(tmconcat "," x) ,r)))
-             (c4 (tmconcat root `(around* ,l ,(tmconcat ";" x) ,r)))
-            ) ;
-    (or (and (stats-role? c1) ",") (and (stats-role? c2) ";"))
+  (and-let*
+   ((expr (expr-before-cursor))
+    (ok? (tm-in? expr '(around around*)))
+    (root (root-before-brackets))
+    (l (tm->stree (tm-ref expr 0)))
+    (r (tm->stree (tm-ref expr 2)))
+    (c1
+      (tmconcat root `(around ,l ,(tmconcat "," x) ,r))
+    ) ;c1
+    (c2
+      (tmconcat root `(around ,l ,(tmconcat ";" x) ,r))
+    ) ;c2
+    (c3
+      (tmconcat root `(around* ,l ,(tmconcat "," x) ,r))
+    ) ;c3
+    (c4
+      (tmconcat root `(around* ,l ,(tmconcat ";" x) ,r))
+    ) ;c4
+   ) ;
+   (or (and (stats-role? c1) ",") (and (stats-role? c2) ";"))
   ) ;and-let*
 ) ;define
 
@@ -1057,24 +1101,28 @@
 ) ;define
 
 (define (dont-continue-brackets? x)
-  (and-let* ((prev (expr-before-cursor))
-             (ok? (in? prev (list "," ";")))
-             (root (root-before-brackets))
-            ) ;
-    (stats-role? (tmconcat root prev x))
+  (and-let*
+   ((prev (expr-before-cursor))
+    (ok? (in? prev (list "," ";")))
+    (root (root-before-brackets))
+   ) ;
+   (stats-role? (tmconcat root prev x))
   ) ;and-let*
 ) ;define
 
 (define (do-continue-brackets? x)
-  (and-let* ((prev (expr-before-cursor))
-             (ok? (in? prev (list "," ";")))
-             (expr (brackets-before-cursor))
-             (root (root-before-brackets))
-             (l (tm->stree (tm-ref expr 0)))
-             (c (tmconcat prev x))
-             (r (tm->stree (tm-ref expr 2)))
-            ) ;
-    (stats-role? (tmconcat root `(,(tm-label expr) ,l ,c ,r)))
+  (and-let*
+   ((prev (expr-before-cursor))
+    (ok? (in? prev (list "," ";")))
+    (expr (brackets-before-cursor))
+    (root (root-before-brackets))
+    (l (tm->stree (tm-ref expr 0)))
+    (c (tmconcat prev x))
+    (r (tm->stree (tm-ref expr 2)))
+   ) ;
+   (stats-role?
+     (tmconcat root `(,(tm-label expr) ,l ,c ,r))
+   ) ;stats-role?
   ) ;and-let*
 ) ;define
 

@@ -115,57 +115,58 @@
            (t0 (if t (path->tree (cDr p)) #f))
            (i0 (graphics-graphical-index t0))
           ) ;
-      (cond ((eq? dirn 'background)
-             (if (> (cAr p) i0)
-               (let* ((p-1 (rcons (cDr p) i0)) (t-1 (path->tree p-1)))
-                 (tree-remove t0 (cAr p) 1)
-                 (tree-insert (tree-up t-1) (cAr p-1) `(,(tree->stree t)))
-                 (set! current-path p-1)
-               ) ;let*
-             ) ;if
-            ) ;
-            ((eq? dirn 'foreground)
-             (if (< (+ (cAr p) 1) (tree-arity t0))
-               (let* ((p+1 (rcons (cDr p) (- (tree-arity t0) 1))) (t+1 (path->tree p+1)))
-                 (tree-remove t0 (cAr p) 1)
-                 (tree-insert (tree-up t+1) (cAr p+1) `(,(tree->stree t)))
-                 (set! current-path p+1)
-               ) ;let*
-             ) ;if
-            ) ;
-            ((eq? dirn 'farther)
-             (if (> (cAr p) i0)
-               (let* ((no (graphics-zprevious p))
-                      (p-1 (if no (rcons (cDr p) no) #f))
-                      (t-1 (if p-1 (path->tree p-1) #f))
-                     ) ;
-                 (if no
-                   (begin
-                     (tree-remove t0 (cAr p) 1)
-                     (tree-insert (tree-up t-1) (cAr p-1) `(,(tree->stree t)))
-                     (set! current-path p-1)
-                   ) ;begin
-                 ) ;if
-               ) ;let*
-             ) ;if
-            ) ;
-            ((eq? dirn 'closer)
-             (if (< (+ (cAr p) 1) (tree-arity t0))
-               (let* ((no (graphics-znext p))
-                      (p+1 (if no (rcons (cDr p) no) #f))
-                      (t+1 (if p+1 (path->tree p+1) #f))
-                     ) ;
-                 (if no
-                   (begin
-                     (tree-remove t0 (cAr p) 1)
-                     (tree-insert (tree-up t+1) (cAr p+1) `(,(tree->stree t)))
-                     (set! current-path p+1)
-                   ) ;begin
-                 ) ;if
-               ) ;let*
-             ) ;if
-            ) ;
-            (else #t)
+      (cond
+       ((eq? dirn 'background)
+        (if (> (cAr p) i0)
+          (let* ((p-1 (rcons (cDr p) i0)) (t-1 (path->tree p-1)))
+            (tree-remove t0 (cAr p) 1)
+            (tree-insert (tree-up t-1) (cAr p-1) `(,(tree->stree t)))
+            (set! current-path p-1)
+          ) ;let*
+        ) ;if
+       ) ;
+       ((eq? dirn 'foreground)
+        (if (< (+ (cAr p) 1) (tree-arity t0))
+          (let* ((p+1 (rcons (cDr p) (- (tree-arity t0) 1))) (t+1 (path->tree p+1)))
+            (tree-remove t0 (cAr p) 1)
+            (tree-insert (tree-up t+1) (cAr p+1) `(,(tree->stree t)))
+            (set! current-path p+1)
+          ) ;let*
+        ) ;if
+       ) ;
+       ((eq? dirn 'farther)
+        (if (> (cAr p) i0)
+          (let* ((no (graphics-zprevious p))
+                 (p-1 (if no (rcons (cDr p) no) #f))
+                 (t-1 (if p-1 (path->tree p-1) #f))
+                ) ;
+            (if no
+              (begin
+                (tree-remove t0 (cAr p) 1)
+                (tree-insert (tree-up t-1) (cAr p-1) `(,(tree->stree t)))
+                (set! current-path p-1)
+              ) ;begin
+            ) ;if
+          ) ;let*
+        ) ;if
+       ) ;
+       ((eq? dirn 'closer)
+        (if (< (+ (cAr p) 1) (tree-arity t0))
+          (let* ((no (graphics-znext p))
+                 (p+1 (if no (rcons (cDr p) no) #f))
+                 (t+1 (if p+1 (path->tree p+1) #f))
+                ) ;
+            (if no
+              (begin
+                (tree-remove t0 (cAr p) 1)
+                (tree-insert (tree-up t+1) (cAr p+1) `(,(tree->stree t)))
+                (set! current-path p+1)
+              ) ;begin
+            ) ;if
+          ) ;let*
+        ) ;if
+       ) ;
+       (else #t)
       ) ;cond
       (sketch-reset)
       (graphics-group-start)
@@ -195,20 +196,21 @@
   ;; (display* "Graphics] Finish\n")
   (with mode
     (graphics-mode)
-    (cond ((== (car mode) 'edit)
-           (with submode
-             (cadr mode)
-             (cond ((== submode 'point) (noop))
-                   ((in? submode gr-tags-curves) (noop))
-                   ((in? submode gr-tags-user) (noop))
-                   ((graphical-text-tag? submode) (noop))
-                   (else (display* "Uncaptured finish (edit)\n"))
-             ) ;cond
-           ) ;with
-          ) ;
-          ((== (car mode) 'group-edit) (noop))
-          ((== (car mode) 'hand-edit) (noop))
-          (else (display* "Uncaptured finish\n"))
+    (cond
+     ((== (car mode) 'edit)
+      (with submode
+        (cadr mode)
+        (cond ((== submode 'point) (noop))
+              ((in? submode gr-tags-curves) (noop))
+              ((in? submode gr-tags-user) (noop))
+              ((graphical-text-tag? submode) (noop))
+              (else (display* "Uncaptured finish (edit)\n"))
+        ) ;cond
+      ) ;with
+     ) ;
+     ((== (car mode) 'group-edit) (noop))
+     ((== (car mode) 'hand-edit) (noop))
+     (else (display* "Uncaptured finish\n"))
     ) ;cond
   ) ;with
 ) ;tm-define
@@ -326,7 +328,9 @@
            (n (- (tree-arity gt) 1))
            (ha (graphics-get-property "gr-text-at-halign"))
            (va (graphics-get-property "gr-text-at-valign"))
-           (obj `(text-at ,the-graphics-drop-object (point ,x ,y)))
+           (obj
+             `(text-at ,the-graphics-drop-object (point ,x ,y))
+           ) ;obj
            (rich `(with ,"text-at-halign" ,ha ,"text-at-valign" ,va ,obj))
           ) ;
       (tree-insert gt n (list rich))

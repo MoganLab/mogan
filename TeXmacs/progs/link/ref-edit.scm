@@ -69,11 +69,14 @@
 
 (tm-define (search-duplicate-labels t)
   (let* ((labs (search-labels t))
-         (labl (map (lambda (lab) (tm->string (tm-ref lab 0))) labs))
+         (labl
+           (map (lambda (lab) (tm->string (tm-ref lab 0))) labs)
+         ) ;labl
          (freq (list->frequencies labl))
-         (filt (lambda (lab)
-                 (with f (ahash-ref freq (tm->string (tm-ref lab 0))) (> (or f 0) 1))
-               ) ;lambda
+         (filt
+           (lambda (lab)
+             (with f (ahash-ref freq (tm->string (tm-ref lab 0))) (> (or f 0) 1))
+           ) ;lambda
          ) ;filt
         ) ;
     (list-filter labs filt)
@@ -96,7 +99,12 @@
 
 (define (set-of-labels t)
   (let* ((labs (search-labels t))
-         (labl (map (lambda (t) (strip-bib (tm->string (tm-ref t 0)))) labs))
+         (labl
+           (map
+             (lambda (t) (strip-bib (tm->string (tm-ref t 0))))
+             labs
+           ) ;map
+         ) ;labl
          (labt (list->ahash-set labl))
         ) ;
     (if (project-attached?)
@@ -111,11 +119,12 @@
 ) ;define
 
 (define (non-auto? t)
-  (not (and (tm-compound? t)
-         (forall? (lambda (l) (and-with s (tm->string l) (string-starts? s "auto-")))
-           (tm-children t)
-         ) ;forall?
-       ) ;and
+  (not
+    (and (tm-compound? t)
+      (forall? (lambda (l) (and-with s (tm->string l) (string-starts? s "auto-")))
+        (tm-children t)
+      ) ;forall?
+    ) ;and
   ) ;not
 ) ;define
 
@@ -323,23 +332,28 @@
 ) ;define
 
 (define (previous-word t)
-  (cond ((not (and (tree? t) (tree-up t))) #f)
-        ((tree-is? (tree-up t) 'concat)
-         (and-let* ((p (tree-up t)) (i (- (tree-index t) 1)))
-           (while (and (>= i 0) (not (tree-atomic? (tree-ref p i)))) (set! i (- i 1)))
-           (and (>= i 0)
-             (let* ((s (tm-string-trim-right (tree->string (tree-ref p i))))
-                    (j (string-search-backwards " " (string-length s) s))
-                   ) ;
-               (if (>= j 0) (substring s (+ j 1) (string-length s)) s)
-             ) ;let*
-           ) ;and
-         ) ;and-let*
-        ) ;
-        ((or (tree-atomic? t) (reference-context? t) (tree-is? t 'inactive))
-         (previous-word (tree-up t))
-        ) ;
-        (else #f)
+  (cond
+   ((not (and (tree? t) (tree-up t))) #f)
+   ((tree-is? (tree-up t) 'concat)
+    (and-let*
+     ((p (tree-up t)) (i (- (tree-index t) 1)))
+     (while
+       (and (>= i 0) (not (tree-atomic? (tree-ref p i))))
+       (set! i (- i 1))
+     ) ;while
+     (and (>= i 0)
+       (let* ((s (tm-string-trim-right (tree->string (tree-ref p i))))
+              (j (string-search-backwards " " (string-length s) s))
+             ) ;
+         (if (>= j 0) (substring s (+ j 1) (string-length s)) s)
+       ) ;let*
+     ) ;and
+    ) ;and-let*
+   ) ;
+   ((or (tree-atomic? t) (reference-context? t) (tree-is? t 'inactive))
+    (previous-word (tree-up t))
+   ) ;
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -417,26 +431,30 @@
 
 (tm-define (number->label t)
   ;; (display* "number->label " t "\n")
-  (and-let* ((s (tm->string t))
-             (types (or (with i
-                          (string-search-forwards ":" 0 s)
-                          (and (>= i 0) (abbr->types (substring s 0 i)))
-                        ) ;with
-                      (and-with w (previous-word t) (word->types w))
-                      (list)
-                    ) ;or
-             ) ;types
-             (num (with i
-                    (string-search-forwards ":" 0 s)
-                    (if (>= i 0) (substring s (+ i 1) (string-length s)) s)
-                  ) ;with
-             ) ;num
-             (labs (and-nnull? (number->labels num)))
-            ) ;
-    (if (null? (cdr labs))
-      (car labs)
-      (with f (matching-labels labs types) (if (null? f) (car labs) (car f)))
-    ) ;if
+  (and-let*
+   ((s (tm->string t))
+    (types
+      (or
+        (with i
+          (string-search-forwards ":" 0 s)
+          (and (>= i 0) (abbr->types (substring s 0 i)))
+        ) ;with
+        (and-with w (previous-word t) (word->types w))
+        (list)
+      ) ;or
+    ) ;types
+    (num
+      (with i
+        (string-search-forwards ":" 0 s)
+        (if (>= i 0) (substring s (+ i 1) (string-length s)) s)
+      ) ;with
+    ) ;num
+    (labs (and-nnull? (number->labels num)))
+   ) ;
+   (if (null? (cdr labs))
+     (car labs)
+     (with f (matching-labels labs types) (if (null? f) (car labs) (car f)))
+   ) ;if
   ) ;and-let*
 ) ;tm-define
 
@@ -489,28 +507,30 @@
 ) ;define
 
 (define (clean-preview t)
-  (cond ((tm-is? t 'document) `(document ,@(map clean-preview (tm-children t))))
-        ((tm-is? t 'concat) (apply tmconcat (map clean-preview (tm-children t))))
-        ((tm-in? t (section-tag-list))
-         (with l (symbol-append (tm-label t) '*) `(,l ,@(tm-children t)))
-        ) ;
-        ((tm-in? t '(label item item* bibitem bibitem* eq-number)) "")
-        ((or (tm-func? t 'equation 1) (tm-func? t 'equation* 1))
-         `(equation* ,(clean-preview (tm-ref t 0)))
-        ) ;
-        ((tm-in? t '(eqnarray eqnarray* tformat table row cell))
-         `(,(tm-label t) ,@(map clean-preview (tm-children t)))
-        ) ;
-        (else t)
+  (cond
+   ((tm-is? t 'document) `(document ,@(map clean-preview (tm-children t))))
+   ((tm-is? t 'concat) (apply tmconcat (map clean-preview (tm-children t))))
+   ((tm-in? t (section-tag-list))
+    (with l (symbol-append (tm-label t) '*) `(,l ,@(tm-children t)))
+   ) ;
+   ((tm-in? t '(label item item* bibitem bibitem* eq-number)) "")
+   ((or (tm-func? t 'equation 1) (tm-func? t 'equation* 1))
+    `(equation* ,(clean-preview (tm-ref t 0)))
+   ) ;
+   ((tm-in? t '(eqnarray eqnarray* tformat table row cell))
+    `(,(tm-label t) ,@(map clean-preview (tm-children t)))
+   ) ;
+   (else t)
   ) ;cond
 ) ;define
 
 (define (get-binding-value id)
   (and-let* ((val (get-reference id)))
-    (let ((v (if (and (tree? val) (== (tree-label val) 'tuple) (>= (tree-arity val) 1))
-               (tree-ref val 0)
-               val
-             ) ;if
+    (let ((v
+            (if (and (tree? val) (== (tree-label val) 'tuple) (>= (tree-arity val) 1))
+              (tree-ref val 0)
+              val
+            ) ;if
           ) ;v
          ) ;
       (and (not (== (tree-label v) 'uninit)) v)
@@ -520,10 +540,11 @@
 
 (define (fix-fig_or_tb-number doc id)
   (let ((v (get-binding-value id))
-        (tag (cond ((tm-in? doc '(small-figure big-figure)) "the-figure")
-                   ((tm-in? doc '(small-table big-table)) "the-table")
-                   (else #f)
-             ) ;cond
+        (tag
+          (cond ((tm-in? doc '(small-figure big-figure)) "the-figure")
+                ((tm-in? doc '(small-table big-table)) "the-table")
+                (else #f)
+          ) ;cond
         ) ;tag
        ) ;
     (when (and v tag)
@@ -598,10 +619,11 @@
     (tree-up body)
     (with (x1 y1 x2 y2)
       (tree-bounding-rectangle ref)
-      (and-let* ((id (and (tree-atomic? body*) (tree->string body*)))
-                 (tip (and id (ref-preview id)))
-                ) ;
-        (show-tooltip id ref tip "Top" "Top" "default" 2.2)
+      (and-let*
+       ((id (and (tree-atomic? body*) (tree->string body*)))
+        (tip (and id (ref-preview id)))
+       ) ;
+       (show-tooltip id ref tip "Top" "Top" "default" 2.2)
       ) ;and-let*
     ) ;with
   ) ;and-with
@@ -643,9 +665,10 @@
               (begin
                 (show-tooltip id (cursor-tree) tip "Top" "Top" "keyboard" 1.8)
                 (when (not tip1)
-                  (set-message `(concat (verbatim ,id1)
-                                  ," <rightarrow> "
-                                  (verbatim ,id2)) "")
+                  (set-message
+                    `(concat (verbatim ,id1) ," <rightarrow> " (verbatim ,id2))
+                    ""
+                  ) ;set-message
                 ) ;when
               ) ;begin
               (begin

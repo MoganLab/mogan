@@ -51,7 +51,10 @@
     (when (inside? 'name-jr)
       (go-start-of 'name-jr)
     ) ;when
-    (insert-go-to `(concat (name-von ,von) ," ") '(1 1))
+    (insert-go-to
+      `(concat (name-von ,von) ," ")
+      '(1 1)
+    ) ;insert-go-to
   ) ;when
 ) ;tm-define
 
@@ -77,7 +80,10 @@
     (when (inside? 'name-von)
       (go-end-of 'name-von)
     ) ;when
-    (insert-go-to `(concat ," " (name-jr ,jr)) '(1 1))
+    (insert-go-to
+      `(concat ," " (name-jr ,jr))
+      '(1 1)
+    ) ;insert-go-to
   ) ;when
 ) ;tm-define
 
@@ -148,12 +154,13 @@
   (:require (and (supports-db?) (bib-cite-context? t)))
   (and-with u
     (if (tree-func? t 'cite-detail) (tree-ref t 0) (tree-down t))
-    (open-bib-chooser (lambda (key)
-                        (when (and key (tree->path u) (tree-in? (tree-up u) '(cite nocite
-                                                                               cite-detail)))
-                          (tree-set! u key)
-                        ) ;when
-                      ) ;lambda
+    (open-bib-chooser
+      (lambda (key)
+        (when (and key (tree->path u) (tree-in? (tree-up u) '(cite nocite
+                                                               cite-detail)))
+          (tree-set! u key)
+        ) ;when
+      ) ;lambda
     ) ;open-bib-chooser
   ) ;and-with
 ) ;tm-define

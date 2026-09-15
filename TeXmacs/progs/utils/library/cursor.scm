@@ -64,15 +64,16 @@
   (or (null? l)
     (with t
       (path->tree (list-drop-right p (length l)))
-      (cond ((and (symbol? (car l)) (== (tm-car t) (car l))) (check-pattern p (cdr l)))
-            ((and (procedure? (car l)) ((car l) t)) (check-pattern p (cdr l)))
-            ((and (number? (car l))
-               (== (car l) (list-ref p (- (length p) (length l) 1)))
-               (> (length p) 1)
-             ) ;and
-             (check-pattern p (cdr l))
-            ) ;
-            (else #f)
+      (cond
+       ((and (symbol? (car l)) (== (tm-car t) (car l))) (check-pattern p (cdr l)))
+       ((and (procedure? (car l)) ((car l) t)) (check-pattern p (cdr l)))
+       ((and (number? (car l))
+          (== (car l) (list-ref p (- (length p) (length l) 1)))
+          (> (length p) 1)
+        ) ;and
+        (check-pattern p (cdr l))
+       ) ;
+       (else #f)
       ) ;cond
     ) ;with
   ) ;or
@@ -96,9 +97,10 @@
 ) ;tm-define
 
 (define (go-to-next-inside-sub fun l)
-  (do ((p (cursor-path) (cursor-path))
-       (q (begin (fun) (cursor-path)) (begin (fun) (cursor-path)))
-      ) ;
+  (do
+    ((p (cursor-path) (cursor-path))
+     (q (begin (fun) (cursor-path)) (begin (fun) (cursor-path)))
+    ) ;
     ((or (== p q) (innermost-pattern q l))
      ;; (display* "  End " q ", " (path->tree (cDr q)) "\n")
      q
@@ -118,9 +120,10 @@
 ) ;tm-define
 
 (define (go-to-next-such-that fun pred?)
-  (do ((p (cursor-path) (cursor-path))
-       (q (begin (fun) (cursor-path)) (begin (fun) (cursor-path)))
-      ) ;
+  (do
+    ((p (cursor-path) (cursor-path))
+     (q (begin (fun) (cursor-path)) (begin (fun) (cursor-path)))
+    ) ;
     ((or (== p q) (pred? (path->tree (cDr q))))
      ;; (display* "End " q ", " (path->tree (cDr q)) "\n")
      q
@@ -135,7 +138,12 @@
     (cursor-path)
     ;; (display* "First " p ", " (path->tree (cDr p)) ", " (procedure-source fun) ", " pred? "\n")
     (go-to-next-such-that fun pred?)
-    (if (not (pred? (path->tree (cDr (cursor-path))))) (go-to p))
+    (if
+      (not
+        (pred? (path->tree (cDr (cursor-path))))
+      ) ;not
+      (go-to p)
+    ) ;if
   ) ;with
 ) ;tm-define
 
@@ -314,7 +322,8 @@
 ) ;define
 
 (define (abbr->buffer abbr)
-  (assoc-ref (map (lambda (x) (cons (buffer-get-title x) x)) (buffer-sorted-list))
+  (assoc-ref
+    (map (lambda (x) (cons (buffer-get-title x) x)) (buffer-sorted-list))
     abbr
   ) ;assoc-ref
 ) ;define
@@ -325,7 +334,11 @@
   (cond ((in? name (buffer-list)) (switch-to-buffer name))
         ((abbr->buffer name) (switch-to-buffer (abbr->buffer name)))
         ((in? (unix->url name) (buffer-list)) (switch-to-buffer (unix->url name)))
-        (else (set-message `(concat ,"Error: no buffer " (verbatim ,name)) "switch to buffer")
+        (else
+          (set-message
+            `(concat ,"Error: no buffer " (verbatim ,name))
+            "switch to buffer"
+          ) ;set-message
         ) ;else
   ) ;cond
 ) ;tm-define

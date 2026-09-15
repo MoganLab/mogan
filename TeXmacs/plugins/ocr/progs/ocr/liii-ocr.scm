@@ -79,7 +79,9 @@
   (go-to-next-node)
   (kbd-return)
   (let* ((content (string-load (unix->url "$TEXMACS_PATH/plugins/ocr/data/ocr.md"))))
-    (insert `(with ,"par-mode" ,"center" (document ,(utf8->cork content))))
+    (insert
+      `(with ,"par-mode" ,"center" (document ,(utf8->cork content)))
+    ) ;insert
   ) ;let*
 ) ;define
 
@@ -101,12 +103,13 @@
 
 (tm-define (ocr-to-latex-by-cursor t)
   (let* ((extension (get-image-extension (get-image t 0 #t)))
-         (temp-name (string-append temp-dir
-                      "/temp-"
-                      (number->string (time-second (current-time)))
-                      "."
-                      extension
-                    ) ;string-append
+         (temp-name
+           (string-append temp-dir
+             "/temp-"
+             (number->string (time-second (current-time)))
+             "."
+             extension
+           ) ;string-append
          ) ;temp-name
          (data-list (get-image t 0 #f))
         ) ;
@@ -148,12 +151,13 @@
 
 (tm-define (ocr-to-latex-by-image t)
   (let* ((extention (get-image-extension (get-image t 0 #t)))
-         (temp-name (string-append temp-dir
-                      "/temp-"
-                      (number->string (time-second (current-time)))
-                      "."
-                      extention
-                    ) ;string-append
+         (temp-name
+           (string-append temp-dir
+             "/temp-"
+             (number->string (time-second (current-time)))
+             "."
+             extention
+           ) ;string-append
          ) ;temp-name
          (data-list (get-image t 0 #f))
         ) ;

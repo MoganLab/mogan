@@ -45,66 +45,146 @@
   (cdotslim "\\mathop{\\cdots}\\limits")
 
   ;; rotated arrows and other symbols
-  (mapsfrom (!group (mbox (rotatebox (!option "origin=c") "180" (!math (mapsto)))))
+  (mapsfrom
+    (!group
+      (mbox (rotatebox (!option "origin=c") "180" (!math (mapsto))))
+    ) ;!group
   ) ;mapsfrom
-  (longmapsfrom (!group (mbox (rotatebox (!option "origin=c") "180" (!math (longmapsto)))))
+  (longmapsfrom
+    (!group
+      (mbox (rotatebox (!option "origin=c") "180" (!math (longmapsto))))
+    ) ;!group
   ) ;longmapsfrom
-  (mapmulti (!group (mbox (rotatebox (!option "origin=c") "180" (!math "\\multimap"))))
+  (mapmulti
+    (!group (mbox (rotatebox (!option "origin=c") "180" (!math "\\multimap"))))
   ) ;mapmulti
-  (leftsquigarrow (!group (mbox (rotatebox (!option "origin=c") "180" (!math (rightsquigarrow)))))
+  (leftsquigarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "180" (!math (rightsquigarrow))))
+    ) ;!group
   ) ;leftsquigarrow
-  (upequal (!group (mbox (rotatebox (!option "origin=c") "90" (!math "=")))))
-  (downequal (!group (mbox (rotatebox (!option "origin=c") "-90" (!math "=")))))
-  (longupequal (!group (mbox (rotatebox (!option "origin=c") "90" (!math (longequal)))))
+  (upequal
+    (!group (mbox (rotatebox (!option "origin=c") "90" (!math "="))))
+  ) ;upequal
+  (downequal
+    (!group (mbox (rotatebox (!option "origin=c") "-90" (!math "="))))
+  ) ;downequal
+  (longupequal
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (longequal))))
+    ) ;!group
   ) ;longupequal
-  (longdownequal (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (longequal)))))
+  (longdownequal
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (longequal))))
+    ) ;!group
   ) ;longdownequal
-  (longupminus (!group (mbox (rotatebox (!option "origin=c") "90" (!math (longminus)))))
+  (longupminus
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (longminus))))
+    ) ;!group
   ) ;longupminus
-  (longdownminus (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (longminus)))))
+  (longdownminus
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (longminus))))
+    ) ;!group
   ) ;longdownminus
-  (longuparrow (!group (mbox (rotatebox (!option "origin=c") "90" (!math (longrightarrow)))))
+  (longuparrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (longrightarrow))))
+    ) ;!group
   ) ;longuparrow
-  (longdownarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (longrightarrow)))))
+  (longdownarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (longrightarrow))))
+    ) ;!group
   ) ;longdownarrow
-  (longupdownarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (longleftrightarrow))))
-                   ) ;!group
+  (longupdownarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (longleftrightarrow))))
+    ) ;!group
   ) ;longupdownarrow
-  (Longuparrow (!group (mbox (rotatebox (!option "origin=c") "90" (!math (Longrightarrow)))))
+  (Longuparrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (Longrightarrow))))
+    ) ;!group
   ) ;Longuparrow
-  (Longdownarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (Longrightarrow)))))
+  (Longdownarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (Longrightarrow))))
+    ) ;!group
   ) ;Longdownarrow
-  (Longupdownarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (Longleftrightarrow))))
-                   ) ;!group
+  (Longupdownarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (Longleftrightarrow))))
+    ) ;!group
   ) ;Longupdownarrow
-  (mapsup (!group (mbox (rotatebox (!option "origin=c") "90" (!math (mapsto))))))
-  (mapsdown (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (mapsto)))))
+  (mapsup
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (mapsto))))
+    ) ;!group
+  ) ;mapsup
+  (mapsdown
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (mapsto))))
+    ) ;!group
   ) ;mapsdown
-  (longmapsup (!group (mbox (rotatebox (!option "origin=c") "90" (!math (longmapsto)))))
+  (longmapsup
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (longmapsto))))
+    ) ;!group
   ) ;longmapsup
-  (longmapsdown (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (longmapsto)))))
+  (longmapsdown
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (longmapsto))))
+    ) ;!group
   ) ;longmapsdown
-  (upsquigarrow (!group (mbox (rotatebox (!option "origin=c") "90" (!math (rightsquigarrow)))))
+  (upsquigarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (rightsquigarrow))))
+    ) ;!group
   ) ;upsquigarrow
-  (downsquigarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (rightsquigarrow)))))
+  (downsquigarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (rightsquigarrow))))
+    ) ;!group
   ) ;downsquigarrow
-  (updownsquigarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (leftrightsquigarrow))))
-                    ) ;!group
+  (updownsquigarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (leftrightsquigarrow))))
+    ) ;!group
   ) ;updownsquigarrow
-  (hookuparrow (!group (mbox (rotatebox (!option "origin=c") "90" (!math (hookrightarrow)))))
+  (hookuparrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (hookrightarrow))))
+    ) ;!group
   ) ;hookuparrow
-  (hookdownarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (hookrightarrow)))))
+  (hookdownarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (hookrightarrow))))
+    ) ;!group
   ) ;hookdownarrow
-  (longhookuparrow (!group (mbox (rotatebox (!option "origin=c") "90" (!math (longhookrightarrow))))
-                   ) ;!group
+  (longhookuparrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "90" (!math (longhookrightarrow))))
+    ) ;!group
   ) ;longhookuparrow
-  (longhookdownarrow (!group (mbox (rotatebox (!option "origin=c") "-90" (!math (longhookrightarrow))))
-                     ) ;!group
+  (longhookdownarrow
+    (!group
+      (mbox (rotatebox (!option "origin=c") "-90" (!math (longhookrightarrow))))
+    ) ;!group
   ) ;longhookdownarrow
-  (Backepsilon (!group (mbox (rotatebox (!option "origin=c") "180" "E"))))
-  (Backsigma (!group (mbox (reflectbox (!math "\\Sigma")))))
-  (Mho (!group (mbox (rotatebox (!option "origin=c") "180" (!math "\\Omega")))))
-  (btimes (!group (mbox (rotatebox (!option "origin=c") "90" (!math "\\ltimes"))))
+  (Backepsilon
+    (!group (mbox (rotatebox (!option "origin=c") "180" "E")))
+  ) ;Backepsilon
+  (Backsigma
+    (!group (mbox (reflectbox (!math "\\Sigma"))))
+  ) ;Backsigma
+  (Mho
+    (!group (mbox (rotatebox (!option "origin=c") "180" (!math "\\Omega"))))
+  ) ;Mho
+  (btimes
+    (!group (mbox (rotatebox (!option "origin=c") "90" (!math "\\ltimes"))))
   ) ;btimes
 
   ;; asymptotic relations by Joris
@@ -246,19 +326,54 @@
   (lebar (mathrel (Yleft)))
   (gebar (mathrel (Yright)))
   (leangle (mathrel (angle)))
-  (geangle (mathrel (!group (mbox (reflectbox (!math (angle)))))))
-  (anglege (mathrel (!group (mbox (rotatebox (!option "origin=c") "180" (!math (angle))))))
+  (geangle
+    (mathrel
+      (!group
+        (mbox (reflectbox (!math (angle))))
+      ) ;!group
+    ) ;mathrel
+  ) ;geangle
+  (anglege
+    (mathrel
+      (!group
+        (mbox (rotatebox (!option "origin=c") "180" (!math (angle))))
+      ) ;!group
+    ) ;mathrel
   ) ;anglege
-  (anglele (mathrel (!group (mbox (rotatebox (!option "origin=c") "180" (!math (!recurse (geangle)))))
-                    ) ;!group
-           ) ;mathrel
+  (anglele
+    (mathrel
+      (!group
+        (mbox
+          (rotatebox (!option "origin=c") "180" (!math (!recurse (geangle))))
+        ) ;mbox
+      ) ;!group
+    ) ;mathrel
   ) ;anglele
   ;; (leqangle (mathrel (substack (!append (angle) "\\\\" (smash "-")))))
-  (leqangle (mathrel (!append (angle) " \\llap " (!group (raisebox "-1ex" (!math "-")))))
+  (leqangle
+    (mathrel
+      (!append (angle) " \\llap " (!group (raisebox "-1ex" (!math "-"))))
+    ) ;mathrel
   ) ;leqangle
-  (geqangle (mathrel (!group (mbox (reflectbox (!math (!recurse (leqangle))))))))
-  (legeangle (mathrel (substack (!append (leangle) "\\\\" (!recurse (anglege))))))
-  (geleangle (mathrel (substack (!append (geangle) "\\\\" (!recurse (anglele))))))
+  (geqangle
+    (mathrel
+      (!group
+        (mbox
+          (reflectbox (!math (!recurse (leqangle))))
+        ) ;mbox
+      ) ;!group
+    ) ;mathrel
+  ) ;geqangle
+  (legeangle
+    (mathrel
+      (substack (!append (leangle) "\\\\" (!recurse (anglege))))
+    ) ;mathrel
+  ) ;legeangle
+  (geleangle
+    (mathrel
+      (substack (!append (geangle) "\\\\" (!recurse (anglele))))
+    ) ;mathrel
+  ) ;geleangle
   (udots "{\\mathinner{\\mskip1mu\\raise1pt\\vbox{\\kern7pt\\hbox{.}}\\mskip2mu\\raise4pt\\hbox{.}\\mskip2mu\\raise7pt\\hbox{.}\\mskip1mu}}"
   ) ;udots
   (subsetsim (underset (sim) (subset)))
@@ -271,83 +386,95 @@
   (Llongrightarrow (!group (!append (equiv) "\\!" (Rrightarrow))))
   (Llongleftrightarrow (!group (!append (Lleftarrow) "\\!" (equiv) "\\!" (Rrightarrow)))
   ) ;Llongleftrightarrow
-  (threeleftarrows (mathrel (substack (!append (leftarrow) "\\\\[-0.6ex]" (leftarrow) "\\\\[-0.6ex]" (leftarrow))
-                            ) ;substack
-                   ) ;mathrel
+  (threeleftarrows
+    (mathrel (substack (!append (leftarrow) "\\\\[-0.6ex]" (leftarrow) "\\\\[-0.6ex]" (leftarrow))
+             ) ;substack
+    ) ;mathrel
   ) ;threeleftarrows
-  (fourleftarrows (mathrel (substack (!append (leftarrow)
-                                       "\\\\[-0.6ex]"
-                                       (leftarrow)
-                                       "\\\\[-0.6ex]"
-                                       (leftarrow)
-                                       "\\\\[-0.6ex]"
-                                       (leftarrow)
-                                     ) ;!append
-                           ) ;substack
-                  ) ;mathrel
+  (fourleftarrows
+    (mathrel (substack (!append (leftarrow)
+                         "\\\\[-0.6ex]"
+                         (leftarrow)
+                         "\\\\[-0.6ex]"
+                         (leftarrow)
+                         "\\\\[-0.6ex]"
+                         (leftarrow)
+                       ) ;!append
+             ) ;substack
+    ) ;mathrel
   ) ;fourleftarrows
-  (threerightarrows (mathrel (substack (!append (rightarrow) "\\\\[-0.6ex]" (rightarrow) "\\\\[-0.6ex]" (rightarrow))
-                             ) ;substack
-                    ) ;mathrel
+  (threerightarrows
+    (mathrel (substack (!append (rightarrow) "\\\\[-0.6ex]" (rightarrow) "\\\\[-0.6ex]" (rightarrow))
+             ) ;substack
+    ) ;mathrel
   ) ;threerightarrows
-  (fourrightarrows (mathrel (substack (!append (rightarrow)
-                                        "\\\\[-0.6ex]"
-                                        (rightarrow)
-                                        "\\\\[-0.6ex]"
-                                        (rightarrow)
-                                        "\\\\[-0.6ex]"
-                                        (rightarrow)
-                                      ) ;!append
-                            ) ;substack
-                   ) ;mathrel
+  (fourrightarrows
+    (mathrel (substack (!append (rightarrow)
+                         "\\\\[-0.6ex]"
+                         (rightarrow)
+                         "\\\\[-0.6ex]"
+                         (rightarrow)
+                         "\\\\[-0.6ex]"
+                         (rightarrow)
+                       ) ;!append
+             ) ;substack
+    ) ;mathrel
   ) ;fourrightarrows
-  (longleftrightarrows (mathrel (substack (!append (longleftarrow) "\\\\[-0.6ex]" (longrightarrow))))
+  (longleftrightarrows
+    (mathrel (substack (!append (longleftarrow) "\\\\[-0.6ex]" (longrightarrow))))
   ) ;longleftrightarrows
-  (longleftleftarrows (mathrel (substack (!append (longleftarrow) "\\\\[-0.6ex]" (longleftarrow))))
+  (longleftleftarrows
+    (mathrel (substack (!append (longleftarrow) "\\\\[-0.6ex]" (longleftarrow))))
   ) ;longleftleftarrows
-  (longthreeleftarrows (mathrel (substack (!append (longleftarrow)
-                                            "\\\\[-0.6ex]"
-                                            (longleftarrow)
-                                            "\\\\[-0.6ex]"
-                                            (longleftarrow)
-                                          ) ;!append
-                                ) ;substack
-                       ) ;mathrel
+  (longthreeleftarrows
+    (mathrel (substack (!append (longleftarrow)
+                         "\\\\[-0.6ex]"
+                         (longleftarrow)
+                         "\\\\[-0.6ex]"
+                         (longleftarrow)
+                       ) ;!append
+             ) ;substack
+    ) ;mathrel
   ) ;longthreeleftarrows
-  (longfourleftarrows (mathrel (substack (!append (longleftarrow)
-                                           "\\\\[-0.6ex]"
-                                           (longleftarrow)
-                                           "\\\\[-0.6ex]"
-                                           (longleftarrow)
-                                           "\\\\[-0.6ex]"
-                                           (longleftarrow)
-                                         ) ;!append
-                               ) ;substack
-                      ) ;mathrel
+  (longfourleftarrows
+    (mathrel (substack (!append (longleftarrow)
+                         "\\\\[-0.6ex]"
+                         (longleftarrow)
+                         "\\\\[-0.6ex]"
+                         (longleftarrow)
+                         "\\\\[-0.6ex]"
+                         (longleftarrow)
+                       ) ;!append
+             ) ;substack
+    ) ;mathrel
   ) ;longfourleftarrows
-  (longrightleftarrows (mathrel (substack (!append (longrightarrow) "\\\\[-0.6ex]" (longleftarrow))))
+  (longrightleftarrows
+    (mathrel (substack (!append (longrightarrow) "\\\\[-0.6ex]" (longleftarrow))))
   ) ;longrightleftarrows
-  (longrightrightarrows (mathrel (substack (!append (longrightarrow) "\\\\[-0.6ex]" (longrightarrow))))
+  (longrightrightarrows
+    (mathrel (substack (!append (longrightarrow) "\\\\[-0.6ex]" (longrightarrow))))
   ) ;longrightrightarrows
-  (longthreerightarrows (mathrel (substack (!append (longrightarrow)
-                                             "\\\\[-0.6ex]"
-                                             (longrightarrow)
-                                             "\\\\[-0.6ex]"
-                                             (longrightarrow)
-                                           ) ;!append
-                                 ) ;substack
-                        ) ;mathrel
+  (longthreerightarrows
+    (mathrel (substack (!append (longrightarrow)
+                         "\\\\[-0.6ex]"
+                         (longrightarrow)
+                         "\\\\[-0.6ex]"
+                         (longrightarrow)
+                       ) ;!append
+             ) ;substack
+    ) ;mathrel
   ) ;longthreerightarrows
-  (longfourrightarrows (mathrel (substack (!append (longrightarrow)
-                                            "\\\\[-0.6ex]"
-                                            (longrightarrow)
-                                            "\\\\[-0.6ex]"
-                                            (longrightarrow)
-                                            "\\\\[-0.6ex]"
-                                            (longrightarrow)
-                                          ) ;!append
-                                ) ;substack
-                       ) ;mathrel
+  (longfourrightarrows
+    (mathrel (substack (!append (longrightarrow)
+                         "\\\\[-0.6ex]"
+                         (longrightarrow)
+                         "\\\\[-0.6ex]"
+                         (longrightarrow)
+                         "\\\\[-0.6ex]"
+                         (longrightarrow)
+                       ) ;!append
+             ) ;substack
+    ) ;mathrel
   ) ;longfourrightarrows
 ) ;smart-table
 
@@ -366,27 +493,29 @@
   (TeXmacs "T\\kern-.1667em\\lower.5ex\\hbox{E}\\kern-.125emX\\kern-.1em\\lower.5ex\\hbox{\\textsc{m\\kern-.05ema\\kern-.125emc\\kern-.05ems}}"
   ) ;TeXmacs
   (madebyTeXmacs (footnote (!recurse (withTeXmacstext))))
-  (withTeXmacstext (!append (!translate "This document has been produced using the GNU")
-                     " "
-                     (!group (!recurse (TeXmacs)))
-                     " "
-                     (!translate "text editor")
-                     " ("
-                     (!translate "see")
-                     " "
-                     (url "https://www.texmacs.org")
-                     ")"
-                   ) ;!append
+  (withTeXmacstext
+    (!append (!translate "This document has been produced using the GNU")
+      " "
+      (!group (!recurse (TeXmacs)))
+      " "
+      (!translate "text editor")
+      " ("
+      (!translate "see")
+      " "
+      (url "https://www.texmacs.org")
+      ")"
+    ) ;!append
   ) ;withTeXmacstext
-  (citewebsite (!append (!translate "This document has been written using")
-                 " GNU "
-                 (!group (!recurse (TeXmacs)))
-                 "; "
-                 (!translate "see")
-                 " "
-                 (url "https://www.texmacs.org")
-                 "."
-               ) ;!append
+  (citewebsite
+    (!append (!translate "This document has been written using")
+      " GNU "
+      (!group (!recurse (TeXmacs)))
+      "; "
+      (!translate "see")
+      " "
+      (url "https://www.texmacs.org")
+      "."
+    ) ;!append
   ) ;citewebsite
   (tmmade (!recurse (tikzframe (Backsigma))))
   (scheme "{\\sc Scheme}")
@@ -435,26 +564,43 @@
   (tmoutput 1)
   (tmerrput (!append (color "red!50!black") 1))
   (tmtiming (!append (hfill) (footnotesize) (color "black!50") 1 (par)))
-  (tmsubtitle (thanks (!append (textit (!translate "Subtitle:")) " " 1)))
+  (tmsubtitle
+    (thanks (!append (textit (!translate "Subtitle:")) " " 1))
+  ) ;tmsubtitle
   (tmrunningtitle (!append (!translate "Running title:") " " 1))
   (tmrunningauthor (!append (!translate "Running author:") " " 1))
   (tmaffiliation (!append (!nextline) 1))
   (tmemail (!append (!nextline) (textit (!translate "Email:")) " " (texttt 1)))
   (tmhomepage (!append (!nextline) (textit (!translate "Web:")) " " (texttt 1)))
-  (tmfnaffiliation (thanks (!append (textit (!translate "Affiliation:")) " " 1)))
-  (tmfnemail (thanks (!append (textit (!translate "Email:")) " " (texttt 1))))
-  (tmfnhomepage (thanks (!append (textit (!translate "Web:")) " " (texttt 1))))
-  (tmacmhomepage (titlenote (!append (textit (!translate "Web:")) " " 1)))
-  (tmacmmisc (titlenote (!append (textit (!translate "Misc:")) " " 1)))
+  (tmfnaffiliation
+    (thanks (!append (textit (!translate "Affiliation:")) " " 1))
+  ) ;tmfnaffiliation
+  (tmfnemail
+    (thanks (!append (textit (!translate "Email:")) " " (texttt 1)))
+  ) ;tmfnemail
+  (tmfnhomepage
+    (thanks (!append (textit (!translate "Web:")) " " (texttt 1)))
+  ) ;tmfnhomepage
+  (tmacmhomepage
+    (titlenote (!append (textit (!translate "Web:")) " " 1))
+  ) ;tmacmhomepage
+  (tmacmmisc
+    (titlenote (!append (textit (!translate "Misc:")) " " 1))
+  ) ;tmacmmisc
   (tmieeeemail (!append (textit (!translate "Email:")) " " 1))
-  (tmnote (thanks (!append (textit (!translate "Note:")) " " 1)))
-  (tmmisc (thanks (!append (textit (!translate "Misc:")) " " 1)))
-  (key (!append (fcolorbox "black"
-                  "gray!25!white"
-                  (raisebox "0pt" (!option "5pt") (!option "0pt") (texttt 1))
-                ) ;fcolorbox
-         (hspace "0.5pt")
-       ) ;!append
+  (tmnote
+    (thanks (!append (textit (!translate "Note:")) " " 1))
+  ) ;tmnote
+  (tmmisc
+    (thanks (!append (textit (!translate "Misc:")) " " 1))
+  ) ;tmmisc
+  (key
+    (!append (fcolorbox "black"
+               "gray!25!white"
+               (raisebox "0pt" (!option "5pt") (!option "0pt") (texttt 1))
+             ) ;fcolorbox
+      (hspace "0.5pt")
+    ) ;!append
   ) ;key
   (uhat (underaccent (hat) 1))
   (uwidehat (underaccent (widehat (hphantom 1)) 1))
@@ -480,118 +626,178 @@
 
   ;; Binary macros
   (tmcolor (!group (color 1) (!group 2)))
-  (tmsummarizeddocumentation (trivlist (!append (item (!option "")) (mbox "") "\\large\\bf" 1))
+  (tmsummarizeddocumentation
+    (trivlist (!append (item (!option "")) (mbox "") "\\large\\bf" 1))
   ) ;tmsummarizeddocumentation
-  (tmsummarizedgrouped (trivlist (!append (item (!option "[")) (mbox "") 1)))
-  (tmsummarizedexplain (trivlist (!append (item (!option "")) (mbox "") "\\bf" 1))
+  (tmsummarizedgrouped
+    (trivlist (!append (item (!option "[")) (mbox "") 1))
+  ) ;tmsummarizedgrouped
+  (tmsummarizedexplain
+    (trivlist (!append (item (!option "")) (mbox "") "\\bf" 1))
   ) ;tmsummarizedexplain
-  (tmsummarizedplain (trivlist (!append (item (!option "")) (mbox "") 1)))
-  (tmsummarizedtiny (trivlist (!append (item (!option "")) (mbox "") 1)))
-  (tmsummarizedraw (trivlist (!append (item (!option "")) (mbox "") 1)))
-  (tmsummarizedenv (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1)))
-  (tmsummarizedstd (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1)))
-  (tmsummarized (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1)))
+  (tmsummarizedplain
+    (trivlist (!append (item (!option "")) (mbox "") 1))
+  ) ;tmsummarizedplain
+  (tmsummarizedtiny
+    (trivlist (!append (item (!option "")) (mbox "") 1))
+  ) ;tmsummarizedtiny
+  (tmsummarizedraw
+    (trivlist (!append (item (!option "")) (mbox "") 1))
+  ) ;tmsummarizedraw
+  (tmsummarizedenv
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  ) ;tmsummarizedenv
+  (tmsummarizedstd
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  ) ;tmsummarizedstd
+  (tmsummarized
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  ) ;tmsummarized
 
-  (tmdetaileddocumentation (trivlist (!append (item (!option "")) (mbox "") "\\large\\bf" 2))
+  (tmdetaileddocumentation
+    (trivlist (!append (item (!option "")) (mbox "") "\\large\\bf" 2))
   ) ;tmdetaileddocumentation
-  (tmdetailedgrouped (trivlist (!append (item (!option "[")) (mbox "") 2)))
-  (tmdetailedexplain (trivlist (!append (item (!option "")) (mbox "") "\\bf" 2)))
-  (tmdetailedplain (trivlist (!append (item (!option "")) (mbox "") 2)))
-  (tmdetailedtiny (trivlist (!append (item (!option "")) (mbox "") 2)))
-  (tmdetailedraw (trivlist (!append (item (!option "")) (mbox "") 2)))
-  (tmdetailedenv (trivlist (!append (item (!option "$\\circ$")) (mbox "") 2)))
-  (tmdetailedstd (trivlist (!append (item (!option "$\\circ$")) (mbox "") 2)))
-  (tmdetailed (trivlist (!append (item (!option "$\\circ$")) (mbox "") 2)))
+  (tmdetailedgrouped
+    (trivlist (!append (item (!option "[")) (mbox "") 2))
+  ) ;tmdetailedgrouped
+  (tmdetailedexplain
+    (trivlist (!append (item (!option "")) (mbox "") "\\bf" 2))
+  ) ;tmdetailedexplain
+  (tmdetailedplain
+    (trivlist (!append (item (!option "")) (mbox "") 2))
+  ) ;tmdetailedplain
+  (tmdetailedtiny
+    (trivlist (!append (item (!option "")) (mbox "") 2))
+  ) ;tmdetailedtiny
+  (tmdetailedraw
+    (trivlist (!append (item (!option "")) (mbox "") 2))
+  ) ;tmdetailedraw
+  (tmdetailedenv
+    (trivlist (!append (item (!option "$\\circ$")) (mbox "") 2))
+  ) ;tmdetailedenv
+  (tmdetailedstd
+    (trivlist (!append (item (!option "$\\circ$")) (mbox "") 2))
+  ) ;tmdetailedstd
+  (tmdetailed
+    (trivlist (!append (item (!option "$\\circ$")) (mbox "") 2))
+  ) ;tmdetailed
 
-  (tmfoldeddocumentation (trivlist (!append (item (!option "")) (mbox "") "\\large\\bf" 1))
+  (tmfoldeddocumentation
+    (trivlist (!append (item (!option "")) (mbox "") "\\large\\bf" 1))
   ) ;tmfoldeddocumentation
-  (tmunfoldeddocumentation (trivlist (!append (item (!option ""))
-                                       (mbox "")
-                                       (!group "\\large\\bf" 1)
-                                       "\\\\"
-                                       (item (!option ""))
-                                       (mbox "")
-                                       2
-                                     ) ;!append
-                           ) ;trivlist
+  (tmunfoldeddocumentation
+    (trivlist (!append (item (!option ""))
+                (mbox "")
+                (!group "\\large\\bf" 1)
+                "\\\\"
+                (item (!option ""))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfoldeddocumentation
-  (tmfoldedsubsession (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  (tmfoldedsubsession
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
   ) ;tmfoldedsubsession
-  (tmunfoldedsubsession (trivlist (!append (item (!option "$\\circ$"))
-                                    (mbox "")
-                                    1
-                                    "\\\\"
-                                    (item (!option ""))
-                                    (mbox "")
-                                    2
-                                  ) ;!append
-                        ) ;trivlist
+  (tmunfoldedsubsession
+    (trivlist (!append (item (!option "$\\circ$"))
+                (mbox "")
+                1
+                "\\\\"
+                (item (!option ""))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfoldedsubsession
-  (tmfoldedgrouped (trivlist (!append (item (!option "[")) (mbox "") 1)))
-  (tmunfoldedgrouped (trivlist (!append (item (!option "$\\lceil$"))
-                                 (mbox "")
-                                 1
-                                 "\\\\"
-                                 (item (!option "$\\lfloor$"))
-                                 (mbox "")
-                                 2
-                               ) ;!append
-                     ) ;trivlist
+  (tmfoldedgrouped
+    (trivlist (!append (item (!option "[")) (mbox "") 1))
+  ) ;tmfoldedgrouped
+  (tmunfoldedgrouped
+    (trivlist (!append (item (!option "$\\lceil$"))
+                (mbox "")
+                1
+                "\\\\"
+                (item (!option "$\\lfloor$"))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfoldedgrouped
-  (tmfoldedexplain (trivlist (!append (item (!option "")) "\\bf" 1)))
-  (tmunfoldedexplain (trivlist (!append (item (!option ""))
-                                 (mbox "")
-                                 (!group "\\bf" 1)
-                                 "\\\\"
-                                 (item (!option ""))
-                                 (mbox "")
-                                 2
-                               ) ;!append
-                     ) ;trivlist
+  (tmfoldedexplain
+    (trivlist (!append (item (!option "")) "\\bf" 1))
+  ) ;tmfoldedexplain
+  (tmunfoldedexplain
+    (trivlist (!append (item (!option ""))
+                (mbox "")
+                (!group "\\bf" 1)
+                "\\\\"
+                (item (!option ""))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfoldedexplain
-  (tmfoldedplain (trivlist (!append (item (!option "")) (mbox "") 1)))
-  (tmunfoldedplain (trivlist (!append (item (!option "")) (mbox "") 1 "\\\\" (item (!option "")) (mbox "") 2)
-                   ) ;trivlist
+  (tmfoldedplain
+    (trivlist (!append (item (!option "")) (mbox "") 1))
+  ) ;tmfoldedplain
+  (tmunfoldedplain
+    (trivlist (!append (item (!option "")) (mbox "") 1 "\\\\" (item (!option "")) (mbox "") 2)
+    ) ;trivlist
   ) ;tmunfoldedplain
-  (tmfoldedenv (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1)))
-  (tmunfoldedenv (trivlist (!append (item (!option "$\\circ$"))
-                             (mbox "")
-                             1
-                             "\\\\"
-                             (item (!option ""))
-                             (mbox "")
-                             2
-                           ) ;!append
-                 ) ;trivlist
+  (tmfoldedenv
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  ) ;tmfoldedenv
+  (tmunfoldedenv
+    (trivlist (!append (item (!option "$\\circ$"))
+                (mbox "")
+                1
+                "\\\\"
+                (item (!option ""))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfoldedenv
-  (tmfoldedstd (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1)))
-  (tmunfoldedstd (trivlist (!append (item (!option "$\\circ$"))
-                             (mbox "")
-                             1
-                             "\\\\"
-                             (item (!option ""))
-                             (mbox "")
-                             2
-                           ) ;!append
-                 ) ;trivlist
+  (tmfoldedstd
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  ) ;tmfoldedstd
+  (tmunfoldedstd
+    (trivlist (!append (item (!option "$\\circ$"))
+                (mbox "")
+                1
+                "\\\\"
+                (item (!option ""))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfoldedstd
-  (tmfolded (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1)))
-  (tmunfolded (trivlist (!append (item (!option "$\\circ$"))
-                          (mbox "")
-                          1
-                          "\\\\"
-                          (item (!option ""))
-                          (mbox "")
-                          2
-                        ) ;!append
-              ) ;trivlist
+  (tmfolded
+    (trivlist (!append (item (!option "$\\bullet$")) (mbox "") 1))
+  ) ;tmfolded
+  (tmunfolded
+    (trivlist (!append (item (!option "$\\circ$"))
+                (mbox "")
+                1
+                "\\\\"
+                (item (!option ""))
+                (mbox "")
+                2
+              ) ;!append
+    ) ;trivlist
   ) ;tmunfolded
-  (tminput (trivlist (!append (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
-                       (!group (!append (color "blue!50!black") (mbox "") 2))
-                     ) ;!append
-           ) ;trivlist
+  (tminput
+    (trivlist
+      (!append
+        (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
+        (!group (!append (color "blue!50!black") (mbox "") 2))
+      ) ;!append
+    ) ;trivlist
   ) ;tminput
-  (tminputmath (trivlist (!append (item (!option 1)) (ensuremath 2))))
+  (tminputmath
+    (trivlist (!append (item (!option 1)) (ensuremath 2)))
+  ) ;tminputmath
   (tmhlink (!group (!append (color "blue") 1)))
   (tmaction (!group (!append (color "blue") 1)))
   (ontop (genfrac "" "" "0pt" "" 1 2))
@@ -602,49 +808,77 @@
 
   ;; Ternary macros
   (tmsession (!group (!append (tt) 3)))
-  (tmfoldediomath (trivlist (!append (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
-                              (!group (!append (color "blue!50!black") (ensuremath 2)))
-                            ) ;!append
-                  ) ;trivlist
+  (tmfoldediomath
+    (trivlist
+      (!append
+        (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
+        (!group (!append (color "blue!50!black") (ensuremath 2)))
+      ) ;!append
+    ) ;trivlist
   ) ;tmfoldediomath
-  (tmunfoldediomath (trivlist (!append (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
-                                (!group (!append (color "blue!50!black") (ensuremath 2)))
-                                (item (!option ""))
-                                (mbox "")
-                                3
-                              ) ;!append
-                    ) ;trivlist
+  (tmunfoldediomath
+    (trivlist
+      (!append
+        (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
+        (!group (!append (color "blue!50!black") (ensuremath 2)))
+        (item (!option ""))
+        (mbox "")
+        3
+      ) ;!append
+    ) ;trivlist
   ) ;tmunfoldediomath
-  (tmfoldedio (trivlist (!append (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
-                          (mbox "")
-                          (!group (!append (color "blue!50!black") 2))
-                        ) ;!append
-              ) ;trivlist
+  (tmfoldedio
+    (trivlist
+      (!append
+        (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
+        (mbox "")
+        (!group (!append (color "blue!50!black") 2))
+      ) ;!append
+    ) ;trivlist
   ) ;tmfoldedio
-  (tmunfoldedio (trivlist (!append (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
-                            (mbox "")
-                            (!group (!append (color "blue!50!black") 2))
-                            (item (!option ""))
-                            (mbox "")
-                            3
-                          ) ;!append
-                ) ;trivlist
+  (tmunfoldedio
+    (trivlist
+      (!append
+        (item (!option (!append (color "rgb:black,10;red,9;green,4;yellow,2") 1)))
+        (mbox "")
+        (!group (!append (color "blue!50!black") 2))
+        (item (!option ""))
+        (mbox "")
+        3
+      ) ;!append
+    ) ;trivlist
   ) ;tmunfoldedio
-  (tmlinenote (!append (tmdummy)
-                (marginpar (adjustbox (!append "right=0cm, lap=" 2 "-\\textwidth-\\marginparsep, raise=" 3)
-                             1
-                           ) ;adjustbox
-                ) ;marginpar
-              ) ;!append
+  (tmlinenote
+    (!append (tmdummy)
+      (marginpar (adjustbox (!append "right=0cm, lap=" 2 "-\\textwidth-\\marginparsep, raise=" 3)
+                   1
+                 ) ;adjustbox
+      ) ;marginpar
+    ) ;!append
   ) ;tmlinenote
   (subsubindex (index (!append 1 "!" 2 "!" 3)))
   (tmref 1)
-  (glossaryentry (!append (item (!option (!append 1 (hfill)))) 2 (dotfill) 3))
+  (glossaryentry
+    (!append
+      (item (!option (!append 1 (hfill))))
+      2
+      (dotfill)
+      3
+    ) ;!append
+  ) ;glossaryentry
 
   ;; Tetrary macros
-  (tmscriptinput (fbox (!append (fbox (!append (sf) 2)) " " (!append (tt) 3))))
+  (tmscriptinput
+    (fbox
+      (!append (fbox (!append (sf) 2)) " " (!append (tt) 3))
+    ) ;fbox
+  ) ;tmscriptinput
   (tmscriptoutput (!append 4))
-  (tmconverterinput (fbox (!append (fbox (!append (sf) 2)) " " (!append (tt) 3))))
+  (tmconverterinput
+    (fbox
+      (!append (fbox (!append (sf) 2)) " " (!append (tt) 3))
+    ) ;fbox
+  ) ;tmconverterinput
   (tmconverteroutput (!append 4))
   (subsubsubindex (index (!append 1 "!" 2 "!" 3 "!" 4)))
 ) ;smart-table
@@ -788,33 +1022,43 @@
              ) ;!append
   ) ;tikzframe
   (nonconverted (!append "\\newcommand{\\nonconverted}[1]{\\mbox{}}\n"))
-  (tmkeywords (!append (newcommand (tmkeywords) (!append (textbf (!translate "Keywords:")) " "))
-                "\n"
-              ) ;!append
+  (tmkeywords
+    (!append
+      (newcommand (tmkeywords) (!append (textbf (!translate "Keywords:")) " "))
+      "\n"
+    ) ;!append
   ) ;tmkeywords
-  (tmacm (!append (newcommand (tmacm)
-                    (!append (textbf (!translate "A.C.M. subject classification:")) " ")
-                  ) ;newcommand
-           "\n"
-         ) ;!append
+  (tmacm
+    (!append
+      (newcommand (tmacm)
+        (!append (textbf (!translate "A.C.M. subject classification:")) " ")
+      ) ;newcommand
+      "\n"
+    ) ;!append
   ) ;tmacm
-  (tmarxiv (!append (newcommand (tmarxiv)
-                      (!append (textbf (!translate "arXiv subject classification:")) " ")
-                    ) ;newcommand
-             "\n"
-           ) ;!append
+  (tmarxiv
+    (!append
+      (newcommand (tmarxiv)
+        (!append (textbf (!translate "arXiv subject classification:")) " ")
+      ) ;newcommand
+      "\n"
+    ) ;!append
   ) ;tmarxiv
-  (tmpacs (!append (newcommand (tmpacs)
-                     (!append (textbf (!translate "P.A.C.S. subject classification:")) " ")
-                   ) ;newcommand
-            "\n"
-          ) ;!append
+  (tmpacs
+    (!append
+      (newcommand (tmpacs)
+        (!append (textbf (!translate "P.A.C.S. subject classification:")) " ")
+      ) ;newcommand
+      "\n"
+    ) ;!append
   ) ;tmpacs
-  (tmmsc (!append (newcommand (tmmsc)
-                    (!append (textbf (!translate "A.M.S. subject classification:")) " ")
-                  ) ;newcommand
-           "\n"
-         ) ;!append
+  (tmmsc
+    (!append
+      (newcommand (tmmsc)
+        (!append (textbf (!translate "A.M.S. subject classification:")) " ")
+      ) ;newcommand
+      "\n"
+    ) ;!append
   ) ;tmmsc
   (fmtext (!append "\\newcommand{\\fmtext}[2][]{\\fntext[#1]{"
             (!translate "Misc:")
@@ -866,7 +1110,9 @@
                     " #2}}\n"
                   ) ;!append
   ) ;thankssubtitle
-  (qed (!append (providecommand "\\qed" (ensuremath (Box))) "\n"))
+  (qed
+    (!append (providecommand "\\qed" (ensuremath (Box))) "\n")
+  ) ;qed
   (mho (!append "\\renewcommand{\\mho}{\\mbox{\\rotatebox[origin=c]{180}{$\\omega$}}}")
   ) ;mho
   (invbreve (!append "\\usepackage[T3,T1]{fontenc}\n"
@@ -956,7 +1202,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define-macro (latex-texmacs-thmenv prim name before after . opt-mode)
-  (let* ((head (if (null? opt-mode) (list) (list `(,:mode ,(car opt-mode)))))
+  (let* ((head
+           (if (null? opt-mode) (list) (list `(,:mode ,(car opt-mode))))
+         ) ;head
          (prim* (string-append prim "*"))
          (nonum (string-append "nn" prim))
          (thenonum (string-append "\\the" nonum))

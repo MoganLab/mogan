@@ -27,7 +27,9 @@
 (define (locify x)
   (cond ((list? x) (for-each locify x))
         ((locified? x) (noop))
-        (else (tree-insert-node! x 1 `(locus (id ,(create-unique-id)))))
+        (else
+          (tree-insert-node! x 1 `(locus (id ,(create-unique-id))))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -43,7 +45,9 @@
   (let* ((ids (map (cut list 'id <>) (filter-map locus-id l)))
          (loci (if (null? ids) '("No loci") (map automatic-link ids)))
          (body (if enum? (build-enumeration loci) loci))
-         (doc `(document (style ,style) (body (document ,@body))))
+         (doc
+           `(document (style ,style) (body (document ,@body)))
+         ) ;doc
         ) ;
     (open-auxiliary name doc base)
   ) ;let*
@@ -52,7 +56,9 @@
 (tm-define (build-locus-page)
   (let* ((base (current-buffer))
          (name (string-append (buffer-get-title base) " - loci"))
-         (style `(tuple ,@(get-style-list)))
+         (style
+           `(tuple ,@(get-style-list))
+         ) ;style
          (l (tree-search (buffer-tree) (cut tm-func? <> 'locus)))
         ) ;
     (build-locus-page-sub base name style l #t)
@@ -70,7 +76,9 @@
       (lambda ()
         (let* ((base (current-buffer))
                (name (string-append (buffer-get-title base) " - " env))
-               (style `(tuple ,@(get-style-list)))
+               (style
+                 `(tuple ,@(get-style-list))
+               ) ;style
                (r (filter-map environment->locus l))
               ) ;
           (delayed (:pause 25) (build-locus-page-sub base name style r #f))
@@ -95,9 +103,16 @@
   (let* ((name "Link constellation")
          (style '(tuple "generic"))
          (cl (sort (get-constellation) string<=?))
-         (l (map (lambda (x) `(hlink ,x ,x)) cl))
+         (l
+           (map
+             (lambda (x) `(hlink ,x ,x))
+             cl
+           ) ;map
+         ) ;l
          (body (if (null? l) '("No linked files") l))
-         (doc `(document (style ,style) (body (document ,@body))))
+         (doc
+           `(document (style ,style) (body (document ,@body)))
+         ) ;doc
         ) ;
     (open-auxiliary name doc)
   ) ;let*

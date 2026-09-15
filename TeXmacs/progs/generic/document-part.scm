@@ -20,9 +20,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (inclusion-children t)
-  (cond ((tree-is? t 'with) (inclusion-children (cAr (tree-children t))))
-        ((tree-is? t 'document) (tree-children t))
-        (else (list t))
+  (cond
+   ((tree-is? t 'with) (inclusion-children (cAr (tree-children t))))
+   ((tree-is? t 'document) (tree-children t))
+   (else (list t))
   ) ;cond
 ) ;define
 
@@ -44,10 +45,11 @@
            (cons 'document (apply append l))
          ) ;with
         ) ;
-        (else (with l
-                (map (lambda (x) (expand-includes x r)) (tree-children t))
-                (cons (tree-label t) l)
-              ) ;with
+        (else
+          (with l
+            (map (lambda (x) (expand-includes x r)) (tree-children t))
+            (cons (tree-label t) l)
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define
@@ -108,8 +110,12 @@
     (when (tree-is? (tree-ref t 0) 'hide-preamble)
       (buffer-flatten-parts)
       (let* ((t (buffer-tree))
-             (preamble `(show-preamble ,(tree-ref t 0 0)))
-             (body `(ignore (document ,@(cdr (tree-children t)))))
+             (preamble
+               `(show-preamble ,(tree-ref t 0 0))
+             ) ;preamble
+             (body
+               `(ignore (document ,@(cdr (tree-children t))))
+             ) ;body
             ) ;
         (tree-assign! t `(document ,preamble ,body))
       ) ;let*
@@ -120,7 +126,8 @@
 (define (buffer-hide-preamble)
   (with t
     (buffer-tree)
-    (when (match? t '(document (show-preamble :%1) (ignore (document :*))))
+    (when
+      (match? t '(document (show-preamble :%1) (ignore (document :*))))
       (tree-assign! t
         `(document (hide-preamble ,(tree-ref t 0 0))
            ,@(tree-children (tree-ref t 1 0)))
@@ -162,7 +169,8 @@
 ) ;define
 
 (define (buffer-make-parts)
-  (when (not (tree-in? (car (buffer-body-paragraphs)) '(hide-part show-part)))
+  (when
+    (not (tree-in? (car (buffer-body-paragraphs)) '(hide-part show-part)))
     (let* ((t (buffer-tree))
            (l (buffer-body-paragraphs))
            (parts (principal-sections-to-document-parts l))
@@ -176,9 +184,10 @@
 
 (tm-define (buffer-get-part-mode)
   (:synopsis "Get the mode for document part selections")
-  (cond ((tree-is? (tree-ref (buffer-tree) 0) 'show-preamble) :preamble)
-        ((tree-in? (car (buffer-body-paragraphs)) '(show-part hide-part)) part-mode)
-        (else :all)
+  (cond
+   ((tree-is? (tree-ref (buffer-tree) 0) 'show-preamble) :preamble)
+   ((tree-in? (car (buffer-body-paragraphs)) '(show-part hide-part)) part-mode)
+   (else :all)
   ) ;cond
 ) ;tm-define
 
@@ -289,10 +298,11 @@
         ) ;
         ((principal-section? t) (list (tm/section-get-title-string t #f)))
         ((not (tree-in? t '(document ignore))) '())
-        (else (with ls
-                (map (lambda (x) (document-get-parts x all?)) (tree-children t))
-                (apply append ls)
-              ) ;with
+        (else
+          (with ls
+            (map (lambda (x) (document-get-parts x all?)) (tree-children t))
+            (apply append ls)
+          ) ;with
         ) ;else
   ) ;cond
 ) ;define
@@ -311,15 +321,20 @@
   (:synopsis "Get the list of all document parts of the current buffer")
   (with l
     (buffer-body-paragraphs)
-    (if (match? l '((ignore (document :*))))
+    (if
+      (match? l '((ignore (document :*))))
       (set! l (tree-children (tree-ref (car l) 0)))
     ) ;if
     (with parts
-      (document-get-parts (tm->tree `(document ,@l)) all?)
-      (if (and (not (tree-in? (car l) '(show-part hide-part)))
-            (not (principal-section? (car l)))
-            (or all? (== (buffer-get-part-mode) :all))
-          ) ;and
+      (document-get-parts
+        (tm->tree `(document ,@l))
+        all?
+      ) ;document-get-parts
+      (if
+        (and (not (tree-in? (car l) '(show-part hide-part)))
+          (not (principal-section? (car l)))
+          (or all? (== (buffer-get-part-mode) :all))
+        ) ;and
         (cons "front matter" parts)
         parts
       ) ;if
@@ -368,9 +383,10 @@
 
 (tm-define (buffer-toggle-part id)
   (:synopsis "Toggle the visibility of the document part with name @id")
-  (when (and (== (buffer-get-part-mode) :several)
-          (list-find (buffer-parts-list #f) (lambda (x) (!= x id)))
-        ) ;and
+  (when
+    (and (== (buffer-get-part-mode) :several)
+      (list-find (buffer-parts-list #f) (lambda (x) (!= x id)))
+    ) ;and
     (with t
       (document-find-part (buffer-tree) id)
       (cond ((not t) (noop))

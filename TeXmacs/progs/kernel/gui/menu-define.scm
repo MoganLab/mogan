@@ -570,31 +570,32 @@
 
 (tm-define (gui-make x)
   ;; (display* "x= " x "\n")
-  (cond ((symbol? x)
-         (cond ((== x '---) '$---)
-               ((== x '===) (gui-make '(glue #f #f 0 5)))
-               ((== x '======) (gui-make '(glue #f #f 0 15)))
-               ((== x '/) '$/)
-               ((== x '//) (gui-make '(glue #f #f 5 0)))
-               ((== x '///) (gui-make '(glue #f #f 15 0)))
-               ((== x '>>) (gui-make '(glue #t #f 5 0)))
-               ((== x '>>>) (gui-make '(glue #t #f 15 0)))
-               ((== x (string->symbol "|")) '$/)
-               (else (texmacs-error "gui-make" "invalid menu item ~S" x))
-         ) ;cond
-        ) ;
-        ((string? x) x)
-        ((pair? x)
-         (with entry
-           (ahash-ref gui-make-table (car x))
-           (cond (entry (apply (car entry) (list x)))
-                 ((or (string? (car x)) (pair? (car x))) `($> ,(gui-make (car x))
-                                                            ,@(cdr x)))
-                 (else (texmacs-error "gui-make" "invalid menu item ~S" x))
-           ) ;cond
-         ) ;with
-        ) ;
-        (else (texmacs-error "gui-make" "invalid menu item ~S" x))
+  (cond
+   ((symbol? x)
+    (cond ((== x '---) '$---)
+          ((== x '===) (gui-make '(glue #f #f 0 5)))
+          ((== x '======) (gui-make '(glue #f #f 0 15)))
+          ((== x '/) '$/)
+          ((== x '//) (gui-make '(glue #f #f 5 0)))
+          ((== x '///) (gui-make '(glue #f #f 15 0)))
+          ((== x '>>) (gui-make '(glue #t #f 5 0)))
+          ((== x '>>>) (gui-make '(glue #t #f 15 0)))
+          ((== x (string->symbol "|")) '$/)
+          (else (texmacs-error "gui-make" "invalid menu item ~S" x))
+    ) ;cond
+   ) ;
+   ((string? x) x)
+   ((pair? x)
+    (with entry
+      (ahash-ref gui-make-table (car x))
+      (cond (entry (apply (car entry) (list x)))
+            ((or (string? (car x)) (pair? (car x))) `($> ,(gui-make (car x))
+                                                       ,@(cdr x)))
+            (else (texmacs-error "gui-make" "invalid menu item ~S" x))
+      ) ;cond
+    ) ;with
+   ) ;
+   (else (texmacs-error "gui-make" "invalid menu item ~S" x))
   ) ;cond
 ) ;tm-define
 
@@ -756,18 +757,21 @@
 ) ;define-public
 
 (define-public (tm-pattern name . args)
-  (cond ((url-exists? (url-append "$TEXMACS_PATTERN_PATH" (url-tail name)))
-         `(pattern ,(url->unix (url-tail name)) ,@args)
-        ) ;
-        ((and-let* ((delta-unix (url->delta-unix name)))
-           (string-starts? (url->unix delta-unix) "../")
-         ) ;and-let*
-         (when (url? name)
-           (set! name (url->system name))
-         ) ;when
-         `(pattern ,name ,@args)
-        ) ;
-        (else `(pattern ,(url->system name) ,@args))
+  (cond
+   ((url-exists? (url-append "$TEXMACS_PATTERN_PATH" (url-tail name)))
+    `(pattern ,(url->unix (url-tail name)) ,@args)
+   ) ;
+   ((and-let* ((delta-unix (url->delta-unix name)))
+      (string-starts? (url->unix delta-unix) "../")
+    ) ;and-let*
+    (when (url? name)
+      (set! name (url->system name))
+    ) ;when
+    `(pattern ,name ,@args)
+   ) ;
+   (else
+     `(pattern ,(url->system name) ,@args)
+   ) ;else
   ) ;cond
 ) ;define-public
 
@@ -791,7 +795,9 @@
          (l3 (url-read-directory dir "*.gif"))
          (l (append l1 l2 l3))
          (d (map (cut url-delta (string-append dir "/x") <>) l))
-         (f (map (lambda (x) (string-append dir "/" (url->unix x))) d))
+         (f
+           (map (lambda (x) (string-append dir "/" (url->unix x))) d)
+         ) ;f
         ) ;
     (map (lambda (x) (tm-pattern x scale "")) f)
   ) ;let*

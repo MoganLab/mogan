@@ -54,11 +54,12 @@
 (tm-define (set-last-file-dialog-directory dir)
   "Set the last directory used in file dialog"
   (let ((u (system->url dir)))
-    (when (and (string? dir)
-            (url-exists? u)
-            (url-directory? u)
-            (not (url-descends? u (get-texmacs-path)))
-          ) ;and
+    (when
+      (and (string? dir)
+        (url-exists? u)
+        (url-directory? u)
+        (not (url-descends? u (get-texmacs-path)))
+      ) ;and
       (set! last-file-dialog-directory dir)
       (set-preference "last-file-dialog-directory" dir)
     ) ;when
@@ -123,7 +124,9 @@
   (when (and (string? path) (integer? page) (> page 0))
     ;; 同路径去重后置于表头（MRU），超上限截断表尾
     (let* ((lst (pdf-last-pages-read))
-           (new (cons (cons path page) (remove (lambda (p) (== (car p) path)) lst)))
+           (new
+             (cons (cons path page) (remove (lambda (p) (== (car p) path)) lst))
+           ) ;new
           ) ;
       (set-preference "pdf:last-pages"
         (pdf-last-pages-write (take new (min (length new) pdf-last-pages-limit)))
@@ -243,14 +246,15 @@
 (tm-define (propose-name-buffer)
   (with name
     (url->unix (current-buffer))
-    (cond ((string-starts? name "tmfs://")
-           ;; tmfs buffer（协作云文档等）的 URL 非本地路径，不能直接作文件名；
-           ;; 用 buffer 标题（协作云文档即文档显示名，cork 编码 → UTF-8 文件名）
-           (cork->utf8 (buffer-get-title (current-buffer)))
-          ) ;
-          ((not (url-scratch? name)) name)
-          ((os-windows?) "")
-          (else (string-append (var-eval-system "pwd") "/"))
+    (cond
+     ((string-starts? name "tmfs://")
+      ;; tmfs buffer（协作云文档等）的 URL 非本地路径，不能直接作文件名；
+      ;; 用 buffer 标题（协作云文档即文档显示名，cork 编码 → UTF-8 文件名）
+      (cork->utf8 (buffer-get-title (current-buffer)))
+     ) ;
+     ((not (url-scratch? name)) name)
+     ((os-windows?) "")
+     (else (string-append (var-eval-system "pwd") "/"))
     ) ;cond
   ) ;with
 ) ;tm-define
@@ -297,14 +301,15 @@
         (init-env "global-title" (buffer-get-metadata buf "title"))
         (init-env "global-author" (buffer-get-metadata buf "author"))
         (init-env "global-subject" (buffer-get-metadata buf "subject"))
-        (for-each (lambda (t)
-                    (if (tree-func? t 'associate)
-                      (with (var val)
-                        (list (tree-ref t 0) (tree-ref t 1))
-                        (init-env-tree (tree->string var) val)
-                      ) ;with
-                    ) ;if
-                  ) ;lambda
+        (for-each
+          (lambda (t)
+            (if (tree-func? t 'associate)
+              (with (var val)
+                (list (tree-ref t 0) (tree-ref t 1))
+                (init-env-tree (tree->string var) val)
+              ) ;with
+            ) ;if
+          ) ;lambda
           (tree-children init)
         ) ;for-each
         (for-each set-reference refl refs)
@@ -323,10 +328,11 @@
 (tm-define (switch-to-buffer* buf)
   (let* ((wins (buffer->windows-of-tabpage buf))
          (win (if (member (current-window) wins) (current-window) (car wins)))
-         (view (if (member (current-window) wins)
-                 (find (lambda (vw) (== (view->window-of-tabpage vw) win)) (buffer->views buf))
-                 (car (buffer->views buf))
-               ) ;if
+         (view
+           (if (member (current-window) wins)
+             (find (lambda (vw) (== (view->window-of-tabpage vw) win)) (buffer->views buf))
+             (car (buffer->views buf))
+           ) ;if
          ) ;view
         ) ;
     (cond ((eq? buf (current-buffer)) (noop))
@@ -509,24 +515,25 @@
 (define (cannot-write? name action)
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (cond ((and (not (url-test? name "f")) (url-exists? name))
-           (with msg
-             "The file cannot be created:"
-             (notify-now `(concat ,msg ,"<br>" ,vname))
-           ) ;with
-           #t
-          ) ;
-          ((and (url-test? name "f") (not (url-test? name "w")))
-           (dialogue-window readonly-file-dialog-widget
-             (lambda (answer)
-               (when (== answer "save_as")
-                 (choose-file save-buffer-as "Save TeXmacs file" "action_save_as")
-               ) ;when
-             ) ;lambda
-             "Failed to save"
-           ) ;dialogue-window
-          ) ;
-          (else #f)
+    (cond
+     ((and (not (url-test? name "f")) (url-exists? name))
+      (with msg
+        "The file cannot be created:"
+        (notify-now `(concat ,msg ,"<br>" ,vname))
+      ) ;with
+      #t
+     ) ;
+     ((and (url-test? name "f") (not (url-test? name "w")))
+      (dialogue-window readonly-file-dialog-widget
+        (lambda (answer)
+          (when (== answer "save_as")
+            (choose-file save-buffer-as "Save TeXmacs file" "action_save_as")
+          ) ;when
+        ) ;lambda
+        "Failed to save"
+      ) ;dialogue-window
+     ) ;
+     (else #f)
     ) ;cond
   ) ;with
 ) ;define
@@ -568,57 +575,59 @@
   (set! current-save-target name)
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (cond ((url-scratch? name)
-           (if (os-wasm?)
-             (save-buffer-check-faithful name opts)
-             (choose-file (lambda (x) (apply save-buffer-as-main (cons x opts)))
-               "Save TeXmacs file"
-               "action_save_as"
-             ) ;choose-file
-           ) ;if
-          ) ;
-          ((not (buffer-exists? name))
-           (with msg
-             `(concat ,"The buffer " ,vname ," does not exist")
-             (set-message msg "Save file")
-           ) ;with
-          ) ;
-          ((and (not (buffer-modified? name))
-             (defined? 'auto-backup-buffer-needs-doc-id?)
-             (auto-backup-buffer-needs-doc-id? name)
-           ) ;and
-           (if (cannot-write? name "Save file")
-             (noop)
-             (begin
-               (auto-backup-ensure-buffer-doc-id! name)
-               (save-buffer-check-faithful name opts)
-             ) ;begin
-           ) ;if
-          ) ;
-          ((not (buffer-modified? name))
-           (with msg "No changes need to be saved" (set-message msg "Save file"))
-           (save-buffer-post name opts)
-          ) ;
-          ((cannot-write? name "Save file") (noop))
-          ((and (url-test? name "fr")
-             (and-with mod-t
-               (url-last-modified name)
-               (and-with save-t (buffer-last-save name) (> mod-t save-t))
-             ) ;and-with
-           ) ;and
-           (user-confirm "The file has changed on disk. Really save?"
-             #f
-             (lambda (answ) (when answ (save-buffer-check-faithful name opts)))
-           ) ;user-confirm
-          ) ;
-          (else (save-buffer-check-faithful name opts))
+    (cond
+     ((url-scratch? name)
+      (if (os-wasm?)
+        (save-buffer-check-faithful name opts)
+        (choose-file (lambda (x) (apply save-buffer-as-main (cons x opts)))
+          "Save TeXmacs file"
+          "action_save_as"
+        ) ;choose-file
+      ) ;if
+     ) ;
+     ((not (buffer-exists? name))
+      (with msg
+        `(concat ,"The buffer " ,vname ," does not exist")
+        (set-message msg "Save file")
+      ) ;with
+     ) ;
+     ((and (not (buffer-modified? name))
+        (defined? 'auto-backup-buffer-needs-doc-id?)
+        (auto-backup-buffer-needs-doc-id? name)
+      ) ;and
+      (if (cannot-write? name "Save file")
+        (noop)
+        (begin
+          (auto-backup-ensure-buffer-doc-id! name)
+          (save-buffer-check-faithful name opts)
+        ) ;begin
+      ) ;if
+     ) ;
+     ((not (buffer-modified? name))
+      (with msg "No changes need to be saved" (set-message msg "Save file"))
+      (save-buffer-post name opts)
+     ) ;
+     ((cannot-write? name "Save file") (noop))
+     ((and (url-test? name "fr")
+        (and-with mod-t
+          (url-last-modified name)
+          (and-with save-t (buffer-last-save name) (> mod-t save-t))
+        ) ;and-with
+      ) ;and
+      (user-confirm "The file has changed on disk. Really save?"
+        #f
+        (lambda (answ) (when answ (save-buffer-check-faithful name opts)))
+      ) ;user-confirm
+     ) ;
+     (else (save-buffer-check-faithful name opts))
     ) ;cond
   ) ;with
 ) ;define
 
 (tm-define (save-buffer-main . args)
   ;; (display* "save-buffer-main\n")
-  (if (or (null? args) (not (url? (car args))))
+  (if
+    (or (null? args) (not (url? (car args))))
     (save-buffer-check-permissions (current-buffer) args)
     (save-buffer-check-permissions (car args) (cdr args))
   ) ;if
@@ -653,19 +662,20 @@
 
 (define (save-buffer-as-check-other new-name name opts)
   ;; (display* "save-buffer-as-check-other " new-name ", " name "\n")
-  (cond ((buffer-exists? new-name)
-         (with s
-           (string-append "The file "
-             (url->system new-name)
-             " is being edited. Discard edits?"
-           ) ;string-append
-           (user-confirm s
-             #f
-             (lambda (answ) (when answ (save-buffer-as-save new-name name opts)))
-           ) ;user-confirm
-         ) ;with
-        ) ;
-        (else (save-buffer-as-save new-name name opts))
+  (cond
+   ((buffer-exists? new-name)
+    (with s
+      (string-append "The file "
+        (url->system new-name)
+        " is being edited. Discard edits?"
+      ) ;string-append
+      (user-confirm s
+        #f
+        (lambda (answ) (when answ (save-buffer-as-save new-name name opts)))
+      ) ;user-confirm
+    ) ;with
+   ) ;
+   (else (save-buffer-as-save new-name name opts))
   ) ;cond
 ) ;define
 
@@ -684,7 +694,8 @@
 
 (tm-define (save-buffer-as-main new-name . args)
   ;; (display* "save-buffer-as-main " new-name "\n")
-  (if (or (null? args) (not (url? (car args))))
+  (if
+    (or (null? args) (not (url? (car args))))
     (save-buffer-as-check-permissions new-name (current-buffer) args)
     (save-buffer-as-check-permissions new-name (car args) (cdr args))
   ) ;if
@@ -881,13 +892,14 @@
              (load-buffer-open name opts)
            ) ;if
           ) ;
-          (else (with msg
-                  "The file or buffer does not exist:"
-                  (begin
-                    (debug-message "debug-io" (string-append msg "\n" path))
-                    (notify-now `(concat ,msg ,"<br>" ,vname))
-                  ) ;begin
-                ) ;with
+          (else
+            (with msg
+              "The file or buffer does not exist:"
+              (begin
+                (debug-message "debug-io" (string-append msg "\n" path))
+                (notify-now `(concat ,msg ,"<br>" ,vname))
+              ) ;begin
+            ) ;with
           ) ;else
     ) ;cond
   ) ;let*
@@ -896,22 +908,23 @@
 (define (load-buffer-check-permissions name opts)
   ;; (display* "load-buffer-check-permissions " name ", " opts "\n")
   (let* ((path (url->system name)) (vname `(verbatim ,(utf8->cork path))))
-    (cond ((and (not (url-test? name "f")) (url-exists? name))
-           (with msg
-             "The file cannot be loaded or created:"
-             (begin
-               (debug-message "debug-io" (string-append msg "\n" path))
-               (notify-now `(concat ,msg ,"<br>" ,vname))
-             ) ;begin
-           ) ;with
-          ) ;
-          ((and (url-test? name "f") (not (url-test? name "r")))
-           (with msg
-             `(concat ,(translate "You do not have read access to") ," " ,vname)
-             (show-message msg "Load file")
-           ) ;with
-          ) ;
-          (else (load-buffer-load name opts))
+    (cond
+     ((and (not (url-test? name "f")) (url-exists? name))
+      (with msg
+        "The file cannot be loaded or created:"
+        (begin
+          (debug-message "debug-io" (string-append msg "\n" path))
+          (notify-now `(concat ,msg ,"<br>" ,vname))
+        ) ;begin
+      ) ;with
+     ) ;
+     ((and (url-test? name "f") (not (url-test? name "r")))
+      (with msg
+        `(concat ,(translate "You do not have read access to") ," " ,vname)
+        (show-message msg "Load file")
+      ) ;with
+     ) ;
+     (else (load-buffer-load name opts))
     ) ;cond
   ) ;let*
 ) ;define
@@ -1047,19 +1060,20 @@
   ;; (display* "import-buffer-check-permissions " name ", " fm "\n")
   (with vname
     `(verbatim ,(utf8->cork (url->system name)))
-    (cond ((not (url-test? name "f"))
-           (with msg
-             `(concat ,"The file " ,vname ," does not exist")
-             (set-message msg "Import file")
-           ) ;with
-          ) ;
-          ((not (url-test? name "r"))
-           (with msg
-             `(concat ,(translate "You do not have read access to") ," " ,vname)
-             (show-message msg "Import file")
-           ) ;with
-          ) ;
-          (else (import-buffer-import name fm opts))
+    (cond
+     ((not (url-test? name "f"))
+      (with msg
+        `(concat ,"The file " ,vname ," does not exist")
+        (set-message msg "Import file")
+      ) ;with
+     ) ;
+     ((not (url-test? name "r"))
+      (with msg
+        `(concat ,(translate "You do not have read access to") ," " ,vname)
+        (show-message msg "Import file")
+      ) ;with
+     ) ;
+     (else (import-buffer-import name fm opts))
     ) ;cond
   ) ;with
 ) ;define
@@ -1214,10 +1228,11 @@
 ;; 秒级名字仍冲突时,追加 -2、-3 …… 保证唯一
 
 (define (scratch-unique-name dir stamp i ext)
-  (let ((u (scratch-candidate dir
-             (if (= i 0) stamp (string-append stamp "-" (number->string i)))
-             ext
-           ) ;scratch-candidate
+  (let ((u
+          (scratch-candidate dir
+            (if (= i 0) stamp (string-append stamp "-" (number->string i)))
+            ext
+          ) ;scratch-candidate
         ) ;u
        ) ;
     (if (scratch-name-free? u) u (scratch-unique-name dir stamp (+ i 1) ext))
@@ -1294,7 +1309,9 @@
 ;; (历元从正午起算),须 +0.5 取整,否则周界偏移一天
 
 (define (day-number day)
-  (inexact->exact (floor (+ (date->julian-day (day->date day)) 0.5)))
+  (inexact->exact
+    (floor (+ (date->julian-day (day->date day)) 0.5))
+  ) ;inexact->exact
 ) ;define
 
 ;; 今天的日期串与 day-number,整天不变故缓存,避免每次算标题重复历法换算
@@ -1344,8 +1361,10 @@
       (translate "no name")
       (let* ((day (draft-date stamp))
              (today (car (scratch-today)))
-             (weekday (herk->utf8 (translate (vector-ref scratch-weekdays (date-week-day (day->date day))))
-                      ) ;herk->utf8
+             (weekday
+               (herk->utf8
+                 (translate (vector-ref scratch-weekdays (date-week-day (day->date day))))
+               ) ;herk->utf8
              ) ;weekday
              (hm (string-append (substring stamp 8 10) ":" (substring stamp 10 12)))
              ;; 今年非本周:MM/DD HH:MM;去年及更早:只显示 YYYY/MM/DD,不带时间
@@ -1361,16 +1380,17 @@
              ) ;date-str
              ;; 展示粒度:本周统一 周一HH:MM:SS;命名已是秒级,仅旧的分钟级
              ;; (12 位)时间戳无秒可显,退化为时分
-             (core (if (draft-this-week? day)
-                     (string-append weekday
-                       " "
-                       (if (> (string-length stamp) 12)
-                         (string-append hm ":" (substring stamp 12 14))
-                         hm
-                       ) ;if
-                     ) ;string-append
-                     date-str
+             (core
+               (if (draft-this-week? day)
+                 (string-append weekday
+                   " "
+                   (if (> (string-length stamp) 12)
+                     (string-append hm ":" (substring stamp 12 14))
+                     hm
                    ) ;if
+                 ) ;string-append
+                 date-str
+               ) ;if
              ) ;core
              (draft (herk->utf8 (translate "Draft")))
             ) ;

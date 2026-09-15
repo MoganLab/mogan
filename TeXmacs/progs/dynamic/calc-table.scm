@@ -31,7 +31,8 @@
     (string-length s)
     (if (== n 1)
       (- (char->integer (car (string->list s))) 96)
-      (+ (* 26 (column->number (substring s 0 (- n 1))))
+      (+
+        (* 26 (column->number (substring s 0 (- n 1))))
         (column->number (substring s (- n 1) n))
       ) ;+
     ) ;if
@@ -107,13 +108,17 @@
         ((tree-is? t 'table)
          (with fun
            (lambda (i) (calc-table-collect (tree-ref t i) (+ r i) c dic))
-           (tm->tree `(table ,@(map fun (.. 0 (tree-arity t)))))
+           (tm->tree
+             `(table ,@(map fun (.. 0 (tree-arity t))))
+           ) ;tm->tree
          ) ;with
         ) ;
         ((tree-is? t 'row)
          (with fun
            (lambda (i) (calc-table-collect (tree-ref t i) r (+ c i) dic))
-           (tm->tree `(row ,@(map fun (.. 0 (tree-arity t)))))
+           (tm->tree
+             `(row ,@(map fun (.. 0 (tree-arity t))))
+           ) ;tm->tree
          ) ;with
         ) ;
         ((tree-is? t 'cell)
@@ -154,7 +159,9 @@
                 (ren (calc-table-renumber-sub enc dic))
                 (dec (cell-input-decode ren))
                ) ;
-           (tm->tree `(,(tree-label t) ,(tree-ref t 0) ,dec ,(tree-ref t 2)))
+           (tm->tree
+             `(,(tree-label t) ,(tree-ref t 0) ,dec ,(tree-ref t 2))
+           ) ;tm->tree
          ) ;let*
         ) ;
         (else (with fun (cut calc-table-renumber-sub <> dic) (tree-map-children fun t)))
@@ -198,7 +205,10 @@
 ) ;tm-define
 
 (tm-define (make-calc-table tag)
-  (insert-go-to `(calc-table ,(create-unique-id) ,"") '(1 0))
+  (insert-go-to
+    `(calc-table ,(create-unique-id) ,"")
+    '(1 0)
+  ) ;insert-go-to
   (make tag)
   (calc-table-update)
 ) ;tm-define
@@ -230,16 +240,19 @@
       (string->tree (string-drop (tree->string t) 1))
     ) ;if
     (let* ((lab (tree-label t)) (l (tree-children t)))
-      (cond ((tree-in? t '(math concat document))
-             (tm->tree `(,lab ,(remove-equal (car l)) ,@(cdr l)))
-            ) ;
-            ((tree-in? t '(with)) (tm->tree `(,lab
-                                              ,@(cDr l)
-                                              ,(remove-equal (cAr l)))))
-            ((tree-in? t '(cell-inert cell-input cell-output))
-             (tm->tree `(,lab ,(car l) ,(remove-equal (cadr l)) ,@(cddr l)))
-            ) ;
-            (else t)
+      (cond
+       ((tree-in? t '(math concat document))
+        (tm->tree
+          `(,lab ,(remove-equal (car l)) ,@(cdr l))
+        ) ;tm->tree
+       ) ;
+       ((tree-in? t '(with)) (tm->tree `(,lab ,@(cDr l) ,(remove-equal (cAr l)))))
+       ((tree-in? t '(cell-inert cell-input cell-output))
+        (tm->tree
+          `(,lab ,(car l) ,(remove-equal (cadr l)) ,@(cddr l))
+        ) ;tm->tree
+       ) ;
+       (else t)
       ) ;cond
     ) ;let*
   ) ;if
@@ -268,34 +281,40 @@
            (calc-eat-cell-name cs #f)
            (if (not i)
              (cons (list->string (list (car cs))) (calc-input-encode-sub (cdr cs)))
-             (cons `(cell-ref ,(list->string (sublist cs 0 i)))
+             (cons
+               `(cell-ref ,(list->string (sublist cs 0 i)))
                (calc-input-encode-sub (sublist cs i (length cs)))
              ) ;cons
            ) ;if
          ) ;with
         ) ;
-        (else (cons (list->string (list (car cs))) (calc-input-encode-sub (cdr cs))))
+        (else
+          (cons (list->string (list (car cs))) (calc-input-encode-sub (cdr cs)))
+        ) ;else
   ) ;cond
 ) ;tm-define
 
 (tm-define (cell-input-encode t)
-  (cond ((tree-atomic? t)
-         (with l
-           (calc-input-encode-sub (string->list (tree->string t)))
-           (tm->tree (apply tmconcat l))
-         ) ;with
-        ) ;
-        ((tree-is? t 'concat)
-         (with l (map cell-input-encode (tree-children t)) (tm->tree (apply tmconcat l)))
-        ) ;
-        ((and (tree-func? t 'cell-ref 1)
-           (tree-atomic? (tree-ref t 0))
-           (string-occurs? "-" (tree->string (tree-ref t 0)))
-         ) ;and
-         (tm->tree `(calc-ref ,(tree-ref t 0)))
-        ) ;
-        ((tree-in? t '(cell-ref calc-ref)) t)
-        (else (tree-map-accessible-children cell-input-encode t))
+  (cond
+   ((tree-atomic? t)
+    (with l
+      (calc-input-encode-sub (string->list (tree->string t)))
+      (tm->tree (apply tmconcat l))
+    ) ;with
+   ) ;
+   ((tree-is? t 'concat)
+    (with l (map cell-input-encode (tree-children t)) (tm->tree (apply tmconcat l)))
+   ) ;
+   ((and (tree-func? t 'cell-ref 1)
+      (tree-atomic? (tree-ref t 0))
+      (string-occurs? "-" (tree->string (tree-ref t 0)))
+    ) ;and
+    (tm->tree
+      `(calc-ref ,(tree-ref t 0))
+    ) ;tm->tree
+   ) ;
+   ((tree-in? t '(cell-ref calc-ref)) t)
+   (else (tree-map-accessible-children cell-input-encode t))
   ) ;cond
 ) ;tm-define
 
@@ -310,27 +329,34 @@
 ) ;tm-define
 
 (tm-define (cell-input-expand-ranges l)
-  (cond ((not (and (pair? l) (pair? (cdr l)) (pair? (cddr l)))) l)
-        ((and (tree-is? (car l) 'cell-ref)
-           (tree-in? (cadr l) '(cell-commas cell-plusses))
-           (tree-is? (caddr l) 'cell-ref)
-         ) ;and
-         (with lab
-           (if (tree-is? (cadr l) 'cell-command) 'cell-range 'cell-sum)
-           (cons (tm->tree `(,lab ,(car l) ,(caddr l)))
-             (cell-input-expand-ranges (cdddr l))
-           ) ;cons
-         ) ;with
-        ) ;
-        ((and (tree-is? (car l) 'cell-ref)
-           (or (tm-equal? (cadr l) ":") (tm-equal? (cadr l) ",<ldots>,"))
-           (tree-is? (caddr l) 'cell-ref)
-         ) ;and
-         (cons (tm->tree `(cell-range ,(car l) ,(caddr l)))
-           (cell-input-expand-ranges (cdddr l))
-         ) ;cons
-        ) ;
-        (else (cons (car l) (cell-input-expand-ranges (cdr l))))
+  (cond
+   ((not (and (pair? l) (pair? (cdr l)) (pair? (cddr l)))) l)
+   ((and (tree-is? (car l) 'cell-ref)
+      (tree-in? (cadr l) '(cell-commas cell-plusses))
+      (tree-is? (caddr l) 'cell-ref)
+    ) ;and
+    (with lab
+      (if (tree-is? (cadr l) 'cell-command) 'cell-range 'cell-sum)
+      (cons
+        (tm->tree
+          `(,lab ,(car l) ,(caddr l))
+        ) ;tm->tree
+        (cell-input-expand-ranges (cdddr l))
+      ) ;cons
+    ) ;with
+   ) ;
+   ((and (tree-is? (car l) 'cell-ref)
+      (or (tm-equal? (cadr l) ":") (tm-equal? (cadr l) ",<ldots>,"))
+      (tree-is? (caddr l) 'cell-ref)
+    ) ;and
+    (cons
+      (tm->tree
+        `(cell-range ,(car l) ,(caddr l))
+      ) ;tm->tree
+      (cell-input-expand-ranges (cdddr l))
+    ) ;cons
+   ) ;
+   (else (cons (car l) (cell-input-expand-ranges (cdr l))))
   ) ;cond
 ) ;tm-define
 
@@ -346,7 +372,9 @@
                 (c2 (tree-ref t 1))
                 (l (cell-ref-range c1 c2))
                 (sym (if (tree-is? t 'cell-range) "," "+"))
-                (cc `(concat ,@(list-intersperse l sym)))
+                (cc
+                  `(concat ,@(list-intersperse l sym))
+                ) ;cc
                ) ;
            (tm->tree cc)
          ) ;let*

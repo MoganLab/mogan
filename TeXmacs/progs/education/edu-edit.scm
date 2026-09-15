@@ -93,11 +93,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (count doc)
-  (cond ((or (tm-func? doc 'document) (tm-func? doc 'table))
-         (apply + (map count (tm-children doc)))
-        ) ;
-        ((tm-compound? doc) (apply max (cons 1 (map count (tm-children doc)))))
-        (else 1)
+  (cond
+   ((or (tm-func? doc 'document) (tm-func? doc 'table))
+    (apply + (map count (tm-children doc)))
+   ) ;
+   ((tm-compound? doc) (apply max (cons 1 (map count (tm-children doc)))))
+   (else 1)
   ) ;cond
 ) ;define
 
@@ -109,18 +110,19 @@
   (cond ((null? l) (noop))
         ((and (nnull? (cdr l)) (question-context? (car l)) (answer-context? (cadr l)))
          (edu-operate-document (cddr l) mode)
-         (and-let* ((que (car l))
-                    (ans (cadr l))
-                    (tag (cond ((== mode :question) 'folded)
-                               ((== mode :answer) 'folded-reverse)
-                               ((== mode :mixed) 'unfolded)
-                               (else #f)
-                         ) ;cond
-                    ) ;tag
-                   ) ;
-           (tree-insert-node! que 0 (list tag))
-           (tree-insert-node! ans 0 (list tag))
-           (tree-join (tree-up que) (tree-index que))
+         (and-let*
+          ((que (car l))
+           (ans (cadr l))
+           (tag (cond ((== mode :question) 'folded)
+                      ((== mode :answer) 'folded-reverse)
+                      ((== mode :mixed) 'unfolded)
+                      (else #f)
+                ) ;cond
+           ) ;tag
+          ) ;
+          (tree-insert-node! que 0 (list tag))
+          (tree-insert-node! ans 0 (list tag))
+          (tree-join (tree-up que) (tree-index que))
          ) ;and-let*
         ) ;
         (else (edu-operate-document (cdr l) mode) (edu-operate (car l) mode))
@@ -148,48 +150,51 @@
     (when (mc-field-context? t)
       (with c
         (tree-ref t 0)
-        (cond ((not (tree-in? c '(hide-simple show-simple)))
-               (if (== mode :question) (tree-set! c `(hide-simple ,"false" ,c)))
-              ) ;
-              ((== mode :question)
-               (when (not (tree-is? c 'hide-simple))
-                 (variant-set c 'hide-simple)
-               ) ;when
-               (tree-set (tree-ref c 0) "false")
-              ) ;
-              ((!= mode :question) (tree-set! c (tree-ref c 1)))
+        (cond
+         ((not (tree-in? c '(hide-simple show-simple)))
+          (if (== mode :question) (tree-set! c `(hide-simple ,"false" ,c)))
+         ) ;
+         ((== mode :question)
+          (when (not (tree-is? c 'hide-simple))
+            (variant-set c 'hide-simple)
+          ) ;when
+          (tree-set (tree-ref c 0) "false")
+         ) ;
+         ((!= mode :question) (tree-set! c (tree-ref c 1)))
         ) ;cond
       ) ;with
     ) ;when
     (when (gap-long-context? t)
       (with c
         (tree-ref t 0)
-        (cond ((not (tree-in? c '(hide-simple show-simple)))
-               (if (== mode :question) (tree-set! c `(hide-simple ,(empty c) ,c)))
-              ) ;
-              ((== mode :question)
-               (when (not (tree-is? c 'hide-simple))
-                 (variant-set c 'hide-simple)
-               ) ;when
-               (tree-set (tree-ref c 0) (empty (tree-ref c 1)))
-              ) ;
-              ((!= mode :question) (tree-set! c (tree-ref c 1)))
+        (cond
+         ((not (tree-in? c '(hide-simple show-simple)))
+          (if (== mode :question) (tree-set! c `(hide-simple ,(empty c) ,c)))
+         ) ;
+         ((== mode :question)
+          (when (not (tree-is? c 'hide-simple))
+            (variant-set c 'hide-simple)
+          ) ;when
+          (tree-set (tree-ref c 0) (empty (tree-ref c 1)))
+         ) ;
+         ((!= mode :question) (tree-set! c (tree-ref c 1)))
         ) ;cond
       ) ;with
     ) ;when
     (when (and (gap-context? t) (not (gap-long-context? t)))
       (with c
         (tree-ref t 0)
-        (cond ((not (tree-in? c '(hide-reply show-reply)))
-               (if (== mode :question) (tree-set! c `(hide-reply ,"" ,c)))
-              ) ;
-              ((== mode :question)
-               (when (not (tree-is? c 'hide-reply))
-                 (variant-set c 'hide-reply)
-               ) ;when
-               (tree-set (tree-ref c 0) "")
-              ) ;
-              ((!= mode :question) (tree-set! c (tree-ref c 1)))
+        (cond
+         ((not (tree-in? c '(hide-reply show-reply)))
+          (if (== mode :question) (tree-set! c `(hide-reply ,"" ,c)))
+         ) ;
+         ((== mode :question)
+          (when (not (tree-is? c 'hide-reply))
+            (variant-set c 'hide-reply)
+          ) ;when
+          (tree-set (tree-ref c 0) "")
+         ) ;
+         ((!= mode :question) (tree-set! c (tree-ref c 1)))
         ) ;cond
       ) ;with
     ) ;when
@@ -204,19 +209,20 @@
 
 (tm-define (kbd-enter t shift?)
   (:require (and (short-question-or-answer-context? t) (not shift?)))
-  (cond ((question-answer-context? (tree-up t))
-         (let* ((f (tree-up t)) (q (tree-ref f 0)))
-           (if (tree-func? q 'document 1) (set! q (tree-ref q 0)))
-           (with l (tree-label q) (tree-go-to f :end) (make l))
-         ) ;let*
-        ) ;
-        ((question-answer-context? (tree-up (tree-up t)))
-         (let* ((f (tree-up (tree-up t))) (q (tree-ref f 0)))
-           (if (tree-func? q 'document 1) (set! q (tree-ref q 0)))
-           (with l (tree-label q) (tree-go-to f :end) (make l))
-         ) ;let*
-        ) ;
-        (else (with l (tree-label t) (tree-go-to t :end) (make l)))
+  (cond
+   ((question-answer-context? (tree-up t))
+    (let* ((f (tree-up t)) (q (tree-ref f 0)))
+      (if (tree-func? q 'document 1) (set! q (tree-ref q 0)))
+      (with l (tree-label q) (tree-go-to f :end) (make l))
+    ) ;let*
+   ) ;
+   ((question-answer-context? (tree-up (tree-up t)))
+    (let* ((f (tree-up (tree-up t))) (q (tree-ref f 0)))
+      (if (tree-func? q 'document 1) (set! q (tree-ref q 0)))
+      (with l (tree-label q) (tree-go-to f :end) (make l))
+    ) ;let*
+   ) ;
+   (else (with l (tree-label t) (tree-go-to t :end) (make l)))
   ) ;cond
 ) ;tm-define
 
@@ -230,10 +236,11 @@
 (tm-define (alternate-toggle t)
   (:require (and (unanswered-question-context? t) (in-edu-text?)))
   (let* ((p (tree->path t))
-         (a (cond ((tree-in? t '(exercise exercise* problem problem*)) 'solution*)
-                  ((tree-in? t '(question question*)) 'answer*)
-                  ((short-question-context? t) 'answer-item)
-            ) ;cond
+         (a
+           (cond ((tree-in? t '(exercise exercise* problem problem*)) 'solution*)
+                 ((tree-in? t '(question question*)) 'answer*)
+                 ((short-question-context? t) 'answer-item)
+           ) ;cond
          ) ;a
         ) ;
     (tree-set! t `(unfolded ,t (,a (document ""))))
@@ -246,7 +253,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (make-mc env)
-  (insert-go-to `(document (,env (mc-field "false" ""))) '(0 0 1 0))
+  (insert-go-to
+    `(document (,env (mc-field "false" "")))
+    '(0 0 1 0)
+  ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make tag . opt-arity)
@@ -369,7 +379,8 @@
 (define (mc-visible-sub l)
   (cond ((null? l) (noop))
         ((mc-field-active? (car l))
-         (when (not (cursor-inside? (tm-ref (car l) 1)))
+         (when
+           (not (cursor-inside? (tm-ref (car l) 1)))
            (tree-go-to (car l) 1 :end)
          ) ;when
         ) ;
@@ -386,11 +397,12 @@
 
 (define (insert-mc-field t forwards?)
   (let* ((p (tree->path t)) (i (tree-down-index t)) (d (if forwards? 1 0)))
-    (cond ((mc-popup-context? t)
-           (mc-field-set (tm-ref t i) "false")
-           (tree-insert! t (+ i d) '((mc-field "true" "")))
-          ) ;
-          (else (tree-insert! t (+ i d) '((mc-field "false" ""))))
+    (cond
+     ((mc-popup-context? t)
+      (mc-field-set (tm-ref t i) "false")
+      (tree-insert! t (+ i d) '((mc-field "true" "")))
+     ) ;
+     (else (tree-insert! t (+ i d) '((mc-field "false" ""))))
     ) ;cond
     (go-to (append p (list (+ i d) 1 0)))
   ) ;let*
@@ -413,38 +425,41 @@
 
 (define (remove-mc-field t forwards? structured?)
   (let* ((i (tree-down-index t)) (n (tree-arity t)))
-    (cond ((> n 1)
-           (cond ((and structured? (not forwards?) (> i 0)) (set! i (- i 1)))
-                 ((and forwards? (< i (- n 1))) (tree-go-to t (+ i 1) :start))
-                 ((and forwards? (== i (- n 1))) (tree-go-to t (+ i -) :end))
-                 ((and (not forwards?) (> i 0)) (tree-go-to t (- i 1) :end))
-                 ((and (not forwards?) (== i 0)) (tree-go-to t (+ i 1) :start))
-           ) ;cond
-           (tree-remove t i 1)
-           (when (mc-popup-context? t)
-             (mc-switch t :this)
-           ) ;when
-          ) ;
-          ((with-button-context? (tree-up t)) (tree-cut (tree-up t)))
-          (else (tree-cut t))
+    (cond
+     ((> n 1)
+      (cond ((and structured? (not forwards?) (> i 0)) (set! i (- i 1)))
+            ((and forwards? (< i (- n 1))) (tree-go-to t (+ i 1) :start))
+            ((and forwards? (== i (- n 1))) (tree-go-to t (+ i -) :end))
+            ((and (not forwards?) (> i 0)) (tree-go-to t (- i 1) :end))
+            ((and (not forwards?) (== i 0)) (tree-go-to t (+ i 1) :start))
+      ) ;cond
+      (tree-remove t i 1)
+      (when (mc-popup-context? t)
+        (mc-switch t :this)
+      ) ;when
+     ) ;
+     ((with-button-context? (tree-up t)) (tree-cut (tree-up t)))
+     (else (tree-cut t))
     ) ;cond
   ) ;let*
 ) ;define
 
 (tm-define (kbd-backspace)
-  (:require (and (== (cursor-tree) (tree ""))
-              (tree-is? (tree-up (cursor-tree)) 'mc-field)
-              (mc-context? (tree-up (tree-up (cursor-tree))))
-            ) ;and
+  (:require
+    (and (== (cursor-tree) (tree ""))
+      (tree-is? (tree-up (cursor-tree)) 'mc-field)
+      (mc-context? (tree-up (tree-up (cursor-tree))))
+    ) ;and
   ) ;:require
   (remove-mc-field (tree-up (tree-up (cursor-tree))) #f #f)
 ) ;tm-define
 
 (tm-define (kbd-delete)
-  (:require (and (== (cursor-tree) (tree ""))
-              (tree-is? (tree-up (cursor-tree)) 'mc-field)
-              (mc-context? (tree-up (tree-up (cursor-tree))))
-            ) ;and
+  (:require
+    (and (== (cursor-tree) (tree ""))
+      (tree-is? (tree-up (cursor-tree)) 'mc-field)
+      (mc-context? (tree-up (tree-up (cursor-tree))))
+    ) ;and
   ) ;:require
   (remove-mc-field (tree-up (tree-up (cursor-tree))) #t #f)
 ) ;tm-define
@@ -486,7 +501,9 @@
 (define (mc-exec t cmd)
   (let* ((c (tm-children t))
          (f (list-filter c mc-field-active?))
-         (v (map (lambda (x) (tm->stree (tm-ref x 1))) f))
+         (v
+           (map (lambda (x) (tm->stree (tm-ref x 1))) f)
+         ) ;v
         ) ;
     (when (mc-exclusive-context? t)
       (set! v (and (nnull? v) (car v)))
@@ -496,10 +513,11 @@
 ) ;define
 
 (define (button-exec t cmd)
-  (if (and-with p
-        (tm-ref t :up)
-        (and-with pp (tm-ref p :up) (and (tm-is? p 'mc-field) (mc-context? pp)))
-      ) ;and-with
+  (if
+    (and-with p
+      (tm-ref t :up)
+      (and-with pp (tm-ref p :up) (and (tm-is? p 'mc-field) (mc-context? pp)))
+    ) ;and-with
     (mc-exec (tm-ref t :up :up) cmd)
     (edu-exec (not (tm-equal? t "false")) cmd)
   ) ;if

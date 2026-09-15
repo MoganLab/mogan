@@ -26,7 +26,8 @@
 (define (r-trim-left s)
   (let loop
     ((i 0) (n (string-length s)))
-    (if (or (>= i n) (not (char-whitespace? (string-ref s i))))
+    (if
+      (or (>= i n) (not (char-whitespace? (string-ref s i))))
       (substring s i n)
       (loop (+ i 1) n)
     ) ;if
@@ -62,7 +63,11 @@
             (if (null? xs)
               #f
               (let* ((op (car xs)) (m (string-length op)))
-                (if (and (>= n m) (== (substring t (- n m) n) op)) #t (loop (cdr xs)))
+                (if
+                  (and (>= n m) (== (substring t (- n m) n) op))
+                  #t
+                  (loop (cdr xs))
+                ) ;if
               ) ;let*
             ) ;if
           ) ;let
@@ -124,12 +129,13 @@
              (trimmed (r-trim pline))
              (base (string-get-indent pline))
              (tab (get-tabstop))
-             (inc? (or (r-line-continues? pline)
-                     ;; previous line ends with "{"
-                     (and (> (string-length trimmed) 0)
-                       (== (string-ref trimmed (- (string-length trimmed) 1)) #\{)
-                     ) ;and
-                   ) ;or
+             (inc?
+               (or (r-line-continues? pline)
+                 ;; previous line ends with "{"
+                 (and (> (string-length trimmed) 0)
+                   (== (string-ref trimmed (- (string-length trimmed) 1)) #\{)
+                 ) ;and
+               ) ;or
              ) ;inc?
             ) ;
         (+ base (if inc? tab 0))

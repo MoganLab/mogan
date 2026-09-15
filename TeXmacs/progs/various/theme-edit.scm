@@ -41,7 +41,9 @@
 ) ;tm-define
 
 (tm-define (style-category p)
-  (:require (and (not (or (in-beamer?) (in-poster?))) (in? p (basic-themes))))
+  (:require
+    (and (not (or (in-beamer?) (in-poster?))) (in? p (basic-themes)))
+  ) ;:require
   :basic-theme
 ) ;tm-define
 

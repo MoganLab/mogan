@@ -35,14 +35,15 @@
   (with t
     (get-env-tree (if (symbol? l) (symbol->string l) l))
     (and (tree-func? t 'macro 2)
-      (nnull? (tree-search (tree-ref t 1)
-                (lambda (st)
-                  (and (tree-func? st 'tformat)
-                    (tree-func? (tm-ref st :last) 'arg)
-                    (tm-equal? (tm-ref st :last 0) (tm-ref t 0))
-                  ) ;and
-                ) ;lambda
-              ) ;tree-search
+      (nnull?
+        (tree-search (tree-ref t 1)
+          (lambda (st)
+            (and (tree-func? st 'tformat)
+              (tree-func? (tm-ref st :last) 'arg)
+              (tm-equal? (tm-ref st :last 0) (tm-ref t 0))
+            ) ;and
+          ) ;lambda
+        ) ;tree-search
       ) ;nnull?
     ) ;and
   ) ;with
@@ -924,62 +925,63 @@
   (:argument b "Inner bottom border width")
   (:argument l "Inner left border width")
   (:argument r "Inner right border width")
-  (keep-table-selection (when (nnull? (table-get-extents))
-                          (with (rows cols)
-                            (table-get-extents)
-                            (with (r1 r2 c1 c2)
-                              (table-which-cells)
-                              (let* ((vars (list "cell-tborder" "cell-bborder" "cell-lborder" "cell-rborder"))
-                                     (vals (list t b l r))
-                                     (and* (lambda (a b) (and b a)))
-                                     (vars* (list-filter (map and* vars vals) identity))
-                                     (vals* (list-filter vals identity))
-                                    ) ;
-                                (cell-set-format-list vars* vals*)
-                              ) ;let*
-                              (when T
-                                (when (!= T t)
-                                  (table-select-cells r1 r1 c1 c2)
-                                  (cell-set-format "cell-tborder" T)
-                                ) ;when
-                                (when (> r1 1)
-                                  (table-select-cells (- r1 1) (- r1 1) c1 c2)
-                                  (cell-set-format "cell-bborder" T)
-                                ) ;when
-                              ) ;when
-                              (when B
-                                (when (!= B b)
-                                  (table-select-cells r2 r2 c1 c2)
-                                  (cell-set-format "cell-bborder" B)
-                                ) ;when
-                                (when (< r2 rows)
-                                  (table-select-cells (+ r2 1) (+ r2 1) c1 c2)
-                                  (cell-set-format "cell-tborder" B)
-                                ) ;when
-                              ) ;when
-                              (when L
-                                (when (!= L l)
-                                  (table-select-cells r1 r2 c1 c1)
-                                  (cell-set-format "cell-lborder" L)
-                                ) ;when
-                                (when (> c1 1)
-                                  (table-select-cells r1 r2 (- c1 1) (- c1 1))
-                                  (cell-set-format "cell-rborder" L)
-                                ) ;when
-                              ) ;when
-                              (when R
-                                (when (!= R r)
-                                  (table-select-cells r1 r2 c2 c2)
-                                  (cell-set-format "cell-rborder" R)
-                                ) ;when
-                                (when (< c2 cols)
-                                  (table-select-cells r1 r2 (+ c2 1) (+ c2 1))
-                                  (cell-set-format "cell-lborder" R)
-                                ) ;when
-                              ) ;when
-                            ) ;with
-                          ) ;with
-                        ) ;when
+  (keep-table-selection
+    (when (nnull? (table-get-extents))
+      (with (rows cols)
+        (table-get-extents)
+        (with (r1 r2 c1 c2)
+          (table-which-cells)
+          (let* ((vars (list "cell-tborder" "cell-bborder" "cell-lborder" "cell-rborder"))
+                 (vals (list t b l r))
+                 (and* (lambda (a b) (and b a)))
+                 (vars* (list-filter (map and* vars vals) identity))
+                 (vals* (list-filter vals identity))
+                ) ;
+            (cell-set-format-list vars* vals*)
+          ) ;let*
+          (when T
+            (when (!= T t)
+              (table-select-cells r1 r1 c1 c2)
+              (cell-set-format "cell-tborder" T)
+            ) ;when
+            (when (> r1 1)
+              (table-select-cells (- r1 1) (- r1 1) c1 c2)
+              (cell-set-format "cell-bborder" T)
+            ) ;when
+          ) ;when
+          (when B
+            (when (!= B b)
+              (table-select-cells r2 r2 c1 c2)
+              (cell-set-format "cell-bborder" B)
+            ) ;when
+            (when (< r2 rows)
+              (table-select-cells (+ r2 1) (+ r2 1) c1 c2)
+              (cell-set-format "cell-tborder" B)
+            ) ;when
+          ) ;when
+          (when L
+            (when (!= L l)
+              (table-select-cells r1 r2 c1 c1)
+              (cell-set-format "cell-lborder" L)
+            ) ;when
+            (when (> c1 1)
+              (table-select-cells r1 r2 (- c1 1) (- c1 1))
+              (cell-set-format "cell-rborder" L)
+            ) ;when
+          ) ;when
+          (when R
+            (when (!= R r)
+              (table-select-cells r1 r2 c2 c2)
+              (cell-set-format "cell-rborder" R)
+            ) ;when
+            (when (< c2 cols)
+              (table-select-cells r1 r2 (+ c2 1) (+ c2 1))
+              (cell-set-format "cell-lborder" R)
+            ) ;when
+          ) ;when
+        ) ;with
+      ) ;with
+    ) ;when
   ) ;keep-table-selection
 ) ;tm-define
 

@@ -21,14 +21,16 @@
 ) ;import
 
 (define (escape-string str)
-  (string-join (map (lambda (char)
-                      (if (char=? char #\")
-                        (string #\\ #\")
-                        (if (char=? char #\\) (string #\\ #\\) (string char))
-                      ) ;if
-                    ) ;lambda
-                 (string->list str)
-               ) ;map
+  (string-join
+    (map
+      (lambda (char)
+        (if (char=? char #\")
+          (string #\\ #\")
+          (if (char=? char #\\) (string #\\ #\\) (string char))
+        ) ;if
+      ) ;lambda
+      (string->list str)
+    ) ;map
   ) ;string-join
 ) ;define
 
@@ -68,34 +70,35 @@
 
 (define (strip-math-delimiters str)
   (let* ((s (string-trim-both str)) (len (string-length s)))
-    (cond ((and (>= len 4) (string-starts? s "\\[") (string-ends? s "\\]"))
-           (strip-math-delimiters (substring s 2 (- len 2)))
-          ) ;
-          ((and (>= len 4) (string-starts? s "$$") (string-ends? s "$$"))
-           (strip-math-delimiters (substring s 2 (- len 2)))
-          ) ;
-          ((and (>= len 2) (string-starts? s "$") (string-ends? s "$"))
-           (strip-math-delimiters (substring s 1 (- len 1)))
-          ) ;
-          ((and (>= len 32)
-             (string-starts? s "\\begin{equation*}")
-             (string-ends? s "\\end{equation*}")
-           ) ;and
-           (strip-math-delimiters (substring s 17 (- len 15)))
-          ) ;
-          ((and (>= len 30)
-             (string-starts? s "\\begin{equation}")
-             (string-ends? s "\\end{equation}")
-           ) ;and
-           (strip-math-delimiters (substring s 16 (- len 14)))
-          ) ;
-          ((and (>= len 36)
-             (string-starts? s "\\begin{displaymath}")
-             (string-ends? s "\\end{displaymath}")
-           ) ;and
-           (strip-math-delimiters (substring s 19 (- len 17)))
-          ) ;
-          (else s)
+    (cond
+     ((and (>= len 4) (string-starts? s "\\[") (string-ends? s "\\]"))
+      (strip-math-delimiters (substring s 2 (- len 2)))
+     ) ;
+     ((and (>= len 4) (string-starts? s "$$") (string-ends? s "$$"))
+      (strip-math-delimiters (substring s 2 (- len 2)))
+     ) ;
+     ((and (>= len 2) (string-starts? s "$") (string-ends? s "$"))
+      (strip-math-delimiters (substring s 1 (- len 1)))
+     ) ;
+     ((and (>= len 32)
+        (string-starts? s "\\begin{equation*}")
+        (string-ends? s "\\end{equation*}")
+      ) ;and
+      (strip-math-delimiters (substring s 17 (- len 15)))
+     ) ;
+     ((and (>= len 30)
+        (string-starts? s "\\begin{equation}")
+        (string-ends? s "\\end{equation}")
+      ) ;and
+      (strip-math-delimiters (substring s 16 (- len 14)))
+     ) ;
+     ((and (>= len 36)
+        (string-starts? s "\\begin{displaymath}")
+        (string-ends? s "\\end{displaymath}")
+      ) ;and
+      (strip-math-delimiters (substring s 19 (- len 17)))
+     ) ;
+     (else s)
     ) ;cond
   ) ;let*
 ) ;define
@@ -105,24 +108,28 @@
     (if (string-starts? trimmed "\\documentclass")
       code
       (let* ((lines (string-split code #\newline))
-             (library-lines (filter (lambda (line) (string-starts? (string-trim-left line) "\\usetikzlibrary"))
-                              lines
-                            ) ;filter
+             (library-lines
+               (filter (lambda (line) (string-starts? (string-trim-left line) "\\usetikzlibrary"))
+                 lines
+               ) ;filter
              ) ;library-lines
-             (package-lines (filter (lambda (line) (string-starts? (string-trim-left line) "\\usepackage"))
-                              lines
-                            ) ;filter
+             (package-lines
+               (filter (lambda (line) (string-starts? (string-trim-left line) "\\usepackage"))
+                 lines
+               ) ;filter
              ) ;package-lines
-             (other-lines (filter (lambda (line)
-                                    (let ((trimmed-line (string-trim-left line)))
-                                      (and (not (string-null? trimmed-line))
-                                        (not (string-starts? trimmed-line "\\usetikzlibrary"))
-                                        (not (string-starts? trimmed-line "\\usepackage"))
-                                      ) ;and
-                                    ) ;let
-                                  ) ;lambda
-                            lines
-                          ) ;filter
+             (other-lines
+               (filter
+                 (lambda (line)
+                   (let ((trimmed-line (string-trim-left line)))
+                     (and (not (string-null? trimmed-line))
+                       (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                       (not (string-starts? trimmed-line "\\usepackage"))
+                     ) ;and
+                   ) ;let
+                 ) ;lambda
+                 lines
+               ) ;filter
              ) ;other-lines
              (body (string-join other-lines "\n"))
              (body-trimmed (string-trim-left body))
@@ -177,17 +184,19 @@
 ) ;define
 
 (define (parse-magic-line magic-line)
-  (let ((tokens (filter (lambda (x) (not (string-null? x))) (string-split magic-line #\space))
+  (let ((tokens
+          (filter (lambda (x) (not (string-null? x))) (string-split magic-line #\space))
         ) ;tokens
         (width "0px")
         (height "0px")
        ) ;
     (let loop
       ((args (cdr tokens)))
-      (cond ((or (null? args) (null? (cdr args))) (list width height))
-            ((string=? (car args) "-width") (set! width (cadr args)) (loop (cddr args)))
-            ((string=? (car args) "-height") (set! height (cadr args)) (loop (cddr args)))
-            (else (loop (cddr args)))
+      (cond
+       ((or (null? args) (null? (cdr args))) (list width height))
+       ((string=? (car args) "-width") (set! width (cadr args)) (loop (cddr args)))
+       ((string=? (car args) "-height") (set! height (cadr args)) (loop (cddr args)))
+       (else (loop (cddr args)))
       ) ;cond
     ) ;let
   ) ;let
@@ -286,7 +295,8 @@
     (dump-tex-code tex-path wrapped-code)
     (if (zero? (run-pdflatex tex-path pdflatex-bin))
       (let ((size (get-pdf-page-size log-path)))
-        (if (or (not size) (and (<= (car size) 0.1) (<= (cadr size) 0.1)))
+        (if
+          (or (not size) (and (<= (car size) 0.1) (<= (cadr size) 0.1)))
           (flush-verbatim "Quiver produced an empty image (0x0 bounding box)")
           (let ((final-width width) (final-height height))
             (when (and (string=? width "0px") (string=? height "0px"))
@@ -346,15 +356,17 @@
   (catch #t
     (lambda () (read-eval-print))
     (lambda args
-      (flush-scheme (string-append "(errput (document "
-                      (goldfish-quote (symbol->string (car args)))
-                      " "
-                      (if (and (>= (length args) 2) (not (null? (cadr args))))
-                        (goldfish-quote (object->string (cadr args)))
-                        ""
-                      ) ;if
-                      "))"
-                    ) ;string-append
+      (flush-scheme
+        (string-append "(errput (document "
+          (goldfish-quote (symbol->string (car args)))
+          " "
+          (if
+            (and (>= (length args) 2) (not (null? (cadr args))))
+            (goldfish-quote (object->string (cadr args)))
+            ""
+          ) ;if
+          "))"
+        ) ;string-append
       ) ;flush-scheme
     ) ;lambda
   ) ;catch

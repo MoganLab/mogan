@@ -156,15 +156,16 @@
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
              (g_fold f initial (car lists))
             ) ;
-            (else (let loop
-                    ((acc initial) (lsts lists))
-                    (if (any null? lsts)
-                      acc
-                      (let* ((cars (map car lsts)) (cdrs (map cdr lsts)))
-                        (loop (apply f (append cars (list acc))) cdrs)
-                      ) ;let*
-                    ) ;if
-                  ) ;let
+            (else
+              (let loop
+                ((acc initial) (lsts lists))
+                (if (any null? lsts)
+                  acc
+                  (let* ((cars (map car lsts)) (cdrs (map cdr lsts)))
+                    (loop (apply f (append cars (list acc))) cdrs)
+                  ) ;let*
+                ) ;if
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -177,15 +178,16 @@
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
              (g_fold_right f initial (car lists))
             ) ;
-            (else (let loop
-                    ((lsts lists))
-                    (if (any null? lsts)
-                      initial
-                      (let* ((cars (map car lsts)) (cdrs (map cdr lsts)))
-                        (apply f (append cars (list (loop cdrs))))
-                      ) ;let*
-                    ) ;if
-                  ) ;let
+            (else
+              (let loop
+                ((lsts lists))
+                (if (any null? lsts)
+                  initial
+                  (let* ((cars (map car lsts)) (cdrs (map cdr lsts)))
+                    (apply f (append cars (list (loop cdrs))))
+                  ) ;let*
+                ) ;if
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -278,12 +280,13 @@
 
     (define (%delete-duplicates-hash lis eq-func)
       (let ((seen (s7-make-hash-table 8 eq-func)) (result '()))
-        (for-each (lambda (x)
-                    (unless (hash-table-ref seen x)
-                      (s7-hash-table-set! seen x #t)
-                      (set! result (cons x result))
-                    ) ;unless
-                  ) ;lambda
+        (for-each
+          (lambda (x)
+            (unless (hash-table-ref seen x)
+              (s7-hash-table-set! seen x #t)
+              (set! result (cons x result))
+            ) ;unless
+          ) ;lambda
           lis
         ) ;for-each
         (reverse result)

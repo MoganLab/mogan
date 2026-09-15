@@ -24,7 +24,8 @@
 ) ;define
 
 (tm-menu (help-plugins-menu)
-  (for (name (list-filter (map symbol->string (plugin-list)) plugin-documented?))
+  (for
+    (name (list-filter (map symbol->string (plugin-list)) plugin-documented?))
     (with menu-name
       `(verbatim ,(session-name name))
       ((eval menu-name) (load-local-plugin-doc name))

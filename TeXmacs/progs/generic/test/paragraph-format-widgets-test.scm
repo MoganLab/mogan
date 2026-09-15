@@ -36,11 +36,12 @@
   ;; 每项必须同时含 label/sep/parSep 三键——缺任一键 QML delegate 访问 undefined。
   ;; 分别断言每个键是否存在（assoc 返回的是 pair 而非 #t，不能塞进同一个 check-true）。
   (let* ((labels (paragraph-format-ui-labels)) (presets (assoc-ref labels 'sepPresets)))
-    (for-each (lambda (p)
-                (check-true (not (not (assoc 'label p))))
-                (check-true (not (not (assoc 'sep p))))
-                (check-true (not (not (assoc 'parSep p))))
-              ) ;lambda
+    (for-each
+      (lambda (p)
+        (check-true (not (not (assoc 'label p))))
+        (check-true (not (not (assoc 'sep p))))
+        (check-true (not (not (assoc 'parSep p))))
+      ) ;lambda
       presets
     ) ;for-each
   ) ;let*
@@ -49,18 +50,23 @@
 (define (test-sep-presets-parsep-all-zero)
   ;; par-par-sep 全档归零是本任务的核心语义——行距由 par-sep 承担，段间距不叠加。
   (let* ((labels (paragraph-format-ui-labels)) (presets (assoc-ref labels 'sepPresets)))
-    (for-each (lambda (p) (check (cdr (assoc 'parSep p)) => "0fn")) presets)
+    (for-each
+      (lambda (p) (check (cdr (assoc 'parSep p)) => "0fn"))
+      presets
+    ) ;for-each
   ) ;let*
 ) ;define
 
 (define (test-ui-labels-keys)
   ;; ui-labels 必须含全部按钮文案键——缺任一键 QML 取 undefined。
   (let ((labels (paragraph-format-ui-labels)))
-    (for-each (lambda (k) (check-true (not (not (assoc k labels)))))
+    (for-each
+      (lambda (k) (check-true (not (not (assoc k labels)))))
       '(basic advanced reset ok cancel sepPresetLabel)
     ) ;for-each
     ;; 文案键必须是已翻译字符串。
-    (for-each (lambda (k) (check-true (string? (cdr (assoc k labels)))))
+    (for-each
+      (lambda (k) (check-true (string? (cdr (assoc k labels)))))
       '(basic advanced reset ok cancel sepPresetLabel)
     ) ;for-each
   ) ;let

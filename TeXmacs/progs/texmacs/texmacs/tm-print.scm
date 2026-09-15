@@ -242,17 +242,18 @@
   (with result
     (with default-path
       ;; 缺省目的地：缺省目录 + 建议文件名。
-      (url->system (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
-                     (system->url (propose-export-pdf-name #f))
-                   ) ;url-append
+      (url->system
+        (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
+          (system->url (propose-export-pdf-name #f))
+        ) ;url-append
       ) ;url->system
-      (cpp-export-pdf-dialog (stree->tree `(export-pdf-form (toggle ,(translate "Embed source document")
-                                                              ,"embed"
-                                                              ,"false")
-                                             (path ,(translate "Export to")
-                                               ,"path"
-                                               ,default-path))
-                             ) ;stree->tree
+      (cpp-export-pdf-dialog
+        (stree->tree
+          `(export-pdf-form (toggle ,(translate "Embed source document")
+                              ,"embed"
+                              ,"false")
+             (path ,(translate "Export to") ,"path" ,default-path))
+        ) ;stree->tree
       ) ;cpp-export-pdf-dialog
     ) ;with
     ;; tree->stree 后每个 kv 为 (tuple key value)：cadr=key、caddr=value。
@@ -263,11 +264,13 @@
         ;; with 是单绑定宏（var val . body），两个绑定用 let*；扁平写法会把
         ;; 后续绑定名当 body 表达式求值（unbound variable）。
         (let* ((embed #f) (fname ""))
-          (for-each (lambda (kv)
-                      (cond ((== (cadr kv) "embed") (set! embed (== (caddr kv) "true")))
-                            ((== (cadr kv) "path") (set! fname (caddr kv)))
-                      ) ;cond
-                    ) ;lambda
+          (for-each
+            (lambda (kv)
+              (cond
+               ((== (cadr kv) "embed") (set! embed (== (caddr kv) "true")))
+               ((== (cadr kv) "path") (set! fname (caddr kv)))
+              ) ;cond
+            ) ;lambda
             r
           ) ;for-each
           (set! fname (export-pdf-ensure-suffix fname))
@@ -360,11 +363,12 @@
   (let ((export-kind (string-append (if (supports-native-pdf?) "pdf" "ps") "_export")))
     (save-buffer-save (current-buffer) (list) export-kind)
   ) ;let
-  (with-default-view (with file
-                       (url-glue (url-temp) (if (supports-native-pdf?) ".pdf" ".ps"))
-                       (print-to-file file)
-                       (preview-file file)
-                     ) ;with
+  (with-default-view
+    (with file
+      (url-glue (url-temp) (if (supports-native-pdf?) ".pdf" ".ps"))
+      (print-to-file file)
+      (preview-file file)
+    ) ;with
   ) ;with-default-view
 ) ;tm-define
 
@@ -375,16 +379,16 @@
   ;; / 关闭返回空树。字段初值在此侧取好（propose-postscript-name 建议文件名、
   ;; 页码范围默认 1..总页数），label 已翻译。
   (with result
-    (cpp-print-to-file-dialog (stree->tree `(print-to-file-form (path ,(translate "File name:")
-                                                                  ,"name"
-                                                                  ,(propose-postscript-name))
-                                              (number ,(translate "First page:")
-                                                ,"first"
-                                                ,"1")
-                                              (number ,(translate "Last page:")
-                                                ,"last"
-                                                ,(number->string (get-page-count))))
-                              ) ;stree->tree
+    (cpp-print-to-file-dialog
+      (stree->tree
+        `(print-to-file-form (path ,(translate "File name:")
+                               ,"name"
+                               ,(propose-postscript-name))
+           (number ,(translate "First page:") ,"first" ,"1")
+           (number ,(translate "Last page:")
+             ,"last"
+             ,(number->string (get-page-count))))
+      ) ;stree->tree
     ) ;cpp-print-to-file-dialog
     ;; tree->stree 后每个 kv 为 (tuple key value)：cadr=key、caddr=value。
     (with r
@@ -397,14 +401,15 @@
           ""
           last
           ""
-          (for-each (lambda (kv)
-                      (let ((k (cadr kv)) (v (caddr kv)))
-                        (cond ((== k "name") (set! name v))
-                              ((== k "first") (set! first v))
-                              ((== k "last") (set! last v))
-                        ) ;cond
-                      ) ;let
-                    ) ;lambda
+          (for-each
+            (lambda (kv)
+              (let ((k (cadr kv)) (v (caddr kv)))
+                (cond ((== k "name") (set! name v))
+                      ((== k "first") (set! first v))
+                      ((== k "last") (set! last v))
+                ) ;cond
+              ) ;let
+            ) ;lambda
             r
           ) ;for-each
           (print-pages-to-file name first last)

@@ -97,7 +97,8 @@
           ) ;
       (and-with line
         (tree-ref src l)
-        (when (and (tree-atomic? line) (<= c (string-length (tree->string line))))
+        (when
+          (and (tree-atomic? line) (<= c (string-length (tree->string line))))
           (with-buffer "tmfs://aux/latex-source"
             (let* ((p (tree->path line)) (b (append p (list 0))) (e (append p (list c))))
               (selection-set b e)
@@ -114,18 +115,20 @@
   (let* ((digest (map latex-error-digest errs))
          (errnr 0)
          (err (list-ref errs errnr))
-         (sel (lambda (msg)
-                (set! errnr (or (list-find-index digest (cut == <> msg)) 0))
-                (set! err (list-ref errs errnr))
-                (buffer-set-body "tmfs://aux/latex-error"
-                  (latex-error-doc (list-ref errs errnr))
-                ) ;buffer-set-body
-                (latex-error-track buf err)
-                (latex-error-show doc err)
-              ) ;lambda
+         (sel
+           (lambda (msg)
+             (set! errnr (or (list-find-index digest (cut == <> msg)) 0))
+             (set! err (list-ref errs errnr))
+             (buffer-set-body "tmfs://aux/latex-error"
+               (latex-error-doc (list-ref errs errnr))
+             ) ;buffer-set-body
+             (latex-error-track buf err)
+             (latex-error-show doc err)
+           ) ;lambda
          ) ;sel
         ) ;
-    (padded (resize "800px" "200px" (scrollable (choice (sel answer) digest "")))
+    (padded
+      (resize "800px" "200px" (scrollable (choice (sel answer) digest "")))
       ======
       (resize "800px"
         "150px"

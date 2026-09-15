@@ -43,15 +43,18 @@
   (cond ((== t u) #t)
         ((nlist? t) #f)
         ((null? t) #f)
-        (else (in? #t (map (lambda (x) (stree-contains? x u)) t)))
+        (else
+          (in? #t (map (lambda (x) (stree-contains? x u)) t))
+        ) ;else
   ) ;cond
 ) ;define
 
 (define (insert-maketitle-after t u)
   (cond ((nlist? t) t)
         ((== (car t) u) `(!document ,t (maketitle)))
-        (else `(,(car t)
-                ,@(map (lambda (x) (insert-maketitle-after x u)) (cdr t))))
+        (else
+          `(,(car t) ,@(map (lambda (x) (insert-maketitle-after x u)) (cdr t)))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -93,7 +96,11 @@
   (if (and (not revtex-clustered?) (null? affiliations))
     (set! affiliations '((noaffiliation)))
   ) ;if
-  (let* ((names (map (lambda (x) `(author ,x)) (list-intersperse (map cadr names) '(tmSep)))
+  (let* ((names
+           (map
+             (lambda (x) `(author ,x))
+             (list-intersperse (map cadr names) '(tmSep))
+           ) ;map
          ) ;names
          (result `(,@names ,@emails ,@urls ,@notes ,@miscs ,@affiliations))
         ) ;
@@ -106,7 +113,9 @@
            ) ;tmtex-make-doc-data
   (:mode revtex-style?)
   (let* ((title-data `(,@titles ,@subtitles ,@notes ,@miscs))
-         (title-data (if (null? title-data) '() `((!paragraph ,@title-data))))
+         (title-data
+           (if (null? title-data) '() `((!paragraph ,@title-data)))
+         ) ;title-data
          (authors* (filter pair? authors))
         ) ;
     (if (and (null? title-data) (null? authors*) (null? dates))
@@ -123,11 +132,12 @@
 (define (merge-with tags l)
   (if (null? l)
     '()
-    (letrec ((remove-tag (lambda (x)
-                           (let* ((root (car x)) (args (cdr x)) (args* (filter (lambda (y) (nin? y tags)) args)))
-                             `(,root ,@args*)
-                           ) ;let*
-                         ) ;lambda
+    (letrec ((remove-tag
+               (lambda (x)
+                 (let* ((root (car x)) (args (cdr x)) (args* (filter (lambda (y) (nin? y tags)) args)))
+                   `(,root ,@args*)
+                 ) ;let*
+               ) ;lambda
              ) ;remove-tag
             ) ;
       (let* ((last (cAr l)) (others (cDr l)) (others* (map remove-tag others)))
@@ -136,7 +146,10 @@
                        ,@(cdr last)
                        (author-affiliation (noaffiliation))))
         ) ;if
-        (map (lambda (x) `(doc-author ,x)) (append others* (list last)))
+        (map
+          (lambda (x) `(doc-author ,x))
+          (append others* (list last))
+        ) ;map
       ) ;let*
     ) ;letrec
   ) ;if
@@ -148,8 +161,12 @@
     (letrec ((get-affiliations (lambda (x) (tmtex-select-args-by-func tag x))))
       (let* ((author (car l))
              (aff (get-affiliations author))
-             (same (filter (lambda (x) (== aff (get-affiliations x))) l))
-             (others (filter (lambda (x) (!= aff (get-affiliations x))) l))
+             (same
+               (filter (lambda (x) (== aff (get-affiliations x))) l)
+             ) ;same
+             (others
+               (filter (lambda (x) (!= aff (get-affiliations x))) l)
+             ) ;others
             ) ;
         (append (merge-with aff same) (cluster-by tag others))
       ) ;let*
@@ -172,8 +189,9 @@
          (dates (map tmtex-doc-date (tmtex-select-args-by-func 'doc-date l)))
          (titles (map tmtex-doc-title (tmtex-select-args-by-func 'doc-title l)))
          (authors (map cadr (tmtex-select-args-by-func 'doc-author l)))
-         (authors `((!document ,@(map tmtex-doc-author
-                                   (cluster-by 'author-affiliation authors))))
+         (authors
+           `((!document ,@(map tmtex-doc-author
+                            (cluster-by 'author-affiliation authors))))
          ) ;authors
         ) ;
     (with r

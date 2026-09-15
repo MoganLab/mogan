@@ -108,19 +108,20 @@
                   (l2 (speech-rewrite lan 'math (cadr l)))
                   (r2 (cadr r))
                  ) ;
-             (cond ((in? r1 lowercase-letters)
-                    (cond ((!= l1 r1) #f)
-                          ((!= l2 r2) #f)
-                          ((string-number? (cadr l)) #t)
-                          ((speech-has? lan 'number (cadr l)) #t)
-                          ((speech-has? lan 'infix (cadr l)) #t)
-                          ((speech-has? lan 'postfix (cadr l)) #t)
-                          ((speech-has? lan 'prefix-infix (cadr l)) #t)
-                          ((speech-has? lan 'separator (cadr l)) #t)
-                          (else #f)
-                    ) ;cond
-                   ) ;
-                   (else #f)
+             (cond
+              ((in? r1 lowercase-letters)
+               (cond ((!= l1 r1) #f)
+                     ((!= l2 r2) #f)
+                     ((string-number? (cadr l)) #t)
+                     ((speech-has? lan 'number (cadr l)) #t)
+                     ((speech-has? lan 'infix (cadr l)) #t)
+                     ((speech-has? lan 'postfix (cadr l)) #t)
+                     ((speech-has? lan 'prefix-infix (cadr l)) #t)
+                     ((speech-has? lan 'separator (cadr l)) #t)
+                     (else #f)
+               ) ;cond
+              ) ;
+              (else #f)
              ) ;cond
            ) ;let*
          ) ;and
@@ -149,17 +150,18 @@
                   (l2 (speech-rewrite lan 'math (cADr l)))
                   (r2 (cADr r))
                  ) ;
-             (cond ((in? r1 lowercase-letters)
-                    (cond ((!= l1 r1) #f)
-                          ((!= l2 r2) #f)
-                          ((speech-has? lan 'infix (cADr l)) #t)
-                          ((speech-has? lan 'prefix (cADr l)) #t)
-                          ((speech-has? lan 'prefix-infix (cADr l)) #t)
-                          ((speech-has? lan 'separator (cADr l)) #t)
-                          (else #f)
-                    ) ;cond
-                   ) ;
-                   (else #f)
+             (cond
+              ((in? r1 lowercase-letters)
+               (cond ((!= l1 r1) #f)
+                     ((!= l2 r2) #f)
+                     ((speech-has? lan 'infix (cADr l)) #t)
+                     ((speech-has? lan 'prefix (cADr l)) #t)
+                     ((speech-has? lan 'prefix-infix (cADr l)) #t)
+                     ((speech-has? lan 'separator (cADr l)) #t)
+                     (else #f)
+               ) ;cond
+              ) ;
+              (else #f)
              ) ;cond
            ) ;let*
          ) ;and
@@ -256,7 +258,8 @@
 ) ;define
 
 (define (text-math-speech lan pre l post)
-  (if (or (null? l) (== (strip-punctuation (cAr l)) (cAr l)))
+  (if
+    (or (null? l) (== (strip-punctuation (cAr l)) (cAr l)))
     (text-math-speech-bis lan pre l "" post)
     (let* ((s (cAr l))
            (s* (strip-punctuation s))
@@ -344,35 +347,37 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (clean-text-speech l)
-  (cond ((or (null? l) (null? (cdr l))) l)
-        ((and (string-locase? (car l)) (string-upcase? (cadr l)))
-         (cons* (car l) " " (clean-text-speech (cdr l)))
-        ) ;
-        ((and (string-number? (car l)) (string-alpha? (cadr l)))
-         (cons* (car l) " " (clean-text-speech (cdr l)))
-        ) ;
-        ((and (string-alpha? (car l)) (string-number? (cadr l)))
-         (cons* (car l) " " (clean-text-speech (cdr l)))
-        ) ;
-        ((and (== (car l) "+") (string-alpha? (cadr l)))
-         (cons* (car l) " " (clean-text-speech (cdr l)))
-        ) ;
-        ((and (string-alpha? (car l)) (== (cadr l) "+"))
-         (cons* (car l) " " (clean-text-speech (cdr l)))
-        ) ;
-        ((null? (cddr l))
-         (cond ((== (car l) " ") (cons (car l) (clean-text-speech (cdr l))))
-               ((in? (cadr l) (list "+" "-")) (cons* (car l) " " (clean-text-speech (cdr l))))
-               (else (cons (car l) (clean-text-speech (cdr l))))
-         ) ;cond
-        ) ;
-        ((and (== (car l) " ") (== (cadr l) "-") (string-alpha? (caddr l)))
-         (cons* " " "-" " " (clean-text-speech (cddr l)))
-        ) ;
-        ((and (string-alpha? (car l)) (== (cadr l) "-") (== (caddr l) " "))
-         (cons* (car l) " " "-" (clean-text-speech (cddr l)))
-        ) ;
-        (else (cons (car l) (clean-text-speech (cdr l))))
+  (cond
+   ((or (null? l) (null? (cdr l))) l)
+   ((and (string-locase? (car l)) (string-upcase? (cadr l)))
+    (cons* (car l) " " (clean-text-speech (cdr l)))
+   ) ;
+   ((and (string-number? (car l)) (string-alpha? (cadr l)))
+    (cons* (car l) " " (clean-text-speech (cdr l)))
+   ) ;
+   ((and (string-alpha? (car l)) (string-number? (cadr l)))
+    (cons* (car l) " " (clean-text-speech (cdr l)))
+   ) ;
+   ((and (== (car l) "+") (string-alpha? (cadr l)))
+    (cons* (car l) " " (clean-text-speech (cdr l)))
+   ) ;
+   ((and (string-alpha? (car l)) (== (cadr l) "+"))
+    (cons* (car l) " " (clean-text-speech (cdr l)))
+   ) ;
+   ((null? (cddr l))
+    (cond
+     ((== (car l) " ") (cons (car l) (clean-text-speech (cdr l))))
+     ((in? (cadr l) (list "+" "-")) (cons* (car l) " " (clean-text-speech (cdr l))))
+     (else (cons (car l) (clean-text-speech (cdr l))))
+    ) ;cond
+   ) ;
+   ((and (== (car l) " ") (== (cadr l) "-") (string-alpha? (caddr l)))
+    (cons* " " "-" " " (clean-text-speech (cddr l)))
+   ) ;
+   ((and (string-alpha? (car l)) (== (cadr l) "-") (== (caddr l) " "))
+    (cons* (car l) " " "-" (clean-text-speech (cddr l)))
+   ) ;
+   (else (cons (car l) (clean-text-speech (cdr l))))
   ) ;cond
 ) ;define
 
@@ -408,9 +413,10 @@
            ) ;when
            (text-speech (locase-first S))
           ) ;
-          (prev (when (and spc? (nin? (string-take S 1) (list "." "," ":" ";" "!" "?")))
-                  (kbd-space)
-                ) ;when
+          (prev
+            (when (and spc? (nin? (string-take S 1) (list "." "," ":" ";" "!" "?")))
+              (kbd-space)
+            ) ;when
             (text-speech (locase-first S))
           ) ;prev
           ((requires-lowercase? (cursor-tree)) (text-speech (locase-first S)))

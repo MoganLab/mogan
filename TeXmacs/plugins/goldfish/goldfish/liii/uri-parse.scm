@@ -14,39 +14,43 @@
     (define (parse-netloc netloc-str)
       (if (string=? netloc-str "")
         '(#f #f #f #f)
-        (let* ((user+host (if (string-index netloc-str #\@)
-                            (let ((at-pos (string-index netloc-str #\@)))
-                              (cons (substring netloc-str 0 at-pos)
-                                (substring netloc-str (+ at-pos 1) (string-length netloc-str))
-                              ) ;cons
-                            ) ;let
-                            (cons #f netloc-str)
-                          ) ;if
+        (let* ((user+host
+                 (if (string-index netloc-str #\@)
+                   (let ((at-pos (string-index netloc-str #\@)))
+                     (cons (substring netloc-str 0 at-pos)
+                       (substring netloc-str (+ at-pos 1) (string-length netloc-str))
+                     ) ;cons
+                   ) ;let
+                   (cons #f netloc-str)
+                 ) ;if
                ) ;user+host
                (user-part (car user+host))
                (host-part (cdr user+host))
-               (user (if user-part
-                       (let ((colon-pos (string-index user-part #\:)))
-                         (if colon-pos (substring user-part 0 colon-pos) user-part)
-                       ) ;let
-                       #f
-                     ) ;if
+               (user
+                 (if user-part
+                   (let ((colon-pos (string-index user-part #\:)))
+                     (if colon-pos (substring user-part 0 colon-pos) user-part)
+                   ) ;let
+                   #f
+                 ) ;if
                ) ;user
-               (password (if (and user-part (string-index user-part #\:))
-                           (let ((colon-pos (string-index user-part #\:)))
-                             (substring user-part (+ colon-pos 1) (string-length user-part))
-                           ) ;let
-                           #f
-                         ) ;if
+               (password
+                 (if (and user-part (string-index user-part #\:))
+                   (let ((colon-pos (string-index user-part #\:)))
+                     (substring user-part (+ colon-pos 1) (string-length user-part))
+                   ) ;let
+                   #f
+                 ) ;if
                ) ;password
-               (host+port (if (and host-part (string-index host-part #\:))
-                            (let ((colon-pos (string-index host-part #\:)))
-                              (cons (substring host-part 0 colon-pos)
-                                (string->number (substring host-part (+ colon-pos 1) (string-length host-part)))
-                              ) ;cons
-                            ) ;let
-                            (cons host-part #f)
-                          ) ;if
+               (host+port
+                 (if (and host-part (string-index host-part #\:))
+                   (let ((colon-pos (string-index host-part #\:)))
+                     (cons (substring host-part 0 colon-pos)
+                       (string->number (substring host-part (+ colon-pos 1) (string-length host-part)))
+                     ) ;cons
+                   ) ;let
+                   (cons host-part #f)
+                 ) ;if
                ) ;host+port
               ) ;
           (list user password (car host+port) (cdr host+port))
@@ -58,10 +62,11 @@
     (define (build-netloc user password host port)
       (if (not host)
         ""
-        (string-append (if user
-                         (string-append user (if password (string-append ":" password) "") "@")
-                         ""
-                       ) ;if
+        (string-append
+          (if user
+            (string-append user (if password (string-append ":" password) "") "@")
+            ""
+          ) ;if
           host
           (if port (string-append ":" (number->string port)) "")
         ) ;string-append

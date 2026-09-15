@@ -60,14 +60,15 @@
 ) ;define
 
 (define (infix? t)
-  (cond ((tm-atomic? t)
-         (and (== (tmstring-length (tm->string t)) 1)
-           (in? (math-symbol-type (tm->string t)) (list "infix" "separator"))
-         ) ;and
-        ) ;
-        ((tm-func? t 'concat) (list-and (map var-infix? (tm-children t))))
-        ((tm-in? t '(wide neg)) (infix? (tm-ref t 0)))
-        (else #f)
+  (cond
+   ((tm-atomic? t)
+    (and (== (tmstring-length (tm->string t)) 1)
+      (in? (math-symbol-type (tm->string t)) (list "infix" "separator"))
+    ) ;and
+   ) ;
+   ((tm-func? t 'concat) (list-and (map var-infix? (tm-children t))))
+   ((tm-in? t '(wide neg)) (infix? (tm-ref t 0)))
+   (else #f)
   ) ;cond
 ) ;define
 
@@ -89,7 +90,8 @@
            (ct (cursor-tree*))
            (ct-len (string-length (tree->string ct)))
           ) ;
-      (or (and (tm-equal? ct op) (not (tm-func? (tree-up ct) 'concat)))
+      (or
+        (and (tm-equal? ct op) (not (tm-func? (tree-up ct) 'concat)))
         (and (> last 0) (< (+ last op-len) ct-len))
         (let* ((pt (tree-up ct)) (i (cAr (cDr cp))) (n (tree-arity pt)))
           (and (tree-is? pt 'concat)
@@ -112,7 +114,8 @@
            (ct (cursor-tree))
            (ct-len (string-length (tree->string ct)))
           ) ;
-      (or (and (tm-equal? ct op) (not (tm-func? (tree-up ct) 'concat)))
+      (or
+        (and (tm-equal? ct op) (not (tm-func? (tree-up ct) 'concat)))
         (and (> last op-len) (< last ct-len))
         (let* ((pt (tree-up ct)) (i (cAr (cDr cp))) (n (tree-arity pt)))
           (and (tree-is? pt 'concat)
@@ -137,7 +140,10 @@
 ) ;define
 
 (define (path-in-math? p)
-  (tm-equal? (get-mode (path->tree (list (car p))) (cdr p) "text") "math")
+  (tm-equal?
+    (get-mode (path->tree (list (car p))) (cdr p) "text")
+    "math"
+  ) ;tm-equal?
 ) ;define
 
 (define (tree-in-math? t)
@@ -174,15 +180,16 @@
     (let* ((p (car opt-p)) (t (path->tree p)))
       (or (tm-func? t 'cell)
         (not (tree-in-math? t))
-        (and (or (tm-in? t '(lsub lsup rsub rsup))
-               (tree-search-upwards t math-annotation-context?)
-               (tm-in? (tree-up t) '(concat around around*))
-               (let* ((type (get-math-type t)) (ok? (packrat-correct? "std-math" type t)))
-                 ;; (display* t ", " ok? "\n")
-                 ;; (display* (tm->stree t) ", " type ", " ok? "\n")
-                 ok?
-               ) ;let*
-             ) ;or
+        (and
+          (or (tm-in? t '(lsub lsup rsub rsup))
+            (tree-search-upwards t math-annotation-context?)
+            (tm-in? (tree-up t) '(concat around around*))
+            (let* ((type (get-math-type t)) (ok? (packrat-correct? "std-math" type t)))
+              ;; (display* t ", " ok? "\n")
+              ;; (display* (tm->stree t) ", " type ", " ok? "\n")
+              ok?
+            ) ;let*
+          ) ;or
           (!= p (buffer-path))
           (math-correct? (cDr p))
         ) ;and
@@ -195,9 +202,10 @@
   (cond ((null? l) #f)
         ((and (null? (cdr l)) (func? (car l) 'else)) `(begin ,@(cdar l)))
         ((npair? (car l)) (texmacs-error "try-correct-rewrite" "syntax error"))
-        (else (let* ((h `(and ,@(car l) (math-correct?))) (r (try-correct-rewrite (cdr l))))
-                `(or (try-modification ,h) ,r)
-              ) ;let*
+        (else
+          (let* ((h `(and ,@(car l) (math-correct?))) (r (try-correct-rewrite (cdr l))))
+            `(or (try-modification ,h) ,r)
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -225,12 +233,14 @@
 ) ;define
 
 (define (add-suppressed-arg t)
-  (when (and (tm-equal? t "")
-          (not (or (tm-is? (tree-up t) 'cell)
-                 (and (tm-is? (tree-up t) 'document) (tm-is? (tree-up (tree-up t)) 'cell))
-               ) ;or
-          ) ;not
-        ) ;and
+  (when
+    (and (tm-equal? t "")
+      (not
+        (or (tm-is? (tree-up t) 'cell)
+          (and (tm-is? (tree-up t) 'document) (tm-is? (tree-up (tree-up t)) 'cell))
+        ) ;or
+      ) ;not
+    ) ;and
     (tree-set! t '(suppressed (tiny-box)))
   ) ;when
   (when (tm-in? t '(table row cell))
@@ -380,7 +390,8 @@
 
 (define (insert-with-selection cmd)
   (let* ((t (selection-tree)))
-    (try-correct ((and (not (suppressed-around?)) (begin (cmd) (add-suppressed))))
+    (try-correct
+     ((and (not (suppressed-around?)) (begin (cmd) (add-suppressed))))
      ((kbd-backspace)
       (perform-insert cmd)
       (and (math-correct?) (with ins (lambda () (insert t)) (perform-insert ins)))
@@ -424,22 +435,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (perform-remove cmd forwards?)
-  (try-correct (
-                 ;; removal when there is suppressed content around the cursor
-                 (and (suppressed-around?)
-                   (begin
-                     (remove-suppressed)
-                     (with empty?
-                       (tree-empty? (cursor-tree))
-                       (cmd)
-                       (when (not (and empty? (math-correct?)))
-                         (remove-suppressed)
-                       ) ;when
-                       (add-suppressed)
-                     ) ;with
-                   ) ;begin
-                 ) ;and
-               ) ;
+  (try-correct
+   (
+     ;; removal when there is suppressed content around the cursor
+     (and (suppressed-around?)
+       (begin
+         (remove-suppressed)
+         (with empty?
+           (tree-empty? (cursor-tree))
+           (cmd)
+           (when (not (and empty? (math-correct?)))
+             (remove-suppressed)
+           ) ;when
+           (add-suppressed)
+         ) ;with
+       ) ;begin
+     ) ;and
+   ) ;
    (
      ;; regular removal of content
      (remove-suppressed)
@@ -493,17 +505,18 @@
 (define (remove-selection cmd forwards?)
   (let* ((t (selection-tree)))
     (cmd)
-    (try-correct ((and (infix? t)
-                    (with op
-                      (get-infix-op t)
-                      (when (== op "*")
-                        (set! op "<cdot>")
-                      ) ;when
-                      (insert `(suppressed ,op) (if forwards? :end :start))
-                      (add-suppressed)
-                    ) ;with
-                  ) ;and
-                 ) ;
+    (try-correct
+     ((and (infix? t)
+        (with op
+          (get-infix-op t)
+          (when (== op "*")
+            (set! op "<cdot>")
+          ) ;when
+          (insert `(suppressed ,op) (if forwards? :end :start))
+          (add-suppressed)
+        ) ;with
+      ) ;and
+     ) ;
      ((add-suppressed))
     ) ;try-correct
   ) ;let*

@@ -182,11 +182,12 @@
     (define (range-split-at r index)
       (cond ((= index 0) (values (%empty-range-from r) r))
             ((= index (range-length r)) (values r (%empty-range-from r)))
-            (else (let ((indexer (range-indexer r)) (k (range-complexity r)))
-                    (values (raw-range (range-start-index r) index indexer k)
-                      (raw-range index (- (range-length r) index) indexer k)
-                    ) ;values
-                  ) ;let
+            (else
+              (let ((indexer (range-indexer r)) (k (range-complexity r)))
+                (values (raw-range (range-start-index r) index indexer k)
+                  (raw-range index (- (range-length r) index) indexer k)
+                ) ;values
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -204,13 +205,14 @@
 
     (define (range-segment r k)
       (let ((len (range-length r))
-            (%subrange-no-check (lambda (s e)
-                                  (raw-range (+ (range-start-index r) s)
-                                    (- e s)
-                                    (range-indexer r)
-                                    (range-complexity r)
-                                  ) ;raw-range
-                                ) ;lambda
+            (%subrange-no-check
+              (lambda (s e)
+                (raw-range (+ (range-start-index r) s)
+                  (- e s)
+                  (range-indexer r)
+                  (range-complexity r)
+                ) ;raw-range
+              ) ;lambda
             ) ;%subrange-no-check
            ) ;
         (let loop
@@ -234,11 +236,12 @@
     (define (range-take-right r count)
       (cond ((zero? count) (%empty-range-from r))
             ((= count (range-length r)) r)
-            (else (raw-range (+ (range-start-index r) (- (range-length r) count))
-                    count
-                    (range-indexer r)
-                    (range-complexity r)
-                  ) ;raw-range
+            (else
+              (raw-range (+ (range-start-index r) (- (range-length r) count))
+                count
+                (range-indexer r)
+                (range-complexity r)
+              ) ;raw-range
             ) ;else
       ) ;cond
     ) ;define
@@ -298,7 +301,8 @@
           (let lp
             ((i 0))
             (cond ((= i len) (if #f #f))
-                  (else (apply proc (map (lambda (r) (%range-ref-no-check r i)) rs*))
+                  (else
+                    (apply proc (map (lambda (r) (%range-ref-no-check r i)) rs*))
                     (lp (+ i 1))
                   ) ;else
             ) ;cond
@@ -416,11 +420,12 @@
     ) ;define
 
     (define (range-reverse r)
-      (%range-maybe-vectorize (raw-range (range-start-index r)
-                                (range-length r)
-                                (lambda (n) ((range-indexer r) (- (range-length r) 1 n)))
-                                (+ 1 (range-complexity r))
-                              ) ;raw-range
+      (%range-maybe-vectorize
+        (raw-range (range-start-index r)
+          (range-length r)
+          (lambda (n) ((range-indexer r) (- (range-length r) 1 n)))
+          (+ 1 (range-complexity r))
+        ) ;raw-range
       ) ;%range-maybe-vectorize
     ) ;define
 
@@ -430,32 +435,35 @@
        ((r) r)
        ((ra rb)
         (let ((la (range-length ra)) (lb (range-length rb)))
-          (%range-maybe-vectorize (raw-range 0
-                                    (+ la lb)
-                                    (lambda (i)
-                                      (if (< i la) (%range-ref-no-check ra i) (%range-ref-no-check rb (- i la)))
-                                    ) ;lambda
-                                    (+ 2 (range-complexity ra) (range-complexity rb))
-                                  ) ;raw-range
+          (%range-maybe-vectorize
+            (raw-range 0
+              (+ la lb)
+              (lambda (i)
+                (if (< i la) (%range-ref-no-check ra i) (%range-ref-no-check rb (- i la)))
+              ) ;lambda
+              (+ 2 (range-complexity ra) (range-complexity rb))
+            ) ;raw-range
           ) ;%range-maybe-vectorize
         ) ;let
        ) ;
-       (rs (let ((lens (map range-length rs)))
-             (%range-maybe-vectorize (raw-range 0
-                                       (apply + lens)
-                                       (lambda (i)
-                                         (let lp
-                                           ((i i) (rs rs) (lens lens))
-                                           (if (< i (car lens))
-                                             (%range-ref-no-check (car rs) i)
-                                             (lp (- i (car lens)) (cdr rs) (cdr lens))
-                                           ) ;if
-                                         ) ;let
-                                       ) ;lambda
-                                       (+ (length rs) (apply + (map range-complexity rs)))
-                                     ) ;raw-range
-             ) ;%range-maybe-vectorize
-           ) ;let
+       (rs
+         (let ((lens (map range-length rs)))
+           (%range-maybe-vectorize
+             (raw-range 0
+               (apply + lens)
+               (lambda (i)
+                 (let lp
+                   ((i i) (rs rs) (lens lens))
+                   (if (< i (car lens))
+                     (%range-ref-no-check (car rs) i)
+                     (lp (- i (car lens)) (cdr rs) (cdr lens))
+                   ) ;if
+                 ) ;let
+               ) ;lambda
+               (+ (length rs) (apply + (map range-complexity rs)))
+             ) ;raw-range
+           ) ;%range-maybe-vectorize
+         ) ;let
        ) ;rs
       ) ;case-lambda
     ) ;define
@@ -525,10 +533,11 @@
             (let lp
               ((i 0))
               (cond ((= i len) vec)
-                    (else (vector-set! vec
-                            i
-                            (apply proc (map (lambda (r) (%range-ref-no-check r i)) rs*))
-                          ) ;vector-set!
+                    (else
+                      (vector-set! vec
+                        i
+                        (apply proc (map (lambda (r) (%range-ref-no-check r i)) rs*))
+                      ) ;vector-set!
                       (lp (+ i 1))
                     ) ;else
               ) ;cond

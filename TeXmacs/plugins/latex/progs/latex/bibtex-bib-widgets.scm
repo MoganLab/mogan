@@ -166,14 +166,16 @@
       //
       //
       (refreshable "bibwid-file-input"
-        (hlist (input (when (and answer (!= answer (url->string bibwid-url)))
-                        (bibwid-set-url (string->url answer))
-                        (refresh-now "bibwid-preview")
-                      ) ;when
-                 "file"
-                 (list (url->string bibwid-url))
-                 "40em"
-               ) ;input
+        (hlist
+          (input
+            (when (and answer (!= answer (url->string bibwid-url)))
+              (bibwid-set-url (string->url answer))
+              (refresh-now "bibwid-preview")
+            ) ;when
+            "file"
+            (list (url->string bibwid-url))
+            "40em"
+          ) ;input
           //
           //
           (explicit-buttons ("" (choose-file bibwid-set-filename "Choose" "tmbib")))

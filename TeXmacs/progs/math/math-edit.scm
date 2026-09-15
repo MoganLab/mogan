@@ -72,9 +72,10 @@
           ((and (== b " ") (== p "no spurious spaces")) (noop))
           ((== b " ") (remove-text #f) (make-space "1em"))
           ((and (tree? b) (tree-func? b 'space 1))
-           (if (and (tree-atomic? (tree-ref b 0))
-                 (string-ends? (tree->string (tree-ref b 0)) "em")
-               ) ;and
+           (if
+             (and (tree-atomic? (tree-ref b 0))
+               (string-ends? (tree->string (tree-ref b 0)) "em")
+             ) ;and
              (make-space "1em")
              (geometry-horizontal b #t)
            ) ;if
@@ -136,8 +137,10 @@
     (if (>= (length l2) 2)
       (let* ((col1 (apply tmconcat (car l2)))
              (col2 (apply tmconcat (cadr l2)))
-             (r `(tformat (table (row (cell ,col1) (cell ,col2))
-                            (row (cell "") (cell "")))))
+             (r
+               `(tformat (table (row (cell ,col1) (cell ,col2))
+                           (row (cell "") (cell ""))))
+             ) ;r
             ) ;
         (tree-set! c r)
         (tree-go-to t 0 0 1 0 0 :end)
@@ -273,7 +276,8 @@
 ) ;tm-define
 
 (define (equation*->math t)
-  (if (or (not (tree-is? t 0 'document)) (= (tree-arity (tree-ref t 0)) 1))
+  (if
+    (or (not (tree-is? t 0 'document)) (= (tree-arity (tree-ref t 0)) 1))
     (begin
       (if (tree-is? t 0 'document) (tree-set! t 0 (tree-ref t 0 0)))
       (tree-set! t `(math ,(tree-ref t 0)))
@@ -282,18 +286,20 @@
           (atomic-cut-right-until (tree-end (tree-ref t 0)) string-ref-npunct?)
           (with-cursor (tree->path t :start)
             (kbd-backspace)
-            (if (and (!= (cursor-path) (cursor-after (go-start-paragraph)))
-                  (!= (cursor-path) (cursor-after (go-end-paragraph)))
-                ) ;and
+            (if
+              (and (!= (cursor-path) (cursor-after (go-start-paragraph)))
+                (!= (cursor-path) (cursor-after (go-end-paragraph)))
+              ) ;and
               (insert " ")
             ) ;if
           ) ;with-cursor
           (with-cursor (tree->path t :end)
             (insert r)
             (kbd-delete)
-            (if (and (!= (cursor-path) (cursor-after (go-start-paragraph)))
-                  (!= (cursor-path) (cursor-after (go-end-paragraph)))
-                ) ;and
+            (if
+              (and (!= (cursor-path) (cursor-after (go-start-paragraph)))
+                (!= (cursor-path) (cursor-after (go-end-paragraph)))
+              ) ;and
               (insert " ")
             ) ;if
           ) ;with-cursor
@@ -359,13 +365,17 @@
 (define (check-border? l empty?)
   (cond ((null? l) #t)
         ((and (not empty?) (nnull? (car l)) (!= (caar l) "")) #f)
-        (else (check-border? (cdr l) (== (cAr (car l)) "")))
+        (else
+          (check-border? (cdr l) (== (cAr (car l)) ""))
+        ) ;else
   ) ;cond
 ) ;define
 
 (define (convertible-eqnarray? t)
   (let* ((rs (select (tm->stree t) '(:* row)))
-         (rcs (map (lambda (r) (select r '(:* cell 0))) rs))
+         (rcs
+           (map (lambda (r) (select r '(:* cell 0))) rs)
+         ) ;rcs
         ) ;
     (check-border? rcs #t)
   ) ;let*
@@ -380,7 +390,9 @@
       (let* ((l* (select t '(:* cell 0)))
              (l (if (null? labs) l* (cons (car labs) l*)))
              (c (apply tmconcat (map tree->stree l)))
-             (n (if (null? labs) `(equation* ,c) `(equation ,c)))
+             (n
+               (if (null? labs) `(equation* ,c) `(equation ,c))
+             ) ;n
             ) ;
         (tree-set! t n)
         (tree-go-to t 0 :end)
@@ -423,24 +435,30 @@
          (c* (tree-ref t 0))
          (c (if (tree-func? c* 'document 1) (tree-ref c* 0) c*))
          (l0 (concat-decompose c))
-         (l1 (list-filter l0 (lambda (x) (not (tm-is? x 'label)))))
+         (l1
+           (list-filter l0 (lambda (x) (not (tm-is? x 'label))))
+         ) ;l1
          (l2 (list-scatter l1 binary-relation? #t))
         ) ;
     (when (>= (length l2) 2)
       (cut-all t 'label)
-      (let* ((l3 (cons (list (apply tmconcat (car l2)) (caadr l2) (apply tmconcat (cdadr l2)))
-                   (map make-eqn-row-sub (cddr l2))
-                 ) ;cons
+      (let* ((l3
+               (cons (list (apply tmconcat (car l2)) (caadr l2) (apply tmconcat (cdadr l2)))
+                 (map make-eqn-row-sub (cddr l2))
+               ) ;cons
              ) ;l3
-             (l4 (if (null? labs)
-                   l3
-                   (rcons (cDr l3)
-                     (rcons (cDr (cAr l3)) (tmconcat (cAr (cAr l3)) '(eq-number) (car labs)))
-                   ) ;rcons
-                 ) ;if
+             (l4
+               (if (null? labs)
+                 l3
+                 (rcons (cDr l3)
+                   (rcons (cDr (cAr l3)) (tmconcat (cAr (cAr l3)) '(eq-number) (car labs)))
+                 ) ;rcons
+               ) ;if
              ) ;l4
              (l5 (map finalize-row l4))
-             (r `(eqnarray* (document (tformat (table ,@l5)))))
+             (r
+               `(eqnarray* (document (tformat (table ,@l5))))
+             ) ;r
             ) ;
         (tree-set! t r)
         (tree-go-to t 0 0 0 :last :last 0 :end)
@@ -469,9 +487,10 @@
 
 (tm-define (script-only-script? t)
   (and (tree-is? (tree-up t) 'concat)
-    (not (or (and (tree-ref t :previous) (script-context? (tree-ref t :previous)))
-           (and (tree-ref t :next) (script-context? (tree-ref t :next)))
-         ) ;or
+    (not
+      (or (and (tree-ref t :previous) (script-context? (tree-ref t :previous)))
+        (and (tree-ref t :next) (script-context? (tree-ref t :next)))
+      ) ;or
     ) ;not
   ) ;and
 ) ;tm-define
@@ -617,28 +636,29 @@
 ) ;define
 
 (define (bracket-circulate t forward? brackets)
-  (cond ((and (tree-in? t '(around around*)) (== (tree-arity t) 3))
-         (bracket-circulate (tree-ref t 0) forward? lbrackets)
-         (bracket-circulate (tree-ref t 2) forward? rbrackets)
-        ) ;
-        ((and (tree-is? t 'left) (> (tree-arity t) 1))
-         (bracket-circulate (tree-ref t 0) forward? lbrackets)
-        ) ;
-        ((and (tree-is? t 'mid) (> (tree-arity t) 1))
-         (bracket-circulate (tree-ref t 0) forward? mbrackets)
-        ) ;
-        ((and (tree-is? t 'right) (> (tree-arity t) 1))
-         (bracket-circulate (tree-ref t 0) forward? rbrackets)
-        ) ;
-        ((and (tree-atomic? t) (in? (tree->string t) brackets))
-         (let* ((s (tree->string t))
-                (i (list-find-index brackets (lambda (x) (== x s))))
-                (j (modulo (+ i (if forward? 1 -1)) (length brackets)))
-                (r (list-ref brackets j))
-               ) ;
-           (tree-assign t r)
-         ) ;let*
-        ) ;
+  (cond
+   ((and (tree-in? t '(around around*)) (== (tree-arity t) 3))
+    (bracket-circulate (tree-ref t 0) forward? lbrackets)
+    (bracket-circulate (tree-ref t 2) forward? rbrackets)
+   ) ;
+   ((and (tree-is? t 'left) (> (tree-arity t) 1))
+    (bracket-circulate (tree-ref t 0) forward? lbrackets)
+   ) ;
+   ((and (tree-is? t 'mid) (> (tree-arity t) 1))
+    (bracket-circulate (tree-ref t 0) forward? mbrackets)
+   ) ;
+   ((and (tree-is? t 'right) (> (tree-arity t) 1))
+    (bracket-circulate (tree-ref t 0) forward? rbrackets)
+   ) ;
+   ((and (tree-atomic? t) (in? (tree->string t) brackets))
+    (let* ((s (tree->string t))
+           (i (list-find-index brackets (lambda (x) (== x s))))
+           (j (modulo (+ i (if forward? 1 -1)) (length brackets)))
+           (r (list-ref brackets j))
+          ) ;
+      (tree-assign t r)
+    ) ;let*
+   ) ;
   ) ;cond
 ) ;define
 
@@ -676,31 +696,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (bracket-size-increase t by)
-  (cond ((and (tree-in? t '(left mid right)) (>= (tree-arity t) 2))
-         (bracket-size-increase (tree-ref t 1) by)
-        ) ;
-        ((and (tree-in? t '(around around*)) (== (tree-arity t) 3))
-         (when (tree-atomic? (tree-ref t 0))
-           (tree-set t 0 `(left ,(tree-ref t 0) ,"0"))
-         ) ;when
-         (when (tree-atomic? (tree-ref t 2))
-           (tree-set t 2 `(right ,(tree-ref t 2) ,"0"))
-         ) ;when
-         (bracket-size-increase (tree-ref t 0) by)
-         (bracket-size-increase (tree-ref t 2) by)
-         (when (tm-equal? (tree-ref t 0 1) "0")
-           (tree-set t 0 (tree-ref t 0 0))
-         ) ;when
-         (when (tm-equal? (tree-ref t 2 1) "0")
-           (tree-set t 2 (tree-ref t 2 0))
-         ) ;when
-        ) ;
-        ((tree-integer? t)
-         (let* ((old (tree->number t)) (new (+ old by)))
-           (tree-set t (number->string new))
-         ) ;let*
-        ) ;
-        ((tm-length? t) (length-increase t by))
+  (cond
+   ((and (tree-in? t '(left mid right)) (>= (tree-arity t) 2))
+    (bracket-size-increase (tree-ref t 1) by)
+   ) ;
+   ((and (tree-in? t '(around around*)) (== (tree-arity t) 3))
+    (when (tree-atomic? (tree-ref t 0))
+      (tree-set t 0 `(left ,(tree-ref t 0) ,"0"))
+    ) ;when
+    (when (tree-atomic? (tree-ref t 2))
+      (tree-set t 2 `(right ,(tree-ref t 2) ,"0"))
+    ) ;when
+    (bracket-size-increase (tree-ref t 0) by)
+    (bracket-size-increase (tree-ref t 2) by)
+    (when (tm-equal? (tree-ref t 0 1) "0")
+      (tree-set t 0 (tree-ref t 0 0))
+    ) ;when
+    (when (tm-equal? (tree-ref t 2 1) "0")
+      (tree-set t 2 (tree-ref t 2 0))
+    ) ;when
+   ) ;
+   ((tree-integer? t)
+    (let* ((old (tree->number t)) (new (+ old by)))
+      (tree-set t (number->string new))
+    ) ;let*
+   ) ;
+   ((tm-length? t) (length-increase t by))
   ) ;cond
 ) ;define
 
@@ -782,19 +803,20 @@
 ) ;define
 
 (define (try-matching-insert open? which large?)
-  (try-modification (let* ((nr (count-missing (find-non-bracket (cursor-tree)) open?))
-                           (tag (if large? 'around* 'around))
-                          ) ;
-                      ;; (display* nr ", " (find-non-bracket (cursor-tree)) "\n")
-                      (if open?
-                        (insert-go-to (list tag which "" "<nobracket>") '(1 0))
-                        (insert-go-to (list tag "<nobracket>" "" which) '(1))
-                      ) ;if
-                      (brackets-refresh)
-                      ;; (display* (count-missing (find-non-bracket (cursor-tree)) open?) ", "
-                      ;; (find-non-bracket (cursor-tree)) "\n")
-                      (> nr (count-missing (find-non-bracket (cursor-tree)) open?))
-                    ) ;let*
+  (try-modification
+    (let* ((nr (count-missing (find-non-bracket (cursor-tree)) open?))
+           (tag (if large? 'around* 'around))
+          ) ;
+      ;; (display* nr ", " (find-non-bracket (cursor-tree)) "\n")
+      (if open?
+        (insert-go-to (list tag which "" "<nobracket>") '(1 0))
+        (insert-go-to (list tag "<nobracket>" "" which) '(1))
+      ) ;if
+      (brackets-refresh)
+      ;; (display* (count-missing (find-non-bracket (cursor-tree)) open?) ", "
+      ;; (find-non-bracket (cursor-tree)) "\n")
+      (> nr (count-missing (find-non-bracket (cursor-tree)) open?))
+    ) ;let*
   ) ;try-modification
 ) ;define
 
@@ -874,29 +896,39 @@
     (if (selection-active-normal?)
       (begin
         (clipboard-cut "temp")
-        (insert-go-to `(,(if large? 'around* 'around) ,lb ,"" ,rb) '(1 0))
+        (insert-go-to
+          `(,(if large? 'around* 'around) ,lb ,"" ,rb)
+          '(1 0)
+        ) ;insert-go-to
         (clipboard-paste "temp")
       ) ;begin
       (let* ((t (find-adjacent-around #t)) (u (find-adjacent-around #f)))
-        (when (and t (deleted? t 2) (== (tm->stree (tree-ref t 0)) "|"))
+        (when
+          (and t (deleted? t 2) (== (tm->stree (tree-ref t 0)) "|"))
           (set! t #f)
         ) ;when
-        (when (and u (deleted? u 0) (== (tm->stree (tree-ref u 2)) "|"))
+        (when
+          (and u (deleted? u 0) (== (tm->stree (tree-ref u 2)) "|"))
           (set! u #f)
         ) ;when
-        (cond ((and t (deleted? t 2) (or (not (deleted? t 0)) (tree-at-end? t)))
-               (tree-set t 2 lb)
-               (tree-go-to t :end)
-              ) ;
-              ((and t (deleted? t 0)) (tree-set t 0 lb) (tree-go-to t 1 :start))
-              ((and u (== lb rb) (== (tree->stree (tree-ref u 2)) rb)) (tree-go-to u :end))
-              ((and u (== rb "|") (== (tree->stree (tree-ref u 0)) "<langle>"))
-               (tree-set u 2 rb)
-               (tree-go-to u :end)
-              ) ;
-              ((try-matching-insert #t lb large?) (noop))
-              (else (insert-go-to `(,(if large? 'around* 'around) ,lb ,"" ,rb) '(1
-                                                                                 0)))
+        (cond
+         ((and t (deleted? t 2) (or (not (deleted? t 0)) (tree-at-end? t)))
+          (tree-set t 2 lb)
+          (tree-go-to t :end)
+         ) ;
+         ((and t (deleted? t 0)) (tree-set t 0 lb) (tree-go-to t 1 :start))
+         ((and u (== lb rb) (== (tree->stree (tree-ref u 2)) rb)) (tree-go-to u :end))
+         ((and u (== rb "|") (== (tree->stree (tree-ref u 0)) "<langle>"))
+          (tree-set u 2 rb)
+          (tree-go-to u :end)
+         ) ;
+         ((try-matching-insert #t lb large?) (noop))
+         (else
+           (insert-go-to
+             `(,(if large? 'around* 'around) ,lb ,"" ,rb)
+             '(1 0)
+           ) ;insert-go-to
+         ) ;else
         ) ;cond
       ) ;let*
     ) ;if
@@ -929,14 +961,15 @@
   ) ;when
   (when (!= (get-preference "automatic brackets") "off")
     (let* ((t (find-adjacent-around #t)) (u (find-adjacent-around #f)))
-      (cond ((and t (deleted? t 0) (or (not (deleted? t 2)) (not (tree-at-end? t))))
-             (tree-set t 0 rb)
-             (tree-go-to t 1 :start)
-            ) ;
-            ((and t (deleted? t 2)) (tree-set t 2 rb) (tree-go-to t :end))
-            (u (tree-set u 2 rb) (tree-go-to u :end))
-            ((try-matching-insert #f rb large?) (noop))
-            (else (set-message "Error: bracket does not match" (force-string rb)))
+      (cond
+       ((and t (deleted? t 0) (or (not (deleted? t 2)) (not (tree-at-end? t))))
+        (tree-set t 0 rb)
+        (tree-go-to t 1 :start)
+       ) ;
+       ((and t (deleted? t 2)) (tree-set t 2 rb) (tree-go-to t :end))
+       (u (tree-set u 2 rb) (tree-go-to u :end))
+       ((try-matching-insert #f rb large?) (noop))
+       (else (set-message "Error: bracket does not match" (force-string rb)))
       ) ;cond
     ) ;let*
   ) ;when
@@ -1017,61 +1050,62 @@
       (cond ((not (pair? src)) #f)
             ;; 确保结构至少是 (lambda () body...)
             ((< (length src) 3) #f)
-            (else (let ((body (caddr src)))
-                    (cond ((not (pair? body)) #f)
-                          ((null? (cdr body)) #f)
-                          (else (let ((func-name (car body)))
-                                  (case func-name
-                                    ;; Case 1: math-big-operator (处理积分、求和等大运算符)
-                                    ;; 转换目标: "<big-int-2>" (TeXmacs 内部字体图标名)
-                                    ((math-big-operator)
-                                     (and (string? (cadr body))
-                                       `(symbol-completion ,(string-append "<big-"
-                                                              (cadr body)
-                                                              "-2>"))
-                                     ) ;and
-                                    ) ;
-                                    ;; Case 2: make-lprime (左上标/prime 符号)
-                                    ((make-lprime) (and (string? (cadr body)) `(symbol-completion ,(cadr body))))
-                                    ;; Case 3: math-bracket-open (括号对)
-                                    ;; 提取左右括号并组合为 "lb…rb" 格式，确保每个变体唯一
-                                    ((math-bracket-open)
-                                     (and (>= (length (cdr body)) 2)
-                                       (string? (cadr body))
-                                       (string? (caddr body))
-                                       (let ((lb (cadr body)) (rb (caddr body)))
-                                         `(symbol-completion ,(string-append lb
-                                                                rb))
-                                       ) ;let
-                                     ) ;and
-                                    ) ;
-                                    ;; Case 4: math-separator
-                                    ((math-separator)
-                                     (and (string? (cadr body))
-                                       `(symbol-completion ,(if (== (cadr body)
-                                                                  "<nobracket>")
-                                                              "<mid-.>"
-                                                              (string-append "<mid-"
-                                                                (if (and (string-starts? (cadr body)
-                                                                           "<")
-                                                                      (string-ends? (cadr body)
-                                                                        ">"))
-                                                                  (substring (cadr body)
-                                                                    1
-                                                                    (- (string-length (cadr body))
-                                                                      1))
-                                                                  (cadr body))
-                                                                ">")))
-                                     ) ;and
-                                    ) ;
-                                    ;; 预留位置：可以在此添加其他函数的处理逻辑
+            (else
+              (let ((body (caddr src)))
+                (cond ((not (pair? body)) #f)
+                      ((null? (cdr body)) #f)
+                      (else
+                        (let ((func-name (car body)))
+                          (case func-name
+                            ;; Case 1: math-big-operator (处理积分、求和等大运算符)
+                            ;; 转换目标: "<big-int-2>" (TeXmacs 内部字体图标名)
+                            ((math-big-operator)
+                             (and (string? (cadr body))
+                               `(symbol-completion ,(string-append "<big-"
+                                                      (cadr body)
+                                                      "-2>"))
+                             ) ;and
+                            ) ;
+                            ;; Case 2: make-lprime (左上标/prime 符号)
+                            ((make-lprime) (and (string? (cadr body)) `(symbol-completion ,(cadr body))))
+                            ;; Case 3: math-bracket-open (括号对)
+                            ;; 提取左右括号并组合为 "lb…rb" 格式，确保每个变体唯一
+                            ((math-bracket-open)
+                             (and (>= (length (cdr body)) 2)
+                               (string? (cadr body))
+                               (string? (caddr body))
+                               (let ((lb (cadr body)) (rb (caddr body)))
+                                 `(symbol-completion ,(string-append lb rb))
+                               ) ;let
+                             ) ;and
+                            ) ;
+                            ;; Case 4: math-separator
+                            ((math-separator)
+                             (and (string? (cadr body))
+                               `(symbol-completion ,(if (== (cadr body)
+                                                          "<nobracket>")
+                                                      "<mid-.>"
+                                                      (string-append "<mid-"
+                                                        (if (and (string-starts? (cadr body)
+                                                                   "<")
+                                                              (string-ends? (cadr body)
+                                                                ">"))
+                                                          (substring (cadr body)
+                                                            1
+                                                            (- (string-length (cadr body))
+                                                              1))
+                                                          (cadr body))
+                                                        ">")))
+                             ) ;and
+                            ) ;
+                            ;; 预留位置：可以在此添加其他函数的处理逻辑
 
-                                    (else #f)
-                                  ) ;case
-                                ) ;let
-                          ) ;else
-                    ) ;cond
-                  ) ;let
+                            (else #f)
+                          ) ;case
+                        ) ;let
+                      ) ;else
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;let
@@ -1103,13 +1137,14 @@
   ;;     符号列表，格式为((symbol-completion "符号") ...)
   (if (not (kbd-find-key-binding comb))
     '()
-    (let* ((tab-info (let loop
-                       ((s comb) (count 0))
-                       (if (string-ends? s " tab")
-                         (loop (substring s 0 (- (string-length s) 4)) (+ count 1))
-                         (cons s count)
-                       ) ;if
-                     ) ;let
+    (let* ((tab-info
+             (let loop
+               ((s comb) (count 0))
+               (if (string-ends? s " tab")
+                 (loop (substring s 0 (- (string-length s) 4)) (+ count 1))
+                 (cons s count)
+               ) ;if
+             ) ;let
            ) ;tab-info
            (pre (car tab-info))
            (tab-iter (cdr tab-info))
@@ -1118,43 +1153,50 @@
            (kbd-sym (and (pair? kbd-res) (car kbd-res)))
            ;; primary-sym 是当前已输入的符号 (pre 的绑定)
            (primary-sym kbd-sym)
-           (base (cond ((string? primary-sym) `((symbol-completion ,primary-sym)))
-                       ((procedure? primary-sym)
-                        (let ((sym (function-to-symbol kbd-res)))
-                          (if sym (list sym) '())
-                        ) ;let
-                       ) ;
-                       (else '())
-                 ) ;cond
+           (base
+             (cond
+              ((string? primary-sym) `((symbol-completion ,primary-sym)))
+              ((procedure? primary-sym)
+               (let ((sym (function-to-symbol kbd-res)))
+                 (if sym (list sym) '())
+               ) ;let
+              ) ;
+              (else '())
+             ) ;cond
            ) ;base
            ;; 使用新的 kbd-find-prefix-tab 获取所有 tab 切换候选
            (tab-pairs (kbd-find-prefix-tab pre))
           ) ;
-      (let ((others (filter-map (lambda (pair)
-                                  (let ((val (cdr pair)))
-                                    (if (and (pair? val) (string? (car val)))
-                                      `(symbol-completion ,(car val))
-                                      (function-to-symbol val)
-                                    ) ;if
-                                  ) ;let
-                                ) ;lambda
-                      tab-pairs
-                    ) ;filter-map
+      (let ((others
+              (filter-map
+                (lambda (pair)
+                  (let ((val (cdr pair)))
+                    (if (and (pair? val) (string? (car val)))
+                      `(symbol-completion ,(car val))
+                      (function-to-symbol val)
+                    ) ;if
+                  ) ;let
+                ) ;lambda
+                tab-pairs
+              ) ;filter-map
             ) ;others
            ) ;
         (if (not (null? base))
-          (let* ((primary-name (and (pair? (car base)) (= (length (car base)) 2) (cadr (car base)))
+          (let* ((primary-name
+                   (and (pair? (car base)) (= (length (car base)) 2) (cadr (car base)))
                  ) ;primary-name
-                 (filtered (filter (lambda (entry)
-                                     (or (not (pair? entry))
-                                       (not (= (length entry) 2))
-                                       (not (string? (cadr entry)))
-                                       (not primary-name)
-                                       (not (string=? (cadr entry) primary-name))
-                                     ) ;or
-                                   ) ;lambda
-                             others
-                           ) ;filter
+                 (filtered
+                   (filter
+                     (lambda (entry)
+                       (or (not (pair? entry))
+                         (not (= (length entry) 2))
+                         (not (string? (cadr entry)))
+                         (not primary-name)
+                         (not (string=? (cadr entry) primary-name))
+                       ) ;or
+                     ) ;lambda
+                     others
+                   ) ;filter
                  ) ;filtered
                 ) ;
             (append base filtered)
@@ -1175,34 +1217,36 @@
       ;; 如果查不到任何绑定，直接返回空
       (let* ((raw-cmd (car res))
              ;; 统一解析出字符串类型的符号名 (bind-name)
-             (bind-name (cond
-                          ;; 情况 A: 绑定直接就是字符串 (例如 "<leq>")
-                          ((string? raw-cmd) raw-cmd)
-                          ;; 情况 B: 绑定是函数 (例如 math-big-operator 的闭包)
-                          ((procedure? raw-cmd)
-                           ;; 利用 function-to-symbol 解析
-                           (let ((parsed (function-to-symbol res)))
-                             ;; function-to-symbol 返回的是 (symbol-completion "名字")
-                             (if (and (pair? parsed) (eq? (car parsed) 'symbol-completion)) (cadr parsed) #f)
-                           ) ;let
-                          ) ;
+             (bind-name
+               (cond
+                 ;; 情况 A: 绑定直接就是字符串 (例如 "<leq>")
+                 ((string? raw-cmd) raw-cmd)
+                 ;; 情况 B: 绑定是函数 (例如 math-big-operator 的闭包)
+                 ((procedure? raw-cmd)
+                  ;; 利用 function-to-symbol 解析
+                  (let ((parsed (function-to-symbol res)))
+                    ;; function-to-symbol 返回的是 (symbol-completion "名字")
+                    (if (and (pair? parsed) (eq? (car parsed) 'symbol-completion)) (cadr parsed) #f)
+                  ) ;let
+                 ) ;
 
-                          (else #f)
-                        ) ;cond
+                 (else #f)
+               ) ;cond
              ) ;bind-name
             ) ;
 
         (if (string? bind-name)
-          (map (lambda (x)
-                 (if (and (pair? x)
-                       (eq? (car x) 'symbol-completion)
-                       ;; 用解析出来的 bind-name 进行比对
-                       (string=? (cadr x) bind-name)
-                     ) ;and
-                   (list 'symbol-completion* bind-name)
-                   x
-                 ) ;if
-               ) ;lambda
+          (map
+            (lambda (x)
+              (if (and (pair? x)
+                    (eq? (car x) 'symbol-completion)
+                    ;; 用解析出来的 bind-name 进行比对
+                    (string=? (cadr x) bind-name)
+                  ) ;and
+                (list 'symbol-completion* bind-name)
+                x
+              ) ;if
+            ) ;lambda
             lst
           ) ;map
           '()
@@ -1270,8 +1314,11 @@
     (with symbols
       (math-tabcycle-symbols comb)
       (if (> (length symbols) 1)
-        (set-auxiliary-widget (make-menu-widget `((tile ,99
-                                                    (link (lambda ,() ,symbols)))) 0)
+        (set-auxiliary-widget
+          (make-menu-widget
+            `((tile ,99 (link (lambda ,() ,symbols))))
+            0
+          ) ;make-menu-widget
           "Math"
         ) ;set-auxiliary-widget
       ) ;if

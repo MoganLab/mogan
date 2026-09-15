@@ -29,7 +29,8 @@
   (assuming (nnull? (get-macro-list :packages))
     (for (pack (get-public-style-list))
       (assuming (nnull? (get-macro-list pack))
-        (-> (eval `(verbatim ,pack))
+        (->
+          (eval `(verbatim ,pack))
           (for (m (get-macro-list pack :sort 30))
            ((eval `(verbatim ,m)) (make (string->symbol m)))
           ) ;for

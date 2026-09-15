@@ -66,12 +66,13 @@
         ) ;
     (if (null? sel)
       (tree-spell-at spell-language t p pos 1000)
-      (and-let* ((pos1 (car sel))
-                 (pos2 (cadr sel))
-                 (pos1* (and (list-starts? pos1 p) (list-tail pos1 (length p))))
-                 (pos2* (and (list-starts? pos2 p) (list-tail pos2 (length p))))
-                ) ;
-        (tree-spell-selection spell-language t p pos1* pos2* 1000)
+      (and-let*
+       ((pos1 (car sel))
+        (pos2 (cadr sel))
+        (pos1* (and (list-starts? pos1 p) (list-tail pos1 (length p))))
+        (pos2* (and (list-starts? pos2 p) (list-tail pos2 (length p))))
+       ) ;
+       (tree-spell-selection spell-language t p pos1* pos2* 1000)
       ) ;and-let*
     ) ;if
   ) ;let*
@@ -354,9 +355,10 @@
         ((string? i)
          (with nr (- (string->number (substring i 0 1)) 1) (spell-follow-suggestion nr))
         ) ;
-        (else (when (and (>= i 0) (< i (length spell-suggestions)))
-                (spell-replace-by (list-ref spell-suggestions i))
-              ) ;when
+        (else
+          (when (and (>= i 0) (< i (length spell-suggestions)))
+            (spell-replace-by (list-ref spell-suggestions i))
+          ) ;when
         ) ;else
   ) ;cond
 ) ;tm-define
@@ -493,70 +495,84 @@
 ) ;tm-define
 
 (tm-widget ((spell-widget u style init aux) quit)
-  (padded (hlist (vlist (with dummy
-                          (set! spell-quit quit)
-                          (resize "400px"
-                            "75px"
-                            (texmacs-input `(with ,@init ,(spell-document)) `(style (tuple ,@style)) aux)
-                          ) ;resize
-                        ) ;with
-                   (glue #t #t 0 0)
-                   (explicit-buttons (aligned (meti (hlist // (text "Accept during this pass")) ("Tab" (spell-accept-word)))
-                                       (meti (hlist // (text "Permanently insert into dictionary"))
-                                        (" + " (spell-insert-word))
-                                       ) ;meti
-                                     ) ;aligned
-                   ) ;explicit-buttons
-                   (glue #t #t 0 0)
-                   ===
-                   (hlist >>>
-                    ((balloon (icon "tm_search_first.xpm") "First error") (spell-extreme-match #f))
-                    ((balloon (icon "tm_search_previous.xpm") "Previous error")
-                     (spell-next-match #f)
-                    ) ;
-                    ((balloon (icon "tm_search_next.xpm") "Next error") (spell-next-match #t))
-                    ((balloon (icon "tm_search_last.xpm") "Last error") (spell-extreme-match #t))
-                    ///
-                    ///
-                    ((balloon (icon "tm_compress_tool.xpm") "Compress into toolbar")
-                     (set-boolean-preference "toolbar spell" #t)
-                     (quit)
-                     (toolbar-spell-start)
-                    ) ;
-                    ((balloon (icon "tm_close_tool.xpm") "Close spell tool") (quit))
-                   ) ;hlist
-                 ) ;vlist
-            ///
-            ///
-            (resize "200px"
-              "225px"
-              (refreshable "spell-suggestions"
-                (choice (spell-follow-suggestion answer)
-                  (prefix-suggestions 1 spell-suggestions)
-                  ""
-                ) ;choice
-              ) ;refreshable
-            ) ;resize
-          ) ;hlist
+  (padded
+    (hlist
+      (vlist
+        (with dummy
+          (set! spell-quit quit)
+          (resize "400px"
+            "75px"
+            (texmacs-input
+              `(with ,@init ,(spell-document))
+              `(style (tuple ,@style))
+              aux
+            ) ;texmacs-input
+          ) ;resize
+        ) ;with
+        (glue #t #t 0 0)
+        (explicit-buttons
+          (aligned (meti (hlist // (text "Accept during this pass")) ("Tab" (spell-accept-word)))
+            (meti (hlist // (text "Permanently insert into dictionary"))
+             (" + " (spell-insert-word))
+            ) ;meti
+          ) ;aligned
+        ) ;explicit-buttons
+        (glue #t #t 0 0)
+        ===
+        (hlist >>>
+         ((balloon (icon "tm_search_first.xpm") "First error") (spell-extreme-match #f))
+         ((balloon (icon "tm_search_previous.xpm") "Previous error")
+          (spell-next-match #f)
+         ) ;
+         ((balloon (icon "tm_search_next.xpm") "Next error") (spell-next-match #t))
+         ((balloon (icon "tm_search_last.xpm") "Last error") (spell-extreme-match #t))
+         ///
+         ///
+         ((balloon (icon "tm_compress_tool.xpm") "Compress into toolbar")
+          (set-boolean-preference "toolbar spell" #t)
+          (quit)
+          (toolbar-spell-start)
+         ) ;
+         ((balloon (icon "tm_close_tool.xpm") "Close spell tool") (quit))
+        ) ;hlist
+      ) ;vlist
+      ///
+      ///
+      (resize "200px"
+        "225px"
+        (refreshable "spell-suggestions"
+          (choice (spell-follow-suggestion answer)
+            (prefix-suggestions 1 spell-suggestions)
+            ""
+          ) ;choice
+        ) ;refreshable
+      ) ;resize
+    ) ;hlist
   ) ;padded
 ) ;tm-widget
 
 (tm-tool* (spell-tool win u style init aux)
   (:name "Spelling error")
   (:quit (spell-cancel))
-  (centered (with dummy
-              (set! spell-quit quit)
-              (resize "350px"
-                "75px"
-                (texmacs-input `(with ,@init ,(spell-document)) `(style (tuple ,@style)) aux)
-              ) ;resize
-            ) ;with
+  (centered
+    (with dummy
+      (set! spell-quit quit)
+      (resize "350px"
+        "75px"
+        (texmacs-input
+          `(with ,@init ,(spell-document))
+          `(style (tuple ,@style))
+          aux
+        ) ;texmacs-input
+      ) ;resize
+    ) ;with
     ======
-    (explicit-buttons (aligned (meti (hlist // (text "Accept during this pass")) ("Tab" (spell-accept-word)))
-                        (meti (hlist // (text "Permanently insert into dictionary"))
-                         (" + " (spell-insert-word))
-                        ) ;meti
-                      ) ;aligned
+    (explicit-buttons
+      (aligned (meti (hlist // (text "Accept during this pass")) ("Tab" (spell-accept-word)))
+        (meti (hlist // (text "Permanently insert into dictionary"))
+         (" + " (spell-insert-word))
+        ) ;meti
+      ) ;aligned
     ) ;explicit-buttons
     ======
     (hlist >>>
@@ -680,13 +696,14 @@
      "15em"
    ) ;input
    (assuming (nnull? spell-suggestions)
-     (minibar (for (i (.. 0 (length spell-suggestions)))
-                ///
-                (with text
-                  (string-append (number->string (+ i 1)) ": " (list-ref spell-suggestions i))
-                  ((eval text) (spell-follow-suggestion i))
-                ) ;with
-              ) ;for
+     (minibar
+       (for (i (.. 0 (length spell-suggestions)))
+         ///
+         (with text
+           (string-append (number->string (+ i 1)) ": " (list-ref spell-suggestions i))
+           ((eval text) (spell-follow-suggestion i))
+         ) ;with
+       ) ;for
      ) ;minibar
    ) ;assuming
    >>>
@@ -765,9 +782,10 @@
       (delayed (:idle 100) (set-message "No spelling errors" "spell check"))
       (begin
         (set! spell-buffer-cache sels)
-        (if (and (get-boolean-preference "toolbar spell")
-              (not (buffer-aux? (current-buffer)))
-            ) ;and
+        (if
+          (and (get-boolean-preference "toolbar spell")
+            (not (buffer-aux? (current-buffer)))
+          ) ;and
           (toolbar-spell-start)
           (open-spell)
         ) ;if

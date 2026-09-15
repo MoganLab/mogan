@@ -60,7 +60,10 @@
   (and (pair? x)
     (or (htmlout-big-all? (car x))
       (and (htmlout-big-tag? (car x))
-        (list-any (lambda (x) (and (pair? x) (htmlout-big-tag? (car x)))) (cdr x))
+        (list-any
+          (lambda (x) (and (pair? x) (htmlout-big-tag? (car x))))
+          (cdr x)
+        ) ;list-any
       ) ;and
     ) ;or
   ) ;and
@@ -192,17 +195,19 @@
 
 (define (update-preformatted atts thunk)
   (let ((saved-preformatted preformatted?)
-        (new-preformatted (cond ((assoc 'xml:space atts)
-                                 =>
-                                 (lambda (att)
-                                   (cond ((== (second att) "preserve") #t)
-                                         ((== (second att) "default") #f)
-                                         (else preformatted?)
-                                   ) ;cond
-                                 ) ;lambda
-                                ) ;
-                                (else preformatted?)
-                          ) ;cond
+        (new-preformatted
+          (cond
+           ((assoc 'xml:space atts)
+            =>
+            (lambda (att)
+              (cond ((== (second att) "preserve") #t)
+                    ((== (second att) "default") #f)
+                    (else preformatted?)
+              ) ;cond
+            ) ;lambda
+           ) ;
+           (else preformatted?)
+          ) ;cond
         ) ;new-preformatted
        ) ;
     (if (== new-preformatted saved-preformatted)

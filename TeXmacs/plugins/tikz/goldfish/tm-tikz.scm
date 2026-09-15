@@ -10,14 +10,16 @@
 ) ;import
 
 (define (escape-string str)
-  (string-join (map (lambda (char)
-                      (if (char=? char #\")
-                        (string #\\ #\")
-                        (if (char=? char #\\) (string #\\ #\\) (string char))
-                      ) ;if
-                    ) ;lambda
-                 (string->list str)
-               ) ;map
+  (string-join
+    (map
+      (lambda (char)
+        (if (char=? char #\")
+          (string #\\ #\")
+          (if (char=? char #\\) (string #\\ #\\) (string char))
+        ) ;if
+      ) ;lambda
+      (string->list str)
+    ) ;map
   ) ;string-join
 ) ;define
 
@@ -68,24 +70,28 @@
         ) ;or
       code
       (let* ((lines (string-split code #\newline))
-             (library-lines (filter (lambda (line) (string-starts? (string-trim-left line) "\\usetikzlibrary"))
-                              lines
-                            ) ;filter
+             (library-lines
+               (filter (lambda (line) (string-starts? (string-trim-left line) "\\usetikzlibrary"))
+                 lines
+               ) ;filter
              ) ;library-lines
-             (package-lines (filter (lambda (line) (string-starts? (string-trim-left line) "\\usepackage"))
-                              lines
-                            ) ;filter
+             (package-lines
+               (filter (lambda (line) (string-starts? (string-trim-left line) "\\usepackage"))
+                 lines
+               ) ;filter
              ) ;package-lines
-             (other-lines (filter (lambda (line)
-                                    (let ((trimmed-line (string-trim-left line)))
-                                      (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
-                                        (not (string-starts? trimmed-line "\\usepackage"))
-                                        (not (string-null? trimmed-line))
-                                      ) ;and
-                                    ) ;let
-                                  ) ;lambda
-                            lines
-                          ) ;filter
+             (other-lines
+               (filter
+                 (lambda (line)
+                   (let ((trimmed-line (string-trim-left line)))
+                     (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                       (not (string-starts? trimmed-line "\\usepackage"))
+                       (not (string-null? trimmed-line))
+                     ) ;and
+                   ) ;let
+                 ) ;lambda
+                 lines
+               ) ;filter
              ) ;other-lines
              (body (string-join other-lines "\n"))
              (body-trimmed (string-trim-left body))
@@ -115,36 +121,42 @@
                                        (string-contains? body "\\TFP")
                                      ) ;or
                ) ;need-optikz-package?
-               (extra-packages (let ((pkgs '()))
-                                 (when (and need-chemfig-package?
-                                         (null? (filter (lambda (line) (string-contains? line "chemfig")) package-lines))
-                                       ) ;and
-                                   (set! pkgs (cons "\\usepackage{chemfig}" pkgs))
-                                 ) ;when
-                                 (when (and need-optikz-package?
-                                         (null? (filter (lambda (line) (string-contains? line "optikz")) package-lines))
-                                       ) ;and
-                                   (set! pkgs (cons "\\usepackage{optikz}" pkgs))
-                                 ) ;when
-                                 (when (and need-optikz-package?
-                                         (null? (filter (lambda (line) (string-contains? line "calc")) package-lines))
-                                       ) ;and
-                                   (set! pkgs (cons "\\usepackage{calc}" pkgs))
-                                 ) ;when
-                                 (reverse pkgs)
-                               ) ;let
+               (extra-packages
+                 (let ((pkgs '()))
+                   (when
+                     (and need-chemfig-package?
+                       (null? (filter (lambda (line) (string-contains? line "chemfig")) package-lines))
+                     ) ;and
+                     (set! pkgs (cons "\\usepackage{chemfig}" pkgs))
+                   ) ;when
+                   (when
+                     (and need-optikz-package?
+                       (null? (filter (lambda (line) (string-contains? line "optikz")) package-lines))
+                     ) ;and
+                     (set! pkgs (cons "\\usepackage{optikz}" pkgs))
+                   ) ;when
+                   (when
+                     (and need-optikz-package?
+                       (null? (filter (lambda (line) (string-contains? line "calc")) package-lines))
+                     ) ;and
+                     (set! pkgs (cons "\\usepackage{calc}" pkgs))
+                   ) ;when
+                   (reverse pkgs)
+                 ) ;let
                ) ;extra-packages
                (need-arrows-meta? (or (string-contains? body "Latex") (string-contains? body "Stealth"))
                ) ;need-arrows-meta?
-               (extra-libraries (let ((libs '()))
-                                  (when (and need-arrows-meta?
-                                          (null? (filter (lambda (line) (string-contains? line "arrows.meta")) library-lines)
-                                          ) ;null?
-                                        ) ;and
-                                    (set! libs (cons "\\usetikzlibrary{arrows.meta}" libs))
-                                  ) ;when
-                                  (reverse libs)
-                                ) ;let
+               (extra-libraries
+                 (let ((libs '()))
+                   (when
+                     (and need-arrows-meta?
+                       (null? (filter (lambda (line) (string-contains? line "arrows.meta")) library-lines)
+                       ) ;null?
+                     ) ;and
+                     (set! libs (cons "\\usetikzlibrary{arrows.meta}" libs))
+                   ) ;when
+                   (reverse libs)
+                 ) ;let
                ) ;extra-libraries
                (inner-code (if (or (string-null? body-trimmed)
                                  (string-contains? body "\\begin{tikzpicture}")
@@ -183,17 +195,19 @@
 ) ;define
 
 (define (parse-magic-line magic-line)
-  (let ((tokens (filter (lambda (x) (not (string-null? x))) (string-split magic-line #\space))
+  (let ((tokens
+          (filter (lambda (x) (not (string-null? x))) (string-split magic-line #\space))
         ) ;tokens
         (width "0px")
         (height "0px")
        ) ;
     (let loop
       ((args (cdr tokens)))
-      (cond ((or (null? args) (null? (cdr args))) (list width height))
-            ((string=? (car args) "-width") (set! width (cadr args)) (loop (cddr args)))
-            ((string=? (car args) "-height") (set! height (cadr args)) (loop (cddr args)))
-            (else (loop (cddr args)))
+      (cond
+       ((or (null? args) (null? (cdr args))) (list width height))
+       ((string=? (car args) "-width") (set! width (cadr args)) (loop (cddr args)))
+       ((string=? (car args) "-height") (set! height (cadr args)) (loop (cddr args)))
+       (else (loop (cddr args)))
       ) ;cond
     ) ;let
   ) ;let
@@ -295,7 +309,8 @@
     (dump-tex-code tex-path wrapped-code)
     (if (zero? (run-pdflatex tex-path pdflatex-bin))
       (let ((size (get-pdf-page-size log-path)))
-        (if (or (not size) (and (<= (car size) 0.1) (<= (cadr size) 0.1)))
+        (if
+          (or (not size) (and (<= (car size) 0.1) (<= (cadr size) 0.1)))
           (flush-verbatim "TikZ produced an empty image (0x0 bounding box)")
           (let ((final-width width) (final-height height))
             (when (and (string=? width "0px") (string=? height "0px"))
@@ -356,15 +371,17 @@
   (catch #t
     (lambda () (read-eval-print))
     (lambda args
-      (flush-scheme (string-append "(errput (document "
-                      (goldfish-quote (symbol->string (car args)))
-                      " "
-                      (if (and (>= (length args) 2) (not (null? (cadr args))))
-                        (goldfish-quote (object->string (cadr args)))
-                        ""
-                      ) ;if
-                      "))"
-                    ) ;string-append
+      (flush-scheme
+        (string-append "(errput (document "
+          (goldfish-quote (symbol->string (car args)))
+          " "
+          (if
+            (and (>= (length args) 2) (not (null? (cadr args))))
+            (goldfish-quote (object->string (cadr args)))
+            ""
+          ) ;if
+          "))"
+        ) ;string-append
       ) ;flush-scheme
     ) ;lambda
   ) ;catch

@@ -181,9 +181,10 @@
 
     (define (list-queue-concatenate list-queues)
       (let ((result (list-queue)))
-        (for-each (lambda (q)
-                    (for-each (lambda (elem) (list-queue-add-back! result elem)) (get-first q))
-                  ) ;lambda
+        (for-each
+          (lambda (q)
+            (for-each (lambda (elem) (list-queue-add-back! result elem)) (get-first q))
+          ) ;lambda
           list-queues
         ) ;for-each
         result
@@ -202,7 +203,8 @@
     (define (list-queue-append! . queues)
       (cond ((null? queues) (list-queue))
             ((null? (cdr queues)) (car queues))
-            (else (for-each (lambda (q) (list-queue-join! (car queues) q)) (cdr queues))
+            (else
+              (for-each (lambda (q) (list-queue-join! (car queues) q)) (cdr queues))
               (car queues)
             ) ;else
       ) ;cond

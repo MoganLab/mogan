@@ -24,7 +24,8 @@
   ) ;with
 ) ;tm-define
 
-(kbd-map (:require (and developer-mode? (not (in-prog-scheme?))))
- ("A-F1" (macro-popup-help))
+(kbd-map
+  (:require (and developer-mode? (not (in-prog-scheme?))))
+  ("A-F1" (macro-popup-help))
 ) ;kbd-map
 (debug-message "keyboard" "(doc apidoc-kbd): kbd-map registered\n")

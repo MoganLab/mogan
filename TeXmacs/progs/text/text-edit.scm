@@ -96,26 +96,34 @@
     'doc-data
     (with pos
       (1+ (tree-down-index t))
-      (cond ((== l 'doc-author)
-             (tree-insert! t pos `((,l (author-data (author-name "")))))
-             (tree-go-to t pos 0 0 0 0)
-            ) ;
-            ((== l 'doc-note)
-             (tree-insert! t pos `((,l (document ""))))
-             (tree-go-to t pos 0 0 0)
-            ) ;
-            ((== l 'doc-title-options) (tree-insert! t pos `((,l))))
-            ((in? l doc-data-inactive-tags)
-             (let* ((r (tree-search t (cut tree-is? <> l))) (x (and (pair? r) (car r))))
-               (cond ((not x)
-                      (tree-insert! t pos `((doc-inactive (,l ,""))))
-                      (tree-go-to t pos 0 0 0)
-                     ) ;
-                     (else (tree-set! x `(doc-inactive ,x)) (tree-go-to x 0 0 :end))
-               ) ;cond
-             ) ;let*
-            ) ;
-            (else (tree-insert! t pos `((,l ,""))) (tree-go-to t pos 0 0))
+      (cond
+       ((== l 'doc-author)
+        (tree-insert! t pos `((,l (author-data (author-name "")))))
+        (tree-go-to t pos 0 0 0 0)
+       ) ;
+       ((== l 'doc-note)
+        (tree-insert! t pos `((,l (document ""))))
+        (tree-go-to t pos 0 0 0)
+       ) ;
+       ((== l 'doc-title-options) (tree-insert! t pos `((,l))))
+       ((in? l doc-data-inactive-tags)
+        (let* ((r (tree-search t (cut tree-is? <> l))) (x (and (pair? r) (car r))))
+          (cond
+           ((not x)
+            (tree-insert! t pos `((doc-inactive (,l ,""))))
+            (tree-go-to t pos 0 0 0)
+           ) ;
+           (else
+             (tree-set! x `(doc-inactive ,x))
+             (tree-go-to x 0 0 :end)
+           ) ;else
+          ) ;cond
+        ) ;let*
+       ) ;
+       (else
+         (tree-insert! t pos `((,l ,"")))
+         (tree-go-to t pos 0 0)
+       ) ;else
       ) ;cond
     ) ;with
   ) ;with-innermost
@@ -126,11 +134,15 @@
     'author-data
     (with pos
       (1+ (tree-down-index t))
-      (cond ((in? l '(author-affiliation author-note))
-             (tree-insert! t pos `((,l (document ""))))
-             (tree-go-to t pos 0 0 0)
-            ) ;
-            (else (tree-insert! t pos `((,l ,""))) (tree-go-to t pos 0 0))
+      (cond
+       ((in? l '(author-affiliation author-note))
+        (tree-insert! t pos `((,l (document ""))))
+        (tree-go-to t pos 0 0 0)
+       ) ;
+       (else
+         (tree-insert! t pos `((,l ,"")))
+         (tree-go-to t pos 0 0)
+       ) ;else
       ) ;cond
     ) ;with
   ) ;with-innermost
@@ -161,9 +173,10 @@
           ((and (== b " ") (== p "no multiple spaces")) (noop))
           ((== b " ") (remove-text #f) (make-space "1em"))
           ((and (tree? b) (tree-func? b 'space 1))
-           (if (and (tree-atomic? (tree-ref b 0))
-                 (string-ends? (tree->string (tree-ref b 0)) "em")
-               ) ;and
+           (if
+             (and (tree-atomic? (tree-ref b 0))
+               (string-ends? (tree->string (tree-ref b 0)) "em")
+             ) ;and
              (make-space "1em")
              (geometry-horizontal b #t)
            ) ;if
@@ -332,7 +345,9 @@
     'doc-data
     (with l
       (cdr (tree->list t))
-      (list-or (map (lambda (t) (== (tm-car t) 'doc-inactive)) l))
+      (list-or
+        (map (lambda (t) (== (tm-car t) 'doc-inactive)) l)
+      ) ;list-or
     ) ;with
   ) ;with-innermost
 ) ;tm-define
@@ -505,11 +520,12 @@
 
 (define (current-section-node)
   (let ((ft (focus-tree)))
-    (cond ((and ft (section-context? ft))
-           (if (and (tree-outer ft) (tree-is? (tree-outer ft) 'concat)) (tree-outer ft) ft)
-          ) ;
-          ((tree-innermost section-heading-tree?) => (lambda (t) t))
-          (else #f)
+    (cond
+     ((and ft (section-context? ft))
+      (if (and (tree-outer ft) (tree-is? (tree-outer ft) 'concat)) (tree-outer ft) ft)
+     ) ;
+     ((tree-innermost section-heading-tree?) => (lambda (t) t))
+     (else #f)
     ) ;cond
   ) ;let
 ) ;define
@@ -744,8 +760,16 @@
 
 (tm-define (parameter-choice-list l)
   (:require (in? l (list "item-tag" "item-1" "item-2" "item-3" "item-4")))
-  (list "<bullet>" "<circ>" "<minus>" "<cdot>" "*" "<rightarrow>" "<Rightarrow>"
-    "<triangleright>" "<blacktriangleright>" :other
+  (list "<bullet>"
+    "<circ>"
+    "<minus>"
+    "<cdot>"
+    "*"
+    "<rightarrow>"
+    "<Rightarrow>"
+    "<triangleright>"
+    "<blacktriangleright>"
+    :other
   ) ;list
 ) ;tm-define
 
@@ -1053,63 +1077,52 @@
 (tm-define (titled-named? t) (tree-in? t (render-titled-tag-list)))
 
 (tm-define (titled-toggle-name t)
-  (cond ((tree-in? t (numbered-unnumbered-append (theorem-tag-list)))
-         (tree-set! t `(render-theorem ,"" ,(tree-ref t 0)))
-        ) ;
-        ((tree-in? t (numbered-unnumbered-append (remark-tag-list)))
-         (tree-set! t `(render-remark ,"" ,(tree-ref t 0)))
-        ) ;
-        ((tree-in? t '(question answer))
-         (tree-set! t `(render-remark ,"" ,(tree-ref t 0)))
-        ) ;
-        ((tree-in? t (numbered-unnumbered-append (exercise-tag-list)))
-         (tree-set! t `(render-exercise ,"" ,(tree-ref t 0)))
-        ) ;
-        ((tree-in? t (numbered-unnumbered-append (solution-tag-list)))
-         (tree-set! t `(render-exercise ,"" ,(tree-ref t 0)))
-        ) ;
-        ((tree-in? t '(proof)) (tree-set! t `(render-proof ,"" ,(tree-ref t 0))))
-        ((tree-in? t (numbered-unnumbered-append (small-figure-tag-list)))
-         (tree-set! t `(render-small-figure ,""
-                         ,""
-                         ,(tree-ref t 0)
-                         ,(tree-ref t 1)))
-        ) ;
-        ((tree-in? t (numbered-unnumbered-append (big-figure-tag-list)))
-         (tree-set! t `(render-big-figure ,""
-                         ,""
-                         ,(tree-ref t 0)
-                         ,(tree-ref t 1)))
-        ) ;
-        ((tree-in? t (numbered-unnumbered-append (small-table-tag-list)))
-         (tree-set! t `(render-small-table ,""
-                         ,""
-                         ,(tree-ref t 0)
-                         ,(tree-ref t 1)))
-        ) ;
-        ((tree-in? t (numbered-unnumbered-append (big-table-tag-list)))
-         (tree-set! t `(render-big-table ,""
-                         ,""
-                         ,(tree-ref t 0)
-                         ,(tree-ref t 1)))
-        ) ;
-        ((tree-is? t 'render-theorem) (tree-set! t `(theorem ,(tree-ref t 1))))
-        ((tree-is? t 'render-remark) (tree-set! t `(remark ,(tree-ref t 1))))
-        ((tree-is? t 'render-exercise) (tree-set! t `(exercise ,(tree-ref t 1))))
-        ((tree-is? t 'render-solution) (tree-set! t `(solution ,(tree-ref t 1))))
-        ((tree-is? t 'render-proof) (tree-set! t `(proof ,(tree-ref t 1))))
-        ((tree-is? t 'render-small-figure)
-         (tree-set! t `(small-figure ,(tree-ref t 2) ,(tree-ref t 3)))
-        ) ;
-        ((tree-is? t 'render-big-figure)
-         (tree-set! t `(big-figure ,(tree-ref t 2) ,(tree-ref t 3)))
-        ) ;
-        ((tree-is? t 'render-small-table)
-         (tree-set! t `(small-table ,(tree-ref t 2) ,(tree-ref t 3)))
-        ) ;
-        ((tree-is? t 'render-big-table)
-         (tree-set! t `(big-table ,(tree-ref t 2) ,(tree-ref t 3)))
-        ) ;
+  (cond
+   ((tree-in? t (numbered-unnumbered-append (theorem-tag-list)))
+    (tree-set! t `(render-theorem ,"" ,(tree-ref t 0)))
+   ) ;
+   ((tree-in? t (numbered-unnumbered-append (remark-tag-list)))
+    (tree-set! t `(render-remark ,"" ,(tree-ref t 0)))
+   ) ;
+   ((tree-in? t '(question answer))
+    (tree-set! t `(render-remark ,"" ,(tree-ref t 0)))
+   ) ;
+   ((tree-in? t (numbered-unnumbered-append (exercise-tag-list)))
+    (tree-set! t `(render-exercise ,"" ,(tree-ref t 0)))
+   ) ;
+   ((tree-in? t (numbered-unnumbered-append (solution-tag-list)))
+    (tree-set! t `(render-exercise ,"" ,(tree-ref t 0)))
+   ) ;
+   ((tree-in? t '(proof)) (tree-set! t `(render-proof ,"" ,(tree-ref t 0))))
+   ((tree-in? t (numbered-unnumbered-append (small-figure-tag-list)))
+    (tree-set! t `(render-small-figure ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+   ) ;
+   ((tree-in? t (numbered-unnumbered-append (big-figure-tag-list)))
+    (tree-set! t `(render-big-figure ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+   ) ;
+   ((tree-in? t (numbered-unnumbered-append (small-table-tag-list)))
+    (tree-set! t `(render-small-table ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+   ) ;
+   ((tree-in? t (numbered-unnumbered-append (big-table-tag-list)))
+    (tree-set! t `(render-big-table ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+   ) ;
+   ((tree-is? t 'render-theorem) (tree-set! t `(theorem ,(tree-ref t 1))))
+   ((tree-is? t 'render-remark) (tree-set! t `(remark ,(tree-ref t 1))))
+   ((tree-is? t 'render-exercise) (tree-set! t `(exercise ,(tree-ref t 1))))
+   ((tree-is? t 'render-solution) (tree-set! t `(solution ,(tree-ref t 1))))
+   ((tree-is? t 'render-proof) (tree-set! t `(proof ,(tree-ref t 1))))
+   ((tree-is? t 'render-small-figure)
+    (tree-set! t `(small-figure ,(tree-ref t 2) ,(tree-ref t 3)))
+   ) ;
+   ((tree-is? t 'render-big-figure)
+    (tree-set! t `(big-figure ,(tree-ref t 2) ,(tree-ref t 3)))
+   ) ;
+   ((tree-is? t 'render-small-table)
+    (tree-set! t `(small-table ,(tree-ref t 2) ,(tree-ref t 3)))
+   ) ;
+   ((tree-is? t 'render-big-table)
+    (tree-set! t `(big-table ,(tree-ref t 2) ,(tree-ref t 3)))
+   ) ;
   ) ;cond
 ) ;tm-define
 
@@ -1124,20 +1137,21 @@
 (tm-define (frame-titled? t) (tree-in? t (frame-titled-tag-list)))
 
 (tm-define (frame-toggle-title t)
-  (cond ((tree-in? t (frame-tag-list))
-         (with l
-           (symbol-append (tree-label t) '-titled)
-           (tree-set! t `(,l ,(tree-ref t 0) ,""))
-           (tree-go-to t 1 :end)
-         ) ;with
-        ) ;
-        ((tree-in? t (frame-titled-tag-list))
-         (with l
-           (symbol-drop-right (tree-label t) 7)
-           (tree-set! t `(,l ,(tree-ref t 0)))
-           (tree-go-to t 0 :end)
-         ) ;with
-        ) ;
+  (cond
+   ((tree-in? t (frame-tag-list))
+    (with l
+      (symbol-append (tree-label t) '-titled)
+      (tree-set! t `(,l ,(tree-ref t 0) ,""))
+      (tree-go-to t 1 :end)
+    ) ;with
+   ) ;
+   ((tree-in? t (frame-titled-tag-list))
+    (with l
+      (symbol-drop-right (tree-label t) 7)
+      (tree-set! t `(,l ,(tree-ref t 0)))
+      (tree-go-to t 0 :end)
+    ) ;with
+   ) ;
   ) ;cond
 ) ;tm-define
 

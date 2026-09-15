@@ -203,7 +203,8 @@
   (:mode in-database?)
   (if (db-get-types) (=> "Database entry" (link insert-entry-menu)))
   (if (not (db-get-types)) ("Database entry" (interactive make-db-entry)))
-  (when (and (with-database-tool?) (not (db-url? (current-buffer))))
+  (when
+    (and (with-database-tool?) (not (db-url? (current-buffer))))
     (if (not (selection-active-any?))
       (when (tree-innermost db-entry-any?)
         ("Import entry" (db-import-this-entry))
@@ -236,7 +237,8 @@
     (interactive make-db-entry)
    ) ;
   ) ;if
-  (if (and (with-database-tool?) (not (db-url? (current-buffer))))
+  (if
+    (and (with-database-tool?) (not (db-url? (current-buffer))))
     (if (not (selection-active-any?))
       (when (tree-innermost db-entry-any?)
         ((balloon (icon "tm_entry_confirm.xpm") "Import database entry")
@@ -344,8 +346,9 @@
  ) ;when
  (when (db-importable?)
    (if (selection-active-any?) ("Import selected entries" (db-import-selection)))
-   (if (and (not (selection-active-any?)) (not (db-url? (current-buffer))))
-    ("Import entries in buffer" (db-import-current-buffer))
+   (if
+     (and (not (selection-active-any?)) (not (db-url? (current-buffer))))
+     ("Import entries in buffer" (db-import-current-buffer))
    ) ;if
    (if (and (not (selection-active-any?))
          (db-url? (current-buffer))
@@ -359,8 +362,12 @@
        ) ;and
      (=> "Import"
        (for (name (db-recent-imports))
-         (let* ((short-name `(verbatim ,(url->system (url-tail name))))
-                (long-name `(verbatim ,(url->system name)))
+         (let* ((short-name
+                  `(verbatim ,(url->system (url-tail name)))
+                ) ;short-name
+                (long-name
+                  `(verbatim ,(url->system name))
+                ) ;long-name
                ) ;
            ((balloon (eval short-name) (eval long-name)) (db-import-file name))
          ) ;let*
@@ -372,8 +379,9 @@
  ) ;when
  (when (db-exportable?)
    (if (selection-active-any?) ("Export selected entries" (db-export-select)))
-   (if (and (not (selection-active-any?)) (not (db-url? (current-buffer))))
-    ("Export entries in buffer" (db-export-select))
+   (if
+     (and (not (selection-active-any?)) (not (db-url? (current-buffer))))
+     ("Export entries in buffer" (db-export-select))
    ) ;if
    (if (and (not (selection-active-any?))
          (db-url? (current-buffer))
@@ -387,8 +395,12 @@
        ) ;and
      (=> "Export"
        (for (name (db-recent-exports))
-         (let* ((short-name `(verbatim ,(url->system (url-tail name))))
-                (long-name `(verbatim ,(url->system name)))
+         (let* ((short-name
+                  `(verbatim ,(url->system (url-tail name)))
+                ) ;short-name
+                (long-name
+                  `(verbatim ,(url->system name))
+                ) ;long-name
                ) ;
            ((balloon (eval short-name) (eval long-name)) (db-export-file name))
          ) ;let*

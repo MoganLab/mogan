@@ -92,37 +92,37 @@
 
 (tm-define-macro (foreach-number what . body)
   (let ((n (length what)))
-    (cond ((== n 3)
-           ;; (foreach-number (i i0 iN) body[i])
-           `(for (,(car what) ,(cadr what) ,(caddr what)) ,@body)
-          ) ;
-          ((== n 4)
-           ;; (foreach-number (i i0 [< <= > >=] iN) body[i])
-           (if (in? (caddr what) '(< <=))
-             `(for (,(car what) ,(cadr what) ,(cadddr what) ,1 ,(caddr what))
-                ,@body)
-             `(for (,(car what) ,(cadr what) ,(cadddr what) ,-1 ,(caddr what))
-                ,@body)
-           ) ;if
-          ) ;
-          ((== n 5)
-           ;; (foreach-number (i i0 [< <= > >=] iN step) body[i])
-           (if (in? (caddr what) '(< <=))
-             `(for (,(car what)
-                    ,(cadr what)
-                    ,(cadddr what)
-                    ,(car (cddddr what))
-                    ,(caddr what))
-                ,@body)
-             `(for (,(car what)
-                    ,(cadr what)
-                    ,(cadddr what)
-                    ,(- 0 (car (cddddr what)))
-                    ,(caddr what))
-                ,@body)
-           ) ;if
-          ) ;
-          (else '(noop))
+    (cond
+     ((== n 3)
+      ;; (foreach-number (i i0 iN) body[i])
+      `(for (,(car what) ,(cadr what) ,(caddr what)) ,@body)
+     ) ;
+     ((== n 4)
+      ;; (foreach-number (i i0 [< <= > >=] iN) body[i])
+      (if (in? (caddr what) '(< <=))
+        `(for (,(car what) ,(cadr what) ,(cadddr what) ,1 ,(caddr what)) ,@body)
+        `(for (,(car what) ,(cadr what) ,(cadddr what) ,-1 ,(caddr what))
+           ,@body)
+      ) ;if
+     ) ;
+     ((== n 5)
+      ;; (foreach-number (i i0 [< <= > >=] iN step) body[i])
+      (if (in? (caddr what) '(< <=))
+        `(for (,(car what)
+               ,(cadr what)
+               ,(cadddr what)
+               ,(car (cddddr what))
+               ,(caddr what))
+           ,@body)
+        `(for (,(car what)
+               ,(cadr what)
+               ,(cadddr what)
+               ,(- 0 (car (cddddr what)))
+               ,(caddr what))
+           ,@body)
+      ) ;if
+     ) ;
+     (else '(noop))
     ) ;cond
   ) ;let
 ) ;tm-define-macro
@@ -232,7 +232,8 @@
         (with res
           nothing
           (foreach-number (i 0 < (- (/ n 2) 1))
-            (if (== (tm->stree (tree-ref t (* 2 i))) var)
+            (if
+              (== (tm->stree (tree-ref t (* 2 i))) var)
               (set! res (tree-ref t (+ (* 2 i) 1)))
             ) ;if
           ) ;foreach-number
@@ -309,11 +310,12 @@
       (cDr path)
       (with o
         (path->tree p)
-        (if (and (tree? o)
-              ;; (in? (tree-label o) gr-tags-all)
-              (not (eq? (tree-label o) 'string))
-              (tm-upwards-path (cDr p) '(graphics) (graphical-text-tag-list))
-            ) ;and
+        (if
+          (and (tree? o)
+            ;; (in? (tree-label o) gr-tags-all)
+            (not (eq? (tree-label o) 'string))
+            (tm-upwards-path (cDr p) '(graphics) (graphical-text-tag-list))
+          ) ;and
           (begin
             ;; (display* "gp=" (path->tree (cDr path)) "\n")
             (if (eq? (tree-label o) 'graphics) #f p)
@@ -459,12 +461,13 @@
          (tag (and (func? m 'edit 1) (cadr m)))
          (attr (and (gr-prefixed? var) (gr-unprefix var)))
         ) ;
-    (when (and tag
-            attr
-            (!= var "gr-mode")
-            (not (string-starts? var "gr-props-"))
-            (graphics-mode-attribute? `(edit ,tag) attr)
-          ) ;and
+    (when
+      (and tag
+        attr
+        (!= var "gr-mode")
+        (not (string-starts? var "gr-props-"))
+        (graphics-mode-attribute? `(edit ,tag) attr)
+      ) ;and
       (with tab
         (graphics-get-type-config tag)
         (if (and val (!= val "default") (!= val (graphics-attribute-default attr)))
@@ -535,11 +538,12 @@
   (if (null? l)
     l
     (let* ((head (car l)) (tail (graphics-enrich-filter t (cdr l))))
-      (if (or (not (cadr head))
-            (== (cadr head) "default")
-            (== (cadr head) (get-default-val (car head)))
-            (not (graphics-attribute? t (car head)))
-          ) ;or
+      (if
+        (or (not (cadr head))
+          (== (cadr head) "default")
+          (== (cadr head) (get-default-val (car head)))
+          (not (graphics-attribute? t (car head)))
+        ) ;or
         tail
         (cons* (car head) (cadr head) tail)
       ) ;if
@@ -558,7 +562,9 @@
   (let* ((attrs (graphical-relevant-attributes t))
          (sel (ahash-table-select tab attrs))
          (l1 (cons (cons "gid" id) (ahash-table->list sel)))
-         (l2 (map (lambda (x) (list (car x) (cdr x))) l1))
+         (l2
+           (map (lambda (x) (list (car x) (cdr x))) l1)
+         ) ;l2
         ) ;
     ;; (display* "l= " l2 "\n")
     (graphics-enrich-sub t l2)
@@ -736,9 +742,13 @@
     ) ;let*
   ) ;define
   (let* ((box1 (max-box t1)) (box2 (max-box t2)))
-    (and (interval-intersects `(,(car box1) ,(caddr box1)) `(,(car box2)
-                                                             ,(caddr box2)))
-      (interval-intersects `(,(cadr box1) ,(cadddr box1))
+    (and
+      (interval-intersects
+        `(,(car box1) ,(caddr box1))
+        `(,(car box2) ,(caddr box2))
+      ) ;interval-intersects
+      (interval-intersects
+        `(,(cadr box1) ,(cadddr box1))
         `(,(cadr box2) ,(cadddr box2))
       ) ;interval-intersects
     ) ;and
@@ -777,16 +787,17 @@
 ) ;tm-define
 
 (tm-define (graphics-re-enhance obj compl anim?)
-  (cond ((tm-is? compl 'anim-edit)
-         `(anim-edit ,(tm-ref compl 0)
-            ,(graphics-re-enhance obj (tm-ref compl 1) #t)
-            ,@(cddr (tm-children compl)))
-        ) ;
-        ((and (tm-is? compl 'with) (or anim? (tm-is? (tm-ref compl :last) 'anim-edit)))
-         `(with ,@(cDr (tm-children compl))
-            ,(graphics-re-enhance obj (tm-ref compl :last) anim?))
-        ) ;
-        (else obj)
+  (cond
+   ((tm-is? compl 'anim-edit)
+    `(anim-edit ,(tm-ref compl 0)
+       ,(graphics-re-enhance obj (tm-ref compl 1) #t)
+       ,@(cddr (tm-children compl)))
+   ) ;
+   ((and (tm-is? compl 'with) (or anim? (tm-is? (tm-ref compl :last) 'anim-edit)))
+    `(with ,@(cDr (tm-children compl))
+       ,(graphics-re-enhance obj (tm-ref compl :last) anim?))
+   ) ;
+   (else obj)
   ) ;cond
 ) ;tm-define
 
@@ -799,7 +810,8 @@
     (tm-is? (tm-ref t 0) 'morph)
     (with c
       (tm-children (tm-ref t 0))
-      (and (list-and (map (lambda (x) (tm-func? x 'tuple 2)) c))
+      (and
+        (list-and (map (lambda (x) (tm-func? x 'tuple 2)) c))
         (map (lambda (x) (tm-ref x 1)) c)
       ) ;and
     ) ;with
@@ -852,20 +864,21 @@
 ) ;tm-define
 
 (tm-define (graphical-set-attributes t tab)
-  (cond ((not (tree? t)) (tm->stree (graphical-set-attributes (tm->tree t) tab)))
-        ((not (tree-is? t 'with))
-         (if (tree-is? t :up 'with)
-           (graphical-set-attributes (tree-ref t :up) tab)
-           (begin
-             (tree-insert-node! t 0 '(with))
-             (graphical-set-attributes t tab)
-           ) ;begin
-         ) ;if
-        ) ;
-        (else (set! t (with-set-attributes t tab))
-          (if (and (tree-is? t 'with) (== (tree-arity t) 1)) (tree-remove-node! t 0))
-          t
-        ) ;else
+  (cond
+   ((not (tree? t)) (tm->stree (graphical-set-attributes (tm->tree t) tab)))
+   ((not (tree-is? t 'with))
+    (if (tree-is? t :up 'with)
+      (graphical-set-attributes (tree-ref t :up) tab)
+      (begin
+        (tree-insert-node! t 0 '(with))
+        (graphical-set-attributes t tab)
+      ) ;begin
+    ) ;if
+   ) ;
+   (else (set! t (with-set-attributes t tab))
+     (if (and (tree-is? t 'with) (== (tree-arity t) 1)) (tree-remove-node! t 0))
+     t
+   ) ;else
   ) ;cond
 ) ;tm-define
 

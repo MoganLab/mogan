@@ -44,7 +44,9 @@
   (if (== i "...")
     "<cdots> "
     (let* ((nr* (number->string (+ i 1)))
-           (nr (if strong? `(screens-emphasize ,nr*) nr*))
+           (nr
+             (if strong? `(screens-emphasize ,nr*) nr*)
+           ) ;nr
            (s (number->string i))
            (cmd (string-append "(screens-switch-to " s ")"))
            (act `(action ,nr ,cmd))

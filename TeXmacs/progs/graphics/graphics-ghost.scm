@@ -31,7 +31,9 @@
               (loop (+ i 1) res)
             ) ;if
           ) ;let
-          (tm->tree (cons 'tuple (map (lambda (x) (cons 'tuple x)) (reverse res))))
+          (tm->tree
+            (cons 'tuple (map (lambda (x) (cons 'tuple x)) (reverse res)))
+          ) ;tm->tree
         ) ;if
       ) ;let
     ) ;let*
@@ -67,7 +69,10 @@
   (let ((l (if (tree? lines) (tree->stree lines) lines)))
     (if (and (pair? l) (== (car l) 'tuple))
       (set! ghost-lines
-        (map (lambda (e) (list (list (cadr e) (caddr e)) (cadddr e))) (cdr l))
+        (map
+          (lambda (e) (list (list (cadr e) (caddr e)) (cadddr e)))
+          (cdr l)
+        ) ;map
       ) ;set!
       (set! ghost-lines '())
     ) ;if
@@ -95,9 +100,10 @@
                (y_end (number->string (+ y1 (* 50.0 dy))))
               ) ;
           (loop (cdr lines)
-            (cons `(with ,"color"
-                     ,"green"
-                     (line (point ,x_start ,y_start) (point ,x_end ,y_end)))
+            (cons
+              `(with ,"color"
+                 ,"green"
+                 (line (point ,x_start ,y_start) (point ,x_end ,y_end)))
               res
             ) ;cons
           ) ;loop
@@ -111,13 +117,14 @@
 ;; 把中点列表 (("x1" "y1") ...) 转成绿色圆点装饰，坐标为字符串
 
 (define (midpoint-decorations pts)
-  (map (lambda (p)
-         `(with ,"color"
-            ,"green"
-            ,"point-style"
-            ,"disk"
-            (point ,(car p) ,(cadr p)))
-       ) ;lambda
+  (map
+    (lambda (p)
+      `(with ,"color"
+         ,"green"
+         ,"point-style"
+         ,"disk"
+         (point ,(car p) ,(cadr p)))
+    ) ;lambda
     pts
   ) ;map
 ) ;define
@@ -132,10 +139,11 @@
 (tm-define (graphics-set-midpoints points)
   (:state graphics-state)
   (let* ((l (if (tree? points) (tree->stree points) points))
-         (new (if (and (pair? l) (== (car l) 'tuple))
-                (map (lambda (e) (list (cadr e) (caddr e))) (cdr l))
-                '()
-              ) ;if
+         (new
+           (if (and (pair? l) (== (car l) 'tuple))
+             (map (lambda (e) (list (cadr e) (caddr e))) (cdr l))
+             '()
+           ) ;if
          ) ;new
         ) ;
     (if (not (equal? new midpoints))
@@ -158,5 +166,7 @@
 ;; 保留中点绿点，避免绿点预览被清空
 (tm-define (graphics-render-midpoints)
   (:state graphics-state)
-  (graphical-object! `(concat ,@(graphics-get-decorations-midpoint)))
+  (graphical-object!
+    `(concat ,@(graphics-get-decorations-midpoint))
+  ) ;graphical-object!
 ) ;tm-define

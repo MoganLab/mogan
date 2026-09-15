@@ -42,7 +42,9 @@
     (for (c l)
       (let* ((name (tm->string (tm-ref c 0)))
              (body0 (tm-ref c 3))
-             (body (if (not (tm-func? body0 'document)) `(document ,body0) body0))
+             (body
+               (if (not (tm-func? body0 'document)) `(document ,body0) body0)
+             ) ;body
              (old (tm-children (hash-table-ref/default ht name '(document))))
              (new (append old (extract-lines body)))
             ) ;
@@ -80,25 +82,35 @@
   (cond ((tm-atomic? x) x)
         ((tm-func? x 'document)
          (let* ((l1 (map (cut expand-names <> t) (tm-children x)))
-                (l2 (map (lambda (y) (if (tm-func? y 'document) (tm-children y) (list y))) l1))
+                (l2
+                  (map (lambda (y) (if (tm-func? y 'document) (tm-children y) (list y))) l1)
+                ) ;l2
                ) ;
            `(document ,@(apply append l2))
          ) ;let*
         ) ;
         ((tm-func? x 'chunk-ref 1)
-         (if (and (tm-atomic? (tm-ref x 0)) (ahash-ref t (tm->string (tm-ref x 0))))
+         (if
+           (and (tm-atomic? (tm-ref x 0)) (ahash-ref t (tm->string (tm-ref x 0))))
            (ahash-ref t (tm->string (tm-ref x 0)))
            x
          ) ;if
         ) ;
         ((tm-func? x 'concat)
-         (if (and (tm-func? (tm-ref x :last) 'chunk-ref 1)
-               (tm-atomic? (tm-ref x :last 0))
-               (ahash-ref t (tm->string (tm-ref x :last 0)))
-             ) ;and
-           (let* ((count (lambda (x) (if (tm-atomic? x) (tmstring-length (tm->string x)) 0)))
-                  (i (apply + (map count (cDr (tm-children x)))))
-                  (pre (apply string-append (map (lambda (y) " ") (.. 0 i))))
+         (if
+           (and (tm-func? (tm-ref x :last) 'chunk-ref 1)
+             (tm-atomic? (tm-ref x :last 0))
+             (ahash-ref t (tm->string (tm-ref x :last 0)))
+           ) ;and
+           (let* ((count
+                    (lambda (x) (if (tm-atomic? x) (tmstring-length (tm->string x)) 0))
+                  ) ;count
+                  (i
+                    (apply + (map count (cDr (tm-children x))))
+                  ) ;i
+                  (pre
+                    (apply string-append (map (lambda (y) " ") (.. 0 i)))
+                  ) ;pre
                   (doc (ahash-ref t (tm->string (tm-ref x :last 0))))
                   (lines (tm-children doc))
                  ) ;
@@ -127,16 +139,18 @@
         ) ;with
       ) ;for
       (cond ((== (ahash-size todo) 0) done)
-            (ok? (for (key (map car (ahash-table->list todo)))
-                   (when (not (ahash-ref done key))
-                     (ahash-set! done key (ahash-ref todo key))
-                   ) ;when
-                 ) ;for
+            (ok?
+              (for (key (map car (ahash-table->list todo)))
+                (when (not (ahash-ref done key))
+                  (ahash-set! done key (ahash-ref todo key))
+                ) ;when
+              ) ;for
               (expand-table done)
             ) ;ok?
-            (else (for (key (map car (ahash-table->list todo)))
-                    (display* "TeXmacs] Problematic chunk: " key "\n")
-                  ) ;for
+            (else
+              (for (key (map car (ahash-table->list todo)))
+                (display* "TeXmacs] Problematic chunk: " key "\n")
+              ) ;for
               (set-message "Error: cyclic or missing chunks detected" "build-all")
               done
             ) ;else
@@ -221,17 +235,18 @@
 (define (verbatim-table ht)
   (with r
     (s7-make-hash-table)
-    (for-each (lambda (key-val)
-                (let* ((key (car key-val))
-                       (val (cdr key-val))
-                       (l (tm-children (tm->stree val)))
-                       (l-code (map (cut texmacs->code <> "SourceCode") l))
-                       (l-code-nl (map (cut string-append <> "\n") l-code))
-                       (s-code (apply string-append l-code-nl))
-                      ) ;
-                  (hash-table-set! r key s-code)
-                ) ;let*
-              ) ;lambda
+    (for-each
+      (lambda (key-val)
+        (let* ((key (car key-val))
+               (val (cdr key-val))
+               (l (tm-children (tm->stree val)))
+               (l-code (map (cut texmacs->code <> "SourceCode") l))
+               (l-code-nl (map (cut string-append <> "\n") l-code))
+               (s-code (apply string-append l-code-nl))
+              ) ;
+          (hash-table-set! r key s-code)
+        ) ;let*
+      ) ;lambda
       (map values ht)
     ) ;for-each
     r

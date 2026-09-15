@@ -241,7 +241,8 @@
 
 (tm-menu (focus-misc-icons t)
   (:require (pen-effect-context? t))
-  (=> (balloon (icon (eval (effect-pen-icon t))) "Select pen")
+  (=>
+    (balloon (icon (eval (effect-pen-icon t))) "Select pen")
     (dynamic (select-effect-pen-menu t))
   ) ;=>
 ) ;tm-menu

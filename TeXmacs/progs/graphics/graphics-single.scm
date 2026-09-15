@@ -66,7 +66,10 @@
 ;; Basic operations (create)
 
 (tm-define (sketch-get1)
-  (if (not (and (pair? (sketch-get)) (eq? 1 (length (sketch-get)))))
+  (if
+    (not
+      (and (pair? (sketch-get)) (eq? 1 (length (sketch-get))))
+    ) ;not
     (graphics-error "(sketch-get1)")
   ) ;if
   (sketch-get)
@@ -132,7 +135,9 @@
   ;; 图形新建时触发 creating-object?
   (set! creating-object? #t)
   (with o
-    (graphics-enrich `(,tag (point ,x ,y) (point ,x ,y)))
+    (graphics-enrich
+      `(,tag (point ,x ,y) (point ,x ,y))
+    ) ;graphics-enrich
     (graphics-store-state 'start-create)
     (set! current-point-no 1)
     (object-set! o 'checkout)
@@ -144,7 +149,10 @@
   (:require (graphical-text-tag? tag))
   (with long?
     (graphical-long-text-tag? tag)
-    (object-set! `(,tag ,(if long? '(document "") "") (point ,x ,y)) 'new)
+    (object-set!
+      `(,tag ,(if long? '(document "") "") (point ,x ,y))
+      'new
+    ) ;object-set!
     (and-with d
       (path->tree (cDr (cursor-path)))
       (when (tree-func? d 'document)
@@ -220,7 +228,9 @@
 (define (object_checkout)
   ;; 已有图形修改时不触发 creating-object?
   (set! creating-object? #f)
-  (sketch-set! `(,(path->tree current-path)))
+  (sketch-set!
+    `(,(path->tree current-path))
+  ) ;sketch-set!
   (sketch-checkout)
   ;; (display* "Checked out " (sketch-get) "\n")
   (sketch-set! (map tree->stree (sketch-get)))
@@ -340,11 +350,13 @@
   ;; remove cruft which uncareful editing may create
   (with-innermost t
     'graphics
-    (for (i (reverse (.. 0 (tree-arity t))))
+    (for
+      (i (reverse (.. 0 (tree-arity t))))
       (with c
         (tree-ref t i)
         (if (tm-func? c 'with) (set! c (tree-ref c :last)))
-        (when (and (graphical-text-context? c) (== (tree->stree (tree-ref c 0)) ""))
+        (when
+          (and (graphical-text-context? c) (== (tree->stree (tree-ref c 0)) ""))
           (tree-remove! t i 1)
         ) ;when
       ) ;with
@@ -390,38 +402,41 @@
 ) ;define
 
 (define (next-point)
-  (cond ((not (hardly-moved?))
-         (set-message "Left click: finish; Shift+Left click or Right click: undo"
+  (cond
+   ((not (hardly-moved?))
+    (set-message "Left click: finish; Shift+Left click or Right click: undo"
+      "Inserting control points"
+    ) ;set-message
+    (set! leftclick-waiting #t)
+    (when
+      (and current-obj
+        (fixed-point-count-graph? current-obj)
+        (with needed
+          (graphics-points-needed current-obj)
+          (and needed (>= current-point-no (- needed 1)))
+        ) ;with
+      ) ;and
+      (last-point)
+    ) ;when
+   ) ;
+   (leftclick-waiting (last-point))
+   ((== current-point-no 1) (undo 0) (set! leftclick-waiting #f))
+   (else (set-message "Left click: finish; Shift+Left click or Right click: undo"
            "Inserting control points"
          ) ;set-message
-         (set! leftclick-waiting #t)
-         (when (and current-obj
-                 (fixed-point-count-graph? current-obj)
-                 (with needed
-                   (graphics-points-needed current-obj)
-                   (and needed (>= current-point-no (- needed 1)))
-                 ) ;with
-               ) ;and
-           (last-point)
-         ) ;when
-        ) ;
-        (leftclick-waiting (last-point))
-        ((== current-point-no 1) (undo 0) (set! leftclick-waiting #f))
-        (else (set-message "Left click: finish; Shift+Left click or Right click: undo"
-                "Inserting control points"
-              ) ;set-message
-          (graphics-back-state #f)
-          (graphics-move current-x current-y)
-          (set! leftclick-waiting #t)
-        ) ;else
+     (graphics-back-state #f)
+     (graphics-move current-x current-y)
+     (set! leftclick-waiting #t)
+   ) ;else
   ) ;cond
 ) ;define
 
 (define (remove-point)
-  (if (or (graphics-minimal? current-obj)
-        (not (current-in? gr-tags-all))
-        (!= (logand (get-keyboard-modifiers) ShiftMask) 0)
-      ) ;or
+  (if
+    (or (graphics-minimal? current-obj)
+      (not (current-in? gr-tags-all))
+      (!= (logand (get-keyboard-modifiers) ShiftMask) 0)
+    ) ;or
     (begin
       (object_remove)
       (graphics-decorations-reset)
@@ -527,18 +542,19 @@
   (:require (== mode 'edit))
   (:state graphics-state)
   (set-texmacs-pointer 'graphics-cross)
-  (cond (sticky-point (if (current-in? (graphical-text-tag-list)) (object_commit) (next-point))
-        ) ;sticky-point
-        ((and (current-in? (graphical-text-tag-list))
-           (== (car (graphics-mode)) 'edit)
-           (graphical-contains-text-tag? (cadr (graphics-mode)))
-           (not (graphical-contains-curve-tag? (cadr (graphics-mode))))
-           (pointer-inside-graphical-text?)
-         ) ;and
-         (set-texmacs-pointer 'text-arrow)
-         (go-to (car (select-first (s2f current-x) (s2f current-y))))
-        ) ;
-        (else (edit-insert x y))
+  (cond
+    (sticky-point (if (current-in? (graphical-text-tag-list)) (object_commit) (next-point))
+    ) ;sticky-point
+    ((and (current-in? (graphical-text-tag-list))
+       (== (car (graphics-mode)) 'edit)
+       (graphical-contains-text-tag? (cadr (graphics-mode)))
+       (not (graphical-contains-curve-tag? (cadr (graphics-mode))))
+       (pointer-inside-graphical-text?)
+     ) ;and
+     (set-texmacs-pointer 'text-arrow)
+     (go-to (car (select-first (s2f current-x) (s2f current-y))))
+    ) ;
+    (else (edit-insert x y))
   ) ;cond
   (set! previous-leftclick `(point ,current-x ,current-y))
 ) ;tm-define
@@ -606,11 +622,12 @@
   (:state graphics-state)
   (set-texmacs-pointer 'graphics-cross)
   (edit-clean-up)
-  (object-set! `(with ,"point style"
-                  ,"disk"
-                  ,"point-size"
-                  ,(graphics-get-property "line-width")
-                  (point ,x ,y))
+  (object-set!
+    `(with ,"point style"
+       ,"disk"
+       ,"point-size"
+       ,(graphics-get-property "line-width")
+       (point ,x ,y))
     'new
   ) ;object-set!
 ) ;tm-define
@@ -623,12 +640,13 @@
   (let* ((t (number->string t*))
          (p (number->string p*))
          (pen (cadr (graphics-mode)))
-         (cal `(,pen
-                (point ,x ,y)
-                (point ,x ,y)
-                (ink-meta ,(create-unique-id)
-                  ,(number->string (get-graphical-pixel)))
-                (tuple (tuple ,x ,y ,t ,p)))
+         (cal
+           `(,pen
+             (point ,x ,y)
+             (point ,x ,y)
+             (ink-meta ,(create-unique-id)
+               ,(number->string (get-graphical-pixel)))
+             (tuple (tuple ,x ,y ,t ,p)))
          ) ;cal
          (o (graphics-enrich cal))
         ) ;

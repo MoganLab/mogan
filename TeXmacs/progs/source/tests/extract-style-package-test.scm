@@ -53,13 +53,15 @@
 ) ;define
 
 (define (test-style-package-compute-target)
-  (for-each (lambda (case
-                    ) ;case
-              (check (url->system (style-package-compute-target (system->url (car case))))
-                =>
-                (cdr case)
-              ) ;check
-            ) ;lambda
+  (for-each
+    (lambda (case
+            ) ;case
+      (check
+        (url->system (style-package-compute-target (system->url (car case))))
+        =>
+        (cdr case)
+      ) ;check
+    ) ;lambda
     '(("/home/da/docs/paper.tmu" . "/home/da/docs/paper.stem")
       ("/home/da/projects/report.tm" . "/home/da/projects/report.stem")
       ("/home/da/文档/测试.tmu" . "/home/da/文档/测试.stem")

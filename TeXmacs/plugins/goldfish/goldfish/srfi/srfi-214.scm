@@ -246,10 +246,11 @@
       (let* ((len (flexvector-length fv))
              (xv (list->vector xs))
              (xvlen (vector-length xv))
-             (v (let lp
-                  ((v (vec fv)))
-                  (if (< (+ len xvlen) (vector-length v)) v (lp (grow! fv)))
-                ) ;let
+             (v
+               (let lp
+                 ((v (vec fv)))
+                 (if (< (+ len xvlen) (vector-length v)) v (lp (grow! fv)))
+               ) ;let
              ) ;v
             ) ;
         (when (or (< i 0) (> i len))
@@ -346,7 +347,11 @@
       (assume (flexvector? fv))
       (let lp
         ((left (if (pair? o) (car o) 0))
-         (right (- (if (and (pair? o) (pair? (cdr o))) (cadr o) (flexvector-length fv)) 1)
+         (right
+           (-
+             (if (and (pair? o) (pair? (cdr o))) (cadr o) (flexvector-length fv))
+             1
+           ) ;-
          ) ;right
         ) ;
         (cond ((>= left right) (if #f #f))
@@ -368,13 +373,14 @@
         (assume (vector? vec))
         (assume (<= 0 start end (vector-length vec)))
         (let ((len (- end start)))
-          (cond ((< len 4)
-                 (let ((new-vec (make-vector 4)))
-                   (vector-copy! new-vec 0 vec start end)
-                   (%make-flexvector new-vec len)
-                 ) ;let
-                ) ;
-                (else (%make-flexvector (vector-copy vec start end) len))
+          (cond
+           ((< len 4)
+            (let ((new-vec (make-vector 4)))
+              (vector-copy! new-vec 0 vec start end)
+              (%make-flexvector new-vec len)
+            ) ;let
+           ) ;
+           (else (%make-flexvector (vector-copy vec start end) len))
           ) ;cond
         ) ;let
        ) ;
@@ -401,13 +407,14 @@
 
     (define (list->flexvector xs)
       (let* ((vec (list->vector xs)) (len (vector-length vec)))
-        (cond ((< len 4)
-               (let ((new-vec (make-vector 4)))
-                 (vector-copy! new-vec 0 vec)
-                 (%make-flexvector new-vec len)
-               ) ;let
-              ) ;
-              (else (%make-flexvector vec len))
+        (cond
+         ((< len 4)
+          (let ((new-vec (make-vector 4)))
+            (vector-copy! new-vec 0 vec)
+            (%make-flexvector new-vec len)
+          ) ;let
+         ) ;
+         (else (%make-flexvector vec len))
         ) ;cond
       ) ;let*
     ) ;define
@@ -487,7 +494,12 @@
         (assume (<= 0 start end (flexvector-length from)))
         (let* ((vf (vec from))
                (lt (+ (flexvector-length to) (- end start)))
-               (vt (let lp ((v (vec to))) (if (< lt (vector-length v)) v (lp (grow! to)))))
+               (vt
+                 (let lp
+                   ((v (vec to)))
+                   (if (< lt (vector-length v)) v (lp (grow! to)))
+                 ) ;let
+               ) ;vt
               ) ;
           (vector-copy! vt at vf start end)
           (set-flexvector-length! to (max (flexvector-length to) (+ at (- end start))))
@@ -663,7 +675,8 @@
                 acc
                 (lp (- i 1)
                   (apply kons
-                    (append (cons (flexvector-ref fv1 i) (map (lambda (fv) (flexvector-ref fv i)) o))
+                    (append
+                      (cons (flexvector-ref fv1 i) (map (lambda (fv) (flexvector-ref fv i)) o))
                       (list acc)
                     ) ;append
                   ) ;apply
@@ -775,7 +788,8 @@
         (let lp
           ((i 0))
           (and (< i len)
-            (if (apply pred? (flexvector-ref fv1 i) (map (lambda (fv) (flexvector-ref fv i)) o))
+            (if
+              (apply pred? (flexvector-ref fv1 i) (map (lambda (fv) (flexvector-ref fv i)) o))
               i
               (lp (+ i 1))
             ) ;if
@@ -791,7 +805,8 @@
         (let lp
           ((i (- len 1)))
           (and (>= i 0)
-            (if (apply pred? (flexvector-ref fv1 i) (map (lambda (fv) (flexvector-ref fv i)) o))
+            (if
+              (apply pred? (flexvector-ref fv1 i) (map (lambda (fv) (flexvector-ref fv i)) o))
               i
               (lp (- i 1))
             ) ;if
@@ -852,7 +867,8 @@
         (let lp
           ((i 0))
           (and (< i len)
-            (or (apply pred? (flexvector-ref fv i) (map (lambda (v) (flexvector-ref v i)) o))
+            (or
+              (apply pred? (flexvector-ref fv i) (map (lambda (v) (flexvector-ref v i)) o))
               (lp (+ i 1))
             ) ;or
           ) ;and
@@ -867,7 +883,8 @@
         (or (zero? len)
           (let lp
             ((i 0))
-            (let ((x (apply pred? (flexvector-ref fv i) (map (lambda (v) (flexvector-ref v i)) o))
+            (let ((x
+                    (apply pred? (flexvector-ref fv i) (map (lambda (v) (flexvector-ref v i)) o))
                   ) ;x
                  ) ;
               (if (= i (- len 1)) x (and x (lp (+ i 1))))
@@ -883,7 +900,8 @@
       (assume (procedure? pred?))
       (assume (flexvector? fv))
       (let ((left (flexvector)) (right (flexvector)))
-        (flexvector-for-each (lambda (x) (flexvector-add-back! (if (pred? x) left right) x))
+        (flexvector-for-each
+          (lambda (x) (flexvector-add-back! (if (pred? x) left right) x))
           fv
         ) ;flexvector-for-each
         (values left right)
@@ -925,18 +943,20 @@
     (define (flexvector=? eq . o)
       (cond ((null? o) #t)
             ((null? (cdr o)) #t)
-            (else (and (let* ((fv1 (car o)) (fv2 (cadr o)) (len (flexvector-length fv1)))
-                         (and (= len (flexvector-length fv2))
-                           (let lp
-                             ((i 0))
-                             (or (>= i len)
-                               (and (eq (flexvector-ref fv1 i) (flexvector-ref fv2 i)) (lp (+ i 1)))
-                             ) ;or
-                           ) ;let
-                         ) ;and
-                       ) ;let*
-                    (apply flexvector=? eq (cdr o))
+            (else
+              (and
+                (let* ((fv1 (car o)) (fv2 (cadr o)) (len (flexvector-length fv1)))
+                  (and (= len (flexvector-length fv2))
+                    (let lp
+                      ((i 0))
+                      (or (>= i len)
+                        (and (eq (flexvector-ref fv1 i) (flexvector-ref fv2 i)) (lp (+ i 1)))
+                      ) ;or
+                    ) ;let
                   ) ;and
+                ) ;let*
+                (apply flexvector=? eq (cdr o))
+              ) ;and
             ) ;else
       ) ;cond
     ) ;define
@@ -960,7 +980,8 @@
         (assume (procedure? p))
         (assume (procedure? f))
         (assume (procedure? g))
-        (do ((seeds seeds (let-values ((seeds (apply g seeds))) seeds)))
+        (do
+          ((seeds seeds (let-values ((seeds (apply g seeds))) seeds)))
           ((apply p seeds) fv)
           (flexvector-add-back! fv (apply f seeds))
         ) ;do

@@ -259,7 +259,9 @@
           ((pred? (car l))
            (receive (in out) (rec (cdr l)) (values (cons (car l) in) out))
           ) ;
-          (else (receive (in out) (rec (cdr l)) (values in (cons (car l) out))))
+          (else
+            (receive (in out) (rec (cdr l)) (values in (cons (car l) out)))
+          ) ;else
     ) ;cond
   ) ;let
 ) ;define-public
@@ -271,7 +273,9 @@
     ((l l))
     (cond ((null? l) (values '() '()))
           ((pred? (car l)) (values '() l))
-          (else (receive (first last) (rec (cdr l)) (values (cons (car l) first) last)))
+          (else
+            (receive (first last) (rec (cdr l)) (values (cons (car l) first) last))
+          ) ;else
     ) ;cond
   ) ;let
 ) ;define-public
@@ -505,7 +509,9 @@
   ;; It starts from start and adding step each time.
   ;; The default start is 0, the default step is 1.
   (let ((start (if (pair? rest) (car rest) 0))
-        (step (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) 1))
+        (step
+          (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) 1)
+        ) ;step
        ) ;
     (let lp
       ((n 0) (acc '()))

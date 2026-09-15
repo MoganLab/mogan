@@ -33,14 +33,15 @@
 
 (define (slotlist-load l)
   (for (e l)
-    (eval `(begin
-             (if (not (defined? (quote ,(car e)))) (define-public ,(car e) ,#f))
-             (set! ,(car e)
-               ,(with val
-                  (cadr e)
-                  (if (and (pair? val) (eq? (car val) 'quote))
-                    val
-                    `(quote ,(eval val))))))
+    (eval
+      `(begin
+         (if (not (defined? (quote ,(car e)))) (define-public ,(car e) ,#f))
+         (set! ,(car e)
+           ,(with val
+              (cadr e)
+              (if (and (pair? val) (eq? (car val) 'quote))
+                val
+                `(quote ,(eval val))))))
     ) ;eval
   ) ;for
 ) ;define

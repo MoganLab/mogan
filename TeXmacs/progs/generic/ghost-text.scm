@@ -153,14 +153,15 @@
       suffix
       (if (in-math?) "math" "text")
       (lambda (res)
-        (when (and res
-                (== ghost-serial current)
-                (not-in-tab-cycling?)
-                (not-in-math-subnode?)
-                (not (is-pre-editing))
-                (equal? (cursor-path) ghost-pending-cursor)
-                (not (string=? (car res) ""))
-              ) ;and
+        (when
+          (and res
+            (== ghost-serial current)
+            (not-in-tab-cycling?)
+            (not-in-math-subnode?)
+            (not (is-pre-editing))
+            (equal? (cursor-path) ghost-pending-cursor)
+            (not (string=? (car res) ""))
+          ) ;and
           (ghost-on-predict (car res))
         ) ;when
       ) ;lambda
@@ -192,7 +193,9 @@
         (string-append "ghost-predict: text=[" (herk->utf8 text) "]\n")
       ) ;debug-message
       (set! ghost-content content)
-      (cursor-after (insert `(ghost ,content)))
+      (cursor-after
+        (insert `(ghost ,content))
+      ) ;cursor-after
       (set! ghost-active? #t)
       (show-ghost-popup)
     ) ;when
@@ -264,7 +267,9 @@
 (define (not-at-line-start?)
   (let* ((ctx (ghost-collect-context)) (prefix (car ctx)))
     (and (not (string=? prefix ""))
-      (not (char=? (string-ref prefix (- (string-length prefix) 1)) #\newline))
+      (not
+        (char=? (string-ref prefix (- (string-length prefix) 1)) #\newline)
+      ) ;not
     ) ;and
   ) ;let*
 ) ;define
@@ -279,12 +284,13 @@
 ;; 用 tree-innermost 而非 inside?（后者对这些 label 可能不生效）
 
 (define (not-in-math-subnode?)
-  (not (and (in-math?)
-         (let loop
-           ((labels '(frac rsub rsup rprime lsup lsub lprime)))
-           (if (null? labels) #f (or (tree-innermost (car labels)) (loop (cdr labels))))
-         ) ;let
-       ) ;and
+  (not
+    (and (in-math?)
+      (let loop
+        ((labels '(frac rsub rsup rprime lsup lsub lprime)))
+        (if (null? labels) #f (or (tree-innermost (car labels)) (loop (cdr labels))))
+      ) ;let
+    ) ;and
   ) ;not
 ) ;define
 

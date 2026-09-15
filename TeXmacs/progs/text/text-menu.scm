@@ -691,10 +691,11 @@
 
 (menu-bind text-format-icons
   (if (not (style-has? "std-markup-dtd"))
-    (if (and (not (== (get-preference "gui theme") "liii"))
-          (not (== (get-preference "gui theme") "liii-night"))
-          (not (== (get-preference "gui theme") "default"))
-        ) ;and
+    (if
+      (and (not (== (get-preference "gui theme") "liii"))
+        (not (== (get-preference "gui theme") "liii-night"))
+        (not (== (get-preference "gui theme") "default"))
+      ) ;and
       (=> (balloon (icon "tm_parstyle.xpm") "Set paragraph mode")
        ((balloon (icon "tm_align_left.xpm") "Align text to the left")
         (make-line-with "par-mode" "left")
@@ -950,9 +951,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (parameter-show-in-menu? l)
-  (:require (and (string-ends? l "-numbered")
-              (in? (string->symbol (string-drop-right l 9)) (section-tag-list))
-            ) ;and
+  (:require
+    (and (string-ends? l "-numbered")
+      (in? (string->symbol (string-drop-right l 9)) (section-tag-list))
+    ) ;and
   ) ;:require
   #f
 ) ;tm-define
@@ -992,7 +994,9 @@
              (cons (append (car result) (list (car l))) (cdr result))
            ) ;section-list->nested
           ) ;
-          (else (section-list->nested (cdr l) (cons (list (car l)) result)))
+          (else
+            (section-list->nested (cdr l) (cons (list (car l)) result))
+          ) ;else
     ) ;cond
   ) ;define
 
@@ -1001,7 +1005,8 @@
           ((list-any f-is-current-tree (car l))
            (nested->filtered (cdr l) (append (car l) result))
           ) ;
-          (else (nested->filtered (cdr l) (append (list-filter (car l) f-is-top-level) result))
+          (else
+            (nested->filtered (cdr l) (append (list-filter (car l) f-is-top-level) result))
           ) ;else
     ) ;cond
   ) ;define
@@ -1011,9 +1016,10 @@
 
 (define (all-sections)
   (let* ((raw-sections (tree-search-sections (buffer-tree)))
-         (main-sections (list-filter raw-sections
-                          (lambda (x) (not (equal? (tree-label x) 'subparagraph)))
-                        ) ;list-filter
+         (main-sections
+           (list-filter raw-sections
+             (lambda (x) (not (equal? (tree-label x) 'subparagraph)))
+           ) ;list-filter
          ) ;main-sections
          (book-main-sections (list-filter raw-sections is-book-top-level))
         ) ;
@@ -1614,19 +1620,21 @@
 ) ;tm-define
 
 (tm-define (customizable-parameters t)
-  (:require (and (tree-is? t 'with)
-              (== (tree-arity t) 3)
-              (== (tree->string (tree-ref t 0)) "color")
-            ) ;and
+  (:require
+    (and (tree-is? t 'with)
+      (== (tree-arity t) 3)
+      (== (tree->string (tree-ref t 0)) "color")
+    ) ;and
   ) ;:require
   (list (list "color" "Color"))
 ) ;tm-define
 
 (tm-define (customizable-parameters t)
-  (:require (and (tree-is? t 'with)
-              (== (tree-arity t) 3)
-              (== (tree->string (tree-ref t 0)) "text-bg-color")
-            ) ;and
+  (:require
+    (and (tree-is? t 'with)
+      (== (tree-arity t) 3)
+      (== (tree->string (tree-ref t 0)) "text-bg-color")
+    ) ;and
   ) ;:require
   (list (list "text-bg-color" "Text background color"))
 ) ;tm-define
@@ -1637,9 +1645,10 @@
 ) ;tm-define
 
 (tm-menu (focus-hidden-icons t)
-  (:require (and (tree-is? t 'with)
-              (== (tree-arity t) 3)
-              (in? (tree->string (tree-ref t 0)) (list "color" "text-bg-color"))
-            ) ;and
+  (:require
+    (and (tree-is? t 'with)
+      (== (tree-arity t) 3)
+      (in? (tree->string (tree-ref t 0)) (list "color" "text-bg-color"))
+    ) ;and
   ) ;:require
 ) ;tm-menu

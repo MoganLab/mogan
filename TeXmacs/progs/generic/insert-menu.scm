@@ -200,10 +200,11 @@
 
 (menu-bind texmacs-insert-icons
   /
-  (if (and (not (== (get-preference "gui theme") "liii"))
-        (not (== (get-preference "gui theme") "liii-night"))
-        (not (== (get-preference "gui theme") "default"))
-      ) ;and
+  (if
+    (and (not (== (get-preference "gui theme") "liii"))
+      (not (== (get-preference "gui theme") "liii-night"))
+      (not (== (get-preference "gui theme") "default"))
+    ) ;and
     (=> (balloon (icon "tm_macro.xpm") "Insert a personal macro")
       (link insert-macro-menu)
     ) ;=>

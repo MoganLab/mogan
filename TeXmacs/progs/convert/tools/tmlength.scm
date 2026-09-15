@@ -112,18 +112,20 @@
   (:type (-> string tmlength))
   (:synopsis "Create a tmlength object from its string representation")
   (receive (value-str unit-str)
-    (string-span (do ((ss s (string-tail ss 2)))
-                   ((not (string-starts? ss "--")) ss)
-                 ) ;do
+    (string-span
+      (do ((ss s (string-tail ss 2)))
+        ((not (string-starts? ss "--")) ss)
+      ) ;do
       char-decimal?
     ) ;string-span
     (let ((value (if (string-null? value-str) 0 (string->number value-str)))
           (unit (if (string-null? unit-str) #f (string->symbol unit-str)))
          ) ;
-      (cond ((and (not unit) (not (zero? value))) #f)
-            ((not unit) (tmlength))
-            ((not (tmlength-unit? unit)) (tmlength))
-            (else (tmlength value unit))
+      (cond
+       ((and (not unit) (not (zero? value))) #f)
+       ((not unit) (tmlength))
+       ((not (tmlength-unit? unit)) (tmlength))
+       (else (tmlength value unit))
       ) ;cond
     ) ;let
   ) ;receive

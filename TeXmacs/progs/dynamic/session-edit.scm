@@ -47,7 +47,8 @@
 ) ;tm-define
 
 (tm-define (style-category-precedes? x y)
-  (:require (and (== x :session-theme) (in? y (map symbol->string (plugin-list))))
+  (:require
+    (and (== x :session-theme) (in? y (map symbol->string (plugin-list))))
   ) ;:require
   #t
 ) ;tm-define
@@ -289,10 +290,11 @@
               (tm-func? (tree-ref out :last) 'script-busy)
             ) ;and
         (let* ((dt (plugin-timing lan ses))
-               (ts (if (< dt 1000)
-                     (string-append (number->string dt) " msec")
-                     (string-append (number->string (/ dt 1000.0)) " sec")
-                   ) ;if
+               (ts
+                 (if (< dt 1000)
+                   (string-append (number->string dt) " msec")
+                   (string-append (number->string (/ dt 1000.0)) " sec")
+                 ) ;if
                ) ;ts
               ) ;
           (if (and (in? :timings opts) (>= dt 1))
@@ -319,13 +321,14 @@
 (define (tree-contains-label? t label)
   (cond ((not (tree? t)) #f)
         ((eq? (tree-label t) label) #t)
-        (else (let loop
-                ((i 0) (n (tree-arity t)))
-                (if (>= i n)
-                  #f
-                  (or (tree-contains-label? (tree-ref t i) label) (loop (+ i 1) n))
-                ) ;if
-              ) ;let
+        (else
+          (let loop
+            ((i 0) (n (tree-arity t)))
+            (if (>= i n)
+              #f
+              (or (tree-contains-label? (tree-ref t i) label) (loop (+ i 1) n))
+            ) ;if
+          ) ;let
         ) ;else
   ) ;cond
 ) ;define
@@ -370,13 +373,14 @@
           ((eq? (tree-label node) 'reasoning-delta)
            (if (> (tree-arity node) 0) (or (tree->stree (tree-ref node 0)) "") "")
           ) ;
-          (else (let loop
-                  ((i 0) (n (tree-arity node)) (acc '()))
-                  (if (>= i n)
-                    (apply string-append (reverse acc))
-                    (loop (+ i 1) n (cons (collect (tree-ref node i)) acc))
-                  ) ;if
-                ) ;let
+          (else
+            (let loop
+              ((i 0) (n (tree-arity node)) (acc '()))
+              (if (>= i n)
+                (apply string-append (reverse acc))
+                (loop (+ i 1) n (cons (collect (tree-ref node i)) acc))
+              ) ;if
+            ) ;let
           ) ;else
     ) ;cond
   ) ;define
@@ -422,7 +426,8 @@
   (when (tm-func? out 'document)
     (with i
       (tree-arity out)
-      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+      (if
+        (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
         (set! i (- i 1))
       ) ;if
       (with ue
@@ -473,7 +478,8 @@
   (when (tm-func? out 'document)
     (with i
       (tree-arity out)
-      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+      (if
+        (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
         (set! i (- i 1))
       ) ;if
       (with ue
@@ -490,8 +496,14 @@
   (when (tm-func? t 'document)
     (with i
       (tree-arity t)
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
+        (set! i (- i 1))
+      ) ;if
       (when (tm-func? u 'document)
         (tree-insert! t i (var-tree-children u))
         (set-user-active #f)
@@ -504,8 +516,12 @@
   (when (tm-func? t 'document)
     (with i
       (tree-arity t)
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
-      (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      (if
+        (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput))
         (set! i (- i 1))
         (tree-insert! t i '((errput (document))))
       ) ;if
@@ -521,43 +537,44 @@
     (with (in out next opts)
       (session-decode (car l))
       (when (session-coherent? out next)
-        (cond ((== ch "output")
-               (cond
-                 ;; t 包含 reasoning-delta → 提取并追加到 unfolded-explain
-                 ((tree-contains-label? t 'reasoning-delta)
-                  (let* ((text (tree-extract-reasoning-delta! t))
-                         (has-fold? (tree-contains-label? t 'fold-explain-reasoning))
-                        ) ;
-                    (when has-fold?
-                      (tree-remove-label-from-children! t 'fold-explain-reasoning)
-                    ) ;when
-                    ;; 输出 t 中剩余的非 reasoning 内容
-                    (when (> (tree-arity t) 0)
-                      (session-output out t)
-                    ) ;when
-                    ;; 追加 reasoning 文本到 out 中的 unfolded-explain
-                    (session-append-reasoning! out text)
-                    ;; 如果同时有 fold 命令，折叠
-                    (when has-fold?
-                      (session-fold-last-explain! out)
-                    ) ;when
-                  ) ;let*
-                 ) ;
-                 ;; t 仅包含 fold-explain-reasoning → 直接折叠
-                 ((tree-contains-label? t 'fold-explain-reasoning)
-                  (session-fold-last-explain! out)
-                 ) ;
-                 ;; 正常输出
-                 (else (session-output out t))
-               ) ;cond
-              ) ;
-              ((== ch "error") (session-errput out t))
-              ((== ch "prompt")
-               (if (and (== (length l) 1) (tree-empty? (tree-ref next 1)))
-                 (tree-set! next 0 (tree-copy t))
-               ) ;if
-              ) ;
-              ((and (== ch "input") (null? (cdr l))) (tree-set! next 1 t))
+        (cond
+         ((== ch "output")
+          (cond
+            ;; t 包含 reasoning-delta → 提取并追加到 unfolded-explain
+            ((tree-contains-label? t 'reasoning-delta)
+             (let* ((text (tree-extract-reasoning-delta! t))
+                    (has-fold? (tree-contains-label? t 'fold-explain-reasoning))
+                   ) ;
+               (when has-fold?
+                 (tree-remove-label-from-children! t 'fold-explain-reasoning)
+               ) ;when
+               ;; 输出 t 中剩余的非 reasoning 内容
+               (when (> (tree-arity t) 0)
+                 (session-output out t)
+               ) ;when
+               ;; 追加 reasoning 文本到 out 中的 unfolded-explain
+               (session-append-reasoning! out text)
+               ;; 如果同时有 fold 命令，折叠
+               (when has-fold?
+                 (session-fold-last-explain! out)
+               ) ;when
+             ) ;let*
+            ) ;
+            ;; t 仅包含 fold-explain-reasoning → 直接折叠
+            ((tree-contains-label? t 'fold-explain-reasoning)
+             (session-fold-last-explain! out)
+            ) ;
+            ;; 正常输出
+            (else (session-output out t))
+          ) ;cond
+         ) ;
+         ((== ch "error") (session-errput out t))
+         ((== ch "prompt")
+          (if (and (== (length l) 1) (tree-empty? (tree-ref next 1)))
+            (tree-set! next 0 (tree-copy t))
+          ) ;if
+         ) ;
+         ((and (== ch "input") (null? (cdr l))) (tree-set! next 1 t))
         ) ;cond
       ) ;when
     ) ;with
@@ -727,14 +744,15 @@
   (let* ((lan (get-env "prog-language")) (ses (get-env "prog-session")))
     (with l
       (pending-ref lan ses)
-      (for-each (lambda (x)
-                  (with (in out next opts)
-                    (session-decode x)
-                    (when (and (tm-func? out 'document) (tm-func? (tree-ref out :last) 'script-busy))
-                      (tree-assign (tree-ref out :last) `(script-busy ,msg))
-                    ) ;when
-                  ) ;with
-                ) ;lambda
+      (for-each
+        (lambda (x)
+          (with (in out next opts)
+            (session-decode x)
+            (when (and (tm-func? out 'document) (tm-func? (tree-ref out :last) 'script-busy))
+              (tree-assign (tree-ref out :last) `(script-busy ,msg))
+            ) ;when
+          ) ;with
+        ) ;lambda
         l
       ) ;for-each
     ) ;with
@@ -776,18 +794,19 @@
 ) ;define
 
 (define (field-insert-output t)
-  (cond ((tm-func? t 'input)
-         (tree-insert! t 2 (list '(document)))
-         (tree-assign-node! t 'unfolded-io)
-        ) ;
-        ((tm-func? t 'input-math)
-         (tree-insert! t 2 (list '(document)))
-         (tree-assign-node! t 'unfolded-io-math)
-        ) ;
-        ((tm-func? t 'input-text)
-         (tree-insert! t 2 (list '(document)))
-         (tree-assign-node! t 'unfolded-io-text)
-        ) ;
+  (cond
+   ((tm-func? t 'input)
+    (tree-insert! t 2 (list '(document)))
+    (tree-assign-node! t 'unfolded-io)
+   ) ;
+   ((tm-func? t 'input-math)
+    (tree-insert! t 2 (list '(document)))
+    (tree-assign-node! t 'unfolded-io-math)
+   ) ;
+   ((tm-func? t 'input-text)
+    (tree-insert! t 2 (list '(document)))
+    (tree-assign-node! t 'unfolded-io-text)
+   ) ;
   ) ;cond
 ) ;define
 
@@ -906,9 +925,10 @@
 ) ;define
 
 (define (session-forall fun)
-  (let ((t (or (tree-innermost subsession-document-context?)
-             (session-forall-find-doc (buffer-get-body (current-buffer)))
-           ) ;or
+  (let ((t
+          (or (tree-innermost subsession-document-context?)
+            (session-forall-find-doc (buffer-get-body (current-buffer)))
+          ) ;or
         ) ;t
        ) ;
     (when t
@@ -932,8 +952,12 @@
             ) ;cond
          ) ;l
          (p (plugin-prompt lan ses))
-         (in `(,l (document ,p) (document "")))
-         (s `(session ,lan ,ses (document ,ban ,in)))
+         (in
+           `(,l (document ,p) (document ""))
+         ) ;in
+         (s
+           `(session ,lan ,ses (document ,ban ,in))
+         ) ;s
         ) ;
     (insert-go-to s '(2 1 1 0 0))
     (with-innermost t
@@ -1023,20 +1047,22 @@
 ) ;tm-define
 
 (tm-define (session-evaluate-all)
-  (session-forall (lambda (t) (when (not (tree-empty? (tree-ref t 1))) (field-process-input t)))
+  (session-forall
+    (lambda (t) (when (not (tree-empty? (tree-ref t 1))) (field-process-input t)))
   ) ;session-forall
 ) ;tm-define
 
 (tm-define (session-evaluate-above)
   (with-innermost me
     field-input-context?
-    (session-forall (lambda (t)
-                      (when (not (tree-empty? (tree-ref t 1)))
-                        (when (path-inf? (tree->path t) (tree->path me))
-                          (field-process-input t)
-                        ) ;when
-                      ) ;when
-                    ) ;lambda
+    (session-forall
+      (lambda (t)
+        (when (not (tree-empty? (tree-ref t 1)))
+          (when (path-inf? (tree->path t) (tree->path me))
+            (field-process-input t)
+          ) ;when
+        ) ;when
+      ) ;lambda
     ) ;session-forall
   ) ;with-innermost
 ) ;tm-define
@@ -1044,13 +1070,14 @@
 (tm-define (session-evaluate-below)
   (with-innermost me
     field-input-context?
-    (session-forall (lambda (t)
-                      (when (not (tree-empty? (tree-ref t 1)))
-                        (when (path-inf-eq? (tree->path me) (tree->path t))
-                          (field-process-input t)
-                        ) ;when
-                      ) ;when
-                    ) ;lambda
+    (session-forall
+      (lambda (t)
+        (when (not (tree-empty? (tree-ref t 1)))
+          (when (path-inf-eq? (tree->path me) (tree->path t))
+            (field-process-input t)
+          ) ;when
+        ) ;when
+      ) ;lambda
     ) ;session-forall
   ) ;with-innermost
 ) ;tm-define
@@ -1162,7 +1189,9 @@
   (let* ((lan (get-env "prog-language"))
          (ses (get-env "prog-session"))
          (cmd (session-complete-command t))
-         (ret (lambda (x) (when x (custom-complete (tm->tree x)))))
+         (ret
+           (lambda (x) (when x (custom-complete (tm->tree x))))
+         ) ;ret
         ) ;
     (when (!= cmd "")
       (plugin-command lan ses cmd ret '())
@@ -1365,14 +1394,18 @@
 ) ;define
 
 (define (session-unfold-last-n-sub n)
-  (let ((t (or (tree-innermost subsession-document-context?)
-             (session-forall-find-doc (buffer-get-body (current-buffer)))
-           ) ;or
+  (let ((t
+          (or (tree-innermost subsession-document-context?)
+            (session-forall-find-doc (buffer-get-body (current-buffer)))
+          ) ;or
         ) ;t
        ) ;
     (when t
       (let* ((fields (session-collect-fields-sub t)) (total (length fields)))
-        (for (i (.. (max 0 (- total n)) total)) (field-unfold (list-ref fields i)))
+        (for
+          (i (.. (max 0 (- total n)) total))
+          (field-unfold (list-ref fields i))
+        ) ;for
       ) ;let*
     ) ;when
   ) ;let
@@ -1469,7 +1502,9 @@
   (let* ((l (selection-trees))
          (doc (tree-up (car l)))
          (ses (tree-up doc))
-         (sel `(session ,@(cDr (tm-children ses)) (document ,@l)))
+         (sel
+           `(session ,@(cDr (tm-children ses)) (document ,@l))
+         ) ;sel
         ) ;
     (clipboard-set which sel)
   ) ;let*
@@ -1483,10 +1518,11 @@
 ) ;tm-define
 
 (tm-define (clipboard-paste which)
-  (:require (and (inside? 'session)
-              (tm-ref (clipboard-get which) 1)
-              (tree-is? (tm-ref (clipboard-get which) 1) 'session)
-            ) ;and
+  (:require
+    (and (inside? 'session)
+      (tm-ref (clipboard-get which) 1)
+      (tree-is? (tm-ref (clipboard-get which) 1) 'session)
+    ) ;and
   ) ;:require
   (let* ((ses (tree-innermost 'session))
          (sub (tree-innermost inside-subsession-context?))

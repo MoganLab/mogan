@@ -98,29 +98,33 @@
 (define (mathtm-mo env a c)
   (cond ((null? c) '())
         ((or (nnull? (cdr c)) (nstring? (car c))) (list (mathtm-args-serial env c)))
-        (else (let* ((s (car c)) (r (xmltm-text s)))
-                (cond ((logic-ref mathml-left->tm% s) => (lambda (x) `((left ,x))))
-                      ((logic-ref mathml-right->tm% s) => (lambda (x) `((right ,x))))
-                      ((logic-ref mathml-big->tm% s) => (lambda (x) `((big ,x))))
-                      ((logic-ref mathml-symbol->tm% s) => (lambda (x) `(,x)))
-                      ((logic-ref tmtm-left% r) => (lambda (x) `((left ,x))))
-                      ((logic-ref tmtm-right% r) => (lambda (x) `((right ,x))))
-                      ((logic-ref tmtm-big% r) => (lambda (x) `((big ,x))))
-                      ((string-starts? s "&") `(,(entity->tm s)))
-                      (else (list r))
-                ) ;cond
-              ) ;let*
+        (else
+          (let* ((s (car c)) (r (xmltm-text s)))
+            (cond
+             ((logic-ref mathml-left->tm% s) => (lambda (x) `((left ,x))))
+             ((logic-ref mathml-right->tm% s) => (lambda (x) `((right ,x))))
+             ((logic-ref mathml-big->tm% s) => (lambda (x) `((big ,x))))
+             ((logic-ref mathml-symbol->tm% s) => (lambda (x) `(,x)))
+             ((logic-ref tmtm-left% r) => (lambda (x) `((left ,x))))
+             ((logic-ref tmtm-right% r) => (lambda (x) `((right ,x))))
+             ((logic-ref tmtm-big% r) => (lambda (x) `((big ,x))))
+             ((string-starts? s "&") `(,(entity->tm s)))
+             (else (list r))
+            ) ;cond
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
 
 (define (entity->tm s)
   (let* ((l (string-length s))
-         (typ (cond ((and (== l 6) (== (string-take-right s 4) "opf;")) "<bbb-")
-                    ((and (== l 6) (== (string-take-right s 4) "scr;")) "<cal-")
-                    ((and (== l 5) (== (string-take-right s 3) "fr;")) "<frak-")
-                    (else #f)
-              ) ;cond
+         (typ
+           (cond
+            ((and (== l 6) (== (string-take-right s 4) "opf;")) "<bbb-")
+            ((and (== l 6) (== (string-take-right s 4) "scr;")) "<cal-")
+            ((and (== l 5) (== (string-take-right s 3) "fr;")) "<frak-")
+            (else #f)
+           ) ;cond
          ) ;typ
         ) ;
     (if typ (string-append typ (substring s 1 2) ">") s)
@@ -178,14 +182,17 @@
 (define (mathtm-sep-list l seps)
   (cond ((null? l) l)
         ((null? seps) l)
-        (else (cons* (car l) `(m:mo ,(car seps)) (mathtm-sep-list (cdr l) (cdr seps))))
+        (else
+          (cons* (car l) `(m:mo ,(car seps)) (mathtm-sep-list (cdr l) (cdr seps)))
+        ) ;else
   ) ;cond
 ) ;define
 
 (define (mathtm-mfenced env a c)
   (let* ((open (car (or (assoc-ref a 'open) '("("))))
          (close (car (or (assoc-ref a 'close) '(")"))))
-         (seps (string-tokenize-by-char (car (or (assoc-ref a 'separators) '(""))) #\space)
+         (seps
+           (string-tokenize-by-char (car (or (assoc-ref a 'separators) '(""))) #\space)
          ) ;seps
         ) ;
     (if (== seps '("")) (set! seps '()))
@@ -250,9 +257,10 @@
 
 (define (mathtm-msubsup-split l)
   (let ((n (length l)))
-    (cond ((== n 2) (values (list (first l)) (list (second l))))
-          ((mathtm-delimited-script? (cdr l)) (values (list (first l)) (cdr l)))
-          (else (values (sublist l 0 (- n 1)) (sublist l (- n 1) n)))
+    (cond
+     ((== n 2) (values (list (first l)) (list (second l))))
+     ((mathtm-delimited-script? (cdr l)) (values (list (first l)) (cdr l)))
+     (else (values (sublist l 0 (- n 1)) (sublist l (- n 1) n)))
     ) ;cond
   ) ;let
 ) ;define
@@ -290,20 +298,22 @@
 ) ;define
 
 (define (mathtm-mmultiscripts-sub env l right?)
-  (cond ((or (null? l) (null? (cdr l))) (values '() '() '() '()))
-        ((or (func? (car l) 'mprescripts) (func? (car l) 'm:mprescripts))
-         (mathtm-mmultiscripts-sub env (cdr l) #f)
-        ) ;
-        (else (receive (lsub lsup rsub rsup)
-                (mathtm-mmultiscripts-sub env (cddr l) right?)
-                (let ((sub (mathtm env (car l))) (sup (mathtm env (cadr l))))
-                  (if right?
-                    (values lsub lsup (append rsub sub) (append rsup sup))
-                    (values (append sub lsub) (append sup lsup) rsub rsup)
-                  ) ;if
-                ) ;let
-              ) ;receive
-        ) ;else
+  (cond
+   ((or (null? l) (null? (cdr l))) (values '() '() '() '()))
+   ((or (func? (car l) 'mprescripts) (func? (car l) 'm:mprescripts))
+    (mathtm-mmultiscripts-sub env (cdr l) #f)
+   ) ;
+   (else
+     (receive (lsub lsup rsub rsup)
+       (mathtm-mmultiscripts-sub env (cddr l) right?)
+       (let ((sub (mathtm env (car l))) (sup (mathtm env (cadr l))))
+         (if right?
+           (values lsub lsup (append rsub sub) (append rsup sup))
+           (values (append sub lsub) (append sup lsup) rsub rsup)
+         ) ;if
+       ) ;let
+     ) ;receive
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -334,14 +344,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (mathtm-below base sub)
-  (cond ((logic-ref mathml-below->tm% sub) => (lambda (x) `((wide* ,base ,x))))
-        (else `((below ,base ,sub)))
+  (cond
+   ((logic-ref mathml-below->tm% sub) => (lambda (x) `((wide* ,base ,x))))
+   (else
+     `((below ,base ,sub))
+   ) ;else
   ) ;cond
 ) ;define
 
 (define (mathtm-above base sup)
-  (cond ((logic-ref mathml-above->tm% sup) => (lambda (x) `((wide ,base ,x))))
-        (else `((above ,base ,sup)))
+  (cond
+   ((logic-ref mathml-above->tm% sup) => (lambda (x) `((wide ,base ,x))))
+   (else
+     `((above ,base ,sup))
+   ) ;else
   ) ;cond
 ) ;define
 
@@ -365,16 +381,15 @@
     (let ((base (mathtm-as-serial env (first c)))
           (sub (mathtm-as-serial env (second c)))
          ) ;
-      (cond ((and (list? sub)
-               (== (first sub) 'below)
-               (logic-ref mathml-below->tm% (second sub))
-             ) ;and
-             `((below ,(car (mathtm-below base (second sub))) ,(third sub)))
-            ) ;
-            ((stretchy? (first c) base) `((long-arrow ,(rubberify base)
-                                            ,""
-                                            ,sub)))
-            (else (mathtm-below base sub))
+      (cond
+       ((and (list? sub)
+          (== (first sub) 'below)
+          (logic-ref mathml-below->tm% (second sub))
+        ) ;and
+        `((below ,(car (mathtm-below base (second sub))) ,(third sub)))
+       ) ;
+       ((stretchy? (first c) base) `((long-arrow ,(rubberify base) ,"" ,sub)))
+       (else (mathtm-below base sub))
       ) ;cond
     ) ;let
     (mathtm-error "bad munder")
@@ -386,14 +401,15 @@
     (let ((base (mathtm-as-serial env (first c)))
           (sup (mathtm-as-serial env (second c)))
          ) ;
-      (cond ((and (list? sup)
-               (== (first sup) 'above)
-               (logic-ref mathml-above->tm% (second sup))
-             ) ;and
-             `((above ,(car (mathtm-above base (second sup))) ,(third sup)))
-            ) ;
-            ((stretchy? (first c) base) `((long-arrow ,(rubberify base) ,sup)))
-            (else (mathtm-above base sup))
+      (cond
+       ((and (list? sup)
+          (== (first sup) 'above)
+          (logic-ref mathml-above->tm% (second sup))
+        ) ;and
+        `((above ,(car (mathtm-above base (second sup))) ,(third sup)))
+       ) ;
+       ((stretchy? (first c) base) `((long-arrow ,(rubberify base) ,sup)))
+       (else (mathtm-above base sup))
       ) ;cond
     ) ;let
     (mathtm-error "bad mover")
@@ -449,14 +465,18 @@
   (with sa
     (mathtm-style (list a))
     (if (nnull? sa)
-      (map (lambda (x) `(cwith ,(first x) ,(second x))) (split-by sa 2))
-      (cond ((and (func? a 'columnalign) (mathtm-halign (cadr a)))
-             `((cwith ,"cell-halign" ,(mathtm-halign (cadr a))))
-            ) ;
-            ((and (func? a 'rowalign) (mathtm-valign (cadr a)))
-             `((cwith ,"cell-valign" ,(mathtm-valign (cadr a))))
-            ) ;
-            (else '())
+      (map
+        (lambda (x) `(cwith ,(first x) ,(second x)))
+        (split-by sa 2)
+      ) ;map
+      (cond
+       ((and (func? a 'columnalign) (mathtm-halign (cadr a)))
+        `((cwith ,"cell-halign" ,(mathtm-halign (cadr a))))
+       ) ;
+       ((and (func? a 'rowalign) (mathtm-valign (cadr a)))
+        `((cwith ,"cell-valign" ,(mathtm-valign (cadr a))))
+       ) ;
+       (else '())
       ) ;cond
     ) ;if
   ) ;with
@@ -464,7 +484,9 @@
 
 (define (mathtm-mtd env a c)
   (let ((fm (append-map mathtm-cell-format a))
-        (c `(cell ,(mathtm-serial env (mathtm-pass env a c))))
+        (c
+          `(cell ,(mathtm-serial env (mathtm-pass env a c)))
+        ) ;c
        ) ;
     (if (null? fm) `(,c) `((tformat ,@fm ,c)))
   ) ;let
@@ -487,14 +509,18 @@
   (with sa
     (mathtm-style (list a))
     (if (nnull? sa)
-      (map (lambda (x) `(cwith ,"1" ,"-1" ,(first x) ,(second x))) (split-by sa 2))
-      (cond ((func? a 'columnalign)
-             (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-row-halign l 1))
-            ) ;
-            ((and (func? a 'rowalign) (mathtm-valign (cadr a)))
-             `((cwith ,"1" ,"-1" ,"cell-valign" ,(mathtm-valign (cadr a))))
-            ) ;
-            (else '())
+      (map
+        (lambda (x) `(cwith ,"1" ,"-1" ,(first x) ,(second x)))
+        (split-by sa 2)
+      ) ;map
+      (cond
+       ((func? a 'columnalign)
+        (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-row-halign l 1))
+       ) ;
+       ((and (func? a 'rowalign) (mathtm-valign (cadr a)))
+        `((cwith ,"1" ,"-1" ,"cell-valign" ,(mathtm-valign (cadr a))))
+       ) ;
+       (else '())
       ) ;cond
     ) ;if
   ) ;with
@@ -509,8 +535,15 @@
 
 (define (mathtm-mtr env a c)
   (let* ((cell? (lambda (x) (mathml-func? x 'mtd)))
-         (c2 (map (lambda (x) (if (cell? x) x `(m:mtd ,x))) c))
-         (r `(row ,@(map (cut mathtm-as-serial env <>) c2)))
+         (c2
+           (map
+             (lambda (x) (if (cell? x) x `(m:mtd ,x)))
+             c
+           ) ;map
+         ) ;c2
+         (r
+           `(row ,@(map (cut mathtm-as-serial env <>) c2))
+         ) ;r
          (fm (append-map mathtm-row-format a))
         ) ;
     (if (null? fm) `(,r) `((tformat ,@fm ,r)))
@@ -552,16 +585,18 @@
   (with sa
     (mathtm-style (list a))
     (if (nnull? sa)
-      (map (lambda (x) `(cwith ,"1" ,"-1" ,"1" ,"-1" ,(first x) ,(second x)))
+      (map
+        (lambda (x) `(cwith ,"1" ,"-1" ,"1" ,"-1" ,(first x) ,(second x)))
         (split-by sa 2)
       ) ;map
-      (cond ((func? a 'columnalign)
-             (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-table-halign l 1))
-            ) ;
-            ((func? a 'rowalign)
-             (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-table-valign l 1))
-            ) ;
-            (else '())
+      (cond
+       ((func? a 'columnalign)
+        (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-table-halign l 1))
+       ) ;
+       ((func? a 'rowalign)
+        (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-table-valign l 1))
+       ) ;
+       (else '())
       ) ;cond
     ) ;if
   ) ;with
@@ -569,10 +604,19 @@
 
 (define (mathtm-mtable env a c)
   (let* ((row? (lambda (x) (mathml-func-in? x '(mtr mlabeledtr))))
-         (c2 (map (lambda (x) (if (row? x) x `(m:mtr ,x))) c))
+         (c2
+           (map
+             (lambda (x) (if (row? x) x `(m:mtr ,x)))
+             c
+           ) ;map
+         ) ;c2
          (l (map (cut mathtm-as-serial env <>) c2))
          (fm (append-map mathtm-table-format a))
-         (t (tmtable-complete `(tformat ,@fm (table ,@l))))
+         (t
+           (tmtable-complete
+             `(tformat ,@fm (table ,@l))
+           ) ;tmtable-complete
+         ) ;t
         ) ;
     (set! t (tmtable-format-up t))
     (if (func? t 'tformat 1) (set! t (cAr t)))
@@ -598,31 +642,33 @@
     (and (list>1? l) (mathtm-annotation env a cdr (l)))
     (or r
       (let* ((an (car l))
-             (enc (and (func? an 'm:annotation 2)
-                    (func? (second an) '@)
-                    (shtml-attr-non-null (cdr (second an)) 'encoding)
-                  ) ;and
+             (enc
+               (and (func? an 'm:annotation 2)
+                 (func? (second an) '@)
+                 (shtml-attr-non-null (cdr (second an)) 'encoding)
+               ) ;and
              ) ;enc
             ) ;
-        (cond ((and enc (in? enc '("application/x-tex" "TeX")))
-               (let* ((s (third an))
-                      (lat (parse-latex (string-append "$" s "$")))
-                      (str (latex->texmacs lat))
-                     ) ;
-                 (list str)
-               ) ;let*
-              ) ;
-              ((and enc (string-starts? enc "StarMath")) #f)
-              (else (debug-message "debug-convert"
-                      (string-append "Mathml contains an unknown annotation type \""
-                        enc
-                        "\"\n with value: \n"
-                        (third an)
-                        "\nTeXmacs is not using it\n"
-                      ) ;string-append
-                    ) ;debug-message
-                #f
-              ) ;else
+        (cond
+         ((and enc (in? enc '("application/x-tex" "TeX")))
+          (let* ((s (third an))
+                 (lat (parse-latex (string-append "$" s "$")))
+                 (str (latex->texmacs lat))
+                ) ;
+            (list str)
+          ) ;let*
+         ) ;
+         ((and enc (string-starts? enc "StarMath")) #f)
+         (else (debug-message "debug-convert"
+                 (string-append "Mathml contains an unknown annotation type \""
+                   enc
+                   "\"\n with value: \n"
+                   (third an)
+                   "\nTeXmacs is not using it\n"
+                 ) ;string-append
+               ) ;debug-message
+           #f
+         ) ;else
         ) ;cond
       ) ;let*
     ) ;or
@@ -641,10 +687,11 @@
     (tagproc env a c)
     (cond ((null? res) res)
           ((null? a) res)
-          (else (with attrs
-                  (mathtm-style a)
-                  (if (null? attrs) res `((with ,@attrs ,(car res))))
-                ) ;with
+          (else
+            (with attrs
+              (mathtm-style a)
+              (if (null? attrs) res `((with ,@attrs ,(car res))))
+            ) ;with
           ) ;else
     ) ;cond
   ) ;with
@@ -679,14 +726,17 @@
              ) ;with
             ) ;
             ((func? h 'style)
-             (append (mathtm-style (map (lambda (l) (list (string->symbol (car l)) (cAr l)))
-                                     (filter list-2?
-                                       (map (lambda (x) (map string-trim (string-tokenize-by-char x #\:)))
-                                         (string-tokenize-by-char (cadr h) #\;)
-                                       ) ;map
-                                     ) ;filter
-                                   ) ;map
-                     ) ;mathtm-style
+             (append
+               (mathtm-style
+                 (map
+                   (lambda (l) (list (string->symbol (car l)) (cAr l)))
+                   (filter list-2?
+                     (map (lambda (x) (map string-trim (string-tokenize-by-char x #\:)))
+                       (string-tokenize-by-char (cadr h) #\;)
+                     ) ;map
+                   ) ;filter
+                 ) ;map
+               ) ;mathtm-style
                r
              ) ;append
             ) ;

@@ -70,7 +70,10 @@
     ;; ; 产生的空段,保留 ".." 直到 resolve() 才处理。使 /tmp/ → /tmp、
     ;; ; a//b → a/b 与 pathlib 一致。
     (define (drop-dot-parts v)
-      (vector-filter (lambda (p) (not (or (string=? p ".") (string-null? p)))) v)
+      (vector-filter
+        (lambda (p) (not (or (string=? p ".") (string-null? p))))
+        v
+      ) ;vector-filter
     ) ;define
 
     ;; ; 路径字符串解析为 (values parts root),适用于 posix 与 Windows
@@ -82,18 +85,19 @@
             ((string=? s ".") (values #(".") #f))
             ((string=? s "/") (values #() #\/))
             ((string=? s "\\") (values #() #\\))
-            (else (let ((sep (os-sep)))
-                    (let ((normalized (if (os-windows?) (string-replace s "/" "\\") s)))
-                      (if (and (> (string-length normalized) 0) (char=? (string-ref normalized 0) sep))
-                        ;; 绝对路径:丢弃 string-split-vec 产生的起始空 stub。
-                        (let ((raw (string-split-vec normalized sep)))
-                          (values (drop-dot-parts (vector-drop raw 1)) sep)
-                        ) ;let
-                        ;; 相对路径
-                        (values (drop-dot-parts (string-split-vec normalized sep)) #f)
-                      ) ;if
+            (else
+              (let ((sep (os-sep)))
+                (let ((normalized (if (os-windows?) (string-replace s "/" "\\") s)))
+                  (if (and (> (string-length normalized) 0) (char=? (string-ref normalized 0) sep))
+                    ;; 绝对路径:丢弃 string-split-vec 产生的起始空 stub。
+                    (let ((raw (string-split-vec normalized sep)))
+                      (values (drop-dot-parts (vector-drop raw 1)) sep)
                     ) ;let
-                  ) ;let
+                    ;; 相对路径
+                    (values (drop-dot-parts (string-split-vec normalized sep)) #f)
+                  ) ;if
+                ) ;let
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -211,14 +215,15 @@
     ;; ; 末尾点(foo.)当作空后缀:stem="foo", suffix=".", 对齐 Python 3.14+ pathlib。
     (define (split-name-dots name)
       (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
-            (else (let ((splits (string-split name #\.)))
-                    (if (or (<= (length splits) 1) (string=? (car splits) ""))
-                      (values (list name) '())
-                      (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
-                        (values stem-segs (list (string-append "." suffix-seg)))
-                      ) ;let*
-                    ) ;if
-                  ) ;let
+            (else
+              (let ((splits (string-split name #\.)))
+                (if (or (<= (length splits) 1) (string=? (car splits) ""))
+                  (values (list name) '())
+                  (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
+                    (values stem-segs (list (string-append "." suffix-seg)))
+                  ) ;let*
+                ) ;if
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define
@@ -235,14 +240,16 @@
              (drive (path-record-drive pp))
              (root (path-record-root pp))
             ) ;
-        (cond ((or (= n 0) (and (= n 1) (string=? (vector-ref parts 0) ".")))
-               (make-path-record (vector new-name) 'posix "" #f)
-              ) ;
-              (else (let ((new-parts (vector-copy parts)))
-                      (vector-set! new-parts (- n 1) new-name)
-                      (make-path-record new-parts type drive root)
-                    ) ;let
-              ) ;else
+        (cond
+         ((or (= n 0) (and (= n 1) (string=? (vector-ref parts 0) ".")))
+          (make-path-record (vector new-name) 'posix "" #f)
+         ) ;
+         (else
+           (let ((new-parts (vector-copy parts)))
+             (vector-set! new-parts (- n 1) new-name)
+             (make-path-record new-parts type drive root)
+           ) ;let
+         ) ;else
         ) ;cond
       ) ;let*
     ) ;define
@@ -250,9 +257,10 @@
     ;; ; 过滤 path-from-parts 中首段 anchor 之后的空段/分隔符 stub。
     ;; ; 同时识别 posix "/" 与 Windows "\\" 作为分隔符(避免污染)。
     (define (clean-tail parts)
-      (vector-filter (lambda (part)
-                       (not (or (string-null? part) (string=? part "/") (string=? part "\\")))
-                     ) ;lambda
+      (vector-filter
+        (lambda (part)
+          (not (or (string-null? part) (string=? part "/") (string=? part "\\")))
+        ) ;lambda
         (vector-drop parts 1)
       ) ;vector-filter
     ) ;define
@@ -263,22 +271,25 @@
       (let ((negate (and (< (+ j 1) plen) (char=? (string-ref pattern (+ j 1)) #\^))))
         (let scan
           ((k (if negate (+ j 2) (+ j 1))) (matched #f))
-          (cond ((or (>= k plen) (char=? (string-ref pattern k) #\]))
-                 (values (if negate (not matched) matched) (if (< k plen) (+ k 1) k))
-                ) ;
-                ((and (< (+ k 2) plen) (char=? (string-ref pattern (+ k 1)) #\-))
-                 (let ((lo (string-ref pattern k)) (hi (string-ref pattern (+ k 2))))
-                   (let ((hit (if (char<=? lo hi)
-                                (and (char>=? ch lo) (char<=? ch hi))
-                                (and (char>=? ch hi) (char<=? ch lo))
-                              ) ;if
-                         ) ;hit
-                        ) ;
-                     (scan (+ k 3) (or matched hit))
-                   ) ;let
-                 ) ;let
-                ) ;
-                (else (scan (+ k 1) (or matched (char=? (string-ref pattern k) ch))))
+          (cond
+           ((or (>= k plen) (char=? (string-ref pattern k) #\]))
+            (values (if negate (not matched) matched) (if (< k plen) (+ k 1) k))
+           ) ;
+           ((and (< (+ k 2) plen) (char=? (string-ref pattern (+ k 1)) #\-))
+            (let ((lo (string-ref pattern k)) (hi (string-ref pattern (+ k 2))))
+              (let ((hit (if (char<=? lo hi)
+                           (and (char>=? ch lo) (char<=? ch hi))
+                           (and (char>=? ch hi) (char<=? ch lo))
+                         ) ;if
+                    ) ;hit
+                   ) ;
+                (scan (+ k 3) (or matched hit))
+              ) ;let
+            ) ;let
+           ) ;
+           (else
+             (scan (+ k 1) (or matched (char=? (string-ref pattern k) ch)))
+           ) ;else
           ) ;cond
         ) ;let
       ) ;let
@@ -288,31 +299,32 @@
     ;; ; (大小写敏感性由 path-match 在 Windows 类型下统一 downcase 处理)。
     (define (glob-match? pattern str)
       (let ((plen (string-length pattern)) (slen (string-length str)))
-        (letrec ((match-at (lambda (p0 s0)
-                             (cond ((= p0 plen) (= s0 slen))
-                                   ((char=? (string-ref pattern p0) #\*)
-                                    ;; * 尝试匹配 0..(slen-s0) 个字符
-                                    (let try-star
-                                      ((n 0))
-                                      (cond ((match-at (+ p0 1) (+ s0 n)) #t)
-                                            ((< (+ s0 n) slen) (try-star (+ n 1)))
-                                            (else #f)
-                                      ) ;cond
-                                    ) ;let
-                                   ) ;
-                                   ((= s0 slen) #f)
-                                   ((char=? (string-ref pattern p0) #\?) (match-at (+ p0 1) (+ s0 1)))
-                                   ((char=? (string-ref pattern p0) #\[)
-                                    (let-values (((hit next) (charclass-match-one pattern plen p0 (string-ref str s0))))
-                                      (and hit (match-at next (+ s0 1)))
-                                    ) ;let-values
-                                   ) ;
-                                   ((char=? (string-ref pattern p0) (string-ref str s0))
-                                    (match-at (+ p0 1) (+ s0 1))
-                                   ) ;
-                                   (else #f)
-                             ) ;cond
-                           ) ;lambda
+        (letrec ((match-at
+                   (lambda (p0 s0)
+                     (cond ((= p0 plen) (= s0 slen))
+                           ((char=? (string-ref pattern p0) #\*)
+                            ;; * 尝试匹配 0..(slen-s0) 个字符
+                            (let try-star
+                              ((n 0))
+                              (cond ((match-at (+ p0 1) (+ s0 n)) #t)
+                                    ((< (+ s0 n) slen) (try-star (+ n 1)))
+                                    (else #f)
+                              ) ;cond
+                            ) ;let
+                           ) ;
+                           ((= s0 slen) #f)
+                           ((char=? (string-ref pattern p0) #\?) (match-at (+ p0 1) (+ s0 1)))
+                           ((char=? (string-ref pattern p0) #\[)
+                            (let-values (((hit next) (charclass-match-one pattern plen p0 (string-ref str s0))))
+                              (and hit (match-at next (+ s0 1)))
+                            ) ;let-values
+                           ) ;
+                           ((char=? (string-ref pattern p0) (string-ref str s0))
+                            (match-at (+ p0 1) (+ s0 1))
+                           ) ;
+                           (else #f)
+                     ) ;cond
+                   ) ;lambda
                  ) ;match-at
                 ) ;
           (match-at 0 0)
@@ -331,15 +343,16 @@
             ) ;
         (let loop
           ((rest segs) (acc '()))
-          (cond ((null? rest) (make-path-record (list->vector (reverse acc)) type drive root))
-                ((string=? (car rest) "..")
-                 (if (null? acc)
-                   ;; .. 在根之上:丢弃(不能越过根)
-                   (loop (cdr rest) acc)
-                   (loop (cdr rest) (cdr acc))
-                 ) ;if
-                ) ;
-                (else (loop (cdr rest) (cons (car rest) acc)))
+          (cond
+           ((null? rest) (make-path-record (list->vector (reverse acc)) type drive root))
+           ((string=? (car rest) "..")
+            (if (null? acc)
+              ;; .. 在根之上:丢弃(不能越过根)
+              (loop (cdr rest) acc)
+              (loop (cdr rest) (cdr acc))
+            ) ;if
+           ) ;
+           (else (loop (cdr rest) (cons (car rest) acc)))
           ) ;cond
         ) ;let
       ) ;let*
@@ -356,22 +369,23 @@
       (if (null? args)
         (make-path-record #(".") 'posix "" #f)
         (let ((arg (car args)))
-          (cond ((string? arg)
-                 (if (and (os-windows?) (or (unc-prefix? arg) (windows-path-with-drive? arg)))
-                   (receive (parts drive root)
-                     (parse-windows-path arg)
-                     (make-path-record parts 'windows drive root)
-                   ) ;receive
-                   (receive (parts root)
-                     (parse-path-string arg)
-                     (let ((type (if (os-windows?) 'windows 'posix)))
-                       (make-path-record parts type "" root)
-                     ) ;let
-                   ) ;receive
-                 ) ;if
-                ) ;
-                ((path? arg) (copy arg))
-                (else (type-error "path: argument must be string or path"))
+          (cond
+           ((string? arg)
+            (if (and (os-windows?) (or (unc-prefix? arg) (windows-path-with-drive? arg)))
+              (receive (parts drive root)
+                (parse-windows-path arg)
+                (make-path-record parts 'windows drive root)
+              ) ;receive
+              (receive (parts root)
+                (parse-path-string arg)
+                (let ((type (if (os-windows?) 'windows 'posix)))
+                  (make-path-record parts type "" root)
+                ) ;let
+              ) ;receive
+            ) ;if
+           ) ;
+           ((path? arg) (copy arg))
+           (else (type-error "path: argument must be string or path"))
           ) ;cond
         ) ;let
       ) ;if
@@ -461,55 +475,57 @@
     ;; ; 差异:posix 用 "/" 拼接,Windows 用 "\";Windows UNC share anchor
     ;; ; 在只剩 anchor 时带尾斜杠(对齐 pathlib: str('\\srv\sh')=='\\srv\sh\')。
     (define (path->string p)
-      (cond ((path? p)
-             (let ((parts (path-record-parts p))
-                   (type (path-record-type p))
-                   (drive (path-record-drive p))
-                   (root (path-record-root p))
-                  ) ;
-               (case type
-                ((posix)
-                 (let ((body (parts->string parts "/")))
-                   (cond ((and root (not (string-null? body))) (string-append "/" body))
-                         (root "/")
-                         ((string-null? body) ".")
-                         (else body)
-                   ) ;cond
+      (cond
+       ((path? p)
+        (let ((parts (path-record-parts p))
+              (type (path-record-type p))
+              (drive (path-record-drive p))
+              (root (path-record-root p))
+             ) ;
+          (case type
+           ((posix)
+            (let ((body (parts->string parts "/")))
+              (cond
+               ((and root (not (string-null? body))) (string-append "/" body))
+               (root "/")
+               ((string-null? body) ".")
+               (else body)
+              ) ;cond
+            ) ;let
+           ) ;
+           ((windows)
+            (let ((body (parts->string parts "\\")))
+              (cond
+                ;; UNC: drive 字段含 \\server[\share] anchor。
+                ;; ; 完整 share anchor(\\server\share)只剩 anchor 时带尾斜杠;
+                ;; ; 光秃 server(\\srv)不带尾斜杠(root 为空)。
+                ((unc-prefix? drive)
+                 (if (string-null? body)
+                   (if (string-index (substring drive 2 (string-length drive)) #\\)
+                     (string-append drive "\\")
+                     drive
+                   ) ;if
+                   (string-append drive "\\" body)
+                 ) ;if
+                ) ;
+                ;; drive-absolute 或 drive-relative: drive 是单个盘符如 "C"
+                ((not (string-null? drive))
+                 (let ((prefix (string-append drive ":" (if root "\\" ""))))
+                   (if (string-null? body) prefix (string-append prefix body))
                  ) ;let
                 ) ;
-                ((windows)
-                 (let ((body (parts->string parts "\\")))
-                   (cond
-                     ;; UNC: drive 字段含 \\server[\share] anchor。
-                     ;; ; 完整 share anchor(\\server\share)只剩 anchor 时带尾斜杠;
-                     ;; ; 光秃 server(\\srv)不带尾斜杠(root 为空)。
-                     ((unc-prefix? drive)
-                      (if (string-null? body)
-                        (if (string-index (substring drive 2 (string-length drive)) #\\)
-                          (string-append drive "\\")
-                          drive
-                        ) ;if
-                        (string-append drive "\\" body)
-                      ) ;if
-                     ) ;
-                     ;; drive-absolute 或 drive-relative: drive 是单个盘符如 "C"
-                     ((not (string-null? drive))
-                      (let ((prefix (string-append drive ":" (if root "\\" ""))))
-                        (if (string-null? body) prefix (string-append prefix body))
-                      ) ;let
-                     ) ;
-                     ;; 无 drive: root=#\\ 为当前盘根 "\foo",否则为相对 "foo\bar"
-                     (root (if (string-null? body) "\\" (string-append "\\" body)))
-                     (else (if (string-null? body) "." body))
-                   ) ;cond
-                 ) ;let
-                ) ;
-                (else (value-error "path->string: unknown type"))
-               ) ;case
-             ) ;let
-            ) ;
-            ((string? p) p)
-            (else (type-error "path->string: argument must be path or string"))
+                ;; 无 drive: root=#\\ 为当前盘根 "\foo",否则为相对 "foo\bar"
+                (root (if (string-null? body) "\\" (string-append "\\" body)))
+                (else (if (string-null? body) "." body))
+              ) ;cond
+            ) ;let
+           ) ;
+           (else (value-error "path->string: unknown type"))
+          ) ;case
+        ) ;let
+       ) ;
+       ((string? p) p)
+       (else (type-error "path->string: argument must be path or string"))
       ) ;cond
     ) ;define
 
@@ -587,12 +603,13 @@
     (define (path-suffixes p)
       (let ((name (path-name p)))
         (cond ((or (string=? name ".") (string=? name "..")) #())
-              (else (let ((splits (string-split name #\.)))
-                      (if (or (<= (length splits) 1) (string=? (car splits) ""))
-                        #()
-                        (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
-                      ) ;if
-                    ) ;let
+              (else
+                (let ((splits (string-split name #\.)))
+                  (if (or (<= (length splits) 1) (string=? (car splits) ""))
+                    #()
+                    (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
+                  ) ;if
+                ) ;let
               ) ;else
         ) ;cond
       ) ;let
@@ -628,16 +645,17 @@
       (if (not (string? ext))
         (type-error "path-with-suffix: ext must be string")
         (let* ((name (path-name p)) (stem (path-stem p)))
-          (cond ((string-null? ext)
-                 (if (string-null? (path-suffix (path p)))
-                   (path p)
-                   (replace-last-segment p stem)
-                 ) ;if
-                ) ;
-                ((not (char=? (string-ref ext 0) #\.))
-                 (value-error "path-with-suffix: ext must start with '.'")
-                ) ;
-                (else (replace-last-segment p (string-append stem ext)))
+          (cond
+           ((string-null? ext)
+            (if (string-null? (path-suffix (path p)))
+              (path p)
+              (replace-last-segment p stem)
+            ) ;if
+           ) ;
+           ((not (char=? (string-ref ext 0) #\.))
+            (value-error "path-with-suffix: ext must start with '.'")
+           ) ;
+           (else (replace-last-segment p (string-append stem ext)))
           ) ;cond
         ) ;let*
       ) ;if
@@ -957,44 +975,46 @@
         (if (= (vector-length parts) 0)
           (make-path-record #(".") 'posix "" #f)
           (let ((head (vector-ref parts 0)))
-            (cond ((and (string? head) (unc-prefix? head))
-                   ;; UNC share anchor: \\server\share\[...] → drive="\\server\share", root=#\\
-                   (let* ((hend (string-length head))
-                          (trimmed (if (char=? (string-ref head (- hend 1)) #\\)
-                                     (substring head 0 (- hend 1))
-                                     head
-                                   ) ;if
-                          ) ;trimmed
-                         ) ;
-                     (make-path-record (clean-tail parts) 'windows trimmed #\\)
-                   ) ;let*
-                  ) ;
+            (cond
+             ((and (string? head) (unc-prefix? head))
+              ;; UNC share anchor: \\server\share\[...] → drive="\\server\share", root=#\\
+              (let* ((hend (string-length head))
+                     (trimmed
+                       (if (char=? (string-ref head (- hend 1)) #\\)
+                         (substring head 0 (- hend 1))
+                         head
+                       ) ;if
+                     ) ;trimmed
+                    ) ;
+                (make-path-record (clean-tail parts) 'windows trimmed #\\)
+              ) ;let*
+             ) ;
 
-                  ((and (string? head) (windows-path-with-drive? head))
-                   (let ((drive (extract-drive head)) (hend (string-length head)))
-                     ;; 首段含尾反斜杠(C:\) → drive-absolute(root=#\\);仅 C: → drive-relative(root=#f)
-                     (let ((root (if (and (> hend 2) (char=? (string-ref head 2) #\\)) #\\ #f)))
-                       (make-path-record (clean-tail parts) 'windows drive root)
-                     ) ;let
-                   ) ;let
-                  ) ;
+             ((and (string? head) (windows-path-with-drive? head))
+              (let ((drive (extract-drive head)) (hend (string-length head)))
+                ;; 首段含尾反斜杠(C:\) → drive-absolute(root=#\\);仅 C: → drive-relative(root=#f)
+                (let ((root (if (and (> hend 2) (char=? (string-ref head 2) #\\)) #\\ #f)))
+                  (make-path-record (clean-tail parts) 'windows drive root)
+                ) ;let
+              ) ;let
+             ) ;
 
-                  ((string=? head "/")
-                   ;; posix 绝对：保留 caller 传的剩余 parts（不再剥离 "."，因为 caller 显式传）
-                   (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
-                  ) ;
+             ((string=? head "/")
+              ;; posix 绝对：保留 caller 传的剩余 parts（不再剥离 "."，因为 caller 显式传）
+              (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
+             ) ;
 
-                  ((string=? head "\\")
-                   ;; windows 当前驱动器根
-                   (make-path-record (vector-copy (vector-drop parts 1)) 'windows "" #\\)
-                  ) ;
+             ((string=? head "\\")
+              ;; windows 当前驱动器根
+              (make-path-record (vector-copy (vector-drop parts 1)) 'windows "" #\\)
+             ) ;
 
-                  ((string-null? head)
-                   ;; 老式空 stub 开头，按 posix 绝对处理
-                   (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
-                  ) ;
+             ((string-null? head)
+              ;; 老式空 stub 开头，按 posix 绝对处理
+              (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
+             ) ;
 
-                  (else (make-path-record (vector-copy parts) 'posix "" #f))
+             (else (make-path-record (vector-copy parts) 'posix "" #f))
             ) ;cond
           ) ;let
         ) ;if
@@ -1014,22 +1034,23 @@
     ;; ; 对齐 pathlib.Path.home 的环境变量解析顺序。
     ;; ; 差异:POSIX 查 HOME;Windows 查 USERPROFILE,缺失则回退 HOMEDRIVE+HOMEPATH。
     (define (path-home)
-      (cond ((or (os-linux?) (os-macos?))
-             (let ((h (getenv "HOME")))
-               (if h (path h) (value-error "path-home: HOME is not set"))
-             ) ;let
-            ) ;
-            ((os-windows?)
-             (let ((profile (getenv "USERPROFILE")))
-               (cond (profile (path profile))
-                     ((and (getenv "HOMEDRIVE") (getenv "HOMEPATH"))
-                      (path (string-append (getenv "HOMEDRIVE") (getenv "HOMEPATH")))
-                     ) ;
-                     (else (value-error "path-home: USERPROFILE and HOMEDRIVE/HOMEPATH are not set"))
-               ) ;cond
-             ) ;let
-            ) ;
-            (else (value-error "path-home: unknown platform"))
+      (cond
+       ((or (os-linux?) (os-macos?))
+        (let ((h (getenv "HOME")))
+          (if h (path h) (value-error "path-home: HOME is not set"))
+        ) ;let
+       ) ;
+       ((os-windows?)
+        (let ((profile (getenv "USERPROFILE")))
+          (cond (profile (path profile))
+                ((and (getenv "HOMEDRIVE") (getenv "HOMEPATH"))
+                 (path (string-append (getenv "HOMEDRIVE") (getenv "HOMEPATH")))
+                ) ;
+                (else (value-error "path-home: USERPROFILE and HOMEDRIVE/HOMEPATH are not set"))
+          ) ;cond
+        ) ;let
+       ) ;
+       (else (value-error "path-home: unknown platform"))
       ) ;cond
     ) ;define
 

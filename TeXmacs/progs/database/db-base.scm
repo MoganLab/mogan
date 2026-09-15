@@ -148,13 +148,14 @@
 (tm-define (db-create-entry l) (with id (db-create-id) (db-set-entry id l) id))
 
 (define (rewrite-query q)
-  (cond ((func? q :order 2) (list 'order (cadr q) (nin? (caddr q) (list #f "#f"))))
-        ((func? q :modified) (cons 'modified (cdr q)))
-        ((func? q :match) (cons 'contains (cdr q)))
-        ((func? q :prefix) (cons 'completes (cdr q)))
-        ((func? q :contains) (cons 'contains (cdr q)))
-        ((func? q :completes) (cons 'completes (cdr q)))
-        (else q)
+  (cond
+   ((func? q :order 2) (list 'order (cadr q) (nin? (caddr q) (list #f "#f"))))
+   ((func? q :modified) (cons 'modified (cdr q)))
+   ((func? q :match) (cons 'contains (cdr q)))
+   ((func? q :prefix) (cons 'completes (cdr q)))
+   ((func? q :contains) (cons 'contains (cdr q)))
+   ((func? q :completes) (cons 'completes (cdr q)))
+   (else q)
   ) ;cond
 ) ;define
 

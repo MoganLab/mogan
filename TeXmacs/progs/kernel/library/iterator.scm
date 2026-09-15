@@ -36,9 +36,10 @@
   "Append the iterators @its."
   (cond ((null? its) #f)
         ((not (car its)) (apply iterator-append (cdr its)))
-        (else (let* ((next ((car its))) (cont (cons (cdr next) (cdr its))))
-                (iterator (car next) (apply iterator-append cont))
-              ) ;let*
+        (else
+          (let* ((next ((car its))) (cont (cons (cdr next) (cdr its))))
+            (iterator (car next) (apply iterator-append cont))
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define-public
@@ -47,7 +48,8 @@
   "Get elements in iterator @it which match the predicate @pred?."
   (with next
     #f
-    (while (and it (begin (set! next (it)) (not (pred? (car next)))))
+    (while
+      (and it (begin (set! next (it)) (not (pred? (car next)))))
       (set! it (cdr next))
     ) ;while
     (and it (lambda () next))

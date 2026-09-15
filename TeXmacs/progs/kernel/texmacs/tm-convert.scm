@@ -124,16 +124,17 @@
 
 (define-public (converter-sub cmd)
   "Helper routine for converter macro"
-  (cond ((and (list? cmd)
-           (= (length cmd) 2)
-           (in? (car cmd) '(:function :function-with-options))
-         ) ;and
-         (list (car cmd) (list 'unquote (cadr cmd)))
-        ) ;
-        ((and (list? cmd) (= (length cmd) 2) (in? (car cmd) '(:require)))
-         (list (car cmd) (list 'unquote `(lambda ,() ,(cadr cmd))))
-        ) ;
-        (else cmd)
+  (cond
+   ((and (list? cmd)
+      (= (length cmd) 2)
+      (in? (car cmd) '(:function :function-with-options))
+    ) ;and
+    (list (car cmd) (list 'unquote (cadr cmd)))
+   ) ;
+   ((and (list? cmd) (= (length cmd) 2) (in? (car cmd) '(:require)))
+    (list (car cmd) (list 'unquote `(lambda ,() ,(cadr cmd))))
+   ) ;
+   (else cmd)
   ) ;cond
 ) ;define-public
 
@@ -148,21 +149,22 @@
     ;; this enables to define several possible implementations of a given converter
     ;; not presuming on the availability of external tools : the last valid one is retained
     ;; (previously the last defined -even if unavailable- erased whatever was already defined)
-    (cond ((and (in? (car (first options)) '(:penalty))
-             (in? (car (second options)) '(:require))
-             (not (eval (second (second options))))
-           ) ;and
-           (noop)
-          ) ;
-          ((and (in? (car (first options)) '(:require))
-             (not (eval (second (first options))))
-           ) ;and
-           (noop)
-          ) ;
-          (else (converter-set-penalty from to 1.0)
-            `(for-each (lambda (x) (converter-cmd ,from ,to x))
-               ,(list 'quasiquote (map converter-sub options)))
-          ) ;else
+    (cond
+     ((and (in? (car (first options)) '(:penalty))
+        (in? (car (second options)) '(:require))
+        (not (eval (second (second options))))
+      ) ;and
+      (noop)
+     ) ;
+     ((and (in? (car (first options)) '(:require))
+        (not (eval (second (first options))))
+      ) ;and
+      (noop)
+     ) ;
+     (else (converter-set-penalty from to 1.0)
+       `(for-each (lambda (x) (converter-cmd ,from ,to x))
+          ,(list 'quasiquote (map converter-sub options)))
+     ) ;else
     ) ;cond
   ) ;let*
 ) ;define-public-macro
@@ -174,7 +176,8 @@
 (define (converter-shell-cmd l from to)
   (with x
     (car l)
-    (string-append (if (os-windows?) (escape-shell (url-concretize (url-resolve-in-path x))) x)
+    (string-append
+      (if (os-windows?) (escape-shell (url-concretize (url-resolve-in-path x))) x)
       " "
       (converter-shell-cmd-args (cdr l) from to)
     ) ;string-append
@@ -186,10 +189,11 @@
     ""
     (with x
       (car l)
-      (string-append (cond ((== x 'from) (escape-shell (url-concretize from)))
-                           ((== x 'to) (escape-shell (url-concretize to)))
-                           (else x)
-                     ) ;cond
+      (string-append
+        (cond ((== x 'from) (escape-shell (url-concretize from)))
+              ((== x 'to) (escape-shell (url-concretize to)))
+              (else x)
+        ) ;cond
         (cond ((and (string? x) (string-ends? x "=")) "")
               (else " ")
         ) ;cond
@@ -237,10 +241,11 @@
 (define (converters-sub l h p)
   (cond ((null? l) (map car (ahash-table->list h)))
         ((ahash-ref h (car l)) (converters-sub (cdr l) h p))
-        (else (let* ((hn (ahash-ref p (car l))) (next (if hn (map car (ahash-table->list hn)) '())))
-                (ahash-set! h (car l) #t)
-                (converters-sub (append next (cdr l)) h p)
-              ) ;let*
+        (else
+          (let* ((hn (ahash-ref p (car l))) (next (if hn (map car (ahash-table->list hn)) '())))
+            (ahash-set! h (car l) #t)
+            (converters-sub (append next (cdr l)) h p)
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -273,7 +278,9 @@
 (define (converter-walk from l*)
   ;; (display* "convert-walk " from ", " l* "\n")
   (if (nnull? l*)
-    (let* ((l (list-sort l* (lambda (x y) (< (cadr x) (cadr y)))))
+    (let* ((l
+             (list-sort l* (lambda (x y) (< (cadr x) (cadr y))))
+           ) ;l
            (aux (caar l))
            (d (cadar l))
            (path (caddar l))
@@ -281,7 +288,12 @@
       (if (converter-insert from aux d (reverse path))
         (let* ((hn (ahash-ref converter-forward aux))
                (next (if hn (ahash-table->list hn) '()))
-               (r (map (lambda (x) (list (car x) (+ d (cdr x)) (cons (car x) path))) next))
+               (r
+                 (map
+                   (lambda (x) (list (car x) (+ d (cdr x)) (cons (car x) path)))
+                   next
+                 ) ;map
+               ) ;r
               ) ;
           (converter-walk from (append (cdr l) r))
         ) ;let*
@@ -377,9 +389,15 @@
 (define-public (converters-from-special* fm suf tm?)
   (let* ((l1 (converters-from fm))
          (l2 (list-filter l1 (lambda (s) (string-ends? s suf))))
-         (l3 (map (lambda (s) (string-drop-right s (string-length suf))) l2))
-         (l3 (list-filter l3 (lambda (s) (not (ahash-ref format-hidden s)))))
-         (l4 (if tm? l3 (list-filter l3 (lambda (s) (!= s "texmacs")))))
+         (l3
+           (map (lambda (s) (string-drop-right s (string-length suf))) l2)
+         ) ;l3
+         (l3
+           (list-filter l3 (lambda (s) (not (ahash-ref format-hidden s))))
+         ) ;l3
+         (l4
+           (if tm? l3 (list-filter l3 (lambda (s) (!= s "texmacs"))))
+         ) ;l4
         ) ;
     (list-sort l4 format<=?)
   ) ;let*
@@ -388,9 +406,15 @@
 (define-public (converters-to-special* fm suf tm?)
   (let* ((l1 (converters-to fm))
          (l2 (list-filter l1 (lambda (s) (string-ends? s suf))))
-         (l3 (map (lambda (s) (string-drop-right s (string-length suf))) l2))
-         (l3 (list-filter l3 (lambda (s) (not (ahash-ref format-hidden s)))))
-         (l4 (if tm? l3 (list-filter l3 (lambda (s) (!= s "texmacs")))))
+         (l3
+           (map (lambda (s) (string-drop-right s (string-length suf))) l2)
+         ) ;l3
+         (l3
+           (list-filter l3 (lambda (s) (not (ahash-ref format-hidden s))))
+         ) ;l3
+         (l4
+           (if tm? l3 (list-filter l3 (lambda (s) (!= s "texmacs"))))
+         ) ;l4
         ) ;
     (list-sort l4 format<=?)
   ) ;let*
