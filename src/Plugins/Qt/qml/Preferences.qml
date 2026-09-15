@@ -1,7 +1,7 @@
 // Preferences.qml — 首选项弹窗（「编辑 → 首选项」）。
-// 5 主 tab（General / Keyboard / Mathematics / Convert / Other），其中 Convert 下
-// 再有 7 子 tab（Html / LaTeX / BibTeX / Verbatim / Pdf / Image / AI）。约 40 combo + 35 toggle
-// + 若干 info row。设计稿见 ai-docs/qml/qml-dialog.html 的 #panel-preferences。
+// 6 主 tab（General / Keyboard / Mathematics / Convert / AI / Other；社区版无 AI tab），
+// 其中 Convert 下再有 6 子 tab（Html / LaTeX / BibTeX / Verbatim / Pdf / Image）。
+// 约 40 combo + 35 toggle + 若干 info row。设计稿见 ai-docs/qml/qml-dialog.html 的 #panel-preferences。
 //
 // 本地暂存 + OK 一次性提交（FormDialog 模式——参考 FormDialog.qml / ParagraphFormat.qml）：
 //   - 打开时 prefBridge.meta() 一次性拉全部 tab/字段描述符树到 initialValues（打开快照）

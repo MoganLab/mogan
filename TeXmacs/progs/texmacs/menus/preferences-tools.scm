@@ -366,7 +366,7 @@
     ) ;
     ;; AI 翻译目标语言：首项 interface（按界面语言）+ supported-languages 全表，
     ;; 与 General 的 language 字段同源（顶层 define 里用空 '() 避开加载期求值）。
-    ((== key (pref-convert-ai-translate-target))
+    ((== key (pref-ai-translate-target))
      (list (cons "interface" supported-languages)
        (cons "User interface language" (map upcase-first supported-languages))
      ) ;list
