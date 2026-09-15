@@ -25,6 +25,7 @@
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QShowEvent>
+#include <QTimer>
 #include <algorithm>
 #include <cmath>
 
@@ -71,6 +72,16 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   layout->setContentsMargins (0, 0, 0, 0);
   layout->addWidget (quick);
 
+  // 悬浮唯一驱动：无按键 move 可能断在 QPA 层（macOS 上 s_windowUnderMouse
+  // 陈旧等会话态会让 QNSView 整体吞掉 move，事件不会成为 QMouseEvent，
+  // qApp 过滤器同样看不到）。轮询读系统级光标位置，不依赖事件投递，
+  // 任何会话下都能点亮/熄灭
+  hover_timer= new QTimer (this);
+  // 16ms ≈ 60Hz 一帧：悬浮点亮延迟上界，低于感知阈值，再快无收益
+  hover_timer->setInterval (16);
+  QObject::connect (hover_timer, SIGNAL (timeout ()), this,
+                    SLOT (syncHoverFromCursor ()));
+
   // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（引用选区
   // 到 AI 侧边栏，翻译自动发送），润色后续接入
   if (QQuickItem* root= quick->rootObject ()) {
@@ -89,45 +100,43 @@ QTMAiTranslatePopup::onActionTriggered (const QString& action) {
 }
 
 void
-QTMAiTranslatePopup::syncHover () {
+QTMAiTranslatePopup::syncHover (QPointF pos) {
   // QQuickWidget 不为无按键的 move 合成 hover：hover 上下文需先由一次显式
   // HoverMove 激活（见 qml_load_test 的 test_ai_actions_bar_hover）。每次
   // 显示/重定位后按当前光标位置同步一次——光标在栏外时即为清空，顺带纠正
   // 上次会话残留的 hover 态
   QQuickWindow* w= quick->quickWindow ();
   if (!w) return;
-  QPointF     pos (quick->mapFromGlobal (QCursor::pos ()));
   QHoverEvent hover (QEvent::HoverMove, pos, pos);
   QCoreApplication::sendEvent (w, &hover);
+  last_sync_pos= pos;
 }
 
-bool
-QTMAiTranslatePopup::eventFilter (QObject* obj, QEvent* ev) {
-  // 无按键 move 依赖「macOS → 顶层窗口 → 半透明子 widget → QQuickWidget」
-  // 的逐级投递，该链路在部分会话下整体失效（悬浮点亮失灵，点击因 grab
-  // 语义仍可用）。挂在 qApp 上的过滤器能看到投递给任意对象的原始 move
-  // 流，不受子 widget 路由成败影响：据此直接同步 hover，绕开失效环节。
-  // 栏外远处的 move 只在「刚离开栏内」时同步一次以清空高亮，避免每次
-  // move 都触发 Quick 场景命中测试
-  if (ev->type () == QEvent::MouseMove && isVisible ()) {
-    bool inside= rect ().contains (mapFromGlobal (QCursor::pos ()));
-    if (inside || hover_inside) syncHover ();
-    hover_inside= inside;
+void
+QTMAiTranslatePopup::syncHoverFromCursor () {
+  // 三态（进入/栏内/刚离开）叠加坐标未变跳过：静止悬停与栏外远处都不
+  // 触发 Quick 场景命中测试
+  if (!isVisible ()) return;
+  QPoint g (QCursor::pos ());
+  bool   inside= rect ().contains (mapFromGlobal (g));
+  if (inside || hover_inside) {
+    QPointF pos (quick->mapFromGlobal (g));
+    if (pos != last_sync_pos) syncHover (pos);
   }
-  return QObject::eventFilter (obj, ev);
+  hover_inside= inside;
 }
 
 void
 QTMAiTranslatePopup::showEvent (QShowEvent* ev) {
   QTMBasePopup::showEvent (ev);
   hover_inside= false;
-  QCoreApplication::instance ()->installEventFilter (this);
+  hover_timer->start ();
 }
 
 void
 QTMAiTranslatePopup::hideEvent (QHideEvent* ev) {
   QTMBasePopup::hideEvent (ev);
-  QCoreApplication::instance ()->removeEventFilter (this);
+  hover_timer->stop ();
 }
 
 void
@@ -188,5 +197,5 @@ QTMAiTranslatePopup::showPopup (qt_renderer_rep* ren, rectangle selr,
   updatePosition (ren);
   show ();
   raise ();
-  syncHover ();
+  syncHover (quick->mapFromGlobal (QCursor::pos ()));
 }

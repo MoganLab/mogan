@@ -15,6 +15,7 @@
 #include "rectangles.hpp"
 
 class QQuickWidget;
+class QTimer;
 
 // 选区下方的一行 AI 操作栏：龙虾标识 + 翻译 / 润色 / 对话（QML 渲染）
 class QTMAiTranslatePopup : public QTMBasePopup {
@@ -37,26 +38,32 @@ protected:
   // 首选侧放不下时退到另一侧
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
 
-  // qApp 级截获无按键 move，持续同步 hover（见 cpp，悬浮可靠性关键）
-  bool eventFilter (QObject* obj, QEvent* ev) override;
-  // 过滤器仅在显示期间挂载，隐藏即卸载
+  // 悬停轮询仅在显示期间运行，隐藏即停止
   void showEvent (QShowEvent* ev) override;
   void hideEvent (QHideEvent* ev) override;
 
 private slots:
   // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
   void onActionTriggered (const QString& action);
+  // 三态判定（进入/栏内/刚离开）+ 坐标未变跳过后按需 syncHover
+  void syncHoverFromCursor ();
 
 private:
-  // 按当前光标位置向离屏 scene 发 HoverMove：激活 hover 上下文并纠正残留态
-  void syncHover ();
+  // 向离屏 scene 发 HoverMove（quick 本地坐标）：激活 hover 上下文并纠正
+  // 残留态；坐标未变时由调用方跳过
+  void syncHover (QPointF pos);
 
   QQuickWidget* quick;
+  // 悬停轮询（悬浮唯一驱动）：move 事件可能在 QPA 层被整体吞掉，轮询只读
+  // 系统光标位置，不依赖事件投递
+  QTimer* hover_timer;
   // 上次显示时的选择方向：定位输出仅为缓存的函数
   bool cached_upward= false;
   // 上次同步时光标是否在栏内：决定「进入/栏内移动/首次离开」三态是否需要
   // 同步，栏外远处的 move 不再触发 Quick 场景命中测试
   bool hover_inside= false;
+  // 上次实际发出的 HoverMove 坐标（quick 本地）：静止悬停不重发
+  QPointF last_sync_pos;
   // 上次 autoSize 使用的字号：DPI 不变时跳过 QML 写入与布局重算
   int cached_font_px= 0;
 };
