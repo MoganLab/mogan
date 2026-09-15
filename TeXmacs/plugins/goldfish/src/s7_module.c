@@ -37,18 +37,18 @@ s7_pointer g_features_set(s7_scheme *sc, s7_pointer args)
   const s7_pointer new_features = s7_cadr(args);
   if (s7_is_null(sc, new_features)) return s7_nil(sc);
   if (!s7_is_pair(new_features))
-    return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
                     s7_list(sc, 2,
                             s7_make_string(sc, "can't set *features* to ~S (*features* must be a pair)"),
                             new_features));
   if (s7_list_length(sc, new_features) <= 0)
-    return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
                     s7_list(sc, 2,
                             s7_make_string(sc, "can't set *features* to an improper or circular list ~S"),
                             new_features));
   for (s7_pointer features = new_features; s7_is_pair(features); features = s7_cdr(features))
     if (!s7_is_symbol(s7_car(features)))
-      return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+      return s7_error(sc, s7_make_symbol(sc, "type-error"),
                       s7_list(sc, 2,
                               s7_make_string(sc, "can't set *features* to ~S (each feature should be a symbol)"),
                               new_features));
@@ -61,7 +61,7 @@ s7_pointer g_libraries_set(s7_scheme *sc, s7_pointer args)
   const s7_pointer new_libraries = s7_cadr(args);
   if (s7_is_null(sc, new_libraries)) return s7_nil(sc);
   if ((!s7_is_pair(new_libraries)) || (s7_list_length(sc, new_libraries) <= 0))
-    return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
                     s7_list(sc, 2, s7_make_string(sc, "can't set *libraries* to ~S"), new_libraries));
   for (s7_pointer libraries = new_libraries; s7_is_pair(libraries); libraries = s7_cdr(libraries))
     if ((!s7_is_pair(s7_car(libraries))) ||

@@ -59,7 +59,7 @@ r7rs_library_name_valid (s7_scheme* sc, s7_pointer name) {
 static s7_pointer
 r7rs_library_check_name (s7_scheme* sc, const char* caller, s7_pointer name) {
   if (!r7rs_library_name_valid (sc, name))
-    return r7rs_library_error (sc, "wrong-type-arg",
+    return r7rs_library_error (sc, "type-error",
                                "library name should be a proper list of symbols or non-negative integers, but got ~S",
                                name);
   return NULL;
@@ -89,7 +89,7 @@ g_library_register (s7_scheme* sc, s7_pointer args) {
   if (err) return err;
   s7_pointer env= s7_cadr (args);
   if (!s7_is_let (env))
-    return r7rs_library_error (sc, "wrong-type-arg", "library environment should be a let, but got ~S", env);
+    return r7rs_library_error (sc, "type-error", "library environment should be a let, but got ~S", env);
   s7_hash_table_set (sc, r7rs_library_registry (sc), name, env);
   return env;
 }
@@ -301,7 +301,7 @@ static s7_pointer
 r7rs_include_check_files (s7_scheme* sc, s7_pointer files) {
   for (s7_pointer p= files; s7_is_pair (p); p= s7_cdr (p))
     if (!s7_is_string (s7_car (p)))
-      return r7rs_library_error (sc, "wrong-type-arg", "include: filename should be a string, got ~S", s7_car (p));
+      return r7rs_library_error (sc, "type-error", "include: filename should be a string, got ~S", s7_car (p));
   return NULL;
 }
 
@@ -504,7 +504,7 @@ g_define_library (s7_scheme* sc, s7_pointer args) {
   s7_gc_protect_via_stack (sc, args);
   s7_pointer libname= s7_car (args);
   if (!r7rs_library_name_valid (sc, libname))
-    return r7rs_library_error (sc, "wrong-type-arg",
+    return r7rs_library_error (sc, "type-error",
                                "define-library: invalid library name ~S (a proper list of symbols or non-negative "
                                "integers expected)",
                                libname);
@@ -607,7 +607,7 @@ static s7_pointer
 r7rs_import_check_names (s7_scheme* sc, s7_pointer names) {
   for (s7_pointer p= names; s7_is_pair (p); p= s7_cdr (p))
     if (!s7_is_symbol (s7_car (p)))
-      return r7rs_library_error (sc, "wrong-type-arg", "import: expected an identifier, got ~S", s7_car (p));
+      return r7rs_library_error (sc, "type-error", "import: expected an identifier, got ~S", s7_car (p));
   return NULL;
 }
 
@@ -732,7 +732,7 @@ r7rs_import_set_env (s7_scheme* sc, s7_pointer iset) {
   if (r7rs_decl_named (iset, "rename")) return r7rs_import_rename (sc, iset);
   /* plain library name */
   if (!r7rs_library_name_valid (sc, iset))
-    return r7rs_library_error (sc, "wrong-type-arg", "import: invalid import set ~S", iset);
+    return r7rs_library_error (sc, "type-error", "import: invalid import set ~S", iset);
   return r7rs_library_env (sc, iset);
 }
 

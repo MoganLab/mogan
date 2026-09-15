@@ -70,47 +70,98 @@
     (define (null-list? l)
       (cond ((pair? l) #f)
             ((null? l) #t)
-            (else (error 'wrong-type-arg "null-list?: argument out of domain" l))
+            (else (type-error "null-list?: argument out of domain" l))
       ) ;cond
     ) ;define
 
-    (define first car)
+    (define (%at-least-n-elements? x n)
+      (let loop
+        ((x x) (n n))
+        (cond ((= n 0) #t)
+              ((pair? x) (loop (cdr x) (- n 1)))
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
 
-    (define second cadr)
+    (define (first x)
+      (if (pair? x) (car x) (type-error "first: argument must be a pair" x))
+    ) ;define
 
-    (define third caddr)
+    (define (second x)
+      (if (%at-least-n-elements? x 2)
+        (cadr x)
+        (type-error "second: argument must have at least 2 elements" x)
+      ) ;if
+    ) ;define
+
+    (define (third x)
+      (if (%at-least-n-elements? x 3)
+        (caddr x)
+        (type-error "third: argument must have at least 3 elements" x)
+      ) ;if
+    ) ;define
 
     (define (fourth x)
-      (list-ref x 3)
+      (if (%at-least-n-elements? x 4)
+        (list-ref x 3)
+        (type-error "fourth: argument must have at least 4 elements" x)
+      ) ;if
     ) ;define
 
     (define (fifth x)
-      (list-ref x 4)
+      (if (%at-least-n-elements? x 5)
+        (list-ref x 4)
+        (type-error "fifth: argument must have at least 5 elements" x)
+      ) ;if
     ) ;define
 
     (define (sixth x)
-      (list-ref x 5)
+      (if (%at-least-n-elements? x 6)
+        (list-ref x 5)
+        (type-error "sixth: argument must have at least 6 elements" x)
+      ) ;if
     ) ;define
 
     (define (seventh x)
-      (list-ref x 6)
+      (if (%at-least-n-elements? x 7)
+        (list-ref x 6)
+        (type-error "seventh: argument must have at least 7 elements" x)
+      ) ;if
     ) ;define
 
     (define (eighth x)
-      (list-ref x 7)
+      (if (%at-least-n-elements? x 8)
+        (list-ref x 7)
+        (type-error "eighth: argument must have at least 8 elements" x)
+      ) ;if
     ) ;define
 
     (define (ninth x)
-      (list-ref x 8)
+      (if (%at-least-n-elements? x 9)
+        (list-ref x 8)
+        (type-error "ninth: argument must have at least 9 elements" x)
+      ) ;if
     ) ;define
 
     (define (tenth x)
-      (list-ref x 9)
+      (if (%at-least-n-elements? x 10)
+        (list-ref x 9)
+        (type-error "tenth: argument must have at least 10 elements" x)
+      ) ;if
     ) ;define
 
     (define take g_take)
 
-    (define drop list-tail)
+    (define (drop lst k)
+      (unless (or (pair? lst) (null? lst))
+        (type-error "drop: first argument must be a pair or null" lst)
+      ) ;unless
+      (unless (integer? k)
+        (type-error "drop: second argument must be an integer" k)
+      ) ;unless
+      (list-tail lst k)
+    ) ;define
 
     (define take-right g_take_right)
 
@@ -135,22 +186,31 @@
     ) ;define
 
     (define (last-pair l)
+      (unless (pair? l)
+        (type-error "last-pair: argument must be a pair" l)
+      ) ;unless
       (if (pair? (cdr l)) (last-pair (cdr l)) l)
     ) ;define
 
     (define (last l)
+      (unless (pair? l)
+        (type-error "last: argument must be a pair" l)
+      ) ;unless
       (car (last-pair l))
     ) ;define
 
     (define count g_count)
 
     (define (zip . lists)
+      (for-each (lambda (l) (unless (list? l) (type-error "zip: argument must be a list" l)))
+        lists
+      ) ;for-each
       (apply map list lists)
     ) ;define
 
     (define (fold f initial . lists)
       (unless (procedure? f)
-        (error 'type-error "expected procedure, got ~S" f)
+        (type-error "fold: expected procedure, got ~S" f)
       ) ;unless
       (cond ((null? lists) initial)
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
@@ -172,7 +232,7 @@
 
     (define (fold-right f initial . lists)
       (unless (procedure? f)
-        (error 'type-error "expected procedure, got ~S" f)
+        (type-error "fold-right: expected procedure, got ~S" f)
       ) ;unless
       (cond ((null? lists) initial)
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
@@ -193,11 +253,23 @@
     ) ;define
 
     (define (reduce f initial l)
-      (if (null-list? l) initial (fold f (car l) (cdr l)))
+      (unless (procedure? f)
+        (type-error "reduce: first argument must be a procedure" f)
+      ) ;unless
+      (unless (or (pair? l) (null? l))
+        (type-error "reduce: third argument must be a list" l)
+      ) ;unless
+      (if (null? l) initial (fold f (car l) (cdr l)))
     ) ;define
 
     (define (reduce-right f initial l)
-      (if (null-list? l)
+      (unless (procedure? f)
+        (type-error "reduce-right: first argument must be a procedure" f)
+      ) ;unless
+      (unless (or (pair? l) (null? l))
+        (type-error "reduce-right: third argument must be a list" l)
+      ) ;unless
+      (if (null? l)
         initial
         (let recur
           ((head (car l)) (l (cdr l)))
@@ -208,11 +280,11 @@
 
     (define (append-map proc . lists)
       (unless (procedure? proc)
-        (error 'type-error "expected procedure, got ~S" proc)
+        (type-error "append-map: expected procedure, got ~S" proc)
       ) ;unless
       (for-each (lambda (lst)
                   (unless (list? lst)
-                    (error 'type-error "expected list, got ~S" lst)
+                    (type-error "append-map: expected list, got ~S" lst)
                   ) ;unless
                 ) ;lambda
         lists
@@ -223,9 +295,15 @@
     (define filter g_filter)
 
     (define (partition pred l)
+      (unless (procedure? pred)
+        (type-error "partition: first argument must be a procedure" pred)
+      ) ;unless
       (let loop
         ((lst l) (satisfies '()) (dissatisfies '()))
         (cond ((null? lst) (cons satisfies dissatisfies))
+              ((not (pair? lst))
+               (type-error "partition: second argument must be a proper list" l)
+              ) ;
               ((pred (car lst)) (loop (cdr lst) (cons (car lst) satisfies) dissatisfies))
               (else (loop (cdr lst) satisfies (cons (car lst) dissatisfies)))
         ) ;cond
@@ -233,20 +311,38 @@
     ) ;define
 
     (define (remove pred l)
+      (unless (procedure? pred)
+        (type-error "remove: first argument must be a procedure" pred)
+      ) ;unless
       (filter (lambda (x) (not (pred x))) l)
     ) ;define
 
     (define find g_find)
 
     (define (take-while pred lst)
+      (unless (procedure? pred)
+        (type-error "take-while: first argument must be a procedure" pred)
+      ) ;unless
       (if (null? lst)
         '()
-        (if (pred (car lst)) (cons (car lst) (take-while pred (cdr lst))) '())
+        (if (pair? lst)
+          (if (pred (car lst)) (cons (car lst) (take-while pred (cdr lst))) '())
+          (type-error "take-while: second argument must be a list" lst)
+        ) ;if
       ) ;if
     ) ;define
 
     (define (drop-while pred l)
-      (if (null? l) '() (if (pred (car l)) (drop-while pred (cdr l)) l))
+      (unless (procedure? pred)
+        (type-error "drop-while: first argument must be a procedure" pred)
+      ) ;unless
+      (if (null? l)
+        '()
+        (if (pair? l)
+          (if (pred (car l)) (drop-while pred (cdr l)) l)
+          (type-error "drop-while: second argument must be a list" l)
+        ) ;if
+      ) ;if
     ) ;define
 
     (define list-index g_list_index)
@@ -255,17 +351,19 @@
 
     (define every g_every)
 
-    (define (%extract-maybe-equal maybe-equal)
+    (define (%extract-maybe-equal caller maybe-equal)
       (let ((my-equal (if (null-list? maybe-equal) equal? (car maybe-equal))))
         (if (procedure? my-equal)
           my-equal
-          (error 'wrong-type-arg "maybe-equal must be procedure")
+          (type-error (string-append (symbol->string caller) ": comparator must be a procedure")
+            my-equal
+          ) ;type-error
         ) ;if
       ) ;let
     ) ;define
 
     (define (delete x l . maybe-equal)
-      (let ((my-equal (%extract-maybe-equal maybe-equal)))
+      (let ((my-equal (%extract-maybe-equal 'delete maybe-equal)))
         (filter (lambda (y) (not (my-equal x y))) l)
       ) ;let
     ) ;define
@@ -314,7 +412,10 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     (define (delete-duplicates lis . maybe-equal)
-      (let ((my-equal (%extract-maybe-equal maybe-equal)))
+      (unless (list? lis)
+        (type-error "delete-duplicates: first argument must be a list" lis)
+      ) ;unless
+      (let ((my-equal (%extract-maybe-equal 'delete-duplicates maybe-equal)))
         (cond ((null? lis) lis)
               ((%can-use-hash-table? my-equal) (%delete-duplicates-hash lis my-equal))
               (else (%delete-duplicates-scan lis my-equal))

@@ -63,14 +63,12 @@
 #endif
 #endif
 
-#include <nlohmann/json.hpp>
-
 #ifdef GOLDFISH_WITH_REPL
 #include <functional>
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "18.11.32"
+#define GOLDFISH_VERSION "18.11.34"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -90,14 +88,12 @@ using std::vector;
 
 namespace fs= std::filesystem;
 
-using nlohmann::json;
-
 inline void glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required,
                          s7_int optional);
 
 static s7_pointer f_function_libraries (s7_scheme* sc, s7_pointer args);
 
-static s7_pointer f_gfproject_load_config (s7_scheme* sc, s7_pointer args);
+static s7_pointer f_goldfish_library_dir (s7_scheme* sc, s7_pointer args);
 
 static s7_pointer f_project_root (s7_scheme* sc, s7_pointer args);
 
@@ -173,9 +169,9 @@ glue_goldfish (s7_scheme* sc) {
   const char* d_function_libraries=
       "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
       "export function-name in the current *load-path*";
-  const char* s_gfproject_load_config= "g_gfproject-load-config";
-  const char* d_gfproject_load_config= "(g_gfproject-load-config) => string, returns merged gfproject.json";
-  const char* s_project_root         = "g_project-root";
+  const char* s_goldfish_library_dir= "g_goldfish-library-dir";
+  const char* d_goldfish_library_dir= "(g_goldfish-library-dir) => string, returns the goldfish library directory";
+  const char* s_project_root        = "g_project-root";
   const char* d_project_root=
       "(g_project-root) => string or #f, returns the directory containing the local gfproject.json, "
       "or #f if none is found in the current working directory";
@@ -190,9 +186,9 @@ glue_goldfish (s7_scheme* sc) {
       sc, cur_env, s7_make_symbol (sc, s_function_libraries),
       s7_make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_gfproject_load_config),
-             s7_make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
-                                     d_gfproject_load_config, NULL));
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_goldfish_library_dir),
+             s7_make_typed_function (sc, s_goldfish_library_dir, f_goldfish_library_dir, 0, 0, false,
+                                     d_goldfish_library_dir, NULL));
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_project_root),
              s7_make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
@@ -1188,19 +1184,6 @@ goldfish_print_scheme_error_message (s7_scheme* sc, const char* errmsg) {
 }
 
 static void
-goldfish_print_prefixed_scheme_error_message (s7_scheme* sc, const string& prefix, const char* errmsg) {
-  if ((errmsg) && (*errmsg)) {
-    string rendered;
-    goldfish_render_scheme_error_message (sc, errmsg, rendered);
-    cerr << prefix;
-    if ((!prefix.empty ()) && (prefix.back () != '\n')) {
-      cerr << '\n';
-    }
-    cerr << rendered;
-  }
-}
-
-static void
 goldfish_eval_code (s7_scheme* sc, string code) {
   string     wrapped_code= "(begin " + code + " )";
   s7_pointer x           = s7_eval_c_string (sc, wrapped_code.c_str ());
@@ -1270,266 +1253,11 @@ find_local_gfproject_json () {
   return "";
 }
 
-static fs::path
-find_lib_gfproject_json (const char* gf_lib) {
-  std::error_code ec;
-  fs::path        lib_path= fs::path (gf_lib) / "gfproject.json";
-  if (fs::exists (lib_path, ec) && fs::is_regular_file (lib_path, ec)) {
-    return lib_path;
-  }
-  ec.clear ();
-  fs::path parent_path= fs::path (gf_lib).parent_path () / "gfproject.json";
-  if (fs::exists (parent_path, ec) && fs::is_regular_file (parent_path, ec)) {
-    return parent_path;
-  }
-  return "";
-}
-
-static json
-load_json_file_or_empty (const fs::path& path) {
-  if (path.empty ()) {
-    return json::object ();
-  }
-  try {
-    std::ifstream file (path);
-    if (!file.is_open ()) {
-      return json::object ();
-    }
-    json config;
-    file >> config;
-    if (config.is_object ()) {
-      return config;
-    }
-    return json::object ();
-  } catch (...) {
-    return json::object ();
-  }
-}
-
-static json
-gfproject_extract_tools (const json& config) {
-  if (config.is_object () && config.contains ("tools") && config["tools"].is_object ()) {
-    return config["tools"];
-  }
-  return json::object ();
-}
-
-static json
-gfproject_deep_merge_value (const json& base, const json& overlay) {
-  if (base.is_object () && overlay.is_object ()) {
-    json merged= base;
-    for (const auto& [key, overlay_value] : overlay.items ()) {
-      if (merged.contains (key)) {
-        merged[key]= gfproject_deep_merge_value (merged[key], overlay_value);
-      }
-      else {
-        merged[key]= overlay_value;
-      }
-    }
-    return merged;
-  }
-  return overlay;
-}
-
-struct gfproject_config_bundle {
-  json lib_config;
-  json local_config;
-  json merged_config;
-};
-
-static gfproject_config_bundle
-load_gfproject_config_bundle (const char* gf_lib) {
-  gfproject_config_bundle bundle;
-  bundle.lib_config  = load_json_file_or_empty (find_lib_gfproject_json (gf_lib));
-  bundle.local_config= load_json_file_or_empty (find_local_gfproject_json ());
-
-  json merged      = bundle.lib_config.is_object () ? bundle.lib_config : json::object ();
-  json merged_tools= gfproject_extract_tools (bundle.lib_config);
-  json local_tools = gfproject_extract_tools (bundle.local_config);
-
-  for (const auto& [command, local_tool] : local_tools.items ()) {
-    if (merged_tools.contains (command)) {
-      merged_tools[command]= gfproject_deep_merge_value (merged_tools[command], local_tool);
-    }
-    else {
-      merged_tools[command]= local_tool;
-    }
-  }
-
-  merged["tools"]     = merged_tools;
-  bundle.merged_config= merged;
-  return bundle;
-}
-
-static json
-load_gfproject_config (const char* gf_lib) {
-  return load_gfproject_config_bundle (gf_lib).merged_config;
-}
-
-struct gfproject_tool_resolution {
-  bool has_local_override= false;
-  bool has_merged_tool   = false;
-  bool has_lib_tool      = false;
-  json merged_tool       = json::object ();
-  json lib_tool          = json::object ();
-};
-
-static gfproject_tool_resolution
-resolve_gfproject_tool (const char* gf_lib, const string& command) {
-  gfproject_config_bundle bundle      = load_gfproject_config_bundle (gf_lib);
-  json                    local_tools = gfproject_extract_tools (bundle.local_config);
-  json                    lib_tools   = gfproject_extract_tools (bundle.lib_config);
-  json                    merged_tools= gfproject_extract_tools (bundle.merged_config);
-
-  gfproject_tool_resolution resolved;
-  resolved.has_local_override= local_tools.contains (command);
-  resolved.has_merged_tool   = merged_tools.contains (command);
-  resolved.has_lib_tool      = lib_tools.contains (command);
-
-  if (resolved.has_merged_tool) {
-    resolved.merged_tool= merged_tools[command];
-  }
-  if (resolved.has_lib_tool) {
-    resolved.lib_tool= lib_tools[command];
-  }
-  return resolved;
-}
-
-static void
-goldfish_reset_captured_error_port (s7_scheme* sc) {
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, s7_open_output_string (sc));
-}
-
-enum class gfproject_tool_prepare_error {
-  none,
-  incomplete_config,
-  invalid_config_value,
-  missing_tool_root,
-  import_failed,
-  missing_main,
-};
-
-struct gfproject_tool_prepare_result {
-  gfproject_tool_prepare_error error= gfproject_tool_prepare_error::none;
-  string                       message;
-  s7_pointer                   main_func= nullptr;
-};
-
-static string find_tool_root_by_command (const char* gf_lib, const string& command);
-
-static gfproject_tool_prepare_result
-goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& command, const json& tool_config) {
-  gfproject_tool_prepare_result result;
-
-  if (!tool_config.is_object ()) {
-    result.error  = gfproject_tool_prepare_error::invalid_config_value;
-    result.message= "Error: Tool '" + command + "' config must be a JSON object.";
-    return result;
-  }
-
-  if (!tool_config.contains ("organization") || !tool_config.contains ("module")) {
-    result.error  = gfproject_tool_prepare_error::incomplete_config;
-    result.message= "Error: Tool '" + command + "' is not fully implemented (missing organization or module).";
-    return result;
-  }
-
-  if (!tool_config["organization"].is_string () || !tool_config["module"].is_string ()) {
-    result.error  = gfproject_tool_prepare_error::invalid_config_value;
-    result.message= "Error: Tool '" + command + "' organization/module must be strings.";
-    return result;
-  }
-
-  string org      = tool_config["organization"];
-  string module   = tool_config["module"];
-  string tool_root= find_tool_root_by_command (gf_lib, command);
-
-  if (tool_root.empty ()) {
-    result.error  = gfproject_tool_prepare_error::missing_tool_root;
-    result.message= "Error: tools/" + command + "/" + org + " directory not found.";
-    return result;
-  }
-
-  s7_add_to_load_path (sc, tool_root.c_str ());
-
-  string      import_expr  = "(import (" + org + " " + module + "))";
-  s7_pointer  import_result= s7_eval_c_string (sc, import_expr.c_str ());
-  const char* errmsg       = s7_get_output_string (sc, s7_current_error_port (sc));
-  if (!import_result || ((errmsg) && (*errmsg))) {
-    result.error  = gfproject_tool_prepare_error::import_failed;
-    result.message= "Error importing (" + org + " " + module + "):";
-    return result;
-  }
-
-  s7_pointer main_func= s7_name_to_value (sc, "main");
-  if ((!main_func) || (!s7_is_procedure (main_func))) {
-    result.error  = gfproject_tool_prepare_error::missing_main;
-    result.message= "Error: Failed to find main function in (" + org + " " + module + ").";
-    return result;
-  }
-
-  result.main_func= main_func;
-  return result;
-}
-
-static int
-goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& errmsg, s7_pointer old_port, int gc_loc,
-                            bool include_scheme_error) {
-  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-  if (!message.empty ()) {
-    if (include_scheme_error && (errmsg) && (*errmsg)) {
-      goldfish_print_prefixed_scheme_error_message (sc, message, errmsg);
-    }
-    else {
-      cerr << message << endl;
-    }
-  }
-  else if ((errmsg) && (*errmsg)) {
-    goldfish_print_scheme_error_message (sc, errmsg);
-  }
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, old_port);
-  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-  return 1;
-}
-
-static int
-goldfish_finish_tool_success (s7_scheme* sc, s7_pointer result, const char*& errmsg, s7_pointer old_port, int gc_loc) {
-  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-  goldfish_print_scheme_error_message (sc, errmsg);
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, old_port);
-  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-  if (s7_is_integer (result)) {
-    return static_cast<int> (s7_integer (result));
-  }
-  return 0;
-}
-
-static int
-goldfish_run_tool_with_config (s7_scheme* sc, const char* gf_lib, const string& command, const json& tool_config,
-                               const char*& errmsg, s7_pointer old_port, int gc_loc, bool allow_fallback) {
-  gfproject_tool_prepare_result prepared= goldfish_prepare_tool_main (sc, gf_lib, command, tool_config);
-  if (prepared.error != gfproject_tool_prepare_error::none) {
-    if (allow_fallback) {
-      goldfish_reset_captured_error_port (sc);
-      return -1;
-    }
-
-    bool include_scheme_error= prepared.error == gfproject_tool_prepare_error::import_failed;
-    return goldfish_finish_tool_error (sc, prepared.message, errmsg, old_port, gc_loc, include_scheme_error);
-  }
-
-  s7_pointer result= s7_call (sc, prepared.main_func, s7_nil (sc));
-  return goldfish_finish_tool_success (sc, result, errmsg, old_port, gc_loc);
-}
-
 static s7_pointer
-f_gfproject_load_config (s7_scheme* sc, s7_pointer args) {
+f_goldfish_library_dir (s7_scheme* sc, s7_pointer args) {
   (void) args;
   string gf_lib_dir= find_goldfish_library ();
-  json   config    = load_gfproject_config (gf_lib_dir.c_str ());
-  return s7_make_string (sc, config.dump ().c_str ());
+  return s7_make_string (sc, gf_lib_dir.c_str ());
 }
 
 static s7_pointer
@@ -1550,46 +1278,27 @@ f_project_root (s7_scheme* sc, s7_pointer args) {
 static int
 goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, s7_pointer old_port,
                    int gc_loc) {
-  gfproject_tool_resolution resolved= resolve_gfproject_tool (gf_lib, command);
-  if (!resolved.has_merged_tool) {
+  s7_eval_c_string (sc, "(import (liii gfproject))");
+  s7_pointer func= s7_name_to_value (sc, "gfproject-run-tool");
+  if (!func || !s7_is_procedure (func)) {
     return -1;
   }
-
-  bool allow_builtin_fallback= command == "help" || command == "version" || command == "eval" || command == "load" ||
-                               command == "repl" || command == "run";
-
-  if (resolved.has_local_override && resolved.has_lib_tool) {
-    int merged_ret=
-        goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg, old_port, gc_loc, true);
-    if (merged_ret != -1) {
-      return merged_ret;
-    }
-    return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.lib_tool, errmsg, old_port, gc_loc,
-                                          allow_builtin_fallback);
+  s7_pointer result=
+      s7_call (sc, func, s7_list (sc, 2, s7_make_string (sc, command.c_str ()), s7_make_string (sc, gf_lib)));
+  if (result == s7_f (sc)) {
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, s7_open_output_string (sc));
+    return -1;
   }
-
-  return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg, old_port, gc_loc,
-                                        allow_builtin_fallback);
-}
-
-static string
-find_tool_root_by_command (const char* gf_lib, const string& command) {
-  std::error_code  ec;
-  fs::path         cwd= fs::current_path (ec);
-  vector<fs::path> candidates;
-  if (!ec) {
-    candidates.push_back (cwd / "tools" / command);
+  if (s7_is_integer (result)) {
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    goldfish_print_scheme_error_message (sc, errmsg);
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return static_cast<int> (s7_integer (result));
   }
-  candidates.push_back (fs::path (gf_lib) / "tools" / command);
-  candidates.push_back (fs::path (gf_lib).parent_path () / "tools" / command);
-
-  for (const auto& candidate : candidates) {
-    if (fs::is_directory (candidate, ec)) {
-      return candidate.string ();
-    }
-    ec.clear ();
-  }
-  return "";
+  return -1;
 }
 
 static string
@@ -2722,14 +2431,10 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
 
   // 处理动态注册的工具（从 gfproject.json 加载）
-  json gfproject_config= load_gfproject_config (gf_lib);
-  if (gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
-    int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
-    if (tool_ret != -1) {
-      // Tool was found and executed (or failed with an error)
-      return tool_ret;
-    }
-    // If tool_ret == -1, tool config exists but execution failed, fall through to check other commands
+  int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
+  if (tool_ret != -1) {
+    // Tool was found and executed (or failed with an error)
+    return tool_ret;
   }
 
   if (command == "help") {

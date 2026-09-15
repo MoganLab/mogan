@@ -8,6 +8,15 @@
 #include "s7_internal_helpers.h"
 
 #include <stddef.h>
+#include <stdio.h>
+
+static s7_pointer list_type_error(s7_scheme *sc, const char *caller, s7_pointer arg, const char *descr)
+{
+  char msg[256];
+  snprintf(msg, sizeof(msg), "%s: %s", caller, descr);
+  return s7_error(sc, s7_make_symbol(sc, "type-error"),
+                  s7_list(sc, 2, s7_make_string(sc, msg), arg));
+}
 
 s7_pointer g_is_null(s7_scheme *sc, s7_pointer args)
 {
@@ -476,6 +485,31 @@ s7_pointer g_list_ref(s7_scheme *sc, s7_pointer args)
   return(s7_car(p));
 }
 
+s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_pair(s7_car(args))) return(s7_caar(args));
+  return(s7i_method_or_bust(sc, s7_car(args), "list-ref", args, "a pair", 1));
+}
+
+s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst)) return(s7i_method_or_bust(sc, lst, "list-ref", args, "a pair", 1));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_out_of_range_error(sc, "list-ref", 2, s7_cadr(args), "it is too large"));
+  return(s7_cadr(lst));
+}
+
+s7_pointer g_list_ref_at_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_method_or_bust(sc, lst, "list-ref", args, "a pair", 1));
+  if ((!s7_is_pair(s7_cdr(lst))) || (!s7_is_pair(s7_cddr(lst))))
+    return(s7_out_of_range_error(sc, "list-ref", 2, s7_cadr(args), "it is too large"));
+  return(s7_caddr(lst));
+}
+
 s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);
@@ -509,17 +543,19 @@ s7_pointer g_filter(s7_scheme *sc, s7_pointer args)
   if (!s7_is_pair(lst))
     {
       if (s7_is_null(sc, lst)) return(s7_nil(sc));
-      return(s7_wrong_type_arg_error(sc, "filter", 2, lst, "a proper list"));
+      return list_type_error(sc, "filter", lst, "second argument must be a proper list");
     }
+  s7_pointer pred = s7_car(args);
+  if (!s7_is_procedure(pred))
+    return list_type_error(sc, "filter", pred, "first argument must be a procedure");
   /* args may live in evaluator-recycled cells, so keep pred and lst in our own pairs.
    *   anchor = ((pred lst) . work), work's car holds the reversed kept elements before
    *   the current all-passing run, work's cdr later holds the result; one protected
    *   pair keeps everything GC-reachable while pred runs */
-  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_pointer keep = s7_cons(sc, pred, s7_cons(sc, lst, s7_nil(sc)));
   s7_pointer anchor = s7_cons(sc, keep, s7_cons(sc, s7_nil(sc), s7_nil(sc)));
   s7_gc_protect_via_stack(sc, anchor);
   s7_pointer work = s7_cdr(anchor);
-  s7_pointer pred = s7_car(keep);
   s7_pointer run_start = NULL;
   s7_pointer p = lst;
   while (s7_is_pair(p))
@@ -542,7 +578,7 @@ s7_pointer g_filter(s7_scheme *sc, s7_pointer args)
   if (!s7_is_null(sc, p))
     {
       s7_gc_unprotect_via_stack(sc, anchor);
-      return(s7_wrong_type_arg_error(sc, "filter", 2, lst, "a proper list"));
+      return list_type_error(sc, "filter", lst, "second argument must be a proper list");
     }
   /* share the longest all-passing suffix, like the reference implementation */
   s7_pointer result = (run_start) ? run_start : s7_nil(sc);
@@ -560,13 +596,18 @@ s7_pointer g_filter(s7_scheme *sc, s7_pointer args)
 
 s7_pointer g_find(s7_scheme *sc, s7_pointer args)
 {
+  s7_pointer pred = s7_car(args);
   s7_pointer lst = s7_cadr(args);
+  if (!s7_is_procedure(pred))
+    {
+      if (s7_is_null(sc, lst)) return(s7_f(sc));
+      return list_type_error(sc, "find", pred, "first argument must be a procedure");
+    }
   /* args may live in evaluator-recycled cells, so keep pred and lst in our own
    * protected pair; the walking pointer and the current element stay
    * GC-reachable through lst while pred runs */
-  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_pointer keep = s7_cons(sc, pred, lst);
   s7_gc_protect_via_stack(sc, keep);
-  s7_pointer pred = s7_car(keep);
   s7_pointer p = lst;
   while (s7_is_pair(p))
     {
@@ -580,7 +621,7 @@ s7_pointer g_find(s7_scheme *sc, s7_pointer args)
     }
   s7_gc_unprotect_via_stack(sc, keep);
   if (!s7_is_null(sc, p))
-    return(s7_wrong_type_arg_error(sc, "find", 2, lst, "a proper list"));
+    return list_type_error(sc, "find", lst, "second argument must be a proper list");
   return(s7_f(sc));
 }
 
@@ -588,12 +629,17 @@ s7_pointer g_find(s7_scheme *sc, s7_pointer args)
 
 s7_pointer g_any(s7_scheme *sc, s7_pointer args)
 {
+  s7_pointer pred = s7_car(args);
   s7_pointer lst = s7_cadr(args);
+  if (!s7_is_procedure(pred))
+    {
+      if (s7_is_null(sc, lst)) return(s7_f(sc));
+      return list_type_error(sc, "any", pred, "first argument must be a procedure");
+    }
   /* same GC pattern as g_find: keep pred and lst anchored in our own
    * protected pair while pred runs */
-  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_pointer keep = s7_cons(sc, pred, lst);
   s7_gc_protect_via_stack(sc, keep);
-  s7_pointer pred = s7_car(keep);
   s7_pointer p = lst;
   while (s7_is_pair(p))
     {
@@ -606,7 +652,7 @@ s7_pointer g_any(s7_scheme *sc, s7_pointer args)
     }
   s7_gc_unprotect_via_stack(sc, keep);
   if (!s7_is_null(sc, p))
-    return(s7_wrong_type_arg_error(sc, "any", 2, lst, "a proper list"));
+    return list_type_error(sc, "any", lst, "second argument must be a proper list");
   return(s7_f(sc));
 }
 
@@ -614,12 +660,18 @@ s7_pointer g_any(s7_scheme *sc, s7_pointer args)
 
 s7_pointer g_every(s7_scheme *sc, s7_pointer args)
 {
+  s7_pointer pred = s7_car(args);
   s7_pointer lst = s7_cadr(args);
+  if (!s7_is_procedure(pred))
+    {
+      if (s7_is_null(sc, lst)) return(s7_t(sc));
+      return list_type_error(sc, "every", pred, "first argument must be a procedure");
+    }
+  if (s7_is_null(sc, lst)) return(s7_t(sc));
   /* same GC pattern as g_find: keep pred and lst anchored in our own
    * protected pair while pred runs */
-  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_pointer keep = s7_cons(sc, pred, lst);
   s7_gc_protect_via_stack(sc, keep);
-  s7_pointer pred = s7_car(keep);
   s7_pointer p = lst;
   while (s7_is_pair(p))
     {
@@ -632,7 +684,7 @@ s7_pointer g_every(s7_scheme *sc, s7_pointer args)
     }
   s7_gc_unprotect_via_stack(sc, keep);
   if (!s7_is_null(sc, p))
-    return(s7_wrong_type_arg_error(sc, "every", 2, lst, "a proper list"));
+    return list_type_error(sc, "every", lst, "second argument must be a proper list");
   return(s7_t(sc));
 }
 
@@ -645,7 +697,7 @@ s7_pointer g_count(s7_scheme *sc, s7_pointer args)
    * the end of the shortest list */
   s7_pointer pred = s7_car(args);
   if (!s7_is_procedure(pred))
-    return(s7_wrong_type_arg_error(sc, "count", 1, pred, "a procedure"));
+    return list_type_error(sc, "count", pred, "first argument must be a procedure");
 
   s7_pointer rest = s7_cdr(args);   /* (clist1 clist2 ...) */
 
@@ -673,14 +725,14 @@ s7_pointer g_count(s7_scheme *sc, s7_pointer args)
                   if (fast == p)
                     {
                       s7_gc_unprotect_via_stack(sc, keep);
-                      return(s7_wrong_type_arg_error(sc, "count", 2, lst, "a proper list"));
+                      return list_type_error(sc, "count", lst, "circular list");
                     }
                 }
             }
         }
       s7_gc_unprotect_via_stack(sc, keep);
       if (!s7_is_null(sc, p))
-        return(s7_wrong_type_arg_error(sc, "count", 2, lst, "a proper list"));
+        return list_type_error(sc, "count", lst, "second argument must be a proper list");
       return(s7_make_integer(sc, i));
     }
 
@@ -688,7 +740,7 @@ s7_pointer g_count(s7_scheme *sc, s7_pointer args)
    * no GC concerns), then walk all lists in lockstep */
   for (s7_pointer lp = rest; s7_is_pair(lp); lp = s7_cdr(lp))
     if (!s7_is_proper_list(sc, s7_car(lp)))
-      return(s7_wrong_type_arg_error(sc, "count", 2, s7_car(lp), "a proper list"));
+      return list_type_error(sc, "count", s7_car(lp), "argument must be a proper list");
 
   /* keep pred, a slot for the current call args, and one "current position"
    * cell per list (in argument order) in our own protected cells: the args
@@ -748,7 +800,7 @@ s7_pointer g_list_index(s7_scheme *sc, s7_pointer args)
    * the walk stops at the end of the shortest list */
   s7_pointer pred = s7_car(args);
   if (!s7_is_procedure(pred))
-    return(s7_wrong_type_arg_error(sc, "list-index", 1, pred, "a procedure"));
+    return list_type_error(sc, "list-index", pred, "first argument must be a procedure");
 
   s7_pointer rest = s7_cdr(args);   /* (clist1 clist2 ...) */
 
@@ -781,14 +833,14 @@ s7_pointer g_list_index(s7_scheme *sc, s7_pointer args)
                   if (fast == p)
                     {
                       s7_gc_unprotect_via_stack(sc, keep);
-                      return(s7_wrong_type_arg_error(sc, "list-index", 2, lst, "a proper list"));
+                      return list_type_error(sc, "list-index", lst, "circular list");
                     }
                 }
             }
         }
       s7_gc_unprotect_via_stack(sc, keep);
       if (!s7_is_null(sc, p))
-        return(s7_wrong_type_arg_error(sc, "list-index", 2, lst, "a proper list"));
+        return list_type_error(sc, "list-index", lst, "second argument must be a proper list");
       return(s7_f(sc));
     }
 
@@ -796,7 +848,7 @@ s7_pointer g_list_index(s7_scheme *sc, s7_pointer args)
    * no GC concerns), then walk all lists in lockstep */
   for (s7_pointer lp = rest; s7_is_pair(lp); lp = s7_cdr(lp))
     if (!s7_is_proper_list(sc, s7_car(lp)))
-      return(s7_wrong_type_arg_error(sc, "list-index", 2, s7_car(lp), "a proper list"));
+      return list_type_error(sc, "list-index", s7_car(lp), "argument must be a proper list");
 
   /* same anchor layout as g_count: pred, a slot for the current call args,
    * then one "current position" cell per list in argument order */
@@ -857,7 +909,7 @@ s7_pointer g_fold(s7_scheme *sc, s7_pointer args)
   if (!s7_is_pair(lst))
     {
       if (s7_is_null(sc, lst)) return(s7_cadr(args));
-      return(s7_wrong_type_arg_error(sc, "fold", 3, lst, "a proper list"));
+      return list_type_error(sc, "fold", lst, "third argument must be a proper list");
     }
   /* args may live in evaluator-recycled cells: keep f and lst in our own pairs,
    * and the accumulator in a dedicated cell we rewrite each iteration, so every
@@ -876,7 +928,7 @@ s7_pointer g_fold(s7_scheme *sc, s7_pointer args)
   if (!s7_is_null(sc, p))
     {
       s7_gc_unprotect_via_stack(sc, anchor);
-      return(s7_wrong_type_arg_error(sc, "fold", 3, lst, "a proper list"));
+      return list_type_error(sc, "fold", lst, "third argument must be a proper list");
     }
   s7_pointer result = s7_car(acc_cell);
   s7_gc_unprotect_via_stack(sc, anchor);
@@ -889,7 +941,7 @@ s7_pointer g_fold_right(s7_scheme *sc, s7_pointer args)
   if (!s7_is_pair(lst))
     {
       if (s7_is_null(sc, lst)) return(s7_cadr(args));
-      return(s7_wrong_type_arg_error(sc, "fold-right", 3, lst, "a proper list"));
+      return list_type_error(sc, "fold-right", lst, "third argument must be a proper list");
     }
   /* fold-right(f, init, (e1 ... en)) applies f from the right:
    * f(e1, f(e2, ... f(en, init))), i.e. acc = f(elem, acc) walking elements
@@ -910,7 +962,7 @@ s7_pointer g_fold_right(s7_scheme *sc, s7_pointer args)
   if (!s7_is_null(sc, p))
     {
       s7_gc_unprotect_via_stack(sc, anchor);
-      return(s7_wrong_type_arg_error(sc, "fold-right", 3, lst, "a proper list"));
+      return list_type_error(sc, "fold-right", lst, "third argument must be a proper list");
     }
   s7_pointer f = s7_car(keep);
   s7_pointer acc_cell = s7_cdr(anchor);
@@ -931,10 +983,12 @@ s7_pointer g_take(s7_scheme *sc, s7_pointer args)
   s7_pointer lst = s7_car(args);
   s7_pointer k = s7_cadr(args);
   if (!s7_is_integer(k))
-    return(s7_wrong_type_arg_error(sc, "take", 2, k, "an integer"));
+    return list_type_error(sc, "take", k, "second argument must be an integer");
   s7_int n = s7_integer(k);
   if (n < 0)
-    return(s7_wrong_type_arg_error(sc, "take", 2, k, "a non-negative integer"));
+    return(s7_out_of_range_error(sc, "take", 2, k, "it is negative"));
+  if (!s7_is_pair(lst) && !s7_is_null(sc, lst))
+    return list_type_error(sc, "take", lst, "first argument must be a list");
   if (n == 0) return(s7_nil(sc));
   /* no Scheme callbacks here, so args stay put; only the result being built
    * needs a GC anchor, with each new pair linked in right after s7_cons */
@@ -947,7 +1001,7 @@ s7_pointer g_take(s7_scheme *sc, s7_pointer args)
       if (!s7_is_pair(p))
         {
           s7_gc_unprotect_via_stack(sc, head);
-          return(s7_wrong_type_arg_error(sc, "take", 1, lst, "a list of sufficient length"));
+          return list_type_error(sc, "take", lst, "list has fewer elements than k");
         }
       s7_set_cdr(tail, s7_cons(sc, s7_car(p), s7_nil(sc)));
       tail = s7_cdr(tail);
@@ -964,11 +1018,11 @@ s7_pointer g_take(s7_scheme *sc, s7_pointer args)
 static s7_pointer take_right_lead(s7_scheme *sc, const char *name, s7_pointer lst, s7_pointer k, s7_int n, s7_pointer *lead)
 {
   if (!s7_is_integer(k))
-    return(s7_wrong_type_arg_error(sc, name, 2, k, "an integer"));
+    return list_type_error(sc, name, k, "second argument must be an integer");
   if (n < 0)
     return(s7_out_of_range_error(sc, name, 2, k, "it is negative"));
   if (!s7_is_pair(lst) && !s7_is_null(sc, lst))
-    return(s7_wrong_type_arg_error(sc, name, 1, lst, "a list"));
+    return list_type_error(sc, name, lst, "first argument must be a list");
   s7_pointer p = lst;
   for (s7_int i = 0; i < n; i++)
     {
@@ -1023,6 +1077,72 @@ s7_pointer g_drop_right(s7_scheme *sc, s7_pointer args)
 s7_pointer g_list(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_copy_proper_list(sc, args));
+}
+
+s7_pointer g_make_list(s7_scheme *sc, s7_pointer args)
+{
+  return(make_list_p_pp(sc, s7_car(args), (s7_is_pair(s7_cdr(args))) ? s7_cadr(args) : s7_f(sc)));
+}
+
+s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b)
+{
+  s7_pointer p;
+  if (s7_is_null(sc, a)) return(b);
+  p = a;
+  while (!s7_is_null(sc, s7_cdr(p))) p = s7_cdr(p);
+  s7_set_cdr(p, b);
+  return(a);
+}
+
+s7_pointer s7_reverse(s7_scheme *sc, s7_pointer a)
+{
+  s7_pointer lst, p;
+  if (s7_is_null(sc, a)) return(a);
+  if (!s7_is_pair(s7_cdr(a)))
+    return((s7_is_null(sc, s7_cdr(a))) ? s7_cons(sc, s7_car(a), s7_nil(sc)) : s7_cons(sc, s7_cdr(a), s7_car(a)));
+
+  s7_pointer res = s7_cons(sc, s7_car(a), s7_nil(sc));
+  s7_gc_protect_via_stack(sc, res);
+  for (lst = s7_cdr(a), p = a; s7_is_pair(lst); lst = s7_cdr(lst), p = s7_cdr(p))
+    {
+      res = s7_cons(sc, s7_car(lst), res);
+      if (s7_is_pair(s7_cdr(lst)))
+        {
+          lst = s7_cdr(lst);
+          res = s7_cons(sc, s7_car(lst), res);
+        }
+      if (lst == p)
+        break;
+    }
+  if (!s7_is_null(sc, lst))
+    res = s7_cons(sc, lst, res);
+  s7_gc_unprotect_via_stack(sc, res);
+  return(res);
+}
+
+s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list)
+{
+  s7_pointer p, result;
+  if (s7_is_null(sc, list)) return(term);
+  p = list;
+  result = term;
+  while (true)
+    {
+      s7_pointer q = s7_cdr(p);
+      if (s7_is_null(sc, q))
+        {
+          s7_set_cdr(p, result);
+          return(p);
+        }
+      if ((s7_is_pair(q)) && (!s7_is_immutable(q)))
+        {
+          s7_set_cdr(p, result);
+          result = p;
+          p = q;
+        }
+      else return(s7_nil(sc));
+    }
+  return(result);
 }
 
 s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
@@ -1111,22 +1231,7 @@ s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args)
 extern s7_pointer a_list_string, an_association_list_string, a_proper_list_string;
 extern s7_pointer it_is_negative_string, it_is_too_large_string;
 
-s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
-{
-  if (s7_is_list(sc, tree))
-    {
-      if (s7i_tree_is_cyclic_checked(sc, tree))
-	s7i_error_nr(sc, s7_make_symbol(sc, "wrong-type-arg"),
-		     s7i_set_elist_2(sc, s7i_wrap_string(sc, "tree-leaves: tree is cyclic: ~S", 31), tree));
-      return(s7_make_integer(sc, s7i_tree_len(sc, tree)));
-    }
-  return(s7i_method_or_bust_p(sc, tree, "tree-leaves", "a list"));
-}
-
-s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
-{
-  return(s7_make_boolean(sc, s7i_tree_set_memq_b_7pp(sc, syms, tree)));
-}
+/* tree_leaves_p_p, tree_set_memq_p_pp migrated to s7_liii_tree.c */
 
 s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg) {return(s7_make_boolean(sc, s7_is_proper_list(sc, arg)));}
 
@@ -1145,6 +1250,22 @@ s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
 		 s7i_set_elist_3(sc, s7i_wrap_string(sc, "make-list length argument ~D is greater than (*s7* 'max-list-length), ~D", 72),
 				 s7i_wrap_integer(sc, len), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
   return(s7_make_list(sc, len, init));
+}
+
+s7_pointer list_p_p(s7_scheme *sc, s7_pointer p1)
+{
+  s7i_set_sc_value(sc, p1);
+  return(s7_cons(sc, p1, s7_nil(sc)));
+}
+
+s7_pointer list_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
+{
+  return(s7_cons(sc, p1, s7_cons(sc, p2, s7_nil(sc))));
+}
+
+s7_pointer list_p_ppp(s7_scheme *sc, s7_pointer p1, s7_pointer p2, s7_pointer p3)
+{
+  return(s7_cons(sc, p1, s7_cons(sc, p2, s7_cons(sc, p3, s7_nil(sc)))));
 }
 
 s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index)
@@ -1306,6 +1427,61 @@ s7_pointer assoc_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer p)
   if (!s7_is_pair(s7_car(p))) sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "assoc"), p, an_association_list_string);
   if (s7i_is_simple(obj)) return(s7_assq(sc, obj, p));
   return(s7i_assoc_1(sc, obj, p));
+}
+
+s7_pointer s7_memq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  s7_pointer slow = lst;
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+        {
+          if (obj == s7_car(lst)) return(lst);
+          lst = s7_cdr(lst);
+          if (!s7_is_pair(lst)) return(s7_f(sc));
+        }
+      slow = s7_cdr(slow);
+      if (lst == slow) return(s7_f(sc));
+    }
+  return(s7_f(sc));
+}
+
+s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
+{
+  return(memq_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  const s7_pointer obj = s7_car(args);
+  while (true)
+    {
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+    }
+  return(s7_f(sc));
+}
+
+s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer obj = s7_car(args);
+  s7_pointer lst = s7_cadr(args);
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+        {
+          if (obj == s7_car(lst)) return(lst);
+          lst = s7_cdr(lst);
+          if (!s7_is_pair(lst)) return(s7_f(sc));
+        }
+    }
+  return(s7_f(sc));
 }
 
 s7_pointer memq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)

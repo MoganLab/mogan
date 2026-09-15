@@ -141,10 +141,7 @@ s7_pointer g_is_funclet(s7_scheme *sc, s7_pointer args)
   return(s7i_apply_boolean_method(sc, let, s7i_is_funclet_symbol(sc)));
 }
 
-s7_pointer g_tree_is_cyclic(s7_scheme *sc, s7_pointer args)
-{
-  return(s7_make_boolean(sc, s7i_tree_is_cyclic(sc, s7_car(args))));
-}
+/* g_tree_is_cyclic migrated to s7_liii_tree.c */
 
 s7_pointer g_type_of(s7_scheme *sc, s7_pointer args)
 {
@@ -246,12 +243,7 @@ s7_pointer g_c_pointer_weak2(s7_scheme *sc, s7_pointer args)
   return(s7i_c_pointer_weak2_p_p(sc, s7_car(args)));
 }
 
-s7_pointer g_tree_leaves(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
-  #define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
-  return(s7i_tree_leaves_p_p(sc, s7_car(args)));
-}
+/* g_tree_leaves migrated to s7_liii_tree.c */
 
 s7_pointer g_cyclic_sequences(s7_scheme *sc, s7_pointer args)
 {
@@ -283,19 +275,7 @@ s7_pointer g_port_line_number(s7_scheme *sc, s7_pointer args)
 
 /* ---- Pattern B: make_boolean wrappers ---- */
 
-s7_pointer g_tree_memq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
-  #define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
-  return(s7_make_boolean(sc, s7i_tree_memq_b_7pp(sc, s7_car(args), s7_cadr(args))));
-}
-
-s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
-  #define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
-  return(s7_make_boolean(sc, s7i_tree_set_memq_b_7pp(sc, s7_car(args), s7_cadr(args))));
-}
+/* g_tree_memq, g_tree_set_memq migrated to s7_liii_tree.c */
 
 /* ---- Pattern C: struct accessors ---- */
 
@@ -304,10 +284,7 @@ s7_pointer g_format_nr(s7_scheme *sc, s7_pointer args)  /* port == #f, in do bod
   return(s7i_nil_string());
 }
 
-s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_tree_set_memq_syms_direct(sc, s7_car(args), s7_cadr(args)));
-}
+/* g_tree_set_memq_syms migrated to s7_liii_tree.c */
 
 #if S7_DEBUGGING
 s7_pointer g_heap_analyze(s7_scheme *sc, s7_pointer args)

@@ -86,14 +86,14 @@
 
     (define (list-queue-front list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg "list-queue-front: empty list-queue")
+        (error 'type-error "list-queue-front: empty list-queue")
         (car (get-first list-queue))
       ) ;if
     ) ;define
 
     (define (list-queue-back list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg "list-queue-back: empty list-queue")
+        (error 'type-error "list-queue-back: empty list-queue")
         (car (get-last list-queue))
       ) ;if
     ) ;define
@@ -127,7 +127,7 @@
 
     (define (list-queue-remove-front! list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg "list-queue-remove-front!: empty list-queue")
+        (error 'type-error "list-queue-remove-front!: empty list-queue")
         (let* ((old-first (get-first list-queue))
                (elem (car old-first))
                (new-first (cdr old-first))
@@ -141,7 +141,7 @@
 
     (define (list-queue-remove-back! list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg "list-queue-remove-back!: empty list-queue")
+        (error 'type-error "list-queue-remove-back!: empty list-queue")
         (let* ((old-last (get-last list-queue))
                (elem (car old-last))
                (new-last (penult-pair (get-first list-queue)))
