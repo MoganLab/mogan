@@ -902,15 +902,15 @@
   ) ;list
 ) ;define
 
-;; ---- Convert / AI fields ----
+;; ---- AI fields ----
 
-(define preferences-qml-convert-ai-fields
+(define preferences-qml-ai-fields
   (list
     ;; 选中文字后的 AI 操作栏（0986）总开关，默认开启（默认值见 tm-server.scm）。
-    (list (pref-convert-ai-actions-bar) "AI action bar" '() '() #f)
+    (list (pref-ai-actions-bar) "AI action bar" '() '() #f)
     ;; AI 翻译目标语言：options 动态按 supported-languages 拉取（见 resolve-options），
     ;; 默认 interface（按界面语言）；AI 翻译拼提示词时读取（qt_chat_controller.cpp）。
-    (list (pref-convert-ai-translate-target)
+    (list (pref-ai-translate-target)
       "Translation target language"
       '()
       '()
@@ -1139,76 +1139,80 @@
 
 ;; ---- meta 总入口：组装 tab 树 ----
 ;; 返回 list of tab 描述符。每个 tab 为 (key label fields ...)：
-;;   key    —— tab 内部键（"general" / "keyboard" / "mathematics" / "convert" / "other"）
+;;   key    —— tab 内部键（"general" / "keyboard" / "mathematics" / "convert" / "ai" / "other"）
 ;;   label  —— 已 translate 的 tab 标题
 ;;   fields —— 该 tab 的字段描述符列表（由 preferences-qml-build-tab 返回）
 ;; Convert tab 额外携带子 tab（sub-tabs）：sub-tabs 为 list of (sub-key sub-label sub-fields)。
+;; AI 为主 tab（[0986] 自 Convert 子 tab 提升），排在 Convert 右侧。
 
 (tm-define (preferences-qml-meta)
   (let ((meta
-          (list (list "general"
-                  (translate "General")
-                  (preferences-qml-build-tab preferences-qml-general-fields)
-                ) ;list
-            (list "keyboard"
-              (translate "Keyboard")
-              (preferences-qml-build-tab preferences-qml-keyboard-fields)
-            ) ;list
-            (list "mathematics"
-              (translate "Mathematics")
-              (preferences-qml-build-tab preferences-qml-math-fields)
-            ) ;list
-            (list "convert"
-              (translate "Convert")
-              '()
-              (list-filter
-                (list (list "html"
-                        (translate "Html")
-                        (preferences-qml-build-tab preferences-qml-convert-html-fields)
+          (list-filter
+            (list (list "general"
+                    (translate "General")
+                    (preferences-qml-build-tab preferences-qml-general-fields)
+                  ) ;list
+              (list "keyboard"
+                (translate "Keyboard")
+                (preferences-qml-build-tab preferences-qml-keyboard-fields)
+              ) ;list
+              (list "mathematics"
+                (translate "Mathematics")
+                (preferences-qml-build-tab preferences-qml-math-fields)
+              ) ;list
+              (list "convert"
+                (translate "Convert")
+                '()
+                (list-filter
+                  (list (list "html"
+                          (translate "Html")
+                          (preferences-qml-build-tab preferences-qml-convert-html-fields)
+                        ) ;list
+                    (list "latex"
+                      (translate "LaTeX")
+                      (preferences-qml-build-tab preferences-qml-convert-latex-fields)
+                    ) ;list
+                    (list "bibtex"
+                      (translate "BibTeX")
+                      (preferences-qml-build-tab preferences-qml-convert-bibtex-fields)
+                    ) ;list
+                    (list "verbatim"
+                      (translate "Verbatim")
+                      (preferences-qml-build-tab preferences-qml-convert-verbatim-fields)
+                    ) ;list
+                    (if (or (supports-native-pdf?) (supports-ghostscript?))
+                      (list "pdf"
+                        (translate "Pdf")
+                        (preferences-qml-build-tab preferences-qml-convert-pdf-fields)
                       ) ;list
-                  (list "latex"
-                    (translate "LaTeX")
-                    (preferences-qml-build-tab preferences-qml-convert-latex-fields)
-                  ) ;list
-                  (list "bibtex"
-                    (translate "BibTeX")
-                    (preferences-qml-build-tab preferences-qml-convert-bibtex-fields)
-                  ) ;list
-                  (list "verbatim"
-                    (translate "Verbatim")
-                    (preferences-qml-build-tab preferences-qml-convert-verbatim-fields)
-                  ) ;list
-                  (if (or (supports-native-pdf?) (supports-ghostscript?))
-                    (list "pdf"
-                      (translate "Pdf")
-                      (preferences-qml-build-tab preferences-qml-convert-pdf-fields)
+                      #f
+                    ) ;if
+                    (list "image"
+                      (translate "Image")
+                      (preferences-qml-build-tab preferences-qml-convert-image-fields)
                     ) ;list
-                    #f
-                  ) ;if
-                  (list "image"
-                    (translate "Image")
-                    (preferences-qml-build-tab preferences-qml-convert-image-fields)
                   ) ;list
-                  ;; 社区版无 AI Chat，操作栏与翻译均不可用，整个 AI 子 tab
-                  ;; 隐藏（同 ghost text 字段的 community-stem? 惯例）
-                  (if (community-stem?)
-                    #f
-                    (list "ai"
-                      (translate "AI")
-                      (preferences-qml-build-tab preferences-qml-convert-ai-fields)
-                    ) ;list
-                  ) ;if
+                  identity
+                ) ;list-filter
+              ) ;list
+              ;; 社区版无 AI Chat，操作栏与翻译均不可用，整个 AI 主 tab
+              ;; 隐藏（同 ghost text 字段的 community-stem? 惯例）
+              (if (community-stem?)
+                #f
+                (list "ai"
+                  (translate "AI")
+                  (preferences-qml-build-tab preferences-qml-ai-fields)
                 ) ;list
-                identity
-              ) ;list-filter
+              ) ;if
+              (list "other"
+                (translate "Other")
+                (append (preferences-qml-build-tab preferences-qml-other-misc-fields)
+                  (preferences-qml-build-tab preferences-qml-other-experimental-fields)
+                ) ;append
+              ) ;list
             ) ;list
-            (list "other"
-              (translate "Other")
-              (append (preferences-qml-build-tab preferences-qml-other-misc-fields)
-                (preferences-qml-build-tab preferences-qml-other-experimental-fields)
-              ) ;append
-            ) ;list
-          ) ;list
+            identity
+          ) ;list-filter
         ) ;meta
        ) ;
     (when (not preferences-qml-field-kind-table-initialized?)

@@ -718,7 +718,7 @@
       }
     }
 
-    /* Preferences: 顶部 icon-tab 行（5 主 tab）+ 子 tab 行（Convert 下 6 子 tab） */
+    /* Preferences: 顶部 icon-tab 行（6 主 tab，AI 排 Convert 右侧）+ 子 tab 行（Convert 下 6 子 tab） */
     .pref-shell {
       width: min(560px, 100%);
       height: 550px;
@@ -1417,6 +1417,7 @@
             <button class="pref-tab" data-ptab="keyboard">Keyboard</button>
             <button class="pref-tab" data-ptab="math">Mathematics</button>
             <button class="pref-tab" data-ptab="convert">Convert</button>
+            <button class="pref-tab" data-ptab="ai">AI</button>
             <button class="pref-tab" data-ptab="other">Other</button>
           </div>
 
@@ -1588,6 +1589,15 @@
                                 <div class="option-row"><span>Bitmap export resolution (dpi)</span><div class="combo" data-pref="texmacs->image:raster-resolution"><div class="combo-field"><input class="combo-input" data-pref="texmacs->image:raster-resolution" data-editable="on" data-options='["1200","600","300","150"]' value="300" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
                                 <div class="option-row"><span>Clipboard image format</span><div class="combo" data-pref="texmacs->image:format"><div class="combo-field"><input class="combo-input" data-pref="texmacs->image:format" data-editable="off" data-options='["png","svg","eps","tif","jpg","pdf"]' value="png" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
               </div>
+            </div>
+          </div>
+
+          <div class="pref-pane" id="ppane-ai">
+            <div class="toggle-list">
+                              <div class="toggle-row" data-toggle="ai:actions bar"><span class="toggle-label">AI action bar<span class="toggle-hint">选中文字后的翻译/润色/对话操作栏总开关</span></span><span class="toggle on"></span></div>
+            </div>
+            <div class="option-list" style="margin-top:8px">
+                              <div class="option-row"><span>Translation target language</span><div class="combo" data-pref="ai:translate target language"><div class="combo-field"><input class="combo-input" data-pref="ai:translate target language" data-editable="off" data-options='["User interface language","Chinese","English","Japanese","French","German"]' value="User interface language" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div></div>
             </div>
           </div>
 
@@ -1954,15 +1964,15 @@
         log('ParagraphFormat: submit() live 改动已写回，落定并关闭');
       });
 
-      // Preferences: 5 主 tab 切换
+      // Preferences: 6 主 tab 切换（AI 与 Convert 同级、排其右侧）
       const prefTabs = document.querySelectorAll('#panel-preferences .pref-tab');
-      const prefPanes = ['general', 'keyboard', 'math', 'convert', 'other'].map((t) => document.getElementById('ppane-' + t));
+      const prefPanes = ['general', 'keyboard', 'math', 'convert', 'ai', 'other'].map((t) => document.getElementById('ppane-' + t));
       prefTabs.forEach((btn) => {
         btn.addEventListener('click', () => {
           prefTabs.forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
           const t = btn.getAttribute('data-ptab');
-          prefPanes.forEach((p, i) => p.classList.toggle('active', ['general','keyboard','math','convert','other'][i] === t));
+          prefPanes.forEach((p, i) => p.classList.toggle('active', ['general','keyboard','math','convert','ai','other'][i] === t));
           log('Preferences: 切换主 tab -> ' + t);
         });
       });

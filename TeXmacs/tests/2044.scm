@@ -8,7 +8,8 @@
 ;;   [2044] 把首选项对话框重写为 QML 弹窗（Preferences.qml），scheme facade
 ;;   preferences-qml-meta 返回 tab 树供 C++ bridge 消费。本测试钉死 facade 的
 ;;   数据契约（任一条回退都会红）：
-;;     1. meta 返回 5 主 tab（general / keyboard / mathematics / convert / other）。
+;;     1. meta 返回 6 主 tab（general / keyboard / mathematics / convert / ai /
+;;        other；社区版无 ai，为 5）——AI 自 Convert 子 tab 提升为主 tab（0986）。
 ;;     2. 各 tab 字段数符合设计稿（general 9 / keyboard 13 / mathematics 11 /
 ;;        convert 0 / other 15）。
 ;;     3. Convert tab 无直接 fields、字段在 6 个子 tab 内（html/latex/bibtex/
@@ -133,16 +134,20 @@
                            ) ;cons
                      ) ;list
 
-               ;; 1 meta 返回 5 主 tab + 各 tab 字段数 + Convert 子 tab 数。
-               (list (cons "meta: 5 tabs + field counts + convert sub-tabs"
+               ;; 1 meta 返回主 tab 列表 + 各 tab 字段数 + Convert 子 tab 数。
+               (list (cons "meta: tabs + field counts + convert sub-tabs"
                        (lambda ()
-                         (let* ((meta (preferences-qml-meta)))
-                           ;; 5 主 tab + tab key 顺序。
-                           (check-true (== (length meta) 5))
-                           (check-true (equal? (map car meta)
-                                         (list "general" "keyboard" "mathematics" "convert" "other")
-                                       ) ;equal?
-                           ) ;check-true
+                         (let* ((meta (preferences-qml-meta))
+                                (keys (if (community-stem?)
+                                        (list "general" "keyboard" "mathematics" "convert" "other")
+                                        (list "general" "keyboard" "mathematics" "convert" "ai" "other")
+                                      ) ;if
+                                ) ;keys
+                               ) ;
+                           ;; 主 tab 数与顺序同源（社区版无 AI tab 为 5，企业版 6 个且
+                           ;; AI 与 Convert 同级、排其右侧，0986 自子 tab 提升）。
+                           (check-true (== (length meta) (length keys)))
+                           (check-true (equal? (map car meta) keys))
                            ;; 各 tab 字段数（Convert 为 0、字段在子 tab 内）。
                            (check-true (== (length (caddr (tab-ref meta "general"))) 9))
                            ;; keyboard：5 combo + 8 IR = 13；macOS 多 keyboard shortcut style = 14。
@@ -151,11 +156,15 @@
                            (check-true (== (length (caddr (tab-ref meta "mathematics"))) 11))
                            (check-true (== (length (caddr (tab-ref meta "convert"))) 0))
                            (check-true (== (length (caddr (tab-ref meta "other"))) 15))
-                           ;; Convert 7 子 tab + sub-tab key 顺序。
+                           ;; AI 主 tab：2 字段（操作栏 toggle + 目标语言 combo）。
+                           (when (not (community-stem?))
+                             (check-true (== (length (caddr (tab-ref meta "ai"))) 2))
+                           ) ;when
+                           ;; Convert 6 子 tab + sub-tab key 顺序（AI 已提升为主 tab）。
                            (let ((convert (tab-ref meta "convert")))
-                             (check-true (== (length (cadddr convert)) 7))
+                             (check-true (== (length (cadddr convert)) 6))
                              (check-true (equal? (map car (cadddr convert))
-                                           (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "mogan-scheme")
+                                           (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
                                          ) ;equal?
                              ) ;check-true
                            ) ;let

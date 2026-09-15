@@ -33,11 +33,20 @@
   (list-filter fields (lambda (f) (== (field-ref f 'kind) kind)))
 ) ;define
 
-;; ---- 1. meta 整体形状：5 tab + 每个 tab 是 (key label fields …) ----
+;; ---- 1. meta 整体形状：6 tab（社区版 5，无 AI）+ 每个 tab 是 (key label fields …) ----
 
 (define (test-meta-tab-count-and-shape)
-  (let ((meta (preferences-qml-meta)))
-    (check (length meta) => 5)
+  (let ((keys
+          (if (community-stem?)
+            (list "general" "keyboard" "mathematics" "convert" "other")
+            (list "general" "keyboard" "mathematics" "convert" "ai" "other")
+          ) ;if
+        ) ;keys
+        (meta (preferences-qml-meta))
+       ) ;
+    ;; 主 tab 数与顺序同源：AI 与 Convert 同级、排其右侧（[0986] 自 Convert 子 tab 提升）
+    (check (length meta) => (length keys))
+    (check (map car meta) => keys)
     (for-each
       (lambda (tab)
         (check-true (>= (length tab) 3))
@@ -58,6 +67,10 @@
     (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 15 14))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
+    ;; AI 主 tab 仅非社区版注册：AI 操作栏 toggle + 翻译目标语言 combo，共 2 字段。
+    (when (not (community-stem?))
+      (check (length (caddr (tab-ref meta "ai"))) => 2)
+    ) ;when
     ;; other: 平台基础字段 + Velopack 更新器开启时多 1 个 Update channel 字段。
     ;; 用 use-plugin-updater? 而非硬编码,osx-x64 未接入 velopack 时仍正确。
     ;; 非社区版再多 1 个 Ghost text 实验选项（社区版按上游 #4413 隐藏）。
@@ -71,21 +84,17 @@
   ) ;let
 ) ;define
 
-;; ---- 3. Convert 7 子 tab + key 顺序固定 ----
+;; ---- 3. Convert 6 子 tab + key 顺序固定（AI 已提升为主 tab） ----
 
 (define (test-meta-convert-subtabs)
   (let* ((meta (preferences-qml-meta))
          (convert (tab-ref meta "convert"))
          (subs (cadddr convert))
         ) ;
-    ;; AI 子 tab 仅非社区版注册（社区版无 AI Chat，整个子 tab 隐藏）
-    (check (length subs) => (if (community-stem?) 6 7))
+    (check (length subs) => 6)
     (check (map car subs)
       =>
-      (if (community-stem?)
-        (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
-        (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "ai")
-      ) ;if
+      (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
     ) ;check
   ) ;let*
 ) ;define
@@ -392,8 +401,8 @@
   (check (pref-convert-bibtex-command) => "bibtex command")
   (check (pref-convert-verbatim-export-encoding) => "texmacs->verbatim:encoding")
   (check (pref-convert-pdf-version) => "texmacs->pdf:version")
-  (check (pref-convert-ai-actions-bar) => "ai:actions bar")
-  (check (pref-convert-ai-translate-target) => "ai:translate target language")
+  (check (pref-ai-actions-bar) => "ai:actions bar")
+  (check (pref-ai-translate-target) => "ai:translate target language")
   (check (pref-autobackup) => "autobackup")
   (check (pref-autosave) => "autosave")
 ) ;define
@@ -498,27 +507,23 @@
   ) ;let*
 ) ;define
 
-;; ---- 16b. AI 子 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
+;; ---- 16b. AI 主 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
 
-(define (test-ai-subtab-fields)
-  (let ((ai
-          (list-find (cadddr (tab-ref (preferences-qml-meta) "convert"))
-            (lambda (t) (== (car t) "ai"))
-          ) ;list-find
-        ) ;ai
+(define (test-ai-tab-fields)
+  (let ((ai (tab-ref (preferences-qml-meta) "ai")) ;ai
        ) ;
     (if (community-stem?)
-      ;; 社区版无 AI Chat，AI 子 tab 整体不注册
+      ;; 社区版无 AI Chat，AI 主 tab 整体不注册
       (check-false ai)
       (let* ((fields (caddr ai))
              (bar
                (list-find fields
-                 (lambda (f) (== (field-ref f 'key) (pref-convert-ai-actions-bar)))
+                 (lambda (f) (== (field-ref f 'key) (pref-ai-actions-bar)))
                ) ;list-find
              ) ;bar
              (target
                (list-find fields
-                 (lambda (f) (== (field-ref f 'key) (pref-convert-ai-translate-target)))
+                 (lambda (f) (== (field-ref f 'key) (pref-ai-translate-target)))
                ) ;list-find
              ) ;target
             ) ;
@@ -535,8 +540,8 @@
           (check-true (pair? (member "chinese" opts)))
         ) ;let
         ;; set-field 往返：toggle 开关落库、combo 存内部键，均恢复原值。
-        (let* ((bar-key (pref-convert-ai-actions-bar))
-               (target-key (pref-convert-ai-translate-target))
+        (let* ((bar-key (pref-ai-actions-bar))
+               (target-key (pref-ai-translate-target))
                (old-bar (get-preference bar-key))
                (old-target (get-preference target-key))
               ) ;
@@ -636,7 +641,7 @@
   (test-key-consistency)
   (test-latex-unified-keys-in-meta)
   (test-scripting-language-options)
-  (test-ai-subtab-fields)
+  (test-ai-tab-fields)
   (test-restart-keys-set)
   (test-emoji-keyboard-directional-restart)
   (check-report)
