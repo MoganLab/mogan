@@ -1467,63 +1467,34 @@ edit_interface_rep::should_show_translate_popup () {
 #endif
 }
 
-void
-edit_interface_rep::get_selection_geometry (rectangle& last, SI& min_h) {
-  // 单次 search_selection 遍历同时取：选区最末（屏幕最下方、同行最右）矩形
-  // 与最小矩形高度（近似最小文字渲染高度）。无选区时 last 为无效矩形、min_h 为
-  // 0
-  last = rectangle ();
-  min_h= 0;
-  path p1, p2;
-  selection_get (p1, p2);
-  if (p1 == p2) return;
-  selection sel= search_selection (p1, p2);
-  if (is_nil (sel->rs)) return;
-  last= sel->rs->item;
-  for (rectangles rs= sel->rs; !is_nil (rs); rs= rs->next) {
+rectangle
+edit_interface_rep::get_selection_last_rect () {
+  // 优先用 apply_changes 维护的已绘制选区矩形（与屏幕所见一致，且避免在
+  // box 树重建的瞬态窗口期重走 find_check_selection）；缓存为空才遍历。
+  // 取屏幕最下方、同行最右的矩形（即最后一个选中文字所在行）
+  rectangles rs= selection_rects;
+  if (is_nil (rs)) {
+    path p1, p2;
+    selection_get (p1, p2);
+    if (p1 != p2) rs= search_selection (p1, p2)->rs;
+  }
+  if (is_nil (rs)) return rectangle ();
+  rectangle last= rs->item;
+  for (; !is_nil (rs); rs= rs->next) {
     rectangle r= rs->item;
     // 屏幕下方对应逻辑 y 更小
     if (r->y2 < last->y2 || (r->y2 == last->y2 && r->x2 > last->x2)) last= r;
-    SI h= r->y2 - r->y1;
-    if (h > 0 && (min_h == 0 || h < min_h)) min_h= h;
   }
-}
-
-rectangle
-edit_interface_rep::get_selection_last_rect () {
-  rectangle last;
-  SI        min_h;
-  get_selection_geometry (last, min_h);
-  if (last->x1 >= last->x2 || last->y1 >= last->y2)
-    return get_text_selection_rect ();
   return last;
 }
 
-SI
-edit_interface_rep::get_selection_min_height () {
-  // 用未加厚的选区矩形高度近似文字渲染高度，取最小值（对应最小字号）
-  rectangle last;
-  SI        min_h;
-  get_selection_geometry (last, min_h);
-  return min_h;
-}
-
-array<int>
-edit_interface_rep::selection_last_rect_array () {
-  // 打包成 int 数组供 glue 返回（rectangle 类型无法直接绑定到 Scheme）
-  array<int> r;
-  rectangle  lr= get_selection_last_rect ();
-  r << (int) lr->x1 << (int) lr->y1 << (int) lr->x2 << (int) lr->y2;
-  return r;
-}
-
 void
-edit_interface_rep::show_translate_popup (rectangle selr, SI sel_h, double magf,
+edit_interface_rep::show_translate_popup (rectangle selr, double magf,
                                           int scroll_x, int scroll_y,
                                           int canvas_x, int canvas_y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_translate_popup (selr, sel_h, magf, scroll_x, scroll_y, canvas_x,
+    qsw->show_translate_popup (selr, magf, scroll_x, scroll_y, canvas_x,
                                canvas_y);
   }
 #endif
@@ -1568,15 +1539,13 @@ edit_interface_rep::update_translate_popup () {
     return;
   }
   if (should_show_translate_popup ()) {
-    rectangle selr;
-    SI        sel_h;
-    get_selection_geometry (selr, sel_h);
+    rectangle selr= get_selection_last_rect ();
     if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
       hide_translate_popup ();
       return;
     }
     // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
-    show_translate_popup (selr, sel_h, magf, get_scroll_x (), get_scroll_y (),
+    show_translate_popup (selr, magf, get_scroll_x (), get_scroll_y (),
                           get_canvas_x (), get_canvas_y ());
   }
   else {

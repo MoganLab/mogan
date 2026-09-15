@@ -145,9 +145,8 @@ public:
 
   ////////////////////// AI translate popup support
   void ensure_translate_popup ();
-  void show_translate_popup (rectangle selr, SI sel_h, double magf,
-                             int scroll_x, int scroll_y, int canvas_x,
-                             int canvas_y);
+  void show_translate_popup (rectangle selr, double magf, int scroll_x,
+                             int scroll_y, int canvas_x, int canvas_y);
   void hide_translate_popup ();
   void scroll_translate_popup_by (SI x, SI y);
   bool is_point_in_translate_popup (SI x, SI y);

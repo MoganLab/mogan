@@ -9,13 +9,13 @@
  ******************************************************************************/
 
 #include "QTMAiTranslatePopup.hpp"
-#include "QTMStyle.hpp"
 #include "edit_interface.hpp"
 #include "qt_utilities.hpp"
 
 #include <QCoreApplication>
 #include <QCursor>
 #include <QEvent>
+#include <QHideEvent>
 #include <QHoverEvent>
 #include <QQmlContext>
 #include <QQmlProperty>
@@ -23,6 +23,7 @@
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QShowEvent>
 #include <algorithm>
 #include <cmath>
 
@@ -50,9 +51,6 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
   quick->setClearColor (Qt::transparent);
   quick->setStyleSheet ("background: transparent;");
-  // 无按键 move 到达子 widget 需 mouse tracking；QQuickWidget 构造时已自带，
-  // 显式设置以免依赖其内部实现
-  quick->setMouseTracking (true);
   // 与模态弹窗一致的主题上下文（Theme 单例读取 dpScale/isDark）
   quick->rootContext ()->setContextProperty ("dpScale",
                                              DpiUtils::scaleFactor ());
@@ -100,17 +98,45 @@ QTMAiTranslatePopup::syncHover () {
   QCoreApplication::sendEvent (w, &hover);
 }
 
+bool
+QTMAiTranslatePopup::eventFilter (QObject* obj, QEvent* ev) {
+  // 无按键 move 依赖「macOS → 顶层窗口 → 半透明子 widget → QQuickWidget」
+  // 的逐级投递，该链路在部分会话下整体失效（悬浮点亮失灵，点击因 grab
+  // 语义仍可用）。挂在 qApp 上的过滤器能看到投递给任意对象的原始 move
+  // 流，不受子 widget 路由成败影响：据此直接同步 hover，绕开失效环节。
+  // 栏外远处的 move 只在「刚离开栏内」时同步一次以清空高亮，避免每次
+  // move 都触发 Quick 场景命中测试
+  if (ev->type () == QEvent::MouseMove && isVisible ()) {
+    bool inside= rect ().contains (mapFromGlobal (QCursor::pos ()));
+    if (inside || hover_inside) syncHover ();
+    hover_inside= inside;
+  }
+  return QObject::eventFilter (obj, ev);
+}
+
+void
+QTMAiTranslatePopup::showEvent (QShowEvent* ev) {
+  QTMBasePopup::showEvent (ev);
+  hover_inside= false;
+  QCoreApplication::instance ()->installEventFilter (this);
+}
+
+void
+QTMAiTranslatePopup::hideEvent (QHideEvent* ev) {
+  QTMBasePopup::hideEvent (ev);
+  QCoreApplication::instance ()->removeEventFilter (this);
+}
+
 void
 QTMAiTranslatePopup::autoSize () {
-  // 按钮字号略大于选区内最小文字的渲染高度（含文档缩放因子），整体尺寸随
-  // QML 内边距/图标比例自适应；取不到时退回 mini 控件字号
+  // 尺寸按屏幕 DPI 缩放（与 QML 弹窗的 dpScale 同源），不跟随文档字体；
+  // 整体尺寸随 QML 内边距/图标比例自适应。字号与会话内 DPI 绑定，鼠标
+  // 移动会高频重入此处，字号未变时跳过 QML 写入与布局重算
   QObject* root= quick->rootObject ();
   if (!root) return;
-  double inv_unit= 1.0 / 256.0;
-  double text_px=
-      sel_text_height > 0 ? sel_text_height * cached_magf * inv_unit : 0;
-  int font_px= text_px > 0 ? std::max (9, int (std::round (text_px * 1.05)))
-                           : std::max (10, qt_zoom (QTM_MINI_FONTSIZE) * 4 / 3);
+  int font_px= std::max (10, DpiUtils::scaled (12));
+  if (font_px == cached_font_px && cached_width > 0) return;
+  cached_font_px= font_px;
   root->setProperty ("fontPixelSize", font_px);
   int w=
       int (std::round (QQmlProperty::read (root, "implicitWidth").toReal ()));
