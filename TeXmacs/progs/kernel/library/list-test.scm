@@ -106,13 +106,15 @@
   ) ;let*
 ) ;define
 
-;; 边界：k 为负、非整数、超出长度、对非列表取非零个，均抛 wrong-type-arg。
+;; 边界：k 为负抛 out-of-range；k 超出长度、非整数、lst 非列表抛 type-error。
+;; 注意 k 超出长度抛的是 type-error 而非 out-of-range，与 list-drop-right 不一致，
+;; 这是 goldfish 侧 g_take 的既有行为，此处照实固定。
 
 (define (test-list-head-errors)
-  (check-catch 'wrong-type-arg (list-head '(1 2 3) -1))
-  (check-catch 'wrong-type-arg (list-head '(1 2 3) 4))
-  (check-catch 'wrong-type-arg (list-head '(1 2 3) 1.5))
-  (check-catch 'wrong-type-arg (list-head 'a 1))
+  (check-catch 'out-of-range (list-head '(1 2 3) -1))
+  (check-catch 'type-error (list-head '(1 2 3) 4))
+  (check-catch 'type-error (list-head '(1 2 3) 1.5))
+  (check-catch 'type-error (list-head 'a 1))
 ) ;define
 
 ;; list-drop-right：移除列表末尾 k 个元素（g_drop_right 的 C 实现）。
@@ -139,14 +141,14 @@
   ) ;let*
 ) ;define
 
-;; 边界：k 为负、超出长度抛 out-of-range；k 非整数、lst 非列表抛 wrong-type-arg。
+;; 边界：k 为负、超出长度抛 out-of-range；k 非整数、lst 非列表抛 type-error。
 
 (define (test-list-drop-right-errors)
   (check-catch 'out-of-range (list-drop-right '(1 2 3) -1))
   (check-catch 'out-of-range (list-drop-right '(1 2 3) 4))
   (check-catch 'out-of-range (list-drop-right '() 1))
-  (check-catch 'wrong-type-arg (list-drop-right '(1 2 3) 1.5))
-  (check-catch 'wrong-type-arg (list-drop-right 'a 1))
+  (check-catch 'type-error (list-drop-right '(1 2 3) 1.5))
+  (check-catch 'type-error (list-drop-right 'a 1))
 ) ;define
 
 ;; exists?/forall?：谓词短路遍历（g_any/g_every 的 C 实现）。
@@ -162,8 +164,10 @@
   ) ;check
 ) ;define
 
+;; 非正规列表（点对结尾）走到尽头不是 '()，抛 type-error。
+
 (define (test-exists-errors)
-  (check-catch 'wrong-type-arg (exists? (lambda (x) #f) '(1 2 . 3)))
+  (check-catch 'type-error (exists? (lambda (x) #f) '(1 2 . 3)))
 ) ;define
 
 (define (test-forall-basic)
@@ -180,8 +184,10 @@
   (check (list-find '() even?) => #f)
 ) ;define
 
+;; 非正规列表（点对结尾）走到尽头不是 '()，抛 type-error。
+
 (define (test-list-find-errors)
-  (check-catch 'wrong-type-arg (list-find '(1 2 . 3) (lambda (x) #f)))
+  (check-catch 'type-error (list-find '(1 2 . 3) (lambda (x) #f)))
 ) ;define
 
 ;; list-fold/list-fold-right：单列表路径走 g_fold/g_fold_right 的 C 实现。
@@ -193,8 +199,10 @@
   (check (list-fold + 0 '(1 2 3) '(4 5 6)) => 21)
 ) ;define
 
+;; 非正规列表（点对结尾）走到尽头不是 '()，抛 type-error。
+
 (define (test-list-fold-errors)
-  (check-catch 'wrong-type-arg (list-fold + 0 '(1 2 . 3)))
+  (check-catch 'type-error (list-fold + 0 '(1 2 . 3)))
 ) ;define
 
 (define (test-list-fold-right-basic)
@@ -204,8 +212,10 @@
   (check (list-fold-right + 0 '(1 2 3) '(4 5 6)) => 21)
 ) ;define
 
+;; 非正规列表（点对结尾）走到尽头不是 '()，抛 type-error。
+
 (define (test-list-fold-right-errors)
-  (check-catch 'wrong-type-arg (list-fold-right + 0 '(1 2 . 3)))
+  (check-catch 'type-error (list-fold-right + 0 '(1 2 . 3)))
 ) ;define
 
 (tm-define (regtest-list)
