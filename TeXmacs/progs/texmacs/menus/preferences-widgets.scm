@@ -62,9 +62,14 @@
  ("windows" "Windows")
 ) ;define-preference-names
 
-(for (l supported-languages)
-  (set-preference-name "language" l (upcase-first l))
-) ;for
+;; 语言内部名 → 显示名登记（encode/decode 表），language 与 AI 翻译目标语言共用
+(define (register-language-preference-names key)
+  (for (l supported-languages)
+    (set-preference-name key l (upcase-first l))
+  ) ;for
+) ;define
+
+(register-language-preference-names "language")
 
 (define-preference-names "complex actions"
  ("menus" "Through the menus")
@@ -198,9 +203,7 @@
  ("interface" "User interface language")
 ) ;define-preference-names
 
-(for (l supported-languages)
-  (set-preference-name "ai:translate target language" l (upcase-first l))
-) ;for
+(register-language-preference-names "ai:translate target language")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other tab 的编解码表（autosave / security / updater / scripting）
@@ -1182,10 +1185,15 @@
                     (translate "Image")
                     (preferences-qml-build-tab preferences-qml-convert-image-fields)
                   ) ;list
-                  (list "ai"
-                    (translate "AI")
-                    (preferences-qml-build-tab preferences-qml-convert-ai-fields)
-                  ) ;list
+                  ;; 社区版无 AI Chat，操作栏与翻译均不可用，整个 AI 子 tab
+                  ;; 隐藏（同 ghost text 字段的 community-stem? 惯例）
+                  (if (community-stem?)
+                    #f
+                    (list "ai"
+                      (translate "AI")
+                      (preferences-qml-build-tab preferences-qml-convert-ai-fields)
+                    ) ;list
+                  ) ;if
                 ) ;list
                 identity
               ) ;list-filter

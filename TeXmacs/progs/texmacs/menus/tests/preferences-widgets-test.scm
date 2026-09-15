@@ -77,10 +77,13 @@
          (convert (tab-ref meta "convert"))
          (subs (cadddr convert))
         ) ;
-    (check (length subs) => 7)
+    ;; AI 子 tab 仅非社区版注册（社区版无 AI Chat，整个子 tab 隐藏）
+    (check (length subs) => (if (community-stem?) 6 7))
     (check (map car subs)
       =>
-      (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "ai")
+      (if (community-stem?)
+        (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
+        (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "ai"))
     ) ;check
   ) ;let*
 ) ;define
@@ -496,49 +499,53 @@
 ;; ---- 16b. AI 子 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
 
 (define (test-ai-subtab-fields)
-  (let* ((meta (preferences-qml-meta))
-         (ai (list-find (cadddr (tab-ref meta "convert")) (lambda (t) (== (car t) "ai")))
-         ) ;ai
-         (fields (caddr ai))
-         (bar (list-find fields
-                (lambda (f) (== (field-ref f 'key) (pref-convert-ai-actions-bar)))
-              ) ;list-find
-         ) ;bar
-         (target (list-find fields
-                   (lambda (f) (== (field-ref f 'key) (pref-convert-ai-translate-target)))
-                 ) ;list-find
-         ) ;target
-        ) ;
-    (check-true (pair? ai))
-    (check (length fields) => 2)
-    (check (field-ref bar 'kind) => "toggle")
-    (check (field-ref target 'kind) => "combo")
-    ;; options 首项 interface（按界面语言），后随 supported-languages 全表。
-    ;; optionsTr 已经过 translate（随界面语言），期望值走同一翻译函数比对。
-    (let ((opts (field-ref target 'options)) (trs (field-ref target 'optionsTr)))
-      (check (car opts) => "interface")
-      (check (car trs) => (translate "User interface language"))
-      (check (== (length opts) (length trs)) => #t)
-      (check-true (pair? (member "chinese" opts)))
-    ) ;let
-    ;; set-field 往返：toggle 开关落库、combo 存内部键，均恢复原值。
-    (let* ((bar-key (pref-convert-ai-actions-bar))
-           (target-key (pref-convert-ai-translate-target))
-           (old-bar (get-preference bar-key))
-           (old-target (get-preference target-key))
-          ) ;
-      (preferences-qml-set-field bar-key "off")
-      (check (get-boolean-preference bar-key) => #f)
-      (preferences-qml-set-field bar-key "on")
-      (check (get-boolean-preference bar-key) => #t)
-      (preferences-qml-set-field target-key "english")
-      (check (get-preference target-key) => "english")
-      (preferences-qml-set-field target-key "interface")
-      (check (get-preference target-key) => "interface")
-      (set-preference bar-key old-bar)
-      (set-preference target-key old-target)
-    ) ;let*
-  ) ;let*
+  (let ((ai (list-find (cadddr (tab-ref (preferences-qml-meta) "convert"))
+              (lambda (t) (== (car t) "ai")))))
+    (if (community-stem?)
+      ;; 社区版无 AI Chat，AI 子 tab 整体不注册
+      (check-false ai)
+      (let* ((fields (caddr ai))
+             (bar (list-find fields
+                    (lambda (f) (== (field-ref f 'key) (pref-convert-ai-actions-bar)))
+                  ) ;list-find
+             ) ;bar
+             (target (list-find fields
+                       (lambda (f) (== (field-ref f 'key) (pref-convert-ai-translate-target)))
+                     ) ;list-find
+             ) ;target
+            ) ;
+        (check-true (pair? ai))
+        (check (length fields) => 2)
+        (check (field-ref bar 'kind) => "toggle")
+        (check (field-ref target 'kind) => "combo")
+        ;; options 首项 interface（按界面语言），后随 supported-languages 全表。
+        ;; optionsTr 已经过 translate（随界面语言），期望值走同一翻译函数比对。
+        (let ((opts (field-ref target 'options)) (trs (field-ref target 'optionsTr)))
+          (check (car opts) => "interface")
+          (check (car trs) => (translate "User interface language"))
+          (check (== (length opts) (length trs)) => #t)
+          (check-true (pair? (member "chinese" opts)))
+        ) ;let
+        ;; set-field 往返：toggle 开关落库、combo 存内部键，均恢复原值。
+        (let* ((bar-key (pref-convert-ai-actions-bar))
+               (target-key (pref-convert-ai-translate-target))
+               (old-bar (get-preference bar-key))
+               (old-target (get-preference target-key))
+              ) ;
+          (preferences-qml-set-field bar-key "off")
+          (check (get-boolean-preference bar-key) => #f)
+          (preferences-qml-set-field bar-key "on")
+          (check (get-boolean-preference bar-key) => #t)
+          (preferences-qml-set-field target-key "english")
+          (check (get-preference target-key) => "english")
+          (preferences-qml-set-field target-key "interface")
+          (check (get-preference target-key) => "interface")
+          (set-preference bar-key old-bar)
+          (set-preference target-key old-target)
+        ) ;let*
+      ) ;let*
+    ) ;if
+  ) ;let
 ) ;define
 
 ;; ---- 17. 重启键集合钉死 ----
