@@ -228,6 +228,8 @@ void cpp_statistics_dialog (string title, tree items);
  *       高度取 QML 根对象 implicitHeight，220 为回退值）。
  * @note MOGAN_TEST_VERSION_DIALOG 用于测试。
  */
+bool cpp_version_dialog (string title, string message, string primary_button,
+                         string cancel_button, bool primary_enabled);
 bool cpp_version_dialog (string title, string message);
 
 /**

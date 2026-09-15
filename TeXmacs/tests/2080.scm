@@ -15,10 +15,16 @@
 
 (define (test-version-dialog-contract)
   (system-setenv "MOGAN_TEST_VERSION_DIALOG" "ok")
-  (check (cpp-version-dialog "Version" "Version information") => #t)
+  (check (cpp-version-dialog "Version" "Version information" "OK" "Close" #t)
+    =>
+    #t
+  ) ;check
 
   (system-setenv "MOGAN_TEST_VERSION_DIALOG" "cancel")
-  (check (cpp-version-dialog "Version" "Version information") => #f)
+  (check (cpp-version-dialog "Version" "Version information" "OK" "Close" #t)
+    =>
+    #f
+  ) ;check
 
   (system-setenv "MOGAN_TEST_VERSION_DIALOG" "")
 ) ;define

@@ -110,7 +110,10 @@ function main()
                 ret_type = "bool",
                 arg_list = {
                     "string",
-                    "string"
+                    "string",
+                    "string",
+                    "string",
+                    "bool"
                 }
             },
             {

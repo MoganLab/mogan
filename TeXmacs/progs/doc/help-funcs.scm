@@ -10,7 +10,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc help-funcs) (:use (texmacs texmacs tm-files)))
+(texmacs-module (doc help-funcs)
+  (:use (texmacs texmacs tm-files) (utils misc updater))
+) ;texmacs-module
+
+(import (liii json) (liii semver))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loading help buffers
@@ -200,26 +204,22 @@
   (dialogue-window (message-widget msg) callback title)
 ) ;tm-define
 
-;; 版本检查 URL
+;; 检查更新基础 URL
 
-(define MOGAN-LATEST-VERSION-URL "https://liiistem.cn/mogan_latest_version.tm")
-
-(define LIII-LATEST-VERSION-URL "https://liiistem.cn/latest_version.tm")
-
-;; 从 TeXmacs 文档内容中提取 body 中的版本号
-
-(define (extract-version-from-tm-content content)
-  (if (not (string? content))
-    ""
-    (let* ((body-start (string-search-forwards "<\\body>" 0 content))
-           (body-end (string-search-forwards "</body>" 0 content))
-          ) ;
-      (if (and (!= body-start -1) (!= body-end -1) (> body-end body-start))
-        (tm-string-trim-both (substring content (+ body-start 7) body-end))
-        ""
-      ) ;if
-    ) ;let*
+(define (get-update-base-url)
+  (if (== (get-preference "stem-profile") "staging")
+    "https://test.liiistem.cn"
+    "https://liiistem.cn"
   ) ;if
+) ;define
+
+(define (get-latest-version-url community?)
+  (string-append (get-update-base-url)
+    (if community?
+      "/api/v1/public/update/win-x64/latest"
+      "/api/v1/public/commercial/update/win-x64/latest"
+    ) ;if
+  ) ;string-append
 ) ;define
 
 ;; 获取远程最新版本号（返回字符串，失败返回空字符串）
@@ -228,88 +228,95 @@
   (with content
     (string-load (string->url url))
     (if (and (string? content) (!= content ""))
-      (extract-version-from-tm-content content)
+      (catch #t
+        (lambda ()
+          (let* ((json-obj (string->json content)) (data-obj (json-ref json-obj "data")))
+            (if (json-object? data-obj)
+              (let ((ver (json-ref data-obj "version")))
+                (if (string? ver) (semver-clean ver) "")
+              ) ;let
+              ""
+            ) ;if
+          ) ;let*
+        ) ;lambda
+        (lambda (key . args) "")
+      ) ;catch
       ""
     ) ;if
   ) ;with
 ) ;define
 
-(define (show-version-dialog msg url open-website?)
-  (when (cpp-version-dialog (translate "Version") msg)
-    (when open-website?
-      (open-url url)
-    ) ;when
-  ) ;when
-) ;define
+;; 计算更新状态三元组: (list failed? is-latest? primary-enabled?)
+(tm-define (calc-update-status cur-ver latest-ver)
+  (let* ((failed? (or (not (string? latest-ver))
+                    (== latest-ver "")
+                    (not (semver-valid? latest-ver))
+                    (not (semver-valid? cur-ver))
+                  ) ;or
+         ) ;failed?
+         (has-new? (and (not failed?) (semver>? latest-ver cur-ver)))
+         (is-latest? (and (not failed?) (not has-new?)))
+         (primary-enabled? has-new?)
+        ) ;
+    (list failed? is-latest? primary-enabled?)
+  ) ;let*
+) ;tm-define
 
-;; 显示Mogan版本信息
-(tm-define (mogan-version)
-  (let* ((cur-ver (xmacs-version))
-         (community? (community-stem?))
-         (community-ver (if community? (fetch-latest-version MOGAN-LATEST-VERSION-URL) "")
-         ) ;community-ver
-         (commercial-ver (fetch-latest-version LIII-LATEST-VERSION-URL))
-         (community-latest? (and community? (== cur-ver community-ver)))
-         (commercial-latest? (== cur-ver commercial-ver))
+;; 检查更新并显示弹窗
+(tm-define (check-for-updates)
+  (let* ((community? (community-stem?))
+         (cur-ver (xmacs-version))
+         (latest-ver (fetch-latest-version (get-latest-version-url community?)))
          (url (if community?
                 "https://liiistem.cn?utm_source=mogan-community&utm_medium=referral&utm_campaign=version-check"
                 "https://liiistem.cn?utm_source=mogan-commercial&utm_medium=referral&utm_campaign=version-check"
               ) ;if
          ) ;url
+         (status (calc-update-status cur-ver latest-ver))
+         (failed? (car status))
+         (is-latest? (cadr status))
+         (primary-enabled? (caddr status))
+         (primary-btn-label (if (use-plugin-updater?) "Update Now" "Go to Download"))
+         (cancel-btn-label "Close")
+         (title (translate "Check for updates"))
+         (status-line (cond (failed? (translate "Failed to check for updates."))
+                            (is-latest? (translate "Current version is up to date."))
+                            (else (translate "A new version is available."))
+                      ) ;cond
+         ) ;status-line
+         (ver-line (if community?
+                     (replace (translate "Mogan STEM latest stable version: v%1") latest-ver)
+                     (replace (translate "Liii STEM latest stable version: v%1") latest-ver)
+                   ) ;if
+         ) ;ver-line
+         (msg
+           (if failed?
+             (string-append (replace (translate "Current version: v%1") cur-ver)
+               "\n"
+               status-line
+             ) ;string-append
+             (string-append (replace (translate "Current version: v%1") cur-ver)
+               "\n"
+               ver-line
+               "\n"
+               status-line
+             ) ;string-append
+           ) ;if
+         ) ;msg
         ) ;
-    (if community?
-      ;; 社区版：同时展示社区版和商业版的最新稳定版
-      (let ((msg
-              (if community-latest?
-                (replace (translate (string-append "You are using v%1.\n"
-                                      "The latest stable version of Mogan STEM is v%2, "
-                                      "and the latest stable version of Liii STEM is v%3."
-                                    ) ;string-append
-                         ) ;translate
-                  cur-ver
-                  community-ver
-                  commercial-ver
-                ) ;replace
-                (replace (translate (string-append "You are using v%1.\n"
-                                      "The latest stable version of Mogan STEM is v%2, "
-                                      "and the latest stable version of Liii STEM is v%3.\n"
-                                      "Please click OK to visit the official website "
-                                      "to download the latest stable version."
-                                    ) ;string-append
-                         ) ;translate
-                  cur-ver
-                  community-ver
-                  commercial-ver
-                ) ;replace
-              ) ;if
-            ) ;msg
-           ) ;
-        (show-version-dialog msg url (not community-latest?))
-      ) ;let
-      ;; 商业版：只展示商业版的最新稳定版
-      (let ((msg
-              (if commercial-latest?
-                (replace (translate "You are using v%1, and the latest stable version of Liii STEM is v%2."
-                         ) ;translate
-                  cur-ver
-                  commercial-ver
-                ) ;replace
-                (replace (translate (string-append "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
-                                      "Please click OK to visit the official website "
-                                      "to download the latest stable version."
-                                    ) ;string-append
-                         ) ;translate
-                  cur-ver
-                  commercial-ver
-                ) ;replace
-              ) ;if
-            ) ;msg
-           ) ;
-        (show-version-dialog msg url (not commercial-latest?))
-      ) ;let
-    ) ;if
+    (when (cpp-version-dialog title
+            msg
+            (translate primary-btn-label)
+            (translate cancel-btn-label)
+            primary-enabled?
+          ) ;cpp-version-dialog
+      (if (use-plugin-updater?) (updater-trigger-manual-update) (open-url url))
+    ) ;when
   ) ;let*
 ) ;tm-define
+
+;; 显示Mogan版本信息（兼容旧调用）
+(tm-define (mogan-version) (check-for-updates))
 
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)

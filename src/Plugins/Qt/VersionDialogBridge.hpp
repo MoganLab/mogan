@@ -38,6 +38,7 @@ class VersionDialogBridge : public QObject {
   Q_PROPERTY (QString title READ title CONSTANT)
   Q_PROPERTY (QStringList lines READ lines CONSTANT)
   Q_PROPERTY (QStringList buttonLabels READ buttonLabels CONSTANT)
+  Q_PROPERTY (bool primaryEnabled READ primaryEnabled CONSTANT)
 
 public:
   /**
@@ -46,13 +47,16 @@ public:
    * @param title 弹窗标题（Cork 编码，构造时转 UTF-8）。
    * @param message 多行正文，按 '\n' 分行并逐行转 UTF-8。
    * @param button_labels 已翻译的按钮文案（经 translate_buttons）。
+   * @param primary_enabled 主按钮是否可用（默认 true）。
    */
   VersionDialogBridge (QDialog* host, string title, string message,
-                       const QStringList& button_labels);
+                       const QStringList& button_labels,
+                       bool               primary_enabled= true);
 
   QString     title () const { return m_title; }
   QStringList lines () const { return m_lines; }
   QStringList buttonLabels () const { return m_buttonLabels; }
+  bool        primaryEnabled () const { return m_primaryEnabled; }
 
   Q_INVOKABLE void confirm ();
 
@@ -61,6 +65,7 @@ private:
   QString     m_title;
   QStringList m_lines;
   QStringList m_buttonLabels;
+  bool        m_primaryEnabled;
 };
 
 #endif // defined VERSION_DIALOG_BRIDGE_HPP
