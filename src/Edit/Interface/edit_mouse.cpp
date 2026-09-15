@@ -24,6 +24,7 @@
 #include "qnamespace.h"
 #include "qt_simple_widget.hpp"
 #endif
+#include "preferences.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
 #include "tm_buffer.hpp"
@@ -1445,6 +1446,9 @@ edit_interface_rep::should_show_translate_popup () {
   }
   translate_popup_last_check = now;
   translate_popup_last_result= false;
+
+  // AI 操作栏总开关（首选项 → 转换 → AI，默认开启）
+  if (get_preference ("ai:actions bar", "on") != "on") return false;
 
   // 聊天输入框等 tmfs 内嵌页面不弹翻译按钮
   if (!is_nil (buf) && starts (as_string (buf->buf->name), "tmfs://")) {

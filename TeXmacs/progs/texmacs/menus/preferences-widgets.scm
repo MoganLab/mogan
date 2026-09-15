@@ -190,6 +190,18 @@
  ("1.7" "1.7")
 ) ;define-preference-names
 
+;; AI ----------
+;; 翻译目标语言：interface 表示按界面语言；语言项与 General 的 language 字段
+;; 同源（supported-languages），登记进 encode/decode 表供 combo 反查。
+
+(define-preference-names "ai:translate target language"
+ ("interface" "User interface language")
+) ;define-preference-names
+
+(for (l supported-languages)
+  (set-preference-name "ai:translate target language" l (upcase-first l))
+) ;for
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other tab 的编解码表（autosave / security / updater / scripting）
 ;; （updater last-check 等 helper 见 preferences-tools.scm）
@@ -884,6 +896,23 @@
   ) ;list
 ) ;define
 
+;; ---- Convert / AI fields ----
+
+(define preferences-qml-convert-ai-fields
+  (list
+    ;; 选中文字后的 AI 操作栏（0986）总开关，默认开启（默认值见 tm-server.scm）。
+    (list (pref-convert-ai-actions-bar) "AI action bar" '() '() #f)
+    ;; AI 翻译目标语言：options 动态按 supported-languages 拉取（见 resolve-options），
+    ;; 默认 interface（按界面语言）；实际拼提示词的生效接入在后续 PR。
+    (list (pref-convert-ai-translate-target)
+      "Translation target language"
+      '()
+      '()
+      #f
+    ) ;list
+  ) ;list
+) ;define
+
 ;; ---- Other / Misc fields ----
 
 (define preferences-qml-other-misc-fields
@@ -1152,6 +1181,10 @@
                   (list "image"
                     (translate "Image")
                     (preferences-qml-build-tab preferences-qml-convert-image-fields)
+                  ) ;list
+                  (list "ai"
+                    (translate "AI")
+                    (preferences-qml-build-tab preferences-qml-convert-ai-fields)
                   ) ;list
                 ) ;list
                 identity

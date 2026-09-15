@@ -67,17 +67,17 @@
   ) ;let
 ) ;define
 
-;; ---- 3. Convert 6 子 tab + key 顺序固定 ----
+;; ---- 3. Convert 7 子 tab + key 顺序固定 ----
 
 (define (test-meta-convert-subtabs)
   (let* ((meta (preferences-qml-meta))
          (convert (tab-ref meta "convert"))
          (subs (cadddr convert))
         ) ;
-    (check (length subs) => 6)
+    (check (length subs) => 7)
     (check (map car subs)
       =>
-      (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
+      (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "ai")
     ) ;check
   ) ;let*
 ) ;define
@@ -384,6 +384,8 @@
   (check (pref-convert-bibtex-command) => "bibtex command")
   (check (pref-convert-verbatim-export-encoding) => "texmacs->verbatim:encoding")
   (check (pref-convert-pdf-version) => "texmacs->pdf:version")
+  (check (pref-convert-ai-actions-bar) => "ai:actions bar")
+  (check (pref-convert-ai-translate-target) => "ai:translate target language")
   (check (pref-autobackup) => "autobackup")
   (check (pref-autosave) => "autosave")
 ) ;define
@@ -488,6 +490,54 @@
   ) ;let*
 ) ;define
 
+;; ---- 16b. AI 子 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
+
+(define (test-ai-subtab-fields)
+  (let* ((meta (preferences-qml-meta))
+         (ai (list-find (cadddr (tab-ref meta "convert")) (lambda (t) (== (car t) "ai")))
+         ) ;ai
+         (fields (caddr ai))
+         (bar (list-find fields
+                (lambda (f) (== (field-ref f 'key) (pref-convert-ai-actions-bar)))
+              ) ;list-find
+         ) ;bar
+         (target (list-find fields
+                   (lambda (f) (== (field-ref f 'key) (pref-convert-ai-translate-target)))
+                 ) ;list-find
+         ) ;target
+        ) ;
+    (check-true (pair? ai))
+    (check (length fields) => 2)
+    (check (field-ref bar 'kind) => "toggle")
+    (check (field-ref target 'kind) => "combo")
+    ;; options 首项 interface（按界面语言），后随 supported-languages 全表。
+    ;; optionsTr 已经过 translate（随界面语言），期望值走同一翻译函数比对。
+    (let ((opts (field-ref target 'options)) (trs (field-ref target 'optionsTr)))
+      (check (car opts) => "interface")
+      (check (car trs) => (translate "User interface language"))
+      (check (== (length opts) (length trs)) => #t)
+      (check-true (pair? (member "chinese" opts)))
+    ) ;let
+    ;; set-field 往返：toggle 开关落库、combo 存内部键，均恢复原值。
+    (let* ((bar-key (pref-convert-ai-actions-bar))
+           (target-key (pref-convert-ai-translate-target))
+           (old-bar (get-preference bar-key))
+           (old-target (get-preference target-key))
+          ) ;
+      (preferences-qml-set-field bar-key "off")
+      (check (get-boolean-preference bar-key) => #f)
+      (preferences-qml-set-field bar-key "on")
+      (check (get-boolean-preference bar-key) => #t)
+      (preferences-qml-set-field target-key "english")
+      (check (get-preference target-key) => "english")
+      (preferences-qml-set-field target-key "interface")
+      (check (get-preference target-key) => "interface")
+      (set-preference bar-key old-bar)
+      (set-preference target-key old-target)
+    ) ;let*
+  ) ;let*
+) ;define
+
 ;; ---- 17. 重启键集合钉死 ----
 
 (define (test-restart-keys-set)
@@ -568,6 +618,7 @@
   (test-key-consistency)
   (test-latex-unified-keys-in-meta)
   (test-scripting-language-options)
+  (test-ai-subtab-fields)
   (test-restart-keys-set)
   (test-emoji-keyboard-directional-restart)
   (check-report)
