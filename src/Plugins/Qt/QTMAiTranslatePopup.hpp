@@ -16,7 +16,7 @@
 
 class QQuickWidget;
 
-// 选区下方的一行 AI 操作栏：🦞 标识 + 翻译 / 润色 / 对话（QML 渲染）
+// 选区下方的一行 AI 操作栏：龙虾标识 + 翻译 / 润色 / 对话（QML 渲染）
 class QTMAiTranslatePopup : public QTMBasePopup {
   Q_OBJECT
 
@@ -28,27 +28,30 @@ public:
                   int canvas_y) override;
   void autoSize () override;
 
-  /**
-   * @brief 设置选区内最小文字的渲染高度（编辑器逻辑单位），
-   * 按钮字号与整体尺寸据此缩放
-   */
-  void setTextHeight (SI h) { sel_text_height= h; }
-
 protected:
   // 定位到选区最末行的下一行（左缘对齐），下方放不下时退到选区上方
   void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
+
+  // qApp 级截获无按键 move，持续同步 hover（见 cpp，悬浮可靠性关键）
+  bool eventFilter (QObject* obj, QEvent* ev) override;
+  // 过滤器仅在显示期间挂载，隐藏即卸载
+  void showEvent (QShowEvent* ev) override;
+  void hideEvent (QHideEvent* ev) override;
 
 private slots:
   // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
   void onActionTriggered (const QString& action);
 
 private:
-  // 显示/重定位后按当前光标位置向离屏 scene 发 HoverMove：激活 hover 上下文
-  // 并纠正残留态（QQuickWidget 不为无按键 move 合成 hover，见 cpp）
+  // 按当前光标位置向离屏 scene 发 HoverMove：激活 hover 上下文并纠正残留态
   void syncHover ();
 
   QQuickWidget* quick;
-  SI            sel_text_height= 0;
+  // 上次同步时光标是否在栏内：决定「进入/栏内移动/首次离开」三态是否需要
+  // 同步，栏外远处的 move 不再触发 Quick 场景命中测试
+  bool hover_inside= false;
+  // 上次 autoSize 使用的字号：DPI 不变时跳过 QML 写入与布局重算
+  int cached_font_px= 0;
 };
 
 #endif // QT_AI_TRANSLATE_POPUP_HPP

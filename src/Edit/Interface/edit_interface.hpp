@@ -287,20 +287,15 @@ public:
   void update_text_popup ();
   void invalidate_text_popup_cache (); // 重置工具栏缓存
 
-  bool should_show_translate_popup ();
-  void get_selection_geometry (rectangle& last,
-                               SI&        min_h); // 单次遍历取最末矩形+最小高度
-  SI get_selection_min_height () override; // 选区内最小文字渲染高度（逻辑单位）
-  rectangle  get_selection_last_rect ();   // 选区最末（屏幕最下方）矩形
-  array<int> selection_last_rect_array () override; // 供 glue 暴露给测试
-  void       show_translate_popup (rectangle selr, SI sel_h, double magf,
-                                   int scroll_x, int scroll_y, int canvas_x,
-                                   int canvas_y);
-  void       hide_translate_popup ();
-  bool       is_point_in_translate_popup (SI x, SI y);
-  void       update_translate_popup ();
-  void       dismiss_translate_popup (); // 点击按钮后本次选区内不再弹出
-  void       invalidate_translate_popup_cache ();
+  bool      should_show_translate_popup ();
+  rectangle get_selection_last_rect (); // 选区最末（屏幕最下方、同行最右）矩形
+  void      show_translate_popup (rectangle selr, double magf, int scroll_x,
+                                  int scroll_y, int canvas_x, int canvas_y);
+  void      hide_translate_popup ();
+  bool      is_point_in_translate_popup (SI x, SI y);
+  void      update_translate_popup ();
+  void      dismiss_translate_popup (); // 点击按钮后本次选区内不再弹出
+  void      invalidate_translate_popup_cache ();
 
   void show_ghost_popup ();
   void hide_ghost_popup ();

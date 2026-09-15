@@ -10,7 +10,7 @@ Item {
 
     signal triggered(string action)
 
-    // C++ autoSize 按选区最小文字渲染高度注入；12 仅为加载测试/预览回退
+    // C++ autoSize 按屏幕 DPI 缩放注入；12 仅为加载测试/预览回退
     property int fontPixelSize: 12
 
     readonly property int iconPx: Math.max(11, Math.round(fontPixelSize * 1.3))
@@ -48,10 +48,10 @@ Item {
             y: bar.padV
             spacing: bar.gap * 2
 
-            Text {
-                // OpenClaw 龙虾标识（仓库暂无 Logo 资源，用 emoji）
-                text: "\u{1F99E}"
-                font.pixelSize: bar.iconPx
+            Image {
+                // OpenClaw 龙虾标识（emoji 在部分平台渲染异常，改用 SVG 线稿）
+                source: "qrc:/ai-actions/lobster.svg"
+                sourceSize: Qt.size(bar.iconPx, bar.iconPx)
                 anchors.verticalCenter: parent.verticalCenter
             }
 
