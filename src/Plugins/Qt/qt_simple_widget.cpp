@@ -946,8 +946,11 @@ qt_simple_widget_rep::show_translate_popup (rectangle selr, bool upward,
 
 void
 qt_simple_widget_rep::hide_translate_popup () {
+  // 编辑器「不想显示」（选区取消/dismiss/偏好关闭等）汇入处：隐藏并停
+  // 止光标跟踪，靠近选区不再自动复现。tab 切换/焦点丢失等不触发编辑器
+  // hide 的路径不在此列，跟踪可能滞留，靠下次编辑器 show/hide 触发收敛
   if (translatePopup) {
-    translatePopup->hide ();
+    translatePopup->disarm ();
   }
 }
 

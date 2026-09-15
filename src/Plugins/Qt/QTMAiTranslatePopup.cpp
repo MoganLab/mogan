@@ -11,12 +11,12 @@
 #include "QTMAiTranslatePopup.hpp"
 #include "edit_interface.hpp"
 #include "qt_chat_controller.hpp"
+#include "qt_renderer.hpp"
 #include "qt_utilities.hpp"
 
 #include <QCoreApplication>
 #include <QCursor>
 #include <QEvent>
-#include <QHideEvent>
 #include <QHoverEvent>
 #include <QQmlContext>
 #include <QQmlProperty>
@@ -25,6 +25,7 @@
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QShowEvent>
+#include <QTimer>
 #include <algorithm>
 #include <cmath>
 
@@ -71,6 +72,16 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   layout->setContentsMargins (0, 0, 0, 0);
   layout->addWidget (quick);
 
+  // 光标跟踪轮询（显隐与悬浮的唯一驱动）：无按键 move 可能断在 QPA 层
+  // （macOS 上 s_windowUnderMouse 陈旧等会话态会让 QNSView 整体吞掉 move，
+  // 事件不会成为 QMouseEvent，qApp 过滤器同样看不到）。轮询读系统级光标
+  // 位置，不依赖事件投递，任何会话下都能正常工作
+  hover_timer= new QTimer (this);
+  // 16ms ≈ 60Hz 一帧：响应延迟上界，低于感知阈值，再快无收益
+  hover_timer->setInterval (16);
+  QObject::connect (hover_timer, SIGNAL (timeout ()), this,
+                    SLOT (pollCursor ()));
+
   // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（引用选区
   // 到 AI 侧边栏，翻译自动发送），润色后续接入
   if (QQuickItem* root= quick->rootObject ()) {
@@ -89,45 +100,80 @@ QTMAiTranslatePopup::onActionTriggered (const QString& action) {
 }
 
 void
-QTMAiTranslatePopup::syncHover () {
+QTMAiTranslatePopup::syncHover (QPointF pos) {
   // QQuickWidget 不为无按键的 move 合成 hover：hover 上下文需先由一次显式
   // HoverMove 激活（见 qml_load_test 的 test_ai_actions_bar_hover）。每次
   // 显示/重定位后按当前光标位置同步一次——光标在栏外时即为清空，顺带纠正
   // 上次会话残留的 hover 态
   QQuickWindow* w= quick->quickWindow ();
   if (!w) return;
-  QPointF     pos (quick->mapFromGlobal (QCursor::pos ()));
   QHoverEvent hover (QEvent::HoverMove, pos, pos);
   QCoreApplication::sendEvent (w, &hover);
+  last_sync_pos= pos;
+}
+
+void
+QTMAiTranslatePopup::pollCursor () {
+  // 一轮双责：显隐（光标离选区过远即隐藏，靠近重新显示）与悬浮同步。
+  // 隐藏但仍在跟踪（光标过远）时只判显隐
+  QPoint g (QCursor::pos ());
+  if (!isVisible ()) {
+    if (cursorNearSelection (g)) present ();
+    return;
+  }
+  if (!cursorNearSelection (g)) {
+    hide ();
+    return;
+  }
+  // 三态（进入/栏内/刚离开）叠加坐标未变跳过：静止悬停不重发
+  bool inside= rect ().contains (mapFromGlobal (g));
+  if (inside || hover_inside) {
+    QPointF pos (quick->mapFromGlobal (g));
+    if (pos != last_sync_pos) syncHover (pos);
+  }
+  hover_inside= inside;
 }
 
 bool
-QTMAiTranslatePopup::eventFilter (QObject* obj, QEvent* ev) {
-  // 无按键 move 依赖「macOS → 顶层窗口 → 半透明子 widget → QQuickWidget」
-  // 的逐级投递，该链路在部分会话下整体失效（悬浮点亮失灵，点击因 grab
-  // 语义仍可用）。挂在 qApp 上的过滤器能看到投递给任意对象的原始 move
-  // 流，不受子 widget 路由成败影响：据此直接同步 hover，绕开失效环节。
-  // 栏外远处的 move 只在「刚离开栏内」时同步一次以清空高亮，避免每次
-  // move 都触发 Quick 场景命中测试
-  if (ev->type () == QEvent::MouseMove && isVisible ()) {
-    bool inside= rect ().contains (mapFromGlobal (QCursor::pos ()));
-    if (inside || hover_inside) syncHover ();
-    hover_inside= inside;
+QTMAiTranslatePopup::cursorNearSelection (const QPoint& global) const {
+  // 邻近区 = 锚行矩形（最后选中文字所在行）∪ 操作栏自身矩形（画布像素），
+  // 四周外扩 80px：操作栏可能宽于锚行，悬浮在栏上不算「离选中文字过远」。
+  // 注意锚行只是选区的一行，高于约两个 margin 的选区中部会被判远——
+  // 如需全选区邻近再从编辑器侧传入包围盒
+  if (!parentWidget ()) return true;
+  double x1, x2, top, bottom;
+  selectionRectPixels (x1, x2, top, bottom);
+  const double margin= 80;
+  QRectF       sel (QPointF (x1, top), QPointF (x2, bottom));
+  return sel.united (geometry ())
+      .adjusted (-margin, -margin, margin, margin)
+      .contains (parentWidget ()->mapFromGlobal (global));
+}
+
+void
+QTMAiTranslatePopup::present () {
+  // 统一显示闸门：光标远离锚行（保持跟踪，靠近后由轮询拉起）或选区移出
+  // 视口（updatePosition 已隐藏）都不显示
+  if (!cursorNearSelection (QCursor::pos ())) {
+    hide ();
+    return;
   }
-  return QObject::eventFilter (obj, ev);
+  if (!updatePosition (the_qt_renderer ())) return;
+  show ();
+  raise ();
+  syncHover (quick->mapFromGlobal (QCursor::pos ()));
+}
+
+void
+QTMAiTranslatePopup::disarm () {
+  hover_timer->stop ();
+  hide ();
 }
 
 void
 QTMAiTranslatePopup::showEvent (QShowEvent* ev) {
   QTMBasePopup::showEvent (ev);
   hover_inside= false;
-  QCoreApplication::instance ()->installEventFilter (this);
-}
-
-void
-QTMAiTranslatePopup::hideEvent (QHideEvent* ev) {
-  QTMBasePopup::hideEvent (ev);
-  QCoreApplication::instance ()->removeEventFilter (this);
 }
 
 void
@@ -179,14 +225,12 @@ void
 QTMAiTranslatePopup::showPopup (qt_renderer_rep* ren, rectangle selr,
                                 double magf, int scroll_x, int scroll_y,
                                 int canvas_x, int canvas_y) {
+  (void) ren;
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   autoSize ();
-  if (!selectionInView ()) {
-    hide ();
-    return;
-  }
-  updatePosition (ren);
-  show ();
-  raise ();
-  syncHover ();
+  // 编辑器 show 调用即开始光标跟踪；仅未运行时启动——update 随鼠标移动
+  // 高频重入，反复 start() 会重置间隔把轮询饿死。显示闸门（光标远近/
+  // 选区出视口）统一在 present
+  if (!hover_timer->isActive ()) hover_timer->start ();
+  present ();
 }

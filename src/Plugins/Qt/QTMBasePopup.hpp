@@ -42,8 +42,9 @@ public:
                           int scroll_x, int scroll_y, int canvas_x,
                           int canvas_y)= 0;
 
-  // 更新悬浮框位置（有默认实现）
-  virtual void updatePosition (qt_renderer_rep* ren);
+  // 更新悬浮框位置（有默认实现）；选区移出视口时隐藏并返回 false，
+  // 调用方可据此放弃后续显示
+  virtual bool updatePosition (qt_renderer_rep* ren);
 
   // 滚动时调整位置
   virtual void scrollBy (int x, int y);
@@ -59,8 +60,12 @@ protected:
   // 计算显示位置（虚函数，子类可重写不同位置算法）
   virtual void getCachedPosition (qt_renderer_rep* ren, int& x, int& y);
 
-  // 选区矩形中心/上下缘的逻辑→像素换算（含滚动/画布偏移与顶部留白补偿），
-  // 各子类定位算法共用
+  // 选区矩形（画布像素，含滚动/画布偏移与顶部留白补偿）的逻辑→像素换算，
+  // 各子类定位/邻近判定共用
+  void selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
+                            double& bottom_px) const;
+
+  // 选区矩形中心/上下缘的逻辑→像素换算，各子类定位算法共用
   void selectionEdgePixels (double& cx_px, double& top_px,
                             double& bottom_px) const;
 

@@ -47,15 +47,16 @@ QTMBasePopup::initCommonUI () {
   this->setGraphicsEffect (effect);
 }
 
-void
+bool
 QTMBasePopup::updatePosition (qt_renderer_rep* ren) {
   if (!selectionInView ()) {
     hide ();
-    return;
+    return false;
   }
   int pos_x, pos_y;
   getCachedPosition (ren, pos_x, pos_y);
   move (pos_x, pos_y);
+  return true;
 }
 
 void
@@ -76,16 +77,17 @@ QTMBasePopup::cachePosition (rectangle selr, double magf, int scroll_x,
 }
 
 void
-QTMBasePopup::selectionEdgePixels (double& cx_px, double& top_px,
+QTMBasePopup::selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
                                    double& bottom_px) const {
   rectangle selr            = cached_rect;
   double    inv_unit        = 1.0 / 256.0;
-  double    cx_logic        = (selr->x1 + selr->x2) * 0.5;
   double    sel_top_logic   = (selr->y1 > selr->y2) ? selr->y1 : selr->y2;
   double    sel_bottom_logic= (selr->y1 > selr->y2) ? selr->y2 : selr->y1;
 
-  cx_px=
-      ((cx_logic - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
+  x1_px=
+      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
+  x2_px=
+      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
   top_px   = -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
   bottom_px= -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
 
@@ -93,6 +95,14 @@ QTMBasePopup::selectionEdgePixels (double& cx_px, double& top_px,
   double blank_top= blank_top_offset ();
   top_px+= blank_top;
   bottom_px+= blank_top;
+}
+
+void
+QTMBasePopup::selectionEdgePixels (double& cx_px, double& top_px,
+                                   double& bottom_px) const {
+  double x1_px, x2_px;
+  selectionRectPixels (x1_px, x2_px, top_px, bottom_px);
+  cx_px= (x1_px + x2_px) * 0.5;
 }
 
 void
@@ -158,30 +168,17 @@ QTMBasePopup::selectionInView () const {
   if (!owner || !owner->scrollarea () || !owner->scrollarea ()->viewport ())
     return true;
 
-  rectangle selr    = cached_rect;
-  double    inv_unit= 1.0 / 256.0;
+  double x1_px, x2_px, top_px, bottom_px;
+  selectionRectPixels (x1_px, x2_px, top_px, bottom_px);
 
-  double x1_px=
-      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double x2_px=
-      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double y1_px= -(selr->y1 - cached_scroll_y) * cached_magf * inv_unit;
-  double y2_px= -(selr->y2 - cached_scroll_y) * cached_magf * inv_unit;
-
-  double blank_top= blank_top_offset ();
-  y1_px+= blank_top;
-  y2_px+= blank_top;
-
-  double left  = std::min (x1_px, x2_px);
-  double right = std::max (x1_px, x2_px);
-  double top   = std::min (y1_px, y2_px);
-  double bottom= std::max (y1_px, y2_px);
+  double left = std::min (x1_px, x2_px);
+  double right= std::max (x1_px, x2_px);
 
   int vp_w= owner->scrollarea ()->viewport ()->width ();
   int vp_h= owner->scrollarea ()->viewport ()->height ();
 
   if (right < 0.0 || left > vp_w) return false;
-  if (bottom < 0.0 || top > vp_h) return false;
+  if (bottom_px < 0.0 || top_px > vp_h) return false;
   return true;
 }
 

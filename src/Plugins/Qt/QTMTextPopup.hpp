@@ -34,7 +34,7 @@ public:
   void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
                   int scroll_x, int scroll_y, int canvas_x,
                   int canvas_y) override;
-  void updatePosition (qt_renderer_rep* ren) override;
+  bool updatePosition (qt_renderer_rep* ren) override;
   void scrollBy (int x, int y) override;
 
 protected:
