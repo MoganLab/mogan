@@ -63,10 +63,9 @@
 ) ;define-preference-names
 
 ;; 语言内部名 → 显示名登记（encode/decode 表），language 与 AI 翻译目标语言共用
+
 (define (register-language-preference-names key)
-  (for (l supported-languages)
-    (set-preference-name key l (upcase-first l))
-  ) ;for
+  (for (l supported-languages) (set-preference-name key l (upcase-first l)))
 ) ;define
 
 (register-language-preference-names "language")

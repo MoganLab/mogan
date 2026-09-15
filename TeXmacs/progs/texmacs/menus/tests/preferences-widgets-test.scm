@@ -64,8 +64,9 @@
     (check (length (caddr (tab-ref meta "other")))
       =>
       (+ (if (os-macos?) 17 15)
-         (if (use-plugin-updater?) 1 0)
-         (if (community-stem?) 0 1))
+        (if (use-plugin-updater?) 1 0)
+        (if (community-stem?) 0 1)
+      ) ;+
     ) ;check
   ) ;let
 ) ;define
@@ -83,7 +84,8 @@
       =>
       (if (community-stem?)
         (list "html" "latex" "bibtex" "verbatim" "pdf" "image")
-        (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "ai"))
+        (list "html" "latex" "bibtex" "verbatim" "pdf" "image" "ai")
+      ) ;if
     ) ;check
   ) ;let*
 ) ;define
@@ -499,19 +501,25 @@
 ;; ---- 16b. AI 子 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
 
 (define (test-ai-subtab-fields)
-  (let ((ai (list-find (cadddr (tab-ref (preferences-qml-meta) "convert"))
-              (lambda (t) (== (car t) "ai")))))
+  (let ((ai
+          (list-find (cadddr (tab-ref (preferences-qml-meta) "convert"))
+            (lambda (t) (== (car t) "ai"))
+          ) ;list-find
+        ) ;ai
+       ) ;
     (if (community-stem?)
       ;; 社区版无 AI Chat，AI 子 tab 整体不注册
       (check-false ai)
       (let* ((fields (caddr ai))
-             (bar (list-find fields
-                    (lambda (f) (== (field-ref f 'key) (pref-convert-ai-actions-bar)))
-                  ) ;list-find
+             (bar
+               (list-find fields
+                 (lambda (f) (== (field-ref f 'key) (pref-convert-ai-actions-bar)))
+               ) ;list-find
              ) ;bar
-             (target (list-find fields
-                       (lambda (f) (== (field-ref f 'key) (pref-convert-ai-translate-target)))
-                     ) ;list-find
+             (target
+               (list-find fields
+                 (lambda (f) (== (field-ref f 'key) (pref-convert-ai-translate-target)))
+               ) ;list-find
              ) ;target
             ) ;
         (check-true (pair? ai))
