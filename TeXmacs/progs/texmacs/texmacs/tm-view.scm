@@ -382,7 +382,10 @@
 
 (define (normalize-zoom zoom)
   (with std-zooms
-    (map (lambda (x) (exp (* x (/ (log 2.0) 4.0)))) (.. -10 10))
+    (map
+      (lambda (x) (exp (* x (/ (log 2.0) 4.0))))
+      (.. -10 10)
+    ) ;map
     (normalize-zoom-sub zoom std-zooms)
   ) ;with
 ) ;define
