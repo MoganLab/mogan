@@ -151,6 +151,8 @@
  ("use unified toolbar" (get-default-unified-toolbar) noop)
  ("ghost text" "off" noop)
  ("texmacs->image:format" "png" noop)
+ ("ai:actions bar" "on" noop)
+ ("ai:translate target language" "interface" noop)
  ("autobackup" "on" noop)
 ) ;define-preferences
 

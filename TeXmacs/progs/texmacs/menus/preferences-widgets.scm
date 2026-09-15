@@ -62,9 +62,13 @@
  ("windows" "Windows")
 ) ;define-preference-names
 
-(for (l supported-languages)
-  (set-preference-name "language" l (upcase-first l))
-) ;for
+;; 语言内部名 → 显示名登记（encode/decode 表），language 与 AI 翻译目标语言共用
+
+(define (register-language-preference-names key)
+  (for (l supported-languages) (set-preference-name key l (upcase-first l)))
+) ;define
+
+(register-language-preference-names "language")
 
 (define-preference-names "complex actions"
  ("menus" "Through the menus")
@@ -189,6 +193,16 @@
  ("1.6" "1.6")
  ("1.7" "1.7")
 ) ;define-preference-names
+
+;; AI ----------
+;; 翻译目标语言：interface 表示按界面语言；语言项与 General 的 language 字段
+;; 同源（supported-languages），登记进 encode/decode 表供 combo 反查。
+
+(define-preference-names "ai:translate target language"
+ ("interface" "User interface language")
+) ;define-preference-names
+
+(register-language-preference-names "ai:translate target language")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other tab 的编解码表（autosave / security / updater / scripting）
@@ -884,6 +898,23 @@
   ) ;list
 ) ;define
 
+;; ---- Convert / AI fields ----
+
+(define preferences-qml-convert-ai-fields
+  (list
+    ;; 选中文字后的 AI 操作栏（0986）总开关，默认开启（默认值见 tm-server.scm）。
+    (list (pref-convert-ai-actions-bar) "AI action bar" '() '() #f)
+    ;; AI 翻译目标语言：options 动态按 supported-languages 拉取（见 resolve-options），
+    ;; 默认 interface（按界面语言）；AI 翻译拼提示词时读取（qt_chat_controller.cpp）。
+    (list (pref-convert-ai-translate-target)
+      "Translation target language"
+      '()
+      '()
+      #f
+    ) ;list
+  ) ;list
+) ;define
+
 ;; ---- Other / Misc fields ----
 
 (define preferences-qml-other-misc-fields
@@ -1153,6 +1184,15 @@
                     (translate "Image")
                     (preferences-qml-build-tab preferences-qml-convert-image-fields)
                   ) ;list
+                  ;; 社区版无 AI Chat，操作栏与翻译均不可用，整个 AI 子 tab
+                  ;; 隐藏（同 ghost text 字段的 community-stem? 惯例）
+                  (if (community-stem?)
+                    #f
+                    (list "ai"
+                      (translate "AI")
+                      (preferences-qml-build-tab preferences-qml-convert-ai-fields)
+                    ) ;list
+                  ) ;if
                 ) ;list
                 identity
               ) ;list-filter

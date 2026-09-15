@@ -13,6 +13,7 @@
 #include <QtTest/QtTest>
 
 #include "converter.hpp"
+#include "preferences.hpp"
 
 using namespace moebius;
 
@@ -116,14 +117,34 @@ private slots:
 
   void test_compose_atomic_selection_translate_appends_prompt () {
     // 单行选区（selection_get 的原子串形态）：包成引用块并追加提示词；
-    // 提示词须为 cork 编码，不能是 UTF-8 原始字节
+    // 提示词须为 cork 编码，不能是 UTF-8 原始字节。
+    // 目标语言默认 interface（按界面语言）；测试环境无 scheme 偏好与词典，
+    // 界面语言回退 "chinese"、translate 原样返回（out_lan 默认 english）。
     tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
     QVERIFY (is_func (body, DOCUMENT));
     QCOMPARE (int (N (body)), 2);
     QVERIFY (body[0] ==
              compound ("quote-env", tree (DOCUMENT, tree ("hello"))));
-    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为中文"));
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "Chinese");
     QVERIFY (!(body[1] == tree ("请翻译上述文字为中文")));
+  }
+
+  void test_compose_translate_target_language_from_preference () {
+    // 显式设置目标语言偏好：提示词语言名跟随偏好
+    set_user_preference ("ai:translate target language", "english");
+    tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "English");
+    reset_user_preference ("ai:translate target language");
+  }
+
+  void test_compose_translate_interface_follows_ui_language () {
+    // interface（默认）：目标语言跟随界面语言偏好
+    set_user_preference ("ai:translate target language", "interface");
+    set_user_preference ("language", "french");
+    tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "French");
+    reset_user_preference ("ai:translate target language");
+    reset_user_preference ("language");
   }
 
   void test_compose_atomic_selection_chat_keeps_selection_only () {
@@ -144,7 +165,7 @@ private slots:
     QCOMPARE (int (N (body)), 2);
     QVERIFY (body[0] == compound ("quote-env", tree (DOCUMENT, tree ("para 1"),
                                                      tree ("para 2"))));
-    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为中文"));
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "Chinese");
   }
 
   void test_compose_document_selection_chat_no_prompt () {

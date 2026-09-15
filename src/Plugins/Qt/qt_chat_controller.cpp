@@ -16,11 +16,14 @@
 #include "qt_utilities.hpp"
 
 #include "new_buffer.hpp"
+#include "preferences.hpp"
 #include "s7_tm.hpp"
 #include "scheme.hpp"
 #include "tm_debug.hpp"
 
+#include "analyze.hpp"
 #include "converter.hpp"
+#include "dictionary.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -787,7 +790,14 @@ ChatController::composeAiInputBody (tree sel, string action) {
   tree body (DOCUMENT);
   body << compound ("quote-env", quoted);
   // 未知动作不追加尾段（调用方白名单 translate/chat）
-  if (action == "translate") body << utf8_to_cork ("请翻译上述文字为中文");
+  if (action == "translate") {
+    // 目标语言取首选项（转换 → AI）：interface 表示按界面语言；
+    // 语言名经 translate 转成界面语言显示（Cork，与提示词编码一致）
+    string target= get_preference ("ai:translate target language", "interface");
+    if (target == "interface") target= get_preference ("language", "chinese");
+    body << utf8_to_cork ("请翻译上述文字为") *
+                translate (upcase_first (target));
+  }
   else if (action == "chat") body << ""; // 空段使 go-end 光标落在引用块下一行
   return body;
 }
