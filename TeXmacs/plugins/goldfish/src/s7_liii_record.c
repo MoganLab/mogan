@@ -31,7 +31,7 @@
 
 static s7_pointer
 record_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, "wrong-type-arg"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 static bool

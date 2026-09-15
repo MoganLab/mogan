@@ -431,6 +431,7 @@
 #include "s7_liii_hash_table.h"
 #include "s7_liii_list.h"
 #include "s7_liii_vector.h"
+#include "s7_liii_tree.h"
 #include "s7_module.h"
 #include "s7_dtoa.h"
 #include "s7_op_names.h"
@@ -1374,7 +1375,7 @@ struct s7_scheme {
              symbol_symbol, symbol_to_dynamic_value_symbol, symbol_initial_value_symbol,
              symbol_to_keyword_symbol, symbol_to_string_symbol, symbol_to_value_symbol,
              tan_symbol, tanh_symbol, throw_symbol, string_to_byte_vector_symbol,
-             tree_count_symbol, tree_leaves_symbol, tree_memq_symbol, tree_set_memq_symbol, tree_is_cyclic_symbol, truncate_symbol, type_of_symbol,
+             tree_count_symbol, tree_leaves_symbol, tree_memq_symbol, tree_member_symbol, tree_set_memq_symbol, tree_is_cyclic_symbol, truncate_symbol, type_of_symbol,
              unlet_symbol,
              values_symbol, varlet_symbol, vector_append_symbol, vector_dimension_symbol, vector_dimensions_symbol, vector_fill_symbol,
              vector_rank_symbol, vector_ref_symbol, vector_set_symbol, vector_symbol, vector_typer_symbol,
@@ -1403,7 +1404,7 @@ struct s7_scheme {
              read_error_symbol, readable_keyword, rest_keyword, set_symbol, string_read_error_symbol, symbol_table_symbol,
              syntax_error_symbol, trace_in_symbol, type_symbol, unbound_variable_symbol, unless_symbol,
              unquote_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
-             wrong_number_of_args_symbol, wrong_type_arg_symbol;
+             wrong_number_of_args_symbol, wrong_type_arg_symbol, type_error_symbol, value_error_symbol;
 
   /* signatures of sequences used as applicable objects: ("hi" 1) */
   s7_pointer  byte_vector_signature, c_object_signature, float_vector_signature, hash_table_signature, int_vector_signature,
@@ -1499,6 +1500,7 @@ typedef enum {p_display, p_write, p_readable, p_key, p_code} use_write_t;
 #define set_mid_type_bit(p, b) (p)->tf.bits.mid_bits |= (b)
 #define has_mid_type_bit(p, b) (((p)->tf.bits.mid_bits & (b)) != 0)
 #define set_high_type_bit(p, b) (p)->tf.bits.high_bits |= (b)
+#define clear_high_type_bit(p, b) (p)->tf.bits.high_bits &= (~(b))
 #define has_high_type_bit(p, b) (((p)->tf.bits.high_bits & (b)) != 0)
 
 /* type flags */
@@ -1712,6 +1714,9 @@ s7_pointer inline_make_let_with_slot(s7_scheme *sc, s7_pointer old_let, s7_point
 
 /* is_pair (macro) */
 #define is_pair(p)                     (type(p) == T_PAIR)
+
+/* is_list (macro) */
+#define is_list(p)                     ((is_pair(p)) || (type(p) == T_NIL))
 
 /* is_symbol (macro) */
 #define is_symbol(p)                   (type(p) == T_SYMBOL)
@@ -2298,6 +2303,7 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 
 /* ---- macros copied from s7.c for s7_scheme_let.c (keep in sync!) ---- */
 #define caadr(p)                       car(car(cdr(p)))
+#define cadadr(p)                      car(cdr(car(cdr(p))))
 #define cadar(p)                       car(cdr(car(p)))
 #define cadddr(p)                      car(cdr(cdr(cdr(p))))
 #define cdar(p)                        cdr(car(p))
@@ -2586,6 +2592,8 @@ void symbol_set_id(s7_pointer sym, s7_int id);
 #define symbol_set_id(p, X)            (T_Sym(p))->object.sym.id = X
 #endif
 void slot_set_value_with_hook_1(s7_scheme *sc, s7_pointer slot, s7_pointer value);
+s7_pointer find_and_apply_method(s7_scheme *sc, s7_pointer obj, s7_pointer sym, s7_pointer args);
+extern s7_pointer a_list_string;
 no_return void wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
 void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
 
@@ -2615,6 +2623,13 @@ void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
 #define T_SHARED                       (1 << (16 + 3))
 #define T_SHORT_CYCLIC                 (1 << 5)
 #define T_SHORT_CYCLIC_SET             (1 << 6)
+#define T_SHORT_TREE_COLLECTED         (1 << 3)
+#define tree_is_collected(p)           has_high_type_bit(T_Pair(p), T_SHORT_TREE_COLLECTED)
+#define tree_set_collected(p)          set_high_type_bit(T_Pair(p), T_SHORT_TREE_COLLECTED)
+#define tree_clear_collected(p)        clear_high_type_bit(T_Pair(p), T_SHORT_TREE_COLLECTED)
+#define TREE_NOT_CYCLIC                0
+#define TREE_CYCLIC                    1
+#define TREE_HAS_PAIRS                 2
 #define T_SIMPLE_ELEMENTS              (1 << 8)
 #define T_TYPED_HASH_TABLE             T_HAS_LET_FILE
 #define T_TYPED_VECTOR                 T_HAS_LET_FILE

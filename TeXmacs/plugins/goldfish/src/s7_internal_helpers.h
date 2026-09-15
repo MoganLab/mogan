@@ -62,11 +62,14 @@ typedef struct {
 
 s7_pointer s7i_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name,
                               s7_pointer args, const char *type_name, s7_int arg_pos);
+s7_pointer s7i_vector_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name,
+                                     s7_pointer args, const char *type_name, s7_int arg_pos);
 
 bool s7i_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name,
                              s7_pointer args, const char *type_name, s7_int arg_pos);
 
 s7_pointer s7i_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name);
+s7_pointer s7i_vector_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name);
 
 bool s7i_sole_arg_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name);
 
@@ -79,12 +82,15 @@ bool s7i_has_active_methods(s7_scheme *sc, s7_pointer obj);
 s7_pointer s7i_apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer method);
 void s7i_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
 void sole_arg_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ);
+void type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
+void sole_arg_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ);
 s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
 s7_pointer s7i_copy_proper_list(s7_scheme *sc, s7_pointer lst);
 s7_int s7i_position_of(const s7_pointer p, s7_pointer args);
 s7_pointer s7i_nil_string(void);
 s7_pointer s7i_make_empty_string(s7_scheme *sc, s7_int len, char fill);
 s7_int s7i_max_string_length(s7_scheme *sc);
+s7_int s7i_max_vector_length(s7_scheme *sc);
 s7_int s7i_max_list_length(s7_scheme *sc);
 
 s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
@@ -263,8 +269,10 @@ s7_pointer s7i_object_out(s7_scheme *sc, s7_pointer obj, s7_pointer port, s7i_us
 void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port);
 void s7i_port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port);
 s7_pointer s7i_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, int32_t position, s7_pointer index_args, s7_int *start, s7_int *end);
+s7_pointer s7i_vector_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, int32_t position, s7_pointer index_args, s7_int *start, s7_int *end);
 bool s7i_is_unused(s7_scheme *sc, s7_pointer p);
 s7_pointer s7i_method_or_bust_p(s7_scheme *sc, s7_pointer obj, const char *method_name, const char *type_name);
+s7_pointer s7i_vector_method_or_bust_p(s7_scheme *sc, s7_pointer obj, const char *method_name, const char *type_name);
 s7_pointer s7i_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer x1, s7_pointer x2, const char *type_name, s7_int arg_pos);
 
 void s7i_division_by_zero_error(s7_scheme *sc, const char *caller, s7_pointer x, s7_pointer y);
@@ -276,8 +284,10 @@ s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 bool s7i_is_subvector(s7_pointer p);
 s7_int s7i_subvector_position(s7_pointer p);
 s7_pointer s7i_subvector_vector(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args);
 bool s7i_is_typed_t_vector(s7_pointer p);
 s7_pointer s7i_typed_vector_typer(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args);
 
 s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices);
 s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind);
@@ -341,7 +351,26 @@ s7_pointer s7i_complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointe
 
 /* bridge functions for g_fv_ref_2, g_iv_ref_2 migration */
 s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+s7_pointer s7i_univect_ref_float(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_float(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+s7_pointer s7i_univect_ref_int(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_int(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_ref_byte(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_byte(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_ref_complex(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_complex(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_byte_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_float_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_complex_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+
+/* small_symbol_set bridges for s7_liii_tree.c migration */
+void s7i_begin_small_symbol_set(s7_scheme *sc);
+void s7i_end_small_symbol_set(s7_scheme *sc);
+s7_pointer s7i_add_symbol_to_small_symbol_set(s7_scheme *sc, s7_pointer sym);
+bool s7i_symbol_is_in_small_symbol_set(s7_scheme *sc, s7_pointer sym);
 
 /* bridge functions for g_tree_set_memq_syms migration */
 s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
@@ -498,6 +527,7 @@ s7_pointer s7i_format_string_3(s7_scheme *sc);
 s7_pointer s7i_format_string_4(s7_scheme *sc);
 s7_pointer s7i_an_output_port_string(void);
 s7_pointer s7i_a_format_port_string(void);
+void s7i_set_sc_value(s7_scheme *sc, s7_pointer val);
 s7_int s7i_FORMAT_PORT_LENGTH(void);
 const int32_t *s7i_digits(void);
 const bool *s7i_white_space(void);
