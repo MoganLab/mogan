@@ -28,6 +28,7 @@
 #include "scheme.hpp"
 #include "sys_utils.hpp"
 #include "tm_buffer.hpp"
+#include "tm_sys_utils.hpp" // is_community_stem
 #include "tm_timer.hpp"
 #include <moebius/data/colors.hpp>
 
@@ -1449,6 +1450,10 @@ edit_interface_rep::should_show_translate_popup () {
 
   // AI 操作栏总开关（首选项 → 转换 → AI，默认开启）
   if (get_preference ("ai:actions bar", "on") != "on") return false;
+
+  // 社区版无 AI Chat（侧边栏/标签页均未创建），翻译/润色/对话没有接收方，
+  // 操作栏整体不弹，避免死按钮
+  if (is_community_stem ()) return false;
 
   // 聊天输入框等 tmfs 内嵌页面不弹翻译按钮
   if (!is_nil (buf) && starts (as_string (buf->buf->name), "tmfs://")) {

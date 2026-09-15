@@ -903,7 +903,7 @@
     ;; 选中文字后的 AI 操作栏（0986）总开关，默认开启（默认值见 tm-server.scm）。
     (list (pref-convert-ai-actions-bar) "AI action bar" '() '() #f)
     ;; AI 翻译目标语言：options 动态按 supported-languages 拉取（见 resolve-options），
-    ;; 默认 interface（按界面语言）；实际拼提示词的生效接入在后续 PR。
+    ;; 默认 interface（按界面语言）；AI 翻译拼提示词时读取（qt_chat_controller.cpp）。
     (list (pref-convert-ai-translate-target)
       "Translation target language"
       '()
