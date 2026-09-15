@@ -47,6 +47,10 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   m_reply= new QOAuthHttpServerReplyHandler (
       QHostAddress (QString::fromUtf8 ("127.0.0.1")), 0, this);
   m_reply->setCallbackPath ("/callback");
+  // 构造即监听是该 handler 的默认行为；这里立刻关掉，改为 login () 时按需监听、
+  // 收到回调或超时后关闭（见 closeCallbackServer），避免没有登录需求时端口
+  // 一直敞着
+  m_reply->close ();
 
   // 生成PKCE参数
   m_codeVerifier = generateCodeVerifier ();
@@ -70,7 +74,14 @@ QTMOAuth::QTMOAuth (QObject* parent) {
 
   // 连接回调URL捕获信号
   connect (m_reply, &QOAuthHttpServerReplyHandler::callbackReceived, this,
-           [this] (const QVariantMap& values) { handleCallback (values); });
+           [this] (const QVariantMap& values) {
+             // 回调已经到手，但浏览器还在等回调页写回（redirect 到成长激励页的
+             // HTML）：延迟 3 秒再关监听，给系统代理或杀软包检测留足时间，
+             // 否则响应可能还没发出去端口就没了。
+             // 使用成员定时器以便在用户快速再次登录时能被取消
+             m_callbackCloseTimer->start (3000);
+             handleCallback (values);
+           });
 
   // 初始化定时器用于定期检查token状态
   m_tokenCheckTimer= new QTimer (this);
@@ -78,34 +89,72 @@ QTMOAuth::QTMOAuth (QObject* parent) {
            &QTMOAuth::checkTokenStatus);
   m_tokenCheckTimer->start (90000); // 每一分半检查一次
 
+  // 登录超时：login () 发起后 5 分钟还没等到回调（用户一直没完成授权）就关闭
+  // 回调服务器；下一次 login () 会重新监听
+  m_loginTimer= new QTimer (this);
+  m_loginTimer->setSingleShot (true);
+  connect (m_loginTimer, &QTimer::timeout, this,
+           &QTMOAuth::closeCallbackServer);
+
+  // 延迟关闭定时器：收到回调后延迟 3 秒关闭回调服务器，留足写回响应的时间
+  m_callbackCloseTimer= new QTimer (this);
+  m_callbackCloseTimer->setSingleShot (true);
+  connect (m_callbackCloseTimer, &QTimer::timeout, this,
+           &QTMOAuth::closeCallbackServer);
+
   // 加载现有的token信息
   loadExistingToken ();
 }
 
 void
 QTMOAuth::login () {
-  if (m_reply->isListening ()) {
-    // 按当前 stem-profile 刷新回调页（让 profile 切换在下次登录立即生效）
-    refreshCallbackHtml ();
-    // 手动构建授权URL
-    QUrl      authUrl (getAuthorizationUrl ());
-    QUrlQuery query;
-    query.addQueryItem ("response_type", "code");
-    query.addQueryItem ("client_id", oauth2.clientIdentifier ());
-    query.addQueryItem ("redirect_uri", getRedirectUri ());
-    query.addQueryItem ("scope", oauth2.scope ());
-    query.addQueryItem ("code_challenge", m_codeChallenge);
-    query.addQueryItem ("code_challenge_method", "S256");
-    // 每次登录重新生成 state：实例标识 + 一次性随机数。随机数做 CSRF 防护
-    // （回调必须原样带回，见 handleCallback），实例标识供后续 liiistem://
-    // 深链把回调路由回发起登录的那个实例
-    m_state= m_instanceId + "." + generateRandomString (32);
-    query.addQueryItem ("state", m_state);
-
-    authUrl.setQuery (query);
-    // 手动打开浏览器进行授权
-    QDesktopServices::openUrl (authUrl);
+  // 如果上一轮登录已收到回调且处于 3 秒延迟关闭等待中，立即中止延迟关闭并
+  // 关掉旧监听，避免上一轮的延迟关闭在当前新流程中意外触发并掐断新端口
+  if (m_callbackCloseTimer->isActive ()) {
+    m_callbackCloseTimer->stop ();
+    if (m_reply->isListening ()) m_reply->close ();
   }
+
+  // 按需监听：监听失败必须显式报错——原来这里静默什么都不做，用户点了登录
+  // 没反应，也查不到原因
+  if (!m_reply->isListening () &&
+      !m_reply->listen (QHostAddress (QString::fromUtf8 ("127.0.0.1")), 0)) {
+    debug_boot << "OAuth callback server failed to listen" << "\n";
+    m_redirectUri.clear ();
+    return;
+  }
+  m_redirectUri= m_reply->callback ();
+
+  // 按当前 stem-profile 刷新回调页（让 profile 切换在下次登录立即生效）
+  refreshCallbackHtml ();
+  // 手动构建授权URL
+  QUrl      authUrl (getAuthorizationUrl ());
+  QUrlQuery query;
+  query.addQueryItem ("response_type", "code");
+  query.addQueryItem ("client_id", oauth2.clientIdentifier ());
+  query.addQueryItem ("redirect_uri", getRedirectUri ());
+  query.addQueryItem ("scope", oauth2.scope ());
+  query.addQueryItem ("code_challenge", m_codeChallenge);
+  query.addQueryItem ("code_challenge_method", "S256");
+  // 每次登录重新生成 state：实例标识 + 一次性随机数。随机数做 CSRF 防护
+  // （回调必须原样带回，见 handleCallback），实例标识供后续 liiistem://
+  // 深链把回调路由回发起登录的那个实例
+  m_state= m_instanceId + "." + generateRandomString (32);
+  query.addQueryItem ("state", m_state);
+
+  authUrl.setQuery (query);
+  // 手动打开浏览器进行授权
+  QDesktopServices::openUrl (authUrl);
+  m_loginTimer->start (5 * 60 * 1000); // 5 分钟没有回调就收摊
+}
+
+// 关闭回调服务器并停掉登录超时：登录流程结束（收到回调或超时）后不再监听，
+// 端口立即释放
+void
+QTMOAuth::closeCallbackServer () {
+  m_callbackCloseTimer->stop ();
+  m_loginTimer->stop ();
+  if (m_reply->isListening ()) m_reply->close ();
 }
 
 bool
@@ -444,12 +493,15 @@ QTMOAuth::getAccessTokenUrl () {
 }
 
 // redirect_uri：授权请求与令牌交换两处必须使用完全一致的值（OAuth 2.0 规范）。
-// 直接取回调服务器实际监听的地址（端口 0
-// 由系统分配），构造上不可能与监听不一致； 未监听时 callback () 返回空串，由
-// login () 开头的 isListening () 守卫兜住
+// 优先取回调服务器当前实际监听的地址；若服务器已延迟关闭（close ()），
+// 则返回本次登录发起时缓存的有效地址，确保令牌交换时 redirect_uri
+// 始终一致且非空
 QString
 QTMOAuth::getRedirectUri () {
-  return m_reply->callback ();
+  if (m_reply && m_reply->isListening ()) {
+    m_redirectUri= m_reply->callback ();
+  }
+  return m_redirectUri;
 }
 
 QString

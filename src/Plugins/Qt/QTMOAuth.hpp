@@ -54,8 +54,12 @@ private:
   QByteArray getPreviewCookieHeader ();
   void       refreshCallbackHtml ();
   void       handleCallback (const QVariantMap& values);
+  void       closeCallbackServer ();
 
-  bool m_isLoggedIn= false;
+  bool    m_isLoggedIn        = false;
+  QTimer* m_loginTimer        = nullptr;
+  QTimer* m_callbackCloseTimer= nullptr;
+  QString m_redirectUri;
 
 public:
   void clearInvalidTokens ();
