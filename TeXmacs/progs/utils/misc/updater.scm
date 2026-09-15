@@ -223,38 +223,39 @@
 
 (tm-define (updater-switch-channel target)
   (when (and (use-plugin-updater?) (!= target (updater-current-channel)))
-    (cond ((== target "disabled")
-           ;; 禁用自动更新：仅写首选项，无需检查/下载/重启。生效于下次启动
-           ;; （init-research.scm 不再启动更新链路）；任一步取消则首选项不写。
-           (when (updater-question (translate "Disable automatic updates? The application will no longer check for or apply updates."
+    (cond
+     ((== target "disabled")
+      ;; 禁用自动更新：仅写首选项，无需检查/下载/重启。生效于下次启动
+      ;; （init-research.scm 不再启动更新链路）；任一步取消则首选项不写。
+      (when (updater-question (translate "Disable automatic updates? The application will no longer check for or apply updates."
+                              ) ;translate
+            ) ;updater-question
+        (set-preference "update-channel" "disabled")
+        (save-preferences)
+      ) ;when
+     ) ;
+     (else
+       ;; stable/beta 切换：两次确认，第二次确认后强制走 download+apply 重启。
+       (with prompt
+         (if (== target "beta")
+           (translate "Switch to the Beta update channel? Beta releases may be unstable.")
+           (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
+           ) ;translate
+         ) ;if
+         (when (updater-question prompt)
+           (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
                                    ) ;translate
                  ) ;updater-question
-             (set-preference "update-channel" "disabled")
+             (set-preference "update-channel" target)
              (save-preferences)
+             ;; 确认后立即无条件打开中间态弹窗:第二次切换时 auto-download-loop 可能
+             ;; 已抢先触发下载,链 poll 只看到 READY 就开不了窗,固定在此打开最可靠。
+             (updater-switch-dialog-open)
+             (updater-switch-chain-start 0)
            ) ;when
-          ) ;
-          (else
-            ;; stable/beta 切换：两次确认，第二次确认后强制走 download+apply 重启。
-            (with prompt
-              (if (== target "beta")
-                (translate "Switch to the Beta update channel? Beta releases may be unstable.")
-                (translate "Switch back to the Stable update channel? The latest stable version may be older than the current one."
-                ) ;translate
-              ) ;if
-              (when (updater-question prompt)
-                (when (updater-question (translate "The application will check for updates on the new channel and restart to apply. Continue?"
-                                        ) ;translate
-                      ) ;updater-question
-                  (set-preference "update-channel" target)
-                  (save-preferences)
-                  ;; 确认后立即无条件打开中间态弹窗:第二次切换时 auto-download-loop 可能
-                  ;; 已抢先触发下载,链 poll 只看到 READY 就开不了窗,固定在此打开最可靠。
-                  (updater-switch-dialog-open)
-                  (updater-switch-chain-start 0)
-                ) ;when
-              ) ;when
-            ) ;with
-          ) ;else
+         ) ;when
+       ) ;with
+     ) ;else
     ) ;cond
   ) ;when
 ) ;tm-define
