@@ -26,6 +26,7 @@
 #include <QHoverEvent>
 #include <QMouseEvent>
 #include <QObject>
+#include <QPixmap>
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -254,6 +255,7 @@ private slots:
   void test_color_picker_loads ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
+  void test_ai_actions_bar_font_resize_settles ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -850,6 +852,27 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   QVERIFY (!ma->property ("containsMouse").toBool ());
   sendMove (center); // 移回按钮重新点亮
   QVERIFY (ma->property ("containsMouse").toBool ());
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_font_resize_settles () {
+  // autoSize 改写 fontPixelSize 后同步读 implicitWidth/Height 来
+  // setFixedSize：Text 宽度与 Row 布局的 polish 挂在渲染周期上，只有
+  // 渲染一帧（grab）才结算——不结算就读，拿到的是旧字号布局的值，
+  // 操作栏右侧（对话按钮）被整块裁掉。Windows 缩放 125%/150%/200%
+  // 时字号必变、必现。此处钉住「grab 结算后 implicit 尺寸随字号增长」
+  // 的修复语义，防止 Qt 升级或 QML 改动悄悄破坏 autoSize 的前提
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QQuickItem* root= qw->rootObject ();
+  const qreal w0  = root->implicitWidth ();
+  const qreal h0  = root->implicitHeight ();
+  root->setProperty ("fontPixelSize", 24);
+  QPixmap settled= qw->grab ();
+  QVERIFY (settled.width () > 0 && settled.height () > 0);
+  QVERIFY (root->implicitWidth () > w0);
+  QVERIFY (root->implicitHeight () > h0);
 }
 
 QTEST_MAIN (TestQmlLoad)

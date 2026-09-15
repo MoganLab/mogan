@@ -18,8 +18,8 @@
 #include <QEvent>
 #include <QHideEvent>
 #include <QHoverEvent>
+#include <QPixmap>
 #include <QQmlContext>
-#include <QQmlProperty>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
@@ -135,16 +135,22 @@ QTMAiTranslatePopup::autoSize () {
   // 尺寸按屏幕 DPI 缩放（与 QML 弹窗的 dpScale 同源），不跟随文档字体；
   // 整体尺寸随 QML 内边距/图标比例自适应。字号与会话内 DPI 绑定，鼠标
   // 移动会高频重入此处，字号未变时跳过 QML 写入与布局重算
-  QObject* root= quick->rootObject ();
+  QQuickItem* root= quick->rootObject ();
   if (!root) return;
   int font_px= std::max (10, DpiUtils::scaled (12));
   if (font_px == cached_font_px && cached_width > 0) return;
   cached_font_px= font_px;
   root->setProperty ("fontPixelSize", font_px);
-  int w=
-      int (std::round (QQmlProperty::read (root, "implicitWidth").toReal ()));
-  int h=
-      int (std::round (QQmlProperty::read (root, "implicitHeight").toReal ()));
+  // Text 宽度与 Row 布局的 polish 挂在渲染周期上，要到渲染一帧才结算：
+  // 改完字号立即读到的 implicitWidth/Height 仍是旧字号布局的值（只有
+  // 非定位器绑定同步生效），setFixedSize 会把操作栏钉在过小尺寸上、
+  // 右侧按钮整块被裁。先 grab() 同步渲染一帧借道结算布局，再取尺寸。
+  // Windows 缩放 125%/150%/200% 时字号必变必现；macOS 逻辑 DPI 恒为
+  // 72、字号不变，加载时的初始布局即最终布局，旧代码侥幸不触发
+  quick->grab ();
+  // implicit 尺寸常带小数，向上取整避免削掉尾部不足 1px 的内容
+  int w= int (std::ceil (root->implicitWidth ()));
+  int h= int (std::ceil (root->implicitHeight ()));
   quick->setFixedSize (w, h);
   setFixedSize (w, h);
   cached_width = w;
