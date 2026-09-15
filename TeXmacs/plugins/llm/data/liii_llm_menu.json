@@ -11,7 +11,7 @@
       "allow_thinking": true,
       "allow_search": true,
       "icon": "kimi",
-      "description": "订阅优先",
+      "description": "会员优先",
       "dsc_color": "orange"
     },
     {
@@ -24,7 +24,7 @@
       "allow_thinking": true,
       "allow_search": false,
       "icon": "deepseek",
-      "description": "订阅优先",
+      "description": "会员优先",
       "dsc_color": "orange"
     },
     {
@@ -37,7 +37,7 @@
       "allow_thinking": true,
       "allow_search": false,
       "icon": "deepseek",
-      "description": "订阅优先",
+      "description": "会员优先",
       "dsc_color": "orange"
     }
   ]
