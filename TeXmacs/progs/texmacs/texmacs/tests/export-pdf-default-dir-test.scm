@@ -89,6 +89,32 @@
   ) ;check
 ) ;define
 
+;; 目的地后缀兜底（Issue #1304）：开启嵌入附件时确保为 .tmu.pdf 后缀。
+
+(define (test-ensure-suffix-embed-tmu-pdf)
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo" #t)
+    =>
+    "/tmp/1268/demo.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf" #t)
+    =>
+    "/tmp/1268/demo.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.tmu.pdf" #t)
+    =>
+    "/tmp/1268/demo.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak" #t)
+    =>
+    "/tmp/1268/demo.bak.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo" #f) => "/tmp/1268/demo.pdf")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf" #f)
+    =>
+    "/tmp/1268/demo.pdf"
+  ) ;check
+) ;define
+
 (tm-define (regtest-export-pdf-default-dir)
   (test-local-tmu-uses-own-dir)
   (test-below-texmacs-path-goes-to-documents)
@@ -98,5 +124,6 @@
   (test-ensure-suffix-appends-when-missing)
   (test-ensure-suffix-keeps-pdf)
   (test-ensure-suffix-appends-after-other-suffix)
+  (test-ensure-suffix-embed-tmu-pdf)
   (check-report)
 ) ;tm-define

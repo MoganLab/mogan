@@ -567,6 +567,47 @@ TestQmlLoad::test_export_pdf_loads () {
             QString ("/tmp/1271/untitled.pdf"));
   QCOMPARE (qw->rootObject ()->property ("displayPath").toString (),
             QString ("/tmp/1271/untitled.pdf"));
+
+  // 1304: 开启「将源文档作为附件嵌入PDF」时，目的地后缀自动变为 .tmu.pdf
+  QMetaObject::invokeMethod (qw->rootObject (), "onToggleChanged",
+                             Q_ARG (QVariant, QString ("embed")),
+                             Q_ARG (QVariant, true));
+  QCOMPARE (qw->rootObject ()->property ("pathValue").toString (),
+            QString ("/tmp/1271/untitled.tmu.pdf"));
+  QCOMPARE (
+      qw->rootObject ()->property ("values").toMap ()["embed"].toString (),
+      QString ("true"));
+  QCOMPARE (qw->rootObject ()->property ("values").toMap ()["path"].toString (),
+            QString ("/tmp/1271/untitled.tmu.pdf"));
+
+  // 关闭「将源文档作为附件嵌入PDF」时，目的地后缀自动切回 .pdf
+  QMetaObject::invokeMethod (qw->rootObject (), "onToggleChanged",
+                             Q_ARG (QVariant, QString ("embed")),
+                             Q_ARG (QVariant, false));
+  QCOMPARE (qw->rootObject ()->property ("pathValue").toString (),
+            QString ("/tmp/1271/untitled.pdf"));
+  QCOMPARE (
+      qw->rootObject ()->property ("values").toMap ()["embed"].toString (),
+      QString ("false"));
+  QCOMPARE (qw->rootObject ()->property ("values").toMap ()["path"].toString (),
+            QString ("/tmp/1271/untitled.pdf"));
+
+  // adjustPathSuffix 各边界用例
+  auto checkSuffix= [&] (const QString& in, bool embed,
+                         const QString& expected) {
+    QVariant out;
+    QMetaObject::invokeMethod (qw->rootObject (), "adjustPathSuffix",
+                               Q_RETURN_ARG (QVariant, out),
+                               Q_ARG (QVariant, in), Q_ARG (QVariant, embed));
+    QCOMPARE (out.toString (), expected);
+  };
+  checkSuffix ("/tmp/foo.pdf", true, "/tmp/foo.tmu.pdf");
+  checkSuffix ("/tmp/foo.tmu.pdf", true, "/tmp/foo.tmu.pdf");
+  checkSuffix ("/tmp/foo", true, "/tmp/foo.tmu.pdf");
+  checkSuffix ("/tmp/foo.bar.pdf", true, "/tmp/foo.bar.tmu.pdf");
+  checkSuffix ("/tmp/foo.tmu.pdf", false, "/tmp/foo.pdf");
+  checkSuffix ("/tmp/foo.pdf", false, "/tmp/foo.pdf");
+  checkSuffix ("/tmp/foo", false, "/tmp/foo.pdf");
 }
 
 void

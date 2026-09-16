@@ -74,14 +74,46 @@ DialogShell {
     // 切换经 onToggled 改此对象再回赋，触发 delegate 的 value binding 刷新显示。
     property var values: {
         var v = {};
-        for (var i = 0; i < fields.length; i++)
+        var pk = "";
+        for (var i = 0; i < fields.length; i++) {
             v[fields[i].key] = fields[i].value;
+            if (fields[i].type === "path") pk = fields[i].key;
+        }
+        if (v["embed"] === "true" && pk && v[pk]) {
+            v[pk] = adjustPathSuffix(v[pk], true);
+        }
         return v;
     }
 
+    function adjustPathSuffix(path, embedOn) {
+        if (!path) return path;
+        if (embedOn) {
+            if (path.endsWith(".tmu.pdf"))
+                return path;
+            if (path.endsWith(".pdf"))
+                return path.substring(0, path.length - 4) + ".tmu.pdf";
+            return path + ".tmu.pdf";
+        } else {
+            if (path.endsWith(".tmu.pdf"))
+                return path.substring(0, path.length - 8) + ".pdf";
+            if (path.endsWith(".pdf"))
+                return path;
+            return path + ".pdf";
+        }
+    }
+
     function setv(k, x) {
-        var cur = root.values;
+        var cur = Object.assign({}, root.values);
         cur[k] = x;
+        root.values = cur;
+    }
+
+    function onToggleChanged(key, on) {
+        var cur = Object.assign({}, root.values);
+        cur[key] = on ? "true" : "false";
+        if (key === "embed" && root.pathKey && cur[root.pathKey]) {
+            cur[root.pathKey] = root.adjustPathSuffix(cur[root.pathKey], on);
+        }
         root.values = cur;
     }
 
@@ -107,7 +139,7 @@ DialogShell {
                 label: modelData.label
                 value: root.values[modelData.key] === "true"
                 onToggled: function (on) {
-                    root.setv(modelData.key, on ? "true" : "false")
+                    root.onToggleChanged(modelData.key, on)
                 }
             }
         }
@@ -158,7 +190,11 @@ DialogShell {
                 text: root.browseButtonLabel
                 onClicked: {
                     var p = browseBridge.browse(root.pathValue);
-                    if (p) root.setv(root.pathKey, p);
+                    if (p) {
+                        if (root.values["embed"] === "true")
+                            p = root.adjustPathSuffix(p, true);
+                        root.setv(root.pathKey, p);
+                    }
                 }
             }
         }

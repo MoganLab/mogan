@@ -224,13 +224,23 @@
   ) ;let
 ) ;tm-define
 
-(define (export-pdf-ensure-suffix fname)
-  ;; 目的地兜底带 .pdf 后缀：对话框 Browse 允许选任意文件名（原生保存对话框
-  ;; 不强制类型），对齐旧 choose-file 按类型补后缀的语义。
-  (if (== (url-suffix (system->url fname)) "pdf")
-    fname
-    (string-append fname ".pdf")
-  ) ;if
+(define (export-pdf-ensure-suffix fname . opt-embed)
+  ;; 目的地兜底带 .pdf 或 .tmu.pdf 后缀：对话框 Browse 允许选任意文件名（原生保存对话框
+  ;; 不强制类型），对齐旧 choose-file 按类型补后缀的语义。开启嵌入附件时兜底 .tmu.pdf。
+  (let ((embed? (and (pair? opt-embed) (car opt-embed))))
+    (if embed?
+      (cond ((string-ends? fname ".tmu.pdf") fname)
+            ((string-ends? fname ".pdf")
+             (string-append (string-drop-right fname 4) ".tmu.pdf")
+            ) ;
+            (else (string-append fname ".tmu.pdf"))
+      ) ;cond
+      (if (== (url-suffix (system->url fname)) "pdf")
+        fname
+        (string-append fname ".pdf")
+      ) ;if
+    ) ;if
+  ) ;let
 ) ;define
 
 (tm-define (export-as-pdf)
@@ -273,7 +283,7 @@
             ) ;lambda
             r
           ) ;for-each
-          (set! fname (export-pdf-ensure-suffix fname))
+          (set! fname (export-pdf-ensure-suffix fname embed))
           (if embed
             (wrapped-print-to-pdf-embeded-with-tmu fname)
             (wrapped-print-to-file fname)
