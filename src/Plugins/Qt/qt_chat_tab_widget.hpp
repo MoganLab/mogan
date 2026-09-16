@@ -147,13 +147,15 @@ public:
   static bool is_empty_document_body (tree body);
 
   /**
-   * @brief 计算输入文档的内容行数（含引用块、表格等特殊格式）。
+   * @brief 把排版后的画布高度折算为内容行数。
    *
-   * 详细计数规则见 qt_chat_tab_widget.cpp 的 count_input_lines_rec。
-   * @param body 文档体 tree
-   * @return 内容行数，非 DOCUMENT 类型返回 1
+   * 通用判定：内容量直接取排版结果（画布高度），软折行的长段落、
+   * 引用块、表格、公式等一律按实际渲染高度计入，不依赖文档树形状。
+   * @param contentPx 排版画布高度（像素）
+   * @param linePx    单行高度（像素）
+   * @return 内容行数，至少为 1
    */
-  static int count_input_lines (tree body);
+  static int input_lines_for_extent (int contentPx, int linePx);
 
   /**
    * @brief 按内容行数计算输入框的固定高度档位。
@@ -202,12 +204,15 @@ protected:
   void resizeEvent (QResizeEvent* event) override;
 
 public:
-  /// 在当前事件处理完成后把输入区高度更新到固定档位，避免读取到旧排版结果
+  /// 在当前事件处理完成后把输入区高度更新到固定档位；排版异步，
+  /// 追加 150ms 复测一拍以免读到旧画布
   void schedule_input_height_adjust ();
 
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
+  /// 读取输入区排版画布并折算当前内容行数（未定型返回 -1，调用方维持现状）
+  int input_content_lines ();
   /// 按内容行数把输入区高度切换到固定档位
   void adjust_input_height ();
   /// 按档位行数组合输入框 frame 的目标高度（行高 + 边框额外高度）
@@ -231,8 +236,11 @@ private:
   QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
   widget       messageWidget_;              ///< 消息区 TeXmacs widget
   widget       inputWidget;                 ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
-  bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
+  int          fixedFrameExtra_= 0;         ///< 输入框额外高度（边框等）
+  int          inputInitialExtentPx_=
+      0; ///< 编辑器建 widget 时的初始画布高（识别未定型 extents）
+  int  inputExtentLinePx_= 0; ///< 空输入时标定的单行画布高度（0 = 未标定）
+  bool inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
 
 /**

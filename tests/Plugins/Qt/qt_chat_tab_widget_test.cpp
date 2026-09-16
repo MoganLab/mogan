@@ -76,117 +76,37 @@ private slots:
       QVERIFY (!a->isChecked ());
   }
 
-  void test_count_input_lines_empty_document () {
-    tree empty_doc= tree (DOCUMENT, "");
-    QCOMPARE (ChatConversationPanel::count_input_lines (empty_doc), 1);
+  // === input_lines_for_extent：画布高度 → 内容行数（通用判定） ===
+  void test_input_lines_for_extent_exact_multiples () {
+    // 整倍数：正好 N 行
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (22, 22), 1);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (44, 22), 2);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (66, 22), 3);
   }
 
-  void test_count_input_lines_single_paragraph () {
-    tree doc= tree (DOCUMENT, "hello");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
+  void test_input_lines_for_extent_rounds_up () {
+    // 不足一行按一行计（向上取整）
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (23, 22), 2);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (45, 22), 3);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (67, 22), 4);
   }
 
-  void test_count_input_lines_multiple_paragraphs () {
-    tree doc= tree (DOCUMENT, "para1", "para2", "para3");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 3);
+  void test_input_lines_for_extent_minimum_one_line () {
+    // 空内容 / 非正值至少计 1 行
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (0, 22), 1);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (-5, 22), 1);
   }
 
-  void test_count_input_lines_not_document () {
-    tree not_doc= tree (WITH, "font", "roman", "hello");
-    QCOMPARE (ChatConversationPanel::count_input_lines (not_doc), 1);
+  void test_input_lines_for_extent_invalid_line_px () {
+    // 行高非正（未标定且常量异常）时按 1 行兜底，不除零
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (100, 0), 1);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (100, -3), 1);
   }
 
-  void test_count_input_lines_empty_string_only () {
-    // DOCUMENT with only an empty string atom
-    tree doc= tree (DOCUMENT, "");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
-  }
-
-  void test_count_input_lines_concat_formula_counts_as_one_paragraph () {
-    tree doc= tree (DOCUMENT, tree (CONCAT, "x", "y", "z"));
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
-  }
-
-  void test_count_input_lines_concat_formula_with_second_paragraph () {
-    tree doc= tree (DOCUMENT, tree (CONCAT, "x", "y", "z"), "para2");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
-  }
-
-  // === 特殊格式（引用块、表格等）内容照常计入行数、触发放大 ===
-  void test_count_input_lines_quote_env_content_counted () {
-    // AI 对话/翻译把选区包成 quote-env 引用块：块内段落逐段计入
-    // （8 段引用 + 尾随空段 = 9 行）
-    tree quote= compound ("quote-env", tree (DOCUMENT, "p1", "p2", "p3", "p4",
-                                             "p5", "p6", "p7", "p8"));
-    tree doc  = tree (DOCUMENT, quote, "");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 9);
-  }
-
-  void test_count_input_lines_quote_env_inner_table_counted () {
-    // 引用块内含表格：表格行数计入内容行数
-    tree quote=
-        compound ("quote-env",
-                  tree (DOCUMENT, tree (TABLE, "r1", "r2", "r3", "r4", "r5")));
-    tree doc= tree (DOCUMENT, quote, "");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 6);
-  }
-
-  void test_count_input_lines_toplevel_table_counted () {
-    // 直接粘贴进输入区的表格按行数计（0332 行为保持）
-    tree doc= tree (DOCUMENT, tree (TABLE, "r1", "r2", "r3", "r4"), "tail");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 5);
-  }
-
-  void test_count_input_lines_list_content_counted () {
-    // 列表等其它块级包装同样按内部文档递归计行
-    tree list= compound ("itemize",
-                         tree (DOCUMENT, tree (make_tree_label ("item"), "a"),
-                               tree (make_tree_label ("item"), "b"),
-                               tree (make_tree_label ("item"), "c")));
-    tree doc = tree (DOCUMENT, list, "tail");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 4);
-  }
-
-  void test_count_input_lines_with_paragraph_counted () {
-    // 行内样式整段文字（WITH 包裹）计 1 行
-    tree doc= tree (DOCUMENT, tree (WITH, "color", "red", "hello"), "second");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
-  }
-
-  void test_count_input_lines_mixed_blocks_and_text () {
-    // 引用块（2 段）+ 表格（2 行）+ 三段文本 = 7 行
-    tree doc=
-        tree (DOCUMENT, compound ("quote-env", tree (DOCUMENT, "q1", "q2")),
-              tree (TABLE, "r1", "r2"), "a", "b", "c");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 7);
-  }
-
-  // === 外观块行内标记（插入 → 外观块 → 引用，generic 样式实测形态） ===
-  void test_count_input_lines_inline_quote_mark_counted () {
-    // 实测：make 'quote-env 在 generic 样式下产生行内空标记
-    // (concat (quote-env) "第一段")，回车后续段为普通段，逐段照常计
-    tree doc= tree (
-        DOCUMENT, tree (CONCAT, tree (make_tree_label ("quote-env")), "第一段"),
-        "第二段", "第三段", "引用块外的普通段");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 4);
-  }
-
-  void test_count_input_lines_inline_prominent_family_counted () {
-    // 外观块家族其它标记（居中 padded-center、边框 framed 等）段落计 1 行
-    tree doc= tree (
-        DOCUMENT,
-        tree (CONCAT, tree (make_tree_label ("padded-center")), "居中段"),
-        tree (CONCAT, tree (make_tree_label ("framed")), "框段"), "普通段");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 3);
-  }
-
-  void test_count_input_lines_inline_math_still_counted () {
-    // 行内公式/样式等正常行内内容计 1 行
-    tree doc= tree (
-        DOCUMENT,
-        tree (CONCAT, "算式 ", tree (WITH, "mode", "math", "x+1"), " 结束"),
-        "第二段");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
+  void test_input_lines_for_extent_large_content () {
+    // 大量内容（长引用、整段粘贴）按高度如实折算
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (1000, 22), 46);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (2200, 22), 100);
   }
 
   // === input_height_step_lines 固定档位（基准 3 行的 1~5 倍） ===
