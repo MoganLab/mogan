@@ -996,7 +996,7 @@ cpp_page_number_dialog () {
         QObject::connect (&host, &QDialog::destroyed, pnBridge,
                           &QObject::deleteLater);
       },
-      760, 620);
+      920, 620);
   delete bridge;
   return tree (TUPLE);
 }

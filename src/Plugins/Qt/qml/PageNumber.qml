@@ -13,7 +13,7 @@ import "atoms"
 
 DialogShell {
     id: root
-    implicitWidth: 760
+    implicitWidth: 920
     implicitHeight: 620
     implicitMargins: 20 * Theme.scaleFactor
 
@@ -60,8 +60,8 @@ DialogShell {
     // 样式选项定义
     readonly property var styleDefs: [
         { id: "arabic", sample: "1, 2, 3", name: root.labels.styleArabic || qsTr("Arabic numerals") },
-        { id: "roman",  sample: "i, ii, iii", name: root.labels.styleRoman || qsTr("Lowercase Roman") },
-        { id: "Roman",  sample: "I, II, III", name: root.labels.styleRomanUpper || qsTr("Uppercase Roman") },
+        { id: "roman",  sample: "i, ii, iii", name: root.labels.styleRoman || "roman" },
+        { id: "Roman",  sample: "I, II, III", name: root.labels.styleRomanUpper || "Roman" },
         { id: "hanzi",  sample: "一, 二, 三", name: root.labels.styleHanzi || qsTr("Chinese numerals") },
         { id: "blank",  sample: root.labels.styleBlankSample || qsTr("(hidden)"), name: root.labels.styleBlank || qsTr("Hide page numbers") }
     ]
@@ -762,7 +762,7 @@ DialogShell {
                                     readonly property bool isSelected: root.curStyle === modelData.id
                                     readonly property bool isDisabled: root.done()
 
-                                    width: chipCol.implicitWidth + 24 * Theme.scaleFactor
+                                    width: Math.max(92 * Theme.scaleFactor, chipCol.implicitWidth + 24 * Theme.scaleFactor)
                                     height: chipCol.implicitHeight + 14 * Theme.scaleFactor
                                     radius: 8 * Theme.scaleFactor
                                     opacity: isDisabled ? 0.4 : 1.0

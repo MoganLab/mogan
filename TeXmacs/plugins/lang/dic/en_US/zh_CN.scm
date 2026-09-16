@@ -2329,9 +2329,11 @@
 ("rigid horizontal" "")
 ("rigid space" "")
 ("rigid" "刚性的")
+("Roman::page_number" "大写罗马")
 ("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books."
   "罗马数字页码（i 或 I）一般用于图书的目录和序。"
 ) ;
+("roman::page_number" "小写罗马")
 ("romanian" "罗马尼亚语")
 ("root" "根")
 ("rotate backward" "")
