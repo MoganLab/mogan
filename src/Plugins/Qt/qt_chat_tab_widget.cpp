@@ -14,6 +14,7 @@
 #include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
+#include "edit_interface.hpp"
 #include "new_buffer.hpp"
 #include "new_view.hpp"
 #include "preferences.hpp"
@@ -343,12 +344,9 @@ ChatConversationPanel::setup_ui () {
       editor->installEventFilter (this);
       // QTMWidget 的 sizeHint 走全局 gui_root_extents（根窗口尺寸）且
       // 默认 Expanding，不 Ignored 会把 dock 撑宽——外层容器之外，编辑
-      // 器本体也要 Ignored，画布尺寸只经 extents() 读取，不进布局链
+      // 器本体也要 Ignored，尺寸只经排版盒查询，不进布局链
       editor->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
-      // 记录建 widget 时的初始画布高度，用于识别「尚未排版定型」的
-      // extents 读数（此时是整窗/上个编辑器的提示尺寸，不是内容高度）
-      inputInitialExtentPx_= editor->extents ().height ();
-      inputQTMWidget_      = editor;
+      inputQTMWidget_= editor;
     }
   }
   QHBoxLayout* btnLayout= new QHBoxLayout ();
@@ -616,14 +614,18 @@ ChatConversationPanel::input_lines_for_extent (int contentPx, int linePx) {
 int
 ChatConversationPanel::input_content_lines () {
   if (!inputQTMWidget_) return -1;
-  // extents() 是排版器经 SLOT_EXTENTS 下发的画布尺寸，即内容排版后的
-  // 真实高度；新建编辑器首次排版前它仍是建 widget 时的初始提示
-  // （整窗或上个编辑器的尺寸），据此判定会误跳档，返回 -1 等复测
-  int contentPx= inputQTMWidget_->extents ().height ();
-  if (contentPx <= 0 || contentPx == inputInitialExtentPx_) return -1;
+  // 不能读 extents()：automatic/papyrus 下 apply_changes 会把画布垫到
+  // viewport 高（内容矮于视口时画布仍=视口），输入框升档后视口变高，
+  // 清空内容读数也不缩、档位无法回落。直接读排版盒（eb）的真实内容
+  // 高度，与视口无关；排版盒尚未生成（首帧未排版）返回 -1 等复测
+  edit_interface_rep* ed=
+      dynamic_cast<edit_interface_rep*> (inputQTMWidget_->tm_widget ());
+  SI contentSi= ed ? ed->get_typeset_content_height () : 0;
+  if (contentSi <= 0) return -1;
+  int contentPx = to_qsize (0, contentSi).height ();
   int fallbackPx= DpiUtils::scaled (kInputLineHeight);
   int linePx    = inputExtentLinePx_;
-  // 空输入的画布恰为单行高度，可现场标定；像素上限前置短路，未标定
+  // 空输入的排版盒恰为单行高度，可现场标定；像素上限前置短路，未标定
   // 期间内容已多行时不必每次调整都复制一遍输入缓冲树
   if (linePx <= 0 && contentPx <= fallbackPx * 3 &&
       is_empty_document_body (readInputMessage ()))
@@ -820,11 +822,8 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  // 已在封顶档时行数再增高度也不会变，免去画布读取
-  if (frame->height () == input_frame_max_height ()) return;
-
   int lines= input_content_lines ();
-  if (lines < 1) return; // 画布未定型，维持现状等复测
+  if (lines < 1) return; // 排版盒未就绪，维持现状等复测
   int targetFrameH= input_frame_height_for_lines (lines);
   if (frame->height () != targetFrameH) frame->setFixedHeight (targetFrameH);
 }

@@ -211,7 +211,7 @@ public:
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
-  /// 读取输入区排版画布并折算当前内容行数（未定型返回 -1，调用方维持现状）
+  /// 读取输入区排版盒的内容高度并折算行数（排版未就绪返回 -1，维持现状）
   int input_content_lines ();
   /// 按内容行数把输入区高度切换到固定档位
   void adjust_input_height ();
@@ -237,9 +237,7 @@ private:
   widget       messageWidget_;              ///< 消息区 TeXmacs widget
   widget       inputWidget;                 ///< 输入区 TeXmacs widget
   int          fixedFrameExtra_= 0;         ///< 输入框额外高度（边框等）
-  int          inputInitialExtentPx_=
-      0; ///< 编辑器建 widget 时的初始画布高（识别未定型 extents）
-  int  inputExtentLinePx_= 0; ///< 空输入时标定的单行画布高度（0 = 未标定）
+  int  inputExtentLinePx_= 0; ///< 空输入时标定的单行内容高度（0 = 未标定）
   bool inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
 

@@ -353,6 +353,17 @@ edit_interface_rep::set_extents (SI x1, SI y1, SI x2, SI y2) {
                        (SI) ceil (x2 * magf), (SI) ceil (y2 * magf)));
 }
 
+SI
+edit_interface_rep::get_typeset_content_height () {
+  if (is_nil (eb)) return 0;
+  // 同 apply_changes 的 extents 计算（eb->y * magf + abs_round），但不做
+  // 「内容矮于 viewport 时垫到视口高」的 automatic/papyrus 垫底
+  SI ey1= (SI) (((double) eb->y1) * magf);
+  SI ey2= (SI) (((double) eb->y2) * magf);
+  abs_round (ey1, ey2);
+  return ey2 - ey1;
+}
+
 /******************************************************************************
  * Scroll so as to make the cursor and the selection visible
  ******************************************************************************/
