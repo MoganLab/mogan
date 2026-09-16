@@ -16,6 +16,11 @@
 #include <QDir>
 #include <QFileDialog>
 
+static QString
+tmscm_to_qstring (tmscm obj) {
+  return utf8_to_qstring (cork_to_utf8 (tmscm_to_string (obj)));
+}
+
 BibliographyDialogBridge::BibliographyDialogBridge (QDialog*       host,
                                                     const QString& doc_dir)
     : QObject (), m_host (host), m_doc_dir (doc_dir) {
@@ -42,7 +47,6 @@ QVariantMap
 BibliographyDialogBridge::requestPreview (const QString& file,
                                           const QString& style) {
   QVariantMap out;
-  out["valid"]  = false;
   out["status"] = QStringLiteral ("empty");
   out["hint"]   = QString ();
   out["preview"]= QString ();
@@ -57,23 +61,17 @@ BibliographyDialogBridge::requestPreview (const QString& file,
     res              = tmscm_is_null (res) ? tmscm_null () : tmscm_cdr (res);
     tmscm item_img   = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
 
-    QString status=
-        tmscm_is_string (item_status)
-            ? utf8_to_qstring (cork_to_utf8 (tmscm_to_string (item_status)))
-            : QStringLiteral ("empty");
+    QString status= tmscm_is_string (item_status)
+                        ? tmscm_to_qstring (item_status)
+                        : QStringLiteral ("empty");
     QString hint=
-        tmscm_is_string (item_hint)
-            ? utf8_to_qstring (cork_to_utf8 (tmscm_to_string (item_hint)))
-            : QString ();
+        tmscm_is_string (item_hint) ? tmscm_to_qstring (item_hint) : QString ();
     QString preview=
-        tmscm_is_string (item_img)
-            ? utf8_to_qstring (cork_to_utf8 (tmscm_to_string (item_img)))
-            : QString ();
+        tmscm_is_string (item_img) ? tmscm_to_qstring (item_img) : QString ();
 
     out["status"] = status;
     out["hint"]   = hint;
     out["preview"]= preview;
-    out["valid"]  = (status == QStringLiteral ("valid"));
     return out;
   }
   return out;
@@ -85,12 +83,4 @@ BibliographyDialogBridge::toRelativePath (const QString& fullPath) {
   if (QDir::isRelativePath (fullPath)) return fullPath;
   QDir docDir (m_doc_dir);
   return docDir.relativeFilePath (fullPath);
-}
-
-QString
-BibliographyDialogBridge::toAbsolutePath (const QString& relPath) {
-  if (relPath.isEmpty () || m_doc_dir.isEmpty () ||
-      !QDir::isRelativePath (relPath))
-    return relPath;
-  return QDir (m_doc_dir).cleanPath (QDir (m_doc_dir).filePath (relPath));
 }

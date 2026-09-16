@@ -87,12 +87,13 @@ translate_buttons (array<string> buttons) {
 }
 
 static tree
-kv_map_to_tree (const QVariantMap& res) {
+kv_map_to_tree (const QVariantMap& res, bool utf8= false) {
   tree r (TUPLE);
   for (auto it= res.constBegin (); it != res.constEnd (); ++it) {
     tree kv (TUPLE);
-    kv << tree (from_qstring (it.key ()))
-       << tree (from_qstring (it.value ().toString ()));
+    kv << tree (utf8 ? from_qstring_utf8 (it.key ()) : from_qstring (it.key ()))
+       << tree (utf8 ? from_qstring_utf8 (it.value ().toString ())
+                     : from_qstring (it.value ().toString ()));
     r << kv;
   }
   return r;
@@ -1399,15 +1400,6 @@ cpp_bibliography_dialog (tree config) {
     return r;
   }
 
-  if (styles.isEmpty ()) {
-    styles << QStringLiteral ("tm-plain") << QStringLiteral ("tm-abbrv")
-           << QStringLiteral ("tm-abstract") << QStringLiteral ("tm-acm")
-           << QStringLiteral ("tm-alpha") << QStringLiteral ("tm-elsart-num")
-           << QStringLiteral ("tm-ieeetr") << QStringLiteral ("tm-siam")
-           << QStringLiteral ("tm-unsrt") << QStringLiteral ("tm-gbt7714-2015")
-           << QStringLiteral ("tm-gbt7714-2015-author-year");
-  }
-
   array<string> buttons= {modify ? string ("Modify") : string ("Insert"),
                           string ("Cancel")};
 
@@ -1454,7 +1446,6 @@ cpp_bibliography_dialog (tree config) {
       },
       logicW, logicH);
 
-  tree               r (TUPLE);
   const QVariantMap& res=
       closeBridge ? closeBridge->results () : QVariantMap ();
   delete closeBridge;
@@ -1462,11 +1453,5 @@ cpp_bibliography_dialog (tree config) {
 
   if (res.isEmpty ()) return tree (TUPLE);
 
-  for (auto it= res.begin (); it != res.end (); ++it) {
-    tree kv (TUPLE);
-    kv << tree (from_qstring_utf8 (it.key ()))
-       << tree (from_qstring_utf8 (it.value ().toString ()));
-    r << kv;
-  }
-  return r;
+  return kv_map_to_tree (res, true);
 }

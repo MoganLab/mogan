@@ -148,11 +148,6 @@
   (refresh-now "bibwid-preview")
 ) ;define
 
-(define (bibwid-set-relative val)
-  (set! bibwid-use-relative? val)
-  (bibwid-set-filename bibwid-url)
-) ;define
-
 (tm-widget (bibwid-preview)
   (resize '("520px" "520px" "9999px")
     '("100px" "100px" "9999px")
@@ -218,18 +213,11 @@
 (define (bib-has-entries? st)
   (and (list? st)
     (func? st 'document)
-    (let loop
-      ((children (cdr st)))
-      (and (pair? children)
-        (or (and (pair? (car children)) (== (caar children) 'bib-entry))
-          (loop (cdr children))
-        ) ;or
-      ) ;and
-    ) ;let
+    (nnull? (list-filter (cdr st) (lambda (x) (func? x 'bib-entry))))
   ) ;and
 ) ;define
 
-(tm-define (bibliography-preview file-str style-str . opt-rel)
+(tm-define (bibliography-preview file-str style-str)
   (let* ((u-str (if (string? file-str) file-str ""))
          (u (string->url u-str))
          (full-u
@@ -341,26 +329,18 @@
           ) ;let
         ) ;when
       ) ;let*
-      (if (and (not (url-none? u)) (!= s ""))
-        (with msg
+      (with msg
+        (if modify?
           (translate "Modifying bibliography in the current document")
-          (bibwid-set-url u)
-          (set! bibwid-style s)
-          (dialogue-window (bibliography-widget #t msg)
-            bibwid-modify
-            "Modify bibliography"
-          ) ;dialogue-window
-        ) ;with
-        (with msg
           (translate "Inserting bibliography in the current document")
-          (bibwid-set-url (string->url ""))
-          (set! bibwid-style "tm-plain")
-          (dialogue-window (bibliography-widget #f msg)
-            bibwid-insert
-            "Insert bibliography"
-          ) ;dialogue-window
-        ) ;with
-      ) ;if
+        ) ;if
+        (bibwid-set-url init-url)
+        (set! bibwid-style init-style)
+        (dialogue-window (bibliography-widget modify? msg)
+          (if modify? bibwid-modify bibwid-insert)
+          (if modify? "Modify bibliography" "Insert bibliography")
+        ) ;dialogue-window
+      ) ;with
     ) ;if
   ) ;let*
 ) ;tm-define

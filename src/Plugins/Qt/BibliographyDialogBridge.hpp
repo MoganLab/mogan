@@ -34,8 +34,7 @@ public:
    * @brief 检查 bib 文件并计算光栅化预览。
    * @param file 文件路径（相对或绝对）。
    * @param style 参考文献样式（如 "tm-plain"）。
-   * @return QVariantMap，包含 valid(bool), status(string), hint(string),
-   * preview(string)。
+   * @return QVariantMap，包含 status(string), hint(string), preview(string)。
    */
   Q_INVOKABLE QVariantMap requestPreview (const QString& file,
                                           const QString& style);
@@ -44,11 +43,6 @@ public:
    * @brief 将绝对路径转为相对于当前文档所在目录的路径。
    */
   Q_INVOKABLE QString toRelativePath (const QString& fullPath);
-
-  /**
-   * @brief 将相对路径转为绝对路径。
-   */
-  Q_INVOKABLE QString toAbsolutePath (const QString& relPath);
 
 private:
   QDialog* m_host;

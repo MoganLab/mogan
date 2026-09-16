@@ -15,7 +15,7 @@
 //   initialStyle   —— 初始样式（默认 "tm-plain"）。
 //   initialUpdate  —— 初始是否更新缓冲区（默认 true）。
 //   styleOptions   —— 样式列表（"tm-plain", "tm-alpha", ...）。
-//   bibBridge      —— BibliographyDialogBridge，提供 browse、toRelativePath、toAbsolutePath、requestPreview。
+//   bibBridge      —— BibliographyDialogBridge，提供 browse、toRelativePath、requestPreview。
 //   closeBridge    —— QmlDialogBridge。
 
 import QtQuick
@@ -37,7 +37,6 @@ DialogShell {
 
     property string previewDataUrl: ""
     property string previewStatus: "empty"
-    property bool isValidBib: false
     property string fileHint: ""
 
     function updatePreview() {
@@ -47,9 +46,16 @@ DialogShell {
                 root.previewStatus = res.status || "empty";
                 root.previewDataUrl = res.preview || "";
                 root.fileHint = res.hint || "";
-                root.isValidBib = res.valid === true;
             }
         }
+    }
+
+    // 路径键入逐字符触发，预览须防抖：每次 requestPreview 都同步走
+    // 读文件 + parse-bib + 排版光栅化，不防抖会卡住键入
+    Timer {
+        id: previewDebounce
+        interval: 350
+        onTriggered: root.updatePreview()
     }
 
     function submit() {
@@ -99,63 +105,27 @@ DialogShell {
             }
         }
 
-        // 1. 文件路径输入行：标签 + 输入框 + 浏览按钮
-        Row {
+        // 1. 文件路径输入行：InputField 原子（标签 + 输入框 + 浏览按钮）
+        InputField {
+            id: fileField
             width: mainCol.width
-            height: Theme.rowH
-            spacing: Theme.gapM
-
-            Text {
-                id: fileLabelTxt
-                width: 45 * Theme.scaleFactor
-                anchors.verticalCenter: parent.verticalCenter
-                text: typeof fileLabel !== "undefined" ? fileLabel : "File:"
-                color: Theme.fg
-                font.pixelSize: Theme.fontBody
+            labelWidth: 45 * Theme.scaleFactor
+            label: typeof fileLabel !== "undefined" ? fileLabel : "File:"
+            actionLabel: typeof browseLabel !== "undefined" ? browseLabel : "Browse"
+            value: root.file
+            onChanged: function (v) {
+                root.file = v;
+                previewDebounce.restart();
             }
-
-            Rectangle {
-                width: parent.width - fileLabelTxt.width - browseBtn.width - 2 * Theme.gapM
-                height: Theme.rowH
-                radius: Theme.radius
-                color: Theme.fieldBg
-                border.width: Theme.borderW
-                border.color: fileInputTxt.activeFocus ? Theme.accent : Theme.borderClr
-
-                TextInput {
-                    id: fileInputTxt
-                    anchors.fill: parent
-                    anchors.leftMargin: Theme.pad
-                    anchors.rightMargin: Theme.pad
-                    verticalAlignment: TextInput.AlignVCenter
-                    text: root.file
-                    color: Theme.fg
-                    font.pixelSize: Theme.fontBody
-                    selectByMouse: true
-                    clip: true
-                    onTextChanged: {
-                        if (root.file !== text) {
-                            root.file = text;
-                            root.updatePreview();
-                        }
-                    }
-                }
-            }
-
-            MiniButton {
-                id: browseBtn
-                anchors.verticalCenter: parent.verticalCenter
-                text: typeof browseLabel !== "undefined" ? browseLabel : "Browse"
-                size: "normal"
-                onClicked: {
-                    if (typeof bibBridge !== "undefined" && bibBridge) {
-                        var chosen = bibBridge.browse(root.file);
-                        if (chosen && chosen.length > 0) {
-                            chosen = bibBridge.toRelativePath(chosen);
-                            root.file = chosen;
-                            fileInputTxt.text = chosen;
-                            root.updatePreview();
-                        }
+            onActionClicked: {
+                if (typeof bibBridge !== "undefined" && bibBridge) {
+                    var chosen = bibBridge.browse(root.file);
+                    if (chosen && chosen.length > 0) {
+                        chosen = bibBridge.toRelativePath(chosen);
+                        root.file = chosen;
+                        // 用户键入已打断 value 绑定，显式回赋刷新显示
+                        fileField.value = chosen;
+                        root.updatePreview();
                     }
                 }
             }
@@ -228,7 +198,7 @@ DialogShell {
             Text {
                 visible: root.previewStatus === "empty"
                 anchors.centerIn: parent
-                text: typeof emptyHint !== "undefined" ? emptyHint : "此处预览参考文献的格式"
+                text: typeof emptyHint !== "undefined" ? emptyHint : "Preview the bibliography format here"
                 color: Theme.muted
                 font.pixelSize: Theme.fontBody
             }
@@ -256,7 +226,7 @@ DialogShell {
         DialogButtons {
             anchors.right: parent.right
             buttonLabels: root.buttonLabels
-            primaryEnabled: root.isValidBib
+            primaryEnabled: root.previewStatus === "valid"
             onClicked: function (index) {
                 if (index === 0)
                     root.submit();

@@ -920,14 +920,12 @@ public:
   Q_INVOKABLE QString     browse (const QString&) { return QString (); }
   Q_INVOKABLE QVariantMap requestPreview (const QString&, const QString&) {
     QVariantMap m;
-    m["valid"]  = false;
     m["status"] = QString ("empty");
     m["hint"]   = QString ();
     m["preview"]= QString ();
     return m;
   }
   Q_INVOKABLE QString toRelativePath (const QString& p) { return p; }
-  Q_INVOKABLE QString toAbsolutePath (const QString& p) { return p; }
 };
 
 void
