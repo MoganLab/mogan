@@ -800,15 +800,12 @@ DialogShell {
                                                 if (modelData.id === "arabic") {
                                                     root.pendingEnd = root.totalPages + 1000;
                                                     root.tipMessage = (root.labels.arabicTip || qsTr("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1.")).arg(root.pendingStart);
-                                                } else if (modelData.id === "roman" || modelData.id === "Roman") {
-                                                    root.tipMessage = root.labels.romanTip || qsTr("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books.");
-                                                    if (root.pendingEnd === null) {
-                                                        root.pendingEnd = root.pendingStart;
-                                                    }
                                                 } else {
-                                                    root.tipMessage = "";
-                                                    if (root.pendingEnd === null) {
-                                                        root.pendingEnd = root.pendingStart;
+                                                    root.pendingEnd = root.pendingStart;
+                                                    if (modelData.id === "roman" || modelData.id === "Roman") {
+                                                        root.tipMessage = root.labels.romanTip || qsTr("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books.");
+                                                    } else {
+                                                        root.tipMessage = "";
                                                     }
                                                 }
                                             }
