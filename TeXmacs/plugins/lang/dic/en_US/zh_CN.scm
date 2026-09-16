@@ -3072,3 +3072,20 @@
 ("Magic paste shortcut" "魔法粘贴快捷键")
 ("Login" "登录")
 ("Upgrade" "升级")
+("Check for updates" "检查更新")
+("Go to Download" "前往下载")
+("Close" "关闭")
+("Current version: v%1" "当前版本: v%1")
+("Mogan STEM latest stable version: v%1" "Mogan STEM 最新稳定版: v%1")
+("Liii STEM latest stable version: v%1" "Liii STEM 最新稳定版: v%1")
+("Mogan STEM latest beta version: v%1"
+  "Mogan STEM 最新测试版（Beta）: v%1"
+) ;
+("Liii STEM latest beta version: v%1"
+  "Liii STEM 最新测试版（Beta）: v%1"
+) ;
+("Current version is up to date." "当前已是最新版本。")
+("A new version is available." "发现新版本可用。")
+("Failed to check for updates." "检查更新失败。")
+("Automatic updates are disabled." "自动更新已禁用。")
+("Timed out waiting for the update task" "等待更新超时")

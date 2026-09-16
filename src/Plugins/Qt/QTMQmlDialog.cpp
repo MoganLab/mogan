@@ -788,13 +788,17 @@ cpp_statistics_dialog (string title, tree items) {
 }
 
 bool
-cpp_version_dialog (string title, string message) {
+cpp_version_dialog (string title, string message, string primary_button,
+                    string cancel_button, bool primary_enabled) {
   string preset= get_env ("MOGAN_TEST_VERSION_DIALOG");
   if (preset == "ok") return true;
   if (preset == "cancel") return false;
 
   array<string> buttons;
-  buttons << string ("OK");
+  buttons << primary_button;
+  if (N (cancel_button) > 0) {
+    buttons << cancel_button;
+  }
   QmlDialogBridge*     closeBridge= nullptr;
   VersionDialogBridge* bridge     = nullptr;
   int                  choice     = run_qml_dialog (
@@ -802,13 +806,20 @@ cpp_version_dialog (string title, string message) {
       [&] (QQuickWidget* qw, QDialog& host) {
         closeBridge= inject_common_context (qw, host);
         bridge= new VersionDialogBridge (&host, title, message,
-                                                               translate_buttons (buttons));
+                                                               translate_buttons (buttons),
+                                                               primary_enabled);
         qw->rootContext ()->setContextProperty ("versionBridge", bridge);
       },
       560, 220, true);
   delete closeBridge;
   delete bridge;
   return choice == 1;
+}
+
+bool
+cpp_version_dialog (string title, string message) {
+  return cpp_version_dialog (title, message, string ("OK"), string ("Cancel"),
+                             true);
 }
 
 // ---- 更新下载中间态弹窗

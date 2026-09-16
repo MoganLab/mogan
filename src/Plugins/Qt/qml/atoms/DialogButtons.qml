@@ -26,6 +26,7 @@ Row {
     property int primaryIndex: 0
     property real buttonWidth: Theme.btnW
     property real letterSpacing: 0
+    property bool primaryEnabled: true
     signal clicked(int index)
 
     Repeater {
@@ -34,11 +35,14 @@ Row {
             width: row.buttonWidth
             height: Theme.btnH
             radius: height / 2
-            color: ma.containsMouse ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover) : (primary ? Theme.accent : Theme.fieldBg)
-            border.width: primary ? Theme.borderW : 0
-            border.color: primary ? Theme.accent : "transparent"
 
             property bool primary: index === row.primaryIndex
+            property bool isBtnEnabled: !primary || row.primaryEnabled
+
+            opacity: isBtnEnabled ? 1.0 : 0.4
+            color: (ma.containsMouse && isBtnEnabled) ? (primary ? (Theme.dark ? "#8a8a8a" : "#3a3a3a") : Theme.fieldBgHover) : (primary ? Theme.accent : Theme.fieldBg)
+            border.width: (primary && isBtnEnabled) ? Theme.borderW : 0
+            border.color: (primary && isBtnEnabled) ? Theme.accent : "transparent"
 
             Text {
                 anchors.centerIn: parent
@@ -51,12 +55,13 @@ Row {
             MouseArea {
                 id: ma
                 anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onPressed: parent.scale = 0.96
+                enabled: parent.isBtnEnabled
+                hoverEnabled: parent.isBtnEnabled
+                cursorShape: parent.isBtnEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onPressed: if (parent.isBtnEnabled) parent.scale = 0.96
                 onReleased: parent.scale = 1.0
                 onCanceled: parent.scale = 1.0
-                onClicked: row.clicked(index)
+                onClicked: if (parent.isBtnEnabled) row.clicked(index)
             }
             Behavior on scale {
                 NumberAnimation {
@@ -66,6 +71,11 @@ Row {
             }
             Behavior on color {
                 ColorAnimation {
+                    duration: 150
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
                     duration: 150
                 }
             }

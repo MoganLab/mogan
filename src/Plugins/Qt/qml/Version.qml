@@ -24,8 +24,12 @@ DialogShell {
     property string title: versionBridge.title
     property var lines: versionBridge.lines
     property var buttonLabels: versionBridge.buttonLabels
+    property bool primaryEnabled: versionBridge.primaryEnabled
 
-    onActivate: () => versionBridge.confirm()
+    onActivate: () => {
+        if (root.primaryEnabled)
+            versionBridge.confirm()
+    }
     Component.onCompleted: forceActiveFocus()
 
     content: Item {
@@ -75,7 +79,15 @@ DialogShell {
             DialogButtons {
                 anchors.horizontalCenter: parent.horizontalCenter
                 buttonLabels: root.buttonLabels
-                onClicked: versionBridge.confirm()
+                primaryEnabled: root.primaryEnabled
+                onClicked: function(index) {
+                    if (index === 0) {
+                        if (root.primaryEnabled)
+                            versionBridge.confirm()
+                    } else {
+                        closeBridge.cancel()
+                    }
+                }
             }
         }
     }

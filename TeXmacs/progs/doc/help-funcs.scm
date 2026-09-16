@@ -10,7 +10,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc help-funcs) (:use (texmacs texmacs tm-files)))
+(texmacs-module (doc help-funcs)
+  (:use (texmacs texmacs tm-files) (utils misc updater))
+) ;texmacs-module
+
+(import (liii json) (liii semver))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loading help buffers
@@ -200,26 +204,38 @@
   (dialogue-window (message-widget msg) callback title)
 ) ;tm-define
 
-;; 版本检查 URL
+;; 检查更新基础 URL
 
-(define MOGAN-LATEST-VERSION-URL "https://liiistem.cn/mogan_latest_version.tm")
-
-(define LIII-LATEST-VERSION-URL "https://liiistem.cn/latest_version.tm")
-
-;; 从 TeXmacs 文档内容中提取 body 中的版本号
-
-(define (extract-version-from-tm-content content)
-  (if (not (string? content))
-    ""
-    (let* ((body-start (string-search-forwards "<\\body>" 0 content))
-           (body-end (string-search-forwards "</body>" 0 content))
-          ) ;
-      (if (and (!= body-start -1) (!= body-end -1) (> body-end body-start))
-        (tm-string-trim-both (substring content (+ body-start 7) body-end))
-        ""
-      ) ;if
-    ) ;let*
+(define (get-update-base-url)
+  (if (== (get-preference "stem-profile") "staging")
+    "https://test.liiistem.cn"
+    "https://liiistem.cn"
   ) ;if
+) ;define
+
+;; 检查更新用的通道：与 C++ tm_velopack::update_channel() 同一条归一规则——只有
+;; "beta" 算 beta，其余（含 "disabled"/未设/脏值）一律归 stable。客户端展示通道若
+;; 与更新器取包的归一规则不一致，就会重新出现「展示与动作不符」的两套真相。
+;; disabled 不是真实 feed 通道，归一到 stable 既避开未定义行为，也与「禁用时仍
+;; 展示 stable 版号」的语义一致（重新启用后拿到的就是它）。通道语义只在更新器
+;; 平台存在（Linux 首选项里没有该 combo），故先判 use-plugin-updater?，恒 stable。
+
+(tm-define (latest-version-channel)
+  (if (and (use-plugin-updater?) (== (updater-current-channel) "beta"))
+    "beta"
+    "stable"
+  ) ;if
+) ;tm-define
+
+(define (get-latest-version-url community? channel)
+  (string-append (get-update-base-url)
+    (if community?
+      "/api/v1/public/update/win-x64/latest"
+      "/api/v1/public/commercial/update/win-x64/latest"
+    ) ;if
+    "?channel="
+    channel
+  ) ;string-append
 ) ;define
 
 ;; 获取远程最新版本号（返回字符串，失败返回空字符串）
@@ -228,88 +244,129 @@
   (with content
     (string-load (string->url url))
     (if (and (string? content) (!= content ""))
-      (extract-version-from-tm-content content)
+      (catch #t
+        (lambda ()
+          (let* ((json-obj (string->json content)) (data-obj (json-ref json-obj "data")))
+            (if (json-object? data-obj)
+              (let ((ver (json-ref data-obj "version")))
+                (if (string? ver) (semver-clean ver) "")
+              ) ;let
+              ""
+            ) ;if
+          ) ;let*
+        ) ;lambda
+        (lambda (key . args) "")
+      ) ;catch
       ""
     ) ;if
   ) ;with
 ) ;define
 
-(define (show-version-dialog msg url open-website?)
-  (when (cpp-version-dialog (translate "Version") msg)
-    (when open-website?
-      (open-url url)
-    ) ;when
-  ) ;when
-) ;define
+;; 计算更新状态三元组: (list failed? is-latest? has-new?)——纯版本比较,不掺
+;; 通道/按钮可用性;主按钮最终可不可点由 calc-primary-enabled 在此基础上叠加
+;; "自动更新是否被禁用"决定。
+(tm-define (calc-update-status cur-ver latest-ver)
+  (let* ((failed? (or (not (string? latest-ver))
+                    (== latest-ver "")
+                    (not (semver-valid? latest-ver))
+                    (not (semver-valid? cur-ver))
+                  ) ;or
+         ) ;failed?
+         (has-new? (and (not failed?) (semver>? latest-ver cur-ver)))
+         (is-latest? (and (not failed?) (not has-new?)))
+        ) ;
+    (list failed? is-latest? has-new?)
+  ) ;let*
+) ;tm-define
 
-;; 显示Mogan版本信息
-(tm-define (mogan-version)
-  (let* ((cur-ver (xmacs-version))
-         (community? (community-stem?))
-         (community-ver (if community? (fetch-latest-version MOGAN-LATEST-VERSION-URL) "")
-         ) ;community-ver
-         (commercial-ver (fetch-latest-version LIII-LATEST-VERSION-URL))
-         (community-latest? (and community? (== cur-ver community-ver)))
-         (commercial-latest? (== cur-ver commercial-ver))
+;; 自动更新是否被禁用。仅更新器平台存在该语义：Linux 无更新链路，首选项里也没有
+;; 该 combo，故先判 use-plugin-updater?，恒 #f。
+
+(tm-define (updates-disabled?)
+  (and (use-plugin-updater?) (== (updater-current-channel) "disabled"))
+) ;tm-define
+
+;; 主按钮是否可用：确有更新，且自动更新未被禁用。「禁用通道下恒不可用」是硬约定——
+;; 该弹窗只作信息展示，用户要更新须先回首选项把通道切回 stable/beta。
+
+(tm-define (calc-primary-enabled has-new? disabled?)
+  (and has-new? (not disabled?))
+) ;tm-define
+
+;; 检查更新并显示弹窗
+(tm-define (check-for-updates)
+  (let* ((community? (community-stem?))
+         (channel (latest-version-channel))
+         (cur-ver (xmacs-version))
+         (latest-ver (fetch-latest-version (get-latest-version-url community? channel)))
          (url (if community?
                 "https://liiistem.cn?utm_source=mogan-community&utm_medium=referral&utm_campaign=version-check"
                 "https://liiistem.cn?utm_source=mogan-commercial&utm_medium=referral&utm_campaign=version-check"
               ) ;if
          ) ;url
+         (status (calc-update-status cur-ver latest-ver))
+         (failed? (car status))
+         (is-latest? (cadr status))
+         (disabled? (updates-disabled?))
+         (primary-enabled? (calc-primary-enabled (caddr status) disabled?))
+         (primary-btn-label (if (use-plugin-updater?) "Update Now" "Go to Download"))
+         (cancel-btn-label "Close")
+         (title (translate "Check for updates"))
+         ;; 禁用通道优先于版本状态：此时"有无新版本"不是可动作的信息，
+         ;; 该说的是"自动更新已关闭、要去首选项切回来"。
+         (status-line (cond (disabled? (translate "Automatic updates are disabled."))
+                            (failed? (translate "Failed to check for updates."))
+                            (is-latest? (translate "Current version is up to date."))
+                            (else (translate "A new version is available."))
+                      ) ;cond
+         ) ;status-line
+         ;; 版本文案跟随实际取用的通道：beta 通道下版号可能是 -rc 预发布，标成
+         ;; "latest stable version" 就是事实错误。
+         (ver-key (if (== channel "beta")
+                    (if community?
+                      "Mogan STEM latest beta version: v%1"
+                      "Liii STEM latest beta version: v%1"
+                    ) ;if
+                    (if community?
+                      "Mogan STEM latest stable version: v%1"
+                      "Liii STEM latest stable version: v%1"
+                    ) ;if
+                  ) ;if
+         ) ;ver-key
+         (ver-line (replace (translate ver-key) latest-ver))
+         (msg
+           (if failed?
+             (string-append (replace (translate "Current version: v%1") cur-ver)
+               "\n"
+               status-line
+             ) ;string-append
+             (string-append (replace (translate "Current version: v%1") cur-ver)
+               "\n"
+               ver-line
+               "\n"
+               status-line
+             ) ;string-append
+           ) ;if
+         ) ;msg
         ) ;
-    (if community?
-      ;; 社区版：同时展示社区版和商业版的最新稳定版
-      (let ((msg
-              (if community-latest?
-                (replace (translate (string-append "You are using v%1.\n"
-                                      "The latest stable version of Mogan STEM is v%2, "
-                                      "and the latest stable version of Liii STEM is v%3."
-                                    ) ;string-append
-                         ) ;translate
-                  cur-ver
-                  community-ver
-                  commercial-ver
-                ) ;replace
-                (replace (translate (string-append "You are using v%1.\n"
-                                      "The latest stable version of Mogan STEM is v%2, "
-                                      "and the latest stable version of Liii STEM is v%3.\n"
-                                      "Please click OK to visit the official website "
-                                      "to download the latest stable version."
-                                    ) ;string-append
-                         ) ;translate
-                  cur-ver
-                  community-ver
-                  commercial-ver
-                ) ;replace
-              ) ;if
-            ) ;msg
-           ) ;
-        (show-version-dialog msg url (not community-latest?))
-      ) ;let
-      ;; 商业版：只展示商业版的最新稳定版
-      (let ((msg
-              (if commercial-latest?
-                (replace (translate "You are using v%1, and the latest stable version of Liii STEM is v%2."
-                         ) ;translate
-                  cur-ver
-                  commercial-ver
-                ) ;replace
-                (replace (translate (string-append "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
-                                      "Please click OK to visit the official website "
-                                      "to download the latest stable version."
-                                    ) ;string-append
-                         ) ;translate
-                  cur-ver
-                  commercial-ver
-                ) ;replace
-              ) ;if
-            ) ;msg
-           ) ;
-        (show-version-dialog msg url (not commercial-latest?))
-      ) ;let
-    ) ;if
+    (when (cpp-version-dialog title
+            msg
+            (translate primary-btn-label)
+            (translate cancel-btn-label)
+            primary-enabled?
+          ) ;cpp-version-dialog
+      ;; 再判一次 primary-enabled?：置灰已让按钮点不动，但测试钩子
+      ;; (MOGAN_TEST_VERSION_DIALOG=ok) 绕过按钮直接返回 #t，且禁用通道下
+      ;; 绝不能触发更新链，故此处不依赖 Qt 侧的单点防护。
+      (when primary-enabled?
+        (if (use-plugin-updater?) (updater-trigger-manual-update) (open-url url))
+      ) ;when
+    ) ;when
   ) ;let*
 ) ;tm-define
+
+;; 显示Mogan版本信息（兼容旧调用）
+(tm-define (mogan-version) (check-for-updates))
 
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)
