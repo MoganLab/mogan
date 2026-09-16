@@ -377,8 +377,12 @@
     ) ;cons
     (cons 'secRange (translate "① Range for new rule"))
     (cons 'subRange
-      (translate "Start is fixed; drag handle down to select end page")
+      (translate "Directly enter page range, click [to end of document], or drag handle"
+      ) ;translate
     ) ;cons
+    (cons 'fromPage (translate "From page"))
+    (cons 'toPage (translate "to page"))
+    (cons 'pageUnit (translate "page unit"))
     (cons 'secStyle (translate "② Choose page number style"))
     (cons 'btnAddRule (translate "+ Add rule"))
     (cons 'secRules (translate "Added rules"))
@@ -404,6 +408,14 @@
     (cons 'styleHanzi (translate "Chinese numerals"))
     (cons 'styleBlank (translate "Hide page numbers"))
     (cons 'styleBlankSample (translate "(hidden)"))
+    (cons 'arabicTip
+      (translate "Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1."
+      ) ;translate
+    ) ;cons
+    (cons 'romanTip
+      (translate "Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books."
+      ) ;translate
+    ) ;cons
   ) ;list
 ) ;define
 

@@ -50,6 +50,7 @@ DialogShell {
 
     property var pendingEnd: null
     property string curStyle: ""
+    property string tipMessage: ""
     property bool dragging: false
     property int autoScrollDir: 0
 
@@ -72,15 +73,38 @@ DialogShell {
         return id;
     }
 
-    function pendingStart() {
+    function minStart() {
         if (rules.length === 0) return 1;
         var last = rules[rules.length - 1];
         if (last.end === "total" || Number(last.end) >= totalPages) return totalPages + 1;
         return Number(last.end) + 1;
     }
 
+    property int pendingStart: minStart()
+
+    onRulesChanged: {
+        pendingStart = minStart();
+        pendingEnd = null;
+        tipMessage = "";
+    }
+
+    onPendingEndChanged: {
+        if (!root.dragging && root.pendingEnd !== null) {
+            var targetY = (Math.min(root.totalPages, root.pendingEnd) - 1) * root.rowH;
+            if (targetY < stripFlickable.contentY || targetY > stripFlickable.contentY + stripFlickable.height - root.rowH) {
+                stripFlickable.contentY = Math.max(0, Math.min(stripFlickable.contentHeight - stripFlickable.height, targetY - stripFlickable.height / 2));
+            }
+        }
+    }
+
+    onPendingStartChanged: {
+        if (curStyle === "arabic" && tipMessage !== "") {
+            tipMessage = (labels.arabicTip || qsTr("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1.")).arg(root.pendingStart);
+        }
+    }
+
     function done() {
-        return pendingStart() > totalPages;
+        return minStart() > totalPages;
     }
 
     function ruleOfPage(p) {
@@ -157,12 +181,14 @@ DialogShell {
         var cur = [];
         for (var i = 0; i < rules.length; i++) cur.push(rules[i]);
         cur.push({
-            start: pendingStart(),
+            start: pendingStart,
             end: (pendingEnd >= totalPages ? "total" : pendingEnd),
             style: curStyle
         });
         rules = cur;
+        pendingStart = minStart();
         pendingEnd = null;
+        tipMessage = "";
     }
 
     function deleteLastRule() {
@@ -170,7 +196,9 @@ DialogShell {
         var cur = [];
         for (var i = 0; i < rules.length - 1; i++) cur.push(rules[i]);
         rules = cur;
+        pendingStart = minStart();
         pendingEnd = null;
+        tipMessage = "";
     }
 
     function submit() {
@@ -282,6 +310,7 @@ DialogShell {
                     clip: true
 
                     Item {
+                        id: stripContent
                         width: parent.width
                         height: root.totalPages * root.rowH
 
@@ -293,7 +322,7 @@ DialogShell {
                                 readonly property int pageNum: index + 1
                                 readonly property int rIdx: root.ruleOfPage(pageNum)
                                 readonly property bool isPending: !root.done() && root.pendingEnd !== null &&
-                                                                  pageNum >= root.pendingStart() && pageNum <= root.pendingEnd
+                                                                  pageNum >= root.pendingStart && pageNum <= root.pendingEnd
                                 readonly property string disp: root.pageDisplay(pageNum)
 
                                 x: 0
@@ -359,11 +388,24 @@ DialogShell {
                                     id: maRow
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    cursorShape: (!root.done() && rowItem.pageNum >= root.pendingStart()) ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: {
-                                        if (!root.done() && rowItem.pageNum >= root.pendingStart()) {
+                                    cursorShape: (!root.done() && rowItem.pageNum >= root.pendingStart) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    onPressed: {
+                                        if (!root.done() && rowItem.pageNum >= root.pendingStart) {
                                             root.pendingEnd = rowItem.pageNum;
+                                            root.dragging = true;
                                         }
+                                    }
+                                    onReleased: {
+                                        root.dragging = false;
+                                        autoScrollTimer.stop();
+                                    }
+                                    onPositionChanged: function (mouse) {
+                                        if (!pressed) return;
+                                        var pInContent = mapToItem(stripContent, mouse.x, mouse.y);
+                                        var p = Math.floor(pInContent.y / root.rowH) + 1;
+                                        if (p < root.pendingStart) p = root.pendingStart;
+                                        if (p > root.totalPages) p = root.totalPages;
+                                        root.pendingEnd = p;
                                     }
                                 }
                             }
@@ -374,10 +416,10 @@ DialogShell {
                             id: dragHandle
                             visible: !root.done()
                             z: 20
-                            readonly property int targetPage: root.pendingEnd !== null ? root.pendingEnd : (root.pendingStart() - 1)
+                            readonly property int targetPage: root.pendingEnd !== null ? Math.min(root.totalPages, root.pendingEnd) : (root.pendingStart - 1)
                             x: 8 * Theme.scaleFactor
                             y: Math.max(0, Math.min(root.totalPages * root.rowH - height,
-                                                    (targetPage >= root.pendingStart() ? targetPage * root.rowH : (root.pendingStart() - 1) * root.rowH + root.rowH) - height / 2))
+                                                    (targetPage >= root.pendingStart ? targetPage * root.rowH : (root.pendingStart - 1) * root.rowH + root.rowH) - height / 2))
                             width: stripFlickable.width - 16 * Theme.scaleFactor
                             height: 14 * Theme.scaleFactor
                             radius: height / 2
@@ -401,14 +443,14 @@ DialogShell {
                                 }
                                 onPositionChanged: function (mouse) {
                                     if (!pressed) return;
-                                    var currentY = dragHandle.y + mouse.y;
-                                    var p = Math.floor(currentY / root.rowH) + 1;
-                                    if (p < root.pendingStart()) p = root.pendingStart();
+                                    var pInContent = mapToItem(stripContent, mouse.x, mouse.y);
+                                    var p = Math.floor(pInContent.y / root.rowH) + 1;
+                                    if (p < root.pendingStart) p = root.pendingStart;
                                     if (p > root.totalPages) p = root.totalPages;
                                     root.pendingEnd = p;
 
                                     // 边缘自动滚动
-                                    var viewY = currentY - stripFlickable.contentY;
+                                    var viewY = pInContent.y - stripFlickable.contentY;
                                     if (viewY > stripFlickable.height - 40 * Theme.scaleFactor) {
                                         root.autoScrollDir = 1;
                                         autoScrollTimer.start();
@@ -447,7 +489,7 @@ DialogShell {
                     // 1. 新规则的范围
                     Column {
                         width: parent.width
-                        spacing: 8 * Theme.scaleFactor
+                        spacing: 10 * Theme.scaleFactor
 
                         Row {
                             spacing: 8 * Theme.scaleFactor
@@ -459,26 +501,241 @@ DialogShell {
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: root.labels.subRange || qsTr("Start is fixed; drag handle down to select end page")
+                                text: root.labels.subRange || qsTr("Directly enter page range, click [to end of document], or drag handle")
                                 font.pixelSize: 12 * Theme.scaleFactor
                                 color: Theme.muted
                             }
                         }
 
+                        // 如果全部页面已被覆盖
                         Text {
+                            visible: root.done()
+                            text: root.labels.rangeDone || qsTr("All pages covered by rules")
+                            font.pixelSize: 13 * Theme.scaleFactor
+                            color: Theme.muted
+                        }
+
+                        // 实时范围清晰显示
+                        Text {
+                            visible: !root.done()
                             text: {
-                                if (root.done()) return root.labels.rangeDone || qsTr("All pages covered by rules");
-                                var ps = root.pendingStart();
+                                var ps = root.pendingStart;
                                 if (root.pendingEnd !== null) {
                                     var pe = root.pendingEnd;
                                     var t = root.endText(pe);
-                                    var cnt = pe - ps + 1;
+                                    var cnt = Math.min(root.totalPages, pe) - ps + 1;
                                     return (root.labels.rangeUpto || qsTr("Page %1 ~ Page %2 (%3 pages)")).arg(ps).arg(t).arg(cnt);
                                 }
                                 return (root.labels.rangePrompt || qsTr("Starting from page %1, drag handle to select end page")).arg(ps);
                             }
                             font.pixelSize: 13 * Theme.scaleFactor
-                            color: Theme.fg
+                            font.bold: root.pendingEnd !== null
+                            color: root.pendingEnd !== null ? (Theme.dark ? "#bfeeeb" : "#215a6a") : Theme.fg
+                        }
+
+                        // 范围选择交互行
+                        Row {
+                            visible: !root.done()
+                            spacing: 6 * Theme.scaleFactor
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.labels.fromPage || qsTr("From page")
+                                font.pixelSize: 13 * Theme.scaleFactor
+                                color: Theme.fg
+                            }
+
+                            // 起始页输入框
+                            Rectangle {
+                                width: 52 * Theme.scaleFactor
+                                height: 32 * Theme.scaleFactor
+                                radius: 6 * Theme.scaleFactor
+                                color: Theme.fieldBg
+                                border.width: Theme.borderW
+                                border.color: startInput.activeFocus ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.borderClr
+
+                                TextInput {
+                                    id: startInput
+                                    anchors.fill: parent
+                                    anchors.margins: 4 * Theme.scaleFactor
+                                    horizontalAlignment: TextInput.AlignHCenter
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    font.pixelSize: 13 * Theme.scaleFactor
+                                    color: Theme.fg
+                                    selectByMouse: true
+                                    text: String(root.pendingStart)
+                                    validator: IntValidator {
+                                        bottom: root.minStart()
+                                        top: root.totalPages
+                                    }
+                                    onTextEdited: {
+                                        var v = parseInt(text);
+                                        if (!isNaN(v) && v >= root.minStart() && v <= root.totalPages) {
+                                            root.pendingStart = v;
+                                            if (root.pendingEnd !== null && root.pendingEnd < v) {
+                                                root.pendingEnd = v;
+                                            }
+                                        }
+                                    }
+                                    onActiveFocusChanged: {
+                                        if (!activeFocus) text = String(root.pendingStart);
+                                    }
+                                }
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (root.labels.pageUnit || qsTr("page")) + "  " + (root.labels.toPage || qsTr("to page"))
+                                font.pixelSize: 13 * Theme.scaleFactor
+                                color: Theme.fg
+                            }
+
+                            // 结束页输入框 + Steppers
+                            Row {
+                                spacing: 3 * Theme.scaleFactor
+
+                                Rectangle {
+                                    width: 58 * Theme.scaleFactor
+                                    height: 32 * Theme.scaleFactor
+                                    radius: 6 * Theme.scaleFactor
+                                    color: Theme.fieldBg
+                                    border.width: Theme.borderW
+                                    border.color: endInput.activeFocus ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.borderClr
+
+                                    TextInput {
+                                        id: endInput
+                                        anchors.fill: parent
+                                        anchors.margins: 4 * Theme.scaleFactor
+                                        horizontalAlignment: TextInput.AlignHCenter
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        font.pixelSize: 13 * Theme.scaleFactor
+                                        color: Theme.fg
+                                        selectByMouse: true
+                                        text: root.pendingEnd !== null ? (root.pendingEnd > root.totalPages ? String(root.totalPages) : String(root.pendingEnd)) : ""
+                                        validator: IntValidator {
+                                            bottom: root.pendingStart
+                                            top: root.totalPages + 1000
+                                        }
+                                        onTextEdited: {
+                                            var v = parseInt(text);
+                                            if (!isNaN(v) && v >= root.pendingStart && v <= root.totalPages + 1000) {
+                                                root.pendingEnd = v;
+                                            }
+                                        }
+                                        onActiveFocusChanged: {
+                                            if (!activeFocus) {
+                                                text = root.pendingEnd !== null ? (root.pendingEnd > root.totalPages ? String(root.totalPages) : String(root.pendingEnd)) : "";
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 减页按钮 [−]
+                                Rectangle {
+                                    width: 26 * Theme.scaleFactor
+                                    height: 32 * Theme.scaleFactor
+                                    radius: 6 * Theme.scaleFactor
+                                    color: btnDecMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
+                                    border.width: Theme.borderW
+                                    border.color: Theme.borderClr
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "−"
+                                        font.pixelSize: 14 * Theme.scaleFactor
+                                        color: Theme.fg
+                                    }
+
+                                    MouseArea {
+                                        id: btnDecMa
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var cur = root.pendingEnd !== null ? root.pendingEnd : root.pendingStart;
+                                            if (cur > root.pendingStart) {
+                                                root.pendingEnd = cur - 1;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 加页按钮 [+]
+                                Rectangle {
+                                    width: 26 * Theme.scaleFactor
+                                    height: 32 * Theme.scaleFactor
+                                    radius: 6 * Theme.scaleFactor
+                                    color: btnIncMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
+                                    border.width: Theme.borderW
+                                    border.color: Theme.borderClr
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "+"
+                                        font.pixelSize: 14 * Theme.scaleFactor
+                                        color: Theme.fg
+                                    }
+
+                                    MouseArea {
+                                        id: btnIncMa
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var cur = root.pendingEnd !== null ? root.pendingEnd : (root.pendingStart - 1);
+                                            if (cur < root.totalPages) {
+                                                root.pendingEnd = cur + 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.labels.pageUnit || qsTr("page")
+                                font.pixelSize: 13 * Theme.scaleFactor
+                                color: Theme.fg
+                            }
+
+                            // [至文末] 快捷按钮
+                            Rectangle {
+                                height: 32 * Theme.scaleFactor
+                                width: toEndText.implicitWidth + 16 * Theme.scaleFactor
+                                radius: 6 * Theme.scaleFactor
+                                color: toEndMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
+                                border.width: Theme.borderW
+                                border.color: (root.pendingEnd !== null && root.pendingEnd >= root.totalPages) ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.borderClr
+
+                                Text {
+                                    id: toEndText
+                                    anchors.centerIn: parent
+                                    text: root.labels.toEnd || qsTr("to end of document")
+                                    font.pixelSize: 12 * Theme.scaleFactor
+                                    color: (root.pendingEnd !== null && root.pendingEnd >= root.totalPages) ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.fg
+                                    font.bold: root.pendingEnd !== null && root.pendingEnd >= root.totalPages
+                                }
+
+                                MouseArea {
+                                    id: toEndMa
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.pendingEnd = root.totalPages + 1000;
+                                    }
+                                }
+                            }
+
+                            // （共 N 页）
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: root.pendingEnd !== null
+                                text: {
+                                    if (root.pendingEnd === null) return "";
+                                    var count = Math.min(root.totalPages, root.pendingEnd) - root.pendingStart + 1;
+                                    return "（共 " + count + " 页）";
+                                }
+                                font.pixelSize: 12 * Theme.scaleFactor
+                                color: Theme.muted
+                            }
                         }
                     }
 
@@ -543,10 +800,55 @@ DialogShell {
                                         onClicked: {
                                             if (!chip.isDisabled) {
                                                 root.curStyle = modelData.id;
+                                                if (modelData.id === "arabic") {
+                                                    root.pendingEnd = root.totalPages + 1000;
+                                                    root.tipMessage = (root.labels.arabicTip || qsTr("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1.")).arg(root.pendingStart);
+                                                } else if (modelData.id === "roman" || modelData.id === "Roman") {
+                                                    root.tipMessage = root.labels.romanTip || qsTr("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books.");
+                                                    if (root.pendingEnd === null) {
+                                                        root.pendingEnd = root.pendingStart;
+                                                    }
+                                                } else {
+                                                    root.tipMessage = "";
+                                                    if (root.pendingEnd === null) {
+                                                        root.pendingEnd = root.pendingStart;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    // 温馨提示条
+                    Rectangle {
+                        visible: root.tipMessage !== "" && !root.done()
+                        width: parent.width
+                        height: tipRow.implicitHeight + 16 * Theme.scaleFactor
+                        radius: 8 * Theme.scaleFactor
+                        color: Theme.dark ? "#263529" : "#eef8f2"
+                        border.width: Theme.borderW
+                        border.color: Theme.dark ? "#2f6a67" : "#a3d9c9"
+
+                        Row {
+                            id: tipRow
+                            anchors.fill: parent
+                            anchors.margins: 8 * Theme.scaleFactor
+                            spacing: 8 * Theme.scaleFactor
+
+                            Text {
+                                text: "💡"
+                                font.pixelSize: 13 * Theme.scaleFactor
+                            }
+
+                            Text {
+                                width: parent.width - 28 * Theme.scaleFactor
+                                text: root.tipMessage
+                                font.pixelSize: 12 * Theme.scaleFactor
+                                color: Theme.dark ? "#bfeeeb" : "#194f53"
+                                wrapMode: Text.WordWrap
                             }
                         }
                     }

@@ -756,6 +756,9 @@
 ("decimal dot" "小数点")
 ("decorate atoms" "")
 ("Deep Reasoning" "深度思考")
+("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1."
+  "已默认从第 %1 页全选至文末（最后一页 + 1000），让页码 1 从第 %1 页开始标注。"
+) ;
 ("default padding" "默认填充")
 ("default" "默认")
 ("default style for writing books" "书籍默认样式")
@@ -790,6 +793,9 @@
 ("developer" "开发者")
 ("developers guide" "程序源码")
 ("diamond" "菱形")
+("Directly enter page range, click [to end of document], or drag handle"
+  "可直接输入页码、点击[至文末]或在左侧拖动手柄"
+) ;
 ("directory" "目录")
 ("disable case sensitivity" "忽略大小写")
 ("disable emoji shortcuts" "关闭 Emoji 快捷键")
@@ -1093,6 +1099,8 @@
 ("french" "法语")
 ("From: " "来自：")
 ("from center" "从中心")
+("From page" "从第")
+("from page" "从第")
 ("from %1" "从 %1 开始")
 ("front matter" "前置部分")
 ("full manuals" "完全手册")
@@ -2010,6 +2018,7 @@
 ("page setup" "页面设置")
 ("page top margin" "")
 ("page type" "页面种类")
+("page unit" "页")
 ("page width" "页面宽度")
 ("page" "页面")
 ("palette" "调色板")
@@ -2320,6 +2329,9 @@
 ("rigid horizontal" "")
 ("rigid space" "")
 ("rigid" "刚性的")
+("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books."
+  "罗马数字页码（i 或 I）一般用于图书的目录和序。"
+) ;
 ("romanian" "罗马尼亚语")
 ("root" "根")
 ("rotate backward" "")
@@ -2794,6 +2806,8 @@
 ("title" "标题")
 ("Title style" "标题样式")
 ("to end of document" "至文末")
+("to page" "至第")
+("To page" "至第")
 ("to the left" "")
 ("to the right" "")
 ("today" "今天")
