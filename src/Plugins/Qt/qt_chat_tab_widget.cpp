@@ -29,6 +29,7 @@
 #include <moebius/tree_label.hpp>
 
 #include <QAbstractScrollArea>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QDockWidget>
 #include <QGraphicsDropShadowEffect>
@@ -955,6 +956,26 @@ chat_model_menu_populate (QMenu* menu, const QList<ChatModelInfo>& models,
     act->setDefaultWidget (row);
     menu->addAction (act);
   }
+}
+
+QMenu*
+chat_effort_menu_populate (QMenu* menu, const string& currentEffort) {
+  menu->addSeparator ();
+  QMenu* effortMenu= menu->addMenu (qt_translate ("thinking effort"));
+  // 互斥单选：三档强度与取值一一对应，词条走词典本地化
+  QActionGroup* group= new QActionGroup (effortMenu);
+  group->setExclusive (true);
+  string      efforts[]= {"low", "medium", "high"};
+  const char* labels[] = {"low effort", "medium effort", "high effort"};
+  string      current  = currentEffort; // string::operator== 非 const
+  for (int i= 0; i < 3; i++) {
+    QAction* a= effortMenu->addAction (qt_translate (labels[i]));
+    a->setCheckable (true);
+    a->setChecked (current == efforts[i]);
+    a->setData (to_qstring (efforts[i]));
+    group->addAction (a);
+  }
+  return effortMenu;
 }
 
 /******************************************************************************

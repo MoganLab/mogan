@@ -35,19 +35,20 @@ enum class ChatState {
  * @brief 单个聊天会话的数据。
  */
 struct ChatSession {
-  string                 sessionId;          ///< UUID，创建时生成
-  string                 title;              ///< 会话标题，初始为空字符串
-  string                 titlePrefix;        ///< 自动生成标题时的前缀，默认空
-  string                 model;              ///< 绑定的模型名称
-  ChatState              state;              ///< 当前生成状态
-  bool                   archived;           ///< 是否归档
-  time_t                 createdAt;          ///< 创建时间（Unix 时间戳）
-  time_t                 updateAt;           ///< 最近活跃时间（用于排序索引）
-  int                    defaultExpandCount; ///< 默认展开对话条数，固定为 5
-  bool                   thinking;           ///< 是否启用推理模式，默认 false
-  bool                   search;             ///< 是否启用网络搜索，默认 false
-  bool                   registered; ///< 是否已注册到持久化层（已加入 sidebar）
-  ChatConversationPanel* panel;      ///< 关联的面板指针
+  string    sessionId;           ///< UUID，创建时生成
+  string    title;               ///< 会话标题，初始为空字符串
+  string    titlePrefix;         ///< 自动生成标题时的前缀，默认空
+  string    model;               ///< 绑定的模型名称
+  ChatState state;               ///< 当前生成状态
+  bool      archived;            ///< 是否归档
+  time_t    createdAt;           ///< 创建时间（Unix 时间戳）
+  time_t    updateAt;            ///< 最近活跃时间（用于排序索引）
+  int       defaultExpandCount;  ///< 默认展开对话条数，固定为 5
+  bool      thinking;            ///< 是否启用推理模式，默认 false
+  string    thinkingEffort;      ///< 思考强度 low/medium/high，默认 medium
+  bool      search;              ///< 是否启用网络搜索，默认 false
+  bool      registered;          ///< 是否已注册到持久化层（已加入 sidebar）
+  ChatConversationPanel*  panel; ///< 关联的面板指针
   QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
 
   /**
@@ -147,6 +148,20 @@ public:
   bool getThinking (const string& sessionId) const;
 
   /**
+   * @brief 设置会话的思考强度（非法取值归一化为 medium）。
+   * @param sessionId 目标会话 ID
+   * @param effort    思考强度（low/medium/high）
+   */
+  void setThinkingEffort (const string& sessionId, const string& effort);
+
+  /**
+   * @brief 获取会话的思考强度。
+   * @param sessionId 目标会话 ID
+   * @return 思考强度，会话不存在时返回 "medium"
+   */
+  string getThinkingEffort (const string& sessionId) const;
+
+  /**
    * @brief 设置会话的网络搜索开关。
    * @param sessionId 目标会话 ID
    * @param search    是否启用网络搜索
@@ -191,6 +206,15 @@ public:
    * @return 可复用的会话 ID，无则返回空字符串
    */
   string findReusableSession () const;
+
+  /**
+   * @brief 查找最近一条有标题（发送过消息）的会话 ID。
+   *
+   * 按 updateAt 降序遍历 timeIndex_，返回第一个标题非空的会话。
+   *
+   * @return 会话 ID，不存在则返回空字符串
+   */
+  string firstTitledSessionId () const;
 
   /**
    * @brief 更新会话活跃时间并重排索引。

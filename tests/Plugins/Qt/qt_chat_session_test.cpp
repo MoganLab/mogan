@@ -92,6 +92,18 @@ private slots:
   void test_getThinking_nonexistent ();
   void test_setThinking_nonexistent ();
 
+  // === thinkingEffort ===
+  void test_createSession_thinkingEffort_default_medium ();
+  void test_setThinkingEffort_and_getThinkingEffort ();
+  void test_setThinkingEffort_invalid_normalized ();
+  void test_getThinkingEffort_nonexistent ();
+  void test_setThinkingEffort_nonexistent ();
+
+  // === firstTitledSessionId ===
+  void test_firstTitledSessionId_empty ();
+  void test_firstTitledSessionId_all_untitled ();
+  void test_firstTitledSessionId_returns_newest_titled ();
+
   // === search ===
   void test_createSession_search_default_false ();
   void test_setSearch_and_getSearch ();
@@ -659,6 +671,94 @@ TestChatSession::test_setThinking_nonexistent () {
   ChatSessionManager mgr;
   mgr.setThinking ("nonexistent-id", true);
   // 不应崩溃
+}
+
+/******************************************************************************
+ * thinkingEffort
+ ******************************************************************************/
+
+void
+TestChatSession::test_createSession_thinkingEffort_default_medium () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  QVERIFY (mgr.getThinkingEffort (sid) == string ("medium"));
+  QVERIFY (mgr.getSession (sid)->thinkingEffort == string ("medium"));
+}
+
+void
+TestChatSession::test_setThinkingEffort_and_getThinkingEffort () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setThinkingEffort (sid, "high");
+  QVERIFY (mgr.getThinkingEffort (sid) == string ("high"));
+  QVERIFY (mgr.getSession (sid)->thinkingEffort == string ("high"));
+
+  mgr.setThinkingEffort (sid, "low");
+  QVERIFY (mgr.getThinkingEffort (sid) == string ("low"));
+}
+
+void
+TestChatSession::test_setThinkingEffort_invalid_normalized () {
+  // 非法取值在写入边界归一化为 medium
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setThinkingEffort (sid, "extreme");
+  QVERIFY (mgr.getThinkingEffort (sid) == string ("medium"));
+}
+
+void
+TestChatSession::test_getThinkingEffort_nonexistent () {
+  ChatSessionManager mgr;
+  QVERIFY (mgr.getThinkingEffort ("nonexistent-id") == string ("medium"));
+}
+
+void
+TestChatSession::test_setThinkingEffort_nonexistent () {
+  ChatSessionManager mgr;
+  mgr.setThinkingEffort ("nonexistent-id", "high");
+  // 不应崩溃
+}
+
+/******************************************************************************
+ * firstTitledSessionId
+ ******************************************************************************/
+
+/// 构造指定时间戳的会话（标题可选），供 firstTitledSessionId 用例使用
+static ChatSession
+make_session_at (const char* id, time_t at, const char* title) {
+  ChatSession s;
+  s.sessionId= id;
+  s.title    = title;
+  s.state    = ChatState::Idle;
+  s.createdAt= at;
+  s.updateAt = at;
+  s.archived = false;
+  s.panel    = nullptr;
+  return s;
+}
+
+void
+TestChatSession::test_firstTitledSessionId_empty () {
+  ChatSessionManager mgr;
+  QVERIFY (mgr.firstTitledSessionId () == string (""));
+}
+
+void
+TestChatSession::test_firstTitledSessionId_all_untitled () {
+  ChatSessionManager mgr;
+  mgr.createSession ();
+  mgr.createSession ();
+  QVERIFY (mgr.firstTitledSessionId () == string (""));
+}
+
+void
+TestChatSession::test_firstTitledSessionId_returns_newest_titled () {
+  ChatSessionManager mgr;
+  // 最新会话无标题（空白会话）时跳过，取次新的有标题会话
+  mgr.insertSession (make_session_at ("titled-old", 1000, "Old Chat"));
+  mgr.insertSession (make_session_at ("titled-new", 2000, "New Chat"));
+  mgr.insertSession (make_session_at ("untitled-newest", 3000, ""));
+  QVERIFY (mgr.firstTitledSessionId () == string ("titled-new"));
 }
 
 /******************************************************************************

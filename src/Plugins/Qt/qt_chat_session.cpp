@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_chat_session.hpp"
+#include "qt_chat_model.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 
@@ -34,6 +35,7 @@ ChatSessionManager::createSession () {
   session.updateAt          = now;
   session.defaultExpandCount= 5;
   session.thinking          = false;
+  session.thinkingEffort    = "medium";
   session.search            = false;
   session.registered        = false;
   session.panel             = nullptr;
@@ -118,6 +120,21 @@ ChatSessionManager::getThinking (const string& sessionId) const {
 }
 
 void
+ChatSessionManager::setThinkingEffort (const string& sessionId,
+                                       const string& effort) {
+  // 写入边界统一归一化，读取侧无需再校验
+  ChatSession* s= getSession (sessionId);
+  if (s) s->thinkingEffort= chat_normalize_thinking_effort (effort);
+}
+
+string
+ChatSessionManager::getThinkingEffort (const string& sessionId) const {
+  auto it= sessions_.find (sessionId);
+  if (it != sessions_.end ()) return it->second.thinkingEffort;
+  return "medium";
+}
+
+void
 ChatSessionManager::setSearch (const string& sessionId, bool search) {
   ChatSession* s= getSession (sessionId);
   if (s) s->search= search;
@@ -168,6 +185,16 @@ ChatSessionManager::findReusableSession () const {
     const ChatSession& s= it->second;
     // 无标题 = 空白会话（未发过消息），无论是否有面板都可复用
     if (is_empty (s.title)) return ti.sessionId;
+  }
+  return "";
+}
+
+string
+ChatSessionManager::firstTitledSessionId () const {
+  for (const auto& ti : timeIndex_) {
+    auto it= sessions_.find (ti.sessionId);
+    if (it != sessions_.end () && !is_empty (it->second.title))
+      return ti.sessionId;
   }
   return "";
 }

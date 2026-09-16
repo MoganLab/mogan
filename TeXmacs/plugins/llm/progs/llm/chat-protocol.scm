@@ -32,7 +32,9 @@
 ;;; ---------- Record Type ----------
 
 (define-record-type <chat-input>
-  (make-chat-input input session-id model base-url thinking search)
+  (make-chat-input input session-id model base-url thinking search
+    thinking-effort
+  ) ;make-chat-input
   chat-input?
   (input chat-input-input)
   (session-id chat-input-session-id)
@@ -40,6 +42,7 @@
   (base-url chat-input-base-url)
   (thinking chat-input-thinking)
   (search chat-input-search)
+  (thinking-effort chat-input-thinking-effort)
 ) ;define-record-type
 
 (define (chat-input->json ctx)
@@ -51,6 +54,7 @@
         (cons "baseUrl" (chat-tab-resolve-base-url (chat-input-base-url ctx)))
         (cons "thinking" (chat-input-thinking ctx))
         (cons "search" (chat-input-search ctx))
+        (cons "thinkingEffort" (chat-input-thinking-effort ctx))
       ) ;list
     ) ;cons
     (cons "content" (chat-tab-tree->plain-text (chat-input-input ctx)))
@@ -367,13 +371,16 @@
 
 ;;; ---------- 发送 ----------
 
-(tm-define (chat-tab-session-send session-id model base-url thinking search)
+(tm-define (chat-tab-session-send session-id model base-url thinking search
+             thinking-effort
+           ) ;chat-tab-session-send
   (:synopsis "Send user message through chat tab session")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
   (:argument base-url "Raw base_url from model manifest, may be relative")
   (:argument thinking "Thinking mode: enabled or disabled")
   (:argument search "Search mode: enabled or disabled")
+  (:argument thinking-effort "Thinking effort: low, medium or high")
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
@@ -419,7 +426,11 @@
                     #t
                   ) ;begin
                   (begin
-                    (let ((ctx (make-chat-input input session-id model base-url thinking search)))
+                    (let ((ctx (make-chat-input input session-id model base-url
+                                 thinking search thinking-effort
+                               ) ;make-chat-input
+                          ) ;ctx
+                         ) ;
                       (chat-tab-session-feed chat-tab-session-name plugin-ses ctx out '())
                     ) ;let
                     #t
@@ -460,14 +471,17 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (chat-tab-send session-id model base-url thinking search)
+(tm-define (chat-tab-send session-id model base-url thinking search thinking-effort)
   (:synopsis "Adapter send entry for a chat tab")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
   (:argument base-url "Raw base_url from model manifest, may be relative")
   (:argument thinking "Thinking mode")
   (:argument search "Search mode")
-  (chat-tab-session-send session-id model base-url thinking search)
+  (:argument thinking-effort "Thinking effort: low, medium or high")
+  (chat-tab-session-send session-id model base-url thinking search
+    thinking-effort
+  ) ;chat-tab-session-send
 ) ;tm-define
 
 (tm-define (chat-tab-cancel session-id)
