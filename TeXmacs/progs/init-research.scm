@@ -557,7 +557,6 @@
 ;; (display "Booting database facilities\n")
 (lazy-define (database db-convert) db-url?)
 (lazy-define (database bib-db) zealous-bib-import zealous-bib-export)
-(lazy-define (database bib-manage) bib-import-bibtex bib-compile bib-attach)
 
 
 ;; (display "Booting linking facilities\n")

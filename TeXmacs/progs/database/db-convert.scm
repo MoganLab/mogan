@@ -219,13 +219,8 @@
 ;; Subroutines for syncing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define db-forced-kinds? #f)
-
 (define (db-force-kinds)
-  (when (not db-forced-kinds?)
-    (import-from (database bib-manage))
-    (set! db-forced-kinds? #t)
-  ) ;when
+  (noop)
 ) ;define
 
 (tm-define (db-change-list uid kind t)
