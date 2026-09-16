@@ -89,6 +89,9 @@ DialogShell {
     }
 
     onPendingEndChanged: {
+        if (!endInput.activeFocus) {
+            endInput.text = root.pendingEnd !== null ? (root.pendingEnd > root.totalPages ? String(root.totalPages) : String(root.pendingEnd)) : "";
+        }
         if (!root.dragging && root.pendingEnd !== null) {
             var targetY = (Math.min(root.totalPages, root.pendingEnd) - 1) * root.rowH;
             if (targetY < stripFlickable.contentY || targetY > stripFlickable.contentY + stripFlickable.height - root.rowH) {
@@ -801,7 +804,7 @@ DialogShell {
                                                     root.pendingEnd = root.totalPages + 1000;
                                                     root.tipMessage = (root.labels.arabicTip || qsTr("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1.")).arg(root.pendingStart);
                                                 } else {
-                                                    root.pendingEnd = root.pendingStart;
+                                                    root.pendingEnd = null;
                                                     if (modelData.id === "roman" || modelData.id === "Roman") {
                                                         root.tipMessage = root.labels.romanTip || qsTr("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books.");
                                                     } else {
