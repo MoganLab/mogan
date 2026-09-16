@@ -51,6 +51,7 @@
 ) ;define
 
 ;; scratch 草稿无本地 tmu 位置，不落 no_name 暂存目录，落 Documents/LiiiSTEM。
+;; 导出 PDF 建议文件名使用草稿对应的文件名（Issue #1304）。
 
 (define (test-scratch-goes-to-documents)
   (let ((master (url-append (get-documents-path) "LiiiSTEM/no_name/draft_20260905_120000.tmu")
@@ -59,6 +60,25 @@
        ) ;
     (check (url-scratch? master) => #t)
     (check (url->system (export-pdf-default-dir master)) => doc-dir)
+    (check (propose-export-pdf-name #f master) => "draft_20260905_120000.pdf")
+    (check (propose-export-pdf-name #t master) => "draft_20260905_120000.tmu.pdf")
+  ) ;let
+) ;define
+
+(define (test-scratch-stem-export-pdf-name)
+  (let ((master (url-append (get-documents-path) "LiiiSTEM/no_name/draft_20260905_120000.stem")
+        ) ;master
+       ) ;
+    (check (url-scratch? master) => #t)
+    (check (propose-export-pdf-name #f master) => "draft_20260905_120000.pdf")
+    (check (propose-export-pdf-name #t master) => "draft_20260905_120000.tmu.pdf")
+  ) ;let
+) ;define
+
+(define (test-normal-doc-export-pdf-name)
+  (let ((master (system->url "/tmp/1268/demo.tmu")))
+    (check (propose-export-pdf-name #f master) => "demo.pdf")
+    (check (propose-export-pdf-name #t master) => "demo.tmu.pdf")
   ) ;let
 ) ;define
 
@@ -120,6 +140,8 @@
   (test-below-texmacs-path-goes-to-documents)
   (test-below-texmacs-home-path-goes-to-documents)
   (test-scratch-goes-to-documents)
+  (test-scratch-stem-export-pdf-name)
+  (test-normal-doc-export-pdf-name)
   (test-tmfs-goes-to-documents)
   (test-ensure-suffix-appends-when-missing)
   (test-ensure-suffix-keeps-pdf)

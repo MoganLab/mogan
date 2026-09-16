@@ -188,23 +188,32 @@
   (user-confirm-open-pdf fname)
 ) ;tm-define
 
-(define (propose-export-pdf-name embedded?)
+(define (propose-export-pdf-name embedded? . opt-master)
   ;; 导出 PDF 默认名：xxx.pdf；勾选嵌入源文档（tmu 附件）时为 xxx.tmu.pdf
   ;; （对齐旧「可编辑PDF」入口的 tmu.pdf 命名）。
-  (with name
-    (propose-name-buffer)
-    (with t
-      (url->system (url-tail (system->url name)))
-      (string-append (cond ((== t "") "untitled")
-                           ((string-ends? t ".tmu") (string-drop-right t 4))
-                           ((string-ends? t ".tm") (string-drop-right t 3))
-                           ((string-ends? t ".pdf") (string-drop-right t 4))
-                           (else t)
-                     ) ;cond
-        (if embedded? ".tmu.pdf" ".pdf")
-      ) ;string-append
-    ) ;with
-  ) ;with
+  ;; 草稿文档（scratch buffer）使用草稿对应的文件名（例如 draft_20260905_120000）。
+  (let* ((master (if (pair? opt-master) (car opt-master) (buffer-get-master (current-buffer)))
+         ) ;master
+         (name
+           (cond ((url-scratch? master) (url->unix master))
+                 ((url-rooted-tmfs? master) (cork->utf8 (buffer-get-title (current-buffer))))
+                 ((pair? opt-master) (url->unix master))
+                 (else (propose-name-buffer))
+           ) ;cond
+         ) ;name
+         (t (url->system (url-tail (system->url name))))
+         (stem (cond ((== t "") "untitled")
+                     ((string-ends? t ".tmu") (string-drop-right t 4))
+                     ((string-ends? t ".stem") (string-drop-right t 5))
+                     ((string-ends? t ".tm") (string-drop-right t 3))
+                     ((string-ends? t ".pdf") (string-drop-right t 4))
+                     (else t)
+               ) ;cond
+         ) ;stem
+         (suffix (if embedded? ".tmu.pdf" ".pdf"))
+        ) ;
+    (string-append stem suffix)
+  ) ;let*
 ) ;define
 
 (tm-define (export-pdf-default-dir master)
@@ -252,11 +261,12 @@
   (with result
     (with default-path
       ;; 缺省目的地：缺省目录 + 建议文件名。
-      (url->system
-        (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
-          (system->url (propose-export-pdf-name #f))
-        ) ;url-append
-      ) ;url->system
+      (let* ((master (buffer-get-master (current-buffer)))
+             (dir (export-pdf-default-dir master))
+             (name (propose-export-pdf-name #f master))
+            ) ;
+        (url->system (url-append dir (system->url name)))
+      ) ;let*
       (cpp-export-pdf-dialog
         (stree->tree
           `(export-pdf-form (toggle ,(translate "Embed source document")
