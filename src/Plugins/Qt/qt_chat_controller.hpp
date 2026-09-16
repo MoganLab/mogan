@@ -226,6 +226,17 @@ private:
   void ensureNewConversation ();
 
   /**
+   * @brief 创建全新会话并激活，绝不复用已有空白会话。
+   *
+   * 与 ensureNewConversation 的差别：空白会话里可能有未发送的输入草稿，
+   * AI 翻译等一次性动作不应覆盖它，故每次都创建全新会话。
+   * @param titlePrefix 会话首次发送自动生成标题时附加的前缀（AI 翻译会话
+   *                    标记来源，走词典本地化），默认为空
+   * @return 新会话的面板指针，创建失败时返回 nullptr
+   */
+  ChatConversationPanel* createNewConversation (const string& titlePrefix= "");
+
+  /**
    * @brief 获取或按需创建面板（延迟加载场景）。
    * @param sessionId 目标会话 ID
    * @return 面板指针，失败时返回 nullptr
@@ -303,9 +314,11 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
 /**
  * @brief 引用文档选区到 AI 聊天输入区；翻译动作追加提示词并自动发送。
  *
- * AI 操作栏（翻译/对话）的共用入口：打开 AI 侧边栏，把选区内容写入当前
- * 会话输入区。translate 在引用内容下方追加固定提示词并走与发送按钮相同的
- * onSendRequested 管线自动发送；chat 只填入输入区，留给用户补写后手动发送。
+ * AI 操作栏（翻译/对话）的共用入口：打开 AI 侧边栏，把选区内容写入输入区。
+ * translate 每次都进全新会话（不复用空白会话，避免覆盖未发送的草稿），在
+ * 引用内容下方追加固定提示词并走与发送按钮相同的 onSendRequested 管线自动
+ * 发送，会话标题带词典本地化的「翻译: 」前缀；chat 只填入当前会话输入区，
+ * 留给用户补写后手动发送。
  * @param sel    文档选区树（调用方须在焦点/视图切换前捕获）
  * @param action AI 动作：translate 或 chat
  */

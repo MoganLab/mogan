@@ -90,6 +90,13 @@ ChatSessionManager::setModel (const string& sessionId, const string& model) {
   if (s) s->model= model;
 }
 
+void
+ChatSessionManager::setTitlePrefix (const string& sessionId,
+                                    const string& prefix) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->titlePrefix= prefix;
+}
+
 string
 ChatSessionManager::getModel (const string& sessionId) const {
   auto it= sessions_.find (sessionId);
@@ -255,5 +262,5 @@ ChatSessionManager::generateTitleFromContent (const string& sessionId) {
   if (!s || !is_empty (s->title)) return;
 
   string extracted= as_string (call ("chat-persist-extract-title", sessionId));
-  setTitle (sessionId, ChatSession::formatTitle (extracted));
+  setTitle (sessionId, s->titlePrefix * ChatSession::formatTitle (extracted));
 }

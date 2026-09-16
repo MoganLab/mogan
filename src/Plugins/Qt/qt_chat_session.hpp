@@ -37,6 +37,7 @@ enum class ChatState {
 struct ChatSession {
   string                 sessionId;          ///< UUID，创建时生成
   string                 title;              ///< 会话标题，初始为空字符串
+  string                 titlePrefix;        ///< 自动生成标题时的前缀，默认空
   string                 model;              ///< 绑定的模型名称
   ChatState              state;              ///< 当前生成状态
   bool                   archived;           ///< 是否归档
@@ -102,6 +103,13 @@ public:
    * @param title     新标题
    */
   void setTitle (const string& sessionId, const string& title);
+
+  /**
+   * @brief 设置会话自动生成标题时的前缀。
+   * @param sessionId 目标会话 ID
+   * @param prefix    标题前缀
+   */
+  void setTitlePrefix (const string& sessionId, const string& prefix);
 
   /**
    * @brief 设置会话生成状态。
@@ -222,7 +230,8 @@ public:
    * @brief 从 Scheme 提取内容并生成标题，设置到 session。
    *
    * 调用 chat-persist-extract-title 获取原始文本，通过 formatTitle() 格式化后
-   * 写入 session->title。仅当 session 无标题时执行，已有标题不覆盖。
+   * 加上会话的 titlePrefix（AI 翻译会话等来源标记）写入 session->title。
+   * 仅当 session 无标题时执行，已有标题不覆盖。
    * @param sessionId 目标会话 ID
    */
   void generateTitleFromContent (const string& sessionId);
