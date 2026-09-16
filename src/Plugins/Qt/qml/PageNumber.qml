@@ -54,7 +54,7 @@ DialogShell {
     property int autoScrollDir: 0
 
     readonly property real rowH: 38 * Theme.scaleFactor
-    readonly property var ruleColors: ["#d32f2f", "#ea580c", "#f59e0b", "#3a7bd5", "#0891b2", "#7b61c9"]
+    readonly property var ruleColors: ["#d32f2f", "#7b61c9", "#f59e0b", "#3a7bd5", "#ea580c", "#0891b2"]
 
     // 样式选项定义
     readonly property var styleDefs: [
