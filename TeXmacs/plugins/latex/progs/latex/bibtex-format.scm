@@ -14,10 +14,10 @@
 (texmacs-module (latex bibtex-format))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Raw BibTeX, as implemented by David Michel
+;; BibTeX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-format bibtex (:name "RawBibTeX") (:suffix "rawbib") (:hidden))
+(define-format bibtex (:name "BibTeX") (:suffix "bib"))
 
 (lazy-define (latex convert-bibtex-bibtextm) parse-bibtex-snippet)
 (lazy-define (latex convert-bibtex-bibtextm) parse-bibtex-document)
@@ -36,26 +36,3 @@
 (converter bibtex-stree bibtex-snippet (:function serialize-bibtex))
 
 (converter texmacs-stree bibtex-stree (:function texmacs->bibtex))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; BibTeX, presented using the TeXmacs database format
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-format tmbib (:name "BibTeX") (:suffix "bib"))
-
-(lazy-define (database bib-db) tmbib-snippet->texmacs)
-(lazy-define (database bib-db) tmbib-document->texmacs)
-(lazy-define (database bib-db) texmacs->tmbib-snippet)
-(lazy-define (database bib-db) texmacs->tmbib-document)
-
-(converter tmbib-snippet texmacs-stree (:function tmbib-snippet->texmacs))
-
-(converter tmbib-document texmacs-stree (:function tmbib-document->texmacs))
-
-(converter texmacs-stree tmbib-snippet (:function texmacs->tmbib-snippet))
-
-(converter texmacs-stree tmbib-document (:function texmacs->tmbib-document))
-
-(define-preferences ("bibtex->texmacs:conservative" "on" noop)
- ("texmacs->bibtex:conservative" "on" noop)
-) ;define-preferences
