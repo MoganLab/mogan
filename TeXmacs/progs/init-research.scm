@@ -565,10 +565,8 @@
   bib-attach
   open-bib-chooser
 ) ;lazy-define
-(lazy-define (database bib-local) open-biblio)
 (lazy-menu (database db-menu) db-menu db-toolbar)
 (lazy-tmfs-handler (database db-tmfs) db)
-(tm-property (open-biblio) (:interactive #t))
 
 
 ;; (display "Booting linking facilities\n")
