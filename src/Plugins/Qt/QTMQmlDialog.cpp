@@ -31,6 +31,7 @@ using moebius::data::scm_unquote;
 using moebius::data::tree_to_scheme_tree;
 
 #include <QDialog>
+#include <QDir>
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickItem>
@@ -149,6 +150,7 @@ static QmlDialogBridge*
 inject_common_context (QQuickWidget* qw, QDialog& host) {
   QmlDialogBridge* bridge= new QmlDialogBridge (&host);
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("homePath", QDir::homePath ());
   qt_inject_theme_context (qw);
   return bridge;
 }

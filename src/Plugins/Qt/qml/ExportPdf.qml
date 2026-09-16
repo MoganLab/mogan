@@ -53,6 +53,22 @@ DialogShell {
     }
     property string pathKey: pathField ? pathField.key : ""
     property string pathValue: root.values[pathKey] !== undefined ? root.values[pathKey] : ""
+    property string homeDirectory: typeof homePath !== "undefined" ? homePath : ""
+    property string displayPath: formatDisplayPath(pathValue, homeDirectory)
+
+    function formatDisplayPath(p, home) {
+        if (!p) return "";
+        if (!home) return p;
+        var normP = p.replace(/\\/g, "/");
+        var normHome = home.replace(/\\/g, "/");
+        if (normHome.length > 1 && normHome.endsWith("/"))
+            normHome = normHome.slice(0, -1);
+        if (normP === normHome)
+            return "~";
+        if (normP.startsWith(normHome + "/"))
+            return "~/" + normP.slice(normHome.length + 1);
+        return p;
+    }
 
     // 字段运行时值：Repeater 的 modelData 只读，故另起对象存当前值，确认时整包提交。
     // 切换经 onToggled 改此对象再回赋，触发 delegate 的 value binding 刷新显示。
@@ -128,7 +144,7 @@ DialogShell {
                     anchors.leftMargin: Theme.comboPad
                     anchors.rightMargin: Theme.comboPad
                     verticalAlignment: Text.AlignVCenter
-                    text: root.pathValue
+                    text: root.displayPath
                     color: Theme.fg
                     font.pixelSize: Theme.fontBody
                     elide: Text.ElideMiddle
