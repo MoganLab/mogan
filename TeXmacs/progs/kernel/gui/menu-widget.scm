@@ -204,7 +204,7 @@
 
 (define (menu-translate s)
   (let ((t (translate s)))
-    (if (and (string? t) (== t s)) (utf8->herk t) t)
+    (if (== t s) (utf8->herk t) t)
   ) ;let
 ) ;define
 
