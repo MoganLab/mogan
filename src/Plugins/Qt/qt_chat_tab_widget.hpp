@@ -147,11 +147,24 @@ public:
   static bool is_empty_document_body (tree body);
 
   /**
-   * @brief 计算输入文档的行数。
+   * @brief 计算输入文档的内容行数（含引用块、表格等特殊格式）。
+   *
+   * 详细计数规则见 qt_chat_tab_widget.cpp 的 count_input_lines_rec。
    * @param body 文档体 tree
-   * @return 行数，非 DOCUMENT 类型返回 1
+   * @return 内容行数，非 DOCUMENT 类型返回 1
    */
   static int count_input_lines (tree body);
+
+  /**
+   * @brief 按内容行数计算输入框的固定高度档位。
+   *
+   * 档位为基准（kInputDefaultLines）的 1~5 倍：内容行数按基准向上取
+   * 整到档位倍数（1~3 行维持现有大小，4~6 行取 2 倍，依此类推），
+   * 5 倍封顶，超出部分在输入区内滚动。不随行数逐行渐变。
+   * @param docLines 输入文档行数
+   * @return 目标可视行数（kInputDefaultLines 的 1~5 倍）
+   */
+  static int input_height_step_lines (int docLines);
 
   /**
    * @brief 判断只读控件是否应拦截该事件。
@@ -180,7 +193,6 @@ signals:
   /// 请求弹出模型选择菜单；globalPos 为 Model 按钮左上角全局坐标，
   /// 菜单由 Controller 在按钮上方完整弹出（不遮挡按钮）
   void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
-  void inputHeightChanged ();
   void closeSidebarInDockModeRequested ();
 
 protected:
@@ -190,14 +202,18 @@ protected:
   void resizeEvent (QResizeEvent* event) override;
 
 public:
-  /// 在当前事件处理完成后更新输入区高度，避免读取到旧排版结果
+  /// 在当前事件处理完成后把输入区高度更新到固定档位，避免读取到旧排版结果
   void schedule_input_height_adjust ();
 
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
-  /// 根据内容动态调整输入区高度
+  /// 按内容行数把输入区高度切换到固定档位
   void adjust_input_height ();
+  /// 按档位行数组合输入框 frame 的目标高度（行高 + 边框额外高度）
+  int input_frame_height_for_lines (int docLines);
+  /// 输入框 frame 的封顶档高度（档位策略单一来源）
+  int input_frame_max_height ();
 
   string       sessionId_;                  ///< 所属会话 ID
   url          msgBufferUrl_;               ///< 消息缓冲区 URL（外部注入）
