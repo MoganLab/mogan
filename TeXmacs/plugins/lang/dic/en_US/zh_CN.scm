@@ -1997,7 +1997,6 @@
 ("page layout" "页面布局")
 ("Page number style" "页码样式")
 ("Page mapping" "页码映射")
-("page number..." "页码...")
 ("page number settings" "页码设置")
 ("page number text" "设定页码文字")
 ("Page number" "页码")

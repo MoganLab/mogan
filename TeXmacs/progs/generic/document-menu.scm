@@ -1034,7 +1034,7 @@
   (-> "Font" (link document-full-font-menu))
   (-> "Paragraph" (link document-paragraph-menu))
   (-> "Page" (link document-page-menu))
-  ("Page number..." (open-document-page-number))
+  ("Page number" (open-document-page-number))
   (-> "Headers and footers" (link document-headers-footers-menu))
   (-> "Metadata" (link document-metadata-menu))
   ---
@@ -1069,7 +1069,7 @@
   ("Font" (interactive open-document-font-selector))
   ("Paragraph" (open-document-paragraph-format))
   ("Page" (open-document-page-format))
-  ("Page number..." (open-document-page-number))
+  ("Page number" (open-document-page-number))
   ("Headers and footers" (open-page-headers-footers))
   ("Metadata" (open-document-metadata))
   ;; ("Colors" (open-document-colors))
