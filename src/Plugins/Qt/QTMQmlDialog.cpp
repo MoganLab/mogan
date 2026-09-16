@@ -150,7 +150,6 @@ static QmlDialogBridge*
 inject_common_context (QQuickWidget* qw, QDialog& host) {
   QmlDialogBridge* bridge= new QmlDialogBridge (&host);
   qw->rootContext ()->setContextProperty ("closeBridge", bridge);
-  qw->rootContext ()->setContextProperty ("homePath", QDir::homePath ());
   qt_inject_theme_context (qw);
   return bridge;
 }
@@ -1114,6 +1113,8 @@ cpp_export_pdf_dialog (tree form) {
         qw->rootContext ()->setContextProperty ("browseLabel",
                                                 qt_translate ("Browse"));
         qw->rootContext ()->setContextProperty ("browseBridge", browseBridge);
+        // 目的地路径展示把家目录缩短为 ~/（仅 ExportPdf.qml 消费）
+        qw->rootContext ()->setContextProperty ("homePath", QDir::homePath ());
       },
       460, logicH);
 

@@ -95,15 +95,18 @@
 ;; 目的地后缀兜底（Issue #1271）：不带 pdf 后缀补 .pdf，已带则原样保留。
 
 (define (test-ensure-suffix-appends-when-missing)
-  (check (export-pdf-ensure-suffix "/tmp/1268/demo") => "/tmp/1268/demo.pdf")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo" #f) => "/tmp/1268/demo.pdf")
 ) ;define
 
 (define (test-ensure-suffix-keeps-pdf)
-  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf") => "/tmp/1268/demo.pdf")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf" #f)
+    =>
+    "/tmp/1268/demo.pdf"
+  ) ;check
 ) ;define
 
 (define (test-ensure-suffix-appends-after-other-suffix)
-  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak" #f)
     =>
     "/tmp/1268/demo.bak.pdf"
   ) ;check

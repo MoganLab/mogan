@@ -866,31 +866,24 @@ qt_chat_ai_send_selection (tree sel, string action) {
     call ("show-chat-sidebar", object (true));
   if (!ctrl->view_) return;
   // 翻译每次都进全新会话（原因见 createNewConversation），标题带「翻译: 」
-  // 前缀标记来源；对话进当前会话。两分支写入前无需加载检查：面板存在即保证
-  // llm 模块已加载（会话创建路径 eval 过 use-modules，chat-loader 亦在启动
-  // idle 阶段整体加载）
-  if (action == "translate") {
-    // 标题前缀走词典，与操作栏「翻译」按钮同一键（"Ai translate" 首字符
-    // 折叠命中 "ai translate"），随界面语言本地化；标题为 UTF-8，经
-    // from_qstring_utf8 归一编码后拼接
-    string titlePrefix=
-        from_qstring_utf8 (qt_translate ("Ai translate")) * ": ";
-    ChatConversationPanel* panel= ctrl->createNewConversation (titlePrefix);
-    if (!panel) return;
-    string sid= panel->sessionId ();
-    call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
-          ChatController::composeAiInputBody (sel, action));
-    ctrl->onSendRequested (sid);
-    return;
-  }
-  ChatConversationPanel* panel= ctrl->view_->activeConversation ();
+  // 前缀标记来源；对话进当前会话。标题前缀走词典，与操作栏「翻译」按钮同
+  // 一键（"Ai translate" 首字符折叠命中 "ai translate"），随界面语言本地化；
+  // 标题为 UTF-8，经 from_qstring_utf8 归一编码后拼接
+  ChatConversationPanel* panel=
+      (action == "translate")
+          ? ctrl->createNewConversation (
+                from_qstring_utf8 (qt_translate ("Ai translate")) * ": ")
+          : ctrl->view_->activeConversation ();
   if (!panel) return;
-  call ("chat-tab-set-input-body!",
-        ChatSessionManager::inputBufferUrl (panel->sessionId ()),
+  string sid= panel->sessionId ();
+  // 面板存在即保证 llm 模块已加载（会话创建路径 eval 过 use-modules，
+  // chat-loader 亦在启动 idle 阶段整体加载），写入函数可直接调用
+  call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
         ChatController::composeAiInputBody (sel, action));
-  // 对话只填入输入区，聚焦并滚动到光标（引用块下方）留给用户补写后手动
-  // 发送；未知动作同样只填入不发送
-  if (action == "chat") panel->revealInputCursor ();
+  // 翻译追加提示词后自动发送；对话只填入输入区，聚焦并滚动到光标（引用块
+  // 下方）留给用户补写后手动发送；未知动作同样只填入不发送
+  if (action == "translate") ctrl->onSendRequested (sid);
+  else if (action == "chat") panel->revealInputCursor ();
 }
 
 void

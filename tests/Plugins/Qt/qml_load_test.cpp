@@ -273,6 +273,34 @@ load_qml (const QString& qrcUrl) {
   return qw->status ();
 }
 
+// 共用：构造 ExportPdf 对话框（closeBridge/browseBridge/formFields 等最小注入）
+// 并加载 qml，返回 QQuickWidget 供属性断言；宿主 QDialog 由调用方持有。
+// homePath 非空时注入（家目录缩短为 ~/ 的用例）。
+static QQuickWidget*
+load_export_pdf_dialog (QDialog& host, const QVariantList& fields,
+                        const QString& homePath= QString ()) {
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* close = new StubBridge (qw);
+  StubBridge* browse= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", close);
+  qw->rootContext ()->setContextProperty ("browseBridge", browse);
+  if (!homePath.isEmpty ())
+    qw->rootContext ()->setContextProperty ("homePath", homePath);
+  qw->rootContext ()->setContextProperty ("formFields", fields);
+  QStringList buttons;
+  buttons << "Export"
+          << "Cancel";
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->rootContext ()->setContextProperty ("dialogTitle",
+                                          QString ("Export as PDF"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/ExportPdf.qml"));
+  return qw;
+}
+
 void
 TestQmlLoad::test_confirm_close_loads () {
   QCOMPARE (load_qml ("qrc:/qml/ConfirmClose.qml"), QQuickWidget::Ready);
@@ -540,25 +568,9 @@ TestQmlLoad::test_export_pdf_loads () {
   f1["key"]  = QString ("path");
   f1["value"]= QString ("/tmp/1271/untitled.pdf");
   fields << f1;
-  QStringList buttons;
-  buttons << "Export"
-          << "Cancel";
 
   QDialog       host;
-  QQuickWidget* qw= new QQuickWidget (&host);
-  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  StubBridge* close = new StubBridge (qw);
-  StubBridge* browse= new StubBridge (qw);
-  qw->rootContext ()->setContextProperty ("closeBridge", close);
-  qw->rootContext ()->setContextProperty ("browseBridge", browse);
-  qw->rootContext ()->setContextProperty ("formFields", fields);
-  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
-  qw->rootContext ()->setContextProperty ("dialogTitle",
-                                          QString ("Export as PDF"));
-  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
-  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-  qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->setSource (QUrl ("qrc:/qml/ExportPdf.qml"));
+  QQuickWidget* qw= load_export_pdf_dialog (host, fields);
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   // path 字段透传：QML 侧 pathKey/pathValue 应取到目的地初值。
   QCOMPARE (qw->rootObject ()->property ("pathKey").toString (),
@@ -619,27 +631,10 @@ TestQmlLoad::test_export_pdf_home_path_display () {
   f0["key"]  = QString ("path");
   f0["value"]= QString ("/home/testuser/Documents/LiiiSTEM/demo.pdf");
   fields << f0;
-  QStringList buttons;
-  buttons << "Export"
-          << "Cancel";
 
   QDialog       host;
-  QQuickWidget* qw= new QQuickWidget (&host);
-  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  StubBridge* close = new StubBridge (qw);
-  StubBridge* browse= new StubBridge (qw);
-  qw->rootContext ()->setContextProperty ("closeBridge", close);
-  qw->rootContext ()->setContextProperty ("browseBridge", browse);
-  qw->rootContext ()->setContextProperty ("homePath",
-                                          QString ("/home/testuser"));
-  qw->rootContext ()->setContextProperty ("formFields", fields);
-  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
-  qw->rootContext ()->setContextProperty ("dialogTitle",
-                                          QString ("Export as PDF"));
-  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
-  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-  qw->rootContext ()->setContextProperty ("isDark", false);
-  qw->setSource (QUrl ("qrc:/qml/ExportPdf.qml"));
+  QQuickWidget* qw=
+      load_export_pdf_dialog (host, fields, QString ("/home/testuser"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 
   // 1. 家目录下常规路径缩短为 ~/
@@ -650,32 +645,21 @@ TestQmlLoad::test_export_pdf_home_path_display () {
             QString ("/home/testuser/Documents/LiiiSTEM/demo.pdf"));
 
   // 2. formatDisplayPath 直接调用的各种分支测试
-  QVariant res;
-  QMetaObject::invokeMethod (qw->rootObject (), "formatDisplayPath",
-                             Q_RETURN_ARG (QVariant, res),
-                             Q_ARG (QVariant, QString ("/home/testuser")),
-                             Q_ARG (QVariant, QString ("/home/testuser")));
-  QCOMPARE (res.toString (), QString ("~"));
-
-  QMetaObject::invokeMethod (qw->rootObject (), "formatDisplayPath",
-                             Q_RETURN_ARG (QVariant, res),
-                             Q_ARG (QVariant, QString ("/var/tmp/demo.pdf")),
-                             Q_ARG (QVariant, QString ("/home/testuser")));
-  QCOMPARE (res.toString (), QString ("/var/tmp/demo.pdf"));
-
+  auto checkDisplay= [&] (const QString& p, const QString& home,
+                          const QString& expected) {
+    QVariant res;
+    QMetaObject::invokeMethod (qw->rootObject (), "formatDisplayPath",
+                               Q_RETURN_ARG (QVariant, res),
+                               Q_ARG (QVariant, p), Q_ARG (QVariant, home));
+    QCOMPARE (res.toString (), expected);
+  };
+  checkDisplay ("/home/testuser", "/home/testuser", "~");
+  checkDisplay ("/var/tmp/demo.pdf", "/home/testuser", "/var/tmp/demo.pdf");
   // 家目录带尾部斜杠
-  QMetaObject::invokeMethod (qw->rootObject (), "formatDisplayPath",
-                             Q_RETURN_ARG (QVariant, res),
-                             Q_ARG (QVariant, QString ("/home/testuser/a.pdf")),
-                             Q_ARG (QVariant, QString ("/home/testuser/")));
-  QCOMPARE (res.toString (), QString ("~/a.pdf"));
-
+  checkDisplay ("/home/testuser/a.pdf", "/home/testuser/", "~/a.pdf");
   // Windows 反斜杠路径与正斜杠家目录匹配
-  QMetaObject::invokeMethod (
-      qw->rootObject (), "formatDisplayPath", Q_RETURN_ARG (QVariant, res),
-      Q_ARG (QVariant, QString ("C:\\Users\\testuser\\Documents\\demo.pdf")),
-      Q_ARG (QVariant, QString ("C:/Users/testuser")));
-  QCOMPARE (res.toString (), QString ("~/Documents/demo.pdf"));
+  checkDisplay ("C:\\Users\\testuser\\Documents\\demo.pdf", "C:/Users/testuser",
+                "~/Documents/demo.pdf");
 
   // 3. 通过 setv 模拟 Browse 换路径后 displayPath 自动联动
   QMetaObject::invokeMethod (
