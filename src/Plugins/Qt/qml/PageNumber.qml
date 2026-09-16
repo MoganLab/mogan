@@ -59,11 +59,11 @@ DialogShell {
 
     // 样式选项定义
     readonly property var styleDefs: [
-        { id: "arabic", sample: "1, 2, 3", name: root.labels.styleArabic || qsTr("Arabic numerals") },
+        { id: "blank",  sample: root.labels.styleBlankSample || qsTr("(hidden)"), name: root.labels.styleBlank || qsTr("Hide page numbers") },
         { id: "roman",  sample: "i, ii, iii", name: root.labels.styleRoman || "roman" },
         { id: "Roman",  sample: "I, II, III", name: root.labels.styleRomanUpper || "Roman" },
         { id: "hanzi",  sample: "一, 二, 三", name: root.labels.styleHanzi || qsTr("Chinese numerals") },
-        { id: "blank",  sample: root.labels.styleBlankSample || qsTr("(hidden)"), name: root.labels.styleBlank || qsTr("Hide page numbers") }
+        { id: "arabic", sample: "1, 2, 3", name: root.labels.styleArabic || qsTr("Arabic numerals") }
     ]
 
     function styleName(id) {
