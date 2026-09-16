@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "QTMQmlDialog.hpp"
+#include "BibliographyDialogBridge.hpp"
 #include "ColorPickerBridge.hpp"
 #include "FontSelectorBridge.hpp"
 #include "GradientSelectorBridge.hpp"
@@ -19,6 +20,7 @@
 #include "VersionDialogBridge.hpp"
 
 #include "analyze.hpp"     // occurs
+#include "converter.hpp"   // cork_to_utf8
 #include "gui.hpp"         // tm_style_sheet
 #include "preferences.hpp" // get_preference / set_preference
 #include "qt_utilities.hpp"
@@ -1324,5 +1326,147 @@ cpp_gradient_selector_dialog (tree old_col) {
                         from_qstring (gradBridge->backgroundColor ()));
   }
   delete gradBridge;
+  return r;
+}
+
+// ---- 参考文献 --------------------------------------------------------------
+
+/**
+ * @brief 「插入/修改参考文献」QML 对话框 glue 入口（一次性提交）。
+ * @param config Scheme 构造的配置树：
+ *   (bibliography-config
+ *     (modify? "true"/"false")
+ *     (file <path>)
+ *     (style <style>)
+ *     (update? "true"/"false")
+ *     (doc-dir <dir>)
+ *     (styles <s1> <s2> ...))
+ * @return 用户点 Insert/Modify 返回 (tuple (tuple "file" <file>) (tuple "style"
+ * <style>) (tuple "update" <true|false>))；Cancel/关闭返回空 tree。
+ */
+tree
+cpp_bibliography_dialog (tree config) {
+  string preset= get_env ("MOGAN_TEST_BIBLIOGRAPHY");
+  if (preset == "cancel") return tree (TUPLE);
+
+  bool        modify = false;
+  string      file   = "";
+  string      style  = "tm-plain";
+  bool        upd    = true;
+  string      doc_dir= "";
+  QStringList styles;
+
+  if (is_compound (config)) {
+    for (int i= 0; i < N (config); i++) {
+      tree item= config[i];
+      if (!is_compound (item) || N (item) < 2) continue;
+      string tag= as_string (item[0]);
+      if (tag == "modify?") {
+        modify= (as_string (item[1]) == "true" || as_string (item[1]) == "#t");
+      }
+      else if (tag == "file") {
+        file= as_string (item[1]);
+      }
+      else if (tag == "style") {
+        style= as_string (item[1]);
+      }
+      else if (tag == "update?") {
+        upd= (as_string (item[1]) == "true" || as_string (item[1]) == "#t");
+      }
+      else if (tag == "doc-dir") {
+        doc_dir= as_string (item[1]);
+      }
+      else if (tag == "styles") {
+        for (int j= 1; j < N (item); j++) {
+          styles << utf8_to_qstring (cork_to_utf8 (as_string (item[j])));
+        }
+      }
+    }
+  }
+
+  if (preset != "") {
+    tree r (TUPLE);
+    tree kv_file (TUPLE);
+    kv_file << tree ("file") << tree (preset == "ok" ? file : preset);
+    r << kv_file;
+    tree kv_style (TUPLE);
+    kv_style << tree ("style") << tree (style);
+    r << kv_style;
+    tree kv_upd (TUPLE);
+    kv_upd << tree ("update")
+           << tree (upd ? string ("true") : string ("false"));
+    r << kv_upd;
+    return r;
+  }
+
+  if (styles.isEmpty ()) {
+    styles << QStringLiteral ("tm-plain") << QStringLiteral ("tm-abbrv")
+           << QStringLiteral ("tm-abstract") << QStringLiteral ("tm-acm")
+           << QStringLiteral ("tm-alpha") << QStringLiteral ("tm-elsart-num")
+           << QStringLiteral ("tm-ieeetr") << QStringLiteral ("tm-siam")
+           << QStringLiteral ("tm-unsrt") << QStringLiteral ("tm-gbt7714-2015")
+           << QStringLiteral ("tm-gbt7714-2015-author-year");
+  }
+
+  array<string> buttons= {modify ? string ("Modify") : string ("Insert"),
+                          string ("Cancel")};
+
+  QmlDialogBridge*          closeBridge= nullptr;
+  BibliographyDialogBridge* bibBridge  = nullptr;
+
+  const int logicW= 760;
+  const int logicH= 550;
+
+  run_qml_dialog (
+      "qrc:/qml/Bibliography.qml", "Bibliography.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        bibBridge  = new BibliographyDialogBridge (
+            &host, utf8_to_qstring (cork_to_utf8 (doc_dir)));
+        qw->rootContext ()->setContextProperty ("bibBridge", bibBridge);
+        qw->rootContext ()->setContextProperty (
+            "dialogTitle", modify ? qt_translate ("Modify bibliography")
+                                  : qt_translate ("Insert bibliography"));
+        qw->rootContext ()->setContextProperty (
+            "dialogPrompt",
+            modify ? qt_translate (
+                         "Modifying bibliography in the current document")
+                   : qt_translate (
+                         "Inserting bibliography in the current document"));
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        qw->rootContext ()->setContextProperty ("fileLabel",
+                                                qt_translate ("File:"));
+        qw->rootContext ()->setContextProperty ("browseLabel",
+                                                qt_translate ("Browse"));
+        qw->rootContext ()->setContextProperty (
+            "updateLabel", qt_translate ("Update buffer:"));
+        qw->rootContext ()->setContextProperty ("styleLabel",
+                                                qt_translate ("Style:"));
+        qw->rootContext ()->setContextProperty (
+            "emptyHint", qt_translate ("Preview the bibliography format here"));
+        qw->rootContext ()->setContextProperty (
+            "initialFile", utf8_to_qstring (cork_to_utf8 (file)));
+        qw->rootContext ()->setContextProperty (
+            "initialStyle", utf8_to_qstring (cork_to_utf8 (style)));
+        qw->rootContext ()->setContextProperty ("initialUpdate", upd);
+        qw->rootContext ()->setContextProperty ("styleOptions", styles);
+      },
+      logicW, logicH);
+
+  tree               r (TUPLE);
+  const QVariantMap& res=
+      closeBridge ? closeBridge->results () : QVariantMap ();
+  delete closeBridge;
+  delete bibBridge;
+
+  if (res.isEmpty ()) return tree (TUPLE);
+
+  for (auto it= res.begin (); it != res.end (); ++it) {
+    tree kv (TUPLE);
+    kv << tree (from_qstring_utf8 (it.key ()))
+       << tree (from_qstring_utf8 (it.value ().toString ()));
+    r << kv;
+  }
   return r;
 }

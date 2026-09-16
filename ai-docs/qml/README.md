@@ -316,13 +316,13 @@ scaleFactor − 2×margin），不能绑实际父宽——show 前 C++ 就要读
 - `src/Plugins/Qt/qml/atoms/` — 原子板块（12 个）
 - `src/Plugins/Qt/qml/` — 成品弹窗（ConfirmClose / ConfirmQuestion / ConfirmRestart /
   FormDialog / FontSelector / ParagraphFormat / Statistics / Version / Preferences /
-  UpdaterProgress）
+  UpdaterProgress / Bibliography）
 - `src/Plugins/Qt/moganqml.qrc` — 逐文件登记 qml（无 glob，新增/移动须同步）
 - `src/Plugins/Qt/QTMQmlDialog.cpp` — 模态引擎 + 各对话框 glue 入口
 - `src/Plugins/Qt/QTMQmlDialogBridge.hpp` — `QmlDialogBridge`（choose/submit/cancel 回流）
   与 `QmlDialogEscFilter`（ESC 兜底）
 - `src/Plugins/Qt/FontSelectorBridge.*` / `ParagraphFormatBridge.*` / `PreferencesBridge.*` /
-  `VersionDialogBridge.*` — 各专用 bridge（独立 QObject 透传样板）
+  `VersionDialogBridge.*` / `BibliographyDialogBridge.*` — 各专用 bridge（独立 QObject 透传样板）
 - `src/Scheme/L5/glue_qt.lua` — QML 对话框 glue 声明（cpp-confirm-close 等 11 个入口）
 - scheme facade：`fonts/font-new-widgets.scm`（字体）、`generic/paragraph-format-widgets.scm`
   （段落）、`texmacs/menus/preferences-widgets.scm` + `preferences-tools.scm`（首选项）、

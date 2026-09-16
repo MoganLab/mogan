@@ -147,6 +147,14 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-bibliography-dialog",
+                cpp_name = "cpp_bibliography_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "tree"
+                }
+            },
+            {
                 scm_name = "cpp-updater-dialog-open",
                 cpp_name = "cpp_updater_dialog_open",
                 ret_type = "void",
