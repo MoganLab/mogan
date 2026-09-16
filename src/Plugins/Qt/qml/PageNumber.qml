@@ -54,7 +54,7 @@ DialogShell {
     property int autoScrollDir: 0
 
     readonly property real rowH: 38 * Theme.scaleFactor
-    readonly property var ruleColors: ["#215a6a", "#7b61c9", "#2e9e6b", "#d98e2b", "#c9547a"]
+    readonly property var ruleColors: ["#d32f2f", "#ea580c", "#f59e0b", "#3a7bd5", "#0891b2", "#7b61c9"]
 
     // 样式选项定义
     readonly property var styleDefs: [
@@ -308,7 +308,7 @@ DialogShell {
                                     anchors.top: parent.top
                                     anchors.bottom: parent.bottom
                                     width: 4 * Theme.scaleFactor
-                                    color: rowItem.rIdx >= 0 ? root.ruleColors[rowItem.rIdx % 5] :
+                                    color: rowItem.rIdx >= 0 ? root.ruleColors[rowItem.rIdx % root.ruleColors.length] :
                                            (rowItem.isPending ? (Theme.dark ? "#2791ad" : "#215a6a") : "transparent")
                                 }
 
@@ -631,7 +631,7 @@ DialogShell {
                                         anchors.bottom: parent.bottom
                                         width: 4 * Theme.scaleFactor
                                         radius: 2 * Theme.scaleFactor
-                                        color: root.ruleColors[index % 5]
+                                        color: root.ruleColors[index % root.ruleColors.length]
                                     }
 
                                     Row {
