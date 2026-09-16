@@ -704,13 +704,21 @@ ChatController::ensureNewConversation () {
     return;
   }
 
-  // 创建新会话
+  createNewConversation ();
+}
+
+ChatConversationPanel*
+ChatController::createNewConversation (const string& titlePrefix) {
+  if (!view_) return nullptr;
+  // 创建新会话（与 ensureNewConversation 的复用分支共用语义：默认模型、
+  // 欢迎页、不继承最近激活会话）
   string                 sid  = sessionManager_.createSession ();
   ChatConversationPanel* panel= view_->createPanel (sid);
-  if (!panel) return;
+  if (!panel) return nullptr;
 
   sessionManager_.setPanel (sid, panel);
   sessionManager_.setModel (sid, modelStore_.defaultKey ());
+  sessionManager_.setTitlePrefix (sid, titlePrefix);
 
   eval ("(use-modules (llm chat-style))");
   call ("chat-tab-sync-session-styles!", sid);
@@ -728,6 +736,8 @@ ChatController::ensureNewConversation () {
   updateModelButtonDisplay (sid);
   // 此路径不经 getOrCreatePanel，默认模型可能不允许某能力，需单独应用
   applyModelCapabilities (sid);
+
+  return panel;
 }
 
 /**
@@ -855,17 +865,27 @@ qt_chat_ai_send_selection (tree sel, string action) {
   if (!ctrl->view_ || !ctrl->view_->isVisible ())
     call ("show-chat-sidebar", object (true));
   if (!ctrl->view_) return;
+  // 翻译每次都进全新会话（原因见 createNewConversation），标题带「翻译: 」
+  // 前缀标记来源；对话进当前会话。两分支写入前无需加载检查：面板存在即保证
+  // llm 模块已加载（会话创建路径 eval 过 use-modules，chat-loader 亦在启动
+  // idle 阶段整体加载）
+  if (action == "translate") {
+    ChatConversationPanel* panel= ctrl->createNewConversation ("翻译: ");
+    if (!panel) return;
+    string sid= panel->sessionId ();
+    call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
+          ChatController::composeAiInputBody (sel, action));
+    ctrl->onSendRequested (sid);
+    return;
+  }
   ChatConversationPanel* panel= ctrl->view_->activeConversation ();
   if (!panel) return;
-  string sid= panel->sessionId ();
-  // 面板存在即保证 llm 模块已加载（会话创建路径 eval 过 use-modules，
-  // chat-loader 亦在启动 idle 阶段整体加载），写入函数可直接调用
-  call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
+  call ("chat-tab-set-input-body!",
+        ChatSessionManager::inputBufferUrl (panel->sessionId ()),
         ChatController::composeAiInputBody (sel, action));
-  // 仅翻译自动发送；对话只填入输入区，聚焦并滚动到光标（引用块下方）
-  // 留给用户补写后手动发送
-  if (action == "translate") ctrl->onSendRequested (sid);
-  else if (action == "chat") panel->revealInputCursor ();
+  // 对话只填入输入区，聚焦并滚动到光标（引用块下方）留给用户补写后手动
+  // 发送；未知动作同样只填入不发送
+  if (action == "chat") panel->revealInputCursor ();
 }
 
 void
