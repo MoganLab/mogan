@@ -228,6 +228,15 @@ public:
   cursor    search_cursor (path p);
   selection search_selection (path start, path end);
   rectangle get_window_extents ();
+  /**
+   * @brief 排版后文档的真实纵向内容高度（含缩放，SI 单位）。
+   *
+   * apply_changes 下发 extents 前会在 automatic/papyrus 模式下把画布
+   * 垫到 viewport 高，嵌入输入框经 extents 读数无法区分「内容少」与
+   * 「视口高」；本方法返回未经垫底的排版盒原始高度。排版盒尚未生成
+   * 时返回 0。
+   */
+  SI get_typeset_content_height ();
 
   /* keyboard handling */
   int    get_input_mode ();

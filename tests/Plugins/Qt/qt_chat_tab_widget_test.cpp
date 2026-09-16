@@ -76,40 +76,63 @@ private slots:
       QVERIFY (!a->isChecked ());
   }
 
-  void test_count_input_lines_empty_document () {
-    tree empty_doc= tree (DOCUMENT, "");
-    QCOMPARE (ChatConversationPanel::count_input_lines (empty_doc), 1);
+  // === input_lines_for_extent：画布高度 → 内容行数（通用判定） ===
+  void test_input_lines_for_extent_exact_multiples () {
+    // 整倍数：正好 N 行
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (22, 22), 1);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (44, 22), 2);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (66, 22), 3);
   }
 
-  void test_count_input_lines_single_paragraph () {
-    tree doc= tree (DOCUMENT, "hello");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
+  void test_input_lines_for_extent_rounds_up () {
+    // 不足一行按一行计（向上取整）
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (23, 22), 2);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (45, 22), 3);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (67, 22), 4);
   }
 
-  void test_count_input_lines_multiple_paragraphs () {
-    tree doc= tree (DOCUMENT, "para1", "para2", "para3");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 3);
+  void test_input_lines_for_extent_minimum_one_line () {
+    // 空内容 / 非正值至少计 1 行
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (0, 22), 1);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (-5, 22), 1);
   }
 
-  void test_count_input_lines_not_document () {
-    tree not_doc= tree (WITH, "font", "roman", "hello");
-    QCOMPARE (ChatConversationPanel::count_input_lines (not_doc), 1);
+  void test_input_lines_for_extent_invalid_line_px () {
+    // 行高非正（未标定且常量异常）时按 1 行兜底，不除零
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (100, 0), 1);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (100, -3), 1);
   }
 
-  void test_count_input_lines_empty_string_only () {
-    // DOCUMENT with only an empty string atom
-    tree doc= tree (DOCUMENT, "");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
+  void test_input_lines_for_extent_large_content () {
+    // 大量内容（长引用、整段粘贴）按高度如实折算
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (1000, 22), 46);
+    QCOMPARE (ChatConversationPanel::input_lines_for_extent (2200, 22), 100);
   }
 
-  void test_count_input_lines_concat_formula_counts_as_one_paragraph () {
-    tree doc= tree (DOCUMENT, tree (CONCAT, "x", "y", "z"));
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
+  // === input_height_step_lines 固定档位（基准 3 行的 1~5 倍） ===
+  void test_input_height_step_lines_within_default () {
+    // 1~3 行：维持现有大小（1 倍基准）
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (0), 3);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (1), 3);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (2), 3);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (3), 3);
   }
 
-  void test_count_input_lines_concat_formula_with_second_paragraph () {
-    tree doc= tree (DOCUMENT, tree (CONCAT, "x", "y", "z"), "para2");
-    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
+  void test_input_height_step_lines_double () {
+    // 4~6 行：固定扩为现有大小的 2 倍
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (4), 6);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (5), 6);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (6), 6);
+  }
+
+  void test_input_height_step_lines_triple_to_quintuple_capped () {
+    // 7 行起逐档放大：3 倍（7~9 行）、4 倍（10~12 行）、5 倍封顶
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (7), 9);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (9), 9);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (10), 12);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (12), 12);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (13), 15);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (20), 15);
   }
 
   void test_is_empty_document_body_truly_empty () {

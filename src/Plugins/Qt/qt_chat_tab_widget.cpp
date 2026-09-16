@@ -14,6 +14,7 @@
 #include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
+#include "edit_interface.hpp"
 #include "new_buffer.hpp"
 #include "new_view.hpp"
 #include "preferences.hpp"
@@ -111,7 +112,7 @@ constexpr int kMultiSelectSpacing  = 4;
 constexpr int kWelcomeFontPx         = 34;
 constexpr int kInputLineHeight       = 22;
 constexpr int kInputDefaultLines     = 3;
-constexpr int kInputMaxLines         = 10;
+constexpr int kInputMaxStepMultiple  = 5;
 constexpr int kContentMarginY        = 12;
 constexpr int kContentSpacing        = 8;
 constexpr int kTitleToMessageSpacing = 16;
@@ -305,6 +306,10 @@ ChatConversationPanel::setup_ui () {
   set_zoom_factor (inputWidget, chatZoom);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
+  // TeXmacs 尺寸提示不得传导到 dock 几何（同消息区垂直方向的处理）；
+  // 输入区宽度方向也要 Ignored——否则输入框长高后编辑器的提示宽度
+  // 会把 dock 侧边栏整体撑宽且不回退
+  inputQWidget->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 
   QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
@@ -321,11 +326,12 @@ ChatConversationPanel::setup_ui () {
   inputFrameLayout->addWidget (inputQWidget);
 
   // Set initial frame height (includes padding + editor + button)
-  int defaultEditorH= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
-  int btnH          = DpiUtils::scaled (kSendButtonSize);
-  int padTotal      = DpiUtils::scaled (kInputFramePad) * 2;
-  fixedFrameExtra_  = btnH + padTotal;
-  inputFrame->setFixedHeight (defaultEditorH + fixedFrameExtra_);
+  int btnH        = DpiUtils::scaled (kSendButtonSize);
+  int padTotal    = DpiUtils::scaled (kInputFramePad) * 2;
+  fixedFrameExtra_= btnH + padTotal;
+  // 基准行数落在 1 倍档内，故初始高度即 1 倍档（现有大小）
+  inputFrame->setFixedHeight (
+      input_frame_height_for_lines (kInputDefaultLines));
 
   // Scrollbar policy & EventFilter for Enter key handling
   {
@@ -336,6 +342,10 @@ ChatConversationPanel::setup_ui () {
       editor->viewport ()->setBackgroundRole (QPalette::Base);
       editor->setProperty ("chat_panel", QVariant::fromValue ((void*) this));
       editor->installEventFilter (this);
+      // QTMWidget 的 sizeHint 走全局 gui_root_extents（根窗口尺寸）且
+      // 默认 Expanding，不 Ignored 会把 dock 撑宽——外层容器之外，编辑
+      // 器本体也要 Ignored，尺寸只经排版盒查询，不进布局链
+      editor->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
       inputQTMWidget_= editor;
     }
   }
@@ -433,9 +443,10 @@ ChatConversationPanel::ensureMessageWidget () {
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
   messageQWidget->setParent (messageFrame_);
   messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
-  // Ignored: 忽略 TeXmacs widget 返回的屏幕尺寸 sizeHint，
-  // 避免在 dock 模式下窗口被向下拉伸。
-  messageQWidget->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
+  // TeXmacs 尺寸提示（根窗口大小）不得传导到 dock 几何：此前只 Ignored
+  // 了垂直方向，宽度方向的提示在进入对话模式后会把 dock 撑宽且不回退
+  // （同输入区的处理）
+  messageQWidget->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
   QAbstractScrollArea* msgArea=
       messageQWidget->findChild<QAbstractScrollArea*> ();
   if (msgArea) {
@@ -447,6 +458,7 @@ ChatConversationPanel::ensureMessageWidget () {
   if (msgEditor) {
     msgEditor->setProperty ("chat_message_readonly", true);
     msgEditor->installEventFilter (this);
+    msgEditor->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
   }
   messageFrame_->layout ()->addWidget (messageQWidget);
 }
@@ -592,44 +604,56 @@ ChatConversationPanel::is_empty_document_body (tree body) {
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
 }
 
-static tree
-find_table_node (tree t) {
-  // Recursively search for TABLE label inside compound wrappers
-  // e.g. big-table -> tabular -> tformat -> table
-  if (is_func (t, TABLE)) return t;
-  if (is_func (t, TFORMAT) && N (t) > 0) {
-    tree last= t[N (t) - 1];
-    if (is_func (last, TABLE)) return last;
-  }
-  if (is_compound (t)) {
-    for (int i= 0; i < N (t); i++) {
-      tree r= find_table_node (t[i]);
-      if (!is_nil (r)) return r;
-    }
-  }
-  return tree ();
-}
-
-static int
-count_table_rows (tree t) {
-  tree tbl= find_table_node (t);
-  if (is_nil (tbl)) return 1;
-  int rows= N (tbl);
-  return rows > 0 ? rows : 1;
+int
+ChatConversationPanel::input_lines_for_extent (int contentPx, int linePx) {
+  if (linePx <= 0) return 1;
+  int lines= (contentPx + linePx - 1) / linePx;
+  return lines < 1 ? 1 : lines;
 }
 
 int
-ChatConversationPanel::count_input_lines (tree body) {
-  if (!is_func (body, DOCUMENT)) return 1;
-  if (N (body) == 0) return 1;
-  if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
-  int total= 0;
-  for (int i= 0; i < N (body); i++) {
-    tree child= body[i];
-    if (is_compound (child)) total+= count_table_rows (child);
-    else total++;
-  }
-  return total;
+ChatConversationPanel::input_content_lines () {
+  if (!inputQTMWidget_) return -1;
+  // 不能读 extents()：automatic/papyrus 下 apply_changes 会把画布垫到
+  // viewport 高（内容矮于视口时画布仍=视口），输入框升档后视口变高，
+  // 清空内容读数也不缩、档位无法回落。直接读排版盒（eb）的真实内容
+  // 高度，与视口无关；排版盒尚未生成（首帧未排版）返回 -1 等复测
+  edit_interface_rep* ed=
+      dynamic_cast<edit_interface_rep*> (inputQTMWidget_->tm_widget ());
+  SI contentSi= ed ? ed->get_typeset_content_height () : 0;
+  if (contentSi <= 0) return -1;
+  int contentPx = to_qsize (0, contentSi).height ();
+  int fallbackPx= DpiUtils::scaled (kInputLineHeight);
+  int linePx    = inputExtentLinePx_;
+  // 空输入的排版盒恰为单行高度，可现场标定；像素上限前置短路，未标定
+  // 期间内容已多行时不必每次调整都复制一遍输入缓冲树
+  if (linePx <= 0 && contentPx <= fallbackPx * 3 &&
+      is_empty_document_body (readInputMessage ()))
+    linePx= inputExtentLinePx_= contentPx;
+  if (linePx <= 0) linePx= fallbackPx;
+  return input_lines_for_extent (contentPx, linePx);
+}
+
+int
+ChatConversationPanel::input_height_step_lines (int docLines) {
+  // 档位为基准的 1~5 倍：按内容行数向上取整到档位，5 倍封顶后输入
+  // 区内滚动
+  int multiple= (docLines + kInputDefaultLines - 1) / kInputDefaultLines;
+  if (multiple < 1) multiple= 1;
+  if (multiple > kInputMaxStepMultiple) multiple= kInputMaxStepMultiple;
+  return kInputDefaultLines * multiple;
+}
+
+int
+ChatConversationPanel::input_frame_height_for_lines (int docLines) {
+  int targetLines= input_height_step_lines (docLines);
+  return DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
+}
+
+int
+ChatConversationPanel::input_frame_max_height () {
+  return input_frame_height_for_lines (kInputMaxStepMultiple *
+                                       kInputDefaultLines);
 }
 
 static bool
@@ -727,7 +751,7 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       }
     }
     // 回车键（Shift+Enter 排除，因发送已拦截）且当前是输入框：
-    // 在 TeXmacs 处理按键之前预先扩展 frame，使 viewport 提前变大，
+    // 在 TeXmacs 处理按键之前预先升档 frame，使 viewport 提前变大，
     // 这样 cursor_visible() 不会因 viewport 偏小而触发上滚。
     // 同时抑制绘制，避免 viewport 变大但内容未排版时出现边白闪烁。
     if (watched->property ("chat_panel").value<void*> () == this) {
@@ -736,19 +760,25 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       if (isEnter) {
         QWidget* frame=
             inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
-        if (frame) {
-          tree body    = readInputMessage ();
-          int  docLines= count_input_lines (body);
-          int  targetLines=
-              qMin (kInputMaxLines, qMax (kInputDefaultLines, docLines + 1));
-          int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) +
-                            fixedFrameExtra_;
-          if (frame->height () < targetFrameH) {
-            setUpdatesEnabled (false);
-            frame->setFixedHeight (targetFrameH);
-            // 等 TeXmacs 排版完成后再恢复绘制
-            QTimer::singleShot (0, this,
-                                [this] () { setUpdatesEnabled (true); });
+        // 已在封顶档时预估也不会更高，免去画布读取
+        if (frame && frame->height () != input_frame_max_height ()) {
+          int lines= input_content_lines ();
+          // 预估回车后的行数，仅升档不缩档（缩档交由 adjust_input_height）；
+          // 单次回车至多增加一行，目标高度封顶为上提一档——画布读数
+          // 异常偏大时也不会一次跳多档
+          if (lines >= 1) {
+            int targetFrameH= input_frame_height_for_lines (lines + 1);
+            int oneTierStep=
+                DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
+            if (targetFrameH > frame->height () + oneTierStep)
+              targetFrameH= frame->height () + oneTierStep;
+            if (frame->height () < targetFrameH) {
+              setUpdatesEnabled (false);
+              frame->setFixedHeight (targetFrameH);
+              // 等 TeXmacs 排版完成后再恢复绘制
+              QTimer::singleShot (0, this,
+                                  [this] () { setUpdatesEnabled (true); });
+            }
           }
         }
       }
@@ -781,6 +811,8 @@ ChatConversationPanel::schedule_input_height_adjust () {
   QTimer::singleShot (0, this, [this] () {
     inputHeightAdjustScheduled_= false;
     adjust_input_height ();
+    // 排版异步：首拍 extents 可能尚未更新，150ms 拍复测修正
+    QTimer::singleShot (150, this, [this] () { adjust_input_height (); });
   });
 }
 
@@ -790,18 +822,10 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  tree body    = readInputMessage ();
-  int  docLines= count_input_lines (body);
-
-  int targetLines= qMax (kInputDefaultLines, docLines);
-  targetLines    = qMin (targetLines, kInputMaxLines);
-  int targetFrameH=
-      DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
-
-  if (frame->height () != targetFrameH) {
-    frame->setFixedHeight (targetFrameH);
-    emit inputHeightChanged ();
-  }
+  int lines= input_content_lines ();
+  if (lines < 1) return; // 排版盒未就绪，维持现状等复测
+  int targetFrameH= input_frame_height_for_lines (lines);
+  if (frame->height () != targetFrameH) frame->setFixedHeight (targetFrameH);
 }
 
 /******************************************************************************
