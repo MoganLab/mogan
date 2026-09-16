@@ -554,9 +554,6 @@
 (lazy-menu (part part-menu) document-master-menu)
 (lazy-tmfs-handler (part part-tmfs) part)
 
-;; (display "Booting database facilities\n")
-(lazy-define (database db-convert) db-url?)
-(lazy-define (database bib-db) zealous-bib-import zealous-bib-export)
 
 
 ;; (display "Booting linking facilities\n")
