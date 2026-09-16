@@ -276,9 +276,7 @@
           ) ;
           ((== st 4)
            (updater-switch-dialog-cleanup)
-           (if (updater-question (translate "The update is ready. Restart now to apply it?")
-                 (translate "Restart")
-               ) ;updater-question
+           (if (updater-question (translate "The update is ready. Restart now to apply it?"))
              (begin
                (updater-apply-update)
                (delayed (:pause 1000) (updater-manual-update-poll ticks))
@@ -309,9 +307,7 @@
     (with st
       (updater-state)
       (if (== st 4)
-        (if (updater-question (translate "The update is ready. Restart now to apply it?")
-              (translate "Restart")
-            ) ;updater-question
+        (if (updater-question (translate "The update is ready. Restart now to apply it?"))
           (updater-apply-update)
           (set-message "The update will be applied the next time you start the application"
             "Check for updates"

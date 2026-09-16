@@ -246,7 +246,9 @@
   ) ;with
 ) ;define
 
-;; 计算更新状态三元组: (list failed? is-latest? primary-enabled?)
+;; 计算更新状态三元组: (list failed? is-latest? has-new?)——纯版本比较,不掺
+;; 通道/按钮可用性;主按钮最终可不可点由 calc-primary-enabled 在此基础上叠加
+;; "自动更新是否被禁用"决定。
 (tm-define (calc-update-status cur-ver latest-ver)
   (let* ((failed? (or (not (string? latest-ver))
                     (== latest-ver "")
@@ -256,10 +258,24 @@
          ) ;failed?
          (has-new? (and (not failed?) (semver>? latest-ver cur-ver)))
          (is-latest? (and (not failed?) (not has-new?)))
-         (primary-enabled? has-new?)
         ) ;
-    (list failed? is-latest? primary-enabled?)
+    (list failed? is-latest? has-new?)
   ) ;let*
+) ;tm-define
+
+;; 自动更新是否被禁用。仅更新器平台存在该语义：Linux 无更新链路，首选项里也没有
+;; 该 combo，故恒 #f。必须先判 use-plugin-updater?——非更新器平台不会加载
+;; (utils misc updater) 模块，updater-current-channel 未绑定。
+
+(tm-define (updates-disabled?)
+  (and (use-plugin-updater?) (== (updater-current-channel) "disabled"))
+) ;tm-define
+
+;; 主按钮是否可用：确有更新，且自动更新未被禁用。「禁用通道下恒不可用」是硬约定——
+;; 该弹窗只作信息展示，用户要更新须先回首选项把通道切回 stable/beta。
+
+(tm-define (calc-primary-enabled has-new? disabled?)
+  (and has-new? (not disabled?))
 ) ;tm-define
 
 ;; 检查更新并显示弹窗
@@ -275,11 +291,15 @@
          (status (calc-update-status cur-ver latest-ver))
          (failed? (car status))
          (is-latest? (cadr status))
-         (primary-enabled? (caddr status))
+         (disabled? (updates-disabled?))
+         (primary-enabled? (calc-primary-enabled (caddr status) disabled?))
          (primary-btn-label (if (use-plugin-updater?) "Update Now" "Go to Download"))
          (cancel-btn-label "Close")
          (title (translate "Check for updates"))
-         (status-line (cond (failed? (translate "Failed to check for updates."))
+         ;; 禁用通道优先于版本状态：此时"有无新版本"不是可动作的信息，
+         ;; 该说的是"自动更新已关闭、要去首选项切回来"。
+         (status-line (cond (disabled? (translate "Automatic updates are disabled."))
+                            (failed? (translate "Failed to check for updates."))
                             (is-latest? (translate "Current version is up to date."))
                             (else (translate "A new version is available."))
                       ) ;cond
@@ -310,7 +330,12 @@
             (translate cancel-btn-label)
             primary-enabled?
           ) ;cpp-version-dialog
-      (if (use-plugin-updater?) (updater-trigger-manual-update) (open-url url))
+      ;; 再判一次 primary-enabled?：置灰已让按钮点不动，但测试钩子
+      ;; (MOGAN_TEST_VERSION_DIALOG=ok) 绕过按钮直接返回 #t，且禁用通道下
+      ;; 绝不能触发更新链，故此处不依赖 Qt 侧的单点防护。
+      (when primary-enabled?
+        (if (use-plugin-updater?) (updater-trigger-manual-update) (open-url url))
+      ) ;when
     ) ;when
   ) ;let*
 ) ;tm-define

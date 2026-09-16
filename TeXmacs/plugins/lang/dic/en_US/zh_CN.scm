@@ -3077,4 +3077,5 @@
 ("Current version is up to date." "当前已是最新版本。")
 ("A new version is available." "发现新版本可用。")
 ("Failed to check for updates." "检查更新失败。")
+("Automatic updates are disabled." "自动更新已禁用。")
 ("Timed out waiting for the update task" "等待更新超时")
