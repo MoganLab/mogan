@@ -24,7 +24,9 @@
 ;; "technical report"
 ;; "volume"
 
-(texmacs-module (latex bibtex-plain) (:use (latex bibtex-bib-utils)))
+(texmacs-module (latex bibtex-plain)
+  (:use (latex bibtex-bib-utils) (convert tools tmconcat))
+) ;texmacs-module
 
 (bib-define-style "plain" "plain")
 
@@ -643,9 +645,9 @@
   (if (bib-empty? x "author")
     (if (bib-empty? x "editor")
       (list-ref x 2)
-      (string-upcase (author-sort-format (bib-cdr (bib-field x "editor"))))
+      (bib-string-upcase (author-sort-format (bib-cdr (bib-field x "editor"))))
     ) ;if
-    (string-upcase (author-sort-format (bib-cdr (bib-field x "author"))))
+    (bib-string-upcase (author-sort-format (bib-cdr (bib-field x "author"))))
   ) ;if
 ) ;define
 
@@ -653,7 +655,7 @@
   (if (bib-empty? x ae)
     (list-ref x 2)
     ;; (author-sort-format (bib-cdr (bib-field x ae)))))
-    (string-upcase (author-sort-format (bib-cdr (bib-field x ae))))
+    (bib-string-upcase (author-sort-format (bib-cdr (bib-field x ae))))
   ) ;if
 ) ;define
 

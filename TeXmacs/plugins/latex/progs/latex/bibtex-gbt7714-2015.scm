@@ -444,7 +444,7 @@
              ""
              (if chinese?
                (bib-purify last-name-raw)
-               (string-upcase (bib-purify last-name-raw))
+               (bib-string-upcase (bib-purify last-name-raw))
              ) ;if
            ) ;if
          ) ;last-name

@@ -61,7 +61,7 @@ TestParseBib::test_parse_ascii () {
             "  author={Mohamadali Berahman and Madjid Eshaghi Gordji},\n"
             "  year={2025}\n"
             "}";
-  tree t  = parse_bib (s);
+  tree   t= parse_bib (s);
   QVERIFY (is_func (t, moebius::DOCUMENT));
   QCOMPARE (N (t), 1);
 
@@ -134,7 +134,7 @@ TestParseBib::test_parse_quoted_utf8 () {
             "  title = \"Discours de la méthode\",\n"
             "  year = \"1637\"\n"
             "}";
-  tree t  = parse_bib (s);
+  tree   t= parse_bib (s);
   QVERIFY (is_func (t, moebius::DOCUMENT));
   QCOMPARE (N (t), 1);
 
@@ -154,7 +154,7 @@ TestParseBib::test_parse_cjk_utf8 () {
             "  title = {基于深度学习的肺癌病理图像分类方法},\n"
             "  year = {2024}\n"
             "}";
-  tree t  = parse_bib (s);
+  tree   t= parse_bib (s);
   QVERIFY (is_func (t, moebius::DOCUMENT));
   QCOMPARE (N (t), 1);
 

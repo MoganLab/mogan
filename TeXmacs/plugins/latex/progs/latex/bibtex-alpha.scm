@@ -168,7 +168,7 @@
          (year (bib-field x "year"))
          (lplain (bib-with-style "plain" bib-sort-key x))
         ) ;
-    (string-append (string-upcase (if (bib-null? auths) label auths))
+    (string-append (bib-string-upcase (if (bib-null? auths) label auths))
       (if (bib-null? year) "" year)
       "    "
       lplain

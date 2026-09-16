@@ -95,8 +95,14 @@
     (when (== style "")
       (set! style bibwid-default-style)
     ) ;when
+    ;; 样式模块（latex bibtex-<style>）按当前 style 动态加载，
+    ;; 其中的 bib-format-entry 重载是 bib-process 格式化条目的入口
     (catch #t
-      (lambda () (eval '(use-modules (latex bibtex-, (string->symbol style)))))
+      (lambda ()
+        (eval
+          `(use-modules (latex ,(string->symbol (string-append "bibtex-" style))))
+        ) ;eval
+      ) ;lambda
       (lambda (key . args) (noop))
     ) ;catch
     (with u
