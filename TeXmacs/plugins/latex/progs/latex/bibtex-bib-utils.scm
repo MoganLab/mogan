@@ -202,6 +202,11 @@
 
 (tm-define (bib-emphasize x) `(with ,"font-shape" ,"italic" ,x))
 
+(tm-define (bib-string-upcase s)
+  ;; goldfish string-upcase 假定 UTF-8，cork 串须往返转换
+  (utf8->cork (string-upcase (cork->utf8 s)))
+) ;tm-define
+
 (tm-define (bib-translate s)
   (if (== (get-env "bib-no-translate") "true") s `(localize ,s))
 ) ;tm-define
