@@ -30,8 +30,6 @@
  ("ir-pause" (dynamic-traverse-buffer :next))
  ("ir-menu" (toggle-full-screen-mode))
  ("F9" (dynamic-operate-on-buffer :first))
- ("pageup" (dynamic-traverse-buffer :previous))
- ("pagedown" (dynamic-traverse-buffer :next))
  ("F12" (dynamic-operate-on-buffer :last))
  ("S-F9" (dynamic-first))
  ("S-F10" (dynamic-previous))
@@ -42,6 +40,11 @@
  ("C-S-F10" (toggle-slideshow-mode))
  ("C-F11" (toggle-remote-control-mode))
  ("C-F12" (reset-buffer-players))
+) ;kbd-map
+
+(kbd-map (:mode in-beamer?)
+ ("pageup" (dynamic-traverse-buffer :previous))
+ ("pagedown" (dynamic-traverse-buffer :next))
 ) ;kbd-map
 
 (kbd-map (:mode in-screens?)
