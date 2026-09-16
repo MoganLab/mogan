@@ -10,6 +10,7 @@
 
 #include "oauth_deeplink.hpp"
 
+#include "tm_debug.hpp"
 #include "tm_ostream.hpp"
 
 #include <QCoreApplication>
