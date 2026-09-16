@@ -84,7 +84,7 @@ using UrlHandler= std::function<void (const QString&)>;
 void start_receiver (QObject* owner, const QString& instance_id,
                      QObject* target, const UrlHandler& handler);
 
-/// Windows 注册表补写协议注册；非 Windows 为空操作
+/// Windows 注册表补写协议注册；非 Windows 与社区版为空操作
 void ensure_registered ();
 
 } // namespace oauth_deeplink
