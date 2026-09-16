@@ -82,8 +82,8 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   QObject::connect (hover_timer, SIGNAL (timeout ()), this,
                     SLOT (pollCursor ()));
 
-  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（引用选区
-  // 到 AI 侧边栏，翻译自动发送），润色后续接入
+  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（翻译/对话
+  // 引用选区到 AI 侧边栏，润色走 trigger-diff-text，等同 Tab 快捷键）
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
                       SLOT (onActionTriggered (QString)));
