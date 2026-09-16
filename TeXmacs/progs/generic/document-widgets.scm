@@ -12,7 +12,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic document-widgets)
-  (:use (generic document-menu) (kernel gui menu-widget) (generic format-widgets))
+  (:use (generic document-menu)
+    (generic document-edit)
+    (kernel gui menu-widget)
+    (generic format-widgets)
+    (utils library cursor)
+  ) ;:use
 ) ;texmacs-module
 
 
@@ -245,166 +250,257 @@
   ) ;let
 ) ;define
 
-(define (assign-page-number u ps pe nt)
-  (let* ((seed (string->number (initial-get u "pn-next")))
-         (next (if (and (integer? seed) (>= seed 1)) seed 1))
-         (m-name (pn-name "pn-m" next))
-         (l-name (pn-name "pn-l" next))
-         (g-name (pn-name "pn-g" next))
-         (prev-g-name (pn-name "pn-g" (- next 1)))
-        ) ;
-    (initial-set u "page-first" "1")
-    (when (= next 1)
-      (initial-set-tree u "pn-g0" '(macro (value "page-nr")))
-      ;; 底层 pn-g0 宏，直接显示 page-nr 宏
-    ) ;when
-    (if (== nt "blank")
-      (initial-set-tree u l-name '(macro ""))
-      ;; 构建 pn-lx 宏，此时永远不显示页码
-      (begin
-        (initial-set-tree u m-name (make-pn-m-stree m-name ps))
-        ;; 构建 pn-mx 宏，利用 ps 计算当前相对页码
-        (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt))
-        ;; 构建 pn-lx 宏，利用 pn-mx 宏判断：当相对页码小于 1 时不显示，否则按照样式 nt 显示
-      ) ;begin
-    ) ;if
-    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe))
-    ;; 构建 pn-gx 宏，若在当前 ps~pe 范围内，则显示 pn-lx 宏，否则 fallback 到下一层 pn-g(x-1) 宏
-    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name))))
-    ;; 重定向 page-the-page 宏到顶层 pn-gx 宏
-    (initial-set u "pn-next" (number->string (+ next 1)))
-    ;; 更新 pn-next 宏，索引更新
-    (refresh-window)
-  ) ;let*
-) ;define
+(define pn-current-buffer #f)
 
-;; pn-style-alist (显示文本 . 内部值)；"" 表示未选择，用于防误触
+(tm-define (pn-get-buffer) (or pn-current-buffer (current-buffer)))
 
-(define pn-style-alist
-  '(("(Please pick one style)" . "")
-    ("1, 2, 3" . "arabic")
-    ("i, ii, iii" . "roman")
-    ("I, II, III" . "Roman")
-    ("hanzi style" . "hanzi")
-    ("(blank page number)" . "blank"))
-) ;define
-;; pn-text-alist 为其反向映射 (内部值 . 显示文本)，供 enum 显示当前项
+(tm-define (pn-extract-range g-stree)
+  (catch #t
+    (lambda ()
+      (let* ((body
+               (if (and (pair? g-stree) (== (car g-stree) 'macro)) (cadr g-stree) g-stree)
+             ) ;body
+             (cond-part (and (pair? body) (== (car body) 'if) (cadr body)))
+             (or-clause (and (pair? cond-part) (== (car cond-part) 'or) cond-part))
+             (less-part (cadr or-clause))
+             (greater-part (caddr or-clause))
+             (ps (caddr less-part))
+             (pe-expr (caddr greater-part))
+             (pe
+               (if
+                 (or (equal? pe-expr '(page-the-total))
+                   (and (pair? pe-expr) (== (car pe-expr) 'page-the-total))
+                 ) ;or
+                 "total"
+                 (if (string? pe-expr) pe-expr (object->string pe-expr))
+               ) ;if
+             ) ;pe
+            ) ;
+        (cons (if (string? ps) ps (object->string ps)) pe)
+      ) ;let*
+    ) ;lambda
+    (lambda (key . args) #f)
+  ) ;catch
+) ;tm-define
 
-(define pn-text-alist (map (lambda (p) (cons (cdr p) (car p))) pn-style-alist))
-
-(define (get-pn-mapping u)
-  (let ((total-pages (get-page-count)))
-    (if (<= total-pages 0)
-      '(document)
-      (let loop
-        ((p 0) (res '()))
-        (if (>= p total-pages)
-          `(with ,"font-family"
-             ,"tt"
-             ,"font-base-size"
-             ,"12"
-             ,(cons 'document (reverse res)))
-          (let* ((pn-text (get-page-number-text p))
-                 (pn-show (if (== pn-text "") "o" pn-text))
-                 (line (string-append (number->string (+ p 1)) " -> " pn-show))
-                ) ;
-            (loop (+ p 1) (cons line res))
-          ) ;let*
-        ) ;if
+(tm-define (pn-extract-style l-stree)
+  (catch #t
+    (lambda ()
+      (let ((body
+              (if (and (pair? l-stree) (== (car l-stree) 'macro)) (cadr l-stree) l-stree)
+            ) ;body
+           ) ;
+        (cond ((equal? body "") "blank")
+              ((and (pair? body) (== (car body) 'if))
+               (let* ((else-part (cadddr body))
+                      (style (and (pair? else-part) (== (car else-part) 'number) (caddr else-part)))
+                     ) ;
+                 (if (string? style) style (if (symbol? style) (symbol->string style) "arabic"))
+               ) ;let*
+              ) ;
+              (else "arabic")
+        ) ;cond
       ) ;let
-    ) ;if
-  ) ;let
+    ) ;lambda
+    (lambda (key . args) "arabic")
+  ) ;catch
+) ;tm-define
+
+(define (pn-read-rules u)
+  (catch #t
+    (lambda ()
+      (let* ((raw
+               (if u (with-buffer u (tm->stree (get-all-inits))) (tm->stree (get-all-inits)))
+             ) ;raw
+             (items
+               (if (and (pair? raw) (== (car raw) 'collection)) (cdr raw) '())
+             ) ;items
+             (inits
+               (map
+                 (lambda (item)
+                   (if (and (pair? item) (== (car item) 'associate) (pair? (cdr item)))
+                     (cons (cadr item) (caddr item))
+                     (cons "" "")
+                   ) ;if
+                 ) ;lambda
+                 items
+               ) ;map
+             ) ;inits
+             (seed (string->number (or (assoc-ref inits "pn-next") "")))
+             (rule-count (if (and (integer? seed) (>= seed 1)) (- seed 1) 0))
+            ) ;
+        (if (<= rule-count 0)
+          (let loop
+            ((k 1) (res '()))
+            (let ((g-stree (assoc-ref inits (pn-name "pn-g" k)))
+                  (l-stree (assoc-ref inits (pn-name "pn-l" k)))
+                 ) ;
+              (if (and g-stree l-stree)
+                (let ((range (pn-extract-range g-stree)) (style (pn-extract-style l-stree)))
+                  (if range
+                    (loop (+ k 1) (cons (list (car range) (cdr range) style) res))
+                    (reverse res)
+                  ) ;if
+                ) ;let
+                (reverse res)
+              ) ;if
+            ) ;let
+          ) ;let
+          (let loop
+            ((k 1) (res '()))
+            (if (> k rule-count)
+              (reverse res)
+              (let* ((g-stree (assoc-ref inits (pn-name "pn-g" k)))
+                     (l-stree (assoc-ref inits (pn-name "pn-l" k)))
+                     (range (and g-stree (pn-extract-range g-stree)))
+                     (style (if l-stree (pn-extract-style l-stree) "arabic"))
+                    ) ;
+                (if range
+                  (loop (+ k 1) (cons (list (car range) (cdr range) style) res))
+                  (loop (+ k 1) res)
+                ) ;if
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;lambda
+    (lambda (key . args) '())
+  ) ;catch
 ) ;define
 
-(tm-widget ((page-number-style-editor u) quit)
-  (let* ((range "Whole document") (rfrom "") (rto "") (nt ""))
-    (centered
-      (refreshable "pn-editor"
-        (aligned
-          (item (text "Applying to:")
-            (enum (begin
-                    (set! range answer)
-                    (refresh-now "pn-editor")
-                  ) ;begin
-              '("Whole document" "Custom")
-              range
-              "10em"
-            ) ;enum
-          ) ;item
-        ) ;aligned
-        (when (== range "Custom")
-          (aligned
-            (item (text "Range:")
-              (hlist (input (set! rfrom answer) "string" (list rfrom) "2em")
-                //
-                //
-                (text "~")
-                //
-                //
-                (input (set! rto answer) "string" (list rto) "2em")
-              ) ;hlist
-            ) ;item
-          ) ;aligned
-        ) ;when
-        (aligned
-          (item (text "Number style:")
-            (enum (set! nt (assoc-ref pn-style-alist answer))
-              (map car pn-style-alist)
-              (or (assoc-ref pn-text-alist nt) "(Please pick one style)")
-              "10em"
-            ) ;enum
-          ) ;item
-          (item (text "Page mapping:")
-            (resize "5em"
-              "10em"
-              (scrollable (texmacs-output (get-pn-mapping u) '(style "generic")))
-            ) ;resize
-          ) ;item
-        ) ;aligned
-      ) ;refreshable
-    ) ;centered
-    ======
-    (explicit-buttons
-      (hlist >>>
-       ("Refresh" (refresh-now "pn-editor"))
-       //
-       //
-       ("Cancel" (quit))
-       //
-       //
-       ("Apply"
-         (let* ((ps (if (== range "Whole document") "1" rfrom))
-                (pe (if (== range "Whole document") '(page-the-total) rto))
-                (filled? (lambda (s) (or (pair? s) (!= s ""))))
-               ) ;
-           (when (and (filled? ps) (filled? pe) (filled? nt))
-             (assign-page-number u ps pe nt)
-             (set! nt "")
-             (delayed (:pause 100) (refresh-now "pn-editor"))
-           ) ;when
-         ) ;let*
-       ) ;
-      ) ;hlist
-    ) ;explicit-buttons
-  ) ;let*
-) ;tm-widget
+(define (pn-ui-labels)
+  (list (cons 'title (translate "Page number settings"))
+    (cons 'hint
+      (translate "All pages are arranged vertically and scrollable; drag handle to select range, auto-scrolls near edge"
+      ) ;translate
+    ) ;cons
+    (cons 'secRange (translate "① Range for new rule"))
+    (cons 'subRange
+      (translate "Start is fixed; drag handle down to select end page")
+    ) ;cons
+    (cons 'secStyle (translate "② Choose page number style"))
+    (cons 'btnAddRule (translate "+ Add rule"))
+    (cons 'secRules (translate "Added rules"))
+    (cons 'subRules
+      (translate "Rules connect sequentially; only the last rule can be deleted")
+    ) ;cons
+    (cons 'emptyRules
+      (translate "No rules yet — all pages numbered continuously")
+    ) ;cons
+    (cons 'rangeDone (translate "All pages covered by rules"))
+    (cons 'rangePrompt
+      (translate "Starting from page %1, drag handle to select end page")
+    ) ;cons
+    (cons 'rangeUpto (translate "Page %1 ~ Page %2 (%3 pages)"))
+    (cons 'toEnd (translate "to end of document"))
+    (cons 'physPage (translate "Page %1"))
+    (cons 'fromSample (translate "from %1"))
+    (cons 'delRule (translate "Delete this rule"))
+    (cons 'onlyLastDel (translate "Only the last rule can be deleted"))
+    (cons 'styleArabic (translate "Arabic numerals"))
+    (cons 'styleRoman (translate "Lowercase Roman"))
+    (cons 'styleRomanUpper (translate "Uppercase Roman"))
+    (cons 'styleHanzi (translate "Chinese numerals"))
+    (cons 'styleBlank (translate "Hide page numbers"))
+    (cons 'styleBlankSample (translate "(hidden)"))
+  ) ;list
+) ;define
 
-(tm-define (set-page-number-style-window-state opened?)
-  (set-auxiliary-widget-state opened? 'page-number-style)
+(tm-define (pn-qml-meta)
+  (catch #t
+    (lambda ()
+      (let* ((u (pn-get-buffer))
+             (total
+               (max 1 (if u (with-buffer u (get-page-count)) (get-page-count)))
+             ) ;total
+             (rules (pn-read-rules u))
+             (labels (pn-ui-labels))
+            ) ;
+        `((total . ,(number->string total)) (rules . ,rules) (labels . ,labels))
+      ) ;let*
+    ) ;lambda
+    (lambda (key . args)
+      (list (cons 'total "1") (cons 'rules (list)) (cons 'labels (pn-ui-labels)))
+    ) ;lambda
+  ) ;catch
+) ;tm-define
+
+(tm-define (pn-qml-submit rules)
+  (catch #t
+    (lambda ()
+      (let* ((u (pn-get-buffer)) (had-system? (and u (initial-has? u "pn-next"))))
+        (when (and u had-system?)
+          (let* ((raw (with-buffer u (tm->stree (get-all-inits))))
+                 (items
+                   (if (and (pair? raw) (== (car raw) 'collection)) (cdr raw) '())
+                 ) ;items
+                 (pn-vars
+                   (filter (lambda (k) (string-starts? k "pn-"))
+                     (map
+                       (lambda (it) (if (and (pair? it) (pair? (cdr it))) (cadr it) ""))
+                       items
+                     ) ;map
+                   ) ;filter
+                 ) ;pn-vars
+                 (all-clean (cons "page-the-page" pn-vars))
+                ) ;
+            (apply initial-default u all-clean)
+          ) ;let*
+        ) ;when
+        (when (and u (pair? rules) (> (length rules) 0))
+          (initial-set u "page-first" "1")
+          (initial-set-tree u "pn-g0" '(macro (value "page-nr")))
+          (let loop
+            ((k 1) (rem rules) (last-g "pn-g0"))
+            (if (null? rem)
+              (begin
+                (initial-set-tree u "page-the-page" `(macro (,(string->symbol last-g))))
+                (initial-set u "pn-next" (number->string k))
+              ) ;begin
+              (let* ((rule (car rem))
+                     (ps (list-ref rule 0))
+                     (pe (list-ref rule 1))
+                     (style (list-ref rule 2))
+                     (m-name (pn-name "pn-m" k))
+                     (l-name (pn-name "pn-l" k))
+                     (g-name (pn-name "pn-g" k))
+                     (prev-g-name (pn-name "pn-g" (- k 1)))
+                     (pe-stree
+                       (if (or (string=? pe "total") (equal? pe '(page-the-total)))
+                         '(page-the-total)
+                         pe
+                       ) ;if
+                     ) ;pe-stree
+                    ) ;
+                (if (string=? style "blank")
+                  (initial-set-tree u l-name '(macro ""))
+                  (begin
+                    (initial-set-tree u m-name (make-pn-m-stree m-name ps))
+                    (initial-set-tree u l-name (make-pn-l-stree l-name m-name style))
+                  ) ;begin
+                ) ;if
+                (initial-set-tree u
+                  g-name
+                  (make-pn-g-stree g-name prev-g-name l-name ps pe-stree)
+                ) ;initial-set-tree
+                (loop (+ k 1) (cdr rem) g-name)
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;when
+        (refresh-window)
+      ) ;let*
+    ) ;lambda
+    (lambda (key . args) (noop))
+  ) ;catch
 ) ;tm-define
 
 (tm-define (open-document-page-number)
   (:interactive #t)
-  (change-auxiliary-widget-focus)
-  (let ((u (current-buffer)))
-    (auxiliary-widget (page-number-style-editor u) noop "Page number style" u)
-    (set-page-number-style-window-state #t)
-  ) ;let
+  (set! pn-current-buffer (current-buffer))
+  (cpp-page-number-dialog)
 ) ;tm-define
-
-(register-auxiliary-widget-type 'page-number-style
-  (list open-document-page-number)
-) ;register-auxiliary-widget-type
 
 (tm-widget (page-formatter-format u quit)
   (centered

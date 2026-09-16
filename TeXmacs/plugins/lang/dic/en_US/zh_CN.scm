@@ -1,3 +1,8 @@
+("① Range for new rule" "① 新规则的范围")
+("① range for new rule" "① 新规则的范围")
+("② Choose page number style" "② 选择页码样式")
+("② choose page number style" "② 选择页码样式")
+("(hidden)" "（不显示）")
 ("(re)build autocompletion index" "构建/重建自动补全索引")
 ("Alt::keyboard" "Alt")
 ("Ctrl::keyboard" "Ctrl")
@@ -285,6 +290,9 @@
 ("activate once" "仅激活一次")
 ("activate" "激活")
 ("activation" "激活")
+("+ add rule" "＋ 添加规则")
+("+ Add rule" "＋ 添加规则")
+("added rules" "已添加的规则")
 ("add branch after" "在后面添加一个")
 ("add branch before" "在前面添加一个")
 ("add other package" "增加其他宏包")
@@ -341,6 +349,10 @@
 ("allow partial matches" "允许部分匹配")
 ("allowed extension" "允许扩展")
 ("allowed reduction" "允许缩小")
+("all pages are arranged vertically and scrollable; drag handle to select range, auto-scrolls near edge"
+  "全部页面纵向排列可滚动；拖动手柄划定范围，靠近边缘自动滚动"
+) ;
+("all pages covered by rules" "全部页面已被规则覆盖")
 ("alpha release" "alpha 版本")
 ("also on paper" "在纸上显示")
 ("alt key" "alt 键")
@@ -367,6 +379,7 @@
 ("apply" "应用")
 ("april" "四月")
 ("arab" "阿拉伯")
+("arabic numerals" "阿拉伯数字")
 ("arc" "圆弧")
 ("arch series" "arch 规格")
 ("archaic" "古代的")
@@ -558,6 +571,7 @@
 ("check" "检查")
 ("chinese character" "中文字符")
 ("chinese" "中文")
+("chinese numerals" "汉字数字")
 ("choice" "选择")
 ("choose background" "选择背景")
 ("choose color" "选择颜色")
@@ -752,6 +766,7 @@
 ("delete documentation cache" "删除文档缓存")
 ("delete row" "删除此列")
 ("delete" "删除")
+("delete this rule" "删除此规则")
 ("deleted" "删除")
 ("denominator" "分母")
 ("describe tag" "标记的介绍")
@@ -1078,6 +1093,7 @@
 ("french" "法语")
 ("From: " "来自：")
 ("from center" "从中心")
+("from %1" "从 %1 开始")
 ("front matter" "前置部分")
 ("full manuals" "完全手册")
 ("full screen mode" "全屏模式")
@@ -1171,6 +1187,7 @@
 ("help with" "查看帮助:")
 ("help" "帮助")
 ("here" "这里")
+("hide page numbers" "隐藏页码")
 ("hidden" "隐藏")
 ("high effort" "高")
 ("Sub-level separator" "当前节的下一层级的分隔符")
@@ -1624,6 +1641,7 @@
 ("loops" "圈")
 ("low effort" "低")
 ("lower border" "下端")
+("lowercase roman" "小写罗马")
 ("m modifier" "")
 ("macro definition" "宏定义")
 ("macro editor" "宏编辑器")
@@ -1831,6 +1849,9 @@
 ("no page break before" "禁止换页(在前面)")
 ("no page break" "禁止换页")
 ("no page numbers" "不显示页码")
+("no rules yet — all pages numbered continuously"
+  "尚无规则 —— 所有页面按 1 ~ %1 连续编号"
+) ;
 ("No Preview" "无预览")
 ("No recent documents" "无最近文档")
 ("no spelling errors found in text" "")
@@ -1900,6 +1921,7 @@
 ("one spelling error has been corrected" "")
 ("online documentation" "")
 ("online help" "在线说明")
+("only the last rule can be deleted" "仅最后一条规则可删除")
 ("only inline tags" "只对行内标记")
 ("Only search in math mode" "仅在数学模式中查找")
 ("Only search in text mode" "仅在文本模式中查找")
@@ -1974,6 +1996,10 @@
 ("page layout" "页面布局")
 ("Page number style" "页码样式")
 ("Page mapping" "页码映射")
+("page number..." "页码...")
+("Page number..." "页码...")
+("page number settings" "页码设置")
+("Page number settings" "页码设置")
 ("page number text" "设定页码文字")
 ("Page number" "页码")
 ("page number" "页码")
@@ -2240,6 +2266,9 @@
 ("Renew Now" "续费会员")
 ("Remind later" "稍后提醒")
 ("Skip this version" "跳过此版本")
+("rules connect sequentially; only the last rule can be deleted"
+  "规则依次衔接覆盖全文；仅最后一条可删除"
+) ;
 ("View plans" "查看会员方案")
 ("rendering" "渲染")
 ("renumber this page" "修改当前页码")
@@ -2535,6 +2564,12 @@
 ("Standard fraction" "标准分式")
 ("star" "五角星")
 ("start a new chapter" "新起一章")
+("start is fixed; drag handle down to select end page"
+  "起点固定，向下拖动手柄到结束页"
+) ;
+("starting from page %1, drag handle to select end page"
+  "从第 %1 页开始，拖动手柄选择结束页"
+) ;
 ("start a new section" "新起一节")
 ("start an interactive session" "插入交互会话")
 ("start" "开始")
@@ -2758,6 +2793,7 @@
 ("tiny" "细小")
 ("title" "标题")
 ("Title style" "标题样式")
+("to end of document" "至文末")
 ("to the left" "")
 ("to the right" "")
 ("today" "今天")
@@ -2867,6 +2903,7 @@
 ("update" "更新")
 ("upgrade" "升级")
 ("upper border" "上端")
+("uppercase roman" "大写罗马")
 ("upright" "正体")
 ("upwards" "往上边")
 ("use TeXmacs" "使用 TeXmacs")

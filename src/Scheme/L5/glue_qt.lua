@@ -123,6 +123,12 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "cpp-page-number-dialog",
+                cpp_name = "cpp_page_number_dialog",
+                ret_type = "tree",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-gradient-selector-dialog",
                 cpp_name = "cpp_gradient_selector_dialog",
                 ret_type = "tree",

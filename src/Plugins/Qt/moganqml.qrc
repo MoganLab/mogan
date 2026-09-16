@@ -34,5 +34,6 @@
         <file>qml/WaitProgressDialog.qml</file>
         <file>qml/AiActionsBar.qml</file>
         <file>qml/Bibliography.qml</file>
+        <file>qml/PageNumber.qml</file>
     </qresource>
 </RCC>
