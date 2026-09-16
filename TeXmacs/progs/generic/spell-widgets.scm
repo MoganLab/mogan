@@ -757,9 +757,6 @@
   (set! spell-suggestions (list))
   (update-bottom-tools)
   (set! spell-serial (+ spell-serial 1))
-  (when toolbar-db-active?
-    (db-show-toolbar)
-  ) ;when
   (when (and (not (cursor-accessible?)) (not (in-source?)))
     (cursor-show-hidden)
   ) ;when

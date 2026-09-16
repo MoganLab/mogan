@@ -1650,9 +1650,6 @@
   (set! pending-key-strokes "")
   (set! current-search #f)
   (set! current-replace #f)
-  (when toolbar-db-active?
-    (db-show-toolbar)
-  ) ;when
   (when (and (not (cursor-accessible?)) (not (in-source?)))
     (cursor-show-hidden)
   ) ;when

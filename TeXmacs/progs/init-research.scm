@@ -556,7 +556,6 @@
 
 ;; (display "Booting database facilities\n")
 (lazy-define (database db-widget) open-db-chooser)
-(lazy-define (database db-menu) db-show-toolbar)
 (lazy-define (database db-convert) db-url?)
 (lazy-define (database bib-db) zealous-bib-import zealous-bib-export)
 (lazy-define (database bib-manage)
@@ -565,7 +564,6 @@
   bib-attach
   open-bib-chooser
 ) ;lazy-define
-(lazy-menu (database db-menu) db-menu db-toolbar)
 (lazy-tmfs-handler (database db-tmfs) db)
 
 
