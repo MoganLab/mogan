@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "QTMOAuth.hpp"
+#include "oauth_deeplink.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 #include "telemetry.hpp"
@@ -17,6 +18,8 @@
 
 #include <QtGui/qdesktopservices.h>
 
+#include <QtNetwork/qlocalserver.h>
+#include <QtNetwork/qlocalsocket.h>
 #include <QtNetwork/qnetworkaccessmanager.h>
 #include <QtNetwork/qnetworkreply.h>
 #include <QtNetwork/qnetworkrequest.h>
@@ -102,8 +105,40 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   connect (m_callbackCloseTimer, &QTimer::timeout, this,
            &QTMOAuth::closeCallbackServer);
 
+  // 接收深链转发：浏览器总会新拉起一个进程，由它把回调 URL 送到发起登录的
+  // 实例（见 oauth_deeplink.hpp 的实例路由）
+  startUrlRouter ();
+
   // 加载现有的token信息
   loadExistingToken ();
+}
+
+// 按本实例的标识起本地 socket，接收其它进程（浏览器拉起的转发进程）送来的
+// 深链 URL。名字含实例标识，多开时天然不撞，因此不需要「主实例」概念，
+// 也不改变现有允许多开的策略。
+void
+QTMOAuth::startUrlRouter () {
+  oauth_deeplink::start_receiver (
+      this, m_instanceId, this,
+      [this] (const QString& url) { handleDeepLink (url); });
+}
+
+// 深链回调的唯一入口：与环回回调共用 handleCallback，因此 state 校验、
+// 一次性清空、延迟关闭等逻辑全部沿用，不新增第二套校验
+void
+QTMOAuth::handleDeepLink (const QString& url) {
+  if (!oauth_deeplink::is_oauth_callback (url)) return;
+
+  // 先置前再换 token：用户刚在浏览器里点完授权，视线该落回软件上
+  oauth_deeplink::bring_to_front ();
+
+  QUrl            parsed (url);
+  const QUrlQuery query (parsed);
+  QVariantMap     values;
+  values["code"] = query.queryItemValue ("code");
+  values["state"]= query.queryItemValue ("state");
+
+  handleCallback (values);
 }
 
 void
@@ -115,15 +150,23 @@ QTMOAuth::login () {
     if (m_reply->isListening ()) m_reply->close ();
   }
 
-  // 按需监听：监听失败必须显式报错——原来这里静默什么都不做，用户点了登录
-  // 没反应，也查不到原因
+  // 探测协议注册，可用则优先走深链：浏览器直接拉起软件，用户不必盯着「正在
+  // 等待回调」的页面，也不必担心防火墙拦掉本地端口。探测的时机在建注册之后
+  // ——research.cpp 启动时已补写过，故自动更新上来的老用户同样能立刻用上
+  m_deepLinkChosen= oauth_deeplink::deep_link_usable ();
+
+  // 环回服务器照旧备着：深链不可用时它是唯一出路。监听失败不再中断整个流程，
+  // 剩下的那条通道仍可能打通
   if (!m_reply->isListening () &&
-      !m_reply->listen (QHostAddress (QString::fromUtf8 ("127.0.0.1")), 0)) {
+      !m_reply->listen (QHostAddress (QString::fromUtf8 ("127.0.0.1")), 0))
     debug_boot << "OAuth callback server failed to listen" << "\n";
-    m_redirectUri.clear ();
-    return;
-  }
-  m_redirectUri= m_reply->callback ();
+
+  // 固化本次登录的 redirect_uri：授权请求与令牌交换两处必须逐字节一致
+  // （RFC 6749 §4.1.3），故一次性确定，之后不再随运行时状态变化。
+  // 选定的通道收不到码时另一条也收不到——服务端只认请求里那一个地址
+  m_redirectUri= (m_deepLinkChosen || !m_reply->isListening ())
+                     ? oauth_deeplink::redirect_uri ()
+                     : m_reply->callback ();
 
   // 按当前 stem-profile 刷新回调页（让 profile 切换在下次登录立即生效）
   refreshCallbackHtml ();
@@ -493,15 +536,16 @@ QTMOAuth::getAccessTokenUrl () {
 }
 
 // redirect_uri：授权请求与令牌交换两处必须使用完全一致的值（OAuth 2.0 规范）。
-// 优先取回调服务器当前实际监听的地址；若服务器已延迟关闭（close ()），
-// 则返回本次登录发起时缓存的有效地址，确保令牌交换时 redirect_uri
-// 始终一致且非空
+// 值在 login () 中一次性固化，此处不再读取回调服务器的实时状态——服务器会在
+// 收到回调后延迟关闭，届时 callback () 返回空串。
+//
+// 兜底一句：环回回调只在 login () 起监听之后才可能到达、深链回调又先过 state
+// 校验，两条路都走不到「m_redirectUri 为空」。留着只是不让空串流进令牌交换，
+// 真流进去了服务端会明确报错，比静默换个地址安全
 QString
 QTMOAuth::getRedirectUri () {
-  if (m_reply && m_reply->isListening ()) {
-    m_redirectUri= m_reply->callback ();
-  }
-  return m_redirectUri;
+  if (!m_redirectUri.isEmpty ()) return m_redirectUri;
+  return m_reply->callback ();
 }
 
 QString

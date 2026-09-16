@@ -51,6 +51,7 @@ void mac_fix_paths ();
 
 #ifdef QTTEXMACS
 #include "Qt/QTMApplication.hpp"
+#include "Qt/oauth_deeplink.hpp"
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QKeySequence>
@@ -268,6 +269,28 @@ main (int argc, char** argv) {
       docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
     set_env ("TEXMACS_DOCUMENTS_PATH", from_qstring_utf8 (docsDir));
   }
+
+#if defined(OS_WIN)
+  // liiistem:// 深链。浏览器打开自定义协议时总是新拉起一个进程，由它把回调
+  // URL 交给仍在运行、且发起过本次登录的那个实例，然后自己退出
+  // （见 oauth_deeplink.hpp）
+  if (!headless_mode) {
+    // 协议注册的主责在安装器，但自动更新不会执行安装器，老用户升级后键是空的
+    oauth_deeplink::ensure_registered ();
+
+    // arguments() 而非 argv：Windows 命令行是 UTF-16，QApplication 已在构造时
+    // 完成转换并摘掉 Qt 自身参数，比直接取 argv 干净
+    const QString url=
+        oauth_deeplink::find_url (QCoreApplication::arguments ());
+    // 转发不成（发起实例已退出）时不做别的，照常启动：这个 code 换不出 token，
+    // 本进程无从接手——PKCE 的 code_verifier 只存在于那个已退出的进程里。
+    // 用户会在新窗口里重新登录，代价是一次点击
+    if (!url.isEmpty () && oauth_deeplink::try_forward (url)) {
+      delete qtmapp;
+      return 0;
+    }
+  }
+#endif
 #endif
 
   // before startup login dialog
