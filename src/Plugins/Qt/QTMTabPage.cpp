@@ -485,6 +485,11 @@ QTMTabPageContainer::QTMTabPageContainer (QWidget* p_parent)
   int addBtnRadius= DpiUtils::scaled (6);
   m_addTabButton->setStyleSheet (
       QString ("border-radius: %1px; padding: 0px;").arg (addBtnRadius));
+#ifdef Q_OS_MAC
+  m_addTabButton->setToolTip ("Command+t");
+#else
+  m_addTabButton->setToolTip ("Ctrl+t");
+#endif
   connect (m_addTabButton, &QPushButton::clicked, this,
            &QTMTabPageContainer::onAddTabClicked);
   m_addTabButton->hide ();

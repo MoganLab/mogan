@@ -201,6 +201,18 @@ private slots:
     QVERIFY (!container.debug_findTab (url ("tmfs://view/1"))->isDirty ());
 #endif
   }
+
+  void test_add_tab_button_tooltip () {
+    QWidget             host;
+    QTMTabPageContainer container (&host);
+    auto* addBtn= container.findChild<QWK::WindowButton*> ("add-tab-button");
+    QVERIFY (addBtn != nullptr);
+#ifdef Q_OS_MAC
+    QCOMPARE (addBtn->toolTip (), QString ("Command+t"));
+#else
+    QCOMPARE (addBtn->toolTip (), QString ("Ctrl+t"));
+#endif
+  }
 };
 
 QTEST_MAIN (TestQTMTabPage)
