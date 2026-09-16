@@ -301,8 +301,8 @@ def run_test():
 
         # Step 5: Test invalid path feedback
         print("[1309] Step 5: Testing invalid file path feedback...")
-        file_box_x = wx + int(850 * scale)
-        file_box_y = wy + int(365 * scale)
+        file_box_x = wx + int(1015 * scale)
+        file_box_y = wy + int(367 * scale)
         mouse.position = (file_box_x, file_box_y)
         time.sleep(0.3)
         mouse.click(Button.left)
@@ -315,7 +315,8 @@ def run_test():
         invalid_screenshot.save(invalid_path)
         print(f"[1309] Saved invalid path feedback screenshot to {invalid_path}")
 
-        # Clear the input box before clicking Browse
+        # Step 6: Select all and type valid bib path
+        print(f"[1309] Step 6: Entering valid bib path at ({file_box_x}, {file_box_y})...")
         mouse.position = (file_box_x, file_box_y)
         time.sleep(0.3)
         mouse.click(Button.left)
@@ -326,28 +327,10 @@ def run_test():
         time.sleep(0.2)
         kb.press(Key.backspace)
         kb.release(Key.backspace)
-        time.sleep(0.5)
-
-        # Step 6: Click '浏览' (Browse) button to select valid 1308.bib
-        browse_x = wx + int(1240 * scale)
-        browse_y = wy + int(365 * scale)
-        print(f"[1309] Step 6: Clicking '浏览' (Browse) button at ({browse_x}, {browse_y})...")
-        mouse.position = (browse_x, browse_y)
         time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(1.5)
-
-        # In QFileDialog, click '文件名' input box and type bib path
-        file_input_x = wx + int(800 * scale)
-        file_input_y = wy + int(725 * scale)
-        print(f"[1309] Step 6: Typing bib path in file dialog at ({file_input_x}, {file_input_y})...")
-        mouse.position = (file_input_x, file_input_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(0.5)
 
         kb.type(bib_file)
-        time.sleep(0.8)
+        time.sleep(0.5)
         kb.press(Key.enter)
         kb.release(Key.enter)
         time.sleep(2.5)
@@ -365,7 +348,7 @@ def run_test():
         print(f"[1309] Saved plain preview screenshot to {preview_path}")
 
         # Check preview region: center of the dialog
-        cx, cy = wx + int(960 * scale), wy + int(560 * scale)
+        cx, cy = wx + int(950 * scale), wy + int(570 * scale)
         preview_crop = preview_screenshot.crop((cx - int(250 * scale), cy - int(40 * scale),
                                                cx + int(250 * scale), cy + int(60 * scale)))
         arr_plain = np.array(preview_crop)
@@ -378,8 +361,8 @@ def run_test():
         print("[1309] SUCCESS: Bibliography preview rendered clearly with proper magnification!")
 
         # Step 8: Click Style dropdown and switch style
-        style_x = wx + int(720 * scale)
-        style_y = wy + int(415 * scale)
+        style_x = wx + int(764 * scale)
+        style_y = wy + int(425 * scale)
         print(f"[1309] Step 8: Clicking Style dropdown at ({style_x}, {style_y})...")
         mouse.position = (style_x, style_y)
         time.sleep(0.3)
@@ -388,7 +371,7 @@ def run_test():
 
         # Select option in dropdown list
         option_x = style_x
-        option_y = wy + int(535 * scale)
+        option_y = wy + int(550 * scale)
         print(f"[1309] Step 8: Selecting style from dropdown at ({option_x}, {option_y})...")
         mouse.position = (option_x, option_y)
         time.sleep(0.3)
@@ -406,8 +389,8 @@ def run_test():
         print(f"[1309] Saved switched style preview screenshot to {alpha_path}")
 
         # Step 9: Click '插入' (Insert) button
-        insert_btn_x = wx + int(1070 * scale)
-        insert_btn_y = wy + int(738 * scale)
+        insert_btn_x = wx + int(1140 * scale)
+        insert_btn_y = wy + int(703 * scale)
         print(f"[1309] Step 9: Clicking '插入' (Insert) button at ({insert_btn_x}, {insert_btn_y})...")
         mouse.position = (insert_btn_x, insert_btn_y)
         time.sleep(0.3)

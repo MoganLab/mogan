@@ -109,6 +109,7 @@ typedef tm_window_rep* tm_window;
 
 widget    texmacs_output_widget (tree doc, tree style);
 widget    texmacs_input_widget (tree doc, tree style, url wname);
+tree      enrich_embedded_document (tree body, tree style);
 bool      is_embedded_buffer (url name);
 array<SI> get_texmacs_widget_size (widget wid);
 

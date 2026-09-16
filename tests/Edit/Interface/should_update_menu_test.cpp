@@ -33,6 +33,7 @@ private slots:
   void test_aux_replace ();
   void test_aux_page_header_footer ();
   void test_aux_comment ();
+  void test_aux_bib ();
 };
 
 // 普通 buffer：所有段都重建
@@ -133,6 +134,15 @@ TestShouldUpdateMenu::test_aux_page_header_footer () {
 void
 TestShouldUpdateMenu::test_aux_comment () {
   url u= url ("tmfs://aux/edit-comment/1");
+  for (int i= 0; i < N_BITS; i++)
+    QVERIFY (!should_update_menu (ALL_BITS[i], u));
+  QVERIFY (!should_update_menu (MENU_ALL, u));
+}
+
+// 参考文献预览辅助缓冲区：全部不重建（嵌在参考文献弹窗 widget 里）
+void
+TestShouldUpdateMenu::test_aux_bib () {
+  url u= url ("tmfs://aux/bib-preview");
   for (int i= 0; i < N_BITS; i++)
     QVERIFY (!should_update_menu (ALL_BITS[i], u));
   QVERIFY (!should_update_menu (MENU_ALL, u));

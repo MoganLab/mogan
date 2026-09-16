@@ -167,6 +167,7 @@ public:
   ////////////////////// backing store management
 
   static void repaint_all (); // called by qt_gui_rep::update()
+  void        repaint_invalid_regions ();
 
 protected:
   static hashset<pointer>          all_widgets;
@@ -190,7 +191,6 @@ protected:
 
   void invalidate_rect (int x1, int y1, int x2, int y2);
   void invalidate_all ();
-  void repaint_invalid_regions ();
 #ifdef USE_MUPDF_RENDERER
   QImage get_backing_store ();
 #else

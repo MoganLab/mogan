@@ -19,19 +19,23 @@
 #include "QTMQmlDialogInternal.hpp"
 #include "VersionDialogBridge.hpp"
 
-#include "analyze.hpp"     // occurs
-#include "converter.hpp"   // cork_to_utf8
-#include "gui.hpp"         // tm_style_sheet
+#include "QTMWidget.hpp"
+#include "analyze.hpp"   // occurs
+#include "converter.hpp" // cork_to_utf8
+#include "gui.hpp"       // tm_style_sheet
+#include "new_buffer.hpp"
 #include "preferences.hpp" // get_preference / set_preference
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"     // eval_scheme
 #include "sys_utils.hpp" // lolly: get_env
+#include "tm_window.hpp"
 
 #include <moebius/data/scheme.hpp> // tree_to_scheme_tree / scm_unquote
 
 using moebius::data::scm_unquote;
 using moebius::data::tree_to_scheme_tree;
 
+#include <QAbstractScrollArea>
 #include <QDialog>
 #include <QDir>
 #include <QQmlContext>
@@ -246,9 +250,11 @@ private:
  *         → Accepted/Rejected，表单值另行从 bridge->results() 取）。
  */
 static int
-run_qml_dialog (const string& qml_url, const char* debug_tag,
-                std::function<void (QQuickWidget*, QDialog&)> inject_context,
-                int logic_w, int logic_h, bool autofit_height= false) {
+run_qml_dialog (
+    const string& qml_url, const char* debug_tag,
+    std::function<void (QQuickWidget*, QDialog&)> inject_context, int logic_w,
+    int logic_h, bool autofit_height= false,
+    std::function<void (QQuickWidget*, QDialog&)> post_setup= nullptr) {
   static const bool resourceInitialized= [] () {
     Q_INIT_RESOURCE (moganqml);
     return true;
@@ -270,6 +276,10 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
   vl->addWidget (qw);
   if (autofit_height) lock_autofit_height (qw, vl, d, logic_w, logic_h);
   else lock_fixed_size (qw, vl, d, logic_w, logic_h);
+
+  if (post_setup) {
+    post_setup (qw, d);
+  }
 
   // 焦点落在 QML 视图：弹窗激活时离屏 QML 场景随之激活，DialogShell 的
   // focus:true 生效，ESC/Enter 走 QML 正常链路。
@@ -1332,6 +1342,40 @@ cpp_gradient_selector_dialog (tree old_col) {
 
 // ---- 参考文献 --------------------------------------------------------------
 
+namespace {
+
+class BibPreviewReadonlyFilter : public QObject {
+public:
+  explicit BibPreviewReadonlyFilter (QObject* parent= nullptr)
+      : QObject (parent) {}
+
+protected:
+  bool eventFilter (QObject* watched, QEvent* event) override {
+    (void) watched;
+    QEvent::Type t= event->type ();
+    if (t == QEvent::InputMethod) return true;
+    if (t == QEvent::KeyPress || t == QEvent::KeyRelease) {
+      QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+      int                   key = ke->key ();
+      Qt::KeyboardModifiers mods= ke->modifiers ();
+      bool ctrl_or_meta= mods & (Qt::ControlModifier | Qt::MetaModifier);
+      bool is_nav_key=
+          (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up ||
+           key == Qt::Key_Down || key == Qt::Key_Home || key == Qt::Key_End ||
+           key == Qt::Key_PageUp || key == Qt::Key_PageDown);
+      if (is_nav_key || key == Qt::Key_Escape) return false;
+      if (ctrl_or_meta) {
+        if (key == Qt::Key_C || key == Qt::Key_A) return false;
+        return true;
+      }
+      return true;
+    }
+    return false;
+  }
+};
+
+} // namespace
+
 /**
  * @brief 「插入/修改参考文献」QML 对话框 glue 入口（一次性提交）。
  * @param config Scheme 构造的配置树：
@@ -1406,6 +1450,34 @@ cpp_bibliography_dialog (tree config) {
   QmlDialogBridge*          closeBridge= nullptr;
   BibliographyDialogBridge* bibBridge  = nullptr;
 
+  const url bib_preview_url= url ("tmfs://aux/bib-preview");
+  if (contains (bib_preview_url, get_all_buffers ())) {
+    remove_buffer (bib_preview_url);
+  }
+
+  QWidget* previewQW = nullptr;
+  tree     previewSty= bib_preview_style ();
+  tree     initDoc=
+      enrich_embedded_document (tree (moebius::DOCUMENT, ""), previewSty);
+  widget tw= texmacs_input_widget (initDoc, previewSty, bib_preview_url);
+  set_zoom_factor (tw, DpiUtils::scaled (100) / 100.0);
+  previewQW= concrete (tw)->as_qwidget ();
+
+  if (previewQW) {
+    QAbstractScrollArea* sa= previewQW->findChild<QAbstractScrollArea*> ();
+    if (sa) {
+      sa->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+      sa->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
+      sa->viewport ()->setBackgroundRole (QPalette::Base);
+    }
+    QTMWidget* editor= previewQW->findChild<QTMWidget*> ();
+    if (editor) {
+      editor->setProperty ("bib_preview_readonly", true);
+      editor->installEventFilter (new BibPreviewReadonlyFilter (editor));
+    }
+    previewQW->hide ();
+  }
+
   const int logicW= 760;
   const int logicH= 550;
 
@@ -1414,7 +1486,8 @@ cpp_bibliography_dialog (tree config) {
       [&] (QQuickWidget* qw, QDialog& host) {
         closeBridge= inject_common_context (qw, host);
         bibBridge  = new BibliographyDialogBridge (
-            &host, utf8_to_qstring (cork_to_utf8 (doc_dir)));
+            &host, utf8_to_qstring (cork_to_utf8 (doc_dir)), previewQW,
+            bib_preview_url);
         qw->rootContext ()->setContextProperty ("bibBridge", bibBridge);
         qw->rootContext ()->setContextProperty (
             "dialogTitle", modify ? qt_translate ("Modify bibliography")
@@ -1444,12 +1517,38 @@ cpp_bibliography_dialog (tree config) {
         qw->rootContext ()->setContextProperty ("initialUpdate", upd);
         qw->rootContext ()->setContextProperty ("styleOptions", styles);
       },
-      logicW, logicH);
+      logicW, logicH, false,
+      [&] (QQuickWidget* qw, QDialog& host) {
+        (void) host;
+        if (previewQW && qw->rootObject ()) {
+          QQuickItem* placeholder=
+              qw->rootObject ()->findChild<QQuickItem*> ("previewPlaceholder");
+          if (placeholder) {
+            previewQW->setParent (qw);
+            if (bibBridge) bibBridge->setPlaceholder (placeholder);
+            auto updateGeom= [bibBridge] () {
+              if (bibBridge) bibBridge->updatePreviewGeometry ();
+            };
+            updateGeom ();
+            QObject::connect (placeholder, &QQuickItem::xChanged, qw,
+                              updateGeom);
+            QObject::connect (placeholder, &QQuickItem::yChanged, qw,
+                              updateGeom);
+            QObject::connect (placeholder, &QQuickItem::widthChanged, qw,
+                              updateGeom);
+            QObject::connect (placeholder, &QQuickItem::heightChanged, qw,
+                              updateGeom);
+          }
+        }
+      });
 
-  const QVariantMap& res=
-      closeBridge ? closeBridge->results () : QVariantMap ();
+  const QVariantMap res= closeBridge ? closeBridge->results () : QVariantMap ();
   delete closeBridge;
   delete bibBridge;
+
+  if (contains (bib_preview_url, get_all_buffers ())) {
+    remove_buffer (bib_preview_url);
+  }
 
   if (res.isEmpty ()) return tree (TUPLE);
 

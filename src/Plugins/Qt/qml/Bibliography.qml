@@ -35,16 +35,21 @@ DialogShell {
     property string style: typeof initialStyle !== "undefined" ? initialStyle : "tm-plain"
     property bool updateBuffer: typeof initialUpdate !== "undefined" ? initialUpdate : true
 
-    property string previewDataUrl: ""
     property string previewStatus: "empty"
     property string fileHint: ""
+
+    property bool isComboOpen: root.activeCombo !== null
+    onIsComboOpenChanged: {
+        if (typeof bibBridge !== "undefined" && bibBridge) {
+            bibBridge.setPreviewVisible(!root.isComboOpen);
+        }
+    }
 
     function updatePreview() {
         if (typeof bibBridge !== "undefined" && bibBridge) {
             var res = bibBridge.requestPreview(root.file, root.style);
             if (res) {
                 root.previewStatus = res.status || "empty";
-                root.previewDataUrl = res.preview || "";
                 root.fileHint = res.hint || "";
             }
         }
@@ -213,12 +218,12 @@ DialogShell {
                 font.bold: true
             }
 
-            // 合法文献排版预览图
-            PreviewPane {
-                visible: root.previewStatus === "valid" && root.previewDataUrl.length > 0
+            // tmfs 缓冲区 QWidget 覆盖占位项
+            Item {
+                id: previewPlaceholder
+                objectName: "previewPlaceholder"
                 anchors.fill: parent
                 anchors.margins: Theme.padS
-                imageSource: root.previewDataUrl
             }
         }
 
