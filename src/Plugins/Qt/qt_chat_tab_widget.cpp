@@ -111,7 +111,7 @@ constexpr int kMultiSelectSpacing  = 4;
 constexpr int kWelcomeFontPx         = 34;
 constexpr int kInputLineHeight       = 22;
 constexpr int kInputDefaultLines     = 3;
-constexpr int kInputMaxLines         = 10;
+constexpr int kInputMaxStepMultiple  = 5;
 constexpr int kContentMarginY        = 12;
 constexpr int kContentSpacing        = 8;
 constexpr int kTitleToMessageSpacing = 16;
@@ -305,6 +305,10 @@ ChatConversationPanel::setup_ui () {
   set_zoom_factor (inputWidget, chatZoom);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
+  // TeXmacs 尺寸提示不得传导到 dock 几何（同消息区垂直方向的处理）；
+  // 输入区宽度方向也要 Ignored——否则输入框长高后编辑器的提示宽度
+  // 会把 dock 侧边栏整体撑宽且不回退
+  inputQWidget->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 
   QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
@@ -321,11 +325,12 @@ ChatConversationPanel::setup_ui () {
   inputFrameLayout->addWidget (inputQWidget);
 
   // Set initial frame height (includes padding + editor + button)
-  int defaultEditorH= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
-  int btnH          = DpiUtils::scaled (kSendButtonSize);
-  int padTotal      = DpiUtils::scaled (kInputFramePad) * 2;
-  fixedFrameExtra_  = btnH + padTotal;
-  inputFrame->setFixedHeight (defaultEditorH + fixedFrameExtra_);
+  int btnH        = DpiUtils::scaled (kSendButtonSize);
+  int padTotal    = DpiUtils::scaled (kInputFramePad) * 2;
+  fixedFrameExtra_= btnH + padTotal;
+  // 基准行数落在 1 倍档内，故初始高度即 1 倍档（现有大小）
+  inputFrame->setFixedHeight (
+      input_frame_height_for_lines (kInputDefaultLines));
 
   // Scrollbar policy & EventFilter for Enter key handling
   {
@@ -618,18 +623,57 @@ count_table_rows (tree t) {
   return rows > 0 ? rows : 1;
 }
 
+/**
+ * @brief 递归计算节点的内容行数。
+ *
+ * 行内内容（原子串、CONCAT/WITH 行内包装）占 1 行；DOCUMENT 累加
+ * 子节点行数；引用块（quote-env，含 AI 引用与插入 → 外观块两种
+ * 形态）、列表等块级包装按其内部文档递归计行；表格族按行数计
+ * （0332）；无法细分的块计 1 行。特殊格式的内容同样是「输入框
+ * 内容数量」，照常参与触发放大。
+ */
+static int
+count_input_lines_rec (tree t) {
+  if (is_atomic (t) || is_func (t, CONCAT) || is_func (t, WITH)) return 1;
+  if (is_func (t, DOCUMENT)) {
+    int total= 0;
+    for (int i= 0; i < N (t); i++)
+      total+= count_input_lines_rec (t[i]);
+    return total;
+  }
+  for (int i= 0; i < N (t); i++)
+    if (is_func (t[i], DOCUMENT)) return count_input_lines_rec (t[i]);
+  return count_table_rows (t);
+}
+
 int
 ChatConversationPanel::count_input_lines (tree body) {
   if (!is_func (body, DOCUMENT)) return 1;
   if (N (body) == 0) return 1;
   if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
-  int total= 0;
-  for (int i= 0; i < N (body); i++) {
-    tree child= body[i];
-    if (is_compound (child)) total+= count_table_rows (child);
-    else total++;
-  }
-  return total;
+  return count_input_lines_rec (body);
+}
+
+int
+ChatConversationPanel::input_height_step_lines (int docLines) {
+  // 档位为基准的 1~5 倍：按内容行数向上取整到档位，5 倍封顶后输入
+  // 区内滚动
+  int multiple= (docLines + kInputDefaultLines - 1) / kInputDefaultLines;
+  if (multiple < 1) multiple= 1;
+  if (multiple > kInputMaxStepMultiple) multiple= kInputMaxStepMultiple;
+  return kInputDefaultLines * multiple;
+}
+
+int
+ChatConversationPanel::input_frame_height_for_lines (int docLines) {
+  int targetLines= input_height_step_lines (docLines);
+  return DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
+}
+
+int
+ChatConversationPanel::input_frame_max_height () {
+  return input_frame_height_for_lines (kInputMaxStepMultiple *
+                                       kInputDefaultLines);
 }
 
 static bool
@@ -727,7 +771,7 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       }
     }
     // 回车键（Shift+Enter 排除，因发送已拦截）且当前是输入框：
-    // 在 TeXmacs 处理按键之前预先扩展 frame，使 viewport 提前变大，
+    // 在 TeXmacs 处理按键之前预先升档 frame，使 viewport 提前变大，
     // 这样 cursor_visible() 不会因 viewport 偏小而触发上滚。
     // 同时抑制绘制，避免 viewport 变大但内容未排版时出现边白闪烁。
     if (watched->property ("chat_panel").value<void*> () == this) {
@@ -736,13 +780,12 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       if (isEnter) {
         QWidget* frame=
             inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
-        if (frame) {
-          tree body    = readInputMessage ();
-          int  docLines= count_input_lines (body);
-          int  targetLines=
-              qMin (kInputMaxLines, qMax (kInputDefaultLines, docLines + 1));
-          int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) +
-                            fixedFrameExtra_;
+        // 已在封顶档时预估也不会更高，免去读缓冲与整树计数
+        if (frame && frame->height () != input_frame_max_height ()) {
+          // 预估回车后的行数，仅升档不缩档（缩档交由 adjust_input_height）
+          tree body= readInputMessage ();
+          int  targetFrameH=
+              input_frame_height_for_lines (count_input_lines (body) + 1);
           if (frame->height () < targetFrameH) {
             setUpdatesEnabled (false);
             frame->setFixedHeight (targetFrameH);
@@ -790,18 +833,12 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  tree body    = readInputMessage ();
-  int  docLines= count_input_lines (body);
+  // 已在封顶档时行数再增高度也不会变，免去读缓冲与整树计数
+  if (frame->height () == input_frame_max_height ()) return;
 
-  int targetLines= qMax (kInputDefaultLines, docLines);
-  targetLines    = qMin (targetLines, kInputMaxLines);
   int targetFrameH=
-      DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
-
-  if (frame->height () != targetFrameH) {
-    frame->setFixedHeight (targetFrameH);
-    emit inputHeightChanged ();
-  }
+      input_frame_height_for_lines (count_input_lines (readInputMessage ()));
+  if (frame->height () != targetFrameH) frame->setFixedHeight (targetFrameH);
 }
 
 /******************************************************************************

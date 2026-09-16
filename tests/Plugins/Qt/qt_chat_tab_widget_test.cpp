@@ -112,6 +112,109 @@ private slots:
     QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
   }
 
+  // === 特殊格式（引用块、表格等）内容照常计入行数、触发放大 ===
+  void test_count_input_lines_quote_env_content_counted () {
+    // AI 对话/翻译把选区包成 quote-env 引用块：块内段落逐段计入
+    // （8 段引用 + 尾随空段 = 9 行）
+    tree quote= compound ("quote-env", tree (DOCUMENT, "p1", "p2", "p3", "p4",
+                                             "p5", "p6", "p7", "p8"));
+    tree doc  = tree (DOCUMENT, quote, "");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 9);
+  }
+
+  void test_count_input_lines_quote_env_inner_table_counted () {
+    // 引用块内含表格：表格行数计入内容行数
+    tree quote=
+        compound ("quote-env",
+                  tree (DOCUMENT, tree (TABLE, "r1", "r2", "r3", "r4", "r5")));
+    tree doc= tree (DOCUMENT, quote, "");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 6);
+  }
+
+  void test_count_input_lines_toplevel_table_counted () {
+    // 直接粘贴进输入区的表格按行数计（0332 行为保持）
+    tree doc= tree (DOCUMENT, tree (TABLE, "r1", "r2", "r3", "r4"), "tail");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 5);
+  }
+
+  void test_count_input_lines_list_content_counted () {
+    // 列表等其它块级包装同样按内部文档递归计行
+    tree list= compound ("itemize",
+                         tree (DOCUMENT, tree (make_tree_label ("item"), "a"),
+                               tree (make_tree_label ("item"), "b"),
+                               tree (make_tree_label ("item"), "c")));
+    tree doc = tree (DOCUMENT, list, "tail");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 4);
+  }
+
+  void test_count_input_lines_with_paragraph_counted () {
+    // 行内样式整段文字（WITH 包裹）计 1 行
+    tree doc= tree (DOCUMENT, tree (WITH, "color", "red", "hello"), "second");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
+  }
+
+  void test_count_input_lines_mixed_blocks_and_text () {
+    // 引用块（2 段）+ 表格（2 行）+ 三段文本 = 7 行
+    tree doc=
+        tree (DOCUMENT, compound ("quote-env", tree (DOCUMENT, "q1", "q2")),
+              tree (TABLE, "r1", "r2"), "a", "b", "c");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 7);
+  }
+
+  // === 外观块行内标记（插入 → 外观块 → 引用，generic 样式实测形态） ===
+  void test_count_input_lines_inline_quote_mark_counted () {
+    // 实测：make 'quote-env 在 generic 样式下产生行内空标记
+    // (concat (quote-env) "第一段")，回车后续段为普通段，逐段照常计
+    tree doc= tree (
+        DOCUMENT, tree (CONCAT, tree (make_tree_label ("quote-env")), "第一段"),
+        "第二段", "第三段", "引用块外的普通段");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 4);
+  }
+
+  void test_count_input_lines_inline_prominent_family_counted () {
+    // 外观块家族其它标记（居中 padded-center、边框 framed 等）段落计 1 行
+    tree doc= tree (
+        DOCUMENT,
+        tree (CONCAT, tree (make_tree_label ("padded-center")), "居中段"),
+        tree (CONCAT, tree (make_tree_label ("framed")), "框段"), "普通段");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 3);
+  }
+
+  void test_count_input_lines_inline_math_still_counted () {
+    // 行内公式/样式等正常行内内容计 1 行
+    tree doc= tree (
+        DOCUMENT,
+        tree (CONCAT, "算式 ", tree (WITH, "mode", "math", "x+1"), " 结束"),
+        "第二段");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
+  }
+
+  // === input_height_step_lines 固定档位（基准 3 行的 1~5 倍） ===
+  void test_input_height_step_lines_within_default () {
+    // 1~3 行：维持现有大小（1 倍基准）
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (0), 3);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (1), 3);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (2), 3);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (3), 3);
+  }
+
+  void test_input_height_step_lines_double () {
+    // 4~6 行：固定扩为现有大小的 2 倍
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (4), 6);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (5), 6);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (6), 6);
+  }
+
+  void test_input_height_step_lines_triple_to_quintuple_capped () {
+    // 7 行起逐档放大：3 倍（7~9 行）、4 倍（10~12 行）、5 倍封顶
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (7), 9);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (9), 9);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (10), 12);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (12), 12);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (13), 15);
+    QCOMPARE (ChatConversationPanel::input_height_step_lines (20), 15);
+  }
+
   void test_is_empty_document_body_truly_empty () {
     // tree(DOCUMENT) 在 TeXmacs 中实际创建的是带有一个空子节点的 DOCUMENT
     // 空文档的标准表示是 tree(DOCUMENT, "")
