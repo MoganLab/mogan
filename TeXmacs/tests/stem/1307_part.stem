@@ -1,0 +1,8 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic" "chinese"))
+  (body (document "这是一段包含在子文件中的中文测试内容。"))
+  (initial (collection (associate "page-medium" "paper")
+             (associate "page-screen-margin" "false")
+           ) ;collection
+  ) ;initial
+) ;document

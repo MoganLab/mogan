@@ -11,7 +11,8 @@
   "stem": {
     "suffix": ["stem"],
     "path": [
-        "TeXmacs/packages"
+      "TeXmacs/packages",
+      "TeXmacs/tests/stem"
     ]
   },
   "scheme": {
