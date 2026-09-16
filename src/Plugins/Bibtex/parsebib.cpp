@@ -18,7 +18,6 @@
 #include "tree_helper.hpp"
 #include "tree_modify.hpp"
 #include "tree_traverse.hpp"
-#include "wencoding.hpp"
 
 using namespace moebius;
 
@@ -145,12 +144,12 @@ bib_atomic_arg (string s, int& pos, string ce, tree& a) {
   switch (s[pos]) {
   case '\"': {
     bib_within (s, pos, '\"', '\"', sa);
-    a= western_to_cork (sa);
+    a= utf8_to_cork (sa);
     break;
   }
   case '{': {
     bib_within (s, pos, '{', '}', sa);
-    a= western_to_cork (sa);
+    a= utf8_to_cork (sa);
     break;
   }
   default: {
@@ -158,11 +157,11 @@ bib_atomic_arg (string s, int& pos, string ce, tree& a) {
     cs << ce;
     if (!is_digit (s[pos])) {
       bib_until (s, pos, cs, sa);
-      a= compound ("bib-var", western_to_cork (sa));
+      a= compound ("bib-var", utf8_to_cork (sa));
     }
     else {
       bib_until (s, pos, cs, sa);
-      a= western_to_cork (sa);
+      a= utf8_to_cork (sa);
     }
     break;
   }
@@ -394,7 +393,7 @@ bib_list (string s, int& pos, tree& t) {
           while (pos + 1 < N (s) && s[pos + 1] != '@')
             pos++;
           if (bibtex_non_empty_comment (s (start, pos + 1))) {
-            string        ss   = western_to_cork (s (start, pos + 1));
+            string        ss   = utf8_to_cork (s (start, pos + 1));
             array<string> lines= tokenize (ss, "\n");
             tree          doc (DOCUMENT);
             for (int l= 0; l < N (lines); l++)
