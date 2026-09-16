@@ -67,7 +67,6 @@
   ) ;if
   (if (project-attached?) (=> "Project" (link project-menu)))
   (=> "View::menu" (link view-menu))
-  (if (qt-gui?) (=> "Go" (link go-menu)))
   (if (qt-gui?) (if (detailed-menus?) (=> "Tools" (link tools-menu))))
   (if (with-debugging-tool?) (=> "Debug" (link debug-menu)))
   (if (with-developer-tool?) (=> "Developer" (link developer-menu)))
@@ -164,7 +163,6 @@
   ) ;if
   (if (project-attached?) (=> "Project" (link project-menu)))
   (-> "View::menu" (link view-menu))
-  (-> "Go" (link go-menu))
   (if (detailed-menus?) (-> "Tools" (link tools-menu)))
   (if (with-debugging-tool?) (-> "Debug" (link debug-menu)))
   (if (nnull? (test-menu)) (-> "Test" (link test-menu)))

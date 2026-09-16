@@ -27,6 +27,7 @@
 
 #include <QLayout>
 #include <QMainWindow>
+#include <QPointer>
 #include <QSettings>
 #include <QStackedWidget>
 
@@ -89,7 +90,9 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QWK::WidgetWindowAgent* windowAgent;
   QWK::NotificationBar*   scmNotificationBar; // SCM 提示条
   QWK::LoginButton*       loginButton;
-  QPushButton*      inviteButton; ///< 标题栏「领取会员」按钮，已登录时显示
+  QPushButton*            goButton; ///< 标题栏「Go」按钮
+  QPushButton*      inviteButton;   ///< 标题栏「领取会员」按钮，已登录时显示
+  QPointer<QWidget> m_goMenuPopup;  ///< 当前展开的 Go 菜单浮层
   QWK::LoginDialog* m_loginDialog;
   QLabel*           avatarLabel;
   QLabel*           nameLabel;
@@ -262,6 +265,7 @@ public:
   void        flush_startup_deferred_chrome ();
   static void tweak_iconbar_size (QSize& sz);
   void        openRenewalPage ();
+  void        showGoMenu (QPushButton* button);
 
   /**
    * @brief 打开邀请好友页面。

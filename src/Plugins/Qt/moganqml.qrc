@@ -35,5 +35,6 @@
         <file>qml/AiActionsBar.qml</file>
         <file>qml/Bibliography.qml</file>
         <file>qml/PageNumber.qml</file>
+        <file>qml/GoMenu.qml</file>
     </qresource>
 </RCC>

@@ -95,6 +95,13 @@ WindowBar::iconButton () const {
 }
 
 QAbstractButton*
+WindowBar::goButton () const {
+  Q_D (const WindowBar);
+  return static_cast<QAbstractButton*> (
+      d->widgetAt (WindowBarPrivate::GoButton));
+}
+
+QAbstractButton*
 WindowBar::loginButton () const {
   Q_D (const WindowBar);
   return static_cast<QAbstractButton*> (
@@ -176,6 +183,15 @@ WindowBar::setIconButton (QAbstractButton* btn) {
   d->setWidgetAt (WindowBarPrivate::IconButton, btn);
   if (d->autoIcon && d->w) btn->setIcon (d->w->windowIcon ());
   btn->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Preferred);
+}
+
+void
+WindowBar::setGoButton (QAbstractButton* btn) {
+  Q_D (WindowBar);
+  auto org= takeGoButton ();
+  if (org) org->deleteLater ();
+  if (!btn) return;
+  d->setWidgetAt (WindowBarPrivate::GoButton, btn);
 }
 
 void
@@ -261,6 +277,14 @@ WindowBar::takeIconButton () {
   Q_D (WindowBar);
   return static_cast<QAbstractButton*> (
       d->takeWidgetAt (WindowBarPrivate::IconButton));
+}
+
+QAbstractButton*
+WindowBar::takeGoButton () {
+  Q_D (WindowBar);
+  auto btn= static_cast<QAbstractButton*> (
+      d->takeWidgetAt (WindowBarPrivate::GoButton));
+  return btn;
 }
 
 QAbstractButton*

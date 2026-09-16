@@ -528,3 +528,73 @@
     ("Close" (close-document*))
   ) ;if
 ) ;menu-bind
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; QML Go Menu Meta & Actions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (short-file-name u)
+  (cond
+   ((collab-buffer? u)
+    (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
+   ) ;
+   ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
+   ((url-rooted-web? u)
+    (string-append (url->system (url-tail u)) " @ " (url-host u))
+   ) ;
+   (else (url->system (url-tail u)))
+  ) ;cond
+) ;define
+
+(tm-define (go-menu-meta)
+  (list (cons "can_back" (if (cursor-has-history?) "true" "false"))
+    (cons "can_forward" (if (cursor-has-future?) "true" "false"))
+    (cons "label_back" (translate "Back"))
+    (cons "label_forward" (translate "Forward"))
+    (cons "label_save" (translate "Save position"))
+    (cons "label_buffers" (translate "Open documents"))
+    (cons "label_recent" (translate "Recent"))
+    (cons "buffers"
+      (map
+        (lambda (name)
+          (let* ((abbr (buffer-get-title name))
+                 (abbr* (if (== abbr "") (short-file-name name) abbr))
+                 (mod? (buffer-modified? name))
+                 (curr? (== (current-buffer) name))
+                ) ;
+            (list (url->string name)
+              (string-append abbr* (if mod? " *" ""))
+              (if curr? "true" "false")
+            ) ;list
+          ) ;let*
+        ) ;lambda
+        (list-difference (buffer-menu-list 15) (linked-file-list))
+      ) ;map
+    ) ;cons
+    (cons "recent"
+      (map (lambda (name) (list (url->string name) (short-file-name name)))
+        (recent-unloaded-file-list 10)
+      ) ;map
+    ) ;cons
+  ) ;list
+) ;tm-define
+
+(tm-define (go-menu-switch-to-buffer s)
+  (let ((u (string->url s)))
+    (cond ((member u (buffer-list)) (switch-to-buffer* u))
+          ((member (system->url s) (buffer-list)) (switch-to-buffer* (system->url s)))
+          (else (switch-to-buffer* u))
+    ) ;cond
+  ) ;let
+) ;tm-define
+
+(tm-define (go-menu-load-buffer s)
+  (let ((u (if (url? s) s (string->url s))))
+    (if (and (collab-buffer? u) (loro-enabled?))
+      (collab-join-document (collab-url->doc-id u)
+        (or (recent-files-get-name (url->system u)) "")
+      ) ;collab-join-document
+      (load-buffer u)
+    ) ;if
+  ) ;let
+) ;tm-define

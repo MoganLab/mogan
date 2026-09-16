@@ -633,6 +633,7 @@ QTMTabPageContainer::arrangeTabPages () {
   buttonCount= 1; // macOS 仅保留 login
 #endif
   int reservedRight= buttonCount * buttonWidth;
+  reservedRight+= DpiUtils::scaled (60); // Go 按钮
 #ifndef IS_COMMUNITY
   if (m_vipButtonReserved) {
     reservedRight+= DpiUtils::scaled (90); // 邀请按钮

@@ -54,7 +54,6 @@
   (-> "File" (link file-menu))
   (-> "Edit" (link edit-menu))
   (-> "View::menu" (link view-menu))
-  (-> "Go" (link go-menu))
   (if (detailed-menus?) (-> "Tools" (link tools-menu)))
   (if (with-debugging-tool?) (-> "Debug" (link debug-menu)))
   (if (nnull? (test-menu)) (-> "Test" (link test-menu)))
