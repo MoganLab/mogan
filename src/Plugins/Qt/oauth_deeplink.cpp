@@ -14,6 +14,7 @@
 #include "tm_ostream.hpp"
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QMainWindow>
@@ -54,6 +55,24 @@ find_url (const QStringList& arguments) {
       return arguments[i];
   }
   return QString ();
+}
+
+bool
+handle_launch () {
+  // 非 Windows 上是空操作，社区版也在这里被挡掉（见 ensure_registered）
+  ensure_registered ();
+
+  // arguments() 而非 argv：Windows 命令行是 UTF-16，QApplication 已在构造时完成
+  // 转换并摘掉 Qt 自身参数，比直接取 argv 干净
+  const QString url= find_url (QCoreApplication::arguments ());
+  if (url.isEmpty ()) return false;
+
+  // 命令行里带深链 URL 就说明本进程是被浏览器拉起来送唤醒的，唯一职责是转给发起
+  // 实例。送不到（那个实例已退出）也不接管启动：用户要的是原来那个窗口，再开一个
+  // 新的既非他所求，也不是登录所需——登录走环回地址，与本进程无关
+  if (!try_forward (url))
+    debug_boot << "OAuth deep link: no running instance to wake\n";
+  return true;
 }
 
 void

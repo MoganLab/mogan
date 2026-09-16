@@ -52,7 +52,6 @@ void mac_fix_paths ();
 #ifdef QTTEXMACS
 #include "Qt/QTMApplication.hpp"
 #include "Qt/oauth_deeplink.hpp"
-#include <QCoreApplication>
 #include <QGuiApplication>
 #include <QKeySequence>
 #include <QStandardPaths>
@@ -270,26 +269,12 @@ main (int argc, char** argv) {
     set_env ("TEXMACS_DOCUMENTS_PATH", from_qstring_utf8 (docsDir));
   }
 
-#if defined(OS_WIN)
-  // liiistem:// 深链。浏览器打开自定义协议时总是新拉起一个进程，由它把唤醒
-  // URL 交给仍在运行、且发起过本次登录的那个实例，然后自己退出
-  // （见 oauth_deeplink.hpp）
-  if (!headless_mode) {
-    // 协议注册的主责在安装器，但自动更新不会执行安装器，老用户升级后键是空的
-    oauth_deeplink::ensure_registered ();
-
-    // arguments() 而非 argv：Windows 命令行是 UTF-16，QApplication 已在构造时
-    // 完成转换并摘掉 Qt 自身参数，比直接取 argv 干净
-    const QString url=
-        oauth_deeplink::find_url (QCoreApplication::arguments ());
-    // 转发不成（发起实例已退出）时不做别的，照常启动：目标窗口都没了，也就无
-    // 所谓置前。登录早已由环回回调完成，与本进程无关
-    if (!url.isEmpty () && oauth_deeplink::try_forward (url)) {
-      delete qtmapp;
-      return 0;
-    }
+  // liiistem:// 深链的启动期接入：写协议注册；命令行里带深链 URL 说明本进程是被
+  // 浏览器拉起来送唤醒的，它只做转发、随后退出，不启动窗口
+  if (!headless_mode && oauth_deeplink::handle_launch ()) {
+    delete qtmapp;
+    return 0;
   }
-#endif
 #endif
 
   // before startup login dialog

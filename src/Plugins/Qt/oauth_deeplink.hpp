@@ -58,13 +58,26 @@ QString instance_id_from_url (const QString& url);
 QString find_url (const QStringList& arguments);
 
 /**
- * @brief 把 URL 转发给发起登录的那个实例，并结束本进程
+ * @brief 启动期接入深链：写协议注册，并处理「本进程由深链拉起」的情况
  *
- * 连不上目标实例（例如用户授权途中关掉了软件）时返回 false，调用方继续正常
- * 启动即可：目标窗口都没了，也就无所谓置前。登录本身走环回地址，与这条转发
- * 的成败无关。
+ * 注册、转发、接收三处平台差异都收在本文件内，调用方不含平台宏。
+ * 非 Windows 上注册是空操作，命令行里也不会有深链 URL：macOS 的 URL 以
+ * QFileOpenEvent 异步到达，接入点在 QTMGuiHelper，不在这里。
  *
- * @return true 表示已转发并退出（调用方不应再继续启动）
+ * 命令行里带深链 URL，就说明本进程是被浏览器拉起来送唤醒的，它只做转发，不承担
+ * 启动职责；转发不成（发起实例已退出）也只是静默退出，不开窗口。
+ *
+ * @return true 表示本进程由深链拉起、调用方应立即退出（无论转发是否成功）
+ */
+bool handle_launch ();
+
+/**
+ * @brief 把 URL 转发给发起登录的那个实例
+ *
+ * 连不上目标实例（例如用户授权途中关掉了软件）时返回 false，此时唤醒丢失、没有
+ * 补救动作。登录本身走环回地址，与这条转发的成败无关。
+ *
+ * @return true 表示已送达目标实例
  */
 bool try_forward (const QString& url);
 
