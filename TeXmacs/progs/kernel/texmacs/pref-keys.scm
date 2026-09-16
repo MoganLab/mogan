@@ -215,9 +215,7 @@
 ;; AI 操作栏（选中文字后的悬浮操作栏）总开关；翻译目标语言 internal 键
 ;; "interface" 表示按界面语言，其余取 supported-languages。
 (define-public (pref-ai-actions-bar) "ai:actions bar")
-(define-public (pref-ai-translate-target)
-  "ai:translate target language"
-) ;define-public
+(define-public (pref-ai-translate-target) "ai:translate target language")
 
 ;; ---- Other / Misc tab ----
 (define-public (pref-autosave) "autosave")

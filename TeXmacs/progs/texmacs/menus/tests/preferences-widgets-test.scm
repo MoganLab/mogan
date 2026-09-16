@@ -36,11 +36,10 @@
 ;; ---- 1. meta 整体形状：6 tab（社区版 5，无 AI）+ 每个 tab 是 (key label fields …) ----
 
 (define (test-meta-tab-count-and-shape)
-  (let ((keys
-          (if (community-stem?)
-            (list "general" "keyboard" "mathematics" "convert" "other")
-            (list "general" "keyboard" "mathematics" "convert" "ai" "other")
-          ) ;if
+  (let ((keys (if (community-stem?)
+                (list "general" "keyboard" "mathematics" "convert" "other")
+                (list "general" "keyboard" "mathematics" "convert" "ai" "other")
+              ) ;if
         ) ;keys
         (meta (preferences-qml-meta))
        ) ;
@@ -510,16 +509,13 @@
 ;; ---- 16b. AI 主 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
 
 (define (test-ai-tab-fields)
-  (let ((ai (tab-ref (preferences-qml-meta) "ai")) ;ai
-       ) ;
+  (let ((ai (tab-ref (preferences-qml-meta) "ai")))
     (if (community-stem?)
       ;; 社区版无 AI Chat，AI 主 tab 整体不注册
       (check-false ai)
       (let* ((fields (caddr ai))
              (bar
-               (list-find fields
-                 (lambda (f) (== (field-ref f 'key) (pref-ai-actions-bar)))
-               ) ;list-find
+               (list-find fields (lambda (f) (== (field-ref f 'key) (pref-ai-actions-bar))))
              ) ;bar
              (target
                (list-find fields

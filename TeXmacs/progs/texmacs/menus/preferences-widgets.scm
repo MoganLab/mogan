@@ -910,12 +910,7 @@
     (list (pref-ai-actions-bar) "AI action bar" '() '() #f)
     ;; AI 翻译目标语言：options 动态按 supported-languages 拉取（见 resolve-options），
     ;; 默认 interface（按界面语言）；AI 翻译拼提示词时读取（qt_chat_controller.cpp）。
-    (list (pref-ai-translate-target)
-      "Translation target language"
-      '()
-      '()
-      #f
-    ) ;list
+    (list (pref-ai-translate-target) "Translation target language" '() '() #f)
   ) ;list
 ) ;define
 
