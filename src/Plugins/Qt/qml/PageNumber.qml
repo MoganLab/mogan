@@ -54,7 +54,7 @@ DialogShell {
     property int autoScrollDir: 0
 
     readonly property real rowH: 38 * Theme.scaleFactor
-    readonly property var ruleColors: ["#3a7bd5", "#7b61c9", "#2e9e6b", "#d98e2b", "#c9547a"]
+    readonly property var ruleColors: ["#215a6a", "#7b61c9", "#2e9e6b", "#d98e2b", "#c9547a"]
 
     // 样式选项定义
     readonly property var styleDefs: [
@@ -300,7 +300,7 @@ DialogShell {
                                 y: index * root.rowH
                                 width: stripFlickable.width
                                 height: root.rowH
-                                color: isPending ? (Theme.dark ? "#1f4a48" : "#e8f1fc") : (maRow.containsMouse ? Theme.fieldBgHover : "transparent")
+                                color: isPending ? (Theme.dark ? "#1f4a48" : "#dff3f1") : (maRow.containsMouse ? Theme.fieldBgHover : "transparent")
 
                                 // 左侧色带（已添加规则的标识）
                                 Rectangle {
@@ -309,7 +309,7 @@ DialogShell {
                                     anchors.bottom: parent.bottom
                                     width: 4 * Theme.scaleFactor
                                     color: rowItem.rIdx >= 0 ? root.ruleColors[rowItem.rIdx % 5] :
-                                           (rowItem.isPending ? (Theme.dark ? "#2f6a67" : "#3a7bd5") : "transparent")
+                                           (rowItem.isPending ? (Theme.dark ? "#2791ad" : "#215a6a") : "transparent")
                                 }
 
                                 Row {
@@ -381,7 +381,7 @@ DialogShell {
                             width: stripFlickable.width - 16 * Theme.scaleFactor
                             height: 14 * Theme.scaleFactor
                             radius: height / 2
-                            color: Theme.dark ? "#4a88d9" : "#3a7bd5"
+                            color: Theme.dark ? "#2791ad" : "#215a6a"
 
                             Text {
                                 anchors.centerIn: parent
@@ -509,10 +509,10 @@ DialogShell {
                                     height: chipCol.implicitHeight + 14 * Theme.scaleFactor
                                     radius: 8 * Theme.scaleFactor
                                     opacity: isDisabled ? 0.4 : 1.0
-                                    color: isSelected ? (Theme.dark ? "#1f4a48" : "#e8f1fc") :
+                                    color: isSelected ? (Theme.dark ? "#1f4a48" : "#dff3f1") :
                                            (chipMa.containsMouse && !isDisabled ? Theme.fieldBgHover : Theme.fieldBg)
                                     border.width: isSelected ? 1.5 * Theme.scaleFactor : Theme.borderW
-                                    border.color: isSelected ? (Theme.dark ? "#4a88d9" : "#3a7bd5") :
+                                    border.color: isSelected ? (Theme.dark ? "#2791ad" : "#215a6a") :
                                                   (chipMa.containsMouse && !isDisabled ? (Theme.dark ? "#666" : "#aaa") : Theme.borderClr)
 
                                     Column {
@@ -558,7 +558,7 @@ DialogShell {
                         height: 32 * Theme.scaleFactor
                         radius: 7 * Theme.scaleFactor
                         opacity: canAdd ? 1.0 : 0.45
-                        color: (addBtnMa.containsMouse && canAdd) ? (Theme.dark ? "#5a98e9" : "#2d6bc5") : (Theme.dark ? "#4a88d9" : "#3a7bd5")
+                        color: (addBtnMa.containsMouse && canAdd) ? (Theme.dark ? "#2f9ebc" : "#1d4f5d") : (Theme.dark ? "#2791ad" : "#215a6a")
 
                         Text {
                             id: addBtnText

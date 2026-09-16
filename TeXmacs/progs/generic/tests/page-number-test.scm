@@ -24,7 +24,8 @@
          (l1 (make-pn-l-stree "pn-l1" "pn-m1" "roman"))
          (g1 (make-pn-g-stree "pn-g1" "pn-g0" "pn-l1" "1" "5"))
          (range (pn-extract-range g1))
-         (style (pn-extract-style l1)))
+         (style (pn-extract-style l1))
+        ) ;
     (check range => '("1" . "5"))
     (check style => "roman")
   ) ;let*
@@ -37,7 +38,8 @@
          (l2 (make-pn-l-stree "pn-l2" "pn-m2" "arabic"))
          (g2 (make-pn-g-stree "pn-g2" "pn-g1" "pn-l2" "6" '(page-the-total)))
          (range (pn-extract-range g2))
-         (style (pn-extract-style l2)))
+         (style (pn-extract-style l2))
+        ) ;
     (check range => '("6" . "total"))
     (check style => "arabic")
   ) ;let*
@@ -46,8 +48,7 @@
 ;; 3. 样式提取：隐藏页码 (blank)
 
 (define (test-pn-roundtrip-blank)
-  (let* ((l-blank '(macro ""))
-         (style (pn-extract-style l-blank)))
+  (let* ((l-blank '(macro "")) (style (pn-extract-style l-blank)))
     (check style => "blank")
   ) ;let*
 ) ;define
@@ -56,7 +57,8 @@
 
 (define (test-pn-styles)
   (let* ((l-Roman (make-pn-l-stree "pn-l1" "pn-m1" "Roman"))
-         (l-hanzi (make-pn-l-stree "pn-l2" "pn-m2" "hanzi")))
+         (l-hanzi (make-pn-l-stree "pn-l2" "pn-m2" "hanzi"))
+        ) ;
     (check (pn-extract-style l-Roman) => "Roman")
     (check (pn-extract-style l-hanzi) => "hanzi")
   ) ;let*

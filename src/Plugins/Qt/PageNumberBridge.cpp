@@ -46,7 +46,8 @@ build_rules_literal (const QVariantList& rules) {
       QString     style= m.value ("style").toString ();
       out << "(" << qt_scheme_quote (start) << " " << qt_scheme_quote (end)
           << " " << qt_scheme_quote (style) << ") ";
-    } else if (item.canConvert<QVariantList> ()) {
+    }
+    else if (item.canConvert<QVariantList> ()) {
       QVariantList l= item.toList ();
       if (l.size () >= 3) {
         out << "(" << qt_scheme_quote (l[0].toString ()) << " "
@@ -78,7 +79,8 @@ PageNumberBridge::meta () {
     if (k == "total") {
       int t       = tmscm_to_qstring (v).toInt ();
       out["total"]= (t > 0) ? t : 1;
-    } else if (k == "rules") {
+    }
+    else if (k == "rules") {
       QVariantList rulesList;
       for (tmscm rcur= v; !tmscm_is_null (rcur); rcur= tmscm_cdr (rcur)) {
         tmscm ritem= tmscm_car (rcur);
@@ -86,9 +88,10 @@ PageNumberBridge::meta () {
           QVariantMap ruleMap;
           tmscm       p1   = tmscm_car (ritem);
           tmscm       rest1= tmscm_cdr (ritem);
-          tmscm p2   = tmscm_is_pair (rest1) ? tmscm_car (rest1) : tmscm_null ();
-          tmscm rest2= tmscm_is_pair (rest1) ? tmscm_cdr (rest1) : tmscm_null ();
-          tmscm p3   = tmscm_is_pair (rest2) ? tmscm_car (rest2) : tmscm_null ();
+          tmscm p2= tmscm_is_pair (rest1) ? tmscm_car (rest1) : tmscm_null ();
+          tmscm rest2=
+              tmscm_is_pair (rest1) ? tmscm_cdr (rest1) : tmscm_null ();
+          tmscm p3= tmscm_is_pair (rest2) ? tmscm_car (rest2) : tmscm_null ();
           ruleMap["start"]= tmscm_to_qstring (p1);
           ruleMap["end"]  = tmscm_to_qstring (p2);
           ruleMap["style"]= tmscm_to_qstring (p3);
@@ -96,14 +99,15 @@ PageNumberBridge::meta () {
         }
       }
       out["rules"]= rulesList;
-    } else if (k == "labels") {
+    }
+    else if (k == "labels") {
       QVariantMap labelsMap;
       for (tmscm lcur= v; !tmscm_is_null (lcur); lcur= tmscm_cdr (lcur)) {
         tmscm lpair= tmscm_car (lcur);
         if (tmscm_is_pair (lpair)) {
-          QString lk    = tmscm_to_qstring (tmscm_car (lpair));
-          QString lv    = tmscm_to_qstring (tmscm_cdr (lpair));
-          labelsMap[lk] = lv;
+          QString lk   = tmscm_to_qstring (tmscm_car (lpair));
+          QString lv   = tmscm_to_qstring (tmscm_cdr (lpair));
+          labelsMap[lk]= lv;
         }
       }
       out["labels"]= labelsMap;
