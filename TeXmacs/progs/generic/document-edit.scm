@@ -202,15 +202,6 @@
   (or (with-buffer u (get-metadata kind)) "")
 ) ;tm-define
 
-(tm-define (buffer-has-biblio? u)
-  (with-buffer u
-    (with l
-      (list-attachments)
-      (nnull? (list-filter l (cut string-ends? <> "-bibliography")))
-    ) ;with
-  ) ;with-buffer
-) ;tm-define
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Text and paragraph properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

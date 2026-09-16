@@ -1045,11 +1045,6 @@
   (-> "Page number" (link document-page-number-menu))
   (-> "Headers and footers" (link document-headers-footers-menu))
   (-> "Metadata" (link document-metadata-menu))
-  (-> "Bibliography"
-    (when (buffer-has-biblio? (current-buffer))
-      ("Local entries" (open-biblio))
-    ) ;when
-  ) ;->
   ---
   (-> "Magnification" (link document-magnification-menu))
   (-> "Colors" (link document-colors-menu))
@@ -1085,9 +1080,6 @@
   ("Page number" (open-document-page-number))
   ("Headers and footers" (open-page-headers-footers))
   ("Metadata" (open-document-metadata))
-  (when (buffer-has-biblio? (current-buffer))
-    ("Bibliography" (open-biblio))
-  ) ;when
   ;; ("Colors" (open-document-colors))
   ---
   (-> "Magnification" (link document-magnification-menu))
