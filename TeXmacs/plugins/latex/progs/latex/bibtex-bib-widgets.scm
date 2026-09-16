@@ -83,12 +83,12 @@
 ) ;define
 
 (define (bibwid-output)
-  (let* ((res (bib-to-tree (url->string bibwid-url) bibwid-style))
-         (status (car res))
-         (t (caddr res))
-        ) ;
-    (if (== status "valid") t (stree->tree (bibwid-output-content "" bibwid-style)))
-  ) ;let*
+  (let ((res (bib-to-tree (url->string bibwid-url) bibwid-style)))
+    (if (== (car res) "valid")
+      (caddr res)
+      (stree->tree (bibwid-output-content "" bibwid-style))
+    ) ;if
+  ) ;let
 ) ;define
 
 (define (bibwid-insert doit?)
@@ -219,10 +219,10 @@
       ) ;lambda
       (lambda (key . args) (noop))
     ) ;catch
-    (cond ((== u-str "") (list "empty" "" (tree "")))
+    (cond ((== u-str "") (list "empty" ""))
           ((not (url-exists? full-u))
            (let ((msg (translate "File does not exist")))
-             (list "not_found" msg (tree ""))
+             (list "not_found" msg)
            ) ;let
           ) ;
           (else
@@ -236,11 +236,9 @@
                   ) ;
               (if (not (bib-has-entries? st))
                 (let ((msg (translate "Invalid BibTeX file")))
-                  (list "invalid" msg (tree ""))
+                  (list "invalid" msg)
                 ) ;let
-                (let* ((content (bibwid-output-content t actual-style)))
-                  (list "valid" "" (stree->tree content))
-                ) ;let*
+                (list "valid" "" (stree->tree (bibwid-output-content t actual-style)))
               ) ;if
             ) ;let*
           ) ;else

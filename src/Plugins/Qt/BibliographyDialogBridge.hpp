@@ -28,10 +28,15 @@ class BibliographyDialogBridge : public QObject {
 
 public:
   explicit BibliographyDialogBridge (QDialog* host, const QString& doc_dir,
-                                     QWidget*   previewWidget  = nullptr,
-                                     const url& preview_buf_url= url_none ());
+                                     QWidget*   previewWidget,
+                                     const url& preview_buf_url);
 
   void setPlaceholder (QQuickItem* placeholder);
+
+  /**
+   * @brief 刷新预览 QWidget 几何对齐到 QML 占位区域。
+   */
+  void updatePreviewGeometry ();
 
   /**
    * @brief 弹原生文件选择对话框（选择 .bib 文件）。
@@ -59,12 +64,9 @@ public:
    */
   Q_INVOKABLE void setPreviewVisible (bool visible);
 
-  /**
-   * @brief 刷新预览 QWidget 几何对齐到 QML 占位区域。
-   */
-  Q_INVOKABLE void updatePreviewGeometry ();
-
 private:
+  void showPreview ();
+
   QDialog*    m_host;
   QString     m_doc_dir;
   QWidget*    m_previewWidget;

@@ -12,13 +12,12 @@
 #include "QTMWidget.hpp"
 #include "converter.hpp" // cork_to_utf8
 #include "new_buffer.hpp"
-#include "object_l1.hpp"
+#include "object_l1.hpp" // tmscm_is_tree / tmscm_to_tree
 #include "preferences.hpp"
 #include "qt_gui.hpp"
 #include "qt_simple_widget.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp" // eval_scheme + tmscm helpers
-#include "server.hpp"
 #include "tm_window.hpp"
 
 #include <moebius/vars.hpp>
@@ -94,72 +93,61 @@ BibliographyDialogBridge::requestPreview (const QString& file,
   string expr= "(bib-to-tree " * qt_scheme_quote (file) * " " *
                qt_scheme_quote (style) * ")";
   tmscm res= eval_scheme (expr);
-  if (tmscm_is_list (res) && !tmscm_is_null (res)) {
-    tmscm item_status= tmscm_car (res);
-    res              = tmscm_cdr (res);
-    tmscm item_hint  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
-    res              = tmscm_is_null (res) ? tmscm_null () : tmscm_cdr (res);
-    tmscm item_tree  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
+  if (!tmscm_is_list (res) || tmscm_is_null (res)) return out;
 
-    QString status= tmscm_is_string (item_status)
-                        ? tmscm_to_qstring (item_status)
-                        : QStringLiteral ("empty");
-    QString hint=
-        tmscm_is_string (item_hint) ? tmscm_to_qstring (item_hint) : QString ();
+  tmscm item_status= tmscm_car (res);
+  res              = tmscm_cdr (res);
+  tmscm item_hint  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
+  res              = tmscm_is_null (res) ? tmscm_null () : tmscm_cdr (res);
+  tmscm item_tree  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
 
-    out["status"]= status;
-    out["hint"]  = hint;
+  QString status= tmscm_is_string (item_status) ? tmscm_to_qstring (item_status)
+                                                : QStringLiteral ("empty");
+  out["status"] = status;
+  out["hint"]=
+      tmscm_is_string (item_hint) ? tmscm_to_qstring (item_hint) : QString ();
 
-    if (!is_none (m_preview_buf_url)) {
-      if (status == QStringLiteral ("valid") && tmscm_is_tree (item_tree)) {
-        tree doc     = tmscm_to_tree (item_tree);
-        tree sty     = bib_preview_style ();
-        tree enriched= enrich_embedded_document (doc, sty);
-        set_buffer_tree (m_preview_buf_url, enriched);
-        texmacs_interpose_handler ();
-        the_gui->force_update ();
-        m_isValid= true;
-        if (m_previewWidget) {
-          updatePreviewGeometry ();
-          m_previewWidget->show ();
-          m_previewWidget->raise ();
-          QTMWidget* editor= m_previewWidget->findChild<QTMWidget*> ();
+  if (status == QStringLiteral ("valid") && tmscm_is_tree (item_tree)) {
+    tree enriched= enrich_embedded_document (tmscm_to_tree (item_tree),
+                                             bib_preview_style ());
+    set_buffer_tree (m_preview_buf_url, enriched);
+    the_gui->force_update ();
+    m_isValid= true;
+    if (m_previewWidget) {
+      showPreview ();
+      QTMWidget* editor= m_previewWidget->findChild<QTMWidget*> ();
+      if (editor && editor->tm_widget ()) {
+        editor->resize (m_previewWidget->size ());
+        editor->tm_widget ()->repaint_invalid_regions ();
+        QTimer::singleShot (50, this, [editor] () {
           if (editor && editor->tm_widget ()) {
-            editor->show ();
-            editor->resize (m_previewWidget->size ());
             editor->tm_widget ()->repaint_invalid_regions ();
-            QTimer::singleShot (50, this, [editor] () {
-              if (editor && editor->tm_widget ()) {
-                editor->tm_widget ()->repaint_invalid_regions ();
-              }
-            });
           }
-        }
-      }
-      else {
-        tree sty      = bib_preview_style ();
-        tree empty_doc= enrich_embedded_document (tree (DOCUMENT, ""), sty);
-        if (contains (m_preview_buf_url, get_all_buffers ())) {
-          set_buffer_tree (m_preview_buf_url, empty_doc);
-        }
-        m_isValid= false;
-        if (m_previewWidget) {
-          m_previewWidget->hide ();
-        }
+        });
       }
     }
-    return out;
+  }
+  else {
+    m_isValid= false;
+    if (m_previewWidget) {
+      m_previewWidget->hide ();
+    }
   }
   return out;
+}
+
+void
+BibliographyDialogBridge::showPreview () {
+  updatePreviewGeometry ();
+  m_previewWidget->show ();
+  m_previewWidget->raise ();
 }
 
 void
 BibliographyDialogBridge::setPreviewVisible (bool visible) {
   if (m_previewWidget) {
     if (visible && m_isValid) {
-      updatePreviewGeometry ();
-      m_previewWidget->show ();
-      m_previewWidget->raise ();
+      showPreview ();
     }
     else {
       m_previewWidget->hide ();

@@ -1457,9 +1457,8 @@ cpp_bibliography_dialog (tree config) {
 
   QWidget* previewQW = nullptr;
   tree     previewSty= bib_preview_style ();
-  tree     initDoc=
-      enrich_embedded_document (tree (moebius::DOCUMENT, ""), previewSty);
-  widget tw= texmacs_input_widget (initDoc, previewSty, bib_preview_url);
+  widget   tw= texmacs_input_widget (tree (moebius::DOCUMENT, ""), previewSty,
+                                     bib_preview_url);
   set_zoom_factor (tw, DpiUtils::scaled (100) / 100.0);
   previewQW= concrete (tw)->as_qwidget ();
 
@@ -1472,7 +1471,6 @@ cpp_bibliography_dialog (tree config) {
     }
     QTMWidget* editor= previewQW->findChild<QTMWidget*> ();
     if (editor) {
-      editor->setProperty ("bib_preview_readonly", true);
       editor->installEventFilter (new BibPreviewReadonlyFilter (editor));
     }
     previewQW->hide ();
@@ -1525,19 +1523,10 @@ cpp_bibliography_dialog (tree config) {
               qw->rootObject ()->findChild<QQuickItem*> ("previewPlaceholder");
           if (placeholder) {
             previewQW->setParent (qw);
-            if (bibBridge) bibBridge->setPlaceholder (placeholder);
-            auto updateGeom= [bibBridge] () {
-              if (bibBridge) bibBridge->updatePreviewGeometry ();
-            };
-            updateGeom ();
-            QObject::connect (placeholder, &QQuickItem::xChanged, qw,
-                              updateGeom);
-            QObject::connect (placeholder, &QQuickItem::yChanged, qw,
-                              updateGeom);
-            QObject::connect (placeholder, &QQuickItem::widthChanged, qw,
-                              updateGeom);
-            QObject::connect (placeholder, &QQuickItem::heightChanged, qw,
-                              updateGeom);
+            if (bibBridge) {
+              bibBridge->setPlaceholder (placeholder);
+              bibBridge->updatePreviewGeometry ();
+            }
           }
         }
       });

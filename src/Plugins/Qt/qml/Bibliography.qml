@@ -56,7 +56,7 @@ DialogShell {
     }
 
     // 路径键入逐字符触发，预览须防抖：每次 requestPreview 都同步走
-    // 读文件 + parse-bib + 排版光栅化，不防抖会卡住键入
+    // 读文件 + parse-bib + set_buffer_tree 重排版，不防抖会卡住键入
     Timer {
         id: previewDebounce
         interval: 350
