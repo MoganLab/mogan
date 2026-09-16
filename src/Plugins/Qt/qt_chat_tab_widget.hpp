@@ -232,6 +232,18 @@ void chat_model_menu_populate (QMenu* menu, const QList<ChatModelInfo>& models,
                                const string& currentKey);
 
 /**
+ * @brief 在模型菜单底部追加「思考强度」子菜单（低/中/高三档互斥单选）。
+ *
+ * 子菜单 action 的 data 为强度值本身（"low"/"medium"/"high"），顶层菜单的
+ * triggered 信号也会捕获到这些 action，调用方需按 data 是否属于强度取值
+ * 与模型项区分。菜单每次打开重建，故每次调用前应使用新的 QMenu。
+ * @param menu          目标菜单（子菜单追加在其尾部）
+ * @param currentEffort 当前会话思考强度（非法取值时无选中项）
+ * @return 创建的子菜单指针
+ */
+QMenu* chat_effort_menu_populate (QMenu* menu, const string& currentEffort);
+
+/**
  * @brief 聊天侧边栏控件（纯 UI，自管理 items）。
  *
  * 根据 Controller 传入的 SessionDisplayInfo 数据，

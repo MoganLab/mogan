@@ -1,5 +1,6 @@
 {
   "default": "deepseek-v4-flash",
+  "translate_model": "deepseek-v4-pro",
   "models": [
     {
       "model": "kimi-k3",
@@ -10,6 +11,7 @@
       "enable": true,
       "allow_thinking": true,
       "allow_search": true,
+      "thinking_effort": "medium",
       "icon": "kimi",
       "description": "会员优先",
       "dsc_color": "orange"
@@ -23,6 +25,7 @@
       "enable": true,
       "allow_thinking": true,
       "allow_search": false,
+      "thinking_effort": "medium",
       "icon": "deepseek",
       "description": "会员优先",
       "dsc_color": "orange"
@@ -36,6 +39,7 @@
       "enable": true,
       "allow_thinking": true,
       "allow_search": false,
+      "thinking_effort": "medium",
       "icon": "deepseek",
       "description": "会员优先",
       "dsc_color": "orange"

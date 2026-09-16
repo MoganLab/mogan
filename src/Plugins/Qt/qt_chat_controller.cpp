@@ -227,7 +227,8 @@ ChatController::onSendRequested (const string& sessionId) {
   array<object> args;
   args << object (sessionId) << object (info.key) << object (info.baseUrl)
        << object (session->thinking ? string ("enabled") : string ("disabled"))
-       << object (session->search ? string ("enabled") : string ("disabled"));
+       << object (session->search ? string ("enabled") : string ("disabled"))
+       << object (session->thinkingEffort);
   if (!as_bool (call ("chat-tab-send", args))) return;
 
   sessionManager_.setState (sessionId, ChatState::Generating);
@@ -266,6 +267,9 @@ ChatController::onModelMenuRequested (const string& sessionId,
   // 菜单每次打开重建，选中态按当前会话模型刷新
   QMenu menu;
   chat_model_menu_populate (&menu, modelStore_.models (), current);
+  // 思考强度子菜单追加在模型项之后，选中态按当前会话强度刷新
+  chat_effort_menu_populate (&menu,
+                             sessionManager_.getThinkingEffort (sessionId));
 
   // 菜单在 Model 按钮上方完整弹出（按钮底边贴菜单顶边），不遮挡按钮
   QPoint pos (globalPos.x (), globalPos.y () - menu.sizeHint ().height ());
@@ -273,14 +277,27 @@ ChatController::onModelMenuRequested (const string& sessionId,
   updateModelButtonDisplay (sessionId, true); // 打开：箭头朝上
   // QWidgetAction 内控件经 released 手动 trigger 时，Qt 只发 triggered
   // 信号并关菜单、不写 exec 的 syncAction（exec 会返回 null），故选择
-  // 结果从 triggered 信号捕获，不依赖 exec 返回值
-  string chosenKey;
-  connect (&menu, &QMenu::triggered, &menu, [&chosenKey] (QAction* a) {
-    chosenKey= from_qstring_utf8 (a->data ().toString ());
-  });
+  // 结果从 triggered 信号捕获，不依赖 exec 返回值；子菜单 action 的触发
+  // 会沿父子链传播到这里，强度项以 actionGroup 归属构造性区分
+  string chosenKey, chosenEffort;
+  connect (&menu, &QMenu::triggered, &menu,
+           [&chosenKey, &chosenEffort] (QAction* a) {
+             string d= from_qstring_utf8 (a->data ().toString ());
+             if (a->actionGroup ()) chosenEffort= d;
+             else chosenKey= d;
+           });
   menu.exec (pos);
   updateModelButtonDisplay (sessionId); // 关闭：箭头朝下（选择后模型已变）
   if (!is_empty (chosenKey)) onModelSelected (sessionId, chosenKey);
+  if (!is_empty (chosenEffort))
+    onThinkingEffortSelected (sessionId, chosenEffort);
+}
+
+void
+ChatController::onThinkingEffortSelected (const string& sessionId,
+                                          const string& effort) {
+  sessionManager_.setThinkingEffort (sessionId, effort);
+  updateManifest (sessionId);
 }
 
 void
@@ -570,6 +587,16 @@ ChatController::applyModelCapabilities (const string& sessionId) {
     panel->searchButton ()->setVisible (info.allowSearch);
 }
 
+string
+ChatController::initialThinkingEffort (const string& modelKey) {
+  // 「上一条记录」= updateAt 降序中第一个有标题（发送过消息）的会话；
+  // 恢复的历史会话带持久化强度，重启后规则依然成立
+  string latest= sessionManager_.firstTitledSessionId ();
+  if (!is_empty (latest)) return sessionManager_.getThinkingEffort (latest);
+  // 首次对话无记录：取清单中该模型的默认强度
+  return modelStore_.find (modelKey).thinkingEffort;
+}
+
 /**
  * @brief 按需加载会话的消息内容到面板。
  *
@@ -641,7 +668,7 @@ ChatController::updateManifest (const string& sessionId) {
        << object (string (createdAtBuf))
        << object (s->thinking ? string ("enabled") : string ("disabled"))
        << object (s->search ? string ("enabled") : string ("disabled"))
-       << object (string (updateAtBuf));
+       << object (string (updateAtBuf)) << object (s->thinkingEffort);
   call ("chat-persist-update-manifest", args);
 }
 
@@ -691,8 +718,11 @@ ChatController::ensureNewConversation () {
   // 复用无标题的空白会话（面板和输入内容保持不变）
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
-    // 新会话（含复用）固定为清单默认模型，不继承最近激活会话
+    // 新会话（含复用）固定为清单默认模型，不继承最近激活会话；思考强度
+    // 按「首次取清单默认、之后取最近一条记录」规则初始化
     sessionManager_.setModel (reusable, modelStore_.defaultKey ());
+    sessionManager_.setThinkingEffort (
+        reusable, initialThinkingEffort (modelStore_.defaultKey ()));
     ChatSession* s= sessionManager_.getSession (reusable);
     if (s && s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
@@ -708,7 +738,8 @@ ChatController::ensureNewConversation () {
 }
 
 ChatConversationPanel*
-ChatController::createNewConversation (const string& titlePrefix) {
+ChatController::createNewConversation (const string& titlePrefix,
+                                       const string& modelKey) {
   if (!view_) return nullptr;
   // 创建新会话（与 ensureNewConversation 的复用分支共用语义：默认模型、
   // 欢迎页、不继承最近激活会话）
@@ -716,8 +747,13 @@ ChatController::createNewConversation (const string& titlePrefix) {
   ChatConversationPanel* panel= view_->createPanel (sid);
   if (!panel) return nullptr;
 
+  // 指定模型须在清单内，否则回退清单默认模型（AI 翻译指定 v4-pro 走此分支）
+  string initialModel= (!is_empty (modelKey) && modelStore_.contains (modelKey))
+                           ? modelKey
+                           : modelStore_.defaultKey ();
   sessionManager_.setPanel (sid, panel);
-  sessionManager_.setModel (sid, modelStore_.defaultKey ());
+  sessionManager_.setModel (sid, initialModel);
+  sessionManager_.setThinkingEffort (sid, initialThinkingEffort (initialModel));
   sessionManager_.setTitlePrefix (sid, titlePrefix);
 
   eval ("(use-modules (llm chat-style))");
@@ -875,7 +911,10 @@ qt_chat_ai_send_selection (tree sel, string action) {
     // from_qstring_utf8 归一编码后拼接
     string titlePrefix=
         from_qstring_utf8 (qt_translate ("Ai translate")) * ": ";
-    ChatConversationPanel* panel= ctrl->createNewConversation (titlePrefix);
+    // 翻译质量优先，默认模型取清单 translate_model 字段（当前 v4-pro；
+    // 清单未配置时 translateKey 回退清单默认模型）
+    ChatConversationPanel* panel= ctrl->createNewConversation (
+        titlePrefix, ctrl->modelStore_.translateKey ());
     if (!panel) return;
     string sid= panel->sessionId ();
     call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
@@ -897,7 +936,8 @@ void
 qt_chat_tab_restore_session (string sessionId, string title, string model,
                              string archived, string createdAtStr,
                              string updatedAtStr, int defaultExpandCount,
-                             string thinking, string search) {
+                             string thinking, string search,
+                             string thinkingEffort) {
   time_t      createdAt= (time_t) std::atol (c_string (createdAtStr));
   time_t      updateAt = is_empty (updatedAtStr)
                              ? createdAt
@@ -913,6 +953,7 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
   session.defaultExpandCount= (defaultExpandCount > 0) ? defaultExpandCount : 5;
   session.thinking          = (thinking == "enabled");
   session.search            = (search == "enabled");
+  session.thinkingEffort    = chat_normalize_thinking_effort (thinkingEffort);
   session.panel             = nullptr;
   get_chat_controller ()->restoreSessionMeta (session);
 }

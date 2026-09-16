@@ -125,8 +125,9 @@ public:
   /**
    * @brief Model 按钮点击时触发：弹出模型选择菜单（按清单构建）。
    *
-   * 菜单每次打开重建并按当前会话模型刷新选中态；
-   * 项点击转 onModelSelected。
+   * 菜单每次打开重建并按当前会话模型刷新选中态，尾部追加「思考强度」
+   * 子菜单（低/中/高）；模型项点击转 onModelSelected，强度项点击转
+   * onThinkingEffortSelected。
    * @param sessionId 目标会话 ID
    * @param globalPos 菜单弹出位置（全局坐标）
    */
@@ -142,6 +143,15 @@ public:
    * @param key       模型 key（清单条目的 model 字段）
    */
   void onModelSelected (const string& sessionId, const string& key);
+
+  /**
+   * @brief 思考强度子菜单项被选择时触发。
+   *
+   * 非法取值按 medium 处理；写回 ChatSession.thinkingEffort 并落 manifest。
+   * @param sessionId 目标会话 ID
+   * @param effort    思考强度（low/medium/high）
+   */
+  void onThinkingEffortSelected (const string& sessionId, const string& effort);
 
   /**
    * @brief Scheme→C++ 回调：通知状态变更。
@@ -232,9 +242,12 @@ private:
    * AI 翻译等一次性动作不应覆盖它，故每次都创建全新会话。
    * @param titlePrefix 会话首次发送自动生成标题时附加的前缀（AI 翻译会话
    *                    标记来源，走词典本地化），默认为空
+   * @param modelKey    指定初始模型 key（须在清单内，否则回退清单默认模型），
+   *                    默认为空（清单默认模型）
    * @return 新会话的面板指针，创建失败时返回 nullptr
    */
-  ChatConversationPanel* createNewConversation (const string& titlePrefix= "");
+  ChatConversationPanel* createNewConversation (const string& titlePrefix= "",
+                                                const string& modelKey   = "");
 
   /**
    * @brief 获取或按需创建面板（延迟加载场景）。
@@ -281,6 +294,15 @@ private:
   void updateModelButtonDisplay (const string& sessionId, bool menuOpen= false);
 
   /**
+   * @brief 新会话的初始思考强度。
+   *
+   * 有历史记录（已发送过消息、即有标题的会话）时取最近活跃记录的强度；
+   * 首次对话无记录时取清单中 modelKey 对应条目的 thinking_effort。
+   * @param modelKey 新会话使用的模型 key（须在清单内）
+   */
+  string initialThinkingEffort (const string& modelKey);
+
+  /**
    * @brief 按当前会话模型的能力（allowThinking/allowSearch）刷新深度
    * 思考、联网搜索按钮的显隐。
    *
@@ -291,12 +313,10 @@ private:
   void applyModelCapabilities (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
-  friend void qt_chat_tab_restore_session (string sessionId, string title,
-                                           string model, string archived,
-                                           string createdAtStr,
-                                           string updatedAtStr,
-                                           int    defaultExpandCount,
-                                           string thinking, string search);
+  friend void qt_chat_tab_restore_session (
+      string sessionId, string title, string model, string archived,
+      string createdAtStr, string updatedAtStr, int defaultExpandCount,
+      string thinking, string search, string thinkingEffort);
   friend void qt_chat_notify_input_height ();
   friend void qt_chat_ai_send_selection (tree sel, string action);
 };
@@ -330,7 +350,8 @@ void qt_chat_ai_send_selection (tree sel, string action);
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
                                   string archived, string createdAtStr,
                                   string updatedAtStr, int defaultExpandCount,
-                                  string thinking, string search);
+                                  string thinking, string search,
+                                  string thinkingEffort);
 
 string qt_chat_tab_active_message_buffer_url ();
 

@@ -56,14 +56,16 @@ json_bool_field (const QJsonObject& obj, const char* key, bool fallback) {
 ChatModelInfo
 info_from_entry (const string& key, const QJsonObject& entry) {
   ChatModelInfo info;
-  info.key          = key;
-  info.name         = json_string_field (entry, "name", key);
-  info.icon         = json_string_field (entry, "icon", "");
-  info.description  = json_string_field (entry, "description", "");
-  info.dscColor     = json_string_field (entry, "dsc_color", "orange");
-  info.allowThinking= json_bool_field (entry, "allow_thinking", true);
-  info.allowSearch  = json_bool_field (entry, "allow_search", true);
-  info.baseUrl      = json_string_field (entry, "base_url", "");
+  info.key           = key;
+  info.name          = json_string_field (entry, "name", key);
+  info.icon          = json_string_field (entry, "icon", "");
+  info.description   = json_string_field (entry, "description", "");
+  info.dscColor      = json_string_field (entry, "dsc_color", "orange");
+  info.allowThinking = json_bool_field (entry, "allow_thinking", true);
+  info.allowSearch   = json_bool_field (entry, "allow_search", true);
+  info.baseUrl       = json_string_field (entry, "base_url", "");
+  info.thinkingEffort= chat_normalize_thinking_effort (
+      json_string_field (entry, "thinking_effort", "medium"));
   return info;
 }
 
@@ -87,7 +89,7 @@ constexpr const char* kMenuRelPath= "plugins/llm/data/liii_llm_menu.json";
 
 bool
 chat_model_parse_list (const string& jsonText, QList<ChatModelInfo>& outModels,
-                       string& outDefaultKey) {
+                       string& outDefaultKey, string* outTranslateKey) {
   string text=
       jsonText; // string::begin() 非 const，拷贝后使用（lolly 既有行为）
   QJsonParseError parseError;
@@ -99,6 +101,7 @@ chat_model_parse_list (const string& jsonText, QList<ChatModelInfo>& outModels,
   QJsonObject          root= doc.object ();
   QList<ChatModelInfo> models;
   string               explicitDefault;
+  string               explicitTranslate;
 
   if (root.contains (QLatin1String ("models"))) {
     // 新格式：models 必须是数组（数组保序，即菜单展示顺序）
@@ -112,7 +115,8 @@ chat_model_parse_list (const string& jsonText, QList<ChatModelInfo>& outModels,
       if (!json_bool_field (entry, "enable", true)) continue;
       models.append (info_from_entry (key, entry));
     }
-    explicitDefault= json_string_field (root, "default", "");
+    explicitDefault  = json_string_field (root, "default", "");
+    explicitTranslate= json_string_field (root, "translate_model", "");
   }
   else {
     // 旧格式：顶层键即条目 key；名为 default 的条目指定默认 key
@@ -132,6 +136,7 @@ chat_model_parse_list (const string& jsonText, QList<ChatModelInfo>& outModels,
   if (models.isEmpty ()) return false;
   outModels    = models;
   outDefaultKey= resolve_default_key (models, explicitDefault);
+  if (outTranslateKey) *outTranslateKey= explicitTranslate;
   return true;
 }
 
@@ -144,7 +149,14 @@ ChatModelStore::ChatModelStore () {
     string content;
     // load_string 对缺失文件也会打日志，先挡一层
     if (!exists (u) || load_string (u, content, false)) continue;
-    if (chat_model_parse_list (content, models_, defaultKey_)) return;
+    string translateRaw;
+    if (chat_model_parse_list (content, models_, defaultKey_, &translateRaw)) {
+      // translate_model 缺失或不在清单内时回退默认模型
+      translateKey_= (!is_empty (translateRaw) && contains (translateRaw))
+                         ? translateRaw
+                         : defaultKey_;
+      return;
+    }
   }
 
   // 兜底清单：与 main 既有行为一致（模型名 Kimi-VLM），无清单文件时
@@ -154,7 +166,16 @@ ChatModelStore::ChatModelStore () {
   fallback.name= "K3";
   fallback.icon= "kimi";
   models_.append (fallback);
-  defaultKey_= fallback.key;
+  defaultKey_  = fallback.key;
+  translateKey_= fallback.key;
+}
+
+string
+chat_normalize_thinking_effort (const string& effort) {
+  // string::operator== 非 const，拷贝后比较（lolly 既有行为）
+  string e= effort;
+  if (e == "low" || e == "medium" || e == "high") return e;
+  return "medium";
 }
 
 bool

@@ -8,6 +8,7 @@
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
+#include <QActionGroup>
 #include <QInputMethodEvent>
 #include <QLabel>
 #include <QLayout>
@@ -34,6 +35,46 @@ private slots:
   }
 
   void cleanup () { cleanup_qt_top_level_widgets (); }
+
+  // === chat_effort_menu_populate ===
+  void test_effort_menu_structure () {
+    QMenu  menu;
+    QMenu* sub= chat_effort_menu_populate (&menu, "medium");
+    QVERIFY (sub != nullptr);
+    // 子菜单挂在顶层菜单尾部，且前面有分隔符
+    QList<QAction*> topActions= menu.actions ();
+    QCOMPARE (topActions.size (), 2);
+    QVERIFY (topActions.at (0)->isSeparator ());
+    QCOMPARE (topActions.at (1)->menu (), sub);
+    // 三档互斥、均可勾选、data 为强度值
+    QList<QAction*> actions= sub->actions ();
+    QCOMPARE (actions.size (), 3);
+    QStringList expected= {"low", "medium", "high"};
+    for (int i= 0; i < 3; i++) {
+      QVERIFY (actions.at (i)->isCheckable ());
+      QCOMPARE (actions.at (i)->data ().toString (), expected.at (i));
+    }
+    QActionGroup* group= actions.first ()->actionGroup ();
+    QVERIFY (group != nullptr);
+    QVERIFY (group->isExclusive ());
+    QCOMPARE (group->actions ().size (), 3);
+  }
+
+  void test_effort_menu_checked_state () {
+    QMenu           menu;
+    QMenu*          sub    = chat_effort_menu_populate (&menu, "high");
+    QList<QAction*> actions= sub->actions ();
+    QVERIFY (!actions.at (0)->isChecked ());
+    QVERIFY (!actions.at (1)->isChecked ());
+    QVERIFY (actions.at (2)->isChecked ());
+  }
+
+  void test_effort_menu_invalid_effort_none_checked () {
+    QMenu  menu;
+    QMenu* sub= chat_effort_menu_populate (&menu, "bogus");
+    for (QAction* a : sub->actions ())
+      QVERIFY (!a->isChecked ());
+  }
 
   void test_count_input_lines_empty_document () {
     tree empty_doc= tree (DOCUMENT, "");

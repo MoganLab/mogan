@@ -28,6 +28,7 @@ private slots:
   void test_parse_new_format_full_fields ();
   void test_parse_new_format_preserves_order ();
   void test_parse_new_format_defaults ();
+  void test_parse_thinking_effort_invalid_falls_back ();
   void test_parse_filters_disabled ();
   void test_parse_default_falls_back_to_first ();
   void test_parse_invalid_json ();
@@ -42,12 +43,17 @@ private slots:
   void test_store_loads_home_menu ();
   void test_store_home_takes_priority ();
   void test_store_falls_back_to_path_menu ();
+  void test_store_translate_model ();
+  void test_store_translate_model_falls_back_to_default ();
 
   // === contains / find ===
   void test_contains ();
   void test_find ();
   void test_find_missing_returns_key_fallback ();
   void test_find_empty_key ();
+
+  // === chat_normalize_thinking_effort ===
+  void test_normalize_thinking_effort ();
 
 private:
   /// 在 rootDir 下写一份模型清单 JSON，返回是否成功
@@ -98,16 +104,17 @@ void
 TestChatModel::test_parse_new_format_full_fields () {
   const char* json=
       "{ \"default\": \"kimi-k3\","
+      " \"translate_model\": \"deepseek-v4-pro\","
       " \"models\": ["
       "  { \"model\": \"kimi-k3\", \"name\": \"K3\","
       "    \"base_url\": \"/api/v1/ai/siliconflow/chat\","
       "    \"thinking\": true, \"search\": true, \"enable\": true,"
       "    \"allow_thinking\": false, \"allow_search\": false,"
       "    \"icon\": \"kimi\", \"description\": \"Vision\","
-      "    \"dsc_color\": \"red\" } ] }";
+      "    \"dsc_color\": \"red\", \"thinking_effort\": \"high\" } ] }";
   QList<ChatModelInfo> models;
-  string               defaultKey;
-  QVERIFY (chat_model_parse_list (json, models, defaultKey));
+  string               defaultKey, translateKey;
+  QVERIFY (chat_model_parse_list (json, models, defaultKey, &translateKey));
   QCOMPARE (models.size (), 1);
   ChatModelInfo m= models.first ();
   QVERIFY (m.key == string ("kimi-k3"));
@@ -118,7 +125,9 @@ TestChatModel::test_parse_new_format_full_fields () {
   QVERIFY (!m.allowThinking);
   QVERIFY (!m.allowSearch);
   QVERIFY (m.baseUrl == string ("/api/v1/ai/siliconflow/chat"));
+  QVERIFY (m.thinkingEffort == string ("high"));
   QVERIFY (defaultKey == string ("kimi-k3"));
+  QVERIFY (translateKey == string ("deepseek-v4-pro"));
 }
 
 void
@@ -151,6 +160,21 @@ TestChatModel::test_parse_new_format_defaults () {
   QVERIFY (m.allowThinking);
   QVERIFY (m.allowSearch);
   QVERIFY (m.baseUrl == string (""));
+  QVERIFY (m.thinkingEffort == string ("medium"));
+}
+
+void
+TestChatModel::test_parse_thinking_effort_invalid_falls_back () {
+  // 非法 thinking_effort 取值回退 medium
+  const char*          json= "{ \"models\": ["
+                             "  { \"model\": \"a\", \"thinking_effort\": \"extreme\" },"
+                             "  { \"model\": \"b\", \"thinking_effort\": \"low\" } ] }";
+  QList<ChatModelInfo> models;
+  string               defaultKey;
+  QVERIFY (chat_model_parse_list (json, models, defaultKey));
+  QCOMPARE (models.size (), 2);
+  QVERIFY (models[0].thinkingEffort == string ("medium"));
+  QVERIFY (models[1].thinkingEffort == string ("low"));
 }
 
 void
@@ -248,6 +272,7 @@ TestChatModel::test_store_builtin_fallback () {
   QVERIFY (m.name == string ("K3"));
   QVERIFY (m.icon == string ("kimi"));
   QVERIFY (store.defaultKey () == string ("Kimi-VLM"));
+  QVERIFY (store.translateKey () == string ("Kimi-VLM"));
 }
 
 void
@@ -297,6 +322,42 @@ TestChatModel::test_store_falls_back_to_path_menu () {
   QVERIFY (store.models ().first ().key == string ("from-path"));
 }
 
+void
+TestChatModel::test_store_translate_model () {
+  QTemporaryDir home;
+  QVERIFY (home.isValid ());
+  QVERIFY (write_menu_file (
+      home.path (), "{ \"default\": \"m-a\", \"translate_model\": \"m-b\","
+                    " \"models\": [ { \"model\": \"m-a\" },"
+                    "              { \"model\": \"m-b\" } ] }"));
+  qputenv ("TEXMACS_HOME_PATH", home.path ().toUtf8 ());
+  qunsetenv ("TEXMACS_PATH");
+
+  ChatModelStore store;
+  QVERIFY (store.translateKey () == string ("m-b"));
+}
+
+void
+TestChatModel::test_store_translate_model_falls_back_to_default () {
+  // translate_model 指向清单外模型、或字段缺失时，均回退默认模型
+  QTemporaryDir home;
+  QVERIFY (home.isValid ());
+  QVERIFY (write_menu_file (
+      home.path (), "{ \"default\": \"m-a\", \"translate_model\": \"m-x\","
+                    " \"models\": [ { \"model\": \"m-a\" } ] }"));
+  qputenv ("TEXMACS_HOME_PATH", home.path ().toUtf8 ());
+  qunsetenv ("TEXMACS_PATH");
+
+  ChatModelStore store;
+  QVERIFY (store.translateKey () == string ("m-a"));
+
+  QVERIFY (write_menu_file (home.path (),
+                            "{ \"default\": \"m-a\","
+                            " \"models\": [ { \"model\": \"m-a\" } ] }"));
+  ChatModelStore store2;
+  QVERIFY (store2.translateKey () == string ("m-a"));
+}
+
 // === contains / find ===
 
 void
@@ -330,6 +391,19 @@ TestChatModel::test_find_empty_key () {
   ChatModelInfo  m= store.find ("");
   QVERIFY (m.key == string (""));
   QVERIFY (m.name == string (""));
+}
+
+// === chat_normalize_thinking_effort ===
+
+void
+TestChatModel::test_normalize_thinking_effort () {
+  QVERIFY (chat_normalize_thinking_effort ("low") == string ("low"));
+  QVERIFY (chat_normalize_thinking_effort ("medium") == string ("medium"));
+  QVERIFY (chat_normalize_thinking_effort ("high") == string ("high"));
+  // 非法取值（含空串、大小写不符）回退 medium
+  QVERIFY (chat_normalize_thinking_effort ("") == string ("medium"));
+  QVERIFY (chat_normalize_thinking_effort ("HIGH") == string ("medium"));
+  QVERIFY (chat_normalize_thinking_effort ("extreme") == string ("medium"));
 }
 
 QTEST_MAIN (TestChatModel)
