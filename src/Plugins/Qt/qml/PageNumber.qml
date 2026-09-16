@@ -161,12 +161,7 @@ DialogShell {
                 return formatNr(p - s + 1, rules[i].style);
             }
         }
-        var lastEnd = 0;
-        if (rules.length > 0) {
-            var lastR = rules[rules.length - 1];
-            lastEnd = (lastR.end === "total" || Number(lastR.end) >= totalPages) ? totalPages : Number(lastR.end);
-        }
-        return String(p - lastEnd);
+        return String(p);
     }
 
     function endText(end) {
