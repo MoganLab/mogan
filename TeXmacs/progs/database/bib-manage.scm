@@ -632,7 +632,3 @@
   (:require (bib-importable?))
   (bib-import-current-buffer)
 ) ;tm-define
-
-(tm-define (open-bib-chooser cb)
-  (open-db-chooser (bib-database) "bib" "Search bibliographic reference" cb)
-) ;tm-define
