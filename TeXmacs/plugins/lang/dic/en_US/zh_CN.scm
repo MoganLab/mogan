@@ -3074,6 +3074,12 @@
 ("Current version: v%1" "当前版本: v%1")
 ("Mogan STEM latest stable version: v%1" "Mogan STEM 最新稳定版: v%1")
 ("Liii STEM latest stable version: v%1" "Liii STEM 最新稳定版: v%1")
+("Mogan STEM latest beta version: v%1"
+  "Mogan STEM 最新测试版（Beta）: v%1"
+) ;
+("Liii STEM latest beta version: v%1"
+  "Liii STEM 最新测试版（Beta）: v%1"
+) ;
 ("Current version is up to date." "当前已是最新版本。")
 ("A new version is available." "发现新版本可用。")
 ("Failed to check for updates." "检查更新失败。")

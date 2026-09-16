@@ -213,12 +213,28 @@
   ) ;if
 ) ;define
 
-(define (get-latest-version-url community?)
+;; 检查更新用的通道：与 C++ tm_velopack::update_channel() 同一条归一规则——只有
+;; "beta" 算 beta，其余（含 "disabled"/未设/脏值）一律归 stable。客户端展示通道若
+;; 与更新器取包的归一规则不一致，就会重新出现「展示与动作不符」的两套真相。
+;; disabled 不是真实 feed 通道，归一到 stable 既避开未定义行为，也与「禁用时仍
+;; 展示 stable 版号」的语义一致（重新启用后拿到的就是它）。通道语义只在更新器
+;; 平台存在（Linux 首选项里没有该 combo），故先判 use-plugin-updater?，恒 stable。
+
+(tm-define (latest-version-channel)
+  (if (and (use-plugin-updater?) (== (updater-current-channel) "beta"))
+    "beta"
+    "stable"
+  ) ;if
+) ;tm-define
+
+(define (get-latest-version-url community? channel)
   (string-append (get-update-base-url)
     (if community?
       "/api/v1/public/update/win-x64/latest"
       "/api/v1/public/commercial/update/win-x64/latest"
     ) ;if
+    "?channel="
+    channel
   ) ;string-append
 ) ;define
 
@@ -264,8 +280,7 @@
 ) ;tm-define
 
 ;; 自动更新是否被禁用。仅更新器平台存在该语义：Linux 无更新链路，首选项里也没有
-;; 该 combo，故恒 #f。必须先判 use-plugin-updater?——非更新器平台不会加载
-;; (utils misc updater) 模块，updater-current-channel 未绑定。
+;; 该 combo，故先判 use-plugin-updater?，恒 #f。
 
 (tm-define (updates-disabled?)
   (and (use-plugin-updater?) (== (updater-current-channel) "disabled"))
@@ -281,8 +296,9 @@
 ;; 检查更新并显示弹窗
 (tm-define (check-for-updates)
   (let* ((community? (community-stem?))
+         (channel (latest-version-channel))
          (cur-ver (xmacs-version))
-         (latest-ver (fetch-latest-version (get-latest-version-url community?)))
+         (latest-ver (fetch-latest-version (get-latest-version-url community? channel)))
          (url (if community?
                 "https://liiistem.cn?utm_source=mogan-community&utm_medium=referral&utm_campaign=version-check"
                 "https://liiistem.cn?utm_source=mogan-commercial&utm_medium=referral&utm_campaign=version-check"
@@ -304,11 +320,20 @@
                             (else (translate "A new version is available."))
                       ) ;cond
          ) ;status-line
-         (ver-line (if community?
-                     (replace (translate "Mogan STEM latest stable version: v%1") latest-ver)
-                     (replace (translate "Liii STEM latest stable version: v%1") latest-ver)
-                   ) ;if
-         ) ;ver-line
+         ;; 版本文案跟随实际取用的通道：beta 通道下版号可能是 -rc 预发布，标成
+         ;; "latest stable version" 就是事实错误。
+         (ver-key (if (== channel "beta")
+                    (if community?
+                      "Mogan STEM latest beta version: v%1"
+                      "Liii STEM latest beta version: v%1"
+                    ) ;if
+                    (if community?
+                      "Mogan STEM latest stable version: v%1"
+                      "Liii STEM latest stable version: v%1"
+                    ) ;if
+                  ) ;if
+         ) ;ver-key
+         (ver-line (replace (translate ver-key) latest-ver))
          (msg
            (if failed?
              (string-append (replace (translate "Current version: v%1") cur-ver)

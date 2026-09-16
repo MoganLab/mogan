@@ -15,16 +15,35 @@
 (check-set-mode! 'report-failed)
 
 (define (test-update-urls)
-  ;; 验证默认 profile
+  ;; 验证默认 profile，以及通道参数拼接（社区版/商业版 × stable/beta）
   (check (get-update-base-url) => "https://liiistem.cn")
-  (check (get-latest-version-url #t)
+  (check (get-latest-version-url #t "stable")
     =>
-    "https://liiistem.cn/api/v1/public/update/win-x64/latest"
+    "https://liiistem.cn/api/v1/public/update/win-x64/latest?channel=stable"
   ) ;check
-  (check (get-latest-version-url #f)
+  (check (get-latest-version-url #f "stable")
     =>
-    "https://liiistem.cn/api/v1/public/commercial/update/win-x64/latest"
+    "https://liiistem.cn/api/v1/public/commercial/update/win-x64/latest?channel=stable"
   ) ;check
+  (check (get-latest-version-url #t "beta")
+    =>
+    "https://liiistem.cn/api/v1/public/update/win-x64/latest?channel=beta"
+  ) ;check
+) ;define
+
+(define (test-latest-version-channel)
+  ;; 归一规则须与 C++ tm_velopack::update_channel() 一致：只有 beta 归 beta，
+  ;; disabled/未设/脏值一律归 stable。非更新器平台无通道语义，恒 stable。
+  (with original
+    (get-preference "update-channel")
+    (set-preference "update-channel" "beta")
+    (check (latest-version-channel) => (if (use-plugin-updater?) "beta" "stable"))
+    (set-preference "update-channel" "disabled")
+    (check (latest-version-channel) => "stable")
+    (set-preference "update-channel" "stable")
+    (check (latest-version-channel) => "stable")
+    (set-preference "update-channel" original)
+  ) ;with
 ) ;define
 
 (define (test-semver-update-logic)
@@ -88,6 +107,7 @@
 
 (tm-define (test_0528)
   (test-update-urls)
+  (test-latest-version-channel)
   (test-semver-update-logic)
   (test-updates-disabled-predicate)
   (test-primary-enabled-gate)
