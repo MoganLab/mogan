@@ -225,6 +225,7 @@ function main()
                     "string",
                     "int",
                     "string",
+                    "string",
                     "string"
                 }
             },

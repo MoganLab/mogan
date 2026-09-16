@@ -27,6 +27,7 @@ struct ChatModelInfo {
   bool   allowThinking= true; ///< 是否允许推理模式，缺省 true
   bool   allowSearch  = true; ///< 是否允许网络搜索，缺省 true
   string baseUrl;             ///< 服务端接口（可为相对路径；PR-M5 发送时使用）
+  string thinkingEffort= "medium"; ///< 默认思考强度 low/medium/high
 };
 
 /**
@@ -48,6 +49,9 @@ public:
   /// 默认模型 key（清单 default，缺失时第一个条目）
   string defaultKey () const { return defaultKey_; }
 
+  /// AI 翻译默认模型 key（清单 translate_model，缺失或不在清单时 = defaultKey）
+  string translateKey () const { return translateKey_; }
+
   /**
    * @brief 清单是否包含指定模型 key。
    */
@@ -60,8 +64,9 @@ public:
   ChatModelInfo find (const string& key) const;
 
 private:
-  QList<ChatModelInfo> models_;     ///< 模型条目（仅含 enable 条目）
-  string               defaultKey_; ///< 默认模型 key
+  QList<ChatModelInfo> models_;       ///< 模型条目（仅含 enable 条目）
+  string               defaultKey_;   ///< 默认模型 key
+  string               translateKey_; ///< AI 翻译默认模型 key
 };
 
 /**
@@ -74,10 +79,20 @@ private:
  * @param jsonText     JSON 文本
  * @param outModels    输出：解析出的模型条目（仅含 enable 条目），失败时不变
  * @param outDefaultKey 输出：默认模型 key，失败时不变
+ * @param outTranslateKey 输出：AI 翻译默认模型 key（新格式顶层
+ *                     translate_model，缺失或旧格式输出空串）；为空指针不输出
  * @return 解析成功返回 true；非法 JSON / models 非数组 / 过滤后为空返回 false
  */
 bool chat_model_parse_list (const string&         jsonText,
                             QList<ChatModelInfo>& outModels,
-                            string&               outDefaultKey);
+                            string&               outDefaultKey,
+                            string*               outTranslateKey= nullptr);
+
+/**
+ * @brief 归一化思考强度取值。
+ * @param effort 原始取值
+ * @return "low" / "medium" / "high"；其他取值（含空串）回退 "medium"
+ */
+string chat_normalize_thinking_effort (const string& effort);
 
 #endif // QT_CHAT_MODEL_HPP

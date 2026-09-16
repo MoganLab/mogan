@@ -22,10 +22,12 @@
 (define restored-sessions '())
 
 (tm-define (qt-chat-tab-restore-session sid title model archived createdAt
-             updateAt expandCount thinking search
+             updateAt expandCount thinking search thinkingEffort
            ) ;qt-chat-tab-restore-session
   (set! restored-sessions
-    (cons (list sid title model archived createdAt updateAt expandCount thinking search)
+    (cons (list sid title model archived createdAt updateAt expandCount thinking
+            search thinkingEffort
+          ) ;list
       restored-sessions
     ) ;cons
   ) ;set!
@@ -72,6 +74,8 @@
     (check (json-ref-integer entry "defaultExpandCount" 0) => 5)
     (check (json-ref-string entry "thinking" #f) => "disabled")
     (check (json-ref-string entry "search" #f) => "disabled")
+    ;; thinkingEffort 缺省时回退 medium
+    (check (json-ref-string entry "thinkingEffort" #f) => "medium")
     ;; updateAt 缺省时回退到 createdAt
     (check (json-ref-string entry "updateAt" #f)
       =>
@@ -94,9 +98,9 @@
 ) ;define
 
 (define (test-make-entry-with-options)
-  ;; 传入 rest 参数: created-at thinking search updated-at
+  ;; 传入 rest 参数: created-at thinking search updated-at thinking-effort
   (let ((entry (chat-persist-make-entry "sid-opt" "Deep Thinking" "deepseek-r1"
-                 #f "1700000000" "enabled" "enabled" "1800000000"
+                 #f "1700000000" "enabled" "enabled" "1800000000" "high"
                ) ;chat-persist-make-entry
         ) ;entry
        ) ;
@@ -106,6 +110,7 @@
     (check (json-ref-string entry "thinking" #f) => "enabled")
     (check (json-ref-string entry "search" #f) => "enabled")
     (check (json-ref-string entry "updateAt" #f) => "1800000000")
+    (check (json-ref-string entry "thinkingEffort" #f) => "high")
   ) ;let
 ) ;define
 
@@ -193,7 +198,7 @@
     "disabled" "disabled" "1000"
   ) ;chat-persist-update-manifest
   (chat-persist-update-manifest "load-sid-2" "LTitle 2" "claude" #t "2000"
-    "enabled" "enabled" "3000"
+    "enabled" "enabled" "3000" "low"
   ) ;chat-persist-update-manifest
 
   (chat-persist-load-all)
@@ -213,6 +218,8 @@
     (check (list-ref s1 6) => 5)
     (check (list-ref s1 7) => "disabled")
     (check (list-ref s1 8) => "disabled")
+    ;; 保存时未传 thinkingEffort，缺省为 medium
+    (check (list-ref s1 9) => "medium")
 
     (check (list-ref s2 1) => "LTitle 2")
     (check (list-ref s2 2) => "claude")
@@ -221,12 +228,14 @@
     (check (list-ref s2 5) => "3000")
     (check (list-ref s2 7) => "enabled")
     (check (list-ref s2 8) => "enabled")
+    (check (list-ref s2 9) => "low")
   ) ;let
   (clean-test-sandbox!)
 ) ;define
 
 (define (test-load-all-legacy-compatibility)
-  ;; 验证对缺少 updateAt / defaultExpandCount / thinking / search 的历史 manifest 的兼容回退
+  ;; 验证对缺少 updateAt / defaultExpandCount / thinking / search /
+  ;; thinkingEffort 的历史 manifest 的兼容回退
   (clean-test-sandbox!)
   (chat-persist-ensure-dir! test-sandbox-dir)
   (set! restored-sessions '())
@@ -250,6 +259,8 @@
     ;; thinking / search 缺失时缺省为 "disabled"
     (check (list-ref s 7) => "disabled")
     (check (list-ref s 8) => "disabled")
+    ;; thinkingEffort 缺失时缺省为 "medium"
+    (check (list-ref s 9) => "medium")
   ) ;let
   (clean-test-sandbox!)
 ) ;define

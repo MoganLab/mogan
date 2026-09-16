@@ -57,6 +57,12 @@
          (updated-at
            (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
+         (thinking-effort
+           (if (and (pair? opts2) (pair? (cddr opts2)) (caddr opts2))
+             (caddr opts2)
+             "medium"
+           ) ;if
+         ) ;thinking-effort
          (archived-str (if (or (not archived) (== archived "false")) "false" "true"))
          (actual-created-at (or created-at ""))
          (actual-updated-at (or updated-at created-at ""))
@@ -69,6 +75,7 @@
       (,"defaultExpandCount" . ,5)
       (,"thinking" . ,thinking)
       (,"search" . ,search)
+      (,"thinkingEffort" . ,thinking-effort)
       (,"updateAt" . ,actual-updated-at))
   ) ;let*
 ) ;tm-define
@@ -99,10 +106,13 @@
                    (expand-count (json-ref-integer entry "defaultExpandCount" 5))
                    (thinking (json-ref-string entry "thinking" "disabled"))
                    (search (json-ref-string entry "search" "disabled"))
+                   ;; thinkingEffort 缺失时回退 medium（兼容旧 manifest）
+                   (thinking-effort (json-ref-string entry "thinkingEffort" "medium"))
                   ) ;
               ;; 只传元数据给 C++，不加载 buffer 内容
               (qt-chat-tab-restore-session sid title model archived-str
                 created-at updated-at expand-count thinking search
+                thinking-effort
               ) ;qt-chat-tab-restore-session
             ) ;let*
           ) ;lambda
@@ -116,20 +126,10 @@
 ;;; ---------- 增量保存 ----------
 
 (tm-define (chat-persist-update-manifest session-id title model archived . rest)
-  (let* ((created-at (if (and (pair? rest) (car rest)) (car rest) (number->string (current-time)))
-         ) ;created-at
-         (opts (if (pair? rest) (cdr rest) '()))
-         (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-         (opts2 (if (pair? opts) (cdr opts) '()))
-         (search (if (and (pair? opts2) (car opts2)) (car opts2) "disabled"))
-         (updated-at
-           (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
-         ) ;updated-at
-         (manifest-path (chat-persist-manifest-path))
-         (entry (chat-persist-make-entry session-id title model archived
-                  created-at thinking search updated-at
-                ) ;chat-persist-make-entry
-         ) ;entry
+  ;; rest 原样透传给 make-entry（created-at thinking search updated-at
+  ;; thinking-effort），缺省规则只在 make-entry 一处维护
+  (let* ((manifest-path (chat-persist-manifest-path))
+         (entry (apply chat-persist-make-entry session-id title model archived rest))
         ) ;
     (chat-persist-ensure-dir! (chat-persist-base-dir))
     (let* ((manifest
