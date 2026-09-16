@@ -1563,10 +1563,13 @@ edit_interface_rep::ai_action (string action) {
   // AI 操作栏动作统一入口（translate/polish/chat）：操作栏按钮点击与
   // cmd/ctrl+j 快捷键共用此路径
 #ifdef QTTEXMACS
-  // 选区须在打开侧边栏（焦点/视图切换）之前捕获；无选区时忽视操作。
-  // 翻译引用选区并自动发送，对话只填入输入区；润色后续接入，暂仅关闭操作栏
-  if ((action == "translate" || action == "chat") && selection_active_any ())
-    qt_chat_ai_send_selection (selection_get (), action);
+  // 翻译/对话须在打开侧边栏（焦点/视图切换）前捕获选区；润色与 Tab 同走
+  // trigger-diff-text（内部自带 diff-enable? 门控）。无选区时各动作忽视
+  if (selection_active_any ()) {
+    if (action == "translate" || action == "chat")
+      qt_chat_ai_send_selection (selection_get (), action);
+    else if (action == "polish") call ("trigger-diff-text");
+  }
 #else
   (void) action;
 #endif
