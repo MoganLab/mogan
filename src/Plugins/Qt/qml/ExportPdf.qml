@@ -12,6 +12,8 @@
 //   dialogTitle   —— 弹窗标题（qt_translate 翻译）。
 //   browseLabel   —— 目的地的「Browse」按钮文案（qt_translate 翻译）。
 //   browseBridge  —— C++ bridge，browse(current) 弹原生保存对话框取完整路径。
+//   homePath      —— 用户家目录绝对路径，路径展示缩短为 ~/ 用（仅展示，
+//                   提交值仍为绝对路径）。
 //   再含共用 closeBridge / dpScale / isDark。
 //
 // 确认（仅「导出」按钮，不挂 Enter，见下方 onActivate 注释）：closeBridge.submit(values)；
@@ -79,10 +81,35 @@ DialogShell {
         return v;
     }
 
+    // 与 tm-print.scm 的 export-pdf-ensure-suffix 同一规则：此侧在切换/换路径时
+    // 实时联动显示，scheme 侧在提交后兜底。
+    function adjustPathSuffix(path, embedOn) {
+        if (!path) return path;
+        if (embedOn) {
+            if (path.endsWith(".tmu.pdf"))
+                return path;
+            if (path.endsWith(".pdf"))
+                return path.substring(0, path.length - 4) + ".tmu.pdf";
+            return path + ".tmu.pdf";
+        } else {
+            if (path.endsWith(".tmu.pdf"))
+                return path.substring(0, path.length - 8) + ".pdf";
+            if (path.endsWith(".pdf"))
+                return path;
+            return path + ".pdf";
+        }
+    }
+
     function setv(k, x) {
-        var cur = root.values;
+        var cur = Object.assign({}, root.values);
         cur[k] = x;
         root.values = cur;
+    }
+
+    function onToggleChanged(key, on) {
+        setv(key, on ? "true" : "false");
+        if (key === "embed" && root.pathValue)
+            setv(root.pathKey, adjustPathSuffix(root.pathValue, on));
     }
 
     content: Column {
@@ -107,7 +134,7 @@ DialogShell {
                 label: modelData.label
                 value: root.values[modelData.key] === "true"
                 onToggled: function (on) {
-                    root.setv(modelData.key, on ? "true" : "false")
+                    root.onToggleChanged(modelData.key, on)
                 }
             }
         }
@@ -158,7 +185,11 @@ DialogShell {
                 text: root.browseButtonLabel
                 onClicked: {
                     var p = browseBridge.browse(root.pathValue);
-                    if (p) root.setv(root.pathKey, p);
+                    if (p) {
+                        if (root.values["embed"] === "true")
+                            p = root.adjustPathSuffix(p, true);
+                        root.setv(root.pathKey, p);
+                    }
                 }
             }
         }

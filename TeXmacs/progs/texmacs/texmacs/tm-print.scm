@@ -188,23 +188,30 @@
   (user-confirm-open-pdf fname)
 ) ;tm-define
 
-(define (propose-export-pdf-name embedded?)
+(define (propose-export-pdf-name embedded? master)
   ;; 导出 PDF 默认名：xxx.pdf；勾选嵌入源文档（tmu 附件）时为 xxx.tmu.pdf
-  ;; （对齐旧「可编辑PDF」入口的 tmu.pdf 命名）。
-  (with name
-    (propose-name-buffer)
-    (with t
-      (url->system (url-tail (system->url name)))
-      (string-append (cond ((== t "") "untitled")
-                           ((string-ends? t ".tmu") (string-drop-right t 4))
-                           ((string-ends? t ".tm") (string-drop-right t 3))
-                           ((string-ends? t ".pdf") (string-drop-right t 4))
-                           (else t)
-                     ) ;cond
-        (if embedded? ".tmu.pdf" ".pdf")
-      ) ;string-append
-    ) ;with
-  ) ;with
+  ;; （对齐旧「可编辑PDF」入口的 tmu.pdf 命名）。草稿文档（scratch buffer）
+  ;; 的 url->unix 即草稿文件名（例如 draft_20260905_120000）；tmfs 云文档
+  ;; 无本地文件名，取 buffer 标题。
+  (let* ((name
+           (if (url-rooted-tmfs? master)
+             (cork->utf8 (buffer-get-title (current-buffer)))
+             (url->unix master)
+           ) ;if
+         ) ;name
+         (t (url->system (url-tail (system->url name))))
+         (stem (cond ((== t "") "untitled")
+                     ((string-ends? t ".tmu") (string-drop-right t 4))
+                     ((string-ends? t ".stem") (string-drop-right t 5))
+                     ((string-ends? t ".tm") (string-drop-right t 3))
+                     ((string-ends? t ".pdf") (string-drop-right t 4))
+                     (else t)
+               ) ;cond
+         ) ;stem
+         (suffix (if embedded? ".tmu.pdf" ".pdf"))
+        ) ;
+    (string-append stem suffix)
+  ) ;let*
 ) ;define
 
 (tm-define (export-pdf-default-dir master)
@@ -224,13 +231,18 @@
   ) ;let
 ) ;tm-define
 
-(define (export-pdf-ensure-suffix fname)
-  ;; 目的地兜底带 .pdf 后缀：对话框 Browse 允许选任意文件名（原生保存对话框
-  ;; 不强制类型），对齐旧 choose-file 按类型补后缀的语义。
-  (if (== (url-suffix (system->url fname)) "pdf")
-    fname
-    (string-append fname ".pdf")
-  ) ;if
+(define (export-pdf-ensure-suffix fname embed?)
+  ;; 目的地兜底带 .pdf 或 .tmu.pdf 后缀：对话框 Browse 允许选任意文件名（原生保存对话框
+  ;; 不强制类型），对齐旧 choose-file 按类型补后缀的语义。开启嵌入附件时兜底 .tmu.pdf。
+  ;; 与 ExportPdf.qml 的 adjustPathSuffix 同一规则（QML 侧实时联动，此侧提交后兜底）。
+  (let ((suffix (if embed? ".tmu.pdf" ".pdf")))
+    (cond ((string-ends? fname suffix) fname)
+          ((and embed? (string-ends? fname ".pdf"))
+           (string-append (string-drop-right fname 4) suffix)
+          ) ;
+          (else (string-append fname suffix))
+    ) ;cond
+  ) ;let
 ) ;define
 
 (tm-define (export-as-pdf)
@@ -242,11 +254,12 @@
   (with result
     (with default-path
       ;; 缺省目的地：缺省目录 + 建议文件名。
-      (url->system
-        (url-append (export-pdf-default-dir (buffer-get-master (current-buffer)))
-          (system->url (propose-export-pdf-name #f))
-        ) ;url-append
-      ) ;url->system
+      (let* ((master (buffer-get-master (current-buffer)))
+             (dir (export-pdf-default-dir master))
+             (name (propose-export-pdf-name #f master))
+            ) ;
+        (url->system (url-append dir (system->url name)))
+      ) ;let*
       (cpp-export-pdf-dialog
         (stree->tree
           `(export-pdf-form (toggle ,(translate "Embed source document")
@@ -273,7 +286,7 @@
             ) ;lambda
             r
           ) ;for-each
-          (set! fname (export-pdf-ensure-suffix fname))
+          (set! fname (export-pdf-ensure-suffix fname embed))
           (if embed
             (wrapped-print-to-pdf-embeded-with-tmu fname)
             (wrapped-print-to-file fname)

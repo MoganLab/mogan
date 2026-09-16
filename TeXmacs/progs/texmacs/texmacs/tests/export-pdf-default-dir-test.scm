@@ -51,6 +51,7 @@
 ) ;define
 
 ;; scratch 草稿无本地 tmu 位置，不落 no_name 暂存目录，落 Documents/LiiiSTEM。
+;; 导出 PDF 建议文件名使用草稿对应的文件名（Issue #1304）。
 
 (define (test-scratch-goes-to-documents)
   (let ((master (url-append (get-documents-path) "LiiiSTEM/no_name/draft_20260905_120000.tmu")
@@ -59,6 +60,25 @@
        ) ;
     (check (url-scratch? master) => #t)
     (check (url->system (export-pdf-default-dir master)) => doc-dir)
+    (check (propose-export-pdf-name #f master) => "draft_20260905_120000.pdf")
+    (check (propose-export-pdf-name #t master) => "draft_20260905_120000.tmu.pdf")
+  ) ;let
+) ;define
+
+(define (test-scratch-stem-export-pdf-name)
+  (let ((master (url-append (get-documents-path) "LiiiSTEM/no_name/draft_20260905_120000.stem")
+        ) ;master
+       ) ;
+    (check (url-scratch? master) => #t)
+    (check (propose-export-pdf-name #f master) => "draft_20260905_120000.pdf")
+    (check (propose-export-pdf-name #t master) => "draft_20260905_120000.tmu.pdf")
+  ) ;let
+) ;define
+
+(define (test-normal-doc-export-pdf-name)
+  (let ((master (system->url "/tmp/1268/demo.tmu")))
+    (check (propose-export-pdf-name #f master) => "demo.pdf")
+    (check (propose-export-pdf-name #t master) => "demo.tmu.pdf")
   ) ;let
 ) ;define
 
@@ -75,17 +95,46 @@
 ;; 目的地后缀兜底（Issue #1271）：不带 pdf 后缀补 .pdf，已带则原样保留。
 
 (define (test-ensure-suffix-appends-when-missing)
-  (check (export-pdf-ensure-suffix "/tmp/1268/demo") => "/tmp/1268/demo.pdf")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo" #f) => "/tmp/1268/demo.pdf")
 ) ;define
 
 (define (test-ensure-suffix-keeps-pdf)
-  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf") => "/tmp/1268/demo.pdf")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf" #f)
+    =>
+    "/tmp/1268/demo.pdf"
+  ) ;check
 ) ;define
 
 (define (test-ensure-suffix-appends-after-other-suffix)
-  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak" #f)
     =>
     "/tmp/1268/demo.bak.pdf"
+  ) ;check
+) ;define
+
+;; 目的地后缀兜底（Issue #1304）：开启嵌入附件时确保为 .tmu.pdf 后缀。
+
+(define (test-ensure-suffix-embed-tmu-pdf)
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo" #t)
+    =>
+    "/tmp/1268/demo.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf" #t)
+    =>
+    "/tmp/1268/demo.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.tmu.pdf" #t)
+    =>
+    "/tmp/1268/demo.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.bak" #t)
+    =>
+    "/tmp/1268/demo.bak.tmu.pdf"
+  ) ;check
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo" #f) => "/tmp/1268/demo.pdf")
+  (check (export-pdf-ensure-suffix "/tmp/1268/demo.pdf" #f)
+    =>
+    "/tmp/1268/demo.pdf"
   ) ;check
 ) ;define
 
@@ -94,9 +143,12 @@
   (test-below-texmacs-path-goes-to-documents)
   (test-below-texmacs-home-path-goes-to-documents)
   (test-scratch-goes-to-documents)
+  (test-scratch-stem-export-pdf-name)
+  (test-normal-doc-export-pdf-name)
   (test-tmfs-goes-to-documents)
   (test-ensure-suffix-appends-when-missing)
   (test-ensure-suffix-keeps-pdf)
   (test-ensure-suffix-appends-after-other-suffix)
+  (test-ensure-suffix-embed-tmu-pdf)
   (check-report)
 ) ;tm-define
