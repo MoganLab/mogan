@@ -89,18 +89,6 @@
   (get-boolean-preference "bibtex->texmacs:conservative")
 ) ;define
 
-(define (set-bibtm-conservative on?)
-  (set-boolean-preference "bibtex->texmacs:conservative" on?)
-) ;define
-
-(define (get-tmbib-conservative)
-  (get-boolean-preference "texmacs->bibtex:conservative")
-) ;define
-
-(define (set-tmbib-conservative on?)
-  (set-boolean-preference "texmacs->bibtex:conservative" on?)
-) ;define
-
 ;; image format：返回 (internal-list pretty-list)，并顺带登记
 ;; texmacs->image:format 的 decode 表。internal/pretty 等长同序，供 QML facade
 ;; 的 options/optionsTr 对齐 combo 契约。

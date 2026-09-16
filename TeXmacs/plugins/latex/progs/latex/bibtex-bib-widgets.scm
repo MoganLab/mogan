@@ -178,7 +178,7 @@
           ) ;input
           //
           //
-          (explicit-buttons ("" (choose-file bibwid-set-filename "Choose" "tmbib")))
+          (explicit-buttons ("" (choose-file bibwid-set-filename "Choose" "bibtex")))
         ) ;hlist
       ) ;refreshable
     ) ;hlist

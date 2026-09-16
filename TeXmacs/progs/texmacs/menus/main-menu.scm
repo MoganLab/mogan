@@ -69,7 +69,6 @@
   (=> "View::menu" (link view-menu))
   (if (qt-gui?) (=> "Go" (link go-menu)))
   (if (qt-gui?) (if (detailed-menus?) (=> "Tools" (link tools-menu))))
-  (if (with-database-tool?) (=> "Data" (link db-menu)))
   (if (with-debugging-tool?) (=> "Debug" (link debug-menu)))
   (if (with-developer-tool?) (=> "Developer" (link developer-menu)))
   (if (nnull? (test-menu)) (=> "Test" (link test-menu)))
@@ -167,7 +166,6 @@
   (-> "View::menu" (link view-menu))
   (-> "Go" (link go-menu))
   (if (detailed-menus?) (-> "Tools" (link tools-menu)))
-  (if (with-database-tool?) (-> "Data" (link db-menu)))
   (if (with-debugging-tool?) (-> "Debug" (link debug-menu)))
   (if (nnull? (test-menu)) (-> "Test" (link test-menu)))
   ---

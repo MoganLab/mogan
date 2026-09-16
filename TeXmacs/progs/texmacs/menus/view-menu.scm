@@ -26,12 +26,11 @@
 (tm-define toolbar-search-active? #f)
 (tm-define toolbar-replace-active? #f)
 (tm-define toolbar-spell-active? #f)
-(tm-define toolbar-db-active? #f)
 (tm-define toolbar-animate-active? #f)
 
 (tm-define (extra-bottom-tools?)
   (or toolbar-search-active? toolbar-replace-active? toolbar-spell-active?
-    toolbar-db-active? toolbar-animate-active?
+    toolbar-animate-active?
   ) ;or
 ) ;tm-define
 
@@ -46,18 +45,10 @@
       ) ;and
     (link spell-toolbar)
   ) ;if
-  (if (and toolbar-db-active?
-        (not toolbar-search-active?)
-        (not toolbar-replace-active?)
-        (not toolbar-spell-active?)
-      ) ;and
-    (link db-toolbar)
-  ) ;if
   (if (and toolbar-animate-active?
         (not toolbar-search-active?)
         (not toolbar-replace-active?)
         (not toolbar-spell-active?)
-        (not toolbar-db-active?)
       ) ;and
     (link animate-toolbar)
   ) ;if
@@ -74,19 +65,11 @@
            (not toolbar-replace-active?)
          ) ;and
         ) ;
-        ((== which "database")
-         (and toolbar-db-active?
-           (not toolbar-search-active?)
-           (not toolbar-replace-active?)
-           (not toolbar-spell-active?)
-         ) ;and
-        ) ;
         ((== which "animate")
          (and toolbar-animate-active?
            (not toolbar-search-active?)
            (not toolbar-replace-active?)
            (not toolbar-spell-active?)
-           (not toolbar-db-active?)
          ) ;and
         ) ;
         (else #f)
@@ -97,12 +80,10 @@
   (set! toolbar-search-active? #f)
   (set! toolbar-replace-active? #f)
   (set! toolbar-spell-active? #f)
-  (set! toolbar-db-active? #f)
   (set! toolbar-animate-active? #f)
   (cond ((== which "search") (set! toolbar-search-active? val))
         ((== which "replace") (set! toolbar-replace-active? val))
         ((== which "spell") (set! toolbar-spell-active? val))
-        ((== which "database") (set! toolbar-db-active? val))
         ((== which "animate") (set! toolbar-animate-active? val))
   ) ;cond
   (update-bottom-tools)
