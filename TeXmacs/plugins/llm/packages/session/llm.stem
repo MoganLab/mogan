@@ -64,49 +64,48 @@
         ) ;macro
       ) ;macro
       (assign "llm-indent" (macro (if (greater "1par" "20cm") "0.1par" "0par")))
-      ;; llm-input 不套 indent-both(llm-indent)：宽屏下 0.1par 的 par-left 会
-      ;; 传导进 tabular 单元格，把 quote-env 等宽盒内容再次右推（引用块与
-      ;; 提示符之间出现大片空白）；table-width 1par 令输入盒本就全宽，内缩
-      ;; 对盒子无效，仅剩副作用
       (assign "llm-input"
         (macro "prompt"
           "body"
           (document
-            (document
-              (with "ornament-shape"
-                "classic"
-                "ornament-color"
-                (llm-input-bg-color)
-                "ornament-border"
-                "0ln"
-                "ornament-vpadding"
-                "0.3fn"
-                (document
-                  (ornament
-                    (document
-                      (tabular
-                        (tformat (twith "table-width" "1par")
-                          (cwith "1" "1" "2" "2" "cell-hpart" "1")
-                          (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
-                          (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
-                          (cwith "1" "1" "2" "2" "cell-lsep" "0fn")
-                          (cwith "1" "1" "2" "2" "cell-rsep" "0fn")
-                          (cwith "1" "1" "2" "2" "cell-hyphen" "t")
-                          (twith "table-hyphen" "y")
-                          (table
-                            (row
-                              (cell (id-function (with "color" (value "llm-prompt-color") (arg "prompt"))))
-                              (cell (document (with "color" (llm-input-color) "math-display" "true" (arg "body")))
-                              ) ;cell
-                            ) ;row
-                          ) ;table
-                        ) ;tformat
-                      ) ;tabular
-                    ) ;document
-                  ) ;ornament
-                ) ;document
-              ) ;with
-            ) ;document
+            (indent-both (llm-indent)
+              (llm-indent)
+              (document
+                (with "ornament-shape"
+                  "classic"
+                  "ornament-color"
+                  (llm-input-bg-color)
+                  "ornament-border"
+                  "0ln"
+                  "ornament-vpadding"
+                  "0.3fn"
+                  (document
+                    (ornament
+                      (document
+                        (tabular
+                          (tformat (twith "table-width" "1par")
+                            (cwith "1" "1" "2" "2" "cell-hpart" "1")
+                            (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
+                            (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
+                            (cwith "1" "1" "2" "2" "cell-lsep" "0fn")
+                            (cwith "1" "1" "2" "2" "cell-rsep" "0fn")
+                            (cwith "1" "1" "2" "2" "cell-hyphen" "t")
+                            (twith "table-hyphen" "y")
+                            (table
+                              (row
+                                (cell (id-function (with "color" (value "llm-prompt-color") (arg "prompt"))))
+                                (cell (document (with "color" (llm-input-color) "math-display" "true" (arg "body")))
+                                ) ;cell
+                              ) ;row
+                            ) ;table
+                          ) ;tformat
+                        ) ;tabular
+                      ) ;document
+                    ) ;ornament
+                  ) ;document
+                ) ;with
+              ) ;document
+            ) ;indent-both
           ) ;document
         ) ;macro
       ) ;assign

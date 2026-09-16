@@ -1,0 +1,38 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|number-europe|chinese|table-captions-above|llm>>
+
+<\body>
+  <\session|llm|chat-tab:A5A8EF1D-C0B1-4320-8F51-78186B1F7E70>
+    <\unfolded-io-text>
+      llm\>\ 
+    <|unfolded-io-text>
+      <\quote-env>
+        While recent open-source efforts have advanced general capabilities, this core architectural inefficiency in handling ultra-long sequences remains a key impediment, limiting further gains from test-time scaling and hindering further exploration into long-horizon scenarios and tasks.
+      </quote-env>
+
+      请翻译上述文字为中文
+    <|unfolded-io-text>
+      <unfolded-explain|<with|color|dark grey|font-size|0.92|font-series|medium|<localize|View reasoning>>|<\with|color|dark grey|font-size|0.92|font-shape|italic>
+        这是一段用于测试样式问题的推理过程文本。我们正在验证大语言模型插件在输出长文本推理内容时的排版与折叠表现，包括文字换行、行高、缩进、折叠按钮以及字体颜色等渲染细节是否正常。通过不换行的连续长文本输入，可以充分测试视图边界处的自动折叠换行机制，确保在各种窗口尺寸和缩放比例下，推理过程块的边框、背景及文字内容均能正确自适应布局，既不会超出容器边界，也不会出现文字截断或排版错乱的问题，从而为用户提供稳定美观的阅读体验。
+      </with>>
+
+      %chat {"sessionId":"A5A8EF1D-C0B1-4320-8F51-78186B1F7E70","params":{"model":"deepseek-v4-pro","baseUrl":"https:\\/\\/liiistem.cn\\/api\\/v1\\/ai\\/deepseek\\/chat","thinking":"disabled","search":"disabled","thinkingEffort":"medium"},"content":"[fake-llm] 我收到了你的消息：\\\\begin{quote}\\n \ While recent open-source efforts have advanced general capabilities, this\\n \ core architectural inefficiency in handling ultra-long sequences remains a\\n \ key impediment, limiting further gains from test-time scaling and hindering\\n \ further exploration into long-horizon scenarios and tasks.\\n\\\\end{quote}\\n\\n请翻译上述文字为中文"}
+    </unfolded-io-text>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|dpi|600>
+    <associate|font|sys-chinese>
+    <associate|no-zoom|true>
+    <associate|page-medium|automatic>
+    <associate|page-screen-bot|2px>
+    <associate|page-screen-left|4px>
+    <associate|page-screen-right|4px>
+    <associate|page-screen-top|2px>
+    <associate|scroll-bars|false>
+    <associate|zoom-factor|1.40969>
+  </collection>
+</initial>
