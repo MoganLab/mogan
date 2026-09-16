@@ -15,7 +15,6 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QSettings>
 #include <QString>
 
@@ -96,22 +95,6 @@ ensure_registered () {
   debug_boot << "OAuth protocol registration repaired\n";
 }
 
-bool
-deep_link_usable () {
-  const QString registered= registered_command_exe ();
-  if (registered.isEmpty ()) return false;
-
-  // 注册指向别的 LiiiSTEM 副本时不算可用：那个副本未必带得动本版的路由逻辑
-  // （老版本收到 liiistem:// 只会开个空窗口，登录就此卡死）。canonicalFilePath
-  // 顺带抹平短路径与符号链接，Windows 路径再按大小写不敏感比较
-  const QString self=
-      QDir::toNativeSeparators (QCoreApplication::applicationFilePath ());
-  const QString a= QFileInfo (registered).canonicalFilePath ();
-  const QString b= QFileInfo (self).canonicalFilePath ();
-  if (a.isEmpty () || b.isEmpty ()) return false;
-  return a.compare (b, Qt::CaseInsensitive) == 0;
-}
-
 } // namespace oauth_deeplink
 
 #else
@@ -119,11 +102,6 @@ deep_link_usable () {
 namespace oauth_deeplink {
 void
 ensure_registered () {}
-
-bool
-deep_link_usable () {
-  return false;
-}
 } // namespace oauth_deeplink
 
 #endif

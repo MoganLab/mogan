@@ -56,16 +56,13 @@ private:
   void       handleCallback (const QVariantMap& values);
   void       closeCallbackServer ();
   void       startUrlRouter ();
-  /// 浏览器经 liiistem:// 深链交回的回调（见 oauth_deeplink.hpp）
+  /// 浏览器经 liiistem:// 深链把软件唤回前台（见 oauth_deeplink.hpp）
   void handleDeepLink (const QString& url);
 
   bool    m_isLoggedIn        = false;
   QTimer* m_loginTimer        = nullptr;
   QTimer* m_callbackCloseTimer= nullptr;
   QString m_redirectUri;
-
-  /// 本次 login () 选定的通道：探测到协议注册可用时走深链（见 login ()）
-  bool m_deepLinkChosen= false;
 
 public:
   void clearInvalidTokens ();

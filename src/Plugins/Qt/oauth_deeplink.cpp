@@ -27,7 +27,7 @@
 namespace oauth_deeplink {
 
 bool
-is_oauth_callback (const QString& url) {
+is_wake (const QString& url) {
   QUrl parsed (url);
   // QUrl::scheme() 本身返回小写；显式比较是为覆盖传入串大小写混杂的情况
   if (parsed.scheme ().compare (QString::fromLatin1 (kScheme),
@@ -35,19 +35,13 @@ is_oauth_callback (const QString& url) {
     return false;
 
   // Windows 规范化后 query 前会多一个 `/`，host 也可能被转小写，因此不碰
-  // host 与 path，只认这两个查询参数
-  QUrlQuery query (parsed);
-  return !query.queryItemValue ("code").isEmpty () &&
-         !query.queryItemValue ("state").isEmpty ();
+  // host 与 path，只认这一个查询参数
+  return !QUrlQuery (parsed).queryItemValue ("instance").isEmpty ();
 }
 
 QString
 instance_id_from_url (const QString& url) {
-  const QString state= QUrlQuery (QUrl (url)).queryItemValue ("state");
-  // state 形如 "<instanceId>.<一次性随机数>"，实例标识在第一个 "." 之前
-  const int dot= state.indexOf ('.');
-  if (dot <= 0) return QString ();
-  return state.left (dot);
+  return QUrlQuery (QUrl (url)).queryItemValue ("instance");
 }
 
 QString
@@ -59,11 +53,6 @@ find_url (const QStringList& arguments) {
       return arguments[i];
   }
   return QString ();
-}
-
-QString
-redirect_uri () {
-  return QString::fromLatin1 (kRedirectUri);
 }
 
 void

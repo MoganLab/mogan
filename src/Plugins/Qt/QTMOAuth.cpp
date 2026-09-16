@@ -59,8 +59,8 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   m_codeVerifier = generateCodeVerifier ();
   m_codeChallenge= generateCodeChallenge (m_codeVerifier);
 
-  // 本进程的唯一标识：随 state 发给授权服务器并由回调原样带回，用于把回调
-  // 路由回发起登录的那个实例（多实例场景，见 handleCallback）
+  // 本进程的唯一标识：用于把浏览器发来的 liiistem:// 唤醒路由回这个实例
+  // （多实例场景，见 oauth_deeplink.hpp 与 refreshCallbackHtml）
   m_instanceId= generateRandomString (16);
 
   // 登录回调的 HTML 内容由 refreshCallbackHtml() 生成，会在登录时按需读取
@@ -105,7 +105,7 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   connect (m_callbackCloseTimer, &QTimer::timeout, this,
            &QTMOAuth::closeCallbackServer);
 
-  // 接收深链转发：浏览器总会新拉起一个进程，由它把回调 URL 送到发起登录的
+  // 接收深链转发：浏览器总会新拉起一个进程，由它把唤醒 URL 送到发起登录的
   // 实例（见 oauth_deeplink.hpp 的实例路由）
   startUrlRouter ();
 
@@ -123,22 +123,12 @@ QTMOAuth::startUrlRouter () {
       [this] (const QString& url) { handleDeepLink (url); });
 }
 
-// 深链回调的唯一入口：与环回回调共用 handleCallback，因此 state 校验、
-// 一次性清空、延迟关闭等逻辑全部沿用，不新增第二套校验
+// 深链的唯一作用是把窗口置前：授权码早已由环回回调收下，这里既不碰 token，
+// 也不做 state 校验（那条路已在 handleCallback 走完）
 void
 QTMOAuth::handleDeepLink (const QString& url) {
-  if (!oauth_deeplink::is_oauth_callback (url)) return;
-
-  // 先置前再换 token：用户刚在浏览器里点完授权，视线该落回软件上
+  if (!oauth_deeplink::is_wake (url)) return;
   oauth_deeplink::bring_to_front ();
-
-  QUrl            parsed (url);
-  const QUrlQuery query (parsed);
-  QVariantMap     values;
-  values["code"] = query.queryItemValue ("code");
-  values["state"]= query.queryItemValue ("state");
-
-  handleCallback (values);
 }
 
 void
@@ -150,23 +140,15 @@ QTMOAuth::login () {
     if (m_reply->isListening ()) m_reply->close ();
   }
 
-  // 探测协议注册，可用则优先走深链：浏览器直接拉起软件，用户不必盯着「正在
-  // 等待回调」的页面，也不必担心防火墙拦掉本地端口。探测的时机在建注册之后
-  // ——research.cpp 启动时已补写过，故自动更新上来的老用户同样能立刻用上
-  m_deepLinkChosen= oauth_deeplink::deep_link_usable ();
-
-  // 环回服务器照旧备着：深链不可用时它是唯一出路。监听失败不再中断整个流程，
-  // 剩下的那条通道仍可能打通
+  // 环回服务器是唯一的回调通道：浏览器把授权码送到这里，深链只负责随后把
+  // 窗口唤回前台（见 handleDeepLink），不承担收码
   if (!m_reply->isListening () &&
       !m_reply->listen (QHostAddress (QString::fromUtf8 ("127.0.0.1")), 0))
     debug_boot << "OAuth callback server failed to listen" << "\n";
 
   // 固化本次登录的 redirect_uri：授权请求与令牌交换两处必须逐字节一致
-  // （RFC 6749 §4.1.3），故一次性确定，之后不再随运行时状态变化。
-  // 选定的通道收不到码时另一条也收不到——服务端只认请求里那一个地址
-  m_redirectUri= (m_deepLinkChosen || !m_reply->isListening ())
-                     ? oauth_deeplink::redirect_uri ()
-                     : m_reply->callback ();
+  // （RFC 6749 §4.1.3），故一次性确定，之后不再随运行时状态变化
+  m_redirectUri= m_reply->callback ();
 
   // 按当前 stem-profile 刷新回调页（让 profile 切换在下次登录立即生效）
   refreshCallbackHtml ();
@@ -179,10 +161,10 @@ QTMOAuth::login () {
   query.addQueryItem ("scope", oauth2.scope ());
   query.addQueryItem ("code_challenge", m_codeChallenge);
   query.addQueryItem ("code_challenge_method", "S256");
-  // 每次登录重新生成 state：实例标识 + 一次性随机数。随机数做 CSRF 防护
-  // （回调必须原样带回，见 handleCallback），实例标识供后续 liiistem://
-  // 深链把回调路由回发起登录的那个实例
-  m_state= m_instanceId + "." + generateRandomString (32);
+  // 每次登录重新生成一次性 state 做 CSRF 防护：回调必须原样带回，见
+  // handleCallback。唤醒的实例路由已改由 liiistem:// 的 instance 参数承担
+  // （见 refreshCallbackHtml），state 里不再夹带实例标识
+  m_state= generateRandomString (32);
   query.addQueryItem ("state", m_state);
 
   authUrl.setQuery (query);
@@ -205,9 +187,8 @@ QTMOAuth::isLoggedIn () {
   return m_isLoggedIn;
 }
 
-// 回调的唯一入口：环回回调与（后续的）liiistem:// 深链都走这里。
-// 先校验 state 再取 code：回调带回的 state 与本次登录发出的不一致，说明这个
-// 回调不是本次登录发起的（CSRF 或重放），直接丢弃
+// 环回回调的唯一入口。先校验 state 再取 code：回调带回的 state 与本次登录发出
+// 的不一致，说明这个回调不是本次登录发起的（CSRF 或重放），直接丢弃
 void
 QTMOAuth::handleCallback (const QVariantMap& values) {
   QString state= values.value ("state").toString ();
@@ -539,9 +520,9 @@ QTMOAuth::getAccessTokenUrl () {
 // 值在 login () 中一次性固化，此处不再读取回调服务器的实时状态——服务器会在
 // 收到回调后延迟关闭，届时 callback () 返回空串。
 //
-// 兜底一句：环回回调只在 login () 起监听之后才可能到达、深链回调又先过 state
-// 校验，两条路都走不到「m_redirectUri 为空」。留着只是不让空串流进令牌交换，
-// 真流进去了服务端会明确报错，比静默换个地址安全
+// 兜底一句：只有 login () 起监听失败时 callback () 才会返回空串，此时授权请求
+// 本身就带着空的 redirect_uri，服务端会明确报错。留着分支只是不让一个「上次
+// 登录的地址」混进令牌交换——那会换不出 token，且错误信息更难懂
 QString
 QTMOAuth::getRedirectUri () {
   if (!m_redirectUri.isEmpty ()) return m_redirectUri;
@@ -568,11 +549,16 @@ QTMOAuth::refreshCallbackHtml () {
   // 每次调用都按当前 stem-profile 现场读取 growth-url，避免启动时固化导致
   // profile 切换后回调仍跳到旧环境
   QString redirectUrl= getGrowthUrl ();
-  QString customHtml = "<!doctype html><html><head>"
-                       "<meta charset='utf-8'>"
-                       "<title>登录成功</title>"
-                       "</head><body>"
-                       "<script>window.location.replace(\"" +
+  // 带上本实例的标识：成长激励页据此发 liiistem://wake?instance=... 把软件唤回
+  // 前台（见 oauth_deeplink.hpp）。growth-url 自带 query，故用 `&` 追加；页面
+  // 不认识这个参数也没有副作用
+  redirectUrl+= (redirectUrl.contains ('?') ? "&" : "?");
+  redirectUrl+= "instance=" + m_instanceId;
+  QString customHtml= "<!doctype html><html><head>"
+                      "<meta charset='utf-8'>"
+                      "<title>登录成功</title>"
+                      "</head><body>"
+                      "<script>window.location.replace(\"" +
                       redirectUrl +
                       "\");</script>"
                       "<noscript><meta http-equiv='refresh' content='0;url=" +

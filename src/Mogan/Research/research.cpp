@@ -271,7 +271,7 @@ main (int argc, char** argv) {
   }
 
 #if defined(OS_WIN)
-  // liiistem:// 深链。浏览器打开自定义协议时总是新拉起一个进程，由它把回调
+  // liiistem:// 深链。浏览器打开自定义协议时总是新拉起一个进程，由它把唤醒
   // URL 交给仍在运行、且发起过本次登录的那个实例，然后自己退出
   // （见 oauth_deeplink.hpp）
   if (!headless_mode) {
@@ -282,9 +282,8 @@ main (int argc, char** argv) {
     // 完成转换并摘掉 Qt 自身参数，比直接取 argv 干净
     const QString url=
         oauth_deeplink::find_url (QCoreApplication::arguments ());
-    // 转发不成（发起实例已退出）时不做别的，照常启动：这个 code 换不出 token，
-    // 本进程无从接手——PKCE 的 code_verifier 只存在于那个已退出的进程里。
-    // 用户会在新窗口里重新登录，代价是一次点击
+    // 转发不成（发起实例已退出）时不做别的，照常启动：目标窗口都没了，也就无
+    // 所谓置前。登录早已由环回回调完成，与本进程无关
     if (!url.isEmpty () && oauth_deeplink::try_forward (url)) {
       delete qtmapp;
       return 0;
