@@ -870,7 +870,12 @@ qt_chat_ai_send_selection (tree sel, string action) {
   // llm 模块已加载（会话创建路径 eval 过 use-modules，chat-loader 亦在启动
   // idle 阶段整体加载）
   if (action == "translate") {
-    ChatConversationPanel* panel= ctrl->createNewConversation ("翻译: ");
+    // 标题前缀走词典，与操作栏「翻译」按钮同一键（"Ai translate" 首字符
+    // 折叠命中 "ai translate"），随界面语言本地化；标题为 UTF-8，经
+    // from_qstring_utf8 归一编码后拼接
+    string titlePrefix=
+        from_qstring_utf8 (qt_translate ("Ai translate")) * ": ";
+    ChatConversationPanel* panel= ctrl->createNewConversation (titlePrefix);
     if (!panel) return;
     string sid= panel->sessionId ();
     call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
