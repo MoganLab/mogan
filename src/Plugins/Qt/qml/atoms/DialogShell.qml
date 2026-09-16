@@ -76,6 +76,7 @@ Item {
 
         DragHandler {
             target: null
+            grabPermissions: PointerHandler.TakeOverForbidden
             onActiveChanged: if (active)
                 closeBridge.startMove()
         }

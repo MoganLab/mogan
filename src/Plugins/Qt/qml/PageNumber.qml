@@ -383,6 +383,7 @@ DialogShell {
                                     id: maRow
                                     anchors.fill: parent
                                     hoverEnabled: true
+                                    preventStealing: true
                                     cursorShape: (!root.done() && rowItem.pageNum >= root.pendingStart) ? Qt.PointingHandCursor : Qt.ArrowCursor
                                     onPressed: {
                                         if (!root.done() && rowItem.pageNum >= root.pendingStart) {
@@ -431,6 +432,7 @@ DialogShell {
                                 anchors.fill: parent
                                 cursorShape: Qt.SizeVerCursor
                                 hoverEnabled: true
+                                preventStealing: true
                                 onPressed: root.dragging = true
                                 onReleased: {
                                     root.dragging = false;
