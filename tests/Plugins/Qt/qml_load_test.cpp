@@ -257,6 +257,7 @@ private slots:
   void test_export_pdf_path_utf8_roundtrip ();
   void test_updater_progress_loads ();
   void test_color_picker_loads ();
+  void test_bibliography_loads ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
 };
@@ -910,6 +911,51 @@ make_ai_actions_bar (QWidget* host) {
   qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
   qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
   return qw;
+}
+
+class StubBibBridge : public QObject {
+  Q_OBJECT
+public:
+  explicit StubBibBridge (QObject* p= nullptr) : QObject (p) {}
+  Q_INVOKABLE QString     browse (const QString&) { return QString (); }
+  Q_INVOKABLE QVariantMap requestPreview (const QString&, const QString&) {
+    QVariantMap m;
+    m["status"] = QString ("empty");
+    m["hint"]   = QString ();
+    m["preview"]= QString ();
+    return m;
+  }
+  Q_INVOKABLE QString toRelativePath (const QString& p) { return p; }
+};
+
+void
+TestQmlLoad::test_bibliography_loads () {
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("bibBridge", new StubBibBridge (qw));
+  qw->rootContext ()->setContextProperty ("dialogTitle",
+                                          QString ("Insert bibliography"));
+  qw->rootContext ()->setContextProperty ("dialogPrompt", QString (""));
+  qw->rootContext ()->setContextProperty ("dialogButtons",
+                                          QStringList ({"Insert", "Cancel"}));
+  qw->rootContext ()->setContextProperty ("fileLabel", QString ("File:"));
+  qw->rootContext ()->setContextProperty ("browseLabel", QString ("Browse"));
+  qw->rootContext ()->setContextProperty ("updateLabel",
+                                          QString ("Update buffer:"));
+  qw->rootContext ()->setContextProperty ("styleLabel", QString ("Style:"));
+  qw->rootContext ()->setContextProperty ("initialFile", QString (""));
+  qw->rootContext ()->setContextProperty ("initialStyle", QString ("tm-plain"));
+  qw->rootContext ()->setContextProperty ("initialUpdate", true);
+  qw->rootContext ()->setContextProperty (
+      "styleOptions", QStringList ({"tm-plain", "tm-alpha"}));
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+
+  qw->setSource (QUrl ("qrc:/qml/Bibliography.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 void

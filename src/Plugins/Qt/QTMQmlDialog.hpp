@@ -358,4 +358,13 @@ tree cpp_color_picker_dialog (string title, array<tree> proposals,
  */
 tree cpp_gradient_selector_dialog (tree old_col);
 
+/**
+ * @brief 「插入/修改参考文献」QML 对话框的 glue 入口（一次性提交）。
+ * @param config Scheme 构造的配置树 (bibliography-config ...)。
+ * @return 用户点 Insert/Modify 返回包含 file/style/update 键值对的
+ * (tuple ...)；Cancel/关闭返回空 tree。
+ * @note 测试钩子 MOGAN_TEST_BIBLIOGRAPHY=ok|cancel|<file> 命中时不弹窗。
+ */
+tree cpp_bibliography_dialog (tree config);
+
 #endif // defined QTM_QML_DIALOG_H

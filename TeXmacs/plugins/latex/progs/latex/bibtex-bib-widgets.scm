@@ -36,13 +36,11 @@
 (define bibwid-buffer (string->url ""))
 
 (define (bibwid-set-url u)
-  (cond ((and (== bibwid-use-relative? #t) (url-rooted? u))
-         (set! bibwid-url (url-delta bibwid-buffer u))
-        ) ;
-        ((and (== bibwid-use-relative? #f) (not (url-rooted? u)))
-         (set! bibwid-url (url-append (url-head bibwid-buffer) u))
-        ) ;
-        (else (set! bibwid-url u))
+  (cond
+   ((and (url-rooted? u) (url-rooted? (url-head bibwid-buffer)))
+    (set! bibwid-url (url-delta bibwid-buffer u))
+   ) ;
+   (else (set! bibwid-url u))
   ) ;cond
 ) ;define
 
@@ -106,7 +104,7 @@
       (lambda (key . args) (noop))
     ) ;catch
     (with u
-      (if (and bibwid-use-relative? (not (url-rooted? bibwid-url)))
+      (if (and (not (url-rooted? bibwid-url)) (url-rooted? (url-head bibwid-buffer)))
         (url-append (url-head bibwid-buffer) bibwid-url)
         bibwid-url
       ) ;if
@@ -150,11 +148,6 @@
   (refresh-now "bibwid-preview")
 ) ;define
 
-(define (bibwid-set-relative val)
-  (set! bibwid-use-relative? val)
-  (bibwid-set-filename bibwid-url)
-) ;define
-
 (tm-widget (bibwid-preview)
   (resize '("520px" "520px" "9999px")
     '("100px" "100px" "9999px")
@@ -189,12 +182,7 @@
       ) ;refreshable
     ) ;hlist
     ===
-    (hlist (text "Use relative path:")
-      //
-      (toggle (bibwid-set-relative answer) bibwid-use-relative?)
-      //
-      //
-      (text "Update buffer:")
+    (hlist (text "Update buffer:")
       //
       (toggle (set! bibwid-update-buffer? answer) bibwid-update-buffer?)
       //
@@ -219,31 +207,140 @@
 ) ;tm-widget
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; QML 实时预览光栅化
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (bib-has-entries? st)
+  (and (list? st)
+    (func? st 'document)
+    (nnull? (list-filter (cdr st) (lambda (x) (func? x 'bib-entry))))
+  ) ;and
+) ;define
+
+(tm-define (bibliography-preview file-str style-str)
+  (let* ((u-str (if (string? file-str) file-str ""))
+         (u (string->url u-str))
+         (full-u
+           (if
+             (and (not (url-rooted? u)) (url-rooted? (url-head (current-buffer))))
+             (url-append (url-head (current-buffer)) u)
+             u
+           ) ;if
+         ) ;full-u
+         (style (if (and (string? style-str) (!= style-str "")) style-str "tm-plain"))
+         (actual-style
+           (if (and (>= (string-length style) 3) (== "tm-" (string-take style 3)))
+             (string-drop style 3)
+             style
+           ) ;if
+         ) ;actual-style
+        ) ;
+    (catch #t
+      (lambda ()
+        (eval
+          `(use-modules (latex ,(string->symbol (string-append "bibtex-"
+                                                  actual-style))))
+        ) ;eval
+      ) ;lambda
+      (lambda (key . args) (noop))
+    ) ;catch
+    (cond ((== u-str "") (list "empty" "" ""))
+          ((not (url-exists? full-u))
+           (let ((msg (translate "File does not exist")))
+             (list "not_found" msg "")
+           ) ;let
+          ) ;
+          (else
+            (let* ((t
+                     (catch #t
+                       (lambda () (parse-bib (string-load full-u)))
+                       (lambda (key . args) (tree ""))
+                     ) ;catch
+                   ) ;t
+                   (st (if (tree? t) (tree->stree t) ""))
+                  ) ;
+              (if (not (bib-has-entries? st))
+                (let ((msg (translate "Invalid BibTeX file")))
+                  (list "invalid" msg "")
+                ) ;let
+                (let* ((content
+                         `(with ,"bg-color"
+                            ,(bibwid-preview-bg-color)
+                            ,"color"
+                            ,(bibwid-preview-fg-color)
+                            ,"magnification"
+                            ,"1.05"
+                            (mini-paragraph ,"720px"
+                              ,(bib-process "bib" actual-style st)))
+                       ) ;content
+                       (wid (widget-texmacs-output (stree->tree content) '(style "generic")))
+                       (img (cpp-rasterize-widget wid))
+                      ) ;
+                  (list "valid" "" img)
+                ) ;let*
+              ) ;if
+            ) ;let*
+          ) ;else
+    ) ;cond
+  ) ;let*
+) ;tm-define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (open-bibliography-inserter)
   (set! bibwid-buffer (current-buffer))
-  (let ((u (current-bib-file #f)) (s (current-bib-style #f)))
-    (if (and (not (url-none? u)) (!= s ""))
+  (let* ((u (current-bib-file #f))
+         (s (current-bib-style #f))
+         (modify? (and (not (url-none? u)) (!= s "")))
+         (init-url (if modify? u (string->url "")))
+         (init-style (if modify? s "tm-plain"))
+         (doc-dir (url->string (url-head bibwid-buffer)))
+        ) ;
+    (if (qt-gui?)
+      (let* ((config (list 'bibliography-config
+                       (list 'modify? (if modify? "true" "false"))
+                       (list 'file (url->string init-url))
+                       (list 'style init-style)
+                       (list 'update? (if bibwid-update-buffer? "true" "false"))
+                       (list 'doc-dir doc-dir)
+                       (cons 'styles (safe-bib-standard-styles))
+                     ) ;list
+             ) ;config
+             (result (cpp-bibliography-dialog (stree->tree config)))
+             (r (cdr (tree->stree result)))
+            ) ;
+        (when (nnull? r)
+          (let ((file "") (style "tm-plain") (upd? #t))
+            (for-each
+              (lambda (kv)
+                (cond ((== (cadr kv) "file") (set! file (caddr kv)))
+                      ((== (cadr kv) "style") (set! style (caddr kv)))
+                      ((== (cadr kv) "update") (set! upd? (== (caddr kv) "true")))
+                ) ;cond
+              ) ;lambda
+              r
+            ) ;for-each
+            (set! bibwid-style style)
+            (set! bibwid-update-buffer? upd?)
+            (bibwid-set-url (string->url file))
+            (if modify? (bibwid-modify #t) (bibwid-insert #t))
+          ) ;let
+        ) ;when
+      ) ;let*
       (with msg
-        (translate "Modifying bibliography in the current document")
-        (bibwid-set-url u)
-        (set! bibwid-style s)
-        (dialogue-window (bibliography-widget #t msg)
-          bibwid-modify
-          "Modify bibliography"
-        ) ;dialogue-window
-      ) ;with
-      (with msg
-        (translate "Inserting bibliography in the current document")
-        (bibwid-set-url (string->url ""))
-        (set! bibwid-style "tm-plain")
-        (dialogue-window (bibliography-widget #f msg)
-          bibwid-insert
-          "Insert bibliography"
+        (if modify?
+          (translate "Modifying bibliography in the current document")
+          (translate "Inserting bibliography in the current document")
+        ) ;if
+        (bibwid-set-url init-url)
+        (set! bibwid-style init-style)
+        (dialogue-window (bibliography-widget modify? msg)
+          (if modify? bibwid-modify bibwid-insert)
+          (if modify? "Modify bibliography" "Insert bibliography")
         ) ;dialogue-window
       ) ;with
     ) ;if
-  ) ;let
+  ) ;let*
 ) ;tm-define

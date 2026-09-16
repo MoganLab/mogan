@@ -33,5 +33,6 @@
         <file>qml/UpdaterProgress.qml</file>
         <file>qml/WaitProgressDialog.qml</file>
         <file>qml/AiActionsBar.qml</file>
+        <file>qml/Bibliography.qml</file>
     </qresource>
 </RCC>
