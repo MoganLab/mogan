@@ -4,7 +4,7 @@
 // 点「应用」才一次性将规则写入文档 initial 并关窗；点「取消」丢弃。
 //
 // context property / bridge：
-//   pnBridge     —— C++ bridge（PageNumberBridge），提供 meta() / submit(rules) / cancel() / startMove()
+//   pnBridge     —— C++ bridge（PageNumberBridge），提供 meta() / submit(rules) / formatNumber(n, style)
 //   dialogButtons—— [应用, 取消]，已翻译
 //   closeBridge / dpScale / isDark 共用属性
 
@@ -27,10 +27,7 @@ DialogShell {
     })
     property var labels: meta && meta.labels ? meta.labels : ({})
     property int totalPages: meta && meta.total ? Math.max(1, meta.total) : 1
-    property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : [
-        labels.btnApply || qsTr("Apply"),
-        labels.btnCancel || qsTr("Cancel")
-    ]
+    property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : [qsTr("Apply"), qsTr("Cancel")]
 
     // rules 列表：[{ start: 1, end: 3, style: "roman" }, ...]
     property var rules: {
@@ -57,14 +54,18 @@ DialogShell {
     readonly property real rowH: 38 * Theme.scaleFactor
     readonly property var ruleColors: ["#d32f2f", "#7b61c9", "#f59e0b", "#3a7bd5", "#ea580c", "#0891b2"]
 
-    // 样式选项定义
+    // 样式选项定义（sample 走排版引擎同款数字格式化，见 formatNr）
     readonly property var styleDefs: [
         { id: "blank",  sample: root.labels.styleBlankSample || qsTr("(hidden)"), name: root.labels.styleBlank || qsTr("Hide page numbers") },
-        { id: "roman",  sample: "i, ii, iii", name: root.labels.styleRoman || "roman" },
-        { id: "Roman",  sample: "I, II, III", name: root.labels.styleRomanUpper || "Roman" },
-        { id: "hanzi",  sample: "一, 二, 三", name: root.labels.styleHanzi || qsTr("Chinese numerals") },
+        { id: "roman",  sample: root.sampleOf("roman"), name: root.labels.styleRoman || "roman" },
+        { id: "Roman",  sample: root.sampleOf("Roman"), name: root.labels.styleRomanUpper || "Roman" },
+        { id: "hanzi",  sample: root.sampleOf("hanzi"), name: root.labels.styleHanzi || qsTr("Chinese numerals") },
         { id: "arabic", sample: "1, 2, 3", name: root.labels.styleArabic || qsTr("Arabic numerals") }
     ]
+
+    function sampleOf(style) {
+        return formatNr(1, style) + ", " + formatNr(2, style) + ", " + formatNr(3, style);
+    }
 
     function styleName(id) {
         for (var i = 0; i < styleDefs.length; i++) {
@@ -88,12 +89,21 @@ DialogShell {
         tipMessage = "";
     }
 
+    // pendingEnd 取值：null（未选）| 页码数字 | "total"（至文末，与规则模型同哨兵）
+    function pendingEndNum() {
+        return root.pendingEnd === "total" ? root.totalPages : root.pendingEnd;
+    }
+
+    function pendingEndText() {
+        return root.pendingEnd !== null ? String(pendingEndNum()) : "";
+    }
+
     onPendingEndChanged: {
         if (!endInput.activeFocus) {
-            endInput.text = root.pendingEnd !== null ? (root.pendingEnd > root.totalPages ? String(root.totalPages) : String(root.pendingEnd)) : "";
+            endInput.text = root.pendingEndText();
         }
         if (!root.dragging && root.pendingEnd !== null) {
-            var targetY = (Math.min(root.totalPages, root.pendingEnd) - 1) * root.rowH;
+            var targetY = (root.pendingEndNum() - 1) * root.rowH;
             if (targetY < stripFlickable.contentY || targetY > stripFlickable.contentY + stripFlickable.height - root.rowH) {
                 stripFlickable.contentY = Math.max(0, Math.min(stripFlickable.contentHeight - stripFlickable.height, targetY - stripFlickable.height / 2));
             }
@@ -102,7 +112,7 @@ DialogShell {
 
     onPendingStartChanged: {
         if (curStyle === "arabic" && tipMessage !== "") {
-            tipMessage = (labels.arabicTip || qsTr("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1.")).arg(root.pendingStart);
+            tipMessage = (labels.arabicTip || qsTr("Defaulted from page %1 to the end so that page number 1 starts from page %1.")).arg(root.pendingStart);
         }
     }
 
@@ -119,52 +129,25 @@ DialogShell {
         return -1;
     }
 
-    function toRoman(n) {
-        var T = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"],
-                 [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"],
-                 [5, "V"], [4, "IV"], [1, "I"]];
-        var s = "";
-        for (var i = 0; i < T.length; i++) {
-            var v = T[i][0];
-            var r = T[i][1];
-            while (n >= v) { s += r; n -= v; }
-        }
-        return s;
-    }
-
-    function toHanzi(n) {
-        var H = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-        if (n <= 0) return "";
-        if (n < 10) return H[n];
-        if (n === 10) return "十";
-        if (n < 20) return "十" + H[n % 10];
-        if (n < 100) {
-            var tens = Math.floor(n / 10);
-            var rem = n % 10;
-            return H[tens] + "十" + (rem > 0 ? H[rem] : "");
-        }
-        return String(n);
-    }
+    // 数字格式化走排版引擎同款实现（C++ lolly to_roman/to_Roman/to_hanzi），
+    // 每个 (style, n) 只算一次并缓存。
+    property var fmtCache: ({})
 
     function formatNr(n, style) {
-        if (n < 1) return "";
+        if (style === "blank") return "";
         if (style === "arabic") return String(n);
-        if (style === "roman") return toRoman(n).toLowerCase();
-        if (style === "Roman") return toRoman(n);
-        if (style === "hanzi") return toHanzi(n);
-        return "";
+        var key = style + ":" + n;
+        if (fmtCache[key] === undefined) {
+            fmtCache[key] = (typeof pnBridge !== "undefined") ? pnBridge.formatNumber(n, style) : String(n);
+        }
+        return fmtCache[key];
     }
 
     function pageDisplay(p) {
-        for (var i = 0; i < rules.length; i++) {
-            var s = Number(rules[i].start);
-            var e = (rules[i].end === "total" || Number(rules[i].end) >= totalPages) ? totalPages : Number(rules[i].end);
-            if (p >= s && p <= e) {
-                if (rules[i].style === "blank") return "";
-                return formatNr(p - s + 1, rules[i].style);
-            }
-        }
-        return String(p);
+        var i = ruleOfPage(p);
+        if (i < 0) return String(p);
+        if (rules[i].style === "blank") return "";
+        return formatNr(p - Number(rules[i].start) + 1, rules[i].style);
     }
 
     function endText(end) {
@@ -180,13 +163,10 @@ DialogShell {
         for (var i = 0; i < rules.length; i++) cur.push(rules[i]);
         cur.push({
             start: pendingStart,
-            end: (pendingEnd >= totalPages ? "total" : pendingEnd),
+            end: (pendingEnd === "total" || pendingEnd >= totalPages) ? "total" : pendingEnd,
             style: curStyle
         });
         rules = cur;
-        pendingStart = minStart();
-        pendingEnd = null;
-        tipMessage = "";
     }
 
     function deleteLastRule() {
@@ -194,9 +174,6 @@ DialogShell {
         var cur = [];
         for (var i = 0; i < rules.length - 1; i++) cur.push(rules[i]);
         rules = cur;
-        pendingStart = minStart();
-        pendingEnd = null;
-        tipMessage = "";
     }
 
     function submit() {
@@ -214,9 +191,7 @@ DialogShell {
     }
 
     function cancel() {
-        if (typeof pnBridge !== "undefined") {
-            pnBridge.cancel();
-        } else if (typeof closeBridge !== "undefined") {
+        if (typeof closeBridge !== "undefined") {
             closeBridge.cancel();
         }
     }
@@ -245,7 +220,7 @@ DialogShell {
 
             MouseArea {
                 anchors.fill: parent
-                onPressed: if (typeof pnBridge !== "undefined") pnBridge.startMove()
+                onPressed: if (typeof closeBridge !== "undefined") closeBridge.startMove()
             }
 
             Row {
@@ -298,168 +273,158 @@ DialogShell {
                     color: Theme.borderClr
                 }
 
-                Flickable {
+                // ListView 只实例化可见行；delegate 全绑定驱动、无本地状态，可安全复用
+                ListView {
                     id: stripFlickable
                     anchors.fill: parent
                     anchors.rightMargin: 1 * Theme.scaleFactor
-                    contentWidth: width
-                    contentHeight: root.totalPages * root.rowH
                     boundsBehavior: Flickable.StopAtBounds
                     clip: true
+                    reuseItems: true
+                    model: root.totalPages
 
-                    Item {
-                        id: stripContent
-                        width: parent.width
-                        height: root.totalPages * root.rowH
+                    // 页面行
+                    delegate: Rectangle {
+                        id: rowItem
+                        readonly property int pageNum: index + 1
+                        readonly property int rIdx: root.ruleOfPage(pageNum)
+                        readonly property bool isPending: !root.done() && root.pendingEnd !== null &&
+                                                          pageNum >= root.pendingStart && pageNum <= root.pendingEndNum()
+                        readonly property string disp: root.pageDisplay(pageNum)
 
-                        // 页面列表
-                        Repeater {
-                            model: root.totalPages
-                            delegate: Rectangle {
-                                id: rowItem
-                                readonly property int pageNum: index + 1
-                                readonly property int rIdx: root.ruleOfPage(pageNum)
-                                readonly property bool isPending: !root.done() && root.pendingEnd !== null &&
-                                                                  pageNum >= root.pendingStart && pageNum <= root.pendingEnd
-                                readonly property string disp: root.pageDisplay(pageNum)
+                        width: stripFlickable.width
+                        height: root.rowH
+                        color: isPending ? Theme.selectBg : (maRow.containsMouse ? Theme.fieldBgHover : "transparent")
 
-                                x: 0
-                                y: index * root.rowH
-                                width: stripFlickable.width
-                                height: root.rowH
-                                color: isPending ? (Theme.dark ? "#1f4a48" : "#dff3f1") : (maRow.containsMouse ? Theme.fieldBgHover : "transparent")
+                        // 左侧色带（已添加规则的标识）
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: 4 * Theme.scaleFactor
+                            color: rowItem.rIdx >= 0 ? root.ruleColors[rowItem.rIdx % root.ruleColors.length] :
+                                   (rowItem.isPending ? (Theme.dark ? "#2791ad" : "#215a6a") : "transparent")
+                        }
 
-                                // 左侧色带（已添加规则的标识）
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12 * Theme.scaleFactor
+                            spacing: 8 * Theme.scaleFactor
+
+                            // 页面缩略图占位
+                            Rectangle {
+                                width: 24 * Theme.scaleFactor
+                                height: 24 * Theme.scaleFactor
+                                radius: 3 * Theme.scaleFactor
+                                color: Theme.dark ? "#3a3a3a" : "#ffffff"
+                                border.width: Theme.borderW
+                                border.color: Theme.borderClr
+
                                 Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
                                     anchors.bottom: parent.bottom
-                                    width: 4 * Theme.scaleFactor
-                                    color: rowItem.rIdx >= 0 ? root.ruleColors[rowItem.rIdx % root.ruleColors.length] :
-                                           (rowItem.isPending ? (Theme.dark ? "#2791ad" : "#215a6a") : "transparent")
-                                }
-
-                                Row {
-                                    anchors.verticalCenter: parent.verticalCenter
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 12 * Theme.scaleFactor
-                                    spacing: 8 * Theme.scaleFactor
-
-                                    // 页面缩略图占位
-                                    Rectangle {
-                                        width: 24 * Theme.scaleFactor
-                                        height: 24 * Theme.scaleFactor
-                                        radius: 3 * Theme.scaleFactor
-                                        color: Theme.dark ? "#3a3a3a" : "#ffffff"
-                                        border.width: Theme.borderW
-                                        border.color: Theme.borderClr
-
-                                        Rectangle {
-                                            anchors.bottom: parent.bottom
-                                            anchors.left: parent.left
-                                            anchors.right: parent.right
-                                            height: 7 * Theme.scaleFactor
-                                            radius: 2 * Theme.scaleFactor
-                                            color: Theme.dark ? "#4a4a4a" : "#f0f2f5"
-                                        }
-                                    }
-
-                                    // 物理页号
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: (root.labels.physPage || qsTr("Page %1")).arg(rowItem.pageNum)
-                                        font.pixelSize: 12 * Theme.scaleFactor
-                                        color: Theme.muted
-                                    }
-
-                                    // 显示页码
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: rowItem.disp === "" ? "–" : rowItem.disp
-                                        font.pixelSize: 14 * Theme.scaleFactor
-                                        font.bold: rowItem.disp !== ""
-                                        color: rowItem.disp === "" ? Theme.muted : Theme.fg
-                                    }
+                                    anchors.right: parent.right
+                                    height: 7 * Theme.scaleFactor
+                                    radius: 2 * Theme.scaleFactor
+                                    color: Theme.dark ? "#4a4a4a" : "#f0f2f5"
                                 }
+                            }
 
-                                MouseArea {
-                                    id: maRow
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    preventStealing: true
-                                    cursorShape: (!root.done() && rowItem.pageNum >= root.pendingStart) ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onPressed: {
-                                        if (!root.done() && rowItem.pageNum >= root.pendingStart) {
-                                            root.pendingEnd = rowItem.pageNum;
-                                            root.dragging = true;
-                                        }
-                                    }
-                                    onReleased: {
-                                        root.dragging = false;
-                                        autoScrollTimer.stop();
-                                    }
-                                    onPositionChanged: function (mouse) {
-                                        if (!pressed) return;
-                                        var pInContent = mapToItem(stripContent, mouse.x, mouse.y);
-                                        var p = Math.floor(pInContent.y / root.rowH) + 1;
-                                        if (p < root.pendingStart) p = root.pendingStart;
-                                        if (p > root.totalPages) p = root.totalPages;
-                                        root.pendingEnd = p;
-                                    }
-                                }
+                            // 物理页号
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (root.labels.physPage || qsTr("Page %1")).arg(rowItem.pageNum)
+                                font.pixelSize: 12 * Theme.scaleFactor
+                                color: Theme.muted
+                            }
+
+                            // 显示页码
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: rowItem.disp === "" ? "–" : rowItem.disp
+                                font.pixelSize: 14 * Theme.scaleFactor
+                                font.bold: rowItem.disp !== ""
+                                color: rowItem.disp === "" ? Theme.muted : Theme.fg
                             }
                         }
 
-                        // 拖动手柄
-                        Rectangle {
-                            id: dragHandle
-                            visible: !root.done()
-                            z: 20
-                            readonly property int targetPage: root.pendingEnd !== null ? Math.min(root.totalPages, root.pendingEnd) : (root.pendingStart - 1)
-                            x: 8 * Theme.scaleFactor
-                            y: Math.max(0, Math.min(root.totalPages * root.rowH - height,
-                                                    (targetPage >= root.pendingStart ? targetPage * root.rowH : (root.pendingStart - 1) * root.rowH + root.rowH) - height / 2))
-                            width: stripFlickable.width - 16 * Theme.scaleFactor
-                            height: 14 * Theme.scaleFactor
-                            radius: height / 2
-                            color: Theme.dark ? "#2791ad" : "#215a6a"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "⋮⋮"
-                                color: "#ffffff"
-                                font.pixelSize: 10 * Theme.scaleFactor
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.SizeVerCursor
-                                hoverEnabled: true
-                                preventStealing: true
-                                onPressed: root.dragging = true
-                                onReleased: {
-                                    root.dragging = false;
-                                    autoScrollTimer.stop();
+                        MouseArea {
+                            id: maRow
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            preventStealing: true
+                            cursorShape: (!root.done() && rowItem.pageNum >= root.pendingStart) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onPressed: {
+                                if (!root.done() && rowItem.pageNum >= root.pendingStart) {
+                                    root.pendingEnd = rowItem.pageNum;
+                                    root.dragging = true;
                                 }
-                                onPositionChanged: function (mouse) {
-                                    if (!pressed) return;
-                                    var pInContent = mapToItem(stripContent, mouse.x, mouse.y);
-                                    var p = Math.floor(pInContent.y / root.rowH) + 1;
-                                    if (p < root.pendingStart) p = root.pendingStart;
-                                    if (p > root.totalPages) p = root.totalPages;
-                                    root.pendingEnd = p;
+                            }
+                            onReleased: {
+                                root.dragging = false;
+                                autoScrollTimer.stop();
+                            }
+                            onPositionChanged: function (mouse) {
+                                if (!pressed) return;
+                                var pInContent = mapToItem(stripFlickable.contentItem, mouse.x, mouse.y);
+                                var p = Math.floor(pInContent.y / root.rowH) + 1;
+                                if (p < root.pendingStart) p = root.pendingStart;
+                                if (p > root.totalPages) p = root.totalPages;
+                                root.pendingEnd = p;
+                            }
+                        }
+                    }
 
-                                    // 边缘自动滚动
-                                    var viewY = pInContent.y - stripFlickable.contentY;
-                                    if (viewY > stripFlickable.height - 40 * Theme.scaleFactor) {
-                                        root.autoScrollDir = 1;
-                                        autoScrollTimer.start();
-                                    } else if (viewY < 40 * Theme.scaleFactor) {
-                                        root.autoScrollDir = -1;
-                                        autoScrollTimer.start();
-                                    } else {
-                                        autoScrollTimer.stop();
-                                    }
+                    // 拖动手柄
+                    Rectangle {
+                        id: dragHandle
+                        visible: !root.done()
+                        z: 20
+                        readonly property int targetPage: root.pendingEnd !== null ? root.pendingEndNum() : (root.pendingStart - 1)
+                        x: 8 * Theme.scaleFactor
+                        y: Math.max(0, Math.min(root.totalPages * root.rowH - height,
+                                                (targetPage >= root.pendingStart ? targetPage * root.rowH : (root.pendingStart - 1) * root.rowH + root.rowH) - height / 2))
+                        width: stripFlickable.width - 16 * Theme.scaleFactor
+                        height: 14 * Theme.scaleFactor
+                        radius: height / 2
+                        color: Theme.dark ? "#2791ad" : "#215a6a"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "⋮⋮"
+                            color: "#ffffff"
+                            font.pixelSize: 10 * Theme.scaleFactor
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.SizeVerCursor
+                            hoverEnabled: true
+                            preventStealing: true
+                            onPressed: root.dragging = true
+                            onReleased: {
+                                root.dragging = false;
+                                autoScrollTimer.stop();
+                            }
+                            onPositionChanged: function (mouse) {
+                                if (!pressed) return;
+                                var pInContent = mapToItem(stripFlickable.contentItem, mouse.x, mouse.y);
+                                var p = Math.floor(pInContent.y / root.rowH) + 1;
+                                if (p < root.pendingStart) p = root.pendingStart;
+                                if (p > root.totalPages) p = root.totalPages;
+                                root.pendingEnd = p;
+
+                                // 边缘自动滚动
+                                var viewY = pInContent.y - stripFlickable.contentY;
+                                if (viewY > stripFlickable.height - 40 * Theme.scaleFactor) {
+                                    root.autoScrollDir = 1;
+                                    autoScrollTimer.start();
+                                } else if (viewY < 40 * Theme.scaleFactor) {
+                                    root.autoScrollDir = -1;
+                                    autoScrollTimer.start();
+                                } else {
+                                    autoScrollTimer.stop();
                                 }
                             }
                         }
@@ -521,9 +486,8 @@ DialogShell {
                             text: {
                                 var ps = root.pendingStart;
                                 if (root.pendingEnd !== null) {
-                                    var pe = root.pendingEnd;
-                                    var t = root.endText(pe);
-                                    var cnt = Math.min(root.totalPages, pe) - ps + 1;
+                                    var t = root.endText(root.pendingEndNum());
+                                    var cnt = root.pendingEndNum() - ps + 1;
                                     return (root.labels.rangeUpto || qsTr("Page %1 ~ Page %2 (%3 pages)")).arg(ps).arg(t).arg(cnt);
                                 }
                                 return (root.labels.rangePrompt || qsTr("Starting from page %1, drag handle to select end page")).arg(ps);
@@ -611,79 +575,47 @@ DialogShell {
                                         font.pixelSize: 13 * Theme.scaleFactor
                                         color: Theme.fg
                                         selectByMouse: true
-                                        text: root.pendingEnd !== null ? (root.pendingEnd > root.totalPages ? String(root.totalPages) : String(root.pendingEnd)) : ""
+                                        text: root.pendingEndText()
                                         validator: IntValidator {
                                             bottom: root.pendingStart
-                                            top: root.totalPages + 1000
+                                            top: root.totalPages
                                         }
                                         onTextEdited: {
                                             var v = parseInt(text);
-                                            if (!isNaN(v) && v >= root.pendingStart && v <= root.totalPages + 1000) {
+                                            if (!isNaN(v) && v >= root.pendingStart && v <= root.totalPages) {
                                                 root.pendingEnd = v;
                                             }
                                         }
                                         onActiveFocusChanged: {
                                             if (!activeFocus) {
-                                                text = root.pendingEnd !== null ? (root.pendingEnd > root.totalPages ? String(root.totalPages) : String(root.pendingEnd)) : "";
+                                                text = root.pendingEndText();
                                             }
                                         }
                                     }
                                 }
 
                                 // 减页按钮 [−]
-                                Rectangle {
+                                MiniButton {
+                                    size: "small"
                                     width: 26 * Theme.scaleFactor
-                                    height: 32 * Theme.scaleFactor
-                                    radius: 6 * Theme.scaleFactor
-                                    color: btnDecMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
-                                    border.width: Theme.borderW
-                                    border.color: Theme.borderClr
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "−"
-                                        font.pixelSize: 14 * Theme.scaleFactor
-                                        color: Theme.fg
-                                    }
-
-                                    MouseArea {
-                                        id: btnDecMa
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            var cur = root.pendingEnd !== null ? root.pendingEnd : root.pendingStart;
-                                            if (cur > root.pendingStart) {
-                                                root.pendingEnd = cur - 1;
-                                            }
+                                    text: "−"
+                                    onClicked: {
+                                        var cur = root.pendingEndNum() !== null ? root.pendingEndNum() : root.pendingStart;
+                                        if (cur > root.pendingStart) {
+                                            root.pendingEnd = cur - 1;
                                         }
                                     }
                                 }
 
                                 // 加页按钮 [+]
-                                Rectangle {
+                                MiniButton {
+                                    size: "small"
                                     width: 26 * Theme.scaleFactor
-                                    height: 32 * Theme.scaleFactor
-                                    radius: 6 * Theme.scaleFactor
-                                    color: btnIncMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
-                                    border.width: Theme.borderW
-                                    border.color: Theme.borderClr
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "+"
-                                        font.pixelSize: 14 * Theme.scaleFactor
-                                        color: Theme.fg
-                                    }
-
-                                    MouseArea {
-                                        id: btnIncMa
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            var cur = root.pendingEnd !== null ? root.pendingEnd : (root.pendingStart - 1);
-                                            if (cur < root.totalPages) {
-                                                root.pendingEnd = cur + 1;
-                                            }
+                                    text: "+"
+                                    onClicked: {
+                                        var cur = root.pendingEndNum() !== null ? root.pendingEndNum() : (root.pendingStart - 1);
+                                        if (cur < root.totalPages) {
+                                            root.pendingEnd = cur + 1;
                                         }
                                     }
                                 }
@@ -698,20 +630,21 @@ DialogShell {
 
                             // [至文末] 快捷按钮
                             Rectangle {
+                                readonly property bool isToEnd: root.pendingEnd === "total" || root.pendingEnd >= root.totalPages
                                 height: 32 * Theme.scaleFactor
                                 width: toEndText.implicitWidth + 16 * Theme.scaleFactor
                                 radius: 6 * Theme.scaleFactor
                                 color: toEndMa.containsMouse ? Theme.fieldBgHover : Theme.fieldBg
                                 border.width: Theme.borderW
-                                border.color: (root.pendingEnd !== null && root.pendingEnd >= root.totalPages) ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.borderClr
+                                border.color: isToEnd ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.borderClr
 
                                 Text {
                                     id: toEndText
                                     anchors.centerIn: parent
                                     text: root.labels.toEnd || qsTr("to end of document")
                                     font.pixelSize: 12 * Theme.scaleFactor
-                                    color: (root.pendingEnd !== null && root.pendingEnd >= root.totalPages) ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.fg
-                                    font.bold: root.pendingEnd !== null && root.pendingEnd >= root.totalPages
+                                    color: parent.isToEnd ? (Theme.dark ? "#2791ad" : "#215a6a") : Theme.fg
+                                    font.bold: parent.isToEnd
                                 }
 
                                 MouseArea {
@@ -719,7 +652,7 @@ DialogShell {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        root.pendingEnd = root.totalPages + 1000;
+                                        root.pendingEnd = "total";
                                     }
                                 }
                             }
@@ -730,8 +663,7 @@ DialogShell {
                                 visible: root.pendingEnd !== null
                                 text: {
                                     if (root.pendingEnd === null) return "";
-                                    var count = Math.min(root.totalPages, root.pendingEnd) - root.pendingStart + 1;
-                                    return "（共 " + count + " 页）";
+                                    return "（共 " + (root.pendingEndNum() - root.pendingStart + 1) + " 页）";
                                 }
                                 font.pixelSize: 12 * Theme.scaleFactor
                                 color: Theme.muted
@@ -766,7 +698,7 @@ DialogShell {
                                     height: chipCol.implicitHeight + 14 * Theme.scaleFactor
                                     radius: 8 * Theme.scaleFactor
                                     opacity: isDisabled ? 0.4 : 1.0
-                                    color: isSelected ? (Theme.dark ? "#1f4a48" : "#dff3f1") :
+                                    color: isSelected ? Theme.selectBg :
                                            (chipMa.containsMouse && !isDisabled ? Theme.fieldBgHover : Theme.fieldBg)
                                     border.width: isSelected ? 1.5 * Theme.scaleFactor : Theme.borderW
                                     border.color: isSelected ? (Theme.dark ? "#2791ad" : "#215a6a") :
@@ -801,8 +733,8 @@ DialogShell {
                                             if (!chip.isDisabled) {
                                                 root.curStyle = modelData.id;
                                                 if (modelData.id === "arabic") {
-                                                    root.pendingEnd = root.totalPages + 1000;
-                                                    root.tipMessage = (root.labels.arabicTip || qsTr("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1.")).arg(root.pendingStart);
+                                                    root.pendingEnd = "total";
+                                                    root.tipMessage = (root.labels.arabicTip || qsTr("Defaulted from page %1 to the end so that page number 1 starts from page %1.")).arg(root.pendingStart);
                                                 } else {
                                                     root.pendingEnd = root.pendingStart;
                                                     if (modelData.id === "roman" || modelData.id === "Roman") {
@@ -844,7 +776,7 @@ DialogShell {
                                 width: parent.width - 28 * Theme.scaleFactor
                                 text: root.tipMessage
                                 font.pixelSize: 12 * Theme.scaleFactor
-                                color: Theme.dark ? "#bfeeeb" : "#194f53"
+                                color: Theme.selectFg
                                 wrapMode: Text.WordWrap
                             }
                         }

@@ -1,7 +1,5 @@
 ("① Range for new rule" "① 新规则的范围")
-("① range for new rule" "① 新规则的范围")
 ("② Choose page number style" "② 选择页码样式")
-("② choose page number style" "② 选择页码样式")
 ("(hidden)" "（不显示）")
 ("(re)build autocompletion index" "构建/重建自动补全索引")
 ("Alt::keyboard" "Alt")
@@ -290,7 +288,6 @@
 ("activate once" "仅激活一次")
 ("activate" "激活")
 ("activation" "激活")
-("+ add rule" "＋ 添加规则")
 ("+ Add rule" "＋ 添加规则")
 ("added rules" "已添加的规则")
 ("add branch after" "在后面添加一个")
@@ -756,8 +753,8 @@
 ("decimal dot" "小数点")
 ("decorate atoms" "")
 ("Deep Reasoning" "深度思考")
-("Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1."
-  "已默认从第 %1 页全选至文末（最后一页 + 1000），让页码 1 从第 %1 页开始标注。"
+("Defaulted from page %1 to the end so that page number 1 starts from page %1."
+  "已默认从第 %1 页全选至文末，让页码 1 从第 %1 页开始标注。"
 ) ;
 ("default padding" "默认填充")
 ("default" "默认")
@@ -769,7 +766,6 @@
 ("delete documentation cache" "删除文档缓存")
 ("delete row" "删除此列")
 ("delete" "删除")
-("delete this rule" "删除此规则")
 ("deleted" "删除")
 ("denominator" "分母")
 ("describe tag" "标记的介绍")
@@ -1099,7 +1095,6 @@
 ("french" "法语")
 ("From: " "来自：")
 ("from center" "从中心")
-("From page" "从第")
 ("from page" "从第")
 ("from %1" "从 %1 开始")
 ("front matter" "前置部分")
@@ -1649,7 +1644,6 @@
 ("loops" "圈")
 ("low effort" "低")
 ("lower border" "下端")
-("lowercase roman" "小写罗马")
 ("m modifier" "")
 ("macro definition" "宏定义")
 ("macro editor" "宏编辑器")
@@ -1929,7 +1923,6 @@
 ("one spelling error has been corrected" "")
 ("online documentation" "")
 ("online help" "在线说明")
-("only the last rule can be deleted" "仅最后一条规则可删除")
 ("only inline tags" "只对行内标记")
 ("Only search in math mode" "仅在数学模式中查找")
 ("Only search in text mode" "仅在文本模式中查找")
@@ -2005,9 +1998,7 @@
 ("Page number style" "页码样式")
 ("Page mapping" "页码映射")
 ("page number..." "页码...")
-("Page number..." "页码...")
 ("page number settings" "页码设置")
-("Page number settings" "页码设置")
 ("page number text" "设定页码文字")
 ("Page number" "页码")
 ("page number" "页码")
@@ -2578,9 +2569,6 @@
 ("Standard fraction" "标准分式")
 ("star" "五角星")
 ("start a new chapter" "新起一章")
-("start is fixed; drag handle down to select end page"
-  "起点固定，向下拖动手柄到结束页"
-) ;
 ("starting from page %1, drag handle to select end page"
   "从第 %1 页开始，拖动手柄选择结束页"
 ) ;
@@ -2809,7 +2797,6 @@
 ("Title style" "标题样式")
 ("to end of document" "至文末")
 ("to page" "至第")
-("To page" "至第")
 ("to the left" "")
 ("to the right" "")
 ("today" "今天")
@@ -2919,7 +2906,6 @@
 ("update" "更新")
 ("upgrade" "升级")
 ("upper border" "上端")
-("uppercase roman" "大写罗马")
 ("upright" "正体")
 ("upwards" "往上边")
 ("use TeXmacs" "使用 TeXmacs")

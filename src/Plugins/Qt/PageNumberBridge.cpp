@@ -13,6 +13,8 @@
 #include "qt_utilities.hpp" // qt_scheme_quote
 #include "s7_tm.hpp"        // eval_scheme + tmscm helpers
 
+#include "lolly/data/numeral.hpp" // to_roman / to_Roman / to_hanzi
+
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -38,23 +40,13 @@ string
 build_rules_literal (const QVariantList& rules) {
   string out= "(";
   for (int i= 0; i < rules.size (); ++i) {
-    const QVariant& item= rules[i];
-    if (item.canConvert<QVariantMap> ()) {
-      QVariantMap m    = item.toMap ();
-      QString     start= m.value ("start").toString ();
-      QString     end  = m.value ("end").toString ();
-      QString     style= m.value ("style").toString ();
-      out << "(" << qt_scheme_quote (start) << " " << qt_scheme_quote (end)
-          << " " << qt_scheme_quote (style) << ") ";
-    }
-    else if (item.canConvert<QVariantList> ()) {
-      QVariantList l= item.toList ();
-      if (l.size () >= 3) {
-        out << "(" << qt_scheme_quote (l[0].toString ()) << " "
-            << qt_scheme_quote (l[1].toString ()) << " "
-            << qt_scheme_quote (l[2].toString ()) << ") ";
-      }
-    }
+    // QML submit 只产生 {start, end, style} 对象
+    QVariantMap m    = rules[i].toMap ();
+    QString     start= m.value ("start").toString ();
+    QString     end  = m.value ("end").toString ();
+    QString     style= m.value ("style").toString ();
+    out << "(" << qt_scheme_quote (start) << " " << qt_scheme_quote (end) << " "
+        << qt_scheme_quote (style) << ") ";
   }
   out << ")";
   return out;
@@ -77,7 +69,7 @@ PageNumberBridge::meta () {
     QString k= tmscm_to_qstring (tmscm_car (pair));
     tmscm   v= tmscm_cdr (pair);
     if (k == "total") {
-      int t       = tmscm_to_qstring (v).toInt ();
+      int t       = tmscm_is_int (v) ? tmscm_to_int (v) : 0;
       out["total"]= (t > 0) ? t : 1;
     }
     else if (k == "rules") {
@@ -123,7 +115,11 @@ PageNumberBridge::submit (const QVariantList& rules) {
   if (m_host) m_host->close ();
 }
 
-void
-PageNumberBridge::cancel () {
-  if (m_host) m_host->close ();
+QString
+PageNumberBridge::formatNumber (int n, const QString& style) {
+  // 与排版引擎 number 原语（env_exec.cpp）同一组转换函数
+  if (style == "roman") return utf8_to_qstring (lolly::data::to_roman (n));
+  if (style == "Roman") return utf8_to_qstring (lolly::data::to_Roman (n));
+  if (style == "hanzi") return utf8_to_qstring (lolly::data::to_hanzi (n));
+  return QString::number (n);
 }

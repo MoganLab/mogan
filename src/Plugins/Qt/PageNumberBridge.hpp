@@ -15,9 +15,11 @@
  *   调用都拼 scheme 串经 eval_scheme 调 facade。
  * - @b 本地暂存 + OK 一次性提交（FormDialog / Preferences 模式）：QML
  * 打开时拉一次 meta 建本地 rules 快照、改动只改 QML 本地、OK 时 submit
- * 一次性写入、Cancel 丢弃。
+ * 一次性写入、Cancel 丢弃（取消/窗口拖动复用共用 closeBridge，本桥不重复）。
  * - @b eval_scheme 调 facade：meta() 拼 `(pn-qml-meta)`、submit() 拼
  *   `(pn-qml-submit '<rules>)`。
+ * - @b formatNumber：预览数字格式化走排版引擎 number 原语同源的 lolly
+ *   转换函数，避免 QML 侧重复实现罗马/汉字数字。
  *
  * @note 生命期：走 run_qml_dialog（exec 阻塞模态）。bridge 不挂 parent，
  *   host destroyed 信号 deleteLater 自清。
@@ -33,7 +35,6 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
-#include <QWindow>
 
 class PageNumberBridge : public QObject {
   Q_OBJECT
@@ -51,13 +52,8 @@ public:
   Q_INVOKABLE QVariantMap meta ();
   /// 一次性提交规则列表并关窗。
   Q_INVOKABLE void submit (const QVariantList& rules);
-  /// Cancel：丢弃本地改动，关窗。
-  Q_INVOKABLE void cancel ();
-  /// 拖动无边框窗口，委托底层 QWindow 系统级移动。
-  Q_INVOKABLE void startMove () {
-    if (m_host && m_host->windowHandle ())
-      m_host->windowHandle ()->startSystemMove ();
-  }
+  /// 页码数字格式化，与排版引擎 number 原语同源（lolly to_roman/to_hanzi）。
+  Q_INVOKABLE QString formatNumber (int n, const QString& style);
 
 private:
   QDialog* m_host;

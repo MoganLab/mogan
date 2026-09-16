@@ -266,14 +266,10 @@
              (greater-part (caddr or-clause))
              (ps (caddr less-part))
              (pe-expr (caddr greater-part))
-             (pe
-               (if
-                 (or (equal? pe-expr '(page-the-total))
-                   (and (pair? pe-expr) (== (car pe-expr) 'page-the-total))
-                 ) ;or
-                 "total"
-                 (if (string? pe-expr) pe-expr (object->string pe-expr))
-               ) ;if
+             (pe (if (equal? pe-expr '(page-the-total))
+                   "total"
+                   (if (string? pe-expr) pe-expr (object->string pe-expr))
+                 ) ;if
              ) ;pe
             ) ;
         (cons (if (string? ps) ps (object->string ps)) pe)
@@ -306,64 +302,50 @@
   ) ;catch
 ) ;tm-define
 
+(define (pn-all-inits u)
+  (let* ((raw
+           (if u (with-buffer u (tm->stree (get-all-inits))) (tm->stree (get-all-inits)))
+         ) ;raw
+         (items
+           (if (and (pair? raw) (== (car raw) 'collection)) (cdr raw) '())
+         ) ;items
+        ) ;
+    (map
+      (lambda (item)
+        (if (and (pair? item) (== (car item) 'associate) (pair? (cdr item)))
+          (cons (cadr item) (caddr item))
+          (cons "" "")
+        ) ;if
+      ) ;lambda
+      items
+    ) ;map
+  ) ;let*
+) ;define
+
 (define (pn-read-rules u)
   (catch #t
     (lambda ()
-      (let* ((raw
-               (if u (with-buffer u (tm->stree (get-all-inits))) (tm->stree (get-all-inits)))
-             ) ;raw
-             (items
-               (if (and (pair? raw) (== (car raw) 'collection)) (cdr raw) '())
-             ) ;items
-             (inits
-               (map
-                 (lambda (item)
-                   (if (and (pair? item) (== (car item) 'associate) (pair? (cdr item)))
-                     (cons (cadr item) (caddr item))
-                     (cons "" "")
-                   ) ;if
-                 ) ;lambda
-                 items
-               ) ;map
-             ) ;inits
-             (seed (string->number (or (assoc-ref inits "pn-next") "")))
-             (rule-count (if (and (integer? seed) (>= seed 1)) (- seed 1) 0))
-            ) ;
-        (if (<= rule-count 0)
-          (let loop
-            ((k 1) (res '()))
-            (let ((g-stree (assoc-ref inits (pn-name "pn-g" k)))
-                  (l-stree (assoc-ref inits (pn-name "pn-l" k)))
-                 ) ;
-              (if (and g-stree l-stree)
-                (let ((range (pn-extract-range g-stree)) (style (pn-extract-style l-stree)))
-                  (if range
-                    (loop (+ k 1) (cons (list (car range) (cdr range) style) res))
-                    (reverse res)
-                  ) ;if
-                ) ;let
-                (reverse res)
-              ) ;if
-            ) ;let
-          ) ;let
-          (let loop
-            ((k 1) (res '()))
-            (if (> k rule-count)
+      ;; 规则从 1 起连续编号，扫到首个缺失的 pn-g<k> 即止，pn-next 仅作存在性标记
+      (let ((inits (pn-all-inits u)))
+        (let loop
+          ((k 1) (res '()))
+          (let ((g-stree (assoc-ref inits (pn-name "pn-g" k)))
+                (l-stree (assoc-ref inits (pn-name "pn-l" k)))
+               ) ;
+            (if (not g-stree)
               (reverse res)
-              (let* ((g-stree (assoc-ref inits (pn-name "pn-g" k)))
-                     (l-stree (assoc-ref inits (pn-name "pn-l" k)))
-                     (range (and g-stree (pn-extract-range g-stree)))
-                     (style (if l-stree (pn-extract-style l-stree) "arabic"))
-                    ) ;
+              (let ((range (pn-extract-range g-stree))
+                    (style (if l-stree (pn-extract-style l-stree) "arabic"))
+                   ) ;
                 (if range
                   (loop (+ k 1) (cons (list (car range) (cdr range) style) res))
                   (loop (+ k 1) res)
                 ) ;if
-              ) ;let*
+              ) ;let
             ) ;if
           ) ;let
-        ) ;if
-      ) ;let*
+        ) ;let
+      ) ;let
     ) ;lambda
     (lambda (key . args) '())
   ) ;catch
@@ -400,8 +382,6 @@
     (cons 'toEnd (translate "to end of document"))
     (cons 'physPage (translate "Page %1"))
     (cons 'fromSample (translate "from %1"))
-    (cons 'delRule (translate "Delete this rule"))
-    (cons 'onlyLastDel (translate "Only the last rule can be deleted"))
     (cons 'styleArabic (translate "Arabic numerals"))
     (cons 'styleRoman (translate "roman::page_number"))
     (cons 'styleRomanUpper (translate "Roman::page_number"))
@@ -409,7 +389,7 @@
     (cons 'styleBlank (translate "Hide page numbers"))
     (cons 'styleBlankSample (translate "(hidden)"))
     (cons 'arabicTip
-      (translate "Defaulted from page %1 to the end (last page + 1000) so that page number 1 starts from page %1."
+      (translate "Defaulted from page %1 to the end so that page number 1 starts from page %1."
       ) ;translate
     ) ;cons
     (cons 'romanTip
@@ -429,11 +409,11 @@
              (rules (pn-read-rules u))
              (labels (pn-ui-labels))
             ) ;
-        `((total . ,(number->string total)) (rules . ,rules) (labels . ,labels))
+        `((total . ,total) (rules . ,rules) (labels . ,labels))
       ) ;let*
     ) ;lambda
     (lambda (key . args)
-      (list (cons 'total "1") (cons 'rules (list)) (cons 'labels (pn-ui-labels)))
+      (list (cons 'total 1) (cons 'rules (list)) (cons 'labels (pn-ui-labels)))
     ) ;lambda
   ) ;catch
 ) ;tm-define
@@ -443,24 +423,14 @@
     (lambda ()
       (let* ((u (pn-get-buffer)) (had-system? (and u (initial-has? u "pn-next"))))
         (when (and u had-system?)
-          (let* ((raw (with-buffer u (tm->stree (get-all-inits))))
-                 (items
-                   (if (and (pair? raw) (== (car raw) 'collection)) (cdr raw) '())
-                 ) ;items
-                 (pn-vars
-                   (filter (lambda (k) (string-starts? k "pn-"))
-                     (map
-                       (lambda (it) (if (and (pair? it) (pair? (cdr it))) (cadr it) ""))
-                       items
-                     ) ;map
-                   ) ;filter
-                 ) ;pn-vars
+          (let* ((inits (pn-all-inits u))
+                 (pn-vars (filter (lambda (k) (string-starts? k "pn-")) (map car inits)))
                  (all-clean (cons "page-the-page" pn-vars))
                 ) ;
             (apply initial-default u all-clean)
           ) ;let*
         ) ;when
-        (when (and u (pair? rules) (> (length rules) 0))
+        (when (and u (pair? rules))
           (initial-set u "page-first" "1")
           (initial-set-tree u "pn-g0" '(macro (value "page-nr")))
           (let loop
@@ -478,12 +448,7 @@
                      (l-name (pn-name "pn-l" k))
                      (g-name (pn-name "pn-g" k))
                      (prev-g-name (pn-name "pn-g" (- k 1)))
-                     (pe-stree
-                       (if (or (string=? pe "total") (equal? pe '(page-the-total)))
-                         '(page-the-total)
-                         pe
-                       ) ;if
-                     ) ;pe-stree
+                     (pe-stree (if (string=? pe "total") '(page-the-total) pe))
                     ) ;
                 (if (string=? style "blank")
                   (initial-set-tree u l-name '(macro ""))

@@ -240,9 +240,10 @@ public:
     m["labels"]= QVariantMap ();
     return m;
   }
-  Q_INVOKABLE void submit (const QVariantList&) {}
-  Q_INVOKABLE void cancel () {}
-  Q_INVOKABLE void startMove () {}
+  Q_INVOKABLE void    submit (const QVariantList&) {}
+  Q_INVOKABLE QString formatNumber (int n, const QString&) {
+    return QString::number (n);
+  }
 };
 
 class TestQmlLoad : public QObject {
