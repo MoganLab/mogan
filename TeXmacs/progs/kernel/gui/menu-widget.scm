@@ -202,6 +202,12 @@
   ) ;cond
 ) ;define
 
+(define (menu-translate s)
+  (let ((t (translate s)))
+    (if (== t s) (utf8->herk t) t)
+  ) ;let
+) ;define
+
 (define (adjust-translation s t)
   (cond
    ((not (and (qt-gui?)
@@ -238,9 +244,15 @@
         (col (color (if (greyed? style) "dark grey" "black")))
        ) ;
     (cond
-     ((and (list? p) (== (car p) 'verbatim)) (widget-text (cadr p) style col #t))
+     ((and (list? p) (== (car p) 'verbatim))
+      (widget-text (if (string? (cadr p)) (utf8->herk (cadr p)) (cadr p))
+        style
+        col
+        #t
+      ) ;widget-text
+     ) ;
      ((translatable? p)
-      (widget-text (adjust-translation p (translate p)) style col #t)
+      (widget-text (adjust-translation p (menu-translate p)) style col #t)
      ) ;
      ((tuple? p 'balloon 2) (make-menu-label (cadr p) style tt?))
      ((tuple? p 'extend)
@@ -298,13 +310,13 @@
 
 (define (make-menu-group s style)
   "Make @(group :string?) menu item."
-  (widget-menu-group (adjust-translation s (translate s)) style)
+  (widget-menu-group (adjust-translation s (menu-translate s)) style)
 ) ;define
 
 (define (make-menu-text s style)
   "Make @(text :string?) menu item."
   ;; (widget-text s style (color "black") #t)
-  (widget-text (translate s) style (color "black") #f)
+  (widget-text (menu-translate s) style (color "black") #f)
 ) ;define
 
 (define (attach-resize t)
@@ -489,7 +501,7 @@
         (if (not balloon-txt)
           but
           (with bal
-            (widget-text (translate balloon-txt) style (color "black") #t)
+            (widget-text (menu-translate balloon-txt) style (color "black") #t)
             (widget-balloon but bal)
           ) ;with
         ) ;if
@@ -636,7 +648,7 @@
                   (if (string? text) (string-append text " (" shortcut ")") text)
                 ) ;if
            ) ;txt
-           (ftxt (translate txt))
+           (ftxt (menu-translate txt))
           ) ;
       (widget-text ftxt style (color "black") #t)
     ) ;let*
@@ -860,7 +872,7 @@
          ) ;
       (if (tuple? label 'balloon 2)
         (let* ((text (caddr label))
-               (ftxt (translate text))
+               (ftxt (menu-translate text))
                (twid (widget-text ftxt style (color "black") #t))
               ) ;
           (widget-balloon button twid)
