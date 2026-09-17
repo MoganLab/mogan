@@ -12,12 +12,14 @@
 #ifndef QTMAPPLICATION_HPP
 #define QTMAPPLICATION_HPP
 
+#include "oauth_deeplink.hpp"
 #include "renderer.hpp"
 #include "string.hpp"
 #include "sys_utils.hpp"
 #include "tm_url.hpp"
 #include "url.hpp"
 #include <QApplication>
+#include <QFileOpenEvent>
 #include <QIcon>
 #include <QStyle>
 
@@ -158,6 +160,18 @@ public:
     return QApplication::event(event);
   }
   */
+
+  // macOS 的 URL（liiistem:// 唤醒）以 QFileOpenEvent 异步投递，投递时刻
+  // 由 LaunchServices 决定：可能早于 GUI 初始化，那时 QTMGuiHelper 的过滤
+  // 器还没装上，这里兜住。GUI 起来之后过滤器先接住并消费（返回 true），
+  // 走不到这里
+  virtual bool event (QEvent* event) {
+    if (event->type () == QEvent::FileOpen) {
+      QFileOpenEvent* openEvent= static_cast<QFileOpenEvent*> (event);
+      if (oauth_deeplink::handle_open_url (openEvent->url ())) return true;
+    }
+    return QApplication::event (event);
+  }
 
   virtual bool notify (QObject* receiver, QEvent* event) {
     try {

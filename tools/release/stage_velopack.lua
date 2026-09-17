@@ -55,6 +55,34 @@
 --   VPK_STAGING_OUT  默认 build/velopack_staging
 -------------------------------------------------------------------------------
 
+-- 版本开关只能从 xmake 的配置里取。本脚本经 `xmake l` 运行，config 不会自动加载
+-- （实测 config.get 直接返回 nil），要显式 config.load ()
+import ("core.project.config")
+config.load ()
+
+-- liiistem:// 协议声明：只有商业版写进 Info.plist。社区版没有登录能力，声明了反而会
+-- 占住 LaunchServices 的 scheme 归属（两版 CFBundleIdentifier 都是 app.mogan），而
+-- macOS 没有运行期夺回的手段——与 Windows 侧「只有商业版写注册表」同一个理由。
+-- 片段与 xmake/targets/stem_packager.lua 的同名变量保持一致
+local function url_scheme_decl ()
+    if config.get ("is_community") ~= false then return "" end
+    return table.concat ({
+        '    <key>CFBundleURLTypes</key>',
+        '    <array>',
+        '      <dict>',
+        '        <key>CFBundleURLName</key>',
+        '        <string>app.mogan.liiistem</string>',
+        '        <key>CFBundleTypeRole</key>',
+        '        <string>Viewer</string>',
+        '        <key>CFBundleURLSchemes</key>',
+        '        <array>',
+        '          <string>liiistem</string>',
+        '        </array>',
+        '      </dict>',
+        '    </array>',
+    }, "\n")
+end
+
 -- 解析版本号：从 xmake/vars.lua 的 XMACS_VERSION 取值（与 pack_velopack.lua 同源）
 local function xmacs_version ()
     local f = io.open (path.join (os.projectdir (), "xmake/vars.lua"), "r")
@@ -153,7 +181,12 @@ if os.host () == "macosx" then
         cprint ("${bright red}error: 无法读取 " .. plist_in .. "${clear}")
         os.exit (1)
     end
-    local vars = {STEM_NAME = "MoganSTEM", XMACS_VERSION = version, OSXVERMIN = ""}
+    local vars = {
+        STEM_NAME = "MoganSTEM",
+        XMACS_VERSION = version,
+        OSXVERMIN = "",
+        URL_SCHEME_DECL = url_scheme_decl (),
+    }
     content = content:gsub ("@([%u_]+)@", function (k)
         return assert (vars[k], "Info.plist.in 出现未知占位符 @" .. k .. "@")
     end)

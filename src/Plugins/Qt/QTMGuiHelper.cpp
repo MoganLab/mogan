@@ -12,6 +12,7 @@
 
 #include "QTMGuiHelper.hpp"
 #include "iterator.hpp"
+#include "oauth_deeplink.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
@@ -37,7 +38,10 @@ QTMGuiHelper::eventFilter (QObject* obj, QEvent* event) {
   if (event->type () == QEvent::FileOpen) {
     static bool     new_window_flag= false;
     QFileOpenEvent* openEvent      = static_cast<QFileOpenEvent*> (event);
-    string          s= from_qstring_utf8 (openEvent->file ().toUtf8 ());
+    // 先看是不是 liiistem:// 唤醒：自定义 scheme 的 file () 是空串，落进下面的
+    // 分支只会被静默吞掉（见 oauth_deeplink::handle_open_url）
+    if (oauth_deeplink::handle_open_url (openEvent->url ())) return true;
+    string s= from_qstring_utf8 (openEvent->file ().toUtf8 ());
     if (!is_empty (s)) {
       // qDebug ("File Open Event %s", s);
       const char* win= new_window_flag ? ":new-window" : ":current-window";

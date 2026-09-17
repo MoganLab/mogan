@@ -57,6 +57,25 @@ private slots:
     QCOMPARE (oauth_deeplink::instance_id_from_url (""), QString ());
   }
 
+  // macOS 上这条判定决定「置前」还是「退出」，两个方向都要锁住
+  void test_is_wake_for () {
+    QVERIFY (oauth_deeplink::is_wake_for ("liiistem://wake?instance=me", "me"));
+    // 规范化形态与大小写不影响判定（与 is_wake 同源）
+    QVERIFY (
+        oauth_deeplink::is_wake_for ("LiiiSTEM://wake/?instance=me", "me"));
+    QVERIFY (oauth_deeplink::is_wake_for (
+        "liiistem://wake?from=growth&instance=me", "me"));
+
+    // 指向别的实例：不能当成给本进程的，否则会把别人的唤醒当自己的用
+    QVERIFY (
+        !oauth_deeplink::is_wake_for ("liiistem://wake?instance=other", "me"));
+    // 还没登记自己的标识时不能猜：不知道自己是哪个实例 ≠ 就是给本进程的
+    QVERIFY (!oauth_deeplink::is_wake_for ("liiistem://wake?instance=me", ""));
+    QVERIFY (!oauth_deeplink::is_wake_for ("", "me"));
+    QVERIFY (!oauth_deeplink::is_wake_for ("https://wake?instance=me", "me"));
+    QVERIFY (!oauth_deeplink::is_wake_for ("liiistem://wake", "me"));
+  }
+
   void test_find_url () {
     QStringList args;
     args << "LiiiSTEM.exe" << "liiistem://wake?instance=inst7";

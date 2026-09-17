@@ -105,8 +105,13 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   connect (m_callbackCloseTimer, &QTimer::timeout, this,
            &QTMOAuth::closeCallbackServer);
 
-  // 接收深链转发：浏览器总会新拉起一个进程，由它把唤醒 URL 送到发起登录的
-  // 实例（见 oauth_deeplink.hpp 的实例路由）
+  // 登记本进程的实例标识：macOS 收到唤醒时靠它判断这条 URL 是不是给本
+  // 进程的（见 oauth_deeplink::handle_open_url）。Windows 靠 socket 名做
+  // 路由，用不到，那里是空操作
+  oauth_deeplink::set_local_instance_id (m_instanceId);
+
+  // 接收深链转发：Windows 上浏览器总会新拉起一个进程，由它把唤醒 URL 送到发起
+  // 登录的实例（见 oauth_deeplink.hpp 的实例路由）
   startUrlRouter ();
 
   // 加载现有的token信息
