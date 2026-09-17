@@ -182,12 +182,15 @@ public:
    *
    * 选区整体包成「引用」外观块（插入 → 外观块 → 引用，quote-env）；
    * translate 动作在其后追加固定提示词（cork 编码）；chat 追加空段，
-   * 使光标落在引用块的下一行。
-   * @param sel    文档选区树
-   * @param action AI 动作：translate 或 chat
+   * 使光标落在引用块的下一行；gloss 出两个引用块（上下文 + 选区），
+   * 编号标签与说明句作为提示词夹在块间。
+   * @param sel     文档选区树
+   * @param action  AI 动作：translate / chat / gloss
+   * @param context 选区所在段落纯文本（gloss 的引文1，tm 内部编码），
+   *                其余动作传空串
    * @return document 形态的输入体
    */
-  static tree composeAiInputBody (tree sel, string action);
+  static tree composeAiInputBody (tree sel, string action, string context= "");
 
 private:
   QTChatTabWidget*   view_= nullptr;  ///< View 指针，由 createView 创建

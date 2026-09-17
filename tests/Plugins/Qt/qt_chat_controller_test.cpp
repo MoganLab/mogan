@@ -216,6 +216,50 @@ private slots:
                                                      tree ("para 2"))));
     QVERIFY (body[1] == tree (""));
   }
+
+  void test_compose_gloss_two_quote_blocks_with_labels () {
+    // 释义：引用1 = 上下文段落，引用2 = 选区，编号标签与说明句都在提示词内。
+    // 提示词语言 english（from==to，translate 剥掉 :: 后缀返回英文键）
+    set_ai_lang ("english", "english");
+    tree body= ChatController::composeAiInputBody (tree ("world"), "gloss",
+                                                   "hello world");
+    QVERIFY (is_func (body, DOCUMENT));
+    QCOMPARE (int (N (body)), 5);
+    QVERIFY (body[0] == tree ("reference 1"));
+    QVERIFY (body[1] ==
+             compound ("quote-env", tree (DOCUMENT, tree ("hello world"))));
+    QVERIFY (body[2] == tree ("reference 2"));
+    QVERIFY (body[3] ==
+             compound ("quote-env", tree (DOCUMENT, tree ("world"))));
+    QVERIFY (body[4] ==
+             tree ("reference 2 is part of reference 1, explain the meaning of "
+                   "reference 2 (including dictionary and technical terms)"));
+    reset_ai_lang ();
+  }
+
+  void test_compose_gloss_prompt_language_chinese () {
+    // 提示词语言 chinese：编号标签与说明句命中 zh_CN 词典（::ai 消歧键、
+    // %1 换序号；词条值 Cork 编码，与 utf8_to_cork 比对）
+    set_ai_lang ("chinese", "chinese");
+    tree body= ChatController::composeAiInputBody (tree ("world"), "gloss",
+                                                   "hello world");
+    QCOMPARE (int (N (body)), 5);
+    QVERIFY (body[0] == utf8_to_cork ("引用1"));
+    QVERIFY (body[2] == utf8_to_cork ("引用2"));
+    QVERIFY (body[4] ==
+             utf8_to_cork ("引文2是引文1的一部分，解释一下引文2的含义（含义的"
+                           "范围包括字典、专业术语等）"));
+    reset_ai_lang ();
+  }
+
+  void test_compose_gloss_context_lines_become_paragraphs () {
+    // 上下文含换行（跨段选区退回共同祖先时会换行连接）：按行拆成段落节点，
+    // 换行符不留在树标签里
+    tree body= ChatController::composeAiInputBody (tree ("sel"), "gloss",
+                                                   "line 1\n\nline 3");
+    QVERIFY (body[1] == compound ("quote-env", tree (DOCUMENT, tree ("line 1"),
+                                                     tree ("line 3"))));
+  }
 };
 
 QTEST_MAIN (TestChatController)

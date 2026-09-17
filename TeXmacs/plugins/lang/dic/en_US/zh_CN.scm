@@ -1125,6 +1125,7 @@
 ) ;
 ("global history" "全局历史")
 ("global status" "全局状态")
+("gloss::ai" "释义")
 ("glossary entry" "术语项")
 ("glossary" "术语表")
 ("glue decorations" "")
@@ -2223,6 +2224,10 @@
 ("reference guide for the standard TeXmacs styles" "")
 ("reference guide" "参考指南")
 ("reference" "参考")
+("reference %1::ai" "引用%1")
+("reference 2 is part of reference 1, explain the meaning of reference 2 (including dictionary and technical terms)"
+  "引文2是引文1的一部分，解释一下引文2的含义（含义的范围包括字典、专业术语等）"
+) ;
 ("references" "参考")
 ("refresh" "刷新")
 ("Regular User" "普通用户")
