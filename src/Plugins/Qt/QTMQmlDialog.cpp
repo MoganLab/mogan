@@ -1403,26 +1403,26 @@ cpp_bibliography_dialog (tree config) {
 
   if (is_compound (config)) {
     for (int i= 0; i < N (config); i++) {
-      tree item= config[i];
-      if (!is_compound (item) || N (item) < 2) continue;
-      string tag= as_string (item[0]);
+      tree   item= config[i];
+      string tag = get_label (item);
+      if (N (item) < 1) continue;
       if (tag == "modify?") {
-        modify= (as_string (item[1]) == "true" || as_string (item[1]) == "#t");
+        modify= (item[0] == "true" || item[0] == "#t");
       }
       else if (tag == "file") {
-        file= as_string (item[1]);
+        file= as_string (item[0]);
       }
       else if (tag == "style") {
-        style= as_string (item[1]);
+        style= as_string (item[0]);
       }
       else if (tag == "update?") {
-        upd= (as_string (item[1]) == "true" || as_string (item[1]) == "#t");
+        upd= (item[0] == "true" || item[0] == "#t");
       }
       else if (tag == "doc-dir") {
-        doc_dir= as_string (item[1]);
+        doc_dir= as_string (item[0]);
       }
       else if (tag == "styles") {
-        for (int j= 1; j < N (item); j++) {
+        for (int j= 0; j < N (item); j++) {
           styles << utf8_to_qstring (cork_to_utf8 (as_string (item[j])));
         }
       }
@@ -1525,7 +1525,29 @@ cpp_bibliography_dialog (tree config) {
             previewQW->setParent (qw);
             if (bibBridge) {
               bibBridge->setPlaceholder (placeholder);
-              bibBridge->updatePreviewGeometry ();
+              auto updateGeom= [bibBridge] () {
+                if (bibBridge) bibBridge->updatePreviewGeometry ();
+              };
+              updateGeom ();
+              QObject::connect (placeholder, &QQuickItem::xChanged, qw,
+                                updateGeom);
+              QObject::connect (placeholder, &QQuickItem::yChanged, qw,
+                                updateGeom);
+              QObject::connect (placeholder, &QQuickItem::widthChanged, qw,
+                                updateGeom);
+              QObject::connect (placeholder, &QQuickItem::heightChanged, qw,
+                                updateGeom);
+              // placeholder 的父级 Rectangle 在 Column 布局就绪时 y 会发生位移
+              if (placeholder->parentItem ()) {
+                QObject::connect (placeholder->parentItem (),
+                                  &QQuickItem::yChanged, qw, updateGeom);
+                QObject::connect (placeholder->parentItem (),
+                                  &QQuickItem::xChanged, qw, updateGeom);
+                QObject::connect (placeholder->parentItem (),
+                                  &QQuickItem::widthChanged, qw, updateGeom);
+                QObject::connect (placeholder->parentItem (),
+                                  &QQuickItem::heightChanged, qw, updateGeom);
+              }
             }
           }
         }

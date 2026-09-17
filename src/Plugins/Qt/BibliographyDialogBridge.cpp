@@ -25,6 +25,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QQuickWidget>
+#include <QScrollBar>
 
 using namespace moebius;
 
@@ -118,9 +119,15 @@ BibliographyDialogBridge::requestPreview (const QString& file,
       QTMWidget* editor= m_previewWidget->findChild<QTMWidget*> ();
       if (editor && editor->tm_widget ()) {
         editor->resize (m_previewWidget->size ());
+        editor->setOrigin (QPoint (0, 0));
+        QScrollBar* vsb= editor->verticalScrollBar ();
+        if (vsb) vsb->setValue (0);
         editor->tm_widget ()->repaint_invalid_regions ();
         QTimer::singleShot (50, this, [editor] () {
           if (editor && editor->tm_widget ()) {
+            editor->setOrigin (QPoint (0, 0));
+            QScrollBar* vsb= editor->verticalScrollBar ();
+            if (vsb) vsb->setValue (0);
             editor->tm_widget ()->repaint_invalid_regions ();
           }
         });

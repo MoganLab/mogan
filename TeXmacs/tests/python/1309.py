@@ -213,7 +213,7 @@ def focus_mogan_window():
 def run_test():
     repo_root = find_repo_root()
     bin_path = find_mogan_binary(repo_root)
-    bib_file = os.path.join(repo_root, "TeXmacs", "tests", "bib", "1308.bib")
+    bib_file = os.path.join(repo_root, "TeXmacs", "tests", "bib", "204_22.bib")
     print(f"[1309] Using binary: {bin_path}")
     print(f"[1309] Using bib file: {bib_file}")
 
@@ -359,6 +359,33 @@ def run_test():
             print("[1309] ERROR: Preview area missing rendered text!")
             return 1
         print("[1309] SUCCESS: Bibliography preview rendered clearly with proper magnification!")
+
+        # Step 7.1: Verify dragging scrollbar actually scrolls the tmfs preview
+        sb_x = wx + int(1295 * scale)
+        sb_start_y = wy + int(570 * scale)
+        sb_end_y = wy + int(640 * scale)
+        print(f"[1309] Step 7.1: Dragging preview scrollbar from ({sb_x}, {sb_start_y}) to ({sb_x}, {sb_end_y})...")
+        mouse.position = (sb_x, sb_start_y)
+        time.sleep(0.3)
+        mouse.press(Button.left)
+        time.sleep(0.2)
+        for y in range(sb_start_y, sb_end_y, 5):
+            mouse.position = (sb_x, y)
+            time.sleep(0.02)
+        time.sleep(0.3)
+        mouse.release(Button.left)
+        time.sleep(0.5)
+
+        scrolled_screenshot = ImageGrab.grab()
+        scrolled_crop = scrolled_screenshot.crop((cx - int(250 * scale), cy - int(40 * scale),
+                                                 cx + int(250 * scale), cy + int(60 * scale)))
+        arr_scrolled = np.array(scrolled_crop)
+        diff_val = float(np.mean(np.abs(arr_scrolled.astype(float) - arr_plain.astype(float))))
+        print(f"[1309] Scroll difference: {diff_val:.1f}")
+        if diff_val < 5.0:
+            print("[1309] ERROR: Scrollbar dragging did NOT scroll preview content!")
+            return 1
+        print("[1309] SUCCESS: Scrollbar dragging successfully scrolled tmfs preview content!")
 
         # Step 8: Click Style dropdown and switch style
         style_x = wx + int(764 * scale)

@@ -153,6 +153,10 @@ void
 QTMWidget::scrollContentsBy (int dx, int dy) {
   QTMScrollView::scrollContentsBy (dx, dy);
 
+  if (tm_widget ()) {
+    tm_widget ()->repaint_invalid_regions ();
+  }
+
   the_gui->force_update ();
   // we force an update of the internal state to be in sync with the moving
   // scrollbars
