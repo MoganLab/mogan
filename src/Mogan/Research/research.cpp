@@ -51,7 +51,7 @@ void mac_fix_paths ();
 
 #ifdef QTTEXMACS
 #include "Qt/QTMApplication.hpp"
-#include <QCoreApplication>
+#include "Qt/oauth_deeplink.hpp"
 #include <QGuiApplication>
 #include <QKeySequence>
 #include <QStandardPaths>
@@ -267,6 +267,13 @@ main (int argc, char** argv) {
     if (docsDir.isEmpty ())
       docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
     set_env ("TEXMACS_DOCUMENTS_PATH", from_qstring_utf8 (docsDir));
+  }
+
+  // liiistem:// 深链的启动期接入：写协议注册；命令行里带深链 URL 说明本进程是被
+  // 浏览器拉起来送唤醒的，它只做转发、随后退出，不启动窗口
+  if (!headless_mode && oauth_deeplink::handle_launch ()) {
+    delete qtmapp;
+    return 0;
   }
 #endif
 

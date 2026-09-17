@@ -55,6 +55,9 @@ private:
   void       refreshCallbackHtml ();
   void       handleCallback (const QVariantMap& values);
   void       closeCallbackServer ();
+  void       startUrlRouter ();
+  /// 浏览器经 liiistem:// 深链把软件唤回前台（见 oauth_deeplink.hpp）
+  void handleDeepLink (const QString& url);
 
   bool    m_isLoggedIn        = false;
   QTimer* m_loginTimer        = nullptr;
