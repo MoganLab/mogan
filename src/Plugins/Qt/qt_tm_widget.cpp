@@ -1979,7 +1979,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     // SLOT_FILE 由 window_set_view 在切 view 后触发：轻量同步 active 高亮，
     // 避免重建 tab bar。
     if (tabPageContainer) {
-      url currentView= get_current_view_safe ();
+      url currentView= window_view_for_widget (this);
+      if (is_none (currentView)) currentView= get_current_view_safe ();
       if (!is_none (currentView))
         tabPageContainer->updateActiveTab (currentView);
     }
@@ -2297,7 +2298,8 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
           tabPageContainer->setHitTestVisibleForTabPages (windowAgent);
         }
         // 增删 tab 后同步一次 active（active 不再由展开树携带）。
-        url currentView= get_current_view_safe ();
+        url currentView= window_view_for_widget (this);
+        if (is_none (currentView)) currentView= get_current_view_safe ();
         if (!is_none (currentView))
           tabPageContainer->updateActiveTab (currentView);
       }

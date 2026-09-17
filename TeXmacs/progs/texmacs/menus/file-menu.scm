@@ -572,29 +572,41 @@
       ) ;map
     ) ;cons
     (cons "recent"
-      (map (lambda (name) (list (url->string name) (short-file-name name)))
-        (recent-unloaded-file-list 10)
+      (map (lambda (name) (list (url->system name) (short-file-name name)))
+        (recent-file-list 15)
       ) ;map
     ) ;cons
   ) ;list
 ) ;tm-define
 
 (tm-define (go-menu-switch-to-buffer s)
-  (let ((u (string->url s)))
+  (let ((u (cond ((url? s) s)
+                 ((string-starts? s "tmfs://") (string->url s))
+                 (else (system->url s))
+           ) ;cond
+        ) ;u
+       ) ;
     (cond ((member u (buffer-list)) (switch-to-buffer* u))
-          ((member (system->url s) (buffer-list)) (switch-to-buffer* (system->url s)))
           (else (switch-to-buffer* u))
     ) ;cond
   ) ;let
 ) ;tm-define
 
 (tm-define (go-menu-load-buffer s)
-  (let ((u (if (url? s) s (string->url s))))
+  (let ((u (cond ((url? s) s)
+                 ((string-starts? s "tmfs://") (string->url s))
+                 (else (system->url s))
+           ) ;cond
+        ) ;u
+       ) ;
     (if (and (collab-buffer? u) (loro-enabled?))
       (collab-join-document (collab-url->doc-id u)
         (or (recent-files-get-name (url->system u)) "")
       ) ;collab-join-document
-      (load-document u)
+      (begin
+        (load-document u)
+        (switch-to-buffer* u)
+      ) ;begin
     ) ;if
   ) ;let
 ) ;tm-define
