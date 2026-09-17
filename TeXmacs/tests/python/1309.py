@@ -415,6 +415,21 @@ def run_test():
         alpha_screenshot.save(alpha_path)
         print(f"[1309] Saved switched style preview screenshot to {alpha_path}")
 
+        alpha_crop = alpha_screenshot.crop(preview_box)
+        arr_alpha = np.array(alpha_crop)
+        std_alpha = float(arr_alpha.std())
+        dark_pixels_alpha = np.sum(arr_alpha < 100)
+        print(f"[1309] Switched preview analysis: std={std_alpha:.1f}, dark_pixels={dark_pixels_alpha}")
+        if std_alpha < 10.0 or dark_pixels_alpha < 50:
+            print("[1309] ERROR: Switched preview area missing rendered text!")
+            return 1
+        diff_style = float(np.mean(np.abs(arr_alpha.astype(float) - arr_plain.astype(float))))
+        print(f"[1309] Style switch difference: {diff_style:.1f}")
+        if diff_style < 5.0:
+            print("[1309] ERROR: Switched style preview did NOT differ from plain preview!")
+            return 1
+        print("[1309] SUCCESS: Switched style preview rendered successfully with distinct formatting!")
+
         # Step 9: Click '插入' (Insert) button
         insert_btn_x = wx + int(1140 * scale)
         insert_btn_y = wy + int(703 * scale)
