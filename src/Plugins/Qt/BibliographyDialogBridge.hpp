@@ -31,7 +31,7 @@ public:
                                      QWidget*   previewWidget,
                                      const url& preview_buf_url);
 
-  void setPlaceholder (QQuickItem* placeholder);
+  void setPlaceholder (QQuickItem* placeholder, QQuickItem* rootItem);
 
   /**
    * @brief 刷新预览 QWidget 几何对齐到 QML 占位区域。
@@ -72,6 +72,7 @@ private:
   QWidget*    m_previewWidget;
   url         m_preview_buf_url;
   QQuickItem* m_placeholder;
+  QQuickItem* m_rootItem;
   bool        m_isValid;
 };
 

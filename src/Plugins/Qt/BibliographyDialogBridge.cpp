@@ -14,7 +14,6 @@
 #include "new_buffer.hpp"
 #include "object_l1.hpp" // tmscm_is_tree / tmscm_to_tree
 #include "preferences.hpp"
-#include "qt_gui.hpp"
 #include "qt_simple_widget.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp" // eval_scheme + tmscm helpers
@@ -24,8 +23,8 @@
 
 #include <QDir>
 #include <QFileDialog>
-#include <QQuickWidget>
 #include <QScrollBar>
+#include <QTimer>
 
 using namespace moebius;
 
@@ -49,22 +48,22 @@ BibliographyDialogBridge::BibliographyDialogBridge (QDialog*       host,
                                                     const url& preview_buf_url)
     : QObject (), m_host (host), m_doc_dir (doc_dir),
       m_previewWidget (previewWidget), m_preview_buf_url (preview_buf_url),
-      m_placeholder (nullptr), m_isValid (false) {
+      m_placeholder (nullptr), m_rootItem (nullptr), m_isValid (false) {
   ASSERT (host != NULL,
           "BibliographyDialogBridge expects a valid QDialog host");
 }
 
 void
-BibliographyDialogBridge::setPlaceholder (QQuickItem* placeholder) {
+BibliographyDialogBridge::setPlaceholder (QQuickItem* placeholder,
+                                          QQuickItem* rootItem) {
   m_placeholder= placeholder;
+  m_rootItem   = rootItem;
 }
 
 void
 BibliographyDialogBridge::updatePreviewGeometry () {
-  if (!m_previewWidget || !m_placeholder || !m_host) return;
-  QQuickWidget* qw= m_host->findChild<QQuickWidget*> ();
-  if (!qw || !qw->rootObject ()) return;
-  QPointF p= m_placeholder->mapToItem (qw->rootObject (), QPointF (0, 0));
+  if (!m_previewWidget || !m_placeholder || !m_rootItem) return;
+  QPointF p= m_placeholder->mapToItem (m_rootItem, QPointF (0, 0));
   m_previewWidget->setGeometry (QRect (
       p.toPoint (), QSize (m_placeholder->width (), m_placeholder->height ())));
 }
@@ -112,25 +111,24 @@ BibliographyDialogBridge::requestPreview (const QString& file,
     tree enriched= enrich_embedded_document (tmscm_to_tree (item_tree),
                                              bib_preview_style ());
     set_buffer_tree (m_preview_buf_url, enriched);
-    the_gui->force_update ();
     m_isValid= true;
     if (m_previewWidget) {
       showPreview ();
       QTMWidget* editor= m_previewWidget->findChild<QTMWidget*> ();
-      if (editor && editor->tm_widget ()) {
-        editor->resize (m_previewWidget->size ());
+      // 同步复位立即上屏；50ms 后再复位一次，压过排版引擎异步的
+      // make-cursor-visible 居中。模态 exec 下 force_update 不重绘，
+      // 上屏靠这里的 repaint_invalid_regions（见 devel/1309.md 第 11 节）
+      auto resetScroll= [editor] () {
+        if (!editor || !editor->tm_widget ()) return;
         editor->setOrigin (QPoint (0, 0));
         QScrollBar* vsb= editor->verticalScrollBar ();
         if (vsb) vsb->setValue (0);
         editor->tm_widget ()->repaint_invalid_regions ();
-        QTimer::singleShot (50, this, [editor] () {
-          if (editor && editor->tm_widget ()) {
-            editor->setOrigin (QPoint (0, 0));
-            QScrollBar* vsb= editor->verticalScrollBar ();
-            if (vsb) vsb->setValue (0);
-            editor->tm_widget ()->repaint_invalid_regions ();
-          }
-        });
+      };
+      if (editor && editor->tm_widget ()) {
+        editor->resize (m_previewWidget->size ());
+        resetScroll ();
+        QTimer::singleShot (50, this, resetScroll);
       }
     }
   }

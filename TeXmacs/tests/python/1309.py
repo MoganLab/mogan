@@ -349,8 +349,9 @@ def run_test():
 
         # Check preview region: center of the dialog
         cx, cy = wx + int(950 * scale), wy + int(570 * scale)
-        preview_crop = preview_screenshot.crop((cx - int(250 * scale), cy - int(40 * scale),
-                                               cx + int(250 * scale), cy + int(60 * scale)))
+        preview_box = (cx - int(250 * scale), cy - int(40 * scale),
+                       cx + int(250 * scale), cy + int(60 * scale))
+        preview_crop = preview_screenshot.crop(preview_box)
         arr_plain = np.array(preview_crop)
         std_plain = float(arr_plain.std())
         dark_pixels = np.sum(arr_plain < 100)
@@ -377,8 +378,7 @@ def run_test():
         time.sleep(0.5)
 
         scrolled_screenshot = ImageGrab.grab()
-        scrolled_crop = scrolled_screenshot.crop((cx - int(250 * scale), cy - int(40 * scale),
-                                                 cx + int(250 * scale), cy + int(60 * scale)))
+        scrolled_crop = scrolled_screenshot.crop(preview_box)
         arr_scrolled = np.array(scrolled_crop)
         diff_val = float(np.mean(np.abs(arr_scrolled.astype(float) - arr_plain.astype(float))))
         print(f"[1309] Scroll difference: {diff_val:.1f}")

@@ -1451,9 +1451,7 @@ cpp_bibliography_dialog (tree config) {
   BibliographyDialogBridge* bibBridge  = nullptr;
 
   const url bib_preview_url= url ("tmfs://aux/bib-preview");
-  if (contains (bib_preview_url, get_all_buffers ())) {
-    remove_buffer (bib_preview_url);
-  }
+  remove_buffer (bib_preview_url);
 
   QWidget* previewQW = nullptr;
   tree     previewSty= bib_preview_style ();
@@ -1524,29 +1522,27 @@ cpp_bibliography_dialog (tree config) {
           if (placeholder) {
             previewQW->setParent (qw);
             if (bibBridge) {
-              bibBridge->setPlaceholder (placeholder);
+              bibBridge->setPlaceholder (placeholder, qw->rootObject ());
               auto updateGeom= [bibBridge] () {
-                if (bibBridge) bibBridge->updatePreviewGeometry ();
+                bibBridge->updatePreviewGeometry ();
+              };
+              auto watchGeom= [&] (QQuickItem* item) {
+                QObject::connect (item, &QQuickItem::xChanged, qw, updateGeom);
+                QObject::connect (item, &QQuickItem::yChanged, qw, updateGeom);
+                QObject::connect (item, &QQuickItem::widthChanged, qw,
+                                  updateGeom);
+                QObject::connect (item, &QQuickItem::heightChanged, qw,
+                                  updateGeom);
               };
               updateGeom ();
-              QObject::connect (placeholder, &QQuickItem::xChanged, qw,
-                                updateGeom);
-              QObject::connect (placeholder, &QQuickItem::yChanged, qw,
-                                updateGeom);
-              QObject::connect (placeholder, &QQuickItem::widthChanged, qw,
-                                updateGeom);
-              QObject::connect (placeholder, &QQuickItem::heightChanged, qw,
-                                updateGeom);
-              // placeholder 的父级 Rectangle 在 Column 布局就绪时 y 会发生位移
-              if (placeholder->parentItem ()) {
-                QObject::connect (placeholder->parentItem (),
-                                  &QQuickItem::yChanged, qw, updateGeom);
-                QObject::connect (placeholder->parentItem (),
-                                  &QQuickItem::xChanged, qw, updateGeom);
-                QObject::connect (placeholder->parentItem (),
-                                  &QQuickItem::widthChanged, qw, updateGeom);
-                QObject::connect (placeholder->parentItem (),
-                                  &QQuickItem::heightChanged, qw, updateGeom);
+              watchGeom (placeholder);
+              // 父级 Rectangle 在 Column 布局就绪时位置会位移；其尺寸变化经
+              // anchors.fill 传导为 placeholder 自身的 w/h 信号，无需重复监听
+              if (QQuickItem* parent= placeholder->parentItem ()) {
+                QObject::connect (parent, &QQuickItem::xChanged, qw,
+                                  updateGeom);
+                QObject::connect (parent, &QQuickItem::yChanged, qw,
+                                  updateGeom);
               }
             }
           }
@@ -1557,9 +1553,7 @@ cpp_bibliography_dialog (tree config) {
   delete closeBridge;
   delete bibBridge;
 
-  if (contains (bib_preview_url, get_all_buffers ())) {
-    remove_buffer (bib_preview_url);
-  }
+  remove_buffer (bib_preview_url);
 
   if (res.isEmpty ()) return tree (TUPLE);
 

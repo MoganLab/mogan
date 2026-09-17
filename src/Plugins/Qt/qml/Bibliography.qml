@@ -1,5 +1,7 @@
 // Bibliography.qml — 「插入/修改参考文献」QML 对话框。
-// DialogShell + 文件选择行 + (样式 + 缓冲区更新并排) + PreviewPane + DialogButtons。
+// DialogShell + 文件选择行 + (样式 + 缓冲区更新并排) + 预览卡片 + DialogButtons。
+// 预览卡片内为 previewPlaceholder 占位项，由宿主将 tmfs 缓冲区原生只读控件
+// 覆盖对齐到该区域（下拉框展开时经 setPreviewVisible 临时隐藏）。
 // 一次性提交：点击 Insert/Modify 提交选中的文件、样式与更新选项；
 // Cancel / Esc 放弃。
 //
@@ -15,7 +17,7 @@
 //   initialStyle   —— 初始样式（默认 "tm-plain"）。
 //   initialUpdate  —— 初始是否更新缓冲区（默认 true）。
 //   styleOptions   —— 样式列表（"tm-plain", "tm-alpha", ...）。
-//   bibBridge      —— BibliographyDialogBridge，提供 browse、toRelativePath、requestPreview。
+//   bibBridge      —— BibliographyDialogBridge，提供 browse、toRelativePath、requestPreview、setPreviewVisible。
 //   closeBridge    —— QmlDialogBridge。
 
 import QtQuick
