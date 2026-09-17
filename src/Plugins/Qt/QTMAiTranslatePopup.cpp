@@ -59,14 +59,15 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   bool isDark=
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   quick->rootContext ()->setContextProperty ("isDark", isDark);
-  // 按钮文案（translate 只折叠首字符，"Ai translate" 命中词典键 "ai
-  // translate"）
+  // 按钮文案不带「AI」前缀：translate 只折叠首字符查词典，"Translate" 命中
+  // 既有键 "translate"；"Polish::ai"/"Chat::ai" 用 :: 消歧键避开同名词条
+  // （"polish" 是波兰语），英文界面（from==to）只显示 :: 前的部分
   quick->rootContext ()->setContextProperty ("labelTranslate",
-                                             qt_translate ("Ai translate"));
+                                             qt_translate ("Translate"));
   quick->rootContext ()->setContextProperty ("labelPolish",
-                                             qt_translate ("Ai polish"));
+                                             qt_translate ("Polish::ai"));
   quick->rootContext ()->setContextProperty ("labelChat",
-                                             qt_translate ("Ai chat"));
+                                             qt_translate ("Chat::ai"));
   quick->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
 
   layout->setContentsMargins (0, 0, 0, 0);

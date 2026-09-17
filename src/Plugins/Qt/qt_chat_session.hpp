@@ -35,14 +35,14 @@ enum class ChatState {
  * @brief 单个聊天会话的数据。
  */
 struct ChatSession {
-  string    sessionId;           ///< UUID，创建时生成
-  string    title;               ///< 会话标题，初始为空字符串
-  string    titlePrefix;         ///< 自动生成标题时的前缀，默认空
-  string    model;               ///< 绑定的模型名称
-  ChatState state;               ///< 当前生成状态
-  bool      archived;            ///< 是否归档
-  time_t    createdAt;           ///< 创建时间（Unix 时间戳）
-  time_t    updateAt;            ///< 最近活跃时间（用于排序索引）
+  string    sessionId;   ///< UUID，创建时生成
+  string    title;       ///< 会话标题，初始为空字符串
+  string    sourceDocId; ///< 来源文档 stem-doc-id（翻译会话绑定），空串未绑定
+  string    model;       ///< 绑定的模型名称
+  ChatState state;       ///< 当前生成状态
+  bool      archived;    ///< 是否归档
+  time_t    createdAt;   ///< 创建时间（Unix 时间戳）
+  time_t    updateAt;    ///< 最近活跃时间（用于排序索引）
   int       defaultExpandCount;  ///< 默认展开对话条数，固定为 5
   bool      thinking;            ///< 是否启用推理模式，默认 false
   string    thinkingEffort;      ///< 思考强度 low/medium/high，默认 medium
@@ -106,11 +106,22 @@ public:
   void setTitle (const string& sessionId, const string& title);
 
   /**
-   * @brief 设置会话自动生成标题时的前缀。
+   * @brief 设置会话来源文档的 stem-doc-id（翻译会话的文档绑定）。
    * @param sessionId 目标会话 ID
-   * @param prefix    标题前缀
+   * @param docId     来源文档的 stem-doc-id，空串表示未绑定
    */
-  void setTitlePrefix (const string& sessionId, const string& prefix);
+  void setSourceDocId (const string& sessionId, const string& docId);
+
+  /**
+   * @brief 按来源文档查找翻译会话（按 updateAt 降序，最近活跃优先）。
+   *
+   * 只匹配 sourceDocId 非空且与 docId 相等的未归档会话；docId 为空
+   * 时不匹配任何会话（未绑定文档不共享翻译会话）。
+   *
+   * @param docId 来源文档的 stem-doc-id
+   * @return 会话 ID，不存在则返回空字符串
+   */
+  string findSessionBySourceDoc (const string& docId) const;
 
   /**
    * @brief 设置会话生成状态。
@@ -253,9 +264,8 @@ public:
   /**
    * @brief 从 Scheme 提取内容并生成标题，设置到 session。
    *
-   * 调用 chat-persist-extract-title 获取原始文本，通过 formatTitle() 格式化后
-   * 加上会话的 titlePrefix（AI 翻译会话等来源标记）写入 session->title。
-   * 仅当 session 无标题时执行，已有标题不覆盖。
+   * 调用 chat-persist-extract-title 获取原始文本，经 formatTitle() 格式化
+   * 后写入 session->title。仅当 session 无标题时执行，已有标题不覆盖。
    * @param sessionId 目标会话 ID
    */
   void generateTitleFromContent (const string& sessionId);

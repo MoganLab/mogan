@@ -93,10 +93,10 @@ ChatSessionManager::setModel (const string& sessionId, const string& model) {
 }
 
 void
-ChatSessionManager::setTitlePrefix (const string& sessionId,
-                                    const string& prefix) {
+ChatSessionManager::setSourceDocId (const string& sessionId,
+                                    const string& docId) {
   ChatSession* s= getSession (sessionId);
-  if (s) s->titlePrefix= prefix;
+  if (s) s->sourceDocId= docId;
 }
 
 string
@@ -199,6 +199,17 @@ ChatSessionManager::firstTitledSessionId () const {
   return "";
 }
 
+string
+ChatSessionManager::findSessionBySourceDoc (const string& docId) const {
+  if (is_empty (docId)) return "";
+  for (const auto& ti : timeIndex_) {
+    auto it= sessions_.find (ti.sessionId);
+    if (it == sessions_.end () || it->second.archived) continue;
+    if (it->second.sourceDocId == docId) return ti.sessionId;
+  }
+  return "";
+}
+
 void
 ChatSessionManager::touchSession (const string& sessionId) {
   auto it= sessions_.find (sessionId);
@@ -289,5 +300,5 @@ ChatSessionManager::generateTitleFromContent (const string& sessionId) {
   if (!s || !is_empty (s->title)) return;
 
   string extracted= as_string (call ("chat-persist-extract-title", sessionId));
-  setTitle (sessionId, s->titlePrefix * ChatSession::formatTitle (extracted));
+  setTitle (sessionId, ChatSession::formatTitle (extracted));
 }

@@ -449,3 +449,57 @@
     ) ;let*
   ) ;chat-tab-with-buffer
 ) ;tm-define
+
+;;; ---------- 来源文档信息 ----------
+
+;; chat-tab-source-doc-info
+;; 当前文档（AI 操作栏动作的来源文档）的身份信息。
+;;
+;; 返回值
+;; ----
+;; pair
+;; (stem-doc-id . 文件名)。stem-doc-id 未绑定或读取失败时为 ""；文件名为
+;; url 末段去掉扩展名（系统编码，"paper.tm" → "paper"；无扩展名或隐藏文件
+;; 如 ".hidden" 原样保留）。
+;;
+;; 逻辑
+;; ----
+;; doc-id 与 autosave 插件同一两跳逻辑：先读 init-env（会话内绑定），再读
+;; 文档 initial collection（文件内持久化）。只读不写，不为缺失的文档生成
+;; 新 id。
+(tm-define (chat-tab-source-doc-info)
+  (catch #t
+    (lambda ()
+      (let ((buf (current-buffer)))
+        (if (url? buf)
+          (let* ((doc-id
+                   (with-buffer buf
+                     (let ((from-env (get-init-env "stem-doc-id")))
+                       (if (and (string? from-env) (!= from-env ""))
+                         from-env
+                         (let* ((doc (buffer-get buf)) (initial (tmfile-extract doc 'initial)))
+                           (or (and initial (collection-ref initial "stem-doc-id")) "")
+                         ) ;let*
+                       ) ;if
+                     ) ;let
+                   ) ;with-buffer
+                 ) ;doc-id
+                 (tail (url->system (url-tail buf)))
+                 ;; suffix 与 tail 同源，非空时 tail 必然以 ".suffix" 结尾
+                 (suffix (url-suffix buf))
+                 (name
+                   (if (== suffix "")
+                     tail
+                     (substring tail 0 (- (string-length tail) (string-length suffix) 1))
+                   ) ;if
+                 ) ;name
+                ) ;
+            (cons doc-id name)
+          ) ;let*
+          (cons "" "")
+        ) ;if
+      ) ;let
+    ) ;lambda
+    (lambda args (cons "" ""))
+  ) ;catch
+) ;tm-define
