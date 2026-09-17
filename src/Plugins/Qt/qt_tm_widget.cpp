@@ -1323,7 +1323,7 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
           chatWidget->setSidebarVisible (true);
           chatWidget->setSidebarCollapsed (
               QTChatTabWidget::globalSidebarCollapsed ());
-          chatWidget->setCloseSidebarButtonVisible (false);
+          chatWidget->setDockButtonsVisible (false);
           chatWidget->setDockMode (false);
         }
       }
@@ -1436,7 +1436,7 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
         qobject_cast<QTChatTabWidget*> (chatContentWidget);
     if (chatWidget) {
       chatWidget->setSidebarVisible (false);
-      chatWidget->setCloseSidebarButtonVisible (true);
+      chatWidget->setDockButtonsVisible (true);
       chatWidget->setDockMode (true);
       // 连接关闭按钮信号（先断开所有旧连接，避免重复触发）
       QObject::disconnect (chatWidget, &QTChatTabWidget::closeSidebarRequested,
@@ -1447,6 +1447,12 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
                           chatSidebarModeMemory_= false;
                           sync_chat_sidebar_mode ();
                         });
+      // 最大化：切到 Chat 标签页（由 scheme 侧按 view 切换，走正常
+      // 切换路径使标签栏高亮、chatTabMode 等状态一致）
+      QObject::disconnect (chatWidget, &QTChatTabWidget::maximizeRequested,
+                           nullptr, nullptr);
+      QObject::connect (chatWidget, &QTChatTabWidget::maximizeRequested,
+                        [] () { eval ("(switch-to-chat-tab)"); });
     }
 
     chatSideDock->show ();
@@ -1501,7 +1507,7 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
         chatWidget->setSidebarVisible (true);
         chatWidget->setSidebarCollapsed (
             QTChatTabWidget::globalSidebarCollapsed ());
-        chatWidget->setCloseSidebarButtonVisible (false);
+        chatWidget->setDockButtonsVisible (false);
         chatWidget->setDockMode (false);
       }
     }

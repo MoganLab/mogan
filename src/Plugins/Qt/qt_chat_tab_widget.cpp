@@ -1704,7 +1704,8 @@ QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
       floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
       newChatButton_ (nullptr), newChatSidebarBtn_ (nullptr),
-      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr) {
+      maximizeBtn_ (nullptr), sidebarNormalContent_ (nullptr),
+      conversationStack_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -1922,6 +1923,18 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
            [this] () { emit newChatRequested (); });
   newChatSidebarBtn_->hide ();
 
+  // 最大化按钮（dock 模式使用，位于新建会话按钮右侧）：切到 Chat 标签页
+  maximizeBtn_= make_sidebar_toggle_btn (content);
+  maximizeBtn_->setIcon (QIcon (":llm-chat/maximize.svg"));
+  maximizeBtn_->setToolTip (qt_translate ("Maximize AI Chat"));
+  maximizeBtn_->move (
+      DpiUtils::scaled (kFloatingBtnMarginX +
+                        2 * (kToggleBtnSize + kFloatingBtnSpacing)),
+      DpiUtils::scaled (kCloseSidebarBtnMarginY));
+  connect (maximizeBtn_, &QPushButton::clicked, this,
+           [this] () { emit maximizeRequested (); });
+  maximizeBtn_->hide ();
+
   // 浮球按钮容器
   QWidget* floatingContainer= new QWidget (this);
   floatingContainer->setObjectName ("chat-tab-floating-container");
@@ -2020,9 +2033,10 @@ QTChatTabWidget::setDockMode (bool dock) {
 }
 
 void
-QTChatTabWidget::setCloseSidebarButtonVisible (bool visible) {
+QTChatTabWidget::setDockButtonsVisible (bool visible) {
   if (closeSidebarBtn_) closeSidebarBtn_->setVisible (visible);
   if (newChatSidebarBtn_) newChatSidebarBtn_->setVisible (visible);
+  if (maximizeBtn_) maximizeBtn_->setVisible (visible);
 }
 
 bool

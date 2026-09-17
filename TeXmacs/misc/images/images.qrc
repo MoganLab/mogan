@@ -30,6 +30,7 @@
         <file>llm-chat/send.svg</file>
         <file>llm-chat/sidebar.svg</file>
         <file>llm-chat/addchat.svg</file>
+        <file>llm-chat/maximize.svg</file>
         <file>llm-chat/cancel.svg</file>
         <file>llm-chat/ellipsis.svg</file>
         <file>llm-chat/thinking.svg</file>
