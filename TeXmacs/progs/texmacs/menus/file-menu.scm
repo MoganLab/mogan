@@ -594,7 +594,7 @@
       (collab-join-document (collab-url->doc-id u)
         (or (recent-files-get-name (url->system u)) "")
       ) ;collab-join-document
-      (load-buffer u)
+      (load-document u)
     ) ;if
   ) ;let
 ) ;tm-define

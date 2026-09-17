@@ -159,7 +159,7 @@ is_aux_comment_buffer (url name) {
 
 url
 abstract_view (tm_view vw) {
-  if (vw == NULL) return url_none ();
+  if (vw == NULL || is_nil (vw->buf)) return url_none ();
   string name= encode_url (vw->buf->buf->name);
   // cout << vw->buf->buf->name << " -> " << name << "\n";
   string nr= as_string (vw->nr);
@@ -209,7 +209,17 @@ set_current_view (url u) {
 
 url
 get_current_view () {
-  ASSERT (the_view != NULL, "no active view");
+  if (the_view == NULL) {
+    array<url> history= get_all_views ();
+    for (int i= N (history) - 1; i >= 0; i--) {
+      tm_view cand= concrete_view (history[i]);
+      if (cand != NULL && !is_nil (cand->buf)) {
+        set_current_view (history[i]);
+        break;
+      }
+    }
+  }
+  if (the_view == NULL) return url_none ();
   return abstract_view (the_view);
 }
 
@@ -489,6 +499,9 @@ void
 delete_view (url u) {
   tm_view vw= concrete_view (u);
   if (vw == NULL) return;
+  if (the_view == vw) {
+    the_view= NULL;
+  }
   tm_buffer buf= vw->buf;
   int       i, j, n= N (buf->vws);
   for (i= 0; i < n; i++)

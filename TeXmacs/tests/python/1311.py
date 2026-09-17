@@ -176,34 +176,36 @@ def focus_mogan_window():
 def locate_go_button(screenshot):
     """
     Locates the Go (转到) button in the title bar.
-    The title bar has '领取会员' (teal button) on the right half,
-    and the Go button is immediately to its left.
+    If '领取会员' (teal button) is present on the right half, the Go button is immediately to its left.
+    Otherwise, locates the '转到' button directly in the right control group.
     """
     arr = np.array(screenshot.convert("RGB"))
     h, w, _ = arr.shape
 
-    # Scan top 120px and right half of the screen
     top_arr = arr[:120, :, :]
     right_offset = w // 2
     right_top = top_arr[:, right_offset:, :]
 
-    # Teal button color signature: low red (< 80), moderate green (> 100), high blue (> 120)
+    # 1. Check for teal button
     teal_mask = (right_top[:, :, 0] < 80) & (right_top[:, :, 1] > 100) & (right_top[:, :, 2] > 120)
     ty, tx = np.where(teal_mask)
 
-    if len(tx) == 0:
-        return None
+    if len(tx) > 0:
+        tx = tx + right_offset
+        teal_left = int(tx.min())
+        btn_y = int((ty.min() + ty.max()) // 2)
+        return (teal_left - 75, btn_y, teal_left)
 
-    tx = tx + right_offset
-    teal_left = int(tx.min())
-    teal_top = int(ty.min())
-    teal_bottom = int(ty.max())
+    # 2. If teal button not visible, find leftmost control in top right
+    dark = (right_top[20:60, :, 0] < 50) & (right_top[20:60, :, 1] < 50) & (right_top[20:60, :, 2] < 50)
+    dy, dx = np.where(dark)
+    if len(dx) > 0:
+        dx = dx + right_offset
+        go_x = int(dx.min()) + 25
+        go_y = int(dy.mean()) + 20
+        return (go_x, go_y, int(dx.min()))
 
-    btn_y = (teal_top + teal_bottom) // 2
-    # Go button center is ~75px to the left of the teal button's left edge
-    go_x = teal_left - 75
-    go_y = btn_y
-    return (go_x, go_y, teal_left)
+    return None
 
 
 def run_test():
@@ -282,17 +284,19 @@ def run_test():
             print("[1311] ERROR: Dropdown menu does not appear to have rendered content.")
             return 1
 
-        print("[1311] Step 6: Pressing Escape to close dropdown menu...")
-        kb.press(Key.esc)
-        kb.release(Key.esc)
-        time.sleep(0.5)
+        print("[1311] Step 6: Clicking first recent document to verify opening without crash...")
+        # First recent document item is at (go_x - 100, go_y + 60)
+        mouse.position = (go_x - 100, go_y + 60)
+        time.sleep(0.3)
+        mouse.click(Button.left)
+        time.sleep(1.5)
 
         ret = proc.poll()
         if ret is not None:
-            print(f"[1311] ERROR: Mogan crashed on closing menu with code {ret}")
+            print(f"[1311] ERROR: Mogan crashed on opening recent document with code {ret}")
             return 1
 
-        print("[1311] TEST PASSED: QML GoMenu dropdown triggered, verified and captured successfully!")
+        print("[1311] TEST PASSED: QML GoMenu dropdown triggered, verified, and recent document opened successfully!")
         return 0
 
     finally:
