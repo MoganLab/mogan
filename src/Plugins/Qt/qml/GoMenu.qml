@@ -19,10 +19,29 @@ Item {
     readonly property var buffers: meta.buffers || []
     readonly property var recent: meta.recent || []
 
-    readonly property real menuWidth: Math.max(240 * Theme.scaleFactor,
-        Math.min(380 * Theme.scaleFactor, contentColumn.implicitWidth + 24 * Theme.scaleFactor))
+    readonly property real itemH: 32 * Theme.scaleFactor
+    readonly property real sepH: 9 * Theme.scaleFactor
+    readonly property real hdrH: 22 * Theme.scaleFactor
+    readonly property real spacingH: 2 * Theme.scaleFactor
+
+    // 3 个基础导航项（Back / Forward / Save position）
+    readonly property real navHeight: 3 * itemH + 2 * spacingH
+    // 打开文档列表高度
+    readonly property real buffersHeight: buffers.length > 0
+        ? (sepH + spacingH + hdrH + spacingH + buffers.length * (itemH + spacingH))
+        : 0
+    // 最近文档列表高度
+    readonly property real recentHeight: recent.length > 0
+        ? ((buffers.length > 0 ? (sepH + spacingH) : (sepH + spacingH)) + hdrH + spacingH + recent.length * (itemH + spacingH))
+        : 0
+    readonly property real calculatedHeight: navHeight
+        + (buffers.length > 0 ? (sepH + spacingH + hdrH + spacingH + buffers.length * (itemH + spacingH)) : 0)
+        + (recent.length > 0 ? ((buffers.length > 0 ? sepH + spacingH : 0) + hdrH + spacingH + recent.length * (itemH + spacingH)) : 0)
+
+    readonly property real menuWidth: Math.max(280 * Theme.scaleFactor,
+        Math.min(420 * Theme.scaleFactor, contentColumn.implicitWidth + 24 * Theme.scaleFactor))
     readonly property real maxListHeight: 460 * Theme.scaleFactor
-    readonly property real actualContentHeight: contentColumn.implicitHeight
+    readonly property real actualContentHeight: Math.max(calculatedHeight, contentColumn.childrenRect.height)
     readonly property real listHeight: Math.min(maxListHeight, actualContentHeight)
 
     width: implicitWidth
@@ -30,14 +49,22 @@ Item {
     implicitWidth: menuWidth + 4 * Theme.scaleFactor
     implicitHeight: listHeight + 16 * Theme.scaleFactor
 
-    // 假阴影底板
+    // 渐进柔和阴影
     Rectangle {
-        x: 1 * Theme.scaleFactor
-        y: 2 * Theme.scaleFactor
+        x: 0
+        y: 3 * Theme.scaleFactor
+        width: menuCard.width
+        height: menuCard.height
+        radius: Theme.radius + 1
+        color: Theme.dark ? "#60000000" : "#18000000"
+    }
+    Rectangle {
+        x: 0
+        y: 1 * Theme.scaleFactor
         width: menuCard.width
         height: menuCard.height
         radius: Theme.radius
-        color: Theme.dark ? "#50000000" : "#20000000"
+        color: Theme.dark ? "#40000000" : "#12000000"
     }
 
     // 菜单主容器
@@ -55,12 +82,13 @@ Item {
             anchors.fill: parent
             anchors.margins: 6 * Theme.scaleFactor
             contentWidth: width
-            contentHeight: contentColumn.implicitHeight
+            contentHeight: root.actualContentHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
             Column {
                 id: contentColumn
+                objectName: "contentColumn"
                 width: flick.width
                 spacing: 2 * Theme.scaleFactor
 
@@ -141,6 +169,29 @@ Item {
                 }
             }
         }
+
+        // 简易滚动指示器
+        Rectangle {
+            anchors.right: menuCard.right
+            anchors.rightMargin: 2 * Theme.scaleFactor
+            anchors.top: menuCard.top
+            anchors.topMargin: 4 * Theme.scaleFactor
+            anchors.bottom: menuCard.bottom
+            anchors.bottomMargin: 4 * Theme.scaleFactor
+            width: 3 * Theme.scaleFactor
+            radius: 1.5 * Theme.scaleFactor
+            color: "transparent"
+            visible: flick.visibleArea.heightRatio < 1.0
+
+            Rectangle {
+                y: flick.visibleArea.yPosition * parent.height
+                width: parent.width
+                height: Math.max(16 * Theme.scaleFactor, flick.visibleArea.heightRatio * parent.height)
+                radius: parent.radius
+                color: Theme.muted
+                opacity: 0.5
+            }
+        }
     }
 
     // 单个菜单项组件
@@ -153,8 +204,10 @@ Item {
         property bool enabled: true
         signal triggered()
 
-        height: 30 * Theme.scaleFactor
-        radius: 4 * Theme.scaleFactor
+        implicitHeight: 32 * Theme.scaleFactor
+        height: implicitHeight
+        implicitWidth: 280 * Theme.scaleFactor
+        radius: 6 * Theme.scaleFactor
         color: mouseArea.containsMouse && itemRoot.enabled ? Theme.fieldBgHover : "transparent"
 
         MouseArea {
@@ -171,12 +224,12 @@ Item {
 
         Row {
             anchors.fill: parent
-            anchors.leftMargin: 6 * Theme.scaleFactor
-            anchors.rightMargin: 6 * Theme.scaleFactor
-            spacing: 6 * Theme.scaleFactor
+            anchors.leftMargin: 8 * Theme.scaleFactor
+            anchors.rightMargin: 8 * Theme.scaleFactor
+            spacing: 8 * Theme.scaleFactor
 
             Item {
-                width: 16 * Theme.scaleFactor
+                width: 18 * Theme.scaleFactor
                 height: parent.height
 
                 Text {
@@ -196,14 +249,16 @@ Item {
                 font.bold: itemRoot.isChecked
                 color: itemRoot.enabled ? Theme.fg : Theme.muted
                 elide: Text.ElideMiddle
-                width: parent.width - 24 * Theme.scaleFactor
+                width: parent.width - 26 * Theme.scaleFactor
             }
         }
     }
 
     // 分隔线组件
     component MenuSeparator: Item {
-        height: 9 * Theme.scaleFactor
+        implicitHeight: 9 * Theme.scaleFactor
+        height: implicitHeight
+        implicitWidth: 280 * Theme.scaleFactor
         Rectangle {
             anchors.centerIn: parent
             width: parent.width
@@ -216,10 +271,12 @@ Item {
     // 分组标题组件
     component MenuSectionHeader: Item {
         property string text: ""
-        height: 22 * Theme.scaleFactor
+        implicitHeight: 22 * Theme.scaleFactor
+        height: implicitHeight
+        implicitWidth: 280 * Theme.scaleFactor
         Text {
             anchors.left: parent.left
-            anchors.leftMargin: 6 * Theme.scaleFactor
+            anchors.leftMargin: 8 * Theme.scaleFactor
             anchors.verticalCenter: parent.verticalCenter
             text: parent.text
             font.pixelSize: Theme.fontTiny

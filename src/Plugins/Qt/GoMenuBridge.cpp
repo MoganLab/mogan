@@ -21,10 +21,8 @@ namespace {
 
 QString
 tmscm_to_qstring (tmscm v) {
-  if (tmscm_is_string (v))
-    return utf8_to_qstring (cork_to_utf8 (tmscm_to_string (v)));
-  if (tmscm_is_symbol (v))
-    return utf8_to_qstring (cork_to_utf8 (tmscm_to_symbol (v)));
+  if (tmscm_is_string (v)) return to_qstring (tmscm_to_string (v));
+  if (tmscm_is_symbol (v)) return to_qstring (tmscm_to_symbol (v));
   return QString ();
 }
 

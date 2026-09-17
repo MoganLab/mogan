@@ -3717,11 +3717,19 @@ qt_tm_widget_rep::showGoMenu (QPushButton* button) {
 
   popup->adjustSize ();
 
-  QPoint   globalPos= button->mapToGlobal (QPoint (0, button->height () + 2));
-  QScreen* screen   = QGuiApplication::screenAt (globalPos);
+  // 右对齐到 Go 按钮右侧，向下微距 4px
+  int popupX=
+      button->mapToGlobal (QPoint (button->width (), 0)).x () - popup->width ();
+  int    popupY= button->mapToGlobal (QPoint (0, button->height () + 4)).y ();
+  QPoint globalPos (popupX, popupY);
+
+  QScreen* screen= QGuiApplication::screenAt (globalPos);
   if (!screen) screen= button->screen ();
   if (screen) {
     QRect avail= screen->availableGeometry ();
+    if (globalPos.x () < avail.left () + 4) {
+      globalPos.setX (avail.left () + 4);
+    }
     if (globalPos.x () + popup->width () > avail.right ()) {
       globalPos.setX (avail.right () - popup->width () - 4);
     }
