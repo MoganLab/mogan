@@ -288,6 +288,17 @@ tree cpp_export_pdf_dialog (tree form);
  */
 tree cpp_preferences_dialog ();
 
+/**
+ * @brief 「页码设置」QML 对话框的 glue 入口（本地暂存 + OK 一次性提交）。
+ * @return 测试钩子命中时返回 `(tuple "ok")` 或空 tree；常规弹窗关闭后返回空
+ * tree。
+ * @details 走 run_qml_dialog（exec 阻塞模态）。pnBridge（PageNumberBridge）
+ * 注入为 context property 承载 QML↔scheme 交互；scheme facade 的
+ * pn-qml-meta / pn-qml-submit 负责读取与写入。
+ * @note 测试钩子 MOGAN_TEST_PAGE_NUMBER=ok|cancel 命中时不弹窗。
+ */
+tree cpp_page_number_dialog ();
+
 // ---- 更新下载中间态弹窗
 // -------------------------------------------------------
 

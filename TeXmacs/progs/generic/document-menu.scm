@@ -854,14 +854,6 @@
 ) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; The Document -> Page number menu
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(menu-bind document-page-number-menu
- ("New page number style layer" (open-document-page-number))
-) ;menu-bind
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Headers and footers menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1042,7 +1034,7 @@
   (-> "Font" (link document-full-font-menu))
   (-> "Paragraph" (link document-paragraph-menu))
   (-> "Page" (link document-page-menu))
-  (-> "Page number" (link document-page-number-menu))
+  ("Page number" (open-document-page-number))
   (-> "Headers and footers" (link document-headers-footers-menu))
   (-> "Metadata" (link document-metadata-menu))
   ---

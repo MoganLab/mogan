@@ -12,6 +12,7 @@
 #include "ColorPickerBridge.hpp"
 #include "FontSelectorBridge.hpp"
 #include "GradientSelectorBridge.hpp"
+#include "PageNumberBridge.hpp"
 #include "ParagraphFormatBridge.hpp"
 #include "PreferencesBridge.hpp"
 #include "PrintToFileBridge.hpp"
@@ -961,6 +962,41 @@ cpp_preferences_dialog () {
                           &QObject::deleteLater);
       },
       620, 600);
+  delete bridge;
+  return tree (TUPLE);
+}
+
+// ---- 页码设置 -------------------------------------------------------------
+
+/**
+ * @brief 「页码设置」QML 对话框 glue 入口（一次性提交）。
+ * @return 测试钩子命中时返回 `(tuple "ok")` 或空 tree；常规弹窗关闭后返回空
+ * tree。
+ * @note 测试钩子 MOGAN_TEST_PAGE_NUMBER=ok|cancel 命中时不弹窗。
+ */
+tree
+cpp_page_number_dialog () {
+  string preset= get_env ("MOGAN_TEST_PAGE_NUMBER");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    tree r (TUPLE);
+    r << tree ("ok");
+    return r;
+  }
+  array<string>    buttons= {string ("Apply"), string ("Cancel")};
+  QmlDialogBridge* bridge = nullptr;
+  run_qml_dialog (
+      "qrc:/qml/PageNumber.qml", "PageNumber.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge                    = inject_common_context (qw, host);
+        PageNumberBridge* pnBridge= new PageNumberBridge (&host);
+        qw->rootContext ()->setContextProperty ("pnBridge", pnBridge);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+        QObject::connect (&host, &QDialog::destroyed, pnBridge,
+                          &QObject::deleteLater);
+      },
+      920, 620);
   delete bridge;
   return tree (TUPLE);
 }

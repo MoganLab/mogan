@@ -1,3 +1,6 @@
+("① Range for new rule" "① 新规则的范围")
+("② Choose page number style" "② 选择页码样式")
+("(hidden)" "（不显示）")
 ("(re)build autocompletion index" "构建/重建自动补全索引")
 ("Alt::keyboard" "Alt")
 ("Ctrl::keyboard" "Ctrl")
@@ -285,6 +288,8 @@
 ("activate once" "仅激活一次")
 ("activate" "激活")
 ("activation" "激活")
+("+ Add rule" "＋ 添加规则")
+("added rules" "已添加的规则")
 ("add branch after" "在后面添加一个")
 ("add branch before" "在前面添加一个")
 ("add other package" "增加其他宏包")
@@ -341,6 +346,10 @@
 ("allow partial matches" "允许部分匹配")
 ("allowed extension" "允许扩展")
 ("allowed reduction" "允许缩小")
+("all pages are arranged vertically and scrollable; drag handle to select range, auto-scrolls near edge"
+  "全部页面纵向排列可滚动；拖动手柄划定范围，靠近边缘自动滚动"
+) ;
+("all pages covered by rules" "全部页面已被规则覆盖")
 ("alpha release" "alpha 版本")
 ("also on paper" "在纸上显示")
 ("alt key" "alt 键")
@@ -367,6 +376,7 @@
 ("apply" "应用")
 ("april" "四月")
 ("arab" "阿拉伯")
+("arabic numerals" "阿拉伯数字")
 ("arc" "圆弧")
 ("arch series" "arch 规格")
 ("archaic" "古代的")
@@ -558,6 +568,7 @@
 ("check" "检查")
 ("chinese character" "中文字符")
 ("chinese" "中文")
+("chinese numerals" "汉字数字")
 ("choice" "选择")
 ("choose background" "选择背景")
 ("choose color" "选择颜色")
@@ -742,6 +753,9 @@
 ("decimal dot" "小数点")
 ("decorate atoms" "")
 ("Deep Reasoning" "深度思考")
+("Defaulted from page %1 to the end so that page number 1 starts from page %1."
+  "已默认从第 %1 页全选至文末，让页码 1 从第 %1 页开始标注。"
+) ;
 ("default padding" "默认填充")
 ("default" "默认")
 ("default style for writing books" "书籍默认样式")
@@ -775,6 +789,9 @@
 ("developer" "开发者")
 ("developers guide" "程序源码")
 ("diamond" "菱形")
+("Directly enter page range, click [to end of document], or drag handle"
+  "可直接输入页码、点击[至文末]或在左侧拖动手柄"
+) ;
 ("directory" "目录")
 ("disable case sensitivity" "忽略大小写")
 ("disable emoji shortcuts" "关闭 Emoji 快捷键")
@@ -1078,6 +1095,8 @@
 ("french" "法语")
 ("From: " "来自：")
 ("from center" "从中心")
+("from page" "从第")
+("from %1" "从 %1 开始")
 ("front matter" "前置部分")
 ("full manuals" "完全手册")
 ("full screen mode" "全屏模式")
@@ -1171,6 +1190,7 @@
 ("help with" "查看帮助:")
 ("help" "帮助")
 ("here" "这里")
+("hide page numbers" "隐藏页码")
 ("hidden" "隐藏")
 ("high effort" "高")
 ("Sub-level separator" "当前节的下一层级的分隔符")
@@ -1831,6 +1851,9 @@
 ("no page break before" "禁止换页(在前面)")
 ("no page break" "禁止换页")
 ("no page numbers" "不显示页码")
+("no rules yet — all pages numbered continuously"
+  "尚无规则 —— 所有页面按 1 ~ %1 连续编号"
+) ;
 ("No Preview" "无预览")
 ("No recent documents" "无最近文档")
 ("no spelling errors found in text" "")
@@ -1974,6 +1997,7 @@
 ("page layout" "页面布局")
 ("Page number style" "页码样式")
 ("Page mapping" "页码映射")
+("page number settings" "页码设置")
 ("page number text" "设定页码文字")
 ("Page number" "页码")
 ("page number" "页码")
@@ -1984,6 +2008,7 @@
 ("page setup" "页面设置")
 ("page top margin" "")
 ("page type" "页面种类")
+("page unit" "页")
 ("page width" "页面宽度")
 ("page" "页面")
 ("palette" "调色板")
@@ -2240,6 +2265,9 @@
 ("Renew Now" "续费会员")
 ("Remind later" "稍后提醒")
 ("Skip this version" "跳过此版本")
+("rules connect sequentially; only the last rule can be deleted"
+  "规则依次衔接覆盖全文；仅最后一条可删除"
+) ;
 ("View plans" "查看会员方案")
 ("rendering" "渲染")
 ("renumber this page" "修改当前页码")
@@ -2291,6 +2319,11 @@
 ("rigid horizontal" "")
 ("rigid space" "")
 ("rigid" "刚性的")
+("Roman::page_number" "大写罗马")
+("Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books."
+  "罗马数字页码（i 或 I）一般用于图书的目录和序。"
+) ;
+("roman::page_number" "小写罗马")
 ("romanian" "罗马尼亚语")
 ("root" "根")
 ("rotate backward" "")
@@ -2535,6 +2568,9 @@
 ("Standard fraction" "标准分式")
 ("star" "五角星")
 ("start a new chapter" "新起一章")
+("starting from page %1, drag handle to select end page"
+  "从第 %1 页开始，拖动手柄选择结束页"
+) ;
 ("start a new section" "新起一节")
 ("start an interactive session" "插入交互会话")
 ("start" "开始")
@@ -2758,6 +2794,8 @@
 ("tiny" "细小")
 ("title" "标题")
 ("Title style" "标题样式")
+("to end of document" "至文末")
+("to page" "至第")
 ("to the left" "")
 ("to the right" "")
 ("today" "今天")

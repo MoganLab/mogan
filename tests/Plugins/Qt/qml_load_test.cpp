@@ -229,6 +229,23 @@ public:
   Q_INVOKABLE void callAction (const QString&) {}
 };
 
+class PageNumberStubBridge : public QObject {
+  Q_OBJECT
+public:
+  explicit PageNumberStubBridge (QObject* p= nullptr) : QObject (p) {}
+  Q_INVOKABLE QVariantMap meta () {
+    QVariantMap m;
+    m["total"] = 10;
+    m["rules"] = QVariantList ();
+    m["labels"]= QVariantMap ();
+    return m;
+  }
+  Q_INVOKABLE void    submit (const QVariantList&) {}
+  Q_INVOKABLE QString formatNumber (int n, const QString&) {
+    return QString::number (n);
+  }
+};
+
 class TestQmlLoad : public QObject {
   Q_OBJECT
 
@@ -245,6 +262,7 @@ private slots:
   void test_font_selector_loads ();
   void test_paragraph_format_loads ();
   void test_preferences_loads ();
+  void test_page_number_loads ();
   void test_version_loads ();
   void test_version_dialog_focuses_on_open ();
   void test_version_escape_cancels ();
@@ -483,6 +501,24 @@ TestQmlLoad::test_preferences_loads () {
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/Preferences.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_page_number_loads () {
+  QDialog               host;
+  QQuickWidget*         qw  = new QQuickWidget (&host);
+  PageNumberStubBridge* pn  = new PageNumberStubBridge (qw);
+  StubBridge*           base= new StubBridge (qw);
+  QStringList           buttons;
+  buttons << "Apply" << "Cancel";
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  qw->rootContext ()->setContextProperty ("pnBridge", pn);
+  qw->rootContext ()->setContextProperty ("closeBridge", base);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/PageNumber.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
