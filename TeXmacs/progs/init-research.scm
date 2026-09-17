@@ -257,6 +257,8 @@
   get-init-page-rendering
   init-page-rendering
 ) ;lazy-define
+;; AI 操作栏选区内容判定（C++ 侧 should_show_translate_popup 经 call 触发）
+(lazy-define (generic ai-actions-bar) ai-selection-only-images?)
 (lazy-define (generic generic-edit) notify-activated notify-disactivated)
 (lazy-define (generic generic-doc) focus-help)
 (lazy-define (generic search-widgets)

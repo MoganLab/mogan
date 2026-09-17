@@ -1439,6 +1439,11 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "should-show-translate-popup?",
+                cpp_name = "should_show_translate_popup",
+                ret_type = "bool"
+            },
+            {
                 scm_name = "selection-set-start",
                 cpp_name = "selection_set_start",
                 ret_type = "void"
