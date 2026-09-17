@@ -137,11 +137,12 @@
   ;; AI 侧边栏的「最大化」按钮：切到 Chat 标签页。
   ;; 复用 switch-to-buffer* 走正常切 view 路径，标签栏高亮与
   ;; sidebar/tab 模式状态由 SLOT_FILE 统一同步。
-  (let* ((buf (string->url "tmfs://chat-tab")))
+  (with buf
+    (string->url "tmfs://chat-tab")
     (when (nnull? (buffer->views buf))
       (switch-to-buffer* buf)
     ) ;when
-  ) ;let*
+  ) ;with
 ) ;tm-define
 
 (tm-define (toggle-visible-side-tools n)

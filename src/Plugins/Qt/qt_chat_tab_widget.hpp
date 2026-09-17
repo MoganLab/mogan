@@ -468,6 +468,7 @@ public:
   QPushButton* newChatButton () const { return newChatButton_; }
   QPushButton* floatingNewChatButton () const { return floatingNewChatBtn_; }
   QPushButton* closeSidebarButton () const { return closeSidebarBtn_; }
+  QPushButton* newChatSidebarButton () const { return newChatSidebarBtn_; }
   QPushButton* maximizeButton () const { return maximizeBtn_; }
   QList<ChatConversationPanel*>& conversations () { return conversations_; }
   ChatConversationPanel*         activeConversation () const {

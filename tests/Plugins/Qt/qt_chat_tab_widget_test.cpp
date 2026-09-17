@@ -389,11 +389,14 @@ private slots:
     QTChatTabWidget           widget (sessions, "", nullptr);
     widget.show ();
     widget.setDockButtonsVisible (true);
-    QPushButton* closeBtn= widget.closeSidebarButton ();
+    QPushButton* closeBtn  = widget.closeSidebarButton ();
+    QPushButton* newChatBtn= widget.newChatSidebarButton ();
+    QPushButton* maxBtn    = widget.maximizeButton ();
     QVERIFY (closeBtn != nullptr);
-    QVERIFY (widget.maximizeButton () != nullptr);
-    QVERIFY (widget.maximizeButton ()->x () >=
-             closeBtn->x () + closeBtn->width ());
+    QVERIFY (newChatBtn != nullptr);
+    QVERIFY (maxBtn != nullptr);
+    QVERIFY (newChatBtn->x () >= closeBtn->x () + closeBtn->width ());
+    QVERIFY (maxBtn->x () >= newChatBtn->x () + newChatBtn->width ());
   }
 
   // === ChatSidebar title rename ===
