@@ -54,6 +54,9 @@ private slots:
   void pollCursor ();
 
 private:
+  // 按选区内容同步翻译胶囊显隐（0995）：栏宽随 QML implicit 尺寸信号收敛
+  void setTranslateVisible (bool visible);
+
   // 向离屏 scene 发 HoverMove（quick 本地坐标）：激活 hover 上下文并纠正
   // 残留态；坐标未变时由调用方跳过
   void syncHover (QPointF pos);

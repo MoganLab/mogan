@@ -13,6 +13,7 @@
 #include <QtTest/QtTest>
 
 #include "converter.hpp"
+#include "locale.hpp"
 #include "preferences.hpp"
 
 using namespace moebius;
@@ -115,36 +116,72 @@ private slots:
 
   // === composeAiInputBody ===
 
+  // composeAiInputBody 的提示词测试都显式指定两个语言偏好：默认值 system
+  // 解析为系统语言（get_locale_language），随机器而变（Linux 无 LANG 时回落
+  // english），不写死就无法断言。
+  void set_ai_lang (string prompt, string target) {
+    set_user_preference ("ai:prompt language", prompt);
+    set_user_preference ("ai:translate target language", target);
+  }
+  void reset_ai_lang () {
+    reset_user_preference ("ai:prompt language");
+    reset_user_preference ("ai:translate target language");
+  }
+
   void test_compose_atomic_selection_translate_appends_prompt () {
-    // 单行选区（selection_get 的原子串形态）：包成引用块并追加提示词；
-    // 提示词须为 cork 编码，不能是 UTF-8 原始字节。
-    // 目标语言默认 interface（按界面语言）；测试环境无 scheme 偏好与词典，
-    // 界面语言回退 "chinese"、translate 原样返回（out_lan 默认 english）。
+    // 单行选区（selection_get 的原子串形态）：包成引用块并追加提示词。
+    // 提示词语言 chinese 命中仓库 zh_CN 词典（$TEXMACS_PATH 可用）的
+    // "please translate the above text into" 词条，得到中文提示词。
+    set_ai_lang ("chinese", "chinese");
     tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
     QVERIFY (is_func (body, DOCUMENT));
     QCOMPARE (int (N (body)), 2);
     QVERIFY (body[0] ==
              compound ("quote-env", tree (DOCUMENT, tree ("hello"))));
-    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "Chinese");
-    QVERIFY (!(body[1] == tree ("请翻译上述文字为中文")));
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为中文"));
+    reset_ai_lang ();
   }
 
   void test_compose_translate_target_language_from_preference () {
-    // 显式设置目标语言偏好：提示词语言名跟随偏好
-    set_user_preference ("ai:translate target language", "english");
+    // 显式设置目标语言偏好：提示词里的目标语言名跟随偏好（按提示词语言
+    // 本地化，此处提示词语言为中文）
+    set_ai_lang ("chinese", "english");
     tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
-    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "English");
-    reset_user_preference ("ai:translate target language");
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为英语"));
+    reset_ai_lang ();
   }
 
-  void test_compose_translate_interface_follows_ui_language () {
-    // interface（默认）：目标语言跟随界面语言偏好
-    set_user_preference ("ai:translate target language", "interface");
+  void test_compose_translate_system_follows_locale () {
+    // system（默认）：跟随系统语言（get_locale_language），与界面语言偏好
+    // 无关。系统语言随机器而变，故不写死期望串，改与「显式指定系统语言」
+    // 的结果比对——同时钉住「改界面语言不影响 system」
     set_user_preference ("language", "french");
-    tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
-    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "French");
-    reset_user_preference ("ai:translate target language");
+    set_ai_lang ("system", "system");
+    tree viaSystem=
+        ChatController::composeAiInputBody (tree ("hello"), "translate");
+    set_ai_lang (get_locale_language (), get_locale_language ());
+    tree viaExplicit=
+        ChatController::composeAiInputBody (tree ("hello"), "translate");
+    QVERIFY (viaSystem[1] == viaExplicit[1]);
+
+    reset_ai_lang ();
     reset_user_preference ("language");
+  }
+
+  void test_compose_translate_prompt_language_preference () {
+    // AI 提示词语言（0995）：与翻译目标语言相互独立——同一目标语言
+    // （japanese）下，提示词语言 english 出英文整句 + 空格拼接，chinese
+    // 出 zh_CN 词条整句且 CJK 词间无空格（目标语言名随提示词语言本地化）
+    set_ai_lang ("english", "japanese");
+    tree body= ChatController::composeAiInputBody (tree ("hello"), "translate");
+    QVERIFY (body[1] ==
+             string ("Please translate the above text into Japanese"));
+
+    set_ai_lang ("chinese", "japanese");
+    body= ChatController::composeAiInputBody (tree ("hello"), "translate");
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为日语"));
+
+    reset_ai_lang ();
   }
 
   void test_compose_atomic_selection_chat_keeps_selection_only () {
@@ -159,13 +196,15 @@ private slots:
 
   void test_compose_document_selection_spreads_children () {
     // 多段选区：document 子节点在引用块内依次展开，提示词追加为末段
+    set_ai_lang ("chinese", "chinese");
     tree sel = tree (DOCUMENT, tree ("para 1"), tree ("para 2"));
     tree body= ChatController::composeAiInputBody (sel, "translate");
     QVERIFY (is_func (body, DOCUMENT));
     QCOMPARE (int (N (body)), 2);
     QVERIFY (body[0] == compound ("quote-env", tree (DOCUMENT, tree ("para 1"),
                                                      tree ("para 2"))));
-    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为") * "Chinese");
+    QVERIFY (body[1] == utf8_to_cork ("请翻译上述文字为中文"));
+    reset_ai_lang ();
   }
 
   void test_compose_document_selection_chat_no_prompt () {

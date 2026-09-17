@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : ai-actions-bar-test.scm
-;; DESCRIPTION : ai-selection-only-images? 纯逻辑测试（树形状契约）
+;; DESCRIPTION : AI 操作栏选区判定纯逻辑测试（树形状契约）
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -70,4 +70,37 @@
   ) ;check
 ) ;define
 
-(tm-define (regtest-ai-actions-bar) (test-only-images) (check-report))
+;; ---- ai-translate-eligible?：翻译按钮可见性（0995）----
+;; 注：复合树用 (tm->tree <stree>) 构造——string->tree 不解析序列化，
+;; 只会生成内容为字面串的原子树。
+
+(define (test-translate-eligible)
+  ;; 字符数门槛：>= 10 才显示翻译按钮
+  (check (ai-translate-eligible? (tm->tree "This is a long enough selection."))
+    =>
+    #t
+  ) ;check
+  (check (ai-translate-eligible? (tm->tree "0123456789")) => #t)
+  (check (ai-translate-eligible? (tm->tree "012345678")) => #f)
+  (check (ai-translate-eligible? (tm->tree "short")) => #f)
+  (check (ai-translate-eligible? (tm->tree "短文本")) => #f)
+  ;; 纯数学公式选区：不显示
+  (check (ai-translate-eligible? (tm->tree '(math "x+y"))) => #f)
+  (check
+    (ai-translate-eligible? (tm->tree '(equation (document "x"))))
+    =>
+    #f
+  ) ;check
+  ;; 含数学但非纯公式：按字符数判定
+  (check
+    (ai-translate-eligible? (tm->tree '(concat "This is long text " (math "x"))))
+    =>
+    #t
+  ) ;check
+) ;define
+
+(tm-define (regtest-ai-actions-bar)
+  (test-only-images)
+  (test-translate-eligible)
+  (check-report)
+) ;tm-define

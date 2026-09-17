@@ -13,6 +13,10 @@ Item {
     // C++ autoSize 按屏幕 DPI 缩放注入；12 仅为加载测试/预览回退
     property int fontPixelSize: 12
 
+    // 翻译按钮可见性由 C++ 按选区内容注入（0995：选区 < 10 字符或整体是
+    // 数学公式时隐藏翻译胶囊，润色/对话保留）
+    property bool showTranslate: true
+
     readonly property int iconPx: Math.max(11, Math.round(fontPixelSize * 1.3))
     readonly property int padH: Math.max(7, Math.round(fontPixelSize * 0.9))
     readonly property int padV: Math.max(4, Math.round(fontPixelSize * 0.45))
@@ -56,6 +60,9 @@ Item {
             }
 
             Repeater {
+                // 静态三按钮：翻译胶囊按 showTranslate 显隐（Row 跳过不可见
+                // 子项）。不重建 model——重建 delegate 在软渲染下布局与绘制
+                // 不同帧，会留白/截断
                 model: [
                     { icon: "qrc:/ai-actions/translate.svg", label: labelTranslate, action: "translate" },
                     { icon: "qrc:/ai-actions/polish.svg", label: labelPolish, action: "polish" },
@@ -64,6 +71,7 @@ Item {
 
                 delegate: Rectangle {
                     id: capsule
+                    visible: modelData.action !== "translate" || bar.showTranslate
                     implicitWidth: content.implicitWidth + bar.padH
                     implicitHeight: content.implicitHeight + bar.padV
                     radius: height / 2

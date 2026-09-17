@@ -101,6 +101,8 @@ protected:
   time_t translate_popup_last_check = 0;
   bool   translate_popup_last_result= false;
   bool   translate_popup_dismissed  = false;
+  // 翻译按钮可见性（0995）：随显隐判定同一 100ms 缓存节奏刷新，popup 只读
+  bool   ai_translate_btn_visible= true;
   bool   table_line_hit (SI x, SI y, table_hit& hit);
   void   table_line_start (const table_hit& hit, SI x, SI y);
   void   table_line_apply (SI x, SI y);
@@ -297,6 +299,9 @@ public:
   void invalidate_text_popup_cache (); // 重置工具栏缓存
 
   bool should_show_translate_popup ();
+  // 翻译按钮是否显示在 AI 操作栏（0995）：选区 < 10 字符或纯数学公式时不
+  // 显示；由 should_show_translate_popup 顺带刷新，此处只读缓存
+  bool ai_translate_button_visible () { return ai_translate_btn_visible; }
   bool selection_made_upward (); // 从下往上选择（光标停在选区起点一侧）
   // 「最后选中文字」所在行（按选择方向取顶行/底行）
   rectangle get_selection_last_rect (bool upward);

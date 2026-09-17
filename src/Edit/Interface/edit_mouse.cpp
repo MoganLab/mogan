@@ -1482,6 +1482,10 @@ edit_interface_rep::should_show_translate_popup () {
     return false;
   }
 
+  // 翻译按钮可见性（0995）：选区字符数 < 10 或选区整体是数学公式时，操作
+  // 栏不显示翻译按钮（润色/对话仍显示）；随本闸门同一 100ms 缓存节奏刷新
+  ai_translate_btn_visible= as_bool (call ("ai-translate-eligible?", sel_tree));
+
   translate_popup_last_result= true;
   return true;
 #else

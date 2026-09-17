@@ -24,6 +24,7 @@
 #include "analyze.hpp"
 #include "converter.hpp"
 #include "dictionary.hpp"
+#include "locale.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -822,6 +823,14 @@ ChatController::getOrCreatePanel (const string& sessionId) {
  * ChatController 辅助方法
  ******************************************************************************/
 
+// AI 语言首选项（翻译目标语言/提示词语言）：system 哨兵表示跟随系统语言
+// （get_locale_language；非界面语言偏好，用户改界面语言不影响）
+static string
+get_ai_language_preference (string key) {
+  string lang= get_preference (key, "system");
+  return lang == "system" ? get_locale_language () : lang;
+}
+
 tree
 ChatController::composeAiInputBody (tree sel, string action) {
   // 引用选区组成输入体：选区整体包成「引用」外观块（插入 → 外观块 → 引用
@@ -836,12 +845,20 @@ ChatController::composeAiInputBody (tree sel, string action) {
   body << compound ("quote-env", quoted);
   // 未知动作不追加尾段（调用方白名单 translate/chat）
   if (action == "translate") {
-    // 目标语言取首选项（转换 → AI）：interface 表示按界面语言；
-    // 语言名经 translate 转成界面语言显示（Cork，与提示词编码一致）
-    string target= get_preference ("ai:translate target language", "interface");
-    if (target == "interface") target= get_preference ("language", "chinese");
-    body << utf8_to_cork ("请翻译上述文字为") *
-                translate (upcase_first (target));
+    // 两个独立首选项（AI 标签页）：翻译目标语言决定翻成哪种语言，提示词
+    // 语言（0995）决定提示词本身用什么语言书写。目标语言名也按提示词语言
+    // 本地化（translate 返回 Cork，与提示词编码一致；词典缺词条时回落为
+    // 英文原句）
+    string target= get_ai_language_preference ("ai:translate target language");
+    string prompt_lang= get_ai_language_preference ("ai:prompt language");
+    string prompt= translate (string ("Please translate the above text into"),
+                              "english", prompt_lang);
+    string target_name=
+        translate (upcase_first (target), "english", prompt_lang);
+    // 空格按提示词尾字符判定而非按语言：拉丁字母结尾（英文句，含词典缺
+    // 词条时的回落）补空格，CJK 词尾（"请翻译上述文字为"）直接接目标语言名
+    bool space= N (prompt) > 0 && is_iso_alpha (prompt[N (prompt) - 1]);
+    body << prompt * (space ? string (" ") : string ("")) * target_name;
   }
   else if (action == "chat") body << ""; // 空段使 go-end 光标落在引用块下一行
   return body;

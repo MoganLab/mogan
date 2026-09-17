@@ -66,9 +66,10 @@
     (check (length (caddr (tab-ref meta "keyboard"))) => (if (os-macos?) 15 14))
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
-    ;; AI 主 tab 仅非社区版注册：AI 操作栏 toggle + 翻译目标语言 combo，共 2 字段。
+    ;; AI 主 tab 仅非社区版注册：AI 操作栏 toggle + 翻译目标语言/AI 提示词语言
+    ;; 两个 combo，共 3 字段。
     (when (not (community-stem?))
-      (check (length (caddr (tab-ref meta "ai"))) => 2)
+      (check (length (caddr (tab-ref meta "ai"))) => 3)
     ) ;when
     ;; other: 平台基础字段 + Velopack 更新器开启时多 1 个 Update channel 字段。
     ;; 用 use-plugin-updater? 而非硬编码,osx-x64 未接入 velopack 时仍正确。
@@ -402,6 +403,7 @@
   (check (pref-convert-pdf-version) => "texmacs->pdf:version")
   (check (pref-ai-actions-bar) => "ai:actions bar")
   (check (pref-ai-translate-target) => "ai:translate target language")
+  (check (pref-ai-prompt-language) => "ai:prompt language")
   (check (pref-autobackup) => "autobackup")
   (check (pref-autosave) => "autosave")
 ) ;define
@@ -525,7 +527,7 @@
   ) ;let*
 ) ;define
 
-;; ---- 16b. AI 主 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
+;; ---- 16b. AI 主 tab：操作栏 toggle + 翻译目标语言/AI 提示词语言 combo（首项 system） ----
 
 (define (test-ai-tab-fields)
   (let ((ai (tab-ref (preferences-qml-meta) "ai")))
@@ -541,25 +543,45 @@
                  (lambda (f) (== (field-ref f 'key) (pref-ai-translate-target)))
                ) ;list-find
              ) ;target
+             (prompt-lang
+               (list-find fields
+                 (lambda (f) (== (field-ref f 'key) (pref-ai-prompt-language)))
+               ) ;list-find
+             ) ;prompt-lang
             ) ;
         (check-true (pair? ai))
-        (check (length fields) => 2)
+        (check (length fields) => 3)
         (check (field-ref bar 'kind) => "toggle")
         (check (field-ref target 'kind) => "combo")
-        ;; options 首项 interface（按界面语言），后随 supported-languages 全表。
-        ;; optionsTr 已经过 translate（随界面语言），期望值走同一翻译函数比对。
-        (let ((opts (field-ref target 'options)) (trs (field-ref target 'optionsTr)))
-          (check (car opts) => "interface")
-          (check (car trs) => (translate "User interface language"))
-          (check (== (length opts) (length trs)) => #t)
-          (check-true (pair? (member "chinese" opts)))
-          (check-false (member "taiwanese" opts))
+        ;; AI 提示词语言（0995）：与翻译目标语言同源的 combo
+        (check (field-ref prompt-lang 'kind) => "combo")
+        (check (field-ref prompt-lang 'label) => (translate "AI prompt language"))
+        ;; 两项 combo 首项均为 system（跟随系统语言，非界面语言偏好）。
+        ;; 翻译目标语言后随 supported-languages 全表（不含 taiwanese，见 16a）；
+        ;; 提示词语言只列中文/英文（提示词词条仅覆盖这两种，见 encode/decode
+        ;; 登记处）。optionsTr 已经过 translate，期望值走同一翻译函数比对。
+        (let ((target-opts (field-ref target 'options))
+              (target-trs (field-ref target 'optionsTr))
+              (prompt-opts (field-ref prompt-lang 'options))
+              (prompt-trs (field-ref prompt-lang 'optionsTr))
+             ) ;
+          (check (car target-opts) => "system")
+          (check (car target-trs) => (translate "System language"))
+          (check (== (length target-opts) (length target-trs)) => #t)
+          (check-true (pair? (member "chinese" target-opts)))
+          (check-false (member "taiwanese" target-opts))
+          (check prompt-opts => '("system" "chinese" "english"))
+          (check (length prompt-trs) => 3)
+          (check (car prompt-trs) => (translate "System language"))
+          (check (cadr prompt-trs) => (translate "Chinese"))
         ) ;let
         ;; set-field 往返：toggle 开关落库、combo 存内部键，均恢复原值。
         (let* ((bar-key (pref-ai-actions-bar))
                (target-key (pref-ai-translate-target))
+               (prompt-key (pref-ai-prompt-language))
                (old-bar (get-preference bar-key))
                (old-target (get-preference target-key))
+               (old-prompt (get-preference prompt-key))
               ) ;
           (preferences-qml-set-field bar-key "off")
           (check (get-boolean-preference bar-key) => #f)
@@ -567,10 +589,14 @@
           (check (get-boolean-preference bar-key) => #t)
           (preferences-qml-set-field target-key "english")
           (check (get-preference target-key) => "english")
-          (preferences-qml-set-field target-key "interface")
-          (check (get-preference target-key) => "interface")
+          (preferences-qml-set-field target-key "system")
+          (check (get-preference target-key) => "system")
+          ;; AI 提示词语言：写读往返（默认值 "system" 见 tm-server.scm）
+          (preferences-qml-set-field prompt-key "english")
+          (check (get-preference prompt-key) => "english")
           (set-preference bar-key old-bar)
           (set-preference target-key old-target)
+          (set-preference prompt-key old-prompt)
         ) ;let*
       ) ;let*
     ) ;if

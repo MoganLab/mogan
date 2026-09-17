@@ -14,6 +14,7 @@
     (kernel library base)
     (kernel library content)
     (kernel library tree)
+    (texmacs texmacs tm-tools)
   ) ;:use
 ) ;texmacs-module
 
@@ -41,4 +42,14 @@
   ) ;:synopsis
   ;; tm-find-tag 命中即返回子树而非 #t，归一化为布尔供 C++ as_bool 消费
   (if (and (tm-find-tag t 'image) (ai-only-images-or-blank? t)) #t #f)
+) ;tm-define
+
+;; 翻译按钮可见性（0995）：过短或纯公式的选区不适合翻译，操作栏上隐藏翻译
+;; 按钮（润色/对话仍显示）。字数口径与 Document statistics 一致（verbatim
+;; 文本、去换行），纯函数便于单测。
+(tm-define (ai-translate-eligible? sel)
+  (:synopsis "选区树是否适合翻译（非纯公式，且字符数 >= 10）")
+  (and (not (tree-in? sel '(math equation equation* eqnarray eqnarray*)))
+    (>= (count-characters sel) 10)
+  ) ;and
 ) ;tm-define

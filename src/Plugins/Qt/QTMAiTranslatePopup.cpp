@@ -88,6 +88,12 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
                       SLOT (onActionTriggered (QString)));
+    // 按钮显隐/字号变化经 positioner polish 迟一帧才反映到 implicitWidth：
+    // showPopup 里的 autoSize 读到的是旧值，尺寸信号到达时再收敛一次
+    QObject::connect (root, &QQuickItem::implicitWidthChanged, this,
+                      [this] { autoSize (); });
+    QObject::connect (root, &QQuickItem::implicitHeightChanged, this,
+                      [this] { autoSize (); });
   }
 }
 
@@ -180,22 +186,27 @@ QTMAiTranslatePopup::showEvent (QShowEvent* ev) {
 void
 QTMAiTranslatePopup::autoSize () {
   // 尺寸按屏幕 DPI 缩放（与 QML 弹窗的 dpScale 同源），不跟随文档字体；
-  // 整体尺寸随 QML 内边距/图标比例自适应。字号与会话内 DPI 绑定，鼠标
-  // 移动会高频重入此处，字号未变时跳过 QML 写入与布局重算
+  // 整体尺寸随 QML 内边距/图标比例自适应。鼠标移动会高频重入：字号未变时
+  // 不写 QML（避免触发布局重算），尺寸未变时不重设窗口
   QObject* root= quick->rootObject ();
   if (!root) return;
   int font_px= std::max (10, DpiUtils::scaled (12));
-  if (font_px == cached_font_px && cached_width > 0) return;
-  cached_font_px= font_px;
-  root->setProperty ("fontPixelSize", font_px);
+  if (font_px != cached_font_px) {
+    cached_font_px= font_px;
+    root->setProperty ("fontPixelSize", font_px);
+  }
   int w=
       int (std::round (QQmlProperty::read (root, "implicitWidth").toReal ()));
   int h=
       int (std::round (QQmlProperty::read (root, "implicitHeight").toReal ()));
+  if (w <= 0 || h <= 0 || (w == cached_width && h == cached_height)) return;
   quick->setFixedSize (w, h);
   setFixedSize (w, h);
   cached_width = w;
   cached_height= h;
+  // 显隐切换后栏宽迟一帧才收敛，尺寸变了必须按新宽重算位置：Qt 缩放窗口只
+  // 保左上角，光改尺寸会让栏偏出居中位置，要等下次鼠标移动才归位
+  if (isVisible ()) updatePosition (the_qt_renderer ());
 }
 
 void
@@ -223,10 +234,23 @@ QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
 }
 
 void
+QTMAiTranslatePopup::setTranslateVisible (bool visible) {
+  QObject* root= quick->rootObject ();
+  if (!root) return;
+  if (root->property ("showTranslate").toBool () == visible) return;
+  // 栏宽经 positioner polish 迟一帧收敛，随后由 implicit 尺寸信号回来重定
+  root->setProperty ("showTranslate", visible);
+}
+
+void
 QTMAiTranslatePopup::showPopup (qt_renderer_rep* ren, rectangle selr,
                                 double magf, int scroll_x, int scroll_y,
                                 int canvas_x, int canvas_y) {
   (void) ren;
+  // 同步翻译按钮可见性（0995）：编辑器侧显隐判定时已按 100ms 缓存算好
+  if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
+    setTranslateVisible (ed->ai_translate_button_visible ());
+  }
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   autoSize ();
   // 编辑器 show 调用即开始光标跟踪；仅未运行时启动——update 随鼠标移动
