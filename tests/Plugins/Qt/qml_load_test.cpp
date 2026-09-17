@@ -251,21 +251,7 @@ class GoMenuStubBridge : public QObject {
   Q_PROPERTY (QVariantMap meta READ meta CONSTANT)
 public:
   explicit GoMenuStubBridge (QObject* p= nullptr) : QObject (p) {
-    m_meta["can_back"]     = true;
-    m_meta["can_forward"]  = false;
-    m_meta["label_back"]   = QString ("Back");
-    m_meta["label_forward"]= QString ("Forward");
-    m_meta["label_save"]   = QString ("Save position");
-    m_meta["label_buffers"]= QString ("Open documents");
-    m_meta["label_recent"] = QString ("Recent");
-
-    QVariantList bufs;
-    QVariantMap  b1;
-    b1["url"]    = QString ("file:///tmp/doc1.tm");
-    b1["title"]  = QString ("doc1.tm");
-    b1["current"]= true;
-    bufs.append (b1);
-    m_meta["buffers"]= bufs;
+    m_meta["label_recent"]= QString ("Recent");
 
     QVariantList recs;
     QVariantMap  r1;
@@ -275,10 +261,6 @@ public:
     m_meta["recent"]= recs;
   }
   QVariantMap      meta () const { return m_meta; }
-  Q_INVOKABLE void goBack () {}
-  Q_INVOKABLE void goForward () {}
-  Q_INVOKABLE void savePosition () {}
-  Q_INVOKABLE void switchToBuffer (const QString&) {}
   Q_INVOKABLE void loadBuffer (const QString&) {}
   Q_INVOKABLE void closeMenu () {}
 

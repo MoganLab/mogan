@@ -30,14 +30,7 @@ TestGoMenuBridge::test_bridge_meta_defaults () {
   GoMenuBridge bridge (&host);
   QVariantMap  meta= bridge.meta ();
 
-  QVERIFY (meta.contains ("can_back"));
-  QVERIFY (meta.contains ("can_forward"));
-  QVERIFY (meta.contains ("label_back"));
-  QVERIFY (meta.contains ("label_forward"));
-  QVERIFY (meta.contains ("label_save"));
-  QVERIFY (meta.contains ("label_buffers"));
   QVERIFY (meta.contains ("label_recent"));
-  QVERIFY (meta.contains ("buffers"));
   QVERIFY (meta.contains ("recent"));
 }
 
@@ -47,10 +40,6 @@ TestGoMenuBridge::test_bridge_actions () {
   GoMenuBridge bridge (&host);
 
   // 验证各 invokable 方法能安全调用且不崩溃
-  bridge.goBack ();
-  bridge.goForward ();
-  bridge.savePosition ();
-  bridge.switchToBuffer ("");
   bridge.loadBuffer ("");
   bridge.closeMenu ();
 }

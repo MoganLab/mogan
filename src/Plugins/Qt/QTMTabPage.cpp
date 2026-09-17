@@ -588,24 +588,22 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
 
 void
 QTMTabPageContainer::updateActiveTab (const url& currentView) {
+  string cv= as_string (currentView);
 #ifdef LIII_DEBUG
   debug_active_count++;
   cout << "[tabpage] active #" << debug_active_count
        << " currentView=" << currentView << LF;
-  for (int i= 0; i < m_tabPageList.size (); ++i) {
-    bool match=
-        (as_string (m_tabPageList[i]->m_viewUrl) == as_string (currentView));
-    cout << "  tab #" << i << " url=" << m_tabPageList[i]->m_viewUrl
-         << " title=" << from_qstring (m_tabPageList[i]->text ())
-         << " match=" << match << LF;
-    m_tabPageList[i]->setChecked (match);
-  }
-#else
-  for (int i= 0; i < m_tabPageList.size (); ++i) {
-    QTMTabPage* tab= m_tabPageList[i];
-    tab->setChecked (as_string (tab->m_viewUrl) == as_string (currentView));
-  }
 #endif
+  for (int i= 0; i < m_tabPageList.size (); ++i) {
+    QTMTabPage* tab  = m_tabPageList[i];
+    bool        match= as_string (tab->m_viewUrl) == cv;
+#ifdef LIII_DEBUG
+    cout << "  tab #" << i << " url=" << tab->m_viewUrl
+         << " title=" << from_qstring (tab->text ()) << " match=" << match
+         << LF;
+#endif
+    tab->setChecked (match);
+  }
 }
 
 #ifdef LIII_DEBUG

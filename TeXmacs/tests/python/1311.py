@@ -43,14 +43,7 @@ if sys.platform == "win32":
         except Exception:
             pass
 
-# Fallback: import pynput from ~/git/pynput/lib if not installed system-wide
-try:
-    import pynput
-except ImportError:
-    pynput_path = os.path.expanduser("~/git/pynput/lib")
-    if os.path.exists(pynput_path):
-        sys.path.insert(0, pynput_path)
-    import pynput
+import pynput
 
 from pynput.keyboard import Key, Controller as KeyboardController
 from pynput.mouse import Button, Controller as MouseController

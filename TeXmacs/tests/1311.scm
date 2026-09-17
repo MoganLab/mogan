@@ -11,7 +11,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs tests 1311)
-  (:use (kernel gui menu-widget) (texmacs menus file-menu) (texmacs menus tabpage-menu))
+  (:use (kernel gui menu-widget)
+    (texmacs menus file-menu)
+    (texmacs menus tabpage-menu)
+  ) ;:use
 ) ;texmacs-module
 
 (import (liii check))
@@ -25,11 +28,12 @@
     ((rest steps) (t (+ (texmacs-time) step-delay-ms)))
     (when (pair? rest)
       (let ((label (caar rest)) (act (cdar rest)))
-        (exec-delayed-at (lambda ()
-                           (display* "[1311-step] " label "\n")
-                           (act)
-                           (loop (cdr rest) (+ (texmacs-time) step-delay-ms))
-                         ) ;lambda
+        (exec-delayed-at
+          (lambda ()
+            (display* "[1311-step] " label "\n")
+            (act)
+            (loop (cdr rest) (+ (texmacs-time) step-delay-ms))
+          ) ;lambda
           t
         ) ;exec-delayed-at
       ) ;let
@@ -45,54 +49,42 @@
            (list
              ;; 1. 从启动页通过 go-menu-load-buffer 打开一个新文档
              (cons "step 1: open document via go-menu-load-buffer"
-               (lambda ()
-                 (go-menu-load-buffer fixture-path)
-               )
-             )
+               (lambda () (go-menu-load-buffer fixture-path))
+             ) ;cons
              ;; 2. 验证新文档加载，且当前活动 view 是该文档
              (cons "step 2: verify buffer and active view"
                (lambda ()
-                 (let ((cur-buf (current-buffer))
-                       (cur-vw (current-view)))
+                 (let ((cur-buf (current-buffer)) (cur-vw (current-view)))
                    (display* "[1311] cur-buf: " cur-buf "\n")
                    (display* "[1311] cur-vw: " cur-vw "\n")
                    (display* "[1311] tabpages: " (tabpage-list #t) "\n")
                    (check (url-tail cur-buf) => (url-tail fixture-url))
                    (check-true (nnull? cur-vw))
-                 )
-               )
-             )
+                 ) ;let
+               ) ;lambda
+             ) ;cons
              ;; 3. 切回启动页标签
              (cons "step 3: switch back to startup-tab"
-               (lambda ()
-                 (switch-to-buffer* startup-url)
-               )
-             )
+               (lambda () (switch-to-buffer* startup-url))
+             ) ;cons
              ;; 4. 再次通过 go-menu-load-buffer 切换到已打开的文档
              (cons "step 4: switch to existing document via go-menu-load-buffer"
-               (lambda ()
-                 (go-menu-load-buffer fixture-path)
-               )
-             )
+               (lambda () (go-menu-load-buffer fixture-path))
+             ) ;cons
              ;; 5. 验证成功切回该文档并保持选中
              (cons "step 5: verify switched back to document"
                (lambda ()
-                 (let ((cur-buf (current-buffer))
-                       (cur-vw (current-view)))
+                 (let ((cur-buf (current-buffer)) (cur-vw (current-view)))
                    (check (url-tail cur-buf) => (url-tail fixture-url))
                    (check-true (nnull? cur-vw))
-                 )
-               )
-             )
-             (cons "step 6: report and quit"
-               (lambda ()
-                 (check-report)
-                 (quit-TeXmacs)
-               )
-             )
-           )
-         ))
+                 ) ;let
+               ) ;lambda
+             ) ;cons
+             (cons "step 6: report and quit" (lambda () (check-report) (quit-TeXmacs)))
+           ) ;list
+         ) ;steps
+        ) ;
     (display "[1311] starting test chain\n")
     (run-chain steps)
-  )
-)
+  ) ;let*
+) ;tm-define

@@ -3685,11 +3685,7 @@ qt_tm_widget_rep::showGoMenu (QPushButton* button) {
     return;
   }
 
-  static const bool sgApiInitialized= [] () {
-    QQuickWindow::setGraphicsApi (QSGRendererInterface::Software);
-    return true;
-  }();
-  (void) sgApiInitialized;
+  qt_use_software_scene_graph ();
 
   QWidget* mw   = mainwindow ();
   auto*    popup= new QWidget (mw, Qt::Popup | Qt::FramelessWindowHint |
@@ -3699,17 +3695,12 @@ qt_tm_widget_rep::showGoMenu (QPushButton* button) {
   m_goMenuPopup= popup;
 
   auto* bridge= new GoMenuBridge (popup);
-  QObject::connect (popup, &QObject::destroyed, bridge, &QObject::deleteLater);
 
   auto* quick= new QQuickWidget (popup);
   quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
   quick->setClearColor (Qt::transparent);
   quick->setStyleSheet ("background: transparent;");
-  quick->rootContext ()->setContextProperty ("dpScale",
-                                             DpiUtils::scaleFactor ());
-  bool isDark=
-      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  quick->rootContext ()->setContextProperty ("isDark", isDark);
+  qt_inject_theme_context (quick);
   quick->rootContext ()->setContextProperty ("goBridge", bridge);
   quick->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
 

@@ -17,9 +17,8 @@
 /**
  * @brief Go 菜单的 C++ ↔ QML 桥接对象。
  *
- * 负责从 Scheme
- * 中获取当前光标历史状态、当前打开的文档列表、最近使用的文档列表， 并提供给 QML
- * 菜单。同时暴露跳转/回退/前进等槽函数供 QML 触发。
+ * 负责从 Scheme 中获取最近使用的文档列表并提供给 QML 菜单，
+ * 同时暴露打开文档、关闭菜单的槽函数供 QML 触发。
  */
 class GoMenuBridge : public QObject {
   Q_OBJECT
@@ -31,10 +30,6 @@ public:
 
   QVariantMap meta () const { return m_meta; }
 
-  Q_INVOKABLE void goBack ();
-  Q_INVOKABLE void goForward ();
-  Q_INVOKABLE void savePosition ();
-  Q_INVOKABLE void switchToBuffer (const QString& url);
   Q_INVOKABLE void loadBuffer (const QString& url);
   Q_INVOKABLE void closeMenu ();
 

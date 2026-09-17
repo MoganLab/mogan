@@ -24,8 +24,7 @@ Item {
     readonly property real menuWidth: Math.max(260 * Theme.scaleFactor,
         Math.min(420 * Theme.scaleFactor, contentColumn.implicitWidth + 24 * Theme.scaleFactor))
     readonly property real maxListHeight: 460 * Theme.scaleFactor
-    readonly property real actualContentHeight: Math.max(calculatedHeight, contentColumn.childrenRect.height)
-    readonly property real listHeight: Math.min(maxListHeight, actualContentHeight)
+    readonly property real listHeight: Math.min(maxListHeight, calculatedHeight)
 
     width: implicitWidth
     height: implicitHeight
@@ -65,7 +64,7 @@ Item {
             anchors.fill: parent
             anchors.margins: 6 * Theme.scaleFactor
             contentWidth: width
-            contentHeight: root.actualContentHeight
+            contentHeight: root.calculatedHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
@@ -113,7 +112,6 @@ Item {
                     delegate: MenuItem {
                         width: contentColumn.width
                         text: modelData.title || ""
-                        subText: modelData.url || ""
                         onTriggered: if (typeof goBridge !== "undefined") goBridge.loadBuffer(modelData.url)
                     }
                 }
@@ -165,26 +163,20 @@ Item {
     component MenuItem: Rectangle {
         id: itemRoot
         property string text: ""
-        property string subText: ""
-        property bool enabled: true
         signal triggered()
 
         implicitHeight: root.itemH
         height: implicitHeight
         implicitWidth: 260 * Theme.scaleFactor
         radius: 6 * Theme.scaleFactor
-        color: mouseArea.containsMouse && itemRoot.enabled ? Theme.fieldBgHover : "transparent"
+        color: mouseArea.containsMouse ? Theme.fieldBgHover : "transparent"
 
         MouseArea {
             id: mouseArea
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: itemRoot.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: {
-                if (itemRoot.enabled) {
-                    itemRoot.triggered();
-                }
-            }
+            cursorShape: Qt.PointingHandCursor
+            onClicked: itemRoot.triggered()
         }
 
         Row {
@@ -197,7 +189,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: itemRoot.text
                 font.pixelSize: Theme.fontSmall
-                color: itemRoot.enabled ? Theme.fg : Theme.muted
+                color: Theme.fg
                 elide: Text.ElideMiddle
                 width: parent.width
             }

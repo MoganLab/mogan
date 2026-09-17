@@ -19,16 +19,8 @@
 (define (test-go-menu-meta-shape)
   (let ((meta (go-menu-meta)))
     (check (list? meta) => #t)
-    (check (pair? (assoc "can_back" meta)) => #t)
-    (check (pair? (assoc "can_forward" meta)) => #t)
-    (check (pair? (assoc "label_back" meta)) => #t)
-    (check (pair? (assoc "label_forward" meta)) => #t)
-    (check (pair? (assoc "label_save" meta)) => #t)
-    (check (pair? (assoc "label_buffers" meta)) => #t)
     (check (pair? (assoc "label_recent" meta)) => #t)
-    (check (pair? (assoc "buffers" meta)) => #t)
     (check (pair? (assoc "recent" meta)) => #t)
-    (check (list? (cdr (assoc "buffers" meta))) => #t)
     (check (list? (cdr (assoc "recent" meta))) => #t)
   ) ;let
 ) ;define

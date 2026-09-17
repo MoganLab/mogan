@@ -102,21 +102,23 @@
 ;; Dynamic menu for recent files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (short-file-name u)
+  (cond
+   ((collab-buffer? u)
+    ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
+    (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
+   ) ;
+   ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
+   ((url-rooted-web? u)
+    (string-append (url->system (url-tail u)) " @ " (url-host u))
+   ) ;
+   (else (url->system (url-tail u)))
+  ) ;cond
+) ;define
+
 (define (short-menu-name u)
   ;; 菜单条目经 set_text 按 herk 解码,文件名须先 utf8->herk(幂等)
-  (utf8->herk
-    (cond
-     ((collab-buffer? u)
-      ;; 云文档标题存于 recent-files 的 name 字段（url-tail 是 UUID 非标题）；未命中回退 doc_id。
-      (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
-     ) ;
-     ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
-     ((url-rooted-web? u)
-      (string-append (url->system (url-tail u)) " @ " (url-host u))
-     ) ;
-     (else (url->system (url-tail u)))
-    ) ;cond
-  ) ;utf8->herk
+  (utf8->herk (short-file-name u))
 ) ;define
 
 (define (long-menu-name u)
@@ -153,6 +155,25 @@
     ) ;let*
   ) ;for
 ) ;tm-menu
+
+(tm-define (open-recent-entry u)
+  ;; 打开最近列表条目：云文档按 doc_id 重新 join（须带存储里的 title，否则
+  ;; collab-join-document 名字缺省 → buffer 标题退化为 UUID）；loro=no 构建下
+  ;; 云 glue 未注册，残留云条目改走 load-document 优雅失败。
+  ;; 返回 #t 表示走了 collab-join（其自身会切换 buffer）。
+  (if (and (collab-buffer? u) (loro-enabled?))
+    (begin
+      (collab-join-document (collab-url->doc-id u)
+        (or (recent-files-get-name (url->system u)) "")
+      ) ;collab-join-document
+      #t
+    ) ;begin
+    (begin
+      (load-document u)
+      #f
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 (tm-define (recent-file-list nr)
   (let* ((l1 (map cdar (learned-interactive "recent-buffer")))
@@ -533,44 +554,8 @@
 ;; QML Go Menu Meta & Actions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (short-file-name u)
-  (cond
-   ((collab-buffer? u)
-    (or (recent-files-get-name (url->system u)) (collab-url->doc-id u))
-   ) ;
-   ((url-rooted-tmfs? u) (tmfs-title u '(document "")))
-   ((url-rooted-web? u)
-    (string-append (url->system (url-tail u)) " @ " (url-host u))
-   ) ;
-   (else (url->system (url-tail u)))
-  ) ;cond
-) ;define
-
 (tm-define (go-menu-meta)
-  (list (cons "can_back" (if (cursor-has-history?) "true" "false"))
-    (cons "can_forward" (if (cursor-has-future?) "true" "false"))
-    (cons "label_back" (translate "Back"))
-    (cons "label_forward" (translate "Forward"))
-    (cons "label_save" (translate "Save position"))
-    (cons "label_buffers" (translate "Open documents"))
-    (cons "label_recent" (translate "Recent"))
-    (cons "buffers"
-      (map
-        (lambda (name)
-          (let* ((abbr (buffer-get-title name))
-                 (abbr* (if (== abbr "") (short-file-name name) abbr))
-                 (mod? (buffer-modified? name))
-                 (curr? (== (current-buffer) name))
-                ) ;
-            (list (url->string name)
-              (string-append abbr* (if mod? " *" ""))
-              (if curr? "true" "false")
-            ) ;list
-          ) ;let*
-        ) ;lambda
-        (list-difference (buffer-menu-list 15) (linked-file-list))
-      ) ;map
-    ) ;cons
+  (list (cons "label_recent" (translate "Recent"))
     (cons "recent"
       (map (lambda (name) (list (url->system name) (short-file-name name)))
         (recent-file-list 15)
@@ -579,34 +564,17 @@
   ) ;list
 ) ;tm-define
 
-(tm-define (go-menu-switch-to-buffer s)
-  (let ((u (cond ((url? s) s)
-                 ((string-starts? s "tmfs://") (string->url s))
-                 (else (system->url s))
-           ) ;cond
-        ) ;u
-       ) ;
-    (cond ((member u (buffer-list)) (switch-to-buffer* u))
-          (else (switch-to-buffer* u))
-    ) ;cond
-  ) ;let
-) ;tm-define
-
 (tm-define (go-menu-load-buffer s)
-  (let ((u (cond ((url? s) s)
-                 ((string-starts? s "tmfs://") (string->url s))
-                 (else (system->url s))
-           ) ;cond
-        ) ;u
-       ) ;
-    (if (and (collab-buffer? u) (loro-enabled?))
-      (collab-join-document (collab-url->doc-id u)
-        (or (recent-files-get-name (url->system u)) "")
-      ) ;collab-join-document
-      (begin
-        (load-document u)
-        (switch-to-buffer* u)
-      ) ;begin
-    ) ;if
-  ) ;let
+  (let* ((u (cond ((url? s) s)
+                  ((string-starts? s "tmfs://") (string->url s))
+                  (else (system->url s))
+            ) ;cond
+         ) ;u
+         (joined? (open-recent-entry u))
+        ) ;
+    ;; collab-join 自带 buffer 切换；本地 load-document 后须显式切换
+    (when (not joined?)
+      (switch-to-buffer* u)
+    ) ;when
+  ) ;let*
 ) ;tm-define
