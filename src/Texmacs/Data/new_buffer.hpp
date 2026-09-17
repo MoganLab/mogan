@@ -92,32 +92,38 @@ void       set_master_buffer (url name, url master);
 void       set_title_buffer (url name, string title);
 string     get_title_buffer (url name);
 void       set_buffer_tree (url name, tree doc);
-tree       get_buffer_tree (url name);
-void       set_buffer_body (url name, tree body);
-tree       get_buffer_body (url name);
-url        new_buffer_in_new_window (url name, tree t, tree geom= "");
-int        get_last_save_buffer (url name);
-void       set_last_save_buffer (url name, int t);
-bool       is_aux_buffer (url name);
-double     last_visited (url name);
-bool       buffer_modified (url name);
-bool       buffer_modified_since_autosave (url name);
-void       pretend_buffer_modified (url name);
-void       pretend_buffer_saved (url name);
-void       pretend_buffer_autosaved (url name);
-void       attach_buffer_notifier (url name);
-bool       buffer_has_name (url name);
-bool       buffer_import (url name, url src, string fm);
-bool       buffer_load (url name);
-bool       buffer_export (url name, url dest, string fm);
-bool       buffer_render_to_images (url name, url dest, double zoomf);
-bool       buffer_render_to_pdf (url name, url dest);
-bool       buffer_save (url name);
-tree       import_loaded_tree (string s, url u, string fm);
-tree       import_tree (url u, string fm);
-bool       export_tree (tree doc, url u, string fm);
-tree       load_style_tree (string package);
-tree       with_package_definitions (string package, tree body);
-void       move_buffer_via_index (int from, int to);
+/** @brief 对指定缓冲区的所有视图强制执行 apply_changes()，冲刷未排版的改动
+ * @param name 缓冲区 url
+ * @note 用于模态对话框等主事件循环 interpose 定时器被拦截的场景，
+ * 替代全局的 texmacs_interpose_handler()
+ */
+void   apply_buffer_changes (url name);
+tree   get_buffer_tree (url name);
+void   set_buffer_body (url name, tree body);
+tree   get_buffer_body (url name);
+url    new_buffer_in_new_window (url name, tree t, tree geom= "");
+int    get_last_save_buffer (url name);
+void   set_last_save_buffer (url name, int t);
+bool   is_aux_buffer (url name);
+double last_visited (url name);
+bool   buffer_modified (url name);
+bool   buffer_modified_since_autosave (url name);
+void   pretend_buffer_modified (url name);
+void   pretend_buffer_saved (url name);
+void   pretend_buffer_autosaved (url name);
+void   attach_buffer_notifier (url name);
+bool   buffer_has_name (url name);
+bool   buffer_import (url name, url src, string fm);
+bool   buffer_load (url name);
+bool   buffer_export (url name, url dest, string fm);
+bool   buffer_render_to_images (url name, url dest, double zoomf);
+bool   buffer_render_to_pdf (url name, url dest);
+bool   buffer_save (url name);
+tree   import_loaded_tree (string s, url u, string fm);
+tree   import_tree (url u, string fm);
+bool   export_tree (tree doc, url u, string fm);
+tree   load_style_tree (string package);
+tree   with_package_definitions (string package, tree body);
+void   move_buffer_via_index (int from, int to);
 
 #endif // NEW_BUFFER_H

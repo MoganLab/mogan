@@ -351,13 +351,23 @@ def run_test():
         cx, cy = wx + int(950 * scale), wy + int(570 * scale)
         preview_box = (cx - int(250 * scale), cy - int(40 * scale),
                        cx + int(250 * scale), cy + int(60 * scale))
-        preview_crop = preview_screenshot.crop(preview_box)
-        arr_plain = np.array(preview_crop)
-        std_plain = float(arr_plain.std())
-        dark_pixels = np.sum(arr_plain < 100)
-        print(f"[1309] Plain preview analysis: std={std_plain:.1f}, dark_pixels={dark_pixels}")
-        if std_plain < 10.0 or dark_pixels < 50:
-            print("[1309] ERROR: Preview area missing rendered text!")
+
+        def analyze_region(screenshot, label):
+            """Crop the preview region and assert it contains rendered text."""
+            arr = np.array(screenshot.crop(preview_box))
+            std = float(arr.std())
+            dark = np.sum(arr < 100)
+            print(f"[1309] {label} analysis: std={std:.1f}, dark_pixels={dark}")
+            if std < 10.0 or dark < 50:
+                print(f"[1309] ERROR: {label} area missing rendered text!")
+                return None
+            return arr
+
+        def mean_diff(arr_a, arr_b):
+            return float(np.mean(np.abs(arr_a.astype(float) - arr_b.astype(float))))
+
+        arr_plain = analyze_region(preview_screenshot, "Plain preview")
+        if arr_plain is None:
             return 1
         print("[1309] SUCCESS: Bibliography preview rendered clearly with proper magnification!")
 
@@ -378,9 +388,8 @@ def run_test():
         time.sleep(0.5)
 
         scrolled_screenshot = ImageGrab.grab()
-        scrolled_crop = scrolled_screenshot.crop(preview_box)
-        arr_scrolled = np.array(scrolled_crop)
-        diff_val = float(np.mean(np.abs(arr_scrolled.astype(float) - arr_plain.astype(float))))
+        arr_scrolled = np.array(scrolled_screenshot.crop(preview_box))
+        diff_val = mean_diff(arr_scrolled, arr_plain)
         print(f"[1309] Scroll difference: {diff_val:.1f}")
         if diff_val < 5.0:
             print("[1309] ERROR: Scrollbar dragging did NOT scroll preview content!")
@@ -414,6 +423,16 @@ def run_test():
         alpha_path = os.path.join(tempfile.gettempdir(), "1309_qml_preview_switched.png")
         alpha_screenshot.save(alpha_path)
         print(f"[1309] Saved switched style preview screenshot to {alpha_path}")
+
+        arr_alpha = analyze_region(alpha_screenshot, "Switched preview")
+        if arr_alpha is None:
+            return 1
+        diff_style = mean_diff(arr_alpha, arr_plain)
+        print(f"[1309] Style switch difference: {diff_style:.1f}")
+        if diff_style < 5.0:
+            print("[1309] ERROR: Switched style preview did NOT differ from plain preview!")
+            return 1
+        print("[1309] SUCCESS: Switched style preview rendered successfully with distinct formatting!")
 
         # Step 9: Click '插入' (Insert) button
         insert_btn_x = wx + int(1140 * scale)
