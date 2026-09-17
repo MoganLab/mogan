@@ -533,6 +533,8 @@ public:
   virtual bool selection_active_table (bool strict= true)= 0;
   virtual bool selection_active_small ()                 = 0;
   virtual bool selection_active_enlarging ()             = 0;
+  // AI 操作栏显隐总闸门（含正文/场景门控），暴露给 scheme 供集成测试断言
+  virtual bool should_show_translate_popup ()= 0;
 
   virtual void selection_raw_set (string key, tree t)                      = 0;
   virtual tree selection_raw_get (string key)                              = 0;

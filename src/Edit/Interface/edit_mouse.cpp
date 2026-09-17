@@ -1461,6 +1461,12 @@ edit_interface_rep::should_show_translate_popup () {
     return false;
   }
 
+  // 只限文档正文：src 源码模式（样式文件等整篇 src 的 buffer）与 preamble
+  // 编辑区不弹（判定组合与 edit_dynamic.cpp、edit_search.cpp 一致）
+  if (get_init_string (MODE) == "src" || inside ("show-preamble")) {
+    return false;
+  }
+
   if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
       as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
     return false;
@@ -1469,6 +1475,11 @@ edit_interface_rep::should_show_translate_popup () {
 
   tree sel_tree= selection_get ();
   if (is_atomic (sel_tree) && as_string (sel_tree) == "") return false;
+  // 选区只有图片时不弹（翻译/润色/对话都以文字为对象）；原子树必不含图片，直接跳过
+  if (!is_atomic (sel_tree) &&
+      as_bool (call ("ai-selection-only-images?", sel_tree))) {
+    return false;
+  }
 
   translate_popup_last_result= true;
   return true;
