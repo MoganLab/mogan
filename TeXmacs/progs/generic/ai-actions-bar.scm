@@ -19,17 +19,17 @@
 
 ;; image 标签视为叶子；其余复合节点递归；字符串叶子须全空白。
 ;; 保守策略：with 等含非空白参数串的复合节点一律判 #f（照常弹出）
+
 (define (ai-only-images-or-blank? t)
   (cond
-   ((tree-atomic? t)
-    (string-null? (tm-string-trim-both (tree->string t))))
+   ((tree-atomic? t) (string-null? (tm-string-trim-both (tree->string t))))
    ((tree-is? t 'image) #t)
    (else
-     (let loop ((i 0))
-       (cond
-        ((>= i (tree-arity t)) #t)
-        ((ai-only-images-or-blank? (tree-ref t i)) (loop (+ i 1)))
-        (else #f)
+     (let loop
+       ((i 0))
+       (cond ((>= i (tree-arity t)) #t)
+             ((ai-only-images-or-blank? (tree-ref t i)) (loop (+ i 1)))
+             (else #f)
        ) ;cond
      ) ;let
    ) ;else
@@ -37,7 +37,8 @@
 ) ;define
 
 (tm-define (ai-selection-only-images? t)
-  (:synopsis "选区树是否只含图片（除空白外无其它内容，且至少一张图片）")
+  (:synopsis "选区树是否只含图片（除空白外无其它内容，且至少一张图片）"
+  ) ;:synopsis
   ;; tm-find-tag 命中即返回子树而非 #t，归一化为布尔供 C++ as_bool 消费
   (if (and (tm-find-tag t 'image) (ai-only-images-or-blank? t)) #t #f)
 ) ;tm-define
