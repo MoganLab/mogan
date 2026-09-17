@@ -197,21 +197,21 @@ ChatController::onSendRequested (const string& sessionId) {
   // 首次发送时注册 session 到持久化层 + 加入 sidebar
   registerSession (sessionId);
 
-  // 首次发送：生成标题
+  // 首次发送且无标题：从内容生成标题（翻译会话创建时已带标题，不进此分支）
   if (is_empty (session->title)) {
     sessionManager_.generateTitleFromContent (sessionId);
 
     string displayTitle= getSessionDisplayTitle (sessionId);
     view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
-    view_->sidebar ()->setActiveItem (sessionId);
-    // 更新会话标题标签
-    if (session->panel) {
-      ChatConversationPanel* p=
-          static_cast<ChatConversationPanel*> (session->panel);
-      if (p->sessionTitle ()) {
-        p->sessionTitle ()->setText (to_qstring (session->title));
-        p->sessionTitle ()->show ();
-      }
+  }
+  view_->sidebar ()->setActiveItem (sessionId);
+  // 面板标题标签随会话标题同步（翻译会话的标题在创建时已确定，同样要显示）
+  if (session->panel && !is_empty (session->title)) {
+    ChatConversationPanel* p=
+        static_cast<ChatConversationPanel*> (session->panel);
+    if (p->sessionTitle ()) {
+      p->sessionTitle ()->setText (to_qstring (session->title));
+      p->sessionTitle ()->show ();
     }
   }
 
@@ -668,7 +668,8 @@ ChatController::updateManifest (const string& sessionId) {
        << object (string (createdAtBuf))
        << object (s->thinking ? string ("enabled") : string ("disabled"))
        << object (s->search ? string ("enabled") : string ("disabled"))
-       << object (string (updateAtBuf)) << object (s->thinkingEffort);
+       << object (string (updateAtBuf)) << object (s->thinkingEffort)
+       << object (s->sourceDocId);
   call ("chat-persist-update-manifest", args);
 }
 
@@ -738,8 +739,7 @@ ChatController::ensureNewConversation () {
 }
 
 ChatConversationPanel*
-ChatController::createNewConversation (const string& titlePrefix,
-                                       const string& modelKey) {
+ChatController::createNewConversation (const string& modelKey) {
   if (!view_) return nullptr;
   // 创建新会话（与 ensureNewConversation 的复用分支共用语义：默认模型、
   // 欢迎页、不继承最近激活会话）
@@ -754,7 +754,6 @@ ChatController::createNewConversation (const string& titlePrefix,
   sessionManager_.setPanel (sid, panel);
   sessionManager_.setModel (sid, initialModel);
   sessionManager_.setThinkingEffort (sid, initialThinkingEffort (initialModel));
-  sessionManager_.setTitlePrefix (sid, titlePrefix);
 
   eval ("(use-modules (llm chat-style))");
   call ("chat-tab-sync-session-styles!", sid);
@@ -896,27 +895,64 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
 void
 qt_chat_ai_send_selection (tree sel, string action) {
   ChatController* ctrl= get_chat_controller ();
+  // 翻译须在打开侧边栏（焦点/视图切换）前捕获来源文档身份：此时
+  // current-buffer 仍是文档本身；llm 模块按 idle 延迟初始化，首次动作
+  // 可能尚未加载，确保模块就绪（幂等，只执行一次）
+  string docId, docName;
+  if (action == "translate") {
+    static bool treeOpsLoaded= false;
+    if (!treeOpsLoaded) {
+      eval ("(use-modules (llm chat-tree-ops))");
+      treeOpsLoaded= true;
+    }
+    object info= call ("chat-tab-source-doc-info");
+    docId      = as_string (car (info));
+    docName    = as_string (cdr (info));
+  }
   // 打开 AI 侧边栏：同步创建聊天部件并确保活动会话。已打开时跳过，避免
   // sync_chat_sidebar_mode 重复 dock 重排；社区版无聊天部件，调用静默无效
   if (!ctrl->view_ || !ctrl->view_->isVisible ())
     call ("show-chat-sidebar", object (true));
   if (!ctrl->view_) return;
-  // 翻译每次都进全新会话（原因见 createNewConversation），标题带「翻译: 」
-  // 前缀标记来源；对话进当前会话。两分支写入前无需加载检查：面板存在即保证
-  // llm 模块已加载（会话创建路径 eval 过 use-modules，chat-loader 亦在启动
-  // idle 阶段整体加载）
+  // 写入前无需加载检查：面板存在即保证 llm 模块已加载（会话创建路径
+  // eval 过 use-modules，chat-loader 亦在启动 idle 阶段整体加载）
   if (action == "translate") {
-    // 标题前缀走词典，与操作栏「翻译」按钮同一键（"Ai translate" 首字符
-    // 折叠命中 "ai translate"），随界面语言本地化；标题为 UTF-8，经
-    // from_qstring_utf8 归一编码后拼接
-    string titlePrefix=
-        from_qstring_utf8 (qt_translate ("Ai translate")) * ": ";
-    // 翻译质量优先，默认模型取清单 translate_model 字段（当前 v4-pro；
-    // 清单未配置时 translateKey 回退清单默认模型）
-    ChatConversationPanel* panel= ctrl->createNewConversation (
-        titlePrefix, ctrl->modelStore_.translateKey ());
+    // 同一文档共享一个翻译会话：按 stem-doc-id 找未归档的翻译会话
+    // （最近活跃优先），命中即复用；未命中（含文档未绑定 doc-id、会话
+    // 已归档/删除）才新建
+    string sid;
+    if (!is_empty (docId))
+      sid= ctrl->sessionManager_.findSessionBySourceDoc (docId);
+    if (!is_empty (sid)) {
+      ChatSession* s= ctrl->sessionManager_.getSession (sid);
+      if (s && s->state == ChatState::Generating) {
+        // 生成中不覆盖输入，仅激活展示
+        ctrl->activateSession (sid);
+        return;
+      }
+      ctrl->activateSession (sid);
+      ChatConversationPanel* panel=
+          s ? static_cast<ChatConversationPanel*> (s->panel) : nullptr;
+      if (!panel) return;
+      call ("chat-tab-set-input-body!",
+            ChatSessionManager::inputBufferUrl (sid),
+            ChatController::composeAiInputBody (sel, action));
+      ctrl->onSendRequested (sid);
+      return;
+    }
+    // 标题 = 词典「翻译」+ ": " + 文件名。「翻译」与操作栏按钮同一词典键
+    // （"Translate" 首字符折叠命中 "translate"），随界面语言本地化；标题为
+    // UTF-8，经 from_qstring_utf8 归一编码后拼接。翻译质量优先，默认模型
+    // 取清单 translate_model 字段（清单未配置时 translateKey 回退清单默认
+    // 模型）
+    string title=
+        from_qstring_utf8 (qt_translate ("Translate")) * ": " * docName;
+    ChatConversationPanel* panel=
+        ctrl->createNewConversation (ctrl->modelStore_.translateKey ());
     if (!panel) return;
-    string sid= panel->sessionId ();
+    sid= panel->sessionId ();
+    ctrl->sessionManager_.setTitle (sid, title);
+    ctrl->sessionManager_.setSourceDocId (sid, docId);
     call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
           ChatController::composeAiInputBody (sel, action));
     ctrl->onSendRequested (sid);
@@ -924,6 +960,15 @@ qt_chat_ai_send_selection (tree sel, string action) {
   }
   ChatConversationPanel* panel= ctrl->view_->activeConversation ();
   if (!panel) return;
+  // 翻译会话专属于来源文档，对话不写进去：激活会话绑定了文档时先切到
+  // 空白会话（ensureNewConversation 复用或新建）再填输入
+  if (ChatSession* active= ctrl->sessionManager_.findSessionByPanel (panel)) {
+    if (!is_empty (active->sourceDocId)) {
+      ctrl->ensureNewConversation ();
+      panel= ctrl->view_->activeConversation ();
+      if (!panel) return;
+    }
+  }
   call ("chat-tab-set-input-body!",
         ChatSessionManager::inputBufferUrl (panel->sessionId ()),
         ChatController::composeAiInputBody (sel, action));
@@ -954,8 +999,18 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
   session.thinking          = (thinking == "enabled");
   session.search            = (search == "enabled");
   session.thinkingEffort    = chat_normalize_thinking_effort (thinkingEffort);
-  session.panel             = nullptr;
+  // 恢复的会话本就在 manifest 与侧边栏中；POD 成员无缺省初始化，显式赋值
+  // 避免 registered 脏值导致首次发送时重复注册
+  session.registered= true;
+  session.panel     = nullptr;
   get_chat_controller ()->restoreSessionMeta (session);
+}
+
+void
+qt_chat_tab_set_source_doc_id (string sessionId, string docId) {
+  // glue 单函数参数上限为 10，sourceDocId 不能随 restore 一并传入，恢复后
+  // 由 scheme 侧单独设置（insertSession 之后调用，写入已存入的副本）
+  get_chat_controller ()->sessionManager ().setSourceDocId (sessionId, docId);
 }
 
 string

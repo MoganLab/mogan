@@ -308,9 +308,6 @@
 ("advanced" "高级")
 ("after" "之后")
 ("ai action bar" "AI 操作栏")
-("ai chat" "对话")
-("ai polish" "润色")
-("ai translate" "翻译")
 ("albanian" "阿尔巴尼亚语")
 ("algorithm" "算法")
 ("align cell to the bottom" "单元格向下对齐")
@@ -558,6 +555,7 @@
 ("character encoding" "字符编码")
 ("character expansion" "字符扩展")
 ("character contraction" "字符收缩")
+("chat::ai" "对话")
 ("cjk spacing" "CJK 字间距")
 ("check exported Pdf files for correctness"
   "检查导出的PDF文件的正确性"
@@ -2086,6 +2084,7 @@
 ("point" "点")
 ("polar" "极坐标")
 ("polish" "波兰语")
+("polish::ai" "润色")
 ("polygon" "多边形")
 ("porting TeXmacs to other platforms" "移植到其它平台")
 ("portrait" "纵向")

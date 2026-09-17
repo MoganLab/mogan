@@ -240,14 +240,11 @@ private:
    *
    * 与 ensureNewConversation 的差别：空白会话里可能有未发送的输入草稿，
    * AI 翻译等一次性动作不应覆盖它，故每次都创建全新会话。
-   * @param titlePrefix 会话首次发送自动生成标题时附加的前缀（AI 翻译会话
-   *                    标记来源，走词典本地化），默认为空
-   * @param modelKey    指定初始模型 key（须在清单内，否则回退清单默认模型），
-   *                    默认为空（清单默认模型）
+   * @param modelKey 指定初始模型 key（须在清单内，否则回退清单默认模型），
+   *                 默认为空（清单默认模型）
    * @return 新会话的面板指针，创建失败时返回 nullptr
    */
-  ChatConversationPanel* createNewConversation (const string& titlePrefix= "",
-                                                const string& modelKey   = "");
+  ChatConversationPanel* createNewConversation (const string& modelKey= "");
 
   /**
    * @brief 获取或按需创建面板（延迟加载场景）。
@@ -335,10 +332,12 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  * @brief 引用文档选区到 AI 聊天输入区；翻译动作追加提示词并自动发送。
  *
  * AI 操作栏（翻译/对话）的共用入口：打开 AI 侧边栏，把选区内容写入输入区。
- * translate 每次都进全新会话（不复用空白会话，避免覆盖未发送的草稿），在
- * 引用内容下方追加固定提示词并走与发送按钮相同的 onSendRequested 管线自动
- * 发送，会话标题带词典本地化的「翻译: 」前缀；chat 只填入当前会话输入区，
- * 留给用户补写后手动发送。
+ * translate 按来源文档的 stem-doc-id 共享一个翻译会话：已有未归档的翻译
+ * 会话则激活并继续发送，否则新建（不复用空白会话，避免覆盖未发送的草稿），
+ * 在引用内容下方追加固定提示词并走与发送按钮相同的 onSendRequested 管线
+ * 自动发送，会话标题为词典本地化的「翻译: 文件名」；chat 只填入当前会话
+ * 输入区（当前会话是绑定了文档的翻译会话时先切到空白会话），留给用户
+ * 补写后手动发送。
  * @param sel    文档选区树（调用方须在焦点/视图切换前捕获）
  * @param action AI 动作：translate 或 chat
  */
@@ -352,6 +351,13 @@ void qt_chat_tab_restore_session (string sessionId, string title, string model,
                                   string updatedAtStr, int defaultExpandCount,
                                   string thinking, string search,
                                   string thinkingEffort);
+
+/**
+ * @brief Scheme→C++ 回调：设置会话来源文档的 stem-doc-id。
+ *
+ * glue 单函数参数上限为 10，恢复会话时 sourceDocId 经此函数单独设置。
+ */
+void qt_chat_tab_set_source_doc_id (string sessionId, string docId);
 
 string qt_chat_tab_active_message_buffer_url ();
 

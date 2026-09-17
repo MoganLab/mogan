@@ -122,6 +122,14 @@ private slots:
   void test_findReusableSession_skips_with_title ();
   void test_findReusableSession_empty_when_none ();
 
+  // === sourceDocId / findSessionBySourceDoc ===
+  void test_createSession_sourceDocId_default_empty ();
+  void test_setSourceDocId ();
+  void test_findSessionBySourceDoc_matches ();
+  void test_findSessionBySourceDoc_empty_docId_never_matches ();
+  void test_findSessionBySourceDoc_skips_archived ();
+  void test_findSessionBySourceDoc_returns_newest ();
+
   // === registered（延迟注册）===
   void test_createSession_registered_default_false ();
   void test_insertSession_preserves_registered ();
@@ -1076,6 +1084,83 @@ TestChatSession::test_findReusableSession_empty_when_none () {
   ChatSessionManager mgr;
   // 空管理器
   QVERIFY (is_empty (mgr.findReusableSession ()));
+}
+
+/******************************************************************************
+ * sourceDocId / findSessionBySourceDoc
+ ******************************************************************************/
+
+void
+TestChatSession::test_createSession_sourceDocId_default_empty () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  QVERIFY (is_empty (mgr.getSession (sid)->sourceDocId));
+}
+
+void
+TestChatSession::test_setSourceDocId () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setSourceDocId (sid, "doc-1");
+  QVERIFY (mgr.getSession (sid)->sourceDocId == string ("doc-1"));
+  // 不存在的会话静默忽略
+  mgr.setSourceDocId ("nonexistent", "doc-1");
+}
+
+void
+TestChatSession::test_findSessionBySourceDoc_matches () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setSourceDocId (sid, "doc-1");
+  QVERIFY (mgr.findSessionBySourceDoc ("doc-1") == sid);
+  // 其他 docId 与不绑定文档的会话（sourceDocId 为空）不匹配
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-2")));
+}
+
+void
+TestChatSession::test_findSessionBySourceDoc_empty_docId_never_matches () {
+  ChatSessionManager mgr;
+  // 未绑定文档的会话（sourceDocId 为空）不应被空 docId 匹配
+  mgr.createSession ();
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("")));
+}
+
+void
+TestChatSession::test_findSessionBySourceDoc_skips_archived () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setSourceDocId (sid, "doc-1");
+  mgr.archiveSession (sid);
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-1")));
+}
+
+void
+TestChatSession::test_findSessionBySourceDoc_returns_newest () {
+  ChatSessionManager mgr;
+
+  ChatSession s1;
+  s1.sessionId  = "older";
+  s1.state      = ChatState::Idle;
+  s1.createdAt  = 1000;
+  s1.updateAt   = 1000;
+  s1.archived   = false;
+  s1.sourceDocId= "doc-1";
+  s1.panel      = nullptr;
+
+  ChatSession s2;
+  s2.sessionId  = "newer";
+  s2.state      = ChatState::Idle;
+  s2.createdAt  = 2000;
+  s2.updateAt   = 2000;
+  s2.archived   = false;
+  s2.sourceDocId= "doc-1";
+  s2.panel      = nullptr;
+
+  mgr.insertSession (s1);
+  mgr.insertSession (s2);
+
+  // 同一文档存在多个绑定会话时取最近活跃的
+  QVERIFY (mgr.findSessionBySourceDoc ("doc-1") == string ("newer"));
 }
 
 /******************************************************************************

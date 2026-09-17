@@ -247,6 +247,15 @@ function main()
                 }
             },
             {
+                scm_name = "qt-chat-tab-set-source-doc-id",
+                cpp_name = "qt_chat_tab_set_source_doc_id",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
                 scm_name = "qt-chat-tab-active-message-buffer-url",
                 cpp_name = "qt_chat_tab_active_message_buffer_url",
                 ret_type = "string",

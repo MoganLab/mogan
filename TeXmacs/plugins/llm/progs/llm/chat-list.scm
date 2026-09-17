@@ -57,12 +57,14 @@
          (updated-at
            (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
-         (thinking-effort
-           (if (and (pair? opts2) (pair? (cddr opts2)) (caddr opts2))
-             (caddr opts2)
-             "medium"
-           ) ;if
-         ) ;thinking-effort
+         ;; opts3 = (thinking-effort stem-doc-id ...)，逐级 cdr 守卫避免短列表报错
+         (opts3
+           (if (and (pair? opts2) (pair? (cddr opts2))) (cddr opts2) '())
+         ) ;opts3
+         (thinking-effort (if (and (pair? opts3) (car opts3)) (car opts3) "medium"))
+         (stem-doc-id
+           (if (and (pair? opts3) (pair? (cdr opts3)) (cadr opts3)) (cadr opts3) "")
+         ) ;stem-doc-id
          (archived-str (if (or (not archived) (== archived "false")) "false" "true"))
          (actual-created-at (or created-at ""))
          (actual-updated-at (or updated-at created-at ""))
@@ -76,7 +78,8 @@
       (,"thinking" . ,thinking)
       (,"search" . ,search)
       (,"thinkingEffort" . ,thinking-effort)
-      (,"updateAt" . ,actual-updated-at))
+      (,"updateAt" . ,actual-updated-at)
+      (,"stemDocId" . ,stem-doc-id))
   ) ;let*
 ) ;tm-define
 
@@ -108,12 +111,18 @@
                    (search (json-ref-string entry "search" "disabled"))
                    ;; thinkingEffort 缺失时回退 medium（兼容旧 manifest）
                    (thinking-effort (json-ref-string entry "thinkingEffort" "medium"))
+                   ;; stemDocId 缺失时回退空串（兼容旧 manifest，不参与文档映射）
+                   (stem-doc-id (json-ref-string entry "stemDocId" ""))
                   ) ;
               ;; 只传元数据给 C++，不加载 buffer 内容
               (qt-chat-tab-restore-session sid title model archived-str
                 created-at updated-at expand-count thinking search
                 thinking-effort
               ) ;qt-chat-tab-restore-session
+              ;; glue 单函数参数上限为 10，stemDocId 单独设置
+              (when (!= stem-doc-id "")
+                (qt-chat-tab-set-source-doc-id sid stem-doc-id)
+              ) ;when
             ) ;let*
           ) ;lambda
           entries
@@ -127,7 +136,7 @@
 
 (tm-define (chat-persist-update-manifest session-id title model archived . rest)
   ;; rest 原样透传给 make-entry（created-at thinking search updated-at
-  ;; thinking-effort），缺省规则只在 make-entry 一处维护
+  ;; thinking-effort stem-doc-id），缺省规则只在 make-entry 一处维护
   (let* ((manifest-path (chat-persist-manifest-path))
          (entry (apply chat-persist-make-entry session-id title model archived rest))
         ) ;
