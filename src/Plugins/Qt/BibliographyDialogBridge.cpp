@@ -17,7 +17,6 @@
 #include "qt_simple_widget.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp" // eval_scheme + tmscm helpers
-#include "server.hpp"
 #include "tm_window.hpp"
 
 #include <moebius/vars.hpp>
@@ -112,7 +111,9 @@ BibliographyDialogBridge::requestPreview (const QString& file,
     tree enriched= enrich_embedded_document (tmscm_to_tree (item_tree),
                                              bib_preview_style ());
     set_buffer_tree (m_preview_buf_url, enriched);
-    texmacs_interpose_handler ();
+    // 模态 exec 下主循环的 interpose 定时器被拦截，冲刷预览缓冲区
+    // 完成排版并清零 env_change，避免预览区留白
+    apply_buffer_changes (m_preview_buf_url);
     m_isValid= true;
     if (m_previewWidget) {
       showPreview ();

@@ -144,6 +144,5 @@ in_rescue_mode () {
 /* low level */
 void create_buffer (url name, tree doc);
 void new_buffer_in_this_window (url name, tree t);
-void texmacs_interpose_handler ();
 
 #endif // defined SERVER_H

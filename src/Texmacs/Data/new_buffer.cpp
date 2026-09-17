@@ -334,6 +334,13 @@ set_buffer_tree (url name, tree doc) {
   pretend_buffer_saved (name);
 }
 
+void
+apply_buffer_changes (url name) {
+  array<url> vs= buffer_to_views (name);
+  for (int i= 0; i < N (vs); i++)
+    view_to_editor (vs[i])->apply_changes ();
+}
+
 tree
 get_buffer_tree (url name) {
   tm_buffer buf= concrete_buffer (name);
