@@ -962,6 +962,7 @@ public:
     return m;
   }
   Q_INVOKABLE QString toRelativePath (const QString& p) { return p; }
+  Q_INVOKABLE void    setPreviewVisible (bool) {}
 };
 
 void

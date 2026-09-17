@@ -1,5 +1,7 @@
 // Bibliography.qml — 「插入/修改参考文献」QML 对话框。
-// DialogShell + 文件选择行 + (样式 + 缓冲区更新并排) + PreviewPane + DialogButtons。
+// DialogShell + 文件选择行 + (样式 + 缓冲区更新并排) + 预览卡片 + DialogButtons。
+// 预览卡片内为 previewPlaceholder 占位项，由宿主将 tmfs 缓冲区原生只读控件
+// 覆盖对齐到该区域（下拉框展开时经 setPreviewVisible 临时隐藏）。
 // 一次性提交：点击 Insert/Modify 提交选中的文件、样式与更新选项；
 // Cancel / Esc 放弃。
 //
@@ -15,7 +17,7 @@
 //   initialStyle   —— 初始样式（默认 "tm-plain"）。
 //   initialUpdate  —— 初始是否更新缓冲区（默认 true）。
 //   styleOptions   —— 样式列表（"tm-plain", "tm-alpha", ...）。
-//   bibBridge      —— BibliographyDialogBridge，提供 browse、toRelativePath、requestPreview。
+//   bibBridge      —— BibliographyDialogBridge，提供 browse、toRelativePath、requestPreview、setPreviewVisible。
 //   closeBridge    —— QmlDialogBridge。
 
 import QtQuick
@@ -35,23 +37,28 @@ DialogShell {
     property string style: typeof initialStyle !== "undefined" ? initialStyle : "tm-plain"
     property bool updateBuffer: typeof initialUpdate !== "undefined" ? initialUpdate : true
 
-    property string previewDataUrl: ""
     property string previewStatus: "empty"
     property string fileHint: ""
+
+    property bool isComboOpen: root.activeCombo !== null
+    onIsComboOpenChanged: {
+        if (typeof bibBridge !== "undefined" && bibBridge) {
+            bibBridge.setPreviewVisible(!root.isComboOpen);
+        }
+    }
 
     function updatePreview() {
         if (typeof bibBridge !== "undefined" && bibBridge) {
             var res = bibBridge.requestPreview(root.file, root.style);
             if (res) {
                 root.previewStatus = res.status || "empty";
-                root.previewDataUrl = res.preview || "";
                 root.fileHint = res.hint || "";
             }
         }
     }
 
     // 路径键入逐字符触发，预览须防抖：每次 requestPreview 都同步走
-    // 读文件 + parse-bib + 排版光栅化，不防抖会卡住键入
+    // 读文件 + parse-bib + set_buffer_tree 重排版，不防抖会卡住键入
     Timer {
         id: previewDebounce
         interval: 350
@@ -213,12 +220,12 @@ DialogShell {
                 font.bold: true
             }
 
-            // 合法文献排版预览图
-            PreviewPane {
-                visible: root.previewStatus === "valid" && root.previewDataUrl.length > 0
+            // tmfs 缓冲区 QWidget 覆盖占位项
+            Item {
+                id: previewPlaceholder
+                objectName: "previewPlaceholder"
                 anchors.fill: parent
                 anchors.margins: Theme.padS
-                imageSource: root.previewDataUrl
             }
         }
 

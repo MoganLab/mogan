@@ -9,12 +9,33 @@
 
 #include "BibliographyDialogBridge.hpp"
 
+#include "QTMWidget.hpp"
 #include "converter.hpp" // cork_to_utf8
+#include "new_buffer.hpp"
+#include "object_l1.hpp" // tmscm_is_tree / tmscm_to_tree
+#include "preferences.hpp"
+#include "qt_simple_widget.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp" // eval_scheme + tmscm helpers
+#include "tm_window.hpp"
+
+#include <moebius/vars.hpp>
 
 #include <QDir>
 #include <QFileDialog>
+#include <QScrollBar>
+#include <QTimer>
+
+using namespace moebius;
+
+tree
+bib_preview_style () {
+  tree packs (TUPLE);
+  packs << "generic";
+  string theme= get_preference ("gui theme", "default");
+  if (theme == "liii-night" || theme == "dark") packs << "dark";
+  return compound ("style", packs);
+}
 
 static QString
 tmscm_to_qstring (tmscm obj) {
@@ -22,10 +43,29 @@ tmscm_to_qstring (tmscm obj) {
 }
 
 BibliographyDialogBridge::BibliographyDialogBridge (QDialog*       host,
-                                                    const QString& doc_dir)
-    : QObject (), m_host (host), m_doc_dir (doc_dir) {
+                                                    const QString& doc_dir,
+                                                    QWidget*   previewWidget,
+                                                    const url& preview_buf_url)
+    : QObject (), m_host (host), m_doc_dir (doc_dir),
+      m_previewWidget (previewWidget), m_preview_buf_url (preview_buf_url),
+      m_placeholder (nullptr), m_rootItem (nullptr), m_isValid (false) {
   ASSERT (host != NULL,
           "BibliographyDialogBridge expects a valid QDialog host");
+}
+
+void
+BibliographyDialogBridge::setPlaceholder (QQuickItem* placeholder,
+                                          QQuickItem* rootItem) {
+  m_placeholder= placeholder;
+  m_rootItem   = rootItem;
+}
+
+void
+BibliographyDialogBridge::updatePreviewGeometry () {
+  if (!m_previewWidget || !m_placeholder || !m_rootItem) return;
+  QPointF p= m_placeholder->mapToItem (m_rootItem, QPointF (0, 0));
+  m_previewWidget->setGeometry (QRect (
+      p.toPoint (), QSize (m_placeholder->width (), m_placeholder->height ())));
 }
 
 QString
@@ -47,34 +87,77 @@ QVariantMap
 BibliographyDialogBridge::requestPreview (const QString& file,
                                           const QString& style) {
   QVariantMap out;
-  out["status"] = QStringLiteral ("empty");
-  out["hint"]   = QString ();
-  out["preview"]= QString ();
+  out["status"]= QStringLiteral ("empty");
+  out["hint"]  = QString ();
 
-  string expr= "(bibliography-preview " * qt_scheme_quote (file) * " " *
+  string expr= "(bib-to-tree " * qt_scheme_quote (file) * " " *
                qt_scheme_quote (style) * ")";
   tmscm res= eval_scheme (expr);
-  if (tmscm_is_list (res) && !tmscm_is_null (res)) {
-    tmscm item_status= tmscm_car (res);
-    res              = tmscm_cdr (res);
-    tmscm item_hint  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
-    res              = tmscm_is_null (res) ? tmscm_null () : tmscm_cdr (res);
-    tmscm item_img   = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
+  if (!tmscm_is_list (res) || tmscm_is_null (res)) return out;
 
-    QString status= tmscm_is_string (item_status)
-                        ? tmscm_to_qstring (item_status)
-                        : QStringLiteral ("empty");
-    QString hint=
-        tmscm_is_string (item_hint) ? tmscm_to_qstring (item_hint) : QString ();
-    QString preview=
-        tmscm_is_string (item_img) ? tmscm_to_qstring (item_img) : QString ();
+  tmscm item_status= tmscm_car (res);
+  res              = tmscm_cdr (res);
+  tmscm item_hint  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
+  res              = tmscm_is_null (res) ? tmscm_null () : tmscm_cdr (res);
+  tmscm item_tree  = tmscm_is_null (res) ? tmscm_null () : tmscm_car (res);
 
-    out["status"] = status;
-    out["hint"]   = hint;
-    out["preview"]= preview;
-    return out;
+  QString status= tmscm_is_string (item_status) ? tmscm_to_qstring (item_status)
+                                                : QStringLiteral ("empty");
+  out["status"] = status;
+  out["hint"]=
+      tmscm_is_string (item_hint) ? tmscm_to_qstring (item_hint) : QString ();
+
+  if (status == QStringLiteral ("valid") && tmscm_is_tree (item_tree)) {
+    tree enriched= enrich_embedded_document (tmscm_to_tree (item_tree),
+                                             bib_preview_style ());
+    set_buffer_tree (m_preview_buf_url, enriched);
+    m_isValid= true;
+    if (m_previewWidget) {
+      showPreview ();
+      QTMWidget* editor= m_previewWidget->findChild<QTMWidget*> ();
+      // 同步复位立即上屏；50ms 后再复位一次，压过排版引擎异步的
+      // make-cursor-visible 居中。模态 exec 下 force_update 不重绘，
+      // 上屏靠这里的 repaint_invalid_regions（见 devel/1309.md 第 11 节）
+      auto resetScroll= [editor] () {
+        if (!editor || !editor->tm_widget ()) return;
+        editor->setOrigin (QPoint (0, 0));
+        QScrollBar* vsb= editor->verticalScrollBar ();
+        if (vsb) vsb->setValue (0);
+        editor->tm_widget ()->repaint_invalid_regions ();
+      };
+      if (editor && editor->tm_widget ()) {
+        editor->resize (m_previewWidget->size ());
+        resetScroll ();
+        QTimer::singleShot (50, this, resetScroll);
+      }
+    }
+  }
+  else {
+    m_isValid= false;
+    if (m_previewWidget) {
+      m_previewWidget->hide ();
+    }
   }
   return out;
+}
+
+void
+BibliographyDialogBridge::showPreview () {
+  updatePreviewGeometry ();
+  m_previewWidget->show ();
+  m_previewWidget->raise ();
+}
+
+void
+BibliographyDialogBridge::setPreviewVisible (bool visible) {
+  if (m_previewWidget) {
+    if (visible && m_isValid) {
+      showPreview ();
+    }
+    else {
+      m_previewWidget->hide ();
+    }
+  }
 }
 
 QString

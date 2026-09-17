@@ -885,6 +885,8 @@ edit_interface_rep::update_menus () {
  *   跳过——它们嵌在页眉页脚设置 widget 里，各菜单段都与它无关。
  * - 评论编辑辅助缓冲区（tmfs://aux/edit-comment）：全部跳过——它嵌在
  *   comment 插件的辅助 widget 里，各菜单段都与它无关。
+ * - 参考文献预览辅助缓冲区（tmfs://aux/bib-preview）：全部跳过——它嵌在
+ *   参考文献弹窗 widget 里，各菜单段都与它无关。
  */
 bool
 should_update_menu (int mask, url name) {
@@ -896,7 +898,8 @@ should_update_menu (int mask, url name) {
   else if (is_chat_message_buffer (name)) allow= 0;
   else if (is_chat_input_buffer (name)) allow= ICONS_MODE;
   else if (is_aux_search_buffer (name) || is_aux_replace_buffer (name) ||
-           is_aux_page_buffer (name) || is_aux_comment_buffer (name))
+           is_aux_page_buffer (name) || is_aux_comment_buffer (name) ||
+           is_aux_bib_buffer (name))
     allow= 0;
   return (mask & allow) == mask;
 }

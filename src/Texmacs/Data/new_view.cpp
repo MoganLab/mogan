@@ -157,6 +157,16 @@ is_aux_comment_buffer (url name) {
   return starts (as_string (name), "tmfs://aux/edit-comment");
 }
 
+/**
+ * @brief 判断 buffer 名称是否指向参考文献预览辅助缓冲区。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称以 \c tmfs://aux/bib 开头则返回 true。
+ */
+bool
+is_aux_bib_buffer (url name) {
+  return starts (as_string (name), "tmfs://aux/bib");
+}
+
 url
 abstract_view (tm_view vw) {
   if (vw == NULL) return url_none ();

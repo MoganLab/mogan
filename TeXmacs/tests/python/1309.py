@@ -213,7 +213,7 @@ def focus_mogan_window():
 def run_test():
     repo_root = find_repo_root()
     bin_path = find_mogan_binary(repo_root)
-    bib_file = os.path.join(repo_root, "TeXmacs", "tests", "bib", "1308.bib")
+    bib_file = os.path.join(repo_root, "TeXmacs", "tests", "bib", "204_22.bib")
     print(f"[1309] Using binary: {bin_path}")
     print(f"[1309] Using bib file: {bib_file}")
 
@@ -301,8 +301,8 @@ def run_test():
 
         # Step 5: Test invalid path feedback
         print("[1309] Step 5: Testing invalid file path feedback...")
-        file_box_x = wx + int(850 * scale)
-        file_box_y = wy + int(365 * scale)
+        file_box_x = wx + int(1015 * scale)
+        file_box_y = wy + int(367 * scale)
         mouse.position = (file_box_x, file_box_y)
         time.sleep(0.3)
         mouse.click(Button.left)
@@ -315,7 +315,8 @@ def run_test():
         invalid_screenshot.save(invalid_path)
         print(f"[1309] Saved invalid path feedback screenshot to {invalid_path}")
 
-        # Clear the input box before clicking Browse
+        # Step 6: Select all and type valid bib path
+        print(f"[1309] Step 6: Entering valid bib path at ({file_box_x}, {file_box_y})...")
         mouse.position = (file_box_x, file_box_y)
         time.sleep(0.3)
         mouse.click(Button.left)
@@ -326,28 +327,10 @@ def run_test():
         time.sleep(0.2)
         kb.press(Key.backspace)
         kb.release(Key.backspace)
-        time.sleep(0.5)
-
-        # Step 6: Click '浏览' (Browse) button to select valid 1308.bib
-        browse_x = wx + int(1240 * scale)
-        browse_y = wy + int(365 * scale)
-        print(f"[1309] Step 6: Clicking '浏览' (Browse) button at ({browse_x}, {browse_y})...")
-        mouse.position = (browse_x, browse_y)
         time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(1.5)
-
-        # In QFileDialog, click '文件名' input box and type bib path
-        file_input_x = wx + int(800 * scale)
-        file_input_y = wy + int(725 * scale)
-        print(f"[1309] Step 6: Typing bib path in file dialog at ({file_input_x}, {file_input_y})...")
-        mouse.position = (file_input_x, file_input_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(0.5)
 
         kb.type(bib_file)
-        time.sleep(0.8)
+        time.sleep(0.5)
         kb.press(Key.enter)
         kb.release(Key.enter)
         time.sleep(2.5)
@@ -365,9 +348,10 @@ def run_test():
         print(f"[1309] Saved plain preview screenshot to {preview_path}")
 
         # Check preview region: center of the dialog
-        cx, cy = wx + int(960 * scale), wy + int(560 * scale)
-        preview_crop = preview_screenshot.crop((cx - int(250 * scale), cy - int(40 * scale),
-                                               cx + int(250 * scale), cy + int(60 * scale)))
+        cx, cy = wx + int(950 * scale), wy + int(570 * scale)
+        preview_box = (cx - int(250 * scale), cy - int(40 * scale),
+                       cx + int(250 * scale), cy + int(60 * scale))
+        preview_crop = preview_screenshot.crop(preview_box)
         arr_plain = np.array(preview_crop)
         std_plain = float(arr_plain.std())
         dark_pixels = np.sum(arr_plain < 100)
@@ -377,9 +361,35 @@ def run_test():
             return 1
         print("[1309] SUCCESS: Bibliography preview rendered clearly with proper magnification!")
 
+        # Step 7.1: Verify dragging scrollbar actually scrolls the tmfs preview
+        sb_x = wx + int(1295 * scale)
+        sb_start_y = wy + int(570 * scale)
+        sb_end_y = wy + int(640 * scale)
+        print(f"[1309] Step 7.1: Dragging preview scrollbar from ({sb_x}, {sb_start_y}) to ({sb_x}, {sb_end_y})...")
+        mouse.position = (sb_x, sb_start_y)
+        time.sleep(0.3)
+        mouse.press(Button.left)
+        time.sleep(0.2)
+        for y in range(sb_start_y, sb_end_y, 5):
+            mouse.position = (sb_x, y)
+            time.sleep(0.02)
+        time.sleep(0.3)
+        mouse.release(Button.left)
+        time.sleep(0.5)
+
+        scrolled_screenshot = ImageGrab.grab()
+        scrolled_crop = scrolled_screenshot.crop(preview_box)
+        arr_scrolled = np.array(scrolled_crop)
+        diff_val = float(np.mean(np.abs(arr_scrolled.astype(float) - arr_plain.astype(float))))
+        print(f"[1309] Scroll difference: {diff_val:.1f}")
+        if diff_val < 5.0:
+            print("[1309] ERROR: Scrollbar dragging did NOT scroll preview content!")
+            return 1
+        print("[1309] SUCCESS: Scrollbar dragging successfully scrolled tmfs preview content!")
+
         # Step 8: Click Style dropdown and switch style
-        style_x = wx + int(720 * scale)
-        style_y = wy + int(415 * scale)
+        style_x = wx + int(764 * scale)
+        style_y = wy + int(425 * scale)
         print(f"[1309] Step 8: Clicking Style dropdown at ({style_x}, {style_y})...")
         mouse.position = (style_x, style_y)
         time.sleep(0.3)
@@ -388,7 +398,7 @@ def run_test():
 
         # Select option in dropdown list
         option_x = style_x
-        option_y = wy + int(535 * scale)
+        option_y = wy + int(550 * scale)
         print(f"[1309] Step 8: Selecting style from dropdown at ({option_x}, {option_y})...")
         mouse.position = (option_x, option_y)
         time.sleep(0.3)
@@ -406,8 +416,8 @@ def run_test():
         print(f"[1309] Saved switched style preview screenshot to {alpha_path}")
 
         # Step 9: Click '插入' (Insert) button
-        insert_btn_x = wx + int(1070 * scale)
-        insert_btn_y = wy + int(738 * scale)
+        insert_btn_x = wx + int(1140 * scale)
+        insert_btn_y = wy + int(703 * scale)
         print(f"[1309] Step 9: Clicking '插入' (Insert) button at ({insert_btn_x}, {insert_btn_y})...")
         mouse.position = (insert_btn_x, insert_btn_y)
         time.sleep(0.3)

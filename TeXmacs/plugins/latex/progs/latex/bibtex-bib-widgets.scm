@@ -83,37 +83,12 @@
 ) ;define
 
 (define (bibwid-output)
-  (with style
-    (if (and (>= (string-length bibwid-style) 3)
-          (== "tm-" (string-take bibwid-style 3))
-        ) ;and
-      (string-drop bibwid-style 3)
-      bibwid-style
+  (let ((res (bib-to-tree (url->string bibwid-url) bibwid-style)))
+    (if (== (car res) "valid")
+      (caddr res)
+      (stree->tree (bibwid-output-content "" bibwid-style))
     ) ;if
-    (when (== style "")
-      (set! style bibwid-default-style)
-    ) ;when
-    ;; 样式模块（latex bibtex-<style>）按当前 style 动态加载，
-    ;; 其中的 bib-format-entry 重载是 bib-process 格式化条目的入口
-    (catch #t
-      (lambda ()
-        (eval
-          `(use-modules (latex ,(string->symbol (string-append "bibtex-" style))))
-        ) ;eval
-      ) ;lambda
-      (lambda (key . args) (noop))
-    ) ;catch
-    (with u
-      (if (and (not (url-rooted? bibwid-url)) (url-rooted? (url-head bibwid-buffer)))
-        (url-append (url-head bibwid-buffer) bibwid-url)
-        bibwid-url
-      ) ;if
-      (with t
-        (if (url-exists? u) (parse-bib (string-load u)) (tree ""))
-        (stree->tree (bibwid-output-content t style))
-      ) ;with
-    ) ;with
-  ) ;with
+  ) ;let
 ) ;define
 
 (define (bibwid-insert doit?)
@@ -207,7 +182,7 @@
 ) ;tm-widget
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; QML 实时预览光栅化
+;; 参考文献导入为 TeXmacs 树（用于 tmfs://aux/bib-preview 缓冲区预览）
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (bib-has-entries? st)
@@ -217,7 +192,7 @@
   ) ;and
 ) ;define
 
-(tm-define (bibliography-preview file-str style-str)
+(tm-define (bib-to-tree file-str style-str)
   (let* ((u-str (if (string? file-str) file-str ""))
          (u (string->url u-str))
          (full-u
@@ -244,10 +219,10 @@
       ) ;lambda
       (lambda (key . args) (noop))
     ) ;catch
-    (cond ((== u-str "") (list "empty" "" ""))
+    (cond ((== u-str "") (list "empty" ""))
           ((not (url-exists? full-u))
            (let ((msg (translate "File does not exist")))
-             (list "not_found" msg "")
+             (list "not_found" msg)
            ) ;let
           ) ;
           (else
@@ -261,23 +236,9 @@
                   ) ;
               (if (not (bib-has-entries? st))
                 (let ((msg (translate "Invalid BibTeX file")))
-                  (list "invalid" msg "")
+                  (list "invalid" msg)
                 ) ;let
-                (let* ((content
-                         `(with ,"bg-color"
-                            ,(bibwid-preview-bg-color)
-                            ,"color"
-                            ,(bibwid-preview-fg-color)
-                            ,"magnification"
-                            ,"1.05"
-                            (mini-paragraph ,"720px"
-                              ,(bib-process "bib" actual-style st)))
-                       ) ;content
-                       (wid (widget-texmacs-output (stree->tree content) '(style "generic")))
-                       (img (cpp-rasterize-widget wid))
-                      ) ;
-                  (list "valid" "" img)
-                ) ;let*
+                (list "valid" "" (stree->tree (bibwid-output-content t actual-style)))
               ) ;if
             ) ;let*
           ) ;else
