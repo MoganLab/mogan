@@ -25,6 +25,7 @@
         <true/>
       </dict>
     </array>
+@URL_SCHEME_DECL@
     <key>CFBundleDisplayName</key>
     <string>@STEM_NAME@</string>
     <key>CFBundleExecutable</key>

@@ -63,6 +63,7 @@
 #include "QTMGuiHelper.hpp"
 #include "QTMWidget.hpp"
 #include "QTMWindow.hpp"
+#include "oauth_deeplink.hpp"
 
 #ifdef MACOSX_EXTENSIONS
 #include "MacOS/mac_utilities.h"
@@ -624,6 +625,9 @@ qt_gui_rep::event_loop () {
   }
   update ();
   // need_update();
+  // GUI 已就绪：深链据此区分「本进程刚被拉起」与「用户正在用的实例」
+  // （见 oauth_deeplink::handle_open_url）
+  oauth_deeplink::mark_loop_started ();
   app->exec ();
 }
 

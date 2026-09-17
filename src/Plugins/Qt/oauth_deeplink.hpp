@@ -17,6 +17,7 @@
 #include <functional>
 
 QT_FORWARD_DECLARE_CLASS (QObject)
+QT_FORWARD_DECLARE_CLASS (QUrl)
 
 /**
  * @file oauth_deeplink.hpp
@@ -27,11 +28,16 @@ QT_FORWARD_DECLARE_CLASS (QObject)
  * 眼前就只剩浏览器，软件是否登录成功没有任何可见反馈。
  *
  * 唤醒由官网成长激励页（回调页跳转过去后的稳定 origin）发起，URL 形如
- * `liiistem://wake?instance=<instanceId>`。浏览器总会新拉起一个进程，而发起
- * 登录的实例可能仍在运行，故带上实例标识做路由。
+ * `liiistem://wake?instance=<instanceId>`，其中 `instance` 是发起登录那个
+ * 进程的标识。两个平台的投递方式不同，差异收在本模块内：
  *
- * 纯解析部分不依赖平台与 I/O，便于单独测试；转发部分目前只在 Windows 生效
- * （见 oauth_deeplink.cpp）。
+ * - Windows：浏览器按注册表里那行命令行新起一个进程，URL 在 argv 中同步
+ *   可得，该进程只做转发随后退出（handle_launch / try_forward）；
+ * - macOS：LaunchServices 把 URL 投给已运行的实例，没有则先把 App 拉起
+ *   再以 QFileOpenEvent 异步投递（handle_open_url）。因此 macOS 上不需要
+ *   转发，但只要出现「新进程被拉起」就说明发起登录的实例已经没了。
+ *
+ * 纯解析部分不依赖平台与 I/O，便于单独测试。
  */
 
 namespace oauth_deeplink {
@@ -56,6 +62,45 @@ QString instance_id_from_url (const QString& url);
 
 /// 在命令行参数中找出 liiistem:// URL；没有则返回空串
 QString find_url (const QStringList& arguments);
+
+/**
+ * @brief 判断一次唤醒是否指向给定实例
+ *
+ * 实例标识为空（本进程尚未登记，例如深链在启动期就到达）时恒为 false：
+ * 「不知道自己是哪个实例」不能当成「就是给本进程的」。
+ */
+bool is_wake_for (const QString& url, const QString& instance_id);
+
+/// 登记本进程的实例标识（QTMOAuth 构造时调用；仅 macOS 使用，其它平台空操作）
+void set_local_instance_id (const QString& instance_id);
+
+/**
+ * @brief 事件循环即将开始（GUI 就绪后调用一次）
+ *
+ * handle_open_url 用它区分「本进程刚被深链拉起」与「用户正在用的实例收到了发给
+ * 别的实例的唤醒」——前者要退出，后者绝不能退出。
+ */
+void mark_loop_started ();
+
+/**
+ * @brief 处理系统投递的「用本应用打开一条 URL」事件（macOS 的 QFileOpenEvent）
+ *
+ * macOS 不新起转发进程：URL 要么投给已运行的实例，要么由 LaunchServices 先把本
+ * 进程拉起、再把事件异步投进来（实测事件比主窗口晚约 0.3 秒到达）。因此这里的
+ * 判据只能是 instance：
+ *
+ * - 指向本实例 → 一次正常唤醒，把窗口提到前台；
+ * - 不指向本实例，且本进程刚起来（事件循环才开始几百毫秒）→ 本进程就是被
+ *   这条深链拉起的：发起登录的实例已经没了，用户没要这个窗口，记日志后退出；
+ * - 不指向本实例，但本进程已经跑了一阵 → 用户正在用的实例收到了别人的唤醒
+ *   （多开，或有人直接打开了一条唤醒链接）。既不置前也不退出：退出会连带
+ *   杀掉用户手里未保存的工作。
+ *
+ * 非 macOS 平台恒返回 false：那些平台的 URL 不走 FileOpen 事件。
+ *
+ * @return true 表示这条 URL 已由深链接管，调用方不要再按普通文件处理
+ */
+bool handle_open_url (const QUrl& url);
 
 /**
  * @brief 启动期接入深链：写协议注册，并处理「本进程由深链拉起」的情况

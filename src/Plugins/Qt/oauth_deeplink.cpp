@@ -10,8 +10,10 @@
 
 #include "oauth_deeplink.hpp"
 
+#include "server.hpp"
 #include "tm_debug.hpp"
 #include "tm_ostream.hpp"
+#include "tm_server.hpp"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -44,6 +46,13 @@ is_wake (const QString& url) {
 QString
 instance_id_from_url (const QString& url) {
   return QUrlQuery (QUrl (url)).queryItemValue ("instance");
+}
+
+bool
+is_wake_for (const QString& url, const QString& instance_id) {
+  // 还不知道自己是哪个实例（本进程的标识尚未登记）时不能当成「就是给本进程的」
+  if (instance_id.isEmpty ()) return false;
+  return is_wake (url) && instance_id_from_url (url) == instance_id;
 }
 
 QString
@@ -163,7 +172,7 @@ start_receiver (QObject* owner, const QString& instance_id, QObject* target,
       });
 }
 
-#else // 非 Windows：深链接收与路由留待 macOS（QFileOpenEvent）与 Linux 接入
+#else // 非 Windows：没有转发进程，URL 由系统直接投递（见 handle_open_url）
 
 bool
 try_forward (const QString&) {
@@ -174,5 +183,92 @@ void
 start_receiver (QObject*, const QString&, QObject*, const UrlHandler&) {}
 
 #endif
+
+#ifdef Q_OS_MACOS
+
+#include <QDateTime>
+
+// 本进程的实例标识，由 QTMOAuth 构造时登记。深链到达时靠它判断这条 URL 是不是
+// 给本进程的（见 handle_open_url）
+static QString s_localInstanceId;
+
+// 事件循环开始的时刻（0 = 还没开始）。见 mark_loop_started
+static qint64 s_loopStartMs= 0;
+
+// 深链在事件循环开始后多久之内到达，仍算「本进程刚被拉起」：被拉起的进程，
+// LaunchServices 在事件循环开始后约 0.1 秒投递 URL（实测），5 秒是给慢机器
+// 与冷启动留的余量
+static const qint64 kLaunchGraceMs= 5000;
+
+void
+set_local_instance_id (const QString& instance_id) {
+  s_localInstanceId= instance_id;
+}
+
+void
+mark_loop_started () {
+  s_loopStartMs= QDateTime::currentMSecsSinceEpoch ();
+}
+
+bool
+handle_open_url (const QUrl& url) {
+  if (url.scheme ().compare (QString::fromLatin1 (kScheme),
+                             Qt::CaseInsensitive) != 0)
+    return false;
+
+  if (is_wake_for (url.toString (), s_localInstanceId)) {
+    bring_to_front ();
+    return true;
+  }
+
+  // 不指向本进程的唤醒有两种来历，只能靠「本进程是不是刚起来」区分：
+  //
+  // - 刚起来（事件循环才开始几百毫秒）→ 本进程就是被这条深链拉起的。发起登录的
+  //   实例已经没了（用户关掉或崩溃），登录早已作废，用户要的是原来那个窗口，不该
+  //   由这里再留一个全新的界面——直接退出。
+  // - 已经跑了一阵 → 用户正在用的实例收到了别人的唤醒（多开，或有人直接打开了
+  //   一条唤醒链接）。既不置前也不退出：退出会连带杀掉用户手里未保存的工作。
+  //
+  // 界面「已经出现过」是 macOS 的下限，不是能调好的时序：LaunchServices 要等
+  // App 启动完成才投递 URL 事件，实测比主窗口晚约 0.3 秒，早于此无从判断。
+  //
+  // 两个标识都记：真机上「窗口没弹出来」与「唤醒投给了别的实例」现象一样，
+  // 不记就没法归因（与 Windows 侧 try_forward 失败时的日志同一个作用）。
+  // 存 QByteArray 而不是取 constData () 存指针：toUtf8 () 的返回值是临时对象
+  const QByteArray target = instance_id_from_url (url.toString ()).toUtf8 ();
+  const QByteArray local  = s_localInstanceId.toUtf8 ();
+  const qint64     now    = QDateTime::currentMSecsSinceEpoch ();
+  const qint64     elapsed= s_loopStartMs == 0 ? 0 : now - s_loopStartMs;
+
+  if (elapsed >= kLaunchGraceMs) {
+    debug_boot << "OAuth deep link: not for this instance (want "
+               << target.constData () << ", have " << local.constData ()
+               << "), ignored\n";
+    return true;
+  }
+
+  debug_boot << "OAuth deep link: launched for a dead instance (want "
+             << target.constData () << ", have " << local.constData ()
+             << "), quitting\n";
+  if (is_server_started ())
+    get_server ()->quit (); // 关管道 + scheme 退出钩子 + exit
+  QCoreApplication::quit ();
+  return true;
+}
+
+#else // Linux 等的深链接入留待后续；这些平台没有 FileOpen 形态的深链
+
+void
+set_local_instance_id (const QString&) {}
+
+void
+mark_loop_started () {}
+
+bool
+handle_open_url (const QUrl&) {
+  return false;
+}
+
+#endif // Q_OS_MACOS
 
 } // namespace oauth_deeplink

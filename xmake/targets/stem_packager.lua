@@ -19,10 +19,34 @@ target("stem_packager") do
     local stem_binary_name_local = stem_binary_name
 	local stem_dmg_bg_name_local = stem_dmg_bg_image
 
+    -- liiistem:// 协议声明：只有商业版写进 plist。社区版没有登录能力，声明了反而会
+    -- 占住 LaunchServices 的 scheme 归属（两版 CFBundleIdentifier 都是 app.mogan），
+    -- 而 macOS 没有运行期夺回的手段——与 Windows 侧「只有商业版写注册表」同一个理由。
+    -- 片段与 tools/release/stage_velopack.lua 的同名变量保持一致
+    local url_scheme_decl= ""
+    if not has_config("is_community") then
+        url_scheme_decl= table.concat({
+            '    <key>CFBundleURLTypes</key>',
+            '    <array>',
+            '      <dict>',
+            '        <key>CFBundleURLName</key>',
+            '        <string>app.mogan.liiistem</string>',
+            '        <key>CFBundleTypeRole</key>',
+            '        <string>Viewer</string>',
+            '        <key>CFBundleURLSchemes</key>',
+            '        <array>',
+            '          <string>liiistem</string>',
+            '        </array>',
+            '      </dict>',
+            '    </array>',
+        }, "\n")
+    end
+
     set_configvar("XMACS_VERSION", XMACS_VERSION)
     set_configvar("APPCAST", "")
     set_configvar("OSXVERMIN", "")
     set_configvar("STEM_NAME", stem_binary_name_local)
+    set_configvar("URL_SCHEME_DECL", url_scheme_decl)
     add_configfiles("$(projectdir)/packages/macos/Info.plist.in", {
         filename = "Info.plist",
         pattern = "@(.-)@",
