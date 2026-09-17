@@ -3,7 +3,7 @@
 ;; MODULE      : ai-actions-bar-test.scm
 ;; DESCRIPTION : AI 操作栏纯逻辑测试（树形状契约）：ai-selection-only-images?、
 ;;               ai-translate-eligible? 与释义上下文展平 ai-flatten-text /
-;;               ai-common-prefix
+;;               ai-span-stree
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -138,16 +138,20 @@
 ) ;define
 
 (define (test-flatten-document-joins-lines)
-  ;; document 子节点换行连接：跨段选区退回共同祖先时的上下文形态
+  ;; document 子节点换行连接：跨段选区的上下文形态
   (check (ai-flatten-text '(document (para "one") (para "two"))) => "one\ntwo")
 ) ;define
 
-(define (test-common-prefix)
-  ;; 完整包含选区两端的最深节点路径；无公共前缀得空
-  (check (ai-common-prefix '(0 1 5) '(0 1 9)) => '(0 1))
-  (check (ai-common-prefix '(0 1 5) '(0 2 3)) => '(0))
-  (check (ai-common-prefix '(0) '(1)) => '())
-  (check (ai-common-prefix '() '(1)) => '())
+(define (test-span-stree)
+  ;; 跨段选区的上下文跨度：公共 document 祖先只取覆盖选区两端的直接子节点
+  (check (ai-span-stree '(document (para "a") (para "b") (para "c") (para "d")) 1 2)
+    =>
+    '(document (para "b") (para "c"))
+  ) ;check
+  (check (ai-span-stree '(document (para "a") (para "b")) 0 0)
+    =>
+    '(document (para "a"))
+  ) ;check
 ) ;define
 
 (tm-define (regtest-ai-actions-bar)
@@ -157,6 +161,6 @@
   (test-flatten-markers)
   (test-flatten-with-node)
   (test-flatten-document-joins-lines)
-  (test-common-prefix)
+  (test-span-stree)
   (check-report)
 ) ;tm-define

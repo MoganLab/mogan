@@ -844,27 +844,23 @@ aiQuoteBlock (tree content) {
   return compound ("quote-env", quoted);
 }
 
-// 上下文纯文本按行拆成段落节点：换行符留在树节点里不会被排版
+// 上下文纯文本按行拆成段落节点：换行符留在树节点里不会被排版（空行跳过）
 static tree
 aiTextTree (string text) {
-  tree doc (DOCUMENT);
-  int  start= 0;
-  for (int i= 0; i <= N (text); i++)
-    if (i == N (text) || text[i] == '\n') {
-      if (i > start) doc << text (start, i);
-      start= i + 1;
-    }
+  tree          doc (DOCUMENT);
+  array<string> lines= tokenize (text, "\n");
+  for (int i= 0; i < N (lines); i++)
+    if (N (lines[i]) > 0) doc << lines[i];
   return doc;
 }
 
 tree
 ChatController::composeAiInputBody (tree sel, string action, string context) {
-  // 引用选区组成输入体，提示词追加为末段
+  // 组装聊天输入体：gloss 分支的提示词节点夹在两个引用块之间，提前返回；
+  // 其余动作引用块在前、提示词（或空段）追加为末段
   tree body (DOCUMENT);
   // 释义：上下文（引文1）与选区（引文2）各成一块，编号标签与说明句都算
-  // 提示词。提示词按提示词语言首选项本地化（0995：translate 返回 Cork，
-  // 词典缺词条时回落英文原句；::ai 消歧后缀在英文提示词下自动剥掉），
-  // %1 换序号由调用方完成
+  // 提示词，提示词按 0995 提示词语言首选项本地化
   if (action == "gloss") {
     string prompt_lang= get_ai_language_preference ("ai:prompt language");
     string label=

@@ -217,9 +217,10 @@ private slots:
     QVERIFY (body[1] == tree (""));
   }
 
-  void test_compose_gloss_two_quote_blocks_with_labels () {
+  void test_compose_gloss_prompt_language () {
     // 释义：引用1 = 上下文段落，引用2 = 选区，编号标签与说明句都在提示词内。
-    // 提示词语言 english（from==to，translate 剥掉 :: 后缀返回英文键）
+    // 提示词语言 english（from==to，translate 剥掉 :: 后缀返回英文键）与
+    // chinese（命中 zh_CN 词典，词条值 Cork 编码）两种组合
     set_ai_lang ("english", "english");
     tree body= ChatController::composeAiInputBody (tree ("world"), "gloss",
                                                    "hello world");
@@ -234,21 +235,17 @@ private slots:
     QVERIFY (body[4] ==
              tree ("reference 2 is part of reference 1, explain the meaning of "
                    "reference 2 (including dictionary and technical terms)"));
-    reset_ai_lang ();
-  }
 
-  void test_compose_gloss_prompt_language_chinese () {
-    // 提示词语言 chinese：编号标签与说明句命中 zh_CN 词典（::ai 消歧键、
-    // %1 换序号；词条值 Cork 编码，与 utf8_to_cork 比对）
     set_ai_lang ("chinese", "chinese");
-    tree body= ChatController::composeAiInputBody (tree ("world"), "gloss",
-                                                   "hello world");
+    body= ChatController::composeAiInputBody (tree ("world"), "gloss",
+                                              "hello world");
     QCOMPARE (int (N (body)), 5);
     QVERIFY (body[0] == utf8_to_cork ("引用1"));
     QVERIFY (body[2] == utf8_to_cork ("引用2"));
     QVERIFY (body[4] ==
              utf8_to_cork ("引文2是引文1的一部分，解释一下引文2的含义（含义的"
                            "范围包括字典、专业术语等）"));
+
     reset_ai_lang ();
   }
 
