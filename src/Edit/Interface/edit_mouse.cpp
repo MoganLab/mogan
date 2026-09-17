@@ -1467,8 +1467,9 @@ edit_interface_rep::should_show_translate_popup () {
     return false;
   }
 
-  if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
-      as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
+  // prog/code/verbatim 环境不弹；math 公式内的文字允许翻译/润色，不拦截
+  if (as_bool (call ("in-prog?")) || as_bool (call ("in-code?")) ||
+      as_bool (call ("in-verbatim?"))) {
     return false;
   }
   if (!selection_active_any ()) return false;
