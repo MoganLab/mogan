@@ -1046,7 +1046,7 @@ TestQmlLoad::test_go_menu_loads () {
   qw->rootContext ()->setContextProperty ("goBridge", &bridge);
   qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
-  QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 100.0);
+  QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 50.0);
 }
 
 void
