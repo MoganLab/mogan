@@ -468,6 +468,8 @@ public:
   QPushButton* newChatButton () const { return newChatButton_; }
   QPushButton* floatingNewChatButton () const { return floatingNewChatBtn_; }
   QPushButton* closeSidebarButton () const { return closeSidebarBtn_; }
+  QPushButton* newChatSidebarButton () const { return newChatSidebarBtn_; }
+  QPushButton* maximizeButton () const { return maximizeBtn_; }
   QList<ChatConversationPanel*>& conversations () { return conversations_; }
   ChatConversationPanel*         activeConversation () const {
     return activeConversation_;
@@ -494,7 +496,12 @@ public:
    * @brief 直接设置内部侧边栏显隐（dock 模式使用，不触发浮动按钮）。
    */
   void setSidebarVisible (bool visible);
-  void setCloseSidebarButtonVisible (bool visible);
+
+  /**
+   * @brief 设置对话区左上角辅助按钮（关闭侧边栏、新建会话、最大化）
+   * 的显隐，仅在 dock 侧边栏模式下需要显示。
+   */
+  void setDockButtonsVisible (bool visible);
 
   /**
    * @brief 设置 dock 侧边栏模式。
@@ -520,6 +527,8 @@ signals:
   void cancelRequested (const string& sessionId);
   void newChatRequested ();
   void closeSidebarRequested ();
+  /// 请求切换到 Chat 标签页（dock 侧边栏模式的最大化按钮）
+  void maximizeRequested ();
 
 protected:
   /// 键盘事件处理（Ctrl+N 新建会话等）
@@ -550,6 +559,7 @@ private:
   QWidget*        floatingBtnContainer_= nullptr; ///< 浮动按钮容器
   QPushButton*    newChatButton_       = nullptr; ///< 侧边栏新建按钮
   QPushButton*    newChatSidebarBtn_   = nullptr; ///< 新建按钮（dock 模式）
+  QPushButton*    maximizeBtn_         = nullptr; ///< 最大化按钮（dock 模式）
   QPushButton*    closeSidebarBtn_     = nullptr; ///< 对话区域关闭侧边栏按钮
   QWidget*        sidebarNormalContent_= nullptr; ///< 侧边栏常规内容区
   QStackedWidget* conversationStack_   = nullptr; ///< 会话面板堆栈

@@ -331,7 +331,7 @@ private slots:
     QTChatTabWidget           widget (sessions, "", nullptr);
     widget.show ();
     QVERIFY (widget.closeSidebarButton () != nullptr);
-    widget.setCloseSidebarButtonVisible (true);
+    widget.setDockButtonsVisible (true);
     QVERIFY (widget.closeSidebarButton ()->isVisible ());
   }
 
@@ -339,8 +339,8 @@ private slots:
     QList<SessionDisplayInfo> sessions;
     QTChatTabWidget           widget (sessions, "", nullptr);
     widget.show ();
-    widget.setCloseSidebarButtonVisible (true);
-    widget.setCloseSidebarButtonVisible (false);
+    widget.setDockButtonsVisible (true);
+    widget.setDockButtonsVisible (false);
     QVERIFY (!widget.closeSidebarButton ()->isVisible ());
   }
 
@@ -349,9 +349,54 @@ private slots:
     QTChatTabWidget           widget (sessions, "", nullptr);
     widget.show ();
     QSignalSpy spy (&widget, &QTChatTabWidget::closeSidebarRequested);
-    widget.setCloseSidebarButtonVisible (true);
+    widget.setDockButtonsVisible (true);
     QTest::mouseClick (widget.closeSidebarButton (), Qt::LeftButton);
     QCOMPARE (spy.count (), 1);
+  }
+
+  // === 最大化按钮（dock 模式） ===
+  void test_maximizeButton_default_hidden () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    QVERIFY (widget.maximizeButton () != nullptr);
+    QVERIFY (!widget.maximizeButton ()->isVisible ());
+  }
+
+  void test_maximizeButton_follows_dock_buttons_visibility () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setDockButtonsVisible (true);
+    QVERIFY (widget.maximizeButton ()->isVisible ());
+    widget.setDockButtonsVisible (false);
+    QVERIFY (!widget.maximizeButton ()->isVisible ());
+  }
+
+  void test_maximizeButton_emits_signal () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    QSignalSpy spy (&widget, &QTChatTabWidget::maximizeRequested);
+    widget.setDockButtonsVisible (true);
+    QTest::mouseClick (widget.maximizeButton (), Qt::LeftButton);
+    QCOMPARE (spy.count (), 1);
+  }
+
+  /// 三个 dock 辅助按钮在对话区左上角依次横排，互不重叠
+  void test_maximizeButton_sits_right_of_new_chat_button () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setDockButtonsVisible (true);
+    QPushButton* closeBtn  = widget.closeSidebarButton ();
+    QPushButton* newChatBtn= widget.newChatSidebarButton ();
+    QPushButton* maxBtn    = widget.maximizeButton ();
+    QVERIFY (closeBtn != nullptr);
+    QVERIFY (newChatBtn != nullptr);
+    QVERIFY (maxBtn != nullptr);
+    QVERIFY (newChatBtn->x () >= closeBtn->x () + closeBtn->width ());
+    QVERIFY (maxBtn->x () >= newChatBtn->x () + newChatBtn->width ());
   }
 
   // === ChatSidebar title rename ===

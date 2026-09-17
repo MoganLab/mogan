@@ -130,7 +130,7 @@ constexpr int kSendButtonRadius      = 18;
 constexpr int kConversationBtnRadius = 6;
 
 //---- dock 模式 常量 ----
-constexpr int kCloseSidebarBtnMarginY= 12;
+constexpr int kDockBtnMarginY= 12;
 
 // ---- 模型菜单/Model 按钮共用常量 ----
 constexpr int kModelLogoSize= 18;
@@ -1704,7 +1704,8 @@ QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
       floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
       newChatButton_ (nullptr), newChatSidebarBtn_ (nullptr),
-      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr) {
+      maximizeBtn_ (nullptr), sidebarNormalContent_ (nullptr),
+      conversationStack_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -1812,6 +1813,16 @@ make_sidebar_toggle_btn (QWidget* parent) {
   return btn;
 }
 
+// dock 模式辅助按钮（关闭侧边栏/新建会话/最大化）的左上角坐标：
+// 自左向右等距排布，index 为 0 起算的序号
+QPoint
+dock_btn_pos (int index) {
+  return QPoint (
+      DpiUtils::scaled (kFloatingBtnMarginX +
+                        index * (kToggleBtnSize + kFloatingBtnSpacing)),
+      DpiUtils::scaled (kDockBtnMarginY));
+}
+
 void
 QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout,
                                      const QList<SessionDisplayInfo>& sessions,
@@ -1905,8 +1916,7 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
 #else
   closeSidebarBtn_->setToolTip (tr ("Close AI Chat (Ctrl+J)"));
 #endif
-  closeSidebarBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
-                          DpiUtils::scaled (kCloseSidebarBtnMarginY));
+  closeSidebarBtn_->move (dock_btn_pos (0));
   connect (closeSidebarBtn_, &QPushButton::clicked, this,
            [this] () { emit closeSidebarRequested (); });
   closeSidebarBtn_->hide ();
@@ -1914,13 +1924,19 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   // 对话区域新建会话按钮（dock 模式使用，位于关闭侧边栏按钮右侧）
   newChatSidebarBtn_= make_sidebar_toggle_btn (content);
   newChatSidebarBtn_->setIcon (QIcon (":llm-chat/addchat.svg"));
-  newChatSidebarBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX +
-                                              kToggleBtnSize +
-                                              kFloatingBtnSpacing),
-                            DpiUtils::scaled (kCloseSidebarBtnMarginY));
+  newChatSidebarBtn_->move (dock_btn_pos (1));
   connect (newChatSidebarBtn_, &QPushButton::clicked, this,
            [this] () { emit newChatRequested (); });
   newChatSidebarBtn_->hide ();
+
+  // 最大化按钮（dock 模式使用，位于新建会话按钮右侧）：切到 Chat 标签页
+  maximizeBtn_= make_sidebar_toggle_btn (content);
+  maximizeBtn_->setIcon (QIcon (":llm-chat/maximize.svg"));
+  maximizeBtn_->setToolTip (qt_translate ("Maximize AI Chat"));
+  maximizeBtn_->move (dock_btn_pos (2));
+  connect (maximizeBtn_, &QPushButton::clicked, this,
+           [this] () { emit maximizeRequested (); });
+  maximizeBtn_->hide ();
 
   // 浮球按钮容器
   QWidget* floatingContainer= new QWidget (this);
@@ -2020,9 +2036,10 @@ QTChatTabWidget::setDockMode (bool dock) {
 }
 
 void
-QTChatTabWidget::setCloseSidebarButtonVisible (bool visible) {
-  if (closeSidebarBtn_) closeSidebarBtn_->setVisible (visible);
-  if (newChatSidebarBtn_) newChatSidebarBtn_->setVisible (visible);
+QTChatTabWidget::setDockButtonsVisible (bool visible) {
+  QPushButton* btns[]= {closeSidebarBtn_, newChatSidebarBtn_, maximizeBtn_};
+  for (QPushButton* btn : btns)
+    if (btn) btn->setVisible (visible);
 }
 
 bool

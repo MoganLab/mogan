@@ -132,6 +132,19 @@
   ) ;when
 ) ;tm-define
 
+(tm-define (switch-to-chat-tab)
+  (:synopsis "Switch to the AI Chat tab page")
+  ;; AI 侧边栏的「最大化」按钮：切到 Chat 标签页。
+  ;; 复用 switch-to-buffer* 走正常切 view 路径，标签栏高亮与
+  ;; sidebar/tab 模式状态由 SLOT_FILE 统一同步。
+  (with buf
+    (string->url "tmfs://chat-tab")
+    (when (nnull? (buffer->views buf))
+      (switch-to-buffer* buf)
+    ) ;when
+  ) ;with
+) ;tm-define
+
 (tm-define (toggle-visible-side-tools n)
   (:synopsis "Toggle the visibility of the @n-th side tools")
   (:check-mark "v" has-side-tools?)
