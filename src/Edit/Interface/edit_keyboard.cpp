@@ -379,7 +379,7 @@ edit_interface_rep::key_press (string gkey) {
   }
 #endif
   else if (!occurs (" ", key) && N (key) > 1 && key[1] != '-' &&
-           !occurs ('<', key) && !occurs ('>', key) &&
+           !contains (key, '<') && !contains (key, '>') &&
            cork_to_utf8 ("<" * key * ">") != ("<" * key * ">") &&
            !inside_active_graphics ()) {
     archive_state ();
