@@ -506,6 +506,25 @@
   ) ;let*
 ) ;define
 
+;; ---- 16a. general 界面语言：不包含 taiwanese 选项且与 supported-languages 同步 ----
+
+(define (test-general-language-options)
+  (let* ((meta (preferences-qml-meta))
+         (general (tab-ref meta "general"))
+         (fields (caddr general))
+         (lan-field
+           (list-find fields (lambda (f) (== (field-ref f 'key) (pref-general-language))))
+         ) ;lan-field
+        ) ;
+    (check-true (pair? lan-field))
+    (let ((opts (field-ref lan-field 'options)))
+      (check-true (pair? (member "chinese" opts)))
+      (check-false (member "taiwanese" opts))
+    ) ;let
+    (check-false (in? "taiwanese" supported-languages))
+  ) ;let*
+) ;define
+
 ;; ---- 16b. AI 主 tab：操作栏 toggle + 翻译目标语言 combo（首项 interface） ----
 
 (define (test-ai-tab-fields)
@@ -534,6 +553,7 @@
           (check (car trs) => (translate "User interface language"))
           (check (== (length opts) (length trs)) => #t)
           (check-true (pair? (member "chinese" opts)))
+          (check-false (member "taiwanese" opts))
         ) ;let
         ;; set-field 往返：toggle 开关落库、combo 存内部键，均恢复原值。
         (let* ((bar-key (pref-ai-actions-bar))
@@ -637,6 +657,7 @@
   (test-key-consistency)
   (test-latex-unified-keys-in-meta)
   (test-scripting-language-options)
+  (test-general-language-options)
   (test-ai-tab-fields)
   (test-restart-keys-set)
   (test-emoji-keyboard-directional-restart)

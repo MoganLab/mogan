@@ -644,8 +644,7 @@ get_supported_languages () {
     << string ("italian") << string ("japanese") << string ("korean")
     << string ("polish") << string ("portuguese") << string ("romanian")
     << string ("russian") << string ("slovak") << string ("slovene")
-    << string ("spanish") << string ("swedish") << string ("taiwanese")
-    << string ("ukrainian");
+    << string ("spanish") << string ("swedish") << string ("ukrainian");
   return r;
 }
 
