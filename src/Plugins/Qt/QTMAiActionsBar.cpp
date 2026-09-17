@@ -1,5 +1,5 @@
 /******************************************************************************
- * MODULE     : QTMAiTranslatePopup.cpp
+ * MODULE     : QTMAiActionsBar.cpp
  * DESCRIPTION: AI action bar (translate/polish/chat) shown below the selection
  * COPYRIGHT  : (C) 2026 Mogan STEM
  *******************************************************************************
@@ -8,7 +8,7 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "QTMAiTranslatePopup.hpp"
+#include "QTMAiActionsBar.hpp"
 #include "edit_interface.hpp"
 #include "qt_chat_controller.hpp"
 #include "qt_renderer.hpp"
@@ -29,8 +29,7 @@
 #include <algorithm>
 #include <cmath>
 
-QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
-                                          qt_simple_widget_rep* owner)
+QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
     : QTMBasePopup (parent, owner) {
   // QML 自绘圆角底板与假阴影，宿主窗口需透明（子 widget 经顶层 backing
   // store 合成即可，勿设 WA_NativeWindow：macOS 上原生子窗口收不到无按键
@@ -98,7 +97,7 @@ QTMAiTranslatePopup::QTMAiTranslatePopup (QWidget*              parent,
 }
 
 void
-QTMAiTranslatePopup::onActionTriggered (const QString& action) {
+QTMAiActionsBar::onActionTriggered (const QString& action) {
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
     // 动作统一入口（引用选区到 AI 侧边栏的流程与快捷键共用），见
     // edit_interface_rep::ai_action
@@ -107,7 +106,7 @@ QTMAiTranslatePopup::onActionTriggered (const QString& action) {
 }
 
 void
-QTMAiTranslatePopup::syncHover (QPointF pos) {
+QTMAiActionsBar::syncHover (QPointF pos) {
   // QQuickWidget 不为无按键的 move 合成 hover：hover 上下文需先由一次显式
   // HoverMove 激活（见 qml_load_test 的 test_ai_actions_bar_hover）。每次
   // 显示/重定位后按当前光标位置同步一次——光标在栏外时即为清空，顺带纠正
@@ -120,7 +119,7 @@ QTMAiTranslatePopup::syncHover (QPointF pos) {
 }
 
 void
-QTMAiTranslatePopup::pollCursor () {
+QTMAiActionsBar::pollCursor () {
   // 一轮双责：显隐（光标离选区过远即隐藏，靠近重新显示）与悬浮同步。
   // 隐藏但仍在跟踪（光标过远）时只判显隐
   QPoint g (QCursor::pos ());
@@ -142,7 +141,7 @@ QTMAiTranslatePopup::pollCursor () {
 }
 
 bool
-QTMAiTranslatePopup::cursorNearSelection (const QPoint& global) const {
+QTMAiActionsBar::cursorNearSelection (const QPoint& global) const {
   // 邻近区 = 锚行矩形（最后选中文字所在行）∪ 操作栏自身矩形（画布像素），
   // 四周外扩 80px：操作栏可能宽于锚行，悬浮在栏上不算「离选中文字过远」。
   // 注意锚行只是选区的一行，高于约两个 margin 的选区中部会被判远——
@@ -158,7 +157,7 @@ QTMAiTranslatePopup::cursorNearSelection (const QPoint& global) const {
 }
 
 void
-QTMAiTranslatePopup::present () {
+QTMAiActionsBar::present () {
   // 统一显示闸门：光标远离锚行（保持跟踪，靠近后由轮询拉起）或选区移出
   // 视口（updatePosition 已隐藏）都不显示
   if (!cursorNearSelection (QCursor::pos ())) {
@@ -172,19 +171,19 @@ QTMAiTranslatePopup::present () {
 }
 
 void
-QTMAiTranslatePopup::disarm () {
+QTMAiActionsBar::disarm () {
   hover_timer->stop ();
   hide ();
 }
 
 void
-QTMAiTranslatePopup::showEvent (QShowEvent* ev) {
+QTMAiActionsBar::showEvent (QShowEvent* ev) {
   QTMBasePopup::showEvent (ev);
   hover_inside= false;
 }
 
 void
-QTMAiTranslatePopup::autoSize () {
+QTMAiActionsBar::autoSize () {
   // 尺寸按屏幕 DPI 缩放（与 QML 弹窗的 dpScale 同源），不跟随文档字体；
   // 整体尺寸随 QML 内边距/图标比例自适应。鼠标移动会高频重入：字号未变时
   // 不写 QML（避免触发布局重算），尺寸未变时不重设窗口
@@ -210,7 +209,7 @@ QTMAiTranslatePopup::autoSize () {
 }
 
 void
-QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
+QTMAiActionsBar::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   (void) ren;
   double center_px, top_px, bottom_px;
   selectionEdgePixels (center_px, top_px, bottom_px);
@@ -234,7 +233,7 @@ QTMAiTranslatePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
 }
 
 void
-QTMAiTranslatePopup::setTranslateVisible (bool visible) {
+QTMAiActionsBar::setTranslateVisible (bool visible) {
   QObject* root= quick->rootObject ();
   if (!root) return;
   if (root->property ("showTranslate").toBool () == visible) return;
@@ -243,9 +242,9 @@ QTMAiTranslatePopup::setTranslateVisible (bool visible) {
 }
 
 void
-QTMAiTranslatePopup::showPopup (qt_renderer_rep* ren, rectangle selr,
-                                double magf, int scroll_x, int scroll_y,
-                                int canvas_x, int canvas_y) {
+QTMAiActionsBar::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
+                            int scroll_x, int scroll_y, int canvas_x,
+                            int canvas_y) {
   (void) ren;
   // 同步翻译按钮可见性（0995）：编辑器侧显隐判定时已按 100ms 缓存算好
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {

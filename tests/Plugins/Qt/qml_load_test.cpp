@@ -1074,7 +1074,7 @@ TestQmlLoad::test_go_menu_loads () {
 
 void
 TestQmlLoad::test_ai_actions_bar_loads () {
-  // AiActionsBar 是 QTMAiTranslatePopup 内嵌的非模态操作栏（无 closeBridge），
+  // AiActionsBar 是 QTMAiActionsBar 内嵌的非模态操作栏（无 closeBridge），
   // 断言能实例化。
   QDialog host;
   QCOMPARE (make_ai_actions_bar (&host)->status (), QQuickWidget::Ready);

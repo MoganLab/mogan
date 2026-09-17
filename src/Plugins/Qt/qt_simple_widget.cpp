@@ -16,7 +16,7 @@
 #include "qt_utilities.hpp"
 #include "qt_window_widget.hpp"
 
-#include "QTMAiTranslatePopup.hpp"
+#include "QTMAiActionsBar.hpp"
 #include "QTMCompletionPopup.hpp"
 #include "QTMImagePopup.hpp"
 #include "QTMMathCompletionPopup.hpp"
@@ -918,62 +918,62 @@ qt_simple_widget_rep::is_point_in_text_popup (SI x, SI y) {
  ******************************************************************************/
 
 void
-qt_simple_widget_rep::ensure_translate_popup () {
+qt_simple_widget_rep::ensure_ai_actions_bar () {
   if (!canvas ()) return;
-  if (translatePopup) {
-    if (translatePopup->parent () != canvas ()) {
-      translatePopup->setParent (canvas ());
+  if (aiActionsBar) {
+    if (aiActionsBar->parent () != canvas ()) {
+      aiActionsBar->setParent (canvas ());
     }
     return;
   }
-  translatePopup= new QTMAiTranslatePopup (canvas (), this);
+  aiActionsBar= new QTMAiActionsBar (canvas (), this);
   if (is_empty (tm_style_sheet)) {
-    translatePopup->setStyle (qtmstyle ());
+    aiActionsBar->setStyle (qtmstyle ());
   }
 }
 
 void
-qt_simple_widget_rep::show_translate_popup (rectangle selr, bool upward,
-                                            double magf, int scroll_x,
-                                            int scroll_y, int canvas_x,
-                                            int canvas_y) {
-  ensure_translate_popup ();
+qt_simple_widget_rep::show_ai_actions_bar (rectangle selr, bool upward,
+                                           double magf, int scroll_x,
+                                           int scroll_y, int canvas_x,
+                                           int canvas_y) {
+  ensure_ai_actions_bar ();
   qt_renderer_rep* ren= the_qt_renderer ();
-  translatePopup->setUpward (upward);
-  translatePopup->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                             canvas_y);
+  aiActionsBar->setUpward (upward);
+  aiActionsBar->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                           canvas_y);
 }
 
 void
-qt_simple_widget_rep::hide_translate_popup () {
+qt_simple_widget_rep::hide_ai_actions_bar () {
   // 编辑器「不想显示」（选区取消/dismiss/偏好关闭等）汇入处：隐藏并停
   // 止光标跟踪，靠近选区不再自动复现。tab 切换/焦点丢失等不触发编辑器
   // hide 的路径不在此列，跟踪可能滞留，靠下次编辑器 show/hide 触发收敛
-  if (translatePopup) {
-    translatePopup->disarm ();
+  if (aiActionsBar) {
+    aiActionsBar->disarm ();
   }
 }
 
 void
-qt_simple_widget_rep::scroll_translate_popup_by (SI x, SI y) {
-  if (translatePopup) {
+qt_simple_widget_rep::scroll_ai_actions_bar_by (SI x, SI y) {
+  if (aiActionsBar) {
     QPoint qp (x, y);
     coord2 p= from_qpoint (qp);
-    translatePopup->scrollBy (p.x1, p.x2);
+    aiActionsBar->scrollBy (p.x1, p.x2);
     qt_renderer_rep* ren= the_qt_renderer ();
-    translatePopup->updatePosition (ren);
+    aiActionsBar->updatePosition (ren);
   }
 }
 
 bool
-qt_simple_widget_rep::is_point_in_translate_popup (SI x, SI y) {
-  if (!translatePopup) return false;
+qt_simple_widget_rep::is_point_in_ai_actions_bar (SI x, SI y) {
+  if (!aiActionsBar) return false;
 
   double inv_unit= 1.0 / 256.0;
   int    px      = int (std::round (x * inv_unit));
   int    py      = int (std::round (y * inv_unit));
 
-  return translatePopup->geometry ().contains (px, py);
+  return aiActionsBar->geometry ().contains (px, py);
 }
 
 void

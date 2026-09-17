@@ -1,5 +1,5 @@
 /******************************************************************************
- * MODULE     : QTMAiTranslatePopup.hpp
+ * MODULE     : QTMAiActionsBar.hpp
  * DESCRIPTION: AI action bar (translate/polish/chat) shown below the selection
  * COPYRIGHT  : (C) 2026 Mogan STEM
  *******************************************************************************
@@ -18,11 +18,11 @@ class QQuickWidget;
 class QTimer;
 
 // 选区下方的一行 AI 操作栏：龙虾标识 + 翻译 / 润色 / 对话（QML 渲染）
-class QTMAiTranslatePopup : public QTMBasePopup {
+class QTMAiActionsBar : public QTMBasePopup {
   Q_OBJECT
 
 public:
-  QTMAiTranslatePopup (QWidget* parent, qt_simple_widget_rep* owner);
+  QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner);
 
   void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
                   int scroll_x, int scroll_y, int canvas_x,
@@ -30,7 +30,7 @@ public:
   void autoSize () override;
 
   // 停止光标跟踪并隐藏：编辑器侧所有「不想显示」路径（选区取消/点击
-  // 外部/dismiss/偏好关闭等）都经 hide_translate_popup 汇入此处；
+  // 外部/dismiss/偏好关闭等）都经 hide_ai_actions_bar 汇入此处；
   // showPopup 会重新开始跟踪
   void disarm ();
 

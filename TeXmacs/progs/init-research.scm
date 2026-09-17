@@ -257,7 +257,7 @@
   get-init-page-rendering
   init-page-rendering
 ) ;lazy-define
-;; AI 操作栏选区内容判定（C++ 侧 should_show_translate_popup 经 call 触发）
+;; AI 操作栏选区内容判定（C++ 侧 should_show_ai_actions_bar 经 call 触发）
 (lazy-define (generic ai-actions-bar)
   ai-selection-only-images?
   ai-translate-eligible?

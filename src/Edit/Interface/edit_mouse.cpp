@@ -954,7 +954,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     hide_image_popup ();
 #endif
     update_text_popup ();
-    update_translate_popup ();
+    update_ai_actions_bar ();
   }
   else if (over_handles) {
     if (handle_cursor != "") set_cursor_style (handle_cursor);
@@ -991,7 +991,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
 
     // 检查是否应该显示文本工具栏
     update_text_popup ();
-    update_translate_popup ();
+    update_ai_actions_bar ();
   }
 
   if (type == "move") mouse_message ("move", x, y);
@@ -1117,8 +1117,8 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     if (!is_point_in_text_popup (x, y)) {
       hide_text_popup ();
     }
-    if (!is_point_in_translate_popup (x, y)) {
-      hide_translate_popup ();
+    if (!is_point_in_ai_actions_bar (x, y)) {
+      hide_ai_actions_bar ();
     }
     notify_change (THE_DECORATIONS);
   }
@@ -1439,15 +1439,15 @@ edit_interface_rep::update_text_popup () {
  ******************************************************************************/
 
 bool
-edit_interface_rep::should_show_translate_popup () {
+edit_interface_rep::should_show_ai_actions_bar () {
 #ifdef QTTEXMACS
   // 缓存结果100ms，避免过多的Scheme调用
   time_t now= texmacs_time ();
-  if (now - translate_popup_last_check < 100) {
-    return translate_popup_last_result;
+  if (now - ai_actions_bar_last_check < 100) {
+    return ai_actions_bar_last_result;
   }
-  translate_popup_last_check = now;
-  translate_popup_last_result= false;
+  ai_actions_bar_last_check = now;
+  ai_actions_bar_last_result= false;
 
   // AI 操作栏总开关：社区版无 AI Chat（按钮无接收方）一律不弹，企业版按
   // 首选项（转换 → AI，默认开启）。常量判断在前，社区版省掉 get_preference
@@ -1486,7 +1486,7 @@ edit_interface_rep::should_show_translate_popup () {
   // 栏不显示翻译按钮（润色/对话仍显示）；随本闸门同一 100ms 缓存节奏刷新
   ai_translate_btn_visible= as_bool (call ("ai-translate-eligible?", sel_tree));
 
-  translate_popup_last_result= true;
+  ai_actions_bar_last_result= true;
   return true;
 #else
   return false;
@@ -1530,48 +1530,48 @@ edit_interface_rep::get_selection_last_rect (bool upward) {
 }
 
 void
-edit_interface_rep::show_translate_popup (rectangle selr, bool upward,
-                                          double magf, int scroll_x,
-                                          int scroll_y, int canvas_x,
-                                          int canvas_y) {
+edit_interface_rep::show_ai_actions_bar (rectangle selr, bool upward,
+                                         double magf, int scroll_x,
+                                         int scroll_y, int canvas_x,
+                                         int canvas_y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_translate_popup (selr, upward, magf, scroll_x, scroll_y, canvas_x,
-                               canvas_y);
+    qsw->show_ai_actions_bar (selr, upward, magf, scroll_x, scroll_y, canvas_x,
+                              canvas_y);
   }
 #endif
 }
 
 void
-edit_interface_rep::hide_translate_popup () {
+edit_interface_rep::hide_ai_actions_bar () {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->hide_translate_popup ();
+    qsw->hide_ai_actions_bar ();
   }
 #endif
 }
 
 bool
-edit_interface_rep::is_point_in_translate_popup (SI x, SI y) {
+edit_interface_rep::is_point_in_ai_actions_bar (SI x, SI y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    return qsw->is_point_in_translate_popup (x, y);
+    return qsw->is_point_in_ai_actions_bar (x, y);
   }
 #endif
   return false;
 }
 
 void
-edit_interface_rep::dismiss_translate_popup () {
+edit_interface_rep::dismiss_ai_actions_bar () {
   // 点击按钮后记住「本次选区不再弹出」，选区变化时由缓存失效复位
-  translate_popup_dismissed= true;
-  hide_translate_popup ();
+  ai_actions_bar_dismissed= true;
+  hide_ai_actions_bar ();
 }
 
 void
-edit_interface_rep::invalidate_translate_popup_cache () {
-  translate_popup_last_check= 0;
-  translate_popup_dismissed = false;
+edit_interface_rep::invalidate_ai_actions_bar_cache () {
+  ai_actions_bar_last_check= 0;
+  ai_actions_bar_dismissed = false;
 }
 
 void
@@ -1589,29 +1589,29 @@ edit_interface_rep::ai_action (string action) {
 #else
   (void) action;
 #endif
-  dismiss_translate_popup ();
+  dismiss_ai_actions_bar ();
 }
 
 void
-edit_interface_rep::update_translate_popup () {
-  if (left_dragging || translate_popup_dismissed) {
-    hide_translate_popup ();
+edit_interface_rep::update_ai_actions_bar () {
+  if (left_dragging || ai_actions_bar_dismissed) {
+    hide_ai_actions_bar ();
     return;
   }
-  if (should_show_translate_popup ()) {
+  if (should_show_ai_actions_bar ()) {
     // 方向与锚行在同一时刻确定，随锚行一路传入 popup 缓存——定位时不再
     // 回查编辑器活态，避免选区变化后位置与锚行失配
     bool      upward= selection_made_upward ();
     rectangle selr  = get_selection_last_rect (upward);
     if (selr->x1 >= selr->x2 || selr->y1 >= selr->y2) {
-      hide_translate_popup ();
+      hide_ai_actions_bar ();
       return;
     }
     // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
-    show_translate_popup (selr, upward, magf, get_scroll_x (), get_scroll_y (),
-                          get_canvas_x (), get_canvas_y ());
+    show_ai_actions_bar (selr, upward, magf, get_scroll_x (), get_scroll_y (),
+                         get_canvas_x (), get_canvas_y ());
   }
   else {
-    hide_translate_popup ();
+    hide_ai_actions_bar ();
   }
 }

@@ -845,7 +845,7 @@ qt_apply_tm_style (QWidget* qwid, int style, color c) {
  * @brief 把 Quick 场景图固定为 software 后端（幂等）。
  *
  * 图形 API 是进程级全局选择，须赶在首个 QQuickWidget 构造前设定；各
- * QQuickWidget 宿主（QTMQmlDialog、QTMAiTranslatePopup 等）构造时统一调用。
+ * QQuickWidget 宿主（QTMQmlDialog、QTMAiActionsBar 等）构造时统一调用。
  */
 void
 qt_use_software_scene_graph () {

@@ -1,5 +1,5 @@
 // AiActionsBar.qml — 选区下方的一行 AI 操作栏（翻译 / 润色 / 对话）。
-// 由 QTMAiTranslatePopup（QQuickWidget 宿主）以 qrc URL 直接加载：非模态、
+// 由 QTMAiActionsBar（QQuickWidget 宿主）以 qrc URL 直接加载：非模态、
 // 不用 DialogShell。按钮文案由 C++ 经 context property 注入（已过 qt_translate）；
 // 点击经根信号 triggered(action) 回传 C++。
 import QtQuick
