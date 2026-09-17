@@ -588,15 +588,21 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
 
 void
 QTMTabPageContainer::updateActiveTab (const url& currentView) {
+  string cv= as_string (currentView);
 #ifdef LIII_DEBUG
   debug_active_count++;
   cout << "[tabpage] active #" << debug_active_count
-       << " added=" << debug_added_count << " removed=" << debug_removed_count
-       << LF;
+       << " currentView=" << currentView << LF;
 #endif
   for (int i= 0; i < m_tabPageList.size (); ++i) {
-    QTMTabPage* tab= m_tabPageList[i];
-    tab->setChecked (as_string (tab->m_viewUrl) == as_string (currentView));
+    QTMTabPage* tab  = m_tabPageList[i];
+    bool        match= as_string (tab->m_viewUrl) == cv;
+#ifdef LIII_DEBUG
+    cout << "  tab #" << i << " url=" << tab->m_viewUrl
+         << " title=" << from_qstring (tab->text ()) << " match=" << match
+         << LF;
+#endif
+    tab->setChecked (match);
   }
 }
 
@@ -633,6 +639,7 @@ QTMTabPageContainer::arrangeTabPages () {
   buttonCount= 1; // macOS 仅保留 login
 #endif
   int reservedRight= buttonCount * buttonWidth;
+  reservedRight+= DpiUtils::scaled (60); // Go 按钮
 #ifndef IS_COMMUNITY
   if (m_vipButtonReserved) {
     reservedRight+= DpiUtils::scaled (90); // 邀请按钮

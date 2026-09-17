@@ -62,6 +62,8 @@ bool in_presentation_mode ();
 
 #include "QTMGuiHelper.hpp" // needed to connect()
 #include "QTMInteractiveInputHelper.hpp"
+
+#include "GoMenuBridge.hpp"
 #include "QTMInteractivePrompt.hpp"
 #include "QTMOAuth.hpp"
 #include "QTMStartupTabWidget.hpp"
@@ -78,6 +80,10 @@ bool in_presentation_mode ();
 #include "tm_server.hpp"
 #include "tm_sys_utils.hpp"
 #include "tm_url.hpp"
+#include <QQmlContext>
+#include <QQuickWidget>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 
 #include <moebius/data/scheme.hpp>
 
@@ -225,9 +231,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), is_presentation (false),
       menuToolBarVisibleCache (false), titleBarVisibleCache (false),
-      scmNotificationBar (nullptr), loginButton (nullptr),
-      inviteButton (nullptr), m_loginDialog (nullptr), avatarLabel (nullptr),
-      nameLabel (nullptr), accountIdLabel (nullptr),
+      scmNotificationBar (nullptr), loginButton (nullptr), goButton (nullptr),
+      inviteButton (nullptr), m_goMenuPopup (nullptr), m_loginDialog (nullptr),
+      avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
       loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
       m_currentScmNotificationItem (""), startupContentWidget (nullptr),
@@ -455,6 +461,33 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                       [this] () { checkLocalTokenAndLogin (); });
   }
 
+  bool isChinese= (get_output_language () == "chinese");
+
+  // Go 按钮 - 放在领取会员按钮左侧
+  goButton= new QPushButton (windowBar);
+  goButton->setObjectName ("go-button");
+  goButton->setText (qt_translate ("Go"));
+  goButton->setProperty ("system-button", true);
+  goButton->setFocusPolicy (Qt::NoFocus);
+  goButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  int goButtonWidth= int (60 * scale);
+  goButton->setFixedSize (goButtonWidth, vipbuttonHeight);
+  goButton->setCursor (Qt::PointingHandCursor);
+  goButton->setStyleSheet (
+      QString ("QPushButton#go-button { border-radius: %1px; font-size: %2px; "
+               "margin-right: %3px; }")
+          .arg (DpiUtils::scaled (12))
+          .arg (DpiUtils::scaled (isChinese ? 12 : 11))
+          .arg (DpiUtils::scaled (4)));
+
+  windowBar->setGoButton (goButton);
+  if (windowAgent) {
+    windowAgent->setHitTestVisible (goButton, true);
+  }
+
+  QObject::connect (goButton, &QPushButton::clicked,
+                    [this] () { showGoMenu (goButton); });
+
   // 邀请好友按钮 - 放在登录按钮左侧（商业版已登录时显示）
   inviteButton= new QPushButton (windowBar);
   inviteButton->setObjectName ("invite-button");
@@ -464,7 +497,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   inviteButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
   inviteButton->setFixedSize (vipbuttonWidth, vipbuttonHeight);
   inviteButton->setCursor (Qt::PointingHandCursor);
-  bool isChinese= (get_output_language () == "chinese");
   inviteButton->setStyleSheet (
       QString (
           "QPushButton#invite-button { border-radius: %1px; font-size: %2px; "
@@ -1961,7 +1993,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     // SLOT_FILE 由 window_set_view 在切 view 后触发：轻量同步 active 高亮，
     // 避免重建 tab bar。
     if (tabPageContainer) {
-      url currentView= get_current_view_safe ();
+      url currentView= window_view_for_widget (this);
+      if (is_none (currentView)) currentView= get_current_view_safe ();
       if (!is_none (currentView))
         tabPageContainer->updateActiveTab (currentView);
     }
@@ -2279,7 +2312,8 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
           tabPageContainer->setHitTestVisibleForTabPages (windowAgent);
         }
         // 增删 tab 后同步一次 active（active 不再由展开树携带）。
-        url currentView= get_current_view_safe ();
+        url currentView= window_view_for_widget (this);
+        if (is_none (currentView)) currentView= get_current_view_safe ();
         if (!is_none (currentView))
           tabPageContainer->updateActiveTab (currentView);
       }
@@ -3654,4 +3688,63 @@ qt_tm_widget_rep::isVersionNewer (const QString& remote, const QString& local) {
     }
   }
   return false; // 版本相同
+}
+
+void
+qt_tm_widget_rep::showGoMenu (QPushButton* button) {
+  if (!button) return;
+
+  if (m_goMenuPopup && m_goMenuPopup->isVisible ()) {
+    m_goMenuPopup->close ();
+    return;
+  }
+
+  qt_use_software_scene_graph ();
+
+  QWidget* mw   = mainwindow ();
+  auto*    popup= new QWidget (mw, Qt::Popup | Qt::FramelessWindowHint |
+                                       Qt::NoDropShadowWindowHint);
+  popup->setAttribute (Qt::WA_TranslucentBackground);
+  popup->setAttribute (Qt::WA_DeleteOnClose);
+  m_goMenuPopup= popup;
+
+  auto* bridge= new GoMenuBridge (popup);
+
+  auto* quick= new QQuickWidget (popup);
+  quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  quick->setClearColor (Qt::transparent);
+  quick->setStyleSheet ("background: transparent;");
+  qt_inject_theme_context (quick);
+  quick->rootContext ()->setContextProperty ("goBridge", bridge);
+  quick->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
+
+  auto* layout= new QVBoxLayout (popup);
+  layout->setContentsMargins (0, 0, 0, 0);
+  layout->addWidget (quick);
+
+  popup->adjustSize ();
+
+  // 右对齐到 Go 按钮右侧，向下微距 4px
+  int popupX=
+      button->mapToGlobal (QPoint (button->width (), 0)).x () - popup->width ();
+  int    popupY= button->mapToGlobal (QPoint (0, button->height () + 4)).y ();
+  QPoint globalPos (popupX, popupY);
+
+  QScreen* screen= QGuiApplication::screenAt (globalPos);
+  if (!screen) screen= button->screen ();
+  if (screen) {
+    QRect avail= screen->availableGeometry ();
+    if (globalPos.x () < avail.left () + 4) {
+      globalPos.setX (avail.left () + 4);
+    }
+    if (globalPos.x () + popup->width () > avail.right ()) {
+      globalPos.setX (avail.right () - popup->width () - 4);
+    }
+    if (globalPos.y () + popup->height () > avail.bottom ()) {
+      globalPos.setY (button->mapToGlobal (QPoint (0, 0)).y () -
+                      popup->height () - 2);
+    }
+  }
+  popup->move (globalPos);
+  popup->show ();
 }

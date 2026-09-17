@@ -26,6 +26,7 @@ public:
   QLabel*          titleLabel () const;  // 保留的QLabel接口，可能返回nullptr
   QWidget*         titleWidget () const; // 新接口：获取任意类型的标题Widget
   QAbstractButton* iconButton () const;
+  QAbstractButton* goButton () const;
   QAbstractButton* loginButton () const;
   QAbstractButton* vipButton () const;
   QAbstractButton* pinButton () const;
@@ -37,6 +38,7 @@ public:
   void setTitleLabel (QLabel* label);
   void setTitleWidget (QWidget* widget); // 新接口：支持任意QWidget
   void setIconButton (QAbstractButton* btn);
+  void setGoButton (QAbstractButton* btn);
   void setLoginButton (QAbstractButton* btn);
   void setVipButton (QAbstractButton* btn);
   void setPinButton (QAbstractButton* btn);
@@ -48,6 +50,7 @@ public:
   QLabel*          takeTitleLabel ();
   QWidget*         takeTitleWidget (); // 新接口：获取标题Widget
   QAbstractButton* takeIconButton ();
+  QAbstractButton* takeGoButton ();
   QAbstractButton* takeLoginButton ();
   QAbstractButton* takeVipButton ();
   QAbstractButton* takePinButton ();

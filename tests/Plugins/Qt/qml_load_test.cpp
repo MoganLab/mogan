@@ -246,6 +246,28 @@ public:
   }
 };
 
+class GoMenuStubBridge : public QObject {
+  Q_OBJECT
+  Q_PROPERTY (QVariantMap meta READ meta CONSTANT)
+public:
+  explicit GoMenuStubBridge (QObject* p= nullptr) : QObject (p) {
+    m_meta["label_recent"]= QString ("Recent");
+
+    QVariantList recs;
+    QVariantMap  r1;
+    r1["url"]  = QString ("file:///tmp/recent.tm");
+    r1["title"]= QString ("recent.tm");
+    recs.append (r1);
+    m_meta["recent"]= recs;
+  }
+  QVariantMap      meta () const { return m_meta; }
+  Q_INVOKABLE void loadBuffer (const QString&) {}
+  Q_INVOKABLE void closeMenu () {}
+
+private:
+  QVariantMap m_meta;
+};
+
 class TestQmlLoad : public QObject {
   Q_OBJECT
 
@@ -276,6 +298,7 @@ private slots:
   void test_updater_progress_loads ();
   void test_color_picker_loads ();
   void test_bibliography_loads ();
+  void test_go_menu_loads ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
 };
@@ -993,6 +1016,20 @@ TestQmlLoad::test_bibliography_loads () {
 
   qw->setSource (QUrl ("qrc:/qml/Bibliography.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_go_menu_loads () {
+  QDialog          host;
+  GoMenuStubBridge bridge (&host);
+  auto*            qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("goBridge", &bridge);
+  qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 50.0);
 }
 
 void

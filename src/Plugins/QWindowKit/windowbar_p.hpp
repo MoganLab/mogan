@@ -29,6 +29,7 @@ public:
     IconButton,
     MenuWidget,
     TitleLabel,
+    GoButton,
     VipButton,
     LoginButton,
     PinButton,

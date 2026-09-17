@@ -162,19 +162,26 @@ get_nr_windows () {
 bool
 has_current_window () {
   tm_view vw= concrete_view (get_current_view_safe ());
-  return vw != NULL && vw->win != NULL;
+  if (vw != NULL && vw->win != NULL) return true;
+  return N (all_windows) > 0;
 }
 
 tm_window
 concrete_window () {
   tm_view vw= concrete_view (get_current_view ());
-  ASSERT (vw->win != NULL, "no window attached to view");
-  return vw->win;
+  if (vw != NULL && vw->win != NULL) return vw->win;
+  if (N (all_windows) > 0) {
+    tm_window win= concrete_window (all_windows[0]);
+    if (win != NULL) return win;
+  }
+  ASSERT (vw != NULL && vw->win != NULL, "no window attached to view");
+  return NULL;
 }
 
 url
 get_current_window () {
   tm_window win= concrete_window ();
+  if (win == NULL) return url_none ();
   return abstract_window (win);
 }
 
@@ -183,8 +190,9 @@ get_current_window_safe () {
   // Like get_current_view_safe: return url_none instead of asserting when
   // there is no current window (e.g. headless rendering of a passive view).
   tm_view vw= concrete_view (get_current_view_safe ());
-  if (vw == NULL || vw->win == NULL) return url_none ();
-  return abstract_window (vw->win);
+  if (vw != NULL && vw->win != NULL) return abstract_window (vw->win);
+  if (N (all_windows) > 0) return all_windows[0];
+  return url_none ();
 }
 
 array<url>
