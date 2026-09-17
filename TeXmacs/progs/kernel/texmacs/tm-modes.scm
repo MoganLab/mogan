@@ -206,7 +206,7 @@
   '("british" "bulgarian" "chinese" "croatian" "czech" "danish" "dutch"
     "english" "esperanto" "finnish" "french" "german" "greek" "hungarian"
     "italian" "japanese" "korean" "polish" "portuguese" "romanian" "russian"
-    "slovak" "slovene" "spanish" "swedish" "taiwanese" "ukrainian")
+    "slovak" "slovene" "spanish" "swedish" "ukrainian")
 ) ;define-public
 
 (define-public (supported-language? lan)
@@ -214,7 +214,6 @@
     (cond ((== lan "chinese") (supports-chinese?))
           ((== lan "japanese") (supports-japanese?))
           ((== lan "korean") (supports-korean?))
-          ((== lan "taiwanese") (supports-chinese?))
           (else #t)
     ) ;cond
   ) ;and
