@@ -934,6 +934,9 @@
       (map cadr ai-prompt-language-pairs)
       #f
     ) ;list
+    ;; 幽灵文本补全开关（0998 自 Other/Experimental 挪入）。AI 主 tab 整体已在
+    ;; community-stem? 下隐藏，此处无需再判社区版。
+    (list (pref-experimental-ghost-text) "Ghost text" '() '() #f)
   ) ;list
 ) ;define
 
@@ -992,164 +995,146 @@
 ;; ---- Other / Experimental fields（双栏 toggles，带平台条件过滤） ----
 
 (define preferences-qml-other-experimental-fields
-  (append (list
-            ;; 双栏布局（layout 'two-col）：左栏 column 0、右栏 column 1。
-            (list (pref-experimental-fast-environments)
-              "Fast environments"
-              '()
-              '()
-              #f
-              'group
-              "Experimental features (to be used with care)"
-              'group-span
-              #t
-              'layout
-              'two-col
-              'column
-              0
-            ) ;list
-            (list (pref-experimental-alpha)
-              "Alpha transparency"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              0
-            ) ;list
-            (list (pref-experimental-new-style-page-breaking)
-              "New style page breaking"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              0
-            ) ;list
-            (list (pref-experimental-encryption)
-              "Encryption"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              0
-            ) ;list
-            (list (pref-experimental-use-native-menubar)
-              "Use native menubar"
-              '()
-              '()
-              #f
-              'hint
-              (hint-macos-only)
-              'layout
-              'two-col
-              'column
-              0
-              'platform-filter
-              'macos-only
-            ) ;list
-            ;; 右栏（column 1）—— Experimental 程序员 / 搜索 / 打印 等。
-            (list (pref-prog-highlight-brackets)
-              "Program bracket matching"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              1
-            ) ;list
-            (list (pref-prog-automatic-brackets)
-              "Automatic program brackets"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              1
-            ) ;list
-            (list (pref-prog-select-brackets)
-              "Program bracket selections"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              1
-            ) ;list
-            (list (pref-case-insensitive-match)
-              "Case-insensitive search"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              1
-            ) ;list
-            (list (pref-gui-print-dialogue)
-              "Use print dialogue"
-              '()
-              '()
-              #f
-              'hint
-              (hint-qt-only)
-              'layout
-              'two-col
-              'column
-              1
-              'platform-filter
-              'qt-only
-            ) ;list
-            (list (pref-texlive-fonts)
-              "Use fonts in texlive"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              1
-            ) ;list
-            (list (pref-experimental-use-unified-toolbar)
-              "Use unified toolbars"
-              '()
-              '()
-              #f
-              'hint
-              (hint-macos-only)
-              'layout
-              'two-col
-              'column
-              1
-              'platform-filter
-              'macos-only
-            ) ;list
-          ) ;list
-    ;; ghost text 触发开关仅非社区版展示（社区版无 ghost-cloud-predict，本来就不触发）。
-    ;; 不能作为 (list ...) 的条件元素——社区版下求值成 '()，build-tab 逐字段
-    ;; field->descriptor 会对 '() 做 list-ref 越界崩溃。
-    (if (community-stem?)
+  (list
+    ;; 双栏布局（layout 'two-col）：左栏 column 0、右栏 column 1。
+    (list (pref-experimental-fast-environments)
+      "Fast environments"
       '()
-      (list (list (pref-experimental-ghost-text)
-              "Ghost text"
-              '()
-              '()
-              #f
-              'layout
-              'two-col
-              'column
-              0
-            ) ;list
-      ) ;list
-    ) ;if
-  ) ;append
+      '()
+      #f
+      'group
+      "Experimental features (to be used with care)"
+      'group-span
+      #t
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
+    (list (pref-experimental-alpha)
+      "Alpha transparency"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
+    (list (pref-experimental-new-style-page-breaking)
+      "New style page breaking"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
+    (list (pref-experimental-encryption)
+      "Encryption"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      0
+    ) ;list
+    (list (pref-experimental-use-native-menubar)
+      "Use native menubar"
+      '()
+      '()
+      #f
+      'hint
+      (hint-macos-only)
+      'layout
+      'two-col
+      'column
+      0
+      'platform-filter
+      'macos-only
+    ) ;list
+    ;; 右栏（column 1）—— Experimental 程序员 / 搜索 / 打印 等。
+    (list (pref-prog-highlight-brackets)
+      "Program bracket matching"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
+    (list (pref-prog-automatic-brackets)
+      "Automatic program brackets"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
+    (list (pref-prog-select-brackets)
+      "Program bracket selections"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
+    (list (pref-case-insensitive-match)
+      "Case-insensitive search"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
+    (list (pref-gui-print-dialogue)
+      "Use print dialogue"
+      '()
+      '()
+      #f
+      'hint
+      (hint-qt-only)
+      'layout
+      'two-col
+      'column
+      1
+      'platform-filter
+      'qt-only
+    ) ;list
+    (list (pref-texlive-fonts)
+      "Use fonts in texlive"
+      '()
+      '()
+      #f
+      'layout
+      'two-col
+      'column
+      1
+    ) ;list
+    (list (pref-experimental-use-unified-toolbar)
+      "Use unified toolbars"
+      '()
+      '()
+      #f
+      'hint
+      (hint-macos-only)
+      'layout
+      'two-col
+      'column
+      1
+      'platform-filter
+      'macos-only
+    ) ;list
+  ) ;list
 ) ;define
 
 ;; 字段格式解析 / flag->assoc / 平台过滤 / current-value / resolve-options /
@@ -1213,8 +1198,8 @@
                   identity
                 ) ;list-filter
               ) ;list
-              ;; 社区版无 AI Chat，操作栏与翻译均不可用，整个 AI 主 tab
-              ;; 隐藏（同 ghost text 字段的 community-stem? 惯例）
+              ;; 社区版无 AI Chat，操作栏、翻译与幽灵文本补全均不可用，
+              ;; 整个 AI 主 tab 隐藏
               (if (community-stem?)
                 #f
                 (list "ai"

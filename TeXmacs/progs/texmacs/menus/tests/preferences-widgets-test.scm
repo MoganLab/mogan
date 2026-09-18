@@ -67,19 +67,15 @@
     (check (length (caddr (tab-ref meta "mathematics"))) => 11)
     (check (length (caddr (tab-ref meta "convert"))) => 0)
     ;; AI 主 tab 仅非社区版注册：AI 操作栏 toggle + 翻译目标语言/AI 提示词语言
-    ;; 两个 combo，共 3 字段。
+    ;; 两个 combo + Ghost text toggle（0998 自 Other 挪入），共 4 字段。
     (when (not (community-stem?))
-      (check (length (caddr (tab-ref meta "ai"))) => 3)
+      (check (length (caddr (tab-ref meta "ai"))) => 4)
     ) ;when
     ;; other: 平台基础字段 + Velopack 更新器开启时多 1 个 Update channel 字段。
     ;; 用 use-plugin-updater? 而非硬编码,osx-x64 未接入 velopack 时仍正确。
-    ;; 非社区版再多 1 个 Ghost text 实验选项（社区版按上游 #4413 隐藏）。
     (check (length (caddr (tab-ref meta "other")))
       =>
-      (+ (if (os-macos?) 17 15)
-        (if (use-plugin-updater?) 1 0)
-        (if (community-stem?) 0 1)
-      ) ;+
+      (+ (if (os-macos?) 17 15) (if (use-plugin-updater?) 1 0))
     ) ;check
   ) ;let
 ) ;define
@@ -527,7 +523,7 @@
   ) ;let*
 ) ;define
 
-;; ---- 16b. AI 主 tab：操作栏 toggle + 翻译目标语言/AI 提示词语言 combo（首项 system） ----
+;; ---- 16b. AI 主 tab：操作栏/Ghost text toggle + 翻译目标语言/AI 提示词语言 combo（首项 system） ----
 
 (define (test-ai-tab-fields)
   (let ((ai (tab-ref (preferences-qml-meta) "ai")))
@@ -548,10 +544,19 @@
                  (lambda (f) (== (field-ref f 'key) (pref-ai-prompt-language)))
                ) ;list-find
              ) ;prompt-lang
+             (ghost
+               (list-find fields
+                 (lambda (f) (== (field-ref f 'key) (pref-experimental-ghost-text)))
+               ) ;list-find
+             ) ;ghost
             ) ;
         (check-true (pair? ai))
-        (check (length fields) => 3)
+        (check (length fields) => 4)
         (check (field-ref bar 'kind) => "toggle")
+        ;; Ghost text（0998 自 Other/Experimental 挪入 AI 主 tab）
+        (check-true (pair? ghost))
+        (check (field-ref ghost 'kind) => "toggle")
+        (check (field-ref ghost 'label) => (translate "Ghost text"))
         (check (field-ref target 'kind) => "combo")
         ;; AI 提示词语言（0995）：与翻译目标语言同源的 combo
         (check (field-ref prompt-lang 'kind) => "combo")

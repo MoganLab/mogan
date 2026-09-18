@@ -985,12 +985,12 @@ chat_model_menu_populate (QMenu* menu, const QList<ChatModelInfo>& models,
 QMenu*
 chat_effort_menu_populate (QMenu* menu, const string& currentEffort) {
   menu->addSeparator ();
-  QMenu* effortMenu= menu->addMenu (qt_translate ("thinking effort"));
+  QMenu* effortMenu= menu->addMenu (qt_translate ("Thinking effort"));
   // 互斥单选：三档强度与取值一一对应，词条走词典本地化
   QActionGroup* group= new QActionGroup (effortMenu);
   group->setExclusive (true);
   string      efforts[]= {"low", "medium", "high"};
-  const char* labels[] = {"low effort", "medium effort", "high effort"};
+  const char* labels[] = {"Low effort", "Medium effort", "High effort"};
   string      current  = currentEffort; // string::operator== 非 const
   for (int i= 0; i < 3; i++) {
     QAction* a= effortMenu->addAction (qt_translate (labels[i]));
