@@ -3,7 +3,8 @@
 ;; MODULE      : ai-actions-bar-test.scm
 ;; DESCRIPTION : AI 操作栏纯逻辑测试（树形状契约）：ai-selection-only-images?、
 ;;               ai-translate-eligible? 与释义上下文的 ai-flatten-text /
-;;               ai-split-node / ai-herk-head / ai-herk-tail
+;;               ai-split-node / ai-herk-head / ai-herk-tail /
+;;               ai-sentinel-split / ai-context->document
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -111,25 +112,29 @@
 ) ;define
 
 (define (test-flatten-markers)
-  ;; 表格/图片/公式换成标记（照 ghost 上下文约定）
+  ;; 表格/图片换成文本标记（照 ghost 上下文约定）；公式登记子树、留哨兵
+  (ai-formula-store-reset!)
   (check (ai-flatten-text '(para "a " (image "x.png") " b")) => "a [IMAGE] b")
   (check
     (ai-flatten-text '(table (row (cell "1"))))
     =>
     "[TABLE]"
   ) ;check
-  (check (ai-flatten-text '(para (equation "x"))) => "[FORMULA]")
+  (check (ai-flatten-text '(para (equation "x"))) => "<#F0G>")
+  (check ai-formula-store => '((equation "x")))
 ) ;define
 
 (define (test-flatten-with-node)
-  ;; with：inline 数学整体替换；其余只取末尾 body（前面是 key/val 属性对）
+  ;; with：inline 数学登记子树留哨兵；其余只取末尾 body（前面是 key/val 属性对）
+  (ai-formula-store-reset!)
   (check
     (ai-flatten-text '(para "see "
                         (with ("mode" "math") (rsub "x" "1"))
                         " here"))
     =>
-    "see [FORMULA] here"
+    "see <#F0G> here"
   ) ;check
+  (check ai-formula-store => '((with ("mode" "math") (rsub "x" "1"))))
   (check
     (ai-flatten-text '(para (with ("color" "red") (concat "a" "b"))))
     =>
@@ -160,20 +165,24 @@
     '("a\n" . "b")
   ) ;check
   ;; 公式/表格/图片不透明：光标入内时整体标记归 after（行内内容外面套
-  ;; para——document 的直接子节点是段落，裸字符串并列会被加换行分隔）
+  ;; para——document 的直接子节点是段落，裸字符串并列会被加换行分隔）；
+  ;; 公式登记子树、留哨兵
+  (ai-formula-store-reset!)
   (check
     (ai-split-node '(document (para "see " (equation "x") " here")) '(0 1 0))
     =>
-    '("see " . "[FORMULA] here")
+    '("see " . "<#F0G> here")
   ) ;check
+  (check ai-formula-store => '((equation "x")))
   ;; inline 数学（with "mode" "math"）同样不透明
+  (ai-formula-store-reset!)
   (check
     (ai-split-node
       '(document (para "a" (with ("mode" "math") (rsub "x" "1")) "b"))
       '(0 1 0)
     ) ;ai-split-node
     =>
-    '("a" . "[FORMULA]b")
+    '("a" . "<#F0G>b")
   ) ;check
 ) ;define
 
@@ -192,6 +201,48 @@
   ;; tail 切在序列内从 '>' 之后开始
   (check (ai-herk-tail "ab<#4E2D>cd" 7) => "cd")
   (check (ai-herk-tail "ab<#4E2D>cd" 2) => "cd")
+  ;; 公式哨兵 <#F0G> 同为 <#...> 闭合片段：切在哨兵内时整体让位，不切半
+  (check (ai-herk-head "ab<#F0G>cd" 5) => "ab")
+  (check (ai-herk-tail "ab<#F0G>cd" 7) => "cd")
+) ;define
+
+;; ===== 重组：哨兵换回公式子树 =====
+
+(define (test-sentinel-split)
+  (let ((store '((equation "x") (with ("mode" "math") "y"))))
+    ;; 无哨兵：整行一个字符串节点；空行得空列表
+    (check (ai-sentinel-split "plain" store) => '("plain"))
+    (check (ai-sentinel-split "" store) => '())
+    ;; 哨兵原位换回登记表中的子树，两侧字符串保留
+    (check (ai-sentinel-split "see <#F0G> here" store)
+      =>
+      '("see " (equation "x") " here")
+    ) ;check
+    ;; 多个哨兵各自按下标换回
+    (check (ai-sentinel-split "a<#F0G>b<#F1G>c" store)
+      =>
+      '("a" (equation "x") "b" (with ("mode" "math") "y") "c")
+    ) ;check
+  ) ;let
+) ;define
+
+(define (test-context-document)
+  (let ((store '((equation "x"))))
+    ;; 空上下文：空段落占位
+    (check (ai-context->document "" '()) => '(document ""))
+    ;; 按行拆段，空行跳过（原 C++ aiTextTree 的约定）
+    (check (ai-context->document "line 1\n\nline 3" '())
+      =>
+      '(document "line 1" "line 3")
+    ) ;check
+    ;; 段内多节点用 concat 连接，公式子树原位插回
+    (check (ai-context->document "see <#F0G> here" store)
+      =>
+      '(document (concat "see " (equation "x") " here"))
+    ) ;check
+    ;; 公式独占一段：不套 concat
+    (check (ai-context->document "<#F0G>" store) => '(document (equation "x")))
+  ) ;let
 ) ;define
 
 (tm-define (regtest-ai-actions-bar)
@@ -203,5 +254,7 @@
   (test-flatten-document-joins-lines)
   (test-split-node)
   (test-herk-truncate)
+  (test-sentinel-split)
+  (test-context-document)
   (check-report)
 ) ;tm-define

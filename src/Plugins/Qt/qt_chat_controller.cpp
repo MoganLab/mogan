@@ -839,29 +839,19 @@ aiQuoteBlock (tree content) {
   return compound ("quote-env", quoted);
 }
 
-// 上下文纯文本按行拆成段落节点：换行符留在树节点里不会被排版（空行跳过）
-static tree
-aiTextTree (string text) {
-  tree          doc (DOCUMENT);
-  array<string> lines= tokenize (text, "\n");
-  for (int i= 0; i < N (lines); i++)
-    if (N (lines[i]) > 0) doc << lines[i];
-  return doc;
-}
-
 tree
-ChatController::composeAiInputBody (tree sel, string action, string context) {
+ChatController::composeAiInputBody (tree sel, string action, tree context) {
   // 组装聊天输入体：gloss 分支的提示词节点夹在两个引用块之间，提前返回；
   // 其余动作引用块在前、提示词（或空段）追加为末段
   tree body (DOCUMENT);
-  // 释义：上下文（引文1）与选区（引文2）各成一块，编号标签与说明句都算
-  // 提示词，提示词按 0995 提示词语言首选项本地化
+  // 释义：上下文（引文1，公式保留为子树的 document 树）与选区（引文2）各成
+  // 一块，编号标签与说明句都算提示词，提示词按 0995 提示词语言首选项本地化
   if (action == "gloss") {
     string prompt_lang= get_ai_language_preference ("ai:prompt language");
     string label=
         translate (string ("reference %1::ai"), "english", prompt_lang);
     body << replace (label, "%1", "1");
-    body << aiQuoteBlock (aiTextTree (context));
+    body << aiQuoteBlock (context);
     body << replace (label, "%1", "2");
     body << aiQuoteBlock (sel);
     body << translate (
@@ -944,8 +934,10 @@ qt_chat_ai_send_selection (tree sel, string action) {
   // 翻译须在打开侧边栏（焦点/视图切换）前捕获来源文档身份：此时
   // current-buffer 仍是文档本身；llm 模块按 idle 延迟初始化，首次动作
   // 可能尚未加载，确保模块就绪（幂等，只执行一次）
-  // 释义同理由此捕获上下文（引文1）：切到聊天输入缓冲后选区已不在文档上
-  string docId, docName, context;
+  // 释义同理由此捕获上下文（引文1，document 树）：切到聊天输入缓冲后选区
+  // 已不在文档上
+  string docId, docName;
+  tree   context= tree (DOCUMENT);
   if (action == "translate") {
     static bool treeOpsLoaded= false;
     if (!treeOpsLoaded) {
@@ -956,8 +948,7 @@ qt_chat_ai_send_selection (tree sel, string action) {
     docId      = as_string (car (info));
     docName    = as_string (cdr (info));
   }
-  else if (action == "gloss")
-    context= as_string (call ("ai-selection-context"));
+  else if (action == "gloss") context= as_tree (call ("ai-selection-context"));
   // 打开 AI 侧边栏：同步创建聊天部件并确保活动会话。已打开时跳过，避免
   // sync_chat_sidebar_mode 重复 dock 重排；社区版无聊天部件，调用静默无效
   if (!ctrl->view_ || !ctrl->view_->isVisible ())
