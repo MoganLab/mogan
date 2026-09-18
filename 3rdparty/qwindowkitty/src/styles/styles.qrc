@@ -19,6 +19,8 @@
         <file>app/stem.png</file>
         <file>window-bar/login.svg</file>
         <file>window-bar/login-white.svg</file>
+        <file>window-bar/recent.svg</file>
+        <file>window-bar/recent-white.svg</file>
         <file>window-bar/logout.svg</file>
         <file>window-bar/logout-white.svg</file>
         <file>window-bar/vip-lightning.svg</file>

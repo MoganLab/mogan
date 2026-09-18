@@ -113,20 +113,10 @@ QWK--WindowBar>QAbstractButton#login-button {
   color: #2c2c2c;
 }
 
-/* Go 按钮 */
-QWK--WindowBar>QPushButton#go-button {
-  background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+/* Go 按钮 (最近文档) */
+QWK--WindowBar>QAbstractButton#go-button {
+  qproperty-iconNormal: url(":/window-bar/recent.svg");
   color: #2c2c2c;
-  font-weight: 500;
-}
-
-QWK--WindowBar>QPushButton#go-button:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-QWK--WindowBar>QPushButton#go-button:pressed {
-  background: rgba(0, 0, 0, 0.12);
 }
 
 /* 领取会员按钮 */

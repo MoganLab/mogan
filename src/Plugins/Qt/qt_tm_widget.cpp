@@ -462,23 +462,20 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
   bool isChinese= (get_output_language () == "chinese");
 
-  // Go 按钮 - 放在领取会员按钮左侧
-  goButton= new QPushButton (windowBar);
-  goButton->setObjectName ("go-button");
-  goButton->setText (qt_translate ("Go"));
-  goButton->setProperty ("system-button", true);
-  goButton->setFocusPolicy (Qt::NoFocus);
-  goButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
-  int goButtonWidth= int (60 * scale);
-  goButton->setFixedSize (goButtonWidth, vipbuttonHeight);
-  goButton->setCursor (Qt::PointingHandCursor);
-  goButton->setStyleSheet (
-      QString ("QPushButton#go-button { border-radius: %1px; font-size: %2px; "
-               "margin-right: %3px; }")
-          .arg (DpiUtils::scaled (12))
-          .arg (DpiUtils::scaled (isChinese ? 12 : 11))
-          .arg (DpiUtils::scaled (4)));
-
+  // 最近文档按钮 (Go) - 放在领取会员按钮左侧
+  auto goBtn= new QWK::WindowButton (windowBar);
+  goBtn->setFlat (true);
+  goBtn->setFocusPolicy (Qt::NoFocus);
+  goBtn->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  goBtn->setFixedSize (buttonWidth, buttonHeight);
+  goBtn->setIconSize (QSize (iconBaseSize, iconBaseSize));
+  goBtn->setIconNormal (QIcon (":/window-bar/recent.svg"));
+  goBtn->setObjectName ("go-button");
+  goBtn->setProperty ("system-button", true);
+  goBtn->setText (QString ());
+  goBtn->setToolTip (qt_translate ("Recent Documents"));
+  goBtn->setAccessibleName (qt_translate ("Recent Documents"));
+  goButton= goBtn;
   windowBar->setGoButton (goButton);
   if (windowAgent) {
     windowAgent->setHitTestVisible (goButton, true);
