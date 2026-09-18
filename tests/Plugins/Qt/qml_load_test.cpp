@@ -258,6 +258,22 @@ public:
     r1["url"]  = QString ("file:///tmp/recent.tm");
     r1["title"]= QString ("recent.tm");
     recs.append (r1);
+
+    QVariantMap r2;
+    r2["url"]  = QString ("file:///tmp/archive.tar.gz");
+    r2["title"]= QString ("archive.tar.gz");
+    recs.append (r2);
+
+    QVariantMap r3;
+    r3["url"]  = QString ("file:///tmp/slides.PDF");
+    r3["title"]= QString ("slides.PDF");
+    recs.append (r3);
+
+    QVariantMap r4;
+    r4["url"]  = QString ("file:///tmp/no_extension");
+    r4["title"]= QString ("no_extension");
+    recs.append (r4);
+
     m_meta["recent"]= recs;
   }
   QVariantMap      meta () const { return m_meta; }
@@ -300,6 +316,7 @@ private slots:
   void test_bibliography_loads ();
   void test_go_menu_loads ();
   void test_go_menu_hover ();
+  void test_go_menu_type_tags ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
   void test_ai_actions_bar_hide_translate ();
@@ -1140,6 +1157,48 @@ TestQmlLoad::test_go_menu_hover () {
   QVERIFY (!item->property ("isHovered").toBool ());
   QTest::qWait (150);
   QCOMPARE (bg->property ("opacity").toDouble (), 0.0);
+}
+
+void
+TestQmlLoad::test_go_menu_type_tags () {
+  QDialog          host;
+  GoMenuStubBridge bridge (&host);
+  auto*            qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("goBridge", &bridge);
+  qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QList<QQuickItem*> items=
+      collect_items_by_name (qw->rootObject (), "goMenuItem");
+  QCOMPARE (items.size (), 4);
+
+  // 1: recent.tm -> "tm"
+  QCOMPARE (items[0]->property ("fileExt").toString (), QString ("tm"));
+  QList<QQuickItem*> tags0=
+      collect_items_by_name (items[0], "goMenuItemTypeTag");
+  QVERIFY (!tags0.isEmpty () && tags0.first ()->isVisible ());
+
+  // 2: archive.tar.gz -> "gz"（仅处理最后一级后缀）
+  QCOMPARE (items[1]->property ("fileExt").toString (), QString ("gz"));
+  QList<QQuickItem*> tags1=
+      collect_items_by_name (items[1], "goMenuItemTypeTag");
+  QVERIFY (!tags1.isEmpty () && tags1.first ()->isVisible ());
+
+  // 3: slides.PDF -> "pdf"（统一小写）
+  QCOMPARE (items[2]->property ("fileExt").toString (), QString ("pdf"));
+  QList<QQuickItem*> tags2=
+      collect_items_by_name (items[2], "goMenuItemTypeTag");
+  QVERIFY (!tags2.isEmpty () && tags2.first ()->isVisible ());
+
+  // 4: no_extension -> ""（无后缀隐藏标签）
+  QCOMPARE (items[3]->property ("fileExt").toString (), QString (""));
+  QList<QQuickItem*> tags3=
+      collect_items_by_name (items[3], "goMenuItemTypeTag");
+  QVERIFY (!tags3.isEmpty () && !tags3.first ()->isVisible ());
 }
 
 void

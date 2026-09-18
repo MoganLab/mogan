@@ -256,6 +256,11 @@ Item {
         objectName: "goMenuItem"
         property string text: ""
         readonly property bool isHovered: mouseArea.containsMouse
+        readonly property string fileExt: {
+            var name = itemRoot.text;
+            var idx = name.lastIndexOf(".");
+            return (idx > 0 && idx < name.length - 1) ? name.substring(idx + 1).toLowerCase() : "";
+        }
         signal triggered()
 
         implicitHeight: root.itemH
@@ -283,12 +288,40 @@ Item {
             filename: itemRoot.text
         }
 
+        // 右侧文件类型标签（仅标注最后一级后缀）
+        Rectangle {
+            id: typeTag
+            objectName: "goMenuItemTypeTag"
+            anchors.right: parent.right
+            anchors.rightMargin: 8 * Theme.scaleFactor
+            anchors.verticalCenter: parent.verticalCenter
+            visible: itemRoot.fileExt.length > 0
+            implicitWidth: tagText.implicitWidth + 8 * Theme.scaleFactor
+            implicitHeight: 16 * Theme.scaleFactor
+            width: implicitWidth
+            height: implicitHeight
+            radius: 3 * Theme.scaleFactor
+            color: itemRoot.isHovered ? (Theme.dark ? "#4a4a4c" : "#dbe0e6")
+                                      : (Theme.dark ? "#38383a" : "#eceff1")
+
+            Text {
+                id: tagText
+                objectName: "goMenuItemTagText"
+                anchors.centerIn: parent
+                text: itemRoot.fileExt
+                font.pixelSize: 10 * Theme.scaleFactor
+                font.weight: Font.DemiBold
+                color: itemRoot.isHovered ? (Theme.dark ? "#d4d4d8" : "#475569")
+                                          : (Theme.dark ? "#a1a1aa" : "#64748b")
+            }
+        }
+
         Text {
             id: labelText
             anchors.left: docIcon.right
             anchors.leftMargin: 8 * Theme.scaleFactor
-            anchors.right: parent.right
-            anchors.rightMargin: 8 * Theme.scaleFactor
+            anchors.right: typeTag.visible ? typeTag.left : parent.right
+            anchors.rightMargin: typeTag.visible ? 6 * Theme.scaleFactor : 8 * Theme.scaleFactor
             anchors.verticalCenter: parent.verticalCenter
             text: itemRoot.text
             font.pixelSize: 12 * Theme.scaleFactor
