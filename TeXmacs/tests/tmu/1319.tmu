@@ -1,0 +1,37 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|framed-session|python>>
+
+<\body>
+  <\session|python|default>
+    <\output>
+      Python 3.13.5 [/usr/bin/python3]
+
+      Python plugin for Mogan STEM.
+
+      Please see the documentation in Help -\> Plugins -\> Python
+    </output>
+
+    <\unfolded-io>
+      \>\>\>\ 
+    <|unfolded-io>
+      1+1
+    <|unfolded-io>
+      2
+    </unfolded-io>
+
+    <\input>
+      \>\>\>\ 
+    <|input>
+      \;
+    </input>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|443EC022-9307-4C70-8FA7-695F8C1179D0>
+  </collection>
+</initial>
