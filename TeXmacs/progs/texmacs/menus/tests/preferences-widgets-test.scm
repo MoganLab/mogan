@@ -545,16 +545,13 @@
                ) ;list-find
              ) ;prompt-lang
              (ghost
-               (list-find fields
-                 (lambda (f) (== (field-ref f 'key) (pref-experimental-ghost-text)))
-               ) ;list-find
+               (list-find fields (lambda (f) (== (field-ref f 'key) (pref-ai-ghost-text))))
              ) ;ghost
             ) ;
         (check-true (pair? ai))
         (check (length fields) => 4)
         (check (field-ref bar 'kind) => "toggle")
         ;; Ghost text（0998 自 Other/Experimental 挪入 AI 主 tab）
-        (check-true (pair? ghost))
         (check (field-ref ghost 'kind) => "toggle")
         (check (field-ref ghost 'label) => (translate "Ghost text"))
         (check (field-ref target 'kind) => "combo")

@@ -936,7 +936,7 @@
     ) ;list
     ;; 幽灵文本补全开关（0998 自 Other/Experimental 挪入）。AI 主 tab 整体已在
     ;; community-stem? 下隐藏，此处无需再判社区版。
-    (list (pref-experimental-ghost-text) "Ghost text" '() '() #f)
+    (list (pref-ai-ghost-text) "Ghost text" '() '() #f)
   ) ;list
 ) ;define
 

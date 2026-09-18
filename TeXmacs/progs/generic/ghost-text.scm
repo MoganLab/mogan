@@ -40,7 +40,7 @@
 
 (tm-define (is-ghost-active?) ghost-active?)
 
-;; 实验选项「Ghost text」（仅非社区版展示，默认关闭）
+;; 首选项 AI 页「Ghost text」开关（仅非社区版展示，默认关闭）
 (tm-define (ghost-enable?)
   (and (defined? 'ghost-cloud-predict) (get-boolean-preference "ghost text"))
 ) ;tm-define
