@@ -263,13 +263,20 @@ qt_gui_rep::~qt_gui_rep () {
 
 bool
 qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
-  QClipboard*      cb  = QApplication::clipboard ();
+  QCoreApplication::processEvents (QEventLoop::ExcludeUserInputEvents);
+
+  QClipboard* cb= QApplication::clipboard ();
+  if (cb == nullptr) {
+    if (!selection_t->contains (key)) return false;
+    t= copy (selection_t[key]);
+    s= copy (selection_s[key]);
+    return true;
+  }
   QClipboard::Mode mode= QClipboard::Clipboard;
   if (key == "primary" || (key == "mouse" && cb->supportsSelection ()))
     if (key == "mouse") mode= QClipboard::Selection;
 
-  QString          originalText= cb->text (mode);
-  const QMimeData* md          = cb->mimeData (mode);
+  const QMimeData* md= cb->mimeData (mode);
   QByteArray       buf;
   string           input_format;
   string           image_w_string, image_h_string;
@@ -280,7 +287,12 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
   bool owns= (format != "temp" && format != "wrapbuf" && key != "primary") &&
              !(key == "mouse" && cb->supportsSelection ());
 
-  if (!owns && md->hasFormat ("application/x-texmacs-pid")) {
+  bool owns_cb= cb->ownsClipboard ();
+  if (!owns && owns_cb) {
+    owns= true;
+  }
+
+  if (!owns && md != nullptr && md->hasFormat ("application/x-texmacs-pid")) {
     buf= md->data ("application/x-texmacs-pid");
     if (!(buf.isEmpty ())) {
       owns= string (buf.constData (), buf.size ()) ==
@@ -296,11 +308,11 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
   }
 
   if (format == "default") {
-    if (md->hasFormat ("application/x-texmacs-clipboard")) {
+    if (md != nullptr && md->hasFormat ("application/x-texmacs-clipboard")) {
       buf         = md->data ("application/x-texmacs-clipboard");
       input_format= "texmacs-snippet";
     }
-    else if (md->hasImage ()) {
+    else if (md != nullptr && md->hasImage ()) {
       QBuffer qbuf (&buf);
       QImage  image= qvariant_cast<QImage> (md->imageData ());
       qbuf.open (QIODevice::WriteOnly);
@@ -311,7 +323,7 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
       qt_pretty_image_size (image_size.width (), image.height (),
                             image_w_string, image_h_string);
     }
-    else if (md->hasUrls ()) {
+    else if (md != nullptr && md->hasUrls ()) {
       QList<QUrl> l= md->urls ();
       if (l.size () == 1) {
         QString filePath= l[0].toLocalFile ();
@@ -348,26 +360,34 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
 #endif
       }
     }
-    else if (md->hasHtml ()) {
+    else if (md != nullptr && md->hasHtml ()) {
       buf         = md->html ().toUtf8 ();
       input_format= "html-snippet";
     }
-    else if (md->hasFormat ("text/plain;charset=utf8")) {
+    else if (md != nullptr && md->hasFormat ("text/plain;charset=utf8")) {
       buf         = md->data ("text/plain;charset=utf8");
       input_format= "verbatim-snippet";
     }
-    else {
+    else if (md != nullptr) {
       buf         = md->text ().toUtf8 ();
       input_format= "verbatim-snippet";
     }
   }
   else if (format == "verbatim" &&
            (get_preference ("verbatim->texmacs:encoding") == "utf-8" ||
-            get_preference ("verbatim->texmacs:encoding") == "auto"))
-    buf= md->text ().toUtf8 ();
+            get_preference ("verbatim->texmacs:encoding") == "auto")) {
+    if (md != nullptr) buf= md->text ().toUtf8 ();
+  }
   else {
-    if (md->hasFormat ("plain/text")) buf= md->data ("plain/text").data ();
-    else buf= md->text ().toUtf8 ();
+    if (md != nullptr && md->hasFormat ("plain/text"))
+      buf= md->data ("plain/text").data ();
+    else if (md != nullptr) buf= md->text ().toUtf8 ();
+  }
+
+  if (buf.isEmpty () && selection_t->contains (key)) {
+    t= copy (selection_t[key]);
+    s= copy (selection_s[key]);
+    return true;
   }
   if (!(buf.isEmpty ())) s << string (buf.constData (), buf.size ());
   if (input_format == "html-snippet" && seems_buggy_html_paste (s))
@@ -438,7 +458,8 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
   selection_t (key)= copy (t);
   selection_s (key)= copy (s);
 
-  QClipboard*      cb  = QApplication::clipboard ();
+  QClipboard* cb= QApplication::clipboard ();
+  if (cb == nullptr) return true;
   QClipboard::Mode mode= QClipboard::Clipboard;
   if (key == "primary")
     ;
@@ -468,6 +489,7 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
       // （Word 会优先取text/plain 导致粘贴失败）
       if (is_tuple (t, "texmacs", 3) && attach_selection_image (md, t[1])) {
         cb->setMimeData (md, mode);
+        QCoreApplication::processEvents (QEventLoop::ExcludeUserInputEvents);
         return true;
       }
     }
@@ -488,6 +510,7 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
     md->setText (QString::fromUtf8 (selection, -1));
   }
   cb->setMimeData (md, mode);
+  QCoreApplication::processEvents (QEventLoop::ExcludeUserInputEvents);
   // according to the docs, ownership of mimedata is transferred to clipboard
   // so no memory leak here
   return true;
@@ -498,7 +521,8 @@ qt_gui_rep::clear_selection (string key) {
   selection_t->reset (key);
   selection_s->reset (key);
 
-  QClipboard*      cb  = QApplication::clipboard ();
+  QClipboard* cb= QApplication::clipboard ();
+  if (cb == nullptr) return;
   QClipboard::Mode mode= QClipboard::Clipboard;
   if (key == "primary")
     ;
