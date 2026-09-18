@@ -16,7 +16,6 @@
     (kernel library list)
     (kernel library tree)
     (texmacs texmacs tm-tools)
-    (utils library tree)
   ) ;:use
 ) ;texmacs-module
 
@@ -57,10 +56,19 @@
 ) ;tm-define
 
 ;; =============================================================================
-;; 释义上下文（引文1）
+;; 释义上下文（引文1）：ghost 字符预算窗口
 ;; =============================================================================
-;; 展平约定照 ghost 上下文：表格/图片/公式换成标记，with 只取末尾 body（前面
-;; 是 key/val 属性对），document 子节点换行连接。
+;; 展平与切分照 ghost 上下文（liii ghost-context.scm 的 ghost-split-text-context，
+;; mogan2 不依赖该插件，此处自实现）：表格/图片/公式换成标记，with 只取末尾
+;; body（前面是 key/val 属性对），document 子节点换行连接；按路径把正文切成
+;; （选区前文本 . 选区后文本），再按字符预算截断。
+
+;; 字符预算同 ghost：选区前 1500 字节 / 选区后 500 字节（herk 编码下 CJK
+;; 一个字占 7 字节的 <#XXXX> 序列，预算按字节计、截断不切半序列）
+
+(define ai-context-before-limit 1500)
+
+(define ai-context-after-limit 500)
 
 (define ai-formula-labels
   '(equation equation* eqnarray eqnarray* align align* math)
@@ -103,38 +111,138 @@
   ) ;cond
 ) ;define
 
-;; document stree 中第 i1 到 i2 个子节点（含两端），保持 document 标签
+;; ===== 按路径切分：path 末位是字符串叶子的字符偏移 =====
 
-(define (ai-span-stree st i1 i2)
-  (cons (car st) (list-take (list-tail (cdr st) i1) (+ (- i2 i1) 1)))
+(define (ai-safe-substring s from to)
+  (let* ((len (string-length s)) (f (max 0 (min from len))) (t (max f (min to len))))
+    (substring s f t)
+  ) ;let*
+) ;define
+
+(define (ai-split-node st path)
+  (cond ((null? path) (cons "" (ai-flatten-text st)))
+        ((string? st)
+         (let ((idx (car path)))
+           (cons (ai-safe-substring st 0 idx)
+             (ai-safe-substring st idx (string-length st))
+           ) ;cons
+         ) ;let
+        ) ;
+        ((not (pair? st)) (cons "" ""))
+        (else (ai-split-compound st path))
+  ) ;cond
+) ;define
+
+;; compound 切分：idx 为路径所指的子节点（相对 children），rest 下钻。
+;; 数学/表格/图片整体不透明（光标入内时全归 after 的标记）；with 的属性对
+;; 不进上下文，只对末尾 body 下钻
+
+(define (ai-split-compound st path)
+  (let* ((idx (car path)) (rest (cdr path)) (lab (car st)))
+    (cond ((or (ai-inline-math? st)
+             (memq lab ai-formula-labels)
+             (memq lab ai-table-labels)
+             (memq lab ai-image-labels)
+           ) ;or
+           (cons "" (ai-flatten-text st))
+          ) ;
+          ((eq? lab 'with) (ai-split-node (last st) rest))
+          ((or (< idx 0) (>= (+ 1 idx) (length st))) (cons "" (ai-flatten-text st)))
+          (else
+            (let* ((children (cdr st))
+                   (pivot-pair (ai-split-node (list-ref children idx) rest))
+                   ;; document 子节点换行连接：把切点两侧的文本片段当作首尾
+                   ;; 子节点拼回 document 再展平，分隔符自然落在切口两侧
+                   (before (append (list-take children idx) (list (car pivot-pair))))
+                   (after (cons (cdr pivot-pair) (list-tail children (+ idx 1))))
+                  ) ;
+              (if (eq? lab 'document)
+                (cons (ai-flatten-text (cons 'document before))
+                  (ai-flatten-text (cons 'document after))
+                ) ;cons
+                (cons (string-concatenate (map ai-flatten-text before))
+                  (string-concatenate (map ai-flatten-text after))
+                ) ;cons
+              ) ;if
+            ) ;let*
+          ) ;else
+    ) ;cond
+  ) ;let*
+) ;define
+
+;; ===== 截断：不切半 herk 的 <#XXXX> 序列 =====
+
+;; s 中从 from 起第一个子串 pat 的位置，无则 #f
+
+(define (ai-index-of-from s pat from)
+  (let ((n (string-length s)) (k (string-length pat)))
+    (let loop
+      ((i from))
+      (cond ((> (+ i k) n) #f)
+            ((string=? (substring s i (+ i k)) pat) i)
+            (else (loop (+ i 1)))
+      ) ;cond
+    ) ;let
+  ) ;let
+) ;define
+
+;; 保留前 limit 字节；切点落入 <#...> 序列内（序列起点在窗内且 '>' 未到）
+;; 时退到序列起点
+
+(define (ai-herk-head s limit)
+  (let ((n (string-length s)))
+    (if (<= n limit)
+      s
+      (let* ((cand (substring s 0 limit))
+             (open (ai-index-of-from cand "<#" (max 0 (- limit 8))))
+            ) ;
+        (if (and open (not (ai-index-of-from cand ">" open)))
+          (substring cand 0 open)
+          cand
+        ) ;if
+      ) ;let*
+    ) ;if
+  ) ;let
+) ;define
+
+;; 保留后 limit 字节；切点左侧有未闭合的 <# 时，从序列 '>' 之后开始
+
+(define (ai-herk-tail s limit)
+  (let ((n (string-length s)))
+    (if (<= n limit)
+      s
+      (let* ((start (- n limit)) (open (ai-index-of-from s "<#" (max 0 (- start 8)))))
+        (if (and open (< open start))
+          (let ((close (ai-index-of-from s ">" open)))
+            (if (and close (>= close start))
+              (substring s (+ close 1) n)
+              (substring s start n)
+            ) ;if
+          ) ;let
+          (substring s start n)
+        ) ;if
+      ) ;let*
+    ) ;if
+  ) ;let
 ) ;define
 
 (tm-define (ai-selection-context)
   (:synopsis "选区上下文（AI 释义的引文1）的纯文本")
-  ;; 同段选区取所在段落（para 标签节点，否则公共前缀节点本身——顶层段落
-  ;; 内容），是「引文2是引文1的一部分」成立的最小上下文；跨段选区的公共
-  ;; 祖先是 document 时，只拼接覆盖选区两端的直接子节点（选中的若干段），
-  ;; 不把整个公共祖先（可能远超选区）喂给模型
-  (let* ((p1 (selection-get-start))
-         (p2 (selection-get-end))
-         (common (list-common p1 p2))
-         (base (path->tree common))
-         (para (and base (tree-search-upwards base 'para)))
+  ;; ghost 式字符预算窗口：选区前最多 ai-context-before-limit 字节 + 选区
+  ;; 本身 + 选区后最多 ai-context-after-limit 字节。跨段落自然延伸、可在
+  ;; 段落中间截断；选区嵌在引文1 中段，「引文2是引文1的一部分」成立。
+  ;; 路径剥掉 buffer 前缀后对正文 stree 切分（同 ghost-relative-path）
+  (let* ((body (tm->stree (buffer-get-body (current-buffer))))
+         (bp (buffer-path))
+         (rel
+           (lambda (p) (if (>= (length p) (length bp)) (list-tail p (length bp)) p))
+         ) ;rel
+         (at-start (ai-split-node body (rel (selection-get-start))))
+         (at-end (ai-split-node body (rel (selection-get-end))))
+         (before (ai-herk-tail (car at-start) ai-context-before-limit))
+         (after (ai-herk-head (cdr at-end) ai-context-after-limit))
+         (middle (ai-flatten-text (tm->stree (selection-tree))))
         ) ;
-    (cond
-      (para (tm-string-trim-both (ai-flatten-text (tm->stree para))))
-      ((and base (tree-is? base 'document))
-       (let* ((r1 (list-tail p1 (length common)))
-              (r2 (list-tail p2 (length common)))
-              (st (tm->stree base))
-              (i1 (if (null? r1) 0 (car r1)))
-              (i2 (if (null? r2) (- (length st) 2) (car r2)))
-             ) ;
-         (tm-string-trim-both (ai-flatten-text (ai-span-stree st i1 i2)))
-       ) ;let*
-      ) ;
-      (base (tm-string-trim-both (ai-flatten-text (tm->stree base))))
-      (else "")
-    ) ;cond
+    (tm-string-trim-both (string-append before middle after))
   ) ;let*
 ) ;tm-define

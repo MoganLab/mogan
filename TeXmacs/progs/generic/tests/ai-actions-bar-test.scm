@@ -2,8 +2,8 @@
 ;;
 ;; MODULE      : ai-actions-bar-test.scm
 ;; DESCRIPTION : AI 操作栏纯逻辑测试（树形状契约）：ai-selection-only-images?、
-;;               ai-translate-eligible? 与释义上下文展平 ai-flatten-text /
-;;               ai-span-stree
+;;               ai-translate-eligible? 与释义上下文的 ai-flatten-text /
+;;               ai-split-node / ai-herk-head / ai-herk-tail
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -138,20 +138,60 @@
 ) ;define
 
 (define (test-flatten-document-joins-lines)
-  ;; document 子节点换行连接：跨段选区的上下文形态
+  ;; document 子节点换行连接：切分拼回 document 时分隔符的来源
   (check (ai-flatten-text '(document (para "one") (para "two"))) => "one\ntwo")
 ) ;define
 
-(define (test-span-stree)
-  ;; 跨段选区的上下文跨度：公共 document 祖先只取覆盖选区两端的直接子节点
-  (check (ai-span-stree '(document (para "a") (para "b") (para "c") (para "d")) 1 2)
+;; ===== 按路径切分（ghost 窗口的左右两半）=====
+
+(define (test-split-node)
+  ;; 字符串叶子：path 末位是字符偏移
+  (check (ai-split-node "hello" '(2)) => '("he" . "llo"))
+  ;; document 内跨段切分：分隔符落在切口两侧（before 带尾换行、after 带首换行）
+  (check (ai-split-node '(document (para "one") (para "two") (para "three")) '(1
+                                                                               0
+                                                                               1))
     =>
-    '(document (para "b") (para "c"))
+    '("one\nt" . "wo\nthree")
   ) ;check
-  (check (ai-span-stree '(document (para "a") (para "b")) 0 0)
+  ;; 光标在段首：before 以换行结尾；段尾：after 以换行开头
+  (check (ai-split-node '(document (para "a") (para "b")) '(1 0 0))
     =>
-    '(document (para "a"))
+    '("a\n" . "b")
   ) ;check
+  ;; 公式/表格/图片不透明：光标入内时整体标记归 after（行内内容外面套
+  ;; para——document 的直接子节点是段落，裸字符串并列会被加换行分隔）
+  (check
+    (ai-split-node '(document (para "see " (equation "x") " here")) '(0 1 0))
+    =>
+    '("see " . "[FORMULA] here")
+  ) ;check
+  ;; inline 数学（with "mode" "math"）同样不透明
+  (check
+    (ai-split-node
+      '(document (para "a" (with ("mode" "math") (rsub "x" "1")) "b"))
+      '(0 1 0)
+    ) ;ai-split-node
+    =>
+    '("a" . "[FORMULA]b")
+  ) ;check
+) ;define
+
+;; ===== 截断不切半 herk 的 <#XXXX> 序列 =====
+
+(define (test-herk-truncate)
+  ;; 未超预算原样返回
+  (check (ai-herk-head "abc" 10) => "abc")
+  (check (ai-herk-tail "abc" 10) => "abc")
+  ;; 纯 ASCII 直接按字节截断
+  (check (ai-herk-head "abcdef" 3) => "abc")
+  (check (ai-herk-tail "abcdef" 3) => "def")
+  ;; "ab<#4E2D>cd"：<#4E2D> 占字节 2..8；head 切在序列内退到序列起点
+  (check (ai-herk-head "ab<#4E2D>cd" 5) => "ab")
+  (check (ai-herk-head "ab<#4E2D>cd" 9) => "ab<#4E2D>")
+  ;; tail 切在序列内从 '>' 之后开始
+  (check (ai-herk-tail "ab<#4E2D>cd" 7) => "cd")
+  (check (ai-herk-tail "ab<#4E2D>cd" 2) => "cd")
 ) ;define
 
 (tm-define (regtest-ai-actions-bar)
@@ -161,6 +201,7 @@
   (test-flatten-markers)
   (test-flatten-with-node)
   (test-flatten-document-joins-lines)
-  (test-span-stree)
+  (test-split-node)
+  (test-herk-truncate)
   (check-report)
 ) ;tm-define
