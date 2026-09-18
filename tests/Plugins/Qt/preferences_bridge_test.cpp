@@ -11,7 +11,9 @@
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.
  ******************************************************************************/
 
+#include "Qt/PreferencesBridge.hpp"
 #include "Qt/QTMQmlDialog.hpp" // cpp_preferences_dialog
+#include "analyze.hpp"
 #include "base.hpp"
 
 #include "sys_utils.hpp" // set_env
@@ -31,6 +33,10 @@ private slots:
 
   // =ok 钩子：不弹窗，返回 (tuple "ok") 供自动化脚本区分已提交。
   void test_ok_hook_returns_ok_marker ();
+
+  // 1318: 序列化 diff assoc 时保持原生 UTF-8，不将 > 转为 <gtr>，不将 CJK 转为
+  // <#XXXX>
+  void test_build_assoc_literal_preserves_unicode ();
 };
 
 void
@@ -50,6 +56,20 @@ TestPreferencesBridge::test_ok_hook_returns_ok_marker () {
   QVERIFY (is_atomic (r[0]));
   // 不直接比较 label 字符串（string 类 operator() 与构造歧义），
   // 形状验证已足够：非空 tuple 含一个原子节点。
+}
+
+void
+TestPreferencesBridge::test_build_assoc_literal_preserves_unicode () {
+  QVariantMap changed;
+  changed["texmacs->pdf:expand slides"]= QString ("off");
+  changed["language"]                  = QString::fromUtf8 ("中文");
+
+  string literal= PreferencesBridge::build_assoc_literal (changed);
+  QVERIFY (!occurs ("<gtr>", literal));
+  QVERIFY (occurs ("\"texmacs->pdf:expand slides\"", literal));
+  QVERIFY (!occurs ("<#", literal));
+  QVERIFY (occurs ("\"中文\"", literal));
+  QVERIFY (occurs ("\"off\"", literal));
 }
 
 #ifdef QTTEXMACS

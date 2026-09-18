@@ -197,24 +197,26 @@ parse_meta_tree (tmscm tabs) {
  * preferences-qml-submit 经 `(cdr (assoc key ...))` 取值，dotted pair 的 cdr
  * 直接是 val 字符串（若用二元组 `(key val)`，cdr 会得到单元素 list `(val)`
  * 而非字符串，下游 setter 全部误判）。val 均为 string（toggle 已在 QML 侧
- * 序列化为 "on"/"off" 串）。key / val 经 qt_scheme_quote 转 Cork 并 quote，
- * 用户输入的任意文本（引号 / 反斜杠 / 换行等）均安全转义。
+ * 序列化为 "on"/"off" 串）。key / val 经 qt_scheme_quote_utf8 保持 UTF-8 并
+ * quote， 用户输入的任意文本（引号 / 反斜杠 / 换行等）均安全转义，不会产生
+ * <gtr> 等 Cork 实体。
  */
-string
-build_assoc_literal (const QVariantMap& changed) {
-  string out= "(";
-  for (auto it= changed.begin (); it != changed.end (); ++it) {
-    out << "(" << qt_scheme_quote (it.key ()) << " . "
-        << qt_scheme_quote (it.value ().toString ()) << ")";
-  }
-  out << ")";
-  return out;
-}
 } // namespace
 
 //*****************************************************************************
 // bridge methods
 //*****************************************************************************
+
+string
+PreferencesBridge::build_assoc_literal (const QVariantMap& changed) {
+  string out= "(";
+  for (auto it= changed.begin (); it != changed.end (); ++it) {
+    out << "(" << qt_scheme_quote_utf8 (it.key ()) << " . "
+        << qt_scheme_quote_utf8 (it.value ().toString ()) << ")";
+  }
+  out << ")";
+  return out;
+}
 
 QVariantMap
 PreferencesBridge::meta () {
