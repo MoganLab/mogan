@@ -1831,6 +1831,9 @@
 ("math mode (Ctrl+Tab)" "数学模式 (Ctrl+Tab)")
 ("math mode (Option+Tab)" "数学模式 (Option+Tab)")
 ("Next (Enter)" "下一个 (Enter)")
+("no changes detected in page numbering rules"
+  "未检测到页码规则的变更"
+) ;
 ("no changes need to be saved" "没有任何更改需要保存")
 ("no dictionary for" "")
 ("no first indentation" "")

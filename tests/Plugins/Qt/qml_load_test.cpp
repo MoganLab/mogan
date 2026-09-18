@@ -545,6 +545,15 @@ TestQmlLoad::test_page_number_loads () {
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/PageNumber.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->rootObject ()->property ("hasRulesChanged").toBool (), false);
+
+  qw->rootObject ()->setProperty ("pendingEnd", 3);
+  qw->rootObject ()->setProperty ("curStyle", "roman");
+  QMetaObject::invokeMethod (qw->rootObject (), "addRule");
+  QCOMPARE (qw->rootObject ()->property ("hasRulesChanged").toBool (), true);
+
+  QMetaObject::invokeMethod (qw->rootObject (), "deleteLastRule");
+  QCOMPARE (qw->rootObject ()->property ("hasRulesChanged").toBool (), false);
 }
 
 void

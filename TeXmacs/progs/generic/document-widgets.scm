@@ -396,6 +396,7 @@
       (translate "Roman numeral page numbering (i, ii... or I, II...) is generally used for the table of contents and preface of books."
       ) ;translate
     ) ;cons
+    (cons 'noChangesTip (translate "No changes detected in page numbering rules"))
   ) ;list
 ) ;define
 
