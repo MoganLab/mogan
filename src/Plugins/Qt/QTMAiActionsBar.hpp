@@ -46,6 +46,8 @@ protected:
   // 悬停状态在每次显示时复位
   void showEvent (QShowEvent* ev) override;
 
+  bool eventFilter (QObject* watched, QEvent* event) override;
+
 private slots:
   // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
   void onActionTriggered (const QString& action);
@@ -69,6 +71,9 @@ private:
   // 靠近后由轮询拉起）；showPopup 与轮询复现都经此进入
   void present ();
 
+  bool isOverButton (const QPoint& pos) const;
+  void forwardMouseEvent (QWidget* target, QMouseEvent* me);
+
   QQuickWidget* quick;
   // 光标跟踪轮询（显隐与悬浮的唯一驱动）：move 事件可能在 QPA 层被整体
   // 吞掉，轮询只读系统光标位置，不依赖事件投递；showPopup 启动、
@@ -83,6 +88,8 @@ private:
   QPointF last_sync_pos;
   // 上次 autoSize 使用的字号：DPI 不变时跳过 QML 写入与布局重算
   int cached_font_px= 0;
+  // 非按钮区域点击时，将鼠标手势（按下/移动/释放）转发给画布
+  bool forwarding_to_parent= false;
 };
 
 #endif // QT_AI_TRANSLATE_POPUP_HPP

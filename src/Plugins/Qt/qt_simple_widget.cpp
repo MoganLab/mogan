@@ -899,18 +899,10 @@ qt_simple_widget_rep::scroll_text_popup_by (SI x, SI y) {
 
 bool
 qt_simple_widget_rep::is_point_in_text_popup (SI x, SI y) {
-  if (!textPopup) return false;
+  if (!textPopup || !textPopup->isVisible ()) return false;
 
-  // 将逻辑坐标转换为像素坐标
-  double inv_unit= 1.0 / 256.0;
-  int    px      = int (std::round (x * inv_unit));
-  int    py      = int (std::round (y * inv_unit));
-
-  // 获取工具栏的几何位置
-  QRect toolbarRect= textPopup->geometry ();
-
-  // 检查点是否在工具栏内
-  return toolbarRect.contains (px, py);
+  QPoint qp= to_qpoint (coord2 (x, y));
+  return textPopup->geometry ().contains (qp);
 }
 
 /******************************************************************************
@@ -967,13 +959,10 @@ qt_simple_widget_rep::scroll_ai_actions_bar_by (SI x, SI y) {
 
 bool
 qt_simple_widget_rep::is_point_in_ai_actions_bar (SI x, SI y) {
-  if (!aiActionsBar) return false;
+  if (!aiActionsBar || !aiActionsBar->isVisible ()) return false;
 
-  double inv_unit= 1.0 / 256.0;
-  int    px      = int (std::round (x * inv_unit));
-  int    py      = int (std::round (y * inv_unit));
-
-  return aiActionsBar->geometry ().contains (px, py);
+  QPoint qp= to_qpoint (coord2 (x, y));
+  return aiActionsBar->geometry ().contains (qp);
 }
 
 void

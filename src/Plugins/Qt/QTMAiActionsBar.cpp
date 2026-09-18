@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "QTMAiActionsBar.hpp"
+#include "QTMScrollView.hpp"
 #include "edit_interface.hpp"
 #include "qt_chat_controller.hpp"
 #include "qt_renderer.hpp"
@@ -36,6 +37,8 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
   // mouseMoved，按钮 hover 会失效）；基类的 widget 阴影对 QQuickWidget
   // 离屏渲染不生效，关掉
   setAttribute (Qt::WA_TranslucentBackground);
+  setAttribute (Qt::WA_ShowWithoutActivating);
+  setFocusPolicy (Qt::NoFocus);
   effect->setEnabled (false);
 
   // scene graph 固定 software 后端：与 QTMQmlDialog 一致——Metal/RHI 后端下
@@ -49,6 +52,8 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
   (void) sgApiInitialized;
 
   quick= new QQuickWidget (this);
+  quick->setFocusPolicy (Qt::NoFocus);
+  quick->setAttribute (Qt::WA_ShowWithoutActivating);
   quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
   quick->setClearColor (Qt::transparent);
   quick->setStyleSheet ("background: transparent;");
@@ -94,6 +99,69 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
     QObject::connect (root, &QQuickItem::implicitHeightChanged, this,
                       [this] { autoSize (); });
   }
+
+  quick->installEventFilter (this);
+}
+
+bool
+QTMAiActionsBar::isOverButton (const QPoint& pos) const {
+  (void) pos;
+  if (!quick) return false;
+  QObject* root= quick->rootObject ();
+  if (!root) return false;
+  return root->property ("buttonHovered").toBool ();
+}
+
+void
+QTMAiActionsBar::forwardMouseEvent (QWidget* target, QMouseEvent* me) {
+  if (!target || !me) return;
+  QWidget* dest= target;
+  if (auto* sa= qobject_cast<QTMScrollView*> (target)) {
+    if (sa->surface ()) dest= sa->surface ();
+  }
+
+#if QT_VERSION >= 0x060000
+  QPoint      dest_pos= dest->mapFromGlobal (me->globalPosition ().toPoint ());
+  QMouseEvent forwarded (me->type (), dest_pos, me->globalPosition (),
+                         me->button (), me->buttons (), me->modifiers ());
+#else
+  QPoint      dest_pos= dest->mapFromGlobal (me->globalPos ());
+  QMouseEvent forwarded (me->type (), dest_pos, me->globalPos (), me->button (),
+                         me->buttons (), me->modifiers ());
+#endif
+  QCoreApplication::sendEvent (dest, &forwarded);
+}
+
+bool
+QTMAiActionsBar::eventFilter (QObject* watched, QEvent* event) {
+  if (watched == quick) {
+    if (event->type () == QEvent::MouseButtonPress) {
+      QMouseEvent* me       = static_cast<QMouseEvent*> (event);
+      bool         on_button= isOverButton (me->pos ());
+      if (!on_button) {
+        forwarding_to_parent= true;
+        hide ();
+        if (parentWidget ()) {
+          parentWidget ()->setFocus ();
+          forwardMouseEvent (parentWidget (), me);
+        }
+        return true;
+      }
+    }
+    else if (forwarding_to_parent) {
+      if (event->type () == QEvent::MouseMove ||
+          event->type () == QEvent::MouseButtonRelease) {
+        QMouseEvent* me= static_cast<QMouseEvent*> (event);
+        if (event->type () == QEvent::MouseButtonRelease)
+          forwarding_to_parent= false;
+        if (parentWidget ()) {
+          forwardMouseEvent (parentWidget (), me);
+        }
+        return true;
+      }
+    }
+  }
+  return QTMBasePopup::eventFilter (watched, event);
 }
 
 void
