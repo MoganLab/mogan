@@ -362,6 +362,13 @@ void qt_chat_tab_restore_session (string sessionId, string title, string model,
  */
 void qt_chat_tab_set_source_doc_id (string sessionId, string docId);
 
+/**
+ * @brief Scheme→C++ 回调：设置会话类型（translate/gloss）。
+ *
+ * 与 sourceDocId 同理，恢复会话时 type 经此函数单独设置。
+ */
+void qt_chat_tab_set_session_type (string sessionId, string type);
+
 string qt_chat_tab_active_message_buffer_url ();
 
 /**

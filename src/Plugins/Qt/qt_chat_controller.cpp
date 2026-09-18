@@ -670,7 +670,7 @@ ChatController::updateManifest (const string& sessionId) {
        << object (s->thinking ? string ("enabled") : string ("disabled"))
        << object (s->search ? string ("enabled") : string ("disabled"))
        << object (string (updateAtBuf)) << object (s->thinkingEffort)
-       << object (s->sourceDocId);
+       << object (s->sourceDocId) << object (s->type);
   call ("chat-persist-update-manifest", args);
 }
 
@@ -941,12 +941,13 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
 void
 qt_chat_ai_send_selection (tree sel, string action) {
   ChatController* ctrl= get_chat_controller ();
-  // 翻译须在打开侧边栏（焦点/视图切换）前捕获来源文档身份：此时
-  // current-buffer 仍是文档本身；llm 模块按 idle 延迟初始化，首次动作
-  // 可能尚未加载，确保模块就绪（幂等，只执行一次）
-  // 释义同理由此捕获上下文（引文1）：切到聊天输入缓冲后选区已不在文档上
-  string docId, docName, context;
-  if (action == "translate") {
+  // 翻译/释义绑定来源文档，须在打开侧边栏（焦点/视图切换）前捕获文档身份
+  // （与释义的上下文，引文1）：此时 current-buffer 仍是文档本身，切到聊天
+  // 输入缓冲后选区已不在文档上。llm 模块按 idle 延迟初始化，首次动作可能
+  // 尚未加载，确保模块就绪（幂等，只执行一次）
+  const bool docBound= (action == "translate" || action == "gloss");
+  string     docId, docName, context;
+  if (docBound) {
     static bool treeOpsLoaded= false;
     if (!treeOpsLoaded) {
       eval ("(use-modules (llm chat-tree-ops))");
@@ -955,9 +956,8 @@ qt_chat_ai_send_selection (tree sel, string action) {
     object info= call ("chat-tab-source-doc-info");
     docId      = as_string (car (info));
     docName    = as_string (cdr (info));
+    if (action == "gloss") context= as_string (call ("ai-selection-context"));
   }
-  else if (action == "gloss")
-    context= as_string (call ("ai-selection-context"));
   // 打开 AI 侧边栏：同步创建聊天部件并确保活动会话。已打开时跳过，避免
   // sync_chat_sidebar_mode 重复 dock 重排；社区版无聊天部件，调用静默无效
   if (!ctrl->view_ || !ctrl->view_->isVisible ())
@@ -965,13 +965,13 @@ qt_chat_ai_send_selection (tree sel, string action) {
   if (!ctrl->view_) return;
   // 写入前无需加载检查：面板存在即保证 llm 模块已加载（会话创建路径
   // eval 过 use-modules，chat-loader 亦在启动 idle 阶段整体加载）
-  if (action == "translate") {
-    // 同一文档共享一个翻译会话：按 stem-doc-id 找未归档的翻译会话
-    // （最近活跃优先），命中即复用；未命中（含文档未绑定 doc-id、会话
-    // 已归档/删除）才新建
+  if (docBound) {
+    // 同一文档的翻译/释义各自共享一个会话：按 stem-doc-id + 会话类型找
+    // 未归档会话（最近活跃优先），命中即复用；未命中（含文档未绑定
+    // doc-id、会话已归档/删除）才新建
     string sid;
     if (!is_empty (docId))
-      sid= ctrl->sessionManager_.findSessionBySourceDoc (docId);
+      sid= ctrl->sessionManager_.findSessionBySourceDoc (docId, action);
     if (!is_empty (sid)) {
       ChatSession* s= ctrl->sessionManager_.getSession (sid);
       if (s && s->state == ChatState::Generating) {
@@ -980,36 +980,37 @@ qt_chat_ai_send_selection (tree sel, string action) {
         return;
       }
       ctrl->activateSession (sid);
-      ChatConversationPanel* panel=
-          s ? static_cast<ChatConversationPanel*> (s->panel) : nullptr;
-      if (!panel) return;
-      call ("chat-tab-set-input-body!",
-            ChatSessionManager::inputBufferUrl (sid),
-            ChatController::composeAiInputBody (sel, action));
-      ctrl->onSendRequested (sid);
-      return;
     }
-    // 标题 = 词典「翻译」+ ": " + 文件名。「翻译」与操作栏按钮同一词典键
-    // （"Translate" 首字符折叠命中 "translate"），随界面语言本地化；标题为
-    // UTF-8，经 from_qstring_utf8 归一编码后拼接。翻译质量优先，默认模型
-    // 取清单 translate_model 字段（清单未配置时 translateKey 回退清单默认
-    // 模型）
-    string title=
-        from_qstring_utf8 (qt_translate ("Translate")) * ": " * docName;
+    else {
+      // 标题 = 词典动作名 + ": " + 文件名。「翻译」与操作栏按钮同一词典键
+      // （"Translate" 首字符折叠命中 "translate"），「释义」与释义按钮同用
+      // "Gloss::ai" 消歧键（裸 "explain" 词条是「解释」），均随界面语言本地
+      // 化；标题为 UTF-8，经 from_qstring_utf8 归一编码后拼接。质量优先，
+      // 默认模型取清单 translate_model 字段（清单未配置时 translateKey 回退
+      // 清单默认模型）
+      string title= from_qstring_utf8 (qt_translate (
+                        action == "gloss" ? "Gloss::ai" : "Translate")) *
+                    ": " * docName;
+      ChatConversationPanel* panel=
+          ctrl->createNewConversation (ctrl->modelStore_.translateKey ());
+      if (!panel) return;
+      sid= panel->sessionId ();
+      ctrl->sessionManager_.setTitle (sid, title);
+      ctrl->sessionManager_.setSourceDocId (sid, docId);
+      ctrl->sessionManager_.setType (sid, action);
+    }
+    ChatSession*           s= ctrl->sessionManager_.getSession (sid);
     ChatConversationPanel* panel=
-        ctrl->createNewConversation (ctrl->modelStore_.translateKey ());
+        s ? static_cast<ChatConversationPanel*> (s->panel) : nullptr;
     if (!panel) return;
-    sid= panel->sessionId ();
-    ctrl->sessionManager_.setTitle (sid, title);
-    ctrl->sessionManager_.setSourceDocId (sid, docId);
     call ("chat-tab-set-input-body!", ChatSessionManager::inputBufferUrl (sid),
-          ChatController::composeAiInputBody (sel, action));
+          ChatController::composeAiInputBody (sel, action, context));
     ctrl->onSendRequested (sid);
     return;
   }
   ChatConversationPanel* panel= ctrl->view_->activeConversation ();
   if (!panel) return;
-  // 翻译会话专属于来源文档，对话/释义不写进去：激活会话绑定了文档时先切到
+  // 翻译/释义会话专属于来源文档，对话不写进去：激活会话绑定了文档时先切到
   // 空白会话（ensureNewConversation 复用或新建）再填输入
   if (ChatSession* active= ctrl->sessionManager_.findSessionByPanel (panel)) {
     if (!is_empty (active->sourceDocId)) {
@@ -1022,9 +1023,8 @@ qt_chat_ai_send_selection (tree sel, string action) {
         ChatSessionManager::inputBufferUrl (panel->sessionId ()),
         ChatController::composeAiInputBody (sel, action, context));
   // 对话只填入输入区，聚焦并滚动到光标（引用块下方）留给用户补写后手动
-  // 发送；释义与翻译一样填完即发（提示词已完整），未知动作同样只填入
+  // 发送；未知动作同样只填入不发送
   if (action == "chat") panel->revealInputCursor ();
-  else if (action == "gloss") ctrl->onSendRequested (panel->sessionId ());
 }
 
 void
@@ -1061,6 +1061,12 @@ qt_chat_tab_set_source_doc_id (string sessionId, string docId) {
   // glue 单函数参数上限为 10，sourceDocId 不能随 restore 一并传入，恢复后
   // 由 scheme 侧单独设置（insertSession 之后调用，写入已存入的副本）
   get_chat_controller ()->sessionManager ().setSourceDocId (sessionId, docId);
+}
+
+void
+qt_chat_tab_set_session_type (string sessionId, string type) {
+  // 与 sourceDocId 同理：restore 参数已满，type 由 scheme 侧恢复后单独设置
+  get_chat_controller ()->sessionManager ().setType (sessionId, type);
 }
 
 string

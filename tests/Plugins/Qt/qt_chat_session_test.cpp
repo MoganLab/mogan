@@ -122,10 +122,13 @@ private slots:
   void test_findReusableSession_skips_with_title ();
   void test_findReusableSession_empty_when_none ();
 
-  // === sourceDocId / findSessionBySourceDoc ===
+  // === sourceDocId / type / findSessionBySourceDoc ===
   void test_createSession_sourceDocId_default_empty ();
+  void test_createSession_type_default_empty ();
   void test_setSourceDocId ();
+  void test_setType ();
   void test_findSessionBySourceDoc_matches ();
+  void test_findSessionBySourceDoc_distinguishes_type ();
   void test_findSessionBySourceDoc_empty_docId_never_matches ();
   void test_findSessionBySourceDoc_skips_archived ();
   void test_findSessionBySourceDoc_returns_newest ();
@@ -1087,7 +1090,7 @@ TestChatSession::test_findReusableSession_empty_when_none () {
 }
 
 /******************************************************************************
- * sourceDocId / findSessionBySourceDoc
+ * sourceDocId / type / findSessionBySourceDoc
  ******************************************************************************/
 
 void
@@ -1095,6 +1098,13 @@ TestChatSession::test_createSession_sourceDocId_default_empty () {
   ChatSessionManager mgr;
   string             sid= mgr.createSession ();
   QVERIFY (is_empty (mgr.getSession (sid)->sourceDocId));
+}
+
+void
+TestChatSession::test_createSession_type_default_empty () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  QVERIFY (is_empty (mgr.getSession (sid)->type));
 }
 
 void
@@ -1108,13 +1118,39 @@ TestChatSession::test_setSourceDocId () {
 }
 
 void
+TestChatSession::test_setType () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setType (sid, "translate");
+  QVERIFY (mgr.getSession (sid)->type == string ("translate"));
+  // 不存在的会话静默忽略
+  mgr.setType ("nonexistent", "gloss");
+}
+
+void
 TestChatSession::test_findSessionBySourceDoc_matches () {
   ChatSessionManager mgr;
   string             sid= mgr.createSession ();
   mgr.setSourceDocId (sid, "doc-1");
-  QVERIFY (mgr.findSessionBySourceDoc ("doc-1") == sid);
-  // 其他 docId 与不绑定文档的会话（sourceDocId 为空）不匹配
-  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-2")));
+  mgr.setType (sid, "translate");
+  QVERIFY (mgr.findSessionBySourceDoc ("doc-1", "translate") == sid);
+  // 其他 docId、其他类型与不绑定文档的会话（sourceDocId 为空）不匹配
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-2", "translate")));
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-1", "gloss")));
+}
+
+void
+TestChatSession::test_findSessionBySourceDoc_distinguishes_type () {
+  ChatSessionManager mgr;
+  // 同一文档的翻译与释义会话各自独立：按类型各自命中
+  string sid_translate= mgr.createSession ();
+  mgr.setSourceDocId (sid_translate, "doc-1");
+  mgr.setType (sid_translate, "translate");
+  string sid_gloss= mgr.createSession ();
+  mgr.setSourceDocId (sid_gloss, "doc-1");
+  mgr.setType (sid_gloss, "gloss");
+  QVERIFY (mgr.findSessionBySourceDoc ("doc-1", "translate") == sid_translate);
+  QVERIFY (mgr.findSessionBySourceDoc ("doc-1", "gloss") == sid_gloss);
 }
 
 void
@@ -1122,7 +1158,7 @@ TestChatSession::test_findSessionBySourceDoc_empty_docId_never_matches () {
   ChatSessionManager mgr;
   // 未绑定文档的会话（sourceDocId 为空）不应被空 docId 匹配
   mgr.createSession ();
-  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("")));
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("", "translate")));
 }
 
 void
@@ -1130,8 +1166,9 @@ TestChatSession::test_findSessionBySourceDoc_skips_archived () {
   ChatSessionManager mgr;
   string             sid= mgr.createSession ();
   mgr.setSourceDocId (sid, "doc-1");
+  mgr.setType (sid, "translate");
   mgr.archiveSession (sid);
-  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-1")));
+  QVERIFY (is_empty (mgr.findSessionBySourceDoc ("doc-1", "translate")));
 }
 
 void
@@ -1145,6 +1182,7 @@ TestChatSession::test_findSessionBySourceDoc_returns_newest () {
   s1.updateAt   = 1000;
   s1.archived   = false;
   s1.sourceDocId= "doc-1";
+  s1.type       = "translate";
   s1.panel      = nullptr;
 
   ChatSession s2;
@@ -1154,13 +1192,15 @@ TestChatSession::test_findSessionBySourceDoc_returns_newest () {
   s2.updateAt   = 2000;
   s2.archived   = false;
   s2.sourceDocId= "doc-1";
+  s2.type       = "translate";
   s2.panel      = nullptr;
 
   mgr.insertSession (s1);
   mgr.insertSession (s2);
 
   // 同一文档存在多个绑定会话时取最近活跃的
-  QVERIFY (mgr.findSessionBySourceDoc ("doc-1") == string ("newer"));
+  QVERIFY (mgr.findSessionBySourceDoc ("doc-1", "translate") ==
+           string ("newer"));
 }
 
 /******************************************************************************

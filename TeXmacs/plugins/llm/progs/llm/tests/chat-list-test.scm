@@ -23,6 +23,8 @@
 
 (define source-doc-bindings '())
 
+(define session-type-bindings '())
+
 (tm-define (qt-chat-tab-restore-session sid title model archived createdAt
              updateAt expandCount thinking search thinkingEffort
            ) ;qt-chat-tab-restore-session
@@ -37,6 +39,10 @@
 
 (tm-define (qt-chat-tab-set-source-doc-id sid doc-id)
   (set! source-doc-bindings (cons (list sid doc-id) source-doc-bindings))
+) ;tm-define
+
+(tm-define (qt-chat-tab-set-session-type sid type)
+  (set! session-type-bindings (cons (list sid type) session-type-bindings))
 ) ;tm-define
 
 (load "./TeXmacs/plugins/llm/progs/llm/chat-list.scm")
@@ -84,6 +90,8 @@
     (check (json-ref-string entry "thinkingEffort" #f) => "medium")
     ;; stemDocId 缺省时回退空串
     (check (json-ref-string entry "stemDocId" #f) => "")
+    ;; type 缺省时回退空串（普通对话）
+    (check (json-ref-string entry "type" #f) => "")
     ;; updateAt 缺省时回退到 createdAt
     (check (json-ref-string entry "updateAt" #f)
       =>
@@ -107,10 +115,10 @@
 
 (define (test-make-entry-with-options)
   ;; 传入 rest 参数: created-at thinking search updated-at thinking-effort
-  ;; stem-doc-id
+  ;; stem-doc-id type
   (let ((entry (chat-persist-make-entry "sid-opt" "Deep Thinking" "deepseek-r1"
                  #f "1700000000" "enabled" "enabled" "1800000000" "high"
-                 "doc-abc"
+                 "doc-abc" "translate"
                ) ;chat-persist-make-entry
         ) ;entry
        ) ;
@@ -122,6 +130,7 @@
     (check (json-ref-string entry "updateAt" #f) => "1800000000")
     (check (json-ref-string entry "thinkingEffort" #f) => "high")
     (check (json-ref-string entry "stemDocId" #f) => "doc-abc")
+    (check (json-ref-string entry "type" #f) => "translate")
   ) ;let
 ) ;define
 
@@ -205,12 +214,13 @@
   (clean-test-sandbox!)
   (set! restored-sessions '())
   (set! source-doc-bindings '())
+  (set! session-type-bindings '())
   ;; 保存两条会话
   (chat-persist-update-manifest "load-sid-1" "LTitle 1" "gpt" #f "1000"
     "disabled" "disabled" "1000"
   ) ;chat-persist-update-manifest
   (chat-persist-update-manifest "load-sid-2" "LTitle 2" "claude" #t "2000"
-    "enabled" "enabled" "3000" "low" "doc-load-2"
+    "enabled" "enabled" "3000" "low" "doc-load-2" "gloss"
   ) ;chat-persist-update-manifest
 
   (chat-persist-load-all)
@@ -248,16 +258,23 @@
     (check (list-ref b 0) => "load-sid-2")
     (check (list-ref b 1) => "doc-load-2")
   ) ;let
+  ;; type 非空的会话恢复后单独设置会话类型；空串不触发设置
+  (check (length session-type-bindings) => 1)
+  (let ((b (car session-type-bindings)))
+    (check (list-ref b 0) => "load-sid-2")
+    (check (list-ref b 1) => "gloss")
+  ) ;let
   (clean-test-sandbox!)
 ) ;define
 
 (define (test-load-all-legacy-compatibility)
   ;; 验证对缺少 updateAt / defaultExpandCount / thinking / search /
-  ;; thinkingEffort / stemDocId 的历史 manifest 的兼容回退
+  ;; thinkingEffort / stemDocId / type 的历史 manifest 的兼容回退
   (clean-test-sandbox!)
   (chat-persist-ensure-dir! test-sandbox-dir)
   (set! restored-sessions '())
   (set! source-doc-bindings '())
+  (set! session-type-bindings '())
 
   (let ((legacy-manifest-str "{\"version\":1,\"sessions\":[{\"sessionId\":\"legacy-1\",\"title\":\"Old Session\",\"model\":\"gpt-3.5\",\"archived\":\"false\",\"createdAt\":\"500\"}]}"
         ) ;legacy-manifest-str
@@ -270,6 +287,8 @@
   (check (length restored-sessions) => 1)
   ;; 旧 manifest 无 stemDocId 字段，不触发来源文档绑定
   (check (length source-doc-bindings) => 0)
+  ;; 旧 manifest 无 type 字段，不触发会话类型设置
+  (check (length session-type-bindings) => 0)
   (let ((s (car restored-sessions)))
     (check (list-ref s 0) => "legacy-1")
     (check (list-ref s 1) => "Old Session")
