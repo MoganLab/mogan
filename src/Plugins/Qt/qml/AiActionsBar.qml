@@ -1,4 +1,4 @@
-// AiActionsBar.qml — 选区下方的一行 AI 操作栏（翻译 / 润色 / 对话 / 释义）。
+// AiActionsBar.qml — 选区下方的一行 AI 操作栏（翻译 / 润色 / 对话）。
 // 由 QTMAiActionsBar（QQuickWidget 宿主）以 qrc URL 直接加载：非模态、
 // 不用 DialogShell。按钮文案由 C++ 经 context property 注入（已过 qt_translate）；
 // 点击经根信号 triggered(action) 回传 C++。
@@ -74,14 +74,13 @@ Item {
 
             Repeater {
                 id: actionRepeater
-                // 静态四按钮：翻译胶囊按 showTranslate 显隐（Row 跳过不可见
+                // 静态三按钮：翻译胶囊按 showTranslate 显隐（Row 跳过不可见
                 // 子项）。不重建 model——重建 delegate 在软渲染下布局与绘制
                 // 不同帧，会留白/截断
                 model: [
                     { icon: "qrc:/ai-actions/translate.svg", label: labelTranslate, action: "translate" },
                     { icon: "qrc:/ai-actions/polish.svg", label: labelPolish, action: "polish" },
-                    { icon: "qrc:/ai-actions/chat.svg", label: labelChat, action: "chat" },
-                    { icon: "qrc:/ai-actions/gloss.svg", label: labelGloss, action: "gloss" }
+                    { icon: "qrc:/ai-actions/chat.svg", label: labelChat, action: "chat" }
                 ]
 
                 delegate: Rectangle {

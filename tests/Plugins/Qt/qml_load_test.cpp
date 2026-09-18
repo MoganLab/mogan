@@ -1007,7 +1007,7 @@ TestQmlLoad::test_color_picker_loads () {
 }
 
 // AiActionsBar 用例共用：按生产环境注入主题（dpScale/isDark，Theme 单例
-// 读取）与四个按钮文案占位，加载 qrc 内的操作栏
+// 读取）与三个按钮文案占位，加载 qrc 内的操作栏
 static QQuickWidget*
 make_ai_actions_bar (QWidget* host) {
   QQuickWidget* qw= new QQuickWidget (host);
@@ -1018,7 +1018,6 @@ make_ai_actions_bar (QWidget* host) {
                                           QString ("Translate"));
   qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
   qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
-  qw->rootContext ()->setContextProperty ("labelGloss", QString ("Gloss"));
   qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
   return qw;
 }
@@ -1140,7 +1139,7 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   host.show ();
 
   QList<QQuickItem*> areas= collect_ai_action_areas (qw->rootObject ());
-  QCOMPARE (areas.size (), 4);
+  QCOMPARE (areas.size (), 3);
   QQuickItem* ma= areas.first ();
   // SizeViewToRootObject 下 scene 坐标 == widget 坐标
   QPointF center=
@@ -1166,7 +1165,7 @@ void
 TestQmlLoad::test_ai_actions_bar_hide_translate () {
   // showTranslate=false 时翻译胶囊隐藏（0995：选区 < 10 字符或选区整体是
   // 数学公式时 C++ 注入 false），恢复 true 后回来。delegate 不重建（静态
-  // model + visible 显隐），胶囊总数恒为 4（翻译/润色/对话/释义）
+  // model + visible 显隐），胶囊总数恒为 3
   QDialog       host;
   QQuickWidget* qw= make_ai_actions_bar (&host);
   QCOMPARE (qw->status (), QQuickWidget::Ready);
@@ -1177,13 +1176,12 @@ TestQmlLoad::test_ai_actions_bar_hide_translate () {
   QCOMPARE (root->property ("showTranslate").toBool (), true);
 
   QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
-  QCOMPARE (capsules.size (), 4);
+  QCOMPARE (capsules.size (), 3);
 
   root->setProperty ("showTranslate", false);
   QVERIFY (!capsules[0]->isVisible ()); // 翻译胶囊隐藏
   QVERIFY (capsules[1]->isVisible ());
   QVERIFY (capsules[2]->isVisible ());
-  QVERIFY (capsules[3]->isVisible ());
 
   root->setProperty ("showTranslate", true);
   QVERIFY (capsules[0]->isVisible ());
@@ -1220,7 +1218,7 @@ TestQmlLoad::test_ai_actions_bar_repaint_after_toggle () {
 
   // 胶囊项在静止 model 下跨轮次稳定（切换显隐不重建 delegate），循环外收集一次
   QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
-  QCOMPARE (capsules.size (), 4);
+  QCOMPARE (capsules.size (), 3);
 
   int failRounds= 0;
   for (int round= 0; round < 10; round++) {

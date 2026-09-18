@@ -64,16 +64,14 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   quick->rootContext ()->setContextProperty ("isDark", isDark);
   // 按钮文案不带「AI」前缀：translate 只折叠首字符查词典，"Translate" 命中
-  // 既有键 "translate"；"Polish::ai"/"Chat::ai"/"Gloss::ai" 用 :: 消歧键
-  // 避开同名词条（"polish" 是波兰语），英文界面（from==to）只显示 :: 前的部分
+  // 既有键 "translate"；"Polish::ai"/"Chat::ai" 用 :: 消歧键避开同名词条
+  // （"polish" 是波兰语），英文界面（from==to）只显示 :: 前的部分
   quick->rootContext ()->setContextProperty ("labelTranslate",
                                              qt_translate ("Translate"));
   quick->rootContext ()->setContextProperty ("labelPolish",
                                              qt_translate ("Polish::ai"));
   quick->rootContext ()->setContextProperty ("labelChat",
                                              qt_translate ("Chat::ai"));
-  quick->rootContext ()->setContextProperty ("labelGloss",
-                                             qt_translate ("Gloss::ai"));
   quick->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
 
   layout->setContentsMargins (0, 0, 0, 0);
@@ -89,8 +87,8 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
   QObject::connect (hover_timer, SIGNAL (timeout ()), this,
                     SLOT (pollCursor ()));
 
-  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（翻译/对话/
-  // 释义引用选区到 AI 侧边栏，润色走 trigger-diff-text，等同 Tab 快捷键）
+  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（翻译/对话
+  // 引用选区到 AI 侧边栏，润色走 trigger-diff-text，等同 Tab 快捷键）
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
                       SLOT (onActionTriggered (QString)));
