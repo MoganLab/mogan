@@ -44,7 +44,7 @@ Item {
     property real fontScale: isNarrow ? Theme.twoColFontScale : 1.0
     property real labelWidth: toggleRow.width * labelRatio
     height: rowHeight
-    z: (typeof helpMa !== "undefined" && helpMa.containsMouse) ? 100 : 1
+    z: helpMa.containsMouse ? 100 : 1
 
     // 左：label（+ 可选 hint + 可选问号帮助图标）。
     Column {

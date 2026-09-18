@@ -131,7 +131,7 @@ DialogShell {
             delegate: Toggle {
                 width: parent.width
                 label: modelData.label
-                tooltip: modelData.tooltip !== undefined ? modelData.tooltip : ""
+                tooltip: modelData.tooltip || ""
                 value: root.values[modelData.key] === "true"
                 onToggled: function (on) {
                     root.onToggleChanged(modelData.key, on)

@@ -994,7 +994,10 @@
 ) ;define
 
 (tm-define (dynamic-make-slides . opts)
-  (let ((expand? (if (null? opts) #t (car opts))))
+  ;; 无参调用（文件菜单导出等旧路径）沿用首选项；对话框路径显式传入覆盖值
+  (let ((expand? (if (null? opts) (preference-on? "texmacs->pdf:expand slides") (car opts))
+        ) ;expand?
+       ) ;
     (init-default "page-medium"
       ;; "page-type" "page-width" "page-height"
       ;; "page-width-margin" "page-height-margin"

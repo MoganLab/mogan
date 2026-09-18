@@ -12,7 +12,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs texmacs tm-print)
-  (:use (texmacs texmacs tm-files) (utils library cursor) (dynamic fold-edit))
+  (:use (texmacs texmacs tm-files)
+    (utils library cursor)
+    (dynamic fold-edit)
+    (kernel texmacs pref-keys)
+  ) ;:use
 ) ;texmacs-module
 
 (import (only (liii uuid) uuid4))
@@ -231,7 +235,7 @@
                               ,"false")
              (toggle ,(translate "Expand foldable environments in single slide")
                ,"expand-slides"
-               ,(if (preference-on? "texmacs->pdf:expand slides")
+               ,(if (preference-on? (pref-convert-pdf-expand-slides))
                   "true"
                   "false")
                ,(translate "When enabled, foldable environments are directly expanded on a single slide. When disabled, foldable environments are sequentially expanded across multiple slides."))
@@ -245,9 +249,10 @@
       (if (null? r)
         (noop)
         ;; with 是单绑定宏（var val . body），两个绑定用 let*；扁平写法会把
-        ;; 后续绑定名当 body表达式求值（unbound variable）。
+        ;; 后续绑定名当 body 表达式求值（unbound variable）。
         (let* ((embed #f)
-               (expand-slides (preference-on? "texmacs->pdf:expand slides"))
+               ;; 对话框总是回传全部字段，初值仅是占位
+               (expand-slides #f)
                (fname "")
               ) ;
           (for-each

@@ -138,15 +138,15 @@
   ) ;check
 ) ;define
 
-;; Issue #1313: 验证展开幻灯片中的可折叠对象首选项读写与 dynamic-make-slides 参数
+;; Issue #1313: 验证「在单页幻灯片中展开折叠环境」首选项读写
 
 (define (test-expand-slides-preference-default)
-  (let ((orig (get-preference "texmacs->pdf:expand slides")))
-    (set-preference "texmacs->pdf:expand slides" "on")
-    (check (preference-on? "texmacs->pdf:expand slides") => #t)
-    (set-preference "texmacs->pdf:expand slides" "off")
-    (check (preference-on? "texmacs->pdf:expand slides") => #f)
-    (set-preference "texmacs->pdf:expand slides" orig)
+  (let ((orig (get-preference (pref-convert-pdf-expand-slides))))
+    (set-preference (pref-convert-pdf-expand-slides) "on")
+    (check (preference-on? (pref-convert-pdf-expand-slides)) => #t)
+    (set-preference (pref-convert-pdf-expand-slides) "off")
+    (check (preference-on? (pref-convert-pdf-expand-slides)) => #f)
+    (set-preference (pref-convert-pdf-expand-slides) orig)
   ) ;let
 ) ;define
 
