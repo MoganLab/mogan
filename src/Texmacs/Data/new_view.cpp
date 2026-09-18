@@ -561,6 +561,7 @@ kill_tabpage (url win_u, url u) {
   // 如果是当前视图，则需要将其从窗口中分离
   // 参照 detach_view 方法
   if (is_current) {
+    if (win != NULL) win->set_chat_sidebar_flag (false);
     vw->win   = NULL;
     widget wid= win_tabpage->wid;
     vw->ed->suspend ();
@@ -637,6 +638,24 @@ kill_tabpage (url win_u, url u) {
         shown_ed->resume ();
       }
     }
+  }
+
+  // 检查当前 tabpage 窗口是否还有其他普通文档标签页，
+  // 若无，重置侧边栏状态与记忆
+  bool       has_doc= false;
+  array<url> all_vws= get_all_views ();
+  for (int i= 0; i < N (all_vws); i++) {
+    tm_view v2= concrete_view (all_vws[i]);
+    if (v2 != NULL && v2->win_tabpage == win_tabpage && v2->buf != NULL) {
+      url bname= v2->buf->buf->name;
+      if (bname != url ("tmfs://startup-tab") && !is_chat_tab_buffer (bname)) {
+        has_doc= true;
+        break;
+      }
+    }
+  }
+  if (!has_doc && win != NULL) {
+    win->set_chat_sidebar_flag (false);
   }
 }
 
