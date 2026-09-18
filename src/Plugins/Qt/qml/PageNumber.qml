@@ -30,19 +30,38 @@ DialogShell {
     property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : [qsTr("Apply"), qsTr("Cancel")]
 
     // rules 列表：[{ start: 1, end: 3, style: "roman" }, ...]
-    property var rules: {
+    property var rules: root.normalizeRules(root.meta ? root.meta.rules : null)
+
+    // 初始规则快照，用于检测是否有规则改动
+    readonly property var initialRules: root.normalizeRules(root.meta ? root.meta.rules : null)
+
+    function normalizeRules(metaRules) {
         var r = [];
-        if (root.meta && root.meta.rules) {
-            for (var i = 0; i < root.meta.rules.length; i++) {
-                var item = root.meta.rules[i];
+        if (metaRules) {
+            for (var i = 0; i < metaRules.length; i++) {
+                var item = metaRules[i];
                 r.push({
                     start: Number(item.start),
                     end: (item.end === "total" || Number(item.end) >= root.totalPages) ? "total" : Number(item.end),
-                    style: item.style
+                    style: String(item.style)
                 });
             }
         }
         return r;
+    }
+
+    // 检测规则列表相较打开时是否有任何变更
+    readonly property bool hasRulesChanged: {
+        if (!initialRules || !rules) return false;
+        if (rules.length !== initialRules.length) return true;
+        for (var i = 0; i < rules.length; i++) {
+            if (rules[i].start !== initialRules[i].start ||
+                rules[i].end !== initialRules[i].end ||
+                rules[i].style !== initialRules[i].style) {
+                return true;
+            }
+        }
+        return false;
     }
 
     property var pendingEnd: null
@@ -177,6 +196,7 @@ DialogShell {
     }
 
     function submit() {
+        if (!hasRulesChanged) return;
         var out = [];
         for (var i = 0; i < rules.length; i++) {
             out.push({
@@ -935,6 +955,8 @@ DialogShell {
 
             DialogButtons {
                 buttonLabels: root.buttonLabels
+                primaryEnabled: root.hasRulesChanged
+                primaryDisabledToolTip: root.labels.noChangesTip || qsTr("No changes detected in page numbering rules")
                 onClicked: function (idx) {
                     if (idx === 0) root.submit();
                     else root.cancel();
