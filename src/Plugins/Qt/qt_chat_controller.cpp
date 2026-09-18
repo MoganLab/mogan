@@ -831,19 +831,48 @@ get_ai_language_preference (string key) {
   return lang == "system" ? get_locale_language () : lang;
 }
 
+// 引用块（插入 → 外观块 → 引用即 quote-env，generic 样式链的 std-markup
+// 提供）：document 子节点在块内依次展开，其余整体入块
+static tree
+aiQuoteBlock (tree content) {
+  tree quoted= is_func (content, DOCUMENT) ? content : tree (DOCUMENT, content);
+  return compound ("quote-env", quoted);
+}
+
+// 上下文纯文本按行拆成段落节点：换行符留在树节点里不会被排版（空行跳过）
+static tree
+aiTextTree (string text) {
+  tree          doc (DOCUMENT);
+  array<string> lines= tokenize (text, "\n");
+  for (int i= 0; i < N (lines); i++)
+    if (N (lines[i]) > 0) doc << lines[i];
+  return doc;
+}
+
 tree
-ChatController::composeAiInputBody (tree sel, string action) {
-  // 引用选区组成输入体：选区整体包成「引用」外观块（插入 → 外观块 → 引用
-  // 即 quote-env，generic 样式链的 std-markup 提供），提示词追加为末段
-  tree quoted (DOCUMENT);
-  if (is_func (sel, DOCUMENT)) {
-    for (int i= 0; i < N (sel); i++)
-      quoted << sel[i];
-  }
-  else quoted << sel;
+ChatController::composeAiInputBody (tree sel, string action, string context) {
+  // 组装聊天输入体：gloss 分支的提示词节点夹在两个引用块之间，提前返回；
+  // 其余动作引用块在前、提示词（或空段）追加为末段
   tree body (DOCUMENT);
-  body << compound ("quote-env", quoted);
-  // 未知动作不追加尾段（调用方白名单 translate/chat）
+  // 释义：上下文（引文1）与选区（引文2）各成一块，编号标签与说明句都算
+  // 提示词，提示词按 0995 提示词语言首选项本地化
+  if (action == "gloss") {
+    string prompt_lang= get_ai_language_preference ("ai:prompt language");
+    string label=
+        translate (string ("reference %1::ai"), "english", prompt_lang);
+    body << replace (label, "%1", "1");
+    body << aiQuoteBlock (aiTextTree (context));
+    body << replace (label, "%1", "2");
+    body << aiQuoteBlock (sel);
+    body << translate (
+        string ("reference 2 is part of reference 1, explain the "
+                "meaning of reference 2 (including dictionary "
+                "and technical terms)"),
+        "english", prompt_lang);
+    return body;
+  }
+  body << aiQuoteBlock (sel);
+  // 未知动作不追加尾段（调用方白名单 translate/chat/gloss）
   if (action == "translate") {
     // 两个独立首选项（AI 标签页）：翻译目标语言决定翻成哪种语言，提示词
     // 语言（0995）决定提示词本身用什么语言书写。目标语言名也按提示词语言
@@ -915,7 +944,8 @@ qt_chat_ai_send_selection (tree sel, string action) {
   // 翻译须在打开侧边栏（焦点/视图切换）前捕获来源文档身份：此时
   // current-buffer 仍是文档本身；llm 模块按 idle 延迟初始化，首次动作
   // 可能尚未加载，确保模块就绪（幂等，只执行一次）
-  string docId, docName;
+  // 释义同理由此捕获上下文（引文1）：切到聊天输入缓冲后选区已不在文档上
+  string docId, docName, context;
   if (action == "translate") {
     static bool treeOpsLoaded= false;
     if (!treeOpsLoaded) {
@@ -926,6 +956,8 @@ qt_chat_ai_send_selection (tree sel, string action) {
     docId      = as_string (car (info));
     docName    = as_string (cdr (info));
   }
+  else if (action == "gloss")
+    context= as_string (call ("ai-selection-context"));
   // 打开 AI 侧边栏：同步创建聊天部件并确保活动会话。已打开时跳过，避免
   // sync_chat_sidebar_mode 重复 dock 重排；社区版无聊天部件，调用静默无效
   if (!ctrl->view_ || !ctrl->view_->isVisible ())
@@ -977,7 +1009,7 @@ qt_chat_ai_send_selection (tree sel, string action) {
   }
   ChatConversationPanel* panel= ctrl->view_->activeConversation ();
   if (!panel) return;
-  // 翻译会话专属于来源文档，对话不写进去：激活会话绑定了文档时先切到
+  // 翻译会话专属于来源文档，对话/释义不写进去：激活会话绑定了文档时先切到
   // 空白会话（ensureNewConversation 复用或新建）再填输入
   if (ChatSession* active= ctrl->sessionManager_.findSessionByPanel (panel)) {
     if (!is_empty (active->sourceDocId)) {
@@ -988,10 +1020,11 @@ qt_chat_ai_send_selection (tree sel, string action) {
   }
   call ("chat-tab-set-input-body!",
         ChatSessionManager::inputBufferUrl (panel->sessionId ()),
-        ChatController::composeAiInputBody (sel, action));
+        ChatController::composeAiInputBody (sel, action, context));
   // 对话只填入输入区，聚焦并滚动到光标（引用块下方）留给用户补写后手动
-  // 发送；未知动作同样只填入不发送
+  // 发送；释义与翻译一样填完即发（提示词已完整），未知动作同样只填入
   if (action == "chat") panel->revealInputCursor ();
+  else if (action == "gloss") ctrl->onSendRequested (panel->sessionId ());
 }
 
 void

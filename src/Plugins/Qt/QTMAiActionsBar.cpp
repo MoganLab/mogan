@@ -64,14 +64,16 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
       occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
   quick->rootContext ()->setContextProperty ("isDark", isDark);
   // 按钮文案不带「AI」前缀：translate 只折叠首字符查词典，"Translate" 命中
-  // 既有键 "translate"；"Polish::ai"/"Chat::ai" 用 :: 消歧键避开同名词条
-  // （"polish" 是波兰语），英文界面（from==to）只显示 :: 前的部分
+  // 既有键 "translate"；"Polish::ai"/"Chat::ai"/"Gloss::ai" 用 :: 消歧键
+  // 避开同名词条（"polish" 是波兰语），英文界面（from==to）只显示 :: 前的部分
   quick->rootContext ()->setContextProperty ("labelTranslate",
                                              qt_translate ("Translate"));
   quick->rootContext ()->setContextProperty ("labelPolish",
                                              qt_translate ("Polish::ai"));
   quick->rootContext ()->setContextProperty ("labelChat",
                                              qt_translate ("Chat::ai"));
+  quick->rootContext ()->setContextProperty ("labelGloss",
+                                             qt_translate ("Gloss::ai"));
   quick->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
 
   layout->setContentsMargins (0, 0, 0, 0);
@@ -87,8 +89,8 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
   QObject::connect (hover_timer, SIGNAL (timeout ()), this,
                     SLOT (pollCursor ()));
 
-  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（翻译/对话
-  // 引用选区到 AI 侧边栏，润色走 trigger-diff-text，等同 Tab 快捷键）
+  // 动作经根信号回传后由 edit_interface_rep::ai_action 统一处理（翻译/对话/
+  // 释义引用选区到 AI 侧边栏，润色走 trigger-diff-text，等同 Tab 快捷键）
   if (QQuickItem* root= quick->rootObject ()) {
     QObject::connect (root, SIGNAL (triggered (QString)), this,
                       SLOT (onActionTriggered (QString)));
@@ -105,11 +107,17 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
 
 bool
 QTMAiActionsBar::isOverButton (const QPoint& pos) const {
-  (void) pos;
+  // 按坐标同步问 QML 命中检测（overButton）。不能用 hover 异步态判定：
+  // press 时 hover 标志可能尚未置位，按钮点击会被误吞成「栏外按下」转发
+  // 给文档（1315 修复后按钮全部失效的回归根因）
   if (!quick) return false;
   QObject* root= quick->rootObject ();
   if (!root) return false;
-  return root->property ("buttonHovered").toBool ();
+  QVariant ret;
+  QMetaObject::invokeMethod (root, "overButton", Q_RETURN_ARG (QVariant, ret),
+                             Q_ARG (QVariant, QVariant (pos.x ())),
+                             Q_ARG (QVariant, QVariant (pos.y ())));
+  return ret.toBool ();
 }
 
 void

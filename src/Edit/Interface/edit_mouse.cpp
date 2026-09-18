@@ -1576,13 +1576,14 @@ edit_interface_rep::invalidate_ai_actions_bar_cache () {
 
 void
 edit_interface_rep::ai_action (string action) {
-  // AI 操作栏动作统一入口（translate/polish/chat）：操作栏按钮点击与
-  // cmd/ctrl+j 快捷键共用此路径
+  // AI 操作栏动作统一入口（translate/polish/chat/gloss）：操作栏按钮点击
+  // 与 cmd/ctrl+j 快捷键共用此路径
 #ifdef QTTEXMACS
-  // 翻译/对话须在打开侧边栏（焦点/视图切换）前捕获选区；润色与 Tab 同走
-  // trigger-diff-text（内部自带 diff-enable? 门控）。无选区时各动作忽视
+  // 翻译/对话/释义须在打开侧边栏（焦点/视图切换）前捕获选区（释义还要先
+  // 取上下文）；润色与 Tab 同走 trigger-diff-text（内部自带 diff-enable?
+  // 门控）。无选区时各动作忽视
   if (selection_active_any ()) {
-    if (action == "translate" || action == "chat")
+    if (action == "translate" || action == "chat" || action == "gloss")
       qt_chat_ai_send_selection (selection_get (), action);
     else if (action == "polish") call ("trigger-diff-text");
   }

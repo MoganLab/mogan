@@ -319,6 +319,8 @@ private slots:
   void test_go_menu_type_tags ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
+  void test_ai_actions_bar_hit_test ();
+  void test_ai_actions_bar_click_actions ();
   void test_ai_actions_bar_hide_translate ();
   void test_ai_actions_bar_repaint_after_toggle ();
 };
@@ -1025,7 +1027,7 @@ TestQmlLoad::test_color_picker_loads () {
 }
 
 // AiActionsBar 用例共用：按生产环境注入主题（dpScale/isDark，Theme 单例
-// 读取）与三个按钮文案占位，加载 qrc 内的操作栏
+// 读取）与四个按钮文案占位，加载 qrc 内的操作栏
 static QQuickWidget*
 make_ai_actions_bar (QWidget* host) {
   QQuickWidget* qw= new QQuickWidget (host);
@@ -1036,6 +1038,7 @@ make_ai_actions_bar (QWidget* host) {
                                           QString ("Translate"));
   qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
   qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
+  qw->rootContext ()->setContextProperty ("labelGloss", QString ("Gloss"));
   qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
   return qw;
 }
@@ -1257,7 +1260,7 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   host.show ();
 
   QList<QQuickItem*> areas= collect_ai_action_areas (qw->rootObject ());
-  QCOMPARE (areas.size (), 3);
+  QCOMPARE (areas.size (), 4);
   QQuickItem* ma= areas.first ();
   // SizeViewToRootObject 下 scene 坐标 == widget 坐标
   QPointF center=
@@ -1280,10 +1283,89 @@ TestQmlLoad::test_ai_actions_bar_hover () {
 }
 
 void
+TestQmlLoad::test_ai_actions_bar_hit_test () {
+  // overButton 同步命中检测（1315 事件过滤器在 press 时按坐标调用）：
+  // 四个胶囊中心全部命中；隐藏的翻译胶囊不命中；胶囊之外的栏内点
+  // （龙虾图标/内边距）不命中——这些点要继续转发给文档做拖选
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QQuickItem* root= qw->rootObject ();
+  QVERIFY (root != nullptr);
+  auto hit= [root] (const QPointF& p) {
+    QVariant ret;
+    QMetaObject::invokeMethod (root, "overButton", Q_RETURN_ARG (QVariant, ret),
+                               Q_ARG (QVariant, QVariant (p.x ())),
+                               Q_ARG (QVariant, QVariant (p.y ())));
+    return ret.toBool ();
+  };
+
+  QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
+  QCOMPARE (capsules.size (), 4);
+  for (auto* cap : capsules) {
+    QVERIFY (hit (
+        cap->mapToScene (QPointF (cap->width () / 2, cap->height () / 2))));
+  }
+
+  // 第一个胶囊左侧的图标/间距区域不是按钮
+  QPointF cap0= capsules.first ()->mapToScene (QPointF (0, 0));
+  QVERIFY (!hit (QPointF (cap0.x () - 2, cap0.y () + 5)));
+
+  // 翻译胶囊隐藏后不再命中（其位置被 Row 回收，命中与否都不拦截拖选）
+  root->setProperty ("showTranslate", false);
+  QVERIFY (!hit (capsules.first ()->mapToScene (QPointF (
+      capsules.first ()->width () / 2, capsules.first ()->height () / 2))));
+  QVERIFY (hit (capsules[1]->mapToScene (
+      QPointF (capsules[1]->width () / 2, capsules[1]->height () / 2))));
+  root->setProperty ("showTranslate", true);
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_click_actions () {
+  // 四个按钮的 press+release 都要发出对应 action 的 triggered 信号
+  // （1315 拦截回归的端到端覆盖：点击链路任一环节断裂都会有按钮点不动）
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QQuickItem* root= qw->rootObject ();
+  QVERIFY (root != nullptr);
+  QSignalSpy spy (root, SIGNAL (triggered (QString)));
+
+  QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
+  QCOMPARE (capsules.size (), 4);
+  QStringList expected;
+  expected << "translate"
+           << "polish"
+           << "chat"
+           << "gloss";
+
+  for (int i= 0; i < capsules.size (); i++) {
+    QQuickItem* cap= capsules[i];
+    QPointF     center=
+        cap->mapToScene (QPointF (cap->width () / 2, cap->height () / 2));
+    QPointF     g (qw->mapToGlobal (center.toPoint ()));
+    QMouseEvent press (QEvent::MouseButtonPress, center, center, g,
+                       Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent (qw, &press);
+    QMouseEvent release (QEvent::MouseButtonRelease, center, center, g,
+                         Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent (qw, &release);
+    qApp->processEvents ();
+
+    QCOMPARE (spy.count (), i + 1);
+    QCOMPARE (spy.last ().at (0).toString (), expected[i]);
+  }
+}
+
+void
 TestQmlLoad::test_ai_actions_bar_hide_translate () {
   // showTranslate=false 时翻译胶囊隐藏（0995：选区 < 10 字符或选区整体是
   // 数学公式时 C++ 注入 false），恢复 true 后回来。delegate 不重建（静态
-  // model + visible 显隐），胶囊总数恒为 3
+  // model + visible 显隐），胶囊总数恒为 4（翻译/润色/对话/释义）
   QDialog       host;
   QQuickWidget* qw= make_ai_actions_bar (&host);
   QCOMPARE (qw->status (), QQuickWidget::Ready);
@@ -1294,12 +1376,13 @@ TestQmlLoad::test_ai_actions_bar_hide_translate () {
   QCOMPARE (root->property ("showTranslate").toBool (), true);
 
   QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
-  QCOMPARE (capsules.size (), 3);
+  QCOMPARE (capsules.size (), 4);
 
   root->setProperty ("showTranslate", false);
   QVERIFY (!capsules[0]->isVisible ()); // 翻译胶囊隐藏
   QVERIFY (capsules[1]->isVisible ());
   QVERIFY (capsules[2]->isVisible ());
+  QVERIFY (capsules[3]->isVisible ());
 
   root->setProperty ("showTranslate", true);
   QVERIFY (capsules[0]->isVisible ());
@@ -1336,7 +1419,7 @@ TestQmlLoad::test_ai_actions_bar_repaint_after_toggle () {
 
   // 胶囊项在静止 model 下跨轮次稳定（切换显隐不重建 delegate），循环外收集一次
   QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
-  QCOMPARE (capsules.size (), 3);
+  QCOMPARE (capsules.size (), 4);
 
   int failRounds= 0;
   for (int round= 0; round < 10; round++) {
