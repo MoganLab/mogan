@@ -223,7 +223,6 @@ private:
   PDFReaderWidget* pdfViewerWidget;   ///\< PDF 标签页模式下的阅读器控件。
   bool             pdfTabMode;        ///\< PDF 阅读器标签页是否激活。
   QString          currentPdfPath;    ///\< 当前显示的 PDF 路径。
-  QString          lastLoadedPdfPath; ///\< 上次加载的 PDF 路径。
   bool             chatTabMode;       ///\< 聊天标签页视图是否激活。
   bool             chatSidebarMode;   ///\< AI 聊天侧边栏模式是否激活。
   bool   chatSidebarModeMemory_;      ///\< 记忆用户主动设置的侧边栏模式状态。
@@ -234,6 +233,9 @@ private:
 public:
   qt_tm_widget_rep (int mask, command _quit);
   ~qt_tm_widget_rep ();
+
+  /// PDF 标签页关闭时的清理回调（清理路径记忆和阅读器缓存）。
+  void notify_pdf_tab_closed (const QString& closedPath);
 
   /**
    * @brief 判断新建标签页前是否需要把 current view 切回主窗口默认 view。

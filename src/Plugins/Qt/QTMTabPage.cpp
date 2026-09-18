@@ -13,6 +13,7 @@
 #include "QTMTabPage.hpp"
 #include "new_view.hpp"
 #include "qt_chat_tab_widget.hpp"
+#include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
@@ -122,6 +123,18 @@ QTMTabPageContainer* g_mostRecentlyEnteredBar= nullptr;
 void
 cpp_kill_tabpage (url p_win, url p_view) {
   g_mostRecentlyClosedTab= p_view;
+  tm_view vw             = concrete_view (p_view);
+  if (vw && vw->buf) {
+    string fname= as_string (vw->buf->buf->name);
+    if (is_pdf_tab_file (fname)) {
+      // 与 kill_tabpage 一致：优先视图附着窗口，回退到标签页所在窗口
+      tm_window win= vw->win ? vw->win : vw->win_tabpage;
+      if (win && win->wid.rep) {
+        qt_tm_widget_rep* tmw= dynamic_cast<qt_tm_widget_rep*> (win->wid.rep);
+        if (tmw) tmw->notify_pdf_tab_closed (utf8_to_qstring (fname));
+      }
+    }
+  }
   kill_tabpage (p_win, p_view);
 }
 
