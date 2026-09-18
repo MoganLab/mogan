@@ -138,6 +138,18 @@
   ) ;check
 ) ;define
 
+;; Issue #1313: 验证「在单页幻灯片中展开折叠环境」首选项读写
+
+(define (test-expand-slides-preference-default)
+  (let ((orig (get-preference (pref-convert-pdf-expand-slides))))
+    (set-preference (pref-convert-pdf-expand-slides) "on")
+    (check (preference-on? (pref-convert-pdf-expand-slides)) => #t)
+    (set-preference (pref-convert-pdf-expand-slides) "off")
+    (check (preference-on? (pref-convert-pdf-expand-slides)) => #f)
+    (set-preference (pref-convert-pdf-expand-slides) orig)
+  ) ;let
+) ;define
+
 (tm-define (regtest-export-pdf-default-dir)
   (test-local-tmu-uses-own-dir)
   (test-below-texmacs-path-goes-to-documents)
@@ -150,5 +162,6 @@
   (test-ensure-suffix-keeps-pdf)
   (test-ensure-suffix-appends-after-other-suffix)
   (test-ensure-suffix-embed-tmu-pdf)
+  (test-expand-slides-preference-default)
   (check-report)
 ) ;tm-define

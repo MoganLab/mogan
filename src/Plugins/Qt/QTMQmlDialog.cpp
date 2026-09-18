@@ -1025,13 +1025,17 @@ cpp_page_number_dialog () {
 static QVariantMap
 print_field_to_qml (tree f) {
   QVariantMap m;
-  // (path|number <label> <key> <value>)：compound 三个孩子，下标从 0。
+  // (path|number|toggle <label> <key> <value> [<tooltip>])：compound
+  // 至少三个孩子，下标从 0。
   if (!is_compound (f) || N (f) < 3) return m;
   // 用 get_label 而非 ->label：compound 的 ->label 是被 children 占用的乱码。
   m["type"] = to_qstring (get_label (f));
   m["label"]= to_qstring (get_label (f[0]));
   m["key"]  = to_qstring (get_label (f[1]));
   m["value"]= to_qstring (get_label (f[2]));
+  if (N (f) >= 4) {
+    m["tooltip"]= to_qstring (get_label (f[3]));
+  }
   return m;
 }
 

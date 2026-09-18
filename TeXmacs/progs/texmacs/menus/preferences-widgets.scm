@@ -877,7 +877,7 @@
   (list
     ;; TeXmacs → Pdf / Postscript
     (list (pref-convert-pdf-expand-slides)
-      "Expand beamer slides"
+      "Expand foldable environments in single slide"
       '()
       '()
       #f
