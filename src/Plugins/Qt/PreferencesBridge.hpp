@@ -80,6 +80,9 @@ public:
   /// preferences-qml-call-action 路由（action 函数可能由插件注入）。
   Q_INVOKABLE void callAction (const QString& name);
 
+  /// 把 QVariantMap（diff，只含改动项）序列化为 scheme assoc 字面量字符串。
+  static string build_assoc_literal (const QVariantMap& changed);
+
 private:
   /// 拼 `(preferences-qml-meta)` 求 tab 描述符树 → QVariantMap（含 tabs
   /// 列表）。 由 C++ 侧 list-walking 解析 field-descriptor 列表为
@@ -87,7 +90,7 @@ private:
   QVariantMap eval_meta ();
   /// 拼 `(preferences-qml-submit <assoc-literal>)` 应用 diff，返回 4 态字符串。
   /// assoc-literal 由本函数从 changed map 序列化：(("k1" "v1") ...) 每项
-  /// qt_scheme_quote。
+  /// qt_scheme_quote_utf8。
   QString eval_submit (const QVariantMap& changed);
 
   QDialog* m_host;

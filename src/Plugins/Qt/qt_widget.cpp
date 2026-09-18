@@ -23,6 +23,7 @@
 
 #include "QTMMenuHelper.hpp"
 #include "QTMWindow.hpp"
+#include "converter.hpp"
 #include "preferences.hpp"
 #include "tm_window.hpp"
 #include <QWidget>
@@ -273,8 +274,9 @@ plain_window_widget (widget w, string name, command q) {
   if (name != "popup") {
     int xx, yy, ww, hh;
     xx= yy= ww= hh= -1;
-    get_preferred_position (name, xx, yy);
-    get_preferred_size (name, ww, hh);
+    string uname  = cork_to_utf8 (name);
+    get_preferred_position (uname, xx, yy);
+    get_preferred_size (uname, ww, hh);
     if (xx != -1) set_position (win, xx, yy);
     if (ww != -1) set_size (win, ww, hh);
   }

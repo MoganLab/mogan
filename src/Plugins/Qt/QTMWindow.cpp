@@ -31,7 +31,7 @@ QTMPlainWindow::closeEvent (QCloseEvent* event) {
 
 void
 QTMPlainWindow::moveEvent (QMoveEvent* event) {
-  string name= from_qstring (windowTitle ());
+  string name= from_qstring_utf8 (windowTitle ());
   // FIXME: rather use a slot for this
   coord2 pos= from_qpoint (frameGeometry ().topLeft ());
   notify_window_move (name, pos.x1, pos.x2);
@@ -40,7 +40,7 @@ QTMPlainWindow::moveEvent (QMoveEvent* event) {
 
 void
 QTMPlainWindow::resizeEvent (QResizeEvent* event) {
-  string name= from_qstring (windowTitle ());
+  string name= from_qstring_utf8 (windowTitle ());
   // FIXME: rather use a slot for this
   coord2 sz= from_qsize (frameSize ());
   notify_window_resize (name, sz.x1, sz.x2);
