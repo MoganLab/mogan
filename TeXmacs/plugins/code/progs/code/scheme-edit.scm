@@ -82,34 +82,36 @@
     (tree-atomic? (tree-ref doc row))
     (with par
       (tree->string (tree-ref doc row))
-      (cond ((>= col (string-length par))
-             (with len
-               (string-uncommented-length par)
-               (previous-argument doc row (- len 1) level)
-             ) ;with
-            ) ;
-            ((< col 0) (previous-argument doc (- row 1) 1000000000 level))
-            ((== (string-ref par col) #\()
-             (cond ((== level 0) #f)
-                   ((== level 1) (cons row col))
-                   (else (previous-argument doc row (- col 1) (- level 1)))
-             ) ;cond
-            ) ;
-            ((== (string-ref par col) #\))
-             (previous-argument doc row (- col 1) (+ level 1))
-            ) ;
-            ((== (string-ref par col) #\space) (previous-argument doc row (- col 1) level))
-            ((== (string-ref par col) #\")
-             (with ncol
-               (quoted-backwards par (- col 1))
-               (if (== level 0) (cons row (+ ncol 1)) (previous-argument doc row ncol level))
-             ) ;with
-            ) ;
-            (else (with ncol
-                    (previous-special par (- col 1))
-                    (if (== level 0) (cons row (+ ncol 1)) (previous-argument doc row ncol level))
-                  ) ;with
-            ) ;else
+      (cond
+       ((>= col (string-length par))
+        (with len
+          (string-uncommented-length par)
+          (previous-argument doc row (- len 1) level)
+        ) ;with
+       ) ;
+       ((< col 0) (previous-argument doc (- row 1) 1000000000 level))
+       ((== (string-ref par col) #\()
+        (cond ((== level 0) #f)
+              ((== level 1) (cons row col))
+              (else (previous-argument doc row (- col 1) (- level 1)))
+        ) ;cond
+       ) ;
+       ((== (string-ref par col) #\))
+        (previous-argument doc row (- col 1) (+ level 1))
+       ) ;
+       ((== (string-ref par col) #\space) (previous-argument doc row (- col 1) level))
+       ((== (string-ref par col) #\")
+        (with ncol
+          (quoted-backwards par (- col 1))
+          (if (== level 0) (cons row (+ ncol 1)) (previous-argument doc row ncol level))
+        ) ;with
+       ) ;
+       (else
+         (with ncol
+           (previous-special par (- col 1))
+           (if (== level 0) (cons row (+ ncol 1)) (previous-argument doc row ncol level))
+         ) ;with
+       ) ;else
       ) ;cond
     ) ;with
   ) ;and
@@ -120,12 +122,13 @@
     (previous-argument doc row col 0)
     (cond ((not arg) '())
           ((<= bound 0) '((-1 -1)))
-          (else (let* ((nrow (car arg))
-                       (ncol (- (cdr arg) 1))
-                       (nbound (if (== nrow row) bound (- bound 1)))
-                      ) ;
-                  (cons arg (previous-arguments doc nrow ncol nbound))
-                ) ;let*
+          (else
+            (let* ((nrow (car arg))
+                   (ncol (- (cdr arg) 1))
+                   (nbound (if (== nrow row) bound (- bound 1)))
+                  ) ;
+              (cons arg (previous-arguments doc nrow ncol nbound))
+            ) ;let*
           ) ;else
     ) ;cond
   ) ;with
@@ -139,9 +142,10 @@
   (cond ((null? l) #f)
         ((null? (cdr l)) (car l))
         ((null? (cddr l)) (car l))
-        (else (let* ((a1 (car l)) (a2 (cadr l)))
-                (if (< (car a2) (car a1)) a1 (reference-argument (cdr l)))
-              ) ;let*
+        (else
+          (let* ((a1 (car l)) (a2 (cadr l)))
+            (if (< (car a2) (car a1)) a1 (reference-argument (cdr l)))
+          ) ;let*
         ) ;else
   ) ;cond
 ) ;define
@@ -227,10 +231,12 @@
  ("std F1" (scheme-go-to-definition (cursor-word)))
 ) ;kbd-map
 
-(kbd-map (:require (and developer-mode?
-                     (in-prog-scheme?)
-                     (== "scheme-file" (file-format (current-buffer-url)))
-                   ) ;and
-         ) ;:require
- ("std R" (run-scheme-file (current-buffer-url)))
+(kbd-map
+  (:require
+    (and developer-mode?
+      (in-prog-scheme?)
+      (== "scheme-file" (file-format (current-buffer-url)))
+    ) ;and
+  ) ;:require
+  ("std R" (run-scheme-file (current-buffer-url)))
 ) ;kbd-map
