@@ -299,6 +299,7 @@ private slots:
   void test_color_picker_loads ();
   void test_bibliography_loads ();
   void test_go_menu_loads ();
+  void test_go_menu_hover ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
   void test_ai_actions_bar_hide_translate ();
@@ -1079,6 +1080,66 @@ TestQmlLoad::test_go_menu_loads () {
   qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 50.0);
+}
+
+static QList<QQuickItem*>
+collect_items_by_name (QQuickItem* root, const QString& name) {
+  QList<QQuickItem*> out;
+  if (!root) return out;
+  if (root->objectName () == name) out << root;
+  for (QQuickItem* child : root->childItems ())
+    out << collect_items_by_name (child, name);
+  return out;
+}
+
+void
+TestQmlLoad::test_go_menu_hover () {
+  QDialog          host;
+  GoMenuStubBridge bridge (&host);
+  auto*            qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("goBridge", &bridge);
+  qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QList<QQuickItem*> items=
+      collect_items_by_name (qw->rootObject (), "goMenuItem");
+  QVERIFY (!items.isEmpty ());
+  QQuickItem* item= items.first ();
+
+  QList<QQuickItem*> mas=
+      collect_items_by_name (item, "goMenuItemMouseArea");
+  QVERIFY (!mas.isEmpty ());
+  QQuickItem* ma= mas.first ();
+
+  QPointF center=
+      ma->mapToScene (QPointF (ma->width () / 2, ma->height () / 2));
+
+  auto sendMove= [qw] (const QPointF& p) {
+    QMouseEvent me (QEvent::MouseMove, p, p,
+                    QPointF (qw->mapToGlobal (p.toPoint ())), Qt::NoButton,
+                    Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent (qw, &me);
+  };
+
+  sendMove (center);
+  QVERIFY (item->property ("isHovered").toBool ());
+
+  QList<QQuickItem*> bgs=
+      collect_items_by_name (item, "goMenuItemBg");
+  QVERIFY (!bgs.isEmpty ());
+  QQuickItem* bg= bgs.first ();
+  QCOMPARE (bg->property ("color").value<QColor> (), QColor ("#e5e7eb"));
+  QTest::qWait (150);
+  QCOMPARE (bg->property ("opacity").toDouble (), 1.0);
+
+  sendMove (QPointF (1, 1));
+  QVERIFY (!item->property ("isHovered").toBool ());
+  QTest::qWait (150);
+  QCOMPARE (bg->property ("opacity").toDouble (), 0.0);
 }
 
 void

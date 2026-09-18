@@ -251,29 +251,28 @@ Item {
     }
 
     // 单个菜单项组件
-    component MenuItem: Rectangle {
+    component MenuItem: Item {
         id: itemRoot
+        objectName: "goMenuItem"
         property string text: ""
+        readonly property bool isHovered: mouseArea.containsMouse
         signal triggered()
 
         implicitHeight: root.itemH
         height: implicitHeight
-        radius: 6 * Theme.scaleFactor
-        color: mouseArea.containsMouse ? (Theme.dark ? "#383838" : "#f1f3f5") : "transparent"
 
-        Behavior on color {
-            ColorAnimation { duration: 100 }
-        }
-
-        MouseArea {
-            id: mouseArea
+        // 浅灰悬浮高亮背景（通过 opacity 渐变，杜绝 transparent 颜色插值穿透黑色引起的深灰色闪烁）
+        Rectangle {
+            id: bgRect
+            objectName: "goMenuItemBg"
             anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onPressed: itemRoot.scale = 0.98
-            onReleased: itemRoot.scale = 1.0
-            onCanceled: itemRoot.scale = 1.0
-            onClicked: itemRoot.triggered()
+            radius: 6 * Theme.scaleFactor
+            color: Theme.fieldBgHover
+            opacity: itemRoot.isHovered ? 1.0 : 0.0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 100 }
+            }
         }
 
         DocumentIcon {
@@ -293,9 +292,21 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: itemRoot.text
             font.pixelSize: 12 * Theme.scaleFactor
-            color: mouseArea.containsMouse ? (Theme.dark ? "#ffffff" : "#0f172a")
-                                           : (Theme.dark ? "#d1d5db" : "#334155")
+            color: itemRoot.isHovered ? (Theme.dark ? "#ffffff" : "#0f172a")
+                                      : (Theme.dark ? "#d1d5db" : "#334155")
             elide: Text.ElideMiddle
+        }
+
+        MouseArea {
+            id: mouseArea
+            objectName: "goMenuItemMouseArea"
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onPressed: itemRoot.scale = 0.98
+            onReleased: itemRoot.scale = 1.0
+            onCanceled: itemRoot.scale = 1.0
+            onClicked: itemRoot.triggered()
         }
     }
 
