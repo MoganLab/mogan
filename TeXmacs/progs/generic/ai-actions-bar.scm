@@ -96,18 +96,26 @@
   ) ;and
 ) ;define
 
-(define (ai-flatten-text st)
-  (cond ((string? st) st)
-        ((null? st) "")
-        ((not (pair? st)) "")
-        ((eq? (car st) 'with)
-         (if (ai-inline-math? st) "[FORMULA]" (ai-flatten-text (last st)))
-        ) ;
+;; 不透明节点（公式/表格/图片，含 inline 数学 with）的替换标记，透明则 #f
+
+(define (ai-marker st)
+  (cond ((ai-inline-math? st) "[FORMULA]")
         ((memq (car st) ai-formula-labels) "[FORMULA]")
         ((memq (car st) ai-table-labels) "[TABLE]")
         ((memq (car st) ai-image-labels) "[IMAGE]")
+        (else #f)
+  ) ;cond
+) ;define
+
+(define (ai-flatten-text st)
+  (cond ((string? st) st)
+        ((not (pair? st)) "")
+        ;; with：inline 数学整体替换；其余只取末尾 body（前面是 key/val 属性对）
+        ((eq? (car st) 'with) (or (ai-marker st) (ai-flatten-text (last st))))
         ((eq? (car st) 'document) (string-join (map ai-flatten-text (cdr st)) "\n"))
-        (else (string-concatenate (map ai-flatten-text (cdr st))))
+        (else
+          (or (ai-marker st) (string-concatenate (map ai-flatten-text (cdr st))))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -139,13 +147,7 @@
 
 (define (ai-split-compound st path)
   (let* ((idx (car path)) (rest (cdr path)) (lab (car st)))
-    (cond ((or (ai-inline-math? st)
-             (memq lab ai-formula-labels)
-             (memq lab ai-table-labels)
-             (memq lab ai-image-labels)
-           ) ;or
-           (cons "" (ai-flatten-text st))
-          ) ;
+    (cond ((ai-marker st) (cons "" (ai-flatten-text st)))
           ((eq? lab 'with) (ai-split-node (last st) rest))
           ((or (< idx 0) (>= (+ 1 idx) (length st))) (cons "" (ai-flatten-text st)))
           (else
@@ -172,20 +174,6 @@
 
 ;; ===== 截断：不切半 herk 的 <#XXXX> 序列 =====
 
-;; s 中从 from 起第一个子串 pat 的位置，无则 #f
-
-(define (ai-index-of-from s pat from)
-  (let ((n (string-length s)) (k (string-length pat)))
-    (let loop
-      ((i from))
-      (cond ((> (+ i k) n) #f)
-            ((string=? (substring s i (+ i k)) pat) i)
-            (else (loop (+ i 1)))
-      ) ;cond
-    ) ;let
-  ) ;let
-) ;define
-
 ;; 保留前 limit 字节；切点落入 <#...> 序列内（序列起点在窗内且 '>' 未到）
 ;; 时退到序列起点
 
@@ -194,9 +182,9 @@
     (if (<= n limit)
       s
       (let* ((cand (substring s 0 limit))
-             (open (ai-index-of-from cand "<#" (max 0 (- limit 8))))
+             (open (string-search-forwards "<#" (max 0 (- limit 8)) cand))
             ) ;
-        (if (and open (not (ai-index-of-from cand ">" open)))
+        (if (and (>= open 0) (< (string-search-forwards ">" open cand) 0))
           (substring cand 0 open)
           cand
         ) ;if
@@ -211,10 +199,10 @@
   (let ((n (string-length s)))
     (if (<= n limit)
       s
-      (let* ((start (- n limit)) (open (ai-index-of-from s "<#" (max 0 (- start 8)))))
-        (if (and open (< open start))
-          (let ((close (ai-index-of-from s ">" open)))
-            (if (and close (>= close start))
+      (let* ((start (- n limit)) (open (string-search-forwards "<#" (max 0 (- start 8)) s)))
+        (if (and (>= open 0) (< open start))
+          (let ((close (string-search-forwards ">" open s)))
+            (if (and (>= close 0) (>= close start))
               (substring s (+ close 1) n)
               (substring s start n)
             ) ;if

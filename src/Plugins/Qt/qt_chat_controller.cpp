@@ -835,12 +835,7 @@ get_ai_language_preference (string key) {
 // 提供）：document 子节点在块内依次展开，其余整体入块
 static tree
 aiQuoteBlock (tree content) {
-  tree quoted (DOCUMENT);
-  if (is_func (content, DOCUMENT)) {
-    for (int i= 0; i < N (content); i++)
-      quoted << content[i];
-  }
-  else quoted << content;
+  tree quoted= is_func (content, DOCUMENT) ? content : tree (DOCUMENT, content);
   return compound ("quote-env", quoted);
 }
 
