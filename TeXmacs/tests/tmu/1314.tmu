@@ -1,0 +1,23 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|beamer|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <screens|<\shown>
+    <tit|First Page>
+
+    \;
+  </shown>|<\hidden>
+    <tit|Second Page>
+
+    \;
+  </hidden>>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|beamer>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|D681C560-2D91-4E30-85E2-E6BC194F2860>
+  </collection>
+</initial>
