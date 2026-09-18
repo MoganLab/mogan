@@ -160,18 +160,12 @@
   ;; 打开最近列表条目：云文档按 doc_id 重新 join（须带存储里的 title，否则
   ;; collab-join-document 名字缺省 → buffer 标题退化为 UUID）；loro=no 构建下
   ;; 云 glue 未注册，残留云条目改走 load-document 优雅失败。
-  ;; 返回 #t 表示走了 collab-join（其自身会切换 buffer）。
+  ;; 两个分支内部均会切换 buffer 与视图，返回值无意义。
   (if (and (collab-buffer? u) (loro-enabled?))
-    (begin
-      (collab-join-document (collab-url->doc-id u)
-        (or (recent-files-get-name (url->system u)) "")
-      ) ;collab-join-document
-      #t
-    ) ;begin
-    (begin
-      (load-document u)
-      #f
-    ) ;begin
+    (collab-join-document (collab-url->doc-id u)
+      (or (recent-files-get-name (url->system u)) "")
+    ) ;collab-join-document
+    (load-document u)
   ) ;if
 ) ;tm-define
 
@@ -570,11 +564,9 @@
                   (else (system->url s))
             ) ;cond
          ) ;u
-         (joined? (open-recent-entry u))
         ) ;
-    ;; collab-join 自带 buffer 切换；本地 load-document 后须显式切换
-    (when (not joined?)
-      (switch-to-buffer* u)
-    ) ;when
+    ;; load-document / collab-join 内部均已完成 buffer 与视图切换（含 PDF），
+    ;; 调用方无需再 switch-to-buffer*。
+    (open-recent-entry u)
   ) ;let*
 ) ;tm-define

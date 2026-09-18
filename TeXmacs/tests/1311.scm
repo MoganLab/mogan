@@ -41,9 +41,17 @@
   ) ;let
 ) ;define
 
+(define (check-current-document expected-url)
+  (let ((cur-buf (current-buffer)) (cur-vw (current-view)))
+    (check (url-tail cur-buf) => (url-tail expected-url))
+    (check-true (nnull? cur-vw))
+  ) ;let
+) ;define
+
 (tm-define (test_1311)
   (let* ((fixture-path (string-append (getenv "TEXMACS_PATH") "/tests/tmu/0991.tmu"))
          (fixture-url (string->url fixture-path))
+         (pdf-fixture-path (string-append (getenv "TEXMACS_PATH") "/tests/PDF/38_2.pdf"))
          (startup-url (string->url "tmfs://startup-tab"))
          (steps
            (list
@@ -53,15 +61,7 @@
              ) ;cons
              ;; 2. 验证新文档加载，且当前活动 view 是该文档
              (cons "step 2: verify buffer and active view"
-               (lambda ()
-                 (let ((cur-buf (current-buffer)) (cur-vw (current-view)))
-                   (display* "[1311] cur-buf: " cur-buf "\n")
-                   (display* "[1311] cur-vw: " cur-vw "\n")
-                   (display* "[1311] tabpages: " (tabpage-list #t) "\n")
-                   (check (url-tail cur-buf) => (url-tail fixture-url))
-                   (check-true (nnull? cur-vw))
-                 ) ;let
-               ) ;lambda
+               (lambda () (check-current-document fixture-url))
              ) ;cons
              ;; 3. 切回启动页标签
              (cons "step 3: switch back to startup-tab"
@@ -73,14 +73,17 @@
              ) ;cons
              ;; 5. 验证成功切回该文档并保持选中
              (cons "step 5: verify switched back to document"
-               (lambda ()
-                 (let ((cur-buf (current-buffer)) (cur-vw (current-view)))
-                   (check (url-tail cur-buf) => (url-tail fixture-url))
-                   (check-true (nnull? cur-vw))
-                 ) ;let
-               ) ;lambda
+               (lambda () (check-current-document fixture-url))
              ) ;cons
-             (cons "step 6: report and quit" (lambda () (check-report) (quit-TeXmacs)))
+             ;; 6. 通过 go-menu-load-buffer 打开 PDF 文档
+             (cons "step 6: open pdf via go-menu-load-buffer"
+               (lambda () (go-menu-load-buffer pdf-fixture-path))
+             ) ;cons
+             ;; 7. 验证 PDF 文档成功加载
+             (cons "step 7: verify pdf buffer and active view"
+               (lambda () (check-current-document (string->url pdf-fixture-path)))
+             ) ;cons
+             (cons "step 8: report and quit" (lambda () (check-report) (quit-TeXmacs)))
            ) ;list
          ) ;steps
         ) ;
