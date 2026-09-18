@@ -84,7 +84,7 @@ Item {
                     { icon: "qrc:/ai-actions/translate.svg", label: labelTranslate, action: "translate" },
                     { icon: "qrc:/ai-actions/polish.svg", label: labelPolish, action: "polish" },
                     { icon: "qrc:/ai-actions/chat.svg", label: labelChat, action: "chat" },
-                    { icon: "qrc:/ai-actions/gloss.svg", label: labelGloss, action: "gloss" }
+                    { icon: "qrc:/ai-actions/explain.svg", label: labelExplain, action: "explain" }
                 ]
 
                 delegate: Rectangle {

@@ -1127,7 +1127,7 @@
 ) ;
 ("global history" "全局历史")
 ("global status" "全局状态")
-("gloss::ai" "释义")
+("explain::ai" "释义")
 ("glossary entry" "术语项")
 ("glossary" "术语表")
 ("glue decorations" "")
