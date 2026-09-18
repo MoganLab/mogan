@@ -301,6 +301,8 @@ private slots:
   void test_go_menu_loads ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
+  void test_ai_actions_bar_hit_test ();
+  void test_ai_actions_bar_click_actions ();
   void test_ai_actions_bar_hide_translate ();
   void test_ai_actions_bar_repaint_after_toggle ();
 };
@@ -1121,6 +1123,85 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   QVERIFY (!ma->property ("containsMouse").toBool ());
   sendMove (center); // 移回按钮重新点亮
   QVERIFY (ma->property ("containsMouse").toBool ());
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_hit_test () {
+  // overButton 同步命中检测（1315 事件过滤器在 press 时按坐标调用）：
+  // 四个胶囊中心全部命中；隐藏的翻译胶囊不命中；胶囊之外的栏内点
+  // （龙虾图标/内边距）不命中——这些点要继续转发给文档做拖选
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QQuickItem* root= qw->rootObject ();
+  QVERIFY (root != nullptr);
+  auto hit= [root] (const QPointF& p) {
+    QVariant ret;
+    QMetaObject::invokeMethod (root, "overButton", Q_RETURN_ARG (QVariant, ret),
+                               Q_ARG (QVariant, QVariant (p.x ())),
+                               Q_ARG (QVariant, QVariant (p.y ())));
+    return ret.toBool ();
+  };
+
+  QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
+  QCOMPARE (capsules.size (), 4);
+  for (auto* cap : capsules) {
+    QVERIFY (hit (
+        cap->mapToScene (QPointF (cap->width () / 2, cap->height () / 2))));
+  }
+
+  // 第一个胶囊左侧的图标/间距区域不是按钮
+  QPointF cap0= capsules.first ()->mapToScene (QPointF (0, 0));
+  QVERIFY (!hit (QPointF (cap0.x () - 2, cap0.y () + 5)));
+
+  // 翻译胶囊隐藏后不再命中（其位置被 Row 回收，命中与否都不拦截拖选）
+  root->setProperty ("showTranslate", false);
+  QVERIFY (!hit (capsules.first ()->mapToScene (QPointF (
+      capsules.first ()->width () / 2, capsules.first ()->height () / 2))));
+  QVERIFY (hit (capsules[1]->mapToScene (
+      QPointF (capsules[1]->width () / 2, capsules[1]->height () / 2))));
+  root->setProperty ("showTranslate", true);
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_click_actions () {
+  // 四个按钮的 press+release 都要发出对应 action 的 triggered 信号
+  // （1315 拦截回归的端到端覆盖：点击链路任一环节断裂都会有按钮点不动）
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QQuickItem* root= qw->rootObject ();
+  QVERIFY (root != nullptr);
+  QSignalSpy spy (root, SIGNAL (triggered (QString)));
+
+  QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
+  QCOMPARE (capsules.size (), 4);
+  QStringList expected;
+  expected << "translate"
+           << "polish"
+           << "chat"
+           << "gloss";
+
+  for (int i= 0; i < capsules.size (); i++) {
+    QQuickItem* cap= capsules[i];
+    QPointF     center=
+        cap->mapToScene (QPointF (cap->width () / 2, cap->height () / 2));
+    QPointF     g (qw->mapToGlobal (center.toPoint ()));
+    QMouseEvent press (QEvent::MouseButtonPress, center, center, g,
+                       Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent (qw, &press);
+    QMouseEvent release (QEvent::MouseButtonRelease, center, center, g,
+                         Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent (qw, &release);
+    qApp->processEvents ();
+
+    QCOMPARE (spy.count (), i + 1);
+    QCOMPARE (spy.last ().at (0).toString (), expected[i]);
+  }
 }
 
 void

@@ -10,17 +10,20 @@ Item {
 
     signal triggered(string action)
 
-    property bool buttonHovered: false
-
-    function checkHover() {
+    // 命中检测（C++ 事件过滤器在 press 时同步调用）：x/y 为根坐标，落在任一
+    // 可见按钮胶囊内才返回 true。不能用 hover 异步态——press 时它可能尚未
+    // 置位，会把按钮点击误吞成「栏外按下」转发给文档，导致按钮全部失效
+    function overButton(x, y) {
         for (var i = 0; i < actionRepeater.count; ++i) {
             var item = actionRepeater.itemAt(i)
-            if (item && item.containsMouse) {
-                buttonHovered = true
-                return
+            if (item && item.visible) {
+                var p = item.mapFromItem(bar, x, y)
+                if (p.x >= 0 && p.x < item.width && p.y >= 0 && p.y < item.height) {
+                    return true
+                }
             }
         }
-        buttonHovered = false
+        return false
     }
 
     // C++ autoSize 按屏幕 DPI 缩放注入；12 仅为加载测试/预览回退
@@ -90,7 +93,6 @@ Item {
                     implicitWidth: content.implicitWidth + bar.padH
                     implicitHeight: content.implicitHeight + bar.padV
                     radius: height / 2
-                    readonly property bool containsMouse: hoverArea.containsMouse
                     // hover 套用列表项选中态配色（selectBg/selectBorder/selectFg）；
                     // !pressed 兜底：按住拖动时事件被 grab，避免多个按钮同亮
                     property bool lit: hoverArea.containsMouse && !hoverArea.pressed
@@ -122,7 +124,6 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onContainsMouseChanged: bar.checkHover()
                         onClicked: bar.triggered(modelData.action)
                     }
                 }

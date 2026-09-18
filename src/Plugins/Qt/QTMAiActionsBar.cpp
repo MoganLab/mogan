@@ -107,11 +107,17 @@ QTMAiActionsBar::QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner)
 
 bool
 QTMAiActionsBar::isOverButton (const QPoint& pos) const {
-  (void) pos;
+  // 按坐标同步问 QML 命中检测（overButton）。不能用 hover 异步态判定：
+  // press 时 hover 标志可能尚未置位，按钮点击会被误吞成「栏外按下」转发
+  // 给文档（1315 修复后按钮全部失效的回归根因）
   if (!quick) return false;
   QObject* root= quick->rootObject ();
   if (!root) return false;
-  return root->property ("buttonHovered").toBool ();
+  QVariant ret;
+  QMetaObject::invokeMethod (root, "overButton", Q_RETURN_ARG (QVariant, ret),
+                             Q_ARG (QVariant, QVariant (pos.x ())),
+                             Q_ARG (QVariant, QVariant (pos.y ())));
+  return ret.toBool ();
 }
 
 void
