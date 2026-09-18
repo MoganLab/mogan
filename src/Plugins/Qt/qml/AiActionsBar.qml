@@ -10,6 +10,19 @@ Item {
 
     signal triggered(string action)
 
+    property bool buttonHovered: false
+
+    function checkHover() {
+        for (var i = 0; i < actionRepeater.count; ++i) {
+            var item = actionRepeater.itemAt(i)
+            if (item && item.containsMouse) {
+                buttonHovered = true
+                return
+            }
+        }
+        buttonHovered = false
+    }
+
     // C++ autoSize 按屏幕 DPI 缩放注入；12 仅为加载测试/预览回退
     property int fontPixelSize: 12
 
@@ -60,6 +73,7 @@ Item {
             }
 
             Repeater {
+                id: actionRepeater
                 // 静态三按钮：翻译胶囊按 showTranslate 显隐（Row 跳过不可见
                 // 子项）。不重建 model——重建 delegate 在软渲染下布局与绘制
                 // 不同帧，会留白/截断
@@ -75,6 +89,7 @@ Item {
                     implicitWidth: content.implicitWidth + bar.padH
                     implicitHeight: content.implicitHeight + bar.padV
                     radius: height / 2
+                    readonly property bool containsMouse: hoverArea.containsMouse
                     // hover 套用列表项选中态配色（selectBg/selectBorder/selectFg）；
                     // !pressed 兜底：按住拖动时事件被 grab，避免多个按钮同亮
                     property bool lit: hoverArea.containsMouse && !hoverArea.pressed
@@ -106,6 +121,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
+                        onContainsMouseChanged: bar.checkHover()
                         onClicked: bar.triggered(modelData.action)
                     }
                 }
