@@ -1127,8 +1127,7 @@ TestQmlLoad::test_go_menu_hover () {
   QVERIFY (!items.isEmpty ());
   QQuickItem* item= items.first ();
 
-  QList<QQuickItem*> mas=
-      collect_items_by_name (item, "goMenuItemMouseArea");
+  QList<QQuickItem*> mas= collect_items_by_name (item, "goMenuItemMouseArea");
   QVERIFY (!mas.isEmpty ());
   QQuickItem* ma= mas.first ();
 
@@ -1145,8 +1144,7 @@ TestQmlLoad::test_go_menu_hover () {
   sendMove (center);
   QVERIFY (item->property ("isHovered").toBool ());
 
-  QList<QQuickItem*> bgs=
-      collect_items_by_name (item, "goMenuItemBg");
+  QList<QQuickItem*> bgs= collect_items_by_name (item, "goMenuItemBg");
   QVERIFY (!bgs.isEmpty ());
   QQuickItem* bg= bgs.first ();
   QCOMPARE (bg->property ("color").value<QColor> (), QColor ("#e5e7eb"));
