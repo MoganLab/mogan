@@ -570,11 +570,9 @@
                   (else (system->url s))
             ) ;cond
          ) ;u
-         (joined? (open-recent-entry u))
         ) ;
-    ;; collab-join 自带 buffer 切换；本地 load-document 后须显式切换
-    (when (not joined?)
-      (switch-to-buffer* u)
-    ) ;when
+    ;; 对齐首页最近文档逻辑：云/本地加载统一由 open-recent-entry 分派，
+    ;; 本地 load-document 内部已具备 buffer 与视图切换能力，无需额外 switch-to-buffer*。
+    (open-recent-entry u)
   ) ;let*
 ) ;tm-define

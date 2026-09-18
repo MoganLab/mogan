@@ -44,6 +44,8 @@
 (tm-define (test_1311)
   (let* ((fixture-path (string-append (getenv "TEXMACS_PATH") "/tests/tmu/0991.tmu"))
          (fixture-url (string->url fixture-path))
+         (pdf-fixture-path (string-append (getenv "TEXMACS_PATH") "/tests/PDF/38_2.pdf"))
+         (pdf-fixture-url (string->url pdf-fixture-path))
          (startup-url (string->url "tmfs://startup-tab"))
          (steps
            (list
@@ -80,7 +82,22 @@
                  ) ;let
                ) ;lambda
              ) ;cons
-             (cons "step 6: report and quit" (lambda () (check-report) (quit-TeXmacs)))
+             ;; 6. 通过 go-menu-load-buffer 打开 PDF 文档
+             (cons "step 6: open pdf via go-menu-load-buffer"
+               (lambda () (go-menu-load-buffer pdf-fixture-path))
+             ) ;cons
+             ;; 7. 验证 PDF 文档成功加载
+             (cons "step 7: verify pdf buffer and active view"
+               (lambda ()
+                 (let ((cur-buf (current-buffer)) (cur-vw (current-view)))
+                   (display* "[1311] pdf cur-buf: " cur-buf "\n")
+                   (display* "[1311] pdf cur-vw: " cur-vw "\n")
+                   (check (url-tail cur-buf) => (url-tail pdf-fixture-url))
+                   (check-true (nnull? cur-vw))
+                 ) ;let
+               ) ;lambda
+             ) ;cons
+             (cons "step 8: report and quit" (lambda () (check-report) (quit-TeXmacs)))
            ) ;list
          ) ;steps
         ) ;
