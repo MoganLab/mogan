@@ -78,6 +78,8 @@ public:
   bool loadFromFile (const QString& filePath, int dpi= 150);
   void clear ();
 
+  QString filePath () const { return pdfFilePath_; }
+
   int    pageCount () const { return pageCount_; }
   bool   hasError () const { return hasError_; }
   double zoomFactor () const { return zoomFactor_; }

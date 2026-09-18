@@ -103,6 +103,51 @@ private slots:
     delete widget;
   }
 
+  void test_filePath_and_clear () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    QVERIFY (widget->filePath ().isEmpty ());
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    QString path= to_qstring (as_string (pdfUrl));
+    bool    ok  = widget->loadFromFile (path);
+    QVERIFY (ok);
+    QCOMPARE (widget->filePath (), path);
+    QCOMPARE (widget->pageCount (), 1);
+
+    widget->clear ();
+    QVERIFY (widget->filePath ().isEmpty ());
+    QCOMPARE (widget->pageCount (), 0);
+    delete widget;
+  }
+
+  void test_reloadOnContentChange () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    QString srcPath= to_qstring (as_string (pdfUrl));
+    QString tmpPath= QDir::tempPath () + "/1317_reload_test.pdf";
+    QFile::remove (tmpPath);
+    QVERIFY (QFile::copy (srcPath, tmpPath));
+
+    bool ok= widget->loadFromFile (tmpPath);
+    QVERIFY (ok);
+    QCOMPARE (widget->filePath (), tmpPath);
+    QCOMPARE (widget->pageCount (), 1);
+
+    // Reload same path
+    ok= widget->loadFromFile (tmpPath);
+    QVERIFY (ok);
+    QCOMPARE (widget->filePath (), tmpPath);
+    QCOMPARE (widget->pageCount (), 1);
+
+    widget->clear ();
+    QFile::remove (tmpPath);
+    delete widget;
+  }
+
   void test_spaceKeyScrollsDown () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (200, 100);

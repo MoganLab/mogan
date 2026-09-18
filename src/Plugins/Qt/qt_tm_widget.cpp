@@ -17,6 +17,7 @@
 #include <QDialog>
 #include <QDockWidget>
 #include <QEvent>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -239,7 +240,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       m_currentScmNotificationItem (""), startupContentWidget (nullptr),
       startupTabMode (false), startupChromePending_ (false),
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
-      lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false),
+      lastLoadedPdfPath (""), lastLoadedPdfModTime (QDateTime ()),
+      lastLoadedPdfSize (0), chatContentWidget (nullptr), chatTabMode (false),
       chatSideDock (nullptr), pdfOutlineDock (nullptr),
       chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
       chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false),
@@ -1276,10 +1278,17 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     object restorePage=
         call ("pdf-last-page-to-restore", from_qstring_utf8 (currentPdfPath));
     int pageToRestore= is_int (restorePage) ? as_int (restorePage) : 0;
-    // Load PDF if path changed
-    if (!currentPdfPath.isEmpty () && currentPdfPath != lastLoadedPdfPath) {
+    // Load PDF if path changed or file on disk was modified
+    QFileInfo fi (currentPdfPath);
+    bool      fileChangedOnDisk=
+        fi.exists () && (fi.lastModified () != lastLoadedPdfModTime ||
+                         fi.size () != lastLoadedPdfSize);
+    if (!currentPdfPath.isEmpty () &&
+        (currentPdfPath != lastLoadedPdfPath || fileChangedOnDisk)) {
       pdfViewerWidget->loadFromFile (currentPdfPath);
-      lastLoadedPdfPath= currentPdfPath;
+      lastLoadedPdfPath   = currentPdfPath;
+      lastLoadedPdfModTime= fi.lastModified ();
+      lastLoadedPdfSize   = fi.size ();
     }
     schedule_restore_pdf_last_page (pageToRestore);
   }
@@ -1970,6 +1979,9 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (pdfTabMode) {
       currentPdfPath= utf8_to_qstring (file);
     }
+    else {
+      currentPdfPath.clear ();
+    }
     chatTabMode= is_chat_tab_file (file);
     sync_startup_tab_mode ();
     sync_chat_tab_mode ();
@@ -2186,6 +2198,22 @@ qt_tm_widget_rep::install_main_menu () {
 
   // 添加新的 menuBar 到 menuToolBar
   menuToolBar->addWidget (dest);
+}
+
+void
+qt_tm_widget_rep::notify_pdf_tab_closed (const QString& closedPath) {
+  if (closedPath.isEmpty () || lastLoadedPdfPath == closedPath) {
+    lastLoadedPdfPath.clear ();
+    lastLoadedPdfModTime= QDateTime ();
+    lastLoadedPdfSize   = 0;
+  }
+  if (closedPath.isEmpty () || currentPdfPath == closedPath) {
+    currentPdfPath.clear ();
+  }
+  if (pdfViewerWidget &&
+      (closedPath.isEmpty () || pdfViewerWidget->filePath () == closedPath)) {
+    pdfViewerWidget->clear ();
+  }
 }
 
 void

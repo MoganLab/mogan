@@ -364,7 +364,7 @@ get_all_views () {
 
 array<url>
 get_all_views_unsorted (bool current_window_only) {
-  url window= current_window_only ? get_current_window () : url_none ();
+  url window= current_window_only ? get_current_window_safe () : url_none ();
   view_history::FilteredView filtered=
       view_history_instance.get_views_for_window (window, true);
   return filtered.views;
@@ -372,7 +372,7 @@ get_all_views_unsorted (bool current_window_only) {
 
 void
 move_tabpage (int old_pos, int new_pos) {
-  url cur_win= get_current_window ();
+  url cur_win= get_current_window_safe ();
 
   // 获取当前窗口的过滤和排序的view
   view_history::FilteredView filtered=
@@ -473,9 +473,7 @@ get_passive_view_of_tabpage (url name) {
   if (is_nil (buf)) return url_none ();
   array<url> vs     = buffer_to_views (name);
   int        vs_N   = N (vs);
-  url        cur_win= has_current_view () && has_current_window ()
-                          ? get_current_window ()
-                          : url_none ();
+  url        cur_win= get_current_window_safe ();
   for (int i= 0; i < vs_N; i++) {
     url win        = view_to_window (vs[i]);
     url win_tabpage= view_to_window_of_tabpage (vs[i]);
@@ -864,11 +862,12 @@ switch_to_buffer (url name) {
   if (vw == NULL) return;
   // Headless / no-window: make this the current view without attaching to a
   // window, so buffer operations (load/export/render) work without a GUI.
-  if (!has_current_window ()) {
+  url win_u= get_current_window_safe ();
+  if (is_none (win_u)) {
     set_current_view (u);
     return;
   }
-  window_set_view (get_current_window (), u, true);
+  window_set_view (win_u, u, true);
   tm_window nwin= vw->win;
   if (nwin != NULL)
     nwin->set_window_zoom_factor (nwin->get_window_zoom_factor ());
