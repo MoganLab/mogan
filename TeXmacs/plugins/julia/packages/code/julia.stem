@@ -17,7 +17,7 @@
                            ) ;src-title
                   ) ;active*
           (use-module "(julia julia-format)")
-          (use-module "(julia julia-mode)")
+          (use-module "(julia julia-edit)")
           (assign "julia"
             (macro "body"
               (with "mode" "prog" "prog-language" "julia" "font-family" "rm" (arg "body"))

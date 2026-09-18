@@ -11,11 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (goldfish goldfish-edit) (:use (prog prog-edit)))
-
-(texmacs-modes (in-goldfish% (== (get-env "prog-language") "goldfish"))
-  (in-prog-goldfish% #t in-prog% in-goldfish%)
-) ;texmacs-modes
+(texmacs-module (goldfish goldfish-edit)
+  (:use (prog prog-edit) (goldfish goldfish-mode))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Automatic insertion, highlighting and selection of brackets and quotes

@@ -17,7 +17,7 @@
                            ) ;src-title
                   ) ;active*
           (use-module "(javascript javascript-format)")
-          (use-module "(javascript javascript-mode)")
+          (use-module "(javascript javascript-edit)")
           (assign "javascript"
             (macro "body"
               (with "mode"

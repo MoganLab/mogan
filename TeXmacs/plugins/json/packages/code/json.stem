@@ -17,7 +17,7 @@
                            ) ;src-title
                   ) ;active*
           (use-module "(json json-format)")
-          (use-module "(json json-mode)")
+          (use-module "(json json-edit)")
           (assign "json"
             (macro "body"
               (with "mode" "prog" "prog-language" "json" "font-family" "rm" (arg "body"))
