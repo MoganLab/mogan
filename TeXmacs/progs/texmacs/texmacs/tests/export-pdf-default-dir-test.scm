@@ -138,6 +138,18 @@
   ) ;check
 ) ;define
 
+;; Issue #1313: 验证展开幻灯片中的可折叠对象首选项读写与 dynamic-make-slides 参数
+
+(define (test-expand-slides-preference-default)
+  (let ((orig (get-preference "texmacs->pdf:expand slides")))
+    (set-preference "texmacs->pdf:expand slides" "on")
+    (check (preference-on? "texmacs->pdf:expand slides") => #t)
+    (set-preference "texmacs->pdf:expand slides" "off")
+    (check (preference-on? "texmacs->pdf:expand slides") => #f)
+    (set-preference "texmacs->pdf:expand slides" orig)
+  ) ;let
+) ;define
+
 (tm-define (regtest-export-pdf-default-dir)
   (test-local-tmu-uses-own-dir)
   (test-below-texmacs-path-goes-to-documents)
@@ -150,5 +162,6 @@
   (test-ensure-suffix-keeps-pdf)
   (test-ensure-suffix-appends-after-other-suffix)
   (test-ensure-suffix-embed-tmu-pdf)
+  (test-expand-slides-preference-default)
   (check-report)
 ) ;tm-define

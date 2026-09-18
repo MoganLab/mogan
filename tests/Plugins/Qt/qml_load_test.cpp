@@ -638,11 +638,21 @@ TestQmlLoad::test_export_pdf_loads () {
   f0["value"]= QString ("false");
   fields << f0;
   QVariantMap f1;
-  f1["type"] = QString ("path");
-  f1["label"]= QString ("Export to");
-  f1["key"]  = QString ("path");
-  f1["value"]= QString ("/tmp/1271/untitled.pdf");
+  f1["type"] = QString ("toggle");
+  f1["label"]= QString ("Expand beamer slides");
+  f1["key"]  = QString ("expand-slides");
+  f1["value"]= QString ("true");
+  f1["tooltip"]=
+      QString ("When enabled, foldable objects in slides (such as questions "
+               "and answers) "
+               "will be expanded into multiple pages in the exported PDF.");
   fields << f1;
+  QVariantMap f2;
+  f2["type"] = QString ("path");
+  f2["label"]= QString ("Export to");
+  f2["key"]  = QString ("path");
+  f2["value"]= QString ("/tmp/1271/untitled.pdf");
+  fields << f2;
 
   QDialog       host;
   QQuickWidget* qw= load_export_pdf_dialog (host, fields);
@@ -654,6 +664,22 @@ TestQmlLoad::test_export_pdf_loads () {
             QString ("/tmp/1271/untitled.pdf"));
   QCOMPARE (qw->rootObject ()->property ("displayPath").toString (),
             QString ("/tmp/1271/untitled.pdf"));
+  // 1313: 展开幻灯片中的可折叠对象开关初值绑定
+  QCOMPARE (qw->rootObject ()
+                ->property ("values")
+                .toMap ()["expand-slides"]
+                .toString (),
+            QString ("true"));
+
+  // 1313: 切换「展开幻灯片中的可折叠对象」开关
+  QMetaObject::invokeMethod (qw->rootObject (), "onToggleChanged",
+                             Q_ARG (QVariant, QString ("expand-slides")),
+                             Q_ARG (QVariant, false));
+  QCOMPARE (qw->rootObject ()
+                ->property ("values")
+                .toMap ()["expand-slides"]
+                .toString (),
+            QString ("false"));
 
   // 1304: 开启「将源文档作为附件嵌入PDF」时，目的地后缀自动变为 .tmu.pdf
   QMetaObject::invokeMethod (qw->rootObject (), "onToggleChanged",
@@ -759,12 +785,24 @@ TestQmlLoad::test_export_pdf_path_utf8_roundtrip () {
   form << tree (moebius::make_tree_label ("path"), tree ("Export to"),
                 tree ("path"), tree (chinesePath));
   tree r= cpp_export_pdf_dialog (form);
-  qunsetenv ("MOGAN_TEST_EXPORT_PDF");
 
   QVERIFY (is_compound (r));
   QCOMPARE (N (r), 1);
   QVERIFY (get_label (r[0][0]) == string ("path"));
   QVERIFY (get_label (r[0][1]) == chinesePath);
+
+  // 1313: 带 tooltip 的 toggle 在 cpp_export_pdf_dialog 中的解析与契约
+  tree toggleForm (moebius::TUPLE);
+  toggleForm << tree (moebius::make_tree_label ("toggle"),
+                      tree ("Expand beamer slides"), tree ("expand-slides"),
+                      tree ("true"), tree ("tooltip test"));
+  tree toggleRes= cpp_export_pdf_dialog (toggleForm);
+  qunsetenv ("MOGAN_TEST_EXPORT_PDF");
+
+  QVERIFY (is_compound (toggleRes));
+  QCOMPARE (N (toggleRes), 1);
+  QVERIFY (get_label (toggleRes[0][0]) == string ("expand-slides"));
+  QVERIFY (get_label (toggleRes[0][1]) == string ("true"));
 }
 
 void

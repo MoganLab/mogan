@@ -92,7 +92,7 @@
   ) ;when
 ) ;define
 
-(tm-define (export-buffer-to-pdf fname)
+(tm-define (export-buffer-to-pdf fname . opts)
   (let* ((cur (current-buffer))
          (buf (buffer-new))
          (tmp-url (url-append (url-head cur) (string-append (uuid4) "." (url-suffix cur)))
@@ -104,7 +104,7 @@
       (buffer-set-master tmp-url cur)
       (switch-to-buffer tmp-url)
       (set-drd cur)
-      (dynamic-make-slides)
+      (apply dynamic-make-slides opts)
     ) ;when
     (switch-to-buffer tmp-url)
     (when (has-style-package? "dark")
@@ -116,9 +116,9 @@
   ) ;let*
 ) ;tm-define
 
-(tm-define (wrapped-print-to-file fname)
+(tm-define (wrapped-print-to-file fname . opts)
   (system-wait "Exporting, " (translate "please wait"))
-  (export-buffer-to-pdf fname)
+  (apply export-buffer-to-pdf fname opts)
   (save-buffer-save (current-buffer)
     (list)
     (string-append (url-suffix fname) "_export")
@@ -127,9 +127,9 @@
   (user-confirm-open-pdf fname)
 ) ;tm-define
 
-(define (wrapped-print-to-pdf-embeded fname kind)
+(define (wrapped-print-to-pdf-embeded fname kind . opts)
   (system-wait "Exporting, " (translate "please wait"))
-  (export-buffer-to-pdf fname)
+  (apply export-buffer-to-pdf fname opts)
   (unless (attach-doc-to-exported-pdf fname)
     (notify-now (string-append "Fail to attach " kind " to pdf"))
   ) ;unless
@@ -138,18 +138,18 @@
   (user-confirm-open-pdf fname)
 ) ;define
 
-(tm-define (wrapped-print-to-pdf-embeded-with-tm fname)
+(tm-define (wrapped-print-to-pdf-embeded-with-tm fname . opts)
   (unless (string=? (url-suffix fname) "pdf")
     (texmacs-error "Wrapped-print-to-pdf-embeded-with-tm" "fname is not a pdf")
   ) ;unless
-  (wrapped-print-to-pdf-embeded fname "tm")
+  (apply wrapped-print-to-pdf-embeded fname "tm" opts)
 ) ;tm-define
 
-(tm-define (wrapped-print-to-pdf-embeded-with-tmu fname)
+(tm-define (wrapped-print-to-pdf-embeded-with-tmu fname . opts)
   (unless (string=? (url-suffix fname) "pdf")
     (texmacs-error "Wrapped-print-to-pdf-embeded-with-tmu" "fname is not a pdf")
   ) ;unless
-  (wrapped-print-to-pdf-embeded fname "tmu")
+  (apply wrapped-print-to-pdf-embeded fname "tmu" opts)
 ) ;tm-define
 
 (define (propose-export-pdf-name embedded? master)
@@ -212,9 +212,9 @@
 (tm-define (export-as-pdf)
   (:synopsis "Export as PDF, optionally embedding the source document")
   ;; QML 对话框收集导出目的地（完整路径含文件名，Browse 可改）与是否把源文档
-  ;; 作为附件嵌入 PDF。确认时 cpp-export-pdf-dialog 返回 (tuple (tuple "embed"
-  ;; ...) (tuple "path" ...))，Cancel / 关闭返回空树。字段初值与 label 在此侧
-  ;; 取好（label 已翻译）。
+  ;; 作为附件嵌入 PDF，以及是否展开幻灯片中的可折叠对象。确认时 cpp-export-pdf-dialog
+  ;; 返回 (tuple (tuple "embed" ...) (tuple "expand-slides" ...) (tuple "path" ...))，
+  ;; Cancel / 关闭返回空树。字段初值与 label 在此侧取好（label 已翻译）。
   (with result
     (with default-path
       ;; 缺省目的地：缺省目录 + 建议文件名。
@@ -229,6 +229,12 @@
           `(export-pdf-form (toggle ,(translate "Embed source document")
                               ,"embed"
                               ,"false")
+             (toggle ,(translate "Expand beamer slides")
+               ,"expand-slides"
+               ,(if (preference-on? "texmacs->pdf:expand slides")
+                  "true"
+                  "false")
+               ,(translate "When enabled, foldable objects in slides (such as questions and answers) will be expanded into multiple pages in the exported PDF."))
              (path ,(translate "Export to") ,"path" ,default-path))
         ) ;stree->tree
       ) ;cpp-export-pdf-dialog
@@ -239,12 +245,16 @@
       (if (null? r)
         (noop)
         ;; with 是单绑定宏（var val . body），两个绑定用 let*；扁平写法会把
-        ;; 后续绑定名当 body 表达式求值（unbound variable）。
-        (let* ((embed #f) (fname ""))
+        ;; 后续绑定名当 body表达式求值（unbound variable）。
+        (let* ((embed #f)
+               (expand-slides (preference-on? "texmacs->pdf:expand slides"))
+               (fname "")
+              ) ;
           (for-each
             (lambda (kv)
               (cond
                ((== (cadr kv) "embed") (set! embed (== (caddr kv) "true")))
+               ((== (cadr kv) "expand-slides") (set! expand-slides (== (caddr kv) "true")))
                ((== (cadr kv) "path") (set! fname (caddr kv)))
               ) ;cond
             ) ;lambda
@@ -252,8 +262,8 @@
           ) ;for-each
           (set! fname (export-pdf-ensure-suffix fname embed))
           (if embed
-            (wrapped-print-to-pdf-embeded-with-tmu fname)
-            (wrapped-print-to-file fname)
+            (wrapped-print-to-pdf-embeded-with-tmu fname expand-slides)
+            (wrapped-print-to-file fname expand-slides)
           ) ;if
         ) ;let*
       ) ;if

@@ -993,35 +993,39 @@
   ) ;cond
 ) ;define
 
-(tm-define (dynamic-make-slides)
-  (init-default "page-medium"
-    ;; "page-type" "page-width" "page-height"
-    ;; "page-width-margin" "page-height-margin"
-    ;; "page-odd" "page-even" "page-right"
-    ;; "par-width" "page-odd-shift" "page-even-shift"
-    ;; "page-top" "page-bot"
-  ) ;init-default
-  (add-style-package "slides")
-  (if (preference-on? "texmacs->pdf:expand slides")
-    (let* ((t (buffer-tree)) (c (tree-children t)))
-      (when (and (tm-func? t 'document) (switch-context? (cAr c)))
-        (tree-assign-node (cAr c) 'document)
-        (tree-set! t `(document ,@(cDr c) ,@(tree-children (cAr c))))
-        ;; (system-wait "Generating slides" "please wait") ;crashes if printing
-        (for-each dynamic-make-slide (tree-children t))
-        (transform-last-slide t)
-      ) ;when
-    ) ;let*
-    (with l
-      (select (buffer-tree) '(screens))
-      (and (nnull? l)
-        (let* ((scrns (car l)) (slides (screens->slides scrns)))
-          (tree-set! scrns slides)
-          (transform-last-slide scrns)
-        ) ;let*
-      ) ;and
-    ) ;with
-  ) ;if
+(tm-define (dynamic-make-slides . opts)
+  (let ((expand? (if (null? opts) (preference-on? "texmacs->pdf:expand slides") (car opts))
+        ) ;expand?
+       ) ;
+    (init-default "page-medium"
+      ;; "page-type" "page-width" "page-height"
+      ;; "page-width-margin" "page-height-margin"
+      ;; "page-odd" "page-even" "page-right"
+      ;; "par-width" "page-odd-shift" "page-even-shift"
+      ;; "page-top" "page-bot"
+    ) ;init-default
+    (add-style-package "slides")
+    (if expand?
+      (let* ((t (buffer-tree)) (c (tree-children t)))
+        (when (and (tm-func? t 'document) (switch-context? (cAr c)))
+          (tree-assign-node (cAr c) 'document)
+          (tree-set! t `(document ,@(cDr c) ,@(tree-children (cAr c))))
+          ;; (system-wait "Generating slides" "please wait") ;crashes if printing
+          (for-each dynamic-make-slide (tree-children t))
+          (transform-last-slide t)
+        ) ;when
+      ) ;let*
+      (with l
+        (select (buffer-tree) '(screens))
+        (and (nnull? l)
+          (let* ((scrns (car l)) (slides (screens->slides scrns)))
+            (tree-set! scrns slides)
+            (transform-last-slide scrns)
+          ) ;let*
+        ) ;and
+      ) ;with
+    ) ;if
+  ) ;let
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

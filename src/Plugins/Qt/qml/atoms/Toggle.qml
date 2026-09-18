@@ -14,6 +14,7 @@
 // API：
 //   label        : string        —— 左侧标签文案。
 //   hint         : string        —— 标签下副说明（如「仅 semantic editing 开时可见」），空则不占位。
+//   tooltip      : string        —— 悬浮提示文案（如展开折叠环境说明），非空时显示问号图标与悬浮气泡。
 //   value        : bool          —— 当前是否开。
 //   isNarrow     : bool          —— 是否落在双栏半宽列；true 时原子自动缩小字体 + label 占更大比例。
 //   enabled      : bool          —— 是否可交互（内置）；false 时锁定：label 灰显、胶囊不可点
@@ -31,6 +32,7 @@ Item {
 
     property string label: ""
     property string hint: ""
+    property string tooltip: ""
     property bool value: false
     property bool isNarrow: false
     property real rowHeight: Theme.rowH
@@ -42,20 +44,63 @@ Item {
     property real fontScale: isNarrow ? Theme.twoColFontScale : 1.0
     property real labelWidth: toggleRow.width * labelRatio
     height: rowHeight
+    z: (typeof helpMa !== "undefined" && helpMa.containsMouse) ? 100 : 1
 
-    // 左：label（+ 可选 hint）。
+    // 左：label（+ 可选 hint + 可选问号帮助图标）。
     Column {
+        id: labelCol
         width: toggleRow.labelWidth
         anchors.left: toggleRow.left
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.toggleTextGap
-        Text {
-            text: toggleRow.label
-            color: toggleRow.enabled ? Theme.fg : Theme.muted
-            font.pixelSize: Theme.fontBody * toggleRow.fontScale
-            wrapMode: Text.WordWrap
+
+        Row {
+            id: labelRow
+            spacing: 6 * Theme.scaleFactor
             width: parent.width
+
+            Text {
+                id: labelText
+                text: toggleRow.label
+                color: toggleRow.enabled ? Theme.fg : Theme.muted
+                font.pixelSize: Theme.fontBody * toggleRow.fontScale
+                wrapMode: Text.WordWrap
+                width: toggleRow.tooltip.length > 0
+                       ? Math.min(implicitWidth, parent.width - 24 * Theme.scaleFactor)
+                       : parent.width
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Rectangle {
+                id: helpIcon
+                visible: toggleRow.tooltip.length > 0
+                width: 16 * Theme.scaleFactor
+                height: 16 * Theme.scaleFactor
+                radius: 8 * Theme.scaleFactor
+                anchors.verticalCenter: parent.verticalCenter
+                color: helpMa.containsMouse
+                       ? (Theme.dark ? "#505050" : "#d0d4da")
+                       : (Theme.dark ? "#3a3a3a" : "#e5e7eb")
+                border.width: Theme.borderW
+                border.color: helpMa.containsMouse ? Theme.accent : Theme.borderClr
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "?"
+                    font.pixelSize: 11 * Theme.scaleFactor
+                    font.bold: true
+                    color: helpMa.containsMouse ? Theme.fg : Theme.muted
+                }
+
+                MouseArea {
+                    id: helpMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                }
+            }
         }
+
         Text {
             text: toggleRow.hint
             color: Theme.muted
@@ -63,6 +108,52 @@ Item {
             wrapMode: Text.WordWrap
             width: parent.width
             visible: toggleRow.hint.length > 0
+        }
+    }
+
+    // 隐藏用于测量单行宽度的文本项
+    Text {
+        id: dummyTipText
+        visible: false
+        text: toggleRow.tooltip
+        font.pixelSize: 12 * Theme.scaleFactor
+    }
+
+    // 悬停提示框
+    Rectangle {
+        id: tipBubble
+        visible: toggleRow.tooltip.length > 0 && helpMa.containsMouse
+        z: 1000
+        width: Math.min(320 * Theme.scaleFactor, Math.max(120 * Theme.scaleFactor, dummyTipText.implicitWidth + 20 * Theme.scaleFactor))
+        height: tipTextItem.implicitHeight + 14 * Theme.scaleFactor
+        radius: 6 * Theme.scaleFactor
+        color: Theme.dark ? "#1f1f1f" : "#2d3748"
+        border.width: Theme.borderW
+        border.color: Theme.dark ? "#444444" : "#4a5568"
+
+        x: {
+            if (!visible || !helpIcon.visible) return 0;
+            var pos = helpIcon.mapToItem(toggleRow, 0, 0);
+            var idealX = pos.x + helpIcon.width / 2 - width / 2;
+            return Math.max(0, Math.min(idealX, toggleRow.width - width));
+        }
+        y: {
+            if (!visible || !helpIcon.visible) return 0;
+            var pos = helpIcon.mapToItem(toggleRow, 0, 0);
+            var topY = pos.y - height - 6 * Theme.scaleFactor;
+            return (topY < 0) ? (pos.y + helpIcon.height + 6 * Theme.scaleFactor) : topY;
+        }
+
+        Text {
+            id: tipTextItem
+            x: 8 * Theme.scaleFactor
+            y: 7 * Theme.scaleFactor
+            width: parent.width - 16 * Theme.scaleFactor
+            text: toggleRow.tooltip
+            font.pixelSize: 12 * Theme.scaleFactor
+            color: "#ffffff"
+            wrapMode: Text.WordWrap
+            lineHeight: 1.2
         }
     }
 

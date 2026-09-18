@@ -114,7 +114,6 @@ DialogShell {
 
     content: Column {
         width: parent ? parent.width : 0
-        clip: true
         spacing: 12 * Theme.scaleFactor
 
         Text {
@@ -132,6 +131,7 @@ DialogShell {
             delegate: Toggle {
                 width: parent.width
                 label: modelData.label
+                tooltip: modelData.tooltip !== undefined ? modelData.tooltip : ""
                 value: root.values[modelData.key] === "true"
                 onToggled: function (on) {
                     root.onToggleChanged(modelData.key, on)

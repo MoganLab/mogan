@@ -3141,3 +3141,7 @@
 ("Failed to check for updates." "检查更新失败。")
 ("Automatic updates are disabled." "自动更新已禁用。")
 ("Timed out waiting for the update task" "等待更新超时")
+("Expand beamer slides" "展开幻灯片中的可折叠对象")
+("When enabled, foldable objects in slides (such as questions and answers) will be expanded into multiple pages in the exported PDF."
+  "开启后，幻灯片中的可折叠对象（如问题与答案）在导出为 PDF 时将展开为多页。"
+) ;
