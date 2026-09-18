@@ -337,6 +337,8 @@
 ) ;tm-define
 
 (tm-define (preview-buffer)
+  (:synopsis "For slides, only the current page is previewed. For regular documents, preview after exporting the whole document to PDF."
+  ) ;:synopsis
   (let ((export-kind (string-append (if (supports-native-pdf?) "pdf" "ps") "_export")))
     (save-buffer-save (current-buffer) (list) export-kind)
   ) ;let

@@ -643,14 +643,14 @@
   "Make @:menu-wide-item menu item."
 
   (define (create-text-widget text shortcut style)
-    (let* ((txt (if (or (not shortcut) (== shortcut ""))
-                  text
-                  (if (string? text) (string-append text " (" shortcut ")") text)
+    (let* ((ftxt (menu-translate text))
+           (txt (if (or (not shortcut) (== shortcut ""))
+                  ftxt
+                  (if (string? ftxt) (string-append ftxt " (" shortcut ")") ftxt)
                 ) ;if
            ) ;txt
-           (ftxt (menu-translate txt))
           ) ;
-      (widget-text ftxt style (color "black") #t)
+      (widget-text txt style (color "black") #t)
     ) ;let*
   ) ;define
 

@@ -38,6 +38,8 @@
 
 (tm-define (menu-entry-test-ballooned) (:balloon menu-entry-test-hint) (noop))
 
+(tm-define (menu-entry-test-synopsis) (:synopsis "synopsis hint") (noop))
+
 (define (test-plain-entry)
   (check (menu-entry-attributes "Open" '(menu-entry-test-plain) 0 #f #f #f)
     =>
@@ -92,6 +94,10 @@
     =>
     '(0 "" "Opt" "" "hint text")
   ) ;check
+  (check (menu-entry-attributes "Opt" '(menu-entry-test-synopsis) 0 #f #f #f)
+    =>
+    '(0 "" "Opt" "" "synopsis hint")
+  ) ;check
   ;; bal? 为真（标签自带显式 balloon）时跳过气球帮助搜索
   (check (menu-entry-attributes "Opt" '(menu-entry-test-ballooned) 0 #f #f #t)
     =>
@@ -99,11 +105,40 @@
   ) ;check
 ) ;define
 
+(define (test-preview-tooltip-translation)
+  (let ((old-lang (get-output-language)))
+    (set-output-language "chinese")
+    (check (cork->utf8 (translate "For slides, only the current page is previewed. For regular documents, preview after exporting the whole document to PDF."
+                       ) ;translate
+           ) ;cork->utf8
+      =>
+      "对于幻灯片，只预览当前页。对于普通文档，全文导出PDF之后预览"
+    ) ;check
+    (set-output-language old-lang)
+  ) ;let
+) ;define
+
 (define (test-make-menu-items-smoke)
   ;; 组合路径冒烟：真实条目经 make-menu-items 产出 widget 列表
   (check
     (pair?
       (make-menu-items (list "Open" (lambda () (noop))) 0 #f)
+    ) ;pair?
+    =>
+    #t
+  ) ;check
+  ;; 带显式 balloon 标签的菜单条目冒烟
+  (check
+    (pair?
+      (make-menu-items (list (list 'balloon
+                               "Preview"
+                               "For slides, only the current page is previewed. For regular documents, preview after exporting the whole document to PDF."
+                             ) ;list
+                         (lambda () (noop))
+                       ) ;list
+        0
+        #f
+      ) ;make-menu-items
     ) ;pair?
     =>
     #t
@@ -116,6 +151,7 @@
   (test-inapplicable-greys)
   (test-interactive-adds-dots)
   (test-balloon-help)
+  (test-preview-tooltip-translation)
   (test-make-menu-items-smoke)
   (check-report)
 ) ;tm-define
