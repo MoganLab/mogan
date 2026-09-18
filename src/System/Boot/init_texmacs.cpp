@@ -823,10 +823,18 @@ TeXmacs_main (int argc, char** argv) {
                           scm_quote (as_string (out)) * "))";
           }
           else {
-            // Default conversion method for other formats
+            // Default conversion: load the input buffer, then export
             my_init_cmds= my_init_cmds * " " * "(load-buffer " *
-                          scm_quote (as_string (in)) * " :strict) " *
-                          "(export-buffer " * scm_quote (as_string (out)) * ")";
+                          scm_quote (as_string (in)) * " :strict) ";
+            if (out_suffix == "pdf") {
+              // pdf export additionally expands screens into slides
+              my_init_cmds= my_init_cmds * "(export-buffer-to-pdf " *
+                            scm_quote (as_string (out)) * ")";
+            }
+            else {
+              my_init_cmds= my_init_cmds * "(export-buffer " *
+                            scm_quote (as_string (out)) * ")";
+            }
           }
           // -c 默认隐含 -q：转换完成后自动退出
           my_init_cmds= my_init_cmds * " (quit-TeXmacs)";

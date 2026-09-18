@@ -16,6 +16,7 @@
   (:use (utils library tree)
     (utils library cursor)
     (dynamic dynamic-drd)
+    (dynamic scripts-edit)
     (generic generic-edit)
     (generic document-edit)
     (text text-edit)

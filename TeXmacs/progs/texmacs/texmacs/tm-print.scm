@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs texmacs tm-print)
-  (:use (texmacs texmacs tm-files) (utils library cursor))
+  (:use (texmacs texmacs tm-files) (utils library cursor) (dynamic fold-edit))
 ) ;texmacs-module
 
 (import (only (liii uuid) uuid4))
@@ -84,14 +84,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (user-confirm-open-pdf fname)
-  (user-simple-confirm "Open PDF?"
-    #t
-    (lambda (open?) (when open? (preview-file fname)))
-  ) ;user-simple-confirm
+  (when (not (headless?))
+    (user-simple-confirm "Open PDF?"
+      #t
+      (lambda (open?) (when open? (preview-file fname)))
+    ) ;user-simple-confirm
+  ) ;when
 ) ;define
 
-(tm-define (wrapped-print-to-file fname)
-  (system-wait "Exporting, " (translate "please wait"))
+(tm-define (export-buffer-to-pdf fname)
   (let* ((cur (current-buffer))
          (buf (buffer-new))
          (tmp-url (url-append (url-head cur) (string-append (uuid4) "." (url-suffix cur)))
@@ -112,80 +113,43 @@
     (print-to-file fname)
     (switch-to-buffer cur)
     (buffer-close tmp-url)
-    (let ((export-kind (string-append (url-suffix fname) "_export")))
-      (save-buffer-save cur (list) export-kind)
-    ) ;let
   ) ;let*
+) ;tm-define
+
+(tm-define (wrapped-print-to-file fname)
+  (system-wait "Exporting, " (translate "please wait"))
+  (export-buffer-to-pdf fname)
+  (save-buffer-save (current-buffer)
+    (list)
+    (string-append (url-suffix fname) "_export")
+  ) ;save-buffer-save
   (system-wait "" "")
   (user-confirm-open-pdf fname)
 ) ;tm-define
+
+(define (wrapped-print-to-pdf-embeded fname kind)
+  (system-wait "Exporting, " (translate "please wait"))
+  (export-buffer-to-pdf fname)
+  (unless (attach-doc-to-exported-pdf fname)
+    (notify-now (string-append "Fail to attach " kind " to pdf"))
+  ) ;unless
+  (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
+  (system-wait "" "")
+  (user-confirm-open-pdf fname)
+) ;define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tm fname)
   (unless (string=? (url-suffix fname) "pdf")
     (texmacs-error "Wrapped-print-to-pdf-embeded-with-tm" "fname is not a pdf")
   ) ;unless
-  (system-wait "Exporting, " (translate "please wait"))
-  (let* ((cur (current-buffer))
-         (buf (buffer-new))
-         (tmp-url (url-append (url-head cur) (string-append (uuid4) "." (url-suffix cur)))
-         ) ;tmp-url
-        ) ;
-    (buffer-copy cur buf)
-    (buffer-rename buf tmp-url)
-    (when (screens-buffer?)
-      (buffer-set-master tmp-url cur)
-      (switch-to-buffer tmp-url)
-      (set-drd cur)
-      (dynamic-make-slides)
-    ) ;when
-    (switch-to-buffer tmp-url)
-    (when (has-style-package? "dark")
-      (remove-style-package "dark")
-    ) ;when
-    (print-to-file fname)
-    (unless (attach-doc-to-exported-pdf fname)
-      (notify-now "Fail to attach tm to pdf")
-    ) ;unless
-    (switch-to-buffer cur)
-    (buffer-close tmp-url)
-    (save-buffer-save cur (list) "tm_pdf_export")
-  ) ;let*
-  (system-wait "" "")
-  (user-confirm-open-pdf fname)
+  (wrapped-print-to-pdf-embeded fname "tm")
 ) ;tm-define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tmu fname)
   (unless (string=? (url-suffix fname) "pdf")
     (texmacs-error "Wrapped-print-to-pdf-embeded-with-tmu" "fname is not a pdf")
   ) ;unless
-  (system-wait "Exporting, " (translate "please wait"))
-  (let* ((cur (current-buffer))
-         (buf (buffer-new))
-         (tmp-url (url-append (url-head cur) (string-append (uuid4) "." (url-suffix cur)))
-         ) ;tmp-url
-        ) ;
-    (buffer-copy cur buf)
-    (buffer-rename buf tmp-url)
-    (when (screens-buffer?)
-      (buffer-set-master tmp-url cur)
-      (switch-to-buffer tmp-url)
-      (set-drd cur)
-      (dynamic-make-slides)
-    ) ;when
-    (switch-to-buffer tmp-url)
-    (when (has-style-package? "dark")
-      (remove-style-package "dark")
-    ) ;when
-    (print-to-file fname)
-    (unless (attach-doc-to-exported-pdf fname)
-      (notify-now "Fail to attach tmu to pdf")
-    ) ;unless
-    (switch-to-buffer cur)
-    (buffer-close tmp-url)
-    (save-buffer-save cur (list) "tmu_pdf_export")
-  ) ;let*
-  (system-wait "" "")
-  (user-confirm-open-pdf fname)
+  (wrapped-print-to-pdf-embeded fname "tmu")
 ) ;tm-define
 
 (define (propose-export-pdf-name embedded? master)
