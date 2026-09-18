@@ -182,11 +182,11 @@ public:
    *
    * 选区整体包成「引用」外观块（插入 → 外观块 → 引用，quote-env）；
    * translate 动作在其后追加固定提示词（cork 编码）；chat 追加空段，
-   * 使光标落在引用块的下一行；gloss 出两个引用块（上下文 + 选区），
+   * 使光标落在引用块的下一行；explain 出两个引用块（上下文 + 选区），
    * 编号标签与说明句作为提示词夹在块间。
    * @param sel     文档选区树
-   * @param action  AI 动作：translate / chat / gloss
-   * @param context 选区上下文（gloss 的引文1，document 树，公式保留为
+   * @param action  AI 动作：translate / chat / explain
+   * @param context 选区上下文（explain 的引文1，document 树，公式保留为
    *                子树），其余动作传空 document
    * @return document 形态的输入体
    */
@@ -362,6 +362,13 @@ void qt_chat_tab_restore_session (string sessionId, string title, string model,
  * glue 单函数参数上限为 10，恢复会话时 sourceDocId 经此函数单独设置。
  */
 void qt_chat_tab_set_source_doc_id (string sessionId, string docId);
+
+/**
+ * @brief Scheme→C++ 回调：设置会话类型（translate/explain）。
+ *
+ * 与 sourceDocId 同理，恢复会话时 type 经此函数单独设置。
+ */
+void qt_chat_tab_set_session_type (string sessionId, string type);
 
 string qt_chat_tab_active_message_buffer_url ();
 

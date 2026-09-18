@@ -217,7 +217,7 @@ private slots:
     QVERIFY (body[1] == tree (""));
   }
 
-  void test_compose_gloss_prompt_language () {
+  void test_compose_explain_prompt_language () {
     // 释义：引用1 = 上下文（document 树，公式保留为子树），引用2 = 选区，
     // 编号标签与说明句都在提示词内。
     // 提示词语言 english（from==to，translate 剥掉 :: 后缀返回英文键）与
@@ -225,7 +225,7 @@ private slots:
     tree ctx= tree (DOCUMENT, tree ("hello world"));
     set_ai_lang ("english", "english");
     tree body=
-        ChatController::composeAiInputBody (tree ("world"), "gloss", ctx);
+        ChatController::composeAiInputBody (tree ("world"), "explain", ctx);
     QVERIFY (is_func (body, DOCUMENT));
     QCOMPARE (int (N (body)), 5);
     QVERIFY (body[0] == tree ("reference 1"));
@@ -238,7 +238,7 @@ private slots:
                    "reference 2 (including dictionary and technical terms)"));
 
     set_ai_lang ("chinese", "chinese");
-    body= ChatController::composeAiInputBody (tree ("world"), "gloss", ctx);
+    body= ChatController::composeAiInputBody (tree ("world"), "explain", ctx);
     QCOMPARE (int (N (body)), 5);
     QVERIFY (body[0] == utf8_to_cork ("引用1"));
     QVERIFY (body[2] == utf8_to_cork ("引用2"));
@@ -249,16 +249,17 @@ private slots:
     reset_ai_lang ();
   }
 
-  void test_compose_gloss_context_preserves_formula () {
+  void test_compose_explain_context_preserves_formula () {
     // 引文1 的上下文以 document 树传入（Scheme 侧 ai-selection-context 已把
     // 公式哨兵换回子树）：引用块直接包装该树，公式子树原样保留。
     // 公式节点用枚举标签构造：compound("with",...) 在未初始化标准标签表的
     // 单测环境会 intern 出扩展标签，与 WITH 枚举不等
-    tree ctx = tree (DOCUMENT,
-                     tree (CONCAT, tree ("see "),
-                           tree (WITH, tree ("mode"), tree ("math"), tree ("x")),
-                           tree (" here")));
-    tree body= ChatController::composeAiInputBody (tree ("sel"), "gloss", ctx);
+    tree ctx= tree (DOCUMENT,
+                    tree (CONCAT, tree ("see "),
+                          tree (WITH, tree ("mode"), tree ("math"), tree ("x")),
+                          tree (" here")));
+    tree body=
+        ChatController::composeAiInputBody (tree ("sel"), "explain", ctx);
     QVERIFY (body[1] == compound ("quote-env", ctx));
   }
 };

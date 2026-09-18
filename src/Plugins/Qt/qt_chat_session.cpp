@@ -99,6 +99,12 @@ ChatSessionManager::setSourceDocId (const string& sessionId,
   if (s) s->sourceDocId= docId;
 }
 
+void
+ChatSessionManager::setType (const string& sessionId, const string& type) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->type= type;
+}
+
 string
 ChatSessionManager::getModel (const string& sessionId) const {
   auto it= sessions_.find (sessionId);
@@ -200,12 +206,14 @@ ChatSessionManager::firstTitledSessionId () const {
 }
 
 string
-ChatSessionManager::findSessionBySourceDoc (const string& docId) const {
+ChatSessionManager::findSessionBySourceDoc (const string& docId,
+                                            const string& type) const {
   if (is_empty (docId)) return "";
   for (const auto& ti : timeIndex_) {
     auto it= sessions_.find (ti.sessionId);
     if (it == sessions_.end () || it->second.archived) continue;
-    if (it->second.sourceDocId == docId) return ti.sessionId;
+    if (it->second.sourceDocId == docId && it->second.type == type)
+      return ti.sessionId;
   }
   return "";
 }

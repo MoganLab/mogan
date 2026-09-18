@@ -1038,7 +1038,7 @@ make_ai_actions_bar (QWidget* host) {
                                           QString ("Translate"));
   qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
   qw->rootContext ()->setContextProperty ("labelChat", QString ("Chat"));
-  qw->rootContext ()->setContextProperty ("labelGloss", QString ("Gloss"));
+  qw->rootContext ()->setContextProperty ("labelExplain", QString ("Explain"));
   qw->setSource (QUrl ("qrc:/qml/AiActionsBar.qml"));
   return qw;
 }
@@ -1341,7 +1341,7 @@ TestQmlLoad::test_ai_actions_bar_click_actions () {
   expected << "translate"
            << "polish"
            << "chat"
-           << "gloss";
+           << "explain";
 
   for (int i= 0; i < capsules.size (); i++) {
     QQuickItem* cap= capsules[i];

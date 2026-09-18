@@ -65,6 +65,11 @@
          (stem-doc-id
            (if (and (pair? opts3) (pair? (cdr opts3)) (cadr opts3)) (cadr opts3) "")
          ) ;stem-doc-id
+         ;; opts4 = (type ...)，同上级守卫
+         (opts4
+           (if (and (pair? opts3) (pair? (cddr opts3))) (cddr opts3) '())
+         ) ;opts4
+         (session-type (if (and (pair? opts4) (car opts4)) (car opts4) ""))
          (archived-str (if (or (not archived) (== archived "false")) "false" "true"))
          (actual-created-at (or created-at ""))
          (actual-updated-at (or updated-at created-at ""))
@@ -79,7 +84,8 @@
       (,"search" . ,search)
       (,"thinkingEffort" . ,thinking-effort)
       (,"updateAt" . ,actual-updated-at)
-      (,"stemDocId" . ,stem-doc-id))
+      (,"stemDocId" . ,stem-doc-id)
+      (,"type" . ,session-type))
   ) ;let*
 ) ;tm-define
 
@@ -113,15 +119,20 @@
                    (thinking-effort (json-ref-string entry "thinkingEffort" "medium"))
                    ;; stemDocId 缺失时回退空串（兼容旧 manifest，不参与文档映射）
                    (stem-doc-id (json-ref-string entry "stemDocId" ""))
+                   ;; type 缺失时回退空串（兼容旧 manifest，视为普通对话）
+                   (session-type (json-ref-string entry "type" ""))
                   ) ;
               ;; 只传元数据给 C++，不加载 buffer 内容
               (qt-chat-tab-restore-session sid title model archived-str
                 created-at updated-at expand-count thinking search
                 thinking-effort
               ) ;qt-chat-tab-restore-session
-              ;; glue 单函数参数上限为 10，stemDocId 单独设置
+              ;; glue 单函数参数上限为 10，stemDocId / type 单独设置
               (when (!= stem-doc-id "")
                 (qt-chat-tab-set-source-doc-id sid stem-doc-id)
+              ) ;when
+              (when (!= session-type "")
+                (qt-chat-tab-set-session-type sid session-type)
               ) ;when
             ) ;let*
           ) ;lambda
@@ -136,7 +147,7 @@
 
 (tm-define (chat-persist-update-manifest session-id title model archived . rest)
   ;; rest 原样透传给 make-entry（created-at thinking search updated-at
-  ;; thinking-effort stem-doc-id），缺省规则只在 make-entry 一处维护
+  ;; thinking-effort stem-doc-id type），缺省规则只在 make-entry 一处维护
   (let* ((manifest-path (chat-persist-manifest-path))
          (entry (apply chat-persist-make-entry session-id title model archived rest))
         ) ;
