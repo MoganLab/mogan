@@ -1,9 +1,8 @@
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : prog-mode.scm
-;; DESCRIPTION : Various prog modes
-;; COPYRIGHT   : (C) 2024  Darcy Shen
+;; MODULE      : javascript-edit.scm
+;; DESCRIPTION : Editing JavaScript programs
+;; COPYRIGHT   : (C) 2025  Darcy Shen
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -11,8 +10,6 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code prog-mode) (:use (kernel texmacs tm-modes)))
-
-(texmacs-modes (in-scheme% (== (get-env "prog-language") "scheme"))
-  (in-prog-scheme% #t in-prog% in-scheme%)
-) ;texmacs-modes
+(texmacs-module (javascript javascript-edit)
+  (:use (prog prog-edit) (javascript javascript-mode))
+) ;texmacs-module

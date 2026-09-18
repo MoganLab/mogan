@@ -15,7 +15,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (cpp cpp-edit) (:use (prog prog-edit)))
+(texmacs-module (cpp cpp-edit) (:use (prog prog-edit) (cpp cpp-mode)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Automatic insertion, highlighting and selection of brackets and quotes

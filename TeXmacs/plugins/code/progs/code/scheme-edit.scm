@@ -13,6 +13,7 @@
 
 (texmacs-module (code scheme-edit)
   (:use (prog prog-edit)
+    (code prog-mode)
     (prog scheme-tools)
     (prog scheme-autocomplete)
     (utils misc tm-keywords)

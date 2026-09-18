@@ -1,9 +1,8 @@
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : prog-mode.scm
-;; DESCRIPTION : Various prog modes
-;; COPYRIGHT   : (C) 2024  Darcy Shen
+;; MODULE      : r7rs-mode.scm
+;; DESCRIPTION : R7RS Language mode
+;; COPYRIGHT   : (C) 2024-2025  Darcy Shen
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -11,8 +10,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code prog-mode) (:use (kernel texmacs tm-modes)))
+(texmacs-module (r7rs r7rs-mode) (:use (kernel texmacs tm-modes)))
 
-(texmacs-modes (in-scheme% (== (get-env "prog-language") "scheme"))
-  (in-prog-scheme% #t in-prog% in-scheme%)
+(texmacs-modes (in-r7rs% (== (get-env "prog-language") "r7rs"))
+  (in-prog-r7rs% #t in-prog% in-r7rs%)
 ) ;texmacs-modes

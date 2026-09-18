@@ -11,11 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (r7rs r7rs-edit) (:use (prog prog-edit)))
-
-(texmacs-modes (in-r7rs% (== (get-env "prog-language") "r7rs"))
-  (in-prog-r7rs% #t in-prog% in-r7rs%)
-) ;texmacs-modes
+(texmacs-module (r7rs r7rs-edit) (:use (prog prog-edit) (r7rs r7rs-mode)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Automatic insertion, highlighting and selection of brackets and quotes
