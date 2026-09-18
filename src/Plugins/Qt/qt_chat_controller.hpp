@@ -186,11 +186,12 @@ public:
    * 编号标签与说明句作为提示词夹在块间。
    * @param sel     文档选区树
    * @param action  AI 动作：translate / chat / gloss
-   * @param context 选区所在段落纯文本（gloss 的引文1，tm 内部编码），
-   *                其余动作传空串
+   * @param context 选区上下文（gloss 的引文1，document 树，公式保留为
+   *                子树），其余动作传空 document
    * @return document 形态的输入体
    */
-  static tree composeAiInputBody (tree sel, string action, string context= "");
+  static tree composeAiInputBody (tree sel, string action,
+                                  tree context= tree (moebius::DOCUMENT));
 
 private:
   QTChatTabWidget*   view_= nullptr;  ///< View 指针，由 createView 创建

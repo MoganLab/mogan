@@ -14,9 +14,10 @@
 ;; 用户停输入 500ms → 收集上下文 → ghost-cloud-predict 经常驻 goldfish 子进程
 ;; 异步请求 DeepSeek → 回调做 serial + 光标 + pre-editing 校验后插入 ghost。
 ;; 文本模式过滤表格/图片/公式为 [TABLE][IMAGE][FORMULA]；数学模式取当前公式转 LaTeX。
-;; 注：该展平约定的仓库内实现在 (generic ai-actions-bar) 的 ai-flatten-text
-;; （0996 释义上下文复用同一约定）；liii ghost 插件落地时应改为转调它，
-;; 避免两份标记表各自漂移。
+;; 注：表格/图片标记约定的仓库内实现在 (generic ai-actions-bar) 的 ai-flatten-text
+;; （0996 释义上下文复用同一约定，但公式那边登记子树、留 <#F<k>G> 哨兵以便换回
+;; 真实公式，纯文本消费方如需公式标记应自行映射回 [FORMULA]）；liii ghost 插件
+;; 落地时应改为转调它，避免两份标记表各自漂移。
 
 (texmacs-module (generic ghost-text)
   (:use (kernel texmacs tm-define)
