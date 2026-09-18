@@ -236,6 +236,8 @@ public:
 
   /// PDF 标签页关闭时的清理回调（清理路径记忆和阅读器缓存）。
   void notify_pdf_tab_closed (const QString& closedPath);
+  /// 重置侧边栏状态为关闭并清空状态记忆（在文件/标签页关闭时调用）。
+  void reset_chat_sidebar ();
 
   /**
    * @brief 判断新建标签页前是否需要把 current view 切回主窗口默认 view。

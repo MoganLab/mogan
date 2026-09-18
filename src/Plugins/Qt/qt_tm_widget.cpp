@@ -2190,6 +2190,13 @@ qt_tm_widget_rep::notify_pdf_tab_closed (const QString& closedPath) {
 }
 
 void
+qt_tm_widget_rep::reset_chat_sidebar () {
+  chatSidebarMode       = false;
+  chatSidebarModeMemory_= false;
+  sync_chat_sidebar_mode ();
+}
+
+void
 qt_tm_widget_rep::apply_notification_bar_content () {
   if (is_nil (notification_bar_widget)) return;
   QList<QAction*>* action_list= notification_bar_widget->get_qactionlist ();

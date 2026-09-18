@@ -114,6 +114,22 @@ url                  g_mostRecentlyDraggedTab= url_none ();
 QTMTabPageContainer* g_mostRecentlyDraggedBar= nullptr;
 QTMTabPageContainer* g_mostRecentlyEnteredBar= nullptr;
 
+static bool
+has_any_document_tab (tm_window win_tabpage) {
+  if (win_tabpage == NULL) return false;
+  array<url> vws= get_all_views ();
+  for (int i= 0; i < N (vws); i++) {
+    tm_view v= concrete_view (vws[i]);
+    if (v && v->win_tabpage == win_tabpage && v->buf) {
+      url name= v->buf->buf->name;
+      if (name != url ("tmfs://startup-tab") && !is_chat_tab_buffer (name)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /**
  * @brief 真正关闭标签页前标记 g_mostRecentlyClosedTab。
  *
@@ -123,7 +139,8 @@ QTMTabPageContainer* g_mostRecentlyEnteredBar= nullptr;
 void
 cpp_kill_tabpage (url p_win, url p_view) {
   g_mostRecentlyClosedTab= p_view;
-  tm_view vw             = concrete_view (p_view);
+  tm_view   vw           = concrete_view (p_view);
+  tm_window win_tabpage  = nullptr;
   if (vw && vw->buf) {
     string fname= as_string (vw->buf->buf->name);
     if (is_pdf_tab_file (fname)) {
@@ -134,8 +151,25 @@ cpp_kill_tabpage (url p_win, url p_view) {
         if (tmw) tmw->notify_pdf_tab_closed (utf8_to_qstring (fname));
       }
     }
+    bool is_doc= vw->buf->buf->name != url ("tmfs://startup-tab") &&
+                 !is_chat_tab_buffer (vw->buf->buf->name);
+    bool is_current= (vw->win != NULL);
+    win_tabpage    = vw->win ? vw->win : vw->win_tabpage;
+    if (is_doc && is_current && win_tabpage && win_tabpage->wid.rep) {
+      qt_tm_widget_rep* tmw=
+          dynamic_cast<qt_tm_widget_rep*> (win_tabpage->wid.rep);
+      if (tmw) tmw->reset_chat_sidebar ();
+    }
   }
   kill_tabpage (p_win, p_view);
+
+  if (win_tabpage && win_tabpage->wid.rep) {
+    qt_tm_widget_rep* tmw=
+        dynamic_cast<qt_tm_widget_rep*> (win_tabpage->wid.rep);
+    if (tmw && !has_any_document_tab (win_tabpage)) {
+      tmw->reset_chat_sidebar ();
+    }
+  }
 }
 
 static url
