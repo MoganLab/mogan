@@ -1190,13 +1190,12 @@ TestQmlLoad::test_go_menu_hover () {
   QVERIFY (!bgs.isEmpty ());
   QQuickItem* bg= bgs.first ();
   QCOMPARE (bg->property ("color").value<QColor> (), QColor ("#e5e7eb"));
-  QTest::qWait (150);
-  QCOMPARE (bg->property ("opacity").toDouble (), 1.0);
+  // 悬浮高亮有 100ms 渐变动画，CI 高负载下帧推进可能滞后，轮询等待结束
+  QTRY_COMPARE (bg->property ("opacity").toDouble (), 1.0);
 
   sendMove (QPointF (1, 1));
   QVERIFY (!item->property ("isHovered").toBool ());
-  QTest::qWait (150);
-  QCOMPARE (bg->property ("opacity").toDouble (), 0.0);
+  QTRY_COMPARE (bg->property ("opacity").toDouble (), 0.0);
 }
 
 void
