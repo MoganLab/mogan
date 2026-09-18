@@ -639,13 +639,13 @@ TestQmlLoad::test_export_pdf_loads () {
   fields << f0;
   QVariantMap f1;
   f1["type"] = QString ("toggle");
-  f1["label"]= QString ("Expand beamer slides");
+  f1["label"]= QString ("Expand foldable environments in single slide");
   f1["key"]  = QString ("expand-slides");
   f1["value"]= QString ("true");
   f1["tooltip"]=
-      QString ("When enabled, foldable objects in slides (such as questions "
-               "and answers) "
-               "will be expanded into multiple pages in the exported PDF.");
+      QString ("When enabled, foldable environments are directly expanded on a "
+               "single slide. When disabled, foldable environments are "
+               "sequentially expanded across multiple slides.");
   fields << f1;
   QVariantMap f2;
   f2["type"] = QString ("path");
@@ -794,8 +794,9 @@ TestQmlLoad::test_export_pdf_path_utf8_roundtrip () {
   // 1313: 带 tooltip 的 toggle 在 cpp_export_pdf_dialog 中的解析与契约
   tree toggleForm (moebius::TUPLE);
   toggleForm << tree (moebius::make_tree_label ("toggle"),
-                      tree ("Expand beamer slides"), tree ("expand-slides"),
-                      tree ("true"), tree ("tooltip test"));
+                      tree ("Expand foldable environments in single slide"),
+                      tree ("expand-slides"), tree ("true"),
+                      tree ("tooltip test"));
   tree toggleRes= cpp_export_pdf_dialog (toggleForm);
   qunsetenv ("MOGAN_TEST_EXPORT_PDF");
 

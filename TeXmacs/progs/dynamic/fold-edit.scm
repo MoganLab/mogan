@@ -994,9 +994,7 @@
 ) ;define
 
 (tm-define (dynamic-make-slides . opts)
-  (let ((expand? (if (null? opts) (preference-on? "texmacs->pdf:expand slides") (car opts))
-        ) ;expand?
-       ) ;
+  (let ((expand? (if (null? opts) #t (car opts))))
     (init-default "page-medium"
       ;; "page-type" "page-width" "page-height"
       ;; "page-width-margin" "page-height-margin"

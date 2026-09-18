@@ -229,12 +229,12 @@
           `(export-pdf-form (toggle ,(translate "Embed source document")
                               ,"embed"
                               ,"false")
-             (toggle ,(translate "Expand beamer slides")
+             (toggle ,(translate "Expand foldable environments in single slide")
                ,"expand-slides"
                ,(if (preference-on? "texmacs->pdf:expand slides")
                   "true"
                   "false")
-               ,(translate "When enabled, foldable objects in slides (such as questions and answers) will be expanded into multiple pages in the exported PDF."))
+               ,(translate "When enabled, foldable environments are directly expanded on a single slide. When disabled, foldable environments are sequentially expanded across multiple slides."))
              (path ,(translate "Export to") ,"path" ,default-path))
         ) ;stree->tree
       ) ;cpp-export-pdf-dialog

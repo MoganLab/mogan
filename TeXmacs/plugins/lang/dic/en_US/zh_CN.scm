@@ -967,7 +967,7 @@
 ("exit right" "从右边跳出")
 ("exit tag on the left" "从左边跳出")
 ("exit tag on the right" "从右边跳出")
-("expand beamer slides" "展开幻灯片中的可折叠对象")
+("expand beamer slides" "在单页幻灯片中展开折叠环境")
 ("expand inclusions" "扩展包含文件")
 ("expand unrecognized macros" "展开无法识别的宏命令")
 ("expand user-defined macros" "展开用户定义的宏命令")
@@ -3141,7 +3141,14 @@
 ("Failed to check for updates." "检查更新失败。")
 ("Automatic updates are disabled." "自动更新已禁用。")
 ("Timed out waiting for the update task" "等待更新超时")
-("Expand beamer slides" "展开幻灯片中的可折叠对象")
-("When enabled, foldable objects in slides (such as questions and answers) will be expanded into multiple pages in the exported PDF."
-  "开启后，幻灯片中的可折叠对象（如问题与答案）在导出为 PDF 时将展开为多页。"
+("Expand foldable environments in single slide"
+  "在单页幻灯片中展开折叠环境"
+) ;
+("expand foldable environments in single slide"
+  "在单页幻灯片中展开折叠环境"
+) ;
+("Expand beamer slides" "在单页幻灯片中展开折叠环境")
+("expand beamer slides" "在单页幻灯片中展开折叠环境")
+("When enabled, foldable environments are directly expanded on a single slide. When disabled, foldable environments are sequentially expanded across multiple slides."
+  "开启状态下，可折叠对象在单页幻灯片中直接展开。关闭状态下，可折叠对象在多页幻灯片中依次展开。"
 ) ;

@@ -295,7 +295,8 @@
           ("Png" "png")))
       (when (and (supports-native-pdf?) (supports-ghostscript?))
         (-> "TeXmacs -> Pdf/Postscript"
-          (toggle ("Expand beamer slides" "texmacs->pdf:expand slides"))
+          (toggle ("Expand foldable environments in single slide"
+                   "texmacs->pdf:expand slides"))
           (enum ("Pdf version" "texmacs->pdf:version")
             ("Default" "default")
             ("1.4" "1.4")
