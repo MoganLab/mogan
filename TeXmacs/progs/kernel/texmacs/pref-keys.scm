@@ -218,6 +218,8 @@
 (define-public (pref-ai-actions-bar) "ai:actions bar")
 (define-public (pref-ai-translate-target) "ai:translate target language")
 (define-public (pref-ai-prompt-language) "ai:prompt language")
+;; 幽灵文本补全开关（0998 挪入 AI 页；存储键 "ghost text" 不变）
+(define-public (pref-ai-ghost-text) "ghost text")
 
 ;; ---- Other / Misc tab ----
 (define-public (pref-autosave) "autosave")
@@ -239,7 +241,6 @@
 (define-public (pref-experimental-encryption) "experimental encryption")
 (define-public (pref-experimental-use-native-menubar) "use native menubar")
 (define-public (pref-experimental-use-unified-toolbar) "use unified toolbar")
-(define-public (pref-experimental-ghost-text) "ghost text")
 (define-public (pref-prog-highlight-brackets) "prog:highlight brackets")
 (define-public (pref-prog-automatic-brackets) "prog:automatic brackets")
 (define-public (pref-prog-select-brackets) "prog:select brackets")
