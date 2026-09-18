@@ -63,46 +63,34 @@
 
 (tm-define (test_1317)
   (let ((pdf-url (test-pdf-url)))
+    (define (check-pdf-unloaded)
+      (check-true (not (buffer-exists? pdf-url)))
+      (check (buffer->views pdf-url) => '())
+    ) ;define
+    (define (check-pdf-loaded)
+      (check-true (buffer-exists? pdf-url))
+      (check-true (nnull? (buffer->views pdf-url)))
+    ) ;define
     (run-chain
-      (list
-        (cons "1. baseline: pdf buffer does not exist initially"
-          (lambda ()
-            (check-true (not (buffer-exists? pdf-url)))
-            (check (buffer->views pdf-url) => '())
-          ) ;lambda
-        ) ;cons
+      (list (cons "1. baseline: pdf buffer does not exist initially"
+              (lambda () (check-pdf-unloaded))
+            ) ;cons
         (cons "2. load-pdf-buffer opens PDF tab and creates buffer"
           (lambda () (load-pdf-buffer pdf-url))
         ) ;cons
-        (cons "3. verify PDF buffer and view exist"
-          (lambda ()
-            (check-true (buffer-exists? pdf-url))
-            (check-true (nnull? (buffer->views pdf-url)))
-          ) ;lambda
-        ) ;cons
+        (cons "3. verify PDF buffer and view exist" (lambda () (check-pdf-loaded)))
         (cons "4. close PDF tab via close-pdf-tab" (lambda () (close-pdf-tab pdf-url)))
         (cons "5. verify PDF buffer and view are removed after tab close"
-          (lambda ()
-            (check-true (not (buffer-exists? pdf-url)))
-            (check (buffer->views pdf-url) => '())
-          ) ;lambda
+          (lambda () (check-pdf-unloaded))
         ) ;cons
         (cons "6. reopen the same PDF file via load-pdf-buffer"
           (lambda () (load-pdf-buffer pdf-url))
         ) ;cons
         (cons "7. verify PDF buffer and view are recreated again"
-          (lambda ()
-            (check-true (buffer-exists? pdf-url))
-            (check-true (nnull? (buffer->views pdf-url)))
-          ) ;lambda
+          (lambda () (check-pdf-loaded))
         ) ;cons
         (cons "8. cleanup: close PDF tab" (lambda () (close-pdf-tab pdf-url)))
-        (cons "9. report and quit"
-          (lambda ()
-            (check-report)
-            (quit-TeXmacs)
-          ) ;lambda
-        ) ;cons
+        (cons "9. report and quit" (lambda () (check-report) (quit-TeXmacs)))
       ) ;list
     ) ;run-chain
   ) ;let

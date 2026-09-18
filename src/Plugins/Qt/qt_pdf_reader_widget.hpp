@@ -8,6 +8,7 @@
 #ifndef QT_PDF_READER_WIDGET_HPP
 #define QT_PDF_READER_WIDGET_HPP
 
+#include <QDateTime>
 #include <QHash>
 #include <QLabel>
 #include <QRubberBand>
@@ -176,13 +177,16 @@ private:
 
   QByteArray pdfData_;
   QString    pdfFilePath_;
-  int        pageCount_;
-  bool       hasError_;
-  QString    errorString_;
-  int        targetDpi_;
-  double     zoomFactor_;
-  double     pageAspectRatio_;
-  double     pageBaseWidthPts_;
+  // 已加载文件的磁盘指纹，loadFromFile 据此跳过未变更的重复加载
+  QDateTime pdfFileModTime_;
+  qint64    pdfFileSize_;
+  int       pageCount_;
+  bool      hasError_;
+  QString   errorString_;
+  int       targetDpi_;
+  double    zoomFactor_;
+  double    pageAspectRatio_;
+  double    pageBaseWidthPts_;
 
   // 每页宽高比缓存（用于可见性裁剪和快速高度计算）
   QVector<double> pageAspectRatios_;

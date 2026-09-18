@@ -15,6 +15,7 @@
 #include <QDockWidget>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFrame>
 #include <QGestureEvent>
 #include <QKeyEvent>
@@ -71,14 +72,15 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageLayout_ (nullptr), mainLayout_ (nullptr), rubberBand_ (nullptr),
       rectSelectMode_ (false), rectSelectDragging_ (false),
       hintLabel_ (nullptr), hintToastActive_ (false), browseDragging_ (false),
-      browseDragActive_ (false), scroller_ (nullptr), pageCount_ (0),
-      hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
-      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0), overLink_ (false),
-      zoomDebounceTimer_ (nullptr), resizeDebounceTimer_ (nullptr),
-      gestureSafetyTimer_ (nullptr), inPinchGesture_ (false),
-      blockRender_ (false), autoFitApplied_ (false), pinchStartZoom_ (1.0),
-      zoomAnchorContentY_ (0.0), zoomAnchorViewportY_ (0.0),
-      zoomAnchorOldZoom_ (1.0), hasZoomAnchor_ (false), renderCallCount_ (0) {
+      browseDragActive_ (false), scroller_ (nullptr), pdfFileSize_ (0),
+      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
+      zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+      overLink_ (false), zoomDebounceTimer_ (nullptr),
+      resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
+      inPinchGesture_ (false), blockRender_ (false), autoFitApplied_ (false),
+      pinchStartZoom_ (1.0), zoomAnchorContentY_ (0.0),
+      zoomAnchorViewportY_ (0.0), zoomAnchorOldZoom_ (1.0),
+      hasZoomAnchor_ (false), renderCallCount_ (0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -911,6 +913,12 @@ PDFReaderWidget::rebuildPages () {
 
 bool
 PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
+  // 同一路径且磁盘文件未变更（修改时间与大小一致）时跳过重复加载
+  QFileInfo fi (filePath);
+  if (filePath == pdfFilePath_ && dpi == targetDpi_ && fi.exists () &&
+      fi.lastModified () == pdfFileModTime_ && fi.size () == pdfFileSize_) {
+    return true;
+  }
   clear ();
   autoFitApplied_= false;
   pdfFilePath_   = filePath;
@@ -930,6 +938,8 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
 
   pdfData_= file.readAll ();
   file.close ();
+  pdfFileModTime_= fi.lastModified ();
+  pdfFileSize_   = fi.size ();
 
   fz_context* ctx= mupdf_context ();
   if (!ctx) {
@@ -1041,8 +1051,10 @@ void
 PDFReaderWidget::clear () {
   pdfData_.clear ();
   pdfFilePath_.clear ();
-  pageCount_= 0;
-  hasError_ = false;
+  pdfFileModTime_= QDateTime ();
+  pdfFileSize_   = 0;
+  pageCount_     = 0;
+  hasError_      = false;
   errorString_.clear ();
   pageAspectRatio_ = 0.0;
   pageBaseWidthPts_= 0.0;

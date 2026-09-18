@@ -25,7 +25,6 @@
 #include "QTMWidget.hpp"
 #include "qt_chat_tab_widget.hpp"
 
-#include <QDateTime>
 #include <QLayout>
 #include <QMainWindow>
 #include <QPointer>
@@ -221,14 +220,11 @@ private:
        chatContentWidget; ///\< 聊天标签页模式下显示的控件（QTChatTabWidget）。
   bool startupTabMode;    ///\< 启动标签页视图是否激活。
   bool startupChromePending_; ///\< 启动页期间是否有被推迟的 chrome 待补装。
-  PDFReaderWidget* pdfViewerWidget;      ///\< PDF 标签页模式下的阅读器控件。
-  bool             pdfTabMode;           ///\< PDF 阅读器标签页是否激活。
-  QString          currentPdfPath;       ///\< 当前显示的 PDF 路径。
-  QString          lastLoadedPdfPath;    ///\< 上次加载的 PDF 路径。
-  QDateTime        lastLoadedPdfModTime; ///< 上次加载的 PDF 修改时间。
-  qint64           lastLoadedPdfSize;    ///< 上次加载的 PDF 文件大小。
-  bool             chatTabMode;          ///\< 聊天标签页视图是否激活。
-  bool             chatSidebarMode;      ///\< AI 聊天侧边栏模式是否激活。
+  PDFReaderWidget* pdfViewerWidget;   ///\< PDF 标签页模式下的阅读器控件。
+  bool             pdfTabMode;        ///\< PDF 阅读器标签页是否激活。
+  QString          currentPdfPath;    ///\< 当前显示的 PDF 路径。
+  bool             chatTabMode;       ///\< 聊天标签页视图是否激活。
+  bool             chatSidebarMode;   ///\< AI 聊天侧边栏模式是否激活。
   bool   chatSidebarModeMemory_;      ///\< 记忆用户主动设置的侧边栏模式状态。
   bool   centralWidgetUpdatesFrozen_; ///\< 标签切换期间冻结编辑区更新。
   int    centralUnfreezeGeneration_;  ///\< 延迟解冻的代际号，防止旧轮询误解冻。

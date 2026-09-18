@@ -81,6 +81,35 @@ def find_mogan_binary(repo_root):
     raise FileNotFoundError("Mogan binary not found. Please build stem first (xmake b stem).")
 
 
+def find_mogan_window_x11(d, root, target_pid=None):
+    """Recursively find the Mogan window in the X11 tree."""
+    net_pid = d.intern_atom("_NET_WM_PID")
+
+    def find(win):
+        try:
+            if target_pid is not None:
+                p = win.get_full_property(net_pid, 0)
+                if p and p.value[0] == target_pid:
+                    geom = win.get_geometry()
+                    if geom.width > 200:
+                        return win
+            cls = win.get_wm_class()
+            if cls and "mogan" in cls[0].lower():
+                return win
+            name = win.get_wm_name()
+            if name and ("Mogan" in name or "STEM" in name):
+                return win
+            for child in win.query_tree().children:
+                res = find(child)
+                if res:
+                    return res
+        except Exception:
+            pass
+        return None
+
+    return find(root)
+
+
 def get_mogan_window_rect(target_pid=None):
     """Returns (x, y, w, h) of Mogan window, or default full screen."""
     if not IS_DARWIN and not IS_WINDOWS:
@@ -88,31 +117,7 @@ def get_mogan_window_rect(target_pid=None):
             import Xlib.display
             d = Xlib.display.Display()
             root = d.screen().root
-            net_pid = d.intern_atom("_NET_WM_PID")
-
-            def find_win(win):
-                try:
-                    if target_pid is not None:
-                        p = win.get_full_property(net_pid, 0)
-                        if p and p.value[0] == target_pid:
-                            geom = win.get_geometry()
-                            if geom.width > 200:
-                                return win
-                    cls = win.get_wm_class()
-                    if cls and "mogan" in cls[0].lower():
-                        return win
-                    name = win.get_wm_name()
-                    if name and ("Mogan" in name or "STEM" in name):
-                        return win
-                    for child in win.query_tree().children:
-                        res = find_win(child)
-                        if res:
-                            return res
-                except Exception:
-                    pass
-                return None
-
-            w = find_win(root)
+            w = find_mogan_window_x11(d, root, target_pid)
             if w:
                 geom = w.get_geometry()
                 coords = w.translate_coords(root, 0, 0)
@@ -172,32 +177,9 @@ def focus_mogan_window(target_pid=None):
 
         d = Xlib.display.Display()
         root = d.screen().root
-        net_pid = d.intern_atom("_NET_WM_PID")
         net_active = d.intern_atom("_NET_ACTIVE_WINDOW")
 
-        def find_mogan(win):
-            try:
-                if target_pid is not None:
-                    p = win.get_full_property(net_pid, 0)
-                    if p and p.value[0] == target_pid:
-                        geom = win.get_geometry()
-                        if geom.width > 200:
-                            return win
-                cls = win.get_wm_class()
-                if cls and "mogan" in cls[0].lower():
-                    return win
-                name = win.get_wm_name()
-                if name and ("Mogan" in name or "STEM" in name):
-                    return win
-                for child in win.query_tree().children:
-                    res = find_mogan(child)
-                    if res:
-                        return res
-            except Exception:
-                pass
-            return None
-
-        w = find_mogan(root)
+        w = find_mogan_window_x11(d, root, target_pid)
         if w:
             cm = Xlib.protocol.event.ClientMessage(
                 window=w,
@@ -215,29 +197,6 @@ def focus_mogan_window(target_pid=None):
         pass
 
 
-def locate_export_button(img):
-    """Locates the black '导出' (Export) pill button in the export dialog."""
-    arr = np.array(img)
-    h, w, _ = arr.shape
-    # Button is dark (R,G,B < 40), near vertical center / lower half
-    center_y, center_x = h // 2, w // 2
-    roi_y1 = max(0, center_y - int(h * 0.15))
-    roi_y2 = min(h, center_y + int(h * 0.25))
-    roi_x1 = max(0, center_x - int(w * 0.25))
-    roi_x2 = min(w, center_x + int(w * 0.25))
-
-    roi = arr[roi_y1:roi_y2, roi_x1:roi_x2]
-    dark_mask = (roi[:, :, 0] < 40) & (roi[:, :, 1] < 40) & (roi[:, :, 2] < 40)
-    ys, xs = np.where(dark_mask)
-    if len(xs) > 100:
-        # The Export button is the leftmost dark pill button in DialogButtons
-        # Group xs to find the leftmost button
-        btn_center_x = roi_x1 + int(np.median(xs[xs < np.percentile(xs, 60)]))
-        btn_center_y = roi_y1 + int(np.median(ys))
-        return btn_center_x, btn_center_y
-    return None
-
-
 def extract_content_text_pixels(img, scale):
     """
     Extracts dark text pixel count in the page body area.
@@ -246,8 +205,7 @@ def extract_content_text_pixels(img, scale):
     """
     arr = np.array(img)
     h, w, _ = arr.shape
-    # Page text starts roughly at x in [1200*scale/2, 1500*scale/2], y in [350*scale/2, 500*scale/2]
-    # For scale=2.0 (4K), around x in [1200, 1500], y in [380, 460]
+    # Page text region: x in [1300*scale/2, 1450*scale/2], y in [380*scale/2, 460*scale/2]
     y1 = int(380 * (scale / 2.0))
     y2 = int(460 * (scale / 2.0))
     x1 = int(1300 * (scale / 2.0))
@@ -308,95 +266,69 @@ def run_test():
         kb.release('1')
         time.sleep(0.5)
 
-        # Step 4: Export as PDF
-        print("[1317] Step 4: Exporting PDF...")
-        file_menu_x = wx + int(25 * scale)
-        file_menu_y = wy + int(68 * scale)
-        mouse.position = (file_menu_x, file_menu_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(0.8)
+        file_menu_pos = (wx + int(25 * scale), wy + int(68 * scale))
+        export_pdf_pos = (wx + int(50 * scale), wy + int(322 * scale))
+        export_btn_pos = (wx + ww // 2 - int(53 * scale), wy + wh // 2 + int(34 * scale))
 
-        export_pdf_x = wx + int(50 * scale)
-        export_pdf_y = wy + int(322 * scale)
-        mouse.position = (export_pdf_x, export_pdf_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(1.5)
+        def export_pdf_and_open():
+            mouse.position = file_menu_pos
+            time.sleep(0.3)
+            mouse.click(Button.left)
+            time.sleep(0.8)
 
-        # Locate and click '导出' button
-        export_btn_x = wx + ww // 2 - int(53 * scale)
-        export_btn_y = wy + wh // 2 + int(34 * scale)
-        print(f"[1317] Clicking '导出' button at ({export_btn_x}, {export_btn_y})...")
-        mouse.position = (export_btn_x, export_btn_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(2.5)
+            mouse.position = export_pdf_pos
+            time.sleep(0.3)
+            mouse.click(Button.left)
+            time.sleep(1.5)
 
-        # Step 5: Confirm open PDF in Mogan
-        print("[1317] Step 5: Confirming 'Open PDF' (Enter)...")
-        kb.press(Key.enter)
-        kb.release(Key.enter)
-        time.sleep(3.0)
+            print(f"[1317] Clicking '导出' button at {export_btn_pos}...")
+            mouse.position = export_btn_pos
+            time.sleep(0.3)
+            mouse.click(Button.left)
+            time.sleep(2.5)
 
-        # Capture PDF 1
-        img_pdf1 = ImageGrab.grab()
-        dark1, crop1 = extract_content_text_pixels(img_pdf1, scale)
-        print(f"[1317] PDF 1 text dark pixel count: {dark1}")
-        screen1_path = os.path.join(tempfile.gettempdir(), "1317_pdf1.png")
-        img_pdf1.save(screen1_path)
-        print(f"[1317] Saved PDF 1 screenshot to {screen1_path}")
+            print("[1317] Confirming 'Open PDF' (Enter)...")
+            kb.press(Key.enter)
+            kb.release(Key.enter)
+            time.sleep(3.0)
 
-        # Step 6: Close PDF tab (Ctrl+W)
-        print("[1317] Step 6: Closing PDF tab (Ctrl+W) to return to draft...")
+        def capture_pdf(tag):
+            img = ImageGrab.grab()
+            dark, crop = extract_content_text_pixels(img, scale)
+            print(f"[1317] PDF {tag} text dark pixel count: {dark}")
+            path = os.path.join(tempfile.gettempdir(), f"1317_pdf{tag}.png")
+            img.save(path)
+            print(f"[1317] Saved PDF {tag} screenshot to {path}")
+            return crop
+
+        # Step 4: Export as PDF and open in Mogan
+        print("[1317] Step 4: Exporting PDF and opening in Mogan...")
+        export_pdf_and_open()
+        crop1 = capture_pdf(1)
+
+        # Step 5: Close PDF tab (Ctrl+W)
+        print("[1317] Step 5: Closing PDF tab (Ctrl+W) to return to draft...")
         with kb.pressed(mod_key):
             kb.press('w')
             kb.release('w')
         time.sleep(2.0)
 
-        # Step 7: Type '2' in draft document
-        print("[1317] Step 7: Typing '2' in draft document...")
+        # Step 6: Type '2' in draft document
+        print("[1317] Step 6: Typing '2' in draft document...")
         kb.press('2')
         kb.release('2')
         time.sleep(0.5)
 
-        # Step 8: Export PDF again
-        print("[1317] Step 8: Exporting PDF again...")
-        mouse.position = (file_menu_x, file_menu_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(0.8)
-
-        mouse.position = (export_pdf_x, export_pdf_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(1.5)
-
-        print(f"[1317] Clicking '导出' button at ({export_btn_x}, {export_btn_y})...")
-        mouse.position = (export_btn_x, export_btn_y)
-        time.sleep(0.3)
-        mouse.click(Button.left)
-        time.sleep(2.5)
-
-        # Confirm open PDF again
-        print("[1317] Confirming 'Open PDF' again (Enter)...")
-        kb.press(Key.enter)
-        kb.release(Key.enter)
-        time.sleep(3.0)
-
-        # Capture PDF 2
-        img_pdf2 = ImageGrab.grab()
-        dark2, crop2 = extract_content_text_pixels(img_pdf2, scale)
-        print(f"[1317] PDF 2 text dark pixel count: {dark2}")
-        screen2_path = os.path.join(tempfile.gettempdir(), "1317_pdf2.png")
-        img_pdf2.save(screen2_path)
-        print(f"[1317] Saved PDF 2 screenshot to {screen2_path}")
+        # Step 7: Export PDF again and open in Mogan
+        print("[1317] Step 7: Exporting PDF again and opening in Mogan...")
+        export_pdf_and_open()
+        crop2 = capture_pdf(2)
 
         crop_diff = np.sum(np.abs(crop1.astype(int) - crop2.astype(int)) > 20)
         print(f"[1317] Content difference between PDF 1 and PDF 2: {crop_diff} pixels")
 
-        # Step 10: Close PDF tab, close document tab, and close window
-        print("[1317] Step 10: Closing PDF tab, closing document, and closing window...")
+        # Step 8: Close PDF tab, close document tab, and close window
+        print("[1317] Step 8: Closing PDF tab, closing document, and closing window...")
         try:
             with kb.pressed(mod_key):
                 kb.press('w')

@@ -122,7 +122,7 @@ private slots:
     delete widget;
   }
 
-  void test_reloadOnContentChange () {
+  void test_reloadSamePath () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
     QVERIFY (is_regular (pdfUrl));
