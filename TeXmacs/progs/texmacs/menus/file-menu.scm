@@ -356,12 +356,20 @@
 ) ;menu-bind
 
 (menu-bind print-menu
- ("Preview" (preview-buffer))
+ ((balloon "Preview"
+    "For slides, only the current page is previewed. For regular documents, preview after exporting the whole document to PDF."
+  ) ;balloon
+  (preview-buffer)
+ ) ;
  ("Export as PDF..." (export-as-pdf))
 ) ;menu-bind
 
 (menu-bind print-menu-inline
- ("Preview" (preview-buffer))
+ ((balloon "Preview"
+    "For slides, only the current page is previewed. For regular documents, preview after exporting the whole document to PDF."
+  ) ;balloon
+  (preview-buffer)
+ ) ;
  (if (use-print-dialog?)
    (if (has-printing-cmd?) ("Print" (print-buffer)))
    ("Print to file" (choose-file print-to-file "Print all to file" "postscript"))

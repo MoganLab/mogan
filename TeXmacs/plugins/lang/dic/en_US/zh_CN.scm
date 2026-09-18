@@ -1072,6 +1072,9 @@
 ("footer" "页脚")
 ("footnote" "脚注")
 ("for" "")
+("For slides, only the current page is previewed. For regular documents, preview after exporting the whole document to PDF."
+  "对于幻灯片，只预览当前页。对于普通文档，全文导出PDF之后预览"
+) ;
 ("force reloading of translations" "强制重新载入翻译文件")
 ("foreground color" "前景色")
 ("foreground colour" "前景色")
