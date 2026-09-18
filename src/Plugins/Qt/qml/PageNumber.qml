@@ -17,9 +17,7 @@ DialogShell {
     implicitHeight: 620
     implicitMargins: 20 * Theme.scaleFactor
 
-    onActivate: () => {
-        if (root.hasRulesChanged) root.submit();
-    }
+    onActivate: () => root.submit()
     onCancel: () => root.cancel()
 
     property var meta: typeof pnBridge !== "undefined" ? pnBridge.meta() : ({
@@ -32,27 +30,16 @@ DialogShell {
     property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : [qsTr("Apply"), qsTr("Cancel")]
 
     // rules 列表：[{ start: 1, end: 3, style: "roman" }, ...]
-    property var rules: {
-        var r = [];
-        if (root.meta && root.meta.rules) {
-            for (var i = 0; i < root.meta.rules.length; i++) {
-                var item = root.meta.rules[i];
-                r.push({
-                    start: Number(item.start),
-                    end: (item.end === "total" || Number(item.end) >= root.totalPages) ? "total" : Number(item.end),
-                    style: String(item.style)
-                });
-            }
-        }
-        return r;
-    }
+    property var rules: root.normalizeRules(root.meta ? root.meta.rules : null)
 
     // 初始规则快照，用于检测是否有规则改动
-    readonly property var initialRules: {
+    readonly property var initialRules: root.normalizeRules(root.meta ? root.meta.rules : null)
+
+    function normalizeRules(metaRules) {
         var r = [];
-        if (root.meta && root.meta.rules) {
-            for (var i = 0; i < root.meta.rules.length; i++) {
-                var item = root.meta.rules[i];
+        if (metaRules) {
+            for (var i = 0; i < metaRules.length; i++) {
+                var item = metaRules[i];
                 r.push({
                     start: Number(item.start),
                     end: (item.end === "total" || Number(item.end) >= root.totalPages) ? "total" : Number(item.end),

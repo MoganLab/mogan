@@ -10,7 +10,6 @@
 //   letterSpacing: real           —— 按钮文字字距，默认 0。
 //   primaryEnabled: bool          —— 主按钮是否可用，默认 true。
 //   primaryDisabledToolTip: string—— 主按钮禁用时的 hover 提示文本，默认空。
-//   buttonToolTips: list<string>  —— 各按钮的 hover 提示文本（可选）。
 //   signal clicked(int index)     —— 点击信号，调用方在 onClicked 决定 submit/cancel。
 //
 // 用法：
@@ -31,7 +30,6 @@ Row {
     property real letterSpacing: 0
     property bool primaryEnabled: true
     property string primaryDisabledToolTip: ""
-    property var buttonToolTips: []
     signal clicked(int index)
 
     Repeater {
@@ -43,15 +41,7 @@ Row {
 
             property bool primary: index === row.primaryIndex
             property bool isBtnEnabled: !primary || row.primaryEnabled
-            readonly property string tipText: {
-                if (primary && !row.primaryEnabled && row.primaryDisabledToolTip !== "") {
-                    return row.primaryDisabledToolTip;
-                }
-                if (row.buttonToolTips && index < row.buttonToolTips.length && row.buttonToolTips[index]) {
-                    return row.buttonToolTips[index];
-                }
-                return "";
-            }
+            readonly property string tipText: (primary && !row.primaryEnabled) ? row.primaryDisabledToolTip : ""
 
             Rectangle {
                 id: btnBg
