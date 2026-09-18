@@ -301,6 +301,8 @@ private slots:
   void test_go_menu_loads ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_hover ();
+  void test_ai_actions_bar_hide_translate ();
+  void test_ai_actions_bar_repaint_after_toggle ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -972,6 +974,44 @@ make_ai_actions_bar (QWidget* host) {
   return qw;
 }
 
+// AiActionsBar 用例共用：Repeater delegate 只挂视觉父子（childItems），
+// QObject 父链不保证在根下，需沿视觉树递归收集 hover 区域（一个按钮一个）
+static QList<QQuickItem*>
+collect_ai_action_areas (QQuickItem* root) {
+  QList<QQuickItem*> out;
+  if (root->objectName () == "aiActionHoverArea") out << root;
+  for (QQuickItem* child : root->childItems ())
+    out << collect_ai_action_areas (child);
+  return out;
+}
+
+// 同上，取 hover 区域所属的胶囊 Rectangle（按钮显隐/尺寸的观察对象）
+static QList<QQuickItem*>
+collect_ai_action_capsules (QQuickItem* root) {
+  QList<QQuickItem*> out;
+  for (QQuickItem* area : collect_ai_action_areas (root))
+    if (area->parentItem ()) out << area->parentItem ();
+  return out;
+}
+
+// 统计 cap 覆盖区域的暗色像素数（图标/文字笔画）；grabFramebuffer 的
+// devicePixelRatio 字段不可靠，按帧缓冲与控件实际尺寸比换算坐标
+static int
+count_dark_pixels (const QImage& fb, QQuickItem* root, QQuickItem* cap,
+                   qreal scale) {
+  QPointF tl     = cap->mapToItem (root, QPointF (0, 0));
+  int     darkCnt= 0;
+  for (int x= int (tl.x () * scale);
+       x < int ((tl.x () + cap->width ()) * scale); x++)
+    for (int y= int (tl.y () * scale);
+         y < int ((tl.y () + cap->height ()) * scale); y++) {
+      if (x < 0 || y < 0 || x >= fb.width () || y >= fb.height ()) continue;
+      QRgb p= fb.pixel (x, y);
+      if (qRed (p) + qGreen (p) + qBlue (p) < 384) darkCnt++;
+    }
+  return darkCnt;
+}
+
 class StubBibBridge : public QObject {
   Q_OBJECT
 public:
@@ -1034,7 +1074,7 @@ TestQmlLoad::test_go_menu_loads () {
 
 void
 TestQmlLoad::test_ai_actions_bar_loads () {
-  // AiActionsBar 是 QTMAiTranslatePopup 内嵌的非模态操作栏（无 closeBridge），
+  // AiActionsBar 是 QTMAiActionsBar 内嵌的非模态操作栏（无 closeBridge），
   // 断言能实例化。
   QDialog host;
   QCOMPARE (make_ai_actions_bar (&host)->status (), QQuickWidget::Ready);
@@ -1050,17 +1090,7 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   host.show ();
 
-  // Repeater delegate 只挂视觉父子（childItems），QObject 父链不保证在根下，
-  // 需沿视觉树递归找
-  std::function<QList<QQuickItem*> (QQuickItem*)> collect=
-      [&] (QQuickItem* item) -> QList<QQuickItem*> {
-    QList<QQuickItem*> out;
-    if (item->objectName () == "aiActionHoverArea") out << item;
-    for (QQuickItem* child : item->childItems ())
-      out << collect (child);
-    return out;
-  };
-  QList<QQuickItem*> areas= collect (qw->rootObject ());
+  QList<QQuickItem*> areas= collect_ai_action_areas (qw->rootObject ());
   QCOMPARE (areas.size (), 3);
   QQuickItem* ma= areas.first ();
   // SizeViewToRootObject 下 scene 坐标 == widget 坐标
@@ -1081,6 +1111,90 @@ TestQmlLoad::test_ai_actions_bar_hover () {
   QVERIFY (!ma->property ("containsMouse").toBool ());
   sendMove (center); // 移回按钮重新点亮
   QVERIFY (ma->property ("containsMouse").toBool ());
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_hide_translate () {
+  // showTranslate=false 时翻译胶囊隐藏（0995：选区 < 10 字符或选区整体是
+  // 数学公式时 C++ 注入 false），恢复 true 后回来。delegate 不重建（静态
+  // model + visible 显隐），胶囊总数恒为 3
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+
+  QQuickItem* root= qw->rootObject ();
+  QVERIFY (root != nullptr);
+  QCOMPARE (root->property ("showTranslate").toBool (), true);
+
+  QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
+  QCOMPARE (capsules.size (), 3);
+
+  root->setProperty ("showTranslate", false);
+  QVERIFY (!capsules[0]->isVisible ()); // 翻译胶囊隐藏
+  QVERIFY (capsules[1]->isVisible ());
+  QVERIFY (capsules[2]->isVisible ());
+
+  root->setProperty ("showTranslate", true);
+  QVERIFY (capsules[0]->isVisible ());
+
+  // 布局尺寸同步：Row 跳过不可见子项，implicitWidth 收缩/恢复（Row 布局经
+  // positioner polish 迟一帧收敛，grabFramebuffer 强制一帧后再读）；
+  // QQuickWidget 宿主按 implicitWidth 定窗口尺寸，陈旧宽度会截断末位按钮
+  auto measure_width= [&] () {
+    qApp->processEvents ();
+    qw->grabFramebuffer ();
+    return root->property ("implicitWidth").toReal ();
+  };
+  qreal w3= measure_width ();
+  root->setProperty ("showTranslate", false);
+  qreal w2= measure_width ();
+  QVERIFY (w2 < w3);
+  root->setProperty ("showTranslate", true);
+  QCOMPARE (measure_width (), w3);
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_repaint_after_toggle () {
+  // 0995 回归：showTranslate 切换导致 Row 重排后，移动过的「对话」胶囊必须
+  // 真正绘制（生产上曾出现第三个按钮位置留白；QQuickWidget 软渲染下偶发）。
+  // 循环切换放大偶发概率，逐胶囊扫描暗色笔画像素
+  QDialog       host;
+  QQuickWidget* qw= make_ai_actions_bar (&host);
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+  host.show ();
+  qw->resize (400, 60);
+
+  QQuickItem* root= qw->rootObject ();
+  QVERIFY (root != nullptr);
+
+  // 胶囊项在静止 model 下跨轮次稳定（切换显隐不重建 delegate），循环外收集一次
+  QList<QQuickItem*> capsules= collect_ai_action_capsules (root);
+  QCOMPARE (capsules.size (), 3);
+
+  int failRounds= 0;
+  for (int round= 0; round < 10; round++) {
+    root->setProperty ("showTranslate", false);
+    root->setProperty ("showTranslate", true);
+    qApp->processEvents ();
+    QImage fb= qw->grabFramebuffer ();
+    QVERIFY (!fb.isNull ());
+    // grabFramebuffer 的 devicePixelRatio 字段不可靠，按实际尺寸比换算
+    qreal scale= qreal (fb.width ()) / qw->width ();
+
+    for (int i= 0; i < capsules.size (); i++) {
+      QQuickItem* cap    = capsules[i];
+      int         darkCnt= count_dark_pixels (fb, root, cap, scale);
+      if (darkCnt <= 4) {
+        failRounds++;
+        QPointF tl= cap->mapToItem (root, QPointF (0, 0));
+        qWarning ("round %d capsule %d rect=(%.1f,%.1f %.1fx%.1f) dark=%d",
+                  round, i, tl.x (), tl.y (), cap->width (), cap->height (),
+                  darkCnt);
+      }
+    }
+  }
+  QCOMPARE (failRounds, 0);
 }
 
 QTEST_MAIN (TestQmlLoad)

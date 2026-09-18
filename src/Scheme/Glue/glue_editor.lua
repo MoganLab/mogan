@@ -1439,8 +1439,8 @@ function main()
                 ret_type = "bool"
             },
             {
-                scm_name = "should-show-translate-popup?",
-                cpp_name = "should_show_translate_popup",
+                scm_name = "should-show-ai-actions-bar?",
+                cpp_name = "should_show_ai_actions_bar",
                 ret_type = "bool"
             },
             {

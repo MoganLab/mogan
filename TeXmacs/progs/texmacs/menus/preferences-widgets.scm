@@ -195,14 +195,28 @@
 ) ;define-preference-names
 
 ;; AI ----------
-;; 翻译目标语言：interface 表示按界面语言；语言项与 General 的 language 字段
-;; 同源（supported-languages），登记进 encode/decode 表供 combo 反查。
+;; 两个 AI 语言键首项均为 system：表示跟随系统语言（get-locale-language，
+;; 见 qt_chat_controller.cpp），非界面语言偏好。
 
+;; 翻译目标语言：system + supported-languages 全表（与 General 的 language
+;; 字段同源），登记进 encode/decode 表供 combo 反查。
 (define-preference-names "ai:translate target language"
- ("interface" "User interface language")
+ ("system" "System language")
 ) ;define-preference-names
 
 (register-language-preference-names "ai:translate target language")
+
+;; AI 提示词语言（0995）：只列中文/英文——提示词模板词条仅覆盖这两种，
+;; 选其余语言只会回落成英文原句，列全表是噪音。字段 options/options-pretty
+;; 由 pairs 推导（preferences-qml-ai-fields），不写第二遍。
+
+(define ai-prompt-language-pairs
+  '(("system" "System language") ("chinese" "Chinese") ("english" "English"))
+) ;define
+
+(for-each (lambda (p) (set-preference-name "ai:prompt language" (car p) (cadr p)))
+  ai-prompt-language-pairs
+) ;for-each
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other tab 的编解码表（autosave / security / updater / scripting）
@@ -909,8 +923,17 @@
     ;; 选中文字后的 AI 操作栏（0986）总开关，默认开启（默认值见 tm-server.scm）。
     (list (pref-ai-actions-bar) "AI action bar" '() '() #f)
     ;; AI 翻译目标语言：options 动态按 supported-languages 拉取（见 resolve-options），
-    ;; 默认 interface（按界面语言）；AI 翻译拼提示词时读取（qt_chat_controller.cpp）。
+    ;; 默认 system（跟随系统语言）；AI 翻译拼提示词时读取（qt_chat_controller.cpp）。
     (list (pref-ai-translate-target) "Translation target language" '() '() #f)
+    ;; AI 提示词语言（0995）：决定翻译等提示词用什么语言书写，默认 system
+    ;; （跟随系统语言）；与翻译目标语言独立。选项静态（只有中文/英文有意义，
+    ;; 由 ai-prompt-language-pairs 推导），不走 resolve-options。
+    (list (pref-ai-prompt-language)
+      "AI prompt language"
+      (map car ai-prompt-language-pairs)
+      (map cadr ai-prompt-language-pairs)
+      #f
+    ) ;list
   ) ;list
 ) ;define
 

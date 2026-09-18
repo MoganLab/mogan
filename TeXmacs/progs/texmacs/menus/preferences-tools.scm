@@ -352,11 +352,12 @@
        (list (car pair) (cadr pair))
      ) ;let*
     ) ;
-    ;; AI 翻译目标语言：首项 interface（按界面语言）+ supported-languages 全表，
-    ;; 与 General 的 language 字段同源（顶层 define 里用空 '() 避开加载期求值）。
+    ;; AI 翻译目标语言：首项 system（跟随系统语言）+ supported-languages 全表，
+    ;; 与 General 的 language 字段同源。AI 提示词语言只列中文/英文，用字段
+    ;; 定义里的静态 options（走下面的 else 分支）。
     ((== key (pref-ai-translate-target))
-     (list (cons "interface" supported-languages)
-       (cons "User interface language" (map upcase-first supported-languages))
+     (list (cons "system" supported-languages)
+       (cons "System language" (map upcase-first supported-languages))
      ) ;list
     ) ;
     ;; 其余字段：直接透传字段定义里的静态 options / options-pretty。

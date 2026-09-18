@@ -212,10 +212,12 @@
 (define-public (pref-convert-image-format) "texmacs->image:format")
 
 ;; ---- AI tab ----
-;; AI 操作栏（选中文字后的悬浮操作栏）总开关；翻译目标语言 internal 键
-;; "interface" 表示按界面语言，其余取 supported-languages。
+;; AI 操作栏（选中文字后的悬浮操作栏）总开关；两个语言键的 internal 值
+;; "system" 表示跟随系统语言（get-locale-language），其余取 supported-languages。
+;; AI 提示词语言（0995）决定翻译等提示词用什么语言书写，与翻译目标语言无关。
 (define-public (pref-ai-actions-bar) "ai:actions bar")
 (define-public (pref-ai-translate-target) "ai:translate target language")
+(define-public (pref-ai-prompt-language) "ai:prompt language")
 
 ;; ---- Other / Misc tab ----
 (define-public (pref-autosave) "autosave")

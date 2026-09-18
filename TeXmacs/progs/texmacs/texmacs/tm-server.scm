@@ -152,7 +152,8 @@
  ("ghost text" "off" noop)
  ("texmacs->image:format" "png" noop)
  ("ai:actions bar" "on" noop)
- ("ai:translate target language" "interface" noop)
+ ("ai:translate target language" "system" noop)
+ ("ai:prompt language" "system" noop)
  ("autobackup" "on" noop)
 ) ;define-preferences
 

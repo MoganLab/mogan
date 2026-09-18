@@ -98,9 +98,11 @@ protected:
   time_t text_popup_last_check = 0;
   bool   text_popup_last_result= false;
   // AI 翻译悬浮按钮缓存与「本次选区已关闭」标记
-  time_t translate_popup_last_check = 0;
-  bool   translate_popup_last_result= false;
-  bool   translate_popup_dismissed  = false;
+  time_t ai_actions_bar_last_check = 0;
+  bool   ai_actions_bar_last_result= false;
+  bool   ai_actions_bar_dismissed  = false;
+  // 翻译按钮可见性（0995）：随显隐判定同一 100ms 缓存节奏刷新，popup 只读
+  bool   ai_translate_btn_visible= true;
   bool   table_line_hit (SI x, SI y, table_hit& hit);
   void   table_line_start (const table_hit& hit, SI x, SI y);
   void   table_line_apply (SI x, SI y);
@@ -296,18 +298,21 @@ public:
   void update_text_popup ();
   void invalidate_text_popup_cache (); // 重置工具栏缓存
 
-  bool should_show_translate_popup ();
+  bool should_show_ai_actions_bar ();
+  // 翻译按钮是否显示在 AI 操作栏（0995）：选区 < 10 字符或纯数学公式时不
+  // 显示；由 should_show_ai_actions_bar 顺带刷新，此处只读缓存
+  bool ai_translate_button_visible () { return ai_translate_btn_visible; }
   bool selection_made_upward (); // 从下往上选择（光标停在选区起点一侧）
   // 「最后选中文字」所在行（按选择方向取顶行/底行）
   rectangle get_selection_last_rect (bool upward);
-  void      show_translate_popup (rectangle selr, bool upward, double magf,
-                                  int scroll_x, int scroll_y, int canvas_x,
-                                  int canvas_y);
-  void      hide_translate_popup ();
-  bool      is_point_in_translate_popup (SI x, SI y);
-  void      update_translate_popup ();
-  void      dismiss_translate_popup (); // 点击按钮后本次选区内不再弹出
-  void      invalidate_translate_popup_cache ();
+  void      show_ai_actions_bar (rectangle selr, bool upward, double magf,
+                                 int scroll_x, int scroll_y, int canvas_x,
+                                 int canvas_y);
+  void      hide_ai_actions_bar ();
+  bool      is_point_in_ai_actions_bar (SI x, SI y);
+  void      update_ai_actions_bar ();
+  void      dismiss_ai_actions_bar (); // 点击按钮后本次选区内不再弹出
+  void      invalidate_ai_actions_bar_cache ();
   // 操作栏动作统一入口（按钮点击与 cmd/ctrl+j 共用）
   void ai_action (string action);
 
