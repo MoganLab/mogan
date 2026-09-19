@@ -824,6 +824,20 @@ TestQmlLoad::test_export_pdf_path_utf8_roundtrip () {
   QCOMPARE (N (toggleRes), 1);
   QVERIFY (get_label (toggleRes[0][0]) == string ("expand-slides"));
   QVERIFY (get_label (toggleRes[0][1]) == string ("true"));
+
+  // 1321: keep-dark toggle 在 cpp_export_pdf_dialog 中的解析与契约
+  qputenv ("MOGAN_TEST_EXPORT_PDF", "ok");
+  tree darkForm (moebius::TUPLE);
+  darkForm << tree (moebius::make_tree_label ("toggle"),
+                    tree ("Keep dark mode in exported PDF"), tree ("keep-dark"),
+                    tree ("false"));
+  tree darkRes= cpp_export_pdf_dialog (darkForm);
+  qunsetenv ("MOGAN_TEST_EXPORT_PDF");
+
+  QVERIFY (is_compound (darkRes));
+  QCOMPARE (N (darkRes), 1);
+  QVERIFY (get_label (darkRes[0][0]) == string ("keep-dark"));
+  QVERIFY (get_label (darkRes[0][1]) == string ("false"));
 }
 
 void
