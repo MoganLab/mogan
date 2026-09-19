@@ -194,7 +194,9 @@ im_chooser_widget_rep::set_type (const string& _type) {
 
   if (_type == "action_save_as") {
     type= _type;
-    extensions << string ("tmu");
+    // 与 Qt 的过滤器列表保持 parity；桌面端对话框为 stub、WASM 另存为不读
+    // extensions，该列表暂无消费者
+    extensions << string ("tmu") << string ("stem");
     def_ext= "tmu";
     return true;
   }
