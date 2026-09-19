@@ -101,6 +101,11 @@
          (buf (buffer-new))
          (tmp-url (url-append (url-head cur) (string-append (uuid4) "." (url-suffix cur)))
          ) ;tmp-url
+         (expand-slides (if (pair? opts) (car opts) (preference-on? "texmacs->pdf:expand slides"))
+         ) ;expand-slides
+         (keep-dark
+           (if (and (pair? opts) (pair? (cdr opts))) (cadr opts) #f)
+         ) ;keep-dark
         ) ;
     (buffer-copy cur buf)
     (buffer-rename buf tmp-url)
@@ -108,10 +113,10 @@
       (buffer-set-master tmp-url cur)
       (switch-to-buffer tmp-url)
       (set-drd cur)
-      (apply dynamic-make-slides opts)
+      (dynamic-make-slides expand-slides)
     ) ;when
     (switch-to-buffer tmp-url)
-    (when (has-style-package? "dark")
+    (when (and (not keep-dark) (has-style-package? "dark"))
       (remove-style-package "dark")
     ) ;when
     (print-to-file fname)
@@ -218,6 +223,7 @@
   ;; QML 对话框收集导出目的地（完整路径含文件名，Browse 可改）与是否把源文档
   ;; 作为附件嵌入 PDF，以及是否展开幻灯片中的可折叠对象。确认时 cpp-export-pdf-dialog
   ;; 返回 (tuple (tuple "embed" ...) (tuple "expand-slides" ...) (tuple "path" ...))，
+  ;; 若当前包含 dark 样式包，还包含 (tuple "keep-dark" ...)。
   ;; Cancel / 关闭返回空树。字段初值与 label 在此侧取好（label 已翻译）。
   (with result
     (with default-path
@@ -239,6 +245,11 @@
                   "true"
                   "false")
                ,(translate "When enabled, foldable environments are directly expanded on a single slide. When disabled, foldable environments are sequentially expanded across multiple slides."))
+             ,@(if (has-style-package? "dark")
+                 `((toggle ,(translate "Keep dark mode in exported PDF")
+                     ,"keep-dark"
+                     ,"false"))
+                 '())
              (path ,(translate "Export to") ,"path" ,default-path))
         ) ;stree->tree
       ) ;cpp-export-pdf-dialog
@@ -253,6 +264,7 @@
         (let* ((embed #f)
                ;; 对话框总是回传全部字段，初值仅是占位
                (expand-slides #f)
+               (keep-dark #f)
                (fname "")
               ) ;
           (for-each
@@ -260,6 +272,7 @@
               (cond
                ((== (cadr kv) "embed") (set! embed (== (caddr kv) "true")))
                ((== (cadr kv) "expand-slides") (set! expand-slides (== (caddr kv) "true")))
+               ((== (cadr kv) "keep-dark") (set! keep-dark (== (caddr kv) "true")))
                ((== (cadr kv) "path") (set! fname (caddr kv)))
               ) ;cond
             ) ;lambda
@@ -267,8 +280,8 @@
           ) ;for-each
           (set! fname (export-pdf-ensure-suffix fname embed))
           (if embed
-            (wrapped-print-to-pdf-embeded-with-tmu fname expand-slides)
-            (wrapped-print-to-file fname expand-slides)
+            (wrapped-print-to-pdf-embeded-with-tmu fname expand-slides keep-dark)
+            (wrapped-print-to-file fname expand-slides keep-dark)
           ) ;if
         ) ;let*
       ) ;if

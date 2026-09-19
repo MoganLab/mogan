@@ -1,0 +1,17 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|dark>>
+
+<\body>
+  <doc-data|<doc-title|Dark Mode Export Test 1321>>
+
+  <section|Dark Mode PDF Export>
+
+  This is a document in dark mode for testing PDF export dialog option.
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+  </collection>
+</initial>

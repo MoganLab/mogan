@@ -3149,3 +3149,6 @@
 ("When enabled, foldable environments are directly expanded on a single slide. When disabled, foldable environments are sequentially expanded across multiple slides."
   "开启状态下，可折叠对象在单页幻灯片中直接展开。关闭状态下，可折叠对象在多页幻灯片中依次展开。"
 ) ;
+("Keep dark mode in exported PDF"
+  "在导出的PDF中，仍旧采用深色模式"
+) ;
