@@ -138,9 +138,9 @@
 
   <assign|script-status-font-color|#cfe0ff>
 
-  <assign|quote-bar-color|#8b949e>
+  <assign|quote-bar-color|#8fa0b8>
 
-  <assign|quote-text-color|#9198a1>
+  <assign|quote-text-color|#e6edf3>
   \;
 </body>
 

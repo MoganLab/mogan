@@ -1,0 +1,42 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|number-europe|chinese|table-captions-above|llm|dark>>
+
+<\body>
+  <\session|llm|chat-tab:A5A8EF1D-C0B1-4320-8F51-78186B1F7E70>
+    <\unfolded-io-text>
+      llm\>\ 
+    <|unfolded-io-text>
+      引用1
+
+      引用2
+
+      <\quote-env>
+        <around*|\||<frac|1|n>-0|\|>=<frac|1|n>\<less\><frac|1|N>\<less\>\<varepsilon\>
+      </quote-env>
+
+      引文2是引文1的一部分，解释一下引文2的含义（含义的范围包括字典、专业术语等）
+    <|unfolded-io-text>
+      <unfolded-explain|<with|color|dark grey|font-size|0.92|font-series|medium|<localize|View reasoning>>|<\with|color|dark grey|font-size|0.92|font-shape|italic>
+        这是一段用于测试暗黑模式下输入块底色与引用块样式的推理过程文本。
+      </with>>
+
+      %chat {"sessionId":"A5A8EF1D-C0B1-4320-8F51-78186B1F7E70","params":{"model":"deepseek-v4-pro","baseUrl":"https:\\/\\/liiistem.cn\\/api\\/v1\\/ai\\/deepseek\\/chat","thinking":"disabled","search":"disabled","thinkingEffort":"medium"},"content":"引文2解释：该不等式展示了数列极限的定义。"}
+    </unfolded-io-text>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|dpi|600>
+    <associate|font|sys-chinese>
+    <associate|no-zoom|true>
+    <associate|page-medium|automatic>
+    <associate|page-screen-bot|2px>
+    <associate|page-screen-left|4px>
+    <associate|page-screen-right|4px>
+    <associate|page-screen-top|2px>
+    <associate|scroll-bars|false>
+    <associate|zoom-factor|1.40969>
+  </collection>
+</initial>
