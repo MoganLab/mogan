@@ -120,7 +120,7 @@
     =>
     "[TABLE]"
   ) ;check
-  (check (ai-flatten-text '(para (equation "x"))) => "<#F0G>")
+  (check (ai-flatten-text '(para (equation "x"))) => "<#Z0G>")
   (check ai-formula-store => '((equation "x")))
 ) ;define
 
@@ -132,7 +132,7 @@
                         (with ("mode" "math") (rsub "x" "1"))
                         " here"))
     =>
-    "see <#F0G> here"
+    "see <#Z0G> here"
   ) ;check
   (check ai-formula-store => '((with ("mode" "math") (rsub "x" "1"))))
   (check
@@ -171,7 +171,7 @@
   (check
     (ai-split-node '(document (para "see " (equation "x") " here")) '(0 1 0))
     =>
-    '("see " . "<#F0G> here")
+    '("see " . "<#Z0G> here")
   ) ;check
   (check ai-formula-store => '((equation "x")))
   ;; inline 数学（with "mode" "math"）同样不透明
@@ -182,7 +182,7 @@
       '(0 1 0)
     ) ;ai-split-node
     =>
-    '("a" . "<#F0G>b")
+    '("a" . "<#Z0G>b")
   ) ;check
 ) ;define
 
@@ -201,9 +201,14 @@
   ;; tail 切在序列内从 '>' 之后开始
   (check (ai-herk-tail "ab<#4E2D>cd" 7) => "cd")
   (check (ai-herk-tail "ab<#4E2D>cd" 2) => "cd")
-  ;; 公式哨兵 <#F0G> 同为 <#...> 闭合片段：切在哨兵内时整体让位，不切半
-  (check (ai-herk-head "ab<#F0G>cd" 5) => "ab")
-  (check (ai-herk-tail "ab<#F0G>cd" 7) => "cd")
+  ;; 公式哨兵 <#Z0G> 同为 <#...> 闭合片段：切在哨兵内时整体让位，不切半
+  (check (ai-herk-head "ab<#Z0G>cd" 5) => "ab")
+  (check (ai-herk-tail "ab<#Z0G>cd" 7) => "cd")
+  ;; 相邻 herk 序列（密集 CJK 文本常态）：窗口里先命中的前一个序列已闭合，
+  ;; 须继续向后排查（1601 回归：旧实现只看第一个 <#，回退原始字节切割，
+  ;; 引文开头出现 "#8A00>" 之类缺 '<' 的半截序列）
+  (check (ai-herk-tail "ab<#4E2D><#8A00>cd" 8) => "cd")
+  (check (ai-herk-head "ab<#4E2D><#8A00>cd" 10) => "ab<#4E2D>")
 ) ;define
 
 ;; ===== 重组：哨兵换回公式子树 =====
@@ -214,15 +219,31 @@
     (check (ai-sentinel-split "plain" store) => '("plain"))
     (check (ai-sentinel-split "" store) => '())
     ;; 哨兵原位换回登记表中的子树，两侧字符串保留
-    (check (ai-sentinel-split "see <#F0G> here" store)
+    (check (ai-sentinel-split "see <#Z0G> here" store)
       =>
       '("see " (equation "x") " here")
     ) ;check
     ;; 多个哨兵各自按下标换回
-    (check (ai-sentinel-split "a<#F0G>b<#F1G>c" store)
+    (check (ai-sentinel-split "a<#Z0G>b<#Z1G>c" store)
       =>
       '("a" (equation "x") "b" (with ("mode" "math") "y") "c")
     ) ;check
+    ;; 哨兵前缀 <#Z 与真实 herk 不撞车（1601 回归）：全角标点等
+    ;; U+F000-U+FFFF 的 herk 序列（<#FF08> 等）不是哨兵，整行当普通文本
+    ;; 保留（旧实现用 <#F 前缀，把该标点之后的行内容整段丢弃，引文1 段落
+    ;; 千疮百孔）
+    (check (ai-sentinel-split "a<#FF08>b" '()) => '("a<#FF08>b"))
+    (check (ai-sentinel-split "<#FF0C><#FF1A>" '()) => '("<#FF0C><#FF1A>"))
+    ;; herk 与哨兵混排：哨兵原位换回，herk 原样保留
+    (check (ai-sentinel-split "<#FF0C>x<#Z0G>y" store)
+      =>
+      '("<#FF0C>x" (equation "x") "y")
+    ) ;check
+    ;; 形态不合法一律按普通文本：下标越出登记表、<#F123> 这类 PUA herk、
+    ;; <#ZG> 无下标
+    (check (ai-sentinel-split "<#Z9G>z" store) => '("<#Z9G>z"))
+    (check (ai-sentinel-split "q<#F123>r" '()) => '("q<#F123>r"))
+    (check (ai-sentinel-split "q<#ZG>r" '()) => '("q<#ZG>r"))
   ) ;let
 ) ;define
 
@@ -236,13 +257,45 @@
       '(document "line 1" "line 3")
     ) ;check
     ;; 段内多节点用 concat 连接，公式子树原位插回
-    (check (ai-context->document "see <#F0G> here" store)
+    (check (ai-context->document "see <#Z0G> here" store)
       =>
       '(document (concat "see " (equation "x") " here"))
     ) ;check
     ;; 公式独占一段：不套 concat
-    (check (ai-context->document "<#F0G>" store) => '(document (equation "x")))
+    (check (ai-context->document "<#Z0G>" store) => '(document (equation "x")))
   ) ;let
+) ;define
+
+;; ===== 1601 端到端回归（纯函数层）：含全角标点的多段中文正文 =====
+
+(define (test-context-full-width-punct)
+  ;; 选区嵌在末段中间：引文1 各段完整（含以全角括号开头的段），无半截 herk
+  (ai-formula-store-reset!)
+  ;; 上下文预算等长（1601：下文 500 字节明显短于上文，拉齐为同一预算）
+  (check ai-context-after-limit => ai-context-before-limit)
+  (let* ((para-a "<#76F8><#6DF7><#6DC6><#3002> <#5173><#952E><#8BCD><#FF08>3-5 <#4E2A><#FF09><#662F>"
+         ) ;para-a
+         (para-b "<#FF08><#56DB><#FF09><#76EE><#5F55>")
+         (para-c "<#76EE><#5F55><#662F><#6BD5><#4E1A><#8BBE><#8BA1><#FF08><#8BBA><#6587><#FF09>"
+         ) ;para-c
+         (body (list 'document para-a para-b para-c))
+         ;; 选区为 para-c 中「毕业」之外的切口：起点字节 21、终点字节 28
+         (at-start (ai-split-node body '(2 21)))
+         (at-end (ai-split-node body '(2 28)))
+         (before (ai-herk-tail (car at-start) ai-context-before-limit))
+         (after (ai-herk-head (cdr at-end) ai-context-after-limit))
+         (doc-tree (ai-context->document (string-append before "XY" after) ai-formula-store)
+         ) ;doc-tree
+        ) ;
+    (check doc-tree
+      =>
+      (list 'document
+        para-a
+        para-b
+        (string-append (string-take para-c 21) "XY" (string-drop para-c 28))
+      ) ;list
+    ) ;check
+  ) ;let*
 ) ;define
 
 (tm-define (regtest-ai-actions-bar)
@@ -256,5 +309,6 @@
   (test-herk-truncate)
   (test-sentinel-split)
   (test-context-document)
+  (test-context-full-width-punct)
   (check-report)
 ) ;tm-define
