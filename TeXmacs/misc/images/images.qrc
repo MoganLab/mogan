@@ -10,6 +10,11 @@
         <file>ai-actions/polish.svg</file>
         <file>ai-actions/chat.svg</file>
         <file>ai-actions/explain.svg</file>
+        <file>ai-actions/lobster-dark.svg</file>
+        <file>ai-actions/translate-dark.svg</file>
+        <file>ai-actions/polish-dark.svg</file>
+        <file>ai-actions/chat-dark.svg</file>
+        <file>ai-actions/explain-dark.svg</file>
 
         <file>feedback/good-ico.svg</file>
         <file>feedback/bad-ico.svg</file>
