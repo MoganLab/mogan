@@ -1206,13 +1206,13 @@ TestQmlLoad::test_go_menu_hover () {
   QVERIFY (!bgs.isEmpty ());
   QQuickItem* bg= bgs.first ();
   QCOMPARE (bg->property ("color").value<QColor> (), QColor ("#e5e7eb"));
-  QTest::qWait (150);
-  QCOMPARE (bg->property ("opacity").toDouble (), 1.0);
+  // 高亮 opacity 由 100ms NumberAnimation 渐变；CI（offscreen、高负载）下
+  // 动画时钟可能被饿，固定等待后单次检查会误报，故轮询到收敛。
+  QTRY_COMPARE (bg->property ("opacity").toDouble (), 1.0);
 
   sendMove (QPointF (1, 1));
   QVERIFY (!item->property ("isHovered").toBool ());
-  QTest::qWait (150);
-  QCOMPARE (bg->property ("opacity").toDouble (), 0.0);
+  QTRY_COMPARE (bg->property ("opacity").toDouble (), 0.0);
 }
 
 void
