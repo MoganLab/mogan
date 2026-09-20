@@ -38,6 +38,11 @@ Item {
     readonly property int padV: Math.max(4, Math.round(fontPixelSize * 0.45))
     readonly property int gap: Math.max(3, Math.round(fontPixelSize * 0.35))
 
+    // 图标按主题切换 -dark 变体（1602）：深色底上 #444444 图标不可见
+    function iconUrl(base) {
+        return "qrc:/ai-actions/" + base + (Theme.dark ? "-dark.svg" : ".svg")
+    }
+
     // 右侧 1px、下方 2px 留给假阴影
     width: implicitWidth
     height: implicitHeight
@@ -70,7 +75,7 @@ Item {
 
             Image {
                 // OpenClaw 龙虾标识（emoji 在部分平台渲染异常，改用 SVG 线稿）
-                source: "qrc:/ai-actions/lobster.svg"
+                source: bar.iconUrl("lobster")
                 sourceSize: Qt.size(bar.iconPx, bar.iconPx)
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -81,10 +86,10 @@ Item {
                 // 子项）。不重建 model——重建 delegate 在软渲染下布局与绘制
                 // 不同帧，会留白/截断
                 model: [
-                    { icon: "qrc:/ai-actions/translate.svg", label: labelTranslate, action: "translate" },
-                    { icon: "qrc:/ai-actions/polish.svg", label: labelPolish, action: "polish" },
-                    { icon: "qrc:/ai-actions/chat.svg", label: labelChat, action: "chat" },
-                    { icon: "qrc:/ai-actions/explain.svg", label: labelExplain, action: "explain" }
+                    { iconBase: "translate", label: labelTranslate, action: "translate" },
+                    { iconBase: "polish", label: labelPolish, action: "polish" },
+                    { iconBase: "chat", label: labelChat, action: "chat" },
+                    { iconBase: "explain", label: labelExplain, action: "explain" }
                 ]
 
                 delegate: Rectangle {
@@ -106,7 +111,7 @@ Item {
                         spacing: bar.gap
 
                         Image {
-                            source: modelData.icon
+                            source: bar.iconUrl(modelData.iconBase)
                             sourceSize: Qt.size(bar.iconPx, bar.iconPx)
                             anchors.verticalCenter: parent.verticalCenter
                         }

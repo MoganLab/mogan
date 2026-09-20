@@ -23,6 +23,7 @@
 
 #include <QApplication>
 #include <QDialog>
+#include <QFile>
 #include <QHoverEvent>
 #include <QMouseEvent>
 #include <QObject>
@@ -318,6 +319,7 @@ private slots:
   void test_go_menu_hover ();
   void test_go_menu_type_tags ();
   void test_ai_actions_bar_loads ();
+  void test_ai_actions_bar_dark_icons ();
   void test_ai_actions_bar_hover ();
   void test_ai_actions_bar_hit_test ();
   void test_ai_actions_bar_click_actions ();
@@ -1043,11 +1045,11 @@ TestQmlLoad::test_color_picker_loads () {
 // AiActionsBar 用例共用：按生产环境注入主题（dpScale/isDark，Theme 单例
 // 读取）与四个按钮文案占位，加载 qrc 内的操作栏
 static QQuickWidget*
-make_ai_actions_bar (QWidget* host) {
+make_ai_actions_bar (QWidget* host, bool dark= false) {
   QQuickWidget* qw= new QQuickWidget (host);
   qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
   qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("isDark", dark);
   qw->rootContext ()->setContextProperty ("labelTranslate",
                                           QString ("Translate"));
   qw->rootContext ()->setContextProperty ("labelPolish", QString ("Polish"));
@@ -1261,6 +1263,38 @@ TestQmlLoad::test_ai_actions_bar_loads () {
   // 断言能实例化。
   QDialog host;
   QCOMPARE (make_ai_actions_bar (&host)->status (), QQuickWidget::Ready);
+}
+
+// 沿视觉树收集带 source 属性的 Image（QQuickImage）；Repeater delegate 只挂
+// 视觉父子，与 collect_ai_action_areas 同因不用 QObject 父链
+static QList<QQuickItem*>
+collect_ai_action_images (QQuickItem* root) {
+  QList<QQuickItem*> out;
+  if (root->metaObject ()->indexOfProperty ("source") >= 0) out << root;
+  for (QQuickItem* child : root->childItems ())
+    out << collect_ai_action_images (child);
+  return out;
+}
+
+void
+TestQmlLoad::test_ai_actions_bar_dark_icons () {
+  // 1602：isDark=true 时全部图标切到 -dark.svg 变体，false 时用普通图标；
+  // 两种来源的 qrc 资源都必须真实存在（防注册遗漏，运行时才暴露为空白图标）
+  for (int i= 0; i < 2; i++) {
+    const bool    dark= i == 1;
+    QDialog       host;
+    QQuickWidget* qw= make_ai_actions_bar (&host, dark);
+    QCOMPARE (qw->status (), QQuickWidget::Ready);
+    QList<QQuickItem*> images= collect_ai_action_images (qw->rootObject ());
+    QCOMPARE (images.size (), 5); // 龙虾标识 + 四个按钮
+    for (QQuickItem* img : images) {
+      QString src= img->property ("source").toUrl ().toString ();
+      QVERIFY2 (src.contains ("/ai-actions/"), qPrintable (src));
+      QCOMPARE (src.endsWith ("-dark.svg"), dark);
+      QVERIFY2 (QFile::exists (QString (src).replace ("qrc:/", ":/")),
+                qPrintable (src));
+    }
+  }
 }
 
 void
