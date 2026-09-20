@@ -23,7 +23,9 @@
   (let ((translation-key (string-append (if (== theme "plain") "theme" theme) "::theme")
         ) ;translation-key
        ) ;
-    (translate translation-key)
+    ;; 工具栏按钮名与 style-menu-name 一样首字母大写；
+    ;; 非拉丁译文（如「主题」）不受 upcase-first 影响
+    (upcase-first (translate translation-key))
   ) ;let
 ) ;tm-define
 
