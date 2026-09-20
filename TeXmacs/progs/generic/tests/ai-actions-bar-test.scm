@@ -63,10 +63,28 @@
     =>
     #f
   ) ;check
-  ;; with 包裹（参数串非空白）：保守判 #f，照常弹出
+  ;; with 包裹：属性对不算内容，只看末尾 body（1603：居中图片的选区树是
+  ;; (with "par-mode" "center" (image ...))，body 只有图片时不弹）
+  (check
+    (ai-selection-only-images?
+      (tm->tree `(with ,"par-mode" ,"center" ,img))
+    ) ;ai-selection-only-images?
+    =>
+    #t
+  ) ;check
   (check
     (ai-selection-only-images?
       (tm->tree `(with ,"color" ,"red" ,img))
+    ) ;ai-selection-only-images?
+    =>
+    #t
+  ) ;check
+  ;; with 的 body 里图片夹杂文字：照常弹出
+  (check
+    (ai-selection-only-images?
+      (tm->tree
+        `(with ,"par-mode" ,"center" (concat ,img ,"text"))
+      ) ;tm->tree
     ) ;ai-selection-only-images?
     =>
     #f

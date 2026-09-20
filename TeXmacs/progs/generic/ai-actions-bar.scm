@@ -19,13 +19,17 @@
   ) ;:use
 ) ;texmacs-module
 
-;; image 标签视为叶子；其余复合节点递归；字符串叶子须全空白。
-;; 保守策略：with 等含非空白参数串的复合节点一律判 #f（照常弹出）
+;; image 标签视为叶子；with 的 key/val 属性对不算内容（居中图片的选区树是
+;; (with "par-mode" "center" (image ...))，1603），只递归末尾 body；其余复合
+;; 节点逐子节点递归；字符串叶子须全空白。
 
 (define (ai-only-images-or-blank? t)
   (cond
    ((tree-atomic? t) (string-null? (tm-string-trim-both (tree->string t))))
    ((tree-is? t 'image) #t)
+   ((and (tree-is? t 'with) (> (tree-arity t) 0))
+    (ai-only-images-or-blank? (tree-ref t :last))
+   ) ;
    (else
      (let loop
        ((i 0))
