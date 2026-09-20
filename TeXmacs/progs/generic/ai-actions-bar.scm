@@ -65,17 +65,19 @@
 ;;
 ;; 公式不走文本标记（0996 追加：引文块里公式要渲染成真实公式，与翻译/对话的
 ;; 引用块一致）：展平时公式子树登记进 ai-formula-store 并在文本里留下
-;; <#F<k>G> 哨兵（k 为登记表下标），切分/截断完成后由 ai-context->document
-;; 把哨兵原位换回子树，组装成 document 树。哨兵含非十六进制字符 G，不会与
-;; 真实 herk <#XXXX> 序列冲突；形如 <#...> 的闭合片段，herk 截断保护同样
-;; 不会把它切半。
+;; <#Z<k>G> 哨兵（k 为登记表下标），切分/截断完成后由 ai-context->document
+;; 把哨兵原位换回子树，组装成 document 树。哨兵前缀 <#Z 的 Z 不是十六进制
+;; 字符，而真实 herk 的 <# 后只可能是十六进制数字，前缀层面不会撞车（1601：
+;; 原前缀 <#F 与全角标点等 U+F000-U+FFFF 的 herk 序列 <#FF08> 撞车）；形如
+;; <#...> 的闭合片段，herk 截断保护同样不会把它切半。
 
-;; 字符预算同 ghost：选区前 1500 字节 / 选区后 500 字节（herk 编码下 CJK
-;; 一个字占 7 字节的 <#XXXX> 序列，预算按字节计、截断不切半序列）
+;; 字符预算：选区前 1500 字节 / 选区后 1500 字节，上下文等长（1601：下文
+;; 原照 ghost 的 500 字节，引文1 下文明显短于上文）。herk 编码下 CJK 一个
+;; 字占 7 字节的 <#XXXX> 序列，预算按字节计、截断不切半序列
 
 (define ai-context-before-limit 1500)
 
-(define ai-context-after-limit 500)
+(define ai-context-after-limit ai-context-before-limit)
 
 (define ai-formula-labels
   '(equation equation* eqnarray eqnarray* align align* math)
@@ -103,7 +105,7 @@
   ) ;and
 ) ;define
 
-;; 展平遇到的公式子树登记表（ai-selection-context 入口重置）：哨兵 <#F<k>G>
+;; 展平遇到的公式子树登记表（ai-selection-context 入口重置）：哨兵 <#Z<k>G>
 ;; 的 k 即本列表下标，重组时原位换回子树
 
 (define ai-formula-store '())
@@ -115,7 +117,7 @@
 (define (ai-formula-sentinel st)
   (let ((k (length ai-formula-store)))
     (set! ai-formula-store (append ai-formula-store (list st)))
-    (string-append "<#F" (number->string k) "G>")
+    (string-append "<#Z" (number->string k) "G>")
   ) ;let
 ) ;define
 
@@ -208,43 +210,58 @@
   ) ;let*
 ) ;define
 
-;; ===== 截断：不切半 herk 的 <#XXXX> 序列 =====
+;; ===== 截断：不切半 <#...> 闭合片段（herk 序列 / 公式哨兵）=====
 
-;; 保留前 limit 字节；切点落入 <#...> 序列内（序列起点在窗内且 '>' 未到）
-;; 时退到序列起点
+;; <#...> 闭合片段的最大字节长度：herk <#XXXX> 固定 7 字节，哨兵 <#Z<k>G>
+;; 随登记表下标变长；判定窗口按 16 字节留足余量，超过的 <# 视为普通文本
+
+(define ai-markup-max-len 16)
+
+;; 跨过切点 cut 的 <#...> 闭合片段，命中返回 (open . close)，无则 #f。
+;; 窗口内先命中的 <# 可能属于早已闭合的前一个片段（密集 CJK 文本中 herk
+;; 序列两两相邻），须逐个向后排查，不能只看第一个——否则会回退成原始字节
+;; 切割，产出 "#8A00>" 之类缺 '<' 的半截序列（1601）
+
+(define (ai-markup-spanning s cut)
+  (let loop
+    ((open (string-search-forwards "<#" (max 0 (- cut ai-markup-max-len)) s)))
+    (cond ((or (< open 0) (>= open cut)) #f)
+          (else
+            (let ((close (string-search-forwards ">" (+ open 2) s)))
+              (cond ((< close 0) #f)
+                    ((> (- close open) ai-markup-max-len)
+                     (loop (string-search-forwards "<#" (+ open 2) s))
+                    ) ;
+                    ((>= close cut) (cons open close))
+                    (else (loop (string-search-forwards "<#" (+ close 1) s)))
+              ) ;cond
+            ) ;let
+          ) ;else
+    ) ;cond
+  ) ;let
+) ;define
+
+;; 保留前 limit 字节；切点落入 <#...> 片段内时退到片段起点
 
 (define (ai-herk-head s limit)
   (let ((n (string-length s)))
     (if (<= n limit)
       s
-      (let* ((cand (substring s 0 limit))
-             (open (string-search-forwards "<#" (max 0 (- limit 8)) cand))
-            ) ;
-        (if (and (>= open 0) (< (string-search-forwards ">" open cand) 0))
-          (substring cand 0 open)
-          cand
-        ) ;if
-      ) ;let*
+      (let ((span (ai-markup-spanning s limit)))
+        (string-take s (if span (car span) limit))
+      ) ;let
     ) ;if
   ) ;let
 ) ;define
 
-;; 保留后 limit 字节；切点左侧有未闭合的 <# 时，从序列 '>' 之后开始
+;; 保留后 limit 字节；切点落入 <#...> 片段内时从片段 '>' 之后开始
 
 (define (ai-herk-tail s limit)
   (let ((n (string-length s)))
     (if (<= n limit)
       s
-      (let* ((start (- n limit)) (open (string-search-forwards "<#" (max 0 (- start 8)) s)))
-        (if (and (>= open 0) (< open start))
-          (let ((close (string-search-forwards ">" open s)))
-            (if (and (>= close 0) (>= close start))
-              (substring s (+ close 1) n)
-              (substring s start n)
-            ) ;if
-          ) ;let
-          (substring s start n)
-        ) ;if
+      (let* ((start (- n limit)) (span (ai-markup-spanning s start)))
+        (string-drop s (if span (+ (cdr span) 1) start))
       ) ;let*
     ) ;if
   ) ;let
@@ -252,27 +269,48 @@
 
 ;; ===== 重组：哨兵换回公式子树，文本组装成 document stree =====
 
-;; 一行文本按哨兵 <#F<k>G> 拆成节点列表（字符串与公式子树交错），空串剔除
+;; 从 pos 起找下一个合法哨兵，返回 (open close k)，无则 #f。
+;; 前缀 <#Z 不会出现在真实 herk 文本里（<# 后只可能是十六进制数字），
+;; 密集 CJK 行一次前缀搜索即判无哨兵；仍校验完整形态（十进制下标 + G>、
+;; 下标在登记表范围内），兜底用户字面输入的 <#Z..，校验不过当普通文本
+;; 跳过继续找
 
-(define (ai-sentinel-split s store)
-  (let ((open (string-search-forwards "<#F" 0 s)))
+(define (ai-sentinel-find s pos store)
+  (let ((open (string-search-forwards "<#Z" pos s)))
     (if (< open 0)
-      (if (> (string-length s) 0) (list s) '())
-      (let ((close (string-search-forwards "G>" (+ open 2) s)))
+      #f
+      (let ((close (string-search-forwards "G>" (+ open 3) s)))
         (if (< close 0)
-          ;; 截断保护不切半哨兵，不会走到；兜底丢弃残片，哨兵不外泄
-          (list (substring s 0 open))
-          (let* ((k (string->number (substring s (+ open 3) close)))
-                 (head (substring s 0 open))
-                 (tail (substring s (+ close 2) (string-length s)))
-                ) ;
-            (append (if (> (string-length head) 0) (list head) '())
-              (list (list-ref store k))
-              (ai-sentinel-split tail store)
-            ) ;append
-          ) ;let*
+          #f
+          (let ((k (string->number (substring s (+ open 3) close))))
+            (if (and k (integer? k) (exact? k) (>= k 0) (< k (length store)))
+              (list open close k)
+              (ai-sentinel-find s (+ open 3) store)
+            ) ;if
+          ) ;let
         ) ;if
       ) ;let
+    ) ;if
+  ) ;let
+) ;define
+
+;; 一行文本按哨兵 <#Z<k>G> 拆成节点列表（字符串与公式子树交错），空串剔除
+
+(define (ai-sentinel-split s store)
+  (let ((hit (ai-sentinel-find s 0 store)))
+    (if (not hit)
+      (if (> (string-length s) 0) (list s) '())
+      (let* ((open (car hit))
+             (close (cadr hit))
+             (k (caddr hit))
+             (head (substring s 0 open))
+             (tail (substring s (+ close 2) (string-length s)))
+            ) ;
+        (append (if (> (string-length head) 0) (list head) '())
+          (list (list-ref store k))
+          (ai-sentinel-split tail store)
+        ) ;append
+      ) ;let*
     ) ;if
   ) ;let
 ) ;define
