@@ -130,21 +130,40 @@
 ) ;define
 
 (define (test-flatten-markers)
-  ;; 表格/图片换成文本标记（照 ghost 上下文约定）；公式登记子树、留哨兵
-  (ai-formula-store-reset!)
+  ;; 图片换文本标记（照 ghost 上下文约定）；公式/表格登记子树、留哨兵
+  (ai-subtree-store-reset!)
   (check (ai-flatten-text '(para "a " (image "x.png") " b")) => "a [IMAGE] b")
+  (check (ai-flatten-text '(para (equation "x"))) => "<#Z0G>")
+  (check ai-subtree-store => '((equation "x")))
+  ;; 1607：表格与公式一样整棵登记留哨兵，不再换成 [TABLE] 字面文本；取外层
+  ;; tabular 整体（内层 table 会丢包裹），tformat 的 cwith 属性串不外泄
+  (let ((tab
+          '(tabular (tformat (cwith "1" "1" "-1" "-1" "cell-background"
+                               "#eeeeee")
+                      (table (row (cell "1") (cell "2")))))
+        ) ;tab
+       ) ;
+    (ai-subtree-store-reset!)
+    (check
+      (ai-flatten-text `(para ,"see " ,tab ," here"))
+      =>
+      "see <#Z0G> here"
+    ) ;check
+    (check ai-subtree-store => (list tab))
+  ) ;let
+  ;; 裸 table（无包裹兜底）同样登记
+  (ai-subtree-store-reset!)
   (check
     (ai-flatten-text '(table (row (cell "1"))))
     =>
-    "[TABLE]"
+    "<#Z0G>"
   ) ;check
-  (check (ai-flatten-text '(para (equation "x"))) => "<#Z0G>")
-  (check ai-formula-store => '((equation "x")))
+  (check ai-subtree-store => '((table (row (cell "1")))))
 ) ;define
 
 (define (test-flatten-with-node)
   ;; with：inline 数学登记子树留哨兵；其余只取末尾 body（前面是 key/val 属性对）
-  (ai-formula-store-reset!)
+  (ai-subtree-store-reset!)
   (check
     (ai-flatten-text '(para "see "
                         (with ("mode" "math") (rsub "x" "1"))
@@ -152,7 +171,7 @@
     =>
     "see <#Z0G> here"
   ) ;check
-  (check ai-formula-store => '((with ("mode" "math") (rsub "x" "1"))))
+  (check ai-subtree-store => '((with ("mode" "math") (rsub "x" "1"))))
   (check
     (ai-flatten-text '(para (with ("color" "red") (concat "a" "b"))))
     =>
@@ -184,16 +203,16 @@
   ) ;check
   ;; 公式/表格/图片不透明：光标入内时整体标记归 after（行内内容外面套
   ;; para——document 的直接子节点是段落，裸字符串并列会被加换行分隔）；
-  ;; 公式登记子树、留哨兵
-  (ai-formula-store-reset!)
+  ;; 公式/表格登记子树、留哨兵
+  (ai-subtree-store-reset!)
   (check
     (ai-split-node '(document (para "see " (equation "x") " here")) '(0 1 0))
     =>
     '("see " . "<#Z0G> here")
   ) ;check
-  (check ai-formula-store => '((equation "x")))
+  (check ai-subtree-store => '((equation "x")))
   ;; inline 数学（with "mode" "math"）同样不透明
-  (ai-formula-store-reset!)
+  (ai-subtree-store-reset!)
   (check
     (ai-split-node
       '(document (para "a" (with ("mode" "math") (rsub "x" "1")) "b"))
@@ -202,6 +221,17 @@
     =>
     '("a" . "<#Z0G>b")
   ) ;check
+  ;; 1607：表格（外层包裹）同样不透明，光标入内整棵归 after
+  (ai-subtree-store-reset!)
+  (check
+    (ai-split-node
+      '(document (para "a" (tabular (table (row (cell "1")))) "b"))
+      '(0 1 0)
+    ) ;ai-split-node
+    =>
+    '("a" . "<#Z0G>b")
+  ) ;check
+  (check ai-subtree-store => '((tabular (table (row (cell "1"))))))
 ) ;define
 
 ;; ===== 截断不切半 herk 的 <#XXXX> 序列 =====
@@ -288,7 +318,7 @@
 
 (define (test-context-full-width-punct)
   ;; 选区嵌在末段中间：引文1 各段完整（含以全角括号开头的段），无半截 herk
-  (ai-formula-store-reset!)
+  (ai-subtree-store-reset!)
   ;; 上下文预算等长（1601：下文 500 字节明显短于上文，拉齐为同一预算）
   (check ai-context-after-limit => ai-context-before-limit)
   (let* ((para-a "<#76F8><#6DF7><#6DC6><#3002> <#5173><#952E><#8BCD><#FF08>3-5 <#4E2A><#FF09><#662F>"
@@ -302,7 +332,7 @@
          (at-end (ai-split-node body '(2 28)))
          (before (ai-herk-tail (car at-start) ai-context-before-limit))
          (after (ai-herk-head (cdr at-end) ai-context-after-limit))
-         (doc-tree (ai-context->document (string-append before "XY" after) ai-formula-store)
+         (doc-tree (ai-context->document (string-append before "XY" after) ai-subtree-store)
          ) ;doc-tree
         ) ;
     (check doc-tree
