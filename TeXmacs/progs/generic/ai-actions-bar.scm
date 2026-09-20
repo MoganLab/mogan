@@ -63,17 +63,20 @@
 ;; 释义上下文（引文1）：ghost 字符预算窗口
 ;; =============================================================================
 ;; 展平与切分照 ghost 上下文（liii ghost-context.scm 的 ghost-split-text-context，
-;; mogan2 不依赖该插件，此处自实现）：表格/图片换成 [TABLE]/[IMAGE] 标记，with
-;; 只取末尾 body（前面是 key/val 属性对），document 子节点换行连接；按路径把
-;; 正文切成（选区前文本 . 选区后文本），再按字符预算截断。
+;; mogan2 不依赖该插件，此处自实现）：图片换成 [IMAGE] 标记，公式与表格保留
+;; 为真实子树（0996 公式、1607 表格），with 只取末尾 body（前面是 key/val
+;; 属性对），document 子节点换行连接；按路径把正文切成（选区前文本 . 选区后
+;; 文本），再按字符预算截断。
 ;;
-;; 公式不走文本标记（0996 追加：引文块里公式要渲染成真实公式，与翻译/对话的
-;; 引用块一致）：展平时公式子树登记进 ai-formula-store 并在文本里留下
-;; <#Z<k>G> 哨兵（k 为登记表下标），切分/截断完成后由 ai-context->document
-;; 把哨兵原位换回子树，组装成 document 树。哨兵前缀 <#Z 的 Z 不是十六进制
-;; 字符，而真实 herk 的 <# 后只可能是十六进制数字，前缀层面不会撞车（1601：
-;; 原前缀 <#F 与全角标点等 U+F000-U+FFFF 的 herk 序列 <#FF08> 撞车）；形如
-;; <#...> 的闭合片段，herk 截断保护同样不会把它切半。
+;; 公式/表格不走文本标记（引文块里要渲染成真实公式/表格，与翻译/对话的引用
+;; 块一致）：展平时子树登记进 ai-subtree-store 并在文本里留下 <#Z<k>G> 哨兵
+;; （k 为登记表下标），切分/截断完成后由 ai-context->document 把哨兵原位换回
+;; 子树，组装成 document 树。表格取外层包裹（tabular 等）整体入表：只换内层
+;; table 会丢包裹致无法渲染，tformat 的 cwith 属性串也会外泄进上下文。哨兵
+;; 前缀 <#Z 的 Z 不是十六进制字符，而真实 herk 的 <# 后只可能是十六进制数字，
+;; 前缀层面不会撞车（1601：原前缀 <#F 与全角标点等 U+F000-U+FFFF 的 herk
+;; 序列 <#FF08> 撞车）；形如 <#...> 的闭合片段，herk 截断保护同样不会把它
+;; 切半。
 
 ;; 字符预算：选区前 1500 字节 / 选区后 1500 字节，上下文等长（1601：下文
 ;; 原照 ghost 的 500 字节，引文1 下文明显短于上文）。herk 编码下 CJK 一个
@@ -87,7 +90,13 @@
   '(equation equation* eqnarray eqnarray* align align* math)
 ) ;define
 
-(define ai-table-labels '(table table*))
+;; 表格标签取外层包裹（table-edit 的 table-tag/wide-table-tag 组），内层裸
+;; table 仅兜底：整棵子树入登记表，tformat 的 cwith 属性串不外泄（1607）。
+;; 硬编码不派生 table-tag-list：本模块须可脱离 table-edit 单测加载
+
+(define ai-table-labels
+  '(tabular tabular* block block* wide-tabular wide-block table table*)
+) ;define
 
 (define ai-image-labels '(image postscript graphics draw-over draw-under))
 
@@ -109,50 +118,51 @@
   ) ;and
 ) ;define
 
-;; 展平遇到的公式子树登记表（ai-selection-context 入口重置）：哨兵 <#Z<k>G>
-;; 的 k 即本列表下标，重组时原位换回子树
+;; 展平遇到的公式/表格子树登记表（ai-selection-context 入口重置）：哨兵
+;; <#Z<k>G> 的 k 即本列表下标，重组时原位换回子树
 
-(define ai-formula-store '())
+(define ai-subtree-store '())
 
-(define (ai-formula-store-reset!)
-  (set! ai-formula-store '())
+(define (ai-subtree-store-reset!)
+  (set! ai-subtree-store '())
 ) ;define
 
-(define (ai-formula-sentinel st)
-  (let ((k (length ai-formula-store)))
-    (set! ai-formula-store (append ai-formula-store (list st)))
+(define (ai-subtree-sentinel st)
+  (let ((k (length ai-subtree-store)))
+    (set! ai-subtree-store (append ai-subtree-store (list st)))
     (string-append "<#Z" (number->string k) "G>")
   ) ;let
 ) ;define
 
-;; 不透明节点（公式/表格/图片，含 inline 数学 with）谓词，纯函数；
-;; ai-marker 有登记副作用，cond 测试位只能用本谓词
+;; 登记子树的节点（公式/表格，含 inline 数学 with）谓词，纯函数
 
-(define (ai-opaque-node? st)
+(define (ai-subtree-node? st)
   (or (ai-inline-math? st)
     (memq (car st) ai-formula-labels)
     (memq (car st) ai-table-labels)
-    (memq (car st) ai-image-labels)
   ) ;or
 ) ;define
 
-;; 不透明节点的替换标记，透明则 #f；公式登记子树后留哨兵，表格/图片留文本标记
+;; 不透明节点（登记子树的公式/表格 + 文本标记的图片）谓词，纯函数；
+;; ai-marker 有登记副作用，cond 测试位只能用纯谓词
+
+(define (ai-opaque-node? st)
+  (or (ai-subtree-node? st) (memq (car st) ai-image-labels))
+) ;define
+
+;; 不透明节点的替换标记，透明则 #f；公式/表格登记子树后留哨兵，图片留文本标记
 
 (define (ai-marker st)
-  (cond
-   ((or (ai-inline-math? st) (memq (car st) ai-formula-labels))
-    (ai-formula-sentinel st)
-   ) ;
-   ((memq (car st) ai-table-labels) "[TABLE]")
-   ((memq (car st) ai-image-labels) "[IMAGE]")
-   (else #f)
+  (cond ((memq (car st) ai-image-labels) "[IMAGE]")
+        ((ai-subtree-node? st) (ai-subtree-sentinel st))
+        (else #f)
   ) ;cond
 ) ;define
 
 (define (ai-flatten-text st)
   (cond ((string? st) st)
         ((not (pair? st)) "")
-        ;; with：inline 数学整体替换；其余只取末尾 body（前面是 key/val 属性对）
+        ;; with：inline 数学整体登记留哨兵；其余只取末尾 body（前面是 key/val 属性对）
         ((eq? (car st) 'with) (or (ai-marker st) (ai-flatten-text (last st))))
         ((eq? (car st) 'document) (string-join (map ai-flatten-text (cdr st)) "\n"))
         (else
@@ -343,14 +353,14 @@
 ) ;define
 
 (tm-define (ai-selection-context)
-  (:synopsis "选区上下文（AI 释义的引文1）的 document 树，公式保留为子树"
+  (:synopsis "选区上下文（AI 释义的引文1）的 document 树，公式与表格保留为子树"
   ) ;:synopsis
   ;; ghost 式字符预算窗口：选区前最多 ai-context-before-limit 字节 + 选区
   ;; 本身 + 选区后最多 ai-context-after-limit 字节。跨段落自然延伸、可在
   ;; 段落中间截断；选区嵌在引文1 中段，「引文2是引文1的一部分」成立。
   ;; 路径剥掉 buffer 前缀后对正文 stree 切分（同 ghost-relative-path）；
-  ;; 展平文本中的公式哨兵在重组时换回子树（引用块里渲染成真实公式）
-  (ai-formula-store-reset!)
+  ;; 展平文本中的公式/表格哨兵在重组时换回子树（引用块里渲染成真实公式/表格）
+  (ai-subtree-store-reset!)
   (let* ((body (tm->stree (buffer-get-body (current-buffer))))
          (bp (buffer-path))
          (rel
@@ -363,7 +373,7 @@
          (middle (ai-flatten-text (tm->stree (selection-tree))))
         ) ;
     (stree->tree (ai-context->document (tm-string-trim-both (string-append before middle after))
-                   ai-formula-store
+                   ai-subtree-store
                  ) ;ai-context->document
     ) ;stree->tree
   ) ;let*
