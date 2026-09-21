@@ -16,6 +16,7 @@
     (utils library cursor)
     (dynamic fold-edit)
     (kernel texmacs pref-keys)
+    (utils misc wait-dialog)
   ) ;:use
 ) ;texmacs-module
 
@@ -125,26 +126,49 @@
   ) ;let*
 ) ;tm-define
 
+(define (run-with-pdf-wait-dialog thunk on-done)
+  (if (headless?)
+    (begin
+      (thunk)
+      (on-done)
+    ) ;begin
+    (let ((cancelled? #f))
+      (wait-dialog-open "Exporting, please wait..." (lambda () (set! cancelled? #t)))
+      (delayed (:pause 50)
+        (when (not cancelled?)
+          (thunk)
+          (wait-dialog-close)
+          (on-done)
+        ) ;when
+      ) ;delayed
+    ) ;let
+  ) ;if
+) ;define
+
 (tm-define (wrapped-print-to-file fname . opts)
-  (system-wait "Exporting, " (translate "please wait"))
-  (apply export-buffer-to-pdf fname opts)
-  (save-buffer-save (current-buffer)
-    (list)
-    (string-append (url-suffix fname) "_export")
-  ) ;save-buffer-save
-  (system-wait "" "")
-  (user-confirm-open-pdf fname)
+  (run-with-pdf-wait-dialog
+    (lambda ()
+      (apply export-buffer-to-pdf fname opts)
+      (save-buffer-save (current-buffer)
+        (list)
+        (string-append (url-suffix fname) "_export")
+      ) ;save-buffer-save
+    ) ;lambda
+    (lambda () (user-confirm-open-pdf fname))
+  ) ;run-with-pdf-wait-dialog
 ) ;tm-define
 
 (define (wrapped-print-to-pdf-embeded fname kind . opts)
-  (system-wait "Exporting, " (translate "please wait"))
-  (apply export-buffer-to-pdf fname opts)
-  (unless (attach-doc-to-exported-pdf fname)
-    (notify-now (string-append "Fail to attach " kind " to pdf"))
-  ) ;unless
-  (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
-  (system-wait "" "")
-  (user-confirm-open-pdf fname)
+  (run-with-pdf-wait-dialog
+    (lambda ()
+      (apply export-buffer-to-pdf fname opts)
+      (unless (attach-doc-to-exported-pdf fname)
+        (notify-now (string-append "Fail to attach " kind " to pdf"))
+      ) ;unless
+      (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
+    ) ;lambda
+    (lambda () (user-confirm-open-pdf fname))
+  ) ;run-with-pdf-wait-dialog
 ) ;define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tm fname . opts)

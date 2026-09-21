@@ -180,6 +180,7 @@
 ) ;
 ("Downloading the update..." "正在下载更新，请稍候...")
 ("Processing, please wait..." "正在处理，请稍候...")
+("Exporting, please wait..." "导出中，请稍候...")
 ("Timed out waiting for the update check" "等待更新检查超时")
 ("Timed out waiting for the previous update task"
   "等待上一个更新任务超时"

@@ -898,6 +898,7 @@ static QPointer<QDialog> g_wait_dialog_host;
  */
 void
 cpp_wait_dialog_open (string message) {
+  if (headless_mode) return;
   if (g_wait_dialog_host) return; // 已打开不重复弹
   run_modal_qml_dialog (
       "qrc:/qml/WaitProgressDialog.qml", "wait progress dialog",
@@ -927,8 +928,11 @@ cpp_wait_dialog_open (string message) {
  */
 void
 cpp_wait_dialog_close () {
-  if (g_wait_dialog_host) g_wait_dialog_host->close ();
-  g_wait_dialog_host= nullptr;
+  if (g_wait_dialog_host) {
+    QDialog* host     = g_wait_dialog_host.data ();
+    g_wait_dialog_host= nullptr;
+    delete host;
+  }
 }
 
 /**

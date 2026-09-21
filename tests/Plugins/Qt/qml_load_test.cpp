@@ -313,6 +313,7 @@ private slots:
   void test_export_pdf_home_path_display ();
   void test_export_pdf_path_utf8_roundtrip ();
   void test_updater_progress_loads ();
+  void test_wait_progress_dialog_loads ();
   void test_color_picker_loads ();
   void test_bibliography_loads ();
   void test_go_menu_loads ();
@@ -858,6 +859,25 @@ TestQmlLoad::test_updater_progress_loads () {
   qw->rootContext ()->setContextProperty (
       "dialogMessage", QString ("Downloading the update..."));
   qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_wait_progress_dialog_loads () {
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("waitCancelBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage", QString ("Exporting, please wait..."));
+  QStringList buttons;
+  buttons << QString ("Cancel");
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/WaitProgressDialog.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
