@@ -10,15 +10,40 @@
       (itemize (document (concat (item) (hlink "dddd.md" "dddd.md") " - 任务文档模板"))
       ) ;itemize
       (section* "2 任务相关的代码文件")
+      (itemize (document (concat (item) "src/Edit/Editor/edit_typeset.hpp")
+                 (concat (item) "src/Edit/Editor/edit_typeset.cpp")
+                 (concat (item) "src/Edit/Process/edit_process.cpp")
+                 (concat (item) "src/Edit/editor.hpp")
+                 (concat (item) "src/Texmacs/Data/new_buffer.cpp")
+                 (concat (item) "TeXmacs/progs/texmacs/texmacs/tm-tools.scm")
+                 (concat (item) "TeXmacs/progs/texmacs/texmacs/tests/save-aux-test.scm")
+               ) ;document
+      ) ;itemize
       (section* "3 如何测试")
       (subsection* "3.1 单元测试")
+      (verbatim "xmake b stem && xmake r save-aux-test")
       (subsection* "3.2 集成测试")
+      "无"
       (subsection* "3.3 端到端测试")
+      "打开一个 STEM 文档，在【工具→杂项】中观察【保存辅助数据】左侧无勾选（默认关闭）；点击后勾选，保存后包含辅助数据；再次点击关闭勾选。"
       (section* "5 What")
       "【保存辅助数据】这个选项默认是打开，导致在保存STEM文件的时候，会有文档内容之外的干扰信息。"
-      "本次任务只针对STEM格式的文档，关闭这个选项。"
+      "本次任务只针对STEM格式的文档，关闭这个选项；非STEM格式（如 TM/TMU）保持默认开启不变。"
       (section* "6 Why")
+      "STEM 格式强调文档源文件的精简与清晰，便于版本控制与外部工具处理。references 与 auxiliary 属于排版缓存与辅助数据，默认写入会导致文件产生冗余信息。因此对 STEM 文档默认关闭辅助数据保存；若用户有需要，可通过菜单手动开启。"
       (section* "7 How")
+      (enumerate-numeric (document (item* "1. ")
+                           "edit_typeset: edit_typeset_rep 新增 is_stem() 判断；在 typeset_preamble 与 get_init_value 中，针对 STEM 文档将 SAVE_AUX 默认置为 \"false\"；在 init_env、init_default 与 set_data 中重置 pre 缓存并使环境失效，确保切换即时响应；"
+                           (item* "2. ")
+                           "edit_process: edit_process_rep::get_save_aux() 在 STEM 文档且未显式指定时默认返回 false；"
+                           (item* "3. ")
+                           "buffer_export: buffer_export 中对 stem 格式在未显式定义 SAVE_AUX 时默认不导出辅助数据（no_aux = true）；"
+                           (item* "4. ")
+                           "Scheme 工具函数: tm-tools.scm 中 save-aux-enabled? 改为 tm-define，以便外部模块与单元测试调用；"
+                           (item* "5. ")
+                           "测试: 新增 save-aux-test.scm 纯逻辑单元测试，覆盖默认值、toggle 切换及导出行为。"
+                         ) ;document
+      ) ;enumerate-numeric
     ) ;document
   ) ;body
   (initial (collection (associate "page-screen-margin" "false")
