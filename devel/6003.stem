@@ -7,17 +7,51 @@
     (document (chapter* "[6003] 在英文界面的主题中，应该默认显示深色和浅色对应的英文"
               ) ;chapter*
       (section* "1 相关文档")
-      (itemize (document (concat (item) (slink "dddd.stem") " - 任务文档模板")))
+      (itemize (document (concat (item) (slink "dddd.stem") " - 任务文档模板")
+                 (concat (item) (slink "1604.md") " - 英文界面主题按钮首字母大写")
+               ) ;document
+      ) ;itemize
       (section* "2 任务相关的代码文件")
+      (itemize (document (concat (item) (verbatim "TeXmacs/progs/various/theme-menu.scm"))
+                 (concat (item) (verbatim "TeXmacs/plugins/lang/dic/en_US/zh_CN.scm"))
+                 (concat (item) (verbatim "TeXmacs/progs/various/tests/theme-menu-test.scm"))
+               ) ;document
+      ) ;itemize
       (section* "3 如何测试")
       (subsection* "3.1 单元测试")
+      "运行 Scheme 纯逻辑单元测试："
+      (bash-code (document "xmake r theme-menu-test"))
       (subsection* "3.2 集成测试")
+      "无"
       (subsection* "3.3 端到端测试")
+      "手动测试："
+      (enumerate (document (concat (item) "启动 Mogan STEM，在英文界面下打开任意文档；")
+                   (concat (item) "底部焦点工具栏中主题按钮显示为 Theme；")
+                   (concat (item)
+                     "点击 Theme 按钮展开主题菜单，确认选项显示为 Light 和 Dark（首字母大写）；"
+                   ) ;concat
+                   (concat (item)
+                     "切换为中文界面后，确认按钮显示为「主题」，菜单选项显示为「浅色」和「深色」。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
       (section* "5 What")
-      "现状：默认显示为 Theme，点击 Theme 之后，可以看到 Plain 和 dark 这两个选项。"
-      "在中文界面中，默认显示为主题，在点击主题之后，可以看到浅色和深色这两个选项。中文界面是符合期望的。英文界面的Plain这个提示看不出浅色的含义，深色采用 dark，首字母没有设置为大写。"
+      "现状：默认显示为 Theme，点击 Theme 之后，可以看到 Plain 和 dark 这两个选项。在中文界面中，默认显示为主题，在点击主题之后，可以看到浅色和深色这两个选项。中文界面是符合期望的。英文界面的Plain这个提示看不出浅色的含义，深色采用 dark，首字母没有设置为大写。"
+      "改动后：英文界面主题菜单中选项显示为 Light 和 Dark，表意清晰且首字母大写；中文界面保持 浅色 和 深色 不变。"
       (section* "6 Why")
+      "主题菜单名称由 basic-theme-menu-name 拼接 ::theme 后调用 translate 获取。原实现中 plain 映射为 Plain::theme，英文环境下直接返回 Plain，无法表达「浅色」语义；dark 未做首字母大写处理直接返回 dark。中文词典中对应翻译为「浅色」与「深色」，英文对应词条应为 Light 与 Dark。"
       (section* "7 How")
+      (enumerate (document (concat (item)
+                             "在 TeXmacs/progs/various/theme-menu.scm 中，修改 basic-theme-menu-name，将 plain 对应的英文键设为 Light，其余主题应用 upcase-first，并对 translate 结果统一应用 upcase-first；"
+                           ) ;concat
+                   (concat (item)
+                     "在 TeXmacs/plugins/lang/dic/en_US/zh_CN.scm 中补充 Light::theme 和 Dark::theme 到「浅色」和「深色」的翻译，并保留原有条目兼容；"
+                   ) ;concat
+                   (concat (item)
+                     "新增单元测试 TeXmacs/progs/various/tests/theme-menu-test.scm，验证英文和中文环境下主题菜单项及按钮名称。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
     ) ;document
   ) ;body
   (initial (collection (associate "page-screen-margin" "false")
