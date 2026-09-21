@@ -352,6 +352,7 @@
       (assign "quote-bar-width" "2pt")
       (assign "quote-hpadding" "1.2em")
       (assign "quote-vpadding" "0.5em")
+      (assign "quote-width" "1par")
       (assign "verse-hangover" "1tab")
       (assign "jump-in-hangover" "1tab")
       ""
@@ -361,7 +362,7 @@
             (surround (no-indent)
               ""
               (tabular
-                (tformat (twith "table-width" "1par")
+                (tformat (twith "table-width" (value "quote-width"))
                   (twith "table-halign" "l")
                   (twith "table-lsep" (value "quote-bar-width"))
                   (cwith "1" "-1" "1" "-1" "cell-halign" "l")
@@ -369,7 +370,7 @@
                   (cwith "1" "-1" "1" "1" "cell-lborder" (value "quote-bar-width"))
                   (cwith "1" "-1" "1" "1" "cell-border-color" (value "quote-bar-color"))
                   (cwith "1" "-1" "1" "1" "cell-lsep" (value "quote-hpadding"))
-                  (cwith "1" "-1" "1" "1" "cell-rsep" "0fn")
+                  (cwith "1" "-1" "1" "1" "cell-rsep" (value "quote-hpadding"))
                   (cwith "1" "-1" "1" "-1" "cell-tsep" (value "quote-vpadding"))
                   (cwith "1" "-1" "1" "-1" "cell-bsep" (value "quote-vpadding"))
                   (table

@@ -262,6 +262,16 @@ private slots:
         ChatController::composeAiInputBody (tree ("sel"), "explain", ctx);
     QVERIFY (body[1] == compound ("quote-env", ctx));
   }
+
+  void test_compose_explain_context_preserves_itemize () {
+    // 6202: 选区上下文（引文1）中含无序列表时整棵子树保留在 quote-env 引用块中
+    tree item_node= compound (
+        "itemize", tree (DOCUMENT, compound ("item*"), tree ("item 1")));
+    tree ctx= tree (DOCUMENT, tree ("before"), item_node, tree ("after"));
+    tree body=
+        ChatController::composeAiInputBody (tree ("sel"), "explain", ctx);
+    QVERIFY (body[1] == compound ("quote-env", ctx));
+  }
 };
 
 QTEST_MAIN (TestChatController)

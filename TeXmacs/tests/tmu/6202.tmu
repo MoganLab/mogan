@@ -1,0 +1,61 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|llm|dark>>
+
+<\body>
+  <\session|llm|chat-tab:TEST-6202>
+    <\unfolded-io-text>
+      llm\>\ 
+    <|unfolded-io-text>
+      引用1
+
+      <\quote-env>
+        三、在引文1中的具体作用与文学功能
+
+        1. 语境
+
+        引文1描述的是宇宙从混沌到有序的演化过程：
+
+        <\itemize>
+          <item>子会：天开始有根（“天开于子”）——轻清者上腾，形成日月星辰（四象）。
+
+          <item>丑会：地开始凝结（“地辟于丑”）——重浊者下凝，形成水火山石土（五形）。
+
+          <item>寅会：天地交合，生人、生兽、生禽（“人生于寅”）。“乾元”出现在子会将来、丑会将来的转折点上。吴承恩在用《易经》，是为了说明：
+
+          <item>天（乾元）创始万物，地（坤元）顺承天而资生万物。
+
+          <item>因此，在“子会”天已经形成之后，大地（丑会）才开始凝结，这是“坤元”顺承“乾元”的表现。
+        </itemize>
+
+        2. 文学功能
+
+        吴承恩在此处的引用与前面的邵雍诗句（“冬至子之半，天心无改移……”）一样，都是引经据典以增加权威性。他借《易经》的宇宙论语言，将佛教的“四大部洲”（在附油渊等）更加...
+      </quote-env>
+
+      引用2
+
+      <\quote-env>
+        xiyouji
+      </quote-env>
+
+      引文2是引文1的一部分，解释一下引文2的含义（含义的范围包括字典、专业术语等）
+    <|unfolded-io-text>
+      这是回答。
+    </unfolded-io-text>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|dpi|600>
+    <associate|font|sys-chinese>
+    <associate|page-medium|automatic>
+    <associate|page-screen-left|4px>
+    <associate|page-screen-right|4px>
+    <associate|page-screen-top|2px>
+    <associate|page-screen-bot|2px>
+    <associate|scroll-bars|false>
+    <associate|zoom-factor|1.0>
+  </collection>
+</initial>

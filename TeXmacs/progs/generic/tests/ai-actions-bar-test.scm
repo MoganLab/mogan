@@ -159,6 +159,20 @@
     "<#Z0G>"
   ) ;check
   (check ai-subtree-store => '((table (row (cell "1")))))
+  ;; 6202：无序列表/有序列表整棵登记为子树留哨兵，(item) 标记与列表结构不丢失
+  (let ((item-node
+          '(itemize (document (concat (item) "子会：天开始有根")
+                      (concat (item) "丑会：地开始凝结")))
+        ) ;item-node
+       ) ;
+    (ai-subtree-store-reset!)
+    (check
+      (ai-flatten-text `(document (para "前文") ,item-node (para "后文")))
+      =>
+      "前文\n<#Z0G>\n后文"
+    ) ;check
+    (check ai-subtree-store => (list item-node))
+  ) ;let
 ) ;define
 
 (define (test-flatten-with-node)
@@ -232,6 +246,20 @@
     '("a" . "<#Z0G>b")
   ) ;check
   (check ai-subtree-store => '((tabular (table (row (cell "1"))))))
+  ;; 6202：无序列表同样不透明，光标入内整棵归 after
+  (let ((item-node
+          '(itemize (document (concat (item) "第一项")
+                      (concat (item) "第二项")))
+        ) ;item-node
+       ) ;
+    (ai-subtree-store-reset!)
+    (check
+      (ai-split-node `(document (para "a") ,item-node (para "b")) '(1 0 0 1))
+      =>
+      '("a\n" . "<#Z0G>\nb")
+    ) ;check
+    (check ai-subtree-store => (list item-node))
+  ) ;let
 ) ;define
 
 ;; ===== 截断不切半 herk 的 <#XXXX> 序列 =====
@@ -311,6 +339,18 @@
     ) ;check
     ;; 公式独占一段：不套 concat
     (check (ai-context->document "<#Z0G>" store) => '(document (equation "x")))
+    ;; 6202：无序列表还原为整棵子树独占一段
+    (let* ((lst
+             '(itemize (document (concat (item) "项目1")
+                         (concat (item) "项目2")))
+           ) ;lst
+           (lstore (list lst))
+          ) ;
+      (check (ai-context->document "引言\n<#Z0G>\n结语" lstore)
+        =>
+        (list 'document "引言" lst "结语")
+      ) ;check
+    ) ;let*
   ) ;let
 ) ;define
 

@@ -98,6 +98,20 @@
   '(tabular tabular* block block* wide-tabular wide-block table table*)
 ) ;define
 
+;; 列表标签（text-drd 的 itemize-tag、enumerate-tag、description-tag 组及
+;; 变体）：整棵子树入登记表留哨兵（6202），在引文块里渲染为真实列表，避免
+;; 展平时 item* 被拆解、(item) 标记丢失致列表被压平截断且不正确换行
+
+(define ai-list-labels
+  '(itemize itemize* itemize-minus itemize-dot itemize-arrow enumerate
+     enumerate* enumerate-numeric enumerate-numeric-bracket
+     enumerate-numeric-paren enumerate-roman enumerate-roman-bracket
+     enumerate-roman-paren enumerate-Roman enumerate-alpha
+     enumerate-alpha-bracket enumerate-alpha-paren enumerate-Alpha description
+     description-dash description-aligned description-long
+     description-paragraphs)
+) ;define
+
 (define ai-image-labels '(image postscript graphics draw-over draw-under))
 
 ;; stree 原子与 symbol 判等：属性对可能为字符串或 symbol
@@ -134,12 +148,13 @@
   ) ;let
 ) ;define
 
-;; 登记子树的节点（公式/表格，含 inline 数学 with）谓词，纯函数
+;; 登记子树的节点（公式/表格/列表，含 inline 数学 with）谓词，纯函数
 
 (define (ai-subtree-node? st)
   (or (ai-inline-math? st)
     (memq (car st) ai-formula-labels)
     (memq (car st) ai-table-labels)
+    (memq (car st) ai-list-labels)
   ) ;or
 ) ;define
 
