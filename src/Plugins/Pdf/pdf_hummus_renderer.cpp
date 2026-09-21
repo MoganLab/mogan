@@ -470,8 +470,8 @@ pdf_hummus_renderer_rep::begin_page () {
                         (double) default_dpi / dpi, 0, 0);
 
     set_origin (0, paper_h * dpi * pixel / 2.54);
-    set_clipping (0, (int) ((-dpi * pixel * paper_h) / 2.54),
-                  (int) ((dpi * pixel * paper_w) / 2.54), 0);
+    renderer_rep::set_clipping (0, (int) ((-dpi * pixel * paper_h) / 2.54),
+                                (int) ((dpi * pixel * paper_w) / 2.54), 0);
   }
 }
 
@@ -1493,10 +1493,27 @@ pdf_hummus_renderer_rep::lines (array<SI> x, array<SI> y) {
 void
 pdf_hummus_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
   end_text ();
-  SI xx1= to_x (min (x1, x2));
-  SI yy1= to_y (min (y1, y2));
-  SI xx2= to_x (max (x1, x2));
-  SI yy2= to_y (max (y1, y2));
+  SI rx1= min (x1, x2);
+  SI ry1= min (y1, y2);
+  SI rx2= max (x1, x2);
+  SI ry2= max (y1, y2);
+  outer_round (rx1, ry1, rx2, ry2);
+  SI xx1= to_x (rx1);
+  SI yy1= to_y (ry1);
+  SI xx2= to_x (rx2);
+  SI yy2= to_y (ry2);
+  // When clearing the whole page background, extend slightly beyond the page
+  // bounds to avoid rounding gaps (white edge lines) during rasterization.
+  SI page_w_dots= (SI) (paper_w * dpi / 2.54);
+  SI page_h_dots= (SI) (paper_h * dpi / 2.54);
+  if (xx1 <= 0 && yy1 <= 0 && xx2 >= page_w_dots - 10 &&
+      yy2 >= page_h_dots - 10) {
+    SI margin= max (10, (SI) (5.0 * dpi / default_dpi));
+    xx1-= margin;
+    yy1-= margin;
+    xx2+= margin;
+    yy2+= margin;
+  }
   // debug_convert << "clear" << xx1 << " " << yy1 << " " << xx2 << " " << yy2
   // << LF;
   contentContext->q ();
