@@ -222,7 +222,27 @@ picture
 native_picture (int w, int h, int ox, int oy) {
   fz_pixmap* pix= fz_new_pixmap (
       mupdf_context (), fz_device_rgb (mupdf_context ()), w, h, NULL, 1);
+#ifdef QTTEXMACS
+  if (qt_is_dark_theme ()) {
+    int r, g, b, a;
+    get_rgb_color (tm_background, r, g, b, a);
+    if (r == g && g == b) {
+      fz_clear_pixmap_with_value (mupdf_context (), pix, r);
+    }
+    else {
+      float col[3]= {(float) r / 255.0f, (float) g / 255.0f,
+                     (float) b / 255.0f};
+      fz_fill_pixmap_with_color (mupdf_context (), pix,
+                                 fz_device_rgb (mupdf_context ()), col,
+                                 fz_default_color_params);
+    }
+  }
+  else {
+    fz_clear_pixmap_with_value (mupdf_context (), pix, 255); // white background
+  }
+#else
   fz_clear_pixmap_with_value (mupdf_context (), pix, 255); // white background
+#endif
   picture p= mupdf_picture (pix, ox, oy);
   fz_drop_pixmap (mupdf_context (), pix);
   return p;
