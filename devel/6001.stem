@@ -6,17 +6,78 @@
   (body
     (document (chapter* "[6001] PDF导出的【导出中，请稍后】提示太丑了")
       (section* "1 相关文档")
-      (itemize (document (concat (item) (hlink "dddd.md" "dddd.md") " - 任务文档模板"))
+      (itemize (document (concat (item) (hlink "dddd.md" "dddd.md") " - 任务文档模板")
+                 (concat (item)
+                   (hlink "0521.md" "0521.md")
+                   " - 通用等待弹窗与 OCR 识别链路异步化（可取消）"
+                 ) ;concat
+                 (concat (item)
+                   (hlink "212_5.md" "212_5.md")
+                   " - Fix PDF export wait indicator not disappearing"
+                 ) ;concat
+               ) ;document
       ) ;itemize
       (section* "2 任务相关的代码文件")
+      (itemize (document (concat (item) "TeXmacs/progs/texmacs/texmacs/tm-print.scm")
+                 (concat (item) "TeXmacs/plugins/lang/dic/en_US/zh_CN.scm")
+                 (concat (item) "src/Plugins/Qt/QTMQmlDialog.cpp")
+                 (concat (item) "tests/Plugins/Qt/qml_load_test.cpp")
+                 (concat (item) "TeXmacs/tests/6001.scm")
+               ) ;document
+      ) ;itemize
       (section* "3 如何测试")
       (subsection* "3.1 单元测试")
+      (bash-code (document "xmake b qml_load_test && xmake r qml_load_test\nxmake b print-widgets-test && xmake r print-widgets-test\nxmake b export-pdf-default-dir-test && xmake r export-pdf-default-dir-test"
+                 ) ;document
+      ) ;bash-code
       (subsection* "3.2 集成测试")
+      (bash-code (document "xmake b stem\nxmake r 6001\nMOGAN_TEST_GUI=1 xmake r 6001\nMOGAN_TEST_GUI=1 xmake r 1198"
+                 ) ;document
+      ) ;bash-code
       (subsection* "3.3 端到端测试")
+      (itemize
+        (document (concat (item) (with "font-series" "bold" "手动测试") "：")
+          (enumerate (document (concat (item) "打开 Mogan STEM")
+                       (concat (item) "点击「文件 -> 导出 -> PDF...」")
+                       (concat (item)
+                         "选择路径后点击保存，观察导出过程中弹出的现代化通用等待弹窗（带旋转动画、文案「导出中，请稍候...」与「取消」按钮）"
+                       ) ;concat
+                       (concat (item)
+                         "导出完成后等待弹窗自动关闭，正常弹出「是否打开 PDF」确认提示"
+                       ) ;concat
+                     ) ;document
+          ) ;enumerate
+        ) ;document
+      ) ;itemize
       (section* "5 What")
-      "参考OCR提示的那个实现，并补充相关文档。"
+      "PDF 导出时原先使用的是遗留的 system-wait 提示，界面为古老的无边框粗糙原生矩形框，视觉风格与现代 QML 界面极不协调。本次改动接入 (utils misc wait-dialog) 通用等待弹窗（与 OCR 等异步任务共用，基于 QML WaitProgressDialog），替换原有的 system-wait 机制，并实现导出支持优雅取消与全自动关闭。"
       (section* "6 Why")
+      (enumerate (document (concat (item)
+                             "原提示通过 C++ 底层 system_wait -> show_wait_indicator 弹出原生 QLabel 悬浮框，外观粗糙生硬，缺乏动画反馈，且与 Mogan 当前主题体系（深浅色、圆角卡片、DialogShell 等）格格不入。"
+                           ) ;concat
+                   (concat (item)
+                     "通用等待弹窗 WaitProgressDialog.qml 已经在任务 [0521] 中抽象为独立的通用能力门面 (utils misc wait-dialog)，支持无限转圈动画、主题自适应以及 ESC / 取消按钮回流回调。PDF 导出直接复用该通用组件，保持体验一致，消除重复建设。"
+                   ) ;concat
+                   (concat (item)
+                     "cpp_wait_dialog_close 显式同步清理 g_wait_dialog_host 避免退出阶段被 deferred delete 析构造成 TLS 资源释放后的空指针崩溃。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
       (section* "7 How")
+      (enumerate (document (concat (item)
+                             "在 TeXmacs/progs/texmacs/texmacs/tm-print.scm 中引入 (utils misc wait-dialog) 模块，封装 run-with-pdf-wait-dialog 调度辅助函数；在 GUI 模式下开启 wait-dialog-open，经 50ms 延迟让 Qt 事件循环完成 QML 转圈首帧渲染，随后调度导出并在完成后同步关闭弹窗；在 (headless?) 模式下直接同步执行。"
+                           ) ;concat
+                   (concat (item)
+                     "在 TeXmacs/plugins/lang/dic/en_US/zh_CN.scm 中增加 \"Exporting, please wait...\" 对应的中文翻译 \"导出中，请稍候...\"。"
+                   ) ;concat
+                   (concat (item)
+                     "在 src/Plugins/Qt/QTMQmlDialog.cpp 的 cpp_wait_dialog_open 中增加 headless_mode 防御拦截，在 cpp_wait_dialog_close 中同步显式析构 host 对象，杜绝测试退出时由于 deleteLater 残留触发的段错误。"
+                   ) ;concat
+                   (concat (item)
+                     "在 tests/Plugins/Qt/qml_load_test.cpp 中新增 test_wait_progress_dialog_loads 用例，确保 QML 弹窗正确加载；新增集成测试 TeXmacs/tests/6001.scm，全流程覆盖正常导出与取消链路。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
     ) ;document
   ) ;body
   (initial (collection (associate "page-screen-margin" "false")
