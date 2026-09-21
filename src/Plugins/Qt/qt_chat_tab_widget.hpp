@@ -46,7 +46,8 @@ struct SessionDisplayInfo {
   string sessionId;
   string displayTitle; ///< 去重后的标题（如 "hello (2)"）
   string model;
-  bool   archived;
+  bool   archived= false;
+  string type    = ""; ///< 会话类型（translate/explain/""）
 };
 
 /**
@@ -284,6 +285,17 @@ public:
     QCheckBox*   selectCheckBox= nullptr;
     QLineEdit*   titleEdit     = nullptr;
     bool         isArchived    = false;
+    string       type          = ""; ///< 会话类型
+  };
+
+  /// 类别分组控件数据
+  struct CategorySection {
+    QPushButton* headerButton= nullptr;
+    QLabel*      titleLabel  = nullptr;
+    QLabel*      arrowLabel  = nullptr;
+    QWidget*     listWidget  = nullptr;
+    QVBoxLayout* listLayout  = nullptr;
+    bool         collapsed   = true;
   };
 
   /**
@@ -372,6 +384,25 @@ public:
    */
   const string& activeSessionId () const;
 
+  /**
+   * @brief 查询指定类别的折叠状态。
+   * @param type 类别名称（"explain"/"translate"/"chat"）
+   */
+  bool isCategoryCollapsed (const string& type) const;
+
+  /**
+   * @brief 设置指定类别的折叠状态。
+   * @param type 类别名称（"explain"/"translate"/"chat"）
+   * @param collapsed 是否折叠
+   */
+  void setCategoryCollapsed (const string& type, bool collapsed);
+
+  /**
+   * @brief 获取指定类别的折叠按钮。
+   * @param type 类别名称（"explain"/"translate"/"chat"）
+   */
+  QPushButton* categoryButton (const string& type) const;
+
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
   void resizeEvent (QResizeEvent* event) override;
@@ -388,28 +419,40 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_;            ///< sessionId → SidebarItem 映射
-  bool         destroying_            = false; ///< 析构进行中，禁止信号重入回调
-  QLabel*      conversationCountLabel_= nullptr; ///< 活跃会话计数标签
-  QWidget*     conversationListWidget_= nullptr; ///< 活跃会话列表容器
-  QVBoxLayout* conversationListLayout_= nullptr; ///< 活跃会话列表布局
-  QFrame*      archiveSeparator_      = nullptr; ///< 归档区分割线
-  QPushButton* archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
-  QScrollArea* archiveListWidget_     = nullptr; ///< 归档会话列表滚动容器
-  QVBoxLayout* archiveListLayout_     = nullptr; ///< 归档会话列表布局
-  bool         archiveCollapsed_      = true;    ///< 归档区是否折叠
-  QWidget*     multiSelectBar_        = nullptr; ///< 多选操作栏
-  QPushButton* batchArchiveBtn_       = nullptr; ///< 批量归档按钮
-  QLineEdit*   searchEdit_            = nullptr; ///< 搜索框
-  bool         multiSelectMode_       = false;   ///< 是否处于多选模式
-  bool         archiveSelectMode_     = false;   ///< 是否在归档区多选
-  string       activeSessionId_;                 ///< 当前激活的会话 ID
+  QMap<string, SidebarItem> items_;   ///< sessionId → SidebarItem 映射
+  bool            destroying_= false; ///< 析构进行中，禁止信号重入回调
+  QLabel*         conversationCountLabel_= nullptr; ///< 活跃会话计数标签
+  QWidget*        conversationListWidget_= nullptr; ///< 活跃会话列表容器
+  QVBoxLayout*    conversationListLayout_= nullptr; ///< 活跃会话列表布局
+  CategorySection explainSection_;                  ///< 释义分类（默认折叠）
+  CategorySection translateSection_;                ///< 翻译分类（默认折叠）
+  CategorySection chatSection_;                     ///< 对话分类（默认打开）
+  QFrame*         archiveSeparator_   = nullptr;    ///< 归档区分割线
+  QPushButton*    archiveHeaderButton_= nullptr;    ///< 归档区折叠按钮
+  QScrollArea*    archiveListWidget_  = nullptr;    ///< 归档会话列表滚动容器
+  QVBoxLayout*    archiveListLayout_  = nullptr;    ///< 归档会话列表布局
+  bool            archiveCollapsed_   = true;       ///< 归档区是否折叠
+  QWidget*        multiSelectBar_     = nullptr;    ///< 多选操作栏
+  QPushButton*    batchArchiveBtn_    = nullptr;    ///< 批量归档按钮
+  QLineEdit*      searchEdit_         = nullptr;    ///< 搜索框
+  bool            multiSelectMode_    = false;      ///< 是否处于多选模式
+  bool            archiveSelectMode_  = false;      ///< 是否在归档区多选
+  string          activeSessionId_;                 ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
-  void updateCountLabels ();                        ///< 更新会话数/归档数标签
-  void updateArchiveListVisibility ();       ///< 调整归档列表可见性与高度
-  int  computeArchiveContentHeight () const; ///< 计算归档区内容总高度
+  CategorySection  createCategorySection (QWidget* parent, const QString& title,
+                                          bool           defaultCollapsed,
+                                          const QString& objectName,
+                                          const string&  catType);
+  CategorySection* getCategorySection (const string& type);
+  const CategorySection* getCategorySection (const string& type) const;
+  QVBoxLayout*           getCategoryLayout (const string& type);
+  void                   toggleCategory (const string& type);
+  void                   ensureCategoryExpanded (const string& type);
+  void                   updateCountLabels (); ///< 更新会话数/归档数标签
+  void updateArchiveListVisibility ();         ///< 调整归档列表可见性与高度
+  int  computeArchiveContentHeight () const;   ///< 计算归档区内容总高度
   void endEditTitle (const string& sessionId, bool accept); ///< 结束内联编辑
   QList<string>
   getCheckedSessionIds () const; ///< 获取多选模式下已勾选的会话 ID 列表
