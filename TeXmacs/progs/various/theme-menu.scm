@@ -20,7 +20,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (basic-theme-button-name theme)
-  (let ((translation-key (string-append (if (== theme "plain") "theme" theme) "::theme")
+  (let ((translation-key (string-append (if (== theme "plain") "theme" (upcase-first theme)) "::theme")
         ) ;translation-key
        ) ;
     ;; 工具栏按钮名与 style-menu-name 一样首字母大写；
@@ -30,10 +30,10 @@
 ) ;tm-define
 
 (tm-define (basic-theme-menu-name theme)
-  (let ((translation-key (string-append (if (== theme "plain") "Plain" theme) "::theme")
+  (let ((translation-key (string-append (if (== theme "plain") "Light" (upcase-first theme)) "::theme")
         ) ;translation-key
        ) ;
-    (translate translation-key)
+    (upcase-first (translate translation-key))
   ) ;let
 ) ;tm-define
 
