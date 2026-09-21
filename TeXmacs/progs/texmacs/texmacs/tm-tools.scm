@@ -187,9 +187,7 @@
   ) ;let*
 ) ;tm-define
 
-(define (save-aux-enabled?)
-  (== (get-env "save-aux") "true")
-) ;define
+(tm-define (save-aux-enabled?) (== (get-env "save-aux") "true"))
 (tm-define (toggle-save-aux)
   (:synopsis "Toggle whether we save auxiliary data")
   (:check-mark "v" save-aux-enabled?)

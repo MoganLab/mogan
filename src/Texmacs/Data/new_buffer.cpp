@@ -25,6 +25,7 @@
 #include "tmfs_url.hpp"
 #include "tree_observer.hpp"
 #include "web_files.hpp"
+#include <moebius/vars.hpp>
 
 using namespace moebius;
 
@@ -182,8 +183,11 @@ rename_buffer (url name, url new_name) {
   buf->buf->name  = new_name;
   buf->buf->master= new_name;
   array<url> vs   = buffer_to_views (new_name);
-  for (int i= 0; i < N (vs); i++)
-    view_to_editor (vs[i])->notify_change (THE_ENVIRONMENT);
+  for (int i= 0; i < N (vs); i++) {
+    editor ed= view_to_editor (vs[i]);
+    ed->notify_change (THE_ENVIRONMENT);
+    ed->notify_change (THE_MENUS);
+  }
   notify_rename_after (new_name);
   tree   doc  = subtree (the_et, buf->rp);
   string title= propose_title (buf->buf->title, new_name, doc);
@@ -651,7 +655,10 @@ buffer_export (url name, url dest, string fm) {
   // if (fm == "latex")
   // body= vw->ed->exec_latex (body);
 
-  tree doc= attach_data (body, export_data, !vw->ed->get_save_aux ());
+  bool no_aux= !vw->ed->get_save_aux ();
+  if (fm == "stem" && !vw->ed->defined_in_init (SAVE_AUX)) no_aux= true;
+
+  tree doc= attach_data (body, export_data, no_aux);
 
   if (fm == "latex")
     doc= change_doc_attr (doc, "view", as_string (abstract_view (vw)));

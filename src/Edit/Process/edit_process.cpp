@@ -586,5 +586,7 @@ edit_process_rep::generate_aux (string which) {
 
 bool
 edit_process_rep::get_save_aux () {
+  if (defined_in_init (SAVE_AUX)) return as_bool (get_init_string (SAVE_AUX));
+  if (is_stem ()) return false;
   return as_bool (get_init_string (SAVE_AUX));
 }

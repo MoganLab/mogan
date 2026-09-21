@@ -21,7 +21,9 @@
 #include "new_style.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"
+#include "tm_file.hpp"
 #include "tm_timer.hpp"
+#include "tmfs_url.hpp"
 #include "tree_modify.hpp"
 #include "tree_observer.hpp"
 #include "typesetter.hpp"
@@ -53,6 +55,7 @@ edit_typeset_rep::~edit_typeset_rep () { delete_typesetter (ttt); }
 
 void
 edit_typeset_rep::set_data (new_data data) {
+  pre= hashmap<string, tree> (UNINIT);
   set_style (data->style);
   set_init (data->init);
   set_fin (data->fin);
@@ -353,12 +356,21 @@ edit_typeset_rep::typeset_style_use_cache (tree styles_orig) {
   use_modules (env->read (THE_MODULES));
 }
 
+bool
+edit_typeset_rep::is_stem () {
+  if (is_nil (buf)) return false;
+  url u= buf->buf->name;
+  return suffix (u) == "stem" ||
+         (is_rooted_tmfs (u) && file_format (u) == "stem");
+}
+
 void
 edit_typeset_rep::typeset_preamble () {
   env->write_default_env ();
   typeset_style_use_cache (the_style);
   env->update ();
   env->read_env (stydef);
+  if (is_stem ()) env->write (SAVE_AUX, "false");
   env->patch_env (init);
   env->update ();
   env->read_env (pre);
@@ -367,6 +379,7 @@ edit_typeset_rep::typeset_preamble () {
 
 void
 edit_typeset_rep::typeset_prepare () {
+  if (N (pre) == 0) typeset_preamble ();
   env->base_file_name= buf->buf->master;
   env->read_only     = buf->buf->read_only;
   env->write_default_env ();
@@ -608,7 +621,8 @@ edit_typeset_rep::get_init_value (string var) {
     if (var == BG_COLOR && is_func (t, PATTERN)) t= env->exec (t);
     return is_func (t, BACKUP, 2) ? t[0] : t;
   }
-  if (N (pre) == 0) typeset_preamble ();
+  if (var == SAVE_AUX && is_stem ()) return "false";
+  if (N (pre) == 0 || !pre->contains (var)) typeset_preamble ();
   tree t= pre[var];
   if (var == BG_COLOR && is_func (t, PATTERN)) t= env->exec (t);
   return is_func (t, BACKUP, 2) ? t[0] : t;
@@ -1057,6 +1071,8 @@ void
 edit_typeset_rep::init_env (string var, tree by) {
   if (init (var) == by) return;
   init (var)= by;
+  pre       = hashmap<string, tree> (UNINIT);
+  typeset_invalidate_env ();
   if (var == "full-screen-mode") return;
   if (var != PAGE_SCREEN_WIDTH && var != PAGE_SCREEN_HEIGHT &&
       var != ZOOM_FACTOR)
@@ -1072,8 +1088,8 @@ void
 edit_typeset_rep::init_default (string var) {
   if (!init->contains (var)) return;
   init->reset (var);
-  if (stydef->contains (var)) pre (var)= stydef[var];
-  else pre->reset (var);
+  pre= hashmap<string, tree> (UNINIT);
+  typeset_invalidate_env ();
   notify_change (THE_ENVIRONMENT);
   notify_change (THE_MENUS);
 #ifdef LORO_ENABLED
