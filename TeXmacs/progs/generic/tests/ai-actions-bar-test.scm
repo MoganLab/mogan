@@ -159,6 +159,41 @@
     "<#Z0G>"
   ) ;check
   (check ai-subtree-store => '((table (row (cell "1")))))
+  ;; 6200：浮动表格（small-table/big-table 组）整棵登记为子树留哨兵，
+  ;; 标题与 label 锚点不外泄、不与表格在同一行拼接致超出引用块
+  (let ((tbl1
+          '(small-table (concat (tabular (tformat (table (row (cell "文件名")
+                                                           (cell "描述")))))
+                          (label "table:1-1"))
+             "三线表示例")
+        ) ;tbl1
+        (tbl2
+          '(big-table (concat (wide-tabular (tformat (table (row (cell "A")))))
+                        (label "table:2-3"))
+             "同页宽的表格实例")
+        ) ;tbl2
+       ) ;
+    (ai-subtree-store-reset!)
+    (check
+      (ai-flatten-text `(document (para "前文") ,tbl1 (para "后文")))
+      =>
+      "前文\n<#Z0G>\n后文"
+    ) ;check
+    (check ai-subtree-store => (list tbl1))
+    (ai-subtree-store-reset!)
+    (check
+      (ai-flatten-text `(document (para "前文") ,tbl2 (para "后文")))
+      =>
+      "前文\n<#Z0G>\n后文"
+    ) ;check
+    (check ai-subtree-store => (list tbl2))
+  ) ;let
+  ;; 6200：label 锚点无可见文本，不外泄进上下文
+  (check (ai-flatten-text '(label "sec:intro")) => "")
+  (check (ai-flatten-text '(para "见表" (label "table:1-1") "所示"))
+    =>
+    "见表所示"
+  ) ;check
 ) ;define
 
 (define (test-flatten-with-node)
@@ -232,6 +267,19 @@
     '("a" . "<#Z0G>b")
   ) ;check
   (check ai-subtree-store => '((tabular (table (row (cell "1"))))))
+  ;; 6200：浮动表格 small-table / big-table 光标入内同样整棵归 after
+  (let ((st-node '(small-table (tabular (table (row (cell "1")))) "标题")))
+    (ai-subtree-store-reset!)
+    (check
+      (ai-split-node
+        `(document (para ,"a" ,st-node ,"b"))
+        '(0 1 0)
+      ) ;ai-split-node
+      =>
+      '("a" . "<#Z0G>b")
+    ) ;check
+    (check ai-subtree-store => (list st-node))
+  ) ;let
 ) ;define
 
 ;; ===== 截断不切半 herk 的 <#XXXX> 序列 =====
@@ -311,6 +359,17 @@
     ) ;check
     ;; 公式独占一段：不套 concat
     (check (ai-context->document "<#Z0G>" store) => '(document (equation "x")))
+    ;; 6200：浮动表格还原为整棵子树独占一段，不与标题在同一行拼成 (concat ...)
+    (let* ((tbl
+             '(small-table (tabular (table (row (cell "1")))) "标题")
+           ) ;tbl
+           (tstore (list tbl))
+          ) ;
+      (check (ai-context->document "前文\n<#Z0G>\n后文" tstore)
+        =>
+        (list 'document "前文" tbl "后文")
+      ) ;check
+    ) ;let*
   ) ;let
 ) ;define
 
