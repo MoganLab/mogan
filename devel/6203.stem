@@ -60,6 +60,10 @@
       "What：删除实现中的死代码与重复逻辑，净减约 45 行，不改变任何已验证行为。"
       "How：1) 删除从未被读取的 CategorySection::titleLabel 字段与全仓库无调用的 setCategoryCollapsed 公有接口；2) 折叠状态变更收敛到私有 applyCategoryCollapsed 单点实现，toggleCategory/ensureCategoryExpanded 改为委托调用，箭头字形 ▸/▾ 从 4 处魔法字面量提为文件级常量 kCategoryArrowCollapsed/kCategoryArrowExpanded；3) getCategorySection 改为返回引用（未知类型兜底归入对话分类），删除不可达的空指针防御分支；4) applySearchFilter 的三组命名计数器与 if/else-if 分发链改为按分类指针计数后统一循环处理；5) 三个类别折叠按钮共用 objectName chat-tab-category-header，liii.css 与 liii-night.css 中每组三条重复选择器合并为一条。"
       "验证：gf fmt --changed-since=main 已格式化；xmake b stem 构建通过；xmake r qt_chat_tab_widget_test 129/129 全部通过。"
+      (subsection* "顺序调整（第三轮改动）")
+      "What：类别展示顺序调整为对话在最上，其下依次为释义、翻译。"
+      "Why：普通对话是高频入口，置于列表顶部更便于访问。"
+      "How：构造函数中分类创建与添加顺序改为对话、释义、翻译，applySearchFilter 遍历数组与成员声明顺序同步调整；新增单元测试断言类别纵向顺序；Python GUI 测试的坐标注释与点击位置按新顺序更新（对话 y≈520、释义 y≈645、翻译 y≈710，展开释义后翻译下移至 y≈770）。"
     ) ;document
   ) ;body
   (initial (collection (associate "page-medium" "paper")
