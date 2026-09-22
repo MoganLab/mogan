@@ -126,27 +126,9 @@
   ) ;let*
 ) ;tm-define
 
-(define (run-with-pdf-wait-dialog thunk on-done)
-  (if (headless?)
-    (begin
-      (thunk)
-      (on-done)
-    ) ;begin
-    (let ((cancelled? #f))
-      (wait-dialog-open "Exporting, please wait..." (lambda () (set! cancelled? #t)))
-      (delayed (:pause 50)
-        (when (not cancelled?)
-          (thunk)
-          (wait-dialog-close)
-          (on-done)
-        ) ;when
-      ) ;delayed
-    ) ;let
-  ) ;if
-) ;define
-
 (tm-define (wrapped-print-to-file fname . opts)
-  (run-with-pdf-wait-dialog
+  (wait-dialog-run "Exporting, please wait..."
+    50
     (lambda ()
       (apply export-buffer-to-pdf fname opts)
       (save-buffer-save (current-buffer)
@@ -155,11 +137,12 @@
       ) ;save-buffer-save
     ) ;lambda
     (lambda () (user-confirm-open-pdf fname))
-  ) ;run-with-pdf-wait-dialog
+  ) ;wait-dialog-run
 ) ;tm-define
 
 (define (wrapped-print-to-pdf-embeded fname kind . opts)
-  (run-with-pdf-wait-dialog
+  (wait-dialog-run "Exporting, please wait..."
+    50
     (lambda ()
       (apply export-buffer-to-pdf fname opts)
       (unless (attach-doc-to-exported-pdf fname)
@@ -168,7 +151,7 @@
       (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
     ) ;lambda
     (lambda () (user-confirm-open-pdf fname))
-  ) ;run-with-pdf-wait-dialog
+  ) ;wait-dialog-run
 ) ;define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tm fname . opts)

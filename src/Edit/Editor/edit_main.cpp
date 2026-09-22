@@ -14,6 +14,7 @@
 #include "convert.hpp"
 #include "converter.hpp"
 #include "cork.hpp"
+#include "gui.hpp" // for gui_pump_events
 #include "image_files.hpp"
 #include "iterator.hpp"
 #include "message.hpp"
@@ -235,6 +236,8 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   env->update ();
   typesetter ttt    = new_typesetter (env, subtree (et, rp), reverse (rp));
   box        the_box= ::typeset (ttt);
+  // 排版阶段结束的安全边界：泵事件让等待弹窗转圈动画追上（仅弹窗打开时生效）
+  gui_pump_events ();
 
   // Determine parameters for printer
 
@@ -267,6 +270,8 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
     ren->set_metadata ("subject", get_metadata ("subject"));
     ren->set_metadata ("keyword", get_metadata ("keyword"));
     for (i= start; i < end; i++) {
+      // 逐页边界泵事件：同步导出期间等待弹窗动画持续可见
+      gui_pump_events ();
       tree bg= env->read (BG_COLOR);
       ren->set_background (bg);
       if (bg != "white" && bg != "#ffffff")
