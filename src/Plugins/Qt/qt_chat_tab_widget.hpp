@@ -416,20 +416,20 @@ private:
   QLabel*         conversationCountLabel_= nullptr; ///< 活跃会话计数标签
   QWidget*        conversationListWidget_= nullptr; ///< 活跃会话列表容器
   QVBoxLayout*    conversationListLayout_= nullptr; ///< 活跃会话列表布局
-  CategorySection explainSection_;                  ///< 释义分类（默认折叠）
-  CategorySection translateSection_;                ///< 翻译分类（默认折叠）
-  CategorySection chatSection_;                     ///< 对话分类（默认打开）
-  QFrame*         archiveSeparator_   = nullptr;    ///< 归档区分割线
-  QPushButton*    archiveHeaderButton_= nullptr;    ///< 归档区折叠按钮
-  QScrollArea*    archiveListWidget_  = nullptr;    ///< 归档会话列表滚动容器
-  QVBoxLayout*    archiveListLayout_  = nullptr;    ///< 归档会话列表布局
-  bool            archiveCollapsed_   = true;       ///< 归档区是否折叠
-  QWidget*        multiSelectBar_     = nullptr;    ///< 多选操作栏
-  QPushButton*    batchArchiveBtn_    = nullptr;    ///< 批量归档按钮
-  QLineEdit*      searchEdit_         = nullptr;    ///< 搜索框
-  bool            multiSelectMode_    = false;      ///< 是否处于多选模式
-  bool            archiveSelectMode_  = false;      ///< 是否在归档区多选
-  string          activeSessionId_;                 ///< 当前激活的会话 ID
+  CategorySection chatSection_;                  ///< 对话分类（默认打开，置顶）
+  CategorySection explainSection_;               ///< 释义分类（默认折叠）
+  CategorySection translateSection_;             ///< 翻译分类（默认折叠）
+  QFrame*         archiveSeparator_   = nullptr; ///< 归档区分割线
+  QPushButton*    archiveHeaderButton_= nullptr; ///< 归档区折叠按钮
+  QScrollArea*    archiveListWidget_  = nullptr; ///< 归档会话列表滚动容器
+  QVBoxLayout*    archiveListLayout_  = nullptr; ///< 归档会话列表布局
+  bool            archiveCollapsed_   = true;    ///< 归档区是否折叠
+  QWidget*        multiSelectBar_     = nullptr; ///< 多选操作栏
+  QPushButton*    batchArchiveBtn_    = nullptr; ///< 批量归档按钮
+  QLineEdit*      searchEdit_         = nullptr; ///< 搜索框
+  bool            multiSelectMode_    = false;   ///< 是否处于多选模式
+  bool            archiveSelectMode_  = false;   ///< 是否在归档区多选
+  string          activeSessionId_;              ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget

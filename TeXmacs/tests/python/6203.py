@@ -236,19 +236,20 @@ def run_test():
         print(f"[6203] Window rect: ({wx}, {wy}, {ww}, {wh})")
 
         # The sidebar is on the left side of the chat tab.
-        # In 3840x2400 screen resolution:
-        # "释义" is at y ≈ 520
-        # "翻译" is at y ≈ 585
-        # "对话" is at y ≈ 650
-        print("[6203] Clicking '释义' category button at (100, 520)...")
-        mouse.position = (100, 520)
+        # Category order: 对话 (top, expanded), then 释义, then 翻译.
+        # In 3840x2400 screen resolution (with 1 chat session visible):
+        # "对话" is at y ≈ 520
+        # "释义" is at y ≈ 645 (below the chat session items)
+        # "翻译" is at y ≈ 710
+        print("[6203] Clicking '释义' category button at (100, 645)...")
+        mouse.position = (100, 645)
         time.sleep(0.5)
         mouse.click(Button.left)
         time.sleep(1.0)
 
         # After expanding 释义, 翻译 is pushed down by one session item (~60px)
-        print("[6203] Clicking '翻译' category button at (100, 645)...")
-        mouse.position = (100, 645)
+        print("[6203] Clicking '翻译' category button at (100, 770)...")
+        mouse.position = (100, 770)
         time.sleep(0.5)
         mouse.click(Button.left)
         time.sleep(1.0)

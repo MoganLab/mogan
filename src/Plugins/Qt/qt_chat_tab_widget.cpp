@@ -1159,6 +1159,11 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   conversationListLayout_->setContentsMargins (0, 0, 0, 0);
   conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
+  chatSection_= createCategorySection (
+      conversationListWidget_, qt_translate ("Chat::ai"), false, "chat");
+  conversationListLayout_->addWidget (chatSection_.headerButton);
+  conversationListLayout_->addWidget (chatSection_.listWidget);
+
   explainSection_= createCategorySection (
       conversationListWidget_, qt_translate ("Explain::ai"), true, "explain");
   conversationListLayout_->addWidget (explainSection_.headerButton);
@@ -1168,11 +1173,6 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
       conversationListWidget_, qt_translate ("Translate"), true, "translate");
   conversationListLayout_->addWidget (translateSection_.headerButton);
   conversationListLayout_->addWidget (translateSection_.listWidget);
-
-  chatSection_= createCategorySection (
-      conversationListWidget_, qt_translate ("Chat::ai"), false, "chat");
-  conversationListLayout_->addWidget (chatSection_.headerButton);
-  conversationListLayout_->addWidget (chatSection_.listWidget);
 
   scrollLayout->addWidget (conversationListWidget_);
 
@@ -1430,8 +1430,8 @@ ChatSidebar::applySearchFilter () {
       ++matches[&getCategorySection (item.type)];
   }
 
-  CategorySection* const sections[]= {&explainSection_, &translateSection_,
-                                      &chatSection_};
+  CategorySection* const sections[]= {&chatSection_, &explainSection_,
+                                      &translateSection_};
   for (CategorySection* sec : sections) {
     // 搜索时只展开有匹配项的分类（无匹配的保持原状）；清空后恢复折叠状态
     if (!filterText.isEmpty ()) {

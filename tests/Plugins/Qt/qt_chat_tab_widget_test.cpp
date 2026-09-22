@@ -1399,6 +1399,19 @@ private slots:
     QVERIFY (transBtn->parentWidget ()->isVisible ());
   }
 
+  /// 类别纵向顺序：对话在最上，其下依次为释义、翻译
+  void test_category_order_chat_first () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+    QTest::qWait (0);
+
+    QVERIFY (sidebar.categoryButton ("chat")->y () <
+             sidebar.categoryButton ("explain")->y ());
+    QVERIFY (sidebar.categoryButton ("explain")->y () <
+             sidebar.categoryButton ("translate")->y ());
+  }
+
   void test_addItem_with_type_places_in_correct_category () {
     QList<SessionDisplayInfo> sessions;
     ChatSidebar               sidebar (sessions, "", nullptr);
