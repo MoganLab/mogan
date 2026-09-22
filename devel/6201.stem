@@ -61,6 +61,12 @@
       "2. mupdf_renderer.cpp：在 mupdf_renderer_rep 构造函数、begin() 和 new_shadow() 中检测 qt_is_dark_theme()，深色模式下将 bg 和 bg_brush 初始化为 tm_background，避免使用 -1（白色）作为初始填充色。"
       "3. qt_picture.cpp 与 qt_renderer.cpp：同步适配深色模式初始底色。"
       "4. tests/Plugins/Qt/renderer_initial_bg_test.cpp：增加针对浅色模式与深色模式下 native_picture、mupdf_renderer 和 shadow 渲染器初始底色的单元测试。"
+      (section* "7 Simplify 记录（2026-09-22）")
+      "1. 提取 mupdf_new_background_pixmap 共享 helper（mupdf_renderer.hpp/cpp），收口 native_picture 与 new_shadow 中逐字重复的 pixmap 底色填充逻辑。"
+      "2. mupdf_renderer_rep 构造函数与 begin() 改用 set_background 规范接口设置初始底色，替换手工 bg/bg_brush 双字段赋值。"
+      "3. 删除 qt_picture.cpp 与 qt_renderer.cpp 中恒真的 #ifdef QTTEXMACS 死分支（Qt 插件源文件仅在 qt_frontend 下编译）。"
+      "4. 单元测试改用 theme_guard RAII 恢复主题状态，修复 tm_background 不恢复与断言失败中途不恢复的问题。"
+      "5. libmogan 的 mupdf 包改为 public：renderer_initial_bg_test 直接包含 MuPDF 头文件，需向依赖目标传递 mupdf 头文件路径，修复测试目标编译失败（远端 CI 实际存在该问题，被 flaky 的 macosbuild 掩盖）。"
     ) ;document
   ) ;body
   (initial (collection (associate "page-medium" "paper")
