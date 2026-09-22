@@ -19,8 +19,15 @@
       ) ;itemize
       (section* "2 任务相关的代码文件")
       (itemize (document (concat (item) "TeXmacs/progs/texmacs/texmacs/tm-print.scm")
+                 (concat (item) "TeXmacs/progs/utils/misc/wait-dialog.scm")
                  (concat (item) "TeXmacs/plugins/lang/dic/en_US/zh_CN.scm")
                  (concat (item) "src/Plugins/Qt/QTMQmlDialog.cpp")
+                 (concat (item) "src/Plugins/Qt/qt_gui.cpp")
+                 (concat (item) "src/Edit/Editor/edit_main.cpp")
+                 (concat (item) "src/Graphics/Gui/gui.hpp")
+                 (concat (item) "src/Plugins/CLI/cli_gui.cpp / src/Plugins/ImGui/im_gui.cpp")
+                 (concat (item) "src/Typeset/Bridge/bridge_document.cpp")
+                 (concat (item) "src/Typeset/Page/make_pages.cpp")
                  (concat (item) "tests/Plugins/Qt/qml_load_test.cpp")
                  (concat (item) "TeXmacs/tests/6001.scm")
                ) ;document
@@ -50,7 +57,7 @@
         ) ;document
       ) ;itemize
       (section* "5 What")
-      "PDF 导出时原先使用的是遗留的 system-wait 提示，界面为古老的无边框粗糙原生矩形框，视觉风格与现代 QML 界面极不协调。本次改动接入 (utils misc wait-dialog) 通用等待弹窗（与 OCR 等异步任务共用，基于 QML WaitProgressDialog），替换原有的 system-wait 机制，并实现导出支持优雅取消与全自动关闭。"
+      "PDF 导出时原先使用的是遗留的 system-wait 提示，界面为古老的无边框粗糙原生矩形框，视觉风格与现代 QML 界面极不协调。本次改动接入 (utils misc wait-dialog) 通用等待弹窗（与 OCR 等异步任务共用，基于 QML WaitProgressDialog），替换原有的 system-wait 机制，并实现导出支持优雅取消与全自动关闭；同步导出期间在阶段边界泵事件，转圈动画不再冻死。"
       (section* "6 Why")
       (enumerate (document (concat (item)
                              "原提示通过 C++ 底层 system_wait -> show_wait_indicator 弹出原生 QLabel 悬浮框，外观粗糙生硬，缺乏动画反馈，且与 Mogan 当前主题体系（深浅色、圆角卡片、DialogShell 等）格格不入。"
@@ -61,11 +68,14 @@
                    (concat (item)
                      "cpp_wait_dialog_close 显式同步清理 g_wait_dialog_host 避免退出阶段被 deferred delete 析构造成 TLS 资源释放后的空指针崩溃。"
                    ) ;concat
+                   (concat (item)
+                     "QML 转圈动画依赖主线程事件循环：导出任务在 delayed 回调里同步执行，排版与逐页渲染期间事件循环不运转，动画冻死在首帧，用户感知为「没在转/卡死」。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
       (section* "7 How")
       (enumerate (document (concat (item)
-                             "在 TeXmacs/progs/texmacs/texmacs/tm-print.scm 中引入 (utils misc wait-dialog) 模块，封装 run-with-pdf-wait-dialog 调度辅助函数；在 GUI 模式下开启 wait-dialog-open，经 50ms 延迟让 Qt 事件循环完成 QML 转圈首帧渲染，随后调度导出并在完成后同步关闭弹窗；在 (headless?) 模式下直接同步执行。"
+                             "将「注册取消回调 + 延迟调度 + 完成关闭」的等待弹窗编排上提为 (utils misc wait-dialog) 门面的通用原语 wait-dialog-run（GUI 模式经 50ms 延迟让 Qt 事件循环完成 QML 转圈首帧渲染后执行任务并关闭弹窗，headless 模式退化为同步直跑，可选 on-done 续接后续动作）；tm-print.scm 的 wrapped-print-to-file / wrapped-print-to-pdf-embeded 直接调用该原语。"
                            ) ;concat
                    (concat (item)
                      "在 TeXmacs/plugins/lang/dic/en_US/zh_CN.scm 中增加 \"Exporting, please wait...\" 对应的中文翻译 \"导出中，请稍候...\"。"
@@ -75,6 +85,9 @@
                    ) ;concat
                    (concat (item)
                      "在 tests/Plugins/Qt/qml_load_test.cpp 中新增 test_wait_progress_dialog_loads 用例，确保 QML 弹窗正确加载；新增集成测试 TeXmacs/tests/6001.scm，全流程覆盖正常导出与取消链路。"
+                   ) ;concat
+                   (concat (item)
+                     "新增 gui.hpp 中性接口 gui_pump_events（Qt 后端：通用等待弹窗打开期间泵事件，ExcludeUserInputEvents 防编辑器重入，~30ms 节流；泵触发的嵌套 update() 被 updating 守卫拦截，delayed 不会重入；headless/无弹窗时 no-op，CLI/ImGui 后端空实现）。泵点覆盖导出全程：bridge_document.cpp 内容排版逐块、make_pages.cpp 分页后逐页装箱、edit_main.cpp 的 print_doc 排版完成后与逐页渲染前。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
