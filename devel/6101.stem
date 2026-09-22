@@ -3,28 +3,53 @@
            "preview-ref" "bash"
          ) ;tuple
   ) ;style
-  (body
-    (document (doc-data (doc-title "AI 释义的埋点"))
-      (section "相关文档")
-      (itemize (document (concat (item) "devel/dddd.md - 任务文档规范")))
-      (section "任务相关代码文件")
-      (section "如何测试")
-      (subsection "手动测试")
-      (bash-code (document "# 以商业版模式编译，方可使用假插件进行测试"
-                   "xmake config --yes -m releasedbg --is_community=no "
-                   "# 编译运行" "xmake b stem ; xmake r stem "
-                 ) ;document
-      ) ;bash-code
-      (subsection "单元测试")
-      (subsection "集成测试")
-      (subsection "端到端测试")
-      "编写 py 脚本并使用 pynput 框架进行测试"
-      (section "What")
-      "为选中内容 AI 释义的功能添加埋点上传，复用 mogan 已有的埋点系统"
-      (section "Why")
-      "分析用户行为"
-      (section "How")
-    ) ;document
+  (body (document (doc-data (doc-title "[6101] AI 释义的埋点"))
+          (section "相关文档")
+          (itemize (document (concat (item) "devel/dddd.md - 任务文档规范")
+                     (concat (item) "devel/200_64.md - Telemetry 埋点系统")
+                     (concat (item) "devel/1136.md - telemetry-track 新增 upload-events")
+                     (concat (item)
+                       "devel/1137.md - 登录完成后新增 LOGIN 埋点事件并触发上传"
+                     ) ;concat
+                     (concat (item) "devel/6100.stem - AI 翻译的埋点")
+                   ) ;document
+          ) ;itemize
+          (section "任务相关代码文件")
+          (itemize (document (concat (item) "src/Edit/Interface/edit_mouse.cpp")
+                     (concat (item) "TeXmacs/plugins/telemetry/progs/telemetry/telemetry-track.scm")
+                     (concat (item) "TeXmacs/tests/6101.scm")
+                   ) ;document
+          ) ;itemize
+          (section "如何测试")
+          (subsection "手动测试")
+          (bash-code (document "# 以商业版模式编译，方可使用假插件进行测试"
+                       "xmake config --yes -m releasedbg --is_community=no "
+                       "# 编译运行" "xmake b stem ; xmake r stem "
+                     ) ;document
+          ) ;bash-code
+          (subsection "单元测试")
+          (bash-code (document "xmake b stem ; xmake r 6101"))
+          (subsection "集成测试")
+          "运行 xmake r 6101 验证 AI_EXPLAIN 属于重要事件并在触发后立即触发落盘。"
+          (subsection "端到端测试")
+          "编写 py 脚本并使用 pynput 框架进行测试"
+          (section "What")
+          "为选中内容 AI 释义的功能添加埋点上传，复用 mogan 已有的埋点系统"
+          (section "Why")
+          "分析用户行为"
+          (section "How")
+          (enumerate (document (concat (item)
+                                 "在 src/Edit/Interface/edit_mouse.cpp 的 edit_interface_rep::ai_action 函数中，当 action 为 \"explain\" 时调用 telemetry_track (\"AI_EXPLAIN\") 触发埋点上报。"
+                               ) ;concat
+                       (concat (item)
+                         "在 TeXmacs/plugins/telemetry/progs/telemetry/telemetry-track.scm 的 important-event? 函数中追加 \"AI_EXPLAIN\" 事件，使其在 track-event 时能立即触发 telemetry-flush 队列落盘和 upload-events 上传。"
+                       ) ;concat
+                       (concat (item)
+                         "在 TeXmacs/tests/6101.scm 中添加测试用例，验证 AI_EXPLAIN 属于重要事件并在 track-event 后立即触发落盘。"
+                       ) ;concat
+                     ) ;document
+          ) ;enumerate
+        ) ;document
   ) ;body
   (initial (collection (associate "page-screen-margin" "false")
              (associate "save-aux" "false")
