@@ -12,8 +12,6 @@
       (section* "2 任务相关的代码文件")
       (itemize (document (concat (item) "src/Edit/Editor/edit_typeset.hpp")
                  (concat (item) "src/Edit/Editor/edit_typeset.cpp")
-                 (concat (item) "src/Edit/Process/edit_process.cpp")
-                 (concat (item) "src/Edit/editor.hpp")
                  (concat (item) "src/Texmacs/Data/new_buffer.cpp")
                  (concat (item) "TeXmacs/progs/texmacs/texmacs/tm-tools.scm")
                  (concat (item) "TeXmacs/progs/texmacs/texmacs/tests/save-aux-test.scm")
@@ -33,14 +31,12 @@
       "STEM 格式强调文档源文件的精简与清晰，便于版本控制与外部工具处理。references 与 auxiliary 属于排版缓存与辅助数据，默认写入会导致文件产生冗余信息。因此对 STEM 文档默认关闭辅助数据保存；若用户有需要，可通过菜单手动开启。"
       (section* "7 How")
       (enumerate-numeric (document (item* "1. ")
-                           "edit_typeset: edit_typeset_rep 新增 is_stem() 判断；在 typeset_preamble 与 get_init_value 中，针对 STEM 文档将 SAVE_AUX 默认置为 \"false\"；在 init_env、init_default 与 set_data 中重置 pre 缓存并使环境失效，确保切换即时响应；"
+                           "edit_typeset: edit_typeset_rep 新增 is_stem()（基于 file_format 判断缓冲区格式）；在 typeset_preamble 中、patch_env(init) 之前，对 STEM 文档将 SAVE_AUX 默认置为 \"false\"（显式 init 设置仍优先）；在 set_data、init_env、init_default 中重置 pre 缓存并使环境失效，确保切换即时响应；typeset_prepare 在 pre 为空时先执行 typeset_preamble；"
                            (item* "2. ")
-                           "edit_process: edit_process_rep::get_save_aux() 在 STEM 文档且未显式指定时默认返回 false；"
+                           "buffer_export: buffer_export 中对导出目标为 stem 格式且未显式定义 SAVE_AUX 时默认不导出辅助数据（覆盖跨格式导出，如 .tm 导出为 .stem）；"
                            (item* "3. ")
-                           "buffer_export: buffer_export 中对 stem 格式在未显式定义 SAVE_AUX 时默认不导出辅助数据（no_aux = true）；"
-                           (item* "4. ")
                            "Scheme 工具函数: tm-tools.scm 中 save-aux-enabled? 改为 tm-define，以便外部模块与单元测试调用；"
-                           (item* "5. ")
+                           (item* "4. ")
                            "测试: 新增 save-aux-test.scm 纯逻辑单元测试，覆盖默认值、toggle 切换及导出行为。"
                          ) ;document
       ) ;enumerate-numeric
