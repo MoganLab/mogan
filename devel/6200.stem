@@ -291,6 +291,26 @@
       "- xmake b stem 编译成功（非社区版 is_community=n）；"
       "- xmake r ai-actions-bar-test 测试全部通过（79 correct, 0 failed）；"
       "- python3 TeXmacs/tests/python/6200.py 自动化测试通过，6200.png 截图验证 4 个表格标题均独立换行居中、排版完整、无超出引用块边界。"
+      (with "font-series" "bold" "5. 追加修复（2026-09-22）：Chat 标签页查看对话时表格仍溢出引用块")
+      "初版修复后，打开 Chat 标签页查看释义会话，引用块中的表格依旧横向溢出。定位到两个独立成因："
+      (with "font-series" "bold" "5.1 根因（追加）：")
+      "1) 选区落在表格内时表格与文本内联拼接（数据层）：ai-split-compound 把整棵表格哨兵归入 after 文本，选区起点落在表格单元格内（如选区「4cm宽」在 big-table 单元格中）时，重组出 (concat \"4cm宽\" (big-table …) \"后文\")，块级浮动表格随文本内联排版，从文本基线处向右延伸溢出引用块（已按 ai-selection-context 完整管线无头复现，并在持久化会话数据 message.tmu 中找到对应坏数据）；"
+      "2) 嵌套表格 table-width 1par 解析到页面级宽度（渲染层）：quote-env 自身是 table-width 1par 的单列表格（cell.cpp:69 在单元格排版前把 PAR_WIDTH 设为外层 1par），嵌套表格再以 1par 定宽（wide-tabular 1par exact；render-big-table/render-small-table 的 figure-width=1par 容器）时解析到页面级宽度，排出页面宽的表格/容器横向溢出引用块右边界。"
+      (with "font-series" "bold" "5.2 修复方案（追加）：")
+      "1) 表格哨兵块级化（ai-actions-bar.scm）：ai-flatten-text 对 ai-table-labels 命中的表格节点在哨兵前后补换行，重组时表格必独占段落；公式与图片保持行内；"
+      "2) 聊天包内表格按内容自然宽渲染（llm.stem）：wide-tabular/wide-block 去掉 1par 定宽；render-small-table/render-big-table 及 table-captions-above 的 -captions-above/-captions-below 分发变体（该包经 dynamic with 在展开时改绑 render-*，仅覆盖公共名会被绕过，中文会话全部受影响）一并指向「表格 + 居中标题」竖排单一来源宏（llm-render-table-below/-above），保留标题在上/在下偏好；对存量会话与新会话同样生效，AI 输出不经过这些表格宏不受影响；"
+      "3) 测试与工具清理：新增端到端回归 test-context-selection-in-table（选区落在表格单元格内，表格独占段落）；提取 assemble-context 管线 helper；6200.py 合并重复的 X11 窗口查找、简化 macOS 聚焦与参数解析。"
+      (with "font-series" "bold" "5.3 涉及文件（追加）：")
+      "- TeXmacs/progs/generic/ai-actions-bar.scm"
+      "- TeXmacs/plugins/llm/packages/session/llm.stem"
+      "- TeXmacs/progs/generic/tests/ai-actions-bar-test.scm"
+      "- TeXmacs/tests/python/6200.py"
+      "- devel/6200.stem"
+      (with "font-series" "bold" "5.4 验证结果（追加）：")
+      "- xmake b stem 编译通过；"
+      "- xmake r ai-actions-bar-test：80 correct, 0 failed（新增 1 个端到端回归）；"
+      "- gf fmt --changed-since=main 已执行；python3 -m py_compile 6200.py 通过；"
+      "- 人工核验：Chat 标签页查看释义会话，表格不再溢出引用块（初版效果用户已确认，追加修复与标题在上/在下偏好待复核）。"
     ) ;document
   ) ;body
   (initial (collection (associate "page-medium" "paper")
