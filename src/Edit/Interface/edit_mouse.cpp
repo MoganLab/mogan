@@ -24,6 +24,7 @@
 #include "qnamespace.h"
 #include "qt_chat_controller.hpp"
 #include "qt_simple_widget.hpp"
+#include "telemetry.hpp"
 #endif
 #include "preferences.hpp"
 #include "scheme.hpp"
@@ -1585,7 +1586,10 @@ edit_interface_rep::ai_action (string action) {
   if (selection_active_any ()) {
     if (action == "translate" || action == "chat" || action == "explain")
       qt_chat_ai_send_selection (selection_get (), action);
-    else if (action == "polish") call ("trigger-diff-text");
+    else if (action == "polish") {
+      telemetry_track ("AI_POLISH");
+      call ("trigger-diff-text");
+    }
   }
 #else
   (void) action;
