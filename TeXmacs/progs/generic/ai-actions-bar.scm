@@ -171,6 +171,12 @@
         ;; with：inline 数学整体登记留哨兵；其余只取末尾 body（前面是 key/val 属性对）
         ((eq? (car st) 'with) (or (ai-marker st) (ai-flatten-text (last st))))
         ((eq? (car st) 'document) (string-join (map ai-flatten-text (cdr st)) "\n"))
+        ;; 表格按块级排版：哨兵前后补换行，重组时独占段落。否则光标落在表格
+        ;; 内切分时，哨兵直接接在文本行中间，重组出 (concat 文本 表格)，表格
+        ;; 随文本内联排版并横向溢出引用块（6200）。公式与图片保持行内
+        ((memq (car st) ai-table-labels)
+         (string-append "\n" (ai-subtree-sentinel st) "\n")
+        ) ;
         (else
           (or (ai-marker st) (string-concatenate (map ai-flatten-text (cdr st))))
         ) ;else

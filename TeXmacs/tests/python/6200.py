@@ -64,53 +64,48 @@ def find_mogan_binary(repo_root):
     raise FileNotFoundError("Mogan binary not found. Please build stem first (xmake b stem).")
 
 
+def x11_find_mogan(d):
+    """Find the Mogan window on X11 by WM_CLASS/title, else None."""
+
+    def find(win):
+        try:
+            cls = win.get_wm_class()
+            if cls and "mogan" in cls[0].lower():
+                return win
+            name = win.get_wm_name()
+            if name and ("Mogan" in name or "STEM" in name):
+                return win
+            for child in win.query_tree().children:
+                res = find(child)
+                if res:
+                    return res
+        except Exception:
+            pass
+        return None
+
+    return find(d.screen().root)
+
+
 def get_mogan_window_rect():
-    """Returns (x, y, w, h) of Mogan window, or default full screen."""
+    """Returns (x, y, w, h) of the Mogan window on X11, else None."""
     if not IS_DARWIN and not IS_WINDOWS:
         try:
             import Xlib.display
+
             d = Xlib.display.Display()
-            root = d.screen().root
-
-            def find_win(win):
-                try:
-                    cls = win.get_wm_class()
-                    if cls and "mogan" in cls[0].lower():
-                        return win
-                    name = win.get_wm_name()
-                    if name and ("Mogan" in name or "STEM" in name):
-                        return win
-                    for child in win.query_tree().children:
-                        res = find_win(child)
-                        if res:
-                            return res
-                except Exception:
-                    pass
-                return None
-
-            w = find_win(root)
+            w = x11_find_mogan(d)
             if w:
                 geom = w.get_geometry()
-                coords = w.translate_coords(root, 0, 0)
+                coords = w.translate_coords(d.screen().root, 0, 0)
                 return (coords.x, coords.y, geom.width, geom.height)
         except Exception:
             pass
-
-    img = ImageGrab.grab()
-    return (0, 0, img.size[0], img.size[1])
+    return None
 
 
 def focus_mogan_window():
     """Ensure Mogan window is raised and focused across platforms."""
     if IS_DARWIN:
-        try:
-            import AppKit
-            for app in AppKit.NSWorkspace.sharedWorkspace().runningApplications():
-                if "Mogan" in (app.localizedName() or ""):
-                    app.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
-                    return
-        except Exception:
-            pass
         subprocess.run(
             ["osascript", "-e", 'tell application "System Events" to set frontmost of first process whose name contains "Mogan" to true'],
             capture_output=True,
@@ -149,23 +144,7 @@ def focus_mogan_window():
         d = Xlib.display.Display()
         root = d.screen().root
 
-        def find_mogan(win):
-            try:
-                cls = win.get_wm_class()
-                if cls and "mogan" in cls[0].lower():
-                    return win
-                name = win.get_wm_name()
-                if name and ("Mogan" in name or "STEM" in name):
-                    return win
-                for child in win.query_tree().children:
-                    res = find_mogan(child)
-                    if res:
-                        return res
-            except Exception:
-                pass
-            return None
-
-        w = find_mogan(root)
+        w = x11_find_mogan(d)
         if w:
             net_active = d.intern_atom("_NET_ACTIVE_WINDOW")
             cm = Xlib.protocol.event.ClientMessage(
@@ -189,16 +168,7 @@ def capture_quote_env(doc_path=None, output_path=None):
     bin_path = find_mogan_binary(repo_root)
 
     if doc_path is None:
-        default_candidates = [
-            os.path.join(repo_root, "TeXmacs", "tests", "tmu", "6200.tmu"),
-            os.path.join(repo_root, "6200.tmu"),
-        ]
-        for c in default_candidates:
-            if os.path.exists(c):
-                doc_path = c
-                break
-        if doc_path is None:
-            doc_path = default_candidates[0]
+        doc_path = os.path.join(repo_root, "TeXmacs", "tests", "tmu", "6200.tmu")
 
     if output_path is None:
         output_path = "/tmp/6200.png"
@@ -224,7 +194,10 @@ def capture_quote_env(doc_path=None, output_path=None):
         focus_mogan_window()
         time.sleep(0.5)
 
-        wx, wy, ww, wh = get_mogan_window_rect()
+        rect = get_mogan_window_rect()
+        # X11 之外拿不到窗口矩形：抓一次全屏，兼作点击参考与最终截图
+        full = None if rect else ImageGrab.grab()
+        wx, wy, ww, wh = rect if rect else (0, 0, full.size[0], full.size[1])
         print(f"[6200] Mogan window bounds: ({wx}, {wy}, {ww}, {wh})")
 
         mouse = MouseController()
@@ -239,11 +212,7 @@ def capture_quote_env(doc_path=None, output_path=None):
         time.sleep(1.0)
 
         print("[6200] Step 4: Capturing screenshot...")
-        if ww > 100 and wh > 100:
-            bbox = (wx, wy, wx + ww, wy + wh)
-            screenshot = ImageGrab.grab(bbox=bbox)
-        else:
-            screenshot = ImageGrab.grab()
+        screenshot = full if full else ImageGrab.grab(bbox=(wx, wy, wx + ww, wy + wh))
 
         screenshot.save(output_path)
         print(f"[6200] Screenshot successfully saved to: {output_path}")
@@ -271,15 +240,7 @@ def capture_quote_env(doc_path=None, output_path=None):
 
 
 if __name__ == "__main__":
-    doc = None
-    out = None
-    for arg in sys.argv[1:]:
-        if arg.endswith(".tmu") or arg.endswith(".tm") or arg.endswith(".stem"):
-            doc = arg
-        elif arg.endswith(".png"):
-            out = arg
-        elif doc is None:
-            doc = arg
-        else:
-            out = arg
+    # usage: 6200.py [doc.tmu] [out.png]
+    doc = sys.argv[1] if len(sys.argv) > 1 else None
+    out = sys.argv[2] if len(sys.argv) > 2 else None
     sys.exit(capture_quote_env(doc, out))
