@@ -1,0 +1,26 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")
+  ) ;style
+  (body
+    (document (doc-data (doc-title "AI 释义的埋点"))
+      (section "相关文档")
+      (itemize (document (concat (item) "devel/dddd.md - 任务文档规范")))
+      (section "任务相关代码文件")
+      (section "如何测试")
+      (subsection "单元测试")
+      (subsection "集成测试")
+      (subsection "端到端测试")
+      "编写 py 脚本并使用 pynput 框架进行测试"
+      (section "What")
+      "为选中内容 AI 释义的功能添加埋点上传，复用 mogan 已有的埋点系统"
+      (section "Why")
+      "分析用户行为"
+      (section "How")
+    ) ;document
+  ) ;body
+  (initial (collection (associate "page-screen-margin" "false")
+             (associate "save-aux" "false")
+             (associate "stem-doc-id" "217EB36F-71F4-4800-85D0-18579755D640")
+           ) ;collection
+  ) ;initial
+) ;document
