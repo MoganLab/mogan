@@ -15,6 +15,25 @@
 
 #include <QtTest/QtTest>
 
+namespace {
+/**
+ * @brief 临时切换主题与底色，析构时恢复（断言失败中途返回也能恢复）
+ */
+struct theme_guard {
+  string old_sheet;
+  color  old_bg;
+  theme_guard (string sheet, color bg)
+      : old_sheet (tm_style_sheet), old_bg (tm_background) {
+    tm_style_sheet= sheet;
+    tm_background = bg;
+  }
+  ~theme_guard () {
+    tm_style_sheet= old_sheet;
+    tm_background = old_bg;
+  }
+};
+} // namespace
+
 class TestRendererInitialBg : public QObject {
   Q_OBJECT
 
@@ -29,9 +48,8 @@ private slots:
 
 void
 TestRendererInitialBg::test_light_mode_native_picture_bg () {
-  string saved_theme= tm_style_sheet;
-  tm_style_sheet    = "$TEXMACS_PATH/misc/themes/liii.css";
-  tm_background     = rgb_color (160, 160, 160);
+  theme_guard guard ("$TEXMACS_PATH/misc/themes/liii.css",
+                     rgb_color (160, 160, 160));
 
   picture p= native_picture (16, 16, 0, 0);
   QVERIFY (!is_nil (p));
@@ -41,15 +59,12 @@ TestRendererInitialBg::test_light_mode_native_picture_bg () {
   QCOMPARE (r, 255);
   QCOMPARE (g, 255);
   QCOMPARE (b, 255);
-
-  tm_style_sheet= saved_theme;
 }
 
 void
 TestRendererInitialBg::test_dark_mode_native_picture_bg () {
-  string saved_theme= tm_style_sheet;
-  tm_style_sheet    = "$TEXMACS_PATH/misc/themes/liii-night.css";
-  tm_background     = rgb_color (32, 32, 32);
+  theme_guard guard ("$TEXMACS_PATH/misc/themes/liii-night.css",
+                     rgb_color (32, 32, 32));
 
   picture p= native_picture (16, 16, 0, 0);
   QVERIFY (!is_nil (p));
@@ -59,27 +74,21 @@ TestRendererInitialBg::test_dark_mode_native_picture_bg () {
   QCOMPARE (r, 32);
   QCOMPARE (g, 32);
   QCOMPARE (b, 32);
-
-  tm_style_sheet= saved_theme;
 }
 
 void
 TestRendererInitialBg::test_dark_mode_mupdf_renderer_bg () {
-  string saved_theme= tm_style_sheet;
-  tm_style_sheet    = "$TEXMACS_PATH/misc/themes/liii-night.css";
-  tm_background     = rgb_color (32, 32, 32);
+  theme_guard guard ("$TEXMACS_PATH/misc/themes/liii-night.css",
+                     rgb_color (32, 32, 32));
 
   mupdf_renderer_rep ren (100, 100);
   QCOMPARE (ren.get_background ()->get_color (), tm_background);
-
-  tm_style_sheet= saved_theme;
 }
 
 void
 TestRendererInitialBg::test_dark_mode_shadow_renderer_bg () {
-  string saved_theme= tm_style_sheet;
-  tm_style_sheet    = "$TEXMACS_PATH/misc/themes/liii-night.css";
-  tm_background     = rgb_color (32, 32, 32);
+  theme_guard guard ("$TEXMACS_PATH/misc/themes/liii-night.css",
+                     rgb_color (32, 32, 32));
 
   picture  p= native_picture (64, 64, 0, 0);
   renderer ren= picture_renderer (p, 1.0);
@@ -91,8 +100,6 @@ TestRendererInitialBg::test_dark_mode_shadow_renderer_bg () {
 
   ren->delete_shadow (shadow);
   tm_delete (ren);
-
-  tm_style_sheet= saved_theme;
 }
 
 #ifdef QTTEXMACS

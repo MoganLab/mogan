@@ -53,6 +53,34 @@ mupdf_document () {
   return doc;
 }
 
+/**
+ * @brief 新建 RGB pixmap 并填充当前主题的初始底色
+ * @note 深色主题填 tm_background，其余情况填白色
+ */
+fz_pixmap*
+mupdf_new_background_pixmap (int w, int h) {
+  fz_context* ctx= mupdf_context ();
+  fz_pixmap*  pix= fz_new_pixmap (ctx, fz_device_rgb (ctx), w, h, NULL, 1);
+#ifdef QTTEXMACS
+  if (qt_is_dark_theme ()) {
+    int r, g, b, a;
+    get_rgb_color (tm_background, r, g, b, a);
+    if (r == g && g == b) {
+      fz_clear_pixmap_with_value (ctx, pix, r);
+    }
+    else {
+      float col[3]= {(float) r / 255.0f, (float) g / 255.0f,
+                     (float) b / 255.0f};
+      fz_fill_pixmap_with_color (ctx, pix, fz_device_rgb (ctx), col,
+                                 fz_default_color_params);
+    }
+    return pix;
+  }
+#endif
+  fz_clear_pixmap_with_value (ctx, pix, 255); // white background
+  return pix;
+}
+
 bool           mupdf_renderer_rep::clip_active= false;
 pdf_processor* mupdf_renderer_rep::clip_proc;
 
@@ -180,10 +208,7 @@ mupdf_renderer_rep::mupdf_renderer_rep (int w2, int h2)
       fg (-1), bg (-1), lw (-1), in_text (false), cfn ("") {
   reset_zoom_factor ();
 #ifdef QTTEXMACS
-  if (qt_is_dark_theme ()) {
-    bg      = tm_background;
-    bg_brush= brush (tm_background);
-  }
+  if (qt_is_dark_theme ()) set_background (brush (tm_background));
 #endif
 }
 
@@ -229,14 +254,8 @@ mupdf_renderer_rep::begin (void* handle) {
 
     fg= -1;
 #ifdef QTTEXMACS
-    if (qt_is_dark_theme ()) {
-      bg      = tm_background;
-      bg_brush= brush (tm_background);
-    }
-    else {
-      bg      = -1;
-      bg_brush= brush (moebius::data::white);
-    }
+    if (qt_is_dark_theme ()) set_background (brush (tm_background));
+    else set_background (brush (moebius::data::white));
 #else
     bg= -1;
 #endif
@@ -1305,27 +1324,7 @@ mupdf_renderer_rep::new_shadow (renderer& ren) {
   }
   if (ren == NULL) {
     ren           = (renderer) tm_new<mupdf_renderer_rep> (mw, mh);
-    fz_pixmap* pix= fz_new_pixmap (
-        mupdf_context (), fz_device_rgb (mupdf_context ()), mw, mh, NULL, 1);
-#ifdef QTTEXMACS
-    if (qt_is_dark_theme ()) {
-      int r, g, b, a;
-      get_rgb_color (tm_background, r, g, b, a);
-      if (r == g && g == b) {
-        fz_clear_pixmap_with_value (mupdf_context (), pix, r);
-      }
-      else {
-        float col[3]= {(float) r / 255.0f, (float) g / 255.0f,
-                       (float) b / 255.0f};
-        fz_fill_pixmap_with_color (mupdf_context (), pix,
-                                   fz_device_rgb (mupdf_context ()), col,
-                                   fz_default_color_params);
-      }
-    }
-    else {
-      fz_clear_pixmap_with_value (mupdf_context (), pix, 255);
-    }
-#endif
+    fz_pixmap* pix= mupdf_new_background_pixmap (mw, mh);
     static_cast<mupdf_renderer_rep*> (ren)->begin (pix);
     fz_drop_pixmap (mupdf_context (), pix);
   }

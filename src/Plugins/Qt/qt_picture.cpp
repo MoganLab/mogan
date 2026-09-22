@@ -132,16 +132,8 @@ qt_load_icon (url file_name) {
 picture
 native_picture (int w, int h, int ox, int oy) {
   QImage im (w, h, QImage::Format_ARGB32);
-#ifdef QTTEXMACS
-  if (qt_is_dark_theme ()) {
-    im.fill (to_qcolor (tm_background));
-  }
-  else {
-    im.fill (Qt::white);
-  }
-#else
-  im.fill (Qt::white);
-#endif
+  if (qt_is_dark_theme ()) im.fill (to_qcolor (tm_background));
+  else im.fill (Qt::white);
   return qt_picture (im, ox, oy);
 }
 #endif

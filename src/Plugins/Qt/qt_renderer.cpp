@@ -103,11 +103,7 @@ del_obj_qt_renderer (void) {
 qt_renderer_rep::qt_renderer_rep (QPainter* _painter, int w2, int h2)
     : basic_renderer_rep (true, w2, h2), painter (_painter) {
   reset_zoom_factor ();
-#ifdef QTTEXMACS
-  if (qt_is_dark_theme ()) {
-    bg_brush= brush (tm_background);
-  }
-#endif
+  if (qt_is_dark_theme ()) bg_brush= brush (tm_background);
 }
 
 qt_renderer_rep::~qt_renderer_rep () {}
