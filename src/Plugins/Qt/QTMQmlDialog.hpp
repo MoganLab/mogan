@@ -336,10 +336,17 @@ void cpp_updater_dialog_close ();
 void cpp_wait_dialog_open (string message);
 
 /**
- * @brief 关闭通用等待中间态弹窗（host->close() → WA_DeleteOnClose 析构宿主）；
- * 未打开时 no-op。任务成功（结果插入前）与失败（错误通知前）均需调用。
+ * @brief 关闭通用等待中间态弹窗（先置空引用再同步 delete 宿主，不走
+ * 延迟析构）；未打开时 no-op。任务成功（结果插入前）与失败（错误通知前）
+ * 均需调用。
  */
 void cpp_wait_dialog_close ();
+
+/**
+ * @brief 通用等待弹窗当前是否打开。gui_pump_events 的泵事件门槛：仅弹窗
+ * 打开期间泵事件，避免改变常规打印路径的既有时序。
+ */
+bool qt_wait_dialog_shown ();
 
 /**
  * @brief QML 调色板弹窗的 glue 入口。

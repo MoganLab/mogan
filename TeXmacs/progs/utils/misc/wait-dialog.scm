@@ -51,3 +51,42 @@
 ;; per-task 闭包），置位后由各异步回调入口守卫拦截后续动作。
 
 (tm-define (wait-dialog-cancelled) (current-cancel-thunk))
+
+;; wait-dialog-run
+;; 在等待弹窗下调度执行任务：注册取消回调，延迟 pause 毫秒（让 Qt 事件
+;; 循环完成 QML 转圈首帧渲染，不能 open 后同调用栈立即执行）后运行
+;; thunk，正常完成即关闭弹窗并调用可选 on-done；用户取消则整链跳过。
+;; headless 模式下 delayed 回调不派发，退化为同步直跑。
+;;
+;; 语法
+;; ----
+;; (wait-dialog-run msg pause thunk [on-done])
+;;
+;; 参数
+;; ----
+;; msg - 待翻译的英文文案 key（translate 在本 GPL 层完成，调用方只传
+;;       纯数据字符串）
+;; pause - 弹窗首帧渲染的等待毫秒数
+;; thunk - 实际任务（弹窗存活期间执行）
+;; on-done - 可选 thunk，任务未被取消且完成后调用
+
+(tm-define (wait-dialog-run msg pause thunk . opt-on-done)
+  (let ((on-done (if (null? opt-on-done) (lambda () #f) (car opt-on-done))))
+    (if (headless?)
+      (begin
+        (thunk)
+        (on-done)
+      ) ;begin
+      (let ((cancelled? #f))
+        (wait-dialog-open msg (lambda () (set! cancelled? #t)))
+        (delayed (:pause pause)
+          (when (not cancelled?)
+            (thunk)
+            (wait-dialog-close)
+            (on-done)
+          ) ;when
+        ) ;delayed
+      ) ;let
+    ) ;if
+  ) ;let
+) ;tm-define

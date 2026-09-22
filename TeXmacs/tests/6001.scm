@@ -26,7 +26,9 @@
 (check-set-mode! 'report-failed)
 
 (define in-path "/tmp/6001_in.tm")
+
 (define out-path "/tmp/6001_out.pdf")
+
 (define cancel-out-path "/tmp/6001_cancel_out.pdf")
 
 (define step-delay-ms 1000)
@@ -36,13 +38,14 @@
     ((rest steps) (t (+ (texmacs-time) step-delay-ms)))
     (when (pair? rest)
       (let ((label (caar rest)) (act (cdar rest)))
-        (exec-delayed-at (lambda ()
-                           (display "[6001-step] ")
-                           (display label)
-                           (newline)
-                           (act)
-                           (loop (cdr rest) (+ (texmacs-time) step-delay-ms))
-                         ) ;lambda
+        (exec-delayed-at
+          (lambda ()
+            (display "[6001-step] ")
+            (display label)
+            (newline)
+            (act)
+            (loop (cdr rest) (+ (texmacs-time) step-delay-ms))
+          ) ;lambda
           t
         ) ;exec-delayed-at
       ) ;let
@@ -51,36 +54,33 @@
 ) ;define
 
 (tm-define (test_6001)
-  (run-chain (list
-    (cons "prepare doc" (lambda ()
-      (when (url-exists? (system->url out-path))
-        (system-remove (system->url out-path))
-      ) ;when
-      (when (url-exists? (system->url cancel-out-path))
-        (system-remove (system->url cancel-out-path))
-      ) ;when
-      (string-save
-        "<\\document>\n  Test PDF export with modern wait dialog.\n</document>\n"
-        in-path
-      ) ;string-save
-      (load-buffer in-path)
-    ))
-    (cons "wrapped-print-to-file" (lambda ()
-      (wrapped-print-to-file out-path)
-    ))
-    (cons "check pdf exists" (lambda ()
-      (check (url-exists? (system->url out-path)) => #t)
-    ))
-    (cons "test-cancel" (lambda ()
-      (wrapped-print-to-file cancel-out-path)
-      (wait-dialog-cancelled)
-    ))
-    (cons "check cancelled pdf does not exist" (lambda ()
-      (check (url-exists? (system->url cancel-out-path)) => #f)
-    ))
-    (cons "report + quit" (lambda ()
-      (check-report)
-      (quit-TeXmacs)
-    ))
-  ))
+  (run-chain
+    (list
+      (cons "prepare doc"
+        (lambda ()
+          (when (url-exists? (system->url out-path))
+            (system-remove (system->url out-path))
+          ) ;when
+          (when (url-exists? (system->url cancel-out-path))
+            (system-remove (system->url cancel-out-path))
+          ) ;when
+          (string-save "<\\document>\n  Test PDF export with modern wait dialog.\n</document>\n"
+            in-path
+          ) ;string-save
+          (load-buffer in-path)
+        ) ;lambda
+      ) ;cons
+      (cons "wrapped-print-to-file" (lambda () (wrapped-print-to-file out-path)))
+      (cons "check pdf exists"
+        (lambda () (check (url-exists? (system->url out-path)) => #t))
+      ) ;cons
+      (cons "test-cancel"
+        (lambda () (wrapped-print-to-file cancel-out-path) (wait-dialog-cancelled))
+      ) ;cons
+      (cons "check cancelled pdf does not exist"
+        (lambda () (check (url-exists? (system->url cancel-out-path)) => #f))
+      ) ;cons
+      (cons "report + quit" (lambda () (check-report) (quit-TeXmacs)))
+    ) ;list
+  ) ;run-chain
 ) ;tm-define

@@ -15,6 +15,7 @@
 #include <moebius/data/page_type.hpp>
 
 using moebius::data::page_get_feature;
+#include "gui.hpp" // for gui_pump_events
 #include "pager.hpp"
 #include "tm_debug.hpp"
 
@@ -209,8 +210,11 @@ pager_rep::pages_make () {
                             env->fn, env->first_page);
   int      i, n= N (sk);
   env->write (PAGE_THE_TOTAL, as_string (n));
-  for (i= 0; i < n; i++)
+  for (i= 0; i < n; i++) {
+    // 逐页装箱边界泵事件：等待弹窗打开时动画在分页阶段持续推进
+    gui_pump_events ();
     pages << pages_make_page (sk[i]);
+  }
   if (env->page_packet == 2 && (N (pages) & 1) == 1)
     pages << pages_make_page (pagelet (space (0)));
 }

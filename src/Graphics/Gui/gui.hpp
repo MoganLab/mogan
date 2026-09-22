@@ -82,6 +82,11 @@ void gui_maximal_extents (SI& width, SI& height);
 void gui_refresh ();
 // update and redraw all windows (e.g. on change of output language)
 
+void gui_pump_events ();
+// process pending gui events (except user input) during long synchronous
+// operations (e.g. printing to pdf), so that wait dialogs keep animating;
+// this routine may do nothing when no wait dialog is shown
+
 bool   gui_is_x ();
 bool   gui_is_qt ();
 bool   gui_is_headless ();

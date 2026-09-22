@@ -923,16 +923,21 @@ cpp_wait_dialog_open (string message) {
 }
 
 /**
- * @brief 关闭通用等待弹窗（同 cpp_updater_dialog_close：close 同步析构宿主，
- * QPointer 自动置空，此处再显式置空）。
+ * @brief 关闭通用等待弹窗：先置空 QPointer 再同步 delete 宿主（不走
+ * close()/deleteLater 的延迟析构，避免退出阶段 TLS 释放后残留回调悬垂）。
  */
 void
 cpp_wait_dialog_close () {
   if (g_wait_dialog_host) {
-    QDialog* host     = g_wait_dialog_host.data ();
+    QDialog* host     = g_wait_dialog_host;
     g_wait_dialog_host= nullptr;
     delete host;
   }
+}
+
+bool
+qt_wait_dialog_shown () {
+  return g_wait_dialog_host != nullptr;
 }
 
 /**

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "bridge.hpp"
+#include "gui.hpp" // for gui_pump_events
 
 using namespace moebius;
 
@@ -221,6 +222,8 @@ bridge_document_rep::my_typeset (int desired_status) {
     array<line_item> b= ttt->b;
     for (i= 0; i < n; i++) {
       // cout << "Typesetting " << st[i] << LF;
+      // 块间安全点泵事件：等待弹窗打开时转圈动画在内容排版阶段持续推进
+      gui_pump_events ();
       int wanted=
           (i == n - 1 ? desired_status & WANTED_MASK : WANTED_PARAGRAPH);
       ttt->a= (i == 0 ? a : array<line_item> ());
