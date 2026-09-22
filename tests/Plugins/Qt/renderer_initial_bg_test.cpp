@@ -1,7 +1,7 @@
 /******************************************************************************
  * MODULE     : renderer_initial_bg_test.cpp
- * DESCRIPTION: Unit tests for initial background color of renderer and native picture
- * COPYRIGHT  : (C) 2026 Mogan STEM
+ * DESCRIPTION: Unit tests for initial background color of renderer and native
+ *picture COPYRIGHT  : (C) 2026 Mogan STEM
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes with NO WARRANTY whatsoever. Details see LICENSE.
@@ -90,8 +90,8 @@ TestRendererInitialBg::test_dark_mode_shadow_renderer_bg () {
   theme_guard guard ("$TEXMACS_PATH/misc/themes/liii-night.css",
                      rgb_color (32, 32, 32));
 
-  picture  p= native_picture (64, 64, 0, 0);
-  renderer ren= picture_renderer (p, 1.0);
+  picture  p     = native_picture (64, 64, 0, 0);
+  renderer ren   = picture_renderer (p, 1.0);
   renderer shadow= nullptr;
   ren->new_shadow (shadow);
   QVERIFY (shadow != nullptr);
