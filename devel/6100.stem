@@ -1,1 +1,232 @@
-(document (TeXmacs "2.1.4") (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")) (body (document (doc-data (doc-title "[6100] AI 翻译的埋点")) (section "相关文档") (itemize (document (concat (item) "devel/dddd.md - 任务文档规范"))) (section "任务相关代码文件") (section "如何测试") (subsection "单元测试") (subsection "集成测试") "" (subsection "端到端测试") "使用 py 脚本和 pynput 框架进行测试。" (section "What") "为选中文本 AI 翻译的能力添加埋点上传，复用 mogan 已有的埋点系统。" (section "Why") "分析用户行为" (section "How"))) (initial (collection (associate "page-screen-margin" "false") (associate "stem-doc-id" "EC2E859F-7FF4-4260-8222-30C4D110CF70"))) (references (collection (associate "auto-1" (tuple "1" "?")) (associate "auto-2" (tuple "2" "?")) (associate "auto-3" (tuple "3" "?")) (associate "auto-4" (tuple (concat (concat "3" ".") "1") "?")) (associate "auto-5" (tuple (concat (concat "3" ".") "2") "?")) (associate "auto-6" (tuple (concat (concat "3" ".") "3") "?")) (associate "auto-7" (tuple "4" "?")) (associate "auto-8" (tuple "5" "?")) (associate "auto-9" (tuple "6" "?")))) (auxiliary (collection (associate "toc" (document (concat (vspace* "1fn") (with "font-series" (quote "bold") "math-font-series" (quote "bold") (concat "1" (space "2spc") "相关文档")) (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-1") (vspace "0.5fn")) (concat (vspace* "1fn") (with "font-series" (quote "bold") "math-font-series" (quote "bold") (concat "2" (space "2spc") "任务相关代码文件")) (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-2") (vspace "0.5fn")) (concat (vspace* "1fn") (with "font-series" (quote "bold") "math-font-series" (quote "bold") (concat "3" (space "2spc") "如何测试")) (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-3") (vspace "0.5fn")) (with "par-left" (quote "1tab") (concat (concat (concat (concat "3" ".") "1") (space "2spc") "单元测试") (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-4"))) (with "par-left" (quote "1tab") (concat (concat (concat (concat "3" ".") "2") (space "2spc") "集成测试") (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-5"))) (with "par-left" (quote "1tab") (concat (concat (concat (concat "3" ".") "3") (space "2spc") "端到端测试") (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-6"))) (concat (vspace* "1fn") (with "font-series" (quote "bold") "math-font-series" (quote "bold") (concat "4" (space "2spc") "What")) (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-7") (vspace "0.5fn")) (concat (vspace* "1fn") (with "font-series" (quote "bold") "math-font-series" (quote "bold") (concat "5" (space "2spc") "Why")) (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-8") (vspace "0.5fn")) (concat (vspace* "1fn") (with "font-series" (quote "bold") "math-font-series" (quote "bold") (concat "6" (space "2spc") "How")) (datoms (macro "x" (repeat (arg "x") (with "font-series" "medium" (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))))) (htab "5mm")) (no-break) (pageref "auto-9") (vspace "0.5fn")))))))
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")
+  ) ;style
+  (body
+    (document (doc-data (doc-title "[6100] AI 翻译的埋点"))
+      (section "相关文档")
+      (itemize (document (concat (item) "devel/dddd.md - 任务文档规范")))
+      (section "任务相关代码文件")
+      (section "如何测试")
+      (subsection "单元测试")
+      (subsection "集成测试")
+      ""
+      (subsection "端到端测试")
+      "使用 py 脚本和 pynput 框架进行测试。"
+      (section "What")
+      "为选中文本 AI 翻译的能力添加埋点上传，复用 mogan 已有的埋点系统。"
+      (section "Why")
+      "分析用户行为"
+      (section "How")
+    ) ;document
+  ) ;body
+  (initial (collection (associate "page-screen-margin" "false")
+             (associate "stem-doc-id" "EC2E859F-7FF4-4260-8222-30C4D110CF70")
+           ) ;collection
+  ) ;initial
+  (references
+    (collection (associate "auto-1" (tuple "1" "?"))
+      (associate "auto-2" (tuple "2" "?"))
+      (associate "auto-3" (tuple "3" "?"))
+      (associate "auto-4" (tuple (concat (concat "3" ".") "1") "?"))
+      (associate "auto-5" (tuple (concat (concat "3" ".") "2") "?"))
+      (associate "auto-6" (tuple (concat (concat "3" ".") "3") "?"))
+      (associate "auto-7" (tuple "4" "?"))
+      (associate "auto-8" (tuple "5" "?"))
+      (associate "auto-9" (tuple "6" "?"))
+    ) ;collection
+  ) ;references
+  (auxiliary
+    (collection
+      (associate "toc"
+        (document
+          (concat (vspace* "1fn")
+            (with "font-series"
+              (quote "bold")
+              "math-font-series"
+              (quote "bold")
+              (concat "1" (space "2spc") "相关文档")
+            ) ;with
+            (datoms
+              (macro "x"
+                (repeat (arg "x")
+                  (with "font-series"
+                    "medium"
+                    (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                  ) ;with
+                ) ;repeat
+              ) ;macro
+              (htab "5mm")
+            ) ;datoms
+            (no-break)
+            (pageref "auto-1")
+            (vspace "0.5fn")
+          ) ;concat
+          (concat (vspace* "1fn")
+            (with "font-series"
+              (quote "bold")
+              "math-font-series"
+              (quote "bold")
+              (concat "2" (space "2spc") "任务相关代码文件")
+            ) ;with
+            (datoms
+              (macro "x"
+                (repeat (arg "x")
+                  (with "font-series"
+                    "medium"
+                    (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                  ) ;with
+                ) ;repeat
+              ) ;macro
+              (htab "5mm")
+            ) ;datoms
+            (no-break)
+            (pageref "auto-2")
+            (vspace "0.5fn")
+          ) ;concat
+          (concat (vspace* "1fn")
+            (with "font-series"
+              (quote "bold")
+              "math-font-series"
+              (quote "bold")
+              (concat "3" (space "2spc") "如何测试")
+            ) ;with
+            (datoms
+              (macro "x"
+                (repeat (arg "x")
+                  (with "font-series"
+                    "medium"
+                    (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                  ) ;with
+                ) ;repeat
+              ) ;macro
+              (htab "5mm")
+            ) ;datoms
+            (no-break)
+            (pageref "auto-3")
+            (vspace "0.5fn")
+          ) ;concat
+          (with "par-left"
+            (quote "1tab")
+            (concat (concat (concat (concat "3" ".") "1") (space "2spc") "单元测试")
+              (datoms
+                (macro "x"
+                  (repeat (arg "x")
+                    (with "font-series"
+                      "medium"
+                      (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                    ) ;with
+                  ) ;repeat
+                ) ;macro
+                (htab "5mm")
+              ) ;datoms
+              (no-break)
+              (pageref "auto-4")
+            ) ;concat
+          ) ;with
+          (with "par-left"
+            (quote "1tab")
+            (concat (concat (concat (concat "3" ".") "2") (space "2spc") "集成测试")
+              (datoms
+                (macro "x"
+                  (repeat (arg "x")
+                    (with "font-series"
+                      "medium"
+                      (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                    ) ;with
+                  ) ;repeat
+                ) ;macro
+                (htab "5mm")
+              ) ;datoms
+              (no-break)
+              (pageref "auto-5")
+            ) ;concat
+          ) ;with
+          (with "par-left"
+            (quote "1tab")
+            (concat (concat (concat (concat "3" ".") "3") (space "2spc") "端到端测试")
+              (datoms
+                (macro "x"
+                  (repeat (arg "x")
+                    (with "font-series"
+                      "medium"
+                      (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                    ) ;with
+                  ) ;repeat
+                ) ;macro
+                (htab "5mm")
+              ) ;datoms
+              (no-break)
+              (pageref "auto-6")
+            ) ;concat
+          ) ;with
+          (concat (vspace* "1fn")
+            (with "font-series"
+              (quote "bold")
+              "math-font-series"
+              (quote "bold")
+              (concat "4" (space "2spc") "What")
+            ) ;with
+            (datoms
+              (macro "x"
+                (repeat (arg "x")
+                  (with "font-series"
+                    "medium"
+                    (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                  ) ;with
+                ) ;repeat
+              ) ;macro
+              (htab "5mm")
+            ) ;datoms
+            (no-break)
+            (pageref "auto-7")
+            (vspace "0.5fn")
+          ) ;concat
+          (concat (vspace* "1fn")
+            (with "font-series"
+              (quote "bold")
+              "math-font-series"
+              (quote "bold")
+              (concat "5" (space "2spc") "Why")
+            ) ;with
+            (datoms
+              (macro "x"
+                (repeat (arg "x")
+                  (with "font-series"
+                    "medium"
+                    (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                  ) ;with
+                ) ;repeat
+              ) ;macro
+              (htab "5mm")
+            ) ;datoms
+            (no-break)
+            (pageref "auto-8")
+            (vspace "0.5fn")
+          ) ;concat
+          (concat (vspace* "1fn")
+            (with "font-series"
+              (quote "bold")
+              "math-font-series"
+              (quote "bold")
+              (concat "6" (space "2spc") "How")
+            ) ;with
+            (datoms
+              (macro "x"
+                (repeat (arg "x")
+                  (with "font-series"
+                    "medium"
+                    (with "font-size" "1" (concat (space "0.05fn") "." (space "0.05fn")))
+                  ) ;with
+                ) ;repeat
+              ) ;macro
+              (htab "5mm")
+            ) ;datoms
+            (no-break)
+            (pageref "auto-9")
+            (vspace "0.5fn")
+          ) ;concat
+        ) ;document
+      ) ;associate
+    ) ;collection
+  ) ;auxiliary
+) ;document
