@@ -291,7 +291,6 @@ public:
   /// 类别分组控件数据
   struct CategorySection {
     QPushButton* headerButton= nullptr;
-    QLabel*      titleLabel  = nullptr;
     QLabel*      arrowLabel  = nullptr;
     QWidget*     listWidget  = nullptr;
     QVBoxLayout* listLayout  = nullptr;
@@ -391,13 +390,6 @@ public:
   bool isCategoryCollapsed (const string& type) const;
 
   /**
-   * @brief 设置指定类别的折叠状态。
-   * @param type 类别名称（"explain"/"translate"/"chat"）
-   * @param collapsed 是否折叠
-   */
-  void setCategoryCollapsed (const string& type, bool collapsed);
-
-  /**
    * @brief 获取指定类别的折叠按钮。
    * @param type 类别名称（"explain"/"translate"/"chat"）
    */
@@ -441,18 +433,19 @@ private:
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
-  CategorySection  createCategorySection (QWidget* parent, const QString& title,
-                                          bool           defaultCollapsed,
-                                          const QString& objectName,
-                                          const string&  catType);
-  CategorySection* getCategorySection (const string& type);
-  const CategorySection* getCategorySection (const string& type) const;
+  CategorySection createCategorySection (QWidget* parent, const QString& title,
+                                         bool          defaultCollapsed,
+                                         const string& catType);
+  CategorySection&
+  getCategorySection (const string& type); ///< 未知类型归入对话分类
+  const CategorySection& getCategorySection (const string& type) const;
   QVBoxLayout*           getCategoryLayout (const string& type);
-  void                   toggleCategory (const string& type);
-  void                   ensureCategoryExpanded (const string& type);
-  void                   updateCountLabels (); ///< 更新会话数/归档数标签
-  void updateArchiveListVisibility ();         ///< 调整归档列表可见性与高度
-  int  computeArchiveContentHeight () const;   ///< 计算归档区内容总高度
+  void applyCategoryCollapsed (CategorySection& sec, bool collapsed);
+  void toggleCategory (const string& type);
+  void ensureCategoryExpanded (const string& type);
+  void updateCountLabels ();                 ///< 更新会话数/归档数标签
+  void updateArchiveListVisibility ();       ///< 调整归档列表可见性与高度
+  int  computeArchiveContentHeight () const; ///< 计算归档区内容总高度
   void endEditTitle (const string& sessionId, bool accept); ///< 结束内联编辑
   QList<string>
   getCheckedSessionIds () const; ///< 获取多选模式下已勾选的会话 ID 列表

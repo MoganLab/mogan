@@ -109,6 +109,9 @@ constexpr int kCollapseBorderRadius= 4;
 constexpr int kCollapsePadY        = 4;
 constexpr int kCollapsePadX        = 8;
 constexpr int kMultiSelectSpacing  = 4;
+/// 类别标题右侧的折叠（▸）/ 展开（▾）指示箭头
+constexpr const char* kCategoryArrowCollapsed= "\xe2\x96\xb8";
+constexpr const char* kCategoryArrowExpanded = "\xe2\x96\xbe";
 
 // ---- Panel 内容区常量 ----
 constexpr int kWelcomeFontPx         = 34;
@@ -1157,20 +1160,17 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   explainSection_= createCategorySection (
-      conversationListWidget_, qt_translate ("Explain::ai"), true,
-      "chat-tab-category-explain", "explain");
+      conversationListWidget_, qt_translate ("Explain::ai"), true, "explain");
   conversationListLayout_->addWidget (explainSection_.headerButton);
   conversationListLayout_->addWidget (explainSection_.listWidget);
 
   translateSection_= createCategorySection (
-      conversationListWidget_, qt_translate ("Translate"), true,
-      "chat-tab-category-translate", "translate");
+      conversationListWidget_, qt_translate ("Translate"), true, "translate");
   conversationListLayout_->addWidget (translateSection_.headerButton);
   conversationListLayout_->addWidget (translateSection_.listWidget);
 
-  chatSection_=
-      createCategorySection (conversationListWidget_, qt_translate ("Chat::ai"),
-                             false, "chat-tab-category-chat", "chat");
+  chatSection_= createCategorySection (
+      conversationListWidget_, qt_translate ("Chat::ai"), false, "chat");
   conversationListLayout_->addWidget (chatSection_.headerButton);
   conversationListLayout_->addWidget (chatSection_.listWidget);
 
@@ -1410,10 +1410,7 @@ ChatSidebar::applySearchFilter () {
   QString filterText=
       searchEdit_ ? searchEdit_->text ().toLower () : QString ();
 
-  int explainMatches  = 0;
-  int translateMatches= 0;
-  int chatMatches     = 0;
-
+  QMap<CategorySection*, int> matches;
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     SidebarItem& item= it.value ();
     if (!item.sidebarButton || !item.itemWidget) continue;
@@ -1429,22 +1426,18 @@ ChatSidebar::applySearchFilter () {
         filterText.isEmpty () || displayText.toLower ().contains (filterText);
     item.itemWidget->setVisible (matchesFilter);
 
-    if (matchesFilter && !item.isArchived) {
-      if (item.type == "explain") ++explainMatches;
-      else if (item.type == "translate") ++translateMatches;
-      else ++chatMatches;
-    }
+    if (matchesFilter && !item.isArchived)
+      ++matches[&getCategorySection (item.type)];
   }
 
-  if (!filterText.isEmpty ()) {
-    if (explainMatches > 0) explainSection_.listWidget->show ();
-    if (translateMatches > 0) translateSection_.listWidget->show ();
-    if (chatMatches > 0) chatSection_.listWidget->show ();
-  }
-  else {
-    explainSection_.listWidget->setVisible (!explainSection_.collapsed);
-    translateSection_.listWidget->setVisible (!translateSection_.collapsed);
-    chatSection_.listWidget->setVisible (!chatSection_.collapsed);
+  CategorySection* const sections[]= {&explainSection_, &translateSection_,
+                                      &chatSection_};
+  for (CategorySection* sec : sections) {
+    // 搜索时只展开有匹配项的分类（无匹配的保持原状）；清空后恢复折叠状态
+    if (!filterText.isEmpty ()) {
+      if (matches.value (sec, 0) > 0) sec->listWidget->show ();
+    }
+    else sec->listWidget->setVisible (!sec->collapsed);
   }
 
   updateCountLabels ();
@@ -1452,14 +1445,14 @@ ChatSidebar::applySearchFilter () {
 
 ChatSidebar::CategorySection
 ChatSidebar::createCategorySection (QWidget* parent, const QString& title,
-                                    bool           defaultCollapsed,
-                                    const QString& objectName,
-                                    const string&  catType) {
+                                    bool          defaultCollapsed,
+                                    const string& catType) {
   CategorySection sec;
   sec.collapsed= defaultCollapsed;
 
   CategoryHeaderButton* btn= new CategoryHeaderButton (parent);
-  btn->setObjectName (objectName);
+  // 各类别共用同一 objectName，主题 CSS 只需一组选择器
+  btn->setObjectName ("chat-tab-category-header");
   btn->setText (title);
   btn->setFocusPolicy (Qt::NoFocus);
   btn->setCursor (Qt::PointingHandCursor);
@@ -1483,9 +1476,10 @@ ChatSidebar::createCategorySection (QWidget* parent, const QString& title,
   titleLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
   DpiUtils::applyScaledFont (titleLabel, kNavButtonFontPx);
 
-  QLabel* arrowLabel= new QLabel (defaultCollapsed ? QString ("\xe2\x96\xb8")
-                                                   : QString ("\xe2\x96\xbe"),
-                                  btn);
+  QLabel* arrowLabel=
+      new QLabel (defaultCollapsed ? QString (kCategoryArrowCollapsed)
+                                   : QString (kCategoryArrowExpanded),
+                  btn);
   arrowLabel->setObjectName ("chat-tab-category-arrow");
   arrowLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
   DpiUtils::applyScaledFont (arrowLabel, kNavTitleFontPx);
@@ -1505,7 +1499,6 @@ ChatSidebar::createCategorySection (QWidget* parent, const QString& title,
            [this, catType] () { toggleCategory (catType); });
 
   sec.headerButton= btn;
-  sec.titleLabel  = titleLabel;
   sec.arrowLabel  = arrowLabel;
   sec.listWidget  = listWidget;
   sec.listLayout  = listLayout;
@@ -1513,68 +1506,53 @@ ChatSidebar::createCategorySection (QWidget* parent, const QString& title,
   return sec;
 }
 
-ChatSidebar::CategorySection*
+ChatSidebar::CategorySection&
 ChatSidebar::getCategorySection (const string& type) {
-  if (type == "explain") return &explainSection_;
-  if (type == "translate") return &translateSection_;
-  return &chatSection_;
+  if (type == "explain") return explainSection_;
+  if (type == "translate") return translateSection_;
+  return chatSection_;
 }
 
-const ChatSidebar::CategorySection*
+const ChatSidebar::CategorySection&
 ChatSidebar::getCategorySection (const string& type) const {
-  if (type == "explain") return &explainSection_;
-  if (type == "translate") return &translateSection_;
-  return &chatSection_;
+  if (type == "explain") return explainSection_;
+  if (type == "translate") return translateSection_;
+  return chatSection_;
 }
 
 QVBoxLayout*
 ChatSidebar::getCategoryLayout (const string& type) {
-  CategorySection* sec= getCategorySection (type);
-  return sec ? sec->listLayout : nullptr;
+  return getCategorySection (type).listLayout;
 }
 
 bool
 ChatSidebar::isCategoryCollapsed (const string& type) const {
-  const CategorySection* sec= getCategorySection (type);
-  return sec ? sec->collapsed : false;
-}
-
-void
-ChatSidebar::setCategoryCollapsed (const string& type, bool collapsed) {
-  CategorySection* sec= getCategorySection (type);
-  if (!sec || sec->collapsed == collapsed) return;
-  sec->collapsed= collapsed;
-  if (sec->listWidget) sec->listWidget->setVisible (!sec->collapsed);
-  if (sec->arrowLabel)
-    sec->arrowLabel->setText (sec->collapsed ? QString ("\xe2\x96\xb8")
-                                             : QString ("\xe2\x96\xbe"));
+  return getCategorySection (type).collapsed;
 }
 
 QPushButton*
 ChatSidebar::categoryButton (const string& type) const {
-  const CategorySection* sec= getCategorySection (type);
-  return sec ? sec->headerButton : nullptr;
+  return getCategorySection (type).headerButton;
+}
+
+void
+ChatSidebar::applyCategoryCollapsed (CategorySection& sec, bool collapsed) {
+  if (sec.collapsed == collapsed) return;
+  sec.collapsed= collapsed;
+  sec.listWidget->setVisible (!collapsed);
+  sec.arrowLabel->setText (collapsed ? QString (kCategoryArrowCollapsed)
+                                     : QString (kCategoryArrowExpanded));
 }
 
 void
 ChatSidebar::toggleCategory (const string& type) {
-  CategorySection* sec= getCategorySection (type);
-  if (!sec) return;
-  sec->collapsed= !sec->collapsed;
-  if (sec->listWidget) sec->listWidget->setVisible (!sec->collapsed);
-  if (sec->arrowLabel)
-    sec->arrowLabel->setText (sec->collapsed ? QString ("\xe2\x96\xb8")
-                                             : QString ("\xe2\x96\xbe"));
+  CategorySection& sec= getCategorySection (type);
+  applyCategoryCollapsed (sec, !sec.collapsed);
 }
 
 void
 ChatSidebar::ensureCategoryExpanded (const string& type) {
-  CategorySection* sec= getCategorySection (type);
-  if (sec && sec->collapsed) {
-    sec->collapsed= false;
-    if (sec->listWidget) sec->listWidget->show ();
-    if (sec->arrowLabel) sec->arrowLabel->setText (QString ("\xe2\x96\xbe"));
-  }
+  applyCategoryCollapsed (getCategorySection (type), false);
 }
 
 void

@@ -1460,28 +1460,20 @@ QPushButton#chat-tab-archive-header:hover {
 }
 
 /* 类别折叠按钮 */
-QPushButton#chat-tab-category-explain,
-QPushButton#chat-tab-category-translate,
-QPushButton#chat-tab-category-chat {
+QPushButton#chat-tab-category-header {
   text-align: left;
   border: none;
   background-color: transparent;
   border-radius: 4px;
 }
-QPushButton#chat-tab-category-explain QLabel,
-QPushButton#chat-tab-category-translate QLabel,
-QPushButton#chat-tab-category-chat QLabel {
+QPushButton#chat-tab-category-header QLabel {
   color: #cccccc;
   font-weight: bold;
 }
-QPushButton#chat-tab-category-explain:hover,
-QPushButton#chat-tab-category-translate:hover,
-QPushButton#chat-tab-category-chat:hover {
+QPushButton#chat-tab-category-header:hover {
   background-color: rgba(255, 255, 255, 0.06);
 }
-QPushButton#chat-tab-category-explain:hover QLabel,
-QPushButton#chat-tab-category-translate:hover QLabel,
-QPushButton#chat-tab-category-chat:hover QLabel {
+QPushButton#chat-tab-category-header:hover QLabel {
   color: #ffffff;
 }
 
