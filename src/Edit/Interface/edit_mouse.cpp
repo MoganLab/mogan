@@ -24,6 +24,7 @@
 #include "qnamespace.h"
 #include "qt_chat_controller.hpp"
 #include "qt_simple_widget.hpp"
+#include "telemetry.hpp"
 #endif
 #include "preferences.hpp"
 #include "scheme.hpp"
@@ -1583,7 +1584,11 @@ edit_interface_rep::ai_action (string action) {
   // 取上下文）；润色与 Tab 同走 trigger-diff-text（内部自带 diff-enable?
   // 门控）。无选区时各动作忽视
   if (selection_active_any ()) {
-    if (action == "translate" || action == "chat" || action == "explain")
+    if (action == "chat") {
+      telemetry_track ("AI_CHAT");
+      qt_chat_ai_send_selection (selection_get (), action);
+    }
+    else if (action == "translate" || action == "explain")
       qt_chat_ai_send_selection (selection_get (), action);
     else if (action == "polish") call ("trigger-diff-text");
   }
