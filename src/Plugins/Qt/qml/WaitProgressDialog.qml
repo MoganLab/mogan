@@ -33,7 +33,8 @@ DialogShell {
     // dialogMessage 同风格——未注入（如旧二进制/测试环境）时降级 no-op 而非
     // JS 报错，症状是「取消无响应」而非弹窗炸掉，更易诊断。
     function cancelWait() {
-        if (typeof waitCancelBridge !== "undefined") waitCancelBridge.cancel()
+        if (buttonLabels.length > 0 && typeof waitCancelBridge !== "undefined")
+            waitCancelBridge.cancel()
     }
 
     // ESC → 用户取消（覆盖 DialogShell 默认的 closeBridge.cancel：done(Rejected)

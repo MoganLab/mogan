@@ -127,31 +127,44 @@
 ) ;tm-define
 
 (tm-define (wrapped-print-to-file fname . opts)
-  (wait-dialog-run "Exporting, please wait..."
-    50
-    (lambda ()
+  (save-buffer-save (current-buffer)
+    (list)
+    (string-append (url-suffix fname) "_export")
+  ) ;save-buffer-save
+  (if (<= (get-page-count) 10)
+    (begin
       (apply export-buffer-to-pdf fname opts)
-      (save-buffer-save (current-buffer)
-        (list)
-        (string-append (url-suffix fname) "_export")
-      ) ;save-buffer-save
-    ) ;lambda
-    (lambda () (user-confirm-open-pdf fname))
-  ) ;wait-dialog-run
+      (user-confirm-open-pdf fname)
+    ) ;begin
+    (wait-dialog-run "Exporting, please wait..."
+      50
+      (lambda () (apply export-buffer-to-pdf fname opts))
+      (lambda () (user-confirm-open-pdf fname))
+    ) ;wait-dialog-run
+  ) ;if
 ) ;tm-define
 
 (define (wrapped-print-to-pdf-embeded fname kind . opts)
-  (wait-dialog-run "Exporting, please wait..."
-    50
-    (lambda ()
+  (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
+  (if (<= (get-page-count) 10)
+    (begin
       (apply export-buffer-to-pdf fname opts)
       (unless (attach-doc-to-exported-pdf fname)
         (notify-now (string-append "Fail to attach " kind " to pdf"))
       ) ;unless
-      (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
-    ) ;lambda
-    (lambda () (user-confirm-open-pdf fname))
-  ) ;wait-dialog-run
+      (user-confirm-open-pdf fname)
+    ) ;begin
+    (wait-dialog-run "Exporting, please wait..."
+      50
+      (lambda ()
+        (apply export-buffer-to-pdf fname opts)
+        (unless (attach-doc-to-exported-pdf fname)
+          (notify-now (string-append "Fail to attach " kind " to pdf"))
+        ) ;unless
+      ) ;lambda
+      (lambda () (user-confirm-open-pdf fname))
+    ) ;wait-dialog-run
+  ) ;if
 ) ;define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tm fname . opts)

@@ -897,7 +897,7 @@ static QPointer<QDialog> g_wait_dialog_host;
  * 同步析构。弹窗已打开时重复调用 no-op（保留首个文案与回调）。
  */
 void
-cpp_wait_dialog_open (string message) {
+cpp_wait_dialog_open (string message, bool cancellable) {
   if (headless_mode) return;
   if (g_wait_dialog_host) return; // 已打开不重复弹
   run_modal_qml_dialog (
@@ -911,7 +911,9 @@ cpp_wait_dialog_open (string message) {
         qw->rootContext ()->setContextProperty ("dialogMessage",
                                                 to_qstring (message));
         array<string> buttons;
-        buttons << string ("Cancel");
+        if (cancellable) {
+          buttons << string ("Cancel");
+        }
         qw->rootContext ()->setContextProperty ("dialogButtons",
                                                 translate_buttons (buttons));
         QObject::connect (host, &QDialog::destroyed, closeBridge,

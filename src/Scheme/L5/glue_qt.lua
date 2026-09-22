@@ -179,7 +179,8 @@ function main()
                 cpp_name = "cpp_wait_dialog_open",
                 ret_type = "void",
                 arg_list = {
-                    "string"
+                    "string",
+                    "bool"
                 }
             },
             {

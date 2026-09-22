@@ -24,21 +24,30 @@
 (define current-cancel-thunk (lambda () #f))
 
 ;; wait-dialog-open
-;; 打开等待弹窗并注册取消回调
+;; 打开等待弹窗，可选用 opt-on-cancel 注册取消回调（缺省为 no-op）
 ;;
 ;; 语法
 ;; ----
-;; (wait-dialog-open msg on-cancel)
+;; (wait-dialog-open msg [on-cancel])
 ;;
 ;; 参数
 ;; ----
 ;; msg - 待翻译的英文文案 key（translate 在本 GPL 层完成，调用方/goldfish
 ;;       编排层只传纯数据字符串）
-;; on-cancel - thunk，用户取消（ESC/Cancel 按钮）时被调用
+;; on-cancel - 可选 thunk，用户取消（ESC/Cancel 按钮）时被调用；传入则
+;;             弹窗展示「取消」按钮，不传则无取消按钮亦不注册取消回调
 
-(tm-define (wait-dialog-open msg on-cancel)
-  (set! current-cancel-thunk on-cancel)
-  (cpp-wait-dialog-open (translate msg))
+(tm-define (wait-dialog-open msg . opt-on-cancel)
+  (if (pair? opt-on-cancel)
+    (begin
+      (set! current-cancel-thunk (car opt-on-cancel))
+      (cpp-wait-dialog-open (translate msg) #t)
+    ) ;begin
+    (begin
+      (set! current-cancel-thunk (lambda () #f))
+      (cpp-wait-dialog-open (translate msg) #f)
+    ) ;begin
+  ) ;if
 ) ;tm-define
 
 ;; 关闭等待弹窗（程序性关闭：不触发取消回流；幂等，未打开时 no-op）。
@@ -53,9 +62,9 @@
 (tm-define (wait-dialog-cancelled) (current-cancel-thunk))
 
 ;; wait-dialog-run
-;; 在等待弹窗下调度执行任务：注册取消回调，延迟 pause 毫秒（让 Qt 事件
-;; 循环完成 QML 转圈首帧渲染，不能 open 后同调用栈立即执行）后运行
-;; thunk，正常完成即关闭弹窗并调用可选 on-done；用户取消则整链跳过。
+;; 在等待弹窗下调度执行任务：延迟 pause 毫秒（让 Qt 事件循环完成 QML
+;; 转圈首帧渲染，不能 open 后同调用栈立即执行）后运行 thunk，正常完成
+;; 即关闭弹窗并调用可选 on-done。不注册取消回调（无取消按钮）。
 ;; headless 模式下 delayed 回调不派发，退化为同步直跑。
 ;;
 ;; 语法
@@ -68,7 +77,7 @@
 ;;       纯数据字符串）
 ;; pause - 弹窗首帧渲染的等待毫秒数
 ;; thunk - 实际任务（弹窗存活期间执行）
-;; on-done - 可选 thunk，任务未被取消且完成后调用
+;; on-done - 可选 thunk，任务完成后调用
 
 (tm-define (wait-dialog-run msg pause thunk . opt-on-done)
   (let ((on-done (if (null? opt-on-done) (lambda () #f) (car opt-on-done))))
@@ -77,16 +86,10 @@
         (thunk)
         (on-done)
       ) ;begin
-      (let ((cancelled? #f))
-        (wait-dialog-open msg (lambda () (set! cancelled? #t)))
-        (delayed (:pause pause)
-          (when (not cancelled?)
-            (thunk)
-            (wait-dialog-close)
-            (on-done)
-          ) ;when
-        ) ;delayed
-      ) ;let
+      (begin
+        (wait-dialog-open msg)
+        (delayed (:pause pause) (thunk) (wait-dialog-close) (on-done))
+      ) ;begin
     ) ;if
   ) ;let
 ) ;tm-define

@@ -875,7 +875,6 @@ TestQmlLoad::test_wait_progress_dialog_loads () {
   qw->rootContext ()->setContextProperty (
       "dialogMessage", QString ("Exporting, please wait..."));
   QStringList buttons;
-  buttons << QString ("Cancel");
   qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
   qw->setSource (QUrl ("qrc:/qml/WaitProgressDialog.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
