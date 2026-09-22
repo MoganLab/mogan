@@ -724,6 +724,9 @@ gui_pump_events () {
 void
 gui_wait_dialog_open (string message, bool cancellable) {
   cpp_wait_dialog_open (translate (message), cancellable);
+  // 首帧：show 后同调用栈泵一次（绕过 gui_pump_events 节流），转圈立即可见
+  if (!headless_mode && qt_wait_dialog_shown ())
+    qApp->processEvents (QEventLoop::ExcludeUserInputEvents);
 }
 
 void

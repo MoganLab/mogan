@@ -236,8 +236,6 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   env->update ();
   typesetter ttt    = new_typesetter (env, subtree (et, rp), reverse (rp));
   box        the_box= ::typeset (ttt);
-  // 排版阶段结束的安全边界：泵事件让等待弹窗转圈动画追上（仅弹窗打开时生效）
-  gui_pump_events ();
 
   // Determine parameters for printer
 
@@ -263,7 +261,6 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   bool show_wait= (pages > 10);
   if (show_wait) {
     gui_wait_dialog_open ("Exporting, please wait...", false);
-    gui_pump_events ();
   }
 
   // Print pages
@@ -292,10 +289,8 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   }
   tm_delete (ren);
   delete_typesetter (ttt);
-
-  if (show_wait) {
-    gui_wait_dialog_close ();
-  }
+  // 未打开时 no-op，短文档与真实打印路径无需守卫
+  gui_wait_dialog_close ();
 }
 
 void

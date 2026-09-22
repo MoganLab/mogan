@@ -13,7 +13,7 @@
 (texmacs-module (utils misc wait-dialog))
 
 ;; 通用等待弹窗的 scheme 门面：包装 Qt 侧 glue（cpp-wait-dialog-open/close，
-;; QML WaitProgressDialog：无限转圈 + 已翻译文案 + Cancel，可 ESC 取消）。
+;; QML WaitProgressDialog：无限转圈 + 已翻译文案 + 可选取消按钮）。
 ;; 供 OCR 识别、其他魔法粘贴等异步任务共用；任务链须由 delayed 轮询驱动
 ;; （非阻塞模态弹窗，主线程回到事件循环动画才转得动，见 devel/0521.md）。
 
@@ -38,16 +38,10 @@
 ;;             弹窗展示「取消」按钮，不传则无取消按钮亦不注册取消回调
 
 (tm-define (wait-dialog-open msg . opt-on-cancel)
-  (if (pair? opt-on-cancel)
-    (begin
-      (set! current-cancel-thunk (car opt-on-cancel))
-      (cpp-wait-dialog-open (translate msg) #t)
-    ) ;begin
-    (begin
-      (set! current-cancel-thunk (lambda () #f))
-      (cpp-wait-dialog-open (translate msg) #f)
-    ) ;begin
-  ) ;if
+  (let ((cancellable? (pair? opt-on-cancel)))
+    (set! current-cancel-thunk (if cancellable? (car opt-on-cancel) (lambda () #f)))
+    (cpp-wait-dialog-open (translate msg) cancellable?)
+  ) ;let
 ) ;tm-define
 
 ;; 关闭等待弹窗（程序性关闭：不触发取消回流；幂等，未打开时 no-op）。
@@ -60,42 +54,3 @@
 ;; per-task 闭包），置位后由各异步回调入口守卫拦截后续动作。
 
 (tm-define (wait-dialog-cancelled) (current-cancel-thunk))
-
-;; wait-dialog-run
-;; 在等待弹窗下调度执行任务：注册取消回调，延迟 pause 毫秒（让 Qt 事件
-;; 循环完成 QML 转圈首帧渲染，不能 open 后同调用栈立即执行）后运行
-;; thunk，正常完成即关闭弹窗并调用可选 on-done；用户取消则整链跳过。
-;; headless 模式下 delayed 回调不派发，退化为同步直跑。
-;;
-;; 语法
-;; ----
-;; (wait-dialog-run msg pause thunk [on-done])
-;;
-;; 参数
-;; ----
-;; msg - 待翻译的英文文案 key（translate 在本 GPL 层完成，调用方只传
-;;       纯数据字符串）
-;; pause - 弹窗首帧渲染的等待毫秒数
-;; thunk - 实际任务（弹窗存活期间执行）
-;; on-done - 可选 thunk，任务未被取消且完成后调用
-
-(tm-define (wait-dialog-run msg pause thunk . opt-on-done)
-  (let ((on-done (if (null? opt-on-done) (lambda () #f) (car opt-on-done))))
-    (if (headless?)
-      (begin
-        (thunk)
-        (on-done)
-      ) ;begin
-      (let ((cancelled? #f))
-        (wait-dialog-open msg (lambda () (set! cancelled? #t)))
-        (delayed (:pause pause)
-          (when (not cancelled?)
-            (thunk)
-            (wait-dialog-close)
-            (on-done)
-          ) ;when
-        ) ;delayed
-      ) ;let
-    ) ;if
-  ) ;let
-) ;tm-define

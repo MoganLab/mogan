@@ -87,7 +87,7 @@ void gui_pump_events ();
 // operations (e.g. printing to pdf), so that wait dialogs keep animating;
 // this routine may do nothing when no wait dialog is shown
 
-void gui_wait_dialog_open (string message, bool cancellable= false);
+void gui_wait_dialog_open (string message, bool cancellable);
 void gui_wait_dialog_close ();
 // generic wait progress dialog (modal spinner) for long synchronous operations;
 // no-op in headless / non-Qt modes

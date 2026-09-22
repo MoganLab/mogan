@@ -15,7 +15,8 @@
 // 仍写缓存）。
 //
 // context property（C++ 注入）：dialogMessage（已翻译）、dialogButtons（已
-// 翻译的按钮文案）、dpScale、isDark、closeBridge、waitCancelBridge。
+// 翻译的按钮文案）、dialogCancellable（是否可取消）、dpScale、isDark、
+// closeBridge、waitCancelBridge。
 
 import QtQuick
 import "atoms"
@@ -28,12 +29,13 @@ DialogShell {
 
     property string message: typeof dialogMessage !== "undefined" ? dialogMessage : ""
     property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : ["Cancel"]
+    property bool cancellable: typeof dialogCancellable !== "undefined" ? dialogCancellable : false
 
     // 取消动作统一入口：waitCancelBridge 由 C++ 注入；typeof 保护与
     // dialogMessage 同风格——未注入（如旧二进制/测试环境）时降级 no-op 而非
     // JS 报错，症状是「取消无响应」而非弹窗炸掉，更易诊断。
     function cancelWait() {
-        if (buttonLabels.length > 0 && typeof waitCancelBridge !== "undefined")
+        if (root.cancellable && typeof waitCancelBridge !== "undefined")
             waitCancelBridge.cancel()
     }
 
