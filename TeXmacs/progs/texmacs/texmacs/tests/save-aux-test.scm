@@ -24,10 +24,14 @@
 (load "./TeXmacs/progs/texmacs/texmacs/tm-files.scm")
 
 ;; 1. STEM 格式文档默认 save-aux 为 "false"，save-aux-enabled? 为 #f
+
 (define (test-stem-default-save-aux-off)
   (let* ((stem-path "/tmp/test_stem_default_6002.stem")
-         (stem-url (system->url stem-path)))
-    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")))" stem-url)
+         (stem-url (system->url stem-path))
+        ) ;
+    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")))"
+      stem-url
+    ) ;string-save
     (load-buffer stem-url)
     (check (get-env "save-aux") => "false")
     (check (save-aux-enabled?) => #f)
@@ -36,10 +40,12 @@
 ) ;define
 
 ;; 2. TMU 格式文档默认 save-aux 为 "true"，save-aux-enabled? 为 #t
+
 (define (test-tmu-default-save-aux-on)
-  (let* ((tmu-path "/tmp/test_tmu_default_6002.tmu")
-         (tmu-url (system->url tmu-path)))
-    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")))" tmu-url)
+  (let* ((tmu-path "/tmp/test_tmu_default_6002.tmu") (tmu-url (system->url tmu-path)))
+    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")))"
+      tmu-url
+    ) ;string-save
     (load-buffer tmu-url)
     (check (get-env "save-aux") => "true")
     (check (save-aux-enabled?) => #t)
@@ -48,10 +54,14 @@
 ) ;define
 
 ;; 3. STEM 文档下 toggle-save-aux 切换
+
 (define (test-stem-toggle-save-aux)
   (let* ((stem-path "/tmp/test_stem_toggle_6002.stem")
-         (stem-url (system->url stem-path)))
-    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")))" stem-url)
+         (stem-url (system->url stem-path))
+        ) ;
+    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")))"
+      stem-url
+    ) ;string-save
     (load-buffer stem-url)
     (check (save-aux-enabled?) => #f)
     (toggle-save-aux)
@@ -65,15 +75,16 @@
 ) ;define
 
 ;; 4. STEM 格式导出：默认不保存辅助数据，手动开启后保存辅助数据
+
 (define (test-stem-export-aux-behavior)
   (let* ((orig-path "/tmp/test_orig_6002.stem")
          (orig-url (system->url orig-path))
          (dest-default-path "/tmp/test_dest_default_6002.stem")
          (dest-default-url (system->url dest-default-path))
          (dest-enabled-path "/tmp/test_dest_enabled_6002.stem")
-         (dest-enabled-url (system->url dest-enabled-path)))
-    (string-save
-      "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")) (references (collection (associate \"k\" \"v\"))))"
+         (dest-enabled-url (system->url dest-enabled-path))
+        ) ;
+    (string-save "(document (TeXmacs \"2.1.4\") (body (document \"Hello\")) (references (collection (associate \"k\" \"v\"))))"
       orig-url
     ) ;string-save
     (load-buffer orig-url)
@@ -97,13 +108,14 @@
 ) ;define
 
 ;; 5. TMU 格式导出：默认保留辅助数据
+
 (define (test-tmu-export-aux-behavior)
   (let* ((orig-path "/tmp/test_tmu_orig_6002.tmu")
          (orig-url (system->url orig-path))
          (dest-path "/tmp/test_tmu_dest_6002.tmu")
-         (dest-url (system->url dest-path)))
-    (string-save
-      "<TMU|<tuple|1.1.0|2026.3.0>>\n\nHello\n\n<\\references>\n  <\\collection>\n    <associate|k|v>\n  </collection>\n</references>\n"
+         (dest-url (system->url dest-path))
+        ) ;
+    (string-save "<TMU|<tuple|1.1.0|2026.3.0>>\n\nHello\n\n<\\references>\n  <\\collection>\n    <associate|k|v>\n  </collection>\n</references>\n"
       orig-url
     ) ;string-save
     (load-buffer orig-url)
