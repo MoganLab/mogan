@@ -260,6 +260,12 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
     h         = env->as_length (bhs);
   }
 
+  bool show_wait= (pages > 10);
+  if (show_wait) {
+    gui_wait_dialog_open ("Exporting, please wait...", false);
+    gui_pump_events ();
+  }
+
   // Print pages
   renderer ren= printer (name, dpi, pages, page_type, landsc, w / cm, h / cm);
 
@@ -286,6 +292,10 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   }
   tm_delete (ren);
   delete_typesetter (ttt);
+
+  if (show_wait) {
+    gui_wait_dialog_close ();
+  }
 }
 
 void

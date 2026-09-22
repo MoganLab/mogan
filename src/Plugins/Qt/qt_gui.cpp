@@ -721,6 +721,16 @@ gui_pump_events () {
   qApp->processEvents (QEventLoop::ExcludeUserInputEvents);
 }
 
+void
+gui_wait_dialog_open (string message, bool cancellable) {
+  cpp_wait_dialog_open (translate (message), cancellable);
+}
+
+void
+gui_wait_dialog_close () {
+  cpp_wait_dialog_close ();
+}
+
 string
 gui_version () {
 #if (QT_VERSION >= 0x060000)

@@ -16,7 +16,6 @@
     (utils library cursor)
     (dynamic fold-edit)
     (kernel texmacs pref-keys)
-    (utils misc wait-dialog)
   ) ;:use
 ) ;texmacs-module
 
@@ -131,40 +130,17 @@
     (list)
     (string-append (url-suffix fname) "_export")
   ) ;save-buffer-save
-  (if (<= (get-page-count) 10)
-    (begin
-      (apply export-buffer-to-pdf fname opts)
-      (user-confirm-open-pdf fname)
-    ) ;begin
-    (wait-dialog-run "Exporting, please wait..."
-      50
-      (lambda () (apply export-buffer-to-pdf fname opts))
-      (lambda () (user-confirm-open-pdf fname))
-    ) ;wait-dialog-run
-  ) ;if
+  (apply export-buffer-to-pdf fname opts)
+  (user-confirm-open-pdf fname)
 ) ;tm-define
 
 (define (wrapped-print-to-pdf-embeded fname kind . opts)
   (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
-  (if (<= (get-page-count) 10)
-    (begin
-      (apply export-buffer-to-pdf fname opts)
-      (unless (attach-doc-to-exported-pdf fname)
-        (notify-now (string-append "Fail to attach " kind " to pdf"))
-      ) ;unless
-      (user-confirm-open-pdf fname)
-    ) ;begin
-    (wait-dialog-run "Exporting, please wait..."
-      50
-      (lambda ()
-        (apply export-buffer-to-pdf fname opts)
-        (unless (attach-doc-to-exported-pdf fname)
-          (notify-now (string-append "Fail to attach " kind " to pdf"))
-        ) ;unless
-      ) ;lambda
-      (lambda () (user-confirm-open-pdf fname))
-    ) ;wait-dialog-run
-  ) ;if
+  (apply export-buffer-to-pdf fname opts)
+  (unless (attach-doc-to-exported-pdf fname)
+    (notify-now (string-append "Fail to attach " kind " to pdf"))
+  ) ;unless
+  (user-confirm-open-pdf fname)
 ) ;define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tm fname . opts)
