@@ -1,5 +1,7 @@
 (document (TeXmacs "2.1.4")
-  (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")
+  (style (tuple "generic" "chinese" "table-captions-above" "number-europe"
+           "preview-ref" "bash"
+         ) ;tuple
   ) ;style
   (body
     (document (doc-data (doc-title "[6100] AI 翻译的埋点"))
@@ -7,9 +9,14 @@
       (itemize (document (concat (item) "devel/dddd.md - 任务文档规范")))
       (section "任务相关代码文件")
       (section "如何测试")
+      (subsection "手动测试")
+      (bash-code (document "# 以商业版模式编译，方可使用假插件进行测试"
+                   "xmake config --yes -m releasedbg --is_community=no "
+                   "# 编译运行" "xmake b stem ; xmake r stem "
+                 ) ;document
+      ) ;bash-code
       (subsection "单元测试")
       (subsection "集成测试")
-      ""
       (subsection "端到端测试")
       "使用 py 脚本和 pynput 框架进行测试。"
       (section "What")
