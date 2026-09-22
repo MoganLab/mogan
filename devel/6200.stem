@@ -286,7 +286,6 @@
       "- TeXmacs/tests/tmu/6200.tmu"
       "- TeXmacs/tests/python/6200.py"
       "- devel/6200.stem"
-      "- devel/6200.md"
       (with "font-series" "bold" "4. 验证结果：")
       "- xmake b stem 编译成功（非社区版 is_community=n）；"
       "- xmake r ai-actions-bar-test 测试全部通过（79 correct, 0 failed）；"
