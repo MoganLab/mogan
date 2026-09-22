@@ -509,7 +509,6 @@ public:
   virtual void generate_glossary (string glo)                              = 0;
   virtual void generate_aux (string which= "")                             = 0;
   virtual bool get_save_aux ()                                             = 0;
-  virtual bool is_stem ()                                                  = 0;
 
   /* public routines from edit_select */
   virtual path semantic_root (path p)                                = 0;

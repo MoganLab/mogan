@@ -621,8 +621,7 @@ edit_typeset_rep::get_init_value (string var) {
     if (var == BG_COLOR && is_func (t, PATTERN)) t= env->exec (t);
     return is_func (t, BACKUP, 2) ? t[0] : t;
   }
-  if (var == SAVE_AUX && is_stem ()) return "false";
-  if (N (pre) == 0 || !pre->contains (var)) typeset_preamble ();
+  if (N (pre) == 0) typeset_preamble ();
   tree t= pre[var];
   if (var == BG_COLOR && is_func (t, PATTERN)) t= env->exec (t);
   return is_func (t, BACKUP, 2) ? t[0] : t;
