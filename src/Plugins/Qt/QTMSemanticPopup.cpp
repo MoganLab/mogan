@@ -26,7 +26,8 @@
 
 extern s7_scheme* tm_s7;
 
-QTMSemanticPopup::QTMSemanticPopup (QWidget* parent, qt_simple_widget_rep* owner)
+QTMSemanticPopup::QTMSemanticPopup (QWidget*              parent,
+                                    qt_simple_widget_rep* owner)
     : QTMBasePopup (parent, owner), current_tag (""), fade_anim (nullptr),
       hide_timer (nullptr) {
   setObjectName ("base_popup");
@@ -40,9 +41,7 @@ QTMSemanticPopup::QTMSemanticPopup (QWidget* parent, qt_simple_widget_rep* owner
   hide_timer= new QTimer (this);
   hide_timer->setSingleShot (true);
   hide_timer->setInterval (250);
-  connect (hide_timer, &QTimer::timeout, this, [this] () {
-    startFadeOut ();
-  });
+  connect (hide_timer, &QTimer::timeout, this, [this] () { startFadeOut (); });
 }
 
 QTMSemanticPopup::~QTMSemanticPopup () {}
@@ -81,9 +80,8 @@ QTMSemanticPopup::rebuildButtons () {
     }
     else if (current_tag == "table-of-contents" ||
              current_tag == "table-of-contents*") {
-      acts= compound (
-          "actions",
-          compound ("action", "refresh-toc", "Refresh TOC", "tm_reload"));
+      acts= compound ("actions", compound ("action", "refresh-toc",
+                                           "Refresh TOC", "tm_reload"));
     }
   }
   if (!is_compound (acts, "actions")) return;
@@ -118,9 +116,8 @@ QTMSemanticPopup::rebuildButtons () {
         btn->setStyle (qtmstyle ());
       }
 
-      connect (btn, &QToolButton::clicked, this, [this, act_id, btn] () {
-        handleAction (act_id, btn);
-      });
+      connect (btn, &QToolButton::clicked, this,
+               [this, act_id, btn] () { handleAction (act_id, btn); });
 
       layout->addWidget (btn);
       buttons.append (btn);
@@ -164,7 +161,7 @@ QTMSemanticPopup::autoSize () {
     }
   }
   adjustSize ();
-  QSize sz     = layout ? layout->sizeHint () : sizeHint ();
+  QSize sz= layout ? layout->sizeHint () : sizeHint ();
   setFixedSize (sz);
   cached_width = sz.width ();
   cached_height= sz.height ();
@@ -192,7 +189,7 @@ QTMSemanticPopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
     int vp_w= owner->scrollarea ()->viewport ()->width ();
     int vp_h= owner->scrollarea ()->viewport ()->height ();
 
-    const bool above_fits = (above_y >= 0) && (above_y + cached_height <= vp_h);
+    const bool above_fits= (above_y >= 0) && (above_y + cached_height <= vp_h);
     const bool inside_fits=
         (inside_top_y >= 0) && (inside_top_y + cached_height <= vp_h);
     const bool below_fits= (below_y >= 0) && (below_y + cached_height <= vp_h);
