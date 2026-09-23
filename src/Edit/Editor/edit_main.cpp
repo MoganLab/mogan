@@ -14,6 +14,7 @@
 #include "convert.hpp"
 #include "converter.hpp"
 #include "cork.hpp"
+#include "gui.hpp" // 用于等待弹窗及事件泵
 #include "image_files.hpp"
 #include "iterator.hpp"
 #include "message.hpp"
@@ -257,6 +258,11 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
     h         = env->as_length (bhs);
   }
 
+  bool show_wait= (pages > 10);
+  if (show_wait) {
+    gui_wait_dialog_open ("Exporting, please wait...", false);
+  }
+
   // Print pages
   renderer ren= printer (name, dpi, pages, page_type, landsc, w / cm, h / cm);
 
@@ -267,6 +273,8 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
     ren->set_metadata ("subject", get_metadata ("subject"));
     ren->set_metadata ("keyword", get_metadata ("keyword"));
     for (i= start; i < end; i++) {
+      // 逐页边界泵事件：同步导出期间等待弹窗动画持续可见
+      gui_pump_events ();
       tree bg= env->read (BG_COLOR);
       ren->set_background (bg);
       if (bg != "white" && bg != "#ffffff")
@@ -281,6 +289,8 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   }
   tm_delete (ren);
   delete_typesetter (ttt);
+  // 未打开时 no-op，短文档与真实打印路径无需守卫
+  gui_wait_dialog_close ();
 }
 
 void

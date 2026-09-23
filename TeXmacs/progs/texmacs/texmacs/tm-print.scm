@@ -126,24 +126,20 @@
 ) ;tm-define
 
 (tm-define (wrapped-print-to-file fname . opts)
-  (system-wait "Exporting, " (translate "please wait"))
-  (apply export-buffer-to-pdf fname opts)
   (save-buffer-save (current-buffer)
     (list)
     (string-append (url-suffix fname) "_export")
   ) ;save-buffer-save
-  (system-wait "" "")
+  (apply export-buffer-to-pdf fname opts)
   (user-confirm-open-pdf fname)
 ) ;tm-define
 
 (define (wrapped-print-to-pdf-embeded fname kind . opts)
-  (system-wait "Exporting, " (translate "please wait"))
+  (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
   (apply export-buffer-to-pdf fname opts)
   (unless (attach-doc-to-exported-pdf fname)
     (notify-now (string-append "Fail to attach " kind " to pdf"))
   ) ;unless
-  (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
-  (system-wait "" "")
   (user-confirm-open-pdf fname)
 ) ;define
 
