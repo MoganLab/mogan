@@ -321,6 +321,13 @@ public:
   void show_diff_popup ();
   void hide_diff_popup ();
 
+  bool is_point_in_semantic_popup (SI x, SI y);
+  void show_semantic_popup (string tag, tree t, rectangle selr, double magf,
+                            int scroll_x, int scroll_y, int canvas_x,
+                            int canvas_y);
+  void hide_semantic_popup ();
+  void update_semantic_popup ();
+
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);
   tree get_display_shortcut_suffix (string cmd_s);

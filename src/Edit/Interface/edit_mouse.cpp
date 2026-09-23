@@ -955,6 +955,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
 #endif
     update_text_popup ();
     update_ai_actions_bar ();
+    update_semantic_popup ();
   }
   else if (over_handles) {
     if (handle_cursor != "") set_cursor_style (handle_cursor);
@@ -981,6 +982,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
 #endif
     }
     hide_text_popup ();
+    hide_semantic_popup ();
   }
   else {
     set_cursor_style ("normal");
@@ -992,6 +994,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     // 检查是否应该显示文本工具栏
     update_text_popup ();
     update_ai_actions_bar ();
+    update_semantic_popup ();
   }
 
   if (type == "move") mouse_message ("move", x, y);
@@ -1119,6 +1122,9 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     }
     if (!is_point_in_ai_actions_bar (x, y)) {
       hide_ai_actions_bar ();
+    }
+    if (!is_point_in_semantic_popup (x, y)) {
+      update_semantic_popup ();
     }
     notify_change (THE_DECORATIONS);
   }
@@ -1382,6 +1388,135 @@ edit_interface_rep::hide_diff_popup () {
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
     qsw->hide_diff_popup ();
   }
+#endif
+}
+
+bool
+edit_interface_rep::is_point_in_semantic_popup (SI x, SI y) {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    return qsw->is_point_in_semantic_popup (x, y);
+  }
+#endif
+  return false;
+}
+
+void
+edit_interface_rep::show_semantic_popup (string tag, tree t, rectangle selr,
+                                         double magf, int scroll_x,
+                                         int scroll_y, int canvas_x,
+                                         int canvas_y) {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->show_semantic_popup (tag, t, selr, magf, scroll_x, scroll_y, canvas_x,
+                              canvas_y);
+  }
+#endif
+}
+
+void
+edit_interface_rep::hide_semantic_popup () {
+#ifdef QTTEXMACS
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->hide_semantic_popup ();
+  }
+#endif
+}
+
+void
+edit_interface_rep::update_semantic_popup () {
+#ifdef QTTEXMACS
+  if (left_dragging || selection_active_any ()) {
+    hide_semantic_popup ();
+    return;
+  }
+
+  // 1. 如果鼠标正悬停在语义浮窗本身上面，保持显示，不自隐藏
+  if (is_point_in_semantic_popup (last_x, last_y)) {
+    return;
+  }
+
+  // 2. 探测鼠标指针所处的复合语义节点，或光标所处的语义节点
+  string hit_tag= "";
+  tree   hit_tree;
+  path   hit_path;
+  bool   from_mouse= false;
+
+  // 优先探测鼠标位置
+  path mp= tree_path (path (), last_x, last_y, 0);
+  path sp= mp;
+  while (!is_nil (sp) && rp <= sp) {
+    tree sub= subtree (et, sp);
+    if (is_compound (sub, "equation*") || is_compound (sub, "equation") ||
+        is_compound (sub, "table-of-contents") ||
+        is_compound (sub, "table-of-contents*")) {
+      hit_tag   = sub->label;
+      hit_tree  = sub;
+      hit_path  = sp;
+      from_mouse= true;
+      break;
+    }
+    sp= path_up (sp);
+  }
+
+  // 若鼠标处未命中，探测当前光标位置
+  if (hit_tag == "") {
+    sp= tp;
+    while (!is_nil (sp) && rp <= sp) {
+      tree sub= subtree (et, sp);
+      if (is_compound (sub, "equation*") || is_compound (sub, "equation") ||
+          is_compound (sub, "table-of-contents") ||
+          is_compound (sub, "table-of-contents*")) {
+        hit_tag = sub->label;
+        hit_tree= sub;
+        hit_path= sp;
+        break;
+      }
+      sp= path_up (sp);
+    }
+  }
+
+  if (hit_tag != "" && !is_nil (hit_tree)) {
+    path p= obtain_ip (hit_tree);
+    if (!is_nil (p) && p->item != DETACHED) {
+      p= reverse (p);
+    }
+    else {
+      p= hit_path;
+    }
+
+    path      start_p= p * start (hit_tree);
+    path      end_p  = p * end (hit_tree);
+    selection sel    = search_selection (start_p, end_p);
+    if (is_nil (sel->rs) || N (sel->rs) == 0) {
+      start_p= start (et, p);
+      end_p  = end (et, p);
+      sel    = search_selection (start_p, end_p);
+    }
+
+    if (!is_nil (sel->rs) && N (sel->rs) > 0) {
+      rectangle block_selr= least_upper_bound (sel->rs);
+
+      // 检查鼠标是否在块内或邻近区域（上方扩展以容纳浮窗间隙）
+      bool mouse_near= (last_x >= block_selr->x1 - 20 * pixel &&
+                        last_x <= block_selr->x2 + 20 * pixel &&
+                        last_y >= block_selr->y1 - 40 * pixel &&
+                        last_y <= block_selr->y2 + 20 * pixel);
+
+      update_visible ();
+      bool in_view= !(block_selr->x2 < vx1 || block_selr->x1 > vx2 ||
+                      block_selr->y2 < vy1 || block_selr->y1 > vy2);
+
+      if (in_view && (from_mouse || mouse_near)) {
+        show_semantic_popup (hit_tag, hit_tree, block_selr, magf,
+                             get_scroll_x (), get_scroll_y (), get_canvas_x (),
+                             get_canvas_y ());
+        return;
+      }
+    }
+  }
+
+  hide_semantic_popup ();
 #endif
 }
 
