@@ -4,10 +4,7 @@
 ;;
 
 (define-library (liii ocr-poller)
-  (export ensure-ocr-poller
-    set-ocr-poll-delayer!
-    ocr-poll-delay
-  ) ;export
+  (export ensure-ocr-poller set-ocr-poll-delayer! ocr-poll-delay)
   (import (scheme base))
   (begin
     (define poll-delayer (lambda (thunk) (thunk)))

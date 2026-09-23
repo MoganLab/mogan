@@ -72,9 +72,10 @@
 (define (first-non-empty-string t i)
   (let ((cur-t (tree-ref t i)))
     (cond ((not cur-t) #f)
-          (else (let ((s (tree->string cur-t)))
-                  (if (string=? s "") (first-non-empty-string t (+ i 1)) s)
-                ) ;let
+          (else
+            (let ((s (tree->string cur-t)))
+              (if (string=? s "") (first-non-empty-string t (+ i 1)) s)
+            ) ;let
           ) ;else
     ) ;cond
   ) ;let

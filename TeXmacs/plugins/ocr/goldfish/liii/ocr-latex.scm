@@ -4,12 +4,8 @@
 ;;
 
 (define-library (liii ocr-latex)
-  (export ocr-latex-refine
-    ocr-latex-preprocess
-    ocr-latex-split-aligned-suffix
-    math-replace-whitelist
-    apply-math-whitelist
-    preprocess-math-in-markdown
+  (export ocr-latex-refine ocr-latex-preprocess ocr-latex-split-aligned-suffix
+    math-replace-whitelist apply-math-whitelist preprocess-math-in-markdown
   ) ;export
   (import (scheme base))
   (begin

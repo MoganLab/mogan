@@ -56,37 +56,34 @@
               "question"
               (translate "Sign In")
             ) ;list
-    (lambda (anw)
-      (if (string=? anw (translate "Sign In"))
-        (login)
-        (noop)
-      ) ;if
-    ) ;lambda
+    (lambda (anw) (if (string=? anw (translate "Sign In")) (login) (noop)))
   ) ;user-ask
 ) ;define
 
 (define (open-no-network-message-widget)
-  (user-ask (list (string-append (cork->utf8 (translate "The OCR feature requires an internet connection to use...")
-                                 ) ;cork->utf8
-                    "\n"
-                    (cork->utf8 (translate "Connect to the network to enjoy convenient and fast OCR features!")
-                    ) ;cork->utf8
-                  ) ;string-append
-              "question"
-              (translate "ok")
-            ) ;list
+  (user-ask
+    (list (string-append (cork->utf8 (translate "The OCR feature requires an internet connection to use...")
+                         ) ;cork->utf8
+            "\n"
+            (cork->utf8 (translate "Connect to the network to enjoy convenient and fast OCR features!")
+            ) ;cork->utf8
+          ) ;string-append
+      "question"
+      (translate "ok")
+    ) ;list
     (lambda (anw) (noop))
   ) ;user-ask
 ) ;define
 
 (define (open-exhausted-message-widget)
-  (user-ask (list (string-append (cork->utf8 (translate "Daily OCR limit reached"))
-                    "\n"
-                    (cork->utf8 (translate "Upgrade to continue using OCR."))
-                  ) ;string-append
-              "question"
-              (translate "Upgrade")
-            ) ;list
+  (user-ask
+    (list (string-append (cork->utf8 (translate "Daily OCR limit reached"))
+            "\n"
+            (cork->utf8 (translate "Upgrade to continue using OCR."))
+          ) ;string-append
+      "question"
+      (translate "Upgrade")
+    ) ;list
     (lambda (anw)
       (if (string=? anw (translate "Upgrade"))
         (open-url (account-oauth2-config "pricing-url"))

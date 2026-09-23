@@ -4,17 +4,10 @@
 ;;
 
 (define-library (liii ocr-render)
-  (export latex-fragment->texmacs
-    equation->texmacs-tree
-    image-content->texmacs-tree
-    html-block->texmacs-tree
-    layout-group->texmacs-tree
-    layout-node-tag
-    layout-node-attrs
-    layout-node-children
-    layout-attr-ref
-    set-latex-conv!
-    set-html-conv!
+  (export latex-fragment->texmacs equation->texmacs-tree
+    image-content->texmacs-tree html-block->texmacs-tree
+    layout-group->texmacs-tree layout-node-tag layout-node-attrs
+    layout-node-children layout-attr-ref set-latex-conv! set-html-conv!
     set-markdown-conv!
   ) ;export
   (import (scheme base))
@@ -48,7 +41,7 @@
     ) ;define
 
     (define (layout-group->texmacs-tree node)
-      `(document)
+      '(document)
     ) ;define
 
     (define (layout-node-tag node)

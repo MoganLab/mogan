@@ -62,12 +62,13 @@
          (kind (car parsed))
          (level (cadr parsed))
          (text (caddr parsed))
-         (level->tag (lambda (l)
-                       (cond ((= l 1) "section")
-                             ((= l 2) "subsection")
-                             (else "subsubsection")
-                       ) ;cond
-                     ) ;lambda
+         (level->tag
+           (lambda (l)
+             (cond ((= l 1) "section")
+                   ((= l 2) "subsection")
+                   (else "subsubsection")
+             ) ;cond
+           ) ;lambda
          ) ;level->tag
         ) ;
     (cond ((eq? kind 'plain)
@@ -98,37 +99,38 @@
         (attrs (layout-node-attrs node))
         (children (layout-node-children node))
        ) ;
-    (cond ((or (eq? tag 'paragraph) (eq? tag 'section-heading))
-           (ocr-insert-text-by-cursor (if (pair? children) (car children) ""))
-          ) ;
-          ((eq? tag 'title)
-           (ocr-insert-title-by-cursor (if (pair? children) (car children) ""))
-          ) ;
-          ((eq? tag 'equation)
-           (insert (equation->texmacs-tree (if (pair? children) (car children) "")))
-           (kbd-return)
-          ) ;
-          ((eq? tag 'figure)
-           (insert (image-content->texmacs-tree (layout-attr-ref attrs 'content "")
-                     (layout-attr-ref attrs 'width #f)
-                     (layout-attr-ref attrs 'height #f)
-                     (layout-attr-ref attrs 'caption "")
-                   ) ;image-content->texmacs-tree
-           ) ;insert
-           (kbd-return)
-          ) ;
-          ((eq? tag 'table)
-           (insert (html-block->texmacs-tree (layout-attr-ref attrs 'html "")
-                     (layout-attr-ref attrs 'note "")
-                   ) ;html-block->texmacs-tree
-           ) ;insert
-           (kbd-return)
-          ) ;
-          ((eq? tag 'ordered-group)
-           (insert (layout-group->texmacs-tree node))
-           (kbd-return)
-          ) ;
-          (else #f)
+    (cond
+     ((or (eq? tag 'paragraph) (eq? tag 'section-heading))
+      (ocr-insert-text-by-cursor (if (pair? children) (car children) ""))
+     ) ;
+     ((eq? tag 'title)
+      (ocr-insert-title-by-cursor (if (pair? children) (car children) ""))
+     ) ;
+     ((eq? tag 'equation)
+      (insert (equation->texmacs-tree (if (pair? children) (car children) "")))
+      (kbd-return)
+     ) ;
+     ((eq? tag 'figure)
+      (insert (image-content->texmacs-tree (layout-attr-ref attrs 'content "")
+                (layout-attr-ref attrs 'width #f)
+                (layout-attr-ref attrs 'height #f)
+                (layout-attr-ref attrs 'caption "")
+              ) ;image-content->texmacs-tree
+      ) ;insert
+      (kbd-return)
+     ) ;
+     ((eq? tag 'table)
+      (insert (html-block->texmacs-tree (layout-attr-ref attrs 'html "")
+                (layout-attr-ref attrs 'note "")
+              ) ;html-block->texmacs-tree
+      ) ;insert
+      (kbd-return)
+     ) ;
+     ((eq? tag 'ordered-group)
+      (insert (layout-group->texmacs-tree node))
+      (kbd-return)
+     ) ;
+     (else #f)
     ) ;cond
   ) ;let
 ) ;define
@@ -146,40 +148,41 @@
 
 (tm-define (ocr-insert-by-cursor j)
   (let ((format (json-ref-string j "format" "latex")) (text (json-ref j "text")))
-    (cond ((string=? format "list")
-           (if (vector? text)
-             (ocr-insert-list-by-cursor text)
-             (notify-user (from-left "识别异常，请联系客服！"))
-           ) ;if
-          ) ;
-          ((string=? format "latex")
-           (if (string? text)
-             (if (string-null? text)
-               (notify-user (from-left "识别结果为空，请联系客服！"))
-               (ocr-insert-latex-by-cursor text)
-             ) ;if
-             (notify-user (from-left "识别异常，请联系客服！"))
-           ) ;if
-          ) ;
-          ((string=? format "markdown")
-           (if (string? text)
-             (if (string-null? text)
-               (notify-user (from-left "识别结果为空，请联系客服！"))
-               (ocr-insert-markdown-by-cursor text)
-             ) ;if
-             (notify-user (from-left "识别异常，请联系客服！"))
-           ) ;if
-          ) ;
-          ((string=? format "html")
-           (if (string? text)
-             (if (string-null? text)
-               (notify-user (from-left "识别结果为空，请联系客服！"))
-               (ocr-insert-html-by-cursor text)
-             ) ;if
-             (notify-user (from-left "识别异常，请联系客服！"))
-           ) ;if
-          ) ;
-          (else #t)
+    (cond
+     ((string=? format "list")
+      (if (vector? text)
+        (ocr-insert-list-by-cursor text)
+        (notify-user (from-left "识别异常，请联系客服！"))
+      ) ;if
+     ) ;
+     ((string=? format "latex")
+      (if (string? text)
+        (if (string-null? text)
+          (notify-user (from-left "识别结果为空，请联系客服！"))
+          (ocr-insert-latex-by-cursor text)
+        ) ;if
+        (notify-user (from-left "识别异常，请联系客服！"))
+      ) ;if
+     ) ;
+     ((string=? format "markdown")
+      (if (string? text)
+        (if (string-null? text)
+          (notify-user (from-left "识别结果为空，请联系客服！"))
+          (ocr-insert-markdown-by-cursor text)
+        ) ;if
+        (notify-user (from-left "识别异常，请联系客服！"))
+      ) ;if
+     ) ;
+     ((string=? format "html")
+      (if (string? text)
+        (if (string-null? text)
+          (notify-user (from-left "识别结果为空，请联系客服！"))
+          (ocr-insert-html-by-cursor text)
+        ) ;if
+        (notify-user (from-left "识别异常，请联系客服！"))
+      ) ;if
+     ) ;
+     (else #t)
     ) ;cond
   ) ;let
 ) ;tm-define

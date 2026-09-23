@@ -4,10 +4,7 @@
 ;;
 
 (define-library (liii ocr-wait)
-  (export ocr-wait-open
-    ocr-wait-close
-    set-ocr-wait-provider!
-  ) ;export
+  (export ocr-wait-open ocr-wait-close set-ocr-wait-provider!)
   (import (scheme base))
   (begin
     (define open-provider (lambda (msg on-cancel) #f))

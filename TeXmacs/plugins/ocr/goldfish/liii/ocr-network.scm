@@ -4,15 +4,9 @@
 ;;
 
 (define-library (liii ocr-network)
-  (export set-ocr-auth-provider!
-    content-to-either
-    response-to-either
-    upload-base64-body
-    upload-base64
-    upload-base64-async
-    recognize-body
-    recognize
-    recognize-async
+  (export set-ocr-auth-provider! content-to-either response-to-either
+    upload-base64-body upload-base64 upload-base64-async recognize-body
+    recognize recognize-async
   ) ;export
   (import (scheme base))
   (begin

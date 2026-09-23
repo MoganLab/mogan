@@ -17,11 +17,11 @@
 
 (tm-define (ocr-auth-headers)
   (let ((preview-cookie (stem-preview-cookie-header)))
-    (append `((,"Authorization"
-               . ,(string-append "Bearer " (account-load-token)))
-              (,"Content-Type" . ,"application/json")
-              (,"User-Agent" . ,(stem-user-agent))
-              (,"X-Device-Id" . ,(stem-device-id)))
+    (append
+      `((,"Authorization" . ,(string-append "Bearer " (account-load-token)))
+        (,"Content-Type" . ,"application/json")
+        (,"User-Agent" . ,(stem-user-agent))
+        (,"X-Device-Id" . ,(stem-device-id)))
       (if (string-null? preview-cookie) '() (list (cons "Cookie" preview-cookie)))
     ) ;append
   ) ;let

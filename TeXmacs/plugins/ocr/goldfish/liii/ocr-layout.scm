@@ -4,12 +4,7 @@
 ;;
 
 (define-library (liii ocr-layout)
-  (export ocr-blocks->layout
-    node-tag
-    node-attrs
-    node-children
-    attr-ref
-  ) ;export
+  (export ocr-blocks->layout node-tag node-attrs node-children attr-ref)
   (import (scheme base))
   (begin
     (define (ocr-blocks->layout blocks)
