@@ -207,7 +207,10 @@
               (concat (flag (localize "table of contents") "dark green" "what")
                 (auto-label)
                 (write (value "toc-prefix")
-                  (compound (unquote (arg "type")) (arg "what") (pageref (the-auto)))
+                  (compound (unquote (arg "type"))
+                    (hlink (arg "what") (merge "#" (the-auto)))
+                    (pageref (the-auto))
+                  ) ;compound
                 ) ;write
                 (style-with "src-compact"
                   "none"
@@ -244,6 +247,13 @@
           ) ;datoms
         ) ;macro
       ) ;assign
+      (assign "toc-dots-and-page"
+        (macro "right"
+          (if (equal (value "page-medium") "paper")
+            (concat (toc-dots) (no-break) (arg "right"))
+          ) ;if
+        ) ;macro
+      ) ;assign
       (assign "toc-strong-1"
         (macro "left"
           "right"
@@ -256,9 +266,7 @@
               "1.19"
               (arg "left")
             ) ;with
-            (toc-dots)
-            (no-break)
-            (arg "right")
+            (toc-dots-and-page (arg "right"))
             (vspace "1fn")
           ) ;concat
         ) ;macro
@@ -268,50 +276,36 @@
           "right"
           (concat (vspace* "1fn")
             (with "font-series" "bold" "math-font-series" "bold" (arg "left"))
-            (toc-dots)
-            (no-break)
-            (arg "right")
+            (toc-dots-and-page (arg "right"))
             (vspace "0.5fn")
           ) ;concat
         ) ;macro
       ) ;assign
       (assign "toc-1"
-        (macro "left" "right" (concat (arg "left") (toc-dots) (no-break) (arg "right")))
+        (macro "left" "right" (concat (arg "left") (toc-dots-and-page (arg "right"))))
       ) ;assign
       (assign "toc-2"
         (macro "left"
           "right"
-          (with "par-left"
-            "1tab"
-            (concat (arg "left") (toc-dots) (no-break) (arg "right"))
-          ) ;with
+          (with "par-left" "1tab" (concat (arg "left") (toc-dots-and-page (arg "right"))))
         ) ;macro
       ) ;assign
       (assign "toc-3"
         (macro "left"
           "right"
-          (with "par-left"
-            "2tab"
-            (concat (arg "left") (toc-dots) (no-break) (arg "right"))
-          ) ;with
+          (with "par-left" "2tab" (concat (arg "left") (toc-dots-and-page (arg "right"))))
         ) ;macro
       ) ;assign
       (assign "toc-4"
         (macro "left"
           "right"
-          (with "par-left"
-            "3tab"
-            (concat (arg "left") (toc-dots) (no-break) (arg "right"))
-          ) ;with
+          (with "par-left" "3tab" (concat (arg "left") (toc-dots-and-page (arg "right"))))
         ) ;macro
       ) ;assign
       (assign "toc-5"
         (macro "left"
           "right"
-          (with "par-left"
-            "4tab"
-            (concat (arg "left") (toc-dots) (no-break) (arg "right"))
-          ) ;with
+          (with "par-left" "4tab" (concat (arg "left") (toc-dots-and-page (arg "right"))))
         ) ;macro
       ) ;assign
       (active* (document (src-comment (document "Indexes."))))

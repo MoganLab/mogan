@@ -1,0 +1,24 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic" "chinese" "table-captions-above" "number-europe"
+           "preview-ref" "bash" "reduced-margins"
+         ) ;tuple
+  ) ;style
+  (body (document (table-of-contents "toc" (document ""))
+          (section "相关文档")
+          "相关文档内容"
+          (section "如何验收")
+          "如何验收内容"
+          (subsection "手动测试")
+          "手动测试内容"
+          (subsection "集成测试")
+          "集成测试内容"
+        ) ;document
+  ) ;body
+  (initial (collection (associate "page-height" "auto")
+             (associate "page-screen-margin" "false")
+             (associate "page-type" "a5")
+             (associate "page-width" "auto")
+             (associate "save-aux" "false")
+           ) ;collection
+  ) ;initial
+) ;document
