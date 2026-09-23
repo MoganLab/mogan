@@ -42,6 +42,11 @@ public:
    */
   ChatSessionManager& sessionManager ();
 
+  /**
+   * @brief 获取 View 控件指针。
+   */
+  QTChatTabWidget* view () const { return view_; }
+
   // ---- 用户交互（由 View 的 signal 触发） ----
 
   /**

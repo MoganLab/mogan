@@ -46,6 +46,9 @@
         <file>llm-chat/check-white.svg</file>
         <file>llm-chat/models/kimi.svg</file>
         <file>llm-chat/models/deepseek.svg</file>
+        <file>llm-chat/type-translate.svg</file>
+        <file>llm-chat/type-chat.svg</file>
+        <file>llm-chat/type-explain.svg</file>
 
         <file>floating-search/down.svg</file>
         <file>floating-search/up.svg</file>
@@ -79,6 +82,9 @@
         <file>llm-chat/cancel-dark.svg</file>
         <file>llm-chat/thinking-dark.svg</file>
         <file>llm-chat/search-dark.svg</file>
+        <file>llm-chat/type-translate-dark.svg</file>
+        <file>llm-chat/type-chat-dark.svg</file>
+        <file>llm-chat/type-explain-dark.svg</file>
 
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>

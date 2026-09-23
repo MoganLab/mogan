@@ -31,6 +31,7 @@
 
 #include <QAbstractScrollArea>
 #include <QActionGroup>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QDockWidget>
 #include <QGraphicsDropShadowEffect>
@@ -107,6 +108,12 @@ constexpr int kCollapseBorderRadius= 4;
 constexpr int kCollapsePadY        = 4;
 constexpr int kCollapsePadX        = 8;
 constexpr int kMultiSelectSpacing  = 4;
+constexpr int kTypeTabsSpacing     = 4;
+constexpr int kTypeTabIconSize     = 13;
+constexpr int kTypeTabFontPx       = 12;
+constexpr int kTypeTabBorderRadius = 6;
+constexpr int kTypeTabPadY         = 5;
+constexpr int kTypeTabPadX         = 2;
 
 // ---- Panel 内容区常量 ----
 constexpr int kWelcomeFontPx         = 34;
@@ -1039,6 +1046,9 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
            [this] () { applySearchFilter (); });
   mainLayout->addWidget (searchEdit_);
 
+  // 会话类型切换横向按钮栏（翻译 / 对话 / 释义）
+  setupTypeTabs (mainLayout);
+
   // 多选模式批量操作栏（默认隐藏）
   multiSelectBar_= new QWidget (this);
   multiSelectBar_->setObjectName ("chat-tab-multi-select-bar");
@@ -1200,6 +1210,7 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
     if (item.moreButton)
       item.moreButton->setVisible (info.archived || isActive);
     item.isArchived= info.archived;
+    item.type      = info.type;
 
     if (info.archived) {
       archiveListLayout_->addWidget (item.itemWidget);
@@ -1211,6 +1222,7 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   }
 
   updateCountLabels ();
+  applySearchFilter ();
 }
 
 ChatSidebar::~ChatSidebar () {
@@ -1230,12 +1242,14 @@ ChatSidebar::addItem (const SessionDisplayInfo& info) {
   SidebarItem item= createItem (info.sessionId);
   item.sidebarButton->setText (to_qstring (info.displayTitle));
   item.isArchived= info.archived;
+  item.type      = info.type;
   conversationListLayout_->insertWidget (0, item.itemWidget);
   items_.insert (info.sessionId, item);
 
   setActiveItem (info.sessionId);
 
   updateCountLabels ();
+  applySearchFilter ();
 }
 
 void
@@ -1265,6 +1279,21 @@ ChatSidebar::setActiveItem (const string& sessionId) {
     bool isActive= (it.key () == sessionId && !it->isArchived);
     if (it->sidebarButton) it->sidebarButton->setChecked (isActive);
     if (isActive && it->moreButton) it->moreButton->show ();
+  }
+
+  // 激活会话时，如果该会话属于非当前类别标签，自动切换到该类别使其可见
+  auto it= items_.find (sessionId);
+  if (it != items_.end () && !it->isArchived) {
+    SessionTypeTab targetTab= SessionTypeTab::Chat;
+    if (it->type == "translate") {
+      targetTab= SessionTypeTab::Translate;
+    }
+    else if (it->type == "explain") {
+      targetTab= SessionTypeTab::Explain;
+    }
+    if (currentTypeTab_ != targetTab) {
+      setCurrentTypeTab (targetTab);
+    }
   }
 }
 
@@ -1320,6 +1349,7 @@ ChatSidebar::moveToArchive (const string& sessionId) {
   if (activeSessionId_ == sessionId) activeSessionId_= "";
 
   updateCountLabels ();
+  applySearchFilter ();
 }
 
 void
@@ -1336,6 +1366,7 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
   }
 
   updateCountLabels ();
+  applySearchFilter ();
 }
 
 void
@@ -1346,6 +1377,105 @@ ChatSidebar::reorderItem (const string& sessionId) {
   if (item.isArchived) return;
 
   conversationListLayout_->insertWidget (0, item.itemWidget);
+}
+
+void
+ChatSidebar::setupTypeTabs (QVBoxLayout* parentLayout) {
+  typeTabsWidget_= new QWidget (this);
+  typeTabsWidget_->setObjectName ("chat-tab-type-tabs");
+
+  QHBoxLayout* tabLayout= new QHBoxLayout (typeTabsWidget_);
+  tabLayout->setContentsMargins (0, 0, 0, 0);
+  tabLayout->setSpacing (DpiUtils::scaled (kTypeTabsSpacing));
+
+  typeTabGroup_= new QButtonGroup (this);
+  typeTabGroup_->setExclusive (true);
+
+  auto make_tab_btn= [this] (const QString& objName, const QString& iconPath) {
+    QPushButton* btn= new QPushButton (typeTabsWidget_);
+    btn->setObjectName (objName);
+    btn->setCheckable (true);
+    btn->setFocusPolicy (Qt::NoFocus);
+    btn->setCursor (Qt::PointingHandCursor);
+    btn->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
+    DpiUtils::applyScaledFont (btn, kTypeTabFontPx);
+    btn->setIcon (QIcon (iconPath));
+    btn->setIconSize (QSize (DpiUtils::scaled (kTypeTabIconSize),
+                             DpiUtils::scaled (kTypeTabIconSize)));
+    btn->setStyleSheet (
+        QString ("QPushButton { border: none; border-radius: %1px; "
+                 "padding: %2px %3px; }")
+            .arg (DpiUtils::scaled (kTypeTabBorderRadius))
+            .arg (DpiUtils::scaled (kTypeTabPadY))
+            .arg (DpiUtils::scaled (kTypeTabPadX)));
+    return btn;
+  };
+
+  tabTranslateBtn_= make_tab_btn ("chat-tab-type-tab-translate",
+                                  ":/llm-chat/type-translate.svg");
+  tabChatBtn_=
+      make_tab_btn ("chat-tab-type-tab-chat", ":/llm-chat/type-chat.svg");
+  tabExplainBtn_=
+      make_tab_btn ("chat-tab-type-tab-explain", ":/llm-chat/type-explain.svg");
+
+  typeTabGroup_->addButton (tabTranslateBtn_,
+                            static_cast<int> (SessionTypeTab::Translate));
+  typeTabGroup_->addButton (tabChatBtn_,
+                            static_cast<int> (SessionTypeTab::Chat));
+  typeTabGroup_->addButton (tabExplainBtn_,
+                            static_cast<int> (SessionTypeTab::Explain));
+
+  tabLayout->addWidget (tabTranslateBtn_, 1);
+  tabLayout->addWidget (tabChatBtn_, 1);
+  tabLayout->addWidget (tabExplainBtn_, 1);
+
+  // 默认选中「对话」
+  currentTypeTab_= SessionTypeTab::Chat;
+  tabChatBtn_->setChecked (true);
+
+  connect (typeTabGroup_, &QButtonGroup::idClicked, this, [this] (int id) {
+    auto targetTab= static_cast<SessionTypeTab> (id);
+    if (searchEdit_ && !searchEdit_->text ().isEmpty ()) {
+      currentTypeTab_= targetTab;
+      searchEdit_->clear ();
+    }
+    else {
+      setCurrentTypeTab (targetTab);
+    }
+  });
+
+  parentLayout->addWidget (typeTabsWidget_);
+}
+
+void
+ChatSidebar::setCurrentTypeTab (SessionTypeTab tab) {
+  currentTypeTab_= tab;
+  switch (tab) {
+  case SessionTypeTab::Translate:
+    if (tabTranslateBtn_) tabTranslateBtn_->setChecked (true);
+    break;
+  case SessionTypeTab::Chat:
+    if (tabChatBtn_) tabChatBtn_->setChecked (true);
+    break;
+  case SessionTypeTab::Explain:
+    if (tabExplainBtn_) tabExplainBtn_->setChecked (true);
+    break;
+  }
+  if (searchEdit_ && !searchEdit_->text ().isEmpty ()) {
+    searchEdit_->clear ();
+  }
+  else {
+    applySearchFilter ();
+  }
+}
+
+void
+ChatSidebar::updateItemType (const string& sessionId, const string& type) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  it->type= type;
+  updateCountLabels ();
+  applySearchFilter ();
 }
 
 void
@@ -1364,9 +1494,35 @@ ChatSidebar::applySearchFilter () {
     }
 
     QString displayText= item.sidebarButton->text ();
-    bool    matchesFilter=
+    bool    matchesSearch=
         filterText.isEmpty () || displayText.toLower ().contains (filterText);
-    item.itemWidget->setVisible (matchesFilter);
+
+    if (item.isArchived) {
+      item.itemWidget->setVisible (matchesSearch);
+    }
+    else {
+      if (!filterText.isEmpty ()) {
+        // 搜索时跨全部类别过滤
+        item.itemWidget->setVisible (matchesSearch);
+      }
+      else {
+        // 非搜索时按选中的会话类别过滤
+        bool matchesType= false;
+        switch (currentTypeTab_) {
+        case SessionTypeTab::Translate:
+          matchesType= (item.type == "translate");
+          break;
+        case SessionTypeTab::Explain:
+          matchesType= (item.type == "explain");
+          break;
+        case SessionTypeTab::Chat:
+        default:
+          matchesType= (item.type != "translate" && item.type != "explain");
+          break;
+        }
+        item.itemWidget->setVisible (matchesType);
+      }
+    }
   }
 
   updateCountLabels ();
@@ -1413,12 +1569,28 @@ ChatSidebar::resizeEvent (QResizeEvent* event) {
 
 void
 ChatSidebar::updateCountLabels () {
-  int activeCount  = 0;
-  int archivedCount= 0;
+  int activeCount   = 0;
+  int archivedCount = 0;
+  int translateCount= 0;
+  int chatCount     = 0;
+  int explainCount  = 0;
 
   for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
-    if (it->isArchived) ++archivedCount;
-    else ++activeCount;
+    if (it->isArchived) {
+      ++archivedCount;
+    }
+    else {
+      ++activeCount;
+      if (it->type == "translate") {
+        ++translateCount;
+      }
+      else if (it->type == "explain") {
+        ++explainCount;
+      }
+      else {
+        ++chatCount;
+      }
+    }
   }
 
   if (conversationCountLabel_) {
@@ -1426,6 +1598,22 @@ ChatSidebar::updateCountLabels () {
         qt_translate ("Conversations (%1)").arg (activeCount));
     conversationCountLabel_->setVisible (true);
   }
+
+  if (tabTranslateBtn_) {
+    tabTranslateBtn_->setText (QString ("%1 %2")
+                                   .arg (qt_translate ("Translate"))
+                                   .arg (translateCount));
+  }
+  if (tabChatBtn_) {
+    tabChatBtn_->setText (
+        QString ("%1 %2").arg (qt_translate ("Chat::ai")).arg (chatCount));
+  }
+  if (tabExplainBtn_) {
+    tabExplainBtn_->setText (QString ("%1 %2")
+                                 .arg (qt_translate ("Explain::ai"))
+                                 .arg (explainCount));
+  }
+
   if (archiveHeaderButton_) {
     archiveHeaderButton_->setText (
         qt_translate ("Archived (%1)").arg (archivedCount));
@@ -1620,6 +1808,7 @@ ChatSidebar::removeItem (const string& sessionId) {
   destroyItem (sessionId);
   if (activeSessionId_ == sessionId) activeSessionId_= "";
   updateCountLabels ();
+  applySearchFilter ();
 }
 
 void

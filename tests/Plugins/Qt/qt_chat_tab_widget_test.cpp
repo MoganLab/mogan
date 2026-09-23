@@ -782,6 +782,178 @@ private slots:
     QVERIFY (!bar->isVisible ());
   }
 
+  // === 6203: ChatSidebar 会话按 type 分类标签测试 ===
+
+  void test_type_tabs_initial_state () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "chat1", "", false, ""}
+             << SessionDisplayInfo{"s2", "trans1", "", false, "translate"}
+             << SessionDisplayInfo{"s3", "expl1", "", false, "explain"};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QCOMPARE (sidebar.currentTypeTab (), ChatSidebar::SessionTypeTab::Chat);
+    QVERIFY (sidebar.chatTabButton () != nullptr);
+    QVERIFY (sidebar.translateTabButton () != nullptr);
+    QVERIFY (sidebar.explainTabButton () != nullptr);
+
+    QVERIFY (sidebar.chatTabButton ()->isChecked ());
+    QVERIFY (!sidebar.translateTabButton ()->isChecked ());
+    QVERIFY (!sidebar.explainTabButton ()->isChecked ());
+
+    QVERIFY (sidebar.chatTabButton ()->text ().contains ("1"));
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+    QVERIFY (sidebar.explainTabButton ()->text ().contains ("1"));
+  }
+
+  void test_type_tabs_filtering () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "chat_item", "", false, ""}
+             << SessionDisplayInfo{"s2", "trans_item", "", false, "translate"}
+             << SessionDisplayInfo{"s3", "expl_item", "", false, "explain"};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QPushButton* btnS1= nullptr;
+    QPushButton* btnS2= nullptr;
+    QPushButton* btnS3= nullptr;
+    for (auto* b :
+         sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn")) {
+      if (b->text () == "chat_item") btnS1= b;
+      else if (b->text () == "trans_item") btnS2= b;
+      else if (b->text () == "expl_item") btnS3= b;
+    }
+    QVERIFY (btnS1 != nullptr);
+    QVERIFY (btnS2 != nullptr);
+    QVERIFY (btnS3 != nullptr);
+
+    // 默认选中「对话」：仅普通会话可见
+    QVERIFY (btnS1->parentWidget ()->isVisible ());
+    QVERIFY (!btnS2->parentWidget ()->isVisible ());
+    QVERIFY (!btnS3->parentWidget ()->isVisible ());
+
+    // 切换到「翻译」
+    sidebar.translateTabButton ()->click ();
+    QCOMPARE (sidebar.currentTypeTab (),
+              ChatSidebar::SessionTypeTab::Translate);
+    QVERIFY (!btnS1->parentWidget ()->isVisible ());
+    QVERIFY (btnS2->parentWidget ()->isVisible ());
+    QVERIFY (!btnS3->parentWidget ()->isVisible ());
+
+    // 切换到「释义」
+    sidebar.explainTabButton ()->click ();
+    QCOMPARE (sidebar.currentTypeTab (), ChatSidebar::SessionTypeTab::Explain);
+    QVERIFY (!btnS1->parentWidget ()->isVisible ());
+    QVERIFY (!btnS2->parentWidget ()->isVisible ());
+    QVERIFY (btnS3->parentWidget ()->isVisible ());
+  }
+
+  void test_type_tabs_search_cross_categories () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "Common Alpha", "", false, ""}
+             << SessionDisplayInfo{"s2", "Common Beta", "", false, "translate"}
+             << SessionDisplayInfo{"s3", "Unique Gamma", "", false, "explain"};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QPushButton* btnS1= nullptr;
+    QPushButton* btnS2= nullptr;
+    QPushButton* btnS3= nullptr;
+    for (auto* b :
+         sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn")) {
+      if (b->text () == "Common Alpha") btnS1= b;
+      else if (b->text () == "Common Beta") btnS2= b;
+      else if (b->text () == "Unique Gamma") btnS3= b;
+    }
+    QVERIFY (btnS1 != nullptr);
+    QVERIFY (btnS2 != nullptr);
+    QVERIFY (btnS3 != nullptr);
+
+    auto searchEdit= sidebar.findChild<QLineEdit*> ("chat-tab-search-edit");
+    QVERIFY (searchEdit != nullptr);
+
+    // 搜索跨全部类别过滤：搜索 "Common" 命中 s1 和 s2
+    searchEdit->setText ("Common");
+    QVERIFY (btnS1->parentWidget ()->isVisible ());
+    QVERIFY (btnS2->parentWidget ()->isVisible ());
+    QVERIFY (!btnS3->parentWidget ()->isVisible ());
+
+    // 清空搜索后恢复当前类别（对话）：仅 s1 可见
+    searchEdit->clear ();
+    QVERIFY (btnS1->parentWidget ()->isVisible ());
+    QVERIFY (!btnS2->parentWidget ()->isVisible ());
+    QVERIFY (!btnS3->parentWidget ()->isVisible ());
+  }
+
+  void test_type_tabs_click_clears_search () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "Common Alpha", "", false, ""}
+             << SessionDisplayInfo{"s2", "Common Beta", "", false, "translate"}
+             << SessionDisplayInfo{"s3", "Unique Gamma", "", false, "explain"};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    auto searchEdit= sidebar.findChild<QLineEdit*> ("chat-tab-search-edit");
+    QVERIFY (searchEdit != nullptr);
+
+    searchEdit->setText ("Unique");
+    QCOMPARE (searchEdit->text (), QString ("Unique"));
+
+    // 点击类别按钮应清除搜索框并切换到目标类别
+    sidebar.translateTabButton ()->click ();
+    QCOMPARE (sidebar.currentTypeTab (),
+              ChatSidebar::SessionTypeTab::Translate);
+    QVERIFY (searchEdit->text ().isEmpty ());
+  }
+
+  void test_type_tabs_count_updates () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("0"));
+    QVERIFY (sidebar.chatTabButton ()->text ().contains ("0"));
+    QVERIFY (sidebar.explainTabButton ()->text ().contains ("0"));
+
+    sidebar.addItem (SessionDisplayInfo{"s1", "c1", "", false, ""});
+    QVERIFY (sidebar.chatTabButton ()->text ().contains ("1"));
+
+    sidebar.addItem (SessionDisplayInfo{"s2", "t1", "", false, "translate"});
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+
+    sidebar.addItem (SessionDisplayInfo{"s3", "e1", "", false, "explain"});
+    QVERIFY (sidebar.explainTabButton ()->text ().contains ("1"));
+
+    sidebar.addItem (SessionDisplayInfo{"s4", "t2", "", false, "translate"});
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("2"));
+
+    // 归档不计入活跃类别数量
+    sidebar.moveToArchive ("s4");
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+
+    sidebar.moveFromArchive ("s4");
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("2"));
+
+    sidebar.removeItem ("s4");
+    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+  }
+
+  void test_setActiveItem_switches_type_tab () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "c1", "", false, ""}
+             << SessionDisplayInfo{"s2", "t1", "", false, "translate"};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QCOMPARE (sidebar.currentTypeTab (), ChatSidebar::SessionTypeTab::Chat);
+
+    // 激活非当前类别的会话应自动切换标签页
+    sidebar.setActiveItem ("s2");
+    QCOMPARE (sidebar.currentTypeTab (),
+              ChatSidebar::SessionTypeTab::Translate);
+    QVERIFY (sidebar.translateTabButton ()->isChecked ());
+  }
+
   void test_send_on_plain_enter_without_completion_popup () {
     QVERIFY (ChatConversationPanel::should_send_on_keypress (
         Qt::Key_Return, Qt::NoModifier, false));

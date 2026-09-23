@@ -689,6 +689,7 @@ ChatController::registerSession (const string& sessionId) {
   info.displayTitle= displayTitle;
   info.model       = s->model;
   info.archived    = false;
+  info.type        = s->type;
   view_->sidebar ()->addItem (info);
 
   s->registered= true;
@@ -896,6 +897,7 @@ ChatController::buildDisplayInfos () {
     info.sessionId   = s->sessionId;
     info.model       = s->model;
     info.archived    = s->archived;
+    info.type        = s->type;
     info.displayTitle= is_empty (s->title) ? string ("新会话") : s->title;
 
     infos.append (info);
@@ -1058,6 +1060,11 @@ void
 qt_chat_tab_set_session_type (string sessionId, string type) {
   // 与 sourceDocId 同理：restore 参数已满，type 由 scheme 侧恢复后单独设置
   get_chat_controller ()->sessionManager ().setType (sessionId, type);
+  if (get_chat_controller ()->view () &&
+      get_chat_controller ()->view ()->sidebar ()) {
+    get_chat_controller ()->view ()->sidebar ()->updateItemType (sessionId,
+                                                                 type);
+  }
 }
 
 string
