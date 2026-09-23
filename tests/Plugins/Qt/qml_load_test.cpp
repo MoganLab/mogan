@@ -904,7 +904,7 @@ TestQmlLoad::test_wait_progress_dialog_escape_interaction () {
     QCOMPARE (qw->status (), QQuickWidget::Ready);
     host.show ();
 
-    QTRY_VERIFY (qw->rootObject () != nullptr);
+    QTRY_VERIFY (qw->rootObject () && qw->rootObject ()->hasActiveFocus ());
     QTest::keyClick (qw, Qt::Key_Escape);
     // 不可取消模式下：cancel 桥未被触发
     QCOMPARE (cancelBridge->cancelCount, 0);
@@ -934,7 +934,7 @@ TestQmlLoad::test_wait_progress_dialog_escape_interaction () {
     QCOMPARE (qw->status (), QQuickWidget::Ready);
     host.show ();
 
-    QTRY_VERIFY (qw->rootObject () != nullptr);
+    QTRY_VERIFY (qw->rootObject () && qw->rootObject ()->hasActiveFocus ());
     QTest::keyClick (qw, Qt::Key_Escape);
     // 可取消模式下：waitCancelBridge 成功响应 ESC 触发取消
     QCOMPARE (cancelBridge->cancelCount, 1);
