@@ -82,6 +82,25 @@ void gui_maximal_extents (SI& width, SI& height);
 void gui_refresh ();
 // update and redraw all windows (e.g. on change of output language)
 
+/**
+ * @brief 在耗时同步任务（如长文档 PDF 导出）中处理挂起的 GUI
+ * 事件（排除用户输入）。 保证等待弹窗的转圈动画持续推进；未打开弹窗或 headless
+ * 模式下为 no-op。
+ */
+void gui_pump_events ();
+
+/**
+ * @brief 打开通用等待中间态弹窗（供耗时同步长任务使用）。
+ * @param message 待显示的文案（内部会调用 translate 进行翻译）。
+ * @param cancellable 是否展示取消按钮并允许用户取消。
+ */
+void gui_wait_dialog_open (string message, bool cancellable);
+
+/**
+ * @brief 关闭通用等待弹窗；未打开时为 no-op。
+ */
+void gui_wait_dialog_close ();
+
 bool   gui_is_x ();
 bool   gui_is_qt ();
 bool   gui_is_headless ();

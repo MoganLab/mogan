@@ -313,6 +313,8 @@ private slots:
   void test_export_pdf_home_path_display ();
   void test_export_pdf_path_utf8_roundtrip ();
   void test_updater_progress_loads ();
+  void test_wait_progress_dialog_loads ();
+  void test_wait_progress_dialog_escape_interaction ();
   void test_color_picker_loads ();
   void test_bibliography_loads ();
   void test_go_menu_loads ();
@@ -859,6 +861,85 @@ TestQmlLoad::test_updater_progress_loads () {
       "dialogMessage", QString ("Downloading the update..."));
   qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_wait_progress_dialog_loads () {
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("waitCancelBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty (
+      "dialogMessage", QString ("Exporting, please wait..."));
+  qw->rootContext ()->setContextProperty ("dialogCancellable", false);
+  QStringList buttons;
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/WaitProgressDialog.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_wait_progress_dialog_escape_interaction () {
+  // 1. 不可取消模式：dialogCancellable = false 时，按 ESC 键不会触发取消回调
+  {
+    QDialog       host;
+    QQuickWidget* qw= new QQuickWidget (&host);
+    qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+    StubBridge* closeBridge = new StubBridge (qw);
+    StubBridge* cancelBridge= new StubBridge (qw);
+    qw->rootContext ()->setContextProperty ("closeBridge", closeBridge);
+    qw->rootContext ()->setContextProperty ("waitCancelBridge", cancelBridge);
+    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+    qw->rootContext ()->setContextProperty ("isDark", false);
+    qw->rootContext ()->setContextProperty (
+        "dialogMessage", QString ("Exporting, please wait..."));
+    qw->rootContext ()->setContextProperty ("dialogCancellable", false);
+    QStringList buttons;
+    qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+    qw->setSource (QUrl ("qrc:/qml/WaitProgressDialog.qml"));
+    QCOMPARE (qw->status (), QQuickWidget::Ready);
+    host.show ();
+
+    QTRY_VERIFY (qw->rootObject () != nullptr);
+    QTest::keyClick (qw, Qt::Key_Escape);
+    // 不可取消模式下：cancel 桥未被触发
+    QCOMPARE (cancelBridge->cancelCount, 0);
+    QCOMPARE (closeBridge->cancelCount, 0);
+    host.close ();
+  }
+
+  // 2. 可取消模式：dialogCancellable = true 时，按 ESC 键触发 waitCancelBridge
+  // 取消回调
+  {
+    QDialog       host;
+    QQuickWidget* qw= new QQuickWidget (&host);
+    qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+    StubBridge* closeBridge = new StubBridge (qw);
+    StubBridge* cancelBridge= new StubBridge (qw);
+    qw->rootContext ()->setContextProperty ("closeBridge", closeBridge);
+    qw->rootContext ()->setContextProperty ("waitCancelBridge", cancelBridge);
+    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+    qw->rootContext ()->setContextProperty ("isDark", false);
+    qw->rootContext ()->setContextProperty (
+        "dialogMessage", QString ("Processing, please wait..."));
+    qw->rootContext ()->setContextProperty ("dialogCancellable", true);
+    QStringList buttons;
+    buttons << QString ("Cancel");
+    qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+    qw->setSource (QUrl ("qrc:/qml/WaitProgressDialog.qml"));
+    QCOMPARE (qw->status (), QQuickWidget::Ready);
+    host.show ();
+
+    QTRY_VERIFY (qw->rootObject () != nullptr);
+    QTest::keyClick (qw, Qt::Key_Escape);
+    // 可取消模式下：waitCancelBridge 成功响应 ESC 触发取消
+    QCOMPARE (cancelBridge->cancelCount, 1);
+    host.close ();
+  }
 }
 
 void

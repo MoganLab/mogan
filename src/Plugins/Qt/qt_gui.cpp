@@ -31,6 +31,7 @@
 #include "loro_collab.hpp"
 #endif
 
+#include "QTMQmlDialog.hpp"       // 用于 qt_wait_dialog_shown
 #include "qt_chat_tab_widget.hpp" // for QTChatTabWidget::isInitBenchPending
 #include "qt_gui.hpp"
 #include "qt_renderer.hpp" // for the_qt_renderer
@@ -703,6 +704,34 @@ gui_maximal_extents (SI& width, SI& height) {
 void
 gui_refresh () {
   the_gui->refresh_language ();
+}
+
+void
+gui_pump_events () {
+  // 通用等待弹窗打开期间，长同步任务（如 PDF 导出）在细粒度安全点泵事件
+  // （排除用户输入防编辑器重入），让 QML 转圈动画与弹窗重绘持续推进。
+  // 节流 ~30ms/次：30fps 已足够流畅，热循环调用开销可忽略；泵触发的嵌套
+  // update() 会被 updating 守卫拦截，delayed 命令不会重入。无弹窗（常规
+  // 打印/排版）或 headless 下 no-op，不改变既有路径时序。
+  static time_t last= 0;
+  if (headless_mode || !qt_wait_dialog_shown ()) return;
+  time_t now= texmacs_time ();
+  if (now - last < 30) return;
+  last= now;
+  qApp->processEvents (QEventLoop::ExcludeUserInputEvents);
+}
+
+void
+gui_wait_dialog_open (string message, bool cancellable) {
+  cpp_wait_dialog_open (translate (message), cancellable);
+  // 首帧：show 后同调用栈泵一次（绕过 gui_pump_events 节流），转圈立即可见
+  if (!headless_mode && qt_wait_dialog_shown ())
+    qApp->processEvents (QEventLoop::ExcludeUserInputEvents);
+}
+
+void
+gui_wait_dialog_close () {
+  cpp_wait_dialog_close ();
 }
 
 string
