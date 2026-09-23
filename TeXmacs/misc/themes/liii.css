@@ -1317,12 +1317,24 @@ QLabel#chat-tab-nav-title {
   color: #000000;
 }
 
-/* 收缩按钮 */
-QPushButton#chat-tab-collapse-btn {
+/* 收缩按钮 / dock 辅助切换按钮 */
+QPushButton#chat-tab-collapse-btn,
+QPushButton#chat-tab-translate-btn,
+QPushButton#chat-tab-explain-btn {
   background-color: #e8e8e8;
 }
-QPushButton#chat-tab-collapse-btn:hover {
+QPushButton#chat-tab-collapse-btn:hover,
+QPushButton#chat-tab-translate-btn:hover,
+QPushButton#chat-tab-explain-btn:hover {
   background-color: #d0d0d0;
+}
+QPushButton#chat-tab-translate-btn:checked,
+QPushButton#chat-tab-explain-btn:checked {
+  background-color: #215a6a;
+}
+QPushButton#chat-tab-translate-btn:checked:hover,
+QPushButton#chat-tab-explain-btn:checked:hover {
+  background-color: #276b7e;
 }
 
 /* 新建聊天按钮 */

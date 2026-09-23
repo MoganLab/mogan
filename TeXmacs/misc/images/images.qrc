@@ -43,6 +43,10 @@
         <file>llm-chat/thinking-white.svg</file>
         <file>llm-chat/search.svg</file>
         <file>llm-chat/search-white.svg</file>
+        <file>llm-chat/translate.svg</file>
+        <file>llm-chat/translate-white.svg</file>
+        <file>llm-chat/explain.svg</file>
+        <file>llm-chat/explain-white.svg</file>
         <file>llm-chat/check-white.svg</file>
         <file>llm-chat/models/kimi.svg</file>
         <file>llm-chat/models/deepseek.svg</file>

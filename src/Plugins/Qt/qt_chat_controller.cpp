@@ -127,6 +127,10 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
            &ChatController::onCancelRequested);
   connect (view_, &QTChatTabWidget::newChatRequested, this,
            &ChatController::onNewChatRequested);
+  connect (view_, &QTChatTabWidget::translateClicked, this,
+           [this] () { onActionToggleClicked ("translate"); });
+  connect (view_, &QTChatTabWidget::explainClicked, this,
+           [this] () { onActionToggleClicked ("explain"); });
 
   // 连接新建按钮
   if (view_->newChatButton ()) {
@@ -457,7 +461,92 @@ ChatController::onExportRequested (const string& sessionId) {
 
 void
 ChatController::onNewChatRequested () {
+  previousSessionId_= "";
   ensureNewConversation ();
+}
+
+void
+ChatController::syncDockActionButtons (const string& activeSessionId) {
+  if (!view_) return;
+  QPushButton* transBtn= view_->translateButton ();
+  QPushButton* explBtn = view_->explainButton ();
+  if (!transBtn || !explBtn) return;
+
+  ChatSession* s   = sessionManager_.getSession (activeSessionId);
+  string       type= s ? s->type : "";
+
+  transBtn->setChecked (type == "translate");
+  explBtn->setChecked (type == "explain");
+}
+
+void
+ChatController::onActionToggleClicked (const string& action) {
+  if (!view_) return;
+
+  ChatConversationPanel* activePanel= view_->activeConversation ();
+  ChatSession*           activeSession=
+      activePanel ? sessionManager_.findSessionByPanel (activePanel) : nullptr;
+  string curType= activeSession ? activeSession->type : "";
+  string curSid = activeSession ? activeSession->sessionId : "";
+
+  static bool treeOpsLoaded= false;
+  if (!treeOpsLoaded) {
+    eval ("(use-modules (llm chat-tree-ops))");
+    treeOpsLoaded= true;
+  }
+  object info   = call ("chat-tab-source-doc-info");
+  string docId  = as_string (car (info));
+  string docName= as_string (cdr (info));
+
+  // 若点击的是当前文档已处于选中态的专属会话：退出并切回此前的会话
+  bool isSameDocAction=
+      (curType == action) && (is_empty (docId) || !activeSession ||
+                              activeSession->sourceDocId == docId);
+
+  if (isSameDocAction) {
+    string targetSid  = previousSessionId_;
+    previousSessionId_= "";
+    if (!is_empty (targetSid) && sessionManager_.getSession (targetSid) &&
+        !sessionManager_.getSession (targetSid)->archived) {
+      activateSession (targetSid);
+    }
+    else {
+      ensureNewConversation ();
+    }
+    return;
+  }
+
+  // 若当前不是翻译/释义专属会话，记录当前会话以便再次点击切回
+  if (curType != "translate" && curType != "explain") {
+    previousSessionId_= curSid;
+  }
+
+  string sid;
+  if (!is_empty (docId)) {
+    sid= sessionManager_.findSessionBySourceDoc (docId, action);
+  }
+  if (!is_empty (sid)) {
+    activateSession (sid);
+  }
+  else {
+    string title= from_qstring_utf8 (qt_translate (
+                      action == "explain" ? "Explain::ai" : "Translate")) *
+                  (is_empty (docName) ? "" : (": " * docName));
+    ChatConversationPanel* panel=
+        createNewConversation (modelStore_.translateKey ());
+    if (!panel) return;
+    sid= panel->sessionId ();
+    sessionManager_.setTitle (sid, title);
+    sessionManager_.setSourceDocId (sid, docId);
+    sessionManager_.setType (sid, action);
+    if (panel->sessionTitle ()) {
+      panel->sessionTitle ()->setText (to_qstring (title));
+      panel->sessionTitle ()->show ();
+    }
+    panel->enterConversationMode (false);
+    updateManifest (sid);
+    syncDockActionButtons (sid);
+  }
 }
 
 void
@@ -562,6 +651,7 @@ ChatController::activateSession (const string& sessionId) {
   view_->sidebar ()->setActiveItem (sessionId);
 
   updateModelButtonDisplay (sessionId);
+  syncDockActionButtons (sessionId);
 }
 
 void
@@ -773,6 +863,7 @@ ChatController::createNewConversation (const string& modelKey) {
   updateModelButtonDisplay (sid);
   // 此路径不经 getOrCreatePanel，默认模型可能不允许某能力，需单独应用
   applyModelCapabilities (sid);
+  syncDockActionButtons (sid);
 
   return panel;
 }
@@ -959,6 +1050,14 @@ qt_chat_ai_send_selection (tree sel, string action) {
   // 写入前无需加载检查：面板存在即保证 llm 模块已加载（会话创建路径
   // eval 过 use-modules，chat-loader 亦在启动 idle 阶段整体加载）
   if (docBound) {
+    ChatConversationPanel* prevPanel= ctrl->view_->activeConversation ();
+    ChatSession*           prevSession=
+        prevPanel ? ctrl->sessionManager_.findSessionByPanel (prevPanel)
+                            : nullptr;
+    if (prevSession && prevSession->type != "translate" &&
+        prevSession->type != "explain") {
+      ctrl->previousSessionId_= prevSession->sessionId;
+    }
     // 同一文档的翻译/释义各自共享一个会话：按 stem-doc-id + 会话类型找
     // 未归档会话（最近活跃优先），命中即复用；未命中（含文档未绑定
     // doc-id、会话已归档/删除）才新建。会话类型名即动作名
@@ -991,6 +1090,13 @@ qt_chat_ai_send_selection (tree sel, string action) {
       ctrl->sessionManager_.setTitle (sid, title);
       ctrl->sessionManager_.setSourceDocId (sid, docId);
       ctrl->setSessionType (sid, action);
+      if (panel->sessionTitle ()) {
+        panel->sessionTitle ()->setText (to_qstring (title));
+        panel->sessionTitle ()->show ();
+      }
+      panel->enterConversationMode (false);
+      ctrl->updateManifest (sid);
+      ctrl->syncDockActionButtons (sid);
     }
     ChatSession*           s= ctrl->sessionManager_.getSession (sid);
     ChatConversationPanel* panel=

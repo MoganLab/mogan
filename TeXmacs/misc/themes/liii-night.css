@@ -1407,14 +1407,28 @@ QLabel#chat-tab-nav-title {
   color: #ffffff;
 }
 
-/* 收缩按钮 */
+/* 收缩按钮 / dock 辅助切换按钮 */
 QPushButton#chat-tab-collapse-btn,
-QWidget#centralWidget QPushButton#chat-tab-collapse-btn {
+QPushButton#chat-tab-translate-btn,
+QPushButton#chat-tab-explain-btn,
+QWidget#centralWidget QPushButton#chat-tab-collapse-btn,
+QWidget#centralWidget QPushButton#chat-tab-translate-btn,
+QWidget#centralWidget QPushButton#chat-tab-explain-btn {
   background-color: #bababa;
 }
 QPushButton#chat-tab-collapse-btn:hover,
-QWidget#centralWidget QPushButton#chat-tab-collapse-btn:hover {
+QPushButton#chat-tab-translate-btn:hover,
+QPushButton#chat-tab-explain-btn:hover,
+QWidget#centralWidget QPushButton#chat-tab-collapse-btn:hover,
+QWidget#centralWidget QPushButton#chat-tab-translate-btn:hover,
+QWidget#centralWidget QPushButton#chat-tab-explain-btn:hover {
   background-color: #999999;
+}
+QPushButton#chat-tab-translate-btn:checked,
+QPushButton#chat-tab-explain-btn:checked,
+QWidget#centralWidget QPushButton#chat-tab-translate-btn:checked,
+QWidget#centralWidget QPushButton#chat-tab-explain-btn:checked {
+  background-color: #215a6a;
 }
 
 /* 新建聊天按钮 */

@@ -109,6 +109,23 @@ public:
   void onNewChatRequested ();
 
   /**
+   * @brief 翻译/释义切换按钮点击时触发。
+   *
+   * 点击时根据当前文档身份切换到对应专属会话（不存在则创建并激活，
+   * 不自动发送）；若点击已处于选中态的按钮，则退出并回到此前的会话。
+   * @param action 动作类型（"translate" 或 "explain"）
+   */
+  void onActionToggleClicked (const string& action);
+
+  /**
+   * @brief 同步 dock 模式顶部翻译/释义切换按钮的选中态。
+   *
+   * 当前激活会话类型与动作匹配时对应按钮选中，两者互斥；非专属会话两按钮均不选中。
+   * @param activeSessionId 当前激活的会话 ID
+   */
+  void syncDockActionButtons (const string& activeSessionId);
+
+  /**
    * @brief 重命名会话标题并更新侧边栏显示。
    * @param sessionId 目标会话 ID
    * @param newTitle  新标题
@@ -205,6 +222,7 @@ private:
   ChatSessionManager sessionManager_; ///< 会话管理器
   ChatModelStore     modelStore_; ///< 模型清单（构造即加载，早于 createView）
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
+  string previousSessionId_; ///< 切入翻译/释义专属会话前的上一个活跃会话 ID
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。
@@ -327,6 +345,7 @@ private:
       string thinking, string search, string thinkingEffort);
   friend void qt_chat_notify_input_height ();
   friend void qt_chat_ai_send_selection (tree sel, string action);
+  friend class TestChatController;
 };
 
 /**

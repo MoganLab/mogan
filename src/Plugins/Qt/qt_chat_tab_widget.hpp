@@ -503,6 +503,8 @@ public:
   QPushButton* floatingNewChatButton () const { return floatingNewChatBtn_; }
   QPushButton* closeSidebarButton () const { return closeSidebarBtn_; }
   QPushButton* newChatSidebarButton () const { return newChatSidebarBtn_; }
+  QPushButton* translateButton () const { return translateBtn_; }
+  QPushButton* explainButton () const { return explainBtn_; }
   QPushButton* maximizeButton () const { return maximizeBtn_; }
   QList<ChatConversationPanel*>& conversations () { return conversations_; }
   ChatConversationPanel*         activeConversation () const {
@@ -561,6 +563,10 @@ signals:
   void cancelRequested (const string& sessionId);
   void newChatRequested ();
   void closeSidebarRequested ();
+  /// 请求切换到当前文档的翻译专属会话
+  void translateClicked ();
+  /// 请求切换到当前文档的释义专属会话
+  void explainClicked ();
   /// 请求切换到 Chat 标签页（dock 侧边栏模式的最大化按钮）
   void maximizeRequested ();
 
@@ -593,8 +599,11 @@ private:
   QWidget*        floatingBtnContainer_= nullptr; ///< 浮动按钮容器
   QPushButton*    newChatButton_       = nullptr; ///< 侧边栏新建按钮
   QPushButton*    newChatSidebarBtn_   = nullptr; ///< 新建按钮（dock 模式）
+  QPushButton*    translateBtn_        = nullptr; ///< 翻译按钮（dock 模式）
+  QPushButton*    explainBtn_          = nullptr; ///< 释义按钮（dock 模式）
   QPushButton*    maximizeBtn_         = nullptr; ///< 最大化按钮（dock 模式）
   QPushButton*    closeSidebarBtn_     = nullptr; ///< 对话区域关闭侧边栏按钮
+  QWidget*        dockTopBar_          = nullptr; ///< dock 模式顶部辅助按钮栏
   QWidget*        sidebarNormalContent_= nullptr; ///< 侧边栏常规内容区
   QStackedWidget* conversationStack_   = nullptr; ///< 会话面板堆栈
 
