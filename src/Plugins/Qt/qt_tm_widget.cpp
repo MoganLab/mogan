@@ -32,6 +32,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QResource>
+#include <QShortcut>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
@@ -281,6 +282,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     tabPageContainer= new QTMTabPageContainer (outBar);
     // 连接新增标签页按钮信号
     QObject::connect (tabPageContainer, &QTMTabPageContainer::addTabRequested,
+                      [this] () { this->onAddTabRequested (); });
+    auto* scNewTab= new QShortcut (QKeySequence ("Ctrl+T"), mw);
+    QObject::connect (scNewTab, &QShortcut::activated,
                       [this] () { this->onAddTabRequested (); });
     mw->setAttribute (Qt::WA_DontCreateNativeAncestors);
     if (setSafeArea)
@@ -1583,8 +1587,14 @@ qt_tm_widget_rep::update_visibility () {
   bool old_pdfOutlineVisibility=
       pdfOutlineDock ? pdfOutlineDock->isVisible () : false;
 
-  bool new_mainVisibility      = visibility[1] && visibility[0];
-  bool new_menuVisibility      = visibility[0];
+  bool new_mainVisibility= visibility[1] && visibility[0];
+  bool new_menuVisibility= visibility[0];
+#ifdef Q_OS_MAC
+  use_native_menubar= get_preference ("use native menubar", "off") == "on";
+  if (use_native_menubar) {
+    new_menuVisibility= false;
+  }
+#endif
   bool new_modeVisibility      = visibility[2] && visibility[0];
   bool new_focusVisibility     = visibility[3] && visibility[0];
   bool new_userVisibility      = visibility[4] && visibility[0];
@@ -2130,7 +2140,16 @@ qt_tm_widget_rep::query (slot s, int type_id) {
 
 void
 qt_tm_widget_rep::install_main_menu () {
-  if (main_menu_widget == waiting_main_menu_widget) return;
+  bool is_native= false;
+#ifdef Q_OS_MAC
+  use_native_menubar= get_preference ("use native menubar", "off") == "on";
+  is_native         = use_native_menubar;
+#endif
+
+  if (main_menu_widget == waiting_main_menu_widget &&
+      main_menu_native_ == is_native)
+    return;
+  main_menu_native_   = is_native;
   main_menu_widget    = waiting_main_menu_widget;
   QList<QAction*>* src= main_menu_widget->get_qactionlist ();
   if (!src) return;
@@ -2142,12 +2161,12 @@ qt_tm_widget_rep::install_main_menu () {
 #else
   int h= DpiUtils::scaled (108);
 #endif
-  dest->setFixedHeight (h);
+  if (!is_native) {
+    dest->setFixedHeight (h);
+  }
 
   if (tm_style_sheet == "") dest->setStyle (qtmstyle ());
-  if (!use_native_menubar) {
-    dest->setNativeMenuBar (false);
-  }
+  dest->setNativeMenuBar (is_native);
 
   dest->clear ();
   for (int i= 0; i < src->count (); i++) {
@@ -2171,11 +2190,23 @@ qt_tm_widget_rep::install_main_menu () {
   QList<QWidget*> widgets= menuToolBar->findChildren<QWidget*> ();
   for (QWidget* w : widgets) {
     w->setParent (nullptr);
+    w->deleteLater ();
   }
+#ifdef Q_OS_MAC
+  if (use_native_menubar) {
+    menuToolBar->setVisible (false);
+  }
+  else {
+    if (!menuToolBar->isVisible ()) {
+      menuToolBar->setVisible (true);
+    }
+  }
+#else
   // 确保 menuToolBar 可见
   if (!menuToolBar->isVisible ()) {
     menuToolBar->setVisible (true);
   }
+#endif
 
   // 确保 menuToolBar 有正确的布局策略
   menuToolBar->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);

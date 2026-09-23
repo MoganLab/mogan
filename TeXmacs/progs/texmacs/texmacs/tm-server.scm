@@ -94,6 +94,10 @@
   (noop)
 ) ;define
 
+(define (notify-native-menubar var val)
+  (if (current-view) (notify-change 1))
+) ;define
+
 (define (get-default-native-menubar)
   "off"
 ) ;define
@@ -147,7 +151,7 @@
  ("open console on errors" "on" noop)
  ("open console on warnings" "off" noop)
  ("gui:line-input:autocommit" "on" noop)
- ("use native menubar" (get-default-native-menubar) noop)
+ ("use native menubar" (get-default-native-menubar) notify-native-menubar)
  ("use unified toolbar" (get-default-unified-toolbar) noop)
  ("ghost text" "off" noop)
  ("texmacs->image:format" "png" noop)

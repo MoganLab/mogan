@@ -127,6 +127,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   bool    is_presentation;
   bool    menuToolBarVisibleCache;
   bool    titleBarVisibleCache;
+  bool    main_menu_native_= false;
   QString m_userId;
   bool    m_isLoggedIn= false;
   QString m_currentScmNotificationItem;
