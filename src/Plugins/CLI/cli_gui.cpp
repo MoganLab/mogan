@@ -430,6 +430,15 @@ void
 gui_refresh () {}
 
 void
+gui_pump_events () {}
+
+void
+gui_wait_dialog_open (string message, bool cancellable) {}
+
+void
+gui_wait_dialog_close () {}
+
+void
 gui_root_extents (SI& width, SI& height) {
   // 无显示器：返回固定值（仿 im_gui 的非 GLFW 回退）。
   width = 1920 * PIXEL;

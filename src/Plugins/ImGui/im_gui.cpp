@@ -567,6 +567,15 @@ gui_maximal_extents (SI& width, SI& height) {
 void
 gui_refresh () {}
 
+void
+gui_pump_events () {}
+
+void
+gui_wait_dialog_open (string message, bool cancellable) {}
+
+void
+gui_wait_dialog_close () {}
+
 string
 gui_version () {
   return "headless";

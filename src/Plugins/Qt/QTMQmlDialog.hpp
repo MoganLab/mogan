@@ -323,23 +323,37 @@ void cpp_updater_dialog_close ();
 // ---- 通用等待中间态弹窗 --------------------------------------------------
 
 /**
- * @brief 打开通用等待中间态弹窗（非阻塞模态，run_modal_qml_dialog）。
+ * @brief 打开通用等待中间态弹窗（默认展示 Cancel 按钮且可取消，向后兼容）。
  * @param message 已翻译的正文（如「正在处理，请稍候...」）。
- * @details 与更新器同构：异步任务链由 scheme 轮询驱动
- * （delayed → g_http-poll），弹窗必须用 setModal+show（非 exec），主线程回到
- * 事件循环，转圈动画才转得动、轮询回调才执行得了。通用组件：OCR 识别、其他
- * 魔法粘贴等异步任务共用，文案由调用方传入。等待期间可 ESC/Cancel 取消：
- * 宿主 close 同步析构 + eval_scheme 回流 (wait-dialog-cancelled)（GPL 层路由
- * 到当前任务的取消回调）。弹窗只显示无限转圈 + 文案，无进度条。弹窗已打开时
- * 重复调用 no-op（保留首个文案与回调）。
  */
 void cpp_wait_dialog_open (string message);
 
 /**
- * @brief 关闭通用等待中间态弹窗（host->close() → WA_DeleteOnClose 析构宿主）；
- * 未打开时 no-op。任务成功（结果插入前）与失败（错误通知前）均需调用。
+ * @brief 打开通用等待中间态弹窗（非阻塞模态，run_modal_qml_dialog）。
+ * @param message 已翻译的正文（如「正在处理，请稍候...」）。
+ * @param cancellable 是否展示「取消」按钮并允许用户取消。
+ * @details 与更新器同构：异步任务链由 scheme 轮询驱动
+ * （delayed → g_http-poll），弹窗必须用 setModal+show（非 exec），主线程回到
+ * 事件循环，转圈动画才转得动、轮询回调才执行得了。通用组件：OCR 识别、其他
+ * 魔法粘贴等异步任务共用，文案由调用方传入。cancellable 为 true 时等待期间可
+ * ESC/Cancel 取消：宿主 close 同步析构 + eval_scheme 回流
+ * (wait-dialog-cancelled)（GPL 层路由到当前任务的取消回调）。弹窗只显示
+ * 无限转圈 + 文案，无进度条。弹窗已打开时重复调用 no-op（保留首个文案与回调）。
+ */
+void cpp_wait_dialog_open (string message, bool cancellable);
+
+/**
+ * @brief 关闭通用等待中间态弹窗（先置空引用再同步 delete 宿主，不走
+ * 延迟析构）；未打开时 no-op。任务成功（结果插入前）与失败（错误通知前）
+ * 均需调用。
  */
 void cpp_wait_dialog_close ();
+
+/**
+ * @brief 通用等待弹窗当前是否打开。gui_pump_events 的泵事件门槛：仅弹窗
+ * 打开期间泵事件，避免改变常规打印路径的既有时序。
+ */
+bool qt_wait_dialog_shown ();
 
 /**
  * @brief QML 调色板弹窗的 glue 入口。

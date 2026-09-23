@@ -891,13 +891,20 @@ static QPointer<QDialog> g_wait_dialog_host;
  * @details 走 run_modal_qml_dialog（setModal + show，非阻塞模态）——任务链由
  * scheme 轮询驱动（delayed → g_http-poll），exec() 的嵌套事件循环会阻塞轮询的
  * delayed 回调，任务期间弹窗会冻死轮询与转圈动画。弹窗只显示无限转圈 + 已翻译
- * 文案 + Cancel 按钮，无进度条；文案由调用方传入，出现/关闭时机由 scheme 侧
+ * 文案 + 可选 Cancel 按钮（cancellable
+ * 控制），无进度条；文案由调用方传入，出现/关闭时机由 scheme 侧
  * （任务发起前/结果插入前/错误通知前）决定。用户取消（ESC/按钮）经
  * WaitDialogBridge 回流 scheme 取消回调（wait-dialog-cancelled），宿主 close
  * 同步析构。弹窗已打开时重复调用 no-op（保留首个文案与回调）。
  */
 void
 cpp_wait_dialog_open (string message) {
+  cpp_wait_dialog_open (message, true);
+}
+
+void
+cpp_wait_dialog_open (string message, bool cancellable) {
+  if (headless_mode) return;
   if (g_wait_dialog_host) return; // 已打开不重复弹
   run_modal_qml_dialog (
       "qrc:/qml/WaitProgressDialog.qml", "wait progress dialog",
@@ -909,8 +916,13 @@ cpp_wait_dialog_open (string message) {
                                                 cancelBridge);
         qw->rootContext ()->setContextProperty ("dialogMessage",
                                                 to_qstring (message));
+        // 取消能力显式注入，QML 不从按钮列表反推（按钮是展示数据）
+        qw->rootContext ()->setContextProperty ("dialogCancellable",
+                                                cancellable);
         array<string> buttons;
-        buttons << string ("Cancel");
+        if (cancellable) {
+          buttons << string ("Cancel");
+        }
         qw->rootContext ()->setContextProperty ("dialogButtons",
                                                 translate_buttons (buttons));
         QObject::connect (host, &QDialog::destroyed, closeBridge,
@@ -922,13 +934,21 @@ cpp_wait_dialog_open (string message) {
 }
 
 /**
- * @brief 关闭通用等待弹窗（同 cpp_updater_dialog_close：close 同步析构宿主，
- * QPointer 自动置空，此处再显式置空）。
+ * @brief 关闭通用等待弹窗：先置空 QPointer 再同步 delete 宿主（不走
+ * close()/deleteLater 的延迟析构，避免退出阶段 TLS 释放后残留回调悬垂）。
  */
 void
 cpp_wait_dialog_close () {
-  if (g_wait_dialog_host) g_wait_dialog_host->close ();
-  g_wait_dialog_host= nullptr;
+  if (g_wait_dialog_host) {
+    QDialog* host     = g_wait_dialog_host;
+    g_wait_dialog_host= nullptr;
+    delete host;
+  }
+}
+
+bool
+qt_wait_dialog_shown () {
+  return g_wait_dialog_host != nullptr;
 }
 
 /**
