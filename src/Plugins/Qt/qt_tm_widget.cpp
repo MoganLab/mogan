@@ -2187,11 +2187,7 @@ qt_tm_widget_rep::install_main_menu () {
   }
 
   // 移除旧 menuBar
-  QList<QWidget*> widgets= menuToolBar->findChildren<QWidget*> ();
-  for (QWidget* w : widgets) {
-    w->setParent (nullptr);
-    w->deleteLater ();
-  }
+  menuToolBar->clear ();
 #ifdef Q_OS_MAC
   if (use_native_menubar) {
     menuToolBar->setVisible (false);
