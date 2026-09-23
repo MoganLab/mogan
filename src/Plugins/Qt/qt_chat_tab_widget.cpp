@@ -50,6 +50,8 @@
 #include <QScrollBar>
 #include <QSpacerItem>
 #include <QStackedWidget>
+#include <QStyleOptionButton>
+#include <QStylePainter>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -107,6 +109,9 @@ constexpr int kCollapseBorderRadius= 4;
 constexpr int kCollapsePadY        = 4;
 constexpr int kCollapsePadX        = 8;
 constexpr int kMultiSelectSpacing  = 4;
+/// 类别标题右侧的折叠（▸）/ 展开（▾）指示箭头
+constexpr const char* kCategoryArrowCollapsed= "\xe2\x96\xb8";
+constexpr const char* kCategoryArrowExpanded = "\xe2\x96\xbe";
 
 // ---- Panel 内容区常量 ----
 constexpr int kWelcomeFontPx         = 34;
@@ -1006,6 +1011,27 @@ chat_effort_menu_populate (QMenu* menu, const string& currentEffort) {
  * ChatSidebar 实现
  ******************************************************************************/
 
+/**
+ * @brief 类别折叠标题按钮。
+ *
+ * 封装点击反馈，通过内部 QHBoxLayout 承载左侧标题标签与右侧折叠箭头。
+ * paintEvent 仅绘制背景/悬浮态，清空 opt.text 避免与内部 label 重复绘制。
+ */
+class CategoryHeaderButton : public QPushButton {
+public:
+  explicit CategoryHeaderButton (QWidget* parent= nullptr)
+      : QPushButton (parent) {}
+
+protected:
+  void paintEvent (QPaintEvent* event) override {
+    QStylePainter      p (this);
+    QStyleOptionButton opt;
+    initStyleOption (&opt);
+    opt.text= ""; // 避免与内部 titleLabel 重复绘制
+    p.drawControl (QStyle::CE_PushButton, opt);
+  }
+};
+
 ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
                           const string& activeSessionId, QWidget* parent)
     : QWidget (parent) {
@@ -1132,6 +1158,22 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   conversationListLayout_= new QVBoxLayout (conversationListWidget_);
   conversationListLayout_->setContentsMargins (0, 0, 0, 0);
   conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+
+  chatSection_= createCategorySection (
+      conversationListWidget_, qt_translate ("Chat::ai"), false, "chat");
+  conversationListLayout_->addWidget (chatSection_.headerButton);
+  conversationListLayout_->addWidget (chatSection_.listWidget);
+
+  explainSection_= createCategorySection (
+      conversationListWidget_, qt_translate ("Explain::ai"), true, "explain");
+  conversationListLayout_->addWidget (explainSection_.headerButton);
+  conversationListLayout_->addWidget (explainSection_.listWidget);
+
+  translateSection_= createCategorySection (
+      conversationListWidget_, qt_translate ("Translate"), true, "translate");
+  conversationListLayout_->addWidget (translateSection_.headerButton);
+  conversationListLayout_->addWidget (translateSection_.listWidget);
+
   scrollLayout->addWidget (conversationListWidget_);
 
   scrollLayout->addStretch ();
@@ -1200,12 +1242,16 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
     if (item.moreButton)
       item.moreButton->setVisible (info.archived || isActive);
     item.isArchived= info.archived;
+    item.type      = info.type;
 
     if (info.archived) {
       archiveListLayout_->addWidget (item.itemWidget);
     }
     else {
-      conversationListLayout_->addWidget (item.itemWidget);
+      getCategoryLayout (info.type)->addWidget (item.itemWidget);
+      if (isActive) {
+        ensureCategoryExpanded (info.type);
+      }
     }
     items_.insert (info.sessionId, item);
   }
@@ -1230,7 +1276,14 @@ ChatSidebar::addItem (const SessionDisplayInfo& info) {
   SidebarItem item= createItem (info.sessionId);
   item.sidebarButton->setText (to_qstring (info.displayTitle));
   item.isArchived= info.archived;
-  conversationListLayout_->insertWidget (0, item.itemWidget);
+  item.type      = info.type;
+  if (info.archived) {
+    archiveListLayout_->addWidget (item.itemWidget);
+  }
+  else {
+    getCategoryLayout (info.type)->insertWidget (0, item.itemWidget);
+    ensureCategoryExpanded (info.type);
+  }
   items_.insert (info.sessionId, item);
 
   setActiveItem (info.sessionId);
@@ -1264,7 +1317,10 @@ ChatSidebar::setActiveItem (const string& sessionId) {
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     bool isActive= (it.key () == sessionId && !it->isArchived);
     if (it->sidebarButton) it->sidebarButton->setChecked (isActive);
-    if (isActive && it->moreButton) it->moreButton->show ();
+    if (isActive) {
+      if (it->moreButton) it->moreButton->show ();
+      ensureCategoryExpanded (it->type);
+    }
   }
 }
 
@@ -1330,7 +1386,8 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
 
   if (item.isArchived) {
     item.isArchived= false;
-    conversationListLayout_->insertWidget (0, item.itemWidget);
+    getCategoryLayout (item.type)->insertWidget (0, item.itemWidget);
+    ensureCategoryExpanded (item.type);
     if (item.moreButton)
       item.moreButton->setVisible (activeSessionId_ == sessionId);
   }
@@ -1345,7 +1402,7 @@ ChatSidebar::reorderItem (const string& sessionId) {
   SidebarItem& item= it.value ();
   if (item.isArchived) return;
 
-  conversationListLayout_->insertWidget (0, item.itemWidget);
+  getCategoryLayout (item.type)->insertWidget (0, item.itemWidget);
 }
 
 void
@@ -1353,6 +1410,7 @@ ChatSidebar::applySearchFilter () {
   QString filterText=
       searchEdit_ ? searchEdit_->text ().toLower () : QString ();
 
+  QMap<CategorySection*, int> matches;
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     SidebarItem& item= it.value ();
     if (!item.sidebarButton || !item.itemWidget) continue;
@@ -1367,9 +1425,134 @@ ChatSidebar::applySearchFilter () {
     bool    matchesFilter=
         filterText.isEmpty () || displayText.toLower ().contains (filterText);
     item.itemWidget->setVisible (matchesFilter);
+
+    if (matchesFilter && !item.isArchived)
+      ++matches[&getCategorySection (item.type)];
+  }
+
+  CategorySection* const sections[]= {&chatSection_, &explainSection_,
+                                      &translateSection_};
+  for (CategorySection* sec : sections) {
+    // 搜索时只展开有匹配项的分类（无匹配的保持原状）；清空后恢复折叠状态
+    if (!filterText.isEmpty ()) {
+      if (matches.value (sec, 0) > 0) sec->listWidget->show ();
+    }
+    else sec->listWidget->setVisible (!sec->collapsed);
   }
 
   updateCountLabels ();
+}
+
+ChatSidebar::CategorySection
+ChatSidebar::createCategorySection (QWidget* parent, const QString& title,
+                                    bool          defaultCollapsed,
+                                    const string& catType) {
+  CategorySection sec;
+  sec.collapsed= defaultCollapsed;
+
+  CategoryHeaderButton* btn= new CategoryHeaderButton (parent);
+  // 各类别共用同一 objectName，主题 CSS 只需一组选择器
+  btn->setObjectName ("chat-tab-category-header");
+  btn->setText (title);
+  btn->setFocusPolicy (Qt::NoFocus);
+  btn->setCursor (Qt::PointingHandCursor);
+  btn->setAccessibleName (title);
+  btn->setToolTip (title);
+
+  int padY= DpiUtils::scaled (kNavTitlePadding);
+  int padX= DpiUtils::scaled (kNavButtonPadX);
+  btn->setStyleSheet (
+      QString ("QPushButton { border: none; background: transparent; "
+               "padding: %1px %2px; }")
+          .arg (padY)
+          .arg (padX));
+
+  QHBoxLayout* hLayout= new QHBoxLayout (btn);
+  hLayout->setContentsMargins (padX, padY, padX, padY);
+  hLayout->setSpacing (DpiUtils::scaled (4));
+
+  QLabel* titleLabel= new QLabel (title, btn);
+  titleLabel->setObjectName ("chat-tab-category-title");
+  titleLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
+  DpiUtils::applyScaledFont (titleLabel, kNavButtonFontPx);
+
+  QLabel* arrowLabel=
+      new QLabel (defaultCollapsed ? QString (kCategoryArrowCollapsed)
+                                   : QString (kCategoryArrowExpanded),
+                  btn);
+  arrowLabel->setObjectName ("chat-tab-category-arrow");
+  arrowLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
+  DpiUtils::applyScaledFont (arrowLabel, kNavTitleFontPx);
+
+  hLayout->addWidget (titleLabel);
+  hLayout->addStretch ();
+  hLayout->addWidget (arrowLabel);
+
+  QWidget* listWidget= new QWidget (parent);
+  listWidget->setObjectName ("chat-tab-category-list");
+  QVBoxLayout* listLayout= new QVBoxLayout (listWidget);
+  listLayout->setContentsMargins (0, 0, 0, 0);
+  listLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+  listWidget->setVisible (!defaultCollapsed);
+
+  connect (btn, &QPushButton::clicked, this,
+           [this, catType] () { toggleCategory (catType); });
+
+  sec.headerButton= btn;
+  sec.arrowLabel  = arrowLabel;
+  sec.listWidget  = listWidget;
+  sec.listLayout  = listLayout;
+
+  return sec;
+}
+
+ChatSidebar::CategorySection&
+ChatSidebar::getCategorySection (const string& type) {
+  if (type == "explain") return explainSection_;
+  if (type == "translate") return translateSection_;
+  return chatSection_;
+}
+
+const ChatSidebar::CategorySection&
+ChatSidebar::getCategorySection (const string& type) const {
+  if (type == "explain") return explainSection_;
+  if (type == "translate") return translateSection_;
+  return chatSection_;
+}
+
+QVBoxLayout*
+ChatSidebar::getCategoryLayout (const string& type) {
+  return getCategorySection (type).listLayout;
+}
+
+bool
+ChatSidebar::isCategoryCollapsed (const string& type) const {
+  return getCategorySection (type).collapsed;
+}
+
+QPushButton*
+ChatSidebar::categoryButton (const string& type) const {
+  return getCategorySection (type).headerButton;
+}
+
+void
+ChatSidebar::applyCategoryCollapsed (CategorySection& sec, bool collapsed) {
+  if (sec.collapsed == collapsed) return;
+  sec.collapsed= collapsed;
+  sec.listWidget->setVisible (!collapsed);
+  sec.arrowLabel->setText (collapsed ? QString (kCategoryArrowCollapsed)
+                                     : QString (kCategoryArrowExpanded));
+}
+
+void
+ChatSidebar::toggleCategory (const string& type) {
+  CategorySection& sec= getCategorySection (type);
+  applyCategoryCollapsed (sec, !sec.collapsed);
+}
+
+void
+ChatSidebar::ensureCategoryExpanded (const string& type) {
+  applyCategoryCollapsed (getCategorySection (type), false);
 }
 
 void

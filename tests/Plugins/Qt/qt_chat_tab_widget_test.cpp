@@ -1282,6 +1282,217 @@ private slots:
               qPrintable (QString ("topPanel height = %1, expected > 400")
                               .arg (topPanel->height ())));
   }
+
+  // === ChatSidebar 类别分类与折叠测试 (任务 6203) ===
+
+  void test_category_default_collapsed_states () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+
+    // 默认折叠状态：翻译和释义默认折叠，普通会话（对话）默认打开
+    QVERIFY (sidebar.isCategoryCollapsed ("explain"));
+    QVERIFY (sidebar.isCategoryCollapsed ("translate"));
+    QVERIFY (!sidebar.isCategoryCollapsed ("chat"));
+  }
+
+  void test_category_arrow_indicators () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+
+    QPushButton* explainBtn  = sidebar.categoryButton ("explain");
+    QPushButton* translateBtn= sidebar.categoryButton ("translate");
+    QPushButton* chatBtn     = sidebar.categoryButton ("chat");
+
+    QVERIFY (explainBtn != nullptr);
+    QVERIFY (translateBtn != nullptr);
+    QVERIFY (chatBtn != nullptr);
+
+    // 检查小箭头指示：折叠状态显示 ▸，打开状态显示 ▾
+    QLabel* explainArrow=
+        explainBtn->findChild<QLabel*> ("chat-tab-category-arrow");
+    QLabel* translateArrow=
+        translateBtn->findChild<QLabel*> ("chat-tab-category-arrow");
+    QLabel* chatArrow= chatBtn->findChild<QLabel*> ("chat-tab-category-arrow");
+
+    QVERIFY (explainArrow != nullptr);
+    QVERIFY (translateArrow != nullptr);
+    QVERIFY (chatArrow != nullptr);
+
+    QCOMPARE (explainArrow->text (), QString ("\xe2\x96\xb8"));   // ▸ 折叠
+    QCOMPARE (translateArrow->text (), QString ("\xe2\x96\xb8")); // ▸ 折叠
+    QCOMPARE (chatArrow->text (), QString ("\xe2\x96\xbe"));      // ▾ 打开
+  }
+
+  void test_category_toggle_expands_and_collapses () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+
+    QPushButton* explainBtn= sidebar.categoryButton ("explain");
+    QLabel*      explainArrow=
+        explainBtn->findChild<QLabel*> ("chat-tab-category-arrow");
+
+    // 初始折叠
+    QVERIFY (sidebar.isCategoryCollapsed ("explain"));
+    QCOMPARE (explainArrow->text (), QString ("\xe2\x96\xb8"));
+
+    // 点击释义按钮展开（向下打开）
+    explainBtn->click ();
+    QVERIFY (!sidebar.isCategoryCollapsed ("explain"));
+    QCOMPARE (explainArrow->text (), QString ("\xe2\x96\xbe"));
+
+    // 再次点击折叠（向上折叠）
+    explainBtn->click ();
+    QVERIFY (sidebar.isCategoryCollapsed ("explain"));
+    QCOMPARE (explainArrow->text (), QString ("\xe2\x96\xb8"));
+
+    // 对话按钮默认打开，点击折叠
+    QPushButton* chatBtn= sidebar.categoryButton ("chat");
+    QLabel* chatArrow= chatBtn->findChild<QLabel*> ("chat-tab-category-arrow");
+    QVERIFY (!sidebar.isCategoryCollapsed ("chat"));
+    QCOMPARE (chatArrow->text (), QString ("\xe2\x96\xbe"));
+
+    chatBtn->click ();
+    QVERIFY (sidebar.isCategoryCollapsed ("chat"));
+    QCOMPARE (chatArrow->text (), QString ("\xe2\x96\xb8"));
+
+    chatBtn->click ();
+    QVERIFY (!sidebar.isCategoryCollapsed ("chat"));
+    QCOMPARE (chatArrow->text (), QString ("\xe2\x96\xbe"));
+  }
+
+  void test_category_session_placement_by_type () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s_exp", "释义会话", "", false, "explain"};
+    sessions << SessionDisplayInfo{"s_trans", "翻译会话", "", false,
+                                   "translate"};
+    sessions << SessionDisplayInfo{"s_chat", "普通对话", "", false, ""};
+
+    ChatSidebar sidebar (sessions, "s_chat", nullptr);
+    sidebar.show ();
+
+    // 所有 3 个按钮都创建成功
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 3);
+
+    // 释义与翻译默认折叠，其内部控件隐藏
+    QPushButton* expBtn  = nullptr;
+    QPushButton* transBtn= nullptr;
+    QPushButton* chatBtn = nullptr;
+    for (QPushButton* b : buttons) {
+      if (b->text () == "释义会话") expBtn= b;
+      else if (b->text () == "翻译会话") transBtn= b;
+      else if (b->text () == "普通对话") chatBtn= b;
+    }
+    QVERIFY (expBtn != nullptr);
+    QVERIFY (transBtn != nullptr);
+    QVERIFY (chatBtn != nullptr);
+
+    // 释义和翻译处于折叠容器内，其 itemWidget 不可见
+    QVERIFY (!expBtn->parentWidget ()->isVisible ());
+    QVERIFY (!transBtn->parentWidget ()->isVisible ());
+    // 对话处于展开容器内，其 itemWidget 可见
+    QVERIFY (chatBtn->parentWidget ()->isVisible ());
+
+    // 点击展开翻译
+    sidebar.categoryButton ("translate")->click ();
+    QVERIFY (transBtn->parentWidget ()->isVisible ());
+  }
+
+  /// 类别纵向顺序：对话在最上，其下依次为释义、翻译
+  void test_category_order_chat_first () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+    QTest::qWait (0);
+
+    QVERIFY (sidebar.categoryButton ("chat")->y () <
+             sidebar.categoryButton ("explain")->y ());
+    QVERIFY (sidebar.categoryButton ("explain")->y () <
+             sidebar.categoryButton ("translate")->y ());
+  }
+
+  void test_addItem_with_type_places_in_correct_category () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    SessionDisplayInfo expInfo{"s_exp", "新的释义", "", false, "explain"};
+    sidebar.addItem (expInfo);
+
+    // 新增项被激活，且其所属分类应自动展开
+    QCOMPARE (to_qstring (sidebar.activeSessionId ()), QString ("s_exp"));
+    QVERIFY (!sidebar.isCategoryCollapsed ("explain"));
+
+    QPushButton* expBtn= sidebar.categoryButton ("explain");
+    QLabel*      arrow = expBtn->findChild<QLabel*> ("chat-tab-category-arrow");
+    QCOMPARE (arrow->text (), QString ("\xe2\x96\xbe"));
+  }
+
+  void test_setActiveItem_expands_collapsed_category () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s_exp", "释义会话", "", false, "explain"};
+    sessions << SessionDisplayInfo{"s_chat", "普通对话", "", false, ""};
+
+    ChatSidebar sidebar (sessions, "s_chat", nullptr);
+    sidebar.show ();
+
+    // 释义初始折叠
+    QVERIFY (sidebar.isCategoryCollapsed ("explain"));
+
+    // 激活释义会话时，自动展开释义分类以显示选中的会话项
+    sidebar.setActiveItem ("s_exp");
+    QVERIFY (!sidebar.isCategoryCollapsed ("explain"));
+  }
+
+  void test_category_archive_and_restore_preserves_category () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s_exp", "释义会话", "", false, "explain"};
+
+    ChatSidebar sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    // 归档
+    sidebar.moveToArchive ("s_exp");
+    // 移出归档，应回到释义分类中，并确保该分类展开可见
+    sidebar.moveFromArchive ("s_exp");
+    QVERIFY (!sidebar.isCategoryCollapsed ("explain"));
+  }
+
+  void test_category_search_filter_reveals_matching_category () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s_trans", "数学论文翻译", "", false,
+                                   "translate"};
+    sessions << SessionDisplayInfo{"s_chat", "聊天会话", "", false, ""};
+
+    ChatSidebar sidebar (sessions, "s_chat", nullptr);
+    sidebar.show ();
+
+    // 初始：翻译折叠
+    QVERIFY (sidebar.isCategoryCollapsed ("translate"));
+
+    QLineEdit* searchEdit=
+        sidebar.findChild<QLineEdit*> ("chat-tab-search-edit");
+    QVERIFY (searchEdit != nullptr);
+
+    // 搜索匹配翻译项
+    searchEdit->setText ("论文");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    for (QPushButton* b : buttons) {
+      if (b->text () == "数学论文翻译") {
+        QVERIFY (b->parentWidget ()->isVisible ());
+      }
+    }
+
+    // 清空搜索后，恢复原折叠状态
+    searchEdit->clear ();
+    for (QPushButton* b : buttons) {
+      if (b->text () == "数学论文翻译") {
+        QVERIFY (!b->parentWidget ()->isVisible ());
+      }
+    }
+  }
 };
 
 QTEST_MAIN (TestChatTabWidget)

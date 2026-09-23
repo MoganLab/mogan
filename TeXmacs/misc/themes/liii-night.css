@@ -1377,6 +1377,7 @@ QWidget#centralWidget QWidget#chat-tab-session-item QWidget,
 QWidget#centralWidget QWidget#chat-tab-scroll-content,
 QWidget#centralWidget QWidget#chat-tab-archive-header,
 QWidget#centralWidget QWidget#chat-tab-conversation-list,
+QWidget#centralWidget QWidget#chat-tab-category-list,
 QWidget#centralWidget QWidget#chat-tab-archive-list {
   background-color: #2c2c2c;
 }
@@ -1455,6 +1456,24 @@ QPushButton#chat-tab-archive-header {
 }
 
 QPushButton#chat-tab-archive-header:hover {
+  color: #ffffff;
+}
+
+/* 类别折叠按钮 */
+QPushButton#chat-tab-category-header {
+  text-align: left;
+  border: none;
+  background-color: transparent;
+  border-radius: 4px;
+}
+QPushButton#chat-tab-category-header QLabel {
+  color: #cccccc;
+  font-weight: bold;
+}
+QPushButton#chat-tab-category-header:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+QPushButton#chat-tab-category-header:hover QLabel {
   color: #ffffff;
 }
 

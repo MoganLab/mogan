@@ -689,6 +689,7 @@ ChatController::registerSession (const string& sessionId) {
   info.displayTitle= displayTitle;
   info.model       = s->model;
   info.archived    = false;
+  info.type        = s->type;
   view_->sidebar ()->addItem (info);
 
   s->registered= true;
@@ -897,6 +898,7 @@ ChatController::buildDisplayInfos () {
     info.model       = s->model;
     info.archived    = s->archived;
     info.displayTitle= is_empty (s->title) ? string ("新会话") : s->title;
+    info.type        = s->type;
 
     infos.append (info);
   }
