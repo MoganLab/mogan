@@ -1551,6 +1551,11 @@ qt_clipboard_set_text (string text) {
   const QString qText= QString::fromUtf8 ((char*) textC, N (text));
   mimeData->setText (qText);
   clipboard->setMimeData (mimeData, QClipboard::Clipboard);
+  if (clipboard->supportsSelection ()) {
+    auto* mimeDataSel= new QMimeData;
+    mimeDataSel->setText (qText);
+    clipboard->setMimeData (mimeDataSel, QClipboard::Selection);
+  }
 }
 
 /******************************************************************************

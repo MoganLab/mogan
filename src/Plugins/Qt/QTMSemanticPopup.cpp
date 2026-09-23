@@ -65,7 +65,8 @@ QTMSemanticPopup::rebuildButtons () {
   tree acts;
   if (tm_s7 != nullptr) {
     eval ("(use-modules (generic semantic-popup))");
-    acts= as_tree (call ("semantic-popup-actions", current_tag, current_tree));
+    acts= as_tree (call ("stree->tree", call ("semantic-popup-actions",
+                                              current_tag, current_tree)));
   }
   else {
     if (current_tag == "equation*") {

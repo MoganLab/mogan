@@ -1450,7 +1450,7 @@ edit_interface_rep::update_semantic_popup () {
     if (is_compound (sub, "equation*") || is_compound (sub, "equation") ||
         is_compound (sub, "table-of-contents") ||
         is_compound (sub, "table-of-contents*")) {
-      hit_tag   = sub->label;
+      hit_tag   = as_string (L (sub));
       hit_tree  = sub;
       hit_path  = sp;
       from_mouse= true;
@@ -1467,7 +1467,7 @@ edit_interface_rep::update_semantic_popup () {
       if (is_compound (sub, "equation*") || is_compound (sub, "equation") ||
           is_compound (sub, "table-of-contents") ||
           is_compound (sub, "table-of-contents*")) {
-        hit_tag = sub->label;
+        hit_tag = as_string (L (sub));
         hit_tree= sub;
         hit_path= sp;
         break;
