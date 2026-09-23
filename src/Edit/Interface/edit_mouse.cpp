@@ -28,6 +28,7 @@
 #include "preferences.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
+#include "telemetry.hpp"
 #include "tm_buffer.hpp"
 #include "tm_sys_utils.hpp" // is_community_stem
 #include "tm_timer.hpp"
@@ -1583,6 +1584,11 @@ edit_interface_rep::ai_action (string action) {
   // 取上下文）；润色与 Tab 同走 trigger-diff-text（内部自带 diff-enable?
   // 门控）。无选区时各动作忽视
   if (selection_active_any ()) {
+    if (action == "translate") telemetry_track ("AI_SELECTION_TRANSLATE");
+    else if (action == "chat") telemetry_track ("AI_SELECTION_CHAT");
+    else if (action == "explain") telemetry_track ("AI_SELECTION_EXPLAIN");
+    else if (action == "polish") telemetry_track ("AI_SELECTION_POLISH");
+
     if (action == "translate" || action == "chat" || action == "explain")
       qt_chat_ai_send_selection (selection_get (), action);
     else if (action == "polish") call ("trigger-diff-text");
