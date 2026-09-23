@@ -967,11 +967,11 @@
 ) ;define
 
 (define (is-book-top-level t)
-  (in? (tree-label t) '(chapter part))
+  (in? (tree-label t) '(chapter chapter* appendix appendix* part part*))
 ) ;define
 
 (define (is-section-top-level t)
-  (in? (tree-label t) '(section))
+  (in? (tree-label t) '(section section*))
 ) ;define
 
 (define (get-verbatim-section-title s indent?)
