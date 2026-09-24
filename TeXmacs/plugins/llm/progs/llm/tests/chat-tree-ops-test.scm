@@ -19,10 +19,9 @@
 ;;; ---------- chat-tab-source-doc-info ----------
 
 ;; 与 chat-tab-source-doc-info 同规则的文件名：url 末段去扩展名
+
 (define (expected-name u)
-  (let* ((tail (url->system (url-tail u)))
-         (suffix (url-suffix u))
-        ) ;
+  (let* ((tail (url->system (url-tail u))) (suffix (url-suffix u)))
     (if (== suffix "")
       tail
       (substring tail 0 (- (string-length tail) (string-length suffix) 1))
@@ -31,13 +30,12 @@
 ) ;define
 
 ;; 普通文档：master 是其自身，直接读到 init-env 绑定的 stem-doc-id
+
 (define (test-plain-document)
   (let ((doc (buffer-new)))
     (switch-to-buffer doc)
     (with-buffer doc (init-env "stem-doc-id" "DOC-ID-PLAIN"))
-    (check (chat-tab-source-doc-info) =>
-      (cons "DOC-ID-PLAIN" (expected-name doc))
-    ) ;check
+    (check (chat-tab-source-doc-info) => (cons "DOC-ID-PLAIN" (expected-name doc)))
   ) ;let
 ) ;define
 
@@ -45,27 +43,23 @@
 ;; 尾段（回归：曾返回 ("" . "message")，按钮永远找不到文档的专属会话）。
 ;; doc-id 走 initial collection 写入：headless 下文档 buffer 无视图，
 ;; init-env 路径依赖社区 with-buffer 聚焦成功（真实 GUI 中文档必有视图）
+
 (define (test-from-chat-buffer)
-  (let* ((doc (buffer-new))
-         (chat (buffer-new))
-        ) ;
+  (let* ((doc (buffer-new)) (chat (buffer-new)))
     (buffer-set doc
-      `(document
-         (TeXmacs ,(texmacs-version))
+      `(document (TeXmacs ,(texmacs-version))
          (style (tuple "generic"))
          (body (document ""))
-         (initial (collection (associate "stem-doc-id" "DOC-ID-CHAT")))
-       ) ;document
+         (initial (collection (associate "stem-doc-id" "DOC-ID-CHAT"))))
     ) ;buffer-set
     (buffer-set-master chat doc)
     (switch-to-buffer chat)
-    (check (chat-tab-source-doc-info) =>
-      (cons "DOC-ID-CHAT" (expected-name doc))
-    ) ;check
+    (check (chat-tab-source-doc-info) => (cons "DOC-ID-CHAT" (expected-name doc)))
   ) ;let*
 ) ;define
 
 ;; 文档未绑定 stem-doc-id：doc-id 为 ""，不生成新 id
+
 (define (test-unbound-doc-id)
   (let ((doc (buffer-new)))
     (switch-to-buffer doc)
