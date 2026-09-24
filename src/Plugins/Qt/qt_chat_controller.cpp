@@ -689,6 +689,7 @@ ChatController::registerSession (const string& sessionId) {
   info.displayTitle= displayTitle;
   info.model       = s->model;
   info.archived    = false;
+  info.type        = s->type;
   view_->sidebar ()->addItem (info);
 
   s->registered= true;
@@ -896,6 +897,7 @@ ChatController::buildDisplayInfos () {
     info.sessionId   = s->sessionId;
     info.model       = s->model;
     info.archived    = s->archived;
+    info.type        = s->type;
     info.displayTitle= is_empty (s->title) ? string ("新会话") : s->title;
 
     infos.append (info);
@@ -988,7 +990,7 @@ qt_chat_ai_send_selection (tree sel, string action) {
       sid= panel->sessionId ();
       ctrl->sessionManager_.setTitle (sid, title);
       ctrl->sessionManager_.setSourceDocId (sid, docId);
-      ctrl->sessionManager_.setType (sid, action);
+      ctrl->setSessionType (sid, action);
     }
     ChatSession*           s= ctrl->sessionManager_.getSession (sid);
     ChatConversationPanel* panel=
@@ -1055,9 +1057,17 @@ qt_chat_tab_set_source_doc_id (string sessionId, string docId) {
 }
 
 void
+ChatController::setSessionType (const string& sessionId, const string& type) {
+  sessionManager_.setType (sessionId, type);
+  if (view_ && view_->sidebar ()) {
+    view_->sidebar ()->updateItemType (sessionId, type);
+  }
+}
+
+void
 qt_chat_tab_set_session_type (string sessionId, string type) {
   // 与 sourceDocId 同理：restore 参数已满，type 由 scheme 侧恢复后单独设置
-  get_chat_controller ()->sessionManager ().setType (sessionId, type);
+  get_chat_controller ()->setSessionType (sessionId, type);
 }
 
 string

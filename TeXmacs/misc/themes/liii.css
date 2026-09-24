@@ -1343,6 +1343,30 @@ QLineEdit#chat-tab-search-edit {
   background-color: #ffffff;
 }
 
+/* 会话类别切换栏 */
+QWidget#chat-tab-type-tabs {
+  background-color: transparent;
+}
+
+QWidget#chat-tab-type-tabs QPushButton {
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #666666;
+  padding: 5px 0px;
+}
+
+QWidget#chat-tab-type-tabs QPushButton:hover {
+  background-color: #e8e8e8;
+  color: #333333;
+}
+
+QWidget#chat-tab-type-tabs QPushButton:checked {
+  background-color: #e0ecf0;
+  color: #215a6a;
+  font-weight: 600;
+}
+
 /* 多选操作栏按钮 */
 QPushButton#chat-tab-cancel-select-btn,
 QPushButton#chat-tab-select-all-btn,

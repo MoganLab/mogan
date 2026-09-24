@@ -20,6 +20,7 @@
 
 #include "widget.hpp"
 
+class QButtonGroup;
 class QCheckBox;
 class QFrame;
 class QHBoxLayout;
@@ -46,7 +47,8 @@ struct SessionDisplayInfo {
   string sessionId;
   string displayTitle; ///< 去重后的标题（如 "hello (2)"）
   string model;
-  bool   archived;
+  bool   archived= false;
+  string type; ///< 会话类型（translate/explain，空串为普通对话）
 };
 
 /**
@@ -276,6 +278,13 @@ class ChatSidebar : public QWidget {
   Q_OBJECT
 
 public:
+  /// 会话类别标签枚举（6203）
+  enum class SessionTypeTab {
+    Translate= 0,
+    Chat     = 1,
+    Explain  = 2,
+  };
+
   /// 侧边栏项数据（内部使用）。
   struct SidebarItem {
     QWidget*     itemWidget    = nullptr;
@@ -284,6 +293,7 @@ public:
     QCheckBox*   selectCheckBox= nullptr;
     QLineEdit*   titleEdit     = nullptr;
     bool         isArchived    = false;
+    string       type;
   };
 
   /**
@@ -331,15 +341,33 @@ public:
   void moveFromArchive (const string& sessionId);
 
   /**
-   * @brief 根据搜索框文本过滤显示的会话项。
+   * @brief 根据搜索文本与当前类别标签过滤显示的会话项。
    */
-  void applySearchFilter ();
+  void applyListFilter ();
 
   /**
    * @brief 开始内联编辑指定会话的标题。
    * @param sessionId 目标会话 ID
    */
   void beginEditTitle (const string& sessionId);
+
+  /**
+   * @brief 更新指定会话的类型（translate/explain/空串）。
+   * @param sessionId 目标会话 ID
+   * @param type      新类型
+   */
+  void updateItemType (const string& sessionId, const string& type);
+
+  /**
+   * @brief 获取当前选中的会话类别标签。
+   */
+  SessionTypeTab currentTypeTab () const;
+
+  /**
+   * @brief 切换当前选中的会话类别标签。
+   * @param tab 目标类别标签
+   */
+  void setCurrentTypeTab (SessionTypeTab tab);
 
   // ---- 其他公共方法 ----
 
@@ -388,25 +416,31 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_;            ///< sessionId → SidebarItem 映射
-  bool         destroying_            = false; ///< 析构进行中，禁止信号重入回调
-  QLabel*      conversationCountLabel_= nullptr; ///< 活跃会话计数标签
-  QWidget*     conversationListWidget_= nullptr; ///< 活跃会话列表容器
-  QVBoxLayout* conversationListLayout_= nullptr; ///< 活跃会话列表布局
-  QFrame*      archiveSeparator_      = nullptr; ///< 归档区分割线
-  QPushButton* archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
-  QScrollArea* archiveListWidget_     = nullptr; ///< 归档会话列表滚动容器
-  QVBoxLayout* archiveListLayout_     = nullptr; ///< 归档会话列表布局
-  bool         archiveCollapsed_      = true;    ///< 归档区是否折叠
-  QWidget*     multiSelectBar_        = nullptr; ///< 多选操作栏
-  QPushButton* batchArchiveBtn_       = nullptr; ///< 批量归档按钮
-  QLineEdit*   searchEdit_            = nullptr; ///< 搜索框
-  bool         multiSelectMode_       = false;   ///< 是否处于多选模式
-  bool         archiveSelectMode_     = false;   ///< 是否在归档区多选
-  string       activeSessionId_;                 ///< 当前激活的会话 ID
+  QMap<string, SidebarItem> items_; ///< sessionId → SidebarItem 映射
+  bool          destroying_= false; ///< 析构进行中，禁止信号重入回调
+  QLabel*       conversationCountLabel_= nullptr; ///< 活跃会话计数标签
+  QWidget*      conversationListWidget_= nullptr; ///< 活跃会话列表容器
+  QVBoxLayout*  conversationListLayout_= nullptr; ///< 活跃会话列表布局
+  QFrame*       archiveSeparator_      = nullptr; ///< 归档区分割线
+  QPushButton*  archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
+  QScrollArea*  archiveListWidget_     = nullptr; ///< 归档会话列表滚动容器
+  QVBoxLayout*  archiveListLayout_     = nullptr; ///< 归档会话列表布局
+  bool          archiveCollapsed_      = true;    ///< 归档区是否折叠
+  QWidget*      multiSelectBar_        = nullptr; ///< 多选操作栏
+  QPushButton*  batchArchiveBtn_       = nullptr; ///< 批量归档按钮
+  QLineEdit*    searchEdit_            = nullptr; ///< 搜索框
+  QWidget*      typeTabsWidget_        = nullptr; ///< 会话类型切换栏容器
+  QButtonGroup* typeTabGroup_          = nullptr; ///< 互斥类别按钮组
+  QPushButton*  tabTranslateBtn_       = nullptr; ///< 翻译类别按钮
+  QPushButton*  tabChatBtn_            = nullptr; ///< 对话类别按钮
+  QPushButton*  tabExplainBtn_         = nullptr; ///< 释义类别按钮
+  bool          multiSelectMode_       = false;   ///< 是否处于多选模式
+  bool          archiveSelectMode_     = false;   ///< 是否在归档区多选
+  string        activeSessionId_;                 ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
+  void setupTypeTabs (QVBoxLayout* parentLayout);   ///< 构建类别按钮栏
   void updateCountLabels ();                        ///< 更新会话数/归档数标签
   void updateArchiveListVisibility ();       ///< 调整归档列表可见性与高度
   int  computeArchiveContentHeight () const; ///< 计算归档区内容总高度

@@ -1437,6 +1437,42 @@ QWidget#centralWidget QLineEdit#chat-tab-search-edit {
   background-color: #3a3a3a;
 }
 
+/* 会话类别切换栏 */
+QWidget#centralWidget QWidget#chat-tab-type-tabs {
+  background-color: transparent;
+}
+
+QWidget#centralWidget QWidget#chat-tab-type-tabs QPushButton {
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #aaaaaa;
+  padding: 5px 0px;
+}
+
+QWidget#centralWidget QWidget#chat-tab-type-tabs QPushButton:hover {
+  background-color: #3a3a3a;
+  color: #ffffff;
+}
+
+QWidget#centralWidget QWidget#chat-tab-type-tabs QPushButton:checked {
+  background-color: #215a6a55;
+  color: #2791ad;
+  font-weight: 600;
+}
+
+QWidget#centralWidget QWidget#chat-tab-type-tabs QPushButton#chat-tab-type-tab-translate {
+  qproperty-icon: url(":/llm-chat/type-translate-dark.svg");
+}
+
+QWidget#centralWidget QWidget#chat-tab-type-tabs QPushButton#chat-tab-type-tab-chat {
+  qproperty-icon: url(":/llm-chat/type-chat-dark.svg");
+}
+
+QWidget#centralWidget QWidget#chat-tab-type-tabs QPushButton#chat-tab-type-tab-explain {
+  qproperty-icon: url(":/llm-chat/type-explain-dark.svg");
+}
+
 /* 多选操作栏按钮 */
 QWidget#centralWidget QPushButton#chat-tab-cancel-select-btn,
 QWidget#centralWidget QPushButton#chat-tab-select-all-btn,
