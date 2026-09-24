@@ -268,6 +268,31 @@
 
 (tm-define (focus-tree-modified t) (noop))
 
+;; explain 标题中的箭头是标题文档内容的一部分（与文字同样可点选），
+;; 折叠状态切换后需同步箭头方向
+
+(define (explain-title-set-arrow! t arrow)
+  (and-with title
+    (tree-ref t 0)
+    (and-with m
+      (and (tm-func? title 'with) (tree-ref title :last 'math))
+      (when (tm-func? m 'math 1)
+        (tree-set! m 0 arrow)
+      ) ;when
+    ) ;and-with
+  ) ;and-with
+) ;define
+
+(tm-define (focus-tree-modified t)
+  (:require (tree-is? t 'folded-explain))
+  (explain-title-set-arrow! t "<blacktriangleright>")
+) ;tm-define
+
+(tm-define (focus-tree-modified t)
+  (:require (tree-is? t 'unfolded-explain))
+  (explain-title-set-arrow! t "<blacktriangledown>")
+) ;tm-define
+
 ;; 变体切换后焦点树路径不变，光标驱动的菜单刷新判等不会触发，
 ;; 需显式请求重建焦点工具栏（ICONS_FOCUS）
 (tm-define (variant-menu-categories) '(icons-focus))

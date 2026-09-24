@@ -38,7 +38,7 @@
      ,"0.92"
      ,"font-series"
      ,"medium"
-     ,(localized "View reasoning"))
+     (concat (math "<blacktriangledown>") ," " ,(localized "View reasoning")))
 ) ;define
 
 (define (reasoning-body-tree content)
