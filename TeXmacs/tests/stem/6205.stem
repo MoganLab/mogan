@@ -1,24 +1,25 @@
 (document (TeXmacs "2.1.4")
   (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "llm"))
   (body
-    (document (folded-explain (with "color"
-                                "dark grey"
-                                "font-size"
-                                "0.92"
-                                "font-series"
-                                "medium"
-                                (localize "View reasoning")
-                              ) ;with
-                (with "color"
-                  "dark grey"
-                  "font-size"
-                  "0.92"
-                  "font-shape"
-                  "italic"
-                  (document "用户想验证一个数学猜想，但还没有给出具体命题。先要求结构化输入（对象、陈述、已知范围、期望输出），再给出检查顺序，避免在命题不清时直接动手。"
-                  ) ;document
-                ) ;with
-              ) ;folded-explain
+    (document
+      (folded-explain (with "color"
+                        "dark grey"
+                        "font-size"
+                        "0.92"
+                        "font-series"
+                        "medium"
+                        (concat (math "<blacktriangleright>") " " (localize "View reasoning"))
+                      ) ;with
+        (with "color"
+          "dark grey"
+          "font-size"
+          "0.92"
+          "font-shape"
+          "italic"
+          (document "用户想验证一个数学猜想，但还没有给出具体命题。先要求结构化输入（对象、陈述、已知范围、期望输出），再给出检查顺序，避免在命题不清时直接动手。"
+          ) ;document
+        ) ;with
+      ) ;folded-explain
     ) ;document
   ) ;body
   (initial (collection (associate "page-medium" "papyrus")))
