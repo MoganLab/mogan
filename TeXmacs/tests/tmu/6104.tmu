@@ -1,0 +1,486 @@
+<TMU|<tuple|1.1.0|2026.1.1>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|sql>>
+
+<\body>
+  SQL 语言行内代码示例：
+
+  <\itemize>
+    <item>基础查询：<sql|<code|<code*|SELECT id, name, salary FROM employees WHERE status = 'active';>>>
+
+    <item>聚合与函数：<sql|<code|<code*|SELECT dept_id, COUNT(*), AVG(salary) FROM emp GROUP BY dept_id;>>>
+
+    <item>类型转换与运算：<sql|<code|<code*|SELECT CAST(price AS DECIMAL(10,2)), val::INTEGER FROM items;>>>
+  </itemize>
+
+  \;
+
+  SQL 语言代码块示例（涵盖各类典型 SQL 语句）：
+
+  <\sql-code>
+    -- =============================================================
+
+    -- 1. 数据定义语言 (DDL - Data Definition Language)
+
+    -- =============================================================
+
+    \;
+
+    -- 创建数据库与模式
+
+    CREATE DATABASE company_db;
+
+    CREATE SCHEMA sales_schema;
+
+    \;
+
+    -- 创建包含完整约束的表结构
+
+    CREATE TABLE departments (
+
+    \ \ \ \ dept_id \ \ \ \ \ SERIAL PRIMARY KEY,
+
+    \ \ \ \ dept_name \ \ \ VARCHAR(64) NOT NULL UNIQUE,
+
+    \ \ \ \ budget \ \ \ \ \ \ DECIMAL(12, 2) DEFAULT 0.00 CHECK (budget \<gtr\>= 0),
+
+    \ \ \ \ created_at \ \ TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+    );
+
+    \;
+
+    CREATE TABLE employees (
+
+    \ \ \ \ emp_id \ \ \ \ \ \ INT AUTO_INCREMENT PRIMARY KEY,
+
+    \ \ \ \ first_name \ \ VARCHAR(32) NOT NULL,
+
+    \ \ \ \ last_name \ \ \ VARCHAR(32) NOT NULL,
+
+    \ \ \ \ email \ \ \ \ \ \ \ VARCHAR(128) NOT NULL UNIQUE,
+
+    \ \ \ \ dept_id \ \ \ \ \ INT NOT NULL,
+
+    \ \ \ \ salary \ \ \ \ \ \ NUMERIC(10, 2) NOT NULL CHECK (salary \<gtr\> 0),
+
+    \ \ \ \ is_active \ \ \ BOOLEAN DEFAULT TRUE,
+
+    \ \ \ \ extra_info \ \ JSON,
+
+    \ \ \ \ hired_date \ \ DATE NOT NULL,
+
+    \ \ \ \ CONSTRAINT fk_dept
+
+    \ \ \ \ \ \ \ \ FOREIGN KEY (dept_id)
+
+    \ \ \ \ \ \ \ \ REFERENCES departments(dept_id)
+
+    \ \ \ \ \ \ \ \ ON DELETE RESTRICT
+
+    \ \ \ \ \ \ \ \ ON UPDATE CASCADE
+
+    );
+
+    \;
+
+    -- 索引与视图定义
+
+    CREATE INDEX idx_emp_salary ON employees(salary DESC);
+
+    CREATE UNIQUE INDEX idx_emp_email ON employees(email);
+
+    \;
+
+    CREATE VIEW active_employee_view AS
+
+    SELECT
+
+    \ \ \ \ e.emp_id,
+
+    \ \ \ \ e.first_name || ' ' || e.last_name AS full_name,
+
+    \ \ \ \ d.dept_name,
+
+    \ \ \ \ e.salary
+
+    FROM employees e
+
+    INNER JOIN departments d ON e.dept_id = d.dept_id
+
+    WHERE e.is_active = TRUE;
+
+    \;
+
+    -- 修改与清空表
+
+    ALTER TABLE employees ADD COLUMN phone VARCHAR(20) DEFAULT NULL;
+
+    ALTER TABLE employees DROP COLUMN phone;
+
+    TRUNCATE TABLE departments CASCADE;
+
+    \;
+
+    -- =============================================================
+
+    -- 2. 数据操纵语言 (DML - Data Manipulation Language)
+
+    -- =============================================================
+
+    \;
+
+    -- 基础插入与多行插入
+
+    INSERT INTO departments (dept_name, budget)
+
+    VALUES
+
+    \ \ \ \ ('Engineering', 500000.00),
+
+    \ \ \ \ ('Marketing', \ \ 200000.00),
+
+    \ \ \ \ ('Human Resource', 100000.00);
+
+    \;
+
+    INSERT INTO employees (first_name, last_name, email, dept_id, salary, is_active, extra_info, hired_date)
+
+    VALUES
+
+    \ \ \ \ ('Alice', 'Smith', 'alice@example.com', 1, 95000.00, TRUE, '{"title": "Senior Engineer"}', '2022-03-15'),
+
+    \ \ \ \ ('Bob', \ \ 'Johnson', 'bob@example.com', \ 1, 80000.00, TRUE, '{"title": "Engineer"}', \ \ \ \ \ \ \ '2023-01-10'),
+
+    \ \ \ \ ('Carol', 'Williams', 'carol@example.com', 2, 72000.00, TRUE, '{"title": "Marketing Lead"}', '2021-06-01');
+
+    \;
+
+    -- 插入或更新 (UPSERT / ON CONFLICT)
+
+    INSERT INTO departments (dept_id, dept_name, budget)
+
+    VALUES (1, 'Engineering & Research', 600000.00)
+
+    ON CONFLICT (dept_id) DO UPDATE
+
+    SET budget = EXCLUDED.budget,
+
+    \ \ \ \ dept_name = EXCLUDED.dept_name;
+
+    \;
+
+    -- 更新数据
+
+    UPDATE employees
+
+    SET salary = salary * 1.08,
+
+    \ \ \ \ is_active = TRUE
+
+    WHERE dept_id = 1 AND salary \<less\> 90000;
+
+    \;
+
+    -- 删除数据
+
+    DELETE FROM employees
+
+    WHERE is_active = FALSE AND hired_date \<less\> '2020-01-01';
+
+    \;
+
+    -- MERGE 语句
+
+    MERGE INTO target_table t
+
+    USING source_table s
+
+    ON (t.id = s.id)
+
+    WHEN MATCHED THEN
+
+    \ \ \ \ UPDATE SET t.value = s.value, t.updated_at = CURRENT_TIMESTAMP
+
+    WHEN NOT MATCHED THEN
+
+    \ \ \ \ INSERT (id, value, created_at) VALUES (s.id, s.value, CURRENT_TIMESTAMP);
+
+    \;
+
+    -- =============================================================
+
+    -- 3. 数据查询语言 (DQL - Data Query Language)
+
+    -- =============================================================
+
+    \;
+
+    -- 复杂连表与分组聚合查询
+
+    SELECT
+
+    \ \ \ \ d.dept_name,
+
+    \ \ \ \ COUNT(e.emp_id) AS total_staff,
+
+    \ \ \ \ COALESCE(AVG(e.salary), 0.0) AS avg_salary,
+
+    \ \ \ \ MIN(e.salary) AS min_salary,
+
+    \ \ \ \ MAX(e.salary) AS max_salary,
+
+    \ \ \ \ SUM(e.salary) AS total_payroll
+
+    FROM departments d
+
+    LEFT OUTER JOIN employees e ON d.dept_id = e.dept_id
+
+    WHERE e.is_active = TRUE OR e.is_active IS NULL
+
+    GROUP BY d.dept_name
+
+    HAVING COUNT(e.emp_id) \<gtr\>= 1
+
+    ORDER BY total_payroll DESC, d.dept_name ASC
+
+    LIMIT 10 OFFSET 0;
+
+    \;
+
+    -- 通用表表达式 (CTE) 与递归查询 (WITH RECURSIVE)
+
+    WITH RECURSIVE org_chart AS (
+
+    \ \ \ \ -- 锚点查询
+
+    \ \ \ \ SELECT emp_id, first_name, last_name, manager_id, 1 AS level
+
+    \ \ \ \ FROM employees
+
+    \ \ \ \ WHERE manager_id IS NULL
+
+    \ \ \ \ UNION ALL
+
+    \ \ \ \ -- 递归成员
+
+    \ \ \ \ SELECT e.emp_id, e.first_name, e.last_name, e.manager_id, o.level + 1
+
+    \ \ \ \ FROM employees e
+
+    \ \ \ \ INNER JOIN org_chart o ON e.manager_id = o.emp_id
+
+    )
+
+    SELECT * FROM org_chart ORDER BY level, emp_id;
+
+    \;
+
+    -- 窗口分析函数 (Window Functions)
+
+    SELECT
+
+    \ \ \ \ emp_id,
+
+    \ \ \ \ first_name,
+
+    \ \ \ \ dept_id,
+
+    \ \ \ \ salary,
+
+    \ \ \ \ ROW_NUMBER() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS rank_in_dept,
+
+    \ \ \ \ DENSE_RANK() OVER (ORDER BY salary DESC) AS global_rank,
+
+    \ \ \ \ LAG(salary, 1) OVER (PARTITION BY dept_id ORDER BY salary DESC) AS prev_salary,
+
+    \ \ \ \ SUM(salary) OVER (PARTITION BY dept_id ORDER BY hired_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
+
+    FROM employees;
+
+    \;
+
+    -- 集合操作 (UNION, INTERSECT, EXCEPT)
+
+    SELECT email FROM employees WHERE dept_id = 1
+
+    INTERSECT
+
+    SELECT email FROM project_members WHERE project_id = 101
+
+    EXCEPT
+
+    SELECT email FROM contractors;
+
+    \;
+
+    -- 子查询与相关子查询 (EXISTS, IN)
+
+    SELECT first_name, last_name, salary
+
+    FROM employees e
+
+    WHERE salary \<gtr\> (
+
+    \ \ \ \ SELECT AVG(salary) FROM employees WHERE dept_id = e.dept_id
+
+    ) AND EXISTS (
+
+    \ \ \ \ SELECT 1 FROM employee_awards a WHERE a.emp_id = e.emp_id
+
+    );
+
+    \;
+
+    -- =============================================================
+
+    -- 4. 事务控制语言 (TCL - Transaction Control Language)
+
+    -- =============================================================
+
+    \;
+
+    BEGIN TRANSACTION;
+
+    \;
+
+    UPDATE accounts SET balance = balance - 250.00 WHERE account_id = 1001;
+
+    SAVEPOINT transfer_point;
+
+    \;
+
+    UPDATE accounts SET balance = balance + 250.00 WHERE account_id = 2002;
+
+    -- 回滚到保存点或整体提交
+
+    ROLLBACK TO transfer_point;
+
+    COMMIT;
+
+    \;
+
+    -- =============================================================
+
+    -- 5. 数据控制语言 (DCL - Data Control Language)
+
+    -- =============================================================
+
+    \;
+
+    GRANT SELECT, INSERT, UPDATE ON employees TO analyst_role;
+
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA sales_schema TO admin_user;
+
+    REVOKE DELETE ON employees FROM public;
+
+    \;
+
+    -- =============================================================
+
+    -- 6. 条件逻辑、内置函数、JSON 与特殊操作符
+
+    -- =============================================================
+
+    \;
+
+    SELECT
+
+    \ \ \ \ first_name,
+
+    \ \ \ \ salary,
+
+    \ \ \ \ -- 条件判断分支
+
+    \ \ \ \ CASE
+
+    \ \ \ \ \ \ \ \ WHEN salary \<gtr\>= 100000 THEN 'Executive'
+
+    \ \ \ \ \ \ \ \ WHEN salary BETWEEN 70000 AND 99999 THEN 'Senior'
+
+    \ \ \ \ \ \ \ \ ELSE 'Associate'
+
+    \ \ \ \ END AS level_grade,
+
+    \ \ \ \ -- 字符串函数
+
+    \ \ \ \ UPPER(TRIM(first_name)) AS upper_name,
+
+    \ \ \ \ SUBSTRING(email FROM 1 FOR POSITION('@' IN email) - 1) AS user_handle,
+
+    \ \ \ \ -- 数学函数与类型转换
+
+    \ \ \ \ ROUND(salary / 12, 2) AS monthly_pay,
+
+    \ \ \ \ CAST(dept_id AS VARCHAR(10)) AS dept_code,
+
+    \ \ \ \ emp_id::INTEGER AS emp_num,
+
+    \ \ \ \ -- 日期函数
+
+    \ \ \ \ EXTRACT(YEAR FROM hired_date) AS hired_year,
+
+    \ \ \ \ DATE_TRUNC('month', CURRENT_TIMESTAMP) AS month_start,
+
+    \ \ \ \ -- JSON 解析与操作符
+
+    \ \ \ \ extra_info-\<gtr\>'title' AS raw_title,
+
+    \ \ \ \ extra_info-\<gtr\>\<gtr\>'title' AS plain_title
+
+    FROM employees;
+
+    \;
+
+    -- =============================================================
+
+    -- 7. 注释风格与字面量转义
+
+    -- =============================================================
+
+    \;
+
+    -- 标准 SQL 单行注释
+
+    # MySQL 风格单行注释
+
+    /*
+
+    \ \* 多行块级注释
+
+    \ \* 覆盖多种 SQL 方言特性
+
+    \ \*/
+
+    SELECT
+
+    \ \ \ \ 'It''s a SQL standard string escape' AS escaped_string,
+
+    \ \ \ \ 'C-style \n newline \t tab' AS backslash_string,
+
+    \ \ \ \ 42 AS integer_val,
+
+    \ \ \ \ 3.14159265 AS float_val,
+
+    \ \ \ \ 1.25e-4 AS sci_val,
+
+    \ \ \ \ 0xFF AS hex_val,
+
+    \ \ \ \ 0b1010 AS bin_val,
+
+    \ \ \ \ NULL AS null_val,
+
+    \ \ \ \ TRUE AS true_val,
+
+    \ \ \ \ FALSE AS false_val;
+
+    \;
+  </sql-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
