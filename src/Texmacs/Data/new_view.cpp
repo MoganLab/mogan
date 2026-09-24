@@ -19,6 +19,7 @@
 #include "tm_file.hpp"
 #include "tm_link.hpp"
 #include "tm_url.hpp"
+#include "tmfs_url.hpp"
 #include "view_history.hpp"
 #include "web_files.hpp"
 
@@ -75,6 +76,16 @@ decode_url (string s) {
   if (s (0, i) == "default") return url (s (i, N (s)));
 #endif
   return url_root (s (0, i)) * url_general (s (i + 1, N (s)), URL_CLEAN_UNIX);
+}
+
+/**
+ * @brief 判断 buffer 是否为无需保存的内部虚拟或辅助缓冲区。
+ * @param name 待检测的 buffer URL。
+ * @return 若为 tmfs 虚拟协议缓冲区则返回 true。
+ */
+bool
+is_no_save_buffer (url name) {
+  return is_rooted_tmfs (name);
 }
 
 /**
