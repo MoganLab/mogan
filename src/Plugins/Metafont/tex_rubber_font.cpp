@@ -36,7 +36,7 @@ struct tex_rubber_font_rep : font_rep {
   void  get_raw_extents (int c, metric& ex);
   void  get_partial_extents (int c, metric& ex);
   void  get_extents (string s, metric& ex);
-  void  draw_raw (renderer ren, int c, SI x, SI& y, SI& real_y);
+  void  draw_raw (renderer ren, int c, SI x, SI& y, SI& real_y, int next_c= 0);
   void  draw_fixed (renderer ren, string s, SI x, SI y);
   font  magnify (double zoomx, double zoomy);
   glyph get_glyph (string s);
@@ -259,10 +259,19 @@ tex_rubber_font_rep::get_extents (string s, metric& ex) {
 }
 
 void
-tex_rubber_font_rep::draw_raw (renderer ren, int c, SI x, SI& y, SI& real_y) {
+tex_rubber_font_rep::draw_raw (renderer ren, int c, SI x, SI& y, SI& real_y,
+                               int next_c) {
   ren->draw (c, pk, x, y);
-  SI delta= conv (tfm->h (c) + tfm->d (c));
-  SI pixel= ren->pixel;
+  SI delta;
+  if (next_c != 0) {
+    delta= conv (tfm->d (c) + tfm->h (next_c));
+  }
+  else {
+    delta= conv (tfm->h (c) + tfm->d (c));
+  }
+  SI pixel  = ren->pixel;
+  SI overlap= max (ren->pixel, 2 * PIXEL);
+  delta-= overlap;
   y-= pixel * (delta / pixel);
   real_y-= delta;
   while (y >= real_y + pixel)
@@ -295,21 +304,22 @@ tex_rubber_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
     else if (tfm->top (c) == 0 || tfm->bot (c) == 0)
       nr_rep+= max (tfm->list_len (pre_c) - 2, 0);
 
-    SI real_y= y; // may be necessary to round y
-                  // using SI temp= x; decode (temp, y); encode (temp, y);
-    if (tfm->top (c) != 0) draw_raw (ren, tfm->top (c), x, y, real_y);
+    array<QN> chars;
+    if (tfm->top (c) != 0) chars << tfm->top (c);
     if (tfm->rep (c) != 0)
-      for (i= 0; i < nr_rep; i++) {
-        if (!ren->is_screen) ren->draw (tfm->rep (c), pk, x, y + 2 * PIXEL);
-        draw_raw (ren, tfm->rep (c), x, y, real_y);
-      }
-    if (tfm->mid (c) != 0) draw_raw (ren, tfm->mid (c), x, y, real_y);
+      for (i= 0; i < nr_rep; i++)
+        chars << tfm->rep (c);
+    if (tfm->mid (c) != 0) chars << tfm->mid (c);
     if ((tfm->rep (c) != 0) && (tfm->mid (c) != 0))
-      for (i= 0; i < nr_rep; i++) {
-        if (!ren->is_screen) ren->draw (tfm->rep (c), pk, x, y + 2 * PIXEL);
-        draw_raw (ren, tfm->rep (c), x, y, real_y);
-      }
-    if (tfm->bot (c) != 0) draw_raw (ren, tfm->bot (c), x, y, real_y);
+      for (i= 0; i < nr_rep; i++)
+        chars << tfm->rep (c);
+    if (tfm->bot (c) != 0) chars << tfm->bot (c);
+
+    SI real_y= y;
+    for (i= 0; i < N (chars); i++) {
+      int next_c= (i + 1 < N (chars)) ? chars[i + 1] : 0;
+      draw_raw (ren, chars[i], x, y, real_y, next_c);
+    }
   }
 }
 
