@@ -1263,6 +1263,7 @@ bool char_clip= false;
 void
 beep () {
   // Issue a beep
+  if (headless_mode) return;
   QApplication::beep ();
 }
 
