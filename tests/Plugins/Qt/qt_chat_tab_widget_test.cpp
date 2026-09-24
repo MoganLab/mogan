@@ -792,18 +792,25 @@ private slots:
     ChatSidebar sidebar (sessions, "s1", nullptr);
     sidebar.show ();
 
+    QPushButton* chatBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-chat");
+    QPushButton* transBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-translate");
+    QPushButton* explBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-explain");
+
     QCOMPARE (sidebar.currentTypeTab (), ChatSidebar::SessionTypeTab::Chat);
-    QVERIFY (sidebar.chatTabButton () != nullptr);
-    QVERIFY (sidebar.translateTabButton () != nullptr);
-    QVERIFY (sidebar.explainTabButton () != nullptr);
+    QVERIFY (chatBtn != nullptr);
+    QVERIFY (transBtn != nullptr);
+    QVERIFY (explBtn != nullptr);
 
-    QVERIFY (sidebar.chatTabButton ()->isChecked ());
-    QVERIFY (!sidebar.translateTabButton ()->isChecked ());
-    QVERIFY (!sidebar.explainTabButton ()->isChecked ());
+    QVERIFY (chatBtn->isChecked ());
+    QVERIFY (!transBtn->isChecked ());
+    QVERIFY (!explBtn->isChecked ());
 
-    QVERIFY (sidebar.chatTabButton ()->text ().contains ("1"));
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
-    QVERIFY (sidebar.explainTabButton ()->text ().contains ("1"));
+    QVERIFY (chatBtn->text ().contains ("1"));
+    QVERIFY (transBtn->text ().contains ("1"));
+    QVERIFY (explBtn->text ().contains ("1"));
   }
 
   void test_type_tabs_filtering () {
@@ -833,7 +840,14 @@ private slots:
     QVERIFY (!btnS3->parentWidget ()->isVisible ());
 
     // 切换到「翻译」
-    sidebar.translateTabButton ()->click ();
+    QPushButton* transBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-translate");
+    QPushButton* explBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-explain");
+    QVERIFY (transBtn != nullptr);
+    QVERIFY (explBtn != nullptr);
+
+    transBtn->click ();
     QCOMPARE (sidebar.currentTypeTab (),
               ChatSidebar::SessionTypeTab::Translate);
     QVERIFY (!btnS1->parentWidget ()->isVisible ());
@@ -841,7 +855,7 @@ private slots:
     QVERIFY (!btnS3->parentWidget ()->isVisible ());
 
     // 切换到「释义」
-    sidebar.explainTabButton ()->click ();
+    explBtn->click ();
     QCOMPARE (sidebar.currentTypeTab (), ChatSidebar::SessionTypeTab::Explain);
     QVERIFY (!btnS1->parentWidget ()->isVisible ());
     QVERIFY (!btnS2->parentWidget ()->isVisible ());
@@ -900,7 +914,10 @@ private slots:
     QCOMPARE (searchEdit->text (), QString ("Unique"));
 
     // 点击类别按钮应清除搜索框并切换到目标类别
-    sidebar.translateTabButton ()->click ();
+    QPushButton* transBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-translate");
+    QVERIFY (transBtn != nullptr);
+    transBtn->click ();
     QCOMPARE (sidebar.currentTypeTab (),
               ChatSidebar::SessionTypeTab::Translate);
     QVERIFY (searchEdit->text ().isEmpty ());
@@ -911,31 +928,41 @@ private slots:
     ChatSidebar               sidebar (sessions, "", nullptr);
     sidebar.show ();
 
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("0"));
-    QVERIFY (sidebar.chatTabButton ()->text ().contains ("0"));
-    QVERIFY (sidebar.explainTabButton ()->text ().contains ("0"));
+    QPushButton* chatBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-chat");
+    QPushButton* transBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-translate");
+    QPushButton* explBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-explain");
+    QVERIFY (chatBtn != nullptr);
+    QVERIFY (transBtn != nullptr);
+    QVERIFY (explBtn != nullptr);
+
+    QVERIFY (transBtn->text ().contains ("0"));
+    QVERIFY (chatBtn->text ().contains ("0"));
+    QVERIFY (explBtn->text ().contains ("0"));
 
     sidebar.addItem (SessionDisplayInfo{"s1", "c1", "", false, ""});
-    QVERIFY (sidebar.chatTabButton ()->text ().contains ("1"));
+    QVERIFY (chatBtn->text ().contains ("1"));
 
     sidebar.addItem (SessionDisplayInfo{"s2", "t1", "", false, "translate"});
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+    QVERIFY (transBtn->text ().contains ("1"));
 
     sidebar.addItem (SessionDisplayInfo{"s3", "e1", "", false, "explain"});
-    QVERIFY (sidebar.explainTabButton ()->text ().contains ("1"));
+    QVERIFY (explBtn->text ().contains ("1"));
 
     sidebar.addItem (SessionDisplayInfo{"s4", "t2", "", false, "translate"});
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("2"));
+    QVERIFY (transBtn->text ().contains ("2"));
 
     // 归档不计入活跃类别数量
     sidebar.moveToArchive ("s4");
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+    QVERIFY (transBtn->text ().contains ("1"));
 
     sidebar.moveFromArchive ("s4");
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("2"));
+    QVERIFY (transBtn->text ().contains ("2"));
 
     sidebar.removeItem ("s4");
-    QVERIFY (sidebar.translateTabButton ()->text ().contains ("1"));
+    QVERIFY (transBtn->text ().contains ("1"));
   }
 
   void test_setActiveItem_switches_type_tab () {
@@ -951,7 +978,10 @@ private slots:
     sidebar.setActiveItem ("s2");
     QCOMPARE (sidebar.currentTypeTab (),
               ChatSidebar::SessionTypeTab::Translate);
-    QVERIFY (sidebar.translateTabButton ()->isChecked ());
+    QPushButton* transBtn=
+        sidebar.findChild<QPushButton*> ("chat-tab-type-tab-translate");
+    QVERIFY (transBtn != nullptr);
+    QVERIFY (transBtn->isChecked ());
   }
 
   void test_send_on_plain_enter_without_completion_popup () {

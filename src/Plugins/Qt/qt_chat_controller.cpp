@@ -990,7 +990,7 @@ qt_chat_ai_send_selection (tree sel, string action) {
       sid= panel->sessionId ();
       ctrl->sessionManager_.setTitle (sid, title);
       ctrl->sessionManager_.setSourceDocId (sid, docId);
-      ctrl->sessionManager_.setType (sid, action);
+      ctrl->setSessionType (sid, action);
     }
     ChatSession*           s= ctrl->sessionManager_.getSession (sid);
     ChatConversationPanel* panel=
@@ -1057,14 +1057,17 @@ qt_chat_tab_set_source_doc_id (string sessionId, string docId) {
 }
 
 void
+ChatController::setSessionType (const string& sessionId, const string& type) {
+  sessionManager_.setType (sessionId, type);
+  if (view_ && view_->sidebar ()) {
+    view_->sidebar ()->updateItemType (sessionId, type);
+  }
+}
+
+void
 qt_chat_tab_set_session_type (string sessionId, string type) {
   // 与 sourceDocId 同理：restore 参数已满，type 由 scheme 侧恢复后单独设置
-  get_chat_controller ()->sessionManager ().setType (sessionId, type);
-  if (get_chat_controller ()->view () &&
-      get_chat_controller ()->view ()->sidebar ()) {
-    get_chat_controller ()->view ()->sidebar ()->updateItemType (sessionId,
-                                                                 type);
-  }
+  get_chat_controller ()->setSessionType (sessionId, type);
 }
 
 string

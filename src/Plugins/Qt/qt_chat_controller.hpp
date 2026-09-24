@@ -43,9 +43,11 @@ public:
   ChatSessionManager& sessionManager ();
 
   /**
-   * @brief 获取 View 控件指针。
+   * @brief 设置会话类型并同步侧边栏显示。
+   * @param sessionId 目标会话 ID
+   * @param type      会话类型（translate/explain，空串为普通对话）
    */
-  QTChatTabWidget* view () const { return view_; }
+  void setSessionType (const string& sessionId, const string& type);
 
   // ---- 用户交互（由 View 的 signal 触发） ----
 

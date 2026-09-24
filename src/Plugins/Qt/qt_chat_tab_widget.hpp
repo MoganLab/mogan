@@ -341,9 +341,9 @@ public:
   void moveFromArchive (const string& sessionId);
 
   /**
-   * @brief 根据搜索框文本过滤显示的会话项。
+   * @brief 根据搜索文本与当前类别标签过滤显示的会话项。
    */
-  void applySearchFilter ();
+  void applyListFilter ();
 
   /**
    * @brief 开始内联编辑指定会话的标题。
@@ -361,17 +361,13 @@ public:
   /**
    * @brief 获取当前选中的会话类别标签。
    */
-  SessionTypeTab currentTypeTab () const { return currentTypeTab_; }
+  SessionTypeTab currentTypeTab () const;
 
   /**
    * @brief 切换当前选中的会话类别标签。
    * @param tab 目标类别标签
    */
   void setCurrentTypeTab (SessionTypeTab tab);
-
-  QPushButton* translateTabButton () const { return tabTranslateBtn_; }
-  QPushButton* chatTabButton () const { return tabChatBtn_; }
-  QPushButton* explainTabButton () const { return tabExplainBtn_; }
 
   // ---- 其他公共方法 ----
 
@@ -420,28 +416,27 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_;  ///< sessionId → SidebarItem 映射
-  bool           destroying_= false; ///< 析构进行中，禁止信号重入回调
-  QLabel*        conversationCountLabel_= nullptr; ///< 活跃会话计数标签
-  QWidget*       conversationListWidget_= nullptr; ///< 活跃会话列表容器
-  QVBoxLayout*   conversationListLayout_= nullptr; ///< 活跃会话列表布局
-  QFrame*        archiveSeparator_      = nullptr; ///< 归档区分割线
-  QPushButton*   archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
-  QScrollArea*   archiveListWidget_     = nullptr; ///< 归档会话列表滚动容器
-  QVBoxLayout*   archiveListLayout_     = nullptr; ///< 归档会话列表布局
-  bool           archiveCollapsed_      = true;    ///< 归档区是否折叠
-  QWidget*       multiSelectBar_        = nullptr; ///< 多选操作栏
-  QPushButton*   batchArchiveBtn_       = nullptr; ///< 批量归档按钮
-  QLineEdit*     searchEdit_            = nullptr; ///< 搜索框
-  QWidget*       typeTabsWidget_        = nullptr; ///< 会话类型切换栏容器
-  QButtonGroup*  typeTabGroup_          = nullptr; ///< 互斥类别按钮组
-  QPushButton*   tabTranslateBtn_       = nullptr; ///< 翻译类别按钮
-  QPushButton*   tabChatBtn_            = nullptr; ///< 对话类别按钮
-  QPushButton*   tabExplainBtn_         = nullptr; ///< 释义类别按钮
-  SessionTypeTab currentTypeTab_        = SessionTypeTab::Chat; ///< 当前类别
-  bool           multiSelectMode_       = false; ///< 是否处于多选模式
-  bool           archiveSelectMode_     = false; ///< 是否在归档区多选
-  string         activeSessionId_;               ///< 当前激活的会话 ID
+  QMap<string, SidebarItem> items_; ///< sessionId → SidebarItem 映射
+  bool          destroying_= false; ///< 析构进行中，禁止信号重入回调
+  QLabel*       conversationCountLabel_= nullptr; ///< 活跃会话计数标签
+  QWidget*      conversationListWidget_= nullptr; ///< 活跃会话列表容器
+  QVBoxLayout*  conversationListLayout_= nullptr; ///< 活跃会话列表布局
+  QFrame*       archiveSeparator_      = nullptr; ///< 归档区分割线
+  QPushButton*  archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
+  QScrollArea*  archiveListWidget_     = nullptr; ///< 归档会话列表滚动容器
+  QVBoxLayout*  archiveListLayout_     = nullptr; ///< 归档会话列表布局
+  bool          archiveCollapsed_      = true;    ///< 归档区是否折叠
+  QWidget*      multiSelectBar_        = nullptr; ///< 多选操作栏
+  QPushButton*  batchArchiveBtn_       = nullptr; ///< 批量归档按钮
+  QLineEdit*    searchEdit_            = nullptr; ///< 搜索框
+  QWidget*      typeTabsWidget_        = nullptr; ///< 会话类型切换栏容器
+  QButtonGroup* typeTabGroup_          = nullptr; ///< 互斥类别按钮组
+  QPushButton*  tabTranslateBtn_       = nullptr; ///< 翻译类别按钮
+  QPushButton*  tabChatBtn_            = nullptr; ///< 对话类别按钮
+  QPushButton*  tabExplainBtn_         = nullptr; ///< 释义类别按钮
+  bool          multiSelectMode_       = false;   ///< 是否处于多选模式
+  bool          archiveSelectMode_     = false;   ///< 是否在归档区多选
+  string        activeSessionId_;                 ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
