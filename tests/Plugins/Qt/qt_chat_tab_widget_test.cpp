@@ -399,6 +399,80 @@ private slots:
     QVERIFY (maxBtn->x () >= newChatBtn->x () + newChatBtn->width ());
   }
 
+  // === dock 辅助按钮区调整：翻译/释义切换按钮与右移最大化按钮 ===
+  void test_translate_and_explain_buttons_exist_and_checkable () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    QPushButton* transBtn= widget.translateButton ();
+    QPushButton* explBtn = widget.explainButton ();
+    QVERIFY (transBtn != nullptr);
+    QVERIFY (explBtn != nullptr);
+    QVERIFY (transBtn->isCheckable ());
+    QVERIFY (explBtn->isCheckable ());
+    QVERIFY (!transBtn->isVisible ());
+    QVERIFY (!explBtn->isVisible ());
+  }
+
+  void test_dockActionButtons_follow_dock_buttons_visibility () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setDockButtonsVisible (true);
+    QVERIFY (widget.translateButton ()->isVisible ());
+    QVERIFY (widget.explainButton ()->isVisible ());
+    widget.setDockButtonsVisible (false);
+    QVERIFY (!widget.translateButton ()->isVisible ());
+    QVERIFY (!widget.explainButton ()->isVisible ());
+  }
+
+  void test_dockButtons_layout_order_and_segmented () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.resize (400, 600);
+    widget.show ();
+    widget.setDockButtonsVisible (true);
+    widget.setSidebarVisible (false);
+
+    QPushButton* closeBtn  = widget.closeSidebarButton ();
+    QPushButton* newChatBtn= widget.newChatSidebarButton ();
+    QPushButton* transBtn  = widget.translateButton ();
+    QPushButton* explBtn   = widget.explainButton ();
+    QPushButton* maxBtn    = widget.maximizeButton ();
+
+    int xClose  = closeBtn->mapTo (&widget, QPoint (0, 0)).x ();
+    int xNewChat= newChatBtn->mapTo (&widget, QPoint (0, 0)).x ();
+    int xTrans  = transBtn->mapTo (&widget, QPoint (0, 0)).x ();
+    int xExpl   = explBtn->mapTo (&widget, QPoint (0, 0)).x ();
+    int xMax    = maxBtn->mapTo (&widget, QPoint (0, 0)).x ();
+
+    // 从左到右依次为：关闭 < 新建会话 < 翻译 < 释义 < 放大
+    QVERIFY (xNewChat >= xClose + closeBtn->width ());
+    QVERIFY (xTrans >= xNewChat + newChatBtn->width ());
+    // 翻译与释义为连体分段控件，无间隔相接
+    QCOMPARE (xExpl, xTrans + transBtn->width ());
+    // 放大按钮靠右，位于释义按钮右侧并带有弹性间距
+    QVERIFY (xMax > xExpl + explBtn->width ());
+  }
+
+  void test_dockActionButtons_emit_signals () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setDockButtonsVisible (true);
+
+    QSignalSpy spyTrans (&widget, &QTChatTabWidget::translateClicked);
+    QSignalSpy spyExpl (&widget, &QTChatTabWidget::explainClicked);
+
+    QTest::mouseClick (widget.translateButton (), Qt::LeftButton);
+    QCOMPARE (spyTrans.count (), 1);
+    QCOMPARE (spyExpl.count (), 0);
+
+    QTest::mouseClick (widget.explainButton (), Qt::LeftButton);
+    QCOMPARE (spyTrans.count (), 1);
+    QCOMPARE (spyExpl.count (), 1);
+  }
+
   // === ChatSidebar title rename ===
   void test_beginEditTitle_shows_editor () {
     QList<SessionDisplayInfo> sessions;

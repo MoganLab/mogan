@@ -10,6 +10,7 @@
 
 #include "Qt/qt_chat_controller.hpp"
 #include "base.hpp"
+#include <QPushButton>
 #include <QtTest/QtTest>
 
 #include "converter.hpp"
@@ -23,6 +24,7 @@ class TestChatController : public QObject {
 
 private slots:
   void init () { init_lolly (); }
+  void cleanup () { cleanup_qt_top_level_widgets (); }
 
   // === sanitizeExportFileName ===
   void test_sanitize_plain_title () {
@@ -261,6 +263,38 @@ private slots:
     tree body=
         ChatController::composeAiInputBody (tree ("sel"), "explain", ctx);
     QVERIFY (body[1] == compound ("quote-env", ctx));
+  }
+
+  // === syncDockActionButtons ===
+  void test_syncDockActionButtons () {
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    ctrl.view_= &widget;
+
+    string sid1= ctrl.sessionManager_.createSession ();
+    ctrl.sessionManager_.setType (sid1, "translate");
+
+    ctrl.syncDockActionButtons (sid1);
+    QVERIFY (widget.translateButton ()->isChecked ());
+    QVERIFY (!widget.explainButton ()->isChecked ());
+
+    string sid2= ctrl.sessionManager_.createSession ();
+    ctrl.sessionManager_.setType (sid2, "explain");
+
+    ctrl.syncDockActionButtons (sid2);
+    QVERIFY (!widget.translateButton ()->isChecked ());
+    QVERIFY (widget.explainButton ()->isChecked ());
+
+    string sid3= ctrl.sessionManager_.createSession ();
+    ctrl.sessionManager_.setType (sid3, "");
+
+    ctrl.syncDockActionButtons (sid3);
+    QVERIFY (!widget.translateButton ()->isChecked ());
+    QVERIFY (!widget.explainButton ()->isChecked ());
+
+    ctrl.view_= nullptr;
   }
 };
 

@@ -48,6 +48,12 @@ using namespace moebius;
 
 static ChatController* g_chat_controller= nullptr;
 
+// 翻译/释义专属会话的类型名（与 AI 操作栏动作名一致）
+static bool
+is_doc_bound_type (const string& type) {
+  return type == "translate" || type == "explain";
+}
+
 ChatController::ChatController (QObject* parent) : QObject (parent) {}
 
 ChatController::~ChatController () {
@@ -127,6 +133,10 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
            &ChatController::onCancelRequested);
   connect (view_, &QTChatTabWidget::newChatRequested, this,
            &ChatController::onNewChatRequested);
+  connect (view_, &QTChatTabWidget::translateClicked, this,
+           [this] () { onActionToggleClicked ("translate"); });
+  connect (view_, &QTChatTabWidget::explainClicked, this,
+           [this] () { onActionToggleClicked ("explain"); });
 
   // 连接新建按钮
   if (view_->newChatButton ()) {
@@ -457,7 +467,120 @@ ChatController::onExportRequested (const string& sessionId) {
 
 void
 ChatController::onNewChatRequested () {
+  previousSessionId_= "";
   ensureNewConversation ();
+}
+
+void
+ChatController::syncDockActionButtons (const string& activeSessionId) {
+  if (!view_) return;
+  QPushButton* transBtn= view_->translateButton ();
+  QPushButton* explBtn = view_->explainButton ();
+  if (!transBtn || !explBtn) return;
+
+  ChatSession* s   = sessionManager_.getSession (activeSessionId);
+  string       type= s ? s->type : "";
+
+  transBtn->setChecked (type == "translate");
+  explBtn->setChecked (type == "explain");
+}
+
+void
+ChatController::onDockSidebarShown () {
+  ChatSession* s= activeSession ();
+  if (s && is_doc_bound_type (s->type)) {
+    previousSessionId_= "";
+    ensureNewConversation ();
+  }
+}
+
+void
+ChatController::onMainDocumentChanged (const url& doc) {
+  if (!view_) return;
+  sessionManager_.rebindBufferMasters (doc);
+}
+
+ChatSession*
+ChatController::activeSession () {
+  if (!view_) return nullptr;
+  ChatConversationPanel* panel= view_->activeConversation ();
+  return panel ? sessionManager_.findSessionByPanel (panel) : nullptr;
+}
+
+void
+ChatController::rememberReturnSession () {
+  ChatSession* s= activeSession ();
+  if (!s || !is_doc_bound_type (s->type))
+    previousSessionId_= s ? s->sessionId : "";
+}
+
+string
+ChatController::getOrCreateDocSession (const string& action,
+                                       const string& docId,
+                                       const string& docName) {
+  string sid;
+  if (!is_empty (docId))
+    sid= sessionManager_.findSessionBySourceDoc (docId, action);
+  if (!is_empty (sid)) {
+    activateSession (sid);
+    return sid;
+  }
+  // 标题 = 词典动作名 + ": " + 文件名。「翻译」与操作栏按钮同一词典键
+  // （"Translate" 首字符折叠命中 "translate"），「释义」与释义按钮同用
+  // "Explain::ai" 消歧键（裸 "explain" 词条是「解释」），均随界面语言本
+  // 地化；标题为 UTF-8，经 from_qstring_utf8 归一编码后拼接。质量优先，
+  // 默认模型取清单 translate_model 字段（清单未配置时 translateKey 回退
+  // 清单默认模型）
+  string title= from_qstring_utf8 (qt_translate (
+                    action == "explain" ? "Explain::ai" : "Translate")) *
+                (is_empty (docName) ? "" : (": " * docName));
+  ChatConversationPanel* panel=
+      createNewConversation (modelStore_.translateKey ());
+  if (!panel) return "";
+  sid= panel->sessionId ();
+  sessionManager_.setTitle (sid, title);
+  sessionManager_.setSourceDocId (sid, docId);
+  setSessionType (sid, action);
+  if (panel->sessionTitle ()) {
+    panel->sessionTitle ()->setText (to_qstring (title));
+    panel->sessionTitle ()->show ();
+  }
+  panel->enterConversationMode (false);
+  updateManifest (sid);
+  syncDockActionButtons (sid);
+  return sid;
+}
+
+void
+ChatController::onActionToggleClicked (const string& action) {
+  if (!view_) return;
+
+  ChatSession* cur    = activeSession ();
+  string       curType= cur ? cur->type : "";
+
+  eval ("(use-modules (llm chat-tree-ops))");
+  object info   = call ("chat-tab-source-doc-info");
+  string docId  = as_string (car (info));
+  string docName= as_string (cdr (info));
+
+  // 若点击的是当前文档已处于选中态的专属会话：退出并切回此前的会话
+  // （curType == action 蕴含 cur 非空）
+  if (curType == action && (is_empty (docId) || cur->sourceDocId == docId)) {
+    string targetSid  = previousSessionId_;
+    previousSessionId_= "";
+    // getSession("") 不会命中（会话 id 生成即非空），无需先判空
+    ChatSession* target= sessionManager_.getSession (targetSid);
+    if (target && !target->archived) {
+      activateSession (targetSid);
+    }
+    else {
+      ensureNewConversation ();
+    }
+    return;
+  }
+
+  rememberReturnSession ();
+  getOrCreateDocSession (action, docId, docName);
 }
 
 void
@@ -562,6 +685,7 @@ ChatController::activateSession (const string& sessionId) {
   view_->sidebar ()->setActiveItem (sessionId);
 
   updateModelButtonDisplay (sessionId);
+  syncDockActionButtons (sessionId);
 }
 
 void
@@ -773,6 +897,7 @@ ChatController::createNewConversation (const string& modelKey) {
   updateModelButtonDisplay (sid);
   // 此路径不经 getOrCreatePanel，默认模型可能不允许某能力，需单独应用
   applyModelCapabilities (sid);
+  syncDockActionButtons (sid);
 
   return panel;
 }
@@ -926,6 +1051,15 @@ get_chat_controller () {
 }
 
 void
+qt_chat_notify_main_document_changed (const string& name) {
+  // tmfs 标签页（如 Chat 页）不是真实文档，不能成为聊天 buffer 的 master
+  if (starts (name, "tmfs://")) return;
+  // 仅在控制器已存在时转发：不为文档切换提前实例化控制器（构造即读写清单）
+  if (g_chat_controller)
+    g_chat_controller->onMainDocumentChanged (url_system (name));
+}
+
+void
 qt_chat_tab_set_state (string sessionId, string stateStr) {
   get_chat_controller ()->notifyStateChanged (sessionId, stateStr);
 }
@@ -936,16 +1070,12 @@ qt_chat_ai_send_selection (tree sel, string action) {
   // 翻译/释义绑定来源文档，须在打开侧边栏（焦点/视图切换）前捕获文档身份
   // （与释义的上下文，引文1 document 树）：此时 current-buffer 仍是文档
   // 本身，切到聊天输入缓冲后选区已不在文档上。llm 模块按 idle 延迟初始化，
-  // 首次动作可能尚未加载，确保模块就绪（幂等，只执行一次）
-  const bool docBound= (action == "translate" || action == "explain");
+  // 首次动作可能尚未加载，确保模块就绪（use-modules 幂等）
+  const bool docBound= is_doc_bound_type (action);
   string     docId, docName;
   tree       context= tree (DOCUMENT);
   if (docBound) {
-    static bool treeOpsLoaded= false;
-    if (!treeOpsLoaded) {
-      eval ("(use-modules (llm chat-tree-ops))");
-      treeOpsLoaded= true;
-    }
+    eval ("(use-modules (llm chat-tree-ops))");
     object info= call ("chat-tab-source-doc-info");
     docId      = as_string (car (info));
     docName    = as_string (cdr (info));
@@ -959,40 +1089,16 @@ qt_chat_ai_send_selection (tree sel, string action) {
   // 写入前无需加载检查：面板存在即保证 llm 模块已加载（会话创建路径
   // eval 过 use-modules，chat-loader 亦在启动 idle 阶段整体加载）
   if (docBound) {
+    ctrl->rememberReturnSession ();
     // 同一文档的翻译/释义各自共享一个会话：按 stem-doc-id + 会话类型找
     // 未归档会话（最近活跃优先），命中即复用；未命中（含文档未绑定
     // doc-id、会话已归档/删除）才新建。会话类型名即动作名
-    string sid;
-    if (!is_empty (docId))
-      sid= ctrl->sessionManager_.findSessionBySourceDoc (docId, action);
-    if (!is_empty (sid)) {
-      ChatSession* s= ctrl->sessionManager_.getSession (sid);
-      if (s && s->state == ChatState::Generating) {
-        // 生成中不覆盖输入，仅激活展示
-        ctrl->activateSession (sid);
-        return;
-      }
-      ctrl->activateSession (sid);
+    string       sid= ctrl->getOrCreateDocSession (action, docId, docName);
+    ChatSession* s  = ctrl->sessionManager_.getSession (sid);
+    if (s && s->state == ChatState::Generating) {
+      // 生成中不覆盖输入，仅激活展示（激活已在 getOrCreateDocSession 内完成）
+      return;
     }
-    else {
-      // 标题 = 词典动作名 + ": " + 文件名。「翻译」与操作栏按钮同一词典键
-      // （"Translate" 首字符折叠命中 "translate"），「释义」与释义按钮同用
-      // "Explain::ai" 消歧键（裸 "explain" 词条是「解释」），均随界面语言本
-      // 地化；标题为 UTF-8，经 from_qstring_utf8 归一编码后拼接。质量优先，
-      // 默认模型取清单 translate_model 字段（清单未配置时 translateKey 回退
-      // 清单默认模型）
-      string title= from_qstring_utf8 (qt_translate (
-                        action == "explain" ? "Explain::ai" : "Translate")) *
-                    ": " * docName;
-      ChatConversationPanel* panel=
-          ctrl->createNewConversation (ctrl->modelStore_.translateKey ());
-      if (!panel) return;
-      sid= panel->sessionId ();
-      ctrl->sessionManager_.setTitle (sid, title);
-      ctrl->sessionManager_.setSourceDocId (sid, docId);
-      ctrl->setSessionType (sid, action);
-    }
-    ChatSession*           s= ctrl->sessionManager_.getSession (sid);
     ChatConversationPanel* panel=
         s ? static_cast<ChatConversationPanel*> (s->panel) : nullptr;
     if (!panel) return;

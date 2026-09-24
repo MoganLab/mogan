@@ -14,6 +14,8 @@
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 
+#include "new_buffer.hpp"
+
 #include <analyze.hpp>
 #include <cstdio>
 #include <ctime>
@@ -258,6 +260,15 @@ ChatSessionManager::messageBufferUrl (const string& sessionId) {
 url
 ChatSessionManager::inputBufferUrl (const string& sessionId) {
   return url ("tmfs://chat/" * sessionId * "/input");
+}
+
+void
+ChatSessionManager::rebindBufferMasters (const url& doc) {
+  for (const auto& kv : sessions_) {
+    if (!kv.second.panel) continue;
+    set_master_buffer (inputBufferUrl (kv.first), doc);
+    set_master_buffer (messageBufferUrl (kv.first), doc);
+  }
 }
 
 void

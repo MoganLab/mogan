@@ -294,6 +294,16 @@ public:
    */
   static url inputBufferUrl (const string& sessionId);
 
+  /**
+   * @brief 把已创建面板会话的输入/消息 buffer 的 master 重指到指定文档。
+   *
+   * master 在 texmacs_input_widget 创建时一次性绑定，主文档切换后会过期；
+   * 聊天面板内解析来源文档（buffer-get-master）依赖它保持新鲜。
+   * 目标 buffer 尚未创建时 set_master_buffer 静默跳过。
+   * @param doc 新的主文档 buffer URL
+   */
+  void rebindBufferMasters (const url& doc);
+
 private:
   /// 时间索引结构，用于 set 排序
   struct TimeIndex {
