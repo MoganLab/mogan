@@ -32,7 +32,6 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QResource>
-#include <QShortcut>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
@@ -282,9 +281,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     tabPageContainer= new QTMTabPageContainer (outBar);
     // 连接新增标签页按钮信号
     QObject::connect (tabPageContainer, &QTMTabPageContainer::addTabRequested,
-                      [this] () { this->onAddTabRequested (); });
-    auto* scNewTab= new QShortcut (QKeySequence ("Ctrl+T"), mw);
-    QObject::connect (scNewTab, &QShortcut::activated,
                       [this] () { this->onAddTabRequested (); });
     mw->setAttribute (Qt::WA_DontCreateNativeAncestors);
     if (setSafeArea)
