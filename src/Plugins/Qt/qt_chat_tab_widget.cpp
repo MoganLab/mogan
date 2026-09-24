@@ -1943,6 +1943,38 @@ make_sidebar_toggle_btn (QWidget* parent) {
   return btn;
 }
 
+// dock 顶部翻译/释义连体分段切换按钮：内联 QSS 只带 DPI 缩放的几何
+// （分段圆角、分隔线），配色（含 :checked 选中态）由主题 QSS 按
+// objectName 接管，与思考/搜索按钮同一约定
+QPushButton*
+make_dock_action_btn (QWidget* parent, const char* objName,
+                      const QString& iconBase, const QString& tooltip,
+                      bool leftSegment) {
+  QPushButton* btn= make_sidebar_toggle_btn (parent);
+  btn->setObjectName (objName);
+  btn->setCheckable (true);
+  btn->setToolTip (tooltip);
+  btn->setIcon (QIcon (":llm-chat/" + iconBase + ".svg"));
+  int r= DpiUtils::scaled (kToggleBtnSize / 2);
+  btn->setStyleSheet (
+      leftSegment
+          ? QString ("#%1 { border: none; border-top-left-radius: %2px; "
+                     "border-bottom-left-radius: %2px; }")
+                .arg (objName)
+                .arg (r)
+          : QString ("#%1 { border: none; border-top-right-radius: %2px; "
+                     "border-bottom-right-radius: %2px; border-left: 1px "
+                     "solid rgba(0, 0, 0, 0.15); } #%1:checked { border-left: "
+                     "none; }")
+                .arg (objName)
+                .arg (r));
+  QObject::connect (btn, &QPushButton::toggled, [btn, iconBase] (bool checked) {
+    btn->setIcon (
+        QIcon (":llm-chat/" + iconBase + (checked ? "-white" : "") + ".svg"));
+  });
+  return btn;
+}
+
 void
 QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout,
                                      const QList<SessionDisplayInfo>& sessions,
@@ -2052,54 +2084,23 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
            [this] () { emit newChatRequested (); });
   dockTopLayout->addWidget (newChatSidebarBtn_);
 
-  // 翻译 / 释义 连体分段控件（方案 C）
+  // 翻译 / 释义 连体分段控件
   QWidget* segWidget= new QWidget (dockTopBar_);
   segWidget->setObjectName ("chat-tab-action-segment");
   QHBoxLayout* segLayout= new QHBoxLayout (segWidget);
   segLayout->setContentsMargins (0, 0, 0, 0);
   segLayout->setSpacing (0);
 
-  int r= DpiUtils::scaled (kToggleBtnSize / 2);
-
-  translateBtn_= make_sidebar_toggle_btn (segWidget);
-  translateBtn_->setObjectName ("chat-tab-translate-btn");
-  translateBtn_->setCheckable (true);
-  translateBtn_->setToolTip (qt_translate ("Translate"));
-  translateBtn_->setIcon (QIcon (":llm-chat/translate.svg"));
-  translateBtn_->setStyleSheet (
-      QString (
-          "QPushButton#chat-tab-translate-btn { border: none; "
-          "border-top-left-radius: %1px; border-bottom-left-radius: %1px; "
-          "border-top-right-radius: 0px; border-bottom-right-radius: 0px; }"
-          "QPushButton#chat-tab-translate-btn:checked { background-color: "
-          "#215a6a; }")
-          .arg (r));
-  connect (translateBtn_, &QPushButton::toggled, [this] (bool checked) {
-    translateBtn_->setIcon (checked ? QIcon (":llm-chat/translate-white.svg")
-                                    : QIcon (":llm-chat/translate.svg"));
-  });
+  translateBtn_=
+      make_dock_action_btn (segWidget, "chat-tab-translate-btn", "translate",
+                            qt_translate ("Translate"), true);
   connect (translateBtn_, &QPushButton::clicked, this,
            [this] () { emit translateClicked (); });
   segLayout->addWidget (translateBtn_);
 
-  explainBtn_= make_sidebar_toggle_btn (segWidget);
-  explainBtn_->setObjectName ("chat-tab-explain-btn");
-  explainBtn_->setCheckable (true);
-  explainBtn_->setToolTip (qt_translate ("Explain::ai"));
-  explainBtn_->setIcon (QIcon (":llm-chat/explain.svg"));
-  explainBtn_->setStyleSheet (
-      QString (
-          "QPushButton#chat-tab-explain-btn { border: none; "
-          "border-top-left-radius: 0px; border-bottom-left-radius: 0px; "
-          "border-top-right-radius: %1px; border-bottom-right-radius: %1px; "
-          "border-left: 1px solid rgba(0, 0, 0, 0.15); }"
-          "QPushButton#chat-tab-explain-btn:checked { background-color: "
-          "#215a6a; border-left: none; }")
-          .arg (r));
-  connect (explainBtn_, &QPushButton::toggled, [this] (bool checked) {
-    explainBtn_->setIcon (checked ? QIcon (":llm-chat/explain-white.svg")
-                                  : QIcon (":llm-chat/explain.svg"));
-  });
+  explainBtn_=
+      make_dock_action_btn (segWidget, "chat-tab-explain-btn", "explain",
+                            qt_translate ("Explain::ai"), false);
   connect (explainBtn_, &QPushButton::clicked, this,
            [this] () { emit explainClicked (); });
   segLayout->addWidget (explainBtn_);

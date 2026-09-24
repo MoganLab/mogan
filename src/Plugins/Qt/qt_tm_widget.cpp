@@ -1490,8 +1490,13 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
           });
     }
 
+    // 本函数在 dock 已显示时也会被布局/文档切换反复触发，打开时逻辑
+    // 只在隐藏→显示跳变执行一次
+    bool wasVisible= chatSideDock->isVisible ();
     chatSideDock->show ();
     chatContentWidget->show ();
+    // 须在下方聚焦之前调用，使焦点落到切换后的会话输入框
+    if (!wasVisible) get_chat_controller ()->onDockSidebarShown ();
     // 焦点切到聊天输入框
     if (chatWidget && chatWidget->activeConversation ()) {
       chatWidget->activeConversation ()->focusInput ();
@@ -1967,6 +1972,9 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     sync_startup_tab_mode ();
     sync_chat_tab_mode ();
     sync_chat_sidebar_mode ();
+    // 主文档切换时刷新聊天 buffer 的 master（tmfs 过滤在通知函数内）：
+    // master 在聊天面板创建时绑定，不刷新则面板内解析来源文档拿到旧文档
+    qt_chat_notify_main_document_changed (file);
     // 新建编辑器控件的首帧要等真实 extents 下发、surface 收缩居中并重绘后
     // 才稳定；若立即解冻，用户会看到「沿用旧 extents 的过渡帧」（页面边缘
     // 闪灰带/白页）。此时改为延迟解冻：轮询首帧就绪后再放开，期间中央区

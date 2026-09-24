@@ -126,6 +126,23 @@ public:
   void syncDockActionButtons (const string& activeSessionId);
 
   /**
+   * @brief dock 侧边栏打开时调用。
+   *
+   * 若当前活跃会话是翻译/释义专属会话，切到默认新会话（复用空白会话），
+   * 使打开时顶部切换按钮不处于选中态。
+   */
+  void onDockSidebarShown ();
+
+  /**
+   * @brief 主文档切换时调用：刷新聊天 buffer 的 master 绑定。
+   *
+   * 聊天 buffer 的 master 在面板创建时一次性绑定，用户切换文档后会过期，
+   * 导致面板内解析来源文档拿到旧文档；主文档切换为非 tmfs 文件时重指。
+   * @param doc 新的主文档 buffer URL
+   */
+  void onMainDocumentChanged (const url& doc);
+
+  /**
    * @brief 重命名会话标题并更新侧边栏显示。
    * @param sessionId 目标会话 ID
    * @param newTitle  新标题
@@ -265,6 +282,32 @@ private:
   void ensureNewConversation ();
 
   /**
+   * @brief 记录当前活跃会话为切回目标。
+   *
+   * 仅当活跃会话不是翻译/释义专属会话时记录；专属会话之间互切时保留
+   * 原切回目标。
+   */
+  void rememberReturnSession ();
+
+  /**
+   * @brief 当前活跃会话（无视图或无激活面板时为空）。
+   */
+  ChatSession* activeSession ();
+
+  /**
+   * @brief 查找或创建当前文档的翻译/释义专属会话并激活。
+   *
+   * 按 docId + 会话类型找未归档会话，命中即复用；未命中（含 docId 为空）
+   * 才新建。
+   * @param action  会话类型（"translate" 或 "explain"）
+   * @param docId   来源文档 ID
+   * @param docName 来源文档名（用于标题）
+   * @return 会话 ID；创建失败返回空串
+   */
+  string getOrCreateDocSession (const string& action, const string& docId,
+                                const string& docName);
+
+  /**
    * @brief 创建全新会话并激活，绝不复用已有空白会话。
    *
    * 与 ensureNewConversation 的差别：空白会话里可能有未发送的输入草稿，
@@ -402,5 +445,14 @@ string qt_chat_tab_active_message_buffer_url ();
  * @brief Scheme→C++ 回调：通知 Chat 输入区重新计算高度。
  */
 void qt_chat_notify_input_height ();
+
+/**
+ * @brief 主文档切换通知（qt_tm_widget SLOT_FILE 调用）。
+ *
+ * tmfs 标签页（如 Chat 页）在函数内过滤，不作为主文档；聊天控制器尚未创建
+ * （从未打开过聊天）时静默无效，避免为此提前实例化。
+ * @param name 新的主文档 buffer 名（SLOT_FILE 的 file 字符串）
+ */
+void qt_chat_notify_main_document_changed (const string& name);
 
 #endif // QT_CHAT_CONTROLLER_HPP

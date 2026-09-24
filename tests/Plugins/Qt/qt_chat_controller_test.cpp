@@ -271,7 +271,6 @@ private slots:
     QList<SessionDisplayInfo> sessions;
     QTChatTabWidget           widget (sessions, "", nullptr);
     widget.show ();
-    widget.setDockButtonsVisible (true);
     ctrl.view_= &widget;
 
     string sid1= ctrl.sessionManager_.createSession ();

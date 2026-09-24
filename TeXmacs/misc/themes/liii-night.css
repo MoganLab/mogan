@@ -1430,6 +1430,12 @@ QWidget#centralWidget QPushButton#chat-tab-translate-btn:checked,
 QWidget#centralWidget QPushButton#chat-tab-explain-btn:checked {
   background-color: #215a6a;
 }
+QPushButton#chat-tab-translate-btn:checked:hover,
+QPushButton#chat-tab-explain-btn:checked:hover,
+QWidget#centralWidget QPushButton#chat-tab-translate-btn:checked:hover,
+QWidget#centralWidget QPushButton#chat-tab-explain-btn:checked:hover {
+  background-color: #276b7e;
+}
 
 /* 新建聊天按钮 */
 QPushButton#chat-tab-new-btn {

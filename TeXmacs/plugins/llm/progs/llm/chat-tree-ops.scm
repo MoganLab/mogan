@@ -470,19 +470,24 @@
 (tm-define (chat-tab-source-doc-info)
   (catch #t
     (lambda ()
-      (let ((buf (current-buffer)))
+      (let* ((cur (current-buffer))
+             ;; 焦点在聊天面板时 current-buffer 是 tmfs://chat 嵌入 buffer：
+             ;; 经 buffer-get-master 解析到创建时绑定的来源文档（普通文档的
+             ;; master 是其自身，解析为恒等）
+             (buf (and (url? cur) (buffer-get-master cur)))
+            ) ;
         (if (url? buf)
-          (let* ((doc-id
-                   (with-buffer buf
-                     (let ((from-env (get-init-env "stem-doc-id")))
-                       (if (and (string? from-env) (!= from-env ""))
-                         from-env
-                         (let* ((doc (buffer-get buf)) (initial (tmfile-extract doc 'initial)))
-                           (or (and initial (collection-ref initial "stem-doc-id")) "")
-                         ) ;let*
-                       ) ;if
-                     ) ;let
-                   ) ;with-buffer
+          (let* ((from-env (with-buffer buf (get-init-env "stem-doc-id")))
+                 ;; with-buffer 聚焦失败（目标 buffer 无视图）返回 #f，
+                 ;; 落入 initial collection 分支：buffer-get 按显式 buf
+                 ;; 取树，不依赖聚焦
+                 (doc-id
+                   (if (and (string? from-env) (!= from-env ""))
+                     from-env
+                     (let* ((doc (buffer-get buf)) (initial (tmfile-extract doc 'initial)))
+                       (or (and initial (collection-ref initial "stem-doc-id")) "")
+                     ) ;let*
+                   ) ;if
                  ) ;doc-id
                  (tail (url->system (url-tail buf)))
                  ;; suffix 与 tail 同源，非空时 tail 必然以 ".suffix" 结尾
@@ -498,7 +503,7 @@
           ) ;let*
           (cons "" "")
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;lambda
     (lambda args (cons "" ""))
   ) ;catch

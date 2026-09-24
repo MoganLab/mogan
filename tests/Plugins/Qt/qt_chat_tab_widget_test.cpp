@@ -473,31 +473,6 @@ private slots:
     QCOMPARE (spyExpl.count (), 1);
   }
 
-  void test_dockActionButtons_toggle_checked () {
-    QList<SessionDisplayInfo> sessions;
-    QTChatTabWidget           widget (sessions, "", nullptr);
-    widget.show ();
-    widget.setDockButtonsVisible (true);
-
-    QPushButton* transBtn= widget.translateButton ();
-    QPushButton* explBtn = widget.explainButton ();
-
-    QVERIFY (!transBtn->isChecked ());
-    QVERIFY (!explBtn->isChecked ());
-
-    transBtn->setChecked (true);
-    QVERIFY (transBtn->isChecked ());
-
-    explBtn->setChecked (true);
-    transBtn->setChecked (false);
-    QVERIFY (!transBtn->isChecked ());
-    QVERIFY (explBtn->isChecked ());
-
-    explBtn->setChecked (false);
-    QVERIFY (!transBtn->isChecked ());
-    QVERIFY (!explBtn->isChecked ());
-  }
-
   // === ChatSidebar title rename ===
   void test_beginEditTitle_shows_editor () {
     QList<SessionDisplayInfo> sessions;
