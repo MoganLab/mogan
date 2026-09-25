@@ -31,7 +31,18 @@
     (let ((doc-tree (buffer-get-body (current-buffer))))
       ;; Verify that sql and sql-code nodes are present in the loaded document
       (check (tree? doc-tree) => #t)
-      (check (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'sql-code)))) => #t)
-      (check (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'sql)))) => #t)))
+      (check
+        (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'sql-code))))
+        =>
+        #t
+      ) ;check
+      (check
+        (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'sql))))
+        =>
+        #t
+      ) ;check
+    ) ;let
+  ) ;let*
 
-  (check-report))
+  (check-report)
+) ;define
