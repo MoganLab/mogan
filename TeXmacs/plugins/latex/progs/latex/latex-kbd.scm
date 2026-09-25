@@ -410,6 +410,8 @@
   "gtrdot"
   "ltimes"
   "rtimes"
+  "bowtie"
+  "Join"
   "shortmid"
   "shortparallel"
   "smallsetminus"
