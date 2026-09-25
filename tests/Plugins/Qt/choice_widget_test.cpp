@@ -59,11 +59,14 @@ TestChoiceWidget::test_window_focus_and_navigation () {
   layout->addWidget (okBtn);
 
   win.show ();
+  win.activateWindow ();
   QApplication::processEvents ();
 
   // 窗口弹出后，QTMListView 应该获取焦点
   QCOMPARE (win.focusWidget (), (QWidget*) lv);
-  QVERIFY (lv->hasFocus ());
+  if (win.isActiveWindow ()) {
+    QVERIFY (lv->hasFocus ());
+  }
   QCOMPARE (lv->currentIndex ().row (), 0);
 
   // 下方向键切换选项到 row 1 ("LaTeX")

@@ -23,11 +23,14 @@
   ;; 2. Check init-choices moves detected clipboard format to the top
   (let ((plain-list (list "Markdown" "LaTeX" "HTML" (translate "Plain text"))))
     (check (init-choices plain-list "latex")
-           => (list "LaTeX" "Markdown" "HTML" (translate "Plain text")))
+      =>
+      (list "LaTeX" "Markdown" "HTML" (translate "Plain text"))
+    ) ;check
     (check (init-choices plain-list "html")
-           => (list "HTML" "Markdown" "LaTeX" (translate "Plain text")))
-    (check (car (init-choices plain-list "md"))
-           => "Markdown")
+      =>
+      (list "HTML" "Markdown" "LaTeX" (translate "Plain text"))
+    ) ;check
+    (check (car (init-choices plain-list "md")) => "Markdown")
   ) ;let
 
   (check-report)
