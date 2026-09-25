@@ -18,6 +18,7 @@
 #include "QTMMenuHelper.hpp"
 #include "QTMStyle.hpp"
 #include "QTMTreeModel.hpp"
+#include "QTMWindow.hpp"
 #include "qt_gui.hpp"
 #include "qt_picture.hpp"    // xpm_image
 #include "qt_tm_widget.hpp"  // tweak_iconbar_size
@@ -28,6 +29,7 @@
 #include <QApplication>
 #include <QCompleter>
 #include <QKeyEvent>
+#include <QPushButton>
 #include <QToolTip>
 
 #include <moebius/data/scheme.hpp>
@@ -42,7 +44,7 @@ using moebius::data::scm_quote;
 void
 QTMCommand::apply () {
   BEGIN_SLOT
-  if (!is_nil (cmd)) {
+  if (the_gui != nullptr && !is_nil (cmd)) {
     the_gui->process_command (cmd);
     if (DEBUG_QT) {
       debug_qt << "QTMCommand::apply() (delayed)\n";
@@ -1141,13 +1143,21 @@ QTMListView::QTMListView (const command& cmd, const QStringList& strings,
   // doesn't update the selection but overwrites it, so we explicitly define
   // our QItemSelection and use merge()
   QItemSelection sel;
+  QModelIndex    firstSelected;
   for (int i= 0; i < model ()->rowCount (); ++i) {
     QModelIndex item= model ()->index (i, 0);
     if (selections.contains (model ()->data (item, Qt::DisplayRole).toString (),
-                             Qt::CaseSensitive))
+                             Qt::CaseSensitive)) {
       sel.merge (QItemSelection (item, item), QItemSelectionModel::Select);
+      if (!firstSelected.isValid ()) firstSelected= item;
+    }
   }
   selectionModel ()->select (sel, QItemSelectionModel::Select);
+  if (!firstSelected.isValid () && model ()->rowCount () > 0)
+    firstSelected= model ()->index (0, 0);
+  if (firstSelected.isValid ())
+    selectionModel ()->setCurrentIndex (firstSelected,
+                                        QItemSelectionModel::NoUpdate);
 
   if (!scroll) {
     setMinimumWidth (sizeHintForColumn (0));
@@ -1166,6 +1176,8 @@ QTMListView::QTMListView (const command& cmd, const QStringList& strings,
       selectionModel (),
       SIGNAL (selectionChanged (const QItemSelection&, const QItemSelection&)),
       qcmd, SLOT (apply ()));
+  QObject::connect (this, SIGNAL (doubleClicked (const QModelIndex&)), this,
+                    SLOT (onDoubleClicked (const QModelIndex&)));
 }
 
 /*! Reimplemented from QListView.
@@ -1180,6 +1192,74 @@ QTMListView::selectionChanged (const QItemSelection& c,
   QListView::selectionChanged (c, p);
   emit selectionChanged (c);
   END_SLOT
+}
+
+void
+QTMListView::onDoubleClicked (const QModelIndex& index) {
+  if (!index.isValid ()) return;
+  selectionModel ()->setCurrentIndex (
+      index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+
+  QTMPlainWindow* plainWin= qobject_cast<QTMPlainWindow*> (window ());
+  if (plainWin) {
+    plainWin->triggerDefaultButton ();
+    return;
+  }
+
+  QWidget* win= window ();
+  if (win) {
+    QList<QPushButton*> buttons= win->findChildren<QPushButton*> ();
+    for (QPushButton* button : buttons) {
+      if (button->isDefault () ||
+          button->text ().contains ("Ok", Qt::CaseInsensitive)) {
+        button->click ();
+        return;
+      }
+    }
+    for (QPushButton* button : buttons) {
+      if (button->text ().contains ("Ok", Qt::CaseInsensitive)) {
+        button->click ();
+        return;
+      }
+    }
+    if (!buttons.isEmpty ()) {
+      buttons.first ()->click ();
+    }
+  }
+}
+
+void
+QTMListView::keyPressEvent (QKeyEvent* event) {
+  if (event->key () == Qt::Key_Return || event->key () == Qt::Key_Enter) {
+    event->accept ();
+    QTMPlainWindow* plainWin= qobject_cast<QTMPlainWindow*> (window ());
+    if (plainWin) {
+      plainWin->triggerDefaultButton ();
+      return;
+    }
+    QWidget* win= window ();
+    if (win) {
+      QList<QPushButton*> buttons= win->findChildren<QPushButton*> ();
+      for (QPushButton* button : buttons) {
+        if (button->isDefault () ||
+            button->text ().contains ("Ok", Qt::CaseInsensitive)) {
+          button->click ();
+          return;
+        }
+      }
+      for (QPushButton* button : buttons) {
+        if (button->text ().contains ("Ok", Qt::CaseInsensitive)) {
+          button->click ();
+          return;
+        }
+      }
+      if (!buttons.isEmpty ()) {
+        buttons.first ()->click ();
+      }
+    }
+    return;
+  }
+  QListView::keyPressEvent (event);
 }
 
 /******************************************************************************
