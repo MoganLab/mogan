@@ -414,6 +414,8 @@
   graphics-update-proviso
   graphics-get-proviso
   graphics-set-proviso
+  graphics-export-png
+  graphics-tree-to-export
 ) ;lazy-define
 (lazy-define (graphics graphics-markup)
   arrow-with-text
