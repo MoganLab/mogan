@@ -255,6 +255,32 @@ public:
                                                url currentWindow,
                                                url ownerWindow);
 
+  /**
+   * @brief
+   * 判定控件是否属于侧边栏或其子代（包括以侧边栏控件为父级的弹出菜单等浮层）。
+   */
+  static bool isWidgetInSidebar (const QWidget* sidebar, const QWidget* target);
+
+  /**
+   * @brief 判定鼠标按下时是否需要将焦点和 current_view 回切到主文档。
+   *
+   * 仅当侧边栏可见、当前焦点位于侧边栏内部且点击控件在侧边栏外部时返回 true。
+   *
+   * @param sidebarVisible 侧边栏是否可见
+   * @param focusInSidebar 当前 Qt 焦点控件是否位于侧边栏内
+   * @param clickInSidebar 鼠标按下的目标控件是否位于侧边栏内
+   * @return 若需要切回主文档焦点与视图则返回 true
+   */
+  static bool shouldRestoreDocumentFocusOnMousePress (bool sidebarVisible,
+                                                      bool focusInSidebar,
+                                                      bool clickInSidebar);
+
+  /**
+   * @brief 将当前视图恢复为主窗口文档视图，并将键盘焦点切回主编辑器或 PDF
+   * 查看器。
+   */
+  void restoreDocumentFocusAndCurrentView ();
+
   virtual widget plain_window_widget (string name, command quit, int b);
 
   virtual void     send (slot s, blackbox val);

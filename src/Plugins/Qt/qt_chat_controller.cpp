@@ -276,7 +276,7 @@ ChatController::onModelMenuRequested (const string& sessionId,
   if (!modelStore_.contains (current)) current= modelStore_.defaultKey ();
 
   // 菜单每次打开重建，选中态按当前会话模型刷新
-  QMenu menu;
+  QMenu menu (view_);
   chat_model_menu_populate (&menu, modelStore_.models (), current);
   // 思考强度子菜单追加在模型项之后，选中态按当前会话强度刷新
   chat_effort_menu_populate (&menu,
