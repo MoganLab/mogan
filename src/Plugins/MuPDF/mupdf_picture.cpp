@@ -410,6 +410,11 @@ mupdf_load_image (url u) {
     }
   }
 #endif
+  else if (suf == "ps" || suf == "eps") {
+    // MuPDF does not render PostScript directly; fallback to standard renderer
+    fz_drop_buffer (ctx, buffer);
+    return NULL;
+  }
   else {
     // Othre format.
     fz_try (ctx) { im= fz_new_image_from_buffer (ctx, buffer); }
