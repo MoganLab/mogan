@@ -49,6 +49,7 @@ private slots:
   void test_noto_sans_symbols2_font_support ();
   void test_misc_symbols_fallback ();
   void test_misc_symbols_fallback_to_symbols2 ();
+  void test_k_stroke_fallback ();
 };
 
 void
@@ -324,6 +325,44 @@ TestSmartFont::test_misc_symbols_fallback_to_symbols2 () {
   QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
   // 应路由到 NotoSansSymbols2
   QVERIFY (occurs ("NotoSansSymbols2", fn_rep->fn[nr]->res_name));
+}
+
+void
+TestSmartFont::test_k_stroke_fallback () {
+  font dejavu_serif=
+      closest_font ("DejaVu Serif", "rm", "medium", "right", 10, 600, 1);
+  QVERIFY (!is_nil (dejavu_serif));
+  QVERIFY (dejavu_serif->supports ("<#A741>"));
+
+  font            fn= smart_font ("roman", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  int             nr    = fn_rep->resolve ("<#A741>");
+  QVERIFY (nr >= 0);
+  QVERIFY (occurs ("DejaVuSerif", fn_rep->fn[nr]->res_name));
+
+  font math_fn= smart_font ("roman", "rm", "medium", "mathitalic", 10, 600);
+  smart_font_rep* math_rep= (smart_font_rep*) math_fn.rep;
+  int             math_nr = math_rep->resolve ("<#A741>");
+  QVERIFY (math_nr >= 0);
+  QVERIFY (occurs ("DejaVuSerif", math_rep->fn[math_nr]->res_name));
+
+  font            bold_fn= smart_font ("roman", "rm", "bold", "right", 10, 600);
+  smart_font_rep* bold_rep= (smart_font_rep*) bold_fn.rep;
+  int             bold_nr = bold_rep->resolve ("<#A741>");
+  QVERIFY (bold_nr >= 0);
+  QVERIFY (occurs ("DejaVuSerif-Bold", bold_rep->fn[bold_nr]->res_name));
+
+  font lmm_fn=
+      smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10, 600);
+  smart_font_rep* lmm_rep= (smart_font_rep*) lmm_fn.rep;
+  int             lmm_nr = lmm_rep->resolve ("<#A741>");
+  QVERIFY (lmm_nr >= 0);
+  QVERIFY (occurs ("DejaVuSerif", lmm_rep->fn[lmm_nr]->res_name));
+
+  // Test p- (<#A751>) which is not in DejaVu Serif but in DejaVu Sans
+  int p_nr= math_rep->resolve ("<#A751>");
+  QVERIFY (p_nr >= 0);
+  QVERIFY (occurs ("DejaVuSans", math_rep->fn[p_nr]->res_name));
 }
 
 QTEST_MAIN (TestSmartFont)
