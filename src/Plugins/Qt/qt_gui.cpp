@@ -264,7 +264,8 @@ qt_gui_rep::~qt_gui_rep () {
 
 bool
 qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
-  QClipboard*      cb  = QApplication::clipboard ();
+  QClipboard* cb= QApplication::clipboard ();
+  if (cb == nullptr) return false;
   QClipboard::Mode mode= QClipboard::Clipboard;
   if (key == "primary" || (key == "mouse" && cb->supportsSelection ()))
     if (key == "mouse") mode= QClipboard::Selection;
@@ -315,38 +316,56 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
     else if (md->hasUrls ()) {
       QList<QUrl> l= md->urls ();
       if (l.size () == 1) {
-        QString filePath= l[0].toLocalFile ();
+        if (l[0].scheme ().startsWith ("http")) {
+          QByteArray imageData= qt_download_image_data (l[0].toString ());
+          if (!imageData.isEmpty ()) {
+            QBuffer qbuf (&buf);
+            QImage  image;
+            qbuf.open (QIODevice::WriteOnly);
+            if (image.loadFromData (imageData)) {
+              image.save (&qbuf, "PNG");
+              input_format          = "picture";
+              clipboard_image_suffix= "png";
+              QSize image_size      = image.size ();
+              qt_pretty_image_size (image_size.width (), image.height (),
+                                    image_w_string, image_h_string);
+            }
+          }
+        }
+        else {
+          QString filePath= l[0].toLocalFile ();
 #ifdef USE_MUPDF_RENDERER
-        int     ww, hh;
-        QString suffix       = QFileInfo (filePath).suffix ().toLower ();
-        string  target_suffix= (suffix == "webp") ? "webp" : "png";
-        string  image_data   = mupdf_load_and_parse_image (
-            filePath.toStdString ().c_str (), ww, hh, target_suffix,
-            &image_w_string, &image_h_string);
-        if (N (image_data) > 0) {
-          input_format= "picture";
-          buf         = QByteArray (image_data.begin (), N (image_data));
-          clipboard_image_suffix= target_suffix;
-        }
+          int     ww, hh;
+          QString suffix       = QFileInfo (filePath).suffix ().toLower ();
+          string  target_suffix= (suffix == "webp") ? "webp" : "png";
+          string  image_data   = mupdf_load_and_parse_image (
+              filePath.toStdString ().c_str (), ww, hh, target_suffix,
+              &image_w_string, &image_h_string);
+          if (N (image_data) > 0) {
+            input_format= "picture";
+            buf         = QByteArray (image_data.begin (), N (image_data));
+            clipboard_image_suffix= target_suffix;
+          }
 #else
-        QImage image;
+          QImage image;
 
-        if (!image.load (filePath)) {
-          image= qvariant_cast<QImage> (md->imageData ());
-        }
+          if (!image.load (filePath)) {
+            image= qvariant_cast<QImage> (md->imageData ());
+          }
 
-        if (!image.isNull ()) {
-          QBuffer qbuf (&buf);
-          qbuf.open (QIODevice::WriteOnly);
-          image.save (&qbuf, "PNG");
-          input_format          = "picture";
-          clipboard_image_suffix= "png";
-          QSize image_size      = image.size ();
-          qt_pretty_image_size (image_size.width (), image.height (),
-                                image_w_string, image_h_string);
-          detected_format= "image";
-        }
+          if (!image.isNull ()) {
+            QBuffer qbuf (&buf);
+            qbuf.open (QIODevice::WriteOnly);
+            image.save (&qbuf, "PNG");
+            input_format          = "picture";
+            clipboard_image_suffix= "png";
+            QSize image_size      = image.size ();
+            qt_pretty_image_size (image_size.width (), image.height (),
+                                  image_w_string, image_h_string);
+            detected_format= "image";
+          }
 #endif
+        }
       }
     }
     else if (md->hasHtml ()) {
@@ -356,6 +375,16 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
     else if (md->hasFormat ("text/plain;charset=utf8")) {
       buf         = md->data ("text/plain;charset=utf8");
       input_format= "verbatim-snippet";
+    }
+    else {
+      buf         = md->text ().toUtf8 ();
+      input_format= "verbatim-snippet";
+    }
+  }
+  else if (format == "html") {
+    if (md->hasHtml ()) {
+      buf         = md->html ().toUtf8 ();
+      input_format= "html-snippet";
     }
     else {
       buf         = md->text ().toUtf8 ();
@@ -380,7 +409,8 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
   if (input_format == "html-snippet") {
     tree t= as_tree (call ("convert", s, "texmacs-snippet", "texmacs-tree"));
     t     = default_with_simplify (t);
-    s     = as_string (call ("convert", t, "texmacs-tree", "texmacs-snippet"));
+    qt_embed_tree_images (t);
+    s= as_string (call ("convert", t, "texmacs-tree", "texmacs-snippet"));
   }
   if (input_format == "picture") {
     tree t (IMAGE);

@@ -11,19 +11,28 @@
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
 #include "sys_utils.hpp"
+#include <QTemporaryFile>
 #include <Qt>
 #include <QtTest/QtTest>
+
+using namespace moebius;
 
 class TestQtUtilities : public QObject {
   Q_OBJECT
 
 private slots:
+  void init () { init_lolly (); }
   void test_qt_supports ();
   void test_from_modifiers ();
   void test_from_key_press_event ();
   void test_to_qstring_utf8 ();
   void test_from_qstring_utf8_roundtrip ();
   void test_title_encoding_roundtrip ();
+  void test_qt_embed_tree_images_data_uri ();
+  void test_qt_embed_tree_images_file_url ();
+  void test_qt_embed_tree_images_already_embedded ();
+  void test_qt_embed_tree_images_nested_in_document ();
+  void test_qt_embed_tree_images_invalid_url_fallback ();
 };
 
 void
@@ -93,9 +102,6 @@ TestQtUtilities::test_from_key_press_event () {
     qcompare (from_key_press_event (&alt_dot), "≥");
   }
 }
-
-QTEST_MAIN (TestQtUtilities)
-#include "qt_utilities_test.moc"
 
 /*
  * [0250] Encoding tests for chat tab title storage.
@@ -186,3 +192,100 @@ TestQtUtilities::test_title_encoding_roundtrip () {
     QCOMPARE (displayed, QString ("Hello World"));
   }
 }
+
+void
+TestQtUtilities::test_qt_embed_tree_images_data_uri () {
+  // 1x1 transparent PNG as data URI
+  string data_uri=
+      "data:image/png;base64,"
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGA"
+      "WjR9awAAAABJRU5ErkJggg==";
+  tree t (IMAGE, data_uri, "0.6383w", "", "", "");
+  qt_embed_tree_images (t);
+
+  QVERIFY (is_func (t, IMAGE, 5));
+  QVERIFY (is_func (t[0], TUPLE, 2));
+  QVERIFY (is_func (t[0][0], RAW_DATA, 1));
+  QCOMPARE (to_qstring (t[0][1]->label), QString ("png"));
+  // Dimensions should be updated from default 0.6383w to 1pt x 1pt
+  QCOMPARE (to_qstring (t[1]->label), QString ("1pt"));
+  QCOMPARE (to_qstring (t[2]->label), QString ("1pt"));
+}
+
+void
+TestQtUtilities::test_qt_embed_tree_images_file_url () {
+  // Create a temporary PNG file
+  QTemporaryFile tempFile (QDir::tempPath () + "/test_embed_XXXXXX.png");
+  tempFile.setAutoRemove (true);
+  QVERIFY (tempFile.open ());
+  QImage img (2, 2, QImage::Format_RGB32);
+  img.fill (Qt::red);
+  QVERIFY (img.save (&tempFile, "PNG"));
+  QString filePath= tempFile.fileName ();
+  tempFile.close ();
+
+  string file_url= "file:///" * from_qstring (filePath);
+  tree   t (IMAGE, file_url, "0.6383w", "", "", "");
+  qt_embed_tree_images (t);
+
+  QVERIFY (is_func (t, IMAGE, 5));
+  QVERIFY (is_func (t[0], TUPLE, 2));
+  QVERIFY (is_func (t[0][0], RAW_DATA, 1));
+  QCOMPARE (to_qstring (t[0][1]->label), QString ("png"));
+  QCOMPARE (to_qstring (t[1]->label), QString ("2pt"));
+  QCOMPARE (to_qstring (t[2]->label), QString ("2pt"));
+}
+
+void
+TestQtUtilities::test_qt_embed_tree_images_already_embedded () {
+  tree t (IMAGE, tuple (tree (RAW_DATA, "existing_binary_data"), "png"),
+          "100pt", "50pt", "", "");
+  qt_embed_tree_images (t);
+
+  QVERIFY (is_func (t[0], TUPLE, 2));
+  QVERIFY (is_func (t[0][0], RAW_DATA, 1));
+  QCOMPARE (to_qstring (t[0][0][0]->label), QString ("existing_binary_data"));
+  QCOMPARE (to_qstring (t[1]->label), QString ("100pt"));
+  QCOMPARE (to_qstring (t[2]->label), QString ("50pt"));
+}
+
+void
+TestQtUtilities::test_qt_embed_tree_images_nested_in_document () {
+  string data_uri=
+      "data:image/png;base64,"
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGA"
+      "WjR9awAAAABJRU5ErkJggg==";
+  tree doc (DOCUMENT, "Hello",
+            tree (WITH, "par-mode", "center",
+                  tree (IMAGE, data_uri, "0.6383w", "", "", "")),
+            "World");
+  qt_embed_tree_images (doc);
+
+  // Check document structure preserved
+  QVERIFY (is_func (doc, DOCUMENT, 3));
+  QCOMPARE (to_qstring (doc[0]->label), QString ("Hello"));
+  QCOMPARE (to_qstring (doc[2]->label), QString ("World"));
+
+  // Check nested image embedded
+  tree imgNode= doc[1][2];
+  QVERIFY (is_func (imgNode, IMAGE, 5));
+  QVERIFY (is_func (imgNode[0], TUPLE, 2));
+  QVERIFY (is_func (imgNode[0][0], RAW_DATA, 1));
+  QCOMPARE (to_qstring (imgNode[0][1]->label), QString ("png"));
+}
+
+void
+TestQtUtilities::test_qt_embed_tree_images_invalid_url_fallback () {
+  string invalid_url= "http://127.0.0.1:54321/nonexistent_image_12345.png";
+  tree   t (IMAGE, invalid_url, "0.6383w", "", "", "");
+  qt_embed_tree_images (t);
+
+  // Fallback: tree unchanged
+  QVERIFY (is_func (t, IMAGE, 5));
+  QVERIFY (is_atomic (t[0]));
+  QCOMPARE (to_qstring (t[0]->label), to_qstring (invalid_url));
+  QCOMPARE (to_qstring (t[1]->label), QString ("0.6383w"));
+}
+
+QTEST_MAIN (TestQtUtilities)
+#include "qt_utilities_test.moc"
