@@ -34,7 +34,9 @@
 
   <new-theme|session-colors|generic-prompt-color|generic-input-color|generic-error-color|scheme-prompt-color|scheme-input-color>
 
-  <copy-theme|all-colors|colors|gui-colors|highlight-colors|session-colors>
+  <new-theme|json-colors|json-key-color|json-string-color|json-number-color|json-constant-color|json-operator-color|json-openclose-color>
+
+  <copy-theme|all-colors|colors|gui-colors|highlight-colors|session-colors|json-colors>
 
   <\active*>
     <\src-comment>
