@@ -30,7 +30,10 @@
   (check (get-preference "syntax:json:constant_number") => "json-number-color")
   (check (get-preference "syntax:json:constant") => "json-constant-color")
   (check (get-preference "syntax:json:operator") => "json-operator-color")
-  (check (get-preference "syntax:json:operator_openclose") => "json-openclose-color")
+  (check (get-preference "syntax:json:operator_openclose")
+    =>
+    "json-openclose-color"
+  ) ;check
 
   ;; 3. Load the rich JSON showcase document fixture in default (day) mode
   (let* ((tmu-path (url-append (url-pwd) "TeXmacs/tests/tmu/6106.tmu")))
@@ -39,8 +42,17 @@
     (let ((doc-tree (buffer-get-body (current-buffer))))
       ;; Verify that json and json-code nodes are present in the loaded document
       (check (tree? doc-tree) => #t)
-      (check (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'json-code)))) => #t)
-      (check (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'json)))) => #t))
+      (check
+        (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'json-code))))
+        =>
+        #t
+      ) ;check
+      (check
+        (nnull? (tree-search doc-tree (lambda (t) (tm-func? t 'json))))
+        =>
+        #t
+      ) ;check
+    ) ;let
 
     ;; 4. Test switching to dark theme (night mode)
     (add-style-package "dark")
@@ -50,6 +62,8 @@
     ;; 5. Test switching back to day mode
     (remove-style-package "dark")
     (update-forced)
-    (check (has-style-package? "dark") => #f))
+    (check (has-style-package? "dark") => #f)
+  ) ;let*
 
-  (check-report))
+  (check-report)
+) ;define

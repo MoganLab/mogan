@@ -138,7 +138,10 @@
   (check (get-preference "syntax:json:constant_number") => "json-number-color")
   (check (get-preference "syntax:json:constant") => "json-constant-color")
   (check (get-preference "syntax:json:operator") => "json-operator-color")
-  (check (get-preference "syntax:json:operator_openclose") => "json-openclose-color")
+  (check (get-preference "syntax:json:operator_openclose")
+    =>
+    "json-openclose-color"
+  ) ;check
   (check (get-preference "syntax:json:keyword") => "json-constant-color")
   (check (get-preference "syntax:json:comment") => "comment-color")
 ) ;define
