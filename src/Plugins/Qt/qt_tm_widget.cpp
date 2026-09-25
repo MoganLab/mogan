@@ -908,6 +908,39 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     chatSideDock->setMinimumSize (DpiUtils::scaled (320), 0);
     chatSideDock->setVisible (false);
     mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
+
+    class ChatSidebarFocusRestorer : public QObject {
+    public:
+      ChatSidebarFocusRestorer (QWidget* parent, qt_tm_widget_rep* owner)
+          : QObject (parent), owner_ (owner) {}
+
+      bool eventFilter (QObject* obj, QEvent* event) override {
+        if (event->type () == QEvent::MouseButtonPress) {
+          if (owner_ && owner_->chatSideDock &&
+              owner_->chatSideDock->isVisible ()) {
+            QWidget* clicked= qobject_cast<QWidget*> (obj);
+            if (clicked) {
+              QWidget* fw            = QApplication::focusWidget ();
+              bool     focusInSidebar= qt_tm_widget_rep::isWidgetInSidebar (
+                  owner_->chatSideDock, fw);
+              bool clickInSidebar= qt_tm_widget_rep::isWidgetInSidebar (
+                  owner_->chatSideDock, clicked);
+              if (qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
+                      owner_->chatSideDock->isVisible (), focusInSidebar,
+                      clickInSidebar)) {
+                owner_->restoreDocumentFocusAndCurrentView ();
+              }
+            }
+          }
+        }
+        return QObject::eventFilter (obj, event);
+      }
+
+    private:
+      qt_tm_widget_rep* owner_;
+    };
+    if (qApp)
+      qApp->installEventFilter (new ChatSidebarFocusRestorer (mw, this));
   }
 
   // PDF 目录（大纲）侧边栏 Dock（PDF 模式显示书签，编辑器模式显示章节结构）
@@ -3132,6 +3165,42 @@ qt_tm_widget_rep::shouldResetCurrentViewForNewTab (url currentView,
   if (is_none (currentView) || is_none (currentWindow)) return true;
   if (currentWindow != ownerWindow) return true;
   return !is_tmfs_view_type (currentView, "default");
+}
+
+bool
+qt_tm_widget_rep::isWidgetInSidebar (const QWidget* sidebar,
+                                     const QWidget* target) {
+  if (!sidebar || !target) return false;
+  if (target == sidebar) return true;
+  if (sidebar->isAncestorOf (target)) return true;
+  for (const QObject* cur= target; cur != nullptr; cur= cur->parent ()) {
+    if (cur == sidebar) return true;
+  }
+  return false;
+}
+
+bool
+qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (bool sidebarVisible,
+                                                          bool focusInSidebar,
+                                                          bool clickInSidebar) {
+  return sidebarVisible && focusInSidebar && !clickInSidebar;
+}
+
+void
+qt_tm_widget_rep::restoreDocumentFocusAndCurrentView () {
+  url owner_view= window_view_for_widget (this);
+  if (!is_none (owner_view)) {
+    if (get_current_view_safe () != owner_view) {
+      set_current_view (owner_view);
+    }
+  }
+
+  if (pdfTabMode && pdfViewerWidget) {
+    pdfViewerWidget->setFocus (Qt::MouseFocusReason);
+  }
+  else if (canvas ()) {
+    canvas ()->setFocus (Qt::MouseFocusReason);
+  }
 }
 
 void
