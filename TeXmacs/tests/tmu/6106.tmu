@@ -110,5 +110,6 @@
 
 <\initial>
   <\collection>
+    <associate|save-aux|false>
   </collection>
 </initial>

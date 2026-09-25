@@ -63,6 +63,7 @@
     (remove-style-package "dark")
     (update-forced)
     (check (has-style-package? "dark") => #f)
+    (buffer-pretend-saved (current-buffer))
   ) ;let*
 
   (check-report)
