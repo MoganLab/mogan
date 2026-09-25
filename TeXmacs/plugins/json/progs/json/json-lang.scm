@@ -35,6 +35,28 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "json") (== key "string")))
   `(,(string->symbol key)
-    (bool_features)
-    (escape_sequences "\\" "/" "\"" "b" "f" "n" "r" "t"))
+    (bool_features "escape_char_after_backslash" "unicode_escape")
+    (escape_sequences "\\" "/" "\"" "b" "f" "n" "r" "t" "u"))
 ) ;tm-define
+
+(tm-define (parser-feature lan key)
+  (:require (and (== lan "json") (== key "comment")))
+  `(,(string->symbol key) (inline "//") (block_comment "/*" "*/"))
+) ;tm-define
+
+(define (notify-json-syntax var val)
+  (syntax-read-preferences "json")
+) ;define
+
+(define-preferences ("syntax:json:none" "red" notify-json-syntax)
+ ("syntax:json:comment" "comment-color" notify-json-syntax)
+ ("syntax:json:error" "dark red" notify-json-syntax)
+ ("syntax:json:constant" "json-constant-color" notify-json-syntax)
+ ("syntax:json:constant_number" "json-number-color" notify-json-syntax)
+ ("syntax:json:constant_string" "json-string-color" notify-json-syntax)
+ ("syntax:json:constant_char" "json-string-color" notify-json-syntax)
+ ("syntax:json:variable_identifier" "json-key-color" notify-json-syntax)
+ ("syntax:json:operator" "json-operator-color" notify-json-syntax)
+ ("syntax:json:operator_openclose" "json-openclose-color" notify-json-syntax)
+ ("syntax:json:keyword" "json-constant-color" notify-json-syntax)
+) ;define-preferences

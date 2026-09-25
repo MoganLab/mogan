@@ -1,0 +1,114 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|json>>
+
+<\body>
+  <chapter*|[6106] JSON 语言语法高亮测试样例>
+
+  <section*|1 行内 JSON 示例>
+
+  这是一个行内 JSON 属性对：<json|"name": "张三", "age": 25, "active": true, "score": 98.5>。
+
+  <section*|2 综合 JSON 代码块>
+
+  <\json-code>
+    {
+
+    \ \ "name": "张三",
+
+    \ \ "age": 25,
+
+    \ \ "city": "北京",
+
+    \ \ "height": 178.5,
+
+    \ \ "isStudent": false,
+
+    \ \ "avatar": null,
+
+    \ \ "hobbies": ["读书", "游泳", "编程"],
+
+    \ \ "education": {
+
+    \ \ \ \ "degree": "学士",
+
+    \ \ \ \ "major": "计算机科学与技术",
+
+    \ \ \ \ "university": "清华大学",
+
+    \ \ \ \ "graduationYear": 2024
+
+    \ \ },
+
+    \ \ "contacts": [
+
+    \ \ \ \ {
+
+    \ \ \ \ \ \ "type": "email",
+
+    \ \ \ \ \ \ "value": "zhangsan@example.com",
+
+    \ \ \ \ \ \ "primary": true
+
+    \ \ \ \ },
+
+    \ \ \ \ {
+
+    \ \ \ \ \ \ "type": "phone",
+
+    \ \ \ \ \ \ "value": "+86-13800138000",
+
+    \ \ \ \ \ \ "primary": false
+
+    \ \ \ \ }
+
+    \ \ ]
+
+    }
+  </json-code>
+
+  <section*|3 科学计数法与转义字符测试>
+
+  <\json-code>
+    {
+
+    \ \ "scientific": 1.23e+10,
+
+    \ \ "negativeExp": 4.56e-8,
+
+    \ \ "zero": 0,
+
+    \ \ "negativeInt": -42,
+
+    \ \ "escapedString": "Line 1\\nLine 2\\tTabbed \\"Quoted\\" \\/ Slash \\\\ Backslash",
+
+    \ \ "unicodeEscape": "\\u4e2d\\u6587\\u6d4b\\u8bd5"
+
+    }
+  </json-code>
+
+  <section*|4 JSONC 注释支持测试>
+
+  <\json-code>
+    // 这是一个单行注释 (JSON with comments)
+
+    {
+
+    \ \ /* 多行块级注释
+
+    \ \ \ \ 配置说明文档 */
+
+    \ \ "enableFeature": true,
+
+    \ \ "maxRetry": 3, // 行尾注释
+
+    \ \ "timeoutMs": 5000
+
+    }
+  </json-code>
+</body>
+
+<\initial>
+  <\collection>
+  </collection>
+</initial>
