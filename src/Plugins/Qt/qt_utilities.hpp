@@ -188,6 +188,7 @@ string from_key_release_event (const QKeyEvent* event);
 string qt_clipboard_format ();
 string qt_clipboard_text ();
 void   qt_clipboard_set_html (string html);
+void   qt_clipboard_set_text (string text);
 
 /******************************************************************************
  * QML 宿主共用（QQuickWidget 场景图后端 / 主题上下文）

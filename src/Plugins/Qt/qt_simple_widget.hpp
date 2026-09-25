@@ -28,6 +28,7 @@ class QTMTextPopup;
 class QTMGhostTextPopup;
 class QTMDiffTextPopup;
 class QTMAiActionsBar;
+class QTMSemanticPopup;
 
 /*! A widget containing a TeXmacs canvas.
 
@@ -164,6 +165,15 @@ public:
   void hide_diff_popup ();
   void scroll_diff_popup_by (SI x, SI y);
 
+  ////////////////////// Semantic popup support
+  void ensure_semantic_popup ();
+  void show_semantic_popup (string tag, tree current_tree, rectangle selr,
+                            double magf, int scroll_x, int scroll_y,
+                            int canvas_x, int canvas_y);
+  void hide_semantic_popup ();
+  void scroll_semantic_popup_by (SI x, SI y);
+  bool is_point_in_semantic_popup (SI x, SI y);
+
   ////////////////////// backing store management
 
   static void repaint_all (); // called by qt_gui_rep::update()
@@ -177,6 +187,7 @@ protected:
   QPointer<QTMImagePopup>          imagePopUp;
   QPointer<QTMTextPopup>           textPopup;
   QPointer<QTMAiActionsBar>        aiActionsBar;
+  QPointer<QTMSemanticPopup>       semanticPopup;
   QPointer<QTMGhostTextPopup>      ghostTextPopup;
   QPointer<QTMDiffTextPopup>       diffTextPopup;
 #ifdef USE_MUPDF_RENDERER

@@ -264,6 +264,12 @@
   ai-translate-eligible?
   ai-selection-context
 ) ;lazy-define
+;; 语义块通用悬浮菜单（QTMSemanticPopup）规格与动作
+(lazy-define (generic semantic-popup)
+  semantic-supported-tag?
+  semantic-popup-actions
+  semantic-popup-action-trigger
+) ;lazy-define
 (lazy-define (generic generic-edit) notify-activated notify-disactivated)
 (lazy-define (generic generic-doc) focus-help)
 (lazy-define (generic search-widgets)
@@ -342,7 +348,12 @@
   insert-math-menu
 ) ;lazy-menu
 (lazy-initialize (math math-menu) (in-math?))
-(lazy-define (math math-edit) brackets-refresh)
+(lazy-define (math math-edit)
+  brackets-refresh
+  tree-set-label!
+  semantic-copy-latex
+  semantic-toggle-equation-number
+) ;lazy-define
 
 ;; (display "Booting programming modes\n")
 (lazy-menu (prog prog-menu)

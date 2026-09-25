@@ -3155,3 +3155,9 @@
 ("Keep dark mode in exported PDF"
   "在导出的PDF中，仍旧采用深色模式"
 ) ;
+("Copy LaTeX" "复制 LaTeX")
+("Add Number" "添加编号")
+("Hide Number" "隐藏编号")
+("Refresh TOC" "刷新目录")
+("Refresh Table of Contents" "刷新目录")
+("Copied!" "已复制！")

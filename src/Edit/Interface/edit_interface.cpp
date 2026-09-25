@@ -1319,6 +1319,7 @@ edit_interface_rep::apply_changes () {
     // 选区改变后更新文本工具栏
     update_text_popup ();
     update_ai_actions_bar ();
+    update_semantic_popup ();
   }
 
   // cout << "Handling alternative selection\n";

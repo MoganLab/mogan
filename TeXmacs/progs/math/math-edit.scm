@@ -1507,3 +1507,65 @@
     (clipboard-paste "primary")
   ) ;if
 ) ;tm-define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Semantic operations for equation blocks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (tree-set-label! t l) (tree-assign-node! t l))
+
+(tm-define (semantic-copy-latex t)
+  (when (not (defined? 'texmacs->latex))
+    (load "./TeXmacs/plugins/latex/progs/init-latex.scm")
+  ) ;when
+  (let* ((eq
+           (if (tree-in? t '(equation equation*))
+             t
+             (or
+               (tree-search-upwards t (lambda (x) (tree-in? x '(equation equation*))))
+               t
+             ) ;or
+           ) ;if
+         ) ;eq
+         (doc
+           (if (tree-is? eq 'document) eq `(document ,(tree->stree eq)))
+         ) ;doc
+         (latex (texmacs->generic (stree->tree doc) "latex-snippet"))
+        ) ;
+    (when (string? latex)
+      (when (defined? 'qt-clipboard-set-text)
+        (qt-clipboard-set-text latex)
+      ) ;when
+      (clipboard-set "primary" latex)
+    ) ;when
+    latex
+  ) ;let*
+) ;tm-define
+
+(tm-define (semantic-toggle-equation-number t)
+  (let* ((eq
+           (if (tree-in? t '(equation equation*))
+             t
+             (tree-search-upwards t (lambda (x) (tree-in? x '(equation equation*))))
+           ) ;if
+         ) ;eq
+        ) ;
+    (when eq
+      (if (tree-is? eq 'equation*)
+        (begin
+          (tree-set-label! eq 'equation)
+          (focus-tree-modified eq)
+          (notify-change 1)
+        ) ;begin
+        (begin
+          (cut-all eq 'label)
+          (cut-all eq 'eq-number)
+          (tree-set-label! eq 'equation*)
+          (focus-tree-modified eq)
+          (notify-change 1)
+        ) ;begin
+      ) ;if
+      (tree-label eq)
+    ) ;when
+  ) ;let*
+) ;tm-define
