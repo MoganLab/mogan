@@ -17,6 +17,7 @@
 #include "merge_sort.hpp"
 #include "message.hpp"
 #include "new_document.hpp"
+#include "new_view.hpp"
 #include "preferences.hpp"
 #include "tm_data.hpp"
 #include "tm_file.hpp"
@@ -70,7 +71,7 @@ tm_buffer_rep::attach_notifier () {
 
 bool
 tm_buffer_rep::needs_to_be_saved () {
-  if (buf->read_only) return false;
+  if (buf->read_only || is_no_save_buffer (buf->name)) return false;
   for (int i= 0; i < N (vws); i++)
     if (vws[i]->ed->need_save ()) return true;
   return false;
@@ -78,7 +79,7 @@ tm_buffer_rep::needs_to_be_saved () {
 
 bool
 tm_buffer_rep::needs_to_be_autosaved () {
-  if (buf->read_only) return false;
+  if (buf->read_only || is_no_save_buffer (buf->name)) return false;
   for (int i= 0; i < N (vws); i++)
     if (vws[i]->ed->need_save (false)) return true;
   return false;
@@ -425,6 +426,7 @@ last_visited (url name) {
 
 bool
 buffer_modified (url name) {
+  if (is_no_save_buffer (name)) return false;
   tm_buffer buf= concrete_buffer (name);
   if (is_nil (buf)) return false;
   return buf->needs_to_be_saved ();
@@ -432,6 +434,7 @@ buffer_modified (url name) {
 
 bool
 buffer_modified_since_autosave (url name) {
+  if (is_no_save_buffer (name)) return false;
   tm_buffer buf= concrete_buffer (name);
   if (is_nil (buf)) return false;
   return buf->needs_to_be_autosaved ();

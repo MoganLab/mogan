@@ -51,6 +51,7 @@ bool       var_focus_on_buffer (url name);
 void       make_cursor_visible (url u);
 url        get_most_recent_view ();
 void       invalidate_most_recent_view ();
+bool       is_no_save_buffer (url name);
 bool       is_chat_tab_buffer (url name);
 bool       is_chat_message_buffer (url name);
 bool       is_chat_input_buffer (url name);
