@@ -20,6 +20,7 @@
 ) ;texmacs-module
 
 (import (only (liii uuid) uuid4))
+(import (only (liii time) current-date date->string))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Try to obtain the papersize in this order from
@@ -96,6 +97,79 @@
   ) ;when
 ) ;define
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Export overwrite confirmation (6207)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (pdf-export-backup-name fname stamp i)
+  ;; 旧文件备份名：「基名_YYYYMMDD_HHMMSS[-N].后缀」——时间戳格式对齐 scratch
+  ;; 草稿命名（tm-files.scm）；秒级名字仍冲突时（理论上不会发生）追加 -2、-3……
+  ;; 保证唯一（i 从 0 起，0 不带序号后缀）。stamp 由调用方传入以便测试注入。
+  (let* ((name (url->system (url-tail fname)))
+         (ext (url-suffix fname))
+         (sfx (if (= i 0) "" (string-append "-" (number->string i))))
+         (stem
+           (if (== ext "") name (string-drop-right name (+ (string-length ext) 1)))
+         ) ;stem
+        ) ;
+    (string-append stem "_" stamp sfx (if (== ext "") "" (string-append "." ext)))
+  ) ;let*
+) ;define
+
+(define (pdf-export-backup-dest fname stamp)
+  ;; 同名备份已存在时追加 -N（冲突序号由 pdf-export-backup-name 的 i 承载）
+  (let loop
+    ((i 0))
+    (with u
+      (url-append (url-head fname)
+        (system->url (pdf-export-backup-name fname stamp i))
+      ) ;url-append
+      (if (url-test? u "f") (loop (+ i 1)) u)
+    ) ;with
+  ) ;let
+) ;define
+
+(define (pdf-export-overwrite-message fname)
+  ;; 短语整体走 translate（zh_CN 词典已登记），文件名另起一行（弹窗正文 WordWrap）
+  (string-append (cork->utf8 (translate "File already exists, overwrite it?"))
+    "\n「 "
+    (url->system (url-tail fname))
+    " 」"
+  ) ;string-append
+) ;define
+
+(define (pdf-export-overwrite-confirmed? fname)
+  ;; 通用确认弹窗（cpp-confirm-question）：「是」= buttons[0]，默认按钮居左、
+  ;; Enter 触发；「否」= buttons[1]；Esc / QML 加载失败 cpp 返回 -1，均按「否」。
+  (or (headless?)
+    (== (cpp-confirm-question (pdf-export-overwrite-message fname)
+          (list (translate "Yes") (translate "No"))
+          #t
+        ) ;cpp-confirm-question
+      0
+    ) ;==
+  ) ;or
+) ;define
+
+(tm-define (export-confirm-overwrite fname)
+  (:synopsis "Confirm overwriting existing file before export; rename old file as backup on yes"
+  ) ;:synopsis
+  ;; 导出目的地已有同名文件（6207）：弹通用确认弹窗——「是」为默认按钮居左、
+  ;; 「否」居右、Esc 等同「否」。选「是」先把旧文件改名为「基名_时间戳.后缀」
+  ;; （不是删除，原文件仍在），再返回 #t 继续导出；选「否」返回 #f，调用方中止
+  ;; 本次导出。headless（自动化 / 无界面）无弹窗，按「是」处理，保持 headless
+  ;; 测试「导出总能完成」的既有语义。
+  (cond ((not (url-test? fname "f")) #t)
+        ((not (pdf-export-overwrite-confirmed? fname)) #f)
+        (else
+          (system-move fname
+            (pdf-export-backup-dest fname (date->string (current-date) "~Y~m~d_~H~M~S"))
+          ) ;system-move
+          #t
+        ) ;else
+  ) ;cond
+) ;tm-define
+
 (tm-define (export-buffer-to-pdf fname . opts)
   (let* ((cur (current-buffer))
          (buf (buffer-new))
@@ -126,21 +200,27 @@
 ) ;tm-define
 
 (tm-define (wrapped-print-to-file fname . opts)
-  (save-buffer-save (current-buffer)
-    (list)
-    (string-append (url-suffix fname) "_export")
-  ) ;save-buffer-save
-  (apply export-buffer-to-pdf fname opts)
-  (user-confirm-open-pdf fname)
+  ;; 目的地已有同名文件时先覆盖确认（export-confirm-overwrite），选「否」整条
+  ;; 导出链（含导出后的「打开 PDF？」询问）一并跳过
+  (when (export-confirm-overwrite fname)
+    (save-buffer-save (current-buffer)
+      (list)
+      (string-append (url-suffix fname) "_export")
+    ) ;save-buffer-save
+    (apply export-buffer-to-pdf fname opts)
+    (user-confirm-open-pdf fname)
+  ) ;when
 ) ;tm-define
 
 (define (wrapped-print-to-pdf-embeded fname kind . opts)
-  (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
-  (apply export-buffer-to-pdf fname opts)
-  (unless (attach-doc-to-exported-pdf fname)
-    (notify-now (string-append "Fail to attach " kind " to pdf"))
-  ) ;unless
-  (user-confirm-open-pdf fname)
+  (when (export-confirm-overwrite fname)
+    (save-buffer-save (current-buffer) (list) (string-append kind "_pdf_export"))
+    (apply export-buffer-to-pdf fname opts)
+    (unless (attach-doc-to-exported-pdf fname)
+      (notify-now (string-append "Fail to attach " kind " to pdf"))
+    ) ;unless
+    (user-confirm-open-pdf fname)
+  ) ;when
 ) ;define
 
 (tm-define (wrapped-print-to-pdf-embeded-with-tm fname . opts)

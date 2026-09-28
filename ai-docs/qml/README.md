@@ -183,8 +183,12 @@ OK 时算与快照的 diff → `prefBridge.submit(diff)` 一次性应用；Cance
 - **cancel 走语义化入口**：`QmlDialogBridge.cancel()`（= `done(Rejected)`），勿散落
   `choose(-1)` 魔法值。`choose(n>=0)` 仍用于「选第 n 个按钮」（ConfirmClose）。
 - **ConfirmQuestion 按钮反序协议**：scm 传语义序 buttons（`buttons[0]` 为默认）；
-  C++ 注入 QML 前反序（默认按钮居右），`dialogPrimary` 指显示序最后一个；QML 回传
-  `choose` 为显示下标 +1，C++ 映射回语义下标 `N - choice`。动按钮顺序前先过一遍这条链。
+  `cpp-confirm-question` 第三参 `primary_left` 选布局——`#f`（历史惯例，如「打开
+  PDF？」）：C++ 注入 QML 前反序（默认按钮居右），`dialogPrimary` 指显示序最后
+  一个，QML 回传 `choose` 为显示下标 +1，C++ 映射回语义下标 `N - choice`；
+  `#t`（如 PDF 导出覆盖确认「是｜否」）：按钮按语义序显示（默认按钮居左），
+  `dialogPrimary` 为 0，语义下标为 `choice - 1`。两种布局返回值恒为 buttons
+  语义下标、Esc 恒 -1，测试钩子下标与布局无关。动按钮顺序前先过一遍这条链。
 - **偏好键统一走 `pref-keys.scm`**：弹窗读写 preference 的 key 字符串一律在
   `TeXmacs/progs/kernel/texmacs/pref-keys.scm`（单一可信源）声明 `(define-public (pref-...) "...")`，
   调用方在 quasiquote 里用 `,(pref-...)` 引用而非裸字符串（key 改名会断 notify 回调链路）。

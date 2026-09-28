@@ -97,7 +97,7 @@
 ;; 消息文案表达,确认键语义统一。
 
 (define (updater-question message)
-  (== (cpp-confirm-question message (list (translate "Cancel") (translate "OK")))
+  (== (cpp-confirm-question message (list (translate "Cancel") (translate "OK")) #f)
     1
   ) ;==
 ) ;define
@@ -133,6 +133,7 @@
 (define (updater-notify-failure)
   (cpp-confirm-question (string-append (translate "Update check failed: ") (updater-error-code))
     (list (translate "OK"))
+    #f
   ) ;cpp-confirm-question
 ) ;define
 
