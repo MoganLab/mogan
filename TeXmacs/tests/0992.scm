@@ -5,13 +5,15 @@
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; PURPOSE
-;;   [0992] 审查 should-show-translate-popup?（操作栏显隐总闸门）的场景门控：
+;;   [0992] 审查 should-show-ai-actions-bar?（操作栏显隐总闸门）的场景门控：
 ;;     1. 正文选区：企业版且「ai:actions bar」开关开启时允许弹出；社区版或
 ;;        开关关闭时一律不弹（社区版无 AI Chat 接收方，见 0987）。
 ;;     2. preamble 编辑区（show-preamble 展开后）选中文字：一律不弹。
 ;;     3. math 公式内选中文字：与正文同等对待，允许弹出（期望值同正文）。
 ;;     4. src 源码模式 buffer（.ts 样式文件整篇以 src 模式打开）选中文字：
 ;;        一律不弹。
+;;     4b. 源码树编辑模式（文档 → 源码 → 编辑源码树，preamble=true 而 mode
+;;        仍为 text）：选中文字一律不弹（6208；此前该状态漏拦）。
 ;;     5. 选区只有图片：一律不弹（翻译/润色/对话都以文字为对象）；树形状
 ;;        判定谓词 ai-selection-only-images? 的纯逻辑覆盖见
 ;;        TeXmacs/progs/generic/tests/ai-actions-bar-test.scm。
@@ -35,6 +37,7 @@
 
 (import (liii check))
 (check-set-mode! 'report-failed)
+(load "./TeXmacs/progs/generic/document-edit.scm")
 
 (define step-delay-ms 300)
 
@@ -98,7 +101,7 @@
             (select-leaf-content (buffer-get-body (current-buffer)) 1)
             (check (selection-active-any?) => #t)
             (check (inside? 'show-preamble) => #f)
-            (check (should-show-translate-popup?) => body-expected)
+            (check (should-show-ai-actions-bar?) => body-expected)
           ) ;let
         ) ;lambda
       ) ;cons
@@ -108,7 +111,7 @@
           (select-leaf-content (tree-ref (buffer-get-body (current-buffer)) 0 0) 0)
           (check (selection-active-any?) => #t)
           (check (inside? 'show-preamble) => #t)
-          (check (should-show-translate-popup?) => #f)
+          (check (should-show-ai-actions-bar?) => #f)
         ) ;lambda
       ) ;cons
       ;; 3) math 公式内选区：与正文同等对待（期望值同正文用例）
@@ -118,7 +121,7 @@
           (select-leaf-content (buffer-get-body (current-buffer)) 0 0)
           (check (selection-active-any?) => #t)
           (check (inside? 'math) => #t)
-          (check (should-show-translate-popup?) => (body-selection-expected))
+          (check (should-show-ai-actions-bar?) => (body-selection-expected))
         ) ;lambda
       ) ;cons
       ;; 4) src 源码模式 buffer（样式文件整篇以 src 模式打开）：一律不弹
@@ -130,7 +133,21 @@
           (select-all)
           (check (selection-active-any?) => #t)
           (check (get-init "mode") => "src")
-          (check (should-show-translate-popup?) => #f)
+          (check (should-show-ai-actions-bar?) => #f)
+        ) ;lambda
+      ) ;cons
+      ;; 4b) 源码树编辑模式（编辑源码树，preamble=true）：一律不弹（6208）
+      (cons "source-tree mode document"
+        (lambda () (new-document) (insert "SRCTREETEXT"))
+      ) ;cons
+      (cons "source-tree mode assert"
+        (lambda ()
+          (toggle-source-mode)
+          (select-all)
+          (check (selection-active-any?) => #t)
+          (check (in-source-mode?) => #t)
+          (check (get-init "mode") => "text")
+          (check (should-show-ai-actions-bar?) => #f)
         ) ;lambda
       ) ;cons
       ;; 5) 选区只有图片：一律不弹（翻译/润色/对话都以文字为对象）；
@@ -147,7 +164,7 @@
         (lambda ()
           (select-all)
           (check (selection-active-any?) => #t)
-          (check (should-show-translate-popup?) => #f)
+          (check (should-show-ai-actions-bar?) => #f)
         ) ;lambda
       ) ;cons
       (cons "report + quit" (lambda () (check-report) (quit-TeXmacs)))

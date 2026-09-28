@@ -1462,9 +1462,8 @@ edit_interface_rep::should_show_ai_actions_bar () {
     return false;
   }
 
-  // 只限文档正文：src 源码模式（样式文件等整篇 src 的 buffer）与 preamble
-  // 编辑区不弹（判定组合与 edit_dynamic.cpp、edit_search.cpp 一致）
-  if (get_init_string (MODE) == "src" || inside ("show-preamble")) {
+  // 只限文档正文：源码编辑上下文（in_source_context）不弹
+  if (in_source_context ()) {
     return false;
   }
 
