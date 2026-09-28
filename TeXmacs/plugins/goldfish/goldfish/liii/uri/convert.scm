@@ -1,8 +1,8 @@
-;; ; (liii uri-convert) - URI 转换函数
+;; ; (liii uri convert) - URI 转换函数
 ;; ; 本模块包含 URI 的转换函数（uri->string, uri->human-string）
 
-(define-library (liii uri-convert)
-  (import (scheme base) (liii error) (liii uri-record) (liii uri-parse))
+(define-library (liii uri convert)
+  (import (scheme base) (liii error) (liii uri record) (liii uri parse))
 
   ;; ; ---------- 导出接口 ----------
   (export uri->string)

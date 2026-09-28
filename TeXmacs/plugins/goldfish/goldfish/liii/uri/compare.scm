@@ -1,8 +1,8 @@
-;; ; (liii uri-compare) - URI 比较函数
+;; ; (liii uri compare) - URI 比较函数
 ;; ; 本模块包含 URI 的比较和哈希函数
 
-(define-library (liii uri-compare)
-  (import (scheme base) (liii uri-record))
+(define-library (liii uri compare)
+  (import (scheme base) (liii uri record))
 
   ;; ; ---------- 导出接口 ----------
   (export uri=?)

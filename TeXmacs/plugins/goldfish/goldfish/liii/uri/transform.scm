@@ -1,14 +1,14 @@
-;; ; (liii uri-transform) - URI 修改函数
+;; ; (liii uri transform) - URI 修改函数
 ;; ; 本模块包含 URI 的修改函数（with-系列、query更新、路径操作）
 
-(define-library (liii uri-transform)
+(define-library (liii uri transform)
   (import (scheme base)
     (scheme char)
     (liii string)
     (liii list)
     (liii error)
-    (liii uri-record)
-    (liii uri-parse)
+    (liii uri record)
+    (liii uri parse)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------

@@ -1,14 +1,14 @@
-;; ; (liii uri-record) - URI 记录类型定义
+;; ; (liii uri record) - URI 记录类型定义
 ;; ; 本模块包含 URI 记录类型的定义和所有访问器函数
 
-(define-library (liii uri-record)
+(define-library (liii uri record)
   (import (scheme base)
     (scheme char)
     (liii string)
     (liii list)
     (liii error)
     (liii unicode)
-    (liii uri-parse)
+    (liii uri parse)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------

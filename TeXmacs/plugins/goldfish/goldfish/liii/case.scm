@@ -326,8 +326,8 @@
                     ) ;and
                   ) ;or
                 ) ;define
-                (define (handle-body select body return e)
-                  (if (null? body) (return select))
+                (define (handle-body selector body return e)
+                  (if (null? body) (return selector))
                   (when (find-labelled-pattern body)
                     (set! body
                       (let pair-builder
@@ -354,13 +354,13 @@
                     (eval
                       (if (null? (cdr body))
                         (car body)
-                        (if (eq? (car body) '=>) (list (cadr body) select) (cons 'begin body))
+                        (if (eq? (car body) '=>) (list (cadr body) selector) (cons 'begin body))
                       ) ;if
                       e
                     ) ;eval
                   ) ;return
                 ) ;define
-                (lambda (select clauses e)
+                (lambda (selector clauses e)
                   (call-with-exit
                     (lambda (return)
                       (for-each
@@ -372,16 +372,16 @@
                               (for-each
                                 (lambda (target)
                                   (if
-                                    (or (equivalent? target select)
+                                    (or (equivalent? target selector)
                                       (and (undefined? target)
                                         (not (eq? target #<undefined>))
                                         (let ((func (undefined->function target e)))
-                                          (and (procedure? func) (func select))
+                                          (and (procedure? func) (func selector))
                                         ) ;let
                                       ) ;and
-                                      (and (sequence? target) ((handle-sequence target e) select))
+                                      (and (sequence? target) ((handle-sequence target e) selector))
                                     ) ;or
-                                    (handle-body select body return e)
+                                    (handle-body selector body return e)
                                   ) ;if
                                 ) ;lambda
                                 targets
