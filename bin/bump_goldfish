@@ -19,3 +19,4 @@ cp $tmp/src/goldfish_repl.cpp TeXmacs/plugins/goldfish/src/
 cp $tmp/src/s7* 3rdparty/s7/
 
 cp -r $tmp/goldfish/* TeXmacs/plugins/goldfish/goldfish/
+cp $tmp/node-rules.json TeXmacs/plugins/goldfish/node-rules.json

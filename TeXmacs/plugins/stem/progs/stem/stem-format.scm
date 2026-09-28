@@ -13,23 +13,23 @@
 
 (texmacs-module (stem stem-format))
 
+(import (liii goldfmt stem))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Scheme format for TeXmacs source files (no information loss)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-format stem (:name "STEM") (:suffix "stem"))
 
-(define (texmacs->stem t)
-  (texmacs->stm (herk-tree->utf8-tree t))
-) ;define
+(tm-define (texmacs->stem t)
+  (format-stem-string (texmacs->stm (herk-tree->utf8-tree t)))
+) ;tm-define
 
-(define (stem->texmacs text)
-  (utf8-tree->herk-tree (stm->texmacs text))
-) ;define
+(tm-define (stem->texmacs text) (utf8-tree->herk-tree (stm->texmacs text)))
 
-(define (stem-snippet->texmacs text)
+(tm-define (stem-snippet->texmacs text)
   (utf8-tree->herk-tree (stm-snippet->texmacs text))
-) ;define
+) ;tm-define
 
 (converter texmacs-tree stem-document (:function texmacs->stem))
 
