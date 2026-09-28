@@ -27,6 +27,14 @@ using namespace moebius;
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
 
+bool
+edit_interface_rep::in_source_context () {
+  // 源码编辑的三种形态：整篇 src 的 buffer（样式文件等）、show-preamble
+  // 编辑区、源码树编辑模式（toggle-source-mode 置 preamble=true，6208）
+  return get_init_string ("mode") == "src" || inside ("show-preamble") ||
+         get_env_string ("preamble") == "true";
+}
+
 void
 edit_interface_rep::source_complete_try () {
   bool is_source     = (get_env_string ("mode") == "src");

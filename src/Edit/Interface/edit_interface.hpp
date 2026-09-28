@@ -230,6 +230,9 @@ public:
   cursor    search_cursor (path p);
   selection search_selection (path start, path end);
   rectangle get_window_extents ();
+  // 光标当前是否处于源码编辑上下文（src 模式 buffer / show-preamble 编辑
+  // 区 / preamble=true 的源码树编辑模式），供选区弹层等正文专属特性门控
+  bool in_source_context ();
   /**
    * @brief 排版后文档的真实纵向内容高度（含缩放，SI 单位）。
    *
