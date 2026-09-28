@@ -35,8 +35,8 @@
 (tm-define (doc-data-exam t xopts)
   (:secure #t)
   (let* ((doc (doc-data t xopts))
-         (class (select t '(doc-exam-class :%1)))
-         (date (select t '(doc-exam-date :%1)))
+         (class (tm-select t '(doc-exam-class :%1)))
+         (date (tm-select t '(doc-exam-date :%1)))
         ) ;
     (cond ((and (null? class) (null? date)) doc)
           ((and (nnull? class) (null? date))

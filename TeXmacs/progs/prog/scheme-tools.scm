@@ -58,7 +58,7 @@
 
 (define (sessions->verbatim t)
   (with tx
-    (select t '(:* (:or input unfolded-io folded-io) 1))
+    (tm-select t '(:* (:or input unfolded-io folded-io) 1))
     (with props
       (acons "texmacs->verbatim:encoding" "SourceCode" '())
       (string-join (map-in-order (lambda (x) (texmacs->verbatim x props))
@@ -157,7 +157,7 @@
 ) ;tm-define
 
 (define (get-current-doc-module)
-  (let ((tt (select (buffer-tree) '(doc-module-header 0))))
+  (let ((tt (tm-select (buffer-tree) '(doc-module-header 0))))
     (if (null? tt) '() (string->module (tree->string (car tt))))
   ) ;let
 ) ;define

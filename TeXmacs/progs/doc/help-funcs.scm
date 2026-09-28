@@ -43,8 +43,9 @@
     (tree-import u "texmacs")
     ;; 从文档树中选择标题节点，支持多种标题标签格式
     (with tt
-      (select t '(:* (:or title doc-title tmdoc-title tmdoc-title* tmweb-title)
-                   :%1))
+      (tm-select t
+        '(:* (:or title doc-title tmdoc-title tmdoc-title* tmweb-title) :%1)
+      ) ;tm-select
       ;; 如果没有找到标题则返回空列表，否则返回第一个标题
       (if (null? tt) '() (car tt))
     ) ;with

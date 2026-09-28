@@ -104,7 +104,7 @@
 (define (bibwid-modify doit?)
   (when doit?
     (with l
-      (select (buffer-tree) '(:* bibliography))
+      (tm-select (buffer-tree) '(:* bibliography))
       (when (> (length l) 0)
         (with t
           (car l)

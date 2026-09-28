@@ -27,22 +27,24 @@
   (set! bibwid-use-relative? #f)
   (set! bibwid-style "tm-plain")
   (set! bibwid-url
-    (string->url (string-append (getenv "TEXMACS_PATH") "/tests/bib/1308.bib")))
+    (string->url (string-append (getenv "TEXMACS_PATH") "/tests/bib/1308.bib"))
+  ) ;set!
   (with out
     (tree->stree (bibwid-output))
     (check-true (tm-func? out 'with))
     ;; 渲染成功时 bib-process 产出 bib-list；文件非法时则是提示文案、无 bib-list
     (with bibs
-      (select out '(:* bib-list))
+      (tm-select out '(:* bib-list))
       (check-true (nnull? bibs))
       ;; 1308.bib 两个条目均经 bib-format-entry 格式化
       (check (cadr (car bibs)) => "2")
-      (check (length (cdr (caddr (car bibs)))) => 2)
+      (check
+        (length (cdr (caddr (car bibs))))
+        =>
+        2
+      ) ;check
     ) ;with
   ) ;with
 ) ;define
 
-(tm-define (test_1308)
-  (test-bibwid-output-renders-bib-list)
-  (check-report)
-) ;tm-define
+(tm-define (test_1308) (test-bibwid-output-renders-bib-list) (check-report))

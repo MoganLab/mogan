@@ -62,7 +62,7 @@
 
 (define (add-author-refs name author data where type)
   (with l
-    (select author (list type))
+    (tm-select author (list type))
     (add-author-refs-to name author data where l)
   ) ;with
 ) ;define
@@ -80,7 +80,7 @@
   (if (null? l)
     l
     (with names
-      (select (car l) '(author-name 0))
+      (tm-select (car l) '(author-name 0))
       (if (or (null? l) (null? names))
         (build-authors-refs (cdr l) data)
         (with name
@@ -94,11 +94,11 @@
 
 (tm-define (single-author-list t)
   (with authors
-    (select t '(doc-author author-data))
+    (tm-select t '(doc-author author-data))
     (if (<= (length authors) 1)
       t
       (with other
-        (select t '((:exclude doc-author)))
+        (tm-select t '((:exclude doc-author)))
         (with data
           (make-ahash-table)
           (ahash-set! data :notes '())
@@ -142,19 +142,19 @@
 ) ;tm-define
 
 (define (get-affiliations author)
-  (map tm->stree (select author '(author-affiliation)))
+  (map tm->stree (tm-select author '(author-affiliation)))
 ) ;define
 
 (define (remove-affiliations adata)
   (with fields
-    (select adata '((:exclude author-affiliation)))
+    (tm-select adata '((:exclude author-affiliation)))
     `(,(tm-label adata) ,@fields)
   ) ;with
 ) ;define
 
 (define (rewrite-by-affiliation-bis group data)
   (ahash-set! data :notes '())
-  (let* ((affs (select (car group) '(author-affiliation)))
+  (let* ((affs (tm-select (car group) '(author-affiliation)))
          (clean-authors (map remove-affiliations group))
          (names (build-authors-refs clean-authors data))
          (notes (reverse (ahash-ref data :notes)))
@@ -175,9 +175,9 @@
     (let* ((f (car group))
            (l '(author-email author-homepage author-misc))
            (notes
-             (select f `((,:or ,@l)))
+             (tm-select f `((,:or ,@l)))
            ) ;notes
-           (nnotes (select f '((:exclude author-email))))
+           (nnotes (tm-select f '((:exclude author-email))))
            (nf
              `(,(tm-label f) ,@nnotes)
            ) ;nf
@@ -191,7 +191,7 @@
 
 (tm-define (factor-affiliation t)
   (with authors
-    (select t '(doc-author author-data))
+    (tm-select t '(doc-author author-data))
     (if (<= (length authors) 1)
       t
       (with groups
@@ -199,7 +199,7 @@
         (with data
           (make-ahash-table)
           (ahash-set! data :footnotes '())
-          (let* ((other (select t '((:exclude doc-author))))
+          (let* ((other (tm-select t '((:exclude doc-author))))
                  (new-authors (map (rewrite-by-affiliation data) groups))
                  (fnotes (reverse (ahash-ref data :footnotes)))
                 ) ;
@@ -223,14 +223,14 @@
 ) ;define
 
 (define (abbreviate-author t)
-  (let* ((name (select t '(author-name 0)))
-         (institute (select t '(author-affiliation document 0)))
-         (affiliation (select t '(author-affiliation document :%1)))
+  (let* ((name (tm-select t '(author-name 0)))
+         (institute (tm-select t '(author-affiliation document 0)))
+         (affiliation (tm-select t '(author-affiliation document :%1)))
          (affiliation* (if (list-1? affiliation) (list) affiliation))
-         (email (select t '(author-email 0)))
-         (webpage (select t '(author-webpage 0)))
-         (note (select t '(author-note 0)))
-         (misc (select t '(author-misc 0)))
+         (email (tm-select t '(author-email 0)))
+         (webpage (tm-select t '(author-webpage 0)))
+         (note (tm-select t '(author-note 0)))
+         (misc (tm-select t '(author-misc 0)))
          (other (append affiliation* email webpage note misc))
         ) ;
     `(doc-author (,(tm-label t)
@@ -244,8 +244,8 @@
 
 (tm-define (abbreviate-authors t)
   (with authors
-    (select t '(doc-author author-data))
-    (let* ((other (select t '((:exclude doc-author))))
+    (tm-select t '(doc-author author-data))
+    (let* ((other (tm-select t '((:exclude doc-author))))
            (new-authors (map abbreviate-author authors))
           ) ;
       `(,(tm-label t) ,@other ,@new-authors)
@@ -254,8 +254,8 @@
 ) ;tm-define
 
 (define (abbreviate-author-bis t)
-  (let* ((name (select t '(author-name 0)))
-         (affiliation (select t '(author-affiliation document :%1)))
+  (let* ((name (tm-select t '(author-name 0)))
+         (affiliation (tm-select t '(author-affiliation document :%1)))
          (new-name
            (if (null? affiliation)
              `(author-name ,(make-single name))
@@ -263,7 +263,7 @@
                 ,(make-single affiliation))
            ) ;if
          ) ;new-name
-         (other (select t '((:exclude author-name author-affiliation))))
+         (other (tm-select t '((:exclude author-name author-affiliation))))
         ) ;
     `(doc-author (,(tm-label t) ,new-name ,@other))
   ) ;let*
@@ -271,8 +271,8 @@
 
 (tm-define (abbreviate-authors-bis t)
   (with authors
-    (select t '(doc-author author-data))
-    (let* ((other (select t '((:exclude doc-author))))
+    (tm-select t '(doc-author author-data))
+    (let* ((other (tm-select t '((:exclude doc-author))))
            (new-authors (map abbreviate-author-bis authors))
           ) ;
       `(,(tm-label t) ,@other ,@new-authors)

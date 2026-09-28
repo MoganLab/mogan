@@ -204,7 +204,7 @@
          ) ;and
         ) ;
         ;; but they can all be replaced by the general code below
-        (else (with r (select t l) (and (nnull? r) (car r))))
+        (else (with r (tm-select t l) (and (nnull? r) (car r))))
   ) ;cond
 ) ;tm-define
 
@@ -246,7 +246,7 @@
         ;; More cases can be treated for trees in a document
         ((tree-active? t)
          (with r
-           (select t l)
+           (tm-select t l)
            (if (nnull? r) (tree-set-diff (car r) u) (tree-set-sub-error t l))
          ) ;with
         ) ;

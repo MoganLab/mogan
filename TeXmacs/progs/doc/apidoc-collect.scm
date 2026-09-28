@@ -69,7 +69,7 @@
 
 (define (doctree-lan t)
   "Returns the language of the TeXmacs document tree @t."
-  (let* ((s (select t '(initial collection associate)))
+  (let* ((s (tm-select t '(initial collection associate)))
          (flt (lambda (x) (== (tm-ref x 0) "language")))
          (s2 (list-filter (map tree->stree s) flt))
         ) ;
@@ -113,18 +113,18 @@
 
 (define (explain-scm? t)
   "Is the tree an explain macro for some scheme routine(s)?"
-  (nnull? (select t '(0 :* scm)))
+  (nnull? (tm-select t '(0 :* scm)))
 ) ;define
 
 (define (explain-macro? t)
   "Is the tree an explain macro for some texmacs macro(s)?"
-  (nnull? (select t '(0 0 :* explain-macro)))
+  (nnull? (tm-select t '(0 0 :* explain-macro)))
 ) ;define
 
 (define (explain-scm-keywords t)
   "Returns the list of scheme keywords described in an explain tag."
   (with tags
-    (select t '(0 :* scm))
+    (tm-select t '(0 :* scm))
     (map
       (lambda (x) (first-symbol (tmstring->string (flatten-strings x))))
       tags
@@ -135,7 +135,7 @@
 (define (explain-macro-keywords t)
   "Returns the list of macro names described in an explain tag."
   (with tags
-    (select t '(0 :* explain-macro))
+    (tm-select t '(0 :* explain-macro))
     (map (lambda (x) (tmstring->string (tm-ref x 0))) tags)
   ) ;with
 ) ;define
@@ -183,8 +183,8 @@
     (let* ((furl (string->url (string-append basedir "/" (tm-ref l 1))))
            (t (tree-import furl "texmacs"))
            (lan (doctree-lan t))
-           (ex (map tree->stree (select t '(:* explain))))
-           (br (map tree->stree (select t '(:* traverse :* branch))))
+           (ex (map tree->stree (tm-select t '(:* explain))))
+           (br (map tree->stree (tm-select t '(:* traverse :* branch))))
           ) ;
       (set! basedir (string-append basedir "/" (url->system (url-head (tm-ref l 1)))))
       (for-each (lambda (t) (process-explain t lan furl)) ex)
