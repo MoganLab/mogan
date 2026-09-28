@@ -1093,7 +1093,8 @@
         </div>
         <p class="legend">
           对应 QML: <code>message: dialogMessage</code>
-          <code>buttonLabels: dialogButtons</code>（显示序与语义序相反，默认按钮居右）
+          <code>buttonLabels: dialogButtons</code>（显示序与语义序相反，默认按钮居右；
+          <code>primary_left=#t</code> 时按语义序显示、默认按钮居左，如导出覆盖确认「是｜否」）
           <code>dialogPrimary</code> 指向默认按钮
           <code>onActivate -> choose(primaryIndex + 1)</code>（Enter = 是）
         </p>

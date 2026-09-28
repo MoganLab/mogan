@@ -209,22 +209,27 @@ TestQmlDialog::test_confirm_close_hook () {
 }
 
 // MOGAN_TEST_CONFIRM_QUESTION 钩子：<下标> 命中时返回 buttons 语义下标、
-// cancel 时返回 -1（Esc / 加载失败语义），均不弹窗。
+// cancel 时返回 -1（Esc / 加载失败语义），均不弹窗。primary_left 只改按钮
+// 显示布局，钩子返回的语义下标与布局无关（两种布局各验一例）。
 void
 TestQmlDialog::test_confirm_question_hook () {
   array<string> buttons;
   buttons << string ("yes") << string ("no");
   {
     EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "0");
-    QCOMPARE (cpp_confirm_question ("msg", buttons), 0); // 默认按钮
+    QCOMPARE (cpp_confirm_question ("msg", buttons, false), 0); // 默认按钮
   }
   {
     EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "1");
-    QCOMPARE (cpp_confirm_question ("msg", buttons), 1);
+    QCOMPARE (cpp_confirm_question ("msg", buttons, false), 1);
   }
   {
     EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "cancel");
-    QCOMPARE (cpp_confirm_question ("msg", buttons), -1);
+    QCOMPARE (cpp_confirm_question ("msg", buttons, false), -1);
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_QUESTION", "0");
+    QCOMPARE (cpp_confirm_question ("msg", buttons, true), 0);
   }
 }
 

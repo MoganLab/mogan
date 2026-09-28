@@ -279,7 +279,7 @@ qt_inputs_list_widget_rep::perform_dialog () {
       array<string> buttons (choices);
       for (int i= 0; i < choices; i++)
         buttons[i]= upcase_first (field (0)->proposals[i]);
-      int picked= cpp_confirm_question (field (0)->prompt, buttons);
+      int picked= cpp_confirm_question (field (0)->prompt, buttons, false);
       if (picked >= 0 && picked < choices)
         field (0)->input= scm_quote (field (0)->proposals[picked]);
       else field (0)->input= "#f"; // Esc / 加载失败，按「否」处理

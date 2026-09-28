@@ -436,31 +436,40 @@ cpp_confirm_restart (string title, string message) {
 /**
  * @brief 「问题」确认弹窗的 glue 入口（声明/语义见 QTMQmlDialog.hpp）。
  *
- * @details buttons 为语义顺序（buttons[0] 默认）；注入 QML 的 dialogButtons 按
- * 相反显示顺序（默认按钮居右），dialogPrimary 指向显示序的最后一个。QML 返回
- * 的 choose 值为显示下标 +1，映射回语义下标为 N - choice。按钮文案已在 scm
- * 侧翻译，此处纯透传、不再过 translate_buttons。测试钩子
- * MOGAN_TEST_CONFIRM_QUESTION=<下标|cancel> 命中时不弹窗。
+ * @details buttons 为语义顺序（buttons[0] 默认）。primary_left=false（历史
+ * 惯例，默认按钮居右）：注入 QML 的 dialogButtons 按相反显示顺序，
+ * dialogPrimary 指向显示序的最后一个，QML 回传 choose 的显示下标 +1 映射回
+ * 语义下标 N - choice。primary_left=true（如 PDF 导出覆盖确认，默认按钮
+ * 居左）：按钮按 buttons 顺序显示，dialogPrimary 为 0，语义下标为
+ * choice - 1。按钮文案已在 scm 侧翻译，此处纯透传、不再过 translate_buttons。
+ * 测试钩子 MOGAN_TEST_CONFIRM_QUESTION=<下标|cancel> 命中时不弹窗。
  */
 int
-cpp_confirm_question (string message, array<string> buttons) {
+cpp_confirm_question (string message, array<string> buttons,
+                      bool primary_left) {
   string preset= get_env ("MOGAN_TEST_CONFIRM_QUESTION");
   if (preset == "cancel") return -1;
   if (is_int (preset)) return as_int (preset);
   const int n= N (buttons);
   if (n <= 0) return -1;
+  // 语义↔显示下标是同一个对合变换（倒序时自逆）：primary_left 时恒等，
+  // 否则倒序。注入顺序、dialogPrimary 与返回值映射共用，保证三者一致。
+  const auto display_of= [=] (int semantic) {
+    return primary_left ? semantic : n - 1 - semantic;
+  };
   QStringList qmlButtons;
   for (int i= 0; i < n; i++)
-    qmlButtons << to_qstring (buttons[n - 1 - i]);
-  QmlDialogBridge* bridge= nullptr;
-  int              choice= run_qml_dialog (
+    qmlButtons << to_qstring (buttons[display_of (i)]);
+  const int        primary= display_of (0);
+  QmlDialogBridge* bridge = nullptr;
+  int              choice = run_qml_dialog (
       "qrc:/qml/ConfirmQuestion.qml", "question dialog",
       [&] (QQuickWidget* qw, QDialog& host) {
         bridge= inject_common_context (qw, host);
         qw->rootContext ()->setContextProperty ("dialogMessage",
-                                                             to_qstring (message));
+                                                              to_qstring (message));
         qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
-        qw->rootContext ()->setContextProperty ("dialogPrimary", n - 1);
+        qw->rootContext ()->setContextProperty ("dialogPrimary", primary);
       },
       // 正文支持换行（ConfirmQuestion.qml WordWrap），长文案（如更新通道切换
       // 确认）需更高正文区。
@@ -468,7 +477,7 @@ cpp_confirm_question (string message, array<string> buttons) {
   delete bridge;
   // choose(0) = Esc / X；加载失败为 -1；二者均按取消处理。
   if (choice <= 0 || choice > n) return -1;
-  return n - choice;
+  return display_of (choice - 1);
 }
 
 // ---- form 引擎 --------------------------------------------------------------

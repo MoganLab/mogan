@@ -139,12 +139,17 @@ string cpp_confirm_restart (string title, string message);
  * QMessageBox，如 PDF 导出完成询问是否打开文件）。
  * @param message 已翻译的正文。
  * @param buttons 已翻译的按钮文案，buttons[0] 为默认（肯定）按钮。
+ * @param primary_left 默认按钮是否居左：true 时按钮按 buttons 顺序显示（默认
+ *   按钮居左，如 PDF 导出覆盖确认「是｜否」）；false 时显示顺序与 buttons
+ *   相反（默认按钮居右，历史惯例，如「打开 PDF？」）。
  * @return 用户点选按钮在 buttons 中的下标（≥0）；Esc / QML 加载失败返回 -1。
- * @details 注入 QML 时按钮显示顺序与 buttons 相反——默认按钮居右并 primary
- * 高亮（与原 QMessageBox 的左右位置互换），Enter 触发默认按钮。测试钩子
- * MOGAN_TEST_CONFIRM_QUESTION=<下标|cancel> 命中时不弹窗直接返回。
+ * @details 两种布局只影响注入 QML 的显示顺序与 dialogPrimary 下标，语义下标
+ * 协议不变（buttons[0] 恒为默认按钮，返回值恒为 buttons 语义下标），Enter
+ * 恒触发默认按钮。测试钩子 MOGAN_TEST_CONFIRM_QUESTION=<下标|cancel> 命中时
+ * 不弹窗直接返回（下标为语义下标，与布局无关）。
  */
-int cpp_confirm_question (string message, array<string> buttons);
+int cpp_confirm_question (string message, array<string> buttons,
+                          bool primary_left);
 
 /**
  * @brief 通用 form 弹窗引擎的 glue 入口。
