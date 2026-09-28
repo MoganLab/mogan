@@ -351,8 +351,6 @@
   ) ;with
 ) ;define-public
 
-(varlet *texmacs-module* 'select tm-select)
-
 (define-public (tm-ref t . l)
-  (and (tm? t) (with r (select t l) (and (nnull? r) (car r))))
+  (and (tm? t) (with r (tm-select t l) (and (nnull? r) (car r))))
 ) ;define-public

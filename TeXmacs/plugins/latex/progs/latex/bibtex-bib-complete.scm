@@ -53,7 +53,7 @@
     (current-buffer-url)
     (or (and usecache? (ahash-ref bib-files-cache u))
       (with l
-        (select (buffer-tree) '(:* bibliography))
+        (tm-select (buffer-tree) '(:* bibliography))
         (if (nnull? l)
           (ahash-set! bib-files-cache
             u
@@ -72,7 +72,7 @@
     (current-buffer-url)
     (or (and usecache? (ahash-ref bib-styles-cache u))
       (with l
-        (select (buffer-tree) '(:* bibliography))
+        (tm-select (buffer-tree) '(:* bibliography))
         (if (nnull? l)
           (ahash-set! bib-styles-cache u (tm->string (tree-ref (car l) 1)))
           "tm-plain"

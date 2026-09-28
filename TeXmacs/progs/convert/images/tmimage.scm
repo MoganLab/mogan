@@ -132,9 +132,9 @@
           ;; 2: define a bunch of locations in the tree
           (buftree (buffer-get-body mybuf))
           ;; the whole tree
-          (svgroot (car (select buftree '(:* svg))))
+          (svgroot (car (tm-select buftree '(:* svg))))
           ;; the <svg > node
-          (groups (select svgroot '(g)))
+          (groups (tm-select svgroot '(g)))
           (maingroup
             (if (list>1? groups)
               (begin
@@ -152,13 +152,13 @@
           ) ;maingroup
           ;; the main group in the svg, containing the drawing layout
           ;; (if more than one group, we group everything in a new group)
-          (maingroup-attrib (car (select maingroup '(@))))
+          (maingroup-attrib (car (tm-select maingroup '(@))))
           ;; attributes of the main group
-          (defs (select svgroot '(defs)))
+          (defs (tm-select svgroot '(defs)))
           (defs (if (list>0? defs) (car defs) #f))
           ;; the defs, containing the glyph vector outlines,
           ;; hyperlinked from the drawing (a.k.a cloned)
-          (bgframe (select maingroup '(:* path @ style :%1)))
+          (bgframe (tm-select maingroup '(:* path @ style :%1)))
           (bgframe (if (null? bgframe) #f (car bgframe)))
           ;; the solid background we introduced
           ;; 3: the new data we want to insert in the tree
@@ -373,7 +373,7 @@
              ) ;iseqnarray
              (table-t (if iseqnarray (tree-ref (selection-tree) :* 'table) #f))
              (eqarraynrows
-               (if table-t (length (select table-t '(:%0 row))) #f)
+               (if table-t (length (tm-select table-t '(:%0 row))) #f)
              ) ;eqarraynrows
              (simpleeqnarray (and iseqnarray (== 1 eqarraynrows)))
              (tmppng (url-temp-ext "png"))

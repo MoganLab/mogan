@@ -372,9 +372,9 @@
 ) ;define
 
 (define (convertible-eqnarray? t)
-  (let* ((rs (select (tm->stree t) '(:* row)))
+  (let* ((rs (tm-select (tm->stree t) '(:* row)))
          (rcs
-           (map (lambda (r) (select r '(:* cell 0))) rs)
+           (map (lambda (r) (tm-select r '(:* cell 0))) rs)
          ) ;rcs
         ) ;
     (check-border? rcs #t)
@@ -387,7 +387,7 @@
     (when (and (<= (length labs) 1) (convertible-eqnarray? t))
       (cut-all t 'label)
       (cut-all t 'eq-number)
-      (let* ((l* (select t '(:* cell 0)))
+      (let* ((l* (tm-select t '(:* cell 0)))
              (l (if (null? labs) l* (cons (car labs) l*)))
              (c (apply tmconcat (map tree->stree l)))
              (n

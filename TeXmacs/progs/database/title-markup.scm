@@ -46,7 +46,7 @@
 ) ;define
 
 (tm-define (collect-notes t style tags)
-  (let* ((l (apply append (map (cut select t <>) tags))) (h (make-ahash-table)))
+  (let* ((l (apply append (map (cut tm-select t <>) tags))) (h (make-ahash-table)))
     (for-each (cut insert-note <> h style) l)
     (append-map (cut retrieve-note <> h) l)
   ) ;let*
@@ -118,7 +118,7 @@
     `(author-name ,(add-annotations (tm-ref c 0) notes))
    ) ;
    ((tm-func? c 'doc-author 1)
-    (let* ((sels (map tm->stree (select c '(author-data author-note))))
+    (let* ((sels (map tm->stree (tm-select c '(author-data author-note))))
            (new-notes (append-map (cut find-note <> notes) sels))
           ) ;
       (with ann (cut annotate <> new-notes) `(doc-author ,@(map ann
@@ -173,26 +173,26 @@
 
 (tm-define (doc-data-hidden t)
   (with names
-    (select t '(doc-author author-data
-                 (:or author-name author-name-affiliation)
-                 0))
-    `(concat ,@(select t '(doc-footnote-text))
-       ,@(map title->running-title (select t '(doc-title)))
-       ,@(select t '(doc-running-title))
+    (tm-select t
+      '(doc-author author-data (:or author-name author-name-affiliation) 0)
+    ) ;tm-select
+    `(concat ,@(tm-select t '(doc-footnote-text))
+       ,@(map title->running-title (tm-select t '(doc-title)))
+       ,@(tm-select t '(doc-running-title))
        (doc-running-author (comma-separated ,@(map remove-annotations names)))
-       ,@(select t '(doc-running-author)))
+       ,@(tm-select t '(doc-running-author)))
   ) ;with
 ) ;tm-define
 
 (tm-define (doc-data-main t)
-  `(document ,@(select t '(doc-title))
-     ,@(select t '(doc-subtitle))
+  `(document ,@(tm-select t '(doc-title))
+     ,@(tm-select t '(doc-subtitle))
      ,@(with authors
-         (select t '(doc-author))
+         (tm-select t '(doc-author))
          (if (<= (length authors) 1) authors (list `(doc-authors ,@authors))))
-     ,@(select t '(doc-date))
-     ,@(select t '(doc-misc))
-     ,@(select t '(doc-inactive)))
+     ,@(tm-select t '(doc-date))
+     ,@(tm-select t '(doc-misc))
+     ,@(tm-select t '(doc-inactive)))
 ) ;tm-define
 
 (tm-define (xdoc-data-sub t)
@@ -231,8 +231,8 @@
 
 (tm-define (doc-data t xopts)
   (:secure #t)
-  (let* ((opts1 (select t '(doc-title-options :%1)))
-         (opts2 (select xopts '(:%1)))
+  (let* ((opts1 (tm-select t '(doc-title-options :%1)))
+         (opts2 (tm-select xopts '(:%1)))
          (opts (map tree->stree (append opts1 opts2)))
         ) ;
     (doc-data-impl t opts)
@@ -248,25 +248,25 @@
 ) ;define
 
 (define (ams-author-data t)
-  `(render-plain-footnote (document ,@(select t '(author-affiliation))
-                            ,@(select t '(author-email))
-                            ,@(select t '(author-homepage))
-                            ,@(select t '(author-note))
-                            ,@(select t '(author-misc))))
+  `(render-plain-footnote (document ,@(tm-select t '(author-affiliation))
+                            ,@(tm-select t '(author-email))
+                            ,@(tm-select t '(author-homepage))
+                            ,@(tm-select t '(author-note))
+                            ,@(tm-select t '(author-misc))))
 ) ;define
 
 (define (ams-doc-data-hidden t)
-  `(concat ,@(map plain-footnote (select t '(doc-date)))
-     ,@(map plain-footnote (select t '(doc-note)))
+  `(concat ,@(map plain-footnote (tm-select t '(doc-date)))
+     ,@(map plain-footnote (tm-select t '(doc-note)))
      ,@(cdr (doc-data-hidden t))
-     ,@(map ams-author-data (select t '(doc-author author-data))))
+     ,@(map ams-author-data (tm-select t '(doc-author author-data))))
 ) ;define
 
 (define (ams-doc-data-main t)
-  `(document ,@(select t '(doc-title))
-     ,@(select t '(doc-subtitle))
+  `(document ,@(tm-select t '(doc-title))
+     ,@(tm-select t '(doc-subtitle))
      ,@(with authors
-         (select t '(doc-author author-data author-name))
+         (tm-select t '(doc-author author-data author-name))
          (cond ((null? authors) ())
                ((null? (cdr authors)) `((author-name ,@authors)))
                ((null? (cddr authors))
@@ -281,8 +281,8 @@
                                         (localize "and")
                                         ," "
                                         ,(cAr l))))))))
-     ,@(select t '(doc-misc))
-     ,@(select t '(doc-inactive)))
+     ,@(tm-select t '(doc-misc))
+     ,@(tm-select t '(doc-inactive)))
 ) ;define
 
 (tm-define (doc-data-impl t opts)
@@ -296,16 +296,16 @@
 
 (tm-define (author-data t)
   (:secure #t)
-  `(document ,@(select t '(author-name))
-     ,@(select t '(author-name-affiliation))
-     ,@(select t '(author-affiliation))
-     ,@(select t '(author-affiliation-note))
-     ,@(select t '(author-email))
-     ,@(select t '(author-email-note))
-     ,@(select t '(author-homepage))
-     ,@(select t '(author-homepage-note))
-     ,@(select t '(author-misc))
-     ,@(select t '(author-misc-note)))
+  `(document ,@(tm-select t '(author-name))
+     ,@(tm-select t '(author-name-affiliation))
+     ,@(tm-select t '(author-affiliation))
+     ,@(tm-select t '(author-affiliation-note))
+     ,@(tm-select t '(author-email))
+     ,@(tm-select t '(author-email-note))
+     ,@(tm-select t '(author-homepage))
+     ,@(tm-select t '(author-homepage-note))
+     ,@(tm-select t '(author-misc))
+     ,@(tm-select t '(author-misc-note)))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -315,13 +315,13 @@
 (tm-define (abstract-data t)
   (:secure #t)
   (let ((opts
-          `(document ,@(select t '(abstract-keywords))
-             ,@(select t '(abstract-acm))
-             ,@(select t '(abstract-arxiv))
-             ,@(select t '(abstract-pacs))
-             ,@(select t '(abstract-msc)))
+          `(document ,@(tm-select t '(abstract-keywords))
+             ,@(tm-select t '(abstract-acm))
+             ,@(tm-select t '(abstract-arxiv))
+             ,@(tm-select t '(abstract-pacs))
+             ,@(tm-select t '(abstract-msc)))
         ) ;opts
-        (abst (select t '(:* abstract 0)))
+        (abst (tm-select t '(:* abstract 0)))
        ) ;
     (if (list>1? opts)
       `(render-abstract* (document ,@abst) ,opts)

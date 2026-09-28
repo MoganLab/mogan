@@ -1017,7 +1017,7 @@
         ) ;when
       ) ;let*
       (with l
-        (select (buffer-tree) '(screens))
+        (tm-select (buffer-tree) '(screens))
         (and (nnull? l)
           (let* ((scrns (car l)) (slides (screens->slides scrns)))
             (tree-set! scrns slides)

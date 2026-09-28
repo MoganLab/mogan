@@ -13,7 +13,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (kernel regexp regexp-test) (:use (kernel regexp regexp-match)))
+(texmacs-module (kernel regexp regexp-test)
+  (:use (kernel regexp regexp-match) (kernel regexp regexp-select))
+) ;texmacs-module
 
 (import (liii check))
 
@@ -50,8 +52,21 @@
   (check (defined? 'make-ahash-table) => #t)
 ) ;define
 
+(define (test-regexp-select)
+  (check (defined? 'tm-select) => #t)
+  (check (defined? 'select) => #f)
+  (check (tm-select '(document (section "title") (p "text")) '(:* section 0))
+    =>
+    '("title")
+  ) ;check
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (regtest-regexp) (test-regexp-match) (check-report))
+(tm-define (regtest-regexp)
+  (test-regexp-match)
+  (test-regexp-select)
+  (check-report)
+) ;tm-define

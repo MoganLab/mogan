@@ -255,7 +255,7 @@
   (with-innermost t
     'doc-data
     (with opts-trees
-      (select t '(doc-title-options))
+      (tm-select t '(doc-title-options))
       (if (null? opts)
         (when (nnull? opts-trees)
           (with old (car opts-trees) (tree-remove (tree-up old) (tree-index old) 1))
@@ -263,7 +263,7 @@
         (begin
           (when (null? opts-trees)
             (make-doc-data-element 'doc-title-options)
-            (set! opts-trees (select t '(doc-title-options)))
+            (set! opts-trees (tm-select t '(doc-title-options)))
           ) ;when
           (tree-set (car opts-trees) `(doc-title-options ,@opts))
         ) ;begin
@@ -276,7 +276,7 @@
   (with-innermost t
     'doc-data
     (with opts-trees
-      (select t '(doc-title-options :%1))
+      (tm-select t '(doc-title-options :%1))
       (map tree->stree opts-trees)
     ) ;with
   ) ;with-innermost

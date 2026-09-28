@@ -855,7 +855,7 @@
   (buffer-notify-recent name)
   ;; Remember directory for file dialog
   (remember-file-dialog-directory name)
-  (when (nnull? (select (buffer-get name) '(:* gpg-passphrase-encrypted-buffer)))
+  (when (nnull? (tm-select (buffer-get name) '(:* gpg-passphrase-encrypted-buffer)))
     (tm-gpg-dialogue-passphrase-decrypt-buffer name)
   ) ;when
   (and-with master

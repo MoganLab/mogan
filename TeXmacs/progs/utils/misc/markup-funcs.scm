@@ -81,7 +81,7 @@
   (:secure #t)
   (with (op body2 . pat)
     (tree->list args)
-    (list 'quote (cons 'tuple (select body (map rewrite-select pat))))
+    (list 'quote (cons 'tuple (tm-select body (map rewrite-select pat))))
   ) ;with
 ) ;tm-define
 
