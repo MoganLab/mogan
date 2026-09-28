@@ -439,6 +439,8 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
   selection_t (key)= copy (t);
   selection_s (key)= copy (s);
 
+  if (headless_mode) return true;
+
   QClipboard*      cb  = QApplication::clipboard ();
   QClipboard::Mode mode= QClipboard::Clipboard;
   if (key == "primary")
@@ -498,6 +500,8 @@ void
 qt_gui_rep::clear_selection (string key) {
   selection_t->reset (key);
   selection_s->reset (key);
+
+  if (headless_mode) return;
 
   QClipboard*      cb  = QApplication::clipboard ();
   QClipboard::Mode mode= QClipboard::Clipboard;

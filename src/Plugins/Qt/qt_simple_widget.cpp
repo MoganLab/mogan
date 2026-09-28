@@ -21,6 +21,7 @@
 #include "QTMImagePopup.hpp"
 #include "QTMMathCompletionPopup.hpp"
 #include "QTMMenuHelper.hpp"
+#include "QTMSemanticPopup.hpp"
 #include "QTMStyle.hpp"
 #include "QTMTextPopup.hpp"
 #include "QTMUserPromptPopup.hpp"
@@ -1037,4 +1038,56 @@ qt_simple_widget_rep::scroll_diff_popup_by (SI x, SI y) {
     diffTextPopup->scrollBy (p.x1, p.x2);
     diffTextPopup->updatePosition ();
   }
+}
+
+/******************************************************************************
+ * Semantic popup support
+ ******************************************************************************/
+
+void
+qt_simple_widget_rep::ensure_semantic_popup () {
+  if (!semanticPopup && canvas ()) {
+    semanticPopup= new QTMSemanticPopup (canvas (), this);
+    if (is_empty (tm_style_sheet)) {
+      semanticPopup->setStyle (qtmstyle ());
+    }
+  }
+}
+
+void
+qt_simple_widget_rep::show_semantic_popup (string tag, tree current_tree,
+                                           rectangle selr, double magf,
+                                           int scroll_x, int scroll_y,
+                                           int canvas_x, int canvas_y) {
+  ensure_semantic_popup ();
+  if (!semanticPopup) return;
+  semanticPopup->setSemanticNode (tag, current_tree);
+  qt_renderer_rep* ren= the_qt_renderer ();
+  semanticPopup->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                            canvas_y);
+}
+
+void
+qt_simple_widget_rep::hide_semantic_popup () {
+  if (semanticPopup) {
+    semanticPopup->startFadeOut ();
+  }
+}
+
+void
+qt_simple_widget_rep::scroll_semantic_popup_by (SI x, SI y) {
+  if (semanticPopup) {
+    QPoint qp (x, y);
+    coord2 p= from_qpoint (qp);
+    semanticPopup->scrollBy (p.x1, p.x2);
+    qt_renderer_rep* ren= the_qt_renderer ();
+    semanticPopup->updatePosition (ren);
+  }
+}
+
+bool
+qt_simple_widget_rep::is_point_in_semantic_popup (SI x, SI y) {
+  if (!semanticPopup || !semanticPopup->isVisible ()) return false;
+  QPoint qp= to_qpoint (coord2 (x, y));
+  return semanticPopup->geometry ().contains (qp);
 }
