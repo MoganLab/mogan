@@ -123,6 +123,14 @@ class mupdf_pattern {
 
 CONCRETE_NULL_CODE (mupdf_pattern);
 
+static void
+mupdf_pattern_drop_imp (fz_context* ctx, fz_storable* storable) {
+  pdf_pattern* pat= (pdf_pattern*) storable;
+  pdf_drop_obj (ctx, pat->resources);
+  pdf_drop_obj (ctx, pat->contents);
+  fz_free (ctx, pat);
+}
+
 /******************************************************************************
  * pdf fonts
  ******************************************************************************/
@@ -486,6 +494,7 @@ mupdf_renderer_rep::register_pattern (brush br, SI pixel) {
   pdf_obj*      ref   = pdf_add_image (ctx, doc, image_pdf->img);
   pdf_dict_puts (ctx, xres, "pattern-image", ref);
   pdf_dict_puts (ctx, subres, "XObject", xres);
+  pdf_drop_obj (ctx, xres);
   pdf_drop_obj (ctx, ref);
 
   fz_buffer* buf= fz_new_buffer (ctx, 0);
@@ -497,6 +506,7 @@ mupdf_renderer_rep::register_pattern (brush br, SI pixel) {
     pout->op_Do_image (ctx, pout, "pattern-image", NULL);
     pout->op_Q (ctx, pout);
     pdf_close_processor (ctx, pout);
+    pdf_drop_processor (ctx, pout);
   }
   pdf_obj* contents=
       pdf_add_stream (ctx, doc, buf, NULL /* dict */, 0 /* compress */);
@@ -513,6 +523,7 @@ mupdf_renderer_rep::register_pattern (brush br, SI pixel) {
     // const float matrix[]= { scale_x, 0, 0, scale_y, (float) sx, (float) sy };
 
     pdf_pattern* pat= fz_malloc_struct (ctx, pdf_pattern);
+    FZ_INIT_STORABLE (pat, 0, mupdf_pattern_drop_imp);
     pat->document   = doc;
     pat->id         = 0; // pdf_to_num (ctx, dict);
     pat->ismask= 0; // pdf_dict_get_int(ctx, dict, PDF_NAME(PaintType)) == 2;
@@ -536,7 +547,6 @@ mupdf_renderer_rep::register_pattern (brush br, SI pixel) {
     // debug_convert << "            " << w << ", " << h << LF;
 
     mupdf_pattern p_pdf (pat);
-    pdf_drop_pattern (ctx, pat);
     pattern_pool (p)= p_pdf;
   }
 }
