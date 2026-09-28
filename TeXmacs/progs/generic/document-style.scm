@@ -197,6 +197,7 @@
         ) ;begin
         (cpp-confirm-question (string-append (translate "Package does not exist: ") pack)
           (list (translate "OK"))
+          #f
         ) ;cpp-confirm-question
       ) ;if
     ) ;when

@@ -1006,6 +1006,7 @@
 ("february" "")
 ("field" "区域")
 ("figure" "图")
+("file already exists, overwrite it?" "文件已存在，是否覆盖？")
 ("file name" "文件名")
 ("File not found, removed from recent list"
   "文件未找到，已从最近列表中移除"

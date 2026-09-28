@@ -56,7 +56,8 @@ function main()
                 ret_type = "int",
                 arg_list = {
                     "string",
-                    "array_string"
+                    "array_string",
+                    "bool"
                 }
             },
             {
