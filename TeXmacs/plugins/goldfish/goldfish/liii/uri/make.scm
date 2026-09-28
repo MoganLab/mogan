@@ -1,14 +1,14 @@
-;; ; (liii uri-make) - URI 构造器函数
+;; ; (liii uri make) - URI 构造器函数
 ;; ; 本模块包含 URI 的构造器函数
 
-(define-library (liii uri-make)
+(define-library (liii uri make)
   (import (scheme base)
     (scheme char)
     (liii string)
     (liii error)
     (liii base)
-    (liii uri-record)
-    (liii uri-parse)
+    (liii uri record)
+    (liii uri parse)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------

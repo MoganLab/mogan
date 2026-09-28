@@ -23,26 +23,31 @@
 
 namespace goldfish {
 
-// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite 最深合法用例为 500 层）
+// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite
+// 最深合法用例为 500 层）
 #define JSON_MAX_DEPTH 1000
 
-// json->string 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme 实现完全一致：
+// json->string 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme
+// 实现完全一致：
 //   - vector   => JSON 数组
 //   - 序对列表  => JSON 对象（键为符号时输出宽松格式，即不带引号）
 //   - '()      => {}
-//   - 字符串    => 转义后带引号输出（\" \\ \/ \b \f \n \r \t，多字节 UTF-8 原样输出）
+//   - 字符串    => 转义后带引号输出（\" \\ \/ \b \f \n \r \t，多字节 UTF-8
+//   原样输出）
 //   - symbol   => 原样输出（如 true false null）
 //   - number   => number->string
 //   - boolean  => true / false
 
 static s7_pointer
 json_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                   s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 static void
 json_write_escaped_string (std::string& out, const char* s, s7_int len) {
-  // [0125] 快路径：成段追加无特殊字符的区间，遇 '"' '\\' '/' 或控制字符才特殊处理
+  // [0125] 快路径：成段追加无特殊字符的区间，遇 '"' '\\' '/'
+  // 或控制字符才特殊处理
   out.push_back ('"');
   s7_int bgn= 0;
   for (s7_int i= 0; i < len; i++) {
@@ -98,6 +103,17 @@ static void json_write_value (s7_scheme* sc, s7_pointer x, std::string& out);
 // [0125] 空对象 '(()) 在顶层与嵌套位置都应输出 {}（此前顶层输出 {{}}）
 static bool json_is_null_object (s7_scheme* sc, s7_pointer x);
 
+// JSON 写入器内部错误经 C++ 异常上传（正常栈展开，析构不被跳过）；
+// f_json_to_string 捕获后、等 out/ancestors 等 RAII 对象析构完毕再 s7_error
+// （s7_error 是裸 longjmp，在持有 RAII 的帧上 raise 会在 MSVC 下崩溃）。
+// 全部为平凡成员，帧内持有它是 longjmp 安全的
+struct json_write_exception {
+  const char* tag;      // "type-error" / "value-error"
+  const char* msg;      // 消息文本
+  s7_pointer  irritant; // 出错的数据对象
+  bool msg_first; // irritants 顺序：true=(msg irritant)，false=(irritant msg)
+};
+
 static void
 json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
   if (s7_is_string (x)) {
@@ -118,7 +134,7 @@ json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
     out+= "{}";
   }
   else {
-    json_type_error (sc, "Unexpected x: ", x);
+    throw json_write_exception{"type-error", "Unexpected x: ", x, true};
   }
 }
 
@@ -143,24 +159,26 @@ json_pair_chain_length (s7_scheme* sc, s7_pointer x) {
 
 static s7_int json_proper_list_length (s7_scheme* sc, s7_pointer x);
 
-static void json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors);
+static void json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out,
+                                  std::vector<s7_pointer>& ancestors);
 
 static void
-json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vector<s7_pointer>& ancestors) {
+json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out,
+                         std::vector<s7_pointer>& ancestors) {
   if (s7_is_null (sc, d)) {
     out+= "{}";
     return;
   }
   if (!s7_is_pair (d)) {
-    s7_error (sc, s7_make_symbol (sc, "value-error"),
-              s7_list (sc, 2, d, s7_make_string (sc, " must be null, pair, or list with at least 2 elements")));
-    return;
+    throw json_write_exception{
+        "value-error", " must be null, pair, or list with at least 2 elements",
+        d, false};
   }
   s7_int len= json_pair_chain_length (sc, d);
   if (!(len == -1 || len >= 2)) {
-    s7_error (sc, s7_make_symbol (sc, "value-error"),
-              s7_list (sc, 2, d, s7_make_string (sc, " must be null, pair, or list with at least 2 elements")));
-    return;
+    throw json_write_exception{
+        "value-error", " must be null, pair, or list with at least 2 elements",
+        d, false};
   }
   s7_pointer k= s7_car (d);
   s7_pointer v= s7_cdr (d);
@@ -169,7 +187,8 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vec
   if (s7_is_null (sc, v)) {
     out+= "{}";
   }
-  else if ((s7_is_pair (v) && json_pair_chain_length (sc, v) != -1) || s7_is_vector (v)) {
+  else if ((s7_is_pair (v) && json_pair_chain_length (sc, v) != -1) ||
+           s7_is_vector (v)) {
     json_write_value_rec (sc, v, out, ancestors);
   }
   else {
@@ -178,22 +197,22 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vec
 }
 
 static void
-json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors) {
+json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out,
+                      std::vector<s7_pointer>& ancestors) {
   if (json_is_null_object (sc, x)) {
     out+= "{}";
     return;
   }
   if (ancestors.size () >= JSON_MAX_DEPTH) {
-    s7_error (sc, s7_make_symbol (sc, "value-error"),
-              s7_list (sc, 2, x, s7_make_string (sc, "JSON nesting depth exceeds maximum limit")));
-    return;
+    throw json_write_exception{
+        "value-error", "JSON nesting depth exceeds maximum limit", x, false};
   }
   if (s7_is_vector (x) || s7_is_pair (x)) {
     for (s7_pointer anc : ancestors) {
       if (anc == x) {
-        s7_error (sc, s7_make_symbol (sc, "value-error"),
-                  s7_list (sc, 2, x, s7_make_string (sc, "Circular reference detected in JSON data")));
-        return;
+        throw json_write_exception{"value-error",
+                                   "Circular reference detected in JSON data",
+                                   x, false};
       }
     }
   }
@@ -218,9 +237,8 @@ json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector
   }
   else if (s7_is_pair (x)) {
     if (json_proper_list_length (sc, x) < 0) {
-      s7_error (sc, s7_make_symbol (sc, "value-error"),
-                s7_list (sc, 2, x, s7_make_string (sc, " must be a proper list of object entries")));
-      return;
+      throw json_write_exception{
+          "value-error", " must be a proper list of object entries", x, false};
     }
     ancestors.push_back (x);
     out.push_back ('{');
@@ -247,35 +265,71 @@ json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
   json_write_value_rec (sc, x, out, ancestors);
 }
 
+// 写入器调用 + 异常捕获收进独立函数：s7_error 是裸 longjmp，MSVC 下从
+// "函数体内含 try/catch（带 SEH 展开信息）的帧" raise 会损坏 EH
+// 状态（堆损坏）， 因此 f_json_to_string 本体不得直接含 try/catch，raise
+// 也放进无 EH 的独立函数
+static s7_pointer
+json_write_to_s7_string (s7_scheme* sc, s7_pointer x,
+                         json_write_exception& err) {
+  std::string out;
+  out.reserve (256);
+  try {
+    json_write_value (sc, x, out);
+  } catch (const json_write_exception& e) {
+    err= e;
+    return NULL;
+  }
+  return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+}
+
+static s7_pointer
+json_raise_write_error (s7_scheme* sc, const json_write_exception& err) {
+  s7_pointer irritants=
+      err.msg_first
+          ? s7_list (sc, 2, s7_make_string (sc, err.msg), err.irritant)
+          : s7_list (sc, 2, err.irritant, s7_make_string (sc, err.msg));
+  return s7_error (sc, s7_make_symbol (sc, err.tag), irritants);
+}
+
 static s7_pointer
 f_json_to_string (s7_scheme* sc, s7_pointer args) {
   s7_pointer x= s7_car (args);
   if (s7_is_procedure (x)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "json->string: input must not be a procedure")));
+    return s7_error (
+        sc, s7_make_symbol (sc, "type-error"),
+        s7_list (sc, 1,
+                 s7_make_string (
+                     sc, "json->string: input must not be a procedure")));
   }
-  std::string out;
-  out.reserve (256);
-  json_write_value (sc, x, out);
-  return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+  // 帧内只有平凡局部变量：RAII（out/ancestors）与 EH 帧都在
+  // json_write_to_s7_string 内， raise 经由 json_raise_write_error，两条路径均
+  // longjmp 安全
+  json_write_exception err{};
+  s7_pointer           result= json_write_to_s7_string (sc, x, err);
+  if (result) return result;
+  return json_raise_write_error (sc, err);
 }
 
 static void
 glue_json_to_string (s7_scheme* sc) {
   const char* name= "g_json->string";
-  const char* desc= "(g_json->string data) => string, encode Scheme-form JSON data to a JSON string";
+  const char* desc= "(g_json->string data) => string, encode Scheme-form JSON "
+                    "data to a JSON string";
   s7_define_function (sc, name, f_json_to_string, 1, 0, false, desc);
 }
 
-// json-string-escape 的 C++ 实现，复用 json_write_escaped_string（与 json->string 的
-// 字符串转义完全一致）：\" \\ \/ \b \f \n \r \t，其余控制字符（< 0x20）转义为 \uXXXX，
-// 多字节 UTF-8 原样输出。历史上 (guenchi json) 的 Scheme 实现对其他控制字符原样输出，
-// 迁移后改为 \uXXXX 转义，保证输出是可再解析的合法 JSON
+// json-string-escape 的 C++ 实现，复用 json_write_escaped_string（与
+// json->string 的 字符串转义完全一致）：\" \\ \/ \b \f \n \r
+// \t，其余控制字符（< 0x20）转义为 \uXXXX， 多字节 UTF-8 原样输出。历史上
+// (guenchi json) 的 Scheme 实现对其他控制字符原样输出， 迁移后改为 \uXXXX
+// 转义，保证输出是可再解析的合法 JSON
 static s7_pointer
 f_json_string_escape (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
   if (!s7_is_string (arg)) {
-    return s7_wrong_type_arg_error (sc, "json-string-escape", 1, arg, "a string");
+    return s7_wrong_type_arg_error (sc, "json-string-escape", 1, arg,
+                                    "a string");
   }
   std::string out;
   out.reserve ((size_t) s7_string_length (arg) + 2);
@@ -286,34 +340,44 @@ f_json_string_escape (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_string_escape (s7_scheme* sc) {
   const char* name= "g_json_string_escape";
-  const char* desc= "(g_json_string_escape str) => string, escape a string as a JSON string literal";
+  const char* desc= "(g_json_string_escape str) => string, escape a string as "
+                    "a JSON string literal";
   s7_define_function (sc, name, f_json_string_escape, 1, 0, false, desc);
 }
 
-// string->json 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme 实现完全一致。
-// Scheme 实现的做法是：逐字符扫描 JSON 文本，把 { } [ ] : , 改写为 Scheme 可读形式
-// （{ -> "((", } -> "))", [ -> "#(", ] -> ")", : -> " . ", 对象内 , -> ")(", 数组内 , -> " "），
-// 字符串内的转义做部分处理（\/ 变为 /，\uXXXX 直接展开为 UTF-8 字节，其余转义原样保留
-// 交由 reader 处理），然后对改写后的字符串调用 read。
-// 关键行为（必须与 Scheme 版逐字节一致）：
-//   - 只在分隔符处落盘：最后一个分隔符之后的内容被丢弃（故顶层标量解析为 eof-object）
-//   - 上下文栈初始为 (#t)，loose-cdr 到空后保持为空，空栈顶按真值处理（即对象上下文）
-//   - \uXXXX 需要满足 end+6 < len，否则 parse-error "HEX sequence too short ..."
-//   - 代理对合并要求 end+12 < len；非法 hex 抛 parse-error "Invalid HEX sequence ..."
+// string->json 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme
+// 实现完全一致。 Scheme 实现的做法是：逐字符扫描 JSON 文本，把 { } [ ] : ,
+// 改写为 Scheme 可读形式 （{ -> "((", } -> "))", [ -> "#(", ] -> ")", : -> " .
+// ", 对象内 , -> ")(", 数组内 , -> " "）， 字符串内的转义做部分处理（\/ 变为
+// /，\uXXXX 直接展开为 UTF-8 字节，其余转义原样保留 交由 reader
+// 处理），然后对改写后的字符串调用 read。 关键行为（必须与 Scheme
+// 版逐字节一致）：
+//   - 只在分隔符处落盘：最后一个分隔符之后的内容被丢弃（故顶层标量解析为
+//   eof-object）
+//   - 上下文栈初始为 (#t)，loose-cdr
+//   到空后保持为空，空栈顶按真值处理（即对象上下文）
+//   - \uXXXX 需要满足 end+6 < len，否则 parse-error "HEX sequence too short
+//   ..."
+//   - 代理对合并要求 end+12 < len；非法 hex 抛 parse-error "Invalid HEX
+//   sequence ..."
 //   - 非法转义字符抛 parse-error "Invalid escape char: X"
-//   - 码点超出 [0, 1114111] 抛 value-error（与 (liii unicode) codepoint->utf8 一致）
+//   - 码点超出 [0, 1114111] 抛 value-error（与 (liii unicode) codepoint->utf8
+//   一致）
 
+// 参数用 const char* 而非 const std::string&：避免调用点隐式构造临时 string
+// （s7_error 是裸 longjmp，临时对象的析构会被跳过）
 static s7_pointer
-json_parse_error (s7_scheme* sc, const std::string& msg) {
+json_parse_error (s7_scheme* sc, const char* msg) {
   return s7_error (sc, s7_make_symbol (sc, "parse-error"),
-                   s7_list (sc, 1, s7_make_string_with_length (sc, msg.data (), (s7_int) msg.size ())));
+                   s7_list (sc, 1, s7_make_string (sc, msg)));
 }
 
 // glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
 static s7_pointer cached_string_to_number= NULL;
 
 // glue 时缓存 true/false/null 符号并永久 GC 保护：
-// parser 高频构造这三个符号，缓存避免每次符号 intern 查找（json-ref 转换亦复用）
+// parser 高频构造这三个符号，缓存避免每次符号 intern 查找（json-ref
+// 转换亦复用）
 static s7_pointer symbol_true = NULL;
 static s7_pointer symbol_false= NULL;
 static s7_pointer symbol_null = NULL;
@@ -367,7 +431,8 @@ json_parse_hex4 (const char* s, s7_int n, s7_int& result) {
   return true;
 }
 
-// [0125] 按 RFC 8259 重写的严格递归下降 parser，目标是 JSONTestSuite 的 y_/n_ 用例：
+// [0125] 按 RFC 8259 重写的严格递归下降 parser，目标是 JSONTestSuite 的 y_/n_
+// 用例：
 //   - 严格数字文法：-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?
 //   - 严格结构文法：逗号/冒号缺失、尾逗号、尾部垃圾均报 parse-error
 //   - 字符串内裸控制字符（< 0x20）报 parse-error
@@ -476,8 +541,10 @@ json_parse_string_body (json_parser* p) {
       s7_int cp;
       if (!json_parse_hex4_at (p, p->pos + 2, cp)) return NULL;
       s7_int next_cp;
-      if (cp >= 55296 && cp <= 56319 && p->pos + 6 + 6 < len && s[p->pos + 6] == '\\' && s[p->pos + 7] == 'u' &&
-          json_parse_hex4_at (p, p->pos + 8, next_cp) && next_cp >= 56320 && next_cp <= 57343) {
+      if (cp >= 55296 && cp <= 56319 && p->pos + 6 + 6 < len &&
+          s[p->pos + 6] == '\\' && s[p->pos + 7] == 'u' &&
+          json_parse_hex4_at (p, p->pos + 8, next_cp) && next_cp >= 56320 &&
+          next_cp <= 57343) {
         cp= (cp - 55296) * 1024 + (next_cp - 56320) + 65536;
         p->pos+= 12;
       }
@@ -496,8 +563,9 @@ json_parse_string_body (json_parser* p) {
 }
 
 // 严格数字文法：-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?
-// 整数走 strtoll + s7_make_integer（int64 溢出回退 string->number 保持 bignum），
-// 实数走 strtod + s7_make_real（与 reader 双精度语义一致，1e2 => 100.0）
+// 整数走 strtoll + s7_make_integer（int64 溢出回退 string->number 保持
+// bignum）， 实数走 strtod + s7_make_real（与 reader 双精度语义一致，1e2 =>
+// 100.0）
 static s7_pointer
 json_parse_number (json_parser* p) {
   s7_scheme* sc     = p->sc;
@@ -546,7 +614,8 @@ json_parse_number (json_parser* p) {
     }
   }
   // 回退：超大整数等罕见情形
-  s7_pointer txt= s7_make_string_with_length (sc, num_str.data (), (s7_int) num_str.size ());
+  s7_pointer txt= s7_make_string_with_length (sc, num_str.data (),
+                                              (s7_int) num_str.size ());
   s7_gc_protect_via_stack (sc, txt);
   s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
   s7_gc_unprotect_via_stack (sc, txt);
@@ -561,8 +630,8 @@ json_parse_symbol_key (json_parser* p) {
   s7_int bgn= p->pos;
   while (p->pos < p->len) {
     char c= p->s[p->pos];
-    if (c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
-        c == '\'' || c == '"')
+    if (c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' ' ||
+        c == '\t' || c == '\n' || c == '\r' || c == '\'' || c == '"')
       break;
     p->pos++;
   }
@@ -570,7 +639,8 @@ json_parse_symbol_key (json_parser* p) {
   char c0= p->s[bgn];
   if ((c0 >= '0' && c0 <= '9') || c0 == '-') return NULL;
   size_t n= (size_t) (p->pos - bgn);
-  if ((n == 4 && strncmp (p->s + bgn, "null", 4) == 0) || (n == 4 && strncmp (p->s + bgn, "true", 4) == 0) ||
+  if ((n == 4 && strncmp (p->s + bgn, "null", 4) == 0) ||
+      (n == 4 && strncmp (p->s + bgn, "true", 4) == 0) ||
       (n == 5 && strncmp (p->s + bgn, "false", 5) == 0)) {
     return NULL;
   }
@@ -727,7 +797,8 @@ json_parse_value (json_parser* p) {
 
 static bool
 json_is_value_end (s7_int c) {
-  return c == -1 || c == ',' || c == ']' || c == '}' || c == ' ' || c == '\t' || c == '\n' || c == '\r';
+  return c == -1 || c == ',' || c == ']' || c == '}' || c == ' ' || c == '\t' ||
+         c == '\n' || c == '\r';
 }
 
 static s7_pointer
@@ -741,7 +812,8 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
 
   json_parser p= {sc, s, len, 0, 0};
   // 剥离 UTF-8 BOM
-  if (len >= 3 && (unsigned char) s[0] == 0xEF && (unsigned char) s[1] == 0xBB && (unsigned char) s[2] == 0xBF)
+  if (len >= 3 && (unsigned char) s[0] == 0xEF &&
+      (unsigned char) s[1] == 0xBB && (unsigned char) s[2] == 0xBF)
     p.pos= 3;
   json_skip_ws (&p);
   if (json_peek (&p) == -1) {
@@ -759,8 +831,9 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
   }
   s7_gc_on (sc, true);
   if (!ok) {
-    return json_parse_error (sc, result == NULL ? "string->json: invalid JSON"
-                                                : "string->json: trailing garbage after JSON value");
+    return json_parse_error (
+        sc, result == NULL ? "string->json: invalid JSON"
+                           : "string->json: trailing garbage after JSON value");
   }
   return result;
 }
@@ -768,7 +841,8 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
 static void
 glue_string_to_json (s7_scheme* sc) {
   const char* name= "g_string->json";
-  const char* desc= "(g_string->json str) => data, parse a JSON string to Scheme-form JSON data";
+  const char* desc= "(g_string->json str) => data, parse a JSON string to "
+                    "Scheme-form JSON data";
   s7_define_function (sc, name, f_string_to_json, 1, 0, false, desc);
   cached_string_to_number= s7_name_to_value (sc, "string->number");
   s7_gc_protect (sc, cached_string_to_number);
@@ -776,15 +850,18 @@ glue_string_to_json (s7_scheme* sc) {
 
 // json-ref / json-set 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
 // 的 Scheme 实现完全一致：
-//   - json-ref：多键路径逐层下钻；'() 透传（安全导航）；空对象 '(()) 读出为 '()；
-//     每层先做结构校验（非对象/数组抛 type-error）；读到的符号 'true/'false 转为 #t/#f；
-//     数组用 vector-ref 语义（非整数索引抛 wrong-type-arg、越界抛 out-of-range）
+//   - json-ref：多键路径逐层下钻；'() 透传（安全导航）；空对象 '(()) 读出为
+//   '()；
+//     每层先做结构校验（非对象/数组抛 type-error）；读到的符号 'true/'false
+//     转为 #t/#f； 数组用 vector-ref 语义（非整数索引抛 wrong-type-arg、越界抛
+//     out-of-range）
 //   - json-set：多键路径逐层函数式更新；空对象 '(()) 原样返回；
 //     键 #t 表示映射所有值；键为过程表示按键谓词筛选；普通键按 equal? 匹配；
 //     匹配成功后新序对的键：普通键分支用传入的键，#t/过程键分支保留原键；
 //     叶层值可以是过程（接收旧值返回新值）；
 //     键 #f 落入 guenchi (if v ...) 无 else 分支的历史怪癖原样保留
-//     （对象返回 #<unspecified>，数组走 (list->vector #<unspecified>) 抛 wrong-type-arg）
+//     （对象返回 #<unspecified>，数组走 (list->vector #<unspecified>) 抛
+//     wrong-type-arg）
 
 // 真列表长度；非真列表（含循环列表）返回 -1
 static s7_int
@@ -808,7 +885,8 @@ json_proper_list_length (s7_scheme* sc, s7_pointer x) {
 // 空对象 '(())
 static bool
 json_is_null_object (s7_scheme* sc, s7_pointer x) {
-  return s7_is_pair (x) && s7_is_null (sc, s7_car (x)) && s7_is_null (sc, s7_cdr (x));
+  return s7_is_pair (x) && s7_is_null (sc, s7_car (x)) &&
+         s7_is_null (sc, s7_cdr (x));
 }
 
 // 与 (liii json) 的 json-object? 一致（x 已知非 '()）：
@@ -879,7 +957,8 @@ f_json_ref (s7_scheme* sc, s7_pointer args) {
       else {
         s7_int len;
         if (!json_is_object (sc, cur, len)) {
-          return json_type_error (sc, "Value is not a JSON object or array", cur);
+          return json_type_error (sc, "Value is not a JSON object or array",
+                                  cur);
         }
         val         = s7_nil (sc);
         s7_pointer p= cur;
@@ -904,7 +983,8 @@ f_json_ref (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_ref (s7_scheme* sc) {
   const char* name= "g_json_ref";
-  const char* desc= "(g_json_ref json key . keys) => value, ref a value from Scheme-form JSON data by key path";
+  const char* desc= "(g_json_ref json key . keys) => value, ref a value from "
+                    "Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_ref, 2, 0, true, desc);
   cached_vector_ref= s7_name_to_value (sc, "vector-ref");
   s7_gc_protect (sc, cached_vector_ref);
@@ -930,9 +1010,12 @@ struct json_setter {
   s7_pointer drop_args; // (key ...) 序列（仅 is_drop 时有效）
 };
 
-static s7_pointer json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs);
-static s7_pointer json_push_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kvs);
-static s7_pointer json_drop_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer keys);
+static s7_pointer json_set_dispatch (s7_scheme* sc, s7_pointer x,
+                                     s7_pointer kargs);
+static s7_pointer json_push_dispatch (s7_scheme* sc, s7_pointer x,
+                                      s7_pointer kvs);
+static s7_pointer json_drop_dispatch (s7_scheme* sc, s7_pointer x,
+                                      s7_pointer keys);
 
 static s7_pointer
 json_setter_apply (s7_scheme* sc, const json_setter& st, s7_pointer old) {
@@ -945,13 +1028,16 @@ json_setter_apply (s7_scheme* sc, const json_setter& st, s7_pointer old) {
 
 // guenchi json-set 的单层语义：x 已校验为 JSON 对象（含 len 个条目）或数组
 static s7_pointer
-json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const json_setter& st) {
+json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len,
+                  const json_setter& st) {
   if (s7_is_vector (x)) {
     s7_int      n    = s7_vector_length (x);
     s7_pointer* elems= s7_vector_elements (x);
     if (s7_is_boolean (v) && !s7_boolean (sc, v)) {
-      // guenchi 的 (if v ...) 无 else 分支：(list->vector #<unspecified>) 抛 wrong-type-arg
-      return s7_call (sc, cached_list_to_vector, s7_list (sc, 1, s7_unspecified (sc)));
+      // guenchi 的 (if v ...) 无 else 分支：(list->vector #<unspecified>) 抛
+      // wrong-type-arg
+      return s7_call (sc, cached_list_to_vector,
+                      s7_list (sc, 1, s7_unspecified (sc)));
     }
     s7_pointer result= s7_make_vector (sc, n);
     s7_gc_protect_via_stack (sc, result);
@@ -960,7 +1046,8 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
       bool replace;
       if (s7_is_boolean (v)) replace= true;
       else if (s7_is_procedure (v)) {
-        replace= (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) != s7_f (sc));
+        replace= (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) !=
+                  s7_f (sc));
       }
       else {
         replace= s7_is_equal (sc, s7_make_integer (sc, i), v);
@@ -973,7 +1060,8 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
   // 对象（alist）：键 #t 或过程键保留原键，普通键匹配后用传入的键构造新序对
   bool map_all= false, use_pred= false;
   if (s7_is_boolean (v)) {
-    if (!s7_boolean (sc, v)) return s7_unspecified (sc); // (if v ...) 无 else 分支
+    if (!s7_boolean (sc, v))
+      return s7_unspecified (sc); // (if v ...) 无 else 分支
     map_all= true;
   }
   else if (s7_is_procedure (v)) {
@@ -1001,7 +1089,8 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
     }
     if (replace) {
       s7_pointer newkey= (map_all || use_pred) ? s7_car (entry) : v;
-      s7_set_car (tail, s7_cons (sc, newkey, json_setter_apply (sc, st, s7_cdr (entry))));
+      s7_set_car (tail, s7_cons (sc, newkey,
+                                 json_setter_apply (sc, st, s7_cdr (entry))));
     }
     else {
       s7_set_car (tail, entry); // 未匹配的条目复用原序对
@@ -1011,8 +1100,11 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
   }
   s7_gc_unprotect_via_stack (sc, head);
   if (s7_is_pair (tail)) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "JSON object modified during iteration"), x));
+    return s7_error (
+        sc, s7_make_symbol (sc, "value-error"),
+        s7_list (sc, 2,
+                 s7_make_string (sc, "JSON object modified during iteration"),
+                 x));
   }
   return head;
 }
@@ -1055,17 +1147,19 @@ f_json_set (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_set (s7_scheme* sc) {
   const char* name= "g_json_set";
-  const char* desc=
-      "(g_json_set json key val . keys-and-val) => data, set a value in Scheme-form JSON data by key path";
+  const char* desc= "(g_json_set json key val . keys-and-val) => data, set a "
+                    "value in Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_set, 3, 0, true, desc);
   cached_list_to_vector= s7_name_to_value (sc, "list->vector");
   s7_gc_protect (sc, cached_list_to_vector);
 }
 
-// json-push / json-push* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
-// 的 Scheme 实现完全一致：
-//   - 单键：对象 (cons (cons k v) x) 前插；空对象 '(()) 退化为对 '() 前插得 '((k . v))；
-//     数组空时返回 #(v)；非空时按索引 equal? 匹配，首匹配处前插 v（仅一次），无匹配尾插
+// json-push / json-push* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi
+// json) 的 Scheme 实现完全一致：
+//   - 单键：对象 (cons (cons k v) x) 前插；空对象 '(()) 退化为对 '() 前插得
+//   '((k . v))；
+//     数组空时返回 #(v)；非空时按索引 equal? 匹配，首匹配处前插
+//     v（仅一次），无匹配尾插
 //   - 多键：等价于 (json-set json key (lambda (x) (apply json-push x ...)))，
 //     即经 json-set 的单层语义逐层下钻（中间键不存在时静默不生效），
 //     空对象 '(()) 原样返回；每层进入时先做结构校验
@@ -1141,12 +1235,13 @@ f_json_push (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_push (s7_scheme* sc) {
   const char* name= "g_json_push";
-  const char* desc= "(g_json_push json key val . keys) => data, push a value into Scheme-form JSON data by key path";
+  const char* desc= "(g_json_push json key val . keys) => data, push a value "
+                    "into Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_push, 3, 0, true, desc);
 }
 
-// json-drop / json-drop* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
-// 的 Scheme 实现完全一致：
+// json-drop / json-drop* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi
+// json) 的 Scheme 实现完全一致：
 //   - 单键：对象删除键 equal? 匹配或谓词命中键的条目（全部删空时退化为 '()）；
 //     空对象 '(()) 原样返回；数组空时返回自身，非空时按键（即索引）equal? 匹配
 //     或谓词命中索引删除对应元素
@@ -1163,15 +1258,22 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len) {
     s7_int      n    = s7_vector_length (x);
     s7_pointer* elems= s7_vector_elements (x);
     if (n == 0) return x;
-    // 谓词可能触发 GC 或回调 Scheme，先只判定再分配结果（ elems 经 x 有根）
-    std::vector<bool> drop (n, false);
-    s7_int            count= 0;
+    // 谓词 s7_call 可能 raise（裸 longjmp），跨回调存活的标记必须用 GC 管理的
+    // s7 对象（bytevector），不能用 std::vector（MSVC 下析构跳过即崩溃）
+    s7_pointer drop_bv= s7_make_byte_vector (sc, n, 1, NULL);
+    s7_gc_protect_via_stack (sc, drop_bv);
+    uint8_t* drop = s7_byte_vector_elements (drop_bv);
+    s7_int   count= 0;
     for (s7_int i= 0; i < n; i++) {
-      bool hit= use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) != s7_f (sc))
-                         : s7_is_equal (sc, s7_make_integer (sc, i), v);
-      drop[i] = hit;
+      bool hit=
+          use_pred
+              ? (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) !=
+                 s7_f (sc))
+              : s7_is_equal (sc, s7_make_integer (sc, i), v);
+      drop[i]= hit ? 1 : 0;
       if (hit) count++;
     }
+    s7_gc_unprotect_via_stack (sc, drop_bv);
     if (count == 0) return x;
     s7_pointer  result= s7_make_vector (sc, n - count);
     s7_int      at    = 0;
@@ -1181,25 +1283,29 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len) {
     }
     return result;
   }
-  // 对象（alist）：删除键命中的条目，未命中的条目复用原序对；命中后从尾向头 cons
-  std::vector<s7_pointer> kept;
-  kept.reserve (len > 0 ? len : 16);
+  // 对象（alist）：删除键命中的条目，未命中的条目复用原序对。
+  // 同样地，跨 s7_call 存活的收集链用 head 锚定的 s7 序对链而非 std::vector
+  s7_pointer head= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  s7_gc_protect_via_stack (sc, head);
+  s7_pointer tail= head;
   s7_pointer p   = x;
   s7_int     step= 0;
   while (s7_is_pair (p) && step < len) {
     s7_pointer entry= s7_car (p);
-    bool       hit  = use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc))
-                               : s7_is_equal (sc, s7_car (entry), v);
-    if (!hit) kept.push_back (entry);
+    bool       hit=
+        use_pred
+                  ? (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc))
+                  : s7_is_equal (sc, s7_car (entry), v);
+    if (!hit) {
+      s7_pointer cell= s7_cons (sc, entry, s7_nil (sc));
+      s7_set_cdr (tail, cell);
+      tail= cell;
+    }
     p= s7_cdr (p);
     step++;
   }
-  s7_pointer lst= s7_nil (sc);
-  s7_gc_on (sc, false);
-  for (size_t i= kept.size (); i > 0; i--)
-    lst= s7_cons (sc, kept[i - 1], lst);
-  s7_gc_on (sc, true);
-  return lst;
+  s7_gc_unprotect_via_stack (sc, head);
+  return s7_cdr (head);
 }
 
 // 对应 (liii json) 的 json-drop 包装：结构校验 + 空对象特判 + 单键/多键分派
@@ -1236,19 +1342,22 @@ f_json_drop (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_drop (s7_scheme* sc) {
   const char* name= "g_json_drop";
-  const char* desc= "(g_json_drop json key . keys) => data, drop values from Scheme-form JSON data by key path";
+  const char* desc= "(g_json_drop json key . keys) => data, drop values from "
+                    "Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_drop, 2, 0, true, desc);
 }
 
-// json-reduce / json-reduce* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
-// 的 Scheme 实现完全一致：
+// json-reduce / json-reduce* 的 C++ 实现，语义与历史上 (liii json) 包装
+// (guenchi json) 的 Scheme 实现完全一致：
 //   - 单层：(json-reduce json key proc)；
 //     键 #t 映射所有条目；键为过程表示按键（数组为索引）谓词筛选命中后转换；
-//     普通键按 equal? 匹配；命中条目的新值 = (proc key old-value)，未命中条目复用原序对
+//     普通键按 equal? 匹配；命中条目的新值 = (proc key
+//     old-value)，未命中条目复用原序对
 //     （对象分支命中后新序对的键：#t/过程键保留原键，普通键用传入的键）；
 //     键 #f 落入 guenchi (if v ...) 无 else 分支的历史怪癖原样保留
 //     （对象返回 x，数组被外层 (list->vector x) 抛 wrong-type-arg）
-//   - 多键：等价于 (json-reduce json key (lambda (k v) (apply json-reduce v ...)))，
+//   - 多键：等价于 (json-reduce json key (lambda (k v) (apply json-reduce v
+//   ...)))，
 //     即经 json-reduce 的单层语义逐层下钻（中间键不存在时静默不生效），
 //     叶层对旧值在 C++ 内递归 reduce，不经 Scheme 闭包回调；
 //     '() 透传（安全导航）；空对象 '(()) 原样返回；每层先做结构校验
@@ -1261,23 +1370,27 @@ struct json_reducer {
   s7_pointer reduce_args;
 };
 
-static s7_pointer json_reduce_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs);
+static s7_pointer json_reduce_dispatch (s7_scheme* sc, s7_pointer x,
+                                        s7_pointer kargs);
 
 static s7_pointer
-json_reducer_apply (s7_scheme* sc, const json_reducer& r, s7_pointer k, s7_pointer old) {
+json_reducer_apply (s7_scheme* sc, const json_reducer& r, s7_pointer k,
+                    s7_pointer old) {
   if (r.is_reduce) return json_reduce_dispatch (sc, old, r.reduce_args);
   return s7_call (sc, r.p, s7_list (sc, 2, k, old));
 }
 
 // guenchi json-reduce 的单层语义：x 已校验为 JSON 对象（含 len 个条目）或数组
 static s7_pointer
-json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reducer& r, s7_int len) {
+json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v,
+                     const json_reducer& r, s7_int len) {
   bool is_bool = s7_is_boolean (v);
   bool truthy  = is_bool && s7_boolean (sc, v);
   bool use_pred= s7_is_procedure (v);
   if (s7_is_vector (x)) {
     if (is_bool && !truthy) {
-      // guenchi 的 (if v ...) 无 else 分支：(list->vector x) 对 vector 抛 wrong-type-arg
+      // guenchi 的 (if v ...) 无 else 分支：(list->vector x) 对 vector 抛
+      // wrong-type-arg
       return s7_call (sc, cached_list_to_vector, s7_list (sc, 1, x));
     }
     s7_int      n     = s7_vector_length (x);
@@ -1288,7 +1401,10 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
     for (s7_int i= 0; i < n; i++) {
       s7_pointer idx= s7_make_integer (sc, i);
       bool       hit=
-          truthy ? true : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, idx)) != s7_f (sc)) : s7_is_equal (sc, idx, v));
+          truthy
+                    ? true
+                    : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, idx)) != s7_f (sc))
+                                : s7_is_equal (sc, idx, v));
       relems[i]= hit ? json_reducer_apply (sc, r, idx, elems[i]) : elems[i];
     }
     s7_gc_unprotect_via_stack (sc, result);
@@ -1309,10 +1425,16 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
   while (s7_is_pair (p) && s7_is_pair (tail)) {
     s7_pointer entry= s7_car (p);
     s7_pointer k    = s7_car (entry);
-    bool hit= truthy ? true : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, k)) != s7_f (sc)) : s7_is_equal (sc, k, v));
+    bool       hit=
+        truthy ? true
+                     : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, k)) != s7_f (sc))
+                                 : s7_is_equal (sc, k, v));
     if (hit) {
-      s7_pointer newkey= (is_bool || use_pred) ? k : v; // 普通键分支历史用传入的键构造新序对
-      s7_set_car (tail, s7_cons (sc, newkey, json_reducer_apply (sc, r, newkey, s7_cdr (entry))));
+      s7_pointer newkey=
+          (is_bool || use_pred) ? k : v; // 普通键分支历史用传入的键构造新序对
+      s7_set_car (tail,
+                  s7_cons (sc, newkey,
+                           json_reducer_apply (sc, r, newkey, s7_cdr (entry))));
     }
     else {
       s7_set_car (tail, entry);
@@ -1322,16 +1444,20 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
   }
   s7_gc_unprotect_via_stack (sc, head);
   if (s7_is_pair (tail)) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "JSON object modified during iteration"), x));
+    return s7_error (
+        sc, s7_make_symbol (sc, "value-error"),
+        s7_list (sc, 2,
+                 s7_make_string (sc, "JSON object modified during iteration"),
+                 x));
   }
   return head;
 }
 
-// 对应 (liii json) 的 json-reduce 包装：'() 透传 + 结构校验 + 空对象特判 + 单层/多键分派
-// kargs 为 (key proc) 或 (key ... proc)：恰好两个元素时是单层（p 为转换函数），
-// 否则多键（等价于以 (lambda (k v) (apply json-reduce v rest)) 作转换函数逐层下钻，
-// rest 为 (k2 ... proc) 序列，与递归调用的 kargs 结构一致）
+// 对应 (liii json) 的 json-reduce 包装：'() 透传 + 结构校验 + 空对象特判 +
+// 单层/多键分派 kargs 为 (key proc) 或 (key ... proc)：恰好两个元素时是单层（p
+// 为转换函数）， 否则多键（等价于以 (lambda (k v) (apply json-reduce v rest))
+// 作转换函数逐层下钻， rest 为 (k2 ... proc) 序列，与递归调用的 kargs
+// 结构一致）
 static s7_pointer
 json_reduce_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
   // '() 透传：安全导航
@@ -1362,8 +1488,9 @@ json_reduce_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
 static s7_pointer
 f_json_reduce (s7_scheme* sc, s7_pointer args) {
   if (s7_is_null (sc, s7_cdr (s7_cdr (args)))) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "json-reduce: missing arguments")));
+    return s7_error (
+        sc, s7_make_symbol (sc, "value-error"),
+        s7_list (sc, 1, s7_make_string (sc, "json-reduce: missing arguments")));
   }
   return json_reduce_dispatch (sc, s7_car (args), s7_cdr (args));
 }
@@ -1371,8 +1498,8 @@ f_json_reduce (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_reduce (s7_scheme* sc) {
   const char* name= "g_json_reduce";
-  const char* desc=
-      "(g_json_reduce json key proc . keys) => data, transform values in Scheme-form JSON data by key path";
+  const char* desc= "(g_json_reduce json key proc . keys) => data, transform "
+                    "values in Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_reduce, 2, 0, true, desc);
 }
 

@@ -5,13 +5,13 @@
 
 (define-library (liii uri)
   (import (scheme base)
-    (liii uri-parse)
-    (liii uri-record)
-    (liii uri-predicate)
-    (liii uri-compare)
-    (liii uri-make)
-    (liii uri-transform)
-    (liii uri-convert)
+    (liii uri parse)
+    (liii uri record)
+    (liii uri predicate)
+    (liii uri compare)
+    (liii uri make)
+    (liii uri transform)
+    (liii uri convert)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------

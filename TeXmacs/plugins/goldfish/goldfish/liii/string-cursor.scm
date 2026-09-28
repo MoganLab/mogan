@@ -510,7 +510,7 @@
             ) ;
         (if (>= sub-len len)
           (string-take-right (substring/cursors s start-c end-c) len)
-          (string-append (make-string (- len sub-len) char)
+          (string-append (utf8-make-string (- len sub-len) char)
             (substring/cursors s start-c end-c)
           ) ;string-append
         ) ;if
@@ -528,7 +528,7 @@
         (if (>= sub-len len)
           (string-take (substring/cursors s start-c end-c) len)
           (string-append (substring/cursors s start-c end-c)
-            (make-string (- len sub-len) char)
+            (utf8-make-string (- len sub-len) char)
           ) ;string-append
         ) ;if
       ) ;let*
@@ -866,7 +866,13 @@
     ) ;define
 
     (define (string-split s delimiter . args)
-      (let* ((char-len (string-cursor->index s (string-cursor-end s)))
+      (let* ((delimiter (cond ((string? delimiter) delimiter)
+                              ((char? delimiter) (utf8-string delimiter))
+                              (else (error 'type-error "string-split: delimiter must be string or char" delimiter)
+                              ) ;else
+                        ) ;cond
+             ) ;delimiter
+             (char-len (string-cursor->index s (string-cursor-end s)))
              (grammar (if (null? args) 'infix (car args)))
              (rest1 (if (null? args) '() (cdr args)))
              (limit (if (null? rest1) #f (car rest1)))
@@ -892,10 +898,9 @@
                         (reverse (cons (substring/cursors s cur end-c) result))
                        ) ;
                        (else
-                         (loop (string-cursor-next s cur)
-                           (cons (string (string-ref/cursor s cur)) result)
-                           (+ n 1)
-                         ) ;loop
+                         (let ((next-c (string-cursor-next s cur)))
+                           (loop next-c (cons (substring/cursors s cur next-c) result) (+ n 1))
+                         ) ;let
                        ) ;else
                  ) ;cond
                ) ;let

@@ -38,7 +38,8 @@ enum class redirect_mode { tee, capture, inherit, discard, file };
 
 inline s7_pointer
 subprocess_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                   s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 s7_pointer
@@ -47,7 +48,10 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   args              = s7_cdr (args);
 
   if (!s7_is_string (cmd_arg) && !s7_is_proper_list (sc, cmd_arg)) {
-    return subprocess_type_error (sc, "g_subprocess-run-values: command must be a proper list or a string", cmd_arg);
+    return subprocess_type_error (
+        sc,
+        "g_subprocess-run-values: command must be a proper list or a string",
+        cmd_arg);
   }
 
   const char* cwd= nullptr;
@@ -59,44 +63,64 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args= s7_cdr (args);
   }
 
-  vector<string>      env_storage;
-  vector<const char*> envp;
-  if (s7_is_pair (args) && !s7_is_null (sc, s7_car (args)) && s7_car (args) != s7_f (sc)) {
+  // 校验先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象。
+  // 第一趟只校验不构造，全部通过后第二趟才构建 env_storage/envp
+  s7_pointer env_alist= nullptr;
+  if (s7_is_pair (args) && !s7_is_null (sc, s7_car (args)) &&
+      s7_car (args) != s7_f (sc)) {
     s7_pointer env_arg= s7_car (args);
     if (!s7_is_pair (env_arg)) {
-      return subprocess_type_error (sc, "g_subprocess-run-values: env must be an alist", env_arg);
+      return subprocess_type_error (
+          sc, "g_subprocess-run-values: env must be an alist", env_arg);
     }
     if (!s7_is_proper_list (sc, env_arg)) {
-      return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
+      return subprocess_type_error (
+          sc, "g_subprocess-run-values: env must be a proper list", env_arg);
     }
-    s7_pointer env_alist= env_arg;
-    while (s7_is_pair (env_alist)) {
-      s7_pointer item= s7_car (env_alist);
+    s7_pointer it= env_arg;
+    while (s7_is_pair (it)) {
+      s7_pointer item= s7_car (it);
       if (!s7_is_pair (item)) {
-        return subprocess_type_error (sc, "g_subprocess-run-values: env element must be a pair", item);
+        return subprocess_type_error (
+            sc, "g_subprocess-run-values: env element must be a pair", item);
       }
       s7_pointer key_arg= s7_car (item);
       if (!s7_is_string (key_arg)) {
-        return subprocess_type_error (sc, "g_subprocess-run-values: env key must be a string", key_arg);
+        return subprocess_type_error (
+            sc, "g_subprocess-run-values: env key must be a string", key_arg);
       }
       s7_pointer val_arg= s7_cdr (item);
       if (!s7_is_string (val_arg)) {
-        return subprocess_type_error (sc, "g_subprocess-run-values: env value must be a string", val_arg);
+        return subprocess_type_error (
+            sc, "g_subprocess-run-values: env value must be a string", val_arg);
       }
-      env_storage.push_back (string (s7_string (key_arg)) + "=" + s7_string (val_arg));
-      env_alist= s7_cdr (env_alist);
+      it= s7_cdr (it);
     }
-    if (!s7_is_null (sc, env_alist)) {
-      return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
+    if (!s7_is_null (sc, it)) {
+      return subprocess_type_error (
+          sc, "g_subprocess-run-values: env must be a proper list", env_arg);
+    }
+    env_alist= env_arg;
+    args     = s7_cdr (args);
+  }
+  else if (s7_is_pair (args)) {
+    args= s7_cdr (args);
+  }
+
+  vector<string>      env_storage;
+  vector<const char*> envp;
+  if (env_alist) {
+    s7_pointer it= env_alist;
+    while (s7_is_pair (it)) {
+      s7_pointer item= s7_car (it);
+      env_storage.push_back (string (s7_string (s7_car (item))) + "=" +
+                             s7_string (s7_cdr (item)));
+      it= s7_cdr (it);
     }
     for (auto& s : env_storage) {
       envp.push_back (s.c_str ());
     }
     envp.push_back (nullptr);
-    args= s7_cdr (args);
-  }
-  else if (s7_is_pair (args)) {
-    args= s7_cdr (args);
   }
 
   const char* input    = nullptr;
@@ -145,7 +169,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   bool stdout_append= false;
   if (s7_is_pair (args)) {
     s7_pointer stdout_mode_val= s7_car (args);
-    if (s7_is_symbol (stdout_mode_val) && strcmp (s7_symbol_name (stdout_mode_val), "append") == 0) {
+    if (s7_is_symbol (stdout_mode_val) &&
+        strcmp (s7_symbol_name (stdout_mode_val), "append") == 0) {
       stdout_append= true;
     }
     args= s7_cdr (args);
@@ -181,7 +206,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   bool stderr_append= false;
   if (s7_is_pair (args)) {
     s7_pointer stderr_mode_val= s7_car (args);
-    if (s7_is_symbol (stderr_mode_val) && strcmp (s7_symbol_name (stderr_mode_val), "append") == 0) {
+    if (s7_is_symbol (stderr_mode_val) &&
+        strcmp (s7_symbol_name (stderr_mode_val), "append") == 0) {
       stderr_append= true;
     }
     args= s7_cdr (args);
@@ -191,7 +217,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   bool        stdin_null= false;
   if (s7_is_pair (args)) {
     s7_pointer stdin_val= s7_car (args);
-    if (s7_is_symbol (stdin_val) && strcmp (s7_symbol_name (stdin_val), "null") == 0) {
+    if (s7_is_symbol (stdin_val) &&
+        strcmp (s7_symbol_name (stdin_val), "null") == 0) {
       stdin_null= true;
     }
     else if (s7_is_string (stdin_val)) {
@@ -206,8 +233,10 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (!envp.empty ()) attr.envp= (tb_char_t const**) envp.data ();
 
   bool need_stdout_pipe=
-      (stdout_mode == redirect_mode::tee || stdout_mode == redirect_mode::capture) ||
-      (stderr_to_stdout && stdout_mode != redirect_mode::file && stdout_mode != redirect_mode::discard);
+      (stdout_mode == redirect_mode::tee ||
+       stdout_mode == redirect_mode::capture) ||
+      (stderr_to_stdout && stdout_mode != redirect_mode::file &&
+       stdout_mode != redirect_mode::discard);
 
 #ifdef _WIN32
   HANDLE              h_out_read= NULL, h_out_write= NULL;
@@ -221,7 +250,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (stdout_mode == redirect_mode::file) {
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.out.path= stdout_path;
-    attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stdout_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
+    attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT |
+                  (stdout_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
   }
   else if (stdout_mode == redirect_mode::discard) {
     attr.outtype= TB_PROCESS_REDIRECT_TYPE_FILEPATH;
@@ -252,7 +282,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (stderr_mode == redirect_mode::file) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.err.path= stderr_path;
-    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stderr_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
+    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT |
+                  (stderr_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
   }
   else if (stderr_mode == redirect_mode::discard) {
     attr.errtype= TB_PROCESS_REDIRECT_TYPE_FILEPATH;
@@ -265,10 +296,17 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 #ifdef _WIN32
   else if (stderr_to_stdout && h_out_write) {
-    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
-    attr.err.file= (tb_file_ref_t) h_out_write;
+    HANDLE h_err_dup= NULL;
+    if (DuplicateHandle (GetCurrentProcess (), h_out_write,
+                         GetCurrentProcess (), &h_err_dup, 0, TRUE,
+                         DUPLICATE_SAME_ACCESS)) {
+      attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
+      attr.err.file= (tb_file_ref_t) h_err_dup;
+      h_err_write  = h_err_dup;
+    }
   }
-  else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
+  else if (stderr_mode == redirect_mode::tee ||
+           stderr_mode == redirect_mode::capture) {
     CreatePipe (&h_err_read, &h_err_write, &sa, 0);
     SetHandleInformation (h_err_read, HANDLE_FLAG_INHERIT, 0);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
@@ -279,7 +317,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= out_pipe[1];
   }
-  else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
+  else if (stderr_mode == redirect_mode::tee ||
+           stderr_mode == redirect_mode::capture) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (err_pipe, mode, 0);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
@@ -341,7 +380,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     wordexp_t p;
     int       ret= wordexp (cmd_c, &p, 0);
     if (ret == 0 && p.we_wordc > 0) {
-      process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
+      process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv,
+                                &attr);
       wordfree (&p);
     }
 #else
@@ -429,7 +469,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     if (out_pipe[0]) {
       char      buf[4096];
       tb_long_t n;
-      while ((n= tb_pipe_file_read (out_pipe[0], (tb_byte_t*) buf, sizeof (buf) - 1)) > 0) {
+      while ((n= tb_pipe_file_read (out_pipe[0], (tb_byte_t*) buf,
+                                    sizeof (buf) - 1)) > 0) {
         buf[n]= '\0';
         stdout_str.append (buf);
         if (stdout_mode == redirect_mode::tee) {
@@ -443,7 +484,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     if (err_pipe[0]) {
       char      buf[4096];
       tb_long_t n;
-      while ((n= tb_pipe_file_read (err_pipe[0], (tb_byte_t*) buf, sizeof (buf) - 1)) > 0) {
+      while ((n= tb_pipe_file_read (err_pipe[0], (tb_byte_t*) buf,
+                                    sizeof (buf) - 1)) > 0) {
         buf[n]= '\0';
         stderr_str.append (buf);
         if (stderr_mode == redirect_mode::tee) {
@@ -465,20 +507,25 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   s7_pointer out_s7 = s7_make_string (sc, stdout_str.c_str ());
   s7_pointer err_s7 = s7_make_string (sc, stderr_str.c_str ());
   s7_pointer code_s7= s7_make_integer (sc, (s7_int) status);
-  return s7_values (sc, s7_cons (sc, out_s7, s7_cons (sc, err_s7, s7_cons (sc, code_s7, s7_nil (sc)))));
+  return s7_values (
+      sc, s7_cons (sc, out_s7,
+                   s7_cons (sc, err_s7, s7_cons (sc, code_s7, s7_nil (sc)))));
 }
 
 inline void
-glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
+glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f,
+             s7_int required, s7_int optional) {
   s7_pointer cur_env= s7_curlet (sc);
-  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional,
+                                              false, desc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
 }
 
 void
 glue_subprocess_run_values (s7_scheme* sc) {
   const char* name= "g_subprocess-run-values";
-  const char* desc= "(g_subprocess-run-values command cwd env input timeout stdout stdout-mode stderr stderr-mode "
+  const char* desc= "(g_subprocess-run-values command cwd env input timeout "
+                    "stdout stdout-mode stderr stderr-mode "
                     "stdin) => (values stdout stderr exit-code)";
   glue_define (sc, name, desc, f_subprocess_run_values, 1, 9);
 }

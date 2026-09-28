@@ -83,6 +83,7 @@ target ("goldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_subprocess.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_sort.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_go.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_base.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_char.cpp",
     })
