@@ -909,29 +909,30 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     chatSideDock->setVisible (false);
     mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
 
+    // Qt 过滤器按对象安装，挂在 mw 或 dock 上看不到子控件的按下事件，
+    // 只能挂 qApp 全局拦截；侧边栏隐藏时首个事件类型判断即短路返回
     class ChatSidebarFocusRestorer : public QObject {
     public:
       ChatSidebarFocusRestorer (QWidget* parent, qt_tm_widget_rep* owner)
           : QObject (parent), owner_ (owner) {}
 
       bool eventFilter (QObject* obj, QEvent* event) override {
-        if (event->type () == QEvent::MouseButtonPress) {
-          if (owner_ && owner_->chatSideDock &&
-              owner_->chatSideDock->isVisible ()) {
-            QWidget* clicked= qobject_cast<QWidget*> (obj);
-            if (clicked) {
-              QWidget* fw            = QApplication::focusWidget ();
-              bool     focusInSidebar= qt_tm_widget_rep::isWidgetInSidebar (
-                  owner_->chatSideDock, fw);
-              bool clickInSidebar= qt_tm_widget_rep::isWidgetInSidebar (
-                  owner_->chatSideDock, clicked);
-              if (qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-                      owner_->chatSideDock->isVisible (), focusInSidebar,
-                      clickInSidebar)) {
-                owner_->restoreDocumentFocusAndCurrentView ();
-              }
-            }
-          }
+        if (event->type () != QEvent::MouseButtonPress)
+          return QObject::eventFilter (obj, event);
+        QWidget* dock= owner_ ? owner_->chatSideDock : nullptr;
+        if (!dock || !dock->isVisible ())
+          return QObject::eventFilter (obj, event);
+        QWidget* clicked= qobject_cast<QWidget*> (obj);
+        if (!clicked) return QObject::eventFilter (obj, event);
+        // 点击在侧边栏内（含其弹出菜单）时结论与焦点无关，短路省去焦点查询
+        bool clickInSidebar=
+            qt_tm_widget_rep::isWidgetInSidebar (dock, clicked);
+        bool focusInSidebar=
+            !clickInSidebar && qt_tm_widget_rep::isWidgetInSidebar (
+                                   dock, QApplication::focusWidget ());
+        if (qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
+                true, focusInSidebar, clickInSidebar)) {
+          owner_->restoreDocumentFocusAndCurrentView ();
         }
         return QObject::eventFilter (obj, event);
       }
@@ -3171,8 +3172,8 @@ bool
 qt_tm_widget_rep::isWidgetInSidebar (const QWidget* sidebar,
                                      const QWidget* target) {
   if (!sidebar || !target) return false;
-  if (target == sidebar) return true;
-  if (sidebar->isAncestorOf (target)) return true;
+  // QMenu 等浮层是独立顶层窗口，isAncestorOf 遇窗口边界即止，
+  // 故沿 QObject 父链遍历（首个迭代同时覆盖 target == sidebar）
   for (const QObject* cur= target; cur != nullptr; cur= cur->parent ()) {
     if (cur == sidebar) return true;
   }

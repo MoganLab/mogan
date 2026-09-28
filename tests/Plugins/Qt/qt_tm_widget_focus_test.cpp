@@ -24,29 +24,7 @@ private slots:
         true, true, false));
   }
 
-  void test_should_not_restore_when_click_inside_sidebar () {
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        true, true, true));
-  }
-
-  void test_should_not_restore_when_focus_not_in_sidebar () {
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        true, false, false));
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        true, false, true));
-  }
-
-  void test_should_not_restore_when_sidebar_not_visible () {
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        false, true, false));
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        false, true, true));
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        false, false, false));
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        false, false, true));
-  }
-
+  // 真值表穷举 8 种组合，覆盖其余全部场景
   void test_full_truth_table () {
     for (int mask= 0; mask < 8; ++mask) {
       bool visible = (mask & 1) != 0;
@@ -70,22 +48,6 @@ private slots:
     QVERIFY (!qt_tm_widget_rep::isWidgetInSidebar (&dock, &outsideBtn));
     QVERIFY (qt_tm_widget_rep::isWidgetInSidebar (&dock, &popupMenu));
     QVERIFY (!qt_tm_widget_rep::isWidgetInSidebar (&dock, &parent));
-
-    // 点击侧边栏外部控件时触发回切
-    bool focusInSidebar= qt_tm_widget_rep::isWidgetInSidebar (&dock, &childBtn);
-    bool clickOutside= qt_tm_widget_rep::isWidgetInSidebar (&dock, &outsideBtn);
-    QVERIFY (qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        true, focusInSidebar, clickOutside));
-
-    // 点击侧边栏内部子控件不触发回切
-    bool clickChild= qt_tm_widget_rep::isWidgetInSidebar (&dock, &childBtn);
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        true, focusInSidebar, clickChild));
-
-    // 点击具有侧边栏父级的弹出菜单不触发回切
-    bool clickMenu= qt_tm_widget_rep::isWidgetInSidebar (&dock, &popupMenu);
-    QVERIFY (!qt_tm_widget_rep::shouldRestoreDocumentFocusOnMousePress (
-        true, focusInSidebar, clickMenu));
   }
 };
 
