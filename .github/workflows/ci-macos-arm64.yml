@@ -73,7 +73,7 @@ jobs:
         os: [macos-14]
         arch: [arm64]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     if: always()
     steps:
       - uses: actions/checkout@v4

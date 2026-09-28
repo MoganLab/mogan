@@ -1672,7 +1672,7 @@ ChatSidebar::createItem (const string& sessionId) {
         QPushButton* btn= itemIt->moreButton;
         if (!btn) return;
 
-        QMenu         menu;
+        QMenu         menu (btn);
         QList<string> checked= getCheckedSessionIds ();
 
         if (!checked.isEmpty ()) {
