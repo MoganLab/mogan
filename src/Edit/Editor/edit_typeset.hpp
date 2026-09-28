@@ -124,6 +124,7 @@ public:
   array<string> list_auxs (bool global);
   array<string> list_atts (bool global);
 
+  bool is_stem ();
   void typeset_style_use_cache (tree style);
   void typeset_preamble ();
   void typeset_prepare ();
