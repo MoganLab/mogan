@@ -1,0 +1,160 @@
+<TMU|<tuple|1.1.0|2026.2.7-rc18>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\big-table|<tabular|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<twith|table-hyphen|y>|<cwith|3|6|2|4|cell-tborder|1ln>|<cwith|3|6|2|4|cell-bborder|1ln>|<cwith|3|6|2|4|cell-lborder|1ln>|<cwith|3|6|2|4|cell-rborder|1ln>|<cwith|2|2|2|4|cell-bborder|1ln>|<cwith|7|7|2|4|cell-tborder|1ln>|<cwith|3|6|1|1|cell-rborder|1ln>|<cwith|3|6|5|5|cell-lborder|1ln>|<cwith|3|4|2|4|cell-border-color|dark green>|<cwith|1|-1|1|1|cell-hmode|exact>|<cwith|1|-1|1|1|cell-width|37400tmpt>|<table|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>>>>>>
+    \;
+  </big-table>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|1B68FF58-8FEF-4D00-8E41-AC7BBF145440>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|table>
+      <tuple|normal|<\surround|<hidden-binding|<tuple>|1>|>
+        \;
+      </surround>|<pageref|auto-1>>
+    </associate>
+  </collection>
+</auxiliary>

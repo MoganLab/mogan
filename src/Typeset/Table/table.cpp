@@ -467,6 +467,14 @@ table_rep::merge_borders () {
     hor_prec[i]= ver_prec[i]= -2;
   }
 
+  auto get_prec = [] (cell C) -> int {
+    if (is_nil (C)) return -2;
+    if (!is_nil (C->bcolor) && C->bcolor != "") {
+      return 1000 + C->bcolor_precedence;
+    }
+    return -1;
+  };
+
   for (int i= 0; i < nr_rows; i++)
     for (int j= 0; j < nr_cols; j++) {
       cell C= T[i][j];
@@ -474,27 +482,29 @@ table_rep::merge_borders () {
         for (int di= 0; di < C->row_span; di++) {
           int ii= i + di, jj= j, kk= ii * hh + jj;
           horb[kk]= max (horb[kk], C->lborder);
-          if (C->lborder > 0 && C->bcolor_precedence > hor_prec[kk]) {
-            hor_prec[kk]= C->bcolor_precedence;
+          int c_prec = get_prec (C);
+          if (C->lborder > 0 && c_prec > hor_prec[kk]) {
+            hor_prec[kk]= c_prec;
           }
           jj      = j + C->col_span;
           kk      = ii * hh + jj;
           horb[kk]= max (horb[kk], C->rborder);
-          if (C->rborder > 0 && C->bcolor_precedence > hor_prec[kk]) {
-            hor_prec[kk]= C->bcolor_precedence;
+          if (C->rborder > 0 && c_prec > hor_prec[kk]) {
+            hor_prec[kk]= c_prec;
           }
         }
         for (int dj= 0; dj < C->col_span; dj++) {
           int ii= i, jj= j + dj, kk= ii * hh + jj;
           verb[kk]= max (verb[kk], C->tborder);
-          if (C->tborder > 0 && C->bcolor_precedence > ver_prec[kk]) {
-            ver_prec[kk]= C->bcolor_precedence;
+          int c_prec = get_prec (C);
+          if (C->tborder > 0 && c_prec > ver_prec[kk]) {
+            ver_prec[kk]= c_prec;
           }
           ii      = i + C->row_span;
           kk      = ii * hh + jj;
           verb[kk]= max (verb[kk], C->bborder);
-          if (C->bborder > 0 && C->bcolor_precedence > ver_prec[kk]) {
-            ver_prec[kk]= C->bcolor_precedence;
+          if (C->bborder > 0 && c_prec > ver_prec[kk]) {
+            ver_prec[kk]= c_prec;
           }
         }
       }
@@ -507,23 +517,25 @@ table_rep::merge_borders () {
         SI lb= 0, rb= 0, bb= 0, tb= 0;
         for (int di= 0; di < C->row_span; di++) {
           int ii= i + di, jj= j, kk= ii * hh + jj;
-          if (C->lborder == 0 || C->bcolor_precedence >= hor_prec[kk]) {
+          int c_prec = get_prec (C);
+          if (C->lborder == 0 || c_prec >= hor_prec[kk]) {
             lb= max (horb[kk], lb);
           }
           jj= j + C->col_span;
           kk= ii * hh + jj;
-          if (C->rborder == 0 || C->bcolor_precedence >= hor_prec[kk]) {
+          if (C->rborder == 0 || c_prec >= hor_prec[kk]) {
             rb= max (horb[kk], rb);
           }
         }
         for (int dj= 0; dj < C->col_span; dj++) {
           int ii= i, jj= j + dj, kk= ii * hh + jj;
-          if (C->tborder == 0 || C->bcolor_precedence >= ver_prec[kk]) {
+          int c_prec = get_prec (C);
+          if (C->tborder == 0 || c_prec >= ver_prec[kk]) {
             tb= max (verb[kk], tb);
           }
           ii= i + C->row_span;
           kk= ii * hh + jj;
-          if (C->bborder == 0 || C->bcolor_precedence >= ver_prec[kk]) {
+          if (C->bborder == 0 || c_prec >= ver_prec[kk]) {
             bb= max (verb[kk], bb);
           }
         }
