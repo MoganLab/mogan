@@ -1,0 +1,356 @@
+{
+  "default": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "secondChildTreeDepthLimit": 4,
+    "restIndent": "byFirstRestChild"
+  },
+  "": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "alignToFirstSelectedEnv"
+  },
+  "and": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "begin": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 0,
+    "restIndent": "byFirstRestChild"
+  },
+  "case": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "alignToFirstSelectedEnv"
+  },
+  "case-lambda": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 0,
+    "restIndent": "byFirstRestChild"
+  },
+  "cond": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "alignToFirstSelectedEnv"
+  },
+  "cond-expand": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "alignToFirstSelectedEnv"
+  },
+  "define": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": true,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "define-library": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "define-record-type": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "define-syntax": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "define-values": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": true,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "delay": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "delay-force": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "do": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 2,
+    "restIndent": "parentPlus2"
+  },
+  "else": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "export": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "guard": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "if": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "import": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "include": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "include-ci": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "include-library-declarations": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "lambda": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "let": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "let*": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "let*-values": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "let-syntax": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "let-values": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "letrec": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "letrec*": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "letrec-syntax": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "or": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "parameterize": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "quasiquote": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "quote": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "select": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "secondChildTreeDepthLimit": 3,
+    "restIndent": "alignToFirstSelectedEnv"
+  },
+  "set!": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "syntax-rules": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "unless": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  },
+  "unquote": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "unquote-splicing": {
+    "mustInline": false,
+    "neverInline": false,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": false,
+    "firstLineLimit": 1,
+    "restIndent": "byFirstRestChild"
+  },
+  "when": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "parentPlus2"
+  }
+}
