@@ -105,7 +105,7 @@ if [ ! -f "$DESKTOP_PATH" ]; then
     mkdir -p "$(dirname "$DESKTOP_PATH")"
     cat > "$DESKTOP_PATH" <<EOF
 [Desktop Entry]
-Version=$VERSION
+Version=1.0
 Type=Application
 Name=Mogan STEM
 GenericName=Mogan STEM
@@ -179,16 +179,7 @@ fi
 
 # 运行 linuxdeploy
 # 它会扫描我们刚才复制进去的 .so 文件，并把它们依赖的 fcitx 库也打包进去
-rm -f "$APP_HOME"/Mogan*.AppImage
-./"$DEPLOY_TOOL" --appdir "$APP_DIR" --plugin qt --executable "$APP_DIR/usr/bin/$BINARY_NAME" --icon-file "$ICON_SRC" --icon-filename "$APP_NAME" --output appimage
-
-# 处理生成的 AppImage 产物
-OUTPUT_APPIMAGE="${APP_HOME}/../${APP_NAME}_${VERSION}_${ARCH}.AppImage"
-GENERATED_APPIMAGE=$(ls -t "$APP_HOME"/Mogan*.AppImage 2>/dev/null | head -n 1)
-if [ -n "$GENERATED_APPIMAGE" ] && [ -f "$GENERATED_APPIMAGE" ]; then
-    mv "$GENERATED_APPIMAGE" "$OUTPUT_APPIMAGE"
-    chmod 755 "$OUTPUT_APPIMAGE"
-fi
+./"$DEPLOY_TOOL" --appdir "$APP_DIR" --plugin qt --executable "$APP_DIR/usr/bin/$BINARY_NAME" --icon-file "$ICON_SRC"
 
 # ================= 6. 构建 /opt 包结构 =================
 echo "📦 [6/6] 组装并生成 Deb..."
@@ -361,8 +352,3 @@ chmod 644 "$OUTPUT_DEB"
 
 echo "✅ Deb 打包完成: $OUTPUT_DEB"
 echo "💡 安装命令: sudo dpkg -i \"$OUTPUT_DEB\""
-
-if [ -f "$OUTPUT_APPIMAGE" ]; then
-    echo "✅ AppImage 打包完成: $OUTPUT_APPIMAGE"
-    echo "💡 运行命令: \"$OUTPUT_APPIMAGE\""
-fi
