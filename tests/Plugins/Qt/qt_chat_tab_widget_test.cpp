@@ -15,6 +15,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QPointer>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QStackedWidget>
@@ -739,6 +740,30 @@ private slots:
     auto buttons=
         sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
+  }
+
+  // === 删除会话崩溃回归：removeItem 不得同步销毁 "..." 菜单派发栈帧中的项 ===
+  void test_removeItem_from_more_menu_frame_defers_destruction () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QPushButton* moreBtn= sidebar.findChild<QPushButton*> ("chat-tab-more-btn");
+    QVERIFY (moreBtn != nullptr);
+
+    // 复现生产链路："..." clicked 槽内栈上 QMenu（父为 moreButton）弹出后
+    // emit deleteRequested → 控制器同步调用 removeItem；旧实现同步 delete
+    // 级联销毁栈上 menu 与发送者按钮，导致崩溃
+    QPointer<QPushButton> guard (moreBtn);
+    {
+      QMenu menu (moreBtn);
+      sidebar.removeItem ("s1");
+      // 信号派发帧尚未返回，发送者不得已被销毁
+      QVERIFY (!guard.isNull ());
+    }
+    // 控制权回到事件循环后才真正销毁
+    QTRY_VERIFY (guard.isNull ());
   }
 
   // === ChatSidebar moveToArchive ===
