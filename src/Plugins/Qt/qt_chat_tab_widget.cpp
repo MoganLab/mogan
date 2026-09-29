@@ -1739,7 +1739,9 @@ ChatSidebar::destroyItem (const string& sessionId) {
   if (item.itemWidget) {
     item.itemWidget->hide ();
     item.itemWidget->setParent (nullptr);
-    delete item.itemWidget;
+    // 删除请求可能发自 "..." 按钮 clicked 槽（栈上 QMenu 以 moreButton 为
+    // 父），同步 delete 会级联销毁信号派发栈帧中的对象；改用 deleteLater
+    item.itemWidget->deleteLater ();
   }
   items_.erase (it);
 }
