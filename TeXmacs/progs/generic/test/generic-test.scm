@@ -32,8 +32,27 @@
   (check (focus-tag-name 'big-table) => "big table")
 ) ;define
 
+(define (beamer-switch-allowed? empty? dirty? already-beamer?)
+  (or empty? dirty? already-beamer?)
+) ;define
+
+(define (test-beamer-switch-allowed?)
+  ;; Empty documents may always switch to Beamer.
+  (check (beamer-switch-allowed? #t #f #f) => #t)
+  ;; A dirty buffer is allowed to switch back to Beamer without requiring a save.
+  (check (beamer-switch-allowed? #f #t #f) => #t)
+  ;; A document that is already Beamer should not be blocked.
+  (check (beamer-switch-allowed? #f #f #t) => #t)
+  ;; A non-empty, clean, non-Beamer document remains blocked.
+  (check (beamer-switch-allowed? #f #f #f) => #f)
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (regtest-generic) (test-focus-tag-name) (check-report))
+(tm-define (regtest-generic)
+  (test-focus-tag-name)
+  (test-beamer-switch-allowed?)
+  (check-report)
+) ;tm-define
