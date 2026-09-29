@@ -31,9 +31,6 @@ QT_PLUGIN="linuxdeploy-plugin-qt-x86_64.AppImage"
 
 set -e
 
-# 确保在无 FUSE 环境（如 Docker/CI 容器）下也能正常解包运行 AppImage 工具
-export APPIMAGE_EXTRACT_AND_RUN=1
-
 # ================= 1. 收集文件 =================
 echo "📂 [1/6] 运行 xmake install 收集文件..."
 cd "$APP_HOME"
