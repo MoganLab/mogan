@@ -105,7 +105,7 @@ if [ ! -f "$DESKTOP_PATH" ]; then
     mkdir -p "$(dirname "$DESKTOP_PATH")"
     cat > "$DESKTOP_PATH" <<EOF
 [Desktop Entry]
-Version=1.0
+Version=$VERSION
 Type=Application
 Name=Mogan STEM
 GenericName=Mogan STEM
