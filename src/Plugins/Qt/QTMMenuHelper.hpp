@@ -21,6 +21,7 @@
 
 #include <QAction>
 #include <QComboBox>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QListView>
 #include <QMenu>
@@ -393,9 +394,13 @@ public:
 signals:
   void selectionChanged (const QItemSelection& c);
 
+protected:
+  virtual void keyPressEvent (QKeyEvent* event) override;
+
 protected slots:
   virtual void selectionChanged (const QItemSelection& c,
                                  const QItemSelection& p);
+  void         onDoubleClicked (const QModelIndex& index);
 };
 
 class QTMTreeModel;

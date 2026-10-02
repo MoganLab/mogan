@@ -49,6 +49,8 @@ public:
     if (DEBUG_QT) debug_qt << "Deleting QTMPlainWindow" << LF;
   }
 
+  void triggerDefaultButton ();
+
 signals:
   void closed ();
 
@@ -57,6 +59,7 @@ protected:
   virtual void moveEvent (QMoveEvent* event);
   virtual void resizeEvent (QResizeEvent* event);
   virtual void keyPressEvent (QKeyEvent* event) override;
+  virtual void showEvent (QShowEvent* event) override;
 };
 
 /*! The underlying QWidget for a qt_tm_widget_rep.
