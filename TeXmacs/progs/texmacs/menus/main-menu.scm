@@ -86,6 +86,17 @@
 ) ;menu-bind
 
 (tm-menu (texmacs-popup-menu)
+  (:require (in-graphics?))
+  ("Export as PNG" (graphics-export-png))
+  ---
+  ("Paste" (kbd-paste))
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special))
+  ("Copy" (kbd-copy))
+  (=> "Copy to" (link clipboard-copy-export-menu))
+) ;tm-menu
+
+(tm-menu (texmacs-popup-menu)
  ("Paste" (kbd-paste))
  ("Magic paste" (kbd-magic-paste))
  ("Paste special" (interactive-paste-special))

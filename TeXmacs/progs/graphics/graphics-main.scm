@@ -1675,3 +1675,52 @@
     (object-set-property "doc-at-padding" "default")
   ) ;if
 ) ;tm-define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Export graphics as image
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (graphics-tree-to-export)
+  (:synopsis "Return the enclosing tree of the current graphics for export")
+  (and-with gp
+    (or (graphics-graphics-path)
+      (and-with gt (tree-innermost 'graphics) (tree->path gt))
+    ) ;or
+    (let loop
+      ((cur-p gp) (cur-t (path->tree gp)))
+      (if (null? cur-p)
+        cur-t
+        (let* ((up-p (cDr cur-p)) (up-t (and (not (null? up-p)) (path->tree up-p))))
+          (if
+            (and up-t
+              (tree-is? up-t 'with)
+              (== (tree-ref up-t (- (tree-arity up-t) 1)) cur-t)
+            ) ;and
+            (loop up-p up-t)
+            cur-t
+          ) ;if
+        ) ;let*
+      ) ;if
+    ) ;let
+  ) ;and-with
+) ;tm-define
+
+(tm-define (graphics-export-png . opt-url)
+  (:synopsis "Export current graphics to PNG format")
+  (let* ((gt (graphics-tree-to-export)))
+    (if (not gt)
+      (set-message "No graphics found" "Export as PNG")
+      (if (null? opt-url)
+        (choose-file (lambda (u) (graphics-export-png u)) "Export as PNG" "png")
+        (let* ((myurl (car opt-url)))
+          (if (string? myurl) (set! myurl (string->url myurl)))
+          (when (== (url-suffix myurl) "")
+            (set! myurl (url-glue myurl ".png"))
+          ) ;when
+          (print-snippet myurl gt #t)
+          (set-message (string-append "Exported to " (url->string myurl)) "Export as PNG")
+        ) ;let*
+      ) ;if
+    ) ;if
+  ) ;let*
+) ;tm-define
