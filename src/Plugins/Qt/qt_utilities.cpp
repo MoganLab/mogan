@@ -11,6 +11,7 @@
 
 #include "qt_utilities.hpp"
 #include "QTMStyle.hpp"
+#include "boot.hpp"
 #include "url.hpp"
 #include <time.h>
 
@@ -1525,6 +1526,7 @@ qt_clipboard_text () {
 
 void
 qt_clipboard_set_html (string html) {
+  if (headless_mode) return;
   QCoreApplication::processEvents ();
   QClipboard* clipboard= QApplication::clipboard ();
   if (clipboard == nullptr) return;
@@ -1535,6 +1537,25 @@ qt_clipboard_set_html (string html) {
   mimeData->setHtml (htmlText);
   mimeData->setText (htmlText);
   clipboard->setMimeData (mimeData, QClipboard::Clipboard);
+}
+
+void
+qt_clipboard_set_text (string text) {
+  if (headless_mode) return;
+  QCoreApplication::processEvents ();
+  QClipboard* clipboard= QApplication::clipboard ();
+  if (clipboard == nullptr) return;
+
+  auto*         mimeData= new QMimeData;
+  c_string      textC (text);
+  const QString qText= QString::fromUtf8 ((char*) textC, N (text));
+  mimeData->setText (qText);
+  clipboard->setMimeData (mimeData, QClipboard::Clipboard);
+  if (clipboard->supportsSelection ()) {
+    auto* mimeDataSel= new QMimeData;
+    mimeDataSel->setText (qText);
+    clipboard->setMimeData (mimeDataSel, QClipboard::Selection);
+  }
 }
 
 /******************************************************************************
