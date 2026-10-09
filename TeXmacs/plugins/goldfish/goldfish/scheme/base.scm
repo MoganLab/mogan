@@ -15,7 +15,14 @@
 ;;
 
 (define-library (scheme base)
+  (import (srfi srfi-11))
   (export let-values
+    let*-values
+    define-syntax
+    syntax-rules
+    syntax-error
+    let-syntax
+    letrec-syntax
     ;; R7RS 5: Program Structure
     define-values
     define-record-type
@@ -222,37 +229,8 @@
   ) ;export
   (begin
 
-    ;; 0-clause BSD
-    ;; Bill Schottstaedt
-    ;; from S7 source repo: r7rs.scm
-    (define-macro (let-values vars . body)
-      (if (and (pair? vars) (pair? (car vars)) (null? (cdar vars)))
-        `((lambda ,(caar vars) ,@body) ,(cadar vars))
-        `(with-let (apply sublet
-                     (curlet)
-                     (list ,@(map (lambda (v)
-                                    `((lambda ,(car v)
-                                        (values ,@(map (lambda (name)
-                                                         (values (symbol->keyword name)
-                                                           name))
-                                                    (let args->proper-list
-                                                      ((args (car v)))
-                                                      (cond ((symbol? args)
-                                                             (list args))
-                                                            ((not (pair? args))
-                                                             args)
-                                                            ((pair? (car args))
-                                                             (cons (caar args)
-                                                               (args->proper-list (cdr args))))
-                                                            (else (cons (car args)
-                                                                    (args->proper-list (cdr args)))))))))
-                                      ,(cadr v)))
-                               vars)))
-           ,@body)
-      ) ;if
-    ) ;define-macro
-
     (define-macro (define-values vars expression)
+
       `(if (not (null? (quote ,vars)))
          (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
     ) ;define-macro
@@ -363,11 +341,10 @@
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "lcm: parameters must be reals")
       ) ;when
-      (cond
-       ((and (inexact? x) (exact? y)) (inexact (s7-lcm (exact x) y)))
-       ((and (exact? x) (inexact? y)) (inexact (s7-lcm x (exact y))))
-       ((and (inexact? x) (inexact? y)) (inexact (s7-lcm (exact x) (exact y))))
-       (else (s7-lcm x y))
+      (cond ((and (inexact? x) (exact? y)) (inexact (s7-lcm (exact x) y)))
+            ((and (exact? x) (inexact? y)) (inexact (s7-lcm x (exact y))))
+            ((and (inexact? x) (inexact? y)) (inexact (s7-lcm (exact x) (exact y))))
+            (else (s7-lcm x y))
       ) ;cond
     ) ;define
 
@@ -375,9 +352,7 @@
       (cond ((null? args) 1)
             ((null? (cdr args)) (lcm2 (car args) 1))
             ((null? (cddr args)) (lcm2 (car args) (cadr args)))
-            (else
-              (apply lcm (cons (lcm (car args) (cadr args)) (cddr args)))
-            ) ;else
+            (else (apply lcm (cons (lcm (car args) (cadr args)) (cddr args))))
       ) ;cond
     ) ;define
 
@@ -433,8 +408,7 @@
 
     (define bytevector-u8-set! byte-vector-set!)
 
-    (define*
-      (bytevector-copy v (start 0) (end (and (bytevector? v) (bytevector-length v))))
+    (define* (bytevector-copy v (start 0) (end (and (bytevector? v) (bytevector-length v))))
       (unless (bytevector? v)
         (error 'type-error "bytevector-copy: parameter must be a bytevector" v)
       ) ;unless
@@ -492,8 +466,7 @@
              (if (>= (+ index 2) end)
                index
                (let ((next-byte1 (bv (+ index 1))) (next-byte2 (bv (+ index 2))))
-                 (if
-                   (or (not (= (logand next-byte1 192) 128)) (not (= (logand next-byte2 192) 128)))
+                 (if (or (not (= (logand next-byte1 192) 128)) (not (= (logand next-byte2 192) 128)))
                    index
                    (+ index 3)
                  ) ;if
@@ -509,11 +482,10 @@
                      (next-byte2 (bv (+ index 2)))
                      (next-byte3 (bv (+ index 3)))
                     ) ;
-                 (if
-                   (or (not (= (logand next-byte1 192) 128))
-                     (not (= (logand next-byte2 192) 128))
-                     (not (= (logand next-byte3 192) 128))
-                   ) ;or
+                 (if (or (not (= (logand next-byte1 192) 128))
+                       (not (= (logand next-byte2 192) 128))
+                       (not (= (logand next-byte3 192) 128))
+                     ) ;or
                    index
                    (+ index 4)
                  ) ;if
@@ -549,10 +521,9 @@
         (let loop
           ((pos start))
           (let ((next-pos (bytevector-advance-utf8 bv pos end)))
-            (cond
-             ((= next-pos end) (copy bv (make-string (- end start)) start end))
-             ((= next-pos pos) (error 'value-error "Invalid UTF-8 sequence at index: " pos))
-             (else (loop next-pos))
+            (cond ((= next-pos end) (copy bv (make-string (- end start)) start end))
+                  ((= next-pos pos) (error 'value-error "Invalid UTF-8 sequence at index: " pos))
+                  (else (loop next-pos))
             ) ;cond
           ) ;let
         ) ;let
@@ -634,8 +605,7 @@
 
     (define string-for-each for-each)
 
-    (define*
-      (vector-copy v (start 0) (end (and (vector? v) (vector-length v))))
+    (define* (vector-copy v (start 0) (end (and (vector? v) (vector-length v))))
       (if (not (vector? v))
         (error 'type-error "vector-copy: parameter must be a vector")
         (if (or (not (integer? start)) (not (integer? end)))
@@ -666,12 +636,11 @@
       (if (null? args)
         (error 'wrong-number-of-args "vector-map: requires at least one vector")
       ) ;if
-      (for-each
-        (lambda (v)
-          (if (not (vector? v))
-            (error 'type-error "vector-map: parameter must be a vector")
-          ) ;if
-        ) ;lambda
+      (for-each (lambda (v)
+                  (if (not (vector? v))
+                    (error 'type-error "vector-map: parameter must be a vector")
+                  ) ;if
+                ) ;lambda
         args
       ) ;for-each
       (apply vector (apply map p args))
@@ -684,12 +653,11 @@
       (if (null? args)
         (error 'wrong-number-of-args "vector-for-each: requires at least one vector")
       ) ;if
-      (for-each
-        (lambda (v)
-          (if (not (vector? v))
-            (error 'type-error "vector-for-each: parameter must be a vector")
-          ) ;if
-        ) ;lambda
+      (for-each (lambda (v)
+                  (if (not (vector? v))
+                    (error 'type-error "vector-for-each: parameter must be a vector")
+                  ) ;if
+                ) ;lambda
         args
       ) ;for-each
       (apply for-each p args)
@@ -712,13 +680,12 @@
       (apply fill! vec fill rest)
     ) ;define
 
-    (define*
-      (vector-copy! to
-        at
-        from
-        (start 0)
-        (end (and (vector? from) (vector-length from)))
-      ) ;vector-copy!
+    (define* (vector-copy! to
+               at
+               from
+               (start 0)
+               (end (and (vector? from) (vector-length from)))
+             ) ;vector-copy!
       (if (not (vector? to))
         (error 'type-error "vector-copy!: 'to' must be a vector")
         (if (not (integer? at))
@@ -727,15 +694,14 @@
             (error 'type-error "vector-copy!: 'from' must be a vector")
             (if (or (not (integer? start)) (not (integer? end)))
               (error 'type-error "vector-copy!: 'start' and 'end' must be integers")
-              (if
-                (or (< at 0)
-                  (< start 0)
-                  (> start (vector-length from))
-                  (< end 0)
-                  (> end (vector-length from))
-                  (> start end)
-                  (> (+ at (- end start)) (vector-length to))
-                ) ;or
+              (if (or (< at 0)
+                    (< start 0)
+                    (> start (vector-length from))
+                    (< end 0)
+                    (> end (vector-length from))
+                    (> start end)
+                    (> (+ at (- end start)) (vector-length to))
+                  ) ;or
                 (error 'out-of-range "vector-copy!")
                 (let loop
                   ((to-i at) (from-i start))

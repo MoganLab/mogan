@@ -27,8 +27,7 @@
 
 (define (display . l)
   "display one object on the standard output or a specified port."
-  (if
-    (or (null? l) (not (null? (cdr l))))
+  (if (or (null? l) (not (null? (cdr l))))
     (apply original-display l)
     (tm-output (display-to-string (car l)))
   ) ;if
@@ -36,8 +35,7 @@
 
 (define (write . l)
   "write an object to the standard output or a specified port."
-  (if
-    (or (null? l) (not (null? (cdr l))))
+  (if (or (null? l) (not (null? (cdr l))))
     (apply original-write l)
     (tm-output (object->string (car l)))
   ) ;if
@@ -85,10 +83,9 @@
 
 
 (define-macro (provide-public head . body)
-  (if
-    (or (and (symbol? head) (not (defined? head)))
-      (and (pair? head) (symbol? (car head)) (not (defined? (car head))))
-    ) ;or
+  (if (or (and (symbol? head) (not (defined? head)))
+        (and (pair? head) (symbol? (car head)) (not (defined? (car head))))
+      ) ;or
     `(define-public ,head ,@body)
     '(noop)
   ) ;if
@@ -243,7 +240,9 @@
 ;; (scheme file) 等库传递性 re-export。goldfish 自身在 rootlet 求值，
 ;; 这些定义天然全局；mogan 顶层是 *texmacs-user-module*，故 boot.scm
 ;; 与基础库需显式装入 rootlet。
-(load "scheme/boot.scm" (rootlet))
+(let-temporarily ((*current-module* (rootlet)))
+  (load "scheme/boot.scm" (rootlet))
+) ;let-temporarily
 (with-let (rootlet) (import (scheme base)))
 (import (scheme base))
 (import (scheme char))

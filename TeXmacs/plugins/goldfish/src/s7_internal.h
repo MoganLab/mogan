@@ -1512,6 +1512,7 @@ typedef enum {p_display, p_write, p_readable, p_key, p_code} use_write_t;
 #define T_GC_MARK 0x8000000000000000
 #define T_SYNTACTIC (1 << (8 + 1))
 #define T_OPTIMIZED (1 << (8 + 3))
+#define T_SAFE_CLOSURE (1 << (8 + 4))
 
 /* T_* identity macros (non-debug versions) */
 #define T_App(P)  P
@@ -1612,6 +1613,9 @@ typedef enum {p_display, p_write, p_readable, p_key, p_code} use_write_t;
 /* cddr (macro) */
 #define cddr(p)                        cdr(cdr(p))
 
+/* cdddr (macro) */
+#define cdddr(p)                       cdr(cdr(cdr(p)))
+
 /* cdr (macro) */
 #define cdr(p)                         (T_Pair(p))->object.cons.cdr
 
@@ -1662,6 +1666,9 @@ typedef enum {p_display, p_write, p_readable, p_key, p_code} use_write_t;
 
 /* dynamic_wind_state (macro) */
 #define dynamic_wind_state(p)          (T_Dyn(p))->object.winder.state
+
+/* dynamic_wind_body (macro) */
+#define dynamic_wind_body(p)           (T_Dyn(p))->object.winder.body
 
 /* end_temp (macro) */
 #define end_temp(p)                     p = sc->unused
@@ -1758,6 +1765,9 @@ s7_pointer lookup(s7_scheme *sc, const s7_pointer symbol);
 
 /* make_let (decl) */
 s7_pointer make_let(s7_scheme *sc, s7_pointer old_let);
+
+/* make_closure_unchecked (decl) */
+s7_pointer make_closure_unchecked(s7_scheme *sc, s7_pointer args, s7_pointer code, s7_uint type, int32_t arity);
 
 /* make_simple_vector (decl) */
 s7_pointer make_simple_vector(s7_scheme *sc, s7_int len);
@@ -2084,6 +2094,7 @@ s7_pointer pair_append(s7_scheme *sc, s7_pointer a, s7_pointer b);
 #endif
 extern bool t_any_closure_p[NUM_TYPES];
 extern s7_pointer a_procedure_string;
+extern s7_pointer a_thunk_string;
 
 /* opcodes for s7_continuation.c */
 enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_protect used below as lower boundary marker */
@@ -2337,6 +2348,47 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 #define is_c_object(p)                 (type(p) == T_C_OBJECT)
 #define is_defined_global(p)           ((is_slot(global_slot(p))) && (symbol_id(p) == 0))
 #define is_global(p)                   (symbol_id(p) == 0)
+#define is_lambda(Sc, Sym)             (((Sym) == (Sc)->lambda_symbol) && (is_global(Sym)))
+#define is_thunk(Sc, Fnc)              ((type(Fnc) >= T_GOTO) && (s7_is_aritable(Sc, Fnc, 0)))
+
+#define c_function_min_args(f)         (T_Fnc(f))->object.fnc.required_args
+#define c_function_max_args(f)         (T_Fnc(f))->object.fnc.all_args
+#define c_function_is_aritable(f, N)   ((c_function_min_args(f) <= N) && (c_function_max_args(f) >= N))
+#define c_macro_min_args(f)            (T_CMac(f))->object.fnc.required_args
+
+#define declare_jump_info() bool old_longjmp; setjmp_loc_t old_jump_loc; jump_loc_t jump_loc; Jmp_Buf *old_goto_start; Jmp_Buf new_goto_start
+
+#define store_jump_info(Sc)			\
+  do {						\
+      old_longjmp = Sc->longjmp_ok;		\
+      old_jump_loc = Sc->setjmp_loc;		\
+      old_goto_start = Sc->goto_start;		\
+  } while (0)
+
+#define restore_jump_info(Sc)			\
+  do {						\
+    Sc->longjmp_ok = old_longjmp;		\
+    Sc->setjmp_loc = old_jump_loc;		\
+    Sc->goto_start = old_goto_start;		\
+    if ((jump_loc == error_jump) &&		\
+	(Sc->longjmp_ok))			\
+      LongJmp(*(Sc->goto_start), error_jump);	\
+  } while (0)
+
+#define set_jump_info(Sc, Tag)			\
+  do {						\
+    Sc->longjmp_ok = true;			\
+    Sc->setjmp_loc = Tag;			\
+    jump_loc = (jump_loc_t)SetJmp(new_goto_start, 1);	\
+    Sc->goto_start = &new_goto_start;		\
+  } while (0)
+
+#define push_stack_direct(Sc, Op) \
+  do { \
+      Sc->cur_op = Op; \
+      memcpy((void *)(Sc->stack_end), (void *)Sc, 4 * sizeof(s7_pointer)); \
+      Sc->stack_end += 4; \
+  } while (0)
 #define is_immutable_let(p)            has_mid_type_bit(T_Let(p), T_MID_IMMUTABLE)
 #define is_immutable_slot(p)           has_mid_type_bit(T_Slt(p), T_MID_IMMUTABLE)
 #define is_keyword(p)                  has_high_type_bit(T_Sym(p), T_SHORT_KEYWORD)
@@ -2476,6 +2528,8 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 #define is_any_macro(P)                t_any_macro_p[type(P)]
 #define has_closure_let(P)             t_has_closure_let[type(P)]
 #define closure_let(p)                 T_Let((T_Clo(p))->object.func.let)
+#define closure_set_let(p, L)          (T_Clo(p))->object.func.let = T_Let(L)
+#define is_safe_closure(p)             has_low_type_bit(T_Clo(p), T_SAFE_CLOSURE)
 #define funclet_function(p)            T_Sym((C_Let(p, L_FUNC))->object.let.edat.efnc.function)
 #define has_let_file(p)                has_high_type_bit(T_Let(p), T_HAS_LET_FILE)
 #define let_line(p)                    (C_Let(p, L_FUNC))->object.let.edat.efnc.line
@@ -2724,6 +2778,7 @@ void *Realloc(void *ptr, size_t size);
 #define is_macro(p)                    (type(p) == T_MACRO)
 #define is_macro_star(p)               (type(p) == T_MACRO_STAR)
 #define is_multiple_value(p)           has_low_type_bit(T_Exs(p), T_MULTIPLE_VALUE) /* not T_Ext -- can be a slot */
+#define multiple_value(p)              p
 #define is_normal_symbol(p)            ((is_symbol(p)) && (!is_keyword(p)))  /* ((full_type(p) & (0xff | T_KEYWORD)) == T_SYMBOL) is exactly the same speed */
 #define is_not_null(p)                 ((T_Exs(p)) != sc->nil)
 #define is_number(P)                   t_number_p[type(P)]

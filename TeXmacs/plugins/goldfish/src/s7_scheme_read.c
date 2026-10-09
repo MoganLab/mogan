@@ -99,14 +99,7 @@
   #define current_input_port(Sc)          T_Pri(Sc->input_port)
 #endif
 
-#ifndef push_stack_direct
-  #define push_stack_direct(Sc, Op) \
-    do { \
-        Sc->cur_op = Op; \
-        memcpy((void *)(Sc->stack_end), (void *)Sc, 4 * sizeof(s7_pointer)); \
-        Sc->stack_end += 4; \
-    } while (0)
-#endif
+/* push_stack_direct is defined in s7_internal.h */
 #ifndef stack_top_op
   #define stack_top_op(Sc)                ((opcode_t)T_Op(Sc->stack_end[-1]))
 #endif
@@ -131,33 +124,7 @@ s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_p
 s7_pointer method_or_bust_p(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer typ);
 s7_pointer method_or_bust_pp(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer x1, s7_pointer x2, s7_pointer typ, int32_t num);
 
-#define declare_jump_info() bool old_longjmp; setjmp_loc_t old_jump_loc; jump_loc_t jump_loc; Jmp_Buf *old_goto_start; Jmp_Buf new_goto_start
-
-#define store_jump_info(Sc)			\
-  do {						\
-      old_longjmp = Sc->longjmp_ok;		\
-      old_jump_loc = Sc->setjmp_loc;		\
-      old_goto_start = Sc->goto_start;		\
-  } while (0)
-
-#define restore_jump_info(Sc)			\
-  do {						\
-    Sc->longjmp_ok = old_longjmp;		\
-    Sc->setjmp_loc = old_jump_loc;		\
-    Sc->goto_start = old_goto_start;		\
-    if ((jump_loc == error_jump) &&		\
-	(Sc->longjmp_ok))			\
-      LongJmp(*(Sc->goto_start), error_jump);	\
-  } while (0)
-
-#define set_jump_info(Sc, Tag)			\
-  do {						\
-    Sc->longjmp_ok = true;			\
-    Sc->setjmp_loc = Tag;			\
-    jump_loc = (jump_loc_t)SetJmp(new_goto_start, 1);	\
-    Sc->goto_start = &new_goto_start;		\
-  } while (0)
-
+/* declare_jump_info/store_jump_info/restore_jump_info/set_jump_info are defined in s7_internal.h */
 
 /* -------- read character functions -------- */
 

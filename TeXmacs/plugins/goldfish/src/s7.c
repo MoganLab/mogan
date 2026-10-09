@@ -6797,6 +6797,7 @@ static void process_output_port(s7_scheme *sc, s7_pointer port)
 
 void process_continuation(s7_scheme *sc, s7_pointer cc);
 void mark_continuation(s7_pointer cc);
+void mark_dynamic_wind(s7_pointer dw);
 
 static void free_hash_table(s7_scheme *sc, s7_pointer table);
 static void remove_gensym_from_symbol_table(s7_scheme *sc, s7_pointer sym);
@@ -7274,14 +7275,6 @@ static void mark_catch(s7_pointer catcher) /* C++ reserves "catch" */
   set_mark(catcher);
   gc_mark(catch_tag(catcher));
   gc_mark(catch_handler(catcher));
-}
-
-static void mark_dynamic_wind(s7_pointer dw)
-{
-  set_mark(dw);
-  gc_mark(dynamic_wind_in(dw));
-  gc_mark(dynamic_wind_out(dw));
-  gc_mark(dynamic_wind_body(dw));
 }
 
 static void mark_hash_table(s7_pointer table)
@@ -10302,7 +10295,7 @@ static s7_pointer make_macro(s7_scheme *sc, opcode_t op, bool named)
   return(mac);
 }
 
-static s7_pointer make_closure_unchecked(s7_scheme *sc, s7_pointer args, s7_pointer code, s7_uint type, int32_t arity)
+s7_pointer make_closure_unchecked(s7_scheme *sc, s7_pointer args, s7_pointer code, s7_uint type, int32_t arity)
 {
   s7_pointer new_func;
   new_cell_unchecked(sc, new_func, (type | closure_bits(code)));
@@ -28370,200 +28363,9 @@ static s7_pointer g_signature(s7_scheme *sc, s7_pointer args)
 s7_pointer s7_signature(s7_scheme *sc, s7_pointer func) {return(g_signature(sc, set_plist_1(sc, func)));}
 
 
-/* -------------------------------- dynamic-wind -------------------------------- */
-static s7_pointer closure_or_f(s7_scheme *sc, s7_pointer obj)
-{
-  s7_pointer body;
-  if (!is_closure(obj)) return(obj);
-  body = closure_body(obj);
-  if (is_pair(cdr(body))) return(obj);
-  if (!is_pair(car(body))) return(sc->F);
-  return((is_quote(sc, caar(body))) ? sc->F : obj);
-}
-
-static s7_pointer make_baffled_closure(s7_scheme *sc, s7_pointer old_func)
-{
-  /* for dynamic-wind to protect initial and final functions from call/cc */
-  s7_pointer new_func = make_closure_unchecked(sc, sc->nil, closure_body(old_func), type(old_func), 0); /* always preceded by new dw cell */
-  s7_pointer let = make_let(sc, closure_let(old_func)); /* let_outlet(let) = closure_let(old_func) */
-  set_baffle_let(let);
-  let_set_baffle_key(let, sc->baffle_ctr++);
-  closure_set_let(new_func, let);
-  return(new_func);
-}
-
-static bool is_dwind_thunk(s7_scheme *sc, s7_pointer obj)
-{
-  switch (type(obj))
-    {
-    case T_MACRO: case T_BACRO: case T_CLOSURE:
-    case T_MACRO_STAR: case T_BACRO_STAR: case T_CLOSURE_STAR:
-      return(is_null(closure_pars(obj)));    /* this case does not match is_aritable -- it could be loosened -- arity=0 below would need fixup */
-    case T_C_FUNCTION:
-      return(c_function_is_aritable(obj, 0));
-    case T_C_MACRO:
-      return(c_macro_min_args(obj) == 0);
-    case T_C_FUNCTION_STAR: case T_GOTO: case T_CONTINUATION: case T_C_RST_NO_REQ_FUNCTION:
-      return(true);
-    }
-  return(obj == sc->F); /* (dynamic-wind #f (lambda () 3) #f) */
-}
-
-static s7_pointer g_dynamic_wind_unchecked(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer dw, init_func, final_func;
-
-  new_cell(sc, dw, T_DYNAMIC_WIND);                          /* don't mark car/cdr, don't copy */
-  dynamic_wind_in(dw) = closure_or_f(sc, car(args));
-  dynamic_wind_body(dw) = cadr(args);
-  dynamic_wind_out(dw) = closure_or_f(sc, caddr(args));
-  push_stack(sc, OP_DYNAMIC_WIND, sc->nil, dw);             /* args will be the saved result, code = s7_dynwind_t obj */
-                                                            /*   do this push_stack early to protect p from allocations in make_baffled_closure */
-  init_func = dynamic_wind_in(dw);
-  if ((is_any_closure(init_func)) && (!is_safe_closure(init_func))) /* wrap this use of init_func in a with-baffle */
-    dynamic_wind_in(dw) = make_baffled_closure(sc, init_func);
-
-  final_func = dynamic_wind_out(dw);
-  if ((is_any_closure(final_func)) && (!is_safe_closure(final_func)))
-    dynamic_wind_out(dw) = make_baffled_closure(sc, final_func);
-
-  /* since we don't care about the in and out results, and they are thunks, if the body is not a pair,
-   *   or is a quoted thing, we just ignore that function.
-   */
-  if (init_func != sc->F)
-    {
-      dynamic_wind_state(dw) = dwind_init;
-      push_stack(sc, OP_APPLY, sc->nil, dynamic_wind_in(dw));
-    }
-  else
-    {
-      dynamic_wind_state(dw) = dwind_body;
-      push_stack(sc, OP_APPLY, sc->nil, dynamic_wind_body(dw));
-    }
-  return(sc->F);
-}
-
-static s7_pointer g_dynamic_wind_init(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer dw;
-  const s7_pointer init_func = closure_or_f(sc, car(args));
-  new_cell(sc, dw, T_DYNAMIC_WIND);                          /* don't mark car/cdr, don't copy */
-  dynamic_wind_in(dw) = init_func;
-  dynamic_wind_body(dw) = cadr(args);
-  dynamic_wind_out(dw) = sc->F;
-  if ((is_any_closure(init_func)) && (!is_safe_closure(init_func)))    /* wrap this use of init_func in a with-baffle */
-    dynamic_wind_in(dw) = make_baffled_closure(sc, init_func);
-  push_stack(sc, OP_DYNAMIC_WIND, sc->nil, dw);             /* args will be the saved result, code = s7_dynwind_t obj */
-  dynamic_wind_state(dw) = dwind_init;
-  push_stack(sc, OP_APPLY, sc->nil, dynamic_wind_in(dw));
-  return(sc->F);
-}
-
-static s7_pointer g_dynamic_wind_body(s7_scheme *sc, s7_pointer args)
-{
-  push_stack(sc, OP_APPLY, sc->nil, cadr(args));
-  return(sc->F);
-}
-
-static s7_pointer g_dynamic_wind(s7_scheme *sc, s7_pointer args)
-{
-  #define H_dynamic_wind "(dynamic-wind init body finish) calls init, then body, then finish, \
-each a function of no arguments, guaranteeing that finish is called even if body is exited"
-  #define Q_dynamic_wind s7_make_signature(sc, 4, sc->values_symbol, \
-                           s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->not_symbol), \
-                           sc->is_procedure_symbol, \
-                           s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->not_symbol))
-
-  if (!is_dwind_thunk(sc, car(args)))
-    return(method_or_bust(sc, car(args), sc->dynamic_wind_symbol, args, wrap_string(sc, "a thunk or #f", 13), 1));
-  if (!is_thunk(sc, cadr(args)))
-    return(method_or_bust(sc, cadr(args), sc->dynamic_wind_symbol, args, a_thunk_string, 2));
-  if (!is_dwind_thunk(sc, caddr(args)))
-    return(method_or_bust(sc, caddr(args), sc->dynamic_wind_symbol, args, wrap_string(sc, "a thunk or #f", 13), 3));
-
-  /* this won't work:
-       (let ((final (lambda (a b c) (list a b c))))
-         (dynamic-wind
-           (lambda () #f)
-           (lambda () (set! final (lambda () (display "in final"))))
-           final))
-   * but why not?  'final' is a thunk by the time it is evaluated. catch (the error handler) is similar.
-   * It can't work here because we set up the dynamic_wind_out slot below and
-   *   even if the thunk check was removed, we'd still be trying to apply the original function.
-   */
-  return(g_dynamic_wind_unchecked(sc, args));
-}
-
-static bool is_lambda(s7_scheme *sc, s7_pointer sym)
+static inline bool is_lambda(s7_scheme *sc, s7_pointer sym)
 {
   return((sym == sc->lambda_symbol) && (is_global(sym))); /* do we need (!sc->in_with_let) ? */
-}
-
-static int32_t is_ok_thunk(s7_scheme *sc, s7_pointer arg) /* used only in dynamic_wind_chooser */
-{
-  /* 0 = not ok, 1 = ok but not simple, 2 = ok body is just #f, 3 = #f */
-  if (arg == sc->F) return(3);
-  if ((is_pair(arg)) &&
-      (is_lambda(sc, car(arg))) &&
-      (is_pair(cdr(arg))) &&
-      (is_null(cadr(arg))) && /* (lambda () ...) */
-      (is_pair(cddr(arg))) &&
-      (s7_is_proper_list(sc, cddr(arg))))
-    return(((is_null(cdddr(arg))) && (caddr(arg) == sc->F)) ? 2 : 1); /* 2: (lambda () #f) */
-  return(0);
-}
-
-static s7_pointer dynamic_wind_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
-{
-  if ((args == 3) &&
-      (is_ok_thunk(sc, caddr(expr))))
-    {
-      int32_t init = is_ok_thunk(sc, cadr(expr));
-      int32_t end = is_ok_thunk(sc, cadddr(expr));
-      if ((init > 1) && (end > 1)) return(sc->dynamic_wind_body);
-      if ((init > 0) && (end > 1)) return(sc->dynamic_wind_init);
-      if ((init > 0) && (end > 0)) return(sc->dynamic_wind_unchecked);
-    }
-  return(func);
-}
-
-s7_pointer s7_dynamic_wind(s7_scheme *sc, s7_pointer init, s7_pointer body, s7_pointer finish)
-{
-  /* this is essentially s7_call with a dynamic-wind wrapper around "body" */
-  declare_jump_info();
-  store_jump_info(sc);
-  set_jump_info(sc, dynamic_wind_set_jump);
-  if (jump_loc != no_jump)
-    {
-      if (jump_loc != error_jump)
-	eval(sc, sc->cur_op);
-    }
-  else
-    {
-      s7_pointer dw;
-      push_stack_direct(sc, OP_EVAL_DONE); /* this is ok because we have called setjmp etc */
-      sc->args = sc->nil;
-      new_cell(sc, dw, T_DYNAMIC_WIND);
-      dynamic_wind_in(dw) = T_Ext(init);
-      dynamic_wind_body(dw) = T_Ext(body);
-      dynamic_wind_out(dw) = T_Ext(finish);
-      push_stack(sc, OP_DYNAMIC_WIND, sc->nil, dw);
-      if (init != sc->F)
-	{
-	  dynamic_wind_state(dw) = dwind_init;
-	  sc->code = init;
-	}
-      else
-	{
-	  dynamic_wind_state(dw) = dwind_body;
-	  sc->code = body;
-	}
-      eval(sc, OP_APPLY);
-    }
-  restore_jump_info(sc);
-  if (is_multiple_value(sc->value))
-    sc->value = splice_in_values(sc, multiple_value(sc->value));
-  return(sc->value);
 }
 
 static void op_unwind_output(s7_scheme *sc)
@@ -28591,38 +28393,6 @@ static void op_unwind_input(s7_scheme *sc)
     set_current_input_port(sc, sc->args);
   if (is_multiple_value(sc->value))
     sc->value = splice_in_values(sc, multiple_value(sc->value));
-}
-
-static bool op_dynamic_wind(s7_scheme *sc)
-{
-  const s7_pointer dwind = T_Dyn(sc->code);
-  if (SHOW_EVAL_OPS) fprintf(stderr, "  %s[%d]: %s\n", __func__, __LINE__, display_truncated(dwind));
-  if (dynamic_wind_state(dwind) == dwind_init)
-    {
-      dynamic_wind_state(dwind) = dwind_body;
-      push_stack(sc, OP_DYNAMIC_WIND, sc->nil, dwind);
-      sc->code = dynamic_wind_body(dwind);
-      sc->args = sc->nil;
-      return(true); /* goto apply */
-    }
-  if (dynamic_wind_state(dwind) == dwind_body)
-    {
-      dynamic_wind_state(dwind) = dwind_finish;
-      if (dynamic_wind_out(dwind) != sc->F)
-	{
-	  push_stack(sc, OP_DYNAMIC_WIND, sc->value, dwind);
-	  sc->code = dynamic_wind_out(dwind);
-	  sc->args = sc->nil;
-	  return(true);
-	}
-      if (is_multiple_value(sc->value))
-	sc->value = splice_in_values(sc, multiple_value(sc->value));
-      return(false); /* goto start */
-    }
-  if (is_multiple_value(sc->args))       /* (+ 1 (dynamic-wind (lambda () #f) (lambda () (values 2 3 4)) (lambda () #f)) 5) */
-    sc->value = splice_in_values(sc, multiple_value(sc->args));
-  else sc->value = sc->args;             /* value saved above */
-  return(false);
 }
 
 

@@ -14,76 +14,90 @@
 ;; under the License.
 ;;
 
+;; Copyright (C) Sebastian Egner (2002). All Rights Reserved.
+;;
+;; Permission is hereby granted, free of charge, to any person obtaining
+;; a copy of this software and associated documentation files (the
+;; "Software"), to deal in the Software without restriction, including
+;; without limitation the rights to use, copy, modify, merge, publish,
+;; distribute, sublicense, and/or sell copies of the Software, and to
+;; permit persons to whom the Software is furnished to do so, subject to
+;; the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be
+;; included in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+;; LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+;; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+;;
+;; Based on the reference implementation of SRFI 26 written by Al Petrofsky
+;; and Sebastian Egner (placed in the public domain).
+
 (define-library (srfi srfi-26)
+  (import (scheme base))
   (export cut cute)
-  (import (liii list) (liii error))
   (begin
 
-    (define-macro (cut . paras)
-      (letrec* ((slot? (lambda (x) (equal? '<> x)))
-                (more-slot? (lambda (x) (equal? '<...> x)))
-                (slots (filter slot? paras))
-                (more-slots (filter more-slot? paras))
-                (xs (map (lambda (x) (gensym)) slots))
-                (rest (gensym))
-                (parse
-                  (lambda (xs paras)
-                    (cond ((null? paras) paras)
-                          ((not (list? paras)) paras)
-                          ((more-slot? (car paras)) `(,rest
-                                                      ,@(parse xs (cdr paras))))
-                          ((slot? (car paras)) `(,(car xs)
-                                                 ,@(parse (cdr xs) (cdr paras))))
-                          (else
-                            `(,(car paras) ,@(parse xs (cdr paras)))
-                          ) ;else
-                    ) ;cond
-                  ) ;lambda
-                ) ;parse
-               ) ;
-        (cond
-         ((null? more-slots) `(lambda ,xs ,(parse xs paras)))
-         (else
-           (when
-             (or (> (length more-slots) 1) (not (more-slot? (last paras))))
-             (error 'syntax-error "<...> must be the last parameter of cut")
-           ) ;when
-           (let ((parsed (parse xs paras)))
-             `(lambda (,@xs . ,rest) (apply ,@parsed))
-           ) ;let
-         ) ;else
-        ) ;cond
-      ) ;letrec*
-    ) ;define-macro
+    (define-syntax srfi-26-internal-cut
+      (syntax-rules (<> <...>)
+        ((srfi-26-internal-cut (slot-name ...) (proc arg ...))
+         (lambda (slot-name ...) (proc arg ...))
+        ) ;
+        ((srfi-26-internal-cut (slot-name ...) (proc arg ...) <...>)
+         (lambda (slot-name ... . rest-slot) (apply proc arg ... rest-slot))
+        ) ;
+        ((srfi-26-internal-cut (slot-name ...) (position ...) <> . se)
+         (srfi-26-internal-cut (slot-name ... x) (position ... x) . se)
+        ) ;
+        ((srfi-26-internal-cut (slot-name ...) (position ...) nse . se)
+         (srfi-26-internal-cut (slot-name ...) (position ... nse) . se)
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
 
-    (define-macro (cute . paras)
-      (letrec* ((slot? (lambda (x) (equal? '<> x)))
-                (more-slot? (lambda (x) (equal? '<...> x)))
-                (exprs
-                  (filter
-                    (lambda (x) (not (or (slot? x) (more-slot? x))))
-                    paras
-                  ) ;filter
-                ) ;exprs
-                (xs (map (lambda (x) (gensym)) exprs))
-                (lets (map list xs exprs))
-                (parse
-                  (lambda (xs paras)
-                    (cond ((null? paras) paras)
-                          ((not (list? paras)) paras)
-                          ((not (or (slot? (car paras)) (more-slot? (car paras))))
-                           `(,(car xs) ,@(parse (cdr xs) (cdr paras)))
-                          ) ;
-                          (else
-                            `(,(car paras) ,@(parse xs (cdr paras)))
-                          ) ;else
-                    ) ;cond
-                  ) ;lambda
-                ) ;parse
-               ) ;
-        `(let ,lets (cut ,@(parse xs paras)))
-      ) ;letrec*
-    ) ;define-macro
+    (define-syntax srfi-26-internal-cute
+      (syntax-rules (<> <...>)
+        ((srfi-26-internal-cute (slot-name ...) nse-bindings (proc arg ...))
+         (let nse-bindings
+           (lambda (slot-name ...) (proc arg ...))
+         ) ;let
+        ) ;
+        ((srfi-26-internal-cute (slot-name ...) nse-bindings (proc arg ...) <...>)
+         (let nse-bindings
+           (lambda (slot-name ... . x) (apply proc arg ... x))
+         ) ;let
+        ) ;
+        ((srfi-26-internal-cute (slot-name ...) nse-bindings (position ...) <> . se)
+         (srfi-26-internal-cute (slot-name ... x) nse-bindings (position ... x) . se)
+        ) ;
+        ((srfi-26-internal-cute slot-names nse-bindings (position ...) nse . se)
+         (srfi-26-internal-cute
+           slot-names
+           ((x nse) . nse-bindings)
+           (position ... x)
+           .
+           se
+         ) ;
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
+
+    (define-syntax cut
+      (syntax-rules ()
+        ((cut . slots-or-exprs) (srfi-26-internal-cut () () . slots-or-exprs))
+      ) ;syntax-rules
+    ) ;define-syntax
+
+    (define-syntax cute
+      (syntax-rules ()
+        ((cute . slots-or-exprs) (srfi-26-internal-cute () () () . slots-or-exprs))
+      ) ;syntax-rules
+    ) ;define-syntax
 
   ) ;begin
 ) ;define-library

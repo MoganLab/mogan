@@ -40,7 +40,7 @@
 (define-library (srfi srfi-78)
   (import (scheme base))
   (export check check-set-mode! check-report check-reset! check-passed?
-    check-failed? check:proc
+    check-failed?
   ) ;export
   (begin
 
@@ -155,7 +155,7 @@
       (>= (length check:failed) 1)
     ) ;define
 
-    (define* (check:proc expression thunk expected-result (equal equal?))
+    (define (check:proc expression thunk equal expected-result)
       (let ((location-info (check:get-source-location expression)))
         (case check:mode
          ((0) #f)
@@ -225,11 +225,16 @@
          (else (error "unrecognized check:mode" check:mode))
         ) ;case
       ) ;let
-    ) ;define*
+    ) ;define
 
-    (define-macro (check expr => expected)
-      `(check:proc (quote ,expr) (lambda ,() ,expr) ,expected)
-    ) ;define-macro
+    (define-syntax check
+      (syntax-rules (=>)
+        ((check expr => expected) (check expr (=> equal?) expected))
+        ((check expr (=> equal) expected)
+         (check:proc 'expr (lambda () expr) equal expected)
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
 
     (define (check-report)
       (if (>= check:mode 1)

@@ -52,6 +52,13 @@
   #define H_call_with_exit "(call-with-exit (lambda (exiter) ...)) is call/cc without the ability to jump back into a previous computation."
   #define Q_call_with_exit s7_make_signature(sc, 2, sc->values_symbol, sc->is_procedure_symbol)
 
+  #define H_dynamic_wind "(dynamic-wind init body finish) calls init, then body, then finish, \
+each a function of no arguments, guaranteeing that finish is called even if body is exited"
+  #define Q_dynamic_wind s7_make_signature(sc, 4, sc->values_symbol, \
+                           s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->not_symbol), \
+                           sc->is_procedure_symbol, \
+                           s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->not_symbol))
+
 /* -------------------------------- function declarations -------------------------------- */
 
 void process_continuation(s7_scheme *sc, s7_pointer cc);
@@ -73,5 +80,13 @@ bool op_with_baffle_unchecked(s7_scheme *sc);
 void continuation_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci);
 s7_pointer b_is_continuation_setter(s7_scheme *sc, s7_pointer args);
 s7_pointer s7_make_continuation(s7_scheme *sc);
+
+void mark_dynamic_wind(s7_pointer dw);
+s7_pointer g_dynamic_wind_unchecked(s7_scheme *sc, s7_pointer args);
+s7_pointer g_dynamic_wind_init(s7_scheme *sc, s7_pointer args);
+s7_pointer g_dynamic_wind_body(s7_scheme *sc, s7_pointer args);
+s7_pointer g_dynamic_wind(s7_scheme *sc, s7_pointer args);
+s7_pointer dynamic_wind_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr);
+bool op_dynamic_wind(s7_scheme *sc);
 
 #endif /* S7_CONTINUATION_H */

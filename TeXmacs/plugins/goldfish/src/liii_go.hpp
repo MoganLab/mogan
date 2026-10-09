@@ -9,8 +9,8 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
-// the License for the specific language governing permissions and limitations
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
 // under the License.
 //
 
@@ -50,11 +50,11 @@ enum class GFValueType {
 };
 
 struct GFValue {
-  GFValueType                                  type    = GFValueType::Undefined;
-  size_t                                       node_id = 0;
-  size_t                                       ref_id  = 0;
-  bool                                         bool_val= false;
-  s7_int                                       int_val = 0;
+  GFValueType                                  type      = GFValueType::Undefined;
+  size_t                                       node_id   = 0;
+  size_t                                       ref_id    = 0;
+  bool                                         bool_val  = false;
+  s7_int                                       int_val   = 0;
   s7_double                                    double_val= 0.0;
   uint32_t                                     char_val  = 0;
   std::string                                  str_val;
@@ -65,8 +65,7 @@ struct GFValue {
 };
 
 // S7 pointer <-> GFValue conversion
-bool       s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out,
-                          std::string& err_msg);
+bool       s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg);
 s7_pointer gfvalue_to_s7 (s7_scheme* sc, const GFValue& val);
 
 // 显式工作栈逐层释放深层 GFValue 树（pair/vector 链），避免析构递归溢出栈
@@ -153,10 +152,8 @@ public:
 
   // fiber 支持：原子地"尝试非阻塞操作；不可行则登记一次性 watcher，
   // 通道就绪时 watcher 触发 gate->fire(id)（一次性，触发后自动摘除）"
-  RecvStatus recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate,
-                            int64_t id);
-  SendStatus send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate,
-                            int64_t id);
+  RecvStatus recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate, int64_t id);
+  SendStatus send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate, int64_t id);
 
   void   close ();
   bool   is_closed () const;
@@ -217,11 +214,9 @@ private:
 void        set_goldfish_lib_dir (const std::string& dir);
 std::string get_goldfish_lib_dir ();
 
-bool is_goldfish_channel (s7_scheme* sc, s7_pointer obj);
-std::shared_ptr<GoldfishChannel> get_goldfish_channel (s7_scheme* sc,
-                                                       s7_pointer obj);
-s7_pointer                       make_goldfish_channel_object (s7_scheme*                       sc,
-                                                               std::shared_ptr<GoldfishChannel> ch);
+bool                             is_goldfish_channel (s7_scheme* sc, s7_pointer obj);
+std::shared_ptr<GoldfishChannel> get_goldfish_channel (s7_scheme* sc, s7_pointer obj);
+s7_pointer                       make_goldfish_channel_object (s7_scheme* sc, std::shared_ptr<GoldfishChannel> ch);
 
 void glue_liii_go (s7_scheme* sc);
 
