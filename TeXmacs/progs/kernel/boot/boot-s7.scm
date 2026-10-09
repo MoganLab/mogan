@@ -27,8 +27,7 @@
 
 (define (display . l)
   "display one object on the standard output or a specified port."
-  (if
-    (or (null? l) (not (null? (cdr l))))
+  (if (or (null? l) (not (null? (cdr l))))
     (apply original-display l)
     (tm-output (display-to-string (car l)))
   ) ;if
@@ -36,8 +35,7 @@
 
 (define (write . l)
   "write an object to the standard output or a specified port."
-  (if
-    (or (null? l) (not (null? (cdr l))))
+  (if (or (null? l) (not (null? (cdr l))))
     (apply original-write l)
     (tm-output (object->string (car l)))
   ) ;if
@@ -85,10 +83,9 @@
 
 
 (define-macro (provide-public head . body)
-  (if
-    (or (and (symbol? head) (not (defined? head)))
-      (and (pair? head) (symbol? (car head)) (not (defined? (car head))))
-    ) ;or
+  (if (or (and (symbol? head) (not (defined? head)))
+        (and (pair? head) (symbol? (car head)) (not (defined? (car head))))
+      ) ;or
     `(define-public ,head ,@body)
     '(noop)
   ) ;if

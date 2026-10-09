@@ -144,36 +144,35 @@
 
     (define (schedule-next!)
       (if (list-queue-empty? *ready-queue*)
-        (cond
-         ((> *real-chan-suspended* 0)
-          ;; 有 fiber 挂在真 channel 上：唤醒可能来自其他线程，先非阻塞 drain gate
-          (let ((id (g_gate-try-wait *gate*)))
-            (if (integer? id)
-              (begin
-                (%gate-dispatch! id)
-                (schedule-next!)
-              ) ;begin
-              (if *scheduler-idle-park*
-                ;; 主会话：物理挂起等待新事件（保持既有行为）
-                (begin
-                  (%gate-dispatch! (g_gate-wait *gate*))
-                  (schedule-next!)
-                ) ;begin
-                ;; worker 会话：返回 C++ 层继续取下一个任务，事件延迟消费
-                (if *scheduler-return* (*scheduler-return* #t) #f)
-              ) ;if
-            ) ;if
-          ) ;let
-         ) ;
-         ((> *suspended-fibers* 0)
-          ;; 就绪队列空且仅存在 fiber-chan 挂起：全体死锁，报错而非静默退出
-          (let ((n *suspended-fibers*))
-            (set! *suspended-fibers* 0)
-            (set! *scheduler-return* #f)
-            (error 'deadlock "all fibers are blocked on channel operations" n)
-          ) ;let
-         ) ;
-         (else (if *scheduler-return* (*scheduler-return* #t) #f))
+        (cond ((> *real-chan-suspended* 0)
+               ;; 有 fiber 挂在真 channel 上：唤醒可能来自其他线程，先非阻塞 drain gate
+               (let ((id (g_gate-try-wait *gate*)))
+                 (if (integer? id)
+                   (begin
+                     (%gate-dispatch! id)
+                     (schedule-next!)
+                   ) ;begin
+                   (if *scheduler-idle-park*
+                     ;; 主会话：物理挂起等待新事件（保持既有行为）
+                     (begin
+                       (%gate-dispatch! (g_gate-wait *gate*))
+                       (schedule-next!)
+                     ) ;begin
+                     ;; worker 会话：返回 C++ 层继续取下一个任务，事件延迟消费
+                     (if *scheduler-return* (*scheduler-return* #t) #f)
+                   ) ;if
+                 ) ;if
+               ) ;let
+              ) ;
+              ((> *suspended-fibers* 0)
+               ;; 就绪队列空且仅存在 fiber-chan 挂起：全体死锁，报错而非静默退出
+               (let ((n *suspended-fibers*))
+                 (set! *suspended-fibers* 0)
+                 (set! *scheduler-return* #f)
+                 (error 'deadlock "all fibers are blocked on channel operations" n)
+               ) ;let
+              ) ;
+              (else (if *scheduler-return* (*scheduler-return* #t) #f))
         ) ;cond
         (let ((next-thunk (list-queue-front *ready-queue*)))
           (list-queue-remove-front! *ready-queue*)
@@ -187,9 +186,7 @@
     ) ;define
 
     (define (fiber-yield!)
-      (call/cc
-        (lambda (k) (enqueue-fiber! (lambda () (k #t))) (schedule-next!))
-      ) ;call/cc
+      (call/cc (lambda (k) (enqueue-fiber! (lambda () (k #t))) (schedule-next!)))
     ) ;define
 
     (define (fiber-scheduler-run!)
@@ -272,15 +269,14 @@
           result
           (begin
             (set! *next-watch-id* (+ id 1))
-            (call/cc
-              (lambda (k)
-                (set! *real-chan-suspended* (+ *real-chan-suspended* 1))
-                (hash-table-set! *watch-thunks*
-                  id
-                  (lambda () (set! *real-chan-suspended* (- *real-chan-suspended* 1)) (k #t))
-                ) ;hash-table-set!
-                (schedule-next!)
-              ) ;lambda
+            (call/cc (lambda (k)
+                       (set! *real-chan-suspended* (+ *real-chan-suspended* 1))
+                       (hash-table-set! *watch-thunks*
+                         id
+                         (lambda () (set! *real-chan-suspended* (- *real-chan-suspended* 1)) (k #t))
+                       ) ;hash-table-set!
+                       (schedule-next!)
+                     ) ;lambda
             ) ;call/cc
             ;; 被唤醒后重试整个操作（就绪事件可能被竞争者抢先消费），复用 id
             (fiber-suspend-on! register-watch id)
@@ -363,9 +359,7 @@
         (if (pair? src)
           (let* ((libs (%go-active-libs))
                  (arg-names (%go-arg-names (length args)))
-                 (code
-                   `(begin ,@(%go-worker-prelude libs) (,src ,@arg-names))
-                 ) ;code
+                 (code `(begin ,@(%go-worker-prelude libs) (,src ,@arg-names)))
                 ) ;
             (g_go-spawn arg-names args code)
           ) ;let*
@@ -399,12 +393,11 @@
     (define *go-result-timeout-sentinel* (cons #f #f))
 
     (define (%go-result-unwrap r)
-      (cond
-       ((and (pair? r) (eq? (car r) 'ok) (pair? (cdr r))) (cadr r))
-       ((and (pair? r) (eq? (car r) 'error) (pair? (cdr r)))
-        (apply error (cadr r) (caddr r))
-       ) ;
-       (else (error 'type-error "go-result-recv!: invalid result object" r))
+      (cond ((and (pair? r) (eq? (car r) 'ok) (pair? (cdr r))) (cadr r))
+            ((and (pair? r) (eq? (car r) 'error) (pair? (cdr r)))
+             (apply error (cadr r) (caddr r))
+            ) ;
+            (else (error 'type-error "go-result-recv!: invalid result object" r))
       ) ;cond
     ) ;define
 
@@ -456,16 +449,15 @@
              (let ((real-vars (if is-vars? (syntax first) '()))
                    (real-body (if is-vars? (syntax rest) (syntax (first . rest))))
                   ) ;
-               (quasisyntax
-                 (let (((unsyntax rc) (make-chan 1)))
-                   (%go-result-spawn '(unsyntax (syntax->datum real-vars))
-                     (list (unsyntax-splicing (if is-vars? (syntax first) '())))
-                     '(unsyntax (syntax->datum real-body))
-                     '(unsyntax rc)
-                     (unsyntax rc)
-                   ) ;%go-result-spawn
-                   (unsyntax rc)
-                 ) ;let
+               (quasisyntax (let (((unsyntax rc) (make-chan 1)))
+                              (%go-result-spawn '(unsyntax (syntax->datum real-vars))
+                                (list (unsyntax-splicing (if is-vars? (syntax first) '())))
+                                '(unsyntax (syntax->datum real-body))
+                                '(unsyntax rc)
+                                (unsyntax rc)
+                              ) ;%go-result-spawn
+                              (unsyntax rc)
+                            ) ;let
                ) ;quasisyntax
              ) ;let
            ) ;let*
@@ -511,24 +503,23 @@
               ) ;
           (let walk
             ((x (cddr src)))
-            (cond
-             ((and (pair? x) (eq? (car x) 'quote)) #f)
-             ((symbol? x)
-              (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
-                (catch #t
-                  (lambda ()
-                    (let ((val (let-ref env x)))
-                      (when (%go-serializable-data? val)
-                        (set! bindings (cons (cons x val) bindings))
-                      ) ;when
-                    ) ;let
-                  ) ;lambda
-                  (lambda (t a) #f)
-                ) ;catch
-              ) ;when
-             ) ;
-             ((pair? x) (walk (car x)) (walk (cdr x)))
-             ((vector? x) (for-each walk (vector->list x)))
+            (cond ((and (pair? x) (eq? (car x) 'quote)) #f)
+                  ((symbol? x)
+                   (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
+                     (catch #t
+                       (lambda ()
+                         (let ((val (let-ref env x)))
+                           (when (%go-serializable-data? val)
+                             (set! bindings (cons (cons x val) bindings))
+                           ) ;when
+                         ) ;let
+                       ) ;lambda
+                       (lambda (t a) #f)
+                     ) ;catch
+                   ) ;when
+                  ) ;
+                  ((pair? x) (walk (car x)) (walk (cdr x)))
+                  ((vector? x) (for-each walk (vector->list x)))
             ) ;cond
           ) ;let
           bindings
@@ -546,18 +537,18 @@
              (ch-sym (gensym "go-apply-ch"))
              (names (append arg-names (map car captured) (list ch-sym)))
              (vals (append args (map cdr captured) (list ch)))
-             (code
-               `(begin
-                  ,@(%go-worker-prelude libs)
-                  (catch ,#t
-                    (lambda ,()
-                      (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
-                    (lambda (tag args)
+             (code `(begin
+                      ,@(%go-worker-prelude libs)
                       (catch ,#t
-                        (lambda ,() (chan-send! ,ch-sym (list 'error tag args)))
-                        (lambda (t2 a2)
-                          (chan-send! ,ch-sym
-                            (list 'error tag (list (object->string args)))))))))
+                        (lambda ,()
+                          (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
+                        (lambda (tag args)
+                          (catch ,#t
+                            (lambda ,()
+                              (chan-send! ,ch-sym (list 'error tag args)))
+                            (lambda (t2 a2)
+                              (chan-send! ,ch-sym
+                                (list 'error tag (list (object->string args)))))))))
              ) ;code
             ) ;
         (g_go-spawn names vals code)
@@ -615,76 +606,69 @@
                  (raw-clauses (syntax (clause ...)))
                  (cases '())
                 ) ;
-             (for-each
-               (lambda (clause-stx)
-                 (let ((clause (syntax->datum clause-stx)))
-                   (cond
-                    ((and (pair? clause) (eq? (car clause) 'else))
-                     (if else-branch
-                       (error 'syntax-error "select: multiple else clauses")
-                       (set! else-branch (cdr clause-stx))
-                     ) ;if
-                    ) ;
-                    ;; 形式 1: ((timeout ms) => proc) 或 ((timeout ms) body ...)
-                    ((and (pair? clause) (pair? (car clause)) (eq? (caar clause) 'timeout))
-                     (if (or timeout-branch timeout-arrow)
-                       (error 'syntax-error "select: multiple timeout clauses")
-                       (begin
-                         (if
-                           (or (null? (cdar clause)) (not (null? (cddar clause))))
-                           (error 'syntax-error "select: invalid timeout clause format" clause)
-                         ) ;if
-                         (set! timeout-ms (cadar clause-stx))
-                         (let ((rest (cdr clause-stx)))
-                           (if
-                             (and (pair? (syntax->datum rest)) (eq? (car (syntax->datum rest)) '=>))
-                             (begin
-                               (if
-                                 (or (null? (cdr (syntax->datum rest)))
-                                   (not (null? (cddr (syntax->datum rest))))
-                                 ) ;or
-                                 (error 'syntax-error "select: malformed => in timeout clause" clause)
-                               ) ;if
-                               (set! timeout-arrow (cadr rest))
-                             ) ;begin
-                             (set! timeout-branch rest)
-                           ) ;if
+             (for-each (lambda (clause-stx)
+                         (let ((clause (syntax->datum clause-stx)))
+                           (cond ((and (pair? clause) (eq? (car clause) 'else))
+                                  (if else-branch
+                                    (error 'syntax-error "select: multiple else clauses")
+                                    (set! else-branch (cdr clause-stx))
+                                  ) ;if
+                                 ) ;
+                                 ;; 形式 1: ((timeout ms) => proc) 或 ((timeout ms) body ...)
+                                 ((and (pair? clause) (pair? (car clause)) (eq? (caar clause) 'timeout))
+                                  (if (or timeout-branch timeout-arrow)
+                                    (error 'syntax-error "select: multiple timeout clauses")
+                                    (begin
+                                      (if (or (null? (cdar clause)) (not (null? (cddar clause))))
+                                        (error 'syntax-error "select: invalid timeout clause format" clause)
+                                      ) ;if
+                                      (set! timeout-ms (cadar clause-stx))
+                                      (let ((rest (cdr clause-stx)))
+                                        (if (and (pair? (syntax->datum rest)) (eq? (car (syntax->datum rest)) '=>))
+                                          (begin
+                                            (if (or (null? (cdr (syntax->datum rest)))
+                                                  (not (null? (cddr (syntax->datum rest))))
+                                                ) ;or
+                                              (error 'syntax-error "select: malformed => in timeout clause" clause)
+                                            ) ;if
+                                            (set! timeout-arrow (cadr rest))
+                                          ) ;begin
+                                          (set! timeout-branch rest)
+                                        ) ;if
+                                      ) ;let
+                                    ) ;begin
+                                  ) ;if
+                                 ) ;
+                                 ;; 形式 2: (timeout ms => proc) 或 (timeout ms body ...)
+                                 ((and (pair? clause) (eq? (car clause) 'timeout))
+                                  (if (or timeout-branch timeout-arrow)
+                                    (error 'syntax-error "select: multiple timeout clauses")
+                                    (begin
+                                      (if (null? (cdr clause))
+                                        (error 'syntax-error "select: invalid timeout clause format" clause)
+                                      ) ;if
+                                      (set! timeout-ms (cadr clause-stx))
+                                      (let ((rest (cddr clause-stx)))
+                                        (if (and (pair? (syntax->datum rest)) (eq? (car (syntax->datum rest)) '=>))
+                                          (begin
+                                            (if (or (null? (cdr (syntax->datum rest)))
+                                                  (not (null? (cddr (syntax->datum rest))))
+                                                ) ;or
+                                              (error 'syntax-error "select: malformed => in timeout clause" clause)
+                                            ) ;if
+                                            (set! timeout-arrow (cadr rest))
+                                          ) ;begin
+                                          (set! timeout-branch rest)
+                                        ) ;if
+                                      ) ;let
+                                    ) ;begin
+                                  ) ;if
+                                 ) ;
+                                 ((and (pair? clause) (pair? (car clause))) (set! cases (cons clause-stx cases)))
+                                 (else (error 'syntax-error "select: invalid clause" clause))
+                           ) ;cond
                          ) ;let
-                       ) ;begin
-                     ) ;if
-                    ) ;
-                    ;; 形式 2: (timeout ms => proc) 或 (timeout ms body ...)
-                    ((and (pair? clause) (eq? (car clause) 'timeout))
-                     (if (or timeout-branch timeout-arrow)
-                       (error 'syntax-error "select: multiple timeout clauses")
-                       (begin
-                         (if (null? (cdr clause))
-                           (error 'syntax-error "select: invalid timeout clause format" clause)
-                         ) ;if
-                         (set! timeout-ms (cadr clause-stx))
-                         (let ((rest (cddr clause-stx)))
-                           (if
-                             (and (pair? (syntax->datum rest)) (eq? (car (syntax->datum rest)) '=>))
-                             (begin
-                               (if
-                                 (or (null? (cdr (syntax->datum rest)))
-                                   (not (null? (cddr (syntax->datum rest))))
-                                 ) ;or
-                                 (error 'syntax-error "select: malformed => in timeout clause" clause)
-                               ) ;if
-                               (set! timeout-arrow (cadr rest))
-                             ) ;begin
-                             (set! timeout-branch rest)
-                           ) ;if
-                         ) ;let
-                       ) ;begin
-                     ) ;if
-                    ) ;
-                    ((and (pair? clause) (pair? (car clause))) (set! cases (cons clause-stx cases)))
-                    (else (error 'syntax-error "select: invalid clause" clause))
-                   ) ;cond
-                 ) ;let
-               ) ;lambda
+                       ) ;lambda
                raw-clauses
              ) ;for-each
 
@@ -699,45 +683,43 @@
                    (pre-bindings '())
                    (parsed-cases '())
                   ) ;
-               (for-each
-                 (lambda (c-stx)
-                   (let* ((c (syntax->datum c-stx))
-                          (action-stx (car c-stx))
-                          (body-stx (cdr c-stx))
-                          (action (car c))
-                          (body (cdr c))
-                          (op (car action))
-                         ) ;
-                     (cond
-                      ((eq? op 'chan-recv!)
-                       (let ((ch-sym (car (generate-temporaries '(#f)))))
-                         (set! pre-bindings (cons (list ch-sym (cadr action-stx)) pre-bindings))
-                         (if (and (pair? body) (eq? (car body) '=>))
-                           (set! parsed-cases
-                             (cons (list 'recv-arrow ch-sym (cadr body-stx)) parsed-cases)
-                           ) ;set!
-                           (set! parsed-cases
-                             (cons (list 'recv ch-sym (caddr action-stx) body-stx) parsed-cases)
-                           ) ;set!
-                         ) ;if
-                       ) ;let
-                      ) ;
-                      ((eq? op 'chan-send!)
-                       (let ((ch-sym (car (generate-temporaries '(#f))))
-                             (val-sym (car (generate-temporaries '(#f))))
-                            ) ;
-                         (set! pre-bindings
-                           (cons (list ch-sym (cadr action-stx))
-                             (cons (list val-sym (caddr action-stx)) pre-bindings)
-                           ) ;cons
-                         ) ;set!
-                         (set! parsed-cases (cons (list 'send ch-sym val-sym body-stx) parsed-cases))
-                       ) ;let
-                      ) ;
-                      (else (error 'syntax-error "select: unsupported channel operation" op))
-                     ) ;cond
-                   ) ;let*
-                 ) ;lambda
+               (for-each (lambda (c-stx)
+                           (let* ((c (syntax->datum c-stx))
+                                  (action-stx (car c-stx))
+                                  (body-stx (cdr c-stx))
+                                  (action (car c))
+                                  (body (cdr c))
+                                  (op (car action))
+                                 ) ;
+                             (cond ((eq? op 'chan-recv!)
+                                    (let ((ch-sym (car (generate-temporaries '(#f)))))
+                                      (set! pre-bindings (cons (list ch-sym (cadr action-stx)) pre-bindings))
+                                      (if (and (pair? body) (eq? (car body) '=>))
+                                        (set! parsed-cases
+                                          (cons (list 'recv-arrow ch-sym (cadr body-stx)) parsed-cases)
+                                        ) ;set!
+                                        (set! parsed-cases
+                                          (cons (list 'recv ch-sym (caddr action-stx) body-stx) parsed-cases)
+                                        ) ;set!
+                                      ) ;if
+                                    ) ;let
+                                   ) ;
+                                   ((eq? op 'chan-send!)
+                                    (let ((ch-sym (car (generate-temporaries '(#f))))
+                                          (val-sym (car (generate-temporaries '(#f))))
+                                         ) ;
+                                      (set! pre-bindings
+                                        (cons (list ch-sym (cadr action-stx))
+                                          (cons (list val-sym (caddr action-stx)) pre-bindings)
+                                        ) ;cons
+                                      ) ;set!
+                                      (set! parsed-cases (cons (list 'send ch-sym val-sym body-stx) parsed-cases))
+                                    ) ;let
+                                   ) ;
+                                   (else (error 'syntax-error "select: unsupported channel operation" op))
+                             ) ;cond
+                           ) ;let*
+                         ) ;lambda
                  cases
                ) ;for-each
 
@@ -745,143 +727,114 @@
                (set! parsed-cases (reverse parsed-cases))
 
                (let ((recv-cases '()) (send-cases '()))
-                 (for-each
-                   (lambda (c)
-                     (if (or (eq? (car c) 'recv) (eq? (car c) 'recv-arrow))
-                       (set! recv-cases (append recv-cases (list c)))
-                       (set! send-cases (append send-cases (list c)))
-                     ) ;if
-                   ) ;lambda
+                 (for-each (lambda (c)
+                             (if (or (eq? (car c) 'recv) (eq? (car c) 'recv-arrow))
+                               (set! recv-cases (append recv-cases (list c)))
+                               (set! send-cases (append send-cases (list c)))
+                             ) ;if
+                           ) ;lambda
                    parsed-cases
                  ) ;for-each
 
-                 (let ((recv-dispatch
-                         (let loop
-                           ((rcs recv-cases) (i 0) (acc '()))
-                           (if (null? rcs)
-                             (reverse acc)
-                             (let* ((rc (car rcs))
-                                    (kind (car rc))
-                                    (dispatch-expr
-                                      (if (eq? kind 'recv-arrow)
-                                        (quasisyntax ((unsyntax (caddr rc)) (vector-ref (unsyntax result-sym) 2)))
-                                        (quasisyntax
-                                         ((lambda ((unsyntax (caddr rc))) (unsyntax-splicing (cadddr rc)))
-                                          (vector-ref (unsyntax result-sym) 2)
-                                         ) ;
-                                        ) ;quasisyntax
-                                      ) ;if
-                                    ) ;dispatch-expr
-                                   ) ;
-                               (loop (cdr rcs)
-                                 (+ i 1)
-                                 (cons
-                                   (quasisyntax (((unsyntax i)) (unsyntax dispatch-expr)))
-                                   acc
-                                 ) ;cons
-                               ) ;loop
-                             ) ;let*
-                           ) ;if
-                         ) ;let
+                 (let ((recv-dispatch (let loop
+                                        ((rcs recv-cases) (i 0) (acc '()))
+                                        (if (null? rcs)
+                                          (reverse acc)
+                                          (let* ((rc (car rcs))
+                                                 (kind (car rc))
+                                                 (dispatch-expr (if (eq? kind 'recv-arrow)
+                                                                  (quasisyntax ((unsyntax (caddr rc)) (vector-ref (unsyntax result-sym) 2)))
+                                                                  (quasisyntax ((lambda ((unsyntax (caddr rc))) (unsyntax-splicing (cadddr rc)))
+                                                                                (vector-ref (unsyntax result-sym) 2)
+                                                                               ) ;
+                                                                  ) ;quasisyntax
+                                                                ) ;if
+                                                 ) ;dispatch-expr
+                                                ) ;
+                                            (loop (cdr rcs)
+                                              (+ i 1)
+                                              (cons (quasisyntax (((unsyntax i)) (unsyntax dispatch-expr))) acc)
+                                            ) ;loop
+                                          ) ;let*
+                                        ) ;if
+                                      ) ;let
                        ) ;recv-dispatch
-                       (send-dispatch
-                         (let loop
-                           ((scs send-cases) (i 0) (acc '()))
-                           (if (null? scs)
-                             (reverse acc)
-                             (let ((dispatch-expr (quasisyntax (begin (unsyntax-splicing (cadddr (car scs)))))))
-                               (loop (cdr scs)
-                                 (+ i 1)
-                                 (cons
-                                   (quasisyntax (((unsyntax i)) (unsyntax dispatch-expr)))
-                                   acc
-                                 ) ;cons
-                               ) ;loop
-                             ) ;let
-                           ) ;if
-                         ) ;let
+                       (send-dispatch (let loop
+                                        ((scs send-cases) (i 0) (acc '()))
+                                        (if (null? scs)
+                                          (reverse acc)
+                                          (let ((dispatch-expr (quasisyntax (begin (unsyntax-splicing (cadddr (car scs)))))))
+                                            (loop (cdr scs)
+                                              (+ i 1)
+                                              (cons (quasisyntax (((unsyntax i)) (unsyntax dispatch-expr))) acc)
+                                            ) ;loop
+                                          ) ;let
+                                        ) ;if
+                                      ) ;let
                        ) ;send-dispatch
                       ) ;
-                   (quasisyntax
-                     (let* ((unsyntax-splicing pre-bindings)
-                            (unsyntax-splicing
-                              (if timeout-arrow (list (list t0-sym (quasisyntax (current-jiffy)))) '())
-                            ) ;unsyntax-splicing
-                           ) ;
-                       (let (((unsyntax result-sym)
-                              (g_select (list (unsyntax-splicing (map cadr recv-cases)))
-                                (list
-                                  (unsyntax-splicing
-                                    (map
-                                      (lambda (c) (quasisyntax (cons (unsyntax (cadr c)) (unsyntax (caddr c)))))
-                                      send-cases
-                                    ) ;map
-                                  ) ;unsyntax-splicing
-                                ) ;list
-                                (unsyntax (cond (else-branch 0)
-                                                ((or timeout-branch timeout-arrow) timeout-ms)
-                                                (else -1)
-                                          ) ;cond
-                                ) ;unsyntax
-                              ) ;g_select
-                             ) ;
-                            ) ;
-                         (if (not (unsyntax result-sym))
-                           (unsyntax
-                             (cond
-                               (else-branch (quasisyntax (begin (unsyntax-splicing else-branch))))
-                               (timeout-arrow
-                                 (quasisyntax
-                                   (let ((elapsed-ms
-                                           (inexact->exact
-                                             (round
-                                               (* 1000.0 (/ (- (current-jiffy) (unsyntax t0-sym)) (jiffies-per-second)))
-                                             ) ;round
-                                           ) ;inexact->exact
-                                         ) ;elapsed-ms
+                   (quasisyntax (let* ((unsyntax-splicing pre-bindings)
+                                       (unsyntax-splicing (if timeout-arrow (list (list t0-sym (quasisyntax (current-jiffy)))) '())
+                                       ) ;unsyntax-splicing
+                                      ) ;
+                                  (let (((unsyntax result-sym)
+                                         (g_select (list (unsyntax-splicing (map cadr recv-cases)))
+                                           (list (unsyntax-splicing (map (lambda (c) (quasisyntax (cons (unsyntax (cadr c)) (unsyntax (caddr c)))))
+                                                                      send-cases
+                                                                    ) ;map
+                                                 ) ;unsyntax-splicing
+                                           ) ;list
+                                           (unsyntax (cond (else-branch 0)
+                                                           ((or timeout-branch timeout-arrow) timeout-ms)
+                                                           (else -1)
+                                                     ) ;cond
+                                           ) ;unsyntax
+                                         ) ;g_select
                                         ) ;
-                                     ((unsyntax timeout-arrow) elapsed-ms)
-                                   ) ;let
-                                 ) ;quasisyntax
-                               ) ;timeout-arrow
-                               (timeout-branch (quasisyntax (begin (unsyntax-splicing timeout-branch))))
-                               (else (quasisyntax (begin)))
-                             ) ;cond
-                           ) ;unsyntax
-                           (case (vector-ref (unsyntax result-sym) 0)
-                                 (unsyntax-splicing
-                                   (if (pair? recv-cases)
-                                     (list
-                                       (quasisyntax
-                                        ((0)
-                                         (case (vector-ref (unsyntax result-sym) 1)
-                                               (unsyntax-splicing recv-dispatch)
-                                         ) ;case
-                                        ) ;
-                                       ) ;quasisyntax
-                                     ) ;list
-                                     '()
-                                   ) ;if
-                                 ) ;unsyntax-splicing
-                                 (unsyntax-splicing
-                                   (if (pair? send-cases)
-                                     (list
-                                       (quasisyntax
-                                        ((1)
-                                         (case (vector-ref (unsyntax result-sym) 1)
-                                               (unsyntax-splicing send-dispatch)
-                                         ) ;case
-                                        ) ;
-                                       ) ;quasisyntax
-                                     ) ;list
-                                     '()
-                                   ) ;if
-                                 ) ;unsyntax-splicing
-                                 (else (error 'fatal-error "select: unreachable"))
-                           ) ;case
-                         ) ;if
-                       ) ;let
-                     ) ;let*
+                                       ) ;
+                                    (if (not (unsyntax result-sym))
+                                      (unsyntax (cond (else-branch (quasisyntax (begin (unsyntax-splicing else-branch))))
+                                                      (timeout-arrow (quasisyntax (let ((elapsed-ms (inexact->exact (round (* 1000.0 (/ (- (current-jiffy) (unsyntax t0-sym)) (jiffies-per-second)))
+                                                                                                                    ) ;round
+                                                                                                    ) ;inexact->exact
+                                                                                        ) ;elapsed-ms
+                                                                                       ) ;
+                                                                                    ((unsyntax timeout-arrow) elapsed-ms)
+                                                                                  ) ;let
+                                                                     ) ;quasisyntax
+                                                      ) ;timeout-arrow
+                                                      (timeout-branch (quasisyntax (begin (unsyntax-splicing timeout-branch))))
+                                                      (else (quasisyntax (begin)))
+                                                ) ;cond
+                                      ) ;unsyntax
+                                      (case (vector-ref (unsyntax result-sym) 0)
+                                            (unsyntax-splicing (if (pair? recv-cases)
+                                                                 (list (quasisyntax ((0)
+                                                                                     (case (vector-ref (unsyntax result-sym) 1)
+                                                                                           (unsyntax-splicing recv-dispatch)
+                                                                                     ) ;case
+                                                                                    ) ;
+                                                                       ) ;quasisyntax
+                                                                 ) ;list
+                                                                 '()
+                                                               ) ;if
+                                            ) ;unsyntax-splicing
+                                            (unsyntax-splicing (if (pair? send-cases)
+                                                                 (list (quasisyntax ((1)
+                                                                                     (case (vector-ref (unsyntax result-sym) 1)
+                                                                                           (unsyntax-splicing send-dispatch)
+                                                                                     ) ;case
+                                                                                    ) ;
+                                                                       ) ;quasisyntax
+                                                                 ) ;list
+                                                                 '()
+                                                               ) ;if
+                                            ) ;unsyntax-splicing
+                                            (else (error 'fatal-error "select: unreachable"))
+                                      ) ;case
+                                    ) ;if
+                                  ) ;let
+                                ) ;let*
                    ) ;quasisyntax
                  ) ;let
                ) ;let

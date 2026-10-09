@@ -53,21 +53,19 @@
     ;; （无源码可取）按其打印名重建等价的 lambda 源码；其余抛 type-error。
     (define (%par-proc-source caller f)
       (let ((src (procedure-source f))
-            (fail
-              (lambda ()
-                (type-error (string-append (symbol->string caller)
-                              ": cannot extract source code from procedure"
-                            ) ;string-append
-                  f
-                ) ;type-error
-              ) ;lambda
+            (fail (lambda ()
+                    (type-error (string-append (symbol->string caller)
+                                  ": cannot extract source code from procedure"
+                                ) ;string-append
+                      f
+                    ) ;type-error
+                  ) ;lambda
             ) ;fail
            ) ;
         (if (pair? src)
           src
           (let ((str (object->string f)))
-            (if
-              (and (not (string=? str "")) (not (char=? (string-ref str 0) #\#)))
+            (if (and (not (string=? str "")) (not (char=? (string-ref str 0) #\#)))
               (let ((sym (string->symbol str)))
                 (if (memq sym %par-builtin-predicates) `(lambda (x) (,sym x)) (fail))
               ) ;let
@@ -85,8 +83,7 @@
       (let ((e (apply inlet extra-bindings)))
         (let loop
           ((cur (funclet f)))
-          (when
-            (and (let? cur) (not (eq? cur (rootlet))))
+          (when (and (let? cur) (not (eq? cur (rootlet))))
             (varlet e cur)
             (loop (outlet cur))
           ) ;when
@@ -170,11 +167,9 @@
                (done-ch (make-chan (vector-length chunks)))
                (src-f (%par-proc-source 'vector-par-for-each f))
                (env (%par-capture-env f))
-               (worker-src
-                 `(lambda (chunk)
-                    (vector-for-each ,src-f (vector-ref chunk 1))
-                    ,#t)
-               ) ;worker-src
+               (worker-src `(lambda (chunk)
+                              (vector-for-each ,src-f (vector-ref chunk 1))
+                              ,#t))
               ) ;
           (%par-spawn-chunks worker-src env chunks done-ch)
           (%par-join! done-ch (vector-length chunks))
@@ -192,12 +187,11 @@
       (if (zero? (vector-length vec))
         #()
         (let ((src-f (%par-proc-source 'vector-par-map f)))
-          (%par-vector-collect
-            `(lambda (chunk)
-               (chan-send! res-ch
-                 (cons (vector-ref chunk 0)
-                   (vector-map ,src-f (vector-ref chunk 1))))
-               ,#t)
+          (%par-vector-collect `(lambda (chunk)
+                                  (chan-send! res-ch
+                                    (cons (vector-ref chunk 0)
+                                      (vector-map ,src-f (vector-ref chunk 1))))
+                                  ,#t)
             f
             vec
             (if (pair? opt) (car opt) (go-worker-count))
@@ -216,19 +210,21 @@
       (if (zero? (vector-length vec))
         #()
         (let ((src-pred (%par-proc-source 'vector-par-filter pred)))
-          (%par-vector-collect
-            `(lambda (chunk)
-               (let ((sub (vector-ref chunk 1)))
-                 (let loop
-                   ((j 0) (acc '()))
-                   (if (= j (vector-length sub))
-                     (begin
-                       (chan-send! res-ch
-                         (cons (vector-ref chunk 0)
-                           (list->vector (reverse acc))))
-                       #t)
-                     (let ((val (vector-ref sub j)))
-                       (loop (+ j 1) (if (,src-pred val) (cons val acc) acc)))))))
+          (%par-vector-collect `(lambda (chunk)
+                                  (let ((sub (vector-ref chunk 1)))
+                                    (let loop
+                                      ((j 0) (acc '()))
+                                      (if (= j (vector-length sub))
+                                        (begin
+                                          (chan-send! res-ch
+                                            (cons (vector-ref chunk 0)
+                                              (list->vector (reverse acc))))
+                                          #t)
+                                        (let ((val (vector-ref sub j)))
+                                          (loop (+ j 1)
+                                            (if (,src-pred val)
+                                              (cons val acc)
+                                              acc)))))))
             pred
             vec
             (if (pair? opt) (car opt) (go-worker-count))
