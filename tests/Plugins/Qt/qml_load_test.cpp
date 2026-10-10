@@ -320,6 +320,7 @@ private slots:
   void test_go_menu_loads ();
   void test_go_menu_hover ();
   void test_go_menu_type_tags ();
+  void test_outline_sidebar_loads ();
   void test_ai_actions_bar_loads ();
   void test_ai_actions_bar_dark_icons ();
   void test_ai_actions_bar_hover ();
@@ -1336,6 +1337,19 @@ TestQmlLoad::test_go_menu_type_tags () {
   QList<QQuickItem*> tags3=
       collect_items_by_name (items[3], "goMenuItemTypeTag");
   QVERIFY (!tags3.isEmpty () && !tags3.first ()->isVisible ());
+}
+
+void
+TestQmlLoad::test_outline_sidebar_loads () {
+  // OutlineSidebar 是左侧目录树侧边栏（无 outlineBridge 时走 typeof 守卫的
+  // 空模型路径），断言能实例化。
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->setSource (QUrl ("qrc:/qml/OutlineSidebar.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
 void

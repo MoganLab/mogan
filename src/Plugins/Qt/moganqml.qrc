@@ -36,5 +36,6 @@
         <file>qml/Bibliography.qml</file>
         <file>qml/PageNumber.qml</file>
         <file>qml/GoMenu.qml</file>
+        <file>qml/OutlineSidebar.qml</file>
     </qresource>
 </RCC>

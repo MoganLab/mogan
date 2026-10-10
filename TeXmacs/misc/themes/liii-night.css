@@ -1736,3 +1736,8 @@ QWidget#centralWidget QFrame#math_completion_container {
   background: #2c2c2c;
   border-color: #555555;
 }
+
+/* 目录大纲侧边栏样式 - 深色模式 */
+QDockWidget#pdfOutlineDock {
+  border: none;
+}

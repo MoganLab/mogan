@@ -22,6 +22,7 @@
 #include <QSize>
 #include <QString>
 #include <QUrl>
+#include <QWidget>
 #include <iostream>
 
 #if QT_VERSION >= 0x060000
@@ -188,6 +189,22 @@ string from_key_release_event (const QKeyEvent* event);
 string qt_clipboard_format ();
 string qt_clipboard_text ();
 void   qt_clipboard_set_html (string html);
+
+/******************************************************************************
+ * 共享的零尺寸 dock 标题栏占位
+ ******************************************************************************/
+
+/** @brief 仅用于消 warning 的占位 widget，本身无任何视觉/行为作用。
+ *
+ *  QDockWidget::setTitleBarWidget(new QWidget) 可禁用标题栏，但空 QWidget
+ *  的 minimumSizeHint() 默认返回 (-1,-1)，会被 QMainWindowLayout 当成 dock
+ *  最小尺寸约束，从而触发 setMinimumSize 负尺寸警告。这里仅 override 两个
+ *  hint 返回 (0,0) 提供有效约束，渲染效果与空 QWidget 完全一致。 */
+class EmptyTitleBar : public QWidget {
+public:
+  QSize sizeHint () const override { return QSize (0, 0); }
+  QSize minimumSizeHint () const override { return QSize (0, 0); }
+};
 
 /******************************************************************************
  * QML 宿主共用（QQuickWidget 场景图后端 / 主题上下文）

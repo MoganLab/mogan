@@ -3,88 +3,153 @@
 ;;
 ;; MODULE      : text-outline.scm
 ;; DESCRIPTION : document outline (section tree) sidebar for the editor
-;; COPYRIGHT   : (C) 2026
+;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; This module provides a document outline sidebar that shows the section
 ;; structure of the current buffer. Clicking an entry navigates to it.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text text-outline))
+(texmacs-module (text text-outline)
+  (:use (text text-drd) (text text-structure))
+) ;texmacs-module
 
 ;; ---------------------------------------------------------------------------
-;; 获取文档大纲数据（嵌套列表）
-;; 每个节点: (title path-as-string . children)
-;;   title:        章节标题（带缩进前缀）
-;;   path-as-string: 路径字符串，如 "0:1:2"，用于 C++ 端 go_to
-;;   children:      子节点列表
+;; 辅助函数：路径转冒号分隔字符串
 ;; ---------------------------------------------------------------------------
 
 (define (section-path->string p)
-  ;; 将 path (list of ints) 转为字符串 "0:1:2"
   (if (null? p) "" (string-join (map number->string p) ":"))
 ) ;define
 
+;; ---------------------------------------------------------------------------
+;; 章节级别映射（0 为最高级 Part，依次递减）
+;; ---------------------------------------------------------------------------
+
 (define (section-level t)
-  ;; 返回章节级别：0=chapter, 1=section, 2=subsection, ...
   (with lbl
     (tree-label t)
-    (cond ((in? lbl '(chapter chapter* appendix appendix* part part*)) 0)
-          ((in? lbl '(section section*)) 1)
-          ((in? lbl '(subsection subsection*)) 2)
-          ((in? lbl '(subsubsection subsubsection*)) 3)
-          (else 4)
+    (cond ((member lbl '(part part*)) 0)
+          ((member lbl '(chapter chapter* appendix appendix*)) 1)
+          ((member lbl '(section section*)) 2)
+          ((member lbl '(subsection subsection*)) 3)
+          ((member lbl '(subsubsection subsubsection*)) 4)
+          ((member lbl '(paragraph paragraph*)) 5)
+          ((member lbl '(subparagraph subparagraph*)) 6)
+          (else 7)
     ) ;cond
   ) ;with
 ) ;define
 
-(define (outline-nodes->nested nodes)
-  ;; 将扁平的 section 列表按层级转为嵌套结构
-  (let iter
-    ((ns nodes) (result '()))
-    (if (null? ns)
-      result
-      (let* ((s (car ns))
-             (lvl (section-level s))
-             (title (tm/section-get-title-string s #t))
-             (p (tree->path s))
-             (path-str (if p (section-path->string p) ""))
-             (node (list title path-str))
-            ) ;
-        ;; 简单扁平输出，层级信息由 title 缩进体现
-        (iter (cdr ns) (cons node result))
-      ) ;let*
+;; ---------------------------------------------------------------------------
+;; 纯净标题提取（不含前置伪缩进空格）
+;; ---------------------------------------------------------------------------
+
+(define (outline-clean-title s)
+  (with raw-title
+    (tm/section-get-title-string s #f)
+    (if (and (string? raw-title) (!= raw-title "no title") (!= raw-title ""))
+      raw-title
+      (if (> (tree-arity s) 0)
+        (with t-str
+          (texmacs->title-string (tree-ref s 0))
+          (if (!= t-str "") t-str "Untitled")
+        ) ;with
+        "Untitled"
+      ) ;if
     ) ;if
-  ) ;let
+  ) ;with
 ) ;define
 
+;; ---------------------------------------------------------------------------
+;; 将扁平的 (level title path-str) 列表构建为具有父子关系的嵌套树
+;; 输出格式: ((title path-str (child ...)) ...)
+;; ---------------------------------------------------------------------------
+
+(define (build-outline-tree items)
+  (if (null? items)
+    '()
+    (letrec ((min-lvl (apply min (map car items)))
+             (gather
+               (lambda (rem current-lvl)
+                 (let loop
+                   ((cur-rem rem) (acc '()))
+                   (cond ((null? cur-rem) (cons (reverse acc) '()))
+                         ((< (caar cur-rem) current-lvl) (cons (reverse acc) cur-rem))
+                         (else
+                           (let* ((item (car cur-rem)) (lvl (car item)) (title (cadr item)) (p-str (caddr item)))
+                             (let* ((sub-res (gather (cdr cur-rem) (+ lvl 1)))
+                                    (children (car sub-res))
+                                    (after (cdr sub-res))
+                                    (node (list title p-str children))
+                                   ) ;
+                               (loop after (cons node acc))
+                             ) ;let*
+                           ) ;let*
+                         ) ;else
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
+             ) ;gather
+            ) ;
+      (car (gather items min-lvl))
+    ) ;letrec
+  ) ;if
+) ;define
+
+;; ---------------------------------------------------------------------------
+;; 获取当前缓冲区的文档大纲嵌套树
+;; ---------------------------------------------------------------------------
+
 (tm-define (document-outline)
-  ;; 返回文档大纲：((title path-string) ...)，按文档顺序
+  (:synopsis "Return the hierarchical document outline tree for current buffer")
   (with raw-sections
     (tree-search-sections (buffer-tree))
-    (let* ((sections
-             (list-filter raw-sections
-               (lambda (x) (not (equal? (tree-label x) 'subparagraph)))
-             ) ;list-filter
-           ) ;sections
-           (nodes (outline-nodes->nested sections))
-          ) ;
-      (reverse nodes)
-    ) ;let*
+    ;; 单遍遍历：每个 section 只计算一次 tree->path，无路径的节点直接跳过
+    (let loop
+      ((ss raw-sections) (acc '()))
+      (if (null? ss)
+        (build-outline-tree (reverse acc))
+        (let* ((s (car ss))
+               (p
+                 (and (not (equal? (tree-label s) 'subparagraph)) (tree->path s))
+               ) ;p
+              ) ;
+          (loop (cdr ss)
+            (if p
+              (cons (list (section-level s) (outline-clean-title s) (section-path->string p))
+                acc
+              ) ;cons
+              acc
+            ) ;if
+          ) ;loop
+        ) ;let*
+      ) ;if
+    ) ;let
   ) ;with
 ) ;tm-define
 
 ;; ---------------------------------------------------------------------------
-;; 侧边栏 widget（tm-widget 模式）
+;; 编辑器跳转到指定大纲路径
 ;; ---------------------------------------------------------------------------
 
-(tm-define (document-outline-widget)
-  (resize "200px"
-    "100%"
-    (refreshable "document-outline-refresh"
-      (vertical
-        (for (item (document-outline)) (horizontal ((eval (car item)))))
-      ) ;vertical
-    ) ;refreshable
-  ) ;resize
+(tm-define (outline-go-to path-str)
+  (:synopsis "Navigate editor cursor and view to section outline path")
+  (if (and (string? path-str) (not (string-null? path-str)))
+    (let* ((parts (string-split path-str #\:)) (p (map string->number parts)))
+      (when (and (pair? p) (not (memq #f p)))
+        (with t
+          (path->tree p)
+          (if (and t (> (tree-arity t) 0)) (tree-go-to t 0 :start) (go-to-path p))
+          (with u
+            (current-view)
+            (when u
+              (make-cursor-visible u)
+              (delayed (:idle 1) (make-cursor-visible u))
+            ) ;when
+          ) ;with
+        ) ;with
+      ) ;when
+    ) ;let*
+  ) ;if
 ) ;tm-define

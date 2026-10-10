@@ -1594,3 +1594,8 @@ QFrame#math_completion_container {
   background: white;
   border-color: black;
 }
+
+/* 目录大纲侧边栏样式 - 浅色模式 */
+QDockWidget#pdfOutlineDock {
+  border: none;
+}

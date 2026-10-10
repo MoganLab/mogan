@@ -570,6 +570,7 @@
   link-active-upwards
   link-active-ids
   link-follow-ids
+  link-mouse-ids
 ) ;lazy-define
 (lazy-define (link link-extern)
   get-constellation

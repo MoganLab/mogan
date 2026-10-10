@@ -90,17 +90,14 @@ bool in_presentation_mode ();
 using moebius::data::scm_quote;
 
 namespace {
-/** @brief 仅用于消 warning 的占位 widget，本身无任何视觉/行为作用。
- *
- *  QDockWidget::setTitleBarWidget(new QWidget) 可禁用标题栏，但空 QWidget
- *  的 minimumSizeHint() 默认返回 (-1,-1)，会被 QMainWindowLayout 当成 dock
- *  最小尺寸约束，从而触发 setMinimumSize 负尺寸警告。这里仅 override 两个
- *  hint 返回 (0,0) 提供有效约束，渲染效果与空 QWidget 完全一致。 */
-class EmptyTitleBar : public QWidget {
-public:
-  QSize sizeHint () const override { return QSize (0, 0); }
-  QSize minimumSizeHint () const override { return QSize (0, 0); }
-};
+/** @brief 恢复大纲 dock 的持久化宽度（显示时调用）。 */
+void
+restore_outline_dock_width (QMainWindow* mw, QDockWidget* dock) {
+  if (!mw || !dock) return;
+  int savedWidth= as_int (get_preference ("outline sidebar width", "300"));
+  if (savedWidth <= 0) savedWidth= 300;
+  mw->resizeDocks ({dock}, {DpiUtils::scaled (savedWidth)}, Qt::Horizontal);
+}
 } // namespace
 
 int menu_count= 0; // zero if no menu is currently being displayed
@@ -952,6 +949,30 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     pdfOutlineDock->setVisible (false);
     mw->addDockWidget (Qt::LeftDockWidgetArea, pdfOutlineDock);
 
+    QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
+                      [this] (const QString& target) {
+                        if (pdfTabMode) {
+                          if (pdfViewerWidget) {
+                            bool ok;
+                            int  page= target.toInt (&ok);
+                            if (ok && page >= 0)
+                              pdfViewerWidget->goToPage (page);
+                          }
+                        }
+                        else if (!startupTabMode && !chatTabMode) {
+                          if (!target.isEmpty ()) {
+                            url currentView= get_current_view_safe ();
+                            if (!is_none (currentView))
+                              send_keyboard_focus (abstract (main_widget));
+                            call ("outline-go-to", from_qstring_utf8 (target));
+                            if (!is_none (currentView)) {
+                              make_cursor_visible (currentView);
+                              send_keyboard_focus (abstract (main_widget));
+                            }
+                          }
+                        }
+                      });
+
     // 文档区域右上角浮动新建对话按钮
     chatSidebarToggleBtn= new QPushButton (cw);
     chatSidebarToggleBtn->setObjectName ("chat-tab-collapse-btn");
@@ -1280,19 +1301,12 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
                             call ("pdf-last-page-set",
                                   from_qstring_utf8 (currentPdfPath), page);
                         });
-      // 连接大纲提取 → dock 填充，dock 点击 → 阅读器跳页（仅连一次）
+      // 连接大纲提取 → dock 填充
       if (pdfOutlineDock) {
         QObject::connect (
             pdfViewerWidget, &PDFReaderWidget::outlineLoaded, pdfOutlineDock,
             static_cast<void (OutlineWidget::*) (
                 const QVector<PdfOutlineItem>&)> (&OutlineWidget::setOutline));
-        PDFReaderWidget* viewer= pdfViewerWidget;
-        QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
-                          viewer, [viewer] (const QString& target) {
-                            bool ok;
-                            int  page= target.toInt (&ok);
-                            if (ok && page >= 0) viewer->goToPage (page);
-                          });
       }
     }
     show_widget_in_layout (pdfViewerWidget, layout);
@@ -1644,7 +1658,7 @@ qt_tm_widget_rep::update_visibility () {
   bool new_titleVisibility     = visibility[0];
   bool new_pdfToolBarVisibility= false;
   bool new_pdfOutlineVisibility= false;
-  bool outlineEnabled= get_preference ("outline sidebar", "off") == "on";
+  bool outlineEnabled= get_preference ("outline sidebar", "on") == "on";
   // 编辑器模式：根据文档大纲内容决定是否显示 dock
   if (!startupTabMode && !pdfTabMode && !chatTabMode && pdfOutlineDock &&
       outlineEnabled) {
@@ -1746,6 +1760,9 @@ qt_tm_widget_rep::update_visibility () {
   if (pdfOutlineDock &&
       XOR (old_pdfOutlineVisibility, new_pdfOutlineVisibility)) {
     pdfOutlineDock->setVisible (new_pdfOutlineVisibility);
+    if (new_pdfOutlineVisibility) {
+      restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+    }
   }
 
   // AI 聊天侧边栏浮动按钮可见性（community 版无 AI Chat，始终隐藏）
@@ -2044,6 +2061,29 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       if (is_none (currentView)) currentView= get_current_view_safe ();
       if (!is_none (currentView))
         tabPageContainer->updateActiveTab (currentView);
+    }
+    if (pdfOutlineDock) {
+      bool outlineEnabled= get_preference ("outline sidebar", "on") == "on";
+      if (pdfTabMode) {
+        if (outlineEnabled && pdfViewerWidget) {
+          pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
+          if (pdfOutlineDock->hasContent ())
+            restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+        }
+      }
+      else if (!startupTabMode && !chatTabMode) {
+        // 大纲内容已由前面的 sync_startup_tab_mode() 加载，此处只同步可见性
+        if (outlineEnabled) {
+          if (pdfOutlineDock->hasContent ())
+            restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+        }
+        else {
+          pdfOutlineDock->setVisible (false);
+        }
+      }
+      else {
+        pdfOutlineDock->setVisible (false);
+      }
     }
   } break;
   case SLOT_POSITION: {
