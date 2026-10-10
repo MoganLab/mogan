@@ -743,6 +743,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                  "border: none; min-height: %1px; max-height: %1px; }")
             .arg (h));
     pdfToolBar->setVisible (false);
+
+    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked,
+                      [this] () { call ("toggle-outline-sidebar"); });
   }
 
   QWidget* cw= new QWidget ();
@@ -1301,12 +1304,18 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
                             call ("pdf-last-page-set",
                                   from_qstring_utf8 (currentPdfPath), page);
                         });
-      // 连接大纲提取 → dock 填充
+      // 连接大纲提取 → dock 填充与工具栏状态同步
       if (pdfOutlineDock) {
         QObject::connect (
             pdfViewerWidget, &PDFReaderWidget::outlineLoaded, pdfOutlineDock,
-            static_cast<void (OutlineWidget::*) (
-                const QVector<PdfOutlineItem>&)> (&OutlineWidget::setOutline));
+            [this] (const QVector<PdfOutlineItem>& items) {
+              pdfOutlineDock->setOutline (items);
+              if (pdfToolBar) {
+                bool hasContent= pdfOutlineDock->hasContent ();
+                pdfToolBar->setOutlineEnabled (hasContent);
+                pdfToolBar->setOutlineChecked (pdfOutlineDock->isVisible ());
+              }
+            });
       }
     }
     show_widget_in_layout (pdfViewerWidget, layout);
@@ -1765,6 +1774,12 @@ qt_tm_widget_rep::update_visibility () {
     }
   }
 
+  if (pdfTabMode && pdfToolBar) {
+    bool hasOutline= pdfOutlineDock && pdfOutlineDock->hasContent ();
+    pdfToolBar->setOutlineEnabled (hasOutline);
+    pdfToolBar->setOutlineChecked (new_pdfOutlineVisibility);
+  }
+
   // AI 聊天侧边栏浮动按钮可见性（community 版无 AI Chat，始终隐藏）
   if (chatSidebarToggleBtn) {
     bool shouldShow= !is_community_stem () && !chatTabMode &&
@@ -2069,6 +2084,11 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
           pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
           if (pdfOutlineDock->hasContent ())
             restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+        }
+        if (pdfToolBar) {
+          bool hasContent= pdfOutlineDock->hasContent ();
+          pdfToolBar->setOutlineEnabled (hasContent);
+          pdfToolBar->setOutlineChecked (outlineEnabled && hasContent);
         }
       }
       else if (!startupTabMode && !chatTabMode) {

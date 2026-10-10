@@ -44,6 +44,20 @@ PdfToolBar::PdfToolBar (const QString& title, QWidget* parent)
 
 void
 PdfToolBar::setupWidgets () {
+  // -- toggle outline (sidebar) button --
+  toggleOutlineBtn_= new QToolButton (this);
+  toggleOutlineBtn_->setObjectName ("pdf-toggle-outline-btn");
+  toggleOutlineBtn_->setAutoRaise (true);
+  toggleOutlineBtn_->setCheckable (true);
+  toggleOutlineBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
+                                   DpiUtils::scaled (kButtonSize));
+  toggleOutlineBtn_->setIconSize (
+      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
+  toggleOutlineBtn_->setToolTip (qt_translate ("Outline"));
+
+  connect (toggleOutlineBtn_, &QToolButton::clicked, this,
+           &PdfToolBar::toggleOutlineClicked);
+
   // -- zoom display --
   zoomCombo_= new QLineEdit (this);
   zoomCombo_->setObjectName ("pdf-zoom-edit");
@@ -166,6 +180,8 @@ PdfToolBar::setupWidgets () {
   QHBoxLayout* leftLayout= new QHBoxLayout (leftWidget);
   leftLayout->setContentsMargins (0, 0, 0, 0);
   leftLayout->setSpacing (0);
+  leftLayout->addWidget (toggleOutlineBtn_, 0, Qt::AlignVCenter);
+  leftLayout->addSpacing (DpiUtils::scaled (4));
   leftLayout->addWidget (zoomCombo_, 0, Qt::AlignVCenter);
   leftLayout->addWidget (zoomDropBtn_, 0, Qt::AlignVCenter);
   leftLayout->addStretch ();
@@ -268,6 +284,20 @@ PdfToolBar::connectTo (PDFReaderWidget* reader) {
 }
 
 void
+PdfToolBar::setOutlineChecked (bool checked) {
+  if (!toggleOutlineBtn_) return;
+  bool blocked= toggleOutlineBtn_->blockSignals (true);
+  toggleOutlineBtn_->setChecked (checked);
+  toggleOutlineBtn_->blockSignals (blocked);
+}
+
+void
+PdfToolBar::setOutlineEnabled (bool enabled) {
+  if (!toggleOutlineBtn_) return;
+  toggleOutlineBtn_->setEnabled (enabled);
+}
+
+void
 PdfToolBar::disconnectFrom () {
   if (!reader_) return;
 
@@ -279,6 +309,9 @@ PdfToolBar::disconnectFrom () {
   disconnect (zoomMenu_, nullptr, this, nullptr);
   disconnect (pageEdit_, nullptr, this, nullptr);
   disconnect (reader_, nullptr, this, nullptr);
+
+  setOutlineChecked (false);
+  setOutlineEnabled (false);
 
   reader_= nullptr;
 }
