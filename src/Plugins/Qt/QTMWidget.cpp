@@ -54,50 +54,6 @@ using namespace moebius;
 
 static int64_t QTMWcounter= 0; // debugging hack
 
-static QByteArray
-qt_download_image_data (const QString& url_str) {
-  string url_s= from_qstring (url_str);
-  debug_qt << "Downloading image from URL: " << url_s << LF;
-  url                     image_url= url_system (url_s);
-  lolly::io::http_headers headers;
-  headers ("User-Agent")=
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, "
-      "like Gecko) Chrome/91.0.4472.124 Safari/537.36";
-
-  // Download image using temporary file
-  url                  temp_file= url_temp ("img");
-  lolly::io::http_tree response=
-      lolly::io::download (image_url, temp_file, headers);
-
-  long status_code= open_box<long> (
-      lolly::io::http_response_ref (response, lolly::io::STATUS_CODE)->data);
-
-  QByteArray data;
-  if (status_code == 200 && exists (temp_file)) {
-    // Use Qt file reading for binary data
-    QFile file (to_qstring (as_string (temp_file)));
-    if (file.open (QIODevice::ReadOnly)) {
-      data= file.readAll ();
-      file.close ();
-      if (data.isEmpty ()) {
-        debug_qt << "Downloaded empty data from " << url_s << LF;
-      }
-    }
-    else {
-      debug_qt << "Failed to open temp file: " << as_string (temp_file) << LF;
-    }
-
-    // Clean up temporary file
-    remove (temp_file);
-  }
-  else {
-    debug_qt << "Failed to download image from " << url_s
-             << ", status code: " << status_code << LF;
-  }
-
-  return data;
-}
-
 /*! Constructor.
 
   \param _parent The parent QWidget.

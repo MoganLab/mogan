@@ -33,11 +33,17 @@
 #endif
 
 #include <QApplication>
+#include <QBuffer>
 #include <QClipboard>
+#include <QFile>
 #include <QImageReader>
 #include <QMimeData>
+#include <QUrl>
+
+#include <lolly/io/http.hpp>
 
 #include <moebius/data/colors.hpp>
+using namespace moebius;
 using namespace moebius::data;
 
 #include "converter.hpp"
@@ -623,8 +629,9 @@ qt_native_image_size (url image, int& w, int& h) {
 
 void
 qt_pretty_image_size (int ww, int hh, string& w, string& h) {
-  SI pt = get_current_editor ()->as_length ("1pt");
-  SI par= get_current_editor ()->as_length ("1par");
+  bool has_editor= !is_none (get_current_view_safe ());
+  SI   pt        = has_editor ? get_current_editor ()->as_length ("1pt") : 1;
+  SI   par       = has_editor ? get_current_editor ()->as_length ("1par") : 460;
   if (ww <= 0 || hh <= 0) {
     w= "";
     h= "";
@@ -636,6 +643,116 @@ qt_pretty_image_size (int ww, int hh, string& w, string& h) {
   else {
     w= as_string (ww) * "pt";
     h= as_string (hh) * "pt";
+  }
+}
+
+QByteArray
+qt_download_image_data (const QString& url_str) {
+  string url_s= from_qstring (url_str);
+  if (DEBUG_QT) debug_qt << "Downloading image from URL: " << url_s << LF;
+  url                     image_url= url_system (url_s);
+  lolly::io::http_headers headers;
+  headers ("User-Agent")=
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, "
+      "like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+  headers ("Accept")=
+      "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+
+  // Download image using temporary file
+  url                  temp_file= url_temp ("img");
+  lolly::io::http_tree response=
+      lolly::io::download (image_url, temp_file, headers);
+
+  long status_code= open_box<long> (
+      lolly::io::http_response_ref (response, lolly::io::STATUS_CODE)->data);
+
+  QByteArray data;
+  if (status_code == 200 && exists (temp_file)) {
+    QString file_path= utf8_to_qstring (concretize (temp_file));
+    QFile   file (file_path);
+    if (file.open (QIODevice::ReadOnly)) {
+      data= file.readAll ();
+      file.close ();
+      if (data.isEmpty ()) {
+        if (DEBUG_QT) debug_qt << "Downloaded empty data from " << url_s << LF;
+      }
+    }
+    else {
+      if (DEBUG_QT)
+        debug_qt << "Failed to open temp file: " << as_string (temp_file) << LF;
+    }
+  }
+  else {
+    if (DEBUG_QT)
+      debug_qt << "Failed to download image from " << url_s
+               << ", status code: " << status_code << LF;
+  }
+
+  if (exists (temp_file)) {
+    remove (temp_file);
+  }
+
+  return data;
+}
+
+void
+qt_embed_tree_images (tree& t) {
+  if (is_atomic (t)) return;
+  if (is_func (t, IMAGE, 5)) {
+    if (is_atomic (t[0])) {
+      string     src = t[0]->label;
+      QString    qsrc= to_qstring (src);
+      QByteArray data;
+
+      if (qsrc.startsWith ("data:image/")) {
+        int comma= qsrc.indexOf (',');
+        if (comma != -1) {
+          QByteArray b64= qsrc.mid (comma + 1).toUtf8 ();
+          data          = QByteArray::fromBase64 (b64);
+        }
+      }
+      else if (qsrc.startsWith ("http://", Qt::CaseInsensitive) ||
+               qsrc.startsWith ("https://", Qt::CaseInsensitive)) {
+        data= qt_download_image_data (qsrc);
+      }
+      else if (qsrc.startsWith ("file://", Qt::CaseInsensitive)) {
+        QUrl    qurl (qsrc);
+        QString localPath= qurl.toLocalFile ();
+        if (QFile::exists (localPath)) {
+          QFile f (localPath);
+          if (f.open (QIODevice::ReadOnly)) data= f.readAll ();
+        }
+      }
+      else if (exists (url_system (src))) {
+        QFile f (utf8_to_qstring (concretize (url_system (src))));
+        if (f.open (QIODevice::ReadOnly)) data= f.readAll ();
+      }
+
+      if (!data.isEmpty ()) {
+        QImage image;
+        if (image.loadFromData (data)) {
+          QByteArray pngData;
+          QBuffer    qbuf (&pngData);
+          qbuf.open (QIODevice::WriteOnly);
+          image.save (&qbuf, "PNG");
+          string raw_bytes (pngData.constData (), pngData.size ());
+
+          t[0]     = tuple (tree (RAW_DATA, raw_bytes), "png");
+          int    ww= image.width ();
+          int    hh= image.height ();
+          string w, h;
+          qt_pretty_image_size (ww, hh, w, h);
+          if (t[1] == "" || t[1] == "0.6383w") {
+            t[1]= w;
+            t[2]= h;
+          }
+        }
+      }
+    }
+  }
+
+  for (int i= 0; i < N (t); i++) {
+    qt_embed_tree_images (t[i]);
   }
 }
 
@@ -1457,8 +1574,9 @@ from_key_release_event (const QKeyEvent* event) {
 string
 qt_clipboard_format () {
   QCoreApplication::processEvents (); // 处理挂起的事件
-  QClipboard*      clipboard= QApplication::clipboard ();
-  const QMimeData* mimeData = clipboard->mimeData ();
+  QClipboard* clipboard= QApplication::clipboard ();
+  if (clipboard == nullptr) return "";
+  const QMimeData* mimeData= clipboard->mimeData ();
 
   if (!mimeData) {
     if (DEBUG_QT)
@@ -1509,8 +1627,9 @@ qt_clipboard_format () {
 string
 qt_clipboard_text () {
   QCoreApplication::processEvents (); // 处理挂起的事件
-  QClipboard*      clipboard= QApplication::clipboard ();
-  const QMimeData* mimeData = clipboard->mimeData ();
+  QClipboard* clipboard= QApplication::clipboard ();
+  if (clipboard == nullptr) return "";
+  const QMimeData* mimeData= clipboard->mimeData ();
   if (mimeData->hasFormat ("application/x-texmacs-clipboard")) {
     QByteArray buf= mimeData->data ("application/x-texmacs-clipboard");
     return string (buf.constData (), buf.size ());
