@@ -6,28 +6,27 @@
 
 #include "qt_pdf_outline_widget.hpp"
 
-#include <QHBoxLayout>
-#include <QHeaderView>
-#include <QTreeWidget>
-#include <QTreeWidgetItem>
+#include <QQmlContext>
 #include <QVBoxLayout>
 
 #include "converter.hpp" // cork_to_utf8
 #include "preferences.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_reader_widget.hpp"
-#include "qt_utilities.hpp" // utf8_to_qstring
+#include "qt_utilities.hpp" // utf8_to_qstring, qt_inject_theme_context, qt_use_software_scene_graph
 #include "s7_tm.hpp"
 #include "sys_utils.hpp" // get_env
 
 namespace {
-/** @brief 大纲侧边栏功能开关，默认开启。 */
+constexpr int kOutlineMinWidth    = 220;
+constexpr int kOutlineDefaultWidth= 300;
+constexpr int kOutlineMaxWidth    = 550;
+
 static bool
 outline_sidebar_enabled () {
   return get_preference ("outline sidebar", "on") == "on";
 }
 
-/** @brief scheme 值 → QString，处理 string/symbol 两种类型。 */
 static QString
 tmscm_to_qstring (tmscm v) {
   if (tmscm_is_string (v))
@@ -37,8 +36,6 @@ tmscm_to_qstring (tmscm v) {
   return QString ();
 }
 
-/** @brief 递归解析 Scheme 嵌套树节点 (title target (child1 child2 ...)) →
- * OutlineItem。 */
 static OutlineItem
 parseOutlineNode (tmscm node) {
   OutlineItem item;
@@ -61,173 +58,86 @@ parseOutlineNode (tmscm node) {
 } // namespace
 
 OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
-    : QDockWidget (title, parent), tree_ (nullptr), titleLabel_ (nullptr),
-      emptyLabel_ (nullptr), container_ (nullptr) {
-  // 禁用系统原生标题栏，内部绘制现代工具栏
+    : QDockWidget (title, parent), bridge_ (new OutlineBridge (this)),
+      quick_ (nullptr) {
   setTitleBarWidget (new QWidget ());
   setAllowedAreas (Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
   setFeatures (QDockWidget::DockWidgetClosable |
                QDockWidget::DockWidgetMovable |
                QDockWidget::DockWidgetFloatable);
-  setMinimumWidth (DpiUtils::scaled (220));
 
-  container_= new QWidget (this);
-  container_->setObjectName ("outlineContainer");
-  QVBoxLayout* mainLayout= new QVBoxLayout (container_);
-  mainLayout->setContentsMargins (0, 0, 0, 0);
-  mainLayout->setSpacing (0);
+  // 严格设置尺寸边界，避免 Qt 负高警告并约束侧边栏合理宽度
+  setMinimumSize (DpiUtils::scaled (kOutlineMinWidth), 0);
+  setMaximumSize (DpiUtils::scaled (kOutlineMaxWidth), QWIDGETSIZE_MAX);
 
-  // 1. 顶部操作工具栏
-  QWidget*     headerBar   = new QWidget (container_);
-  QHBoxLayout* headerLayout= new QHBoxLayout (headerBar);
-  headerLayout->setContentsMargins (DpiUtils::scaled (12), DpiUtils::scaled (8),
-                                    DpiUtils::scaled (12),
-                                    DpiUtils::scaled (8));
-  headerLayout->setSpacing (DpiUtils::scaled (6));
+  qt_use_software_scene_graph ();
 
-  titleLabel_= new QLabel (title, headerBar);
-  titleLabel_->setObjectName ("outlineTitleLabel");
-  titleLabel_->setStyleSheet ("font-weight: bold; font-size: 13px;");
-  headerLayout->addWidget (titleLabel_);
-  headerLayout->addStretch ();
+  quick_= new QQuickWidget (this);
+  quick_->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  quick_->setClearColor (Qt::transparent);
+  quick_->setStyleSheet ("background: transparent;");
+  qt_inject_theme_context (quick_);
+  quick_->rootContext ()->setContextProperty ("outlineBridge", bridge_);
+  quick_->setSource (QUrl ("qrc:/qml/OutlineSidebar.qml"));
 
-  // 全部展开按钮
-  QPushButton* expandAllBtn= new QPushButton ("+", headerBar);
-  expandAllBtn->setObjectName ("outlineExpandBtn");
-  expandAllBtn->setToolTip (tr ("Expand All"));
-  expandAllBtn->setFixedSize (DpiUtils::scaled (22), DpiUtils::scaled (22));
-  expandAllBtn->setFocusPolicy (Qt::NoFocus);
-  expandAllBtn->setCursor (Qt::PointingHandCursor);
-  connect (expandAllBtn, &QPushButton::clicked, this, [this] () {
-    if (tree_) tree_->expandAll ();
-  });
-  headerLayout->addWidget (expandAllBtn);
+  setWidget (quick_);
 
-  // 全部折叠按钮
-  QPushButton* collapseAllBtn= new QPushButton ("-", headerBar);
-  collapseAllBtn->setObjectName ("outlineCollapseBtn");
-  collapseAllBtn->setToolTip (tr ("Collapse All"));
-  collapseAllBtn->setFixedSize (DpiUtils::scaled (22), DpiUtils::scaled (22));
-  collapseAllBtn->setFocusPolicy (Qt::NoFocus);
-  collapseAllBtn->setCursor (Qt::PointingHandCursor);
-  connect (collapseAllBtn, &QPushButton::clicked, this, [this] () {
-    if (tree_) {
-      tree_->collapseAll ();
-      tree_->expandToDepth (0);
-    }
-  });
-  headerLayout->addWidget (collapseAllBtn);
-
-  // 关闭侧边栏按钮
-  QPushButton* closeBtn=
-      new QPushButton (QString::fromUtf8 ("\xc3\x97"), headerBar);
-  closeBtn->setObjectName ("outlineCloseBtn");
-  closeBtn->setToolTip (tr ("Close"));
-  closeBtn->setFixedSize (DpiUtils::scaled (22), DpiUtils::scaled (22));
-  closeBtn->setFocusPolicy (Qt::NoFocus);
-  closeBtn->setCursor (Qt::PointingHandCursor);
-  connect (closeBtn, &QPushButton::clicked, this, [this] () {
+  connect (bridge_, &OutlineBridge::outlineActivated, this,
+           &OutlineWidget::outlineActivated);
+  connect (bridge_, &OutlineBridge::closeRequested, this, [this] () {
     setVisible (false);
     set_preference ("outline sidebar", "off");
   });
-  headerLayout->addWidget (closeBtn);
+}
 
-  mainLayout->addWidget (headerBar);
-
-  // 2. 树形大纲控件
-  tree_= new QTreeWidget (container_);
-  tree_->header ()->hide ();
-  tree_->setUniformRowHeights (true);
-  tree_->setExpandsOnDoubleClick (true);
-  tree_->setRootIsDecorated (true);
-  tree_->setStyleSheet ("QTreeWidget { border: none; }");
-  mainLayout->addWidget (tree_, 1);
-
-  // 3. 空大纲占位提示
-  emptyLabel_= new QLabel (tr ("No outline available"), container_);
-  emptyLabel_->setAlignment (Qt::AlignCenter);
-  emptyLabel_->setStyleSheet ("color: #888888; padding: 20px;");
-  emptyLabel_->hide ();
-  mainLayout->addWidget (emptyLabel_);
-
-  setWidget (container_);
-
-  connect (tree_, &QTreeWidget::itemClicked, this,
-           [this] (QTreeWidgetItem* item) {
-             QString target= item->data (0, Qt::UserRole).toString ();
-             if (!target.isEmpty ()) emit outlineActivated (target);
-           });
+QSize
+OutlineWidget::sizeHint () const {
+  int savedWidth=
+      to_qstring (get_preference ("outline sidebar width", "300")).toInt ();
+  if (savedWidth <= 0) savedWidth= kOutlineDefaultWidth;
+  return QSize (DpiUtils::scaled (savedWidth), DpiUtils::scaled (600));
 }
 
 void
-OutlineWidget::buildTree (const QVector<PdfOutlineItem>& items,
-                          QTreeWidgetItem*               parent) {
-  for (const PdfOutlineItem& item : items) {
-    QTreeWidgetItem* treeItem= (parent == nullptr)
-                                   ? new QTreeWidgetItem (tree_)
-                                   : new QTreeWidgetItem (parent);
-    treeItem->setText (0, item.title);
-    int pageOneBased= (item.page >= 0) ? item.page + 1 : -1;
-    treeItem->setData (0, Qt::UserRole, QString::number (pageOneBased));
-    if (!item.title.isEmpty ()) {
-      treeItem->setToolTip (0, item.title);
-    }
-    if (!item.children.isEmpty ()) {
-      buildTree (item.children, treeItem);
-    }
-  }
-}
-
-void
-OutlineWidget::buildTree (const QVector<OutlineItem>& items,
-                          QTreeWidgetItem*            parent) {
-  for (const OutlineItem& item : items) {
-    QTreeWidgetItem* treeItem= (parent == nullptr)
-                                   ? new QTreeWidgetItem (tree_)
-                                   : new QTreeWidgetItem (parent);
-    treeItem->setText (0, item.title);
-    treeItem->setData (0, Qt::UserRole, item.target);
-    if (!item.title.isEmpty ()) {
-      treeItem->setToolTip (0, item.title);
-    }
-    if (!item.children.isEmpty ()) {
-      buildTree (item.children, treeItem);
+OutlineWidget::resizeEvent (QResizeEvent* event) {
+  QDockWidget::resizeEvent (event);
+  int w= width ();
+  if (w > 0 && isVisible ()) {
+    qreal factor  = DpiUtils::scaleFactor ();
+    int   unscaled= (factor > 0) ? int (w / factor) : w;
+    if (unscaled >= kOutlineMinWidth && unscaled <= kOutlineMaxWidth) {
+      set_preference ("outline sidebar width",
+                      from_qstring (QString::number (unscaled)));
     }
   }
 }
 
 void
 OutlineWidget::setOutline (const QVector<PdfOutlineItem>& outline) {
-  tree_->clear ();
   if (!outline_sidebar_enabled () || outline.isEmpty ()) {
-    if (emptyLabel_) emptyLabel_->show ();
+    bridge_->clear ();
     setVisible (false);
     return;
   }
-  if (emptyLabel_) emptyLabel_->hide ();
-  buildTree (outline, nullptr);
-  tree_->expandToDepth (0);
+  bridge_->setOutline (outline);
   setVisible (true);
 }
 
 void
 OutlineWidget::setOutline (const QVector<OutlineItem>& outline) {
-  tree_->clear ();
   if (!outline_sidebar_enabled () || outline.isEmpty ()) {
-    if (emptyLabel_) emptyLabel_->show ();
+    bridge_->clear ();
     setVisible (false);
     return;
   }
-  if (emptyLabel_) emptyLabel_->hide ();
-  buildTree (outline, nullptr);
-  tree_->expandToDepth (0);
+  bridge_->setOutline (outline);
   setVisible (true);
 }
 
 bool
 OutlineWidget::loadDocumentOutline () {
-  tree_->clear ();
   if (!outline_sidebar_enabled ()) {
+    bridge_->clear ();
     setVisible (false);
     return false;
   }
@@ -238,7 +148,7 @@ OutlineWidget::loadDocumentOutline () {
   }
   tmscm result= eval_scheme ("(document-outline)");
   if (!tmscm_is_pair (result)) {
-    if (emptyLabel_) emptyLabel_->show ();
+    bridge_->clear ();
     setVisible (false);
     return false;
   }
@@ -247,25 +157,22 @@ OutlineWidget::loadDocumentOutline () {
     items.append (parseOutlineNode (tmscm_car (cur)));
   }
   if (items.isEmpty ()) {
-    if (emptyLabel_) emptyLabel_->show ();
+    bridge_->clear ();
     setVisible (false);
     return false;
   }
-  if (emptyLabel_) emptyLabel_->hide ();
-  buildTree (items, nullptr);
-  tree_->expandToDepth (0);
+  bridge_->setOutline (items);
   setVisible (true);
   return true;
 }
 
 void
 OutlineWidget::clear () {
-  tree_->clear ();
-  if (emptyLabel_) emptyLabel_->hide ();
+  bridge_->clear ();
   setVisible (false);
 }
 
 bool
 OutlineWidget::hasContent () const {
-  return tree_->topLevelItemCount () > 0;
+  return bridge_->hasContent ();
 }

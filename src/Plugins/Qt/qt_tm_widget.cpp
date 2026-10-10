@@ -1759,6 +1759,14 @@ qt_tm_widget_rep::update_visibility () {
   if (pdfOutlineDock &&
       XOR (old_pdfOutlineVisibility, new_pdfOutlineVisibility)) {
     pdfOutlineDock->setVisible (new_pdfOutlineVisibility);
+    if (new_pdfOutlineVisibility && mainwindow ()) {
+      int savedWidth=
+          to_qstring (get_preference ("outline sidebar width", "300")).toInt ();
+      if (savedWidth <= 0) savedWidth= 300;
+      int targetWidth= DpiUtils::scaled (savedWidth);
+      mainwindow ()->resizeDocks ({pdfOutlineDock}, {targetWidth},
+                                  Qt::Horizontal);
+    }
   }
 
   // AI 聊天侧边栏浮动按钮可见性（community 版无 AI Chat，始终隐藏）
@@ -2063,11 +2071,29 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       if (pdfTabMode) {
         if (outlineEnabled && pdfViewerWidget) {
           pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
+          if (pdfOutlineDock->hasContent () && mainwindow ()) {
+            int savedWidth=
+                to_qstring (get_preference ("outline sidebar width", "300"))
+                    .toInt ();
+            if (savedWidth <= 0) savedWidth= 300;
+            int targetWidth= DpiUtils::scaled (savedWidth);
+            mainwindow ()->resizeDocks ({pdfOutlineDock}, {targetWidth},
+                                        Qt::Horizontal);
+          }
         }
       }
       else if (!startupTabMode && !chatTabMode) {
         if (outlineEnabled) {
           pdfOutlineDock->loadDocumentOutline ();
+          if (pdfOutlineDock->hasContent () && mainwindow ()) {
+            int savedWidth=
+                to_qstring (get_preference ("outline sidebar width", "300"))
+                    .toInt ();
+            if (savedWidth <= 0) savedWidth= 300;
+            int targetWidth= DpiUtils::scaled (savedWidth);
+            mainwindow ()->resizeDocks ({pdfOutlineDock}, {targetWidth},
+                                        Qt::Horizontal);
+          }
         }
         else {
           pdfOutlineDock->setVisible (false);

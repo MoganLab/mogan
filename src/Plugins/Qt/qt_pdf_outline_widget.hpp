@@ -8,10 +8,12 @@
 #define QT_PDF_OUTLINE_WIDGET_HPP
 
 #include <QDockWidget>
-#include <QLabel>
-#include <QPushButton>
-#include <QTreeWidget>
+#include <QQuickWidget>
+#include <QResizeEvent>
+#include <QSize>
+#include <QVector>
 
+#include "OutlineBridge.hpp"
 #include "qt_pdf_reader_widget.hpp"
 
 class OutlineWidget : public QDockWidget {
@@ -19,6 +21,7 @@ class OutlineWidget : public QDockWidget {
 
 public:
   explicit OutlineWidget (const QString& title, QWidget* parent= nullptr);
+  ~OutlineWidget () override= default;
 
   void setOutline (const QVector<PdfOutlineItem>& outline);
   void setOutline (const QVector<OutlineItem>& outline);
@@ -27,7 +30,10 @@ public:
   void clear ();
   bool hasContent () const;
 
-  QTreeWidget* treeWidget () const { return tree_; }
+  OutlineBridge* bridge () const { return bridge_; }
+  QQuickWidget*  quickWidget () const { return quick_; }
+
+  QSize sizeHint () const override;
 
 signals:
   /** 用户点击大纲条目。target 含义由连接方解释：
@@ -35,15 +41,12 @@ signals:
    *  编辑器模式 → 文档树路径（如 "0:1:2"）。 */
   void outlineActivated (const QString& target);
 
-private:
-  void buildTree (const QVector<PdfOutlineItem>& items,
-                  QTreeWidgetItem*               parent);
-  void buildTree (const QVector<OutlineItem>& items, QTreeWidgetItem* parent);
+protected:
+  void resizeEvent (QResizeEvent* event) override;
 
-  QTreeWidget* tree_;
-  QLabel*      titleLabel_;
-  QLabel*      emptyLabel_;
-  QWidget*     container_;
+private:
+  OutlineBridge* bridge_;
+  QQuickWidget*  quick_;
 };
 
 #endif // QT_PDF_OUTLINE_WIDGET_HPP

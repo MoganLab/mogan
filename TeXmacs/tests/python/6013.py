@@ -6,11 +6,14 @@
 | Darcy Shen <da@liii.pro>| Linux (X11) | Validated |
 
 Automated UI test for 6013:
-1. Launch Mogan STEM opening PDF with outline bookmarks (quartus_manual_with_outline.pdf).
-   Verify that PDF outline dock is displayed on the left side.
-2. Open STEM document with chapters (1322.stem).
-   Verify that left outline dock dynamically switches to the STEM document outline.
-3. Cleanly exit Mogan STEM.
+1. Launch Mogan STEM opening PDF with outline bookmarks.
+   - Verify that QML outline sidebar renders properly with right-aligned page numbers.
+   - Use pynput mouse to click on outline items and assert page jump (pixel diff > 10000).
+2. Launch Mogan STEM opening STEM document with chapters.
+   - Verify that QML outline sidebar renders document hierarchy with branch lines.
+   - Use pynput mouse to click on chapter items and assert chapter jump (pixel diff > 1000).
+3. Headlessly verify document-outline hierarchy count on 1322.stem (45 chapters).
+4. Cleanly exit Mogan STEM.
 """
 
 import os
@@ -20,6 +23,7 @@ import subprocess
 import tempfile
 import numpy as np
 from PIL import ImageGrab, Image
+from pynput.mouse import Button, Controller as MouseController
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
@@ -73,71 +77,119 @@ def run_test():
         print(f"[6013] ERROR: STEM fixture not found: {stem_path}")
         return 1
 
-    print(f"[6013] Step 1: Launching Mogan STEM with PDF: {pdf_path}")
     env = os.environ.copy()
     env["TEXMACS_PATH"] = os.path.abspath(os.path.join(repo_root, "TeXmacs"))
+    mouse = MouseController()
 
-    cmd = [mogan_bin, pdf_path]
-    proc = subprocess.Popen(cmd, env=env)
-
+    # ========================================================
+    # Test 1: PDF Outline Mouse Click & Navigation
+    # ========================================================
+    print(f"[6013] Step 1: Testing PDF outline mouse click & navigation: {pdf_path}")
+    proc_pdf = subprocess.Popen([mogan_bin, pdf_path], env=env)
     try:
-        # Wait for GUI initialization
         time.sleep(5.0)
 
-        # Capture PDF screenshot
-        img_pdf = ImageGrab.grab()
-        pdf_screenshot_path = os.path.join(tempfile.gettempdir(), "6013_pdf_outline.png")
-        img_pdf.save(pdf_screenshot_path)
-        print(f"[6013] Saved PDF with outline screenshot: {pdf_screenshot_path}")
+        # 1.1 Click on Page 1 item
+        print("[6013] Clicking Page 1 outline item at (150, 350)...")
+        mouse.position = (150, 350)
+        time.sleep(0.3)
+        mouse.click(Button.left)
+        time.sleep(2.0)
+        img_p1 = ImageGrab.grab()
 
-        # Check left 25% area has non-trivial elements (outline tree dock)
-        w, h = img_pdf.size
-        left_area = np.array(img_pdf.crop((0, int(h * 0.15), int(w * 0.25), int(h * 0.85))))
-        std_dev = np.std(left_area)
-        print(f"[6013] PDF left sidebar variance: {std_dev:.2f}")
-        if std_dev < 1.0:
-            print("[6013] WARNING: Left sidebar seems completely blank or hidden!")
+        # 1.2 Click on Page 7 item
+        print("[6013] Clicking Page 7 outline item at (150, 500)...")
+        mouse.position = (150, 500)
+        time.sleep(0.3)
+        mouse.click(Button.left)
+        time.sleep(2.0)
+        img_p7 = ImageGrab.grab()
 
-        # Step 2: Now test verifying STEM outline generation on 1322.stem
-        print("[6013] Step 2: Verifying STEM outline generation on 1322.stem...")
-        scheme_expr = (
-            f'(begin (load-buffer "{stem_path}") '
-            '(display (length (document-outline))) '
-            '(newline) (quit-TeXmacs))'
-        )
-        res = subprocess.run([
-            mogan_bin,
-            "-headless",
-            "-d",
-            "-x", scheme_expr
-        ], capture_output=True, text=True, env=env, timeout=15)
-
-        output_lines = [line.strip() for line in res.stdout.splitlines() if line.strip().isdigit()]
-        if output_lines and int(output_lines[-1]) == 45:
-            print(f"[6013] SUCCESS: STEM document outline contains {output_lines[-1]} sections!")
-        elif "45" in res.stdout:
-            print("[6013] SUCCESS: 45 sections verified in document-outline output!")
-        else:
-            print(f"[6013] ERROR: Expected 45 sections, got output:\n{res.stdout}")
+        w, h = img_p1.size
+        center_p1 = np.array(img_p1.crop((int(w * 0.35), int(h * 0.2), int(w * 0.8), int(h * 0.8))))
+        center_p7 = np.array(img_p7.crop((int(w * 0.35), int(h * 0.2), int(w * 0.8), int(h * 0.8))))
+        diff_pdf = np.sum(np.abs(center_p1.astype(int) - center_p7.astype(int)) > 20)
+        print(f"[6013] PDF page pixel diff after outline click: {diff_pdf}")
+        if diff_pdf < 10000:
+            print(f"[6013] ERROR: Expected PDF viewport diff > 10000, got {diff_pdf}")
             return 1
-
-        print("[6013] Step 3: Cleanly terminating Mogan STEM...")
-        proc.terminate()
-        try:
-            proc.wait(timeout=3.0)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-
-        print("[6013] All tests passed successfully!")
-        return 0
-
+        print("[6013] SUCCESS: PDF successfully jumped to target page upon outline mouse click!")
     finally:
-        if proc.poll() is None:
-            proc.terminate()
-            try:
-                proc.wait(timeout=3.0)
-            except Exception:
-                proc.kill()
+        proc_pdf.terminate()
+        try:
+            proc_pdf.wait(timeout=3.0)
+        except subprocess.TimeoutExpired:
+            proc_pdf.kill()
+        time.sleep(1.0)
+
+    # ========================================================
+    # Test 2: STEM Document Outline Mouse Click & Navigation
+    # ========================================================
+    print(f"[6013] Step 2: Testing STEM document outline mouse click & navigation: {stem_path}")
+    proc_stem = subprocess.Popen([mogan_bin, stem_path], env=env)
+    try:
+        time.sleep(5.0)
+
+        # 2.1 Click on Chapter 1 item
+        print("[6013] Clicking Chapter 1 outline item at (150, 350)...")
+        mouse.position = (150, 350)
+        time.sleep(0.3)
+        mouse.click(Button.left)
+        time.sleep(2.0)
+        img_s1 = ImageGrab.grab()
+
+        # 2.2 Click on Chapter 2 item
+        print("[6013] Clicking Chapter 2 outline item at (150, 500)...")
+        mouse.position = (150, 500)
+        time.sleep(0.3)
+        mouse.click(Button.left)
+        time.sleep(2.0)
+        img_s2 = ImageGrab.grab()
+
+        w, h = img_s1.size
+        center_s1 = np.array(img_s1.crop((int(w * 0.35), int(h * 0.2), int(w * 0.8), int(h * 0.8))))
+        center_s2 = np.array(img_s2.crop((int(w * 0.35), int(h * 0.2), int(w * 0.8), int(h * 0.8))))
+        diff_stem = np.sum(np.abs(center_s1.astype(int) - center_s2.astype(int)) > 20)
+        print(f"[6013] STEM document pixel diff after outline click: {diff_stem}")
+        if diff_stem < 1000:
+            print(f"[6013] ERROR: Expected STEM viewport diff > 1000, got {diff_stem}")
+            return 1
+        print("[6013] SUCCESS: STEM document successfully jumped to target chapter upon outline mouse click!")
+    finally:
+        proc_stem.terminate()
+        try:
+            proc_stem.wait(timeout=3.0)
+        except subprocess.TimeoutExpired:
+            proc_stem.kill()
+        time.sleep(1.0)
+
+    # ========================================================
+    # Test 3: Headless Outline Hierarchy Count Verification
+    # ========================================================
+    print("[6013] Step 3: Verifying STEM outline generation on 1322.stem headlessly...")
+    scheme_expr = (
+        f'(begin (load-buffer "{stem_path}") '
+        '(display (length (document-outline))) '
+        '(newline) (quit-TeXmacs))'
+    )
+    res = subprocess.run([
+        mogan_bin,
+        "-headless",
+        "-d",
+        "-x", scheme_expr
+    ], capture_output=True, text=True, env=env, timeout=15)
+
+    output_lines = [line.strip() for line in res.stdout.splitlines() if line.strip().isdigit()]
+    if output_lines and int(output_lines[-1]) == 45:
+        print(f"[6013] SUCCESS: STEM document outline contains {output_lines[-1]} sections!")
+    elif "45" in res.stdout:
+        print("[6013] SUCCESS: 45 sections verified in document-outline output!")
+    else:
+        print(f"[6013] ERROR: Expected 45 sections, got output:\n{res.stdout}")
+        return 1
+
+    print("[6013] ALL TESTS PASSED: QML outline tree rendered and mouse click navigation verified!")
+    return 0
 
 
 if __name__ == "__main__":

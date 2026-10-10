@@ -1595,60 +1595,111 @@ QFrame#math_completion_container {
   border-color: black;
 }
 
-/* 目录大纲侧边栏样式 */
+/* 目录大纲侧边栏样式 - 浅色模式 */
 QDockWidget#pdfOutlineDock {
-  border: 1px solid #e0e0e0;
-  background: #ffffff;
+  border: none;
+  background: #fbfbfb;
 }
 
 QWidget#outlineContainer {
-  background: #ffffff;
+  background: #fbfbfb;
+  border-right: 1px solid #e1e4e8;
 }
 
 QWidget#outlineHeader {
-  border-bottom: 1px solid #eeeeee;
-  background: #fafafa;
+  background: transparent;
 }
 
 QLabel#outlineTitleLabel {
-  color: #333333;
+  color: #1f2328;
+  font-size: 15px;
+  font-weight: 600;
 }
 
-QPushButton#outlineExpandBtn,
-QPushButton#outlineCollapseBtn,
 QPushButton#outlineCloseBtn {
   border: none;
   background: transparent;
-  color: #666666;
-  font-size: 13px;
-  font-weight: bold;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
-QPushButton#outlineExpandBtn:hover,
-QPushButton#outlineCollapseBtn:hover,
 QPushButton#outlineCloseBtn:hover {
-  background: #e8e8e8;
-  color: #111111;
+  background: #eaecef;
 }
 
-QDockWidget#pdfOutlineDock QTreeWidget {
-  border: none;
+QPushButton#outlineCloseBtn:pressed {
+  background: #d0d7de;
+}
+
+QWidget#outlineSearchContainer {
+  background: transparent;
+}
+
+QLineEdit#outlineSearchEdit {
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 4px 8px 4px 8px;
   background: #ffffff;
-  color: #333333;
+  color: #1f2328;
+  font-size: 13px;
 }
 
-QDockWidget#pdfOutlineDock QTreeWidget::item {
-  padding: 3px 2px;
-  border-radius: 3px;
+QLineEdit#outlineSearchEdit:focus {
+  border: 1px solid #0969da;
+  background: #ffffff;
 }
 
-QDockWidget#pdfOutlineDock QTreeWidget::item:hover {
-  background: #f0f0f0;
+QWidget#outlineActionBar {
+  background: transparent;
 }
 
-QDockWidget#pdfOutlineDock QTreeWidget::item:selected {
-  background: #e2e8f0;
-  color: #0f172a;
+QPushButton#outlineActionBtn {
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #57606a;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+QPushButton#outlineActionBtn:hover {
+  background: #f3f4f6;
+  color: #1f2328;
+}
+
+QPushButton#outlineActionBtn:pressed {
+  background: #e5e7eb;
+}
+
+QTreeWidget#outlineTreeWidget {
+  border: none;
+  background: #fbfbfb;
+  color: #1f2328;
+  font-size: 13px;
+  show-decoration-selected: 1;
+}
+
+QTreeWidget#outlineTreeWidget::item {
+  padding: 5px 4px;
+  border-radius: 4px;
+  margin: 1px 4px;
+}
+
+QTreeWidget#outlineTreeWidget::item:hover {
+  background: #f0f2f5;
+}
+
+QTreeWidget#outlineTreeWidget::item:selected {
+  background: #ddf4ff;
+  color: #0969da;
+}
+
+QTreeWidget#outlineTreeWidget::branch {
+  background: transparent;
+}
+
+QLabel#outlineEmptyLabel {
+  color: #8c959f;
+  font-size: 13px;
+  padding: 24px;
 }
 

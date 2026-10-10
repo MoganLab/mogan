@@ -1,11 +1,11 @@
 /******************************************************************************
  * MODULE     : qt_outline_widget_test.cpp
- * DESCRIPTION: Tests for OutlineWidget (PDF bookmarks & document ToC)
+ * DESCRIPTION: Tests for OutlineWidget & OutlineBridge (PDF & Document ToC)
  * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************/
 
-#include "qt_pdf_outline_widget.hpp"
 #include "base.hpp"
+#include "qt_pdf_outline_widget.hpp"
 #include <QSignalSpy>
 #include <QtTest/QtTest>
 
@@ -18,7 +18,7 @@ private slots:
   void test_creation () {
     OutlineWidget* widget= new OutlineWidget ("目录");
     QVERIFY (widget != nullptr);
-    QVERIFY (widget->treeWidget () != nullptr);
+    QVERIFY (widget->bridge () != nullptr);
     QVERIFY (!widget->hasContent ());
     delete widget;
   }
@@ -29,7 +29,7 @@ private slots:
     QVector<PdfOutlineItem> outline;
     PdfOutlineItem          c1;
     c1.title= "Chapter 1";
-    c1.page = 0; // 0-based in PdfOutlineItem, should become 1 in widget
+    c1.page = 0; // 0-based -> 1-based page 1
 
     PdfOutlineItem s1;
     s1.title= "Section 1.1";
@@ -45,20 +45,24 @@ private slots:
 
     widget->setOutline (outline);
     QVERIFY (widget->hasContent ());
-    QCOMPARE (widget->treeWidget ()->topLevelItemCount (), 2);
 
-    QTreeWidgetItem* top0= widget->treeWidget ()->topLevelItem (0);
-    QCOMPARE (top0->text (0), QString ("Chapter 1"));
-    QCOMPARE (top0->data (0, Qt::UserRole).toString (), QString ("1"));
-    QCOMPARE (top0->childCount (), 1);
+    QVariantList model= widget->bridge ()->outlineModel ();
+    QCOMPARE (model.size (), 2);
 
-    QTreeWidgetItem* child0= top0->child (0);
-    QCOMPARE (child0->text (0), QString ("Section 1.1"));
-    QCOMPARE (child0->data (0, Qt::UserRole).toString (), QString ("2"));
+    QVariantMap top0= model.at (0).toMap ();
+    QCOMPARE (top0.value ("title").toString (), QString ("Chapter 1"));
+    QCOMPARE (top0.value ("page").toString (), QString ("1"));
+    QCOMPARE (top0.value ("target").toString (), QString ("1"));
 
-    QTreeWidgetItem* top1= widget->treeWidget ()->topLevelItem (1);
-    QCOMPARE (top1->text (0), QString ("Chapter 2"));
-    QCOMPARE (top1->data (0, Qt::UserRole).toString (), QString ("6"));
+    QVariantList children0= top0.value ("children").toList ();
+    QCOMPARE (children0.size (), 1);
+    QVariantMap child0= children0.at (0).toMap ();
+    QCOMPARE (child0.value ("title").toString (), QString ("Section 1.1"));
+    QCOMPARE (child0.value ("page").toString (), QString ("2"));
+
+    QVariantMap top1= model.at (1).toMap ();
+    QCOMPARE (top1.value ("title").toString (), QString ("Chapter 2"));
+    QCOMPARE (top1.value ("page").toString (), QString ("6"));
 
     delete widget;
   }
@@ -85,24 +89,25 @@ private slots:
 
     widget->setOutline (outline);
     QVERIFY (widget->hasContent ());
-    QCOMPARE (widget->treeWidget ()->topLevelItemCount (), 2);
 
-    QTreeWidgetItem* item0= widget->treeWidget ()->topLevelItem (0);
-    QCOMPARE (item0->text (0), QString ("1 相关文档"));
-    QCOMPARE (item0->data (0, Qt::UserRole).toString (), QString ("0:1"));
-    QCOMPARE (item0->childCount (), 1);
+    QVariantList model= widget->bridge ()->outlineModel ();
+    QCOMPARE (model.size (), 2);
 
-    QTreeWidgetItem* subItem= item0->child (0);
-    QCOMPARE (subItem->text (0), QString ("1.1 内部规范"));
-    QCOMPARE (subItem->data (0, Qt::UserRole).toString (), QString ("0:1:0"));
+    QVariantMap item0= model.at (0).toMap ();
+    QCOMPARE (item0.value ("title").toString (), QString ("1 相关文档"));
+    QCOMPARE (item0.value ("target").toString (), QString ("0:1"));
+
+    QVariantList subList= item0.value ("children").toList ();
+    QCOMPARE (subList.size (), 1);
+    QVariantMap subItem= subList.at (0).toMap ();
+    QCOMPARE (subItem.value ("title").toString (), QString ("1.1 内部规范"));
+    QCOMPARE (subItem.value ("target").toString (), QString ("0:1:0"));
 
     delete widget;
   }
 
   void test_outlineActivated_signal () {
     OutlineWidget* widget= new OutlineWidget ("目录");
-    widget->resize (300, 400);
-    widget->show ();
 
     QVector<OutlineItem> outline;
     OutlineItem          item;
@@ -114,13 +119,7 @@ private slots:
 
     QSignalSpy spy (widget, &OutlineWidget::outlineActivated);
 
-    QTreeWidgetItem* treeItem= widget->treeWidget ()->topLevelItem (0);
-    QVERIFY (treeItem != nullptr);
-
-    // Click item
-    QRect itemRect= widget->treeWidget ()->visualItemRect (treeItem);
-    QTest::mouseClick (widget->treeWidget ()->viewport (), Qt::LeftButton,
-                       Qt::NoModifier, itemRect.center ());
+    widget->bridge ()->itemClicked ("0:3:1");
 
     QCOMPARE (spy.count (), 1);
     QCOMPARE (spy.takeFirst ().at (0).toString (), QString ("0:3:1"));
@@ -142,6 +141,17 @@ private slots:
 
     widget->clear ();
     QVERIFY (!widget->hasContent ());
+    QVERIFY (!widget->isVisible ());
+
+    delete widget;
+  }
+
+  void test_closeRequested () {
+    OutlineWidget* widget= new OutlineWidget ("目录");
+    widget->show ();
+    QVERIFY (widget->isVisible ());
+
+    widget->bridge ()->closeOutline ();
     QVERIFY (!widget->isVisible ());
 
     delete widget;
