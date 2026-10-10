@@ -425,12 +425,21 @@ QToolButton#pdf-toggle-outline-btn {
   border-radius: 4px;
 }
 
+QToolButton#editor-page-outline-btn {
+  qproperty-icon: url(":/pdf-reader/sidebar.svg");
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: #2c2c2c;
+}
+
 QToolButton#pdf-zoom-out-btn:hover,
 QToolButton#pdf-zoom-in-btn:hover,
 QToolButton#pdf-prev-btn:hover,
 QToolButton#pdf-next-btn:hover,
 QToolButton#pdf-screenshot-btn:hover,
-QToolButton#pdf-toggle-outline-btn:hover {
+QToolButton#pdf-toggle-outline-btn:hover,
+QToolButton#editor-page-outline-btn:hover {
   background-color: rgba(0, 0, 0, 0.08);
 }
 
@@ -440,11 +449,13 @@ QToolButton#pdf-prev-btn:pressed,
 QToolButton#pdf-next-btn:pressed,
 QToolButton#pdf-screenshot-btn:pressed,
 QToolButton#pdf-screenshot-btn:checked,
-QToolButton#pdf-toggle-outline-btn:pressed {
+QToolButton#pdf-toggle-outline-btn:pressed,
+QToolButton#editor-page-outline-btn:pressed {
   background-color: rgba(0, 0, 0, 0.12);
 }
 
-QToolButton#pdf-toggle-outline-btn:checked {
+QToolButton#pdf-toggle-outline-btn:checked,
+QToolButton#editor-page-outline-btn:checked {
   background-color: rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(0, 0, 0, 0.20);
 }

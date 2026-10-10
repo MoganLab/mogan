@@ -42,6 +42,7 @@
 
 class QLabel;
 class QToolBar;
+class QToolButton;
 class QTMInteractivePrompt;
 class PDFReaderWidget;
 class PdfToolBar;
@@ -70,21 +71,22 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
    tab_tools_visibility     = 1024
    } visibility_t;
    */
-  QLabel*                 rightLabel;
-  QLabel*                 leftLabel;
-  QLabel*                 middleLabel;
-  QToolBar*               menuToolBar;
-  QToolBar*               mainToolBar;
-  QToolBar*               modeToolBar;
-  QToolBar*               focusToolBar;
-  QToolBar*               userToolBar;
-  PdfToolBar*             pdfToolBar; ///< PDF 阅读器工具栏
-  QDockWidget*            sideTools;
-  QDockWidget*            leftTools;
-  QDockWidget*            bottomTools;
-  QDockWidget*            extraTools;
-  QDockWidget*            chatSideDock;   ///< AI 聊天侧边栏 Dock
-  OutlineWidget*          pdfOutlineDock; ///< PDF 目录（大纲）侧边栏 Dock
+  QLabel*        rightLabel;
+  QLabel*        leftLabel;
+  QLabel*        middleLabel;
+  QToolButton*   pageOutlineBtn; ///< 文档编辑界面左下角展示/隐藏目录的页码按钮
+  QToolBar*      menuToolBar;
+  QToolBar*      mainToolBar;
+  QToolBar*      modeToolBar;
+  QToolBar*      focusToolBar;
+  QToolBar*      userToolBar;
+  PdfToolBar*    pdfToolBar; ///< PDF 阅读器工具栏
+  QDockWidget*   sideTools;
+  QDockWidget*   leftTools;
+  QDockWidget*   bottomTools;
+  QDockWidget*   extraTools;
+  QDockWidget*   chatSideDock;   ///< AI 聊天侧边栏 Dock
+  OutlineWidget* pdfOutlineDock; ///< PDF 目录（大纲）侧边栏 Dock
   QTMTabPageContainer*    tabPageContainer;
   QTMAuxiliaryWidget*     auxiliaryWidget;
   QWK::WidgetWindowAgent* windowAgent;
