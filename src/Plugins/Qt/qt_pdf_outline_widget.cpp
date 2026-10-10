@@ -55,12 +55,18 @@ parseOutlineNode (tmscm node) {
   }
   return item;
 }
+
+class EmptyTitleBar : public QWidget {
+public:
+  QSize sizeHint () const override { return QSize (0, 0); }
+  QSize minimumSizeHint () const override { return QSize (0, 0); }
+};
 } // namespace
 
 OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
     : QDockWidget (title, parent), bridge_ (new OutlineBridge (this)),
       quick_ (nullptr) {
-  setTitleBarWidget (new QWidget ());
+  setTitleBarWidget (new EmptyTitleBar ());
   setAllowedAreas (Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
   setFeatures (QDockWidget::DockWidgetClosable |
                QDockWidget::DockWidgetMovable |
