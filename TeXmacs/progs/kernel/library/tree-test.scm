@@ -91,6 +91,19 @@
   (check (tree-search (string->tree "hello") frac?) => '())
 ) ;define
 
+;; 对原子节点调用 tree-children 安全返回空列表 '()，不发生崩溃。
+
+(define (test-tree-children-atomic)
+  (check (tree-children (stree->tree "hello")) => '())
+  (check (tree-children (string->tree "")) => '())
+  (check (tree-children (string->tree "world")) => '())
+  (check
+    (map tree->string (tree-children (tm->tree '(frac "1" "2"))))
+    =>
+    '("1" "2")
+  ) ;check
+) ;define
+
 ;; 空复合树（无子节点）输入。
 
 (define (test-tree-search-empty-compound)
@@ -167,6 +180,7 @@
   (test-tree-search-root-match)
   (test-tree-search-no-match)
   (test-tree-search-atomic)
+  (test-tree-children-atomic)
   (test-tree-search-empty-compound)
   (test-tree-search-pure)
   (bench-tree-search)

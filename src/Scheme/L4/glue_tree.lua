@@ -83,7 +83,7 @@ function main()
             },
             {
                 scm_name = "tree-children",
-                cpp_name = "A",
+                cpp_name = "tree_children",
                 ret_type = "array_tree",
                 arg_list = {
                     "tree"
