@@ -14,129 +14,251 @@
 
 (document (TeXmacs "2.1.4")
   (style "source")
-  (body (document (use-package "session")
-          (assign "session"
-            (macro "language"
-              "session"
-              "body"
-              (document (with "prog-language"
-                          (arg "language")
-                          "prog-session"
-                          (arg "session")
-                          (document (render-session (arg "body")) "")
-                        ) ;with
+  (body
+    (document (use-package "session")
+      (assign "session"
+        (macro "language"
+          "session"
+          "body"
+          (document
+            (with "prog-language"
+              (arg "language")
+              "prog-session"
+              (arg "session")
+              (document (render-session (arg "body")) "")
+            ) ;with
+          ) ;document
+        ) ;macro
+      ) ;assign
+      ""
+      (assign "llm-input-bg-color"
+        (macro (if (equal (value "color") "white") "#2c323c" "#f0f4ff"))
+      ) ;assign
+      (assign "llm-prompt-color" "#4d6cff")
+      (assign "llm-input-color"
+        (macro (if (equal (value "color") "white") "white" "dark blue"))
+      ) ;assign
+      (active* (document (src-comment (document "Input field with background color")))
+      ) ;active*
+      (macro "indent-both"
+        (macro "left-indentation"
+          "right-indentation"
+          "body"
+          (document (with "par-left"
+                      (plus (value "par-left") (arg "left-indentation"))
+                      "par-right"
+                      (plus (value "par-right") (arg "right-indentation"))
+                      (arg "body")
+                    ) ;with
+          ) ;document
+        ) ;macro
+      ) ;macro
+      (assign "llm-indent" (macro (if (greater "1par" "20cm") "0.1par" "0par")))
+      (assign "llm-input"
+        (macro "prompt"
+          "body"
+          (document
+            (indent-both (llm-indent)
+              (llm-indent)
+              (document
+                (with "ornament-shape"
+                  "classic"
+                  "ornament-color"
+                  (llm-input-bg-color)
+                  "ornament-border"
+                  "0ln"
+                  "ornament-vpadding"
+                  "0.3fn"
+                  (document
+                    (ornament
+                      (document
+                        (tabular
+                          (tformat (twith "table-width" "1par")
+                            (cwith "1" "1" "2" "2" "cell-hpart" "1")
+                            (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
+                            (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
+                            (cwith "1" "1" "2" "2" "cell-lsep" "0fn")
+                            (cwith "1" "1" "2" "2" "cell-rsep" "0fn")
+                            (cwith "1" "1" "2" "2" "cell-hyphen" "t")
+                            (twith "table-hyphen" "y")
+                            (table
+                              (row
+                                (cell (id-function (with "color" (value "llm-prompt-color") (arg "prompt"))))
+                                (cell (document (with "color" (llm-input-color) "math-display" "true" (arg "body")))
+                                ) ;cell
+                              ) ;row
+                            ) ;table
+                          ) ;tformat
+                        ) ;tabular
+                      ) ;document
+                    ) ;ornament
+                  ) ;document
+                ) ;with
               ) ;document
-            ) ;macro
-          ) ;assign
-          ""
-          (assign "llm-input-bg-color"
-            (macro (if (equal (value "color") "white") "#2c323c" "#f0f4ff"))
-          ) ;assign
-          (assign "llm-prompt-color" "#4d6cff")
-          (assign "llm-input-color"
-            (macro (if (equal (value "color") "white") "white" "dark blue"))
-          ) ;assign
-          (active* (document (src-comment (document "Input field with background color")))
-          ) ;active*
-          (macro "indent-both"
-            (macro "left-indentation"
-              "right-indentation"
-              "body"
-              (document (with "par-left"
-                          (plus (value "par-left") (arg "left-indentation"))
-                          "par-right"
-                          (plus (value "par-right") (arg "right-indentation"))
-                          (arg "body")
-                        ) ;with
+            ) ;indent-both
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (active* (document (src-comment (document "Use verbatim output"))))
+      (assign "llm-output"
+        (macro "body"
+          (document
+            (indent-both (llm-indent)
+              (llm-indent)
+              (document
+                (with "info-flag"
+                  "none"
+                  "font-family"
+                  "CMU"
+                  (document
+                    (generic-output (document (text (arg "body"))))
+                  ) ;document
+                ) ;with
               ) ;document
-            ) ;macro
-          ) ;macro
-          (assign "llm-indent" (macro (if (greater "1par" "20cm") "0.1par" "0par")))
-          (assign "llm-input"
-            (macro "prompt"
-              "body"
-              (document (indent-both (llm-indent)
-                          (llm-indent)
-                          (document (with "ornament-shape"
-                                      "classic"
-                                      "ornament-color"
-                                      (llm-input-bg-color)
-                                      "ornament-border"
-                                      "0ln"
-                                      "ornament-vpadding"
-                                      "0.3fn"
-                                      (document (ornament (document (tabular (tformat (twith "table-width" "1par")
-                                                                               (cwith "1" "1" "2" "2" "cell-hpart" "1")
-                                                                               (cwith "1" "1" "1" "1" "cell-lsep" "0fn")
-                                                                               (cwith "1" "1" "1" "1" "cell-rsep" "0fn")
-                                                                               (cwith "1" "1" "2" "2" "cell-lsep" "0fn")
-                                                                               (cwith "1" "1" "2" "2" "cell-rsep" "0fn")
-                                                                               (cwith "1" "1" "2" "2" "cell-hyphen" "t")
-                                                                               (twith "table-hyphen" "y")
-                                                                               (table (row (cell (id-function (with "color" (value "llm-prompt-color") (arg "prompt"))))
-                                                                                        (cell (document (with "color" (llm-input-color) "math-display" "true" (arg "body")))
-                                                                                        ) ;cell
-                                                                                      ) ;row
-                                                                               ) ;table
-                                                                             ) ;tformat
-                                                                    ) ;tabular
-                                                          ) ;document
-                                                ) ;ornament
-                                      ) ;document
-                                    ) ;with
-                          ) ;document
-                        ) ;indent-both
-              ) ;document
-            ) ;macro
-          ) ;assign
-          (active* (document (src-comment (document "Use verbatim output"))))
-          (assign "llm-output"
-            (macro "body"
-              (document (indent-both (llm-indent)
-                          (llm-indent)
-                          (document (with "info-flag"
-                                      "none"
-                                      "font-family"
-                                      "CMU"
-                                      (document (generic-output (document (text (arg "body")))))
-                                    ) ;with
-                          ) ;document
-                        ) ;indent-both
-              ) ;document
-            ) ;macro
-          ) ;assign
-          (assign "llm-errput"
-            (macro "body"
-              (document (with "mode"
-                          "text"
-                          "language"
-                          "verbatim"
-                          "font-family"
-                          "CMU"
-                          (document (generic-errput (document (arg "body"))))
-                        ) ;with
-              ) ;document
-            ) ;macro
-          ) ;assign
-          (assign "llm-thinking-dots"
-            (macro (anim-repeat (anim-compose (anim-constant "" "0.35sec")
-                                  (anim-constant "." "0.35sec")
-                                  (anim-constant ".." "0.35sec")
-                                  (anim-constant "..." "0.35sec")
-                                ) ;anim-compose
-                   ) ;anim-repeat
-            ) ;macro
-          ) ;assign
-          (assign "script-busy"
-            (macro "msg"
-              (script-status (if (equal (arg "msg") (uninit))
-                               (concat (localize "Thinking") (llm-thinking-dots))
-                               (arg "msg")
-                             ) ;if
-              ) ;script-status
-            ) ;macro
-          ) ;assign
-        ) ;document
+            ) ;indent-both
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (assign "llm-errput"
+        (macro "body"
+          (document
+            (with "mode"
+              "text"
+              "language"
+              "verbatim"
+              "font-family"
+              "CMU"
+              (document (generic-errput (document (arg "body"))))
+            ) ;with
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (active* (document (src-comment (document "Document tables quoted in chat render at natural width")
+                         ) ;src-comment
+               ) ;document
+      ) ;active*
+      ;; 6200：聊天面板与引用块（quote-env 自身是 table-width 1par 的单列
+      ;; 表格）中没有页面宽度语境，单元格内嵌套表格的 table-width 1par 解析
+      ;; 到页面级宽度而非引用块宽。std-markup 的 wide-tabular/wide-block
+      ;; （1par exact）与 env-float 及 table-captions-above 的
+      ;; render-small-table/render-big-table 各变体（figure-width=1par 或
+      ;; 1par 定宽容器）会把引用的表格排成页面宽，横向溢出引用块右边界。
+      ;; 聊天包内改为按内容自然宽渲染：wide-* 去掉定宽；render-* 换成
+      ;; 「表格 + 标题」竖排（render-caption 的编号文字不变）。标题在上/在
+      ;; 下两个竖排主体单一来源，四个 render-* 公共名与 table-captions-above
+      ;; 的 -captions-above/-captions-below 分发变体全部指向它们（该包经
+      ;; dynamic with 在展开时改绑 render-*，仅覆盖公共名会被绕过）
+      (assign "wide-tabular"
+        (macro "body"
+          (tformat (twith "table-block" "yes")
+            (cwith "1" "-1" "1" "-1" "cell-hyphen" "t")
+            (cwith "1" "-1" "1" "1" "cell-lsep" "0fn")
+            (cwith "1" "-1" "-1" "-1" "cell-rsep" "0fn")
+            (arg "body")
+          ) ;tformat
+        ) ;macro
+      ) ;assign
+      (assign "wide-block"
+        (macro "body"
+          (tformat (twith "table-block" "yes")
+            (cwith "1" "-1" "1" "-1" "cell-hyphen" "t")
+            (cwith "1" "-1" "1" "1" "cell-lsep" "0fn")
+            (cwith "1" "-1" "-1" "-1" "cell-rsep" "0fn")
+            (cwith "1" "-1" "1" "-1" "cell-rborder" "1ln")
+            (cwith "1" "-1" "1" "-1" "cell-bborder" "1ln")
+            (cwith "1" "1" "1" "-1" "cell-tborder" "1ln")
+            (cwith "1" "-1" "1" "1" "cell-lborder" "1ln")
+            (arg "body")
+          ) ;tformat
+        ) ;macro
+      ) ;assign
+      (assign "llm-render-table-below"
+        (macro "type"
+          "name"
+          "fig"
+          "cap"
+          (document (arg "fig")
+            ""
+            (with "par-mode"
+              "center"
+              (render-caption (arg "type") (arg "name") (arg "cap"))
+            ) ;with
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (assign "llm-render-table-above"
+        (macro "type"
+          "name"
+          "fig"
+          "cap"
+          (document (with "par-mode"
+                      "center"
+                      (render-caption (arg "type") (arg "name") (arg "cap"))
+                    ) ;with
+            ""
+            (arg "fig")
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (assign "render-small-table"
+        (macro "type"
+          "name"
+          "fig"
+          "cap"
+          (llm-render-table-below (arg "type") (arg "name") (arg "fig") (arg "cap"))
+        ) ;macro
+      ) ;assign
+      (assign "render-small-table-captions-below" (value "render-small-table"))
+      (assign "render-small-table-captions-above"
+        (macro "type"
+          "name"
+          "fig"
+          "cap"
+          (llm-render-table-above (arg "type") (arg "name") (arg "fig") (arg "cap"))
+        ) ;macro
+      ) ;assign
+      (assign "render-big-table"
+        (macro "type"
+          "name"
+          "fig"
+          "cap"
+          (padded-normal "1fn"
+            "1fn"
+            (llm-render-table-below (arg "type") (arg "name") (arg "fig") (arg "cap"))
+          ) ;padded-normal
+        ) ;macro
+      ) ;assign
+      (assign "render-big-table-captions-below" (value "render-big-table"))
+      (assign "render-big-table-captions-above"
+        (macro "type"
+          "name"
+          "fig"
+          "cap"
+          (padded-normal "1fn"
+            "1fn"
+            (llm-render-table-above (arg "type") (arg "name") (arg "fig") (arg "cap"))
+          ) ;padded-normal
+        ) ;macro
+      ) ;assign
+      (assign "llm-thinking-dots"
+        (macro (anim-repeat (anim-compose (anim-constant "" "0.35sec")
+                              (anim-constant "." "0.35sec")
+                              (anim-constant ".." "0.35sec")
+                              (anim-constant "..." "0.35sec")
+                            ) ;anim-compose
+               ) ;anim-repeat
+        ) ;macro
+      ) ;assign
+      (assign "script-busy"
+        (macro "msg"
+          (script-status (if (equal (arg "msg") (uninit))
+                           (concat (localize "Thinking") (llm-thinking-dots))
+                           (arg "msg")
+                         ) ;if
+          ) ;script-status
+        ) ;macro
+      ) ;assign
+    ) ;document
   ) ;body
   (initial (collection (associate "preamble" "true")))
 ) ;document

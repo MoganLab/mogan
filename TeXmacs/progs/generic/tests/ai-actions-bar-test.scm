@@ -144,10 +144,11 @@
         ) ;tab
        ) ;
     (ai-subtree-store-reset!)
+    ;; 6200：表格块级排版，哨兵前后补换行（段落中间的表格也独占段落）
     (check
       (ai-flatten-text `(para ,"see " ,tab ," here"))
       =>
-      "see <#Z0G> here"
+      "see \n<#Z0G>\n here"
     ) ;check
     (check ai-subtree-store => (list tab))
   ) ;let
@@ -156,9 +157,44 @@
   (check
     (ai-flatten-text '(table (row (cell "1"))))
     =>
-    "<#Z0G>"
+    "\n<#Z0G>\n"
   ) ;check
   (check ai-subtree-store => '((table (row (cell "1")))))
+  ;; 6200：浮动表格（small-table/big-table 组）整棵登记为子树留哨兵，
+  ;; 标题与 label 锚点不外泄、不与表格在同一行拼接致超出引用块
+  (let ((tbl1
+          '(small-table (concat (tabular (tformat (table (row (cell "文件名")
+                                                           (cell "描述")))))
+                          (label "table:1-1"))
+             "三线表示例")
+        ) ;tbl1
+        (tbl2
+          '(big-table (concat (wide-tabular (tformat (table (row (cell "A")))))
+                        (label "table:2-3"))
+             "同页宽的表格实例")
+        ) ;tbl2
+       ) ;
+    (ai-subtree-store-reset!)
+    (check
+      (ai-flatten-text `(document (para "前文") ,tbl1 (para "后文")))
+      =>
+      "前文\n\n<#Z0G>\n\n后文"
+    ) ;check
+    (check ai-subtree-store => (list tbl1))
+    (ai-subtree-store-reset!)
+    (check
+      (ai-flatten-text `(document (para "前文") ,tbl2 (para "后文")))
+      =>
+      "前文\n\n<#Z0G>\n\n后文"
+    ) ;check
+    (check ai-subtree-store => (list tbl2))
+  ) ;let
+  ;; 6200：label 锚点无可见文本，不外泄进上下文
+  (check (ai-flatten-text '(label "sec:intro")) => "")
+  (check (ai-flatten-text '(para "见表" (label "table:1-1") "所示"))
+    =>
+    "见表所示"
+  ) ;check
 ) ;define
 
 (define (test-flatten-with-node)
@@ -221,7 +257,8 @@
     =>
     '("a" . "<#Z0G>b")
   ) ;check
-  ;; 1607：表格（外层包裹）同样不透明，光标入内整棵归 after
+  ;; 1607：表格（外层包裹）同样不透明，光标入内整棵归 after；
+  ;; 6200：表格哨兵独占一行（前后补换行），不与文本内联拼接
   (ai-subtree-store-reset!)
   (check
     (ai-split-node
@@ -229,9 +266,22 @@
       '(0 1 0)
     ) ;ai-split-node
     =>
-    '("a" . "<#Z0G>b")
+    '("a" . "\n<#Z0G>\nb")
   ) ;check
   (check ai-subtree-store => '((tabular (table (row (cell "1"))))))
+  ;; 6200：浮动表格 small-table / big-table 光标入内同样整棵归 after
+  (let ((st-node '(small-table (tabular (table (row (cell "1")))) "标题")))
+    (ai-subtree-store-reset!)
+    (check
+      (ai-split-node
+        `(document (para ,"a" ,st-node ,"b"))
+        '(0 1 0)
+      ) ;ai-split-node
+      =>
+      '("a" . "\n<#Z0G>\nb")
+    ) ;check
+    (check ai-subtree-store => (list st-node))
+  ) ;let
 ) ;define
 
 ;; ===== 截断不切半 herk 的 <#XXXX> 序列 =====
@@ -311,14 +361,74 @@
     ) ;check
     ;; 公式独占一段：不套 concat
     (check (ai-context->document "<#Z0G>" store) => '(document (equation "x")))
+    ;; 6200：浮动表格还原为整棵子树独占一段，不与标题在同一行拼成 (concat ...)
+    (let* ((tbl
+             '(small-table (tabular (table (row (cell "1")))) "标题")
+           ) ;tbl
+           (tstore (list tbl))
+          ) ;
+      (check (ai-context->document "前文\n<#Z0G>\n后文" tstore)
+        =>
+        (list 'document "前文" tbl "后文")
+      ) ;check
+    ) ;let*
   ) ;let
+) ;define
+
+;; 端到端用例共用：按 ai-selection-context 的生产管线组装引文1
+;; （切分 → 预算截断 → 展平选区 → 重组），middle 为选区展平文本
+
+(define (assemble-context body start end middle)
+  (ai-subtree-store-reset!)
+  (let* ((at-start (ai-split-node body start))
+         (at-end (ai-split-node body end))
+         (before (ai-herk-tail (car at-start) ai-context-before-limit))
+         (after (ai-herk-head (cdr at-end) ai-context-after-limit))
+        ) ;
+    (ai-context->document (tm-string-trim-both (string-append before middle after))
+      ai-subtree-store
+    ) ;ai-context->document
+  ) ;let*
+) ;define
+
+;; ===== 6200 端到端回归（纯函数层）：选区起点落在表格单元格内 =====
+;; 复现 Chat 标签页查看对话时表格超出引用块的数据成因：选区在表格内时，
+;; 哨兵被拼在文本行中间，重组出 (concat 选区文本 表格 后文)，表格随文本
+;; 内联排版并溢出引用块。表格块级化后表格须独占段落。
+
+(define (test-context-selection-in-table)
+  (let* ((big
+           '(big-table (tabular (tformat (cwith "1|-1|1|1|cell-width|2cm")
+                                  (table (row (cell "2cm")
+                                           (cell "4cm")
+                                           (cell "左右居右6cm宽度左右居右 4cm宽度")))))
+              "带附注以及调整列宽的的表格示例")
+         ) ;big
+         (body `(document (concat "表格如果需要注释，然后在表格下方写注释，参考表table:2-2。")
+                  ,big
+                  (concat "如果需要调整表格列宽度，直接在工具栏点击修改即可。"))
+         ) ;body
+         ;; 选区 = 末单元格中的「4cm宽」（单元格文本内偏移 15..18）；
+         ;; 路径到 big-table 即不透明，更深层级不进入
+         (doc-tree (assemble-context body '(1 0 0 1 0 2 15) '(1 0 0 1 0 2 18) "4cm宽"))
+        ) ;
+    ;; 表格独占段落：既不与选区文本、也不与后文拼成 (concat ...)
+    (check doc-tree
+      =>
+      (list 'document
+        "表格如果需要注释，然后在表格下方写注释，参考表table:2-2。"
+        "4cm宽"
+        big
+        "如果需要调整表格列宽度，直接在工具栏点击修改即可。"
+      ) ;list
+    ) ;check
+  ) ;let*
 ) ;define
 
 ;; ===== 1601 端到端回归（纯函数层）：含全角标点的多段中文正文 =====
 
 (define (test-context-full-width-punct)
   ;; 选区嵌在末段中间：引文1 各段完整（含以全角括号开头的段），无半截 herk
-  (ai-subtree-store-reset!)
   ;; 上下文预算等长（1601：下文 500 字节明显短于上文，拉齐为同一预算）
   (check ai-context-after-limit => ai-context-before-limit)
   (let* ((para-a "<#76F8><#6DF7><#6DC6><#3002> <#5173><#952E><#8BCD><#FF08>3-5 <#4E2A><#FF09><#662F>"
@@ -328,12 +438,7 @@
          ) ;para-c
          (body (list 'document para-a para-b para-c))
          ;; 选区为 para-c 中「毕业」之外的切口：起点字节 21、终点字节 28
-         (at-start (ai-split-node body '(2 21)))
-         (at-end (ai-split-node body '(2 28)))
-         (before (ai-herk-tail (car at-start) ai-context-before-limit))
-         (after (ai-herk-head (cdr at-end) ai-context-after-limit))
-         (doc-tree (ai-context->document (string-append before "XY" after) ai-subtree-store)
-         ) ;doc-tree
+         (doc-tree (assemble-context body '(2 21) '(2 28) "XY"))
         ) ;
     (check doc-tree
       =>
@@ -354,6 +459,7 @@
   (test-flatten-with-node)
   (test-flatten-document-joins-lines)
   (test-split-node)
+  (test-context-selection-in-table)
   (test-herk-truncate)
   (test-sentinel-split)
   (test-context-document)
