@@ -744,8 +744,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
             .arg (h));
     pdfToolBar->setVisible (false);
 
-    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked,
-                      [this] () { call ("toggle-outline-sidebar"); });
+    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked, [this] () {
+      call ("toggle-outline-sidebar");
+      update_visibility ();
+    });
   }
 
   QWidget* cw= new QWidget ();
@@ -951,6 +953,15 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     pdfOutlineDock->setFloating (false);
     pdfOutlineDock->setVisible (false);
     mw->addDockWidget (Qt::LeftDockWidgetArea, pdfOutlineDock);
+
+    QObject::connect (
+        pdfOutlineDock, &QDockWidget::visibilityChanged, [this] (bool visible) {
+          if (pdfToolBar && pdfTabMode) {
+            bool hasContent= pdfOutlineDock && pdfOutlineDock->hasContent ();
+            pdfToolBar->setOutlineEnabled (hasContent);
+            pdfToolBar->setOutlineChecked (visible && hasContent);
+          }
+        });
 
     QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
                       [this] (const QString& target) {

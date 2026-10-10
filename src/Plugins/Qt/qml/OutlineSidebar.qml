@@ -161,35 +161,6 @@ Item {
                 font.weight: Font.DemiBold
                 color: headerTitleClr
             }
-
-            // 右上角关闭按钮
-            Rectangle {
-                id: closeBtn
-                width: 22 * Theme.scaleFactor
-                height: 22 * Theme.scaleFactor
-                radius: 4 * Theme.scaleFactor
-                anchors.right: parent.right
-                anchors.rightMargin: 12 * Theme.scaleFactor
-                anchors.verticalCenter: parent.verticalCenter
-                color: closeMouse.containsMouse ? (Theme.dark ? "#27272a" : "#eaecef") : "transparent"
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "×"
-                    font.pixelSize: 16 * Theme.scaleFactor
-                    color: Theme.dark ? "#a1a1aa" : "#57606a"
-                }
-
-                MouseArea {
-                    id: closeMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (bridge) bridge.closeOutline();
-                    }
-                }
-            }
         }
 
         // 2. 搜索栏 + 右侧「···」更多菜单按钮

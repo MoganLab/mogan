@@ -432,6 +432,8 @@ QToolButton#pdf-screenshot-btn {
 
 QToolButton#pdf-toggle-outline-btn {
   qproperty-icon: url(":/pdf-reader/sidebar-white.svg");
+  border: 1px solid transparent;
+  border-radius: 4px;
 }
 
 QWidget#centralWidget QToolButton#pdf-zoom-out-btn:hover,
@@ -449,9 +451,13 @@ QWidget#centralWidget QToolButton#pdf-prev-btn:pressed,
 QWidget#centralWidget QToolButton#pdf-next-btn:pressed,
 QWidget#centralWidget QToolButton#pdf-screenshot-btn:pressed,
 QWidget#centralWidget QToolButton#pdf-screenshot-btn:checked,
-QWidget#centralWidget QToolButton#pdf-toggle-outline-btn:pressed,
-QWidget#centralWidget QToolButton#pdf-toggle-outline-btn:checked {
+QWidget#centralWidget QToolButton#pdf-toggle-outline-btn:pressed {
   background-color: rgba(255, 255, 255, 0.10);
+}
+
+QWidget#centralWidget QToolButton#pdf-toggle-outline-btn:checked {
+  background-color: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 QWidget#centralWidget QWidget#pdf-reader-tool-bar,

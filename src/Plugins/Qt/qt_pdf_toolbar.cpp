@@ -17,14 +17,17 @@
 
 namespace {
 // -- widget sizes (base px, scaled at runtime) --
-constexpr int kButtonSize    = 28;
-constexpr int kIconSize      = 16;
-constexpr int kComboHeight   = 26;
-constexpr int kComboWidth    = 80;
-constexpr int kDropBtnWidth  = 24;
-constexpr int kPageEditWidth = 50;
-constexpr int kPageTotalWidth= 45;
-constexpr int kComboFontSize = 14;
+constexpr int kButtonSize         = 28;
+constexpr int kIconSize           = 16;
+constexpr int kOutlineButtonWidth = 32;
+constexpr int kOutlineButtonHeight= 28;
+constexpr int kOutlineIconSize    = 24;
+constexpr int kComboHeight        = 26;
+constexpr int kComboWidth         = 80;
+constexpr int kDropBtnWidth       = 24;
+constexpr int kPageEditWidth      = 50;
+constexpr int kPageTotalWidth     = 45;
+constexpr int kComboFontSize      = 14;
 
 // -- layout margins & spacing --
 constexpr int kLayoutMarginLeft  = 4;
@@ -49,10 +52,10 @@ PdfToolBar::setupWidgets () {
   toggleOutlineBtn_->setObjectName ("pdf-toggle-outline-btn");
   toggleOutlineBtn_->setAutoRaise (true);
   toggleOutlineBtn_->setCheckable (true);
-  toggleOutlineBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
-                                   DpiUtils::scaled (kButtonSize));
-  toggleOutlineBtn_->setIconSize (
-      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
+  toggleOutlineBtn_->setFixedSize (DpiUtils::scaled (kOutlineButtonWidth),
+                                   DpiUtils::scaled (kOutlineButtonHeight));
+  toggleOutlineBtn_->setIconSize (QSize (DpiUtils::scaled (kOutlineIconSize),
+                                         DpiUtils::scaled (kOutlineIconSize)));
   toggleOutlineBtn_->setToolTip (qt_translate ("Outline"));
 
   connect (toggleOutlineBtn_, &QToolButton::clicked, this,
