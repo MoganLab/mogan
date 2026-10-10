@@ -32,7 +32,6 @@
         <file>pdf-reader/minus.svg</file>
         <file>pdf-reader/open.svg</file>
         <file>pdf-reader/screenshot.svg</file>
-        <file>pdf-reader/bookmark.svg</file>
 
         <file>llm-chat/send.svg</file>
         <file>llm-chat/sidebar.svg</file>
@@ -77,7 +76,6 @@
         <file>pdf-reader/minus-white.svg</file>
         <file>pdf-reader/open-white.svg</file>
         <file>pdf-reader/screenshot-white.svg</file>
-        <file>pdf-reader/bookmark-white.svg</file>
 
         <file>floating-search/down-white.svg</file>
         <file>floating-search/up-white.svg</file>
