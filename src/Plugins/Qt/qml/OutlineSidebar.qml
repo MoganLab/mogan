@@ -193,13 +193,13 @@ Item {
         }
 
         // 2. 搜索栏 + 右侧「···」更多菜单按钮
-        // 左右边距与 PDF 工具栏缩放框（100%）的左侧留白保持一致，不贴边
+        // 左边距取 PDF 工具栏布局边距（4），与「100%」缩放框的左侧留白对齐
         Item {
             id: searchRow
             anchors.top: headerItem.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 8 * Theme.scaleFactor
+            anchors.leftMargin: 4 * Theme.scaleFactor
             anchors.rightMargin: 8 * Theme.scaleFactor
             height: 32 * Theme.scaleFactor
 
