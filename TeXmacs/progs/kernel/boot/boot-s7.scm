@@ -243,7 +243,9 @@
 ;; (scheme file) 等库传递性 re-export。goldfish 自身在 rootlet 求值，
 ;; 这些定义天然全局；mogan 顶层是 *texmacs-user-module*，故 boot.scm
 ;; 与基础库需显式装入 rootlet。
-(load "scheme/boot.scm" (rootlet))
+(let-temporarily ((*current-module* (rootlet)))
+  (load "scheme/boot.scm" (rootlet))
+) ;let-temporarily
 (with-let (rootlet) (import (scheme base)))
 (import (scheme base))
 (import (scheme char))

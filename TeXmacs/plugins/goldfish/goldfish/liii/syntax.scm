@@ -14,7 +14,12 @@
 ;; limitations under the License.
 
 (define-library (liii syntax)
-  (export quote-form? unquote-form?)
+  (export quote-form? unquote-form? make-syntactic-closure syntactic-closure?
+    syntactic-closure-env syntactic-closure-expr syntactic-closure-free-vars
+    syntactic-closure-rename syntactic-closure-set-rename! identifier?
+    identifier->symbol identifier=? strip-syntactic-closures
+    resolve-syntactic-closures
+  ) ;export
   (import (scheme base))
   (begin
     ;; ; quote 形式：(quote x) 或 (#_quote x)。

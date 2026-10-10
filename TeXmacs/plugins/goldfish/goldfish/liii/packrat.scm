@@ -1,5 +1,5 @@
 (define-library (liii packrat)
-  (import (liii case) (liii error) (scheme base) (srfi srfi-1))
+  (import (liii error) (liii match) (scheme base) (srfi srfi-1))
   (export
     ;; parse-result
     parse-result?
@@ -414,39 +414,39 @@
                    ;;     (expr (('a) 'ok)
                    ;;           (('b) 'ok)
                    ;;           (('c) 'ok)))
-                   (case* pattern
-                    ((((! #<fails:...>) #<rest:...>))
+                   (match pattern
+                    ((('! fails ...) rest ...)
                      `(packrat-unless (string-append ,"Nonterminal "
                                         (symbol->string (quote ,nt))
                                         ," expected to fail "
-                                        (object->external-representation #<fails>))
-                        ,(parse-pattern nt #t #<fails>)
-                        ,(parse-pattern nt body #<rest>))
+                                        ,(object->external-representation fails))
+                        ,(parse-pattern nt #t fails)
+                        ,(parse-pattern nt body rest))
                     ) ;
-                    (((#<var:> <- #<val:quote?> #<rest:...>))
-                     `(packrat-check-base ,(car '(#<val>))
-                        (lambda (#<var>) ,(parse-pattern nt body #<rest>)))
+                    ((var '<- (? quote? val) rest ...)
+                     `(packrat-check-base ,val
+                        (lambda (,var) ,(parse-pattern nt body rest)))
                     ) ;
-                    (((#<var:> <- ^ #<rest:...>))
+                    ((var '<- '^ rest ...)
                      `(lambda (results)
-                        (let ((#<var> (parse-results-position results)))
-                          (,(parse-pattern nt body #<rest>) results)))
+                        (let ((,var (parse-results-position results)))
+                          (,(parse-pattern nt body rest) results)))
                     ) ;
-                    (((#<var:> <- #<val:> #<rest:...>))
-                     `(packrat-check ,(car '(#<val>))
-                        (lambda (#<var>) ,(parse-pattern nt body #<rest>)))
+                    ((var '<- val rest ...)
+                     `(packrat-check ,val
+                        (lambda (,var) ,(parse-pattern nt body rest)))
                     ) ;
-                    (((#<val:quote?> #<rest:...>))
-                     `(packrat-check-base ,(car '(#<val>))
-                        (lambda (dummy) ,(parse-pattern nt body #<rest>)))
+                    (((? quote? val) rest ...)
+                     `(packrat-check-base ,val
+                        (lambda (dummy) ,(parse-pattern nt body rest)))
                     ) ;
-                    (((#<val:> #<rest:...>))
-                     `(packrat-check ,(car '(#<val>))
-                        (lambda (dummy) ,(parse-pattern nt body #<rest>)))
+                    ((val rest ...)
+                     `(packrat-check ,val
+                        (lambda (dummy) ,(parse-pattern nt body rest)))
                     ) ;
-                    ((() #<>) `(lambda (results) (make-result ,body results)))
+                    (() `(lambda (results) (make-result ,body results)))
                     (else (type-error "invalid pattern in packrat-lambda" pattern))
-                   ) ;case*
+                   ) ;match
                  ) ;lambda
                ) ;parse-pattern
               ) ;

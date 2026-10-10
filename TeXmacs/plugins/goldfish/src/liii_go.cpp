@@ -9,8 +9,8 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
-// the License for the specific language governing permissions and limitations
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
 // under the License.
 //
 
@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <queue>
@@ -50,8 +51,8 @@ static s7_pointer
 f_worker_notify_error (s7_scheme* sc, s7_pointer args) {
   char* tag_str= s7_object_to_c_string (sc, s7_car (args));
   char* err_str= s7_object_to_c_string (sc, s7_cadr (args));
-  std::cerr << "[Goldfish Worker Error] " << (tag_str ? tag_str : "?") << ": "
-            << (err_str ? err_str : "?") << std::endl;
+  std::cerr << "[Goldfish Worker Error] " << (tag_str ? tag_str : "?") << ": " << (err_str ? err_str : "?")
+            << std::endl;
   free (tag_str);
   free (err_str);
   return s7_unspecified (sc);
@@ -150,13 +151,20 @@ private:
       s7_add_to_load_path (worker_sc, lib_dir.c_str ());
     }
     glue_for_community_edition (worker_sc);
-    s7_eval_c_string (
-        worker_sc,
-        "(import (scheme base) (scheme time) (liii base) (liii go))");
+    if (!lib_dir.empty ()) {
+      namespace fs      = std::filesystem;
+      fs::path boot_path= fs::path (lib_dir) / "scheme" / "boot.scm";
+      if (fs::exists (boot_path)) {
+        s7_load (worker_sc, boot_path.string ().c_str ());
+      }
+    }
+    else {
+      s7_load (worker_sc, "scheme/boot.scm");
+    }
+    s7_eval_c_string (worker_sc, "(import (scheme base) (scheme time) (liii base) (liii go))");
     // 错误处理闭包定义一次并锚定在 rootlet，避免每个任务重建及被 GC 回收
     s7_eval_c_string (worker_sc,
-                      "(define *go-err-handler* (lambda (err-tag err-args) "
-                      "(g_worker-notify-error err-tag err-args)))");
+                      "(define *go-err-handler* (lambda (err-tag err-args) (g_worker-notify-error err-tag err-args)))");
     // 任务 fiber 化（方案 C）：调度器空闲时返回本循环而非 park 线程。
     // chan-recv!/chan-send! 的无 timeout 形态在库定义中即 fiber 实现
     // （挂起协程而非阻塞物理线程），主/worker 会话与 import 复制均无版本分歧
@@ -184,9 +192,7 @@ private:
       {
         std::unique_lock<std::mutex> lock (mtx);
         // 空唤醒来源：gate fire 递增 wake_epoch（挂起 fiber 有事件待消费）
-        cv.wait (lock, [this, &my_epoch] () {
-          return stop || !tasks.empty () || wake_epoch != my_epoch;
-        });
+        cv.wait (lock, [this, &my_epoch] () { return stop || !tasks.empty () || wake_epoch != my_epoch; });
         if (stop && tasks.empty ()) break;
         if (!tasks.empty ()) {
           task= std::move (tasks.front ());
@@ -205,17 +211,14 @@ private:
       // 构造链上的中间 s7 对象逐个挂 GC 保护位置：fiber 化后 worker 会话跨任务
       // 存活、GC 更频繁，未扎根的 bindings/let_expr 可能在构造期间被回收
       std::vector<s7_int> gc_locs;
-      auto                prot= [&] (s7_pointer obj) {
-        gc_locs.push_back (s7_gc_protect (worker_sc, obj));
-      };
+      auto                prot= [&] (s7_pointer obj) { gc_locs.push_back (s7_gc_protect (worker_sc, obj)); };
 
       // Build bindings: ((name1 val1) (name2 val2) ...)
       s7_pointer bindings= s7_nil (worker_sc);
       prot (bindings);
       for (size_t i= task.var_names.size (); i > 0; --i) {
         size_t     idx= i - 1;
-        s7_pointer sym=
-            s7_make_symbol (worker_sc, task.var_names[idx].c_str ());
+        s7_pointer sym= s7_make_symbol (worker_sc, task.var_names[idx].c_str ());
         s7_pointer val= gfvalue_to_s7 (worker_sc, task.var_vals[idx]);
         prot (val);
         s7_pointer pair= s7_list (worker_sc, 2, sym, val);
@@ -236,21 +239,18 @@ private:
       s7_pointer let_expr= s7_cons (worker_sc, let_sym, tail);
       prot (let_expr);
 
-      // 任务数据已全部反序列化进 worker 会话（bindings/body 持有），GFValue
-      // 可立即 释放，不必等调度器返回——任务可能挂起为 fiber 跨任务存活
+      // 任务数据已全部反序列化进 worker 会话（bindings/body 持有），GFValue 可立即
+      // 释放，不必等调度器返回——任务可能挂起为 fiber 跨任务存活
       for (auto& v : task.var_vals) {
         gfvalue_destroy_deep (v);
       }
       gfvalue_destroy_deep (task.code_expr);
 
-      // 任务 thunk = (lambda () let_expr)：先求值成闭包再传给
-      // %run-worker-task。 未求值直接传的话是 pair，s7 的 apply_pair 会把它当
-      // implicit list-ref 调用
-      s7_pointer thunk_expr=
-          s7_list (worker_sc, 3, lambda_sym, s7_nil (worker_sc), let_expr);
+      // 任务 thunk = (lambda () let_expr)：先求值成闭包再传给 %run-worker-task。
+      // 未求值直接传的话是 pair，s7 的 apply_pair 会把它当 implicit list-ref 调用
+      s7_pointer thunk_expr= s7_list (worker_sc, 3, lambda_sym, s7_nil (worker_sc), let_expr);
       prot (thunk_expr);
-      s7_pointer task_thunk=
-          s7_eval (worker_sc, thunk_expr, s7_rootlet (worker_sc));
+      s7_pointer task_thunk= s7_eval (worker_sc, thunk_expr, s7_rootlet (worker_sc));
       prot (task_thunk);
       s7_pointer call_args= s7_list (worker_sc, 2, task_thunk, handler_proc);
       prot (call_args);
@@ -268,8 +268,8 @@ private:
   std::queue<GoTask>       tasks;
   std::mutex               mtx;
   std::condition_variable  cv;
-  uint64_t wake_epoch= 0; // gate fire 计数，空闲 worker 的空唤醒源
-  bool     stop      = false;
+  uint64_t                 wake_epoch= 0; // gate fire 计数，空闲 worker 的空唤醒源
+  bool                     stop      = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -287,9 +287,7 @@ public:
   void schedule_close (std::shared_ptr<GoldfishChannel> ch, int64_t delay_ms) {
     {
       std::lock_guard<std::mutex> lock (mtx);
-      entries.push ({std::chrono::steady_clock::now () +
-                         std::chrono::milliseconds (delay_ms),
-                     std::move (ch)});
+      entries.push ({std::chrono::steady_clock::now () + std::chrono::milliseconds (delay_ms), std::move (ch)});
     }
     cv.notify_one ();
   }
@@ -298,7 +296,7 @@ private:
   struct Entry {
     std::chrono::steady_clock::time_point deadline;
     std::shared_ptr<GoldfishChannel>      ch;
-    bool operator> (const Entry& o) const { return deadline > o.deadline; }
+    bool                                  operator> (const Entry& o) const { return deadline > o.deadline; }
   };
 
   GoTimer () : worker ([this] () { loop (); }) {}
@@ -336,7 +334,7 @@ private:
   std::mutex                                                          mtx;
   std::condition_variable                                             cv;
   std::thread                                                         worker;
-  bool stop= false;
+  bool                                                                stop= false;
 };
 
 static std::mutex                             g_type_mtx;
@@ -354,8 +352,7 @@ static thread_local std::string t_serialize_err;
 // 错误在 RAII 对象析构之后抛出。
 static s7_pointer
 go_error (s7_scheme* sc, const char* kind, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, kind),
-                   s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return s7_error (sc, s7_make_symbol (sc, kind), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 static void
@@ -368,12 +365,10 @@ channel_free_c_value (void* val) {
 
 static s7_pointer
 channel_to_string_glue (s7_scheme* sc, s7_pointer args) {
-  s7_pointer self= s7_car (args);
-  auto*      ch_ptr=
-      static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (self));
+  s7_pointer         self  = s7_car (args);
+  auto*              ch_ptr= static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (self));
   std::ostringstream oss;
-  oss << "#<channel " << ch_ptr->get () << " cap=" << (*ch_ptr)->get_capacity ()
-      << ">";
+  oss << "#<channel " << ch_ptr->get () << " cap=" << (*ch_ptr)->get_capacity () << ">";
   return s7_make_string (sc, oss.str ().c_str ());
 }
 
@@ -384,10 +379,8 @@ channel_is_equal_glue (s7_scheme* sc, s7_pointer args) {
   if (!is_goldfish_channel (sc, a) || !is_goldfish_channel (sc, b)) {
     return s7_f (sc);
   }
-  auto* ch_a=
-      static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (a));
-  auto* ch_b=
-      static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (b));
+  auto* ch_a= static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (a));
+  auto* ch_b= static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (b));
   return s7_make_boolean (sc, ch_a->get () == ch_b->get ());
 }
 
@@ -403,14 +396,12 @@ is_goldfish_channel (s7_scheme* sc, s7_pointer obj) {
 std::shared_ptr<GoldfishChannel>
 get_goldfish_channel (s7_scheme* sc, s7_pointer obj) {
   if (!is_goldfish_channel (sc, obj)) return nullptr;
-  auto* ch_ptr=
-      static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (obj));
+  auto* ch_ptr= static_cast<std::shared_ptr<GoldfishChannel>*> (s7_c_object_value (obj));
   return *ch_ptr;
 }
 
 s7_pointer
-make_goldfish_channel_object (s7_scheme*                       sc,
-                              std::shared_ptr<GoldfishChannel> ch) {
+make_goldfish_channel_object (s7_scheme* sc, std::shared_ptr<GoldfishChannel> ch) {
   s7_int tag= 0;
   {
     std::lock_guard<std::mutex> lock (g_type_mtx);
@@ -493,8 +484,7 @@ struct DeserializeCtx {
 // 由外层循环继续处理（显式栈迭代，避免深层结构导致 C++ 栈溢出崩溃）。
 // 返回值：false 表示遇到不支持的类型。
 static bool
-serialize_node (s7_scheme* sc, s7_pointer obj, GFValue& out,
-                std::string& err_msg, SerializeCtx& ctx,
+serialize_node (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg, SerializeCtx& ctx,
                 std::vector<std::pair<s7_pointer, GFValue*>>& work_stack) {
   if (s7_is_null (sc, obj)) {
     out.type= GFValueType::Nil;
@@ -573,12 +563,10 @@ serialize_node (s7_scheme* sc, s7_pointer obj, GFValue& out,
     return true;
   }
   if (s7_is_byte_vector (obj)) {
-    out.type          = GFValueType::ByteVector;
-    s7_int         len= s7_vector_length (obj);
-    const uint8_t* bytes=
-        reinterpret_cast<const uint8_t*> (s7_byte_vector_elements (obj));
-    out.bytevec_val=
-        std::make_shared<const std::vector<uint8_t>> (bytes, bytes + len);
+    out.type            = GFValueType::ByteVector;
+    s7_int         len  = s7_vector_length (obj);
+    const uint8_t* bytes= reinterpret_cast<const uint8_t*> (s7_byte_vector_elements (obj));
+    out.bytevec_val     = std::make_shared<const std::vector<uint8_t>> (bytes, bytes + len);
     return true;
   }
   if (s7_is_vector (obj)) {
@@ -604,15 +592,13 @@ serialize_node (s7_scheme* sc, s7_pointer obj, GFValue& out,
   }
 
   char* obj_str= s7_object_to_c_string (sc, obj);
-  err_msg= std::string ("unsupported object type for channel serialization: ") +
-           (obj_str ? obj_str : "?");
+  err_msg      = std::string ("unsupported object type for channel serialization: ") + (obj_str ? obj_str : "?");
   free (obj_str);
   return false;
 }
 
 bool
-s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out,
-               std::string& err_msg) {
+s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg) {
   SerializeCtx                                 ctx;
   std::vector<std::pair<s7_pointer, GFValue*>> work_stack;
   work_stack.push_back ({obj, &out});
@@ -620,8 +606,7 @@ s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out,
   while (!work_stack.empty ()) {
     auto item= work_stack.back ();
     work_stack.pop_back ();
-    if (!serialize_node (sc, item.first, *item.second, err_msg, ctx,
-                         work_stack)) {
+    if (!serialize_node (sc, item.first, *item.second, err_msg, ctx, work_stack)) {
       ok= false;
       break;
     }
@@ -645,8 +630,7 @@ struct FillItem {
 // 构建单个节点的壳并注册/锚定；复合类型的子节点压入工作栈由主循环填充
 // （显式栈迭代，避免深层结构导致 C++ 栈溢出崩溃）。
 static s7_pointer
-build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx,
-            std::vector<FillItem>& work_stack) {
+build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx, std::vector<FillItem>& work_stack) {
   if (val.type == GFValueType::Ref) {
     auto it= ctx.reconstructed.find (val.ref_id);
     if (it != ctx.reconstructed.end ()) {
@@ -674,8 +658,7 @@ build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx,
   case GFValueType::Character:
     return s7_make_character (sc, val.char_val);
   case GFValueType::String:
-    return s7_make_string_with_length (sc, val.str_val.data (),
-                                       val.str_val.size ());
+    return s7_make_string_with_length (sc, val.str_val.data (), val.str_val.size ());
   case GFValueType::Symbol:
     return s7_make_symbol (sc, val.str_val.c_str ());
   case GFValueType::Channel:
@@ -688,15 +671,13 @@ build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx,
     }
     if (val.pair_val) {
       // 与序列化保持一致的子节点构建顺序：car 先于 cdr（LIFO，故 cdr 先入栈）
-      work_stack.push_back (
-          {FillItem::Slot::PairCdr, cell, 0, &val.pair_val->second});
-      work_stack.push_back (
-          {FillItem::Slot::PairCar, cell, 0, &val.pair_val->first});
+      work_stack.push_back ({FillItem::Slot::PairCdr, cell, 0, &val.pair_val->second});
+      work_stack.push_back ({FillItem::Slot::PairCar, cell, 0, &val.pair_val->first});
     }
     return cell;
   }
   case GFValueType::Vector: {
-    s7_int len= val.vec_val ? static_cast<s7_int> (val.vec_val->size ()) : 0;
+    s7_int     len= val.vec_val ? static_cast<s7_int> (val.vec_val->size ()) : 0;
     s7_pointer vec= s7_make_vector (sc, len);
     anchor (vec);
     if (val.node_id != 0) {
@@ -704,8 +685,7 @@ build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx,
     }
     if (val.vec_val) {
       for (s7_int i= 0; i < len; ++i) {
-        work_stack.push_back (
-            {FillItem::Slot::VectorElem, vec, i, &(*val.vec_val)[i]});
+        work_stack.push_back ({FillItem::Slot::VectorElem, vec, i, &(*val.vec_val)[i]});
       }
     }
     return vec;
@@ -734,8 +714,7 @@ build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx,
       ctx.reconstructed[val.node_id]= let;
     }
     if (val.pair_val) {
-      work_stack.push_back (
-          {FillItem::Slot::LetContent, let, 0, &val.pair_val->first});
+      work_stack.push_back ({FillItem::Slot::LetContent, let, 0, &val.pair_val->first});
     }
     return let;
   }
@@ -771,15 +750,13 @@ gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
           s7_set_cdr (item.target, build_node (sc, *item.src, ctx, work_stack));
           break;
         case FillItem::Slot::VectorElem:
-          s7_vector_set (sc, item.target, item.index,
-                         build_node (sc, *item.src, ctx, work_stack));
+          s7_vector_set (sc, item.target, item.index, build_node (sc, *item.src, ctx, work_stack));
           break;
         case FillItem::Slot::LetContent: {
           // 先占位填充任务再构建 alist，LIFO 保证 alist 子树全部完成后才填充
           size_t fill_idx= work_stack.size ();
-          work_stack.push_back (
-              {FillItem::Slot::FillLet, item.target, 0, nullptr, nullptr});
-          s7_pointer alist_root= build_node (sc, *item.src, ctx, work_stack);
+          work_stack.push_back ({FillItem::Slot::FillLet, item.target, 0, nullptr, nullptr});
+          s7_pointer alist_root       = build_node (sc, *item.src, ctx, work_stack);
           work_stack[fill_idx].payload= alist_root;
           break;
         }
@@ -811,7 +788,7 @@ gfvalue_destroy_deep (GFValue& root) {
   // 把复合子节点的 shared_ptr 移入工作清单再销毁，析构永不递归
   std::vector<std::shared_ptr<std::pair<GFValue, GFValue>>> pairs;
   std::vector<std::shared_ptr<std::vector<GFValue>>>        vecs;
-  auto drain= [&pairs, &vecs] (GFValue& v) {
+  auto                                                      drain= [&pairs, &vecs] (GFValue& v) {
     if (v.pair_val) pairs.push_back (std::move (v.pair_val));
     if (v.vec_val) vecs.push_back (std::move (v.vec_val));
   };
@@ -870,20 +847,17 @@ GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
       s.cv.wait (lock, [&s, this] () { return s.completed || closed; });
     }
     else {
-      s.cv.wait_for (lock, std::chrono::milliseconds (timeout_ms),
-                     [&s, this] () { return s.completed || closed; });
+      s.cv.wait_for (lock, std::chrono::milliseconds (timeout_ms), [&s, this] () { return s.completed || closed; });
     }
 
     if (!s.completed) {
-      for (auto it= waiting_senders.begin (); it != waiting_senders.end ();
-           ++it) {
+      for (auto it= waiting_senders.begin (); it != waiting_senders.end (); ++it) {
         if (*it == &s) {
           waiting_senders.erase (it);
           break;
         }
       }
-      gfvalue_destroy_deep (
-          s.val); // 超时/关闭导致发送失败，载荷不再传递，防止深层析构递归
+      gfvalue_destroy_deep (s.val); // 超时/关闭导致发送失败，载荷不再传递，防止深层析构递归
       return closed ? SendStatus::Closed : SendStatus::Timeout;
     }
     return SendStatus::Ok;
@@ -891,17 +865,15 @@ GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
   else {
     // Buffered channel
     if (timeout_ms < 0) {
-      cv_buf_send.wait (
-          lock, [this] () { return closed || buffer.size () < capacity; });
+      cv_buf_send.wait (lock, [this] () { return closed || buffer.size () < capacity; });
     }
     else if (timeout_ms == 0) {
       if (closed) return SendStatus::Closed;
       if (buffer.size () >= capacity) return SendStatus::Timeout;
     }
     else {
-      bool ok= cv_buf_send.wait_for (
-          lock, std::chrono::milliseconds (timeout_ms),
-          [this] () { return closed || buffer.size () < capacity; });
+      bool ok= cv_buf_send.wait_for (lock, std::chrono::milliseconds (timeout_ms),
+                                     [this] () { return closed || buffer.size () < capacity; });
       if (!ok && !closed && buffer.size () >= capacity) {
         return SendStatus::Timeout;
       }
@@ -947,13 +919,11 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
       r.cv.wait (lock, [&r, this] () { return r.completed || closed; });
     }
     else {
-      r.cv.wait_for (lock, std::chrono::milliseconds (timeout_ms),
-                     [&r, this] () { return r.completed || closed; });
+      r.cv.wait_for (lock, std::chrono::milliseconds (timeout_ms), [&r, this] () { return r.completed || closed; });
     }
 
     if (!r.completed) {
-      for (auto it= waiting_receivers.begin (); it != waiting_receivers.end ();
-           ++it) {
+      for (auto it= waiting_receivers.begin (); it != waiting_receivers.end (); ++it) {
         if (*it == &r) {
           waiting_receivers.erase (it);
           break;
@@ -970,8 +940,7 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
         return RecvStatus::Timeout;
       }
       else if (timeout_ms < 0) {
-        cv_buf_recv.wait (lock,
-                          [this] () { return closed || !buffer.empty (); });
+        cv_buf_recv.wait (lock, [this] () { return closed || !buffer.empty (); });
       }
       else {
         cv_buf_recv.wait_for (lock, std::chrono::milliseconds (timeout_ms),
@@ -1147,16 +1116,14 @@ GoldfishChannel::select_remove_waiter (SelectWaiter* w) {
 }
 
 GoldfishChannel::RecvStatus
-GoldfishChannel::recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate,
-                                int64_t id) {
+GoldfishChannel::recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate, int64_t id) {
   std::unique_lock<std::mutex> lock (mtx);
   RecvStatus                   st= try_recv_unlocked (out);
   if (st != RecvStatus::Timeout) return st;
 
   // fiber↔fiber rendezvous：send watcher 带载荷等待时直接交接——
   // 取走载荷、fire 该 send watcher（其重试经 completed_send_ids 确认完成）
-  for (auto it= watch_send_entries.begin (); it != watch_send_entries.end ();
-       ++it) {
+  for (auto it= watch_send_entries.begin (); it != watch_send_entries.end (); ++it) {
     if (it->has_payload) {
       out           = std::move (it->payload);
       auto    s_gate= it->gate;
@@ -1173,8 +1140,7 @@ GoldfishChannel::recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate,
 }
 
 GoldfishChannel::SendStatus
-GoldfishChannel::send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate,
-                                int64_t id) {
+GoldfishChannel::send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate, int64_t id) {
   std::unique_lock<std::mutex> lock (mtx);
   // 载荷已被 recv watcher 取走（fire 唤醒后的重试）：确认完成，不重发
   if (completed_send_ids.count (id) != 0) {
@@ -1185,8 +1151,7 @@ GoldfishChannel::send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate,
   if (st == SendStatus::Timeout) {
     // 登记带载荷的 watcher，并唤醒所有挂起的 recv watcher 来竞争交接
     // （竞争输家重试 recv_or_watch 时载荷已被取走，会重新登记 watcher）
-    watch_send_entries.push_back (
-        {std::move (gate), id, true, std::move (val)});
+    watch_send_entries.push_back ({std::move (gate), id, true, std::move (val)});
     while (!watch_recv_entries.empty ()) {
       auto e= std::move (watch_recv_entries.front ());
       watch_recv_entries.pop_front ();
@@ -1200,9 +1165,9 @@ GoldfishChannel::send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate,
 // S7 Glue Functions
 // ---------------------------------------------------------------------------
 
-// 通道对象的实际构造拆到独立函数：含 make_shared 的函数帧会携带 C++ EH
-// 展开信息， 与 s7_error 的裸 longjmp 在 Windows/MSVC 下交互存在风险（CI
-// 曾出现布局敏感的崩溃）， raise 路径所在函数保持帧内无重内容。
+// 通道对象的实际构造拆到独立函数：含 make_shared 的函数帧会携带 C++ EH 展开信息，
+// 与 s7_error 的裸 longjmp 在 Windows/MSVC 下交互存在风险（CI 曾出现布局敏感的崩溃），
+// raise 路径所在函数保持帧内无重内容。
 static s7_pointer
 make_chan_impl (s7_scheme* sc, s7_int cap) {
   auto ch= std::make_shared<GoldfishChannel> (static_cast<size_t> (cap));
@@ -1215,9 +1180,7 @@ f_make_chan (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, args)) {
     s7_pointer cap_arg= s7_car (args);
     if (!s7_is_integer (cap_arg) || s7_integer (cap_arg) < 0) {
-      return go_error (sc, "type-error",
-                       "make-chan: capacity must be a non-negative integer",
-                       cap_arg);
+      return go_error (sc, "type-error", "make-chan: capacity must be a non-negative integer", cap_arg);
     }
     cap= s7_integer (cap_arg);
   }
@@ -1236,8 +1199,7 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
 
   // 以下检查点只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "chan-send!: first argument must be a channel", ch_arg);
+    return go_error (sc, "type-error", "chan-send!: first argument must be a channel", ch_arg);
   }
 
   int64_t    timeout_ms= -1; // Default -1: infinite wait (Go channel semantics)
@@ -1245,10 +1207,7 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, rest)) {
     s7_pointer to_arg= s7_car (rest);
     if (!s7_is_integer (to_arg) || s7_integer (to_arg) < 0) {
-      return go_error (
-          sc, "type-error",
-          "chan-send!: timeout must be a non-negative integer (milliseconds)",
-          to_arg);
+      return go_error (sc, "type-error", "chan-send!: timeout must be a non-negative integer (milliseconds)", to_arg);
     }
     timeout_ms= s7_integer (to_arg);
   }
@@ -1260,8 +1219,7 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
     GFValue val;
     ser_ok= s7_to_gfvalue (sc, val_arg, val, t_serialize_err);
     if (ser_ok) {
-      status=
-          get_goldfish_channel (sc, ch_arg)->send (std::move (val), timeout_ms);
+      status= get_goldfish_channel (sc, ch_arg)->send (std::move (val), timeout_ms);
     }
     gfvalue_destroy_deep (val); // 序列化失败时 val 可能是深层部分树
   }
@@ -1270,8 +1228,7 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
     return go_error (sc, "type-error", t_serialize_err.c_str (), val_arg);
   }
   if (status == GoldfishChannel::SendStatus::Closed) {
-    return go_error (sc, "value-error",
-                     "chan-send!: cannot send on closed channel", ch_arg);
+    return go_error (sc, "value-error", "chan-send!: cannot send on closed channel", ch_arg);
   }
   else if (status == GoldfishChannel::SendStatus::Timeout) {
     return s7_f (sc);
@@ -1285,21 +1242,17 @@ f_chan_recv (s7_scheme* sc, s7_pointer args) {
 
   // raise 时只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "chan-recv!: first argument must be a channel", ch_arg);
+    return go_error (sc, "type-error", "chan-recv!: first argument must be a channel", ch_arg);
   }
 
-  int64_t    timeout_ms= -1; // Default -1: infinite wait (Go channel semantics)
+  int64_t    timeout_ms = -1; // Default -1: infinite wait (Go channel semantics)
   s7_pointer default_val= s7_make_symbol (sc, "timeout");
 
   s7_pointer rest= s7_cdr (args);
   if (!s7_is_null (sc, rest)) {
     s7_pointer to_arg= s7_car (rest);
     if (!s7_is_integer (to_arg) || s7_integer (to_arg) < 0) {
-      return go_error (
-          sc, "type-error",
-          "chan-recv!: timeout must be a non-negative integer (milliseconds)",
-          to_arg);
+      return go_error (sc, "type-error", "chan-recv!: timeout must be a non-negative integer (milliseconds)", to_arg);
     }
     timeout_ms= s7_integer (to_arg);
 
@@ -1329,9 +1282,7 @@ f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "chan-try-recv!: first argument must be a channel",
-                     ch_arg);
+    return go_error (sc, "type-error", "chan-try-recv!: first argument must be a channel", ch_arg);
   }
 
   s7_pointer default_val= s7_f (sc);
@@ -1363,8 +1314,7 @@ f_chan_close (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "chan-close!: argument must be a channel", ch_arg);
+    return go_error (sc, "type-error", "chan-close!: argument must be a channel", ch_arg);
   }
 
   auto ch= get_goldfish_channel (sc, ch_arg);
@@ -1377,8 +1327,7 @@ f_chan_closed_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "chan-closed?: argument must be a channel", ch_arg);
+    return go_error (sc, "type-error", "chan-closed?: argument must be a channel", ch_arg);
   }
 
   auto ch= get_goldfish_channel (sc, ch_arg);
@@ -1394,8 +1343,7 @@ struct SpawnError {
 // 所有 RAII 对象（GoTask/GFValue/string）都在本函数帧内析构；
 // 调用方拿到错误信息后再 raise（见 go_error 的 longjmp 约束注释）。
 static SpawnError
-try_spawn_task (s7_scheme* sc, s7_pointer names_arg, s7_pointer vals_arg,
-                s7_pointer code_arg) {
+try_spawn_task (s7_scheme* sc, s7_pointer names_arg, s7_pointer vals_arg, s7_pointer code_arg) {
   GoTask     task;
   s7_pointer cur_name= names_arg;
   while (s7_is_pair (cur_name)) {
@@ -1419,8 +1367,7 @@ try_spawn_task (s7_scheme* sc, s7_pointer names_arg, s7_pointer vals_arg,
   }
 
   if (task.var_names.size () != task.var_vals.size ()) {
-    return {"value-error", "go: variable names and values count mismatch",
-            names_arg};
+    return {"value-error", "go: variable names and values count mismatch", names_arg};
   }
 
   if (!s7_to_gfvalue (sc, code_arg, task.code_expr, t_serialize_err)) {
@@ -1433,8 +1380,7 @@ try_spawn_task (s7_scheme* sc, s7_pointer names_arg, s7_pointer vals_arg,
 
 static s7_pointer
 f_go_spawn (s7_scheme* sc, s7_pointer args) {
-  SpawnError err=
-      try_spawn_task (sc, s7_car (args), s7_cadr (args), s7_caddr (args));
+  SpawnError err= try_spawn_task (sc, s7_car (args), s7_cadr (args), s7_caddr (args));
   if (err.kind != nullptr) {
     return go_error (sc, err.kind, err.msg, err.arg);
   }
@@ -1457,15 +1403,13 @@ struct SelectOutcome {
   int         kind       = -2; // 0=recv 就绪, 1=send 就绪, -2=超时
   int         index      = -1;
   s7_pointer  value      = nullptr;
-  bool        closed_send= false; // send 分支遇到已关闭通道
-  const char* err_kind=
-      nullptr; // 解析/序列化错误（raise 由外层无 RAII 区执行）
-  s7_pointer err_arg= nullptr;
+  bool        closed_send= false;   // send 分支遇到已关闭通道
+  const char* err_kind   = nullptr; // 解析/序列化错误（raise 由外层无 RAII 区执行）
+  s7_pointer  err_arg    = nullptr;
 };
 
 SelectOutcome
-select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list,
-             int64_t timeout_ms) {
+select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list, int64_t timeout_ms) {
   SelectOutcome out;
 
   // 提取 channel 与序列化 send 载荷（RAII 区，全部在本函数内析构）
@@ -1503,9 +1447,7 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list,
 
   SelectWaiter                  w;
   std::vector<GoldfishChannel*> registered;
-  const auto                    deadline=
-      std::chrono::steady_clock::now () +
-      std::chrono::milliseconds (timeout_ms < 0 ? 0 : timeout_ms);
+  const auto deadline= std::chrono::steady_clock::now () + std::chrono::milliseconds (timeout_ms < 0 ? 0 : timeout_ms);
 
   auto deregister_all= [&] () {
     for (auto* ch : registered) {
@@ -1514,8 +1456,7 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list,
     registered.clear ();
   };
 
-  // 统一整合 recv 与 send 分支，按伪随机洗牌顺序探测（Go select 规范：多 case
-  // 就绪时均匀随机选择）
+  // 统一整合 recv 与 send 分支，按伪随机洗牌顺序探测（Go select 规范：多 case 就绪时均匀随机选择）
   enum class CaseKind { Recv, Send };
   struct CaseDesc {
     CaseKind         kind;
@@ -1530,8 +1471,7 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list,
     all_cases.push_back ({CaseKind::Recv, i, recv_chs[i].get (), nullptr});
   }
   for (size_t i= 0; i < send_cases.size (); ++i) {
-    all_cases.push_back (
-        {CaseKind::Send, i, send_cases[i].first.get (), &send_cases[i].second});
+    all_cases.push_back ({CaseKind::Send, i, send_cases[i].first.get (), &send_cases[i].second});
   }
 
   std::vector<size_t> poll_order (all_cases.size ());
@@ -1544,9 +1484,7 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list,
       return std::minstd_rand (std::random_device{}());
     } catch (...) {
       return std::minstd_rand (
-          static_cast<unsigned int> (std::chrono::high_resolution_clock::now ()
-                                         .time_since_epoch ()
-                                         .count ()));
+          static_cast<unsigned int> (std::chrono::high_resolution_clock::now ().time_since_epoch ().count ()));
     }
   }());
 
@@ -1566,9 +1504,7 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list,
         }
         out.kind = 0;
         out.index= static_cast<int> (c.orig_idx);
-        out.value= (st == GoldfishChannel::RecvStatus::Closed)
-                       ? s7_eof_object (sc)
-                       : gfvalue_to_s7 (sc, val);
+        out.value= (st == GoldfishChannel::RecvStatus::Closed) ? s7_eof_object (sc) : gfvalue_to_s7 (sc, val);
         gfvalue_destroy_deep (val);
         done= true;
         break;
@@ -1629,25 +1565,20 @@ f_select (s7_scheme* sc, s7_pointer args) {
 
   // raise 安全区：只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
   if (!s7_is_list (sc, recv_list) || !s7_is_list (sc, send_list)) {
-    return go_error (sc, "type-error",
-                     "g_select: first two arguments must be lists", args);
+    return go_error (sc, "type-error", "g_select: first two arguments must be lists", args);
   }
   if (!s7_is_integer (timeout_arg) || s7_integer (timeout_arg) < -1) {
-    return go_error (
-        sc, "type-error",
-        "g_select: timeout must be -1 (infinite) or non-negative milliseconds",
-        timeout_arg);
+    return go_error (sc, "type-error", "g_select: timeout must be -1 (infinite) or non-negative milliseconds",
+                     timeout_arg);
   }
 
-  SelectOutcome out=
-      select_impl (sc, recv_list, send_list, s7_integer (timeout_arg));
+  SelectOutcome out= select_impl (sc, recv_list, send_list, s7_integer (timeout_arg));
 
   if (out.err_kind != nullptr) {
     return go_error (sc, out.err_kind, t_serialize_err.c_str (), out.err_arg);
   }
   if (out.closed_send) {
-    return go_error (sc, "value-error", "select: cannot send on closed channel",
-                     s7_nil (sc));
+    return go_error (sc, "value-error", "select: cannot send on closed channel", s7_nil (sc));
   }
   if (out.kind == -2) {
     return s7_f (sc); // 超时
@@ -1676,18 +1607,13 @@ f_chan_timeout_close (s7_scheme* sc, s7_pointer args) {
 
   // raise 时只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "g_chan-timeout-close!: first argument must be a channel",
-                     ch_arg);
+    return go_error (sc, "type-error", "g_chan-timeout-close!: first argument must be a channel", ch_arg);
   }
   if (!s7_is_integer (ms_arg) || s7_integer (ms_arg) < 0) {
-    return go_error (sc, "type-error",
-                     "g_chan-timeout-close!: ms must be a non-negative integer",
-                     ms_arg);
+    return go_error (sc, "type-error", "g_chan-timeout-close!: ms must be a non-negative integer", ms_arg);
   }
 
-  GoTimer::instance ().schedule_close (get_goldfish_channel (sc, ch_arg),
-                                       s7_integer (ms_arg));
+  GoTimer::instance ().schedule_close (get_goldfish_channel (sc, ch_arg), s7_integer (ms_arg));
   return s7_unspecified (sc);
 }
 
@@ -1705,8 +1631,7 @@ static s7_pointer
 f_gate_wait (s7_scheme* sc, s7_pointer args) {
   s7_pointer gate_arg= s7_car (args);
   if (!is_go_gate (sc, gate_arg)) {
-    return go_error (sc, "type-error", "g_gate-wait: argument must be a gate",
-                     gate_arg);
+    return go_error (sc, "type-error", "g_gate-wait: argument must be a gate", gate_arg);
   }
   int64_t id= 0;
   {
@@ -1721,8 +1646,7 @@ f_gate_try_wait (s7_scheme* sc, s7_pointer args) {
   s7_pointer gate_arg= s7_car (args);
   // raise 安全区：平凡局部变量（见 go_error 的 longjmp 约束注释）
   if (!is_go_gate (sc, gate_arg)) {
-    return go_error (sc, "type-error",
-                     "g_gate-try-wait: argument must be a gate", gate_arg);
+    return go_error (sc, "type-error", "g_gate-try-wait: argument must be a gate", gate_arg);
   }
   int64_t id = 0;
   bool    got= false;
@@ -1746,28 +1670,20 @@ f_chan_recv_or_watch (s7_scheme* sc, s7_pointer args) {
 
   // raise 安全区：平凡局部变量（见 go_error 的 longjmp 约束注释）
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "g_chan-recv-or-watch!: first argument must be a channel",
-                     ch_arg);
+    return go_error (sc, "type-error", "g_chan-recv-or-watch!: first argument must be a channel", ch_arg);
   }
   if (!is_go_gate (sc, gate_arg)) {
-    return go_error (sc, "type-error",
-                     "g_chan-recv-or-watch!: second argument must be a gate",
-                     gate_arg);
+    return go_error (sc, "type-error", "g_chan-recv-or-watch!: second argument must be a gate", gate_arg);
   }
   if (!s7_is_integer (id_arg)) {
-    return go_error (
-        sc, "type-error",
-        "g_chan-recv-or-watch!: third argument must be an integer id", id_arg);
+    return go_error (sc, "type-error", "g_chan-recv-or-watch!: third argument must be an integer id", id_arg);
   }
 
   GoldfishChannel::RecvStatus st;
   s7_pointer                  res= nullptr;
   {
     GFValue val;
-    st= get_goldfish_channel (sc, ch_arg)
-            ->recv_or_watch (val, get_go_gate (sc, gate_arg),
-                             s7_integer (id_arg));
+    st= get_goldfish_channel (sc, ch_arg)->recv_or_watch (val, get_go_gate (sc, gate_arg), s7_integer (id_arg));
     if (st == GoldfishChannel::RecvStatus::Ok) {
       res= gfvalue_to_s7 (sc, val);
     }
@@ -1791,19 +1707,13 @@ f_chan_send_or_watch (s7_scheme* sc, s7_pointer args) {
 
   // raise 安全区：平凡局部变量
   if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error",
-                     "g_chan-send-or-watch!: first argument must be a channel",
-                     ch_arg);
+    return go_error (sc, "type-error", "g_chan-send-or-watch!: first argument must be a channel", ch_arg);
   }
   if (!is_go_gate (sc, gate_arg)) {
-    return go_error (sc, "type-error",
-                     "g_chan-send-or-watch!: third argument must be a gate",
-                     gate_arg);
+    return go_error (sc, "type-error", "g_chan-send-or-watch!: third argument must be a gate", gate_arg);
   }
   if (!s7_is_integer (id_arg)) {
-    return go_error (
-        sc, "type-error",
-        "g_chan-send-or-watch!: fourth argument must be an integer id", id_arg);
+    return go_error (sc, "type-error", "g_chan-send-or-watch!: fourth argument must be an integer id", id_arg);
   }
 
   GoldfishChannel::SendStatus st    = GoldfishChannel::SendStatus::Timeout;
@@ -1812,9 +1722,7 @@ f_chan_send_or_watch (s7_scheme* sc, s7_pointer args) {
     GFValue val;
     ser_ok= s7_to_gfvalue (sc, val_arg, val, t_serialize_err);
     if (ser_ok) {
-      st= get_goldfish_channel (sc, ch_arg)
-              ->send_or_watch (val, get_go_gate (sc, gate_arg),
-                               s7_integer (id_arg));
+      st= get_goldfish_channel (sc, ch_arg)->send_or_watch (val, get_go_gate (sc, gate_arg), s7_integer (id_arg));
     }
     gfvalue_destroy_deep (val);
   }
@@ -1822,9 +1730,7 @@ f_chan_send_or_watch (s7_scheme* sc, s7_pointer args) {
     return go_error (sc, "type-error", t_serialize_err.c_str (), val_arg);
   }
   if (st == GoldfishChannel::SendStatus::Closed) {
-    return go_error (sc, "value-error",
-                     "g_chan-send-or-watch!: cannot send on closed channel",
-                     ch_arg);
+    return go_error (sc, "value-error", "g_chan-send-or-watch!: cannot send on closed channel", ch_arg);
   }
   if (st == GoldfishChannel::SendStatus::Ok) return s7_t (sc);
   return dflt; // Timeout：已登记 watcher
@@ -1834,8 +1740,7 @@ static s7_pointer
 f_msleep (s7_scheme* sc, s7_pointer args) {
   s7_pointer ms_arg= s7_car (args);
   if (!s7_is_integer (ms_arg) || s7_integer (ms_arg) < 0) {
-    return go_error (sc, "type-error",
-                     "g_msleep: ms must be a non-negative integer", ms_arg);
+    return go_error (sc, "type-error", "g_msleep: ms must be a non-negative integer", ms_arg);
   }
   int64_t ms= s7_integer (ms_arg);
   if (ms > 0) {
@@ -1850,9 +1755,7 @@ f_msleep (s7_scheme* sc, s7_pointer args) {
 static s7_pointer
 f_now_ms (s7_scheme* sc, s7_pointer args) {
   auto now= std::chrono::steady_clock::now ();
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (
-               now.time_since_epoch ())
-               .count ();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (now.time_since_epoch ()).count ();
   return s7_make_integer (sc, static_cast<s7_int> (ms));
 }
 
@@ -1879,51 +1782,32 @@ glue_liii_go (s7_scheme* sc) {
     g_gate_type_tags[sc]= gate_tag;
   }
 
-  s7_define_function (sc, "g_make-chan", f_make_chan, 0, 1, false,
-                      "(g_make-chan [capacity]) => channel");
-  s7_define_function (sc, "g_chan?", f_chan_p, 1, 0, false,
-                      "(g_chan? obj) => boolean");
-  s7_define_function (sc, "g_chan-send!", f_chan_send, 2, 1, false,
-                      "(g_chan-send! ch val [timeout-ms]) => boolean");
+  s7_define_function (sc, "g_make-chan", f_make_chan, 0, 1, false, "(g_make-chan [capacity]) => channel");
+  s7_define_function (sc, "g_chan?", f_chan_p, 1, 0, false, "(g_chan? obj) => boolean");
+  s7_define_function (sc, "g_chan-send!", f_chan_send, 2, 1, false, "(g_chan-send! ch val [timeout-ms]) => boolean");
   s7_define_function (sc, "g_chan-recv!", f_chan_recv, 1, 2, false,
-                      "(g_chan-recv! ch [timeout-ms [default]]) => value | "
-                      "default | eof-object");
-  s7_define_function (
-      sc, "g_chan-try-recv!", f_chan_try_recv, 1, 1, false,
-      "(g_chan-try-recv! ch [default]) => value | default | eof-object");
-  s7_define_function (sc, "g_chan-close!", f_chan_close, 1, 0, false,
-                      "(g_chan-close! ch) => unspecified");
-  s7_define_function (sc, "g_chan-closed?", f_chan_closed_p, 1, 0, false,
-                      "(g_chan-closed? ch) => boolean");
-  s7_define_function (sc, "g_go-spawn", f_go_spawn, 3, 0, false,
-                      "(g_go-spawn names vals code) => unspecified");
-  s7_define_function (sc, "g_worker-notify-error", f_worker_notify_error, 2, 0,
-                      false, "(g_worker-notify-error tag args) => unspecified");
-  s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false,
-                      "(g_go-worker-count) => integer");
+                      "(g_chan-recv! ch [timeout-ms [default]]) => value | default | eof-object");
+  s7_define_function (sc, "g_chan-try-recv!", f_chan_try_recv, 1, 1, false,
+                      "(g_chan-try-recv! ch [default]) => value | default | eof-object");
+  s7_define_function (sc, "g_chan-close!", f_chan_close, 1, 0, false, "(g_chan-close! ch) => unspecified");
+  s7_define_function (sc, "g_chan-closed?", f_chan_closed_p, 1, 0, false, "(g_chan-closed? ch) => boolean");
+  s7_define_function (sc, "g_go-spawn", f_go_spawn, 3, 0, false, "(g_go-spawn names vals code) => unspecified");
+  s7_define_function (sc, "g_worker-notify-error", f_worker_notify_error, 2, 0, false,
+                      "(g_worker-notify-error tag args) => unspecified");
+  s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false, "(g_go-worker-count) => integer");
   s7_define_function (sc, "g_select", f_select, 3, 0, false,
-                      "(g_select recv-chs send-pairs timeout-ms) => #(0 idx "
-                      "val) | #(1 idx) | #f");
-  s7_define_function (sc, "g_chan-timeout-close!", f_chan_timeout_close, 2, 0,
-                      false,
-                      "(g_chan-timeout-close! ch ms) => unspecified, closes ch "
-                      "after ms milliseconds");
-  s7_define_function (sc, "g_make-gate", f_make_gate, 0, 0, false,
-                      "(g_make-gate) => go-gate");
-  s7_define_function (sc, "g_gate-wait", f_gate_wait, 1, 0, false,
-                      "(g_gate-wait gate) => integer id");
-  s7_define_function (sc, "g_gate-try-wait", f_gate_try_wait, 1, 0, false,
-                      "(g_gate-try-wait gate) => integer id | #f");
-  s7_define_function (
-      sc, "g_chan-recv-or-watch!", f_chan_recv_or_watch, 4, 0, false,
-      "(g_chan-recv-or-watch! ch gate id default) => value | eof | default");
-  s7_define_function (
-      sc, "g_chan-send-or-watch!", f_chan_send_or_watch, 5, 0, false,
-      "(g_chan-send-or-watch! ch val gate id default) => #t | default");
-  s7_define_function (sc, "g_msleep", f_msleep, 1, 0, false,
-                      "(g_msleep ms) => unspecified");
-  s7_define_function (sc, "g_now-ms", f_now_ms, 0, 0, false,
-                      "(g_now-ms) => integer");
+                      "(g_select recv-chs send-pairs timeout-ms) => #(0 idx val) | #(1 idx) | #f");
+  s7_define_function (sc, "g_chan-timeout-close!", f_chan_timeout_close, 2, 0, false,
+                      "(g_chan-timeout-close! ch ms) => unspecified, closes ch after ms milliseconds");
+  s7_define_function (sc, "g_make-gate", f_make_gate, 0, 0, false, "(g_make-gate) => go-gate");
+  s7_define_function (sc, "g_gate-wait", f_gate_wait, 1, 0, false, "(g_gate-wait gate) => integer id");
+  s7_define_function (sc, "g_gate-try-wait", f_gate_try_wait, 1, 0, false, "(g_gate-try-wait gate) => integer id | #f");
+  s7_define_function (sc, "g_chan-recv-or-watch!", f_chan_recv_or_watch, 4, 0, false,
+                      "(g_chan-recv-or-watch! ch gate id default) => value | eof | default");
+  s7_define_function (sc, "g_chan-send-or-watch!", f_chan_send_or_watch, 5, 0, false,
+                      "(g_chan-send-or-watch! ch val gate id default) => #t | default");
+  s7_define_function (sc, "g_msleep", f_msleep, 1, 0, false, "(g_msleep ms) => unspecified");
+  s7_define_function (sc, "g_now-ms", f_now_ms, 0, 0, false, "(g_now-ms) => integer");
 }
 
 } // namespace goldfish

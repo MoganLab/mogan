@@ -67,7 +67,7 @@ eval_string (const char* code) {
     s7_eval_c_string (wasm_sc, "(load \"liii/base.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/base64.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/bitwise.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/case.scm\")");
+    s7_eval_c_string (wasm_sc, "(load \"liii/match.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/check.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/chez.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/comparator.scm\")");

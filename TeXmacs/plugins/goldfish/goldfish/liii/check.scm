@@ -1,15 +1,24 @@
 (define-library (liii check)
-  (export test check check-approx check-set-mode! check:proc check-catch
-    check-report check-failed? check-true check-false
+  (export test check check-approx check-set-mode! check-catch check-report
+    check-failed? check-true check-false
   ) ;export
-  (import (srfi srfi-78)
+  (import (scheme base)
+    (srfi srfi-78)
     (rename (srfi srfi-78) (check-report srfi-78-check-report))
   ) ;import
   (begin
 
-    (define-macro (check-true body) `(check ,body => ,#t))
+    (define-syntax check-true
+      (syntax-rules ()
+        ((check-true body) (check body => #t))
+      ) ;syntax-rules
+    ) ;define-syntax
 
-    (define-macro (check-false body) `(check ,body => ,#f))
+    (define-syntax check-false
+      (syntax-rules ()
+        ((check-false body) (check body => #f))
+      ) ;syntax-rules
+    ) ;define-syntax
 
     (define default-check-approx-rel-tol 1e-12)
     (define default-check-approx-abs-tol 1e-12)
@@ -35,37 +44,52 @@
       ) ;let
     ) ;define
 
-    (define-macro (check-approx expr => expected . options)
+    (define (make-approx-comparator options)
       (let* ((parsed (parse-check-approx-options options))
              (rel-tol (car parsed))
              (abs-tol (cdr parsed))
             ) ;
-        `(check:proc (quote ,expr)
-           (lambda ,() ,expr)
-           ,expected
-           (lambda (actual expected)
-             (and (number? actual)
-               (number? expected)
-               (number? ,rel-tol)
-               (number? ,abs-tol)
-               (or (= actual expected)
-                 (let* ((difference (abs (- actual expected)))
-                        (relative-tolerance (abs ,rel-tol))
-                        (absolute-tolerance (abs ,abs-tol))
-                        (scale (max (abs actual) (abs expected)))
-                        (limit (max absolute-tolerance
-                                 (* relative-tolerance scale))))
-                   (<= difference limit))))))
+        (lambda (actual expected)
+          (and (number? actual)
+            (number? expected)
+            (number? rel-tol)
+            (number? abs-tol)
+            (or (= actual expected)
+              (let* ((difference (abs (- actual expected)))
+                     (relative-tolerance (abs rel-tol))
+                     (absolute-tolerance (abs abs-tol))
+                     (scale (max (abs actual) (abs expected)))
+                     (limit (max absolute-tolerance (* relative-tolerance scale)))
+                    ) ;
+                (<= difference limit)
+              ) ;let*
+            ) ;or
+          ) ;and
+        ) ;lambda
       ) ;let*
-    ) ;define-macro
+    ) ;define
 
-    (define-macro (check-catch error-id body)
-      `(check (catch ,error-id (lambda ,() ,body) (lambda args ,error-id))
-         =>
-         ,error-id)
-    ) ;define-macro
+    (define-syntax check-approx
+      (syntax-rules (=>)
+        ((check-approx expr => expected options ...)
+         (check expr (=> (make-approx-comparator (list options ...))) expected)
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
 
-    (define-macro (test left right) `(check ,left => ,right))
+    (define-syntax check-catch
+      (syntax-rules ()
+        ((check-catch error-id body)
+         (check (catch error-id (lambda () body) (lambda args error-id)) => error-id)
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
+
+    (define-syntax test
+      (syntax-rules ()
+        ((test left right) (check left => right))
+      ) ;syntax-rules
+    ) ;define-syntax
 
     (define (check-report . msg)
       (if (not (null? msg)) (begin (display (car msg))))

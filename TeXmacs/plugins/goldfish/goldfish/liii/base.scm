@@ -1,11 +1,12 @@
 (define-library (liii base)
   (import (scheme base) (srfi srfi-2) (srfi srfi-8))
-  (export and-let* receive define* lambda* procedure-source procedure-arglist
-    arity defined? object->string eval-string signature copy keyword?
-    string->keyword symbol->keyword keyword->symbol loose-car loose-cdr compose
-    identity any? typed-lambda make-hook hook-functions with-output-to-string
-    with-input-from-string call-with-input-string call-with-output-string
-    reverse! sort! format cyclic-sequences
+  (export and-let* receive define* lambda* define-macro define-bacro
+    procedure-source procedure-arglist arity defined? object->string eval-string
+    signature copy keyword? string->keyword symbol->keyword keyword->symbol
+    loose-car loose-cdr compose identity any? typed-lambda make-hook
+    hook-functions with-output-to-string with-input-from-string
+    call-with-input-string call-with-output-string reverse! sort! format
+    cyclic-sequences
   ) ;export
   (begin
 

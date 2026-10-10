@@ -131,3 +131,5 @@
              libs)))
   ) ;define-macro
 ) ;unless
+
+(load "scheme/syntax-rules.scm")

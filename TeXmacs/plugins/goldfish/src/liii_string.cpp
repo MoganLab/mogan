@@ -26,8 +26,7 @@ namespace goldfish {
 
 static s7_pointer
 liii_string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                   s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 // 返回 UTF-8 首字节 b 对应的码点字节宽度（1~4）；非法首字节返回 0
@@ -71,13 +70,11 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
   s7_pointer sep_arg= s7_cadr (args);
 
   if (!s7_is_string (str_arg)) {
-    return liii_string_type_error (
-        sc, "string-split: first parameter must be string", str_arg);
+    return liii_string_type_error (sc, "string-split: first parameter must be string", str_arg);
   }
   // 类型检查先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象
   if (!s7_is_string (sep_arg) && !s7_is_character (sep_arg)) {
-    return liii_string_type_error (
-        sc, "string-split: second parameter must be string or char", sep_arg);
+    return liii_string_type_error (sc, "string-split: second parameter must be string or char", sep_arg);
   }
 
   std::string sep;
@@ -126,9 +123,8 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
   for (const auto& part : parts) {
     s7_pointer next_cell= s7_cons (sc, s7_nil (sc), s7_nil (sc));
     s7_set_cdr (tail, next_cell);
-    tail= next_cell;
-    s7_pointer str=
-        s7_make_string_with_length (sc, s + part.first, (s7_int) part.second);
+    tail          = next_cell;
+    s7_pointer str= s7_make_string_with_length (sc, s + part.first, (s7_int) part.second);
     s7_set_car (tail, str);
   }
   s7_gc_unprotect_via_stack (sc, head);
@@ -149,8 +145,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, rest)) {
     s7_pointer delim_arg= s7_car (rest);
     if (!s7_is_string (delim_arg)) {
-      return liii_string_type_error (sc, "optional params in string-join",
-                                     delim_arg);
+      return liii_string_type_error (sc, "optional params in string-join", delim_arg);
     }
     delim_c  = s7_string (delim_arg);
     delim_len= (size_t) s7_string_length (delim_arg);
@@ -158,8 +153,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   }
 
   if (!s7_is_proper_list (sc, l)) {
-    return liii_string_type_error (
-        sc, "string-join: first parameter must be a proper list", l);
+    return liii_string_type_error (sc, "string-join: first parameter must be a proper list", l);
   }
 
   string_join_grammar grammar      = string_join_grammar::infix;
@@ -167,49 +161,40 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, rest)) {
     s7_pointer grammar_arg= s7_car (rest);
     if (!s7_is_symbol (grammar_arg)) {
-      return liii_string_type_error (sc, "optional params in string-join",
-                                     grammar_arg);
+      return liii_string_type_error (sc, "optional params in string-join", grammar_arg);
     }
     const char* name= s7_symbol_name (grammar_arg);
     if (std::strcmp (name, "infix") == 0) grammar= string_join_grammar::infix;
-    else if (std::strcmp (name, "strict-infix") == 0)
-      grammar= string_join_grammar::strict_infix;
-    else if (std::strcmp (name, "suffix") == 0)
-      grammar= string_join_grammar::suffix;
-    else if (std::strcmp (name, "prefix") == 0)
-      grammar= string_join_grammar::prefix;
+    else if (std::strcmp (name, "strict-infix") == 0) grammar= string_join_grammar::strict_infix;
+    else if (std::strcmp (name, "suffix") == 0) grammar= string_join_grammar::suffix;
+    else if (std::strcmp (name, "prefix") == 0) grammar= string_join_grammar::prefix;
     else grammar_valid= false;
   }
 
-  // 第一趟：校验元素均为字符串并累计总字节数，与旧实现一样在 grammar
-  // 分支之前报错
+  // 第一趟：校验元素均为字符串并累计总字节数，与旧实现一样在 grammar 分支之前报错
   size_t     count    = 0;
   size_t     total_len= 0;
   s7_pointer p        = l;
   while (s7_is_pair (p)) {
     s7_pointer elem= s7_car (p);
     if (!s7_is_string (elem)) {
-      return liii_string_type_error (
-          sc, "string-join: elements must be strings", elem);
+      return liii_string_type_error (sc, "string-join: elements must be strings", elem);
     }
     total_len+= (size_t) s7_string_length (elem);
     count++;
     p= s7_cdr (p);
   }
   if (!s7_is_null (sc, p)) {
-    return liii_string_type_error (
-        sc, "string-join: first parameter must be a proper list", l);
+    return liii_string_type_error (sc, "string-join: first parameter must be a proper list", l);
   }
 
   if (!grammar_valid) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "invalid grammer")));
+    return s7_error (sc, s7_make_symbol (sc, "value-error"), s7_list (sc, 1, s7_make_string (sc, "invalid grammer")));
   }
 
   if (grammar == string_join_grammar::strict_infix && count == 0) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "value-error"),
-        s7_list (sc, 1, s7_make_string (sc, "empty list not allowed")));
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "empty list not allowed")));
   }
 
   // 校验全部通过，此后不再 raise，可以安全构造 RAII 对象
@@ -230,8 +215,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   result.reserve (total_len + delim_count * delim_len);
   size_t i= 0;
   for (p= l; s7_is_pair (p); p= s7_cdr (p), i++) {
-    if (grammar == string_join_grammar::prefix ||
-        (i > 0 && grammar != string_join_grammar::suffix)) {
+    if (grammar == string_join_grammar::prefix || (i > 0 && grammar != string_join_grammar::suffix)) {
       result.append (delim);
     }
     s7_pointer elem= s7_car (p);
@@ -242,8 +226,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   /* no Scheme callbacks here, so args (and the strings reachable from the
    * input list) stay put; the result is built in a C++ buffer first and
    * copied into the Scheme heap in a single allocation */
-  return s7_make_string_with_length (sc, result.data (),
-                                     (s7_int) result.size ());
+  return s7_make_string_with_length (sc, result.data (), (s7_int) result.size ());
 }
 
 static s7_pointer
@@ -254,16 +237,13 @@ f_string_replace (s7_scheme* sc, s7_pointer args) {
   s7_pointer rest   = s7_cdddr (args);
 
   if (!s7_is_string (str_arg)) {
-    return liii_string_type_error (sc, "string-replace: str must be a string",
-                                   str_arg);
+    return liii_string_type_error (sc, "string-replace: str must be a string", str_arg);
   }
   if (!s7_is_string (old_arg)) {
-    return liii_string_type_error (sc, "string-replace: old must be a string",
-                                   old_arg);
+    return liii_string_type_error (sc, "string-replace: old must be a string", old_arg);
   }
   if (!s7_is_string (new_arg)) {
-    return liii_string_type_error (sc, "string-replace: new must be a string",
-                                   new_arg);
+    return liii_string_type_error (sc, "string-replace: new must be a string", new_arg);
   }
 
   s7_int count= -1;
@@ -273,24 +253,19 @@ f_string_replace (s7_scheme* sc, s7_pointer args) {
     if (s7_is_integer (count_arg)) {
       count= s7_integer (count_arg);
     }
-    else if (s7_is_real (count_arg) &&
-             std::floor (s7_real (count_arg)) == s7_real (count_arg)) {
+    else if (s7_is_real (count_arg) && std::floor (s7_real (count_arg)) == s7_real (count_arg)) {
       count= (s7_int) s7_real (count_arg);
     }
     else {
-      return liii_string_type_error (
-          sc, "string-replace: count must be an integer", count_arg);
+      return liii_string_type_error (sc, "string-replace: count must be an integer", count_arg);
     }
   }
 
   /* 先全部拷入 C++ 缓冲区，之后只在最后做一次 Scheme 堆分配，
    * 因此无需额外的 GC anchor（且全程没有 Scheme 回调） */
-  const std::string_view str (s7_string (str_arg),
-                              (size_t) s7_string_length (str_arg));
-  const std::string_view old_v (s7_string (old_arg),
-                                (size_t) s7_string_length (old_arg));
-  const std::string_view new_v (s7_string (new_arg),
-                                (size_t) s7_string_length (new_arg));
+  const std::string_view str (s7_string (str_arg), (size_t) s7_string_length (str_arg));
+  const std::string_view old_v (s7_string (old_arg), (size_t) s7_string_length (old_arg));
+  const std::string_view new_v (s7_string (new_arg), (size_t) s7_string_length (new_arg));
 
   if (count == 0) {
     return s7_make_string_with_length (sc, str.data (), (s7_int) str.size ());
@@ -304,8 +279,7 @@ f_string_replace (s7_scheme* sc, s7_pointer args) {
     }
     else {
       const size_t max_insert= str.size () + 1;
-      size_t       remaining=
-          (count < 0) ? max_insert : std::min ((size_t) count, max_insert);
+      size_t       remaining = (count < 0) ? max_insert : std::min ((size_t) count, max_insert);
       result.reserve (str.size () + remaining * new_v.size ());
       size_t i= 0;
       while (i < str.size () && remaining > 0) {
@@ -341,8 +315,7 @@ f_string_replace (s7_scheme* sc, s7_pointer args) {
     result.append (str, start, str.size () - start);
   }
 
-  return s7_make_string_with_length (sc, result.data (),
-                                     (s7_int) result.size ());
+  return s7_make_string_with_length (sc, result.data (), (s7_int) result.size ());
 }
 
 static s7_pointer
@@ -351,20 +324,15 @@ f_string_starts_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer prefix_arg= s7_cadr (args);
 
   if (!s7_is_string (str_arg) || !s7_is_string (prefix_arg)) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "type-error"),
-        s7_list (
-            sc, 1,
-            s7_make_string (sc, "string-starts? parameter is not a string")));
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "string-starts? parameter is not a string")));
   }
 
   // UTF-8 字节级前缀比较是精确的：前缀字节序列必然落在码点边界上
   const size_t str_len   = (size_t) s7_string_length (str_arg);
   const size_t prefix_len= (size_t) s7_string_length (prefix_arg);
   if (prefix_len > str_len) return s7_f (sc);
-  return s7_make_boolean (sc, std::memcmp (s7_string (str_arg),
-                                           s7_string (prefix_arg),
-                                           prefix_len) == 0);
+  return s7_make_boolean (sc, std::memcmp (s7_string (str_arg), s7_string (prefix_arg), prefix_len) == 0);
 }
 
 static s7_pointer
@@ -373,19 +341,15 @@ f_string_ends_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer suffix_arg= s7_cadr (args);
 
   if (!s7_is_string (str_arg) || !s7_is_string (suffix_arg)) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "type-error"),
-        s7_list (
-            sc, 1,
-            s7_make_string (sc, "string-ends? parameter is not a string")));
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "string-ends? parameter is not a string")));
   }
 
   const size_t str_len   = (size_t) s7_string_length (str_arg);
   const size_t suffix_len= (size_t) s7_string_length (suffix_arg);
   if (suffix_len > str_len) return s7_f (sc);
   const char* tail= s7_string (str_arg) + (str_len - suffix_len);
-  return s7_make_boolean (
-      sc, std::memcmp (tail, s7_string (suffix_arg), suffix_len) == 0);
+  return s7_make_boolean (sc, std::memcmp (tail, s7_string (suffix_arg), suffix_len) == 0);
 }
 
 static void

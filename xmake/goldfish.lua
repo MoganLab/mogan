@@ -57,7 +57,8 @@ target("libgoldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_record.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_string.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_tree.c",
-        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_vector.c"
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_vector.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_syntax_rules.c"
     )
     add_headerfiles("$(projectdir)/TeXmacs/plugins/goldfish/src/s7.h")
     if is_plat("windows") then
