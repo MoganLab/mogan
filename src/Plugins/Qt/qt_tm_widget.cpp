@@ -952,6 +952,26 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     pdfOutlineDock->setVisible (false);
     mw->addDockWidget (Qt::LeftDockWidgetArea, pdfOutlineDock);
 
+    QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
+                      [this] (const QString& target) {
+                        if (pdfTabMode) {
+                          if (pdfViewerWidget) {
+                            bool ok;
+                            int  page= target.toInt (&ok);
+                            if (ok && page >= 0)
+                              pdfViewerWidget->goToPage (page);
+                          }
+                        }
+                        else if (!startupTabMode && !chatTabMode) {
+                          if (!target.isEmpty ()) {
+                            call ("outline-go-to", from_qstring_utf8 (target));
+                            url currentView= get_current_view_safe ();
+                            if (!is_none (currentView))
+                              send_keyboard_focus (abstract (main_widget));
+                          }
+                        }
+                      });
+
     // 文档区域右上角浮动新建对话按钮
     chatSidebarToggleBtn= new QPushButton (cw);
     chatSidebarToggleBtn->setObjectName ("chat-tab-collapse-btn");
@@ -1280,19 +1300,12 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
                             call ("pdf-last-page-set",
                                   from_qstring_utf8 (currentPdfPath), page);
                         });
-      // 连接大纲提取 → dock 填充，dock 点击 → 阅读器跳页（仅连一次）
+      // 连接大纲提取 → dock 填充
       if (pdfOutlineDock) {
         QObject::connect (
             pdfViewerWidget, &PDFReaderWidget::outlineLoaded, pdfOutlineDock,
             static_cast<void (OutlineWidget::*) (
                 const QVector<PdfOutlineItem>&)> (&OutlineWidget::setOutline));
-        PDFReaderWidget* viewer= pdfViewerWidget;
-        QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
-                          viewer, [viewer] (const QString& target) {
-                            bool ok;
-                            int  page= target.toInt (&ok);
-                            if (ok && page >= 0) viewer->goToPage (page);
-                          });
       }
     }
     show_widget_in_layout (pdfViewerWidget, layout);
@@ -1644,7 +1657,7 @@ qt_tm_widget_rep::update_visibility () {
   bool new_titleVisibility     = visibility[0];
   bool new_pdfToolBarVisibility= false;
   bool new_pdfOutlineVisibility= false;
-  bool outlineEnabled= get_preference ("outline sidebar", "off") == "on";
+  bool outlineEnabled= get_preference ("outline sidebar", "on") == "on";
   // 编辑器模式：根据文档大纲内容决定是否显示 dock
   if (!startupTabMode && !pdfTabMode && !chatTabMode && pdfOutlineDock &&
       outlineEnabled) {
@@ -2044,6 +2057,25 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       if (is_none (currentView)) currentView= get_current_view_safe ();
       if (!is_none (currentView))
         tabPageContainer->updateActiveTab (currentView);
+    }
+    if (pdfOutlineDock) {
+      bool outlineEnabled= get_preference ("outline sidebar", "on") == "on";
+      if (pdfTabMode) {
+        if (outlineEnabled && pdfViewerWidget) {
+          pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
+        }
+      }
+      else if (!startupTabMode && !chatTabMode) {
+        if (outlineEnabled) {
+          pdfOutlineDock->loadDocumentOutline ();
+        }
+        else {
+          pdfOutlineDock->setVisible (false);
+        }
+      }
+      else {
+        pdfOutlineDock->setVisible (false);
+      }
     }
   } break;
   case SLOT_POSITION: {

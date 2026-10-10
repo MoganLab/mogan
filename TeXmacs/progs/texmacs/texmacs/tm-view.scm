@@ -124,6 +124,21 @@
   ) ;let*
 ) ;define
 
+(tm-define (outline-sidebar-visible?)
+  (:synopsis "Check whether the outline sidebar is enabled")
+  (== (get-preference "outline sidebar") "on")
+) ;tm-define
+
+(tm-define (toggle-outline-sidebar)
+  (:synopsis "Toggle the visibility of the outline sidebar")
+  (:check-mark "v" outline-sidebar-visible?)
+  (with new-val
+    (if (outline-sidebar-visible?) "off" "on")
+    (set-preference "outline sidebar" new-val)
+    (notify-page-change)
+  ) ;with
+) ;tm-define
+
 (tm-define (toggle-chat-sidebar)
   (:synopsis "Toggle the visibility of the AI chat sidebar")
   (:check-mark "v" visible-chat-sidebar?)

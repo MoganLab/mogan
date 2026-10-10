@@ -1594,3 +1594,61 @@ QFrame#math_completion_container {
   background: white;
   border-color: black;
 }
+
+/* 目录大纲侧边栏样式 */
+QDockWidget#pdfOutlineDock {
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
+}
+
+QWidget#outlineContainer {
+  background: #ffffff;
+}
+
+QWidget#outlineHeader {
+  border-bottom: 1px solid #eeeeee;
+  background: #fafafa;
+}
+
+QLabel#outlineTitleLabel {
+  color: #333333;
+}
+
+QPushButton#outlineExpandBtn,
+QPushButton#outlineCollapseBtn,
+QPushButton#outlineCloseBtn {
+  border: none;
+  background: transparent;
+  color: #666666;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 3px;
+}
+
+QPushButton#outlineExpandBtn:hover,
+QPushButton#outlineCollapseBtn:hover,
+QPushButton#outlineCloseBtn:hover {
+  background: #e8e8e8;
+  color: #111111;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget {
+  border: none;
+  background: #ffffff;
+  color: #333333;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget::item {
+  padding: 3px 2px;
+  border-radius: 3px;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget::item:hover {
+  background: #f0f0f0;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget::item:selected {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+

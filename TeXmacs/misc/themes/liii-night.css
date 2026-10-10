@@ -1736,3 +1736,61 @@ QWidget#centralWidget QFrame#math_completion_container {
   background: #2c2c2c;
   border-color: #555555;
 }
+
+/* 目录大纲侧边栏暗色样式 */
+QDockWidget#pdfOutlineDock {
+  border: 1px solid #333333;
+  background: #1e1e1e;
+}
+
+QWidget#outlineContainer {
+  background: #1e1e1e;
+}
+
+QWidget#outlineHeader {
+  border-bottom: 1px solid #2a2a2a;
+  background: #252525;
+}
+
+QLabel#outlineTitleLabel {
+  color: #cccccc;
+}
+
+QPushButton#outlineExpandBtn,
+QPushButton#outlineCollapseBtn,
+QPushButton#outlineCloseBtn {
+  border: none;
+  background: transparent;
+  color: #aaaaaa;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 3px;
+}
+
+QPushButton#outlineExpandBtn:hover,
+QPushButton#outlineCollapseBtn:hover,
+QPushButton#outlineCloseBtn:hover {
+  background: #383838;
+  color: #ffffff;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget {
+  border: none;
+  background: #1e1e1e;
+  color: #cccccc;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget::item {
+  padding: 3px 2px;
+  border-radius: 3px;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget::item:hover {
+  background: #2d2d2d;
+}
+
+QDockWidget#pdfOutlineDock QTreeWidget::item:selected {
+  background: #334155;
+  color: #f8fafc;
+}
+

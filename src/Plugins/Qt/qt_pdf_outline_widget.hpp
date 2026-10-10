@@ -1,13 +1,15 @@
 /******************************************************************************
  * MODULE     : qt_pdf_outline_widget.hpp
  * DESCRIPTION: Dockable outline sidebar widget (PDF bookmarks or document ToC)
- * COPYRIGHT  : (C) 2026
+ * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************/
 
 #ifndef QT_PDF_OUTLINE_WIDGET_HPP
 #define QT_PDF_OUTLINE_WIDGET_HPP
 
 #include <QDockWidget>
+#include <QLabel>
+#include <QPushButton>
 #include <QTreeWidget>
 
 #include "qt_pdf_reader_widget.hpp"
@@ -25,6 +27,8 @@ public:
   void clear ();
   bool hasContent () const;
 
+  QTreeWidget* treeWidget () const { return tree_; }
+
 signals:
   /** 用户点击大纲条目。target 含义由连接方解释：
    *  PDF 模式 → 页码（int 转 QString），-1 表示无效；
@@ -37,6 +41,9 @@ private:
   void buildTree (const QVector<OutlineItem>& items, QTreeWidgetItem* parent);
 
   QTreeWidget* tree_;
+  QLabel*      titleLabel_;
+  QLabel*      emptyLabel_;
+  QWidget*     container_;
 };
 
 #endif // QT_PDF_OUTLINE_WIDGET_HPP
