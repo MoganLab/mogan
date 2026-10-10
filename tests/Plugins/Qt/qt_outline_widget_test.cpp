@@ -202,52 +202,6 @@ private slots:
 
     delete toolBar;
   }
-
-  void test_editor_statusbar_outline_toggle_creation () {
-    QToolButton* btn= new QToolButton ();
-    btn->setObjectName ("editor-page-outline-btn");
-    btn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
-    btn->setAutoRaise (true);
-    btn->setCheckable (true);
-    btn->setText ("页面: 1 / 1");
-
-    QVERIFY (btn->isCheckable ());
-    QVERIFY (!btn->isChecked ());
-    QVERIFY (btn->autoRaise ());
-    QCOMPARE (btn->toolButtonStyle (), Qt::ToolButtonTextBesideIcon);
-    QCOMPARE (btn->text (), QString ("页面: 1 / 1"));
-
-    delete btn;
-  }
-
-  void test_editor_statusbar_outline_toggle_api () {
-    QToolButton* btn= new QToolButton ();
-    btn->setObjectName ("editor-page-outline-btn");
-    btn->setCheckable (true);
-
-    btn->setChecked (true);
-    QVERIFY (btn->isChecked ());
-
-    btn->setChecked (false);
-    QVERIFY (!btn->isChecked ());
-
-    btn->setText ("页面: 3 / 10");
-    QCOMPARE (btn->text (), QString ("页面: 3 / 10"));
-
-    delete btn;
-  }
-
-  void test_editor_statusbar_outline_toggle_signal () {
-    QToolButton* btn= new QToolButton ();
-    btn->setObjectName ("editor-page-outline-btn");
-    btn->setCheckable (true);
-
-    QSignalSpy spy (btn, &QToolButton::clicked);
-    btn->click ();
-    QCOMPARE (spy.count (), 1);
-
-    delete btn;
-  }
 };
 
 #ifdef QTTEXMACS

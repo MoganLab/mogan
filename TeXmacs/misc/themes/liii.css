@@ -419,16 +419,14 @@ QToolButton#pdf-screenshot-btn {
   qproperty-icon: url(":/pdf-reader/screenshot.svg");
 }
 
-QToolButton#pdf-toggle-outline-btn {
+QToolButton#pdf-toggle-outline-btn,
+QToolButton#editor-page-outline-btn {
   qproperty-icon: url(":/pdf-reader/sidebar.svg");
   border: 1px solid transparent;
   border-radius: 4px;
 }
 
 QToolButton#editor-page-outline-btn {
-  qproperty-icon: url(":/pdf-reader/sidebar.svg");
-  border: 1px solid transparent;
-  border-radius: 4px;
   padding: 2px 6px;
   color: #2c2c2c;
 }

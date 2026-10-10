@@ -608,6 +608,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QStatusBar* bar= new QStatusBar (mw);
   bar->setObjectName ("statusBar");
 
+  pagePrefix    = qt_translate ("Page") + ": ";
   pageOutlineBtn= new QToolButton (bar);
   pageOutlineBtn->setObjectName ("editor-page-outline-btn");
   pageOutlineBtn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
@@ -616,13 +617,11 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   pageOutlineBtn->setIcon (QIcon (":/pdf-reader/sidebar.svg"));
   pageOutlineBtn->setIconSize (
       QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
-  pageOutlineBtn->setText (qt_translate ("Page") + ": 1 / 1");
+  pageOutlineBtn->setText (pagePrefix + "1 / 1");
   pageOutlineBtn->setToolTip (qt_translate ("Outline"));
 
-  QObject::connect (pageOutlineBtn, &QToolButton::clicked, [this] () {
-    call ("toggle-outline-sidebar");
-    update_visibility ();
-  });
+  QObject::connect (pageOutlineBtn, &QToolButton::clicked,
+                    [this] () { toggle_outline_sidebar (); });
 
   leftLabel  = new QLabel (qt_translate ("Welcome to TeXmacs"), bar);
   middleLabel= new QLabel ("", bar);
@@ -762,10 +761,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
             .arg (h));
     pdfToolBar->setVisible (false);
 
-    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked, [this] () {
-      call ("toggle-outline-sidebar");
-      update_visibility ();
-    });
+    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked,
+                      [this] () { toggle_outline_sidebar (); });
   }
 
   QWidget* cw= new QWidget ();
@@ -979,8 +976,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
             pdfToolBar->setOutlineEnabled (hasContent);
             pdfToolBar->setOutlineChecked (visible && hasContent);
           }
-          if (pageOutlineBtn && !pdfTabMode && !startupTabMode &&
-              !chatTabMode) {
+          if (pageOutlineBtn && is_editor_tab_mode ()) {
             pageOutlineBtn->setChecked (visible);
           }
         });
@@ -1663,6 +1659,17 @@ native_menubar_pref_on () {
 }
 
 void
+qt_tm_widget_rep::toggle_outline_sidebar () {
+  call ("toggle-outline-sidebar");
+  update_visibility ();
+}
+
+bool
+qt_tm_widget_rep::is_editor_tab_mode () const {
+  return !startupTabMode && !pdfTabMode && !chatTabMode;
+}
+
+void
 qt_tm_widget_rep::update_visibility () {
 #define XOR(exp1, exp2) (((!exp1) && (exp2)) || ((exp1) && (!exp2)))
 
@@ -1814,13 +1821,9 @@ qt_tm_widget_rep::update_visibility () {
   }
 
   if (pageOutlineBtn) {
-    if (!startupTabMode && !pdfTabMode && !chatTabMode) {
-      pageOutlineBtn->setVisible (true);
-      pageOutlineBtn->setChecked (new_pdfOutlineVisibility);
-    }
-    else {
-      pageOutlineBtn->setVisible (false);
-    }
+    bool shouldShow= is_editor_tab_mode ();
+    pageOutlineBtn->setVisible (shouldShow);
+    if (shouldShow) pageOutlineBtn->setChecked (new_pdfOutlineVisibility);
   }
 
   // AI 聊天侧边栏浮动按钮可见性（community 版无 AI Chat，始终隐藏）
@@ -2042,13 +2045,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   } break;
   case SLOT_MIDDLE_FOOTER: {
     check_type<string> (val, s);
-    string  msg= open_box<string> (val);
-    QString raw= to_qstring (msg).trimmed ();
-    if (!raw.isEmpty () && pageOutlineBtn) {
-      pageOutlineBtn->setText (qt_translate ("Page") + ": " + raw);
-    }
-    middleLabel->setText ("");
-    middleLabel->update ();
+    string msg= open_box<string> (val);
+    if (pageOutlineBtn) pageOutlineBtn->setText (pagePrefix + to_qstring (msg));
   } break;
   case SLOT_RIGHT_FOOTER: {
     check_type<string> (val, s);
@@ -2078,9 +2076,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       mainwindow ()->statusBar ()->removeWidget (prompt);
       if (pageOutlineBtn) {
         mainwindow ()->statusBar ()->addWidget (pageOutlineBtn);
-        if (!startupTabMode && !pdfTabMode && !chatTabMode) {
-          pageOutlineBtn->show ();
-        }
+        pageOutlineBtn->setVisible (is_editor_tab_mode ());
       }
       mainwindow ()->statusBar ()->addWidget (leftLabel, 1);
       mainwindow ()->statusBar ()->addWidget (middleLabel, 1);
