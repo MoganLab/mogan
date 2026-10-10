@@ -964,10 +964,14 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                         }
                         else if (!startupTabMode && !chatTabMode) {
                           if (!target.isEmpty ()) {
-                            call ("outline-go-to", from_qstring_utf8 (target));
                             url currentView= get_current_view_safe ();
                             if (!is_none (currentView))
                               send_keyboard_focus (abstract (main_widget));
+                            call ("outline-go-to", from_qstring_utf8 (target));
+                            if (!is_none (currentView)) {
+                              make_cursor_visible (currentView);
+                              send_keyboard_focus (abstract (main_widget));
+                            }
                           }
                         }
                       });

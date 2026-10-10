@@ -28,12 +28,12 @@ QVariantMap
 OutlineBridge::convertPdfItem (const PdfOutlineItem& item, int level,
                                const QString& id) {
   QVariantMap map;
-  map["id"]    = id;
-  map["title"] = item.title;
+  map["id"]       = id;
+  map["title"]    = item.title;
   int pageOneBased= (item.page >= 0) ? item.page + 1 : -1;
   map["target"]=
       (pageOneBased >= 0) ? QString::number (pageOneBased) : QString ();
-  map["page"] =
+  map["page"]=
       (pageOneBased >= 0) ? QString::number (pageOneBased) : QString ();
   map["level"]= level;
 

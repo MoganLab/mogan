@@ -139,6 +139,13 @@
         (with t
           (path->tree p)
           (if (and t (> (tree-arity t) 0)) (tree-go-to t 0 :start) (go-to-path p))
+          (with u
+            (current-view)
+            (when u
+              (make-cursor-visible u)
+              (delayed (:idle 1) (make-cursor-visible u))
+            ) ;when
+          ) ;with
         ) ;with
       ) ;when
     ) ;let*

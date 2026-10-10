@@ -200,9 +200,7 @@ Item {
             id: searchRow
             anchors.top: headerItem.bottom
             anchors.left: parent.left
-            anchors.leftMargin: 12 * Theme.scaleFactor
             anchors.right: parent.right
-            anchors.rightMargin: 12 * Theme.scaleFactor
             height: 32 * Theme.scaleFactor
 
             // 三点「···」菜单按钮（固定在最右侧，居中三颗圆点）
@@ -375,23 +373,25 @@ Item {
                             }
                         }
 
-                        // 展开/折叠三角指示符（z: 10 确保绝对优先响应点击，且只在有子节点时展现）
+                        // 展开/折叠三角指示符：使用旋转保证折叠与展开状态下箭头几何尺寸 100% 相同一致
                         Item {
                             id: arrowItem
                             z: 10
                             anchors.left: parent.left
                             anchors.leftMargin: (modelData.level * 16 + 2) * Theme.scaleFactor
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 18 * Theme.scaleFactor
+                            width: 20 * Theme.scaleFactor
                             height: 24 * Theme.scaleFactor
 
                             Text {
                                 anchors.centerIn: parent
-                                text: modelData.expanded ? "∨" : ">"
-                                font.pixelSize: 9 * Theme.scaleFactor
+                                text: "∨"
+                                font.pixelSize: 11 * Theme.scaleFactor
                                 font.bold: true
                                 color: isSelected ? "#ffffff" : chevronClr
                                 visible: modelData.hasChildren
+                                transformOrigin: Item.Center
+                                rotation: modelData.expanded ? 0 : -90
                             }
 
                             MouseArea {
@@ -430,7 +430,7 @@ Item {
                             visible: !!modelData.page
                         }
 
-                        // 整行点击响应（双击也可折叠展开）
+                        // 整行点击响应
                         MouseArea {
                             id: rowMouse
                             anchors.fill: parent

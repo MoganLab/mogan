@@ -17,10 +17,13 @@
 
 class OutlineBridge : public QObject {
   Q_OBJECT
-  Q_PROPERTY (QVariantList outlineModel READ outlineModel NOTIFY outlineModelChanged)
+  Q_PROPERTY (
+      QVariantList outlineModel READ outlineModel NOTIFY outlineModelChanged)
   Q_PROPERTY (bool hasContent READ hasContent NOTIFY outlineModelChanged)
-  Q_PROPERTY (QString currentId READ currentId WRITE setCurrentId NOTIFY currentIdChanged)
-  Q_PROPERTY (QString currentTarget READ currentTarget WRITE setCurrentTarget NOTIFY currentTargetChanged)
+  Q_PROPERTY (QString currentId READ currentId WRITE setCurrentId NOTIFY
+                  currentIdChanged)
+  Q_PROPERTY (QString currentTarget READ currentTarget WRITE setCurrentTarget
+                  NOTIFY currentTargetChanged)
 
 public:
   explicit OutlineBridge (QObject* parent= nullptr);
