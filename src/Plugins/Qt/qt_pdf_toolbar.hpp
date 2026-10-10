@@ -35,10 +35,18 @@ public:
   /** Disconnect from the current reader. */
   void disconnectFrom ();
 
+  /** Update outline toggle button checked and enabled state. */
+  void setOutlineChecked (bool checked);
+  void setOutlineEnabled (bool enabled);
+
+signals:
+  void toggleOutlineClicked ();
+
 private:
   void setupWidgets ();
 
   // -- toolbar widgets --
+  QToolButton* toggleOutlineBtn_;
   QLineEdit*   zoomCombo_;
   QToolButton* zoomDropBtn_;
   QMenu*       zoomMenu_;

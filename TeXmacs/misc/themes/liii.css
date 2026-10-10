@@ -419,11 +419,18 @@ QToolButton#pdf-screenshot-btn {
   qproperty-icon: url(":/pdf-reader/screenshot.svg");
 }
 
+QToolButton#pdf-toggle-outline-btn {
+  qproperty-icon: url(":/pdf-reader/sidebar.svg");
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
 QToolButton#pdf-zoom-out-btn:hover,
 QToolButton#pdf-zoom-in-btn:hover,
 QToolButton#pdf-prev-btn:hover,
 QToolButton#pdf-next-btn:hover,
-QToolButton#pdf-screenshot-btn:hover {
+QToolButton#pdf-screenshot-btn:hover,
+QToolButton#pdf-toggle-outline-btn:hover {
   background-color: rgba(0, 0, 0, 0.08);
 }
 
@@ -431,8 +438,15 @@ QToolButton#pdf-zoom-out-btn:pressed,
 QToolButton#pdf-zoom-in-btn:pressed,
 QToolButton#pdf-prev-btn:pressed,
 QToolButton#pdf-next-btn:pressed,
-QToolButton#pdf-screenshot-btn:pressed {
+QToolButton#pdf-screenshot-btn:pressed,
+QToolButton#pdf-screenshot-btn:checked,
+QToolButton#pdf-toggle-outline-btn:pressed {
   background-color: rgba(0, 0, 0, 0.12);
+}
+
+QToolButton#pdf-toggle-outline-btn:checked {
+  background-color: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.20);
 }
 
 QWidget#pdf-reader-tool-bar {

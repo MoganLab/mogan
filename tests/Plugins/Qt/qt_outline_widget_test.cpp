@@ -6,6 +6,7 @@
 
 #include "base.hpp"
 #include "qt_pdf_outline_widget.hpp"
+#include "qt_pdf_toolbar.hpp"
 #include <QSignalSpy>
 #include <QtTest/QtTest>
 
@@ -156,6 +157,50 @@ private slots:
     QVERIFY (!widget->isVisible ());
 
     delete widget;
+  }
+
+  void test_pdf_toolbar_outline_toggle_creation () {
+    PdfToolBar*  toolBar= new PdfToolBar ("pdf toolbar");
+    QToolButton* btn=
+        toolBar->findChild<QToolButton*> ("pdf-toggle-outline-btn");
+    QVERIFY (btn != nullptr);
+    QVERIFY (btn->isCheckable ());
+    QVERIFY (!btn->isChecked ());
+    delete toolBar;
+  }
+
+  void test_pdf_toolbar_outline_toggle_api () {
+    PdfToolBar*  toolBar= new PdfToolBar ("pdf toolbar");
+    QToolButton* btn=
+        toolBar->findChild<QToolButton*> ("pdf-toggle-outline-btn");
+    QVERIFY (btn != nullptr);
+
+    toolBar->setOutlineChecked (true);
+    QVERIFY (btn->isChecked ());
+
+    toolBar->setOutlineChecked (false);
+    QVERIFY (!btn->isChecked ());
+
+    toolBar->setOutlineEnabled (false);
+    QVERIFY (!btn->isEnabled ());
+
+    toolBar->setOutlineEnabled (true);
+    QVERIFY (btn->isEnabled ());
+
+    delete toolBar;
+  }
+
+  void test_pdf_toolbar_outline_toggle_signal () {
+    PdfToolBar*  toolBar= new PdfToolBar ("pdf toolbar");
+    QToolButton* btn=
+        toolBar->findChild<QToolButton*> ("pdf-toggle-outline-btn");
+    QVERIFY (btn != nullptr);
+
+    QSignalSpy spy (toolBar, &PdfToolBar::toggleOutlineClicked);
+    btn->click ();
+    QCOMPARE (spy.count (), 1);
+
+    delete toolBar;
   }
 };
 
