@@ -42,6 +42,7 @@
 
 class QLabel;
 class QToolBar;
+class QToolButton;
 class QTMInteractivePrompt;
 class PDFReaderWidget;
 class PdfToolBar;
@@ -70,21 +71,23 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
    tab_tools_visibility     = 1024
    } visibility_t;
    */
-  QLabel*                 rightLabel;
-  QLabel*                 leftLabel;
-  QLabel*                 middleLabel;
-  QToolBar*               menuToolBar;
-  QToolBar*               mainToolBar;
-  QToolBar*               modeToolBar;
-  QToolBar*               focusToolBar;
-  QToolBar*               userToolBar;
-  PdfToolBar*             pdfToolBar; ///< PDF 阅读器工具栏
-  QDockWidget*            sideTools;
-  QDockWidget*            leftTools;
-  QDockWidget*            bottomTools;
-  QDockWidget*            extraTools;
-  QDockWidget*            chatSideDock;   ///< AI 聊天侧边栏 Dock
-  OutlineWidget*          pdfOutlineDock; ///< PDF 目录（大纲）侧边栏 Dock
+  QLabel*        rightLabel;
+  QLabel*        leftLabel;
+  QLabel*        middleLabel;
+  QToolButton*   pageOutlineBtn; ///< 文档编辑界面左下角展示/隐藏目录的页码按钮
+  QString        pagePrefix;     ///< 页码按钮文本前缀（构造时翻译一次）
+  QToolBar*      menuToolBar;
+  QToolBar*      mainToolBar;
+  QToolBar*      modeToolBar;
+  QToolBar*      focusToolBar;
+  QToolBar*      userToolBar;
+  PdfToolBar*    pdfToolBar; ///< PDF 阅读器工具栏
+  QDockWidget*   sideTools;
+  QDockWidget*   leftTools;
+  QDockWidget*   bottomTools;
+  QDockWidget*   extraTools;
+  QDockWidget*   chatSideDock;   ///< AI 聊天侧边栏 Dock
+  OutlineWidget* pdfOutlineDock; ///< PDF 目录（大纲）侧边栏 Dock
   QTMTabPageContainer*    tabPageContainer;
   QTMAuxiliaryWidget*     auxiliaryWidget;
   QWK::WidgetWindowAgent* windowAgent;
@@ -289,8 +292,12 @@ public:
   virtual widget   read (slot s, blackbox index);
   virtual void     write (slot s, blackbox index, widget w);
 
-  void        set_full_screen (bool flag);
-  void        update_visibility ();
+  void set_full_screen (bool flag);
+  void update_visibility ();
+  /// 当前是否为普通文档编辑标签页（非启动页/PDF/聊天模式）。
+  bool is_editor_tab_mode () const;
+  /// 切换目录侧边栏并刷新可见性（页码按钮与 PDF 工具栏共用）。
+  void        toggle_outline_sidebar ();
   void        install_main_menu ();
   void        apply_notification_bar_content ();
   void        flush_startup_deferred_chrome ();

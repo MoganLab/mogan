@@ -237,9 +237,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       startupTabMode (false), startupChromePending_ (false),
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
       chatContentWidget (nullptr), chatTabMode (false), chatSideDock (nullptr),
-      pdfOutlineDock (nullptr), chatSidebarToggleBtn (nullptr),
-      chatSidebarMode (false), chatSidebarModeMemory_ (false),
-      centralWidgetUpdatesFrozen_ (false), centralUnfreezeGeneration_ (0) {
+      pdfOutlineDock (nullptr), pageOutlineBtn (nullptr),
+      chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
+      chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false),
+      centralUnfreezeGeneration_ (0) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -606,6 +607,22 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
   QStatusBar* bar= new QStatusBar (mw);
   bar->setObjectName ("statusBar");
+
+  pagePrefix    = qt_translate ("Page") + ": ";
+  pageOutlineBtn= new QToolButton (bar);
+  pageOutlineBtn->setObjectName ("editor-page-outline-btn");
+  pageOutlineBtn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
+  pageOutlineBtn->setAutoRaise (true);
+  pageOutlineBtn->setCheckable (true);
+  pageOutlineBtn->setIcon (QIcon (":/pdf-reader/sidebar.svg"));
+  pageOutlineBtn->setIconSize (
+      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+  pageOutlineBtn->setText (pagePrefix + "1 / 1");
+  pageOutlineBtn->setToolTip (qt_translate ("Outline"));
+
+  QObject::connect (pageOutlineBtn, &QToolButton::clicked,
+                    [this] () { toggle_outline_sidebar (); });
+
   leftLabel  = new QLabel (qt_translate ("Welcome to TeXmacs"), bar);
   middleLabel= new QLabel ("", bar);
   rightLabel = new QLabel (qt_translate ("Booting"), bar);
@@ -619,8 +636,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   leftLabel->setAlignment (Qt::AlignLeft | Qt::AlignVCenter);
   rightLabel->setAlignment (Qt::AlignRight | Qt::AlignVCenter);
 
-  // Add all three labels with equal stretch factors for equal width
-  // distribution
+  // Add widgets: pageOutlineBtn at the left, then labels
+  bar->addWidget (pageOutlineBtn);
   bar->addWidget (leftLabel, 1);
   bar->addWidget (middleLabel, 1);
   bar->addPermanentWidget (rightLabel, 1);
@@ -744,10 +761,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
             .arg (h));
     pdfToolBar->setVisible (false);
 
-    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked, [this] () {
-      call ("toggle-outline-sidebar");
-      update_visibility ();
-    });
+    QObject::connect (pdfToolBar, &PdfToolBar::toggleOutlineClicked,
+                      [this] () { toggle_outline_sidebar (); });
   }
 
   QWidget* cw= new QWidget ();
@@ -960,6 +975,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
             bool hasContent= pdfOutlineDock && pdfOutlineDock->hasContent ();
             pdfToolBar->setOutlineEnabled (hasContent);
             pdfToolBar->setOutlineChecked (visible && hasContent);
+          }
+          if (pageOutlineBtn && is_editor_tab_mode ()) {
+            pageOutlineBtn->setChecked (visible);
           }
         });
 
@@ -1641,6 +1659,17 @@ native_menubar_pref_on () {
 }
 
 void
+qt_tm_widget_rep::toggle_outline_sidebar () {
+  call ("toggle-outline-sidebar");
+  update_visibility ();
+}
+
+bool
+qt_tm_widget_rep::is_editor_tab_mode () const {
+  return !startupTabMode && !pdfTabMode && !chatTabMode;
+}
+
+void
 qt_tm_widget_rep::update_visibility () {
 #define XOR(exp1, exp2) (((!exp1) && (exp2)) || ((exp1) && (!exp2)))
 
@@ -1789,6 +1818,12 @@ qt_tm_widget_rep::update_visibility () {
     bool hasOutline= pdfOutlineDock && pdfOutlineDock->hasContent ();
     pdfToolBar->setOutlineEnabled (hasOutline);
     pdfToolBar->setOutlineChecked (new_pdfOutlineVisibility);
+  }
+
+  if (pageOutlineBtn) {
+    bool shouldShow= is_editor_tab_mode ();
+    pageOutlineBtn->setVisible (shouldShow);
+    if (shouldShow) pageOutlineBtn->setChecked (new_pdfOutlineVisibility);
   }
 
   // AI 聊天侧边栏浮动按钮可见性（community 版无 AI Chat，始终隐藏）
@@ -2011,8 +2046,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   case SLOT_MIDDLE_FOOTER: {
     check_type<string> (val, s);
     string msg= open_box<string> (val);
-    middleLabel->setText (to_qstring (msg));
-    middleLabel->update ();
+    if (pageOutlineBtn) pageOutlineBtn->setText (pagePrefix + to_qstring (msg));
   } break;
   case SLOT_RIGHT_FOOTER: {
     check_type<string> (val, s);
@@ -2029,6 +2063,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
 
     if (open_box<bool> (val) == true) {
       prompt= new QTMInteractivePrompt (int_prompt, int_input);
+      if (pageOutlineBtn)
+        mainwindow ()->statusBar ()->removeWidget (pageOutlineBtn);
       mainwindow ()->statusBar ()->removeWidget (leftLabel);
       mainwindow ()->statusBar ()->removeWidget (middleLabel);
       mainwindow ()->statusBar ()->removeWidget (rightLabel);
@@ -2038,6 +2074,10 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     else {
       if (prompt) prompt->end ();
       mainwindow ()->statusBar ()->removeWidget (prompt);
+      if (pageOutlineBtn) {
+        mainwindow ()->statusBar ()->addWidget (pageOutlineBtn);
+        pageOutlineBtn->setVisible (is_editor_tab_mode ());
+      }
       mainwindow ()->statusBar ()->addWidget (leftLabel, 1);
       mainwindow ()->statusBar ()->addWidget (middleLabel, 1);
       mainwindow ()->statusBar ()->addPermanentWidget (rightLabel, 1);
