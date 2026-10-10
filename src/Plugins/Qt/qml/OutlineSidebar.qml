@@ -10,7 +10,7 @@ Item {
 
     // 数据源与交互桥接对象
     readonly property var bridge: (typeof outlineBridge !== "undefined" && outlineBridge) ? outlineBridge : null
-    readonly property var rawModel: (bridge && bridge.outlineModel) ? bridge.outlineModel : []
+    readonly property var rawModel: bridge ? bridge.outlineModel : []
     readonly property string activeId: (bridge && bridge.currentId) ? bridge.currentId : ""
 
     // 内部展开状态映射表：node.id -> bool
@@ -21,40 +21,34 @@ Item {
     // 扁平化渲染列表
     property var displayItems: []
 
+    function isExpanded(id) {
+        return expandedMap[id] !== undefined ? expandedMap[id] : true;
+    }
+
     function updateDisplayItems() {
         let q = searchQuery.trim().toLowerCase();
         let result = [];
 
-        function processNodes(nodes, level) {
-            if (!nodes) return;
-            let count = nodes.length;
+        // 单遍自底向上收集：返回子树是否有匹配项，避免按节点重复扫描子树
+        function processNodes(nodes, level, out) {
+            let anyMatch = false;
+            let count = nodes ? nodes.length : 0;
             for (let i = 0; i < count; ++i) {
                 let node = nodes[i];
                 let hasKids = node.children && node.children.length > 0;
-                let isExp = expandedMap[node.id] !== undefined ? expandedMap[node.id] : true;
-
-                // 搜索匹配判定
                 let selfMatch = !q || (node.title && node.title.toLowerCase().indexOf(q) !== -1);
-                let anyDescendantMatch = false;
+                let expanded = isExpanded(node.id);
 
-                function checkDescendants(kids) {
-                    if (!kids) return false;
-                    for (let k = 0; k < kids.length; ++k) {
-                        if (kids[k].title && kids[k].title.toLowerCase().indexOf(q) !== -1) return true;
-                        if (checkDescendants(kids[k].children)) return true;
-                    }
-                    return false;
+                // 搜索时必须下钻整棵子树找匹配；非搜索时仅展开态需要子项
+                let childItems = [];
+                let childMatch = false;
+                if (hasKids && (q || expanded)) {
+                    childMatch = processNodes(node.children, level + 1, childItems);
                 }
 
-                if (q && hasKids) {
-                    anyDescendantMatch = checkDescendants(node.children);
-                }
-
-                let showThis = q ? (selfMatch || anyDescendantMatch) : true;
-
-                if (showThis) {
-                    let isExpandedInView = q ? (anyDescendantMatch || isExp) : isExp;
-                    result.push({
+                if (!q || selfMatch || childMatch) {
+                    let expandedInView = q ? (childMatch || expanded) : expanded;
+                    out.push({
                         id: node.id,
                         title: node.title || "",
                         target: node.target || "",
@@ -62,18 +56,22 @@ Item {
                         level: level,
                         isLast: (i === count - 1),
                         hasChildren: hasKids,
-                        expanded: isExpandedInView
+                        expanded: expandedInView
                     });
 
-                    // 仅当节点展开时，才递归添加子节点
-                    if (hasKids && isExpandedInView) {
-                        processNodes(node.children, level + 1);
+                    // 仅当节点展开时，才把子节点放进渲染列表
+                    if (hasKids && expandedInView) {
+                        for (let j = 0; j < childItems.length; ++j) {
+                            out.push(childItems[j]);
+                        }
                     }
+                    anyMatch = true;
                 }
             }
+            return anyMatch;
         }
 
-        processNodes(rawModel, 0);
+        processNodes(rawModel, 0, result);
         displayItems = result;
     }
 
@@ -87,9 +85,8 @@ Item {
 
     // 单项折叠/展开（基于严格唯一的 node.id）
     function toggleExpand(nodeId) {
-        let cur = expandedMap[nodeId] !== undefined ? expandedMap[nodeId] : true;
         let newMap = Object.assign({}, expandedMap);
-        newMap[nodeId] = !cur;
+        newMap[nodeId] = !isExpanded(nodeId);
         expandedMap = newMap;
         updateDisplayItems();
     }
@@ -115,7 +112,7 @@ Item {
     readonly property color borderRightClr: Theme.dark ? "#27272a" : "#e5e7eb"
     readonly property color headerTitleClr: Theme.dark ? "#f4f4f5" : "#1f2328"
     readonly property color itemHoverBg: Theme.dark ? "#27272a" : "#f0f2f5"
-    readonly property color itemSelectBg: Theme.dark ? "#0284c7" : "#0284c7"
+    readonly property color itemSelectBg: "#0284c7"
     readonly property color itemSelectFg: "#ffffff"
     readonly property color searchBg: Theme.dark ? "#27272a" : "#ffffff"
     readonly property color searchBorder: Theme.dark ? "#3f3f46" : "#d0d7de"
@@ -267,7 +264,14 @@ Item {
                         color: Theme.fg
                         clip: true
                         onTextChanged: {
-                            searchQuery = text;
+                            searchDebounce.restart();
+                        }
+
+                        // 搜索防抖：连续输入时只在停顿后重建渲染列表
+                        Timer {
+                            id: searchDebounce
+                            interval: 200
+                            onTriggered: root.searchQuery = searchInput.text
                         }
 
                         Text {
@@ -459,62 +463,46 @@ Item {
             anchors.topMargin: 4 * Theme.scaleFactor
             anchors.right: searchRow.right
             width: 104 * Theme.scaleFactor
-            height: 60 * Theme.scaleFactor
+            height: menuColumn.implicitHeight + 8 * Theme.scaleFactor
             radius: 6 * Theme.scaleFactor
             color: menuBg
             border.width: 1 * Theme.scaleFactor
             border.color: menuBorder
 
             Column {
+                id: menuColumn
                 anchors.fill: parent
                 anchors.margins: 4 * Theme.scaleFactor
                 spacing: 2 * Theme.scaleFactor
 
-                Rectangle {
-                    width: parent.width
-                    height: 24 * Theme.scaleFactor
-                    radius: 4 * Theme.scaleFactor
-                    color: m1Mouse.containsMouse ? itemHoverBg : "transparent"
+                Repeater {
+                    model: [
+                        { text: qsTr("全部展开"), expand: true },
+                        { text: qsTr("全部折叠"), expand: false }
+                    ]
 
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.leftMargin: 8 * Theme.scaleFactor
-                        text: qsTr("全部展开")
-                        font.pixelSize: 12 * Theme.scaleFactor
-                        color: Theme.fg
-                    }
+                    delegate: Rectangle {
+                        width: menuColumn.width
+                        height: 24 * Theme.scaleFactor
+                        radius: 4 * Theme.scaleFactor
+                        color: itemMouse.containsMouse ? itemHoverBg : "transparent"
 
-                    MouseArea {
-                        id: m1Mouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: setAllExpanded(true)
-                    }
-                }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 8 * Theme.scaleFactor
+                            text: modelData.text
+                            font.pixelSize: 12 * Theme.scaleFactor
+                            color: Theme.fg
+                        }
 
-                Rectangle {
-                    width: parent.width
-                    height: 24 * Theme.scaleFactor
-                    radius: 4 * Theme.scaleFactor
-                    color: m2Mouse.containsMouse ? itemHoverBg : "transparent"
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.leftMargin: 8 * Theme.scaleFactor
-                        text: qsTr("全部折叠")
-                        font.pixelSize: 12 * Theme.scaleFactor
-                        color: Theme.fg
-                    }
-
-                    MouseArea {
-                        id: m2Mouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: setAllExpanded(false)
+                        MouseArea {
+                            id: itemMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: setAllExpanded(modelData.expand)
+                        }
                     }
                 }
             }

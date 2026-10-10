@@ -126,7 +126,8 @@
 
 (tm-define (outline-sidebar-visible?)
   (:synopsis "Check whether the outline sidebar is enabled")
-  (== (get-preference "outline sidebar") "on")
+  ;; C++ 侧 get_preference 默认 "on"；未设置时 scheme 侧返回 "default"，需对齐
+  (!= (get-preference "outline sidebar") "off")
 ) ;tm-define
 
 (tm-define (toggle-outline-sidebar)

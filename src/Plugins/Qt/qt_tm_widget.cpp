@@ -90,17 +90,14 @@ bool in_presentation_mode ();
 using moebius::data::scm_quote;
 
 namespace {
-/** @brief 仅用于消 warning 的占位 widget，本身无任何视觉/行为作用。
- *
- *  QDockWidget::setTitleBarWidget(new QWidget) 可禁用标题栏，但空 QWidget
- *  的 minimumSizeHint() 默认返回 (-1,-1)，会被 QMainWindowLayout 当成 dock
- *  最小尺寸约束，从而触发 setMinimumSize 负尺寸警告。这里仅 override 两个
- *  hint 返回 (0,0) 提供有效约束，渲染效果与空 QWidget 完全一致。 */
-class EmptyTitleBar : public QWidget {
-public:
-  QSize sizeHint () const override { return QSize (0, 0); }
-  QSize minimumSizeHint () const override { return QSize (0, 0); }
-};
+/** @brief 恢复大纲 dock 的持久化宽度（显示时调用）。 */
+void
+restore_outline_dock_width (QMainWindow* mw, QDockWidget* dock) {
+  if (!mw || !dock) return;
+  int savedWidth= as_int (get_preference ("outline sidebar width", "300"));
+  if (savedWidth <= 0) savedWidth= 300;
+  mw->resizeDocks ({dock}, {DpiUtils::scaled (savedWidth)}, Qt::Horizontal);
+}
 } // namespace
 
 int menu_count= 0; // zero if no menu is currently being displayed
@@ -1763,13 +1760,8 @@ qt_tm_widget_rep::update_visibility () {
   if (pdfOutlineDock &&
       XOR (old_pdfOutlineVisibility, new_pdfOutlineVisibility)) {
     pdfOutlineDock->setVisible (new_pdfOutlineVisibility);
-    if (new_pdfOutlineVisibility && mainwindow ()) {
-      int savedWidth=
-          to_qstring (get_preference ("outline sidebar width", "300")).toInt ();
-      if (savedWidth <= 0) savedWidth= 300;
-      int targetWidth= DpiUtils::scaled (savedWidth);
-      mainwindow ()->resizeDocks ({pdfOutlineDock}, {targetWidth},
-                                  Qt::Horizontal);
+    if (new_pdfOutlineVisibility) {
+      restore_outline_dock_width (mainwindow (), pdfOutlineDock);
     }
   }
 
@@ -2075,29 +2067,15 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       if (pdfTabMode) {
         if (outlineEnabled && pdfViewerWidget) {
           pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
-          if (pdfOutlineDock->hasContent () && mainwindow ()) {
-            int savedWidth=
-                to_qstring (get_preference ("outline sidebar width", "300"))
-                    .toInt ();
-            if (savedWidth <= 0) savedWidth= 300;
-            int targetWidth= DpiUtils::scaled (savedWidth);
-            mainwindow ()->resizeDocks ({pdfOutlineDock}, {targetWidth},
-                                        Qt::Horizontal);
-          }
+          if (pdfOutlineDock->hasContent ())
+            restore_outline_dock_width (mainwindow (), pdfOutlineDock);
         }
       }
       else if (!startupTabMode && !chatTabMode) {
+        // 大纲内容已由前面的 sync_startup_tab_mode() 加载，此处只同步可见性
         if (outlineEnabled) {
-          pdfOutlineDock->loadDocumentOutline ();
-          if (pdfOutlineDock->hasContent () && mainwindow ()) {
-            int savedWidth=
-                to_qstring (get_preference ("outline sidebar width", "300"))
-                    .toInt ();
-            if (savedWidth <= 0) savedWidth= 300;
-            int targetWidth= DpiUtils::scaled (savedWidth);
-            mainwindow ()->resizeDocks ({pdfOutlineDock}, {targetWidth},
-                                        Qt::Horizontal);
-          }
+          if (pdfOutlineDock->hasContent ())
+            restore_outline_dock_width (mainwindow (), pdfOutlineDock);
         }
         else {
           pdfOutlineDock->setVisible (false);

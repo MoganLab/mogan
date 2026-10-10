@@ -29,13 +29,13 @@
 (define (section-level t)
   (with lbl
     (tree-label t)
-    (cond ((in? lbl '(part part*)) 0)
-          ((in? lbl '(chapter chapter* appendix appendix*)) 1)
-          ((in? lbl '(section section*)) 2)
-          ((in? lbl '(subsection subsection*)) 3)
-          ((in? lbl '(subsubsection subsubsection*)) 4)
-          ((in? lbl '(paragraph paragraph*)) 5)
-          ((in? lbl '(subparagraph subparagraph*)) 6)
+    (cond ((member lbl '(part part*)) 0)
+          ((member lbl '(chapter chapter* appendix appendix*)) 1)
+          ((member lbl '(section section*)) 2)
+          ((member lbl '(subsection subsection*)) 3)
+          ((member lbl '(subsubsection subsubsection*)) 4)
+          ((member lbl '(paragraph paragraph*)) 5)
+          ((member lbl '(subparagraph subparagraph*)) 6)
           (else 7)
     ) ;cond
   ) ;with
@@ -105,25 +105,27 @@
   (:synopsis "Return the hierarchical document outline tree for current buffer")
   (with raw-sections
     (tree-search-sections (buffer-tree))
-    (let* ((sections
-             (list-filter raw-sections
-               (lambda (x) (and (not (equal? (tree-label x) 'subparagraph)) (tree->path x)))
-             ) ;list-filter
-           ) ;sections
-           (flat-items
-             (map
-               (lambda (s)
-                 (list (section-level s)
-                   (outline-clean-title s)
-                   (section-path->string (tree->path s))
-                 ) ;list
-               ) ;lambda
-               sections
-             ) ;map
-           ) ;flat-items
-          ) ;
-      (build-outline-tree flat-items)
-    ) ;let*
+    ;; 单遍遍历：每个 section 只计算一次 tree->path，无路径的节点直接跳过
+    (let loop
+      ((ss raw-sections) (acc '()))
+      (if (null? ss)
+        (build-outline-tree (reverse acc))
+        (let* ((s (car ss))
+               (p
+                 (and (not (equal? (tree-label s) 'subparagraph)) (tree->path s))
+               ) ;p
+              ) ;
+          (loop (cdr ss)
+            (if p
+              (cons (list (section-level s) (outline-clean-title s) (section-path->string p))
+                acc
+              ) ;cons
+              acc
+            ) ;if
+          ) ;loop
+        ) ;let*
+      ) ;if
+    ) ;let
   ) ;with
 ) ;tm-define
 
@@ -150,19 +152,4 @@
       ) ;when
     ) ;let*
   ) ;if
-) ;tm-define
-
-;; ---------------------------------------------------------------------------
-;; 侧边栏 widget 保持兼容性
-;; ---------------------------------------------------------------------------
-
-(tm-define (document-outline-widget)
-  (resize "200px"
-    "100%"
-    (refreshable "document-outline-refresh"
-      (vertical
-        (for (item (document-outline)) (horizontal ((eval (car item)))))
-      ) ;vertical
-    ) ;refreshable
-  ) ;resize
 ) ;tm-define

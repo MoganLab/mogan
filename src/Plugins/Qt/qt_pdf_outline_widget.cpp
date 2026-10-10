@@ -7,6 +7,7 @@
 #include "qt_pdf_outline_widget.hpp"
 
 #include <QQmlContext>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "converter.hpp" // cork_to_utf8
@@ -55,12 +56,6 @@ parseOutlineNode (tmscm node) {
   }
   return item;
 }
-
-class EmptyTitleBar : public QWidget {
-public:
-  QSize sizeHint () const override { return QSize (0, 0); }
-  QSize minimumSizeHint () const override { return QSize (0, 0); }
-};
 } // namespace
 
 OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
@@ -84,9 +79,19 @@ OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
   quick_->setStyleSheet ("background: transparent;");
   qt_inject_theme_context (quick_);
   quick_->rootContext ()->setContextProperty ("outlineBridge", bridge_);
-  quick_->setSource (QUrl ("qrc:/qml/OutlineSidebar.qml"));
+  // setSource 延迟到首次 showEvent：dock 默认隐藏，启动时不应解析 QML
 
   setWidget (quick_);
+
+  widthSaveTimer_= new QTimer (this);
+  widthSaveTimer_->setSingleShot (true);
+  widthSaveTimer_->setInterval (300);
+  connect (widthSaveTimer_, &QTimer::timeout, this, [this] () {
+    if (pendingWidth_ > 0) {
+      set_preference ("outline sidebar width",
+                      from_qstring (QString::number (pendingWidth_)));
+    }
+  });
 
   connect (bridge_, &OutlineBridge::outlineActivated, this,
            &OutlineWidget::outlineActivated);
@@ -98,10 +103,18 @@ OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
 
 QSize
 OutlineWidget::sizeHint () const {
-  int savedWidth=
-      to_qstring (get_preference ("outline sidebar width", "300")).toInt ();
+  int savedWidth= as_int (get_preference ("outline sidebar width", "300"));
   if (savedWidth <= 0) savedWidth= kOutlineDefaultWidth;
   return QSize (DpiUtils::scaled (savedWidth), DpiUtils::scaled (600));
+}
+
+void
+OutlineWidget::showEvent (QShowEvent* event) {
+  QDockWidget::showEvent (event);
+  if (!qmlLoaded_) {
+    qmlLoaded_= true;
+    quick_->setSource (QUrl ("qrc:/qml/OutlineSidebar.qml"));
+  }
 }
 
 void
@@ -112,8 +125,9 @@ OutlineWidget::resizeEvent (QResizeEvent* event) {
     qreal factor  = DpiUtils::scaleFactor ();
     int   unscaled= (factor > 0) ? int (w / factor) : w;
     if (unscaled >= kOutlineMinWidth && unscaled <= kOutlineMaxWidth) {
-      set_preference ("outline sidebar width",
-                      from_qstring (QString::number (unscaled)));
+      // set_preference 每次都会全量写盘，拖动期间防抖合并为一次
+      pendingWidth_= unscaled;
+      widthSaveTimer_->start ();
     }
   }
 }

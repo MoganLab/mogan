@@ -13,7 +13,8 @@ class TestOutlineWidget : public QObject {
   Q_OBJECT
 
 private slots:
-  void initTestCase () { init_lolly (); }
+  void init () { init_lolly (); }
+  void cleanup () { cleanup_qt_top_level_widgets (); }
 
   void test_creation () {
     OutlineWidget* widget= new OutlineWidget ("目录");
@@ -119,7 +120,7 @@ private slots:
 
     QSignalSpy spy (widget, &OutlineWidget::outlineActivated);
 
-    widget->bridge ()->itemClicked ("0:3:1");
+    widget->bridge ()->itemClicked ("0", "0:3:1");
 
     QCOMPARE (spy.count (), 1);
     QCOMPARE (spy.takeFirst ().at (0).toString (), QString ("0:3:1"));
@@ -158,5 +159,13 @@ private slots:
   }
 };
 
+#ifdef QTTEXMACS
 QTEST_MAIN (TestOutlineWidget)
+#else
+int
+main () {
+  return 0;
+}
+#endif
+
 #include "qt_outline_widget_test.moc"

@@ -16,53 +16,46 @@ OutlineBridge::setCurrentId (const QString& id) {
   }
 }
 
-void
-OutlineBridge::setCurrentTarget (const QString& target) {
-  if (m_currentTarget != target) {
-    m_currentTarget= target;
-    emit currentTargetChanged ();
-  }
+QVariantMap
+OutlineBridge::makeNode (const QString& id, const QString& title,
+                         const QString& target, const QString& page, int level,
+                         const QVariantList& children) {
+  QVariantMap map;
+  map["id"]      = id;
+  map["title"]   = title;
+  map["target"]  = target;
+  map["page"]    = page;
+  map["level"]   = level;
+  map["children"]= children;
+  return map;
 }
 
 QVariantMap
 OutlineBridge::convertPdfItem (const PdfOutlineItem& item, int level,
                                const QString& id) {
-  QVariantMap map;
-  map["id"]       = id;
-  map["title"]    = item.title;
-  int pageOneBased= (item.page >= 0) ? item.page + 1 : -1;
-  map["target"]=
+  // PdfOutlineItem::page 是 0-based（fz_resolve_link），跳转需要 1-based
+  int     pageOneBased= (item.page >= 0) ? item.page + 1 : -1;
+  QString pageStr=
       (pageOneBased >= 0) ? QString::number (pageOneBased) : QString ();
-  map["page"]=
-      (pageOneBased >= 0) ? QString::number (pageOneBased) : QString ();
-  map["level"]= level;
 
   QVariantList children;
   for (int i= 0; i < item.children.size (); ++i) {
     QString childId= id + "/" + QString::number (i);
     children.append (convertPdfItem (item.children[i], level + 1, childId));
   }
-  map["children"]= children;
-  return map;
+  // PDF 模式下 target 与 page 同为 1-based 页码
+  return makeNode (id, item.title, pageStr, pageStr, level, children);
 }
 
 QVariantMap
 OutlineBridge::convertEditorItem (const OutlineItem& item, int level,
                                   const QString& id) {
-  QVariantMap map;
-  map["id"]    = id;
-  map["title"] = item.title;
-  map["target"]= item.target;
-  map["page"]  = QString ();
-  map["level"] = level;
-
   QVariantList children;
   for (int i= 0; i < item.children.size (); ++i) {
     QString childId= id + "/" + QString::number (i);
     children.append (convertEditorItem (item.children[i], level + 1, childId));
   }
-  map["children"]= children;
-  return map;
+  return makeNode (id, item.title, item.target, QString (), level, children);
 }
 
 void
@@ -87,24 +80,16 @@ void
 OutlineBridge::clear () {
   m_model.clear ();
   m_currentId.clear ();
-  m_currentTarget.clear ();
   emit outlineModelChanged ();
   emit currentIdChanged ();
-  emit currentTargetChanged ();
 }
 
 void
 OutlineBridge::itemClicked (const QString& id, const QString& target) {
   setCurrentId (id);
-  setCurrentTarget (target);
   if (!target.isEmpty ()) {
     emit outlineActivated (target);
   }
-}
-
-void
-OutlineBridge::itemClicked (const QString& target) {
-  itemClicked (target, target);
 }
 
 void

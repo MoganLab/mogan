@@ -10,11 +10,14 @@
 #include <QDockWidget>
 #include <QQuickWidget>
 #include <QResizeEvent>
+#include <QShowEvent>
 #include <QSize>
 #include <QVector>
 
 #include "OutlineBridge.hpp"
 #include "qt_pdf_reader_widget.hpp"
+
+class QTimer;
 
 class OutlineWidget : public QDockWidget {
   Q_OBJECT
@@ -43,10 +46,16 @@ signals:
 
 protected:
   void resizeEvent (QResizeEvent* event) override;
+  void showEvent (QShowEvent* event) override;
 
 private:
   OutlineBridge* bridge_;
   QQuickWidget*  quick_;
+  // 宽度偏好防抖：拖动分隔条期间不写盘，停顿后落盘一次
+  QTimer* widthSaveTimer_;
+  int     pendingWidth_= 0;
+  // QML 源延迟到首次显示再加载，避免主窗口启动时无谓解析
+  bool qmlLoaded_= false;
 };
 
 #endif // QT_PDF_OUTLINE_WIDGET_HPP
