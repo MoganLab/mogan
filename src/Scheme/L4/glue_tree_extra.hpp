@@ -57,4 +57,10 @@ tree_child_insert (tree t, int pos, tree x) {
   return r;
 }
 
+inline array<tree>
+tree_children (tree t) {
+  if (is_atomic (t)) return array<tree> ();
+  return A (t);
+}
+
 #endif
