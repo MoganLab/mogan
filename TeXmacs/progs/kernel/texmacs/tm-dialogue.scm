@@ -189,13 +189,32 @@
 
 (define legacy-interactive-arg-file "$TEXMACS_HOME_PATH/system/interactive.scm")
 
-(define interactive-arg-migration-marker-v1
-  "$TEXMACS_HOME_PATH/system/interactive.scm->v1"
-) ;define
+;; 旧数据迁移标记文件。文件名不能含 '>'：Windows 文件名禁止 < > : " | ? *，
+;; 原名 xxx.scm->v1 在 Windows 上永远写不出来，于是每次启动都判定「未迁移」，
+;; 把 interactive.scm 里的旧 recent-buffer 条目重新导入——用户清空最近文件后
+;; 重启又全部回来（#4466）。macOS/Linux 上旧标记已落盘，继续识别以免重复导入。
 
-(define recent-files-migration-marker-v1
+(define-public interactive-arg-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/interactive.scm.migrated-v1"
+) ;define-public
+
+(define-public legacy-interactive-arg-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/interactive.scm->v1"
+) ;define-public
+
+(define-public recent-files-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/recent-files.scm.migrated-v1"
+) ;define-public
+
+(define-public legacy-recent-files-migration-marker-v1
   "$TEXMACS_HOME_PATH/system/recent-files.scm->v1"
-) ;define
+) ;define-public
+
+;; 迁移是否已完成：新标记或旧标记任一存在即视为完成。
+
+(define-public (migration-marker-exists? marker legacy-marker)
+  (or (url-exists? marker) (url-exists? legacy-marker))
+) ;define-public
 
 (define-public (make-empty-state kind)
   (case kind
@@ -850,9 +869,9 @@
   ) ;if
 ) ;define-public
 
-(define (write-migration-marker marker-file)
+(define-public (write-migration-marker marker-file)
   (string-save "migrated\n" (string->url marker-file))
-) ;define
+) ;define-public
 
 (define (legacy-scm-interactive-assoc-valid? assoc-t)
   (and (list? assoc-t) (list-and (map pair? assoc-t)))
@@ -1072,8 +1091,18 @@
 ) ;define
 
 (define (maybe-import-legacy-scm-interactive-state)
-  (let ((need-interactive? (not (url-exists? interactive-arg-migration-marker-v1)))
-        (need-recent? (not (url-exists? recent-files-migration-marker-v1)))
+  (let ((need-interactive?
+          (not (migration-marker-exists? interactive-arg-migration-marker-v1
+                 legacy-interactive-arg-migration-marker-v1
+               ) ;migration-marker-exists?
+          ) ;not
+        ) ;need-interactive?
+        (need-recent?
+          (not (migration-marker-exists? recent-files-migration-marker-v1
+                 legacy-recent-files-migration-marker-v1
+               ) ;migration-marker-exists?
+          ) ;not
+        ) ;need-recent?
        ) ;
     (when (and (or need-interactive? need-recent?)
             (url-exists? legacy-interactive-arg-file)

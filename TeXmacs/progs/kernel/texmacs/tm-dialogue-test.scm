@@ -334,6 +334,62 @@
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for legacy migration markers (4466)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Windows 文件名禁止 < > : " | ? *。标记名含 '>' 时 string-save 静默失败、
+;; url-exists? 永远为 #f，每次启动都重新导入 interactive.scm 的旧 recent-buffer，
+;; 表现为「清空最近文件 → 重启 → 全部回来」。
+
+(define (windows-illegal-file-name? name)
+  (not (not (or (string-index name #\<)
+              (string-index name #\>)
+              (string-index name #\:)
+              (string-index name #\")
+              (string-index name #\|)
+              (string-index name #\?)
+              (string-index name #\*)
+            ) ;or
+       ) ;not
+  ) ;not
+) ;define
+
+(define (test-migration-marker-names-portable)
+  (for-each
+    (lambda (marker)
+      (let ((tail (url->system (url-tail (string->url marker)))))
+        (check (list tail (windows-illegal-file-name? tail)) => (list tail #f))
+      ) ;let
+    ) ;lambda
+    (list interactive-arg-migration-marker-v1 recent-files-migration-marker-v1)
+  ) ;for-each
+) ;define
+
+(define (test-migration-marker-round-trip)
+  ;; 用真实标记文件名的尾部在临时目录落盘：写得出、查得到。旧名在 Windows 上此处必红。
+  (let* ((tail (url->system (url-tail (string->url recent-files-migration-marker-v1))))
+         (tmp (string-append "/tmp/4466_" tail))
+        ) ;
+    (write-migration-marker tmp)
+    (check (url-exists? tmp) => #t)
+    (system-remove (string->url tmp))
+  ) ;let*
+) ;define
+
+(define (test-migration-marker-legacy-recognized)
+  ;; 新旧标记任一存在即视为已迁移，避免 macOS/Linux 已迁移用户再导入一次。
+  (let ((new-m "/tmp/4466_marker_new") (old-m "/tmp/4466_marker_old"))
+    (check (migration-marker-exists? new-m old-m) => #f)
+    (write-migration-marker old-m)
+    (check (migration-marker-exists? new-m old-m) => #t)
+    (system-remove (string->url old-m))
+    (write-migration-marker new-m)
+    (check (migration-marker-exists? new-m old-m) => #t)
+    (system-remove (string->url new-m))
+  ) ;let
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -346,5 +402,8 @@
   (test-validation)
   (test-recent-files-lru-limit)
   (test-persistence)
+  (test-migration-marker-names-portable)
+  (test-migration-marker-round-trip)
+  (test-migration-marker-legacy-recognized)
   (check-report)
 ) ;tm-define
