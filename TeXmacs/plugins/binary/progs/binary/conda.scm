@@ -60,7 +60,7 @@
          (base-python (url-complete base-python-raw "fr"))
          (base-python-list (if (url-exists? base-python) (list base-python) (list)))
         ) ;
-    (append base-python-list env-python-list)
+    (append env-python-list base-python-list)
   ) ;let*
 ) ;tm-define
 
