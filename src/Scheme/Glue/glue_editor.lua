@@ -455,6 +455,16 @@ function main()
                 }
             },
             {
+                scm_name = "typeset-in-progress?",
+                cpp_name = "typeset_in_progress",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "typeset-frontier",
+                cpp_name = "typeset_frontier",
+                ret_type = "int"
+            },
+            {
                 scm_name = "get-page-count",
                 cpp_name = "get_page_count",
                 ret_type = "int"

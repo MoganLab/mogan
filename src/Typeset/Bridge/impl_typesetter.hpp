@@ -30,6 +30,20 @@ public:
   hashmap<string, tree> old_patch;
   bool                  paper;
 
+  // Progressive typesetting state for paginated long documents
+  bool             progressive_enabled;   ///< 本文档是否启用流式排版
+  int              progressive_cur_child; ///< 排版前沿：已排到的正文子节点下标
+  int              progressive_total_children; ///< 正文子节点总数
+  bool             progressive_pending; ///< 前沿未到文末，后台排版仍在进行
+  int              chunk_start;         ///< 本轮排版块的起点（= 上轮前沿）
+  int              chunk_end;           ///< 本轮排版块的终点（不含）
+  array<page_item> doc_l;
+  stack_border     doc_sb;
+  array<box>       frozen_page_boxes;
+  int              frozen_line_offset;
+  int              dynamic_buffer_pages;
+  SI               page_text_height;
+
 private:
   std::shared_ptr<rectangle> changed_ptr= std::make_shared<rectangle> ();
 
@@ -48,6 +62,24 @@ public:
   void determine_page_references (box b);
   box  typeset ();
   box  typeset (SI& x1, SI& y1, SI& x2, SI& y2);
+
+  /**
+   * @brief 流式排版是否仍在进行（排版前沿未到文末）
+   * @note  对 Scheme 暴露为 typeset-in-progress?
+   */
+  bool typeset_in_progress () const { return progressive_pending; }
+  /**
+   * @brief 将排版前沿向后推进若干子节点
+   * @param additional_paragraphs 推进的子节点数
+   */
+  void progressive_advance (int additional_paragraphs);
+  /**
+   * @brief 将排版前沿快进到目标子节点附近（含缓冲余量）
+   * @param target_child 目标正文子节点下标
+   */
+  void progressive_fast_forward_until (int target_child);
+  /** @brief 清空流式排版累计状态，回到起点重排 */
+  void progressive_reset ();
 };
 
 #endif // defined IMPL_TYPESETTER_H

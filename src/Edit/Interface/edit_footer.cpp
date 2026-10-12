@@ -671,10 +671,12 @@ edit_interface_rep::set_footer () {
       cout << "function  " << function_count << "\n";
       cout << "instance  " << instance_count << "\n";)
 
-  if ((message_l == "") && (message_r == "")) {
-    last_l = "";
-    last_r = "";
-    tree st= subtree (et, path_up (tp));
+  time_t now= texmacs_time ();
+  if ((message_l == "" && message_r == "") || now >= message_expire_time) {
+    message_l= message_r= "";
+    last_l              = "";
+    last_r              = "";
+    tree st             = subtree (et, path_up (tp));
     if (set_latex_footer (st)) return;
     if (set_hybrid_footer (st)) return;
     set_left_footer ();
@@ -687,7 +689,6 @@ edit_interface_rep::set_footer () {
     set_middle_footer ();
     if (message_r == "" || inside_graphics (false)) set_right_footer ();
     else set_right_footer (message_r);
-    message_l= message_r= "";
   }
 }
 
@@ -698,12 +699,14 @@ edit_interface_rep::set_footer () {
 void
 edit_interface_rep::set_message (tree l, tree r, bool temp) {
   eval ("(set-message-notify)");
-  message_l= l;
-  message_r= r;
+  message_l          = l;
+  message_r          = r;
+  message_expire_time= texmacs_time () + 4000;
   if (!temp) {
     last_l= l;
     last_r= r;
   }
+  set_footer ();
   notify_change (THE_DECORATIONS);
 }
 

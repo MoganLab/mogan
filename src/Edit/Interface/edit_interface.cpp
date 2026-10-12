@@ -60,10 +60,11 @@ get_zoom (editor_rep* ed, tm_buffer buf) {
 edit_interface_rep::edit_interface_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
       env_change (0), last_change (texmacs_time ()),
-      last_update (last_change - 1), last_event (texmacs_time ()),
-      anim_next (1.0e12), full_screen (false), got_focus (false), sh_s (""),
-      sh_mark (0), pre_edit_skip (false), pre_edit_s (""), pre_edit_mark (0),
-      popup_win (), message_l (""), message_r (""), last_l (""), last_r (""),
+      last_update (last_change - 1), last_idle_step (0),
+      last_event (texmacs_time ()), anim_next (1.0e12), full_screen (false),
+      got_focus (false), sh_s (""), sh_mark (0), pre_edit_skip (false),
+      pre_edit_s (""), pre_edit_mark (0), popup_win (), message_l (""),
+      message_r (""), message_expire_time (0), last_l (""), last_r (""),
       menu_focus_path (), menu_need_save (false), zoomf (get_zoom (this, buf)),
       magf (zoomf / std_shrinkf),
       pixel ((SI) tm_round ((std_shrinkf * PIXEL) / zoomf)),
@@ -338,11 +339,23 @@ edit_interface_rep::get_scroll_y () {
   return scy;
 }
 
+bool
+edit_interface_rep::progressive_advance_near_tail (SI y) {
+  // 视口距已排版尾部不足 3 页时推进一个排版块
+  typesetter ttt= get_typesetter ();
+  if (!::typeset_in_progress (ttt) || is_nil (eb)) return false;
+  SI ph= progressive_get_page_height (ttt);
+  if (ph <= 0 || y > eb->y1 + 3 * ph) return false;
+  progressive_advance (ttt, 15);
+  return true;
+}
+
 void
 edit_interface_rep::scroll_to (SI x, SI y) {
   stored_rects= rectangles ();
   copy_always = rectangles ();
   SERVER (scroll_to ((SI) (x * magf), ((SI) (y * magf))));
+  if (progressive_advance_near_tail (y)) notify_change (THE_TREE + THE_EXTENTS);
 }
 
 void
@@ -1067,9 +1080,26 @@ edit_interface_rep::apply_changes () {
   }
 
   if (env_change == 0) {
-    // 原 idle 轮询（166ms）全量 update_menus 已删除
-    if (new_visible == last_visible) return;
+    if (new_visible == last_visible) {
+      typesetter ttt= get_typesetter ();
+      if (::typeset_in_progress (ttt)) {
+        time_t now= texmacs_time ();
+        if (now - last_idle_step >= 200) {
+          last_idle_step= now;
+          progressive_advance (ttt, 10);
+          env_change|= (THE_TREE + THE_EXTENTS);
+        }
+        else {
+          needs_update ();
+          return;
+        }
+      }
+      else return;
+    }
   }
+
+  if (progressive_advance_near_tail (vy1))
+    env_change|= (THE_TREE + THE_EXTENTS);
 
   // cout << "Applying changes " << env_change << " to " << get_name() << "\n";
   // time_t t1= texmacs_time ();
@@ -1176,7 +1206,13 @@ edit_interface_rep::apply_changes () {
     bench_start ("typeset " * (as_string (buf->buf->name)));
     typeset (x1, y1, x2, y2);
     bench_end ("typeset " * (as_string (buf->buf->name)), 1000);
-    invalidate (x1 - 2 * pixel, y1 - 2 * pixel, x2 + 2 * pixel, y2 + 2 * pixel);
+    SI ix1= max (vx1, x1 - 2 * pixel);
+    SI iy1= max (vy1, y1 - 2 * pixel);
+    SI ix2= min (vx2, x2 + 2 * pixel);
+    SI iy2= min (vy2, y2 + 2 * pixel);
+    if (ix1 < ix2 && iy1 < iy2) {
+      invalidate (ix1, iy1, ix2, iy2);
+    }
     // check_data_integrety ();
     the_ghost_cursor ()= eb->find_check_cursor (tp);
   }

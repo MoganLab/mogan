@@ -321,6 +321,8 @@ public:
   virtual color         get_init_color (string var_name)                  = 0;
   virtual language      get_env_language ()                               = 0;
   virtual string        physical_font_for_string (string s)               = 0;
+  virtual bool          typeset_in_progress ()                            = 0;
+  virtual int           typeset_frontier ()                               = 0;
   virtual int           get_page_count ()                                 = 0;
   virtual string        get_page_number_text (int page_index)             = 0;
   virtual int           get_current_page ()                               = 0;

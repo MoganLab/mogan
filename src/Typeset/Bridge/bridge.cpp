@@ -325,7 +325,8 @@ bridge_rep::typeset (int desired_status) {
     env->local_end (prev_back);
     ttt->local_end (l, sb);
     env->link_env= old_link_env;
-    status       = desired_status;
+    if (ttt->typeset_in_progress ()) status= 0;
+    else status= desired_status;
     // cout << "old_patch     = " << ttt->old_patch << LF;
     // cout << "changes       = " << changes << LF;
     // cout << UNINDENT << "Typesetted " << st << ", " << desired_status << LF;

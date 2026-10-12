@@ -133,22 +133,55 @@
 ;; 编辑器跳转到指定大纲路径
 ;; ---------------------------------------------------------------------------
 
+(define (outline-chapter-path? p)
+  ;; 章节路径约定形如 (1 0 n ...)
+  (and (>= (length p) 3) (== (car p) 1) (== (cadr p) 0))
+) ;define
+
+(define (outline-get-chap-idx p)
+  (cond ((outline-chapter-path? p) (caddr p))
+        ((>= (length p) 2) (cadr p))
+        (else #f)
+  ) ;cond
+) ;define
+
+(define (outline-fallback-path p last-child)
+  (cond ((outline-chapter-path? p) (list 1 0 last-child 0))
+        (else (list (car p) last-child 0))
+  ) ;cond
+) ;define
+
 (tm-define (outline-go-to path-str)
   (:synopsis "Navigate editor cursor and view to section outline path")
   (if (and (string? path-str) (not (string-null? path-str)))
     (let* ((parts (string-split path-str #\:)) (p (map string->number parts)))
       (when (and (pair? p) (not (memq #f p)))
-        (with t
-          (path->tree p)
-          (if (and t (> (tree-arity t) 0)) (tree-go-to t 0 :start) (go-to-path p))
-          (with u
-            (current-view)
-            (when u
-              (make-cursor-visible u)
-              (delayed (:idle 1) (make-cursor-visible u))
-            ) ;when
+        (let* ((pending? (and (defined? 'typeset-in-progress?) (typeset-in-progress?)))
+               (cur-child (if pending? (typeset-frontier) #f))
+               (chap-idx (outline-get-chap-idx p))
+               (unready? (and pending? cur-child chap-idx (>= chap-idx cur-child)))
+               (target-p
+                 (if unready? (outline-fallback-path p (max 0 (- cur-child 1))) p)
+               ) ;target-p
+              ) ;
+          (with t
+            (path->tree target-p)
+            (if (and t (> (tree-arity t) 0)) (tree-go-to t 0 :start) (go-to-path target-p))
+            (with u
+              (current-view)
+              (when u
+                (make-cursor-visible u)
+                (delayed (:idle 1) (make-cursor-visible u))
+              ) ;when
+            ) ;with
           ) ;with
-        ) ;with
+          (when unready?
+            (set-message (translate "Document is still typesetting in background, jumped to available page..."
+                         ) ;translate
+              (translate "typesetting progress")
+            ) ;set-message
+          ) ;when
+        ) ;let*
       ) ;when
     ) ;let*
   ) ;if

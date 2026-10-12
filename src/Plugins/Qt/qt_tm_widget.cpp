@@ -623,7 +623,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QObject::connect (pageOutlineBtn, &QToolButton::clicked,
                     [this] () { toggle_outline_sidebar (); });
 
-  leftLabel  = new QLabel (qt_translate ("Welcome to TeXmacs"), bar);
+  leftLabel  = new QLabel ("", bar);
   middleLabel= new QLabel ("", bar);
   rightLabel = new QLabel (qt_translate ("Booting"), bar);
   leftLabel->setFrameStyle (QFrame::NoFrame);

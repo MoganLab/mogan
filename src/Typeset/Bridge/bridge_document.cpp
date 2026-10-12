@@ -88,6 +88,7 @@ bridge_document_rep::notify_assign (path p, tree u) {
     }
     if (!is_nil (acc)) acc->notify_assign (p, u);
   }
+  ttt->progressive_reset ();
   status= CORRUPTED;
 }
 
@@ -119,6 +120,7 @@ bridge_document_rep::notify_insert (path p, tree u) {
     st= substitute (st, p->item, brs[p->item]->st);
     if (!is_nil (acc)) acc->notify_assign (p->item, st[p->item]);
   }
+  ttt->progressive_reset ();
   status= CORRUPTED;
 }
 
@@ -162,6 +164,7 @@ bridge_document_rep::notify_remove (path p, int nr) {
     st= substitute (st, p->item, brs[p->item]->st);
     if (!is_nil (acc)) acc->notify_assign (p->item, st[p->item]);
   }
+  ttt->progressive_reset ();
   status= CORRUPTED;
 }
 
@@ -180,6 +183,7 @@ bridge_document_rep::notify_macro (int tp, string var, int l, path p, tree u) {
 
 void
 bridge_document_rep::notify_change () {
+  ttt->progressive_reset ();
   status= CORRUPTED;
   if (!is_nil (acc)) acc->notify_change ();
   if (N (brs) > 0) brs[0]->notify_change ();
@@ -203,6 +207,8 @@ bridge_document_rep::my_exec_until (path p) {
 
 bool
 bridge_document_rep::my_typeset_will_be_complete () {
+  if (ttt->progressive_enabled && ttt->progressive_cur_child < N (st))
+    return false;
   if (is_nil (acc)) {
     int i, n= N (brs);
     for (i= 0; i < n; i++)
@@ -217,9 +223,11 @@ bridge_document_rep::my_typeset (int desired_status) {
   // cout << INDENT;
   if (is_nil (acc)) {
     int              i, n= N (st);
-    array<line_item> a= ttt->a;
-    array<line_item> b= ttt->b;
-    for (i= 0; i < n; i++) {
+    array<line_item> a      = ttt->a;
+    array<line_item> b      = ttt->b;
+    int              start_i= ttt->progressive_enabled ? ttt->chunk_start : 0;
+    int end_i= ttt->progressive_enabled ? min (n, ttt->chunk_end) : n;
+    for (i= start_i; i < end_i; i++) {
       // cout << "Typesetting " << st[i] << LF;
       int wanted=
           (i == n - 1 ? desired_status & WANTED_MASK : WANTED_PARAGRAPH);

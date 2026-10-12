@@ -707,6 +707,16 @@ edit_typeset_rep::get_env_language () {
   else return prog_language (get_env_string (PROG_LANGUAGE));
 }
 
+bool
+edit_typeset_rep::typeset_in_progress () {
+  return ::typeset_in_progress (ttt);
+}
+
+int
+edit_typeset_rep::typeset_frontier () {
+  return ::typeset_frontier (ttt);
+}
+
 int
 edit_typeset_rep::get_page_count () {
   if (is_nil (eb) || N (eb) == 0) return 0;
@@ -1117,7 +1127,7 @@ edit_typeset_rep::typeset_sub (SI& x1, SI& y1, SI& x2, SI& y2) {
     eb= ::typeset (ttt, x1, y1, x2, y2);
   }
   handle_exceptions ();
-  if (DEBUG_BENCH) bench_end ("typeset");
+  if (DEBUG_BENCH) bench_end ("typeset", 100);
   // time_t t2= texmacs_time ();
   // if (t2 - t1 >= 10) cout << "typeset took " << t2-t1 << "ms\n";
   picture_cache_clean ();

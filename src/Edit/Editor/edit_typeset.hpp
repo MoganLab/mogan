@@ -80,6 +80,8 @@ public:
   color    get_init_color (string var_name);
   language get_env_language ();
   string   physical_font_for_string (string s);
+  bool     typeset_in_progress ();
+  int      typeset_frontier ();
   int      get_page_count ();
   string   get_page_number_text (int page_index);
   int      get_current_page ();
