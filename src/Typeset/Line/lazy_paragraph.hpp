@@ -98,6 +98,7 @@ protected:
 
   void       find_first_last_text (int& first, int& last);
   void       protrude (bool lf, bool rf);
+  void       ensure_items_neighbors ();
   void       cjk_auto_spacing ();
   void       contract_kerning (int index, double factor, bool is_left);
   void       adjust_consecutive_puncts ();

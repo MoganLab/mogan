@@ -276,13 +276,44 @@ lazy_paragraph_rep::line_print (line_item item) {
   items << item->b;
   spcs << item->spc;
   if (is_cjk_language (env->lan)) {
-    // cout << "line item: " << item << LF;
-    items_box << is_not_skip (item);
-    items_cjk_text << is_cjk_text (item);
-    items_cjk_puncts << is_cjk_puncts (item);
-    items_cjk_left_annotation_puncts << is_cjk_left_annotation_puncts (item);
-    items_cjk_right_annotation_puncts << is_cjk_right_annotation_puncts (item);
-    items_cjk_right_adjustable_puncts << is_cjk_right_adjustable_puncts (item);
+    bool is_box= is_not_skip (item);
+    items_box << is_box;
+    if (is_text (item)) {
+      string text= item->b->get_leaf_string ();
+      if (lolly::data::is_cjk_unified_ideographs (text) &&
+          (text != "<#3000>")) {
+        items_cjk_text << true;
+        items_cjk_puncts << false;
+        items_cjk_left_annotation_puncts << false;
+        items_cjk_right_annotation_puncts << false;
+        items_cjk_right_adjustable_puncts << false;
+      }
+      else {
+        items_cjk_text << false;
+        bool punct= cjk_puncts->contains (text);
+        items_cjk_puncts << punct;
+        if (punct) {
+          items_cjk_left_annotation_puncts
+              << cjk_left_annotation_puncts->contains (text);
+          items_cjk_right_annotation_puncts
+              << cjk_right_annotation_puncts->contains (text);
+          items_cjk_right_adjustable_puncts
+              << cjk_right_adjustable_puncts->contains (text);
+        }
+        else {
+          items_cjk_left_annotation_puncts << false;
+          items_cjk_right_annotation_puncts << false;
+          items_cjk_right_adjustable_puncts << false;
+        }
+      }
+    }
+    else {
+      items_cjk_text << false;
+      items_cjk_puncts << false;
+      items_cjk_left_annotation_puncts << false;
+      items_cjk_right_annotation_puncts << false;
+      items_cjk_right_adjustable_puncts << false;
+    }
   }
   item->b->x0= cur_w->def;
   item->b->y0= 0;
@@ -365,16 +396,26 @@ lazy_paragraph_rep::contract_kerning (int index, double factor, bool is_left) {
 }
 
 void
-lazy_paragraph_rep::adjust_consecutive_puncts () {
+lazy_paragraph_rep::ensure_items_neighbors () {
   int items_N= N (items);
-  ASSERT (N (items) == N (items_cjk_puncts) &&
-              N (items) == N (items_cjk_left_annotation_puncts) &&
-              N (items) == N (items_cjk_right_annotation_puncts) &&
-              N (items) == N (items_cjk_right_adjustable_puncts) &&
-              N (items) == N (items_left) && N (items) == N (items_right) &&
-              N (items) == N (items_cjk_text),
-          "length of items must match")
+  if (N (items_left) == items_N) return;
+  items_left->resize (items_N);
+  items_right->resize (items_N);
+  int next= -1;
+  for (int i= items_N - 1; i >= cur_start; i--) {
+    items_right[i]= next;
+    if (items_box[i]) next= i;
+  }
+  int prev= -1;
+  for (int i= cur_start; i < items_N; i++) {
+    items_left[i]= prev;
+    if (items_box[i]) prev= i;
+  }
+}
 
+void
+lazy_paragraph_rep::adjust_consecutive_puncts () {
+  int  items_N           = N (items);
   bool no_cjk_puncts_flag= true;
   for (int i= cur_start; i < items_N; i++) {
     if (items_cjk_puncts[i]) {
@@ -383,6 +424,8 @@ lazy_paragraph_rep::adjust_consecutive_puncts () {
     }
   }
   if (no_cjk_puncts_flag) return;
+
+  ensure_items_neighbors ();
 
   int first, last;
   find_first_last_text (first, last);
@@ -425,49 +468,16 @@ lazy_paragraph_rep::adjust_consecutive_puncts () {
 
 void
 lazy_paragraph_rep::cjk_auto_spacing () {
-  int prev   = -1;
-  int now    = -1;
-  int items_N= N (items);
+  int  items_N    = N (items);
+  bool has_cjk    = false;
+  bool has_non_cjk= false;
   for (int i= cur_start; i < items_N; i++) {
-    if (items_box[i]) {
-      prev= now;
-      now = i;
-      items_left << prev;
-    }
-    else {
-      items_left << -1;
-    }
+    if (items_cjk_text[i]) has_cjk= true;
+    else if (items_box[i] && !items_cjk_puncts[i]) has_non_cjk= true;
   }
+  if (!has_cjk || !has_non_cjk) return;
 
-  prev          = -1;
-  now           = -1;
-  array<int> tmp= array<int> ();
-  for (int i= items_N - 1; i >= cur_start; i--) {
-    if (items_box[i]) {
-      prev= now;
-      now = i;
-      tmp << prev;
-    }
-    else {
-      tmp << -1;
-    }
-  }
-  for (int i= items_N - 1; i >= 0; i--) {
-    items_right << tmp[i];
-  }
-
-  ASSERT (N (items) == N (items_box) && N (items) == N (items_left) &&
-              N (items) == N (items_right) && N (items) == N (items_cjk_text),
-          "length of items must match")
-
-  bool no_cjk_flag= true;
-  for (int i= cur_start; i < items_N; i++) {
-    if (items_cjk_text[i]) {
-      no_cjk_flag= false;
-      break;
-    }
-  }
-  if (no_cjk_flag) return;
+  ensure_items_neighbors ();
 
   int first, last;
   find_first_last_text (first, last);
