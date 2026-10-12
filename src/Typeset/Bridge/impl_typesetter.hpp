@@ -30,6 +30,16 @@ public:
   hashmap<string, tree> old_patch;
   bool                  paper;
 
+  // Progressive typesetting state for paginated long documents
+  bool progressive_enabled;
+  int  progressive_target_pages;
+  int  progressive_target_child;
+  int  progressive_cur_child;
+  int  progressive_total_children;
+  bool progressive_pending;
+  SI   page_text_height;
+  SI   accumulated_stream_height;
+
 private:
   std::shared_ptr<rectangle> changed_ptr= std::make_shared<rectangle> ();
 
@@ -48,6 +58,12 @@ public:
   void determine_page_references (box b);
   box  typeset ();
   box  typeset (SI& x1, SI& y1, SI& x2, SI& y2);
+
+  bool is_progressive_pending () const { return progressive_pending; }
+  void progressive_advance (int additional_pages);
+  void progressive_fast_forward_until (int target_child);
+  bool progressive_should_pause (int current_child, int total_children);
+  void progressive_reset ();
 };
 
 #endif // defined IMPL_TYPESETTER_H

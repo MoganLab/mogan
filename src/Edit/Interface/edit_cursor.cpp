@@ -16,6 +16,7 @@
 #include "observers.hpp"
 #include "tm_buffer.hpp"
 #include "tree_traverse.hpp"
+#include "typesetter.hpp"
 
 #include <moebius/data/scheme.hpp>
 #include <moebius/drd/drd_mode.hpp>
@@ -464,6 +465,18 @@ edit_cursor_rep::go_to_here () {
 void
 edit_cursor_rep::go_to (path p) {
   if (rp <= p) {
+    typesetter ttt= get_typesetter ();
+    if (is_progressive_pending (ttt) && !is_nil (p)) {
+      path rel_p= p / rp;
+      if (!is_nil (rel_p)) {
+        int target_child= rel_p->item;
+        if (target_child >= progressive_get_cur_child (ttt)) {
+          progressive_fast_forward_until (ttt, target_child + 60);
+          notify_change (THE_TREE + THE_EXTENTS);
+          apply_changes ();
+        }
+      }
+    }
     // if (tp != p) cout << "Go to " << p << "\n";
     tp       = p;
     mv_status= DIRECT;

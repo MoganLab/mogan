@@ -19,7 +19,11 @@ using namespace moebius;
  ******************************************************************************/
 
 typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
-    : env (env2), old_patch (UNINIT) {
+    : env (env2), old_patch (UNINIT), progressive_enabled (false),
+      progressive_target_pages (10), progressive_target_child (-1),
+      progressive_cur_child (0), progressive_total_children (0),
+      progressive_pending (false), page_text_height (0),
+      accumulated_stream_height (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -136,10 +140,35 @@ typesetter_rep::typeset () {
   b        = array<line_item> ();
   paper    = (env->get_string (PAGE_MEDIUM) == "paper");
 
+  // Determine if progressive typesetting is eligible:
+  // Must be paginated ("paper"), not in printed export, and have enough
+  // children
+  tree st                   = br->st;
+  int  n                    = N (st);
+  progressive_total_children= n;
+  bool is_printing          = (env->get_string (PAGE_PRINTED) == "true");
+
+  if (paper && !is_printing && n >= 60) {
+    progressive_enabled= true;
+    if (page_text_height <= 0) {
+      SI tw, th, w, h, odd, even, top, bot;
+      env->get_page_pars (tw, th, w, h, odd, even, top, bot);
+      page_text_height= th;
+    }
+    if (progressive_cur_child == 0) {
+      // Initial batch: first 60 paragraphs (approx 8-10 pages)
+      progressive_cur_child= min (n, 60);
+    }
+  }
+  else {
+    progressive_enabled  = false;
+    progressive_pending  = false;
+    progressive_cur_child= n;
+  }
+
   // Test whether we are doing a complete typesetting
   env->complete= br->my_typeset_will_be_complete ();
-  tree st      = br->st;
-  int  i= 0, n= N (st);
+  int i        = 0;
   if (n > 0) {
     if (is_compound (st[0], "show-preamble")) {
       i++;
@@ -158,6 +187,13 @@ typesetter_rep::typeset () {
     env->missing  = hashmap<string, tree> (UNINIT);
     env->redefined= array<tree> ();
     env->touched  = hashmap<string, bool> (false);
+  }
+  if (progressive_enabled && progressive_cur_child < n) {
+    progressive_pending= true;
+    env->complete      = false;
+  }
+  else {
+    progressive_pending= false;
   }
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
   pager ppp= tm_new<pager_rep> (br->ip, env, l);
@@ -312,6 +348,66 @@ typeset (typesetter ttt) {
 box
 typeset (typesetter ttt, SI& x1, SI& y1, SI& x2, SI& y2) {
   return ttt->typeset (x1, y1, x2, y2);
+}
+
+void
+typesetter_rep::progressive_advance (int additional_pages) {
+  int add_children= additional_pages * 8;
+  progressive_cur_child=
+      min (progressive_total_children, progressive_cur_child + add_children);
+}
+
+void
+typesetter_rep::progressive_fast_forward_until (int target_child) {
+  progressive_cur_child= min (progressive_total_children,
+                              max (progressive_cur_child, target_child));
+}
+
+bool
+typesetter_rep::progressive_should_pause (int current_child,
+                                          int total_children) {
+  (void) current_child;
+  (void) total_children;
+  return false;
+}
+
+void
+typesetter_rep::progressive_reset () {
+  progressive_cur_child    = 0;
+  progressive_target_pages = 10;
+  progressive_target_child = -1;
+  progressive_pending      = false;
+  accumulated_stream_height= 0;
+}
+
+bool
+is_progressive_pending (typesetter ttt) {
+  return ttt && ttt->is_progressive_pending ();
+}
+
+void
+progressive_advance (typesetter ttt, int additional_pages) {
+  if (ttt) ttt->progressive_advance (additional_pages);
+}
+
+void
+progressive_fast_forward_until (typesetter ttt, int target_child) {
+  if (ttt) ttt->progressive_fast_forward_until (target_child);
+}
+
+int
+progressive_get_cur_child (typesetter ttt) {
+  return ttt ? ttt->progressive_cur_child : 0;
+}
+
+SI
+progressive_get_page_height (typesetter ttt) {
+  return ttt ? ttt->page_text_height : 0;
+}
+
+void
+progressive_reset (typesetter ttt) {
+  if (ttt) ttt->progressive_reset ();
 }
 
 box

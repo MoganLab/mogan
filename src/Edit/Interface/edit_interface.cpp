@@ -343,6 +343,14 @@ edit_interface_rep::scroll_to (SI x, SI y) {
   stored_rects= rectangles ();
   copy_always = rectangles ();
   SERVER (scroll_to ((SI) (x * magf), ((SI) (y * magf))));
+  typesetter ttt= get_typesetter ();
+  if (is_progressive_pending (ttt) && !is_nil (eb)) {
+    SI ph= progressive_get_page_height (ttt);
+    if (ph > 0 && y <= eb->y1 + 4 * ph) {
+      progressive_advance (ttt, 50);
+      notify_change (THE_TREE + THE_EXTENTS);
+    }
+  }
 }
 
 void
@@ -1067,8 +1075,35 @@ edit_interface_rep::apply_changes () {
   }
 
   if (env_change == 0) {
-    // 原 idle 轮询（166ms）全量 update_menus 已删除
-    if (new_visible == last_visible) return;
+    if (new_visible == last_visible) {
+      typesetter ttt= get_typesetter ();
+      if (is_progressive_pending (ttt)) {
+        static time_t last_idle_step= 0;
+        time_t        now           = texmacs_time ();
+        if (now - last_idle_step >= 200) {
+          last_idle_step= now;
+          progressive_advance (ttt, 50);
+          env_change|= (THE_TREE + THE_EXTENTS);
+        }
+        else {
+          needs_update ();
+          return;
+        }
+      }
+      else return;
+    }
+  }
+
+  // Check if scrolling near the bottom of currently typeset pages
+  {
+    typesetter ttt= get_typesetter ();
+    if (is_progressive_pending (ttt) && !is_nil (eb)) {
+      SI ph= progressive_get_page_height (ttt);
+      if (ph > 0 && vy1 <= eb->y1 + 4 * ph) {
+        progressive_advance (ttt, 40);
+        env_change|= (THE_TREE + THE_EXTENTS);
+      }
+    }
   }
 
   // cout << "Applying changes " << env_change << " to " << get_name() << "\n";
