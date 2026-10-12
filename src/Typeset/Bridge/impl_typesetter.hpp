@@ -31,14 +31,18 @@ public:
   bool                  paper;
 
   // Progressive typesetting state for paginated long documents
-  bool progressive_enabled;
-  int  progressive_target_pages;
-  int  progressive_target_child;
-  int  progressive_cur_child;
-  int  progressive_total_children;
-  bool progressive_pending;
-  SI   page_text_height;
-  SI   accumulated_stream_height;
+  bool             progressive_enabled;
+  int              progressive_cur_child;
+  int              progressive_total_children;
+  bool             progressive_pending;
+  int              chunk_start;
+  int              chunk_end;
+  array<page_item> doc_l;
+  stack_border     doc_sb;
+  array<box>       frozen_page_boxes;
+  int              frozen_line_offset;
+  int              dynamic_buffer_pages;
+  SI               page_text_height;
 
 private:
   std::shared_ptr<rectangle> changed_ptr= std::make_shared<rectangle> ();

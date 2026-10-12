@@ -470,10 +470,19 @@ edit_cursor_rep::go_to (path p) {
       path rel_p= p / rp;
       if (!is_nil (rel_p)) {
         int target_child= rel_p->item;
-        if (target_child >= progressive_get_cur_child (ttt)) {
-          progressive_fast_forward_until (ttt, target_child + 50);
-          notify_change (THE_TREE + THE_EXTENTS);
-          apply_changes ();
+        int cur_child   = progressive_get_cur_child (ttt);
+        if (target_child >= cur_child) {
+          if (target_child < cur_child + 200) {
+            progressive_fast_forward_until (ttt, target_child + 50);
+            notify_change (THE_TREE + THE_EXTENTS);
+            apply_changes ();
+          }
+          else {
+            set_message ("文档正在后台排版中，已跳至当前就绪页面...",
+                         "排版进度");
+            int last_available= max (0, cur_child - 1);
+            p                 = rp * path (last_available, 0);
+          }
         }
       }
     }

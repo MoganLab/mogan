@@ -223,11 +223,11 @@ bridge_document_rep::my_typeset (int desired_status) {
   // cout << INDENT;
   if (is_nil (acc)) {
     int              i, n= N (st);
-    array<line_item> a= ttt->a;
-    array<line_item> b= ttt->b;
-    int              limit=
-        ttt->progressive_enabled ? min (n, ttt->progressive_cur_child) : n;
-    for (i= 0; i < limit; i++) {
+    array<line_item> a      = ttt->a;
+    array<line_item> b      = ttt->b;
+    int              start_i= ttt->progressive_enabled ? ttt->chunk_start : 0;
+    int end_i= ttt->progressive_enabled ? min (n, ttt->chunk_end) : n;
+    for (i= start_i; i < end_i; i++) {
       // cout << "Typesetting " << st[i] << LF;
       int wanted=
           (i == n - 1 ? desired_status & WANTED_MASK : WANTED_PARAGRAPH);

@@ -21,8 +21,9 @@ using lolly::data::decode_base64;
  * Routines for the pager class
  ******************************************************************************/
 
-pager_rep::pager_rep (path ip2, edit_env env2, array<page_item> l2)
-    : ip (ip2), env (env2), style (UNINIT), l (l2) {
+pager_rep::pager_rep (path ip2, edit_env env2, array<page_item> l2,
+                      array<box> frozen)
+    : ip (ip2), env (env2), style (UNINIT), l (l2), frozen_pages (frozen) {
   style (PAGE_THE_PAGE)     = env->read (PAGE_THE_PAGE);
   style (PAGE_THE_TOTAL)    = tree ("1");
   style (PAGE_ODD_HEADER)   = env->read (PAGE_ODD_HEADER);

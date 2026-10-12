@@ -208,9 +208,15 @@ pager_rep::pages_make () {
   skeleton sk= break_pages (l, ht, quality, fn_sep, fnote_sep, float_sep,
                             env->fn, env->first_page);
   int      i, n= N (sk);
-  env->write (PAGE_THE_TOTAL, as_string (n));
-  for (i= 0; i < n; i++)
-    pages << pages_make_page (sk[i]);
+  env->write (PAGE_THE_TOTAL, as_string (N (frozen_pages) + n));
+  pages    = copy (frozen_pages);
+  last_sk  = sk;
+  new_pages= array<box> ();
+  for (i= 0; i < n; i++) {
+    box pb= pages_make_page (sk[i]);
+    new_pages << pb;
+    pages << pb;
+  }
   if (env->page_packet == 2 && (N (pages) & 1) == 1)
     pages << pages_make_page (pagelet (space (0)));
 }

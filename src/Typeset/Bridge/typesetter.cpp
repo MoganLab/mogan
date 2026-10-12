@@ -11,6 +11,7 @@
 
 #include "Bridge/impl_typesetter.hpp"
 #include "iterator.hpp"
+#include "tm_debug.hpp"
 
 using namespace moebius;
 
@@ -20,10 +21,11 @@ using namespace moebius;
 
 typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
     : env (env2), old_patch (UNINIT), progressive_enabled (false),
-      progressive_target_pages (10), progressive_target_child (-1),
       progressive_cur_child (0), progressive_total_children (0),
-      progressive_pending (false), page_text_height (0),
-      accumulated_stream_height (0) {
+      progressive_pending (false), chunk_start (0), chunk_end (0),
+      doc_l (array<page_item> ()), doc_sb (stack_border ()),
+      frozen_page_boxes (array<box> ()), frozen_line_offset (0),
+      dynamic_buffer_pages (3), page_text_height (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -156,14 +158,22 @@ typesetter_rep::typeset () {
       page_text_height= th;
     }
     if (progressive_cur_child == 0) {
-      // Initial batch: first 50 paragraphs
-      progressive_cur_child= min (n, 50);
+      chunk_start       = 0;
+      chunk_end         = min (n, 50);
+      doc_l             = array<page_item> ();
+      doc_sb            = stack_border ();
+      frozen_page_boxes = array<box> ();
+      frozen_line_offset= 0;
     }
   }
   else {
     progressive_enabled  = false;
     progressive_pending  = false;
     progressive_cur_child= n;
+    chunk_start          = 0;
+    chunk_end            = n;
+    frozen_page_boxes    = array<box> ();
+    frozen_line_offset   = 0;
   }
 
   // Test whether we are doing a complete typesetting
@@ -188,16 +198,70 @@ typesetter_rep::typeset () {
     env->redefined= array<tree> ();
     env->touched  = hashmap<string, bool> (false);
   }
-  if (progressive_enabled && progressive_cur_child < n) {
+  if (progressive_enabled && chunk_end < n) {
     progressive_pending= true;
     env->complete      = false;
   }
   else {
     progressive_pending= false;
   }
+  bench_start ("typeset: br->typeset");
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
-  pager ppp= tm_new<pager_rep> (br->ip, env, l);
+  bench_end ("typeset: br->typeset", 5);
+
+  if (progressive_enabled) {
+    if (chunk_start == 0) {
+      doc_l = copy (l);
+      doc_sb= sb;
+    }
+    else {
+      merge_stack (doc_l, doc_sb, l, sb);
+    }
+    progressive_cur_child= chunk_end;
+  }
+
+  array<page_item> unfrozen_l;
+  if (progressive_enabled && frozen_line_offset > 0 &&
+      frozen_line_offset < N (doc_l)) {
+    unfrozen_l= range (doc_l, frozen_line_offset, N (doc_l));
+  }
+  else if (progressive_enabled) {
+    unfrozen_l= copy (doc_l);
+  }
+  else {
+    unfrozen_l= copy (l);
+  }
+
+  bench_start ("typeset: make_pages");
+  pager ppp= tm_new<pager_rep> (br->ip, env, unfrozen_l,
+                                progressive_enabled ? frozen_page_boxes
+                                                    : array<box> ());
   box   rb = ppp->make_pages ();
+  bench_end ("typeset: make_pages", 5);
+
+  if (progressive_enabled) {
+    int  num_new = N (ppp->new_pages);
+    bool is_final= (chunk_end >= n);
+    if (!is_final && num_new > dynamic_buffer_pages) {
+      int to_freeze= num_new - dynamic_buffer_pages;
+      for (int fi= 0; fi < to_freeze; fi++) {
+        frozen_page_boxes << ppp->new_pages[fi];
+      }
+      pagelet last_frozen_pg = ppp->last_sk[to_freeze - 1];
+      int     end_in_unfrozen= 0;
+      if (N (last_frozen_pg->ins) > 0) {
+        end_in_unfrozen=
+            last_frozen_pg->ins[N (last_frozen_pg->ins) - 1]->end->item;
+      }
+      frozen_line_offset+= end_in_unfrozen;
+    }
+    else if (is_final) {
+      for (int fi= 0; fi < num_new; fi++) {
+        frozen_page_boxes << ppp->new_pages[fi];
+      }
+      frozen_line_offset= N (doc_l);
+    }
+  }
   if (env->complete && paper) determine_page_references (rb);
   tm_delete (ppp);
   // env->complete= false;  // moved to edit_typeset_rep::typeset
@@ -216,7 +280,9 @@ typesetter_rep::typeset (SI& x1b, SI& y1b, SI& x2b, SI& y2b) {
 
   // Append pairs of rectangles to the change_log from the new typesetting box
   array<rectangle> change_log;
+  bench_start ("typeset: position_at");
   b->position_at (0, 0, change_log, changed_ptr);
+  bench_end ("typeset: position_at", 5);
 
   // Keeps the box rectangle in pair <before, after>
   // if before is zero rect, we only need to rendered the after rect
@@ -352,14 +418,16 @@ typeset (typesetter ttt, SI& x1, SI& y1, SI& x2, SI& y2) {
 
 void
 typesetter_rep::progressive_advance (int additional_paragraphs) {
-  progressive_cur_child= min (progressive_total_children,
-                              progressive_cur_child + additional_paragraphs);
+  chunk_start= progressive_cur_child;
+  chunk_end=
+      min (progressive_total_children, chunk_start + additional_paragraphs);
 }
 
 void
 typesetter_rep::progressive_fast_forward_until (int target_child) {
-  progressive_cur_child= min (progressive_total_children,
-                              max (progressive_cur_child, target_child));
+  chunk_start= progressive_cur_child;
+  chunk_end  = min (progressive_total_children,
+                    max (progressive_cur_child + 10, target_child + 50));
 }
 
 bool
@@ -372,11 +440,14 @@ typesetter_rep::progressive_should_pause (int current_child,
 
 void
 typesetter_rep::progressive_reset () {
-  progressive_cur_child    = 0;
-  progressive_target_pages = 10;
-  progressive_target_child = -1;
-  progressive_pending      = false;
-  accumulated_stream_height= 0;
+  progressive_cur_child= 0;
+  chunk_start          = 0;
+  chunk_end            = 0;
+  doc_l                = array<page_item> ();
+  doc_sb               = stack_border ();
+  frozen_page_boxes    = array<box> ();
+  frozen_line_offset   = 0;
+  progressive_pending  = false;
 }
 
 bool

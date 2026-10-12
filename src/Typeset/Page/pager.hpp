@@ -72,7 +72,12 @@ protected: // making page boxes
   void papyrus_make ();
 
 public:
-  pager_rep (path ip, edit_env env, array<page_item> l);
+  array<box> frozen_pages;
+  skeleton   last_sk;
+  array<box> new_pages;
+
+  pager_rep (path ip, edit_env env, array<page_item> l,
+             array<box> frozen= array<box> ());
 
   // void start_page ();
   // void print (page_item item);
