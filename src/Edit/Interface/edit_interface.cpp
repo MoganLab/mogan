@@ -344,7 +344,7 @@ edit_interface_rep::scroll_to (SI x, SI y) {
   copy_always = rectangles ();
   SERVER (scroll_to ((SI) (x * magf), ((SI) (y * magf))));
   typesetter ttt= get_typesetter ();
-  if (is_progressive_pending (ttt) && !is_nil (eb)) {
+  if (::is_progressive_pending (ttt) && !is_nil (eb)) {
     SI ph= progressive_get_page_height (ttt);
     if (ph > 0 && y <= eb->y1 + 3 * ph) {
       progressive_advance (ttt, 15);
@@ -1077,7 +1077,7 @@ edit_interface_rep::apply_changes () {
   if (env_change == 0) {
     if (new_visible == last_visible) {
       typesetter ttt= get_typesetter ();
-      if (is_progressive_pending (ttt)) {
+      if (::is_progressive_pending (ttt)) {
         static time_t last_idle_step= 0;
         time_t        now           = texmacs_time ();
         if (now - last_idle_step >= 200) {
@@ -1097,7 +1097,7 @@ edit_interface_rep::apply_changes () {
   // Check if scrolling near the bottom of currently typeset pages
   {
     typesetter ttt= get_typesetter ();
-    if (is_progressive_pending (ttt) && !is_nil (eb)) {
+    if (::is_progressive_pending (ttt) && !is_nil (eb)) {
       SI ph= progressive_get_page_height (ttt);
       if (ph > 0 && vy1 <= eb->y1 + 3 * ph) {
         progressive_advance (ttt, 15);

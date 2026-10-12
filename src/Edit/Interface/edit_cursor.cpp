@@ -467,7 +467,7 @@ void
 edit_cursor_rep::go_to (path p) {
   if (rp <= p) {
     typesetter ttt= get_typesetter ();
-    if (is_progressive_pending (ttt) && !is_nil (p)) {
+    if (::is_progressive_pending (ttt) && !is_nil (p)) {
       path rel_p= p / rp;
       if (!is_nil (rel_p)) {
         int target_child= rel_p->item;
@@ -479,10 +479,6 @@ edit_cursor_rep::go_to (path p) {
             apply_changes ();
           }
           else {
-            set_message (
-                translate ("Document is still typesetting in background, "
-                           "jumped to available page..."),
-                translate ("typesetting progress"));
             int last_available= max (0, cur_child - 1);
             p                 = rp * path (last_available, 0);
           }

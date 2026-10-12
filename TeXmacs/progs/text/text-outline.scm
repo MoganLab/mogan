@@ -138,17 +138,31 @@
   (if (and (string? path-str) (not (string-null? path-str)))
     (let* ((parts (string-split path-str #\:)) (p (map string->number parts)))
       (when (and (pair? p) (not (memq #f p)))
-        (with t
-          (path->tree p)
-          (if (and t (> (tree-arity t) 0)) (tree-go-to t 0 :start) (go-to-path p))
-          (with u
-            (current-view)
-            (when u
-              (make-cursor-visible u)
-              (delayed (:idle 1) (make-cursor-visible u))
-            ) ;when
+        (let* ((pending? (and (defined? 'progressive-pending?) (progressive-pending?)))
+               (cur-child (if pending? (progressive-cur-child) #f))
+               (chap-idx (and (>= (length p) 3) (caddr p)))
+               (unready? (and pending? cur-child chap-idx (>= chap-idx (+ cur-child 200))))
+              ) ;
+          (with t
+            (path->tree p)
+            (if (and t (> (tree-arity t) 0)) (tree-go-to t 0 :start) (go-to-path p))
+            (with u
+              (current-view)
+              (when u
+                (make-cursor-visible u)
+                (delayed (:idle 1) (make-cursor-visible u))
+              ) ;when
+            ) ;with
           ) ;with
-        ) ;with
+          (when unready?
+            (delayed (:idle 50)
+              (set-message (translate "Document is still typesetting in background, jumped to available page..."
+                           ) ;translate
+                (translate "typesetting progress")
+              ) ;set-message
+            ) ;delayed
+          ) ;when
+        ) ;let*
       ) ;when
     ) ;let*
   ) ;if

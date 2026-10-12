@@ -707,6 +707,16 @@ edit_typeset_rep::get_env_language () {
   else return prog_language (get_env_string (PROG_LANGUAGE));
 }
 
+bool
+edit_typeset_rep::is_progressive_pending () {
+  return ::is_progressive_pending (ttt);
+}
+
+int
+edit_typeset_rep::progressive_cur_child () {
+  return ::progressive_get_cur_child (ttt);
+}
+
 int
 edit_typeset_rep::get_page_count () {
   if (is_nil (eb) || N (eb) == 0) return 0;

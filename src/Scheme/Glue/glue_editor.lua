@@ -455,6 +455,16 @@ function main()
                 }
             },
             {
+                scm_name = "progressive-pending?",
+                cpp_name = "is_progressive_pending",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "progressive-cur-child",
+                cpp_name = "progressive_cur_child",
+                ret_type = "int"
+            },
+            {
                 scm_name = "get-page-count",
                 cpp_name = "get_page_count",
                 ret_type = "int"
