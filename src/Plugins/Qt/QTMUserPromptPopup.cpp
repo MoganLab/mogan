@@ -10,6 +10,7 @@
 
 #include "QTMUserPromptPopup.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_utilities.hpp"
 #include "server.hpp"
 #include <QFrame>
 #include <QSize>
@@ -244,7 +245,8 @@ QTMUserPromptPopup::eventFilter (QObject* obj, QEvent* event) {
 // =============================================================================
 QTMGhostTextPopup::QTMGhostTextPopup (QWidget*              parent,
                                       qt_simple_widget_rep* owner)
-    : QTMUserPromptPopup (parent, owner, "接受  →", "拒绝  Esc") {
+    : QTMUserPromptPopup (parent, owner, qt_translate ("Accept") + "  →",
+                          qt_translate ("Reject") + "  Esc") {
   setObjectName ("ghost_text_popup");
 }
 
@@ -277,7 +279,8 @@ QTMGhostTextPopup::onBadClicked () {
 // =============================================================================
 QTMDiffTextPopup::QTMDiffTextPopup (QWidget*              parent,
                                     qt_simple_widget_rep* owner)
-    : QTMUserPromptPopup (parent, owner, "接受  Enter", "拒绝  ESC") {
+    : QTMUserPromptPopup (parent, owner, qt_translate ("Accept") + "  Enter",
+                          qt_translate ("Reject") + "  ESC") {
   setObjectName ("diff_text_popup");
 }
 

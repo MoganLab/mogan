@@ -29,10 +29,10 @@ extern void load_user_preferences ();
 // Using declarations for Moebius functions
 using moebius::drd::init_std_drd;
 
-BootstrapTaskExecutor::BootstrapTaskExecutor (QObject* parent)
+BootstrapTaskExecutor::BootstrapTaskExecutor (QObject* parent, bool chineseMode)
     : QObject (parent), m_running (false), m_cancelled (false),
-      m_completed (false), m_success (false), m_progress (0),
-      m_errorMessage (""), m_currentStatus (""),
+      m_completed (false), m_success (false), m_chineseMode (chineseMode),
+      m_progress (0), m_errorMessage (""), m_currentStatus (""),
       m_currentStep (TaskStep::NotStarted), m_startTime (0),
       m_stepStartTime (0), m_executionTimer (nullptr) {
 
@@ -44,6 +44,11 @@ BootstrapTaskExecutor::BootstrapTaskExecutor (QObject* parent)
   m_stepDurations[static_cast<int> (TaskStep::FontInitialization)]= 2000; // 3秒
   m_stepDurations[static_cast<int> (TaskStep::StdDrdInitialization)]=
       500; // 2秒
+}
+
+QString
+BootstrapTaskExecutor::trText (const QString& en, const QString& zh) const {
+  return m_chineseMode ? zh : en;
 }
 
 // Exception handling wrapper implementation
@@ -130,25 +135,25 @@ BootstrapTaskExecutor::executeNextSegment () {
     switch (m_currentStep) {
     case TaskStep::FileSystemCheck:
       stepSuccess= performFileSystemCheck ();
-      stepMessage= "检查文件系统...";
+      stepMessage= trText ("Checking file system...", "检查文件系统...");
       nextStep   = TaskStep::ConfigurationLoad;
       break;
 
     case TaskStep::ConfigurationLoad:
       stepSuccess= performConfigurationLoad ();
-      stepMessage= "加载配置...";
+      stepMessage= trText ("Loading configuration...", "加载配置...");
       nextStep   = TaskStep::FontInitialization;
       break;
 
     case TaskStep::FontInitialization:
       stepSuccess= performFontInitialization ();
-      stepMessage= "初始化字体...";
+      stepMessage= trText ("Initializing fonts...", "初始化字体...");
       nextStep   = TaskStep::StdDrdInitialization;
       break;
 
     case TaskStep::StdDrdInitialization:
       stepSuccess= performStdDrdInitialization ();
-      stepMessage= "初始化标准DRD...";
+      stepMessage= trText ("Initializing standard DRD...", "初始化标准DRD...");
       nextStep   = TaskStep::Complete;
       break;
 
@@ -329,7 +334,8 @@ BootstrapTaskExecutor::handleExecutionStopped () {
   m_completed= true;
   m_success  = false;
   if (m_cancelled) {
-    m_errorMessage= "初始化被用户取消";
+    m_errorMessage=
+        trText ("Initialization cancelled by user", "初始化被用户取消");
   }
   emit initializationComplete (false);
 }
@@ -339,14 +345,16 @@ BootstrapTaskExecutor::completeInitialization () {
   m_running  = false;
   m_completed= true;
   m_success  = true;
-  updateProgress (TaskStep::Complete, "初始化完成");
+  updateProgress (TaskStep::Complete,
+                  trText ("Initialization complete", "初始化完成"));
   emit initializationComplete (true);
 }
 
 void
 BootstrapTaskExecutor::handleUnexpectedStep () {
-  m_errorMessage=
-      QString ("意外的步骤: %1").arg (static_cast<int> (m_currentStep));
+  m_errorMessage= trText (
+      QString ("Unexpected step: %1").arg (static_cast<int> (m_currentStep)),
+      QString ("意外的步骤: %1").arg (static_cast<int> (m_currentStep)));
   m_running  = false;
   m_completed= true;
   m_success  = false;
@@ -359,7 +367,8 @@ BootstrapTaskExecutor::handleStepFailure (const QString& stepMessage) {
   m_running     = false;
   m_completed   = true;
   m_success     = false;
-  m_errorMessage= QString ("步骤失败: %1").arg (stepMessage);
+  m_errorMessage= trText (QString ("Step failed: %1").arg (stepMessage),
+                          QString ("步骤失败: %1").arg (stepMessage));
   emit errorOccurred (m_errorMessage);
   emit initializationComplete (false);
 }
@@ -369,8 +378,9 @@ BootstrapTaskExecutor::handleException (const QString& error) {
   m_running     = false;
   m_completed   = true;
   m_success     = false;
-  m_errorMessage= QString ("异常: %1").arg (error);
-  qWarning () << "BootstrapTaskExecutor: 异常:" << m_errorMessage;
+  m_errorMessage= trText (QString ("Exception: %1").arg (error),
+                          QString ("异常: %1").arg (error));
+  qWarning () << "BootstrapTaskExecutor: Exception:" << m_errorMessage;
   emit errorOccurred (m_errorMessage);
   emit initializationComplete (false);
 }
@@ -380,8 +390,9 @@ BootstrapTaskExecutor::handleUnknownException () {
   m_running     = false;
   m_completed   = true;
   m_success     = false;
-  m_errorMessage= "初始化过程中发生未知异常";
-  qWarning () << "BootstrapTaskExecutor: 未知异常";
+  m_errorMessage= trText ("Unknown exception occurred during initialization",
+                          "初始化过程中发生未知异常");
+  qWarning () << "BootstrapTaskExecutor: Unknown exception";
   emit errorOccurred (m_errorMessage);
   emit initializationComplete (false);
 }

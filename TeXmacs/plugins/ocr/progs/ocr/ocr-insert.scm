@@ -142,7 +142,8 @@
 (define (ocr-insert-list-by-cursor array-json)
   (if (vector? array-json)
     (ocr-render-layout-document-by-cursor (ocr-blocks->layout array-json))
-    (notify-user (from-left "识别异常，请联系客服！"))
+    (notify-user (from-left (translate "OCR error, please contact customer support!"))
+    ) ;notify-user
   ) ;if
 ) ;define
 
@@ -152,34 +153,41 @@
      ((string=? format "list")
       (if (vector? text)
         (ocr-insert-list-by-cursor text)
-        (notify-user (from-left "识别异常，请联系客服！"))
+        (notify-user (from-left (translate "OCR error, please contact customer support!"))
+        ) ;notify-user
       ) ;if
      ) ;
      ((string=? format "latex")
       (if (string? text)
         (if (string-null? text)
-          (notify-user (from-left "识别结果为空，请联系客服！"))
+          (notify-user (from-left (translate "OCR result is empty, please contact customer support!"))
+          ) ;notify-user
           (ocr-insert-latex-by-cursor text)
         ) ;if
-        (notify-user (from-left "识别异常，请联系客服！"))
+        (notify-user (from-left (translate "OCR error, please contact customer support!"))
+        ) ;notify-user
       ) ;if
      ) ;
      ((string=? format "markdown")
       (if (string? text)
         (if (string-null? text)
-          (notify-user (from-left "识别结果为空，请联系客服！"))
+          (notify-user (from-left (translate "OCR result is empty, please contact customer support!"))
+          ) ;notify-user
           (ocr-insert-markdown-by-cursor text)
         ) ;if
-        (notify-user (from-left "识别异常，请联系客服！"))
+        (notify-user (from-left (translate "OCR error, please contact customer support!"))
+        ) ;notify-user
       ) ;if
      ) ;
      ((string=? format "html")
       (if (string? text)
         (if (string-null? text)
-          (notify-user (from-left "识别结果为空，请联系客服！"))
+          (notify-user (from-left (translate "OCR result is empty, please contact customer support!"))
+          ) ;notify-user
           (ocr-insert-html-by-cursor text)
         ) ;if
-        (notify-user (from-left "识别异常，请联系客服！"))
+        (notify-user (from-left (translate "OCR error, please contact customer support!"))
+        ) ;notify-user
       ) ;if
      ) ;
      (else #t)

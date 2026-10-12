@@ -44,6 +44,8 @@ public:
   ~StartupLoginDialog ();
 
   static bool shouldShow ();
+  static bool isChineseLanguage ();
+  QString     trText (const QString& en, const QString& zh) const;
 
   void   setAsyncStartupMode (bool enabled);
   void   notifyLoginSucceeded ();
@@ -141,6 +143,7 @@ private:
   bool              dragInProgress;
   QPoint            dragOffset;
   bool              asyncStartupMode;
+  bool              m_isChinese;
   QPointer<QWidget> mainWindowOverlayHost;
   QPointer<QWidget> mainWindowOverlay;
 };

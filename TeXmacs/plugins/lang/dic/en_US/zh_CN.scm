@@ -3156,3 +3156,82 @@
 ("Keep dark mode in exported PDF"
   "在导出的PDF中，仍旧采用深色模式"
 ) ;
+("Previous" "上一步")
+("Next" "下一步")
+("Finish" "完成")
+("Complete the required paste action for this step before continuing"
+  "完成当前步骤要求的粘贴操作后才可继续"
+) ;
+("Congratulations! You can also use shortcut Ctrl+Shift+v/Command+Shift+v or the image floating menu to trigger OCR! All tutorials completed!"
+  "恭喜您！您也可以使用快捷键 Ctrl+Shift+v/Command+Shift+v 或图片悬浮菜单触发 OCR！所有教程已完成！"
+) ;
+("Congratulations! You can also use shortcut Ctrl+Shift+v/Command+Shift+v to trigger! You can now proceed to the next step"
+  "恭喜您！您也可以使用快捷键 Ctrl+Shift+v/Command+Shift+v 触发！现在可以进行下一步了"
+) ;
+("Get to Know the Main Window" "认识一下主窗口")
+("This is the main workspace of Liii STEM. The tutorial will point out the most commonly used areas in turn to help you quickly build basic understanding."
+  "这是 Liii STEM 的主工作区。教程会依次指出最常用的几个区域，帮助你快速建立基本认知。"
+) ;
+("Here is the Window Top" "这里是窗口顶部")
+("This area contains window switching, tabs, and common entries. You will switch documents and access global features from here frequently."
+  "这里包含窗口切换、标签页和常用入口。你以后会频繁从这里切换文档和访问全局功能。"
+) ;
+("Here is the Main Toolbar" "这里是主工具栏")
+("Common formatting, insertion, and typesetting operations are concentrated here. Buttons will also adapt depending on different editing contexts."
+  "常见的格式、插入和排版操作会集中在这一带。不同编辑场景下，这里的按钮也会变化。"
+) ;
+("Here is the Editor Area" "这里是编辑区")
+("Document content is mainly entered, typeset, and modified here. Whether formulas, text, or structured content, core operations revolve around this area."
+  "文档内容主要在这里输入、排版和修改。无论是公式、文本还是结构化内容，核心操作都围绕这个区域展开。"
+) ;
+("Here is the Extension Entry" "这里是扩展能力入口")
+("This side is used for auxiliary capabilities or extension panels; if the current panel is not shown, the tutorial falls back to the login and capability entry to help you find where to explore next."
+  "这一侧用于放置辅助能力或扩展面板；如果当前面板未显示，教程会退化到登录与能力入口，帮助你找到后续探索的位置。"
+) ;
+("Accept" "接受")
+("Reject" "拒绝")
+("Cloud" "云端")
+("Login Successful" "登录成功")
+("Outline" "大纲")
+("OCR error, please contact customer support!"
+  "识别异常，请联系客服！"
+) ;
+("OCR result is empty, please contact customer support!"
+  "识别结果为空，请联系客服！"
+) ;
+("Enjoy core features for free, upgrade to paid for an efficient AI experience!"
+  "免费畅享核心功能，付费升级AI高效体验！"
+) ;
+("Enable auto backup" "开启自动备份")
+("Enter App" "进入软件")
+("Preparing initialization..." "准备初始化...")
+("Waiting for login to complete..." "正在等待登录完成...")
+("Dialog will close automatically after login"
+  "登录完成后弹窗自动关闭"
+) ;
+("Time remaining: " "剩余时间: ")
+(" minutes" "分钟")
+(" seconds" "秒")
+("No network connection detected" "当前未检测到网络连接")
+("Starting in offline mode, membership features are temporarily unavailable"
+  "将以离线模式启动，会员功能暂不可用"
+) ;
+("Initialization complete, register now for a 3-day membership!"
+  "初始化完成，注册即送3天会员！"
+) ;
+("Ready" "准备就绪")
+("Initialization failed" "初始化失败")
+("Please try again" "请重试")
+("Error: " "错误: ")
+("Checking file system..." "检查文件系统...")
+("Loading configuration..." "加载配置...")
+("Initializing fonts..." "初始化字体...")
+("Initializing standard DRD..." "初始化标准DRD...")
+("Initialization cancelled by user" "初始化被用户取消")
+("Initialization complete" "初始化完成")
+("Unexpected step: %1" "意外的步骤: %1")
+("Step failed: %1" "步骤失败: %1")
+("Exception: %1" "异常: %1")
+("Unknown exception occurred during initialization"
+  "初始化过程中发生未知异常"
+) ;

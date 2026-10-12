@@ -577,8 +577,8 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   mediaLayout->setSpacing (0);
   mediaLayout->addWidget (m_mediaLabel, 0, Qt::AlignCenter);
 
-  m_previousButton->setText (qt_translate ("上一步"));
-  m_nextButton->setText (qt_translate ("下一步"));
+  m_previousButton->setText (qt_translate ("Previous"));
+  m_nextButton->setText (qt_translate ("Next"));
 
   auto* footerLayout= new QHBoxLayout ();
   footerLayout->setContentsMargins (0, 0, 0, 0);
@@ -791,8 +791,8 @@ TutorialBubble::applyNextButtonAppearance () {
     m_nextButton->setEnabled (true);
     return;
   }
-  m_nextButton->setText (m_isLastStep ? qt_translate ("完成")
-                                      : qt_translate ("下一步"));
+  m_nextButton->setText (m_isLastStep ? qt_translate ("Finish")
+                                      : qt_translate ("Next"));
   m_nextButton->setEnabled (m_nextGateEnabled);
 }
 
@@ -803,7 +803,7 @@ TutorialBubble::emitNextButtonAction () {
     emit actionRequested (m_actionCommand);
     return;
   }
-  if (m_nextButton->text () == qt_translate ("完成")) emit finishRequested ();
+  if (m_nextButton->text () == qt_translate ("Finish")) emit finishRequested ();
   else emit nextRequested ();
 }
 
@@ -1191,8 +1191,9 @@ TutorialEngine::updateCurrentStepGate () {
   }
 
   reset_user_preference (kTutorialLastActionPreference);
-  m_overlay->setNextEnabled (
-      false, qt_translate ("完成当前步骤要求的粘贴操作后才可继续"));
+  m_overlay->setNextEnabled (false,
+                             qt_translate ("Complete the required paste action "
+                                           "for this step before continuing"));
   if (!m_actionPollTimer->isActive ()) m_actionPollTimer->start ();
 }
 
@@ -1218,15 +1219,20 @@ TutorialEngine::pollRequiredAction () {
   reset_user_preference (kTutorialLastActionPreference);
   QString notice;
   if (step.requiredAction == QStringLiteral ("ocr-paste")) {
-    notice= QStringLiteral (
-        "<span style=\"color:#0f766e\">恭喜您！您也可以使用快捷键 "
-        "Ctrl+Shift+v/Command+Shift+v 或图片悬浮菜单触发 "
-        "OCR！所有教程已完成！</span>");
+    notice=
+        "<span style=\"color:#0f766e\">" +
+        qt_translate ("Congratulations! You can also use shortcut "
+                      "Ctrl+Shift+v/Command+Shift+v or the image floating menu "
+                      "to trigger OCR! All tutorials completed!") +
+        "</span>";
   }
   else {
-    notice= QStringLiteral (
-        "<span style=\"color:#0f766e\">恭喜您！您也可以使用快捷键 "
-        "Ctrl+Shift+v/Command+Shift+v 触发！现在可以进行下一步了</span>");
+    notice=
+        "<span style=\"color:#0f766e\">" +
+        qt_translate ("Congratulations! You can also use shortcut "
+                      "Ctrl+Shift+v/Command+Shift+v to trigger! You can now "
+                      "proceed to the next step") +
+        "</span>";
   }
   m_overlay->appendBottomNotice (notice);
   updateCurrentStepGate ();
@@ -1402,31 +1408,41 @@ FirstLaunchTutorialController::buildFallbackFlow () const {
   flow.flowId = "first-launch";
   flow.version= 1;
   flow.steps  = {
-      {"welcome", qt_translate ("认识一下主窗口"), "mainWindowSafeArea",
-         TutorialPlacement::Bottom, 12, true,
-         qt_translate ("这是 Liii STEM "
-                         "的主工作区。教程会依次指出最常用的几个区域，帮助你快速建"
-                         "立基本认知。"),
+      {"welcome", qt_translate ("Get to Know the Main Window"),
+         "mainWindowSafeArea", TutorialPlacement::Bottom, 12, true,
+         qt_translate (
+           "This is the main workspace of Liii STEM. The tutorial will point "
+             "out the most commonly used areas in turn to help you quickly "
+             "build basic understanding."),
          QString (), QString ()},
-      {"windowbar", qt_translate ("这里是窗口顶部"), "windowbar",
+      {"windowbar", qt_translate ("Here is the Window Top"), "windowbar",
          TutorialPlacement::Bottom, 10, true,
-         qt_translate ("这里包含窗口切换、标签页和常用入口。你以后会频繁从这里切"
-                         "换文档和访问全局功能。"),
+         qt_translate (
+           "This area contains window switching, tabs, and common entries. "
+             "You will switch documents and access global features from here "
+             "frequently."),
          QString (), QString ()},
-      {"toolbar", qt_translate ("这里是主工具栏"), "toolbarArea",
+      {"toolbar", qt_translate ("Here is the Main Toolbar"), "toolbarArea",
          TutorialPlacement::Bottom, 10, true,
-         qt_translate ("常见的格式、插入和排版操作会集中在这一带。不同编辑场景下"
-                         "，这里的按钮也会变化。"),
+         qt_translate (
+           "Common formatting, insertion, and typesetting operations are "
+             "concentrated here. Buttons will also adapt depending on "
+             "different editing contexts."),
          QString (), QString ()},
-      {"editor", qt_translate ("这里是编辑区"), "editorArea",
+      {"editor", qt_translate ("Here is the Editor Area"), "editorArea",
          TutorialPlacement::Top, 12, true,
-         qt_translate ("文档内容主要在这里输入、排版和修改。无论是公式、文本还是"
-                         "结构化内容，核心操作都围绕这个区域展开。"),
+         qt_translate (
+           "Document content is mainly entered, typeset, and modified here. "
+             "Whether formulas, text, or structured content, core operations "
+             "revolve around this area."),
          QString (), QString ()},
-      {"assistant", qt_translate ("这里是扩展能力入口"), "assistantEntry",
-         TutorialPlacement::Left, 10, true,
-         qt_translate ("这一侧用于放置辅助能力或扩展面板；如果当前面板未显示，教"
-                         "程会退化到登录与能力入口，帮助你找到后续探索的位置。"),
+      {"assistant", qt_translate ("Here is the Extension Entry"),
+         "assistantEntry", TutorialPlacement::Left, 10, true,
+         qt_translate (
+           "This side is used for auxiliary capabilities or extension "
+             "panels; if the current panel is not shown, the tutorial falls "
+             "back to the login and capability entry to help you find where to "
+             "explore next."),
          QString (), QString ()},
   };
   return flow;

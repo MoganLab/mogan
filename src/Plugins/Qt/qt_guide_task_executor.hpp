@@ -38,8 +38,13 @@ public:
     Complete
   };
 
-  explicit BootstrapTaskExecutor (QObject* parent= nullptr);
+  explicit BootstrapTaskExecutor (QObject* parent     = nullptr,
+                                  bool     chineseMode= true);
   ~BootstrapTaskExecutor ();
+
+  void    setChineseMode (bool enabled) { m_chineseMode= enabled; }
+  bool    isChineseMode () const { return m_chineseMode; }
+  QString trText (const QString& en, const QString& zh) const;
 
   /**
    * @brief Start the initialization tasks
@@ -162,6 +167,7 @@ private:
   bool     m_cancelled;
   bool     m_completed;
   bool     m_success;
+  bool     m_chineseMode;
   int      m_progress;
   QString  m_errorMessage;
   QString  m_currentStatus;

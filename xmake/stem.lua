@@ -24,3 +24,4 @@ stem_lab_big_name= "MoganLab"
 stem_prefix_dir = "share/" .. stem_lab_name
 
 is_community = true
+is_overseas = false

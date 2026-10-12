@@ -561,7 +561,9 @@ QTMOAuth::refreshCallbackHtml () {
   redirectUrl+= "instance=" + m_instanceId;
   QString customHtml= "<!doctype html><html><head>"
                       "<meta charset='utf-8'>"
-                      "<title>登录成功</title>"
+                      "<title>" +
+                      qt_translate ("Login Successful") +
+                      "</title>"
                       "</head><body>"
                       "<script>window.location.replace(\"" +
                       redirectUrl +

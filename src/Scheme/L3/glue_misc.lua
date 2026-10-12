@@ -156,6 +156,11 @@ function main()
                 cpp_name = "is_community_stem",
                 ret_type = "bool"
             },
+            {
+                scm_name = "overseas-stem?",
+                cpp_name = "is_overseas_stem",
+                ret_type = "bool"
+            },
         }
     }
 end

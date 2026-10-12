@@ -632,7 +632,7 @@ QTMHomePage::renderRecentDocs () {
     // 定制，内联样式作兜底）。
     QLabel* cloudLabel= nullptr;
     if (doc.isCloud) {
-      cloudLabel= new QLabel (QStringLiteral ("云端"), rowWidget);
+      cloudLabel= new QLabel (qt_translate ("Cloud"), rowWidget);
       cloudLabel->setObjectName ("startup-tab-cloud-badge");
       DpiUtils::applyScaledFont (cloudLabel, kRecentTimeFontPx);
       cloudLabel->setAlignment (Qt::AlignCenter);

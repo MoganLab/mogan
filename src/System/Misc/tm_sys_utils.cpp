@@ -294,6 +294,15 @@ is_community_stem () {
 #endif
 }
 
+bool
+is_overseas_stem () {
+#ifdef IS_OVERSEAS
+  return true;
+#else
+  return false;
+#endif
+}
+
 /******************************************************************************
  * STEM User-Agent and Device ID
  ******************************************************************************/

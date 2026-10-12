@@ -63,6 +63,11 @@ option("is_community")
     set_description("Adjust community or commercial version")
 option_end()
 
+option("is_overseas")
+    set_default(is_overseas)
+    set_description("Build overseas version with English as default language")
+option_end()
+
 option("debug_with_timestamp")
     set_default(true)
     set_description("Enable timestamps in debug messages")
