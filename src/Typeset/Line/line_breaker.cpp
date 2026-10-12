@@ -9,8 +9,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
+#include "Line/line_breaker.hpp"
 #include "Boxes/construct.hpp"
-#include "Format/line_item.hpp"
 #define PEN DI
 
 using namespace moebius;
@@ -60,10 +60,16 @@ struct line_breaker_rep {
   SI                     first_spc;
   SI                     last_spc;
   int                    pass;
+  array<lb_info>         atom_best;
   hashmap<path, lb_info> best;
 
   line_breaker_rep (array<line_item> a, int start, int end, SI line_width,
                     SI large_width, SI first_spc, SI last_spc);
+
+  inline lb_info get_lb_info (path pos) {
+    if (is_atom (pos) && pos->item <= end) return atom_best[pos->item];
+    return best (pos);
+  }
 
   void        empty_line_fix (line_item& first, path& pos, int& cur_nr);
   path        next_ragged_break (path pos);
@@ -71,7 +77,7 @@ struct line_breaker_rep {
 
   void test_better (path new_pos, path old_pos, int penalty, PEN pen_spc);
   bool propose_break (path new_pos, path old_pos, int penalty, space spc);
-  void break_string (line_item item, path pos, int i, space spc);
+  void break_string (line_item item, string item_s, path pos, int i, space spc);
   void process (path pos);
   void get_breaks (array<path>& ap, path p);
   array<path> compute_breaks ();
@@ -260,8 +266,7 @@ line_breaker_rep::compute_ragged_breaks () {
 void
 line_breaker_rep::test_better (path new_pos, path old_pos, int pen,
                                PEN pen_spc) {
-  if (!best->contains (new_pos)) best (new_pos)= lb_info ();
-  lb_info cur= best[new_pos];
+  lb_info cur= get_lb_info (new_pos);
   // cout << "Test " << new_pos << " vs " << old_pos
   //      << ", " << pen << " vs " << cur->pen
   //      << ", " << pen_spc << " vs " << cur->pen_spc << "\n";
@@ -281,7 +286,7 @@ square (PEN i) {
 bool
 line_breaker_rep::propose_break (path new_pos, path old_pos, int pen,
                                  space spc) {
-  lb_info cur= best[old_pos];
+  lb_info cur= get_lb_info (old_pos);
 
   if ((spc->min <= line_width) &&
       ((spc->max >= line_width) || (new_pos->item == end))) {
@@ -323,10 +328,10 @@ line_breaker_rep::propose_break (path new_pos, path old_pos, int pen,
  ******************************************************************************/
 
 void
-line_breaker_rep::break_string (line_item item, path pos, int i, space spc) {
+line_breaker_rep::break_string (line_item item, string item_s, path pos, int i,
+                                space spc) {
   int        j;
-  string     item_s= item->b->get_leaf_string ();
-  array<int> hp    = item->lan->get_hyphens (item_s);
+  array<int> hp= item->lan->get_hyphens (item_s);
 
   if ((item->b->w () > line_width) || (!is_atom (pos))) {
     j= get_position (item->b->get_leaf_font (), item_s, line_width - spc->def);
@@ -354,6 +359,19 @@ line_breaker_rep::break_string (line_item item, path pos, int i, space spc) {
   }
 }
 
+static inline bool
+can_hyphenate (string s) {
+  int n= N (s);
+  if (n <= 4) return false;
+  if (s[0] == '<') {
+    int i= 1;
+    while (i < n && s[i] != '>')
+      i++;
+    return i != n - 1;
+  }
+  return true;
+}
+
 void
 line_breaker_rep::process (path pos) {
   int       i;
@@ -373,15 +391,17 @@ line_breaker_rep::process (path pos) {
     spc= space (first->b->w ());
   }
 
-  if ((pass > 1) || (best[pos]->pen < HYPH_INVALID)) {
+  if ((pass > 1) || (get_lb_info (pos)->pen < HYPH_INVALID)) {
     // cout << "Process " << pos << ": " << first << "\n";
     for (i= pos->item; i < end; i++) {
       line_item item= a[i];
       if (i == pos->item) item= first;
       else spc= spc + a[i - 1]->spc + space (item->b->w ());
-      if ((spc->max > line_width) && (item->type == STRING_ITEM) &&
-          (N (item->b->get_leaf_string ()) > 4))
-        break_string (item, pos, i, spc + space (-item->b->w ()));
+      if ((spc->max > line_width) && (item->type == STRING_ITEM)) {
+        string item_s= item->b->get_leaf_string ();
+        if (can_hyphenate (item_s))
+          break_string (item, item_s, pos, i, spc + space (-item->b->w ()));
+      }
       if (item->penalty < HYPH_INVALID)
         if (propose_break (path (i + 1), pos, item->penalty, spc)) break;
       if ((item->type == CONTROL_ITEM) && (item->t == LINE_BREAK) &&
@@ -398,7 +418,7 @@ line_breaker_rep::process (path pos) {
   if (first->type == STRING_ITEM) {
     string first_s= first->b->get_leaf_string ();
     int    n      = N (first_s);
-    if (n > 4)
+    if (can_hyphenate (first_s))
       for (i= 0; i < n - 1; i++)
         if (best->contains (pos * i)) process (pos * i);
   }
@@ -411,7 +431,7 @@ line_breaker_rep::process (path pos) {
 void
 line_breaker_rep::get_breaks (array<path>& ap, path p) {
   if (is_nil (p)) return;
-  lb_info cur= best[p];
+  lb_info cur= get_lb_info (p);
   get_breaks (ap, cur->prev);
   ap << p;
 }
@@ -419,6 +439,7 @@ line_breaker_rep::get_breaks (array<path>& ap, path p) {
 array<path>
 line_breaker_rep::compute_breaks () {
   int i;
+  atom_best= array<lb_info> (end + 1);
   test_better (path (start), path (), 0, 0);
 
   pass= 1;
@@ -426,7 +447,7 @@ line_breaker_rep::compute_breaks () {
     process (path (i));
 
   pass= 2;
-  if (best[path (end)]->pen == HYPH_INVALID)
+  if (get_lb_info (path (end))->pen == HYPH_INVALID)
     for (i= start; i < end; i++)
       process (path (i));
 
