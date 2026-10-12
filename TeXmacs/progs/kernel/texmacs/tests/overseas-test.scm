@@ -21,7 +21,10 @@
 ) ;define
 
 (define (test-default-language)
-  (check (get-default-language) => (if (overseas-stem?) "english" (get-locale-language)))
+  (check (get-default-language)
+    =>
+    (if (overseas-stem?) "english" (get-locale-language))
+  ) ;check
 ) ;define
 
 (tm-define (regtest-overseas)
