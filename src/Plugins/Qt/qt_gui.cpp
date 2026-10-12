@@ -25,6 +25,7 @@
 #include "scheme.hpp"
 #include "server.hpp"
 #include "tm_file.hpp"
+#include "tm_sys_utils.hpp"
 #include "tm_window.hpp"
 
 #ifdef LORO_ENABLED
@@ -162,7 +163,15 @@ qt_gui_rep::qt_gui_rep (int& argc, char** argv)
   mac_install_filter ();
 #endif
 
-  set_output_language (get_locale_language ());
+  if (has_user_preference ("language")) {
+    set_output_language (get_user_preference ("language"));
+  }
+  else if (is_overseas_stem ()) {
+    set_output_language ("english");
+  }
+  else {
+    set_output_language (get_locale_language ());
+  }
   refresh_language ();
 
   updatetimer= new QTimer (gui_helper);

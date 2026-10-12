@@ -96,3 +96,5 @@ ${define USE_TEXT_TOOLBAR}
 ${define USE_TUTORIAL}
 
 ${define IS_COMMUNITY}
+
+${define IS_OVERSEAS}

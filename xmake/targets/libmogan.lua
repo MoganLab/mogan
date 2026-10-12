@@ -167,6 +167,7 @@ target("libmogan") do
                 USE_TEXT_TOOLBAR = has_config("text_toolbar"),
                 USE_TUTORIAL = not has_config("is_community"),
                 IS_COMMUNITY = has_config("is_community"),
+                IS_OVERSEAS = has_config("is_overseas"),
                 DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
                 }})
 

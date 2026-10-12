@@ -1019,11 +1019,12 @@ ChatController::buildDisplayInfos () {
     if (!s) continue;
 
     SessionDisplayInfo info;
-    info.sessionId   = s->sessionId;
-    info.model       = s->model;
-    info.archived    = s->archived;
-    info.type        = s->type;
-    info.displayTitle= is_empty (s->title) ? string ("新会话") : s->title;
+    info.sessionId= s->sessionId;
+    info.model    = s->model;
+    info.archived = s->archived;
+    info.type     = s->type;
+    info.displayTitle=
+        is_empty (s->title) ? translate ("New conversation") : s->title;
 
     infos.append (info);
   }
@@ -1035,7 +1036,7 @@ string
 ChatController::getSessionDisplayTitle (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (s && !is_empty (s->title)) return s->title;
-  return "新会话";
+  return translate ("New conversation");
 }
 
 /******************************************************************************

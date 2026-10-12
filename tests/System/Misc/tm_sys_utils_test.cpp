@@ -52,6 +52,7 @@ private slots:
   void test_get_downloads_path_env_override ();
   void test_get_downloads_path_xdg_user_dirs ();
   void test_get_downloads_path_fallback_home ();
+  void test_is_overseas_stem ();
 };
 
 void
@@ -116,6 +117,15 @@ TestTmSysUtils::test_get_downloads_path_fallback_home () {
   url downloads= get_downloads_path ();
   QVERIFY2 (as_string (downloads) == "/tmp/mogan-test-home/Downloads",
             as_charp ("fallback broken: " * as_string (downloads)));
+}
+
+void
+TestTmSysUtils::test_is_overseas_stem () {
+#ifdef IS_OVERSEAS
+  QCOMPARE (is_overseas_stem (), true);
+#else
+  QCOMPARE (is_overseas_stem (), false);
+#endif
 }
 
 QTEST_MAIN (TestTmSysUtils)

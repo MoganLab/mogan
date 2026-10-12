@@ -102,6 +102,10 @@
   "off"
 ) ;define
 
+(define (get-default-language)
+  (if (overseas-stem?) "english" (get-locale-language))
+) ;define
+
 (define-preferences ("profile" "beginner" (lambda args (noop)))
  ("look and feel" "default" notify-look-and-feel)
  ("case sensitive shortcuts" "default" noop)
@@ -109,7 +113,7 @@
  ("buffer management" (get-default-buffer-management) notify-buffer-management)
  ("complex actions" "popups" noop)
  ("interactive questions" (get-default-interactive-questions) noop)
- ("language" (get-locale-language) notify-language)
+ ("language" (get-default-language) notify-language)
  ("gui theme" "liii" notify-gui-theme)
  ("completion style" "popup" noop)
  ("page medium" "papyrus" (lambda args (noop)))

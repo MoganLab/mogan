@@ -95,12 +95,36 @@ StartupLoginDialog::shouldShow () {
   return !hasCachedLoginSession ();
 }
 
+bool
+StartupLoginDialog::isChineseLanguage () {
+  if (has_user_preference ("language")) {
+    return get_user_preference ("language") == "chinese";
+  }
+  url prefs_file= get_tm_preference_path ();
+  if (exists (prefs_file)) {
+    load_user_preferences ();
+    if (has_user_preference ("language")) {
+      return get_user_preference ("language") == "chinese";
+    }
+  }
+#ifdef IS_OVERSEAS
+  return false;
+#else
+  return true;
+#endif
+}
+
+QString
+StartupLoginDialog::trText (const QString& en, const QString& zh) const {
+  return m_isChinese ? zh : en;
+}
+
 // StartupLoginDialog implementation
 void
 StartupLoginDialog::setupUi () {
   // 创建标题标签
-  titleLabel= new QLabel (qt_translate ("欢迎使用 Liii STEM"),
-                          this); // Welcome to Liii STEM
+  titleLabel=
+      new QLabel (trText ("Welcome to Liii STEM", "欢迎使用 Liii STEM"), this);
   titleLabel->setAlignment (Qt::AlignCenter);
   titleLabel->setObjectName ("titleLabel");
 
@@ -119,23 +143,30 @@ StartupLoginDialog::setupUi () {
 
   // 创建子标题
   subtitleLabel= new QLabel (
-      qt_translate ("免费畅享核心功能，付费升级AI高效体验！"), this);
+      trText (
+          "Enjoy core features for free, upgrade to paid for an efficient AI "
+          "experience!",
+          "免费畅享核心功能，付费升级AI高效体验！"),
+      this);
   subtitleLabel->setAlignment (Qt::AlignCenter);
   subtitleLabel->setObjectName ("subtitleLabel");
 
   // 创建功能特性标签
   featureLabel1= new QLabel (
-      "1. " + qt_translate ("Register now and receive a 3-day membership."),
-      this); // Register now and receive a 3-day membership.
+      "1. " + trText ("Register now and receive a 3-day membership.",
+                      "注册即送3天会员"),
+      this);
   featureLabel2= new QLabel (
-      "2. " + qt_translate ("Log in to sync settings and access all features"),
-      this); // Log in to sync settings and access all features
-  featureLabel3=
-      new QLabel ("3. " + qt_translate ("Log in to chat with the AI."),
-                  this); // Log in to chat with the AI.
-  featureLabel4= new QLabel (
-      "4. " + qt_translate ("Log in and enjoy seamless Markdown import."),
-      this); // Log in and enjoy seamless Markdown import.
+      "2. " + trText ("Log in to sync settings and access all features",
+                      "登录即可同步设置并访问所有功能。"),
+      this);
+  featureLabel3= new QLabel (
+      "3. " + trText ("Log in to chat with the AI.", "登录即可与AI进行对话"),
+      this);
+  featureLabel4=
+      new QLabel ("4. " + trText ("Log in and enjoy seamless Markdown import.",
+                                  "登录即享Markdown无缝导入"),
+                  this);
 
   featureLabel1->setObjectName ("featureLabel");
   featureLabel2->setObjectName ("featureLabel");
@@ -143,20 +174,20 @@ StartupLoginDialog::setupUi () {
   featureLabel4->setObjectName ("featureLabel");
 
   // 自动备份勾选框
-  autoBackupCheckBox= new QCheckBox (qt_translate ("开启自动备份"), this);
+  autoBackupCheckBox=
+      new QCheckBox (trText ("Enable auto backup", "开启自动备份"), this);
   autoBackupCheckBox->setObjectName ("autoBackupCheckBox");
   autoBackupCheckBox->setChecked (getAutoBackup ());
 
   // 创建按钮
-  loginButton= new QPushButton (qt_translate ("登录"), this); // 登录 Log In
+  loginButton= new QPushButton (trText ("Log In", "登录"), this);
   loginButton->setObjectName ("loginButton");
   loginButton->setDefault (true);
   if (offlineMode) {
-    loginButton->setText (qt_translate ("进入软件"));
+    loginButton->setText (trText ("Enter App", "进入软件"));
   }
 
-  skipButton=
-      new QPushButton (qt_translate ("跳过登录"), this); // 跳过登录 Skip Login
+  skipButton= new QPushButton (trText ("Skip Login", "跳过登录"), this);
   skipButton->setObjectName ("skipButton");
 
   // 创建布局
@@ -355,7 +386,7 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
       initializationInProgress (false), initializationComplete (false),
       userChoiceMade (false), waitingForLoginCompletion (false),
       offlineMode (!qt_has_network_connection ()), dragInProgress (false),
-      asyncStartupMode (false) {
+      asyncStartupMode (false), m_isChinese (isChineseLanguage ()) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &
@@ -443,7 +474,8 @@ StartupLoginDialog::initializeProgressUi () {
   progressBar->setVisible (false); // 初始隐藏
 
   // 创建状态标签
-  statusLabel= new QLabel (qt_translate ("准备初始化..."), this);
+  statusLabel= new QLabel (
+      trText ("Preparing initialization...", "准备初始化..."), this);
   statusLabel->setObjectName ("statusLabel");
   statusLabel->setAlignment (Qt::AlignCenter);
   statusLabel->setVisible (false);
@@ -475,7 +507,7 @@ StartupLoginDialog::startInitialization () {
   showProgressUI ();
 
   // 更新状态
-  statusLabel->setText (qt_translate ("正在初始化..."));
+  statusLabel->setText (trText ("Initializing...", "正在初始化..."));
 
   if (asyncStartupMode) {
     enableButtons (false);
@@ -512,7 +544,8 @@ StartupLoginDialog::startInitialization () {
 void
 StartupLoginDialog::startBackgroundInitialization () {
   // 创建并配置引导任务执行器（单线程）
-  BootstrapTaskExecutor* executor= new BootstrapTaskExecutor (this);
+  BootstrapTaskExecutor* executor=
+      new BootstrapTaskExecutor (this, m_isChinese);
 
   // 连接执行器信号到处理函数
   connect (executor, &BootstrapTaskExecutor::progressUpdated, this,
@@ -565,8 +598,10 @@ StartupLoginDialog::handleLoginButtonClick () {
   if (asyncStartupMode) {
     waitingForLoginCompletion= true;
     enableButtons (true);
-    updateProgressUI (100, qt_translate ("正在等待登录完成..."),
-                      qt_translate ("登录完成后弹窗自动关闭"));
+    updateProgressUI (
+        100, trText ("Waiting for login to complete...", "正在等待登录完成..."),
+        trText ("Dialog will close automatically after login",
+                "登录完成后弹窗自动关闭"));
     return;
   }
 
@@ -618,16 +653,14 @@ StartupLoginDialog::handleTimeEstimationUpdate (qint64 elapsedMs,
     QString timeText;
 
     if (remainingSec > 60) {
-      // 分开翻译，避免 %1 被翻译系统错误处理
-      QString prefix= qt_translate ("剩余时间: ");
-      QString suffix= qt_translate ("分钟");
+      QString prefix= trText ("Time remaining: ", "剩余时间: ");
+      QString suffix= trText (" minutes", "分钟");
       timeText=
           prefix + QString::number ((remainingSec + 30) / 60) + " " + suffix;
     }
     else {
-      // 分开翻译，避免 %1 被翻译系统错误处理
-      QString prefix= qt_translate ("剩余时间: ");
-      QString suffix= qt_translate ("秒");
+      QString prefix= trText ("Time remaining: ", "剩余时间: ");
+      QString suffix= trText (" seconds", "秒");
       timeText=
           prefix + QString::number (qMax (remainingSec, 1)) + " " + suffix;
     }
@@ -647,12 +680,21 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
       progressBar->setRange (0, 100);
     }
     if (offlineMode) {
-      updateProgressUI (100, qt_translate ("当前未检测到网络连接"),
-                        qt_translate ("将以离线模式启动，会员功能暂不可用"));
+      updateProgressUI (
+          100,
+          trText ("No network connection detected", "当前未检测到网络连接"),
+          trText (
+              "Starting in offline mode, membership features are temporarily "
+              "unavailable",
+              "将以离线模式启动，会员功能暂不可用"));
     }
     else {
-      updateProgressUI (100, qt_translate ("初始化完成，注册即送3天会员！"),
-                        qt_translate ("准备就绪"));
+      updateProgressUI (
+          100,
+          trText (
+              "Initialization complete, register now for a 3-day membership!",
+              "初始化完成，注册即送3天会员！"),
+          trText ("Ready", "准备就绪"));
     }
 
     // 如果用户已经做出选择，触发过渡
@@ -661,8 +703,11 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
     }
     else if (asyncStartupMode && waitingForLoginCompletion) {
       enableButtons (true);
-      updateProgressUI (100, qt_translate ("正在等待登录完成..."),
-                        qt_translate ("登录成功后自动关闭"));
+      updateProgressUI (
+          100,
+          trText ("Waiting for login to complete...", "正在等待登录完成..."),
+          trText ("Dialog will close automatically after login",
+                  "登录成功后自动关闭"));
     }
     else {
       // 启用按钮并更新UI以供用户选择
@@ -672,7 +717,8 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
   }
   else {
     // 初始化失败
-    updateProgressUI (0, qt_translate ("初始化失败"), qt_translate ("请重试"));
+    updateProgressUI (0, trText ("Initialization failed", "初始化失败"),
+                      trText ("Please try again", "请重试"));
 
     // 重新启用按钮以便重试（虽然重试功能尚未实现）
     enableButtons (true);
@@ -689,8 +735,7 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
 
 void
 StartupLoginDialog::handleErrorOccurred (const QString& error) {
-  // 分开翻译，避免 %1 被翻译系统错误处理
-  QString prefix= qt_translate ("错误: ");
+  QString prefix= trText ("Error: ", "错误: ");
   statusLabel->setText (prefix + error);
 }
 
