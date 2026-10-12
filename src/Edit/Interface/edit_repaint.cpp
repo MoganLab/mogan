@@ -549,6 +549,7 @@ edit_interface_rep::handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2) {
 void
 edit_interface_rep::handle_repaint (renderer win, SI x1, SI y1, SI x2, SI y2) {
   if (is_nil (eb) || env_change != 0) apply_changes ();
+  // apply_changes 总会清零 env_change，理论上不会进入以下分支，仅作兜底
   if (env_change != 0) {
     std_warning << "Invalid situation (" << env_change << ")"
                 << " in edit_interface_rep::handle_repaint\n";
