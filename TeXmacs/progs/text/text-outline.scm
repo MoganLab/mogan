@@ -145,7 +145,15 @@
             (current-view)
             (when u
               (make-cursor-visible u)
-              (delayed (:idle 1) (make-cursor-visible u))
+              (unless (headless?)
+                (refresh-window)
+              ) ;unless
+              (delayed (:idle 1)
+                (make-cursor-visible u)
+                (unless (headless?)
+                  (refresh-window)
+                ) ;unless
+              ) ;delayed
             ) ;when
           ) ;with
         ) ;with
