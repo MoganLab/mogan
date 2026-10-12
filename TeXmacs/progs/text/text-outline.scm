@@ -156,8 +156,8 @@
   (if (and (string? path-str) (not (string-null? path-str)))
     (let* ((parts (string-split path-str #\:)) (p (map string->number parts)))
       (when (and (pair? p) (not (memq #f p)))
-        (let* ((pending? (and (defined? 'progressive-pending?) (progressive-pending?)))
-               (cur-child (if pending? (progressive-cur-child) #f))
+        (let* ((pending? (and (defined? 'typeset-in-progress?) (typeset-in-progress?)))
+               (cur-child (if pending? (typeset-frontier) #f))
                (chap-idx (outline-get-chap-idx p))
                (unready? (and pending? cur-child chap-idx (>= chap-idx cur-child)))
                (target-p

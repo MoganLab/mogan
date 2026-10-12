@@ -343,7 +343,7 @@ bool
 edit_interface_rep::progressive_advance_near_tail (SI y) {
   // 视口距已排版尾部不足 3 页时推进一个排版块
   typesetter ttt= get_typesetter ();
-  if (!::is_progressive_pending (ttt) || is_nil (eb)) return false;
+  if (!::typeset_in_progress (ttt) || is_nil (eb)) return false;
   SI ph= progressive_get_page_height (ttt);
   if (ph <= 0 || y > eb->y1 + 3 * ph) return false;
   progressive_advance (ttt, 15);
@@ -1082,7 +1082,7 @@ edit_interface_rep::apply_changes () {
   if (env_change == 0) {
     if (new_visible == last_visible) {
       typesetter ttt= get_typesetter ();
-      if (::is_progressive_pending (ttt)) {
+      if (::typeset_in_progress (ttt)) {
         time_t now= texmacs_time ();
         if (now - last_idle_step >= 200) {
           last_idle_step= now;

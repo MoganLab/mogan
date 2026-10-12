@@ -440,8 +440,8 @@ typesetter_rep::progressive_reset () {
 }
 
 bool
-is_progressive_pending (typesetter ttt) {
-  return ttt && ttt->is_progressive_pending ();
+typeset_in_progress (typesetter ttt) {
+  return ttt && ttt->typeset_in_progress ();
 }
 
 void
@@ -455,7 +455,7 @@ progressive_fast_forward_until (typesetter ttt, int target_child) {
 }
 
 int
-progressive_get_cur_child (typesetter ttt) {
+typeset_frontier (typesetter ttt) {
   return ttt ? ttt->progressive_cur_child : 0;
 }
 

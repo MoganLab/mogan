@@ -708,13 +708,13 @@ edit_typeset_rep::get_env_language () {
 }
 
 bool
-edit_typeset_rep::is_progressive_pending () {
-  return ::is_progressive_pending (ttt);
+edit_typeset_rep::typeset_in_progress () {
+  return ::typeset_in_progress (ttt);
 }
 
 int
-edit_typeset_rep::progressive_cur_child () {
-  return ::progressive_get_cur_child (ttt);
+edit_typeset_rep::typeset_frontier () {
+  return ::typeset_frontier (ttt);
 }
 
 int

@@ -455,13 +455,13 @@ function main()
                 }
             },
             {
-                scm_name = "progressive-pending?",
-                cpp_name = "is_progressive_pending",
+                scm_name = "typeset-in-progress?",
+                cpp_name = "typeset_in_progress",
                 ret_type = "bool"
             },
             {
-                scm_name = "progressive-cur-child",
-                cpp_name = "progressive_cur_child",
+                scm_name = "typeset-frontier",
+                cpp_name = "typeset_frontier",
                 ret_type = "int"
             },
             {

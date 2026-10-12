@@ -466,11 +466,11 @@ void
 edit_cursor_rep::go_to (path p) {
   if (rp <= p) {
     typesetter ttt= get_typesetter ();
-    if (::is_progressive_pending (ttt) && !is_nil (p)) {
+    if (::typeset_in_progress (ttt) && !is_nil (p)) {
       path rel_p= p / rp;
       if (!is_nil (rel_p)) {
         int target_child= rel_p->item;
-        int cur_child   = progressive_get_cur_child (ttt);
+        int cur_child   = ::typeset_frontier (ttt);
         if (target_child >= cur_child) {
           if (target_child < cur_child + 200) {
             progressive_fast_forward_until (ttt, target_child + 50);

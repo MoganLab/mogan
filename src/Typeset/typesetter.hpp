@@ -34,10 +34,10 @@ void exec_until (typesetter ttt, path p);
 box  typeset (typesetter ttt);
 box  typeset (typesetter ttt, SI& x1, SI& y1, SI& x2, SI& y2);
 
-bool is_progressive_pending (typesetter ttt);
+bool typeset_in_progress (typesetter ttt);
 void progressive_advance (typesetter ttt, int additional_paragraphs);
 void progressive_fast_forward_until (typesetter ttt, int target_child);
-int  progressive_get_cur_child (typesetter ttt);
+int  typeset_frontier (typesetter ttt);
 SI   progressive_get_page_height (typesetter ttt);
 
 box        typeset_as_concat (edit_env env, tree t, path ip);
