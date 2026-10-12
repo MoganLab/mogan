@@ -179,31 +179,18 @@ void
 renderer_rep::set_zoom_factor (double zoom) {
   if (shrinkf != ((int) tm_round (std_shrinkf / zoomf)))
     cout << "Invalid zoom " << zoomf << ", " << shrinkf << LF;
-  ox= (SI) tm_round (ox * zoomf);
-  oy= (SI) tm_round (oy * zoomf);
-  // cx1= (SI) ::floor (cx1 * zoomf);
-  // cx2= (SI) ::floor (cx2 * zoomf);
-  // cy1= (SI) ::ceil  (cy1 * zoomf);
-  // cy2= (SI) ::ceil  (cy2 * zoomf);
-  cx1         = (SI) tm_round (cx1 * zoomf);
-  cx2         = (SI) tm_round (cx2 * zoomf);
-  cy1         = (SI) tm_round (cy1 * zoomf);
-  cy2         = (SI) tm_round (cy2 * zoomf);
-  zoomf       = zoom;
-  shrinkf     = (int) tm_round (std_shrinkf / zoomf);
-  thicken     = (shrinkf >> 1) * PIXEL;
-  pixel       = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
-  retina_pixel= pixel;
-  ox          = (SI) tm_round (ox / zoomf);
-  oy          = (SI) tm_round (oy / zoomf);
-  // cx1= (SI) ::floor (cx1 / zoomf);
-  // cx2= (SI) ::floor (cx2 / zoomf);
-  // cy1= (SI) ::ceil  (cy1 / zoomf);
-  // cy2= (SI) ::ceil  (cy2 / zoomf);
-  cx1= (SI) tm_round (cx1 / zoomf);
-  cx2= (SI) tm_round (cx2 / zoomf);
-  cy1= (SI) tm_round (cy1 / zoomf);
-  cy2= (SI) tm_round (cy2 / zoomf);
+  double factor= zoomf / zoom;
+  ox           = (SI) tm_round (ox * factor);
+  oy           = (SI) tm_round (oy * factor);
+  cx1          = (SI) tm_round (cx1 * factor);
+  cx2          = (SI) tm_round (cx2 * factor);
+  cy1          = (SI) tm_round (cy1 * factor);
+  cy2          = (SI) tm_round (cy2 * factor);
+  zoomf        = zoom;
+  shrinkf      = (int) tm_round (std_shrinkf / zoomf);
+  thicken      = (shrinkf >> 1) * PIXEL;
+  pixel        = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
+  retina_pixel = pixel;
 }
 
 void

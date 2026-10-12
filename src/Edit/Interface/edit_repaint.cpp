@@ -548,7 +548,7 @@ edit_interface_rep::handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2) {
 
 void
 edit_interface_rep::handle_repaint (renderer win, SI x1, SI y1, SI x2, SI y2) {
-  if (is_nil (eb)) apply_changes ();
+  if (is_nil (eb) || env_change != 0) apply_changes ();
   if (env_change != 0) {
     std_warning << "Invalid situation (" << env_change << ")"
                 << " in edit_interface_rep::handle_repaint\n";
