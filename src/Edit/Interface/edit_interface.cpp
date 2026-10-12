@@ -60,12 +60,13 @@ get_zoom (editor_rep* ed, tm_buffer buf) {
 edit_interface_rep::edit_interface_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
       env_change (0), last_change (texmacs_time ()),
-      last_update (last_change - 1), last_event (texmacs_time ()),
-      anim_next (1.0e12), full_screen (false), got_focus (false), sh_s (""),
-      sh_mark (0), pre_edit_skip (false), pre_edit_s (""), pre_edit_mark (0),
-      popup_win (), message_l (""), message_r (""), message_expire_time (0),
-      last_l (""), last_r (""), menu_focus_path (), menu_need_save (false),
-      zoomf (get_zoom (this, buf)), magf (zoomf / std_shrinkf),
+      last_update (last_change - 1), last_idle_step (0),
+      last_event (texmacs_time ()), anim_next (1.0e12), full_screen (false),
+      got_focus (false), sh_s (""), sh_mark (0), pre_edit_skip (false),
+      pre_edit_s (""), pre_edit_mark (0), popup_win (), message_l (""),
+      message_r (""), message_expire_time (0), last_l (""), last_r (""),
+      menu_focus_path (), menu_need_save (false), zoomf (get_zoom (this, buf)),
+      magf (zoomf / std_shrinkf),
       pixel ((SI) tm_round ((std_shrinkf * PIXEL) / zoomf)),
       zpixel (max ((SI) tm_round (std_shrinkf * PIXEL), pixel)), copy_always (),
       last_x (0), last_y (0), last_t (0), tremble_count (0),
@@ -338,19 +339,23 @@ edit_interface_rep::get_scroll_y () {
   return scy;
 }
 
+bool
+edit_interface_rep::progressive_advance_near_tail (SI y) {
+  // 视口距已排版尾部不足 3 页时推进一个排版块
+  typesetter ttt= get_typesetter ();
+  if (!::is_progressive_pending (ttt) || is_nil (eb)) return false;
+  SI ph= progressive_get_page_height (ttt);
+  if (ph <= 0 || y > eb->y1 + 3 * ph) return false;
+  progressive_advance (ttt, 15);
+  return true;
+}
+
 void
 edit_interface_rep::scroll_to (SI x, SI y) {
   stored_rects= rectangles ();
   copy_always = rectangles ();
   SERVER (scroll_to ((SI) (x * magf), ((SI) (y * magf))));
-  typesetter ttt= get_typesetter ();
-  if (::is_progressive_pending (ttt) && !is_nil (eb)) {
-    SI ph= progressive_get_page_height (ttt);
-    if (ph > 0 && y <= eb->y1 + 3 * ph) {
-      progressive_advance (ttt, 15);
-      notify_change (THE_TREE + THE_EXTENTS);
-    }
-  }
+  if (progressive_advance_near_tail (y)) notify_change (THE_TREE + THE_EXTENTS);
 }
 
 void
@@ -1078,8 +1083,7 @@ edit_interface_rep::apply_changes () {
     if (new_visible == last_visible) {
       typesetter ttt= get_typesetter ();
       if (::is_progressive_pending (ttt)) {
-        static time_t last_idle_step= 0;
-        time_t        now           = texmacs_time ();
+        time_t now= texmacs_time ();
         if (now - last_idle_step >= 200) {
           last_idle_step= now;
           progressive_advance (ttt, 10);
@@ -1094,17 +1098,8 @@ edit_interface_rep::apply_changes () {
     }
   }
 
-  // Check if scrolling near the bottom of currently typeset pages
-  {
-    typesetter ttt= get_typesetter ();
-    if (::is_progressive_pending (ttt) && !is_nil (eb)) {
-      SI ph= progressive_get_page_height (ttt);
-      if (ph > 0 && vy1 <= eb->y1 + 3 * ph) {
-        progressive_advance (ttt, 15);
-        env_change|= (THE_TREE + THE_EXTENTS);
-      }
-    }
-  }
+  if (progressive_advance_near_tail (vy1))
+    env_change|= (THE_TREE + THE_EXTENTS);
 
   // cout << "Applying changes " << env_change << " to " << get_name() << "\n";
   // time_t t1= texmacs_time ();

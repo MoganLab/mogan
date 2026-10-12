@@ -35,21 +35,22 @@ string MODE_LANGUAGE (string mode);
 
 class edit_interface_rep : virtual public editor_rep {
 protected:
-  int        env_change;    // which things have been changed ?
-  time_t     last_change;   // time of last processed change
-  time_t     last_update;   // time of last update of menu, icons and footer
-  time_t     last_event;    // time of last event
-  double     anim_next;     // time for next animation
-  bool       full_screen;   // full screen mode ?
-  bool       got_focus;     // do we have keyboard focus ?
-  string     sh_s;          // current string for shortcuts
-  double     sh_mark;       // 0 or mark for undoing shortcut
-  bool       pre_edit_skip; // temporarily disabled pre-edit mechanism
-  string     pre_edit_s;    // pre-edit string
-  double     pre_edit_mark; // 0 or mark for undoing pre-edit
-  widget     popup_win;     // the current popup window
-  tree       message_l;     // a left message to display
-  tree       message_r;     // a right message to display
+  int        env_change;     // which things have been changed ?
+  time_t     last_change;    // time of last processed change
+  time_t     last_update;    // time of last update of menu, icons and footer
+  time_t     last_idle_step; // time of last progressive idle typeset step
+  time_t     last_event;     // time of last event
+  double     anim_next;      // time for next animation
+  bool       full_screen;    // full screen mode ?
+  bool       got_focus;      // do we have keyboard focus ?
+  string     sh_s;           // current string for shortcuts
+  double     sh_mark;        // 0 or mark for undoing shortcut
+  bool       pre_edit_skip;  // temporarily disabled pre-edit mechanism
+  string     pre_edit_s;     // pre-edit string
+  double     pre_edit_mark;  // 0 or mark for undoing pre-edit
+  widget     popup_win;      // the current popup window
+  tree       message_l;      // a left message to display
+  tree       message_r;      // a right message to display
   time_t     message_expire_time; // timestamp until message expires
   tree       last_l;              // last displayed left message
   tree       last_r;              // last displayed right message
@@ -188,6 +189,7 @@ public:
   void invalidate_all ();
   void update_visible ();
   void scroll_to (SI x, SI y1);
+  bool progressive_advance_near_tail (SI y);
   void set_extents (SI x1, SI y1, SI x2, SI y2);
 
   /* repainting the window */

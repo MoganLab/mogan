@@ -12,7 +12,6 @@
 #include "edit_cursor.hpp"
 #include "analyze.hpp"
 #include "cork.hpp"
-#include "dictionary.hpp"
 #include "iterator.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"

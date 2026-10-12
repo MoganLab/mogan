@@ -66,7 +66,6 @@ public:
   bool is_progressive_pending () const { return progressive_pending; }
   void progressive_advance (int additional_paragraphs);
   void progressive_fast_forward_until (int target_child);
-  bool progressive_should_pause (int current_child, int total_children);
   void progressive_reset ();
 };
 

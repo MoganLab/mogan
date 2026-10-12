@@ -158,12 +158,9 @@ typesetter_rep::typeset () {
       page_text_height= th;
     }
     if (progressive_cur_child == 0) {
-      chunk_start       = 0;
-      chunk_end         = min (n, 50);
-      doc_l             = array<page_item> ();
-      doc_sb            = stack_border ();
-      frozen_page_boxes = array<box> ();
-      frozen_line_offset= 0;
+      // cur_child 归零的两条路径（构造、progressive_reset）已清空累计状态
+      chunk_start= 0;
+      chunk_end  = min (n, 50);
     }
   }
   else {
@@ -430,14 +427,6 @@ typesetter_rep::progressive_fast_forward_until (int target_child) {
                     max (progressive_cur_child + 10, target_child + 50));
 }
 
-bool
-typesetter_rep::progressive_should_pause (int current_child,
-                                          int total_children) {
-  (void) current_child;
-  (void) total_children;
-  return false;
-}
-
 void
 typesetter_rep::progressive_reset () {
   progressive_cur_child= 0;
@@ -473,11 +462,6 @@ progressive_get_cur_child (typesetter ttt) {
 SI
 progressive_get_page_height (typesetter ttt) {
   return ttt ? ttt->page_text_height : 0;
-}
-
-void
-progressive_reset (typesetter ttt) {
-  if (ttt) ttt->progressive_reset ();
 }
 
 box

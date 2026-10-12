@@ -133,18 +133,21 @@
 ;; 编辑器跳转到指定大纲路径
 ;; ---------------------------------------------------------------------------
 
+(define (outline-chapter-path? p)
+  ;; 章节路径约定形如 (1 0 n ...)
+  (and (>= (length p) 3) (== (car p) 1) (== (cadr p) 0))
+) ;define
+
 (define (outline-get-chap-idx p)
-  (cond
-   ((and (>= (length p) 3) (== (car p) 1) (== (cadr p) 0)) (caddr p))
-   ((>= (length p) 2) (cadr p))
-   (else #f)
+  (cond ((outline-chapter-path? p) (caddr p))
+        ((>= (length p) 2) (cadr p))
+        (else #f)
   ) ;cond
 ) ;define
 
 (define (outline-fallback-path p last-child)
-  (cond
-   ((and (>= (length p) 3) (== (car p) 1) (== (cadr p) 0)) (list 1 0 last-child 0))
-   (else (list (car p) last-child 0))
+  (cond ((outline-chapter-path? p) (list 1 0 last-child 0))
+        (else (list (car p) last-child 0))
   ) ;cond
 ) ;define
 
