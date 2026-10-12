@@ -307,7 +307,7 @@ im_tm_widget_rep::render_editor () {
   picture& pic= the_picture;
   renderer ren= picture_renderer (pic, std_shrinkf * rf);
 
-  SI sx= 0, sy= 0;
+  DI sx= 0, sy= 0;
   if (!is_nil (main_widget)) get_scroll_position (main_widget, sx, sy);
   ren->set_origin (-sx, -sy);
   SI x1= 0, y1= 0, x2= pic_w_px, y2= pic_h_px;
@@ -734,10 +734,11 @@ im_tm_widget_rep::im_main_loop () {
       double cx= xpos;
       if (cx < 0.0) cx= 0.0;
       if (ww > 0 && cx > (double) ww) cx= (double) ww;
-      SI msx= 0, msy= 0, nsx= 0, nsy= 0;
+      SI msx= 0, msy= 0;
+      DI nsx= 0, nsy= 0;
       screen_to_si (cx, cy, msx, msy);
       get_scroll_position (main_widget, nsx, nsy);
-      dispatch_mouse ("move", msx + nsx, msy + nsy, 1);
+      dispatch_mouse ("move", msx + (SI) nsx, msy + (SI) nsy, 1);
     }
   }
 
@@ -878,9 +879,9 @@ im_tm_widget_rep::im_main_loop () {
     }
   }
 
-  static SI last_sx= 0, last_sy= 0;
+  static DI last_sx= 0, last_sy= 0;
   if (!is_nil (main_widget)) {
-    SI sx= 0, sy= 0;
+    DI sx= 0, sy= 0;
     get_scroll_position (main_widget, sx, sy);
     if (sx != last_sx || sy != last_sy) {
       last_sx      = sx;
@@ -1094,10 +1095,10 @@ im_tm_widget_rep::glfw_mouse_button_callback (GLFWwindow* w, int button,
   glfwGetCursorPos (w, &xpos, &ypos);
   SI sx, sy;
   self->screen_to_si (xpos, ypos, sx, sy);
-  SI scroll_x= 0;
-  SI scroll_y= 0;
+  DI scroll_x= 0;
+  DI scroll_y= 0;
   get_scroll_position (self->main_widget, scroll_x, scroll_y);
-  self->dispatch_mouse (kind, sx + scroll_x, sy + scroll_y, mstate);
+  self->dispatch_mouse (kind, sx + (SI) scroll_x, sy + (SI) scroll_y, mstate);
 }
 
 void
@@ -1120,10 +1121,10 @@ im_tm_widget_rep::glfw_cursor_pos_callback (GLFWwindow* w, double xpos,
   if (glfwGetMouseButton (w, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) mstate|= 4;
   SI sx, sy;
   self->screen_to_si (xpos, ypos, sx, sy);
-  SI scroll_x= 0;
-  SI scroll_y= 0;
+  DI scroll_x= 0;
+  DI scroll_y= 0;
   get_scroll_position (self->main_widget, scroll_x, scroll_y);
-  self->dispatch_mouse ("move", sx + scroll_x, sy + scroll_y, mstate);
+  self->dispatch_mouse ("move", sx + (SI) scroll_x, sy + (SI) scroll_y, mstate);
 }
 
 void

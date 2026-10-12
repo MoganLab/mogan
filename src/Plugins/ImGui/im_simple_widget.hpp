@@ -63,7 +63,7 @@ public:
   // 增量滚动（滚轮 / 拖选边缘自动滚动）：直接把 delta 累加到视口上沿 scroll_y，
   // 再由 recenter 钳位。刻意不经过 SLOT_SCROLL_POSITION——后者会把传入点当作
   // 视口中心（见下），增量滚动若走它会每帧多偏半个画布。
-  void scroll_by (SI dx, SI dy);
+  void scroll_by (DI dx, DI dy);
 
 protected:
   rectangles invalid_regions;
@@ -71,8 +71,8 @@ protected:
 
   double zoomf;
   SI     canvas_w, canvas_h;             // visible canvas size (SI pixels)
-  SI     scroll_x, scroll_y;             // scroll origin (SI pixels)
-  SI     ext_x1, ext_y1, ext_x2, ext_y2; // document(page) extents (SI pixels)
+  DI     scroll_x, scroll_y;             // scroll origin (DI pixels)
+  DI     ext_x1, ext_y1, ext_x2, ext_y2; // document(page) extents (DI pixels)
 
   widget owning_window;
   int    owning_win_id; // SLOT_IDENTIFIER of owning_window, 0 if detached

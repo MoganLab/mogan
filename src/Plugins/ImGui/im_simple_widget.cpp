@@ -141,15 +141,15 @@ void
 im_simple_widget_rep::recenter () {
   // 水平：文档窄于画布则水平居中（负偏移把文档右移），否则贴左（ImGui
   // 无水平滚动）。
-  SI page_w= ext_x2 - ext_x1;
+  DI page_w= ext_x2 - ext_x1;
   if (page_w > 0 && page_w < canvas_w) scroll_x= -((canvas_w - page_w) / 2);
   else scroll_x= 0;
   // 垂直：始终上对齐——短文档也贴顶（不居中，否则文档会被推到下方、与编辑时的
   // 位置不一致）；仅当文档高于画布时，把滚动钳位到可滚动范围
   // [-(doc_h-canvas_h), 0]（0=顶部，负=向下滚动）。
-  SI doc_h= ext_y2 - ext_y1;
+  DI doc_h= ext_y2 - ext_y1;
   if (doc_h >= canvas_h) {
-    SI min_sy= -(doc_h - canvas_h);
+    DI min_sy= -(doc_h - canvas_h);
     if (scroll_y < min_sy) scroll_y= min_sy;
     if (scroll_y > 0) scroll_y= 0;
   }
@@ -157,7 +157,7 @@ im_simple_widget_rep::recenter () {
 }
 
 void
-im_simple_widget_rep::scroll_by (SI dx, SI dy) {
+im_simple_widget_rep::scroll_by (DI dx, DI dy) {
   // 增量滚动：直接累加到视口上沿，交 recenter 钳位。不经过 SLOT_SCROLL_POSITION
   // 的居中换算（那是 editor 绝对定位专用）。
   scroll_x+= dx;
