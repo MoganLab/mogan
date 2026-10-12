@@ -12,6 +12,7 @@
 #include "edit_cursor.hpp"
 #include "analyze.hpp"
 #include "cork.hpp"
+#include "dictionary.hpp"
 #include "iterator.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"
@@ -478,8 +479,10 @@ edit_cursor_rep::go_to (path p) {
             apply_changes ();
           }
           else {
-            set_message ("文档正在后台排版中，已跳至当前就绪页面...",
-                         "排版进度");
+            set_message (
+                translate ("Document is still typesetting in background, "
+                           "jumped to available page..."),
+                translate ("typesetting progress"));
             int last_available= max (0, cur_child - 1);
             p                 = rp * path (last_available, 0);
           }

@@ -3156,3 +3156,7 @@
 ("Keep dark mode in exported PDF"
   "在导出的PDF中，仍旧采用深色模式"
 ) ;
+("Document is still typesetting in background, jumped to available page..."
+  "文档正在后台排版中，已跳至当前就绪页面..."
+) ;
+("typesetting progress" "排版进度")
