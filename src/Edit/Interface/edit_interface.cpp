@@ -1568,7 +1568,12 @@ edit_interface_rep::handle_notify_resize (SI w, SI h) {
   (void) w;
   (void) h;
   if (is_nil (buf)) return;
-  notify_change (THE_TREE + THE_FREEZE);
+  if (get_init_string (PAGE_MEDIUM) == "automatic") {
+    notify_change (THE_TREE + THE_FREEZE);
+  }
+  else {
+    notify_change (THE_EXTENTS + THE_FREEZE);
+  }
 }
 
 void
