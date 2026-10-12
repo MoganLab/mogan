@@ -60,10 +60,17 @@ struct line_breaker_rep {
   SI                     first_spc;
   SI                     last_spc;
   int                    pass;
+  array<lb_info>         atom_best;
   hashmap<path, lb_info> best;
 
   line_breaker_rep (array<line_item> a, int start, int end, SI line_width,
                     SI large_width, SI first_spc, SI last_spc);
+
+  inline lb_info& get_lb_info (path pos) {
+    if (is_atom (pos) && pos->item >= 0 && pos->item <= end)
+      return atom_best[pos->item];
+    return best (pos);
+  }
 
   void        empty_line_fix (line_item& first, path& pos, int& cur_nr);
   path        next_ragged_break (path pos);
@@ -82,7 +89,7 @@ line_breaker_rep::line_breaker_rep (array<line_item> a2, int start2, int end2,
                                     SI first_spc2, SI last_spc2)
     : a (a2), start (start2), end (end2), line_width (line_width2),
       large_width (large_width2), first_spc (first_spc2), last_spc (last_spc2),
-      best (lb_info ()) {}
+      atom_best (end2 + 1), best (lb_info ()) {}
 
 /******************************************************************************
  * Some subroutines
@@ -260,8 +267,7 @@ line_breaker_rep::compute_ragged_breaks () {
 void
 line_breaker_rep::test_better (path new_pos, path old_pos, int pen,
                                PEN pen_spc) {
-  if (!best->contains (new_pos)) best (new_pos)= lb_info ();
-  lb_info cur= best[new_pos];
+  lb_info& cur= get_lb_info (new_pos);
   // cout << "Test " << new_pos << " vs " << old_pos
   //      << ", " << pen << " vs " << cur->pen
   //      << ", " << pen_spc << " vs " << cur->pen_spc << "\n";
@@ -281,7 +287,7 @@ square (PEN i) {
 bool
 line_breaker_rep::propose_break (path new_pos, path old_pos, int pen,
                                  space spc) {
-  lb_info cur= best[old_pos];
+  lb_info& cur= get_lb_info (old_pos);
 
   if ((spc->min <= line_width) &&
       ((spc->max >= line_width) || (new_pos->item == end))) {
@@ -354,6 +360,20 @@ line_breaker_rep::break_string (line_item item, path pos, int i, space spc) {
   }
 }
 
+static inline bool
+can_hyphenate_leaf (box b) {
+  string s= b->get_leaf_string ();
+  int    n= N (s);
+  if (n <= 4) return false;
+  if (s[0] == '<') {
+    int i= 1;
+    while (i < n && s[i] != '>')
+      i++;
+    if (i == n - 1) return false;
+  }
+  return true;
+}
+
 void
 line_breaker_rep::process (path pos) {
   int       i;
@@ -373,14 +393,14 @@ line_breaker_rep::process (path pos) {
     spc= space (first->b->w ());
   }
 
-  if ((pass > 1) || (best[pos]->pen < HYPH_INVALID)) {
+  if ((pass > 1) || (get_lb_info (pos)->pen < HYPH_INVALID)) {
     // cout << "Process " << pos << ": " << first << "\n";
     for (i= pos->item; i < end; i++) {
       line_item item= a[i];
       if (i == pos->item) item= first;
       else spc= spc + a[i - 1]->spc + space (item->b->w ());
       if ((spc->max > line_width) && (item->type == STRING_ITEM) &&
-          (N (item->b->get_leaf_string ()) > 4))
+          can_hyphenate_leaf (item->b))
         break_string (item, pos, i, spc + space (-item->b->w ()));
       if (item->penalty < HYPH_INVALID)
         if (propose_break (path (i + 1), pos, item->penalty, spc)) break;
@@ -395,12 +415,11 @@ line_breaker_rep::process (path pos) {
     }
   }
 
-  if (first->type == STRING_ITEM) {
+  if (first->type == STRING_ITEM && can_hyphenate_leaf (first->b)) {
     string first_s= first->b->get_leaf_string ();
     int    n      = N (first_s);
-    if (n > 4)
-      for (i= 0; i < n - 1; i++)
-        if (best->contains (pos * i)) process (pos * i);
+    for (i= 0; i < n - 1; i++)
+      if (best->contains (pos * i)) process (pos * i);
   }
 }
 
@@ -411,7 +430,7 @@ line_breaker_rep::process (path pos) {
 void
 line_breaker_rep::get_breaks (array<path>& ap, path p) {
   if (is_nil (p)) return;
-  lb_info cur= best[p];
+  lb_info& cur= get_lb_info (p);
   get_breaks (ap, cur->prev);
   ap << p;
 }
@@ -426,7 +445,7 @@ line_breaker_rep::compute_breaks () {
     process (path (i));
 
   pass= 2;
-  if (best[path (end)]->pen == HYPH_INVALID)
+  if (get_lb_info (path (end))->pen == HYPH_INVALID)
     for (i= start; i < end; i++)
       process (path (i));
 
