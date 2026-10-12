@@ -471,7 +471,7 @@ edit_cursor_rep::go_to (path p) {
       if (!is_nil (rel_p)) {
         int target_child= rel_p->item;
         if (target_child >= progressive_get_cur_child (ttt)) {
-          progressive_fast_forward_until (ttt, target_child + 60);
+          progressive_fast_forward_until (ttt, target_child + 50);
           notify_change (THE_TREE + THE_EXTENTS);
           apply_changes ();
         }

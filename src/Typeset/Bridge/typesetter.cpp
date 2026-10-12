@@ -156,8 +156,8 @@ typesetter_rep::typeset () {
       page_text_height= th;
     }
     if (progressive_cur_child == 0) {
-      // Initial batch: first 60 paragraphs (approx 8-10 pages)
-      progressive_cur_child= min (n, 60);
+      // Initial batch: first 50 paragraphs
+      progressive_cur_child= min (n, 50);
     }
   }
   else {
@@ -351,10 +351,9 @@ typeset (typesetter ttt, SI& x1, SI& y1, SI& x2, SI& y2) {
 }
 
 void
-typesetter_rep::progressive_advance (int additional_pages) {
-  int add_children= additional_pages * 8;
-  progressive_cur_child=
-      min (progressive_total_children, progressive_cur_child + add_children);
+typesetter_rep::progressive_advance (int additional_paragraphs) {
+  progressive_cur_child= min (progressive_total_children,
+                              progressive_cur_child + additional_paragraphs);
 }
 
 void
@@ -386,8 +385,8 @@ is_progressive_pending (typesetter ttt) {
 }
 
 void
-progressive_advance (typesetter ttt, int additional_pages) {
-  if (ttt) ttt->progressive_advance (additional_pages);
+progressive_advance (typesetter ttt, int additional_paragraphs) {
+  if (ttt) ttt->progressive_advance (additional_paragraphs);
 }
 
 void

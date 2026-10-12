@@ -346,8 +346,8 @@ edit_interface_rep::scroll_to (SI x, SI y) {
   typesetter ttt= get_typesetter ();
   if (is_progressive_pending (ttt) && !is_nil (eb)) {
     SI ph= progressive_get_page_height (ttt);
-    if (ph > 0 && y <= eb->y1 + 4 * ph) {
-      progressive_advance (ttt, 50);
+    if (ph > 0 && y <= eb->y1 + 3 * ph) {
+      progressive_advance (ttt, 15);
       notify_change (THE_TREE + THE_EXTENTS);
     }
   }
@@ -1082,7 +1082,7 @@ edit_interface_rep::apply_changes () {
         time_t        now           = texmacs_time ();
         if (now - last_idle_step >= 200) {
           last_idle_step= now;
-          progressive_advance (ttt, 50);
+          progressive_advance (ttt, 10);
           env_change|= (THE_TREE + THE_EXTENTS);
         }
         else {
@@ -1099,8 +1099,8 @@ edit_interface_rep::apply_changes () {
     typesetter ttt= get_typesetter ();
     if (is_progressive_pending (ttt) && !is_nil (eb)) {
       SI ph= progressive_get_page_height (ttt);
-      if (ph > 0 && vy1 <= eb->y1 + 4 * ph) {
-        progressive_advance (ttt, 40);
+      if (ph > 0 && vy1 <= eb->y1 + 3 * ph) {
+        progressive_advance (ttt, 15);
         env_change|= (THE_TREE + THE_EXTENTS);
       }
     }
@@ -1211,7 +1211,13 @@ edit_interface_rep::apply_changes () {
     bench_start ("typeset " * (as_string (buf->buf->name)));
     typeset (x1, y1, x2, y2);
     bench_end ("typeset " * (as_string (buf->buf->name)), 1000);
-    invalidate (x1 - 2 * pixel, y1 - 2 * pixel, x2 + 2 * pixel, y2 + 2 * pixel);
+    SI ix1= max (vx1, x1 - 2 * pixel);
+    SI iy1= max (vy1, y1 - 2 * pixel);
+    SI ix2= min (vx2, x2 + 2 * pixel);
+    SI iy2= min (vy2, y2 + 2 * pixel);
+    if (ix1 < ix2 && iy1 < iy2) {
+      invalidate (ix1, iy1, ix2, iy2);
+    }
     // check_data_integrety ();
     the_ghost_cursor ()= eb->find_check_cursor (tp);
   }
