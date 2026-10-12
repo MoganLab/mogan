@@ -14,6 +14,7 @@
 #include "Boxes/construct.hpp"
 #include "Format/format.hpp"
 #include "Line/lazy_vstream.hpp"
+#include "Line/line_breaker.hpp"
 #include "analyze.hpp"
 #include "array.hpp"
 #include "converter.hpp"
@@ -25,9 +26,6 @@ using namespace moebius;
 
 array<line_item> typeset_concat (edit_env env, tree t, path ip);
 void hyphenate (line_item item, int pos, line_item& item1, line_item& item2);
-array<path> line_breaks (array<line_item> a, int start, int end, SI line_width,
-                         SI large_width, SI first_spc, SI last_spc,
-                         bool ragged);
 
 /******************************************************************************
  * Constructor

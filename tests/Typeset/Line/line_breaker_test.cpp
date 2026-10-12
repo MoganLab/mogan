@@ -10,7 +10,6 @@
 
 #include "Boxes/construct.hpp"
 #include "Format/line_item.hpp"
-#include "base.hpp"
 #include "line_breaker.hpp"
 #include <QtTest/QtTest>
 
@@ -33,6 +32,22 @@ mock_cjk_box (path ip, string s, SI w) {
   return tm_new<MockCjkBoxRep> (ip, s, w);
 }
 
+static array<line_item>
+make_std_items (int n, SI w) {
+  array<line_item> a (n);
+  for (int i= 0; i < n; i++)
+    a[i]= line_item (STD_ITEM, OP_TEXT, empty_box (path (i), 0, 0, w, w), 0);
+  return a;
+}
+
+static void
+verify_atomic_breaks (array<path> ap, int end) {
+  for (int k= 0; k < N (ap); k++) {
+    QVERIFY (is_atom (ap[k]));
+    QVERIFY (ap[k]->item >= 0 && ap[k]->item <= end);
+  }
+}
+
 class TestLineBreaker : public QObject {
   Q_OBJECT
 
@@ -46,11 +61,7 @@ private slots:
 void
 TestLineBreaker::test_atomic_line_breaks () {
   // 构造 10 个宽度为 1000 tmpt 的图元，换行罚分为 0（允许换行）
-  array<line_item> a (10);
-  for (int i= 0; i < 10; i++) {
-    box b= empty_box (path (i), 0, 0, 1000, 1000);
-    a[i] = line_item (STD_ITEM, OP_TEXT, b, 0);
-  }
+  array<line_item> a= make_std_items (10, 1000);
 
   // 行宽 3000 tmpt（每行可容纳约 3 个图元）
   SI line_width = 3000;
@@ -64,21 +75,14 @@ TestLineBreaker::test_atomic_line_breaks () {
   QCOMPARE (ap[N (ap) - 1], path (10));
 
   // 验证所有返回的断点均为深度为 1 的原子断点
-  for (int k= 0; k < N (ap); k++) {
-    QVERIFY (is_atom (ap[k]));
-    QVERIFY (ap[k]->item >= 0 && ap[k]->item <= 10);
-  }
+  verify_atomic_breaks (ap, 10);
 }
 
 void
 TestLineBreaker::test_forbidden_break_at_penalty () {
   // 构造 6 个图元，在第 2 个图元后设置 HYPH_INVALID 禁止断行
-  array<line_item> a (6);
-  for (int i= 0; i < 6; i++) {
-    box b  = empty_box (path (i), 0, 0, 1000, 1000);
-    int pen= (i == 2) ? HYPH_INVALID : 0;
-    a[i]   = line_item (STD_ITEM, OP_TEXT, b, pen);
-  }
+  array<line_item> a= make_std_items (6, 1000);
+  a[2]->penalty     = HYPH_INVALID;
 
   SI line_width = 2500;
   SI large_width= 3500;
@@ -111,26 +115,19 @@ TestLineBreaker::test_single_cjk_char_atomic () {
 
   QVERIFY (N (ap) >= 2);
   // 验证所有汉字断点均为整字边界的原子断点，绝不产生复合路径
-  for (int k= 0; k < N (ap); k++) {
-    QVERIFY (is_atom (ap[k]));
-    QVERIFY (ap[k]->item >= 0 && ap[k]->item <= 8);
-  }
+  verify_atomic_breaks (ap, 8);
 }
 
 void
 TestLineBreaker::test_empty_or_single_item () {
   // 单图元边界测试
-  array<line_item> a (1);
-  box              b= empty_box (path (0), 0, 0, 1000, 1000);
-  a[0]              = line_item (STD_ITEM, OP_TEXT, b, 0);
+  array<line_item> a= make_std_items (1, 1000);
 
   array<path> ap= line_breaks (a, 0, 1, 2000, 3000, 0, 0);
 
   QCOMPARE (N (ap), 2);
   QCOMPARE (ap[0], path (0));
   QCOMPARE (ap[1], path (1));
-  QVERIFY (is_atom (ap[0]));
-  QVERIFY (is_atom (ap[1]));
 }
 
 QTEST_MAIN (TestLineBreaker)
