@@ -134,7 +134,7 @@ protected:
   /* other protected subroutines */
   virtual tree kbd (string s)                                             = 0;
   virtual tree kbd_shortcut (string s)                                    = 0;
-  virtual path tree_path (path sp, SI x, SI y, SI delta)                  = 0;
+  virtual path tree_path (path sp, DI x, DI y, SI delta)                  = 0;
   virtual void apply_changes ()                                           = 0;
   virtual void animate ()                                                 = 0;
   virtual path search_format ()                                           = 0;
@@ -171,8 +171,8 @@ public:
   virtual SI        get_window_y ()                                        = 0;
   virtual SI        get_canvas_x ()                                        = 0;
   virtual SI        get_canvas_y ()                                        = 0;
-  virtual SI        get_scroll_x ()                                        = 0;
-  virtual SI        get_scroll_y ()                                        = 0;
+  virtual DI        get_scroll_x ()                                        = 0;
+  virtual DI        get_scroll_y ()                                        = 0;
   virtual void      make_cursor_visible ()                                 = 0;
   virtual void      invalidate (SI x1, SI y1, SI x2, SI y2)                = 0;
   virtual void      invalidate (rectangles rs)                             = 0;
@@ -238,7 +238,7 @@ public:
   virtual path make_cursor_accessible (path p, bool forwards)= 0;
   virtual bool cursor_is_accessible ()                       = 0;
   virtual void show_cursor_if_hidden ()                      = 0;
-  virtual void go_to (SI x, SI y, bool absolute= true)       = 0;
+  virtual void go_to (DI x, DI y, bool absolute= true)       = 0;
   virtual void go_left_physical ()                           = 0;
   virtual void go_right_physical ()                          = 0;
   virtual void go_left ()                                    = 0;
@@ -278,7 +278,7 @@ public:
   virtual frame  find_frame (bool last= false)                              = 0;
   virtual grid   find_grid ()                                               = 0;
   virtual void   find_limits (point& lim1, point& lim2)                     = 0;
-  virtual bool   find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2)     = 0;
+  virtual bool   find_graphical_region (DI& x1, DI& y1, DI& x2, DI& y2)     = 0;
   virtual point  adjust (point p)                                           = 0;
   virtual tree   find_point (point p)                                       = 0;
   virtual tree   graphical_select (double x, double y)                      = 0;
@@ -609,43 +609,43 @@ public:
   virtual bool   spell_keypress (string s)                             = 0;
 
   /* public routines from edit_main */
-  virtual void        set_property (scheme_tree what, scheme_tree val)    = 0;
-  virtual scheme_tree get_property (scheme_tree what)                     = 0;
-  virtual void        clear_buffer ()                                     = 0;
-  virtual void        new_window ()                                       = 0;
-  virtual void        clone_window ()                                     = 0;
-  virtual void        tex_buffer ()                                       = 0;
-  virtual url         get_name ()                                         = 0;
-  virtual void        focus_on_this_editor ()                             = 0;
-  virtual void        notify_page_change ()                               = 0;
-  virtual string      get_metadata (string kind)                          = 0;
-  virtual int         nr_pages ()                                         = 0;
-  virtual void print_doc (url ps_name, bool to_file, int first, int last) = 0;
-  virtual void render_to_images (url dest, double zoomf)                  = 0;
+  virtual void        set_property (scheme_tree what, scheme_tree val)   = 0;
+  virtual scheme_tree get_property (scheme_tree what)                    = 0;
+  virtual void        clear_buffer ()                                    = 0;
+  virtual void        new_window ()                                      = 0;
+  virtual void        clone_window ()                                    = 0;
+  virtual void        tex_buffer ()                                      = 0;
+  virtual url         get_name ()                                        = 0;
+  virtual void        focus_on_this_editor ()                            = 0;
+  virtual void        notify_page_change ()                              = 0;
+  virtual string      get_metadata (string kind)                         = 0;
+  virtual int         nr_pages ()                                        = 0;
+  virtual void print_doc (url ps_name, bool to_file, int first, int last)= 0;
+  virtual void render_to_images (url dest, double zoomf)                 = 0;
   virtual void print_to_file (url ps_name, string first= "1",
-                              string last= "1000000")                     = 0;
-  virtual void print_buffer (string first= "1", string last= "1000000")   = 0;
+                              string last= "1000000")                    = 0;
+  virtual void print_buffer (string first= "1", string last= "1000000")  = 0;
   virtual void export_ps (url ps_name, string first= "1",
-                          string last= "1000000")                         = 0;
-  virtual array<int> print_snippet (url u, tree t, bool conserve_preamble)= 0;
-  virtual bool       graphics_file_to_clipboard (url output)              = 0;
-  virtual void       footer_eval (string s)                               = 0;
-  virtual tree       the_line ()                                          = 0;
-  virtual tree       the_root ()                                          = 0;
-  virtual tree       the_buffer ()                                        = 0;
-  virtual bool       test_subtree (path p)                                = 0;
-  virtual tree       the_subtree (path p)                                 = 0;
-  virtual path       the_path ()                                          = 0;
-  virtual path       the_shifted_path ()                                  = 0;
-  virtual path       the_buffer_path ()                                   = 0;
-  virtual void       show_tree ()                                         = 0;
-  virtual void       show_box ()                                          = 0;
-  virtual void       show_env ()                                          = 0;
-  virtual void       show_path ()                                         = 0;
-  virtual void       show_cursor ()                                       = 0;
-  virtual void       show_selection ()                                    = 0;
-  virtual void       show_meminfo ()                                      = 0;
-  virtual void       edit_special ()                                      = 0;
+                          string last= "1000000")                        = 0;
+  virtual array<DI> print_snippet (url u, tree t, bool conserve_preamble)= 0;
+  virtual bool      graphics_file_to_clipboard (url output)              = 0;
+  virtual void      footer_eval (string s)                               = 0;
+  virtual tree      the_line ()                                          = 0;
+  virtual tree      the_root ()                                          = 0;
+  virtual tree      the_buffer ()                                        = 0;
+  virtual bool      test_subtree (path p)                                = 0;
+  virtual tree      the_subtree (path p)                                 = 0;
+  virtual path      the_path ()                                          = 0;
+  virtual path      the_shifted_path ()                                  = 0;
+  virtual path      the_buffer_path ()                                   = 0;
+  virtual void      show_tree ()                                         = 0;
+  virtual void      show_box ()                                          = 0;
+  virtual void      show_env ()                                          = 0;
+  virtual void      show_path ()                                         = 0;
+  virtual void      show_cursor ()                                       = 0;
+  virtual void      show_selection ()                                    = 0;
+  virtual void      show_meminfo ()                                      = 0;
+  virtual void      edit_special ()                                      = 0;
 #ifdef LORO_ENABLED
   virtual void mirror_loro (const modification& mod)= 0;
   virtual void apply_remote (string bytes)          = 0;

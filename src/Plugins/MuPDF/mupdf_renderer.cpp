@@ -300,7 +300,7 @@ mupdf_renderer_rep::set_transformation (frame fr) {
 
   end_text ();
 
-  SI cx1, cy1, cx2, cy2;
+  DI cx1, cy1, cx2, cy2;
   get_clipping (cx1, cy1, cx2, cy2);
   rectangle oclip (cx1, cy1, cx2, cy2);
 
@@ -351,7 +351,7 @@ mupdf_renderer_rep::reset_transformation () {
  ******************************************************************************/
 
 void
-mupdf_renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
+mupdf_renderer_rep::set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore) {
   renderer_rep::set_clipping (x1, y1, x2, y2, restore);
 
   end_text ();
@@ -1243,8 +1243,8 @@ translate_pixmap (fz_pixmap* dest_pix, fz_irect dest_rect, fz_pixmap* src_pix,
 }
 
 void
-mupdf_renderer_rep::fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x,
-                           SI y) {
+mupdf_renderer_rep::fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x,
+                           DI y) {
   ASSERT (ren != NULL, "invalid situation");
   if (ren->is_printer ()) return;
   mupdf_renderer_rep* src= (mupdf_renderer_rep*) ren->get_handle ();
@@ -1308,7 +1308,7 @@ void fz_copy_pixmap_rect (fz_context* ctx, fz_pixmap* dest, fz_pixmap* src,
 }
 
 void
-mupdf_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+mupdf_renderer_rep::get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // FIXME: we should use the routine fetch later
   ASSERT (ren != NULL, "invalid renderer");
   if (ren->is_printer ()) return;
@@ -1335,7 +1335,7 @@ mupdf_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-mupdf_renderer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+mupdf_renderer_rep::put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // FIXME: we should use the routine fetch later
   ASSERT (ren != NULL, "invalid renderer");
   if (ren->is_printer ()) return;
@@ -1354,7 +1354,7 @@ mupdf_renderer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-mupdf_renderer_rep::apply_shadow (SI x1, SI y1, SI x2, SI y2) {
+mupdf_renderer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
   if (master == NULL) return;
   if (pixmap == static_cast<mupdf_renderer_rep*> (master)->pixmap) return;
   outer_round (x1, y1, x2, y2);

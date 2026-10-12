@@ -15,20 +15,20 @@
 
 class space_rep : concrete_struct {
 public:
-  SI min;
-  SI def;
-  SI max;
+  DI min;
+  DI def;
+  DI max;
 
-  space_rep (SI def);
-  space_rep (SI min, SI def, SI max);
+  space_rep (DI def);
+  space_rep (DI min, DI def, DI max);
 
   friend class space;
 };
 
 class space {
   CONCRETE (space);
-  space (SI def= 0);
-  space (SI min, SI def, SI max);
+  space (DI def= 0);
+  space (DI min, DI def, DI max);
   operator tree ();
   inline void operator+= (space spc) {
     rep->min+= spc->min;

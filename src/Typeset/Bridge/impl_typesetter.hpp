@@ -42,7 +42,7 @@ public:
   array<box>       frozen_page_boxes;
   int              frozen_line_offset;
   int              dynamic_buffer_pages;
-  SI               page_text_height;
+  DI               page_text_height;
 
 private:
   std::shared_ptr<rectangle> changed_ptr= std::make_shared<rectangle> ();

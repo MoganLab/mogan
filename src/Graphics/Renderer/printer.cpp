@@ -234,9 +234,10 @@ printer_rep::print (string s) {
 
 void
 printer_rep::print (SI x, SI y) {
-  decode (x, y);
-  print (as_string (x - dpi));
-  print (as_string (y - dpi));
+  DI X= x, Y= y;
+  decode (X, Y);
+  print (as_string (X - dpi));
+  print (as_string (Y - dpi));
 }
 
 void
@@ -577,7 +578,7 @@ void
 printer_rep::set_transformation (frame fr) {
   ASSERT (fr->linear, "only linear transformations have been implemented");
 
-  SI cx1, cy1, cx2, cy2;
+  DI cx1, cy1, cx2, cy2;
   get_clipping (cx1, cy1, cx2, cy2);
   rectangle oclip (cx1, cy1, cx2, cy2);
 
@@ -617,7 +618,7 @@ printer_rep::reset_transformation () {
  ******************************************************************************/
 
 void
-printer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
+printer_rep::set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore) {
   outer_round (x1, y1, x2, y2);
   renderer_rep::set_clipping (x1, y1, x2, y2);
   if (restore) {
@@ -877,7 +878,7 @@ printer_rep::image (string name, string eps, SI x1, SI y1, SI x2, SI y2, SI w,
 }
 
 void
-printer_rep::fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x, SI y) {
+printer_rep::fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y) {
   (void) x1;
   (void) y1;
   (void) x2;
@@ -898,7 +899,7 @@ printer_rep::delete_shadow (renderer& ren) {
 }
 
 void
-printer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+printer_rep::get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   (void) ren;
   (void) x1;
   (void) y1;
@@ -907,7 +908,7 @@ printer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+printer_rep::put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   (void) ren;
   (void) x1;
   (void) y1;
@@ -916,7 +917,7 @@ printer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::apply_shadow (SI x1, SI y1, SI x2, SI y2) {
+printer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
   (void) x1;
   (void) y1;
   (void) x2;
@@ -1015,7 +1016,8 @@ printer_rep::href (string label, SI x1, SI y1, SI x2, SI y2) {
 
 void
 printer_rep::toc_entry (string kind, string title, SI x, SI y) {
-  decode (x, y);
+  DI X= x, Y= y;
+  decode (X, Y);
   string ls= "1";
   if (kind == "toc-strong-1") ls= "1";
   if (kind == "toc-strong-2") ls= "2";
@@ -1025,8 +1027,8 @@ printer_rep::toc_entry (string kind, string title, SI x, SI y) {
   if (kind == "toc-4") ls= "6";
   if (kind == "toc-5") ls= "7";
   string ps= as_string (cur_page);
-  string xs= as_string (x - dpi);
-  string ys= as_string (y - dpi);
+  string xs= as_string (X - dpi);
+  string ys= as_string (Y - dpi);
   toc << tuple (title, ls, ps, xs, ys);
 }
 

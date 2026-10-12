@@ -132,6 +132,10 @@ int_to_tmscm (int i) {
   return s7_make_integer (tm_s7, i);
 }
 inline tmscm
+di_to_tmscm (DI l) {
+  return s7_make_integer (tm_s7, l);
+}
+inline tmscm
 long_to_tmscm (long l) {
   return s7_make_integer (tm_s7, l);
 }
@@ -149,6 +153,14 @@ tmscm_to_bool (tmscm obj) {
 inline int
 tmscm_to_int (tmscm obj) {
   return s7_integer (obj);
+}
+inline DI
+tmscm_to_di (tmscm obj) {
+  return (DI) s7_integer (obj);
+}
+inline long
+tmscm_to_long (tmscm obj) {
+  return (long) s7_integer (obj);
 }
 inline double
 tmscm_to_double (tmscm obj) {

@@ -41,17 +41,17 @@ class player;
  ******************************************************************************/
 
 struct cursor_rep : concrete_struct {
-  SI     ox, oy; // main cursor position
+  DI     ox, oy; // main cursor position
   SI     delta;  // infinitesimal shift to the right
-  SI     y1;     // under base line
-  SI     y2;     // upper base line
+  DI     y1;     // under base line
+  DI     y2;     // upper base line
   double slope;  // slope of cursor
   bool   valid;  // the cursor is valid
 };
 
 struct cursor {
   CONCRETE (cursor);
-  cursor (SI x= 0, SI y= 0, SI delta= 0, SI y1= 0, SI y2= 0, double slope= 0.0,
+  cursor (DI x= 0, DI y= 0, SI delta= 0, DI y1= 0, DI y2= 0, double slope= 0.0,
           bool valid= true);
 };
 CONCRETE_CODE (cursor);
@@ -119,13 +119,13 @@ class box {
 
 class box_rep : public abstract_struct {
 private:
-  SI x0, y0; // offset w.r.t. parent box
+  DI x0, y0; // offset w.r.t. parent box
 
 public:
-  SI x1, y1; // under left corner (logical)
-  SI x2, y2; // upper right corner (logical)
-  SI x3, y3; // under left corner (ink)
-  SI x4, y4; // upper right corner (ink)
+  DI x1, y1; // under left corner (logical)
+  DI x2, y2; // upper right corner (logical)
+  DI x3, y3; // under left corner (ink)
+  DI x4, y4; // upper right corner (ink)
 
   path ip; // corresponding inverse path in source tree
 
@@ -147,7 +147,7 @@ public:
   virtual tree message (tree t, SI x, SI y, rectangles& rs);
   virtual void loci (SI x, SI y, SI d, list<string>& ids, rectangles& rs);
   virtual void display_links (renderer ren);
-  virtual void position_at (SI x, SI y, array<rectangle>& logs,
+  virtual void position_at (DI x, DI y, array<rectangle>& logs,
                             std::shared_ptr<rectangle> changed);
   virtual void collect_page_numbers (hashmap<string, tree>& h, tree page);
   virtual void collect_page_colors (array<brush>& bs, array<rectangle>& rs);
@@ -156,31 +156,31 @@ public:
   virtual int  reindex (int i, int item, int n);
   virtual void redraw (renderer ren, path p, rectangles& l);
   virtual void redraw_background (renderer ren);
-  void         redraw (renderer ren, path p, rectangles& l, SI x, SI y);
-  void         clear (renderer ren, SI x1, SI y1, SI x2, SI y2);
+  void         redraw (renderer ren, path p, rectangles& l, DI x, DI y);
+  void         clear (renderer ren, DI x1, DI y1, DI x2, DI y2);
 
   /*************************** positioning routines **************************/
 
-  inline SI   w ();
-  inline SI   h ();
-  inline SI&  sx (int i);
-  inline SI&  sy (int i);
-  inline SI   sx1 (int i);
-  inline SI   sy1 (int i);
-  inline SI   sx2 (int i);
-  inline SI   sy2 (int i);
-  inline SI   sx3 (int i);
-  inline SI   sy3 (int i);
-  inline SI   sx4 (int i);
-  inline SI   sy4 (int i);
-  inline bool test_in (SI x, SI y);
+  inline DI   w ();
+  inline DI   h ();
+  inline DI&  sx (int i);
+  inline DI&  sy (int i);
+  inline DI   sx1 (int i);
+  inline DI   sy1 (int i);
+  inline DI   sx2 (int i);
+  inline DI   sy2 (int i);
+  inline DI   sx3 (int i);
+  inline DI   sy3 (int i);
+  inline DI   sx4 (int i);
+  inline DI   sy4 (int i);
+  inline bool test_in (DI x, DI y);
 
   inline bool accessible ();
   inline bool decoration ();
 
   SI   distance (int i, SI x, SI y, SI delta);
-  bool in_rectangle (SI x1, SI y1, SI x2, SI y2);
-  bool contains_rectangle (SI x1, SI y1, SI x2, SI y2);
+  bool in_rectangle (DI x1, DI y1, DI x2, DI y2);
+  bool contains_rectangle (DI x1, DI y1, DI x2, DI y2);
 
   virtual box  adjust_kerning (int mode, double factor);
   virtual box  left_auto_spacing (SI size);
@@ -203,7 +203,7 @@ public:
   virtual path      find_tree_path (path bp);
   virtual path      find_box_path (path p, bool& found);
 
-  path      find_tree_path (SI x, SI y, SI delta);
+  path      find_tree_path (DI x, DI y, SI delta);
   cursor    find_check_cursor (path p);
   selection find_check_selection (path lp, path rp);
 
@@ -285,61 +285,61 @@ inline box_rep::box_rep (path ip2)
 }
 inline box_rep::~box_rep () { TM_DEBUG (box_count--); }
 inline bool
-box_rep::test_in (SI x, SI y) {
+box_rep::test_in (DI x, DI y) {
   return (x >= x1) && (x < x2) && (y >= y1) && (y < y2);
 }
-inline SI
+inline DI
 box_rep::w () {
   return x2 - x1;
 }
-inline SI
+inline DI
 box_rep::h () {
   return y2 - y1;
 }
-inline SI&
+inline DI&
 box_rep::sx (int i) {
   return subbox (i)->x0;
 }
-inline SI&
+inline DI&
 box_rep::sy (int i) {
   return subbox (i)->y0;
 }
-inline SI
+inline DI
 box_rep::sx1 (int i) {
   box b= subbox (i);
   return b->x0 + b->x1;
 }
-inline SI
+inline DI
 box_rep::sy1 (int i) {
   box b= subbox (i);
   return b->y0 + b->y1;
 }
-inline SI
+inline DI
 box_rep::sx2 (int i) {
   box b= subbox (i);
   return b->x0 + b->x2;
 }
-inline SI
+inline DI
 box_rep::sy2 (int i) {
   box b= subbox (i);
   return b->y0 + b->y2;
 }
-inline SI
+inline DI
 box_rep::sx3 (int i) {
   box b= subbox (i);
   return b->x0 + b->x3;
 }
-inline SI
+inline DI
 box_rep::sy3 (int i) {
   box b= subbox (i);
   return b->y0 + b->y3;
 }
-inline SI
+inline DI
 box_rep::sx4 (int i) {
   box b= subbox (i);
   return b->x0 + b->x4;
 }
-inline SI
+inline DI
 box_rep::sy4 (int i) {
   box b= subbox (i);
   return b->y0 + b->y4;
@@ -359,8 +359,8 @@ bool        outside (SI x, SI delta, SI x1, SI x2);
 void        make_eps (url dest, box b, int dpi= 600);
 void        make_raster_image (url dest, box b, double zoom);
 path        find_innermost_scroll (box b, path p);
-path        find_scrolled_tree_path (box b, path sp, SI x, SI y, SI delta);
-void        find_canvas_info (box b, path sp, SI& x, SI& y, SI& sx, SI& sy,
+path        find_scrolled_tree_path (box b, path sp, DI x, DI y, SI delta);
+void        find_canvas_info (box b, path sp, DI& x, DI& y, DI& sx, DI& sy,
                               rectangle& outer, rectangle& inner);
 
 #define DECORATION (-1)

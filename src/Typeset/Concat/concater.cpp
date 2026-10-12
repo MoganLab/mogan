@@ -967,7 +967,7 @@ typeset_as_concat (edit_env env, tree t, path ip) {
   int i, n= N (a);
   if (n == 0) return empty_box (ip); // FIXME: n=0 should never happen
   array<box> items (n);
-  array<SI>  spc (n);
+  array<DI>  spc (n);
   if (n > 0) {
     spc[0]= 0;
     for (i= 0; i < n - 1; i++) {
@@ -992,7 +992,7 @@ typeset_as_concat (edit_env env, tree t, path ip, array<line_item>& a) {
   int i, n= N (a);
   if (n == 0) return empty_box (ip); // FIXME: n=0 should never happen
   array<box> items (n);
-  array<SI>  spc (n);
+  array<DI>  spc (n);
   if (n > 0) {
     spc[0]= 0;
     for (i= 0; i < n - 1; i++) {
@@ -1016,8 +1016,8 @@ typeset_as_box (edit_env env, tree t, path ip) {
     if (b[i]->w () != 0) ox= b[i]->x1;
 
   array<box> bs (1);
-  array<SI>  xs (1);
-  array<SI>  ys (1);
+  array<DI>  xs (1);
+  array<DI>  ys (1);
   bs[0]= b;
   xs[0]= ox;
   ys[0]= 0;
@@ -1083,7 +1083,7 @@ typeset_as_atomic (edit_env env, tree t, path ip) {
     int i, n= N (a);
     if (n == 0) return empty_box (ip); // FIXME: n=0 should never happen
     array<box> items (n);
-    array<SI>  spc (n);
+    array<DI>  spc (n);
     if (n > 0) {
       spc[0]= 0;
       for (i= 0; i < n - 1; i++) {

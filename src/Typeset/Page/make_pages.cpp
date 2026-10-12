@@ -20,7 +20,7 @@ using moebius::data::page_get_feature;
 
 using namespace moebius;
 
-box format_stack (path ip, array<box> bx, array<space> ht, SI height,
+box format_stack (path ip, array<box> bx, array<space> ht, DI height,
                   bool may_stretch);
 #include "Boxes/construct.hpp"
 array<page_item> sub (array<page_item> l, path p, path q);
@@ -74,8 +74,8 @@ pager_rep::pages_format (insertion ins) {
     int        col, nr_cols= N (ins->sk), real_nr_cols= as_int (ins->type[1]);
     SI         w= (text_width + col_sep) / real_nr_cols;
     array<box> bs (nr_cols);
-    array<SI>  x (nr_cols);
-    array<SI>  y (nr_cols);
+    array<DI>  x (nr_cols);
+    array<DI>  y (nr_cols);
     for (col= 0; col < nr_cols; col++) {
       bs[col]= pages_format (ins->sk[col]);
       x[col] = col * w;
@@ -111,9 +111,10 @@ pager_rep::pages_format (pagelet pg) {
   else {
     int        i, n= N (pg->ins);
     array<box> bs (n);
-    array<SI>  bx (n);
-    array<SI>  by (n);
-    SI         y= 0, fnote_y= MAX_SI;
+    array<DI>  bx (n);
+    array<DI>  by (n);
+    DI         y      = 0;
+    SI         fnote_y= MAX_SI;
     for (i= 0; i < n; i++) {
       insertion ins= pg->ins[i];
       // cout << ins << " at " << y << " stretch " << ins->stretch
@@ -164,8 +165,8 @@ pager_rep::pages_format (pagelet pg) {
     if (fnote_y != MAX_SI) {
       pencil pen= env->pen->set_width (env->fn->wline);
       bs << line_box (decorate (), 0, 0, fnote_bl, 0, pen);
-      bx << 0;
-      by << (fnote_y + env->fn->sep);
+      bx << (DI) 0;
+      by << (DI) (fnote_y + env->fn->sep);
     }
     // cout << UNINDENT << "Formatted pagelet " << (N(pages)+1) << LF << LF;
     return scatter_box (ip, bs, bx, by);
@@ -242,9 +243,9 @@ pager_rep::papyrus_make () {
     height= max (height, env->page_user_height + top + bot);
   array<box> bs (1);
   bs[0]= b;
-  array<SI> bs_x (1);
+  array<DI> bs_x (1);
   bs_x[0]= left;
-  array<SI> bs_y (1);
+  array<DI> bs_y (1);
   bs_y[0]= -top - dtop;
   box pb = page_box (ip, "?", 0, bgc, width, height, bs, bs_x, bs_y, 0, 0, 0);
   pages << pb;

@@ -17,7 +17,7 @@ mk_rects (int n) {
 
 // 优化前的递归按值实现,用于同二进制 A/B 对比
 static rectangles
-old_translate (rectangles l, SI x, SI y) {
+old_translate (rectangles l, DI x, DI y) {
   if (is_nil (l)) return l;
   rectangle& r= l->item;
   return rectangles (rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y),
@@ -26,7 +26,7 @@ old_translate (rectangles l, SI x, SI y) {
 
 // 优化前的递归按值实现,用于同二进制 A/B 对比
 static rectangles
-old_thicken (rectangles l, SI width, SI height) {
+old_thicken (rectangles l, DI width, DI height) {
   if (is_nil (l)) return l;
   rectangle& r= l->item;
   return rectangles (

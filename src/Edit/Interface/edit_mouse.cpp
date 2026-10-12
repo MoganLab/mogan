@@ -259,7 +259,8 @@ edit_interface_rep::mouse_adjust (SI x, SI y, int mods) {
     widget popup_wid= ::popup_widget (wid);
     popup_win       = ::popup_window_widget (popup_wid, "Popup menu");
 #if defined(QTTEXMACS) || defined(AQUATEXMACS)
-    SI ox, oy, sx, sy;
+    SI ox, oy;
+    DI sx, sy;
     get_position (this, ox, oy);
     get_scroll_position (this, sx, sy);
     ox-= sx;
@@ -276,20 +277,21 @@ void
 edit_interface_rep::mouse_scroll (SI x, SI y, bool up) {
   string message= up ? string ("scroll up") : string ("scroll down");
   if (mouse_message (message, x, y)) return;
-  SI dy= 100 * PIXEL;
+  DI dy= 100 * PIXEL;
   if (!up) dy= -dy;
   path sp= find_innermost_scroll (eb, tp);
   if (is_nil (sp)) {
-    SERVER (scroll_where (x, y));
-    y+= dy;
-    SERVER (scroll_to (x, y));
+    DI sx, sy;
+    SERVER (scroll_where (sx, sy));
+    sy+= dy;
+    SERVER (scroll_to (sx, sy));
   }
   else {
-    SI        x, y, sx, sy;
+    DI        x, y, sx, sy;
     rectangle outer, inner;
     find_canvas_info (eb, sp, x, y, sx, sy, outer, inner);
-    SI ty= inner->y2 - inner->y1;
-    SI cy= outer->y2 - outer->y1;
+    DI ty= inner->y2 - inner->y1;
+    DI cy= outer->y2 - outer->y1;
     if (ty > cy) {
       tree   old_yt= eb[path_up (sp)]->get_info ("scroll-y");
       string old_ys= as_string (old_yt);

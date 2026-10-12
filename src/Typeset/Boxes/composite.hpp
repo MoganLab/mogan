@@ -25,10 +25,10 @@ struct composite_box_rep : public box_rep {
   composite_box_rep (path ip);
   composite_box_rep (path ip, array<box> bs);
   composite_box_rep (path ip, array<box> bs, bool init_sx_sy);
-  composite_box_rep (path ip, array<box> bs, array<SI> x, array<SI> y);
+  composite_box_rep (path ip, array<box> bs, array<DI> x, array<DI> y);
   ~composite_box_rep ();
 
-  void insert (box b, SI x, SI y);
+  void insert (box b, DI x, DI y);
   void position ();
   void left_justify ();
   void finalize ();
@@ -59,7 +59,7 @@ struct composite_box_rep : public box_rep {
 
 struct concrete_composite_box_rep : public composite_box_rep {
   bool border_flag;
-  concrete_composite_box_rep (path ip, array<box> bs, array<SI> x, array<SI> y,
+  concrete_composite_box_rep (path ip, array<box> bs, array<DI> x, array<DI> y,
                               bool bfl)
       : composite_box_rep (ip, bs, x, y), border_flag (bfl) {
     finalize ();

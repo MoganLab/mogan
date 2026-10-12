@@ -67,17 +67,17 @@ pager_rep::pager_rep (path ip2, edit_env env2, array<page_item> l2,
 box
 format_stack (path ip, array<box> bx, array<space> ht) {
   int       i, n= N (bx);
-  array<SI> spc (n);
+  array<DI> spc (n);
   for (i= 0; i < n - 1; i++)
     spc[i]= ht[i]->def;
   return stack_box (ip, bx, spc);
 }
 
 box
-format_stack (path ip, array<box> bx, array<space> ht, SI height,
+format_stack (path ip, array<box> bx, array<space> ht, DI height,
               bool may_stretch) {
   int       i, n= N (bx);
-  array<SI> spc (n);
+  array<DI> spc (n);
   space     total (0);
   for (i= 0; i < n - 1; i++)
     total+= space (bx[i]->h ()) + ht[i];
@@ -88,7 +88,7 @@ format_stack (path ip, array<box> bx, array<space> ht, SI height,
     double f=
         ((double) (height - total->def)) / ((double) (total->max - total->def));
     for (i= 0; i < n - 1; i++)
-      spc[i]= ht[i]->def + ((SI) (f * ((double) ht[i]->max - ht[i]->def)));
+      spc[i]= ht[i]->def + ((DI) (f * ((double) ht[i]->max - ht[i]->def)));
   }
 
   // shrinking case
@@ -97,7 +97,7 @@ format_stack (path ip, array<box> bx, array<space> ht, SI height,
         ((double) (total->def - height)) / ((double) (total->def - total->min));
     if (f > 1.0) f= 1.0;
     for (i= 0; i < n - 1; i++)
-      spc[i]= ht[i]->def - ((SI) (f * ((double) ht[i]->def - ht[i]->min)));
+      spc[i]= ht[i]->def - ((DI) (f * ((double) ht[i]->def - ht[i]->min)));
   }
 
   // normal case
@@ -112,7 +112,7 @@ box
 format_stack (path ip, array<page_item> l) {
   int        i, n= N (l);
   array<box> bs (n);
-  array<SI>  spc (n);
+  array<DI>  spc (n);
   for (i= 0; i < n - 1; i++) {
     bs[i] = l[i]->b;
     spc[i]= l[i]->spc->def;
@@ -143,17 +143,17 @@ page_box (path ip, box b, tree page, int page_nr, brush bgc, SI width,
 
   array<box> bs (1);
   bs[0]= b;
-  array<SI> bs_x (1);
+  array<DI> bs_x (1);
   bs_x[0]= left;
-  array<SI> bs_y (1);
+  array<DI> bs_y (1);
   bs_y[0]= -top;
   array<box> decs (2);
   decs[0]= header;
   decs[1]= footer;
-  array<SI> decs_x (2);
+  array<DI> decs_x (2);
   decs_x[0]= left;
   decs_x[1]= left;
-  array<SI> decs_y (2);
+  array<DI> decs_y (2);
   decs_y[0]= h_y;
   decs_y[1]= f_y;
 
@@ -344,11 +344,11 @@ pager_rep::make_pages () {
         }
       }
 
-  array<SI> x (nr_pages);
-  array<SI> y (nr_pages);
+  array<DI> x (nr_pages);
+  array<DI> y (nr_pages);
 
   // nx >= 1
-  array<SI> xx (nx);
+  array<DI> xx (nx);
   xx[0]= 0;
   for (int i= 1; i < nx; i++) {
     xx[i]= xx[i - 1];
@@ -359,7 +359,7 @@ pager_rep::make_pages () {
   }
 
   if (ny > 0) {
-    array<SI> yy (ny);
+    array<DI> yy (ny);
     yy[0]= 0;
 
     for (int j= 1; j < ny; j++) {

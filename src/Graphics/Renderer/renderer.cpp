@@ -159,13 +159,13 @@ renderer_rep::set_metadata (string kind, string val) {
  ******************************************************************************/
 
 void
-renderer_rep::set_origin (SI x, SI y) {
+renderer_rep::set_origin (DI x, DI y) {
   ox= x;
   oy= y;
 }
 
 void
-renderer_rep::move_origin (SI dx, SI dy) {
+renderer_rep::move_origin (DI dx, DI dy) {
   ox+= dx;
   oy+= dy;
 }
@@ -180,12 +180,12 @@ renderer_rep::set_zoom_factor (double zoom) {
   if (shrinkf != ((int) tm_round (std_shrinkf / zoomf)))
     cout << "Invalid zoom " << zoomf << ", " << shrinkf << LF;
   double factor= zoomf / zoom;
-  ox           = (SI) tm_round (ox * factor);
-  oy           = (SI) tm_round (oy * factor);
-  cx1          = (SI) tm_round (cx1 * factor);
-  cx2          = (SI) tm_round (cx2 * factor);
-  cy1          = (SI) tm_round (cy1 * factor);
-  cy2          = (SI) tm_round (cy2 * factor);
+  ox           = (DI) tm_round (ox * factor);
+  oy           = (DI) tm_round (oy * factor);
+  cx1          = (DI) tm_round (cx1 * factor);
+  cx2          = (DI) tm_round (cx2 * factor);
+  cy1          = (DI) tm_round (cy1 * factor);
+  cy2          = (DI) tm_round (cy2 * factor);
   zoomf        = zoom;
   shrinkf      = (int) tm_round (std_shrinkf / zoomf);
   thicken      = (shrinkf >> 1) * PIXEL;
@@ -217,7 +217,7 @@ renderer_rep::reset_transformation () {}
  ******************************************************************************/
 
 void
-renderer_rep::get_clipping (SI& x1, SI& y1, SI& x2, SI& y2) {
+renderer_rep::get_clipping (DI& x1, DI& y1, DI& x2, DI& y2) {
   x1= cx1 - ox;
   y1= cy1 - oy;
   x2= cx2 - ox;
@@ -225,7 +225,7 @@ renderer_rep::get_clipping (SI& x1, SI& y1, SI& x2, SI& y2) {
 }
 
 void
-renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
+renderer_rep::set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore) {
   (void) restore;
   outer_round (x1, y1, x2, y2);
   cx1= x1 + ox;
@@ -235,8 +235,8 @@ renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
 }
 
 void
-renderer_rep::extra_clipping (SI x1, SI y1, SI x2, SI y2) {
-  SI ox1, oy1, ox2, oy2;
+renderer_rep::extra_clipping (DI x1, DI y1, DI x2, DI y2) {
+  DI ox1, oy1, ox2, oy2;
   get_clipping (ox1, oy1, ox2, oy2);
   x1= max (x1, ox1);
   y1= max (y1, oy1);
@@ -246,7 +246,7 @@ renderer_rep::extra_clipping (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-renderer_rep::clip (SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::clip (DI x1, DI y1, DI x2, DI y2) {
   rectangle r (cx1, cy1, cx2, cy2);
   clip_stack= rectangles (r, clip_stack);
   set_clipping (x1, y1, x2, y2);
@@ -260,7 +260,7 @@ renderer_rep::unclip () {
 }
 
 bool
-renderer_rep::is_visible (SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::is_visible (DI x1, DI y1, DI x2, DI y2) {
   return (x2 >= (cx1 - ox)) && (y2 >= (cy1 - oy)) && (x1 < (cx2 - ox)) &&
          (y1 < (cy2 - oy));
 }
@@ -276,7 +276,7 @@ renderer_rep::encode (SI& x, SI& y) {
 }
 
 void
-renderer_rep::decode (SI& x, SI& y) {
+renderer_rep::decode (DI& x, DI& y) {
   x+= ox;
   y+= oy;
   if (x >= 0) x= x / pixel;
@@ -286,13 +286,13 @@ renderer_rep::decode (SI& x, SI& y) {
 }
 
 void
-renderer_rep::encode (double x, double y, SI& rx, SI& ry) {
-  rx= ((SI) ((x + 0.5) * pixel)) - ox;
-  ry= ((SI) (((-y) + 0.5) * pixel)) - oy;
+renderer_rep::encode (double x, double y, DI& rx, DI& ry) {
+  rx= ((DI) ((x + 0.5) * pixel)) - ox;
+  ry= ((DI) (((-y) + 0.5) * pixel)) - oy;
 }
 
 void
-renderer_rep::decode (SI x, SI y, double& rx, double& ry) {
+renderer_rep::decode (DI x, DI y, double& rx, double& ry) {
   rx= ((double) (x + ox)) / pixel - 0.5;
   ry= -(((double) (y + oy)) / pixel - 0.5);
 }
@@ -302,13 +302,13 @@ renderer_rep::decode (SI x, SI y, double& rx, double& ry) {
               : ((((x) - retina_pixel + 1) / retina_pixel) * retina_pixel))
 
 void
-renderer_rep::round (SI& x, SI& y) {
+renderer_rep::round (DI& x, DI& y) {
   x= RND (x + ox) - ox;
   y= RND (y + oy) - oy;
 }
 
 void
-renderer_rep::inner_round (SI& x1, SI& y1, SI& x2, SI& y2) {
+renderer_rep::inner_round (DI& x1, DI& y1, DI& x2, DI& y2) {
   x1= RND (x1 + ox + pixel - 1) - ox;
   y1= RND (y1 + oy + pixel - 1) - oy;
   x2= RND (x2 + ox) - ox;
@@ -316,7 +316,7 @@ renderer_rep::inner_round (SI& x1, SI& y1, SI& x2, SI& y2) {
 }
 
 void
-renderer_rep::outer_round (SI& x1, SI& y1, SI& x2, SI& y2) {
+renderer_rep::outer_round (DI& x1, DI& y1, DI& x2, DI& y2) {
   x1= RND (x1 + ox) - ox;
   y1= RND (y1 + oy) - oy;
   x2= RND (x2 + ox + pixel - 1) - ox;
@@ -397,13 +397,14 @@ renderer_rep::clear_pattern (SI mx1, SI my1, SI mx2, SI my2, SI x1, SI y1,
   else if (kind == brush_pattern && is_func (b->get_pattern (), PATTERN)) {
     tree pattern      = b->get_pattern ();
     int  pattern_alpha= b->get_alpha ();
-    outer_round (x1, y1, x2, y2);
+    DI   X1= x1, Y1= y1, X2= x2, Y2= y2;
+    outer_round (X1, Y1, X2, Y2);
     // cout << "A: " << x1 << ", " << y1 << ", " << x2 << ", " << y2 << "\n";
     // cout << "A: " << x/pixel1 << ", " << y1 << ", " << x2 << ", " << y2 <<
     // "\n";
-    SI cx1, cy1, cx2, cy2;
+    DI cx1, cy1, cx2, cy2;
     get_clipping (cx1, cy1, cx2, cy2);
-    extra_clipping (x1, y1, x2, y2);
+    extra_clipping (X1, Y1, X2, Y2);
 
     url u= b->get_pattern_url ();
     int imw_pt, imh_pt;
@@ -574,14 +575,15 @@ renderer
 renderer_rep::shadow (picture& pic, SI x1, SI y1, SI x2, SI y2) {
   // cout << "Shadow " << x1/PIXEL << ", " << y1/PIXEL
   //      << "; " << x2/PIXEL << ", " << y2/PIXEL << "\n";
-  SI x0= 0, y0= 0;
+  DI x0= 0, y0= 0;
   decode (x0, y0);
-  outer_round (x1, y1, x2, y2);
-  decode (x1, y1);
-  decode (x2, y2);
-  x2 = max (x1, x2);
-  y2 = min (y1, y2);
-  pic= native_picture (x2 - x1, y1 - y2, x0 - x1, (y1 - y2 - 1) - (y0 - y2));
+  DI X1= x1, Y1= y1, X2= x2, Y2= y2;
+  outer_round (X1, Y1, X2, Y2);
+  decode (X1, Y1);
+  decode (X2, Y2);
+  X2 = max (X1, X2);
+  Y2 = min (Y1, Y2);
+  pic= native_picture (X2 - X1, Y1 - Y2, x0 - X1, (Y1 - Y2 - 1) - (y0 - Y2));
   renderer ren= picture_renderer (pic, zoomf);
 
   ren->ox          = ox;

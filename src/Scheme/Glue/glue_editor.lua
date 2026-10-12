@@ -2119,7 +2119,7 @@ function main()
             {
                 scm_name = "print-snippet",
                 cpp_name = "print_snippet",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "url",
                     "content",

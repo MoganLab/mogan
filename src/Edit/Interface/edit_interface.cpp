@@ -264,7 +264,7 @@ scrollbar_width () {
 
 SI
 edit_interface_rep::get_window_width () {
-  SI     w, h;
+  DI     w, h;
   widget me= ::get_canvas (widget (cvw));
   ::get_size (me, w, h);
   bool sb= (get_init_string (SCROLL_BARS) != "false");
@@ -281,7 +281,7 @@ edit_interface_rep::get_window_width () {
 
 SI
 edit_interface_rep::get_window_height () {
-  SI     w, h;
+  DI     w, h;
   widget me= ::get_canvas (widget (cvw));
   ::get_size (me, w, h);
 #if defined(QTTEXMACS) && !defined(Q_OS_MAC) && (QT_VERSION < 0x050000)
@@ -292,21 +292,21 @@ edit_interface_rep::get_window_height () {
 
 SI
 edit_interface_rep::get_window_x () {
-  SI wx, wy;
+  DI wx, wy;
   ::get_position (get_window (this), wx, wy);
   return wx;
 }
 
 SI
 edit_interface_rep::get_window_y () {
-  SI wx, wy;
+  DI wx, wy;
   ::get_position (get_window (this), wx, wy);
   return wy;
 }
 
 SI
 edit_interface_rep::get_canvas_x () {
-  SI     ox, oy;
+  DI     ox, oy;
   widget me= ::get_canvas (widget (cvw));
   ::get_position (me, ox, oy);
   return ox;
@@ -314,47 +314,47 @@ edit_interface_rep::get_canvas_x () {
 
 SI
 edit_interface_rep::get_canvas_y () {
-  SI     ox, oy;
+  DI     ox, oy;
   widget me= ::get_canvas (widget (cvw));
   ::get_position (me, ox, oy);
 
   return oy;
 }
 
-SI
+DI
 edit_interface_rep::get_scroll_x () {
-  SI scx, scy;
+  DI scx, scy;
   SERVER (scroll_where (scx, scy));
-  scx= (SI) (scx / magf);
-  scy= (SI) (scy / magf);
+  scx= (DI) (scx / magf);
+  scy= (DI) (scy / magf);
   return scx;
 }
 
-SI
+DI
 edit_interface_rep::get_scroll_y () {
-  SI scx, scy;
+  DI scx, scy;
   SERVER (scroll_where (scx, scy));
-  scx= (SI) (scx / magf);
-  scy= (SI) (scy / magf);
+  scx= (DI) (scx / magf);
+  scy= (DI) (scy / magf);
   return scy;
 }
 
 bool
-edit_interface_rep::progressive_advance_near_tail (SI y) {
+edit_interface_rep::progressive_advance_near_tail (DI y) {
   // 视口距已排版尾部不足 3 页时推进一个排版块
   typesetter ttt= get_typesetter ();
   if (!::typeset_in_progress (ttt) || is_nil (eb)) return false;
-  SI ph= progressive_get_page_height (ttt);
+  DI ph= progressive_get_page_height (ttt);
   if (ph <= 0 || y > eb->y1 + 3 * ph) return false;
   progressive_advance (ttt, 15);
   return true;
 }
 
 void
-edit_interface_rep::scroll_to (SI x, SI y) {
+edit_interface_rep::scroll_to (DI x, DI y) {
   stored_rects= rectangles ();
   copy_always = rectangles ();
-  SERVER (scroll_to ((SI) (x * magf), ((SI) (y * magf))));
+  SERVER (scroll_to ((DI) (x * magf), ((DI) (y * magf))));
   if (progressive_advance_near_tail (y)) notify_change (THE_TREE + THE_EXTENTS);
 }
 
@@ -421,15 +421,15 @@ edit_interface_rep::cursor_visible () {
       if (N (pages) > 1) {
         SI vw= vx2 - vx1, vh= vy2 - vy1;
         for (int i= 0; i < N (pages); i++) {
-          SI scx, scy;
+          DI scx, scy;
           SERVER (scroll_where (scx, scy));
-          scx  = (SI) (scx / magf);
-          scy  = (SI) (scy / magf);
-          SI x1= eb->sy (0) + pages->sx1 (i);
-          SI x2= eb->sy (0) + pages->sx2 (i);
-          SI y1= eb->sy (0) + pages->sy1 (i);
-          SI y2= eb->sy (0) + pages->sy2 (i);
-          SI pw= x2 - x1, ph= y2 - y1;
+          scx  = (DI) (scx / magf);
+          scy  = (DI) (scy / magf);
+          DI x1= eb->sy (0) + pages->sx1 (i);
+          DI x2= eb->sy (0) + pages->sx2 (i);
+          DI y1= eb->sy (0) + pages->sy1 (i);
+          DI y2= eb->sy (0) + pages->sy2 (i);
+          DI pw= x2 - x1, ph= y2 - y1;
           if (cu->ox >= x1 && x2 > cu->ox && cu->oy >= y1 && y2 > cu->oy &&
               5 * vw > 3 * pw && 5 * vh > 3 * ph) {
             if (!must_update) {
@@ -475,17 +475,17 @@ edit_interface_rep::cursor_visible () {
     }
   }
   else {
-    SI        x, y, sx, sy;
+    DI        x, y, sx, sy;
     rectangle outer, inner;
     find_canvas_info (eb, sp, x, y, sx, sy, outer, inner);
     if ((cu->ox + ((SI) (cu->y1 * cu->slope)) < x + outer->x1) ||
         (cu->ox + ((SI) (cu->y2 * cu->slope)) > x + outer->x2)) {
-      SI tx= inner->x2 - inner->x1;
-      SI cx= outer->x2 - outer->x1;
+      DI tx= inner->x2 - inner->x1;
+      DI cx= outer->x2 - outer->x1;
       if (tx > cx) {
-        SI     outer_cx= cu->ox - x;
-        SI     inner_cx= outer_cx - sx;
-        SI     dx      = inner_cx - inner->x1;
+        DI     outer_cx= cu->ox - x;
+        DI     inner_cx= outer_cx - sx;
+        DI     dx      = inner_cx - inner->x1;
         double p   = 100.0 * ((double) (dx - (cx >> 1))) / ((double) (tx - cx));
         p          = max (min (p, 100.0), 0.0);
         tree old_xt= eb[path_up (sp)]->get_info ("scroll-x");
@@ -1407,7 +1407,7 @@ edit_interface_rep::apply_changes () {
       stored_rects= rectangles ();
   }
   if (inside_active_graphics ()) {
-    SI gx1, gy1, gx2, gy2;
+    DI gx1, gy1, gx2, gy2;
     if (find_graphical_region (gx1, gy1, gx2, gy2)) {
       rectangle gr= rectangle (gx1, gy1, gx2, gy2);
       if (!is_nil (gr - stored_rects)) invalidate (gx1, gy1, gx2, gy2);
@@ -1532,11 +1532,11 @@ edit_interface_rep::cancel_menu_action () {
 
 rectangle
 edit_interface_rep::get_window_extents () {
-  SI     ox, oy, w, h;
+  DI     ox, oy, w, h;
   widget me= ::get_canvas (widget (cvw));
   ::get_position (me, ox, oy);
   ::get_size (me, w, h);
-  SI vx1, vy1, vx2, vy2;
+  DI vx1, vy1, vx2, vy2;
   SERVER (get_visible (vx1, vy1, vx2, vy2));
   ox-= vx1;
   oy-= vy2;

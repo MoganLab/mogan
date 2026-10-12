@@ -41,7 +41,7 @@ stacker_rep::set_env_vars (SI h2, SI sep2, SI hor_sep2, SI ver_sep2, SI bot2,
 #include "merge_sort.hpp"
 
 static int
-get_pos (array<SI> a, SI which) {
+get_pos (array<DI> a, DI which) {
   int step, test;
   step= test= N (a) >> 1;
   while (a[test] != which) {
@@ -77,7 +77,7 @@ shove_in (box b1, box b2, SI hor_sep, SI top, SI bot) {
   if ((max1 + hor_sep < min2) || (max2 + hor_sep < min1)) return 0;
 
   // longer determination of height after shoving
-  array<SI> hpos;
+  array<DI> hpos;
   for (i= 0; i < N (b1); i++)
     if (b1[i]->w () > 0)
       hpos << (b1->sx1 (i) - hor_sep) << (b1->sx2 (i) + hor_sep);
@@ -87,8 +87,8 @@ shove_in (box b1, box b2, SI hor_sep, SI top, SI bot) {
   merge_sort (hpos);
 
   int       n= N (hpos) - 1;
-  array<SI> vpos1 (n);
-  array<SI> vpos2 (n);
+  array<DI> vpos1 (n);
+  array<DI> vpos2 (n);
   for (i= 0; i < n; i++) {
     vpos1[i]= bot;
     vpos2[i]= top;
@@ -96,7 +96,7 @@ shove_in (box b1, box b2, SI hor_sep, SI top, SI bot) {
 
   for (i= 0; i < N (b1); i++)
     if (b1[i]->w () > 0) {
-      SI  y    = b1->sy1 (i);
+      DI  y    = b1->sy1 (i);
       int start= get_pos (hpos, b1->sx1 (i) - hor_sep);
       int end  = get_pos (hpos, b1->sx2 (i) + hor_sep);
       if (end > n) end= n;
@@ -105,7 +105,7 @@ shove_in (box b1, box b2, SI hor_sep, SI top, SI bot) {
     }
   for (i= 0; i < N (b2); i++)
     if (b2[i]->w () > 0) {
-      SI  y    = b2->sy2 (i);
+      DI  y    = b2->sy2 (i);
       int start= get_pos (hpos, b2->sx1 (i) - hor_sep);
       int end  = get_pos (hpos, b2->sx2 (i) + hor_sep);
       if (end > n) end= n;
@@ -113,7 +113,7 @@ shove_in (box b1, box b2, SI hor_sep, SI top, SI bot) {
         vpos2[j]= max (vpos2[j], y);
     }
 
-  SI m= vpos2[0] - vpos1[0];
+  DI m= vpos2[0] - vpos1[0];
   for (i= 1; i < n; i++)
     m= max (m, vpos2[i] - vpos1[i]);
   return m;
@@ -424,7 +424,7 @@ typeset_as_stack (edit_env env, tree t, path ip) {
 
   n= N (sss->l);
   array<box> lines_bx (n);
-  array<SI>  lines_ht (n);
+  array<DI>  lines_ht (n);
   for (i= 0; i < n; i++) {
     page_item item= copy (sss->l[i]);
     lines_bx[i]   = item->b;

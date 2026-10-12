@@ -49,7 +49,7 @@ public:
   SI    mnote_sep;
 
   int        page_offset;
-  SI         cur_top;
+  DI         cur_top;
   array<box> pages;
 
   array<box>   lines_bx;

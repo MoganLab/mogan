@@ -98,17 +98,17 @@ concater_rep::glue_left_markers (box b, int ref, int arg) {
     i++;
   if (i >= ref) return b;
   array<box> bs;
-  array<SI>  spc;
+  array<DI>  spc;
   while (i < ref) {
     if (a[i]->type == MARKER_ITEM) {
       bs << a[i]->b;
-      spc << 0;
+      spc << (DI) 0;
       a[i]->type= OBSOLETE_ITEM;
     }
     i++;
   }
   bs << b;
-  spc << 0;
+  spc << (DI) 0;
   return concat_box (b->ip, bs, spc);
 }
 
@@ -119,21 +119,21 @@ concater_rep::glue_right_markers (box b, int ref, int arg, bool flag) {
     i++;
   if (i >= arg) return b;
   array<box> bs;
-  array<SI>  spc;
+  array<DI>  spc;
   if (flag) {
     for (int j= 0; j < N (b); j++) {
       bs << b[j];
-      spc << 0;
+      spc << (DI) 0;
     }
   }
   else {
     bs << b;
-    spc << 0;
+    spc << (DI) 0;
   }
   while (i < arg) {
     if (a[i]->type == MARKER_ITEM) {
       bs << a[i]->b;
-      spc << 0;
+      spc << (DI) 0;
       a[i]->type= OBSOLETE_ITEM;
     }
     i++;

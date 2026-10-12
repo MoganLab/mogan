@@ -288,7 +288,7 @@ edit_graphics_rep::find_limits (point& lim1, point& lim2) {
 }
 
 bool
-edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
+edit_graphics_rep::find_graphical_region (DI& x1, DI& y1, DI& x2, DI& y2) {
   point lim1, lim2;
   find_limits (lim1, lim2);
   if (lim1 == point ()) return false;
@@ -296,10 +296,10 @@ edit_graphics_rep::find_graphical_region (SI& x1, SI& y1, SI& x2, SI& y2) {
   if (is_nil (f)) return false;
   point p1= f (point (lim1[0], lim1[1]));
   point p2= f (point (lim2[0], lim2[1]));
-  x1      = (SI) p1[0];
-  y1      = (SI) p1[1];
-  x2      = (SI) p2[0];
-  y2      = (SI) p2[1];
+  x1      = (DI) p1[0];
+  y1      = (DI) p1[1];
+  x2      = (DI) p2[0];
+  y2      = (DI) p2[1];
   return true;
 }
 
@@ -633,7 +633,7 @@ edit_graphics_rep::set_graphical_object (tree t) {
       for (i= 0; i < N (go_box); i++)
         if (((tree) go_box[i]) != "") {
           array<box> bx2 (1);
-          array<SI>  spc2 (1);
+          array<DI>  spc2 (1);
           bx2[0] = go_box[i];
           spc2[0]= 0;
           bx[n]  = concat_box (path (0), bx2, spc2);
@@ -649,7 +649,7 @@ edit_graphics_rep::set_graphical_object (tree t) {
 
 void
 edit_graphics_rep::invalidate_graphical_object () {
-  SI gx1, gy1, gx2, gy2;
+  DI gx1, gy1, gx2, gy2;
   if (!is_nil (eb) && find_graphical_region (gx1, gy1, gx2, gy2) &&
       !is_nil (go_box)) {
     int        i;
@@ -668,9 +668,9 @@ void
 edit_graphics_rep::draw_graphical_object (renderer ren) {
   if (is_nil (go_box)) set_graphical_object (graphical_object);
   if (is_nil (go_box)) return;
-  SI ox1, oy1, ox2, oy2;
+  DI ox1, oy1, ox2, oy2;
   ren->get_clipping (ox1, oy1, ox2, oy2);
-  SI gx1, gy1, gx2, gy2;
+  DI gx1, gy1, gx2, gy2;
   if (find_graphical_region (gx1, gy1, gx2, gy2))
     ren->extra_clipping (gx1, gy1, gx2, gy2);
   int i;

@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 struct stack_box_rep : public composite_box_rep {
-  stack_box_rep (path ip, array<box> bs, array<SI> spc);
+  stack_box_rep (path ip, array<box> bs, array<DI> spc);
   int get_type () { return STACK_BOX; }
   operator tree () {
     int  i, n= N (bs);
@@ -26,7 +26,7 @@ struct stack_box_rep : public composite_box_rep {
     return t;
   }
 
-  void position (array<SI> spc);
+  void position (array<DI> spc);
   void finalize ();
   void display (renderer ren);
   void clear_incomplete (rectangles& rs, SI pixel, int i, int i1, int i2);
@@ -45,7 +45,7 @@ struct stack_box_rep : public composite_box_rep {
  ******************************************************************************/
 
 void
-stack_box_rep::position (array<SI> spc) {
+stack_box_rep::position (array<DI> spc) {
   int i;
   y1= y2= 0;
   for (i= 0; i < N (bs); i++) {
@@ -56,7 +56,7 @@ stack_box_rep::position (array<SI> spc) {
   composite_box_rep::position ();
 }
 
-stack_box_rep::stack_box_rep (path ip, array<box> bs2, array<SI> spc)
+stack_box_rep::stack_box_rep (path ip, array<box> bs2, array<DI> spc)
     : composite_box_rep (ip) {
   bs= bs2;
   if (N (bs) != 0) position (spc);
@@ -377,6 +377,6 @@ stack_box_rep::graphical_select (SI x1, SI y1, SI x2, SI y2) {
  ******************************************************************************/
 
 box
-stack_box (path ip, array<box> bs, array<SI> spc) {
+stack_box (path ip, array<box> bs, array<DI> spc) {
   return tm_new<stack_box_rep> (ip, bs, spc);
 }

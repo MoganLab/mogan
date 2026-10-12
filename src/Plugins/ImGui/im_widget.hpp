@@ -19,8 +19,8 @@
 class im_widget;
 
 // Coordinate helpers in TeXmacs SI units
-typedef pair<SI, SI>            coord2;
-typedef quartet<SI, SI, SI, SI> coord4;
+typedef pair<DI, DI>            coord2;
+typedef quartet<DI, DI, DI, DI> coord4;
 
 /*
  ImGui 界面中所有 TeXmacs 控件的基类。

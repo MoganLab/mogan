@@ -345,7 +345,7 @@ anim_repeat_box_rep::pre_display (renderer& ren) {
 
 struct anim_effect_box_rep : public composite_anim_box_rep {
   box    b;
-  SI     old_clip_x1, old_clip_x2, old_clip_y1, old_clip_y2;
+  DI     old_clip_x1, old_clip_x2, old_clip_y1, old_clip_y2;
   double current_x;
   double last_x;
 

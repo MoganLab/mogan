@@ -463,7 +463,7 @@ function main()
             {
                 scm_name = "tree-bounding-rectangle",
                 cpp_name = "get_bounding_rectangle",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "tree"
                 }

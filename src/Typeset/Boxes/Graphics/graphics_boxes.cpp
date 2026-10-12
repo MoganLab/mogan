@@ -23,7 +23,7 @@ struct graphics_box_rep : public composite_box_rep {
   frame f;
   grid  g;
   point lim1, lim2;
-  SI    old_clip_x1, old_clip_x2, old_clip_y1, old_clip_y2;
+  DI    old_clip_x1, old_clip_x2, old_clip_y1, old_clip_y2;
   graphics_box_rep (path ip, array<box> bs, frame f, grid g, point lim1,
                     point lim2);
   frame get_frame ();

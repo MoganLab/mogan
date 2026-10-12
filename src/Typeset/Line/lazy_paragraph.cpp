@@ -782,10 +782,10 @@ lazy_paragraph_rep::make_unit (string mode, SI the_width, bool break_flag) {
 
 void
 lazy_paragraph_rep::handle_decoration (int& i, int& j, SI& xoff, box& b,
-                                       SI& b_sp) {
+                                       DI& b_sp) {
   string     xoff_str= as_string (xoff) * "tmpt";
   array<box> new_items;
-  array<SI>  new_items_sp;
+  array<DI>  new_items_sp;
   tree       t= decs[j][1];
   j++;
   handle_decorations (i, j, xoff, new_items, new_items_sp);
@@ -811,7 +811,7 @@ lazy_paragraph_rep::handle_decoration (int& i, int& j, SI& xoff, box& b,
 void
 lazy_paragraph_rep::handle_decorations (int& i, int& j, SI& xoff,
                                         array<box>& new_items,
-                                        array<SI>&  new_items_sp) {
+                                        array<DI>&  new_items_sp) {
   while (i < N (items)) {
     // cout << "Handling " << items[i] << LF;
     if ((j < N (decs)) && (as_int (decs[j][0]) == i)) {
@@ -826,7 +826,7 @@ lazy_paragraph_rep::handle_decorations (int& i, int& j, SI& xoff,
       }
       else {
         box b;
-        SI  b_sp;
+        DI  b_sp;
         // cout << "Handling decoration " << t << LF << INDENT;
         handle_decoration (i, j, xoff, b, b_sp);
         // cout << UNINDENT << "Handled " << t << LF;
@@ -847,7 +847,7 @@ void
 lazy_paragraph_rep::handle_decorations () {
   // cout << "Handling decorations: " << decs << LF << INDENT;
   array<box> new_items;
-  array<SI>  new_items_sp;
+  array<DI>  new_items_sp;
   int        i= 0, j= 0;
   SI         xoff= 0;
   handle_decorations (i, j, xoff, new_items, new_items_sp);
@@ -872,7 +872,7 @@ lazy_paragraph_rep::handle_decorations () {
 void
 lazy_paragraph_rep::line_start () {
   items                            = array<box> ();
-  items_sp                         = array<SI> ();
+  items_sp                         = array<DI> ();
   items_box                        = array<bool> ();
   items_cjk_text                   = array<bool> ();
   items_cjk_puncts                 = array<bool> ();
@@ -896,7 +896,7 @@ lazy_paragraph_rep::line_unit (path start, path end, bool break_flag,
   cur_w= space (0);
   int n= N (items_sp);
   SI  m= the_left - cur_r;
-  items_sp << m;
+  items_sp << (DI) m;
 
   SI the_width= the_right - the_left;
   line_print (start, end);
@@ -927,7 +927,7 @@ lazy_paragraph_rep::line_end (space spc, int penalty) {
       box sb  = move_box (note->ip, note, x, y);
       box nb  = resize_box (note->ip, sb, 0, 0, 0, 0);
       items   = ::append (nb, items);
-      items_sp= ::append (0, items_sp);
+      items_sp= ::append ((DI) 0, items_sp);
     }
   }
   box b= phrase_box (sss->ip, items, items_sp);

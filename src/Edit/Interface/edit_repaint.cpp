@@ -473,10 +473,10 @@ edit_interface_rep::draw_with_shadow (renderer win, rectangle r) {
 
     draw_post (win, ren, r);
     while (!is_nil (l)) {
-      SI x1= ((SI) (l->item->x1 * magf)) - ren->ox - PIXEL;
-      SI y1= ((SI) (l->item->y1 * magf)) - ren->oy - PIXEL;
-      SI x2= ((SI) (l->item->x2 * magf)) - ren->ox + PIXEL;
-      SI y2= ((SI) (l->item->y2 * magf)) - ren->oy + PIXEL;
+      DI x1= ((DI) (l->item->x1 * magf)) - ren->ox - PIXEL;
+      DI y1= ((DI) (l->item->y1 * magf)) - ren->oy - PIXEL;
+      DI x2= ((DI) (l->item->x2 * magf)) - ren->ox + PIXEL;
+      DI y2= ((DI) (l->item->y2 * magf)) - ren->oy + PIXEL;
       ren->outer_round (x1, y1, x2, y2);
       win->put_shadow (ren, x1, y1, x2, y2);
       l= l->next;

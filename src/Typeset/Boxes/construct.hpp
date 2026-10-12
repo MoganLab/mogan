@@ -64,17 +64,17 @@ box control_box (path ip, box b, font fn);
 box control_box (path ip, lazy lz, font fn);
 
 box concat_box (path ip, array<box> bs);
-box concat_box (path ip, array<box> bs, array<SI> spc, bool indent= false);
-box phrase_box (path ip, array<box> bs, array<SI> spc);
-box stack_box (path ip, array<box> bs, array<SI> spc);
+box concat_box (path ip, array<box> bs, array<DI> spc, bool indent= false);
+box phrase_box (path ip, array<box> bs, array<DI> spc);
+box stack_box (path ip, array<box> bs, array<DI> spc);
 box composite_box (path ip, array<box> bs, bool bfl= true);
-box composite_box (path ip, array<box> bs, array<SI> x, array<SI> y,
+box composite_box (path ip, array<box> bs, array<DI> x, array<DI> y,
                    bool bfl= true);
-box table_box (path ip, array<box> bs, array<SI> x, array<SI> y,
+box table_box (path ip, array<box> bs, array<DI> x, array<DI> y,
                array<string> halign, int cols, bool wide_flag);
 box superpose_box (path ip, array<box> bs, bool bfl= true);
 box case_box (path ip, array<tree> conds, array<box> bs);
-box scatter_box (path ip, array<box> bs, array<SI> x, array<SI> y,
+box scatter_box (path ip, array<box> bs, array<DI> x, array<DI> y,
                  bool bg_flag= false);
 box cell_box (path ip, box b, SI x0, SI y0, SI x1, SI y1, SI x2, SI y2, SI bl,
               SI br, SI bb, SI bt, SI db, SI ab, brush fg, brush bg);
@@ -117,8 +117,8 @@ box clip_box (path ip, box b, SI x1, SI y1, SI x2, SI y2, tree xt, tree yt,
               SI scx, SI scy);
 box vcorrect_box (path ip, box b, SI top_cor, SI bot_cor);
 box page_box (path ip, tree page, int page_nr, brush bgc, SI w, SI h,
-              array<box> bs, array<SI> bs_x, array<SI> bs_y, array<box> decs,
-              array<SI> decs_x, array<SI> decs_y);
+              array<box> bs, array<DI> bs_x, array<DI> bs_y, array<box> decs,
+              array<DI> decs_x, array<DI> decs_y);
 box page_border_box (path ip, box pb, color tmb, SI l, SI r, SI b, SI t,
                      SI pix);
 box crop_marks_box (path ip, box pb, SI w, SI h, SI lw, SI ll);

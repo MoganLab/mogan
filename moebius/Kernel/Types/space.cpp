@@ -17,19 +17,19 @@
  * Constructors
  ******************************************************************************/
 
-space_rep::space_rep (SI min2, SI def2, SI max2) {
+space_rep::space_rep (DI min2, DI def2, DI max2) {
   min= min2;
   def= def2;
   max= max2;
 }
 
-space_rep::space_rep (SI def2) { min= def= max= def2; }
+space_rep::space_rep (DI def2) { min= def= max= def2; }
 
-space::space (SI min, SI def, SI max) {
+space::space (DI min, DI def, DI max) {
   rep= tm_new<space_rep> (min, def, max);
 }
 
-space::space (SI def) { rep= tm_new<space_rep> (def); }
+space::space (DI def) { rep= tm_new<space_rep> (def); }
 
 space::operator tree () {
   return tuple (as_string (rep->min), as_string (rep->def),
@@ -82,7 +82,7 @@ operator* (int i, space spc) {
 
 space
 operator* (double x, space spc) {
-  return space ((SI) (x * spc->min), (SI) (x * spc->def), (SI) (x * spc->max));
+  return space ((DI) (x * spc->min), (DI) (x * spc->def), (DI) (x * spc->max));
 }
 
 space
@@ -92,7 +92,7 @@ operator/ (space spc, int i) {
 
 space
 operator/ (space spc, double x) {
-  return space ((SI) (spc->min / x), (SI) (spc->def / x), (SI) (spc->max / x));
+  return space ((DI) (spc->min / x), (DI) (spc->def / x), (DI) (spc->max / x));
 }
 
 space

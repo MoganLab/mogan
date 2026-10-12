@@ -33,8 +33,8 @@ class QStringList;
 class QKeySequence;
 class QDateTime;
 
-typedef quartet<SI, SI, SI, SI> coord4;
-typedef pair<SI, SI>            coord2;
+typedef quartet<DI, DI, DI, DI> coord4;
+typedef pair<DI, DI>            coord2;
 
 void qt_dump (QObject* obj, int indent= 0);
 
@@ -54,7 +54,7 @@ QPoint to_qpoint (const coord2& p);
 coord2 from_qpoint (const QPoint& pt);
 
 QSize  to_qsize (const coord2& p);
-QSize  to_qsize (const SI& w, const SI& h);
+QSize  to_qsize (const DI& w, const DI& h);
 coord2 from_qsize (const QSize& s);
 
 QFont to_qfont (int style, QFont font);

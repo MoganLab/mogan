@@ -361,7 +361,7 @@ edit_main_rep::render_to_images (url dest, double zoomf) {
   delete_typesetter (ttt);
 }
 
-array<int>
+array<DI>
 edit_main_rep::print_snippet (url name, tree t, bool conserve_preamble) {
   tree buft= subtree (et, rp);
   if (conserve_preamble)
@@ -409,9 +409,9 @@ edit_main_rep::print_snippet (url name, tree t, bool conserve_preamble) {
       ::remove (temp);
     }
   }
-  array<int> a;
+  array<DI> a;
   a << b->x3 << b->y3 << b->x4 << b->y4 << b->x1 << b->y1 << b->x2 << b->y2;
-  a << env->get_int (FONT_BASE_SIZE) << dpi;
+  a << (DI) env->get_int (FONT_BASE_SIZE) << (DI) dpi;
 
   delete_document (path_up (temp_root));
   return a;

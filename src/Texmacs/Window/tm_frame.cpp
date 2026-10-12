@@ -312,7 +312,7 @@ tm_frame_rep::get_window_zoom_factor () {
  ******************************************************************************/
 
 void
-tm_frame_rep::get_visible (SI& x1, SI& y1, SI& x2, SI& y2) {
+tm_frame_rep::get_visible (DI& x1, DI& y1, DI& x2, DI& y2) {
   concrete_window ()->get_visible (x1, y1, x2, y2);
 }
 
@@ -322,22 +322,22 @@ tm_frame_rep::set_scrollbars (int sb) {
 }
 
 void
-tm_frame_rep::scroll_where (SI& x, SI& y) {
+tm_frame_rep::scroll_where (DI& x, DI& y) {
   concrete_window ()->get_scroll_pos (x, y);
 }
 
 void
-tm_frame_rep::scroll_to (SI x, SI y) {
+tm_frame_rep::scroll_to (DI x, DI y) {
   concrete_window ()->set_scroll_pos (x, y);
 }
 
 void
-tm_frame_rep::get_extents (SI& x1, SI& y1, SI& x2, SI& y2) {
+tm_frame_rep::get_extents (DI& x1, DI& y1, DI& x2, DI& y2) {
   concrete_window ()->get_extents (x1, y1, x2, y2);
 }
 
 void
-tm_frame_rep::set_extents (SI x1, SI y1, SI x2, SI y2) {
+tm_frame_rep::set_extents (DI x1, DI y1, DI x2, DI y2) {
   concrete_window ()->set_extents (x1, y1, x2, y2);
 }
 

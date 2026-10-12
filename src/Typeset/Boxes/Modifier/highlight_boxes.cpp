@@ -422,7 +422,7 @@ highlight_box_rep::display_rounded (renderer& ren, int style) {
 // paints the child containing the cursor last, so that editing the title
 // would hide it behind the body.
 struct title_composite_box_rep : public concrete_composite_box_rep {
-  title_composite_box_rep (path ip2, array<box> bs2, array<SI> x2, array<SI> y2)
+  title_composite_box_rep (path ip2, array<box> bs2, array<DI> x2, array<DI> y2)
       : concrete_composite_box_rep (ip2, bs2, x2, y2, false) {}
   operator tree () { return tree (TUPLE, "title", (tree) bs[0]); }
   void redraw (renderer ren, path p, rectangles& l) {
@@ -459,10 +459,10 @@ title_box (path ip, box b, box xb, ornament_parameters ps) {
   if (at_left) tx= bb->x1 - tit->x1 + ps->lw + 2 * ps->lpad;
   if (at_right) tx= bb->x2 - tit->x2 - ps->rw - 2 * ps->rpad;
   array<box> bs;
-  array<SI>  x, y;
+  array<DI>  x, y;
   bs << bb << tit;
-  x << 0 << tx;
-  y << 0 << ty;
+  x << (DI) 0 << (DI) tx;
+  y << (DI) 0 << (DI) ty;
   return tm_new<title_composite_box_rep> (ip, bs, x, y);
 }
 

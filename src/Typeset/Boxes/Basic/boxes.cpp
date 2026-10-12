@@ -142,12 +142,12 @@ box_rep::distance (int i, SI x, SI y, SI delta) {
 }
 
 bool
-box_rep::in_rectangle (SI X1, SI Y1, SI X2, SI Y2) {
+box_rep::in_rectangle (DI X1, DI Y1, DI X2, DI Y2) {
   return x1 >= X1 && y1 >= Y1 && x2 <= X2 && y2 <= Y2;
 }
 
 bool
-box_rep::contains_rectangle (SI X1, SI Y1, SI X2, SI Y2) {
+box_rep::contains_rectangle (DI X1, DI Y1, DI X2, DI Y2) {
   return x1 <= X1 && y1 <= Y1 && x2 >= X2 && y2 >= Y2;
 }
 
@@ -273,7 +273,7 @@ box_rep::find_selection (path lbp, path rbp) {
 }
 
 path
-box_rep::find_tree_path (SI x, SI y, SI delta) {
+box_rep::find_tree_path (DI x, DI y, SI delta) {
   bool found;
   path bp= find_box_path (x, y, delta, false, found);
   // cout << "Find " << x << ", " << y << "; " << delta;
@@ -372,7 +372,7 @@ debug (box b, path bp) {
 */
 
 path
-find_scrolled_tree_path (box b, path sp, SI x, SI y, SI delta) {
+find_scrolled_tree_path (box b, path sp, DI x, DI y, SI delta) {
   path bp= find_scrolled_box_path (b, sp, x, y, delta);
   // cout << "Find " << x << ", " << y << "; " << delta;
   // cout << " -> " << bp << "\n";
@@ -380,7 +380,7 @@ find_scrolled_tree_path (box b, path sp, SI x, SI y, SI delta) {
 }
 
 void
-find_canvas_info (box b, path sp, SI& x, SI& y, SI& sx, SI& sy,
+find_canvas_info (box b, path sp, DI& x, DI& y, DI& sx, DI& sy,
                   rectangle& outer, rectangle& inner) {
   if (is_nil (sp)) {
     x= y= sx= sy= 0;
@@ -688,7 +688,7 @@ box_rep::redraw (renderer ren, path p, rectangles& l) {
 }
 
 void
-box_rep::redraw (renderer ren, path p, rectangles& l, SI x, SI y) {
+box_rep::redraw (renderer ren, path p, rectangles& l, DI x, DI y) {
   ren->move_origin (x, y);
   redraw (ren, p, l);
   ren->move_origin (-x, -y);
@@ -729,8 +729,8 @@ box_rep::redraw_background (renderer ren) {
 }
 
 void
-box_rep::clear (renderer ren, SI x1, SI y1, SI x2, SI y2) {
-  SI old_x1, old_y1, old_x2, old_y2;
+box_rep::clear (renderer ren, DI x1, DI y1, DI x2, DI y2) {
+  DI old_x1, old_y1, old_x2, old_y2;
   ren->get_clipping (old_x1, old_y1, old_x2, old_y2);
   if (max (old_x1, x1) < min (old_x2, x2) &&
       max (old_y1, y1) < min (old_y2, y2)) {
@@ -744,7 +744,7 @@ box_rep::clear (renderer ren, SI x1, SI y1, SI x2, SI y2) {
  * The cursor class
  ******************************************************************************/
 
-cursor::cursor (SI x, SI y, SI delta, SI y1, SI y2, double slope, bool valid)
+cursor::cursor (DI x, DI y, SI delta, DI y1, DI y2, double slope, bool valid)
     : rep (tm_new<cursor_rep> ()) {
   rep->ox   = x;
   rep->oy   = y;
@@ -956,7 +956,7 @@ box_rep::display_links (renderer ren) {
 }
 
 void
-box_rep::position_at (SI x, SI y, array<rectangle>& change_log,
+box_rep::position_at (DI x, DI y, array<rectangle>& change_log,
                       std::shared_ptr<rectangle> changed) {
   int i, n= subnr ();
   x+= x0;

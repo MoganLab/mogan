@@ -36,8 +36,8 @@ composite_box_rep::composite_box_rep (path ip, array<box> B, bool init_sx_sy)
   position ();
 }
 
-composite_box_rep::composite_box_rep (path ip, array<box> B, array<SI> x,
-                                      array<SI> y)
+composite_box_rep::composite_box_rep (path ip, array<box> B, array<DI> x,
+                                      array<DI> y)
     : box_rep (ip) {
   bs= B;
   int i, n= subnr ();
@@ -51,7 +51,7 @@ composite_box_rep::composite_box_rep (path ip, array<box> B, array<SI> x,
 composite_box_rep::~composite_box_rep () {}
 
 void
-composite_box_rep::insert (box b, SI x, SI y) {
+composite_box_rep::insert (box b, DI x, DI y) {
   int n= N (bs);
   bs << b;
   sx (n)= x;
@@ -394,10 +394,10 @@ concrete_composite_box_rep::find_child (SI x, SI y, SI delta, bool force) {
 
 struct table_box_rep : public concrete_composite_box_rep {
   int           rows, cols;
-  array<SI>     x, y;
+  array<DI>     x, y;
   array<string> halign;
   bool          wide_flag;
-  table_box_rep (path ip, array<box> bs, array<SI> x2, array<SI> y2,
+  table_box_rep (path ip, array<box> bs, array<DI> x2, array<DI> y2,
                  array<string> halign2, int cols2, bool wide_flag2)
       : concrete_composite_box_rep (ip, bs, x2, y2, false),
         rows (N (bs) / cols2), cols (cols2), x (x2), y (y2), halign (halign2),
@@ -490,7 +490,7 @@ table_box_rep::adjust_kerning (int mode, double factor) {
     cdw[i]= w2 - w1;
   }
   SI        dx= 0;
-  array<SI> nx (n);
+  array<DI> nx (n);
   for (j= 0; j < cols; j++) {
     for (i= 0; i < rows; i++)
       nx[i * cols + j]= x[i * cols + j] + dx;
@@ -528,7 +528,7 @@ table_box_rep::expand_glyphs (int mode, double factor) {
     cdw[i]= w2 - w1;
   }
   SI        dx= 0;
-  array<SI> nx (n);
+  array<DI> nx (n);
   for (j= 0; j < cols; j++) {
     for (i= 0; i < rows; i++)
       nx[i * cols + j]= x[i * cols + j] + dx;
@@ -560,12 +560,12 @@ composite_box (path ip, array<box> bs, bool bfl) {
 }
 
 box
-composite_box (path ip, array<box> bs, array<SI> x, array<SI> y, bool bfl) {
+composite_box (path ip, array<box> bs, array<DI> x, array<DI> y, bool bfl) {
   return tm_new<concrete_composite_box_rep> (ip, bs, x, y, bfl);
 }
 
 box
-table_box (path ip, array<box> bs, array<SI> x, array<SI> y,
+table_box (path ip, array<box> bs, array<DI> x, array<DI> y,
            array<string> halign, int cols, bool wide_flag) {
   return tm_new<table_box_rep> (ip, bs, x, y, halign, cols, wide_flag);
 }

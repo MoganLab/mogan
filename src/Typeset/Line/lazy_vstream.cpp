@@ -50,7 +50,7 @@ format_vstream_as_box (array<page_item> l, path ip, int vpos, SI depth,
                        SI height) {
   int        i, n= N (l);
   array<box> lines_bx (n);
-  array<SI>  lines_ht (n);
+  array<DI>  lines_ht (n);
   for (i= 0; i < n; i++) {
     page_item item= copy (l[i]);
     lines_bx[i]   = item->b;

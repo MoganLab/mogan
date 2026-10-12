@@ -18,16 +18,16 @@
 
 class rectangle_rep : concrete_struct {
 public:
-  SI x1, y1;
-  SI x2, y2;
+  DI x1, y1;
+  DI x2, y2;
 
-  rectangle_rep (SI x1b, SI y1b, SI x2b, SI y2b);
+  rectangle_rep (DI x1b, DI y1b, DI x2b, DI y2b);
   friend class rectangle;
 };
 
 class rectangle {
   CONCRETE (rectangle);
-  rectangle (SI x1b= 0, SI y1b= 0, SI x2b= 0, SI y2b= 0);
+  rectangle (DI x1b= 0, DI y1b= 0, DI x2b= 0, DI y2b= 0);
   operator tree ();
 };
 CONCRETE_CODE (rectangle);
@@ -46,7 +46,7 @@ bool        operator<= (rectangle r1, rectangle r2);
  * @param y 垂直方向平移量（向上为正）
  * @return 平移后的新矩形，原矩形不变
  */
-rectangle translate (const rectangle& r, SI x, SI y);
+rectangle translate (const rectangle& r, DI x, DI y);
 
 rectangle operator* (rectangle r, int d);
 rectangle operator/ (rectangle r, int d);
@@ -60,7 +60,7 @@ rectangle operator/ (rectangle r, double x);
  * @param height 垂直方向的扩展量（上下各扩 height）
  * @return 加厚后的新矩形，原矩形不变
  */
-rectangle thicken (rectangle r, SI width, SI height);
+rectangle thicken (rectangle r, DI width, DI height);
 
 rectangle least_upper_bound (rectangle r1, rectangle r2);
 double    area (rectangle r);
@@ -101,7 +101,7 @@ rectangles operator/ (rectangles l, int d);
  * @param y 垂直方向平移量（向上为正）
  * @return 所有矩形均平移后的新列表，元素顺序保持不变，原列表不变
  */
-rectangles translate (const rectangles& l, SI x, SI y);
+rectangles translate (const rectangles& l, DI x, DI y);
 
 /**
  * @brief 加厚矩形列表中的所有矩形：每个矩形四边向外扩
@@ -110,9 +110,9 @@ rectangles translate (const rectangles& l, SI x, SI y);
  * @param height 垂直方向的扩展量（上下各扩 height）
  * @return 所有矩形均加厚后的新列表，元素顺序保持不变，原列表不变
  */
-rectangles thicken (const rectangles& l, SI width, SI height);
+rectangles thicken (const rectangles& l, DI width, DI height);
 
-rectangles outlines (rectangles l, SI pixel);
+rectangles outlines (rectangles l, DI pixel);
 
 /**
  * @brief 剔除列表中的退化矩形

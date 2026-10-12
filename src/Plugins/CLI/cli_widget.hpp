@@ -17,8 +17,8 @@
 #include "message.hpp"
 #include "widget.hpp"
 
-typedef pair<SI, SI>            coord2;
-typedef quartet<SI, SI, SI, SI> coord4;
+typedef pair<DI, DI>            coord2;
+typedef quartet<DI, DI, DI, DI> coord4;
 
 class cli_widget_rep : public widget_rep {
 public:

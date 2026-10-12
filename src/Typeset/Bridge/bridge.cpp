@@ -345,7 +345,7 @@ bridge_rep::typeset (int desired_status) {
     else {
       int              first= -1, last= -1;
       array<box>       bs;
-      array<SI>        spc;
+      array<DI>        spc;
       array<page_item> special_l;
       for (i= 0; i < n; i++)
         if (l[i]->type != PAGE_CONTROL_ITEM) {

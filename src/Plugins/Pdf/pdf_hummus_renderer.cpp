@@ -267,12 +267,12 @@ public:
   void     draw_picture (picture p, SI x, SI y, int alpha);
   void     draw_scalable (scalable im, SI x, SI y, int alpha);
   renderer shadow (picture& pic, SI x1, SI y1, SI x2, SI y2);
-  void     fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x, SI y);
+  void     fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y);
   void     new_shadow (renderer& ren);
   void     delete_shadow (renderer& ren);
-  void     get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
-  void     put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
-  void     apply_shadow (SI x1, SI y1, SI x2, SI y2);
+  void     get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
+  void     put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
+  void     apply_shadow (DI x1, DI y1, DI x2, DI y2);
 
   /************************ subroutines hyperlinks ***************************/
 
@@ -535,7 +535,7 @@ pdf_hummus_renderer_rep::set_transformation (frame fr) {
 
   end_text ();
 
-  SI cx1, cy1, cx2, cy2;
+  DI cx1, cy1, cx2, cy2;
   get_clipping (cx1, cy1, cx2, cy2);
   rectangle oclip (cx1, cy1, cx2, cy2);
   frame     cv= scaling (point (pixel, pixel), point (-ox, -oy));
@@ -2062,8 +2062,8 @@ pdf_hummus_renderer_rep::flush_metadata () {
  ******************************************************************************/
 
 void
-pdf_hummus_renderer_rep::fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x,
-                                SI y) {
+pdf_hummus_renderer_rep::fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x,
+                                DI y) {
   // debug_convert << "fetch\n";
   (void) x1;
   (void) y1;
@@ -2087,7 +2087,7 @@ pdf_hummus_renderer_rep::delete_shadow (renderer& ren) {
 }
 
 void
-pdf_hummus_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // debug_convert << "get_shadow\n";
   (void) ren;
   (void) x1;
@@ -2097,7 +2097,7 @@ pdf_hummus_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-pdf_hummus_renderer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // debug_convert << "put_shadow\n";
   (void) ren;
   (void) x1;
@@ -2107,7 +2107,7 @@ pdf_hummus_renderer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-pdf_hummus_renderer_rep::apply_shadow (SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
   // debug_convert << "apply_shadow\n";
   (void) x1;
   (void) y1;

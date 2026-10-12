@@ -459,7 +459,7 @@ typeset_frontier (typesetter ttt) {
   return ttt ? ttt->progressive_cur_child : 0;
 }
 
-SI
+DI
 progressive_get_page_height (typesetter ttt) {
   return ttt ? ttt->page_text_height : 0;
 }

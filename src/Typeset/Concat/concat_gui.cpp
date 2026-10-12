@@ -170,8 +170,8 @@ make_hor_bar (canvas_properties props, path ip, SI x1, SI x2, SI X1, SI X2) {
   box        hl1   = highlight_box (ip, mask1, border, brush (c1, a), c3, c2);
   box        hl2   = highlight_box (ip, mask2, border, brush (c4, a), c2, c3);
   array<box> bs (2);
-  array<SI>  xs (2);
-  array<SI>  ys (2);
+  array<DI>  xs (2);
+  array<DI>  ys (2);
   bs[0]= hl1;
   bs[1]= hl2;
   xs[0]= xs[1]= 0;
@@ -193,8 +193,8 @@ make_ver_bar (canvas_properties props, path ip, SI y1, SI y2, SI Y1, SI Y2) {
   box        hl1   = highlight_box (ip, mask1, border, brush (c1, a), c3, c2);
   box        hl2   = highlight_box (ip, mask2, border, brush (c4, a), c2, c3);
   array<box> bs (2);
-  array<SI>  xs (2);
-  array<SI>  ys (2);
+  array<DI>  xs (2);
+  array<DI>  ys (2);
   bs[0]= hl1;
   bs[1]= hl2;
   xs[0]= xs[1]= 0;
@@ -225,8 +225,8 @@ put_scroll_bars (canvas_properties props, box b, path ip, box inner, SI scx,
     if (ends (type, "e")) ver= 1;
   }
   array<box> bs (1);
-  array<SI>  xs (1);
-  array<SI>  ys (1);
+  array<DI>  xs (1);
+  array<DI>  ys (1);
   b    = resize_box (dip, b, b->x1 - hpad, b->y1 - vpad, b->x2 + hpad,
                      b->y2 + vpad);
   bs[0]= highlight_box (dip, b, border, brush (ccol, a), cshad, csun);
@@ -242,8 +242,8 @@ put_scroll_bars (canvas_properties props, box b, path ip, box inner, SI scx,
     box hor_bar= make_hor_bar (props, dip, b->x1, b->x2, X1, X2);
     hor_bar    = scrollbar_box (dip, hor_bar, false, X2 - X1, props->xt);
     bs << hor_bar;
-    xs << (ver < 0 ? bwid + bpad : 0) - border;
-    ys << (hor < 0 ? b->y1 : b->y2 + bpad + 2 * border);
+    xs << (DI) ((ver < 0 ? bwid + bpad : 0) - border);
+    ys << (DI) (hor < 0 ? b->y1 : b->y2 + bpad + 2 * border);
   }
   if (ver != 0 && inner->h () > b->h () + 4 - 2 * vpad) {
     SI     dy   = b->y1 + vpad - inner->y1 - scy;
@@ -255,8 +255,8 @@ put_scroll_bars (canvas_properties props, box b, path ip, box inner, SI scx,
     box ver_bar= make_ver_bar (props, dip, b->y1, b->y2, Y1, Y2);
     ver_bar    = scrollbar_box (dip, ver_bar, true, Y2 - Y1, props->yt);
     bs << ver_bar;
-    xs << (ver < 0 ? b->x1 - 2 * border : b->x2 + bpad);
-    ys << (hor < 0 ? bwid + bpad : 0) + border;
+    xs << (DI) (ver < 0 ? b->x1 - 2 * border : b->x2 + bpad);
+    ys << (DI) ((hor < 0 ? bwid + bpad : 0) + border);
   }
   return composite_box (ip, bs, xs, ys);
 }

@@ -609,17 +609,17 @@ tm_window_rep::get_window_zoom_factor () {
 }
 
 void
-tm_window_rep::get_visible (SI& x1, SI& y1, SI& x2, SI& y2) {
+tm_window_rep::get_visible (DI& x1, DI& y1, DI& x2, DI& y2) {
   get_visible_part (wid, x1, y1, x2, y2);
 }
 
 void
-tm_window_rep::get_extents (SI& x1, SI& y1, SI& x2, SI& y2) {
+tm_window_rep::get_extents (DI& x1, DI& y1, DI& x2, DI& y2) {
   ::get_extents (wid, x1, y1, x2, y2);
 }
 
 void
-tm_window_rep::set_extents (SI x1, SI y1, SI x2, SI y2) {
+tm_window_rep::set_extents (DI x1, DI y1, DI x2, DI y2) {
   ::set_extents (wid, x1, y1, x2, y2);
 }
 
@@ -629,12 +629,12 @@ tm_window_rep::set_scrollbars (int i) {
 }
 
 void
-tm_window_rep::get_scroll_pos (SI& x, SI& y) {
+tm_window_rep::get_scroll_pos (DI& x, DI& y) {
   get_scroll_position (wid, x, y);
 }
 
 void
-tm_window_rep::set_scroll_pos (SI x, SI y) {
+tm_window_rep::set_scroll_pos (DI x, DI y) {
   set_scroll_position (wid, x, y);
 }
 

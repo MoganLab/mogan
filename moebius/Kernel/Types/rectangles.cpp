@@ -19,10 +19,10 @@
  * Routines for rectangles
  ******************************************************************************/
 
-rectangle_rep::rectangle_rep (SI x1b, SI y1b, SI x2b, SI y2b)
+rectangle_rep::rectangle_rep (DI x1b, DI y1b, DI x2b, DI y2b)
     : x1 (x1b), y1 (y1b), x2 (x2b), y2 (y2b) {}
 
-rectangle::rectangle (SI x1b, SI y1b, SI x2b, SI y2b)
+rectangle::rectangle (DI x1b, DI y1b, DI x2b, DI y2b)
     : rep (tm_new<rectangle_rep> (x1b, y1b, x2b, y2b)) {}
 
 rectangle::operator tree () {
@@ -67,7 +67,7 @@ intersect (rectangle r1, rectangle r2) {
 }
 
 rectangle
-translate (const rectangle& r, SI x, SI y) {
+translate (const rectangle& r, DI x, DI y) {
   return rectangle (r->x1 + x, r->y1 + y, r->x2 + x, r->y2 + y);
 }
 
@@ -126,8 +126,8 @@ operator* (rectangle r, int d) {
 
 rectangle
 operator* (rectangle r, double x) {
-  return rectangle ((SI) floor (r->x1 * x), (SI) floor (r->y1 * x),
-                    (SI) ceil (r->x2 * x), (SI) ceil (r->y2 * x));
+  return rectangle ((DI) floor (r->x1 * x), (DI) floor (r->y1 * x),
+                    (DI) ceil (r->x2 * x), (DI) ceil (r->y2 * x));
 }
 
 rectangle
@@ -137,12 +137,12 @@ operator/ (rectangle r, int d) {
 
 rectangle
 operator/ (rectangle r, double x) {
-  return rectangle ((SI) floor (r->x1 / x), (SI) floor (r->y1 / x),
-                    (SI) ceil (r->x2 / x), (SI) ceil (r->y2 / x));
+  return rectangle ((DI) floor (r->x1 / x), (DI) floor (r->y1 / x),
+                    (DI) ceil (r->x2 / x), (DI) ceil (r->y2 / x));
 }
 
 rectangle
-thicken (rectangle r, SI width, SI height) {
+thicken (rectangle r, DI width, DI height) {
   return rectangle (r->x1 - width, r->y1 - height, r->x2 + width,
                     r->y2 + height);
 }
@@ -284,7 +284,7 @@ operator| (rectangles l1, rectangles l2) {
 }
 
 rectangles
-translate (const rectangles& l, SI x, SI y) {
+translate (const rectangles& l, DI x, DI y) {
   // 迭代 + 尾槽位直挂：避免深度等于列表长度的递归，也避免 reverse 的二次分配
   rectangles  out;
   rectangles* tail= &out;
@@ -297,7 +297,7 @@ translate (const rectangles& l, SI x, SI y) {
 }
 
 rectangles
-thicken (const rectangles& l, SI width, SI height) {
+thicken (const rectangles& l, DI width, DI height) {
   // 迭代 + 尾槽位直挂：避免深度等于列表长度的递归，也避免 reverse 的二次分配
   rectangles  out;
   rectangles* tail= &out;
@@ -310,7 +310,7 @@ thicken (const rectangles& l, SI width, SI height) {
 }
 
 rectangles
-outlines (rectangles rs, SI pixel) {
+outlines (rectangles rs, DI pixel) {
   return simplify (
       correct (thicken (rs, pixel, 3 * pixel) - thicken (rs, 0, 2 * pixel)));
 }

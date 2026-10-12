@@ -30,7 +30,7 @@ struct lazy_paragraph_rep : public lazy_rep {
 
 protected:
   array<box>  items;       // the boxes on the line in order
-  array<SI>   items_sp;    // the final spaces between boxes in lines
+  array<DI>   items_sp;    // the final spaces between boxes in lines
   array<int>  items_left;  // the index of the previous non-empty text box item
   array<int>  items_right; // the index of the next non-empty text box item
   array<bool> items_box;   // is non-empty text box item: true / false
@@ -107,9 +107,9 @@ protected:
   void       expand_glyphs (SI dw, SI the_width);
   void       contract_glyphs (SI dw, SI the_width);
 
-  void handle_decoration (int& i, int& j, SI& xoff, box& b, SI& b_sp);
+  void handle_decoration (int& i, int& j, SI& xoff, box& b, DI& b_sp);
   void handle_decorations (int& i, int& j, SI& xoff, array<box>& bs,
-                           array<SI>& bs_sp);
+                           array<DI>& bs_sp);
   void handle_decorations ();
 
   void line_start ();

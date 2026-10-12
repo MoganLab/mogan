@@ -31,8 +31,8 @@ wide_hat_box (path ip, SI x1, SI x2, pencil pen) {
   SI width, height;
   get_wide_parameters (x1, x2, pen, width, height);
   array<box> bs (2);
-  array<SI>  xs (2);
-  array<SI>  ys (2);
+  array<DI>  xs (2);
+  array<DI>  ys (2);
   xs[0]= ys[0]= xs[1]= ys[1]= 0;
   bs[0]= line_box (decorate_middle (ip), 0, 0, width / 2, height, pen);
   bs[1]= line_box (decorate_middle (ip), width / 2, height, width, 0, pen);
@@ -48,8 +48,8 @@ wide_tilda_box (path ip, SI x1, SI x2, pencil pen) {
   w = width;
   uw= (SI) (((double) w) / 4.2679492);
   array<box> bs (3);
-  array<SI>  xs (3);
-  array<SI>  ys (3);
+  array<DI>  xs (3);
+  array<DI>  ys (3);
   xs[0]= ys[0]= xs[1]= ys[1]= xs[2]= ys[2]= 0;
   bs[0]=
       arc_box (decorate_middle (ip), 0, -h, 2 * uw, h, 60 << 6, 180 << 6, pen);
@@ -75,8 +75,8 @@ wide_vect_box (path ip, SI x1, SI x2, pencil pen) {
   get_wide_parameters (x1, x2, pen, width, height);
   height= 10 * penw;
   array<box> bs (3);
-  array<SI>  xs (3);
-  array<SI>  ys (3);
+  array<DI>  xs (3);
+  array<DI>  ys (3);
   xs[0]= ys[0]= xs[1]= ys[1]= xs[2]= ys[2]= 0;
   bs[0]= line_box (decorate_middle (ip), 0, arrow, width, arrow, pen);
   bs[1]= line_box (decorate_middle (ip), width - arrow - delta, 0, width, arrow,
@@ -91,8 +91,8 @@ wide_check_box (path ip, SI x1, SI x2, pencil pen) {
   SI width, height;
   get_wide_parameters (x1, x2, pen, width, height);
   array<box> bs (2);
-  array<SI>  xs (2);
-  array<SI>  ys (2);
+  array<DI>  xs (2);
+  array<DI>  ys (2);
   xs[0]= ys[0]= xs[1]= ys[1]= 0;
   bs[0]= line_box (decorate_middle (ip), 0, height, width / 2, 0, pen);
   bs[1]= line_box (decorate_middle (ip), width / 2, 0, width, height, pen);
@@ -121,8 +121,8 @@ wide_squbr_box (path ip, SI x1, SI x2, pencil pen) {
   path       dip    = decorate_middle (ip);
   SI         width= max (x2 - x1, 4 * penw), height= 4 * penw;
   array<box> bs (3);
-  array<SI>  xs (3);
-  array<SI>  ys (3);
+  array<DI>  xs (3);
+  array<DI>  ys (3);
   xs[0]= ys[0]= xs[1]= ys[1]= xs[2]= ys[2]= 0;
   bs[0]                                   = line_box (dip, 0, 0, width, 0, pen);
   bs[1]= line_box (dip, 0, height, 0, 0, demipen);
@@ -137,8 +137,8 @@ wide_sqobr_box (path ip, SI x1, SI x2, pencil pen) {
   path       dip    = decorate_middle (ip);
   SI         width= max (x2 - x1, 4 * penw), height= 4 * penw;
   array<box> bs (3);
-  array<SI>  xs (3);
-  array<SI>  ys (3);
+  array<DI>  xs (3);
+  array<DI>  ys (3);
   xs[0]= ys[0]= xs[1]= ys[1]= xs[2]= ys[2]= 0;
   bs[0]= line_box (dip, 0, height, width, height, pen);
   bs[1]= line_box (dip, 0, height, 0, 0, demipen);
