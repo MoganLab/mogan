@@ -101,7 +101,6 @@ bool tmscm_is_modification (tmscm obj);
 #define TMSCM_ASSERT_MODIFICATION(m, arg, rout)                                \
   TMSCM_ASSERT (tmscm_is_modification (m), m, arg, rout)
 
-typedef DI                          di;
 typedef array<DI>                   array_di;
 typedef array<string>               array_string;
 typedef array<tree>                 array_tree;
