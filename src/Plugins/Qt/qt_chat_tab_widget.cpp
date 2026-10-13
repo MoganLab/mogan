@@ -747,8 +747,12 @@ ChatConversationPanel::rebuild_attachment_chips () {
     delete child;
   }
   // 按可用宽度换行：chip 宽度取 sizeHint，一行放不下则开新行（按添加顺序
-  // 自上而下排列，chips 区在输入框外部，行数增加时向上扩展）
+  // 自上而下排列，chips 区在输入框外部，行数增加时向上扩展）。
+  // 隐藏时 chipsRow_ 未参与布局、宽度为 0，其宽度恒等于父容器 inputArea
+  // （所在布局 contentsMargins 为 0），故取父容器宽度兜底
   int avail= chipsRow_->width ();
+  if (avail <= 0 && chipsRow_->parentWidget ())
+    avail= chipsRow_->parentWidget ()->width ();
   if (avail <= 0 && inputEditorWidget_) avail= inputEditorWidget_->width ();
   if (avail <= 0) avail= DpiUtils::scaled (kAttachmentFallbackRowWidth);
   chipsWrapWidth_  = avail;
