@@ -30,9 +30,7 @@ inline array<int>
 pdfhummus_image_size (url pdf_image) {
   int w= 0, h= 0;
   hummus_pdf_image_size (pdf_image, w, h);
-  array<int> r;
-  r << w << h;
-  return r;
+  return array<int> (w, h);
 }
 
 #endif

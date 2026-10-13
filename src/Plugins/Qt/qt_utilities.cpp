@@ -405,7 +405,7 @@ to_qsize (const coord2& p) {
 }
 
 QSize
-to_qsize (const DI& w, const DI& h) {
+to_qsize (DI w, DI h) {
   float c= 1.0 / SCREEN_PIXEL;
   return QSize (w * c, h * c);
 }

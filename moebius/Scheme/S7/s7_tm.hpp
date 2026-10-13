@@ -158,10 +158,6 @@ inline DI
 tmscm_to_di (tmscm obj) {
   return (DI) s7_integer (obj);
 }
-inline long
-tmscm_to_long (tmscm obj) {
-  return (long) s7_integer (obj);
-}
 inline double
 tmscm_to_double (tmscm obj) {
   return s7_real (obj);
