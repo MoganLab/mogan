@@ -409,13 +409,15 @@ tree_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   int i= 0;
   if (y < border) {
     int j;
-    DI  d= MAX_SI;
+    DI  d= MAX_DI;
     for (j= 1; j < ((N (bs) + 1) >> 1); j++)
-      if (distance (j, x, y, delta) < d)
-        if (bs[j]->accessible () || force) {
-          d= distance (j, x, y, delta);
+      if (bs[j]->accessible () || force) {
+        DI dist= distance (j, x, y, delta);
+        if (dist < d) {
+          d= dist;
           i= j;
         }
+      }
   }
   if (bs[i]->decoration () && (!force)) return -1;
   return i;

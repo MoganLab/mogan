@@ -31,6 +31,13 @@ typedef unsigned int color;
  */
 #define MIN_SI 0x80000000
 
+#define MAX_DI 0x7fffffffffffffffLL
+
+/**
+ * @brief Macro defining the minimum value of a signed 64-bit integer.
+ */
+#define MIN_DI (-MAX_DI - 1)
+
 /******************************************************************************
  * debugging
  ******************************************************************************/

@@ -58,13 +58,15 @@ scatter_box_rep::operator tree () {
 int
 scatter_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   int i, n= subnr (), m= -1;
-  DI  d= MAX_SI;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 
@@ -179,13 +181,15 @@ page_box_rep::operator tree () {
 int
 page_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   int i, n= subnr (), m= -1;
-  DI  d= MAX_SI;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 

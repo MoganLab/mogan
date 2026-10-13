@@ -22,14 +22,6 @@ local function translate_name(name)
     return name;
 end
 
--- 胶水类型名到 C++ 类型名的映射（转换函数仍按胶水类型名推导：
--- ret_type 为 "di" 时生成 "DI out= ..." 与 "di_to_tmscm (out)"）
-local cpp_type_map = { di = "DI" }
-
-local function cpp_type(name)
-    return cpp_type_map[name] or name
-end
-
 function main(glue, glue_name)
     local func_list = ""
     local reg_list = ""
@@ -59,7 +51,7 @@ function main(glue, glue_name)
 
             for pos,arg in ipairs(glue_item.arg_list) do
                 assertion = assertion .. "  TMSCM_ASSERT_" .. string.upper(arg) .. " (arg" .. pos .. ", TMSCM_ARG" .. pos .. ", \"" .. scm_name .. "\");\n"
-                extraction = extraction .. "  " .. cpp_type(arg) .. " in" .. pos .. "= " .. "tmscm_to_" .. arg .. " (arg" .. pos .. ");\n"
+                extraction = extraction .. "  " .. arg .. " in" .. pos .. "= " .. "tmscm_to_" .. arg .. " (arg" .. pos .. ");\n"
             end
 
             assertion = assertion .. "\n"
@@ -69,7 +61,7 @@ function main(glue, glue_name)
         local returned = "TMSCM_UNSPECIFIED"
         local invoke = glue.binding_object .. glue_item.cpp_name .. " (" .. in_list .. ");\n"
         if glue_item.ret_type ~= "void" then
-            invoke = cpp_type(glue_item.ret_type) .. " out= " .. invoke
+            invoke = glue_item.ret_type .. " out= " .. invoke
             returned = glue_item.ret_type .. "_to_tmscm (out)"
         end
 

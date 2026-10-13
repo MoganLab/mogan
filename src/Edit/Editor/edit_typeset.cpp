@@ -1170,10 +1170,10 @@ void
 edit_typeset_rep::typeset (DI& x1, DI& y1, DI& x2, DI& y2) {
   int missing_nr  = INT_MAX;
   int redefined_nr= INT_MAX;
-  x1              = MAX_SI;
-  y1              = MAX_SI;
-  x2              = MIN_SI;
-  y2              = MIN_SI;
+  x1              = MAX_DI;
+  y1              = MAX_DI;
+  x2              = MIN_DI;
+  y2              = MIN_DI;
   while (true) {
     DI sx1, sy1, sx2, sy2;
     typeset_sub (sx1, sy1, sx2, sy2);

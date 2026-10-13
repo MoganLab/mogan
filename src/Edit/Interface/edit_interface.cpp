@@ -362,14 +362,23 @@ edit_interface_rep::set_extents (DI x1, DI y1, DI x2, DI y2) {
                        (DI) ceil (x2 * magf), (DI) ceil (y2 * magf)));
 }
 
+static void
+scale_extents (box eb, double magf, DI& x1, DI& y1, DI& x2, DI& y2) {
+  x1= (DI) (eb->x1 * magf);
+  y1= (DI) (eb->y1 * magf);
+  x2= (DI) (eb->x2 * magf);
+  y2= (DI) (eb->y2 * magf);
+  abs_round (x1, y1);
+  abs_round (x2, y2);
+}
+
 DI
 edit_interface_rep::get_typeset_content_height () {
   if (is_nil (eb)) return 0;
-  // 同 apply_changes 的 extents 计算（eb->y * magf + abs_round），但不做
-  // 「内容矮于 viewport 时垫到视口高」的 automatic/papyrus 垫底
-  DI ey1= (DI) (((double) eb->y1) * magf);
-  DI ey2= (DI) (((double) eb->y2) * magf);
-  abs_round (ey1, ey2);
+  // 与 apply_changes 共用 extents 计算，但不做「内容矮于 viewport 时垫到
+  // 视口高」的 automatic/papyrus 垫底
+  DI ex1, ey1, ex2, ey2;
+  scale_extents (eb, magf, ex1, ey1, ex2, ey2);
   return ey2 - ey1;
 }
 
@@ -1216,12 +1225,8 @@ edit_interface_rep::apply_changes () {
   // cout << "Handling extents\n";
   if (env_change & (THE_TREE + THE_ENVIRONMENT + THE_EXTENTS)) {
     string medium= get_init_string (PAGE_MEDIUM);
-    DI     ex1   = (DI) (((double) eb->x1) * magf);
-    DI     ey1   = (DI) (((double) eb->y1) * magf);
-    DI     ex2   = (DI) (((double) eb->x2) * magf);
-    DI     ey2   = (DI) (((double) eb->y2) * magf);
-    abs_round (ex1, ey1);
-    abs_round (ex2, ey2);
+    DI     ex1, ey1, ex2, ey2;
+    scale_extents (eb, magf, ex1, ey1, ex2, ey2);
     DI     w, h;
     widget me= ::get_canvas (widget (cvw));
     ::get_size (me, w, h);

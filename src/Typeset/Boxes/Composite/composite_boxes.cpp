@@ -67,8 +67,8 @@ composite_box_rep::position () {
     TM_FAILED ("empty composite box");
   }
   else {
-    x1= y1= x3= y3= MAX_SI;
-    x2= y2= x4= y4= -MAX_SI;
+    x1= y1= x3= y3= MAX_DI;
+    x2= y2= x4= y4= -MAX_DI;
     for (i= 0; i < n; i++) {
       x1= min (x1, sx1 (i));
       y1= min (y1, sy1 (i));
@@ -205,13 +205,15 @@ int
 composite_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
   int i, n= subnr (), m= -1;
-  DI  d= MAX_SI;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 
@@ -380,13 +382,15 @@ concrete_composite_box_rep::find_child (DI x, DI y, SI delta, bool force) {
       (is_accessible (ip) || force))
     return -1;
   int i, n= subnr (), m= -1;
-  DI  d= MAX_SI;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 

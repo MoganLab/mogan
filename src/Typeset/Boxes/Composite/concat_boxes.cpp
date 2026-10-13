@@ -99,8 +99,8 @@ concat_box_rep::position (array<DI> spc) {
   }
 
   bool ok= !indent;
-  x1= y1= x3= y3= MAX_SI;
-  x2= y2= x4= y4= -MAX_SI;
+  x1= y1= x3= y3= MAX_DI;
+  x2= y2= x4= y4= -MAX_DI;
   for (i= 0; i < N (bs); i++)
     if (!indent || sx2 (i) > sx1 (i)) {
       ok= true;

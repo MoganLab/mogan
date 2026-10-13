@@ -30,8 +30,7 @@
   TMSCM_ASSERT (tmscm_is_bool (flag), flag, arg, rout)
 #define TMSCM_ASSERT_INT(i, arg, rout)                                         \
   TMSCM_ASSERT (tmscm_is_int (i), i, arg, rout);
-#define TMSCM_ASSERT_DI(i, arg, rout)                                          \
-  TMSCM_ASSERT (tmscm_is_int (i), i, arg, rout);
+#define TMSCM_ASSERT_DI(i, arg, rout) TMSCM_ASSERT_INT (i, arg, rout)
 #define TMSCM_ASSERT_DOUBLE(i, arg, rout)                                      \
   TMSCM_ASSERT (tmscm_is_double (i), i, arg, rout);
 // TMSCM_ASSERT (SCM_REALP (i), i, arg, rout);
@@ -102,6 +101,7 @@ bool tmscm_is_modification (tmscm obj);
 #define TMSCM_ASSERT_MODIFICATION(m, arg, rout)                                \
   TMSCM_ASSERT (tmscm_is_modification (m), m, arg, rout)
 
+typedef DI                          di;
 typedef array<DI>                   array_di;
 typedef array<string>               array_string;
 typedef array<tree>                 array_tree;

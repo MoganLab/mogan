@@ -329,19 +329,8 @@ renderer_rep::outer_round (DI& x1, DI& y1, DI& x2, DI& y2) {
   (((x) >= 0) ? (((x) / PIXEL) * PIXEL) : ((((x) - PIXEL + 1) / PIXEL) * PIXEL))
 
 void
-abs_round (SI& l) {
-  l= RND (l);
-}
-
-void
 abs_round (DI& l) {
   l= RND (l);
-}
-
-void
-abs_round (SI& x, SI& y) {
-  x= RND (x);
-  y= RND (y);
 }
 
 void

@@ -157,12 +157,12 @@ class pdf_hummus_renderer_rep : public renderer_rep {
     return (SI) y;
   };
 
-  double to_x_double (SI x) {
+  double to_x_double (DI x) {
     double rx= ((double) (x + ox)) / pixel - 0.5;
     return rx;
   };
 
-  double to_y_double (SI y) {
+  double to_y_double (DI y) {
     double ry= ((double) (y + oy)) / pixel - 0.5;
     return ry;
   };
