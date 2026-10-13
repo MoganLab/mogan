@@ -312,11 +312,11 @@ texmacs_output_widget (tree doc, tree style) {
   return widget (tm_new<box_widget_rep> (b, col, false, zoom, 0, 0));
 }
 
-array<SI>
+array<DI>
 get_texmacs_widget_size (widget wid) {
-  array<SI> ret;
+  array<DI> ret;
   SI        w, h;
   ((simple_widget_rep*) wid.rep)->handle_get_size_hint (w, h);
-  ret << w << h;
+  ret << (DI) w << (DI) h;
   return ret;
 }

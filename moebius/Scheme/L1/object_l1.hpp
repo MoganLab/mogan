@@ -100,7 +100,6 @@ bool tmscm_is_modification (tmscm obj);
 #define TMSCM_ASSERT_MODIFICATION(m, arg, rout)                                \
   TMSCM_ASSERT (tmscm_is_modification (m), m, arg, rout)
 
-typedef array<int>                  array_int;
 typedef array<DI>                   array_di;
 typedef array<string>               array_string;
 typedef array<tree>                 array_tree;
@@ -109,7 +108,6 @@ typedef array<double>               array_double;
 typedef array<array<double>>        array_array_double;
 typedef array<array<array<double>>> array_array_array_double;
 
-tmscm array_int_to_tmscm (array<int> a);
 tmscm array_di_to_tmscm (array<DI> a);
 tmscm array_double_to_tmscm (array<double> a);
 tmscm array_array_double_to_tmscm (array<array_double> a);
@@ -118,7 +116,7 @@ tmscm array_string_to_tmscm (array<string> a);
 tmscm array_tree_to_tmscm (array<tree> a);
 tmscm array_path_to_tmscm (array<path> a);
 
-array<int>                tmscm_to_array_int (tmscm p);
+array<DI>                 tmscm_to_array_di (tmscm p);
 array<double>             tmscm_to_array_double (tmscm p);
 array<array_double>       tmscm_to_array_array_double (tmscm p);
 array<array_array_double> tmscm_to_array_array_array_double (tmscm p);
@@ -126,7 +124,7 @@ array<string>             tmscm_to_array_string (tmscm p);
 array<tree>               tmscm_to_array_tree (tmscm p);
 array<path>               tmscm_to_array_path (tmscm p);
 
-bool tmscm_is_array_int (tmscm p);
+bool tmscm_is_array_di (tmscm p);
 bool tmscm_is_array_double (tmscm p);
 bool tmscm_is_array_array_double (tmscm p);
 bool tmscm_is_array_array_array_double (tmscm p);
@@ -134,8 +132,8 @@ bool tmscm_is_array_string (tmscm p);
 bool tmscm_is_array_tree (tmscm p);
 bool tmscm_is_array_path (tmscm p);
 
-#define TMSCM_ASSERT_ARRAY_INT(p, arg, rout)                                   \
-  TMSCM_ASSERT (tmscm_is_array_int (p), p, arg, rout)
+#define TMSCM_ASSERT_ARRAY_DI(p, arg, rout)                                    \
+  TMSCM_ASSERT (tmscm_is_array_di (p), p, arg, rout)
 #define TMSCM_ASSERT_ARRAY_DOUBLE(p, arg, rout)                                \
   TMSCM_ASSERT (tmscm_is_array_double (p), p, arg, rout)
 #define TMSCM_ASSERT_ARRAY_ARRAY_DOUBLE(p, arg, rout)                          \

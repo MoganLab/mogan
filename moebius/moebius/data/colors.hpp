@@ -55,10 +55,10 @@ color cmyk_color (int c, int m, int y, int k, int a= 255);
 void get_cmyk_color (color col, int& r, int& g, int& b, int& a);
 // get the CMYK components of a color
 
-bool       is_color_name (string s);
-color      named_color (string s, int a= 255);
-string     named_rgb_color (array<int> rgba);
-array<int> get_named_rgb_color (string col);
+bool      is_color_name (string s);
+color     named_color (string s, int a= 255);
+string    named_rgb_color (array<DI> rgba);
+array<DI> get_named_rgb_color (string col);
 // get a color by its name
 
 string get_hex_color (string s);

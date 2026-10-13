@@ -136,12 +136,12 @@ is_busy_versioning () {
   return busy_versioning;
 }
 
-inline array<SI>
+inline array<DI>
 get_screen_size () {
-  array<SI> r;
+  array<DI> r;
   SI        w, h;
   gui_root_extents (w, h);
-  r << w << h;
+  r << (DI) w << (DI) h;
   return r;
 }
 

@@ -199,8 +199,8 @@ _unix_system_warn (pid_t pid, string which, string msg) {
 }
 
 int
-unix_system (array<string> arg, array<int> fd_in, array<string> str_in,
-             array<int> fd_out, array<string*> str_out) {
+unix_system (array<string> arg, array<DI> fd_in, array<string> str_in,
+             array<DI> fd_out, array<string*> str_out) {
   // Run command arg[0] with arguments arg[i], i >= 1.
   // str_in[i] is sent to the file descriptor fd_in[i].
   // str_out[i] is filled from the file descriptor fd_out[i].
@@ -219,7 +219,7 @@ unix_system (array<string> arg, array<int> fd_in, array<string> str_in,
       return -1;
     if (fd_in[i] >= 0) {
       if (posix_spawn_file_actions_adddup2 (&file_actions.rep, pp_in[i].in (),
-                                            fd_in[i]) != 0)
+                                            (int) fd_in[i]) != 0)
         return -1;
       if (posix_spawn_file_actions_addclose (&file_actions.rep,
                                              pp_in[i].in ()) != 0)
@@ -231,7 +231,7 @@ unix_system (array<string> arg, array<int> fd_in, array<string> str_in,
                                            pp_out[i].in ()) != 0)
       return -1;
     if (posix_spawn_file_actions_adddup2 (&file_actions.rep, pp_out[i].out (),
-                                          fd_out[i]) != 0)
+                                          (int) fd_out[i]) != 0)
       return -1;
     if (posix_spawn_file_actions_addclose (&file_actions.rep,
                                            pp_out[i].out ()) != 0)

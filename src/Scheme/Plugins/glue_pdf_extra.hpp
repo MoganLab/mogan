@@ -26,11 +26,11 @@ pdfhummus_version () {
   return string (PDFHUMMUS_VERSION);
 }
 
-inline array<int>
+inline array<DI>
 pdfhummus_image_size (url pdf_image) {
   int w= 0, h= 0;
   hummus_pdf_image_size (pdf_image, w, h);
-  return array<int> (w, h);
+  return array<DI> (w, h);
 }
 
 #endif

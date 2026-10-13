@@ -1292,14 +1292,14 @@ edit_table_rep::table_nr_columns () {
   return nr_cols;
 }
 
-array<int>
+array<DI>
 edit_table_rep::table_get_extents () {
-  array<int> r;
-  int        nr_rows, nr_cols;
-  path       fp= search_format ();
+  array<DI> r;
+  int       nr_rows, nr_cols;
+  path      fp= search_format ();
   if (is_nil (fp)) return r;
   table_get_extents (fp, nr_rows, nr_cols);
-  r << nr_rows << nr_cols;
+  r << (DI) nr_rows << (DI) nr_cols;
   return r;
 }
 
@@ -1330,22 +1330,23 @@ edit_table_rep::table_which_column () {
   return col + 1;
 }
 
-array<int>
+array<DI>
 edit_table_rep::table_which_cells () {
-  array<int> r;
+  array<DI> r;
   if (selection_active_table (false)) {
     int  row1, col1, row2, col2;
     path fp= selection_get_subtable (row1, col1, row2, col2);
     if (is_nil (fp)) return r;
-    r << row1 + 1 << row2 + 1 << col1 + 1 << col2 + 1;
+    r << (DI) (row1 + 1) << (DI) (row2 + 1) << (DI) (col1 + 1)
+      << (DI) (col2 + 1);
   }
   else {
     int  row, col;
     path fp= search_format (row, col);
-    if (is_nil (fp)) return array<int> ();
+    if (is_nil (fp)) return array<DI> ();
     row++;
     col++;
-    r << row << row << col << col;
+    r << (DI) row << (DI) row << (DI) col << (DI) col;
   }
   return r;
 }

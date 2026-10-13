@@ -329,14 +329,14 @@ edit_interface_rep::get_cursor () {
   return copy (the_cursor ());
 }
 
-array<SI>
+array<DI>
 edit_interface_rep::get_mouse_position () {
   rectangle wr= get_window_extents ();
   SI        sz= get_pixel_size ();
   double    sf= ((double) sz) / 256.0;
   SI        mx= ((SI) (last_x / sf)) + wr->x1;
   SI        my= ((SI) (last_y / sf)) + wr->y2;
-  return array<SI> (mx, my);
+  return array<DI> (mx, my);
 }
 
 void
@@ -746,8 +746,8 @@ edit_interface_rep::table_scale_apply (SI x, SI y) {
         0.1, (double) (table_scale_initial_height + table_scale_start_y - y) /
                  (double) table_scale_initial_height);
 
-  array<int> extents= et->table_get_extents ();
-  int        rows= extents[0], cols= extents[1];
+  array<DI> extents= et->table_get_extents ();
+  int       rows= (int) extents[0], cols= (int) extents[1];
 
   if (scale_x != 1.0) {
     SI col_width=

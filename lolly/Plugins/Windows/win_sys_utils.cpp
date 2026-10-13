@@ -29,8 +29,8 @@ static void
 _unix_system_warn (pid_t pid, ::string which, ::string msg) {}
 
 int
-win_system (array<::string> arg, array<int> fd_in, array<::string> str_in,
-            array<int> fd_out, array<::string*> str_out) {
+win_system (array<::string> arg, array<DI> fd_in, array<::string> str_in,
+            array<DI> fd_out, array<::string*> str_out) {
   // Run command arg[0] with arguments arg[i], i >= 1.
   // str_in[i] is sent to the file descriptor fd_in[i].
   // str_out[i] is filled from the file descriptor fd_out[i].
@@ -44,12 +44,12 @@ win_system (array<::string> arg, array<int> fd_in, array<::string> str_in,
   array<Channel> ch (n_in + n_out);
 
   for (int i= 0; i < n_in; i++) {
-    int fd= fd_in[i];
+    int fd= (int) fd_in[i];
     if (fd >= 0) ch[i].Init (fd, Channel::CHIN);
     else ch[i].Init (Channel::CHIN);
   }
   for (int i= 0; i < n_out; i++) {
-    int fd= fd_out[i];
+    int fd= (int) fd_out[i];
     if (fd >= 0) ch[i + n_in].Init (fd, Channel::CHOUT);
     else ch[i + n_in].Init (Channel::CHOUT);
   }
