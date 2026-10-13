@@ -119,8 +119,6 @@ public:
     x2= (SI) X2;
     y2= (SI) Y2;
   }
-  friend void abs_round (SI& l);
-  friend void abs_round (SI& x, SI& y);
   friend void abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
   friend void abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
   bool        is_visible (DI x1, DI y1, DI x2, DI y2);
@@ -186,10 +184,23 @@ renderer scalable_renderer (scalable im);
 void     delete_renderer (renderer ren);
 
 double normal_zoom (double zoom);
-void   abs_round (SI& l);
-void   abs_round (SI& x, SI& y);
-void   abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
-void   abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
+void   abs_round (DI& l);
+void   abs_round (DI& x, DI& y);
+inline void
+abs_round (SI& l) {
+  DI v= l;
+  abs_round (v);
+  l= (SI) v;
+}
+inline void
+abs_round (SI& x, SI& y) {
+  DI X= x, Y= y;
+  abs_round (X, Y);
+  x= (SI) X;
+  y= (SI) Y;
+}
+void abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
+void abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
 
 extern bool   retina_manual;
 extern bool   retina_iman;

@@ -32,7 +32,7 @@ struct stack_box_rep : public composite_box_rep {
   void clear_incomplete (rectangles& rs, SI pixel, int i, int i1, int i2);
   bool access_allowed ();
 
-  int           find_child (SI x, SI y, SI delta, bool force);
+  int           find_child (DI x, DI y, SI delta, bool force);
   path          find_tree_path (path bp);
   cursor        find_cursor (path bp);
   selection     find_selection (path lbp, path rbp);
@@ -132,15 +132,15 @@ stack_box_rep::clear_incomplete (rectangles& rs, SI pixel, int which, int i1,
  ******************************************************************************/
 
 int
-stack_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+stack_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   int i, h, n= N (bs);
   if (n == 0) return -1;
   else if (n < 4) i= 0;
   else {
     i= h= n >> 1;
     while (h != 0) {
-      SI yhi= sy1 (i);
-      SI ylo= sy2 (i + 1);
+      DI yhi= sy1 (i);
+      DI ylo= sy2 (i + 1);
       if (h == 1) h= 0;
       else h= (h + 1) >> 1;
       if ((y < yhi) && (y < ylo)) i+= h;
@@ -154,8 +154,8 @@ stack_box_rep::find_child (SI x, SI y, SI delta, bool force) {
     if (i < n - 1) {
       box sb1= bs[i];
       box sb2= bs[i + 1];
-      SI  yhi= sy1 (i);
-      SI  ylo= sy2 (i + 1);
+      DI  yhi= sy1 (i);
+      DI  ylo= sy2 (i + 1);
       // cout << "Test [" << i << "] " << sb1 << ", " << sb2 << "\n";
       // cout << "  y  = " << y   << "\n";
       // cout << "  yhi= " << yhi << "\n";
@@ -166,9 +166,9 @@ stack_box_rep::find_child (SI x, SI y, SI delta, bool force) {
       }
       else {
         int j;
-        SI  m= ylo, M= yhi;
-        SI  ox1= sx (i), ox2= sx (i + 1);
-        SI  oy1= sy (i), oy2= sy (i + 1);
+        DI  m= ylo, M= yhi;
+        DI  ox1= sx (i), ox2= sx (i + 1);
+        DI  oy1= sy (i), oy2= sy (i + 1);
         while ((N (sb1) == 1) && (N (sb2) == 1)) {
           ox1+= sb1->sx (0);
           ox2+= sb2->sx (0);

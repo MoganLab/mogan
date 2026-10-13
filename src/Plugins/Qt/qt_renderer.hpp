@@ -86,7 +86,7 @@ public:
   qt_shadow_renderer_rep (QTMPixmapOrImage _px= QTMPixmapOrImage ());
   ~qt_shadow_renderer_rep ();
 
-  void get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
+  void get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
 };
 
 class qt_proxy_renderer_rep : public qt_renderer_rep {
@@ -99,7 +99,7 @@ public:
   ~qt_proxy_renderer_rep () {};
 
   void new_shadow (renderer& ren);
-  void get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
+  void get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
 };
 
 #endif // defined QT_RENDERER_HPP

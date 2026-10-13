@@ -32,7 +32,7 @@ void notify_insert_node (typesetter ttt, path p, tree t);
 void notify_remove_node (typesetter ttt, path p);
 void exec_until (typesetter ttt, path p);
 box  typeset (typesetter ttt);
-box  typeset (typesetter ttt, SI& x1, SI& y1, SI& x2, SI& y2);
+box  typeset (typesetter ttt, DI& x1, DI& y1, DI& x2, DI& y2);
 
 bool typeset_in_progress (typesetter ttt);
 void progressive_advance (typesetter ttt, int additional_paragraphs);

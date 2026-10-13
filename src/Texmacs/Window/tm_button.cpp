@@ -148,8 +148,8 @@ box_widget_rep::is_embedded_widget () {
 
 void
 box_widget_rep::handle_get_size_hint (SI& w, SI& h) {
-  SI X1= b->x1, Y1= b->y1;
-  SI X2= b->x2, Y2= b->y2;
+  DI X1= b->x1, Y1= b->y1;
+  DI X2= b->x2, Y2= b->y2;
   w= ((SI) ceil ((X2 - X1) * magf * display_scale)) + 2 * dw;
   h= ((SI) ceil ((Y2 - Y1) * magf * display_scale)) + 2 * dh;
   abs_round (w, h);

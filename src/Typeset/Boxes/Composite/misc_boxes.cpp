@@ -26,7 +26,7 @@ struct scatter_box_rep : composite_box_rep {
 
   scatter_box_rep (path ip, array<box> bs, array<DI> x, array<DI> y, bool f);
   operator tree ();
-  int       find_child (SI x, SI y, SI delta, bool force);
+  int       find_child (DI x, DI y, SI delta, bool force);
   path      find_left_box_path ();
   path      find_right_box_path ();
   selection find_selection (path lbp, path rbp);
@@ -56,14 +56,17 @@ scatter_box_rep::operator tree () {
 }
 
 int
-scatter_box_rep::find_child (SI x, SI y, SI delta, bool force) {
-  int i, n= subnr (), d= MAX_SI, m= -1;
+scatter_box_rep::find_child (DI x, DI y, SI delta, bool force) {
+  int i, n= subnr (), m= -1;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 
@@ -131,7 +134,7 @@ struct page_box_rep : composite_box_rep {
   page_box_rep (path ip, tree page, int page_nr, brush bgc, SI w, SI h,
                 array<box> bs, array<DI> x, array<DI> y, box dec);
   operator tree ();
-  int  find_child (SI x, SI y, SI delta, bool force);
+  int  find_child (DI x, DI y, SI delta, bool force);
   void display_background (renderer ren);
   void redraw_background (renderer ren);
   void pre_display (renderer& ren);
@@ -176,14 +179,17 @@ page_box_rep::operator tree () {
 }
 
 int
-page_box_rep::find_child (SI x, SI y, SI delta, bool force) {
-  int i, n= subnr (), d= MAX_SI, m= -1;
+page_box_rep::find_child (DI x, DI y, SI delta, bool force) {
+  int i, n= subnr (), m= -1;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 

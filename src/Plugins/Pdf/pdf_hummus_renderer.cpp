@@ -143,26 +143,26 @@ class pdf_hummus_renderer_rep : public renderer_rep {
 
   // geometry
 
-  SI to_x (SI x) {
+  SI to_x (DI x) {
     x+= ox;
     if (x >= 0) x= x / pixel;
     else x= (x - pixel + 1) / pixel;
-    return x;
+    return (SI) x;
   };
 
-  SI to_y (SI y) {
+  SI to_y (DI y) {
     y+= oy;
     if (y >= 0) y= y / pixel;
     else y= (y - pixel + 1) / pixel;
-    return y;
+    return (SI) y;
   };
 
-  double to_x_double (SI x) {
+  double to_x_double (DI x) {
     double rx= ((double) (x + ox)) / pixel - 0.5;
     return rx;
   };
 
-  double to_y_double (SI y) {
+  double to_y_double (DI y) {
     double ry= ((double) (y + oy)) / pixel - 0.5;
     return ry;
   };
@@ -247,7 +247,7 @@ public:
   void set_transformation (frame fr);
   void reset_transformation ();
 
-  void set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore= false);
+  void set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore= false);
 
   pencil get_pencil ();
   brush  get_background ();
@@ -566,7 +566,7 @@ pdf_hummus_renderer_rep::reset_transformation () {
  ******************************************************************************/
 
 void
-pdf_hummus_renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2,
+pdf_hummus_renderer_rep::set_clipping (DI x1, DI y1, DI x2, DI y2,
                                        bool restore) {
   renderer_rep::set_clipping (x1, y1, x2, y2, restore);
 

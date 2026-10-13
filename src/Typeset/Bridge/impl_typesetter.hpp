@@ -26,7 +26,7 @@ public:
   array<line_item> a;  // left surroundings
   array<line_item> b;  // right surroundings
 
-  SI                    x1, y1, x2, y2;
+  DI                    x1, y1, x2, y2;
   hashmap<string, tree> old_patch;
   bool                  paper;
 
@@ -61,7 +61,7 @@ public:
 
   void determine_page_references (box b);
   box  typeset ();
-  box  typeset (SI& x1, SI& y1, SI& x2, SI& y2);
+  box  typeset (DI& x1, DI& y1, DI& x2, DI& y2);
 
   /**
    * @brief 流式排版是否仍在进行（排版前沿未到文末）

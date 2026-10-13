@@ -266,7 +266,7 @@ typesetter_rep::typeset () {
 }
 
 box
-typesetter_rep::typeset (SI& x1b, SI& y1b, SI& x2b, SI& y2b) {
+typesetter_rep::typeset (DI& x1b, DI& y1b, DI& x2b, DI& y2b) {
   x1= x1b;
   y1= y1b;
   x2= x2b;
@@ -409,7 +409,7 @@ typeset (typesetter ttt) {
 }
 
 box
-typeset (typesetter ttt, SI& x1, SI& y1, SI& x2, SI& y2) {
+typeset (typesetter ttt, DI& x1, DI& y1, DI& x2, DI& y2) {
   return ttt->typeset (x1, y1, x2, y2);
 }
 

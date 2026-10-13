@@ -54,7 +54,7 @@ struct text_box_rep : public box_rep {
   SI     sup_hi_lim (int level);
   SI     wide_correction (int mode);
 
-  path      find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  path      find_box_path (DI x, DI y, SI delta, bool force, bool& found);
   path      find_lip ();
   path      find_rip ();
   path      find_right_box_path ();
@@ -306,7 +306,7 @@ text_box_rep::wide_correction (int mode) {
  ******************************************************************************/
 
 path
-text_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+text_box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
   (void) y;
   (void) force;
   found= true;

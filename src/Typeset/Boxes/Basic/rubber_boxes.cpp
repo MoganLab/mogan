@@ -55,7 +55,7 @@ struct dummy_box_rep : public box_rep {
   }
   operator tree () { return "dummy"; }
   void display (renderer ren) { (void) ren; }
-  path find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+  path find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
     bool dummy;
     found= false;
     return box_rep::find_box_path (x, y, delta, force, dummy);
@@ -76,7 +76,7 @@ struct marker_box_rep : public box_rep {
   }
   operator tree () { return "marker"; }
   void display (renderer ren) { (void) ren; }
-  path find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+  path find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
     (void) x;
     (void) y;
     (void) delta;

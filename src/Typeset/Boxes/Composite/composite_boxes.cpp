@@ -67,8 +67,8 @@ composite_box_rep::position () {
     TM_FAILED ("empty composite box");
   }
   else {
-    x1= y1= x3= y3= MAX_SI;
-    x2= y2= x4= y4= -MAX_SI;
+    x1= y1= x3= y3= MAX_DI;
+    x2= y2= x4= y4= -MAX_DI;
     for (i= 0; i < n; i++) {
       x1= min (x1, sx1 (i));
       y1= min (y1, sy1 (i));
@@ -202,26 +202,29 @@ composite_box_rep::finalize () {
 }
 
 int
-composite_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+composite_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
-  int i, n= subnr (), d= MAX_SI, m= -1;
+  int i, n= subnr (), m= -1;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 
 path
-composite_box_rep::find_box_path (SI x, SI y, SI delta, bool force,
+composite_box_rep::find_box_path (DI x, DI y, SI delta, bool force,
                                   bool& found) {
   int i, n= subnr (), m= find_child (x, y, delta, force);
   if (m != -1)
     for (i= 0; i <= n; i++) {
       int  c = (m + i) % n;
-      SI   xx= x - sx (c), yy= y - sy (c);
+      DI   xx= x - sx (c), yy= y - sy (c);
       SI   dd= delta + get_delta (xx, bs[c]->x1, bs[c]->x2);
       path r = path (c, bs[c]->find_box_path (xx, yy, dd, force, found));
       if (found || i == n) return r;
@@ -374,17 +377,20 @@ composite_box_rep::graphical_select (SI x1, SI y1, SI x2, SI y2) {
  ******************************************************************************/
 
 int
-concrete_composite_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+concrete_composite_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (border_flag && outside (x, delta, x1, x2) &&
       (is_accessible (ip) || force))
     return -1;
-  int i, n= subnr (), d= MAX_SI, m= -1;
+  int i, n= subnr (), m= -1;
+  DI  d= MAX_DI;
   for (i= 0; i < n; i++)
-    if (distance (i, x, y, delta) < d)
-      if (bs[i]->accessible () || force) {
-        d= distance (i, x, y, delta);
+    if (bs[i]->accessible () || force) {
+      DI dist= distance (i, x, y, delta);
+      if (dist < d) {
+        d= dist;
         m= i;
       }
+    }
   return m;
 }
 

@@ -184,13 +184,13 @@ public:
   DI   get_scroll_x ();
   DI   get_scroll_y ();
   void set_zoom_factor (double zoom);
-  void invalidate (SI x1, SI y1, SI x2, SI y2);
+  void invalidate (DI x1, DI y1, DI x2, DI y2);
   void invalidate (rectangles rs);
   void invalidate_all ();
   void update_visible ();
   void scroll_to (DI x, DI y1);
   bool progressive_advance_near_tail (DI y);
-  void set_extents (SI x1, SI y1, SI x2, SI y2);
+  void set_extents (DI x1, DI y1, DI x2, DI y2);
 
   /* repainting the window */
   void draw_background (renderer ren, SI x1, SI y1, SI x2, SI y2);
@@ -244,7 +244,7 @@ public:
    * 「视口高」；本方法返回未经垫底的排版盒原始高度。排版盒尚未生成
    * 时返回 0。
    */
-  SI get_typeset_content_height ();
+  DI get_typeset_content_height ();
 
   /* keyboard handling */
   int    get_input_mode ();

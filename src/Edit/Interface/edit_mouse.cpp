@@ -287,9 +287,9 @@ edit_interface_rep::mouse_scroll (SI x, SI y, bool up) {
     SERVER (scroll_to (sx, sy));
   }
   else {
-    DI        x, y, sx, sy;
+    DI        ox, oy, scx, scy;
     rectangle outer, inner;
-    find_canvas_info (eb, sp, x, y, sx, sy, outer, inner);
+    find_canvas_info (eb, sp, ox, oy, scx, scy, outer, inner);
     DI ty= inner->y2 - inner->y1;
     DI cy= outer->y2 - outer->y1;
     if (ty > cy) {
@@ -334,8 +334,8 @@ edit_interface_rep::get_mouse_position () {
   rectangle wr= get_window_extents ();
   SI        sz= get_pixel_size ();
   double    sf= ((double) sz) / 256.0;
-  SI        mx= ((SI) (last_x / sf)) + wr->x1;
-  SI        my= ((SI) (last_y / sf)) + wr->y2;
+  DI        mx= ((DI) (last_x / sf)) + wr->x1;
+  DI        my= ((DI) (last_y / sf)) + wr->y2;
   return array<DI> (mx, my);
 }
 

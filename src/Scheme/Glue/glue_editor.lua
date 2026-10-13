@@ -1978,12 +1978,12 @@ function main()
             {
                 scm_name = "get-scroll-x",
                 cpp_name = "get_scroll_x",
-                ret_type = "int"
+                ret_type = "di"
             },
             {
                 scm_name = "get-scroll-y",
                 cpp_name = "get_scroll_y",
-                ret_type = "int"
+                ret_type = "di"
             },
             {
                 scm_name = "clear-buffer",

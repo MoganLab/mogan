@@ -874,7 +874,7 @@ qt_proxy_renderer_rep::new_shadow (renderer& ren) {
 }
 
 void
-qt_proxy_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+qt_proxy_renderer_rep::get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // FIXME: we should use the routine fetch later
   ASSERT (ren != NULL, "invalid renderer");
   if (ren->is_printer ()) return;
@@ -934,7 +934,7 @@ qt_shadow_renderer_rep::~qt_shadow_renderer_rep () {
 }
 
 void
-qt_shadow_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+qt_shadow_renderer_rep::get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // FIXME: we should use the routine fetch later
   ASSERT (ren != NULL, "invalid renderer");
   if (ren->is_printer ()) return;

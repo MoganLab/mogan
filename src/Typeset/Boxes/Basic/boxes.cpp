@@ -113,25 +113,25 @@ box_rep::get_bracket_extents (SI& lo, SI& hi) {
  ******************************************************************************/
 
 bool
-outside (SI x, SI delta, SI x1, SI x2) {
+outside (DI x, SI delta, DI x1, DI x2) {
   return (x < x1) || ((x == x1) && (delta < 0)) || (x > x2) ||
          ((x == x2) && (delta >= 0));
 }
 
 SI
-get_delta (SI x, SI x1, SI x2) {
+get_delta (DI x, DI x1, DI x2) {
   if (x1 == x2) return 0;
   if (x == x1) return -1;
   if (x == x2) return 1;
   return 0;
 }
 
-SI
-box_rep::distance (int i, SI x, SI y, SI delta) {
+DI
+box_rep::distance (int i, DI x, DI y, SI delta) {
   box b= subbox (i);
   x-= sx (i);
   y-= sy (i);
-  int dx, dy;
+  DI dx, dy;
   if (x <= b->x1) dx= b->x1 - x - (delta < 0 ? 1 : 0);
   else if (x >= b->x2) dx= x - b->x2 + (delta < 0 ? 0 : 1);
   else dx= 0;
@@ -206,7 +206,7 @@ box_rep::adjust_cell_geometry (SI dx, SI dl, SI dr) {
  ******************************************************************************/
 
 path
-box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
   (void) y;
   (void) force;
   found= true;
@@ -346,14 +346,14 @@ find_innermost_scroll (box b, path p) {
 }
 
 path
-find_scrolled_box_path (box b, path sp, SI x, SI y, SI delta) {
+find_scrolled_box_path (box b, path sp, DI x, DI y, SI delta) {
   if (is_nil (sp)) {
     bool found;
     return b->find_box_path (x, y, delta, false, found);
   }
   else {
     int m = sp->item;
-    SI  xx= x - b->sx (m), yy= y - b->sy (m);
+    DI  xx= x - b->sx (m), yy= y - b->sy (m);
     SI  dd= delta + get_delta (xx, b[m]->x1, b[m]->x2);
     return path (m, find_scrolled_box_path (b[m], sp->next, xx, yy, dd));
   }

@@ -136,7 +136,7 @@ modifier_box_rep::get_bracket_extents (SI& lo, SI& hi) {
  ******************************************************************************/
 
 path
-modifier_box_rep::find_box_path (SI x, SI y, SI delta, bool force,
+modifier_box_rep::find_box_path (DI x, DI y, SI delta, bool force,
                                  bool& found) {
   return path (0, b->find_box_path (x, y, delta, force, found));
 }
@@ -233,7 +233,7 @@ public:
   operator tree () { return tree (TUPLE, "symbol", subbox (0)); }
   box  adjust_kerning (int mode, double factor);
   box  expand_glyphs (int mode, double factor);
-  path find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  path find_box_path (DI x, DI y, SI delta, bool force, bool& found);
 };
 
 symbol_box_rep::symbol_box_rep (path ip, box b2, int n2)
@@ -256,7 +256,7 @@ subbox (box b, path p) {
 }
 
 path
-symbol_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+symbol_box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
   path p   = modifier_box_rep::find_box_path (x, y, delta, force, found);
   box  leaf= ::subbox (box (this), path_up (p));
   if (is_accessible (leaf->ip) || force) {
@@ -278,7 +278,7 @@ public:
   operator tree () { return tuple ("shorter", subbox (0)); }
   box    adjust_kerning (int mode, double factor);
   box    expand_glyphs (int mode, double factor);
-  path   find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  path   find_box_path (DI x, DI y, SI delta, bool force, bool& found);
   path   find_rip ();
   path   find_right_box_path ();
   int    get_type ();
@@ -304,7 +304,7 @@ shorter_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 path
-shorter_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+shorter_box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
   path p   = modifier_box_rep::find_box_path (x, y, delta, force, found);
   box  leaf= ::subbox (box (this), path_up (p));
   if ((is_accessible (leaf->ip) || force) && (last_item (p) > len))
@@ -409,8 +409,8 @@ struct macro_box_rep : public composite_box_rep {
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
 
-  int       find_child (SI x, SI y, SI delta, bool force);
-  path      find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  int       find_child (DI x, DI y, SI delta, bool force);
+  path      find_box_path (DI x, DI y, SI delta, bool force, bool& found);
   path      find_lip ();
   path      find_rip ();
   path      find_box_path (path p, bool& found);
@@ -473,7 +473,7 @@ macro_box_rep::expand_glyphs (int mode, double factor) {
   return macro_box (ip, bs[0]->expand_glyphs (mode, factor), big_fn);
 }
 int
-macro_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+macro_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   (void) x;
   (void) y;
   (void) delta;
@@ -481,7 +481,7 @@ macro_box_rep::find_child (SI x, SI y, SI delta, bool force) {
   return -1;
 }
 path
-macro_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& f) {
+macro_box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& f) {
   return box_rep::find_box_path (x, y, delta, force, f);
 }
 path

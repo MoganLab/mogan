@@ -37,8 +37,8 @@ struct composite_box_rep : public box_rep {
   box  subbox (int i);
   void display (renderer ren);
 
-  virtual int    find_child (SI x, SI y, SI delta, bool force);
-  virtual path   find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  virtual int    find_child (DI x, DI y, SI delta, bool force);
+  virtual path   find_box_path (DI x, DI y, SI delta, bool force, bool& found);
   virtual path   find_lip ();
   virtual path   find_rip ();
   virtual path   find_box_path (path p, bool& found);
@@ -69,7 +69,7 @@ struct concrete_composite_box_rep : public composite_box_rep {
     finalize ();
   }
   operator tree () { return tree ("composite"); }
-  int find_child (SI x, SI y, SI delta, bool force);
+  int find_child (DI x, DI y, SI delta, bool force);
 };
 
 #endif // defined COMPOSITE_H

@@ -30,7 +30,7 @@ change_box_rep::operator tree () {
 }
 
 int
-change_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+change_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (child_flag) return composite_box_rep::find_child (x, y, delta, force);
   return 0;
 }

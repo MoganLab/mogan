@@ -113,7 +113,7 @@ protected:
   /* protected routines from edit_typeset */
   virtual void typeset_preamble ()                     = 0;
   virtual void typeset_invalidate_env ()               = 0;
-  virtual void typeset (SI& x1, SI& y1, SI& x2, SI& y2)= 0;
+  virtual void typeset (DI& x1, DI& y1, DI& x2, DI& y2)= 0;
 
   /* protected subroutines for deletion of content */
   virtual void back_around (tree t, path p, bool forward)       = 0;
@@ -174,7 +174,7 @@ public:
   virtual DI        get_scroll_x ()                                        = 0;
   virtual DI        get_scroll_y ()                                        = 0;
   virtual void      make_cursor_visible ()                                 = 0;
-  virtual void      invalidate (SI x1, SI y1, SI x2, SI y2)                = 0;
+  virtual void      invalidate (DI x1, DI y1, DI x2, DI y2)                = 0;
   virtual void      invalidate (rectangles rs)                             = 0;
   virtual void      invalidate_all ()                                      = 0;
   virtual void      invalidate_visible ()                                  = 0;
