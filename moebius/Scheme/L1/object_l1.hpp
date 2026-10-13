@@ -101,6 +101,9 @@ bool tmscm_is_modification (tmscm obj);
 #define TMSCM_ASSERT_MODIFICATION(m, arg, rout)                                \
   TMSCM_ASSERT (tmscm_is_modification (m), m, arg, rout)
 
+// glue 生成代码直接以胶水类型名作为 C++ 类型名（如 `di out= ...`），
+// 此 typedef 使 glue_*.lua 中 ret_type/arg_list 为 "di" 的生成代码可编译
+typedef DI                          di;
 typedef array<DI>                   array_di;
 typedef array<string>               array_string;
 typedef array<tree>                 array_tree;
