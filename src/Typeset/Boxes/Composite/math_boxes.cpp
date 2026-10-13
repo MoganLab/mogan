@@ -68,7 +68,7 @@ struct frac_box_rep : public composite_box_rep {
   operator tree () { return tree (TUPLE, "frac", bs[0], bs[1]); }
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
-  int find_child (SI x, SI y, SI delta, bool force);
+  int find_child (DI x, DI y, SI delta, bool force);
 };
 
 frac_box_rep::frac_box_rep (path ip, box b1, box b2, font fn2, font sfn2,
@@ -142,7 +142,7 @@ frac_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 int
-frac_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+frac_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
   int i= (y >= sy (2)) ? 0 : 1;
   if (bs[i]->decoration () && (!force)) {
@@ -163,7 +163,7 @@ struct sqrt_box_rep : public composite_box_rep {
   operator tree () { return tree (TUPLE, "sqrt", bs[0]); }
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
-  int find_child (SI x, SI y, SI delta, bool force);
+  int find_child (DI x, DI y, SI delta, bool force);
 };
 
 sqrt_box_rep::sqrt_box_rep (path ip, box b1, box b2, box sqrtb, font fn2,
@@ -249,7 +249,7 @@ sqrt_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 int
-sqrt_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+sqrt_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   (void) y;
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
   int i= ((N (bs) == 3) || (x > sx (0)) || ((x >= sx (0)) && (delta >= 0))) ? 0
@@ -272,7 +272,7 @@ struct neg_box_rep : public composite_box_rep {
   operator tree () { return tree (TUPLE, "neg", bs[0]); }
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
-  int find_child (SI x, SI y, SI delta, bool force);
+  int find_child (DI x, DI y, SI delta, bool force);
 };
 
 neg_box_rep::neg_box_rep (path ip, box b, font fn2, pencil pen2)
@@ -315,7 +315,7 @@ neg_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 int
-neg_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+neg_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   (void) y;
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
   if (bs[0]->decoration () && (!force)) return -1;
@@ -334,7 +334,7 @@ struct tree_box_rep : public composite_box_rep {
   operator tree () { return "tree box"; }
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
-  int find_child (SI x, SI y, SI delta, bool force);
+  int find_child (DI x, DI y, SI delta, bool force);
 };
 
 tree_box_rep::tree_box_rep (path ip, array<box> bs, font fn2, pencil pen2)
@@ -404,11 +404,12 @@ tree_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 int
-tree_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+tree_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
   int i= 0;
   if (y < border) {
-    int j, d= MAX_SI;
+    int j;
+    DI  d= MAX_SI;
     for (j= 1; j < ((N (bs) + 1) >> 1); j++)
       if (distance (j, x, y, delta) < d)
         if (bs[j]->accessible () || force) {
@@ -605,7 +606,7 @@ struct wide_box_rep : public composite_box_rep {
   operator tree () { return tree (TUPLE, "wide", bs[0]); }
   box    adjust_kerning (int mode, double factor);
   box    expand_glyphs (int mode, double factor);
-  int    find_child (SI x, SI y, SI delta, bool force);
+  int    find_child (DI x, DI y, SI delta, bool force);
   double left_slope ();
   double right_slope ();
 
@@ -706,7 +707,7 @@ wide_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 int
-wide_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+wide_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   (void) y;
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force)) return -1;
   if (bs[0]->decoration () && (!force)) return -1;

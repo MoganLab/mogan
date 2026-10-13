@@ -48,7 +48,7 @@ public:
   path          find_rip ();
   path          find_left_box_path ();
   path          find_right_box_path ();
-  path          find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  path          find_box_path (DI x, DI y, SI delta, bool force, bool& found);
   path          find_box_path (path p, bool& found);
   path          find_tree_path (path bp);
   cursor        find_cursor (path bp);
@@ -182,7 +182,7 @@ case_box_rep::find_right_box_path () {
 }
 
 path
-case_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+case_box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
   if (outside (x, delta, x1, x2) && (is_accessible (ip) || force))
     return box_rep::find_box_path (x, y, delta, force, found);
   return path (0, bs[current]->find_box_path (x, y, delta, force, found));

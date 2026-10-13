@@ -33,7 +33,7 @@ struct graphics_box_rep : public composite_box_rep {
   void          pre_display (renderer& ren);
   void          post_display (renderer& ren);
   int           reindex (int i, int item, int n);
-  virtual int   find_child (SI x, SI y, SI delta, bool force);
+  virtual int   find_child (DI x, DI y, SI delta, bool force);
   gr_selections graphical_select (SI x, SI y, SI dist);
   gr_selections graphical_select (SI x1, SI y1, SI x2, SI y2);
 };
@@ -88,7 +88,7 @@ graphics_box_rep::reindex (int i, int item, int n) {
 }
 
 int
-graphics_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+graphics_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   int m= composite_box_rep::find_child (x, y, delta, force);
   if (m == -1) return -1;
   int i, n= subnr ();

@@ -323,7 +323,7 @@ struct side_box_rep : public composite_box_rep {
   box  adjust_kerning (int mode, double factor);
   box  expand_glyphs (int mode, double factor);
 
-  int       find_child (SI x, SI y, SI delta, bool force);
+  int       find_child (DI x, DI y, SI delta, bool force);
   path      find_box_path (path p, bool& found);
   path      find_left_box_path ();
   path      find_right_box_path ();
@@ -526,7 +526,7 @@ side_box_rep::expand_glyphs (int mode, double factor) {
 }
 
 int
-side_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+side_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   if (outside (x, delta, x1, x2)) {
     bool found;
     int  side= box_rep::find_box_path (x, y, delta, force, found)->item;
@@ -539,7 +539,7 @@ side_box_rep::find_child (SI x, SI y, SI delta, bool force) {
 
   int i= 0;
   int k= nr_left + 1;
-  SI  xx, yy;
+  DI  xx, yy;
 
   if (nr_left > 0) {
     if (nr_left == 1) xx= sx2 (1);

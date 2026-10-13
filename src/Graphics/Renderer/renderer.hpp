@@ -120,7 +120,9 @@ public:
     y2= (SI) Y2;
   }
   friend void abs_round (SI& l);
+  friend void abs_round (DI& l);
   friend void abs_round (SI& x, SI& y);
+  friend void abs_round (DI& x, DI& y);
   friend void abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
   friend void abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
   bool        is_visible (DI x1, DI y1, DI x2, DI y2);
@@ -187,7 +189,9 @@ void     delete_renderer (renderer ren);
 
 double normal_zoom (double zoom);
 void   abs_round (SI& l);
+void   abs_round (DI& l);
 void   abs_round (SI& x, SI& y);
+void   abs_round (DI& x, DI& y);
 void   abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
 void   abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
 

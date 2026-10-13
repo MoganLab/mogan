@@ -1250,7 +1250,7 @@ mupdf_renderer_rep::fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x,
   mupdf_renderer_rep* src= (mupdf_renderer_rep*) ren->get_handle ();
   if (src->pixmap == pixmap && x1 == x && y1 == y) return;
   outer_round (x1, y1, x2, y2);
-  SI X1= x1, Y1= y1;
+  DI X1= x1, Y1= y1;
   x1= max (x1, cx1 - ox);
   y1= max (y1, cy1 - oy);
   x2= min (x2, cx2 - ox);

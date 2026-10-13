@@ -1111,7 +1111,7 @@ edit_typeset_rep::init_default (string var) {
  ******************************************************************************/
 
 void
-edit_typeset_rep::typeset_sub (SI& x1, SI& y1, SI& x2, SI& y2) {
+edit_typeset_rep::typeset_sub (DI& x1, DI& y1, DI& x2, DI& y2) {
   // time_t t1= texmacs_time ();
   typeset_prepare ();
   eb= empty_box (reverse (rp));
@@ -1167,7 +1167,7 @@ clean_unused (hashmap<string, tree>& refs, hashmap<string, bool> used) {
 }
 
 void
-edit_typeset_rep::typeset (SI& x1, SI& y1, SI& x2, SI& y2) {
+edit_typeset_rep::typeset (DI& x1, DI& y1, DI& x2, DI& y2) {
   int missing_nr  = INT_MAX;
   int redefined_nr= INT_MAX;
   x1              = MAX_SI;
@@ -1175,7 +1175,7 @@ edit_typeset_rep::typeset (SI& x1, SI& y1, SI& x2, SI& y2) {
   x2              = MIN_SI;
   y2              = MIN_SI;
   while (true) {
-    SI sx1, sy1, sx2, sy2;
+    DI sx1, sy1, sx2, sy2;
     typeset_sub (sx1, sy1, sx2, sy2);
     x1= min (x1, sx1);
     y1= min (y1, sy1);
@@ -1201,7 +1201,7 @@ edit_typeset_rep::typeset (SI& x1, SI& y1, SI& x2, SI& y2) {
 void
 edit_typeset_rep::typeset_forced () {
   // cout << "Typeset forced\n";
-  SI x1, y1, x2, y2;
+  DI x1, y1, x2, y2;
   typeset (x1, y1, x2, y2);
 }
 

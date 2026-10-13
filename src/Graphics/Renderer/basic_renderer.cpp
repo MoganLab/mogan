@@ -126,7 +126,7 @@ basic_renderer_rep::set_background (brush b) {
 }
 
 void
-basic_renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
+basic_renderer_rep::set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore) {
   (void) restore;
   //  outer_round (x1, y1, x2, y2);
   renderer_rep::set_clipping (x1, y1, x2, y2);

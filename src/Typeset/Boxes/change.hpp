@@ -17,7 +17,7 @@ struct change_box_rep : public composite_box_rep {
   bool child_flag, big_flag;
   change_box_rep (path ip, bool child_flag, bool big_flag= false);
   operator tree ();
-  int  find_child (SI x, SI y, SI delta, bool force);
+  int  find_child (DI x, DI y, SI delta, bool force);
   path find_left_box_path ();
   path find_right_box_path ();
 

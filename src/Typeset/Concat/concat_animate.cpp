@@ -163,9 +163,9 @@ concater_rep::typeset_anim_accelerate (tree t, path ip) {
 
 static void
 effect_point (edit_env env, box b, tree xt, tree yt, DI& x, DI& y) {
-  if (is_double (xt)) x= (DI) (b->x1 + as_double (xt) * b->w ());
+  if (is_double (xt)) x= (DI) floor (b->x1 + as_double (xt) * b->w () + 0.5);
   else x= env->as_length (xt);
-  if (is_double (yt)) y= (DI) (b->y1 + as_double (yt) * b->h ());
+  if (is_double (yt)) y= (DI) floor (b->y1 + as_double (yt) * b->h () + 0.5);
   else y= env->as_length (yt);
 }
 

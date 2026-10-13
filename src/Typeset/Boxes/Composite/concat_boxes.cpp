@@ -55,10 +55,10 @@ struct concat_box_rep : public composite_box_rep {
   SI     wide_correction (int mode);
   void   get_bracket_extents (SI& lo, SI& hi);
 
-  int       find_any_child (SI x, SI y, SI delta, SI& delta_out);
-  int       find_accessible_child (SI x, SI y, SI delta, SI& delta_out);
-  int       find_child (SI x, SI y, SI delta, bool force);
-  path      find_box_path (SI x, SI y, SI delta, bool force, bool& found);
+  int       find_any_child (DI x, DI y, SI delta, SI& delta_out);
+  int       find_accessible_child (DI x, DI y, SI delta, SI& delta_out);
+  int       find_child (DI x, DI y, SI delta, bool force);
+  path      find_box_path (DI x, DI y, SI delta, bool force, bool& found);
   path      find_tree_path (path bp);
   cursor    find_cursor (path bp);
   selection find_selection (path lbp, path rbp);
@@ -547,13 +547,13 @@ concat_box_rep::count_right (int i) {
 }
 
 int
-concat_box_rep::find_any_child (SI x, SI y, SI delta, SI& delta_out) {
+concat_box_rep::find_any_child (DI x, DI y, SI delta, SI& delta_out) {
   (void) y;
   int  i, n;
   bool flag;
   delta_out= delta;
 
-  SI x_1= sx2 (N (bs) - 1);
+  DI x_1= sx2 (N (bs) - 1);
   if (x >= x_1) {
     n= count_right (N (bs) - 1);
     if ((delta >= 0) || (x > x_1)) i= N (bs) - 1;
@@ -567,7 +567,7 @@ concat_box_rep::find_any_child (SI x, SI y, SI delta, SI& delta_out) {
   }
 
   for (i= 0; i < N (bs); i++) {
-    SI x_i= sx1 (i);
+    DI x_i= sx1 (i);
     if ((x < x_i) || ((x == x_i) && (delta < 0))) return i;
 
     n= count_left (i);
@@ -586,9 +586,9 @@ concat_box_rep::find_any_child (SI x, SI y, SI delta, SI& delta_out) {
     i+= n - 1;
     if (i + 1 == N (bs)) flag= true;
     else {
-      int ex1= x - sx2 (i);
-      int ex2= sx1 (i + 1) - x;
-      flag   = ((ex2 > ex1 + 1) || ((ex2 >= ex1) && (delta < 0)));
+      DI ex1= x - sx2 (i);
+      DI ex2= sx1 (i + 1) - x;
+      flag  = ((ex2 > ex1 + 1) || ((ex2 >= ex1) && (delta < 0)));
     }
     if (flag) return i;
   }
@@ -597,7 +597,7 @@ concat_box_rep::find_any_child (SI x, SI y, SI delta, SI& delta_out) {
 }
 
 int
-concat_box_rep::find_accessible_child (SI x, SI y, SI delta, SI& delta_out) {
+concat_box_rep::find_accessible_child (DI x, DI y, SI delta, SI& delta_out) {
   int i= find_any_child (x, y, delta, delta_out);
 
   if (bs[i]->decoration ()) {
@@ -609,7 +609,7 @@ concat_box_rep::find_accessible_child (SI x, SI y, SI delta, SI& delta_out) {
     if ((j < 0) && (k >= n)) return -1;
     if ((j >= 0) && (k >= n)) return j;
     if ((j < 0) && (k < n)) return k;
-    SI m= (sx2 (j) + sx1 (k)) >> 1;
+    DI m= (sx2 (j) + sx1 (k)) >> 1;
     if (sx2 (j) == m) return i <= ((j + k) >> 1) ? j : k;
     if ((x < m) || ((x == m) && (delta < 0))) return j;
     return k;
@@ -619,14 +619,14 @@ concat_box_rep::find_accessible_child (SI x, SI y, SI delta, SI& delta_out) {
 }
 
 int
-concat_box_rep::find_child (SI x, SI y, SI delta, bool force) {
+concat_box_rep::find_child (DI x, DI y, SI delta, bool force) {
   int delta_out;
   if (force) return find_any_child (x, y, delta, delta_out);
   else return find_accessible_child (x, y, delta, delta_out);
 }
 
 path
-concat_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
+concat_box_rep::find_box_path (DI x, DI y, SI delta, bool force, bool& found) {
   int delta_out, m;
   if (force) m= find_any_child (x, y, delta, delta_out);
   else m= find_accessible_child (x, y, delta, delta_out);
@@ -634,7 +634,7 @@ concat_box_rep::find_box_path (SI x, SI y, SI delta, bool force, bool& found) {
   if (m != -1)
     for (i= 0; i <= n; i++) {
       int  c = (m + i) % n;
-      SI   xx= x - sx (c), yy= y - sy (c);
+      DI   xx= x - sx (c), yy= y - sy (c);
       SI   dd= delta_out + get_delta (xx, bs[c]->x1, bs[c]->x2);
       path r = path (c, bs[c]->find_box_path (xx, yy, dd, force, found));
       if (found || i == n) return r;

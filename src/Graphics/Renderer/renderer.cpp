@@ -334,7 +334,18 @@ abs_round (SI& l) {
 }
 
 void
+abs_round (DI& l) {
+  l= RND (l);
+}
+
+void
 abs_round (SI& x, SI& y) {
+  x= RND (x);
+  y= RND (y);
+}
+
+void
+abs_round (DI& x, DI& y) {
   x= RND (x);
   y= RND (y);
 }

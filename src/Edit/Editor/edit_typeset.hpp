@@ -135,8 +135,8 @@ public:
   void typeset_invalidate (path p);
   void typeset_invalidate_all ();
   void typeset_invalidate_players (path p, bool reattach);
-  void typeset_sub (SI& x1, SI& y1, SI& x2, SI& y2);
-  void typeset (SI& x1, SI& y1, SI& x2, SI& y2);
+  void typeset_sub (DI& x1, DI& y1, DI& x2, DI& y2);
+  void typeset (DI& x1, DI& y1, DI& x2, DI& y2);
   void typeset_forced ();
 
   friend class tm_window_rep;

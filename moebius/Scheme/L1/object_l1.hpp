@@ -30,6 +30,8 @@
   TMSCM_ASSERT (tmscm_is_bool (flag), flag, arg, rout)
 #define TMSCM_ASSERT_INT(i, arg, rout)                                         \
   TMSCM_ASSERT (tmscm_is_int (i), i, arg, rout);
+#define TMSCM_ASSERT_DI(i, arg, rout)                                          \
+  TMSCM_ASSERT (tmscm_is_int (i), i, arg, rout);
 #define TMSCM_ASSERT_DOUBLE(i, arg, rout)                                      \
   TMSCM_ASSERT (tmscm_is_double (i), i, arg, rout);
 // TMSCM_ASSERT (SCM_REALP (i), i, arg, rout);

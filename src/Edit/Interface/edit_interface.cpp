@@ -192,17 +192,17 @@ edit_interface_rep::set_zoom_factor (double zoom) {
 }
 
 void
-edit_interface_rep::invalidate (SI x1, SI y1, SI x2, SI y2) {
-  send_invalidate (this, (SI) floor (x1 * magf), (SI) floor (y1 * magf),
-                   (SI) ceil (x2 * magf), (SI) ceil (y2 * magf));
+edit_interface_rep::invalidate (DI x1, DI y1, DI x2, DI y2) {
+  send_invalidate (this, (DI) floor (x1 * magf), (DI) floor (y1 * magf),
+                   (DI) ceil (x2 * magf), (DI) ceil (y2 * magf));
 }
 
 void
 edit_interface_rep::invalidate (rectangles rs) {
   if (!is_nil (rs)) {
     rectangle  first_rect= rs->item;
-    SI         min_x1= first_rect->x1 - pixel, min_y1= first_rect->y1 - pixel;
-    SI         max_x2= first_rect->x2 + pixel, max_y2= first_rect->y2 + pixel;
+    DI         min_x1= first_rect->x1 - pixel, min_y1= first_rect->y1 - pixel;
+    DI         max_x2= first_rect->x2 + pixel, max_y2= first_rect->y2 + pixel;
     rectangles current= rs->next;
     while (!is_nil (current)) {
       rectangle& r= current->item;
@@ -224,10 +224,10 @@ edit_interface_rep::invalidate_all () {
 void
 edit_interface_rep::update_visible () {
   SERVER (get_visible (vx1, vy1, vx2, vy2));
-  vx1= (SI) (vx1 / magf);
-  vy1= (SI) (vy1 / magf);
-  vx2= (SI) (vx2 / magf);
-  vy2= (SI) (vy2 / magf);
+  vx1= (DI) (vx1 / magf);
+  vy1= (DI) (vy1 / magf);
+  vx2= (DI) (vx2 / magf);
+  vy2= (DI) (vy2 / magf);
 }
 
 void
@@ -325,18 +325,14 @@ DI
 edit_interface_rep::get_scroll_x () {
   DI scx, scy;
   SERVER (scroll_where (scx, scy));
-  scx= (DI) (scx / magf);
-  scy= (DI) (scy / magf);
-  return scx;
+  return (DI) (scx / magf);
 }
 
 DI
 edit_interface_rep::get_scroll_y () {
   DI scx, scy;
   SERVER (scroll_where (scx, scy));
-  scx= (DI) (scx / magf);
-  scy= (DI) (scy / magf);
-  return scy;
+  return (DI) (scy / magf);
 }
 
 bool
@@ -359,20 +355,20 @@ edit_interface_rep::scroll_to (DI x, DI y) {
 }
 
 void
-edit_interface_rep::set_extents (SI x1, SI y1, SI x2, SI y2) {
+edit_interface_rep::set_extents (DI x1, DI y1, DI x2, DI y2) {
   stored_rects= rectangles ();
   copy_always = rectangles ();
-  SERVER (set_extents ((SI) floor (x1 * magf), (SI) floor (y1 * magf),
-                       (SI) ceil (x2 * magf), (SI) ceil (y2 * magf)));
+  SERVER (set_extents ((DI) floor (x1 * magf), (DI) floor (y1 * magf),
+                       (DI) ceil (x2 * magf), (DI) ceil (y2 * magf)));
 }
 
-SI
+DI
 edit_interface_rep::get_typeset_content_height () {
   if (is_nil (eb)) return 0;
   // 同 apply_changes 的 extents 计算（eb->y * magf + abs_round），但不做
   // 「内容矮于 viewport 时垫到视口高」的 automatic/papyrus 垫底
-  SI ey1= (SI) (((double) eb->y1) * magf);
-  SI ey2= (SI) (((double) eb->y2) * magf);
+  DI ey1= (DI) (((double) eb->y1) * magf);
+  DI ey2= (DI) (((double) eb->y2) * magf);
   abs_round (ey1, ey2);
   return ey2 - ey1;
 }
@@ -381,8 +377,8 @@ edit_interface_rep::get_typeset_content_height () {
  * Scroll so as to make the cursor and the selection visible
  ******************************************************************************/
 
-static SI
-absval (SI x) {
+static DI
+absval (DI x) {
   return max (x, -x);
 }
 
@@ -419,7 +415,7 @@ edit_interface_rep::cursor_visible () {
     if (get_user_preference ("snap to pages", "off") == "on") {
       box pages= eb[0];
       if (N (pages) > 1) {
-        SI vw= vx2 - vx1, vh= vy2 - vy1;
+        DI vw= vx2 - vx1, vh= vy2 - vy1;
         for (int i= 0; i < N (pages); i++) {
           DI scx, scy;
           SERVER (scroll_where (scx, scy));
@@ -451,7 +447,7 @@ edit_interface_rep::cursor_visible () {
               //      << "; " << vx2/PIXEL << ", " << vy2/PIXEL << LF;
               // cout << "Page " << x1/PIXEL << ", " << y1/PIXEL
               //      << "; " << x2/PIXEL << ", " << y2/PIXEL << LF;
-              SI mx= (x1 + x2) >> 1, my= (y1 + y2) >> 1;
+              DI mx= (x1 + x2) >> 1, my= (y1 + y2) >> 1;
               if (pw >= vw) {
                 if (cu->ox > mx) mx= x2 - ((vx2 - vx1) >> 1);
                 else mx= x1 + ((vx2 - vx1) >> 1);
@@ -500,12 +496,12 @@ edit_interface_rep::cursor_visible () {
     }
     if ((cu->oy + cu->y1 < y + outer->y1) ||
         (cu->oy + cu->y2 > y + outer->y2)) {
-      SI ty= inner->y2 - inner->y1;
-      SI cy= outer->y2 - outer->y1;
+      DI ty= inner->y2 - inner->y1;
+      DI cy= outer->y2 - outer->y1;
       if (ty > cy) {
-        SI     outer_cy= cu->oy + ((cu->y1 + cu->y2) >> 1) - y;
-        SI     inner_cy= outer_cy - sy;
-        SI     dy      = inner_cy - inner->y1;
+        DI     outer_cy= cu->oy + ((cu->y1 + cu->y2) >> 1) - y;
+        DI     inner_cy= outer_cy - sy;
+        DI     dy      = inner_cy - inner->y1;
         double p   = 100.0 * ((double) (dy - (cy >> 1))) / ((double) (ty - cy));
         p          = max (min (p, 100.0), 0.0);
         tree old_yt= eb[path_up (sp)]->get_info ("scroll-y");
@@ -1202,14 +1198,14 @@ edit_interface_rep::apply_changes () {
   if ((env_change & THE_TREE) ||
       ((env_change & THE_ENVIRONMENT) && !skip_typeset_due_to_zoom)) {
     typeset_invalidate_env ();
-    SI x1, y1, x2, y2;
+    DI x1, y1, x2, y2;
     bench_start ("typeset " * (as_string (buf->buf->name)));
     typeset (x1, y1, x2, y2);
     bench_end ("typeset " * (as_string (buf->buf->name)), 1000);
-    SI ix1= max (vx1, x1 - 2 * pixel);
-    SI iy1= max (vy1, y1 - 2 * pixel);
-    SI ix2= min (vx2, x2 + 2 * pixel);
-    SI iy2= min (vy2, y2 + 2 * pixel);
+    DI ix1= max (vx1, x1 - 2 * pixel);
+    DI iy1= max (vy1, y1 - 2 * pixel);
+    DI ix2= min (vx2, x2 + 2 * pixel);
+    DI iy2= min (vy2, y2 + 2 * pixel);
     if (ix1 < ix2 && iy1 < iy2) {
       invalidate (ix1, iy1, ix2, iy2);
     }
@@ -1220,13 +1216,13 @@ edit_interface_rep::apply_changes () {
   // cout << "Handling extents\n";
   if (env_change & (THE_TREE + THE_ENVIRONMENT + THE_EXTENTS)) {
     string medium= get_init_string (PAGE_MEDIUM);
-    SI     ex1   = (SI) (((double) eb->x1) * magf);
-    SI     ey1   = (SI) (((double) eb->y1) * magf);
-    SI     ex2   = (SI) (((double) eb->x2) * magf);
-    SI     ey2   = (SI) (((double) eb->y2) * magf);
+    DI     ex1   = (DI) (((double) eb->x1) * magf);
+    DI     ey1   = (DI) (((double) eb->y1) * magf);
+    DI     ex2   = (DI) (((double) eb->x2) * magf);
+    DI     ey2   = (DI) (((double) eb->y2) * magf);
     abs_round (ex1, ey1);
     abs_round (ex2, ey2);
-    SI     w, h;
+    DI     w, h;
     widget me= ::get_canvas (widget (cvw));
     ::get_size (me, w, h);
     if (cur_sb && ey2 - ey1 > h) w-= scrollbar_width ();

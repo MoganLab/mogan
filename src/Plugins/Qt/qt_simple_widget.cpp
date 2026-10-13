@@ -226,12 +226,12 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
       qt_renderer_rep* ren= the_qt_renderer ();
       {
         coord2 pt_or= from_qpoint (backing_pos);
-        SI     ox   = -pt_or.x1;
-        SI     oy   = -pt_or.x2;
+        DI     ox   = -pt_or.x1;
+        DI     oy   = -pt_or.x2;
         ren->set_origin (ox, oy);
       }
 
-      SI x1= p.x1, y1= p.x2, x2= p.x3, y2= p.x4;
+      DI x1= p.x1, y1= p.x2, x2= p.x3, y2= p.x4;
       ren->outer_round (x1, y1, x2, y2);
       ren->decode (x1, y1);
       ren->decode (x2, y2);
@@ -613,8 +613,8 @@ qt_simple_widget_rep::repaint_invalid_regions () {
       basic_renderer_rep* ren= get_renderer ();
 
       coord2 pt_or= from_qpoint (backing_pos);
-      SI     ox   = -pt_or.x1;
-      SI     oy   = -pt_or.x2;
+      DI     ox   = -pt_or.x1;
+      DI     oy   = -pt_or.x2;
 
       rectangles rects= invalid_regions;
       invalid_regions = rectangles ();
