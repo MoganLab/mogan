@@ -193,6 +193,25 @@ jobs:
               -CompressionLevel Optimal -Force
             Get-Item $archive | Select-Object Name, Length
           }
+      # 从 stable 压缩包解压出独立 exe 安装包（供官网与 Release 独立下载，
+      # 命名规范保持与 3.7 Release 一致：MoganSTEM-v<ver>-64bit-installer.exe）。
+      - name: Extract installer from stable archive
+        shell: pwsh
+        run: |
+          $vars = Get-Content xmake/vars.lua -Raw
+          $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          $archive = Join-Path $pwd.Path "build/mogan-release-$ver-win-x64-stable.zip"
+          if (Test-Path $archive) {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($archive)
+            $entry = $zip.Entries | Where-Object { $_.Name -like "*Setup.exe" } | Select-Object -First 1
+            if ($entry) {
+              $dest = Join-Path $pwd.Path "build/MoganSTEM-v$ver-64bit-installer.exe"
+              [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)
+              Get-Item $dest | Select-Object Name, Length
+            }
+            $zip.Dispose()
+          }
       - name: Upload
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
@@ -200,6 +219,7 @@ jobs:
           path: |
             build/velopack_release_*/*
             build/mogan-release-*.zip
+            build/MoganSTEM-*.exe
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -207,3 +227,4 @@ jobs:
           prerelease: true
           files: |
             build/mogan-release-*.zip
+            build/MoganSTEM-*.exe

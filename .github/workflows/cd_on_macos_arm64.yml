@@ -233,6 +233,22 @@ jobs:
             (cd "$d" && zip -r -9 "$archive" .)
             ls -lh "$archive"
           done
+      # 从 stable 压缩包解压出独立 pkg 安装包（供官网与 Release 独立下载，
+      # 命名规范保持与 3.7 Release 一致：MoganSTEM-v<ver>-arm.pkg）。
+      - name: Extract installer from stable archive
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]]*XMACS_VERSION[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' xmake/vars.lua)
+          ARCHIVE="build/mogan-release-${VERSION}-osx-arm64-stable.zip"
+          if [ -f "$ARCHIVE" ]; then
+            PKG_FILE=$(unzip -Z1 "$ARCHIVE" | grep '\.pkg$' | head -n 1)
+            if [ -n "$PKG_FILE" ]; then
+              unzip -o -j "$ARCHIVE" "$PKG_FILE" -d build
+              if [ "$PKG_FILE" != "MoganSTEM-v${VERSION}-arm.pkg" ]; then
+                mv -f "build/$PKG_FILE" "build/MoganSTEM-v${VERSION}-arm.pkg"
+              fi
+              ls -lh "build/MoganSTEM-v${VERSION}-arm.pkg"
+            fi
+          fi
       - name: Upload
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
@@ -240,9 +256,12 @@ jobs:
           path: |
             build/velopack_release_*/*
             build/mogan-release-*.zip
+            build/MoganSTEM-*.pkg
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           prerelease: true
-          files: build/mogan-release-*.zip
+          files: |
+            build/mogan-release-*.zip
+            build/MoganSTEM-*.pkg
