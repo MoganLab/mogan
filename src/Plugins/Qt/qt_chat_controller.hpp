@@ -75,6 +75,15 @@ public:
   void onCancelRequested (const string& sessionId);
 
   /**
+   * @brief 用户点击附件按钮时触发：打开文件多选并做本地预检。
+   *
+   * 通过预检的文件进入面板 chips（面板唯一持有）；违规文件 toast
+   * 原因、不入 chips。Generating 态忽略。
+   * @param sessionId 目标会话 ID
+   */
+  void onAttachRequested (const string& sessionId);
+
+  /**
    * @brief 删除指定会话列表。
    *
    * 逐个调用 Scheme 销毁、移除 sidebar item、移除面板，
@@ -217,6 +226,41 @@ public:
    * @return 清理后的文件名（不含后缀）
    */
   static QString sanitizeExportFileName (const QString& rawName);
+
+  /**
+   * @name 附件本地预检（纯函数，供单测）
+   */
+  ///@{
+  /// 每轮附件总大小上限（80 MiB，含已选累计）
+  static constexpr qint64 kAttachmentMaxTotalSize= 80LL * 1024 * 1024;
+  /// 每轮附件数量上限（含已选累计）
+  static constexpr int kAttachmentMaxCount= 10;
+
+  /**
+   * @brief 判断附件扩展名是否在白名单（文档 + 常见源码）。
+   *
+   * 白名单数据源在 cpp 侧单点维护（kAttachmentDocExtensions +
+   * kAttachmentCodeExtensions），文件选择过滤器的文档组由同一份数据生成；
+   * 无扩展名视为不支持。大小写不敏感。
+   * @param path 本地路径
+   * @return 白名单内返回 true
+   */
+  static bool attachment_extension_allowed (const QString& path);
+
+  /**
+   * @brief 附件预检：扩展名白名单、每轮数量、每轮总大小。
+   *
+   * 上限由数量（10）与总大小（80 MiB）共同约束，均含已选累计；
+   * 单文件大小由总大小约束自然涵盖。
+   * @param item                 待检附件（路径与文件名已填）
+   * @param alreadySelectedCount 已选附件数（累计计数）
+   * @param alreadySelectedBytes 已选附件总字节数（累计）
+   * @return 通过返回空串；否则返回本地化的拒绝原因（%1 已替换文件名）
+   */
+  static QString attachment_precheck_error (const AttachmentItem& item,
+                                            int    alreadySelectedCount,
+                                            qint64 alreadySelectedBytes);
+  ///@}
 
   /**
    * @brief 把文档选区组成 AI 聊天输入体。

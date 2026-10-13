@@ -13,6 +13,7 @@
 #define QT_CHAT_SESSION_HPP
 
 #include "url.hpp"
+#include <QList>
 #include <QMetaObject>
 #include <QString>
 #include <QStringList>
@@ -22,6 +23,19 @@
 #include <vector>
 
 class ChatConversationPanel;
+
+/**
+ * @brief 单个待发送附件（输入区 chip 对应的数据，内存态，不持久化）。
+ */
+struct AttachmentItem {
+  QString path;     ///< 本地绝对路径
+  QString filename; ///< 展示文件名
+  qint64  size= 0;  ///< 字节数
+
+  bool operator== (const AttachmentItem& o) const {
+    return path == o.path && filename == o.filename && size == o.size;
+  }
+};
 
 /**
  * @brief 聊天会话的生成状态。

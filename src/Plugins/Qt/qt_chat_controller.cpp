@@ -30,9 +30,11 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
+#include <QSet>
 #include <QStandardPaths>
 #include <QStyle>
 #include <QTimer>
@@ -52,6 +54,42 @@ static ChatController* g_chat_controller= nullptr;
 static bool
 is_doc_bound_type (const string& type) {
   return type == "translate" || type == "explain";
+}
+
+// 附件扩展名白名单的唯一数据源：文档类（文件选择过滤器第一组由此生成）
+// + 常见源码类；新增类型只改这里
+static const QStringList kAttachmentDocExtensions= {
+    "pdf", "doc", "docx", "xls",  "xlsx", "ppt",  "pptx",
+    "md",  "txt", "csv",  "epub", "html", "json", "log"};
+static const QStringList kAttachmentCodeExtensions= {
+    "c", "cpp", "h", "java", "py", "js", "ts", "go", "rs"};
+
+static const QSet<QString>&
+attachment_allowed_extensions () {
+  static const QSet<QString> allowed= [] {
+    QSet<QString> s;
+    for (const QString& e : kAttachmentDocExtensions)
+      s.insert (e);
+    for (const QString& e : kAttachmentCodeExtensions)
+      s.insert (e);
+    return s;
+  }();
+  return allowed;
+}
+
+// 附件列表 → scheme alist 列表（每项 (("path" . p) ("filename" . f)
+// ("size" . n))）；空表以 null_object 表示 '()
+static object
+attachment_items_to_scheme (const QList<AttachmentItem>& items) {
+  if (items.isEmpty ()) return null_object ();
+  array<object> arr;
+  for (const AttachmentItem& it : items) {
+    arr << list_object (
+        cons (object ("path"), object (from_qstring_utf8 (it.path))),
+        cons (object ("filename"), object (from_qstring_utf8 (it.filename))),
+        cons (object ("size"), object ((int) it.size)));
+  }
+  return as_list_object (arr);
 }
 
 ChatController::ChatController (QObject* parent) : QObject (parent) {}
@@ -227,7 +265,7 @@ ChatController::onSendRequested (const string& sessionId) {
   }
 
   // 必须在 scheme 发送之前创建消息编辑器：texmacs_input_widget 对已存在
-  // buffer 会 set_buffer_tree 整体覆盖，若放在 chat-tab-send 之后，scheme
+  // buffer 会 set_buffer_tree 整体覆盖，若放在 chat-tab-send-v2 之后，scheme
   // 侧记录的输出节点指针会指向被替换的旧树，导致首轮 %chat 回显漏出到
   // session 文档末尾（devel/1230.md）
   panel->ensureMessageWidget ();
@@ -240,7 +278,13 @@ ChatController::onSendRequested (const string& sessionId) {
        << object (session->thinking ? string ("enabled") : string ("disabled"))
        << object (session->search ? string ("enabled") : string ("disabled"))
        << object (session->thinkingEffort);
-  if (!as_bool (call ("chat-tab-send", args))) return;
+  // 协议 v2：images 暂为空表（图片上传属后续阶段），attachments 随输入区
+  // chips 下发；两数组独立，无交互逻辑
+  args << null_object () << attachment_items_to_scheme (panel->attachments ());
+  if (!as_bool (call ("chat-tab-send-v2", args))) return;
+
+  // 附件已随本轮下发，清空 chips
+  panel->setAttachments (QList<AttachmentItem> ());
 
   sessionManager_.setState (sessionId, ChatState::Generating);
   sessionManager_.touchSession (sessionId);
@@ -255,6 +299,55 @@ ChatController::onSendRequested (const string& sessionId) {
 void
 ChatController::onCancelRequested (const string& sessionId) {
   call ("chat-tab-cancel", sessionId);
+}
+
+void
+ChatController::onAttachRequested (const string& sessionId) {
+  if (!view_) return;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || session->state == ChatState::Generating) return;
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
+  if (!panel) return;
+
+  // 白名单文档扩展名即过滤器第一组；「所有文件」兜底选中的文件由预检把关
+  QStringList patterns;
+  for (const QString& e : kAttachmentDocExtensions)
+    patterns << "*." + e;
+  QString filter= qt_translate ("Document files") + QString (" (") +
+                  patterns.join (" ") + QString (");;") +
+                  qt_translate ("All files") + QString (" (*)");
+  QStringList files= QFileDialog::getOpenFileNames (
+      view_, qt_translate ("Add Attachment"), QString (), filter);
+  if (files.isEmpty ()) return;
+
+  QList<AttachmentItem> items     = panel->attachments ();
+  qint64                totalBytes= 0;
+  for (const AttachmentItem& existing : items)
+    totalBytes+= existing.size;
+  for (const QString& path : files) {
+    // 同路径重复选择静默跳过，不 toast 打扰
+    bool dup= false;
+    for (const AttachmentItem& existing : items)
+      if (existing.path == path) {
+        dup= true;
+        break;
+      }
+    if (dup) continue;
+    AttachmentItem item;
+    QFileInfo      fi (path);
+    item.path    = path;
+    item.filename= fi.fileName ();
+    item.size    = fi.size ();
+    QString err  = attachment_precheck_error (item, items.size (), totalBytes);
+    if (!err.isEmpty ()) {
+      QtFloatingToast::showToast (view_, err, 3000, QtFloatingToast::Warning);
+      continue;
+    }
+    items.append (item);
+    totalBytes+= item.size;
+  }
+  panel->setAttachments (items);
 }
 
 void
@@ -422,6 +515,27 @@ ChatController::onRestoreRequested (const string& sessionId) {
   updateManifest (sessionId);
   view_->sidebar ()->moveFromArchive (sessionId);
   activateSession (sessionId);
+}
+
+bool
+ChatController::attachment_extension_allowed (const QString& path) {
+  QString suffix= QFileInfo (path).suffix ().toLower ();
+  return attachment_allowed_extensions ().contains (suffix);
+}
+
+QString
+ChatController::attachment_precheck_error (const AttachmentItem& item,
+                                           int    alreadySelectedCount,
+                                           qint64 alreadySelectedBytes) {
+  if (!attachment_extension_allowed (item.path))
+    return qt_translate ("Unsupported attachment type: %1")
+        .replace ("%1", item.filename);
+  if (alreadySelectedCount >= kAttachmentMaxCount)
+    return qt_translate ("At most %1 attachments per message")
+        .replace ("%1", QString::number (kAttachmentMaxCount));
+  if (alreadySelectedBytes + item.size > kAttachmentMaxTotalSize)
+    return qt_translate ("Attachments exceed 80 MB in total size");
+  return QString ();
 }
 
 QString
@@ -618,6 +732,8 @@ ChatController::notifyStateChanged (const string& sessionId,
   if (!session->panel || !view_) return;
   ChatConversationPanel* panel=
       static_cast<ChatConversationPanel*> (session->panel);
+  // Generating 态禁用 📎（选中的附件保留，Idle 后可继续操作）
+  panel->setAttachEnabled (newState == ChatState::Idle);
   QToolButton* btn= panel->sendButton ();
   if (!btn) return;
 
@@ -827,6 +943,8 @@ ChatController::connectPanelSignals (ChatConversationPanel* panel) {
            &ChatController::onThinkingToggled);
   connect (panel, &ChatConversationPanel::searchToggled, this,
            &ChatController::onSearchToggled);
+  connect (panel, &ChatConversationPanel::attachRequested, this,
+           &ChatController::onAttachRequested);
   connect (panel, &ChatConversationPanel::modelMenuRequested, this,
            &ChatController::onModelMenuRequested);
   connect (panel, &ChatConversationPanel::closeSidebarInDockModeRequested, this,

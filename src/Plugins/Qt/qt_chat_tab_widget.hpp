@@ -140,6 +140,31 @@ public:
   bool          conversationMode () const { return conversationMode_; }
 
   /**
+   * @name 附件 chips
+   *
+   * 面板唯一持有待发送附件（chip ✕ 删除由面板自发处理；发送清空由
+   * Controller 调 setAttachments 置空）。面板随会话共存于 QStackedWidget，
+   * 切换会话不丢状态，无需额外镜像。
+   */
+  ///@{
+  /**
+   * @brief 整体替换待发送附件列表并重建 chips。
+   * @param items 附件列表（可为空：清空并隐藏 chips 行）
+   */
+  void setAttachments (const QList<AttachmentItem>& items);
+  /// 当前待发送附件
+  const QList<AttachmentItem>& attachments () const { return attachments_; }
+  /// 附件按钮可用性（Generating 态禁用 📎）
+  void setAttachEnabled (bool enabled);
+  /**
+   * @brief 格式化附件大小展示文本。
+   * @param bytes 字节数
+   * @return "N B" / "N.N KiB" / "N.N MiB" / "N.N GiB"
+   */
+  static QString format_attachment_size (qint64 bytes);
+  ///@}
+
+  /**
    * @brief 判断文档体是否为空（仅含一个空字符串的 DOCUMENT 节点）。
    *
    * get_buffer_body 对不存在的 buffer 返回原子空串，也视为空。
@@ -194,6 +219,8 @@ signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
   void searchToggled (const string& sessionId, bool enabled);
+  /// 附件按钮点击：请求 Controller 打开文件选择（多选 + 本地预检）
+  void attachRequested (const string& sessionId);
   /// 请求弹出模型选择菜单；globalPos 为 Model 按钮左上角全局坐标，
   /// 菜单由 Controller 在按钮上方完整弹出（不遮挡按钮）
   void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
@@ -221,6 +248,10 @@ private:
   int input_frame_height_for_lines (int docLines);
   /// 输入框 frame 的封顶档高度（档位策略单一来源）
   int input_frame_max_height ();
+  /// 重建附件 chips 行（按 attachments_ 全量重建）
+  void rebuild_attachment_chips ();
+  /// 构造单个附件 chip（文件名 + 大小 + ✕ 删除）
+  QWidget* build_attachment_chip (const AttachmentItem& item, int index);
 
   string       sessionId_;                  ///< 所属会话 ID
   url          msgBufferUrl_;               ///< 消息缓冲区 URL（外部注入）
@@ -235,10 +266,16 @@ private:
   QToolButton* thinkingButton_   = nullptr; ///< 推理模式开关
   QToolButton* searchButton_     = nullptr; ///< 网络搜索开关
   QToolButton* modelButton_      = nullptr; ///< 模型选择按钮（文字固定 Model）
-  QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
-  widget       messageWidget_;              ///< 消息区 TeXmacs widget
-  widget       inputWidget;                 ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_= 0;         ///< 输入框额外高度（边框等）
+  QToolButton* attachButton_     = nullptr; ///< 附件选择按钮
+  QWidget* chipsRow_= nullptr; ///< 附件 chips 容器（输入框外部上方，初始隐藏）
+  QVBoxLayout* chipsVLayout_=
+      nullptr; ///< chips 多行布局（行满换行，整体向上扩展）
+  int                   chipsWrapWidth_= 0;  ///< 上次换行布局使用的可用宽度
+  QList<AttachmentItem> attachments_;        ///< 待发送附件（面板唯一持有）
+  QSpacerItem*          topSpacer_= nullptr; ///< 欢迎页顶部弹性空间
+  widget                messageWidget_;      ///< 消息区 TeXmacs widget
+  widget                inputWidget;         ///< 输入区 TeXmacs widget
+  int                   fixedFrameExtra_= 0; ///< 输入框额外高度（边框等）
   int  inputExtentLinePx_= 0; ///< 空输入时标定的单行内容高度（0 = 未标定）
   bool inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };

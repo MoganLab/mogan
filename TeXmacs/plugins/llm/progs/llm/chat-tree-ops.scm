@@ -117,7 +117,18 @@
 ;;; ---------- 文本转换 ----------
 
 (tm-define (chat-tab-tree->plain-text t)
-  (serialize-latex (texmacs->latex (tm->stree t) '()))
+  ;; 先剥离 image 节点：LaTeX 序列化遇图片会产出 \includegraphics 类怪文本
+  (serialize-latex (texmacs->latex (chat-tab-tree-strip-images (tm->stree t)) '())
+  ) ;serialize-latex
+) ;tm-define
+
+(tm-define (chat-tab-tree-strip-images s)
+  ;; 递归复制 stree，image 节点替换为空串（保留段落结构）
+  (cond ((string? s) s)
+        ((not (pair? s)) s)
+        ((eq? (car s) 'image) "")
+        (else (cons (car s) (map chat-tab-tree-strip-images (cdr s))))
+  ) ;cond
 ) ;tm-define
 
 (tm-define (chat-tab-tree-has-image? t)
