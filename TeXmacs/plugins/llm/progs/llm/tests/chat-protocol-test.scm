@@ -53,13 +53,9 @@
 ;; 非空 images/attachments：每项按键编码为 JSON 对象
 
 (define (test-json-nonempty-arrays)
-  (let* ((images-in
-           (list (list (cons "path" "/tmp/a.png") (cons "mime" "image/png"))))
-         (attachments-in
-           (list (list (cons "path" "/tmp/b.pdf") (cons "filename" "b.pdf")
-                   (cons "size" 1024)
-                 ) ;list
-           ) ;list
+  (let* ((images-in (list (list (cons "path" "/tmp/a.png") (cons "mime" "image/png"))))
+         (attachments-in (list (list (cons "path" "/tmp/b.pdf") (cons "filename" "b.pdf") (cons "size" 1024))
+                         ) ;list
          ) ;attachments-in
          (ctx (make-ctx '(document "hi") images-in attachments-in))
          (parsed (string->json (json->string (chat-input->json ctx))))
@@ -94,9 +90,11 @@
 ;; 含图：图片替换为空串，文本与段落数保持
 
 (define (test-strip-image-document)
-  (let ((stripped
-          (chat-tab-tree-strip-images
-            '(document "before" (image "x.png" "1cm" "1cm" "" "") "after"))
+  (let ((stripped (chat-tab-tree-strip-images '(document "before"
+                                                 (image "x.png" "1cm" "1cm" ""
+                                                   "")
+                                                 "after")
+                  ) ;chat-tab-tree-strip-images
         ) ;stripped
        ) ;
     (check stripped => '(document "before" "" "after"))
@@ -107,10 +105,13 @@
 ;; with 壳内嵌图同样剥离，壳结构保留
 
 (define (test-strip-image-in-with)
-  (check (chat-tab-tree-strip-images
-           '(document (with "font-series" "bold" "a"
-                        (image "y.png" "1cm" "1cm" "" "") "b"))
-         ) ;chat-tab-tree-strip-images
+  (check
+    (chat-tab-tree-strip-images '(document (with "font-series"
+                                             "bold"
+                                             "a"
+                                             (image "y.png" "1cm" "1cm" "" "")
+                                             "b"))
+    ) ;chat-tab-tree-strip-images
     =>
     '(document (with "font-series" "bold" "a" "" "b"))
   ) ;check
@@ -119,9 +120,10 @@
 ;;; ---------- chat-tab-tree->plain-text：含图输入不出怪文本 ----------
 
 (define (test-plain-text-with-image)
-  (let ((text
-          (chat-tab-tree->plain-text
-            '(document "see " (image "x.png" "1cm" "1cm" "" "") " done"))
+  (let ((text (chat-tab-tree->plain-text '(document "see "
+                                            (image "x.png" "1cm" "1cm" "" "")
+                                            " done")
+              ) ;chat-tab-tree->plain-text
         ) ;text
        ) ;
     (check (string-contains? text "includegraphics") => #f)
@@ -133,15 +135,17 @@
 ;;; ---------- chat-tab-send 委托（连接未定义分支回显） ----------
 
 ;; 递归查 stree 中是否出现指定文本（chat-tab-flatten-stree 为模块私有）
+
 (define (stree-contains-text? t sub)
   (cond ((string? t) (string-contains? t sub))
         ((pair? t)
-          (let loop ((rest (cdr t)))
-            (if (null? rest)
-              #f
-              (or (stree-contains-text? (car rest) sub) (loop (cdr rest)))
-            ) ;if
-          ) ;let
+         (let loop
+           ((rest (cdr t)))
+           (if (null? rest)
+             #f
+             (or (stree-contains-text? (car rest) sub) (loop (cdr rest)))
+           ) ;if
+         ) ;let
         ) ;
         (else #f)
   ) ;cond
@@ -158,8 +162,7 @@
         ) ;
     (buffer-set-body in-buf '(document "hello v1"))
     (check (chat-tab-send sid "model-x" "" "disabled" "disabled" "medium") => #t)
-    (check
-      (stree-contains-text? (tm->stree (buffer-get-body msg-buf)) "hello v1")
+    (check (stree-contains-text? (tm->stree (buffer-get-body msg-buf)) "hello v1")
       =>
       #t
     ) ;check
@@ -174,18 +177,21 @@
          (msg-buf (chat-tab-session->message-buffer sid))
         ) ;
     (buffer-set-body in-buf '(document "hello v2"))
-    (check (chat-tab-send-v2 sid "model-x" "" "disabled" "disabled" "medium"
-             (list (list (cons "path" "/tmp/a.png") (cons "mime" "image/png")))
-             (list (list (cons "path" "/tmp/b.pdf") (cons "filename" "b.pdf")
-                     (cons "size" 1024)
-                   ) ;list
-             ) ;list
-           ) ;chat-tab-send-v2
+    (check
+      (chat-tab-send-v2 sid
+        "model-x"
+        ""
+        "disabled"
+        "disabled"
+        "medium"
+        (list (list (cons "path" "/tmp/a.png") (cons "mime" "image/png")))
+        (list (list (cons "path" "/tmp/b.pdf") (cons "filename" "b.pdf") (cons "size" 1024))
+        ) ;list
+      ) ;chat-tab-send-v2
       =>
       #t
     ) ;check
-    (check
-      (stree-contains-text? (tm->stree (buffer-get-body msg-buf)) "hello v2")
+    (check (stree-contains-text? (tm->stree (buffer-get-body msg-buf)) "hello v2")
       =>
       #t
     ) ;check
