@@ -160,7 +160,7 @@ void
 qt_renderer_rep::set_transformation (frame fr) {
   ASSERT (fr->linear, "only linear transformations have been implemented");
 
-  SI cx1, cy1, cx2, cy2;
+  DI cx1, cy1, cx2, cy2;
   get_clipping (cx1, cy1, cx2, cy2);
   rectangle oclip (cx1, cy1, cx2, cy2);
 
@@ -189,7 +189,7 @@ qt_renderer_rep::reset_transformation () {
  ******************************************************************************/
 
 void
-qt_renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
+qt_renderer_rep::set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore) {
   (void) restore;
   basic_renderer_rep::set_clipping (x1, y1, x2, y2);
   outer_round (x1, y1, x2, y2);
@@ -777,7 +777,7 @@ qt_renderer_rep::delete_shadow (renderer& ren) {
 }
 
 void
-qt_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+qt_renderer_rep::get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // FIXME: we should use the routine fetch later
   ASSERT (ren != NULL, "invalid renderer");
   if (ren->is_printer ()) return;
@@ -812,7 +812,7 @@ qt_renderer_rep::get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-qt_renderer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+qt_renderer_rep::put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   // FIXME: we should use the routine fetch later
   ASSERT (ren != NULL, "invalid renderer");
   if (ren->is_printer ()) return;
@@ -838,7 +838,7 @@ qt_renderer_rep::put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-qt_renderer_rep::apply_shadow (SI x1, SI y1, SI x2, SI y2) {
+qt_renderer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
   if (master == NULL) return;
   if (painter == static_cast<qt_renderer_rep*> (master)->painter) return;
   outer_round (x1, y1, x2, y2);

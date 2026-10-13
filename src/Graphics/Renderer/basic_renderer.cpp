@@ -136,8 +136,8 @@ basic_renderer_rep::set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore) {
  */
 
 void
-basic_renderer_rep::fetch (SI x1, SI y1, SI x2, SI y2, renderer dev, SI x,
-                           SI y) {
+basic_renderer_rep::fetch (DI x1, DI y1, DI x2, DI y2, renderer dev, DI x,
+                           DI y) {
   (void) x1;
   (void) y1;
   (void) x2;
@@ -163,7 +163,7 @@ basic_renderer_rep::delete_shadow (renderer& dev) {
 }
 
 void
-basic_renderer_rep::get_shadow (renderer dev, SI x1, SI y1, SI x2, SI y2) {
+basic_renderer_rep::get_shadow (renderer dev, DI x1, DI y1, DI x2, DI y2) {
   (void) x1;
   (void) y1;
   (void) x2;
@@ -175,7 +175,7 @@ basic_renderer_rep::get_shadow (renderer dev, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-basic_renderer_rep::put_shadow (renderer dev, SI x1, SI y1, SI x2, SI y2) {
+basic_renderer_rep::put_shadow (renderer dev, DI x1, DI y1, DI x2, DI y2) {
   (void) x1;
   (void) y1;
   (void) x2;
@@ -187,7 +187,7 @@ basic_renderer_rep::put_shadow (renderer dev, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-basic_renderer_rep::apply_shadow (SI x1, SI y1, SI x2, SI y2) {
+basic_renderer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
   (void) x1;
   (void) y1;
   (void) x2;

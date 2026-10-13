@@ -30,9 +30,9 @@ protected:
 
   bool cursor_is_accessible ();
   path make_cursor_accessible (path p, bool forwards);
-  path tree_path (path sp, SI x, SI y, SI delta);
-  bool cursor_move_sub (SI& x0, SI& y0, SI& delta, SI dx, SI dy);
-  void cursor_move (SI dx, SI dy);
+  path tree_path (path sp, DI x, DI y, SI delta);
+  bool cursor_move_sub (DI& x0, DI& y0, SI& delta, DI dx, DI dy);
+  void cursor_move (DI dx, DI dy);
   void adjust_ghost_cursor (int status);
   void notify_cursor_moved (int status);
   void show_cursor_if_hidden ();
@@ -42,7 +42,7 @@ public:
   ~edit_cursor_rep ();
 
   /* visual cursor movement */
-  void go_to (SI x, SI y, bool absolute= true);
+  void go_to (DI x, DI y, bool absolute= true);
   void go_left_physical ();
   void go_right_physical ();
   void go_left ();

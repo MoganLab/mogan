@@ -142,10 +142,11 @@ qt_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
   qt_picture_rep* pict= (qt_picture_rep*) p->get_handle ();
   if (pict == NULL || pict->pict.isNull ()) return;
   int x0= pict->ox, y0= pict->h - 1 - pict->oy;
-  decode (x, y);
+  DI  X= x, Y= y;
+  decode (X, Y);
   qreal old_opacity= painter->opacity ();
   painter->setOpacity (qreal (alpha) / qreal (255));
-  painter->drawImage (x - x0, y - y0, pict->pict);
+  painter->drawImage (X - x0, Y - y0, pict->pict);
   painter->setOpacity (old_opacity);
 }
 

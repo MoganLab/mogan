@@ -69,17 +69,17 @@ public:
   void   print_to_file (url ps_name, string first= "1", string last= "1000000");
   void   print_buffer (string first= "1", string last= "1000000");
   void   export_ps (url ps_name, string first= "1", string last= "1000000");
-  array<int> print_snippet (url u, tree t, bool conserve_preamble);
-  bool       graphics_file_to_clipboard (url output);
-  void       footer_eval (string s);
-  tree       the_line ();
-  tree       the_root ();
-  tree       the_buffer ();
-  bool       test_subtree (path p);
-  tree       the_subtree (path p);
-  path       the_buffer_path ();
-  path       the_path ();
-  path       the_shifted_path ();
+  array<DI> print_snippet (url u, tree t, bool conserve_preamble);
+  bool      graphics_file_to_clipboard (url output);
+  void      footer_eval (string s);
+  tree      the_line ();
+  tree      the_root ();
+  tree      the_buffer ();
+  bool      test_subtree (path p);
+  tree      the_subtree (path p);
+  path      the_buffer_path ();
+  path      the_path ();
+  path      the_shifted_path ();
 
   void show_tree ();
   void show_box ();

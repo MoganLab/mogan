@@ -1054,7 +1054,7 @@ find_common (string s1, string s2, int& c1, int& c2) {
   }
 }
 
-array<int>
+array<DI>
 differences (string s1, string s2) {
   int n1= N (s1), n2= N (s2);
   int i1= 0, i2= 0, j1= n1, j2= n2;
@@ -1066,9 +1066,9 @@ differences (string s1, string s2) {
     j1--;
     j2--;
   }
-  if (i1 == i2 && j1 == j2) return array<int> ();
+  if (i1 == i2 && j1 == j2) return array<DI> ();
   if (i1 > 0 || i2 > 0 || j1 < n1 || j2 < n2) {
-    array<int> r= differences (s1 (i1, j1), s2 (i2, j2));
+    array<DI> r= differences (s1 (i1, j1), s2 (i2, j2));
     for (int k= 0; k < N (r); k+= 4) {
       r[k]+= i1;
       r[k + 1]+= i1;
@@ -1081,13 +1081,13 @@ differences (string s1, string s2) {
     int c1, c2;
     find_common (s1, s2, c1, c2);
     if (c1 == 0 && c2 == 0) {
-      array<int> r;
-      r << i1 << j1 << i2 << j2;
+      array<DI> r;
+      r << (DI) i1 << (DI) j1 << (DI) i2 << (DI) j2;
       return r;
     }
     else {
-      array<int> r1= differences (s1 (0, c1), s2 (0, c2));
-      array<int> r2= differences (s1 (c1, n1), s2 (c2, n2));
+      array<DI> r1= differences (s1 (0, c1), s2 (0, c2));
+      array<DI> r2= differences (s1 (c1, n1), s2 (c2, n2));
       for (int k= 0; k < N (r2); k+= 4) {
         r2[k]+= c1;
         r2[k + 1]+= c1;
@@ -1102,10 +1102,10 @@ differences (string s1, string s2) {
 
 int
 distance (string s1, string s2) {
-  int        d= 0;
-  array<int> r= differences (s1, s2);
+  int       d= 0;
+  array<DI> r= differences (s1, s2);
   for (int k= 0; k < N (r); k+= 4)
-    d+= max (r[k + 1] - r[k], r[k + 3] - r[k + 2]);
+    d+= (int) max (r[k + 1] - r[k], r[k + 3] - r[k + 2]);
   return d;
 }
 

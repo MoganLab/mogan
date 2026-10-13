@@ -41,8 +41,8 @@ extern int              std_shrinkf;
 
 class renderer_rep {
 public:
-  SI         ox, oy;             // origin
-  SI         cx1, cy1, cx2, cy2; // visible region (clipping)
+  DI         ox, oy;             // origin
+  DI         cx1, cy1, cx2, cy2; // visible region (clipping)
   bool       is_screen;          // flag for renderers on screen
   double     zoomf;              // zoom factor
   int        shrinkf;            // shrinking factor
@@ -62,8 +62,8 @@ public:
   virtual void* get_data_handle ();
 
   /* coordinate system */
-  void         set_origin (SI x, SI y);
-  void         move_origin (SI dx, SI dy);
+  void         set_origin (DI x, DI y);
+  void         move_origin (DI dx, DI dy);
   virtual void set_zoom_factor (double zoom);
   void         reset_zoom_factor ();
   void         set_shrinking_factor (int sf);
@@ -71,25 +71,59 @@ public:
   virtual void reset_transformation ();
 
   /* clipping */
-  virtual void get_clipping (SI& x1, SI& y1, SI& x2, SI& y2);
-  virtual void set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore= false);
-  void         extra_clipping (SI x1, SI y1, SI x2, SI y2);
-  void         clip (SI x1, SI y1, SI x2, SI y2);
+  virtual void get_clipping (DI& x1, DI& y1, DI& x2, DI& y2);
+  virtual void set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore= false);
+  void         extra_clipping (DI x1, DI y1, DI x2, DI y2);
+  void         clip (DI x1, DI y1, DI x2, DI y2);
   void         unclip ();
 
   /* reencoding and rounding */
-  virtual void decode (SI& x, SI& y);
+  virtual void decode (DI& x, DI& y);
+  inline void  decode (SI& x, SI& y) {
+    DI X= x, Y= y;
+    decode (X, Y);
+    x= (SI) X;
+    y= (SI) Y;
+  }
   virtual void encode (int& x, int& y);
-  virtual void decode (SI x, SI y, double& rx, double& ry);
-  virtual void encode (double x, double y, SI& rx, SI& ry);
-  void         round (SI& x, SI& y);
-  void         inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
-  void         outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
-  friend void  abs_round (SI& l);
-  friend void  abs_round (SI& x, SI& y);
-  friend void  abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
-  friend void  abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
-  bool         is_visible (SI x1, SI y1, SI x2, SI y2);
+  inline void  encode (DI& x, DI& y) {
+    int X= (int) x, Y= (int) y;
+    encode (X, Y);
+    x= X;
+    y= Y;
+  }
+  virtual void decode (DI x, DI y, double& rx, double& ry);
+  virtual void encode (double x, double y, DI& rx, DI& ry);
+  void         round (DI& x, DI& y);
+  inline void  round (SI& x, SI& y) {
+    DI X= x, Y= y;
+    round (X, Y);
+    x= (SI) X;
+    y= (SI) Y;
+  }
+  void        inner_round (DI& x1, DI& y1, DI& x2, DI& y2);
+  inline void inner_round (SI& x1, SI& y1, SI& x2, SI& y2) {
+    DI X1= x1, Y1= y1, X2= x2, Y2= y2;
+    inner_round (X1, Y1, X2, Y2);
+    x1= (SI) X1;
+    y1= (SI) Y1;
+    x2= (SI) X2;
+    y2= (SI) Y2;
+  }
+  void        outer_round (DI& x1, DI& y1, DI& x2, DI& y2);
+  inline void outer_round (SI& x1, SI& y1, SI& x2, SI& y2) {
+    DI X1= x1, Y1= y1, X2= x2, Y2= y2;
+    outer_round (X1, Y1, X2, Y2);
+    x1= (SI) X1;
+    y1= (SI) Y1;
+    x2= (SI) X2;
+    y2= (SI) Y2;
+  }
+  friend void abs_round (SI& l);
+  friend void abs_round (SI& x, SI& y);
+  friend void abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
+  friend void abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
+  bool        is_visible (DI x1, DI y1, DI x2, DI y2);
 
   /* graphical state */
   virtual pencil get_pencil ()= 0;
@@ -122,12 +156,12 @@ public:
   bool         draw_emoji (int char_code, font_glyphs fn, SI x, SI y);
 
   /* shadowing and copying rectangular regions across renderers */
-  virtual void fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x, SI y)= 0;
+  virtual void fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y)= 0;
   virtual void new_shadow (renderer& ren)                                  = 0;
   virtual void delete_shadow (renderer& ren)                               = 0;
-  virtual void get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2)       = 0;
-  virtual void put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2)       = 0;
-  virtual void apply_shadow (SI x1, SI y1, SI x2, SI y2)                   = 0;
+  virtual void get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2)       = 0;
+  virtual void put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2)       = 0;
+  virtual void apply_shadow (DI x1, DI y1, DI x2, DI y2)                   = 0;
 
   /* images */
   virtual renderer shadow (picture& pic, SI x1, SI y1, SI x2, SI y2);

@@ -1018,8 +1018,8 @@ table_rep::finish () {
   merge_borders ();
   int           i, j;
   array<box>    bs;
-  array<SI>     x;
-  array<SI>     y;
+  array<DI>     x;
+  array<DI>     y;
   array<string> ha;
   bool          ext_flag = true;
   bool          wide_flag= false;
@@ -1029,8 +1029,8 @@ table_rep::finish () {
         cell C= T[i][j];
         C->finish ();
         bs << C->b;
-        x << C->x1;
-        y << C->y1;
+        x << (DI) C->x1;
+        y << (DI) C->y1;
         ha << C->halign;
         if (N (ha) == 0) ext_flag= false;
         else if (ha[0] != "l" && ha[0] != "c" && ha[0] != "r") ext_flag= false;
@@ -1079,15 +1079,15 @@ table_rep::var_finish () {
   array<box> stack;
   for (i= 0; i < nr_rows; i++) {
     array<box> bs;
-    array<SI>  x;
-    array<SI>  y;
+    array<DI>  x;
+    array<DI>  y;
     for (j= 0; j < nr_cols; j++)
       if (!is_nil (T[i][j])) {
         cell C= T[i][j];
         C->finish ();
         bs << C->b;
-        x << C->x1;
-        y << (C->y1 + C->shift);
+        x << (DI) C->x1;
+        y << (DI) (C->y1 + C->shift);
       }
     if (N (bs) == 0) continue;
 

@@ -950,7 +950,7 @@ function main()
             {
                 scm_name = "table-get-extents",
                 cpp_name = "table_get_extents",
-                ret_type = "array_int"
+                ret_type = "array_di"
             },
             {
                 scm_name = "table-set-extents",
@@ -974,7 +974,7 @@ function main()
             {
                 scm_name = "table-which-cells",
                 cpp_name = "table_which_cells",
-                ret_type = "array_int"
+                ret_type = "array_di"
             },
             
             {
@@ -1213,7 +1213,7 @@ function main()
             {
                 scm_name = "get-mouse-position",
                 cpp_name = "get_mouse_position",
-                ret_type = "array_int"
+                ret_type = "array_di"
             },
             {
                 scm_name = "set-mouse-pointer",
@@ -2119,7 +2119,7 @@ function main()
             {
                 scm_name = "print-snippet",
                 cpp_name = "print_snippet",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "url",
                     "content",

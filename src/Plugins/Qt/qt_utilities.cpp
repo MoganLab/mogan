@@ -375,11 +375,11 @@ operator<< (tm_ostream& out, coord2 c) {
 
 coord4
 from_qrect (const QRect& rect) {
-  SI c1, c2, c3, c4;
-  c1= rect.x () * SCREEN_PIXEL;
-  c2= -(rect.y () + rect.height ()) * SCREEN_PIXEL;
-  c3= (rect.x () + rect.width ()) * SCREEN_PIXEL;
-  c4= -rect.y () * SCREEN_PIXEL;
+  DI c1, c2, c3, c4;
+  c1= ((DI) rect.x ()) * SCREEN_PIXEL;
+  c2= -((DI) (rect.y () + rect.height ())) * SCREEN_PIXEL;
+  c3= ((DI) (rect.x () + rect.width ())) * SCREEN_PIXEL;
+  c4= -((DI) rect.y ()) * SCREEN_PIXEL;
   return coord4 (c1, c2, c3, c4);
 }
 
@@ -394,7 +394,8 @@ to_qrect (const coord4& p) {
 
 coord2
 from_qsize (const QSize& s) {
-  return coord2 (s.width () * SCREEN_PIXEL, s.height () * SCREEN_PIXEL);
+  return coord2 (((DI) s.width ()) * SCREEN_PIXEL,
+                 ((DI) s.height ()) * SCREEN_PIXEL);
 }
 
 QSize
@@ -404,14 +405,14 @@ to_qsize (const coord2& p) {
 }
 
 QSize
-to_qsize (const SI& w, const SI& h) {
+to_qsize (DI w, DI h) {
   float c= 1.0 / SCREEN_PIXEL;
   return QSize (w * c, h * c);
 }
 
 coord2
 from_qpoint (const QPoint& pt) {
-  return coord2 (pt.x () * SCREEN_PIXEL, -pt.y () * SCREEN_PIXEL);
+  return coord2 (((DI) pt.x ()) * SCREEN_PIXEL, -((DI) pt.y ()) * SCREEN_PIXEL);
 }
 
 /*! Transforms texmacs coordinates, with origin at the lower left corner, into

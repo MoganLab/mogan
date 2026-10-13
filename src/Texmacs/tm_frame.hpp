@@ -64,11 +64,11 @@ public:
   void   set_window_zoom_factor (double zoom);
   double get_window_zoom_factor ();
   void   set_scrollbars (int sb);
-  void   get_visible (SI& x1, SI& y1, SI& x2, SI& y2);
-  void   scroll_where (SI& x, SI& y);
-  void   scroll_to (SI x, SI y);
-  void   set_extents (SI x1, SI y1, SI x2, SI y2);
-  void   get_extents (SI& x1, SI& y1, SI& x2, SI& y2);
+  void   get_visible (DI& x1, DI& y1, DI& x2, DI& y2);
+  void   scroll_where (DI& x, DI& y);
+  void   scroll_to (DI x, DI y);
+  void   set_extents (DI x1, DI y1, DI x2, DI y2);
+  void   get_extents (DI& x1, DI& y1, DI& x2, DI& y2);
   void   full_screen_mode (bool on, bool edit);
   bool   in_full_screen_mode ();
   bool   in_full_screen_edit_mode ();

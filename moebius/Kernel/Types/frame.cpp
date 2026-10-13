@@ -42,8 +42,8 @@ frame::enclose (rectangle r, bool direct) {
   enclose (x1, y1, x2, y2, p2, p3, direct);
   enclose (x1, y1, x2, y2, p3, p4, direct);
   enclose (x1, y1, x2, y2, p4, p1, direct);
-  return rectangle ((SI) floor (x1 + 0.5), (SI) floor (y1 + 0.5),
-                    (SI) floor (x2 + 0.5), (SI) floor (y2 + 0.5));
+  return rectangle ((DI) floor (x1 + 0.5), (DI) floor (y1 + 0.5),
+                    (DI) floor (x2 + 0.5), (DI) floor (y2 + 0.5));
 }
 
 rectangle

@@ -164,7 +164,7 @@ bool check_event (int type);
 void image_gc (string name= "*");
 // Garbage collect images of a given name (may use wildcards)
 // This routine only needs to be implemented if you use your own image cache
-array<SI> get_widget_size (widget w);
+array<DI> get_widget_size (widget w);
 // Get size of a widget w
 void show_help_balloon (widget balloon, SI x, SI y);
 // Display a help balloon at position (x, y); the help balloon should

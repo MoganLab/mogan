@@ -600,7 +600,7 @@ array<string> trim_spaces (array<string> a);
  * @param s2 The second string.
  * @return An array containing sets of four integers:
  */
-array<int> differences (string s1, string s2);
+array<DI> differences (string s1, string s2);
 
 /**
  * @brief a measure of difference (distance) between two strings.

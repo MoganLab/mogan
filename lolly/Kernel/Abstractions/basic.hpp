@@ -178,13 +178,13 @@ hash (long int i) {
 }
 
 /**
- * @brief Hashes a double integer.
+ * @brief Hashes a long long integer.
  *
- * @param i The double integer to hash.
- * @return The hashed value of the double integer.
+ * @param i The long long integer to hash.
+ * @return The hashed value of the long long integer.
  */
 inline int
-hash (DI i) {
+hash (long long int i) {
   return (int) i;
 }
 
@@ -211,13 +211,13 @@ hash (unsigned long int i) {
 }
 
 /**
- * @brief Hashes a double number.
+ * @brief Hashes an unsigned long long integer.
  *
- * @param x The double number to hash.
- * @return The hashed value of the double number.
+ * @param i The unsigned long long integer to hash.
+ * @return The hashed value of the unsigned long long integer.
  */
 inline int
-hash (DN i) {
+hash (unsigned long long int i) {
   return (int) i;
 }
 

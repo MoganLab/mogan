@@ -256,7 +256,7 @@ function main()
             {
                 scm_name = "string-differences",
                 cpp_name = "differences",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "string",
                     "string"
@@ -311,9 +311,9 @@ function main()
                 ret_type = "array_string",
                 arg_list = {
                     "array_string",
-                    "array_int",
+                    "array_di",
                     "array_string",
-                    "array_int"
+                    "array_di"
                 }
             },
             {

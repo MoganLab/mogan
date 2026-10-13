@@ -19,11 +19,11 @@ using namespace moebius::data;
  ******************************************************************************/
 
 struct concat_box_rep : public composite_box_rep {
-  array<SI>    spc;
+  array<DI>    spc;
   bool         indent;
   array<box>   bg_boxes;
   array<color> bg_colors;
-  concat_box_rep (path ip, array<box> bs, array<SI> spc, bool indent);
+  concat_box_rep (path ip, array<box> bs, array<DI> spc, bool indent);
   operator tree ();
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
@@ -33,7 +33,7 @@ struct concat_box_rep : public composite_box_rep {
   void finalize ();
   void clear_incomplete (rectangles& rs, SI pixel, int i, int i1, int i2);
   bool access_allowed ();
-  void position (array<SI> spc);
+  void position (array<DI> spc);
   int  count_left (int i);
   int  count_right (int i);
 
@@ -86,7 +86,7 @@ concat_box_rep::operator tree () {
  ******************************************************************************/
 
 void
-concat_box_rep::position (array<SI> spc) {
+concat_box_rep::position (array<DI> spc) {
   int i;
   ASSERT (N (bs) != 0, "concat of zero boxes");
   x1= bs[0]->x1;
@@ -290,7 +290,7 @@ concat_box_rep::post_display (renderer& ren) {
   bg_colors= array<color> ();
 }
 
-concat_box_rep::concat_box_rep (path ip, array<box> bs2, array<SI> spc2,
+concat_box_rep::concat_box_rep (path ip, array<box> bs2, array<DI> spc2,
                                 bool indent2)
     : composite_box_rep (ip), spc (spc2), indent (indent2) {
   bs= bs2;
@@ -310,13 +310,13 @@ box
 concat_box_rep::adjust_kerning (int mode, double factor) {
   int        n= N (bs);
   array<box> adj (n);
-  array<SI>  spa (n);
+  array<DI>  spa (n);
   for (int i= 0; i < n; i++) {
     int smode= mode;
     if (sx1 (i) > x1) smode= smode & (~START_OF_LINE);
     if (sx2 (i) < x2) smode= smode & (~END_OF_LINE);
     adj[i]= bs[i]->adjust_kerning (smode, factor);
-    spa[i]= (SI) tm_round ((1 + 4 * factor) * spc[i]);
+    spa[i]= (DI) tm_round ((1 + 4 * factor) * spc[i]);
   }
   return concat_box (ip, adj, spa, indent);
 }
@@ -325,10 +325,10 @@ box
 concat_box_rep::expand_glyphs (int mode, double factor) {
   int        n= N (bs);
   array<box> adj (n);
-  array<SI>  spa (n);
+  array<DI>  spa (n);
   for (int i= 0; i < n; i++) {
     adj[i]= bs[i]->expand_glyphs (mode, factor);
-    spa[i]= (SI) tm_round ((1 + factor) * spc[i]);
+    spa[i]= (DI) tm_round ((1 + factor) * spc[i]);
   }
   return concat_box (ip, adj, spa, indent);
 }
@@ -805,15 +805,15 @@ concat_box_rep::graphical_select (SI x1, SI y1, SI x2, SI y2) {
 class phrase_box_rep : public concat_box_rep {
 public:
   std::shared_ptr<rectangle> changed_ptr;
-  SI                         ox, oy;
-  phrase_box_rep (path ip, array<box> bs, array<SI> spc);
+  DI                         ox, oy;
+  phrase_box_rep (path ip, array<box> bs, array<DI> spc);
   ~phrase_box_rep ();
-  void position_at (SI x, SI y, array<rectangle>& logs,
+  void position_at (DI x, DI y, array<rectangle>& logs,
                     std::shared_ptr<rectangle> changed);
   void display (renderer ren);
 };
 
-phrase_box_rep::phrase_box_rep (path ip, array<box> bs, array<SI> spc)
+phrase_box_rep::phrase_box_rep (path ip, array<box> bs, array<DI> spc)
     : concat_box_rep (ip, bs, spc, false), changed_ptr (nullptr) {}
 
 phrase_box_rep::~phrase_box_rep () {
@@ -830,7 +830,7 @@ phrase_box_rep::~phrase_box_rep () {
 }
 
 void
-phrase_box_rep::position_at (SI x, SI y, array<rectangle>& logs,
+phrase_box_rep::position_at (DI x, DI y, array<rectangle>& logs,
                              std::shared_ptr<rectangle> changed) {
   x+= x0;
   y+= y0;
@@ -857,18 +857,18 @@ phrase_box_rep::display (renderer ren) {
 
 box
 concat_box (path ip, array<box> bs) {
-  array<SI> spc;
+  array<DI> spc;
   for (int i= 0; i < N (bs); i++)
-    spc << 0;
+    spc << (DI) 0;
   return tm_new<concat_box_rep> (ip, bs, spc, false);
 }
 
 box
-concat_box (path ip, array<box> bs, array<SI> spc, bool indent) {
+concat_box (path ip, array<box> bs, array<DI> spc, bool indent) {
   return tm_new<concat_box_rep> (ip, bs, spc, indent);
 }
 
 box
-phrase_box (path ip, array<box> bs, array<SI> spc) {
+phrase_box (path ip, array<box> bs, array<DI> spc) {
   return tm_new<phrase_box_rep> (ip, bs, spc);
 }

@@ -24,7 +24,7 @@ struct scatter_box_rep : composite_box_rep {
   box        decoration;
   rectangles rs;
 
-  scatter_box_rep (path ip, array<box> bs, array<SI> x, array<SI> y, bool f);
+  scatter_box_rep (path ip, array<box> bs, array<DI> x, array<DI> y, bool f);
   operator tree ();
   int       find_child (SI x, SI y, SI delta, bool force);
   path      find_left_box_path ();
@@ -34,8 +34,8 @@ struct scatter_box_rep : composite_box_rep {
   void      display_background (renderer ren);
 };
 
-scatter_box_rep::scatter_box_rep (path ip2, array<box> bs, array<SI> x,
-                                  array<SI> y, bool f)
+scatter_box_rep::scatter_box_rep (path ip2, array<box> bs, array<DI> x,
+                                  array<DI> y, bool f)
     : composite_box_rep (ip2, bs, x, y) {
   finalize ();
   if (f) {
@@ -129,7 +129,7 @@ struct page_box_rep : composite_box_rep {
   int   old_page;
 
   page_box_rep (path ip, tree page, int page_nr, brush bgc, SI w, SI h,
-                array<box> bs, array<SI> x, array<SI> y, box dec);
+                array<box> bs, array<DI> x, array<DI> y, box dec);
   operator tree ();
   int  find_child (SI x, SI y, SI delta, bool force);
   void display_background (renderer ren);
@@ -145,7 +145,7 @@ struct page_box_rep : composite_box_rep {
 };
 
 page_box_rep::page_box_rep (path ip2, tree p2, int nr2, brush bgc, SI w, SI h,
-                            array<box> bs, array<SI> x, array<SI> y, box dec)
+                            array<box> bs, array<DI> x, array<DI> y, box dec)
     : composite_box_rep (ip2, bs, x, y), page (p2), page_nr (nr2),
       page_bgc (bgc), decoration (dec), old_page (0) {
   x1= min (x1, 0);
@@ -427,14 +427,14 @@ crop_marks_box_rep::display_background (renderer ren) {
  ******************************************************************************/
 
 box
-scatter_box (path ip, array<box> bs, array<SI> x, array<SI> y, bool f) {
+scatter_box (path ip, array<box> bs, array<DI> x, array<DI> y, bool f) {
   return tm_new<scatter_box_rep> (ip, bs, x, y, f);
 }
 
 box
 page_box (path ip, tree page, int page_nr, brush bgc, SI w, SI h, array<box> bs,
-          array<SI> bs_x, array<SI> bs_y, array<box> decs, array<SI> decs_x,
-          array<SI> decs_y) {
+          array<DI> bs_x, array<DI> bs_y, array<box> decs, array<DI> decs_x,
+          array<DI> decs_y) {
   box dec;
   if (N (decs) > 0) dec= composite_box (ip, decs, decs_x, decs_y, false);
   return tm_new<page_box_rep> (ip, page, page_nr, bgc, w, h, bs, bs_x, bs_y,

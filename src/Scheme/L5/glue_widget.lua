@@ -463,7 +463,7 @@ function main()
             {
                 scm_name = "tree-bounding-rectangle",
                 cpp_name = "get_bounding_rectangle",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "tree"
                 }
@@ -471,7 +471,7 @@ function main()
             {
                 scm_name = "widget-size",
                 cpp_name = "get_widget_size",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "widget"
                 }
@@ -479,7 +479,7 @@ function main()
             {
                 scm_name = "texmacs-widget-size",
                 cpp_name = "get_texmacs_widget_size",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "widget"
                 }

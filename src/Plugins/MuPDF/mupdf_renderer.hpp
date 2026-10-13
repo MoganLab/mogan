@@ -103,7 +103,7 @@ public:
   void set_transformation (frame fr);
   void reset_transformation ();
 
-  void set_clipping (SI x1, SI y1, SI x2, SI y2, bool restore= false);
+  void set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore= false);
   void set_pencil (pencil p);
   void set_brush (brush b);
   void set_background (brush b2);
@@ -126,11 +126,11 @@ public:
 
   void new_shadow (renderer& ren);
   void delete_shadow (renderer& ren);
-  void get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
-  void put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
+  void get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
+  void put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
 
-  void apply_shadow (SI x1, SI y1, SI x2, SI y2);
-  void fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x, SI y);
+  void apply_shadow (DI x1, DI y1, DI x2, DI y2);
+  void fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y);
 
   void draw_picture (picture pict, SI x, SI y, int alpha);
 

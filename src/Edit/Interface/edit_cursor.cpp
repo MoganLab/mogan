@@ -130,14 +130,14 @@ edit_cursor_rep::make_cursor_accessible (path p, bool forwards) {
 #endif
 
 path
-edit_cursor_rep::tree_path (path sp, SI x, SI y, SI delta) {
+edit_cursor_rep::tree_path (path sp, DI x, DI y, SI delta) {
   path stp= find_scrolled_tree_path (eb, sp, x, y, delta);
   path p  = correct_cursor (et, stp /*, searching_forwards */);
   return make_cursor_accessible (p, searching_forwards);
 }
 
 bool
-edit_cursor_rep::cursor_move_sub (SI& x0, SI& y0, SI& d0, SI dx, SI dy) {
+edit_cursor_rep::cursor_move_sub (DI& x0, DI& y0, SI& d0, DI dx, DI dy) {
   path sp           = find_innermost_scroll (eb, tp);
   searching_forwards= dx == 1 || dy == -1;
 
@@ -209,7 +209,7 @@ edit_cursor_rep::cursor_move_sub (SI& x0, SI& y0, SI& d0, SI dx, SI dy) {
 }
 
 void
-edit_cursor_rep::cursor_move (SI dx, SI dy) {
+edit_cursor_rep::cursor_move (DI dx, DI dy) {
   // time_t t1= texmacs_time ();
   // stretched_print ((tree) eb, false);
   cursor_move_sub (mv->ox, mv->oy, mv->delta, dx, dy);
@@ -244,7 +244,7 @@ edit_cursor_rep::notify_cursor_moved (int status) {
 }
 
 void
-edit_cursor_rep::go_to (SI x, SI y, bool absolute) {
+edit_cursor_rep::go_to (DI x, DI y, bool absolute) {
   if (has_changed (THE_TREE + THE_ENVIRONMENT)) return;
   tp= tree_path (absolute ? path () : find_innermost_scroll (eb, tp), x, y, 0);
   notify_cursor_moved (CENTER);
@@ -305,7 +305,7 @@ edit_cursor_rep::go_page_up () {
   path sp= find_innermost_scroll (eb, tp);
   if (is_nil (sp)) go_to (mv->ox, min (mv->oy + get_visible_height (), eb->y2));
   else {
-    SI        x, y, sx, sy;
+    DI        x, y, sx, sy;
     rectangle outer, inner;
     box       b= eb[path_up (sp)];
     find_canvas_info (eb, sp, x, y, sx, sy, outer, inner);
@@ -320,7 +320,7 @@ edit_cursor_rep::go_page_down () {
   path sp= find_innermost_scroll (eb, tp);
   if (is_nil (sp)) go_to (mv->ox, max (mv->oy - get_visible_height (), eb->y1));
   else {
-    SI        x, y, sx, sy;
+    DI        x, y, sx, sy;
     rectangle outer, inner;
     box       b= eb[path_up (sp)];
     find_canvas_info (eb, sp, x, y, sx, sy, outer, inner);

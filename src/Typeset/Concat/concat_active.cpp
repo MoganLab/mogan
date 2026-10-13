@@ -195,7 +195,7 @@ produce_concat (path ip, array<line_item> a) {
   int i, n= N (a);
   if (n == 0) return empty_box (ip); // FIXME: n=0 should never happen
   array<box> items (n);
-  array<SI>  spc (n);
+  array<DI>  spc (n);
   if (n > 0) {
     spc[0]= 0;
     for (i= 0; i < n - 1; i++) {

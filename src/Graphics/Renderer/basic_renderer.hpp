@@ -79,12 +79,12 @@ public:
   virtual void begin (void* handle);
   virtual void end ();
 
-  void fetch (SI x1, SI y1, SI x2, SI y2, renderer ren, SI x, SI y);
+  void fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y);
   void new_shadow (renderer& ren);
   void delete_shadow (renderer& ren);
-  void get_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
-  void put_shadow (renderer ren, SI x1, SI y1, SI x2, SI y2);
-  void apply_shadow (SI x1, SI y1, SI x2, SI y2);
+  void get_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
+  void put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
+  void apply_shadow (DI x1, DI y1, DI x2, DI y2);
 };
 
 typedef basic_renderer_rep* basic_renderer;

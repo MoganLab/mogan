@@ -133,8 +133,8 @@ get_process_id () {
 }
 
 array<string>
-evaluate_system (array<string> arg, array<int> fd_in, array<string> in,
-                 array<int> fd_out) {
+evaluate_system (array<string> arg, array<DI> fd_in, array<string> in,
+                 array<DI> fd_out) {
   array<string>  out (N (fd_out));
   array<string*> ptr (N (fd_out));
   for (int i= 0; i < N (fd_out); i++)

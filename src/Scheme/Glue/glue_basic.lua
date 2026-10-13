@@ -404,13 +404,13 @@ function main()
                 cpp_name = "named_rgb_color",
                 ret_type = "string",
                 arg_list = {
-                    "array_int"
+                    "array_di"
                 }
             },
             {
                 scm_name = "named-color->rgba",
                 cpp_name = "get_named_rgb_color",
-                ret_type = "array_int",
+                ret_type = "array_di",
                 arg_list = {
                     "string"
                 }
@@ -1190,7 +1190,7 @@ function main()
             {
                 scm_name = "get-screen-size",
                 cpp_name = "get_screen_size",
-                ret_type = "array_int"
+                ret_type = "array_di"
             },
             
               -- buffers

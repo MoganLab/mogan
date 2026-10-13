@@ -261,27 +261,27 @@ tmscm_to_modification (tmscm obj) {
  ******************************************************************************/
 
 bool
-tmscm_is_array_int (tmscm p) {
+tmscm_is_array_di (tmscm p) {
   if (tmscm_is_null (p)) return true;
   else
     return tmscm_is_pair (p) && tmscm_is_int (tmscm_car (p)) &&
-           tmscm_is_array_int (tmscm_cdr (p));
+           tmscm_is_array_di (tmscm_cdr (p));
 }
 
 tmscm
-array_int_to_tmscm (array<int> a) {
+array_di_to_tmscm (array<DI> a) {
   int   i, n= N (a);
   tmscm p= tmscm_null ();
   for (i= n - 1; i >= 0; i--)
-    p= tmscm_cons (int_to_tmscm (a[i]), p);
+    p= tmscm_cons (di_to_tmscm (a[i]), p);
   return p;
 }
 
-array<int>
-tmscm_to_array_int (tmscm p) {
-  array<int> a;
+array<DI>
+tmscm_to_array_di (tmscm p) {
+  array<DI> a;
   while (!tmscm_is_null (p)) {
-    a << ((int) tmscm_to_int (tmscm_car (p)));
+    a << tmscm_to_di (tmscm_car (p));
     p= tmscm_cdr (p);
   }
   return a;

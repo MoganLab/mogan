@@ -162,10 +162,10 @@ concater_rep::typeset_anim_accelerate (tree t, path ip) {
 }
 
 static void
-effect_point (edit_env env, box b, tree xt, tree yt, SI& x, SI& y) {
-  if (is_double (xt)) x= as_int (b->x1 + as_double (xt) * b->w ());
+effect_point (edit_env env, box b, tree xt, tree yt, DI& x, DI& y) {
+  if (is_double (xt)) x= (DI) (b->x1 + as_double (xt) * b->w ());
   else x= env->as_length (xt);
-  if (is_double (yt)) y= as_int (b->y1 + as_double (yt) * b->h ());
+  if (is_double (yt)) y= (DI) (b->y1 + as_double (yt) * b->h ());
   else y= env->as_length (yt);
 }
 
@@ -180,7 +180,7 @@ concater_rep::typeset_anim_translate (tree t, path ip) {
   int    len= env->as_length (env->exec (t[1]));
   tree   t1 = env->exec (t[2]);
   tree   t2 = env->exec (t[3]);
-  SI     x1= b->x1, y1= b->y1, x2= b->x1, y2= b->y1;
+  DI     x1= b->x1, y1= b->y1, x2= b->x1, y2= b->y1;
   if (is_tuple (t1) && N (t1) == 2) effect_point (env, b, t1[0], t1[1], x1, y1);
   if (is_tuple (t2) && N (t2) == 2) effect_point (env, b, t2[0], t2[1], x2, y2);
   print (anim_translate_box (ip, b, pl, len, x1, y1, x2, y2));

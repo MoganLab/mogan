@@ -317,41 +317,67 @@ set_modified (widget w, bool flag) {
 }
 
 inline void
-set_size (widget w, SI width, SI height) {
+set_size (widget w, DI width, DI height) {
   // set the current size of the widget
-  send<SI, SI> (w, SLOT_SIZE, width, height);
+  send<DI, DI> (w, SLOT_SIZE, width, height);
+}
+
+inline void
+set_size (widget w, SI width, SI height) {
+  set_size (w, (DI) width, (DI) height);
+}
+
+inline void
+get_size (widget w, DI& width, DI& height) {
+  // get the current size of the widget
+  query<DI, DI> (w, SLOT_SIZE, width, height);
 }
 
 inline void
 get_size (widget w, SI& width, SI& height) {
-  // get the current size of the widget
-  query<SI, SI> (w, SLOT_SIZE, width, height);
+  DI W= 0, H= 0;
+  get_size (w, W, H);
+  width = (SI) W;
+  height= (SI) H;
 }
 
 inline void
-notify_size (widget w, SI new_width, SI new_height) {
+notify_size (widget w, DI new_width, DI new_height) {
   // notify a size change for the widget
-  notify<SI, SI> (w, SLOT_SIZE, new_width, new_height);
+  notify<DI, DI> (w, SLOT_SIZE, new_width, new_height);
+}
+
+inline void
+set_position (widget w, DI x, DI y) {
+  // set the position of the top left corner of the widget w
+  // w.r.t. the top left of its parent widget
+  send<DI, DI> (w, SLOT_POSITION, x, y);
 }
 
 inline void
 set_position (widget w, SI x, SI y) {
-  // set the position of the top left corner of the widget w
+  set_position (w, (DI) x, (DI) y);
+}
+
+inline void
+get_position (widget w, DI& x, DI& y) {
+  // get the position of the top left corner of the widget w
   // w.r.t. the top left of its parent widget
-  send<SI, SI> (w, SLOT_POSITION, x, y);
+  query<DI, DI> (w, SLOT_POSITION, x, y);
 }
 
 inline void
 get_position (widget w, SI& x, SI& y) {
-  // get the position of the top left corner of the widget w
-  // w.r.t. the top left of its parent widget
-  query<SI, SI> (w, SLOT_POSITION, x, y);
+  DI X= 0, Y= 0;
+  get_position (w, X, Y);
+  x= (SI) X;
+  y= (SI) Y;
 }
 
 inline void
-notify_position (widget w, SI new_x, SI new_y) {
+notify_position (widget w, DI new_x, DI new_y) {
   // notify a change in the position of the widget
-  notify<SI, SI> (w, SLOT_POSITION, new_x, new_y);
+  notify<DI, DI> (w, SLOT_POSITION, new_x, new_y);
 }
 
 inline void
@@ -440,10 +466,15 @@ send_invalidate_all (widget w) {
 }
 
 inline void
-send_invalidate (widget w, SI x1, SI y1, SI x2, SI y2) {
+send_invalidate (widget w, DI x1, DI y1, DI x2, DI y2) {
   // invalidate a region so that it will be repaint at a next iteration;
   // the region is specified w.r.t. the top left corner of w
-  send<SI, SI, SI, SI> (w, SLOT_INVALIDATE, x1, y1, x2, y2);
+  send<DI, DI, DI, DI> (w, SLOT_INVALIDATE, x1, y1, x2, y2);
+}
+
+inline void
+send_invalidate (widget w, SI x1, SI y1, SI x2, SI y2) {
+  send_invalidate (w, (DI) x1, (DI) y1, (DI) x2, (DI) y2);
 }
 
 inline bool
@@ -482,21 +513,21 @@ set_zoom_factor (widget w, double zoom) {
 }
 
 inline void
-set_extents (widget w, SI x1, SI y1, SI x2, SI y2) {
+set_extents (widget w, DI x1, DI y1, DI x2, DI y2) {
   // set extents of a canvas
-  send<SI, SI, SI, SI> (w, SLOT_EXTENTS, x1, y1, x2, y2);
+  send<DI, DI, DI, DI> (w, SLOT_EXTENTS, x1, y1, x2, y2);
 }
 
 inline void
-get_extents (widget w, SI& x1, SI& y1, SI& x2, SI& y2) {
+get_extents (widget w, DI& x1, DI& y1, DI& x2, DI& y2) {
   // get extents of a canvas
-  query<SI, SI, SI, SI> (w, SLOT_EXTENTS, x1, y1, x2, y2);
+  query<DI, DI, DI, DI> (w, SLOT_EXTENTS, x1, y1, x2, y2);
 }
 
 inline void
-get_visible_part (widget w, SI& x1, SI& y1, SI& x2, SI& y2) {
+get_visible_part (widget w, DI& x1, DI& y1, DI& x2, DI& y2) {
   // get visible part of a canvas
-  query<SI, SI, SI, SI> (w, SLOT_VISIBLE_PART, x1, y1, x2, y2);
+  query<DI, DI, DI, DI> (w, SLOT_VISIBLE_PART, x1, y1, x2, y2);
 }
 
 inline void
@@ -506,15 +537,15 @@ set_scrollbars_visibility (widget w, int sb) {
 }
 
 inline void
-set_scroll_position (widget w, SI x, SI y) {
+set_scroll_position (widget w, DI x, DI y) {
   // set scroll position in a canvas
-  send<SI, SI> (w, SLOT_SCROLL_POSITION, x, y);
+  send<DI, DI> (w, SLOT_SCROLL_POSITION, x, y);
 }
 
 inline void
-get_scroll_position (widget w, SI& x, SI& y) {
+get_scroll_position (widget w, DI& x, DI& y) {
   // get scroll position in a canvas
-  query<SI, SI> (w, SLOT_SCROLL_POSITION, x, y);
+  query<DI, DI> (w, SLOT_SCROLL_POSITION, x, y);
 }
 
 inline void
@@ -530,9 +561,14 @@ get_canvas (widget w) {
 }
 
 inline void
-send_cursor (widget w, SI x1, SI y1) {
+send_cursor (widget w, DI x1, DI y1) {
   // send current cursor coordinates
-  send<SI, SI> (w, SLOT_CURSOR, x1, y1);
+  send<DI, DI> (w, SLOT_CURSOR, x1, y1);
+}
+
+inline void
+send_cursor (widget w, SI x1, SI y1) {
+  send_cursor (w, (DI) x1, (DI) y1);
 }
 
 /******************************************************************************

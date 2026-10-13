@@ -34,8 +34,8 @@ struct art_box_rep : public composite_box_rep {
   art_box_rep (path ip, box b, art_box_parameters ps2);
   operator tree () { return tree (TUPLE, "art box", ps->data); }
   void perform_rewritings ();
-  void get_image_extents (tree prg, SI& xl, SI& xr, SI& yb, SI& yt);
-  void display_image (renderer r, url u, tree e, SI xl, SI yb, SI xr, SI yt);
+  void get_image_extents (tree prg, DI& xl, DI& xr, DI& yb, DI& yt);
+  void display_image (renderer r, url u, tree e, DI xl, DI yb, DI xr, DI yt);
   void display_one (renderer ren, tree prg);
   void pre_display (renderer& ren);
   void post_display (renderer& ren);
@@ -60,7 +60,7 @@ art_box_rep::art_box_rep (path ip, box b, art_box_parameters ps2)
   perform_rewritings ();
   for (int i= 0; i < N (data); i++)
     if (data[i][0] == "image" || data[i][0] == "rubber") {
-      SI xl= 0, xr= x2, yb= 0, yt= y2;
+      DI xl= 0, xr= x2, yb= 0, yt= y2;
       get_image_extents (data[i], xl, xr, yb, yt);
       x3= min (x3, xl - 5 * PIXEL);
       y3= min (y3, yb - 5 * PIXEL);
@@ -71,8 +71,8 @@ art_box_rep::art_box_rep (path ip, box b, art_box_parameters ps2)
 }
 
 void
-art_box_rep::display_image (renderer ren, url u, tree eff, SI xl, SI yb, SI xr,
-                            SI yt) {
+art_box_rep::display_image (renderer ren, url u, tree eff, DI xl, DI yb, DI xr,
+                            DI yt) {
   // if (ren->is_screen) {
   ren->round (xl, yb);
   ren->round (xr, yt);
@@ -91,7 +91,7 @@ art_box_rep::display_image (renderer ren, url u, tree eff, SI xl, SI yb, SI xr,
 void
 art_box_rep::display_one (renderer ren, tree prg) {
   if (prg[0] == "image" && is_atomic (prg[1])) {
-    SI xl= 0, xr= x2, yb= 0, yt= y2;
+    DI xl= 0, xr= x2, yb= 0, yt= y2;
     get_image_extents (prg, xl, xr, yb, yt);
     url  u  = cork_to_utf8 (prg[1]->label);
     tree eff= "";
@@ -100,7 +100,7 @@ art_box_rep::display_one (renderer ren, tree prg) {
     display_image (ren, u, eff, xl, yb, xr, yt);
   }
   else if (prg[0] == "rubber" && is_atomic (prg[1])) {
-    SI xl= 0, xr= x2, yb= 0, yt= y2;
+    DI xl= 0, xr= x2, yb= 0, yt= y2;
     get_image_extents (prg, xl, xr, yb, yt);
     if (xl >= xr || yb >= yt) return;
     url u= cork_to_utf8 (prg[1]->label);
@@ -343,13 +343,13 @@ get_length (tree t, SI l) {
 }
 
 void
-art_box_rep::get_image_extents (tree prg, SI& xl, SI& xr, SI& yb, SI& yt) {
-  SI xw= x2, yh= y2, dxl= 0, dxr= 0, dyb= 0, dyt= 0;
+art_box_rep::get_image_extents (tree prg, DI& xl, DI& xr, DI& yb, DI& yt) {
+  DI xw= x2, yh= y2, dxl= 0, dxr= 0, dyb= 0, dyt= 0;
   xl         = 0;
   xr         = x2;
   yb         = 0;
   yt         = y2;
-  SI   xl_ref= 0, xr_ref= x2, yb_ref= 0, yt_ref= y2;
+  DI   xl_ref= 0, xr_ref= x2, yb_ref= 0, yt_ref= y2;
   bool xl_done= false, xr_done= false, xw_done= false;
   bool yb_done= false, yt_done= false, yh_done= false;
   for (int i= 2; i < N (prg); i+= 2) {

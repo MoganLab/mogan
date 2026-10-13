@@ -473,7 +473,7 @@ effect_box_rep::redraw (renderer ren, path p, rectangles& l) {
 
 struct clip_box_rep : public change_box_rep {
   tree xt, yt;
-  SI   old_clip_x1, old_clip_x2, old_clip_y1, old_clip_y2;
+  DI   old_clip_x1, old_clip_x2, old_clip_y1, old_clip_y2;
 
 public:
   clip_box_rep (path ip, box b, SI x1, SI y1, SI x2, SI y2, tree xt, tree yt,

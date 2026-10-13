@@ -18,8 +18,8 @@
 SN win_get_process_id ();
 
 #ifdef OS_MINGW
-int win_system (array<::string> arg, array<int> fd_in, array<::string> str_in,
-                array<int> fd_out, array<::string*> str_out);
+int win_system (array<::string> arg, array<DI> fd_in, array<::string> str_in,
+                array<DI> fd_out, array<::string*> str_out);
 #endif
 
 #endif // defined MINGW_SYS_UTILS_H

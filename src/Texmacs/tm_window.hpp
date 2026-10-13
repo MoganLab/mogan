@@ -74,12 +74,12 @@ public:
 
   double get_window_zoom_factor ();
   void   set_window_zoom_factor (double zoom);
-  void   get_visible (SI& x1, SI& y1, SI& x2, SI& y2);
-  void   get_extents (SI& x1, SI& y1, SI& x2, SI& y2);
-  void   set_extents (SI x1, SI y1, SI x2, SI y2);
+  void   get_visible (DI& x1, DI& y1, DI& x2, DI& y2);
+  void   get_extents (DI& x1, DI& y1, DI& x2, DI& y2);
+  void   set_extents (DI x1, DI y1, DI x2, DI y2);
   void   set_scrollbars (int i);
-  void   get_scroll_pos (SI& x, SI& y);
-  void   set_scroll_pos (SI x, SI y);
+  void   get_scroll_pos (DI& x, DI& y);
+  void   set_scroll_pos (DI x, DI y);
 
   bool get_footer_flag ();
   void set_footer_flag (bool on);
@@ -111,7 +111,7 @@ widget    texmacs_output_widget (tree doc, tree style);
 widget    texmacs_input_widget (tree doc, tree style, url wname);
 tree      enrich_embedded_document (tree body, tree style);
 bool      is_embedded_buffer (url name);
-array<SI> get_texmacs_widget_size (widget wid);
+array<DI> get_texmacs_widget_size (widget wid);
 
 int         window_handle ();
 void        window_create (int win, widget wid, string name, command quit);

@@ -174,10 +174,11 @@ rgb_color (int r, int g, int b, int a) {
 }
 
 color
-rgb_color (array<int> rgba) {
-  return rgb_color (
-      N (rgba) >= 1 ? rgba[0] : 255, N (rgba) >= 2 ? rgba[1] : 255,
-      N (rgba) >= 3 ? rgba[2] : 255, N (rgba) >= 4 ? rgba[3] : 255);
+rgb_color (array<DI> rgba) {
+  return rgb_color ((int) (N (rgba) >= 1 ? rgba[0] : 255),
+                    (int) (N (rgba) >= 2 ? rgba[1] : 255),
+                    (int) (N (rgba) >= 3 ? rgba[2] : 255),
+                    (int) (N (rgba) >= 4 ? rgba[3] : 255));
 }
 
 void
@@ -210,12 +211,12 @@ get_rgb_color (color col, int& r, int& g, int& b, int& a) {
   }
 }
 
-array<int>
+array<DI>
 get_rgb_color (color col) {
   int r, g, b, a;
   get_rgb_color (col, r, g, b, a);
-  array<int> ret;
-  ret << r << g << b << a;
+  array<DI> ret;
+  ret << (DI) r << (DI) g << (DI) b << (DI) a;
   return ret;
 }
 
@@ -384,7 +385,7 @@ named_color (string s, int a) {
   return (a << 24) + (c & 0xffffff);
 }
 
-array<int>
+array<DI>
 get_named_rgb_color (string s) {
   return get_rgb_color (named_color (s));
 }
@@ -411,7 +412,7 @@ get_hex_color (string s) {
 }
 
 string
-named_rgb_color (array<int> rgba) {
+named_rgb_color (array<DI> rgba) {
   return get_hex_color (rgb_color (rgba));
 }
 

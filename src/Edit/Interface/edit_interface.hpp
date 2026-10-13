@@ -144,7 +144,7 @@ protected:
   string                    prev_math_comb;
   cursor                    last_cursor;
   renderer                  shadow;
-  SI                        vx1, vy1, vx2, vy2;
+  DI                        vx1, vy1, vx2, vy2;
   rectangles                stored_rects;
   renderer                  stored;
   rectangles                locus_new_rects;
@@ -181,15 +181,15 @@ public:
   SI   get_window_y ();
   SI   get_canvas_x ();
   SI   get_canvas_y ();
-  SI   get_scroll_x ();
-  SI   get_scroll_y ();
+  DI   get_scroll_x ();
+  DI   get_scroll_y ();
   void set_zoom_factor (double zoom);
   void invalidate (SI x1, SI y1, SI x2, SI y2);
   void invalidate (rectangles rs);
   void invalidate_all ();
   void update_visible ();
-  void scroll_to (SI x, SI y1);
-  bool progressive_advance_near_tail (SI y);
+  void scroll_to (DI x, DI y1);
+  bool progressive_advance_near_tail (DI y);
   void set_extents (SI x1, SI y1, SI x2, SI y2);
 
   /* repainting the window */
@@ -288,7 +288,7 @@ public:
   void      mouse_adjust_selection (SI x, SI y, int mods);
   void      mouse_scroll (SI x, SI y, bool up);
   cursor    get_cursor ();
-  array<SI> get_mouse_position ();
+  array<DI> get_mouse_position ();
   void      set_pointer (string name);
   void      set_pointer (string curs_name, string mask_name);
   void      set_cursor_style (string style_name);

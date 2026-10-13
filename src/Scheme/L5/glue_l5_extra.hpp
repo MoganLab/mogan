@@ -116,17 +116,17 @@ cpp_error () {
   TM_FAILED ("an error occurred");
 }
 
-inline array<int>
+inline array<DI>
 get_bounding_rectangle (tree t) {
-  editor     ed  = get_current_editor ();
-  rectangle  wr  = ed->get_window_extents ();
-  path       p   = reverse (obtain_ip (t));
-  selection  sel = ed->search_selection (p * start (t), p * end (t));
-  SI         sz  = ed->get_pixel_size ();
-  double     sf  = ((double) sz) / 256.0;
-  rectangle  selr= least_upper_bound (sel->rs) / sf;
-  rectangle  r   = translate (selr, wr->x1, wr->y2);
-  array<int> ret;
+  editor    ed  = get_current_editor ();
+  rectangle wr  = ed->get_window_extents ();
+  path      p   = reverse (obtain_ip (t));
+  selection sel = ed->search_selection (p * start (t), p * end (t));
+  SI        sz  = ed->get_pixel_size ();
+  double    sf  = ((double) sz) / 256.0;
+  rectangle selr= least_upper_bound (sel->rs) / sf;
+  rectangle r   = translate (selr, wr->x1, wr->y2);
+  array<DI> ret;
   ret << (r->x1) << (r->y1) << (r->x2) << (r->y2);
   return ret;
 }
@@ -136,12 +136,12 @@ is_busy_versioning () {
   return busy_versioning;
 }
 
-inline array<SI>
+inline array<DI>
 get_screen_size () {
-  array<SI> r;
+  array<DI> r;
   SI        w, h;
   gui_root_extents (w, h);
-  r << w << h;
+  r << (DI) w << (DI) h;
   return r;
 }
 

@@ -16,8 +16,8 @@
 #include "string.hpp"
 
 SN  unix_get_process_id ();
-int unix_system (array<string> arg, array<int> fd_in, array<string> str_in,
-                 array<int> fd_out, array<string*> str_out);
+int unix_system (array<string> arg, array<DI> fd_in, array<string> str_in,
+                 array<DI> fd_out, array<string*> str_out);
 
 string unix_get_login ();
 string unix_get_username ();

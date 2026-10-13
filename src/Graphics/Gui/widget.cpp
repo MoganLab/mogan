@@ -246,12 +246,12 @@ bool use_side_tools= false;
 bool use_left_tools= false;
 #endif
 
-array<SI>
+array<DI>
 get_widget_size (widget w) {
   // FIXME: this does not work yet (nor under Qt, nor under X11)
   SI width, height;
   get_size (w, width, height);
-  return array<SI> (width, height);
+  return array<DI> (width, height);
 }
 
 bool   use_native_menubar = true;
