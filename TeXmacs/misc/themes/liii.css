@@ -1502,6 +1502,46 @@ QToolButton#chat-tab-search-btn:checked {
   color: #ffffff;
 }
 
+/* 附件按钮（不可勾选） */
+QToolButton#chat-tab-attach-btn {
+  color: #215a6a;
+  border: 1px solid #215a6a;
+  background: transparent;
+  qproperty-iconNormal: url(":/llm-chat/attach.svg");
+}
+QToolButton#chat-tab-attach-btn:hover {
+  background: #dddddd;
+}
+QToolButton#chat-tab-attach-btn:pressed {
+  background: #d3d3d3;
+}
+
+/* 附件 chips */
+QWidget#chat-tab-attachment-chip {
+  background: #f0f0f0;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+}
+QLabel#chat-tab-attachment-chip-label {
+  background: transparent;
+  border: none;
+  color: #333333;
+  font-size: 12px;
+}
+QToolButton#chat-tab-attachment-remove-btn {
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 0px;
+  margin: 0px;
+  font-size: 11px;
+  color: #666666;
+}
+QToolButton#chat-tab-attachment-remove-btn:hover {
+  background: #c8c8c8;
+  color: #333333;
+}
+
 /* 发送按钮 */
 QToolButton#chat-tab-send-btn {
   background-color: transparent;

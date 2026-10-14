@@ -14,6 +14,7 @@
 
 #include "qt_chat_model.hpp"
 #include "qt_chat_tab_widget.hpp"
+#include <QHash>
 #include <QObject>
 
 /**
@@ -163,6 +164,64 @@ public:
    */
   void onSearchToggled (const string& sessionId, bool enabled);
 
+  // ---- 附件 ----
+
+  /// 每轮附件数量上限（含已选累计）
+  static constexpr int kAttachmentMaxCount= 10;
+  /// 每轮附件总大小上限（含已选累计），80 MiB
+  static constexpr qint64 kAttachmentMaxTotalSize= 80LL * 1024 * 1024;
+
+  /**
+   * @brief 附件扩展名白名单判定（大小写不敏感）。
+   *
+   * 白名单单源为 cpp 内的 kAttachmentDocExtensions/kAttachmentCodeExtensions，
+   * 同时驱动文件选择过滤器与本判定。纯函数，便于单元测试。
+   * @param path 文件路径
+   * @return 扩展名在白名单内返回 true
+   */
+  static bool attachment_extension_allowed (const QString& path);
+
+  /**
+   * @brief 附件本地预检：白名单 → 数量上限 → 总大小上限（按序短路）。
+   * @param item                 待检附件
+   * @param alreadySelectedCount 已选附件数量（含处理中与已就绪）
+   * @param alreadySelectedBytes 已选附件总字节数
+   * @return 违规原因（已本地化）；通过时返回空串
+   */
+  static QString attachment_precheck_error (const AttachmentItem& item,
+                                            int    alreadySelectedCount,
+                                            qint64 alreadySelectedBytes);
+
+  /**
+   * @brief 附件列表 → scheme alist 列表（每项 sha256/filename/size 三键，
+   *        协议 v2 不暴露本地路径）；空表以 null_object 表示 '()。
+   *
+   * 仅序列化已 ready 的条目；处理中条目不应出现（发送栅栏保证），
+   * 防御性跳过。纯函数，便于单元测试。
+   */
+  static object attachment_items_to_scheme (const QList<AttachmentItem>& items);
+
+  /**
+   * @brief 附件按钮点击时触发：文件多选 → 本地预检 → %attachment ingest。
+   *
+   * 通过预检的附件以处理中状态入列并立即派发 ingest（path 只流向
+   * 附件插件）；ready/error 事件经 glue 回调 onAttachmentReady /
+   * onAttachmentError。
+   * @param sessionId 目标会话 ID
+   */
+  void onAttachRequested (const string& sessionId);
+
+  /**
+   * @brief 附件插件 ready 事件：回填 sha256、弹出 chip、按需解禁发送。
+   */
+  void onAttachmentReady (const string& taskId, const string& sha256,
+                          const string& filename, qint64 size,
+                          qint64 extractedChars);
+  /**
+   * @brief 附件插件 error 事件：移除条目并 toast 原因。
+   */
+  void onAttachmentError (const string& taskId, const string& reason);
+
   /**
    * @brief Model 按钮点击时触发：弹出模型选择菜单（按清单构建）。
    *
@@ -240,6 +299,9 @@ private:
   ChatModelStore     modelStore_; ///< 模型清单（构造即加载，早于 createView）
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
   string previousSessionId_; ///< 切入翻译/释义专属会话前的上一个活跃会话 ID
+  QHash<QString, QString>
+      attachTaskSession_; ///< ingest taskId → sessionId（事件路由）
+  int attachTaskSeq_= 0;  ///< ingest 任务号自增序号
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。
@@ -353,6 +415,15 @@ private:
   void connectPanelSignals (ChatConversationPanel* panel);
 
   /**
+   * @brief 发送按钮安全栅栏：附件处理中（未 ready）且非 Generating 时禁用。
+   *
+   * Generating 时按钮承担 Stop 职责必须可用；附件处理变化与会话状态
+   * 变化都经本函数重算。
+   * @param sessionId 目标会话 ID
+   */
+  void updateSendGate (const string& sessionId);
+
+  /**
    * @brief 刷新指定会话面板的 Model 按钮显示（logo+名称+箭头）。
    *
    * 会话模型不在清单内时按默认模型显示（与 activateSession 的内存
@@ -400,6 +471,17 @@ ChatController* get_chat_controller ();
  * @brief Scheme→C++ 回调：通知 Chat Tab 的会话状态变更。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
+
+/**
+ * @brief Scheme→C++ 回调：附件插件 ready 事件（%attachment）。
+ */
+void qt_chat_attachment_ready (string taskId, string sha256, string filename,
+                               int size, int extractedChars);
+
+/**
+ * @brief Scheme→C++ 回调：附件插件 error 事件（%attachment）。
+ */
+void qt_chat_attachment_error (string taskId, string reason);
 
 /**
  * @brief 引用文档选区到 AI 聊天输入区；翻译动作追加提示词并自动发送。

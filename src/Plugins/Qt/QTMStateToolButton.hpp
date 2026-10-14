@@ -12,6 +12,7 @@
 #ifndef QTMSTATETOOLBUTTON_HPP
 #define QTMSTATETOOLBUTTON_HPP
 
+#include <QBasicTimer>
 #include <QEvent>
 #include <QToolButton>
 
@@ -47,6 +48,24 @@ public:
     reloadIcon ();
   }
 
+  /**
+   * @brief 切换处理中状态：on 时正常图标按 45° 步进旋转（处理动画），
+   *        off 时停止并恢复常规图标。
+   */
+  void setProcessing (bool on) {
+    if (processing_ == on) return;
+    processing_= on;
+    if (on) {
+      spinAngle_= 0;
+      spinTimer_.start (80, this);
+    }
+    else {
+      spinTimer_.stop ();
+      reloadIcon ();
+    }
+  }
+  bool processing () const { return processing_; }
+
 protected:
   bool event (QEvent* event) override {
     if (event->type () == QEvent::Enter || event->type () == QEvent::Leave) {
@@ -55,12 +74,30 @@ protected:
     return QToolButton::event (event);
   }
 
+  void timerEvent (QTimerEvent* event) override {
+    if (event->timerId () != spinTimer_.timerId ()) {
+      QToolButton::timerEvent (event);
+      return;
+    }
+    // QPixmap::transformed 保持尺寸居中与原 DPR，直接作为下一帧图标
+    if (iconNormal_.isNull ()) return;
+    spinAngle_ = (spinAngle_ + 45) % 360;
+    QPixmap src= iconNormal_.pixmap (iconSize ());
+    setIcon (QIcon (src.transformed (QTransform ().rotate (spinAngle_),
+                                     Qt::SmoothTransformation)));
+  }
+
 private:
-  QIcon iconNormal_;
-  QIcon iconChecked_;
-  QIcon iconHovered_;
+  QIcon       iconNormal_;
+  QIcon       iconChecked_;
+  QIcon       iconHovered_;
+  QBasicTimer spinTimer_;
+  int         spinAngle_ = 0;
+  bool        processing_= false;
 
   void reloadIcon () {
+    // 处理中图标由旋转帧驱动，hover/checked 图标切换暂缓
+    if (processing_) return;
     if (underMouse () && !iconHovered_.isNull ()) {
       setIcon (iconHovered_);
       return;
