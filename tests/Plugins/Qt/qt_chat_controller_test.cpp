@@ -16,6 +16,7 @@
 #include "converter.hpp"
 #include "locale.hpp"
 #include "preferences.hpp"
+#include "scheme.hpp"
 
 using namespace moebius;
 
@@ -295,6 +296,138 @@ private slots:
     QVERIFY (!widget.explainButton ()->isChecked ());
 
     ctrl.view_= nullptr;
+  }
+
+  // === 附件本地预检（纯函数） ===
+
+  static AttachmentItem make_attachment (const QString& path,
+                                         const QString& name, qint64 size) {
+    AttachmentItem it;
+    it.path    = path;
+    it.filename= name;
+    it.size    = size;
+    return it;
+  }
+
+  void test_attachment_extension_allowed_documents () {
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.pdf"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.docx"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.xls"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.pptx"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.md"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.txt"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.csv"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.epub"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.html"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.json"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.log"));
+    // 大小写不敏感
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.PDF"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.Md"));
+  }
+
+  void test_attachment_extension_allowed_source_code () {
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.c"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.cpp"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.h"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.java"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.py"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.js"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.ts"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.go"));
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/a.rs"));
+    // 路径含空格
+    QVERIFY (ChatController::attachment_extension_allowed ("/tmp/my dir/a.py"));
+  }
+
+  void test_attachment_extension_rejected () {
+    QVERIFY (!ChatController::attachment_extension_allowed ("/tmp/a.exe"));
+    QVERIFY (!ChatController::attachment_extension_allowed ("/tmp/a.zip"));
+    QVERIFY (!ChatController::attachment_extension_allowed ("/tmp/a.mp4"));
+    // 无扩展名与隐藏文件（QFileInfo 视 .hidden 无后缀）均拒绝
+    QVERIFY (!ChatController::attachment_extension_allowed ("/tmp/noext"));
+    QVERIFY (!ChatController::attachment_extension_allowed ("/tmp/.hidden"));
+  }
+
+  void test_attachment_precheck_total_size_boundary () {
+    // 每轮总大小上限 80 MiB（含已选累计）：恰好通过，+1 拒绝
+    qint64         maxBytes= ChatController::kAttachmentMaxTotalSize;
+    AttachmentItem big= make_attachment ("/tmp/a.pdf", "a.pdf", maxBytes - 100);
+    QCOMPARE (ChatController::attachment_precheck_error (big, 0, 100),
+              QString (""));
+    QVERIFY (
+        !ChatController::attachment_precheck_error (big, 0, 101).isEmpty ());
+    // 单文件超过总上限：由总大小约束拒绝（不再有单文件独立上限）
+    QVERIFY (!ChatController::attachment_precheck_error (
+                  make_attachment ("/tmp/a.pdf", "a.pdf", maxBytes + 1), 0, 0)
+                  .isEmpty ());
+    QCOMPARE (ChatController::attachment_precheck_error (
+                  make_attachment ("/tmp/a.pdf", "a.pdf", 0), 0, 0),
+              QString (""));
+  }
+
+  void test_attachment_precheck_count_limit () {
+    AttachmentItem ok= make_attachment ("/tmp/a.pdf", "a.pdf", 10);
+    // 已选 9 个可加第 10 个；已选 10 个（上限）拒绝
+    QCOMPARE (ChatController::attachment_precheck_error (ok, 9, 0),
+              QString (""));
+    QVERIFY (!ChatController::attachment_precheck_error (ok, 10, 0).isEmpty ());
+  }
+
+  void test_attachment_precheck_extension_first () {
+    // 扩展名白名单最先判定：不过白名单时其余条件不再参与
+    QVERIFY (!ChatController::attachment_precheck_error (
+                  make_attachment ("/tmp/a.exe", "a.exe", 1), 99, 0)
+                  .isEmpty ());
+    // 拒绝原因包含文件名（%1 已替换）
+    QString err= ChatController::attachment_precheck_error (
+        make_attachment ("/tmp/a.exe", "a.exe", 1), 0, 0);
+    QVERIFY (err.contains ("a.exe"));
+  }
+
+  void test_attachment_items_to_scheme () {
+    // object API 依赖 tm_s7 与 object-stack：最小启动 s7 解释器
+    // （不加载 TeXmacs boot），初始化序列仿 tm_server.cpp
+    static bool schemeStarted= false;
+    if (!schemeStarted) {
+      schemeStarted= true;
+      start_scheme (0, nullptr, [] (int, char**) {});
+      // eval 会把结果包成 object（构造函数依赖 object-stack），定义
+      // object-stack 须走返回裸 tmscm 的 eval_scheme_root
+      eval_scheme_root ("(define object-stack '(()))");
+      initialize_scheme ();
+    }
+    // 空表 → null_object（scheme 侧 '()）
+    QVERIFY (is_null (
+        ChatController::attachment_items_to_scheme (QList<AttachmentItem> ())));
+    QVERIFY (is_null (
+        ChatController::attachment_items_to_scheme (QList<AttachmentItem> ())));
+    // 处理中条目不下传（防御）
+    AttachmentItem pending= make_attachment ("/tmp/p.pdf", "p.pdf", 10);
+    QVERIFY (is_null (ChatController::attachment_items_to_scheme (
+        QList<AttachmentItem>{pending})));
+    // ready 条目序列化为 sha256/filename/size 三键，不含本地路径
+    AttachmentItem ok= make_attachment ("/tmp/secret/dir/a.pdf", "a.pdf", 42);
+    ok.ready         = true;
+    ok.sha256        = "deadbeef";
+    object scm       = ChatController::attachment_items_to_scheme (
+        QList<AttachmentItem>{pending, ok});
+    QVERIFY (!is_null (scm));
+    array<object> arr= as_array_object (scm);
+    QCOMPARE ((int) N (arr), 1);
+    // alist 形态：(("sha256" . s) ("filename" . f) ("size" . n))
+    object item= arr[0];
+    string k1  = as_string (car (car (item)));
+    string v1  = as_string (cdr (car (item)));
+    string k2  = as_string (car (car (cdr (item))));
+    string v2  = as_string (cdr (car (cdr (item))));
+    string k3  = as_string (car (caddr (item)));
+    QVERIFY (k1 == "sha256");
+    QVERIFY (v1 == "deadbeef");
+    QVERIFY (k2 == "filename");
+    QVERIFY (v2 == "a.pdf");
+    QVERIFY (k3 == "size");
+    QCOMPARE (as_int (cdr (caddr (item))), 42);
   }
 };
 
