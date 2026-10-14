@@ -25,8 +25,8 @@ typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
       progressive_pending (false), progressive_bench_active (false),
       frozen_pages_positioned (0), doc_name (""), chunk_start (0),
       chunk_end (0), doc_l (array<page_item> ()), doc_sb (stack_border ()),
-      frozen_page_boxes (array<box> ()), frozen_line_offset (0),
-      dynamic_buffer_pages (3), page_text_height (0) {
+      frozen_page_boxes (array<box> ()), frozen_border_boxes (array<box> ()),
+      frozen_line_offset (0), dynamic_buffer_pages (3), page_text_height (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -184,6 +184,7 @@ typesetter_rep::typeset () {
     chunk_start            = 0;
     chunk_end              = n;
     frozen_page_boxes      = array<box> ();
+    frozen_border_boxes    = array<box> ();
     frozen_line_offset     = 0;
     frozen_pages_positioned= 0;
     // 文档中途退出 progressive 模式时闭环基准，避免计时泄漏
@@ -225,8 +226,12 @@ typesetter_rep::typeset () {
 
   if (progressive_enabled) {
     if (chunk_start == 0) {
-      doc_l = copy (l);
-      doc_sb= sb;
+      doc_l                  = copy (l);
+      doc_sb                 = sb;
+      frozen_page_boxes      = array<box> ();
+      frozen_border_boxes    = array<box> ();
+      frozen_line_offset     = 0;
+      frozen_pages_positioned= 0;
     }
     else {
       merge_stack (doc_l, doc_sb, l, sb);
@@ -235,11 +240,7 @@ typesetter_rep::typeset () {
   }
 
   array<page_item> unfrozen_l;
-  if (progressive_enabled && frozen_line_offset > 0 &&
-      frozen_line_offset < N (doc_l)) {
-    unfrozen_l= range (doc_l, frozen_line_offset, N (doc_l));
-  }
-  else if (progressive_enabled) {
+  if (progressive_enabled) {
     unfrozen_l= copy (doc_l);
   }
   else {
@@ -247,10 +248,11 @@ typesetter_rep::typeset () {
   }
 
   bench_start ("typeset: make_pages");
-  pager ppp= tm_new<pager_rep> (br->ip, env, unfrozen_l,
-                                progressive_enabled ? frozen_page_boxes
-                                                    : array<box> ());
-  box   rb = ppp->make_pages ();
+  pager ppp= tm_new<pager_rep> (
+      br->ip, env, unfrozen_l,
+      progressive_enabled ? frozen_page_boxes : array<box> (),
+      progressive_enabled ? frozen_border_boxes : array<box> ());
+  box rb= ppp->make_pages ();
   bench_end ("typeset: make_pages", 5);
 
   if (progressive_enabled) {
@@ -260,6 +262,31 @@ typesetter_rep::typeset () {
       int to_freeze= num_new - dynamic_buffer_pages;
       for (int fi= 0; fi < to_freeze; fi++) {
         frozen_page_boxes << ppp->new_pages[fi];
+        int p_idx= N (frozen_border_boxes);
+        int nx   = max (1, min (env->page_packet, N (frozen_page_boxes)));
+        if (env->page_packet == 2) nx= max (1, env->page_packet);
+        int d    = env->page_offset % nx;
+        int i    = (p_idx + d) % nx;
+        int j    = (p_idx + d) / nx;
+        SI  pixel= env->pixel;
+        SI  l= 0, r= 0, b= 0, t= 0;
+        if (env->get_string (PAGE_BORDER) != "none") {
+          l= 10 * pixel, r= 10 * pixel;
+          b= 10 * pixel, t= 10 * pixel;
+          if (j == 0) t= 0;
+          if (env->get_string (PAGE_BORDER) == "attached") {
+            if (i > 0) l= pixel / 2;
+            if (i < nx - 1) r= 0;
+          }
+        }
+        else {
+          if (i > 0) l= pixel;
+        }
+        color bg= tm_background;
+        if (env->get_string ("full-screen-mode") == "true") bg= black;
+        box bb= page_border_box (ppp->new_pages[fi]->ip, ppp->new_pages[fi], bg,
+                                 l, r, b, t, pixel);
+        frozen_border_boxes << bb;
       }
       pagelet last_frozen_pg = ppp->last_sk[to_freeze - 1];
       int     end_in_unfrozen= 0;
@@ -267,13 +294,19 @@ typesetter_rep::typeset () {
         end_in_unfrozen=
             last_frozen_pg->ins[N (last_frozen_pg->ins) - 1]->end->item;
       }
-      frozen_line_offset+= end_in_unfrozen;
+      if (end_in_unfrozen > 0 && end_in_unfrozen < N (doc_l)) {
+        doc_l= range (doc_l, end_in_unfrozen, N (doc_l));
+      }
+      else if (end_in_unfrozen >= N (doc_l)) {
+        doc_l= array<page_item> ();
+      }
     }
     else if (is_final) {
       for (int fi= 0; fi < num_new; fi++) {
         frozen_page_boxes << ppp->new_pages[fi];
       }
-      frozen_line_offset= N (doc_l);
+      doc_l             = array<page_item> ();
+      frozen_line_offset= 0;
       progressive_bench_end (this);
     }
   }
@@ -465,6 +498,7 @@ typesetter_rep::progressive_reset () {
   doc_l                   = array<page_item> ();
   doc_sb                  = stack_border ();
   frozen_page_boxes       = array<box> ();
+  frozen_border_boxes     = array<box> ();
   frozen_line_offset      = 0;
   progressive_pending     = false;
   progressive_bench_active= false;

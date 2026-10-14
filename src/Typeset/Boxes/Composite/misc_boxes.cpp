@@ -25,7 +25,8 @@ struct scatter_box_rep : composite_box_rep {
   rectangles rs;
 
   scatter_box_rep (path ip, array<box> bs, array<DI> x, array<DI> y, bool f);
-  operator tree ();
+            operator tree ();
+  void      finalize ();
   int       find_child (DI x, DI y, SI delta, bool force);
   path      find_left_box_path ();
   path      find_right_box_path ();
@@ -34,11 +35,34 @@ struct scatter_box_rep : composite_box_rep {
   void      display_background (renderer ren);
 };
 
+void
+scatter_box_rep::finalize () {
+  int i, n= subnr ();
+  lip= descend (ip, 0);
+  rip= descend (ip, 1);
+  for (i= 0; i < n; i++) {
+    path l= bs[i]->find_lip ();
+    path r= bs[i]->find_rip ();
+    if (is_accessible (l) && is_accessible (r)) {
+      lip= l;
+      break;
+    }
+  }
+  for (i= n - 1; i >= 0; i--) {
+    path l= bs[i]->find_lip ();
+    path r= bs[i]->find_rip ();
+    if (is_accessible (l) && is_accessible (r)) {
+      rip= r;
+      break;
+    }
+  }
+}
+
 scatter_box_rep::scatter_box_rep (path ip2, array<box> bs, array<DI> x,
                                   array<DI> y, bool f)
     : composite_box_rep (ip2, bs, x, y) {
   finalize ();
-  if (f) {
+  if (f && N (bs) <= 50) {
     rectangles all (rectangle (x1, y1, x2, y2));
     for (int i= 0; i < N (bs); i++)
       rs= rectangles (rectangle (sx1 (i), sy1 (i), sx2 (i), sy2 (i)), rs);
@@ -46,7 +70,8 @@ scatter_box_rep::scatter_box_rep (path ip2, array<box> bs, array<DI> x,
   }
 }
 
-scatter_box_rep::operator tree () {
+scatter_box_rep::
+operator tree () {
   int  i, n= N (bs);
   tree t (TUPLE, n + 1);
   t[0]= "scattered";
@@ -133,7 +158,7 @@ struct page_box_rep : composite_box_rep {
 
   page_box_rep (path ip, tree page, int page_nr, brush bgc, SI w, SI h,
                 array<box> bs, array<DI> x, array<DI> y, box dec);
-  operator tree ();
+       operator tree ();
   int  find_child (DI x, DI y, SI delta, bool force);
   void display_background (renderer ren);
   void redraw_background (renderer ren);
@@ -168,7 +193,8 @@ page_box_rep::page_box_rep (path ip2, tree p2, int nr2, brush bgc, SI w, SI h,
   finalize ();
 }
 
-page_box_rep::operator tree () {
+page_box_rep::
+operator tree () {
   int  i, n= N (bs);
   tree t (TUPLE, n + 1);
   if (is_atomic (page)) t[0]= "page-" * page->label;
@@ -287,7 +313,7 @@ struct page_border_box_rep : change_box_rep {
   SI    l, r, b, t, pixel;
   page_border_box_rep (path ip, box pb, color tmb, SI l, SI r, SI b, SI t,
                        SI pixel);
-  operator tree ();
+       operator tree ();
   void pre_display (renderer& ren);
   void display_background (renderer ren);
 };
@@ -309,7 +335,8 @@ page_border_box_rep::page_border_box_rep (path ip2, box pb, color tmb2, SI l2,
   finalize ();
 }
 
-page_border_box_rep::operator tree () {
+page_border_box_rep::
+operator tree () {
   return tree (TUPLE, "bordered", (tree) bs[0]);
 }
 
@@ -370,7 +397,7 @@ page_border_box_rep::display_background (renderer ren) {
 struct crop_marks_box_rep : change_box_rep {
   SI w, h, lw, ll;
   crop_marks_box_rep (path ip, box pb, SI w, SI h, SI lw, SI ll);
-  operator tree ();
+       operator tree ();
   void pre_display (renderer& ren);
   void display_background (renderer ren);
 };
@@ -393,7 +420,8 @@ crop_marks_box_rep::crop_marks_box_rep (path ip2, box pb, SI w2, SI h2, SI lw2,
   finalize ();
 }
 
-crop_marks_box_rep::operator tree () {
+crop_marks_box_rep::
+operator tree () {
   return tree (TUPLE, "crop-marks", (tree) bs[0]);
 }
 
