@@ -212,6 +212,7 @@ edit_text_rep::insert_tree (tree t, path p_in_t) {
       is_atomic (subtree (et, path_up (tp))))
     insert (tp, t);
   else if (is_document (t)) {
+    if (N (t) == 0) return;
     if (subtree (et, path_up (tp)) == "" && accepts_return (path_up (tp)) &&
         !is_func (subtree (et, path_up (tp, 2)), DOCUMENT))
       insert_node (path_up (tp) * 0, DOCUMENT);
