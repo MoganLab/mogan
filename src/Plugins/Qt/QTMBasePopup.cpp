@@ -84,17 +84,26 @@ QTMBasePopup::selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
   double    sel_top_logic   = (selr->y1 > selr->y2) ? selr->y1 : selr->y2;
   double    sel_bottom_logic= (selr->y1 > selr->y2) ? selr->y2 : selr->y1;
 
-  x1_px=
-      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  x2_px=
-      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  top_px   = -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
-  bottom_px= -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
+  double   surf_offset_x= 0.0;
+  double   surf_offset_y= 0.0;
+  QWidget* parent       = parentWidget () ? parentWidget ()
+                                          : (owner ? owner->scrollarea () : nullptr);
+  if (owner && owner->scrollarea () && owner->scrollarea ()->surface () &&
+      parent) {
+    QPoint pt= owner->scrollarea ()->surface ()->mapTo (parent, QPoint (0, 0));
+    surf_offset_x= pt.x ();
+    surf_offset_y= pt.y ();
+  }
+  else {
+    surf_offset_y= blank_top_offset ();
+  }
 
-  // 修正：视口 > 表面：存在空白顶部
-  double blank_top= blank_top_offset ();
-  top_px+= blank_top;
-  bottom_px+= blank_top;
+  x1_px = (selr->x1 - cached_scroll_x) * cached_magf * inv_unit + surf_offset_x;
+  x2_px = (selr->x2 - cached_scroll_x) * cached_magf * inv_unit + surf_offset_x;
+  top_px= -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit +
+          surf_offset_y;
+  bottom_px= -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit +
+             surf_offset_y;
 }
 
 void
