@@ -119,6 +119,13 @@
   ) ;when
 ) ;tm-define
 
+(tm-define (beamer-style-switch-allowed?)
+  (or (document-empty?)
+      (buffer-modified? (current-buffer))
+      (has-main-style? "beamer")
+  ) ;or
+) ;tm-define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; High level routines for style and style package management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,7 +151,9 @@
   (:default style "generic")
   (:check-mark "v" has-main-style?)
   (:balloon style-get-documentation)
-  (if (and (== style "beamer") (not (document-empty?)))
+  (if (and (== style "beamer")
+           (not (beamer-style-switch-allowed?))
+      ) ;and
     (show-message "Switching non-empty documents to Beamer style is not supported"
       "Cannot switch style"
     ) ;show-message
