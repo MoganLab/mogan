@@ -22,8 +22,9 @@ using lolly::data::decode_base64;
  ******************************************************************************/
 
 pager_rep::pager_rep (path ip2, edit_env env2, array<page_item> l2,
-                      array<box> frozen)
-    : ip (ip2), env (env2), style (UNINIT), l (l2), frozen_pages (frozen) {
+                      array<box> frozen, array<box> frozen_borders)
+    : ip (ip2), env (env2), style (UNINIT), l (l2), frozen_pages (frozen),
+      frozen_border_boxes (frozen_borders) {
   style (PAGE_THE_PAGE)     = env->read (PAGE_THE_PAGE);
   style (PAGE_THE_TOTAL)    = tree ("1");
   style (PAGE_ODD_HEADER)   = env->read (PAGE_ODD_HEADER);
@@ -315,21 +316,29 @@ pager_rep::make_pages () {
   if (env->get_string (PAGE_BORDER) == "none") {
     vgap= 4 * pixel;
   }
-  array<box> pg= pages;
-  if (env->get_string (PAGE_MEDIUM) == "paper")
+  array<box> pg (nr_pages);
+  int        frozen_b_count= min (N (frozen_border_boxes), nr_pages);
+  for (int p= 0; p < frozen_b_count; p++) {
+    pg[p]= frozen_border_boxes[p];
+  }
+
+  if (env->get_string (PAGE_MEDIUM) == "paper") {
+    color bg= tm_background;
+    if (env->get_string ("full-screen-mode") == "true") bg= black;
+    string page_border_mode= env->get_string (PAGE_BORDER);
     for (int i= 0; i < nx; i++)
       for (int j= 0; j < ny; j++) {
         int p= j * nx + i - d;
-        if (p >= 0 && p < nr_pages) {
+        if (p >= frozen_b_count && p < nr_pages) {
           SI l= 0, r= 0, b= 0, t= 0;
-          if (env->get_string (PAGE_BORDER) != "none") {
+          if (page_border_mode != "none") {
             l= 10 * pixel, r= 10 * pixel;
             b= 10 * pixel, t= 10 * pixel;
             // 文档首行不加上衬边、末行不加下衬边，避免画布首尾露出
             // 背景色空隙（与 automatic/papyrus 介质行为一致，issue 1260）
             if (j == 0) t= 0;
             if (j == ny - 1) b= 0;
-            if (env->get_string (PAGE_BORDER) == "attached") {
+            if (page_border_mode == "attached") {
               if (i > 0) l= pixel / 2;
               if (i < nx - 1) r= 0;
             }
@@ -337,12 +346,17 @@ pager_rep::make_pages () {
           else {
             if (i > 0) l= pixel;
           }
-          color bg= tm_background;
-          if (env->get_string ("full-screen-mode") == "true") bg= black;
           pg[p]=
               page_border_box (pages[p]->ip, pages[p], bg, l, r, b, t, pixel);
         }
       }
+  }
+  else {
+    for (int p= frozen_b_count; p < nr_pages; p++) {
+      pg[p]= pages[p];
+    }
+  }
+  page_border_boxes= pg;
 
   array<DI> x (nr_pages);
   array<DI> y (nr_pages);
@@ -382,5 +396,6 @@ pager_rep::make_pages () {
     }
   }
 
-  return move_box (ip, scatter_box (ip, pg, x, y, nr_pages > 1), 0, 0);
+  bool need_gaps= (env->get_string (PAGE_BORDER) == "none" && nr_pages > 1);
+  return move_box (ip, scatter_box (ip, pg, x, y, need_gaps), 0, 0);
 }
