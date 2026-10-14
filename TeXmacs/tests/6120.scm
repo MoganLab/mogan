@@ -13,12 +13,17 @@
 (check-set-mode! 'report-failed)
 (load "./TeXmacs/plugins/latex/progs/latex/bibtex-bib-widgets.scm")
 
-(define test-dir "/tmp/参考文献测试_6120")
+(define test-dir
+  (string-replace (url->string (url-append (url-temp-dir) "参考文献测试_6120"))
+    "\\"
+    "/"
+  ) ;string-replace
+) ;define
 
 (define test-bib (string-append test-dir "/ref.bib"))
 
 (define (setup-test-file)
-  (system (string-append "mkdir -p '" test-dir "'"))
+  (system-mkdir (string->url test-dir))
   (string-save (string-append "@article{test2024,\n"
                  "  author = {Zhang, San},\n" "  title = {A Test Article},\n"
                  "  journal = {Test Journal},\n" "  year = {2024}\n" "}\n"
@@ -28,7 +33,8 @@
 ) ;define
 
 (define (cleanup-test-file)
-  (system (string-append "rm -rf '" test-dir "'"))
+  (system-remove (string->url test-bib))
+  (system-rmdir (string->url test-dir))
 ) ;define
 
 ;; 验收断言：修复成功时，中文路径必须能正常解析出有效的预览树
