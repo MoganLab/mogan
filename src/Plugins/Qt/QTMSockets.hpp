@@ -33,9 +33,32 @@
 
 #else
 
-namespace wsoc {
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+namespace wsoc {
+using ::accept;
+using ::addrinfo;
+using ::bind;
+using ::closesocket;
+using ::connect;
+using ::freeaddrinfo;
+using ::gai_strerror;
+using ::getaddrinfo;
+using ::inet_ntoa;
+using ::inet_ntop;
+using ::listen;
+using ::recv;
+using ::send;
+using ::sockaddr;
+using ::sockaddr_in;
+using ::sockaddr_in6;
+using ::sockaddr_storage;
+using ::socket;
+using ::WSACleanup;
+using ::WSADATA;
+using ::WSAGetLastError;
+using ::WSAStartup;
 } // namespace wsoc
 typedef uint32_t in_addr_t;
 typedef int      socklen_t;

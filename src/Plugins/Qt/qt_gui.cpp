@@ -344,7 +344,6 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
           QSize image_size      = image.size ();
           qt_pretty_image_size (image_size.width (), image.height (),
                                 image_w_string, image_h_string);
-          detected_format= "image";
         }
 #endif
       }

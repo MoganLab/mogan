@@ -89,7 +89,7 @@ package("qtbase")
             find_opt.version = version:shortstr()
         end
         if not package:is_cross() then
-            qt = find_qt(sdkdir, find_opt)
+            qt = find_qt(sdkdir, find_opt) or find_qt(nil, find_opt)
         else
             local host_qt = package:dep("qt-tools")
             if not host_qt then

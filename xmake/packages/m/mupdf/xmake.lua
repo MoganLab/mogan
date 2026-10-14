@@ -107,7 +107,13 @@ package("mupdf")
     on_install("windows", function (package)
         local configs = {"platform/win32/mupdf.sln", "-t:libmupdf", "-maxcpucount"}
         local build_type = (package:debug() and "Debug" or "Release")
-        local arch = (package:is_arch("x64") and "x64" or "Win32")
+        local arch = (package:is_arch("arm64") and "ARM64" or (package:is_arch("x64") and "x64" or "Win32"))
+        if package:is_arch("arm64") then
+            io.replace("platform/win32/mupdf.sln", "x64", "ARM64", {plain = true})
+            for _, vcx in ipairs(os.files("platform/win32/*.vcxproj")) do
+                io.replace(vcx, "x64", "ARM64", {plain = true})
+            end
+        end
         table.insert(configs, "/p:Configuration=" .. build_type)
         table.insert(configs, "/p:Platform=" .. arch)
         io.replace("platform/win32/libmupdf.vcxproj", "%(PreprocessorDefinitions)</PreprocessorDefinitions>", "TOFU;TOFU_CJK;SHARE_JPEG;%(PreprocessorDefinitions)</PreprocessorDefinitions>",{plain = true})
