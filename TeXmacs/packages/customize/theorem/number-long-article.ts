@@ -21,13 +21,15 @@
     </src-license>
   </src-title>>
 
-  <assign|section-clean|<macro|<reset-subsection><reset-std-env>>>
+  <assign|section-clean|<macro|<reset-subsection><if|<sectional-short-style>|<reset-std-env>>>>
+
+  <assign|chapter-clean|<macro|<assign|in-appendix|false><reset-section><reset-std-env>>>
 
   <assign|equation-prefix-sep|<macro|.>>
 
   <drd-props|equation-prefix-sep|macro-parameter|regular>
 
-  <assign|display-std-env|<macro|nr|<if|<equal|<value|section-prefix>|<value|appendix-prefix>>|<number|<value|appendix-nr>|Alpha>|<number|<value|section-nr>|arabic>><equation-prefix-sep><arg|nr>>>
+  <assign|display-std-env|<macro|nr|<if|<sectional-short-style>|<if|<equal|<value|section-prefix>|<value|appendix-prefix>>|<number|<value|appendix-nr>|Alpha>|<number|<value|section-nr>|arabic>><equation-prefix-sep><arg|nr>|<chapter-prefix><arg|nr>>>>
 
   \;
 </body>
