@@ -158,7 +158,7 @@ protected:
 public:
   edit_interface_rep ();
   ~edit_interface_rep ();
-       operator tree ();
+  operator tree ();
   void suspend ();
   void resume ();
   void keyboard_focus_on (string field);

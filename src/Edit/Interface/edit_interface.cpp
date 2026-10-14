@@ -89,8 +89,7 @@ edit_interface_rep::~edit_interface_rep () {
   stored= NULL;
 }
 
-edit_interface_rep::
-operator tree () {
+edit_interface_rep::operator tree () {
   return tuple ("editor", as_string (get_name ()));
 }
 
