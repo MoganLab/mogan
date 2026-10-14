@@ -429,7 +429,12 @@ QTPdfPreviewWidget::processNetworkReply (QPointer<QNetworkReply> reply) {
       lastModified= QDateTime::fromString (lastModStr, Qt::RFC2822Date);
     }
     if (lastModified.isValid ()) {
+#ifdef OS_WASM
+      // WASM version of Qt seems to have difference API on this
+      lastModified= lastModified.toUTC ();
+#else
       lastModified.setTimeZone (QTimeZone::utc ());
+#endif
     }
   }
 
