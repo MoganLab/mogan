@@ -90,7 +90,7 @@ BibliographyDialogBridge::requestPreview (const QString& file,
   out["status"]= QStringLiteral ("empty");
   out["hint"]  = QString ();
 
-  string expr= "(bib-to-tree " * qt_scheme_quote (file) * " " *
+  string expr= "(bib-to-tree " * qt_scheme_quote_utf8 (file) * " " *
                qt_scheme_quote (style) * ")";
   tmscm res= eval_scheme (expr);
   if (!tmscm_is_list (res) || tmscm_is_null (res)) return out;
