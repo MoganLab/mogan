@@ -48,9 +48,7 @@ edit_typeset_rep::edit_typeset_rep ()
            buf->data->att,
            (buf->prj == NULL ? buf->data->att : buf->prj->data->att)),
       ttt (new_typesetter (env, subtree (et, rp), reverse (rp))) {
-  if (!is_nil (buf)) {
-    ttt->doc_name= as_string (buf->buf->name);
-  }
+  progressive_set_doc_name (ttt, as_string (buf->buf->name));
   init_update ();
 }
 

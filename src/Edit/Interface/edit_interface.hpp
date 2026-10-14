@@ -35,10 +35,9 @@ string MODE_LANGUAGE (string mode);
 
 class edit_interface_rep : virtual public editor_rep {
 protected:
-  int    env_change;     // which things have been changed ?
-  time_t last_change;    // time of last processed change
-  time_t last_update;    // time of last update of menu, icons and footer
-  time_t last_idle_step; // time of last progressive idle typeset step
+  int    env_change;  // which things have been changed ?
+  time_t last_change; // time of last processed change
+  time_t last_update; // time of last update of menu, icons and footer
   int    progressive_batch_size; // current batch size for progressive typeset
   time_t last_event;             // time of last event
   double anim_next;              // time for next animation

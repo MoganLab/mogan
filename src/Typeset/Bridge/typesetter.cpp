@@ -134,6 +134,15 @@ typesetter_rep::determine_page_references (box b) {
   }
 }
 
+// 结束全生命周期基准（若已启动）；开始于 typeset() 的 progressive 初始化处
+static void
+progressive_bench_end (typesetter_rep* ttt) {
+  if (ttt->progressive_bench_active) {
+    bench_end ("progressive_typeset: " * ttt->doc_name, 0);
+    ttt->progressive_bench_active= false;
+  }
+}
+
 box
 typesetter_rep::typeset () {
   old_patch= hashmap<string, tree> (UNINIT);
@@ -177,6 +186,8 @@ typesetter_rep::typeset () {
     frozen_page_boxes      = array<box> ();
     frozen_line_offset     = 0;
     frozen_pages_positioned= 0;
+    // 文档中途退出 progressive 模式时闭环基准，避免计时泄漏
+    progressive_bench_end (this);
   }
 
   // Test whether we are doing a complete typesetting
@@ -263,6 +274,7 @@ typesetter_rep::typeset () {
         frozen_page_boxes << ppp->new_pages[fi];
       }
       frozen_line_offset= N (doc_l);
+      progressive_bench_end (this);
     }
   }
   if (env->complete && paper) determine_page_references (rb);
@@ -296,7 +308,6 @@ typesetter_rep::typeset (DI& x1b, DI& y1b, DI& x2b, DI& y2b) {
   }
   else {
     b->position_at (0, 0, change_log, changed_ptr);
-    if (!progressive_enabled) frozen_pages_positioned= 0;
   }
   bench_end ("typeset: position_at", 5);
 
@@ -488,21 +499,6 @@ progressive_get_page_height (typesetter ttt) {
 void
 progressive_set_doc_name (typesetter ttt, string name) {
   if (ttt) ttt->doc_name= name;
-}
-
-string
-progressive_get_doc_name (typesetter ttt) {
-  return ttt ? ttt->doc_name : "";
-}
-
-bool
-progressive_bench_active (typesetter ttt) {
-  return ttt && ttt->progressive_bench_active;
-}
-
-void
-progressive_set_bench_active (typesetter ttt, bool active) {
-  if (ttt) ttt->progressive_bench_active= active;
 }
 
 box

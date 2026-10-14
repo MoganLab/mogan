@@ -60,13 +60,13 @@ get_zoom (editor_rep* ed, tm_buffer buf) {
 edit_interface_rep::edit_interface_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
       env_change (0), last_change (texmacs_time ()),
-      last_update (last_change - 1), last_idle_step (0),
-      last_event (texmacs_time ()), anim_next (1.0e12), full_screen (false),
-      got_focus (false), sh_s (""), sh_mark (0), pre_edit_skip (false),
-      pre_edit_s (""), pre_edit_mark (0), popup_win (), message_l (""),
-      message_r (""), message_expire_time (0), last_l (""), last_r (""),
-      menu_focus_path (), menu_need_save (false), progressive_batch_size (50),
-      zoomf (get_zoom (this, buf)), magf (zoomf / std_shrinkf),
+      last_update (last_change - 1), last_event (texmacs_time ()),
+      anim_next (1.0e12), full_screen (false), got_focus (false), sh_s (""),
+      sh_mark (0), pre_edit_skip (false), pre_edit_s (""), pre_edit_mark (0),
+      popup_win (), message_l (""), message_r (""), message_expire_time (0),
+      last_l (""), last_r (""), menu_focus_path (), menu_need_save (false),
+      progressive_batch_size (50), zoomf (get_zoom (this, buf)),
+      magf (zoomf / std_shrinkf),
       pixel ((SI) tm_round ((std_shrinkf * PIXEL) / zoomf)),
       zpixel (max ((SI) tm_round (std_shrinkf * PIXEL), pixel)), copy_always (),
       last_x (0), last_y (0), last_t (0), tremble_count (0),
@@ -1084,11 +1084,7 @@ edit_interface_rep::apply_changes () {
     // cout << "Tremble- " << tremble_count << LF;
   }
 
-  typesetter ttt   = get_typesetter ();
-  string     b_name= (!is_nil (buf)) ? as_string (buf->buf->name) : "";
-  if (ttt && progressive_get_doc_name (ttt) == "" && b_name != "") {
-    progressive_set_doc_name (ttt, b_name);
-  }
+  typesetter ttt= get_typesetter ();
 
   if (env_change == 0) {
     if (new_visible == last_visible) {
@@ -1096,13 +1092,7 @@ edit_interface_rep::apply_changes () {
         progressive_advance (ttt, progressive_batch_size);
         env_change|= THE_PROGRESSIVE;
       }
-      else {
-        if (progressive_bench_active (ttt) && b_name != "") {
-          bench_end ("progressive_typeset: " * b_name, 0);
-          progressive_set_bench_active (ttt, false);
-        }
-        return;
-      }
+      else return;
     }
   }
 
@@ -1210,7 +1200,8 @@ edit_interface_rep::apply_changes () {
   if ((env_change & (THE_TREE | THE_PROGRESSIVE)) ||
       ((env_change & THE_ENVIRONMENT) && !skip_typeset_due_to_zoom)) {
     typeset_invalidate_env ();
-    DI x1, y1, x2, y2;
+    DI     x1, y1, x2, y2;
+    string b_name= as_string (get_name ());
     bench_start ("typeset " * b_name);
     time_t t_slice_start= texmacs_time ();
     typeset (x1, y1, x2, y2);
@@ -1481,11 +1472,6 @@ edit_interface_rep::apply_changes () {
   last_update = last_change - 1;
   last_visible= new_visible;
   manual_focus_release ();
-
-  if (progressive_bench_active (ttt) && !::typeset_in_progress (ttt)) {
-    if (b_name != "") bench_end ("progressive_typeset: " * b_name, 0);
-    progressive_set_bench_active (ttt, false);
-  }
 
   if (::typeset_in_progress (ttt)) {
     needs_update ();

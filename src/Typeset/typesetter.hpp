@@ -34,15 +34,12 @@ void exec_until (typesetter ttt, path p);
 box  typeset (typesetter ttt);
 box  typeset (typesetter ttt, DI& x1, DI& y1, DI& x2, DI& y2);
 
-bool   typeset_in_progress (typesetter ttt);
-void   progressive_advance (typesetter ttt, int additional_paragraphs);
-void   progressive_fast_forward_until (typesetter ttt, int target_child);
-int    typeset_frontier (typesetter ttt);
-DI     progressive_get_page_height (typesetter ttt);
-void   progressive_set_doc_name (typesetter ttt, string name);
-string progressive_get_doc_name (typesetter ttt);
-bool   progressive_bench_active (typesetter ttt);
-void   progressive_set_bench_active (typesetter ttt, bool active);
+bool typeset_in_progress (typesetter ttt);
+void progressive_advance (typesetter ttt, int additional_paragraphs);
+void progressive_fast_forward_until (typesetter ttt, int target_child);
+int  typeset_frontier (typesetter ttt);
+DI   progressive_get_page_height (typesetter ttt);
+void progressive_set_doc_name (typesetter ttt, string name);
 
 box        typeset_as_concat (edit_env env, tree t, path ip);
 box        typeset_as_box (edit_env env, tree t, path ip);
