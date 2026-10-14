@@ -60,12 +60,12 @@ get_zoom (editor_rep* ed, tm_buffer buf) {
 edit_interface_rep::edit_interface_rep ()
     : editor_rep (), // NOTE: ignored by the compiler, but suppresses warning
       env_change (0), last_change (texmacs_time ()),
-      last_update (last_change - 1), last_idle_step (0),
-      last_event (texmacs_time ()), anim_next (1.0e12), full_screen (false),
-      got_focus (false), sh_s (""), sh_mark (0), pre_edit_skip (false),
-      pre_edit_s (""), pre_edit_mark (0), popup_win (), message_l (""),
-      message_r (""), message_expire_time (0), last_l (""), last_r (""),
-      menu_focus_path (), menu_need_save (false), zoomf (get_zoom (this, buf)),
+      last_update (last_change - 1), last_event (texmacs_time ()),
+      anim_next (1.0e12), full_screen (false), got_focus (false), sh_s (""),
+      sh_mark (0), pre_edit_skip (false), pre_edit_s (""), pre_edit_mark (0),
+      popup_win (), message_l (""), message_r (""), message_expire_time (0),
+      last_l (""), last_r (""), menu_focus_path (), menu_need_save (false),
+      progressive_batch_size (50), zoomf (get_zoom (this, buf)),
       magf (zoomf / std_shrinkf),
       pixel ((SI) tm_round ((std_shrinkf * PIXEL) / zoomf)),
       zpixel (max ((SI) tm_round (std_shrinkf * PIXEL), pixel)), copy_always (),
@@ -342,7 +342,7 @@ edit_interface_rep::progressive_advance_near_tail (DI y) {
   if (!::typeset_in_progress (ttt) || is_nil (eb)) return false;
   DI ph= progressive_get_page_height (ttt);
   if (ph <= 0 || y > eb->y1 + 3 * ph) return false;
-  progressive_advance (ttt, 15);
+  progressive_advance (ttt, max (progressive_batch_size, 30));
   return true;
 }
 
@@ -1084,20 +1084,13 @@ edit_interface_rep::apply_changes () {
     // cout << "Tremble- " << tremble_count << LF;
   }
 
+  typesetter ttt= get_typesetter ();
+
   if (env_change == 0) {
     if (new_visible == last_visible) {
-      typesetter ttt= get_typesetter ();
       if (::typeset_in_progress (ttt)) {
-        time_t now= texmacs_time ();
-        if (now - last_idle_step >= 200) {
-          last_idle_step= now;
-          progressive_advance (ttt, 10);
-          env_change|= (THE_TREE + THE_EXTENTS);
-        }
-        else {
-          needs_update ();
-          return;
-        }
+        progressive_advance (ttt, progressive_batch_size);
+        env_change|= THE_PROGRESSIVE;
       }
       else return;
     }
@@ -1204,26 +1197,41 @@ edit_interface_rep::apply_changes () {
   }
 
   // cout << "Handling tree\n";
-  if ((env_change & THE_TREE) ||
+  if ((env_change & (THE_TREE | THE_PROGRESSIVE)) ||
       ((env_change & THE_ENVIRONMENT) && !skip_typeset_due_to_zoom)) {
     typeset_invalidate_env ();
-    DI x1, y1, x2, y2;
-    bench_start ("typeset " * (as_string (buf->buf->name)));
+    DI     x1, y1, x2, y2;
+    string b_name= as_string (get_name ());
+    bench_start ("typeset " * b_name);
+    time_t t_slice_start= texmacs_time ();
     typeset (x1, y1, x2, y2);
-    bench_end ("typeset " * (as_string (buf->buf->name)), 1000);
+    time_t t_slice_elapsed= texmacs_time () - t_slice_start;
+    bench_end ("typeset " * b_name, 1000);
+
+    // Adaptive batch sizing based on single-slice duration
+    if (t_slice_elapsed < 15) {
+      progressive_batch_size= min (150, progressive_batch_size + 15);
+    }
+    else if (t_slice_elapsed > 35) {
+      progressive_batch_size= max (30, progressive_batch_size - 15);
+    }
+
     DI ix1= max (vx1, x1 - 2 * pixel);
     DI iy1= max (vy1, y1 - 2 * pixel);
     DI ix2= min (vx2, x2 + 2 * pixel);
     DI iy2= min (vy2, y2 + 2 * pixel);
     if (ix1 < ix2 && iy1 < iy2) {
       invalidate (ix1, iy1, ix2, iy2);
+      env_change|= (THE_TREE + THE_EXTENTS);
     }
-    // check_data_integrety ();
-    the_ghost_cursor ()= eb->find_check_cursor (tp);
+    if (env_change & THE_TREE) {
+      the_ghost_cursor ()= eb->find_check_cursor (tp);
+    }
   }
 
   // cout << "Handling extents\n";
-  if (env_change & (THE_TREE + THE_ENVIRONMENT + THE_EXTENTS)) {
+  if (env_change &
+      (THE_TREE + THE_ENVIRONMENT + THE_EXTENTS + THE_PROGRESSIVE)) {
     string medium= get_init_string (PAGE_MEDIUM);
     DI     ex1, ey1, ex2, ey2;
     scale_extents (eb, magf, ex1, ey1, ex2, ey2);
@@ -1464,6 +1472,10 @@ edit_interface_rep::apply_changes () {
   last_update = last_change - 1;
   last_visible= new_visible;
   manual_focus_release ();
+
+  if (::typeset_in_progress (ttt)) {
+    needs_update ();
+  }
 }
 
 /******************************************************************************

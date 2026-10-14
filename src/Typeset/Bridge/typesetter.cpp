@@ -22,8 +22,9 @@ using namespace moebius;
 typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
     : env (env2), old_patch (UNINIT), progressive_enabled (false),
       progressive_cur_child (0), progressive_total_children (0),
-      progressive_pending (false), chunk_start (0), chunk_end (0),
-      doc_l (array<page_item> ()), doc_sb (stack_border ()),
+      progressive_pending (false), progressive_bench_active (false),
+      frozen_pages_positioned (0), doc_name (""), chunk_start (0),
+      chunk_end (0), doc_l (array<page_item> ()), doc_sb (stack_border ()),
       frozen_page_boxes (array<box> ()), frozen_line_offset (0),
       dynamic_buffer_pages (3), page_text_height (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
@@ -133,6 +134,15 @@ typesetter_rep::determine_page_references (box b) {
   }
 }
 
+// 结束全生命周期基准（若已启动）；开始于 typeset() 的 progressive 初始化处
+static void
+progressive_bench_end (typesetter_rep* ttt) {
+  if (ttt->progressive_bench_active) {
+    bench_end ("progressive_typeset: " * ttt->doc_name, 0);
+    ttt->progressive_bench_active= false;
+  }
+}
+
 box
 typesetter_rep::typeset () {
   old_patch= hashmap<string, tree> (UNINIT);
@@ -161,16 +171,23 @@ typesetter_rep::typeset () {
       // cur_child 归零的两条路径（构造、progressive_reset）已清空累计状态
       chunk_start= 0;
       chunk_end  = min (n, 50);
+      if (doc_name != "") {
+        bench_start ("progressive_typeset: " * doc_name);
+        progressive_bench_active= true;
+      }
     }
   }
   else {
-    progressive_enabled  = false;
-    progressive_pending  = false;
-    progressive_cur_child= n;
-    chunk_start          = 0;
-    chunk_end            = n;
-    frozen_page_boxes    = array<box> ();
-    frozen_line_offset   = 0;
+    progressive_enabled    = false;
+    progressive_pending    = false;
+    progressive_cur_child  = n;
+    chunk_start            = 0;
+    chunk_end              = n;
+    frozen_page_boxes      = array<box> ();
+    frozen_line_offset     = 0;
+    frozen_pages_positioned= 0;
+    // 文档中途退出 progressive 模式时闭环基准，避免计时泄漏
+    progressive_bench_end (this);
   }
 
   // Test whether we are doing a complete typesetting
@@ -257,6 +274,7 @@ typesetter_rep::typeset () {
         frozen_page_boxes << ppp->new_pages[fi];
       }
       frozen_line_offset= N (doc_l);
+      progressive_bench_end (this);
     }
   }
   if (env->complete && paper) determine_page_references (rb);
@@ -278,7 +296,19 @@ typesetter_rep::typeset (DI& x1b, DI& y1b, DI& x2b, DI& y2b) {
   // Append pairs of rectangles to the change_log from the new typesetting box
   array<rectangle> change_log;
   bench_start ("typeset: position_at");
-  b->position_at (0, 0, change_log, changed_ptr);
+  if (progressive_enabled && b->subnr () == 1) {
+    box sb       = b->subbox (0);
+    int n_pages  = sb->subnr ();
+    int frozen_n = N (frozen_page_boxes);
+    int safe_skip= max (0, min (frozen_pages_positioned, frozen_n) - 2);
+    for (int pi= safe_skip; pi < n_pages; pi++) {
+      sb->subbox (pi)->position_at (0, 0, change_log, changed_ptr);
+    }
+    frozen_pages_positioned= frozen_n;
+  }
+  else {
+    b->position_at (0, 0, change_log, changed_ptr);
+  }
   bench_end ("typeset: position_at", 5);
 
   // Keeps the box rectangle in pair <before, after>
@@ -429,14 +459,16 @@ typesetter_rep::progressive_fast_forward_until (int target_child) {
 
 void
 typesetter_rep::progressive_reset () {
-  progressive_cur_child= 0;
-  chunk_start          = 0;
-  chunk_end            = 0;
-  doc_l                = array<page_item> ();
-  doc_sb               = stack_border ();
-  frozen_page_boxes    = array<box> ();
-  frozen_line_offset   = 0;
-  progressive_pending  = false;
+  progressive_cur_child   = 0;
+  chunk_start             = 0;
+  chunk_end               = 0;
+  doc_l                   = array<page_item> ();
+  doc_sb                  = stack_border ();
+  frozen_page_boxes       = array<box> ();
+  frozen_line_offset      = 0;
+  progressive_pending     = false;
+  progressive_bench_active= false;
+  frozen_pages_positioned = 0;
 }
 
 bool
@@ -462,6 +494,11 @@ typeset_frontier (typesetter ttt) {
 DI
 progressive_get_page_height (typesetter ttt) {
   return ttt ? ttt->page_text_height : 0;
+}
+
+void
+progressive_set_doc_name (typesetter ttt, string name) {
+  if (ttt) ttt->doc_name= name;
 }
 
 box

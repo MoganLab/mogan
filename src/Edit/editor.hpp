@@ -44,6 +44,7 @@
 #define THE_LOCUS 128
 #define THE_MENUS 256
 #define THE_FREEZE 512
+#define THE_PROGRESSIVE 1024
 
 // Menu rebuild categories (bit mask for update_menus)
 #define MENU_MAIN 1

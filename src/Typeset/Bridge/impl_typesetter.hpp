@@ -31,12 +31,15 @@ public:
   bool                  paper;
 
   // Progressive typesetting state for paginated long documents
-  bool             progressive_enabled;   ///< 本文档是否启用流式排版
-  int              progressive_cur_child; ///< 排版前沿：已排到的正文子节点下标
-  int              progressive_total_children; ///< 正文子节点总数
-  bool             progressive_pending; ///< 前沿未到文末，后台排版仍在进行
-  int              chunk_start;         ///< 本轮排版块的起点（= 上轮前沿）
-  int              chunk_end;           ///< 本轮排版块的终点（不含）
+  bool   progressive_enabled;        ///< 本文档是否启用流式排版
+  int    progressive_cur_child;      ///< 排版前沿：已排到的正文子节点下标
+  int    progressive_total_children; ///< 正文子节点总数
+  bool   progressive_pending;        ///< 前沿未到文末，后台排版仍在进行
+  bool   progressive_bench_active;   ///< 全生命周期基准测试是否已启动
+  int    frozen_pages_positioned;    ///< 已执行 position_at 的成熟冻结页面数
+  string doc_name;                   ///< 关联的文档路径（用于 benchmark）
+  int    chunk_start;                ///< 本轮排版块的起点（= 上轮前沿）
+  int    chunk_end;                  ///< 本轮排版块的终点（不含）
   array<page_item> doc_l;
   stack_border     doc_sb;
   array<box>       frozen_page_boxes;
