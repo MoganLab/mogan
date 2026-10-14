@@ -53,8 +53,13 @@
 ) ;define
 
 (define (ocr-insert-text-by-cursor text)
-  (ocr-insert-markdown-by-cursor text)
-  (kbd-return)
+  (if (or (not (string? text)) (string-null? (string-trim text)))
+    #f
+    (begin
+      (ocr-insert-markdown-by-cursor text)
+      (kbd-return)
+    ) ;begin
+  ) ;if
 ) ;define
 
 (define (ocr-insert-title-by-cursor title)
