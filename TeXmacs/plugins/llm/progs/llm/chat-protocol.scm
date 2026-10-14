@@ -483,10 +483,10 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (chat-tab-send-v2 session-id model base-url thinking search
+(tm-define (chat-tab-send session-id model base-url thinking search
              thinking-effort images attachments
-           ) ;chat-tab-send-v2
-  (:synopsis "Adapter send entry for a chat tab (protocol v2)")
+           ) ;chat-tab-send
+  (:synopsis "Adapter send entry for a chat tab")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
   (:argument base-url "Raw base_url from model manifest, may be relative")
@@ -500,26 +500,6 @@
   (chat-tab-session-send session-id model base-url thinking search
     thinking-effort images attachments
   ) ;chat-tab-session-send
-) ;tm-define
-
-(tm-define (chat-tab-send session-id model base-url thinking search thinking-effort)
-  (:synopsis "Adapter send entry for a chat tab")
-  (:argument session-id "Session UUID")
-  (:argument model "Model name")
-  (:argument base-url "Raw base_url from model manifest, may be relative")
-  (:argument thinking "Thinking mode")
-  (:argument search "Search mode")
-  (:argument thinking-effort "Thinking effort: low, medium or high")
-  ;; v1 兼容入口（保留给旧 6 参调用方）：空 images/attachments 委托 v2
-  (chat-tab-send-v2 session-id
-    model
-    base-url
-    thinking
-    search
-    thinking-effort
-    '()
-    '()
-  ) ;chat-tab-send-v2
 ) ;tm-define
 
 (tm-define (chat-tab-cancel session-id)

@@ -132,7 +132,7 @@
   ) ;let
 ) ;define
 
-;;; ---------- chat-tab-send 委托（连接未定义分支回显） ----------
+;;; ---------- chat-tab-send（连接未定义分支回显） ----------
 
 ;; 递归查 stree 中是否出现指定文本（chat-tab-flatten-stree 为模块私有）
 
@@ -151,34 +151,18 @@
   ) ;cond
 ) ;define
 
-;; v1 6 参入口走委托：connection-defined? 为假时行为与改版前一致
+;; 8 参入口携带 images/attachments：connection-defined? 为假时走回显分支
 ;; （追加一轮并回显输入、返回 #t）。输入区清空依赖 buffer 视图，headless
 ;; 无视图属既有行为，不在本测试断言
 
-(define (test-chat-tab-send-v1-delegates)
-  (let* ((sid "test-send-v1")
-         (in-buf (chat-tab-session->input-buffer sid))
-         (msg-buf (chat-tab-session->message-buffer sid))
-        ) ;
-    (buffer-set-body in-buf '(document "hello v1"))
-    (check (chat-tab-send sid "model-x" "" "disabled" "disabled" "medium") => #t)
-    (check (stree-contains-text? (tm->stree (buffer-get-body msg-buf)) "hello v1")
-      =>
-      #t
-    ) ;check
-  ) ;let*
-) ;define
-
-;; v2 入口携带 images/attachments：同一回显分支不报错
-
-(define (test-chat-tab-send-v2-with-attachments)
+(define (test-chat-tab-send-with-attachments)
   (let* ((sid "test-send-v2")
          (in-buf (chat-tab-session->input-buffer sid))
          (msg-buf (chat-tab-session->message-buffer sid))
         ) ;
     (buffer-set-body in-buf '(document "hello v2"))
     (check
-      (chat-tab-send-v2 sid
+      (chat-tab-send sid
         "model-x"
         ""
         "disabled"
@@ -187,7 +171,7 @@
         (list (list (cons "path" "/tmp/a.png") (cons "mime" "image/png")))
         (list (list (cons "path" "/tmp/b.pdf") (cons "filename" "b.pdf") (cons "size" 1024))
         ) ;list
-      ) ;chat-tab-send-v2
+      ) ;chat-tab-send
       =>
       #t
     ) ;check
@@ -207,7 +191,6 @@
   (test-strip-image-document)
   (test-strip-image-in-with)
   (test-plain-text-with-image)
-  (test-chat-tab-send-v1-delegates)
-  (test-chat-tab-send-v2-with-attachments)
+  (test-chat-tab-send-with-attachments)
   (check-report)
 ) ;tm-define
