@@ -1574,8 +1574,8 @@ cpp_bibliography_dialog (tree config) {
                                                 qt_translate ("Style:"));
         qw->rootContext ()->setContextProperty (
             "emptyHint", qt_translate ("Preview the bibliography format here"));
-        qw->rootContext ()->setContextProperty (
-            "initialFile", utf8_to_qstring (file));
+        qw->rootContext ()->setContextProperty ("initialFile",
+                                                utf8_to_qstring (file));
         qw->rootContext ()->setContextProperty (
             "initialStyle", utf8_to_qstring (cork_to_utf8 (style)));
         qw->rootContext ()->setContextProperty ("initialUpdate", upd);

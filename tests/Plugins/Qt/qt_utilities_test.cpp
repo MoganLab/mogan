@@ -190,14 +190,15 @@ TestQtUtilities::test_title_encoding_roundtrip () {
 
 void
 TestQtUtilities::test_qt_scheme_quote_utf8 () {
-  // [6120] qt_scheme_quote_utf8 preserves UTF-8 characters without Cork escaping
+  // [6120] qt_scheme_quote_utf8 preserves UTF-8 characters without Cork
+  // escaping
   QString chinese_path= QString::fromUtf8 ("/tmp/参考文献/ref.bib");
   string  quoted_utf8 = qt_scheme_quote_utf8 (chinese_path);
   QCOMPARE (to_qstring (quoted_utf8),
             QString::fromUtf8 ("\"/tmp/参考文献/ref.bib\""));
 
-  // Contrast: qt_scheme_quote uses Cork encoding, changing UTF-8 Chinese characters
+  // Contrast: qt_scheme_quote uses Cork encoding, changing UTF-8 Chinese
+  // characters
   string quoted_cork= qt_scheme_quote (chinese_path);
   QVERIFY (quoted_cork != quoted_utf8);
 }
-
