@@ -17,9 +17,8 @@
 
 QTMBasePopup::QTMBasePopup (QWidget* parent, qt_simple_widget_rep* owner)
     : QWidget (parent), owner (owner), layout (nullptr), effect (nullptr),
-      cached_scroll_x (0), cached_scroll_y (0), cached_canvas_x (0),
-      cached_canvas_y (0), cached_width (0), cached_height (0),
-      cached_magf (0.0) {
+      cached_scroll_x (0), cached_scroll_y (0), cached_width (0),
+      cached_height (0), cached_magf (0.0) {
   setObjectName ("base_popup");
   setWindowFlags (Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);
@@ -48,13 +47,13 @@ QTMBasePopup::initCommonUI () {
 }
 
 bool
-QTMBasePopup::updatePosition (qt_renderer_rep* ren) {
+QTMBasePopup::updatePosition () {
   if (!selectionInView ()) {
     hide ();
     return false;
   }
   int pos_x, pos_y;
-  getCachedPosition (ren, pos_x, pos_y);
+  getCachedPosition (pos_x, pos_y);
   move (pos_x, pos_y);
   return true;
 }
@@ -67,13 +66,11 @@ QTMBasePopup::scrollBy (int x, int y) {
 
 void
 QTMBasePopup::cachePosition (rectangle selr, double magf, int scroll_x,
-                             int scroll_y, int canvas_x, int canvas_y) {
+                             int scroll_y) {
   cached_rect    = selr;
   cached_magf    = magf;
   cached_scroll_x= scroll_x;
   cached_scroll_y= scroll_y;
-  cached_canvas_x= canvas_x;
-  cached_canvas_y= canvas_y;
 }
 
 void
@@ -81,21 +78,21 @@ QTMBasePopup::selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
                                    double& bottom_px) const {
   rectangle selr            = cached_rect;
   double    inv_unit        = 1.0 / 256.0;
-  double    sel_top_logic   = (selr->y1 > selr->y2) ? selr->y1 : selr->y2;
-  double    sel_bottom_logic= (selr->y1 > selr->y2) ? selr->y2 : selr->y1;
+  double    sel_top_logic   = std::max (selr->y1, selr->y2);
+  double    sel_bottom_logic= std::min (selr->y1, selr->y2);
 
-  double   surf_offset_x= 0.0;
-  double   surf_offset_y= 0.0;
-  QWidget* parent       = parentWidget () ? parentWidget ()
-                                          : (owner ? owner->scrollarea () : nullptr);
-  if (owner && owner->scrollarea () && owner->scrollarea ()->surface () &&
-      parent) {
-    QPoint pt= owner->scrollarea ()->surface ()->mapTo (parent, QPoint (0, 0));
+  // 用 Qt 控件树实时映射取 surface 相对父控件的偏移，天然隔离侧边栏等
+  // 外部布局对局部坐标的干扰
+  double         surf_offset_x= 0.0;
+  double         surf_offset_y= 0.0;
+  QTMScrollView* sv           = owner ? owner->scrollarea () : nullptr;
+  QWidget*       surf         = sv ? sv->surface () : nullptr;
+  QWidget*       parent       = parentWidget ();
+  if (!parent) parent= sv;
+  if (surf && parent) {
+    QPoint pt    = surf->mapTo (parent, QPoint (0, 0));
     surf_offset_x= pt.x ();
     surf_offset_y= pt.y ();
-  }
-  else {
-    surf_offset_y= blank_top_offset ();
   }
 
   x1_px = (selr->x1 - cached_scroll_x) * cached_magf * inv_unit + surf_offset_x;
@@ -127,7 +124,7 @@ QTMBasePopup::clampToViewport (int& x, int& y) const {
 }
 
 void
-QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
+QTMBasePopup::getCachedPosition (int& x, int& y) {
   double cx_px, top_px, bottom_px;
   selectionEdgePixels (cx_px, top_px, bottom_px);
 
@@ -159,17 +156,6 @@ QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   else {
     if (y < 0) y= below_y;
   }
-}
-
-double
-QTMBasePopup::blank_top_offset () const {
-  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport () &&
-      owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) return (vp_h - surf_h) * 0.5;
-  }
-  return 0.0;
 }
 
 bool

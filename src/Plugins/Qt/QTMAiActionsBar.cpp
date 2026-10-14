@@ -12,7 +12,6 @@
 #include "QTMScrollView.hpp"
 #include "edit_interface.hpp"
 #include "qt_chat_controller.hpp"
-#include "qt_renderer.hpp"
 #include "qt_utilities.hpp"
 
 #include <QCoreApplication>
@@ -241,7 +240,7 @@ QTMAiActionsBar::present () {
     hide ();
     return;
   }
-  if (!updatePosition (the_qt_renderer ())) return;
+  if (!updatePosition ()) return;
   show ();
   raise ();
   syncHover (quick->mapFromGlobal (QCursor::pos ()));
@@ -282,12 +281,11 @@ QTMAiActionsBar::autoSize () {
   cached_height= h;
   // 显隐切换后栏宽迟一帧才收敛，尺寸变了必须按新宽重算位置：Qt 缩放窗口只
   // 保左上角，光改尺寸会让栏偏出居中位置，要等下次鼠标移动才归位
-  if (isVisible ()) updatePosition (the_qt_renderer ());
+  if (isVisible ()) updatePosition ();
 }
 
 void
-QTMAiActionsBar::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
-  (void) ren;
+QTMAiActionsBar::getCachedPosition (int& x, int& y) {
   double center_px, top_px, bottom_px;
   selectionEdgePixels (center_px, top_px, bottom_px);
 
@@ -319,15 +317,13 @@ QTMAiActionsBar::setTranslateVisible (bool visible) {
 }
 
 void
-QTMAiActionsBar::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                            int scroll_x, int scroll_y, int canvas_x,
-                            int canvas_y) {
-  (void) ren;
+QTMAiActionsBar::showPopup (rectangle selr, double magf, int scroll_x,
+                            int scroll_y) {
   // 同步翻译按钮可见性（0995）：编辑器侧显隐判定时已按 100ms 缓存算好
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
     setTranslateVisible (ed->ai_translate_button_visible ());
   }
-  cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+  cachePosition (selr, magf, scroll_x, scroll_y);
   autoSize ();
   // 编辑器 show 调用即开始光标跟踪；仅未运行时启动——update 随鼠标移动
   // 高频重入，反复 start() 会重置间隔把轮询饿死。显示闸门（光标远近/

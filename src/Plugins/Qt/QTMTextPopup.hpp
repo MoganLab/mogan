@@ -31,11 +31,8 @@ public:
   QTMTextPopup (QWidget* parent, qt_simple_widget_rep* owner);
   ~QTMTextPopup ();
 
-  void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                  int scroll_x, int scroll_y, int canvas_x,
-                  int canvas_y) override;
-  bool updatePosition (qt_renderer_rep* ren) override;
-  void scrollBy (int x, int y) override;
+  void showPopup (rectangle selr, double magf, int scroll_x,
+                  int scroll_y) override;
 
 protected:
   void rebuildButtonsFromScheme ();

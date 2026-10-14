@@ -24,9 +24,8 @@ class QTMAiActionsBar : public QTMBasePopup {
 public:
   QTMAiActionsBar (QWidget* parent, qt_simple_widget_rep* owner);
 
-  void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                  int scroll_x, int scroll_y, int canvas_x,
-                  int canvas_y) override;
+  void showPopup (rectangle selr, double magf, int scroll_x,
+                  int scroll_y) override;
   void autoSize () override;
 
   // 停止光标跟踪并隐藏：编辑器侧所有「不想显示」路径（选区取消/点击
@@ -41,7 +40,7 @@ public:
 protected:
   // 水平居中于「最后选中文字」所在行，纵向按选择方向取该行下方/上方，
   // 首选侧放不下时退到另一侧
-  void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
+  void getCachedPosition (int& x, int& y) override;
 
   // 悬停状态在每次显示时复位
   void showEvent (QShowEvent* ev) override;

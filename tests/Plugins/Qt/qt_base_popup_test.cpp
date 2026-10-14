@@ -10,7 +10,6 @@
 
 #include "QTMBasePopup.hpp"
 #include "QTMScrollView.hpp"
-#include "QTMWidget.hpp"
 #include "base.hpp"
 #include "qt_simple_widget.hpp"
 
@@ -23,15 +22,12 @@ public:
   DummyBasePopup (QWidget* parent, qt_simple_widget_rep* owner)
       : QTMBasePopup (parent, owner) {}
 
-  void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                  int scroll_x, int scroll_y, int canvas_x,
-                  int canvas_y) override {
-    (void) ren;
-    cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+  void showPopup (rectangle selr, double magf, int scroll_x,
+                  int scroll_y) override {
+    cachePosition (selr, magf, scroll_x, scroll_y);
   }
 
   using QTMBasePopup::cachePosition;
-  using QTMBasePopup::selectionEdgePixels;
   using QTMBasePopup::selectionInView;
   using QTMBasePopup::selectionRectPixels;
 };
@@ -74,16 +70,7 @@ TestQTMBasePopup::test_selection_rect_with_sidebar () {
 
   // 选区在逻辑坐标中（TeXmacs 笛卡尔坐标系：页面向下 y 为负）
   rectangle selr (100 * PIXEL, -200 * PIXEL, 200 * PIXEL, -180 * PIXEL);
-  double    magf    = 1.0;
-  int       scroll_x= 0;
-  int       scroll_y= 0;
-
-  // 模拟以前的 cached_canvas_x：包含了左侧侧边栏宽度 300px * PIXEL
-  int canvas_x_with_sidebar= 300 * PIXEL;
-  int canvas_y             = 50 * PIXEL;
-
-  popup.cachePosition (selr, magf, scroll_x, scroll_y, canvas_x_with_sidebar,
-                       canvas_y);
+  popup.cachePosition (selr, 1.0, 0, 0);
 
   double x1_px, x2_px, top_px, bottom_px;
   popup.selectionRectPixels (x1_px, x2_px, top_px, bottom_px);

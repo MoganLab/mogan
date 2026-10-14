@@ -27,8 +27,6 @@ protected:
   rectangle                  cached_rect;
   int                        cached_scroll_x; // 页面滚动位置x
   int                        cached_scroll_y; // 页面滚动位置y
-  int                        cached_canvas_x;
-  int                        cached_canvas_y;
   int                        cached_width;
   int                        cached_height;
   double                     cached_magf; // 缩放因子
@@ -38,13 +36,12 @@ public:
   virtual ~QTMBasePopup ();
 
   // 显示悬浮框（纯虚函数，子类实现具体显示逻辑）
-  virtual void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                          int scroll_x, int scroll_y, int canvas_x,
-                          int canvas_y)= 0;
+  virtual void showPopup (rectangle selr, double magf, int scroll_x,
+                          int scroll_y)= 0;
 
   // 更新悬浮框位置（有默认实现）；选区移出视口时隐藏并返回 false，
   // 调用方可据此放弃后续显示
-  virtual bool updatePosition (qt_renderer_rep* ren);
+  virtual bool updatePosition ();
 
   // 滚动时调整位置
   virtual void scrollBy (int x, int y);
@@ -55,12 +52,12 @@ public:
 protected:
   // 缓存位置信息
   virtual void cachePosition (rectangle selr, double magf, int scroll_x,
-                              int scroll_y, int canvas_x, int canvas_y);
+                              int scroll_y);
 
   // 计算显示位置（虚函数，子类可重写不同位置算法）
-  virtual void getCachedPosition (qt_renderer_rep* ren, int& x, int& y);
+  virtual void getCachedPosition (int& x, int& y);
 
-  // 选区矩形（画布像素，含滚动/画布偏移与顶部留白补偿）的逻辑→像素换算，
+  // 选区矩形（父控件像素，含滚动偏移与 surface 实时偏移）的逻辑→像素换算，
   // 各子类定位/邻近判定共用
   void selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
                             double& bottom_px) const;
@@ -74,9 +71,6 @@ protected:
 
   // 检查选区是否在视口内
   virtual bool selectionInView () const;
-
-  // 视口高于画布表面时顶部的居中留白（popup 坐标需补偿）
-  double blank_top_offset () const;
 
   // 初始化共同的UI元素（阴影效果等）
   void initCommonUI ();

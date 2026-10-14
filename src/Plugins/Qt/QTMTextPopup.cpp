@@ -15,7 +15,6 @@
 #include "bitmap_font.hpp"
 #include "moebius/data/scheme.hpp"
 #include "object_l5.hpp"
-#include "qt_renderer.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 #include "server.hpp"
@@ -108,33 +107,15 @@ QTMTextPopup::rebuildButtonsFromScheme () {
 }
 
 void
-QTMTextPopup::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                         int scroll_x, int scroll_y, int canvas_x,
-                         int canvas_y) {
-  cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+QTMTextPopup::showPopup (rectangle selr, double magf, int scroll_x,
+                         int scroll_y) {
+  cachePosition (selr, magf, scroll_x, scroll_y);
   autoSize ();
   if (!selectionInView ()) {
     hide ();
     return;
   }
-  updatePosition (ren);
+  updatePosition ();
   show ();
   raise ();
-}
-
-bool
-QTMTextPopup::updatePosition (qt_renderer_rep* ren) {
-  if (!selectionInView ()) {
-    hide ();
-    return false;
-  }
-  int x, y;
-  getCachedPosition (ren, x, y);
-  move (x, y);
-  return true;
-}
-
-void
-QTMTextPopup::scrollBy (int x, int y) {
-  QTMBasePopup::scrollBy (x, y);
 }

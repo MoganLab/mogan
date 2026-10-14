@@ -130,15 +130,14 @@ public:
   ////////////////////// Image popup support
   void ensure_image_popup ();
   void show_image_popup (tree current_tree, rectangle selr, double magf,
-                         int scroll_x, int scroll_y, int canvas_x,
-                         int canvas_y);
+                         int scroll_x, int scroll_y);
   void hide_image_popup ();
   void scroll_image_popup_by (SI x, SI y);
 
   ////////////////////// Text popup support
   void ensure_text_popup ();
-  void show_text_popup (rectangle selr, double magf, int scroll_x, int scroll_y,
-                        int canvas_x, int canvas_y);
+  void show_text_popup (rectangle selr, double magf, int scroll_x,
+                        int scroll_y);
   void hide_text_popup ();
   void scroll_text_popup_by (SI x, SI y);
   bool is_point_in_text_popup (SI x, SI y);
@@ -146,8 +145,7 @@ public:
   ////////////////////// AI translate popup support
   void ensure_ai_actions_bar ();
   void show_ai_actions_bar (rectangle selr, bool upward, double magf,
-                            int scroll_x, int scroll_y, int canvas_x,
-                            int canvas_y);
+                            int scroll_x, int scroll_y);
   void hide_ai_actions_bar ();
   void scroll_ai_actions_bar_by (SI x, SI y);
   bool is_point_in_ai_actions_bar (SI x, SI y);

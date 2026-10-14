@@ -980,7 +980,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     if (should_show_image_popup (tree_of_image_parent)) {
 #ifdef QTTEXMACS
       show_image_popup (tree_of_image_parent, selr, magf, get_scroll_x (),
-                        get_scroll_y (), get_canvas_x (), get_canvas_y ());
+                        get_scroll_y ());
 #endif
     }
     hide_text_popup ();
@@ -1331,12 +1331,12 @@ edit_interface_rep::get_text_selection_rect () {
 
 void
 edit_interface_rep::show_text_popup (rectangle selr, double magf, int scroll_x,
-                                     int scroll_y, int canvas_x, int canvas_y) {
+                                     int scroll_y) {
 #ifdef QTTEXMACS
   // 通过qt_simple_widget显示文本工具栏
   // 使用dynamic_cast进行安全的类型转换
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_text_popup (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+    qsw->show_text_popup (selr, magf, scroll_x, scroll_y);
   }
   // 如果转换失败，静默返回（非Qt环境）
 #endif
@@ -1429,8 +1429,7 @@ edit_interface_rep::update_text_popup () {
       hide_text_popup ();
       return;
     }
-    show_text_popup (text_selr, magf, get_scroll_x (), get_scroll_y (),
-                     get_canvas_x (), get_canvas_y ());
+    show_text_popup (text_selr, magf, get_scroll_x (), get_scroll_y ());
   }
   else {
     hide_text_popup ();
@@ -1534,12 +1533,10 @@ edit_interface_rep::get_selection_last_rect (bool upward) {
 void
 edit_interface_rep::show_ai_actions_bar (rectangle selr, bool upward,
                                          double magf, int scroll_x,
-                                         int scroll_y, int canvas_x,
-                                         int canvas_y) {
+                                         int scroll_y) {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_ai_actions_bar (selr, upward, magf, scroll_x, scroll_y, canvas_x,
-                              canvas_y);
+    qsw->show_ai_actions_bar (selr, upward, magf, scroll_x, scroll_y);
   }
 #endif
 }
@@ -1616,8 +1613,7 @@ edit_interface_rep::update_ai_actions_bar () {
       return;
     }
     // 选区移出视口由 popup 侧的 selectionInView 判定并隐藏
-    show_ai_actions_bar (selr, upward, magf, get_scroll_x (), get_scroll_y (),
-                         get_canvas_x (), get_canvas_y ());
+    show_ai_actions_bar (selr, upward, magf, get_scroll_x (), get_scroll_y ());
   }
   else {
     hide_ai_actions_bar ();

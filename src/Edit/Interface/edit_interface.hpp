@@ -297,12 +297,12 @@ public:
   bool      should_show_image_popup (tree t);
   bool      should_show_text_popup ();
   rectangle get_text_selection_rect ();
-  void show_text_popup (rectangle selr, double magf, int scroll_x, int scroll_y,
-                        int canvas_x, int canvas_y);
-  void hide_text_popup ();
-  bool is_point_in_text_popup (SI x, SI y);
-  void update_text_popup ();
-  void invalidate_text_popup_cache (); // 重置工具栏缓存
+  void      show_text_popup (rectangle selr, double magf, int scroll_x,
+                             int scroll_y);
+  void      hide_text_popup ();
+  bool      is_point_in_text_popup (SI x, SI y);
+  void      update_text_popup ();
+  void      invalidate_text_popup_cache (); // 重置工具栏缓存
 
   bool should_show_ai_actions_bar ();
   // 翻译按钮是否显示在 AI 操作栏（0995）：选区 < 10 字符或纯数学公式时不
@@ -312,8 +312,7 @@ public:
   // 「最后选中文字」所在行（按选择方向取顶行/底行）
   rectangle get_selection_last_rect (bool upward);
   void      show_ai_actions_bar (rectangle selr, bool upward, double magf,
-                                 int scroll_x, int scroll_y, int canvas_x,
-                                 int canvas_y);
+                                 int scroll_x, int scroll_y);
   void      hide_ai_actions_bar ();
   bool      is_point_in_ai_actions_bar (SI x, SI y);
   void      update_ai_actions_bar ();

@@ -37,9 +37,8 @@ public:
   QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner);
   ~QTMImagePopup ();
 
-  void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                  int scroll_x, int scroll_y, int canvas_x,
-                  int canvas_y) override;
+  void showPopup (rectangle selr, double magf, int scroll_x,
+                  int scroll_y) override;
   void setImageTree (tree t);
   void updateButtonStates ();
 

@@ -820,13 +820,11 @@ qt_simple_widget_rep::ensure_image_popup () {
 
 void
 qt_simple_widget_rep::show_image_popup (tree current_tree, rectangle selr,
-                                        double magf, int scroll_x, int scroll_y,
-                                        int canvas_x, int canas_y) {
+                                        double magf, int scroll_x,
+                                        int scroll_y) {
   ensure_image_popup ();
   imagePopUp->setImageTree (current_tree);
-  qt_renderer_rep* ren= the_qt_renderer ();
-  imagePopUp->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                         canas_y);
+  imagePopUp->showPopup (selr, magf, scroll_x, scroll_y);
 }
 
 void
@@ -845,8 +843,7 @@ qt_simple_widget_rep::scroll_image_popup_by (SI x, SI y) {
     QPoint qp (x, y);
     coord2 p= from_qpoint (qp);
     imagePopUp->scrollBy (p.x1, p.x2);
-    qt_renderer_rep* ren= the_qt_renderer ();
-    imagePopUp->updatePosition (ren);
+    imagePopUp->updatePosition ();
   }
 }
 
@@ -871,12 +868,9 @@ qt_simple_widget_rep::ensure_text_popup () {
 
 void
 qt_simple_widget_rep::show_text_popup (rectangle selr, double magf,
-                                       int scroll_x, int scroll_y, int canvas_x,
-                                       int canvas_y) {
+                                       int scroll_x, int scroll_y) {
   ensure_text_popup ();
-  qt_renderer_rep* ren= the_qt_renderer ();
-  textPopup->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                        canvas_y);
+  textPopup->showPopup (selr, magf, scroll_x, scroll_y);
 }
 
 void
@@ -892,8 +886,7 @@ qt_simple_widget_rep::scroll_text_popup_by (SI x, SI y) {
     QPoint qp (x, y);
     coord2 p= from_qpoint (qp);
     textPopup->scrollBy (p.x1, p.x2);
-    qt_renderer_rep* ren= the_qt_renderer ();
-    textPopup->updatePosition (ren);
+    textPopup->updatePosition ();
   }
 }
 
@@ -927,13 +920,10 @@ qt_simple_widget_rep::ensure_ai_actions_bar () {
 void
 qt_simple_widget_rep::show_ai_actions_bar (rectangle selr, bool upward,
                                            double magf, int scroll_x,
-                                           int scroll_y, int canvas_x,
-                                           int canvas_y) {
+                                           int scroll_y) {
   ensure_ai_actions_bar ();
-  qt_renderer_rep* ren= the_qt_renderer ();
   aiActionsBar->setUpward (upward);
-  aiActionsBar->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                           canvas_y);
+  aiActionsBar->showPopup (selr, magf, scroll_x, scroll_y);
 }
 
 void
@@ -952,8 +942,7 @@ qt_simple_widget_rep::scroll_ai_actions_bar_by (SI x, SI y) {
     QPoint qp (x, y);
     coord2 p= from_qpoint (qp);
     aiActionsBar->scrollBy (p.x1, p.x2);
-    qt_renderer_rep* ren= the_qt_renderer ();
-    aiActionsBar->updatePosition (ren);
+    aiActionsBar->updatePosition ();
   }
 }
 

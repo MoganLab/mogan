@@ -11,7 +11,6 @@
 
 #include "QTMImagePopup.hpp"
 #include "bitmap_font.hpp"
-#include "qt_renderer.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 #include "server.hpp"
@@ -97,16 +96,15 @@ QTMImagePopup::~QTMImagePopup () {}
 
 // 显示图片悬浮菜单，根据缩放比例决定是否显示
 void
-QTMImagePopup::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                          int scroll_x, int scroll_y, int canvas_x,
-                          int canvas_y) {
-  cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+QTMImagePopup::showPopup (rectangle selr, double magf, int scroll_x,
+                          int scroll_y) {
+  cachePosition (selr, magf, scroll_x, scroll_y);
   autoSize ();
   if (!selectionInView ()) {
     hide ();
     return;
   }
-  updatePosition (ren);
+  updatePosition ();
   updateButtonStates ();
   show ();
   raise ();
