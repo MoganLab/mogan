@@ -33,7 +33,7 @@
 
 (define-record-type <chat-input>
   (make-chat-input input session-id model base-url thinking search
-    thinking-effort
+    thinking-effort attachments
   ) ;make-chat-input
   chat-input?
   (input chat-input-input)
@@ -43,11 +43,16 @@
   (thinking chat-input-thinking)
   (search chat-input-search)
   (thinking-effort chat-input-thinking-effort)
+  (attachments chat-input-attachments)
 ) ;define-record-type
 
 (define (chat-input->json ctx)
   ;; 协议 JSON 数据：content 为当前输入的纯文本，params 为 per-round 参数
   ;; （baseUrl 在此解析为绝对 URL）
+  ;; attachments 为协议 v2 顶层数组（字段恒在，goldfish 解析简单），
+  ;; 每项为 alist（sha256/filename/size），只传 sha256 不暴露本地路径；
+  ;; 编码前统一转 vector——liii json 仅 vector 有 JSON 数组语义，裸 alist
+  ;; 列表会报 type-error，空 vector 输出空数组
   (list (cons "sessionId" (chat-input-session-id ctx))
     (cons "params"
       (list (cons "model" (chat-input-model ctx))
@@ -58,6 +63,7 @@
       ) ;list
     ) ;cons
     (cons "content" (chat-tab-tree->plain-text (chat-input-input ctx)))
+    (cons "attachments" (list->vector (chat-input-attachments ctx)))
   ) ;list
 ) ;define
 
@@ -339,7 +345,8 @@
 (define (chat-tab-build-context-input ctx)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
-  ;; images 数组已随协议移除：图片上传属第二阶段，输入区图片暂按纯文本
+  ;; attachments 为协议 v2 顶层数组（字段恒在，空表输出 []），只传
+  ;; sha256/filename/size；图片上传属后续批次，输入区图片暂按纯文本
   ;; 参与 content（含图片时 C++ 侧已提前拦截提示不支持）；
   ;; 系统提示词不下发：由服务端或子进程插件配置
   (let ((cork-json (utf8->cork (json->string (chat-input->json ctx)))))
@@ -372,7 +379,7 @@
 ;;; ---------- 发送 ----------
 
 (tm-define (chat-tab-session-send session-id model base-url thinking search
-             thinking-effort
+             thinking-effort attachments
            ) ;chat-tab-session-send
   (:synopsis "Send user message through chat tab session")
   (:argument session-id "Session UUID")
@@ -381,6 +388,9 @@
   (:argument thinking "Thinking mode: enabled or disabled")
   (:argument search "Search mode: enabled or disabled")
   (:argument thinking-effort "Thinking effort: low, medium or high")
+  (:argument attachments
+    "Alist list of (sha256 filename size), empty list when none"
+  ) ;:argument
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
@@ -427,7 +437,7 @@
                   ) ;begin
                   (begin
                     (let ((ctx (make-chat-input input session-id model base-url
-                                 thinking search thinking-effort
+                                 thinking search thinking-effort attachments
                                ) ;make-chat-input
                           ) ;ctx
                          ) ;
@@ -471,7 +481,9 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (chat-tab-send session-id model base-url thinking search thinking-effort)
+(tm-define (chat-tab-send session-id model base-url thinking search
+             thinking-effort attachments
+           ) ;chat-tab-send
   (:synopsis "Adapter send entry for a chat tab")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
@@ -479,8 +491,11 @@
   (:argument thinking "Thinking mode")
   (:argument search "Search mode")
   (:argument thinking-effort "Thinking effort: low, medium or high")
+  (:argument attachments
+    "Alist list of (sha256 filename size), empty list when none"
+  ) ;:argument
   (chat-tab-session-send session-id model base-url thinking search
-    thinking-effort
+    thinking-effort attachments
   ) ;chat-tab-session-send
 ) ;tm-define
 
