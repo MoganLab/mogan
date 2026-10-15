@@ -18,7 +18,13 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (texmacs protocol) (liii path) (liii uuid) (liii json) (liii string))
+(import (texmacs protocol)
+  (liii path)
+  (liii os)
+  (liii uuid)
+  (liii json)
+  (liii string)
+) ;import
 
 (define (welcome)
   (flush-prompt "llm> ")
@@ -66,6 +72,109 @@
   ) ;path-write-text
 ) ;define
 
+;; 验收用调试日志：设置环境变量 TM_LLM_CHAT_DEBUG 后，收到的 %chat 线格式
+;; 原样追加写入 /tmp/ai-chat-debug.log（假插件专用，默认关闭避免常驻写盘；
+;; /tmp 不存在时静默忽略）
+
+(define (ai-chat-debug-log line)
+  (when (getenv "TM_LLM_CHAT_DEBUG")
+    (catch #t
+      (lambda ()
+        (path-append-text "/tmp/ai-chat-debug.log" (string-append line "\n"))
+      ) ;lambda
+      (lambda args #f)
+    ) ;catch
+  ) ;when
+) ;define
+
+;; 附件解耦闭环：%chat v2 的 attachments 只含 sha256（及展示元数据），
+;; 假 llm 插件按 sha256 从附件抽取缓存取假文本，全程不接触本地路径。
+;; 缓存约定与 tm-attachment.scm 写入方一致（内置 goldfish 树不可添加
+;; 共享库，两插件各自内联同一约定）：<平台缓存基目录>/Liiistem/attachment/
+;; extract/<yyyymm>/<sha256>/result.json，二元数组 [{id, ts}, {content, …}]
+
+(define (fake-llm-cache-base)
+  ;; 平台惯例缓存基目录，与 tm-attachment.scm 的 attachment-cache-base
+  ;; 同一约定：Windows %LOCALAPPDATA%（回退 ~/AppData/Local）、macOS
+  ;; ~/Library/Caches、Linux XDG_CACHE_HOME（回退 ~/.cache）
+  (let ((home (path->string (path-home))))
+    (cond
+     ((os-windows?)
+      (let ((local (getenv "LOCALAPPDATA")))
+        (if local local (path-join home "AppData" "Local"))
+      ) ;let
+     ) ;
+     ((os-macos?) (path-join home "Library" "Caches"))
+     (else
+       (let ((xdg (getenv "XDG_CACHE_HOME")))
+         (if xdg xdg (path-join home ".cache"))
+       ) ;let
+     ) ;else
+    ) ;cond
+  ) ;let
+) ;define
+
+(define (fake-llm-read-extract-cache file)
+  ;; result.json 为二元数组 [{id, ts}, {content, …}]，取 content
+  (if (not (path-file? file))
+    #f
+    (let ((j
+            (catch #t (lambda () (string->json (path-read-text file))) (lambda args #f))
+          ) ;j
+         ) ;
+      (if (and (vector? j) (>= (vector-length j) 2))
+        (json-ref-string (vector-ref j 1) "content" #f)
+        #f
+      ) ;if
+    ) ;let
+  ) ;if
+) ;define
+
+(define (fake-llm-attachment-content sha256)
+  ;; 逐月目录查找（写入方只保留当月与上月，读取时不假定月份）
+  (let ((base (path-join (fake-llm-cache-base) "Liiistem" "attachment" "extract")))
+    (if (not (path-dir? base))
+      #f
+      (let loop
+        ((months (vector->list (path-list base))))
+        (if (null? months)
+          #f
+          (or (fake-llm-read-extract-cache (path-join (path->string base) (car months) sha256 "result.json")
+              ) ;fake-llm-read-extract-cache
+            (loop (cdr months))
+          ) ;or
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
+) ;define
+
+(define (fake-llm-attachment-injections attachments)
+  ;; attachments 为 JSON 数组（vector）；每项注入一行回显
+  (if (not (vector? attachments))
+    ""
+    (let loop
+      ((i 0) (acc ""))
+      (if (>= i (vector-length attachments))
+        acc
+        (let* ((item (vector-ref attachments i))
+               (sha256 (if (json-object? item) (json-ref-string item "sha256" "") ""))
+               (content (and (> (string-length sha256) 0) (fake-llm-attachment-content sha256))
+               ) ;content
+              ) ;
+          (loop (+ i 1)
+            (if content
+              (string-append acc "\n[fake] attachment " sha256 " injected: " content)
+              acc
+            ) ;if
+          ) ;loop
+        ) ;let*
+      ) ;if
+    ) ;let
+  ) ;if
+) ;define
+
+
 ;; reasoning 主体必须内联在返回的 unfolded-explain 树里：reasoning-delta /
 ;; fold-explain-reasoning 是真实流式插件的边通道标记，需 mogan 侧拦截拼接，
 ;; 假插件经它们发出的 reasoning 不会进入最终返回的文档
@@ -104,15 +213,21 @@
     (if (not (json-object? j))
       #f
       (let ((content (json-ref-string j "content" ""))
-            (params (catch #t (lambda () (json-ref j "params")) (lambda args #f)))
+            ;; 缺键时 json-ref 返回 ()，由下方 json-object? 判定兜住
+            (params (json-ref j "params"))
            ) ;
         (if (not (json-object? params))
           #f
           (string-append "%chat "
-            (json->string (json-set j
-                            "content"
-                            (string-append "[fake-llm] 我收到了你的消息：" content)
-                          ) ;json-set
+            (json->string
+              (json-set j
+                "content"
+                (string-append "[fake-llm] 我收到了你的消息："
+                  content
+                  ;; 缺键时 json-ref 返回 ()，由 injections 的 vector? 判定兜住
+                  (fake-llm-attachment-injections (json-ref j "attachments"))
+                ) ;string-append
+              ) ;json-set
             ) ;json->string
           ) ;string-append
         ) ;if
@@ -130,6 +245,7 @@
     (flush-verbatim (llm-write-temp-file data))
     (let ((reply (and (string-starts? data "%chat ") (fake-llm-chat-reply data))))
       (when reply
+        (ai-chat-debug-log data)
         (flush-fake-reasoning *fake-reasoning-content*)
       ) ;when
       (flush-verbatim (or reply data))
@@ -148,5 +264,5 @@
   (repl)
 ) ;define
 
-(welcome)
-(repl)
+;; 测试加载本文件时预定义 *tm-llm-test-mode* 以跳过 REPL
+(if (not (defined? '*tm-llm-test-mode*)) (begin (welcome) (repl)))

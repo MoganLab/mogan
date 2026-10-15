@@ -16,6 +16,7 @@
 #include "converter.hpp"
 #include "locale.hpp"
 #include "preferences.hpp"
+#include "scheme.hpp"
 
 using namespace moebius;
 
@@ -295,6 +296,59 @@ private slots:
     QVERIFY (!widget.explainButton ()->isChecked ());
 
     ctrl.view_= nullptr;
+  }
+
+  // === 附件下发序列化（预检在附件插件侧，见 chat-protocol-test） ===
+
+  static AttachmentItem make_attachment (const QString& path,
+                                         const QString& name, qint64 size) {
+    AttachmentItem it;
+    it.path    = path;
+    it.filename= name;
+    it.size    = size;
+    return it;
+  }
+
+  void test_attachment_items_to_scheme () {
+    // object API 依赖 tm_s7 与 object-stack：最小启动 s7 解释器
+    // （不加载 TeXmacs boot），初始化序列仿 tm_server.cpp
+    static bool schemeStarted= false;
+    if (!schemeStarted) {
+      schemeStarted= true;
+      start_scheme (0, nullptr, [] (int, char**) {});
+      // eval 会把结果包成 object（构造函数依赖 object-stack），定义
+      // object-stack 须走返回裸 tmscm 的 eval_scheme_root
+      eval_scheme_root ("(define object-stack '(()))");
+      initialize_scheme ();
+    }
+    // 空表 → null_object（scheme 侧 '()）
+    QVERIFY (is_null (
+        ChatController::attachment_items_to_scheme (QList<AttachmentItem> ())));
+    // 处理中条目不下传（防御）
+    AttachmentItem pending= make_attachment ("/tmp/p.pdf", "p.pdf", 10);
+    QVERIFY (is_null (ChatController::attachment_items_to_scheme (
+        QList<AttachmentItem>{pending})));
+    // ready 条目序列化为 sha256/filename 两键，不含本地路径与大小
+    AttachmentItem ok= make_attachment ("/tmp/secret/dir/a.pdf", "a.pdf", 42);
+    ok.ready         = true;
+    ok.sha256        = "deadbeef";
+    object scm       = ChatController::attachment_items_to_scheme (
+        QList<AttachmentItem>{pending, ok});
+    QVERIFY (!is_null (scm));
+    array<object> arr= as_array_object (scm);
+    QCOMPARE ((int) N (arr), 1);
+    // alist 形态：(("sha256" . s) ("filename" . f))，仅两键
+    object item= arr[0];
+    string k1  = as_string (car (car (item)));
+    string v1  = as_string (cdr (car (item)));
+    string k2  = as_string (car (car (cdr (item))));
+    string v2  = as_string (cdr (car (cdr (item))));
+    QVERIFY (k1 == "sha256");
+    QVERIFY (v1 == "deadbeef");
+    QVERIFY (k2 == "filename");
+    QVERIFY (v2 == "a.pdf");
+    // 恰好两键：无 size/path 等第三键
+    QCOMPARE ((int) N (as_array_object (item)), 2);
   }
 };
 

@@ -31,6 +31,8 @@
 ) ;
 ("No, it does not." "不支持。")
 ("All" "全部")
+("Add Attachment" "添加附件")
+("All files" "所有文件")
 ("Advanced footer" "高级页脚")
 ("Advanced header" "高级页眉")
 ("Advanced page numbering" "高级页码")
@@ -45,6 +47,7 @@
 ("Archive selected" "归档所选")
 ("Archive selected (%1)" "归档所选 (%1)")
 ("As" "作为")
+("Attachment plugin is not available" "附件插件不可用")
 ("Auto backup" "自动备份")
 ("Backslash \\ /" "反斜线 \\ /")
 ("BibTeX command" "BibTeX命令")

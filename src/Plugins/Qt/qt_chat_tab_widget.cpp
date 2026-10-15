@@ -20,6 +20,7 @@
 #include "preferences.hpp"
 #include "qt_chat_model.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_flow_layout.hpp"
 #include "qt_gui.hpp"
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
@@ -34,6 +35,7 @@
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QDockWidget>
+#include <QFontMetrics>
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
@@ -41,6 +43,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QMenu>
 #include <QPainter>
 #include <QPixmap>
@@ -140,6 +143,15 @@ constexpr int kSendIconSize          = 30;
 constexpr int kSendButtonSize        = 36;
 constexpr int kSendButtonRadius      = 18;
 constexpr int kConversationBtnRadius = 6;
+
+// ---- 附件 chips 常量 ----
+constexpr int kAttachmentChipHeight = 24; ///< chip 高度（含边框）
+constexpr int kAttachmentChipSpacing= 4;  ///< chip 间距
+constexpr int kAttachmentRowSpacing = 4;  ///< chips 行间距
+constexpr int kAttachmentChipPadX   = 8;  ///< chip 水平内边距
+constexpr int kAttachmentChipMaxText=
+    200; ///< chip 文本最大宽度（超出居中省略）
+constexpr int kAttachmentRemoveBtnSize= 16; ///< ✕ 按钮边长
 
 //---- dock 模式 常量 ----
 constexpr int kDockBtnMarginY= 12;
@@ -254,6 +266,125 @@ ChatConversationPanel::setToggleButtonsIconOnly (bool iconOnly) {
   thinkingButton_->setStyleSheet (toggle_btn_qss (iconOnly, btnH));
   searchButton_->setToolButtonStyle (style);
   searchButton_->setStyleSheet (toggle_btn_qss (iconOnly, btnH));
+  attachButton_->setToolButtonStyle (style);
+  attachButton_->setStyleSheet (toggle_btn_qss (iconOnly, btnH));
+}
+
+QString
+ChatConversationPanel::format_attachment_size (qint64 bytes) {
+  // C locale 保证分隔符/小数点风格稳定（不随系统语言变化）；
+  // 子 KiB 单独处理：formattedDataSize 会给字节值加千分位/小数
+  if (bytes < 1024) return QString::number (bytes) + QStringLiteral (" B");
+  return QLocale::c ().formattedDataSize (bytes, 1);
+}
+
+void
+ChatConversationPanel::setAttachments (const QList<AttachmentItem>& items) {
+  attachments_= items;
+  attachment_items_changed ();
+}
+
+bool
+ChatConversationPanel::hasProcessingAttachments () const {
+  for (const AttachmentItem& it : attachments_)
+    if (!it.ready) return true;
+  return false;
+}
+
+bool
+ChatConversationPanel::attachmentReady (const QString& taskId,
+                                        const QString& sha256) {
+  for (AttachmentItem& it : attachments_)
+    if (!it.ready && it.taskId == taskId) {
+      it.ready = true;
+      it.sha256= sha256;
+      attachment_items_changed ();
+      return true;
+    }
+  return false;
+}
+
+bool
+ChatConversationPanel::attachmentError (const QString& taskId) {
+  for (int i= 0; i < attachments_.size (); i++)
+    if (!attachments_[i].ready && attachments_[i].taskId == taskId) {
+      attachments_.removeAt (i);
+      attachment_items_changed ();
+      return true;
+    }
+  return false;
+}
+
+void
+ChatConversationPanel::setAttachEnabled (bool enabled) {
+  if (attachButton_) attachButton_->setEnabled (enabled);
+}
+
+void
+ChatConversationPanel::attachment_items_changed () {
+  rebuild_attachment_chips ();
+  // 处理中状态翻转时驱动按钮动画并通知 Controller 更新发送栅栏；
+  // 未翻转时发送栅栏不受影响（其值只依赖 state 与 hasProcessing），不重复通知
+  bool processing= hasProcessingAttachments ();
+  if (attachButton_ && attachButton_->processing () != processing) {
+    attachButton_->setProcessing (processing);
+    emit attachmentProcessingChanged (sessionId_);
+  }
+}
+
+void
+ChatConversationPanel::rebuild_attachment_chips () {
+  if (!chipsRow_) return;
+  // 清空旧 chips（布局项连同 widget 一并销毁）
+  QLayout* flow= chipsRow_->layout ();
+  while (QLayoutItem* child= flow->takeAt (0)) {
+    if (QWidget* w= child->widget ()) w->deleteLater ();
+    delete child;
+  }
+  // 处理中的附件不渲染 chip（反馈锚定在附件按钮动画上），ready 才弹出；
+  // 换行由流式布局按实际宽度自动处理
+  for (int i= 0; i < attachments_.size (); i++) {
+    if (!attachments_.at (i).ready) continue;
+    flow->addWidget (build_attachment_chip (attachments_.at (i), i));
+  }
+  // chips 区独立于输入框（外部上方），显隐由 inputAreaLayout 自动腾挪
+  chipsRow_->setVisible (flow->count () > 0);
+}
+
+QWidget*
+ChatConversationPanel::build_attachment_chip (const AttachmentItem& item,
+                                              int                   index) {
+  QWidget* chip= new QWidget (chipsRow_);
+  chip->setObjectName ("chat-tab-attachment-chip");
+  QHBoxLayout* lay= new QHBoxLayout (chip);
+  lay->setContentsMargins (DpiUtils::scaled (kAttachmentChipPadX), 0,
+                           DpiUtils::scaled (kAttachmentChipPadX / 2), 0);
+  lay->setSpacing (DpiUtils::scaled (2));
+  QLabel* label= new QLabel (chip);
+  label->setObjectName ("chat-tab-attachment-chip-label");
+  QString text= item.filename + "  " + format_attachment_size (item.size);
+  label->setText (QFontMetrics (label->font ())
+                      .elidedText (text, Qt::ElideMiddle,
+                                   DpiUtils::scaled (kAttachmentChipMaxText)));
+  label->setToolTip (item.filename + "\n" + item.path);
+  lay->addWidget (label);
+  QToolButton* removeBtn= new QToolButton (chip);
+  removeBtn->setObjectName ("chat-tab-attachment-remove-btn");
+  removeBtn->setText (QString (QChar (0x2715))); // ✕
+  int rmSize= DpiUtils::scaled (kAttachmentRemoveBtnSize);
+  removeBtn->setFixedSize (rmSize, rmSize);
+  removeBtn->setCursor (Qt::PointingHandCursor);
+  removeBtn->setFocusPolicy (Qt::NoFocus);
+  // index 为 attachments_ 全量下标；任何增删都全量重建后重新绑定
+  connect (removeBtn, &QToolButton::clicked, this, [this, index] () {
+    if (index < 0 || index >= attachments_.size ()) return;
+    attachments_.removeAt (index);
+    attachment_items_changed ();
+  });
+  lay->addWidget (removeBtn);
+  chip->setFixedHeight (DpiUtils::scaled (kAttachmentChipHeight));
+  chip->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  return chip;
 }
 
 void
@@ -310,6 +441,23 @@ ChatConversationPanel::setup_ui () {
   QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
   inputAreaLayout->setContentsMargins (0, 0, 0, 0);
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
+
+  // Attachment chips：位于输入框外部上方（消息区与输入框之间，与输入框
+  // 的间距由 inputAreaLayout 的 spacing 提供）。一行放不下自动换行、整体
+  // 向上扩展；独立于输入框，不参与其固定档高度；仅展示已 ready 的附件
+  chipsRow_= new QWidget (inputArea);
+  chipsRow_->setObjectName ("chat-tab-attachment-row");
+  // 流式布局自动换行（行内左对齐、不拉伸 chip）；heightForWidth 让
+  // inputAreaLayout 按换行后的实际高度腾挪空间
+  QtFlowLayout* flow=
+      new QtFlowLayout (chipsRow_, DpiUtils::scaled (kAttachmentChipSpacing),
+                        DpiUtils::scaled (kAttachmentRowSpacing));
+  flow->setContentsMargins (0, 0, 0, 0);
+  QSizePolicy chipsPolicy (QSizePolicy::Preferred, QSizePolicy::Minimum);
+  chipsPolicy.setHeightForWidth (true);
+  chipsRow_->setSizePolicy (chipsPolicy);
+  chipsRow_->hide ();
+  inputAreaLayout->insertWidget (0, chipsRow_);
 
   inputWidget= texmacs_input_widget (
       tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese", "zoom-factor",
@@ -378,6 +526,17 @@ ChatConversationPanel::setup_ui () {
   connect (searchButton_, &QToolButton::toggled, this,
            [this] (bool checked) { emit searchToggled (sessionId_, checked); });
   btnLayout->addWidget (searchButton_);
+  btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
+
+  // Attach button：点击请求 Controller 打开文件选择（多选 + %attachment
+  // ingest，预检在附件插件侧），ready 后 chips 显示在输入框外部上方；与
+  // 思考/搜索同款样式，仅非 checkable；处理中由 setProcessing 驱动旋转动画
+  attachButton_= make_toggle_btn (inputFrame, "chat-tab-attach-btn",
+                                  qt_translate ("Add Attachment"));
+  attachButton_->setCheckable (false);
+  connect (attachButton_, &QToolButton::clicked, this,
+           [this] () { emit attachRequested (sessionId_); });
+  btnLayout->addWidget (attachButton_);
   btnLayout->addStretch ();
 
   // Model button：显示当前模型 logo+名称+开合箭头，点击发 modelMenuRequested，
@@ -550,6 +709,7 @@ ChatConversationPanel::showWelcomePage () {
 void
 ChatConversationPanel::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
+  // chips 换行由流式布局自行处理，无需 resize 钩子
   if (conversationMode_ || !topSpacer_) return;
   int targetOffset= height () * 2 / 7 - DpiUtils::scaled (kContentMarginY);
   if (targetOffset < 0) targetOffset= 0;

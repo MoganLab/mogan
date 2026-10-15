@@ -13,6 +13,7 @@
 #define QT_CHAT_SESSION_HPP
 
 #include "url.hpp"
+#include <QList>
 #include <QMetaObject>
 #include <QString>
 #include <QStringList>
@@ -22,6 +23,22 @@
 #include <vector>
 
 class ChatConversationPanel;
+
+/**
+ * @brief 单个待发送附件（输入区 chip 对应的数据，内存态，不持久化）。
+ *
+ * 选中即置处理中并派发 %attachment ingest（path 只流向附件插件，
+ * 预检由插件判定）；ready 事件回填 sha256 后 chip 才可见，协议下发
+ * 只含 sha256/filename 两键，不暴露本地路径。
+ */
+struct AttachmentItem {
+  QString path;         ///< 本地绝对路径（仅用于 ingest，不下发）
+  QString filename;     ///< 展示文件名
+  qint64  size= 0;      ///< 字节数
+  QString taskId;       ///< ingest 任务号（ready/error 事件按它找回条目）
+  QString sha256;       ///< 附件插件 ready 后回填
+  bool    ready= false; ///< 是否已就绪（就绪后才显示 chip、才允许发送）
+};
 
 /**
  * @brief 聊天会话的生成状态。

@@ -14,6 +14,7 @@
 
 #include "qt_chat_model.hpp"
 #include "qt_chat_tab_widget.hpp"
+#include <QHash>
 #include <QObject>
 
 /**
@@ -163,6 +164,40 @@ public:
    */
   void onSearchToggled (const string& sessionId, bool enabled);
 
+  // ---- 附件 ----
+
+  /**
+   * @brief 附件列表 → scheme alist 列表（每项 sha256/filename 两键，
+   *        协议 v2 不暴露本地路径）；空表以 null_object 表示 '()。
+   *
+   * 仅序列化已 ready 的条目；处理中条目不应出现（发送栅栏保证），
+   * 防御性跳过。纯函数，便于单元测试。
+   */
+  static object attachment_items_to_scheme (const QList<AttachmentItem>& items);
+
+  /**
+   * @brief 附件按钮点击时触发：文件多选 → 派发 %attachment ingest。
+   *
+   * 选中附件以处理中状态入列并立即派发 ingest（path 只流向附件插件，
+   * 请求附带本轮已选累计 count/bytes 供插件预检）；违规与失败经插件
+   * error 事件 toast，ready/error 事件经 glue 回调 onAttachmentReady /
+   * onAttachmentError。
+   * @param sessionId 目标会话 ID
+   */
+  void onAttachRequested (const string& sessionId);
+
+  /**
+   * @brief 附件插件 ready 事件：回填 sha256、弹出 chip、按需解禁发送。
+   *
+   * chip 展示用的 filename/size 在选择时已填入 AttachmentItem，
+   * 事件只需 taskId 定位与 sha256 回填。
+   */
+  void onAttachmentReady (const string& taskId, const string& sha256);
+  /**
+   * @brief 附件插件 error 事件：移除条目并 toast 原因。
+   */
+  void onAttachmentError (const string& taskId, const string& reason);
+
   /**
    * @brief Model 按钮点击时触发：弹出模型选择菜单（按清单构建）。
    *
@@ -240,6 +275,17 @@ private:
   ChatModelStore     modelStore_; ///< 模型清单（构造即加载，早于 createView）
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
   string previousSessionId_; ///< 切入翻译/释义专属会话前的上一个活跃会话 ID
+  QHash<QString, QString>
+      attachTaskSession_; ///< ingest taskId → sessionId（事件路由）
+  int attachTaskSeq_= 0;  ///< ingest 任务号自增序号（不透明）
+
+  /**
+   * @brief 按 ingest taskId 取出路由会话的面板（事件路由统一入口）。
+   *
+   * 命中即从路由表移除该任务（每个任务只投递一次事件）。
+   * @return 目标面板；任务未知、无视图或无面板时返回 nullptr
+   */
+  ChatConversationPanel* takeAttachmentPanel (const QString& taskId);
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。
@@ -353,6 +399,15 @@ private:
   void connectPanelSignals (ChatConversationPanel* panel);
 
   /**
+   * @brief 发送按钮安全栅栏：附件处理中（未 ready）且非 Generating 时禁用。
+   *
+   * Generating 时按钮承担 Stop 职责必须可用；附件处理变化与会话状态
+   * 变化都经本函数重算。
+   * @param sessionId 目标会话 ID
+   */
+  void updateSendGate (const string& sessionId);
+
+  /**
    * @brief 刷新指定会话面板的 Model 按钮显示（logo+名称+箭头）。
    *
    * 会话模型不在清单内时按默认模型显示（与 activateSession 的内存
@@ -400,6 +455,16 @@ ChatController* get_chat_controller ();
  * @brief Scheme→C++ 回调：通知 Chat Tab 的会话状态变更。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
+
+/**
+ * @brief Scheme→C++ 回调：附件插件 ready 事件（%attachment）。
+ */
+void qt_chat_attachment_ready (string taskId, string sha256);
+
+/**
+ * @brief Scheme→C++ 回调：附件插件 error 事件（%attachment）。
+ */
+void qt_chat_attachment_error (string taskId, string reason);
 
 /**
  * @brief 引用文档选区到 AI 聊天输入区；翻译动作追加提示词并自动发送。

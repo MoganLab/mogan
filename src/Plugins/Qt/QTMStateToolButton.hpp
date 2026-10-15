@@ -2,7 +2,8 @@
 /******************************************************************************
  * MODULE     : QTMStateToolButton.hpp
  * DESCRIPTION: 支持通过 CSS qproperty-iconNormal/iconChecked/iconHovered
- *切换图标的 QToolButton COPYRIGHT  : (C) 2026 Mogan STEM
+ *              切换图标的 QToolButton
+ * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -12,7 +13,9 @@
 #ifndef QTMSTATETOOLBUTTON_HPP
 #define QTMSTATETOOLBUTTON_HPP
 
+#include <QBasicTimer>
 #include <QEvent>
+#include <QList>
 #include <QToolButton>
 
 class QTMStateToolButton : public QToolButton {
@@ -47,6 +50,32 @@ public:
     reloadIcon ();
   }
 
+  /**
+   * @brief 切换处理中状态：on 时正常图标按 45° 步进旋转（处理动画），
+   *        off 时停止并恢复常规图标。
+   */
+  void setProcessing (bool on) {
+    if (processing_ == on) return;
+    processing_= on;
+    // 45° 步进共 8 帧，进入处理态时一次预计算，tick 内只做 setIcon 查表
+    spinFrames_.clear ();
+    if (on) {
+      spinFrame_= 0;
+      if (!iconNormal_.isNull ()) {
+        QPixmap src= iconNormal_.pixmap (iconSize ());
+        for (int i= 0; i < 8; i++)
+          spinFrames_.append (QIcon (src.transformed (
+              QTransform ().rotate (i * 45), Qt::SmoothTransformation)));
+      }
+      spinTimer_.start (80, this);
+    }
+    else {
+      spinTimer_.stop ();
+      reloadIcon ();
+    }
+  }
+  bool processing () const { return processing_; }
+
 protected:
   bool event (QEvent* event) override {
     if (event->type () == QEvent::Enter || event->type () == QEvent::Leave) {
@@ -55,12 +84,29 @@ protected:
     return QToolButton::event (event);
   }
 
+  void timerEvent (QTimerEvent* event) override {
+    if (event->timerId () != spinTimer_.timerId ()) {
+      QToolButton::timerEvent (event);
+      return;
+    }
+    // 预计算帧查表（frame[0] 为 0° 原图）
+    if (spinFrames_.isEmpty ()) return;
+    spinFrame_= (spinFrame_ + 1) % (int) spinFrames_.size ();
+    setIcon (spinFrames_[spinFrame_]);
+  }
+
 private:
-  QIcon iconNormal_;
-  QIcon iconChecked_;
-  QIcon iconHovered_;
+  QIcon        iconNormal_;
+  QIcon        iconChecked_;
+  QIcon        iconHovered_;
+  QBasicTimer  spinTimer_;
+  QList<QIcon> spinFrames_;
+  int          spinFrame_ = 0;
+  bool         processing_= false;
 
   void reloadIcon () {
+    // 处理中图标由旋转帧驱动，hover/checked 图标切换暂缓
+    if (processing_) return;
     if (underMouse () && !iconHovered_.isNull ()) {
       setIcon (iconHovered_);
       return;

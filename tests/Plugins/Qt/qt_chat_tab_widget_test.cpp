@@ -175,6 +175,44 @@ private slots:
     QVERIFY (!ChatConversationPanel::is_empty_document_body (atom));
   }
 
+  // === format_attachment_size ===
+  void test_format_attachment_size_bytes () {
+    QCOMPARE (ChatConversationPanel::format_attachment_size (0),
+              QString ("0 B"));
+    QCOMPARE (ChatConversationPanel::format_attachment_size (1023),
+              QString ("1023 B"));
+  }
+
+  void test_format_attachment_size_kib () {
+    QCOMPARE (ChatConversationPanel::format_attachment_size (1024),
+              QString ("1.0 KiB"));
+    QCOMPARE (ChatConversationPanel::format_attachment_size (1536),
+              QString ("1.5 KiB"));
+    QCOMPARE (ChatConversationPanel::format_attachment_size (1048575),
+              QString ("1024.0 KiB"));
+  }
+
+  void test_format_attachment_size_mib_gib () {
+    QCOMPARE (ChatConversationPanel::format_attachment_size (1048576),
+              QString ("1.0 MiB"));
+    QCOMPARE (ChatConversationPanel::format_attachment_size (1073741824),
+              QString ("1.0 GiB"));
+    // 预检上限 80 MiB 的展示形态
+    qint64 maxBytes= 80LL * 1024 * 1024;
+    QCOMPARE (ChatConversationPanel::format_attachment_size (maxBytes),
+              QString ("80.0 MiB"));
+  }
+
+  // === AttachmentItem（协议 v2 数据形状） ===
+  void test_attachment_item_defaults () {
+    // 新选中附件：未 ready、无 sha256；path 只流向附件插件
+    AttachmentItem it;
+    QVERIFY (!it.ready);
+    QVERIFY (it.sha256.isEmpty ());
+    QVERIFY (it.taskId.isEmpty ());
+    QCOMPARE (it.size, (qint64) 0);
+  }
+
   // === setSidebarCollapsed / isSidebarCollapsed ===
   void test_setSidebarCollapsed_expand () {
     QList<SessionDisplayInfo> sessions;

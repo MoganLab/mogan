@@ -140,6 +140,32 @@ public:
   bool          conversationMode () const { return conversationMode_; }
 
   /**
+   * @name 附件 chips
+   *
+   * 附件状态由面板唯一持有（面板随会话共存于 QStackedWidget，跨会话
+   * 切换天然保留，无需会话镜像、不持久化）。选中通过预检的附件以
+   * 处理中状态入列（chip 不可见），附件插件 ready 事件回填 sha256 后
+   * chip 才弹出；存在处理中附件时附件按钮旋转动画、发送按钮禁用。
+   * @{
+   */
+  /// 全量替换附件列表并重建 chips
+  void setAttachments (const QList<AttachmentItem>& items);
+  const QList<AttachmentItem>& attachments () const { return attachments_; }
+  /// 是否存在处理中（未 ready）的附件
+  bool hasProcessingAttachments () const;
+  /// 附件插件 ready 事件：按 taskId 回填 sha256 并弹出 chip
+  /// @return 找到对应处理中条目时返回 true
+  bool attachmentReady (const QString& taskId, const QString& sha256);
+  /// 附件插件 error 事件：按 taskId 移除条目
+  /// @return 找到对应条目时返回 true
+  bool attachmentError (const QString& taskId);
+  /// 会话 Generating 时禁用附件按钮（与思考/搜索按钮同节奏）
+  void setAttachEnabled (bool enabled);
+  /// 附件字节数格式化（子 KiB 保留原样避免千分位，其余走 C locale）
+  static QString format_attachment_size (qint64 bytes);
+  /** @} */
+
+  /**
    * @brief 判断文档体是否为空（仅含一个空字符串的 DOCUMENT 节点）。
    *
    * get_buffer_body 对不存在的 buffer 返回原子空串，也视为空。
@@ -198,6 +224,10 @@ signals:
   /// 菜单由 Controller 在按钮上方完整弹出（不遮挡按钮）
   void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
   void closeSidebarInDockModeRequested ();
+  /// 请求选择附件（多选由 Controller 完成，预检在附件插件侧）
+  void attachRequested (const string& sessionId);
+  /// 附件处理中状态变化（驱动 Controller 的发送按钮安全栅栏）
+  void attachmentProcessingChanged (const string& sessionId);
 
 protected:
   /// 事件过滤器：拦截 Enter 键触发发送
@@ -213,6 +243,13 @@ public:
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
+  /// 全量重建 chips（流式布局自动换行，无需分行计算）
+  void rebuild_attachment_chips ();
+  /// 构建单个 chip（文件名 + 大小 + ✕ 删除）
+  QWidget* build_attachment_chip (const AttachmentItem& item, int index);
+  /// 附件列表变更的统一收口：重建 chips、驱动按钮动画、处理中状态翻转时
+  /// 通知 Controller 更新发送栅栏
+  void attachment_items_changed ();
   /// 读取输入区排版盒的内容高度并折算行数（排版未就绪返回 -1，维持现状）
   int input_content_lines ();
   /// 按内容行数把输入区高度切换到固定档位
@@ -222,23 +259,26 @@ private:
   /// 输入框 frame 的封顶档高度（档位策略单一来源）
   int input_frame_max_height ();
 
-  string       sessionId_;                  ///< 所属会话 ID
-  url          msgBufferUrl_;               ///< 消息缓冲区 URL（外部注入）
-  url          inputBufferUrl_;             ///< 输入缓冲区 URL（外部注入）
-  bool         conversationMode_ = false;   ///< 是否已进入对话模式
-  QLabel*      welcomeTitle_     = nullptr; ///< 欢迎页标题
-  QLabel*      sessionTitle_     = nullptr; ///< 会话标题标签
-  QWidget*     messageFrame_     = nullptr; ///< 消息区域容器
-  QWidget*     inputEditorWidget_= nullptr; ///< 输入编辑器容器
-  QTMWidget*   inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
-  QToolButton* sendButton_       = nullptr; ///< 发送/停止按钮
-  QToolButton* thinkingButton_   = nullptr; ///< 推理模式开关
-  QToolButton* searchButton_     = nullptr; ///< 网络搜索开关
-  QToolButton* modelButton_      = nullptr; ///< 模型选择按钮（文字固定 Model）
-  QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
-  widget       messageWidget_;              ///< 消息区 TeXmacs widget
-  widget       inputWidget;                 ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_= 0;         ///< 输入框额外高度（边框等）
+  string              sessionId_;                ///< 所属会话 ID
+  url                 msgBufferUrl_;             ///< 消息缓冲区 URL（外部注入）
+  url                 inputBufferUrl_;           ///< 输入缓冲区 URL（外部注入）
+  bool                conversationMode_ = false; ///< 是否已进入对话模式
+  QLabel*             welcomeTitle_     = nullptr; ///< 欢迎页标题
+  QLabel*             sessionTitle_     = nullptr; ///< 会话标题标签
+  QWidget*            messageFrame_     = nullptr; ///< 消息区域容器
+  QWidget*            inputEditorWidget_= nullptr; ///< 输入编辑器容器
+  QTMWidget*          inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
+  QToolButton*        sendButton_       = nullptr; ///< 发送/停止按钮
+  QToolButton*        thinkingButton_   = nullptr; ///< 推理模式开关
+  QToolButton*        searchButton_     = nullptr; ///< 网络搜索开关
+  QTMStateToolButton* attachButton_= nullptr; ///< 附件按钮（处理中旋转动画）
+  QToolButton*        modelButton_= nullptr; ///< 模型选择按钮（文字固定 Model）
+  QWidget*            chipsRow_= nullptr; ///< 附件 chips 区（输入框外部上方）
+  QList<AttachmentItem> attachments_;     ///< 待发送附件列表（面板唯一持有）
+  QSpacerItem*          topSpacer_= nullptr; ///< 欢迎页顶部弹性空间
+  widget                messageWidget_;      ///< 消息区 TeXmacs widget
+  widget                inputWidget;         ///< 输入区 TeXmacs widget
+  int                   fixedFrameExtra_= 0; ///< 输入框额外高度（边框等）
   int  inputExtentLinePx_= 0; ///< 空输入时标定的单行内容高度（0 = 未标定）
   bool inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };

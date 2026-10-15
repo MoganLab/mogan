@@ -30,10 +30,13 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
+#include <QSet>
 #include <QStandardPaths>
+#include <QStringList>
 #include <QStyle>
 #include <QTimer>
 #include <QToolButton>
@@ -194,6 +197,8 @@ ChatController::onSendRequested (const string& sessionId) {
 
   ChatConversationPanel* panel=
       static_cast<ChatConversationPanel*> (session->panel);
+  // 附件安全栅栏兜底：处理中不允许发送（按钮已禁用，Enter 键路径在此拦截）
+  if (panel->hasProcessingAttachments ()) return;
   tree inputBody= panel->readInputMessage ();
   if (ChatConversationPanel::is_empty_document_body (inputBody)) return;
 
@@ -233,14 +238,19 @@ ChatController::onSendRequested (const string& sessionId) {
   panel->ensureMessageWidget ();
 
   // 协议下发参数取自模型清单：baseUrl 透传清单原值，相对路径由 scheme 侧
-  // 拼接当前 stem site
+  // 拼接当前 stem site；attachments 为协议 v2 尾参（sha256/filename 两键，
+  // llm 插件只接收 sha 与文件名，无附件时传 null_object 表示空表）
   ChatModelInfo info= modelStore_.find (session->model);
   array<object> args;
   args << object (sessionId) << object (info.key) << object (info.baseUrl)
        << object (session->thinking ? string ("enabled") : string ("disabled"))
        << object (session->search ? string ("enabled") : string ("disabled"))
-       << object (session->thinkingEffort);
+       << object (session->thinkingEffort)
+       << attachment_items_to_scheme (panel->attachments ());
   if (!as_bool (call ("chat-tab-send", args))) return;
+
+  // 附件已随本轮下发，清空 chips
+  panel->setAttachments (QList<AttachmentItem> ());
 
   sessionManager_.setState (sessionId, ChatState::Generating);
   sessionManager_.touchSession (sessionId);
@@ -255,6 +265,106 @@ ChatController::onSendRequested (const string& sessionId) {
 void
 ChatController::onCancelRequested (const string& sessionId) {
   call ("chat-tab-cancel", sessionId);
+}
+
+void
+ChatController::onAttachRequested (const string& sessionId) {
+  if (!view_) return;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || session->state == ChatState::Generating) return;
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
+  if (!panel) return;
+
+  // 扩展名白名单在附件插件侧（预检归属插件），文件对话框不做类型过滤
+  QStringList files= QFileDialog::getOpenFileNames (
+      view_, qt_translate ("Add Attachment"), QString (),
+      qt_translate ("All files") + QString (" (*)"));
+  if (files.isEmpty ()) return;
+
+  // 附件插件由启动 idle 延迟初始化（lazy-plugin-initialize），首次点击
+  // 可能早于延迟触发，attachment-ingest 尚未定义会使 call 误报插件不可用；
+  // llm 同款入口保障（plugin-initialize 幂等，插件数据缺失时为无操作，
+  // 仍由下方 toast 兜底）
+  eval ("(plugin-initialize 'attachment)");
+
+  QList<AttachmentItem> items     = panel->attachments ();
+  qint64                totalBytes= 0;
+  QSet<QString>         existingPaths;
+  for (const AttachmentItem& existing : items) {
+    totalBytes+= existing.size;
+    existingPaths.insert (existing.path);
+  }
+  for (const QString& path : files) {
+    // 同路径重复选择静默跳过，不 toast 打扰
+    if (existingPaths.contains (path)) continue;
+    AttachmentItem item;
+    QFileInfo      fi (path);
+    item.path    = path;
+    item.filename= fi.fileName ();
+    item.size    = fi.size ();
+    // 派发 %attachment ingest：path 只流向附件插件，不进 %chat 协议；
+    // 请求附带本轮已选累计 count/bytes，扩展名/数量/总大小预检由插件
+    // 判定，违规经 error 事件 toast。失败（插件不可用）则不入选。
+    // taskId 为不透明序号，路由只靠 attachTaskSession_（单一事实源）
+    item.taskId= QString::number (++attachTaskSeq_);
+    if (!as_bool (
+            call ("attachment-ingest", object (from_qstring_utf8 (item.taskId)),
+                  object (from_qstring_utf8 (item.path)),
+                  object ((int) items.size ()), object ((int) totalBytes)))) {
+      QtFloatingToast::showToast (
+          view_, qt_translate ("Attachment plugin is not available"), 3000,
+          QtFloatingToast::Warning);
+      continue;
+    }
+    attachTaskSession_.insert (item.taskId, to_qstring (sessionId));
+    items.append (item);
+    existingPaths.insert (item.path);
+    totalBytes+= item.size;
+  }
+  panel->setAttachments (items);
+}
+
+ChatConversationPanel*
+ChatController::takeAttachmentPanel (const QString& taskId) {
+  if (!attachTaskSession_.contains (taskId)) return nullptr;
+  string sessionId= from_qstring_utf8 (attachTaskSession_.take (taskId));
+  if (!view_) return nullptr;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || !session->panel) return nullptr;
+  return static_cast<ChatConversationPanel*> (session->panel);
+}
+
+void
+ChatController::onAttachmentReady (const string& taskId, const string& sha256) {
+  // 发送栅栏由面板的 attachmentProcessingChanged 信号驱动（处理中状态
+  // 翻转即重算），此处无需再调 updateSendGate
+  QString qTaskId= to_qstring (taskId);
+  if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId))
+    panel->attachmentReady (qTaskId, to_qstring (sha256));
+}
+
+void
+ChatController::onAttachmentError (const string& taskId, const string& reason) {
+  QString qTaskId= to_qstring (taskId);
+  if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId)) {
+    if (panel->attachmentError (qTaskId))
+      QtFloatingToast::showToast (view_, to_qstring (reason), 3000,
+                                  QtFloatingToast::Warning);
+  }
+}
+
+void
+ChatController::updateSendGate (const string& sessionId) {
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || !session->panel) return;
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
+  QToolButton* btn= panel->sendButton ();
+  if (!btn) return;
+  // Generating 时按钮承担 Stop 职责必须可用；否则附件处理中禁用发送
+  btn->setEnabled (session->state == ChatState::Generating ||
+                   !panel->hasProcessingAttachments ());
 }
 
 void
@@ -422,6 +532,23 @@ ChatController::onRestoreRequested (const string& sessionId) {
   updateManifest (sessionId);
   view_->sidebar ()->moveFromArchive (sessionId);
   activateSession (sessionId);
+}
+
+object
+ChatController::attachment_items_to_scheme (
+    const QList<AttachmentItem>& items) {
+  // 协议 v2 只下传 sha256/filename 两键，本地路径与大小不出进程；
+  // 空表以 null_object 表示 '()
+  array<object> arr;
+  for (const AttachmentItem& it : items) {
+    // 处理中条目防御性跳过（发送栅栏保证不出现）
+    if (!it.ready) continue;
+    arr << list_object (
+        cons (object ("sha256"), object (from_qstring_utf8 (it.sha256))),
+        cons (object ("filename"), object (from_qstring_utf8 (it.filename))));
+  }
+  if (N (arr) == 0) return null_object ();
+  return as_list_object (arr);
 }
 
 QString
@@ -620,6 +747,10 @@ ChatController::notifyStateChanged (const string& sessionId,
       static_cast<ChatConversationPanel*> (session->panel);
   QToolButton* btn= panel->sendButton ();
   if (!btn) return;
+
+  // 附件按钮只在 Idle 可点；发送栅栏随状态重算
+  panel->setAttachEnabled (newState == ChatState::Idle);
+  updateSendGate (sessionId);
 
   // Generating 状态：切换按钮为 Stop
   if (newState == ChatState::Generating) {
@@ -827,6 +958,10 @@ ChatController::connectPanelSignals (ChatConversationPanel* panel) {
            &ChatController::onThinkingToggled);
   connect (panel, &ChatConversationPanel::searchToggled, this,
            &ChatController::onSearchToggled);
+  connect (panel, &ChatConversationPanel::attachRequested, this,
+           &ChatController::onAttachRequested);
+  connect (panel, &ChatConversationPanel::attachmentProcessingChanged, this,
+           &ChatController::updateSendGate);
   connect (panel, &ChatConversationPanel::modelMenuRequested, this,
            &ChatController::onModelMenuRequested);
   connect (panel, &ChatConversationPanel::closeSidebarInDockModeRequested, this,
@@ -1201,4 +1336,18 @@ qt_chat_notify_input_height () {
   if (!panel) return;
 
   panel->schedule_input_height_adjust ();
+}
+
+void
+qt_chat_attachment_ready (string taskId, string sha256) {
+  ChatController* ctrl= get_chat_controller ();
+  if (!ctrl) return;
+  ctrl->onAttachmentReady (taskId, sha256);
+}
+
+void
+qt_chat_attachment_error (string taskId, string reason) {
+  ChatController* ctrl= get_chat_controller ();
+  if (!ctrl) return;
+  ctrl->onAttachmentError (taskId, reason);
 }

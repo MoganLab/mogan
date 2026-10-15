@@ -277,6 +277,24 @@ function main()
                 ret_type = "void",
                 arg_list = {}
             },
+            {
+                scm_name = "qt-chat-attachment-ready",
+                cpp_name = "qt_chat_attachment_ready",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
+                scm_name = "qt-chat-attachment-error",
+                cpp_name = "qt_chat_attachment_error",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
  
             {
                 scm_name = "qt-floating-search",

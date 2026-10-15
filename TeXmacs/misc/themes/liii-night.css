@@ -1630,6 +1630,53 @@ QWidget#centralWidget QToolButton#chat-tab-search-btn:checked {
   color: #2791ad;
 }
 
+/* 附件按钮（不可勾选） */
+QToolButton#chat-tab-attach-btn,
+QWidget#centralWidget QToolButton#chat-tab-attach-btn {
+  color: #ffffff;
+  border: 1px solid #7a7a7a;
+  background: transparent;
+  qproperty-iconNormal: url(":/llm-chat/attach-white.svg");
+}
+QToolButton#chat-tab-attach-btn:hover,
+QWidget#centralWidget QToolButton#chat-tab-attach-btn:hover {
+  background: #7a7a7a;
+}
+QToolButton#chat-tab-attach-btn:pressed,
+QWidget#centralWidget QToolButton#chat-tab-attach-btn:pressed {
+  background: #8e8e8e;
+}
+
+/* 附件 chips */
+QWidget#chat-tab-attachment-chip,
+QWidget#centralWidget QWidget#chat-tab-attachment-chip {
+  background: #3a3a3a;
+  border: 1px solid #5a5a5a;
+  border-radius: 4px;
+}
+QLabel#chat-tab-attachment-chip-label,
+QWidget#centralWidget QLabel#chat-tab-attachment-chip-label {
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  font-size: 12px;
+}
+QToolButton#chat-tab-attachment-remove-btn,
+QWidget#centralWidget QToolButton#chat-tab-attachment-remove-btn {
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 0px;
+  margin: 0px;
+  font-size: 11px;
+  color: #a0a0a0;
+}
+QToolButton#chat-tab-attachment-remove-btn:hover,
+QWidget#centralWidget QToolButton#chat-tab-attachment-remove-btn:hover {
+  background: #5a5a5a;
+  color: #ffffff;
+}
+
 /* 发送按钮 */
 QToolButton#chat-tab-send-btn,
 QWidget#centralWidget QToolButton#chat-tab-send-btn {
