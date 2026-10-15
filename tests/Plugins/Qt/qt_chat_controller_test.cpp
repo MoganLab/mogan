@@ -16,6 +16,7 @@
 #include "converter.hpp"
 #include "locale.hpp"
 #include "preferences.hpp"
+#include "qt_utilities.hpp"
 #include "scheme.hpp"
 
 using namespace moebius;
@@ -349,6 +350,17 @@ private slots:
     QVERIFY (v2 == "a.pdf");
     // 恰好两键：无 size/path 等第三键
     QCOMPARE ((int) N (as_array_object (item)), 2);
+    // 非 ASCII 文件名须为 herk 内部形态（中文成 <#XXXX> 实体）：裸 UTF-8
+    // 会被 connection_write 的 tree_herk_to_utf8 逐字节二次映射打乱，
+    // llm 插件收到乱码文件名
+    AttachmentItem cjk= make_attachment ("/tmp/论文/", "北大论文.pdf", 42);
+    cjk.ready         = true;
+    cjk.sha256        = "deadbeef";
+    object scmCjk=
+        ChatController::attachment_items_to_scheme (QList<AttachmentItem>{cjk});
+    object itemCjk= as_array_object (scmCjk)[0];
+    string vCjk   = as_string (cdr (car (cdr (itemCjk))));
+    QVERIFY (vCjk == "<#5317><#5927><#8BBA><#6587>.pdf");
   }
 };
 
