@@ -19,26 +19,45 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 布局：~/.cache/Liiistem/attachment/extract/<yyyymm>/<sha256>/result.json，
-;; 内容为二元数组 [{"id": sha256, "ts"}, {"content": …}]。保留当月与上月；
-;; 读取方不知道 yyyymm，按「当前月 → 上个月」两候选目录查找。写入方与
-;; 读取方（llm 假插件）共用本库，避免布局约定各自复制后漂移
+;; 布局：<缓存基目录>/Liiistem/attachment/extract/<yyyymm>/<sha256>/
+;; result.json，内容为二元数组 [{"id": sha256, "ts"}, {"content": …}]。
+;; 缓存基目录按平台惯例解析（对齐 mogan C++ get_tm_cache_path 的分布）：
+;; Windows %LOCALAPPDATA%、macOS ~/Library/Caches、Linux XDG_CACHE_HOME
+;; （未设置回退 ~/.cache）。保留当月与上月；读取方不知道 yyyymm，按
+;; 「当前月 → 上个月」两候选目录查找。写入方与读取方（llm 假插件）共用
+;; 本库，避免布局约定各自复制后漂移
 
 (define-library (texmacs attachment-cache)
-  (import (liii path) (liii json) (liii time) (scheme time))
+  (import (liii path) (liii os) (liii json) (liii time) (scheme time))
   (export attachment-extract-root attachment-extract-cache-dir
     attachment-cache-payload-content attachment-cache-put!
     attachment-cache-sweep!
   ) ;export
   (begin
 
+    (define (attachment-cache-base)
+      ;; 平台惯例缓存基目录：Windows %LOCALAPPDATA%（未设置回退
+      ;; ~/AppData/Local）、macOS ~/Library/Caches、Linux XDG_CACHE_HOME
+      ;; （未设置回退 ~/.cache）
+      (let ((home (path->string (path-home))))
+        (cond
+         ((os-windows?)
+          (let ((local (getenv "LOCALAPPDATA")))
+            (if local local (path-join home "AppData" "Local"))
+          ) ;let
+         ) ;
+         ((os-macos?) (path-join home "Library" "Caches"))
+         (else
+           (let ((xdg (getenv "XDG_CACHE_HOME")))
+             (if xdg xdg (path-join home ".cache"))
+           ) ;let
+         ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (attachment-extract-root)
-      (path-join (path->string (path-home))
-        ".cache"
-        "Liiistem"
-        "attachment"
-        "extract"
-      ) ;path-join
+      (path-join (attachment-cache-base) "Liiistem" "attachment" "extract")
     ) ;define
 
     (define (attachment-yyyymm year month)
