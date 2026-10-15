@@ -192,6 +192,9 @@
   (check (fake-attachment-precheck "a.Md" 1 0 0) => #f)
   (check (fake-attachment-precheck "a.py" 1 0 0) => #f)
   (check (fake-attachment-precheck "a.rs" 1 0 0) => #f)
+  ;; Mogan 文档格式
+  (check (fake-attachment-precheck "a.stem" 1 0 0) => #f)
+  (check (fake-attachment-precheck "a.tmu" 1 0 0) => #f)
   (check (string? (fake-attachment-precheck "noext" 1 0 0)) => #t)
   (check (string? (fake-attachment-precheck ".hidden" 1 0 0)) => #t)
   (let ((err (fake-attachment-precheck "a.exe" 1 0 0)))

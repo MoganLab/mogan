@@ -43,8 +43,8 @@
 (define attachment-max-total-bytes (* 80 1024 1024))
 
 (define attachment-allowed-extensions
-  '("pdf" "doc" "docx" "xls" "xlsx" "ppt" "pptx" "md" "txt" "csv" "epub" "html"
-    "json" "log" "c" "cpp" "h" "java" "py" "js" "ts" "go" "rs")
+  '("pdf" "doc" "docx" "xls" "xlsx" "ppt" "pptx" "md" "txt" "csv" "epub" "stem"
+    "tmu" "html" "json" "log" "c" "cpp" "h" "java" "py" "js" "ts" "go" "rs")
 ) ;define
 
 ;;; ---------- 抽取缓存：平台基目录、月度布局、命中刷新、月度清理 ----------
