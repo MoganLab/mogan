@@ -75,14 +75,9 @@
        ) ;
     (cond
      ((== event "ready")
-      (exec-delayed (lambda ()
-                      (qt-chat-attachment-ready task-id
-                        (json-ref-string j "sha256" "")
-                        (json-ref-string j "filename" "")
-                        (json-ref-number j "size" 0)
-                        (json-ref-number j "extractedChars" 0)
-                      ) ;qt-chat-attachment-ready
-                    ) ;lambda
+      ;; chip 展示用的 filename/size 在本地预检时已就位，事件只需 taskId
+      ;; 定位与 sha256 回填
+      (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
       ) ;exec-delayed
      ) ;
      ((== event "error")
@@ -133,17 +128,23 @@
   ) ;with
 ) ;define
 
-(tm-define (attachment-ingest task-id path)
+(tm-define (attachment-ingest task-id path count bytes)
   (:synopsis "Ingest an attachment file through the attachment plugin")
   (:argument task-id "Ingest task id")
   (:argument path "Local absolute path (only flows to the attachment plugin)")
+  (:argument count "Already-selected attachment count this round")
+  (:argument bytes "Already-selected total bytes this round")
+  ;; count/bytes 为本轮已选累计，供插件侧预检（扩展名白名单/数量/总大小
+  ;; 上限均在插件内判定，违规回 error 事件）
   (if (not (connection-defined? "attachment"))
     #f
     (let ((input
             (stree->tree
               `(document ,(string-append "%attachment "
                             (json->string (list (cons "taskId" task-id)
-                                            (cons "path" path)))))
+                                            (cons "path" path)
+                                            (cons "count" count)
+                                            (cons "bytes" bytes)))))
             ) ;stree->tree
           ) ;input
          ) ;

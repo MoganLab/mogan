@@ -166,34 +166,8 @@ public:
 
   // ---- 附件 ----
 
-  /// 每轮附件数量上限（含已选累计）
-  static constexpr int kAttachmentMaxCount= 10;
-  /// 每轮附件总大小上限（含已选累计），80 MiB
-  static constexpr qint64 kAttachmentMaxTotalSize= 80LL * 1024 * 1024;
-
   /**
-   * @brief 附件扩展名白名单判定（大小写不敏感）。
-   *
-   * 白名单单源为 cpp 内的 kAttachmentDocExtensions/kAttachmentCodeExtensions，
-   * 同时驱动文件选择过滤器与本判定。纯函数，便于单元测试。
-   * @param path 文件路径
-   * @return 扩展名在白名单内返回 true
-   */
-  static bool attachment_extension_allowed (const QString& path);
-
-  /**
-   * @brief 附件本地预检：白名单 → 数量上限 → 总大小上限（按序短路）。
-   * @param item                 待检附件
-   * @param alreadySelectedCount 已选附件数量（含处理中与已就绪）
-   * @param alreadySelectedBytes 已选附件总字节数
-   * @return 违规原因（已本地化）；通过时返回空串
-   */
-  static QString attachment_precheck_error (const AttachmentItem& item,
-                                            int    alreadySelectedCount,
-                                            qint64 alreadySelectedBytes);
-
-  /**
-   * @brief 附件列表 → scheme alist 列表（每项 sha256/filename/size 三键，
+   * @brief 附件列表 → scheme alist 列表（每项 sha256/filename 两键，
    *        协议 v2 不暴露本地路径）；空表以 null_object 表示 '()。
    *
    * 仅序列化已 ready 的条目；处理中条目不应出现（发送栅栏保证），
@@ -202,10 +176,11 @@ public:
   static object attachment_items_to_scheme (const QList<AttachmentItem>& items);
 
   /**
-   * @brief 附件按钮点击时触发：文件多选 → 本地预检 → %attachment ingest。
+   * @brief 附件按钮点击时触发：文件多选 → 派发 %attachment ingest。
    *
-   * 通过预检的附件以处理中状态入列并立即派发 ingest（path 只流向
-   * 附件插件）；ready/error 事件经 glue 回调 onAttachmentReady /
+   * 选中附件以处理中状态入列并立即派发 ingest（path 只流向附件插件，
+   * 请求附带本轮已选累计 count/bytes 供插件预检）；违规与失败经插件
+   * error 事件 toast，ready/error 事件经 glue 回调 onAttachmentReady /
    * onAttachmentError。
    * @param sessionId 目标会话 ID
    */
@@ -213,10 +188,11 @@ public:
 
   /**
    * @brief 附件插件 ready 事件：回填 sha256、弹出 chip、按需解禁发送。
+   *
+   * chip 展示用的 filename/size 在本地预检时已填入 AttachmentItem，
+   * 事件只需 taskId 定位与 sha256 回填。
    */
-  void onAttachmentReady (const string& taskId, const string& sha256,
-                          const string& filename, qint64 size,
-                          qint64 extractedChars);
+  void onAttachmentReady (const string& taskId, const string& sha256);
   /**
    * @brief 附件插件 error 事件：移除条目并 toast 原因。
    */
@@ -301,7 +277,15 @@ private:
   string previousSessionId_; ///< 切入翻译/释义专属会话前的上一个活跃会话 ID
   QHash<QString, QString>
       attachTaskSession_; ///< ingest taskId → sessionId（事件路由）
-  int attachTaskSeq_= 0;  ///< ingest 任务号自增序号
+  int attachTaskSeq_= 0;  ///< ingest 任务号自增序号（不透明）
+
+  /**
+   * @brief 按 ingest taskId 取出路由会话的面板（事件路由统一入口）。
+   *
+   * 命中即从路由表移除该任务（每个任务只投递一次事件）。
+   * @return 目标面板；任务未知、无视图或无面板时返回 nullptr
+   */
+  ChatConversationPanel* takeAttachmentPanel (const QString& taskId);
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。
@@ -475,8 +459,7 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
 /**
  * @brief Scheme→C++ 回调：附件插件 ready 事件（%attachment）。
  */
-void qt_chat_attachment_ready (string taskId, string sha256, string filename,
-                               int size, int extractedChars);
+void qt_chat_attachment_ready (string taskId, string sha256);
 
 /**
  * @brief Scheme→C++ 回调：附件插件 error 事件（%attachment）。

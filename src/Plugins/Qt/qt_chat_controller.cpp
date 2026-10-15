@@ -57,27 +57,6 @@ is_doc_bound_type (const string& type) {
   return type == "translate" || type == "explain";
 }
 
-// 附件扩展名白名单的唯一数据源：文档类（文件选择过滤器第一组由此生成）
-// + 常见源码类；新增类型只改这里
-static const QStringList kAttachmentDocExtensions= {
-    "pdf", "doc", "docx", "xls",  "xlsx", "ppt",  "pptx",
-    "md",  "txt", "csv",  "epub", "html", "json", "log"};
-static const QStringList kAttachmentCodeExtensions= {
-    "c", "cpp", "h", "java", "py", "js", "ts", "go", "rs"};
-
-static const QSet<QString>&
-attachment_allowed_extensions () {
-  static const QSet<QString> allowed= [] {
-    QSet<QString> s;
-    for (const QString& e : kAttachmentDocExtensions)
-      s.insert (e);
-    for (const QString& e : kAttachmentCodeExtensions)
-      s.insert (e);
-    return s;
-  }();
-  return allowed;
-}
-
 ChatController::ChatController (QObject* parent) : QObject (parent) {}
 
 ChatController::~ChatController () {
@@ -259,8 +238,8 @@ ChatController::onSendRequested (const string& sessionId) {
   panel->ensureMessageWidget ();
 
   // 协议下发参数取自模型清单：baseUrl 透传清单原值，相对路径由 scheme 侧
-  // 拼接当前 stem site；attachments 为协议 v2 尾参（sha256/filename/size
-  // 三键，无附件时传 null_object 表示空表）
+  // 拼接当前 stem site；attachments 为协议 v2 尾参（sha256/filename 两键，
+  // llm 插件只接收 sha 与文件名，无附件时传 null_object 表示空表）
   ChatModelInfo info= modelStore_.find (session->model);
   array<object> args;
   args << object (sessionId) << object (info.key) << object (info.baseUrl)
@@ -297,15 +276,10 @@ ChatController::onAttachRequested (const string& sessionId) {
       static_cast<ChatConversationPanel*> (session->panel);
   if (!panel) return;
 
-  // 白名单文档扩展名即过滤器第一组；「所有文件」兜底选中的文件由预检把关
-  QStringList patterns;
-  for (const QString& e : kAttachmentDocExtensions)
-    patterns << "*." + e;
-  QString filter= qt_translate ("Document files") + QString (" (") +
-                  patterns.join (" ") + QString (");;") +
-                  qt_translate ("All files") + QString (" (*)");
+  // 扩展名白名单在附件插件侧（预检归属插件），文件对话框不做类型过滤
   QStringList files= QFileDialog::getOpenFileNames (
-      view_, qt_translate ("Add Attachment"), QString (), filter);
+      view_, qt_translate ("Add Attachment"), QString (),
+      qt_translate ("All files") + QString (" (*)"));
   if (files.isEmpty ()) return;
 
   QList<AttachmentItem> items     = panel->attachments ();
@@ -326,18 +300,15 @@ ChatController::onAttachRequested (const string& sessionId) {
     item.path    = path;
     item.filename= fi.fileName ();
     item.size    = fi.size ();
-    QString err  = attachment_precheck_error (item, items.size (), totalBytes);
-    if (!err.isEmpty ()) {
-      QtFloatingToast::showToast (view_, err, 3000, QtFloatingToast::Warning);
-      continue;
-    }
     // 派发 %attachment ingest：path 只流向附件插件，不进 %chat 协议；
-    // 失败（插件不可用）则不入选
-    item.taskId=
-        to_qstring (sessionId) + "-" + QString::number (++attachTaskSeq_);
-    if (!as_bool (call ("attachment-ingest",
-                        object (from_qstring_utf8 (item.taskId)),
-                        object (from_qstring_utf8 (item.path))))) {
+    // 请求附带本轮已选累计 count/bytes，扩展名/数量/总大小预检由插件
+    // 判定，违规经 error 事件 toast。失败（插件不可用）则不入选。
+    // taskId 为不透明序号，路由只靠 attachTaskSession_（单一事实源）
+    item.taskId= QString::number (++attachTaskSeq_);
+    if (!as_bool (
+            call ("attachment-ingest", object (from_qstring_utf8 (item.taskId)),
+                  object (from_qstring_utf8 (item.path)),
+                  object ((int) items.size ()), object ((int) totalBytes)))) {
       QtFloatingToast::showToast (
           view_, qt_translate ("Attachment plugin is not available"), 3000,
           QtFloatingToast::Warning);
@@ -348,39 +319,34 @@ ChatController::onAttachRequested (const string& sessionId) {
     totalBytes+= item.size;
   }
   panel->setAttachments (items);
-  updateSendGate (sessionId);
+}
+
+ChatConversationPanel*
+ChatController::takeAttachmentPanel (const QString& taskId) {
+  if (!attachTaskSession_.contains (taskId)) return nullptr;
+  string sessionId= from_qstring_utf8 (attachTaskSession_.take (taskId));
+  if (!view_) return nullptr;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || !session->panel) return nullptr;
+  return static_cast<ChatConversationPanel*> (session->panel);
 }
 
 void
-ChatController::onAttachmentReady (const string& taskId, const string& sha256,
-                                   const string& filename, qint64 size,
-                                   qint64 extractedChars) {
+ChatController::onAttachmentReady (const string& taskId, const string& sha256) {
+  // 发送栅栏由面板的 attachmentProcessingChanged 信号驱动（处理中状态
+  // 翻转即重算），此处无需再调 updateSendGate
   QString qTaskId= to_qstring (taskId);
-  if (!attachTaskSession_.contains (qTaskId)) return;
-  string sessionId= from_qstring_utf8 (attachTaskSession_.take (qTaskId));
-  if (!view_) return;
-  ChatSession* session= sessionManager_.getSession (sessionId);
-  if (!session || !session->panel) return;
-  ChatConversationPanel* panel=
-      static_cast<ChatConversationPanel*> (session->panel);
-  if (panel->attachmentReady (qTaskId, to_qstring (sha256)))
-    updateSendGate (sessionId);
+  if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId))
+    panel->attachmentReady (qTaskId, to_qstring (sha256));
 }
 
 void
 ChatController::onAttachmentError (const string& taskId, const string& reason) {
   QString qTaskId= to_qstring (taskId);
-  if (!attachTaskSession_.contains (qTaskId)) return;
-  string sessionId= from_qstring_utf8 (attachTaskSession_.take (qTaskId));
-  if (!view_) return;
-  ChatSession* session= sessionManager_.getSession (sessionId);
-  if (!session || !session->panel) return;
-  ChatConversationPanel* panel=
-      static_cast<ChatConversationPanel*> (session->panel);
-  if (panel->attachmentError (qTaskId)) {
-    QtFloatingToast::showToast (view_, to_qstring (reason), 3000,
-                                QtFloatingToast::Warning);
-    updateSendGate (sessionId);
+  if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId)) {
+    if (panel->attachmentError (qTaskId))
+      QtFloatingToast::showToast (view_, to_qstring (reason), 3000,
+                                  QtFloatingToast::Warning);
   }
 }
 
@@ -564,31 +530,10 @@ ChatController::onRestoreRequested (const string& sessionId) {
   activateSession (sessionId);
 }
 
-bool
-ChatController::attachment_extension_allowed (const QString& path) {
-  QString suffix= QFileInfo (path).suffix ().toLower ();
-  return attachment_allowed_extensions ().contains (suffix);
-}
-
-QString
-ChatController::attachment_precheck_error (const AttachmentItem& item,
-                                           int    alreadySelectedCount,
-                                           qint64 alreadySelectedBytes) {
-  if (!attachment_extension_allowed (item.path))
-    return qt_translate ("Unsupported attachment type: %1")
-        .replace ("%1", item.filename);
-  if (alreadySelectedCount >= kAttachmentMaxCount)
-    return qt_translate ("At most %1 attachments per message")
-        .replace ("%1", QString::number (kAttachmentMaxCount));
-  if (alreadySelectedBytes + item.size > kAttachmentMaxTotalSize)
-    return qt_translate ("Attachments exceed 80 MB in total size");
-  return QString ();
-}
-
 object
 ChatController::attachment_items_to_scheme (
     const QList<AttachmentItem>& items) {
-  // 协议 v2 只下传 sha256/filename/size 三键，本地路径不出进程；
+  // 协议 v2 只下传 sha256/filename 两键，本地路径与大小不出进程；
   // 空表以 null_object 表示 '()
   array<object> arr;
   for (const AttachmentItem& it : items) {
@@ -596,8 +541,7 @@ ChatController::attachment_items_to_scheme (
     if (!it.ready) continue;
     arr << list_object (
         cons (object ("sha256"), object (from_qstring_utf8 (it.sha256))),
-        cons (object ("filename"), object (from_qstring_utf8 (it.filename))),
-        cons (object ("size"), object ((int) it.size)));
+        cons (object ("filename"), object (from_qstring_utf8 (it.filename))));
   }
   if (N (arr) == 0) return null_object ();
   return as_list_object (arr);
@@ -1391,12 +1335,10 @@ qt_chat_notify_input_height () {
 }
 
 void
-qt_chat_attachment_ready (string taskId, string sha256, string filename,
-                          int size, int extractedChars) {
+qt_chat_attachment_ready (string taskId, string sha256) {
   ChatController* ctrl= get_chat_controller ();
   if (!ctrl) return;
-  ctrl->onAttachmentReady (taskId, sha256, filename, (qint64) size,
-                           (qint64) extractedChars);
+  ctrl->onAttachmentReady (taskId, sha256);
 }
 
 void
