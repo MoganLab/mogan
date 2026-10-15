@@ -20,6 +20,7 @@
 #include "preferences.hpp"
 #include "qt_chat_model.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_flow_layout.hpp"
 #include "qt_gui.hpp"
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
@@ -150,8 +151,7 @@ constexpr int kAttachmentRowSpacing = 4;  ///< chips 行间距
 constexpr int kAttachmentChipPadX   = 8;  ///< chip 水平内边距
 constexpr int kAttachmentChipMaxText=
     200; ///< chip 文本最大宽度（超出居中省略）
-constexpr int kAttachmentRemoveBtnSize   = 16;  ///< ✕ 按钮边长
-constexpr int kAttachmentFallbackRowWidth= 400; ///< 布局未就绪时的换行兜底宽度
+constexpr int kAttachmentRemoveBtnSize= 16; ///< ✕ 按钮边长
 
 //---- dock 模式 常量 ----
 constexpr int kDockBtnMarginY= 12;
@@ -281,8 +281,7 @@ ChatConversationPanel::format_attachment_size (qint64 bytes) {
 void
 ChatConversationPanel::setAttachments (const QList<AttachmentItem>& items) {
   attachments_= items;
-  rebuild_attachment_chips ();
-  update_attachment_processing ();
+  attachment_items_changed ();
 }
 
 bool
@@ -299,8 +298,7 @@ ChatConversationPanel::attachmentReady (const QString& taskId,
     if (!it.ready && it.taskId == taskId) {
       it.ready = true;
       it.sha256= sha256;
-      rebuild_attachment_chips ();
-      update_attachment_processing ();
+      attachment_items_changed ();
       return true;
     }
   return false;
@@ -311,8 +309,7 @@ ChatConversationPanel::attachmentError (const QString& taskId) {
   for (int i= 0; i < attachments_.size (); i++)
     if (!attachments_[i].ready && attachments_[i].taskId == taskId) {
       attachments_.removeAt (i);
-      rebuild_attachment_chips ();
-      update_attachment_processing ();
+      attachment_items_changed ();
       return true;
     }
   return false;
@@ -324,67 +321,34 @@ ChatConversationPanel::setAttachEnabled (bool enabled) {
 }
 
 void
-ChatConversationPanel::update_attachment_processing () {
+ChatConversationPanel::attachment_items_changed () {
+  rebuild_attachment_chips ();
+  // 处理中状态翻转时驱动按钮动画并通知 Controller 更新发送栅栏；
+  // 未翻转时发送栅栏不受影响（其值只依赖 state 与 hasProcessing），不重复通知
   bool processing= hasProcessingAttachments ();
-  if (attachButton_) attachButton_->setProcessing (processing);
-  if (processing != attachProcessing_) {
-    attachProcessing_= processing;
+  if (attachButton_ && attachButton_->processing () != processing) {
+    attachButton_->setProcessing (processing);
     emit attachmentProcessingChanged (sessionId_);
   }
 }
 
 void
 ChatConversationPanel::rebuild_attachment_chips () {
-  if (!chipsRow_ || !chipsVLayout_) return;
-  // 清空旧行（行布局连同其内 chip 与行尾 stretch 一并销毁）
-  while (chipsVLayout_->count () > 0) {
-    QLayoutItem* child= chipsVLayout_->takeAt (0);
-    if (QLayout* l= child->layout ()) {
-      while (l->count () > 0) {
-        QLayoutItem* inner= l->takeAt (0);
-        if (QWidget* w= inner->widget ()) w->deleteLater ();
-        delete inner;
-      }
-    }
+  if (!chipsRow_) return;
+  // 清空旧 chips（布局项连同 widget 一并销毁）
+  QLayout* flow= chipsRow_->layout ();
+  while (QLayoutItem* child= flow->takeAt (0)) {
+    if (QWidget* w= child->widget ()) w->deleteLater ();
     delete child;
   }
-  // 按可用宽度换行：chip 宽度取 sizeHint，一行放不下则开新行（按添加顺序
-  // 自上而下排列，chips 区在输入框外部，行数增加时向上扩展）。
-  // 隐藏时 chipsRow_ 未参与布局、宽度不可靠（0 或默认几何），其宽度恒
-  // 等于父容器 inputArea（所在布局 contentsMargins 为 0），取父容器宽度
-  int avail= chipsRow_->width ();
-  if (chipsRow_->isHidden () || avail <= 0) {
-    if (chipsRow_->parentWidget ()) avail= chipsRow_->parentWidget ()->width ();
-  }
-  if (avail <= 0 && inputEditorWidget_) avail= inputEditorWidget_->width ();
-  if (avail <= 0) avail= DpiUtils::scaled (kAttachmentFallbackRowWidth);
-  chipsWrapWidth_  = avail;
-  int          gap = DpiUtils::scaled (kAttachmentChipSpacing);
-  QHBoxLayout* row = nullptr;
-  int          used= 0;
-  // 处理中的附件不渲染 chip（反馈锚定在附件按钮动画上），ready 才弹出
-  int chipIndex= 0;
+  // 处理中的附件不渲染 chip（反馈锚定在附件按钮动画上），ready 才弹出；
+  // 换行由流式布局按实际宽度自动处理
   for (int i= 0; i < attachments_.size (); i++) {
     if (!attachments_.at (i).ready) continue;
-    QWidget* chip= build_attachment_chip (attachments_.at (i), i);
-    int      w   = chip->sizeHint ().width ();
-    if (!row || used + w > avail) {
-      // 行尾补 stretch 吸收剩余宽度，否则 QBoxLayout 会把剩余空间
-      // 均摊给各 chip（视觉上散开、不左对齐）
-      if (row) row->addStretch (1);
-      row= new QHBoxLayout ();
-      row->setSpacing (gap);
-      row->setContentsMargins (0, 0, 0, 0);
-      chipsVLayout_->addLayout (row);
-      used= 0;
-    }
-    row->addWidget (chip);
-    used+= w + gap;
-    chipIndex++;
+    flow->addWidget (build_attachment_chip (attachments_.at (i), i));
   }
-  if (row) row->addStretch (1);
   // chips 区独立于输入框（外部上方），显隐由 inputAreaLayout 自动腾挪
-  chipsRow_->setVisible (chipIndex > 0);
+  chipsRow_->setVisible (flow->count () > 0);
 }
 
 QWidget*
@@ -415,7 +379,7 @@ ChatConversationPanel::build_attachment_chip (const AttachmentItem& item,
   connect (removeBtn, &QToolButton::clicked, this, [this, index] () {
     if (index < 0 || index >= attachments_.size ()) return;
     attachments_.removeAt (index);
-    rebuild_attachment_chips ();
+    attachment_items_changed ();
   });
   lay->addWidget (removeBtn);
   chip->setFixedHeight (DpiUtils::scaled (kAttachmentChipHeight));
@@ -483,9 +447,15 @@ ChatConversationPanel::setup_ui () {
   // 向上扩展；独立于输入框，不参与其固定档高度；仅展示已 ready 的附件
   chipsRow_= new QWidget (inputArea);
   chipsRow_->setObjectName ("chat-tab-attachment-row");
-  chipsVLayout_= new QVBoxLayout (chipsRow_);
-  chipsVLayout_->setContentsMargins (0, 0, 0, 0);
-  chipsVLayout_->setSpacing (DpiUtils::scaled (kAttachmentRowSpacing));
+  // 流式布局自动换行（行内左对齐、不拉伸 chip）；heightForWidth 让
+  // inputAreaLayout 按换行后的实际高度腾挪空间
+  QtFlowLayout* flow=
+      new QtFlowLayout (chipsRow_, DpiUtils::scaled (kAttachmentChipSpacing),
+                        DpiUtils::scaled (kAttachmentRowSpacing));
+  flow->setContentsMargins (0, 0, 0, 0);
+  QSizePolicy chipsPolicy (QSizePolicy::Preferred, QSizePolicy::Minimum);
+  chipsPolicy.setHeightForWidth (true);
+  chipsRow_->setSizePolicy (chipsPolicy);
   chipsRow_->hide ();
   inputAreaLayout->insertWidget (0, chipsRow_);
 
@@ -739,10 +709,7 @@ ChatConversationPanel::showWelcomePage () {
 void
 ChatConversationPanel::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
-  // 宽度变化后 chips 换行布局可能过期（窗口/侧栏宽度变化），重新换行
-  if (chipsRow_ && !chipsRow_->isHidden () &&
-      chipsRow_->width () != chipsWrapWidth_)
-    rebuild_attachment_chips ();
+  // chips 换行由流式布局自行处理，无需 resize 钩子
   if (conversationMode_ || !topSpacer_) return;
   int targetOffset= height () * 2 / 7 - DpiUtils::scaled (kContentMarginY);
   if (targetOffset < 0) targetOffset= 0;

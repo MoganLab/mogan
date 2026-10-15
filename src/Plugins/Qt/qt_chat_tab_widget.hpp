@@ -243,12 +243,13 @@ public:
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
-  /// 按可用宽度手动分行重建 chips（每行行尾 addStretch 保证左对齐贴合）
+  /// 全量重建 chips（流式布局自动换行，无需分行计算）
   void rebuild_attachment_chips ();
   /// 构建单个 chip（文件名 + 大小 + ✕ 删除）
   QWidget* build_attachment_chip (const AttachmentItem& item, int index);
-  /// 处理中状态变化时驱动按钮动画并通知 Controller 更新发送栅栏
-  void update_attachment_processing ();
+  /// 附件列表变更的统一收口：重建 chips、驱动按钮动画、处理中状态翻转时
+  /// 通知 Controller 更新发送栅栏
+  void attachment_items_changed ();
   /// 读取输入区排版盒的内容高度并折算行数（排版未就绪返回 -1，维持现状）
   int input_content_lines ();
   /// 按内容行数把输入区高度切换到固定档位
@@ -273,10 +274,7 @@ private:
   QTMStateToolButton* attachButton_= nullptr; ///< 附件按钮（处理中旋转动画）
   QToolButton*        modelButton_= nullptr; ///< 模型选择按钮（文字固定 Model）
   QWidget*            chipsRow_= nullptr; ///< 附件 chips 区（输入框外部上方）
-  QVBoxLayout*        chipsVLayout_  = nullptr; ///< chips 区的行容器
-  int                 chipsWrapWidth_= 0;       ///< chips 上次换行所用宽度
-  bool attachProcessing_= false;      ///< 当前是否有处理中附件（动画/栅栏状态）
-  QList<AttachmentItem> attachments_; ///< 待发送附件列表（面板唯一持有）
+  QList<AttachmentItem> attachments_;     ///< 待发送附件列表（面板唯一持有）
   QSpacerItem*          topSpacer_= nullptr; ///< 欢迎页顶部弹性空间
   widget                messageWidget_;      ///< 消息区 TeXmacs widget
   widget                inputWidget;         ///< 输入区 TeXmacs widget

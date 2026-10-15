@@ -18,7 +18,13 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (texmacs protocol) (liii path) (liii uuid) (liii json) (liii string))
+(import (texmacs protocol)
+  (liii path)
+  (liii os)
+  (liii uuid)
+  (liii json)
+  (liii string)
+) ;import
 
 (define (welcome)
   (flush-prompt "llm> ")
@@ -66,16 +72,19 @@
   ) ;path-write-text
 ) ;define
 
-;; 验收用调试日志：收到的 %chat 线格式原样追加写入 /tmp/ai-chat-debug.log
-;; （假插件专用，真实插件无此行为；/tmp 不存在时静默忽略）
+;; 验收用调试日志：设置环境变量 TM_LLM_CHAT_DEBUG 后，收到的 %chat 线格式
+;; 原样追加写入 /tmp/ai-chat-debug.log（假插件专用，默认关闭避免常驻写盘；
+;; /tmp 不存在时静默忽略）
 
 (define (ai-chat-debug-log line)
-  (catch #t
-    (lambda ()
-      (path-append-text "/tmp/ai-chat-debug.log" (string-append line "\n"))
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
+  (when (getenv "TM_LLM_CHAT_DEBUG")
+    (catch #t
+      (lambda ()
+        (path-append-text "/tmp/ai-chat-debug.log" (string-append line "\n"))
+      ) ;lambda
+      (lambda args #f)
+    ) ;catch
+  ) ;when
 ) ;define
 
 ;; 附件解耦闭环：%chat v2 的 attachments 只含 sha256（及展示元数据），
@@ -136,10 +145,7 @@
         acc
         (let* ((item (vector-ref attachments i))
                (sha256 (if (json-object? item) (json-ref-string item "sha256" "") ""))
-               (content (and (string? sha256)
-                          (> (string-length sha256) 0)
-                          (fake-llm-attachment-content sha256)
-                        ) ;and
+               (content (and (> (string-length sha256) 0) (fake-llm-attachment-content sha256))
                ) ;content
               ) ;
           (loop (+ i 1)

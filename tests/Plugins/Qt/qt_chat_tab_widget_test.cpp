@@ -213,23 +213,6 @@ private slots:
     QCOMPARE (it.size, (qint64) 0);
   }
 
-  void test_attachment_item_equality () {
-    AttachmentItem a;
-    a.path          = "/tmp/a.pdf";
-    a.filename      = "a.pdf";
-    a.size          = 10;
-    a.taskId        = "s-1";
-    a.sha256        = "beef";
-    a.ready         = true;
-    AttachmentItem b= a;
-    QVERIFY (a == b);
-    b.ready= false;
-    QVERIFY (!(a == b));
-    b       = a;
-    b.sha256= "cafe";
-    QVERIFY (!(a == b));
-  }
-
   // === setSidebarCollapsed / isSidebarCollapsed ===
   void test_setSidebarCollapsed_expand () {
     QList<SessionDisplayInfo> sessions;
