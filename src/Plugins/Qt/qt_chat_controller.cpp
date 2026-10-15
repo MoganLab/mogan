@@ -282,6 +282,12 @@ ChatController::onAttachRequested (const string& sessionId) {
       qt_translate ("All files") + QString (" (*)"));
   if (files.isEmpty ()) return;
 
+  // 附件插件由启动 idle 延迟初始化（lazy-plugin-initialize），首次点击
+  // 可能早于延迟触发，attachment-ingest 尚未定义会使 call 误报插件不可用；
+  // llm 同款入口保障（plugin-initialize 幂等，插件数据缺失时为无操作，
+  // 仍由下方 toast 兜底）
+  eval ("(plugin-initialize 'attachment)");
+
   QList<AttachmentItem> items     = panel->attachments ();
   qint64                totalBytes= 0;
   QSet<QString>         existingPaths;
