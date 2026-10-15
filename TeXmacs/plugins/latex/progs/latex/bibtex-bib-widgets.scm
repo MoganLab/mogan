@@ -238,7 +238,14 @@
                 (let ((msg (translate "Invalid BibTeX file")))
                   (list "invalid" msg)
                 ) ;let
-                (list "valid" "" (stree->tree (bibwid-output-content t actual-style)))
+                (catch #t
+                  (lambda ()
+                    (list "valid" "" (stree->tree (bibwid-output-content t actual-style)))
+                  ) ;lambda
+                  (lambda (key . args)
+                    (list "invalid" (translate "Failed to format bibliography entries"))
+                  ) ;lambda
+                ) ;catch
               ) ;if
             ) ;let*
           ) ;else
