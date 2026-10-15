@@ -9,39 +9,7 @@
 
 (use-modules (utils plugins plugin-eval) (binary goldfish))
 
-(import (liii path) (liii json) (liii string))
-
-(define (attachment-serialize lan t)
-  ;; 与 llm-serialize 同理：% 开头的单字符串文档（%attachment 协议行）
-  ;; 须原样透传，object->string 会加引号/转义并包 (document ...) 外壳
-  (if (and (pair? t)
-        (>= (length t) 2)
-        (eq? (car t) 'document)
-        (string? (cadr t))
-        (string-starts? (cadr t) "%")
-      ) ;and
-    (string-append (cadr t) "\n<EOF>\n")
-    (string-append (object->string t) "\n<EOF>\n")
-  ) ;if
-) ;define
-
-(define (attachment-launcher)
-  (let* ((home (path-from-env "TEXMACS_HOME_PATH"))
-         (sys (path-from-env "TEXMACS_PATH"))
-         (user (path-join home "plugins" "attachment" "goldfish" "tm-attachment.scm"))
-         (sys-path (path-join sys "plugins" "attachment" "goldfish" "tm-attachment.scm"))
-         (entry (if (url-exists? (path->string user))
-                  (path->string user)
-                  (path->string sys-path)
-                ) ;if
-         ) ;entry
-        ) ;
-    (string-append (string-quote (url->system (find-binary-goldfish)))
-      " load "
-      (string-quote (url->system entry))
-    ) ;string-append
-  ) ;let*
-) ;define
+(import (liii json) (liii string))
 
 ;;; ---------- %attachment 会话回调 ----------
 ;; 每个 ingest 任务独占一个 pending 条目：(cb input task-id)；假插件单包
@@ -75,7 +43,7 @@
        ) ;
     (cond
      ((== event "ready")
-      ;; chip 展示用的 filename/size 在本地预检时已就位，事件只需 taskId
+      ;; chip 展示用的 filename/size 在选择时已填入条目，事件只需 taskId
       ;; 定位与 sha256 回填
       (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
       ) ;exec-delayed
@@ -164,8 +132,8 @@
 (define (init-attachment)
   (plugin-configure attachment
     (:require (has-binary-goldfish?))
-    (:launch ,(attachment-launcher))
-    (:serializer ,attachment-serialize)
+    (:launch ,(goldfish-plugin-launcher "attachment"))
+    (:serializer ,goldfish-plugin-serializer)
   ) ;plugin-configure
 ) ;define
 

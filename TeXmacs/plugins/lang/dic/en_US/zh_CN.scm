@@ -48,8 +48,6 @@
 ("Archive selected (%1)" "归档所选 (%1)")
 ("As" "作为")
 ("Attachment plugin is not available" "附件插件不可用")
-("Attachments exceed 80 MB in total size" "附件总大小超过 80 MB")
-("At most %1 attachments per message" "每条消息最多 %1 个附件")
 ("Auto backup" "自动备份")
 ("Backslash \\ /" "反斜线 \\ /")
 ("BibTeX command" "BibTeX命令")
@@ -80,7 +78,6 @@
 ("Delete::keyboard" "Delete")
 ("Double brackets ⟦ ⟧" "双括号 ⟦ ⟧")
 ("Double vertical bars ‖ ‖" "双竖线 ‖ ‖")
-("Document files" "文档")
 ("Documents in separate windows" "单个文档独立窗口")
 ("Empty brackets . ." "空括号 . .")
 ("Empty PDF data received" "收到的PDF数据为空")
@@ -259,7 +256,6 @@
 ) ;
 ("United Kingdom" "英国")
 ("United States" "美国")
-("Unsupported attachment type: %1" "不支持的附件类型：%1")
 ("Use CSS for more advanced formatting"
   "使用 CSS 进行更高级的格式化"
 ) ;

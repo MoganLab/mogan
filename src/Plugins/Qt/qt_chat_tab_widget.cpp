@@ -528,9 +528,9 @@ ChatConversationPanel::setup_ui () {
   btnLayout->addWidget (searchButton_);
   btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
 
-  // Attach button：点击请求 Controller 打开文件选择（多选 + 本地预检 +
-  // %attachment ingest），ready 后 chips 显示在输入框外部上方；与思考/
-  // 搜索同款样式，仅非 checkable；处理中由 setProcessing 驱动旋转动画
+  // Attach button：点击请求 Controller 打开文件选择（多选 + %attachment
+  // ingest，预检在附件插件侧），ready 后 chips 显示在输入框外部上方；与
+  // 思考/搜索同款样式，仅非 checkable；处理中由 setProcessing 驱动旋转动画
   attachButton_= make_toggle_btn (inputFrame, "chat-tab-attach-btn",
                                   qt_translate ("Add Attachment"));
   attachButton_->setCheckable (false);

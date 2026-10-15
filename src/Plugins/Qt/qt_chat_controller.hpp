@@ -189,7 +189,7 @@ public:
   /**
    * @brief 附件插件 ready 事件：回填 sha256、弹出 chip、按需解禁发送。
    *
-   * chip 展示用的 filename/size 在本地预检时已填入 AttachmentItem，
+   * chip 展示用的 filename/size 在选择时已填入 AttachmentItem，
    * 事件只需 taskId 定位与 sha256 回填。
    */
   void onAttachmentReady (const string& taskId, const string& sha256);

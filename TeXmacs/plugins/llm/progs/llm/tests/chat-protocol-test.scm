@@ -14,6 +14,7 @@
 (import (liii check))
 (import (liii json))
 (import (liii path))
+(import (texmacs attachment-cache))
 
 (check-set-mode! 'report-failed)
 
@@ -114,24 +115,18 @@
 
 ;;; ---------- 假附件插件：ingest → ready + 抽取缓存 ----------
 
-;; 协议行构造 helper：%attachment ingest 请求（可选携带 count/bytes——
-;; 本轮已选累计，插件侧预检用）与 %chat 消息（后者只差 attachments 实参）
+;; 协议行构造 helper：%attachment ingest 请求（count/bytes 为本轮已选
+;; 累计，插件侧预检用）与 %chat 消息（后者只差 attachments 实参）
 
-(define (make-ingest-line task-id path . opt)
-  (let ((count (if (null? opt) 0 (car opt)))
-        (bytes
-          (if (or (null? opt) (null? (cdr opt))) 0 (car (cdr opt)))
-        ) ;bytes
-       ) ;
-    (string-append "%attachment "
-      (json->string (list (cons "taskId" task-id)
-                      (cons "path" path)
-                      (cons "count" count)
-                      (cons "bytes" bytes)
-                    ) ;list
-      ) ;json->string
-    ) ;string-append
-  ) ;let
+(define (make-ingest-line task-id path count bytes)
+  (string-append "%attachment "
+    (json->string (list (cons "taskId" task-id)
+                    (cons "path" path)
+                    (cons "count" count)
+                    (cons "bytes" bytes)
+                  ) ;list
+    ) ;json->string
+  ) ;string-append
 ) ;define
 
 (define (make-chat-line attachments)
@@ -162,7 +157,7 @@
          (path "/tmp/chat-protocol-test-fake.pdf")
          (content "fake pdf bytes")
          (ignored (path-write-text path content))
-         (line (make-ingest-line task-id path))
+         (line (make-ingest-line task-id path 0 0))
          (j (string->json (fake-attachment-ingest line)))
          (sha256 (json-ref-string j "sha256" #f))
         ) ;
@@ -173,7 +168,7 @@
     (check (json-ref-integer j "size" -1) => (string-length content))
     (check (> (json-ref-integer j "extractedChars" 0) 0) => #t)
     ;; 抽取缓存已按约定落盘（假 llm 按 sha256 能读到假提取文本）
-    (let ((cache (fake-llm-attachment-content sha256)))
+    (let ((cache (attachment-cache-payload-content sha256)))
       (check (string? cache) => #t)
       (check (string-contains? cache "[fake] extracted text of") => #t)
     ) ;let
@@ -221,7 +216,7 @@
 (define (test-fake-attachment-ingest-precheck)
   (let* ((bad-path "/tmp/chat-protocol-test-precheck.exe")
          (ignored (path-write-text bad-path "x"))
-         (bad-j (string->json (fake-attachment-ingest (make-ingest-line "t-bad" bad-path)))
+         (bad-j (string->json (fake-attachment-ingest (make-ingest-line "t-bad" bad-path 0 0)))
          ) ;bad-j
          (ok-path "/tmp/chat-protocol-test-precheck.pdf")
          (ignored2 (path-write-text ok-path "x"))
@@ -259,7 +254,7 @@
              (path-write-text (path->string (path-join stale "result.json")) "[]")
            ) ;begin
          ) ;ignored
-         (ignored2 (fake-attachment-ingest (make-ingest-line "t-sweep" path)))
+         (ignored2 (fake-attachment-ingest (make-ingest-line "t-sweep" path 0 0)))
         ) ;
     (check (path-dir? (path-join (path->string root) "202001")) => #f)
     ;; 命中刷新：预置缓存原文后再次 ingest，原文被保留（仅刷新 ts 重写
@@ -278,22 +273,22 @@
                (path-write-text (path->string (path-join dir "result.json")) payload)
              ) ;begin
            ) ;ignored3
-           (ignored4 (fake-attachment-ingest (make-ingest-line "t-refresh" path)))
+           (ignored4 (fake-attachment-ingest (make-ingest-line "t-refresh" path 0 0)))
           ) ;
-      (check (fake-llm-attachment-content sha256) => custom)
+      (check (attachment-cache-payload-content sha256) => custom)
     ) ;let*
   ) ;let*
 ) ;define
 
 ;;; ---------- 假 llm 插件：按 sha256 读缓存注入回显 ----------
 
-;; tm-llm 的 fake-llm-attachment-content 即「按 sha256 查缓存」（上面的
+;; attachment-cache-payload-content 即「按 sha256 查缓存」（上面的
 ;; ready 测试已借它验证缓存落盘）；这里验证 %chat 回复的注入闭环
 
 (define (test-fake-llm-attachment-injection)
   (let* ((path "/tmp/chat-protocol-test-llm.pdf")
          (sha256 (fake-attachment-sha256 path))
-         (ignored (fake-attachment-ingest (make-ingest-line "t-llm" path)))
+         (ignored (fake-attachment-ingest (make-ingest-line "t-llm" path 0 0)))
          (chat-line
            (make-chat-line (vector (list (cons "sha256" sha256) (cons "filename" "f.pdf")))
            ) ;make-chat-line

@@ -284,17 +284,14 @@ ChatController::onAttachRequested (const string& sessionId) {
 
   QList<AttachmentItem> items     = panel->attachments ();
   qint64                totalBytes= 0;
-  for (const AttachmentItem& existing : items)
+  QSet<QString>         existingPaths;
+  for (const AttachmentItem& existing : items) {
     totalBytes+= existing.size;
+    existingPaths.insert (existing.path);
+  }
   for (const QString& path : files) {
     // 同路径重复选择静默跳过，不 toast 打扰
-    bool dup= false;
-    for (const AttachmentItem& existing : items)
-      if (existing.path == path) {
-        dup= true;
-        break;
-      }
-    if (dup) continue;
+    if (existingPaths.contains (path)) continue;
     AttachmentItem item;
     QFileInfo      fi (path);
     item.path    = path;
@@ -316,6 +313,7 @@ ChatController::onAttachRequested (const string& sessionId) {
     }
     attachTaskSession_.insert (item.taskId, to_qstring (sessionId));
     items.append (item);
+    existingPaths.insert (item.path);
     totalBytes+= item.size;
   }
   panel->setAttachments (items);

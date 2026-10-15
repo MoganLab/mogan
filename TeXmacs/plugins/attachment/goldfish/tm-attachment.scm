@@ -19,22 +19,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (import (texmacs protocol)
+  (texmacs attachment-cache)
   (liii path)
-  (liii os)
   (liii json)
   (liii string)
   (liii hashlib)
-  (liii time)
-  (scheme time)
   (scheme char)
 ) ;import
 
-;; 假附件插件不联网：收到 "%attachment {json}" ingest 请求后先按月清理缓存，
-;; 再做插件侧预检（扩展名白名单/每轮数量/每轮总大小，违规回 error 事件），
-;; 通过则回 ready 事件。假 sha256 由 path 字符串确定性散列生成；假提取文本
-;; 按真实插件缓存约定写入 ~/.cache/Liiistem/attachment/extract/<yyyymm>/
-;; <sha256>/result.json（二元数组 [{"id": sha256, "ts"}, {"content": …}]），
-;; 供 llm 插件按 sha256 取用——llm 插件只认 sha256、不接触本地路径。
+;; 假附件插件不联网：收到 "%attachment {json}" ingest 请求后先按月清理缓存
+;; （共享 attachment-cache 库，同真实插件约定），再做插件侧预检（扩展名
+;; 白名单/每轮数量/每轮总大小，违规回 error 事件），通过则回 ready 事件。
+;; 假 sha256 由 path 字符串确定性散列生成；假提取文本经共享缓存库落盘，
+;; 供 llm 插件按 sha256 取用——llm 插件只认 sha256、不接触本地路径
 
 ;; 预检策略（真实插件遵从同一约定与 error 事件形态，liii 侧只遵从不定义）
 
@@ -70,91 +67,13 @@
            ) ;string-append
           ) ;
           ((> (+ bytes size) attachment-max-total-bytes)
-           "附件总大小超过上限（80 MiB）"
+           (string-append "附件总大小超过上限（"
+             (number->string (/ attachment-max-total-bytes 1024 1024))
+             " MiB）"
+           ) ;string-append
           ) ;
           (else #f)
     ) ;cond
-  ) ;let
-) ;define
-
-;;; ---------- 抽取缓存：月度布局、命中刷新、月度清理（同真实插件约定） ----------
-
-(define (attachment-extract-root)
-  (path-join (path->string (path-home))
-    ".cache"
-    "Liiistem"
-    "attachment"
-    "extract"
-  ) ;path-join
-) ;define
-
-(define (attachment-yyyymm year month)
-  (string-append (number->string year)
-    (if (< month 10)
-      (string-append "0" (number->string month))
-      (number->string month)
-    ) ;if
-  ) ;string-append
-) ;define
-
-(define (attachment-current-yyyymm)
-  (date->string (current-date) "~Y~m")
-) ;define
-
-(define (attachment-previous-yyyymm)
-  (let* ((d (current-date)) (y (date-year d)) (m (date-month d)))
-    (if (= m 1) (attachment-yyyymm (- y 1) 12) (attachment-yyyymm y (- m 1)))
-  ) ;let*
-) ;define
-
-(define (attachment-remove-tree dir)
-  ;; 递归删除目录树（缓存为 extract/<yyyymm>/<sha256>/result.json 两层结构）
-  (when (path-dir? dir)
-    (vector-for-each
-      (lambda (entry)
-        (let ((sub (path-join (path->string dir) entry)))
-          (if (path-dir? sub) (attachment-remove-tree sub) (path-unlink sub #t))
-        ) ;let
-      ) ;lambda
-      (path-list dir)
-    ) ;vector-for-each
-    (path-rmdir dir)
-  ) ;when
-) ;define
-
-(define (attachment-cache-sweep!)
-  ;; 月度清理：删除 extract/ 下当月与上月之外的所有 yyyymm 目录；
-  ;; 目录不存在跳过，多删不报错
-  (let ((root (attachment-extract-root))
-        (keep (list (attachment-current-yyyymm) (attachment-previous-yyyymm)))
-       ) ;
-    (when (path-dir? root)
-      (vector-for-each
-        (lambda (entry)
-          (when (not (member entry keep))
-            (attachment-remove-tree (path-join (path->string root) entry))
-          ) ;when
-        ) ;lambda
-        (path-list root)
-      ) ;vector-for-each
-    ) ;when
-  ) ;let
-) ;define
-
-(define (attachment-extract-cache-dir sha256)
-  (path-join (attachment-extract-root) (attachment-current-yyyymm) sha256)
-) ;define
-
-(define (attachment-extract-cache-find sha256)
-  ;; 当月 → 上月两候选目录查找缓存，命中返回 result.json 文本，否则 #f
-  (let loop
-    ((months (list (attachment-current-yyyymm) (attachment-previous-yyyymm))))
-    (if (null? months)
-      #f
-      (let ((f (path-join (attachment-extract-root) (car months) sha256 "result.json")))
-        (if (path-file? f) (path-read-text (path->string f)) (loop (cdr months)))
-      ) ;let
-    ) ;if
   ) ;let
 ) ;define
 
@@ -162,47 +81,14 @@
   (string-append "[fake] extracted text of " filename)
 ) ;define
 
-(define (attachment-fresh-payload sha256 filename ts content)
-  (json->string (vector (list (cons "id" sha256) (cons "ts" ts))
-                  (list (cons "content" content) (cons "filename" filename))
-                ) ;vector
-  ) ;json->string
-) ;define
-
-(define (fake-attachment-write-cache sha256 filename content)
-  ;; 命中刷新（同真实插件约定）：命中时保留缓存原文、仅刷新 ts 重写至
-  ;; 当月目录（命中文件可能在上月目录），热附件不被月度清理误删；
-  ;; 未命中写入新缓存（content 仅此时使用）
-  (let* ((dir (attachment-extract-cache-dir sha256))
-         (cached (attachment-extract-cache-find sha256))
-         (ts
-           (number->string (inexact->exact (floor (current-second))))
-         ) ;ts
-         (j
-           (and cached (catch #t (lambda () (string->json cached)) (lambda args #f)))
-         ) ;j
-         (payload
-           (if (and j (vector? j) (= (vector-length j) 2))
-             (json->string (vector (json-set (vector-ref j 0) "ts" ts) (vector-ref j 1)))
-             (attachment-fresh-payload sha256 filename ts content)
-           ) ;if
-         ) ;payload
-        ) ;
-    (path-mkdir dir #t #t)
-    (path-write-text (path->string (path-join dir "result.json")) payload)
-  ) ;let*
-) ;define
-
-(define (fake-attachment-ready-event task-id file-path)
-  ;; 参数名避开 path：(liii path) 的 path 构造函数在s7 下被字符串参数遮蔽后
-  ;; (path x) 会被当作 string-ref 调用
-  (let* ((p (path file-path))
-         (sha256 (fake-attachment-sha256 file-path))
-         (filename (path->string (path-name p)))
-         (size (if (path-file? p) (path-getsize p) 0))
+(define (fake-attachment-ready-event task-id file-path filename size)
+  ;; filename/size 由 ingest 统一计算传入（预检与事件共用，不重复求值）；
+  ;; 参数名避开 path：(liii path) 的 path 构造函数在 s7 下被字符串参数
+  ;; 遮蔽后 (path x) 会被当作 string-ref 调用
+  (let* ((sha256 (fake-attachment-sha256 file-path))
          (content (fake-attachment-extracted-text filename))
         ) ;
-    (fake-attachment-write-cache sha256 filename content)
+    (attachment-cache-put! sha256 filename content)
     (json->string (list (cons "event" "ready")
                     (cons "taskId" task-id)
                     (cons "sha256" sha256)
@@ -239,6 +125,7 @@
              (file-path (json-ref-string j "path" ""))
              (count (json-ref-number j "count" 0))
              (bytes (json-ref-number j "bytes" 0))
+             ;; 文件名与大小在此单点计算，预检与 ready 事件共用
              (p (path file-path))
              (filename (path->string (path-name p)))
              (size (if (path-file? p) (path-getsize p) 0))
@@ -246,7 +133,7 @@
             ) ;
         (if err
           (fake-attachment-error-event task-id err)
-          (fake-attachment-ready-event task-id file-path)
+          (fake-attachment-ready-event task-id file-path filename size)
         ) ;if
       ) ;let*
     ) ;if

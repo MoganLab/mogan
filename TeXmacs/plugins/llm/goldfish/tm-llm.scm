@@ -19,6 +19,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (import (texmacs protocol)
+  (texmacs attachment-cache)
   (liii path)
   (liii os)
   (liii uuid)
@@ -88,52 +89,8 @@
 ) ;define
 
 ;; 附件解耦闭环：%chat v2 的 attachments 只含 sha256（及展示元数据），
-;; 假 llm 插件按 sha256 从附件插件的抽取缓存目录取假文本，全程不接触
-;; 本地路径。缓存约定：~/.cache/Liiistem/attachment/extract/<yyyymm>/
-;; <sha256>/result.json（二元数组 [{id, ts}, {content, …}]）
-
-(define (fake-llm-read-extract-cache file)
-  ;; result.json 为二元数组 [{id, ts}, {content, …}]，取 content
-  (if (not (path-file? file))
-    #f
-    (let ((j
-            (catch #t (lambda () (string->json (path-read-text file))) (lambda args #f))
-          ) ;j
-         ) ;
-      (if (and (vector? j) (>= (vector-length j) 2))
-        (json-ref-string (vector-ref j 1) "content" #f)
-        #f
-      ) ;if
-    ) ;let
-  ) ;if
-) ;define
-
-(define (fake-llm-attachment-content sha256)
-  ;; 缓存约定：~/.cache/Liiistem/attachment/extract/<yyyymm>/<sha256>/
-  ;; result.json；逐月目录查找（本月写入，读取时不假定月份）
-  (let ((base (path-join (path->string (path-home))
-                ".cache"
-                "Liiistem"
-                "attachment"
-                "extract"
-              ) ;path-join
-        ) ;base
-       ) ;
-    (if (not (path-dir? base))
-      #f
-      (let loop
-        ((months (vector->list (path-list base))))
-        (if (null? months)
-          #f
-          (or (fake-llm-read-extract-cache (path-join (path->string base) (car months) sha256 "result.json")
-              ) ;fake-llm-read-extract-cache
-            (loop (cdr months))
-          ) ;or
-        ) ;if
-      ) ;let
-    ) ;if
-  ) ;let
-) ;define
+;; 假 llm 插件按 sha256 从附件抽取缓存（共享 (texmacs attachment-cache)
+;; 库，布局与查找约定单点定义）取假文本，全程不接触本地路径
 
 (define (fake-llm-attachment-injections attachments)
   ;; attachments 为 JSON 数组（vector）；每项注入一行回显
@@ -145,7 +102,7 @@
         acc
         (let* ((item (vector-ref attachments i))
                (sha256 (if (json-object? item) (json-ref-string item "sha256" "") ""))
-               (content (and (> (string-length sha256) 0) (fake-llm-attachment-content sha256))
+               (content (and (> (string-length sha256) 0) (attachment-cache-payload-content sha256))
                ) ;content
               ) ;
           (loop (+ i 1)
@@ -199,7 +156,8 @@
     (if (not (json-object? j))
       #f
       (let ((content (json-ref-string j "content" ""))
-            (params (catch #t (lambda () (json-ref j "params")) (lambda args #f)))
+            ;; 缺键时 json-ref 返回 ()，由下方 json-object? 判定兜住
+            (params (json-ref j "params"))
            ) ;
         (if (not (json-object? params))
           #f
@@ -209,8 +167,8 @@
                 "content"
                 (string-append "[fake-llm] 我收到了你的消息："
                   content
-                  (fake-llm-attachment-injections (catch #t (lambda () (json-ref j "attachments")) (lambda args #f))
-                  ) ;fake-llm-attachment-injections
+                  ;; 缺键时 json-ref 返回 ()，由 injections 的 vector? 判定兜住
+                  (fake-llm-attachment-injections (json-ref j "attachments"))
                 ) ;string-append
               ) ;json-set
             ) ;json->string
