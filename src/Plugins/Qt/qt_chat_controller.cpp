@@ -304,13 +304,16 @@ ChatController::onAttachRequested (const string& sessionId) {
     item.filename= fi.fileName ();
     item.size    = fi.size ();
     // 派发 %attachment ingest：path 只流向附件插件，不进 %chat 协议；
-    // 请求附带本轮已选累计 count/bytes，扩展名/数量/总大小预检由插件
-    // 判定，违规经 error 事件 toast。失败（插件不可用）则不入选。
+    // 请求附带本轮已选累计 count/bytes，可访问性/扩展名/数量/总大小预检
+    // 由插件判定，违规经 error 事件 toast。失败（插件不可用）则不入选。
     // taskId 为不透明序号，路由只靠 attachTaskSession_（单一事实源）
+    // path 须经 from_qstring 转 herk 内部形态：connection_write 会先做
+    // tree_herk_to_utf8，裸 UTF-8（from_qstring_utf8）会被逐字节二次映射
+    // 打乱，中文路径到插件侧变乱码而预检误报「文件不存在」
     item.taskId= QString::number (++attachTaskSeq_);
     if (!as_bool (
             call ("attachment-ingest", object (from_qstring_utf8 (item.taskId)),
-                  object (from_qstring_utf8 (item.path)),
+                  object (from_qstring (item.path)),
                   object ((int) items.size ()), object ((int) totalBytes)))) {
       QtFloatingToast::showToast (
           view_, qt_translate ("Attachment plugin is not available"), 3000,
@@ -349,7 +352,11 @@ ChatController::onAttachmentError (const string& taskId, const string& reason) {
   QString qTaskId= to_qstring (taskId);
   if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId)) {
     if (panel->attachmentError (qTaskId))
-      QtFloatingToast::showToast (view_, to_qstring (reason), 3000,
+      // reason 经 utf8: 通道回传，input 解析已转 herk 内部形态（中文为
+      // <#XXXX> 实体）；to_qstring 的 looks_utf8 启发式会误走直通分支把
+      // 实体原样上屏，须确定性地 cork_to_utf8 解码
+      QtFloatingToast::showToast (view_,
+                                  utf8_to_qstring (cork_to_utf8 (reason)), 3000,
                                   QtFloatingToast::Warning);
   }
 }
@@ -538,14 +545,16 @@ object
 ChatController::attachment_items_to_scheme (
     const QList<AttachmentItem>& items) {
   // 协议 v2 只下传 sha256/filename 两键，本地路径与大小不出进程；
-  // 空表以 null_object 表示 '()
+  // 空表以 null_object 表示 '()。filename 须经 from_qstring 转 herk 内部
+  // 形态（sha256 为 ASCII 十六进制，两转换等价）；与 ingest 的 path 同理，
+  // connection_write 的 tree_herk_to_utf8 会把裸 UTF-8 逐字节二次映射打乱
   array<object> arr;
   for (const AttachmentItem& it : items) {
     // 处理中条目防御性跳过（发送栅栏保证不出现）
     if (!it.ready) continue;
     arr << list_object (
         cons (object ("sha256"), object (from_qstring_utf8 (it.sha256))),
-        cons (object ("filename"), object (from_qstring_utf8 (it.filename))));
+        cons (object ("filename"), object (from_qstring (it.filename))));
   }
   if (N (arr) == 0) return null_object ();
   return as_list_object (arr);

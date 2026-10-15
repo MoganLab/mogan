@@ -31,10 +31,11 @@
 
 ;; 假附件插件不联网（与 llm 假插件同款自包含写法：只依赖 goldfish 内置
 ;; 库，不向内置 goldfish 树添加共享库）：收到 "%attachment {json}" ingest
-;; 请求后先按月清理缓存（同真实插件约定），再做插件侧预检（扩展名白名单/
-;; 每轮数量/每轮总大小，违规回 error 事件），通过则回 ready 事件。假
-;; sha256 由 path 字符串确定性散列生成；假提取文本写入抽取缓存，供 llm
-;; 插件按 sha256 取用——llm 插件只认 sha256、不接触本地路径
+;; 请求后先按月清理缓存（同真实插件约定），再做插件侧预检（可访问性/
+;; 扩展名白名单/每轮数量/每轮总大小，违规回 error 事件），通过则回
+;; ready 事件。假 sha256 由 path 字符串确定性散列生成；假提取文本写入
+;; 抽取缓存，供 llm 插件按 sha256 取用——llm 插件只认 sha256、不接触
+;; 本地路径
 
 ;; 预检策略（真实插件遵从同一约定与 error 事件形态，liii 侧只遵从不定义）
 
@@ -181,16 +182,23 @@
   (sha256 file-path)
 ) ;define
 
-(define (fake-attachment-precheck filename size count bytes)
+(define (fake-attachment-precheck file-path filename size count bytes)
   ;; count/bytes 为请求上报的本轮已选累计。通过返回 #f，违规返回原因
-  ;; 字符串（mogan UI 原样 toast，不再本地预检）
+  ;; 字符串（mogan UI 原样 toast，不再本地预检）。可访问性规则（存在且
+  ;; 为普通文件、可读）对齐真实插件读文件的先决条件，置于其余规则之前
   (let ((ext
           (let ((s (path->string (path-suffix (path filename)))))
             (if (string-starts? s ".") (string-downcase (string-drop s 1)) "")
           ) ;let
         ) ;ext
        ) ;
-    (cond ((not (member ext attachment-allowed-extensions))
+    (cond ((not (path-file? file-path))
+           (string-append "附件文件不存在： " filename)
+          ) ;
+          ((not (access file-path 'R_OK))
+           (string-append "附件文件不可读取： " filename)
+          ) ;
+          ((not (member ext attachment-allowed-extensions))
            (string-append "不支持的附件类型： " filename)
           ) ;
           ((>= count attachment-max-count)
@@ -239,9 +247,9 @@
 ) ;define
 
 (define (fake-attachment-ingest data)
-  ;; 入口先月度清理缓存（同真实插件约定），再做插件侧预检（count/bytes
-  ;; 为请求上报的本轮已选累计），通过则回 ready 事件；请求非法或预检
-  ;; 违规回 error 事件
+  ;; 入口先月度清理缓存（同真实插件约定），再做插件侧预检（可访问性 +
+  ;; count/bytes 为请求上报的本轮已选累计），通过则回 ready 事件；请求
+  ;; 非法或预检违规回 error 事件
   (attachment-cache-sweep!)
   (let ((j
           (catch #t
@@ -258,11 +266,14 @@
              (file-path (json-ref-string j "path" ""))
              (count (json-ref-number j "count" 0))
              (bytes (json-ref-number j "bytes" 0))
-             ;; 文件名与大小在此单点计算，预检与 ready 事件共用
+             ;; 文件名与大小在此单点计算，预检与 ready 事件共用；size 仅在
+             ;; 可访问时求值：path-getsize 内的 file-exists? 对存在但不可读
+             ;; 的文件抛 permission-error（boot.scm），且不可访问时预检必拒、
+             ;; size 无意义，取 0
              (p (path file-path))
              (filename (path->string (path-name p)))
-             (size (if (path-file? p) (path-getsize p) 0))
-             (err (fake-attachment-precheck filename size count bytes))
+             (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
+             (err (fake-attachment-precheck file-path filename size count bytes))
             ) ;
         (if err
           (fake-attachment-error-event task-id err)

@@ -138,8 +138,8 @@
   (:argument path "Local absolute path (only flows to the attachment plugin)")
   (:argument count "Already-selected attachment count this round")
   (:argument bytes "Already-selected total bytes this round")
-  ;; count/bytes 为本轮已选累计，供插件侧预检（扩展名白名单/数量/总大小
-  ;; 上限均在插件内判定，违规回 error 事件）
+  ;; count/bytes 为本轮已选累计，供插件侧预检（可访问性/扩展名白名单/
+  ;; 数量/总大小上限均在插件内判定，违规回 error 事件）
   (if (not (connection-defined? "attachment"))
     #f
     (let ((input
