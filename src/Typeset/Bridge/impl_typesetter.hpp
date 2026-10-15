@@ -43,7 +43,7 @@ public:
   array<page_item> doc_l;
   stack_border     doc_sb;
   array<box>       frozen_page_boxes;
-  int              frozen_line_offset;
+  array<box>       frozen_border_boxes;
   int              dynamic_buffer_pages;
   DI               page_text_height;
 

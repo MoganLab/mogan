@@ -73,11 +73,14 @@ protected: // making page boxes
 
 public:
   array<box> frozen_pages;
+  array<box> frozen_border_boxes;
   skeleton   last_sk;
   array<box> new_pages;
+  array<box> new_border_boxes; // 与 new_pages 一一对应的新页面边框盒
 
   pager_rep (path ip, edit_env env, array<page_item> l,
-             array<box> frozen= array<box> ());
+             array<box> frozen        = array<box> (),
+             array<box> frozen_borders= array<box> ());
 
   // void start_page ();
   // void print (page_item item);

@@ -1209,11 +1209,14 @@ edit_interface_rep::apply_changes () {
     bench_end ("typeset " * b_name, 1000);
 
     // Adaptive batch sizing based on single-slice duration
-    if (t_slice_elapsed < 15) {
-      progressive_batch_size= min (150, progressive_batch_size + 15);
+    if (t_slice_elapsed < 25) {
+      progressive_batch_size= min (500, progressive_batch_size + 50);
     }
-    else if (t_slice_elapsed > 35) {
-      progressive_batch_size= max (30, progressive_batch_size - 15);
+    else if (t_slice_elapsed < 50) {
+      progressive_batch_size= min (500, progressive_batch_size + 25);
+    }
+    else if (t_slice_elapsed > 75) {
+      progressive_batch_size= max (30, progressive_batch_size - 25);
     }
 
     DI ix1= max (vx1, x1 - 2 * pixel);
