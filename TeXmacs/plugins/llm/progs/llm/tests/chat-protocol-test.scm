@@ -14,7 +14,6 @@
 (import (liii check))
 (import (liii json))
 (import (liii path))
-(import (texmacs attachment-cache))
 
 (check-set-mode! 'report-failed)
 
@@ -168,7 +167,7 @@
     (check (json-ref-integer j "size" -1) => (string-length content))
     (check (> (json-ref-integer j "extractedChars" 0) 0) => #t)
     ;; 抽取缓存已按约定落盘（假 llm 按 sha256 能读到假提取文本）
-    (let ((cache (attachment-cache-payload-content sha256)))
+    (let ((cache (fake-llm-attachment-content sha256)))
       (check (string? cache) => #t)
       (check (string-contains? cache "[fake] extracted text of") => #t)
     ) ;let
@@ -275,14 +274,14 @@
            ) ;ignored3
            (ignored4 (fake-attachment-ingest (make-ingest-line "t-refresh" path 0 0)))
           ) ;
-      (check (attachment-cache-payload-content sha256) => custom)
+      (check (fake-llm-attachment-content sha256) => custom)
     ) ;let*
   ) ;let*
 ) ;define
 
 ;;; ---------- 假 llm 插件：按 sha256 读缓存注入回显 ----------
 
-;; attachment-cache-payload-content 即「按 sha256 查缓存」（上面的
+;; tm-llm 的 fake-llm-attachment-content 即「按 sha256 查缓存」（上面的
 ;; ready 测试已借它验证缓存落盘）；这里验证 %chat 回复的注入闭环
 
 (define (test-fake-llm-attachment-injection)
