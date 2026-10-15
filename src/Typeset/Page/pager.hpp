@@ -76,7 +76,7 @@ public:
   array<box> frozen_border_boxes;
   skeleton   last_sk;
   array<box> new_pages;
-  array<box> page_border_boxes;
+  array<box> new_border_boxes; // 与 new_pages 一一对应的新页面边框盒
 
   pager_rep (path ip, edit_env env, array<page_item> l,
              array<box> frozen        = array<box> (),

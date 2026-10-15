@@ -26,7 +26,7 @@ typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
       frozen_pages_positioned (0), doc_name (""), chunk_start (0),
       chunk_end (0), doc_l (array<page_item> ()), doc_sb (stack_border ()),
       frozen_page_boxes (array<box> ()), frozen_border_boxes (array<box> ()),
-      frozen_line_offset (0), dynamic_buffer_pages (3), page_text_height (0) {
+      dynamic_buffer_pages (3), page_text_height (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -185,7 +185,6 @@ typesetter_rep::typeset () {
     chunk_end              = n;
     frozen_page_boxes      = array<box> ();
     frozen_border_boxes    = array<box> ();
-    frozen_line_offset     = 0;
     frozen_pages_positioned= 0;
     // 文档中途退出 progressive 模式时闭环基准，避免计时泄漏
     progressive_bench_end (this);
@@ -248,13 +247,16 @@ typesetter_rep::typeset () {
   if (progressive_enabled) {
     int  num_new = N (ppp->new_pages);
     bool is_final= (chunk_end >= n);
-    if (!is_final && num_new > dynamic_buffer_pages) {
-      int to_freeze   = num_new - dynamic_buffer_pages;
-      int old_frozen_n= N (frozen_page_boxes);
-      for (int fi= 0; fi < to_freeze; fi++) {
-        frozen_page_boxes << ppp->new_pages[fi];
-        frozen_border_boxes << ppp->page_border_boxes[old_frozen_n + fi];
-      }
+    int to_freeze= is_final ? num_new : max (0, num_new - dynamic_buffer_pages);
+    for (int fi= 0; fi < to_freeze; fi++) {
+      frozen_page_boxes << ppp->new_pages[fi];
+      frozen_border_boxes << ppp->new_border_boxes[fi];
+    }
+    if (is_final) {
+      doc_l= array<page_item> ();
+      progressive_bench_end (this);
+    }
+    else if (to_freeze > 0) {
       pagelet last_frozen_pg = ppp->last_sk[to_freeze - 1];
       int     end_in_unfrozen= 0;
       if (N (last_frozen_pg->ins) > 0) {
@@ -267,15 +269,6 @@ typesetter_rep::typeset () {
       else if (end_in_unfrozen >= N (doc_l)) {
         doc_l= array<page_item> ();
       }
-    }
-    else if (is_final) {
-      int old_frozen_n= N (frozen_page_boxes);
-      for (int fi= 0; fi < num_new; fi++) {
-        frozen_page_boxes << ppp->new_pages[fi];
-        frozen_border_boxes << ppp->page_border_boxes[old_frozen_n + fi];
-      }
-      doc_l= array<page_item> ();
-      progressive_bench_end (this);
     }
   }
   if (env->complete && paper) determine_page_references (rb);
@@ -467,7 +460,6 @@ typesetter_rep::progressive_reset () {
   doc_sb                  = stack_border ();
   frozen_page_boxes       = array<box> ();
   frozen_border_boxes     = array<box> ();
-  frozen_line_offset      = 0;
   progressive_pending     = false;
   progressive_bench_active= false;
   frozen_pages_positioned = 0;

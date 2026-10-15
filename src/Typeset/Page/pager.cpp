@@ -311,12 +311,13 @@ pager_rep::make_pages () {
   int d = env->page_offset % nx;
   int ny= ((nr_pages + nx - 1 + d) / nx);
 
-  SI pixel= env->pixel;
-  SI vgap = 0;
-  if (env->get_string (PAGE_BORDER) == "none") {
+  SI     pixel           = env->pixel;
+  string page_border_mode= env->get_string (PAGE_BORDER);
+  SI     vgap            = 0;
+  if (page_border_mode == "none") {
     vgap= 4 * pixel;
   }
-  array<box> pg (nr_pages);
+  array<box> pg            = copy (pages);
   int        frozen_b_count= min (N (frozen_border_boxes), nr_pages);
   for (int p= 0; p < frozen_b_count; p++) {
     pg[p]= frozen_border_boxes[p];
@@ -325,7 +326,6 @@ pager_rep::make_pages () {
   if (env->get_string (PAGE_MEDIUM) == "paper") {
     color bg= tm_background;
     if (env->get_string ("full-screen-mode") == "true") bg= black;
-    string page_border_mode= env->get_string (PAGE_BORDER);
     for (int i= 0; i < nx; i++)
       for (int j= 0; j < ny; j++) {
         int p= j * nx + i - d;
@@ -351,12 +351,8 @@ pager_rep::make_pages () {
         }
       }
   }
-  else {
-    for (int p= frozen_b_count; p < nr_pages; p++) {
-      pg[p]= pages[p];
-    }
-  }
-  page_border_boxes= pg;
+  new_border_boxes=
+      range (pg, N (frozen_pages), N (frozen_pages) + N (new_pages));
 
   array<DI> x (nr_pages);
   array<DI> y (nr_pages);
@@ -396,6 +392,6 @@ pager_rep::make_pages () {
     }
   }
 
-  bool need_gaps= (env->get_string (PAGE_BORDER) == "none" && nr_pages > 1);
+  bool need_gaps= (page_border_mode == "none" && nr_pages > 1);
   return move_box (ip, scatter_box (ip, pg, x, y, need_gaps), 0, 0);
 }
