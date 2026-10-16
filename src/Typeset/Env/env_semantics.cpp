@@ -617,6 +617,16 @@ edit_env_rep::update_color () {
     if (L (fc) == PATTERN) fc= exec (fc);
     fill_brush= brush (fc, alpha);
   }
+  tree   tbg    = env[TEXT_BG_COLOR];
+  string tbg_str= as_string (tbg);
+  if (tbg != "" && tbg_str != "white") {
+    has_text_bg_color= true;
+    text_bg_color    = named_color (tbg_str, alpha);
+  }
+  else {
+    has_text_bg_color= false;
+    text_bg_color    = rgb_color (255, 255, 255, 255);
+  }
 }
 
 void

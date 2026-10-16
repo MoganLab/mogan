@@ -184,6 +184,8 @@ public:
   pencil   flatten_pen;
   int      alpha;
   pencil   pen;
+  bool     has_text_bg_color;
+  color    text_bg_color;
   bool     no_patterns;
   bool     preamble;
   int      spacing_policy;

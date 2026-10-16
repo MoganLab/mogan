@@ -270,9 +270,35 @@ concater_rep::handle_scripts (int start, int end) {
 
 void
 concater_rep::clean_and_correct () {
+  int  n           = N (a);
+  bool has_obsolete= false;
+  for (int i= 0; i < n; i++)
+    if (a[i]->type == OBSOLETE_ITEM) {
+      has_obsolete= true;
+      break;
+    }
+
+  if (!has_obsolete) {
+    int prev= -1;
+    for (int i= 0; i < n; i++) {
+      if (a[i]->b->w () != 0) {
+        if (prev != -1) {
+          SI cor= ::italic_correction (a[prev]->b, a[i]->b);
+          if (cor != 0) {
+            if (a[prev]->b->right_correction () != 0)
+              a[prev]->spc+= space (cor);
+            else a[i - 1]->spc+= space (cor);
+          }
+        }
+        prev= i;
+      }
+    }
+    return;
+  }
+
   array<line_item> new_a;
   int              i, prev= -1;
-  for (i= 0; i < N (a); i++)
+  for (i= 0; i < n; i++)
     if (a[i]->type != OBSOLETE_ITEM) {
       if (a[i]->b->w () != 0) {
         if (prev != -1) {

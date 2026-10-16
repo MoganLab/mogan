@@ -453,14 +453,17 @@ typesetter_rep::progressive_fast_forward_until (int target_child) {
 
 void
 typesetter_rep::progressive_reset () {
-  progressive_cur_child   = 0;
-  chunk_start             = 0;
-  chunk_end               = 0;
-  doc_l                   = array<page_item> ();
-  doc_sb                  = stack_border ();
-  frozen_page_boxes       = array<box> ();
-  frozen_border_boxes     = array<box> ();
-  progressive_pending     = false;
+  progressive_cur_child= 0;
+  chunk_start          = 0;
+  chunk_end            = 0;
+  doc_l                = array<page_item> ();
+  doc_sb               = stack_border ();
+  frozen_page_boxes    = array<box> ();
+  frozen_border_boxes  = array<box> ();
+  progressive_pending  = false;
+  if (progressive_bench_active && doc_name != "") {
+    bench_reset ("progressive_typeset: " * doc_name);
+  }
   progressive_bench_active= false;
   frozen_pages_positioned = 0;
 }

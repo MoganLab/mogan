@@ -56,6 +56,9 @@ private slots:
   void test_forbidden_break_at_penalty ();
   void test_single_cjk_char_atomic ();
   void test_empty_or_single_item ();
+  void test_overflow_pass2_breaks ();
+  void test_large_scale_dense_breaks ();
+  void test_stretchable_space_breaks ();
 };
 
 void
@@ -128,6 +131,79 @@ TestLineBreaker::test_empty_or_single_item () {
   QCOMPARE (N (ap), 2);
   QCOMPARE (ap[0], path (0));
   QCOMPARE (ap[1], path (1));
+}
+
+void
+TestLineBreaker::test_overflow_pass2_breaks () {
+  // 构造 5 个超宽图元，中间图元全部设为禁止换行（HYPH_INVALID）
+  // 迫使 line_breaker 在第一阶段（pass 1）无法找到有效断点，进入第二阶段（pass
+  // 2 溢出强行断行）
+  array<line_item> a= make_std_items (5, 5000);
+  for (int i= 0; i < 5; i++)
+    a[i]->penalty= HYPH_INVALID;
+
+  SI line_width = 3000;
+  SI large_width= 4000;
+
+  array<path> ap= line_breaks (a, 0, 5, line_width, large_width, 0, 0);
+
+  // 在 pass 2 兜底下仍应生成首尾完整的断点序列
+  QVERIFY (N (ap) >= 2);
+  QCOMPARE (ap[0], path (0));
+  QCOMPARE (ap[N (ap) - 1], path (5));
+  verify_atomic_breaks (ap, 5);
+
+  // 断点序列必须严格单调递增
+  for (int k= 1; k < N (ap); k++) {
+    QVERIFY (ap[k]->item > ap[k - 1]->item);
+  }
+}
+
+void
+TestLineBreaker::test_large_scale_dense_breaks () {
+  // 测试 60 个图元密集断行，验证 atom_best（改为 lb_info_rep
+  // 连续存储后）的大规模索引与追溯
+  const int        n= 60;
+  array<line_item> a= make_std_items (n, 500);
+
+  SI line_width = 2500; // 每行大约 5 个图元
+  SI large_width= 3500;
+
+  array<path> ap= line_breaks (a, 0, n, line_width, large_width, 0, 0);
+
+  QVERIFY (N (ap) >= 10);
+  QCOMPARE (ap[0], path (0));
+  QCOMPARE (ap[N (ap) - 1], path (n));
+  verify_atomic_breaks (ap, n);
+
+  // 验证断点严格单调递增，且覆盖整个范围
+  for (int k= 1; k < N (ap); k++) {
+    QVERIFY (ap[k]->item > ap[k - 1]->item);
+  }
+}
+
+void
+TestLineBreaker::test_stretchable_space_breaks () {
+  // 测试带有伸缩空间的图元换行
+  const int        n= 8;
+  array<line_item> a (n);
+  for (int i= 0; i < n; i++) {
+    box b= empty_box (path (i), 0, 0, 1000, 1000);
+    a[i] = line_item (STD_ITEM, OP_TEXT, b, 0);
+    // 给空格附加弹性范围：[800, 1000, 1500]
+    a[i]->spc= space (800, 1000, 1500);
+  }
+
+  // 行宽设为 2800，介于 2 个图元与 3 个图元弹性区间之间
+  SI line_width = 2800;
+  SI large_width= 3500;
+
+  array<path> ap= line_breaks (a, 0, n, line_width, large_width, 0, 0);
+
+  QVERIFY (N (ap) >= 2);
+  QCOMPARE (ap[0], path (0));
+  QCOMPARE (ap[N (ap) - 1], path (n));
+  verify_atomic_breaks (ap, n);
 }
 
 QTEST_MAIN (TestLineBreaker)

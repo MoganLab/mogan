@@ -543,6 +543,20 @@ chinese_language_rep::advance (tree t, int& pos) {
     }
   }
 
+  // Fast path for CJK Unified Ideographs (U+4000..U+EFFF):
+  // All punctuation marks in do_not_start / do_not_end reside in U+20XX,
+  // U+30XX, or U+FFXX.
+  if (s[pos] == '<' && test (s, pos, "<#")) {
+    if (pos + 2 < s_N) {
+      char h= s[pos + 2];
+      if ((h >= '4' && h <= '9') || (h >= 'A' && h <= 'E') ||
+          (h >= 'a' && h <= 'e')) {
+        tm_char_forwards (s, pos);
+        return &tp_cjk_normal_rep;
+      }
+    }
+  }
+
   int start= pos;
   tm_char_forwards (s, pos);
   string c= s (start, pos);
