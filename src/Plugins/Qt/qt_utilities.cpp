@@ -387,7 +387,7 @@ from_qrect (const QRect& rect) {
  into one given by its upper left and width/height */
 QRect
 to_qrect (const coord4& p) {
-  float c= 1.0 / SCREEN_PIXEL;
+  double c= 1.0 / SCREEN_PIXEL;
   return QRect (p.x1 * c, -p.x4 * c, (p.x3 - p.x1 + SCREEN_PIXEL - 1) * c,
                 (p.x4 - p.x2 + SCREEN_PIXEL - 1) * c);
 }
@@ -400,13 +400,13 @@ from_qsize (const QSize& s) {
 
 QSize
 to_qsize (const coord2& p) {
-  float c= 1.0 / SCREEN_PIXEL;
+  double c= 1.0 / SCREEN_PIXEL;
   return QSize (p.x1 * c, p.x2 * c);
 }
 
 QSize
 to_qsize (DI w, DI h) {
-  float c= 1.0 / SCREEN_PIXEL;
+  double c= 1.0 / SCREEN_PIXEL;
   return QSize (w * c, h * c);
 }
 
@@ -419,7 +419,7 @@ from_qpoint (const QPoint& pt) {
  Qt coordinates, with origin at the upper left corner */
 QPoint
 to_qpoint (const coord2& p) {
-  float c= 1.0 / SCREEN_PIXEL;
+  double c= 1.0 / SCREEN_PIXEL;
   return QPoint (p.x1 * c, -p.x2 * c);
 }
 

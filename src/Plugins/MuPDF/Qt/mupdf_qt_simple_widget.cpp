@@ -48,7 +48,7 @@ qt_simple_widget_rep::repaint_invalid_regions () {
         picture_renderer (new_backing_store, bs_zoomf * retina_factor);
 
     // copy the old backingstore
-    SI x1= 0, y1= 0, x2= bs_w, y2= bs_h;
+    DI x1= 0, y1= 0, x2= bs_w, y2= bs_h;
     ren->encode (x1, y1);
     ren->encode (x2, y2);
     ren2->fetch (x1, y2, x2, y1, ren, x1, y2);

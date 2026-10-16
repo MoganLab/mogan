@@ -85,12 +85,12 @@ public:
     x= (SI) X;
     y= (SI) Y;
   }
-  virtual void encode (int& x, int& y);
-  inline void  encode (DI& x, DI& y) {
-    int X= (int) x, Y= (int) y;
+  virtual void encode (DI& x, DI& y);
+  inline void  encode (SI& x, SI& y) {
+    DI X= x, Y= y;
     encode (X, Y);
-    x= X;
-    y= Y;
+    x= (SI) X;
+    y= (SI) Y;
   }
   virtual void decode (DI x, DI y, double& rx, double& ry);
   virtual void encode (double x, double y, DI& rx, DI& ry);

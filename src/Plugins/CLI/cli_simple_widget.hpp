@@ -51,14 +51,14 @@ public:
     (void) data;
   }
   virtual void handle_set_zoom_factor (double zoom) { (void) zoom; }
-  virtual void handle_clear (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+  virtual void handle_clear (renderer ren, DI x1, DI y1, DI x2, DI y2) {
     (void) ren;
     (void) x1;
     (void) y1;
     (void) x2;
     (void) y2;
   }
-  virtual void handle_repaint (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+  virtual void handle_repaint (renderer ren, DI x1, DI y1, DI x2, DI y2) {
     (void) ren;
     (void) x1;
     (void) y1;

@@ -270,7 +270,7 @@ renderer_rep::is_visible (DI x1, DI y1, DI x2, DI y2) {
  ******************************************************************************/
 
 void
-renderer_rep::encode (SI& x, SI& y) {
+renderer_rep::encode (DI& x, DI& y) {
   x= (x * pixel) - ox;
   y= ((-y) * pixel) - oy;
 }
