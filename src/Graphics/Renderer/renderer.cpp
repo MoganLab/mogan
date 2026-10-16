@@ -468,7 +468,7 @@ renderer_rep::clear_pattern (DI x1, DI y1, DI x2, DI y2) {
 
 void
 renderer_rep::draw_scalable (scalable im, DI x, DI y, int alpha) {
-  im->draw (this, (SI) x, (SI) y, alpha);
+  im->draw (this, x, y, alpha);
 }
 
 bool

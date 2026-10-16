@@ -200,25 +200,7 @@ abs_round (SI& x, SI& y) {
   y= (SI) Y;
 }
 void abs_inner_round (DI& x1, DI& y1, DI& x2, DI& y2);
-inline void
-abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2) {
-  DI X1= x1, Y1= y1, X2= x2, Y2= y2;
-  abs_inner_round (X1, Y1, X2, Y2);
-  x1= (SI) X1;
-  y1= (SI) Y1;
-  x2= (SI) X2;
-  y2= (SI) Y2;
-}
 void abs_outer_round (DI& x1, DI& y1, DI& x2, DI& y2);
-inline void
-abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2) {
-  DI X1= x1, Y1= y1, X2= x2, Y2= y2;
-  abs_outer_round (X1, Y1, X2, Y2);
-  x1= (SI) X1;
-  y1= (SI) Y1;
-  x2= (SI) X2;
-  y2= (SI) Y2;
-}
 
 extern bool   retina_manual;
 extern bool   retina_iman;

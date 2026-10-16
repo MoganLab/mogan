@@ -1015,8 +1015,7 @@ printer_rep::href (string label, DI x1, DI y1, DI x2, DI y2) {
 
 void
 printer_rep::toc_entry (string kind, string title, DI x, DI y) {
-  DI X= x, Y= y;
-  decode (X, Y);
+  decode (x, y);
   string ls= "1";
   if (kind == "toc-strong-1") ls= "1";
   if (kind == "toc-strong-2") ls= "2";
@@ -1026,8 +1025,8 @@ printer_rep::toc_entry (string kind, string title, DI x, DI y) {
   if (kind == "toc-4") ls= "6";
   if (kind == "toc-5") ls= "7";
   string ps= as_string (cur_page);
-  string xs= as_string (X - dpi);
-  string ys= as_string (Y - dpi);
+  string xs= as_string (x - dpi);
+  string ys= as_string (y - dpi);
   toc << tuple (title, ls, ps, xs, ys);
 }
 

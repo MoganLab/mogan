@@ -40,7 +40,7 @@ public:
 
   virtual rectangle get_logical_extents ()                         = 0;
   virtual rectangle get_physical_extents ()                        = 0;
-  virtual void      draw (renderer ren, SI x, SI y, int alpha= 255)= 0;
+  virtual void      draw (renderer ren, DI x, DI y, int alpha= 255)= 0;
 };
 
 ABSTRACT_NULL_CODE (scalable);
