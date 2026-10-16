@@ -472,14 +472,14 @@ edit_cursor_rep::go_to (path p) {
         int target_child= rel_p->item;
         int cur_child   = ::typeset_frontier (ttt);
         if (target_child >= cur_child) {
-          if (target_child < cur_child + 200) {
+          if (target_child < cur_child + 2000) {
             progressive_fast_forward_until (ttt, target_child + 50);
             notify_change (THE_TREE + THE_EXTENTS);
             apply_changes ();
           }
           else {
             int last_available= max (0, cur_child - 1);
-            p                 = rp * path (last_available, 0);
+            p                 = start (et, rp * path (last_available));
           }
         }
       }
@@ -489,6 +489,32 @@ edit_cursor_rep::go_to (path p) {
     mv_status= DIRECT;
     if (!has_changed (THE_TREE + THE_ENVIRONMENT)) {
       cu= eb->find_check_cursor (tp);
+      if (!cu->valid && ::typeset_in_progress (ttt) && rp <= tp) {
+        path rel_p= tp / rp;
+        if (!is_nil (rel_p)) {
+          int target_child= rel_p->item;
+          progressive_fast_forward_until (ttt, target_child + 50);
+          notify_change (THE_TREE + THE_EXTENTS);
+          apply_changes ();
+          cu= eb->find_check_cursor (tp);
+        }
+      }
+      if (!cu->valid) {
+        path corrected= correct_cursor (et, tp);
+        if (corrected != tp) {
+          tp= corrected;
+          cu= eb->find_check_cursor (tp);
+        }
+      }
+      if (!cu->valid && ::typeset_in_progress (ttt) && rp <= tp) {
+        int  cur_child     = ::typeset_frontier (ttt);
+        int  last_available= max (0, cur_child - 1);
+        path fallback_tp   = start (et, rp * path (last_available));
+        if (!is_nil (fallback_tp)) {
+          tp= fallback_tp;
+          cu= eb->find_check_cursor (tp);
+        }
+      }
       if (cu->valid) adjust_cursor ();
       mv= copy (cu);
       if (mv->slope > 0 && is_atomic (subtree (et, path_up (tp)))) {
