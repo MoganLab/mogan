@@ -882,7 +882,7 @@ virtual_font_rep::compile_bis (scheme_tree t, metric& ex) {
     int by= add / PIXEL;
     if (pos < 0) pos= 0;
     if (pos >= gl->width) pos= gl->width - 1;
-    ex->x2+= add;
+    ex->x2+= by * PIXEL;
     ex->x4+= by * PIXEL;
     return hor_extend (gl, pos, by);
   }
@@ -897,7 +897,7 @@ virtual_font_rep::compile_bis (scheme_tree t, metric& ex) {
     if (pos < 0) pos= 0;
     if (pos >= gl->width) pos= gl->width - 1;
     ex->x1= 0;
-    ex->x2= add;
+    ex->x2= nr * PIXEL;
     ex->x3= 0;
     ex->x4= nr * PIXEL;
     return hor_take (gl, pos, nr);
@@ -912,7 +912,7 @@ virtual_font_rep::compile_bis (scheme_tree t, metric& ex) {
     int by= add / PIXEL;
     if (pos < 0) pos= 0;
     if (pos >= gl->height) pos= gl->height - 1;
-    ex->y1-= add;
+    ex->y1-= by * PIXEL;
     ex->y3-= by * PIXEL;
     return ver_extend (gl, pos, by);
   }
@@ -926,7 +926,7 @@ virtual_font_rep::compile_bis (scheme_tree t, metric& ex) {
     int nr= add / PIXEL;
     if (pos < 0) pos= 0;
     if (pos >= gl->height) pos= gl->height - 1;
-    ex->y1= -add;
+    ex->y1= -nr * PIXEL;
     ex->y2= 0;
     ex->y3= -nr * PIXEL;
     ex->y4= 0;
@@ -1487,13 +1487,15 @@ virtual_font_rep::draw_tree (renderer ren, scheme_tree t, SI x, SI y) {
       SI  w = ex->x2 - ex->x1;
       int n = (int) ((20 * add + w - 1) / w);
       SI  dx= (add + n - 1) / n;
-      SI  hx= (add + 2 * n - 1) / (2 * n);
+      SI  hx= (add + 2 * n - 1) / (2 * n) + ren->pixel;
       for (int i= 0; i < n; i++)
         draw_clipped (ren, t[1], x + hx + i * dx, y, ex->x3 + pos - hx, ex->y3,
                       ex->x3 + pos + hx, ex->y4);
     }
-    draw_clipped (ren, t[1], x, y, ex->x3, ex->y3, ex->x3 + pos, ex->y4);
-    draw_clipped (ren, t[1], x + add, y, ex->x3 + pos, ex->y3, ex->x4, ex->y4);
+    draw_clipped (ren, t[1], x, y, ex->x3, ex->y3, ex->x3 + pos + ren->pixel,
+                  ex->y4);
+    draw_clipped (ren, t[1], x + add, y, ex->x3 + pos - ren->pixel, ex->y3,
+                  ex->x4, ex->y4);
     return;
   }
 
@@ -1508,9 +1510,9 @@ virtual_font_rep::draw_tree (renderer ren, scheme_tree t, SI x, SI y) {
       SI  w = ex->x2 - ex->x1;
       int n = (int) ((20 * add + w - 1) / w);
       SI  dx= (add + n - 1) / n;
-      SI  hx= (add + 2 * n - 1) / (2 * n);
+      SI  hx= (add + 2 * n - 1) / (2 * n) + ren->pixel;
       for (int i= 0; i < n; i++)
-        draw_clipped (ren, t[1], x + i * dx - (ex->x3 + pos), y,
+        draw_clipped (ren, t[1], x + hx + i * dx - add - (ex->x3 + pos), y,
                       ex->x3 + pos - hx, ex->y3, ex->x3 + pos + hx, ex->y4);
     }
     return;
@@ -1527,13 +1529,15 @@ virtual_font_rep::draw_tree (renderer ren, scheme_tree t, SI x, SI y) {
       SI  h = ex->y2 - ex->y1;
       int n = (int) ((20 * add + h - 1) / h);
       SI  dy= (add + n - 1) / n;
-      SI  hy= (add + 2 * n - 1) / (2 * n);
+      SI  hy= (add + 2 * n - 1) / (2 * n) + ren->pixel;
       for (int i= 0; i < n; i++)
         draw_clipped (ren, t[1], x, y + hy + i * dy - add, ex->x3,
                       ex->y3 + pos - hy, ex->x4, ex->y3 + pos + hy);
     }
-    draw_clipped (ren, t[1], x, y - add, ex->x3, ex->y3, ex->x4, ex->y3 + pos);
-    draw_clipped (ren, t[1], x, y, ex->x3, ex->y3 + pos, ex->x4, ex->y4);
+    draw_clipped (ren, t[1], x, y - add, ex->x3, ex->y3, ex->x4,
+                  ex->y3 + pos + ren->pixel);
+    draw_clipped (ren, t[1], x, y, ex->x3, ex->y3 + pos - ren->pixel, ex->x4,
+                  ex->y4);
     return;
   }
 
@@ -1548,10 +1552,10 @@ virtual_font_rep::draw_tree (renderer ren, scheme_tree t, SI x, SI y) {
       SI  h = ex->y2 - ex->y1;
       int n = (int) ((20 * add + h - 1) / h);
       SI  dy= (add + n - 1) / n;
-      SI  hy= (add + 2 * n - 1) / (2 * n);
+      SI  hy= (add + 2 * n - 1) / (2 * n) + ren->pixel;
       for (int i= 0; i < n; i++)
-        draw_clipped (ren, t[1], x, y + i * dy - add - (ex->y3 + pos), ex->x3,
-                      ex->y3 + pos - hy, ex->x4, ex->y3 + pos + hy);
+        draw_clipped (ren, t[1], x, y + hy + i * dy - add - (ex->y3 + pos),
+                      ex->x3, ex->y3 + pos - hy, ex->x4, ex->y3 + pos + hy);
     }
     return;
   }
