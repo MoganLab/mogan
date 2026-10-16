@@ -1551,8 +1551,7 @@ cpp_bibliography_dialog (tree config) {
       [&] (QQuickWidget* qw, QDialog& host) {
         closeBridge= inject_common_context (qw, host);
         bibBridge  = new BibliographyDialogBridge (
-            &host, utf8_to_qstring (cork_to_utf8 (doc_dir)), previewQW,
-            bib_preview_url);
+            &host, utf8_to_qstring (doc_dir), previewQW, bib_preview_url);
         qw->rootContext ()->setContextProperty ("bibBridge", bibBridge);
         qw->rootContext ()->setContextProperty (
             "dialogTitle", modify ? qt_translate ("Modify bibliography")
@@ -1575,8 +1574,8 @@ cpp_bibliography_dialog (tree config) {
                                                 qt_translate ("Style:"));
         qw->rootContext ()->setContextProperty (
             "emptyHint", qt_translate ("Preview the bibliography format here"));
-        qw->rootContext ()->setContextProperty (
-            "initialFile", utf8_to_qstring (cork_to_utf8 (file)));
+        qw->rootContext ()->setContextProperty ("initialFile",
+                                                utf8_to_qstring (file));
         qw->rootContext ()->setContextProperty (
             "initialStyle", utf8_to_qstring (cork_to_utf8 (style)));
         qw->rootContext ()->setContextProperty ("initialUpdate", upd);
