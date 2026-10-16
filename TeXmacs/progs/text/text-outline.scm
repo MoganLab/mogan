@@ -146,12 +146,9 @@
 ) ;define
 
 (define (outline-fallback-path p last-child)
-  (let* ((prefix (if (outline-chapter-path? p) (list 1 0 last-child) (list (car p) last-child))
-         ) ;prefix
-         (t (path->tree prefix))
-        ) ;
-    (if (and t (> (tree-arity t) 0)) (rcons prefix 0) prefix)
-  ) ;let*
+  (cond ((outline-chapter-path? p) (list 1 0 last-child 0))
+        (else (list (car p) last-child 0))
+  ) ;cond
 ) ;define
 
 (tm-define (outline-go-to path-str)
@@ -162,11 +159,7 @@
         (let* ((pending? (and (defined? 'typeset-in-progress?) (typeset-in-progress?)))
                (cur-child (if pending? (typeset-frontier) #f))
                (chap-idx (outline-get-chap-idx p))
-               ;; 目标段落在排版前沿附近（如 2000 个段落内）时允许即时快进，不提前降级
-               ;; fast-forward-limit 需与 edit_cursor.cpp go_to 的 fast_forward_limit 保持一致
-               (fast-forward-limit 2000)
-               (unready? (and pending? cur-child chap-idx (> (- chap-idx cur-child) fast-forward-limit))
-               ) ;unready?
+               (unready? (and pending? cur-child chap-idx (>= chap-idx cur-child)))
                (target-p
                  (if unready? (outline-fallback-path p (max 0 (- cur-child 1))) p)
                ) ;target-p

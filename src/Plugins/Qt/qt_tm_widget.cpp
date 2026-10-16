@@ -983,10 +983,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
     QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
                       [this] (const QString& target) {
-                        auto send_focus= [this] {
-                          send_keyboard_focus (abstract (this));
-                          send_keyboard_focus (abstract (main_widget));
-                        };
                         if (pdfTabMode) {
                           if (pdfViewerWidget) {
                             bool ok;
@@ -998,18 +994,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                         else if (!startupTabMode && !chatTabMode) {
                           if (!target.isEmpty ()) {
                             url currentView= get_current_view_safe ();
-                            if (!is_none (currentView)) send_focus ();
+                            if (!is_none (currentView))
+                              send_keyboard_focus (abstract (main_widget));
                             call ("outline-go-to", from_qstring_utf8 (target));
                             if (!is_none (currentView)) {
                               make_cursor_visible (currentView);
-                              send_focus ();
-                              QWidget* focus_widget= canvas ();
-                              if (!focus_widget && !is_nil (main_widget))
-                                focus_widget= main_widget->qwid;
-                              if (focus_widget) {
-                                focus_widget->activateWindow ();
-                                focus_widget->setFocus (Qt::OtherFocusReason);
-                              }
+                              send_keyboard_focus (abstract (main_widget));
                             }
                           }
                         }

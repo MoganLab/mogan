@@ -466,26 +466,21 @@ void
 edit_cursor_rep::go_to (path p) {
   if (rp <= p) {
     typesetter ttt= get_typesetter ();
-    // fast_forward_limit 需与 text-outline.scm 的 fast-forward-limit 保持一致
-    const int fast_forward_limit= 2000;
-    auto      fast_forward_to   = [&] (int target_child) {
-      progressive_fast_forward_until (ttt, target_child + 50);
-      notify_change (THE_TREE + THE_EXTENTS);
-      apply_changes ();
-    };
-    auto frontier_start= [&] () {
-      int last_available= max (0, ::typeset_frontier (ttt) - 1);
-      return start (et, rp * path (last_available));
-    };
     if (::typeset_in_progress (ttt) && !is_nil (p)) {
       path rel_p= p / rp;
       if (!is_nil (rel_p)) {
         int target_child= rel_p->item;
         int cur_child   = ::typeset_frontier (ttt);
         if (target_child >= cur_child) {
-          if (target_child < cur_child + fast_forward_limit)
-            fast_forward_to (target_child);
-          else p= frontier_start ();
+          if (target_child < cur_child + 200) {
+            progressive_fast_forward_until (ttt, target_child + 50);
+            notify_change (THE_TREE + THE_EXTENTS);
+            apply_changes ();
+          }
+          else {
+            int last_available= max (0, cur_child - 1);
+            p                 = rp * path (last_available, 0);
+          }
         }
       }
     }
@@ -494,30 +489,6 @@ edit_cursor_rep::go_to (path p) {
     mv_status= DIRECT;
     if (!has_changed (THE_TREE + THE_ENVIRONMENT)) {
       cu= eb->find_check_cursor (tp);
-      if (!cu->valid && ::typeset_in_progress (ttt) && rp <= tp) {
-        path rel_p= tp / rp;
-        if (!is_nil (rel_p)) {
-          int target_child= rel_p->item;
-          if (target_child >= ::typeset_frontier (ttt)) {
-            fast_forward_to (target_child);
-            cu= eb->find_check_cursor (tp);
-          }
-        }
-      }
-      if (!cu->valid) {
-        path corrected= correct_cursor (et, tp);
-        if (corrected != tp) {
-          tp= corrected;
-          cu= eb->find_check_cursor (tp);
-        }
-      }
-      if (!cu->valid && ::typeset_in_progress (ttt) && rp <= tp) {
-        path fallback_tp= frontier_start ();
-        if (!is_nil (fallback_tp)) {
-          tp= fallback_tp;
-          cu= eb->find_check_cursor (tp);
-        }
-      }
       if (cu->valid) adjust_cursor ();
       mv= copy (cu);
       if (mv->slope > 0 && is_atomic (subtree (et, path_up (tp)))) {
