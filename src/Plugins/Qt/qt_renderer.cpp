@@ -342,7 +342,7 @@ qt_renderer_rep::lines (array<SI> x, array<SI> y) {
 }
 
 void
-qt_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
+qt_renderer_rep::clear (DI x1, DI y1, DI x2, DI y2) {
   x1= max (x1, cx1 - ox);
   y1= max (y1, cy1 - oy);
   x2= min (x2, cx2 - ox);
@@ -361,14 +361,14 @@ qt_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-qt_renderer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
+qt_renderer_rep::fill (DI x1, DI y1, DI x2, DI y2) {
   if ((x2 > x1) && ((x2 - x1) < pixel)) {
-    SI d= pixel - (x2 - x1);
+    DI d= pixel - (x2 - x1);
     x1-= (d >> 1);
     x2+= ((d + 1) >> 1);
   }
   if ((y2 > y1) && ((y2 - y1) < pixel)) {
-    SI d= pixel - (y2 - y1);
+    DI d= pixel - (y2 - y1);
     y1-= (d >> 1);
     y2+= ((d + 1) >> 1);
   }
@@ -393,7 +393,7 @@ qt_renderer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-qt_renderer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+qt_renderer_rep::arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
   if ((x1 >= x2) || (y1 >= y2)) return;
   double rx1, ry1, rx2, ry2;
   decode (x1, y1, rx1, ry1);
@@ -404,7 +404,7 @@ qt_renderer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
 }
 
 void
-qt_renderer_rep::fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+qt_renderer_rep::fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
   if ((x1 >= x2) || (y1 >= y2)) return;
   double rx1, ry1, rx2, ry2;
   decode (x1, y1, rx1, ry1);
@@ -445,30 +445,17 @@ qt_renderer_rep::polygon (array<SI> x, array<SI> y, bool convex) {
 }
 
 void
-qt_renderer_rep::draw_triangle (SI x1, SI y1, SI x2, SI y2, SI x3, SI y3) {
-  array<SI> x (3), y (3);
-  x[0]= x1;
-  y[0]= y1;
-  x[1]= x2;
-  y[1]= y2;
-  x[2]= x3;
-  y[2]= y3;
-
-  int i, n= N (x);
-  if ((N (y) != n) || (n < 1)) return;
-  QPolygonF poly (n);
-  for (i= 0; i < n; i++) {
-    SI xx= x[i], yy= y[i];
-    decode (xx, yy);
-    poly[i]= QPointF (xx, yy);
-    // double qx, qy;
-    // decode (x[i], y[i], qx, qy);
-    // poly[i] = QPointF (qx, qy);
-  }
+qt_renderer_rep::draw_triangle (DI x1, DI y1, DI x2, DI y2, DI x3, DI y3) {
+  double rx1, ry1, rx2, ry2, rx3, ry3;
+  decode (x1, y1, rx1, ry1);
+  decode (x2, y2, rx2, ry2);
+  decode (x3, y3, rx3, ry3);
+  QPolygonF poly (3);
+  poly[0]  = QPointF (rx1, ry1);
+  poly[1]  = QPointF (rx2, ry2);
+  poly[2]  = QPointF (rx3, ry3);
   QBrush br= painter->brush ();
   if (is_nil (fg_brush) || fg_brush->get_type () != brush_pattern)
-    // FIXME: is this really necessary?
-    // The brush should have been set at the moment of set_pencil or set_brush
     br= QBrush (to_qcolor (pen->get_color ()));
   QPainterPath pp;
   pp.addPolygon (poly);
@@ -521,10 +508,10 @@ qt_renderer_rep::support_native_curve (curve c) {
  ******************************************************************************/
 
 void
-qt_renderer_rep::draw_clipped (QImage* im, int w, int h, SI x, SI y) {
+qt_renderer_rep::draw_clipped (QImage* im, int w, int h, DI x, DI y) {
   (void) w;
   (void) h;
-  int x1= cx1 - ox, y1= cy2 - oy, x2= cx2 - ox, y2= cy1 - oy;
+  DI x1= cx1 - ox, y1= cy2 - oy, x2= cx2 - ox, y2= cy1 - oy;
   decode (x, y);
   decode (x1, y1);
   decode (x2, y2);
@@ -539,7 +526,7 @@ qt_renderer_rep::draw_clipped (QImage* im, int w, int h, SI x, SI y) {
 }
 
 void
-qt_renderer_rep::draw_clipped (QTMPixmapOrImage* im, int w, int h, SI x, SI y) {
+qt_renderer_rep::draw_clipped (QTMPixmapOrImage* im, int w, int h, DI x, DI y) {
   if (headless_mode) {
     draw_clipped (im->QImage_ptr (), w, h, x, y);
     return;
@@ -556,7 +543,7 @@ qt_renderer_rep::draw_clipped (QTMPixmapOrImage* im, int w, int h, SI x, SI y) {
 }
 
 void
-qt_renderer_rep::draw_bis (int c, font_glyphs fng, SI x, SI y) {
+qt_renderer_rep::draw_bis (int c, font_glyphs fng, DI x, DI y) {
   // draw with background pattern
   SI    xo, yo;
   glyph pre_gl= fng->get (c);
@@ -573,7 +560,7 @@ qt_renderer_rep::draw_bis (int c, font_glyphs fng, SI x, SI y) {
     QPainter glim (im);
     glim.setOpacity (qreal (pattern_alpha) / qreal (255));
     if (pm != NULL) {
-      SI tx= x - xo * std_shrinkf, ty= y + yo * std_shrinkf;
+      DI tx= x - xo * std_shrinkf, ty= y + yo * std_shrinkf;
       decode (tx, ty);
       ty--;
       QBrush     qbr (*pm);
@@ -602,7 +589,7 @@ qt_renderer_rep::draw_bis (int c, font_glyphs fng, SI x, SI y) {
 }
 
 void
-qt_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
+qt_renderer_rep::draw (int glyph_index, font_glyphs fng, DI x, DI y,
                        int codepoint) {
   (void) codepoint;
   // emoji cache for this renderer instance
@@ -694,7 +681,7 @@ qt_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
 }
 
 void
-qt_renderer_rep::draw (const QFont& qfn, const QString& qs, SI x, SI y,
+qt_renderer_rep::draw (const QFont& qfn, const QString& qs, DI x, DI y,
                        double zoom) {
   decode (x, y);
   painter->setFont (qfn);

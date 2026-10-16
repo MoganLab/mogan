@@ -675,7 +675,7 @@ mupdf_renderer_rep::lines (array<SI> x, array<SI> y) {
 }
 
 void
-mupdf_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
+mupdf_renderer_rep::clear (DI x1, DI y1, DI x2, DI y2) {
   end_text ();
   SI xx1= to_x (min (x1, x2));
   SI yy1= to_y (min (y1, y2));
@@ -698,7 +698,7 @@ mupdf_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-mupdf_renderer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
+mupdf_renderer_rep::fill (DI x1, DI y1, DI x2, DI y2) {
   if ((x1 < x2) && (y1 < y2)) {
     end_text ();
     SI xx1= to_x (min (x1, x2));
@@ -712,7 +712,7 @@ mupdf_renderer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-mupdf_renderer_rep::bezier_arc (SI x1, SI y1, SI x2, SI y2, int alpha,
+mupdf_renderer_rep::bezier_arc (DI x1, DI y1, DI x2, DI y2, int alpha,
                                 int delta, bool filled) {
   // PDF can describe only cubic bezier paths, so we have to make up the arc
   // with them. Since this is not mathematically exact, we minimize errors by
@@ -777,14 +777,14 @@ mupdf_renderer_rep::bezier_arc (SI x1, SI y1, SI x2, SI y2, int alpha,
 }
 
 void
-mupdf_renderer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+mupdf_renderer_rep::arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
   // debug_convert << "arc\n";
   end_text ();
   bezier_arc (x1, y1, x2, y2, alpha, delta, false);
 }
 
 void
-mupdf_renderer_rep::fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha,
+mupdf_renderer_rep::fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha,
                               int delta) {
   // debug_convert << "fill_arc\n";
   end_text ();
@@ -865,7 +865,7 @@ image (fz_context* ctx, pdf_processor* proc, mupdf_image im, int alpha, float a,
 }
 
 void
-mupdf_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
+mupdf_renderer_rep::draw_picture (picture p, DI x, DI y, int alpha) {
   p                      = as_mupdf_picture (p);
   mupdf_picture_rep* pict= (mupdf_picture_rep*) p->get_handle ();
   if (!pict->im) {
@@ -882,7 +882,7 @@ mupdf_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
 }
 
 void
-mupdf_renderer_rep::draw_scalable (scalable im, SI x, SI y, int alpha) {
+mupdf_renderer_rep::draw_scalable (scalable im, DI x, DI y, int alpha) {
   // debug_convert << "pdf renderer, draw_scalable "
   //   << im->get_name () << " at " << x << ", " << y
   //   << " (" << alpha << ")" << LF;
@@ -1053,7 +1053,7 @@ decode_index (FT_Face face, int i) {
 }
 
 void
-mupdf_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
+mupdf_renderer_rep::draw (int glyph_index, font_glyphs fng, DI x, DI y,
                           int codepoint) {
   (void) codepoint;
   // 零宽空格 (U+200B) 不渲染任何内容

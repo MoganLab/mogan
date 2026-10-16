@@ -120,7 +120,7 @@ void
 renderer_rep::next_page () {}
 
 void
-renderer_rep::anchor (string label, SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::anchor (string label, DI x1, DI y1, DI x2, DI y2) {
   (void) label;
   (void) x1;
   (void) y1;
@@ -130,7 +130,7 @@ renderer_rep::anchor (string label, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-renderer_rep::href (string label, SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::href (string label, DI x1, DI y1, DI x2, DI y2) {
   (void) label;
   (void) x1;
   (void) y1;
@@ -140,7 +140,7 @@ renderer_rep::href (string label, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-renderer_rep::toc_entry (string kind, string title, SI x, SI y) {
+renderer_rep::toc_entry (string kind, string title, DI x, DI y) {
   (void) kind;
   (void) title;
   (void) x;
@@ -340,7 +340,7 @@ abs_round (DI& x, DI& y) {
 }
 
 void
-abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2) {
+abs_inner_round (DI& x1, DI& y1, DI& x2, DI& y2) {
   x1= RND (x1 + PIXEL - 1);
   y1= RND (y1 + PIXEL - 1);
   x2= RND (x2);
@@ -348,7 +348,7 @@ abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2) {
 }
 
 void
-abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2) {
+abs_outer_round (DI& x1, DI& y1, DI& x2, DI& y2) {
   x1= RND (x1);
   y1= RND (y1);
   x2= RND (x2 + PIXEL - 1);
@@ -360,14 +360,14 @@ abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2) {
  ******************************************************************************/
 
 void
-renderer_rep::draw_triangle (SI x1, SI y1, SI x2, SI y2, SI x3, SI y3) {
+renderer_rep::draw_triangle (DI x1, DI y1, DI x2, DI y2, DI x3, DI y3) {
   array<SI> x (3), y (3);
-  x[0]= x1;
-  y[0]= y1;
-  x[1]= x2;
-  y[1]= y2;
-  x[2]= x3;
-  y[2]= y3;
+  x[0]= (SI) x1;
+  y[0]= (SI) y1;
+  x[1]= (SI) x2;
+  y[1]= (SI) y2;
+  x[2]= (SI) x3;
+  y[2]= (SI) y3;
   polygon (x, y);
 }
 
@@ -387,8 +387,8 @@ renderer_rep::get_brush () {
 }
 
 void
-renderer_rep::clear_pattern (SI mx1, SI my1, SI mx2, SI my2, SI x1, SI y1,
-                             SI x2, SI y2) {
+renderer_rep::clear_pattern (DI mx1, DI my1, DI mx2, DI my2, DI x1, DI y1,
+                             DI x2, DI y2) {
   brush      b   = get_background ();
   brush_kind kind= b->get_type ();
   if (kind == brush_none)
@@ -460,19 +460,19 @@ renderer_rep::clear_pattern (SI mx1, SI my1, SI mx2, SI my2, SI x1, SI y1,
 }
 
 void
-renderer_rep::clear_pattern (SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::clear_pattern (DI x1, DI y1, DI x2, DI y2) {
   clear_pattern (x1, y1, x2, y2, x1, y1, x2, y2);
 }
 
 #undef RND
 
 void
-renderer_rep::draw_scalable (scalable im, SI x, SI y, int alpha) {
-  im->draw (this, x, y, alpha);
+renderer_rep::draw_scalable (scalable im, DI x, DI y, int alpha) {
+  im->draw (this, (SI) x, (SI) y, alpha);
 }
 
 bool
-renderer_rep::draw_emoji (int char_code, font_glyphs fn, SI x, SI y) {
+renderer_rep::draw_emoji (int char_code, font_glyphs fn, DI x, DI y) {
   static hashmap<index_type, scalable> emoji_cache;
   // Cast to TrueType font glyphs representation
   auto tt_font= static_cast<tt_font_glyphs_rep*> (fn.rep);
@@ -572,7 +572,7 @@ renderer_rep::support_native_curve (curve c) {
  ******************************************************************************/
 
 renderer
-renderer_rep::shadow (picture& pic, SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::shadow (picture& pic, DI x1, DI y1, DI x2, DI y2) {
   // cout << "Shadow " << x1/PIXEL << ", " << y1/PIXEL
   //      << "; " << x2/PIXEL << ", " << y2/PIXEL << "\n";
   DI x0= 0, y0= 0;
@@ -612,7 +612,7 @@ renderer_rep::shadow (picture& pic, SI x1, SI y1, SI x2, SI y2) {
 }
 
 renderer
-renderer_rep::shadow (scalable& im, SI x1, SI y1, SI x2, SI y2) {
+renderer_rep::shadow (scalable& im, DI x1, DI y1, DI x2, DI y2) {
   (void) im;
   (void) x1;
   (void) y1;
@@ -623,7 +623,7 @@ renderer_rep::shadow (scalable& im, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
+renderer_rep::draw_picture (picture p, DI x, DI y, int alpha) {
   (void) p;
   (void) x;
   (void) y;

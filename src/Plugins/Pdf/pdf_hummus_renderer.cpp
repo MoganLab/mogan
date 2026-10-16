@@ -198,10 +198,10 @@ class pdf_hummus_renderer_rep : public renderer_rep {
   PDFImageXObject* create_pdf_image_raw (string raw_data, SI width, SI height,
                                          ObjectIDType imageXObjectID);
   void             make_pdf_font (string fontname);
-  void             draw_bitmap_glyph (int ch, font_glyphs fn, SI x, SI y);
-  void             image (url u, double w, double h, SI x, SI y, int alpha);
+  void             draw_bitmap_glyph (int ch, font_glyphs fn, DI x, DI y);
+  void             image (url u, double w, double h, DI x, DI y, int alpha);
 
-  void bezier_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta,
+  void bezier_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta,
                    bool filled);
 
   // hooks for the Hummus library
@@ -255,18 +255,18 @@ public:
   void   set_brush (brush b2);
   void   set_background (brush b2);
 
-  void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
+  void draw (int glyph_index, font_glyphs fn, DI x, DI y, int codepoint= -1);
   void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
-  void clear (SI x1, SI y1, SI x2, SI y2);
-  void fill (SI x1, SI y1, SI x2, SI y2);
-  void arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
-  void fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
+  void clear (DI x1, DI y1, DI x2, DI y2);
+  void fill (DI x1, DI y1, DI x2, DI y2);
+  void arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
+  void fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
   void polygon (array<SI> x, array<SI> y, bool convex= true);
 
-  void     draw_picture (picture p, SI x, SI y, int alpha);
-  void     draw_scalable (scalable im, SI x, SI y, int alpha);
-  renderer shadow (picture& pic, SI x1, SI y1, SI x2, SI y2);
+  void     draw_picture (picture p, DI x, DI y, int alpha);
+  void     draw_scalable (scalable im, DI x, DI y, int alpha);
+  renderer shadow (picture& pic, DI x1, DI y1, DI x2, DI y2);
   void     fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y);
   void     new_shadow (renderer& ren);
   void     delete_shadow (renderer& ren);
@@ -276,9 +276,9 @@ public:
 
   /************************ subroutines hyperlinks ***************************/
 
-  void anchor (string label, SI x1, SI y1, SI x2, SI y2);
-  void href (string label, SI x1, SI y1, SI x2, SI y2);
-  void toc_entry (string kind, string title, SI x, SI y);
+  void anchor (string label, DI x1, DI y1, DI x2, DI y2);
+  void href (string label, DI x1, DI y1, DI x2, DI y2);
+  void toc_entry (string kind, string title, DI x, DI y);
   void set_metadata (string kind, string val);
   void flush_metadata ();
 };
@@ -895,8 +895,8 @@ pdf_hummus_renderer_rep::flush_glyphs () {
 }
 
 void
-pdf_hummus_renderer_rep::draw_bitmap_glyph (int ch, font_glyphs fn, SI x,
-                                            SI y) {
+pdf_hummus_renderer_rep::draw_bitmap_glyph (int ch, font_glyphs fn, DI x,
+                                            DI y) {
   (void) x;
   (void) y;
   // use bitmap (to be improved)
@@ -1340,7 +1340,7 @@ requires_hack_notdef_for_tex_font (string fontname) {
 }
 
 void
-pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
+pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, DI x, DI y,
                                int codepoint) {
   // debug_convert << "draw \"" << (char)glyph_index << "\" " << glyph_index
   //                << " " << fn->res_name << "\n";
@@ -1491,7 +1491,7 @@ pdf_hummus_renderer_rep::lines (array<SI> x, array<SI> y) {
 }
 
 void
-pdf_hummus_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::clear (DI x1, DI y1, DI x2, DI y2) {
   end_text ();
   SI xx1= to_x (min (x1, x2));
   SI yy1= to_y (min (y1, y2));
@@ -1511,7 +1511,7 @@ pdf_hummus_renderer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-pdf_hummus_renderer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::fill (DI x1, DI y1, DI x2, DI y2) {
   if ((x1 < x2) && (y1 < y2)) {
     end_text ();
     SI xx1= to_x (min (x1, x2));
@@ -1525,7 +1525,7 @@ pdf_hummus_renderer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-pdf_hummus_renderer_rep::bezier_arc (SI x1, SI y1, SI x2, SI y2, int alpha,
+pdf_hummus_renderer_rep::bezier_arc (DI x1, DI y1, DI x2, DI y2, int alpha,
                                      int delta, bool filled) {
   // PDF can describe only cubic bezier paths, so we have to make up the arc
   // with them Since this is not mathematically exact, we minimize errors by
@@ -1585,7 +1585,7 @@ pdf_hummus_renderer_rep::bezier_arc (SI x1, SI y1, SI x2, SI y2, int alpha,
 }
 
 void
-pdf_hummus_renderer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha,
+pdf_hummus_renderer_rep::arc (DI x1, DI y1, DI x2, DI y2, int alpha,
                               int delta) {
   // debug_convert << "arc\n";
   end_text ();
@@ -1593,7 +1593,7 @@ pdf_hummus_renderer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha,
 }
 
 void
-pdf_hummus_renderer_rep::fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha,
+pdf_hummus_renderer_rep::fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha,
                                    int delta) {
   // debug_convert << "fill_arc\n";
   end_text ();
@@ -1641,7 +1641,7 @@ pdf_hummus_renderer_rep::flush_patterns () {
 }
 
 void
-pdf_hummus_renderer_rep::image (url u, double w, double h, SI x, SI y,
+pdf_hummus_renderer_rep::image (url u, double w, double h, DI x, DI y,
                                 int alpha) {
   // debug_convert << "pdf renderer, image " << u << ", " << w << " x " << h
   //		<< " + (" << x << ", " << y << ")" << LF;
@@ -1702,7 +1702,7 @@ pdf_raster_picture (picture pic) {
 #endif
 
 void
-pdf_hummus_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
+pdf_hummus_renderer_rep::draw_picture (picture p, DI x, DI y, int alpha) {
   // debug_convert << "pdf renderer, draw_picture " << x << ", " << y
   //		<< " (" << alpha << ")" << LF;
   url                    temp;
@@ -1729,7 +1729,7 @@ pdf_hummus_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
 }
 
 void
-pdf_hummus_renderer_rep::draw_scalable (scalable im, SI x, SI y, int alpha) {
+pdf_hummus_renderer_rep::draw_scalable (scalable im, DI x, DI y, int alpha) {
   // debug_convert << "pdf renderer, draw_scalable "
   //   << im->get_name () << " at " << x << ", " << y
   //   << " (" << alpha << ")" << LF;
@@ -1844,14 +1844,14 @@ pdf_hummus_renderer_rep::get_label_id (string label) {
 }
 
 void
-pdf_hummus_renderer_rep::anchor (string label, SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::anchor (string label, DI x1, DI y1, DI x2, DI y2) {
   (void) x2;
   (void) y1;
   dests << dest_data (label, page_num, to_x (x1), to_y (y2 + 20 * pixel));
 }
 
 void
-pdf_hummus_renderer_rep::href (string label, SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::href (string label, DI x1, DI y1, DI x2, DI y2) {
   bool         preserve= (get_locus_rendering ("locus-on-paper") == "preserve");
   ObjectIDType annotId = pdfWriter.GetObjectsContext ()
                             .GetInDirectObjectsRegistry ()
@@ -1915,7 +1915,7 @@ pdf_hummus_renderer_rep::flush_dests () {
 }
 
 void
-pdf_hummus_renderer_rep::toc_entry (string kind, string title, SI x, SI y) {
+pdf_hummus_renderer_rep::toc_entry (string kind, string title, DI x, DI y) {
   (void) kind;
   (void) title;
   (void) x;
@@ -2116,7 +2116,7 @@ pdf_hummus_renderer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
 }
 
 renderer
-pdf_hummus_renderer_rep::shadow (picture& pic, SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::shadow (picture& pic, DI x1, DI y1, DI x2, DI y2) {
   double old_zoomf= this->zoomf;
   set_zoom_factor (5.0 * PICTURE_ZOOM);
   renderer ren= renderer_rep::shadow (pic, x1, y1, x2, y2);

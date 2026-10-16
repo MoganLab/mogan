@@ -40,7 +40,7 @@ class printer_rep : public renderer_rep {
   int    nwidths;
   string cfn;
   int    nfonts;
-  SI     xpos, ypos;
+  DI     xpos, ypos;
   bool   tex_flag;
   tree   toc;
 
@@ -64,8 +64,8 @@ public:
   void   sep ();
   void   cr ();
   void   print (string s);
-  void   print (SI x, SI y);
-  void   move_to (SI x, SI y);
+  void   print (DI x, DI y);
+  void   move_to (DI x, DI y);
   string define_alpha (int a);
   void   select_color (color c);
   void   select_line_width (SI w);
@@ -78,9 +78,9 @@ public:
 
   /************************ subroutines hyperlinks ***************************/
 
-  void anchor (string label, SI x1, SI y1, SI x2, SI y2);
-  void href (string label, SI x1, SI y1, SI x2, SI y2);
-  void toc_entry (string kind, string title, SI x, SI y);
+  void anchor (string label, DI x1, DI y1, DI x2, DI y2);
+  void href (string label, DI x1, DI y1, DI x2, DI y2);
+  void toc_entry (string kind, string title, DI x, DI y);
   void generate_toc_item (tree t);
   void generate_toc ();
   void set_metadata (string kind, string val);
@@ -96,13 +96,13 @@ public:
   brush  get_background ();
   void   set_pencil (pencil p);
   void   set_background (brush b);
-  void   draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
+  void   draw (int glyph_index, font_glyphs fn, DI x, DI y, int codepoint= -1);
   void   line (DI x1, DI y1, DI x2, DI y2);
   void   lines (array<SI> x, array<SI> y);
-  void   clear (SI x1, SI y1, SI x2, SI y2);
-  void   fill (SI x1, SI y1, SI x2, SI y2);
-  void   arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
-  void   fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
+  void   clear (DI x1, DI y1, DI x2, DI y2);
+  void   fill (DI x1, DI y1, DI x2, DI y2);
+  void   arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
+  void   fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
   void   polygon (array<SI> x, array<SI> y, bool convex= true);
 
   void fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y);
@@ -112,11 +112,11 @@ public:
   void put_shadow (renderer ren, DI x1, DI y1, DI x2, DI y2);
   void apply_shadow (DI x1, DI y1, DI x2, DI y2);
 
-  renderer shadow (picture& pic, SI x1, SI y1, SI x2, SI y2);
-  void     draw_picture (picture p, SI x, SI y, int alpha);
-  void     draw_scalable (scalable im, SI x, SI y, int alpha);
-  void image (string name, string eps, SI x1, SI y1, SI x2, SI y2, SI w, SI h,
-              SI x, SI y, int alpha);
+  renderer shadow (picture& pic, DI x1, DI y1, DI x2, DI y2);
+  void     draw_picture (picture p, DI x, DI y, int alpha);
+  void     draw_scalable (scalable im, DI x, DI y, int alpha);
+  void image (string name, string eps, DI x1, DI y1, DI x2, DI y2, DI w, DI h,
+              DI x, DI y, int alpha);
 };
 
 renderer printer (url ps_file_name, int dpi, int nr_pages= 1,
