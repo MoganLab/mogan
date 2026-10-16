@@ -49,6 +49,8 @@ private slots:
   void test_noto_sans_symbols2_font_support ();
   void test_misc_symbols_fallback ();
   void test_misc_symbols_fallback_to_symbols2 ();
+  void test_keycap_combining_font_support ();
+  void test_keycap_combining_fallback ();
 };
 
 void
@@ -324,6 +326,35 @@ TestSmartFont::test_misc_symbols_fallback_to_symbols2 () {
   QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
   // 应路由到 NotoSansSymbols2
   QVERIFY (occurs ("NotoSansSymbols2", fn_rep->fn[nr]->res_name));
+}
+
+void
+TestSmartFont::test_keycap_combining_font_support () {
+  // U+20E3 COMBINING ENCLOSING KEYCAP 必须至少被一款自带回退字体支持，
+  // 否则 emoji 回退链无处可去（4539 的前提：Asana Math cmap 含 U+20E3）
+  font asana_fn=
+      closest_font ("Asana Math", "rm", "medium", "right", 10, 600, 1);
+  font noto_fn=
+      closest_font ("Noto Sans Symbols", "rm", "medium", "right", 10, 600, 1);
+  font noto2_fn=
+      closest_font ("Noto Sans Symbols2", "rm", "medium", "right", 10, 600, 1);
+  bool supported= (!is_nil (asana_fn) && asana_fn->supports ("<#20E3>")) ||
+                  (!is_nil (noto_fn) && noto_fn->supports ("<#20E3>")) ||
+                  (!is_nil (noto2_fn) && noto2_fn->supports ("<#20E3>"));
+  QVERIFY (supported);
+}
+
+void
+TestSmartFont::test_keycap_combining_fallback () {
+  // U+20E3 落在 lolly 的 mathsymbols 区间（U+2000-U+23FF），此前走数学字体链，
+  // 默认数学字体无该字形，渲染为 <#20E3> 占位符（4539）。
+  // 现应与 emoji 共用回退链，路由到某款符号字体而非 error 字体。
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  int             nr    = fn_rep->resolve ("<#20E3>");
+  QVERIFY (nr >= 0);
+  QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
+  QVERIFY (fn_rep->fn[nr]->supports ("<#20E3>"));
 }
 
 QTEST_MAIN (TestSmartFont)
