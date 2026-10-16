@@ -571,6 +571,8 @@
   link-active-ids
   link-follow-ids
   link-mouse-ids
+  link-contains-inner-link?
+  show-hlink-tooltip
 ) ;lazy-define
 (lazy-define (link link-extern)
   get-constellation
