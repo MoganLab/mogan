@@ -1,0 +1,10 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "book"))
+  (body (document (part "Part I")
+          (chapter "Chapter 1")
+          "Content of Chapter 1."
+          (chapter "Chapter 2")
+          "Content of Chapter 2."
+        ) ;document
+  ) ;body
+) ;document

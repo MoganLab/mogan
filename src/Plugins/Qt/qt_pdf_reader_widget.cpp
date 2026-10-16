@@ -1155,6 +1155,7 @@ walkOutline (fz_context* ctx, fz_document* doc, const fz_outline* node,
     PdfOutlineItem item;
     item.title= QString::fromUtf8 (cur->title ? cur->title : "");
     item.page = -1;
+    item.isOpen= (cur->is_open != 0);
     if (cur->uri) {
       float       xp= 0, yp= 0;
       fz_location loc= fz_resolve_link (ctx, doc, cur->uri, &xp, &yp);

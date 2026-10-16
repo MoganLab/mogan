@@ -98,6 +98,87 @@
 ) ;define
 
 ;; ---------------------------------------------------------------------------
+;; 大纲默认展开状态计算
+;; 规则 1：单非叶子节点链条自动递归穿透展开
+;; 规则 2：基于 1.5 屏（30 条）阈值的逐层贪心评估展开
+;; ---------------------------------------------------------------------------
+
+(define (outline-node-leaf? node)
+  (null? (caddr node))
+) ;define
+
+(define (outline-node-non-leaf? node)
+  (pair? (caddr node))
+) ;define
+
+(define (outline-node-path node)
+  (cadr node)
+) ;define
+
+(define (outline-node-title node)
+  (car node)
+) ;define
+
+(define (outline-node-children node)
+  (caddr node)
+) ;define
+
+(tm-define (outline-default-expanded-state tree . rest)
+  (:synopsis "Compute default expanded nodes and visible count for an outline tree"
+  ) ;:synopsis
+  (let ((threshold (if (pair? rest) (car rest) 30)))
+    (if (null? tree)
+      (cons '() 0)
+      ;; 阶段一：规则 1 单支递归穿透
+      (let loop-p1
+        ((curr tree) (expanded '()))
+        (let ((leaves (list-filter curr outline-node-leaf?))
+              (non-leaves (list-filter curr outline-node-non-leaf?))
+             ) ;
+          (if (and (null? leaves) (== (length non-leaves) 1))
+            (let ((sole (car non-leaves)))
+              (loop-p1 (outline-node-children sole) (cons sole expanded))
+            ) ;let
+            ;; 阶段二：规则 2 逐层评估展开（阈值 threshold）
+            (let loop-p2
+              ((layer curr) (vis-count (+ (length expanded) (length curr))) (exp expanded))
+              (let ((candidates (list-filter layer outline-node-non-leaf?)))
+                (if (null? candidates)
+                  (cons (reverse exp) vis-count)
+                  (let* ((new-children (apply append (map outline-node-children candidates)))
+                         (new-count (length new-children))
+                         (total (+ vis-count new-count))
+                        ) ;
+                    (if (<= total threshold)
+                      (loop-p2 new-children total (append (reverse candidates) exp))
+                      (cons (reverse exp) vis-count)
+                    ) ;if
+                  ) ;let*
+                ) ;if
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;if
+  ) ;let
+) ;tm-define
+
+(tm-define (outline-default-expanded-paths tree . rest)
+  (:synopsis "Return list of paths for default expanded nodes in outline tree")
+  (let ((state (apply outline-default-expanded-state (cons tree rest))))
+    (map outline-node-path (car state))
+  ) ;let
+) ;tm-define
+
+(tm-define (outline-default-expanded-titles tree . rest)
+  (:synopsis "Return list of titles for default expanded nodes in outline tree")
+  (let ((state (apply outline-default-expanded-state (cons tree rest))))
+    (map outline-node-title (car state))
+  ) ;let
+) ;tm-define
+
+;; ---------------------------------------------------------------------------
 ;; 获取当前缓冲区的文档大纲嵌套树
 ;; ---------------------------------------------------------------------------
 

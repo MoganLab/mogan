@@ -76,6 +76,8 @@ typedef triple<int, int, int>               rgb;
 typedef quartet<string, int, SI, SI>        dest_data;
 typedef quintuple<string, int, SI, SI, int> outline_data;
 
+struct pdf_outline_node;
+
 class t3font;
 class pdf_pattern;
 
@@ -233,7 +235,8 @@ class pdf_hummus_renderer_rep : public renderer_rep {
 
   void recurse (ObjectsContext& objectsContext, int parent_ls,
                 list<outline_data>& it, ObjectIDType parentId,
-                ObjectIDType& firstId, ObjectIDType& lastId, int& count);
+                ObjectIDType& firstId, ObjectIDType& lastId, int& count,
+                int& item_idx, const array<pdf_outline_node*>& node_map);
 
 public:
   pdf_hummus_renderer_rep (url pdf_file_name, int dpi, int nr_pages,
@@ -1935,11 +1938,131 @@ pdf_hummus_renderer_rep::toc_entry (string kind, string title, SI x, SI y) {
                             to_y (y + 20 * pixel), ls);
 }
 
+struct pdf_outline_node {
+  int                     index;
+  outline_data            item;
+  list<pdf_outline_node*> children;
+  bool                    is_expanded;
+  int                     sub_count; // total descendants
+  int                     vis_count; // visible descendants if open
+
+  pdf_outline_node (int idx, const outline_data& itm)
+      : index (idx), item (itm), children (), is_expanded (false),
+        sub_count (0), vis_count (0) {}
+};
+
+static list<pdf_outline_node*>
+build_pdf_outline_tree (int parent_ls, list<outline_data>& it, int& cur_idx,
+                        array<pdf_outline_node*>& node_map) {
+  list<pdf_outline_node*> result;
+  while (!is_nil (it) && (it->item).x5 > parent_ls) {
+    int               idx = cur_idx++;
+    pdf_outline_node* node= tm_new<pdf_outline_node> (idx, it->item);
+    node_map[idx]         = node;
+    it                    = it->next;
+    if (!is_nil (it) && (it->item).x5 > (node->item).x5) {
+      node->children=
+          build_pdf_outline_tree ((node->item).x5, it, cur_idx, node_map);
+    }
+    result << node;
+  }
+  return result;
+}
+
+static void
+compute_pdf_outline_expansion (list<pdf_outline_node*> roots,
+                               int                     threshold= 30) {
+  if (is_nil (roots)) return;
+
+  // Phase 1: Rule 1 single non-leaf chain penetration
+  list<pdf_outline_node*> current     = roots;
+  int                     phase1_count= 0;
+  while (true) {
+    list<pdf_outline_node*> leaves;
+    list<pdf_outline_node*> non_leaves;
+    for (list<pdf_outline_node*> it= current; !is_nil (it); it= it->next) {
+      if (is_nil (it->item->children)) leaves << it->item;
+      else non_leaves << it->item;
+    }
+    if (is_nil (leaves) && N (non_leaves) == 1) {
+      pdf_outline_node* sole= non_leaves->item;
+      sole->is_expanded     = true;
+      phase1_count++;
+      current= sole->children;
+    }
+    else {
+      break;
+    }
+  }
+
+  // Phase 2: Rule 2 layer-by-layer greedy evaluation (threshold)
+  int                     visible_count= phase1_count + N (current);
+  list<pdf_outline_node*> current_layer= current;
+
+  while (true) {
+    list<pdf_outline_node*> candidates;
+    for (list<pdf_outline_node*> it= current_layer; !is_nil (it);
+         it                       = it->next) {
+      if (!is_nil (it->item->children)) candidates << it->item;
+    }
+    if (is_nil (candidates)) break;
+
+    list<pdf_outline_node*> new_children;
+    for (list<pdf_outline_node*> it= candidates; !is_nil (it); it= it->next) {
+      for (list<pdf_outline_node*> ch= it->item->children; !is_nil (ch);
+           ch                        = ch->next) {
+        new_children << ch->item;
+      }
+    }
+    int new_count= N (new_children);
+    if (visible_count + new_count <= threshold) {
+      for (list<pdf_outline_node*> it= candidates; !is_nil (it); it= it->next) {
+        it->item->is_expanded= true;
+      }
+      visible_count+= new_count;
+      current_layer= new_children;
+    }
+    else {
+      break;
+    }
+  }
+}
+
+static void
+compute_pdf_counts (pdf_outline_node* node) {
+  node->sub_count= 0;
+  node->vis_count= 0;
+  for (list<pdf_outline_node*> it= node->children; !is_nil (it); it= it->next) {
+    compute_pdf_counts (it->item);
+    node->sub_count+= 1 + it->item->sub_count;
+    if (node->is_expanded) {
+      node->vis_count+= 1 + (it->item->is_expanded ? it->item->vis_count : 0);
+    }
+  }
+}
+
+static int
+compute_pdf_total_visible (list<pdf_outline_node*> roots) {
+  int total= 0;
+  for (list<pdf_outline_node*> it= roots; !is_nil (it); it= it->next) {
+    total+= 1 + (it->item->is_expanded ? it->item->vis_count : 0);
+  }
+  return total;
+}
+
+static void
+free_pdf_outline_tree (list<pdf_outline_node*> nodes) {
+  for (list<pdf_outline_node*> it= nodes; !is_nil (it); it= it->next) {
+    free_pdf_outline_tree (it->item->children);
+    tm_delete (it->item);
+  }
+}
+
 void
-pdf_hummus_renderer_rep::recurse (ObjectsContext& objectsContext, int parent_ls,
-                                  list<outline_data>& it, ObjectIDType parentId,
-                                  ObjectIDType& firstId, ObjectIDType& lastId,
-                                  int& count) {
+pdf_hummus_renderer_rep::recurse (
+    ObjectsContext& objectsContext, int parent_ls, list<outline_data>& it,
+    ObjectIDType parentId, ObjectIDType& firstId, ObjectIDType& lastId,
+    int& count, int& item_idx, const array<pdf_outline_node*>& node_map) {
   // weave the tangle of forward/backward references
   // are recurse over substructures
 
@@ -1953,14 +2076,17 @@ pdf_hummus_renderer_rep::recurse (ObjectsContext& objectsContext, int parent_ls,
     ObjectIDType subFirstId= 0, subLastId= 0;
     int          subCount= 0;
 
-    outline_data oitem= it->item;
+    outline_data      oitem= it->item;
+    pdf_outline_node* node =
+        (item_idx < N (node_map)) ? node_map[item_idx] : NULL;
+    item_idx++;
     count++;
     it= it->next;
 
     if (!is_nil (it) && ((it->item).x5 > oitem.x5)) {
       // go down in level
       recurse (objectsContext, oitem.x5, it, curId, subFirstId, subLastId,
-               subCount);
+               subCount, item_idx, node_map);
     }
 
     // continue at this level or above
@@ -1984,8 +2110,13 @@ pdf_hummus_renderer_rep::recurse (ObjectsContext& objectsContext, int parent_ls,
       if (nextId != 0) dict << "\t/Next " << as_string (nextId) << " 0 R \r\n";
       if (subCount > 0) {
         dict << "\t/First " << as_string (subFirstId) << " 0 R \r\n"
-             << "\t/Last " << as_string (subLastId) << " 0 R \r\n"
-             << "\t/Count " << as_string (-subCount) << "\r\n";
+             << "\t/Last " << as_string (subLastId) << " 0 R \r\n";
+        if (node && node->is_expanded) {
+          dict << "\t/Count " << as_string (node->vis_count) << "\r\n";
+        }
+        else {
+          dict << "\t/Count " << as_string (-subCount) << "\r\n";
+        }
       }
       dict << "\t/Dest [ " << as_string (page_id ((oitem).x2)) << " 0 R /XYZ "
            << as_string (((double) default_dpi / dpi) * ((oitem).x3)) << " "
@@ -2004,14 +2135,29 @@ void
 pdf_hummus_renderer_rep::flush_outlines () {
   if (is_nil (outlines)) return;
 
+  // 构建大纲树并运行默认展开与折叠判定算法
+  int                      cur_idx= 0;
+  array<pdf_outline_node*> node_map (N (outlines));
+  list<outline_data>       it_tree= outlines;
+  list<pdf_outline_node*>  roots=
+      build_pdf_outline_tree (0, it_tree, cur_idx, node_map);
+
+  compute_pdf_outline_expansion (roots, 30);
+  for (list<pdf_outline_node*> it= roots; !is_nil (it); it= it->next) {
+    compute_pdf_counts (it->item);
+  }
+  int total_visible= compute_pdf_total_visible (roots);
+
   ObjectsContext&    objectsContext= pdfWriter.GetObjectsContext ();
   ObjectIDType       firstId= 0, lastId= 0;
-  int                count= 0;
-  list<outline_data> it   = outlines;
+  int                count   = 0;
+  int                item_idx= 0;
+  list<outline_data> it      = outlines;
 
   outlineId=
       objectsContext.GetInDirectObjectsRegistry ().AllocateNewObjectID ();
-  recurse (objectsContext, 0, it, outlineId, firstId, lastId, count);
+  recurse (objectsContext, 0, it, outlineId, firstId, lastId, count, item_idx,
+           node_map);
   {
     // create top-level outline dictionary
     string dict;
@@ -2019,10 +2165,12 @@ pdf_hummus_renderer_rep::flush_outlines () {
     dict << "\t/Type /Outlines\r\n";
     dict << "\t/First " << as_string (firstId) << " 0 R \r\n";
     dict << "\t/Last " << as_string (lastId) << " 0 R \r\n";
-    dict << "\t/Count " << as_string (count) << "\r\n";
+    dict << "\t/Count " << as_string (total_visible) << "\r\n";
     dict << ">>\r\n";
     write_indirect_obj (objectsContext, outlineId, dict);
   }
+
+  free_pdf_outline_tree (roots);
 }
 
 /******************************************************************************

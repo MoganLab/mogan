@@ -1,0 +1,14 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "book"))
+  (body (document (chapter "Chapter 1")
+          (section "Section 1.1")
+          (section "Section 1.2")
+          (chapter "Chapter 2")
+          (section "Section 2.1")
+          (section "Section 2.2")
+          (chapter "Chapter 3")
+          (section "Section 3.1")
+          (section "Section 3.2")
+        ) ;document
+  ) ;body
+) ;document

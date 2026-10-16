@@ -22,7 +22,21 @@ Item {
     property var displayItems: []
 
     function isExpanded(id) {
-        return expandedMap[id] !== undefined ? expandedMap[id] : true;
+        if (expandedMap[id] !== undefined) {
+            return expandedMap[id];
+        }
+        if (bridge && bridge.defaultExpandedMap && bridge.defaultExpandedMap[id] !== undefined) {
+            return bridge.defaultExpandedMap[id];
+        }
+        return false;
+    }
+
+    function resetExpandedMap() {
+        if (bridge && bridge.defaultExpandedMap) {
+            expandedMap = Object.assign({}, bridge.defaultExpandedMap);
+        } else {
+            expandedMap = {};
+        }
     }
 
     function updateDisplayItems() {
@@ -76,7 +90,16 @@ Item {
     }
 
     onRawModelChanged: {
+        resetExpandedMap();
         updateDisplayItems();
+    }
+
+    Connections {
+        target: root.bridge
+        function onDefaultExpandedMapChanged() {
+            root.resetExpandedMap();
+            root.updateDisplayItems();
+        }
     }
 
     onSearchQueryChanged: {
