@@ -1948,6 +1948,7 @@
 ("Only image" "仅图片")
 ("opacity" "不透明度")
 ("Open document" "打开文档")
+("Open file" "打开文件")
 ("open documents" "打开的文档")
 ("open a document" "打开文档")
 ("Open a Document" "打开")

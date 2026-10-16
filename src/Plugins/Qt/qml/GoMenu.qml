@@ -1,8 +1,8 @@
 // GoMenu.qml — 标题栏「转到/Go」按钮弹出的精致 QML 菜单浮层。
-// 仅展示最近使用的文档列表（Recent）。
-// 固定优雅宽度（260），杜绝长文件名撑宽整个下拉浮层；
-// 顶部标题固定不随列表滚动，文本中间省略（ElideMiddle），
-// 配备精致文件类型图标与柔和微立体阴影。
+// 展示最近使用的文档列表（Recent）及底部打开文件入口。
+// 固定优雅宽度（360），杜绝长文件名撑宽整个下拉浮层；
+// 顶部标题固定不随列表滚动，底部固定「打开文件…」入口；
+// 文本中间省略（ElideMiddle），配备精致文件类型与操作图标与柔和微立体阴影。
 
 import QtQuick
 import "atoms"
@@ -10,30 +10,34 @@ import "atoms"
 Item {
     id: root
 
-    readonly property var meta: (typeof goBridge !== "undefined" && goBridge && goBridge.meta) ? goBridge.meta : ({})
+    readonly property var bridge: (typeof goBridge !== "undefined" && goBridge) ? goBridge : null
+    readonly property var meta: bridge ? bridge.meta : ({})
     readonly property string labelRecent: meta.label_recent || qsTr("Recent")
+    readonly property string labelOpen: (meta.label_open || qsTr("Open file")) + "…"
     readonly property var recent: meta.recent || []
 
     readonly property real itemH: 32 * Theme.scaleFactor
     readonly property real hdrH: 26 * Theme.scaleFactor
     readonly property real sepH: 1 * Theme.scaleFactor
     readonly property real spacingH: 2 * Theme.scaleFactor
+    readonly property real footerH: sepH + itemH + 8 * Theme.scaleFactor
 
     // 仅包含最近文档列表项高（若为空则占位48px）
-    readonly property real recentCount: recent.length > 0 ? recent.length : 1
-    readonly property real calculatedHeight: recent.length > 0 ? recentCount * (itemH + spacingH) : 48 * Theme.scaleFactor
+    readonly property real emptyH: 48 * Theme.scaleFactor
+    readonly property real calculatedHeight: recent.length > 0 ? recent.length * (itemH + spacingH) : emptyH
 
     // 固定优雅的菜单宽度，杜绝长文件名拉宽浮层
-    readonly property real menuWidth: 260 * Theme.scaleFactor
+    readonly property real menuWidth: 360 * Theme.scaleFactor
     readonly property real maxListHeight: 380 * Theme.scaleFactor
     readonly property real listHeight: Math.min(maxListHeight, calculatedHeight)
+    readonly property real cardHeight: listHeight + hdrH + sepH + footerH + 16 * Theme.scaleFactor
 
     readonly property real shadowPad: 4 * Theme.scaleFactor
 
     width: implicitWidth
     height: implicitHeight
     implicitWidth: menuWidth + shadowPad * 2
-    implicitHeight: listHeight + hdrH + sepH + 16 * Theme.scaleFactor + shadowPad * 2 + 2 * Theme.scaleFactor
+    implicitHeight: cardHeight + shadowPad * 2 + 2 * Theme.scaleFactor
 
     // 渐进柔和立体阴影（多层微透明矩形弥散）
     Rectangle {
@@ -67,7 +71,7 @@ Item {
         x: root.shadowPad
         y: root.shadowPad
         width: root.menuWidth
-        height: root.listHeight + root.hdrH + root.sepH + 16 * Theme.scaleFactor
+        height: root.cardHeight
         radius: 10 * Theme.scaleFactor
         color: Theme.bg
         border.width: 1
@@ -115,10 +119,10 @@ Item {
             anchors.topMargin: 4 * Theme.scaleFactor
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: footerArea.top
+            anchors.bottomMargin: 4 * Theme.scaleFactor
             anchors.leftMargin: 6 * Theme.scaleFactor
             anchors.rightMargin: 6 * Theme.scaleFactor
-            anchors.bottomMargin: 6 * Theme.scaleFactor
             contentWidth: width
             contentHeight: root.calculatedHeight
             clip: true
@@ -136,14 +140,14 @@ Item {
                     delegate: MenuItem {
                         width: contentColumn.width
                         text: modelData.title || ""
-                        onTriggered: if (typeof goBridge !== "undefined") goBridge.loadBuffer(modelData.url)
+                        onTriggered: if (root.bridge) root.bridge.loadBuffer(modelData.url)
                     }
                 }
 
                 // 空状态占位
                 Item {
                     width: parent.width
-                    implicitHeight: 48 * Theme.scaleFactor
+                    implicitHeight: root.emptyH
                     height: implicitHeight
                     visible: root.recent.length === 0
 
@@ -168,14 +172,52 @@ Item {
             }
         }
 
+        // 底部固定操作区（分隔细线 + 打开文件入口）
+        Item {
+            id: footerArea
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: root.footerH
+
+            // 分隔细线（与顶部 headerSep 样式一致）
+            Rectangle {
+                id: footerSep
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 12 * Theme.scaleFactor
+                anchors.rightMargin: 12 * Theme.scaleFactor
+                height: root.sepH
+                color: Theme.borderClr
+                opacity: 0.4
+            }
+
+            MenuItem {
+                id: openItem
+                objectName: "goMenuOpenItem"
+                isAction: true
+                anchors.top: footerSep.bottom
+                anchors.topMargin: 4 * Theme.scaleFactor
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 6 * Theme.scaleFactor
+                anchors.rightMargin: 6 * Theme.scaleFactor
+                text: root.labelOpen
+                onTriggered: {
+                    if (root.bridge) root.bridge.openFile()
+                }
+            }
+        }
+
         // 简易优雅滚动指示器（置于列表区侧边）
         Rectangle {
             anchors.right: menuCard.right
             anchors.rightMargin: 3 * Theme.scaleFactor
             anchors.top: headerSep.bottom
             anchors.topMargin: 4 * Theme.scaleFactor
-            anchors.bottom: menuCard.bottom
-            anchors.bottomMargin: 8 * Theme.scaleFactor
+            anchors.bottom: footerArea.top
+            anchors.bottomMargin: 4 * Theme.scaleFactor
             width: 2.5 * Theme.scaleFactor
             radius: 1.25 * Theme.scaleFactor
             color: "transparent"
@@ -190,6 +232,58 @@ Item {
                 radius: parent.radius
                 color: Theme.muted
                 opacity: 0.35
+            }
+        }
+    }
+
+    // 单个文件夹/打开图标组件
+    component FolderIcon: Item {
+        id: folderIconRoot
+        width: 14 * Theme.scaleFactor
+        height: 14 * Theme.scaleFactor
+
+        readonly property color backColor: Theme.dark ? "#d97706" : "#f59e0b"
+        readonly property color frontColor: Theme.dark ? "#f59e0b" : "#fbbf24"
+        readonly property color tabColor: Theme.dark ? "#b45309" : "#d97706"
+
+        // 后方标签页（左上方凸起）
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            width: 6 * Theme.scaleFactor
+            height: 3.5 * Theme.scaleFactor
+            radius: 1 * Theme.scaleFactor
+            color: folderIconRoot.tabColor
+        }
+
+        // 后方主体
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 2 * Theme.scaleFactor
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            radius: 2 * Theme.scaleFactor
+            color: folderIconRoot.backColor
+        }
+
+        // 前方斜面折页
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 4.5 * Theme.scaleFactor
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            radius: 2 * Theme.scaleFactor
+            color: folderIconRoot.frontColor
+
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1 * Theme.scaleFactor
+                color: "#ffffff"
+                opacity: 0.3
             }
         }
     }
@@ -255,6 +349,7 @@ Item {
         id: itemRoot
         objectName: "goMenuItem"
         property string text: ""
+        property bool isAction: false
         readonly property bool isHovered: mouseArea.containsMouse
         readonly property string fileExt: {
             var name = itemRoot.text;
@@ -280,12 +375,19 @@ Item {
             }
         }
 
-        DocumentIcon {
-            id: docIcon
+        Component {
+            id: documentIconComponent
+            DocumentIcon {
+                filename: itemRoot.text
+            }
+        }
+
+        Loader {
+            id: iconLoader
+            sourceComponent: itemRoot.isAction ? FolderIcon : documentIconComponent
             anchors.left: parent.left
             anchors.leftMargin: 8 * Theme.scaleFactor
             anchors.verticalCenter: parent.verticalCenter
-            filename: itemRoot.text
         }
 
         // 右侧文件类型标签（仅标注最后一级后缀）
@@ -295,7 +397,7 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 8 * Theme.scaleFactor
             anchors.verticalCenter: parent.verticalCenter
-            visible: itemRoot.fileExt.length > 0
+            visible: !itemRoot.isAction && itemRoot.fileExt.length > 0
             implicitWidth: tagText.implicitWidth + 8 * Theme.scaleFactor
             implicitHeight: 16 * Theme.scaleFactor
             width: implicitWidth
@@ -318,7 +420,7 @@ Item {
 
         Text {
             id: labelText
-            anchors.left: docIcon.right
+            anchors.left: iconLoader.right
             anchors.leftMargin: 8 * Theme.scaleFactor
             anchors.right: typeTag.visible ? typeTag.left : parent.right
             anchors.rightMargin: typeTag.visible ? 6 * Theme.scaleFactor : 8 * Theme.scaleFactor
@@ -345,6 +447,6 @@ Item {
 
     focus: true
     Keys.onEscapePressed: {
-        if (typeof goBridge !== "undefined") goBridge.closeMenu();
+        if (root.bridge) root.bridge.closeMenu();
     }
 }
