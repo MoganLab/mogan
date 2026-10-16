@@ -673,7 +673,10 @@
         ) ;
     (string-append pre
       "    "
-      (if (bib-empty? x "year") "" (string-append (bib-field x "year") "    "))
+      (if (bib-empty? x "year")
+        ""
+        (string-append (bib-purify (bib-field x "year")) "    ")
+      ) ;if
       (bib-purify (bib-field x "title"))
     ) ;string-append
   ) ;let*

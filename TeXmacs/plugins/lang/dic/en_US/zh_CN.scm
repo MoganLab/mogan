@@ -455,6 +455,7 @@
 ("bibliography file" "参考文献文件")
 ("Preview the bibliography format here" "此处预览参考文献的格式")
 ("Invalid BibTeX file" "无效的 BibTeX 文件")
+("Failed to format bibliography entries" "无法排版参考文献条目")
 ("File does not exist" "文件不存在")
 ("bibliography style" "参考文献的样式文件")
 ("bibliography text" "参考文献目录名")

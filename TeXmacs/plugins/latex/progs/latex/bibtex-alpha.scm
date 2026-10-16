@@ -20,7 +20,7 @@
 (define (bib-format-label-year x)
   (if (bib-empty? x "year")
     ""
-    (let* ((y (bib-field x "year")) (l (string-length y)))
+    (let* ((y (bib-purify (bib-field x "year"))) (l (string-length y)))
       (if (<= l 2) y (substring y (- l 2) l))
     ) ;let*
   ) ;if
@@ -169,7 +169,7 @@
          (lplain (bib-with-style "plain" bib-sort-key x))
         ) ;
     (string-append (bib-string-upcase (if (bib-null? auths) label auths))
-      (if (bib-null? year) "" year)
+      (if (bib-null? year) "" (bib-purify year))
       "    "
       lplain
     ) ;string-append
