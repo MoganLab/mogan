@@ -183,7 +183,7 @@ protected:
   double  bs_zoomf;
   picture backing_store;
   int     bs_w, bs_h;
-  SI      bs_ox, bs_oy;
+  DI      bs_ox, bs_oy;
 #else
   QPixmap* backingPixmap;
 #endif

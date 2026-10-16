@@ -52,26 +52,26 @@ protected:
 
   // geometry
 
-  SI to_x (SI x) {
+  SI to_x (DI x) {
     x+= ox;
     if (x >= 0) x= x / pixel;
     else x= (x - pixel + 1) / pixel;
-    return x;
+    return (SI) x;
   };
 
-  SI to_y (SI y) {
+  SI to_y (DI y) {
     y+= oy;
     if (y >= 0) y= y / pixel;
     else y= (y - pixel + 1) / pixel;
-    return y;
+    return (SI) y;
   };
 
-  double to_x_double (SI x) {
+  double to_x_double (DI x) {
     double rx= ((double) (x + ox)) / pixel - 0.5;
     return rx;
   };
 
-  double to_y_double (SI y) {
+  double to_y_double (DI y) {
     double ry= ((double) (y + oy)) / pixel - 0.5;
     return ry;
   };
@@ -108,20 +108,20 @@ public:
   void set_brush (brush b);
   void set_background (brush b2);
 
-  void draw_bis (int char_code, font_glyphs fn, SI x, SI y);
-  void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
-  void draw_scalable (scalable im, SI x, SI y, int alpha);
+  void draw_bis (int char_code, font_glyphs fn, DI x, DI y);
+  void draw (int glyph_index, font_glyphs fn, DI x, DI y, int codepoint= -1);
+  void draw_scalable (scalable im, DI x, DI y, int alpha);
 
-  void line (SI x1, SI y1, SI x2, SI y2);
+  void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
-  void clear (SI x1, SI y1, SI x2, SI y2);
-  void fill (SI x1, SI y1, SI x2, SI y2);
-  void arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
-  void fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
+  void clear (DI x1, DI y1, DI x2, DI y2);
+  void fill (DI x1, DI y1, DI x2, DI y2);
+  void arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
+  void fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
   void polygon (array<SI> x, array<SI> y, bool convex= true);
   //  void  draw_triangle (SI x1, SI y1, SI x2, SI y2, SI x3, SI y3);
 
-  void bezier_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta,
+  void bezier_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta,
                    bool filled);
 
   void new_shadow (renderer& ren);
@@ -132,7 +132,7 @@ public:
   void apply_shadow (DI x1, DI y1, DI x2, DI y2);
   void fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y);
 
-  void draw_picture (picture pict, SI x, SI y, int alpha);
+  void draw_picture (picture pict, DI x, DI y, int alpha);
 
   friend class mupdf_proxy_renderer_rep;
 };

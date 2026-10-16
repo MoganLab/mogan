@@ -68,7 +68,7 @@ public:
     return rs[1];
   }
 
-  void draw (renderer ren, SI x, SI y, int alpha) {
+  void draw (renderer ren, DI x, DI y, int alpha) {
     if (px != ren->pixel) {
       picture_cache_release (u, w / px, h / px, eff, px);
       px= ren->pixel;
