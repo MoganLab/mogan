@@ -195,7 +195,9 @@ jobs:
           }
       # 复制 stable 独立 exe 安装包至 build/ 供官网与 Release 独立下载
       # （命名规范保持与 3.7 Release 一致：MoganSTEM-v<ver>-64bit-installer.exe）。
+      # 仅在正式发布（无 -rc 的 tag）时执行，RC 候选版本不产出 stable 安装包。
       - name: Copy standalone installer for release
+        if: ${{ !contains(github.ref_name, '-rc') }}
         shell: pwsh
         run: |
           $vars = Get-Content xmake/vars.lua -Raw
@@ -206,6 +208,9 @@ jobs:
             $dest = "build/MoganSTEM-v$ver-64bit-installer.exe"
             Copy-Item $exe.FullName -Destination $dest -Force
             Get-Item $dest | Select-Object Name, Length
+          } else {
+            Write-Error "未在 build/velopack_release_stable 找到 Setup.exe 安装包"
+            exit 1
           }
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -222,4 +227,10 @@ jobs:
           prerelease: true
           files: |
             build/mogan-release-*.zip
+      - name: Release standalone installer
+        uses: softprops/action-gh-release@v1
+        if: ${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-rc') }}
+        with:
+          prerelease: true
+          files: |
             build/MoganSTEM-*.exe
