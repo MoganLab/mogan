@@ -17,9 +17,13 @@
 #include "qt_utilities.hpp"
 #include "tm_window.hpp"
 
+#include "QTMMenuHelper.hpp"
+#include <QAbstractItemView>
 #include <QCloseEvent>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QPushButton>
+#include <QTimer>
 
 void
 QTMPlainWindow::closeEvent (QCloseEvent* event) {
@@ -48,6 +52,74 @@ QTMPlainWindow::resizeEvent (QResizeEvent* event) {
 }
 
 void
+QTMPlainWindow::triggerDefaultButton () {
+  QList<QPushButton*> buttons= findChildren<QPushButton*> ();
+  for (QPushButton* button : buttons) {
+    if (button->isDefault () ||
+        button->text ().contains ("Ok", Qt::CaseInsensitive)) {
+      if (DEBUG_QT_WIDGETS)
+        debug_widgets << "Found button: " << from_qstring (button->text ())
+                      << LF;
+      button->click ();
+      return;
+    }
+  }
+
+  // 如果没有找到默认按钮，尝试点击第一个"Ok"按钮
+  for (QPushButton* button : buttons) {
+    if (button->text ().contains ("Ok", Qt::CaseInsensitive)) {
+      if (DEBUG_QT_WIDGETS)
+        debug_widgets << "Found Ok button: " << from_qstring (button->text ())
+                      << LF;
+      button->click ();
+      return;
+    }
+  }
+
+  // 如果还没有找到，点击第一个按钮
+  if (!buttons.isEmpty ()) {
+    if (DEBUG_QT_WIDGETS)
+      debug_widgets << "Clicking first button: "
+                    << from_qstring (buttons.first ()->text ()) << LF;
+    buttons.first ()->click ();
+  }
+}
+
+void
+QTMPlainWindow::showEvent (QShowEvent* event) {
+  QWidget::showEvent (event);
+
+  auto focusFirstChild= [this] () {
+    QList<QLineEdit*> lineEdits= findChildren<QLineEdit*> ();
+    for (QLineEdit* le : lineEdits) {
+      if (le->isVisible () && (le->focusPolicy () & Qt::TabFocus)) {
+        le->setFocus (Qt::OtherFocusReason);
+        return;
+      }
+    }
+
+    QList<QTMListView*> listViews= findChildren<QTMListView*> ();
+    for (QTMListView* lv : listViews) {
+      if (lv->isVisible () && (lv->focusPolicy () & Qt::TabFocus)) {
+        lv->setFocus (Qt::OtherFocusReason);
+        return;
+      }
+    }
+
+    QList<QAbstractItemView*> itemViews= findChildren<QAbstractItemView*> ();
+    for (QAbstractItemView* iv : itemViews) {
+      if (iv->isVisible () && (iv->focusPolicy () & Qt::TabFocus)) {
+        iv->setFocus (Qt::OtherFocusReason);
+        return;
+      }
+    }
+  };
+
+  focusFirstChild ();
+  QTimer::singleShot (0, this, focusFirstChild);
+}
+
+void
 QTMPlainWindow::keyPressEvent (QKeyEvent* event) {
   if (DEBUG_QT_WIDGETS)
     debug_widgets << "QTMPlainWindow key press: " << event->key () << LF;
@@ -63,38 +135,7 @@ QTMPlainWindow::keyPressEvent (QKeyEvent* event) {
     if (DEBUG_QT_WIDGETS)
       debug_widgets << "Enter pressed, looking for default button" << LF;
     event->accept ();
-
-    // 查找对话框中的按钮
-    QList<QPushButton*> buttons= findChildren<QPushButton*> ();
-    for (QPushButton* button : buttons) {
-      if (button->isDefault () ||
-          button->text ().contains ("Ok", Qt::CaseInsensitive)) {
-        if (DEBUG_QT_WIDGETS)
-          debug_widgets << "Found button: " << from_qstring (button->text ())
-                        << LF;
-        button->click ();
-        return;
-      }
-    }
-
-    // 如果没有找到默认按钮，尝试点击第一个"Ok"按钮
-    for (QPushButton* button : buttons) {
-      if (button->text ().contains ("Ok", Qt::CaseInsensitive)) {
-        if (DEBUG_QT_WIDGETS)
-          debug_widgets << "Found Ok button: " << from_qstring (button->text ())
-                        << LF;
-        button->click ();
-        return;
-      }
-    }
-
-    // 如果还没有找到，点击第一个按钮
-    if (!buttons.isEmpty ()) {
-      if (DEBUG_QT_WIDGETS)
-        debug_widgets << "Clicking first button: "
-                      << from_qstring (buttons.first ()->text ()) << LF;
-      buttons.first ()->click ();
-    }
+    triggerDefaultButton ();
   }
   else {
     // 其他按键传递给父类处理
