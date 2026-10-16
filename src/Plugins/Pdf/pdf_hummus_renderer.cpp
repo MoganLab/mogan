@@ -256,7 +256,7 @@ public:
   void   set_background (brush b2);
 
   void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
-  void line (SI x1, SI y1, SI x2, SI y2);
+  void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
   void clear (SI x1, SI y1, SI x2, SI y2);
   void fill (SI x1, SI y1, SI x2, SI y2);
@@ -1461,7 +1461,7 @@ pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
  ******************************************************************************/
 
 void
-pdf_hummus_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+pdf_hummus_renderer_rep::line (DI x1, DI y1, DI x2, DI y2) {
   // debug_convert << "line\n";
   end_text ();
   contentContext->m (to_x_double (x1), to_y_double (y1));

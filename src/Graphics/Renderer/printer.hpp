@@ -97,7 +97,7 @@ public:
   void   set_pencil (pencil p);
   void   set_background (brush b);
   void   draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
-  void   line (SI x1, SI y1, SI x2, SI y2);
+  void   line (DI x1, DI y1, DI x2, DI y2);
   void   lines (array<SI> x, array<SI> y);
   void   clear (SI x1, SI y1, SI x2, SI y2);
   void   fill (SI x1, SI y1, SI x2, SI y2);

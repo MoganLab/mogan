@@ -704,10 +704,10 @@ printer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint) {
 }
 
 void
-printer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+printer_rep::line (DI x1, DI y1, DI x2, DI y2) {
   if (opacity == 0) return;
-  print (x1, y1);
-  print (x2, y2);
+  print ((SI) x1, (SI) y1);
+  print ((SI) x2, (SI) y2);
   print (PS_LINE);
 }
 

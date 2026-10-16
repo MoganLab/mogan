@@ -654,11 +654,6 @@ mupdf_renderer_rep::line (DI x1, DI y1, DI x2, DI y2) {
 }
 
 void
-mupdf_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
-  line ((DI) x1, (DI) y1, (DI) x2, (DI) y2);
-}
-
-void
 mupdf_renderer_rep::lines (array<SI> x, array<SI> y) {
   // debug_convert << "lines\n";
   end_text ();

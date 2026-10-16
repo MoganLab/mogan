@@ -310,11 +310,6 @@ qt_renderer_rep::line (DI x1, DI y1, DI x2, DI y2) {
 }
 
 void
-qt_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
-  line ((DI) x1, (DI) y1, (DI) x2, (DI) y2);
-}
-
-void
 qt_renderer_rep::lines (array<SI> x, array<SI> y) {
   int i, n= N (x);
   if ((N (y) != n) || (n < 2)) return;

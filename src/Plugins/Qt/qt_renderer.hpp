@@ -49,7 +49,6 @@ public:
   void draw (const QFont& qfn, const QString& s, SI x, SI y, double zoom);
   void set_pencil (pencil p);
   void set_brush (brush b);
-  void line (SI x1, SI y1, SI x2, SI y2);
   void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
   void clear (SI x1, SI y1, SI x2, SI y2);

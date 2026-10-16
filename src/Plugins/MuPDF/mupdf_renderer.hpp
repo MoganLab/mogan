@@ -112,7 +112,6 @@ public:
   void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
   void draw_scalable (scalable im, SI x, SI y, int alpha);
 
-  void line (SI x1, SI y1, SI x2, SI y2);
   void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
   void clear (SI x1, SI y1, SI x2, SI y2);
