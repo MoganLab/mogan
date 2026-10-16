@@ -10,7 +10,10 @@
 (import (liii check))
 
 (define (load-outline-fixture name)
-  (let* ((fixture (url-append (get-texmacs-path) (string-append "tests/stem/" name))))
+  (let* ((p1 (url-append (get-texmacs-path) (string-append "tests/stem/" name)))
+         (p2 (string-append "./TeXmacs/tests/stem/" name))
+         (fixture (if (url-exists? p1) p1 p2))
+        ) ;
     (load-buffer fixture)
     (document-outline)
   ) ;let*
