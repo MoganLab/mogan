@@ -31,9 +31,11 @@ public:
 
   const QVariantList& outlineModel () const { return m_model; }
   bool                hasContent () const { return !m_model.isEmpty (); }
-  const QVariantMap&  defaultExpandedMap () const { return m_defaultExpandedMap; }
-  QString             currentId () const { return m_currentId; }
-  void                setCurrentId (const QString& id);
+  const QVariantMap&  defaultExpandedMap () const {
+    return m_defaultExpandedMap;
+  }
+  QString currentId () const { return m_currentId; }
+  void    setCurrentId (const QString& id);
 
   void setOutline (const QVector<PdfOutlineItem>& outline);
   void setOutline (const QVector<OutlineItem>& outline);

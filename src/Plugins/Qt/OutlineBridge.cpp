@@ -96,7 +96,7 @@ OutlineBridge::clear () {
 
 QVariantMap
 OutlineBridge::computeDefaultExpandedMap (const QVariantList& model,
-                                          int threshold) {
+                                          int                 threshold) {
   QVariantMap result;
   if (model.isEmpty ()) return result;
 
@@ -116,9 +116,9 @@ OutlineBridge::computeDefaultExpandedMap (const QVariantList& model,
       }
     }
     if (leaves.isEmpty () && nonLeaves.size () == 1) {
-      QVariantMap sole= nonLeaves.first ().toMap ();
+      QVariantMap sole                     = nonLeaves.first ().toMap ();
       result[sole.value ("id").toString ()]= true;
-      current= sole.value ("children").toList ();
+      current                              = sole.value ("children").toList ();
     }
     else {
       break;
@@ -160,7 +160,7 @@ OutlineBridge::computeDefaultExpandedMap (const QVariantList& model,
   }
 
   // 为所有未展开的非叶子节点显式标记 false，防止 QML 端状态残留或歧义
-  auto markUnexpanded= [&result] (auto& self,
+  auto markUnexpanded= [&result] (auto&               self,
                                   const QVariantList& nodes) -> void {
     for (const QVariant& item : nodes) {
       QVariantMap  node    = item.toMap ();

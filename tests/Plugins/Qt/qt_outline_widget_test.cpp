@@ -248,7 +248,8 @@ private slots:
     // 6027_03: Chapter 1 (with 30 sections) and Chapter* (leaf)
     QVariantList secs;
     for (int i= 0; i < 30; ++i) {
-      secs.append (makeTestNode (QString ("0/%1").arg (i), QString ("Sec %1").arg (i)));
+      secs.append (
+          makeTestNode (QString ("0/%1").arg (i), QString ("Sec %1").arg (i)));
     }
     QVariantList root;
     root.append (makeTestNode ("0", "Chapter 1", secs));
@@ -267,7 +268,8 @@ private slots:
       for (int s= 0; s < 5; ++s) {
         secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
       }
-      root.append (makeTestNode (QString::number (c), QString ("Chapter %1").arg (c), secs));
+      root.append (makeTestNode (QString::number (c),
+                                 QString ("Chapter %1").arg (c), secs));
     }
 
     QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
@@ -284,7 +286,8 @@ private slots:
       for (int s= 0; s < 2; ++s) {
         secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
       }
-      root.append (makeTestNode (QString::number (c), QString ("Chapter %1").arg (c), secs));
+      root.append (makeTestNode (QString::number (c),
+                                 QString ("Chapter %1").arg (c), secs));
     }
 
     QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
@@ -301,7 +304,8 @@ private slots:
       for (int s= 0; s < 5; ++s) {
         secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
       }
-      root30.append (makeTestNode (QString::number (c), QString ("Chapter %1").arg (c), secs));
+      root30.append (makeTestNode (QString::number (c),
+                                   QString ("Chapter %1").arg (c), secs));
     }
     QVariantMap map30= OutlineBridge::computeDefaultExpandedMap (root30);
     for (int c= 0; c < 5; ++c) {
@@ -312,11 +316,12 @@ private slots:
     QVariantList root31;
     for (int c= 0; c < 5; ++c) {
       QVariantList secs;
-      int count= (c == 4) ? 6 : 5;
+      int          count= (c == 4) ? 6 : 5;
       for (int s= 0; s < count; ++s) {
         secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
       }
-      root31.append (makeTestNode (QString::number (c), QString ("Chapter %1").arg (c), secs));
+      root31.append (makeTestNode (QString::number (c),
+                                   QString ("Chapter %1").arg (c), secs));
     }
     QVariantMap map31= OutlineBridge::computeDefaultExpandedMap (root31);
     for (int c= 0; c < 5; ++c) {
@@ -332,18 +337,22 @@ private slots:
       for (int s= 0; s < 2; ++s) {
         QVariantList subs;
         for (int sub= 0; sub < 2; ++sub) {
-          subs.append (makeTestNode (QString ("%1/%2/%3").arg (c).arg (s).arg (sub), "Sub"));
+          subs.append (makeTestNode (
+              QString ("%1/%2/%3").arg (c).arg (s).arg (sub), "Sub"));
         }
-        secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec", subs));
+        secs.append (
+            makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec", subs));
       }
-      root.append (makeTestNode (QString::number (c), QString ("Chapter %1").arg (c), secs));
+      root.append (makeTestNode (QString::number (c),
+                                 QString ("Chapter %1").arg (c), secs));
     }
 
     QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
     for (int c= 0; c < 2; ++c) {
       QCOMPARE (map.value (QString::number (c)).toBool (), true);
       for (int s= 0; s < 2; ++s) {
-        QCOMPARE (map.value (QString ("%1/%2").arg (c).arg (s)).toBool (), true);
+        QCOMPARE (map.value (QString ("%1/%2").arg (c).arg (s)).toBool (),
+                  true);
       }
     }
   }
@@ -353,11 +362,11 @@ private slots:
     QCOMPARE (bridge.currentId (), QString ());
 
     QVector<OutlineItem> items;
-    OutlineItem chap;
-    chap.title= "Chapter 1";
+    OutlineItem          chap;
+    chap.title = "Chapter 1";
     chap.target= "0";
     OutlineItem sec;
-    sec.title= "Section 1.1";
+    sec.title = "Section 1.1";
     sec.target= "0:0";
     chap.children.append (sec);
     items.append (chap);

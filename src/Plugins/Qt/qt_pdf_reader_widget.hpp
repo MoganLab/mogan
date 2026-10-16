@@ -32,8 +32,8 @@ struct PdfLink {
  * @brief PDF 大纲（书签）条目，对应 fz_outline 的一个节点
  */
 struct PdfOutlineItem {
-  QString                 title;         // 节点标题
-  int                     page= -1;      // 解析后的目标页（0-based），-1 表示未解析
+  QString                 title;    // 节点标题
+  int                     page= -1; // 解析后的目标页（0-based），-1 表示未解析
   bool                    isOpen= false; // 是否默认展开（fz_outline::is_open）
   QVector<PdfOutlineItem> children;      // 子节点（fz_outline::down）
 };

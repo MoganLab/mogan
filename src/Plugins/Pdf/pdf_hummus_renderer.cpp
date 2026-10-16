@@ -2002,7 +2002,7 @@ compute_pdf_outline_expansion (list<pdf_outline_node*> roots,
   while (true) {
     list<pdf_outline_node*> candidates;
     for (list<pdf_outline_node*> it= current_layer; !is_nil (it);
-         it                       = it->next) {
+         it                        = it->next) {
       if (!is_nil (it->item->children)) candidates << it->item;
     }
     if (is_nil (candidates)) break;
@@ -2059,10 +2059,11 @@ free_pdf_outline_tree (list<pdf_outline_node*> nodes) {
 }
 
 void
-pdf_hummus_renderer_rep::recurse (
-    ObjectsContext& objectsContext, int parent_ls, list<outline_data>& it,
-    ObjectIDType parentId, ObjectIDType& firstId, ObjectIDType& lastId,
-    int& count, int& item_idx, const array<pdf_outline_node*>& node_map) {
+pdf_hummus_renderer_rep::recurse (ObjectsContext& objectsContext, int parent_ls,
+                                  list<outline_data>& it, ObjectIDType parentId,
+                                  ObjectIDType& firstId, ObjectIDType& lastId,
+                                  int& count, int& item_idx,
+                                  const array<pdf_outline_node*>& node_map) {
   // weave the tangle of forward/backward references
   // are recurse over substructures
 
@@ -2077,7 +2078,7 @@ pdf_hummus_renderer_rep::recurse (
     int          subCount= 0;
 
     outline_data      oitem= it->item;
-    pdf_outline_node* node =
+    pdf_outline_node* node=
         (item_idx < N (node_map)) ? node_map[item_idx] : NULL;
     item_idx++;
     count++;
