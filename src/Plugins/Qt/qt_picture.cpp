@@ -165,8 +165,8 @@ qt_image_renderer_rep::qt_image_renderer_rep (picture p, double zoom)
   int pox= p->get_origin_x ();
   int poy= p->get_origin_y ();
 
-  ox= pox * pixel;
-  oy= poy * pixel;
+  ox= ((DI) pox) * pixel;
+  oy= ((DI) poy) * pixel;
   /*
   cx1= 0;
   cy1= 0;

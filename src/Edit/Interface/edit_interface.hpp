@@ -193,7 +193,7 @@ public:
   void set_extents (DI x1, DI y1, DI x2, DI y2);
 
   /* repainting the window */
-  void draw_background (renderer ren, SI x1, SI y1, SI x2, SI y2);
+  void draw_background (renderer ren, DI x1, DI y1, DI x2, DI y2);
   void draw_text (renderer ren, rectangles& l);
   void draw_surround (renderer ren, rectangle r);
   void draw_context (renderer ren, rectangle r);
@@ -357,8 +357,8 @@ public:
   void handle_keyboard_focus (bool has_focus, time_t t);
   void handle_mouse (string k, SI x, SI y, int m, time_t t, array<double> d);
   void handle_set_zoom_factor (double zoomf);
-  void handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2);
-  void handle_repaint (renderer win, SI x1, SI y1, SI x2, SI y2);
+  void handle_clear (renderer win, DI x1, DI y1, DI x2, DI y2);
+  void handle_repaint (renderer win, DI x1, DI y1, DI x2, DI y2);
 
   /* exported static methods */
   static bool is_combo_shortcuts (string key);

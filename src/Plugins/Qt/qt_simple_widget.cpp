@@ -149,7 +149,7 @@ qt_simple_widget_rep::handle_set_zoom_factor (double zoom) {
 }
 
 void
-qt_simple_widget_rep::handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2) {
+qt_simple_widget_rep::handle_clear (renderer win, DI x1, DI y1, DI x2, DI y2) {
   (void) win;
   (void) x1;
   (void) y1;
@@ -158,8 +158,8 @@ qt_simple_widget_rep::handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-qt_simple_widget_rep::handle_repaint (renderer win, SI x1, SI y1, SI x2,
-                                      SI y2) {
+qt_simple_widget_rep::handle_repaint (renderer win, DI x1, DI y1, DI x2,
+                                      DI y2) {
   (void) win;
   (void) x1;
   (void) y1;
