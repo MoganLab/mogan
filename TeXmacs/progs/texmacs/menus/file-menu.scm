@@ -315,7 +315,12 @@
 (menu-bind export-as-image-menu
   (for
     (fm
-      (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." x)))
+      (filter
+        (lambda (x)
+          (or (in? x '("png" "jpeg" "tif"))
+            (file-converter-exists? "x.pdf" (string-append "y." x))
+          ) ;or
+        ) ;lambda
         (image-formats)
       ) ;filter
     ) ;fm
