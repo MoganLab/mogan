@@ -18,6 +18,5 @@ time_t get_sec_time ();
 time_t get_usec_time ();
 time_t raw_time ();
 time_t texmacs_time ();
-time_t texmacs_time_us ();
 
 #endif // defined TIMER_H

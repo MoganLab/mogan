@@ -919,12 +919,8 @@ lazy_paragraph_rep::line_unit (path start, path end, bool break_flag,
   items_sp << (DI) m;
 
   SI the_width= the_right - the_left;
-  bench_start ("typeset: br/line_print");
   line_print (start, end);
-  bench_cumul ("typeset: br/line_print");
-  bench_start ("typeset: br/make_unit");
   make_unit (mode, the_width, break_flag);
-  bench_cumul ("typeset: br/make_unit");
 
   int i;
   cur_r= the_left + items_sp[n] - m;
@@ -935,11 +931,7 @@ lazy_paragraph_rep::line_unit (path start, path end, bool break_flag,
 
 void
 lazy_paragraph_rep::line_end (space spc, int penalty) {
-  bench_start ("typeset: br/line_end");
-  if (N (items) == 0) {
-    bench_cumul ("typeset: br/line_end");
-    return;
-  }
+  if (N (items) == 0) return;
   if (N (decs) == 0 || decs[0][1] == tree (DATOMS)) {
     tree dec= init_decs;
     if (N (dec) > 0) decs= ::append (tuple ("0", dec), decs);
@@ -963,7 +955,6 @@ lazy_paragraph_rep::line_end (space spc, int penalty) {
   sss->print (spc);
   sss->penalty (max (penalty, min_pen));
   sss->flush ();
-  bench_cumul ("typeset: br/line_end");
 }
 
 void
@@ -985,10 +976,8 @@ lazy_paragraph_rep::line_units (int start, int end, bool is_start, bool is_end,
   // FIXME: the factor 0.5 is somewhat arbitrary and should be taken small
   // enough so as to compensate for content that cannot be contracted
   // on the line such as whitespace, images, and other miscellaneous objects.
-  bench_start ("typeset: br/line_breaks");
   array<path> hyphs= line_breaks (a, start, end, line_width, large_width,
                                   the_first, the_last, ragged);
-  bench_cumul ("typeset: br/line_breaks");
   for (i= 0; i < N (hyphs) - 1; i++) {
     if (i > 0) line_start ();
     line_unit (hyphs[i], hyphs[i + 1], i == N (hyphs) - 2, mode,
@@ -1121,9 +1110,7 @@ typeset_stack (edit_env env, tree t, path ip, SI width, array<line_item> a,
   // cout << "Typeset stack " << t << "\n";
   lazy_paragraph par (env, ip);
   par->a= a;
-  bench_start ("typeset: br/concat");
   par->a << typeset_concat_or_table (env, t, ip);
-  bench_cumul ("typeset: br/concat");
   par->a << b;
   par->width= width;
   par->format_paragraph ();
@@ -1137,9 +1124,7 @@ typeset_stack (edit_env env, tree t, path ip, array<line_item> a,
   // cout << "Typeset stack " << t << "\n";
   lazy_paragraph par (env, ip);
   par->a= a;
-  bench_start ("typeset: br/concat");
   par->a << typeset_concat_or_table (env, t, ip);
-  bench_cumul ("typeset: br/concat");
   par->a << b;
   par->format_paragraph ();
   sb= par->sss->sb;

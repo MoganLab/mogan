@@ -12,7 +12,6 @@
 #include "bridge.hpp"
 #include "Boxes/construct.hpp"
 #include "observers.hpp"
-#include "tm_debug.hpp"
 
 using namespace moebius;
 
@@ -295,7 +294,6 @@ extern tree the_et;
 
 void
 bridge_rep::typeset (int desired_status) {
-  bench_start ("typeset: br/bridge");
   // FIXME: this dirty hack ensures a perfect coherence between
   // the bridge and the edit tree at the typesetting stage.
   // This should not be necessary, but we use because the ip_observers
@@ -311,7 +309,6 @@ bridge_rep::typeset (int desired_status) {
     // cout << "cached" << LF;
     env->monitored_patch_env (changes);
     // cout << "changes       = " << changes << LF;
-    bench_cumul ("typeset: br/bridge");
   }
   else {
     // cout << "Typesetting " << st << ", " << desired_status << LF << INDENT;
@@ -323,16 +320,13 @@ bridge_rep::typeset (int desired_status) {
     ttt->local_start (l, sb);
     env->local_start (prev_back);
     if (env->hl_lan != 0) env->lan->highlight (st);
-    bench_cumul ("typeset: br/bridge");
     my_typeset (desired_status);
-    bench_start ("typeset: br/bridge");
     env->local_update (ttt->old_patch, changes);
     env->local_end (prev_back);
     ttt->local_end (l, sb);
     env->link_env= old_link_env;
     if (ttt->typeset_in_progress ()) status= 0;
     else status= desired_status;
-    bench_cumul ("typeset: br/bridge");
     // cout << "old_patch     = " << ttt->old_patch << LF;
     // cout << "changes       = " << changes << LF;
     // cout << UNINDENT << "Typesetted " << st << ", " << desired_status << LF;

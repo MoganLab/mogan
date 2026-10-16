@@ -48,9 +48,7 @@ delete_typesetter (typesetter ttt) {
 
 void
 typesetter_rep::insert_stack (array<page_item> l2, stack_border sb2) {
-  bench_start ("typeset: br/merge");
   merge_stack (l, sb, l2, sb2);
-  bench_cumul ("typeset: br/merge");
 }
 
 void
@@ -172,7 +170,7 @@ typesetter_rep::typeset () {
     if (progressive_cur_child == 0) {
       // cur_child 归零的两条路径（构造、progressive_reset）已清空累计状态
       chunk_start= 0;
-      chunk_end  = min (n, 60);
+      chunk_end  = min (n, 50);
       if (doc_name != "") {
         bench_start ("progressive_typeset: " * doc_name);
         progressive_bench_active= true;
@@ -224,14 +222,6 @@ typesetter_rep::typeset () {
   bench_start ("typeset: br->typeset");
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
   bench_end ("typeset: br->typeset", 5);
-
-  bench_flush ("typeset: br/bridge");
-  bench_flush ("typeset: br/concat");
-  bench_flush ("typeset: br/line_breaks");
-  bench_flush ("typeset: br/line_print");
-  bench_flush ("typeset: br/make_unit");
-  bench_flush ("typeset: br/line_end");
-  bench_flush ("typeset: br/merge");
 
   if (progressive_enabled) {
     if (chunk_start == 0) {

@@ -22,8 +22,7 @@ namespace system {
 static hashmap<string, uint32_t> timing_level (0);
 static hashmap<string, uint32_t> timing_nr (0);
 static hashmap<string, uint32_t> timing_cumul (0);
-static hashmap<string, uint64_t> timing_last_us (0);
-static hashmap<string, uint64_t> timing_cumul_us (0);
+static hashmap<string, uint32_t> timing_last (0);
 
 /******************************************************************************
  * Routines for benchmarking
@@ -32,23 +31,19 @@ static hashmap<string, uint64_t> timing_cumul_us (0);
 void
 timer_start (string task) {
   // start timer for a given type of task
-  if (timing_level[task] == 0)
-    timing_last_us (task)= (uint64_t) texmacs_time_us ();
+  if (timing_level[task] == 0) timing_last (task)= (uint32_t) texmacs_time ();
   timing_level (task)++;
 }
 
 void
 timer_cumul (string task) {
   // end timer for a given type of task, but don't reset timer
-  if (timing_level[task] == 0) return;
   timing_level (task)--;
   if (timing_level[task] == 0) {
-    uint64_t now_us= (uint64_t) texmacs_time_us ();
-    uint64_t us    = now_us - timing_last_us[task];
+    uint32_t ms= ((uint32_t) texmacs_time ()) - timing_last (task);
     timing_nr (task)++;
-    timing_cumul_us (task)+= us;
-    timing_cumul (task)= (uint32_t) ((timing_cumul_us[task] + 500) / 1000);
-    timing_last_us->reset (task);
+    timing_cumul (task)+= ms;
+    timing_last->reset (task);
   }
 }
 
@@ -58,8 +53,7 @@ timer_reset (string task) {
   timing_level->reset (task);
   timing_nr->reset (task);
   timing_cumul->reset (task);
-  timing_last_us->reset (task);
-  timing_cumul_us->reset (task);
+  timing_last->reset (task);
 }
 
 void
