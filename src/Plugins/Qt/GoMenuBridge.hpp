@@ -31,6 +31,7 @@ public:
   QVariantMap meta () const { return m_meta; }
 
   Q_INVOKABLE void loadBuffer (const QString& url);
+  Q_INVOKABLE void openFile ();
   Q_INVOKABLE void closeMenu ();
 
 private:

@@ -20,6 +20,7 @@
   (let ((meta (go-menu-meta)))
     (check (list? meta) => #t)
     (check (pair? (assoc "label_recent" meta)) => #t)
+    (check (pair? (assoc "label_open" meta)) => #t)
     (check (pair? (assoc "recent" meta)) => #t)
     (check (list? (cdr (assoc "recent" meta))) => #t)
   ) ;let
