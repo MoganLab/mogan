@@ -193,19 +193,23 @@ jobs:
               -CompressionLevel Optimal -Force
             Get-Item $archive | Select-Object Name, Length
           }
-      # 复制 stable 独立 exe 安装包至 build/ 供官网与 Release 独立下载
+      # 复制 beta 独立 exe 安装包至 build/ 供官网与 Release 独立下载
       # （命名规范保持与 3.7 Release 一致：MoganSTEM-v<ver>-64bit-installer.exe）。
+      # beta 通道在正式版与 rc 版本中均会打包产出，保证独立安装包始终存在。
       - name: Copy standalone installer for release
         shell: pwsh
         run: |
           $vars = Get-Content xmake/vars.lua -Raw
           $ver = [regex]::Match($vars, 'XMACS_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
-          $exe = Get-ChildItem -Path build/velopack_release_stable -Filter "*Setup.exe" -ErrorAction SilentlyContinue |
+          $exe = Get-ChildItem -Path build/velopack_release_beta -Filter "*Setup.exe" -ErrorAction SilentlyContinue |
             Select-Object -First 1
           if ($exe) {
             $dest = "build/MoganSTEM-v$ver-64bit-installer.exe"
             Copy-Item $exe.FullName -Destination $dest -Force
             Get-Item $dest | Select-Object Name, Length
+          } else {
+            Write-Error "未在 build/velopack_release_beta 找到 Setup.exe 安装包"
+            exit 1
           }
       - name: Upload
         uses: actions/upload-artifact@v4
