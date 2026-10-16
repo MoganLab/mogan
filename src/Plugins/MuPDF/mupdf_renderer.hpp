@@ -52,26 +52,26 @@ protected:
 
   // geometry
 
-  SI to_x (SI x) {
+  SI to_x (DI x) {
     x+= ox;
     if (x >= 0) x= x / pixel;
     else x= (x - pixel + 1) / pixel;
-    return x;
+    return (SI) x;
   };
 
-  SI to_y (SI y) {
+  SI to_y (DI y) {
     y+= oy;
     if (y >= 0) y= y / pixel;
     else y= (y - pixel + 1) / pixel;
-    return y;
+    return (SI) y;
   };
 
-  double to_x_double (SI x) {
+  double to_x_double (DI x) {
     double rx= ((double) (x + ox)) / pixel - 0.5;
     return rx;
   };
 
-  double to_y_double (SI y) {
+  double to_y_double (DI y) {
     double ry= ((double) (y + oy)) / pixel - 0.5;
     return ry;
   };
@@ -113,6 +113,7 @@ public:
   void draw_scalable (scalable im, SI x, SI y, int alpha);
 
   void line (SI x1, SI y1, SI x2, SI y2);
+  void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
   void clear (SI x1, SI y1, SI x2, SI y2);
   void fill (SI x1, SI y1, SI x2, SI y2);

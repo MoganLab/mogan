@@ -91,10 +91,10 @@ edit_interface_rep::draw_env (renderer ren) {
 void
 edit_interface_rep::draw_caret (renderer ren, cursor cu, color col, SI dw,
                                 SI zpixel) {
-  cu->y1-= 2 * zpixel + dw;
-  cu->y2+= 2 * zpixel + dw;
-  SI     x1= cu->ox + ((SI) (cu->y1 * cu->slope)), y1= cu->oy + cu->y1;
-  SI     x2= cu->ox + ((SI) (cu->y2 * cu->slope)), y2= cu->oy + cu->y2;
+  DI     cy1= cu->y1 - (2 * zpixel + dw);
+  DI     cy2= cu->y2 + (2 * zpixel + dw);
+  DI     x1= cu->ox + ((DI) (cy1 * cu->slope)), y1= cu->oy + cy1;
+  DI     x2= cu->ox + ((DI) (cy2 * cu->slope)), y2= cu->oy + cy2;
   string mode= get_env_string (MODE);
   string family, series;
   if ((mode == "text") || (mode == "src")) {

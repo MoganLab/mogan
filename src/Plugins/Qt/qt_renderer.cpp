@@ -301,13 +301,17 @@ qt_renderer_rep::set_brush (brush br) {
 }
 
 void
-qt_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+qt_renderer_rep::line (DI x1, DI y1, DI x2, DI y2) {
   double rx1, ry1, rx2, ry2;
   decode (x1, y1, rx1, ry1);
   decode (x2, y2, rx2, ry2);
-  // y1--; y2--; // top-left origin to bottom-left origin conversion
   painter->setRenderHints (QPainter::Antialiasing);
   painter->drawLine (QPointF (rx1, ry1), QPointF (rx2, ry2));
+}
+
+void
+qt_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+  line ((DI) x1, (DI) y1, (DI) x2, (DI) y2);
 }
 
 void

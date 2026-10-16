@@ -360,6 +360,11 @@ abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2) {
  ******************************************************************************/
 
 void
+renderer_rep::line (DI x1, DI y1, DI x2, DI y2) {
+  line ((SI) x1, (SI) y1, (SI) x2, (SI) y2);
+}
+
+void
 renderer_rep::draw_triangle (SI x1, SI y1, SI x2, SI y2, SI x3, SI y3) {
   array<SI> x (3), y (3);
   x[0]= x1;

@@ -645,12 +645,17 @@ mupdf_renderer_rep::set_background (brush b) {
  ******************************************************************************/
 
 void
-mupdf_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+mupdf_renderer_rep::line (DI x1, DI y1, DI x2, DI y2) {
   // debug_convert << "line\n";
   end_text ();
   proc->op_m (mupdf_context (), proc, to_x_double (x1), to_y_double (y1));
   proc->op_l (mupdf_context (), proc, to_x_double (x2), to_y_double (y2));
   proc->op_S (mupdf_context (), proc);
+}
+
+void
+mupdf_renderer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+  line ((DI) x1, (DI) y1, (DI) x2, (DI) y2);
 }
 
 void
