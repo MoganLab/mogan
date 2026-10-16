@@ -307,8 +307,10 @@ Item {
 
             ListView {
                 id: outlineList
+                objectName: "outlineList"
                 anchors.fill: parent
                 clip: true
+                boundsBehavior: Flickable.StopAtBounds
                 model: displayItems
 
                 delegate: Item {
@@ -421,6 +423,137 @@ Item {
                                 if (modelData.hasChildren) {
                                     toggleExpand(modelData.id);
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 垂直滚动条（按需显示，仅在列表溢出可滚动时呈现）
+            Item {
+                id: scrollbar
+                objectName: "scrollbar"
+                z: 20
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                anchors.rightMargin: 2 * Theme.scaleFactor
+                width: 6 * Theme.scaleFactor
+
+                readonly property bool canScroll: outlineList.height > 0 &&
+                                                  outlineList.visibleArea.heightRatio < 0.9999 &&
+                                                  displayItems.length > 0
+                visible: canScroll
+
+                readonly property real minThumbHeight: 24 * Theme.scaleFactor
+                readonly property real trackHeight: height
+                readonly property real rawThumbHeight: outlineList.visibleArea.heightRatio * trackHeight
+                readonly property real thumbHeight: Math.min(trackHeight, Math.max(minThumbHeight, rawThumbHeight))
+                readonly property real maxThumbY: Math.max(0, trackHeight - thumbHeight)
+
+                readonly property real maxScrollRatio: 1.0 - outlineList.visibleArea.heightRatio
+                readonly property real scrollProgress: maxScrollRatio > 0.0001
+                    ? Math.max(0.0, Math.min(1.0, outlineList.visibleArea.yPosition / maxScrollRatio))
+                    : 0.0
+                readonly property real computedThumbY: maxThumbY * scrollProgress
+
+                function pageUp() {
+                    outlineList.contentY = Math.max(0, outlineList.contentY - outlineList.height);
+                }
+
+                function pageDown() {
+                    let maxContentY = Math.max(0, outlineList.contentHeight - outlineList.height);
+                    outlineList.contentY = Math.min(maxContentY, outlineList.contentY + outlineList.height);
+                }
+
+                function scrollByThumbDelta(deltaY, startContentY) {
+                    let maxThumbY = scrollbar.maxThumbY;
+                    let maxContentY = Math.max(0, outlineList.contentHeight - outlineList.height);
+                    if (maxThumbY > 0 && maxContentY > 0) {
+                        let baseContentY = (startContentY !== undefined) ? startContentY : outlineList.contentY;
+                        let targetContentY = baseContentY + deltaY * (maxContentY / maxThumbY);
+                        outlineList.contentY = Math.max(0, Math.min(maxContentY, targetContentY));
+                    }
+                }
+
+                // 轨道背景（半透明，圆角）
+                Rectangle {
+                    id: scrollbarTrack
+                    objectName: "scrollbarTrack"
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Theme.dark ? (trackMouse.containsMouse ? "#20ffffff" : "#14ffffff")
+                                      : (trackMouse.containsMouse ? "#18000000" : "#0d000000")
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+
+                    // 点击轨道空白区翻页
+                    MouseArea {
+                        id: trackMouse
+                        objectName: "scrollbarTrackMouse"
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: function(mouse) {
+                            if (mouse.y < thumbRect.y) {
+                                scrollbar.pageUp();
+                            } else if (mouse.y > thumbRect.y + thumbRect.height) {
+                                scrollbar.pageDown();
+                            }
+                        }
+                    }
+
+                    // 滚动条滑块
+                    Rectangle {
+                        id: thumbRect
+                        objectName: "scrollbarThumb"
+                        z: 1
+                        x: 0
+                        y: scrollbar.computedThumbY
+                        width: parent.width
+                        height: scrollbar.thumbHeight
+                        radius: width / 2
+
+                        readonly property bool isHovered: thumbMouse.containsMouse
+                        readonly property bool isDragging: thumbMouse.isDragging
+
+                        color: Theme.dark ? "#a1a1aa" : "#9ca3af"
+                        opacity: (isHovered || isDragging) ? 0.9 : 0.6
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150 }
+                        }
+
+                        MouseArea {
+                            id: thumbMouse
+                            objectName: "scrollbarThumbMouse"
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            property bool isDragging: false
+                            property real dragStartMouseTrackY: 0
+                            property real dragStartContentY: 0
+
+                            onPressed: function(mouse) {
+                                isDragging = true;
+                                dragStartMouseTrackY = mapToItem(scrollbarTrack, 0, mouse.y).y;
+                                dragStartContentY = outlineList.contentY;
+                            }
+                            onPositionChanged: function(mouse) {
+                                if (isDragging) {
+                                    let currentTrackY = mapToItem(scrollbarTrack, 0, mouse.y).y;
+                                    let deltaY = currentTrackY - dragStartMouseTrackY;
+                                    scrollbar.scrollByThumbDelta(deltaY, dragStartContentY);
+                                }
+                            }
+                            onReleased: {
+                                isDragging = false;
+                            }
+                            onCanceled: {
+                                isDragging = false;
                             }
                         }
                     }
