@@ -832,7 +832,7 @@ smart_font_rep::advance (string s, int& pos, string& r, int& nr) {
       else {
         int end= pos;
         tm_char_forwards (s, end);
-        string current_c= s (pos, end);
+        string current_c= (pos == 0 && end == s_N) ? s : s (pos, end);
 
         int fn_index= cht[current_c];
         if (fn_index == -1) {
@@ -853,7 +853,7 @@ smart_font_rep::advance (string s, int& pos, string& r, int& nr) {
       }
       count++;
     }
-    r= s (start, pos);
+    r= (start == 0 && pos == s_N) ? s : s (start, pos);
     if (nr < 0) return;
     maybe_initialize_font (nr);
     if (sm->fn_rewr[nr] != REWRITE_NONE) r= rewrite (r, sm->fn_rewr[nr]);

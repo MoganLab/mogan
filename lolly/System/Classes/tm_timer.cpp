@@ -49,3 +49,10 @@ texmacs_time () {
   tb_gettimeofday (&tp, tb_null);
   return ((time_t) ((tp.tv_sec * 1000) + (tp.tv_usec / 1000))) - start_time;
 }
+
+time_t
+texmacs_time_us () {
+  tb_timeval_t tp= {0};
+  tb_gettimeofday (&tp, tb_null);
+  return ((time_t) tp.tv_sec) * 1000000 + tp.tv_usec;
+}

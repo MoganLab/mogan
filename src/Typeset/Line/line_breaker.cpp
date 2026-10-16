@@ -60,15 +60,15 @@ struct line_breaker_rep {
   SI                     first_spc;
   SI                     last_spc;
   int                    pass;
-  array<lb_info>         atom_best;
+  array<lb_info_rep>     atom_best;
   hashmap<path, lb_info> best;
 
   line_breaker_rep (array<line_item> a, int start, int end, SI line_width,
                     SI large_width, SI first_spc, SI last_spc);
 
-  inline lb_info get_lb_info (path pos) {
+  inline lb_info_rep& get_lb_info_ref (path pos) {
     if (is_atom (pos) && pos->item <= end) return atom_best[pos->item];
-    return best (pos);
+    return *best (pos).rep;
   }
 
   void        empty_line_fix (line_item& first, path& pos, int& cur_nr);
@@ -266,14 +266,14 @@ line_breaker_rep::compute_ragged_breaks () {
 void
 line_breaker_rep::test_better (path new_pos, path old_pos, int pen,
                                PEN pen_spc) {
-  lb_info cur= get_lb_info (new_pos);
+  lb_info_rep& cur= get_lb_info_ref (new_pos);
   // cout << "Test " << new_pos << " vs " << old_pos
-  //      << ", " << pen << " vs " << cur->pen
-  //      << ", " << pen_spc << " vs " << cur->pen_spc << "\n";
-  if ((pen < cur->pen) || ((pen == cur->pen) && (pen_spc < cur->pen_spc))) {
-    cur->prev   = old_pos;
-    cur->pen    = pen;
-    cur->pen_spc= min (pen_spc, (PEN) 1000000000);
+  //      << ", " << pen << " vs " << cur.pen
+  //      << ", " << pen_spc << " vs " << cur.pen_spc << "\n";
+  if ((pen < cur.pen) || ((pen == cur.pen) && (pen_spc < cur.pen_spc))) {
+    cur.prev   = old_pos;
+    cur.pen    = pen;
+    cur.pen_spc= min (pen_spc, (PEN) 1000000000);
     // cout << "  Better\n";
   }
 }
@@ -286,34 +286,34 @@ square (PEN i) {
 bool
 line_breaker_rep::propose_break (path new_pos, path old_pos, int pen,
                                  space spc) {
-  lb_info cur= get_lb_info (old_pos);
+  lb_info_rep& cur= get_lb_info_ref (old_pos);
 
   if ((spc->min <= line_width) &&
       ((spc->max >= line_width) || (new_pos->item == end))) {
     SI d= max (line_width - spc->def, spc->def - line_width);
     if (new_pos->item == end) d= 0;
-    test_better (new_pos, old_pos, min (HYPH_INVALID, cur->pen + pen),
-                 cur->pen_spc + (cur->pen == HYPH_INVALID
-                                     ? ((PEN) 0)
-                                     : square ((PEN) (d / PIXEL))));
+    test_better (new_pos, old_pos, min (HYPH_INVALID, cur.pen + pen),
+                 cur.pen_spc + (cur.pen == HYPH_INVALID
+                                    ? ((PEN) 0)
+                                    : square ((PEN) (d / PIXEL))));
   }
 
   if (pass == 2) {
     if (spc->max < line_width)
       test_better (new_pos, old_pos, HYPH_INVALID,
-                   (cur->pen == HYPH_INVALID ? cur->pen_spc : ((PEN) 0)) +
+                   (cur.pen == HYPH_INVALID ? cur.pen_spc : ((PEN) 0)) +
                        square ((PEN) ((line_width - spc->max) / PIXEL)) +
                        (new_pos->item == old_pos->item
                             ? square ((PEN) (line_width / PIXEL))
                             : ((PEN) 0)));
     else if (spc->min > large_width)
       test_better (new_pos, old_pos, HYPH_INVALID,
-                   (cur->pen == HYPH_INVALID ? cur->pen_spc : ((PEN) 0)) +
+                   (cur.pen == HYPH_INVALID ? cur.pen_spc : ((PEN) 0)) +
                        square ((PEN) ((spc->min - line_width) / PIXEL)) +
                        square ((PEN) (4 * line_width / PIXEL)));
     else if (spc->min > line_width)
       test_better (new_pos, old_pos, HYPH_INVALID,
-                   (cur->pen == HYPH_INVALID ? cur->pen_spc : ((PEN) 0)) +
+                   (cur.pen == HYPH_INVALID ? cur.pen_spc : ((PEN) 0)) +
                        square ((PEN) ((spc->min - line_width) / PIXEL)) +
                        (new_pos->item == old_pos->item
                             ? square ((PEN) (line_width / PIXEL))
@@ -391,7 +391,7 @@ line_breaker_rep::process (path pos) {
     spc= space (first->b->w ());
   }
 
-  if ((pass > 1) || (get_lb_info (pos)->pen < HYPH_INVALID)) {
+  if ((pass > 1) || (get_lb_info_ref (pos).pen < HYPH_INVALID)) {
     // cout << "Process " << pos << ": " << first << "\n";
     for (i= pos->item; i < end; i++) {
       line_item item= a[i];
@@ -431,15 +431,15 @@ line_breaker_rep::process (path pos) {
 void
 line_breaker_rep::get_breaks (array<path>& ap, path p) {
   if (is_nil (p)) return;
-  lb_info cur= get_lb_info (p);
-  get_breaks (ap, cur->prev);
+  lb_info_rep& cur= get_lb_info_ref (p);
+  get_breaks (ap, cur.prev);
   ap << p;
 }
 
 array<path>
 line_breaker_rep::compute_breaks () {
   int i;
-  atom_best= array<lb_info> (end + 1);
+  atom_best= array<lb_info_rep> (end + 1);
   test_better (path (start), path (), 0, 0);
 
   pass= 1;
@@ -447,7 +447,7 @@ line_breaker_rep::compute_breaks () {
     process (path (i));
 
   pass= 2;
-  if (get_lb_info (path (end))->pen == HYPH_INVALID)
+  if (get_lb_info_ref (path (end)).pen == HYPH_INVALID)
     for (i= start; i < end; i++)
       process (path (i));
 

@@ -14,6 +14,7 @@
 #include "cork.hpp"
 #include "formatter.hpp"
 #include "preferences.hpp"
+#include "tm_debug.hpp"
 #include <moebius/vars.hpp>
 
 using namespace moebius;
@@ -22,30 +23,10 @@ lazy make_lazy_vstream (edit_env env, tree t, path ip, tree channel);
 /******************************************************************************
  * Text Background color helper functions
  ******************************************************************************/
-static inline bool
-has_background_color (edit_env env) {
-  tree   bg_color_tree= env->read (TEXT_BG_COLOR);
-  string bg_color_str = as_string (bg_color_tree);
-  return (bg_color_tree != "" && bg_color_str != "white");
-}
-
-static inline string
-get_background_color_str (edit_env env) {
-  tree bg_color_tree= env->read (TEXT_BG_COLOR);
-  return as_string (bg_color_tree);
-}
-
-static inline color
-get_background_color (edit_env env) {
-  // 注意：调用此函数前应确保 has_background_color(env) 为 true
-  string bg_color_str= get_background_color_str (env);
-  return named_color (bg_color_str, env->alpha);
-}
-
 color
 get_env_bg_color (edit_env env) {
-  if (!has_background_color (env)) return rgb_color (0, 0, 0, 0);
-  return get_background_color (env);
+  if (!env->has_text_bg_color) return rgb_color (0, 0, 0, 0);
+  return env->text_bg_color;
 }
 
 static inline color
@@ -61,9 +42,8 @@ apply_alpha (color c, int alpha) {
  ******************************************************************************/
 box
 build_text_box (path ip, int pos, string s, edit_env env) {
-  if (has_background_color (env)) {
-    color bg_color= get_background_color (env);
-    return text_box_with_bg (ip, pos, s, env->fn, env->pen, bg_color,
+  if (env->has_text_bg_color) {
+    return text_box_with_bg (ip, pos, s, env->fn, env->pen, env->text_bg_color,
                              xkerning ());
   }
   else {

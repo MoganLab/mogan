@@ -31,6 +31,64 @@ void hyphenate (line_item item, int pos, line_item& item1, line_item& item2);
  * Constructor
  ******************************************************************************/
 
+static hashset<string> cjk_puncts_set;
+static hashset<string> cjk_left_annotation_puncts_set;
+static hashset<string> cjk_right_annotation_puncts_set;
+static hashset<string> cjk_right_adjustable_puncts_set;
+static bool            cjk_tables_initialized= false;
+
+static void
+init_cjk_tables () {
+  if (cjk_tables_initialized) return;
+  cjk_tables_initialized= true;
+
+  array<string> left_annotation_puncts;
+  left_annotation_puncts << string ("『") << string ("「") << string ("（")
+                         << string ("【") << string ("《") << string ("〈")
+                         << string ("“") << string ("‘");
+  for (string punct : left_annotation_puncts) {
+    cjk_left_annotation_puncts_set->insert (utf8_to_cork (punct));
+  }
+  cjk_left_annotation_puncts_set->insert ("<#2018>");
+  cjk_left_annotation_puncts_set->insert ("<#201C>");
+
+  array<string> right_annotation_puncts;
+  right_annotation_puncts << string ("』") << string ("」") << string ("）")
+                          << string ("】") << string ("》") << string ("〉")
+                          << string ("”") << string ("’");
+  for (string punct : right_annotation_puncts) {
+    cjk_right_annotation_puncts_set->insert (utf8_to_cork (punct));
+  }
+  cjk_right_annotation_puncts_set->insert ("<#2019>");
+  cjk_right_annotation_puncts_set->insert ("<#201D>");
+
+  array<string> right_adjustable_puncts;
+  right_adjustable_puncts << string ("。") << string ("，") << string ("：")
+                          << string ("；") << string ("！") << string ("？")
+                          << string ("、");
+  for (string punct : right_adjustable_puncts) {
+    cjk_right_adjustable_puncts_set->insert (utf8_to_cork (punct));
+  }
+
+  array<string> puncts;
+  puncts << string ("。") << string ("，") << string ("：") << string ("；")
+         << string ("！") << string ("？") << string ("、") << string ("～")
+         << string ("』") << string ("」") << string ("）") << string ("】")
+         << string ("》") << string ("〉");
+  puncts << string ("『") << string ("「") << string ("（") << string ("【")
+         << string ("《") << string ("〈");
+  puncts << string ("“") << string ("”");
+  puncts << string ("‘") << string ("’");
+
+  for (string punct : puncts) {
+    cjk_puncts_set->insert (utf8_to_cork (punct));
+  }
+  cjk_puncts_set->insert ("<#201C>");
+  cjk_puncts_set->insert ("<#201D>");
+  cjk_puncts_set->insert ("<#2018>");
+  cjk_puncts_set->insert ("<#2019>");
+}
+
 lazy_paragraph_rep::lazy_paragraph_rep (edit_env env2, path ip)
     : lazy_rep (LAZY_PARAGRAPH, ip), env (env2), style (""),
       sss (tm_new<stacker_rep> ()) {
@@ -111,11 +169,6 @@ lazy_paragraph_rep::lazy_paragraph_rep (edit_env env2, path ip)
   else if (is_double (ef)) expansion= as_double (ef);
   else expansion= 0.0;
 
-  // expansion= contraction= kstretch= kreduce= 0.0; // FIXME
-  // expansion= contraction= kreduce= 0.0; // FIXME
-  // contraction= kreduce= 0.0; // FIXME
-  // expansion= contraction= 0.0; // FIXME
-
   string sm= as_string (env->read (PAR_SPACING));
   if (sm == "plain")
     ;
@@ -124,54 +177,11 @@ lazy_paragraph_rep::lazy_paragraph_rep (edit_env env2, path ip)
   else if (sm == "hangmobanjiao") protrusion+= HANGMOBANJIAO;
   else if (sm == "kaiming") protrusion+= KAIMING;
 
-  init_decs= env->read (ATOM_DECORATIONS);
-
-  array<string> left_annotation_puncts= array<string> ();
-  left_annotation_puncts << string ("『") << string ("「") << string ("（")
-                         << string ("【") << string ("《") << string ("〈")
-                         << string ("“") << string ("‘");
-  for (string punct : left_annotation_puncts) {
-    // 左侧有调整空间的符号和左侧夹注符号，是同一个数据集
-    cjk_left_annotation_puncts->insert (utf8_to_cork (punct));
-  }
-  cjk_left_annotation_puncts->insert ("<#2018>");
-  cjk_left_annotation_puncts->insert ("<#201C>");
-
-  array<string> right_annotation_puncts= array<string> ();
-  right_annotation_puncts << string ("』") << string ("」") << string ("）")
-                          << string ("】") << string ("》") << string ("〉")
-                          << string ("”") << string ("’");
-  for (string punct : right_annotation_puncts) {
-    cjk_right_annotation_puncts->insert (utf8_to_cork (punct));
-  }
-  cjk_right_annotation_puncts->insert ("<#2019>");
-  cjk_right_annotation_puncts->insert ("<#201D>");
-
-  array<string> right_adjustable_puncts= array<string> ();
-  right_adjustable_puncts << string ("。") << string ("，") << string ("：")
-                          << string ("；") << string ("！") << string ("？")
-                          << string ("、");
-  for (string punct : right_adjustable_puncts) {
-    cjk_right_adjustable_puncts->insert (utf8_to_cork (punct));
-  }
-
-  array<string> puncts= array<string> ();
-  puncts << string ("。") << string ("，") << string ("：") << string ("；")
-         << string ("！") << string ("？") << string ("、") << string ("～")
-         << string ("』") << string ("」") << string ("）") << string ("】")
-         << string ("》") << string ("〉");
-  puncts << string ("『") << string ("「") << string ("（") << string ("【")
-         << string ("《") << string ("〈");
-  puncts << string ("“") << string ("”");
-  puncts << string ("‘") << string ("’");
-
-  for (string punct : puncts) {
-    cjk_puncts->insert (utf8_to_cork (punct));
-  }
-  cjk_puncts->insert ("<#201C>");
-  cjk_puncts->insert ("<#201D>");
-  cjk_puncts->insert ("<#2018>");
-  cjk_puncts->insert ("<#2019>");
+  init_decs            = env->read (ATOM_DECORATIONS);
+  line_has_cjk_text    = false;
+  line_has_cjk_puncts  = false;
+  line_has_non_cjk_text= false;
+  init_cjk_tables ();
 }
 
 lazy_paragraph_rep::~lazy_paragraph_rep () { tm_delete (sss); }
@@ -204,34 +214,6 @@ static bool
 is_cjk_language (language lan) {
   return lan->lan_name == "chinese" || lan->lan_name == "korean" ||
          lan->lan_name == "japanese" || lan->lan_name == "taiwanese";
-}
-
-bool
-lazy_paragraph_rep::is_cjk_puncts (line_item item) {
-  if (!is_text (item)) return false;
-  string text= item->b->get_leaf_string ();
-  return cjk_puncts->contains (text);
-}
-
-bool
-lazy_paragraph_rep::is_cjk_left_annotation_puncts (line_item item) {
-  if (!is_text (item)) return false;
-  string text= item->b->get_leaf_string ();
-  return cjk_left_annotation_puncts->contains (text);
-}
-
-bool
-lazy_paragraph_rep::is_cjk_right_annotation_puncts (line_item item) {
-  if (!is_text (item)) return false;
-  string text= item->b->get_leaf_string ();
-  return cjk_right_annotation_puncts->contains (text);
-}
-
-bool
-lazy_paragraph_rep::is_cjk_right_adjustable_puncts (line_item item) {
-  if (!is_text (item)) return false;
-  string text= item->b->get_leaf_string ();
-  return cjk_right_adjustable_puncts->contains (text);
 }
 
 void
@@ -276,13 +258,39 @@ lazy_paragraph_rep::line_print (line_item item) {
   items << item->b;
   spcs << item->spc;
   if (is_cjk_language (env->lan)) {
-    // cout << "line item: " << item << LF;
-    items_box << is_not_skip (item);
-    items_cjk_text << is_cjk_text (item);
-    items_cjk_puncts << is_cjk_puncts (item);
-    items_cjk_left_annotation_puncts << is_cjk_left_annotation_puncts (item);
-    items_cjk_right_annotation_puncts << is_cjk_right_annotation_puncts (item);
-    items_cjk_right_adjustable_puncts << is_cjk_right_adjustable_puncts (item);
+    bool not_skip= is_not_skip (item);
+    bool is_txt  = is_text (item);
+    bool cjk_txt = false;
+    bool cjk_p   = false;
+    bool cjk_la  = false;
+    bool cjk_ra  = false;
+    bool cjk_radj= false;
+
+    if (is_txt) {
+      string text= item->b->get_leaf_string ();
+      if (lolly::data::is_cjk_unified_ideographs (text) &&
+          (text != "<#3000>")) {
+        cjk_txt          = true;
+        line_has_cjk_text= true;
+      }
+      else if (cjk_puncts_set->contains (text)) {
+        cjk_p              = true;
+        cjk_la             = cjk_left_annotation_puncts_set->contains (text);
+        cjk_ra             = cjk_right_annotation_puncts_set->contains (text);
+        cjk_radj           = cjk_right_adjustable_puncts_set->contains (text);
+        line_has_cjk_puncts= true;
+      }
+      else {
+        line_has_non_cjk_text= true;
+      }
+    }
+
+    items_box << not_skip;
+    items_cjk_text << cjk_txt;
+    items_cjk_puncts << cjk_p;
+    items_cjk_left_annotation_puncts << cjk_la;
+    items_cjk_right_annotation_puncts << cjk_ra;
+    items_cjk_right_adjustable_puncts << cjk_radj;
   }
   item->b->x0= cur_w->def;
   item->b->y0= 0;
@@ -365,16 +373,43 @@ lazy_paragraph_rep::contract_kerning (int index, double factor, bool is_left) {
 }
 
 void
-lazy_paragraph_rep::adjust_consecutive_puncts () {
+lazy_paragraph_rep::compute_items_left_right () {
+  if (N (items_left) > 0) return;
   int items_N= N (items);
-  ASSERT (N (items) == N (items_cjk_puncts) &&
-              N (items) == N (items_cjk_left_annotation_puncts) &&
-              N (items) == N (items_cjk_right_annotation_puncts) &&
-              N (items) == N (items_cjk_right_adjustable_puncts) &&
-              N (items) == N (items_left) && N (items) == N (items_right) &&
-              N (items) == N (items_cjk_text),
-          "length of items must match")
+  int prev   = -1;
+  int now    = -1;
+  for (int i= cur_start; i < items_N; i++) {
+    if (items_box[i]) {
+      prev= now;
+      now = i;
+      items_left << prev;
+    }
+    else {
+      items_left << -1;
+    }
+  }
 
+  prev= -1;
+  now = -1;
+  array<int> tmp (items_N - cur_start);
+  for (int i= items_N - 1; i >= cur_start; i--) {
+    if (items_box[i]) {
+      prev              = now;
+      now               = i;
+      tmp[i - cur_start]= prev;
+    }
+    else {
+      tmp[i - cur_start]= -1;
+    }
+  }
+  for (int i= 0; i < items_N - cur_start; i++) {
+    items_right << tmp[i];
+  }
+}
+
+void
+lazy_paragraph_rep::adjust_consecutive_puncts () {
+  int  items_N           = N (items);
   bool no_cjk_puncts_flag= true;
   for (int i= cur_start; i < items_N; i++) {
     if (items_cjk_puncts[i]) {
@@ -383,6 +418,16 @@ lazy_paragraph_rep::adjust_consecutive_puncts () {
     }
   }
   if (no_cjk_puncts_flag) return;
+
+  compute_items_left_right ();
+
+  ASSERT (N (items) == N (items_cjk_puncts) &&
+              N (items) == N (items_cjk_left_annotation_puncts) &&
+              N (items) == N (items_cjk_right_annotation_puncts) &&
+              N (items) == N (items_cjk_right_adjustable_puncts) &&
+              N (items) == N (items_left) && N (items) == N (items_right) &&
+              N (items) == N (items_cjk_text),
+          "length of items must match")
 
   int first, last;
   find_first_last_text (first, last);
@@ -425,41 +470,7 @@ lazy_paragraph_rep::adjust_consecutive_puncts () {
 
 void
 lazy_paragraph_rep::cjk_auto_spacing () {
-  int prev   = -1;
-  int now    = -1;
-  int items_N= N (items);
-  for (int i= cur_start; i < items_N; i++) {
-    if (items_box[i]) {
-      prev= now;
-      now = i;
-      items_left << prev;
-    }
-    else {
-      items_left << -1;
-    }
-  }
-
-  prev          = -1;
-  now           = -1;
-  array<int> tmp= array<int> ();
-  for (int i= items_N - 1; i >= cur_start; i--) {
-    if (items_box[i]) {
-      prev= now;
-      now = i;
-      tmp << prev;
-    }
-    else {
-      tmp << -1;
-    }
-  }
-  for (int i= items_N - 1; i >= 0; i--) {
-    items_right << tmp[i];
-  }
-
-  ASSERT (N (items) == N (items_box) && N (items) == N (items_left) &&
-              N (items) == N (items_right) && N (items) == N (items_cjk_text),
-          "length of items must match")
-
+  int  items_N    = N (items);
   bool no_cjk_flag= true;
   for (int i= cur_start; i < items_N; i++) {
     if (items_cjk_text[i]) {
@@ -469,6 +480,12 @@ lazy_paragraph_rep::cjk_auto_spacing () {
   }
   if (no_cjk_flag) return;
 
+  compute_items_left_right ();
+
+  ASSERT (N (items) == N (items_box) && N (items) == N (items_left) &&
+              N (items) == N (items_right) && N (items) == N (items_cjk_text),
+          "length of items must match")
+
   int first, last;
   find_first_last_text (first, last);
 
@@ -476,10 +493,10 @@ lazy_paragraph_rep::cjk_auto_spacing () {
     if (i != last &&
         items_cjk_text[i]       // test if the current item is a cjk text box
         && items_right[i] != -1 // test if the right item is not empty
-        && is_text (a[items_right[i]]) // test if the right item is a text box
+        && items_box[items_right[i]]       // test if the right item is not skip
         && !items_cjk_text[items_right[i]] // test if the right item is not a
                                            // cjk text box
-        && !cjk_puncts->contains (a[items_right[i]]->b->get_leaf_string ())) {
+        && !items_cjk_puncts[items_right[i]]) {
       box b              = items[i];
       SI  auto_space_size= b->get_leaf_font ()->spc->def * 0.2;
       box nb             = b->right_auto_spacing (auto_space_size);
@@ -492,10 +509,10 @@ lazy_paragraph_rep::cjk_auto_spacing () {
     if (i != first &&
         items_cjk_text[i]      // test if the current item is a cjk text box
         && items_left[i] != -1 // test if the left item is not empty
-        && is_text (a[items_left[i]])     // test if the left item is a text box
+        && items_box[items_left[i]]       // test if the left item is not skip
         && !items_cjk_text[items_left[i]] // test if the left item is not a cjk
                                           // text box
-        && !cjk_puncts->contains (a[items_left[i]]->b->get_leaf_string ())) {
+        && !items_cjk_puncts[items_left[i]]) {
       box b              = items[i];
       SI  auto_space_size= b->get_leaf_font ()->spc->def * 0.2;
       box nb             = b->left_auto_spacing (auto_space_size);
@@ -705,8 +722,8 @@ lazy_paragraph_rep::make_unit (string mode, SI the_width, bool break_flag) {
   if (protrusion != 0) protrude (protrude_left, protrude_right);
 
   if (is_cjk_language (env->lan)) {
-    cjk_auto_spacing ();
-    adjust_consecutive_puncts ();
+    if (line_has_cjk_text && line_has_non_cjk_text) cjk_auto_spacing ();
+    if (line_has_cjk_puncts) adjust_consecutive_puncts ();
   }
 
   // stretching case
@@ -885,8 +902,11 @@ lazy_paragraph_rep::line_start () {
   fl                               = array<lazy> ();
   notes                            = array<line_item> ();
 
-  cur_r    = 0;
-  cur_start= 0;
+  line_has_cjk_text    = false;
+  line_has_cjk_puncts  = false;
+  line_has_non_cjk_text= false;
+  cur_r                = 0;
+  cur_start            = 0;
 }
 
 void
@@ -899,8 +919,12 @@ lazy_paragraph_rep::line_unit (path start, path end, bool break_flag,
   items_sp << (DI) m;
 
   SI the_width= the_right - the_left;
+  bench_start ("typeset: br/line_print");
   line_print (start, end);
+  bench_cumul ("typeset: br/line_print");
+  bench_start ("typeset: br/make_unit");
   make_unit (mode, the_width, break_flag);
+  bench_cumul ("typeset: br/make_unit");
 
   int i;
   cur_r= the_left + items_sp[n] - m;
@@ -911,7 +935,11 @@ lazy_paragraph_rep::line_unit (path start, path end, bool break_flag,
 
 void
 lazy_paragraph_rep::line_end (space spc, int penalty) {
-  if (N (items) == 0) return;
+  bench_start ("typeset: br/line_end");
+  if (N (items) == 0) {
+    bench_cumul ("typeset: br/line_end");
+    return;
+  }
   if (N (decs) == 0 || decs[0][1] == tree (DATOMS)) {
     tree dec= init_decs;
     if (N (dec) > 0) decs= ::append (tuple ("0", dec), decs);
@@ -935,6 +963,7 @@ lazy_paragraph_rep::line_end (space spc, int penalty) {
   sss->print (spc);
   sss->penalty (max (penalty, min_pen));
   sss->flush ();
+  bench_cumul ("typeset: br/line_end");
 }
 
 void
@@ -956,8 +985,10 @@ lazy_paragraph_rep::line_units (int start, int end, bool is_start, bool is_end,
   // FIXME: the factor 0.5 is somewhat arbitrary and should be taken small
   // enough so as to compensate for content that cannot be contracted
   // on the line such as whitespace, images, and other miscellaneous objects.
+  bench_start ("typeset: br/line_breaks");
   array<path> hyphs= line_breaks (a, start, end, line_width, large_width,
                                   the_first, the_last, ragged);
+  bench_cumul ("typeset: br/line_breaks");
   for (i= 0; i < N (hyphs) - 1; i++) {
     if (i > 0) line_start ();
     line_unit (hyphs[i], hyphs[i + 1], i == N (hyphs) - 2, mode,
@@ -1090,7 +1121,9 @@ typeset_stack (edit_env env, tree t, path ip, SI width, array<line_item> a,
   // cout << "Typeset stack " << t << "\n";
   lazy_paragraph par (env, ip);
   par->a= a;
+  bench_start ("typeset: br/concat");
   par->a << typeset_concat_or_table (env, t, ip);
+  bench_cumul ("typeset: br/concat");
   par->a << b;
   par->width= width;
   par->format_paragraph ();
@@ -1104,7 +1137,9 @@ typeset_stack (edit_env env, tree t, path ip, array<line_item> a,
   // cout << "Typeset stack " << t << "\n";
   lazy_paragraph par (env, ip);
   par->a= a;
+  bench_start ("typeset: br/concat");
   par->a << typeset_concat_or_table (env, t, ip);
+  bench_cumul ("typeset: br/concat");
   par->a << b;
   par->format_paragraph ();
   sb= par->sss->sb;

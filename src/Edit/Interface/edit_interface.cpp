@@ -65,7 +65,7 @@ edit_interface_rep::edit_interface_rep ()
       sh_mark (0), pre_edit_skip (false), pre_edit_s (""), pre_edit_mark (0),
       popup_win (), message_l (""), message_r (""), message_expire_time (0),
       last_l (""), last_r (""), menu_focus_path (), menu_need_save (false),
-      progressive_batch_size (50), zoomf (get_zoom (this, buf)),
+      progressive_batch_size (60), zoomf (get_zoom (this, buf)),
       magf (zoomf / std_shrinkf),
       pixel ((SI) tm_round ((std_shrinkf * PIXEL) / zoomf)),
       zpixel (max ((SI) tm_round (std_shrinkf * PIXEL), pixel)), copy_always (),
@@ -1208,15 +1208,16 @@ edit_interface_rep::apply_changes () {
     time_t t_slice_elapsed= texmacs_time () - t_slice_start;
     bench_end ("typeset " * b_name, 1000);
 
-    // Adaptive batch sizing based on single-slice duration
-    if (t_slice_elapsed < 25) {
-      progressive_batch_size= min (500, progressive_batch_size + 50);
+    // Adaptive batch sizing targeting br->typeset around 15~20 ms
+    // (t_slice_elapsed around 25~35 ms)
+    if (t_slice_elapsed < 20) {
+      progressive_batch_size= min (400, progressive_batch_size + 20);
     }
-    else if (t_slice_elapsed < 50) {
-      progressive_batch_size= min (500, progressive_batch_size + 25);
+    else if (t_slice_elapsed < 30) {
+      progressive_batch_size= min (400, progressive_batch_size + 10);
     }
-    else if (t_slice_elapsed > 75) {
-      progressive_batch_size= max (30, progressive_batch_size - 25);
+    else if (t_slice_elapsed > 40) {
+      progressive_batch_size= max (40, progressive_batch_size - 15);
     }
 
     DI ix1= max (vx1, x1 - 2 * pixel);
