@@ -27,17 +27,17 @@ jobs:
         with:
           install_scoop: 'true'
           buckets: main
-          apps: wget pandoc ghostscript dark
+          apps: pandoc ghostscript dark
           update_path: 'true'
       - name: Noto fonts
         shell: pwsh
         run: |
           mkdir D:\a\mogan\mogan\TeXmacs\fonts\opentype\noto
           cd D:\a\mogan\mogan\TeXmacs\fonts\opentype\noto
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Bold.ttc
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Regular.ttc
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Bold.ttc
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Regular.ttc
+          curl.exe -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Bold.ttc
+          curl.exe -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Regular.ttc
+          curl.exe -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Bold.ttc
+          curl.exe -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Regular.ttc
       - name: config
         run: xmake config --loro=yes --yes -vD -m release
       - name: build
@@ -47,7 +47,7 @@ jobs:
       - name: gs and pandoc
         run: |
           cp ~\scoop\apps\pandoc\current\pandoc.exe D:\a\mogan\mogan\build\packages\stem\data\bin
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/gs.exe
+          curl.exe -fsSLO https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/gs.exe
       # app-local CRT：stage 从 vc_redist.x64.exe 提取运行库 DLL 进 payload，
       # 不再使用 vpk --framework（避免 Setup.exe 在用户机器上从微软 CDN 下载）。
       # vc_redist.x64.exe 由 Qt 部署（windeployqt）在 xmake install 时从构建机
@@ -72,7 +72,7 @@ jobs:
       # beta full；stable 仅无 -rc 的 tag 打，基线向前找最近非 rc release 的
       # stable full。所有发布都标了 prerelease，releases/latest 接口拿不到，
       # 这里列出最近 100 个 release，排除 draft 和当前 tag（重跑同一 tag 时
-      # 避免把自己当基线），按通道各自向后遍历，wget 下载对应通道的 zip。
+      # 避免把自己当基线），按通道各自向后遍历，curl.exe 下载对应通道的 zip。
       # 压缩包分两种：新版每平台每通道各一个 zip（mogan-release-<ver>-
       # <platform>-<channel>.zip，按平台与通道名匹配归档——mac CD 会向同一
       # release 上传 osx-arm64 归档，nupkg 是平台专属的，不带平台段会抓错
@@ -132,7 +132,7 @@ jobs:
                   Select-Object -First 1
               }
               if ($zip) {
-                wget -q "$($zip.browser_download_url)" -O build/velopack_baseline.zip
+                curl.exe -fsSL "$($zip.browser_download_url)" -o build/velopack_baseline.zip
                 Expand-Archive -Path build/velopack_baseline.zip `
                   -DestinationPath build/velopack_baseline -Force
               } else {
@@ -142,8 +142,8 @@ jobs:
                   Where-Object { $_.name -like "*-$channel-full.nupkg" } |
                   Select-Object -First 1
                 if (-not $asset) { continue }
-                wget -q "$($asset.browser_download_url)" `
-                  -O "build/velopack_baseline/$($asset.name)"
+                curl.exe -fsSL "$($asset.browser_download_url)" `
+                  -o "build/velopack_baseline/$($asset.name)"
               }
               $full = Get-ChildItem build/velopack_baseline -Filter "*-$channel-full.nupkg" |
                 Select-Object -First 1
