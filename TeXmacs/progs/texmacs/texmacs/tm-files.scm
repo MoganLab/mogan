@@ -772,12 +772,26 @@
   (export-buffer-check-permissions name to fm opts)
 ) ;tm-define
 
-(tm-define (export-buffer to)
+;; 按目标后缀决定导出格式。latex / bibtex 等格式由插件的 lazy-format 登记，
+;; 而插件本身走 (delayed (:idle 10) (plugin-initialize ...))；-c 的转换命令在
+;; 启动后立即执行，此时插件尚未初始化，后缀表里没有 tex，url-format 返回
+;; "generic"，再退化成 verbatim——.tex 输出只剩纯文本（#2223）。GUI 菜单导出
+;; 不受影响，因为开窗建菜单时已 (lazy-initialize-force)。
+;; 后缀未知时先强制初始化插件再查一次，仍未知才退化为 verbatim。
+
+(tm-define (export-buffer-format to)
   (with fm
     (url-format to)
-    (if (== fm "generic") (set! fm "verbatim"))
-    (export-buffer-main (current-buffer) to fm (list :overwrite))
+    (when (== fm "generic")
+      (lazy-plugin-force)
+      (set! fm (url-format to))
+    ) ;when
+    (if (== fm "generic") "verbatim" fm)
   ) ;with
+) ;tm-define
+
+(tm-define (export-buffer to)
+  (export-buffer-main (current-buffer) to (export-buffer-format to) (list :overwrite))
 ) ;tm-define
 
 (tm-define (buffer-exporter fm)
