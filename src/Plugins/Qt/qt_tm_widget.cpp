@@ -981,40 +981,39 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
           }
         });
 
-    QObject::connect (
-        pdfOutlineDock, &OutlineWidget::outlineActivated,
-        [this] (const QString& target) {
-          if (pdfTabMode) {
-            if (pdfViewerWidget) {
-              bool ok;
-              int  page= target.toInt (&ok);
-              if (ok && page >= 0) pdfViewerWidget->goToPage (page);
-            }
-          }
-          else if (!startupTabMode && !chatTabMode) {
-            if (!target.isEmpty ()) {
-              url currentView= get_current_view_safe ();
-              if (!is_none (currentView)) {
-                send_keyboard_focus (abstract (this));
-                send_keyboard_focus (abstract (main_widget));
-              }
-              call ("outline-go-to", from_qstring_utf8 (target));
-              if (!is_none (currentView)) {
-                make_cursor_visible (currentView);
-                send_keyboard_focus (abstract (this));
-                send_keyboard_focus (abstract (main_widget));
-                if (canvas ()) {
-                  canvas ()->activateWindow ();
-                  canvas ()->setFocus (Qt::OtherFocusReason);
-                }
-                else if (!is_nil (main_widget) && main_widget->qwid) {
-                  main_widget->qwid->activateWindow ();
-                  main_widget->qwid->setFocus (Qt::OtherFocusReason);
-                }
-              }
-            }
-          }
-        });
+    QObject::connect (pdfOutlineDock, &OutlineWidget::outlineActivated,
+                      [this] (const QString& target) {
+                        auto send_focus= [this] {
+                          send_keyboard_focus (abstract (this));
+                          send_keyboard_focus (abstract (main_widget));
+                        };
+                        if (pdfTabMode) {
+                          if (pdfViewerWidget) {
+                            bool ok;
+                            int  page= target.toInt (&ok);
+                            if (ok && page >= 0)
+                              pdfViewerWidget->goToPage (page);
+                          }
+                        }
+                        else if (!startupTabMode && !chatTabMode) {
+                          if (!target.isEmpty ()) {
+                            url currentView= get_current_view_safe ();
+                            if (!is_none (currentView)) send_focus ();
+                            call ("outline-go-to", from_qstring_utf8 (target));
+                            if (!is_none (currentView)) {
+                              make_cursor_visible (currentView);
+                              send_focus ();
+                              QWidget* focus_widget= canvas ();
+                              if (!focus_widget && !is_nil (main_widget))
+                                focus_widget= main_widget->qwid;
+                              if (focus_widget) {
+                                focus_widget->activateWindow ();
+                                focus_widget->setFocus (Qt::OtherFocusReason);
+                              }
+                            }
+                          }
+                        }
+                      });
 
     // 文档区域右上角浮动新建对话按钮
     chatSidebarToggleBtn= new QPushButton (cw);
