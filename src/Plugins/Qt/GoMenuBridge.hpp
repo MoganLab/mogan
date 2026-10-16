@@ -11,6 +11,7 @@
 #define GO_MENU_BRIDGE_HPP
 
 #include <QObject>
+#include <QPointer>
 #include <QVariantMap>
 #include <QWidget>
 
@@ -31,11 +32,12 @@ public:
   QVariantMap meta () const { return m_meta; }
 
   Q_INVOKABLE void loadBuffer (const QString& url);
+  Q_INVOKABLE void openFile ();
   Q_INVOKABLE void closeMenu ();
 
 private:
-  QWidget*    m_host;
-  QVariantMap m_meta;
+  QPointer<QWidget> m_host;
+  QVariantMap       m_meta;
 
   void loadMeta ();
 };

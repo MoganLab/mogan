@@ -253,6 +253,7 @@ class GoMenuStubBridge : public QObject {
 public:
   explicit GoMenuStubBridge (QObject* p= nullptr) : QObject (p) {
     m_meta["label_recent"]= QString ("Recent");
+    m_meta["label_open"]  = QString ("Open file");
 
     QVariantList recs;
     QVariantMap  r1;
@@ -279,6 +280,7 @@ public:
   }
   QVariantMap      meta () const { return m_meta; }
   Q_INVOKABLE void loadBuffer (const QString&) {}
+  Q_INVOKABLE void openFile () {}
   Q_INVOKABLE void closeMenu () {}
 
 private:
@@ -1225,6 +1227,16 @@ TestQmlLoad::test_bibliography_loads () {
   QCOMPARE (qw->status (), QQuickWidget::Ready);
 }
 
+static QList<QQuickItem*>
+collect_items_by_name (QQuickItem* root, const QString& name) {
+  QList<QQuickItem*> out;
+  if (!root) return out;
+  if (root->objectName () == name) out << root;
+  for (QQuickItem* child : root->childItems ())
+    out << collect_items_by_name (child, name);
+  return out;
+}
+
 void
 TestQmlLoad::test_go_menu_loads () {
   QDialog          host;
@@ -1237,16 +1249,10 @@ TestQmlLoad::test_go_menu_loads () {
   qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
   QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 50.0);
-}
-
-static QList<QQuickItem*>
-collect_items_by_name (QQuickItem* root, const QString& name) {
-  QList<QQuickItem*> out;
-  if (!root) return out;
-  if (root->objectName () == name) out << root;
-  for (QQuickItem* child : root->childItems ())
-    out << collect_items_by_name (child, name);
-  return out;
+  QCOMPARE (qw->rootObject ()->property ("menuWidth").toDouble (), 360.0);
+  QList<QQuickItem*> openItems=
+      collect_items_by_name (qw->rootObject (), "goMenuOpenItem");
+  QCOMPARE (openItems.size (), 1);
 }
 
 void

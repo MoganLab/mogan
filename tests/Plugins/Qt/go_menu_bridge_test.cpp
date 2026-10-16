@@ -22,6 +22,7 @@ private slots:
 
   void test_bridge_meta_defaults ();
   void test_bridge_actions ();
+  void test_open_file_defers_menu_deletion ();
 };
 
 void
@@ -31,6 +32,7 @@ TestGoMenuBridge::test_bridge_meta_defaults () {
   QVariantMap  meta= bridge.meta ();
 
   QVERIFY (meta.contains ("label_recent"));
+  QVERIFY (meta.contains ("label_open"));
   QVERIFY (meta.contains ("recent"));
 }
 
@@ -42,6 +44,28 @@ TestGoMenuBridge::test_bridge_actions () {
   // 验证各 invokable 方法能安全调用且不崩溃
   bridge.loadBuffer ("");
   bridge.closeMenu ();
+
+  qputenv ("MOGAN_TEST_OPEN_FILE", "cancel");
+  bridge.openFile ();
+  qunsetenv ("MOGAN_TEST_OPEN_FILE");
+}
+
+void
+TestGoMenuBridge::test_open_file_defers_menu_deletion () {
+  auto* host= new QWidget ();
+  host->setAttribute (Qt::WA_DeleteOnClose);
+  host->show ();
+  QPointer<QWidget> guard (host);
+  auto*             bridge= new GoMenuBridge (host);
+
+  qputenv ("MOGAN_TEST_OPEN_FILE", "event-loop-cancel");
+  bridge->openFile ();
+  qunsetenv ("MOGAN_TEST_OPEN_FILE");
+
+  // 对话框的嵌套事件循环返回后，QML 回调退出前菜单仍须存活。
+  QVERIFY (!guard.isNull ());
+  QCoreApplication::sendPostedEvents (nullptr, QEvent::DeferredDelete);
+  QVERIFY (guard.isNull ());
 }
 
 #ifdef QTTEXMACS
