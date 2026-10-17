@@ -22,7 +22,15 @@
 
 (define legacy-user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.scm")
 
+;; 迁移标记文件名不能含 '>'（Windows 文件名禁止），否则标记永远写不出来，
+;; 每次启动都重复导入 shortcuts.scm（同 #4466 的 recent-files 问题）。
+;; 旧标记在 macOS/Linux 上已落盘，继续识别。
+
 (define user-shortcuts-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/shortcuts.scm.migrated-v1"
+) ;define
+
+(define legacy-user-shortcuts-migration-marker-v1
   "$TEXMACS_HOME_PATH/system/shortcuts.scm->v1"
 ) ;define
 
@@ -188,6 +196,7 @@
 (define (maybe-import-legacy-scm-user-shortcuts)
   (when (and (url-exists? legacy-user-shortcuts-file)
           (not (url-exists? user-shortcuts-migration-marker-v1))
+          (not (url-exists? legacy-user-shortcuts-migration-marker-v1))
         ) ;and
     (and-with legacy-shortcuts
       (load-legacy-scm-user-shortcuts)
