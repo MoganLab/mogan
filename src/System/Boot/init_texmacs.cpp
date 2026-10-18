@@ -823,17 +823,37 @@ TeXmacs_main (int argc, char** argv) {
                           scm_quote (as_string (out)) * "))";
           }
           else {
-            // Default conversion: load the input buffer, then export
-            my_init_cmds= my_init_cmds * " " * "(load-buffer " *
-                          scm_quote (as_string (in)) * " :strict) ";
             if (out_suffix == "pdf") {
               // pdf export additionally expands screens into slides
-              my_init_cmds= my_init_cmds * "(export-buffer-to-pdf " *
+              my_init_cmds= my_init_cmds * " (load-buffer " *
+                            scm_quote (as_string (in)) * " :strict) " *
+                            "(export-buffer-to-pdf " *
                             scm_quote (as_string (out)) * ")";
             }
             else {
-              my_init_cmds= my_init_cmds * "(export-buffer " *
-                            scm_quote (as_string (out)) * ")";
+              // In headless mode there is no active view, so export-buffer
+              // cannot safely use current-buffer after load-buffer.  Load and
+              // export the buffer addressed by the input URL explicitly.
+              // Formats such as latex are only registered once their plugin is
+              // loaded, and the output file usually does not exist yet, so
+              // force the plugins first and take the target format from the
+              // suffix; url-format would answer "generic" and drop the markup.
+              my_init_cmds=
+                  my_init_cmds * " " *
+                  "(let* ((dummy (lazy-plugin-force)) (source (system->url " *
+                  scm_quote (as_string (in)) * ")) " *
+                  "       (target (system->url " * scm_quote (as_string (out)) *
+                  ")) " * "       (source-format (url-format source)) " *
+                  "       (target-format (format-from-suffix (url-suffix "
+                  "target)))) " *
+                  "  (plugin-initialize (string->symbol source-format)) " *
+                  "  (plugin-initialize (string->symbol target-format)) " *
+                  "  (if (buffer-load source) " *
+                  "      (display* \"TeXmacs] Could not load \" " *
+                  "(url->system source) \"\\n\") " *
+                  "      (when (buffer-export source target target-format) " *
+                  "        (display* \"TeXmacs] Could not export \" " *
+                  "(url->system target) \"\\n\"))))";
             }
           }
           // -c 默认隐含 -q：转换完成后自动退出
